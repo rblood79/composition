@@ -14,6 +14,7 @@ import type { CSSProperties } from "react";
 import {
   catalogTokenVarName,
   resolveToken,
+  ruleLengthCss,
   type TokenRef,
 } from "@composition/rendering";
 import { catalogResolvedTokenRef } from "../resolution/resolver";
@@ -101,17 +102,31 @@ export function catalogDeviceControlCss(
   style: CSSProperties,
   visual: Readonly<Record<string, unknown>>,
 ): void {
+  catalogDeviceSpacingCss(style, visual);
   // A square of the control height (a NumberField stepper — `--nf-btn-size`) or of an S2 icon step
   //   (a Button's · Disclosure trigger's Icon — Phase 3b): its sides.
   for (const key of ["width", "height"] as const) {
     const sideRef = catalogResolvedTokenRef(visual, key);
-    // A field button's square stays desktop px: its start margin and the Input's end room (other keys,
-    //   other records) are inline px of the same square — the device forms of margin · padding are
-    //   Phase 3c-3's, and a square grown alone would overhang the field's end (2026-10-30 live).
-    if (sideRef?.startsWith("{size.field-button.")) continue;
     const side = sideRef ? catalogDeviceLength(sideRef) : undefined;
     if (side && resolveToken(sideRef as TokenRef) === px(style[key]))
       style[key] = side;
+  }
+  // ADR-295 Phase 3c-3: a field button's square (`{size.field-button.<S>}`) sits over the input's end by
+  //   its start margin = −(square) − inset (the field rule's `--*-btn-offset`); the margin follows the
+  //   square on the device set, as the input's room (`{length.size.field-button.<S>*1/1+N}`) does.
+  const squareRef = catalogResolvedTokenRef(visual, "width");
+  const square = squareRef?.startsWith("{size.field-button.")
+    ? resolveToken(squareRef as TokenRef)
+    : undefined;
+  const margin = px(style.marginLeft);
+  if (
+    typeof square === "number" &&
+    margin !== undefined &&
+    margin < 0 &&
+    typeof style.width === "string"
+  ) {
+    const inset = -margin - square;
+    style.marginLeft = `calc(0px - ${style.width} - ${inset}px)`;
   }
   const ref = catalogResolvedTokenRef(visual, "minHeight");
   const size = ref ? SIZE_HEIGHT_REF.exec(ref)?.[1] : undefined;
@@ -142,6 +157,39 @@ export function catalogDeviceControlCss(
 }
 
 const CATALOG_SIZE_HEIGHT_VAR = "--catalog-token-size-height-";
+
+/** The inline properties of a record's relative length keys (`catalogBoxModel` · `catalogDomStyle`). */
+const RELATIVE_LENGTH_PROPERTIES = {
+  paddingX: ["paddingLeft", "paddingRight"],
+  paddingLeft: ["paddingLeft"],
+  paddingRight: ["paddingRight"],
+  gap: ["rowGap", "columnGap"],
+} as const;
+
+/**
+ * ADR-295 Phase 3c-3 — a padding · gap the resolver read from a rule's relative form (`{length.…}` — S2
+ * `edge-to-text` · `pill` · `text-to-visual` · `text-to-control`) goes inline as the form's formula over
+ * the device variables, while the inline px is still that form's installed value — a side the box model
+ * changed (an authored padding, a field button's room) keeps its px.
+ */
+function catalogDeviceSpacingCss(
+  style: CSSProperties,
+  visual: Readonly<Record<string, unknown>>,
+): void {
+  const inline = style as Record<string, unknown>;
+  for (const [key, properties] of Object.entries(RELATIVE_LENGTH_PROPERTIES)) {
+    const ref = catalogResolvedTokenRef(visual, key);
+    if (!ref?.startsWith("{length.")) continue;
+    const value = resolveToken(ref as TokenRef);
+    const css = ruleLengthCss(ref);
+    if (typeof value !== "number" || !css || visual[key] !== value) continue;
+    for (const property of properties) {
+      const current = px(inline[property]);
+      if (current !== undefined && Math.abs(current - value) < 1e-3)
+        inline[property] = css;
+    }
+  }
+}
 
 /**
  * ADR-295 Phase 3b · 3c — a glyph's icon square follows the device set: when the record's `iconSize` is

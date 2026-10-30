@@ -1106,10 +1106,10 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     // (ADR-253: one DateSegment definition — the DateInput rule's — for every date field: no
     // italic, the field font.)
     expect(paint.placeholder.fontStyle).toBeUndefined();
-    // `mm` 20 + 2×2 padding, then `/`.
+    // `mm` 20 + 2×2 padding, then `/` (the box's start: S2 `edge-to-text` 40 × 3/8 = 15 — ADR-295 Phase 3c-3).
     expect(paint.runs.slice(0, 2).map(({ text, x }) => [text, x])).toEqual([
-      ["mm", 16 + 1 + 2],
-      ["/", 16 + 1 + 24],
+      ["mm", 15 + 1 + 2],
+      ["/", 15 + 1 + 24],
     ]);
     const shapes = catalogRuleShapes({
       node: input.derivedProps

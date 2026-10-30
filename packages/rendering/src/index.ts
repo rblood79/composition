@@ -211,6 +211,15 @@ export {
   catalogTokenVarName,
   withCatalogTokenVars,
   s2ControlPaddingY,
+  ofHeight,
+  em,
+  ruleLengthRef,
+  parseRuleLengthRef,
+  ruleLengthCss,
+  ruleSizeLengthRef,
+  ruleSizeLengthRefs,
+  defineRuleLengthForms,
+  DEVICE_TOUCH_REF,
   resolveContainerVariants,
   matchNestedSelector,
   isSupportedNestedSelector,
@@ -243,6 +252,7 @@ export {
 export type { SkiaPresentationMaterializationContext } from "./renderers";
 export type { S2Device } from "./primitives";
 export type { TextSourceKey } from "./renderers";
+export type { RuleLengthForm } from "./renderers";
 
 export type {
   ResolvedContainerVariants,

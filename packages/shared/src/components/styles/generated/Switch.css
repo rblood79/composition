@@ -31,7 +31,7 @@
   padding: 4px 0px;
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-full);
-  gap: 10px;
+  gap: var(--catalog-token-switch-gap-M, calc(var(--catalog-token-text-sm) * 10 / 14));
 }
 
 .react-aria-Switch[data-variant="default"] {
@@ -65,7 +65,7 @@
   padding: 4px 0px;
   font-size: var(--catalog-token-text-xs);
   border-radius: var(--catalog-token-radius-full);
-  gap: 8px;
+  gap: var(--catalog-token-switch-gap-S, calc(var(--catalog-token-text-xs) * 10 / 14));
 }
 
 .react-aria-Switch[data-size="M"] {
@@ -73,7 +73,7 @@
   padding: 4px 0px;
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-full);
-  gap: 10px;
+  gap: var(--catalog-token-switch-gap-M, calc(var(--catalog-token-text-sm) * 10 / 14));
 }
 
 .react-aria-Switch[data-size="L"] {
@@ -81,7 +81,7 @@
   padding: 4px 0px;
   font-size: var(--catalog-token-text-base);
   border-radius: var(--catalog-token-radius-full);
-  gap: 12px;
+  gap: var(--catalog-token-switch-gap-L, calc(var(--catalog-token-text-base) * 10 / 14));
 }
 
 .react-aria-Switch[data-size="XL"] {
@@ -89,7 +89,7 @@
   padding: 4px 0px;
   font-size: var(--catalog-token-text-lg);
   border-radius: var(--catalog-token-radius-full);
-  gap: 14px;
+  gap: var(--catalog-token-switch-gap-XL, calc(var(--catalog-token-text-lg) * 10 / 14));
 }
 
 .react-aria-Switch[data-focus-visible] {
@@ -106,19 +106,19 @@
 /* ── Tier 2: Composite Delegation ── */
 
 .react-aria-Switch[data-size="S"] {
-  --sw-button-gap: 8px;
+  --sw-button-gap: var(--catalog-token-switch-gap-S, calc(var(--catalog-token-text-xs) * 10 / 14));
 }
 
 .react-aria-Switch[data-size="M"] {
-  --sw-button-gap: 10px;
+  --sw-button-gap: var(--catalog-token-switch-gap-M, calc(var(--catalog-token-text-sm) * 10 / 14));
 }
 
 .react-aria-Switch[data-size="L"] {
-  --sw-button-gap: 12px;
+  --sw-button-gap: var(--catalog-token-switch-gap-L, calc(var(--catalog-token-text-base) * 10 / 14));
 }
 
 .react-aria-Switch[data-size="XL"] {
-  --sw-button-gap: 14px;
+  --sw-button-gap: var(--catalog-token-switch-gap-XL, calc(var(--catalog-token-text-lg) * 10 / 14));
 }
 
 

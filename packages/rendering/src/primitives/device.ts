@@ -104,6 +104,10 @@ export function s2SizeTokens(scale: number): Record<string, number> {
       px * scale,
     ]),
     ["bar.min-width", S2_BAR_MIN_WIDTH * scale],
+    // ADR-295 Phase 3c-3: `{size.device.touch}` — 1 in the touch set (the scale above desktop's), the flag
+    //   a relative length's touch coefficient reads (S2 `text-to-visual` 8/17 em). DOM
+    //   `--catalog-token-size-device-touch`.
+    ["device.touch", scale > S2_DEVICE.desktop.scale ? 1 : 0],
   ]);
 }
 

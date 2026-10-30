@@ -17,6 +17,7 @@
 import type { ComponentSpec, DelegationSpec } from "../types/spec.types";
 import { type TokenRef, isValidTokenRef } from "../types/token.types";
 import { tokenToCSSVar } from "../renderers/utils/tokenResolver";
+import { lengthPinVar, ruleLengthCss } from "../renderers/utils/ruleLength";
 
 type SizeBucket = {
   paddingX?: number;
@@ -76,7 +77,14 @@ export function deriveAutoDelegationVariables<Props>(
         : `${fontSize}px`;
     }
     if (keys.has("gap") && (gap ?? 0) > 0) {
-      vars[`--${prefix}-gap`] = `${gap}px`;
+      // ADR-295 Phase 3c-3: a relative gap (`em` — S2 `text-to-control`) is its formula behind the
+      //   component's pin, as the size block's own `gap`.
+      const ref = (bucket.lengthRefs as Record<string, string> | undefined)
+        ?.gap;
+      const css = ref ? ruleLengthCss(ref) : undefined;
+      vars[`--${prefix}-gap`] = css
+        ? `var(${lengthPinVar(spec.name, "gap", sizeName)}, ${css})`
+        : `${gap}px`;
     }
     if (keys.has("radius") && borderRadius !== undefined) {
       vars[`--${prefix}-radius`] = isTokenRef(borderRadius)

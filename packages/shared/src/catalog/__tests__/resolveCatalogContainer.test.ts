@@ -90,7 +90,7 @@ describe("resolveCatalogSizeField (Δ4 size-value 단일 진입)", () => {
   it("Checkbox gap (md) → catalog sizes.M.gap", () => {
     const g = resolveCatalogSizeField("Checkbox", "M", "gap");
     expect(typeof g).toBe("number");
-    expect(g).toBe(8); // INDICATOR_SIZES.M.gap mirror 와 byte 일치
+    expect(g).toBe(10); // ADR-295 Phase 3c-3: S2 `text-to-control` — 글자 14 × 10/14
   });
 
   it("unknown type/field → undefined", () => {

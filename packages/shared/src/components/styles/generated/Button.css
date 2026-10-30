@@ -32,16 +32,16 @@
   --button-border: var(--fg);
 
   /* Default size */
-  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-thin)) / 2) 12px;
+  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-button-padding-x-M, calc(var(--catalog-token-size-height-M) * 1 / 2));
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-full);
   line-height: var(--catalog-token-text-sm--line-height);
   font-weight: 500;
   border-width: var(--border-width-thin);
   min-height: var(--catalog-token-size-height-M);
-  gap: 8px;
+  gap: var(--catalog-token-button-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-button-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
-  --icon-gap: 8px;
+  --icon-gap: var(--catalog-token-button-icon-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
 }
 
 .react-aria-Button[data-variant="accent"] {
@@ -138,68 +138,68 @@
 }
 
 .react-aria-Button[data-size="XS"] {
-  padding: calc((var(--catalog-token-size-height-XS) - var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height) - 2 * var(--border-width-thin)) / 2) 4px;
+  padding: calc((var(--catalog-token-size-height-XS) - var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-button-padding-x-XS, calc(var(--catalog-token-size-height-XS) * 1 / 2));
   font-size: var(--catalog-token-text-2xs);
   border-radius: var(--catalog-token-radius-full);
   line-height: var(--catalog-token-text-2xs--line-height);
   font-weight: 500;
   border-width: var(--border-width-thin);
   min-height: var(--catalog-token-size-height-XS);
-  gap: 4px;
+  gap: var(--catalog-token-button-gap-XS, calc(var(--catalog-token-text-2xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-button-icon-size-XS, calc(var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height)));
-  --icon-gap: 4px;
+  --icon-gap: var(--catalog-token-button-icon-gap-XS, calc(var(--catalog-token-text-2xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
 }
 
 .react-aria-Button[data-size="S"] {
-  padding: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--border-width-thin)) / 2) 8px;
+  padding: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-button-padding-x-S, calc(var(--catalog-token-size-height-S) * 1 / 2));
   font-size: var(--catalog-token-text-xs);
   border-radius: var(--catalog-token-radius-full);
   line-height: var(--catalog-token-text-xs--line-height);
   font-weight: 500;
   border-width: var(--border-width-thin);
   min-height: var(--catalog-token-size-height-S);
-  gap: 6px;
+  gap: var(--catalog-token-button-gap-S, calc(var(--catalog-token-text-xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-button-icon-size-S, calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)));
-  --icon-gap: 6px;
+  --icon-gap: var(--catalog-token-button-icon-gap-S, calc(var(--catalog-token-text-xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
 }
 
 .react-aria-Button[data-size="M"] {
-  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-thin)) / 2) 12px;
+  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-button-padding-x-M, calc(var(--catalog-token-size-height-M) * 1 / 2));
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-full);
   line-height: var(--catalog-token-text-sm--line-height);
   font-weight: 500;
   border-width: var(--border-width-thin);
   min-height: var(--catalog-token-size-height-M);
-  gap: 8px;
+  gap: var(--catalog-token-button-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-button-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
-  --icon-gap: 8px;
+  --icon-gap: var(--catalog-token-button-icon-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
 }
 
 .react-aria-Button[data-size="L"] {
-  padding: calc((var(--catalog-token-size-height-L) - var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height) - 2 * var(--border-width-thin)) / 2) 16px;
+  padding: calc((var(--catalog-token-size-height-L) - var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-button-padding-x-L, calc(var(--catalog-token-size-height-L) * 1 / 2));
   font-size: var(--catalog-token-text-base);
   border-radius: var(--catalog-token-radius-full);
   line-height: var(--catalog-token-text-base--line-height);
   font-weight: 500;
   border-width: var(--border-width-thin);
   min-height: var(--catalog-token-size-height-L);
-  gap: 10px;
+  gap: var(--catalog-token-button-gap-L, calc(var(--catalog-token-text-base) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-button-icon-size-L, calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)));
-  --icon-gap: 10px;
+  --icon-gap: var(--catalog-token-button-icon-gap-L, calc(var(--catalog-token-text-base) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
 }
 
 .react-aria-Button[data-size="XL"] {
-  padding: calc((var(--catalog-token-size-height-XL) - var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height) - 2 * var(--border-width-thin)) / 2) 24px;
+  padding: calc((var(--catalog-token-size-height-XL) - var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-button-padding-x-XL, calc(var(--catalog-token-size-height-XL) * 1 / 2));
   font-size: var(--catalog-token-text-lg);
   border-radius: var(--catalog-token-radius-full);
   line-height: var(--catalog-token-text-lg--line-height);
   font-weight: 500;
   border-width: var(--border-width-thin);
   min-height: var(--catalog-token-size-height-XL);
-  gap: 12px;
+  gap: var(--catalog-token-button-gap-XL, calc(var(--catalog-token-text-lg) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-button-icon-size-XL, calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)));
-  --icon-gap: 12px;
+  --icon-gap: var(--catalog-token-button-icon-gap-XL, calc(var(--catalog-token-text-lg) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
 }
 
 .react-aria-Button[data-focus-visible] {

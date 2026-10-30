@@ -76,24 +76,26 @@ const EXPECTED: Record<
   // ADR-295 Phase 3c-2b: the indicator is S2 `controlSize('sm')` (14 · 16 · 18 · 20) — now shorter than
   //   the Label line (16 · 18 · 20 · 22), so the row is the line and the box sits centred in it
   //   (y 1); the Switch track is font × 26 / 14 wide. label x = indicator + gap.
+  // ADR-295 Phase 3c-3: the gap is S2 `text-to-control` (font × 10 / 14) and the Checkbox · Radio font one
+  //   step down (S2 12 · 14 · 16 · 18).
   Checkbox: {
-    S: { box: [14, 14], height: 16, labelX: 20, labelY: 0, indicatorY: 1 },
-    M: { box: [16, 16], height: 18, labelX: 24, labelY: 0, indicatorY: 1 },
-    L: { box: [18, 18], height: 20, labelX: 28, labelY: 0, indicatorY: 1 },
-    XL: { box: [20, 20], height: 22, labelX: 32, labelY: 0, indicatorY: 1 },
+    S: { box: [14, 14], height: 16, labelX: 14 + (12 * 10) / 14, labelY: 0, indicatorY: 1 },
+    M: { box: [16, 16], height: 18, labelX: 16 + (14 * 10) / 14, labelY: 0, indicatorY: 1 },
+    L: { box: [18, 18], height: 20, labelX: 18 + (16 * 10) / 14, labelY: 0, indicatorY: 1 },
+    XL: { box: [20, 20], height: 22, labelX: 20 + (18 * 10) / 14, labelY: 0, indicatorY: 1 },
   },
   RadioGroup: {
-    S: { box: [14, 14], height: 16, labelX: 20, labelY: 0, indicatorY: 1 },
-    M: { box: [16, 16], height: 18, labelX: 24, labelY: 0, indicatorY: 1 },
-    L: { box: [18, 18], height: 20, labelX: 28, labelY: 0, indicatorY: 1 },
-    XL: { box: [20, 20], height: 22, labelX: 32, labelY: 0, indicatorY: 1 },
+    S: { box: [14, 14], height: 16, labelX: 14 + (12 * 10) / 14, labelY: 0, indicatorY: 1 },
+    M: { box: [16, 16], height: 18, labelX: 16 + (14 * 10) / 14, labelY: 0, indicatorY: 1 },
+    L: { box: [18, 18], height: 20, labelX: 18 + (16 * 10) / 14, labelY: 0, indicatorY: 1 },
+    XL: { box: [20, 20], height: 22, labelX: 20 + (18 * 10) / 14, labelY: 0, indicatorY: 1 },
   },
   Switch: {
     // (paddingY 4 above and below the row)
-    S: { box: [12 * 26 / 14, 14], height: 24, labelX: 12 * 26 / 14 + 8, labelY: 4, indicatorY: 5 },
-    M: { box: [26, 16], height: 26, labelX: 36, labelY: 4, indicatorY: 5 },
-    L: { box: [16 * 26 / 14, 18], height: 28, labelX: 16 * 26 / 14 + 12, labelY: 4, indicatorY: 5 },
-    XL: { box: [18 * 26 / 14, 20], height: 30, labelX: 18 * 26 / 14 + 14, labelY: 4, indicatorY: 5 },
+    S: { box: [12 * 26 / 14, 14], height: 24, labelX: 12 * 26 / 14 + (12 * 10) / 14, labelY: 4, indicatorY: 5 },
+    M: { box: [26, 16], height: 26, labelX: 26 + 10, labelY: 4, indicatorY: 5 },
+    L: { box: [16 * 26 / 14, 18], height: 28, labelX: 16 * 26 / 14 + (16 * 10) / 14, labelY: 4, indicatorY: 5 },
+    XL: { box: [18 * 26 / 14, 20], height: 30, labelX: 18 * 26 / 14 + (18 * 10) / 14, labelY: 4, indicatorY: 5 },
   },
 };
 

@@ -51,11 +51,12 @@ describe("useLayoutValues", () => {
     expect(result.current?.paddingLeft).toBe("8px"); // inline wins
   });
 
-  // (ADR-295 Phase 3: the block padding is the S2 centring padding — M 6.)
-  it("falls back to the record's effective value (as px) when inline absent — Button md padding 6 / 12", async () => {
+  // (ADR-295 Phase 3: the block padding is the S2 centring padding — M 6; Phase 3c-3: the inline padding is
+  //   S2 `pill` — 32 / 2 = 16.)
+  it("falls back to the record's effective value (as px) when inline absent — Button md padding 6 / 16", async () => {
     const { result } = hookOf(fixture, useLayoutValues, "el-1");
     expect(result.current?.paddingTop).toBe("6px");
-    expect(result.current?.paddingRight).toBe("12px");
+    expect(result.current?.paddingRight).toBe("16px");
     expect(result.current?.justifyContent).toBe("center");
   });
 
@@ -145,11 +146,11 @@ describe("useLayoutValues — ADR-082 P1-2 padding/margin shorthand 4-way unifor
     expect(result.current?.paddingLeft).toBe("4px");
   });
 
-  it("4-way 비균일 (Button 6 / 12) → shorthand 는 '0px' 기본값 유지 (회귀 방지)", async () => {
+  it("4-way 비균일 (Button 6 / 16) → shorthand 는 '0px' 기본값 유지 (회귀 방지)", async () => {
     const { result } = hookOf(fixture, useLayoutValues, "el-nonuniform");
     expect(result.current?.padding).toBe("0px");
     expect(result.current?.paddingTop).toBe("6px");
-    expect(result.current?.paddingLeft).toBe("12px");
+    expect(result.current?.paddingLeft).toBe("16px");
   });
 
   it("record 에 padding 이 없으면 0 — TextField 루트는 자식 Input 의 size padding 12 를 받지 않는다 (2026-10-09)", async () => {

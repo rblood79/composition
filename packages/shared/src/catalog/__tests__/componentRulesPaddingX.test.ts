@@ -85,13 +85,14 @@ describe("ADR-912 — componentRulesTable paddingX 데이터 갭 회귀 방지",
     }
   });
 
-  it("Button parity — paddingX xs:4 / sm:8 / md:12 / lg:16 / xl:24 보존", () => {
+  // ADR-295 Phase 3c-3: S2 `pill` — the control height / 2 (20 · 24 · 32 · 40 · 48 → 10 · 12 · 16 · 20 · 24).
+  it("Button parity — paddingX = 높이 / 2 (xs 10 / sm 12 / md 16 / lg 20 / xl 24)", () => {
     const button = COMPONENT_RULES_TABLE.Button;
     const expected: Record<string, number> = {
-      XS: 4,
-      S: 8,
-      M: 12,
-      L: 16,
+      XS: 10,
+      S: 12,
+      M: 16,
+      L: 20,
       XL: 24,
     };
     for (const [size, val] of Object.entries(expected)) {

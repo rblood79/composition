@@ -18,31 +18,31 @@
   display: flex;
 
   /* Default size */
-  font-size: var(--catalog-token-text-base);
+  font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
   gap: 6px;
 }
 
 .react-aria-DateField[data-size="S"] {
-  font-size: var(--catalog-token-text-sm);
+  font-size: var(--catalog-token-text-xs);
   border-radius: var(--catalog-token-radius-none);
   gap: 4px;
 }
 
 .react-aria-DateField[data-size="M"] {
-  font-size: var(--catalog-token-text-base);
+  font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
   gap: 6px;
 }
 
 .react-aria-DateField[data-size="L"] {
-  font-size: var(--catalog-token-text-lg);
+  font-size: var(--catalog-token-text-base);
   border-radius: var(--catalog-token-radius-none);
   gap: 8px;
 }
 
 .react-aria-DateField[data-size="XL"] {
-  font-size: var(--catalog-token-text-xl);
+  font-size: var(--catalog-token-text-lg);
   border-radius: var(--catalog-token-radius-none);
   gap: 10px;
 }

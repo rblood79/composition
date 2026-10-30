@@ -430,7 +430,6 @@ size 키: XS 35 · S 102 · M 130 · L 101 · XL 58 · XXL 3.
 - **`paletteBaseCanvas` 은퇴** (사용자 삭제 승인 2026-10-30): `apps/builder/tests/adr248-g3/paletteBaseCanvas.browser.test.ts` 삭제 — ADR-248 G0 의 frozen 옛 Canvas PNG 와 비교해 295 뒤로는 항상 FAIL 이었다 (§6.0). ADR-248 증거 (`248-phase3-palette-base-canvas.json` · PNG 폴더 · `adr248-g3-old-defect-ledger.mjs`) 는 완료 ADR 이 인용해 남긴다. `.codex/tests/workflow.test.mjs` 의 G3 config 선택 예시는 `propAxisCanvasDom` 경로로. 이후 G3 회귀 목록은 `propAxisCanvasDom` 의 기존 실패만.
 - **숨은 사본 (`collectionItemMetrics`)** (worktree 에이전트 `a86bfe0d0` + 사용자 삭제 승인 2026-10-30): 화면에 쓰이던 손 사본은 GridList 카드의 label ↔ description 간격 하나 — `gridlist_card` 가 rule `GridListItem.sizes.*.gap` 을 읽는다 (값 2 그대로, 원복 RED: 사본 값 고정 → 새 단언 `38 ≠ 42` FAIL). rule 과 이미 갈린 나머지 사본 (ListBoxItem paddingY 4 ↔ rule 7 · GridListItem padding 16 · 12 / radius 8 / border 1 ↔ rule 12 · 8 / none / none — §6.0 의 「radius 12 · 8 · 8」) 은 테스트 전용 resolver (`resolveListBoxSpacingMetric` · `resolveGridListSpacingMetric`) 만 읽어 화면에 닿지 않았다 → 함수와 테스트 파일 2 개 (`ListBox.spacing.test.ts` · `GridList.spacing.test.ts`) 삭제, rendering index 의 소비처 0 re-export 20 삭제, `style-ssot.md` §8 인용 정정. rendering 105 파일 · 1,279 pass · G2 263/263 (에이전트 실행) · `docs:stale-symbols` 0.
 
-
 ### 6.8 Phase 3c-2b (2026-10-30, toggle 표시 상자)
 
 **S2 실측 (설치본 1.8.1)**: Checkbox `box` = `controlSize('sm')` · 테두리 2 · `controlBorderRadius('sm')` (4 · 4 · 5 · 5). Radio `circle` = `controlSize('sm')` · 선택 테두리 `calc((self(height) − (4 / 16) * 1rem) / 2)` (흰 점 4, rem 이라 터치도 4). Switch `track` = 높이 `controlSize('sm')` · 폭 `fontRelative(26)` (26 / 14 em) · 테두리 2, `handle` = 높이 full 을 perspective 로 줄여 끔 track − 8 · 켬 track − 6, 켬 위치는 `translateX(trackWidth − 100% − 4px)` (끝에서 3). `bar()` = minWidth 48 · maxWidth 768 (Meter · ProgressBar).
@@ -439,14 +438,14 @@ size 키: XS 35 · S 102 · M 130 · L 101 · XL 58 · XXL 3.
 
 **변경**:
 
-| 영역 | 파일 | 내용 |
-| --- | --- | --- |
-| rule | `componentRulesTable.ts` | Checkbox `indicator {boxSize: {size.height-sm.<S>}, boxRadius: 4 · 4 · 5 · 5}` · Radio `{boxSize: 토큰, dotSize: 4}` · Switch `{trackHeight: 토큰, trackWidthEm: 26/14, thumbInset: 4, thumbInsetSelected: 3}` + 셋의 `rootSelectors` (상수 한 묶음에서 rule 값과 DOM 선택자를 같이 만든다). Meter `minWidth {size.bar.min-width}` · `maxWidth 768` |
-| 타입 | `catalog-style.types.ts` · rendering `spec.types.ts` | indicator 의 토큰 · em · inset 필드, `IndicatorSpec.thumbSizeSelected` · `thumbOffsetSelected` |
-| Canvas | `rulePartRules.ts` (`catalogToggleIndicatorMetrics` — 설치 맵으로 px) · `ruleShapes.ts` (toggle primitive 에 풀린 indicator) · `skiaPrimitives.ts` (Switch 켬 thumb 크기 · 끝 여백) · `manualBoxRules.ts` (그룹 항목 최소 높이 = 토큰) | indicator 노드 상자 (part rule) 와 primitive 가 같은 함수 |
-| DOM | 생성 `Checkbox.css` · `Radio.css` · `Switch.css` · `Meter.css` | 상자 = `var(--catalog-token-size-height-sm-<S>)`, Switch 폭 = `calc(var(--catalog-token-text-*) * 26 / 14)` |
-| 빌더 고정 | `builder-catalog-pins.css` · 게이트 (c) | Meter 새 선언을 초기값 (`auto` · `none`) 으로 — (c) 는 초기값으로 고정한 새 min · max 폭을 효과 없음으로 읽는다 |
-| G4 | 추출기 `barMaxWidth` · oracle (그 키만 추가) · `d3S2Alignment` | rule 의 형 (토큰 · 글자 × em) 을 두 기기 맵으로 푼 값 = S2 probe computed (Checkbox · Radio · Switch 상자 · Switch 폭 0.05 안) · Checkbox 모서리 · 막대 폭 |
+| 영역      | 파일                                                                                                                                                                                                                                   | 내용                                                                                                                                                                                                                                                                                                                                                |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| rule      | `componentRulesTable.ts`                                                                                                                                                                                                               | Checkbox `indicator {boxSize: {size.height-sm.<S>}, boxRadius: 4 · 4 · 5 · 5}` · Radio `{boxSize: 토큰, dotSize: 4}` · Switch `{trackHeight: 토큰, trackWidthEm: 26/14, thumbInset: 4, thumbInsetSelected: 3}` + 셋의 `rootSelectors` (상수 한 묶음에서 rule 값과 DOM 선택자를 같이 만든다). Meter `minWidth {size.bar.min-width}` · `maxWidth 768` |
+| 타입      | `catalog-style.types.ts` · rendering `spec.types.ts`                                                                                                                                                                                   | indicator 의 토큰 · em · inset 필드, `IndicatorSpec.thumbSizeSelected` · `thumbOffsetSelected`                                                                                                                                                                                                                                                      |
+| Canvas    | `rulePartRules.ts` (`catalogToggleIndicatorMetrics` — 설치 맵으로 px) · `ruleShapes.ts` (toggle primitive 에 풀린 indicator) · `skiaPrimitives.ts` (Switch 켬 thumb 크기 · 끝 여백) · `manualBoxRules.ts` (그룹 항목 최소 높이 = 토큰) | indicator 노드 상자 (part rule) 와 primitive 가 같은 함수                                                                                                                                                                                                                                                                                           |
+| DOM       | 생성 `Checkbox.css` · `Radio.css` · `Switch.css` · `Meter.css`                                                                                                                                                                         | 상자 = `var(--catalog-token-size-height-sm-<S>)`, Switch 폭 = `calc(var(--catalog-token-text-*) * 26 / 14)`                                                                                                                                                                                                                                         |
+| 빌더 고정 | `builder-catalog-pins.css` · 게이트 (c)                                                                                                                                                                                                | Meter 새 선언을 초기값 (`auto` · `none`) 으로 — (c) 는 초기값으로 고정한 새 min · max 폭을 효과 없음으로 읽는다                                                                                                                                                                                                                                     |
+| G4        | 추출기 `barMaxWidth` · oracle (그 키만 추가) · `d3S2Alignment`                                                                                                                                                                         | rule 의 형 (토큰 · 글자 × em) 을 두 기기 맵으로 푼 값 = S2 probe computed (Checkbox · Radio · Switch 상자 · Switch 폭 0.05 안) · Checkbox 모서리 · 막대 폭                                                                                                                                                                                          |
 
 **원복 RED**: Switch em 26/14 → 28/14 → G4 1 FAIL · 생성 Checkbox 선택자 제거 → G2 Checkbox · CheckboxGroup 전 size FAIL (복원 cmp 일치).
 
@@ -459,6 +458,35 @@ size 키: XS 35 · S 102 · M 130 · L 101 · XL 58 · XXL 3.
 **live 측정 함정 (기록)**: 팔레트 클릭은 선택된 요소 안에 넣는다 — 첫 시도에서 Radio 가 Switch · Checkbox 안에 들어가 Switch 의 `[data-selected] .indicator` 칠이 Radio 고리를 검게 칠했다 (이 phase 와 무관). 각 삽입 전에 body 를 고른다.
 
 **3c-3 로 넘긴 것**: toggle 의 라벨 gap (S2 `text-to-control` 10 / 14 em) · 글자 매핑 (Checkbox · Radio 글자가 S2 보다 한 단 위 — G4 c) · Checkbox 체크 글리프 크기 (S2 는 한 단 작은 ui-icon, 우리는 상자 비례 — 두 consumer 같음).
+
+### 6.9 Phase 3c-3a (2026-10-31, 여백 · 간격의 값의 형)
+
+> **분할 (실행 판단 — 사후 보고)**: 3c-3 을 둘로 나눈다 — 3c-3a 는 값의 형 (`ofHeight` · `em` · `touch`) 과 높이가 이미 토큰인 가족 (Button · ToggleButton · Tag · Input · DateInput · toggle 3 종) + Checkbox · Radio · DateField 글자 매핑 + field 버튼의 터치 식 (3c-2a 에서 넘긴 것), 3c-3b 는 Badge (높이 토큰 없음) · Select 트리거의 터치 식 · SearchField · 남은 리터럴의 `INTENTIONAL_LITERAL` 분류.
+
+**값의 형 구현**: rule 은 Decision 3 의 형을 그대로 쓴다 — `ofHeight(1, 2)` (S2 `pill`) · `ofHeight(3, 8)` (`edge-to-text`) · `em(6, 14, [8, 17])` (`text-to-visual`, 터치 계수 override) · `em(10, 14)` (`text-to-control`). 형마다 길이 ref 하나 `{length.<기준 토큰>*a/b[~c/d][±px]}` (기준 = 그 size 블록의 `{size.height.<S>}` · `{typography.text-*}`) 를 모든 소비자가 읽는다.
+
+| 소비자                          | 읽는 법                                                                                                                                                                                                                                                                               |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Canvas · 엔진 · 패널 (숫자)     | 표가 로드될 때 `defineRuleLengthForms` 가 형 자리를 getter 로 바꾼다 — 설치된 맵 (Canvas 는 desktop, G2 터치 arm 은 터치 벌) 의 `resolveToken`. 숫자를 읽는 기존 소비처 (`typeof size.paddingX === "number"` …) 는 그대로 — 문자열 · 객체로 바꾸면 그 검사가 기본값으로 조용히 빠진다 |
+| 생성 CSS                        | `var(<컴포넌트 고정 변수>, <식>)` — 식은 기기 변수 위 (`calc(var(--catalog-token-size-height-M) * 1 / 2)`, 터치 계수는 `--catalog-token-size-device-touch` (단위 없는 0 · 1) 로 섞는다). 고정 변수는 빌더 root 만 선언 (295 전 px — 3b 아이콘과 같은 길)                              |
+| library · resolver · DOM inline | 정의 (`ruleDefinition` box · `codeCatalogLibrary` button 계열 · part rule 의 delegation `gap` · 패딩 변) 가 ref 를 token 값으로 → resolver 가 출처를 기억 (`catalogResolvedTokenRef`) → `catalogDeviceControlCss` 가 아직 그 값인 inline px 를 같은 식으로                            |
+
+field 버튼 (ComboBox · DatePicker · DateRangePicker): 정사각형 `{size.field-button.<S>}` · 입력칸 끝 공간 `{length.size.field-button.<S>*1/1+N}` · 시작 offset (정사각형 − 안쪽 여백 — DOM 이 정사각형 변수에서 다시 만든다) 이 함께 기기 식. 끝 공간의 상수 4 · 8 · 12 · 16 · 24 (옛 Input 여백) 는 그대로 — S2 ComboBox 끝 여백 (4 · 5.5) 과의 대조는 3c-3b.
+
+**값 (desktop · 터치 = S2 probe)**: Button 여백 10 · 12 · 16 · 20 · 24 (터치 × 1.25) · 간격 4.71 · 5.14 · 6 · 6.86 · 7.71 (터치 8/17 em — M 8) · ToggleButton 여백 7.5 · 9 · 12 · 15 · 18 · field 입력 상자 (Input · DateInput) 여백 같은 값 · Tag 같은 값 · Checkbox · Radio · Switch 라벨 간격 글자 × 10/14 (M 10, 터치 12.14) · Checkbox · Radio · DateField 글자 S2 한 단 아래 (12 · 14 · 16 · 18). Select 트리거 시작 여백 = S2 Picker `edge-to-text` (Select delegation `--select-btn-pad-start` 7.5 · 9 · 12 · 15 · 18 — Button 의 `pill` 을 받지 않게, desktop px · 터치 식은 3c-3b).
+
+**빌더 고정**: 빌더가 싣는 생성 시트 4 (ToggleButton · Input · DateInput · DateField) 의 새 변수 · 글자는 `builder-catalog-vars.css` (고정 변수 25 · 터치 flag 0) · `builder-catalog-pins.css` (DateField 글자 · Select `--select-btn-pad-start: 0`). Select 트리거의 새 `padding-left` 는 빌더에서 builder-system layer (`form-controls.css` `padding: 0`) 가 이기는 자리라 게이트 (c) 가 그 한 키만 0 으로 허용.
+
+**게이트**: G4 `d3S2Alignment` 「3c-3」 — 형을 두 기기 토큰 표로 푼 값 (resolveToken 아님) = S2 probe (Button · ActionButton · TextField · DateField · TagGroup · Checkbox · Switch, 0.02 안) + 글자 매핑. RadioGroup 의 probe `rootGap` 12 는 그룹 간격이라 Radio 라벨 간격 행은 없다. codemod `apps/builder/scripts/adr295-spacing-forms-codemod.mjs` (표 한 장 → rule 리터럴 교체, 1회).
+
+**원복 RED**: 터치 계수 제거 (`em(6, 14)`) → G4 1 FAIL (Button S 터치 간격 S2 7.06) · Button `ofHeight(3, 8)` → G4 1 FAIL · DOM 기기 식 (`catalogDeviceSpacingCss`) 끔 → G2 터치 arm 55 FAIL (Button · Card · Checkbox · Switch · Menu …). 복원 cmp 일치.
+
+**G2 두 arm**: desktop 263/263 · touch 263/263 (3c-2a 의 field 버튼 터치 사각도 이번에 잡혀 고쳤다 — 14 FAIL → 0).
+
+**회귀**: type-check PASS · rendering 1,279 · shared 2,049 · builder unit (chromeIsland 1 — 기존 · `phase4eG5LeafScope` 시간 초과 재실행 PASS). 값 단언 갱신 11 파일 (Button 여백 · 간격, field 상자 여백, toggle 라벨 x, Select 트리거 시작, Checkbox 글자).
+
+**live (Chrome MCP, 5175 · `adr295-live`)**: 팔레트 Button · Switch 를 body 에. Canvas: Button 여백 16 · 간격 6 (라벨 x 17 = 16 + 테두리) · Switch 라벨 x 36 (track 26 + 10) · Input 여백 12. Preview desktop: Button 75.59 (Canvas 75.58) · 여백 16 · 간격 6 · Switch 간격 10 · Input 12 — inline 은 기기 식. 「터치 크기로 미리보기」: Button 여백 20 · 간격 8 · Switch 간격 12.14 · Input 15 (S2 probe 20 · 8 · 12.14 · 15). 빌더 root: `--catalog-token-input-padding-x-M` 12 · `--catalog-token-toggle-button-gap-M` 8 · 터치 flag 0 (295 전). 콘솔 오류 0. 두 요소는 삭제 명령으로 지움.
+
 - G1 before/after: §6.1
 - G2 두 arm: §6.2 · Phase 3a §6.3 · Phase 3b §6.4
 - G4 (b) 최종 snapshot (preset 5 × 델타) · (c) 컴포넌트별 desktop/touch vs S2 computed: §6.4 (c 의 padding · gap 은 3c)

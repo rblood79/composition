@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-10-31 ADR-295 Phase 3c-3a** — 여백 · 간격 = S2 의 값의 형: Button 여백 높이 / 2 (M 16) · ToggleButton · Tag · field 입력 상자 높이 × 3/8 (M 12) · 아이콘-글자 간격 글자 × 6/14 (터치 8/17) · toggle 라벨 간격 글자 × 10/14 · Checkbox · Radio · DateField 글자 한 단 아래 · field 버튼 터치 식. 형 하나를 Canvas (설치 맵 숫자) · 생성 CSS (기기 변수 식, 빌더는 고정 변수) · DOM inline (기억한 출처) 이 같이 읽는다. G4 · 원복 RED 3 · G2 두 arm 263/263. live: Preview Button 여백 16 → 터치 20 · 간격 6 → 8 · Switch 라벨 간격 10 → 12.14 · 빌더 root 295 전 값. breakdown §6.9.
+
 > **2026-10-30 ADR-295 Phase 3c-2b · 3d 정리** — toggle 표시 상자 = S2: Checkbox · Radio · Switch 상자 `{size.height-sm.<S>}` (14 · 16 · 18 · 20, 터치 × 1.25) · Checkbox 모서리 4 · 4 · 5 · 5 · Radio 흰 점 4 · Switch track 폭 글자 × 26 / 14 · thumb 안쪽 4 (선택 3). Canvas 는 `catalogToggleIndicatorMetrics`, DOM 은 rule 선택자 → 생성 시트 (수동 시트는 빌더 chrome 몫). Meter 폭 48 · 768 (빌더는 고정 시트 초기값). G4 (S2 probe 두 벌) · 원복 RED 2 · G2 263/263. live: Canvas · Preview desktop 16 · 26×16 · 터치 20 · 31.57×20 · 빌더 chrome 295 전 값. 3d: `paletteBaseCanvas` 은퇴 · 숨은 사본 삭제 (사용자 승인). breakdown §6.7 · §6.8.
 
 > **2026-10-30 ADR-295 Phase 3c-2a** — S2 크기 족 3 (`controlSize('sm')` · field 버튼 16 · 20 · 24 · 32 · 막대 최소 폭 48, 터치 × 1.25). TextField · SearchField 최소 폭 삭제 · ProgressBar 최소 폭 · field 버튼 상자 토큰 · ListBoxItem = S2 menuitem (위아래 7 · 테두리 0). 빌더 위젯은 고정 시트 (`builder-catalog-pins.css`) 로 295 전 값 — 게이트 (c) · (d). G4 · 원복 RED · G2 263/263. live: Preview 버튼 20 · 메뉴 항목 50 · 터치 60 · 빌더 최소 폭 45. toggle indicator 는 3c-2b. breakdown §6.6.

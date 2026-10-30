@@ -28,9 +28,9 @@
   /* Default size */
   height: auto;
   padding: 0px 0px;
-  font-size: var(--catalog-token-text-base);
+  font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
-  gap: 8px;
+  gap: var(--catalog-token-checkbox-gap-M, calc(var(--catalog-token-text-sm) * 10 / 14));
 }
 
 .react-aria-Checkbox[data-variant="default"] {
@@ -62,33 +62,33 @@
 .react-aria-Checkbox[data-size="S"] {
   height: auto;
   padding: 0px 0px;
-  font-size: var(--catalog-token-text-sm);
+  font-size: var(--catalog-token-text-xs);
   border-radius: var(--catalog-token-radius-none);
-  gap: 6px;
+  gap: var(--catalog-token-checkbox-gap-S, calc(var(--catalog-token-text-xs) * 10 / 14));
 }
 
 .react-aria-Checkbox[data-size="M"] {
   height: auto;
   padding: 0px 0px;
-  font-size: var(--catalog-token-text-base);
+  font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
-  gap: 8px;
+  gap: var(--catalog-token-checkbox-gap-M, calc(var(--catalog-token-text-sm) * 10 / 14));
 }
 
 .react-aria-Checkbox[data-size="L"] {
   height: auto;
   padding: 0px 0px;
-  font-size: var(--catalog-token-text-lg);
+  font-size: var(--catalog-token-text-base);
   border-radius: var(--catalog-token-radius-none);
-  gap: 10px;
+  gap: var(--catalog-token-checkbox-gap-L, calc(var(--catalog-token-text-base) * 10 / 14));
 }
 
 .react-aria-Checkbox[data-size="XL"] {
   height: auto;
   padding: 0px 0px;
-  font-size: var(--catalog-token-text-xl);
+  font-size: var(--catalog-token-text-lg);
   border-radius: var(--catalog-token-radius-none);
-  gap: 12px;
+  gap: var(--catalog-token-checkbox-gap-XL, calc(var(--catalog-token-text-lg) * 10 / 14));
 }
 
 .react-aria-Checkbox[data-focus-visible] {
@@ -105,19 +105,19 @@
 /* ── Tier 2: Composite Delegation ── */
 
 .react-aria-Checkbox[data-size="S"] {
-  --cb-button-gap: 6px;
+  --cb-button-gap: var(--catalog-token-checkbox-gap-S, calc(var(--catalog-token-text-xs) * 10 / 14));
 }
 
 .react-aria-Checkbox[data-size="M"] {
-  --cb-button-gap: 8px;
+  --cb-button-gap: var(--catalog-token-checkbox-gap-M, calc(var(--catalog-token-text-sm) * 10 / 14));
 }
 
 .react-aria-Checkbox[data-size="L"] {
-  --cb-button-gap: 10px;
+  --cb-button-gap: var(--catalog-token-checkbox-gap-L, calc(var(--catalog-token-text-base) * 10 / 14));
 }
 
 .react-aria-Checkbox[data-size="XL"] {
-  --cb-button-gap: 12px;
+  --cb-button-gap: var(--catalog-token-checkbox-gap-XL, calc(var(--catalog-token-text-lg) * 10 / 14));
 }
 
 

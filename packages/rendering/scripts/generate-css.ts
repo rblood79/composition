@@ -8,6 +8,7 @@
 
 import { catalogStateStylesheet } from "../../shared/src/catalog/runtime/stateStyles";
 import { generateCSS, isArchetypeId } from "../src/renderers/CSSGenerator";
+import { ruleSizeLengthRefs } from "../src/renderers/utils/ruleLength";
 import type { ComponentVisualRule } from "../src/renderers/utils/resolveComponentVisual";
 import type {
   ArchetypeId,
@@ -247,6 +248,9 @@ function ruleSizeToSizeSpec(
     ...(s.indicator !== undefined
       ? { indicator: s.indicator as SizeSpec["indicator"] }
       : {}),
+    // ADR-295 Phase 3c-3: the block's relative lengths (`ofHeight` · `em`) — the copy above holds their
+    //   desktop px, the generator writes the formula.
+    ...(ruleSizeLengthRefs(s) ? { lengthRefs: ruleSizeLengthRefs(s) } : {}),
   } as SizeSpec;
 }
 

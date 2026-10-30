@@ -12,8 +12,10 @@
 import { describe, expect, it } from "vitest";
 import {
   borderWidth,
+  parseRuleLengthRef,
   radius,
   resolveToken,
+  ruleSizeLengthRef,
   S2_BAR_MIN_WIDTH,
   S2_CONTROL_HEIGHT,
   S2_CONTROL_HEIGHT_SM,
@@ -283,6 +285,76 @@ describe("ADR-295 G4 (c) — 컴포넌트 값 = S2 computed", () => {
       for (const size of Object.values(rules[type]!.sizes)) {
         expect(size.minWidth, type).toBe("{size.bar.min-width}");
         expect(size.maxWidth, type).toBe(oracle.tokens.barMaxWidth);
+      }
+  });
+
+  it("3c-3 — 여백 · 간격의 형 (두 벌) = S2 computed: `edge-to-text` · `pill` · `text-to-visual` · `text-to-control`, toggle · DateField 글자", () => {
+    // A size block's relative form (its length ref — base token × ratio, the touch ratio on the touch set)
+    //   under each device's maps, read here from the token tables (not `resolveToken`), = the S2 probe.
+    const typography = (fontBase: number) =>
+      s2TypographyTokens(fontBase) as unknown as Record<string, number>;
+    const formPx = (
+      type: string,
+      size: string,
+      key: string,
+      device: "desktop" | "touch",
+    ): number => {
+      const block = rules[type]!.sizes[size]!;
+      const ref = ruleSizeLengthRef(block, key);
+      expect(ref, `${type} ${size} ${key} is a form`).toBeDefined();
+      const parts = parseRuleLengthRef(ref!)!;
+      const { scale, fontBase } = S2_DEVICE[device];
+      const name = parts.base.slice(1, -1);
+      const base = name.startsWith("size.")
+        ? s2SizeTokens(scale)[name.slice("size.".length)]!
+        : typography(fontBase)[name.slice("typography.".length)]!;
+      const ratio =
+        device === "touch" && parts.touch ? parts.touch.ratio : parts.ratio;
+      return base * ratio;
+    };
+    const cases: [probe: string, type: string, key: string, s2: string, sizes: string[]][] = [
+      ["Button", "Button", "paddingX", "paddingInline", ["S", "M", "L", "XL"]],
+      ["Button", "Button", "gap", "gap", ["S", "M", "L", "XL"]],
+      ["Button", "Button", "iconGap", "gap", ["S", "M", "L", "XL"]],
+      ["ActionButton", "ToggleButton", "paddingX", "paddingInline", [...SIZES]],
+      ["ActionButton", "ToggleButton", "gap", "gap", [...SIZES]],
+      ["TextField", "Input", "paddingX", "paddingInline", ["S", "M", "L", "XL"]],
+      ["DateField", "DateInput", "paddingX", "paddingInline", ["S", "M", "L", "XL"]],
+      ["TagGroup", "Tag", "paddingX", "paddingInline", ["S", "M", "L"]],
+      ["Checkbox", "Checkbox", "gap", "rootGap", ["S", "M", "L", "XL"]],
+      // (Radio's label gap is S2 `text-to-control` as Checkbox's — the probe's RadioGroup `rootGap` is the
+      //   group's label-to-items gap, not the radio's, so it has no row here.)
+      ["Switch", "Switch", "gap", "rootGap", ["S", "M", "L", "XL"]],
+    ];
+    for (const [probe, type, key, s2Key, sizes] of cases)
+      for (const size of sizes)
+        for (const device of ["desktop", "touch"] as const) {
+          const s2 = table[probe]?.[size]?.[device]?.[s2Key];
+          if (typeof s2 !== "number") continue;
+          // (the probe rounds its computed px to 0.01)
+          expect(
+            Math.abs(formPx(type, size, key, device) - s2),
+            `${type} ${size} ${key} ${device}: S2 ${s2}`,
+          ).toBeLessThan(0.02);
+        }
+    // The desktop number every reader of the table sees is the same form in the installed (desktop) maps.
+    expect(rules.Button!.sizes.M!.paddingX).toBe(16);
+    expect(rules.Checkbox!.sizes.S!.gap).toBeCloseTo((12 * 10) / 14, 10);
+    // Checkbox · Radio · DateField write S2's font one step down (S2 ui-sm · ui · ui-lg · ui-xl).
+    for (const [probe, type] of [
+      ["Checkbox", "Checkbox"],
+      ["RadioGroup", "Radio"],
+      ["DateField", "DateField"],
+    ] as const)
+      for (const size of ["S", "M", "L", "XL"]) {
+        const font = /^\{typography\.(text-[a-z]+)\}$/.exec(
+          rules[type]!.sizes[size]!.fontSize as string,
+        )![1]!;
+        for (const device of ["desktop", "touch"] as const)
+          expect(
+            typography(S2_DEVICE[device].fontBase)[font],
+            `${type} ${size} ${device} font`,
+          ).toBe(table[probe]![size]![device]!.fontSize);
       }
   });
 

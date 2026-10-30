@@ -446,9 +446,13 @@ export function resolveThemeSnapshot(
       emit(`--catalog-token-size-height-${size}`, `${px}px`);
     // ADR-295 Phase 3b · 3c-2: the rest of the size map (`{size.icon.<S>}` · `{size.height-sm.<S>}` ·
     //   `{size.field-button.<S>}` · `{size.bar.min-width}`) — `tokenToCSSVar`'s name for each key.
+    //   (Phase 3c-3: `{size.device.touch}` is a unitless flag — a relative length's coefficient factor.)
     for (const [key, px] of Object.entries(s2SizeTokens(tokens.scale)))
       if (!key.startsWith("height."))
-        emit(`--catalog-token-size-${key.replace(/\./g, "-")}`, `${px}px`);
+        emit(
+          `--catalog-token-size-${key.replace(/\./g, "-")}`,
+          key === "device.touch" ? String(px) : `${px}px`,
+        );
     for (const [key, value] of Object.entries(tokens.typography)) {
       if (typeof value !== "number") continue;
       const cssName = `--${key === "text-md" ? "text-base" : key}`;

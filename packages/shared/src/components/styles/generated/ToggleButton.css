@@ -32,14 +32,14 @@
   --button-border: transparent;
 
   /* Default size */
-  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-thin)) / 2) 12px;
+  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-toggle-button-padding-x-M, calc(var(--catalog-token-size-height-M) * 3 / 8));
   font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
   line-height: var(--catalog-token-text-sm--line-height);
   font-weight: 500;
   border-width: var(--border-width-thin);
   min-height: var(--catalog-token-size-height-M);
-  gap: 8px;
+  gap: var(--catalog-token-toggle-button-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-toggle-button-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
 }
 
@@ -82,62 +82,62 @@
 }
 
 .react-aria-ToggleButton[data-size="XS"] {
-  padding: calc((var(--catalog-token-size-height-XS) - var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height) - 2 * var(--border-width-thin)) / 2) 4px;
+  padding: calc((var(--catalog-token-size-height-XS) - var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-toggle-button-padding-x-XS, calc(var(--catalog-token-size-height-XS) * 3 / 8));
   font-size: var(--catalog-token-text-2xs);
   border-radius: var(--catalog-token-radius-sm);
   line-height: var(--catalog-token-text-2xs--line-height);
   font-weight: 500;
   border-width: var(--border-width-thin);
   min-height: var(--catalog-token-size-height-XS);
-  gap: 4px;
+  gap: var(--catalog-token-toggle-button-gap-XS, calc(var(--catalog-token-text-2xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-toggle-button-icon-size-XS, calc(var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height)));
 }
 
 .react-aria-ToggleButton[data-size="S"] {
-  padding: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--border-width-thin)) / 2) 8px;
+  padding: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-toggle-button-padding-x-S, calc(var(--catalog-token-size-height-S) * 3 / 8));
   font-size: var(--catalog-token-text-xs);
   border-radius: 7px;
   line-height: var(--catalog-token-text-xs--line-height);
   font-weight: 500;
   border-width: var(--border-width-thin);
   min-height: var(--catalog-token-size-height-S);
-  gap: 6px;
+  gap: var(--catalog-token-toggle-button-gap-S, calc(var(--catalog-token-text-xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-toggle-button-icon-size-S, calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)));
 }
 
 .react-aria-ToggleButton[data-size="M"] {
-  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-thin)) / 2) 12px;
+  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-toggle-button-padding-x-M, calc(var(--catalog-token-size-height-M) * 3 / 8));
   font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
   line-height: var(--catalog-token-text-sm--line-height);
   font-weight: 500;
   border-width: var(--border-width-thin);
   min-height: var(--catalog-token-size-height-M);
-  gap: 8px;
+  gap: var(--catalog-token-toggle-button-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-toggle-button-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
 }
 
 .react-aria-ToggleButton[data-size="L"] {
-  padding: calc((var(--catalog-token-size-height-L) - var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height) - 2 * var(--border-width-thin)) / 2) 16px;
+  padding: calc((var(--catalog-token-size-height-L) - var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-toggle-button-padding-x-L, calc(var(--catalog-token-size-height-L) * 3 / 8));
   font-size: var(--catalog-token-text-base);
   border-radius: 9px;
   line-height: var(--catalog-token-text-base--line-height);
   font-weight: 500;
   border-width: var(--border-width-thin);
   min-height: var(--catalog-token-size-height-L);
-  gap: 10px;
+  gap: var(--catalog-token-toggle-button-gap-L, calc(var(--catalog-token-text-base) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-toggle-button-icon-size-L, calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)));
 }
 
 .react-aria-ToggleButton[data-size="XL"] {
-  padding: calc((var(--catalog-token-size-height-XL) - var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height) - 2 * var(--border-width-thin)) / 2) 24px;
+  padding: calc((var(--catalog-token-size-height-XL) - var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-toggle-button-padding-x-XL, calc(var(--catalog-token-size-height-XL) * 3 / 8));
   font-size: var(--catalog-token-text-lg);
   border-radius: 10px;
   line-height: var(--catalog-token-text-lg--line-height);
   font-weight: 500;
   border-width: var(--border-width-thin);
   min-height: var(--catalog-token-size-height-XL);
-  gap: 12px;
+  gap: var(--catalog-token-toggle-button-gap-XL, calc(var(--catalog-token-text-lg) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-toggle-button-icon-size-XL, calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)));
 }
 

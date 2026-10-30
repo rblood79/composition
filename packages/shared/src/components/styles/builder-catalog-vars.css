@@ -132,5 +132,29 @@
     --catalog-token-toggle-button-icon-size-M: 18px;
     --catalog-token-toggle-button-icon-size-L: 24px;
     --catalog-token-toggle-button-icon-size-XL: 28px;
+
+    /* 상대 여백 · 간격 (ADR-295 Phase 3c-3): 생성 시트의 padding · gap 은 컴포넌트 고정 변수 → S2 식 (높이 × 3/8 ·
+       글자 × 6/14 em …) 순으로 읽는다. 빌더 위젯은 295 전 rule 의 px 를 고정 변수로. 터치 계수 flag 는 desktop 0. */
+    --catalog-token-size-device-touch: 0;
+    --catalog-token-toggle-button-padding-x-XS: 4px;
+    --catalog-token-toggle-button-padding-x-S: 8px;
+    --catalog-token-toggle-button-padding-x-M: 12px;
+    --catalog-token-toggle-button-padding-x-L: 16px;
+    --catalog-token-toggle-button-padding-x-XL: 24px;
+    --catalog-token-input-padding-x-XS: 4px;
+    --catalog-token-input-padding-x-S: 8px;
+    --catalog-token-input-padding-x-M: 12px;
+    --catalog-token-input-padding-x-L: 16px;
+    --catalog-token-input-padding-x-XL: 24px;
+    --catalog-token-date-input-padding-x-XS: 4px;
+    --catalog-token-date-input-padding-x-S: 8px;
+    --catalog-token-date-input-padding-x-M: 12px;
+    --catalog-token-date-input-padding-x-L: 16px;
+    --catalog-token-date-input-padding-x-XL: 24px;
+    --catalog-token-toggle-button-gap-XS: 4px;
+    --catalog-token-toggle-button-gap-S: 6px;
+    --catalog-token-toggle-button-gap-M: 8px;
+    --catalog-token-toggle-button-gap-L: 10px;
+    --catalog-token-toggle-button-gap-XL: 12px;
   }
 }

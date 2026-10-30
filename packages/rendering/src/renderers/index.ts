@@ -17,6 +17,18 @@ export {
   withCatalogTokenVars,
 } from "./CSSGenerator";
 export { s2ControlPaddingY } from "./utils/controlPadding";
+export {
+  ofHeight,
+  em,
+  ruleLengthRef,
+  parseRuleLengthRef,
+  ruleLengthCss,
+  ruleSizeLengthRef,
+  ruleSizeLengthRefs,
+  defineRuleLengthForms,
+  DEVICE_TOUCH_REF,
+} from "./utils/ruleLength";
+export type { RuleLengthForm } from "./utils/ruleLength";
 // ADR-248 Phase 3: archetype base CSS (root + child selectors) — the typed part-rule compiler
 //   reads the same declarations the generator emits.
 export { ARCHETYPE_BASE_STYLES } from "./CSSGenerator";

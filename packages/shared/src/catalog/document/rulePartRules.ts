@@ -18,6 +18,7 @@ import {
   deriveAutoDelegationVariables,
   ICON_SIZE_TOKEN_REF,
   resolveToken,
+  ruleSizeLengthRef,
   type TokenRef,
 } from "@composition/rendering";
 import { componentCatalog } from "../componentCatalog";
@@ -309,6 +310,11 @@ const ROOT_FONT_PX = 16;
 
 function lengthPx(value: string): number | undefined {
   const text = value.trim();
+  // ADR-295 Phase 3c-3: a rule's relative length (`{length.…}`) in the installed maps.
+  if (/^\{length\.[^{}]+\}$/.test(text)) {
+    const px = resolveToken(text as TokenRef);
+    return typeof px === "number" ? px : undefined;
+  }
   // `calc(a + b)` / `calc(a - b)` of resolvable lengths (side label indent: label width + gap).
   const calc = /^calc\((.+)\)$/.exec(text)?.[1];
   if (calc) {
@@ -344,6 +350,22 @@ function lengthPx(value: string): number | undefined {
     }
   }
   return undefined;
+}
+
+/**
+ * ADR-295 Phase 3c-3 — `calc(var(--catalog-token-size-<family>-<S>) ± Npx)` (a field button's room: its
+ * square + the input's inset) → the length ref `{length.size.<family>.<S>*1/1±N}`, so the part keeps where
+ * the number came from (the DOM writes the device formula); else null.
+ */
+function sizeOffsetLengthRef(value: string): string | null {
+  const match =
+    /^calc\((var\(--catalog-token-size-[\w-]+\))\s*([+-])\s*(\d+(?:\.\d+)?)px\)$/.exec(
+      value.trim(),
+    );
+  const ref = match ? sizeHeightRef(match[1]!) : null;
+  return ref
+    ? `{length.${ref.slice(1, -1)}*1/1${match![2]}${match![3]}}`
+    : null;
 }
 
 /** `var(--catalog-token-size-height-<S>)` → `{size.height.<S>}` (ADR-295 Phase 3), else null. */
@@ -566,12 +588,17 @@ function compileDeclarations(
       }
     } else if (/^padding-(top|right|bottom|left)$/.test(key)) {
       const px = lengthPx(value);
+      // (ADR-295 Phase 3c-3: a side of a size token ± px — a field button's room — keeps its length ref.)
       if (px !== undefined)
         visual[`padding${key[8].toUpperCase()}${key.slice(9)}` as VisualField] =
-          px;
+          sizeOffsetLengthRef(value) ?? px;
     } else if (key === "gap") {
       const px = lengthPx(value);
-      if (px !== undefined) visual.gap = px;
+      // (ADR-295 Phase 3c-3: a relative gap keeps its ref — the library makes it a token value.)
+      if (px !== undefined)
+        visual.gap = /^\{length\.[^{}]+\}$/.test(value.trim())
+          ? value.trim()
+          : px;
     } else if (key === "border" || key === "border-width") {
       if (value === "none" || value === "0") visual.borderWidth = 0;
       else {
@@ -1943,8 +1970,20 @@ export function compileRulePartRules(
         { name: parentType, sizes: rule.sizes } as never,
         delegation as never,
       ),
-    ))
-      Object.assign((rootVariables[size] ??= {}), values);
+    )) {
+      // ADR-295 Phase 3c-3: a relative gap (`em` — S2 `text-to-control`) carries its length ref, so the
+      //   part keeps it as a token use (the DOM writes the device formula).
+      const gapRef = ruleSizeLengthRef(
+        (rule.sizes as Record<string, object>)[size] ?? {},
+        "gap",
+      );
+      const gapVar = `--${delegation.prefix}-gap`;
+      Object.assign(
+        (rootVariables[size] ??= {}),
+        values,
+        gapRef && values[gapVar] !== undefined ? { [gapVar]: gapRef } : {},
+      );
+    }
   }
   const out: CompiledPartRule[] = [
     ...ownerVariablePartRules(parentType),

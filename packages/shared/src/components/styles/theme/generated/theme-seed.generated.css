@@ -34,6 +34,7 @@
   --catalog-token-size-field-button-L: 24px;
   --catalog-token-size-field-button-XL: 32px;
   --catalog-token-size-bar-min-width: 48px;
+  --catalog-token-size-device-touch: 0;
   --catalog-token-text-2xs: 11px;
   --catalog-token-text-2xs--line-height: calc(14 / 11);
   --catalog-token-text-xs: 12px;
@@ -93,6 +94,7 @@
   --catalog-token-size-field-button-L: 30px;
   --catalog-token-size-field-button-XL: 40px;
   --catalog-token-size-bar-min-width: 60px;
+  --catalog-token-size-device-touch: 1;
   --catalog-token-text-2xs: 13px;
   --catalog-token-text-2xs--line-height: calc(16 / 13);
   --catalog-token-text-xs: 15px;
@@ -153,6 +155,7 @@
   --catalog-token-size-field-button-L: 30px;
   --catalog-token-size-field-button-XL: 40px;
   --catalog-token-size-bar-min-width: 60px;
+  --catalog-token-size-device-touch: 1;
   --catalog-token-text-2xs: 13px;
   --catalog-token-text-2xs--line-height: calc(16 / 13);
   --catalog-token-text-xs: 15px;

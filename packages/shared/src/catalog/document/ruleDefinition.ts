@@ -3,6 +3,7 @@ import { catalogNumberFormatFits } from "./numberFormatValue";
 import { catalogCalendarDurationFits, scalarFitsType } from "./valueType";
 import {
   resolveToken,
+  ruleSizeLengthRef,
   type LayoutToken,
   type TokenRef,
 } from "@composition/rendering";
@@ -322,7 +323,14 @@ function sizeVisual(
   set("minHeight", lengthValue(size.minHeight, theme, tokens));
   // ADR-295 Phase 3b: an S2 icon step (`{size.icon.<S>}`) is a token use, as the minimum above.
   set("iconSize", lengthValue(size.iconSize, theme, tokens));
-  set("iconGap", pixels(size.iconGap, theme));
+  // ADR-295 Phase 3c-3: a relative icon gap (`em` — S2 `text-to-visual`) is a token use of its length ref.
+  const iconGapRef = ruleSizeLengthRef(size, "iconGap");
+  set(
+    "iconGap",
+    iconGapRef
+      ? lengthValue(iconGapRef, theme, tokens)
+      : pixels(size.iconGap, theme),
+  );
   return visual as VisualValues;
 }
 
@@ -516,6 +524,13 @@ export function ruleTypeDefinition(
       const own: Record<string, VisualValues[keyof VisualValues]> = {};
       for (const key of varying("visual"))
         if (entry.visual[key] !== undefined) own[key] = entry.visual[key];
+      // ADR-295 Phase 3c-3: a box padding · gap still at its rule form's value (`ofHeight` · `em`) is a token
+      //   use of the length ref — the resolver remembers it, the DOM writes the device formula.
+      for (const key of ["paddingX", "gap"] as const) {
+        const ref = ruleSizeLengthRef(rule.sizes[name] ?? {}, key);
+        if (ref && own[key] !== undefined && own[key] === pixels(ref, theme))
+          own[key] = lengthValue(ref, theme, tokens)!;
+      }
       sizes[name] = { ...own, ...sizes[name] } as VisualValues;
     }
     if (layoutVarying.length)

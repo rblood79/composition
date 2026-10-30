@@ -3,6 +3,7 @@ import { scalarFitsType } from "./valueType";
 import {
   ICON_SIZE_TOKEN_REF,
   resolveToken,
+  ruleSizeLengthRef,
   s2ControlPaddingY,
   type TokenRef,
 } from "@composition/rendering";
@@ -65,9 +66,29 @@ function iconValue(
   return sourceToken(value, "iconSize", theme, tokens);
 }
 
+/** A size block's length: its relative form's token use (`ruleSizeLengthRef`), else the number. */
+function relativeLength(
+  block: object,
+  key: "paddingX" | "gap",
+  theme: "light" | "dark",
+  tokens: Map<LibraryTokenId, LibraryToken>,
+) {
+  const ref = ruleSizeLengthRef(block, key);
+  return ref
+    ? sourceToken(ref, key, theme, tokens)
+    : (block as Record<string, number | undefined>)[key];
+}
+
 function sourceToken(
   value: unknown,
-  field: "color" | "fontSize" | "radius" | "minHeight" | "iconSize",
+  field:
+    | "color"
+    | "fontSize"
+    | "radius"
+    | "minHeight"
+    | "iconSize"
+    | "paddingX"
+    | "gap",
   theme: "light" | "dark",
   tokens: Map<LibraryTokenId, LibraryToken>,
 ) {
@@ -229,10 +250,12 @@ function buttonDefinition(
             ),
           }
         : {}),
-      paddingX: values.paddingX,
+      // ADR-295 Phase 3c-3: a relative padding · gap (`ofHeight` · `em` — S2 `pill` · `text-to-visual`) is a
+      //   token use of its length ref, so the resolver remembers it (the DOM writes the device formula).
+      paddingX: relativeLength(values, "paddingX", theme, tokens),
       // ADR-295 Phase 3: the S2 centring padding in the installed control height (desktop = the rule's).
       paddingY: s2ControlPaddingY(values) ?? values.paddingY,
-      gap: values.gap,
+      gap: relativeLength(values, "gap", theme, tokens),
     };
   const variants: Record<string, VisualValues> = {};
   const conditionalRules: NonNullable<
@@ -733,6 +756,22 @@ function withRuleParts(
                           theme,
                           tokens,
                         ),
+                      ]),
+                  ),
+                  // ADR-295 Phase 3c-3: a relative gap · padding side (`{length.…}` — S2 `text-to-control`, a field
+                  //   button's room) is a token value.
+                  ...Object.fromEntries(
+                    (["gap", "paddingLeft", "paddingRight"] as const)
+                      .filter(
+                        (key) =>
+                          typeof part.visual[key] === "string" &&
+                          /^\{length\.[^{}]+\}$/.test(
+                            part.visual[key] as string,
+                          ),
+                      )
+                      .map((key) => [
+                        key,
+                        sourceToken(part.visual[key], "gap", theme, tokens),
                       ]),
                   ),
                 } as VisualValues,

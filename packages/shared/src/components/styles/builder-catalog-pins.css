@@ -74,4 +74,42 @@
     min-width: auto;
     max-width: none;
   }
+
+  /* generated/DateField.css — S2 DateField 글자는 한 단 아래 (ADR-295 Phase 3c-3 — 295 전: text-sm … text-xl) */
+  .react-aria-DateField:not(:where(.publish-app *)) {
+    font-size: 16px;
+  }
+  .react-aria-DateField[data-size="S"]:not(:where(.publish-app *)) {
+    font-size: 14px;
+  }
+  .react-aria-DateField[data-size="M"]:not(:where(.publish-app *)) {
+    font-size: 16px;
+  }
+  .react-aria-DateField[data-size="L"]:not(:where(.publish-app *)) {
+    font-size: 18px;
+  }
+  .react-aria-DateField[data-size="XL"]:not(:where(.publish-app *)) {
+    font-size: 20px;
+  }
+
+  /* generated/Select.css — trigger 시작 여백 = S2 Picker `edge-to-text` (ADR-295 Phase 3c-3 — 새 선언). 빌더 Select 의
+     trigger 여백은 builder-system layer (form-controls.css `padding: 0`) 가 정한다 — 그 값으로 둔다. */
+  .react-aria-Select:not(:where(.publish-app *)) {
+    --select-btn-pad-start: 0;
+  }
+  .react-aria-Select[data-size="XS"]:not(:where(.publish-app *)) {
+    --select-btn-pad-start: 0;
+  }
+  .react-aria-Select[data-size="S"]:not(:where(.publish-app *)) {
+    --select-btn-pad-start: 0;
+  }
+  .react-aria-Select[data-size="M"]:not(:where(.publish-app *)) {
+    --select-btn-pad-start: 0;
+  }
+  .react-aria-Select[data-size="L"]:not(:where(.publish-app *)) {
+    --select-btn-pad-start: 0;
+  }
+  .react-aria-Select[data-size="XL"]:not(:where(.publish-app *)) {
+    --select-btn-pad-start: 0;
+  }
 }

@@ -13,6 +13,12 @@
  * TokenRef(`{color.X}`)는 string 그대로 — runtime resolveCanonicalToken/resolveToken 이 변환.
  */
 import type { ComponentRulesTable } from "../../types/catalog-style.types";
+import {
+  defineRuleLengthForms,
+  em,
+  ofHeight,
+  resolveToken,
+} from "@composition/rendering";
 
 /**
  * ADR-259 Phase 2 — S2 `prefix` (TextField · TextArea · NumberField · ComboBox · ColorField): the
@@ -154,6 +160,15 @@ const SWITCH_INDICATOR_SELECTORS = togglePerSize(
       translate: `calc(${switchTrackWidth(size)} - ${toggleBox(size)} - ${SWITCH_THUMB_INSET - SWITCH_THUMB_INSET_SELECTED}px) 0`,
     },
 }));
+
+/**
+ * ADR-295 Phase 3c-3 — S2's font-relative spacings (Decision 3, `spectrum-theme.ts` relative spacing):
+ * `text-to-visual` (an icon to its text — 6/14 em, touch 8/17 em) and `text-to-control` (a label to its
+ * toggle control — 10/14 em on both sets). The control-relative padding is `ofHeight` (`edge-to-text` 3/8 ·
+ * `pill` 1/2). `defineRuleLengthForms` (end of file) reads them in the installed maps.
+ */
+const TEXT_TO_VISUAL = em(6, 14, [8, 17]);
+const TEXT_TO_CONTROL = em(10, 14);
 
 const BUTTON_ROOT_BOX = {
   display: "inline-flex",
@@ -1347,10 +1362,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         minHeight: "{size.height.XS}",
         iconSize: "{typography.text-2xs--line-height}",
-        paddingX: 4,
+        paddingX: ofHeight(1, 2),
         paddingY: 2,
-        gap: 4,
-        iconGap: 4,
+        gap: TEXT_TO_VISUAL,
+        iconGap: TEXT_TO_VISUAL,
       },
       S: {
         fontSize: "{typography.text-xs}",
@@ -1361,10 +1376,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         minHeight: "{size.height.S}",
         iconSize: "{typography.text-xs--line-height}",
-        paddingX: 8,
+        paddingX: ofHeight(1, 2),
         paddingY: 3,
-        gap: 6,
-        iconGap: 6,
+        gap: TEXT_TO_VISUAL,
+        iconGap: TEXT_TO_VISUAL,
       },
       M: {
         fontSize: "{typography.text-sm}",
@@ -1375,10 +1390,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         minHeight: "{size.height.M}",
         iconSize: "{typography.text-sm--line-height}",
-        paddingX: 12,
+        paddingX: ofHeight(1, 2),
         paddingY: 6,
-        gap: 8,
-        iconGap: 8,
+        gap: TEXT_TO_VISUAL,
+        iconGap: TEXT_TO_VISUAL,
       },
       L: {
         fontSize: "{typography.text-base}",
@@ -1389,10 +1404,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         minHeight: "{size.height.L}",
         iconSize: "{typography.text-base--line-height}",
-        paddingX: 16,
+        paddingX: ofHeight(1, 2),
         paddingY: 9,
-        gap: 10,
-        iconGap: 10,
+        gap: TEXT_TO_VISUAL,
+        iconGap: TEXT_TO_VISUAL,
       },
       XL: {
         fontSize: "{typography.text-lg}",
@@ -1403,10 +1418,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         minHeight: "{size.height.XL}",
         iconSize: "{typography.text-lg--line-height}",
-        paddingX: 24,
+        paddingX: ofHeight(1, 2),
         paddingY: 12,
-        gap: 12,
-        iconGap: 12,
+        gap: TEXT_TO_VISUAL,
+        iconGap: TEXT_TO_VISUAL,
       },
     },
     structure: {
@@ -2147,39 +2162,39 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-295 Phase 3c-2b: 상자 = S2 `controlSize('sm')` 14 · 16 · 18 · 20 (토큰 — 터치 × 1.25) · 모서리
       //   4 · 4 · 5 · 5 (`CHECKBOX_RADIUS` — DOM 은 `CHECKBOX_INDICATOR_SELECTORS`).
       S: {
+        fontSize: "{typography.text-xs}",
+        borderRadius: "{radius.none}",
+        height: 0,
+        paddingX: 0,
+        paddingY: 0,
+        gap: TEXT_TO_CONTROL,
+        indicator: { boxSize: "{size.height-sm.S}", boxRadius: CHECKBOX_RADIUS.S },
+      },
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
         paddingX: 0,
         paddingY: 0,
-        gap: 6,
-        indicator: { boxSize: "{size.height-sm.S}", boxRadius: CHECKBOX_RADIUS.S },
+        gap: TEXT_TO_CONTROL,
+        indicator: { boxSize: "{size.height-sm.M}", boxRadius: CHECKBOX_RADIUS.M },
       },
-      M: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 0,
         paddingX: 0,
         paddingY: 0,
-        gap: 8,
-        indicator: { boxSize: "{size.height-sm.M}", boxRadius: CHECKBOX_RADIUS.M },
+        gap: TEXT_TO_CONTROL,
+        indicator: { boxSize: "{size.height-sm.L}", boxRadius: CHECKBOX_RADIUS.L },
       },
-      L: {
+      XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 0,
         paddingX: 0,
         paddingY: 0,
-        gap: 10,
-        indicator: { boxSize: "{size.height-sm.L}", boxRadius: CHECKBOX_RADIUS.L },
-      },
-      XL: {
-        fontSize: "{typography.text-xl}",
-        borderRadius: "{radius.none}",
-        height: 0,
-        paddingX: 0,
-        paddingY: 0,
-        gap: 12,
+        gap: TEXT_TO_CONTROL,
         indicator: { boxSize: "{size.height-sm.XL}", boxRadius: CHECKBOX_RADIUS.XL },
       },
     },
@@ -3370,28 +3385,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     variants: {},
     sizes: {
       S: {
-        fontSize: "{typography.text-sm}",
+        fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 22,
         gap: 4,
         intrinsicHeight: 32,
       },
       M: {
-        fontSize: "{typography.text-base}",
+        fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 30,
         gap: 6,
         intrinsicHeight: 40,
       },
       L: {
-        fontSize: "{typography.text-lg}",
+        fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 42,
         gap: 8,
         intrinsicHeight: 48,
       },
       XL: {
-        fontSize: "{typography.text-xl}",
+        fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 54,
         gap: 10,
@@ -3588,7 +3603,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: "{border.width.thin}",
         height: 0,
         minHeight: "{size.height.XS}",
-        paddingX: 4,
+        paddingX: ofHeight(3, 8),
         paddingY: 2,
       },
       S: {
@@ -3598,7 +3613,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: "{border.width.thin}",
         height: 0,
         minHeight: "{size.height.S}",
-        paddingX: 8,
+        paddingX: ofHeight(3, 8),
         paddingY: 3,
       },
       M: {
@@ -3608,7 +3623,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: "{border.width.thin}",
         height: 0,
         minHeight: "{size.height.M}",
-        paddingX: 12,
+        paddingX: ofHeight(3, 8),
         paddingY: 6,
       },
       L: {
@@ -3618,7 +3633,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: "{border.width.thin}",
         height: 0,
         minHeight: "{size.height.L}",
-        paddingX: 16,
+        paddingX: ofHeight(3, 8),
         paddingY: 9,
       },
       XL: {
@@ -3628,7 +3643,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: "{border.width.thin}",
         height: 0,
         minHeight: "{size.height.XL}",
-        paddingX: 24,
+        paddingX: ofHeight(3, 8),
         paddingY: 12,
       },
     },
@@ -6491,7 +6506,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: "{border.width.thin}",
         height: 0,
         minHeight: "{size.height.XS}",
-        paddingX: 4,
+        paddingX: ofHeight(3, 8),
         paddingY: 2,
       },
       S: {
@@ -6501,7 +6516,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: "{border.width.thin}",
         height: 0,
         minHeight: "{size.height.S}",
-        paddingX: 8,
+        paddingX: ofHeight(3, 8),
         paddingY: 3,
       },
       M: {
@@ -6511,7 +6526,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: "{border.width.thin}",
         height: 0,
         minHeight: "{size.height.M}",
-        paddingX: 12,
+        paddingX: ofHeight(3, 8),
         paddingY: 6,
       },
       L: {
@@ -6521,7 +6536,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: "{border.width.thin}",
         height: 0,
         minHeight: "{size.height.L}",
-        paddingX: 16,
+        paddingX: ofHeight(3, 8),
         paddingY: 9,
       },
       XL: {
@@ -6531,7 +6546,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: "{border.width.thin}",
         height: 0,
         minHeight: "{size.height.XL}",
-        paddingX: 24,
+        paddingX: ofHeight(3, 8),
         paddingY: 12,
       },
     },
@@ -9124,39 +9139,39 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-295 Phase 3c-2b: 고리 = S2 `controlSize('sm')` (토큰 — 터치 × 1.25), 선택 고리 두께 = (높이 − 4) / 2
       //   라 가운데 흰 점은 늘 4 (`RADIO_DOT` — DOM 은 `RADIO_INDICATOR_SELECTORS`).
       S: {
+        fontSize: "{typography.text-xs}",
+        borderRadius: "{radius.none}",
+        height: 0,
+        paddingX: 0,
+        paddingY: 0,
+        gap: TEXT_TO_CONTROL,
+        indicator: { boxSize: "{size.height-sm.S}", dotSize: RADIO_DOT },
+      },
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
         paddingX: 0,
         paddingY: 0,
-        gap: 6,
-        indicator: { boxSize: "{size.height-sm.S}", dotSize: RADIO_DOT },
+        gap: TEXT_TO_CONTROL,
+        indicator: { boxSize: "{size.height-sm.M}", dotSize: RADIO_DOT },
       },
-      M: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 0,
         paddingX: 0,
         paddingY: 0,
-        gap: 8,
-        indicator: { boxSize: "{size.height-sm.M}", dotSize: RADIO_DOT },
+        gap: TEXT_TO_CONTROL,
+        indicator: { boxSize: "{size.height-sm.L}", dotSize: RADIO_DOT },
       },
-      L: {
+      XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 0,
         paddingX: 0,
         paddingY: 0,
-        gap: 10,
-        indicator: { boxSize: "{size.height-sm.L}", dotSize: RADIO_DOT },
-      },
-      XL: {
-        fontSize: "{typography.text-xl}",
-        borderRadius: "{radius.none}",
-        height: 0,
-        paddingX: 0,
-        paddingY: 0,
-        gap: 12,
+        gap: TEXT_TO_CONTROL,
         indicator: { boxSize: "{size.height-sm.XL}", dotSize: RADIO_DOT },
       },
     },
@@ -10032,28 +10047,37 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           {
             childSelector: ".react-aria-Button",
             prefix: "select-btn",
+            // ADR-295 Phase 3c-3: the start padding is S2 Picker's `edge-to-text` (the field height × 3/8 —
+            //   7.5 · 9 · 12 · 15 · 18), not the Button's `pill` (height / 2): S2's picker trigger is a field
+            //   button, not a Button. (desktop px — its touch form comes with the field button's, 3c-3b.)
             variables: {
               XS: {
+                "--select-btn-pad-start": "7.5px",
                 "--select-btn-pad-end": "2px",
               },
               // 사용자 2026-10-13 「M 8 → 4」 · 「S · L 도 같은 식으로」: the end padding is the
               //   Button's size paddingY (S 2 · M 4 · L 8).
               S: {
+                "--select-btn-pad-start": "9px",
                 "--select-btn-pad-end": "2px",
               },
               M: {
+                "--select-btn-pad-start": "12px",
                 "--select-btn-pad-end": "4px",
               },
               L: {
+                "--select-btn-pad-start": "15px",
                 "--select-btn-pad-end": "8px",
               },
               XL: {
+                "--select-btn-pad-start": "18px",
                 "--select-btn-pad-end": "16px",
               },
             },
             bridges: {
               width: "100%",
               "min-width": "0",
+              "padding-left": "var(--select-btn-pad-start)",
               "padding-right": "var(--select-btn-pad-end)",
               // 값 ↔ chevron 간격 4 (사용자 결정 2026-09-29). 없으면 Button rule 의 크기별 gap
               //   (md 8) 을 받는다.
@@ -11049,7 +11073,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         paddingX: 0,
         paddingY: 4,
-        gap: 8,
+        gap: TEXT_TO_CONTROL,
         indicator: {
           trackHeight: "{size.height-sm.S}",
           trackWidthEm: SWITCH_TRACK_EM,
@@ -11063,7 +11087,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         paddingX: 0,
         paddingY: 4,
-        gap: 10,
+        gap: TEXT_TO_CONTROL,
         indicator: {
           trackHeight: "{size.height-sm.M}",
           trackWidthEm: SWITCH_TRACK_EM,
@@ -11077,7 +11101,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         paddingX: 0,
         paddingY: 4,
-        gap: 12,
+        gap: TEXT_TO_CONTROL,
         indicator: {
           trackHeight: "{size.height-sm.L}",
           trackWidthEm: SWITCH_TRACK_EM,
@@ -11091,7 +11115,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         paddingX: 0,
         paddingY: 4,
-        gap: 14,
+        gap: TEXT_TO_CONTROL,
         indicator: {
           trackHeight: "{size.height-sm.XL}",
           trackWidthEm: SWITCH_TRACK_EM,
@@ -12146,7 +12170,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         minHeight: "{size.height.XS}",
         borderWidth: "{border.width.thin}",
-        paddingX: 4,
+        paddingX: ofHeight(3, 8),
         paddingY: 2,
         iconSize: 14,
       },
@@ -12157,7 +12181,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         minHeight: "{size.height.S}",
         borderWidth: "{border.width.thin}",
-        paddingX: 8,
+        paddingX: ofHeight(3, 8),
         paddingY: 3,
         iconSize: 14,
       },
@@ -12168,7 +12192,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         minHeight: "{size.height.M}",
         borderWidth: "{border.width.thin}",
-        paddingX: 12,
+        paddingX: ofHeight(3, 8),
         paddingY: 6,
         iconSize: 14,
       },
@@ -12179,7 +12203,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         minHeight: "{size.height.L}",
         borderWidth: "{border.width.thin}",
-        paddingX: 16,
+        paddingX: ofHeight(3, 8),
         paddingY: 9,
         iconSize: 14,
       },
@@ -12190,7 +12214,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         minHeight: "{size.height.XL}",
         borderWidth: "{border.width.thin}",
-        paddingX: 24,
+        paddingX: ofHeight(3, 8),
         paddingY: 12,
         iconSize: 14,
       },
@@ -13112,7 +13136,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // iconSize = 그 크기 글자의 행간 (ADR-295 Phase 3c — S2 ActionButton 계열 아이콘 `size: '1lh'`, Button 과 같다).
     sizes: {
       XS: {
-        paddingX: 4,
+        paddingX: ofHeight(3, 8),
         fontSize: "{typography.text-2xs}",
         lineHeight: "{typography.text-2xs--line-height}",
         fontWeight: 500,
@@ -13121,11 +13145,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         minHeight: "{size.height.XS}",
         paddingY: 2,
-        gap: 4,
+        gap: TEXT_TO_VISUAL,
         iconSize: "{typography.text-2xs--line-height}",
       },
       S: {
-        paddingX: 8,
+        paddingX: ofHeight(3, 8),
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         fontWeight: 500,
@@ -13134,11 +13158,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         minHeight: "{size.height.S}",
         paddingY: 3,
-        gap: 6,
+        gap: TEXT_TO_VISUAL,
         iconSize: "{typography.text-xs--line-height}",
       },
       M: {
-        paddingX: 12,
+        paddingX: ofHeight(3, 8),
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         fontWeight: 500,
@@ -13147,11 +13171,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         minHeight: "{size.height.M}",
         paddingY: 6,
-        gap: 8,
+        gap: TEXT_TO_VISUAL,
         iconSize: "{typography.text-sm--line-height}",
       },
       L: {
-        paddingX: 16,
+        paddingX: ofHeight(3, 8),
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         fontWeight: 500,
@@ -13160,11 +13184,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         minHeight: "{size.height.L}",
         paddingY: 9,
-        gap: 10,
+        gap: TEXT_TO_VISUAL,
         iconSize: "{typography.text-base--line-height}",
       },
       XL: {
-        paddingX: 24,
+        paddingX: ofHeight(3, 8),
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         fontWeight: 500,
@@ -13173,7 +13197,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         minHeight: "{size.height.XL}",
         paddingY: 12,
-        gap: 12,
+        gap: TEXT_TO_VISUAL,
         iconSize: "{typography.text-lg--line-height}",
       },
     },
@@ -13948,3 +13972,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
 };
+
+// ADR-295 Phase 3c-3: the size blocks' relative forms (`ofHeight` · `em`) → numbers in the installed maps.
+defineRuleLengthForms(COMPONENT_RULES_TABLE, (ref) => resolveToken(ref));

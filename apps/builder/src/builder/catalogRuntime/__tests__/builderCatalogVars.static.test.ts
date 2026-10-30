@@ -95,11 +95,21 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
     // (A new min · max width the builder pins to the property's initial value is inert too — Meter's
     //   S2 `bar()` widths, Phase 3c-2b, `builder-catalog-pins.css`.)
     const INITIAL: Record<string, string> = { "min-width": "auto", "max-width": "none" };
+    // (Phase 3c-3: the Select trigger's new start padding — S2 Picker `edge-to-text` — is 0 in the builder, the
+    //   value its own Select triggers take from the builder-system layer: `form-controls.css` `padding: 0`, a
+    //   later layer than `components`.)
+    const BUILDER_LAYER_ZERO = new Set([
+      "generated/Select.css › @layer components › .react-aria-Select .react-aria-Button | padding-left",
+    ]);
     expect(
       added.filter((key) => {
         const prop = key.split(" | ")[1]!;
         if (prop.startsWith("--")) return !inertLocal.has(prop);
         if (INITIAL[prop] !== undefined) return after[key] !== INITIAL[prop];
+        if (BUILDER_LAYER_ZERO.has(key)) {
+          const local = /^var\((--[\w-]+)\)$/.exec(after[key]!)?.[1];
+          return !(after[key] === "0" || (local && inertLocal.has(local)));
+        }
         if (prop !== "min-height") return true;
         const local = /^var\((--[\w-]+)\)$/.exec(after[key]!)?.[1];
         return !(inert(after[key]!) || (local && inertLocal.has(local)));

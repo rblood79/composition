@@ -100,10 +100,11 @@ describe("Canvas Button label — the authored padding sides", () => {
   it("padding 4 on every side: the label keeps the box's inset and width (no spill)", async () => {
     const { workspace, boxes } = await open();
     const rest = boxes();
-    // The rule's M padding (12) plus the 1px border until the document writes sides.
+    // The rule's M padding (S2 `pill` 32 / 2 = 16 — ADR-295 Phase 3c-3) plus the 1px border until the
+    // document writes sides.
     const border = 1;
-    expect(rest.text.x - rest.box.x).toBe(12 + border);
-    expect(rest.text.width).toBeLessThanOrEqual(rest.box.width - 24 - border * 2);
+    expect(rest.text.x - rest.box.x).toBe(16 + border);
+    expect(rest.text.width).toBeLessThanOrEqual(rest.box.width - 32 - border * 2);
     workspace.execute(
       setFields({
         targets: [{ kind: "node", id: BUTTON }],
@@ -116,8 +117,8 @@ describe("Canvas Button label — the authored padding sides", () => {
       }),
     );
     const padded = boxes();
-    // The box shrank by 16 (12 → 4 each side) and the label follows the sides the layout used.
-    expect(padded.box.width).toBeCloseTo(rest.box.width - 16, 3);
+    // The box shrank by 24 (16 → 4 each side) and the label follows the sides the layout used.
+    expect(padded.box.width).toBeCloseTo(rest.box.width - 24, 3);
     expect(padded.text.x - padded.box.x).toBe(4 + border);
     expect(padded.text.width).toBeCloseTo(rest.text.width, 3);
     expect(padded.text.x + padded.text.width).toBeLessThanOrEqual(

@@ -45,17 +45,18 @@ const typographyOf = (record: string) =>
     .result.current;
 
 describe("Layout 탭 — 부모 part rule 이 배치하는 부품", () => {
-  it("CheckboxButton 은 Checkbox rule 의 `.react-aria-CheckboxButton` 블록 (inline-flex · center · gap 8) 을 보인다", () => {
+  // (ADR-295 Phase 3c-3: the gap is S2 `text-to-control` — M font 14 × 10 / 14 = 10.)
+  it("CheckboxButton 은 Checkbox rule 의 `.react-aria-CheckboxButton` 블록 (inline-flex · center · gap 10) 을 보인다", () => {
     const values = layoutOf(fixture.descendantRecord("cb", "CheckboxButton"));
     expect(values?.display).toBe("inline-flex");
     expect(values?.alignItems).toBe("center");
-    expect(values?.gap).toBe("8px");
+    expect(values?.gap).toBe("10px");
   });
 
-  it("RadioButton (gap 8) · SwitchButton (gap 10) 도 같다", () => {
+  it("RadioButton (gap 10) · SwitchButton (gap 10) 도 같다", () => {
     const radio = layoutOf(fixture.descendantRecord("rg", "RadioButton"));
     expect(radio?.display).toBe("inline-flex");
-    expect(radio?.gap).toBe("8px");
+    expect(radio?.gap).toBe("10px");
     const toggle = layoutOf(fixture.descendantRecord("sw", "SwitchButton"));
     expect(toggle?.display).toBe("inline-flex");
     expect(toggle?.gap).toBe("10px");
@@ -124,12 +125,13 @@ describe("Layout 탭 — 루트가 받지 않는 size 값", () => {
   });
 
   // (ADR-295 Phase 3: the block padding is the S2 centring padding — M (32 − 18 − 2) / 2 = 6.)
-  it("자기 rule 이 있는 Button 은 inline-flex · gap 8 · padding 6 / 12", () => {
+  // (ADR-295 Phase 3c-3: S2 `pill` padding 32 / 2 = 16 · `text-to-visual` gap 14 × 6 / 14 = 6.)
+  it("자기 rule 이 있는 Button 은 inline-flex · gap 6 · padding 6 / 16", () => {
     const values = layoutOf(fixture.recordOf("btn"));
     expect(values?.display).toBe("inline-flex");
-    expect(values?.gap).toBe("8px");
+    expect(values?.gap).toBe("6px");
     expect(values?.paddingTop).toBe("6px");
-    expect(values?.paddingLeft).toBe("12px");
+    expect(values?.paddingLeft).toBe("16px");
   });
 });
 

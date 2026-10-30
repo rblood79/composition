@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-295 Phase 3c-3a — 여백 · 간격 = S2 의 값의 형] - 2026-10-31
+
+### Changed
+
+- **사용자 컴포넌트의 좌우 여백 · 간격이 S2 식을 따른다** (Canvas · Preview · Publish — 빌더 패널 위젯은 그대로).
+  - Button 좌우 여백 = 높이 / 2 (S ~ XL 12 · 16 · 20 · 24), ToggleButton · Tag · field 입력 상자 (TextField · ComboBox · NumberField · DateField …) = 높이 × 3/8 (9 · 12 · 15 · 18). Select 트리거의 시작 여백도 높이 × 3/8.
+  - 아이콘 ↔ 글자 간격 = 글자 × 6/14 (M 6, 터치 8/17 — M 8), Checkbox · Radio · Switch 라벨 간격 = 글자 × 10/14 (M 10).
+  - Checkbox · Radio · DateField 의 글자가 S2 처럼 한 단 아래 (S ~ XL 12 · 14 · 16 · 18).
+  - 「터치 크기로 미리보기」 와 터치 기기에서 이 값들이 함께 커진다 (Button M 여백 20 · 간격 8, field 버튼 정사각형 · 위치 포함).
+  - **Why:** S2 는 여백을 높이 · 글자의 비율로 정한다 — 고정 px 는 터치에서 따라 커지지 않았고 값도 S2 와 달랐다 (사용자 결정 1 「전부 S2 식으로」).
+  - 위치: `packages/rendering/src/renderers/utils/ruleLength.ts` (형 · 길이 ref), `packages/shared/src/catalog/generated/componentRulesTable.ts`, `packages/shared/src/catalog/runtime/deviceTypography.ts` (DOM inline), `packages/shared/src/components/styles/builder-catalog-vars.css` · `builder-catalog-pins.css` (빌더 고정값)
+
 ## [눈금자 원점 정렬 — 고정 위치 반복 갱신 제거] - 2026-10-31
 
 ### Fixed

@@ -1042,7 +1042,8 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(input().props.size).toBe("L");
       expect(input().visual).toMatchObject({
         paddingY: 9,
-        paddingX: 16,
+        // (ADR-295 Phase 3c-3: S2 `edge-to-text` — the field height 40 × 3/8)
+        paddingX: 15,
         fontSize: 16,
         radius: 9,
       });
@@ -1551,14 +1552,15 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           .map((part) => typeOf(part.id)),
       ).toEqual(["SelectValue", "Icon"]);
       // Canvas: the trigger fills the field; the value fills the trigger up to the glyph, 4px
-      // before it; the glyph sits 4px inside the end (사용자 2026-10-13 「M 8 → 4」; the Button's own
-      // padding at the start).
+      // before it; the glyph sits 4px inside the end (사용자 2026-10-13 「M 8 → 4」). The start is S2
+      // Picker's `edge-to-text` (32 × 3/8 = 12 — ADR-295 Phase 3c-3), not the Button's `pill` (16).
       const width = rect(field.id).width;
       expect(rect(trigger().id)).toMatchObject({ x: 0, width });
       expect(trigger().visual).toMatchObject({
         width: "100%",
         minWidth: 0,
-        paddingX: 12,
+        paddingX: 16,
+        paddingLeft: 12,
         paddingRight: 4,
         gap: 4,
         borderWidth: 1,
@@ -1820,7 +1822,8 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         // The field's size reaches it.
         setField(scene.workspace, { size: "XL" });
         expect(input().props.size).toBe("XL");
-        expect(input().visual).toMatchObject({ paddingX: 24, minWidth: 220 });
+        // (ADR-295 Phase 3c-3: S2 `edge-to-text` — the XL field height 48 × 3/8)
+        expect(input().visual).toMatchObject({ paddingX: 18, minWidth: 220 });
         // The DateInput origin is where its shape comes from.
         scene.workspace.execute(
           setLibraryDefault({

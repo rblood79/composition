@@ -981,6 +981,12 @@ export interface SizeSpec {
   /** 가로 패딩 (px) — 대칭 패딩 */
   paddingX: number;
 
+  /**
+   * ADR-295 Phase 3c-3 — the rule size block's relative lengths (`{length.…}` refs by key — `paddingX` ·
+   * `gap` · `iconGap`): the generator writes their formula over the device variables, not the px.
+   */
+  lengthRefs?: Readonly<Record<string, string>>;
+
   /** 세로 패딩 (px) */
   paddingY: number;
 

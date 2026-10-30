@@ -27,12 +27,12 @@ describe("resolveComponentRule — Button size source = theme rule table (ADR-91
   it("table Button size 가 paddingX 를 포함 (1C 이전 완료 — leaf 텍스트 inset base)", () => {
     const rule = resolveComponentRule("Button");
     expect(rule).toBeDefined();
-    // 5 size 전부 paddingX 존재 (spec.sizes 4/8/12/16/24 이전).
+    // 5 size 전부 paddingX 존재 — ADR-295 Phase 3c-3: S2 `pill` (높이 20 · 24 · 32 · 40 · 48 / 2).
     const expected: Record<string, number> = {
-      XS: 4,
-      S: 8,
-      M: 12,
-      L: 16,
+      XS: 10,
+      S: 12,
+      M: 16,
+      L: 20,
       XL: 24,
     };
     for (const [size, px] of Object.entries(expected)) {

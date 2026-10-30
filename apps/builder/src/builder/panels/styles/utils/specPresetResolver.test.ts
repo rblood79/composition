@@ -181,10 +181,11 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
     // paddingX/paddingY 축 → 4-way normalization (20+ spec 이 sizes 경로에서 이 형식 사용).
     // normalization 없으면 Panel Layout 이 0 으로 표시됨.
     it("Button.sizes.M (paddingX/Y) → 4-way padding 축 정규화", () => {
-      // Button.sizes.M = { paddingX: 12, paddingY: 6 } (ADR-295 Phase 3 — the S2 centring padding)
+      // Button.sizes.M = { paddingX: 16, paddingY: 6 } (ADR-295 Phase 3 — the S2 centring padding; Phase
+      //   3c-3 — S2 `pill`, the height / 2)
       const preset = resolveLayoutSpecPreset("Button", "M");
-      expect(preset.paddingLeft).toBe(12);
-      expect(preset.paddingRight).toBe(12);
+      expect(preset.paddingLeft).toBe(16);
+      expect(preset.paddingRight).toBe(16);
       expect(preset.paddingTop).toBe(6);
       expect(preset.paddingBottom).toBe(6);
     });

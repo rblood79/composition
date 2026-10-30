@@ -24,6 +24,7 @@ import {
   borderWidthToCSS,
 } from "./utils/tokenResolver";
 import { s2ControlPaddingY } from "./utils/controlPadding";
+import { lengthPinVar, ruleLengthCss } from "./utils/ruleLength";
 import { CHART_OTHERS_FALLBACK_TOKEN } from "../chart/budget";
 import { CHART_REFERENCE_FALLBACK_TOKEN } from "../chart/marks/referenceLine";
 import { deriveAutoDelegationVariables } from "../runtime/deriveAutoDelegationVariables";
@@ -615,6 +616,7 @@ export function generateCSS<Props>(
     lines.push(
       ...generateSizeStyles(sizeSpec, {
         iconPin: iconPinVar(spec.name, sizeName),
+        lengthPin: (key) => lengthPinVar(spec.name, key, sizeName),
         skipHeight,
         skipPadding: skipPaddingOuter,
         skipBorderRadius: skipBorderRadiusOuter,
@@ -875,6 +877,7 @@ function generateBaseStyles<Props>(spec: ComponentSpec<Props>): string[] {
     lines.push(
       ...generateSizeStyles(defaultSize, {
         iconPin: iconPinVar(spec.name, spec.defaultSize),
+        lengthPin: (key) => lengthPinVar(spec.name, key, spec.defaultSize!),
         skipHeight: skipDefaultHeight,
         skipPadding,
         skipBorderRadius,
@@ -1031,6 +1034,21 @@ export function iconPinVar(component: string, size: string): string {
   return `--catalog-token-${name}-icon-size-${size}`;
 }
 
+/**
+ * ADR-295 Phase 3c-3 — a size block's length as CSS: a relative form (`ofHeight` · `em` — the rule's length
+ * ref) is its formula over the device variables behind the component's pin, a number its px.
+ */
+export function sizeLengthCss(
+  size: SizeSpec,
+  key: string,
+  pin?: (key: string) => string,
+): string {
+  const ref = size.lengthRefs?.[key];
+  const css = ref ? ruleLengthCss(ref) : undefined;
+  if (!css) return `${(size as unknown as Record<string, unknown>)[key]}px`;
+  return pin ? `var(${pin(key)}, ${css})` : css;
+}
+
 function controlPaddingBlock(size: SizeSpec): string | undefined {
   const desktop = s2ControlPaddingY(size);
   if (desktop === undefined) return undefined;
@@ -1051,6 +1069,8 @@ function generateSizeStyles(
     skipBorderWidth?: boolean;
     /** ADR-295 Phase 3b: the per-component pin of a `{size.icon.<S>}` icon (`iconPinVar`). */
     iconPin?: string;
+    /** ADR-295 Phase 3c-3: the per-component pin of a relative padding · gap (`lengthPinVar`). */
+    lengthPin?: (key: string) => string;
   },
 ): string[] {
   const lines: string[] = [];
@@ -1072,15 +1092,19 @@ function generateSizeStyles(
     size.paddingRight !== undefined
   ) {
     // padding (비대칭 지원)
-    const pl = size.paddingLeft ?? size.paddingX;
-    const pr = size.paddingRight ?? size.paddingX;
-    lines.push(
-      `  padding: ${size.paddingY}px ${pr}px ${size.paddingY}px ${pl}px;`,
-    );
+    const pl =
+      size.paddingLeft !== undefined
+        ? `${size.paddingLeft}px`
+        : sizeLengthCss(size, "paddingX", options?.lengthPin);
+    const pr =
+      size.paddingRight !== undefined
+        ? `${size.paddingRight}px`
+        : sizeLengthCss(size, "paddingX", options?.lengthPin);
+    lines.push(`  padding: ${size.paddingY}px ${pr} ${size.paddingY}px ${pl};`);
   } else {
     const block = controlPaddingBlock(size);
     lines.push(
-      `  padding: ${block ?? `${size.paddingY}px`} ${size.paddingX}px;`,
+      `  padding: ${block ?? `${size.paddingY}px`} ${sizeLengthCss(size, "paddingX", options?.lengthPin)};`,
     );
   }
 
@@ -1142,7 +1166,7 @@ function generateSizeStyles(
 
   // gap — ADR-071: containerStyles.gap 존재 시 skip (이중 emit 방지)
   if (size.gap && !options?.skipGap) {
-    lines.push(`  gap: ${size.gap}px;`);
+    lines.push(`  gap: ${sizeLengthCss(size, "gap", options?.lengthPin)};`);
   }
 
   // column-gap — ADR-088: `gap` shorthand 뒤에 emit 하여 column 축만 override.
@@ -1167,7 +1191,9 @@ function generateSizeStyles(
 
   // icon-gap (CSS 변수로 출력)
   if (size.iconGap !== undefined) {
-    lines.push(`  --icon-gap: ${size.iconGap}px;`);
+    lines.push(
+      `  --icon-gap: ${sizeLengthCss(size, "iconGap", options?.lengthPin)};`,
+    );
   }
 
   return lines;

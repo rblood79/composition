@@ -32,11 +32,12 @@ const sizes = (type: string) =>
   >;
 
 describe("catalog xl 단계 (§1-3 Checkbox 계열 결손 보수)", () => {
-  it("Checkbox: xl 존재 — fontSize text-xl / gap 12 (Radio 미러)", () => {
+  // (ADR-295 Phase 3c-3: S2 글자 한 단 아래 — ui-xl 18 = `text-lg`, gap = S2 `text-to-control` 18 × 10 / 14.)
+  it("Checkbox: xl 존재 — fontSize text-lg / gap 18 × 10/14 (Radio 미러)", () => {
     const xl = sizes("Checkbox").XL;
     expect(xl).toBeDefined();
-    expect(xl.fontSize).toBe("{typography.text-xl}");
-    expect(xl.gap).toBe(12);
+    expect(xl.fontSize).toBe("{typography.text-lg}");
+    expect(xl.gap).toBeCloseTo((18 * 10) / 14, 10);
   });
 
   it("CheckboxGroup: xl 존재 — gap 20 (RadioGroup 미러)", () => {
