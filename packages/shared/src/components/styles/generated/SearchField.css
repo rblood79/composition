@@ -18,8 +18,8 @@
   grid-template-columns: 0px minmax(0, 1fr) auto;
 
   /* Default size */
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
   min-width: 90px;
   gap: 8px;
   column-gap: 0px;
@@ -27,8 +27,8 @@
 }
 
 .react-aria-SearchField[data-size="S"] {
-  font-size: var(--text-xs);
-  border-radius: var(--radius-sm);
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-sm);
   min-width: 66px;
   gap: 6px;
   column-gap: 0px;
@@ -36,8 +36,8 @@
 }
 
 .react-aria-SearchField[data-size="M"] {
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
   min-width: 90px;
   gap: 8px;
   column-gap: 0px;
@@ -45,8 +45,8 @@
 }
 
 .react-aria-SearchField[data-size="L"] {
-  font-size: var(--text-base);
-  border-radius: var(--radius-lg);
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-lg);
   min-width: 126px;
   gap: 10px;
   column-gap: 0px;
@@ -54,8 +54,8 @@
 }
 
 .react-aria-SearchField[data-size="XL"] {
-  font-size: var(--text-lg);
-  border-radius: var(--radius-xl);
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-xl);
   min-width: 162px;
   gap: 10px;
   column-gap: 0px;

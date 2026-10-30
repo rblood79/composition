@@ -3,7 +3,8 @@
  */
 
 @layer components {
-  /* ADR-295 Phase 1: 값이 S2 로 바뀐 글자 토큰 (2xl · 3xl · 4xl · 5xl) 을 상자 크기로 쓰던 자리는 그 전 px 로
+  /* ADR-295 Phase 1 · 2: 글자 토큰을 상자 크기로 쓰던 자리는 px 로 고정했다 — Phase 1 은 값이 S2 로 바뀐 2xl ~ 5xl,
+     Phase 2 는 나머지 (xs ~ xl — 터치 벌에서 글자 토큰이 1.2배가 되면 DOM 상자만 커진다). 그 전 px 로
      고정했다 (Canvas 는 toggle rule `size.indicator` px). S2 control 크기 정렬은 Phase 3. */
   /* Two structures carry `.react-aria-Switch`: the shared `Switch` / PropertySwitch (RAC `Switch`, the
      `label` itself) and the catalog Switch (ADR-256 Phase 3 — RAC `SwitchField` `div` around a
@@ -43,8 +44,8 @@
       display: flex;
       align-items: center;
       width: 36px;
-      height: var(--text-xl);
-      border-radius: var(--text-xl);
+      height: 20px;
+      border-radius: 20px;
       border: 2px solid var(--border-hover);
       background: var(--accent-subtle);
       transition: all 200ms;
@@ -52,9 +53,9 @@
       &:before {
         content: "";
         display: block;
-        width: calc(var(--text-lg) - 2px);
-        height: calc(var(--text-lg) - 2px);
-        border-radius: var(--text-lg);
+        width: calc(18px - 2px);
+        height: calc(18px - 2px);
+        border-radius: 18px;
         margin: 0px;
         background: var(--bg-muted);
         /* 이동은 translate, 확대는 scale로 분리해 이동 거리까지 확대되지 않게 한다. */
@@ -112,13 +113,13 @@
 
     .indicator {
       width: calc(30px + 2px);
-      height: calc(var(--text-base) + 2px);
-      border-radius: var(--text-base);
+      height: calc(16px + 2px);
+      border-radius: 16px;
 
       &:before {
-        width: var(--text-sm);
-        height: var(--text-sm);
-        border-radius: var(--text-sm);
+        width: 14px;
+        height: 14px;
+        border-radius: 14px;
         margin: 0px;
       }
     }
@@ -132,13 +133,13 @@
 
     .indicator {
       width: 36px;
-      height: var(--text-xl);
-      border-radius: var(--text-xl);
+      height: 20px;
+      border-radius: 20px;
 
       &:before {
-        width: calc(var(--text-lg) - 2px);
-        height: calc(var(--text-lg) - 2px);
-        border-radius: var(--text-lg);
+        width: calc(18px - 2px);
+        height: calc(18px - 2px);
+        border-radius: 18px;
         margin: 0px;
       }
     }
@@ -156,9 +157,9 @@
       border-radius: 24px;
 
       &:before {
-        width: var(--text-xl);
-        height: var(--text-xl);
-        border-radius: var(--text-xl);
+        width: 20px;
+        height: 20px;
+        border-radius: 20px;
         margin: 0px;
       }
     }

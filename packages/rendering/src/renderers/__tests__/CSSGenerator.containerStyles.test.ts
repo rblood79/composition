@@ -199,7 +199,7 @@ describe("generateCSS — containerStyles S3 semantic (ADR-071)", () => {
       },
     };
     const css = generateCSS(spec);
-    expect(css).toContain("border-radius: var(--radius-md);");
+    expect(css).toContain("border-radius: var(--catalog-token-radius-md);");
     // defaultSize.borderRadius 기반 raw emit 없어야 함 (이중 emit 방지)
     // baseSpec borderRadius: 6 → tokenToCSSVar(6) = "6" → "border-radius: 6;" (px 없음)
     expect(css).not.toMatch(/border-radius:\s*6[^p]/);

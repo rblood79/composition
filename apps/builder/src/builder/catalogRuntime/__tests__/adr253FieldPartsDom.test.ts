@@ -26,6 +26,7 @@ import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+import { inlineFontPx } from "./support/inlineFontPx";
 
 /**
  * ADR-253 Phase 3 (G3 — DOM 구조 대조): a field's parts are drawn from its part nodes (instances
@@ -797,7 +798,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         ).exec(rendered.html)?.[0];
         expect(tag).toBeDefined();
         expect(tag).toMatch(/font-weight:\s*500/);
-        expect(tag).toContain(`font-size:${label.visual.fontSize}px`);
+        expect(inlineFontPx(tag!)).toBe(Number(label.visual.fontSize));
       },
     );
 

@@ -1820,6 +1820,7 @@ const catalog: TranslationKeys = {
     viewOptions: "View options",
     compareMode: "Compare Mode (Preview + Skia)",
     compareCurrentPageOnly: "Compare current page only",
+    previewTouchView: "Preview at touch size",
     skiaOnlyMode: "Skia Only Mode",
     workflow: "Workflow",
     showWorkflowOverlay: "Show Workflow Overlay",

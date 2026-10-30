@@ -28,8 +28,8 @@
   /* Default size */
   height: auto;
   padding: 16px 16px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-lg);
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-lg);
   border-width: var(--border-width-thin);
   gap: 12px;
 }
@@ -113,8 +113,8 @@
 .react-aria-Card[data-size="XS"] {
   height: auto;
   padding: 4px 4px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-sm);
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-sm);
   border-width: var(--border-width-thin);
   gap: 4px;
 }
@@ -122,8 +122,8 @@
 .react-aria-Card[data-size="S"] {
   height: auto;
   padding: 8px 8px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
   border-width: var(--border-width-thin);
   gap: 8px;
 }
@@ -131,8 +131,8 @@
 .react-aria-Card[data-size="M"] {
   height: auto;
   padding: 16px 16px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-lg);
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-lg);
   border-width: var(--border-width-thin);
   gap: 12px;
 }
@@ -140,8 +140,8 @@
 .react-aria-Card[data-size="L"] {
   height: auto;
   padding: 24px 24px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-xl);
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-xl);
   border-width: var(--border-width-thin);
   gap: 16px;
 }
@@ -149,8 +149,8 @@
 .react-aria-Card[data-size="XL"] {
   height: auto;
   padding: 32px 32px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-xl);
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-xl);
   border-width: var(--border-width-thin);
   gap: 20px;
 }

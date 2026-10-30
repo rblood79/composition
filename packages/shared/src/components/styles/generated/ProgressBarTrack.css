@@ -27,8 +27,8 @@
 
   /* Default size */
   padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-sm);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-sm);
 }
 
 .react-aria-ProgressBarTrack[data-variant="default"] {
@@ -46,26 +46,26 @@
 
 .react-aria-ProgressBarTrack[data-size="S"] {
   padding: 0px 0px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-sm);
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-sm);
 }
 
 .react-aria-ProgressBarTrack[data-size="M"] {
   padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-sm);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-sm);
 }
 
 .react-aria-ProgressBarTrack[data-size="L"] {
   padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-lg);
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-lg);
 }
 
 .react-aria-ProgressBarTrack[data-size="XL"] {
   padding: 0px 0px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-lg);
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-lg);
 }
 
 .react-aria-ProgressBarTrack[data-focus-visible] {

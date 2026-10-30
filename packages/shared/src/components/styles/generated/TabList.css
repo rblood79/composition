@@ -18,23 +18,23 @@
   flex-direction: row;
 
   /* Default size */
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
 }
 
 .react-aria-TabList[data-size="S"] {
-  font-size: var(--text-xs);
-  border-radius: var(--radius-none);
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-none);
 }
 
 .react-aria-TabList[data-size="M"] {
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
 }
 
 .react-aria-TabList[data-size="L"] {
-  font-size: var(--text-base);
-  border-radius: var(--radius-none);
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
 }
 
 .react-aria-TabList[data-focus-visible] {

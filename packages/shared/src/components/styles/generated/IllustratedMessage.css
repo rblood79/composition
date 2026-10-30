@@ -20,22 +20,22 @@
   align-items: center;
 
   /* Default size */
-  font-size: var(--text-sm);
+  font-size: var(--catalog-token-text-sm);
   border-radius: 0;
 }
 
 .react-aria-IllustratedMessage[data-size="S"] {
-  font-size: var(--text-sm);
+  font-size: var(--catalog-token-text-sm);
   border-radius: 0;
 }
 
 .react-aria-IllustratedMessage[data-size="M"] {
-  font-size: var(--text-sm);
+  font-size: var(--catalog-token-text-sm);
   border-radius: 0;
 }
 
 .react-aria-IllustratedMessage[data-size="L"] {
-  font-size: var(--text-base);
+  font-size: var(--catalog-token-text-base);
   border-radius: 0;
 }
 

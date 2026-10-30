@@ -30,6 +30,9 @@
    THEME
    ============================================ */
 @import "../theme.css";
+/* ADR-295: 사용자 컴포넌트 치수 토큰 `--catalog-token-*` 의 기본값 (desktop · 터치) — preview · publish 전용.
+   빌더는 builder-components.css 가 builder-catalog-vars.css (chrome 고정값) 를 싣는다. */
+@import "./theme/generated/theme-seed.generated.css";
 
 /* ============================================
    JS 채널 전용이던 파일 — 종전 preview 문서에서 index.css 시트보다 앞에 실렸다 (모듈 평가 순서).

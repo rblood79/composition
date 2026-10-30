@@ -265,7 +265,7 @@ describe("S2 Button shape — a pill; a field's own button keeps its corner", ()
     expect(sizeBlock).toBeGreaterThan(-1);
     expect(fieldBlock).toBeGreaterThan(sizeBlock);
     expect(css.slice(sizeBlock, css.indexOf("}", sizeBlock))).toContain(
-      "border-radius: var(--radius-full)",
+      "border-radius: var(--catalog-token-radius-full)",
     );
     expect(css.slice(fieldBlock, css.indexOf("}", fieldBlock))).toContain(
       "border-radius: 8px",

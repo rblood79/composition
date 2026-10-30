@@ -6,6 +6,10 @@ import {
   catalogPreviewLinkClick,
   catalogPreviewRuntime,
 } from "../../../../../packages/shared/src/catalog/runtime/domView";
+import {
+  CATALOG_TOUCH_VIEW_ATTRIBUTE,
+  CATALOG_TOUCH_VIEW_MESSAGE,
+} from "../../../../../packages/shared/src/catalog/runtime/themeVarsCss";
 import { CatalogPreviewToastBridge } from "../../../../../packages/shared/src/catalog/runtime/toastBridge";
 import { NullLayoutEngine } from "../../builder/catalogRuntime/nullLayoutEngine";
 import { catalogThemeState } from "../../builder/catalogRuntime/theme";
@@ -74,6 +78,14 @@ async function startCatalogPreview(): Promise<void> {
   });
   window.addEventListener("message", (event) => {
     if (event.origin !== origin || event.source !== window.parent) return;
+    // ADR-295 사용자 결정 4: Builder 의 「터치 크기로 미리보기」 — root 가 터치 벌 (`catalogThemeVarsCss`) 을 쓴다
+    if ((event.data as { type?: unknown } | null)?.type === CATALOG_TOUCH_VIEW_MESSAGE) {
+      document.documentElement.toggleAttribute(
+        CATALOG_TOUCH_VIEW_ATTRIBUTE,
+        (event.data as { touch?: unknown }).touch === true,
+      );
+      return;
+    }
     const receipt = session.receive(event.data);
     if (receipt.kind === "rejected")
       console.error("[CatalogPreview] payload rejected:", receipt.error);

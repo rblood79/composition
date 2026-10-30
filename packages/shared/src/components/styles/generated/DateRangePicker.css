@@ -19,42 +19,42 @@
   display: flex;
 
   /* Default size */
-  font-size: var(--text-sm);
+  font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
   gap: 4px;
   --icon-size: 16px;
 }
 
 .react-aria-DateRangePicker[data-size="XS"] {
-  font-size: var(--text-2xs);
-  border-radius: var(--radius-xs);
+  font-size: var(--catalog-token-text-2xs);
+  border-radius: var(--catalog-token-radius-xs);
   gap: 2px;
   --icon-size: 10px;
 }
 
 .react-aria-DateRangePicker[data-size="S"] {
-  font-size: var(--text-xs);
+  font-size: var(--catalog-token-text-xs);
   border-radius: 7px;
   gap: 4px;
   --icon-size: 14px;
 }
 
 .react-aria-DateRangePicker[data-size="M"] {
-  font-size: var(--text-sm);
+  font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
   gap: 4px;
   --icon-size: 16px;
 }
 
 .react-aria-DateRangePicker[data-size="L"] {
-  font-size: var(--text-base);
+  font-size: var(--catalog-token-text-base);
   border-radius: 9px;
   gap: 4px;
   --icon-size: 20px;
 }
 
 .react-aria-DateRangePicker[data-size="XL"] {
-  font-size: var(--text-lg);
+  font-size: var(--catalog-token-text-lg);
   border-radius: 10px;
   gap: 8px;
   --icon-size: 24px;
@@ -74,42 +74,42 @@
 /* ── Tier 2: Composite Delegation ── */
 
 .react-aria-DateRangePicker[data-size="XS"] {
-  --drp-group-radius: var(--radius-xs);
+  --drp-group-radius: var(--catalog-token-radius-xs);
   --drp-group-padding: 1px 1px 1px var(--spacing-xs);
-  --drp-group-font-size: var(--text-2xs);
-  --drp-group-line-height: var(--text-2xs--line-height);
+  --drp-group-font-size: var(--catalog-token-text-2xs);
+  --drp-group-line-height: var(--catalog-token-text-2xs--line-height);
   --drp-group-gap: var(--spacing-2xs);
 }
 
 .react-aria-DateRangePicker[data-size="S"] {
   --drp-group-radius: 7px;
   --drp-group-padding: 1px 1px 1px var(--spacing-sm);
-  --drp-group-font-size: var(--text-xs);
-  --drp-group-line-height: var(--text-xs--line-height);
+  --drp-group-font-size: var(--catalog-token-text-xs);
+  --drp-group-line-height: var(--catalog-token-text-xs--line-height);
   --drp-group-gap: var(--spacing-xs);
 }
 
 .react-aria-DateRangePicker[data-size="M"] {
   --drp-group-radius: 8px;
   --drp-group-padding: 3px 3px 3px var(--spacing-md);
-  --drp-group-font-size: var(--text-sm);
-  --drp-group-line-height: var(--text-sm--line-height);
+  --drp-group-font-size: var(--catalog-token-text-sm);
+  --drp-group-line-height: var(--catalog-token-text-sm--line-height);
   --drp-group-gap: var(--spacing-xs);
 }
 
 .react-aria-DateRangePicker[data-size="L"] {
   --drp-group-radius: 9px;
   --drp-group-padding: 3px 3px 3px var(--spacing-lg);
-  --drp-group-font-size: var(--text-base);
-  --drp-group-line-height: var(--text-base--line-height);
+  --drp-group-font-size: var(--catalog-token-text-base);
+  --drp-group-line-height: var(--catalog-token-text-base--line-height);
   --drp-group-gap: var(--spacing-xs);
 }
 
 .react-aria-DateRangePicker[data-size="XL"] {
   --drp-group-radius: 10px;
   --drp-group-padding: 3px 3px 3px var(--spacing-xl);
-  --drp-group-font-size: var(--text-lg);
-  --drp-group-line-height: var(--text-lg--line-height);
+  --drp-group-font-size: var(--catalog-token-text-lg);
+  --drp-group-line-height: var(--catalog-token-text-lg--line-height);
   --drp-group-gap: var(--spacing-sm);
 }
 

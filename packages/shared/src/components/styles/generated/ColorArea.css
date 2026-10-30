@@ -13,32 +13,32 @@
     font-family: var(--font-sans);
     width: 100%;
     height: 180px;
-    border-radius: var(--radius-md);
+    border-radius: var(--catalog-token-radius-md);
     flex-shrink: 0;
     contain: layout style;
     touch-action: none;
 
   /* Default size */
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
   --icon-size: 18px;
 }
 
 .react-aria-ColorArea[data-size="S"] {
-  font-size: var(--text-xs);
-  border-radius: var(--radius-sm);
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-sm);
   --icon-size: 14px;
 }
 
 .react-aria-ColorArea[data-size="M"] {
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
   --icon-size: 18px;
 }
 
 .react-aria-ColorArea[data-size="L"] {
-  font-size: var(--text-base);
-  border-radius: var(--radius-lg);
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-lg);
   --icon-size: 22px;
 }
 

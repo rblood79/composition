@@ -655,18 +655,32 @@ function withRuleParts(
             : {}),
           ...(Object.keys(part.visual).length
             ? {
-                visual: (typeof part.visual.color === "string" &&
-                /^\{color\.[^{}]+\}$/.test(part.visual.color)
-                  ? {
-                      ...part.visual,
-                      color: sourceToken(
-                        part.visual.color,
-                        "color",
-                        theme,
-                        tokens,
-                      ),
-                    }
-                  : part.visual) as VisualValues,
+                visual: {
+                  ...part.visual,
+                  ...(typeof part.visual.color === "string" &&
+                  /^\{color\.[^{}]+\}$/.test(part.visual.color)
+                    ? {
+                        color: sourceToken(
+                          part.visual.color,
+                          "color",
+                          theme,
+                          tokens,
+                        ),
+                      }
+                    : {}),
+                  // ADR-295 Phase 2: a typography token size (`compileDeclarations`) is a token value
+                  ...(typeof part.visual.fontSize === "string" &&
+                  /^\{typography\.[^{}]+\}$/.test(part.visual.fontSize)
+                    ? {
+                        fontSize: sourceToken(
+                          part.visual.fontSize,
+                          "fontSize",
+                          theme,
+                          tokens,
+                        ),
+                      }
+                    : {}),
+                } as VisualValues,
               }
             : {}),
         },

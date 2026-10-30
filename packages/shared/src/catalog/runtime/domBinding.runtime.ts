@@ -166,6 +166,7 @@ import {
   catalogDerivedRestVisual,
   catalogHasAuthoredColor,
 } from "./libraryVisual";
+import { catalogDeviceTypographyCss } from "./deviceTypography";
 
 import {
   CATALOG_SLIDER_THICK_TRACK,
@@ -2793,6 +2794,8 @@ function authoredStyle(
     }
     Object.assign(style, css(value));
   }
+  // ADR-295 Phase 2: a token font size over the rule sheet (a part rule's) — its device variable.
+  if (node.bindingId !== "icon") catalogDeviceTypographyCss(style, node.visual);
   for (const key of ["width", "height", "minWidth", "minHeight"] as const) {
     const value = node.sizing[key];
     if (typeof value === "number") style[key] = value;
@@ -3320,6 +3323,11 @@ export function renderNode(
     : undefined;
   if (bound && !catalogIsAuthoredPlaced(node))
     containingBlock(root, node, bound);
+  // ADR-295 Phase 2: a font size the resolver read from a typography token goes out as the token's
+  //   variable, so the touch set reaches it as it reaches the generated sheets (a literal stays px). An
+  //   Icon's font size is its glyph size, not a text step (S2 icon sizes — Phase 3).
+  if (bound && node.bindingId !== "icon")
+    catalogDeviceTypographyCss(bound, node.visual);
   // A Select's value takes its trigger Button's text color and the field sheet's placeholder
   // paint (`[data-placeholder]`): its color goes inline only when the document wrote it.
   // A Disclosure's title Text takes its trigger's color the same way (`… > .react-aria-Text

@@ -1599,6 +1599,7 @@ export interface TranslationKeys {
     viewOptions: string;
     compareMode: string;
     compareCurrentPageOnly: string;
+    previewTouchView: string;
     skiaOnlyMode: string;
     workflow: string;
     showWorkflowOverlay: string;

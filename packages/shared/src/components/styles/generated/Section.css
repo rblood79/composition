@@ -20,8 +20,8 @@
   /* Default size */
   height: auto;
   padding: 16px 16px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-md);
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-md);
   gap: 12px;
 }
 
@@ -41,24 +41,24 @@
 .react-aria-Section[data-size="S"] {
   height: auto;
   padding: 12px 12px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-sm);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-sm);
   gap: 8px;
 }
 
 .react-aria-Section[data-size="M"] {
   height: auto;
   padding: 16px 16px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-md);
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-md);
   gap: 12px;
 }
 
 .react-aria-Section[data-size="L"] {
   height: auto;
   padding: 24px 24px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-lg);
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-lg);
   gap: 16px;
 }
 

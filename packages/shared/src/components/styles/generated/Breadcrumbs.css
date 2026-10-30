@@ -26,8 +26,8 @@
   /* Default size */
   height: 24px;
   padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-none);
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
   gap: 2px;
 }
 
@@ -48,23 +48,23 @@
 .react-aria-Breadcrumbs[data-size="S"] {
   height: 16px;
   padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
 }
 
 .react-aria-Breadcrumbs[data-size="M"] {
   height: 24px;
   padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-none);
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
   gap: 2px;
 }
 
 .react-aria-Breadcrumbs[data-size="L"] {
   height: 24px;
   padding: 0px 0px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-none);
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-none);
   gap: 4px;
 }
 

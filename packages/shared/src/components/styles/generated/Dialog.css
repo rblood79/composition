@@ -27,7 +27,7 @@
   /* Default size */
   height: auto;
   padding: 40px 40px;
-  font-size: var(--text-base);
+  font-size: var(--catalog-token-text-base);
   border-radius: 16px;
   gap: 12px;
 }
@@ -48,7 +48,7 @@
 .react-aria-Dialog[data-size="XS"] {
   height: auto;
   padding: 16px 16px;
-  font-size: var(--text-sm);
+  font-size: var(--catalog-token-text-sm);
   border-radius: 16px;
   gap: 4px;
 }
@@ -56,7 +56,7 @@
 .react-aria-Dialog[data-size="S"] {
   height: auto;
   padding: 24px 24px;
-  font-size: var(--text-base);
+  font-size: var(--catalog-token-text-base);
   border-radius: 16px;
   gap: 8px;
 }
@@ -64,7 +64,7 @@
 .react-aria-Dialog[data-size="M"] {
   height: auto;
   padding: 40px 40px;
-  font-size: var(--text-base);
+  font-size: var(--catalog-token-text-base);
   border-radius: 16px;
   gap: 12px;
 }
@@ -72,7 +72,7 @@
 .react-aria-Dialog[data-size="L"] {
   height: auto;
   padding: 48px 48px;
-  font-size: var(--text-lg);
+  font-size: var(--catalog-token-text-lg);
   border-radius: 16px;
   gap: 16px;
 }
@@ -80,7 +80,7 @@
 .react-aria-Dialog[data-size="XL"] {
   height: auto;
   padding: 56px 56px;
-  font-size: var(--text-xl);
+  font-size: var(--catalog-token-text-xl);
   border-radius: 16px;
   gap: 20px;
 }

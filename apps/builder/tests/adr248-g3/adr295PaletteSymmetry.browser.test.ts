@@ -5,12 +5,14 @@
  *
  * - 대상: `getPaletteItems()` 전수 (creationVariants 포함) × rule `sizes` 키 (없으면 기본 한 벌).
  * - 측정 조건: DPR 1 · viewport 1440×900 (config) · Pretendard · bundle CSS · Preview reset · en-US.
- * - 테마: `resolveThemeSnapshot` (기본 테마) → `installThemeMaps` (앞 설치 키를 지운다) + `:root` 변수.
+ * - 테마: `resolveThemeSnapshot` (기본 테마) → `installThemeMaps` (앞 설치 키를 지운다) + production 변수 text
+ *   (`catalogThemeVarsCss`). 기기 벌은 `VITE_ADR295_DEVICE` (`desktop` 기본 · `touch`) — touch arm 은 Skia 맵을
+ *   `touchThemeSnapshot` 으로, DOM 은 Preview 터치 보기와 같은 `:root[data-catalog-touch]` 로 (G2, Phase 2).
  * - 기록: `test-results/adr295-palette-<arm>.json` (노드별 Canvas · DOM 상자) · DOM 스크린샷
  *   `test-results/adr295-palette-<arm>/<key>.png`. arm 은 `VITE_ADR295_ARM` (기본 `current`) —
  *   값 변경 전 arm 은 그 커밋의 별도 worktree 에서 같은 파일로 뜬다 (breakdown §6.0).
- * - 판정: 이 단계는 측정이다 (G1 = before/after 기록 · 사용자 confirm). 1 CSS px 를 넘는 대칭 차이는
- *   보고에 남기고, G2 (Phase 2) 가 이 목록을 게이트로 바꾼다.
+ * - 판정: G1 = before/after 기록 (Phase 1). G2 (Phase 2) = 1 CSS px 를 넘는 대칭 차이가 `KNOWN_ASYMMETRIC`
+ *   (295 전부터 있던 24) 밖에서 0 — desktop · touch 두 arm 모두.
  */
 import { createElement } from "react";
 import { I18nProvider } from "react-aria-components";
@@ -27,7 +29,14 @@ import { commands, page as browserPage } from "vitest/browser";
 
 import { createThemesCollection, getActiveTheme } from "@composition/shared";
 import { DEFAULT_BASE_TYPOGRAPHY } from "@/builder/fonts/customFonts";
-import { resolveThemeSnapshot } from "@/utils/theme/resolveThemeSnapshot";
+import {
+  resolveThemeSnapshot,
+  touchThemeSnapshot,
+} from "@/utils/theme/resolveThemeSnapshot";
+import {
+  CATALOG_TOUCH_VIEW_ATTRIBUTE,
+  catalogThemeVarsCss,
+} from "../../../../packages/shared/src/catalog/runtime/themeVarsCss";
 import { initCanvasKit } from "@/builder/workspace/canvas/skia/initCanvasKit";
 import { loadBuiltinFontsToSkia } from "@/builder/fonts/loadCustomFontsToSkia";
 import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
@@ -60,13 +69,19 @@ import type {
 type Rect = { x: number; y: number; width: number; height: number };
 const PAGE = { width: 1440, height: 900 };
 const LOCALE = "en-US";
-const ARM =
-  (import.meta.env.VITE_ADR295_ARM as string | undefined) ?? "current";
+const DEVICE =
+  (import.meta.env.VITE_ADR295_DEVICE as string | undefined) === "touch"
+    ? "touch"
+    : "desktop";
+const ARM = `${(import.meta.env.VITE_ADR295_ARM as string | undefined) ?? "current"}${DEVICE === "touch" ? "-touch" : ""}`;
 const REPORT = `test-results/adr295-palette-${ARM}.json`;
 const SHOTS = `test-results/adr295-palette-${ARM}`;
 const round = (n: number) => Math.round(n * 100) / 100;
 
 let code: CatalogLibrary;
+/** touch arm 의 Canvas leg library — 터치 맵에서 빌드 (part rule 이 빌드 때 굳히는 숫자가 터치 값). */
+let canvasCode: CatalogLibrary;
+let desktopTheme: ReturnType<typeof resolveThemeSnapshot>;
 const report: unknown[] = [];
 
 /** 팔레트 항목 × size — key 는 arm 사이에서 같아야 before/after 를 짝짓는다. */
@@ -167,17 +182,25 @@ beforeAll(async () => {
     getActiveTheme({ themes: createThemesCollection() })!,
     { baseTypographySeed: DEFAULT_BASE_TYPOGRAPHY },
   );
+  desktopTheme = theme;
+  // library 는 desktop 맵에서 빌드한다 (production 과 같이 — part rule 이 빌드 때 토큰을 숫자로 굳힌다)
   installThemeMaps(theme);
   const vars = document.createElement("style");
-  vars.textContent = `:root {\n${theme.cssVars
-    .filter((entry) => !entry.isDark)
-    .map((entry) => `  ${entry.name}: ${entry.value};`)
-    .join("\n")}\n}`;
+  vars.textContent = catalogThemeVarsCss(theme);
   document.head.append(vars);
+  document.documentElement.toggleAttribute(
+    CATALOG_TOUCH_VIEW_ATTRIBUTE,
+    DEVICE === "touch",
+  );
   await initEngineWasm();
   await initCanvasKit();
   await loadBuiltinFontsToSkia();
   code = await buildCodeCatalogLibrary();
+  canvasCode = code;
+  if (DEVICE === "touch") {
+    installThemeMaps(touchThemeSnapshot(theme));
+    canvasCode = await buildCodeCatalogLibrary();
+  }
 });
 
 afterAll(async () => {
@@ -193,6 +216,8 @@ async function measure(
   initial: Record<string, unknown>,
 ) {
   let props = initial;
+  // touch arm: every case's Canvas leg starts from the touch maps (a failed DOM leg may leave desktop)
+  if (DEVICE === "touch") installThemeMaps(touchThemeSnapshot(desktopTheme));
   const definitionId = catalogPaletteDefinitionId(code, type) as DefinitionId;
   // rule 에 sizes 가 있어도 문서가 `size` 를 받지 않는 type (Text · Image · Slot …) 은 기본 size 한 벌만
   //   잰다 (나머지 size 키는 같은 결과). 판정은 문서 검증 그대로 — origin 정의의 accepts 로는 못 가른다.
@@ -215,8 +240,15 @@ async function measure(
     graph,
     new CatalogStorage(indexedDB, `adr295-${key}`),
   );
+  const canvasRuntime =
+    canvasCode === code
+      ? runtime
+      : new CatalogRuntime(
+          new CatalogGraph(documentFor(definitionId, type, props), canvasCode),
+          new CatalogStorage(indexedDB, `adr295-${key}-canvas`),
+        );
   const root = new CatalogCompositionRoot(
-    runtime,
+    canvasRuntime,
     createLayoutEngine(),
     PAGE,
     undefined,
@@ -240,6 +272,23 @@ async function measure(
   };
   place(rootInput.id, 0, 0);
 
+  // touch arm: Canvas 는 터치 맵 · 터치 맵에서 빌드한 library 로 (위), DOM 은 production Preview 처럼 desktop
+  //   library · desktop 맵으로 만든 record + CSS 터치 벌 (`:root[data-catalog-touch]`). 같은 맵으로 두 leg 를
+  //   만들면 record 에 굳은 px 가 같이 커져 DOM 의 터치 경로 결함을 못 본다 (oracle 공유 — measurement-validity #3).
+  let domRoot = root;
+  if (DEVICE === "touch") {
+    installThemeMaps(desktopTheme);
+    domRoot = new CatalogCompositionRoot(
+      runtime,
+      createLayoutEngine(),
+      PAGE,
+      undefined,
+      undefined,
+      catalogTextMeasure,
+      LOCALE,
+    );
+  }
+
   const host = document.createElement("div");
   host.style.cssText = `position:absolute;left:0;top:0;width:${PAGE.width}px;height:${PAGE.height}px;overflow:hidden`;
   document.body.append(host);
@@ -248,7 +297,7 @@ async function measure(
     reactRoot.render(
       createElement(I18nProvider, {
         locale: LOCALE,
-        children: renderCatalogDom(root, rootInput.id),
+        children: renderCatalogDom(domRoot, rootInput.id),
       }),
     ),
   );
@@ -372,6 +421,8 @@ async function measure(
     }
   reactRoot.unmount();
   host.remove();
+  // the DOM leg rendered with the desktop maps (as the Preview); the next case's Canvas leg takes touch
+  if (DEVICE === "touch") installThemeMaps(touchThemeSnapshot(desktopTheme));
   return {
     key,
     type,
@@ -382,6 +433,66 @@ async function measure(
     nodes,
   };
 }
+
+/**
+ * G2 (Phase 2) — 1 CSS px 를 넘는 비대칭은 이 목록 밖에서 0 이어야 한다 (desktop · touch 두 arm). 목록은 295 가
+ * 값을 바꾸기 전 (G1 before) 부터 있던 비대칭이다 — 토큰 값과 무관 (Canvas 폭 0 · 요소 없는 노드의 상자 ·
+ * Select 2px · Pagination · DropZone 크기 미적용 · Menu/ContextualHelp 의 trigger 줄 상자). 수리는 295 밖의
+ * 대칭 작업이고, 고치면 여기서 뺀다 (목록에 있는데 대칭이면 그것도 FAIL — 낡은 목록을 남기지 않는다).
+ */
+const KNOWN_ASYMMETRIC = new Set([
+  "Keyboard",
+  "Separator@S",
+  "Separator@M",
+  "Separator@L",
+  "Skeleton@S",
+  "Skeleton@M",
+  "Skeleton@L",
+  "Image@M",
+  "Section@S",
+  "Section@M",
+  "Section@L",
+  "Pagination@S",
+  "Pagination@M",
+  "Pagination@L",
+  "Menu@S",
+  "Autocomplete",
+  "Select@XS",
+  "Select@S",
+  "Select@M",
+  "Select@L",
+  "Select@XL",
+  "DropZone@S",
+  "DropZone@L",
+  "ContextualHelp@XS",
+]);
+
+/**
+ * touch arm 만의 알려진 차이 (Phase 2 종결 시점, 2026-10-30) — Phase 3 에서 닫는다:
+ * - Card · CardView · DateRangePicker: 행간이 **다른 단계** 토큰의 비율로 빌드 때 숫자가 된다 (Text 기본의
+ *   text-base 행간 · Card 의 글자 px 리터럴 + 토큰 행간). 터치에서 Canvas 는 그 토큰의 터치 비율, DOM 은
+ *   숫자 비율을 써 줄 상자가 갈린다 — Phase 3 행간 식 (글자 크기의 함수, 사용자 결정 2) · 리터럴 참조화로 닫힌다.
+ * - ColorSlider M: DOM Label 의 inline 글자가 px 로 남는다 (record 의 토큰 출처는 있음 — 렌더 경로 추적 미완).
+ */
+const KNOWN_TOUCH_ASYMMETRIC = new Set([
+  "Card@XS",
+  "Card@S",
+  "Card@M",
+  "Card@L",
+  "Card@XL",
+  "CardView@S",
+  "CardView@M",
+  "CardView@L",
+  "DateRangePicker@XS",
+  "DateRangePicker@S",
+  "DateRangePicker@M",
+  "DateRangePicker@L",
+  "DateRangePicker@XL",
+  "ColorSlider@M",
+]);
+const knownAsymmetric = (key: string) =>
+  KNOWN_ASYMMETRIC.has(key) ||
+  (DEVICE === "touch" && KNOWN_TOUCH_ASYMMETRIC.has(key));
 
 describe(`ADR-295 palette × size — Canvas ↔ DOM (${ARM})`, () => {
   it("covers the whole palette", () => {
@@ -398,6 +509,13 @@ describe(`ADR-295 palette × size — Canvas ↔ DOM (${ARM})`, () => {
           expect(result.nodes.length).toBeGreaterThan(0);
       } catch (error) {
         report.push({ key, type, props, error: String(error) });
+        return;
       }
+      const result = report[report.length - 1] as { symmetric?: boolean };
+      if (result.symmetric !== undefined)
+        expect(
+          result.symmetric,
+          `${key}: ${knownAsymmetric(key) ? "목록의 비대칭이 고쳐졌다 — 알려진 목록에서 뺀다" : "새 Canvas ↔ DOM 비대칭"}`,
+        ).toBe(!knownAsymmetric(key));
     });
 });

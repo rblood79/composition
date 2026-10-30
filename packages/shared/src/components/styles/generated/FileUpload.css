@@ -25,8 +25,8 @@
   /* Default size */
   height: auto;
   padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
   gap: 12px;
 }
 

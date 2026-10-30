@@ -20,7 +20,7 @@
   /* Default size */
   height: auto;
   padding: 0px 0px;
-  font-size: var(--text-sm);
+  font-size: var(--catalog-token-text-sm);
   border-radius: 0;
 }
 
@@ -79,21 +79,21 @@
 .react-aria-CardView[data-size="S"] {
   height: auto;
   padding: 0px 0px;
-  font-size: var(--text-sm);
+  font-size: var(--catalog-token-text-sm);
   border-radius: 0;
 }
 
 .react-aria-CardView[data-size="M"] {
   height: auto;
   padding: 0px 0px;
-  font-size: var(--text-sm);
+  font-size: var(--catalog-token-text-sm);
   border-radius: 0;
 }
 
 .react-aria-CardView[data-size="L"] {
   height: auto;
   padding: 0px 0px;
-  font-size: var(--text-base);
+  font-size: var(--catalog-token-text-base);
   border-radius: 0;
 }
 

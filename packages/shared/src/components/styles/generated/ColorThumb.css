@@ -20,8 +20,8 @@
     will-change: transform;
 
   /* Default size */
-  font-size: var(--text-sm);
-  border-radius: var(--radius-full);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-full);
 }
 
 

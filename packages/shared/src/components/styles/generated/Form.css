@@ -18,32 +18,32 @@
     --form-field-gap: var(--spacing-md);
 
   /* Default size */
-  font-size: var(--text-base);
-  border-radius: var(--radius-lg);
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-lg);
   gap: 16px;
 }
 
 .react-aria-Form[data-size="S"] {
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
   gap: 12px;
 }
 
 .react-aria-Form[data-size="M"] {
-  font-size: var(--text-base);
-  border-radius: var(--radius-lg);
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-lg);
   gap: 16px;
 }
 
 .react-aria-Form[data-size="L"] {
-  font-size: var(--text-lg);
-  border-radius: var(--radius-xl);
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-xl);
   gap: 20px;
 }
 
 .react-aria-Form[data-size="XL"] {
-  font-size: var(--text-xl);
-  border-radius: var(--radius-2xl);
+  font-size: var(--catalog-token-text-xl);
+  border-radius: var(--catalog-token-radius-2xl);
   gap: 24px;
 }
 

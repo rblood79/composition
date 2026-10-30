@@ -16,7 +16,7 @@
   background: var(--bg-raised);
   color: var(--fg);
   border: var(--border-width-thin) solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--catalog-token-radius-md);
   padding: var(--spacing-xs);
   gap: var(--spacing-2xs);
   width: 100%;
@@ -28,32 +28,32 @@
 
   /* Default size */
   height: auto;
-  font-size: var(--text-sm);
-  line-height: var(--text-sm--line-height);
+  font-size: var(--catalog-token-text-sm);
+  line-height: var(--catalog-token-text-sm--line-height);
 }
 
 .react-aria-Menu[data-size="S"] {
   height: auto;
-  font-size: var(--text-xs);
-  line-height: var(--text-xs--line-height);
+  font-size: var(--catalog-token-text-xs);
+  line-height: var(--catalog-token-text-xs--line-height);
 }
 
 .react-aria-Menu[data-size="M"] {
   height: auto;
-  font-size: var(--text-sm);
-  line-height: var(--text-sm--line-height);
+  font-size: var(--catalog-token-text-sm);
+  line-height: var(--catalog-token-text-sm--line-height);
 }
 
 .react-aria-Menu[data-size="L"] {
   height: auto;
-  font-size: var(--text-base);
-  line-height: var(--text-base--line-height);
+  font-size: var(--catalog-token-text-base);
+  line-height: var(--catalog-token-text-base--line-height);
 }
 
 .react-aria-Menu[data-size="XL"] {
   height: auto;
-  font-size: var(--text-lg);
-  line-height: var(--text-lg--line-height);
+  font-size: var(--catalog-token-text-lg);
+  line-height: var(--catalog-token-text-lg--line-height);
 }
 
 .react-aria-Menu[data-focus-visible] {

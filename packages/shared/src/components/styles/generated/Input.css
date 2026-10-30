@@ -25,9 +25,9 @@
   /* Default size */
   height: auto;
   padding: 4px 12px;
-  font-size: var(--text-sm);
+  font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
-  line-height: var(--text-sm--line-height);
+  line-height: var(--catalog-token-text-sm--line-height);
   border-width: var(--border-width-thin);
 }
 
@@ -79,45 +79,45 @@
 :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox)[data-size="XS"] {
   height: auto;
   padding: 1px 4px;
-  font-size: var(--text-2xs);
-  border-radius: var(--radius-xs);
-  line-height: var(--text-2xs--line-height);
+  font-size: var(--catalog-token-text-2xs);
+  border-radius: var(--catalog-token-radius-xs);
+  line-height: var(--catalog-token-text-2xs--line-height);
   border-width: var(--border-width-thin);
 }
 
 :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox)[data-size="S"] {
   height: auto;
   padding: 2px 8px;
-  font-size: var(--text-xs);
+  font-size: var(--catalog-token-text-xs);
   border-radius: 7px;
-  line-height: var(--text-xs--line-height);
+  line-height: var(--catalog-token-text-xs--line-height);
   border-width: var(--border-width-thin);
 }
 
 :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox)[data-size="M"] {
   height: auto;
   padding: 4px 12px;
-  font-size: var(--text-sm);
+  font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
-  line-height: var(--text-sm--line-height);
+  line-height: var(--catalog-token-text-sm--line-height);
   border-width: var(--border-width-thin);
 }
 
 :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox)[data-size="L"] {
   height: auto;
   padding: 8px 16px;
-  font-size: var(--text-base);
+  font-size: var(--catalog-token-text-base);
   border-radius: 9px;
-  line-height: var(--text-base--line-height);
+  line-height: var(--catalog-token-text-base--line-height);
   border-width: var(--border-width-thin);
 }
 
 :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox)[data-size="XL"] {
   height: auto;
   padding: 12px 24px;
-  font-size: var(--text-lg);
+  font-size: var(--catalog-token-text-lg);
   border-radius: 10px;
-  line-height: var(--text-lg--line-height);
+  line-height: var(--catalog-token-text-lg--line-height);
   border-width: var(--border-width-thin);
 }
 

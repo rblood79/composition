@@ -18,31 +18,31 @@
   display: flex;
 
   /* Default size */
-  font-size: var(--text-base);
+  font-size: var(--catalog-token-text-base);
   border-radius: 0;
   gap: 6px;
 }
 
 .react-aria-TimeField[data-size="S"] {
-  font-size: var(--text-sm);
+  font-size: var(--catalog-token-text-sm);
   border-radius: 0;
   gap: 4px;
 }
 
 .react-aria-TimeField[data-size="M"] {
-  font-size: var(--text-base);
+  font-size: var(--catalog-token-text-base);
   border-radius: 0;
   gap: 6px;
 }
 
 .react-aria-TimeField[data-size="L"] {
-  font-size: var(--text-lg);
+  font-size: var(--catalog-token-text-lg);
   border-radius: 0;
   gap: 8px;
 }
 
 .react-aria-TimeField[data-size="XL"] {
-  font-size: var(--text-xl);
+  font-size: var(--catalog-token-text-xl);
   border-radius: 0;
   gap: 10px;
 }

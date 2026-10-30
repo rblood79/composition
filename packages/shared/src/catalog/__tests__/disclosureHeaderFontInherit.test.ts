@@ -62,14 +62,19 @@ describe("Disclosure trigger 헤더 font-size 상속 체인", () => {
     };
     const parts = compileRulePartRules("Disclosure", () => undefined);
     const sizes = ["S", "M", "L"] as const;
-    const fontOf = (childType: string, via: string, size: string) =>
-      parts.find(
+    // (ADR-295 Phase 2: a typography token size stays its ref — `{typography.text-sm}` — in the compile.)
+    const fontOf = (childType: string, via: string, size: string) => {
+      const value = parts.find(
         (part) =>
           part.childType === childType &&
           part.via === via &&
           part.size === size &&
           part.visual.fontSize !== undefined,
       )?.visual.fontSize;
+      return typeof value === "string"
+        ? resolveToken(value as TokenRef)
+        : value;
+    };
     for (const size of sizes) {
       const source = resolveToken(
         disclosure.sizes[size]!.fontSize as TokenRef,

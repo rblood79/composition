@@ -19,42 +19,42 @@
   display: flex;
 
   /* Default size */
-  font-size: var(--text-sm);
+  font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
   gap: 6px;
   --icon-size: 18px;
 }
 
 .react-aria-NumberField[data-size="XS"] {
-  font-size: var(--text-2xs);
-  border-radius: var(--radius-xs);
+  font-size: var(--catalog-token-text-2xs);
+  border-radius: var(--catalog-token-radius-xs);
   gap: 2px;
   --icon-size: 10px;
 }
 
 .react-aria-NumberField[data-size="S"] {
-  font-size: var(--text-xs);
+  font-size: var(--catalog-token-text-xs);
   border-radius: 7px;
   gap: 4px;
   --icon-size: 14px;
 }
 
 .react-aria-NumberField[data-size="M"] {
-  font-size: var(--text-sm);
+  font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
   gap: 6px;
   --icon-size: 18px;
 }
 
 .react-aria-NumberField[data-size="L"] {
-  font-size: var(--text-base);
+  font-size: var(--catalog-token-text-base);
   border-radius: 9px;
   gap: 8px;
   --icon-size: 22px;
 }
 
 .react-aria-NumberField[data-size="XL"] {
-  font-size: var(--text-lg);
+  font-size: var(--catalog-token-text-lg);
   border-radius: 10px;
   gap: 10px;
   --icon-size: 28px;
@@ -165,8 +165,8 @@
   }
 
   .react-aria-NumberField[data-size="XS"] .react-aria-Text[slot="prefix"] {
-    font-size: var(--text-2xs);
-    line-height: var(--text-2xs--line-height);
+    font-size: var(--catalog-token-text-2xs);
+    line-height: var(--catalog-token-text-2xs--line-height);
   }
 
   .react-aria-NumberField[data-size="S"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
@@ -174,8 +174,8 @@
   }
 
   .react-aria-NumberField[data-size="S"] .react-aria-Text[slot="prefix"] {
-    font-size: var(--text-xs);
-    line-height: var(--text-xs--line-height);
+    font-size: var(--catalog-token-text-xs);
+    line-height: var(--catalog-token-text-xs--line-height);
   }
 
   .react-aria-NumberField[data-size="M"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
@@ -183,8 +183,8 @@
   }
 
   .react-aria-NumberField[data-size="M"] .react-aria-Text[slot="prefix"] {
-    font-size: var(--text-sm);
-    line-height: var(--text-sm--line-height);
+    font-size: var(--catalog-token-text-sm);
+    line-height: var(--catalog-token-text-sm--line-height);
   }
 
   .react-aria-NumberField[data-size="L"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
@@ -192,8 +192,8 @@
   }
 
   .react-aria-NumberField[data-size="L"] .react-aria-Text[slot="prefix"] {
-    font-size: var(--text-base);
-    line-height: var(--text-base--line-height);
+    font-size: var(--catalog-token-text-base);
+    line-height: var(--catalog-token-text-base--line-height);
   }
 
   .react-aria-NumberField[data-size="XL"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
@@ -201,8 +201,8 @@
   }
 
   .react-aria-NumberField[data-size="XL"] .react-aria-Text[slot="prefix"] {
-    font-size: var(--text-lg);
-    line-height: var(--text-lg--line-height);
+    font-size: var(--catalog-token-text-lg);
+    line-height: var(--catalog-token-text-lg--line-height);
   }
 
 

@@ -13,26 +13,26 @@
     font-family: var(--font-sans);
 
   /* Default size */
-  font-size: var(--text-sm);
-  border-radius: var(--radius-full);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-full);
   --icon-size: 18px;
 }
 
 .react-aria-ColorWheel[data-size="S"] {
-  font-size: var(--text-xs);
-  border-radius: var(--radius-full);
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-full);
   --icon-size: 14px;
 }
 
 .react-aria-ColorWheel[data-size="M"] {
-  font-size: var(--text-sm);
-  border-radius: var(--radius-full);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-full);
   --icon-size: 18px;
 }
 
 .react-aria-ColorWheel[data-size="L"] {
-  font-size: var(--text-base);
-  border-radius: var(--radius-full);
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-full);
   --icon-size: 22px;
 }
 

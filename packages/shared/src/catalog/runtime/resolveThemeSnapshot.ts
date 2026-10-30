@@ -26,6 +26,7 @@
 import type { ThemeDefinition, TokensSnapshot } from "@composition/shared";
 import { BASE_TYPOGRAPHY_TOKEN_KEYS } from "@composition/shared";
 import {
+  catalogTokenVarName,
   colorTokenCssValue,
   borderWidth as borderWidthSeed,
   darkColors,
@@ -33,7 +34,11 @@ import {
   lightColors,
   lightShadows,
   radius as radiusSeed,
+  S2_DEVICE,
+  s2ControlHeights,
+  s2TypographyTokens,
   typography as typographySeed,
+  type S2Device,
 } from "@composition/rendering";
 import type { BaseTypography } from "./fontDefaults";
 import { hexToOklch } from "./oklchToHex";
@@ -56,6 +61,16 @@ export interface ThemeCssVar {
   isDark: boolean;
   /** 테마 색 — DOM 은 `@media not (forced-colors: active)` 안에 싣는다 (시스템 색이 이기게). */
   color: boolean;
+}
+
+/** ADR-295 — 기기 벌 하나 (desktop · touch). Canvas 는 desktop 만 읽는다 (사용자 결정 7). */
+export interface ResolvedDeviceTokens {
+  scale: number;
+  /** S2 `--s2-font-size-base` (px) — 글자 단계식의 기준. */
+  fontBase: number;
+  typography: Record<string, number | string>;
+  /** S2 component-height 5단 × scale (`{size.height.XS…XL}` — rule 참조는 Phase 3). */
+  controlHeight: Record<string, number>;
 }
 
 /**
@@ -87,6 +102,15 @@ export interface ResolvedThemeSnapshot {
   border: Record<string, number>;
   shadows: { light: Record<string, string>; dark: Record<string, string> };
   base: BaseTypography;
+  /** ADR-295 — desktop 벌의 `typography` 는 위 `typography` 와 같은 객체. */
+  device: Record<S2Device, ResolvedDeviceTokens>;
+  /**
+   * ADR-295 Decision 2 — 터치 벌의 DOM 변수 (치수뿐 — light/dark 구분 없음). `cssVars` 와 따로 둔다: DOM 은
+   * S2 와 같은 `@media not ((hover: hover) and (pointer: fine))` 안과 Preview 「터치」 보기
+   * (`:root[data-catalog-touch]`) 에만 싣는다 (`catalogThemeVarsCss`). `cssVars` 를 그대로 `:root` 에 쓰는
+   * 소비자가 터치 값을 desktop 위에 덮지 않게.
+   */
+  touchCssVars: { name: string; value: string }[];
   /** DOM 한 벌 — light/dark 두 블록. Preview `THEME_VARS` (replace) · Publish 가 그대로 싣는다. */
   cssVars: ThemeCssVar[];
   warnings: string[];
@@ -264,6 +288,7 @@ export function resolveThemeSnapshot(
     if (i === -1) cssVars.push({ name, value, isDark, color });
     else cssVars[i] = { name, value, isDark, color };
   };
+  const touchCssVars: ResolvedThemeSnapshot["touchCssVars"] = [];
   const both = (name: string, value: string) => {
     put(name, value, false);
     put(name, value, true);
@@ -282,6 +307,7 @@ export function resolveThemeSnapshot(
 
   // ── 명시 델타 ──
   const explicitColorKeys = new Set<string>();
+  const explicitTypography: Record<string, number | string> = {};
   for (const [tokenKey, entry] of Object.entries(delta)) {
     const dot = tokenKey.indexOf(".");
     const category = dot === -1 ? tokenKey : tokenKey.slice(0, dot);
@@ -312,8 +338,12 @@ export function resolveThemeSnapshot(
           value >= 0
         ) {
           typography[key] = value;
+          explicitTypography[key] = value;
         } else if (key === "sans" || key === "mono") {
-          if (typeof value === "string") typography[key] = value;
+          if (typeof value === "string") {
+            typography[key] = value;
+            explicitTypography[key] = value;
+          }
         } else {
           warnings.push(`${tokenKey} 무효 값 — 무시`);
         }
@@ -376,6 +406,47 @@ export function resolveThemeSnapshot(
     );
   }
 
+  // ── 기기 두 벌 (ADR-295 Decision 2 · 6 · 9) ──
+  //   생성 CSS 는 사용자 컴포넌트 치수를 `--catalog-token-*` 로 읽는다 (빌더 chrome 의 `--radius-*` ·
+  //   `--text-*` 와 다른 이름 공간 — 빌더 root 는 `builder-catalog-vars.css` 의 고정값). 터치 벌은 S2 의
+  //   기기 조건과 Preview 「터치」 보기에서만 이긴다. 수동 시트 (Checkbox · ListBox …) 가 읽는 `--text-*` 도
+  //   터치 벌에 같이 싣는다 — Preview · Publish root 의 그 이름은 사용자 컴포넌트 값이다 (Decision 8).
+  const device = {
+    desktop: {
+      ...S2_DEVICE.desktop,
+      typography,
+      controlHeight: s2ControlHeights(S2_DEVICE.desktop.scale),
+    },
+    touch: {
+      ...S2_DEVICE.touch,
+      typography: touchTypography(explicitTypography),
+      controlHeight: s2ControlHeights(S2_DEVICE.touch.scale),
+    },
+  } satisfies Record<S2Device, ResolvedDeviceTokens>;
+  for (const [key, px] of Object.entries(radius))
+    put(catalogTokenVarName(`--radius-${key}`), `${px}px`, false);
+  for (const [name, tokens] of Object.entries(device) as [
+    S2Device,
+    ResolvedDeviceTokens,
+  ][]) {
+    const touch = name === "touch";
+    const emit = (cssName: string, value: string) =>
+      touch
+        ? touchCssVars.push({ name: cssName, value })
+        : put(cssName, value, false);
+    emit("--catalog-token-scale", String(tokens.scale));
+    emit("--catalog-token-font-base", `${tokens.fontBase}px`);
+    for (const [size, px] of Object.entries(tokens.controlHeight))
+      emit(`--catalog-token-size-height-${size}`, `${px}px`);
+    for (const [key, value] of Object.entries(tokens.typography)) {
+      if (typeof value !== "number") continue;
+      const cssName = `--${key === "text-md" ? "text-base" : key}`;
+      const cssValue = toPxOrRatio(key, value, tokens.typography);
+      emit(catalogTokenVarName(cssName), cssValue);
+      if (touch) emit(cssName, cssValue);
+    }
+  }
+
   // ── 파생 키: 명시가 없으면 base 에서 (양 leg 같은 식) ──
   //   accent 계열은 createAccentColorTokens 가 이미 채웠다. 그 밖의 `<x>` 가 명시되고 `<x>-hover/-pressed`
   //   가 명시되지 않았으면 Skia 맵은 seed 파생값 그대로 (DOM 은 color-mix 가 base 변수를 따라간다)
@@ -419,9 +490,45 @@ export function resolveThemeSnapshot(
     border,
     shadows: { light: lightShadow, dark: darkShadow },
     base,
+    device,
+    touchCssVars,
     cssVars,
     warnings,
   };
+}
+
+/**
+ * 터치 벌 글자 — S2 단계식을 터치 기준 글자 (17) 로. 테마가 명시한 글자 크기는 같은 비율로 (사용자가 정한
+ * 단계 관계를 유지 — 명시 14 가 터치에서 그대로면 seed 의 base 18 보다 작아진다), 명시 행간 · 글꼴은 그대로.
+ */
+function touchTypography(
+  explicit: Readonly<Record<string, number | string>>,
+): Record<string, number | string> {
+  const out: Record<string, number | string> = {
+    ...(s2TypographyTokens(S2_DEVICE.touch.fontBase) as unknown as Record<
+      string,
+      number
+    >),
+  };
+  for (const key of Object.keys(SEED_TYPOGRAPHY))
+    if (!(key in out)) out[key] = SEED_TYPOGRAPHY[key]!;
+  const ratio = S2_DEVICE.touch.fontBase / S2_DEVICE.desktop.fontBase;
+  for (const [key, value] of Object.entries(explicit))
+    out[key] =
+      typeof value === "number" && !key.endsWith("--line-height")
+        ? Math.round(value * ratio)
+        : value;
+  return out;
+}
+
+/**
+ * Skia 맵을 터치 벌로 — Canvas 는 쓰지 않는다 (사용자 결정 7). G2 하니스의 터치 arm 이 두 leg 를 같은
+ * 벌로 맞출 때 쓴다 (`installThemeMaps(touchThemeSnapshot(s))` + DOM `:root[data-catalog-touch]`).
+ */
+export function touchThemeSnapshot(
+  snapshot: ResolvedThemeSnapshot,
+): ResolvedThemeSnapshot {
+  return { ...snapshot, typography: snapshot.device.touch.typography };
 }
 
 /** hex6 만 mix (tintToSkiaColors 와 같은 식) — hex 가 아니면 null 로 두어 seed 파생값을 유지한다. */

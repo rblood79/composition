@@ -29,7 +29,7 @@
   /* Default size */
   height: auto;
   padding: 16px 16px;
-  font-size: var(--text-base);
+  font-size: var(--catalog-token-text-base);
   border-radius: 10px;
   gap: 12px;
 }
@@ -162,7 +162,7 @@
 .react-aria-InlineAlert[data-size="S"] {
   height: auto;
   padding: 8px 8px;
-  font-size: var(--text-sm);
+  font-size: var(--catalog-token-text-sm);
   border-radius: 10px;
   gap: 8px;
 }
@@ -170,7 +170,7 @@
 .react-aria-InlineAlert[data-size="M"] {
   height: auto;
   padding: 16px 16px;
-  font-size: var(--text-base);
+  font-size: var(--catalog-token-text-base);
   border-radius: 10px;
   gap: 12px;
 }
@@ -178,7 +178,7 @@
 .react-aria-InlineAlert[data-size="L"] {
   height: auto;
   padding: 24px 24px;
-  font-size: var(--text-lg);
+  font-size: var(--catalog-token-text-lg);
   border-radius: 10px;
   gap: 16px;
 }

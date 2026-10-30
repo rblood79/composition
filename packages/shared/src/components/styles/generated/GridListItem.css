@@ -24,9 +24,9 @@
   /* Default size */
   height: auto;
   padding: 8px 12px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
-  line-height: var(--text-sm--line-height);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-sm--line-height);
   border-width: var(--border-width-none);
   gap: 2px;
 }

@@ -11,6 +11,8 @@ import { useOptionalI18n } from "../../../../i18n";
 import { useDataStore } from "../../../stores/data";
 import { runAutoPolicyEndpoints } from "../../../panels/datatable/hooks/useExecutionPolicyScheduler";
 import { CATALOG_PREVIEW_PAYLOAD_VERSION } from "../../../../../../../packages/shared/src/catalog/preview/protocol";
+import { CATALOG_TOUCH_VIEW_MESSAGE } from "../../../../../../../packages/shared/src/catalog/runtime/themeVarsCss";
+import { useCompareModeStore } from "../stores/compareMode";
 
 const PREVIEW_PANE_ID = "workspace-compare-panel-css";
 
@@ -117,6 +119,19 @@ export function CatalogPreviewFrame({
         origin,
       );
     };
+    // ADR-295 사용자 결정 4: 「터치 크기로 미리보기」 — Preview root 가 터치 벌을 쓴다 (Canvas 는 desktop).
+    const sendTouchView = () =>
+      frameRef.current?.contentWindow?.postMessage(
+        {
+          type: CATALOG_TOUCH_VIEW_MESSAGE,
+          touch: useCompareModeStore.getState().previewTouch,
+        },
+        origin,
+      );
+    const offTouchView = useCompareModeStore.subscribe((state, previous) => {
+      if (ready && state.previewTouch !== previous.previewTouch)
+        sendTouchView();
+    });
     const offData = useDataStore.subscribe(
       (store) => store.runtimeRows,
       () => {
@@ -135,6 +150,7 @@ export function CatalogPreviewFrame({
       if (data?.type === "PREVIEW_READY") {
         ready = true;
         sendData();
+        sendTouchView();
         channel.onReady();
       } else if (data?.type === "CATALOG_SELECT") {
         // A click in the Preview selects the element on the Canvas (⌘ toggles) — the record by
@@ -163,6 +179,7 @@ export function CatalogPreviewFrame({
     void runAutoPolicyEndpoints();
     return () => {
       window.removeEventListener("message", onMessage);
+      offTouchView();
       offData();
       offSession();
       workspace.detachPreview();

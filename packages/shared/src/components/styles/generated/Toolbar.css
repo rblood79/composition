@@ -23,26 +23,26 @@
   align-items: center;
 
   /* Default size */
-  font-size: var(--text-base);
-  border-radius: var(--radius-md);
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-md);
   gap: 8px;
 }
 
 .react-aria-Toolbar[data-size="S"] {
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
   gap: 4px;
 }
 
 .react-aria-Toolbar[data-size="M"] {
-  font-size: var(--text-base);
-  border-radius: var(--radius-md);
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-md);
   gap: 8px;
 }
 
 .react-aria-Toolbar[data-size="L"] {
-  font-size: var(--text-lg);
-  border-radius: var(--radius-lg);
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-lg);
   gap: 10px;
 }
 

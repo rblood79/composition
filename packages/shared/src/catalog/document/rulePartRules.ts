@@ -570,7 +570,15 @@ function compileDeclarations(
       }
     } else if (key === "font-size") {
       const px = lengthPx(value);
-      if (px !== undefined) visual.fontSize = fontSize = px;
+      if (px !== undefined) {
+        // ADR-295 Phase 2: a typography token keeps its ref — the library makes it a token value, so
+        //   the resolver knows the size came from a token (the DOM writes the token's device variable).
+        const ref = /^var\(--text-[\w-]+\)$/.test(value.trim())
+          ? cssVarToTokenRef(value.trim())
+          : null;
+        fontSize = px;
+        visual.fontSize = ref ?? px;
+      }
     } else if (key === "font-weight") {
       if (/^\d+$/.test(value)) visual.fontWeight = Number(value);
     } else if (key === "line-height") {

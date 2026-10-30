@@ -16,42 +16,42 @@
     color: var(--fg);
 
   /* Default size */
-  font-size: var(--text-base);
+  font-size: var(--catalog-token-text-base);
   border-radius: 8px;
   gap: 8px;
   --icon-size: 26px;
 }
 
 .react-aria-ColorField[data-size="XS"] {
-  font-size: var(--text-xs);
-  border-radius: var(--radius-sm);
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-sm);
   gap: 6px;
   --icon-size: 18px;
 }
 
 .react-aria-ColorField[data-size="S"] {
-  font-size: var(--text-sm);
+  font-size: var(--catalog-token-text-sm);
   border-radius: 7px;
   gap: 6px;
   --icon-size: 20px;
 }
 
 .react-aria-ColorField[data-size="M"] {
-  font-size: var(--text-base);
+  font-size: var(--catalog-token-text-base);
   border-radius: 8px;
   gap: 8px;
   --icon-size: 26px;
 }
 
 .react-aria-ColorField[data-size="L"] {
-  font-size: var(--text-lg);
+  font-size: var(--catalog-token-text-lg);
   border-radius: 9px;
   gap: 10px;
   --icon-size: 32px;
 }
 
 .react-aria-ColorField[data-size="XL"] {
-  font-size: var(--text-lg);
+  font-size: var(--catalog-token-text-lg);
   border-radius: 10px;
   gap: 12px;
   --icon-size: 36px;
@@ -124,8 +124,8 @@
   }
 
   .react-aria-ColorField[data-size="XS"] .react-aria-Text[slot="prefix"] {
-    font-size: var(--text-2xs);
-    line-height: var(--text-2xs--line-height);
+    font-size: var(--catalog-token-text-2xs);
+    line-height: var(--catalog-token-text-2xs--line-height);
   }
 
   .react-aria-ColorField[data-size="S"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
@@ -133,8 +133,8 @@
   }
 
   .react-aria-ColorField[data-size="S"] .react-aria-Text[slot="prefix"] {
-    font-size: var(--text-xs);
-    line-height: var(--text-xs--line-height);
+    font-size: var(--catalog-token-text-xs);
+    line-height: var(--catalog-token-text-xs--line-height);
   }
 
   .react-aria-ColorField[data-size="M"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
@@ -142,8 +142,8 @@
   }
 
   .react-aria-ColorField[data-size="M"] .react-aria-Text[slot="prefix"] {
-    font-size: var(--text-sm);
-    line-height: var(--text-sm--line-height);
+    font-size: var(--catalog-token-text-sm);
+    line-height: var(--catalog-token-text-sm--line-height);
   }
 
   .react-aria-ColorField[data-size="L"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
@@ -151,8 +151,8 @@
   }
 
   .react-aria-ColorField[data-size="L"] .react-aria-Text[slot="prefix"] {
-    font-size: var(--text-base);
-    line-height: var(--text-base--line-height);
+    font-size: var(--catalog-token-text-base);
+    line-height: var(--catalog-token-text-base--line-height);
   }
 
   .react-aria-ColorField[data-size="XL"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
@@ -160,8 +160,8 @@
   }
 
   .react-aria-ColorField[data-size="XL"] .react-aria-Text[slot="prefix"] {
-    font-size: var(--text-lg);
-    line-height: var(--text-lg--line-height);
+    font-size: var(--catalog-token-text-lg);
+    line-height: var(--catalog-token-text-lg--line-height);
   }
 
 

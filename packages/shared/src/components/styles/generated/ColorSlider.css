@@ -19,26 +19,26 @@
     contain: layout style;
 
   /* Default size */
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
   gap: 4px;
 }
 
 .react-aria-ColorSlider[data-size="S"] {
-  font-size: var(--text-xs);
-  border-radius: var(--radius-none);
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-none);
   gap: 4px;
 }
 
 .react-aria-ColorSlider[data-size="M"] {
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
   gap: 4px;
 }
 
 .react-aria-ColorSlider[data-size="L"] {
-  font-size: var(--text-base);
-  border-radius: var(--radius-none);
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
   gap: 4px;
 }
 
@@ -48,7 +48,7 @@
 .react-aria-ColorSlider[data-orientation="horizontal"] .react-aria-SliderTrack {
   width: 100%;
   height: 20px;
-  border-radius: var(--radius-md);
+  border-radius: var(--catalog-token-radius-md);
   touch-action: none;
 }
 
@@ -68,7 +68,7 @@
 .react-aria-ColorSlider[data-orientation="vertical"] .react-aria-SliderTrack {
   width: 20px;
   height: 100%;
-  border-radius: var(--radius-md);
+  border-radius: var(--catalog-token-radius-md);
 }
 
 

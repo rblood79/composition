@@ -153,6 +153,10 @@ export {
   getDescriptionLineHeight,
   radius,
   getRadiusToken,
+  S2_DEVICE,
+  S2_TOUCH_MEDIA,
+  S2_CONTROL_HEIGHT,
+  s2ControlHeights,
   borderWidth,
   DEFAULT_BORDER_WIDTH_TOKEN,
   getBorderWidthToken,
@@ -197,6 +201,9 @@ export {
   getVariantColors,
   getSizePreset,
   generateCSS,
+  CATALOG_TOKEN_VAR_PREFIX,
+  catalogTokenVarName,
+  withCatalogTokenVars,
   resolveContainerVariants,
   matchNestedSelector,
   isSupportedNestedSelector,
@@ -225,6 +232,7 @@ export {
   ARCHETYPE_BASE_STYLES,
 } from "./renderers";
 export type { SkiaPresentationMaterializationContext } from "./renderers";
+export type { S2Device } from "./primitives";
 export type { TextSourceKey } from "./renderers";
 
 export type {

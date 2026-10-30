@@ -24,9 +24,9 @@
   /* Default size */
   height: 18px;
   padding: 0px 4px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-sm);
-  line-height: var(--text-xs--line-height);
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-xs--line-height);
   border-width: var(--border-width-thin);
 }
 

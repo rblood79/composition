@@ -685,7 +685,7 @@ export function generateCSS<Props>(
     lines.push(...atRules);
   }
 
-  let css = lines.join("\n");
+  let css = withCatalogTokenVars(lines.join("\n"));
   for (const [part, aliases] of Object.entries(spec.partAliases ?? {}))
     css = withPartAliases(css, part, aliases);
   // ADR-253: a spec that also styles another RAC class as its root (`classAliases`).
@@ -696,6 +696,27 @@ export function generateCSS<Props>(
     new RegExp(`${root.replace(/[.]/g, "\\.")}(?![\\w-])`, "g"),
     aliased,
   );
+}
+
+/**
+ * ADR-295 Decision 9 — 사용자 컴포넌트의 치수 토큰 변수는 빌더 chrome 변수 (`--radius-*` · `--text-*`,
+ * `shared-tokens.css`) 와 다른 이름 공간 `--catalog-token-*` 를 쓴다. 생성 시트는 빌더도 싣기 때문에
+ * (`builder-components.css` — Data RowForm 의 ComboBox · CompactSelect …) 같은 이름이면 빌더 위젯이
+ * chrome 값과 사용자 값 중 하나에 묶인다. 빌더 root 는 `builder-catalog-vars.css` 의 고정값,
+ * Preview · Publish root 는 resolver `cssVars` (desktop · 터치 두 벌) 가 같은 이름을 선언한다.
+ *
+ * 변환은 이름만 — `--radius-md` → `--catalog-token-radius-md`, `--text-sm--line-height` →
+ * `--catalog-token-text-sm--line-height`. rule 의 문자열 선언 (`rootSelectors` …) 도 같이 바뀐다.
+ */
+export const CATALOG_TOKEN_VAR_PREFIX = "--catalog-token-";
+const CATALOG_TOKEN_VAR_SOURCE = /var\(--((?:radius|text)-[a-z0-9-]+)/g;
+
+export function catalogTokenVarName(chromeName: string): string {
+  return `${CATALOG_TOKEN_VAR_PREFIX}${chromeName.replace(/^--/, "")}`;
+}
+
+export function withCatalogTokenVars(css: string): string {
+  return css.replace(CATALOG_TOKEN_VAR_SOURCE, `var(${CATALOG_TOKEN_VAR_PREFIX}$1`);
 }
 
 /**

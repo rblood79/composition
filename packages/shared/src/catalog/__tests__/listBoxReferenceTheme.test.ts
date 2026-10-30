@@ -56,7 +56,7 @@ describe("ListBox — RAC reference theme", () => {
     expect(base).toContain(
       "border: var(--border-width-hairline) solid var(--border);",
     );
-    expect(base).toContain("border-radius: var(--radius-xl);");
+    expect(base).toContain("border-radius: var(--catalog-token-radius-xl);");
     // The list's padding (4) holds the items off its border — no item margins (사용자 2026-10-13
     // 「margin은 없애고 react-aria-ListBox 에 padding으로」).
     expect(base).toContain("padding: var(--spacing-xs);");

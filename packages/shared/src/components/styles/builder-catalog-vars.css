@@ -1,0 +1,50 @@
+/* ============================================
+   빌더 root 의 사용자 컴포넌트 치수 토큰 — chrome 소유 고정값 (ADR-295 Decision 9)
+   ============================================
+
+   생성 시트 (generated/*.css) 는 치수를 `--catalog-token-*` 로 읽는다. 빌더도 그 시트를 싣는다
+   (아래 builder-components.css 의 generated import — Data RowForm 의 ComboBox · CompactSelect ·
+   PropertySelect · Input …). 빌더 위젯은 chrome 이라 S2 값 · 터치 scale 을 받지 않는다 (Decision 8) —
+   그래서 빌더 root 는 resolver 값을 싣지 않고 이 시트가 295 전 생성 시트가 빌더에 주던 값을 그대로 선언한다.
+
+   - desktop 한 벌만 — 미디어 쿼리 금지 (pointer: coarse 에서도 빌더 위젯은 같은 크기).
+   - 값은 손으로 쓴 고정값이다. shared-tokens.css 의 chrome 토큰 (`--radius-*` · `--text-*`) 을 참조하지
+     않는다 — chrome 토큰이 바뀌어도 이 위젯들의 값은 이 파일에서만 바뀐다.
+   - 게이트: builderCatalogVars.static.test.ts — (a) 빌더가 싣는 생성 시트의 `--catalog-token-*` 가 전부
+     여기 선언 · (b) 이 파일에 미디어 쿼리 0 · (c) 이 값으로 푼 생성 시트 치수 == 295 전 기준 JSON.
+   - Preview · Publish 는 이 파일을 싣지 않는다 (theme/generated/theme-seed.generated.css + resolver 변수).
+   ============================================ */
+@layer shared-tokens {
+  :root {
+    --catalog-token-text-2xs: 10px;
+    --catalog-token-text-xs: 12px;
+    --catalog-token-text-sm: 14px;
+    --catalog-token-text-base: 16px;
+    --catalog-token-text-lg: 18px;
+    --catalog-token-text-xl: 20px;
+    --catalog-token-text-2xl: 24px;
+    --catalog-token-text-3xl: 30px;
+    --catalog-token-text-4xl: 36px;
+    --catalog-token-text-5xl: 48px;
+
+    --catalog-token-text-2xs--line-height: calc(1 / 0.625);
+    --catalog-token-text-xs--line-height: calc(1 / 0.75);
+    --catalog-token-text-sm--line-height: calc(1.25 / 0.875);
+    --catalog-token-text-base--line-height: calc(1.5 / 1);
+    --catalog-token-text-lg--line-height: calc(1.75 / 1.125);
+    --catalog-token-text-xl--line-height: calc(1.75 / 1.25);
+    --catalog-token-text-2xl--line-height: calc(2 / 1.5);
+    --catalog-token-text-3xl--line-height: calc(2.25 / 1.875);
+    --catalog-token-text-4xl--line-height: calc(2.5 / 2.25);
+    --catalog-token-text-5xl--line-height: calc(3 / 3);
+
+    --catalog-token-radius-none: 0px;
+    --catalog-token-radius-xs: 2px;
+    --catalog-token-radius-sm: 4px;
+    --catalog-token-radius-md: 6px;
+    --catalog-token-radius-lg: 8px;
+    --catalog-token-radius-xl: 12px;
+    --catalog-token-radius-2xl: 16px;
+    --catalog-token-radius-full: 9999px;
+  }
+}

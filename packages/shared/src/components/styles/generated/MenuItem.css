@@ -19,45 +19,45 @@
   /* Default size */
   height: 32px;
   padding: 4px 12px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
-  line-height: var(--text-sm--line-height);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
+  line-height: var(--catalog-token-text-sm--line-height);
   gap: 8px;
 }
 
 .react-aria-MenuItem[data-size="S"] {
   height: 24px;
   padding: 2px 9px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-sm);
-  line-height: var(--text-xs--line-height);
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-xs--line-height);
   gap: 6px;
 }
 
 .react-aria-MenuItem[data-size="M"] {
   height: 32px;
   padding: 4px 12px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
-  line-height: var(--text-sm--line-height);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
+  line-height: var(--catalog-token-text-sm--line-height);
   gap: 8px;
 }
 
 .react-aria-MenuItem[data-size="L"] {
   height: 40px;
   padding: 8px 15px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-lg);
-  line-height: var(--text-base--line-height);
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-lg);
+  line-height: var(--catalog-token-text-base--line-height);
   gap: 10px;
 }
 
 .react-aria-MenuItem[data-size="XL"] {
   height: 48px;
   padding: 12px 18px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-xl);
-  line-height: var(--text-lg--line-height);
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-xl);
+  line-height: var(--catalog-token-text-lg--line-height);
   gap: 12px;
 }
 

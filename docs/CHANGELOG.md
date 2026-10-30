@@ -24,6 +24,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 실제 CanvasKit surface에서 DPR 1/2 · zoom 1/1.7 · light/dark · 불투명/반투명 배경의 반복 편집·축소·삭제 결과를 전체 렌더와 픽셀 단위로 비교한다.
 
+## [ADR-295 Phase 2 — 터치 기기 크기 두 벌 · Preview 「터치 크기로 미리보기」] - 2026-10-30
+
+### Added
+
+- **Preview 「터치 크기로 미리보기」 토글** (ADR-295 Phase 2 · 사용자 결정 4): Compare Mode 헤더의 손 아이콘. 켜면 Preview 가 S2 터치 벌 (scale 1.25 · 글자 기준 17 — Text 14 → 17 · 12 → 15) 로 그린다. 화면 폭 (breakpoint) 과 무관하고, Canvas 는 늘 데스크톱 크기 (사용자 결정 7).
+  - 위치: `apps/builder/src/builder/workspace/canvas/stores/compareMode.ts` · `main/BuilderHeader.tsx` · `catalog/CatalogPreviewFrame.tsx` · `preview/catalog/catalogPreviewApp.ts`
+
+### Changed
+
+- **Publish 사이트가 터치 기기 (마우스 없음) 에서 S2 처럼 글자를 키운다** (ADR-295 Phase 2): 조건은 S2 와 같은 `not ((hover: hover) and (pointer: fine))`. 이번 Phase 는 글자 크기만 — 컨트롤 높이 · 행간의 터치 값은 Phase 3 에서 rule 높이와 함께. radius 는 S2 처럼 기기와 무관.
+- **생성 CSS 의 사용자 컴포넌트 치수 변수 이름이 `--catalog-token-*` 로** (ADR-295 Decision 9): `var(--radius-md)` → `var(--catalog-token-radius-md)` · `var(--text-sm)` → `var(--catalog-token-text-sm)`. 빌더 화면은 고정값 시트 (`builder-catalog-vars.css`) 를 싣고 변화 없음, Preview · Publish 는 테마 변수 + 첫 프레임용 기본값 (`theme/generated/theme-seed.generated.css`).
+- **문서 해석이 글자 크기의 토큰 출처를 기억한다**: Text · Label · Button 글자처럼 해석 단계에서 숫자가 되는 글자도 토큰에서 왔으면 DOM 이 그 토큰의 기기 변수를 쓴다 (rule 의 px 리터럴 · 사용자가 쓴 px 는 고정).
+  - **Why**: DOM 이 해석된 숫자를 inline px 로 써서, 터치 벌에서 생성 CSS 요소만 커지고 Text 계열은 14 에 남았다 (G2 하니스 터치 arm 154 건).
+  - 위치: `packages/shared/src/catalog/resolution/resolver.ts` (`catalogResolvedTokenRef`) · `catalog/runtime/deviceTypography.ts` · `document/rulePartRules.ts` · `document/manualBoxRules.ts`
+
+### Fixed
+
+- **StatusLight 글자 크기가 rule 토큰을 따르지 않던 것**: DOM 이 px 표 (12 · 14 · 16 · 18) 를 따로 들고 있었다 → rule `fontSize` 토큰 변수.
+- **Switch · Checkbox · Radio 의 indicator 상자가 글자 토큰에 묶여 있던 것** (xs ~ xl): 터치에서 DOM 상자만 1.2배가 됐다 → px 고정 (Phase 1 의 2xl ~ 5xl 에 이어).
+
+### Tests
+
+- `builderCatalogVars.static.test.ts` (빌더 고정 시트 커버리지 · 미디어 쿼리 0 · 295 전 기준 JSON 과 계산값 동일 · chrome CSS 의 `--catalog-token-` 0) · ADR-293 게이트의 런타임 허용을 상태 변수 접두로 좁힘 · G2 하니스 (`adr295PaletteSymmetry.browser.test.ts`) 를 desktop · touch 두 arm 게이트로 — 알려진 차이 목록 (295 전부터 24 · 터치만 14, Phase 3 행간 식으로 닫음) 밖 0. 상세 `docs/adr/design/295-d3-token-values-s2-alignment-breakdown.md` §6.2.
+
 ## [ADR-295 Phase 1 — 사용자 컴포넌트 radius · 글자 크기를 S2 값으로] - 2026-10-30
 
 ### Changed

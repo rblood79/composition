@@ -19,9 +19,26 @@ const STYLES = resolve(__dirname, "../../components/styles");
 const GENERATED = join(STYLES, "generated");
 const THEME = join(STYLES, "theme");
 
-/** 런타임이 inline style 로 싣는 변수 — 선언이 CSS 에 없는 것이 정상. */
+/**
+ * 런타임이 inline style 로 싣는 변수 — 선언이 CSS 에 없는 것이 정상.
+ *
+ * `--catalog-<상태>-*` 는 `CatalogStates.css` (`stateStyles.ts` 의 STATES) 가 읽고 요소 inline 이 싣는 상태 변수다.
+ * ADR-295 Decision 9: `--catalog-` 를 통째로 허용하면 같은 접두의 토큰 변수 `--catalog-token-*` 가 선언 없이
+ * 통과한다 — 토큰 변수는 resolver `cssVars` 나 CSS (`builder-catalog-vars.css` · `theme-seed.generated.css`) 에
+ * 선언이 있어야 한다. 그래서 상태 접두만 연다 (긴 접두가 먼저 — `selected-hover` ⊂ `selected` 이라 순서 무관).
+ */
+const CATALOG_STATE_PREFIXES = [
+  "hover",
+  "focus-visible",
+  "pressed",
+  "selected",
+  "selected-hover",
+  "selected-pressed",
+  "disabled",
+].map((state) => `--catalog-${state}-`);
+
 const RUNTIME_PREFIXES = [
-  "--catalog-",
+  ...CATALOG_STATE_PREFIXES,
   "--trigger-",
   "--button-",
   "--indicator-",
@@ -66,6 +83,19 @@ function declaredNames(): Set<string> {
 }
 
 describe("ADR-293 G2 — 생성 CSS 의 폴백 없는 변수", () => {
+  it("상태 변수 접두는 CatalogStates.css 가 읽는 집합과 같다 (ADR-295 — 토큰 변수는 이 허용 밖)", () => {
+    const states = readFileSync(join(GENERATED, "CatalogStates.css"), "utf8");
+    const read = new Set(
+      [...states.matchAll(/var\((--catalog-[a-z-]+?)-(?:width|height|min|max|padding|margin|gap|row|column|font|line|letter|border|outline|background|color|opacity|box|text|aspect|--)/g)].map(
+        (m) => `${m[1]}-`,
+      ),
+    );
+    expect([...read].sort()).toEqual([...CATALOG_STATE_PREFIXES].sort());
+    expect(
+      RUNTIME_PREFIXES.some((prefix) => "--catalog-token-x".startsWith(prefix)),
+    ).toBe(false);
+  });
+
   it("theme CSS 경로가 존재한다", () => {
     expect(cssFiles(THEME).length).toBeGreaterThan(3);
   });

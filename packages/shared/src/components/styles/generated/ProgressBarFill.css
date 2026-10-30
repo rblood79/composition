@@ -28,7 +28,7 @@
   /* Default size */
   padding: 0px 0px;
   font-size: ;
-  border-radius: var(--radius-sm);
+  border-radius: var(--catalog-token-radius-sm);
 }
 
 .react-aria-ProgressBarFill[data-variant="default"] {
@@ -47,25 +47,25 @@
 .react-aria-ProgressBarFill[data-size="S"] {
   padding: 0px 0px;
   font-size: ;
-  border-radius: var(--radius-sm);
+  border-radius: var(--catalog-token-radius-sm);
 }
 
 .react-aria-ProgressBarFill[data-size="M"] {
   padding: 0px 0px;
   font-size: ;
-  border-radius: var(--radius-sm);
+  border-radius: var(--catalog-token-radius-sm);
 }
 
 .react-aria-ProgressBarFill[data-size="L"] {
   padding: 0px 0px;
   font-size: ;
-  border-radius: var(--radius-md);
+  border-radius: var(--catalog-token-radius-md);
 }
 
 .react-aria-ProgressBarFill[data-size="XL"] {
   padding: 0px 0px;
   font-size: ;
-  border-radius: var(--radius-lg);
+  border-radius: var(--catalog-token-radius-lg);
 }
 
 .react-aria-ProgressBarFill[data-focus-visible] {

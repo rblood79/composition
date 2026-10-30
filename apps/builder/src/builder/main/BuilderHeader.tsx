@@ -6,6 +6,7 @@ import {
   Smartphone,
   Columns,
   Filter,
+  Hand,
 } from "lucide-react";
 import { MenuTrigger } from "react-aria-components/Menu";
 import { Popover } from "react-aria-components/Popover";
@@ -119,6 +120,10 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
   const setCurrentPageFilter = useCompareModeStore(
     (state) => state.setCurrentPageFilter,
   );
+  const previewTouch = useCompareModeStore((state) => state.previewTouch);
+  const setPreviewTouch = useCompareModeStore(
+    (state) => state.setPreviewTouch,
+  );
   const importInputRef = useRef<HTMLInputElement>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
@@ -186,6 +191,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
     ? t("header.skiaOnlyMode")
     : t("header.compareMode");
   const currentPageFilterLabel = t("header.compareCurrentPageOnly");
+  const previewTouchLabel = t("header.previewTouchView");
   return (
     <header className="header">
       <div className="header_contents header_left">
@@ -306,6 +312,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
               new Set([
                 ...(isCompareMode ? ["compare"] : []),
                 ...(isCompareMode && filterCurrentPage ? ["current-page"] : []),
+                ...(isCompareMode && previewTouch ? ["touch"] : []),
               ])
             }
             indicator={true}
@@ -321,6 +328,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
 
               if (isCompareMode) {
                 setCurrentPageFilter(selectedKeys.has("current-page"));
+                setPreviewTouch(selectedKeys.has("touch"));
               }
             }}
             aria-label={compareLabel}
@@ -340,6 +348,16 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
                   aria-label={currentPageFilterLabel}
                 >
                   <Filter
+                    strokeWidth={iconProps.strokeWidth}
+                    size={iconProps.size}
+                  />
+                </ToggleButton>
+              </ActionTooltipTrigger>
+            )}
+            {isCompareMode && (
+              <ActionTooltipTrigger tooltip={previewTouchLabel}>
+                <ToggleButton id="touch" aria-label={previewTouchLabel}>
+                  <Hand
                     strokeWidth={iconProps.strokeWidth}
                     size={iconProps.size}
                   />

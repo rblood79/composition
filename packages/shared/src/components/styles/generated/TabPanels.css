@@ -24,8 +24,8 @@
   /* Default size */
   height: auto;
   padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
 }
 
 .react-aria-TabPanels[data-variant="default"] {
@@ -44,22 +44,22 @@
 .react-aria-TabPanels[data-size="S"] {
   height: auto;
   padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
 }
 
 .react-aria-TabPanels[data-size="M"] {
   height: auto;
   padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
 }
 
 .react-aria-TabPanels[data-size="L"] {
   height: auto;
   padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-none);
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
 }
 
 .react-aria-TabPanels[data-focus-visible] {

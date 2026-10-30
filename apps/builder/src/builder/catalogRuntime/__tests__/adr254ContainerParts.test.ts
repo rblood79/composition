@@ -21,6 +21,7 @@ import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+import { inlineFontPx } from "./support/inlineFontPx";
 
 /**
  * ADR-254 Phase 0 (G0 — the oracle): the title and description of the five containers (Dialog ·
@@ -370,7 +371,7 @@ function expectSinceConversion(
       `<(?:h2|h3|span|div) [^>]*>${part.text}</>`,
     ).exec(now.dom!)?.[0];
     expect(element, `${part.binding}: ${part.text}`).toBeDefined();
-    expect(element).toContain(`font-size:${part.visual.fontSize}px`);
+    expect(inlineFontPx(element!)).toBe(Number(part.visual.fontSize));
     expect(element).toContain(`font-weight:${Number(part.visual.fontWeight)}`);
     expect(element).toContain(`color:${part.visual.color}`);
   }

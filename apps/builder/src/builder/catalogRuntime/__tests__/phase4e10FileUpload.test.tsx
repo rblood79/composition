@@ -311,7 +311,7 @@ describe("DropZone content — catalog declaration in both consumers", () => {
       css,
       '.react-aria-DropZone [slot="description"]',
     );
-    expect(description).toContain("font-size: var(--text-xs);");
+    expect(description).toContain("font-size: var(--catalog-token-text-xs);");
     expect(description).toContain("color: inherit;");
   });
 

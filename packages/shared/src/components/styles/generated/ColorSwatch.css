@@ -24,8 +24,8 @@
   /* Default size */
   height: 28px;
   padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-full);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-ColorSwatch[data-variant="default"] {
@@ -59,22 +59,22 @@
 .react-aria-ColorSwatch[data-size="S"] {
   height: 20px;
   padding: 0px 0px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-full);
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-ColorSwatch[data-size="M"] {
   height: 28px;
   padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-full);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-ColorSwatch[data-size="L"] {
   height: 36px;
   padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-full);
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-ColorSwatch[data-focus-visible] {

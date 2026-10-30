@@ -23,6 +23,7 @@
 import React from "react";
 import { resolveComponentRule } from "../catalog/resolvers/resolveComponentRule";
 import { colorTokenToCss } from "../catalog/resolvers/colorTokenToCss";
+import { tokenToCSSVar, withCatalogTokenVars } from "@composition/rendering";
 
 export interface StatusLightProps {
   /** 상태 색 variant (rule table 의 20 variant) */
@@ -44,9 +45,8 @@ export interface StatusLightProps {
   [dataAttr: `data-${string}`]: string | undefined;
 }
 
-// size → dot/font px (StatusLight.spec.ts sizes 와 정합 — rule sizes 에 dotSize 미보유).
+// size → dot px (rule `indicator.dotSize` 가 없을 때의 폴백).
 const DOT_SIZE: Record<string, number> = { S: 8, M: 10, L: 12, XL: 14 };
-const FONT_SIZE: Record<string, number> = { S: 12, M: 14, L: 16, XL: 18 };
 
 /**
  * StatusLight — 상태 dot + 라벨.
@@ -65,10 +65,16 @@ export function StatusLight({
   ...rest
 }: StatusLightProps): React.ReactElement {
   const sizeKey = String(size).toUpperCase();
-  const fontSize = FONT_SIZE[sizeKey] ?? 14;
 
   // dot 색 = rule fill base (20 variant) → CSS. Skia escape 와 같은 source.
   const rule = resolveComponentRule("StatusLight");
+  // 글자 = rule `sizes[size].fontSize` 토큰의 DOM 변수 (생성 CSS 와 같은 `--catalog-token-*`). px 표를 두면
+  //   Preview · Publish 의 터치 벌 (ADR-295 Phase 2) 에서 Canvas 만 커진다.
+  const ruleFont = rule?.sizes?.[sizeKey]?.fontSize ?? rule?.sizes?.M?.fontSize;
+  const fontSize =
+    typeof ruleFont === "string"
+      ? withCatalogTokenVars(tokenToCSSVar(ruleFont as Parameters<typeof tokenToCSSVar>[0]))
+      : undefined;
   // dot 지름 = rule sizes[size].indicator.dotSize (Skia · Canvas 폭 계산과 같은 source).
   const dotSize =
     rule?.sizes?.[sizeKey]?.indicator?.dotSize ?? DOT_SIZE[sizeKey] ?? 10;

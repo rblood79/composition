@@ -23,7 +23,9 @@ import { hexToOklch, oklchToHex } from "../oklchToHex";
 import {
   colorTokenCssVarName,
   resolveThemeSnapshot,
+  touchThemeSnapshot,
 } from "../resolveThemeSnapshot";
+import { catalogThemeVarsCss } from "../../../../../../packages/shared/src/catalog/runtime/themeVarsCss";
 import { RADIUS_BASE_PX, resolveRadiusTokens } from "../radiusScaleToSkia";
 import {
   createAccentColorTokens,
@@ -40,6 +42,8 @@ const resolve = (t: ThemeDefinition, rootTokens?: ThemeDefinition["tokens"]) =>
   resolveThemeSnapshot(t, { rootTokens, baseTypographySeed: SEED });
 const varOf = (s: ReturnType<typeof resolve>, name: string, dark = false) =>
   s.cssVars.find((v) => v.name === name && v.isDark === dark)?.value;
+const touchVarOf = (s: ReturnType<typeof resolve>, name: string) =>
+  s.touchCssVars.find((v) => v.name === name)?.value;
 
 describe("resolveThemeSnapshot — seed (preset 파생) 는 종전 setter 결과와 같다", () => {
   it("blue · neutral · md → accent 5 = createAccentColorTokens(blue) · radius md 배율 1 · --tint var(--blue) · neutral 11 단계", () => {
@@ -361,5 +365,85 @@ describe("ADR-295 R9 — radius 최종 snapshot = RADIUS_BASE_PX 파생 (seed �
     const seed = radiusSeed as unknown as Record<string, number>;
     for (const [key, value] of Object.entries(seed))
       if (key in RADIUS_BASE_PX) expect(value, key).toBe(RADIUS_BASE_PX[key]);
+  });
+});
+
+describe("ADR-295 Phase 2 — 기기 두 벌 · --catalog-token-*", () => {
+  it("desktop 벌: scale 1 · 글자 기준 14 · 높이 20/24/32/40/48 · 생성 CSS 이름 = resolver 맵", () => {
+    const s = resolve(theme());
+    expect(varOf(s, "--catalog-token-scale")).toBe("1");
+    expect(varOf(s, "--catalog-token-font-base")).toBe("14px");
+    expect(
+      ["XS", "S", "M", "L", "XL"].map((k) =>
+        varOf(s, `--catalog-token-size-height-${k}`),
+      ),
+    ).toEqual(["20px", "24px", "32px", "40px", "48px"]);
+    expect(varOf(s, "--catalog-token-text-sm")).toBe("14px");
+    expect(varOf(s, "--catalog-token-text-sm--line-height")).toBe(
+      "calc(20 / 14)",
+    );
+    expect(varOf(s, "--catalog-token-radius-md")).toBe("8px");
+    expect(varOf(s, "--catalog-token-radius-full")).toBe("9999px");
+    // desktop 벌의 글자 맵은 Skia 맵 (snapshot.typography) 과 같은 객체
+    expect(s.device.desktop.typography).toBe(s.typography);
+  });
+
+  it("터치 벌: S2 Provider 값 (scale 1.25 · 기준 17) · 글자 = round(17 × 1.125^단계) · radius 는 기기 무관", () => {
+    const s = resolve(theme());
+    expect(touchVarOf(s, "--catalog-token-scale")).toBe("1.25");
+    expect(touchVarOf(s, "--catalog-token-font-base")).toBe("17px");
+    expect(touchVarOf(s, "--catalog-token-size-height-M")).toBe("40px");
+    // S2 oracle (Phase 0 터치 computed): TextField S 15 · M 17
+    expect(touchVarOf(s, "--catalog-token-text-xs")).toBe("15px");
+    expect(touchVarOf(s, "--catalog-token-text-sm")).toBe("17px");
+    // 수동 시트가 읽는 Preview root 의 --text-* 도 같은 터치 값
+    expect(touchVarOf(s, "--text-sm")).toBe("17px");
+    expect(touchVarOf(s, "--catalog-token-radius-md")).toBeUndefined();
+    expect(s.device.touch.typography["text-sm"]).toBe(17);
+  });
+
+  it("테마가 명시한 글자 크기는 터치에서 같은 비율 (14 → 17), 명시 행간은 그대로", () => {
+    const s = resolve(
+      theme({
+        "typography.text-sm": {
+          type: "number",
+          value: 15,
+          source: "spec-token",
+        },
+        "typography.text-sm--line-height": {
+          type: "number",
+          value: 22,
+          source: "spec-token",
+        },
+      }),
+    );
+    expect(varOf(s, "--catalog-token-text-sm")).toBe("15px");
+    expect(s.device.touch.typography["text-sm"]).toBe(18);
+    expect(s.device.touch.typography["text-sm--line-height"]).toBe(22);
+  });
+
+  it("DOM: 터치 벌은 S2 기기 조건과 Preview 터치 보기 블록에만, :root 기본 블록에는 없다", () => {
+    const css = catalogThemeVarsCss(resolve(theme()));
+    const [root] = css.split('[data-theme="dark"]');
+    expect(root).toContain("--catalog-token-text-sm: 14px;");
+    expect(root).not.toContain("--catalog-token-text-sm: 17px;");
+    expect(css).toMatch(
+      /@media not \(\(hover: hover\) and \(pointer: fine\)\) \{\n:root \{[^}]*--catalog-token-text-sm: 17px;/,
+    );
+    expect(css).toMatch(
+      /:root\[data-catalog-touch\] \{[^}]*--catalog-token-scale: 1\.25;/,
+    );
+    // 터치 블록이 마지막 — 같은 특이도의 [data-theme="dark"] 블록을 이긴다
+    expect(css.lastIndexOf("@media not ((hover")).toBeGreaterThan(
+      css.lastIndexOf('[data-theme="dark"]'),
+    );
+  });
+
+  it("touchThemeSnapshot: Skia 맵만 터치 글자로 (G2 터치 arm)", () => {
+    const s = resolve(theme());
+    const t = touchThemeSnapshot(s);
+    expect(t.typography["text-sm"]).toBe(17);
+    expect(t.radius).toBe(s.radius);
+    expect(s.typography["text-sm"]).toBe(14);
   });
 });

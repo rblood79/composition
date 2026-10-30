@@ -13,31 +13,31 @@
     align-items: flex-start;
     box-sizing: border-box;
     width: 100%;
-    font-size: var(--text-base);
-    border-radius: var(--radius-md);
+    font-size: var(--catalog-token-text-base);
+    border-radius: var(--catalog-token-radius-md);
     overflow: hidden;
 
   /* Default size */
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
   border-width: var(--border-width-none);
 }
 
 .react-aria-DisclosureGroup[data-size="S"] {
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
   border-width: var(--border-width-none);
 }
 
 .react-aria-DisclosureGroup[data-size="M"] {
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
   border-width: var(--border-width-none);
 }
 
 .react-aria-DisclosureGroup[data-size="L"] {
-  font-size: var(--text-lg);
-  border-radius: var(--radius-lg);
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-lg);
   border-width: var(--border-width-none);
 }
 

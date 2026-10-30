@@ -1815,6 +1815,7 @@ const catalog: TranslationKeys = {
     viewOptions: "보기 옵션",
     compareMode: "비교 모드 (Preview + Skia)",
     compareCurrentPageOnly: "현재 페이지만 비교",
+    previewTouchView: "터치 크기로 미리보기",
     skiaOnlyMode: "Skia만 보기",
     workflow: "Workflow",
     showWorkflowOverlay: "Workflow 오버레이 표시",

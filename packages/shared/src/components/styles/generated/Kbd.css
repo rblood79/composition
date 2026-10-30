@@ -24,9 +24,9 @@
   /* Default size */
   height: 22px;
   padding: 0px 6px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-sm);
-  line-height: var(--text-sm--line-height);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-sm--line-height);
   border-width: var(--border-width-thin);
 }
 
@@ -47,36 +47,36 @@
 .react-aria-Kbd[data-size="XS"] {
   height: 18px;
   padding: 0px 4px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-xs);
-  line-height: var(--text-xs--line-height);
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-xs);
+  line-height: var(--catalog-token-text-xs--line-height);
   border-width: var(--border-width-thin);
 }
 
 .react-aria-Kbd[data-size="S"] {
   height: 22px;
   padding: 0px 6px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-sm);
-  line-height: var(--text-sm--line-height);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-sm--line-height);
   border-width: var(--border-width-thin);
 }
 
 .react-aria-Kbd[data-size="M"] {
   height: 26px;
   padding: 0px 8px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-sm);
-  line-height: var(--text-base--line-height);
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-base--line-height);
   border-width: var(--border-width-thin);
 }
 
 .react-aria-Kbd[data-size="L"] {
   height: 32px;
   padding: 0px 10px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-md);
-  line-height: var(--text-lg--line-height);
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-md);
+  line-height: var(--catalog-token-text-lg--line-height);
   border-width: var(--border-width-thin);
 }
 

@@ -115,6 +115,16 @@ const textPx = (name: string): number | undefined => {
   const resolved = resolveToken(`{typography.${name}}` as TokenRef);
   return typeof resolved === "number" ? resolved : undefined;
 };
+/**
+ * ADR-295 Phase 2 — a part's font size as written: the typography token ref (the library makes it a
+ * token value, so the resolver knows the size is a token's — the DOM writes its device variable), or
+ * the px of a non-token source.
+ */
+const textFont = (name: string): `{${string}}` => `{typography.${name}}`;
+const fontOf = (value: unknown, pixels: number): Scalar =>
+  typeof value === "string" && /^\{typography\.text-[\w-]+\}$/.test(value)
+    ? value
+    : pixels;
 
 /**
  * A child the owner's DOM renderer does not render: the owner draws its own `children` text in
@@ -137,7 +147,7 @@ const ownerTextParts = (
             size,
             layout: {},
             visual: {
-              fontSize,
+              fontSize: textFont(name),
               lineHeight: lineHeight / fontSize,
               fontWeight: 400,
             },
@@ -173,7 +183,7 @@ const itemLabelFontParts = (itemType: string): CompiledPartRule[] => {
           size,
           layout: {},
           visual: {
-            fontSize,
+            fontSize: fontOf(values.fontSize, fontSize),
             lineHeight: lineHeight ? lineHeight / fontSize : 1.5,
             ...(fontWeight !== undefined ? { fontWeight } : {}),
           },
@@ -331,7 +341,7 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
         via: "GridListSection",
         layout: { display: "block", gridColumnStart: "1", gridColumnEnd: "-1" },
         visual: {
-          fontSize: textPx("text-base") ?? 16,
+          fontSize: textFont("text-base"),
           fontWeight: 500,
           lineHeight: 1.5,
           paddingX: 16,
@@ -373,7 +383,7 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
               via: "ListBoxSection",
               layout: { display: "block" },
               visual: {
-                fontSize: descSize,
+                fontSize: textFont("text-xs"),
                 fontWeight: 600,
                 lineHeight: 1.5,
                 paddingX: 16,
@@ -460,7 +470,7 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
           layout: { gridColumnStart: "2" },
           visual: {
             ...(fontSize && lineHeight
-              ? { fontSize, lineHeight: lineHeight / fontSize }
+              ? { fontSize: textFont("text-sm"), lineHeight: lineHeight / fontSize }
               : {}),
           },
         },
@@ -471,7 +481,7 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
           visual: {
             fontWeight: 400,
             ...(descSize && descLine
-              ? { fontSize: descSize, lineHeight: descLine / descSize }
+              ? { fontSize: textFont("text-xs"), lineHeight: descLine / descSize }
               : {}),
           },
         },
@@ -602,7 +612,7 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
             flexBasis: "0%",
           },
           visual: {
-            fontSize,
+            fontSize: textFont(CALENDAR_HEADER.font),
             fontWeight: 700,
             ...(ratio > 0 ? { lineHeight: ratio } : {}),
             textAlign: "center",
@@ -674,7 +684,7 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
             childType: "Breadcrumb",
             size: name,
             layout: {},
-            visual: { fontSize: crumbFont, gap },
+            visual: { fontSize: fontOf(values.fontSize, crumbFont), gap },
           },
           {
             childType: "Text",
@@ -682,7 +692,7 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
             size: name,
             layout: {},
             visual: {
-              fontSize: crumbFont,
+              fontSize: fontOf(values.fontSize, crumbFont),
               ...(linkLineHeightRatio()
                 ? { lineHeight: linkLineHeightRatio()! }
                 : {}),
@@ -701,7 +711,7 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
             size: name,
             layout: {},
             visual: {
-              fontSize: crumbFont,
+              fontSize: fontOf(values.fontSize, crumbFont),
               ...(linkLineHeightRatio()
                 ? { lineHeight: linkLineHeightRatio()! }
                 : {}),
@@ -753,7 +763,9 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
           childType: "Link",
           layout: {},
           visual: {
-            ...(px(base?.fontSize) ? { fontSize: px(base?.fontSize)! } : {}),
+            ...(px(base?.fontSize)
+              ? { fontSize: fontOf(base?.fontSize, px(base?.fontSize)!) }
+              : {}),
             ...(ratio ? { lineHeight: ratio } : {}),
             fontWeight: 400,
             ...(rule?.variants.default?.colors?.text
@@ -1020,7 +1032,7 @@ function listBoxItemParts(): CompiledPartRule[] {
             childProps: { slot: "label" },
             layout: {},
             visual: {
-              fontSize,
+              fontSize: textFont("text-sm"),
               lineHeight: lineHeight / fontSize,
               fontWeight: 500,
             },
@@ -1034,7 +1046,10 @@ function listBoxItemParts(): CompiledPartRule[] {
             via: "ListBoxItem",
             childProps: { slot: "description" },
             layout: {},
-            visual: { fontSize: descSize, lineHeight: descLine / descSize },
+            visual: {
+              fontSize: textFont("text-xs"),
+              lineHeight: descLine / descSize,
+            },
           },
         ]
       : []),

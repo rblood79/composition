@@ -233,7 +233,7 @@ describe("S2 Disclosure isQuiet · density", () => {
       /\.react-aria-Disclosure\[data-size="M"\] \{\s*--disclosure-trigger-h: 32px;\s*--disclosure-trigger-py: 6px;\s*--disclosure-trigger-h-compact: 24px;\s*--disclosure-trigger-py-compact: 2px;\s*--disclosure-trigger-h-spacious: 40px;\s*--disclosure-trigger-py-spacious: 10px;/,
     );
     expect(sheet).toMatch(
-      /\.react-aria-Disclosure\[data-quiet="true"\] \.react-aria-Button\[slot='trigger'\] \{\s*border-radius: var\(--radius-md\);/,
+      /\.react-aria-Disclosure\[data-quiet="true"\] \.react-aria-Button\[slot='trigger'\] \{\s*border-radius: var\(--catalog-token-radius-md\);/,
     );
     expect(sheet).toMatch(
       /\.react-aria-Disclosure \.react-aria-Button\[slot='trigger'\] \{[^}]*min-height: var\(--disclosure-trigger-h\);\s*padding: var\(--disclosure-trigger-py\) var\(--spacing-md\);\s*border-radius: 0;/,

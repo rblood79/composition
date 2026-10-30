@@ -24,7 +24,7 @@
   /* Default size */
   height: auto;
   padding: 16px 16px;
-  font-size: var(--text-base);
+  font-size: var(--catalog-token-text-base);
   border-radius: 16px;
   gap: 12px;
 }
@@ -74,7 +74,7 @@
 .react-aria-Popover[data-size="S"] {
   height: auto;
   padding: 12px 12px;
-  font-size: var(--text-sm);
+  font-size: var(--catalog-token-text-sm);
   border-radius: 16px;
   gap: 8px;
 }
@@ -82,7 +82,7 @@
 .react-aria-Popover[data-size="M"] {
   height: auto;
   padding: 16px 16px;
-  font-size: var(--text-base);
+  font-size: var(--catalog-token-text-base);
   border-radius: 16px;
   gap: 12px;
 }
@@ -90,7 +90,7 @@
 .react-aria-Popover[data-size="L"] {
   height: auto;
   padding: 20px 20px;
-  font-size: var(--text-lg);
+  font-size: var(--catalog-token-text-lg);
   border-radius: 16px;
   gap: 16px;
 }

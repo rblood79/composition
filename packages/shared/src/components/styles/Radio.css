@@ -35,7 +35,7 @@
       box-sizing: border-box;
       border: 2px solid var(--border-hover);
       background: var(--color-white);
-      border-radius: var(--text-xl);
+      border-radius: 20px;
       transition: all 0.2s ease;
     }
 
@@ -128,7 +128,7 @@
     .indicator {
       width: 16px;
       height: 16px;
-      border-radius: var(--text-base);
+      border-radius: 16px;
     }
 
     &[data-selected] .indicator {
@@ -145,7 +145,7 @@
     .indicator {
       width: 20px;
       height: 20px;
-      border-radius: var(--text-xl);
+      border-radius: 20px;
     }
 
     &[data-selected] .indicator {

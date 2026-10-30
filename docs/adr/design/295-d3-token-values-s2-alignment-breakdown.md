@@ -154,7 +154,7 @@ size 키: XS 35 · S 102 · M 130 · L 101 · XL 58 · XXL 3.
 | 6   | 기존 문서 레이아웃 변화 수용  | Phase 0 R4 수치 뒤                          |
 | 7   | Canvas desktop 고정           | Phase 2                                     |
 
-결정 기록 (2026-10-30): 1 전부 S2 식 · 2 행간 식 도입 · 3 본문 + 제목 두 묶음 · 5 xs 2 · 2xl 24 유지 / 3xl · 4xl 삭제 · 6 수용. 4 · 7 은 Phase 2 에서.
+결정 기록 (2026-10-30): 1 전부 S2 식 · 2 행간 식 도입 · 3 본문 + 제목 두 묶음 · 5 xs 2 · 2xl 24 유지 / 3xl · 4xl 삭제 · 6 수용 · 4 별도 토글 (Compare Mode 「터치 크기로 미리보기」) · 7 Canvas desktop 고정. Phase 2 중 추가: record 글자 크기의 터치 경로 = 「토큰 출처를 기억」 (§6.2).
 
 ## 6. 실측 기록 (Phase 별로 채운다)
 
@@ -253,10 +253,45 @@ size 키: XS 35 · S 102 · M 130 · L 101 · XL 58 · XXL 3.
 
 **테스트 갱신 (값 단언)**: rendering — `typography.test` (S2 식 · 단계) · `typographyCssParity` (독립 oracle 을 chrome CSS 에서 S2 설치본 computed 로 — 글자 크기 전수 · 제목 행간) · `tokenResolver` · `cssVarToTokenRef` · `tokenSnapshot` snapshot. shared — `slotRoles` (text-3xl 25). builder — `resolveThemeSnapshot` · `tokenConsumerDrift` snapshot · `specPresetResolver` · `phase4eTheme` · `avatarGroupLabelNode` · `illustratedMessageNodeTree` · `calendarWidth` (DOM sheet 30px).
 
+### 6.2 Phase 2 (2026-10-30, G2)
+
+**변경**:
+
+| 영역 | 파일 | 내용 |
+| --- | --- | --- |
+| 생성 CSS 이름 공간 | `packages/rendering/src/renderers/CSSGenerator.ts` (`withCatalogTokenVars`) | 생성 시트의 `var(--radius-*)` · `var(--text-*)` → `var(--catalog-token-<원 이름>)` (rule 문자열 선언 포함, 102 시트). 이름은 ADR 예시 (`--catalog-token-font-size-sm`) 대신 원 이름에 접두만 — 행간 짝 (`--text-sm--line-height`) 을 기계적으로 옮기기 위해 |
+| 빌더 고정값 | `styles/builder-catalog-vars.css` (신규) · `builder-components.css` | `--catalog-token-*` 를 295 전 chrome 값 (글자 10 · 12 · 14 … · radius 6 · 8 · 12 …) 으로 — desktop 한 벌 · 미디어 쿼리 0 · 생성 시트보다 앞 |
+| 기기 두 벌 | `rendering/primitives/device.ts` (신규) · `resolveThemeSnapshot.ts` | `S2_DEVICE` (scale 1 / 1.25 · font.base 14 / 17) · `S2_CONTROL_HEIGHT` (20 · 24 · 32 · 40 · 48 × scale — rule 참조는 Phase 3) · snapshot `device.{desktop,touch}` · DOM `--catalog-token-scale` · `-font-base` · `-size-height-*` · 글자. 터치 벌은 **별도 배열 `touchCssVars`** — `cssVars` 에 섞으면 `isDark` 만 보고 `:root` 에 쓰는 소비자 (G3 하니스 3곳) 가 터치 값을 desktop 위에 덮었다 (propAxis 8건 새 실패로 발견). 테마가 명시한 글자 크기는 터치에서 17/14 비율, 행간은 Phase 3 까지 단계별 px 그대로 (`PRE_PHASE3_LINE_HEIGHT`) |
+| DOM 두 블록 | `themeVarsCss.ts` | 터치 벌을 `@media not ((hover: hover) and (pointer: fine))` 와 `:root[data-catalog-touch]` 두 블록으로, 맨 끝에 (같은 특이도의 `[data-theme=dark]` 를 이긴다) |
+| 첫 프레임 | `theme/generated/theme-seed.generated.css` (`generate-css.ts` 가 생성 · `--check`) · `styles/index.css` | 기본 테마의 `--catalog-token-*` desktop · 터치 (`@layer preview-system`) — Preview · Publish 만 |
+| 터치 보기 (결정 4) | `compareMode.ts` (`previewTouch`) · `BuilderHeader.tsx` (Compare Mode 그룹의 손 아이콘 토글) · `CatalogPreviewFrame.tsx` · `catalogPreviewApp.ts` | `CATALOG_TOUCH_VIEW` 메시지 → Preview root `data-catalog-touch` |
+| record 글자의 터치 경로 (사용자 결정 「토큰 출처를 기억」) | `resolution/resolver.ts` (`catalogResolvedTokenRef` · `copyResolvedTokenRefs`) · `runtime/deviceTypography.ts` (신규) · `domBinding.runtime.ts` (공통 · rule 실행기 두 자리) · `document/rulePartRules.ts` · `document/manualBoxRules.ts` · `codeCatalogLibrary.ts` | resolver 가 `applyValues` · `applyWrites` 에서 토큰으로 푼 키의 ref 를 values 객체별로 기록 (instance root · 표 칸 사본도 이어받음). part rule 컴파일러의 `font-size: var(--text-*)` · 손 part rule (`ownerTextParts` · `itemLabelFontParts` · ListBox · GridList · Calendar · Breadcrumbs) 은 글자 토큰을 참조로 남기고 library 가 토큰 값으로 바꾼다. DOM 은 record 값이 그 토큰의 설치값과 같을 때만 `var(--catalog-token-text-*)` (짝 행간 비율이면 행간 변수도) — 리터럴 · 사용자 px · Icon 글리프는 px |
+| 글자 토큰을 상자로 쓰던 남은 자리 | `Switch.css` · `Checkbox.css` · `Radio.css` | xs ~ xl 도 px 고정 (터치에서 DOM 상자만 1.2배) — Phase 1 은 2xl ~ 5xl |
+| StatusLight DOM | `components/StatusLight.tsx` | 글자 px 표 (12 · 14 · 16 · 18) → rule `fontSize` 토큰 변수 |
+
+**게이트 · RED** (원복은 bash 백업 · trap 복원 · cmp):
+
+- `builderCatalogVars.static.test.ts` (신규 5): (a) 커버리지 — 변수 하나 삭제 → (a) · (c) FAIL · (b) 미디어 쿼리 0 — touch 블록 추가 → FAIL · (c) Phase 0 기준 JSON (1,193 선언) 과 계산값 동일 — radius-md 8 → FAIL · 생성 시트에 chrome 토큰 이름 0 · chrome CSS 에 `var(--catalog-token-` 0. 계산은 Phase 0 스크립트와 공용 모듈 (`scripts/adr295BuilderGeneratedSheets.mjs`).
+- ADR-293 게이트 (a) (`generatedCssVarsDeclared.static.test.ts`): `--catalog-` 통째 허용 → 상태 변수 접두 7 (`CatalogStates.css` 집합과 대조). 생성 시트에 `var(--catalog-token-bogus)` → 좁힌 게이트 FAIL / 295 전 게이트는 통과 (경계 테스트가 넓히기를 막는다).
+- G2 (`adr295PaletteSymmetry.browser.test.ts` 가 게이트로): 1 CSS px 를 넘는 비대칭이 알려진 목록 밖에서 0 (목록에 있는데 대칭이 되어도 FAIL). touch arm 은 production 과 같게 — Canvas leg = 터치 맵에서 빌드한 library + 터치 맵, DOM leg = desktop library + desktop 맵으로 만든 record + CSS 터치 벌. 같은 맵으로 두 leg 를 만들면 record 에 굳은 px 가 같이 커져 DOM 결함을 못 본다 (measurement-validity #3 — 첫 측정이 그래서 0 이었다). Checkbox 상자 px 고정 원복 → touch 4 FAIL · DOM 글자 변환 끄기 → touch 120 FAIL.
+
+**G2 결과** (Chromium · DPR 1 · 1440×900):
+
+- desktop: 263 통과 · Phase 1 (`after`) 대비 상자 변화 0 · 비대칭 24 (295 전부터 — `KNOWN_ASYMMETRIC`: Separator · Skeleton · Section · Keyboard · Image 의 Canvas 폭 0 · Select 2px · Pagination · DropZone · Menu/ContextualHelp trigger 줄 상자 · Autocomplete).
+- touch: 263 통과 · 비대칭 = 24 + touch 만 14 (`KNOWN_TOUCH_ASYMMETRIC`): Card · CardView · DateRangePicker 13 = 행간이 **다른 단계** 토큰의 비율로 빌드 때 숫자가 됨 (Text 기본 text-base 행간 · Card 글자 px 리터럴 + 토큰 행간) — Phase 3 행간 식 · 리터럴 참조화로 닫는다. ColorSlider M 1 = DOM Label 글자가 px 로 남음 (record 출처는 있음 — 렌더 경로 추적 미완). 경과: 첫 측정 154 → 토큰 출처 (정의) 55 → part rule · 손 part rule 26 → rule 실행기 경로 14.
+
+**live (Chrome MCP, 별도 dev 서버 5175 · 프로젝트 `adr295-live`)**: 빌더 root `--catalog-token-text-sm 14px` · `radius-md 6px` (chrome 고정값) · 빌더 Input 글자 12 · 모서리 8 (변화 없음). Compare Mode 켜면 헤더에 손 아이콘 토글 (「터치 크기로 미리보기」). 끔: Preview Text 14 · 12 · Label 14 · Input 14 · 변수 scale 1 · height-M 32 · radius-md 8. 켬: root `data-catalog-touch` · Text 17 · 15 · Label 17 · Input 17 · scale 1.25 · height-M 40 · radius-md 8 (기기 무관) · 행간 20 / 16 유지 (Phase 3). 다시 끄면 원래 값. Canvas 는 그대로 desktop. Publish 탭 (헤더 Preview 버튼): `#runtime-theme-vars` 에 S2 터치 미디어 블록 · scale 1.25, 기본 시트에 seed layer, Text inline `var(--catalog-token-text-sm)` (터치 속성 조건에서 17 · 15). 실제 pointer: coarse 기기 · 에뮬레이션 확인은 Phase 4 (CDP 는 pointer 미디어를 바꾸지 못한다 — §6.0).
+
+**관찰**:
+
+- `generated/Image.css` 등 2 장은 옛 spec 시대 생성물로 어디서도 import 되지 않는다 (생성 목록 102 밖) — 이번 이름 변경 대상 밖. 삭제는 별도 승인.
+- `paletteBaseCanvas.browser` 는 HEAD 에서도 FAIL (ADR-248 frozen 옛 Canvas PNG — 은퇴 대상, §6.0) 이고 실행하면 추적 파일 `docs/adr/design/248-phase3-palette-base-canvas.json` 을 다시 쓴다.
+- `propAxisCanvasDom` 5 (Select · Tree · Table) 는 HEAD 와 같은 실패.
+
 - G1 before/after: §6.1
-- G2 두 arm: (미작성)
+- G2 두 arm: §6.2
 - G4 (b) 최종 snapshot (preset 5 × 델타) · (c) 컴포넌트별 desktop/touch vs S2 computed: (미작성)
 - G5 빌더 chrome before/after Δ (패널 표면 + 위젯 CompactSelect · PropertySelect · Data RowForm, desktop · pointer: coarse 두 조건): (미작성)
-- Decision 9 게이트 (a) 커버리지 · (b) pointer 쿼리 0 · (c) 계산값 == 기준 JSON · RED: (미작성)
+- Decision 9 게이트 (a) 커버리지 · (b) pointer 쿼리 0 · (c) 계산값 == 기준 JSON · RED: §6.2
 - G3 ratchet 원복 RED: (미작성)
 - G5 live: (미작성)

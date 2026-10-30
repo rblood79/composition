@@ -207,6 +207,46 @@ export interface CatalogViewResultMeta {
   };
 }
 /** Bound components that show their collection's load (`useAsyncList.loadingState`). */
+/**
+ * ADR-295 Phase 2 — the theme token each resolved value came from, by the values object (`visual` of a
+ * resolved node): a key holds the ref (`{typography.text-sm}`) while its last write was a library token.
+ * The DOM writes such a font size as the token's variable, so the device set (desktop · touch) reaches
+ * it as it reaches the generated sheets; the Canvas reads the number (desktop, 사용자 결정 7).
+ */
+const RESOLVED_TOKEN_REFS = new WeakMap<object, Record<string, string>>();
+
+/** The token ref of `values[key]` as resolved (`undefined` = a literal, an authored px, no record). */
+export function catalogResolvedTokenRef(
+  values: object,
+  key: string,
+): string | undefined {
+  return RESOLVED_TOKEN_REFS.get(values)?.[key];
+}
+
+/** `{ ...visual, ...extra }` with `visual`'s token refs. */
+function extendedVisual<T extends object>(visual: T, extra: object): T {
+  const out = { ...visual, ...extra };
+  copyResolvedTokenRefs(out, visual);
+  return out;
+}
+
+/** Copies the token refs of `source`'s keys onto `target` (a values object built from another). */
+export function copyResolvedTokenRefs(
+  target: object,
+  source: object,
+  keys: readonly string[] = Object.keys(source),
+): void {
+  const refs = RESOLVED_TOKEN_REFS.get(source);
+  const own = RESOLVED_TOKEN_REFS.get(target);
+  if (!refs && !own) return;
+  const out = own ?? {};
+  for (const key of keys) {
+    if (refs?.[key]) out[key] = refs[key]!;
+    else delete out[key];
+  }
+  RESOLVED_TOKEN_REFS.set(target, out);
+}
+
 const LOADING_STATE_TYPES: ReadonlySet<string> = new Set([
   "Table",
   "ListBox",
@@ -693,6 +733,26 @@ export function resolveCatalogNode(
             },
       );
   };
+  /** The theme token ref of a library token value (`{typography.text-sm}`), else undefined. */
+  const tokenRefOf = (value: AuthoredValue | number | null): string | undefined =>
+    value !== null &&
+    typeof value === "object" &&
+    "kind" in value &&
+    value.kind === "token"
+      ? graph.getToken(value.tokenId)?.ref
+      : undefined;
+  const noteTokenRef = (
+    target: object,
+    key: string,
+    value: AuthoredValue | number | null | undefined,
+  ) => {
+    const ref = value === undefined ? undefined : tokenRefOf(value);
+    const refs = RESOLVED_TOKEN_REFS.get(target);
+    if (ref) {
+      if (refs) refs[key] = ref;
+      else RESOLVED_TOKEN_REFS.set(target, { [key]: ref });
+    } else if (refs) delete refs[key];
+  };
   const tokenValue = (value: AuthoredValue): PropValue => {
     if (typeof value !== "object" || !("kind" in value)) return value;
     // (ADR-284 Phase 6 — a value condition resolves with the record's variables, as `{{ }}`.)
@@ -706,17 +766,23 @@ export function resolveCatalogNode(
     target: Props,
     values: Readonly<Record<string, AuthoredValue>>,
   ): void => {
-    for (const [key, value] of Object.entries(values))
+    for (const [key, value] of Object.entries(values)) {
       target[key] = tokenValue(value);
+      noteTokenRef(target, key, value);
+    }
   };
   const applyWrites = (
     target: Record<string, PropValue | null>,
     writes: Readonly<Record<string, WriteValue<AuthoredValue | number | null>>>,
   ): void => {
     for (const [key, write] of Object.entries(writes)) {
-      if (write.kind === "mask") delete target[key];
-      else if (write.kind === "set")
+      if (write.kind === "mask") {
+        delete target[key];
+        noteTokenRef(target, key, undefined);
+      } else if (write.kind === "set") {
         target[key] = write.value === null ? null : tokenValue(write.value);
+        noteTokenRef(target, key, write.value);
+      }
       // remove resets this local layer; the inherited value remains visible.
     }
   };
@@ -923,6 +989,7 @@ export function resolveCatalogNode(
     for (const key of propKeys) if (key in props) root.props[key] = props[key];
     for (const key of visualKeys)
       if (key in visual) root.visual[key] = visual[key];
+    copyResolvedTokenRefs(root.visual, visual, Object.keys(root.visual));
     return root;
   };
   /**
@@ -1317,6 +1384,7 @@ export function resolveCatalogNode(
     if (inherited) {
       Object.assign(props, inherited.props);
       Object.assign(visual, inherited.visual);
+      copyResolvedTokenRefs(visual, inherited.visual);
     }
     applyWrites(
       props,
@@ -1668,7 +1736,7 @@ export function resolveCatalogNode(
         );
         // The text is one line with an ellipsis (the Cell rule's Canvas paint, as Table.css);
         // the box clips it.
-        return { ...cell, visual: { ...cell.visual, overflow: "hidden" } };
+        return { ...cell, visual: extendedVisual(cell.visual, { overflow: "hidden" }) };
       });
       return {
         ...synthesize(
@@ -1696,13 +1764,13 @@ export function resolveCatalogNode(
           }
         : {}),
       // Table.css clips the outer table (`overflow: hidden`): rows past its height are cut.
-      visual: { ...projected.visual, overflow: "hidden" },
+      visual: extendedVisual(projected.visual, { overflow: "hidden" }),
       children: projected.children.map((child) =>
         child === body
           ? {
               ...body,
               // The rows past a fixed height are cut (the DOM's virtualizer scrolls them).
-              visual: { ...body.visual, overflow: "hidden" },
+              visual: extendedVisual(body.visual, { overflow: "hidden" }),
               // The other modes grow with every row (the Builder samples them).
               ...(shown === ordered ? { rowCount: rowCountOf(rowSet) } : {}),
               children: rowsOut,

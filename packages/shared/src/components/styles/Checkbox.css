@@ -8,7 +8,8 @@
  */
 
 @layer components {
-  /* ADR-295 Phase 1: 값이 S2 로 바뀐 글자 토큰 (2xl · 3xl · 4xl · 5xl) 을 상자 크기로 쓰던 자리는 그 전 px 로
+  /* ADR-295 Phase 1 · 2: 글자 토큰을 상자 크기로 쓰던 자리는 px 로 고정했다 — Phase 1 은 값이 S2 로 바뀐 2xl ~ 5xl,
+     Phase 2 는 나머지 (xs ~ xl — 터치 벌에서 글자 토큰이 1.2배가 되면 DOM 상자만 커진다). 그 전 px 로
      고정했다 (Canvas 는 toggle rule `size.indicator` px). S2 control 크기 정렬은 Phase 3. */
   /* ADR-256 G5: the indicator always holds its svg (the reference's div.indicator > svg);
      unselected it does not show. Both structures' RAC label carries the state. */
@@ -41,11 +42,11 @@
 
     /* Size variables (md default) */
     --cb-font-size: var(--text-base);
-    --cb-box-size: var(--text-xl);
+    --cb-box-size: 20px;
 
     &[data-size="S"] {
       --cb-font-size: var(--text-sm);
-      --cb-box-size: var(--text-base);
+      --cb-box-size: 16px;
       --cb-gap: 6px;
       --label-font-size: var(--text-xs);
       font-size: var(--text-sm);
@@ -54,7 +55,7 @@
 
     &[data-size="M"] {
       --cb-font-size: var(--text-base);
-      --cb-box-size: var(--text-xl);
+      --cb-box-size: 20px;
       --cb-gap: var(--spacing-sm);
       --label-font-size: var(--text-sm);
       font-size: var(--text-base);
@@ -201,7 +202,7 @@
 
   .react-aria-CheckboxGroup[data-checkbox-size="S"] .react-aria-Checkbox {
     --cb-font-size: var(--text-sm);
-    --cb-box-size: var(--text-base);
+    --cb-box-size: 16px;
     --cb-gap: 6px;
     --label-font-size: var(--text-xs);
     line-height: var(--text-xs--line-height);
@@ -209,7 +210,7 @@
 
   .react-aria-CheckboxGroup[data-checkbox-size="M"] .react-aria-Checkbox {
     --cb-font-size: var(--text-base);
-    --cb-box-size: var(--text-xl);
+    --cb-box-size: 20px;
     --cb-gap: var(--spacing-sm);
     --label-font-size: var(--text-sm);
     line-height: var(--text-sm--line-height);

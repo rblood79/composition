@@ -16,42 +16,42 @@
     color: var(--fg);
 
   /* Default size */
-  font-size: var(--text-sm);
+  font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
   gap: 6px;
   --icon-size: 18px;
 }
 
 .react-aria-Select[data-size="XS"] {
-  font-size: var(--text-2xs);
-  border-radius: var(--radius-xs);
+  font-size: var(--catalog-token-text-2xs);
+  border-radius: var(--catalog-token-radius-xs);
   gap: 2px;
   --icon-size: 14px;
 }
 
 .react-aria-Select[data-size="S"] {
-  font-size: var(--text-xs);
+  font-size: var(--catalog-token-text-xs);
   border-radius: 7px;
   gap: 4px;
   --icon-size: 16px;
 }
 
 .react-aria-Select[data-size="M"] {
-  font-size: var(--text-sm);
+  font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
   gap: 6px;
   --icon-size: 18px;
 }
 
 .react-aria-Select[data-size="L"] {
-  font-size: var(--text-base);
+  font-size: var(--catalog-token-text-base);
   border-radius: 9px;
   gap: 8px;
   --icon-size: 22px;
 }
 
 .react-aria-Select[data-size="XL"] {
-  font-size: var(--text-lg);
+  font-size: var(--catalog-token-text-lg);
   border-radius: 10px;
   gap: 10px;
   --icon-size: 28px;
@@ -98,23 +98,23 @@
 }
 
 .react-aria-Select[data-size="XS"] {
-  --select-value-font-size: var(--text-2xs);
+  --select-value-font-size: var(--catalog-token-text-2xs);
 }
 
 .react-aria-Select[data-size="S"] {
-  --select-value-font-size: var(--text-xs);
+  --select-value-font-size: var(--catalog-token-text-xs);
 }
 
 .react-aria-Select[data-size="M"] {
-  --select-value-font-size: var(--text-sm);
+  --select-value-font-size: var(--catalog-token-text-sm);
 }
 
 .react-aria-Select[data-size="L"] {
-  --select-value-font-size: var(--text-base);
+  --select-value-font-size: var(--catalog-token-text-base);
 }
 
 .react-aria-Select[data-size="XL"] {
-  --select-value-font-size: var(--text-lg);
+  --select-value-font-size: var(--catalog-token-text-lg);
 }
 
 .react-aria-Select .react-aria-SelectValue {

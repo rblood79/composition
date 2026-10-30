@@ -73,6 +73,15 @@ export {
 // Radius
 export { radius, getRadiusToken } from "./radius";
 
+// Device axis (ADR-295 Decision 2)
+export {
+  S2_DEVICE,
+  S2_TOUCH_MEDIA,
+  S2_CONTROL_HEIGHT,
+  s2ControlHeights,
+} from "./device";
+export type { S2Device } from "./device";
+
 // Border width (ADR-227 Phase 3)
 export {
   borderWidth,
