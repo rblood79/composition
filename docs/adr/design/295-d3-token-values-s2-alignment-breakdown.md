@@ -500,4 +500,5 @@ field 버튼 (ComboBox · DatePicker · DateRangePicker): 정사각형 `{size.fi
 - G5 빌더 chrome before/after Δ (패널 표면 + 위젯 CompactSelect · PropertySelect · Data RowForm, desktop · pointer: coarse 두 조건): (미작성)
 - Decision 9 게이트 (a) 커버리지 · (b) pointer 쿼리 0 · (c) 계산값 == 기준 JSON · RED: §6.2
 - G3 ratchet 원복 RED: §6.4
+- G5 번들 Δ: 295 직전 (`a2f619475`) + 295 밖 코드 커밋 1 → `a0c94c1d7`, 같은 lockfile 의 두 worktree 빌드. Builder initial JS gzip 1,368,540 → 1,373,189 (+4,649) · Preview 313,067 → 315,483 (+2,416) — 처음 허용치 (+2,048 · +1,024) 초과, 절대 상한 안. 늘어난 곳 (sourcemap raw): `componentRulesTable` 토큰 ref +7,669 · `ruleLength` +3,894 · `device` +1,356 · `tokenResolver` +1,324 · Builder 만 `resolveThemeSnapshot` +2,332. 모두 승인된 결정 (토큰 참조 · 터치 두 벌 · 값의 형) 의 몫이라 **사용자가 허용치를 Builder +5,120 · Preview +2,560 B gz 로 재승인 (2026-10-31)**. 3c-3b 뒤 Phase 4 를 닫을 때 같은 방법으로 다시 잰다. 증거 `.agent/runs/2026-10-31-adr295-phase4/bundle/`.
 - G5 live: (미작성)
