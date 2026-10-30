@@ -1,0 +1,1 @@
+export{n as initEngineWasm,r as isEngineReady}from"./engineWasm-ICsus3z7.js";
