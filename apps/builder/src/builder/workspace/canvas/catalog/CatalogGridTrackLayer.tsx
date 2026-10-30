@@ -211,7 +211,12 @@ export function CatalogGridTrackLayer({
         return null;
       const flow = grid.children.filter((child) => {
         const record = records.get(child);
-        return !!record && !catalogIsOutOfFlow(record);
+        return (
+          !!record &&
+          !record.hidden &&
+          record.layout.display !== "none" &&
+          !catalogIsOutOfFlow(record)
+        );
       });
       const columns =
         gridTrackList(String(grid.layout.gridTemplateColumns ?? ""))?.length ||

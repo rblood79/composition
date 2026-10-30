@@ -2042,7 +2042,7 @@ export class CatalogCanvasGestures {
     return row ? "row" : "column";
   }
 
-  /** The children that take a flow slot (not the dragged, not absolutely placed), with their boxes. */
+  /** 레이아웃에 참여하는 자식만 포함한다. 숨긴 part의 0 크기 상자는 flow 슬롯이 아니다. */
   private flowEntries(
     container: CatalogConsumerNode,
     dragged: ReadonlySet<string>,
@@ -2050,7 +2050,14 @@ export class CatalogCanvasGestures {
     const records = this.host.records;
     return container.children.flatMap((id) => {
       const child = records.get(id);
-      if (dragged.has(id) || !child || catalogIsOutOfFlow(child)) return [];
+      if (
+        dragged.has(id) ||
+        !child ||
+        child.hidden ||
+        child.layout.display === "none" ||
+        catalogIsOutOfFlow(child)
+      )
+        return [];
       const box = this.host.bounds(id);
       return box ? [{ id, box }] : [];
     });

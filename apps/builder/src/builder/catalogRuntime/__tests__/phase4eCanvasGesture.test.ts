@@ -13,6 +13,7 @@ import {
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogCanvasGestures } from "../canvasGesture";
+import { catalogPaletteInsertCommand } from "../paletteInsert";
 import { pickTopmostRecord } from "../canvasPick";
 import { CatalogCanvasScene } from "../canvasScene";
 import { newCatalogProjectDocument } from "../project";
@@ -161,6 +162,58 @@ const useSpacingSessionView = (live: CatalogSpacingLive) => ({
 });
 
 describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
+  it.each(["CheckboxGroup", "RadioGroup", "SearchField"])(
+    "%s Side 라벨의 빈 도움말·오류는 선택 영역 밖 grid 행을 만들지 않는다",
+    async (type) => {
+      const { workspace, scene, gestures } = await open();
+      try {
+        const command = catalogPaletteInsertCommand(
+          {
+            graph: workspace.runtime.graph,
+            records: workspace.root.domInputs,
+            selection: () => [],
+            itemOfRecord: (identity) => workspace.itemOfRecord(identity),
+            pageContent: () => ({ kind: "node", id: BODY }),
+            newId: workspace.newId,
+          },
+          type,
+        )!;
+        const source = workspace.execute(command).plan.selectAfter![0];
+        workspace.execute(
+          setFields({
+            targets: [{ kind: "node", id: source }],
+            props: { labelPosition: { kind: "set", value: "side" } },
+          }),
+        );
+        scene.sync();
+        const record = workspace.root.recordsOfSource(source)[0];
+        const frame = scene.stream.boundsMap.get(record)!;
+        const tracks = gestures.gridTracksOfRecord(record)!;
+        expect(tracks.rows).toHaveLength(1);
+        expect(gestures.gridCellsOfRecord(record).length).toBeGreaterThan(0);
+        for (const cell of gestures.gridCellsOfRecord(record)) {
+          expect(cell.y + cell.height).toBeLessThanOrEqual(
+            frame.y + frame.height + 0.01,
+          );
+        }
+        workspace.execute(
+          setFields({
+            targets: [{ kind: "node", id: source }],
+            props: { description: { kind: "set", value: "도움말" } },
+          }),
+        );
+        scene.sync();
+        expect(gestures.gridTracksOfRecord(record)!.rows).toHaveLength(2);
+        workspace.undo();
+        scene.sync();
+        expect(gestures.gridTracksOfRecord(record)!.rows).toHaveLength(1);
+      } finally {
+        scene.dispose();
+        workspace.dispose();
+      }
+    },
+  );
+
   it("reorders among siblings on release (one history step); undo restores; below the threshold nothing", async () => {
     const { workspace, gestures, record, box, center, children } = await open();
     workspace.selectRecords([record("a")]);

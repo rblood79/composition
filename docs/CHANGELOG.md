@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Side 라벨의 불필요한 grid 안내선 제거] - 2026-10-31
+
+### Fixed
+
+- CheckboxGroup·RadioGroup·SearchField를 `Label Position: Side`로 선택할 때, 숨겨진 빈 도움말·오류 항목이 grid 행으로 계산되어 선택 영역 아래에 선이 생기던 문제를 수정했다. grid 안내선과 셀 교환 계산은 숨겨진 항목을 제외하며, 내용이 있는 도움말 행은 유지한다.
+
 ## [안내선 표시·이동·삭제 개선] - 2026-10-31
 
 ### Fixed
