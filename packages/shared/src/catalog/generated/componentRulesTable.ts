@@ -7520,42 +7520,53 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   MenuItem: {
     defaultSize: "M",
     variants: {},
+    // ADR-295 Phase 3c-3c ③: S2 `menuitem` = `control({ shape: 'default', icon: true })` — the control height as its
+    //   minimum, the centring padding (`(height − line) / 2`), `edge-to-text` (height × 3/8) at both ends, an icon
+    //   `text-to-visual` before its label; its size is its Menu's (`CATALOG_SIZE_PROPAGATION.Menu`).
     sizes: {
       S: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.sm}",
-        height: 24,
-        paddingX: 9,
-        paddingY: 2,
-        gap: 6,
+        borderWidth: "{border.width.none}",
+        height: 0,
+        minHeight: "{size.height.S}",
+        paddingX: ofHeight(3, 8),
+        paddingY: 4,
+        gap: TEXT_TO_VISUAL,
       },
       M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.md}",
-        height: 32,
-        paddingX: 12,
-        paddingY: 4,
-        gap: 8,
+        borderWidth: "{border.width.none}",
+        height: 0,
+        minHeight: "{size.height.M}",
+        paddingX: ofHeight(3, 8),
+        paddingY: 7,
+        gap: TEXT_TO_VISUAL,
       },
       L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.lg}",
-        height: 40,
-        paddingX: 15,
-        paddingY: 8,
-        gap: 10,
+        borderWidth: "{border.width.none}",
+        height: 0,
+        minHeight: "{size.height.L}",
+        paddingX: ofHeight(3, 8),
+        paddingY: 10,
+        gap: TEXT_TO_VISUAL,
       },
       XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.xl}",
-        height: 48,
-        paddingX: 18,
-        paddingY: 12,
-        gap: 12,
+        borderWidth: "{border.width.none}",
+        height: 0,
+        minHeight: "{size.height.XL}",
+        paddingX: ofHeight(3, 8),
+        paddingY: 13,
+        gap: TEXT_TO_VISUAL,
       },
     },
     structure: {
@@ -7580,6 +7591,54 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-259 Phase 1 (R4): a link MenuItem is RAC's `<a>` — no browser link underline or link
       //   color (the reference's `&[href]`): it keeps its Menu's text color like any item.
       composition: {
+        // ADR-295 Phase 3c-3c ③: S2 menu `label` = the control font, medium; `description` one step down
+        //   (`ui-xs` · `ui-sm` · `ui` · `ui-lg`) — the item's Text slots (a Text's own rule is the body font).
+        sizeSelectors: {
+          S: {
+            '.react-aria-Text[slot="label"]': {
+              "font-size": "var(--text-xs)",
+              "line-height": "var(--text-xs--line-height)",
+              "font-weight": "500",
+            },
+            '.react-aria-Text[slot="description"]': {
+              "font-size": "var(--text-2xs)",
+              "line-height": "var(--text-2xs--line-height)",
+            },
+          },
+          M: {
+            '.react-aria-Text[slot="label"]': {
+              "font-size": "var(--text-sm)",
+              "line-height": "var(--text-sm--line-height)",
+              "font-weight": "500",
+            },
+            '.react-aria-Text[slot="description"]': {
+              "font-size": "var(--text-xs)",
+              "line-height": "var(--text-xs--line-height)",
+            },
+          },
+          L: {
+            '.react-aria-Text[slot="label"]': {
+              "font-size": "var(--text-base)",
+              "line-height": "var(--text-base--line-height)",
+              "font-weight": "500",
+            },
+            '.react-aria-Text[slot="description"]': {
+              "font-size": "var(--text-sm)",
+              "line-height": "var(--text-sm--line-height)",
+            },
+          },
+          XL: {
+            '.react-aria-Text[slot="label"]': {
+              "font-size": "var(--text-lg)",
+              "line-height": "var(--text-lg--line-height)",
+              "font-weight": "500",
+            },
+            '.react-aria-Text[slot="description"]': {
+              "font-size": "var(--text-base)",
+              "line-height": "var(--text-base--line-height)",
+            },
+          },
+        },
         rootSelectors: {
           "&[href]": {
             styles: { "text-decoration": "none", color: "inherit" },

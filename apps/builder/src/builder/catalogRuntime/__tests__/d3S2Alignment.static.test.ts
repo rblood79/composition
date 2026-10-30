@@ -1098,3 +1098,83 @@ describe("ADR-295 G4 — 3c-3c ②c Slider track 행 · 막대 = S2", () => {
     }
   });
 });
+
+describe("ADR-295 G4 — 3c-3c ③ MenuItem = S2 menuitem (control 형 · label · description 글자)", () => {
+  const source = (file: string) =>
+    readFileSync(
+      resolve(
+        __dirname,
+        "../../../../node_modules/@react-spectrum/s2/src",
+        file,
+      ),
+      "utf8",
+    );
+  const rule = COMPONENT_RULES_TABLE.MenuItem as unknown as {
+    sizes: Record<string, Record<string, unknown>>;
+    structure: {
+      composition: {
+        sizeSelectors: Record<string, Record<string, Record<string, string>>>;
+      };
+    };
+  };
+  const CONTROL_FONT: Readonly<Record<string, string>> = {
+    S: "ui-sm",
+    M: "ui",
+    L: "ui-lg",
+    XL: "ui-xl",
+  };
+  const fontName = (css: string) =>
+    FONT_NAME[/var\(--(text-[\w-]+)\)/.exec(css)![1]!];
+
+  it("항목 = `control({ shape: 'default', icon: true })` — 최소 높이 control · centerPadding · edge-to-text · text-to-visual", () => {
+    const menu = source("Menu.tsx");
+    expect(menu).toMatch(
+      /export let menuitem = style<[\s\S]*?\.\.\.control\(\{shape: 'default', wrap: true, icon: true\}\)/,
+    );
+    for (const [size, block] of Object.entries(rule.sizes)) {
+      const height = S2_CONTROL_HEIGHT[size as keyof typeof S2_CONTROL_HEIGHT];
+      expect(block.minHeight, size).toBe(`{size.height.${size}}`);
+      expect(FONT_NAME[String(block.fontSize).slice(12, -1)], size).toBe(
+        CONTROL_FONT[size],
+      );
+      expect(block.paddingY, size).toBe(
+        (height - (resolveToken(block.lineHeight as TokenRef) as number)) / 2,
+      );
+      expect(
+        parseRuleLengthRef(ruleSizeLengthRef(block, "paddingX")!),
+        size,
+      ).toMatchObject({ base: `{size.height.${size}}`, ratio: 3 / 8 });
+      expect(ruleSizeLengthRef(block, "gap"), size).toBeDefined();
+    }
+  });
+
+  it("label = controlFont · medium, description = S ui-xs · M ui-sm · L ui · XL ui-lg", () => {
+    const menu = source("Menu.tsx");
+    expect(menu).toMatch(
+      /export let label = style<\{size: string\}>\(\{\s*gridArea: 'label',\s*font: controlFont\(\),[\s\S]*?fontWeight: 'medium'/,
+    );
+    const description =
+      /export let description = style<[\s\S]*?size: \{\s*S: '([\w-]+)',\s*M: '([\w-]+)',\s*L: '([\w-]+)',\s*XL: '([\w-]+)'/.exec(
+        menu,
+      )!;
+    const s2Description = {
+      S: description[1],
+      M: description[2],
+      L: description[3],
+      XL: description[4],
+    };
+    for (const [size, selectors] of Object.entries(
+      rule.structure.composition.sizeSelectors,
+    )) {
+      const label = selectors['.react-aria-Text[slot="label"]']!;
+      expect(fontName(label["font-size"]!), size).toBe(CONTROL_FONT[size]);
+      expect(label["font-weight"], size).toBe("500");
+      expect(
+        fontName(
+          selectors['.react-aria-Text[slot="description"]']!["font-size"]!,
+        ),
+        size,
+      ).toBe(s2Description[size as keyof typeof s2Description]);
+    }
+  });
+});

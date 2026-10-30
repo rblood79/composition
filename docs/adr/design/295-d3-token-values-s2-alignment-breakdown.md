@@ -646,7 +646,7 @@ StatusLight 점 ↔ 글자를 S2 `text-to-visual` 형으로 바꿨다가 되돌�
 
 **live (Chrome MCP, 5175)**: 팔레트 Tabs. regular — Compare Mode Preview 탭 48 · 간격 32 · 여백 0, Canvas 화면 측정 같은 값. Density Compact 로 바꾼 뒤 Canvas TabList 94 × 32 · Gap 24, Preview TabList 94.17 × 32 · 탭 32 · 간격 24. 콘솔 오류 0, 삭제 명령으로 지움.
 
-**②c Slider track (이 커밋)**:
+**②c Slider track**:
 
 | 자리                                      | 전                 | S2                                                                              |
 | ----------------------------------------- | ------------------ | ------------------------------------------------------------------------------- |
@@ -660,6 +660,22 @@ StatusLight 점 ↔ 글자를 S2 `text-to-visual` 형으로 바꿨다가 되돌�
 **게이트**: G4 「3c-3c ②c Slider」 — 설치본 `trackStyling` (thin 4 · thick 16) · `track` height 표를 읽어 막대 · 행 (= 막대 + margin × 2) · DOM 누르는 행 높이와 대조. `sliderS2Styles` (M 막대 4 · margin 14, thick 16 + 8 × 2 · thin 과 같은 Slider 높이), `phase4e11PreviewFollow` (S 24 · L 40 행). **원복 RED**: M margin 12 → 3 · Canvas thick 보정 제거 → 1 · DOM thick 보정 제거 → 1 · M 막대 8 → 4 · DOM 누르는 행 M 제거 → 1. 복원 cmp 일치. G2 desktop · touch 263/263.
 
 **live (Chrome MCP, 5175)**: 팔레트 Slider · ColorSlider. Canvas Slider 390 × 54, Compare Mode Preview Slider 390 × 54 (막대 4 · margin 14 · `::before` 32 · 손잡이 20 가운데 · 채움 4), Compare 겹침에서 막대 · 라벨이 경계 양쪽 같은 높이. ColorSlider Canvas 300 × 42 = Preview 300 × 42 (track 20 · `::before` 없음). 콘솔 오류 0, 삭제 명령으로 지움.
+
+**③ MenuItem (이 커밋)**:
+
+| 자리                 | 전                                                  | S2 (`Menu.tsx` `menuitem` = `control({ shape: 'default', icon: true })`)                            |
+| -------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| 크기                 | 늘 M (MenuItem 에 size 축 없음)                     | Menu 의 크기 (S2 Menu context) — `CATALOG_SIZE_PROPAGATION.Menu`, MenuSection · SubmenuTrigger 통과 |
+| 높이                 | 고정 24 · 32 · 40 · 48                              | 최소 높이 control 토큰 (`{size.height.<S>}`)                                                        |
+| 위아래 · 좌우 · 간격 | 2 · 4 · 8 · 12 / 9 · 12 · 15 · 18 / 6 · 8 · 10 · 12 | centerPadding 4 · 7 · 10 · 13 / `edge-to-text` (높이 × 3/8) / `text-to-visual`                      |
+| label 글자           | Text 기본 16 · 행간 20                              | controlFont (12 · 14 · 16 · 18) · medium                                                            |
+| description 글자     | Text 기본 16                                        | 한 단 아래 (`ui-xs` · `ui-sm` · `ui` · `ui-lg`)                                                     |
+
+장치: MenuItem 은 binding 이 없는 rule 전용 type 이라 크기 계약을 `RULE_TYPE_PROP_CONTRACTS.MenuItem.size` (패널 미노출) 에 두고, DOM 항목에 `data-size` (`domBinding` menuitem 분기 — 생성 시트의 크기 블록). label · description 은 MenuItem rule `sizeSelectors` 의 `.react-aria-Text[slot=…]` 한 정의를 생성 CSS 와 Canvas part rule 이 같이 읽는다 (Text record 에 실려 DOM inline 도 같은 값). 대기 3 → 0 — 「S2 대조 대기」 45 자리가 모두 끝났다 (빈 목록과 `toBeLessThanOrEqual(0)` 상한은 남긴다).
+
+**게이트**: G4 「3c-3c ③」 — 설치본 `menuitem` 의 `control()` 호출 · `label` (controlFont · medium) · `description` 크기 표를 읽어 rule 과 대조. 새 unit `s2MenuItemSize` (Menu S · M · L → 항목 24 · 32 · 40, label 12 · 14 · 16 · 500, description 11 · 12 · 14, MenuSection 안 항목 포함, DOM `data-size`). **원복 RED**: 전파 제거 · MenuSection 통과 제거 → 각 2 · size 계약 제거 · DOM `data-size` 제거 → 각 3 · L label 글자 sm · M 최소 높이 S → 각 2. 복원 cmp 일치. G2 desktop · touch 263/263.
+
+**live (Chrome MCP, 5175)**: 팔레트 Menu (MenuTrigger) 를 넣고 Compare Mode Preview 에서 열기 — M: 항목 32 · 여백 7 / 12 · 간격 6 · label 14 / 500. Layers 에서 Menu 노드 Size L → 항목 40 · 여백 10 / 15 · 간격 6.86 · label 16 / 500 / 행간 20 (Canvas 는 닫힌 목록이라 같은 값을 unit 이 record 로 확인). 콘솔 오류 0, 삭제 명령으로 지움.
 
 - G1 before/after: §6.1
 - G2 두 arm: §6.2 · Phase 3a §6.3 · Phase 3b §6.4

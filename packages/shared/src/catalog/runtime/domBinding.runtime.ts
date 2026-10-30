@@ -2412,6 +2412,9 @@ function ruleDom(
             ),
             textValue: itemLabelText(root, node),
             isDisabled: node.props.isDisabled === true,
+            // ADR-295 Phase 3c-3c ③: its Menu's size (the resolver carries it) — the sheet's
+            // `[data-size]` blocks (S2 control height · padding · label font).
+            "data-size": String(node.props.size ?? "M"),
             // ADR-259 Phase 1: the MenuItem's link (RAC draws an `<a>`).
             ...catalogItemLinkProps(node.props),
             // The author's selection mark (a node shown while `isSelected` — the reference's

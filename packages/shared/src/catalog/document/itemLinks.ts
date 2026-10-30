@@ -76,6 +76,15 @@ export const RULE_TYPE_PROP_CONTRACTS: Readonly<
   Record<string, Readonly<Record<string, PropContract>>>
 > = {
   MenuItem: {
+    // ADR-295 Phase 3c-3c ③: the Menu's size (S2 Menu context — `CATALOG_SIZE_PROPAGATION.Menu`), never edited
+    //   on the item.
+    size: {
+      kind: "size",
+      label: "Size",
+      section: "appearance",
+      default: "M",
+      editorHidden: true,
+    },
     ...ITEM_LINK_PROP_CONTRACTS,
     hideLinkOutIcon: ITEM_HIDE_LINK_OUT_ICON_CONTRACT,
     isSelected: ITEM_SELECTED_PROP_CONTRACT,

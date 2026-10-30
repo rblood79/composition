@@ -429,39 +429,8 @@ interface PendingLiteral extends IntentionalLiteral {
   readonly s2: string;
 }
 
-const pending = (
-  component: string,
-  key: IntentionalLiteral["key"],
-  values: Readonly<Record<string, number>>,
-  s2: string,
-): PendingLiteral => ({
-  component,
-  key,
-  values,
-  s2,
-  reason: `S2 값 대조 대기 — ${s2}`,
-});
-
-export const S2_PENDING_LITERAL: readonly PendingLiteral[] = [
-  pending(
-    "MenuItem",
-    "height",
-    { S: 24, M: 32, L: 40, XL: 48 },
-    "MenuItem 안 label Text 가 MenuItem 글자가 아니라 Text 기본 (16 · 행간 20) 이고 MenuItem 은 size accept 가 없어 크기별 자식 규칙이 닿지 않는다 — S2 `menuitem` (최소 높이 control · 여백 높이 × 3/8 · 간격 text-to-visual · label = control 글자) 은 그 글자를 먼저 고친 뒤",
-  ),
-  pending(
-    "MenuItem",
-    "paddingX",
-    { S: 9, L: 15, XL: 18 },
-    "MenuItem 안 label Text 가 MenuItem 글자가 아니라 Text 기본 (16 · 행간 20) 이고 MenuItem 은 size accept 가 없어 크기별 자식 규칙이 닿지 않는다 — S2 `menuitem` (최소 높이 control · 여백 높이 × 3/8 · 간격 text-to-visual · label = control 글자) 은 그 글자를 먼저 고친 뒤",
-  ),
-  pending(
-    "MenuItem",
-    "gap",
-    { S: 6, L: 10 },
-    "MenuItem 안 label Text 가 MenuItem 글자가 아니라 Text 기본 (16 · 행간 20) 이고 MenuItem 은 size accept 가 없어 크기별 자식 규칙이 닿지 않는다 — S2 `menuitem` (최소 높이 control · 여백 높이 × 3/8 · 간격 text-to-visual · label = control 글자) 은 그 글자를 먼저 고친 뒤",
-  ),
-];
+// (3c-3c ③ 에서 비었다 — 45 자리 모두 S2 값 · 형으로 옮겼다.)
+export const S2_PENDING_LITERAL: readonly PendingLiteral[] = [];
 
 interface Literal {
   component: string;
@@ -557,7 +526,7 @@ describe("ADR-295 G3 — rule 치수 리터럴", () => {
     expect(stale).toEqual([]);
   });
 
-  it("S2 값 대조 대기는 줄기만 한다 (3c-3b ③ 45 → 3c-3c ① 32 → ②a 16 → ②b-1 11 → ②b-2 6 → ②c Tab 5 → Slider 3)", () => {
-    expect(S2_PENDING_LITERAL.length).toBeLessThanOrEqual(3);
+  it("S2 값 대조 대기는 줄기만 한다 (3c-3b ③ 45 → 3c-3c ① 32 → ②a 16 → ②b-1 11 → ②b-2 6 → ②c Tab 5 → Slider 3 → ③ MenuItem 0)", () => {
+    expect(S2_PENDING_LITERAL.length).toBeLessThanOrEqual(0);
   });
 });

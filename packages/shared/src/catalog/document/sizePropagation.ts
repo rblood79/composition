@@ -70,6 +70,9 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   //   (`Breadcrumb.sizes[size].iconSize`) — the DOM's `--breadcrumb-icon-size` comes from the
   //   Breadcrumbs (2026-10-14 — the Canvas drew the crumb's own value, the DOM ignored it).
   Breadcrumbs: ["Breadcrumb"],
+  // ADR-295 Phase 3c-3c ③: S2 Menu `size` is its items' (S2 MenuItem has none — the Menu context): the
+  //   item's control height · font, and its label · description text (the MenuItem rule's `sizeSelectors`).
+  Menu: ["MenuItem"],
   // (A calendar has no size — 사용자 2026-10-13: its month blocks follow its width, its header is
   //   fixed — `CalendarCommon.css` · `manualBoxRules`.)
   // ADR-253: a field's parts (`FIELD_PARTS`).
@@ -122,6 +125,9 @@ export const CATALOG_SIZE_PASS_THROUGH: ReadonlySet<string> = new Set([
   "Content",
   // ADR-259 Phase 3: a field's label row — the field's size reaches its Label and ContextualHelp.
   "FieldLabel",
+  // ADR-295 Phase 3c-3c ③: a Menu's section and submenu trigger — the Menu's size reaches the items in them.
+  "MenuSection",
+  "SubmenuTrigger",
 ]);
 
 /** ADR-259 Phase 3: the fields whose label row holds a ContextualHelp (`CATALOG_CONTEXTUAL_HELP_FIELDS`). */

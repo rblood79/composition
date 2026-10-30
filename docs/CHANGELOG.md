@@ -28,6 +28,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CSS 영역에서도 같은 휠 이동·줌 지원**: 페이지 내부와 바깥 여백에서 휠로 이동하고, Shift+휠로 가로 이동하며, Cmd/Ctrl+휠로 포인터 위치를 기준으로 확대·축소한다. iframe 입력은 검증된 메시지 경로를 통해 기존 Canvas 카메라 처리에 연결한다.
   - 위치: `apps/builder/src/builder/workspace/Workspace.css`, `canvas/catalog/CatalogPreviewFrame.tsx`, `hooks/useWorkspaceCompareSplit.ts`
 
+## [ADR-295 Phase 3c-3c ③ — MenuItem = S2 menuitem, 「S2 대조 대기」 0] - 2026-10-31
+
+### Changed
+
+- **Menu 크기가 항목까지** 간다 (전: 항목은 늘 M). 항목은 S2 control 형 — 최소 높이 24 · 32 · 40 · 48, 여백 높이 × 3/8, 아이콘 간격 text-to-visual. **항목 글자** = control 글자 (12 · 14 · 16 · 18, medium — 전 16 고정), **설명 글자**는 한 단 아래. 「S2 대조 대기」 3 → 0 (45 자리 모두 S2 로).
+  - 위치: `componentRulesTable.ts` (MenuItem), `sizePropagation.ts`, `itemLinks.ts`, `domBinding.runtime.ts`, breakdown §6.11
+
 ## [ADR-295 Phase 3c-3c ②c — Slider track 행 · 막대 = S2] - 2026-10-31
 
 ### Changed
