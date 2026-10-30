@@ -51,6 +51,12 @@ export interface CompiledPartRule {
   ownerProps?: Readonly<Record<string, Scalar>>;
   layout: Record<string, string>;
   visual: Record<string, Scalar>;
+  /**
+   * ADR-295 Phase 3c-3b — the length refs (`{length.…}`) a layout key's px came from (a SearchField
+   * glyph's · a field button's start margin): the library makes them token values, so the DOM writes the
+   * device formula.
+   */
+  layoutRefs?: Record<string, string>;
 }
 
 /**
@@ -484,8 +490,19 @@ function compileDeclarations(
   declarations: Readonly<Record<string, string>>,
   variables: Readonly<Record<string, string>>,
   ownerAreas: string | undefined,
-): { layout: Record<string, string>; visual: Record<string, Scalar> } {
+): {
+  layout: Record<string, string>;
+  visual: Record<string, Scalar>;
+  layoutRefs?: Record<string, string>;
+} {
   const layout: Record<string, string> = {};
+  const layoutRefs: Record<string, string> = {};
+  /** A layout length's px, remembering a length ref it came from (3c-3b). */
+  const layoutLength = (field: string, value: string, px: number) => {
+    layout[field] = `${px}px`;
+    if (/^\{length\.[^{}]+\}$/.test(value.trim()))
+      layoutRefs[field] = value.trim();
+  };
   const visual: Partial<Record<VisualField, Scalar>> = {};
   const consumed = CONSUMED_VARIABLES[childType] ?? {};
   const entries: Array<[string, string]> = [];
@@ -534,13 +551,15 @@ function compileDeclarations(
       // Left-to-right documents (the Builder and Preview direction).
       const px = lengthPx(value);
       if (px !== undefined)
-        layout[key === "margin-inline-start" ? "marginLeft" : "marginRight"] =
-          `${px}px`;
+        layoutLength(
+          key === "margin-inline-start" ? "marginLeft" : "marginRight",
+          value,
+          px,
+        );
     } else if (/^margin-(top|right|bottom|left)$/.test(key)) {
       const px = lengthPx(value);
       if (px !== undefined)
-        layout[`margin${key[7].toUpperCase()}${key.slice(8)}` as LayoutField] =
-          `${px}px`;
+        layoutLength(`margin${key[7].toUpperCase()}${key.slice(8)}`, value, px);
     } else if (key === "position") {
       // (`sticky`: in flow — the engine gives its constraints, ADR-267.)
       if (value === "relative" || value === "static" || value === "sticky")
@@ -573,7 +592,15 @@ function compileDeclarations(
       const px = lengthPx(value);
       // ADR-295 Phase 3: an S2 control height keeps its ref (the library makes it a token value —
       //   the DOM writes the device variable, as for a token font size).
-      const sizeRef = sizeHeightRef(value);
+      const sizeRef =
+        sizeHeightRef(value) ??
+        // (ADR-295 Phase 3c-3b: a font's line · font as a length — a SearchField glyph's S2 `1lh` — keeps
+        //   that typography ref, as an icon size does.)
+        /^\{length\.(typography\.text-[\w-]+)\*1\/1\}$/
+          .exec(value.trim())
+          ?.slice(1, 2)
+          .map((name) => `{${name}}`)[0] ??
+        null;
       if (px !== undefined) visual[key] = sizeRef ?? px;
       else if (/^(\d+(?:\.\d+)?%|fit-content|auto)$/.test(value))
         visual[key] = value;
@@ -608,7 +635,10 @@ function compileDeclarations(
       //   trigger's start, 3c-3b — keeps its length ref.)
       if (px !== undefined)
         visual[`padding${key[8].toUpperCase()}${key.slice(9)}` as VisualField] =
-          sizeOffsetLengthRef(value) ?? sizeRatioLengthRef(value) ?? px;
+          (/^\{length\.[^{}]+\}$/.test(value.trim()) ? value.trim() : null) ??
+          sizeOffsetLengthRef(value) ??
+          sizeRatioLengthRef(value) ??
+          px;
     } else if (key === "gap") {
       const px = lengthPx(value);
       // (ADR-295 Phase 3c-3: a relative gap keeps its ref — the library makes it a token value.)
@@ -643,7 +673,11 @@ function compileDeclarations(
   }
   if (lineHeightPx !== undefined && fontSize)
     visual.lineHeight = lineHeightPx / fontSize;
-  return { layout, visual: visual as Record<string, Scalar> };
+  return {
+    layout,
+    visual: visual as Record<string, Scalar>,
+    ...(Object.keys(layoutRefs).length ? { layoutRefs } : {}),
+  };
 }
 
 /**
@@ -698,14 +732,22 @@ function ownerVariablePartRules(parentType: string): CompiledPartRule[] {
         Object.entries(styles).filter(([key]) => consumed[key]),
       );
       if (!Object.keys(declarations).length) return [];
-      const { layout, visual } = compileDeclarations(
+      const { layout, visual, layoutRefs } = compileDeclarations(
         childType,
         declarations,
         {},
         undefined,
       );
       if (!Object.keys(layout).length && !Object.keys(visual).length) return [];
-      return [{ childType, ...(size ? { size } : {}), layout, visual }];
+      return [
+        {
+          childType,
+          ...(size ? { size } : {}),
+          layout,
+          visual,
+          ...(layoutRefs ? { layoutRefs } : {}),
+        },
+      ];
     }),
   );
 }
@@ -2080,7 +2122,12 @@ export function compileRulePartRules(
           compiledBlock.visual,
         );
         const glyph = whole ? GLYPH_TOKENS[part] : undefined;
-        if (glyph && typeof compiledBlock.visual.width === "number") {
+        if (
+          glyph &&
+          (typeof compiledBlock.visual.width === "number" ||
+            (typeof compiledBlock.visual.width === "string" &&
+              /^\{typography\./.test(compiledBlock.visual.width)))
+        ) {
           const { width, height, ...rest } = compiledBlock.visual;
           compiledBlock.visual = {
             ...rest,
@@ -2094,8 +2141,12 @@ export function compileRulePartRules(
         !block.size &&
         compiled.every(
           (entry) =>
-            JSON.stringify([entry.layout, entry.visual]) ===
-            JSON.stringify([compiled[0].layout, compiled[0].visual]),
+            JSON.stringify([entry.layout, entry.visual, entry.layoutRefs]) ===
+            JSON.stringify([
+              compiled[0].layout,
+              compiled[0].visual,
+              compiled[0].layoutRefs,
+            ]),
         );
       for (const entry of same
         ? [{ ...compiled[0], size: undefined }]
@@ -2112,6 +2163,7 @@ export function compileRulePartRules(
           ...(entry.size ? { size: entry.size } : {}),
           layout: entry.layout,
           visual: entry.visual,
+          ...(entry.layoutRefs ? { layoutRefs: entry.layoutRefs } : {}),
         });
       }
     }

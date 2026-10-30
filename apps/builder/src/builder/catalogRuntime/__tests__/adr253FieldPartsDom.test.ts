@@ -1373,21 +1373,22 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       ]);
       const [input, button] = parts();
       // Canvas: the Input is the whole control; the button is a square 4px inside its end (S2 field
-      //   button M 20 — ADR-295 Phase 3c-2).
+      //   button M 20 — ADR-295 Phase 3c-2; the end inset S2 height × 3/16 − 2 = 4 inside the border, the text
+      //   room inset + square + text-to-control 10 — 3c-3b).
       const group = rect(wrapper().id);
       expect(rect(input.id)).toMatchObject({
         x: 0,
         width: group.width,
         height: 32,
       });
-      expect(input.visual).toMatchObject({ paddingX: 12, paddingRight: 32 });
+      expect(input.visual).toMatchObject({ paddingX: 12, paddingRight: 34 });
       // (The end padding keeps the text clear of the button; its start stays the Input's own.)
       expect(inputTextBand(workspace, input.id)).toEqual({
         x: 12,
-        paddingRight: 32,
+        paddingRight: 34,
       });
       expect(rect(button.id)).toMatchObject({
-        x: group.width - 24,
+        x: group.width - 25,
         y: 6,
         width: 20,
         height: 20,
@@ -1435,6 +1436,16 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(style).not.toMatch(/background-color|border-color/);
       // (The sheet gives every Button a border: the one the FieldButton removes is written out.)
       expect(style).toMatch(/border-width:\s*0(;|$)/);
+      // (ADR-295 Phase 3c-3b: its overlap margin and the input's room are the S2 formula over the device
+      //   variables — the touch set reaches them, as it reaches the generated sheet.)
+      expect(style).toContain(
+        "margin-left:calc(var(--catalog-token-size-field-button-M) * -1 / 1 + var(--catalog-token-size-height-M) * -3 / 16 + 1px)",
+      );
+      expect(
+        inputElement.closest("[data-catalog-id]")!.getAttribute("style") ?? "",
+      ).toContain(
+        "padding-right:calc(var(--catalog-token-size-height-M) * 3 / 16 + var(--catalog-token-size-field-button-M) * 1 / 1 + var(--catalog-token-text-sm) * 10 / 14 - 2px)",
+      );
       // The field's size reaches the parts.
       workspace.execute(
         setFields({
@@ -1449,7 +1460,11 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         height: 32,
         y: 8,
       });
-      expect(parts()[0]!.visual.paddingRight).toBe(56);
+      // (3c-3b: S2 end inset 48 × 3/16 − 2 = 7 + the square 32 + text-to-control 18 × 10/14.)
+      expect(parts()[0]!.visual.paddingRight).toBeCloseTo(
+        7 + 32 + (18 * 10) / 14,
+        10,
+      );
       // The FieldButton origin is where the button's shape comes from; it is itself an instance
       // of the Button origin, whose style reaches it under the FieldButton's own.
       workspace.execute(
@@ -1876,13 +1891,14 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         x: 0,
         width: group.width,
       });
+      // (ADR-295 Phase 3c-3b: S2 DatePicker end inset M 4 inside the border · text-to-control 10.)
       expect(pickerParts()[0]!.visual).toMatchObject({
         paddingX: 12,
-        paddingRight: 32,
+        paddingRight: 34,
         borderWidth: 1,
       });
       expect(picker.rect(pickerParts()[1]!.id)).toMatchObject({
-        x: group.width - 24,
+        x: group.width - 25,
         width: 20,
         height: 20,
       });
@@ -1908,8 +1924,9 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       const range = await open("daterangepicker");
       expect(range.wrapper().visual).toMatchObject({
         borderWidth: 1,
+        // (ADR-295 Phase 3c-3b: S2 DateRangePicker `edge-to-text` 32 × 3/8 · end 4.)
         paddingLeft: 12,
-        paddingRight: 3,
+        paddingRight: 4,
         paddingTop: 3,
       });
       expect(range.wrapper().visual.fill).not.toBe("transparent");
@@ -1936,13 +1953,13 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         paddingX: 4,
         fontSize: 14,
       });
-      // The end input takes the free space up to the button, 3px inside the Group's end.
+      // The end input takes the free space up to the button, 4px inside the Group's end (S2 `paddingEnd: 4`).
       expect(end.layout).toMatchObject({ flexGrow: "1" });
       expect(start.layout.flexGrow).toBeUndefined();
       const rangeBox = range.rect(range.wrapper().id);
       expect(rangeBox.height).toBe(32);
       expect(range.rect(button.id)).toMatchObject({
-        x: rangeBox.width - 1 - 3 - 20,
+        x: rangeBox.width - 1 - 4 - 20,
         y: 6,
         width: 20,
         height: 20,
@@ -2041,23 +2058,25 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         width: rect(field.id).width,
         height: 32,
       });
+      // (ADR-295 Phase 3c-3b: S2 SearchField — the glyph at `pill` 16 inside the border, `1lh` 18 square,
+      //   the text after it + text-to-visual 6 = 40; the end is the clear button's place, the height 32.)
       expect(input.visual).toMatchObject({
         radius: 9999,
-        paddingLeft: 32,
+        paddingLeft: 40,
         paddingRight: 32,
       });
       // (Its text starts after that padding, clear of the glyph — as the DOM `padding-left` does.)
       expect(inputTextBand(workspace, input.id)).toEqual({
-        x: 32,
+        x: 40,
         paddingRight: 32,
       });
       expect(rect(glyph.id)).toMatchObject({
-        x: 8,
-        y: group.y + 8,
-        width: 16,
-        height: 16,
+        x: 17,
+        y: group.y + 7,
+        width: 18,
+        height: 18,
       });
-      expect(glyph.visual).toMatchObject({ iconSize: 16, zIndex: 1 });
+      expect(glyph.visual).toMatchObject({ iconSize: 18, zIndex: 1 });
       // An empty field shows no clear button (RAC `data-empty`); with a value it is a 16px
       // circle 8px inside the Input's end.
       expect(layoutRecord(clear.id).hidden).toBe(true);
@@ -2087,8 +2106,9 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(parts()[1]!.derivedProps).toEqual({ placeholder: "abc" });
       const shown = parts()[2]!;
       expect(layoutRecord(shown.id).hidden).not.toBe(true);
+      // (3c-3b: its centre at the S2 clear button's — height / 2 = 16 inside the border.)
       expect(rect(shown.id)).toMatchObject({
-        x: group.width - 24,
+        x: group.width - 25,
         y: group.y + 8,
         width: 16,
         height: 16,
@@ -2139,6 +2159,15 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(
         container.querySelector(".react-aria-Icon")!.getAttribute("style"),
       ).toMatch(/z-index:\s*1/);
+      // (ADR-295 Phase 3c-3b: the glyph's square is S2 `1lh` over the device variables; its start — S2 `pill` —
+      //   is the sheet's `margin-inline-start` formula: no px goes inline over it.)
+      const glyphStyle = container
+        .querySelector(".react-aria-Icon")!
+        .getAttribute("style")!;
+      expect(glyphStyle).toContain(
+        "width:calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height))",
+      );
+      expect(glyphStyle).not.toMatch(/margin/);
       // The field's size reaches the parts.
       workspace.execute(
         setFields({
@@ -2147,11 +2176,13 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         }),
       );
       expect(parts()[1]!.props.size).toBe("XL");
-      expect(parts()[1]!.visual).toMatchObject({
-        paddingLeft: 52,
-        paddingRight: 52,
-      });
-      expect(rect(parts()[0]!.id)).toMatchObject({ x: 16, width: 22 });
+      // (3c-3b: pill 24 + the glyph 22 + text-to-visual 18 × 6/14; the end the height 48.)
+      expect(parts()[1]!.visual.paddingLeft).toBeCloseTo(
+        24 + 22 + (18 * 6) / 14,
+        10,
+      );
+      expect(parts()[1]!.visual.paddingRight).toBe(48);
+      expect(rect(parts()[0]!.id)).toMatchObject({ x: 25, width: 22 });
       expect(rect(parts()[2]!.id)).toMatchObject({ width: 24, height: 24 });
       // The Input origin and the Button origin reach them (the Button's own shape stays).
       workspace.execute(

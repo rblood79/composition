@@ -1443,7 +1443,13 @@ function generateCompositionCSS<Props>(spec: ComponentSpec<Props>): string[] {
       //   (전수 확인). bridge (generic 이름 재노출) 는 그대로 자식 scope 에 남는다.
       lines.push(`${sel}[data-size="${sizeName}"] {`);
       for (const [varName, value] of entries) {
-        lines.push(`  ${varName}: ${value};`);
+        // ADR-295 Phase 3c-3b: a length ref (`{length.…}` — a field button's room, a SearchField's
+        //   text start) is its formula over the device variables.
+        const css =
+          typeof value === "string" && /^\{length\.[^{}]+\}$/.test(value)
+            ? ruleLengthCss(value)
+            : undefined;
+        lines.push(`  ${varName}: ${css ?? value};`);
       }
       lines.push("}");
       lines.push("");

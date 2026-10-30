@@ -80,23 +80,23 @@
 }
 
 .react-aria-DatePicker[data-size="XS"] {
-  --dp-input-pad-end: calc(var(--catalog-token-size-field-button-XS) + 4px);
+  --dp-input-pad-end: calc(var(--catalog-token-size-field-button-XS) * 1 / 1 + var(--catalog-token-text-2xs) * 10 / 14 + 2px);
 }
 
 .react-aria-DatePicker[data-size="S"] {
-  --dp-input-pad-end: calc(var(--catalog-token-size-field-button-S) + 8px);
+  --dp-input-pad-end: calc(var(--catalog-token-size-field-button-S) * 1 / 1 + var(--catalog-token-text-xs) * 10 / 14 + 2px);
 }
 
 .react-aria-DatePicker[data-size="M"] {
-  --dp-input-pad-end: calc(var(--catalog-token-size-field-button-M) + 12px);
+  --dp-input-pad-end: calc(var(--catalog-token-size-field-button-M) * 1 / 1 + var(--catalog-token-text-sm) * 10 / 14 + 4px);
 }
 
 .react-aria-DatePicker[data-size="L"] {
-  --dp-input-pad-end: calc(var(--catalog-token-size-field-button-L) + 16px);
+  --dp-input-pad-end: calc(var(--catalog-token-size-field-button-L) * 1 / 1 + var(--catalog-token-text-base) * 10 / 14 + 6px);
 }
 
 .react-aria-DatePicker[data-size="XL"] {
-  --dp-input-pad-end: calc(var(--catalog-token-size-field-button-XL) + 24px);
+  --dp-input-pad-end: calc(var(--catalog-token-size-field-button-XL) * 1 / 1 + var(--catalog-token-text-lg) * 10 / 14 + 6px);
 }
 
 .react-aria-DatePicker .react-aria-DateInput {
@@ -106,27 +106,27 @@
 
 .react-aria-DatePicker[data-size="XS"] {
   --dp-btn-size: var(--catalog-token-size-field-button-XS);
-  --dp-btn-offset: calc(0px - var(--catalog-token-size-field-button-XS) - 2px);
+  --dp-btn-offset: calc(var(--catalog-token-size-field-button-XS) * -1 / 1 - 3px);
 }
 
 .react-aria-DatePicker[data-size="S"] {
   --dp-btn-size: var(--catalog-token-size-field-button-S);
-  --dp-btn-offset: calc(0px - var(--catalog-token-size-field-button-S) - 2px);
+  --dp-btn-offset: calc(var(--catalog-token-size-field-button-S) * -1 / 1 - 3px);
 }
 
 .react-aria-DatePicker[data-size="M"] {
   --dp-btn-size: var(--catalog-token-size-field-button-M);
-  --dp-btn-offset: calc(0px - var(--catalog-token-size-field-button-M) - 4px);
+  --dp-btn-offset: calc(var(--catalog-token-size-field-button-M) * -1 / 1 - 5px);
 }
 
 .react-aria-DatePicker[data-size="L"] {
   --dp-btn-size: var(--catalog-token-size-field-button-L);
-  --dp-btn-offset: calc(0px - var(--catalog-token-size-field-button-L) - 4px);
+  --dp-btn-offset: calc(var(--catalog-token-size-field-button-L) * -1 / 1 - 7px);
 }
 
 .react-aria-DatePicker[data-size="XL"] {
   --dp-btn-size: var(--catalog-token-size-field-button-XL);
-  --dp-btn-offset: calc(0px - var(--catalog-token-size-field-button-XL) - 4px);
+  --dp-btn-offset: calc(var(--catalog-token-size-field-button-XL) * -1 / 1 - 7px);
 }
 
 .react-aria-DatePicker .react-aria-Button {

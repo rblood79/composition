@@ -215,6 +215,8 @@ export {
   em,
   ruleLengthRef,
   parseRuleLengthRef,
+  parseRuleLengthTerms,
+  ruleLengthPx,
   ruleLengthCss,
   ruleSizeLengthRef,
   ruleSizeLengthRefs,

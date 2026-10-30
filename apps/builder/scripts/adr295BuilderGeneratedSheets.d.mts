@@ -20,3 +20,6 @@ export declare function normalizeDimension(
 export declare function normalizedEntries(
   entries: Record<string, string>,
 ): Record<string, string>;
+export declare function effectiveEntries(
+  entries: Record<string, string>,
+): Record<string, string>;

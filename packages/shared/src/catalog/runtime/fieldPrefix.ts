@@ -171,11 +171,17 @@ function buttonOverlayInset(
   const vars =
     delegation?.variables?.[String(size)] ??
     delegation?.variables?.[rule.defaultSize ?? "M"];
-  // `calc(0px - <the square> - <inset>)` — the square is S2's field button token (ADR-295 Phase 3c-2).
-  const inset = /-\s*(\d+(?:\.\d+)?)px\)$/.exec(
-    String(vars?.["--combo-btn-offset"] ?? ""),
+  // −(the square + inset) — a length ref over S2's field button and control height (ADR-295 Phase 3c-3b:
+  //   the S2 end inset height × 3/16 − 2, in the installed maps).
+  const offset = resolveToken(
+    String(vars?.["--combo-btn-offset"] ?? "") as TokenRef,
   );
-  return inset ? Number(inset[1]) : 0;
+  const square = resolveToken(
+    `{size.field-button.${String(size ?? rule.defaultSize ?? "M")}}` as TokenRef,
+  );
+  return typeof offset === "number" && typeof square === "number"
+    ? -offset - square
+    : 0;
 }
 
 export function catalogFieldBoxStyle(

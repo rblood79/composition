@@ -525,6 +525,19 @@ export interface PartRule {
   state?: StateName;
   visual?: VisualValues;
   layout?: LayoutValues;
+  /**
+   * ADR-295 Phase 3c-3b — the token a `layout` margin's px came from (a length ref — S2 `pill` · `edge-to-text`
+   * sums of a SearchField's glyph · a field button's start): the resolver notes it on the record's layout, so
+   * the DOM writes the device formula. The px stays in `layout` (the engine reads it).
+   */
+  layoutTokens?: Readonly<
+    Partial<
+      Record<
+        "marginLeft" | "marginRight" | "marginTop" | "marginBottom",
+        TokenUse
+      >
+    >
+  >;
 }
 
 export interface InstanceAddress {
@@ -958,11 +971,7 @@ export interface DefinitionEntry {
  * origin reads as its template root's input variable). Neither drives target nodes.
  */
 export type ComponentPropertyKind =
-  | "text"
-  | "boolean"
-  | "instance"
-  | "event"
-  | "variable";
+  "text" | "boolean" | "instance" | "event" | "variable";
 export const COMPONENT_PROPERTY_KINDS: readonly ComponentPropertyKind[] = [
   "text",
   "boolean",

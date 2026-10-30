@@ -169,6 +169,7 @@ import {
 } from "./libraryVisual";
 import {
   catalogDeviceControlCss,
+  catalogDeviceLayoutCss,
   catalogDeviceGlyphSize,
   catalogDeviceRowsHeightCss,
   catalogDeviceTypographyCss,
@@ -2839,6 +2840,7 @@ function authoredStyle(
     style,
     catalogLayoutCss(noSheet ? node.layout : catalogAuthoredLayout(root, node)),
   );
+  catalogDeviceLayoutCss(style, node.layout);
   if (node.fillLayout) Object.assign(style, catalogLayoutCss(node.fillLayout));
   const ratio = catalogAspectRatio(node.visual.aspectRatio);
   if (ratio !== undefined) style.aspectRatio = String(node.visual.aspectRatio);
@@ -3365,6 +3367,8 @@ export function renderNode(
   // ADR-295 Phase 3: an S2 control box (`{size.height.<S>}` minimum) — its height and centring padding
   //   as the device variables.
   if (bound) catalogDeviceControlCss(bound, node.visual);
+  // ADR-295 Phase 3c-3b: a part rule's length margin (a field button's overlap) — its device formula.
+  if (bound) catalogDeviceLayoutCss(bound, node.layout);
   // A Select's value takes its trigger Button's text color and the field sheet's placeholder
   // paint (`[data-placeholder]`): its color goes inline only when the document wrote it.
   // A Disclosure's title Text takes its trigger's color the same way (`… > .react-aria-Text

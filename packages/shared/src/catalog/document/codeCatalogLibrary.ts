@@ -706,6 +706,18 @@ function withRuleParts(
           ...(Object.keys(part.layout).length
             ? { layout: part.layout as LayoutValues }
             : {}),
+          // ADR-295 Phase 3c-3b: a margin's length ref (a SearchField glyph's · a field button's start) is a
+          //   token value beside its px.
+          ...(part.layoutRefs
+            ? {
+                layoutTokens: Object.fromEntries(
+                  Object.entries(part.layoutRefs).map(([key, ref]) => [
+                    key,
+                    sourceToken(ref, "gap", theme, tokens),
+                  ]),
+                ),
+              }
+            : {}),
           ...(Object.keys(part.visual).length
             ? {
                 visual: {

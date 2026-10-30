@@ -87,28 +87,28 @@
 }
 
 .react-aria-SearchField[data-size="XS"] {
-  --sf-icon-size: 10px;
-  --sf-icon-inset: 4px;
+  --sf-icon-size: calc(calc(var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height)) * 1 / 1);
+  --sf-icon-inset: calc(var(--catalog-token-size-height-XS) * 1 / 2 + 1px);
 }
 
 .react-aria-SearchField[data-size="S"] {
-  --sf-icon-size: 12px;
-  --sf-icon-inset: 6px;
+  --sf-icon-size: calc(calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)) * 1 / 1);
+  --sf-icon-inset: calc(var(--catalog-token-size-height-S) * 1 / 2 + 1px);
 }
 
 .react-aria-SearchField[data-size="M"] {
-  --sf-icon-size: 16px;
-  --sf-icon-inset: 8px;
+  --sf-icon-size: calc(calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * 1 / 1);
+  --sf-icon-inset: calc(var(--catalog-token-size-height-M) * 1 / 2 + 1px);
 }
 
 .react-aria-SearchField[data-size="L"] {
-  --sf-icon-size: 18px;
-  --sf-icon-inset: 12px;
+  --sf-icon-size: calc(calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)) * 1 / 1);
+  --sf-icon-inset: calc(var(--catalog-token-size-height-L) * 1 / 2 + 1px);
 }
 
 .react-aria-SearchField[data-size="XL"] {
-  --sf-icon-size: 22px;
-  --sf-icon-inset: 16px;
+  --sf-icon-size: calc(calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * 1 / 1);
+  --sf-icon-inset: calc(var(--catalog-token-size-height-XL) * 1 / 2 + 1px);
 }
 
 .react-aria-SearchField > .react-aria-Icon {
@@ -122,54 +122,59 @@
 }
 
 .react-aria-SearchField[data-size="XS"] {
-  --sf-input-pad: 20px;
+  --sf-input-pad: calc(var(--catalog-token-size-height-XS) * 1 / 2 + calc(var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height)) * 1 / 1 + var(--catalog-token-text-2xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch)));
+  --sf-input-pad-end: calc(var(--catalog-token-size-height-XS) * 1 / 1);
 }
 
 .react-aria-SearchField[data-size="S"] {
-  --sf-input-pad: 24px;
+  --sf-input-pad: calc(var(--catalog-token-size-height-S) * 1 / 2 + calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)) * 1 / 1 + var(--catalog-token-text-xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch)));
+  --sf-input-pad-end: calc(var(--catalog-token-size-height-S) * 1 / 1);
 }
 
 .react-aria-SearchField[data-size="M"] {
-  --sf-input-pad: 32px;
+  --sf-input-pad: calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * 1 / 1 + var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch)));
+  --sf-input-pad-end: calc(var(--catalog-token-size-height-M) * 1 / 1);
 }
 
 .react-aria-SearchField[data-size="L"] {
-  --sf-input-pad: 40px;
+  --sf-input-pad: calc(var(--catalog-token-size-height-L) * 1 / 2 + calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)) * 1 / 1 + var(--catalog-token-text-base) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch)));
+  --sf-input-pad-end: calc(var(--catalog-token-size-height-L) * 1 / 1);
 }
 
 .react-aria-SearchField[data-size="XL"] {
-  --sf-input-pad: 52px;
+  --sf-input-pad: calc(var(--catalog-token-size-height-XL) * 1 / 2 + calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * 1 / 1 + var(--catalog-token-text-lg) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch)));
+  --sf-input-pad-end: calc(var(--catalog-token-size-height-XL) * 1 / 1);
 }
 
 .react-aria-SearchField .react-aria-Input {
   min-width: 0;
   padding-left: var(--sf-input-pad);
-  padding-right: var(--sf-input-pad);
+  padding-right: var(--sf-input-pad-end);
 }
 
 .react-aria-SearchField[data-size="XS"] {
   --sf-btn-size: 12px;
-  --sf-btn-offset: -16px;
+  --sf-btn-offset: calc(var(--catalog-token-size-height-XS) * -1 / 2 - 7px);
 }
 
 .react-aria-SearchField[data-size="S"] {
   --sf-btn-size: 14px;
-  --sf-btn-offset: -20px;
+  --sf-btn-offset: calc(var(--catalog-token-size-height-S) * -1 / 2 - 8px);
 }
 
 .react-aria-SearchField[data-size="M"] {
   --sf-btn-size: 16px;
-  --sf-btn-offset: -24px;
+  --sf-btn-offset: calc(var(--catalog-token-size-height-M) * -1 / 2 - 9px);
 }
 
 .react-aria-SearchField[data-size="L"] {
   --sf-btn-size: 20px;
-  --sf-btn-offset: -32px;
+  --sf-btn-offset: calc(var(--catalog-token-size-height-L) * -1 / 2 - 11px);
 }
 
 .react-aria-SearchField[data-size="XL"] {
   --sf-btn-size: 24px;
-  --sf-btn-offset: -40px;
+  --sf-btn-offset: calc(var(--catalog-token-size-height-XL) * -1 / 2 - 13px);
 }
 
 .react-aria-SearchField .react-aria-Button {

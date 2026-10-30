@@ -15,7 +15,7 @@ import { spacing } from "../../primitives/spacing";
 import { typography } from "../../primitives/typography";
 import { radius } from "../../primitives/radius";
 import { size } from "../../primitives/device";
-import { DEVICE_TOUCH_REF, parseRuleLengthRef } from "./ruleLength";
+import { ruleLengthPx } from "./ruleLength";
 import { lightShadows, darkShadows } from "../../primitives/shadows";
 import {
   borderWidth,
@@ -59,17 +59,16 @@ export function resolveToken(
       console.warn(`Unknown size token: ${ref}`);
       return ref;
     }
-    // ADR-295 Phase 3c-3: `{length.<base>*<a>/<b>[~<c>/<d>]}` — a rule's relative padding · gap (its
-    //   size's height · font × the ratio; the touch ratio when the installed size map is the touch set).
+    // ADR-295 Phase 3c-3: `{length.<base>*<a>/<b>[~<c>/<d>]…}` — a rule's relative padding · gap (its
+    //   size's height · font × the ratio; the touch ratio when the installed size map is the touch set;
+    //   several terms summed — 3c-3b).
     case "length": {
-      const parts = parseRuleLengthRef(ref);
-      const base = parts ? resolveToken(parts.base, theme) : undefined;
-      if (!parts || typeof base !== "number") {
+      const px = ruleLengthPx(ref, (base) => resolveToken(base, theme));
+      if (px === undefined) {
         console.warn(`Unknown length token: ${ref}`);
         return ref;
       }
-      const touch = parts.touch && resolveToken(DEVICE_TOUCH_REF) === 1;
-      return base * (touch ? parts.touch!.ratio : parts.ratio) + parts.add;
+      return px;
     }
     // ADR-166 Phase 1: shadow 도 color 와 동일하게 theme 분기.
     //   구 flat map 은 CSS 변수(--shadow-* 는 light/dark 값이 다름)와 어긋나

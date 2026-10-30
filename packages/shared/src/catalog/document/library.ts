@@ -285,7 +285,10 @@ export function buildCatalogLibrary(
         "UNKNOWN_BINDING_ID",
         definition.bindingId,
       );
-    if (definition.templateRootId && !templates.has(definition.templateRootId as LibraryTemplateId))
+    if (
+      definition.templateRootId &&
+      !templates.has(definition.templateRootId as LibraryTemplateId)
+    )
       throw new CatalogValidationError(
         "DANGLING_TEMPLATE",
         definition.templateRootId,
@@ -552,6 +555,17 @@ export function buildCatalogLibrary(
         if (!scalarFitsType(value, via?.accepts[prop]))
           throw new CatalogValidationError("CONDITION_PROP_NOT_ACCEPTED", at);
       checkFields(rule.visual ?? {}, undefined, at);
+      // (ADR-295 Phase 3c-3b: a layout margin's length token.)
+      for (const use of Object.values(rule.layoutTokens ?? {})) {
+        const token = use && tokens.get(use.tokenId as LibraryTokenId);
+        if (!token)
+          throw new CatalogValidationError(
+            "DANGLING_TOKEN",
+            String(use?.tokenId),
+          );
+        if (token.tokenType !== "number")
+          throw new CatalogValidationError("TOKEN_TYPE_MISMATCH", at);
+      }
     });
   }
   for (const template of templates.values()) {

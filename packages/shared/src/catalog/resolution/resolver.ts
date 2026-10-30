@@ -555,6 +555,9 @@ function applyLayoutWrites(
     if (!write || write.kind === "remove") continue;
     if (write.kind === "mask") delete target[key];
     else target[key] = write.value;
+    // (An authored write replaces a part rule's length — its token ref goes with it.)
+    const refs = RESOLVED_TOKEN_REFS.get(target);
+    if (refs) delete refs[key];
   }
 }
 function cascadeFillSizing(
@@ -734,7 +737,9 @@ export function resolveCatalogNode(
       );
   };
   /** The theme token ref of a library token value (`{typography.text-sm}`), else undefined. */
-  const tokenRefOf = (value: AuthoredValue | number | null): string | undefined =>
+  const tokenRefOf = (
+    value: AuthoredValue | number | null,
+  ): string | undefined =>
     value !== null &&
     typeof value === "object" &&
     "kind" in value &&
@@ -958,7 +963,16 @@ export function resolveCatalogNode(
             rule.state === (ruleOwner.state ?? state))
         ) {
           if (rule.visual) applyValues(visual, rule.visual);
-          if (rule.layout) Object.assign(layout, rule.layout);
+          if (rule.layout) {
+            Object.assign(layout, rule.layout);
+            // ADR-295 Phase 3c-3b: a margin's length token (the DOM writes its device formula).
+            for (const key of Object.keys(rule.layout))
+              noteTokenRef(
+                layout,
+                key,
+                rule.layoutTokens?.[key as "marginLeft"],
+              );
+          }
         }
     }
   };
@@ -1736,7 +1750,10 @@ export function resolveCatalogNode(
         );
         // The text is one line with an ellipsis (the Cell rule's Canvas paint, as Table.css);
         // the box clips it.
-        return { ...cell, visual: extendedVisual(cell.visual, { overflow: "hidden" }) };
+        return {
+          ...cell,
+          visual: extendedVisual(cell.visual, { overflow: "hidden" }),
+        };
       });
       return {
         ...synthesize(

@@ -375,7 +375,15 @@ function componentProperties(value: unknown, at: string): void {
     const property = object(raw, path);
     exact(
       property,
-      ["key", "name", "kind", "targets", "preferred", "valueType", "variableId"],
+      [
+        "key",
+        "name",
+        "kind",
+        "targets",
+        "preferred",
+        "valueType",
+        "variableId",
+      ],
       path,
     );
     const key = string(property.key, `${path}.key`);
@@ -461,7 +469,9 @@ function jsonValue(value: unknown, at: string, depth = 0): void {
     return;
   }
   if (Array.isArray(value)) {
-    value.forEach((item, index) => jsonValue(item, `${at}[${index}]`, depth + 1));
+    value.forEach((item, index) =>
+      jsonValue(item, `${at}[${index}]`, depth + 1),
+    );
     return;
   }
   if (typeof value === "object") {
@@ -513,7 +523,8 @@ function dataFields(value: unknown, at: string, depth = 0): void {
     string(field.key, `${here}.key`);
     if (field.type !== undefined) string(field.type, `${here}.type`);
     if (field.label !== undefined) text(field.label, `${here}.label`);
-    if (field.required !== undefined) boolean(field.required, `${here}.required`);
+    if (field.required !== undefined)
+      boolean(field.required, `${here}.required`);
     if (field.defaultValue !== undefined)
       jsonValue(field.defaultValue, `${here}.defaultValue`);
     if (field.children !== undefined)
@@ -526,8 +537,14 @@ function dataFields(value: unknown, at: string, depth = 0): void {
     }
   });
   const runtime = formulaRuntimeSync();
-  if (runtime && value.some((item) => (item as { formula?: unknown }).formula !== undefined)) {
-    const loop = runtime.cycleError(runtime.engine, value as readonly ComputedSchemaField[]);
+  if (
+    runtime &&
+    value.some((item) => (item as { formula?: unknown }).formula !== undefined)
+  ) {
+    const loop = runtime.cycleError(
+      runtime.engine,
+      value as readonly ComputedSchemaField[],
+    );
     if (loop) invalid(loop.code, at);
   }
 }
@@ -576,7 +593,8 @@ function siteSettings(value: unknown, at: string): void {
     const favicon = object(site.favicon, `${at}.favicon`);
     exact(favicon, ["light", "dark"], `${at}.favicon`);
     for (const key of ["light", "dark"] as const)
-      if (favicon[key] !== undefined) assetUrl(favicon[key], `${at}.favicon.${key}`);
+      if (favicon[key] !== undefined)
+        assetUrl(favicon[key], `${at}.favicon.${key}`);
   }
   if (site.socialImage !== undefined)
     assetUrl(site.socialImage, `${at}.socialImage`);
@@ -589,7 +607,8 @@ function siteSettings(value: unknown, at: string): void {
       invalid("INVALID_ROBOTS", `${at}.search.robots`);
   }
   if (site.redirects !== undefined) {
-    if (!Array.isArray(site.redirects)) invalid("ARRAY_REQUIRED", `${at}.redirects`);
+    if (!Array.isArray(site.redirects))
+      invalid("ARRAY_REQUIRED", `${at}.redirects`);
     site.redirects.forEach((item, index) => {
       const here = `${at}.redirects[${index}]`;
       const redirect = object(item, here);
@@ -609,16 +628,28 @@ function siteSettings(value: unknown, at: string): void {
     } else if (access.kind === "sso") {
       exact(
         access,
-        ["kind", "protocol", "issuer", "metadataUrl", "clientId", "protectedPageIds"],
+        [
+          "kind",
+          "protocol",
+          "issuer",
+          "metadataUrl",
+          "clientId",
+          "protectedPageIds",
+        ],
         `${at}.access`,
       );
       if (access.protocol !== "saml" && access.protocol !== "oidc")
         invalid("INVALID_SSO_PROTOCOL", `${at}.access.protocol`);
       string(access.issuer, `${at}.access.issuer`);
       for (const key of ["metadataUrl", "clientId"] as const)
-        if (access[key] !== undefined) string(access[key], `${at}.access.${key}`);
+        if (access[key] !== undefined)
+          string(access[key], `${at}.access.${key}`);
       if (access.protectedPageIds !== "all")
-        list(access.protectedPageIds, "project:page:", `${at}.access.protectedPageIds`);
+        list(
+          access.protectedPageIds,
+          "project:page:",
+          `${at}.access.protectedPageIds`,
+        );
     } else invalid("INVALID_SITE_ACCESS", `${at}.access.kind`);
   }
 }
@@ -628,12 +659,14 @@ function pageMeta(value: unknown, at: string): void {
   exact(meta, ["title", "description", "socialImage", "hidden"], at);
   for (const key of ["title", "description"] as const)
     if (meta[key] !== undefined) text(meta[key], `${at}.${key}`);
-  if (meta.socialImage !== undefined) assetUrl(meta.socialImage, `${at}.socialImage`);
+  if (meta.socialImage !== undefined)
+    assetUrl(meta.socialImage, `${at}.socialImage`);
   if (meta.hidden !== undefined) {
     const hidden = object(meta.hidden, `${at}.hidden`);
     exact(hidden, ["search", "sitemap"], `${at}.hidden`);
     for (const key of ["search", "sitemap"] as const)
-      if (hidden[key] !== undefined) boolean(hidden[key], `${at}.hidden.${key}`);
+      if (hidden[key] !== undefined)
+        boolean(hidden[key], `${at}.hidden.${key}`);
   }
 }
 function list(value: unknown, prefix: string, at: string): string[] {
@@ -1234,7 +1267,8 @@ function binding(value: unknown, at: string): void {
   if (item.key !== undefined) string(item.key, `${at}.key`);
   // ADR-284 Decision 1 — a shared view, or the binding's own (built-in) view: never both. A
   // built-in view filters · sorts its list; grouping · aggregates are a derived (shared) view's.
-  if (item.viewId !== undefined) id(item.viewId, "project:view:", `${at}.viewId`);
+  if (item.viewId !== undefined)
+    id(item.viewId, "project:view:", `${at}.viewId`);
   if (item.view !== undefined) {
     if (item.viewId !== undefined) invalid("VIEW_AND_VIEW_ID", `${at}.view`);
     const query = viewQuery(item.view, `${at}.view`, []);
@@ -1354,7 +1388,9 @@ function viewQuery(
     }
     if (
       node.sensitivity !== undefined &&
-      !["base", "accent", "case", "variant"].includes(node.sensitivity as string)
+      !["base", "accent", "case", "variant"].includes(
+        node.sensitivity as string,
+      )
     )
       invalid("INVALID_SENSITIVITY", `${path}.sensitivity`);
   };
@@ -1678,7 +1714,10 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
       writes(item.visual, "entry.visual", visualFields);
       stateRules(item.stateRules, "entry.stateRules");
       // ADR-282: an unlocked origin's template copy and its library → copy map, together.
-      if ((item.templateRootId === undefined) !== (item.templateMap === undefined))
+      if (
+        (item.templateRootId === undefined) !==
+        (item.templateMap === undefined)
+      )
         invalid("INVALID_ORIGIN_TEMPLATE_ROOT", "entry.templateRootId");
       if (item.templateRootId !== undefined) {
         id(item.templateRootId, "project:node:", "entry.templateRootId");
@@ -1970,7 +2009,9 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           )
             invalid("INVALID_VARIABLE_REF", `${at}.variableId`);
           if (
-            !["set", "toggle", "increment", "reset"].includes(action.op as string)
+            !["set", "toggle", "increment", "reset"].includes(
+              action.op as string,
+            )
           )
             invalid("INVALID_STATE_OP", `${at}.op`);
           if (action.op === "set") scalar(action.value, `${at}.value`);
@@ -1998,41 +2039,76 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           // (`scalar` refuses `undefined` — a rule without a body is the shape stored before, ADR-281.)
           if (action.body !== undefined) scalar(action.body, `${at}.body`);
         } else if (action.opcode === "append") {
-          exact(action, ["opcode", "collectionId", "value", "parentKey"], `${at}`);
+          exact(
+            action,
+            ["opcode", "collectionId", "value", "parentKey"],
+            `${at}`,
+          );
           id(action.collectionId, "data:collection:", `${at}.collectionId`);
           if (action.value !== undefined) scalar(action.value, `${at}.value`);
-          if (action.parentKey !== undefined) scalar(action.parentKey, `${at}.parentKey`);
+          if (action.parentKey !== undefined)
+            scalar(action.parentKey, `${at}.parentKey`);
         } else if (action.opcode === "update") {
-          exact(action, ["opcode", "collectionId", "key", "value", "field"], `${at}`);
+          exact(
+            action,
+            ["opcode", "collectionId", "key", "value", "field"],
+            `${at}`,
+          );
           id(action.collectionId, "data:collection:", `${at}.collectionId`);
           if (action.key !== undefined) scalar(action.key, `${at}.key`);
           if (action.value !== undefined) scalar(action.value, `${at}.value`);
-          if (action.field !== undefined) id(action.field, "data:field:", `${at}.field`);
+          if (action.field !== undefined)
+            id(action.field, "data:field:", `${at}.field`);
         } else if (action.opcode === "insert") {
-          exact(action, ["opcode", "collectionId", "index", "value", "parentKey"], `${at}`);
+          exact(
+            action,
+            ["opcode", "collectionId", "index", "value", "parentKey"],
+            `${at}`,
+          );
           id(action.collectionId, "data:collection:", `${at}.collectionId`);
           if (action.index !== undefined) scalar(action.index, `${at}.index`);
           if (action.value !== undefined) scalar(action.value, `${at}.value`);
-          if (action.parentKey !== undefined) scalar(action.parentKey, `${at}.parentKey`);
-        } else if (action.opcode === "insertBefore" || action.opcode === "insertAfter") {
+          if (action.parentKey !== undefined)
+            scalar(action.parentKey, `${at}.parentKey`);
+        } else if (
+          action.opcode === "insertBefore" ||
+          action.opcode === "insertAfter"
+        ) {
           exact(action, ["opcode", "collectionId", "key", "value"], `${at}`);
           id(action.collectionId, "data:collection:", `${at}.collectionId`);
           if (action.key !== undefined) scalar(action.key, `${at}.key`);
           if (action.value !== undefined) scalar(action.value, `${at}.value`);
         } else if (action.opcode === "prepend") {
-          exact(action, ["opcode", "collectionId", "value", "parentKey"], `${at}`);
+          exact(
+            action,
+            ["opcode", "collectionId", "value", "parentKey"],
+            `${at}`,
+          );
           id(action.collectionId, "data:collection:", `${at}.collectionId`);
           if (action.value !== undefined) scalar(action.value, `${at}.value`);
-          if (action.parentKey !== undefined) scalar(action.parentKey, `${at}.parentKey`);
+          if (action.parentKey !== undefined)
+            scalar(action.parentKey, `${at}.parentKey`);
         } else if (action.opcode === "move") {
-          exact(action, ["opcode", "collectionId", "key", "toIndex", "toParentKey"], `${at}`);
+          exact(
+            action,
+            ["opcode", "collectionId", "key", "toIndex", "toParentKey"],
+            `${at}`,
+          );
           id(action.collectionId, "data:collection:", `${at}.collectionId`);
           if (action.key !== undefined) scalar(action.key, `${at}.key`);
-          if (action.toIndex !== undefined) scalar(action.toIndex, `${at}.toIndex`);
+          if (action.toIndex !== undefined)
+            scalar(action.toIndex, `${at}.toIndex`);
           if (action.toParentKey !== undefined)
             scalar(action.toParentKey, `${at}.toParentKey`);
-        } else if (action.opcode === "moveBefore" || action.opcode === "moveAfter") {
-          exact(action, ["opcode", "collectionId", "key", "keys", "dropPosition"], `${at}`);
+        } else if (
+          action.opcode === "moveBefore" ||
+          action.opcode === "moveAfter"
+        ) {
+          exact(
+            action,
+            ["opcode", "collectionId", "key", "keys", "dropPosition"],
+            `${at}`,
+          );
           id(action.collectionId, "data:collection:", `${at}.collectionId`);
           if (action.key !== undefined) scalar(action.key, `${at}.key`);
           if (action.keys !== undefined) scalar(action.keys, `${at}.keys`);
@@ -2063,11 +2139,7 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
             invalid("INVALID_PROPERTY_KEY", `${at}.propertyKey`);
           if (action.value !== undefined) scalar(action.value, `${at}.value`);
         } else if (action.opcode === "capability") {
-          exact(
-            action,
-            ["opcode", "target", "capabilityId", "value"],
-            `${at}`,
-          );
+          exact(action, ["opcode", "target", "capabilityId", "value"], `${at}`);
           nodeRef(action.target, `${at}.target`, "TARGET_REF_SHAPE", true);
           string(action.capabilityId, `${at}.capabilityId`);
           if (action.value !== undefined) {
@@ -2101,7 +2173,8 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
       if (item.description !== undefined)
         text(item.description, "entry.description");
       dataFields(item.schema, "entry.schema");
-      if (!Array.isArray(item.mockData)) invalid("ARRAY_REQUIRED", "entry.mockData");
+      if (!Array.isArray(item.mockData))
+        invalid("ARRAY_REQUIRED", "entry.mockData");
       if (item.mockData.length > CATALOG_COLLECTION_ROW_LIMIT)
         invalid("COLLECTION_ROW_LIMIT", "entry.mockData");
       item.mockData.forEach((row, index) => {
@@ -2119,7 +2192,10 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           (!Number.isInteger(policy.intervalSec) ||
             (policy.intervalSec as number) <= 0)
         )
-          invalid("INVALID_EXECUTION_POLICY", "entry.executionPolicy.intervalSec");
+          invalid(
+            "INVALID_EXECUTION_POLICY",
+            "entry.executionPolicy.intervalSec",
+          );
       }
       break;
     }
@@ -2153,12 +2229,17 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
       string(item.name, "entry.name");
       if (item.description !== undefined)
         text(item.description, "entry.description");
-      if (!["GET", "POST", "PUT", "DELETE", "PATCH"].includes(item.method as string))
+      if (
+        !["GET", "POST", "PUT", "DELETE", "PATCH"].includes(
+          item.method as string,
+        )
+      )
         invalid("INVALID_METHOD", "entry.method");
       text(item.baseUrl, "entry.baseUrl");
       text(item.path, "entry.path");
       for (const key of ["headers", "queryParams"] as const) {
-        if (!Array.isArray(item[key])) invalid("ARRAY_REQUIRED", `entry.${key}`);
+        if (!Array.isArray(item[key]))
+          invalid("ARRAY_REQUIRED", `entry.${key}`);
         (item[key] as unknown[]).forEach((row, index) => {
           object(row, `entry.${key}[${index}]`);
           jsonValue(row, `entry.${key}[${index}]`);
@@ -2181,7 +2262,11 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           jsonValue(item[key], `entry.${key}`);
         }
       if (item.targetCollectionId !== undefined)
-        id(item.targetCollectionId, "data:collection:", "entry.targetCollectionId");
+        id(
+          item.targetCollectionId,
+          "data:collection:",
+          "entry.targetCollectionId",
+        );
       if (!["client", "server"].includes(item.executionMode as string))
         invalid("INVALID_EXECUTION_MODE", "entry.executionMode");
       for (const key of ["timeout", "retryCount"] as const)
@@ -2238,7 +2323,11 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
         id(source.viewId, "project:view:", "entry.source.viewId");
       } else {
         exact(source, ["collectionId"], "entry.source");
-        id(source.collectionId, "data:collection:", "entry.source.collectionId");
+        id(
+          source.collectionId,
+          "data:collection:",
+          "entry.source.collectionId",
+        );
       }
       break;
     }
@@ -2408,7 +2497,27 @@ export function validateLibraryDefinition(value: unknown): LibraryDefinition {
     item.partRules.forEach((raw, index) => {
       const at = `library.definition.partRules[${index}]`;
       const rule = object(raw, at);
-      exact(rule, ["child", "when", "state", "visual", "layout"], at);
+      exact(
+        rule,
+        ["child", "when", "state", "visual", "layout", "layoutTokens"],
+        at,
+      );
+      if (rule.layoutTokens !== undefined)
+        for (const [key, use] of Object.entries(
+          object(rule.layoutTokens, `${at}.layoutTokens`),
+        )) {
+          const token = object(use, `${at}.layoutTokens.${key}`);
+          exact(token, ["kind", "tokenId"], `${at}.layoutTokens.${key}`);
+          if (
+            !/^margin(Left|Right|Top|Bottom)$/.test(key) ||
+            token.kind !== "token" ||
+            typeof (rule.layout as Record<string, unknown> | undefined)?.[
+              key
+            ] !== "string"
+          )
+            invalid("INVALID_LAYOUT_VALUE", `${at}.layoutTokens.${key}`);
+          string(token.tokenId, `${at}.layoutTokens.${key}.tokenId`);
+        }
       const child = object(rule.child, `${at}.child`);
       exact(child, ["definitionId", "props", "via", "viaProps"], `${at}.child`);
       id(child.definitionId, "lib:definition:", `${at}.child.definitionId`);

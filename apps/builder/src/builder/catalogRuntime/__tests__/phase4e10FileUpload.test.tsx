@@ -217,9 +217,9 @@ describe("DateRangePicker — the end input's catalog grow", () => {
     const geometry = root.getGeometry([wrapper.id, ...siblings]);
     const box = geometry.get(input.id)!;
     const next = geometry.get(siblings[siblings.indexOf(input.id) + 1]!)!;
-    const gap = Number(wrapper.visual.gap ?? 0);
-    // The end input fills up to the trigger button (the DOM's start · – · grown end).
-    expect(next.x - (box.x + box.width)).toBeCloseTo(gap, 1);
+    // The end input fills up to the trigger button (the DOM's start · – · grown end); the button sits S2's
+    //   `text-to-control` after it (XS 11 × 10/14 — the group gap + the button's start margin, ADR-295 3c-3b).
+    expect(next.x - (box.x + box.width)).toBeCloseTo((11 * 10) / 14, 1);
     const outer = geometry.get(wrapper.id)!;
     expect(next.x + next.width).toBeGreaterThan(outer.x + outer.width - 10);
     workspace.dispose();

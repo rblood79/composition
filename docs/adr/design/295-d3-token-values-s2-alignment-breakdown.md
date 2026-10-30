@@ -510,6 +510,27 @@ field 버튼 (ComboBox · DatePicker · DateRangePicker): 정사각형 `{size.fi
 
 **live (Chrome MCP, 5175 · `adr295-live`)**: 팔레트 Badge · Select 를 body 에 (Select 가 처음에 Badge 안에 들어가 이동 명령으로 body 로 옮김 — 삽입 전 body 선택이 먹지 않았다). Compare Mode Preview desktop: Badge S 높이 24 · 여백 3 / 9 · 모서리 7 · 간격 5.14 (S2 probe S 24 · 9 · 7 · 5.14), Select 트리거 시작 12. 「터치 크기로 미리보기」: Badge 30 · 여백 11.25 · 간격 7.06 · 글자 15 (S2 터치 30 · 11.25 · 7.06 · 15), Select 트리거 시작 15 (높이 40). 콘솔 오류 0. 두 요소는 삭제 명령으로 지움. Canvas 숫자는 unit (resolved record) 으로만 확인했다 — 패널이 Canvas 를 가렸다.
 
+**② field 버튼 · SearchField 자리 = S2 (사용자 결정 2026-10-31 「장치 만들고 S2 에 맞춤」)**: 여러 기준을 더한 길이와 Preview inline margin 의 기기 식이 필요해 장치 둘을 먼저 넣었다.
+
+| 장치          | 내용                                                                                                                                                                                                                                                                                                                                |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 다항 길이 ref | `{length.<항>+<항>…[±px]}` — 항 = `<기준>*a/b[~c/d]` (a 음수 = 빼기). `parseRuleLengthTerms` · `ruleLengthPx` (resolveToken 의 `length`) · `ruleLengthCss` (`calc(항 + 항 …)`, 행간 기준은 글자 × 행간 비율) — 한 항 ref 의 출력은 그대로 (`ruleLength.test.ts`)                                                                    |
+| 생성 CSS      | delegation 변수 값이 길이 ref 면 식으로 낸다 (`CSSGenerator` delegation)                                                                                                                                                                                                                                                            |
+| Canvas 파서   | 패딩 변 · margin 이 `{length.…}` 를 그대로 받는다 — 패딩 변은 ref 를 지니고, margin 은 px + `layoutRefs` (`rulePartRules.compileDeclarations`), 글리프 폭 `{length.typography.<x>*1/1}` 는 typography ref 로 (iconSize)                                                                                                             |
+| margin token  | library part rule 의 새 칸 `layoutTokens` (clone 을 견디는 token 값 — `validation.ts` · `library.ts` 검사) → resolver 가 record layout 에 출처를 적고 (`noteTokenRef`, 작성 margin 이 덮으면 지움) → DOM `catalogDeviceLayoutCss` 가 아직 그 값인 inline margin 을 식으로. 옛 field 버튼 margin 재구성 (`deviceTypography`) 은 삭제 |
+
+값 (desktop · 터치): ComboBox 끝 여백 = 높이 × 3/16 − 2 (S2 `paddingEnd`, M 4 · 터치 5.5 = probe) · 입력 끝 공간 = 그 + 버튼 + `text-to-control` (M 34) · 버튼 margin = −(버튼 + 높이 × 3/16 − 1). DatePicker 끝 여백 S2 표 2 · 4 · 6 · 6 (XS 2) + `text-to-control`. DateRangePicker 그룹 시작 `edge-to-text` · 끝 4 (위아래 1 · 3 은 그대로) · 버튼 margin = `text-to-control` − 그룹 gap. SearchField 글리프 시작 `pill` (M 16 · 터치 20 = probe) · 글리프 `1lh` (M 18 · 터치 22 — 전에는 delegation px 16) · 글자 시작 = `pill` + `1lh` + `text-to-visual` (M 40 · 터치 50) · 끝 = 높이 (S2 ClearButton 자리) · 지우기 버튼 중심 = 끝에서 높이 / 2. 상자 테두리는 1 (S2 2) — S2 의 안쪽 값과 맞춘다. 지우기 버튼 모양 (채운 원) 은 그대로.
+
+**빌더**: 빌더 위젯이 같은 시트를 읽어 `builder-catalog-pins.css` 에 295 전 값 (ComboBox · DatePicker 끝 공간 · offset, DateRangePicker 시작 · 끝 · 버튼 margin 0, SearchField 글리프 · 시작 · 끝 · 지우기 offset XS · S). Decision 9 게이트 (c) 는 **크기별 실효 값** 으로 비교하게 바꿨다 (`effectiveEntries` — 시트 안 지역 변수를 크기 블록 값으로 풀고 `padding` · `margin` 단축형과 `inline-start · end` 를 네 변으로) — 이름을 바꾼 선언 (DateRangePicker 단축형 → 네 변, SearchField 끝 여백 변수) 도 빌더가 받는 값으로 비교된다. 새 margin-left 0 은 초기값 허용.
+
+**게이트**: G4 「3c-3b — field 버튼 끝 여백 · 버튼 앞 간격 · SearchField 글리프 · 글자 자리」 (delegation 길이 ref 를 두 기기 토큰 표로 — ComboBox · SearchField 는 probe, DatePicker · DateRangePicker 는 설치본 소스의 표). `adr253FieldPartsDom` 에 ComboBox 버튼 margin · 입력 끝 공간의 inline 기기 식, SearchField 글리프의 inline `1lh` · margin 없음 (시트 식).
+
+**원복 RED**: ComboBox M offset 옛 식 → G4 1 FAIL · SearchField M 글자 시작 32px → G4 1 FAIL · pins 의 ComboBox M offset 제거 → 게이트 (c) 1 FAIL · resolver 의 margin token 기록 제거 → `adr253FieldPartsDom` 1 FAIL (inline `-25px`). 복원 cmp 일치.
+
+**회귀**: type-check PASS · shared 2,049 · rendering 1,282 (+3 `ruleLength`) · builder unit 7,178 pass — 값 단언 갱신 `adr253FieldPartsDom` (ComboBox · DatePicker 끝 공간 34 · 버튼 x − 25, DateRangePicker 끝 4, SearchField 40 / 32 · 글리프 17 · 18, XL) · `phase4e10FileUpload` (범위 끝 입력 → 버튼 = `text-to-control`). 실패 = `chromeIsland` (기존) · `labelKeyCatalog` (다른 세션 WIP) · 전체 실행에서만 흔들린 `adr256SlotInsertOptions` · `phase4eG5LeafScope` (단독 PASS). G2 desktop · touch 263/263.
+
+**live (Chrome MCP, 5175 · `adr295-live`)**: 팔레트 SearchField · ComboBox · DatePicker · DateRangePicker 를 body 에 (넣을 때마다 선택을 비움 — Layers 의 Body 행 클릭은 선택을 바꾸지 않는다). Compare Mode Preview desktop: ComboBox 끝 여백 4 · 글자↔버튼 10 · 입력 끝 공간 34, DatePicker 끝 여백 4, DateRangePicker 시작 12 · 끝 4 · 끝 입력↔버튼 10, SearchField 글리프 시작 16 · 크기 18 · 글자 시작 40 · 끝 32. 「터치 크기로 미리보기」: ComboBox 5.5 · 12.14 (S2 터치 probe 5.5), DatePicker 4 · 버튼 25, DateRangePicker 15 · 4 · 12.14, SearchField 20 · 22 · 50 · 40. 새로고침 뒤 콘솔 오류 0. 네 요소는 삭제 명령으로 지움. (측정 중 첫 탭이 탭 그룹에서 빠져 새 탭으로 이어 쟀다.)
+
 - G1 before/after: §6.1
 - G2 두 arm: §6.2 · Phase 3a §6.3 · Phase 3b §6.4
 - G4 (b) 최종 snapshot (preset 5 × 델타) · (c) 컴포넌트별 desktop/touch vs S2 computed: §6.4 (c 의 padding · gap 은 3c)

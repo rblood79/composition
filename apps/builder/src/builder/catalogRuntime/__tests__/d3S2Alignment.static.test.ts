@@ -15,6 +15,7 @@ import { describe, expect, it } from "vitest";
 import {
   borderWidth,
   parseRuleLengthRef,
+  parseRuleLengthTerms,
   radius,
   resolveToken,
   ruleSizeLengthRef,
@@ -444,6 +445,183 @@ describe("ADR-295 G4 (c) — 컴포넌트 값 = S2 computed", () => {
         ).toBeLessThan(0.02);
       }
     }
+  });
+
+  /**
+   * 3c-3b ② — field 안 버튼 · SearchField 글리프의 자리 (S2 설치본 식). delegation 변수의 길이 ref (`{length.…}` — 여러
+   * 기준의 합) 를 두 기기 토큰 표로 푼다 (resolveToken 아님). 상자 테두리는 1 (S2 2) — S2 의 안쪽 값과 맞춘다.
+   * - ComboBox (`ComboBox.tsx`): FieldGroup `paddingEnd` = 높이 × 3/16 − 2 (probe `paddingInlineEnd`), 버튼 앞
+   *   `text-to-control` (10/14 em).
+   * - DatePicker (`DatePicker.tsx`): `paddingEnd` S 2 · M 4 · L · XL `space(6)` (고정 px), 버튼 앞 `text-to-control`.
+   * - DateRangePicker (`DateRangePicker.tsx`): `paddingStart` `edge-to-text` · `paddingEnd` 4 · 버튼 앞 `text-to-control`.
+   * - SearchField (`SearchField.tsx`): `paddingStart` `pill` (probe `paddingInline`) · 글리프 `1lh` + `marginEnd`
+   *   `text-to-visual` · 지우기 버튼 = 높이의 정사각형 자리 (`ClearButton.tsx` `width: controlSize()`).
+   */
+  it("3c-3b — field 버튼 끝 여백 · 버튼 앞 간격 · SearchField 글리프 · 글자 자리 = S2 (두 벌)", () => {
+    const delegation = (type: string, prefix: string) =>
+      (
+        COMPONENT_RULES_TABLE as unknown as Record<
+          string,
+          {
+            structure: {
+              composition: {
+                delegation: {
+                  prefix?: string;
+                  variables?: Record<string, Record<string, string>>;
+                }[];
+              };
+            };
+          }
+        >
+      )[type]!.structure.composition.delegation.find(
+        (entry) => entry.prefix === prefix,
+      )!.variables!;
+    const px = (ref: string, device: "desktop" | "touch") => {
+      if (/^\d+(?:\.\d+)?px$/.test(ref)) return Number.parseFloat(ref);
+      const parsed = parseRuleLengthTerms(ref);
+      expect(parsed, ref).toBeDefined();
+      const { scale, fontBase } = S2_DEVICE[device];
+      const sizes = s2SizeTokens(scale) as Record<string, number>;
+      const fonts = s2TypographyTokens(fontBase) as unknown as Record<
+        string,
+        number
+      >;
+      return parsed!.terms.reduce((total, term) => {
+        const name = term.base.slice(1, -1);
+        const base = name.startsWith("size.")
+          ? sizes[name.slice("size.".length)]!
+          : fonts[name.slice("typography.".length)]!;
+        expect(base, name).toBeTypeOf("number");
+        const ratio =
+          device === "touch" && term.touch ? term.touch.ratio : term.ratio;
+        return total + base * ratio;
+      }, parsed!.add);
+    };
+    const font = (size: string, device: "desktop" | "touch") => {
+      const name = /^\{typography\.(text-[a-z0-9]+)\}$/.exec(
+        rules.Input!.sizes[size]!.fontSize as string,
+      )![1]!;
+      return (
+        s2TypographyTokens(S2_DEVICE[device].fontBase) as unknown as Record<
+          string,
+          number
+        >
+      )[name]!;
+    };
+    const height = (size: string, device: "desktop" | "touch") =>
+      s2SizeTokens(S2_DEVICE[device].scale)[`height.${size}`]!;
+    const square = (size: string, device: "desktop" | "touch") =>
+      s2SizeTokens(S2_DEVICE[device].scale)[`field-button.${size}`]!;
+    const BORDER = 1;
+    const near = (actual: number, expected: number, at: string) =>
+      expect(
+        Math.abs(actual - expected),
+        `${at}: ${actual} vs ${expected}`,
+      ).toBeLessThan(0.02);
+    const DATE_PICKER_END = { XS: 2, S: 2, M: 4, L: 6, XL: 6 } as const;
+    for (const size of SIZES)
+      for (const device of ["desktop", "touch"] as const) {
+        const at = `${size} ${device}`;
+        const toControl = (font(size, device) * 10) / 14;
+        // ComboBox: the button's start margin = −(square + the end inset + border); the input's room = the
+        //   end inset + square + text-to-control.
+        const combo = delegation("ComboBox", "combo-btn")[size]!;
+        const comboInset =
+          -px(combo["--combo-btn-offset"]!, device) -
+          square(size, device) -
+          BORDER;
+        near(
+          comboInset,
+          (height(size, device) * 3) / 16 - 2,
+          `ComboBox inset ${at}`,
+        );
+        const probe = table.ComboBox![size]?.[device]?.paddingInlineEnd;
+        if (probe !== undefined)
+          near(comboInset, probe, `ComboBox probe ${at}`);
+        near(
+          px(
+            delegation("ComboBox", "combo-input")[size]![
+              "--combo-input-pad-end"
+            ]!,
+            device,
+          ),
+          comboInset + square(size, device) + toControl,
+          `ComboBox room ${at}`,
+        );
+        // DatePicker: the fixed end table.
+        const dp = delegation("DatePicker", "dp-btn")[size]!;
+        const dpInset =
+          -px(dp["--dp-btn-offset"]!, device) - square(size, device) - BORDER;
+        near(dpInset, DATE_PICKER_END[size], `DatePicker inset ${at}`);
+        near(
+          px(
+            delegation("DatePicker", "dp-input")[size]!["--dp-input-pad-end"]!,
+            device,
+          ),
+          dpInset + square(size, device) + toControl,
+          `DatePicker room ${at}`,
+        );
+        // DateRangePicker: the group's start `edge-to-text` · end 4, the button's start margin + the group gap
+        //   = text-to-control.
+        const drp = delegation("DateRangePicker", "drp-group")[size]!;
+        near(
+          px(drp["--drp-group-pad-start"]!, device),
+          (height(size, device) * 3) / 8,
+          `DateRangePicker start ${at}`,
+        );
+        near(
+          px(drp["--drp-group-pad-end"]!, device),
+          4,
+          `DateRangePicker end ${at}`,
+        );
+        near(
+          px(
+            delegation("DateRangePicker", "drp-btn")[size]!["--drp-btn-start"]!,
+            device,
+          ) +
+            spacing[
+              /^var\(--spacing-([\w]+)\)$/.exec(
+                drp["--drp-group-gap"]!,
+              )![1]! as keyof typeof spacing
+            ],
+          toControl,
+          `DateRangePicker button gap ${at}`,
+        );
+        // SearchField: the glyph at `pill` (inner — its margin is from the outer edge), the text after the glyph
+        //   (`1lh`) + text-to-visual, the clear button's square place (the field height) at the end.
+        const icon = delegation("SearchField", "sf-icon")[size]!;
+        near(
+          px(icon["--sf-icon-inset"]!, device) - BORDER,
+          height(size, device) / 2,
+          `SearchField glyph ${at}`,
+        );
+        const sfProbe = table.SearchField![size]?.[device]?.paddingInline;
+        if (sfProbe !== undefined)
+          near(
+            px(icon["--sf-icon-inset"]!, device) - BORDER,
+            sfProbe,
+            `SearchField probe ${at}`,
+          );
+        const input = delegation("SearchField", "sf-input")[size]!;
+        const fontPx = font(size, device);
+        near(
+          px(icon["--sf-icon-size"]!, device),
+          s2LineHeight(fontPx),
+          `SearchField glyph size ${at}`,
+        );
+        near(
+          px(input["--sf-input-pad"]!, device),
+          height(size, device) / 2 +
+            s2LineHeight(fontPx) +
+            fontPx * (device === "touch" ? 8 / 17 : 6 / 14),
+          `SearchField text start ${at}`,
+        );
+        near(
+          px(input["--sf-input-pad-end"]!, device),
+          height(size, device),
+          `SearchField text end ${at}`,
+        );
+      }
   });
 
   it("3c-2 — field 버튼 · 막대 최소 폭 · 메뉴 항목은 S2 값의 토큰, TextField · SearchField 는 최소 폭 없음", () => {

@@ -18,7 +18,7 @@
  *   from (`catalogResolvedTokenRef`) and the DOM can write the formula for a record still at it.
  */
 import type { TokenRef } from "../../types/token.types";
-import { tokenToCSSVar } from "./tokenResolver";
+import { tokenToCSSLength, tokenToCSSVar } from "./tokenResolver";
 import { withCatalogTokenVars } from "../CSSGenerator";
 
 export type RuleLengthForm =
@@ -83,53 +83,117 @@ export function ruleLengthRef(
   return `{length.${font.slice(1, -1)}*${ratio(form.em)}${touch}}` as TokenRef;
 }
 
+/** One scaled term of a length ref: the base token × the ratio (the touch ratio on the touch set). */
+export interface RuleLengthTerm {
+  base: TokenRef;
+  ratio: number;
+  ratioText: string;
+  touch?: { ratio: number; ratioText: string };
+}
+
+const NUM = String.raw`-?\d+(?:\.\d+)?`;
+const TERM = new RegExp(
+  `^([a-z]+\\.[A-Za-z0-9.-]+?)\\*(${NUM})\\/(\\d+(?:\\.\\d+)?)(?:~(${NUM})\\/(\\d+(?:\\.\\d+)?))?([+-]\\d+(?:\\.\\d+)?)?$`,
+);
+
 /**
- * `{length.<base>*<a>/<b>[~<c>/<d>][±<px>]}` → its parts, else `undefined`. The px term is a fixed offset
- * added to the scaled base (a field button's room — its square + the input's inset).
+ * `{length.<term>[+<term>…][±<px>]}` → its terms and px offset, else `undefined`. A term is
+ * `<base>*<a>/<b>[~<c>/<d>]` (a negative `a` subtracts); the px offset follows the last term. ADR-295 Phase
+ * 3c-3b: a length of several bases — a SearchField's text start (height / 2 + the font's line + 6/14 em), a
+ * field button's room (the end inset + its square + 10/14 em).
  */
-export function parseRuleLengthRef(ref: string):
-  | {
-      base: TokenRef;
-      ratio: number;
-      ratioText: string;
-      touch?: { ratio: number; ratioText: string };
-      add: number;
+export function parseRuleLengthTerms(
+  ref: string,
+): { terms: RuleLengthTerm[]; add: number } | undefined {
+  const body = /^\{length\.([^{}]+)\}$/.exec(ref)?.[1];
+  if (!body) return undefined;
+  const terms: RuleLengthTerm[] = [];
+  let add = 0;
+  const parts = body.split("+");
+  for (const [index, part] of parts.entries()) {
+    const match = TERM.exec(part);
+    if (!match) {
+      // (A trailing positive px offset: `…+12`.)
+      if (
+        index === parts.length - 1 &&
+        index > 0 &&
+        /^\d+(?:\.\d+)?$/.test(part)
+      ) {
+        add += Number(part);
+        continue;
+      }
+      return undefined;
     }
-  | undefined {
-  const match =
-    /^\{length\.([a-z]+\.[A-Za-z0-9.-]+?)\*(-?\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)(?:~(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?))?([+-]\d+(?:\.\d+)?)?\}$/.exec(
-      ref,
-    );
-  if (!match) return undefined;
-  const [, base, a, b, c, d, add] = match;
-  return {
-    base: `{${base}}` as TokenRef,
-    ratio: Number(a) / Number(b),
-    ratioText: `${a} / ${b}`,
-    ...(c !== undefined && d !== undefined
-      ? { touch: { ratio: Number(c) / Number(d), ratioText: `${c} / ${d}` } }
-      : {}),
-    add: add === undefined ? 0 : Number(add),
-  };
+    const [, base, a, b, c, d, offset] = match;
+    if (offset !== undefined) {
+      if (index !== parts.length - 1) return undefined;
+      add += Number(offset);
+    }
+    terms.push({
+      base: `{${base}}` as TokenRef,
+      ratio: Number(a) / Number(b),
+      ratioText: `${a} / ${b}`,
+      ...(c !== undefined && d !== undefined
+        ? { touch: { ratio: Number(c) / Number(d), ratioText: `${c} / ${d}` } }
+        : {}),
+    });
+  }
+  return terms.length ? { terms, add } : undefined;
+}
+
+/**
+ * A one-term length ref (`{length.<base>*<a>/<b>[~<c>/<d>][±<px>]}` — a rule's relative padding · gap) → its
+ * parts, else `undefined` (several terms: `parseRuleLengthTerms`).
+ */
+export function parseRuleLengthRef(
+  ref: string,
+): (RuleLengthTerm & { add: number }) | undefined {
+  const parsed = parseRuleLengthTerms(ref);
+  return parsed?.terms.length === 1
+    ? { ...parsed.terms[0]!, add: parsed.add }
+    : undefined;
 }
 
 /** The device-set flag of the size map (`{size.device.touch}` — 0 desktop, 1 touch). */
 export const DEVICE_TOUCH_REF = "{size.device.touch}" as TokenRef;
 
+/** A length ref's px in the maps `resolve` reads (`resolveToken`), else `undefined`. */
+export function ruleLengthPx(
+  ref: string,
+  resolve: (ref: TokenRef) => unknown,
+): number | undefined {
+  const parsed = parseRuleLengthTerms(ref);
+  if (!parsed) return undefined;
+  const touch = resolve(DEVICE_TOUCH_REF) === 1;
+  let total = parsed.add;
+  for (const term of parsed.terms) {
+    const base = resolve(term.base);
+    if (typeof base !== "number") return undefined;
+    total += base * (touch && term.touch ? term.touch.ratio : term.ratio);
+  }
+  return total;
+}
+
 /**
  * The CSS of a length ref over the device variables: `calc(<base> * a / b [± px])`, with a touch coefficient
- * `calc(<base> * (a / b + (c / d − a / b) × touch flag) [± px])` (`--catalog-token-size-device-touch`).
+ * `calc(<base> * (a / b + (c / d − a / b) × touch flag) [± px])` (`--catalog-token-size-device-touch`); several
+ * terms are summed (`calc(<term> + <term> …)`). A font's line base (`{typography.<x>--line-height}` — unitless
+ * in CSS) is that font × the line ratio.
  */
 export function ruleLengthCss(ref: string): string | undefined {
-  const parts = parseRuleLengthRef(ref);
-  if (!parts) return undefined;
-  const base = withCatalogTokenVars(tokenToCSSVar(parts.base));
+  const parsed = parseRuleLengthTerms(ref);
+  if (!parsed) return undefined;
+  const term = (part: RuleLengthTerm) => {
+    const base = withCatalogTokenVars(tokenToCSSLength(part.base));
+    return part.touch
+      ? `${base} * (${part.ratioText} + (${part.touch.ratioText} - ${part.ratioText}) * ${tokenToCSSVar(DEVICE_TOUCH_REF)})`
+      : `${base} * ${part.ratioText}`;
+  };
   const add =
-    parts.add === 0
+    parsed.add === 0
       ? ""
-      : ` ${parts.add < 0 ? "-" : "+"} ${Math.abs(parts.add)}px`;
-  if (!parts.touch) return `calc(${base} * ${parts.ratioText}${add})`;
-  return `calc(${base} * (${parts.ratioText} + (${parts.touch.ratioText} - ${parts.ratioText}) * ${tokenToCSSVar(DEVICE_TOUCH_REF)})${add})`;
+      : ` ${parsed.add < 0 ? "-" : "+"} ${Math.abs(parsed.add)}px`;
+  return `calc(${parsed.terms.map(term).join(" + ")}${add})`;
 }
 
 /**

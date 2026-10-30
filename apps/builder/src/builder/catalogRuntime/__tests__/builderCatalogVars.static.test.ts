@@ -20,6 +20,7 @@ import {
   BUILDER_CATALOG_VARS_CSS,
   BUILDER_COMPONENTS_CSS,
   THEME_CSS,
+  effectiveEntries,
   normalizedEntries,
   resolveBuilderGeneratedSheets,
 } from "../../../../scripts/adr295BuilderGeneratedSheets.mjs";
@@ -66,8 +67,12 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
     expect(now.sheets).toEqual(baseline.sheets);
     // 값은 계산값으로 비교한다 — S2 padding 식 (`calc(높이 − 글자 × 행간 − 테두리 × 2) / 2`) 과 행간 토큰
     //   비율이 빌더 값에서 295 전 px 와 같으면 같다 (ADR-295 Phase 3).
-    const before = normalizedEntries(baseline.entries as Record<string, string>);
-    const after = normalizedEntries(now.entries);
+    //   (3c-3b: 크기별 실효 값 — 지역 변수를 크기 블록 값으로 풀고 단축형을 네 변으로 펼쳐, 이름을 바꾼 선언 · 변수도
+    //   빌더가 받는 값으로 비교한다.)
+    const before = normalizedEntries(
+      effectiveEntries(baseline.entries as Record<string, string>),
+    );
+    const after = normalizedEntries(effectiveEntries(now.entries));
     const changed = Object.entries(before)
       .filter(([key, value]) => after[key] !== value)
       .map(([key, value]) => `${key}: ${value} → ${after[key]}`);
@@ -76,7 +81,13 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
     //   상자의 `{size.height.<S>}` = 빌더 control 높이 (그 상자의 295 전 한 줄 높이 — 행간 + padding × 2 + 테두리
     //   × 2) · `0` (field 버튼 · 범위 상자 안 DateInput — Button · DateInput 의 S2 높이를 받지 않는 자리) ·
     //   `auto` (초기값 — 빌더 root 가 범위 상자 Group 의 S2 높이를 끈다).
-    const builderControlHeights = new Set(["20px", "22px", "30px", "42px", "54px"]);
+    const builderControlHeights = new Set([
+      "20px",
+      "22px",
+      "30px",
+      "42px",
+      "54px",
+    ]);
     const inert = (value: string) =>
       builderControlHeights.has(value) || value === "0" || value === "auto";
     const added = Object.keys(after).filter((key) => !(key in before));
@@ -94,19 +105,26 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
     );
     // (A new min · max width the builder pins to the property's initial value is inert too — Meter's
     //   S2 `bar()` widths, Phase 3c-2b, `builder-catalog-pins.css`.)
-    const INITIAL: Record<string, string> = { "min-width": "auto", "max-width": "none" };
+    //   (3c-3b: a field button's new start margin — S2 `text-to-control` — is 0 in the builder.)
+    const INITIAL: Record<string, string> = {
+      "min-width": "auto",
+      "max-width": "none",
+      "margin-left": "0",
+    };
     // (Phase 3c-3: the Select trigger's new start padding — S2 Picker `edge-to-text` — is 0 in the builder, the
     //   value its own Select triggers take from the builder-system layer: `form-controls.css` `padding: 0`, a
     //   later layer than `components`.)
     const BUILDER_LAYER_ZERO = new Set([
       "generated/Select.css › @layer components › .react-aria-Select .react-aria-Button | padding-left",
     ]);
+    /** (per-size effective keys: `<block> @S | prop` → `<block> | prop`) */
+    const unsized = (key: string) => key.replace(/ @\w+ \| /, " | ");
     expect(
       added.filter((key) => {
         const prop = key.split(" | ")[1]!;
         if (prop.startsWith("--")) return !inertLocal.has(prop);
         if (INITIAL[prop] !== undefined) return after[key] !== INITIAL[prop];
-        if (BUILDER_LAYER_ZERO.has(key)) {
+        if (BUILDER_LAYER_ZERO.has(unsized(key))) {
           const local = /^var\((--[\w-]+)\)$/.exec(after[key]!)?.[1];
           return !(after[key] === "0" || (local && inertLocal.has(local)));
         }
@@ -148,7 +166,9 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
     const at = order.indexOf('@import "./builder-catalog-pins.css"');
     // (`generated/CatalogStates.css` — 작성한 상태 값 — 만 그 뒤)
     const states = order.indexOf('@import "./generated/CatalogStates.css"');
-    expect(at).toBeGreaterThan(order.lastIndexOf('@import "./generated/', states - 1));
+    expect(at).toBeGreaterThan(
+      order.lastIndexOf('@import "./generated/', states - 1),
+    );
     expect(at).toBeLessThan(states);
   });
 
@@ -180,7 +200,9 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
     expect(chrome.length).toBeGreaterThan(50);
     expect(
       chrome
-        .filter((path) => /var\(--catalog-token-/.test(readFileSync(path, "utf8")))
+        .filter((path) =>
+          /var\(--catalog-token-/.test(readFileSync(path, "utf8")),
+        )
         .map((path) => relative(repo, path)),
     ).toEqual([]);
   });

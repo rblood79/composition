@@ -112,4 +112,105 @@
   .react-aria-Select[data-size="XL"]:not(:where(.publish-app *)) {
     --select-btn-pad-start: 0;
   }
+
+  /* ADR-295 Phase 3c-3b — field 버튼 · SearchField 자리 = S2 식 (높이 · 글자 · field 버튼의 합 — 생성 시트는 기기 식).
+     빌더 위젯은 295 전 px 그대로: 값이 바뀐 변수는 그 값으로, 새 변수 (DateRangePicker 의 네 변 · SearchField 끝 여백) 는
+     옛 값으로, 버튼 앞 새 margin (`--drp-btn-start`) 은 0 으로 (뒤에 실려 같은 specificity 에서 생성 시트를 이긴다). */
+  .react-aria-ComboBox[data-size="XS"]:not(:where(.publish-app *)) {
+    --combo-input-pad-end: 20px;
+    --combo-btn-offset: -18px;
+  }
+  .react-aria-ComboBox[data-size="S"]:not(:where(.publish-app *)) {
+    --combo-input-pad-end: 26px;
+    --combo-btn-offset: -20px;
+  }
+  .react-aria-ComboBox[data-size="M"]:not(:where(.publish-app *)) {
+    --combo-input-pad-end: 34px;
+    --combo-btn-offset: -26px;
+  }
+  .react-aria-ComboBox[data-size="L"]:not(:where(.publish-app *)) {
+    --combo-input-pad-end: 50px;
+    --combo-btn-offset: -38px;
+  }
+  .react-aria-ComboBox[data-size="XL"]:not(:where(.publish-app *)) {
+    --combo-input-pad-end: 70px;
+    --combo-btn-offset: -50px;
+  }
+  .react-aria-DatePicker[data-size="XS"]:not(:where(.publish-app *)) {
+    --dp-input-pad-end: 20px;
+    --dp-btn-offset: -18px;
+  }
+  .react-aria-DatePicker[data-size="S"]:not(:where(.publish-app *)) {
+    --dp-input-pad-end: 26px;
+    --dp-btn-offset: -20px;
+  }
+  .react-aria-DatePicker[data-size="M"]:not(:where(.publish-app *)) {
+    --dp-input-pad-end: 34px;
+    --dp-btn-offset: -26px;
+  }
+  .react-aria-DatePicker[data-size="L"]:not(:where(.publish-app *)) {
+    --dp-input-pad-end: 50px;
+    --dp-btn-offset: -38px;
+  }
+  .react-aria-DatePicker[data-size="XL"]:not(:where(.publish-app *)) {
+    --dp-input-pad-end: 70px;
+    --dp-btn-offset: -50px;
+  }
+  .react-aria-DateRangePicker[data-size="XS"]:not(:where(.publish-app *)) {
+    --drp-btn-start: 0;
+    --drp-group-pad-start: 4px;
+    --drp-group-pad-end: 1px;
+  }
+  .react-aria-DateRangePicker[data-size="S"]:not(:where(.publish-app *)) {
+    --drp-btn-start: 0;
+    --drp-group-pad-start: 8px;
+    --drp-group-pad-end: 1px;
+  }
+  .react-aria-DateRangePicker[data-size="M"]:not(:where(.publish-app *)) {
+    --drp-btn-start: 0;
+    --drp-group-pad-start: 12px;
+    --drp-group-pad-end: 3px;
+  }
+  .react-aria-DateRangePicker[data-size="L"]:not(:where(.publish-app *)) {
+    --drp-btn-start: 0;
+    --drp-group-pad-start: 16px;
+    --drp-group-pad-end: 3px;
+  }
+  .react-aria-DateRangePicker[data-size="XL"]:not(:where(.publish-app *)) {
+    --drp-btn-start: 0;
+    --drp-group-pad-start: 24px;
+    --drp-group-pad-end: 3px;
+  }
+  .react-aria-SearchField[data-size="XS"]:not(:where(.publish-app *)) {
+    --sf-icon-size: 10px;
+    --sf-input-pad-end: 20px;
+    --sf-icon-inset: 4px;
+    --sf-input-pad: 20px;
+    --sf-btn-offset: -16px;
+  }
+  .react-aria-SearchField[data-size="S"]:not(:where(.publish-app *)) {
+    --sf-icon-size: 12px;
+    --sf-input-pad-end: 24px;
+    --sf-icon-inset: 6px;
+    --sf-input-pad: 24px;
+    --sf-btn-offset: -20px;
+  }
+  .react-aria-SearchField[data-size="M"]:not(:where(.publish-app *)) {
+    --sf-icon-size: 16px;
+    --sf-input-pad-end: 32px;
+    --sf-icon-inset: 8px;
+    --sf-input-pad: 32px;
+  }
+  .react-aria-SearchField[data-size="L"]:not(:where(.publish-app *)) {
+    --sf-icon-size: 18px;
+    --sf-input-pad-end: 40px;
+    --sf-icon-inset: 12px;
+    --sf-input-pad: 40px;
+  }
+  .react-aria-SearchField[data-size="XL"]:not(:where(.publish-app *)) {
+    --sf-icon-size: 22px;
+    --sf-input-pad-end: 52px;
+    --sf-icon-inset: 16px;
+    --sf-input-pad: 52px;
+  }
 }

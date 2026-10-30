@@ -111,23 +111,6 @@ export function catalogDeviceControlCss(
     if (side && resolveToken(sideRef as TokenRef) === px(style[key]))
       style[key] = side;
   }
-  // ADR-295 Phase 3c-3: a field button's square (`{size.field-button.<S>}`) sits over the input's end by
-  //   its start margin = −(square) − inset (the field rule's `--*-btn-offset`); the margin follows the
-  //   square on the device set, as the input's room (`{length.size.field-button.<S>*1/1+N}`) does.
-  const squareRef = catalogResolvedTokenRef(visual, "width");
-  const square = squareRef?.startsWith("{size.field-button.")
-    ? resolveToken(squareRef as TokenRef)
-    : undefined;
-  const margin = px(style.marginLeft);
-  if (
-    typeof square === "number" &&
-    margin !== undefined &&
-    margin < 0 &&
-    typeof style.width === "string"
-  ) {
-    const inset = -margin - square;
-    style.marginLeft = `calc(0px - ${style.width} - ${inset}px)`;
-  }
   const ref = catalogResolvedTokenRef(visual, "minHeight");
   const size = ref ? SIZE_HEIGHT_REF.exec(ref)?.[1] : undefined;
   const height = px(style.minHeight);
@@ -188,6 +171,37 @@ function catalogDeviceSpacingCss(
       if (current !== undefined && Math.abs(current - value) < 1e-3)
         inline[property] = css;
     }
+  }
+}
+
+/**
+ * ADR-295 Phase 3c-3b — a margin the resolver read from a part rule's length ref (a SearchField glyph's
+ * start, a field button's overlap — `PartRule.layoutTokens`) goes inline as the ref's formula over the
+ * device variables, while the inline px is still that ref's installed value (an authored margin keeps it).
+ */
+export function catalogDeviceLayoutCss(
+  style: CSSProperties,
+  layout: Readonly<Record<string, unknown>>,
+): void {
+  const inline = style as Record<string, unknown>;
+  for (const key of [
+    "marginLeft",
+    "marginRight",
+    "marginTop",
+    "marginBottom",
+  ] as const) {
+    const ref = catalogResolvedTokenRef(layout, key);
+    if (!ref?.startsWith("{length.")) continue;
+    const value = resolveToken(ref as TokenRef);
+    const css = ruleLengthCss(ref);
+    const current = px(inline[key]);
+    if (
+      typeof value === "number" &&
+      css &&
+      current !== undefined &&
+      Math.abs(current - value) < 1e-3
+    )
+      inline[key] = css;
   }
 }
 

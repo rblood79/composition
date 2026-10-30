@@ -3328,23 +3328,23 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             variables: {
               XS: {
                 "--combo-input-pad-end":
-                  "calc(var(--catalog-token-size-field-button-XS) + 4px)",
+                  "{length.size.height.XS*3/16+size.field-button.XS*1/1+typography.text-2xs*10/14-2}",
               },
               S: {
                 "--combo-input-pad-end":
-                  "calc(var(--catalog-token-size-field-button-S) + 8px)",
+                  "{length.size.height.S*3/16+size.field-button.S*1/1+typography.text-xs*10/14-2}",
               },
               M: {
                 "--combo-input-pad-end":
-                  "calc(var(--catalog-token-size-field-button-M) + 12px)",
+                  "{length.size.height.M*3/16+size.field-button.M*1/1+typography.text-sm*10/14-2}",
               },
               L: {
                 "--combo-input-pad-end":
-                  "calc(var(--catalog-token-size-field-button-L) + 16px)",
+                  "{length.size.height.L*3/16+size.field-button.L*1/1+typography.text-base*10/14-2}",
               },
               XL: {
                 "--combo-input-pad-end":
-                  "calc(var(--catalog-token-size-field-button-XL) + 24px)",
+                  "{length.size.height.XL*3/16+size.field-button.XL*1/1+typography.text-lg*10/14-2}",
               },
             },
             bridges: {
@@ -3363,27 +3363,27 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               XS: {
                 "--combo-btn-size": "var(--catalog-token-size-field-button-XS)",
                 "--combo-btn-offset":
-                  "calc(0px - var(--catalog-token-size-field-button-XS) - 2px)",
+                  "{length.size.field-button.XS*-1/1+size.height.XS*-3/16+1}",
               },
               S: {
                 "--combo-btn-size": "var(--catalog-token-size-field-button-S)",
                 "--combo-btn-offset":
-                  "calc(0px - var(--catalog-token-size-field-button-S) - 2px)",
+                  "{length.size.field-button.S*-1/1+size.height.S*-3/16+1}",
               },
               M: {
                 "--combo-btn-size": "var(--catalog-token-size-field-button-M)",
                 "--combo-btn-offset":
-                  "calc(0px - var(--catalog-token-size-field-button-M) - 4px)",
+                  "{length.size.field-button.M*-1/1+size.height.M*-3/16+1}",
               },
               L: {
                 "--combo-btn-size": "var(--catalog-token-size-field-button-L)",
                 "--combo-btn-offset":
-                  "calc(0px - var(--catalog-token-size-field-button-L) - 4px)",
+                  "{length.size.field-button.L*-1/1+size.height.L*-3/16+1}",
               },
               XL: {
                 "--combo-btn-size": "var(--catalog-token-size-field-button-XL)",
                 "--combo-btn-offset":
-                  "calc(0px - var(--catalog-token-size-field-button-XL) - 4px)",
+                  "{length.size.field-button.XL*-1/1+size.height.XL*-3/16+1}",
               },
             },
             bridges: {
@@ -3990,23 +3990,23 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             variables: {
               XS: {
                 "--dp-input-pad-end":
-                  "calc(var(--catalog-token-size-field-button-XS) + 4px)",
+                  "{length.size.field-button.XS*1/1+typography.text-2xs*10/14+2}",
               },
               S: {
                 "--dp-input-pad-end":
-                  "calc(var(--catalog-token-size-field-button-S) + 8px)",
+                  "{length.size.field-button.S*1/1+typography.text-xs*10/14+2}",
               },
               M: {
                 "--dp-input-pad-end":
-                  "calc(var(--catalog-token-size-field-button-M) + 12px)",
+                  "{length.size.field-button.M*1/1+typography.text-sm*10/14+4}",
               },
               L: {
                 "--dp-input-pad-end":
-                  "calc(var(--catalog-token-size-field-button-L) + 16px)",
+                  "{length.size.field-button.L*1/1+typography.text-base*10/14+6}",
               },
               XL: {
                 "--dp-input-pad-end":
-                  "calc(var(--catalog-token-size-field-button-XL) + 24px)",
+                  "{length.size.field-button.XL*1/1+typography.text-lg*10/14+6}",
               },
             },
             // (폭은 DateInput 자기 것 — 100%. `flex: 1` 을 주면 버튼의 음수 margin 만큼 Group 밖으로 넘친다.)
@@ -4021,28 +4021,23 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             variables: {
               XS: {
                 "--dp-btn-size": "var(--catalog-token-size-field-button-XS)",
-                "--dp-btn-offset":
-                  "calc(0px - var(--catalog-token-size-field-button-XS) - 2px)",
+                "--dp-btn-offset": "{length.size.field-button.XS*-1/1-3}",
               },
               S: {
                 "--dp-btn-size": "var(--catalog-token-size-field-button-S)",
-                "--dp-btn-offset":
-                  "calc(0px - var(--catalog-token-size-field-button-S) - 2px)",
+                "--dp-btn-offset": "{length.size.field-button.S*-1/1-3}",
               },
               M: {
                 "--dp-btn-size": "var(--catalog-token-size-field-button-M)",
-                "--dp-btn-offset":
-                  "calc(0px - var(--catalog-token-size-field-button-M) - 4px)",
+                "--dp-btn-offset": "{length.size.field-button.M*-1/1-5}",
               },
               L: {
                 "--dp-btn-size": "var(--catalog-token-size-field-button-L)",
-                "--dp-btn-offset":
-                  "calc(0px - var(--catalog-token-size-field-button-L) - 4px)",
+                "--dp-btn-offset": "{length.size.field-button.L*-1/1-7}",
               },
               XL: {
                 "--dp-btn-size": "var(--catalog-token-size-field-button-XL)",
-                "--dp-btn-offset":
-                  "calc(0px - var(--catalog-token-size-field-button-XL) - 4px)",
+                "--dp-btn-offset": "{length.size.field-button.XL*-1/1-7}",
               },
             },
             bridges: {
@@ -4243,7 +4238,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 "--drp-group-radius": "var(--radius-xs)",
                 "--drp-group-min-height":
                   "var(--catalog-token-drp-group-min-height, var(--catalog-token-size-height-XS))",
-                "--drp-group-padding": "1px 1px 1px var(--spacing-xs)",
+                "--drp-group-pad-y": "1px",
+                "--drp-group-pad-start": "{length.size.height.XS*3/8}",
+                "--drp-group-pad-end": "4px",
                 "--drp-group-font-size": "var(--text-2xs)",
                 "--drp-group-line-height": "var(--text-2xs--line-height)",
                 "--drp-group-gap": "var(--spacing-2xs)",
@@ -4252,7 +4249,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 "--drp-group-radius": "7px",
                 "--drp-group-min-height":
                   "var(--catalog-token-drp-group-min-height, var(--catalog-token-size-height-S))",
-                "--drp-group-padding": "1px 1px 1px var(--spacing-sm)",
+                "--drp-group-pad-y": "1px",
+                "--drp-group-pad-start": "{length.size.height.S*3/8}",
+                "--drp-group-pad-end": "4px",
                 "--drp-group-font-size": "var(--text-xs)",
                 "--drp-group-line-height": "var(--text-xs--line-height)",
                 "--drp-group-gap": "var(--spacing-xs)",
@@ -4261,7 +4260,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 "--drp-group-radius": "8px",
                 "--drp-group-min-height":
                   "var(--catalog-token-drp-group-min-height, var(--catalog-token-size-height-M))",
-                "--drp-group-padding": "3px 3px 3px var(--spacing-md)",
+                "--drp-group-pad-y": "3px",
+                "--drp-group-pad-start": "{length.size.height.M*3/8}",
+                "--drp-group-pad-end": "4px",
                 "--drp-group-font-size": "var(--text-sm)",
                 "--drp-group-line-height": "var(--text-sm--line-height)",
                 "--drp-group-gap": "var(--spacing-xs)",
@@ -4270,7 +4271,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 "--drp-group-radius": "9px",
                 "--drp-group-min-height":
                   "var(--catalog-token-drp-group-min-height, var(--catalog-token-size-height-L))",
-                "--drp-group-padding": "3px 3px 3px var(--spacing-lg)",
+                "--drp-group-pad-y": "3px",
+                "--drp-group-pad-start": "{length.size.height.L*3/8}",
+                "--drp-group-pad-end": "4px",
                 "--drp-group-font-size": "var(--text-base)",
                 "--drp-group-line-height": "var(--text-base--line-height)",
                 "--drp-group-gap": "var(--spacing-xs)",
@@ -4279,7 +4282,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 "--drp-group-radius": "10px",
                 "--drp-group-min-height":
                   "var(--catalog-token-drp-group-min-height, var(--catalog-token-size-height-XL))",
-                "--drp-group-padding": "3px 3px 3px var(--spacing-xl)",
+                "--drp-group-pad-y": "3px",
+                "--drp-group-pad-start": "{length.size.height.XL*3/8}",
+                "--drp-group-pad-end": "4px",
                 "--drp-group-font-size": "var(--text-lg)",
                 "--drp-group-line-height": "var(--text-lg--line-height)",
                 "--drp-group-gap": "var(--spacing-sm)",
@@ -4290,7 +4295,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "align-items": "center",
               width: "100%",
               gap: "var(--drp-group-gap)",
-              padding: "var(--drp-group-padding)",
+              // ADR-295 Phase 3c-3b: S2 DateRangePicker — `paddingStart: 'edge-to-text'` (height × 3/8) ·
+              //   `paddingEnd: 4` (the vertical inset stays — the range box's own).
+              "padding-top": "var(--drp-group-pad-y)",
+              "padding-bottom": "var(--drp-group-pad-y)",
+              "padding-left": "var(--drp-group-pad-start)",
+              "padding-right": "var(--drp-group-pad-end)",
               // ADR-295 Phase 3: the range box is the field's control — the S2 control height (the builder
               //   root turns it off for its own widgets: `--catalog-token-drp-group-min-height: auto`).
               "min-height": "var(--drp-group-min-height)",
@@ -4368,18 +4378,23 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             variables: {
               XS: {
                 "--drp-btn-size": "var(--catalog-token-size-field-button-XS)",
+                "--drp-btn-start": "{length.typography.text-2xs*10/14-2}",
               },
               S: {
                 "--drp-btn-size": "var(--catalog-token-size-field-button-S)",
+                "--drp-btn-start": "{length.typography.text-xs*10/14-4}",
               },
               M: {
                 "--drp-btn-size": "var(--catalog-token-size-field-button-M)",
+                "--drp-btn-start": "{length.typography.text-sm*10/14-4}",
               },
               L: {
                 "--drp-btn-size": "var(--catalog-token-size-field-button-L)",
+                "--drp-btn-start": "{length.typography.text-base*10/14-4}",
               },
               XL: {
                 "--drp-btn-size": "var(--catalog-token-size-field-button-XL)",
+                "--drp-btn-start": "{length.typography.text-lg*10/14-8}",
               },
             },
             bridges: {
@@ -4390,6 +4405,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               //   min-height (`{size.height.<S>}`) — its square is this size (placement, as `height`).
               "min-height": "0",
               "min-width": "0",
+              // ADR-295 Phase 3c-3b: S2 `marginStart: 'text-to-control'` (10/14 em) less the group's gap.
+              "margin-inline-start": "var(--drp-btn-start)",
             },
           },
         ],
@@ -9707,11 +9724,31 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             childSelector: "> .react-aria-Icon",
             prefix: "sf-icon",
             variables: {
-              XS: { "--sf-icon-size": "10px", "--sf-icon-inset": "4px" },
-              S: { "--sf-icon-size": "12px", "--sf-icon-inset": "6px" },
-              M: { "--sf-icon-size": "16px", "--sf-icon-inset": "8px" },
-              L: { "--sf-icon-size": "18px", "--sf-icon-inset": "12px" },
-              XL: { "--sf-icon-size": "22px", "--sf-icon-inset": "16px" },
+              XS: {
+                "--sf-icon-size":
+                  "{length.typography.text-2xs--line-height*1/1}",
+                "--sf-icon-inset": "{length.size.height.XS*1/2+1}",
+              },
+              S: {
+                "--sf-icon-size":
+                  "{length.typography.text-xs--line-height*1/1}",
+                "--sf-icon-inset": "{length.size.height.S*1/2+1}",
+              },
+              M: {
+                "--sf-icon-size":
+                  "{length.typography.text-sm--line-height*1/1}",
+                "--sf-icon-inset": "{length.size.height.M*1/2+1}",
+              },
+              L: {
+                "--sf-icon-size":
+                  "{length.typography.text-base--line-height*1/1}",
+                "--sf-icon-inset": "{length.size.height.L*1/2+1}",
+              },
+              XL: {
+                "--sf-icon-size":
+                  "{length.typography.text-lg--line-height*1/1}",
+                "--sf-icon-inset": "{length.size.height.XL*1/2+1}",
+              },
             },
             bridges: {
               height: "auto",
@@ -9730,16 +9767,38 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             childSelector: ".react-aria-Input",
             prefix: "sf-input",
             variables: {
-              XS: { "--sf-input-pad": "20px" },
-              S: { "--sf-input-pad": "24px" },
-              M: { "--sf-input-pad": "32px" },
-              L: { "--sf-input-pad": "40px" },
-              XL: { "--sf-input-pad": "52px" },
+              XS: {
+                "--sf-input-pad":
+                  "{length.size.height.XS*1/2+typography.text-2xs--line-height*1/1+typography.text-2xs*6/14~8/17}",
+                "--sf-input-pad-end": "{length.size.height.XS*1/1}",
+              },
+              S: {
+                "--sf-input-pad":
+                  "{length.size.height.S*1/2+typography.text-xs--line-height*1/1+typography.text-xs*6/14~8/17}",
+                "--sf-input-pad-end": "{length.size.height.S*1/1}",
+              },
+              M: {
+                "--sf-input-pad":
+                  "{length.size.height.M*1/2+typography.text-sm--line-height*1/1+typography.text-sm*6/14~8/17}",
+                "--sf-input-pad-end": "{length.size.height.M*1/1}",
+              },
+              L: {
+                "--sf-input-pad":
+                  "{length.size.height.L*1/2+typography.text-base--line-height*1/1+typography.text-base*6/14~8/17}",
+                "--sf-input-pad-end": "{length.size.height.L*1/1}",
+              },
+              XL: {
+                "--sf-input-pad":
+                  "{length.size.height.XL*1/2+typography.text-lg--line-height*1/1+typography.text-lg*6/14~8/17}",
+                "--sf-input-pad-end": "{length.size.height.XL*1/1}",
+              },
             },
             bridges: {
               "min-width": "0",
+              // ADR-295 Phase 3c-3b: S2 SearchField — `paddingStart: 'pill'` (height / 2) + the glyph (`1lh`) +
+              //   `text-to-visual`; the end is the clear button's place (S2 `ClearButton` — the control height).
               "padding-left": "var(--sf-input-pad)",
-              "padding-right": "var(--sf-input-pad)",
+              "padding-right": "var(--sf-input-pad-end)",
             },
           },
           {
@@ -9747,11 +9806,26 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             childSelector: ".react-aria-Button",
             prefix: "sf-btn",
             variables: {
-              XS: { "--sf-btn-size": "12px", "--sf-btn-offset": "-16px" },
-              S: { "--sf-btn-size": "14px", "--sf-btn-offset": "-20px" },
-              M: { "--sf-btn-size": "16px", "--sf-btn-offset": "-24px" },
-              L: { "--sf-btn-size": "20px", "--sf-btn-offset": "-32px" },
-              XL: { "--sf-btn-size": "24px", "--sf-btn-offset": "-40px" },
+              XS: {
+                "--sf-btn-size": "12px",
+                "--sf-btn-offset": "{length.size.height.XS*-1/2-7}",
+              },
+              S: {
+                "--sf-btn-size": "14px",
+                "--sf-btn-offset": "{length.size.height.S*-1/2-8}",
+              },
+              M: {
+                "--sf-btn-size": "16px",
+                "--sf-btn-offset": "{length.size.height.M*-1/2-9}",
+              },
+              L: {
+                "--sf-btn-size": "20px",
+                "--sf-btn-offset": "{length.size.height.L*-1/2-11}",
+              },
+              XL: {
+                "--sf-btn-size": "24px",
+                "--sf-btn-offset": "{length.size.height.XL*-1/2-13}",
+              },
             },
             bridges: {
               width: "var(--sf-btn-size)",

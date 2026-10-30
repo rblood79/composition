@@ -225,12 +225,101 @@ export function normalizeDimension(prop, value, fontPx) {
   return out;
 }
 
+/**
+ * ADR-295 Phase 3c-3b — 크기별 실효 값: 한 시트 안에서 선언 · 소비되는 지역 변수 (`--sf-input-pad` …) 를 읽는
+ * 선언은 크기 블록 (`.react-aria-X[data-size="S"]`, 없으면 기본 블록) 의 값으로 풀어 크기마다 한 entry
+ * (`<block> @S | prop`) 로, `padding` · `margin` 단축형과 `*-inline-start · end` 는 네 변으로 펼친다. 지역 변수
+ * 선언 자체는 뺀다 — 그 효과는 읽는 선언이 비교한다. 이름을 바꾼 선언 · 변수도 빌더가 받는 값으로 비교된다.
+ */
+export function effectiveEntries(entries) {
+  const SIZE = /^(\.react-aria-[\w-]+)\[data-size="(\w+)"\]$/;
+  const parse = (key) => {
+    const [block, prop] = key.split(" | ");
+    const parts = block.split(" › ");
+    return { block, prop, rel: parts[0], selector: parts[parts.length - 1] };
+  };
+  const sizeVars = {};
+  const baseVars = {};
+  const read = new Set();
+  for (const [key, value] of Object.entries(entries)) {
+    const { prop, rel, selector } = parse(key);
+    for (const m of value.matchAll(/var\((--[\w-]+)/g))
+      read.add(`${rel} ${m[1]}`);
+    if (!prop.startsWith("--")) continue;
+    const size = SIZE.exec(selector);
+    if (size) ((sizeVars[rel] ??= {})[size[2]] ??= {})[prop] = value;
+    else if (/^\.react-aria-[\w-]+$/.test(selector))
+      (baseVars[rel] ??= {})[prop] = value;
+  }
+  const local = (rel, name) =>
+    Object.values(sizeVars[rel] ?? {}).some((vars) => name in vars) ||
+    name in (baseVars[rel] ?? {});
+  const substitute = (rel, size, value, depth = 0) =>
+    depth > 4
+      ? value
+      : value.replace(/var\((--[\w-]+)(?:,\s*([^()]*))?\)/g, (whole, name) => {
+          const next = sizeVars[rel]?.[size]?.[name] ?? baseVars[rel]?.[name];
+          return next === undefined
+            ? whole
+            : substitute(rel, size, next, depth + 1);
+        });
+  const SIDES = ["top", "right", "bottom", "left"];
+  const expand = (prop, value) => {
+    const box = /^(padding|margin)$/.exec(prop);
+    if (box) {
+      // (top-level whitespace only — a side may be a `calc(…)` with nested parentheses)
+      const parts = [];
+      let depth = 0;
+      let current = "";
+      for (const char of value.trim()) {
+        if (char === "(") depth++;
+        else if (char === ")") depth--;
+        if (/\s/.test(char) && depth === 0) {
+          if (current) parts.push(current);
+          current = "";
+        } else current += char;
+      }
+      if (current) parts.push(current);
+      const [t, r = t, b = t, l = r] = parts;
+      return SIDES.map((side, i) => [`${prop}-${side}`, [t, r, b, l][i]]);
+    }
+    const inline = /^(padding|margin)-inline-(start|end)$/.exec(prop);
+    if (inline)
+      return [
+        [`${inline[1]}-${inline[2] === "start" ? "left" : "right"}`, value],
+      ];
+    return [[prop, value]];
+  };
+  const out = {};
+  for (const [key, value] of Object.entries(entries)) {
+    const { block, prop, rel, selector } = parse(key);
+    const size = SIZE.exec(selector);
+    if (prop.startsWith("--") && local(rel, prop) && read.has(`${rel} ${prop}`))
+      continue;
+    const names = [...value.matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]);
+    const sizes = names.some((name) => local(rel, name))
+      ? size
+        ? [size[2]]
+        : Object.keys(sizeVars[rel] ?? {})
+      : [undefined];
+    for (const at of sizes.length ? sizes : [undefined]) {
+      const resolved = at ? substitute(rel, at, value) : value;
+      const where = at && !size ? `${block} @${at}` : block;
+      for (const [side, sideValue] of expand(prop, resolved))
+        out[`${where} | ${side}`] = sideValue;
+    }
+  }
+  return out;
+}
+
 /** 각 entry 의 `normalizeDimension` 값 (`line-height` 는 같은 블록의 `font-size`). */
 export function normalizedEntries(entries) {
   const out = {};
   for (const [key, value] of Object.entries(entries)) {
     const [block, prop] = key.split(" | ");
-    const font = entries[`${block} | font-size`];
+    const font =
+      entries[`${block} | font-size`] ??
+      entries[`${block.replace(/ @\w+$/, "")} | font-size`];
     const fontPx =
       font !== undefined &&
       /^\d*\.?\d+px$/.test(normalizeDimension("font-size", font))

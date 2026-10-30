@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-295 Phase 3c-3b ② — field 버튼 · SearchField 자리 = S2] - 2026-10-31
+
+### Changed
+
+- **ComboBox · DatePicker · DateRangePicker 의 버튼 자리와 SearchField 의 글리프 · 글자 자리가 S2 식을 따른다** (Canvas · Preview · Publish — 빌더 위젯은 그대로).
+  - ComboBox 버튼 끝 여백 = 높이 × 3/16 − 2 (M 4 · 터치 5.5), DatePicker 2 · 4 · 6 · 6, DateRangePicker 그룹 시작 = 높이 × 3/8 · 끝 4. 글자와 버튼 사이는 S2 `text-to-control` (M 10, 이전 8).
+  - SearchField 글리프는 높이 / 2 안쪽 (M 16, 이전 8), 크기는 글자의 행간 (M 18, 이전 16), 글자 시작 = 높이 / 2 + 행간 + 6/14 em (M 40, 이전 32). 터치 보기에서도 S2 터치 값.
+  - **Why:** 이 값들은 상수 (4 · 8 · 12 · 16 · 24 등) 라 S2 와 다르고 터치 크기를 따르지 않았다. 여러 기준을 더한 길이 (`{length.<항>+<항>}`) 와 Preview inline margin 의 기기 식을 새로 넣어 맞췄다.
+  - 위치: `packages/rendering/src/renderers/utils/ruleLength.ts`, `packages/shared/src/catalog/generated/componentRulesTable.ts`, `packages/shared/src/catalog/document/rulePartRules.ts` (`layoutRefs`), `packages/shared/src/catalog/resolution/resolver.ts`, `packages/shared/src/catalog/runtime/deviceTypography.ts` (`catalogDeviceLayoutCss`), 빌더 고정 `packages/shared/src/components/styles/builder-catalog-pins.css`.
+
 ## [ADR-295 Phase 3c-3b — Badge · Select 트리거 = S2] - 2026-10-31
 
 ### Changed
