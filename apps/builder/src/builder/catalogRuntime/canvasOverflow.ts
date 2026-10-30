@@ -58,9 +58,13 @@ export function catalogScrollRange(
   const box = rectOf(id);
   if (!box) return { maxScrollTop: 0, maxScrollLeft: 0 };
   const { right, bottom } = extent ?? catalogScrollExtent(id, tree, rectOf);
+  // Fractional grid tracks can sum just past the edge after f32 layout. Normalize
+  // here so wheel scrolling and scrollbar geometry share the overflow threshold.
+  const overflowY = bottom + end.bottom - box.height;
+  const overflowX = right + end.right - box.width;
   return {
-    maxScrollTop: Math.max(0, bottom + end.bottom - box.height),
-    maxScrollLeft: Math.max(0, right + end.right - box.width),
+    maxScrollTop: overflowY > EPSILON ? overflowY : 0,
+    maxScrollLeft: overflowX > EPSILON ? overflowX : 0,
   };
 }
 

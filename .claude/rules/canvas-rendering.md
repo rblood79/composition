@@ -209,6 +209,8 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 
 렌더/bounds 산출은 Command Stream 단일 경로다. 스크롤 무효화는 registryVersion 경유.
 
+- `catalogScrollRange`는 overflow 표시와 같은 0.5px 허용 오차 이하를 0으로 정규화한다. **Why**: Side label grid의 f32 끝점이 390px에서 390.00002px가 되어 불필요한 가로 스크롤바를 생성했다. 표시만 숨기지 않고 휠 이동과 scrollbar가 소비하는 공통 범위를 정규화한다 (2026-10-31).
+
 - 스크롤 위치는 **property node** (`skia/propertyNodes.ts` `scrollNodeOf` — ADR-269) 하나가 정본이다. 명령 (`CHILDREN_BEGIN` 은 `ownerId` 만) · node data 에 굽지 않는다. `visitElement` 는 자식 boundsMap 좌표에서 부모의 테이블 위치를 뺀다 (`scrollOffsetOf`). **Why**: boundsMap은 절대 좌표 → 렌더링의 `canvas.translate`와 동기화 필요. 스크롤은 `canvasBinding.ts` `placeScroll` 이 테이블 갱신 + 자손 맵 Δ (`applyScrollDelta`) 로 끝내고 `update()` 의 `propertyChanged` 로 발행한다 — 소유자 서브트리를 다시 기록하지 않는다 (sticky 머리를 담은 자식만 예외)
 - `executeRenderCommands` AABB 컬링 (`translateStack`): `CMD_CHILDREN_BEGIN` 의 scroll translate 를 컬링 절대좌표 스택에도 반영 필수 — BEGIN 이 연 것 (clip · scroll) 을 `childrenFrameStack` 에 남기고 `CMD_CHILDREN_END` 는 그것만 닫는다 (짝이 어긋나면 production 밖에서 throw). scrollbar 는 END 가 테이블의 `bar` 로 그린다. **Why**: 미반영 시 스크롤로 뷰포트에 들어온 자식이 스크롤 전 좌표로 판정되어 오컬링 — hover outline (boundsMap 경로) 만 보이고 본체 미렌더 (2026-07-16 수정). END 가 기록 시점 값으로 닫으면 기록 뒤 스크롤에서 save/restore 가 ±1 어긋난다 (ADR-269 r1 H1)
 

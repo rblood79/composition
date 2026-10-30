@@ -4,6 +4,7 @@ import {
   catalogOverflowContent,
   catalogOverflowHatch,
   catalogScrollRange,
+  catalogScrollbar,
   type CatalogOverflowTree,
 } from "../canvasOverflow";
 
@@ -48,6 +49,30 @@ const local = new Map([
 ]);
 
 describe("catalog Canvas overflow", () => {
+  it.each([-1, 0, 0.00002, 0.5, 0.51, 1.25])(
+    "normalizes %s px overflow for both scrolling and scrollbars",
+    (overflow) => {
+      const range = catalogScrollRange(
+        "box",
+        tree({ box: "auto" }),
+        (id) => local.get(id),
+        { right: 8, bottom: 4 },
+        { right: 92 + overflow, bottom: 96 + overflow },
+      );
+      const expected = overflow > 0.5 ? overflow : 0;
+      expect(range.maxScrollLeft).toBeCloseTo(expected, 8);
+      expect(range.maxScrollTop).toBeCloseTo(expected, 8);
+      const bar = catalogScrollbar(100, 100, range);
+      if (expected === 0) {
+        expect(range).toEqual({ maxScrollLeft: 0, maxScrollTop: 0 });
+        expect(bar).toBeUndefined();
+      } else {
+        expect(bar?.horizontal?.thumbWidth).toBeLessThan(100);
+        expect(bar?.vertical?.thumbHeight).toBeLessThan(100);
+      }
+    },
+  );
+
   it("clips for every overflow but visible (CSS)", () => {
     expect(
       ["visible", "hidden", "clip", "auto", "scroll", undefined].map(

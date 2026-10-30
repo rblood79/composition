@@ -31,6 +31,11 @@ import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+import {
+  catalogScrollRange,
+  catalogScrollbar,
+  type CatalogOverflowTree,
+} from "../canvasOverflow";
 
 const BODY = "project:node:home-body" as NodeId;
 const FORM = "project:node:form" as NodeId;
@@ -66,7 +71,12 @@ const FIELDS = [
 ] as const;
 const HINTS = new Set(["Label", "Description", "FieldError"]);
 
-async function open(type: string, inForm?: "side" | "top") {
+async function open(
+  type: string,
+  inForm?: "side" | "top",
+  width = 420,
+  textMeasure = measure,
+) {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
@@ -81,7 +91,7 @@ async function open(type: string, inForm?: "side" | "top") {
       engine: await nodeLayoutEngine(),
       viewport: { width: 1000, height: 800 },
       autosaveSchedule: () => {},
-      textMeasure: measure,
+      textMeasure,
     },
   );
   const entry = (
@@ -96,7 +106,7 @@ async function open(type: string, inForm?: "side" | "top") {
       children: [],
       props,
       visual: {},
-      sizing: { width: set(420) },
+      sizing: { width: set(width) },
       descendantOverrides: [],
     }) as NodeEntry;
   if (inForm)
@@ -151,6 +161,7 @@ async function open(type: string, inForm?: "side" | "top") {
       }),
     );
   return {
+    workspace,
     label: box(ids[0]!),
     control: box(ids[1]!),
     description: box(ids[2]!),
@@ -174,6 +185,65 @@ async function open(type: string, inForm?: "side" | "top") {
     }),
   };
 }
+
+describe("side label fractional scroll extent", () => {
+  it.each([
+    ["ColorField", 390],
+    ["TextField", 768],
+    ["DateField", 768],
+    ["DateRangePicker", 768],
+  ] as const)(
+    "%s at %s px does not scroll when switching top/side with fractional text widths",
+    async (type, width) => {
+      const fractionalMeasure: CatalogTextMeasure = (value, font) => ({
+        ...measure(value, font),
+        width: value.length * font.fontSize * 0.5137,
+        exactWidth: value.length * font.fontSize * 0.5137,
+        minWidth: value.length * font.fontSize * 0.5137,
+      });
+      const { workspace, edit } = await open(
+        type,
+        undefined,
+        width,
+        fractionalMeasure,
+      );
+      try {
+        workspace.execute(
+          setFields({
+            targets: [{ kind: "node", id: BODY }],
+            sizing: { width: set(width) },
+            visual: { overflow: set("auto") },
+          }),
+        );
+        const { root } = workspace;
+        const body = root.recordsOfSource(BODY)[0]!;
+        const tree: CatalogOverflowTree = {
+          childrenOf: (id) => root.canvasInputs.get(id)?.children ?? [],
+          parentOf: (id) => root.canvasInputs.get(id)?.parentId,
+          overflowOf: (id) => root.canvasInputs.get(id)?.visual.overflow,
+        };
+        for (const labelPosition of ["top", "side", "top", "side"]) {
+          edit({ labelPosition });
+          const geometry = root.getGeometry(root.canvasInputs.keys());
+          const box = geometry.get(body)!;
+          const range = catalogScrollRange(
+            body,
+            tree,
+            (id) => geometry.get(id),
+            { right: 0, bottom: 0 },
+          );
+          expect(range.maxScrollLeft, labelPosition).toBe(0);
+          expect(
+            catalogScrollbar(box.width, box.height, range)?.horizontal,
+            labelPosition,
+          ).toBeUndefined();
+        }
+      } finally {
+        workspace.dispose();
+      }
+    },
+  );
+});
 
 describe("Select side row extent", () => {
   it.each([

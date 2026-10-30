@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Side 라벨 가로 스크롤바 수정 — Canvas overflow tolerance] - 2026-10-31
+
+### Fixed
+
+- **Label Position을 Side로 전환할 때 불필요한 가로 스크롤바가 생기는 문제 수정**:
+  - **Why**: 소수점 grid 좌표의 끝점 오차를 실제 overflow로 처리해 0.00002px 차이에도 스크롤바가 생성됐다.
+  - 공통 스크롤 범위에 기존 overflow 표시의 0.5px 허용 오차를 적용해 스크롤바와 휠 이동을 함께 정규화한다. 허용 오차를 넘는 실제 overflow는 유지한다.
+  - 위치: `apps/builder/src/builder/catalogRuntime/canvasOverflow.ts`
+
 ## [Compare Mode 겹침 비교 — CSS / Canvas wipe] - 2026-10-31
 
 ### Changed
