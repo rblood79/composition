@@ -84,29 +84,30 @@
 }
 
 .react-aria-NumberField[data-size="XS"] {
-  --nf-btn-size: 20px;
+  --nf-btn-size: var(--catalog-token-size-height-XS);
 }
 
 .react-aria-NumberField[data-size="S"] {
-  --nf-btn-size: 22px;
+  --nf-btn-size: var(--catalog-token-size-height-S);
 }
 
 .react-aria-NumberField[data-size="M"] {
-  --nf-btn-size: 30px;
+  --nf-btn-size: var(--catalog-token-size-height-M);
 }
 
 .react-aria-NumberField[data-size="L"] {
-  --nf-btn-size: 42px;
+  --nf-btn-size: var(--catalog-token-size-height-L);
 }
 
 .react-aria-NumberField[data-size="XL"] {
-  --nf-btn-size: 54px;
+  --nf-btn-size: var(--catalog-token-size-height-XL);
 }
 
 .react-aria-NumberField .react-aria-Button {
   flex: 0 0 auto;
   width: var(--nf-btn-size);
   height: var(--nf-btn-size);
+  min-height: 0;
   min-width: 0;
   margin-inline-start: -1px;
 }

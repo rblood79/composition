@@ -22,6 +22,7 @@ import {
   resolveFocusRingToken,
   borderWidthToCSS,
 } from "./utils/tokenResolver";
+import { s2ControlPaddingY } from "./utils/controlPadding";
 import { CHART_OTHERS_FALLBACK_TOKEN } from "../chart/budget";
 import { CHART_REFERENCE_FALLBACK_TOKEN } from "../chart/marks/referenceLine";
 import { deriveAutoDelegationVariables } from "../runtime/deriveAutoDelegationVariables";
@@ -1007,6 +1008,24 @@ function generateVariantStyles(
 
 // ─── Size Styles (Level 1 확장) ─────────────────────────────────────────────
 
+/**
+ * ADR-295 Phase 3 — S2 control 상자의 위아래 padding. 높이가 `{size.height.<S>}` 인 상자 (minHeight 토큰 ·
+ * 글자 · 행간 토큰 · 숫자 paddingY) 는 S2 처럼 글자를 높이 가운데에 둔다: padding = (높이 − 글자 × 행간 −
+ * 테두리 × 2) / 2. DOM 은 그 식을 변수로 내서 기기 벌 (터치 40 = 22 + 8 × 2 + 2) 과 빌더 root 고정값 (295 전
+ * 4px — Decision 8) 에서 각자 풀리고, Canvas 정의는 같은 식을 설치된 맵에서 푼다 (`s2ControlPaddingY`). rule
+ * 의 숫자 paddingY 는 desktop 결과다 — 숫자를 읽는 소비자 (부품 상자 · 패널) 를 위해 남기고, 식과 갈리면 생성을
+ * 멈춘다 (숫자를 손으로 고치고 식을 잊는 drift).
+ */
+function controlPaddingBlock(size: SizeSpec): string | undefined {
+  const desktop = s2ControlPaddingY(size);
+  if (desktop === undefined) return undefined;
+  if (desktop !== size.paddingY)
+    throw new Error(
+      `ADR-295 control padding drift: ${size.minHeight} paddingY ${size.paddingY} ≠ ${desktop} (height − line − border×2) / 2`,
+    );
+  return `calc((${tokenToCSSVar(size.minHeight as TokenRef)} - ${tokenToCSSVar(size.fontSize as TokenRef)} * ${tokenToCSSVar(size.lineHeight as TokenRef)} - 2 * ${borderWidthToCSS(size.borderWidth)}) / 2)`;
+}
+
 function generateSizeStyles(
   size: SizeSpec,
   options?: {
@@ -1042,7 +1061,10 @@ function generateSizeStyles(
       `  padding: ${size.paddingY}px ${pr}px ${size.paddingY}px ${pl}px;`,
     );
   } else {
-    lines.push(`  padding: ${size.paddingY}px ${size.paddingX}px;`);
+    const block = controlPaddingBlock(size);
+    lines.push(
+      `  padding: ${block ?? `${size.paddingY}px`} ${size.paddingX}px;`,
+    );
   }
 
   // font-size
@@ -1089,7 +1111,10 @@ function generateSizeStyles(
     lines.push(`  min-width: ${size.minWidth}px;`);
   }
   if (size.minHeight !== undefined) {
-    lines.push(`  min-height: ${size.minHeight}px;`);
+    // ADR-295 Phase 3: `{size.height.<S>}` → `var(--catalog-token-size-height-<S>)` (기기 두 벌).
+    lines.push(
+      `  min-height: ${typeof size.minHeight === "number" ? `${size.minHeight}px` : tokenToCSSVar(size.minHeight)};`,
+    );
   }
   if (size.maxWidth !== undefined) {
     lines.push(`  max-width: ${size.maxWidth}px;`);

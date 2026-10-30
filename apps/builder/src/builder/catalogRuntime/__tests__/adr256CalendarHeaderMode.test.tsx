@@ -479,19 +479,21 @@ describe("ADR-256 Phase 9 — calendar header choice", () => {
           )!,
         )
         .endsWith("Picker");
-    const y = 4;
+    // (ADR-295 Phase 3: the trigger's block padding is the Button's S2 centring padding — M 6; its
+    //   start inset stays the 8 the user set.)
+    const y = 6;
     expect(
       triggers()
         .filter(inPicker)
         .map((t) => sides(t.visual)),
     ).toEqual([
-      [y, y, y, 2 * y],
-      [y, y, y, 2 * y],
+      [y, 4, y, 8],
+      [y, 4, y, 8],
     ]);
     expect(
       triggers()
         .filter((t) => !inPicker(t))
         .map((t) => sides(t.visual)),
-    ).toEqual([[y, y, y, 12]]);
+    ).toEqual([[y, 4, y, 12]]);
   });
 });

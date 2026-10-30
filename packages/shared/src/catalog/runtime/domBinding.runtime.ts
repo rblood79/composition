@@ -166,7 +166,11 @@ import {
   catalogDerivedRestVisual,
   catalogHasAuthoredColor,
 } from "./libraryVisual";
-import { catalogDeviceTypographyCss } from "./deviceTypography";
+import {
+  catalogDeviceControlCss,
+  catalogDeviceRowsHeightCss,
+  catalogDeviceTypographyCss,
+} from "./deviceTypography";
 
 import {
   CATALOG_SLIDER_THICK_TRACK,
@@ -1430,6 +1434,12 @@ function fieldInputBinding(
       ? { [key]: node.props[key] }
       : {};
   const multiline = field.bindingId === "textarea";
+  const rows = typeof field.props.rows === "number" ? field.props.rows : 3;
+  // ADR-295 Phase 3: the rows box over the device variables (the touch set's line and height).
+  if (multiline) {
+    style = { ...style };
+    catalogDeviceRowsHeightCss(style, node.visual, rows);
+  }
   return createElement((multiline ? RAC.TextArea : RAC.Input) as ElementType, {
     key: node.id,
     "data-catalog-id": node.id,
@@ -1440,7 +1450,7 @@ function fieldInputBinding(
     // (`type` is a TextField's own prop: any other field's RAC context sets its input's type —
     // a SearchField's `search`.)
     ...(multiline
-      ? { rows: typeof field.props.rows === "number" ? field.props.rows : 3 }
+      ? { rows }
       : field.bindingId === "textfield"
         ? text("type")
         : {}),
@@ -2796,6 +2806,7 @@ function authoredStyle(
   }
   // ADR-295 Phase 2: a token font size over the rule sheet (a part rule's) — its device variable.
   if (node.bindingId !== "icon") catalogDeviceTypographyCss(style, node.visual);
+  catalogDeviceControlCss(style, node.visual);
   for (const key of ["width", "height", "minWidth", "minHeight"] as const) {
     const value = node.sizing[key];
     if (typeof value === "number") style[key] = value;
@@ -3328,6 +3339,9 @@ export function renderNode(
   //   Icon's font size is its glyph size, not a text step (S2 icon sizes — Phase 3).
   if (bound && node.bindingId !== "icon")
     catalogDeviceTypographyCss(bound, node.visual);
+  // ADR-295 Phase 3: an S2 control box (`{size.height.<S>}` minimum) — its height and centring padding
+  //   as the device variables.
+  if (bound) catalogDeviceControlCss(bound, node.visual);
   // A Select's value takes its trigger Button's text color and the field sheet's placeholder
   // paint (`[data-placeholder]`): its color goes inline only when the document wrote it.
   // A Disclosure's title Text takes its trigger's color the same way (`… > .react-aria-Text

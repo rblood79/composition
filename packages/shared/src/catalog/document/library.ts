@@ -506,6 +506,8 @@ export function buildCatalogLibrary(
                   "paddingX",
                   "paddingY",
                   "minWidth",
+                  // ADR-295 Phase 3: an S2 control height (`{size.height.<S>}`).
+                  "minHeight",
                   "paddingTop",
                   "paddingRight",
                   "paddingBottom",

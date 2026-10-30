@@ -36,6 +36,7 @@ import {
   radius as radiusSeed,
   S2_DEVICE,
   s2ControlHeights,
+  s2SizeTokens,
   s2TypographyTokens,
   typography as typographySeed,
   type S2Device,
@@ -69,7 +70,7 @@ export interface ResolvedDeviceTokens {
   /** S2 `--s2-font-size-base` (px) — 글자 단계식의 기준. */
   fontBase: number;
   typography: Record<string, number | string>;
-  /** S2 component-height 5단 × scale (`{size.height.XS…XL}` — rule 참조는 Phase 3). */
+  /** S2 component-height 5단 × scale — Skia 맵 `size` 의 `height.<S>` (`{size.height.XS…XL}`, Phase 3). */
   controlHeight: Record<string, number>;
 }
 
@@ -102,6 +103,11 @@ export interface ResolvedThemeSnapshot {
   border: Record<string, number>;
   shadows: { light: Record<string, string>; dark: Record<string, string> };
   base: BaseTypography;
+  /**
+   * ADR-295 Phase 3 — `{size.height.<S>}` 의 Skia 맵 (키 `height.<S>`). desktop 벌 — Canvas 는 desktop 만 그린다
+   * (사용자 결정 7). `touchThemeSnapshot` 이 터치 벌로 바꾼다.
+   */
+  size: Record<string, number>;
   /** ADR-295 — desktop 벌의 `typography` 는 위 `typography` 와 같은 객체. */
   device: Record<S2Device, ResolvedDeviceTokens>;
   /**
@@ -490,6 +496,7 @@ export function resolveThemeSnapshot(
     border,
     shadows: { light: lightShadow, dark: darkShadow },
     base,
+    size: s2SizeTokens(S2_DEVICE.desktop.scale),
     device,
     touchCssVars,
     cssVars,
@@ -528,7 +535,11 @@ function touchTypography(
 export function touchThemeSnapshot(
   snapshot: ResolvedThemeSnapshot,
 ): ResolvedThemeSnapshot {
-  return { ...snapshot, typography: snapshot.device.touch.typography };
+  return {
+    ...snapshot,
+    typography: snapshot.device.touch.typography,
+    size: s2SizeTokens(S2_DEVICE.touch.scale),
+  };
 }
 
 /** hex6 만 mix (tintToSkiaColors 와 같은 식) — hex 가 아니면 null 로 두어 seed 파생값을 유지한다. */

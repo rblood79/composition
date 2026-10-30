@@ -123,27 +123,29 @@ describe("Layout 탭 — 루트가 받지 않는 size 값", () => {
     expect(values?.gap).toBe("4px");
   });
 
-  it("자기 rule 이 있는 Button 은 종전과 같다 (inline-flex · gap 8 · padding 4 / 12)", () => {
+  // (ADR-295 Phase 3: the block padding is the S2 centring padding — M (32 − 18 − 2) / 2 = 6.)
+  it("자기 rule 이 있는 Button 은 inline-flex · gap 8 · padding 6 / 12", () => {
     const values = layoutOf(fixture.recordOf("btn"));
     expect(values?.display).toBe("inline-flex");
     expect(values?.gap).toBe("8px");
-    expect(values?.paddingTop).toBe("4px");
+    expect(values?.paddingTop).toBe("6px");
     expect(values?.paddingLeft).toBe("12px");
   });
 });
 
 describe("Text 탭 — 부모 size 전파", () => {
-  it("size xl Checkbox 의 Label 은 18px · 줄 높이 28px (record 의 비율 1.556 × 18)", () => {
+  // (ADR-295 Phase 3: the line is the S2 formula — 18 → 22, 14 → 18.)
+  it("size xl Checkbox 의 Label 은 18px · 줄 높이 22px (record 의 비율 1.222 × 18)", () => {
     const values = typographyOf(fixture.descendantRecord("cbxl", "Label"));
     expect(values?.fontSize).toBe("18px");
-    expect(values?.lineHeight).toBe("28px");
+    expect(values?.lineHeight).toBe("22px");
     expect(values?.isFontSizeFromPreset).toBe(true);
   });
 
-  it("md Checkbox 의 Label 은 14px · 20px 그대로", () => {
+  it("md Checkbox 의 Label 은 14px · 18px", () => {
     const values = typographyOf(fixture.descendantRecord("cb", "Label"));
     expect(values?.fontSize).toBe("14px");
-    expect(values?.lineHeight).toBe("20px");
+    expect(values?.lineHeight).toBe("18px");
     expect(values?.fontWeight).toBe("500");
     expect(values?.fontWeightBase).toBe("500");
   });

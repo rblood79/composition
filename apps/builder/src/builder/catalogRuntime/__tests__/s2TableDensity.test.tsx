@@ -2,7 +2,7 @@
 /**
  * S2 1.8.0 Table `density` (2026-10-10 — 조사 §6.1 ③): compact · regular · spacious — Table 의
  * 값이 그 안의 Column · Cell 에 전파된다 (resolver `CATALOG_DENSITY_PROPAGATION_OWNER`;
- * Column · Cell 의 densities 채널이 paddingY 4 · 8 · 12 → 행 높이 32 · 40 · 48). Card 의
+ * Column · Cell 의 densities 채널이 paddingY 6 · 10 · 14 → 행 높이 32 · 40 · 48 — ADR-295 Phase 3 의 S2 줄 20). Card 의
  * density 는 Card S2 재편 보류 (사용자 결정 2026-09-29) 와 함께 그 ADR 로 미룬다.
  */
 import "fake-indexeddb/auto";
@@ -166,17 +166,17 @@ describe("S2 Table density", () => {
     ).toMatchObject({ kind: "enum", default: "regular" });
   });
 
-  it("compact: every Column · Cell tightens to paddingY 4", async () => {
+  it("compact: every Column · Cell tightens to paddingY 6", async () => {
     const { root } = await openTable({ density: "compact" });
     const parts = cells(root);
     expect(parts.length).toBeGreaterThan(3);
-    expect(parts.every((part) => part.visual.paddingY === 4)).toBe(true);
+    expect(parts.every((part) => part.visual.paddingY === 6)).toBe(true);
   });
 
-  it("spacious: paddingY 12", async () => {
+  it("spacious: paddingY 14", async () => {
     const { root } = await openTable({ density: "spacious" });
     const parts = cells(root);
-    expect(parts.every((part) => part.visual.paddingY === 12)).toBe(true);
+    expect(parts.every((part) => part.visual.paddingY === 14)).toBe(true);
   });
 
   it("toggling density after insert re-resolves the parts (live path)", async () => {
@@ -189,13 +189,13 @@ describe("S2 Table density", () => {
     );
     const parts = cells(root);
     expect(parts.length).toBeGreaterThan(3);
-    expect(parts.every((part) => part.visual.paddingY === 4)).toBe(true);
+    expect(parts.every((part) => part.visual.paddingY === 6)).toBe(true);
   });
 
-  it("default: the regular paddingY 8 stays", async () => {
+  it("default: the regular paddingY 10 stays", async () => {
     const { root } = await openTable({});
     const parts = cells(root);
     expect(parts.length).toBeGreaterThan(3);
-    expect(parts.every((part) => part.visual.paddingY === 8)).toBe(true);
+    expect(parts.every((part) => part.visual.paddingY === 10)).toBe(true);
   });
 });

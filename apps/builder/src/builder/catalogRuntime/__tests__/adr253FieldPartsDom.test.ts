@@ -813,7 +813,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(label.visual.fontSize).toBe(16);
       expect(
         Number(label.visual.lineHeight) * Number(label.visual.fontSize),
-      ).toBeCloseTo(24, 5);
+      ).toBeCloseTo(20, 5);
       expect(label.visual.fontWeight).toBe(500);
     });
 
@@ -1027,7 +1027,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       // The Input rule sizes it at the field's size (no field rule declares an Input shape).
       expect(input().props.size).toBe("M");
       expect(input().visual).toMatchObject({
-        paddingY: 4,
+        paddingY: 6,
         paddingX: 12,
         fontSize: 14,
         radius: 8,
@@ -1041,14 +1041,14 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       );
       expect(input().props.size).toBe("L");
       expect(input().visual).toMatchObject({
-        paddingY: 8,
+        paddingY: 9,
         paddingX: 16,
         fontSize: 16,
         radius: 9,
       });
       expect(
         Number(input().visual.lineHeight) * Number(input().visual.fontSize),
-      ).toBeCloseTo(24, 5);
+      ).toBeCloseTo(20, 5);
       expect(element(html()).getAttribute("data-size")).toBe("L");
       // The Input origin is the one place its style comes from — a second edit as well — and it
       // reaches the element as inline style over the sheet.
@@ -1152,10 +1152,10 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       // Canvas: the Input fills the Group; a stepper is as wide as the control is high and
       // overlaps its neighbour's border by 1px; its glyph (an Icon node) is centered in it.
       const group = rect(wrapper().id);
-      expect(group.height).toBe(30);
-      expect(rect(input.id)).toMatchObject({ height: 30 });
+      expect(group.height).toBe(32);
+      expect(rect(input.id)).toMatchObject({ height: 32 });
       for (const stepper of [decrement, increment]) {
-        expect(rect(stepper.id)).toMatchObject({ width: 30, height: 30 });
+        expect(rect(stepper.id)).toMatchObject({ width: 32, height: 32 });
         expect(stepper.props).toMatchObject({
           variant: "secondary",
           size: "M",
@@ -1167,13 +1167,13 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         expect(glyph.visual.iconSize).toBe(18);
         // (A record's box is from its parent's.)
         const icon = rect(glyph.id);
-        expect(icon).toMatchObject({ x: 6, width: 18 });
-        expect(icon.y * 2 + icon.height).toBe(30);
+        expect(icon).toMatchObject({ x: 7, width: 18 });
+        expect(icon.y * 2 + icon.height).toBe(32);
       }
       expect(rect(decrement.id).x).toBe(
         rect(input.id).x + rect(input.id).width - 1,
       );
-      expect(rect(increment.id).x + 30).toBe(group.width);
+      expect(rect(increment.id).x + 32).toBe(group.width);
       // The square corners on the touching sides are written on the template positions.
       expect(input.visual).toMatchObject({
         radius: 8,
@@ -1268,9 +1268,10 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         "XL",
         "XL",
       ]);
-      expect(rect(parts()[1]!.id)).toMatchObject({ width: 54, height: 54 });
+      // (ADR-295 Phase 3: XL is the S2 control height 48.)
+      expect(rect(parts()[1]!.id)).toMatchObject({ width: 48, height: 48 });
       expect(records.get(parts()[1]!.children[0]!)!.visual.iconSize).toBe(28);
-      expect(rect(parts()[0]!.id).height).toBe(54);
+      expect(rect(parts()[0]!.id).height).toBe(48);
       // The origins are where their style comes from: the Button origin's reaches the steppers,
       // the Input origin's the value — on the Canvas and in the DOM.
       workspace.execute(
@@ -1373,7 +1374,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(rect(input.id)).toMatchObject({
         x: 0,
         width: group.width,
-        height: 30,
+        height: 32,
       });
       expect(input.visual).toMatchObject({ paddingX: 12, paddingRight: 34 });
       // (The end padding keeps the text clear of the button; its start stays the Input's own.)
@@ -1383,7 +1384,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       });
       expect(rect(button.id)).toMatchObject({
         x: group.width - 26,
-        y: 4,
+        y: 5,
         width: 22,
         height: 22,
       });
@@ -1438,10 +1439,11 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         }),
       );
       expect(parts().map((part) => part.props.size)).toEqual(["XL", "XL"]);
+      // (ADR-295 Phase 3: the box is the S2 control height 48 — the button's 46 is Phase 3c's.)
       expect(rect(parts()[1]!.id)).toMatchObject({
         width: 46,
         height: 46,
-        y: 4,
+        y: 1,
       });
       expect(parts()[0]!.visual.paddingRight).toBe(70);
       // The FieldButton origin is where the button's shape comes from; it is itself an instance
@@ -1792,7 +1794,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         });
         expect(input().visual).toMatchObject({
           paddingX: 12,
-          paddingY: 4,
+          paddingY: 6,
           borderWidth: 1,
           radius: 8,
           minWidth: 150,
@@ -1927,10 +1929,10 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(end.layout).toMatchObject({ flexGrow: "1" });
       expect(start.layout.flexGrow).toBeUndefined();
       const rangeBox = range.rect(range.wrapper().id);
-      expect(rangeBox.height).toBe(30);
+      expect(rangeBox.height).toBe(32);
       expect(range.rect(button.id)).toMatchObject({
         x: rangeBox.width - 1 - 3 - 22,
-        y: 4,
+        y: 5,
         width: 22,
         height: 22,
       });
@@ -2026,7 +2028,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(rect(input.id)).toMatchObject({
         x: 0,
         width: rect(field.id).width,
-        height: 30,
+        height: 32,
       });
       expect(input.visual).toMatchObject({
         radius: 9999,
@@ -2040,7 +2042,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       });
       expect(rect(glyph.id)).toMatchObject({
         x: 8,
-        y: group.y + 7,
+        y: group.y + 8,
         width: 16,
         height: 16,
       });
@@ -2076,7 +2078,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(layoutRecord(shown.id).hidden).not.toBe(true);
       expect(rect(shown.id)).toMatchObject({
         x: group.width - 24,
-        y: group.y + 7,
+        y: group.y + 8,
         width: 16,
         height: 16,
       });
@@ -2236,14 +2238,14 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           .find((child) => child.ruleId === "Input")!;
         return workspace.root.getGeometry([input.id]).get(input.id)!.height;
       };
-      expect(height()).toBe(30);
+      expect(height()).toBe(32);
       workspace.execute(
         setFields({
           targets: [{ kind: "node", id: FIELD }],
           props: { placeholder: set("") },
         }),
       );
-      expect(height()).toBe(30);
+      expect(height()).toBe(32);
     },
   );
 
@@ -2259,8 +2261,8 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       /<textarea[^>]*rows="(\d+)"/.exec(
         renderToStaticMarkup(renderCatalogDom(workspace.root, field.id)),
       )?.[1];
-    // 3 rows × 20 + padding 8 + border 2.
-    expect(input().visual.height).toBe(70);
+    // 3 rows × 18 + padding 12 + border 2 (ADR-295 Phase 3 — S2 line 18 · centring padding 6).
+    expect(input().visual.height).toBe(68);
     expect(rows()).toBe("3");
     workspace.execute(
       setFields({
@@ -2268,7 +2270,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         props: { rows: set(5) },
       }),
     );
-    expect(input().visual.height).toBe(110);
+    expect(input().visual.height).toBe(104);
     expect(rows()).toBe("5");
   });
 

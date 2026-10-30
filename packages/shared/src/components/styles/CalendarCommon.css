@@ -98,6 +98,9 @@
     height: 30px;
     /* The generic Button sheet's default min-width (68) reaches these unsized buttons */
     min-width: unset;
+    /* ADR-295 Phase 3: nor the Button sheet's S2 min-height (the square is the nav side) — Canvas
+       `manualBoxRules` CalendarHeader nav `minHeight: 0`. */
+    min-height: 0;
     /* The reference starter's Buttons do not shrink (`Button.css` `flex-shrink: 0`). */
     flex-shrink: 0;
     background: transparent;

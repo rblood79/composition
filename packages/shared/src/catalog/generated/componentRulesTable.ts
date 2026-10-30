@@ -1261,9 +1261,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.full}",
         borderWidth: "{border.width.thin}",
         height: 0,
+        minHeight: "{size.height.XS}",
         iconSize: 14,
         paddingX: 4,
-        paddingY: 1,
+        paddingY: 2,
         gap: 4,
         iconGap: 4,
       },
@@ -1274,9 +1275,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.full}",
         borderWidth: "{border.width.thin}",
         height: 0,
+        minHeight: "{size.height.S}",
         iconSize: 16,
         paddingX: 8,
-        paddingY: 2,
+        paddingY: 3,
         gap: 6,
         iconGap: 6,
       },
@@ -1287,9 +1289,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.full}",
         borderWidth: "{border.width.thin}",
         height: 0,
+        minHeight: "{size.height.M}",
         iconSize: 18,
         paddingX: 12,
-        paddingY: 4,
+        paddingY: 6,
         gap: 8,
         iconGap: 8,
       },
@@ -1300,9 +1303,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.full}",
         borderWidth: "{border.width.thin}",
         height: 0,
+        minHeight: "{size.height.L}",
         iconSize: 24,
         paddingX: 16,
-        paddingY: 8,
+        paddingY: 9,
         gap: 10,
         iconGap: 10,
       },
@@ -1313,6 +1317,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.full}",
         borderWidth: "{border.width.thin}",
         height: 0,
+        minHeight: "{size.height.XL}",
         iconSize: 28,
         paddingX: 24,
         paddingY: 12,
@@ -3222,6 +3227,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               flex: "0 0 auto",
               width: "var(--combo-btn-size)",
               height: "var(--combo-btn-size)",
+              // ADR-295 Phase 3: a field button (S2 — not a Button) does not take the Button's S2
+              //   min-height (`{size.height.<S>}`) — its square is this size (placement, as `height`).
+              "min-height": "0",
               "min-width": "0",
               "margin-inline-start": "var(--combo-btn-offset)",
             },
@@ -3455,8 +3463,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.xs}",
         borderWidth: "{border.width.thin}",
         height: 0,
+        minHeight: "{size.height.XS}",
         paddingX: 4,
-        paddingY: 1,
+        paddingY: 2,
       },
       S: {
         fontSize: "{typography.text-xs}",
@@ -3464,8 +3473,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: 7,
         borderWidth: "{border.width.thin}",
         height: 0,
+        minHeight: "{size.height.S}",
         paddingX: 8,
-        paddingY: 2,
+        paddingY: 3,
       },
       M: {
         fontSize: "{typography.text-sm}",
@@ -3473,8 +3483,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: 8,
         borderWidth: "{border.width.thin}",
         height: 0,
+        minHeight: "{size.height.M}",
         paddingX: 12,
-        paddingY: 4,
+        paddingY: 6,
       },
       L: {
         fontSize: "{typography.text-base}",
@@ -3482,8 +3493,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: 9,
         borderWidth: "{border.width.thin}",
         height: 0,
+        minHeight: "{size.height.L}",
         paddingX: 16,
-        paddingY: 8,
+        paddingY: 9,
       },
       XL: {
         fontSize: "{typography.text-lg}",
@@ -3491,6 +3503,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: 10,
         borderWidth: "{border.width.thin}",
         height: 0,
+        minHeight: "{size.height.XL}",
         paddingX: 24,
         paddingY: 12,
       },
@@ -3862,6 +3875,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               flex: "0 0 auto",
               width: "var(--dp-btn-size)",
               height: "var(--dp-btn-size)",
+              // ADR-295 Phase 3: a field button (S2 — not a Button) does not take the Button's S2
+              //   min-height (`{size.height.<S>}`) — its square is this size (placement, as `height`).
+              "min-height": "0",
               "min-width": "0",
               "margin-inline-start": "var(--dp-btn-offset)",
             },
@@ -4050,6 +4066,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             variables: {
               XS: {
                 "--drp-group-radius": "var(--radius-xs)",
+                "--drp-group-min-height":
+                  "var(--catalog-token-drp-group-min-height, var(--catalog-token-size-height-XS))",
                 "--drp-group-padding": "1px 1px 1px var(--spacing-xs)",
                 "--drp-group-font-size": "var(--text-2xs)",
                 "--drp-group-line-height": "var(--text-2xs--line-height)",
@@ -4057,6 +4075,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
               S: {
                 "--drp-group-radius": "7px",
+                "--drp-group-min-height":
+                  "var(--catalog-token-drp-group-min-height, var(--catalog-token-size-height-S))",
                 "--drp-group-padding": "1px 1px 1px var(--spacing-sm)",
                 "--drp-group-font-size": "var(--text-xs)",
                 "--drp-group-line-height": "var(--text-xs--line-height)",
@@ -4064,6 +4084,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
               M: {
                 "--drp-group-radius": "8px",
+                "--drp-group-min-height":
+                  "var(--catalog-token-drp-group-min-height, var(--catalog-token-size-height-M))",
                 "--drp-group-padding": "3px 3px 3px var(--spacing-md)",
                 "--drp-group-font-size": "var(--text-sm)",
                 "--drp-group-line-height": "var(--text-sm--line-height)",
@@ -4071,6 +4093,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
               L: {
                 "--drp-group-radius": "9px",
+                "--drp-group-min-height":
+                  "var(--catalog-token-drp-group-min-height, var(--catalog-token-size-height-L))",
                 "--drp-group-padding": "3px 3px 3px var(--spacing-lg)",
                 "--drp-group-font-size": "var(--text-base)",
                 "--drp-group-line-height": "var(--text-base--line-height)",
@@ -4078,6 +4102,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
               XL: {
                 "--drp-group-radius": "10px",
+                "--drp-group-min-height":
+                  "var(--catalog-token-drp-group-min-height, var(--catalog-token-size-height-XL))",
                 "--drp-group-padding": "3px 3px 3px var(--spacing-xl)",
                 "--drp-group-font-size": "var(--text-lg)",
                 "--drp-group-line-height": "var(--text-lg--line-height)",
@@ -4090,6 +4116,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               width: "100%",
               gap: "var(--drp-group-gap)",
               padding: "var(--drp-group-padding)",
+              // ADR-295 Phase 3: the range box is the field's control — the S2 control height (the builder
+              //   root turns it off for its own widgets: `--catalog-token-drp-group-min-height: auto`).
+              "min-height": "var(--drp-group-min-height)",
               border: "var(--border-width-thin) solid var(--border)",
               // (모서리는 Input · DateInput 과 같은 크기 단계 — 같은 줄의 입력 상자와 모양이 같다.)
               "border-radius": "var(--drp-group-radius)",
@@ -4131,6 +4160,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             bridges: {
               width: "auto",
               "min-width": "0",
+              // (ADR-295 Phase 3: the Group is the control box — a DateInput inside it is not the S2
+              //   control height on its own.)
+              "min-height": "0",
             },
             states: {
               "[data-focus-within]": {
@@ -4179,6 +4211,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               flex: "0 0 auto",
               width: "var(--drp-btn-size)",
               height: "var(--drp-btn-size)",
+              // ADR-295 Phase 3: a field button (S2 — not a Button) does not take the Button's S2
+              //   min-height (`{size.height.<S>}`) — its square is this size (placement, as `height`).
+              "min-height": "0",
               "min-width": "0",
             },
           },
@@ -6307,17 +6342,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       // ADR-253 Phase 3: the Input rule is the one definition of a field's input box (the fields'
-      //   rules declare none). Its height is its content — line height + paddingY×2 + border×2
-      //   (md 20 + 8 + 2 = 30) — so the same block sizes the `<textarea>` of a TextArea, whose
-      //   height is its `rows`.
+      //   rules declare none). Its height is its content — line height + paddingY×2 + border×2 —
+      //   so the same block sizes the `<textarea>` of a TextArea, whose height is its `rows`.
+      //   ADR-295 Phase 3: paddingY makes the one-line box the S2 control height on desktop (M 18 +
+      //   6×2 + 2 = 32 — S2 line-height formula), and `minHeight` is that height token — the touch set
+      //   (× 1.25) raises it in the Preview · Publish DOM (the text box is centred by `<input>`).
       XS: {
         fontSize: "{typography.text-2xs}",
         lineHeight: "{typography.text-2xs--line-height}",
         borderRadius: "{radius.xs}",
         borderWidth: "{border.width.thin}",
         height: 0,
+        minHeight: "{size.height.XS}",
         paddingX: 4,
-        paddingY: 1,
+        paddingY: 2,
       },
       S: {
         fontSize: "{typography.text-xs}",
@@ -6325,8 +6363,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: 7,
         borderWidth: "{border.width.thin}",
         height: 0,
+        minHeight: "{size.height.S}",
         paddingX: 8,
-        paddingY: 2,
+        paddingY: 3,
       },
       M: {
         fontSize: "{typography.text-sm}",
@@ -6334,8 +6373,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: 8,
         borderWidth: "{border.width.thin}",
         height: 0,
+        minHeight: "{size.height.M}",
         paddingX: 12,
-        paddingY: 4,
+        paddingY: 6,
       },
       L: {
         fontSize: "{typography.text-base}",
@@ -6343,8 +6383,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: 9,
         borderWidth: "{border.width.thin}",
         height: 0,
+        minHeight: "{size.height.L}",
         paddingX: 16,
-        paddingY: 8,
+        paddingY: 9,
       },
       XL: {
         fontSize: "{typography.text-lg}",
@@ -6352,6 +6393,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: 10,
         borderWidth: "{border.width.thin}",
         height: 0,
+        minHeight: "{size.height.XL}",
         paddingX: 24,
         paddingY: 12,
       },
@@ -7831,25 +7873,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     sizes: {
       S: {
         fontSize: "{typography.text-xs}",
-        lineHeight: 16,
+        lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.none}",
         height: 16,
       },
       M: {
         fontSize: "{typography.text-sm}",
-        lineHeight: 20,
+        lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.none}",
         height: 20,
       },
       L: {
         fontSize: "{typography.text-base}",
-        lineHeight: 24,
+        lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.none}",
         height: 24,
       },
       XL: {
         fontSize: "{typography.text-lg}",
-        lineHeight: 28,
+        lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.none}",
         height: 28,
       },
@@ -8160,20 +8202,24 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           {
-            // A stepper is a square of the control's height (the Input / Button box at each size).
+            // A stepper is a square of the control's height (the Input / Button box at each size —
+            //   ADR-295 Phase 3: the S2 control height token, the same one the Input's min-height reads).
             childSelector: ".react-aria-Button",
             prefix: "nf-btn",
             variables: {
-              XS: { "--nf-btn-size": "20px" },
-              S: { "--nf-btn-size": "22px" },
-              M: { "--nf-btn-size": "30px" },
-              L: { "--nf-btn-size": "42px" },
-              XL: { "--nf-btn-size": "54px" },
+              XS: { "--nf-btn-size": "var(--catalog-token-size-height-XS)" },
+              S: { "--nf-btn-size": "var(--catalog-token-size-height-S)" },
+              M: { "--nf-btn-size": "var(--catalog-token-size-height-M)" },
+              L: { "--nf-btn-size": "var(--catalog-token-size-height-L)" },
+              XL: { "--nf-btn-size": "var(--catalog-token-size-height-XL)" },
             },
             bridges: {
               flex: "0 0 auto",
               width: "var(--nf-btn-size)",
               height: "var(--nf-btn-size)",
+              // ADR-295 Phase 3: a field button (S2 — not a Button) does not take the Button's S2
+              //   min-height (`{size.height.<S>}`) — its square is this size (placement, as `height`).
+              "min-height": "0",
               "min-width": "0",
               "margin-inline-start": "-1px",
             },
@@ -8807,25 +8853,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     sizes: {
       S: {
         fontSize: "{typography.text-xs}",
-        lineHeight: 16,
+        lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.none}",
         height: 16,
       },
       M: {
         fontSize: "{typography.text-sm}",
-        lineHeight: 20,
+        lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.none}",
         height: 20,
       },
       L: {
         fontSize: "{typography.text-base}",
-        lineHeight: 24,
+        lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.none}",
         height: 24,
       },
       XL: {
         fontSize: "{typography.text-lg}",
-        lineHeight: 28,
+        lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.none}",
         height: 28,
       },
@@ -9523,6 +9569,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             bridges: {
               width: "var(--sf-btn-size)",
               height: "var(--sf-btn-size)",
+              // ADR-295 Phase 3: a field button (S2 — not a Button) does not take the Button's S2
+              //   min-height (`{size.height.<S>}`) — its square is this size (placement, as `height`).
+              "min-height": "0",
               "min-width": "0",
               "margin-inline-start": "var(--sf-btn-offset)",
             },
@@ -10285,25 +10334,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     sizes: {
       S: {
         fontSize: "{typography.text-xs}",
-        lineHeight: 16,
+        lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.none}",
         height: 16,
       },
       M: {
         fontSize: "{typography.text-sm}",
-        lineHeight: 20,
+        lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.none}",
         height: 20,
       },
       L: {
         fontSize: "{typography.text-base}",
-        lineHeight: 24,
+        lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.none}",
         height: 24,
       },
       XL: {
         fontSize: "{typography.text-lg}",
-        lineHeight: 28,
+        lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.none}",
         height: 28,
       },
@@ -11343,8 +11392,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   텍스트 크기를 CSS 와 일치시키려면 catalog 가 동일 값을 명시해야 한다(미명시 시 Skia
         //   기본 14 + estimateTextHeight≈16 → 행 height 32 vs CSS 40 발산). 양쪽 모두 catalog 파생
         //   으로 SSOT 통일(CSS=상속 → catalog 명시 미러).
-        fontSize: 16,
-        lineHeight: 24,
+        fontSize: "{typography.text-base}",
+        lineHeight: "{typography.text-base--line-height}",
         // paddingX/Y 8: buildCatalogShapes 의 textX = paddingX(= size.paddingX ?? 0)로 텍스트를
         //   셀 안쪽으로 민다. containerStyles.padding(8px)은 Taffy box / Preview CSS 용이고 leaf
         //   Column/Cell 의 Skia 텍스트 x offset 에는 도달 안 함(resolveMergedStyle base=sizes 만,
@@ -11354,7 +11403,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   세로 정합: calculateContentHeight(utils.ts §1.56)가 estimateTextHeight(16,24)=24 +
         //   paddingY*2(16) = 40 = CSS border-box height. baseline middle 이 텍스트를 셀 세로 중앙 배치.
         paddingX: 8,
-        paddingY: 8,
+        paddingY: 10,
       },
     },
     // density (2026-08-21): Spectrum `table.item.padding` × density(compact/regular/spacious)
@@ -11362,14 +11411,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   (`table-row-height-*` 은 density 무관, 구 `-regular` 접미사는 deprecated). 폰트는
     //   불변이므로 sizes 와 직교한 densities 축에 둔다. 소비 주체가 Column/Cell 이라 채널도
     //   여기 산다 — Table 은 density **값**만 넘긴다(당시 Skia 위임 경로 applyImplicitStyles 는 2026-10-05 삭제).
-    //   행 높이 = lineHeight 24 + paddingY×2 → compact 32 / regular 40 / spacious 48.
+    //   행 높이 = lineHeight + paddingY×2 → compact 32 / regular 40 / spacious 48 (ADR-295 Phase 3: S2 행간
+    //   식으로 줄 20 — paddingY 6 / 10 / 14).
     //   Column/Cell 은 `structure` 미보유라 virtual spec 이 안 생기고, 따라서 generated CSS
     //   emit 도 없다(DOM 은 옛 표 subtree 인라인이 정본이었다) → CSS diff 0.
     defaultDensity: "regular",
     densities: {
-      compact: { paddingY: 4 },
-      regular: { paddingY: 8 },
-      spacious: { paddingY: 12 },
+      compact: { paddingY: 6 },
+      regular: { paddingY: 10 },
+      spacious: { paddingY: 14 },
     },
     // ADR-257: no flex share — the column's width is its track in the row grid (`tableTracks.ts`).
     containerStyles: {
@@ -11441,23 +11491,23 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       M: {
-        // fontSize/lineHeight 16/24: Column 과 동형 — CSS Preview 상속값(16px/24px)과 Skia 텍스트·
+        // fontSize/lineHeight text-base 토큰 (ADR-295 Phase 3 — 16/20): Column 과 동형 — CSS Preview 와 Skia 텍스트·
         //   셀 height 정합(calculateContentHeight estimateTextHeight(16,24)=24 + paddingY*2=40).
-        fontSize: 16,
-        lineHeight: 24,
+        fontSize: "{typography.text-base}",
+        lineHeight: "{typography.text-base--line-height}",
         // paddingX/Y 8: Column 과 동형 — containerStyles.padding 은 Skia 텍스트 x 에 미도달이라
         //   sizes.paddingX 가 텍스트 padding 정본 채널(buildCatalogShapes textX). 값 8={spacing.sm}.
         paddingX: 8,
-        paddingY: 8,
+        paddingY: 10,
       },
     },
     // density: Column 과 동일 축·동일 값 (같은 행 안에서 header/body 여백이 갈리면 안 된다).
     //   근거·행 높이 산식은 Column 주석 참조.
     defaultDensity: "regular",
     densities: {
-      compact: { paddingY: 4 },
-      regular: { paddingY: 8 },
-      spacious: { paddingY: 12 },
+      compact: { paddingY: 6 },
+      regular: { paddingY: 10 },
+      spacious: { paddingY: 14 },
     },
     // ADR-257: no flex share — the column's width is its track in the row grid (`tableTracks.ts`).
     containerStyles: {
@@ -11921,7 +11971,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      // height 는 DOM chip 의 border-box 실측 (TagGroup.css: height 없음 = lineHeight + paddingY×2 + border 1×2).
+      // ADR-295 Phase 3: a chip is an S2 control box — `minHeight` is the S2 control height token and
+      //   paddingY centres the line in it ((height − line − border × 2) / 2, the generated
+      //   `controlPaddingBlock` · Canvas `s2ControlPaddingY`); `height: 0` = content-fit (both legs).
+      //   (Before: height 는 DOM chip 의 border-box 실측 (TagGroup.css: height 없음 = lineHeight + paddingY×2 + border 1×2).)
       //   종전 28 (md) 은 border 미포함 값이라 implicitStyles height 미러가 캔버스 chip 을 2px 낮게 잡았고,
       //   borderWidth 미선언으로 엔진 폭에도 border 가 빠져 DOM 보다 2px 좁았다 (2026-09-21, Badge r22m1 동형).
       // ADR-912 영역 B (A) Tag cutover (2026-06-12): paddingX 보강 — buildCatalogShapes 가
@@ -11938,49 +11991,54 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   우측 패딩 축소 계산). Tag.spec paddingY(xs1/sm2/md4/lg8/xl12 = (height-lineHeight)/2 동일값) 이전.
       XS: {
         fontSize: "{typography.text-2xs}",
-        lineHeight: 16,
+        lineHeight: "{typography.text-2xs--line-height}",
         borderRadius: "{radius.sm}",
-        height: 20,
+        height: 0,
+        minHeight: "{size.height.XS}",
         borderWidth: "{border.width.thin}",
         paddingX: 4,
-        paddingY: 1,
+        paddingY: 2,
         iconSize: 14,
       },
       S: {
         fontSize: "{typography.text-xs}",
-        lineHeight: 16,
+        lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.sm}",
-        height: 22,
+        height: 0,
+        minHeight: "{size.height.S}",
         borderWidth: "{border.width.thin}",
         paddingX: 8,
-        paddingY: 2,
+        paddingY: 3,
         iconSize: 14,
       },
       M: {
         fontSize: "{typography.text-sm}",
-        lineHeight: 20,
+        lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.md}",
-        height: 30,
+        height: 0,
+        minHeight: "{size.height.M}",
         borderWidth: "{border.width.thin}",
         paddingX: 12,
-        paddingY: 4,
+        paddingY: 6,
         iconSize: 14,
       },
       L: {
         fontSize: "{typography.text-base}",
-        lineHeight: 24,
+        lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.lg}",
-        height: 42,
+        height: 0,
+        minHeight: "{size.height.L}",
         borderWidth: "{border.width.thin}",
         paddingX: 16,
-        paddingY: 8,
+        paddingY: 9,
         iconSize: 14,
       },
       XL: {
         fontSize: "{typography.text-lg}",
-        lineHeight: 28,
+        lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.lg}",
-        height: 54,
+        height: 0,
+        minHeight: "{size.height.XL}",
         borderWidth: "{border.width.thin}",
         paddingX: 24,
         paddingY: 12,
@@ -12508,12 +12566,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           // A TextArea's side label offset (2026-10-10 사용자 「Text Area 는 세로 가운데 정렬이 되면 안된다
           //   side 일때 상단 위치해야하지만 여백은 가져야 한다」): S2 aligns the label with the control's
           //   first text line (`alignItems: 'baseline'`) — the textarea's border + top padding (Input
-          //   rule per size: S 2 · M 4 · L 8 · XL 12, border 1). A one-line control's middle is the same line.
+          //   rule per size — ADR-295 Phase 3, the S2 centring padding: S 3 · M 6 · L 9 · XL 12, border 1).
+          //   A one-line control's middle is the same line. The value is a per-size `--catalog-token-*`
+          //   with its desktop px as the fallback (ADR-295 Decision 9): the builder root pins the 295-before
+          //   offset for its own widgets (`builder-catalog-vars.css`), the Preview · Publish read the fallback.
           size: {
-            S: { styles: { "--tf-side-label-offset": "3px" } },
-            M: { styles: { "--tf-side-label-offset": "5px" } },
-            L: { styles: { "--tf-side-label-offset": "9px" } },
-            XL: { styles: { "--tf-side-label-offset": "13px" } },
+            S: {
+              styles: {
+                "--tf-side-label-offset":
+                  "var(--catalog-token-field-side-label-offset-S, 4px)",
+              },
+            },
+            M: {
+              styles: {
+                "--tf-side-label-offset":
+                  "var(--catalog-token-field-side-label-offset-M, 7px)",
+              },
+            },
+            L: {
+              styles: {
+                "--tf-side-label-offset":
+                  "var(--catalog-token-field-side-label-offset-L, 10px)",
+              },
+            },
+            XL: {
+              styles: {
+                "--tf-side-label-offset":
+                  "var(--catalog-token-field-side-label-offset-XL, 13px)",
+              },
+            },
           },
           "label-position": {
             side: {
@@ -12885,59 +12966,64 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       XS: {
         paddingX: 4,
         fontSize: "{typography.text-2xs}",
-        lineHeight: 16,
+        lineHeight: "{typography.text-2xs--line-height}",
         fontWeight: 500,
         borderRadius: "{radius.sm}",
         borderWidth: "{border.width.thin}",
         height: 0,
-        paddingY: 1,
+        minHeight: "{size.height.XS}",
+        paddingY: 2,
         gap: 4,
         iconSize: 14,
       },
       S: {
         paddingX: 8,
         fontSize: "{typography.text-xs}",
-        lineHeight: 16,
+        lineHeight: "{typography.text-xs--line-height}",
         fontWeight: 500,
         borderRadius: 7,
         borderWidth: "{border.width.thin}",
         height: 0,
-        paddingY: 2,
+        minHeight: "{size.height.S}",
+        paddingY: 3,
         gap: 6,
         iconSize: 16,
       },
       M: {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
-        lineHeight: 20,
+        lineHeight: "{typography.text-sm--line-height}",
         fontWeight: 500,
         borderRadius: 8,
         borderWidth: "{border.width.thin}",
         height: 0,
-        paddingY: 4,
+        minHeight: "{size.height.M}",
+        paddingY: 6,
         gap: 8,
         iconSize: 18,
       },
       L: {
         paddingX: 16,
         fontSize: "{typography.text-base}",
-        lineHeight: 24,
+        lineHeight: "{typography.text-base--line-height}",
         fontWeight: 500,
         borderRadius: 9,
         borderWidth: "{border.width.thin}",
         height: 0,
-        paddingY: 8,
+        minHeight: "{size.height.L}",
+        paddingY: 9,
         gap: 10,
         iconSize: 24,
       },
       XL: {
         paddingX: 24,
         fontSize: "{typography.text-lg}",
-        lineHeight: 28,
+        lineHeight: "{typography.text-lg--line-height}",
         fontWeight: 500,
         borderRadius: 10,
         borderWidth: "{border.width.thin}",
         height: 0,
+        minHeight: "{size.height.XL}",
         paddingY: 12,
         gap: 12,
         iconSize: 28,

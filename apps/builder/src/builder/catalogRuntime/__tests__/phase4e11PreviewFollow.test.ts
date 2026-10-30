@@ -271,7 +271,7 @@ describe("group size reaches the items", () => {
     const workspace = await openOwner("ToggleButtonGroup", { size: "L" });
     const items = sizeOf(workspace, "togglebutton");
     expect(items.length).toBe(2);
-    for (const item of items) expect(item).toEqual({ size: "L", height: 42 });
+    for (const item of items) expect(item).toEqual({ size: "L", height: 40 });
     workspace.dispose();
   });
 
@@ -369,15 +369,17 @@ describe("NumberField group — per-size height", () => {
     expect(
       blockOf(css, ".react-aria-NumberField .react-aria-Button"),
     ).toContain("width: var(--nf-btn-size);");
-    expect(css).toContain("--nf-btn-size: 54px;");
+    // (ADR-295 Phase 3: the S2 control height token — the same one the Input's min-height reads.)
+    expect(css).toContain("--nf-btn-size: var(--catalog-token-size-height-XL);");
   });
 
+  // (ADR-295 Phase 3: the S2 control heights.)
   it.each([
     ["XS", 20],
-    ["S", 22],
-    ["M", 30],
-    ["L", 42],
-    ["XL", 54],
+    ["S", 24],
+    ["M", 32],
+    ["L", 40],
+    ["XL", 48],
   ])("NumberField %s trigger is %d tall", async (size, height) => {
     const workspace = await openOwner("NumberField", { size });
     const root = workspace.root;
@@ -629,7 +631,8 @@ describe("TagList — the catalog 100% height", () => {
 });
 
 describe("TagGroup size reaches the chips", () => {
-  it("a sm TagGroup's Tags are sm (22 tall)", async () => {
+  // (ADR-295 Phase 3: the S2 control height S 24.)
+  it("a sm TagGroup's Tags are sm (24 tall)", async () => {
     const workspace = await openOwner("TagGroup", { size: "S" });
     const root = workspace.root;
     const tags = [...root.layoutInputs.values()].filter(
@@ -639,7 +642,7 @@ describe("TagGroup size reaches the chips", () => {
     const geometry = root.getGeometry(tags.map((record) => record.id));
     for (const tag of tags) {
       expect(tag.props.size).toBe("S");
-      expect(geometry.get(tag.id)!.height).toBe(22);
+      expect(geometry.get(tag.id)!.height).toBe(24);
     }
     workspace.dispose();
   });

@@ -69,7 +69,7 @@ const DATE_RANGE_GROUP_VARIABLES = () =>
 // `nav` 는 상자 크기 (px) — 글자 토큰이 아니다. ADR-295 Phase 1 (2026-10-30): 종전 `text-3xl` (30) 을 상자로
 //   썼는데 글자 값이 S2 로 바뀌면서 (30 → 25) 월 폭 (`CalendarGrid` iconSize) 과 갈렸다 — 값을 고정하고 DOM
 //   (`CalendarCommon.css`) 도 같은 30px. S2 달력 치수 정렬은 Phase 3.
-const CALENDAR_HEADER = { nav: 30, font: "text-sm" } as const;
+const CALENDAR_HEADER = { nav: 30, font: "text-sm", triggerInset: 8 } as const;
 
 /**
  * A calendar month block's own width: 7 cells (`CalendarGrid` rule `iconSize + 4`) plus the tds' 2px
@@ -544,7 +544,6 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
     parts: ((): CompiledPartRule[] => {
       const navHeight = CALENDAR_HEADER.nav;
       const fontSize = textPx(CALENDAR_HEADER.font);
-      const triggerY = px(sizesOf("Button").M?.paddingY);
       const ratio =
         (px("{typography.text-base--line-height}") ?? 0) /
         (textPx("text-base") ?? 1);
@@ -560,6 +559,8 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
           width: navHeight,
           height: navHeight,
           minWidth: 0,
+          // (ADR-295 Phase 3: not the Button's S2 min-height — the square is the nav side.)
+          minHeight: 0,
           paddingTop: 0,
           paddingRight: 0,
           paddingBottom: 0,
@@ -584,18 +585,15 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
         button("next"),
         picker("CalendarMonthPicker"),
         picker("CalendarYearPicker"),
-        // A picker's Select trigger starts twice the Button's paddingY in (사용자 2026-10-13 — 8;
-        // through the picker — `PART_RULE_PASS_HOSTS`; `CalendarCommon.css`).
-        ...(triggerY !== undefined
-          ? [
-              {
-                childType: "Button",
-                via: "Select",
-                layout: {},
-                visual: { paddingLeft: 2 * triggerY },
-              } satisfies CompiledPartRule,
-            ]
-          : []),
+        // A picker's Select trigger starts 8 in (사용자 2026-10-13 — 8, then twice the Button's paddingY;
+        // ADR-295 Phase 3 moved that paddingY to the S2 centring padding, the 8 stays — through the
+        // picker — `PART_RULE_PASS_HOSTS`; `CalendarCommon.css`).
+        {
+          childType: "Button",
+          via: "Select",
+          layout: {},
+          visual: { paddingLeft: CALENDAR_HEADER.triggerInset },
+        } satisfies CompiledPartRule,
         // (Their chevron Icon takes the Button's `--fg` — `currentColor`.)
         {
           childType: "Icon",
@@ -850,10 +848,17 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
           alignItems: "center",
         },
         // (No minimum of its own — user 2026-10-25 「treeItemcontent 에 minWidth 0 → auto, minHeight
-        // auto」: the row's 32 is its item's.)
+        // auto」: the row's 32 is its item's.) The DOM row centres its line in that 32 (`align-items:
+        // center`), so the row content's paddingY is what centres the item's line (`Tree.css` row
+        // font `--text-base`) in 32 — at least the sheet's 4. ADR-295 Phase 3: with the S2
+        // line-height formula (16 → 20) the old fixed 4 left the Canvas row 28 (it was 32 only
+        // because the old line was 24).
         visual: {
           gap: 2,
-          paddingY: 4,
+          paddingY: Math.max(
+            4,
+            (32 - (px("{typography.text-base--line-height}") ?? 24)) / 2,
+          ),
           paddingX: 8,
         },
       },

@@ -39,10 +39,17 @@ describe("ADR-295 — typography S2 식", () => {
     ]);
   });
 
-  it("본문 행간은 Phase 3 전까지 지금 값 (사용자 결정 2026-10-30) · 제목 묶음은 식", () => {
-    expect(typography["text-sm--line-height"]).toBe(20);
-    expect(typography["text-base--line-height"]).toBe(24);
+  it("행간은 본문 · 제목 모두 S2 식 (사용자 결정 2 — ADR-295 Phase 3)", () => {
+    expect(typography["text-sm--line-height"]).toBe(18);
+    expect(typography["text-base--line-height"]).toBe(20);
+    expect(typography["text-lg--line-height"]).toBe(22);
     expect(typography["text-heading-md--line-height"]).toBe(s2LineHeight(22));
+    for (const [key, value] of Object.entries(typography))
+      if (!key.endsWith("--line-height") && key !== "text-md")
+        expect(
+          (typography as unknown as Record<string, number>)[`${key}--line-height`],
+          key,
+        ).toBe(s2LineHeight(value as number));
   });
 
   it("touch base 17 은 같은 단계 표로 다른 벌을 낸다 (ADR-295 Phase 2 입력)", () => {
@@ -55,7 +62,8 @@ describe("ADR-295 — typography S2 식", () => {
     expect(getLabelLineHeight(14)).toBe(typography["text-sm--line-height"]);
     expect(getLabelLineHeight(20)).toBe(typography["text-xl--line-height"]);
     expect(getLabelLineHeight(11)).toBe(typography["text-2xs--line-height"]);
-    expect(getLabelLineHeight(13)).toBe(Math.ceil(13 * 1.5));
+    // 이름 없는 글자 크기도 같은 식 (ADR-295 Phase 3 — 옛 1.5 폴백 삭제)
+    expect(getLabelLineHeight(13)).toBe(s2LineHeight(13));
   });
 
 });

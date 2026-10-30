@@ -17,6 +17,7 @@ import {
   BUILDER_CATALOG_VARS_CSS,
   BUILDER_COMPONENTS_CSS,
   THEME_CSS,
+  normalizedEntries,
   resolveBuilderGeneratedSheets,
 } from "../../../../scripts/adr295BuilderGeneratedSheets.mjs";
 import baseline from "./fixtures/adr295-builder-consumed-generated-baseline.json";
@@ -60,12 +61,42 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
       BUILDER_CATALOG_VARS_CSS,
     ]);
     expect(now.sheets).toEqual(baseline.sheets);
-    const changed = Object.entries(baseline.entries as Record<string, string>)
-      .filter(([key, value]) => now.entries[key] !== value)
-      .map(([key, value]) => `${key}: ${value} → ${now.entries[key]}`);
+    // 값은 계산값으로 비교한다 — S2 padding 식 (`calc(높이 − 글자 × 행간 − 테두리 × 2) / 2`) 과 행간 토큰
+    //   비율이 빌더 값에서 295 전 px 와 같으면 같다 (ADR-295 Phase 3).
+    const before = normalizedEntries(baseline.entries as Record<string, string>);
+    const after = normalizedEntries(now.entries);
+    const changed = Object.entries(before)
+      .filter(([key, value]) => after[key] !== value)
+      .map(([key, value]) => `${key}: ${value} → ${after[key]}`);
     expect(changed).toEqual([]);
+    // 새 선언은 `min-height` (와 그 값을 나르는 변수) 뿐 (Phase 3), 빌더 값은 효과가 없는 셋 중 하나: control
+    //   상자의 `{size.height.<S>}` = 빌더 control 높이 (그 상자의 295 전 한 줄 높이 — 행간 + padding × 2 + 테두리
+    //   × 2) · `0` (field 버튼 · 범위 상자 안 DateInput — Button · DateInput 의 S2 높이를 받지 않는 자리) ·
+    //   `auto` (초기값 — 빌더 root 가 범위 상자 Group 의 S2 높이를 끈다).
+    const builderControlHeights = new Set(["20px", "22px", "30px", "42px", "54px"]);
+    const inert = (value: string) =>
+      builderControlHeights.has(value) || value === "0" || value === "auto";
+    const added = Object.keys(after).filter((key) => !(key in before));
+    // (a sheet-local variable carrying the minimum — every declaration of it is inert)
+    const inertLocal = new Set(
+      added
+        .map((key) => key.split(" | ")[1]!)
+        .filter(
+          (prop) =>
+            prop.startsWith("--") &&
+            added
+              .filter((key) => key.endsWith(` | ${prop}`))
+              .every((key) => inert(after[key]!)),
+        ),
+    );
     expect(
-      Object.keys(now.entries).filter((key) => !(key in baseline.entries)),
+      added.filter((key) => {
+        const prop = key.split(" | ")[1]!;
+        if (prop.startsWith("--")) return !inertLocal.has(prop);
+        if (prop !== "min-height") return true;
+        const local = /^var\((--[\w-]+)\)$/.exec(after[key]!)?.[1];
+        return !(inert(after[key]!) || (local && inertLocal.has(local)));
+      }),
     ).toEqual([]);
   });
 

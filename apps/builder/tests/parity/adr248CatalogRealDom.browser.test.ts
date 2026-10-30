@@ -218,7 +218,8 @@ describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
         expect(domRegion).not.toBeNull();
         expect(domRegion.className).toBe("react-aria-Group combobox-container");
         expect(domRegion.getAttribute("role")).toBe("group");
-        expect(geometry.height).toBe(30);
+        // (ADR-295 Phase 3: the S2 control height.)
+        expect(geometry.height).toBe(32);
         expect(Math.abs(domRect.height - geometry.height)).toBeLessThanOrEqual(
           1,
         );
@@ -405,7 +406,8 @@ describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
     expect(getComputedStyle(groupElement).gap).toBe("8px");
     expect(textElement.textContent).toBe("저장");
     expect(getComputedStyle(textElement).fontSize).toBe("16px");
-    expect(getComputedStyle(textElement).lineHeight).toBe("24px");
+    // (ADR-295 Phase 3: the S2 line-height formula — 16 → 20.)
+    expect(getComputedStyle(textElement).lineHeight).toBe("20px");
     expect(getComputedStyle(textElement).fontWeight).toBe("400");
     expect(getComputedStyle(textElement).color).toBe("rgb(23, 23, 23)");
     expect(textElement.getBoundingClientRect().width).toBeGreaterThan(0);

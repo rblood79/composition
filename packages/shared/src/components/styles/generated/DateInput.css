@@ -24,11 +24,12 @@
 
   /* Default size */
   height: auto;
-  padding: 4px 12px;
+  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-thin)) / 2) 12px;
   font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
   line-height: var(--catalog-token-text-sm--line-height);
   border-width: var(--border-width-thin);
+  min-height: var(--catalog-token-size-height-M);
 }
 
 .react-aria-DateInput[data-variant="default"] {
@@ -78,47 +79,52 @@
 
 .react-aria-DateInput[data-size="XS"] {
   height: auto;
-  padding: 1px 4px;
+  padding: calc((var(--catalog-token-size-height-XS) - var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height) - 2 * var(--border-width-thin)) / 2) 4px;
   font-size: var(--catalog-token-text-2xs);
   border-radius: var(--catalog-token-radius-xs);
   line-height: var(--catalog-token-text-2xs--line-height);
   border-width: var(--border-width-thin);
+  min-height: var(--catalog-token-size-height-XS);
 }
 
 .react-aria-DateInput[data-size="S"] {
   height: auto;
-  padding: 2px 8px;
+  padding: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--border-width-thin)) / 2) 8px;
   font-size: var(--catalog-token-text-xs);
   border-radius: 7px;
   line-height: var(--catalog-token-text-xs--line-height);
   border-width: var(--border-width-thin);
+  min-height: var(--catalog-token-size-height-S);
 }
 
 .react-aria-DateInput[data-size="M"] {
   height: auto;
-  padding: 4px 12px;
+  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-thin)) / 2) 12px;
   font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
   line-height: var(--catalog-token-text-sm--line-height);
   border-width: var(--border-width-thin);
+  min-height: var(--catalog-token-size-height-M);
 }
 
 .react-aria-DateInput[data-size="L"] {
   height: auto;
-  padding: 8px 16px;
+  padding: calc((var(--catalog-token-size-height-L) - var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height) - 2 * var(--border-width-thin)) / 2) 16px;
   font-size: var(--catalog-token-text-base);
   border-radius: 9px;
   line-height: var(--catalog-token-text-base--line-height);
   border-width: var(--border-width-thin);
+  min-height: var(--catalog-token-size-height-L);
 }
 
 .react-aria-DateInput[data-size="XL"] {
   height: auto;
-  padding: 12px 24px;
+  padding: calc((var(--catalog-token-size-height-XL) - var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height) - 2 * var(--border-width-thin)) / 2) 24px;
   font-size: var(--catalog-token-text-lg);
   border-radius: 10px;
   line-height: var(--catalog-token-text-lg--line-height);
   border-width: var(--border-width-thin);
+  min-height: var(--catalog-token-size-height-XL);
 }
 
 .react-aria-DateInput[data-focus-visible] {

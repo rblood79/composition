@@ -21,8 +21,8 @@ export const S2_DEVICE: Readonly<
 export const S2_TOUCH_MEDIA = "not ((hover: hover) and (pointer: fine))";
 
 /**
- * S2 component-height 5단 (desktop px — `size(20 · 24 · 32 · 40 · 48)` = rem × `--s2-scale`). rule 의 높이
- * 리터럴은 Phase 3 에서 이 단을 참조한다 (ADR-295 Decision 4).
+ * S2 component-height 5단 (desktop px — `size(20 · 24 · 32 · 40 · 48)` = rem × `--s2-scale`). rule 은 이 단을
+ * `{size.height.<S>}` 로 참조한다 (ADR-295 Decision 4 · Phase 3).
  */
 export const S2_CONTROL_HEIGHT = {
   XS: 20,
@@ -37,3 +37,21 @@ export function s2ControlHeights(scale: number): Record<string, number> {
     Object.entries(S2_CONTROL_HEIGHT).map(([size, px]) => [size, px * scale]),
   );
 }
+
+/**
+ * `{size.height.<S>}` 토큰 맵 (키 `height.<S>`) — Skia · 레이아웃이 `resolveToken` 으로 읽는다. 설치 전 값은 desktop
+ * 벌이고, 테마 설치 (`installThemeMaps`) 가 snapshot 의 `size` 로 바꾼다 (G2 하니스의 터치 arm 은 터치 벌).
+ * DOM 은 같은 토큰을 `--catalog-token-size-height-<S>` 로 읽는다 (Preview · Publish = 기기 미디어 두 벌).
+ */
+export function s2SizeTokens(scale: number): Record<string, number> {
+  return Object.fromEntries(
+    Object.entries(s2ControlHeights(scale)).map(([size, px]) => [
+      `height.${size}`,
+      px,
+    ]),
+  );
+}
+
+export const size: Record<string, number> = s2SizeTokens(
+  S2_DEVICE.desktop.scale,
+);

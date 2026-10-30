@@ -40,6 +40,8 @@ const TOKEN_CATEGORIES = new Set([
   "shadow",
   "border",
   "focus",
+  // ADR-295 Phase 3: `{size.height.<S>}` — S2 control 높이 (Skia `size` 맵 · DOM `--catalog-token-size-*`).
+  "size",
 ]);
 
 /**

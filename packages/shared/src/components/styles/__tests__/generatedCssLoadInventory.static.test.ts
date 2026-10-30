@@ -62,7 +62,6 @@ export const UNLOADED_GENERATED_CSS: Readonly<Record<string, string>> = {
   //   로드 전환했고, 나머지 미로드 3 (AvatarGroup · ButtonGroup · CardView)은 기존 판정을 유지한다.
   ButtonGroup: "E container — DisplayComponents.ts 인라인",
   DialogFooter: "E container — OverlayComponents.ts 인라인",
-  Image: "E leaf — DisplayComponents.ts 인라인 width/height, generic <img>",
   // F. ADR-238 Phase 2 — 목록 section 층. DOM 은 RAC `<section>` 을 UA block 그대로 두고 section 간격은 생성
   //   `ListBox.css` (ListBox rule 의 `> .react-aria-ListBoxSection:not(:first-child)` — 2026-10-12 수동 CSS 에서 이관,
   //   Canvas 도 같은 값) 가 맡는다 — 생성 base (font-size 등) 를 실으면 이관 전 DOM 과 갈린다 (G5 —
@@ -177,17 +176,18 @@ describe("generated CSS 로드 인벤토리 (ADR-923 잔여 2)", () => {
   // 2026-10-12 — ADR-258 Phase 2: ColorArea · ColorSlider · ColorWheel · ColorThumb (index 로드 — 옛 수동
   //   sheet 는 builder chrome 전용) +4 · +4.
   // 2026-10-21 — ADR-277: 옛 둘째 표 type 의 생성 sheet 삭제 (표는 Table 하나 — 수동 Table.css) −1 · index −1.
-  it("인벤토리 집계 — 생성 105 · index 83 · 모듈 0 · 미로드 22 (IllustratedMessage 로드 · Illustration · Body CSS load 포함 · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates · ADR-256 Phase 10 Card 부품 3 → Content · Footer · Toast 로드 · ADR-258 Color 4 · ADR-259 FieldLabel 로드)", () => {
+  // 2026-10-30 — ADR-295: 생성기가 내지 않는 옛 파일 삭제 — Image (미로드 E) · Label (skipCSSGeneration, 주석뿐 · index 로드) −2 · index −1 · 미로드 −1.
+  it("인벤토리 집계 — 생성 103 · index 82 · 모듈 0 · 미로드 21 (IllustratedMessage 로드 · Illustration · Body CSS load 포함 · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates · ADR-256 Phase 10 Card 부품 3 → Content · Footer · Toast 로드 · ADR-258 Color 4 · ADR-259 FieldLabel 로드)", () => {
     // (ADR-256 Phase 8e: − DisclosureHeader. 2026-10-12: Toast 로드 — 수동 Toast.css 는 런타임
     //  ToastRegion 안만 담당하고 문서의 Toast 노드는 생성 sheet 가 그린다.)
     // (ADR-259 Phase 3: + FieldLabel — a field's label row, loaded.)
-    expect(generated.length).toBe(105);
-    expect(indexImported.size).toBe(83);
+    expect(generated.length).toBe(103);
+    expect(indexImported.size).toBe(82);
     expect(
       Array.from(moduleImported)
         .filter((n) => !indexImported.has(n))
         .sort(),
     ).toEqual([]); // 2026-09-16: 모듈 채널 0 — DropZone·FileTrigger 도 index.css 로
-    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(22);
+    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(21);
   });
 });

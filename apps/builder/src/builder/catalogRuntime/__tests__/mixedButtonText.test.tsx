@@ -375,7 +375,9 @@ it("grouped mixed text wraps at its own box and unwraps after widening", async (
   const canvas = bindCatalogCanvas(root, root.pageRootRecords());
   const part = label();
   expect(root.textWraps(part.id)).toBe(true);
-  expect(root.getGeometry([part.id]).get(part.id)!.height).toBe(40);
+  // (ADR-295 Phase 3: two S2 lines 18 + the centring padding 6 × 2 + border 2; one line = the S2
+  //   control height 32.)
+  expect(root.getGeometry([part.id]).get(part.id)!.height).toBe(36);
   expect(root.getGeometry([button.id]).get(button.id)!.height).toBe(50);
   expect(getSkiaNode(part.id)!.text?.whiteSpace).toBe("normal");
   workspace.execute(
@@ -383,7 +385,7 @@ it("grouped mixed text wraps at its own box and unwraps after widening", async (
   );
   canvas.update();
   expect(root.textWraps(part.id)).toBe(false);
-  expect(root.getGeometry([button.id]).get(button.id)!.height).toBe(30);
+  expect(root.getGeometry([button.id]).get(button.id)!.height).toBe(32);
   workspace.undo();
   canvas.update();
   expect(root.textWraps(part.id)).toBe(true);

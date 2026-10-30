@@ -181,12 +181,12 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
     // paddingX/paddingY 축 → 4-way normalization (20+ spec 이 sizes 경로에서 이 형식 사용).
     // normalization 없으면 Panel Layout 이 0 으로 표시됨.
     it("Button.sizes.M (paddingX/Y) → 4-way padding 축 정규화", () => {
-      // ButtonSpec.sizes.M = { paddingX: 12, paddingY: 4 }
+      // Button.sizes.M = { paddingX: 12, paddingY: 6 } (ADR-295 Phase 3 — the S2 centring padding)
       const preset = resolveLayoutSpecPreset("Button", "M");
       expect(preset.paddingLeft).toBe(12);
       expect(preset.paddingRight).toBe(12);
-      expect(preset.paddingTop).toBe(4);
-      expect(preset.paddingBottom).toBe(4);
+      expect(preset.paddingTop).toBe(6);
+      expect(preset.paddingBottom).toBe(6);
     });
 
     it("Badge.sizes.M (paddingX/Y) → 4-way padding 축 정규화", () => {
@@ -515,19 +515,21 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
         display: "flex",
         flexDirection: "row",
       });
+      // (ADR-295 Phase 3: regular 10 — the S2 row 40 over the line 20.)
       expect(resolveLayoutSpecPreset("Column", undefined)).toMatchObject({
-        paddingTop: 8,
+        paddingTop: 10,
         paddingRight: 8,
-        paddingBottom: 8,
+        paddingBottom: 10,
         paddingLeft: 8,
       });
       expect(resolveTypographySpecPreset("Column", undefined)).toMatchObject({
         fontWeight: "600",
       });
+      // (ADR-295 Phase 3: regular 10 — the S2 row 40 over the line 20.)
       expect(resolveLayoutSpecPreset("Cell", undefined)).toMatchObject({
-        paddingTop: 8,
+        paddingTop: 10,
         paddingRight: 8,
-        paddingBottom: 8,
+        paddingBottom: 10,
         paddingLeft: 8,
       });
     });

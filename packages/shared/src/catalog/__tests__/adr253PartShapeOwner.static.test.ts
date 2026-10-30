@@ -134,6 +134,9 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
       "display",
       "align-items",
       "height",
+      // (ADR-295 Phase 3: its minimum on the same axis — a field button is not the Button's S2
+      //   control height.)
+      "min-height",
       "box-sizing",
       // The room a part leaves for the one laid over it (a ComboBox's button over its Input's
       // end, a SearchField's glyph over its start).
@@ -187,6 +190,9 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
       "display",
       "align-items",
       "height",
+      // (ADR-295 Phase 3: its minimum on the same axis — a field button is not the Button's S2
+      //   control height.)
+      "min-height",
       "box-sizing",
       "padding-right",
       "padding-left",

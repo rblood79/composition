@@ -155,12 +155,13 @@ describe("button intrinsic height across Body layout changes", () => {
         workspace.undo();
         check(initial);
         if (type !== "Toolbar") {
+          // ADR-295 Phase 3: the S2 control heights (`{size.height.<S>}`).
           for (const [size, expected] of Object.entries({
             XS: 20,
-            S: 22,
-            M: 30,
-            L: 42,
-            XL: 54,
+            S: 24,
+            M: 32,
+            L: 40,
+            XL: 48,
           })) {
             workspace.execute(
               setFields({

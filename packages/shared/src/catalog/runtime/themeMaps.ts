@@ -14,6 +14,7 @@ import {
   lightColors,
   lightShadows,
   radius,
+  size,
   typography,
 } from "@composition/rendering";
 import { DEFAULT_BASE_TYPOGRAPHY } from "./fontDefaults";
@@ -27,6 +28,7 @@ const MAPS = {
   typography: typography as unknown as TokenMap,
   radius: radius as unknown as TokenMap,
   borderWidth: borderWidth as unknown as TokenMap,
+  size: size as unknown as TokenMap,
   lightShadows: lightShadows as unknown as TokenMap,
   darkShadows: darkShadows as unknown as TokenMap,
 };
@@ -64,6 +66,7 @@ export function installThemeMaps(snapshot: ResolvedThemeSnapshot | null): void {
   replace("typography", snapshot?.typography);
   replace("radius", snapshot?.radius);
   replace("borderWidth", snapshot?.border);
+  replace("size", snapshot?.size);
   replace("lightShadows", snapshot?.shadows.light);
   replace("darkShadows", snapshot?.shadows.dark);
 }

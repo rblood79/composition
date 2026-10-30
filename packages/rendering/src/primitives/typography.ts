@@ -52,25 +52,6 @@ export const TYPOGRAPHY_STEPS = {
   "text-heading-3xl": 12,
 } as const;
 
-/**
- * 본문 사다리의 현재 행간 (px). ADR-295 사용자 결정 (2026-10-30 「행간 식은 Phase 3 와 함께」): 높이 리터럴
- * (field 30 · NumberField 증감 30 …) 이 「줄 20 + padding 8 + border 2」 와 맞물려 있어, 행간을 S2 식
- * (`s2LineHeight`) 으로 바꾸는 것은 높이를 S2 control 높이에 묶는 Phase 3 커밋에서 한다. 그때 이 표는 지운다.
- * 제목 묶음 (`text-heading-*`) 은 쓰는 rule 이 아직 없어 처음부터 식이다.
- */
-const PRE_PHASE3_LINE_HEIGHT: Readonly<Record<string, number>> = {
-  "text-2xs": 16,
-  "text-xs": 16,
-  "text-sm": 20,
-  "text-base": 24,
-  "text-lg": 28,
-  "text-xl": 28,
-  "text-2xl": 32,
-  "text-3xl": 36,
-  "text-4xl": 40,
-  "text-5xl": 48,
-};
-
 /** 글자 · 행간 맵 — `base` 를 바꾸면 같은 단계 표로 다른 벌 (touch 17 — ADR-295 Phase 2). */
 export function s2TypographyTokens(base: number = S2_FONT_SIZE_BASE): TypographyTokens {
   const out: Record<string, number> = {};
@@ -78,8 +59,7 @@ export function s2TypographyTokens(base: number = S2_FONT_SIZE_BASE): Typography
     const fontSize = s2FontSize(step, base);
     out[key] = fontSize;
     if (key !== "text-md")
-      out[`${key}--line-height`] =
-        PRE_PHASE3_LINE_HEIGHT[key] ?? s2LineHeight(fontSize);
+      out[`${key}--line-height`] = s2LineHeight(fontSize);
   }
   return out as unknown as TypographyTokens;
 }
@@ -124,30 +104,12 @@ export function getTypographyToken(name: keyof TypographyTokens): number {
 }
 
 /**
- * fontSize에 대응하는 CSS line-height (px).
+ * fontSize 의 줄 상자 (px) — S2 행간 식 (ADR-295 Phase 3, 사용자 결정 2). 본문 토큰의 행간과 같은 식이라 이름
+ * 없는 글자 크기 (rule 리터럴 · 명시 테마 값) 도 같은 값이다.
  * (옛 builder `fullTreeLayout.ts` 의 LABEL_SIZE_STYLE 과 같은 소스였다 — 2026-10-05 삭제.)
- * ADR-295 Phase 1: 글자 크기가 S2 단계로 바뀐 토큰 (2xs 11 · 2xl 22 · 3xl 25 · 4xl 28) 은 그 토큰의 행간을
- * 그대로 — Phase 3 에서 이 표 대신 `s2LineHeight` (`PRE_PHASE3_LINE_HEIGHT` 와 함께 지운다).
  */
-const FONT_SIZE_TO_LINE_HEIGHT: Record<number, number> = {
-  10: 16,
-  11: 16,
-  12: 16,
-  14: 20,
-  16: 24,
-  18: 28,
-  20: 28,
-  22: 32,
-  24: 32,
-  25: 36,
-  28: 40,
-  30: 36,
-  36: 40,
-  48: 48,
-};
-
 export function getLabelLineHeight(fontSize: number): number {
-  return FONT_SIZE_TO_LINE_HEIGHT[fontSize] ?? Math.ceil(fontSize * 1.5);
+  return s2LineHeight(fontSize);
 }
 
 /**

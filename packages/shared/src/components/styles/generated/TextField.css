@@ -73,19 +73,19 @@
 /* ── Tier 2: Composite Delegation ── */
 
 .react-aria-TextField[data-size="S"] {
-  --tf-side-label-offset: 3px;
+  --tf-side-label-offset: var(--catalog-token-field-side-label-offset-S, 4px);
 }
 
 .react-aria-TextField[data-size="M"] {
-  --tf-side-label-offset: 5px;
+  --tf-side-label-offset: var(--catalog-token-field-side-label-offset-M, 7px);
 }
 
 .react-aria-TextField[data-size="L"] {
-  --tf-side-label-offset: 9px;
+  --tf-side-label-offset: var(--catalog-token-field-side-label-offset-L, 10px);
 }
 
 .react-aria-TextField[data-size="XL"] {
-  --tf-side-label-offset: 13px;
+  --tf-side-label-offset: var(--catalog-token-field-side-label-offset-XL, 13px);
 }
 
 .react-aria-TextField[data-label-position="side"] {

@@ -116,6 +116,8 @@ size 키: XS 35 · S 102 · M 130 · L 101 · XL 58 · XXL 3.
 
 ### Phase 3 — rule 리터럴 참조화 · 정적 게이트 (G3 · G4)
 
+> **하위 커밋 (2026-10-30 실행 판단 — 사후 보고)**: 3a 행간 식 + control 높이 토큰 (같은 커밋 — 아래 첫 항목) · 3b 남은 리터럴 참조화 (radius · iconSize · minHeight · minWidth · fontSize) + ratchet + `d3S2Alignment` · 3c 값의 형 (`{ ofHeight }` · `{ em }` · `touch`) + padding · gap 정렬 (사용자 결정 1) + 컴포넌트 글자 매핑 (G4 c) · 3d 숨은 사본 (`collectionItemMetrics`) · spacing 맵 판정 · `paletteBaseCanvas` 은퇴. 3a 기록은 §6.3.
+
 - **행간 식 (사용자 결정 2) 도 이 Phase 의 커밋에서** (2026-10-30 순서 변경 — §6.1): `PRE_PHASE3_LINE_HEIGHT` · `getLabelLineHeight` 의 표를 지우고 `s2LineHeight` 로, field · stepper · Calendar · toggle 의 높이를 S2 control 높이 토큰으로 묶는 것과 같은 커밋. 컴포넌트별 글자 매핑 (Heading · Dialog 제목 · AvatarGroup 라벨 …) 도 G4 (c) oracle 로 여기서.
 
 - `componentRulesTable.ts`: height · minHeight · iconSize · radius 리터럴 · lineHeight 리터럴 → 토큰 참조, padding · gap · inset 은 Phase 0 형 표대로 (`{ ofHeight }` · `{ em: [px, 기준] }` · 고정 숫자) 와 S2 의 `touch:` 조건이 있는 자리는 `touch` override (`{ em: [6, 14], touch: { em: [8, 17] } }` — round 2 H1) — codemod 스크립트 + 표 대조, 손 편집 · 손 분류 금지. S2 단에 없는 값은 `INTENTIONAL_LITERAL` (사유) 등재. rule 값 타입 (`packages/shared/src/catalog/types.ts`) 에 상대 형 2 와 `touch` 조건부를 더한다.
@@ -284,12 +286,43 @@ size 키: XS 35 · S 102 · M 130 · L 101 · XL 58 · XXL 3.
 
 **관찰**:
 
-- `generated/Image.css` 등 2 장은 옛 spec 시대 생성물로 어디서도 import 되지 않는다 (생성 목록 102 밖) — 이번 이름 변경 대상 밖. 삭제는 별도 승인.
+- `generated/Image.css` 등 2 장은 옛 spec 시대 생성물로 어디서도 import 되지 않는다 (생성 목록 102 밖) — 이번 이름 변경 대상 밖. 삭제는 별도 승인. → 2026-10-30 사용자 승인으로 삭제 (§6.3).
 - `paletteBaseCanvas.browser` 는 HEAD 에서도 FAIL (ADR-248 frozen 옛 Canvas PNG — 은퇴 대상, §6.0) 이고 실행하면 추적 파일 `docs/adr/design/248-phase3-palette-base-canvas.json` 을 다시 쓴다.
 - `propAxisCanvasDom` 5 (Select · Tree · Table) 는 HEAD 와 같은 실패.
 
+### 6.3 Phase 3a (2026-10-30, 행간 식 + control 높이)
+
+**옛 생성 파일 삭제 (사용자 승인 2026-10-30)**: 생성기가 더는 내지 않는 `generated/Image.css` (미로드 E) · `generated/Label.css` (skipCSSGeneration — 주석뿐, `styles/index.css` 가 import) 를 지우고 import 한 줄과 로드 인벤토리 게이트 (생성 103 · index 82 · 미로드 21) 를 맞췄다.
+
+**변경**:
+
+| 영역 | 파일 | 내용 |
+| --- | --- | --- |
+| 행간 식 (사용자 결정 2) | `rendering/primitives/typography.ts` | `PRE_PHASE3_LINE_HEIGHT` · `FONT_SIZE_TO_LINE_HEIGHT` 삭제 — 모든 `--line-height` 토큰 · `getLabelLineHeight` = `s2LineHeight` (14 → 18 · 16 → 20 · 18 → 22) |
+| control 높이 토큰 | `rendering/primitives/device.ts` · `tokenResolver.ts` · `shared/runtime/{resolveThemeSnapshot,themeMaps}.ts` | `{size.height.<S>}` — Skia `size` 맵 (테마 설치가 교체, `touchThemeSnapshot` 은 × 1.25) · DOM `var(--catalog-token-size-height-<S>)` (chrome 이름 없음 — 처음부터 catalog 이름) · `cssVarToTokenRef` 역변환 |
+| control 상자 | `componentRulesTable.ts` (Input · DateInput · Button · ToggleButton · Tag) | `minHeight: "{size.height.<S>}"` + paddingY = S2 가운데 (높이 − 줄 − 테두리 × 2) / 2 (XS 2 · S 3 · M 6 · L 9 · XL 12) — desktop 20 · 24 · 32 · 40 · 48 |
+| S2 padding 식 한 곳 | `rendering/renderers/utils/controlPadding.ts` (`s2ControlPaddingY`) · `CSSGenerator.ts` (`controlPaddingBlock`) | 생성 CSS 는 식을 변수로 (`calc((var(--…-size-height-M) - var(--…-text-sm) * var(--…-text-sm--line-height) - 2 * var(--border-width-thin)) / 2)`) — 터치 8 · 빌더 고정값 4 가 저절로. Canvas 정의 (`resolveCatalogRuleCanvasBox` · Button 정의 · TextArea rows 높이 · prefix 상자) 는 같은 식을 설치된 맵에서. rule 숫자 paddingY 는 desktop 결과 — 식과 갈리면 생성이 멈춘다 |
+| 증감 버튼 · 범위 상자 | NumberField `--nf-btn-size` · DateRangePicker Group | control 높이 토큰. field 안 버튼 · 범위 안 DateInput 은 `min-height: 0` (S2 에서 Button · control 이 아닌 자리 — 배치, ADR-253 게이트의 배치 집합에 `min-height` 추가) |
+| 행간 리터럴 참조화 (19) | Tag · MeterValue · ProgressBarValue · SliderOutput · Column · Cell | 옛 행간 px → 짝 행간 토큰 (Column · Cell 글자 16 → `text-base`). Table 행 S2 32 · 40 · 48 유지 — density paddingY 6 · 10 · 14 |
+| 토큰 출처 (Phase 2 확장) | `ruleDefinition.ts` · `codeCatalogLibrary.ts` · `rulePartRules.ts` · `deviceTypography.ts` · `domBinding.runtime.ts` | minHeight · part rule 의 width · height 를 토큰 값으로 → DOM `catalogDeviceControlCss` (높이 변수 + padding 식) · `catalogDeviceRowsHeightCss` (TextArea rows = (rows − 1) × 줄 + 높이). Disclosure 제목 · 패널 글자도 size 토큰 참조 |
+| 옛 값에 묶인 리터럴 | Tree 행 내용 paddingY · Calendar 월/연 trigger 시작 8 · TextArea side 라벨 위치 | Tree: max(4, (32 − 줄) / 2) · Calendar: 사용자 값 8 상수 (종전 「Button paddingY × 2」) · side 라벨: 4 · 7 · 10 · 13 (per-size `--catalog-token-field-side-label-offset-*` fallback) |
+| 빌더 고정 (Decision 8 · 9) | `builder-catalog-vars.css` | `--catalog-token-size-height-*` 20 · 22 · 30 · 42 · 54 (295 전 한 줄 상자) · side 라벨 3 · 5 · 9 · 13 · `--catalog-token-drp-group-min-height: auto`. 게이트 (c) 는 calc · 행간 비율을 계산값으로 비교 (`normalizedEntries`), 새 선언은 효과 없는 `min-height` (빌더 control 높이 · `0` · `auto`) 만 허용 |
+
+**G2 두 arm (`adr295PaletteSymmetry`, Chromium · DPR 1)**:
+
+- desktop 263/263 — 새 비대칭 0. 295 전부터의 목록에서 Menu@S 가 대칭이 되어 뺐다 (23).
+- touch 263/263 — 알려진 터치 차이 14 → 2: Card · CardView · DateRangePicker S ~ XL 12 가 행간 식으로 닫혔다. 남은 것 DateRangePicker XS (구분 글자의 다른 단계 행간 비율) · ColorSlider M (Phase 2 부터).
+- 경과 (터치 arm 새 비대칭): 50 (Button min-height 를 Canvas 정의가 버림 — Button 전용 정의 빌더) → 30 (DOM 이 record 의 desktop px 를 inline — 토큰 출처를 minHeight · padding 으로 확장) → 25 (증감 버튼 · TextArea · Tag 행간 리터럴) → 0.
+- 과정에서 드러난 Phase 2 잔여 결함 2: Disclosure 제목 · TagGroup 라벨의 DOM 글자가 터치에서 안 커졌다 — 옛 고정 행간 20 이 두 leg 높이를 같게 가려 Phase 2 측정에 안 보였다.
+
+**높이 변화 (desktop, Canvas = DOM)**: Button · ToggleButton(Group) · ButtonGroup S 22 → 24 · M 30 → 32 · L 42 → 40 · XL 54 → 48. field 입력칸 · 증감 버튼 · DateRangePicker 상자 같은 값. Text 줄 M 24 → 20 · Label 20 → 18. Tag 30 → 32. 남은 S2 차이 (3b · 3c): Select trigger L · XL 44 · 54 (chevron 아이콘 24 · 28 이 줄보다 큼 — 아이콘 크기는 3b) · ComboBox · picker 안 버튼 크기 (22 = 옛 30 − 8 리터럴, 3c) · toggle indicator (S2 14 · 16 · 18 · 20, 3c).
+
+**회귀**: type-check PASS · rendering 1,320 · shared 2,037 · builder unit 7,145 (chromeIsland.static 1 — HEAD 와 같음) · parity 1,000 (GeometryDelta case 2 — HEAD 와 같음) · G3 (propAxisCanvasDom 5 Select · Tree · Table · paletteBaseCanvas — HEAD 와 같음). 값 단언 갱신 ~25 파일 (높이 30 → 32 · 행간 20 → 18 · padding 4 → 6 — 불변식 테스트 (Table 행 32 · 40 · 48, Tag 한 줄 상자 = control 높이) 는 식으로 바꿨다).
+
+**live (Chrome MCP, 별도 dev 서버 5175 · 프로젝트 `adr295-live`)**: 팔레트로 Button 추가 → Canvas 68 × 32 · Input 32 · padding 6 · 행간 18. 빌더 root `--catalog-token-size-height-M 30px` · side 라벨 5px · drp `auto` (고정값). Compare Mode Preview: Input · Button 32 · padding 6 · 행간 18 · min-height 32. 「터치 크기로 미리보기」 켬: Input · Button 40 · padding 8 · 행간 22 · 글자 17 · Label 22 (S2 터치 값), Canvas Button 32 그대로. 끔: 32 로 복귀. 콘솔 오류 0. 추가한 Button 은 삭제 명령으로 정리.
+
 - G1 before/after: §6.1
-- G2 두 arm: §6.2
+- G2 두 arm: §6.2 · Phase 3a §6.3
 - G4 (b) 최종 snapshot (preset 5 × 델타) · (c) 컴포넌트별 desktop/touch vs S2 computed: (미작성)
 - G5 빌더 chrome before/after Δ (패널 표면 + 위젯 CompactSelect · PropertySelect · Data RowForm, desktop · pointer: coarse 두 조건): (미작성)
 - Decision 9 게이트 (a) 커버리지 · (b) pointer 쿼리 0 · (c) 계산값 == 기준 JSON · RED: §6.2

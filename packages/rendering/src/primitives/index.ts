@@ -79,6 +79,8 @@ export {
   S2_TOUCH_MEDIA,
   S2_CONTROL_HEIGHT,
   s2ControlHeights,
+  s2SizeTokens,
+  size,
 } from "./device";
 export type { S2Device } from "./device";
 

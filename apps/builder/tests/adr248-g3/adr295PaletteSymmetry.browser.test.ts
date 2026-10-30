@@ -455,7 +455,7 @@ const KNOWN_ASYMMETRIC = new Set([
   "Pagination@S",
   "Pagination@M",
   "Pagination@L",
-  "Menu@S",
+  // (Menu@S: the trigger Button's line box — closed by ADR-295 Phase 3, the S2 control height.)
   "Autocomplete",
   "Select@XS",
   "Select@S",
@@ -468,28 +468,12 @@ const KNOWN_ASYMMETRIC = new Set([
 ]);
 
 /**
- * touch arm 만의 알려진 차이 (Phase 2 종결 시점, 2026-10-30) — Phase 3 에서 닫는다:
- * - Card · CardView · DateRangePicker: 행간이 **다른 단계** 토큰의 비율로 빌드 때 숫자가 된다 (Text 기본의
- *   text-base 행간 · Card 의 글자 px 리터럴 + 토큰 행간). 터치에서 Canvas 는 그 토큰의 터치 비율, DOM 은
- *   숫자 비율을 써 줄 상자가 갈린다 — Phase 3 행간 식 (글자 크기의 함수, 사용자 결정 2) · 리터럴 참조화로 닫힌다.
+ * touch arm 만의 알려진 차이. Phase 2 종결 때 14 (Card · CardView · DateRangePicker 13 = 다른 단계 토큰의
+ * 행간 비율 + ColorSlider M) — Phase 3 의 S2 행간 식 · 행간 리터럴 참조화로 12 가 닫혔다 (2026-10-30). 남은 것:
+ * - DateRangePicker XS: 범위 구분 글자 (`–`) 의 행간이 다른 단계 (text-xs) 의 비율로 빌드 때 숫자가 된다.
  * - ColorSlider M: DOM Label 의 inline 글자가 px 로 남는다 (record 의 토큰 출처는 있음 — 렌더 경로 추적 미완).
  */
-const KNOWN_TOUCH_ASYMMETRIC = new Set([
-  "Card@XS",
-  "Card@S",
-  "Card@M",
-  "Card@L",
-  "Card@XL",
-  "CardView@S",
-  "CardView@M",
-  "CardView@L",
-  "DateRangePicker@XS",
-  "DateRangePicker@S",
-  "DateRangePicker@M",
-  "DateRangePicker@L",
-  "DateRangePicker@XL",
-  "ColorSlider@M",
-]);
+const KNOWN_TOUCH_ASYMMETRIC = new Set(["DateRangePicker@XS", "ColorSlider@M"]);
 const knownAsymmetric = (key: string) =>
   KNOWN_ASYMMETRIC.has(key) ||
   (DEVICE === "touch" && KNOWN_TOUCH_ASYMMETRIC.has(key));

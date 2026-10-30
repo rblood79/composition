@@ -468,10 +468,15 @@ describe("TransformSection sizing controls", () => {
     // Min W 도 blank — Button rule 의 sizes.minWidth (Spectrum 1 의 2.25×height 하한, md 68) 는
     //   2026-10-14 사용자 결정으로 뺐다 (S2 1.8.1 Button 에 min-width 없음). 전에는 그 값이
     //   spec default 로 표시됐다 (ADR-082 A2 — inline 없으면 specPreset fallback).
-    for (const label of ["Min W", "Max W", "Min H", "Max H"]) {
+    for (const label of ["Min W", "Max W", "Max H"]) {
       const input = screen.getByRole("combobox", { name: label });
       expect((input as HTMLInputElement).value).toBe("");
     }
+    // Min H 는 rule 의 S2 control 높이 (`{size.height.M}` — ADR-295 Phase 3) 를 기본값으로 보인다.
+    expect(
+      (screen.getByRole("combobox", { name: "Min H" }) as HTMLInputElement)
+        .value,
+    ).toBe("32");
   });
 
   it("omits rem from every Min/Max constraint unit menu", async () => {

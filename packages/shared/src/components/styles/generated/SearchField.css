@@ -180,6 +180,7 @@
 .react-aria-SearchField .react-aria-Button {
   width: var(--sf-btn-size);
   height: var(--sf-btn-size);
+  min-height: 0;
   min-width: 0;
   margin-inline-start: var(--sf-btn-offset);
 }

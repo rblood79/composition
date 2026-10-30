@@ -14,11 +14,15 @@ import { SEMANTIC_PALETTE_MAP } from "../../primitives/semanticPaletteMap";
 import { spacing } from "../../primitives/spacing";
 import { typography } from "../../primitives/typography";
 import { radius } from "../../primitives/radius";
+import { size } from "../../primitives/device";
 import { lightShadows, darkShadows } from "../../primitives/shadows";
 import {
   borderWidth,
   DEFAULT_BORDER_WIDTH_TOKEN,
 } from "../../primitives/border";
+
+/** `{size.height.M}` 의 DOM 변수 접두 (`--catalog-token-size-height-M`). */
+const CATALOG_SIZE_VAR_PREFIX = "--catalog-token-size-";
 
 /**
  * 토큰 참조를 실제 값으로 변환
@@ -47,6 +51,13 @@ export function resolveToken(
       return typography[name as keyof typeof typography];
     case "radius":
       return radius[name as keyof typeof radius];
+    // ADR-295 Phase 3: `{size.height.<S>}` — S2 control 높이. 맵은 테마 설치가 기기 벌로 바꾼다.
+    case "size": {
+      const px = size[name];
+      if (typeof px === "number") return px;
+      console.warn(`Unknown size token: ${ref}`);
+      return ref;
+    }
     // ADR-166 Phase 1: shadow 도 color 와 동일하게 theme 분기.
     //   구 flat map 은 CSS 변수(--shadow-* 는 light/dark 값이 다름)와 어긋나
     //   같은 토큰이 CSS 축과 Skia 축에서 서로 다른 값을 의미했다.
@@ -319,6 +330,9 @@ export function tokenToCSSVar(ref: TokenRef): string {
       return `var(--${name === "text-md" ? "text-base" : name})`;
     case "radius":
       return `var(--radius-${name})`;
+    // ADR-295 Phase 3: 사용자 컴포넌트 전용 — chrome 이름이 없어 처음부터 `--catalog-token-*` (Decision 9).
+    case "size":
+      return `var(${CATALOG_SIZE_VAR_PREFIX}${name.replace(/\./g, "-")})`;
     case "shadow":
       return `var(--shadow-${name})`;
     // ADR-227 Phase 3: `{border.width.thin}` → `var(--border-width-thin)`
@@ -350,6 +364,8 @@ export function tokenToCSSVar(ref: TokenRef): string {
  */
 export function cssVarToTokenRef(cssVar: string): TokenRef | null {
   if (typeof cssVar !== "string") return null;
+  const sizeVar = /^var\(--catalog-token-size-(height)-([A-Z]+)\)$/.exec(cssVar);
+  if (sizeVar) return `{size.${sizeVar[1]}.${sizeVar[2]}}` as TokenRef;
   const match = cssVar.match(/^var\(--([a-z][a-z0-9-]*)\)$/);
   if (!match) return null;
   const name = match[1];

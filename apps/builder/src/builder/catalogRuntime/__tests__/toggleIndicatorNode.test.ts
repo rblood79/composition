@@ -72,26 +72,28 @@ const EXPECTED: Record<
     }
   >
 > = {
+  // ADR-295 Phase 3: the Label line is the S2 line-height formula (14 → 18), centred in the row —
+  //   label y = (indicator − line) / 2.
   Checkbox: {
     S: { box: [16, 16], height: 16, labelX: 22, labelY: 0, indicatorY: 0 },
-    M: { box: [20, 20], height: 20, labelX: 28, labelY: 0, indicatorY: 0 },
-    L: { box: [24, 24], height: 24, labelX: 34, labelY: 0, indicatorY: 0 },
+    M: { box: [20, 20], height: 20, labelX: 28, labelY: 1, indicatorY: 0 },
+    L: { box: [24, 24], height: 24, labelX: 34, labelY: 2, indicatorY: 0 },
     // was height 28 · label y 0 (the 30px box overflowed the row)
-    XL: { box: [30, 30], height: 30, labelX: 42, labelY: 1, indicatorY: 0 },
+    XL: { box: [30, 30], height: 30, labelX: 42, labelY: 4, indicatorY: 0 },
   },
   RadioGroup: {
     S: { box: [16, 16], height: 16, labelX: 22, labelY: 0, indicatorY: 0 },
-    M: { box: [20, 20], height: 20, labelX: 28, labelY: 0, indicatorY: 0 },
-    L: { box: [24, 24], height: 24, labelX: 34, labelY: 0, indicatorY: 0 },
-    XL: { box: [30, 30], height: 30, labelX: 42, labelY: 1, indicatorY: 0 },
+    M: { box: [20, 20], height: 20, labelX: 28, labelY: 1, indicatorY: 0 },
+    L: { box: [24, 24], height: 24, labelX: 34, labelY: 2, indicatorY: 0 },
+    XL: { box: [30, 30], height: 30, labelX: 42, labelY: 4, indicatorY: 0 },
   },
   Switch: {
     // was height 24 · label y 4 (the track painted at y 0, above the padding)
     S: { box: [32, 18], height: 26, labelX: 40, labelY: 5, indicatorY: 4 },
-    M: { box: [36, 20], height: 28, labelX: 46, labelY: 4, indicatorY: 4 },
-    L: { box: [44, 24], height: 32, labelX: 56, labelY: 4, indicatorY: 4 },
+    M: { box: [36, 20], height: 28, labelX: 46, labelY: 5, indicatorY: 4 },
+    L: { box: [44, 24], height: 32, labelX: 56, labelY: 6, indicatorY: 4 },
     // was height 36 · label y 4
-    XL: { box: [52, 30], height: 38, labelX: 66, labelY: 5, indicatorY: 4 },
+    XL: { box: [52, 30], height: 38, labelX: 66, labelY: 8, indicatorY: 4 },
   },
 };
 

@@ -177,10 +177,12 @@ async function open(type: string, inForm?: "side" | "top") {
 
 describe("Select side row extent", () => {
   it.each([
+    // (ADR-295 Phase 3: the S2 control heights. L · XL: the trigger's chevron Icon (the Button's
+    //   iconSize 24 · 28) is taller than its line — the S2 icon sizes are Phase 3b's.)
     ["XS", 20],
-    ["S", 22],
-    ["M", 30],
-    ["L", 42],
+    ["S", 24],
+    ["M", 32],
+    ["L", 44],
     ["XL", 54],
   ] as const)(
     "%s: top/side edits keep the trigger, label and following hint in their row",
@@ -218,9 +220,10 @@ describe.each(FIELDS)("S2 %s side label", (type) => {
     // first item's line (the top).
     if (type === "CheckboxGroup" || type === "RadioGroup")
       expect(label.y).toBe(control.y);
-    // A TextArea's label at the textarea's first line — its top, below the border + padding (M: 5)
-    // — not its middle (사용자 2026-10-10 「Text Area 는 상단 위치해야하지만 여백은 가져야 한다」).
-    else if (type === "TextArea") expect(label.y - control.y).toBe(5);
+    // A TextArea's label at the textarea's first line — its top, below the border + padding (M: 7 —
+    // ADR-295 Phase 3, the S2 centring padding 6 + 1) — not its middle (사용자 2026-10-10 「Text Area
+    // 는 상단 위치해야하지만 여백은 가져야 한다」).
+    else if (type === "TextArea") expect(label.y - control.y).toBe(7);
     else
       expect(label.y + label.height / 2).toBeCloseTo(
         control.y + control.height / 2,

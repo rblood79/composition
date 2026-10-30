@@ -16,6 +16,7 @@ export {
   catalogTokenVarName,
   withCatalogTokenVars,
 } from "./CSSGenerator";
+export { s2ControlPaddingY } from "./utils/controlPadding";
 // ADR-248 Phase 3: archetype base CSS (root + child selectors) — the typed part-rule compiler
 //   reads the same declarations the generator emits.
 export { ARCHETYPE_BASE_STYLES } from "./CSSGenerator";

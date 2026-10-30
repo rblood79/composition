@@ -14,6 +14,7 @@ import {
   cssVarToTokenRef,
   isValidTokenRef,
   resolveBorderWidthPx,
+  s2ControlPaddingY,
   resolveToken,
   type TokenRef,
 } from "@composition/rendering";
@@ -200,9 +201,11 @@ export function resolveCatalogRuleCanvasBox(
   // describes another element (the popover list), so its padding does not stand in for the size
   // axis here — the generated CSS skips it for that other element only.
   if ((topLevelBox || !sizeAxisSkip?.padding) && !has("padding")) {
-    if (typeof sizeRecord.paddingY === "number") {
-      assign("paddingTop", sizeRecord.paddingY);
-      assign("paddingBottom", sizeRecord.paddingY);
+    // ADR-295 Phase 3: an S2 control box centres its line in the installed control height.
+    const paddingY = s2ControlPaddingY(sizeRecord) ?? sizeRecord.paddingY;
+    if (typeof paddingY === "number") {
+      assign("paddingTop", paddingY);
+      assign("paddingBottom", paddingY);
     }
     if (typeof sizeRecord.paddingX === "number") {
       assign("paddingLeft", sizeRecord.paddingX);
@@ -248,7 +251,10 @@ export function catalogTextAreaInputHeight(
       ? undefined
       : resolveCatalogLayoutValue(size.lineHeight);
   if (typeof lineHeight !== "number") return undefined;
-  const padY = typeof size?.paddingY === "number" ? size.paddingY : 0;
+  // (ADR-295 Phase 3: the S2 centring padding in the installed control height.)
+  const padY =
+    (size && s2ControlPaddingY(size)) ??
+    (typeof size?.paddingY === "number" ? size.paddingY : 0);
   const border = resolveBorderWidthPx(size?.borderWidth);
   const rows =
     typeof rawRows === "number" && Number.isFinite(rawRows)

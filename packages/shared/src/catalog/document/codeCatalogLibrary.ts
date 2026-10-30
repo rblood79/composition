@@ -1,6 +1,10 @@
 import { LIBRARY_CONTRACT_VERSION } from "./types";
 import { scalarFitsType } from "./valueType";
-import { resolveToken, type TokenRef } from "@composition/rendering";
+import {
+  resolveToken,
+  s2ControlPaddingY,
+  type TokenRef,
+} from "@composition/rendering";
 import { componentCatalog } from "../componentCatalog";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import { codeExecutionVocabulary } from "./executionVocabulary";
@@ -49,7 +53,7 @@ export type CodeCatalogSupportedType =
 
 function sourceToken(
   value: unknown,
-  field: "color" | "fontSize" | "radius",
+  field: "color" | "fontSize" | "radius" | "minHeight",
   theme: "light" | "dark",
   tokens: Map<LibraryTokenId, LibraryToken>,
 ) {
@@ -200,8 +204,15 @@ function buttonDefinition(
         : {}),
       // (A size without a floor writes none — the Button rule has no minWidth since 2026-10-14.)
       ...(values.minWidth !== undefined ? { minWidth: values.minWidth } : {}),
+      // ADR-295 Phase 3: the S2 control height (`{size.height.<S>}` — the generated CSS `min-height`).
+      ...(values.minHeight !== undefined
+        ? {
+            minHeight: sourceToken(values.minHeight, "minHeight", theme, tokens),
+          }
+        : {}),
       paddingX: values.paddingX,
-      paddingY: values.paddingY,
+      // ADR-295 Phase 3: the S2 centring padding in the installed control height (desktop = the rule's).
+      paddingY: s2ControlPaddingY(values) ?? values.paddingY,
       gap: values.gap,
     };
   const variants: Record<string, VisualValues> = {};
@@ -680,6 +691,19 @@ function withRuleParts(
                         ),
                       }
                     : {}),
+                  // ADR-295 Phase 3: an S2 control height (`compileDeclarations`) is a token value
+                  ...Object.fromEntries(
+                    (["width", "height", "minHeight"] as const)
+                      .filter(
+                        (key) =>
+                          typeof part.visual[key] === "string" &&
+                          /^\{size\.[^{}]+\}$/.test(part.visual[key] as string),
+                      )
+                      .map((key) => [
+                        key,
+                        sourceToken(part.visual[key], "minHeight", theme, tokens),
+                      ]),
+                  ),
                 } as VisualValues,
               }
             : {}),

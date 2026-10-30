@@ -369,6 +369,7 @@ describe("ADR-257 Phase 3 — a palette Table (its origin's template nodes)", ()
     expect(column.props.overflowMode).toBe("wrap");
     expect(column.visual.whiteSpace).toBe("normal");
     expect(column.props.density).toBe("compact");
-    expect(column.visual.paddingY).toBe(4);
+    // (ADR-295 Phase 3: compact 6 — the S2 row 32 over the line 20.)
+    expect(column.visual.paddingY).toBe(6);
   });
 });

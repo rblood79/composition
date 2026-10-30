@@ -1,4 +1,8 @@
-import { resolveToken, type TokenRef } from "@composition/rendering";
+import {
+  resolveToken,
+  s2ControlPaddingY,
+  type TokenRef,
+} from "@composition/rendering";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import type { ComponentRule } from "../../types/catalog-style.types";
 import type { CatalogConsumerNode } from "./compositionRoot";
@@ -122,13 +126,14 @@ function inputBox(size: unknown) {
   const line = px(spec.lineHeight);
   const lineHeight = line > 4 ? line : Math.round(fontSize * line);
   const paddingX = px(spec.paddingX);
-  const paddingY = px(spec.paddingY);
+  // (ADR-295 Phase 3: the S2 centring padding in the installed control height.)
+  const paddingY = s2ControlPaddingY(spec) ?? px(spec.paddingY);
   const borderWidth = px(spec.borderWidth);
   return {
     paddingX,
     paddingY,
     borderWidth,
-    /** The one-line box's height: line + padding + border (md 20 + 8 + 2 = 30). */
+    /** The one-line box's height: line + padding + border (md 18 + 12 + 2 = 32 — S2 control height). */
     height: lineHeight + 2 * paddingY + 2 * borderWidth,
   };
 }

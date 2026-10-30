@@ -317,7 +317,9 @@ function sizeVisual(
   if (typeof size.fontWeight === "number") set("fontWeight", size.fontWeight);
   set("borderWidth", box.borderAt(sizeName));
   set("minWidth", pixels(size.minWidth, theme));
-  set("minHeight", pixels(size.minHeight, theme));
+  // ADR-295 Phase 3: a `{size.height.<S>}` minimum stays a token use — the resolver remembers it and
+  //   the DOM writes the device variable (`catalogDeviceControlCss`), as for a token font size.
+  set("minHeight", lengthValue(size.minHeight, theme, tokens));
   set("iconSize", pixels(size.iconSize, theme));
   set("iconGap", pixels(size.iconGap, theme));
   return visual as VisualValues;

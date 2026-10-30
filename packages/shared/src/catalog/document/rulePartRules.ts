@@ -345,6 +345,12 @@ function lengthPx(value: string): number | undefined {
   return undefined;
 }
 
+/** `var(--catalog-token-size-height-<S>)` → `{size.height.<S>}` (ADR-295 Phase 3), else null. */
+function sizeHeightRef(value: string): string | null {
+  const ref = cssVarToTokenRef(value.trim());
+  return ref?.startsWith("{size.") ? ref : null;
+}
+
 /** Substitutes owner variables (`--select-btn-font-size` …) and `var(--x, fallback)` defaults. */
 function substitute(
   value: string,
@@ -526,7 +532,10 @@ function compileDeclarations(
         layout[key === "row-gap" ? "rowGap" : "columnGap"] = `${px}px`;
     } else if (key === "width" || key === "height") {
       const px = lengthPx(value);
-      if (px !== undefined) visual[key] = px;
+      // ADR-295 Phase 3: an S2 control height keeps its ref (the library makes it a token value —
+      //   the DOM writes the device variable, as for a token font size).
+      const sizeRef = sizeHeightRef(value);
+      if (px !== undefined) visual[key] = sizeRef ?? px;
       else if (/^(\d+(?:\.\d+)?%|fit-content|auto)$/.test(value))
         visual[key] = value;
     } else if (key === "min-width" || key === "min-height") {
@@ -536,7 +545,7 @@ function compileDeclarations(
       if (value === "auto") visual[field] = "auto";
       else {
         const px = lengthPx(value);
-        if (px !== undefined) visual[field] = px;
+        if (px !== undefined) visual[field] = sizeHeightRef(value) ?? px;
       }
     } else if (key === "max-width" || key === "max-height") {
       const px = lengthPx(value);
@@ -1141,13 +1150,23 @@ function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
       trigger["font-size"] === "inherit"
         ? px(rule.sizes[size]?.fontSize)
         : undefined;
+    // ADR-295 Phase 3: the size's typography token keeps its ref (a token value in the library — the
+    //   DOM writes its device variable, so the title follows the touch set as the inherited sheet font
+    //   does; a px went inline and stayed desktop).
+    const sizeFont = rule.sizes[size]?.fontSize;
+    const fontValue =
+      fontSize !== undefined &&
+      typeof sizeFont === "string" &&
+      /^\{typography\.[^{}]+\}$/.test(sizeFont)
+        ? sizeFont
+        : fontSize;
     const font = {
-      ...(fontSize !== undefined ? { fontSize } : {}),
+      ...(fontValue !== undefined ? { fontSize: fontValue } : {}),
       ...(lineHeight !== undefined ? { lineHeight } : {}),
     };
     const sizeLine = px(rule.sizes[size]?.lineHeight);
     const panelFont = {
-      ...(fontSize !== undefined ? { fontSize } : {}),
+      ...(fontValue !== undefined ? { fontSize: fontValue } : {}),
       ...(fontSize && sizeLine ? { lineHeight: sizeLine / fontSize } : {}),
     };
     return typeof icon === "number"
@@ -1223,6 +1242,8 @@ function contextualHelpPartRules(parentType: string): CompiledPartRule[] {
             width: box,
             height: box,
             minWidth: 0,
+            // (ADR-295 Phase 3: an ActionButton square — not the Button's S2 min-height.)
+            minHeight: 0,
             paddingTop: 0,
             paddingRight: 0,
             paddingBottom: 0,

@@ -29,7 +29,7 @@
   padding: 0px 0px;
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
-  line-height: 20px;
+  line-height: var(--catalog-token-text-sm--line-height);
 }
 
 .react-aria-MeterValue[data-variant="informative"] {
@@ -88,28 +88,28 @@
   padding: 0px 0px;
   font-size: var(--catalog-token-text-xs);
   border-radius: var(--catalog-token-radius-none);
-  line-height: 16px;
+  line-height: var(--catalog-token-text-xs--line-height);
 }
 
 .react-aria-MeterValue[data-size="M"] {
   padding: 0px 0px;
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
-  line-height: 20px;
+  line-height: var(--catalog-token-text-sm--line-height);
 }
 
 .react-aria-MeterValue[data-size="L"] {
   padding: 0px 0px;
   font-size: var(--catalog-token-text-base);
   border-radius: var(--catalog-token-radius-none);
-  line-height: 24px;
+  line-height: var(--catalog-token-text-base--line-height);
 }
 
 .react-aria-MeterValue[data-size="XL"] {
   padding: 0px 0px;
   font-size: var(--catalog-token-text-lg);
   border-radius: var(--catalog-token-radius-none);
-  line-height: 28px;
+  line-height: var(--catalog-token-text-lg--line-height);
 }
 
 .react-aria-MeterValue[data-focus-visible] {

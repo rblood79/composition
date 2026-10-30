@@ -1046,8 +1046,8 @@ export interface SizeSpec {
   /** 최대 너비 (optional, px) — Spectrum guideline 수치 (ProgressBar 768 / Tooltip 160) */
   maxWidth?: number;
 
-  /** 최소 높이 (optional, px) */
-  minHeight?: number;
+  /** 최소 높이 (optional, px 또는 `{size.height.<S>}` — ADR-295 Phase 3) */
+  minHeight?: number | TokenRef;
 
   /** 비대칭 좌측 패딩 — paddingX 대신 사용 (optional, px) */
   paddingLeft?: number;

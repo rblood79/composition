@@ -24,6 +24,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 실제 CanvasKit surface에서 DPR 1/2 · zoom 1/1.7 · light/dark · 불투명/반투명 배경의 반복 편집·축소·삭제 결과를 전체 렌더와 픽셀 단위로 비교한다.
 
+## [ADR-295 Phase 3a — S2 행간 식 · 컨트롤 높이 20 · 24 · 32 · 40 · 48] - 2026-10-30
+
+### Changed
+
+- **글자 줄 높이가 S2 식으로** (ADR-295 Phase 3a · 사용자 결정 2): 14px 글자의 줄 20 → 18, 16px 24 → 20, 18px 28 → 22. 사용자 컴포넌트 (Canvas · Preview · Publish) 에만 — 빌더 화면은 그대로.
+- **컨트롤 높이가 S2 값으로** (ADR-295 Phase 3a): 입력칸 · 날짜 입력 · Button · ToggleButton · Tag · NumberField 증감 버튼 · 날짜 범위 상자가 XS 20 · S 24 · M 32 · L 40 · XL 48 (종전 20 · 22 · 30 · 42 · 54). 터치 기기 (와 Preview 「터치 크기로 미리보기」) 에서는 S2 처럼 1.25 배 (M 40) 이고, 글자는 높이 가운데에 선다. Canvas 는 늘 데스크톱 값.
+  - **Why**: 높이가 「줄 20 + padding 8 + 테두리 2」 의 우연한 합으로 정해져 있어, 줄만 S2 로 바꾸면 증감 버튼 (30 리터럴) 과 입력칸 (28) 이 어긋났다. 높이를 토큰 하나로 묶고 padding 을 그 높이에서 계산한다.
+  - 위치: `packages/rendering/src/renderers/utils/controlPadding.ts` · `primitives/device.ts` · `packages/shared/src/catalog/generated/componentRulesTable.ts`
+- **Table 행 높이는 S2 그대로 32 · 40 · 48** (compact · regular · spacious): 줄이 20 이 되어 세로 여백 6 · 10 · 14.
+- **옛 생성 CSS 파일 2 삭제** (사용자 승인): 생성기가 더 만들지 않는 `generated/Image.css` · `generated/Label.css`.
+
+### Fixed
+
+- **터치 기기에서 DOM 이 일부 크기를 데스크톱 값으로 고정하던 것**: 문서 해석이 숫자로 굳힌 높이 · padding · 증감 버튼 크기 · TextArea 행 높이 · Disclosure 제목 글자 · TagGroup 라벨 줄이 inline px 로 나가 터치 벌이 닿지 않았다 → 토큰에서 온 값은 기기 변수로 (Phase 2 의 「토큰 출처를 기억」 을 높이 · padding 으로 확장).
+- **Calendar 월 · 연도 선택 trigger 시작 여백이 Canvas 에서만 12 가 될 뻔한 것**: 「Button 세로 padding × 2」 로 계산하던 값을 사용자 값 8 상수로.
+
+### Tests
+
+- 생성기가 rule 의 숫자 padding 과 S2 식의 desktop 값을 대조 (갈리면 생성 실패) · `builderCatalogVars` 게이트 (c) 가 calc · 행간 비율을 계산값으로 비교 · G2 두 arm 263/263 (터치 알려진 차이 14 → 2). 상세 `docs/adr/design/295-d3-token-values-s2-alignment-breakdown.md` §6.3.
+
 ## [ADR-295 Phase 2 — 터치 기기 크기 두 벌 · Preview 「터치 크기로 미리보기」] - 2026-10-30
 
 ### Added

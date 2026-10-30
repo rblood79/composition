@@ -46,5 +46,24 @@
     --catalog-token-radius-xl: 12px;
     --catalog-token-radius-2xl: 16px;
     --catalog-token-radius-full: 9999px;
+
+    /* control 높이 (ADR-295 Phase 3): 295 전 빌더 위젯의 한 줄 control 상자 = 행간 + paddingY × 2 + 테두리 × 2
+       (XS 16 + 2 + 2 · S 16 + 4 + 2 · M 20 + 8 + 2 · L 24 + 16 + 2 · XL 28 + 24 + 2). 생성 시트의 S2 padding 식
+       (높이 − 글자 × 행간 − 테두리 × 2) / 2 이 이 값에서 295 전 padding 을 돌려준다. */
+    --catalog-token-size-height-XS: 20px;
+    --catalog-token-size-height-S: 22px;
+    --catalog-token-size-height-M: 30px;
+    --catalog-token-size-height-L: 42px;
+    --catalog-token-size-height-XL: 54px;
+
+    /* TextArea side 라벨의 첫 줄 위치 (테두리 + 위 padding — 295 전 S 2 · M 4 · L 8 · XL 12 + 1). 생성 시트는 이
+       변수에 S2 desktop 값을 fallback 으로 둔다 (Preview · Publish 는 선언하지 않는다). */
+    --catalog-token-field-side-label-offset-S: 3px;
+    --catalog-token-field-side-label-offset-M: 5px;
+    --catalog-token-field-side-label-offset-L: 9px;
+    --catalog-token-field-side-label-offset-XL: 13px;
+
+    /* DateRangePicker 범위 상자의 S2 control 높이 — 빌더 위젯은 295 전처럼 내용 높이 (초기값). */
+    --catalog-token-drp-group-min-height: auto;
   }
 }

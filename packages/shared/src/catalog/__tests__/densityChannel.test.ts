@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { resolveToken, type TokenRef } from "@composition/rendering";
 
 import { resolveCatalogDensityField } from "../resolvers/resolveCatalogContainer";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
@@ -70,9 +71,12 @@ describe("density 채널 — Table(Column/Cell)", () => {
     }
   });
 
-  it("행 높이가 Spectrum medium 계열(32/40/48)로 떨어진다 — 텍스트 24 + paddingY×2", () => {
+  it("행 높이가 Spectrum medium 계열(32/40/48)로 떨어진다 — 텍스트 줄 + paddingY×2", () => {
     const rowHeight = (density: string) => {
-      const lineHeight = COMPONENT_RULES_TABLE.Cell?.sizes.M?.lineHeight ?? 0;
+      // (ADR-295 Phase 3: 줄은 행간 토큰 — S2 식 16 → 20.)
+      const lineHeight = resolveToken(
+        COMPONENT_RULES_TABLE.Cell?.sizes.M?.lineHeight as TokenRef,
+      );
       const paddingY = resolveCatalogDensityField("Cell", density, "paddingY");
       return (lineHeight as number) + (paddingY as number) * 2;
     };

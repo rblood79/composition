@@ -133,6 +133,7 @@
   flex: 0 0 auto;
   width: var(--dp-btn-size);
   height: var(--dp-btn-size);
+  min-height: 0;
   min-width: 0;
   margin-inline-start: var(--dp-btn-offset);
 }

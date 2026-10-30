@@ -296,7 +296,8 @@ describe("ADR-259 Phase 2 — field prefix", () => {
         ...(group ? [group.id] : []),
       ]);
       const inputY =
-        boxes.get(input.id)!.y + (group ? boxes.get(group.id)!.y : 5);
+        // (no group: the Input's border + top padding — ADR-295 Phase 3, the S2 centring padding 6 + 1)
+        boxes.get(input.id)!.y + (group ? boxes.get(group.id)!.y : 7);
       expect(boxes.get(label.id)!.y).toBe(inputY);
       const { host, done } = await render();
       const variants = COMPONENT_RULES_TABLE.TextField.structure!.composition!
@@ -585,7 +586,8 @@ describe("ADR-259 Phase 2 — field prefix", () => {
             }).toEqual({
               borderWidth: "0px",
               corners: ["0px", "0px", "0px", "0px"],
-              height: "28px",
+              // (the box's 32 less its borders — ADR-295 Phase 3, the S2 control height)
+              height: "30px",
             });
         if (oracle.focusFromPrefixMouse !== undefined) {
           (document.activeElement as HTMLElement | null)?.blur?.();
@@ -753,7 +755,8 @@ describe("ADR-259 Phase 2 — field prefix", () => {
       );
       setPrefix("icon");
       const icon = recordOf("Icon").find((r) => r.props.slot === "prefix")!;
-      const line = { S: 16, M: 20, L: 24 }[size];
+      // (ADR-295 Phase 3: the S2 line-height formula.)
+      const line = { S: 16, M: 18, L: 20 }[size];
       expect(icon.visual).toMatchObject({
         width: line,
         height: line,

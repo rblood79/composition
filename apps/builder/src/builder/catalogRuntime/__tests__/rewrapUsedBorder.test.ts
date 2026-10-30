@@ -118,9 +118,10 @@ describe("text re-wrap width = the engine's used border", () => {
       borderColor: "#000000",
       borderStyle: "solid",
     };
-    // 91 wide, the 90 text (line 15): DPR 1 lays the content out in 89 → two lines + 1 + 1;
-    // DPR 2 keeps 0.5 a side → content 90, one line + 0.5 + 0.5.
-    expect(await textHeight(hairline, 91, 1)).toBe(32);
-    expect(await textHeight(hairline, 91, 2)).toBe(16);
+    // 91 wide, the 90 text (line 12.5 — the Text's text-base ratio 20 / 16, ADR-295 Phase 3): DPR 1
+    // lays the content out in 89 → two lines + 1 + 1; DPR 2 keeps 0.5 a side → content 90, one line +
+    // 0.5 + 0.5.
+    expect(await textHeight(hairline, 91, 1)).toBe(27);
+    expect(await textHeight(hairline, 91, 2)).toBe(13.5);
   });
 });

@@ -379,10 +379,14 @@ describe("ADR-295 Phase 2 — 기기 두 벌 · --catalog-token-*", () => {
       ),
     ).toEqual(["20px", "24px", "32px", "40px", "48px"]);
     expect(varOf(s, "--catalog-token-text-sm")).toBe("14px");
+    // (ADR-295 Phase 3: the S2 line-height formula — 14 → 18.)
     expect(varOf(s, "--catalog-token-text-sm--line-height")).toBe(
-      "calc(20 / 14)",
+      "calc(18 / 14)",
     );
     expect(varOf(s, "--catalog-token-radius-md")).toBe("8px");
+    // Skia `size` map — the same control heights (`{size.height.<S>}`), desktop; the touch snapshot × 1.25
+    expect(s.size["height.M"]).toBe(32);
+    expect(touchThemeSnapshot(s).size["height.M"]).toBe(40);
     expect(varOf(s, "--catalog-token-radius-full")).toBe("9999px");
     // desktop 벌의 글자 맵은 Skia 맵 (snapshot.typography) 과 같은 객체
     expect(s.device.desktop.typography).toBe(s.typography);

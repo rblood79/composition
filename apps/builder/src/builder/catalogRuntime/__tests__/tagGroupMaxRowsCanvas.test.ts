@@ -152,11 +152,11 @@ describe("TagGroup maxRows — the Canvas collapses as the Preview", () => {
   it("width 140 (one tag a row), maxRows 2: two tags, then Show all (4) on the next row", async () => {
     const { view } = await open(2, 140);
     const state = view();
-    expect(state.shown).toEqual([0, 34]);
+    expect(state.shown).toEqual([0, 36]);
     expect(state.collapsed).toBe(2);
-    expect(state.showAll).toEqual({ text: "Show all (4)", y: 68, height: 30 });
+    expect(state.showAll).toEqual({ text: "Show all (4)", y: 72, height: 32 });
     // (Two tag rows and the Show all row — no room for the dropped tags.)
-    expect(state.listHeight).toBe(98);
+    expect(state.listHeight).toBe(104);
   });
 
   it("width 300 (three, then one), maxRows 1: three tags and Show all; maxRows 2 shows every tag", async () => {
@@ -166,20 +166,20 @@ describe("TagGroup maxRows — the Canvas collapses as the Preview", () => {
     // An edit re-counts: two rows fit every tag — no Show all.
     edit({ maxRows: 2 });
     expect(view()).toMatchObject({
-      shown: [0, 0, 0, 34],
+      shown: [0, 0, 0, 36],
       collapsed: 0,
       showAll: undefined,
-      listHeight: 64,
+      listHeight: 68,
     });
     // Narrower: a row per tag again — two shown and Show all.
     edit({}, { width: 140 });
-    expect(view()).toMatchObject({ shown: [0, 34], collapsed: 2 });
+    expect(view()).toMatchObject({ shown: [0, 36], collapsed: 2 });
   });
 
   it("maxRows 0 shows every tag", async () => {
     const { view } = await open(0, 140);
     expect(view()).toMatchObject({
-      shown: [0, 34, 68, 102],
+      shown: [0, 36, 72, 108],
       collapsed: 0,
       showAll: undefined,
     });

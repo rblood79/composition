@@ -20,10 +20,11 @@ describe("item label font parts", () => {
       fontWeight: 500,
     });
   });
-  it("Tag md: 14px · 20px 줄 · 400", () => {
+  // (ADR-295 Phase 3: the S2 line-height formula — 14 → 18.)
+  it("Tag md: 14px · 18px 줄 · 400", () => {
     expect(labelFont("Tag", "M")).toEqual({
       fontSize: "{typography.text-sm}",
-      lineHeight: 20 / 14,
+      lineHeight: 18 / 14,
       fontWeight: 400,
     });
   });

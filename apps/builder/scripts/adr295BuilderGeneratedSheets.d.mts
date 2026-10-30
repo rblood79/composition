@@ -7,3 +7,11 @@ export declare function resolveBuilderGeneratedSheets(rootFiles: string[]): {
   unresolvedExternal: string[];
   entries: Record<string, string>;
 };
+export declare function normalizeDimension(
+  prop: string,
+  value: string,
+  fontPx?: number,
+): string;
+export declare function normalizedEntries(
+  entries: Record<string, string>,
+): Record<string, string>;

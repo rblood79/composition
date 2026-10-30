@@ -22,6 +22,7 @@ import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 import { inlineFontPx } from "./support/inlineFontPx";
+import { s2LineHeight } from "@composition/rendering";
 
 /**
  * ADR-254 Phase 0 (G0 — the oracle): the title and description of the five containers (Dialog ·
@@ -214,13 +215,14 @@ type PartsOf = { records: Record<string, PartRecord>; dom?: string };
  * Heading rule at the alert's size, the Description rule one step above — they replace the alert
  * rule's 1.4 · 1.5. The font sizes stay (14/16/18 · 12/14/16).
  */
+// (ADR-295 Phase 3: the S2 line-height formula of the font size — 사용자 결정 2.)
 const INLINE_ALERT_LINE_HEIGHT: Record<
   string,
   { heading: number; description: number }
 > = {
-  S: { heading: 20 / 14, description: 16 / 12 },
-  M: { heading: 24 / 16, description: 20 / 14 },
-  L: { heading: 28 / 18, description: 24 / 16 },
+  S: { heading: 18 / 14, description: 16 / 12 },
+  M: { heading: 20 / 16, description: 18 / 14 },
+  L: { heading: 22 / 18, description: 20 / 16 },
 };
 const MARGINS = ["marginTop", "marginRight", "marginBottom", "marginLeft"];
 /** A markup without inline style (the structure — the values are asserted on their own). */
@@ -300,7 +302,13 @@ function expectSinceConversion(
       type === "dialog" && part.binding === "heading" ? "title" : was.slot,
     );
     expect(Number(part.visual.fontWeight)).toBe(Number(was.visual.fontWeight));
-    expect(part.visual.lineHeight).toBe(was.visual.lineHeight);
+    // ADR-295 Phase 3: the line is the S2 formula of the same font size (사용자 결정 2) — the oracle's
+    //   build had the old fixed ladder (14 → 20).
+    const fontSize = Number(part.visual.fontSize);
+    expect(Number(part.visual.lineHeight) * fontSize).toBeCloseTo(
+      s2LineHeight(fontSize),
+      6,
+    );
     expect(part.layout).toEqual(was.layout);
   }
   if (before.dom === undefined) {

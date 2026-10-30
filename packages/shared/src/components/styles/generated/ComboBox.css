@@ -130,6 +130,7 @@
   flex: 0 0 auto;
   width: var(--combo-btn-size);
   height: var(--combo-btn-size);
+  min-height: 0;
   min-width: 0;
   margin-inline-start: var(--combo-btn-offset);
 }

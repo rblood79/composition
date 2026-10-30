@@ -7,22 +7,32 @@
  * DOM 보다 2px 낮고 · 2px 좁고 · 글자가 굵었다 (Chocolate DOM 90.6 ↔ layout 90 · 500).
  */
 import { describe, expect, it } from "vitest";
-import { resolveBorderWidthPx } from "@composition/rendering";
+import {
+  resolveBorderWidthPx,
+  resolveToken,
+  type TokenRef,
+} from "@composition/rendering";
 import { resolveComponentRule } from "@composition/shared";
 
 describe("Tag rule sizes — border-box 높이 · borderWidth · textWeight 가 DOM chip 과 같다", () => {
   const rule = resolveComponentRule("Tag")!;
 
-  it("모든 size: height = lineHeight + paddingY×2 + borderWidth×2", () => {
+  it("모든 size: lineHeight + paddingY×2 + borderWidth×2 = S2 control 높이", () => {
     for (const [name, size] of Object.entries(rule.sizes)) {
       const s = size as Record<string, number | string>;
       // ADR-227 P3: rule 은 `{border.width.thin}` 토큰, 두 leg 가 활성 테마 px 로 해석 (seed 1)
       expect(s.borderWidth, `${name} borderWidth`).toBe("{border.width.thin}");
       const bw = resolveBorderWidthPx(s.borderWidth);
       expect(bw).toBe(1);
-      expect(s.height, `${name} height`).toBe(
-        (s.lineHeight as number) + (s.paddingY as number) * 2 + bw * 2,
-      );
+      // ADR-295 Phase 3: the chip is an S2 control box — content-fit (`height: 0`), its one-line box
+      //   (line + paddingY × 2 + border × 2) = the S2 control height (`minHeight` token).
+      expect(s.height, `${name} height`).toBe(0);
+      expect(
+        (resolveToken(s.lineHeight as TokenRef) as number) +
+          (s.paddingY as number) * 2 +
+          bw * 2,
+        `${name} one-line box`,
+      ).toBe(resolveToken(s.minHeight as TokenRef));
     }
   });
 

@@ -132,8 +132,8 @@ describe("TextArea text on the Canvas", () => {
     expect(canvasText()).toMatchObject({
       text: "Write here",
       baseline: "top",
-      // (the Input rule's M padding-top)
-      y: 4,
+      // (the Input rule's M padding-top — ADR-295 Phase 3, the S2 centring padding)
+      y: 6,
     });
   });
 
