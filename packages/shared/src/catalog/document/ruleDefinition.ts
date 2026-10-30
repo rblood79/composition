@@ -320,7 +320,8 @@ function sizeVisual(
   // ADR-295 Phase 3: a `{size.height.<S>}` minimum stays a token use — the resolver remembers it and
   //   the DOM writes the device variable (`catalogDeviceControlCss`), as for a token font size.
   set("minHeight", lengthValue(size.minHeight, theme, tokens));
-  set("iconSize", pixels(size.iconSize, theme));
+  // ADR-295 Phase 3b: an S2 icon step (`{size.icon.<S>}`) is a token use, as the minimum above.
+  set("iconSize", lengthValue(size.iconSize, theme, tokens));
   set("iconGap", pixels(size.iconGap, theme));
   return visual as VisualValues;
 }

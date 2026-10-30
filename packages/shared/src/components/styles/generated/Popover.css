@@ -25,7 +25,7 @@
   height: auto;
   padding: 16px 16px;
   font-size: var(--catalog-token-text-base);
-  border-radius: 16px;
+  border-radius: var(--catalog-token-radius-xl);
   gap: 12px;
 }
 
@@ -75,7 +75,7 @@
   height: auto;
   padding: 12px 12px;
   font-size: var(--catalog-token-text-sm);
-  border-radius: 16px;
+  border-radius: var(--catalog-token-radius-xl);
   gap: 8px;
 }
 
@@ -83,7 +83,7 @@
   height: auto;
   padding: 16px 16px;
   font-size: var(--catalog-token-text-base);
-  border-radius: 16px;
+  border-radius: var(--catalog-token-radius-xl);
   gap: 12px;
 }
 
@@ -91,7 +91,7 @@
   height: auto;
   padding: 20px 20px;
   font-size: var(--catalog-token-text-lg);
-  border-radius: 16px;
+  border-radius: var(--catalog-token-radius-xl);
   gap: 16px;
 }
 

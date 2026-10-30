@@ -278,8 +278,12 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
     for (const type of ["Icon", "Illustration"] as const) {
       const glyph = library.definitions.get(catalogTypeDefinitionId(type))!;
       expect(glyph.bindingId).toBe(type.toLowerCase());
-      expect(glyph.propVisualRules?.size?.M?.iconSize).toBe(
-        COMPONENT_RULES_TABLE[type].sizes.M.iconSize,
+      // (ADR-295 Phase 3b: the Icon's S2 icon step is a token value; the Illustration keeps px.)
+      const ruleIcon = COMPONENT_RULES_TABLE[type].sizes.M.iconSize;
+      expect(glyph.propVisualRules?.size?.M?.iconSize).toEqual(
+        typeof ruleIcon === "number"
+          ? ruleIcon
+          : expect.objectContaining({ kind: "token" }),
       );
       expect(glyph.visual.color).toEqual(
         expect.objectContaining({ kind: "token" }),
@@ -447,7 +451,7 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
       paddingX: COMPONENT_RULES_TABLE.Button.sizes.L.paddingX,
     });
     expect(resolveCatalogNode(graph, glyphId).visual).toMatchObject({
-      iconSize: COMPONENT_RULES_TABLE.Icon.sizes.XS.iconSize,
+      iconSize: sourceValue(COMPONENT_RULES_TABLE.Icon.sizes.XS.iconSize),
       color: sourceValue(
         COMPONENT_RULES_TABLE.Icon.variants.default.colors?.text,
       ),

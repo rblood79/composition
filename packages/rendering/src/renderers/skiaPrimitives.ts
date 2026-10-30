@@ -70,7 +70,10 @@ import type {
   Mark,
   TextMark,
 } from "../chart";
-import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
+import {
+  resolveSpecFontSize,
+  resolveSpecIconSize,
+} from "./utils/resolveSpecFontSize";
 import { resolveBorderWidthPx, resolveToken } from "./utils/tokenResolver";
 import { resolveTextSourceText } from "./utils/textSource";
 import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
@@ -776,7 +779,7 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({
   const iconName = slotEnabled("icon") ? readCardText(props.icon) : null;
   const iconSize = parsePxValue(
     iconSlotStyle?.fontSize,
-    typeof size.iconSize === "number" ? size.iconSize : 16,
+    resolveSpecIconSize(size.iconSize) ?? 16,
   );
   const slotGap = 6;
   // No check glyph (2026-10-13 — the reference standalone list shows its selection by the row's
@@ -1593,7 +1596,7 @@ const calendarGrid: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
     style?.borderRadius,
     size.borderRadius as unknown as number,
   );
-  const cellSize = (size.iconSize ?? 28) + 4;
+  const cellSize = (resolveSpecIconSize(size.iconSize) ?? 28) + 4;
   const gap = (size.gap as unknown as number) || 6;
   // (The rule's padding — 0 since 2026-10-13, as the references: `??`, not `||`.)
   const paddingX = (size.paddingX as unknown as number) ?? 8;
@@ -1814,7 +1817,7 @@ function calendarGridModel(value: unknown):
 }
 
 const calendarMonthGrid: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
-  const iconSize = (size.iconSize as unknown as number) ?? 26;
+  const iconSize = resolveSpecIconSize(size.iconSize) ?? 26;
   // A column's share of the laid-out grid less the td padding (the calendar has no size — 2026-10-13:
   // its month follows its width — `catalogCalendarCellSize`, the DOM's `100cqw / 7 - 4px`); 30 at
   // the month's own width. The weekday row keeps 30.

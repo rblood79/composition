@@ -1155,13 +1155,14 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
         kind: "patchNodeVisual",
         id: scene.nodeId,
         key: "fontSize",
-        write: { kind: "set", value: 18 },
+        write: { kind: "set", value: 30 },
       },
     ]);
-    expect(18).not.toBe(scale);
+    // (ADR-295 Phase 3b: M is the S2 icon step 18 — the authored size is one no step has.)
+    expect(30).not.toBe(scale);
     expect(
       [...scene.engine.styles.values()].some(
-        (style) => style.contentMinWidth === 18 && style.contentHeight === 18,
+        (style) => style.contentMinWidth === 30 && style.contentHeight === 30,
       ),
     ).toBe(true);
   });

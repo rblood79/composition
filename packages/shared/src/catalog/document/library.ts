@@ -508,6 +508,8 @@ export function buildCatalogLibrary(
                   "minWidth",
                   // ADR-295 Phase 3: an S2 control height (`{size.height.<S>}`).
                   "minHeight",
+                  // ADR-295 Phase 3b: an S2 icon step (`{size.icon.<S>}`).
+                  "iconSize",
                   "paddingTop",
                   "paddingRight",
                   "paddingBottom",

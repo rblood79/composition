@@ -320,7 +320,9 @@ describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
     expect(button.textContent).toBe("Save");
     expect(button.getAttribute("data-variant")).toBe("primary");
     expect(icon.querySelector("svg path")).not.toBeNull();
-    expect(icon.querySelector("svg")?.getAttribute("width")).toBe("24");
+    // (ADR-295 Phase 3b: the Icon's M is the S2 icon step — its device variable sizes the svg in em.)
+    expect(icon.style.fontSize).toBe("var(--catalog-token-size-icon-M)");
+    expect(icon.querySelector("svg")?.getAttribute("width")).toBe("1em");
     expect(error.getAttribute("role")).toBe("alert");
     expect(error.textContent).toBe("Required");
   });

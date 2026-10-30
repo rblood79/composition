@@ -27,6 +27,8 @@ Accepted — 2026-10-30 (사용자 `/execute-adr 295` + [reviews/295.md](reviews
 
 > **Phase 3a (2026-10-30)** — 행간이 S2 식 (사용자 결정 2 — 14 → 18 · 16 → 20) 이 되고, 같은 커밋에서 control 상자 (field 입력칸 · DateInput · Button · ToggleButton · Tag · 증감 버튼 · 범위 상자) 의 높이를 S2 control 높이 토큰 `{size.height.<S>}` (20 · 24 · 32 · 40 · 48, 터치 × 1.25) 에 묶었다. 상자의 위아래 padding 은 S2 처럼 줄을 높이 가운데에 두는 식 하나 (`s2ControlPaddingY`) — 생성 CSS 는 그 식을 변수로 (터치 · 빌더 고정값에서 각자 풀림), Canvas 정의는 설치된 맵에서, rule 숫자는 desktop 결과 (생성기가 대조). 토큰 출처 기억을 minHeight · padding · 부품 크기로 넓혀 DOM 이 record 의 desktop px 대신 기기 변수를 쓴다. 행간 px 리터럴 19 → 토큰. G2 두 arm 263/263 (터치 알려진 차이 14 → 2). 남은 것 3b (리터럴 참조화 · ratchet) · 3c (값의 형 · padding · gap) · 3d. 상세 breakdown §6.3.
 
+> **Phase 3b (2026-10-30)** — S2 공개 아이콘 단 (`iconStyle` 14 · 16 · 18 · 20 · 22, 터치 × 1.25) 을 `{size.icon.<S>}` 토큰으로 두고 컨트롤 안 아이콘 (Button · ToggleButton · Select · ComboBox · SearchField · NumberField · DatePicker · DateRangePicker · FileTrigger) 과 Icon 컴포넌트가 참조한다 — Select · ComboBox 트리거 L · XL 가 S2 높이 40 · 48 이 됐다. S2 ui-icon 표 (chevron · 지우기 — 여백 없는 전용 글리프) 는 lucide 글리프에 옮기지 않고 사유와 함께 리터럴. radius 0 · 10 · Popover 16 · TagList 빈 틀 높이도 토큰. G3 ratchet (다섯 키는 `INTENTIONAL_LITERAL` 밖 리터럴 0 · 나머지 키는 상한) · G4 `d3S2Alignment` (토큰 표 · 상수 · 컴포넌트 값 = 추출기 oracle) — 둘 다 원복 RED. G2 두 arm 263/263. minWidth (높이 비례) 는 3c. 상세 breakdown §6.4.
+
 > 구현 상세: [design/295-d3-token-values-s2-alignment-breakdown.md](design/295-d3-token-values-s2-alignment-breakdown.md)
 
 ## Context

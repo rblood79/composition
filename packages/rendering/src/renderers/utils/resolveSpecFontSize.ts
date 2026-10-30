@@ -22,6 +22,22 @@ import { resolveToken } from "./tokenResolver";
  * @param raw - size.fontSize 또는 props.style?.fontSize
  * @param fallback - 해석 실패 시 기본값 (spec별로 12, 14, 16 중 하나)
  */
+/**
+ * ADR-295 Phase 3b — a size's `iconSize` (px, or the S2 icon step `{size.icon.<S>}` read in the installed
+ * map) as px; `undefined` when absent or unresolvable. Readers that took `typeof iconSize === "number"`
+ * read through here so a token step is not dropped to their fallback.
+ */
+export function resolveSpecIconSize(
+  raw: number | string | undefined,
+): number | undefined {
+  if (typeof raw === "number") return Number.isFinite(raw) ? raw : undefined;
+  if (typeof raw === "string" && /^\{[^{}]+\}$/.test(raw)) {
+    const resolved = resolveToken(raw as TokenRef);
+    return typeof resolved === "number" ? resolved : undefined;
+  }
+  return undefined;
+}
+
 export function resolveSpecFontSize(
   raw: string | number | TokenRef | undefined,
   fallback = 14,

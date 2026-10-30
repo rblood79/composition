@@ -177,13 +177,13 @@ async function open(type: string, inForm?: "side" | "top") {
 
 describe("Select side row extent", () => {
   it.each([
-    // (ADR-295 Phase 3: the S2 control heights. L · XL: the trigger's chevron Icon (the Button's
-    //   iconSize 24 · 28) is taller than its line — the S2 icon sizes are Phase 3b's.)
+    // (ADR-295 Phase 3: the S2 control heights — L · XL since Phase 3b, when the trigger's chevron
+    //   Icon took the S2 icon steps 20 · 22, no taller than its line.)
     ["XS", 20],
     ["S", 24],
     ["M", 32],
-    ["L", 44],
-    ["XL", 54],
+    ["L", 40],
+    ["XL", 48],
   ] as const)(
     "%s: top/side edits keep the trigger, label and following hint in their row",
     async (size, height) => {

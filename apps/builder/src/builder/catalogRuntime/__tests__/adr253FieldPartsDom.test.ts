@@ -1270,7 +1270,8 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       ]);
       // (ADR-295 Phase 3: XL is the S2 control height 48.)
       expect(rect(parts()[1]!.id)).toMatchObject({ width: 48, height: 48 });
-      expect(records.get(parts()[1]!.children[0]!)!.visual.iconSize).toBe(28);
+      // (ADR-295 Phase 3b: the S2 icon step XL 22.)
+      expect(records.get(parts()[1]!.children[0]!)!.visual.iconSize).toBe(22);
       expect(rect(parts()[0]!.id).height).toBe(48);
       // The origins are where their style comes from: the Button origin's reaches the steppers,
       // the Input origin's the value — on the Canvas and in the DOM.
@@ -1684,7 +1685,8 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         paddingRight: 16,
       });
       expect(shownParts()[0]!.visual.fontSize).toBe(18);
-      expect(shownParts()[1]!.visual.iconSize).toBe(28);
+      // (ADR-295 Phase 3b: the S2 icon step XL 22.)
+      expect(shownParts()[1]!.visual.iconSize).toBe(22);
       // The Button origin is where the trigger's shape comes from.
       workspace.execute(
         setLibraryDefault({

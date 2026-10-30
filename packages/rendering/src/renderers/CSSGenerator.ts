@@ -613,6 +613,7 @@ export function generateCSS<Props>(
     lines.push(`.react-aria-${spec.name}[data-size="${sizeName}"] {`);
     lines.push(
       ...generateSizeStyles(sizeSpec, {
+        iconPin: iconPinVar(spec.name, sizeName),
         skipHeight,
         skipPadding: skipPaddingOuter,
         skipBorderRadius: skipBorderRadiusOuter,
@@ -869,6 +870,7 @@ function generateBaseStyles<Props>(spec: ComponentSpec<Props>): string[] {
     lines.push("  /* Default size */");
     lines.push(
       ...generateSizeStyles(defaultSize, {
+        iconPin: iconPinVar(spec.name, spec.defaultSize),
         skipHeight: skipDefaultHeight,
         skipPadding,
         skipBorderRadius,
@@ -1016,6 +1018,15 @@ function generateVariantStyles(
  * 의 숫자 paddingY 는 desktop 결과다 — 숫자를 읽는 소비자 (부품 상자 · 패널) 를 위해 남기고, 식과 갈리면 생성을
  * 멈춘다 (숫자를 손으로 고치고 식을 잊는 drift).
  */
+/**
+ * ADR-295 Phase 3b — a component's icon pin variable (`--catalog-token-date-range-picker-icon-size-M`):
+ * `builder-catalog-vars.css` declares it for the builder chrome, nothing else does.
+ */
+export function iconPinVar(component: string, size: string): string {
+  const name = component.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+  return `--catalog-token-${name}-icon-size-${size}`;
+}
+
 function controlPaddingBlock(size: SizeSpec): string | undefined {
   const desktop = s2ControlPaddingY(size);
   if (desktop === undefined) return undefined;
@@ -1034,6 +1045,8 @@ function generateSizeStyles(
     skipBorderRadius?: boolean;
     skipGap?: boolean;
     skipBorderWidth?: boolean;
+    /** ADR-295 Phase 3b: the per-component pin of a `{size.icon.<S>}` icon (`iconPinVar`). */
+    iconPin?: string;
   },
 ): string[] {
   const lines: string[] = [];
@@ -1132,7 +1145,15 @@ function generateSizeStyles(
   }
 
   // icon-size (CSS 변수로 출력)
-  if (size.iconSize !== undefined) {
+  if (typeof size.iconSize === "string") {
+    // ADR-295 Phase 3b: an S2 icon step (`{size.icon.<S>}` — the device variable), behind the
+    //   component's own pin: the builder root declares the pre-295 px there (Decision 8 · 9 — the
+    //   builder reads this sheet), the Preview · Publish root does not, so the step is the value.
+    const step = tokenToCSSVar(size.iconSize as TokenRef);
+    lines.push(
+      `  --icon-size: ${options?.iconPin ? `var(${options.iconPin}, ${step})` : step};`,
+    );
+  } else if (size.iconSize !== undefined) {
     lines.push(`  --icon-size: ${size.iconSize}px;`);
   }
 

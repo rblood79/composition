@@ -32,6 +32,19 @@ export const S2_CONTROL_HEIGHT = {
   XL: 48,
 } as const;
 
+/**
+ * S2 아이콘 5단 (desktop px — `iconStyle({ size })` 의 `size` = rem × `--s2-scale`, `style/index.ts` `iconSizes`).
+ * 컨트롤 안 워크플로 아이콘과 Icon 컴포넌트가 `{size.icon.<S>}` 로 참조한다 (ADR-295 Phase 3b). S2 의 ui-icon
+ * (chevron · 지우기 …) 은 아이콘마다 표가 따로 있어 이 단이 아니다.
+ */
+export const S2_ICON_SIZE = {
+  XS: 14,
+  S: 16,
+  M: 18,
+  L: 20,
+  XL: 22,
+} as const;
+
 export function s2ControlHeights(scale: number): Record<string, number> {
   return Object.fromEntries(
     Object.entries(S2_CONTROL_HEIGHT).map(([size, px]) => [size, px * scale]),
@@ -39,17 +52,22 @@ export function s2ControlHeights(scale: number): Record<string, number> {
 }
 
 /**
- * `{size.height.<S>}` 토큰 맵 (키 `height.<S>`) — Skia · 레이아웃이 `resolveToken` 으로 읽는다. 설치 전 값은 desktop
+ * `{size.height.<S>}` · `{size.icon.<S>}` 토큰 맵 (키 `height.<S>` · `icon.<S>`) — Skia · 레이아웃이 `resolveToken` 으로 읽는다. 설치 전 값은 desktop
  * 벌이고, 테마 설치 (`installThemeMaps`) 가 snapshot 의 `size` 로 바꾼다 (G2 하니스의 터치 arm 은 터치 벌).
  * DOM 은 같은 토큰을 `--catalog-token-size-height-<S>` 로 읽는다 (Preview · Publish = 기기 미디어 두 벌).
  */
 export function s2SizeTokens(scale: number): Record<string, number> {
-  return Object.fromEntries(
-    Object.entries(s2ControlHeights(scale)).map(([size, px]) => [
+  return Object.fromEntries([
+    ...Object.entries(s2ControlHeights(scale)).map(([size, px]) => [
       `height.${size}`,
       px,
     ]),
-  );
+    // ADR-295 Phase 3b: `{size.icon.<S>}` — DOM `--catalog-token-size-icon-<S>`.
+    ...Object.entries(S2_ICON_SIZE).map(([size, px]) => [
+      `icon.${size}`,
+      px * scale,
+    ]),
+  ]);
 }
 
 export const size: Record<string, number> = s2SizeTokens(

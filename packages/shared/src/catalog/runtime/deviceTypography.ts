@@ -56,6 +56,8 @@ export function catalogDeviceTypographyCss(
 }
 
 const SIZE_HEIGHT_REF = /^\{size\.height\.([A-Z]+)\}$/;
+/** A width · height square of an S2 control height or icon step (ADR-295 Phase 3 · 3b). */
+const SIZE_SIDE_REF = /^\{size\.(height|icon)\.([A-Z]+)\}$/;
 
 const px = (value: unknown): number | undefined =>
   typeof value === "number"
@@ -77,12 +79,13 @@ export function catalogDeviceControlCss(
   style: CSSProperties,
   visual: Readonly<Record<string, unknown>>,
 ): void {
-  // A square of the control height (a NumberField stepper — `--nf-btn-size`): its sides.
+  // A square of the control height (a NumberField stepper — `--nf-btn-size`) or of an S2 icon step
+  //   (a Button's · Disclosure trigger's Icon — Phase 3b): its sides.
   for (const key of ["width", "height"] as const) {
     const sideRef = catalogResolvedTokenRef(visual, key);
-    const side = sideRef ? SIZE_HEIGHT_REF.exec(sideRef)?.[1] : undefined;
+    const side = sideRef ? SIZE_SIDE_REF.exec(sideRef) : null;
     if (side && resolveToken(sideRef as TokenRef) === px(style[key]))
-      style[key] = `var(${CATALOG_SIZE_HEIGHT_VAR}${side})`;
+      style[key] = `var(--catalog-token-size-${side[1]}-${side[2]})`;
   }
   const ref = catalogResolvedTokenRef(visual, "minHeight");
   const size = ref ? SIZE_HEIGHT_REF.exec(ref)?.[1] : undefined;
@@ -113,6 +116,25 @@ export function catalogDeviceControlCss(
 }
 
 const CATALOG_SIZE_HEIGHT_VAR = "--catalog-token-size-height-";
+
+const SIZE_ICON_REF = /^\{size\.icon\.([A-Z]+)\}$/;
+
+/**
+ * ADR-295 Phase 3b — a glyph's icon square follows the device set: when the record's `iconSize` is still
+ * the installed value of an S2 icon step (`{size.icon.<S>}`) and no authored font size overrides it, the
+ * step's device variable (`--catalog-token-size-icon-<S>` — the touch set × 1.25), else `undefined`.
+ */
+export function catalogDeviceGlyphSize(
+  visual: Readonly<Record<string, unknown>>,
+): string | undefined {
+  if (typeof visual.fontSize === "number" && visual.fontSize > 0)
+    return undefined;
+  const ref = catalogResolvedTokenRef(visual, "iconSize");
+  const step = ref ? SIZE_ICON_REF.exec(ref)?.[1] : undefined;
+  if (!step || resolveToken(ref as TokenRef) !== visual.iconSize)
+    return undefined;
+  return `var(--catalog-token-size-icon-${step})`;
+}
 
 /**
  * ADR-295 Phase 3 — a TextArea's `<textarea>` rows box (`catalogTextAreaInputHeight` — rows × line +

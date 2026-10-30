@@ -42,7 +42,13 @@ export const Icon = memo(function Icon({
         ? style.fontSize
         : parseFloat(String(style.fontSize)) || undefined
       : undefined;
-  const pxSize = styleFontSize ?? ICON_SIZE_MAP[size] ?? 24;
+  // (ADR-295 Phase 3b: a device variable font size — `var(--catalog-token-size-icon-<S>)` — sizes the svg
+  //   in `em`, so the touch set reaches it.)
+  const pxSize: number | string =
+    styleFontSize ??
+    (typeof style?.fontSize === "string" ? "1em" : undefined) ??
+    ICON_SIZE_MAP[size] ??
+    24;
 
   const data = getIconData(iconName);
   if (!data) return null;
@@ -71,6 +77,10 @@ export const Icon = memo(function Icon({
         aria-hidden="true"
         width={pxSize}
         height={pxSize}
+        // (A device-variable glyph sizes its svg inline — a container sheet's fixed svg px (the Tree
+        //   chevron · Calendar nav) would keep the desktop size on a touch device; the Canvas draws
+        //   the same step.)
+        style={pxSize === "1em" ? { width: "1em", height: "1em" } : undefined}
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"

@@ -30,7 +30,7 @@
   height: auto;
   padding: 16px 16px;
   font-size: var(--catalog-token-text-base);
-  border-radius: 10px;
+  border-radius: var(--catalog-token-radius-lg);
   gap: 12px;
 }
 
@@ -163,7 +163,7 @@
   height: auto;
   padding: 8px 8px;
   font-size: var(--catalog-token-text-sm);
-  border-radius: 10px;
+  border-radius: var(--catalog-token-radius-lg);
   gap: 8px;
 }
 
@@ -171,7 +171,7 @@
   height: auto;
   padding: 16px 16px;
   font-size: var(--catalog-token-text-base);
-  border-radius: 10px;
+  border-radius: var(--catalog-token-radius-lg);
   gap: 12px;
 }
 
@@ -179,7 +179,7 @@
   height: auto;
   padding: 24px 24px;
   font-size: var(--catalog-token-text-lg);
-  border-radius: 10px;
+  border-radius: var(--catalog-token-radius-lg);
   gap: 16px;
 }
 

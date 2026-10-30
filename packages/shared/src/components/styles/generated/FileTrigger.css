@@ -38,7 +38,7 @@
   font-weight: 500;
   border-width: var(--border-width-thin);
   gap: 8px;
-  --icon-size: 18px;
+  --icon-size: var(--catalog-token-file-trigger-icon-size-M, var(--catalog-token-size-icon-M));
   --icon-gap: 8px;
 }
 
@@ -70,7 +70,7 @@
   font-weight: 500;
   border-width: var(--border-width-thin);
   gap: 6px;
-  --icon-size: 16px;
+  --icon-size: var(--catalog-token-file-trigger-icon-size-S, var(--catalog-token-size-icon-S));
   --icon-gap: 6px;
 }
 
@@ -83,7 +83,7 @@
   font-weight: 500;
   border-width: var(--border-width-thin);
   gap: 8px;
-  --icon-size: 18px;
+  --icon-size: var(--catalog-token-file-trigger-icon-size-M, var(--catalog-token-size-icon-M));
   --icon-gap: 8px;
 }
 
@@ -96,7 +96,7 @@
   font-weight: 500;
   border-width: var(--border-width-thin);
   gap: 10px;
-  --icon-size: 24px;
+  --icon-size: var(--catalog-token-file-trigger-icon-size-L, var(--catalog-token-size-icon-L));
   --icon-gap: 10px;
 }
 

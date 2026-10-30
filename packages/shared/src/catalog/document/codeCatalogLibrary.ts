@@ -51,9 +51,22 @@ export const CODE_CATALOG_SUPPORTED_TYPES = [
 export type CodeCatalogSupportedType =
   (typeof CODE_CATALOG_SUPPORTED_TYPES)[number];
 
+/**
+ * ADR-295 Phase 3b — a rule `iconSize`: px, or the S2 icon step `{size.icon.<S>}` as a token value (the
+ * resolver remembers its ref and the DOM writes the device variable — `catalogDeviceGlyphCss`).
+ */
+function iconValue(
+  value: unknown,
+  theme: "light" | "dark",
+  tokens: Map<LibraryTokenId, LibraryToken>,
+): number | ReturnType<typeof sourceToken> {
+  if (typeof value === "number") return value;
+  return sourceToken(value, "iconSize", theme, tokens);
+}
+
 function sourceToken(
   value: unknown,
-  field: "color" | "fontSize" | "radius" | "minHeight",
+  field: "color" | "fontSize" | "radius" | "minHeight" | "iconSize",
   theme: "light" | "dark",
   tokens: Map<LibraryTokenId, LibraryToken>,
 ) {
@@ -225,8 +238,8 @@ function buttonDefinition(
         size,
         {
           ...values,
-          ...(typeof rule.sizes[size]?.iconSize === "number"
-            ? { iconSize: rule.sizes[size].iconSize }
+          ...(rule.sizes[size]?.iconSize !== undefined
+            ? { iconSize: iconValue(rule.sizes[size].iconSize, theme, tokens) }
             : {}),
         },
       ]),
@@ -380,7 +393,7 @@ function buttonChildScaleRules(
 ): PartRule[] {
   const rules: PartRule[] = [];
   for (const [size, values] of Object.entries(sizes)) {
-    if (typeof values.iconSize === "number")
+    if (values.iconSize !== undefined)
       rules.push({
         child: { definitionId: catalogTypeDefinitionId("Icon") },
         when: { size },
@@ -435,9 +448,9 @@ function glyphDefinition(
   if (!color) throw new Error(`CODE_CATALOG_GLYPH_COLOR_MISSING:${type}`);
   const sizes: Record<string, VisualValues> = {};
   for (const [size, values] of Object.entries(rule.sizes)) {
-    if (typeof values.iconSize !== "number")
+    if (values.iconSize === undefined)
       throw new Error(`CODE_CATALOG_GLYPH_SIZE_MISSING:${type}:${size}`);
-    sizes[size] = { iconSize: values.iconSize };
+    sizes[size] = { iconSize: iconValue(values.iconSize, theme, tokens) };
   }
   const accepts: Record<string, ValueType> = {};
   const defaults: Record<string, string | number> = {
@@ -693,7 +706,7 @@ function withRuleParts(
                     : {}),
                   // ADR-295 Phase 3: an S2 control height (`compileDeclarations`) is a token value
                   ...Object.fromEntries(
-                    (["width", "height", "minHeight"] as const)
+                    (["width", "height", "minHeight", "iconSize"] as const)
                       .filter(
                         (key) =>
                           typeof part.visual[key] === "string" &&

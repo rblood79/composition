@@ -22,8 +22,13 @@ import { Meter } from "@react-spectrum/s2/Meter";
 import { ProgressBar } from "@react-spectrum/s2/ProgressBar";
 import { SegmentedControl, SegmentedControlItem } from "@react-spectrum/s2/SegmentedControl";
 import { Tabs, TabList, Tab, TabPanel } from "@react-spectrum/s2/Tabs";
-import { Text } from "@react-spectrum/s2";
+import { Text, Heading, Content } from "@react-spectrum/s2";
+import { Disclosure, DisclosureTitle, DisclosurePanel } from "@react-spectrum/s2/Disclosure";
+import { Breadcrumbs, Breadcrumb } from "@react-spectrum/s2/Breadcrumbs";
+import { DatePicker } from "@react-spectrum/s2/DatePicker";
+import { IllustratedMessage } from "@react-spectrum/s2/IllustratedMessage";
 import Edit from "@react-spectrum/s2/icons/Edit";
+import NoSearchResults from "@react-spectrum/s2/illustrations/linear/NoSearchResults";
 
 const SIZES = ["XS", "S", "M", "L", "XL"];
 const FIELD = ["S", "M", "L", "XL"];
@@ -51,6 +56,13 @@ const families = [
   ["ProgressBar", ["S", "M", "L", "XL"], (s) => <ProgressBar size={s} label="Label" value={30} />],
   ["SegmentedControl", ["S", "M", "L", "XL"], (s) => (<SegmentedControl size={s} aria-label="seg"><SegmentedControlItem id="a">A</SegmentedControlItem><SegmentedControlItem id="b">B</SegmentedControlItem></SegmentedControl>)],
   ["Tabs", ["S", "M", "L", "XL"], (s) => (<Tabs density="regular" aria-label="tabs" size={s}><TabList><Tab id="a">Tab</Tab></TabList><TabPanel id="a">x</TabPanel></Tabs>)],
+  // (Phase 3b — 아이콘 가족: 대표 상자는 안 쓰고 svg 치수만 읽는다)
+  ["ToggleButtonIcon", SIZES, (s) => (<ToggleButton size={s}><Edit /><Text>Label</Text></ToggleButton>)],
+  ["Disclosure", FIELD, (s) => (<Disclosure size={s}><DisclosureTitle>Title</DisclosureTitle><DisclosurePanel>x</DisclosurePanel></Disclosure>)],
+  ["Breadcrumbs", ["M", "L"], (s) => (<Breadcrumbs size={s}><Breadcrumb>A</Breadcrumb><Breadcrumb>B</Breadcrumb></Breadcrumbs>)],
+  ["DatePicker", FIELD, (s) => <DatePicker size={s} label="Label" />],
+  ["TagGroupRemovable", ["S", "M", "L"], (s) => (<TagGroup size={s} label="Label" onRemove={() => {}}><Tag id="a">Tag</Tag></TagGroup>)],
+  ["IllustratedMessage", ["S", "M", "L"], (s) => (<IllustratedMessage size={s}><NoSearchResults /><Heading>H</Heading><Content>C</Content></IllustratedMessage>)],
 ];
 
 function App() {

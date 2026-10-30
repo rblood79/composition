@@ -990,8 +990,8 @@ export interface SizeSpec {
   /** 둥근 모서리 (토큰 참조) */
   borderRadius: TokenRef;
 
-  /** 아이콘 크기 (optional) */
-  iconSize?: number;
+  /** 아이콘 크기 (optional) — px, 또는 S2 아이콘 단 `{size.icon.<S>}` (ADR-295 Phase 3b) */
+  iconSize?: number | TokenRef;
 
   /**
    * tree depth 당 좌측 들여쓰기 (optional, px) — ADR-912 R1 후속 TreeItem catalog cutover.

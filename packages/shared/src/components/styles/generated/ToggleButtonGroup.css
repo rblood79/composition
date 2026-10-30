@@ -21,32 +21,32 @@
 
   /* Default size */
   font-size: var(--catalog-token-text-base);
-  border-radius: 0;
+  border-radius: var(--catalog-token-radius-none);
 }
 
 .react-aria-ToggleButtonGroup[data-size="XS"] {
   font-size: var(--catalog-token-text-xs);
-  border-radius: 0;
+  border-radius: var(--catalog-token-radius-none);
 }
 
 .react-aria-ToggleButtonGroup[data-size="S"] {
   font-size: var(--catalog-token-text-sm);
-  border-radius: 0;
+  border-radius: var(--catalog-token-radius-none);
 }
 
 .react-aria-ToggleButtonGroup[data-size="M"] {
   font-size: var(--catalog-token-text-base);
-  border-radius: 0;
+  border-radius: var(--catalog-token-radius-none);
 }
 
 .react-aria-ToggleButtonGroup[data-size="L"] {
   font-size: var(--catalog-token-text-lg);
-  border-radius: 0;
+  border-radius: var(--catalog-token-radius-none);
 }
 
 .react-aria-ToggleButtonGroup[data-size="XL"] {
   font-size: var(--catalog-token-text-xl);
-  border-radius: 0;
+  border-radius: var(--catalog-token-radius-none);
 }
 
 .react-aria-ToggleButtonGroup[data-focus-visible] {

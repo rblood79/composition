@@ -23,7 +23,7 @@
   min-width: 90px;
   gap: 8px;
   column-gap: 0px;
-  --icon-size: 18px;
+  --icon-size: var(--catalog-token-search-field-icon-size-M, var(--catalog-token-size-icon-M));
 }
 
 .react-aria-SearchField[data-size="S"] {
@@ -32,7 +32,7 @@
   min-width: 66px;
   gap: 6px;
   column-gap: 0px;
-  --icon-size: 14px;
+  --icon-size: var(--catalog-token-search-field-icon-size-S, var(--catalog-token-size-icon-S));
 }
 
 .react-aria-SearchField[data-size="M"] {
@@ -41,7 +41,7 @@
   min-width: 90px;
   gap: 8px;
   column-gap: 0px;
-  --icon-size: 18px;
+  --icon-size: var(--catalog-token-search-field-icon-size-M, var(--catalog-token-size-icon-M));
 }
 
 .react-aria-SearchField[data-size="L"] {
@@ -50,7 +50,7 @@
   min-width: 126px;
   gap: 10px;
   column-gap: 0px;
-  --icon-size: 22px;
+  --icon-size: var(--catalog-token-search-field-icon-size-L, var(--catalog-token-size-icon-L));
 }
 
 .react-aria-SearchField[data-size="XL"] {
@@ -59,7 +59,7 @@
   min-width: 162px;
   gap: 10px;
   column-gap: 0px;
-  --icon-size: 28px;
+  --icon-size: var(--catalog-token-search-field-icon-size-XL, var(--catalog-token-size-icon-XL));
 }
 
 .react-aria-SearchField[data-focus-visible] {

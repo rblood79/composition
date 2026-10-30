@@ -1169,7 +1169,8 @@ function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
       ...(fontValue !== undefined ? { fontSize: fontValue } : {}),
       ...(fontSize && sizeLine ? { lineHeight: sizeLine / fontSize } : {}),
     };
-    return typeof icon === "number"
+    // (ADR-295 Phase 3b: an S2 icon step stays its ref — `withRuleParts` makes it a token value.)
+    return px(icon) !== undefined
       ? [
           {
             childType: "Button",
@@ -1190,7 +1191,7 @@ function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
             size,
             layout: { flexShrink: "0" },
             // (Its glyph is `currentColor` — the trigger's text color, not the Button rule's.)
-            visual: { width: icon, height: icon, color: neutral },
+            visual: { width: icon!, height: icon!, color: neutral },
           },
           {
             childType: "Text",
@@ -1252,7 +1253,9 @@ function contextualHelpPartRules(parentType: string): CompiledPartRule[] {
             fill: "transparent",
           },
         },
-        ...(typeof icon === "number"
+        // (ADR-295 Phase 3b: the Button's S2 icon step keeps its ref — a token value in the library.)
+        ...(typeof icon === "number" ||
+        (typeof icon === "string" && /^\{size\.icon\.[A-Z]+\}$/.test(icon))
           ? [
               {
                 childType: "Icon",

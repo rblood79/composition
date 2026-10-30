@@ -110,7 +110,8 @@ async function open(type: string, size: string, grouped = false) {
   // records inside this instance only.)
   const within = (sourceId: NodeId) =>
     [...root.canvasInputs.values()].find(
-      (item) => item.sourceId === sourceId && item.instancePath.includes(BUTTON),
+      (item) =>
+        item.sourceId === sourceId && item.instancePath.includes(BUTTON),
     )!;
   const icon = () => within(ICON(type));
   const label = () => within(LABEL(type));
@@ -129,11 +130,13 @@ describe("mixed button text and document children", () => {
     for (const size of ["XS", "S", "M", "L", "XL"])
       for (const grouped of type === "ToggleButton" ? [false, true] : [false]) {
         it(`${type} ${size} grouped=${grouped}: text participates in layout and paint`, async () => {
-          const { workspace, root, record, icon: iconOf, label } = await open(
-            type,
-            size,
-            grouped,
-          );
+          const {
+            workspace,
+            root,
+            record,
+            icon: iconOf,
+            label,
+          } = await open(type, size, grouped);
           const button = record(BUTTON),
             icon = iconOf(),
             part = label();
@@ -187,15 +190,17 @@ describe("resolved Icon box in DOM", () => {
     ["XS", 14],
     ["S", 16],
     ["M", 18],
-    ["L", 24],
-    ["XL", 28],
+    // (ADR-295 Phase 3b: the S2 icon steps — `iconStyle` L 20 · XL 22.)
+    ["L", 20],
+    ["XL", 22],
   ] as const)
     it(size, async () => {
-      const { workspace, root, record, icon: iconOf } = await open(
-        "ToggleButton",
-        "M",
-        true,
-      );
+      const {
+        workspace,
+        root,
+        record,
+        icon: iconOf,
+      } = await open("ToggleButton", "M", true);
       const icon = iconOf();
       // (In a group the item's size is the group's — `CATALOG_SIZE_PROPAGATION`.)
       const group = root.canvasInputs.get(record(BUTTON).parentId)!;
@@ -212,7 +217,8 @@ describe("resolved Icon box in DOM", () => {
       const dom = host.querySelector<HTMLElement>(
         `[data-catalog-id="${icon.id}"]`,
       )!;
-      expect(dom.style.height).toBe(`${expected}px`);
+      // (ADR-295 Phase 3b: the S2 icon step goes inline as its device variable — `expected` on desktop.)
+      expect(dom.style.height).toBe(`var(--catalog-token-size-icon-${size})`);
       expect(root.getGeometry([icon.id]).get(icon.id)!.height).toBe(expected);
       workspace.execute(
         setFields({
@@ -240,11 +246,13 @@ describe("button Icon inherits text color", () => {
     ["ToggleButton", true],
   ] as const)
     it(`${type} grouped=${grouped}: default, selected and authored override`, async () => {
-      const { workspace, root, record, icon: iconOf, label } = await open(
-        type,
-        "M",
-        grouped,
-      );
+      const {
+        workspace,
+        root,
+        record,
+        icon: iconOf,
+        label,
+      } = await open(type, "M", grouped);
       const owner = record(BUTTON),
         icon = iconOf(),
         text = label();
@@ -355,14 +363,19 @@ it("standalone Icon keeps its glyph box in flex row and column", async () => {
         layout: { display: set("flex"), flexDirection: set(direction) },
       }),
     );
+    // (ADR-295 Phase 3b: the Icon's L is the S2 icon step 20.)
     const box = root.getGeometry([glyph.id]).get(glyph.id)!;
-    expect(box.width).toBe(36);
-    expect(box.height).toBe(36);
+    expect(box.width).toBe(20);
+    expect(box.height).toBe(20);
   }
 });
 
 it("grouped mixed text wraps at its own box and unwraps after widening", async () => {
-  const { workspace, root, record, label } = await open("ToggleButton", "M", true);
+  const { workspace, root, record, label } = await open(
+    "ToggleButton",
+    "M",
+    true,
+  );
   const button = record(BUTTON);
   const target = workspace.itemOfRecord(button.id)!.target;
   workspace.execute(
@@ -394,7 +407,11 @@ it("grouped mixed text wraps at its own box and unwraps after widening", async (
 });
 
 it("mixed ToggleButton paints authored typography and Reset restores native text defaults", async () => {
-  const { workspace, root, record, label } = await open("ToggleButton", "M", true);
+  const { workspace, root, record, label } = await open(
+    "ToggleButton",
+    "M",
+    true,
+  );
   const button = record(BUTTON);
   const text = label();
   const owner = workspace.itemOfRecord(button.id)!.target;
@@ -446,11 +463,13 @@ it("mixed ToggleButton paints authored typography and Reset restores native text
 });
 
 it("group staticColor updates its ToggleButton Icon through derived dependents", async () => {
-  const { workspace, root, record, icon: iconOf, label } = await open(
-    "ToggleButton",
-    "M",
-    true,
-  );
+  const {
+    workspace,
+    root,
+    record,
+    icon: iconOf,
+    label,
+  } = await open("ToggleButton", "M", true);
   const owner = record(BUTTON),
     icon = iconOf(),
     text = label();

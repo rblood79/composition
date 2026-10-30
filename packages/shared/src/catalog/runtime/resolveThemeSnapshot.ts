@@ -444,6 +444,10 @@ export function resolveThemeSnapshot(
     emit("--catalog-token-font-base", `${tokens.fontBase}px`);
     for (const [size, px] of Object.entries(tokens.controlHeight))
       emit(`--catalog-token-size-height-${size}`, `${px}px`);
+    // ADR-295 Phase 3b: the S2 icon steps (`{size.icon.<S>}`) — the same size map's `icon.<S>`.
+    for (const [key, px] of Object.entries(s2SizeTokens(tokens.scale)))
+      if (key.startsWith("icon."))
+        emit(`--catalog-token-size-icon-${key.slice(5)}`, `${px}px`);
     for (const [key, value] of Object.entries(tokens.typography)) {
       if (typeof value !== "number") continue;
       const cssName = `--${key === "text-md" ? "text-base" : key}`;

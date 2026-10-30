@@ -19,42 +19,42 @@
   font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
   gap: 6px;
-  --icon-size: 18px;
+  --icon-size: var(--catalog-token-combo-box-icon-size-M, var(--catalog-token-size-icon-M));
 }
 
 .react-aria-ComboBox[data-size="XS"] {
   font-size: var(--catalog-token-text-2xs);
   border-radius: var(--catalog-token-radius-xs);
   gap: 2px;
-  --icon-size: 14px;
+  --icon-size: var(--catalog-token-combo-box-icon-size-XS, var(--catalog-token-size-icon-XS));
 }
 
 .react-aria-ComboBox[data-size="S"] {
   font-size: var(--catalog-token-text-xs);
   border-radius: 7px;
   gap: 4px;
-  --icon-size: 16px;
+  --icon-size: var(--catalog-token-combo-box-icon-size-S, var(--catalog-token-size-icon-S));
 }
 
 .react-aria-ComboBox[data-size="M"] {
   font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
   gap: 6px;
-  --icon-size: 18px;
+  --icon-size: var(--catalog-token-combo-box-icon-size-M, var(--catalog-token-size-icon-M));
 }
 
 .react-aria-ComboBox[data-size="L"] {
   font-size: var(--catalog-token-text-base);
   border-radius: 9px;
   gap: 8px;
-  --icon-size: 22px;
+  --icon-size: var(--catalog-token-combo-box-icon-size-L, var(--catalog-token-size-icon-L));
 }
 
 .react-aria-ComboBox[data-size="XL"] {
   font-size: var(--catalog-token-text-lg);
   border-radius: 10px;
   gap: 10px;
-  --icon-size: 28px;
+  --icon-size: var(--catalog-token-combo-box-icon-size-XL, var(--catalog-token-size-icon-XL));
 }
 
 .react-aria-ComboBox[data-focus-visible] {

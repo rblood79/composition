@@ -1092,11 +1092,12 @@ describe("ADR-248 4e library origin view", () => {
       "daterangepicker",
     ]) {
       expect(buttonGlyphs(origin, "XS")).toEqual([14]);
-      expect(buttonGlyphs(origin, "XL")).toEqual([28]);
+      // (ADR-295 Phase 3b: the S2 icon step XL 22.)
+      expect(buttonGlyphs(origin, "XL")).toEqual([22]);
     }
     // A NumberField's steppers are Button instances (ADR-253): their glyphs are the Button's scale.
     expect(buttonGlyphs("numberfield", "XS")).toEqual([14, 14]);
-    expect(buttonGlyphs("numberfield", "XL")).toEqual([28, 28]);
+    expect(buttonGlyphs("numberfield", "XL")).toEqual([22, 22]);
     // A group's size reaches its members. (A calendar has no size — 2026-10-13.)
     const sizesUnder = (origin: string, size: string, binding: string) =>
       under(recordOf(sized(origin, size)), binding).map(

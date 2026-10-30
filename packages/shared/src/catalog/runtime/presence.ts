@@ -2,7 +2,11 @@ import {
   catalogColorControlDerivedProps,
   catalogColorControlParts,
 } from "./colorControlParts";
-import { getIconData } from "@composition/rendering";
+import {
+  getIconData,
+  resolveToken,
+  type TokenRef,
+} from "@composition/rendering";
 import { catalogButtonPending } from "../document/buttonPending";
 import { NumberFormatter } from "@internationalized/number";
 import { catalogNumberFormatOptions } from "../document/numberFormatValue";
@@ -1294,8 +1298,14 @@ export interface CatalogComposedPart {
  */
 const TREE_CHEVRON_WIDTH = 20;
 const TREE_LEVEL_PADDING = 16;
-/** The chevron svg (`size={16}`): the button's content height. */
-const TREE_CHEVRON_ICON = 16;
+/**
+ * The chevron glyph's box: the button's content height — its Icon's S2 icon step (the chevron Button
+ * is size S — `{size.icon.S}`, 16 desktop · the touch set × 1.25). A leaf item's hidden glyph keeps
+ * its box in the DOM (`visibility: hidden`), so the Canvas floor reads the installed step too
+ * (ADR-295 Phase 3b).
+ */
+const treeChevronIcon = (): number =>
+  Number(resolveToken("{size.icon.S}" as TokenRef));
 
 /**
  * A TreeItem's level (1 = child of the Tree). A TreeItem outside a Tree is a level-1 row of its
@@ -1331,7 +1341,7 @@ function treeChevronStyle(level: number): Record<string, string | number> {
     justifyContent: "center",
     width: `${TREE_CHEVRON_WIDTH + padding}px`,
     height: "100%",
-    minHeight: `${TREE_CHEVRON_ICON}px`,
+    minHeight: `${treeChevronIcon()}px`,
     paddingLeft: `${padding}px`,
     flexShrink: 0,
   };

@@ -40,7 +40,7 @@
   border-width: var(--border-width-thin);
   min-height: var(--catalog-token-size-height-M);
   gap: 8px;
-  --icon-size: 18px;
+  --icon-size: var(--catalog-token-toggle-button-icon-size-M, var(--catalog-token-size-icon-M));
 }
 
 .react-aria-ToggleButton[data-variant="default"] {
@@ -90,7 +90,7 @@
   border-width: var(--border-width-thin);
   min-height: var(--catalog-token-size-height-XS);
   gap: 4px;
-  --icon-size: 14px;
+  --icon-size: var(--catalog-token-toggle-button-icon-size-XS, var(--catalog-token-size-icon-XS));
 }
 
 .react-aria-ToggleButton[data-size="S"] {
@@ -102,7 +102,7 @@
   border-width: var(--border-width-thin);
   min-height: var(--catalog-token-size-height-S);
   gap: 6px;
-  --icon-size: 16px;
+  --icon-size: var(--catalog-token-toggle-button-icon-size-S, var(--catalog-token-size-icon-S));
 }
 
 .react-aria-ToggleButton[data-size="M"] {
@@ -114,7 +114,7 @@
   border-width: var(--border-width-thin);
   min-height: var(--catalog-token-size-height-M);
   gap: 8px;
-  --icon-size: 18px;
+  --icon-size: var(--catalog-token-toggle-button-icon-size-M, var(--catalog-token-size-icon-M));
 }
 
 .react-aria-ToggleButton[data-size="L"] {
@@ -126,7 +126,7 @@
   border-width: var(--border-width-thin);
   min-height: var(--catalog-token-size-height-L);
   gap: 10px;
-  --icon-size: 24px;
+  --icon-size: var(--catalog-token-toggle-button-icon-size-L, var(--catalog-token-size-icon-L));
 }
 
 .react-aria-ToggleButton[data-size="XL"] {
@@ -138,7 +138,7 @@
   border-width: var(--border-width-thin);
   min-height: var(--catalog-token-size-height-XL);
   gap: 12px;
-  --icon-size: 28px;
+  --icon-size: var(--catalog-token-toggle-button-icon-size-XL, var(--catalog-token-size-icon-XL));
 }
 
 .react-aria-ToggleButton[data-focus-visible] {

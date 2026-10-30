@@ -116,7 +116,7 @@ size 키: XS 35 · S 102 · M 130 · L 101 · XL 58 · XXL 3.
 
 ### Phase 3 — rule 리터럴 참조화 · 정적 게이트 (G3 · G4)
 
-> **하위 커밋 (2026-10-30 실행 판단 — 사후 보고)**: 3a 행간 식 + control 높이 토큰 (같은 커밋 — 아래 첫 항목) · 3b 남은 리터럴 참조화 (radius · iconSize · minHeight · minWidth · fontSize) + ratchet + `d3S2Alignment` · 3c 값의 형 (`{ ofHeight }` · `{ em }` · `touch`) + padding · gap 정렬 (사용자 결정 1) + 컴포넌트 글자 매핑 (G4 c) · 3d 숨은 사본 (`collectionItemMetrics`) · spacing 맵 판정 · `paletteBaseCanvas` 은퇴. 3a 기록은 §6.3.
+> **하위 커밋 (2026-10-30 실행 판단 — 사후 보고)**: 3a 행간 식 + control 높이 토큰 (같은 커밋 — 아래 첫 항목) · 3b 남은 리터럴 참조화 (radius · iconSize · minHeight · fontSize — minWidth 는 높이 비례 형이라 3c 로) + ratchet + `d3S2Alignment` · 3c 값의 형 (`{ ofHeight }` · `{ em }` · `touch`) + padding · gap 정렬 (사용자 결정 1) + 컴포넌트 글자 매핑 (G4 c) · 3d 숨은 사본 (`collectionItemMetrics`) · spacing 맵 판정 · `paletteBaseCanvas` 은퇴. 3a 기록은 §6.3.
 
 - **행간 식 (사용자 결정 2) 도 이 Phase 의 커밋에서** (2026-10-30 순서 변경 — §6.1): `PRE_PHASE3_LINE_HEIGHT` · `getLabelLineHeight` 의 표를 지우고 `s2LineHeight` 로, field · stepper · Calendar · toggle 의 높이를 S2 control 높이 토큰으로 묶는 것과 같은 커밋. 컴포넌트별 글자 매핑 (Heading · Dialog 제목 · AvatarGroup 라벨 …) 도 G4 (c) oracle 로 여기서.
 
@@ -321,10 +321,41 @@ size 키: XS 35 · S 102 · M 130 · L 101 · XL 58 · XXL 3.
 
 **live (Chrome MCP, 별도 dev 서버 5175 · 프로젝트 `adr295-live`)**: 팔레트로 Button 추가 → Canvas 68 × 32 · Input 32 · padding 6 · 행간 18. 빌더 root `--catalog-token-size-height-M 30px` · side 라벨 5px · drp `auto` (고정값). Compare Mode Preview: Input · Button 32 · padding 6 · 행간 18 · min-height 32. 「터치 크기로 미리보기」 켬: Input · Button 40 · padding 8 · 행간 22 · 글자 17 · Label 22 (S2 터치 값), Canvas Button 32 그대로. 끔: 32 로 복귀. 콘솔 오류 0. 추가한 Button 은 삭제 명령으로 정리.
 
+### 6.4 Phase 3b (2026-10-30, 리터럴 참조화 · G3 ratchet · G4)
+
+**S2 추출기 보강**: `adr295-s2-token-extract.mjs` 가 `iconStyle({ size })` (설치본 macro — XS 14 · S 16 · M 18 · L 20 · XL 22, rem × `--s2-scale`) 와 probe 가족별 보이는 svg 치수 (`iconTable` — Button · ActionButton · ToggleButton 아이콘 · Picker · ComboBox · Disclosure chevron · NumberField 증감 · SearchField 글리프 · DatePicker 달력 · Tag 지우기 · IllustratedMessage) 를 낸다. 기존 tokens · componentTable 은 바이트 같음 (fixture 는 추가만).
+
+**판단 — ui-icon 표는 옮기지 않는다**: S2 ui-icon (Chevron S 10 · M 10 · L 12 · XL 14 · 증감 8 · 10 · 12 · 12 · 지우기 8 · 8 · 10 …) 은 아이콘마다 여백 없는 전용 글리프의 상자다. 저장소는 lucide (24 격자 · 여백 2) 로 그리므로 상자 크기를 옮기면 글리프가 절반으로 줄어든다. 그래서 S2 의 **공개 아이콘 단** (`iconStyle`) 만 토큰으로 두고, 컨트롤 안 워크플로 아이콘 자리와 Icon 컴포넌트가 참조한다. ui-icon 자리 (Breadcrumb · Disclosure · Tree · TreeItem · Tag) 는 사유와 함께 리터럴.
+
+**변경**:
+
+| 영역 | 파일 | 내용 |
+| --- | --- | --- |
+| 아이콘 토큰 | `rendering/primitives/device.ts` (`S2_ICON_SIZE` · `s2SizeTokens`) · `tokenResolver.ts` · `shared/runtime/resolveThemeSnapshot.ts` | `{size.icon.<S>}` — size 맵 `icon.<S>` (× scale, 터치 17.5 · 20 · 22.5 · 25 · 27.5) · DOM `--catalog-token-size-icon-<S>` (seed 두 벌) |
+| rule | `componentRulesTable.ts` | iconSize → `{size.icon.<S>}`: Button · ToggleButton · Select · ComboBox · SearchField · NumberField · DatePicker · DateRangePicker · FileTrigger · Icon (값: L 24 → 20 · XL 28 → 22 · Icon 16 · 18 · 24 · 36 · 48 → 14 · 16 · 18 · 20 · 22 · NumberField · DatePicker XS 10 → 14 · DatePicker M 16 → 18 · SearchField S 14 → 16). radius 0 → `{radius.none}` (CardView · DateField · IllustratedMessage · TimeField · ToggleButtonGroup) · InlineAlert 10 → `{radius.lg}` · Popover 16 → `{radius.xl}`. TagList minHeight 22 · 30 · 42 → `{size.height.S · M · L}` (Tag 의 control 높이 24 · 32 · 40) |
+| 생성 CSS | `CSSGenerator.ts` (`iconPinVar`) | `--icon-size: var(--catalog-token-<컴포넌트>-icon-size-<S>, var(--catalog-token-size-icon-<S>))` — 컴포넌트 고정 변수는 빌더 root 만 선언 (295 전 px, Decision 8 · 9), Preview · Publish 는 S2 단 |
+| 정의 · 소비자 | `ruleDefinition.ts` · `codeCatalogLibrary.ts` (`iconValue`) · `library.ts` · `rulePartRules.ts` · `manualBoxRules.ts` · rendering `resolveSpecIconSize` | 아이콘 단을 library 토큰 값으로 (출처 기억). `typeof iconSize === "number"` 로 거르던 자리 (Disclosure chevron · ContextualHelp 아이콘 · Button 자식 scale · glyph 정의 · TagGroup 의 TagList minHeight · rendering 4) 를 토큰도 받게 — 걸렀다면 조용히 기본값으로 떨어진다 |
+| DOM 터치 | `deviceTypography.ts` (`catalogDeviceGlyphSize` · width/height 의 `{size.icon}`) · `domBinding.runtime.ts` · `components/Icon.tsx` · `presence.ts` | 글리프 크기 = 기기 변수 · svg 는 inline `1em` (Tree chevron · Calendar nav 시트의 고정 svg px 를 이긴다). 색을 바꾼 글리프 사본 (`withInheritedIconColor` · 시트 색 글리프) 이 토큰 출처를 잃던 것을 `copyResolvedTokenRefs` 로. Tree 잎 항목의 숨은 chevron 상자 하한 = 설치된 `{size.icon.S}` |
+| 빌더 고정 | `builder-catalog-vars.css` | `--catalog-token-size-icon-*` (S2 desktop) + 컴포넌트 고정 변수 47 (295 전 rule px). 게이트 (c) 통과 |
+
+**G3 ratchet** (`packages/shared/src/catalog/__tests__/componentRulesTable.static.test.ts`): fontSize · borderRadius · lineHeight · minHeight · iconSize 의 px 리터럴은 `INTENTIONAL_LITERAL` 의 값 그대로 (등재 없음 · 값 drift · 낡은 등재 모두 FAIL). 등재 = control 모서리 7 · 8 · 9 · 10 (11 컴포넌트 — S2 `controlBorderRadius`, d3S2Alignment 가 대조) · Dialog 16 (빌더가 시트를 같이 읽어 `{radius.xl}` 이면 고정값 12) · ui-icon 자리 5 · 달력 칸 폭 4 · swatch · thumb 4 · 일러스트 2 · Toast · ListBoxItem 아이콘 · ListBoxItem minHeight 32 (paddingY 4 ↔ S2 식 6 — 3c) · Slot placeholder · Chart 축 글자. 나머지 키 (height 389 · minWidth 13 · paddingX 167 · paddingY 111 · gap 178 · iconGap 8) 는 상한 — 3c · 3d 가 내린다. **원복 RED**: Button L 아이콘을 24 로 · ColorField M 모서리를 6 으로 되살리면 3 FAIL (복원 cmp 일치).
+
+**G4** (`apps/builder/src/builder/catalogRuntime/__tests__/d3S2Alignment.static.test.ts`, oracle = 추출기 fixture): (a) radius · border · spacing 단 · 기기 두 벌 · 글자 단계 × 행간 식 (두 벌) · control 높이 5단 · 아이콘 5단 = 설치본 · (c) field 모서리 S ~ XL = S2 control 모서리 · TextField · Picker · ComboBox · Button 높이 (두 벌) = `{size.height}` 의 기기 값 · Input · Button minHeight 토큰 · Button · ToggleButton 아이콘 (desktop) = S2 svg · 터치 아이콘 차이 표 (S2 control 안 아이콘은 글자 상대 18/14 em → 22, 우리 × 1.25 → 22.5 — 3c 의 `{ em }` 형). (b) 최종 snapshot radius 는 `resolveThemeSnapshot.test.ts` 「ADR-295 R9」 가 같은 표로. **원복 RED**: `S2_ICON_SIZE.L` 20 → 24 면 3 FAIL.
+
+**G2 두 arm**: desktop 263/263 · touch 263/263 (알려진 목록 변화 없음). 경과 (터치): 36 (DOM root 에 아이콘 변수 없음 — snapshot cssVars 미생성) → 5 (Tree chevron · Calendar nav — 시트 고정 svg px · 색 사본의 출처 손실) → 3 (Tree 잎 chevron 상자 하한 16 고정) → 0. desktop 첫 측정 25 도 같은 변수 미생성.
+
+**값 변화 (desktop)**: Select · ComboBox 트리거 L · XL 44 · 54 → 40 · 48 (3a 의 남은 차이 닫힘). Button · ToggleButton 아이콘 L · XL 24 · 28 → 20 · 22. Icon 컴포넌트 XS ~ XL 16 · 18 · 24 · 36 · 48 → 14 · 16 · 18 · 20 · 22 (S2 `iconStyle`). TagList 빈 틀 22 · 30 · 42 → 24 · 32 · 40.
+
+**회귀**: type-check PASS · rendering 1,320 · shared 2,049 · builder unit (chromeIsland 1 — 기존) · parity (GeometryDelta case 2 — 기존) · G3 (propAxisCanvasDom 5 Select · Tree · Table · paletteBaseCanvas — 3a 와 같은 목록). 값 단언 갱신 9 파일.
+
+**live (Chrome MCP, 5175 · `adr295-live`)**: 팔레트 Select 추가 → Canvas M 390 × 56 · XL 390 × 80 (트리거 48). Compare Mode Preview XL: 트리거 48 · 아이콘 22 (`var(--catalog-token-size-icon-XL)` · svg 1em). 「터치 크기로 미리보기」: 트리거 60 · 아이콘 27.5 · 글자 22, 끄면 48. 빌더 root `--catalog-token-size-icon-L 20px` · `--catalog-token-button-icon-size-L 24px` · `--catalog-token-select-icon-size-XL 28px` (고정값). 콘솔 오류 0 (토글 이후 추적). 추가한 Select 는 삭제 명령으로 지움.
+
+**3c 로 넘긴 것**: minWidth (TextField 1.5 × · SearchField 3 × 높이 — `{ ofHeight }` 형) · ListBoxItem minHeight · Button 계열 터치 아이콘 `{ em }` 형 · ComboBox · picker 안 버튼 상자 · toggle indicator · padding · gap.
+
 - G1 before/after: §6.1
-- G2 두 arm: §6.2 · Phase 3a §6.3
-- G4 (b) 최종 snapshot (preset 5 × 델타) · (c) 컴포넌트별 desktop/touch vs S2 computed: (미작성)
+- G2 두 arm: §6.2 · Phase 3a §6.3 · Phase 3b §6.4
+- G4 (b) 최종 snapshot (preset 5 × 델타) · (c) 컴포넌트별 desktop/touch vs S2 computed: §6.4 (c 의 padding · gap 은 3c)
 - G5 빌더 chrome before/after Δ (패널 표면 + 위젯 CompactSelect · PropertySelect · Data RowForm, desktop · pointer: coarse 두 조건): (미작성)
 - Decision 9 게이트 (a) 커버리지 · (b) pointer 쿼리 0 · (c) 계산값 == 기준 JSON · RED: §6.2
-- G3 ratchet 원복 RED: (미작성)
+- G3 ratchet 원복 RED: §6.4
 - G5 live: (미작성)

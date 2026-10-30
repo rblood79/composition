@@ -8,6 +8,7 @@ import type { VariantSpec, SizeSpec } from "../../types";
 import { resolveColor, resolveToken, hexStringToNumber } from "./tokenResolver";
 // ADR-908 Phase 3-A: Fill token dual-read seam
 import { resolveFillTokens } from "../../utils/fillTokens";
+import { resolveSpecIconSize } from "./resolveSpecFontSize";
 
 /**
  * Variant 색상 세트 (numeric hex — Skia/Canvas 공용)
@@ -99,7 +100,7 @@ export function getSizePreset(
     paddingY: sizeSpec.paddingY,
     fontSize: typeof fontSize === "number" ? fontSize : 14,
     borderRadius: typeof borderRadius === "number" ? borderRadius : 4,
-    iconSize: sizeSpec.iconSize ?? 0,
+    iconSize: resolveSpecIconSize(sizeSpec.iconSize) ?? 0,
     gap: sizeSpec.gap ?? 0,
     ...extra,
   };

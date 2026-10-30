@@ -22,7 +22,10 @@ import { parseBorderWidth, parsePxValue } from "../primitives";
 import { fontFamily } from "../primitives/typography";
 import type { BorderStyleValue, Shape, SizeSpec, TokenRef } from "../types";
 import type { CatalogResolvedPaint } from "./catalogPaint";
-import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
+import {
+  resolveSpecFontSize,
+  resolveSpecIconSize,
+} from "./utils/resolveSpecFontSize";
 import { resolveBorderWidthPx } from "./utils/tokenResolver";
 import { resolveTextSourceText } from "./utils/textSource";
 import { measureSpecTextWidth } from "./utils/measureText";
@@ -215,8 +218,8 @@ export function resolveLeadingSlot(
   if (!iconName) return null;
   const iconSize =
     injectedSize ??
-    (typeof size.iconSize === "number" && size.iconSize > 0
-      ? size.iconSize
+    ((resolveSpecIconSize(size.iconSize) ?? 0) > 0
+      ? resolveSpecIconSize(size.iconSize)!
       : Math.round(fontSize * 1.1));
   const gap = visual!.leadingIcon!.gap ?? 6;
   return {
@@ -501,8 +504,8 @@ export function buildCatalogShapes(
     if (ti && (!ti.showProp || props[ti.showProp] === true)) {
       const tiGap = ti.gap ?? 2;
       const iconSize =
-        typeof size.iconSize === "number" && size.iconSize > 0
-          ? size.iconSize
+        (resolveSpecIconSize(size.iconSize) ?? 0) > 0
+          ? resolveSpecIconSize(size.iconSize)!
           : Math.round(fontSize * 0.75);
       const containerWidth =
         typeof props._containerWidth === "number" ? props._containerWidth : 0;

@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-295 Phase 3b — S2 아이콘 단 14 · 16 · 18 · 20 · 22 · 리터럴 ratchet] - 2026-10-30
+
+### Changed
+
+- **컨트롤 안 아이콘과 Icon 컴포넌트가 S2 아이콘 크기를 따른다** (`{size.icon.<S>}` — 터치 기기 · 「터치 크기로 미리보기」 에서 × 1.25)
+  - Button · ToggleButton 아이콘 L · XL 24 · 28 → 20 · 22. Select · ComboBox 트리거 L · XL 44 · 54 → S2 높이 40 · 48.
+  - Icon 컴포넌트 XS ~ XL 16 · 18 · 24 · 36 · 48 → 14 · 16 · 18 · 20 · 22 (S2 `iconStyle`).
+  - chevron · 지우기 같은 자리는 lucide 글리프라 S2 전용 글리프 상자 크기를 옮기지 않고 지금 값을 둔다.
+- TagGroup 의 빈 목록 틀 높이 22 · 30 · 42 → Tag 높이 24 · 32 · 40. 빌더 화면은 그대로다 (295 전 값 고정).
+
+### Tests
+
+- rule 치수 리터럴 ratchet (`componentRulesTable.static.test.ts`) — 글자 · 모서리 · 행간 · 최소 높이 · 아이콘의 px 숫자는 사유 표에 있어야 한다.
+- S2 대조 (`d3S2Alignment.static.test.ts`) — 토큰 표 · 상수 · 컴포넌트 값을 S2 1.8.1 설치본 추출값과 비교한다.
+
 ## [Canvas 부분 갱신 경계 잔상 — device pixel clip] - 2026-10-30
 
 ### Fixed

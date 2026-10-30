@@ -90,6 +90,7 @@ import {
   CATALOG_COLOR_WHEEL_TRACK,
   catalogColorWheelDiameter,
 } from "../resolvers/resolveCatalogRuleCanvasBox";
+import { copyResolvedTokenRefs } from "../resolution/resolver";
 
 import {
   CATALOG_AUTHORED_PAINT_KEYS,
@@ -168,6 +169,7 @@ import {
 } from "./libraryVisual";
 import {
   catalogDeviceControlCss,
+  catalogDeviceGlyphSize,
   catalogDeviceRowsHeightCss,
   catalogDeviceTypographyCss,
 } from "./deviceTypography";
@@ -649,11 +651,23 @@ const glyph =
         color: cssColor(
           (node.derivedProps?.color as string | undefined) ?? node.visual.color,
         ),
-        fontSize: catalogGlyphSize(node) ?? fallbackSize,
+        // (ADR-295 Phase 3b: an S2 icon step is its device variable — the touch set reaches the glyph.)
+        fontSize:
+          catalogDeviceGlyphSize(node.visual) ??
+          catalogGlyphSize(node) ??
+          fallbackSize,
         // The resolved glyph sets the natural box too. Icon.css's default M height must
         // not override XS/XL or a field-owned glyph; explicit authored boxes still win.
-        width: style.width ?? catalogGlyphSize(node) ?? fallbackSize,
-        height: style.height ?? catalogGlyphSize(node) ?? fallbackSize,
+        width:
+          style.width ??
+          catalogDeviceGlyphSize(node.visual) ??
+          catalogGlyphSize(node) ??
+          fallbackSize,
+        height:
+          style.height ??
+          catalogDeviceGlyphSize(node.visual) ??
+          catalogGlyphSize(node) ??
+          fallbackSize,
       },
     });
 
@@ -663,9 +677,18 @@ function withInheritedIconColor(
   const { color: _color, ...derivedProps } = node.derivedProps ?? {};
   return {
     ...node,
-    visual: { ...node.visual, color: "inherit" },
+    visual: withTokenRefs({ ...node.visual, color: "inherit" }, node.visual),
     derivedProps,
   };
+}
+
+/**
+ * A recolored copy of a glyph's visual keeps its token refs — an S2 icon step stays its device
+ * variable (`catalogDeviceGlyphSize`, ADR-295 Phase 3b).
+ */
+function withTokenRefs<T extends object>(copy: T, source: object): T {
+  copyResolvedTokenRefs(copy, source);
+  return copy;
 }
 
 const bindings: Readonly<Record<string, DomBinding>> = {
@@ -3498,7 +3521,10 @@ export function renderNode(
       catalogItemRemoveGlyphItem(node, domGet, domType))
       ? {
           ...node,
-          visual: { ...node.visual, color: undefined },
+          visual: withTokenRefs(
+            { ...node.visual, color: undefined },
+            node.visual,
+          ),
           derivedProps: { ...node.derivedProps, color: undefined },
         }
       : undefined;

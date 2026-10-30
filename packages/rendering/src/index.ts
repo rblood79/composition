@@ -156,6 +156,7 @@ export {
   S2_DEVICE,
   S2_TOUCH_MEDIA,
   S2_CONTROL_HEIGHT,
+  S2_ICON_SIZE,
   s2ControlHeights,
   s2SizeTokens,
   size,

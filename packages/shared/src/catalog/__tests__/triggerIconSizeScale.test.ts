@@ -106,12 +106,13 @@ describe("트리거 아이콘 크기 — 아이콘 스케일 단일 SSOT", () =>
    *
    * 대상: `Select` / `ComboBox` — 같은 트리거 계열 (동일 스케일 유지).
    */
-  const ICON_SCALE_NUM: Record<string, number> = {
-    XS: 14,
-    S: 16,
-    M: 18,
-    L: 22,
-    XL: 28,
+  // ADR-295 Phase 3b: the S2 icon steps (`iconStyle` 14 · 16 · 18 · 20 · 22 — `{size.icon.<S>}`).
+  const ICON_SCALE_NUM: Record<string, string> = {
+    XS: "{size.icon.XS}",
+    S: "{size.icon.S}",
+    M: "{size.icon.M}",
+    L: "{size.icon.L}",
+    XL: "{size.icon.XL}",
   };
 
   it.each(["Select", "ComboBox"])(
@@ -119,9 +120,9 @@ describe("트리거 아이콘 크기 — 아이콘 스케일 단일 SSOT", () =>
     (type) => {
       const sizes = (COMPONENT_RULES_TABLE[type]?.sizes ?? {}) as Record<
         string,
-        { iconSize?: number }
+        { iconSize?: number | string }
       >;
-      const actual: Record<string, number | undefined> = {};
+      const actual: Record<string, number | string | undefined> = {};
       for (const size of Object.keys(ICON_SCALE_NUM)) {
         actual[size] = sizes[size]?.iconSize;
       }

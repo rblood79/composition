@@ -77,6 +77,14 @@ for (const k of ["text-to-control", "text-to-visual", "edge-to-text", "pill"]) {
     touchMedia: /@media[^{]*pointer/.test(css),
   };
 }
+// (Phase 3b) `iconStyle({ size })` — 설치본 macro 가 내는 아이콘 상자 (width) · touch 는 --s2-scale 배율
+const styleIndex = require(join(s2Dir, "style/dist/main.cjs"));
+const iconStyleSize = {};
+for (const k of ["XS", "S", "M", "L", "XL"]) {
+  const assets = [];
+  styleIndex.iconStyle.call({ addAsset: (a) => assets.push(a) }, { size: k });
+  iconStyleSize[k] = declValues(assets.map((a) => a.content).join("\n"), "width");
+}
 const sizeFn = { "size(32)": theme.size(32), "fontRelative(6)": theme.fontRelative(6), "fontRelative(8,17)": theme.fontRelative(8, 17) };
 
 // 행간 식 상수 — 설치본 문자열에서 읽는다.
@@ -149,6 +157,7 @@ for (const [variant, base] of [["default", radius.default], ["sm", radius.sm]]) 
 }
 
 const tokens = {
+  iconStyleSize,
   s2Version,
   spacing: spacingList,
   radius,
@@ -256,7 +265,14 @@ async function measure(device) {
           for (const c of el.children) visit(c, depth + 1);
         };
         visit(host, 0);
-        components.push({ family: host.dataset.probe, size: host.dataset.size, nodes });
+        // (Phase 3b) 보이는 svg 아이콘 치수 — 문서 순서
+        const icons = [...host.querySelectorAll("svg")]
+          .map((el) => {
+            const r = el.getBoundingClientRect();
+            return { w: Math.round(r.width * 100) / 100, h: Math.round(r.height * 100) / 100 };
+          })
+          .filter((r) => r.w > 0 && r.h > 0);
+        components.push({ family: host.dataset.probe, size: host.dataset.size, nodes, icons });
       }
       const fonts = {};
       for (const [name, cls] of Object.entries(fontProbeClass)) {
@@ -317,6 +333,13 @@ const PICK = {
   Tabs: (ns) => ns.find((n) => n.role === "tab"),
 };
 const componentTable = {};
+// (Phase 3b) 가족 × size 의 보이는 svg 치수 — rule iconSize 의 oracle
+const iconTable = {};
+for (const dev of ["desktop", "touch"]) {
+  for (const { family, size, icons } of computed[dev].components) {
+    if (icons.length) ((iconTable[family] ??= {})[size] ??= {})[dev] = icons;
+  }
+}
 for (const dev of ["desktop", "touch"]) {
   for (const { family, size, nodes } of computed[dev].components) {
     const box = PICK[family]?.(nodes);
@@ -338,11 +361,11 @@ for (const dev of ["desktop", "touch"]) {
   }
 }
 
-writeFileSync(join(outDir, "s2-values.json"), JSON.stringify({ tokens, componentTable, fontMismatch, computed }, null, 2));
+writeFileSync(join(outDir, "s2-values.json"), JSON.stringify({ tokens, componentTable, iconTable, fontMismatch, computed }, null, 2));
 // 게이트가 읽는 얇은 사본 (probe 원자료 제외) — G4 (a) · (c) 의 oracle. 저장소 fixture 로 복사한다.
 writeFileSync(
   join(outDir, "adr295-s2-oracle.json"),
-  JSON.stringify({ note: "ADR-295 G0 — S2 설치본 추출 (adr295-s2-token-extract.mjs). 손 편집 금지", tokens, componentTable }, null, 2),
+  JSON.stringify({ note: "ADR-295 G0 — S2 설치본 추출 (adr295-s2-token-extract.mjs). 손 편집 금지", tokens, componentTable, iconTable }, null, 2),
 );
 console.log("S2", s2Version, "→", join(outDir, "s2-values.json"));
 console.log("probe vars", computed.desktop.probeVars, computed.touch.probeVars);

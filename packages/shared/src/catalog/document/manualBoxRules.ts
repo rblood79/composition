@@ -1004,7 +1004,11 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
           layout: {},
           visual: {
             ...(typeof values.gap === "number" ? { gap: values.gap } : {}),
-            ...(typeof values.minHeight === "number"
+            // (ADR-295 Phase 3b: the Tag's S2 control height `{size.height.<S>}` keeps its ref — the
+            //   library makes it a token value, the DOM writes the device variable.)
+            ...(typeof values.minHeight === "number" ||
+            (typeof values.minHeight === "string" &&
+              /^\{size\.height\.[A-Z]+\}$/.test(values.minHeight))
               ? { minHeight: values.minHeight }
               : {}),
           },

@@ -65,5 +65,60 @@
 
     /* DateRangePicker 범위 상자의 S2 control 높이 — 빌더 위젯은 295 전처럼 내용 높이 (초기값). */
     --catalog-token-drp-group-min-height: auto;
+
+    /* 아이콘 (ADR-295 Phase 3b): 생성 시트의 `--icon-size` 는 컴포넌트 고정 변수 → S2 아이콘 단 `--catalog-token-size-icon-*`
+       순으로 읽는다. 빌더 위젯은 295 전 rule 의 px 를 고정 변수로 (Preview · Publish 는 고정 변수를 선언하지 않는다). */
+    --catalog-token-size-icon-XS: 14px;
+    --catalog-token-size-icon-S: 16px;
+    --catalog-token-size-icon-M: 18px;
+    --catalog-token-size-icon-L: 20px;
+    --catalog-token-size-icon-XL: 22px;
+    --catalog-token-button-icon-size-XS: 14px;
+    --catalog-token-button-icon-size-S: 16px;
+    --catalog-token-button-icon-size-M: 18px;
+    --catalog-token-button-icon-size-L: 24px;
+    --catalog-token-button-icon-size-XL: 28px;
+    --catalog-token-combo-box-icon-size-XS: 14px;
+    --catalog-token-combo-box-icon-size-S: 16px;
+    --catalog-token-combo-box-icon-size-M: 18px;
+    --catalog-token-combo-box-icon-size-L: 22px;
+    --catalog-token-combo-box-icon-size-XL: 28px;
+    --catalog-token-date-picker-icon-size-XS: 10px;
+    --catalog-token-date-picker-icon-size-S: 14px;
+    --catalog-token-date-picker-icon-size-M: 16px;
+    --catalog-token-date-picker-icon-size-L: 20px;
+    --catalog-token-date-picker-icon-size-XL: 24px;
+    --catalog-token-date-range-picker-icon-size-XS: 10px;
+    --catalog-token-date-range-picker-icon-size-S: 14px;
+    --catalog-token-date-range-picker-icon-size-M: 16px;
+    --catalog-token-date-range-picker-icon-size-L: 20px;
+    --catalog-token-date-range-picker-icon-size-XL: 24px;
+    --catalog-token-file-trigger-icon-size-S: 16px;
+    --catalog-token-file-trigger-icon-size-M: 18px;
+    --catalog-token-file-trigger-icon-size-L: 24px;
+    --catalog-token-icon-icon-size-XS: 16px;
+    --catalog-token-icon-icon-size-S: 18px;
+    --catalog-token-icon-icon-size-M: 24px;
+    --catalog-token-icon-icon-size-L: 36px;
+    --catalog-token-icon-icon-size-XL: 48px;
+    --catalog-token-number-field-icon-size-XS: 10px;
+    --catalog-token-number-field-icon-size-S: 14px;
+    --catalog-token-number-field-icon-size-M: 18px;
+    --catalog-token-number-field-icon-size-L: 22px;
+    --catalog-token-number-field-icon-size-XL: 28px;
+    --catalog-token-search-field-icon-size-S: 14px;
+    --catalog-token-search-field-icon-size-M: 18px;
+    --catalog-token-search-field-icon-size-L: 22px;
+    --catalog-token-search-field-icon-size-XL: 28px;
+    --catalog-token-select-icon-size-XS: 14px;
+    --catalog-token-select-icon-size-S: 16px;
+    --catalog-token-select-icon-size-M: 18px;
+    --catalog-token-select-icon-size-L: 22px;
+    --catalog-token-select-icon-size-XL: 28px;
+    --catalog-token-toggle-button-icon-size-XS: 14px;
+    --catalog-token-toggle-button-icon-size-S: 16px;
+    --catalog-token-toggle-button-icon-size-M: 18px;
+    --catalog-token-toggle-button-icon-size-L: 24px;
+    --catalog-token-toggle-button-icon-size-XL: 28px;
   }
 }

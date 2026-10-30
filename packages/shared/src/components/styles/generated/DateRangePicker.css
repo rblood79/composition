@@ -22,42 +22,42 @@
   font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
   gap: 4px;
-  --icon-size: 16px;
+  --icon-size: var(--catalog-token-date-range-picker-icon-size-M, var(--catalog-token-size-icon-M));
 }
 
 .react-aria-DateRangePicker[data-size="XS"] {
   font-size: var(--catalog-token-text-2xs);
   border-radius: var(--catalog-token-radius-xs);
   gap: 2px;
-  --icon-size: 10px;
+  --icon-size: var(--catalog-token-date-range-picker-icon-size-XS, var(--catalog-token-size-icon-XS));
 }
 
 .react-aria-DateRangePicker[data-size="S"] {
   font-size: var(--catalog-token-text-xs);
   border-radius: 7px;
   gap: 4px;
-  --icon-size: 14px;
+  --icon-size: var(--catalog-token-date-range-picker-icon-size-S, var(--catalog-token-size-icon-S));
 }
 
 .react-aria-DateRangePicker[data-size="M"] {
   font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
   gap: 4px;
-  --icon-size: 16px;
+  --icon-size: var(--catalog-token-date-range-picker-icon-size-M, var(--catalog-token-size-icon-M));
 }
 
 .react-aria-DateRangePicker[data-size="L"] {
   font-size: var(--catalog-token-text-base);
   border-radius: 9px;
   gap: 4px;
-  --icon-size: 20px;
+  --icon-size: var(--catalog-token-date-range-picker-icon-size-L, var(--catalog-token-size-icon-L));
 }
 
 .react-aria-DateRangePicker[data-size="XL"] {
   font-size: var(--catalog-token-text-lg);
   border-radius: 10px;
   gap: 8px;
-  --icon-size: 24px;
+  --icon-size: var(--catalog-token-date-range-picker-icon-size-XL, var(--catalog-token-size-icon-XL));
 }
 
 .react-aria-DateRangePicker[data-focus-visible] {

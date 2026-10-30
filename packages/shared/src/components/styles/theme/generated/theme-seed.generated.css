@@ -19,6 +19,11 @@
   --catalog-token-size-height-M: 32px;
   --catalog-token-size-height-L: 40px;
   --catalog-token-size-height-XL: 48px;
+  --catalog-token-size-icon-XS: 14px;
+  --catalog-token-size-icon-S: 16px;
+  --catalog-token-size-icon-M: 18px;
+  --catalog-token-size-icon-L: 20px;
+  --catalog-token-size-icon-XL: 22px;
   --catalog-token-text-2xs: 11px;
   --catalog-token-text-2xs--line-height: calc(14 / 11);
   --catalog-token-text-xs: 12px;
@@ -63,6 +68,11 @@
   --catalog-token-size-height-M: 40px;
   --catalog-token-size-height-L: 50px;
   --catalog-token-size-height-XL: 60px;
+  --catalog-token-size-icon-XS: 17.5px;
+  --catalog-token-size-icon-S: 20px;
+  --catalog-token-size-icon-M: 22.5px;
+  --catalog-token-size-icon-L: 25px;
+  --catalog-token-size-icon-XL: 27.5px;
   --catalog-token-text-2xs: 13px;
   --catalog-token-text-2xs--line-height: calc(16 / 13);
   --catalog-token-text-xs: 15px;
@@ -108,6 +118,11 @@
   --catalog-token-size-height-M: 40px;
   --catalog-token-size-height-L: 50px;
   --catalog-token-size-height-XL: 60px;
+  --catalog-token-size-icon-XS: 17.5px;
+  --catalog-token-size-icon-S: 20px;
+  --catalog-token-size-icon-M: 22.5px;
+  --catalog-token-size-icon-L: 25px;
+  --catalog-token-size-icon-XL: 27.5px;
   --catalog-token-text-2xs: 13px;
   --catalog-token-text-2xs--line-height: calc(16 / 13);
   --catalog-token-text-xs: 15px;
