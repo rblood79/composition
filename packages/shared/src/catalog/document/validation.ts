@@ -350,6 +350,15 @@ function id(value: unknown, prefix: string, at: string): string {
     invalid("INVALID_ID", at);
   return text;
 }
+/** ADR-294 — the value types an event property may carry. */
+const EVENT_VALUE_TYPES = new Set([
+  "string",
+  "number",
+  "boolean",
+  "date",
+  "object",
+  "array",
+]);
 /** A component property key: a prop name (the `{key}` binding grammar). */
 export const COMPONENT_PROPERTY_KEY = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
 /**
@@ -364,7 +373,11 @@ function componentProperties(value: unknown, at: string): void {
   for (const [index, raw] of value.entries()) {
     const path = `${at}[${index}]`;
     const property = object(raw, path);
-    exact(property, ["key", "name", "kind", "targets", "preferred"], path);
+    exact(
+      property,
+      ["key", "name", "kind", "targets", "preferred", "valueType", "variableId"],
+      path,
+    );
     const key = string(property.key, `${path}.key`);
     if (!COMPONENT_PROPERTY_KEY.test(key))
       invalid("INVALID_PROPERTY_KEY", `${path}.key`);
@@ -373,8 +386,26 @@ function componentProperties(value: unknown, at: string): void {
     string(property.name, `${path}.name`);
     if (!COMPONENT_PROPERTY_KINDS.includes(property.kind as never))
       invalid("INVALID_PROPERTY_KIND", `${path}.kind`);
-    if (!Array.isArray(property.targets) || property.targets.length === 0)
+    // ADR-294 — an event · a variable drives no node (`targets: []`): an event's value type is
+    // optional, a variable names its input variable (the graph checks it is the template root's).
+    const output = property.kind === "event" || property.kind === "variable";
+    if (!Array.isArray(property.targets))
       invalid("PROPERTY_TARGETS_REQUIRED", `${path}.targets`);
+    if (output !== (property.targets.length === 0))
+      invalid(
+        output ? "PROPERTY_TARGETS_NOT_ALLOWED" : "PROPERTY_TARGETS_REQUIRED",
+        `${path}.targets`,
+      );
+    if (property.valueType !== undefined) {
+      if (property.kind !== "event")
+        invalid("PROPERTY_VALUE_TYPE_EVENT_ONLY", `${path}.valueType`);
+      if (!EVENT_VALUE_TYPES.has(property.valueType as string))
+        invalid("INVALID_VALUE_TYPE", `${path}.valueType`);
+    }
+    if ((property.kind === "variable") !== (property.variableId !== undefined))
+      invalid("PROPERTY_VARIABLE_REQUIRED", `${path}.variableId`);
+    if (property.variableId !== undefined)
+      id(property.variableId, "project:stateVariable:", `${path}.variableId`);
     for (const [targetIndex, rawTarget] of property.targets.entries()) {
       const targetAt = `${path}.targets[${targetIndex}]`;
       const target = object(rawTarget, targetAt);
@@ -1849,10 +1880,21 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "valueType",
           "defaultValue",
           "source",
+          "input",
         ],
         "entry",
       );
       const owner = id(item.ownerId, "", "entry.ownerId");
+      // ADR-294 — a component's input variable (owned by a template root — the graph checks).
+      if (item.input !== undefined) {
+        const input = object(item.input, "entry.input");
+        exact(input, ["propertyKey"], "entry.input");
+        const key = string(input.propertyKey, "entry.input.propertyKey");
+        if (!COMPONENT_PROPERTY_KEY.test(key))
+          invalid("INVALID_PROPERTY_KEY", "entry.input.propertyKey");
+        if (item.source !== undefined || !owner.startsWith("project:node:"))
+          invalid("INVALID_OWNER", "entry.ownerId");
+      }
       if (
         !owner.startsWith("project:page:") &&
         !owner.startsWith("project:node:")
@@ -2014,6 +2056,12 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
         } else if (action.opcode === "toast") {
           exact(action, ["opcode", "message"], `${at}`);
           string(action.message, `${at}.message`);
+        } else if (action.opcode === "emit") {
+          exact(action, ["opcode", "propertyKey", "value"], `${at}`);
+          const key = string(action.propertyKey, `${at}.propertyKey`);
+          if (!COMPONENT_PROPERTY_KEY.test(key))
+            invalid("INVALID_PROPERTY_KEY", `${at}.propertyKey`);
+          if (action.value !== undefined) scalar(action.value, `${at}.value`);
         } else if (action.opcode === "capability") {
           exact(
             action,

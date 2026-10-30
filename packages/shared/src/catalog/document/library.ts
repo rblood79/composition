@@ -175,7 +175,11 @@ export function instanceContract<
     accepts: {
       ...rootContract.accepts,
       ...definition.accepts,
-      ...componentPropertyAccepts(componentPropertiesOf(definition)),
+      ...componentPropertyAccepts(
+        componentPropertiesOf(definition),
+        // (ADR-294 — a variable property's input variable: a document entry, read as a template.)
+        lookupTemplate,
+      ),
     },
     propChoices: {
       ...Object.fromEntries(
@@ -253,6 +257,7 @@ export function buildCatalogLibrary(
         "removeSelectedItems",
         "toast",
         "capability",
+        "emit",
       ].includes(opcode)
     )
       throw new CatalogValidationError("UNKNOWN_ACTION_OPCODE", opcode);

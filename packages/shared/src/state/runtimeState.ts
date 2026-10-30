@@ -370,6 +370,8 @@ export function createRuntimeState(
       const entry = definitions.get(variableId);
       if (!entry) return undefined;
       const resolved = ownerScope(entry, scope);
+      // (ADR-294 — a derived variable is read where it sits, never stored.)
+      if (entry.derive) return entry.derive(resolved ?? scope ?? { kind: "project" });
       if (!resolved) return defaultFor(entry.def);
       const map = values.get(scopeKey(resolved));
       return map?.has(variableId) ? map.get(variableId) : defaultFor(entry.def);
@@ -378,6 +380,8 @@ export function createRuntimeState(
       const entry = definitions.get(request.variableId);
       if (!entry)
         return { ok: false, changed: false, reason: "unknown-variable" };
+      if (entry.derive)
+        return { ok: false, changed: false, reason: "input-read-only" };
       const scope = ownerScope(entry, request.scope);
       if (!scope)
         return { ok: false, changed: false, reason: "scope-required" };

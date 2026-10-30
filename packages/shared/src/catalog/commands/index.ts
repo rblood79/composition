@@ -48,6 +48,7 @@ export {
 } from "./fields";
 export {
   addComponentProperty,
+  addComponentOutputProperty,
   applyComponentProperty,
   componentPropertiesOn,
   detachComponentProperty,

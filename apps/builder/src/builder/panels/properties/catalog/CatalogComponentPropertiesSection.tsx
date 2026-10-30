@@ -19,6 +19,7 @@ import {
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
 import { catalogSlotSuggestionChoices } from "../../../catalogRuntime/slots";
+import { catalogNextVariableName } from "../../../catalogRuntime/stateVariables";
 import { catalogComponentLabel } from "../../../catalogRuntime/componentProperties";
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertyInput } from "../../../components/property/PropertyInput";
@@ -62,7 +63,36 @@ export const CatalogComponentPropertiesSection = memo(
         ? t("propertiesPanel.componentPropertyKindText")
         : kind === "instance"
           ? t("propertiesPanel.componentPropertyKindInstance")
-          : t("propertiesPanel.componentPropertyKindBoolean");
+          : kind === "event"
+            ? t("propertiesPanel.componentPropertyKindEvent")
+            : kind === "variable"
+              ? t("propertiesPanel.componentPropertyKindVariable")
+              : t("propertiesPanel.componentPropertyKindBoolean");
+    // ADR-294 — an event · a variable belong to the component, not a layer: made on the origin
+    // root. An event is named like a React callback's subject (`event1` → `onEvent1` in the code),
+    // a variable like a state variable (unique on the root's chain — the origin reads it by name).
+    const createOutput = (kind: "event" | "variable") => {
+      const used = new Set(rows.map((row) => row.name));
+      let n = 1;
+      while (used.has(`event${n}`)) n += 1;
+      run(
+        kind === "event"
+          ? catalogPropertyCommands.createEvent(origin, `event${n}`)
+          : catalogPropertyCommands.createVariable(
+              origin,
+              catalogNextVariableName(graph, origin.rootId),
+              workspace.newId,
+            ),
+      );
+    };
+    const rowLabel = (row: CatalogPropertyView["rows"][number]) =>
+      row.kind === "event"
+        ? `${kindLabel(row.kind)} · ${t("propertiesPanel.componentPropertyReceivers", { count: row.receivers ?? 0 })}`
+        : row.kind === "variable"
+          ? kindLabel(row.kind)
+          : view.isRoot
+            ? `${kindLabel(row.kind)} · ${t("propertiesPanel.componentPropertyLayers", { count: row.count })}`
+            : kindLabel(row.kind);
     // (An unnamed layer names its property after what it is — Text, Icon …)
     const layerName = () => {
       const node = graph.getEntry(nodeId);
@@ -104,11 +134,7 @@ export const CatalogComponentPropertiesSection = memo(
         {rows.map((row) => (
           <div key={row.key} className="fieldset-row component-property-row">
             <PropertyInput
-              label={
-                view.isRoot
-                  ? `${kindLabel(row.kind)} · ${t("propertiesPanel.componentPropertyLayers", { count: row.count })}`
-                  : kindLabel(row.kind)
-              }
+              label={rowLabel(row)}
               className="component-property-name"
               value={row.name}
               onChange={(value) => {
@@ -171,7 +197,7 @@ export const CatalogComponentPropertiesSection = memo(
               }
             />
           ))}
-        {(textProp || canBoolean || canInstance) && (
+        {(textProp || canBoolean || canInstance || view.isRoot) && (
           <div className="fieldset-row">
             <div className="component-semantics-strip">
               {textProp && (
@@ -200,6 +226,24 @@ export const CatalogComponentPropertiesSection = memo(
                   <ACTION_ICONS.add aria-hidden="true" size={iconProps.size} />
                   {t("propertiesPanel.componentPropertyInstance")}
                 </RACButton>
+              )}
+              {view.isRoot && (
+                <>
+                  <RACButton
+                    className="control-button"
+                    onPress={() => createOutput("event")}
+                  >
+                    <ACTION_ICONS.add aria-hidden="true" size={iconProps.size} />
+                    {t("propertiesPanel.componentPropertyEvent")}
+                  </RACButton>
+                  <RACButton
+                    className="control-button"
+                    onPress={() => createOutput("variable")}
+                  >
+                    <ACTION_ICONS.add aria-hidden="true" size={iconProps.size} />
+                    {t("propertiesPanel.componentPropertyVariable")}
+                  </RACButton>
+                </>
               )}
             </div>
           </div>

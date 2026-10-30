@@ -1,4 +1,5 @@
 import {
+  addComponentOutputProperty,
   addComponentProperty,
   applyComponentProperty,
   detachComponentProperty,
@@ -13,6 +14,10 @@ import {
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import { componentPropertiesOf } from "../../../../../packages/shared/src/catalog/document/componentProperties";
+import {
+  componentEventTrigger,
+  receivingInstanceOf,
+} from "../../../../../packages/shared/src/catalog/document/componentEvents";
 import type {
   CatalogReader,
   ComponentProperty,
@@ -25,6 +30,9 @@ import type {
   NodeId,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
+import { resolveInputVariable } from "../../../../../packages/shared/src/catalog/runtime/inputVariable";
+import { catalogVisibleVariables } from "./interactions";
+import type { CatalogVariableReader } from "./stateVariables";
 import { catalogSwapCandidates, type CatalogSwapCandidate } from "./swapInstance";
 
 /**
@@ -82,6 +90,8 @@ export interface CatalogPropertyRow {
   target?: ComponentPropertyTarget;
   /** Instance kind: its preferred components (ids). */
   preferred?: string[];
+  /** ADR-294 — event kind: how many instances receive it (a `property:<key>` rule). */
+  receivers?: number;
 }
 export interface CatalogPropertyView {
   origin: CatalogPropertyOrigin;
@@ -123,6 +133,15 @@ export function catalogPropertyView(
         ...(target ? { target } : {}),
         ...(property.preferred?.length
           ? { preferred: [...property.preferred] }
+          : {}),
+        ...(property.kind === "event"
+          ? {
+              receivers: catalogEventReceiverCount(
+                graph,
+                origin.definitionId,
+                property.key,
+              ),
+            }
           : {}),
       },
     ];
@@ -183,6 +202,9 @@ export function catalogPropertyView(
       text: textProp && !swapped ? applicable("text") : [],
       boolean: isRoot ? [] : applicable("boolean"),
       instance: canInstance ? applicable("instance") : [],
+      // (ADR-294: an event · a variable drives no node — nothing to apply to one.)
+      event: [],
+      variable: [],
     },
   };
 }
@@ -210,6 +232,35 @@ export function catalogIsComponentInstance(
   }
 }
 
+/**
+ * ADR-294 — the instances of a component that receive one of its events (a `property:<key>` rule
+ * on the instance — its own, or at its position inside another instance).
+ */
+export function catalogEventReceiverCount(
+  graph: CatalogReader,
+  definitionId: string,
+  key: string,
+): number {
+  const project = graph.getEntry(graph.projectId);
+  if (project?.kind !== "project") return 0;
+  const trigger = componentEventTrigger(key);
+  const receiving = new Set<string>();
+  for (const id of project.interactionIds) {
+    const rule = graph.getEntry(id);
+    if (rule?.kind !== "interaction" || rule.trigger !== trigger) continue;
+    const instance = receivingInstanceOf(rule, (entryId) =>
+      graph.getEntry(entryId as never),
+    );
+    if (instance?.kind === "node" && instance.definitionId === definitionId)
+      receiving.add(
+        rule.address
+          ? `${rule.address.instances.join("/")}/${instance.id}`
+          : instance.id,
+      );
+  }
+  return receiving.size;
+}
+
 /** A new property key: a stable prop name no instance contract uses. */
 export function catalogNewPropertyKey(): string {
   const random =
@@ -232,6 +283,34 @@ export const catalogPropertyCommands = {
       name,
       kind,
       target,
+    }),
+  /** ADR-294 — an event property (the component's output; no node). */
+  createEvent: (origin: CatalogPropertyOrigin, name: string): CatalogCommand =>
+    addComponentOutputProperty({
+      definitionId: origin.definitionId,
+      key: catalogNewPropertyKey(),
+      name,
+      kind: "event",
+    }),
+  /**
+   * ADR-294 — a variable property with its input variable (the origin root's, text, empty by
+   * default — the State section edits its type and default).
+   */
+  createVariable: (
+    origin: CatalogPropertyOrigin,
+    name: string,
+    newId: NewId,
+  ): CatalogCommand =>
+    addComponentOutputProperty({
+      definitionId: origin.definitionId,
+      key: catalogNewPropertyKey(),
+      name,
+      kind: "variable",
+      variable: {
+        id: newId("stateVariable") as EntryId<"stateVariable">,
+        valueType: "string",
+        defaultValue: "",
+      },
     }),
   apply: (
     origin: CatalogPropertyOrigin,
@@ -341,6 +420,115 @@ export function catalogInstancePropertyRows(
       },
     ];
   });
+}
+
+/**
+ * ADR-294 — an instance's component events (its definition's — the selected instance, or a nested
+ * instance at its position) and how many of its rules receive each.
+ */
+export function catalogInstanceEventRows(
+  graph: CatalogReader,
+  target: EditTarget,
+): { key: string; name: string; rules: number }[] {
+  const owner =
+    target.kind === "node"
+      ? { ownerId: target.id }
+      : { ownerId: target.ownerId, address: target.address };
+  const node = receivingInstanceOf(owner, (id) => graph.getEntry(id as never));
+  if (node?.kind !== "node" || !node.definitionId.startsWith("project:"))
+    return [];
+  const events = (componentPropertiesOf(graph.getEntry(node.definitionId)) ?? [])
+    .filter((property) => property.kind === "event");
+  if (!events.length) return [];
+  const project = graph.getEntry(graph.projectId);
+  const rules =
+    project?.kind === "project"
+      ? project.interactionIds.flatMap((id) => {
+          const rule = graph.getEntry(id);
+          return rule?.kind === "interaction" &&
+            rule.ownerId === owner.ownerId &&
+            JSON.stringify(rule.address) === JSON.stringify(owner.address)
+            ? [rule.trigger]
+            : [];
+        })
+      : [];
+  return events.map((property) => ({
+    key: property.key,
+    name: property.name,
+    rules: rules.filter((trigger) => trigger === componentEventTrigger(property.key))
+      .length,
+  }));
+}
+
+/**
+ * ADR-294 — an instance's variable properties: the value it passes (a literal, or a variable it
+ * references — the same type, one it sees), the variables it could reference, and what the origin
+ * reads in this instance now (the Canvas reading: a referenced variable's default).
+ */
+export interface CatalogInstanceVariableRow {
+  key: string;
+  name: string;
+  type: string;
+  /** The referenced variable (`!var.<id>`); undefined = a literal or the default. */
+  reference?: string;
+  /** Variables of the same type the instance sees. */
+  candidates: { id: string; name: string }[];
+  /** What the origin reads here now. */
+  now: unknown;
+}
+export function catalogInstanceVariableRows(
+  graph: CatalogVariableReader,
+  instanceId: NodeId,
+  projectVariables: readonly { id: string; name: string; type: string }[] = [],
+): CatalogInstanceVariableRow[] {
+  const instance = graph.getEntry(instanceId);
+  if (instance?.kind !== "node" || !instance.definitionId.startsWith("project:"))
+    return [];
+  const visible = catalogVisibleVariables(graph, instanceId, projectVariables);
+  return (componentPropertiesOf(graph.getEntry(instance.definitionId)) ?? []).flatMap(
+    (property): CatalogInstanceVariableRow[] => {
+      if (property.kind !== "variable") return [];
+      const variable = graph.getEntry(property.variableId as never);
+      if (variable?.kind !== "stateVariable") return [];
+      const write = instance.props[property.key];
+      const raw = write?.kind === "set" ? write.value : undefined;
+      const reference =
+        typeof raw === "string" && raw.startsWith("!var.")
+          ? raw.slice("!var.".length)
+          : undefined;
+      const now = resolveInputVariable(
+        graph,
+        variable.id,
+        [
+          {
+            instanceId,
+            definitionId: instance.definitionId as DefinitionId,
+            recordId: "",
+          },
+        ],
+        (otherId) => {
+          const entry = graph.getEntry(otherId as never);
+          if (entry?.kind === "stateVariable") return { value: entry.defaultValue };
+          const project = projectVariables.find(
+            (item) => `data:variable:${item.id}` === otherId,
+          ) as { defaultValue?: unknown } | undefined;
+          return project ? { value: project.defaultValue } : undefined;
+        },
+      )?.value;
+      return [
+        {
+          key: property.key,
+          name: property.name,
+          type: variable.valueType,
+          ...(reference ? { reference } : {}),
+          candidates: visible
+            .filter((item) => item.type === variable.valueType && !item.readOnly)
+            .map((item) => ({ id: item.id, name: item.name })),
+          now,
+        },
+      ];
+    },
+  );
 }
 
 export function catalogComponentLabel(

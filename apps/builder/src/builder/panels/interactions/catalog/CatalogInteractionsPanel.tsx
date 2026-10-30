@@ -17,7 +17,9 @@ import {
   catalogTargetOptionOf,
   type CatalogTargetOption,
   catalogDefaultAction,
+  catalogEmitEvents,
   catalogExposureInput,
+  catalogReceivedEvents,
   catalogInheritedInteractionsOf,
   catalogInheritedRuleEnabledCommand,
   catalogInteractionOwner,
@@ -155,6 +157,7 @@ function CatalogRules({
       return {};
     };
     const componentType = catalogTargetTypeName(graph, target);
+    const emitEvents = catalogEmitEvents(graph, owner);
     const context: CatalogActionContext = {
       pages: catalogPageOptions(graph),
       currentPageId: pageId,
@@ -181,14 +184,24 @@ function CatalogRules({
         ),
       })),
       ...ownerItemsOf(),
+      // (ADR-294 — an origin rule sends its component's events.)
+      ...(emitEvents ? { events: emitEvents } : {}),
     };
     const exposure = catalogExposureInput(graph, target);
+    // ADR-294 — an instance receives its component's events (the When 「컴포넌트」 group, first).
+    const componentEvents = catalogReceivedEvents(graph, owner);
+    const componentTriggers = componentEvents.map(
+      (event) => `property:${event.key}`,
+    );
     return {
       componentType,
       exposure,
-      triggers: resolveTriggers(componentType),
+      componentEvents,
+      triggers: [...componentTriggers, ...resolveTriggers(componentType)],
       // ADR-281 Decision 1 — a new rule starts from a When RAC fires now.
-      firstTrigger: exposedTriggerGroups(componentType, exposure)[0]?.events[0],
+      firstTrigger: exposedTriggerGroups(componentType, exposure, {
+        componentEvents: componentTriggers,
+      })[0]?.events[0],
       rules: catalogInteractionsOf(graph, owner),
       // ADR-281 Decision 4 — what this instance position inherits from its component.
       inherited: catalogInheritedInteractionsOf(graph, owner),
@@ -368,6 +381,7 @@ function CatalogRules({
                   key={rule.id}
                   rule={rule}
                   componentType={view.componentType}
+                  componentEvents={view.componentEvents}
                   context={view.context}
                   choices={view.choices}
                   describeTarget={describeTarget}

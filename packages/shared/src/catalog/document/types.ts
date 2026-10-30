@@ -137,9 +137,13 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 51 — ADR-286: data definitions (collections · API endpoints · project variables) are document
  * entries (`collection` · `endpoint` · `projectVariable`, listed by the project), and the project
  * holds its site settings (`site`) and a page its own (`meta`). A 50 document is refused.
+ * 52 — ADR-294: a user component's property may be an `event` (the origin's rules `emit` it; an
+ * instance's rule receives it on the `property:<key>` trigger) or a `variable` (the instance's
+ * value, read inside the origin as the template root's input variable — `StateVariableEntry.input`).
+ * A 51 document is refused.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 51 as const;
+export const LIBRARY_CONTRACT_VERSION = 52 as const;
 
 export type EntryKind =
   | "project"
@@ -948,14 +952,26 @@ export interface DefinitionEntry {
 }
 /**
  * ADR-261 Decision 4 — the kinds of a user component's property (Phase 4: text · boolean; Phase 5:
- * instance — Figma's instance swap).
+ * instance — Figma's instance swap). ADR-294: `event` (the component's output — React's
+ * `onSelect` prop: the origin's rules `emit` it, an instance's `property:<key>` rule receives
+ * it) · `variable` (an input the instance passes — a literal or a variable reference — that the
+ * origin reads as its template root's input variable). Neither drives target nodes.
  */
-export type ComponentPropertyKind = "text" | "boolean" | "instance";
+export type ComponentPropertyKind =
+  | "text"
+  | "boolean"
+  | "instance"
+  | "event"
+  | "variable";
 export const COMPONENT_PROPERTY_KINDS: readonly ComponentPropertyKind[] = [
   "text",
   "boolean",
   "instance",
+  "event",
+  "variable",
 ];
+/** ADR-294 — the trigger an instance's rule receives an event property on (`property:<key>`). */
+export const COMPONENT_EVENT_TRIGGER_PREFIX = "property:";
 /**
  * One origin node a property drives: a text property writes its `prop`, a boolean its `enabled`,
  * an instance property swaps the nested instance (the instance's `replace` override there).
@@ -977,6 +993,13 @@ export interface ComponentProperty {
    * preferred values — a suggestion, not a limit).
    */
   preferred?: readonly DefinitionId[];
+  /**
+   * ADR-294 — an `event`'s value type (the code view's argument; absent = no value). A
+   * `variable`'s type is its variable's.
+   */
+  valueType?: ValueType | "object" | "array" | "date";
+  /** ADR-294 — a `variable`'s input variable (owned by the template root, `input.propertyKey`). */
+  variableId?: EntryId<"stateVariable">;
 }
 export interface DefinitionOverrideEntry {
   kind: "definitionOverride";
@@ -1178,6 +1201,13 @@ export interface StateVariableEntry {
    * is the component's value when it was named.
    */
   source?: { nodeId: NodeId; prop: string };
+  /**
+   * ADR-294 — the input variable of a component's `variable` property (owned by the template root):
+   * its value is the instance's (a literal, or the variable it references) — derived, read only
+   * (a rule's Set state refuses it — `INPUT_VARIABLE_READ_ONLY`); the default shows where no
+   * instance passes one (the origin itself).
+   */
+  input?: { propertyKey: string };
 }
 export interface InteractionEntry {
   kind: "interaction";
@@ -1305,6 +1335,16 @@ export type InteractionAction =
       keys?: Scalar;
     }
   | { opcode: "toast"; message: string }
+  | {
+      /**
+       * ADR-294 — the component's `event` property, sent to the instance that holds this origin
+       * (React's `props.onSelect?.(value)`): its `property:<key>` rules run with `!event.value`.
+       * Only in an origin rule (the owner is in a component's template).
+       */
+      opcode: "emit";
+      propertyKey: string;
+      value?: Scalar;
+    }
   | {
       opcode: "capability";
       target: CatalogCapabilityTarget;

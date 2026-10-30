@@ -58,6 +58,14 @@ import {
   conceptStateOf,
 } from "../interactions/conceptState";
 import { CodeWriter } from "./writer";
+import { componentPropertiesOf } from "../catalog/document/componentProperties";
+import {
+  COMPONENT_EVENT_ARGS,
+  componentEventAttribute,
+  componentEventKeyOf,
+  componentPropertyCodeName,
+  templateDefinitionOf,
+} from "../catalog/document/componentEvents";
 import {
   formulaEngineSync,
   loadFormulaEngine,
@@ -205,6 +213,15 @@ class Doc {
   node(id: string): NodeEntry | undefined {
     const entry = this.get(id);
     return entry?.kind === "node" ? entry : undefined;
+  }
+  /** ADR-294 — the component whose template holds a node (its origin rule's `emit`). */
+  componentOf(id: string): string | undefined {
+    const reader = this.input.reader as unknown as {
+      ownerOf?: (id: string) => string | undefined;
+    };
+    return reader.ownerOf
+      ? templateDefinitionOf(id, (entry) => this.get(entry), reader.ownerOf.bind(reader))
+      : undefined;
   }
   typeOf(node: NodeEntry): string {
     try {
@@ -1941,6 +1958,19 @@ class Generator {
         return void out.line(
           `${listName}.setFilterText(${value(action.value)});`,
         );
+      case "emit": {
+        // ADR-294 — the component's callback prop (an origin rule: its component's file).
+        const definitionId = this.doc.componentOf(context.node.id);
+        const event = componentPropertiesOf(
+          definitionId ? this.doc.get(definitionId) : undefined,
+        )?.find((item) => item.key === action.propertyKey);
+        const callback = event
+          ? componentEventAttribute(event)
+          : action.propertyKey;
+        return void out.line(
+          `props.${callback}?.(${action.value !== undefined ? value(action.value) : ""});`,
+        );
+      }
       case "toast":
         this.toasts = true;
         return void out.line(
@@ -2115,6 +2145,13 @@ class Generator {
       });
     };
     let text: string | undefined;
+    // ADR-294 Decision 6 — a user component instance's properties by their names (`role={…}`), a
+    // variable property's reference as the variable (`role={roleFilter}`).
+    const properties = new Map(
+      (componentPropertiesOf(this.doc.get(node.definitionId)) ?? []).map(
+        (property) => [property.key, property],
+      ),
+    );
     for (const [prop, write] of Object.entries(node.props)) {
       if (write.kind !== "set") continue;
       // (ADR-287 — a prop a rule's implicit state holds is that state: its start is this value.)
@@ -2124,8 +2161,21 @@ class Generator {
         text = value;
         continue;
       }
+      const property = properties.get(prop);
+      if (
+        property?.kind === "variable" &&
+        typeof value === "string" &&
+        value.startsWith("!var.")
+      ) {
+        attribute(
+          componentPropertyCodeName(property),
+          `{${this.conditionValue(value).code}}`,
+        );
+        continue;
+      }
       const code = this.propCode(value, row, prop);
-      if (code !== undefined) attribute(prop, code);
+      if (code !== undefined)
+        attribute(property ? componentPropertyCodeName(property) : prop, code);
     }
     // Rules → handlers; a variable this control only writes → its controlled prop too.
     const controlled = this.controlledBy(node, type);
@@ -2195,7 +2245,14 @@ class Generator {
         named,
         out.depth,
       );
-      const name = new CodeWriter().slot(trigger, slotTarget);
+      // (ADR-294 — a received component event is the instance's callback prop: `onSelect`.)
+      const eventKey = componentEventKeyOf(trigger);
+      const event =
+        eventKey !== undefined
+          ? [...properties.values()].find((item) => item.key === eventKey)
+          : undefined;
+      const attributeName = event ? componentEventAttribute(event) : trigger;
+      const name = new CodeWriter().slot(attributeName, slotTarget);
       const part = new CodeWriter().append(name).write("=");
       part.write(`{${value}}`);
       attributes.push({
@@ -2203,7 +2260,7 @@ class Generator {
         target: {
           kind: "attribute",
           nodeId: node.id,
-          name: trigger,
+          name: attributeName,
           source: "handler",
           interactionIds: rules.map((rule) => rule.id),
         },
@@ -2409,7 +2466,10 @@ class Generator {
     named: VariableCode | undefined,
     depth: number,
   ): string {
-    const args = eventArgNames(trigger)[0] ?? [];
+    // (ADR-294 — a received component event gives its value.)
+    const args = componentEventKeyOf(trigger)
+      ? COMPONENT_EVENT_ARGS
+      : (eventArgNames(trigger)[0] ?? []);
     const fields = eventArgsAreFields(trigger);
     const actions = rules.flatMap((rule) => rule.actions);
     // `onChange={setSearch}` — a single Set state of the event's first value.

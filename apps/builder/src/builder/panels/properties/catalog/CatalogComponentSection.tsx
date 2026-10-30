@@ -51,7 +51,11 @@ import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import { catalogSwapPlan } from "../../../catalogRuntime/swapInstance";
 import { CatalogSwapPicker } from "./CatalogSwapPicker";
-import { CatalogInstancePropertiesRows } from "./CatalogInstancePropertiesSection";
+import {
+  CatalogInstanceEventRows,
+  CatalogInstancePropertiesRows,
+  CatalogInstanceVariableRows,
+} from "./CatalogInstancePropertiesSection";
 import { catalogComponentLabel } from "../../../catalogRuntime/componentProperties";
 import { catalogOriginOverride } from "../../../catalogRuntime/originView";
 import { setLibraryDefault } from "../../../../../../../packages/shared/src/catalog/commands";
@@ -609,6 +613,9 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
       </div>
       {/* ADR-261 Phase 5: the instance's swap properties (a nested instance's component). */}
       {instanceOf && <CatalogInstancePropertiesRows target={target} />}
+      {/* ADR-294: the instance's component events — received in Interactions. */}
+      {instanceOf && <CatalogInstanceEventRows target={target} />}
+      {instanceOf && <CatalogInstanceVariableRows target={target} />}
       {rows.length > 0 && (
         <fieldset className="properties-aria component-semantics-overrides">
           <legend className="fieldset-legend">

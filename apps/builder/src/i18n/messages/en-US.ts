@@ -900,9 +900,15 @@ const catalog: TranslationKeys = {
       remove: "Removal",
       focusedDate: "Focused date",
       form: "Form",
+      component: "Component",
     },
     actionNavigate: "Go to page",
     actionToast: "Show a toast",
+    actionEmit: "Send component event",
+    emitEvent: "Event",
+    emitValue: "Value to send",
+    summaryEmit: "{when} → send {name}",
+    emitHint: "To pass a value to the screen that uses this component, add an event to its component properties and use Send component event",
     actionCallEndpoint: "Call an endpoint",
     actionAppend: "Append to a collection",
     actionUpdate: "Update a collection item",
@@ -1171,6 +1177,15 @@ const catalog: TranslationKeys = {
     componentPropertyDetach: "Detach from layer",
     componentPropertyDelete: "Delete property",
     componentPropertyKindInstance: "Instance swap",
+    componentPropertyKindEvent: "Event",
+    componentPropertyKindVariable: "Variable",
+    componentPropertyEvent: "Event property",
+    componentPropertyVariable: "Variable property",
+    componentPropertyReceivers: "Received by {count}",
+    componentPropertyReceive: "Receive in Interactions",
+    componentPropertyValueSource: "Value from",
+    componentPropertyValueLiteral: "Typed value",
+    componentPropertyValueNow: "In this instance: {value}",
     componentPropertyInstance: "Instance swap property",
     componentPropertyPreferred: "{name} preferred",
     componentPropertyPreferredAdd: "Add preferred",
@@ -3781,6 +3796,12 @@ const formattedMessages: Record<
   "interactions.summaryNavigateWithPath": (args) =>
     `${String(args?.when ?? "")} → go to page (${String(args?.path ?? "")})`,
   "interactions.summaryToast": (args) => `${String(args?.when ?? "")} → toast`,
+  "interactions.summaryEmit": (args) =>
+    `${String(args?.when ?? "")} → send ${String(args?.name ?? "")}`,
+  "propertiesPanel.componentPropertyValueNow": (args) =>
+    `In this instance: ${String(args?.value ?? "")}`,
+  "propertiesPanel.componentPropertyReceivers": (args) =>
+    `Received by ${String(args?.count ?? "")}`,
   "interactions.summaryToastWithMessage": (args) =>
     `${String(args?.when ?? "")} → toast "${String(args?.message ?? "")}"`,
   "interactions.summarySetState": (args) =>

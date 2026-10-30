@@ -32,7 +32,13 @@ export function triggerLabel(
   componentType: string,
   trigger: string,
   t: LabelTranslate,
+  /** ADR-294 — an instance's component events: a `property:<key>` trigger shows its name. */
+  componentEvents?: readonly { key: string; name: string }[],
 ): string {
+  if (trigger.startsWith("property:")) {
+    const key = trigger.slice("property:".length);
+    return componentEvents?.find((event) => event.key === key)?.name ?? key;
+  }
   const group = triggerGroupOf(componentType, trigger);
   if (!group) return trigger;
   const key = triggerLabelKey(group.id, trigger);
@@ -66,6 +72,7 @@ export const ACTION_CHOICE_LABEL_KEYS = {
   moveBefore: "interactions.actionMoveBefore",
   moveAfter: "interactions.actionMoveAfter",
   removeSelectedItems: "interactions.actionRemoveSelectedItems",
+  emit: "interactions.actionEmit",
 } as const;
 
 /**

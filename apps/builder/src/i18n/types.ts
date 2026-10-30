@@ -649,6 +649,12 @@ export interface TranslationKeys {
     collection: string;
     appendValue: string;
     actionToast: string;
+    /** ADR-294 — a component's event (Do · When · summary · hint). */
+    actionEmit: string;
+    emitEvent: string;
+    emitValue: string;
+    summaryEmit: string;
+    emitHint: string;
     actionCapability: string;
     capability: string;
     target: string;
@@ -875,6 +881,16 @@ export interface TranslationKeys {
     componentPropertyDetach: string;
     componentPropertyDelete: string;
     componentPropertyKindInstance: string;
+    /** ADR-294 — event · variable properties. */
+    componentPropertyKindEvent: string;
+    componentPropertyKindVariable: string;
+    componentPropertyEvent: string;
+    componentPropertyVariable: string;
+    componentPropertyReceivers: string;
+    componentPropertyReceive: string;
+    componentPropertyValueSource: string;
+    componentPropertyValueLiteral: string;
+    componentPropertyValueNow: string;
     componentPropertyInstance: string;
     componentPropertyPreferred: string;
     componentPropertyPreferredAdd: string;

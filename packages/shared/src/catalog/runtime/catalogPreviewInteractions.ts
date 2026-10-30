@@ -1,6 +1,7 @@
 import {
   buildInteractionIndex,
   createElementHandlers,
+  executeInteractionRule,
   type DispatchContext,
   type DispatchDeps,
   type InteractionIndex,
@@ -42,6 +43,12 @@ import {
   effectiveInteractionsOf,
 } from "../resolution/effectiveInteractions";
 import { catalogAncestorInherited } from "./inheritedProps";
+import {
+  componentEventKeyOf,
+  emitDefinitionOf,
+  receivingInstanceOf,
+} from "../document/componentEvents";
+import { componentBoundariesOf } from "./componentBoundaries";
 import { CATALOG_INHERITED_RECEIVERS } from "./providerContexts";
 
 /**
@@ -216,6 +223,24 @@ function actionOf(
         op: action.op,
         ...(action.value !== undefined ? { value: action.value } : {}),
       };
+    case "emit": {
+      // ADR-294: the component the event belongs to — the receiving instance is found from the
+      // firing record when it runs (`componentBoundariesOf`).
+      const definitionId = emitDefinitionOf(
+        entry,
+        (id) => graph.getEntry(id as never),
+        (id) => graph.ownerOf(id),
+      );
+      return definitionId
+        ? {
+            kind: "emit",
+            propertyKey: action.propertyKey,
+            ...(action.value !== undefined ? { value: action.value } : {}),
+            elementId,
+            definitionId,
+          }
+        : undefined;
+    }
     default:
       return undefined;
   }
@@ -238,6 +263,42 @@ export function catalogPreviewRules(
     }
   }
   return rules;
+}
+
+/**
+ * ADR-294 — the rules that receive a component's events, by the drawn instance (`occurrence`) and
+ * the event key. A `property:<key>` rule is not a RAC handler: it is registered on the boundary of
+ * its record that draws the receiving instance (the owner, or the addressed nested instance).
+ */
+export type CatalogEventReceivers = ReadonlyMap<
+  string,
+  ReadonlyMap<string, readonly InteractionRule[]>
+>;
+export function catalogEventReceivers(
+  graph: CatalogGraph,
+  root: CatalogCompositionRoot,
+  rules: readonly InteractionRule[],
+): CatalogEventReceivers {
+  const receivers = new Map<string, Map<string, InteractionRule[]>>();
+  for (const rule of rules) {
+    const key = componentEventKeyOf(rule.trigger);
+    if (key === undefined) continue;
+    const entry = graph.getEntry(rule.id as never);
+    if (entry?.kind !== "interaction") continue;
+    const instance = receivingInstanceOf(entry, (id) =>
+      graph.getEntry(id as never),
+    );
+    const boundary = componentBoundariesOf(
+      graph,
+      root.domInputs,
+      rule.elementId,
+    ).find((item) => item.instanceId === instance?.id);
+    if (!boundary) continue;
+    const byKey = receivers.get(boundary.occurrence) ?? new Map();
+    byKey.set(key, [...(byKey.get(key) ?? []), rule]);
+    receivers.set(boundary.occurrence, byKey);
+  }
+  return receivers;
 }
 
 /** A named RAC state observed on a record: its variable, the RAC event and the value kind. */
@@ -390,6 +451,10 @@ const LOADED_MULTIPLE_SELECTION_TYPES: ReadonlySet<string> = new Set([
 
 export class CatalogPreviewInteractions implements CatalogDomRuntime {
   private index: InteractionIndex = buildInteractionIndex([]);
+  /** ADR-294 — the `property:<key>` rules by the instance occurrence that receives them. */
+  private receivers: CatalogEventReceivers = new Map();
+  /** ADR-294 — the events being received now (`occurrence` + key): a cycle fails, never loops. */
+  private readonly emitting = new Set<string>();
   /** Record → its rules' signature (which rules, which triggers): a change re-renders it. */
   private signatures = new Map<string, string>();
   private readonly propOverrides = new Map<string, Record<string, unknown>>();
@@ -618,6 +683,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       showToast: options.showToast,
       ...(options.writeState ? { writeState: options.writeState } : {}),
       ...(options.readState ? { readState: options.readState } : {}),
+      emit: (request) => this.emit(request),
     };
     this.refresh();
     this.unsubscribe = options.subscribe(() => this.refresh());
@@ -639,7 +705,15 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
   private refresh(): void {
     const graph = this.options.graph();
     const root = this.options.root();
-    const rules = graph && root ? catalogPreviewRules(graph, root) : [];
+    const all = graph && root ? catalogPreviewRules(graph, root) : [];
+    // (ADR-294: a `property:<key>` rule receives an event — not a RAC handler of its record.)
+    const rules = all.filter(
+      (rule) => componentEventKeyOf(rule.trigger) === undefined,
+    );
+    this.receivers =
+      graph && root && rules.length !== all.length
+        ? catalogEventReceivers(graph, root, all)
+        : new Map();
     this.index = buildInteractionIndex(rules);
     const signatures = new Map<string, string>();
     for (const rule of rules)
@@ -666,6 +740,60 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       if (!signatures.has(id)) changed.add(id);
     this.signatures = signatures;
     for (const id of changed) this.touch(id);
+  }
+  /**
+   * ADR-294 — an origin rule's `emit`: the innermost boundary of the firing record that draws an
+   * instance of the event's component receives it; its `property:<key>` rules run in their own
+   * record's context with `!event.value`. (The event always leaves the template that holds the
+   * rule's node, so a receiving rule that sends again goes further out — the re-entry guard is a
+   * defense, not a path.) No boundary = the origin drawn by itself (no instance holds it):
+   * nobody receives it, as no rule does — a success with `listeners: 0` (user decision 3).
+   */
+  private emit(request: {
+    propertyKey: string;
+    value: unknown;
+    elementId: string;
+    definitionId: string;
+  }): { ok: boolean; reason?: string; listeners?: number } {
+    const graph = this.options.graph();
+    const root = this.options.root();
+    if (!graph || !root) return { ok: false, reason: "문서가 없다" };
+    const boundary = componentBoundariesOf(
+      graph,
+      root.domInputs,
+      request.elementId,
+    ).find((item) => item.definitionId === request.definitionId);
+    if (!boundary) return { ok: true, listeners: 0 };
+    const rules =
+      this.receivers.get(boundary.occurrence)?.get(request.propertyKey) ?? [];
+    const running = `${boundary.occurrence}\u0000${request.propertyKey}`;
+    if (this.emitting.has(running))
+      return { ok: false, reason: "EMIT_REENTRANT" };
+    this.emitting.add(running);
+    try {
+      for (const rule of rules) {
+        const outcome = executeInteractionRule(rule, this.deps, {
+          ...this.contextOf(rule.elementId),
+          event: { value: request.value },
+        });
+        if (!outcome.ok)
+          return {
+            ok: false,
+            reason: `${rule.trigger}: ${outcome.reason ?? "failed"}`,
+          };
+      }
+    } finally {
+      this.emitting.delete(running);
+    }
+    return { ok: true, listeners: rules.length };
+  }
+  /** A record's rule context (as its handlers run): element variables · `!item`. */
+  private contextOf(id: string): DispatchContext {
+    const ownerRecord = this.options.ownerRecord;
+    return {
+      instanceKeyFor: (ownerId) => ownerRecord?.(id, ownerId) ?? ownerId,
+      ...this.itemsContext(id),
+    };
   }
   private touch(id: string): void {
     this.revisions.set(id, (this.revisions.get(id) ?? 0) + 1);
@@ -712,7 +840,6 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     return this.revisions.get(id) ?? 0;
   }
   handlersOf(id: string) {
-    const ownerRecord = this.options.ownerRecord;
     const rules = createElementHandlers(
       id,
       this.index,
@@ -722,10 +849,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
           (this.options.report ?? warn)(rule, outcome.reason ?? "failed");
       },
       // An element variable's value lives under the record drawing its owner in this context.
-      {
-        instanceKeyFor: (ownerId) => ownerRecord?.(id, ownerId) ?? ownerId,
-        ...this.itemsContext(id),
-      },
+      this.contextOf(id),
     );
     const graph = this.options.graph();
     const root = this.options.root();

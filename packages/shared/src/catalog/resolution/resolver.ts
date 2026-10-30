@@ -165,6 +165,8 @@ export type CatalogRowSource = (
   kind?: "items" | "records",
   /** The bound node — what a `key` template sees (its page's variables). */
   ownerId?: NodeId,
+  /** ADR-294 — the bound node's instance path (a view reading an origin's input variable). */
+  instancePath?: readonly string[],
 ) => CatalogBoundRows | undefined;
 /** `useAsyncList`'s load state of a collection (S2 `LoadingState` — the states a load passes). */
 export type CatalogLoadingState =
@@ -1292,6 +1294,7 @@ export function resolveCatalogNode(
               : { ...node.binding, key: String(rowKey) },
             "items",
             node.id,
+            instancePath,
           )
         : undefined;
     const ownedRow = keyedRows?.[0] ?? ownedRowing?.row;
@@ -1404,11 +1407,11 @@ export function resolveCatalogNode(
       templateTypeName(definition.templateRootId) === "Chart";
     const records =
       node.binding && rows && charted
-        ? rows(node.binding, "records", node.id)
+        ? rows(node.binding, "records", node.id, instancePath)
         : undefined;
     const rowSet =
       node.binding && rows && !charted
-        ? (keyedRows ?? rows(node.binding, "items", node.id))
+        ? (keyedRows ?? rows(node.binding, "items", node.id, instancePath))
         : undefined;
     if (
       definition.mode === "composite" &&
@@ -1742,13 +1745,66 @@ export function resolveCatalogNode(
       sampleOwner?: NodeId;
     },
   ): ResolvedCatalogNode | undefined => {
-    const row = rowing?.row;
     selection?.onVisit?.(templateId);
     const template = templateId.startsWith("lib:")
       ? library.templates.get(templateId as `lib:template:${string}`)
       : graph.getEntry(templateId);
     if (!template || ("kind" in template && template.kind !== "node"))
       throw new CatalogValidationError("DANGLING_TEMPLATE", templateId);
+    // A bound collection inside a project component: the binding is the template node's (the
+    // instance holds none), read as an owned node's is — rows · a keyed item · a Chart's records —
+    // at this instance path, so its view reads the instance's input variables (ADR-294 R6). The
+    // instance's own binding (`rowing` on its template root) wins. A composite position's rows go
+    // to the root it collapses into (as an owned instance's do); another node's to its children.
+    const ownBinding =
+      "kind" in template && rows && !rowing?.rowSet && !rowing?.records
+        ? template.binding
+        : undefined;
+    const charted = !!ownBinding && templateTypeName(templateId) === "Chart";
+    const ownRows =
+      ownBinding && !charted
+        ? rows!(
+            ownBinding.key !== undefined && rowing?.row
+              ? {
+                  ...ownBinding,
+                  key: String(bindRowValue(ownBinding.key, rowing.row)),
+                }
+              : ownBinding,
+            "items",
+            templateId as NodeId,
+            instancePath,
+          )
+        : undefined;
+    const ownRecords = charted
+      ? rows!(ownBinding!, "records", templateId as NodeId, instancePath)
+      : undefined;
+    if ("kind" in template && template.binding)
+      console.log(
+        "DBGR",
+        templateId,
+        !!rows,
+        !!rowing?.rowSet,
+        !!rowing?.records,
+        ownRows?.length,
+        lookupDefinition(template.definitionId).mode,
+      );
+    const ownRowing = ownRecords
+      ? { records: ownRecords }
+      : ownRows
+        ? {
+            rowSet: ownRows,
+            // (A keyed item is also the row its own positions read.)
+            ...(ownBinding!.key !== undefined && ownRows[0]
+              ? { row: ownRows[0] }
+              : {}),
+          }
+        : undefined;
+    const nestedOwnRowing =
+      ownRowing && lookupDefinition(template.definitionId).mode === "composite"
+        ? ownRowing
+        : undefined;
+    if (ownRowing && !nestedOwnRowing) rowing = { ...rowing, ...ownRowing };
+    const row = rowing?.row;
     // An override address starts at its owner instance (`validateInstanceAddress`); the
     // resolution path also carries the ancestors above the owner when resolving from one of them.
     // ADR-260 Decision 11: the owner's override and those of the project template nodes on the
@@ -1841,7 +1897,15 @@ export function resolveCatalogNode(
       applyWrites(props, override.defaults);
       applyWrites(visual, override.visual);
     }
-    if ("kind" in template) applyWrites(props, template.props);
+    // (An inner owner's row template item — its literal content is sample content, as an owned
+    // one's is.)
+    if ("kind" in template)
+      applyWrites(
+        props,
+        row && rowing?.sampleOwner === templateId
+          ? withoutSampleContent(template.props)
+          : template.props,
+      );
     else applyValues(props, template.props);
     if (libraryPatch?.props) applyValues(props, libraryPatch.props);
     if (bindings)
@@ -1868,7 +1932,9 @@ export function resolveCatalogNode(
       if (patch.props)
         applyWrites(
           props,
-          row && rowing?.sampleOwner === owner.id
+          row &&
+            (rowing?.sampleOwner === owner.id ||
+              found.some((item) => item.owner.id === rowing?.sampleOwner))
             ? withoutSampleContent(patch.props)
             : patch.props,
         );
@@ -1889,6 +1955,15 @@ export function resolveCatalogNode(
         !props.children.includes("{")
       )
         props.children = String(row.values.label ?? "");
+    }
+    // (The owned node's `loadingState` beside its items — a bound Table · Skeleton in the template.)
+    const ownLoading = ownRows?.loadingState;
+    if (ownLoading) {
+      const loadingType = ruleDefinitionOf(template.definitionId).name;
+      if (loadingType === "Skeleton")
+        props.isLoading = ownLoading === "loading";
+      else if (LOADING_STATE_TYPES.has(loadingType))
+        props.loadingState = ownLoading;
     }
     if (rowing?.records)
       props.data = rowing.records.map(
@@ -2044,6 +2119,14 @@ export function resolveCatalogNode(
       : [];
     // The rows reach the item positions below a part without them (TagGroup > TagList > Tag).
     const passRows = rowSet && itemPositions.length === 0 ? rowSet : undefined;
+    if (rowSet)
+      console.log(
+        "DBGN",
+        templateId,
+        rowSet.length,
+        itemPositions.length,
+        template.children.map((c) => templateTypeName(c)).join(","),
+      );
     const rowLabel = !!row && templateTypeName(templateId) === "Breadcrumb";
     const childRowing =
       row || passRows
@@ -2225,16 +2308,17 @@ export function resolveCatalogNode(
               ),
             ),
             nestedScope(nestedPath),
-            row
-              ? {
-                  row,
-                  ...(rowing?.sampleOwner
-                    ? { sampleOwner: rowing.sampleOwner }
-                    : {}),
-                }
-              : ownedNestedRows
-                ? { rowSet }
-                : undefined,
+            nestedOwnRowing ??
+              (row
+                ? {
+                    row,
+                    ...(rowing?.sampleOwner
+                      ? { sampleOwner: rowing.sampleOwner }
+                      : {}),
+                  }
+                : ownedNestedRows
+                  ? { rowSet }
+                  : undefined),
           ),
         );
       }
@@ -2276,17 +2360,56 @@ export function resolveCatalogNode(
     let ownedRowItems = 0;
     if (change?.kind === "fillSlot" && innerPlace) {
       // An inner owner's slot contents: template positions of the instance (ADR-260 Decision 11).
+      // A bound collection's own items (a bound ListBox inside a component) repeat per row as the
+      // owned ones below do: the first item is the row template, the others are sample items.
       children.length = 0;
+      const rowItems = rowSet
+        ? change.childIds.filter((childId) =>
+            CATALOG_ROW_ITEM_TYPES.has(templateTypeName(childId)),
+          )
+        : [];
+      ownedRowItems = rowItems.length;
       for (const childId of change.childIds) {
         if (selection && !selection.include(childId, innerPlace.instancePath))
           continue;
+        const childPath = [...innerPlace.templatePath, childId];
+        if (rowSet && rowItems.includes(childId)) {
+          if (childId !== rowItems[0]) continue;
+          const projectRow = (data: CatalogBoundRow) =>
+            projectTemplate(
+              owner,
+              childId,
+              innerPlace.instancePath,
+              childPath,
+              self,
+              undefined,
+              undefined,
+              undefined,
+              { row: data, rowStart: true, sampleOwner: childId as NodeId },
+            );
+          rowSet.forEach((data, index) => {
+            const projected = projectRow(data);
+            if (projected)
+              push(children, {
+                ...nestTreeRows(
+                  index === 0 ? projected : withRowKey(projected, data.key),
+                  data,
+                  projectRow,
+                  isTreeItemRecord,
+                  isInstanceRecord,
+                ),
+                rowIndex: index,
+              });
+          });
+          continue;
+        }
         push(
           children,
           projectTemplate(
             owner,
             childId,
             innerPlace.instancePath,
-            [...innerPlace.templatePath, childId],
+            childPath,
             self,
           ),
         );

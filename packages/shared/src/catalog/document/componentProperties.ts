@@ -19,14 +19,41 @@ export const COMPONENT_PROPERTY_VALUE_TYPE: Readonly<
 
 export function componentPropertyAccepts(
   properties: readonly ComponentProperty[] | undefined,
+  /**
+   * ADR-294 — a `variable` property's input variable (its type is the key's): absent, the
+   * variable keys are left out of the contract.
+   */
+  lookupVariable?: (id: string) => unknown,
 ): Readonly<Record<string, ValueType>> {
   if (!properties?.length) return EMPTY;
   return Object.fromEntries(
     properties.flatMap((property) => {
+      if (property.kind === "variable") {
+        const variable = property.variableId
+          ? lookupVariable?.(property.variableId)
+          : undefined;
+        const type = inputVariablePropType(variable);
+        return type ? [[property.key, type]] : [];
+      }
       const type = COMPONENT_PROPERTY_VALUE_TYPE[property.kind];
       return type ? [[property.key, type]] : [];
     }),
   );
+}
+/**
+ * ADR-294 — the prop type an instance writes a `variable` property's value as: a scalar variable's
+ * own, a date as its ISO text (`string`), an object · array as a reference text only (`"!var.<id>"`
+ * — `validatePropWrites` refuses a literal).
+ */
+export function inputVariablePropType(variable: unknown): ValueType | undefined {
+  if (
+    !variable ||
+    typeof variable !== "object" ||
+    (variable as { kind?: unknown }).kind !== "stateVariable"
+  )
+    return undefined;
+  const type = (variable as { valueType: string }).valueType;
+  return type === "number" || type === "boolean" ? type : "string";
 }
 const EMPTY: Readonly<Record<string, ValueType>> = Object.freeze({});
 
@@ -57,7 +84,8 @@ export function componentPropertyWrites(
 ): Map<string, ComponentPropertyWrite> {
   const writes = new Map<string, ComponentPropertyWrite>();
   for (const property of properties ?? []) {
-    if (property.kind === "instance") continue;
+    // (An instance property swaps; an event · a variable drive no node — ADR-294.)
+    if (property.kind !== "text" && property.kind !== "boolean") continue;
     const value = valueOf(property.key);
     if (typeof value !== (property.kind === "text" ? "string" : "boolean"))
       continue;

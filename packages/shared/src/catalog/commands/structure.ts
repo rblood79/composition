@@ -31,6 +31,7 @@ import type {
 } from "../document/types";
 import type { CatalogCommand } from "./compose";
 import { removeUnreadDerivedViews } from "./views";
+import { parseRuleValueRef } from "../../interactions/valueRef";
 import { CatalogStage } from "../transactions/transaction";
 import { OWNER_DRAWN_PART_OWNERS } from "../resolvers/resolveDelegatedChildFontSize";
 import {
@@ -1151,13 +1152,26 @@ export function removeWithReferrers(
         const slotChanged =
           suggested !== undefined &&
           suggested.length !== entry.slot!.suggested!.length;
-        if (kept.length !== entry.descendantOverrides.length || slotChanged)
+        // ADR-294: a variable property's value that read a removed variable goes back to the
+        // default (the reference is gone, not left dangling).
+        const props = Object.entries(entry.props).filter(([, write]) => {
+          const ref =
+            write.kind === "set" ? parseRuleValueRef(write.value) : undefined;
+          return !(ref?.from === "var" && draft.removed(ref.variableId));
+        });
+        const propsChanged = props.length !== Object.keys(entry.props).length;
+        if (
+          kept.length !== entry.descendantOverrides.length ||
+          slotChanged ||
+          propsChanged
+        )
           draft.write({
             ...entry,
             descendantOverrides: kept,
             ...(slotChanged
               ? { slot: withSuggested(entry.slot!, suggested) }
               : {}),
+            ...(propsChanged ? { props: Object.fromEntries(props) } : {}),
           });
       }
     }

@@ -1,3 +1,5 @@
+import { isInputVariable } from "../document/componentEvents";
+import { resolveInputVariableAt } from "./inputVariable";
 import type { CatalogGraph } from "../document/graph";
 import type {
   BreakpointName,
@@ -1869,7 +1871,30 @@ export class CatalogPreviewSession {
     if (!this.state || !graph) return;
     this.state.setDefinitions({
       projectVariables: [],
-      variables: catalogRuntimeVariables(graph, this.variables),
+      variables: catalogRuntimeVariables(graph, this.variables).map((entry) =>
+        // ADR-294 Decision 7 — a component's input variable is the value its instance passes,
+        // read at the record that draws the origin root (a rule's `!var` · Set state refused).
+        isInputVariable(graph.getEntry(entry.def.id as never))
+          ? {
+              ...entry,
+              derive: (scope) => {
+                const root = this.currentRoot;
+                const read =
+                  root && scope.kind === "element"
+                    ? resolveInputVariableAt(
+                        graph,
+                        entry.def.id,
+                        scope.instanceKey,
+                        root.domInputs,
+                        this.pageId,
+                        this.stateSource(),
+                      )
+                    : undefined;
+                return read ? read.value : entry.def.defaultValue;
+              },
+            }
+          : entry,
+      ),
     });
   }
 

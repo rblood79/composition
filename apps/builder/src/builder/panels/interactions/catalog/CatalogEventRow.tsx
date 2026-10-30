@@ -125,6 +125,8 @@ export type CatalogTargetNotice = "unset" | "outOfContext";
 interface CatalogEventRowProps {
   rule: InteractionEntry;
   componentType: string;
+  /** ADR-294 — the owner instance's component events (its When 「컴포넌트」 group). */
+  componentEvents?: readonly { key: string; name: string }[];
   context: CatalogActionContext;
   /** Do choices that have something to point at. */
   choices: readonly ActionChoice[];
@@ -156,6 +158,7 @@ interface CatalogEventRowProps {
 export const CatalogEventRow = memo(function CatalogEventRow({
   rule,
   componentType,
+  componentEvents,
   context,
   choices,
   describeTarget,
@@ -213,7 +216,14 @@ export const CatalogEventRow = memo(function CatalogEventRow({
       : undefined);
 
   const summary = useMemo(() => {
-    const when = triggerLabel(componentType, rule.trigger, t);
+    const when = triggerLabel(componentType, rule.trigger, t, componentEvents);
+    if (action.opcode === "emit")
+      return t("interactions.summaryEmit", {
+        when,
+        name:
+          context.events?.find((event) => event.key === action.propertyKey)
+            ?.name ?? action.propertyKey,
+      });
     if (action.opcode === "navigate") {
       const page = context.pages.find((option) => option.id === action.pageId);
       return page
@@ -261,7 +271,7 @@ export const CatalogEventRow = memo(function CatalogEventRow({
       return `${when} → ${label} @ ${target && notice !== "unset" ? targetLabel(target) : t("interactions.targetUnset")}`;
     }
     return when;
-  }, [action, componentType, context, notice, rule.trigger, t, target, targetType]);
+  }, [action, componentEvents, componentType, context, notice, rule.trigger, t, target, targetType]);
   const more = rule.actions.length - 1;
   const doName = (item: CatalogInteractionAction) =>
     item.opcode in ACTION_CHOICE_LABEL_KEYS
@@ -288,9 +298,10 @@ export const CatalogEventRow = memo(function CatalogEventRow({
       ? resolveCapabilities(targetType)[action.capabilityId]
       : undefined;
 
+  // (ADR-294 — a component's input variable is read only: no Set state writes it.)
   const variableOptions = useMemo(
     () =>
-      context.variables.map((variable) => ({
+      context.variables.filter((variable) => !variable.readOnly).map((variable) => ({
         id: variable.id,
         name: variable.name,
         type: variable.type,
@@ -348,6 +359,7 @@ export const CatalogEventRow = memo(function CatalogEventRow({
           <div className="fieldset-row interaction-rule-row">
             <TriggerPicker
               componentType={componentType}
+              componentEvents={componentEvents}
               value={rule.trigger}
               exposure={exposure}
               onChange={(trigger) => onChange({ ...rule, trigger })}
@@ -425,6 +437,37 @@ export const CatalogEventRow = memo(function CatalogEventRow({
             />
           )}
 
+          {action.opcode === "emit" && (
+            <>
+              <PropertySelect
+                label={t("interactions.emitEvent")}
+                value={action.propertyKey}
+                onChange={(propertyKey) =>
+                  setAction({ ...action, propertyKey })
+                }
+                options={(context.events ?? []).map((event) => ({
+                  value: event.key,
+                  label: event.name,
+                }))}
+                translateOptions={false}
+              />
+              <ValueField
+                label={t("interactions.emitValue")}
+                kind="text"
+                value={action.value}
+                sources={valueSources}
+                onChange={(value) => {
+                  const { value: _old, ...rest } = action;
+                  setAction(
+                    value === "" || value === undefined
+                      ? rest
+                      : { ...rest, value: value as Scalar },
+                  );
+                }}
+              />
+            </>
+          )}
+
           {action.opcode === "toast" && (
             <ParamField
               param={APP_ACTIONS.toast.param}
@@ -459,6 +502,13 @@ export const CatalogEventRow = memo(function CatalogEventRow({
                 );
               }}
             />
+          )}
+          {action.opcode === "setState" && context.events && (
+            // ADR-294 — an origin rule's Set state sees the component's own chain only: the
+            // screen that uses the component gets a value through an event.
+            <div className="interactions-target-notice" role="status">
+              {t("interactions.emitHint")}
+            </div>
           )}
 
           {action.opcode === "callEndpoint" && (

@@ -233,7 +233,7 @@ describe("ADR-281 G3 — storage (contract 47)", () => {
     h.run(catalogInheritedRuleEnabledCommand({ ownerId: h.a }, rule!.id, false));
     const library = await buildCodeCatalogLibrary();
     const exported = h.graph.exportDocument();
-    expect(exported.libraryContractVersion).toBe(51);
+    expect(exported.libraryContractVersion).toBe(52);
     const reopened = new CatalogGraph(structuredClone(exported), library);
     expect(
       catalogInheritedInteractionsOf(reopened, { ownerId: h.a })[0]?.status,

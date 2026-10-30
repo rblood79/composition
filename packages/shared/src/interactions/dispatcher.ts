@@ -164,6 +164,17 @@ export interface DispatchDeps {
     collectionId: string,
     keys: readonly string[] | "all",
   ) => { ok: boolean; reason?: string };
+  /**
+   * ADR-294 — send a component's event to its instance (the value already read): the receiving
+   * rules run; `listeners` is how many (0 = nobody receives it — React's absent callback, a
+   * success).
+   */
+  emit?: (request: {
+    propertyKey: string;
+    value: unknown;
+    elementId: string;
+    definitionId: string;
+  }) => { ok: boolean; reason?: string; listeners?: number };
 }
 
 /** 트리거 요소의 렌더 문맥 — `createElementHandlers` 가 규칙 실행에 실어 보낸다 */
@@ -444,7 +455,10 @@ export type DispatchOutcome =
         | "move"
         | "moveBefore"
         | "moveAfter"
-        | "removeSelectedItems";
+        | "removeSelectedItems"
+        | "emit";
+      /** ADR-294 — `emit`: how many rules received it (0 = none — still a success). */
+      listeners?: number;
     }
   | { ok: false; reason: string };
 
@@ -673,6 +687,23 @@ function executeInteractionAction(
     if (!path) return { ok: false, reason: "navigate 에 path 가 없다" };
     deps.navigate(path);
     return { ok: true, kind: "navigate" };
+  }
+
+  if (action.kind === "emit") {
+    if (!deps.emit)
+      return { ok: false, reason: "emit 실행 경로 없음 (emit 미주입)" };
+    // (The value reads in the firing record's context — `!event` · `!item` · `!var`.)
+    const value = resolveEventValue(action.value, context, deps);
+    if (!value.ok) return value;
+    const result = deps.emit({
+      propertyKey: action.propertyKey,
+      value: value.value,
+      elementId: action.elementId,
+      definitionId: action.definitionId,
+    });
+    return result.ok
+      ? { ok: true, kind: "emit", listeners: result.listeners ?? 0 }
+      : { ok: false, reason: result.reason ?? "emit 실패" };
   }
 
   if (action.kind === "toast") {

@@ -160,8 +160,24 @@ export interface SetFilterTextAction {
   value?: unknown;
 }
 
+/**
+ * ADR-294 — a component's event sent to the instance that holds the origin (React's
+ * `props.onSelect?.(value)`): the instance's `property:<key>` rules run with `!event.value`.
+ * `elementId` is the record that fired (its boundaries name the receiving instance),
+ * `definitionId` the component whose template holds the rule's node — the event always goes out
+ * of it, to an enclosing instance (so a receiving rule that sends again goes further out).
+ */
+export interface EmitAction {
+  kind: "emit";
+  propertyKey: string;
+  value?: unknown;
+  elementId: string;
+  definitionId: string;
+}
+
 export type InteractionAction =
   | NavigateAction
+  | EmitAction
   | ToastAction
   | CapabilityAction
   | SetStateAction

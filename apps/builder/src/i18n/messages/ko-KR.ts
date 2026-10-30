@@ -898,9 +898,15 @@ const catalog: TranslationKeys = {
       remove: "제거",
       focusedDate: "포커스 날짜",
       form: "폼",
+      component: "컴포넌트",
     },
     actionNavigate: "페이지 이동",
     actionToast: "토스트 표시",
+    actionEmit: "컴포넌트 이벤트 보내기",
+    emitEvent: "이벤트",
+    emitValue: "보낼 값",
+    summaryEmit: "{when} → {name} 보내기",
+    emitHint: "이 컴포넌트를 쓰는 화면에 값을 넘기려면 컴포넌트 속성에 이벤트를 만들고 「컴포넌트 이벤트 보내기」 를 쓴다",
     actionCallEndpoint: "endpoint 호출",
     endpoint: "엔드포인트",
     endpointBody: "본문",
@@ -1171,6 +1177,15 @@ const catalog: TranslationKeys = {
     componentPropertyDetach: "이 레이어에서 떼기",
     componentPropertyDelete: "속성 삭제",
     componentPropertyKindInstance: "인스턴스 교체",
+    componentPropertyKindEvent: "이벤트",
+    componentPropertyKindVariable: "변수",
+    componentPropertyEvent: "이벤트 속성",
+    componentPropertyVariable: "변수 속성",
+    componentPropertyReceivers: "받는 instance {count}",
+    componentPropertyReceive: "Interactions 에서 받기",
+    componentPropertyValueSource: "값 출처",
+    componentPropertyValueLiteral: "직접 입력",
+    componentPropertyValueNow: "지금 이 instance 에서는 {value}",
     componentPropertyInstance: "인스턴스 교체 속성",
     componentPropertyPreferred: "{name} 추천 컴포넌트",
     componentPropertyPreferredAdd: "추천 추가",
@@ -3768,6 +3783,12 @@ const formattedMessages: Record<
   "interactions.summaryNavigateWithPath": (args) =>
     `${String(args?.when ?? "")} → 페이지 이동 (${String(args?.path ?? "")})`,
   "interactions.summaryToast": (args) => `${String(args?.when ?? "")} → 토스트`,
+  "interactions.summaryEmit": (args) =>
+    `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 보내기`,
+  "propertiesPanel.componentPropertyValueNow": (args) =>
+    `지금 이 instance 에서는 ${String(args?.value ?? "")}`,
+  "propertiesPanel.componentPropertyReceivers": (args) =>
+    `받는 instance ${String(args?.count ?? "")}`,
   "interactions.summaryToastWithMessage": (args) =>
     `${String(args?.when ?? "")} → 토스트 "${String(args?.message ?? "")}"`,
   "interactions.summarySetState": (args) =>

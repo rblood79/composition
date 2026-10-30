@@ -1,4 +1,13 @@
 import { ownedChildren } from "../document/graph";
+import {
+  componentEventAttribute,
+  componentEventKeyOf,
+  componentPropertyCodeName,
+  emitDefinitionOf,
+  receivingInstanceOf,
+} from "../document/componentEvents";
+import { resolveTriggers } from "../../interactions/capabilityRegistry";
+import { definitionTypeName } from "./context";
 import type {
   ComponentProperty,
   ComponentPropertyTarget,
@@ -6,11 +15,14 @@ import type {
   DefinitionId,
   DescendantOverride,
   EntryId,
+  InteractionEntry,
   NodeEntry,
   NodeId,
+  StateVariableEntry,
 } from "../document/types";
 import type { CatalogCommand } from "./compose";
 import { CommandDraft, fail } from "./context";
+import { removeWithReferrers } from "./structure";
 
 /**
  * ADR-261 Decision 4 — a user component's properties (Figma component properties, Phase 4: text ·
@@ -103,6 +115,43 @@ export function clearComponentPropertyValues(
   }
 }
 
+/**
+ * ADR-294 R3 — a property's name in the code (an instance's attribute) is one name: an event's
+ * callback prop must not be a RAC callback of the instance's root type (`onPress` would read back
+ * as the RAC rule), and no two properties share a code name.
+ */
+function assertCodeNames(
+  draft: CommandDraft,
+  definition: DefinitionEntry,
+  properties: readonly ComponentProperty[],
+): void {
+  const root = definition.templateRootId
+    ? draft.read(definition.templateRootId)
+    : undefined;
+  let triggers: readonly string[] = [];
+  if (root?.kind === "node")
+    try {
+      triggers = resolveTriggers(definitionTypeName(draft.reader, root.definitionId));
+    } catch {
+      triggers = [];
+    }
+  const codeName = (property: ComponentProperty) =>
+    property.kind === "event"
+      ? componentEventAttribute(property)
+      : componentPropertyCodeName(property);
+  // (Only an event · a variable is checked — text · boolean names stay as ADR-261 left them.)
+  for (const property of properties) {
+    if (property.kind !== "event" && property.kind !== "variable") continue;
+    const name = codeName(property);
+    if (
+      (property.kind === "event" && triggers.includes(name)) ||
+      properties.some(
+        (other) => other.key !== property.key && codeName(other) === name,
+      )
+    )
+      fail("PROPERTY_NAME_TAKEN", property.name);
+  }
+}
 /** Write a component's property list; the keys it lost are cleared from every instance. */
 function writeProperties(
   draft: CommandDraft,
@@ -110,14 +159,68 @@ function writeProperties(
   properties: readonly ComponentProperty[],
 ): void {
   const kept = new Set(properties.map((property) => property.key));
-  const lost = new Set(
-    (definition.properties ?? [])
-      .map((property) => property.key)
-      .filter((key) => !kept.has(key)),
+  const lostProperties = (definition.properties ?? []).filter(
+    (property) => !kept.has(property.key),
   );
+  const lost = new Set(lostProperties.map((property) => property.key));
   const { properties: _old, ...rest } = definition;
   draft.write(properties.length ? { ...rest, properties } : rest);
   clearComponentPropertyValues(draft, definition.id, lost);
+  removeComponentOutputs(draft, definition.id, lostProperties);
+}
+/**
+ * ADR-294 — what a deleted `event` · `variable` property takes with it (ADR-288 「사용처가 같이
+ * 간다」): the origin rules' `emit` Do of it (a rule left with none goes), the instances'
+ * `property:<key>` rules, and a variable property's input variable (the references to it with it).
+ */
+function removeComponentOutputs(
+  draft: CommandDraft,
+  definitionId: EntryId<"definition">,
+  lost: readonly ComponentProperty[],
+): void {
+  const events = new Set(
+    lost.filter((item) => item.kind === "event").map((item) => item.key),
+  );
+  const variables = lost.flatMap((item) =>
+    item.kind === "variable" && item.variableId ? [item.variableId] : [],
+  );
+  if (!events.size && !variables.length) return;
+  const get = (id: string) => draft.read(id);
+  const ownerOf = (id: string) => draft.reader.ownerOf(id);
+  const gone: EntryId<"interaction">[] = [];
+  if (events.size)
+    for (const id of draft.project().interactionIds) {
+      const rule = draft.read(id) as InteractionEntry | undefined;
+      if (!rule) continue;
+      const key = componentEventKeyOf(rule.trigger);
+      if (key !== undefined && events.has(key)) {
+        const receiver = receivingInstanceOf(rule, get);
+        if (receiver?.kind === "node" && receiver.definitionId === definitionId)
+          gone.push(rule.id);
+        continue;
+      }
+      if (
+        !rule.actions.some(
+          (action) => action.opcode === "emit" && events.has(action.propertyKey),
+        ) ||
+        emitDefinitionOf(rule, get, ownerOf) !== definitionId
+      )
+        continue;
+      const actions = rule.actions.filter(
+        (action) => action.opcode !== "emit" || !events.has(action.propertyKey),
+      );
+      if (actions.length) draft.write({ ...rule, actions });
+      else gone.push(rule.id);
+    }
+  if (!gone.length && !variables.length) return;
+  const removed = new Set<string>([...gone, ...variables]);
+  const project = draft.project();
+  draft.write({
+    ...project,
+    stateVariableIds: project.stateVariableIds.filter((id) => !removed.has(id)),
+    interactionIds: project.interactionIds.filter((id) => !removed.has(id)),
+  });
+  removeWithReferrers(draft, [...gone, ...variables]);
 }
 
 /**
@@ -252,6 +355,78 @@ function takeOver(
   });
 }
 
+/**
+ * ADR-294 — make an `event` (the component's output: an origin rule `emit`s it, an instance's
+ * `property:<key>` rule receives it) or a `variable` property (an input the instance passes; the
+ * origin reads it as its template root's input variable, made in the same step). Neither drives
+ * an origin node.
+ */
+export const addComponentOutputProperty =
+  (
+    input: ComponentPropertyInput & {
+      key: string;
+      name: string;
+    } & (
+        | {
+            kind: "event";
+            valueType?: ComponentProperty["valueType"];
+          }
+        | {
+            kind: "variable";
+            variable: Pick<
+              StateVariableEntry,
+              "id" | "valueType" | "defaultValue"
+            >;
+          }
+      ),
+  ): CatalogCommand =>
+  (reader) => {
+    const draft = new CommandDraft(reader);
+    const definition = definitionOf(draft, input.definitionId);
+    if (definition.properties?.some((property) => property.key === input.key))
+      return fail("DUPLICATE_PROPERTY_KEY", input.key);
+    const name = input.name.trim() || fail("NAME_REQUIRED", input.key);
+    const property: ComponentProperty =
+      input.kind === "event"
+        ? {
+            key: input.key,
+            name,
+            kind: "event",
+            targets: [],
+            ...(input.valueType ? { valueType: input.valueType } : {}),
+          }
+        : {
+            key: input.key,
+            name,
+            kind: "variable",
+            targets: [],
+            variableId: input.variable.id,
+          };
+    if (input.kind === "variable") {
+      const rootId =
+        definition.templateRootId ??
+        fail("PROPERTIES_NOT_COMPONENT", definition.id);
+      draft.create({
+        kind: "stateVariable",
+        id: input.variable.id,
+        ownerId: rootId as NodeId,
+        name,
+        valueType: input.variable.valueType,
+        defaultValue: input.variable.defaultValue,
+        input: { propertyKey: input.key },
+      });
+      const project = draft.project();
+      draft.write({
+        ...project,
+        stateVariableIds: [...project.stateVariableIds, input.variable.id],
+      });
+    }
+    const next = [...(definition.properties ?? []), property];
+    assertCodeNames(draft, definition, next);
+    writeProperties(draft, definition, next);
+    return { label: input.label ?? "Create property", ops: draft.ops() };
+  };
+
 /** Apply an existing property to one more origin node (Figma 「Apply property」). */
 export const applyComponentProperty =
   (
@@ -321,13 +496,14 @@ export const renameComponentProperty =
     if (!definition.properties?.some((item) => item.key === input.key))
       return fail("PROPERTY_NOT_FOUND", input.key);
     const name = input.name.trim() || fail("NAME_REQUIRED", input.key);
-    writeProperties(
-      draft,
-      definition,
-      definition.properties.map((item) =>
-        item.key === input.key ? { ...item, name } : item,
-      ),
+    const next = definition.properties.map((item) =>
+      item.key === input.key ? { ...item, name } : item,
     );
+    // (ADR-294 R3 — an event · a variable is named in the code by its name.)
+    const renamed = next.find((item) => item.key === input.key)!;
+    if (renamed.kind === "event" || renamed.kind === "variable")
+      assertCodeNames(draft, definition, next);
+    writeProperties(draft, definition, next);
     return { label: input.label ?? "Rename property", ops: draft.ops() };
   };
 

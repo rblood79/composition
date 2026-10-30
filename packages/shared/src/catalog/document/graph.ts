@@ -36,6 +36,15 @@ import {
 import { assertCatalogLibrary, instanceContract } from "./library";
 import { docCounters } from "../docCounters";
 import { componentPropertiesOf } from "./componentProperties";
+import {
+  componentEventKeyOf,
+  componentEventPropertiesOf,
+  emitDefinitionOf,
+  isInputVariable,
+  receivingInstanceOf,
+  templateDefinitionOf as templateDefinitionIn,
+  variableVisibleFrom,
+} from "./componentEvents";
 import { catalogChildKind } from "../nesting/nestingRules";
 import {
   catalogBaseLibrary,
@@ -172,6 +181,17 @@ export function referencedIds(entry: CatalogEntry): string[] {
   };
   if (entry.kind === "node") {
     for (const override of entry.descendantOverrides) address(override.address);
+    // ADR-294: a variable property's value that references a variable (`"!var.<id>"`).
+    for (const write of Object.values(entry.props)) {
+      const ref =
+        write.kind === "set" ? parseRuleValueRef(write.value) : undefined;
+      if (
+        ref?.from === "var" &&
+        !ref.path.length &&
+        ref.variableId.startsWith("project:")
+      )
+        ids.push(ref.variableId);
+    }
     // ADR-261 Decision 3: a slot's suggested project components.
     for (const id of entry.slot?.suggested ?? [])
       if (id.startsWith("project:")) ids.push(id);
@@ -183,6 +203,8 @@ export function referencedIds(entry: CatalogEntry): string[] {
       // (Phase 5: an instance property's preferred project components.)
       for (const id of property.preferred ?? [])
         if (id.startsWith("project:")) ids.push(id);
+      // (ADR-294: a variable property's input variable.)
+      if (property.variableId) ids.push(property.variableId);
     }
   if (entry.kind === "interaction") {
     ids.push(entry.ownerId);
@@ -259,6 +281,19 @@ function validateComponentProperties(
   for (const property of definition.properties ?? []) {
     if (rootAccepts && property.key in rootAccepts)
       throw new CatalogValidationError("PROPERTY_KEY_TAKEN", property.key);
+    // ADR-294: a variable property's input variable is the template root's, keyed back to it.
+    if (property.kind === "variable") {
+      const variable = get(property.variableId!);
+      if (
+        variable?.kind !== "stateVariable" ||
+        variable.ownerId !== rootId ||
+        variable.input?.propertyKey !== property.key
+      )
+        throw new CatalogValidationError(
+          "PROPERTY_VARIABLE_MISMATCH",
+          property.variableId!,
+        );
+    }
     for (const id of property.preferred ?? [])
       if (!contractOf(id as DefinitionId))
         throw new CatalogValidationError("DANGLING_DEFINITION", id);
@@ -1266,6 +1301,54 @@ export class CatalogGraph {
             ? library.templates.get(id as `lib:template:${string}`)
             : (get(id) as { definitionId: string } | undefined),
       );
+    /**
+     * ADR-294 — an instance's `variable` property values: a reference (`"!var.<id>"`) to a variable
+     * the node sees, of the same type; a date's ISO text; an object · array only by reference. The
+     * checked keys leave the props the contract checks (a reference is not a literal of the type).
+     */
+    const withoutInputValues = <
+      P extends Readonly<Record<string, { kind: string; value?: unknown }>>,
+    >(
+      props: P,
+      definition: object,
+      nodeId: string,
+    ): P => {
+      const inputs = new Map(
+        (componentPropertiesOf(definition) ?? [])
+          .filter((property) => property.kind === "variable")
+          .map((property) => [property.key, get(property.variableId!)]),
+      );
+      if (!inputs.size) return props;
+      let rest: Record<string, unknown> | undefined;
+      for (const [key, write] of Object.entries(props)) {
+        const input = inputs.get(key);
+        if (input?.kind !== "stateVariable" || write.kind !== "set") continue;
+        const ref = parseRuleValueRef(write.value);
+        const at = `${nodeId}.${key}`;
+        if (ref) {
+          if (ref.from !== "var" || ref.path.length)
+            throw new CatalogValidationError("PROP_TYPE_MISMATCH", at);
+          const source = get(ref.variableId);
+          if (
+            source?.kind !== "stateVariable" &&
+            source?.kind !== "projectVariable"
+          )
+            throw new CatalogValidationError("DANGLING_VARIABLE", ref.variableId);
+          if (!variableVisibleFrom(source, nodeId, get, ownerOf))
+            throw new CatalogValidationError("VARIABLE_NOT_VISIBLE", at);
+          if (source.valueType !== input.valueType)
+            throw new CatalogValidationError("STATE_VALUE_TYPE", at);
+        } else if (input.valueType === "object" || input.valueType === "array")
+          throw new CatalogValidationError("PROP_TYPE_MISMATCH", at);
+        else if (input.valueType === "date") {
+          if (!isDateValueText(write.value))
+            throw new CatalogValidationError("PROP_TYPE_MISMATCH", at);
+        } else continue;
+        rest ??= { ...props };
+        delete rest[key];
+      }
+      return (rest ?? props) as P;
+    };
     if (entry.kind === "node") {
       const found = lookupDefinition(entry.definitionId);
       if (!found)
@@ -1288,7 +1371,7 @@ export class CatalogGraph {
         stateProps = undefined;
       }
       this.validatePropWrites(
-        entry.props,
+        withoutInputValues(entry.props, found, entry.id),
         definition.accepts,
         entry.id,
         () => forkOriginAccepts(entry.id),
@@ -1344,7 +1427,7 @@ export class CatalogGraph {
           const targetDef = { ...foundTarget, ...contractOf(foundTarget) };
           if (override.props)
             this.validatePropWrites(
-              override.props,
+              withoutInputValues(override.props, foundTarget, entry.id),
               targetDef.accepts,
               entry.id,
             );
@@ -1455,7 +1538,20 @@ export class CatalogGraph {
         throw new CatalogValidationError("DANGLING_OWNER", entry.ownerId);
       if (entry.address)
         validateInstanceAddress(owner, entry.address, get, library);
-      if (!library.execution.triggerIds.has(entry.trigger))
+      // ADR-294: `property:<key>` — an instance receives its component's event (the rule's node
+      // is an instance of a project component that declares the event).
+      const eventKey = componentEventKeyOf(entry.trigger);
+      if (eventKey !== undefined) {
+        const receiver = receivingInstanceOf(entry, get);
+        const definition =
+          receiver?.kind === "node" ? get(receiver.definitionId) : undefined;
+        if (
+          !componentEventPropertiesOf(definition).some(
+            (property) => property.key === eventKey,
+          )
+        )
+          throw new CatalogValidationError("UNKNOWN_TRIGGER_ID", entry.trigger);
+      } else if (!library.execution.triggerIds.has(entry.trigger))
         throw new CatalogValidationError("UNKNOWN_TRIGGER_ID", entry.trigger);
       // ADR-284 Decision 8 — a rule's Do list: at least one, each checked as one rule was.
       if (!entry.actions.length)
@@ -1481,6 +1577,21 @@ export class CatalogGraph {
               action.capabilityId,
             );
         }
+        // ADR-294: an origin rule sends an event its component declares.
+        if (action.opcode === "emit") {
+          const definitionId = emitDefinitionOf(entry, get, ownerOf);
+          if (!definitionId)
+            throw new CatalogValidationError("EMIT_OUTSIDE_COMPONENT", entry.id);
+          if (
+            !componentEventPropertiesOf(get(definitionId)).some(
+              (property) => property.key === action.propertyKey,
+            )
+          )
+            throw new CatalogValidationError(
+              "DANGLING_PROPERTY",
+              action.propertyKey,
+            );
+        }
         if (
           action.opcode === "setState" &&
           action.variableId.startsWith("project:") &&
@@ -1488,6 +1599,15 @@ export class CatalogGraph {
         )
           throw new CatalogValidationError(
             "DANGLING_VARIABLE",
+            action.variableId,
+          );
+        // (ADR-294: an input variable is the instance's value — derived, read only.)
+        if (
+          action.opcode === "setState" &&
+          isInputVariable(get(action.variableId))
+        )
+          throw new CatalogValidationError(
+            "INPUT_VARIABLE_READ_ONLY",
             action.variableId,
           );
         if (
@@ -1555,6 +1675,22 @@ export class CatalogGraph {
       const owner = get(entry.ownerId);
       if (!owner || (owner.kind !== "page" && owner.kind !== "node"))
         throw new CatalogValidationError("DANGLING_OWNER", entry.ownerId);
+      // ADR-294: an input variable belongs to a component's template root and its variable
+      // property (the property names it back — `validateComponentProperties`).
+      if (entry.input) {
+        const definition = get(ownerOf(entry.ownerId) ?? "");
+        if (
+          definition?.kind !== "definition" ||
+          definition.templateRootId !== entry.ownerId ||
+          !definition.properties?.some(
+            (property) =>
+              property.kind === "variable" &&
+              property.key === entry.input!.propertyKey &&
+              property.variableId === entry.id,
+          )
+        )
+          throw new CatalogValidationError("INPUT_VARIABLE_OWNER", entry.id);
+      }
     }
     if (entry.kind === "theme")
       for (const tokenId of entry.tokenIds)
@@ -1905,17 +2041,8 @@ function validateCapabilityTarget(
   if (action.opcode !== "capability") return;
   const target = action.target;
   /** The definition whose template holds `id` (owner chain top), else undefined. */
-  const templateDefinitionOf = (id: string): DefinitionId | undefined => {
-    const seen = new Set<string>();
-    for (let cursor = ownerOf(id); cursor && !seen.has(cursor); cursor = ownerOf(cursor)) {
-      seen.add(cursor);
-      const owner = get(cursor);
-      if (owner?.kind === "definition") return owner.id;
-      if (owner?.kind === "definitionOverride") return owner.targetId;
-      if (owner?.kind !== "node") return undefined;
-    }
-    return undefined;
-  };
+  const templateDefinitionOf = (id: string): DefinitionId | undefined =>
+    templateDefinitionIn(id, get, ownerOf);
   if ("unset" in target) return;
   if ("nodeId" in target) {
     if (get(target.nodeId)?.kind !== "node")

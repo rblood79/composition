@@ -221,10 +221,38 @@ function catalogComponentPropertyFields(
       if (cut.has(cursor as never)) return false;
     return true;
   };
-  // (Phase 5: an instance swap property is no root prop — its own section picks the component.)
+  // (Phase 5: an instance swap property is no root prop — its own section picks the component.
+  //  ADR-294: an event is received in Interactions — no field.)
   return properties.flatMap((property): ResolvedField[] => {
-    if (property.kind === "instance") return [];
+    if (property.kind === "instance" || property.kind === "event") return [];
     const reading = readModel.propSource(target, property.key);
+    // ADR-294 — a variable property: the instance's literal of its variable's type (the default =
+    // the variable's); an object · array variable takes a reference only (no literal field).
+    if (property.kind === "variable") {
+      const variable = graph.getEntry(property.variableId as never);
+      if (variable?.kind !== "stateVariable") return [];
+      const structured =
+        variable.valueType === "object" || variable.valueType === "array";
+      const baseValue = structured ? undefined : variable.defaultValue;
+      return [{
+        key: property.key,
+        kind:
+          variable.valueType === "number" || variable.valueType === "boolean"
+            ? variable.valueType
+            : "string",
+        label: property.name,
+        section: "content",
+        origin: "semantic",
+        isOverridden: reading.own !== undefined,
+        baseValue: reading.inherited.value ?? baseValue,
+        currentValue: reading.value ?? baseValue,
+        // (A reference — `!var.<id>` — is picked in the Component section's 「값 출처」, not typed.)
+        ...(structured ||
+        (typeof reading.value === "string" && reading.value.startsWith("!var."))
+          ? { editorHidden: true }
+          : {}),
+      }];
+    }
     const [first] = property.targets;
     const origin = graph.getEntry(first.id);
     const baseValue =
@@ -261,9 +289,11 @@ function catalogComponentPropertyDependencies(
   const properties = componentPropertiesOf(graph.getEntry(definitionId));
   return [
     definitionId,
-    ...(properties ?? []).flatMap((property) =>
-      property.targets.map((item) => item.id),
-    ),
+    ...(properties ?? []).flatMap((property) => [
+      ...property.targets.map((item) => item.id),
+      // (ADR-294: a variable property's default is its input variable's.)
+      ...(property.variableId ? [property.variableId] : []),
+    ]),
   ];
 }
 

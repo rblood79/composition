@@ -25,6 +25,8 @@ interface TriggerPickerProps {
   value: string;
   exposure: ExposureInput;
   onChange: (trigger: string) => void;
+  /** ADR-294 — the instance's component events (the 「컴포넌트」 group, first). */
+  componentEvents?: readonly { key: string; name: string }[];
 }
 
 export const TriggerPicker = memo(function TriggerPicker({
@@ -32,6 +34,7 @@ export const TriggerPicker = memo(function TriggerPicker({
   value,
   exposure,
   onChange,
+  componentEvents,
 }: TriggerPickerProps) {
   const { t } = useI18n();
   // 토글은 저장하지 않는다 — 규칙이 숨은 이벤트를 쓰면 늘 열림.
@@ -41,12 +44,13 @@ export const TriggerPicker = memo(function TriggerPicker({
     const groups = exposedTriggerGroups(componentType, exposure, {
       showHidden,
       used: value,
+      componentEvents: componentEvents?.map((event) => `property:${event.key}`),
     });
     return {
       options: groups.flatMap((group) =>
         group.events.map((trigger) => ({
           value: trigger,
-          label: triggerLabel(componentType, trigger, t),
+          label: triggerLabel(componentType, trigger, t, componentEvents),
         })),
       ),
       sections: groups.map((group) => ({
@@ -54,7 +58,7 @@ export const TriggerPicker = memo(function TriggerPicker({
         values: group.events,
       })),
     };
-  }, [componentType, exposure, showHidden, t, value]);
+  }, [componentType, componentEvents, exposure, showHidden, t, value]);
 
   return (
     <>

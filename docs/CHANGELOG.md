@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-294 Implemented — 사용자 컴포넌트가 값을 내보내고 받는다: event · variable property] - 2026-10-30
+
+### Added
+
+- 컴포넌트 원본이 **event property** 로 값을 내보내고 (Interactions Do 「컴포넌트 이벤트 보내기」 — `emit`), 놓인 instance 가 When 「컴포넌트」 그룹의 그 이벤트로 받는다 (받은 값 = 「This event · value」). **variable property** 로 instance 가 값을 넘기면 (직접 입력 또는 page 변수) 원본 안의 글자 · 값 조건 · 데이터 보기 조건 · 규칙 값이 그 instance 의 값을 읽는다. 「버튼 → 팝오버 안 사용자 컴포넌트 (목록 + 검색) → 고른 값을 부모 page 로」 가 패널만으로 된다.
+  - Properties: 원본 루트 「+ Event property」 · 「+ Variable property」, instance 의 「Receive in Interactions (N)」 · 「Value from」 · 「In this instance: …」. code view: `<UserPicker onPick={setPicked} team={roleFilter} />` 모양 (콜백 prop · 속성) 왕복.
+  - 문서: contract 51 → 52 (옛 개발용 프로젝트는 열리지 않는다 — 변환 없음).
+- 번들: Builder initial JS gz +4,387 B (ADR 상한 +2,048 → +4,608 사용자 정정) · Preview +127 B.
+- 사용자 확인 2026-10-30 (5176 Preview — 팝오버 picker 선택 → `picked` · 닫힘). 본문 `docs/adr/completed/294-component-event-variable-properties.md`.
+
 ## [ADR-290 Implemented — Theme accent 를 목표 대비로: 배경 accent 와 바탕 위 accent 를 따로] - 2026-10-30
 
 ### Changed
@@ -47,6 +57,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `packages/rendering/src/renderers/utils/tokenResolver.ts` (`colorTokenCssValue`) · `primitives/colors.ts` · `packages/shared/src/catalog/{resolvers/colorTokenToCss,runtime/{resolveThemeSnapshot,themeVarsCss,domView.runtime,neutralToSkiaColors},generated/componentRulesTable}.ts` · `components/styles/theme/preview-system.css` · `apps/builder/src/{App.tsx,hero.css}`
   - 게이트: `generatedCssVarsDeclared.static.test.ts` · `themeCssVarsCoverSkia.static.test.ts` · `apps/builder/tests/parity/themeColorParity.browser.test.ts` (프리셋 10 × Tone 5 × 모드 2 + 델타 — DOM 계산값 = Skia hex). parity · chart · `switchDomPaint` 하니스는 Preview 와 같은 snapshot 설치 (`setupPreviewThemeVars.ts`).
   - 번들: Builder initial −276 B · Preview −467 B gz. G5 사용자 확인 2026-10-30 → ADR-293 Implemented (`docs/adr/completed/293-*.md`).
+
+## [컴포넌트 안 데이터 목록이 instance 에서 행을 그린다] - 2026-10-30
+
+### Fixed
+
+- 데이터를 연결한 목록 (ListBox 등) 을 컴포넌트로 만들거나 컴포넌트 원본 안에 두면, page 의 instance 가 데이터 행 대신 원본의 샘플 항목 (Inbox · Starred · Archive) 을 그리던 결함 — Canvas · Preview 둘 다. 원인 둘: 행 목록을 instance 노드 자신의 연결에서만 읽어 원본 노드의 연결은 읽지 않았고, 원본 노드가 가진 항목 (slot 채움) 을 그리는 경로가 행 반복을 하지 않았다. 이제 원본 노드의 연결을 instance 자리에서 읽고 (보기 조건의 컴포넌트 변수 속성 — `!var` — 은 그 instance 의 값), 첫 항목을 행마다 반복하며 샘플 글자는 버린다. ADR-294 G5 live 중 발견 (ADR-294 이전 `ea13b37c1` 에서도 재현).
+  - 위치: `packages/shared/src/catalog/resolution/resolver.ts` (`projectTemplate` — 원본 노드의 binding · 안쪽 owner 의 slot 채움 행 반복 · `sampleOwner`)
+  - 게이트: `apps/builder/src/preview/catalog/__tests__/componentBoundRows.test.tsx` (루트 · 자식 · instance 별 보기 3 — 원복 RED 3/3)
+
+## [보기 조건이 element 변수를 읽는다 · 컴포넌트 이벤트 값 고르기] - 2026-10-30
+
+### Fixed
+
+- 데이터 보기 조건 (`name contains {{ query }}` 등) 이 노드가 가진 변수 (element 변수) 를 읽지 못해, 그 변수로 거르는 검색이 동작하지 않던 결함 — 컴포넌트 원본 안 검색은 page 변수에 쓸 수 없어 이 길뿐이었다. **Why**: 보기의 변수 탐색이 page · project 변수만 담았다. 이제 보기 노드의 소유자 사슬의 element 변수를 그 owner 를 그리는 record 아래에서 읽는다 (규칙이 쓰는 자리와 같다 — instance 마다 따로). 연결 key 의 `{{ }}` 해석은 그대로 page · project 만 (ADR-288). ADR-294 G5 live 중 발견 (`ea13b37c1` 에서도 재현).
+  - 위치: `packages/shared/src/catalog/runtime/{stateTemplate,compositionRoot}.ts`
+  - 게이트: `componentBoundRows.test.tsx` (plain · component 2 — 원복 RED 2/2)
+- Interactions 의 값 고르기가 컴포넌트 이벤트 (`When pick` 등) 의 받은 값을 후보로 내지 않던 누락 — 「This event · value」 가 나온다 (ADR-294).
+  - 위치: `packages/shared/src/interactions/exposure.ts` (`eventArgsOf`)
+
+## [ADR-294 Phase 4 — 컴포넌트 변수 속성의 값이 원본 안에서 읽힌다] - 2026-10-30
+
+### Added
+
+- 컴포넌트 원본 안에서 변수 속성 (입력 변수) 이 그 instance 가 넘긴 값으로 읽힌다 — 글자의 `{{ role }}`, 값 조건 · 변수 prop, 데이터 보기의 조건 (`!var`), 규칙의 값 (`!var` — 예: 「컴포넌트 이벤트 보내기」 의 보낼 값). 리터럴이면 그 값, 변수를 넘기면 그 변수 (Canvas 는 그 변수의 기본값, Preview 는 지금 값) 이고, 넘긴 변수가 바뀌면 원본 안 글자 · 보기가 다시 그려진다. 같은 컴포넌트의 instance 둘이 서로 다른 값을 넘기면 각자 다르게 보인다.
+- Properties 에서 instance 의 변수 속성마다 「값 출처」 (직접 입력 / 같은 타입의 보이는 변수) 와 「지금 이 instance 에서는 …」.
+  - 위치: `packages/shared/src/catalog/runtime/{inputVariable,stateTemplate,viewQuery,compositionRoot,catalogPreviewSession}.ts` · `resolution/resolver.ts` · `state/{runtimeState,visibility}.ts` · `apps/builder/src/builder/panels/properties/catalog/CatalogInstancePropertiesSection.tsx`
+
+## [ADR-294 Phase 2 · 3 — 컴포넌트 event · variable property 패널 · code view] - 2026-10-30
+
+### Added
+
+- **Properties** — 컴포넌트 원본 루트를 고르면 「+ 이벤트 속성」 「+ 변수 속성」 이 있다. 이벤트 행은 받는 instance 수를, instance 를 고르면 이벤트마다 「Interactions 에서 받기」 (Interactions 패널을 연다) 를 보여 준다. 변수 속성은 instance 에서 선언 타입의 값을 넣는다 (타입 · 기본값은 원본 루트의 State 절).
+- **Interactions** — instance 의 When 에 「컴포넌트」 그룹 (그 컴포넌트의 이벤트, 맨 앞). 원본 안 노드의 Do 에 「컴포넌트 이벤트 보내기」 (이벤트 + 보낼 값). 원본 규칙의 Set state 아래에 「이 컴포넌트를 쓰는 화면에 값을 넘기려면 …」 안내. Set state 는 컴포넌트의 입력 변수를 고르지 않는다 (읽기 전용).
+- **code view** — instance 요소에 받는 이벤트가 `onSelect={setPicked}` 로, 변수 속성이 `role="admin"` · `role={roleFilter}` 로 나오고 고치면 문서로 돌아간다. 루트 컴포넌트의 RAC 콜백과 같은 이름 (`onAction` 등) 의 이벤트는 만들 수 없다.
+  - 위치: `apps/builder/src/builder/panels/{properties/catalog,interactions}/**` · `catalogRuntime/{componentProperties,interactions,editContract,codeViewEdit}.ts` · `packages/shared/src/codeView/{generate,vocabulary}.ts` · `interactions/exposure.ts`
+
+### Fixed
+
+- 이벤트 · 변수 속성이 있는 컴포넌트의 instance 를 고르면 Properties 가 깨지던 것 (Phase 1 직후 — 대상 노드 없는 property 를 읽음).
+
+## [ADR-294 Phase 0 · 1 — 컴포넌트 event · variable property 문서 · 실행] - 2026-10-30
+
+### Changed
+
+- **contract 52** — 사용자 컴포넌트의 property 종류에 `event` (원본이 값을 내보냄) 와 `variable` (instance 가 값을 넣음) 을 더했다. 51 프로젝트는 열리지 않는다 (마이그레이션 없음 — 사용자 확인 2026-10-30, 새로 만든다). 샘플 프로젝트 파일 3 은 52 로 갱신.
+
+### Added
+
+- 원본 규칙의 Do `emit` (event property 를 내보냄) 과 instance 규칙의 When `property:<key>` (받음, 값은 `!event.value`). Preview 는 누른 record 의 경계를 안쪽부터 찾아 그 instance 의 받는 규칙만 한 번 실행한다 — 같은 컴포넌트 instance 둘 · 컴포넌트 안 컴포넌트 (같은 이름 재발행) · 같은 바깥 컴포넌트 둘 안의 안쪽 instance 를 구별한다. 받는 규칙이 없으면 성공 (`listeners: 0`).
+- variable property 의 값: 리터럴 (선언 타입) 또는 그 instance 에서 보이는 같은 타입 변수의 참조 (`!var.<id>`). 원본 안에서는 template 루트의 입력 변수로 읽히고 Set state 로 쓸 수 없다 (`INPUT_VARIABLE_READ_ONLY`). 값의 해석 경로 (보기 · 글자 · 규칙) 는 Phase 4 — 그때까지 입력 변수는 기본값으로 읽힌다.
+- property 를 지우면 그 `emit` Do · 받는 규칙 · 입력 변수 · 변수 참조 값이 같은 step 에서 함께 지워진다.
+  - 위치: `packages/shared/src/catalog/document/{types,validation,graph,componentEvents,componentProperties}.ts` · `commands/{properties,structure}.ts` · `runtime/{componentBoundaries,catalogPreviewInteractions}.ts` · `interactions/dispatcher.ts`
+  - 패널 (Properties · Interactions) 과 code view 는 Phase 2 · 3.
 
 ## [컴포넌트 모서리 값 정리 · 필드 버튼 Preview pill 수리 · ToggleButton 선택 글자] - 2026-10-30
 

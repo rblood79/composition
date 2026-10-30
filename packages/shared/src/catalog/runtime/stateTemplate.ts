@@ -18,6 +18,7 @@ import type {
 } from "../document/types";
 import { isPropVar, isPropWhen } from "../document/valueType";
 import { viewCompare } from "../../collections/view/comparison";
+import { instancePathBoundaries, resolveInputVariable } from "./inputVariable";
 
 /** A project variable's reference in the catalog document (`data:variable:<id>`). */
 const PROJECT_VARIABLE = "data:variable:";
@@ -36,6 +37,12 @@ export interface CatalogStateSource {
    * `useParams`). Absent (the Canvas) = `{{ params.… }}` stays as written.
    */
   params?(): Readonly<Record<string, string>>;
+  /**
+   * The record an element variable's value lives under (`RuntimeScope` element `instanceKey`) for
+   * a reader at this resolution path: the record drawing the variable's owner there. Absent = the
+   * owner's id (no runtime value — its default).
+   */
+  elementKey?(ownerId: string, instancePath: readonly string[]): string | undefined;
 }
 
 /** One variable a record sees, with the scope its value lives in. */
@@ -46,6 +53,11 @@ export interface CatalogVisibleState {
   type: VariableDefType;
   defaultValue?: unknown;
   scope: RuntimeScope;
+  /**
+   * ADR-294 — a component's input variable read where it sits (the instance's value): wins over
+   * the runtime value and the default.
+   */
+  derived?: () => { value: unknown } | undefined;
 }
 
 /** The part of a record the chain reads. */
@@ -182,7 +194,16 @@ export function catalogStateEnv(
   visible: readonly CatalogVisibleState[],
   read?: CatalogStateSource["read"],
   params?: CatalogStateSource["params"],
+  /** ADR-294 — the input variable values (a record's — `resolveInputVariableAt`). */
+  derive?: (entry: CatalogVisibleState) => { value: unknown } | undefined,
 ): CatalogStateEnv {
+  const valueOf = (entry: CatalogVisibleState) => {
+    const derived = entry.derived?.() ?? derive?.(entry);
+    if (derived) return derived.value ?? defaultOf(entry.type, entry.defaultValue);
+    return (
+      read?.(entry.id, entry.scope) ?? defaultOf(entry.type, entry.defaultValue)
+    );
+  };
   const byName = new Map<string, CatalogVisibleState>();
   const byId = new Map<string, CatalogVisibleState>();
   for (const entry of visible) {
@@ -193,21 +214,13 @@ export function catalogStateEnv(
     byId(id) {
       const entry = byId.get(id);
       if (!entry) return undefined;
-      return {
-        value:
-          read?.(entry.id, entry.scope) ??
-          defaultOf(entry.type, entry.defaultValue),
-        type: entry.type,
-      };
+      return { value: valueOf(entry), type: entry.type };
     },
     get(name) {
       const entry = byName.get(name);
       // (A variable named `params` wins — the route params are the root no variable took.)
       if (!entry) return name === CATALOG_PARAMS_ROOT ? params?.() : undefined;
-      return (
-        read?.(entry.id, entry.scope) ??
-        defaultOf(entry.type, entry.defaultValue)
-      );
+      return valueOf(entry);
     },
   };
 }
@@ -353,14 +366,70 @@ export function catalogBindingKey(
   return hasStateTemplateSyntax({ key: text }) ? undefined : text;
 }
 
-/** The bound node's page variables and the project's (what a binding's key · view reads). */
+/**
+ * The bound node's page variables and the project's (what a binding's key · view reads). ADR-294 —
+ * also the input variables of the origins it sits in (a template root on its owner chain), valued
+ * as the instance on its instance path passes them (none — the default).
+ */
 function pageAndProjectStates(
   graph: CatalogGraph,
   ownerId: string | undefined,
   source: CatalogStateSource | undefined,
+  instancePath?: readonly string[],
 ): CatalogVisibleState[] {
   const visible: CatalogVisibleState[] = [];
   for (let id = ownerId; id; id = graph.ownerOf(id)) {
+    const owner = graph.getEntry(graph.ownerOf(id) ?? "");
+    if (owner?.kind === "definition" && owner.templateRootId === id) {
+      // (No instance path — the origin drawn by itself: the default.)
+      const boundaries = instancePathBoundaries(graph, instancePath ?? []);
+      for (const variable of ownedVariables(graph, id))
+        if (variable.input)
+          visible.push({
+            id: variable.id,
+            name: variable.name,
+            type: variableType(variable.valueType),
+            defaultValue: documentDefault(variable),
+            scope: { kind: "element", instanceKey: id },
+            derived: () =>
+              resolveInputVariable(
+                graph,
+                variable.id,
+                boundaries,
+                (otherId, boundary) => {
+                  // (Read where the instance stands: its page · the project's.)
+                  const entry = pageAndProjectStates(
+                    graph,
+                    boundary.instanceId,
+                    source,
+                  ).find((item) => item.id === otherId);
+                  return entry
+                    ? {
+                        value:
+                          source?.read?.(entry.id, entry.scope) ??
+                          defaultOf(entry.type, entry.defaultValue),
+                      }
+                    : undefined;
+                },
+              ),
+          });
+    }
+    // An element variable (a node's own — a search box's text inside a component's origin): read
+    // under the record that draws its owner at the reader's path — only by a reader that can scope
+    // it (a view, `elementKey`); a keyed binding's `{{ }}` reads page · project only (ADR-288 ⑥).
+    if (source?.elementKey && graph.getEntry(id)?.kind === "node")
+      for (const variable of ownedVariables(graph, id))
+        if (!variable.input)
+          visible.push({
+            id: variable.id,
+            name: variable.name,
+            type: variableType(variable.valueType),
+            defaultValue: documentDefault(variable),
+            scope: {
+              kind: "element",
+              instanceKey: source.elementKey(id, instancePath ?? []) ?? id,
+            },
+          });
     if (graph.getEntry(id)?.kind !== "page") continue;
     const pageId = id as EntryId<"page">;
     for (const variable of ownedVariables(graph, pageId))
@@ -394,15 +463,19 @@ export function catalogVariableValue(
   variableId: string,
   ownerId: string | undefined,
   source: CatalogStateSource | undefined,
+  /** ADR-294 — the bound node's instance path (an origin's input variable reads its instance). */
+  instancePath?: readonly string[],
 ): { value: unknown; name: string } | undefined {
-  const entry = pageAndProjectStates(graph, ownerId, source).find(
+  const entry = pageAndProjectStates(graph, ownerId, source, instancePath).find(
     (item) => item.id === variableId,
   );
   if (!entry) return undefined;
+  const derived = entry.derived?.();
   return {
-    value:
-      source?.read?.(entry.id, entry.scope) ??
-      defaultOf(entry.type, entry.defaultValue),
+    value: derived
+      ? (derived.value ?? defaultOf(entry.type, entry.defaultValue))
+      : (source?.read?.(entry.id, entry.scope) ??
+        defaultOf(entry.type, entry.defaultValue)),
     name: entry.name,
   };
 }

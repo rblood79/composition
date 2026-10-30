@@ -18,6 +18,8 @@ import {
   type TriggerGroup,
 } from "./capabilityRegistry";
 import { declaredRefusal, type CapabilityContext } from "./constraints";
+import { COMPONENT_EVENT_ARGS } from "../catalog/document/componentEvents";
+import { COMPONENT_EVENT_TRIGGER_PREFIX } from "../catalog/document/types";
 
 /** Concepts never offered on the When axis (keyboard — user decision Q3, 2026-10-22). */
 export const NEVER_OFFERED_GROUPS: readonly string[] = ["keyboard"];
@@ -54,13 +56,31 @@ export interface ExposedGroup {
   refusedBy?: string;
 }
 
-/** The type's When groups the panel lists (`used` — the rule's own trigger stays). */
+/** ADR-294 — the When group of a component instance's own events (`property:<key>`). */
+export const COMPONENT_EVENT_GROUP = "component";
+
+/**
+ * The type's When groups the panel lists (`used` — the rule's own trigger stays). ADR-294 —
+ * `componentEvents`: an instance of a user component receives its component's events too
+ * (`property:<key>` triggers, first — they are what the component declares).
+ */
 export function exposedTriggerGroups(
   type: string,
   input: ExposureInput,
-  options: { showHidden?: boolean; used?: string } = {},
+  options: {
+    showHidden?: boolean;
+    used?: string;
+    componentEvents?: readonly string[];
+  } = {},
 ): ExposedGroup[] {
   const out: ExposedGroup[] = [];
+  const events = [...(options.componentEvents ?? [])];
+  if (
+    options.used?.startsWith("property:") &&
+    !events.includes(options.used)
+  )
+    events.push(options.used);
+  if (events.length) out.push({ id: COMPONENT_EVENT_GROUP, events });
   for (const group of CAPABILITY_REGISTRY[type]?.groups ?? []) {
     if (NEVER_OFFERED_GROUPS.includes(group.id)) {
       if (options.used && group.hiddenEvents.includes(options.used))
@@ -155,7 +175,12 @@ export function capabilityRefusal(
     : undefined;
 }
 
-/** The argument names a rule can read from a type's event (`!event.<name>`). */
+/**
+ * The argument names a rule can read from a type's event (`!event.<name>`). A received component
+ * event (ADR-294 — `property:<key>`) carries `value`, whatever the instance's root type.
+ */
 export function eventArgsOf(type: string, trigger: string): readonly string[] {
+  if (trigger.startsWith(COMPONENT_EVENT_TRIGGER_PREFIX))
+    return COMPONENT_EVENT_ARGS;
   return CAPABILITY_REGISTRY[type]?.eventArgs?.[trigger] ?? [];
 }

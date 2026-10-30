@@ -1,3 +1,9 @@
+import { isInputVariable } from "../document/componentEvents";
+import {
+  closeOverInputs,
+  inputVariableDependencies,
+  resolveInputVariableAt,
+} from "./inputVariable";
 import { isBodyType } from "../../domain/predicates";
 import { isPropVar } from "../document/valueType";
 import {
@@ -1561,15 +1567,18 @@ export class CatalogCompositionRoot {
     // resolved = that item; not resolvable (the Canvas — no route, no runtime values) = a sample.
     this.rows =
       rows &&
-      ((authored, kind, ownerId) => {
+      ((authored, kind, ownerId, instancePath) => {
         // ADR-284: the binding's view, its references read for this node (runtime values in the
         // Preview · Publish, defaults on the Canvas) — the row source runs it before the window.
+        // (ADR-294 R6: an origin's input variable reads the instance on the node's path — each
+        // instance its own rows; a view reading none is the same query for every instance.)
         const query = catalogBindingQuery(
           this.runtime.graph,
           authored,
           ownerId,
-          this.stateSource,
+          this.viewStateSource(),
           (columnKey) => this.tableColumnField(columnKey),
+          instancePath,
         );
         const binding = query ? { ...authored, query } : authored;
         if (binding.key === undefined) return rows(binding, kind, ownerId);
@@ -1743,6 +1752,36 @@ export class CatalogCompositionRoot {
       record.props as Record<string, unknown>,
       columns.indexOf(record.id),
     );
+  }
+  /**
+   * The state a view reads (`catalogBindingQuery`): the runtime source, plus where an element
+   * variable's value lives — the record drawing its owner on the bound node's path (the nearest
+   * whose path the node's continues), as a rule's write scopes it (`instanceKeyFor`).
+   */
+  private viewStateSource(): CatalogStateSource | undefined {
+    const source = this.stateSource;
+    if (!source) return undefined;
+    return {
+      projectVariables: () => source.projectVariables(),
+      read: source.read?.bind(source),
+      params: source.params?.bind(source),
+      elementKey: (ownerId, instancePath) => {
+        let best: string | undefined;
+        let bestLength = -1;
+        for (const id of this.recordsOfSource(ownerId)) {
+          const path = this.records.get(id)?.instancePath ?? [];
+          if (
+            path.length > bestLength &&
+            path.length <= instancePath.length &&
+            path.every((step, index) => instancePath[index] === step)
+          ) {
+            best = id;
+            bestLength = path.length;
+          }
+        }
+        return best ?? this.recordsOfSource(ownerId)[0];
+      },
+    };
   }
   recordsOfSource(sourceId: string): readonly string[] {
     return [...(this.sourceInstances.get(sourceId) ?? [])];
@@ -1992,10 +2031,11 @@ export class CatalogCompositionRoot {
   ): CatalogConsumerNode {
     const { templateProps, ...rest } = record;
     const authored = templateProps ?? record.props;
+    const graph = this.runtime.graph;
     const props = catalogStateProps(authored, () =>
       catalogStateEnv(
         catalogRecordVariables(
-          this.runtime.graph,
+          graph,
           record,
           get,
           pageId,
@@ -2003,6 +2043,20 @@ export class CatalogCompositionRoot {
         ),
         this.stateSource?.read?.bind(this.stateSource),
         this.stateSource?.params?.bind(this.stateSource),
+        // ADR-294 Decision 7 — an origin's input variable is the value its instance passes (read at
+        // the record that draws the origin root — its boundaries).
+        (entry) =>
+          entry.scope.kind === "element" &&
+          isInputVariable(graph.getEntry(entry.id as never))
+            ? resolveInputVariableAt(
+                graph,
+                entry.id,
+                entry.scope.instanceKey,
+                { get },
+                pageId,
+                this.stateSource,
+              )
+            : undefined,
       ),
     );
     if (!props) return templateProps ? { ...rest, props: authored } : record;
@@ -2045,6 +2099,19 @@ export class CatalogCompositionRoot {
     return out ?? props;
   }
   private readonly choiceWarnings = new Set<string>();
+  private inputDependencyCache:
+    | { revision: number; value: ReadonlyMap<string, ReadonlySet<string>> }
+    | undefined;
+  /** ADR-294 — which input variables follow which variables (per document revision). */
+  private inputDependencies(): ReadonlyMap<string, ReadonlySet<string>> {
+    const graph = this.runtime.graph;
+    if (this.inputDependencyCache?.revision !== graph.revision)
+      this.inputDependencyCache = {
+        revision: graph.revision,
+        value: inputVariableDependencies(graph),
+      };
+    return this.inputDependencyCache.value;
+  }
   /** Records whose written props hold a template (`names`: only those reading one of them). */
   private stateReaders(names?: ReadonlySet<string>): string[] {
     const ids: string[] = [];
@@ -2068,7 +2135,10 @@ export class CatalogCompositionRoot {
    * template). Journaled and delivered like a step; the document revision does not move. Returns
    * the subscriber errors.
    */
-  refreshState(names?: ReadonlySet<string>): unknown[] {
+  refreshState(changed?: ReadonlySet<string>): unknown[] {
+    // ADR-294 — a changed variable reaches the input variables that follow it (an instance's
+    // `role={roleFilter}`), and their readers inside the origin.
+    const names = changed && closeOverInputs(changed, this.inputDependencies());
     // A keyed binding whose key reads a changed name picks its item again.
     const keyed = new Set<string>();
     for (const sourceId of this.sourceInstances.keys()) {
@@ -2091,7 +2161,7 @@ export class CatalogCompositionRoot {
             this.runtime.graph,
             binding,
             sourceId,
-            this.stateSource,
+            this.viewStateSource(),
           )?.names.some((name) => names.has(name)))
       )
         keyed.add(binding.collectionId);

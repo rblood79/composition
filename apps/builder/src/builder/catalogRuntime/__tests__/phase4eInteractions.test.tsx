@@ -107,11 +107,12 @@ describe("ADR-248 Phase 4e-4e Interactions", () => {
   it("the code library names the old rules vocabulary", async () => {
     const { execution } = await buildCodeCatalogLibrary();
     // (ADR-281 Decision 5 — callEndpoint, a Form's submit to an API endpoint; append · update ·
-    // remove, `useListData`'s operations on a collection.)
+    // remove, `useListData`'s operations on a collection. ADR-294 — emit, a component's event.)
     expect([...execution.actionOpCodes].sort()).toEqual([
       "append",
       "callEndpoint",
       "capability",
+      "emit",
       "insert",
       "insertAfter",
       "insertBefore",

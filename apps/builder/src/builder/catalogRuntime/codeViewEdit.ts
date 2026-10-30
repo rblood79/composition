@@ -44,6 +44,16 @@ import type {
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import { isBodyType } from "../../../../../packages/shared/src/domain/predicates";
 import { generateCodeView } from "../../../../../packages/shared/src/codeView/generate";
+import { componentPropertiesOf } from "../../../../../packages/shared/src/catalog/document/componentProperties";
+import {
+  COMPONENT_EVENT_ARGS,
+  componentEventAttribute,
+  componentEventKeyOf,
+  componentEventPropertiesOf,
+  componentEventTrigger,
+  componentPropertyCodeName,
+  emitDefinitionOf,
+} from "../../../../../packages/shared/src/catalog/document/componentEvents";
 import {
   literalOf,
   structuredLiteralOf,
@@ -1043,6 +1053,32 @@ class Planner {
     > = {};
     const handlers = new Map<string, CodeViewAttribute | undefined>();
     const sorted = this.sortControlled(element, type);
+    // ADR-294 Decision 6 — a user component instance's properties are written by their names
+    // (`role={roleFilter}`) and its events as callback props (`onSelect={…}` = `property:<key>`).
+    const properties =
+      componentPropertiesOf(this.reader.getEntry(node.definitionId)) ?? [];
+    const propKey = (name: string) =>
+      properties.find(
+        (property) =>
+          property.kind !== "event" && componentPropertyCodeName(property) === name,
+      )?.key ?? name;
+    const handlerTrigger = (name: string) => {
+      const event = properties.find(
+        (property) =>
+          property.kind === "event" && componentEventAttribute(property) === name,
+      );
+      return event ? componentEventTrigger(event.key) : name;
+    };
+    const inputValue = (name: string, value: unknown) => {
+      // (A variable property's reference is the variable's `!var.` text — not a `PropVar`.)
+      const property = properties.find((item) => item.key === propKey(name));
+      return property?.kind === "variable" &&
+        value &&
+        typeof value === "object" &&
+        (value as { kind?: unknown }).kind === "var"
+        ? (value as { ref: string }).ref
+        : value;
+    };
     for (const attribute of element.attributes) {
       const old = before.find((anchor) => nameOf(anchor) === attribute.name);
       if (
@@ -1065,12 +1101,16 @@ class Planner {
         ? (old.target as { source: string }).source
         : undefined;
       if (source === "handler" || (!old && /^on[A-Z]/.test(attribute.name))) {
-        handlers.set(attribute.name, attribute);
+        handlers.set(handlerTrigger(attribute.name), attribute);
         continue;
       }
       if (source && source !== "prop") continue; // (the regenerated code tells)
       const value = this.propValue(attribute);
-      if (value !== undefined) props[attribute.name] = { kind: "set", value };
+      if (value !== undefined)
+        props[propKey(attribute.name)] = {
+          kind: "set",
+          value: inputValue(attribute.name, value),
+        };
     }
     for (const anchor of before) {
       if (
@@ -1080,8 +1120,9 @@ class Planner {
       )
         continue;
       const source = (anchor.target as { source: string }).source;
-      if (source === "prop") props[nameOf(anchor)] = { kind: "remove" };
-      else if (source === "handler") handlers.set(nameOf(anchor), undefined);
+      if (source === "prop") props[propKey(nameOf(anchor))] = { kind: "remove" };
+      else if (source === "handler")
+        handlers.set(handlerTrigger(nameOf(anchor)), undefined);
     }
     // Text (`children`).
     const oldText = this.baseline.anchors.find(
@@ -1260,11 +1301,12 @@ class Planner {
     );
     for (const [trigger, attribute] of handlers) {
       if (!attribute) continue;
-      if (!triggers.includes(trigger)) {
+      // (ADR-294 — a received component event is the instance's own When; the document checks it.)
+      if (!triggers.includes(trigger) && !componentEventKeyOf(trigger)) {
         this.reject(attribute.from, "outsideVocabulary", trigger);
         continue;
       }
-      const actions = this.actionsOf(trigger, attribute);
+      const actions = this.actionsOf(trigger, attribute, node.id);
       if (!actions) continue;
       const kept = rules.find((rule) => rule.trigger === trigger);
       next.push({
@@ -1296,10 +1338,13 @@ class Planner {
   private actionsOf(
     trigger: string,
     attribute: CodeViewAttribute,
+    ownerId?: string,
   ): InteractionAction[] | undefined {
     const code =
       attribute.value?.kind === "expression" ? attribute.value.code.trim() : "";
-    const args = eventArgNames(trigger)[0] ?? [];
+    const args = componentEventKeyOf(trigger)
+      ? COMPONENT_EVENT_ARGS
+      : (eventArgNames(trigger)[0] ?? []);
     const fields = eventArgsAreFields(trigger);
     const setter = (name: string) =>
       [...this.variables].find(
@@ -1335,6 +1380,7 @@ class Planner {
       args,
       fields,
       params,
+      ownerId,
     });
   }
 
@@ -1405,6 +1451,32 @@ class Planner {
   }
 
   /** A handler's · drop option's statements → Dos (undefined = refused). */
+  /** `props.on<Name>?.(value)` → the emit Do of the component that holds the rule's node. */
+  private emitOf(
+    callback: string,
+    value: string,
+    ownerId: string | undefined,
+    valueOf: (raw: string) => unknown,
+  ): InteractionAction | undefined {
+    const definitionId = ownerId
+      ? emitDefinitionOf(
+          { ownerId: ownerId as NodeId },
+          (id) => this.reader.getEntry(id as never),
+          (id) => this.reader.ownerOf(id),
+        )
+      : undefined;
+    const event = componentEventPropertiesOf(
+      definitionId ? this.reader.getEntry(definitionId) : undefined,
+    ).find((property) => componentEventAttribute(property) === callback);
+    if (!event) return undefined;
+    const read = value.trim() ? valueOf(value) : undefined;
+    return {
+      opcode: "emit",
+      propertyKey: event.key,
+      ...(read !== undefined ? { value: read } : {}),
+    } as InteractionAction;
+  }
+
   private dosOf(
     body: string,
     from: number,
@@ -1413,6 +1485,8 @@ class Planner {
       args: readonly string[];
       fields: boolean;
       params: readonly string[];
+      /** ADR-294 — the rule's node (an origin rule's `props.on…?.()` names its component's event). */
+      ownerId?: string;
     },
   ): InteractionAction[] | undefined {
     const { args, fields, params } = context;
@@ -1490,6 +1564,17 @@ class Planner {
         /^await fetch\(('(?:[^'\\]|\\.)*'), \{method: ('[A-Z]+')(?:, body: JSON\.stringify\(([\s\S]+)\))?\}\)$/.exec(
           raw,
         );
+      // ADR-294 — an origin rule sends its component's event (`props.onSelect?.(value)`).
+      const sent = /^props\.(on[A-Z][\w$]*)\?\.\(([\s\S]*)\)$/.exec(raw);
+      if (sent) {
+        const action = this.emitOf(sent[1]!, sent[2]!, context.ownerId, valueOf);
+        if (!action) {
+          this.reject(from, "unknownReference", sent[1]);
+          return undefined;
+        }
+        actions.push(action);
+        continue;
+      }
       if (set) {
         const variableId = setter(set[1]!);
         const value = set[2]!.trim();

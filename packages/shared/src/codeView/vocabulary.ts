@@ -115,6 +115,20 @@ export const CODE_VIEW_VOCABULARY: readonly CodeViewVocabularyItem[] = [
     unit: "node",
   },
   {
+    // ADR-294 — an instance receives its component's event: the callback prop (`property:<key>`).
+    form: "<Instance onName={(value) => …}> · <Instance name={x}>",
+    emit: "writeNode",
+    read: "planHandlers",
+    unit: "rule (a component event received) · a variable property's value",
+  },
+  {
+    // ADR-294 — an origin rule sends its component's event (the component's own file — ADR B).
+    form: "props.onName?.(value)",
+    emit: "writeAction",
+    read: "emitOf",
+    unit: "rule Do (a component event sent)",
+  },
+  {
     form: 'prop="…" · prop={literal} · prop={x}',
     emit: "propCode",
     read: "propValue",

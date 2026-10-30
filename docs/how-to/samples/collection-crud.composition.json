@@ -10,7 +10,7 @@
   "document": {
     "format": "composition-catalog",
     "schemaVersion": 1,
-    "libraryContractVersion": 51,
+    "libraryContractVersion": 52,
     "revision": 48,
     "projectId": "project:project:6d0c1b7e-5a3f-4c2e-9b1a-c0a1d5e7f001",
     "rootId": "project:project:6d0c1b7e-5a3f-4c2e-9b1a-c0a1d5e7f001",

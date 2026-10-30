@@ -9,7 +9,7 @@
   "document": {
     "format": "composition-catalog",
     "schemaVersion": 1,
-    "libraryContractVersion": 51,
+    "libraryContractVersion": 52,
     "revision": 42,
     "projectId": "project:project:3f7c3764-8569-444c-9580-4e1d2b027263",
     "rootId": "project:project:3f7c3764-8569-444c-9580-4e1d2b027263",

@@ -5,6 +5,11 @@ import {
 } from "@composition/shared";
 import { setNodeInteractions } from "../../../../../packages/shared/src/catalog/commands";
 import {
+  componentEventPropertiesOf,
+  emitDefinitionOf,
+  receivingInstanceOf,
+} from "../../../../../packages/shared/src/catalog/document/componentEvents";
+import {
   catalogInteractionOverridesAt,
   effectiveInteractionsOf,
   type CatalogInteractionStatus,
@@ -512,6 +517,8 @@ export interface CatalogVisibleVariable {
   name: string;
   type: CatalogVariableType;
   group: "project" | "page" | "element";
+  /** ADR-294 — a component's input variable: a value reads it, a Set state never writes it. */
+  readOnly?: boolean;
 }
 
 /**
@@ -534,6 +541,8 @@ export function catalogVisibleVariables(
       group: (graph.getEntry(variable.ownerId)?.kind === "page"
         ? "page"
         : "element") as CatalogVisibleVariable["group"],
+      // (ADR-294 — a component's input variable: a value reads it, Set state does not write it.)
+      ...(variable.input ? { readOnly: true } : {}),
     })),
     ...projectVariables
       .filter((variable) =>
@@ -601,6 +610,54 @@ export interface CatalogActionContext {
     fields: readonly { key: string; type: string }[];
     single: boolean;
   };
+  /**
+   * ADR-294 — the events an origin rule can send (its component's event properties); absent = the
+   * owner is not in a component's template.
+   */
+  events?: readonly CatalogComponentEventOption[];
+}
+
+export interface CatalogComponentEventOption {
+  key: string;
+  name: string;
+}
+
+/** ADR-294 — the events of a component (its event properties). */
+function eventOptionsOf(
+  graph: CatalogVariableReader,
+  definitionId: string | undefined,
+): CatalogComponentEventOption[] {
+  return definitionId
+    ? componentEventPropertiesOf(graph.getEntry(definitionId as never)).map(
+        (property) => ({ key: property.key, name: property.name }),
+      )
+    : [];
+}
+/**
+ * ADR-294 — the events a rule on the owner can send (`emit`): its component's — the one whose
+ * template holds the rule's node. Undefined = the owner is on a page (no component to send from).
+ */
+export function catalogEmitEvents(
+  graph: CatalogVariableReader,
+  owner: CatalogInteractionOwner,
+): CatalogComponentEventOption[] | undefined {
+  const definitionId = emitDefinitionOf(
+    owner,
+    (id) => graph.getEntry(id as never),
+    (id) => graph.ownerOf(id),
+  );
+  return definitionId ? eventOptionsOf(graph, definitionId) : undefined;
+}
+/**
+ * ADR-294 — the events a rule on the owner can receive (`property:<key>`): the owner is an
+ * instance of a user component (or the addressed position is one).
+ */
+export function catalogReceivedEvents(
+  graph: CatalogVariableReader,
+  owner: CatalogInteractionOwner,
+): CatalogComponentEventOption[] {
+  const node = receivingInstanceOf(owner, (id) => graph.getEntry(id as never));
+  return node?.kind === "node" ? eventOptionsOf(graph, node.definitionId) : [];
 }
 
 export interface CatalogCollectionOption {
@@ -671,8 +728,12 @@ export function catalogDefaultAction(
   }
   // (A toast's message is required — an empty one is no complete rule: the document refuses it.)
   if (choice === "toast") return { opcode: "toast", message: "Message" };
+  if (choice === "emit") {
+    const event = context.events?.[0];
+    return event ? { opcode: "emit", propertyKey: event.key } : undefined;
+  }
   if (choice === "setState") {
-    const variable = context.variables[0];
+    const variable = context.variables.find((option) => !option.readOnly);
     return variable
       ? catalogSetStateAction(variable, catalogStateOps(variable.type)[0]!)
       : undefined;

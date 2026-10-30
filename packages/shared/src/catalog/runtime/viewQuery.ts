@@ -127,6 +127,8 @@ export function catalogBindingQuery(
   source: CatalogStateSource | undefined,
   /** A Table's RAC column key → the field it shows (a sort variable a Table's rule wrote). */
   columnField?: (columnKey: string) => string | undefined,
+  /** ADR-294 — the bound node's instance path (an origin's input variable reads its instance). */
+  instancePath?: readonly string[],
 ): CatalogRowQuery | undefined {
   const queries = catalogBindingViews(graph, binding);
   if (!queries) return undefined;
@@ -141,6 +143,7 @@ export function catalogBindingQuery(
       parsed.variableId,
       ownerId,
       source,
+      instancePath,
     );
     if (!variable) continue;
     names.add(variable.name);

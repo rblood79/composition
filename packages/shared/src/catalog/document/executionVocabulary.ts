@@ -39,6 +39,8 @@ export const CATALOG_ACTION_OPCODES = [
   // `useAsyncList.loadMore` · `setFilterText` — the next page · a server filter.
   "loadMore",
   "setFilterText",
+  // ADR-294 — a component's event property sent to its instance.
+  "emit",
 ] as const satisfies readonly InteractionAction["opcode"][];
 
 export function codeExecutionVocabulary(): {

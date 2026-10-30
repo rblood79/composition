@@ -36,7 +36,9 @@ export type ActionChoice =
   | "move"
   | "moveBefore"
   | "moveAfter"
-  | "removeSelectedItems";
+  | "removeSelectedItems"
+  // ADR-294 — a component's event sent to its instance.
+  | "emit";
 
 /** 대상 후보 요소 (TargetPicker 표시용) */
 export interface TargetOption {
