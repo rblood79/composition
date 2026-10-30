@@ -14,6 +14,7 @@ import { CatalogPreviewToastBridge } from "../../../../../packages/shared/src/ca
 import { NullLayoutEngine } from "../../builder/catalogRuntime/nullLayoutEngine";
 import { catalogThemeState } from "../../builder/catalogRuntime/theme";
 import { CatalogPreviewSession } from "./catalogPreviewSession";
+import { registerCatalogPreviewWheel } from "./catalogPreviewWheel";
 
 /**
  * Compare Mode: a click on an element in the Preview selects it on the Canvas (⌘ / Ctrl toggles
@@ -79,7 +80,10 @@ async function startCatalogPreview(): Promise<void> {
   window.addEventListener("message", (event) => {
     if (event.origin !== origin || event.source !== window.parent) return;
     // ADR-295 사용자 결정 4: Builder 의 「터치 크기로 미리보기」 — root 가 터치 벌 (`catalogThemeVarsCss`) 을 쓴다
-    if ((event.data as { type?: unknown } | null)?.type === CATALOG_TOUCH_VIEW_MESSAGE) {
+    if (
+      (event.data as { type?: unknown } | null)?.type ===
+      CATALOG_TOUCH_VIEW_MESSAGE
+    ) {
       document.documentElement.toggleAttribute(
         CATALOG_TOUCH_VIEW_ATTRIBUTE,
         (event.data as { touch?: unknown }).touch === true,
@@ -96,6 +100,7 @@ async function startCatalogPreview(): Promise<void> {
   registerCatalogPreviewSelectClick(session, (message) =>
     window.parent.postMessage(message, origin),
   );
+  registerCatalogPreviewWheel();
   createRoot(document.body).render(
     createElement(CatalogPreviewApp, { session, runtime, toast }),
   );

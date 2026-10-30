@@ -1,4 +1,5 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import { ArrowLeftRight } from "lucide-react";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import { CANVAS_VIEWPORT } from "../../canvasBreakpoints";
 import {
@@ -13,6 +14,11 @@ import { runAutoPolicyEndpoints } from "../../../panels/datatable/hooks/useExecu
 import { CATALOG_PREVIEW_PAYLOAD_VERSION } from "../../../../../../../packages/shared/src/catalog/preview/protocol";
 import { CATALOG_TOUCH_VIEW_MESSAGE } from "../../../../../../../packages/shared/src/catalog/runtime/themeVarsCss";
 import { useCompareModeStore } from "../stores/compareMode";
+import {
+  CATALOG_PREVIEW_WHEEL,
+  forwardPreviewWheel,
+  readPreviewWheelMessage,
+} from "../../../../preview/catalog/catalogPreviewWheel";
 
 const PREVIEW_PANE_ID = "workspace-compare-panel-css";
 
@@ -147,7 +153,11 @@ export function CatalogPreviewFrame({
         sourceId?: unknown;
         additive?: unknown;
       } | null;
-      if (data?.type === "PREVIEW_READY") {
+      if (data?.type === CATALOG_PREVIEW_WHEEL) {
+        const input = readPreviewWheelMessage(data);
+        if (ready && input && frameRef.current)
+          forwardPreviewWheel(frameRef.current, input);
+      } else if (data?.type === "PREVIEW_READY") {
         ready = true;
         sendData();
         sendTouchView();
@@ -196,14 +206,14 @@ export function CatalogPreviewFrame({
       <iframe
         ref={frameRef}
         id="previewFrame"
-        src="/preview.html?catalog=1"
+        src="/preview.html?catalog=1&compare=1"
         title="composition Preview"
       />
     </div>
   );
 }
 
-/** Compare Mode: the Preview (left) and the Canvas (right), split as the old Workspace did. */
+/** 같은 viewport 위에 Preview와 Canvas를 겹치고 경계의 좌우만 노출한다. */
 export function CatalogCompareLayout({
   workspace,
   canvas,
@@ -252,6 +262,9 @@ export function CatalogCompareLayout({
           onResize={handleResize}
           onResizeEnd={handleResizeEnd}
         />
+        <span className="workspace-compare-grip" aria-hidden="true">
+          <ArrowLeftRight size={16} />
+        </span>
       </div>
       <div className="workspace-compare-panel workspace-compare-panel--right">
         <div className="workspace-compare-label">Canvas</div>

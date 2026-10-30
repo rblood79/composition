@@ -23,6 +23,10 @@ import {
   useViewportSyncStore,
 } from "../stores";
 import { offsetViewportStateX } from "./viewportActions";
+import {
+  COMPARE_VIEWPORT_WHEEL,
+  type ViewportWheelInput,
+} from "../../../../preview/catalog/catalogPreviewWheel";
 import { useKeyboardShortcutsRegistry } from "../../../hooks/useKeyboardShortcutsRegistry";
 import { observe, PERF_LABEL } from "../../../utils/perfMarks";
 import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
@@ -347,7 +351,7 @@ export function useViewportControl(
       }, 150);
     };
 
-    const handleWheel = (e: WheelEvent) => {
+    const applyWheel = (e: ViewportWheelInput) => {
       const label =
         e.ctrlKey || e.metaKey
           ? PERF_LABEL.INPUT_VIEWPORT_WHEEL_ZOOM
@@ -357,8 +361,6 @@ export function useViewportControl(
         // Ctrl/Cmd + wheel = Zoom
         if (e.ctrlKey || e.metaKey) {
           recordViewportInteractionRawInput();
-          e.preventDefault();
-          e.stopPropagation();
 
           // 휠 제스처 시작 알림 (zoom·pan 공통, 최초 1회만, ref 사용)
           if (!isWheelInteractingRef.current) {
@@ -387,8 +389,6 @@ export function useViewportControl(
           scheduleWheelEnd();
         } else {
           // 일반 휠 = 팬 (Figma/Photoshop 스타일)
-          e.preventDefault();
-          e.stopPropagation();
 
           // Phase E: 선택된 스크롤 가능 요소에 wheel 라우팅
           const route = routeWheelRef.current;
@@ -419,10 +419,25 @@ export function useViewportControl(
       });
     };
 
-    containerEl.addEventListener("wheel", handleWheel, {
+    // Compare의 빈 CSS 영역과 Canvas는 같은 capture 소유자를 사용한다.
+    // iframe 입력은 source/origin 검증 후 이 scope로 전달된다.
+    const wheelScope =
+      containerEl.closest<HTMLElement>(".workspace--compare-mode") ??
+      containerEl;
+    const handleWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      applyWheel(event);
+    };
+    const handlePreviewWheel = (event: Event) => {
+      event.stopPropagation();
+      applyWheel((event as CustomEvent<ViewportWheelInput>).detail);
+    };
+    wheelScope.addEventListener("wheel", handleWheel, {
       passive: false,
       capture: true,
     });
+    wheelScope.addEventListener(COMPARE_VIEWPORT_WHEEL, handlePreviewWheel);
 
     // 트랙패드 좌우 스와이프의 history 이동 (macOS Chrome/Safari) 은 위 preventDefault 로
     // 막히지 않는다 — root scroller 의 overscroll-behavior-x 만 본다. 막지 않으면 왼쪽 팬이
@@ -432,7 +447,11 @@ export function useViewportControl(
     rootStyle.setProperty("overscroll-behavior-x", "none");
 
     return () => {
-      containerEl.removeEventListener("wheel", handleWheel, { capture: true });
+      wheelScope.removeEventListener("wheel", handleWheel, { capture: true });
+      wheelScope.removeEventListener(
+        COMPARE_VIEWPORT_WHEEL,
+        handlePreviewWheel,
+      );
       finishWheelInteraction("interrupted");
       if (prevOverscrollX) {
         rootStyle.setProperty("overscroll-behavior-x", prevOverscrollX);

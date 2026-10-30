@@ -653,7 +653,7 @@ export function CatalogBuilderCore() {
       viewportActions={viewportActions}
     />
   );
-  // Compare Mode: the Preview iframe beside the Canvas (ADR-248 4e-6).
+  // Compare Mode: Preview와 Canvas를 같은 viewport에서 좌우로 드러낸다.
   const compareMode = useCompareModeStore((store) => store.isCompareMode);
   const canvas = workspace && (
     <CatalogCanvas

@@ -441,17 +441,17 @@
 }
 
 /* ============================================
- * Compare Mode - iframe + Canvas 동시 표시
+ * Compare Mode — 같은 viewport에서 CSS / Canvas를 좌우로 드러내는 비교
  * ============================================ */
 
 .workspace--compare-mode {
-  display: grid;
-  grid-template-columns: var(--compare-split, 50%) 2px 1fr;
   width: 100%;
   height: 100%;
   min-width: 0;
   min-height: 0;
-  background-color: var(--border);
+  isolation: isolate;
+  overflow: clip;
+  background-color: var(--bg);
 }
 
 .workspace-mode-content {
@@ -460,42 +460,101 @@
 }
 
 .workspace-compare-panel {
-  position: relative;
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   background-color: var(--bg);
-  overflow: hidden;
+  overflow: clip;
 }
 
-/* 2px 그리드 열이 구분선(그리드 배경 = var(--border)). 손잡이는 다른 resize 와 같은
-   .panel-resize-handle (PanelWorkspace.css 토큰) 이고, 10px 히트 영역을 이 선 가운데에 맞춘다. */
+/* 레이어의 크기·원점은 같고 노출 영역만 바뀐다. 드래그가 Canvas resize/재배치를
+   유발하지 않으며, 잘린 iframe/Canvas 영역은 포인터 판정에서도 제외된다. */
+.workspace-compare-panel--left {
+  clip-path: inset(0 calc(100% - var(--compare-split, 50%)) 0 0);
+}
+
+.workspace-compare-panel--right {
+  clip-path: inset(0 0 0 var(--compare-split, 50%));
+}
+
 .workspace-compare-resizer {
-  position: relative;
-  width: 2px;
+  position: absolute;
+  inset: 0;
   z-index: 10;
+  pointer-events: none;
 }
 
 .workspace-compare-resizer .panel-resize-handle {
   top: 0;
   right: auto;
   bottom: 0;
-  left: -4px;
-  width: 10px;
+  left: clamp(
+    0px,
+    calc(var(--compare-split, 50%) - var(--control-size) / 2),
+    calc(100% - var(--control-size))
+  );
+  width: var(--control-size);
+  pointer-events: auto;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
-/* Navigator 섹션 분할과 같이 손잡이는 항상 보인다 (hover/focus 변화 없음). 두 pane 을 가르는
-   자리라 선은 36px 조각이 아니라 전체 높이로 — 두께·색은 공통 토큰 그대로. */
+/* 경계선과 손잡이 위치를 분리한다. 0/100%에서도 손잡이 전체가 viewport 안에 남고,
+   선은 실제 clip 경계를 표시한다. 두께·색은 공용 resize 토큰을 사용한다. */
 .workspace-compare-resizer .panel-resize-handle::after {
+  content: none;
+}
+
+.workspace-compare-resizer::after {
+  content: "";
+  position: absolute;
   top: 0;
+  left: var(--compare-split, 50%);
+  width: var(--panel-interaction-line-size);
   height: 100%;
-  transform: none;
-  opacity: 1;
+  transform: translateX(-50%);
+  background: var(--panel-interaction-line-color);
+}
+
+.workspace-compare-grip {
+  position: absolute;
+  z-index: 5;
+  top: 50%;
+  left: clamp(
+    calc(var(--control-size) / 2),
+    var(--compare-split, 50%),
+    calc(100% - var(--control-size) / 2)
+  );
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  width: var(--control-size);
+  height: var(--control-size);
+  border: var(--panel-interaction-line-size) solid
+    var(--panel-interaction-line-color);
+  border-radius: var(--radius-full);
+  color: var(--fg);
+  background: var(--bg-overlay);
+  box-shadow: var(--shadow-sm);
+  pointer-events: none;
+}
+
+.workspace-compare-splitter:focus-visible {
+  /* 전체 높이의 이중 테두리 대신 손잡이에 키보드 포커스를 표시한다. */
+  outline: none;
+}
+
+.workspace-compare-splitter:focus-visible + .workspace-compare-grip {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
 }
 
 /* 라벨 pill 28 (panel-ui 21) — 종전 pad 4 12 (26) */
 .workspace-compare-label {
   position: absolute;
-  top: 8px;
+  top: calc(var(--control-size-lg) + 2 * var(--spacing-md));
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
@@ -509,20 +568,25 @@
   line-height: 1;
   color: white;
   border-radius: var(--radius-md);
+  pointer-events: none;
 }
 
 .workspace-compare-panel--left .workspace-compare-label {
+  left: calc(var(--compare-split, 50%) / 2);
   background-color: var(--color-blue-600);
 }
 
 .workspace-compare-panel--right .workspace-compare-label {
+  left: calc((100% + var(--compare-split, 50%)) / 2);
   background-color: var(--color-green-600);
 }
 
 .workspace-compare-content {
   flex: 1;
   position: relative;
-  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+  overflow: clip;
 }
 
 /* iframe 내부 스타일 조정 */

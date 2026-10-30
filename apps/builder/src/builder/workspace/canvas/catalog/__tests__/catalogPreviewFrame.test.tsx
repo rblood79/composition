@@ -7,7 +7,8 @@
  */
 import "fake-indexeddb/auto";
 import { act, render } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { COMPARE_VIEWPORT_WHEEL } from "../../../../../preview/catalog/catalogPreviewWheel";
 import { CatalogGraph } from "../../../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import { setFields } from "../../../../../../../../packages/shared/src/catalog/commands";
@@ -46,6 +47,57 @@ async function previewWorkspace(): Promise<CatalogWorkspace> {
 }
 
 describe("Compare Mode Preview frame", () => {
+  it("준비된 자기 iframe의 같은 origin 휠만 viewport로 전달한다", async () => {
+    const workspace = await previewWorkspace();
+    const view = render(
+      <CatalogWorkspaceProvider workspace={workspace}>
+        <CatalogPreviewFrame workspace={workspace} />
+      </CatalogWorkspaceProvider>,
+    );
+    const frame = view.container.querySelector("iframe")!;
+    const listener = vi.fn();
+    view.container.addEventListener(COMPARE_VIEWPORT_WHEEL, listener);
+    const data = {
+      type: "CATALOG_PREVIEW_WHEEL",
+      clientX: 10,
+      clientY: 20,
+      viewportWidth: 1000,
+      viewportHeight: 800,
+      deltaX: 0,
+      deltaY: 30,
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: false,
+    };
+    const send = (
+      payload: unknown,
+      source = frame.contentWindow,
+      origin = window.location.origin,
+    ) => {
+      act(() =>
+        window.dispatchEvent(
+          new MessageEvent("message", { data: payload, source, origin }),
+        ),
+      );
+    };
+    try {
+      send(data);
+      expect(listener).not.toHaveBeenCalled();
+      send({ type: "PREVIEW_READY" });
+      send(data, window);
+      send(data, frame.contentWindow, "https://untrusted.example");
+      send({ ...data, deltaY: Infinity });
+      expect(listener).not.toHaveBeenCalled();
+      send(data);
+      expect(listener).toHaveBeenCalledTimes(1);
+      view.unmount();
+      send(data);
+      expect(listener).toHaveBeenCalledTimes(1);
+    } finally {
+      view.unmount();
+      workspace.dispose();
+    }
+  });
   it("takes the breakpoint's page width and height at every breakpoint, desktop included", async () => {
     const workspace = new CatalogWorkspace(
       new CatalogGraph(
@@ -99,8 +151,7 @@ describe("Compare Mode Preview frame", () => {
     const { pageId } = workspace.session.getSnapshot();
     const page = workspace.runtime.graph.getEntry(pageId!);
     const body = (page?.kind === "page" ? page.children[0] : undefined) as
-      | NodeId
-      | undefined;
+      NodeId | undefined;
     try {
       // A page taller than the breakpoint viewport: the box follows the Canvas page box.
       act(() => {

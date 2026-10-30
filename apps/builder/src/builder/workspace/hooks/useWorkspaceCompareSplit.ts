@@ -2,14 +2,14 @@ import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
 const COMPARE_SPLIT_STORAGE_KEY = "builder.workspace.compare-split.v1";
 const DEFAULT_COMPARE_SPLIT = 50;
-const MIN_COMPARE_SPLIT = 20;
-const MAX_COMPARE_SPLIT = 80;
+const MIN_COMPARE_SPLIT = 0;
+const MAX_COMPARE_SPLIT = 100;
 
 interface UseWorkspaceCompareSplitOptions {
   containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
-/** PanelSplitter 에 넘기는 px 단위 계약 — 왼쪽(CSS) pane 의 너비 */
+/** PanelSplitter 에 넘기는 px 단위 계약 — CSS가 보이는 경계의 위치 */
 export interface CompareSplitterRange {
   value: number;
   minValue: number;
@@ -17,7 +17,7 @@ export interface CompareSplitterRange {
 }
 
 export interface UseWorkspaceCompareSplitResult {
-  /** 왼쪽 pane 비율 (%) — grid-template-columns 의 `--compare-split` */
+  /** CSS가 보이는 비율 (%) — 두 전체 크기 레이어의 clip 경계 */
   compareSplit: number;
   splitter: CompareSplitterRange;
   handleResizeStart: () => void;
@@ -33,7 +33,7 @@ function loadCompareSplit(): number {
 
   try {
     const stored = window.localStorage.getItem(COMPARE_SPLIT_STORAGE_KEY);
-    const parsed = stored === null ? Number.NaN : Number(stored);
+    const parsed = stored?.trim() ? Number(stored) : Number.NaN;
 
     if (
       Number.isFinite(parsed) &&
@@ -69,10 +69,9 @@ function measureWidth(element: HTMLElement | null): number {
 }
 
 /**
- * compare 모드 CSS/Canvas 분할 — 저장은 % 로, 드래그·접근성 값은 px 로.
- *
- * 종전에는 자체 pointer 핸들러(setPointerCapture) 였다. 다른 resize 손잡이와 같은
- * PanelSplitter(useMove, role=separator, Home/End·화살표) 를 쓰도록 delta 계약으로 바꿨다:
+ * Compare Mode CSS/Canvas 노출 경계 — 저장은 % 로, 드래그·접근성 값은 px 로.
+ * 두 renderer의 viewport는 고정하고 clip만 바꾼다. 공용
+ * PanelSplitter(useMove, role=separator, Home/End·화살표)의 delta 계약을 따른다:
  * 시작 시 컨테이너 너비와 시작 px 를 잡고, 누적 deltaX 로 % 를 다시 계산한다.
  */
 export function useWorkspaceCompareSplit({

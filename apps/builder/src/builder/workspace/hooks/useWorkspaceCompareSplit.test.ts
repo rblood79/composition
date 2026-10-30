@@ -42,7 +42,7 @@ describe("useWorkspaceCompareSplit persistence", () => {
     expect(result.current.compareSplit).toBe(68);
   });
 
-  it.each(["not-a-number", "19", "81"])(
+  it.each(["not-a-number", "-1", "101", "", "   "])(
     "falls back to 50 for an invalid persisted value: %s",
     (storedValue) => {
       window.localStorage.setItem(STORAGE_KEY, storedValue);
@@ -64,8 +64,8 @@ describe("useWorkspaceCompareSplit persistence", () => {
 
     expect(result.current.splitter).toEqual({
       value: 600,
-      minValue: 200,
-      maxValue: 800,
+      minValue: 0,
+      maxValue: 1000,
     });
   });
 
@@ -93,7 +93,7 @@ describe("useWorkspaceCompareSplit persistence", () => {
     expect(setItem).toHaveBeenCalledWith(STORAGE_KEY, "74");
   });
 
-  it("clamps to the 20–80% range in both directions", () => {
+  it("reveals either renderer completely and clamps at the viewport edges", () => {
     const { result } = renderHook(() =>
       useWorkspaceCompareSplit({ containerRef: createContainerRef() }),
     );
@@ -102,13 +102,32 @@ describe("useWorkspaceCompareSplit persistence", () => {
       result.current.handleResizeStart();
       result.current.handleResize(900, 0);
     });
-    expect(result.current.compareSplit).toBe(80);
+    expect(result.current.compareSplit).toBe(100);
 
     act(() => {
       result.current.handleResize(-900, 0);
     });
-    expect(result.current.compareSplit).toBe(20);
+    expect(result.current.compareSplit).toBe(0);
   });
+
+  it.each([0, 100])(
+    "restores an edge position (%s%%) and can drag back into view",
+    (split) => {
+      window.localStorage.setItem(STORAGE_KEY, String(split));
+      const containerRef = createContainerRef();
+      const { result } = renderHook(() =>
+        useWorkspaceCompareSplit({ containerRef }),
+      );
+      expect(result.current.compareSplit).toBe(split);
+      act(() => {
+        result.current.handleResizeStart();
+        result.current.handleResize(split === 0 ? 500 : -500, 0);
+        result.current.handleResizeEnd();
+      });
+      expect(result.current.compareSplit).toBe(50);
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe("50");
+    },
+  );
 
   it("ignores deltas outside a drag and moves when the workspace width is zero", () => {
     const setItem = vi.spyOn(Storage.prototype, "setItem");
