@@ -47,13 +47,14 @@ function App() {
     return window.matchMedia("(prefers-color-scheme: dark)").matches;
   });
 
-  // 테마 변경 시 document에 적용
+  // 테마 변경 시 document에 적용 — 랜딩은 빌더 chrome 팔레트 (`data-context="builder"`) 를 쓴다:
+  //   `preview-system.css` 는 테마 색을 계산하지 않는다 (ADR-293 — resolver 가 Preview · Publish 에만 싣는다).
   useEffect(() => {
-    document.documentElement.setAttribute(
-      "data-theme",
-      isDarkMode ? "dark" : "light",
-    );
-    localStorage.setItem("theme", isDarkMode ? "dark" : "light");
+    const theme = isDarkMode ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", theme);
+    document.documentElement.setAttribute("data-builder-theme", theme);
+    localStorage.setItem("theme", theme);
+    return () => document.documentElement.removeAttribute("data-builder-theme");
   }, [isDarkMode]);
 
   // 테마 토글 핸들러
@@ -147,6 +148,7 @@ function App() {
   return (
     <main
       className="main"
+      data-context="builder"
       onMouseDown={handleVortexStart}
       onMouseMove={handleVortexMove}
       onMouseUp={handleVortexEnd}

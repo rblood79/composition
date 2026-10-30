@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed — 2026-10-30
+Implemented — 2026-10-30 (G5 사용자 확인 「확인했다」 · Accepted: 사용자 `/execute-adr 293` · 리뷰 round 2 pending 0, CRITICAL/HIGH 전부 fixed). Phase 0 ~ 4 완료
+
+> **Phase 0 ~ 4 (2026-10-30)** — 사용자 결정 1 ~ 3 은 권고안 (raised = Canvas 값 · negative hover/pressed = 검정 85 · 75 % 혼합 · CSS 폴백 제거). Phase 0 S2 설치본 대조에서 **결정 4 발견**: Button primary 는 진한 바탕 `{color.neutral}` 인데 hover · pressed 에 밝은 바탕용 `neutral-hover` (Tone 300) 를 써 통일하면 흰 글자 대비 ≈ 1.5 — 사용자 권고안 채택 (S2 `nextColorStop` 한 단: 새 토큰 `neutral-fill-hover` · `neutral-fill-pressed` = Tone 950 / dark 50, Button primary rule 3 칸만). 구현: 변환표 하나 (`@composition/rendering` `colorTokenCssValue` — shared `colorTokenToCss` 는 읽기만) · 토큰 ↔ 변수 1:1 (`--fg-on-negative` · `--bg-elevated` · `--bg-disabled`) · resolver 가 파생 뒤 최종 맵 전체를 `cssVars` (`color: true`, 팔레트 상수 white · black 제외) 로 · 명시 델타 뒤 파생 짝 (`DERIVED_STATE_KEYS` — neutral → fill, neutral-subtle → hover) · DOM 설치 `themeVarsCss.ts` (`@media not (forced-colors: active)`) · `preview-system.css` 의 resolver 이름 15 선언 제거 · `/` 랜딩 builder scope. G0 RED ① 6 (+ `--font-sans` 범위 밖) · ② 58 · ③ 112/112 → G1 · G2 GREEN · G3 browser 117/117 (프리셋 10 × Tone 5 × 모드 2 + 델타 8 × 2) · G4 Builder initial −276 B · Preview −467 B gz · 회귀 (HEAD worktree 대조) 새 실패 0 — snapshot 없이 CSS 만 싣던 browser 하니스 (parity · chart · switchDomPaint) 는 Preview 와 같은 설치를 거치게 고침. 상세 breakdown §7.
 
 - 사용자 요청: `/create-adr` (2026-10-30) — 같은 대화의 테마 토큰 ↔ 컴포넌트 연결 조사 (Skia · DOM 값 불일치 10 · 생성 CSS 의 미정의 변수 6) 뒤.
 - 방향을 정한 사용자 원문 (2026-10-30, 같은 대화):
@@ -12,7 +14,7 @@ Proposed — 2026-10-30
 - ADR-290 과의 관계: ADR-290 Decision 5 는 accent 계열 7 변수를 resolver 가 DOM 에 싣기로 했다. 이 ADR 은 그 설치 경로를 **테마 색 전체**로 넓힌다 — 7 변수는 부분집합이고 ADR-290 의 대비 · 역할 결정은 바꾸지 않는다. 별도 ADR 로 쓰는 이유: ADR-290 은 리뷰 round 2 가 닫힌 (pending 0) 전제 확정 상태라 본문 scope 를 넓히면 결정 지점 ④ 다. 사용자가 「별도 ADR」 로 `/create-adr` 를 입력했으므로 그 요청이 분리 confirm 이다 (breakdown §1 에 4 질문 lock-in).
 - 사용자 지시 (2026-10-30, 리뷰 round 1 뒤): 「S2 설치본 대조 (spectrum-theme.ts 의 한 단 이동 규칙 · 역할 토큰) 는 Phase 0 항목으로」 — breakdown Phase 0 · §6. 대조는 **파생 규칙**의 참조이고 S2 의 값을 가져오는 것이 아니다 (D3 정본은 catalog). 사용자 원문 (같은 날): 「RAC를 core 컴퍼넌트로 사용하지만 기본 스타일은 RSC 를 따르고 있다. 기본이되는 theme와 components library의 정본은 … style-macro 를 먼저 체크해보는것은 어떤가」 → 설치본 (`@react-spectrum/s2` 1.8.1) 이 참조 정본, 웹 문서는 보조.
 - 사용자가 이미 답한 확인 항목: 없음. 값이 갈리는 10 건 중 사용자가 골라야 하는 것은 아래 「사용자 결정 3건」 에 모았다.
-- 리뷰 round 1 (2026-10-30, codex — [reviews/293.md](reviews/293.md), 사용자 「리뷰부터 해야하지않나」): HIGH 4 · MEDIUM 1 · LOW 1 — 실행자가 코드로 확인한 뒤 전부 설계에 반영 (pending 0).
+- 리뷰 round 1 (2026-10-30, codex — [reviews/293.md](../reviews/293.md), 사용자 「리뷰부터 해야하지않나」): HIGH 4 · MEDIUM 1 · LOW 1 — 실행자가 코드로 확인한 뒤 전부 설계에 반영 (pending 0).
   - H1 변환표가 둘 (`tokenResolver.ts` · `colorTokenToCss.ts`) 이고 shared 표에 named hue 의 `-subtle` 이 없어 `colorTokenCssVarName("purple-subtle")` 이 `--purple-subtle` 을 내는데 Badge 생성 CSS 는 `--hue-purple-subtle` 을 읽는다 → **변환표를 하나로** (Decision 1 · 5, 정적 게이트 G1).
   - H2 명시 델타 뒤의 hover · pressed 파생 (`resolveThemeSnapshot.ts:313-326`) 이 Skia 맵만 고친다 → 전체 출력은 **최종 맵에서, 함수 끝에서** (Decision 1).
   - H3 breakdown Phase 2 삭제 목록 (`--bg*` · `--fg*` · `--border*`) 이 resolver 가 싣지 않는 DOM 전용 변수 (`--fg-emphasis` · `--bg-emphasis` · `--border-pressed` · `--fg-disabled` …) 까지 지운다 — Table 선택 글자 · Switch pressed 가 값을 잃는다 → 삭제는 **resolver 출력 집합에 있는 이름만** (Decision 3).
@@ -22,7 +24,7 @@ Proposed — 2026-10-30
 - 리뷰 round 2 (2026-10-30, codex 수리 검증 — 사용자가 판독을 붙여 넣음): round 1 반영 5 건은 fixed 로 인정, **HIGH 1** — 전체 출력이 명시 델타를 덮는다. `on-negative` 와 `white` 가 같은 변수 `--color-white` 로 나가 (`colorTokenToCss.ts:31,47`) `color.on-negative=#123456` 이 뒤의 `white=#ffffff` 에 덮인다 → negative 버튼 글자 Canvas `#123456` · DOM 흰색. 실행자 확인으로 범위가 더 넓다: `tokenResolver.ts` 에서는 `elevated` 도 `--color-white` 를 쓰고 (`:192` 근처, shared 표에는 `elevated` 항목 자체가 없음), `disabled` 는 Tone seed 가 내는 팔레트 변수 `--color-neutral-200` 을 그대로 가리킨다 — `disabled` 델타가 Tone 단계를 덮는다. 수리: **토큰 ↔ 변수 1:1** (Decision 1) — 독립적으로 델타 가능한 토큰은 고유 의미 변수 (`on-negative → --fg-on-negative` · `elevated → --bg-elevated` · `disabled → --bg-disabled`), 팔레트 변수 (`--color-*`) 를 가리키는 토큰은 고정 상수 `white` · `black` 뿐. G1 에 이름 충돌 검사, G3 에 독립 델타 표본. 수리 검증 HIGH 는 실행자가 반영으로 닫는다 (`review-loop-closure.md` §1).
 - 메모리: `project-theme-accent-contrast-leonardo-analysis-2026-10` (ADR-290 실측) · `feedback-fallback-equals-default-masks-dropped-channel` (폴백이 기본값과 같으면 끊긴 채널이 안 보인다) · `feedback-infra-exists-vs-wired-consumption-path` (기반이 있다 ≠ 소비 경로가 연결됐다) · `feedback-design-whole-scope-upfront-no-deferral`.
 
-> 구현 상세: [design/293-theme-color-single-source-breakdown.md](design/293-theme-color-single-source-breakdown.md)
+> 구현 상세: [design/293-theme-color-single-source-breakdown.md](../design/293-theme-color-single-source-breakdown.md)
 
 ## Context
 
@@ -172,7 +174,16 @@ HIGH 없는 대안이 있어 루프 종료.
 
 ### Live Exercise
 
-(Implemented 승격 시 기재.)
+2026-10-30 — Playwright (headless, 별도 dev 서버 5178 · 저장된 인증 세션, 사용자 5173 무관) · 새 프로젝트 `adr293-live` 에 Button · Badge · Select:
+
+- Preview (Compare Mode iframe): `#runtime-theme-vars` 에 테마 색 변수가 `@media not (forced-colors: active)` 안에 설치됨. light: Button primary 휴지 `#171717` → 실제 pointer hover `#0a0a0a` · pressed `#0a0a0a` (흰 글자 유지 — 결정 4), Select 목록 Popover `#f9fafb` (결정 1).
+- Theme 패널 Tone Slate + dark: body `#0f172b` · Button `#f1f5f9` / 글자 `#0f172b` · hover · pressed `#f8fafc` · Popover `#202023` · `--hue-gray` `#a1a1a1` (Tone 무관 — Canvas 와 같음).
+- Token override `color.negative = #ff0000`: Preview `--negative-hover #d90000` · `--negative-pressed #bf0000` (명시 델타 뒤 파생이 DOM 에 — 리뷰 H2), `--color-white` 는 팔레트 그대로.
+- forced-colors 에뮬레이션: `--accent: Highlight` · `--bg: Canvas` (시스템 색이 이김).
+- Publish (헤더 Preview → `/publish`): 같은 변수 · 같은 hover 값 · 페이지 오류 0.
+- `/` 직접 진입: `main[data-context=builder]` · light 배경 `--bg-raised` (gray-50) · **dark 배경은 builder palette 의 `--accent` = zinc-200 (밝은 회색) — 종전 파란 accent 에서 바뀜** (Decision 7 의 결과, G5 에서 사용자 판단).
+- 콘솔 오류 0 (한 번 `useI18n` 오류가 났으나 병렬 세션 편집의 HMR 이 모듈 그래프를 두 벌로 만든 dev 서버 상태 — 서버 재시작 뒤 재현 0).
+- **G5 · R1 사용자 확인 2026-10-30** (「확인했다」 — 위 값 변화와 dark 랜딩 배경 포함) → Implemented.
 
 ## Consequences
 

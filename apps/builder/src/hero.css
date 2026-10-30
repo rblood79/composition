@@ -1,16 +1,14 @@
 #root {
   min-height: 100vh;
 }
-:root[data-theme="dark"] {
-  background-color: var(--accent);
-}
-
-:root[data-theme="light"] {
+/* 랜딩은 builder chrome scope (`App.tsx` `data-context="builder"`) — `:root` 는 그 밖이라 테마 색이 없다 (ADR-293). */
+.main {
+  height: 100dvh;
   background-color: var(--bg-raised);
 }
 
-.main {
-  height: 100dvh;
+[data-builder-theme="dark"] .main {
+  background-color: var(--accent);
 }
 
 .welcome-wrapper {

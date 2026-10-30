@@ -99,9 +99,6 @@ function resolveCssVar(
 }
 
 const TOKENS = Object.keys(SEMANTIC_PALETTE_MAP) as SemanticPaletteToken[];
-const CATALOG_TOKENS = TOKENS.filter(
-  (t) => !t.endsWith("-subtle") && t !== "green-named",
-);
 
 describe("semantic 층 — Skia colors.ts ↔ CSS 체인 대칭 (ADR-193)", () => {
   const aliases = statusFamilyAliases(sharedTokens);
@@ -118,24 +115,22 @@ describe("semantic 층 — Skia colors.ts ↔ CSS 체인 대칭 (ADR-193)", () =
     );
   });
 
-  it("preview-system 에 손 --negative 정의가 없다 (생성 파일로 이관) — --negative-pressed 와 forced-colors 만 잔류", () => {
+  it("preview-system 에 손 --negative 정의가 없다 — --negative-pressed 도 resolver 소유 (ADR-293), forced-colors 만 잔류", () => {
     expect(previewSystem).not.toMatch(
       /^\s+--negative:\s*var\(--color-invalid/m,
     );
-    expect(previewSystem).toMatch(
-      /--negative-pressed:\s*var\(--color-invalid-pressed/,
-    );
+    expect(previewSystem).not.toMatch(/--negative-pressed:\s*var\(/);
     expect(previewSystem).toContain("--negative: LinkText;");
   });
 
-  it("catalog 매핑과 잔존 spec 매핑이 표의 cssVar 를 그대로 고른다 (R5)", () => {
+  it("변환표가 표의 cssVar 를 그대로 고른다 (R5) — shared 는 표를 복제하지 않는다 (ADR-293)", () => {
     for (const token of TOKENS) {
       const expected = SEMANTIC_PALETTE_MAP[token].cssVar;
       expect(tokenVar(specMap, token), `spec ${token}`).toBe(expected);
-      if (CATALOG_TOKENS.includes(token)) {
-        expect(tokenVar(catalogMap, token), `catalog ${token}`).toBe(expected);
-      }
     }
+    // shared `colorTokenToCss` 는 rendering 표 (`colorTokenCssValue`) 를 읽기만 한다
+    expect(catalogMap).not.toMatch(/^\s*"?[a-z-]+"?:\s*"var\(--/m);
+    expect(catalogMap).toContain("colorTokenCssValue");
   });
 
   describe.each(["light", "dark"] as const)("%s", (theme) => {

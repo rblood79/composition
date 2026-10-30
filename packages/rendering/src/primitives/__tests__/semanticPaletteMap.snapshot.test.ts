@@ -27,11 +27,12 @@ const LIGHT_SNAPSHOT = {
   neutral: "#171717",
   "neutral-subdued": "#525252",
   "neutral-subtle": "#e5e5e5",
-  "neutral-hover": "#c3c3c3",
-  "neutral-pressed": "#a8a8a8",
+  // ADR-293 (2026-10-30): Tone 단계 (neutralToSkiaColors) · 진한 바탕 한 단 (결정 4) — 종전 #c3c3c3 · #a8a8a8
+  "neutral-hover": "#d4d4d4",
+  "neutral-pressed": "#a1a1a1",
+  "neutral-fill-hover": "#0a0a0a",
+  "neutral-fill-pressed": "#0a0a0a",
   negative: "#fb2c36",
-  "negative-hover": "#cb3a3a",
-  "negative-pressed": "#b33333",
   "on-negative": "#ffffff",
   "negative-subtle": "#ffe2e2",
   informative: "#155dfc",
@@ -118,11 +119,11 @@ const DARK_SNAPSHOT = {
   neutral: "#f5f5f5",
   "neutral-subdued": "#a1a1a1",
   "neutral-subtle": "#404040",
-  "neutral-hover": "#363636",
-  "neutral-pressed": "#2e2e2e",
+  "neutral-hover": "#525252",
+  "neutral-pressed": "#737373",
+  "neutral-fill-hover": "#fafafa",
+  "neutral-fill-pressed": "#fafafa",
   negative: "#ff6467",
-  "negative-hover": "#d36060",
-  "negative-pressed": "#ba5555",
   "on-negative": "#ffffff",
   "negative-subtle": "#82181a",
   informative: "#2b7fff",
@@ -203,7 +204,9 @@ const DARK_SNAPSHOT = {
 describe("ADR-193 semanticPaletteMap — colors.ts 스냅샷", () => {
   it("lightColors 전 키가 착수 시점 값과 같다 (G1 light 불변)", () => {
     // (2026-10-28: the only keys added since are the derived hover · pressed of the table's base
-    //  tokens — `resolveSemanticStateColors`; every snapshot key keeps its value, hand pairs win.)
+    //  tokens — `resolveSemanticStateColors`; every snapshot key keeps its value, hand pairs win.
+    //  2026-10-30 ADR-293: negative hover · pressed 손값 삭제 → 같은 혼합 (결정 2), neutral hover ·
+    //  pressed 는 Tone 단계 값, neutral-fill-* 추가 (결정 4).)
     expect(lightColors).toEqual({
       ...resolveSemanticStateColors("light"),
       ...LIGHT_SNAPSHOT,

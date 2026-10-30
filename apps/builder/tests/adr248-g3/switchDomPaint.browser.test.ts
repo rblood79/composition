@@ -12,14 +12,27 @@ import bundleCss from "@composition/shared/components/styles/index.css?inline";
 import { injectPreviewBaseStyles } from "@/preview/baseStyles";
 import { DEFAULT_BASE_TYPOGRAPHY } from "@/builder/fonts/customFonts";
 import { resolveThemeSnapshot } from "@/utils/theme/resolveThemeSnapshot";
+import { catalogThemeVarsCss } from "../../../../packages/shared/src/catalog/runtime/themeVarsCss";
 
 const css = document.createElement("style");
+const themeVars = document.createElement("style");
 beforeAll(() => {
   css.textContent = bundleCss;
   document.head.append(css);
+  // ADR-293 — 테마 색은 Preview 처럼 resolver snapshot 이 싣는다 (preview-system.css 는 계산하지 않는다 —
+  //   없으면 트랙 `border: … var(--border)` 가 무효가 돼 테두리 폭이 0 이 된다)
+  themeVars.textContent = catalogThemeVarsCss(
+    resolveThemeSnapshot(createThemeDefinition("switch", "Switch"), {
+      baseTypographySeed: DEFAULT_BASE_TYPOGRAPHY,
+    }),
+  );
+  document.head.append(themeVars);
   injectPreviewBaseStyles(document);
 });
-afterAll(() => css.remove());
+afterAll(() => {
+  css.remove();
+  themeVars.remove();
+});
 
 for (const size of ["S", "M", "L", "XL"] as const) {
   for (const catalog of [false, true]) {

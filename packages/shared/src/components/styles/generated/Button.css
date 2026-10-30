@@ -61,8 +61,8 @@
 .react-aria-Button[data-variant="primary"] {
   --button-color: var(--fg);
   --button-text: var(--bg);
-  --button-color-hover: var(--neutral-hover);
-  --button-color-pressed: var(--neutral-pressed);
+  --button-color-hover: var(--neutral-fill-hover);
+  --button-color-pressed: var(--neutral-fill-pressed);
   --button-border: var(--fg);
 
 }
@@ -88,7 +88,7 @@
 
 .react-aria-Button[data-variant="negative"] {
   --button-color: var(--negative);
-  --button-text: var(--color-white);
+  --button-text: var(--fg-on-negative);
   --button-color-hover: var(--negative-hover);
   --button-color-pressed: var(--negative-pressed);
   --button-border: var(--negative);

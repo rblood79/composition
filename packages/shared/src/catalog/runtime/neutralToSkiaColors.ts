@@ -39,6 +39,9 @@ const LIGHT_MAP: Record<string, number | string> = {
   "neutral-subtle": 200,
   "neutral-hover": 300,
   "neutral-pressed": 400,
+  // 진한 바탕 `neutral` (900) 의 hover · pressed — S2 `nextColorStop` 한 단 (ADR-293 결정 4)
+  "neutral-fill-hover": 950,
+  "neutral-fill-pressed": 950,
   base: "#ffffff",
   "layer-1": 50,
   "layer-2": 50,
@@ -56,6 +59,8 @@ const DARK_MAP: Record<string, number | string> = {
   "neutral-subtle": 700,
   "neutral-hover": 600,
   "neutral-pressed": 500,
+  "neutral-fill-hover": 50,
+  "neutral-fill-pressed": 50,
   base: 900,
   "layer-1": 800,
   "layer-2": 800,

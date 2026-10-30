@@ -133,7 +133,7 @@ describe("resolveThemeSnapshot — 명시 델타 (축별 비기본값 · reset �
     expect(px).toBeGreaterThan(150);
   });
 
-  it("color.<key> (neutral) 명시 → 양 모드 값 · DOM 의미 변수 (--fg) · 미명시 파생 neutral-hover 는 base 에서 mix", () => {
+  it("color.<key> (neutral) 명시 → 양 모드 값 · DOM 의미 변수 (--fg) · 미명시 파생 neutral-fill-hover 는 base 에서 mix", () => {
     const s = resolve(
       theme({
         "color.neutral": {
@@ -147,8 +147,14 @@ describe("resolveThemeSnapshot — 명시 델타 (축별 비기본값 · reset �
     expect(s.colors.dark.neutral).toBe("#112233");
     expect(varOf(s, "--fg")).toBe("#112233");
     expect(varOf(s, "--fg", true)).toBe("#112233");
-    expect(s.colors.light["neutral-hover"]).toBe(
+    // 진한 바탕 neutral 의 hover 는 neutral-fill-* — 밝은 바탕 (neutral-subtle) 의 neutral-hover 는 그대로
+    //   (ADR-293 결정 4: 종전엔 neutral 에서 neutral-hover 를 혼합해 ToggleButton hover 가 검정에 가까워졌다)
+    expect(s.colors.light["neutral-fill-hover"]).toBe(
       mixWithBlackSrgb("#112233", 85),
+    );
+    expect(varOf(s, "--neutral-fill-hover")).toBe(mixWithBlackSrgb("#112233", 85));
+    expect(s.colors.light["neutral-hover"]).toBe(
+      resolve(theme({})).colors.light["neutral-hover"],
     );
     expect(colorTokenCssVarName("neutral")).toBe("--fg");
     expect(colorTokenCssVarName("accent-hover")).toBe("--accent-hover");

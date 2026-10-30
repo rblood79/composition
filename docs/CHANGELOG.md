@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-293 Implemented — 테마 색 토큰을 resolver 한 곳에서: Preview · Publish 가 Canvas 와 같은 값] - 2026-10-30
+
+### Changed
+
+- Preview · Publish 의 테마 색 (`{color.X}` 가 읽는 변수 전부) 을 Canvas 와 같은 resolver 객체에서 싣는다 — `preview-system.css` 가 CSS 식으로 따로 계산하던 15 변수를 지웠다 (폴백 없음). 갈리던 값이 같아진다: Button primary hover · pressed (light `#141414` → `#0a0a0a`, dark → Tone 50 — 흰 글자 유지), popover · dropdown 바탕 `raised` (light white → gray-50 · dark neutral-900 → zinc-850), accent pressed (L 50 % → 검정 75 % 혼합), named hue hover · pressed (±1/255), Badge `gray` 는 Tone 과 무관 (Canvas 와 같음).
+- negative hover · pressed 를 손값에서 negative 의 검정 85 · 75 % 혼합으로 — 테마에서 negative 색을 바꾸면 Preview 의 hover · pressed 도 따라간다 (종전 Preview 는 바꾼 값이 닿지 않았다).
+- 테마 Token override 의 `on-negative` · `elevated` · `disabled` 가 각자 변수를 갖는다 (`--fg-on-negative` · `--bg-elevated` · `--bg-disabled`) — 종전 `on-negative` 를 바꾸면 `white` · 앱 배경 · raised 까지 같이 바뀌었다.
+- Builder `/` 랜딩이 builder chrome 팔레트를 쓴다 (`data-context="builder"`) — dark 배경이 파란 accent 에서 builder accent (zinc-200) 로.
+
+### Added
+
+- 색 토큰 `neutral-fill-hover` · `neutral-fill-pressed` — 진한 바탕 `neutral` (Button primary) 의 hover · pressed (S2 한 단, Tone 950 / dark 50). `neutral-hover` · `-pressed` 는 밝은 바탕 `neutral-subtle` 의 것으로 남는다.
+
+### Fixed
+
+- Preview 의 생성 CSS 가 폴백 없이 읽던 hover · pressed 변수 6 (`--accent-hover` · `--neutral-hover` · `--neutral-pressed` · `--negative-hover` · `--purple-hover` · `--purple-pressed`) 이 선언돼 Button hover 가 `.button-base` 폴백 (글자색을 어둡게 한 값) 으로 떨어지지 않는다.
+- named hue `-subtle` 테마 override (예 `color.purple-subtle`) 가 Preview Badge 에 닿는다 — 토큰 → CSS 변수 표가 rendering · shared 두 벌이라 이름이 어긋났다 (`--purple-subtle` vs `--hue-purple-subtle`). 표를 하나로 합쳤다.
+- `color.neutral` override 뒤 파생이 `neutral-hover` (밝은 바탕 hover) 를 글자색에서 혼합하던 것을 `neutral-fill-*` 로 — 그대로 DOM 에 실렸다면 ToggleButton hover 가 거의 검정이 됐다.
+  - 위치: `packages/rendering/src/renderers/utils/tokenResolver.ts` (`colorTokenCssValue`) · `primitives/colors.ts` · `packages/shared/src/catalog/{resolvers/colorTokenToCss,runtime/{resolveThemeSnapshot,themeVarsCss,domView.runtime,neutralToSkiaColors},generated/componentRulesTable}.ts` · `components/styles/theme/preview-system.css` · `apps/builder/src/{App.tsx,hero.css}`
+  - 게이트: `generatedCssVarsDeclared.static.test.ts` · `themeCssVarsCoverSkia.static.test.ts` · `apps/builder/tests/parity/themeColorParity.browser.test.ts` (프리셋 10 × Tone 5 × 모드 2 + 델타 — DOM 계산값 = Skia hex). parity · chart · `switchDomPaint` 하니스는 Preview 와 같은 snapshot 설치 (`setupPreviewThemeVars.ts`).
+  - 번들: Builder initial −276 B · Preview −467 B gz. G5 사용자 확인 2026-10-30 → ADR-293 Implemented (`docs/adr/completed/293-*.md`).
+
 ## [컴포넌트 모서리 값 정리 · 필드 버튼 Preview pill 수리 · ToggleButton 선택 글자] - 2026-10-30
 
 ### Changed

@@ -7,6 +7,9 @@ import { CatalogPreviewSession } from "./catalogPreviewSession";
 import type { CatalogCompositionRoot } from "./compositionRoot";
 
 import type { CatalogThemeState } from "./theme";
+
+import { catalogThemeVarsCss } from "./themeVarsCss";
+
 /** The theme as the DOM reads it: CSS variables (light + dark blocks), color mode, base type. */
 export function applyCatalogPreviewTheme(state: CatalogThemeState): void {
   const snapshot = state.snapshot();
@@ -18,13 +21,7 @@ export function applyCatalogPreviewTheme(state: CatalogThemeState): void {
     style.id = "runtime-theme-vars";
     document.head.appendChild(style);
   }
-  const block = (selector: string, dark: boolean) =>
-    `${selector} {\n${snapshot.cssVars
-      .filter((cssVar) => cssVar.isDark === dark)
-      .map((cssVar) => `  ${cssVar.name}: ${cssVar.value};`)
-      .join("\n")}\n}\n`;
-  style.textContent =
-    block(":root", false) + block('[data-theme="dark"]', true);
+  style.textContent = catalogThemeVarsCss(snapshot);
   document.documentElement.setAttribute("data-theme", state.colorMode);
   for (const element of [document.documentElement, document.body]) {
     element.style.fontFamily = snapshot.base.fontFamily;
@@ -79,7 +76,8 @@ export function catalogPreviewRuntime(
     showToast: (message) => toast.show(message),
     writeState: session.writeState,
     readState: session.readVariable,
-    itemsByKeys: (collectionId, keys) => session.itemsByKeys(collectionId, keys),
+    itemsByKeys: (collectionId, keys) =>
+      session.itemsByKeys(collectionId, keys),
     ownerRecord: (recordId, ownerId) => session.ownerRecord(recordId, ownerId),
     sortTable: (tableId, sort) => session.sortTable(tableId, sort),
     colorScheme: (mode) => session.setColorScheme(mode),

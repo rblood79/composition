@@ -151,6 +151,10 @@ const COLOR_TOKEN_TO_CSS: Record<string, string> = {
     "var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black))",
   "neutral-pressed":
     "var(--neutral-pressed, color-mix(in srgb, var(--bg-muted) 75%, black))",
+  // 진한 바탕 `{color.neutral}` (Button primary) 의 hover · pressed — `neutral-hover` 는 밝은 바탕
+  // (`neutral-subtle`) 의 다음 단이다. S2 `baseColor('neutral')` 의 한 단 이동 (ADR-293 결정 4).
+  "neutral-fill-hover": "var(--neutral-fill-hover)",
+  "neutral-fill-pressed": "var(--neutral-fill-pressed)",
 
   // --- Negative ---
   negative: "var(--negative)",
@@ -158,7 +162,7 @@ const COLOR_TOKEN_TO_CSS: Record<string, string> = {
     "var(--negative-hover, color-mix(in srgb, var(--negative) 85%, black))",
   "negative-pressed":
     "var(--negative-pressed, color-mix(in srgb, var(--negative) 75%, black))",
-  "on-negative": "var(--color-white)",
+  "on-negative": "var(--fg-on-negative)",
   "negative-subtle": "var(--negative-subtle)",
 
   // --- Informative / Positive / Notice — generated/semantic-palette.css 가 light/dark 단계 정의 (ADR-193) ---
@@ -179,8 +183,10 @@ const COLOR_TOKEN_TO_CSS: Record<string, string> = {
   raised: "var(--bg-raised)",
   "layer-1": "var(--bg-overlay)",
   "layer-2": "var(--bg-inset)",
-  elevated: "var(--color-white)",
-  disabled: "var(--color-neutral-200)",
+  // 토큰 ↔ 변수 1:1 (ADR-293) — 팔레트 변수 (`--color-*`) 를 가리키는 토큰은 고정 상수 white · black 뿐.
+  //   여러 토큰이 한 변수를 쓰면 한 토큰의 테마 델타가 다른 토큰 (· Tone 단계) 을 덮는다.
+  elevated: "var(--bg-elevated)",
+  disabled: "var(--bg-disabled)",
 
   // --- Border ---
   border: "var(--border)",
@@ -271,6 +277,23 @@ for (const [token, entry] of Object.entries(SEMANTIC_PALETTE_MAP)) {
 }
 
 /**
+ * `{color.<name>}` 의 CSS 값 — 생성 CSS (`tokenToCSSVar`) · DOM 인라인 (shared `colorTokenToCss`) ·
+ * 테마 resolver 의 변수 이름 (shared `colorTokenCssVarName`) 이 읽는 **단 하나의 표** (ADR-293).
+ * 표에 없으면 undefined.
+ */
+export function colorTokenCssValue(name: string): string | undefined {
+  return COLOR_TOKEN_TO_CSS[name] ?? NAMED_COLOR_TO_CSS[name];
+}
+
+/** 표의 모든 `{color.X}` 이름 (역방향 조회 · 게이트용). */
+export function colorTokenCssNames(): string[] {
+  return [
+    ...Object.keys(COLOR_TOKEN_TO_CSS),
+    ...Object.keys(NAMED_COLOR_TO_CSS),
+  ];
+}
+
+/**
  * CSS 변수명으로 변환
  */
 export function tokenToCSSVar(ref: TokenRef): string {
@@ -285,8 +308,7 @@ export function tokenToCSSVar(ref: TokenRef): string {
 
   switch (category) {
     case "color": {
-      const mapped = COLOR_TOKEN_TO_CSS[name] ?? NAMED_COLOR_TO_CSS[name];
-      return mapped ?? `var(--${name})`;
+      return colorTokenCssValue(name) ?? `var(--${name})`;
     }
     case "spacing":
       return `var(--spacing-${name})`;

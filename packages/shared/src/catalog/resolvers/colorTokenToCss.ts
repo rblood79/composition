@@ -7,86 +7,13 @@
  * 이런 leaf 의 DOM 컴포넌트가 rule 색(`resolveComponentRule(type).variants[v].fill.default.base`,
  * TokenRef)을 dot/sub-element 에 직접 인라인 적용할 때 본 헬퍼로 CSS 값을 얻는다.
  *
- * **SSOT 정합 (drift 주의)**: 본 매핑은 `packages/rendering/src/renderers/utils/tokenResolver.ts` 의
- * COLOR_TOKEN_TO_CSS + NAMED_COLOR_TO_CSS(build-time CSS 생성 source)의 shared 대응이다. specs ←
- * shared 의존 방향 때문에 tokenResolver 를 직접 import 할 수 없어 복제한다. **정답 검증**:
- * `packages/shared/src/components/styles/generated/{Type}.css` 의 `[data-variant] { background }` 값과
- * 본 헬퍼 결과가 일치해야 한다(둘 다 같은 tokenResolver 매핑 파생). css-tokens.md 가 매핑 SSOT.
- * 토큰/매핑 추가 시 generated CSS 와 대조.
+ * **표는 하나 (ADR-293)**: `{color.X}` → CSS 값 표는 `@composition/rendering` 의 `colorTokenCssValue`
+ * (`tokenResolver.ts`, 생성 CSS 가 쓰는 표) 가 정본이다. 여기는 그 표를 읽기만 한다 — 2026-10-30 전까지
+ * 이 파일에 복제본이 있었고 named hue `-subtle` · `elevated` · `disabled` 가 빠져 테마 resolver 의 변수
+ * 이름이 생성 CSS 와 어긋났다 (`--purple-subtle` vs `--hue-purple-subtle`).
  */
 
-import { SEMANTIC_PALETTE_MAP } from "@composition/rendering";
-
-/** S2 시맨틱 + named color 토큰 → CSS 값 (tokenResolver 매핑 shared 대응, css-tokens.md SSOT). */
-const COLOR_TOKEN_CSS: Record<string, string> = {
-  // --- 시맨틱 (S2) ---
-  accent: "var(--accent)",
-  "on-accent": "var(--fg-on-accent)",
-  "accent-subtle": "var(--accent-subtle)",
-  neutral: "var(--fg)",
-  "neutral-subdued": "var(--fg-muted)",
-  "neutral-subtle": "var(--bg-muted)",
-  // status — generated/semantic-palette.css 가 light/dark 단계를 정의 (ADR-193, semanticPaletteMap 파생)
-  negative: "var(--negative)",
-  "on-negative": "var(--color-white)",
-  informative: "var(--informative)",
-  positive: "var(--positive)",
-  notice: "var(--notice)",
-  // subtle 배경 위 텍스트 (light 900 / dark 200)
-  "negative-strong": "var(--negative-strong)",
-  "positive-strong": "var(--positive-strong)",
-  "informative-strong": "var(--informative-strong)",
-  "notice-strong": "var(--notice-strong)",
-  // --- Surface / Border / Special ---
-  base: "var(--bg)",
-  raised: "var(--bg-raised)",
-  "layer-1": "var(--bg-overlay)",
-  "layer-2": "var(--bg-inset)",
-  border: "var(--border)",
-  transparent: "transparent",
-  white: "var(--color-white)",
-  black: "var(--color-black)",
-  // --- Named hue — `--hue-{token}` 은 generated/semantic-palette.css 가 테마별 팔레트 단계로 정의 (ADR-193).
-  //     `--indigo` 류 접두 없는 이름은 preview-system tint preset 이 점유하므로 접두 필수.
-  //     단계 정본은 packages/specs semanticPaletteMap.ts (Skia colors.ts 와 같은 표 — semanticAlias.symmetry.test 가 대조).
-  purple: "var(--hue-purple)",
-  gray: "var(--hue-gray)",
-  red: "var(--hue-red)",
-  orange: "var(--hue-orange)",
-  yellow: "var(--hue-yellow)",
-  blue: "var(--hue-blue)",
-  indigo: "var(--hue-indigo)",
-  cyan: "var(--hue-cyan)",
-  pink: "var(--hue-pink)",
-  turquoise: "var(--hue-turquoise)",
-  fuchsia: "var(--hue-fuchsia)",
-  magenta: "var(--hue-magenta)",
-  celery: "var(--hue-celery)",
-  chartreuse: "var(--hue-chartreuse)",
-  seafoam: "var(--hue-seafoam)",
-  cinnamon: "var(--hue-cinnamon)",
-  brown: "var(--hue-brown)",
-  silver: "var(--hue-silver)",
-};
-
-// hover/pressed 파생 — tokenResolver 와 동일 규칙 (ADR-193 후속). 이전엔 키가 없어 fallback `--fg-muted` 로 떨어졌다 (review l2).
-// ADR-227 — override 슬롯 `var(--<token>-hover, color-mix(...))`: 테마 델타가 `--<token>-hover` 를 명시하면
-//   그 값, 없으면 종전 파생. Skia 는 같은 키를 맵에서 읽는다 (resolveThemeSnapshot 이 명시 없으면 base 에서 mix).
-for (const [token, entry] of Object.entries(SEMANTIC_PALETTE_MAP)) {
-  if (token.endsWith("-subtle")) continue;
-  COLOR_TOKEN_CSS[`${token}-hover`] ??=
-    `var(--${token}-hover, color-mix(in srgb, var(${entry.cssVar}) 85%, black))`;
-  COLOR_TOKEN_CSS[`${token}-pressed`] ??=
-    `var(--${token}-pressed, color-mix(in srgb, var(${entry.cssVar}) 75%, black))`;
-}
-COLOR_TOKEN_CSS["accent-hover"] ??=
-  "var(--accent-hover, color-mix(in srgb, var(--accent) 85%, black))";
-COLOR_TOKEN_CSS["accent-pressed"] ??=
-  "var(--accent-pressed, color-mix(in srgb, var(--accent) 75%, black))";
-COLOR_TOKEN_CSS["neutral-hover"] ??=
-  "var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black))";
-COLOR_TOKEN_CSS["neutral-pressed"] ??=
-  "var(--neutral-pressed, color-mix(in srgb, var(--bg-muted) 75%, black))";
+import { colorTokenCssNames, colorTokenCssValue } from "@composition/rendering";
 
 /**
  * CSS 변수 이름 (`fg-muted`) → 그 변수를 CSS 값으로 쓰는 색 token 이름 (`neutral-subdued`).
@@ -94,8 +21,8 @@ COLOR_TOKEN_CSS["neutral-pressed"] ??=
  */
 export function colorTokenOfCssVar(name: string): string | undefined {
   const css = `var(--${name})`;
-  for (const [token, value] of Object.entries(COLOR_TOKEN_CSS))
-    if (value === css) return token;
+  for (const token of colorTokenCssNames())
+    if (colorTokenCssValue(token) === css) return token;
   return undefined;
 }
 
@@ -113,7 +40,7 @@ export function colorTokenToCss(
   const v = String(value);
   // `{color.X}` 추출
   const m = v.match(/^\{color\.([a-z0-9-]+)\}$/i);
-  if (m) return COLOR_TOKEN_CSS[m[1]] ?? fallback;
+  if (m) return colorTokenCssValue(m[1]!) ?? fallback;
   // 이미 CSS 값
   return v;
 }

@@ -1,6 +1,6 @@
 # ADR-293 breakdown — 테마 색 토큰 단일 생성
 
-> 본문: [ADR-293](../293-theme-color-single-source-resolver-to-dom.md). 이 문서는 phase · 파일 · 테스트 · 실측 표만 둔다. 결정 · 대안 · 위험은 본문이 정본이다. 리뷰 round 1 (2026-10-30) 반영: 출력 시점 (최종 맵) · 변환표 하나 · 삭제 목록 정밀화 · `/` 랜딩 scope · `color: boolean`.
+> 본문: [ADR-293](../completed/293-theme-color-single-source-resolver-to-dom.md). 이 문서는 phase · 파일 · 테스트 · 실측 표만 둔다. 결정 · 대안 · 위험은 본문이 정본이다. 리뷰 round 1 (2026-10-30) 반영: 출력 시점 (최종 맵) · 변환표 하나 · 삭제 목록 정밀화 · `/` 랜딩 scope · `color: boolean`.
 
 ## §1 전제 lock-in (fork 4 질문 — `adr-writing.md` §4 질문)
 
@@ -113,3 +113,57 @@
 | `raised` · `base` · `layer-1` · `layer-2`    | `background-layer-*` · `background-base` 계열                 | —                                                                                                      | gray-50 / zinc-850 …                              | 사용자 결정 1 입력                           |
 
 (나머지 행 · 실제 단 번호 · hex 는 Phase 0 에서 설치본을 읽어 채운다. 웹 문서 인용 금지 — 설치본과 다르면 설치본.)
+
+**Phase 0 대조 결과 (2026-10-30, 설치본 1.8.1)**:
+
+- 상태 규칙 정본은 `style/spectrum-theme.ts:162-185` `nextColorStop` — `:hovered` · `:pressed` · `:focused` 는 같은 척도 (`gray` · `accent-color` · `negative-color` …, `:72-117`) 에서 **다음 단 하나**. light · dark 각각 자기 척도에서 한 단이라 「배경에서 한 단 더 먼 쪽」 이다 (light 는 진하게, S2 의 dark 척도는 반전돼 있어 밝게). 단 값 (hex) 은 설치본이 컴파일된 dist 만 있고 `@adobe/spectrum-tokens` json 이 설치돼 있지 않아 (`tokens.ts:16` import 대상 부재) 규칙만 대조했다.
+- Button (`src/Button.tsx:148-170`): primary = `baseColor('neutral')` (`neutral-background-color-default`, `:759`) → hover 한 단 · accent light `900 → 1000` · dark `700 → 600` · negative 같은 모양 · 글자 accent · negative = `white`, primary = `gray-25`.
+- **차이 1 (새로 발견 — 사용자 결정 4)**: 우리 `neutral-hover` · `neutral-pressed` 는 Tone 300 · 400 (dark 600 · 500) — `neutral-subtle` (200 / dark 700) 바탕의 다음 단이라 ToggleButton · GridListItem · Code · Kbd (`componentRulesTable.ts:2343,5468,6471,12855,12869`) 에는 S2 규칙과 같다. 그러나 Button primary 는 바탕이 `{color.neutral}` (light neutral-900 · 글자 `{color.base}` 흰색) 인데 hover · pressed · borderHover 에 같은 토큰을 쓴다 (`:1164-1172`). Canvas 는 hover 를 그리지 않아 지금은 안 보이고, Preview 는 `--neutral-hover` 미정의로 `.button-base` 폴백 (fg 를 검정 혼합 — `#141414`) 이 그려 우연히 S2 방향이다. 통일하면 Preview primary hover 가 `#d4d4d4` 바탕에 흰 글자 (대비 ≈ 1.5) 가 된다 — R1 의 「neutral 버튼 hover `#141414` → `#d4d4d4`」 는 값 변화가 아니라 **대비 회귀**다.
+- 차이 2: negative hover · pressed — S2 는 한 단 (`negative-900 → 1000`), 우리 권고 (결정 2) 는 검정 85 · 75 % 혼합. accent 가 혼합이라 (ADR-290 Decision 3 범위) 규칙 하나로 맞추는 권고는 그대로. ADR-290 Decision 3 변경을 요구하는 대조 결과는 없다 (방향 차이는 이미 290 R7).
+- `raised` · `elevated` · `base` · `layer-*`: S2 `background-base-color` · `background-layer-1/2-color` · `background-elevated-color` (`:809-813`) — 우리 이름과 1:1. `raised` 는 S2 에 없는 이름 (popover 바탕은 S2 가 `elevated` 계열) — 결정 1 은 값만 정한다.
+
+## §7 기록
+
+### Phase 0 — 2026-10-30 (G0)
+
+- **RED ①** `packages/shared/src/catalog/__tests__/generatedCssVarsDeclared.static.test.ts`: 미정의 7 — 설계가 예고한 6 (`--accent-hover` · `--neutral-hover` · `--neutral-pressed` · `--negative-hover` · `--purple-hover` · `--purple-pressed`) + `--font-sans` (생성 CSS 32 장이 폴백 없이 읽는데 Preview · Publish 문서에는 선언이 없다 — Builder 문서만 Tailwind `@theme` 가 준다. 타이포 축이라 이 ADR 범위 밖, 결과는 body 의 base 글꼴 상속이라 지금 화면은 같다 — 후속 항목. 테스트는 Phase 2 에서 이 1 건을 사유와 함께 허용 목록에 둔다).
+- **RED ②** `themeCssVarsCoverSkia.static.test.ts`: 58 fail — 이름 불일치 22 (named hue `-subtle` 18 · `green-named` · `green-named-subtle` · `elevated → --color-white` · `disabled → --color-neutral-200`), 충돌 `--color-white ← on-negative · elevated · white` · 팔레트 변수 3, 프리셋 50 조합 전부 Skia 색 키 272 개가 cssVars 에 없음, 델타 6 전부.
+- **RED ③** `apps/builder/tests/parity/themeColorParity.browser.test.ts` (breakdown §3 의 `packages/shared/…/theme/__tests__/` 는 browser project 가 없어 parity project 로 옮김): 112/112 fail. catalog 색 참조 88 (transparent 제외) × 프리셋 10 × Tone 5 × 모드 2 + 델타 6 × 2. 원본 로그 `.agent/runs/2026-10-30-adr293/phase0/red3-before.log` (로컬).
+  - 전 조합에서 갈림: `accent-pressed` · `negative-hover/-pressed` · `neutral-hover/-pressed` · named hue hover · pressed 7 쌍 (생성 CSS 가 폴백 없이 읽는 슬롯은 DOM 미정의 → 검정/무효) · `raised` (110).
+  - Tone 이 DOM 에만 새는 곳 (새로 발견): `gray` (80 — 비 neutral Tone 4 × 10 × 2) — `semantic-palette.css` `--hue-gray: var(--color-neutral-400)` 를 Tone seed 가 덮는다. Skia `gray` 는 Tone 무관. 통일 뒤 DOM 도 Tone 무관 (Badge gray 가 slate 등에서 바뀐다 — §5 표에 추가).
+  - dark `on-accent` (40) — Tone 별 `--color-neutral-900` vs Skia `#171717` (ADR-290 결정 1 범위).
+  - ±1/255 반올림 (oklch ↔ hex): `notice` · `orange` · `positive-subtle` · `green-named-subtle` (56) · pink `accent` · `chart-accent-2` (10) — resolver 가 hex 를 싣는 순간 사라진다.
+  - 리뷰 지적의 브라우저 재현: `purple-subtle` 델타가 DOM 에 안 닿음 (H1) · `negative=#ff0000` 의 pressed Skia `#bf0000` / DOM `#e7000b` (H2) · **`on-negative=#123456` 이 `white` 뿐 아니라 `base` · `raised` 까지 `#123456` 으로** (round 2 — `--bg` · `--bg-raised` 가 `var(--color-white)` 폴백을 쓴다, 범위가 설계보다 넓음) · `elevated` 델타 DOM 미도달 · `disabled` 델타 DOM 미도달.
+- **변환표 차이**: rendering 표 (`tokenResolver.ts`) 가 shared 표 (`colorTokenToCss.ts`) 의 상위집합. shared 에만 있는 키 0. shared 에 없는 키 — named hue `-subtle` 18 · `green-named(-subtle)` · status `-subtle` 4 (이름 우연 일치) · `elevated` · `disabled` · `border-hover` · `border-disabled` (우연 일치) · chart 12 (우연 일치). 의존 방향: shared → rendering (`colorTokenToCss.ts:18` 이 `SEMANTIC_PALETTE_MAP` 을 import) 이라 **정본은 rendering 표**, shared 는 그것을 쓴다 (Decision 1 의 「역방향」).
+- **snapshot 없이 `preview-system.css` 를 쓰는 소비자**:
+  - 테스트: chart browser 3 (`chartPalette` · `chartTheme` · `adr210Presentation` — chart 변수만, 유지 대상) · `shadowCssParity` (그림자만) · `catalogTokenExists` DOM 단언 (theme CSS 선언 ∪ snapshot cssVars — 제거 뒤에도 snapshot 이 공급). G3 하니스 `propAxisCanvasDom` · `paletteBaseCanvas` 는 `cssVars` 의 light 만 `:root` 에 설치 — 전체 출력 뒤 자동으로 같은 값 (G3 고정 캡처의 DOM leg 값은 `raised` 등에서 바뀔 수 있음 → Phase 3 에서 재실행). `switchDomPaint` 는 테마 변수 미설치 (Switch 기하만 봄).
+  - production (Builder 메인 문서, `data-context` 밖 `:root` · `html` · `body`): `hero.css:4-9` (`--accent` · `--bg-raised`) — 설계대로. `panel-btn.css:2-14` 의 `:root { --panel-btn-bg: var(--bg-raised) … }` 도 걸리지만 `.panel-btn` 소비처 0 (dead) — 영향 0. Auth · Dashboard 는 `data-context="builder"`.
+- **S2 대조**: §6 아래 「Phase 0 대조 결과」.
+- 사용자 결정 1 · 2 · 3 + 새 결정 4 (Button primary hover) 를 Phase 1 착수 전에 묻는다. → **전부 권고안** (2026-10-30): 1 Canvas 값 · 2 검정 85 · 75 % 혼합 · 3 폴백 제거 · 4 S2 한 단 (`neutral-fill-hover` · `-pressed`).
+
+### Phase 1 — 2026-10-30 (G1)
+
+- 변환표 하나: `tokenResolver.ts` 에 `colorTokenCssValue` · `colorTokenCssNames` (rendering 루트에서 export), `colorTokenToCss.ts` 의 복제 표 삭제 — 읽기만. `semanticAlias.symmetry` R5 를 「shared 는 표를 복제하지 않는다」 로.
+- 1:1: `on-negative → var(--fg-on-negative)` · `elevated → var(--bg-elevated)` · `disabled → var(--bg-disabled)`. `pnpm generate:css` diff = 4 줄 (`Badge.css` · `Button.css` 의 `--color-white` → `--fg-on-negative` 2 · Button primary `--button-color-hover/-pressed` 2). Builder chrome 은 Badge · Button 생성 시트를 싣지 않아 `builder-system.css` 무변경.
+- 결정 4: 토큰 `neutral-fill-hover` · `neutral-fill-pressed` (`ColorTokens` · `colors.ts` · `neutralToSkiaColors.ts` light 950 / dark 50) · `componentRulesTable.ts` Button primary 의 hover · pressed · borderHover.
+- 결정 2: `colors.ts` 의 negative 손값 삭제 → `resolveSemanticStateColors` 혼합. 정적 seed 의 `neutral-hover/-pressed` 도 Tone 단계 값으로 (resolver 가 늘 덮던 값 — `semanticPaletteMap.snapshot` 갱신).
+- resolver: `ThemeCssVar.color` · seed 의 색 put 2 · 델타의 색 put 제거 → 함수 끝에서 최종 맵 전체 (`PALETTE_CONSTANT_COLOR_TOKENS` white · black 제외). `colorTokenCssVarName` 은 키워드 (`transparent`) 에 null. **발견 (수리)**: 명시 델타 뒤 파생이 `<x>-hover` 를 `<x>` 에서 혼합해 `color.neutral` 델타가 `neutral-hover` (밝은 바탕의 hover) 를 글자색 기반 거의 검정으로 — DOM 에 실리면 ToggleButton hover 회귀. `DERIVED_STATE_KEYS` (neutral → fill, neutral-subtle → hover) 로 짝을 고침, RED ② · ③ 에 `neutral` · `neutral-subtle` 델타 표본 추가.
+- RED ② GREEN 61/61. rendering 1320/1320 · shared 정적 · builder `utils/theme` 15/15.
+
+### Phase 2 — 2026-10-30 (G2)
+
+- `themeVarsCss.ts` `catalogThemeVarsCss` (색 블록 `@media not (forced-colors: active)`) — `applyCatalogPreviewTheme` (Preview · Publish) 과 browser 하니스가 같은 텍스트를 쓴다 (`domView.runtime` 은 import 사슬이 무거워 하니스용으로 분리).
+- `preview-system.css`: 출력 집합 ∩ 선언 20 중 `--chart-accent-1~4` (Decision 3 유지 — snapshot 없는 chart 테스트용, Preview 에선 layer 없는 resolver 값이 이김) · `--negative` (forced-colors 블록에만) 제외 15 이름 × light · dark = 28 선언 제거, 머리말 교체. G2 단언 `generatedCssVarsDeclared.static.test.ts` (출력 이름 선언 0). RED ① 은 `--font-sans` 를 사유와 함께 허용 목록 (`KNOWN_UNDECLARED`).
+- `/` 랜딩: `App.tsx` `main` 에 `data-context="builder"` + 랜딩 토글이 `data-builder-theme` 도 세움 (unmount 때 지움) · `hero.css` 의 `:root[data-theme]` 배경 → `.main` / `[data-builder-theme="dark"] .main`.
+
+### Phase 3 — 2026-10-30 (G3 · G4)
+
+- RED ③ GREEN 117/117 (100 + 델타 8 × 2 + 수집 1).
+- 회귀 대조 (HEAD `2c2ce9baa` detached worktree vs HEAD + 이 ADR 패치만 — 병렬 세션 미커밋 제외): parity + chart before 실패 3 (chartInteraction 2 · GeometryDelta 1) = after 실패 3. 중간에 깨졌던 snapshot 없는 하니스 3 종 — chart mono series 5 (`--fg-muted`) · `switchDomPaint` 16 (트랙 `border: … var(--border)` 무효 → 테두리 0) · `adr248CatalogRealDom` ComboBox Group 높이 2 px — 는 결정 3 이 의도한 「값이 빠지면 깨짐」 이라 하니스가 Preview 와 같은 설치를 거치게 고침 (`parityTest.setupFiles` += `setupPreviewThemeVars.ts`, chart 상속 · `switchDomPaint` beforeAll). G3 하니스 (`vitest.adr248-g3`) after: propAxisCanvasDom 5 = HEAD 기준선과 같음. builder unit 실패 5 는 전부 이 ADR 밖 (ADR-294 병렬 세션 `emit` · contract 52 / 전체 실행 timeout 2 / `chromeIsland` HEAD 기준선).
+- G4 번들 (`adr209-bundle-closure.mjs`, 같은 worktree 쌍): Builder initial JS gz 1,362,562 → 1,362,286 (**−276**) · CSS −225 · Preview initial JS 312,167 → 311,700 (**−467**) · CSS −176. 의존성 추가 0.
+
+### Phase 4 — 2026-10-30 (G5 — 사용자 확인 「확인했다」 → Implemented)
+
+- live: 본문 `### Live Exercise`. 문서: `css-tokens.md` (§테마 색은 resolver 한 곳 · TokenRef 표 · Tint 사다리 · Hover/Pressed) · resolver · `preview-system.css` 머리말 · CHANGELOG.
+- **G5 사용자 확인 항목**: Preview/Publish 에서 바뀐 값 — Button primary hover · pressed (light `#141414` → `#0a0a0a`, dark `#d0d0d0` → neutral-50), `raised` (light white → gray-50, dark neutral-900 → zinc-850), negative hover · pressed (혼합), named hue hover · pressed (±1/255), Badge `gray` (비 neutral Tone 에서 Tone 무관으로), dark 랜딩 배경 (파랑 → builder zinc-200).
+- 후속 (범위 밖, 보고만): Preview · Publish 의 `--font-sans` 미선언 · builder chrome 의 `ToggleButton.css` 가 `--neutral-hover` 를 폴백 없이 읽는데 `builder-system.css` 에 선언 없음 (지금은 `.button-base` 폴백) · `.panel-btn` (`panel-btn.css`) 소비처 0 · 변환표 `var(--X-hover, color-mix(…))` 폴백 문자열 (Decision 5) · DOM 전용 색의 Skia 대응.

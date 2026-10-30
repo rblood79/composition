@@ -115,7 +115,7 @@ describe("CSSGenerator fillStyle", () => {
         variant: "negative",
         boldBackground: "var(--negative)",
         subtleBackground: "var(--negative-subtle)",
-        boldText: "var(--color-white)",
+        boldText: "var(--fg-on-negative)",
         hue: "var(--negative)",
       },
     ]) {

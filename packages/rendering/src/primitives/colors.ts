@@ -24,9 +24,12 @@ import { resolveChartPaletteColors } from "./chartPaletteMap";
  * ADR-193: status(negative/informative/positive/notice) 와 named hue (+subtle) 는
  * `semanticPaletteMap.ts` 표에서 파생 — 단계 조정은 표에서만 한다 (CSS 생성 산출물과 같은 원천).
  */
+const LIGHT_STATE = resolveSemanticStateColors("light");
+const DARK_STATE = resolveSemanticStateColors("dark");
+
 export const lightColors: ColorTokens = {
   // --- Status + Named hue 의 hover · pressed — DOM color-mix 와 같은 식 (손 값이 아래에서 이긴다) ---
-  ...resolveSemanticStateColors("light"),
+  ...LIGHT_STATE,
   // --- Accent (기존 primary → --highlight-background) ---
   accent: TAILWIND_PALETTE.blue[600], // blue-600
   "accent-hover": "#1f54c8",
@@ -39,12 +42,15 @@ export const lightColors: ColorTokens = {
   // S2 neutral-subdued (label · 보조 텍스트 — 본문과 구분) light #505050 에 가장 가까운 단계 (사용자 결정 2026-09-29, 종전 700)
   "neutral-subdued": TAILWIND_PALETTE.neutral[600], // neutral-600
   "neutral-subtle": TAILWIND_PALETTE.neutral[200], // neutral-200 (기존 surface-container-highest)
-  "neutral-hover": "#c3c3c3",
-  "neutral-pressed": "#a8a8a8",
+  "neutral-hover": TAILWIND_PALETTE.neutral[300], // Tone 단계 (neutralToSkiaColors LIGHT_MAP)
+  "neutral-pressed": TAILWIND_PALETTE.neutral[400],
+  // 진한 바탕 neutral 의 hover · pressed — S2 한 단 (ADR-293 결정 4)
+  "neutral-fill-hover": TAILWIND_PALETTE.neutral[950],
+  "neutral-fill-pressed": TAILWIND_PALETTE.neutral[950],
 
-  // --- Negative hover/pressed (custom — Skia 미소비, 표 밖) ---
-  "negative-hover": "#cb3a3a",
-  "negative-pressed": "#b33333",
+  // --- Negative hover/pressed — status 와 같은 검정 85 · 75 % 혼합 (ADR-293 결정 2, 종전 손값 #cb3a3a · #b33333) ---
+  "negative-hover": LIGHT_STATE["negative-hover"]!,
+  "negative-pressed": LIGHT_STATE["negative-pressed"]!,
   "on-negative": "#ffffff",
 
   // --- Status + Named hue (+subtle) — semanticPaletteMap 파생 ---
@@ -77,7 +83,7 @@ export const lightColors: ColorTokens = {
  */
 export const darkColors: ColorTokens = {
   // --- Status + Named hue 의 hover · pressed — DOM color-mix 와 같은 식 (손 값이 아래에서 이긴다) ---
-  ...resolveSemanticStateColors("dark"),
+  ...DARK_STATE,
   // --- Accent ---
   accent: TAILWIND_PALETTE.blue[500], // blue-500
   "accent-hover": "#3270d1",
@@ -89,12 +95,14 @@ export const darkColors: ColorTokens = {
   neutral: TAILWIND_PALETTE.neutral[100], // neutral-100 (dark mode에서 밝은 텍스트)
   "neutral-subdued": TAILWIND_PALETTE.neutral[400], // neutral-400
   "neutral-subtle": TAILWIND_PALETTE.neutral[700], // neutral-700
-  "neutral-hover": "#363636",
-  "neutral-pressed": "#2e2e2e",
+  "neutral-hover": TAILWIND_PALETTE.neutral[600], // Tone 단계 (neutralToSkiaColors DARK_MAP)
+  "neutral-pressed": TAILWIND_PALETTE.neutral[500],
+  "neutral-fill-hover": TAILWIND_PALETTE.neutral[50],
+  "neutral-fill-pressed": TAILWIND_PALETTE.neutral[50],
 
-  // --- Negative hover/pressed (custom — Skia 미소비, 표 밖) ---
-  "negative-hover": "#d36060",
-  "negative-pressed": "#ba5555",
+  // --- Negative hover/pressed — 검정 85 · 75 % 혼합 (ADR-293 결정 2) ---
+  "negative-hover": DARK_STATE["negative-hover"]!,
+  "negative-pressed": DARK_STATE["negative-pressed"]!,
   "on-negative": "#ffffff",
 
   // --- Status + Named hue (+subtle) — semanticPaletteMap 파생 (본색 한 단계 밝게 / subtle 900) ---

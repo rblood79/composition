@@ -35,6 +35,8 @@ export {
   borderWidthToCSS,
   resolveColor,
   tokenToCSSVar,
+  colorTokenCssValue,
+  colorTokenCssNames,
   cssVarToTokenRef,
   resolveBoxShadow,
   hexStringToNumber,

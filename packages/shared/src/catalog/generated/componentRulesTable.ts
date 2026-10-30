@@ -1161,15 +1161,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fill: {
           default: {
             base: "{color.neutral}",
-            hover: "{color.neutral-hover}",
-            pressed: "{color.neutral-pressed}",
+            // 진한 바탕의 한 단 — `neutral-hover` 는 밝은 바탕 (neutral-subtle) 의 다음 단이라 흰 글자가
+            // 사라진다 (ADR-293 결정 4, S2 `baseColor('neutral')`)
+            hover: "{color.neutral-fill-hover}",
+            pressed: "{color.neutral-fill-pressed}",
           },
           outline: { base: "{color.transparent}" },
         },
         colors: {
           text: "{color.base}",
           border: "{color.neutral}",
-          borderHover: "{color.neutral-hover}",
+          borderHover: "{color.neutral-fill-hover}",
           outlineText: "{color.neutral}",
           outlineBorder: "{color.border-hover}",
         },

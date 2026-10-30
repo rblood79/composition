@@ -80,6 +80,9 @@ export interface ColorTokens {
   "neutral-subtle": string;
   "neutral-hover": string;
   "neutral-pressed": string;
+  /** 진한 바탕 `neutral` (Button primary) 의 hover · pressed — S2 한 단 (ADR-293 결정 4) */
+  "neutral-fill-hover": string;
+  "neutral-fill-pressed": string;
 
   // --- Negative (기존 error) ---
   negative: string;

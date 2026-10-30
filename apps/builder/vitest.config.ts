@@ -87,7 +87,12 @@ export const parityTest: TestUserConfig = {
   include: ["tests/parity/**/*.browser.test.ts"],
   // DOM leg 페이지의 root 폰트 문맥을 production 과 같이 고정한다 — 앱 배럴의 CSS 부작용에
   // 기대지 않는다 (2026-09-16 CSS 단일 채널 뒤 DOM leg 만 Times 로 떨어졌다, harness/setupThemeFont.ts).
-  setupFiles: ["./tests/parity/harness/setupThemeFont.ts"],
+  // ADR-293 — 테마 색은 Preview 처럼 resolver snapshot 이 싣는다 (`preview-system.css` 는 계산하지 않는다 —
+  // 없으면 `border: … var(--border)` 같은 선언이 무효가 돼 DOM leg 상자가 달라진다).
+  setupFiles: [
+    "./tests/parity/harness/setupThemeFont.ts",
+    "./tests/parity/harness/setupPreviewThemeVars.ts",
+  ],
 };
 
 // ADR-209 실제 Recharts와 Canvas 기하 대조.

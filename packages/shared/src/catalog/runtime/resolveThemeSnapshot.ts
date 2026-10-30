@@ -9,20 +9,23 @@
  * · `radius` · `shadows`) 을 덮어쓰고, DOM (Preview `THEME_VARS` · Publish) 은 `cssVars` 한 벌을
  * 싣는다 (`installThemeSnapshot`). 노드별 snapshot 은 없다.
  *
+ * **테마 색은 여기서만 만든다 (ADR-293)**: 모든 델타 · 파생이 끝난 최종 `colors.light` / `colors.dark` 의
+ * 모든 키를 함수 끝에서 `cssVars` (`color: true`) 로 싣는다 — 변수 이름은 생성 CSS 와 같은 표
+ * (`colorTokenCssValue`) 에서. `preview-system.css` 는 이 변수들을 계산하지 않는다. 토큰 ↔ 변수는 1:1 이고
+ * 팔레트 상수 `white` · `black` (`--color-white` · `--color-black`) 과 Tone 단계 `--color-neutral-N` 은
+ * 테마 색으로 덮지 않는다.
+ *
  * 색 델타 규칙:
  *   - `color.accent` (hex) 는 **tint 대체** — hex 의 (c, h) 로 tint 프리셋과 같은 파생 (L 55% accent ·
- *     hover 85%/pressed 75% black mix · subtle · chart) 을 만든다. DOM 은 `--tint: #hex` 하나면
- *     `oklch(from var(--tint) …)` 가 같은 식이라 대칭. (사용자 hex 의 L 은 55% 로 접힌다 — 두 leg 동일.)
- *   - 그 밖의 `color.<key>` 는 값 그대로 양 모드 맵에 + CSS 의미 변수 (`colorTokenToCss` 표) 에.
- *     파생 키 (`*-hover` / `*-pressed`, CSS 가 color-mix 인 키) 는 override 슬롯 `--<key>` 로 —
- *     mapping 이 `var(--<key>, color-mix(...))` 라 명시값이 우선하고 없으면 종전 파생.
+ *     hover 85%/pressed 75% black mix · subtle · chart) 을 만든다. DOM 의 `--tint` 는 `--tint-N` 사다리 ·
+ *     link · focus-ring 의 입력으로만 남는다. (사용자 hex 의 L 은 55% 로 접힌다.)
+ *   - 그 밖의 `color.<key>` 는 값 그대로 양 모드 맵에. 명시된 `<x>` 의 미명시 `<x>-hover` / `<x>-pressed`
+ *     는 base 에서 다시 혼합한다 (아래 파생 블록) — DOM 은 최종 맵을 받으므로 같은 값.
  */
 import type { ThemeDefinition, TokensSnapshot } from "@composition/shared";
+import { BASE_TYPOGRAPHY_TOKEN_KEYS } from "@composition/shared";
 import {
-  BASE_TYPOGRAPHY_TOKEN_KEYS,
-  colorTokenToCss,
-} from "@composition/shared";
-import {
+  colorTokenCssValue,
   borderWidth as borderWidthSeed,
   darkColors,
   darkShadows,
@@ -50,7 +53,26 @@ export interface ThemeCssVar {
   name: string;
   value: string;
   isDark: boolean;
+  /** 테마 색 — DOM 은 `@media not (forced-colors: active)` 안에 싣는다 (시스템 색이 이기게). */
+  color: boolean;
 }
+
+/**
+ * 바탕 토큰 → 그 바탕의 hover · pressed 토큰 (이름이 `<x>-hover` 가 아닌 것만). `neutral-hover` 는
+ * 밝은 바탕 `neutral-subtle` 의 다음 단이고, 진한 바탕 `neutral` 의 것은 `neutral-fill-*` 다 (ADR-293 결정 4).
+ * 명시 델타 뒤 파생이 엉뚱한 바탕에서 혼합하면 그 값이 DOM 에도 실린다.
+ */
+const DERIVED_STATE_KEYS: Readonly<Record<string, readonly [string, string]>> =
+  {
+    neutral: ["neutral-fill-hover", "neutral-fill-pressed"],
+    "neutral-subtle": ["neutral-hover", "neutral-pressed"],
+  };
+
+/** 팔레트 상수 — 테마 색 변수로 싣지 않는다 (`--color-white` · `--color-black` 은 팔레트 CSS 소유). */
+const PALETTE_CONSTANT_COLOR_TOKENS: ReadonlySet<string> = new Set([
+  "white",
+  "black",
+]);
 
 export interface ResolvedThemeSnapshot {
   themeId: string;
@@ -124,12 +146,14 @@ function tintOf(
   return { c, h, tintVar: `var(--${tint})` };
 }
 
-/** `{color.<key>}` 의 DOM 의미 변수 이름 — mapping 이 `var(--x)` 이면 그 이름, 파생(color-mix)이면 override 슬롯 `--<key>`. */
-export function colorTokenCssVarName(key: string): string {
-  const css = colorTokenToCss(`{color.${key}}`, "");
-  const m = /^var\((--[a-z0-9-]+)\)$/i.exec(css);
-  if (m) return m[1]!;
-  return `--${key}`;
+/**
+ * `{color.<key>}` 의 DOM 변수 이름 — 생성 CSS 와 같은 표의 `var(--x)` · `var(--x, 폴백)` 의 `--x`.
+ * 표에 없는 키는 `--<key>`, CSS 키워드 (`transparent`) 는 null.
+ */
+export function colorTokenCssVarName(key: string): string | null {
+  const css = colorTokenCssValue(key);
+  if (css === undefined) return `--${key}`;
+  return /^var\((--[a-z0-9-]+)\s*[,)]/i.exec(css)?.[1] ?? null;
 }
 
 function toPxOrRatio(
@@ -188,22 +212,17 @@ export function resolveThemeSnapshot(
   // ── DOM 한 벌 (seed) ──
   const cssVars: ThemeCssVar[] = [];
   // 같은 (name, isDark) 는 마지막 값 하나만 — seed 뒤 델타가 덮는다 (DOM 에 중복 선언을 보내지 않는다)
-  const put = (name: string, value: string, isDark: boolean) => {
+  const put = (name: string, value: string, isDark: boolean, color = false) => {
     const i = cssVars.findIndex((v) => v.name === name && v.isDark === isDark);
-    if (i === -1) cssVars.push({ name, value, isDark });
-    else cssVars[i] = { name, value, isDark };
+    if (i === -1) cssVars.push({ name, value, isDark, color });
+    else cssVars[i] = { name, value, isDark, color };
   };
   const both = (name: string, value: string) => {
     put(name, value, false);
     put(name, value, true);
   };
+  // `--tint-N` 사다리 · link · focus-ring 의 입력 (DOM 전용 — 테마 색 토큰이 아니다)
   both("--tint", tintVar);
-  // theme/tokens에서 해석한 색을 양 소비자에 전달한다. Preview의 독립
-  // 15% overlay 및 dark border 단계는 같은 토큰을 다른 색으로 해석했다.
-  for (const key of ["accent-subtle", "border-hover"]) {
-    put(`--${key}`, light[key]!, false);
-    put(`--${key}`, dark[key]!, true);
-  }
   const steps = resolveNeutralSteps(neutral);
   for (const step of NEUTRAL_STEPS)
     both(`--color-neutral-${step}`, steps[step]!);
@@ -231,7 +250,6 @@ export function resolveThemeSnapshot(
         light[key] = value;
         dark[key] = value;
         explicitColorKeys.add(key);
-        both(colorTokenCssVarName(key), value);
         break;
       }
       case "typography": {
@@ -314,17 +332,31 @@ export function resolveThemeSnapshot(
   //   가 명시되지 않았으면 Skia 맵은 seed 파생값 그대로 (DOM 은 color-mix 가 base 변수를 따라간다)
   //   — 두 leg 가 갈리지 않게 Skia 도 base 로부터 mix 한다.
   for (const key of explicitColorKeys) {
-    for (const [suffix, pct] of [
-      ["hover", 85],
-      ["pressed", 75],
+    const [hoverKey, pressedKey] = DERIVED_STATE_KEYS[key] ?? [
+      `${key}-hover`,
+      `${key}-pressed`,
+    ];
+    for (const [derived, pct] of [
+      [hoverKey, 85],
+      [pressedKey, 75],
     ] as const) {
-      const derived = `${key}-${suffix}`;
       if (explicitColorKeys.has(derived)) continue;
       if (!(derived in SEED_LIGHT_COLORS)) continue;
       light[derived] = mixHexWithBlack(light[key]!, pct) ?? light[derived]!;
       dark[derived] = mixHexWithBlack(dark[key]!, pct) ?? dark[derived]!;
     }
   }
+
+  // ── 테마 색 전체 → DOM (ADR-293): 최종 맵에서, 파생 재계산 뒤에 ──
+  for (const [map, isDark] of [
+    [light, false],
+    [dark, true],
+  ] as const)
+    for (const [key, value] of Object.entries(map)) {
+      if (PALETTE_CONSTANT_COLOR_TOKENS.has(key)) continue;
+      const name = colorTokenCssVarName(key);
+      if (name) put(name, value, isDark, true);
+    }
 
   return {
     themeId: theme.id,

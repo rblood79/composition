@@ -166,7 +166,7 @@
 
 .react-aria-Badge[data-variant="negative"] {
   background: var(--negative);
-  color: var(--color-white);
+  color: var(--fg-on-negative);
   border-color: transparent;
 
   &[data-hovered] {

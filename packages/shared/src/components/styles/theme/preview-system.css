@@ -3,10 +3,16 @@
  * Used ONLY in Preview iframe (src/preview/)
  * User theme changes affect ONLY these tokens, NOT Builder UI
  *
- * Tint System (inspired by React Aria starter):
- * Change --tint to switch the entire accent color in one line.
- * ThemeStudio tokens (e.g., --color-highlight-background) still override
- * individual semantic tokens when defined.
+ * 테마 색 (ADR-293, 2026-10-30): catalog 가 `{color.X}` 로 읽는 테마 색 변수 (`--bg*` · `--fg` ·
+ * `--fg-muted` · `--fg-on-accent` · `--border*` · `--accent*` · `--neutral-*-hover` · `--negative-*` …)
+ * 는 여기서 계산하지 않는다. resolver (`resolveThemeSnapshot`) 가 Canvas (Skia) 와 같은 객체에서 값을 만들고
+ * Preview · Publish 의 `applyCatalogPreviewTheme` 가 `#runtime-theme-vars` 에 싣는다 — 폴백 없음, 값이
+ * 빠지면 화면이 깨져 보여야 끊긴 채널이 드러난다.
+ *
+ * 여기 남는 것: `--tint` (resolver 가 싣는 입력) 에서 파생하는 `--tint-N` 사다리 · link · focus-ring ·
+ * chart accent 사다리 (snapshot 없이 CSS 만 싣는 chart 테스트용 — Preview 에서는 resolver 값이 이긴다) ·
+ * Skia 대응이 없는 DOM 전용 색 (`--bg-emphasis` · `--fg-emphasis` · `--fg-disabled` · `--border-pressed` …) ·
+ * 그림자 · forced-colors 블록.
  */
 
 @layer preview-system {
@@ -114,30 +120,20 @@
       from var(--tint) var(--lightness-1600) var(--chroma-1600) h
     );
 
-    /* ===== Semantic Tokens (S2 + React Aria hybrid naming) ===== */
-    /* ThemeStudio overrides (--color-*) take priority, tint-based fallbacks below */
+    /* ===== DOM 전용 색 (Skia 대응 없음 — catalog 가 참조하지 않는다) ===== */
 
     /* Surface */
-    --bg: var(--color-background-base, var(--color-white));
-    --bg-raised: var(--color-background-base, var(--color-white));
-    --bg-overlay: var(--color-overlay-background, var(--color-neutral-50));
-    --bg-muted: var(--color-neutral-200);
     --bg-emphasis: var(--color-neutral-300);
-    --bg-inset: var(--color-field-background, var(--color-neutral-50));
     --bg-inset-pressed: var(
       --color-button-background-pressed,
       var(--color-neutral-100)
     );
 
     /* Foreground */
-    --fg: var(--color-text-primary, var(--color-neutral-900));
     --fg-base: var(--color-text-base, var(--color-neutral-900));
     --fg-emphasis: var(--color-text-hover, var(--color-neutral-950));
     --fg-disabled: var(--color-text-disabled, var(--color-neutral-500));
-    /* catalog neutral-subdued — S2 #505050 에 가장 가까운 단계 (2026-09-29, 종전 700) */
-    --fg-muted: var(--color-text-placeholder, var(--color-neutral-600));
     --fg-field: var(--color-field-text, var(--color-neutral-900));
-    --fg-on-accent: var(--color-highlight-foreground, white);
     --fg-on-accent-pressed: var(
       --color-highlight-foreground-pressed,
       var(--color-neutral-100)
@@ -149,28 +145,11 @@
     --link-pressed: var(--color-link-pressed, var(--tint-1300));
 
     /* Border */
-    --border: var(--color-border-base, var(--color-neutral-300));
-    --border-hover: var(--color-border-hover, var(--color-neutral-400));
     --border-pressed: var(--color-border-pressed, var(--color-neutral-500));
-    --border-disabled: var(--color-border-disabled, var(--color-neutral-100));
 
-    /* Accent — fixed oklch lightness ensures contrast with foreground
-     * These are the same in light and dark modes */
-    --accent: var(
-      --color-highlight-background,
-      oklch(from var(--tint) 55% c h)
-    );
-    --accent-pressed: var(
-      --color-highlight-background-pressed,
-      oklch(from var(--tint) 50% c h)
-    );
     --accent-negative: var(
       --color-highlight-background-invalid,
       var(--color-error-600)
-    );
-    --accent-subtle: var(
-      --color-highlight-overlay,
-      oklch(from var(--tint-1000) l c h / 15%)
     );
     /* Chart mono 팔레트 — accent 명도 사다리 (L · chroma 계수 는 packages/specs
      * chartPaletteMap.ts CHART_ACCENT_STEPS 가 정본, Skia tintToSkiaColors 가 같은 표로 계산).
@@ -185,10 +164,6 @@
     --focus-ring-width: 2px;
     --focus-ring-offset: 2px;
     --focus-ring-inset-offset: -2px;
-
-    /* Status — --negative 는 generated/semantic-palette.css (ADR-193, semanticPaletteMap 파생) 가 정의한다.
-     * --negative-pressed 는 Skia 미소비(colors.ts custom #b33333)라 여기 잔류. */
-    --negative-pressed: var(--color-invalid-pressed, var(--color-error-600));
 
     /* Shadow System — Adobe Spectrum 2 역할 토큰 기반 3단계 (ADR-166 Phase 1)
      *   sm ← drop-shadow-emphasized / md ← drop-shadow-elevated / lg ← drop-shadow-dragged
@@ -267,25 +242,17 @@
     --lightness-1600: 100%;
 
     /* Surface (Dark) */
-    --bg: var(--color-background-base, var(--color-neutral-900));
-    --bg-raised: var(--color-background-base, var(--color-neutral-900));
-    --bg-overlay: var(--color-overlay-background, var(--color-neutral-800));
-    --bg-muted: var(--color-neutral-700);
     --bg-emphasis: var(--color-neutral-600);
-    --bg-inset: var(--color-field-background, var(--color-neutral-800));
     --bg-inset-pressed: var(
       --color-button-background-pressed,
       var(--color-neutral-700)
     );
 
     /* Foreground (Dark) */
-    --fg: var(--color-text-primary, var(--color-neutral-100));
     --fg-base: var(--color-text-base, var(--color-neutral-100));
     --fg-emphasis: var(--color-text-hover, var(--color-neutral-50));
     --fg-disabled: var(--color-text-disabled, var(--color-neutral-500));
-    --fg-muted: var(--color-text-placeholder, var(--color-neutral-400));
     --fg-field: var(--color-field-text, var(--color-neutral-100));
-    --fg-on-accent: var(--color-highlight-foreground, var(--color-neutral-900));
     --fg-on-accent-pressed: var(
       --color-highlight-foreground-pressed,
       var(--color-neutral-800)
@@ -297,22 +264,11 @@
     --link-pressed: var(--color-link-pressed, var(--tint-1300));
 
     /* Border (Dark) */
-    --border: var(--color-border-base, var(--color-neutral-700));
-    --border-hover: var(--color-border-hover, var(--color-neutral-600));
     --border-pressed: var(--color-border-pressed, var(--color-neutral-500));
-    --border-disabled: var(--color-border-disabled, var(--color-neutral-800));
 
-    /* Accent (Dark) — oklch same formula as light mode */
     --accent-negative: var(
       --color-highlight-background-invalid,
       var(--color-error-500)
-    );
-
-    /* Status (Dark) — --negative 는 generated/semantic-palette.css [data-theme="dark"] 가 정의 (ADR-193) */
-    --negative-pressed: var(--color-invalid-pressed, var(--color-error-500));
-    --accent-subtle: var(
-      --color-highlight-overlay,
-      oklch(from var(--tint-1000) l c h / 15%)
     );
 
     /* Focus (Dark) */
