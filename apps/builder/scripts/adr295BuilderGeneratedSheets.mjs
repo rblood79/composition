@@ -38,17 +38,47 @@ function collectRootVars(file, vars = {}, seen = new Set()) {
   return vars;
 }
 
+/**
+ * `var(--x[, fallback])` 를 root 값 (없으면 fallback) 으로 — fallback 은 괄호 짝까지 읽는다 (ADR-295 Phase 3c:
+ * `var(pin, calc(var(--text-sm) * var(--text-sm--line-height)))` 처럼 행간 비율 변수가 다시 `calc()` 를 든다).
+ */
 function substitute(rootVars, value, depth = 0) {
   if (depth > 12) return value;
-  const out = value.replace(
-    /var\(\s*(--[\w-]+)\s*(?:,\s*([^()]*(?:\([^()]*\))?[^()]*))?\)/g,
-    (_, name, fb) =>
+  let out = "";
+  for (let i = 0; i < value.length;) {
+    const m = /^var\(\s*(--[\w-]+)\s*/.exec(value.slice(i));
+    if (!m) {
+      out += value[i++];
+      continue;
+    }
+    let j = i + m[0].length;
+    let fb;
+    if (value[j] === ",") {
+      let level = 0;
+      let k = j + 1;
+      for (; k < value.length; k++) {
+        if (value[k] === "(") level++;
+        else if (value[k] === ")") {
+          if (level === 0) break;
+          level--;
+        }
+      }
+      fb = value.slice(j + 1, k).trim();
+      j = k;
+    }
+    if (value[j] !== ")") {
+      out += value[i++];
+      continue;
+    }
+    const name = m[1];
+    out +=
       rootVars[name] !== undefined
         ? rootVars[name]
         : fb !== undefined
-          ? fb.trim()
-          : `var(${name})`,
-  );
+          ? fb
+          : `var(${name})`;
+    i = j + 1;
+  }
   return out === value ? out : substitute(rootVars, out, depth + 1);
 }
 const remToPx = (v) =>
@@ -119,7 +149,7 @@ export function resolveBuilderGeneratedSheets(rootFiles) {
  */
 export function normalizeDimension(prop, value, fontPx) {
   let out = "";
-  for (let i = 0; i < value.length; ) {
+  for (let i = 0; i < value.length;) {
     if (!value.startsWith("calc(", i)) {
       out += value[i++];
       continue;
@@ -143,7 +173,11 @@ export function normalizeDimension(prop, value, fontPx) {
       : whole;
     i = j + 1;
   }
-  if (prop === "line-height" && /^\d*\.?\d+(e-?\d+)?$/.test(out) && fontPx !== undefined)
+  if (
+    prop === "line-height" &&
+    /^\d*\.?\d+(e-?\d+)?$/.test(out) &&
+    fontPx !== undefined
+  )
     out = `${Math.round(Number(out) * fontPx * 1000) / 1000}px`;
   return out;
 }
@@ -155,7 +189,8 @@ export function normalizedEntries(entries) {
     const [block, prop] = key.split(" | ");
     const font = entries[`${block} | font-size`];
     const fontPx =
-      font !== undefined && /^\d*\.?\d+px$/.test(normalizeDimension("font-size", font))
+      font !== undefined &&
+      /^\d*\.?\d+px$/.test(normalizeDimension("font-size", font))
         ? Number.parseFloat(normalizeDimension("font-size", font))
         : undefined;
     out[key] = normalizeDimension(prop, value, fontPx);

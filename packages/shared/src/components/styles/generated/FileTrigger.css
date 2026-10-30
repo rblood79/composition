@@ -38,7 +38,7 @@
   font-weight: 500;
   border-width: var(--border-width-thin);
   gap: 8px;
-  --icon-size: var(--catalog-token-file-trigger-icon-size-M, var(--catalog-token-size-icon-M));
+  --icon-size: var(--catalog-token-file-trigger-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
   --icon-gap: 8px;
 }
 
@@ -70,7 +70,7 @@
   font-weight: 500;
   border-width: var(--border-width-thin);
   gap: 6px;
-  --icon-size: var(--catalog-token-file-trigger-icon-size-S, var(--catalog-token-size-icon-S));
+  --icon-size: var(--catalog-token-file-trigger-icon-size-S, calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)));
   --icon-gap: 6px;
 }
 
@@ -83,7 +83,7 @@
   font-weight: 500;
   border-width: var(--border-width-thin);
   gap: 8px;
-  --icon-size: var(--catalog-token-file-trigger-icon-size-M, var(--catalog-token-size-icon-M));
+  --icon-size: var(--catalog-token-file-trigger-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
   --icon-gap: 8px;
 }
 
@@ -96,7 +96,7 @@
   font-weight: 500;
   border-width: var(--border-width-thin);
   gap: 10px;
-  --icon-size: var(--catalog-token-file-trigger-icon-size-L, var(--catalog-token-size-icon-L));
+  --icon-size: var(--catalog-token-file-trigger-icon-size-L, calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)));
   --icon-gap: 10px;
 }
 

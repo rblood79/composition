@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-295 Phase 3c-1 — 컨트롤 아이콘 = 글자의 행간 · 글자 크기 (S2 1lh · 1em)] - 2026-10-30
+
+### Fixed
+
+- **터치 기기 · 「터치 크기로 미리보기」 에서 컨트롤 안 아이콘이 S2 크기가 된다** — Button · ToggleButton · FileTrigger · SearchField 의 아이콘은 그 크기 글자의 행간 (S2 `1lh`) 이라 터치에서 18 · 22 · 24 · 26 (종전 × 1.25 의 20 · 22.5 · 25 · 27.5). desktop 값은 그대로.
+
+### Changed
+
+- DatePicker · DateRangePicker 달력 아이콘 = 그 크기의 글자 크기 (S2 `1em`) — desktop S ~ XL 16 · 18 · 20 · 22 → 12 · 14 · 16 · 18. 빌더 화면은 그대로다 (295 전 값 고정).
+
 ## [ADR-295 Phase 3b — S2 아이콘 단 14 · 16 · 18 · 20 · 22 · 리터럴 ratchet] - 2026-10-30
 
 ### Changed

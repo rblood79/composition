@@ -29,6 +29,8 @@ Accepted — 2026-10-30 (사용자 `/execute-adr 295` + [reviews/295.md](reviews
 
 > **Phase 3b (2026-10-30)** — S2 공개 아이콘 단 (`iconStyle` 14 · 16 · 18 · 20 · 22, 터치 × 1.25) 을 `{size.icon.<S>}` 토큰으로 두고 컨트롤 안 아이콘 (Button · ToggleButton · Select · ComboBox · SearchField · NumberField · DatePicker · DateRangePicker · FileTrigger) 과 Icon 컴포넌트가 참조한다 — Select · ComboBox 트리거 L · XL 가 S2 높이 40 · 48 이 됐다. S2 ui-icon 표 (chevron · 지우기 — 여백 없는 전용 글리프) 는 lucide 글리프에 옮기지 않고 사유와 함께 리터럴. radius 0 · 10 · Popover 16 · TagList 빈 틀 높이도 토큰. G3 ratchet (다섯 키는 `INTENTIONAL_LITERAL` 밖 리터럴 0 · 나머지 키는 상한) · G4 `d3S2Alignment` (토큰 표 · 상수 · 컴포넌트 값 = 추출기 oracle) — 둘 다 원복 RED. G2 두 arm 263/263. minWidth (높이 비례) 는 3c. 상세 breakdown §6.4.
 
+> **Phase 3c-1 (2026-10-30)** — S2 control 아이콘은 `size: '1lh'` (Button · ActionButton · SearchField) · `1em` (DatePicker 달력) 이다 — desktop 은 아이콘 단과 같지만 터치는 글자 행간 (18 · 22 · 24 · 26) 이라 × 1.25 와 반 px 씩 갈렸다. Decision 3 의 `{ em }` 객체 대신 이미 두 벌인 글자 · 행간 토큰을 참조한다 (`{typography.<글자>--line-height}` · `{typography.<글자>}` — 생성 CSS 는 글자 × 행간 비율, 빌더는 3b 의 컴포넌트 고정값). G4 터치 차이 표 → 두 벌 일치 단언 (원복 RED). G2 두 arm 263/263. minWidth · ListBoxItem (생성 시트에서 사라지는 선언의 빌더 고정 필요) 은 3c-2. 상세 breakdown §6.5.
+
 > 구현 상세: [design/295-d3-token-values-s2-alignment-breakdown.md](design/295-d3-token-values-s2-alignment-breakdown.md)
 
 ## Context

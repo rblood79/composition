@@ -23,7 +23,7 @@
   min-width: 90px;
   gap: 8px;
   column-gap: 0px;
-  --icon-size: var(--catalog-token-search-field-icon-size-M, var(--catalog-token-size-icon-M));
+  --icon-size: var(--catalog-token-search-field-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
 }
 
 .react-aria-SearchField[data-size="S"] {
@@ -32,7 +32,7 @@
   min-width: 66px;
   gap: 6px;
   column-gap: 0px;
-  --icon-size: var(--catalog-token-search-field-icon-size-S, var(--catalog-token-size-icon-S));
+  --icon-size: var(--catalog-token-search-field-icon-size-S, calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)));
 }
 
 .react-aria-SearchField[data-size="M"] {
@@ -41,7 +41,7 @@
   min-width: 90px;
   gap: 8px;
   column-gap: 0px;
-  --icon-size: var(--catalog-token-search-field-icon-size-M, var(--catalog-token-size-icon-M));
+  --icon-size: var(--catalog-token-search-field-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
 }
 
 .react-aria-SearchField[data-size="L"] {
@@ -50,7 +50,7 @@
   min-width: 126px;
   gap: 10px;
   column-gap: 0px;
-  --icon-size: var(--catalog-token-search-field-icon-size-L, var(--catalog-token-size-icon-L));
+  --icon-size: var(--catalog-token-search-field-icon-size-L, calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)));
 }
 
 .react-aria-SearchField[data-size="XL"] {
@@ -59,7 +59,7 @@
   min-width: 162px;
   gap: 10px;
   column-gap: 0px;
-  --icon-size: var(--catalog-token-search-field-icon-size-XL, var(--catalog-token-size-icon-XL));
+  --icon-size: var(--catalog-token-search-field-icon-size-XL, calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)));
 }
 
 .react-aria-SearchField[data-focus-visible] {

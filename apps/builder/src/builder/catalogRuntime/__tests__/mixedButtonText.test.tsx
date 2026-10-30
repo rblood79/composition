@@ -190,7 +190,7 @@ describe("resolved Icon box in DOM", () => {
     ["XS", 14],
     ["S", 16],
     ["M", 18],
-    // (ADR-295 Phase 3b: the S2 icon steps — `iconStyle` L 20 · XL 22.)
+    // (ADR-295 Phase 3b · 3c: the S2 `1lh` of the size's font — 14 · 16 · 18 · 20 · 22 on desktop.)
     ["L", 20],
     ["XL", 22],
   ] as const)
@@ -217,8 +217,12 @@ describe("resolved Icon box in DOM", () => {
       const dom = host.querySelector<HTMLElement>(
         `[data-catalog-id="${icon.id}"]`,
       )!;
-      // (ADR-295 Phase 3b: the S2 icon step goes inline as its device variable — `expected` on desktop.)
-      expect(dom.style.height).toBe(`var(--catalog-token-size-icon-${size})`);
+      // (ADR-295 Phase 3c: the S2 `1lh` — the size's font line — goes inline over the device font and
+      //   line variables, `expected` on desktop.)
+      const font = { XS: "2xs", S: "xs", M: "sm", L: "base", XL: "lg" }[size];
+      expect(dom.style.height).toBe(
+        `calc(var(--catalog-token-text-${font}) * var(--catalog-token-text-${font}--line-height))`,
+      );
       expect(root.getGeometry([icon.id]).get(icon.id)!.height).toBe(expected);
       workspace.execute(
         setFields({

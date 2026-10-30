@@ -16,6 +16,7 @@ import {
   ARCHETYPE_BASE_STYLES,
   cssVarToTokenRef,
   deriveAutoDelegationVariables,
+  ICON_SIZE_TOKEN_REF,
   resolveToken,
   type TokenRef,
 } from "@composition/rendering";
@@ -801,7 +802,9 @@ export function catalogListSectionHeaderSticky():
         })()
       : lengthPx(value);
     if (px === undefined)
-      throw new Error(`CATALOG_STICKY_INSET_UNRESOLVED:ListBox:${side}:${value}`);
+      throw new Error(
+        `CATALOG_STICKY_INSET_UNRESOLVED:ListBox:${side}:${value}`,
+      );
     out[`inset${side[0].toUpperCase()}${side.slice(1)}` as keyof typeof out] =
       px;
   }
@@ -1253,9 +1256,10 @@ function contextualHelpPartRules(parentType: string): CompiledPartRule[] {
             fill: "transparent",
           },
         },
-        // (ADR-295 Phase 3b: the Button's S2 icon step keeps its ref — a token value in the library.)
+        // (ADR-295 Phase 3b · 3c: the Button's S2 icon — a step, or its line `1lh` · font `1em` — keeps
+        //   its ref, a token value in the library.)
         ...(typeof icon === "number" ||
-        (typeof icon === "string" && /^\{size\.icon\.[A-Z]+\}$/.test(icon))
+        (typeof icon === "string" && ICON_SIZE_TOKEN_REF.test(icon))
           ? [
               {
                 childType: "Icon",

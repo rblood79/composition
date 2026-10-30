@@ -40,7 +40,7 @@
   border-width: var(--border-width-thin);
   min-height: var(--catalog-token-size-height-M);
   gap: 8px;
-  --icon-size: var(--catalog-token-button-icon-size-M, var(--catalog-token-size-icon-M));
+  --icon-size: var(--catalog-token-button-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
   --icon-gap: 8px;
 }
 
@@ -146,7 +146,7 @@
   border-width: var(--border-width-thin);
   min-height: var(--catalog-token-size-height-XS);
   gap: 4px;
-  --icon-size: var(--catalog-token-button-icon-size-XS, var(--catalog-token-size-icon-XS));
+  --icon-size: var(--catalog-token-button-icon-size-XS, calc(var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height)));
   --icon-gap: 4px;
 }
 
@@ -159,7 +159,7 @@
   border-width: var(--border-width-thin);
   min-height: var(--catalog-token-size-height-S);
   gap: 6px;
-  --icon-size: var(--catalog-token-button-icon-size-S, var(--catalog-token-size-icon-S));
+  --icon-size: var(--catalog-token-button-icon-size-S, calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)));
   --icon-gap: 6px;
 }
 
@@ -172,7 +172,7 @@
   border-width: var(--border-width-thin);
   min-height: var(--catalog-token-size-height-M);
   gap: 8px;
-  --icon-size: var(--catalog-token-button-icon-size-M, var(--catalog-token-size-icon-M));
+  --icon-size: var(--catalog-token-button-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
   --icon-gap: 8px;
 }
 
@@ -185,7 +185,7 @@
   border-width: var(--border-width-thin);
   min-height: var(--catalog-token-size-height-L);
   gap: 10px;
-  --icon-size: var(--catalog-token-button-icon-size-L, var(--catalog-token-size-icon-L));
+  --icon-size: var(--catalog-token-button-icon-size-L, calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)));
   --icon-gap: 10px;
 }
 
@@ -198,7 +198,7 @@
   border-width: var(--border-width-thin);
   min-height: var(--catalog-token-size-height-XL);
   gap: 12px;
-  --icon-size: var(--catalog-token-button-icon-size-XL, var(--catalog-token-size-icon-XL));
+  --icon-size: var(--catalog-token-button-icon-size-XL, calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)));
   --icon-gap: 12px;
 }
 

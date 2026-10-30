@@ -216,6 +216,8 @@ export {
   borderWidthToCSS,
   resolveColor,
   tokenToCSSVar,
+  tokenToCSSLength,
+  ICON_SIZE_TOKEN_REF,
   colorTokenCssValue,
   colorTokenCssNames,
   cssVarToTokenRef,

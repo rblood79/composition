@@ -19,6 +19,7 @@ import type {
 import type { ShadowTokenRef, TokenRef } from "../types/token.types";
 import {
   tokenToCSSVar,
+  tokenToCSSLength,
   resolveFocusRingToken,
   borderWidthToCSS,
 } from "./utils/tokenResolver";
@@ -718,7 +719,10 @@ export function catalogTokenVarName(chromeName: string): string {
 }
 
 export function withCatalogTokenVars(css: string): string {
-  return css.replace(CATALOG_TOKEN_VAR_SOURCE, `var(${CATALOG_TOKEN_VAR_PREFIX}$1`);
+  return css.replace(
+    CATALOG_TOKEN_VAR_SOURCE,
+    `var(${CATALOG_TOKEN_VAR_PREFIX}$1`,
+  );
 }
 
 /**
@@ -1149,7 +1153,8 @@ function generateSizeStyles(
     // ADR-295 Phase 3b: an S2 icon step (`{size.icon.<S>}` — the device variable), behind the
     //   component's own pin: the builder root declares the pre-295 px there (Decision 8 · 9 — the
     //   builder reads this sheet), the Preview · Publish root does not, so the step is the value.
-    const step = tokenToCSSVar(size.iconSize as TokenRef);
+    //   (Phase 3c: a line-height ref — S2 `1lh` — is the font × the ratio, `tokenToCSSLength`.)
+    const step = tokenToCSSLength(size.iconSize as TokenRef);
     lines.push(
       `  --icon-size: ${options?.iconPin ? `var(${options.iconPin}, ${step})` : step};`,
     );

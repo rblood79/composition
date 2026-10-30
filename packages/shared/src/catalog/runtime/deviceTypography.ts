@@ -58,6 +58,25 @@ export function catalogDeviceTypographyCss(
 const SIZE_HEIGHT_REF = /^\{size\.height\.([A-Z]+)\}$/;
 /** A width · height square of an S2 control height or icon step (ADR-295 Phase 3 · 3b). */
 const SIZE_SIDE_REF = /^\{size\.(height|icon)\.([A-Z]+)\}$/;
+const TYPOGRAPHY_LENGTH_REF =
+  /^\{typography\.(text-[a-z0-9-]+?)(--line-height)?\}$/;
+
+/**
+ * ADR-295 Phase 3b · 3c — the device-set CSS length of a token a record's side · glyph came from: an S2
+ * control height or icon step (`var(--catalog-token-size-<axis>-<S>)`), a font size (S2 `1em` — the
+ * font variable) or a font's line (S2 `1lh` — font × the unitless line ratio). `undefined` for any other.
+ */
+export function catalogDeviceLength(ref: string): string | undefined {
+  const side = SIZE_SIDE_REF.exec(ref);
+  if (side) return `var(--catalog-token-size-${side[1]}-${side[2]})`;
+  const text = TYPOGRAPHY_LENGTH_REF.exec(ref);
+  if (!text) return undefined;
+  const name = text[1] === "text-md" ? "text-base" : text[1]!;
+  const font = `var(${catalogTokenVarName(`--${name}`)})`;
+  return text[2]
+    ? `calc(${font} * var(${catalogTokenVarName(`--${name}--line-height`)}))`
+    : font;
+}
 
 const px = (value: unknown): number | undefined =>
   typeof value === "number"
@@ -83,9 +102,9 @@ export function catalogDeviceControlCss(
   //   (a Button's · Disclosure trigger's Icon — Phase 3b): its sides.
   for (const key of ["width", "height"] as const) {
     const sideRef = catalogResolvedTokenRef(visual, key);
-    const side = sideRef ? SIZE_SIDE_REF.exec(sideRef) : null;
+    const side = sideRef ? catalogDeviceLength(sideRef) : undefined;
     if (side && resolveToken(sideRef as TokenRef) === px(style[key]))
-      style[key] = `var(--catalog-token-size-${side[1]}-${side[2]})`;
+      style[key] = side;
   }
   const ref = catalogResolvedTokenRef(visual, "minHeight");
   const size = ref ? SIZE_HEIGHT_REF.exec(ref)?.[1] : undefined;
@@ -117,12 +136,11 @@ export function catalogDeviceControlCss(
 
 const CATALOG_SIZE_HEIGHT_VAR = "--catalog-token-size-height-";
 
-const SIZE_ICON_REF = /^\{size\.icon\.([A-Z]+)\}$/;
-
 /**
- * ADR-295 Phase 3b — a glyph's icon square follows the device set: when the record's `iconSize` is still
- * the installed value of an S2 icon step (`{size.icon.<S>}`) and no authored font size overrides it, the
- * step's device variable (`--catalog-token-size-icon-<S>` — the touch set × 1.25), else `undefined`.
+ * ADR-295 Phase 3b · 3c — a glyph's icon square follows the device set: when the record's `iconSize` is
+ * still the installed value of its token — an S2 icon step (`{size.icon.<S>}`, the touch set × 1.25) or a
+ * control's font line · font (S2 `1lh` · `1em` — the touch font and line) — and no authored font size
+ * overrides it, that token's device length (`catalogDeviceLength`), else `undefined`.
  */
 export function catalogDeviceGlyphSize(
   visual: Readonly<Record<string, unknown>>,
@@ -130,10 +148,9 @@ export function catalogDeviceGlyphSize(
   if (typeof visual.fontSize === "number" && visual.fontSize > 0)
     return undefined;
   const ref = catalogResolvedTokenRef(visual, "iconSize");
-  const step = ref ? SIZE_ICON_REF.exec(ref)?.[1] : undefined;
-  if (!step || resolveToken(ref as TokenRef) !== visual.iconSize)
+  if (!ref || resolveToken(ref as TokenRef) !== visual.iconSize)
     return undefined;
-  return `var(--catalog-token-size-icon-${step})`;
+  return catalogDeviceLength(ref);
 }
 
 /**
@@ -162,7 +179,9 @@ export function catalogDeviceRowsHeightCss(
   )
     return;
   const name = catalogFontSizeToken(visual);
-  const font = name ? `var(${catalogTokenVarName(`--${name}`)})` : `${fontSize}px`;
+  const font = name
+    ? `var(${catalogTokenVarName(`--${name}`)})`
+    : `${fontSize}px`;
   const line =
     name &&
     Math.abs(

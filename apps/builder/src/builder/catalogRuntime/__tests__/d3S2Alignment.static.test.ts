@@ -179,38 +179,38 @@ describe("ADR-295 G4 (c) — 컴포넌트 값 = S2 computed", () => {
         );
   });
 
-  it("Button · ToggleButton 아이콘 (desktop) = S2 Button · ToggleButton 의 svg", () => {
-    const pairs = [
-      ["Button", "ButtonIcon"],
-      ["ToggleButton", "ToggleButtonIcon"],
-    ] as const;
-    for (const [type, family] of pairs)
-      for (const [size, devices] of Object.entries(icons[family]!)) {
-        const ref = rules[type]!.sizes[size]!.iconSize as TokenRef;
-        expect(ref).toBe(`{size.icon.${size}}`);
-        expect(resolveToken(ref), `${type} ${size}`).toBe(
-          devices.desktop[0]!.w,
-        );
-      }
-  });
-
   /**
-   * 터치의 차이 (3c 에서 `{ em }` 형으로): S2 control 안 아이콘은 글자 상대 (`fontRelative` — 18/14 em ×
-   * 17 = 22) 라 `size()` 배율 (× 1.25 = 22.5) 과 반 px 씩 다르다. 이 표가 바뀌면 3c 가 닫은 것 — 갱신한다.
+   * Phase 3c — S2 control 안 아이콘은 `size: '1lh'` (그 글자의 행간 상자) · DatePicker 달력은 `1em` (글자
+   * 크기) 이다. desktop 은 아이콘 단 (14 ~ 22) 과 같은 값이라 3b 의 `{size.icon}` 로도 맞았지만, 터치는 글자
+   * 15 · 17 · 19 · 22 의 행간 (18 · 22 · 24 · 26) 이라 × 1.25 (20 · 22.5 · 25 · 27.5) 와 갈렸다.
    */
-  it("Button 아이콘의 터치 차이는 알려진 표 그대로다 (3c)", () => {
-    const touch = s2SizeTokens(S2_DEVICE.touch.scale);
-    const gaps = Object.fromEntries(
-      Object.entries(icons.ButtonIcon!).map(([size, devices]) => [
-        size,
-        [touch[`icon.${size}`], devices.touch[0]!.w],
-      ]),
-    );
-    expect(gaps).toEqual({
-      S: [20, 18],
-      M: [22.5, 22],
-      L: [25, 24],
-      XL: [27.5, 26],
-    });
+  it.each([
+    ["Button", "ButtonIcon", "1lh"],
+    ["ToggleButton", "ToggleButtonIcon", "1lh"],
+    ["SearchField", "SearchField", "1lh"],
+    ["DatePicker", "DatePicker", "1em"],
+  ] as const)("%s 아이콘 = S2 %s 의 svg (두 벌 — %s)", (type, family, form) => {
+    for (const [size, devices] of Object.entries(icons[family]!)) {
+      const font = /^\{typography\.(text-[\w-]+)\}$/.exec(
+        rules[type]!.sizes[size]!.fontSize as string,
+      )![1]!;
+      expect(rules[type]!.sizes[size]!.iconSize, `${type} ${size}`).toBe(
+        form === "1lh"
+          ? `{typography.${font}--line-height}`
+          : `{typography.${font}}`,
+      );
+      const step = TYPOGRAPHY_STEPS[font as keyof typeof TYPOGRAPHY_STEPS];
+      for (const device of ["desktop", "touch"] as const) {
+        const fontSize = s2FontSize(step, S2_DEVICE[device].fontBase);
+        expect(
+          form === "1lh" ? s2LineHeight(fontSize) : fontSize,
+          `${type} ${size} ${device}`,
+        ).toBe(devices[device][0]!.w);
+      }
+      expect(
+        resolveToken(rules[type]!.sizes[size]!.iconSize as TokenRef),
+        `${type} ${size} installed`,
+      ).toBe(devices.desktop[0]!.w);
+    }
   });
 });

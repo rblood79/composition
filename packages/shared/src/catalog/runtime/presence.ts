@@ -30,6 +30,7 @@ import { CATALOG_TOGGLE_GROUP_OF } from "../document/sizePropagation";
 import { catalogAncestorInherited } from "./inheritedProps";
 import { CATALOG_INHERITED_RECEIVERS } from "./providerContexts";
 import { RAC_SLOT_PROVIDERS } from "../generated/racSlotProviders";
+import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import { MANUAL_ITEM_LABEL_COLORS } from "../document/manualBoxRules";
 import {
   catalogListItemFlexShrink,
@@ -1299,13 +1300,17 @@ export interface CatalogComposedPart {
 const TREE_CHEVRON_WIDTH = 20;
 const TREE_LEVEL_PADDING = 16;
 /**
- * The chevron glyph's box: the button's content height — its Icon's S2 icon step (the chevron Button
- * is size S — `{size.icon.S}`, 16 desktop · the touch set × 1.25). A leaf item's hidden glyph keeps
- * its box in the DOM (`visibility: hidden`), so the Canvas floor reads the installed step too
- * (ADR-295 Phase 3b).
+ * The chevron glyph's box: the button's content height — its Icon, the Button rule's size-S icon (the
+ * chevron Button is size S — S2 `1lh` of its font since ADR-295 Phase 3c: 16 desktop · 18 touch). A
+ * leaf item's hidden glyph keeps its box in the DOM (`visibility: hidden`), so the Canvas floor reads
+ * the same token in the installed maps (Phase 3b · 3c).
  */
 const treeChevronIcon = (): number =>
-  Number(resolveToken("{size.icon.S}" as TokenRef));
+  Number(
+    resolveToken(
+      COMPONENT_RULES_TABLE.Button!.sizes.S!.iconSize as unknown as TokenRef,
+    ),
+  );
 
 /**
  * A TreeItem's level (1 = child of the Tree). A TreeItem outside a Tree is a level-1 row of its

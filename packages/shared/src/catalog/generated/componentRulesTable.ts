@@ -1253,6 +1253,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   생성 CSS `min-width` 와 Canvas `styleOf` 의 min_width 가 함께 사라진다.
     // (A field's own button: its size's corner — `FIELD_BUTTON_CORNERS`; the sizes are S2's pill.)
     containerVariants: { "field-button": FIELD_BUTTON_CORNER_VARIANTS },
+    // iconSize = 그 크기 글자의 행간 (ADR-295 Phase 3c — S2 Button 아이콘 `size: '1lh'`: desktop 14 · 16 · 18 · 20 · 22 는
+    //   S2 아이콘 단과 같고, 터치는 글자 15 · 17 · 19 · 22 의 행간 18 · 22 · 24 · 26 — × 1.25 가 아니다).
     sizes: {
       XS: {
         fontSize: "{typography.text-2xs}",
@@ -1262,7 +1264,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: "{border.width.thin}",
         height: 0,
         minHeight: "{size.height.XS}",
-        iconSize: "{size.icon.XS}",
+        iconSize: "{typography.text-2xs--line-height}",
         paddingX: 4,
         paddingY: 2,
         gap: 4,
@@ -1276,7 +1278,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: "{border.width.thin}",
         height: 0,
         minHeight: "{size.height.S}",
-        iconSize: "{size.icon.S}",
+        iconSize: "{typography.text-xs--line-height}",
         paddingX: 8,
         paddingY: 3,
         gap: 6,
@@ -1290,7 +1292,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: "{border.width.thin}",
         height: 0,
         minHeight: "{size.height.M}",
-        iconSize: "{size.icon.M}",
+        iconSize: "{typography.text-sm--line-height}",
         paddingX: 12,
         paddingY: 6,
         gap: 8,
@@ -1304,7 +1306,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: "{border.width.thin}",
         height: 0,
         minHeight: "{size.height.L}",
-        iconSize: "{size.icon.L}",
+        iconSize: "{typography.text-base--line-height}",
         paddingX: 16,
         paddingY: 9,
         gap: 10,
@@ -1318,7 +1320,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: "{border.width.thin}",
         height: 0,
         minHeight: "{size.height.XL}",
-        iconSize: "{size.icon.XL}",
+        iconSize: "{typography.text-lg--line-height}",
         paddingX: 24,
         paddingY: 12,
         gap: 12,
@@ -3650,35 +3652,36 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   + Calendar)라 height 는 자식 합산 auto(md=54) 여야 한다 — CSS preview 동일(.react-aria-DatePicker
     //   height 미지정 → 54). 기존 height(30) 는 입력 box height 인 척하던 잘못된 결합으로, 입력 box height 는
     //   입력 box (field 의 control Group, 옛 SelectTrigger — ADR-256 Phase 6b) 안 부품의 높이로 정해진다. Select/ComboBox/NumberField/SearchField 가 TRACK_HEIGHT_TYPES 로 패널 height 축 제외된 것과 동형.
+    // iconSize = 그 크기의 글자 크기 (ADR-295 Phase 3c — S2 DatePicker 달력 아이콘은 글자 상자 `1em`: 12 · 14 · 16 · 18).
     sizes: {
       XS: {
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.xs}",
-        iconSize: "{size.icon.XS}",
+        iconSize: "{typography.text-2xs}",
         gap: 2,
       },
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: 7,
-        iconSize: "{size.icon.S}",
+        iconSize: "{typography.text-xs}",
         gap: 4,
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: 8,
-        iconSize: "{size.icon.M}",
+        iconSize: "{typography.text-sm}",
         gap: 4,
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: 9,
-        iconSize: "{size.icon.L}",
+        iconSize: "{typography.text-base}",
         gap: 4,
       },
       XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: 10,
-        iconSize: "{size.icon.XL}",
+        iconSize: "{typography.text-lg}",
         gap: 8,
       },
     },
@@ -3892,35 +3895,36 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // ADR-912 단계5 step4 (2026-06-17): gap 보강 — spec.sizes(DATE_PICKER_SIZES 공유) 의 gap 이관 (DatePicker 동일).
     // height 키 제거 (2026-06-23): DatePicker 동형 — 컨테이너 height 는 자식 합산 auto, 입력 box height 는
     //   control Group 안 부품의 높이. 상세는 DatePicker entry 주석 참조.
+    // iconSize = 그 크기의 글자 크기 (ADR-295 Phase 3c — S2 DateRangePicker 달력 아이콘 `1em`, DatePicker 와 같다).
     sizes: {
       XS: {
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.xs}",
-        iconSize: "{size.icon.XS}",
+        iconSize: "{typography.text-2xs}",
         gap: 2,
       },
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: 7,
-        iconSize: "{size.icon.S}",
+        iconSize: "{typography.text-xs}",
         gap: 4,
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: 8,
-        iconSize: "{size.icon.M}",
+        iconSize: "{typography.text-sm}",
         gap: 4,
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: 9,
-        iconSize: "{size.icon.L}",
+        iconSize: "{typography.text-base}",
         gap: 4,
       },
       XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: 10,
-        iconSize: "{size.icon.XL}",
+        iconSize: "{typography.text-lg}",
         gap: 8,
       },
     },
@@ -5145,6 +5149,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // iconSize = 그 크기 글자의 행간 (ADR-295 Phase 3c — S2 에서 이 자리는 Button: 아이콘 `size: '1lh'`).
     sizes: {
       // 2026-10-25 사용자 요청 「FILETRIGGER 의 size(s,m,l) 모두 button 컴퍼넌트 size(s,m,l) 의 정보와
       //   동일하게」 — Button rule 의 S · M · L 과 같은 값 (height 0 = 내용 + paddingY). 전에는 고정
@@ -5156,7 +5161,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.sm}",
         borderWidth: "{border.width.thin}",
         height: 0,
-        iconSize: "{size.icon.S}",
+        iconSize: "{typography.text-xs--line-height}",
         paddingX: 8,
         paddingY: 2,
         gap: 6,
@@ -5169,7 +5174,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.md}",
         borderWidth: "{border.width.thin}",
         height: 0,
-        iconSize: "{size.icon.M}",
+        iconSize: "{typography.text-sm--line-height}",
         paddingX: 12,
         paddingY: 4,
         gap: 8,
@@ -5182,7 +5187,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.lg}",
         borderWidth: "{border.width.thin}",
         height: 0,
-        iconSize: "{size.icon.L}",
+        iconSize: "{typography.text-base--line-height}",
         paddingX: 16,
         paddingY: 8,
         gap: 10,
@@ -9322,6 +9327,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
       //   재생성용 (SearchField.spec.sizes 미러). paddingY 는 composition.layout=flex-column root 가
       //   ownsContainerBox → padding 미emit 이라 보강 불요(gap 만).
+      // iconSize = 그 크기 글자의 행간 (S2 control 안 아이콘 `size: '1lh'` — 터치 15 · 17 · 19 · 22 글자의 행간).
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
@@ -9329,7 +9335,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minWidth: 66, // Spectrum 3×height — 식별성 하한 (2026-08-21)
         gap: 6,
         columnGap: 0,
-        iconSize: "{size.icon.S}",
+        iconSize: "{typography.text-xs--line-height}",
       },
       M: {
         fontSize: "{typography.text-sm}",
@@ -9338,7 +9344,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minWidth: 90,
         gap: 8,
         columnGap: 0,
-        iconSize: "{size.icon.M}",
+        iconSize: "{typography.text-sm--line-height}",
       },
       L: {
         fontSize: "{typography.text-base}",
@@ -9347,7 +9353,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minWidth: 126,
         gap: 10,
         columnGap: 0,
-        iconSize: "{size.icon.L}",
+        iconSize: "{typography.text-base--line-height}",
       },
       XL: {
         fontSize: "{typography.text-lg}",
@@ -9356,7 +9362,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minWidth: 162,
         gap: 10,
         columnGap: 0,
-        iconSize: "{size.icon.XL}",
+        iconSize: "{typography.text-lg--line-height}",
       },
     },
     // ADR-913 후속 fix (2026-06-19): label-position:side 를 grid → flex-row 로 통일 (DateField/
@@ -12962,6 +12968,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // iconSize = 그 크기 글자의 행간 (ADR-295 Phase 3c — S2 ActionButton 계열 아이콘 `size: '1lh'`, Button 과 같다).
     sizes: {
       XS: {
         paddingX: 4,
@@ -12974,7 +12981,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minHeight: "{size.height.XS}",
         paddingY: 2,
         gap: 4,
-        iconSize: "{size.icon.XS}",
+        iconSize: "{typography.text-2xs--line-height}",
       },
       S: {
         paddingX: 8,
@@ -12987,7 +12994,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minHeight: "{size.height.S}",
         paddingY: 3,
         gap: 6,
-        iconSize: "{size.icon.S}",
+        iconSize: "{typography.text-xs--line-height}",
       },
       M: {
         paddingX: 12,
@@ -13000,7 +13007,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minHeight: "{size.height.M}",
         paddingY: 6,
         gap: 8,
-        iconSize: "{size.icon.M}",
+        iconSize: "{typography.text-sm--line-height}",
       },
       L: {
         paddingX: 16,
@@ -13013,7 +13020,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minHeight: "{size.height.L}",
         paddingY: 9,
         gap: 10,
-        iconSize: "{size.icon.L}",
+        iconSize: "{typography.text-base--line-height}",
       },
       XL: {
         paddingX: 24,
@@ -13026,7 +13033,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minHeight: "{size.height.XL}",
         paddingY: 12,
         gap: 12,
-        iconSize: "{size.icon.XL}",
+        iconSize: "{typography.text-lg--line-height}",
       },
     },
     structure: {

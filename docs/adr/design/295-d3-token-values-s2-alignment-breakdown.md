@@ -352,6 +352,37 @@ size 키: XS 35 · S 102 · M 130 · L 101 · XL 58 · XXL 3.
 
 **3c 로 넘긴 것**: minWidth (TextField 1.5 × · SearchField 3 × 높이 — `{ ofHeight }` 형) · ListBoxItem minHeight · Button 계열 터치 아이콘 `{ em }` 형 · ComboBox · picker 안 버튼 상자 · toggle indicator · padding · gap.
 
+### 6.5 Phase 3c-1 (2026-10-30, 컨트롤 아이콘의 값의 형)
+
+> **3c 분할 (실행 판단 — 사후 보고)**: 3c 를 셋으로 나눈다 — 3c-1 아이콘의 형 (이 절) · 3c-2 생성 시트에서 사라지는 선언의 빌더 고정 (minWidth · ListBoxItem) + field 안 버튼 상자 · toggle indicator · 3c-3 padding · gap 정렬 (사용자 결정 1) + 컴포넌트 글자 매핑 (G4 c).
+
+**발견 — S2 control 아이콘의 형은 `{ em }` 이 아니라 행간**: S2 `Button.tsx` · `ActionButton.tsx` 의 아이콘은 `size: '1lh'` (그 글자의 행간 상자) 이다. desktop 은 글자 11 · 12 · 14 · 16 · 18 의 행간 14 · 16 · 18 · 20 · 22 로 아이콘 단과 같은 값이라 3b 의 `{size.icon}` 로도 맞았지만, 터치는 글자 13 · 15 · 17 · 19 · 22 의 행간 16 · 18 · 22 · 24 · 26 이라 × 1.25 (17.5 · 20 · 22.5 · 25 · 27.5) 와 갈렸다 (3b 「알려진 터치 차이 표」). SearchField 글리프도 같은 `1lh` (oracle 16 · 18 · 20 · 22 → 18 · 22 · 24 · 26). DatePicker 달력 아이콘은 글자 크기 `1em` (12 · 14 · 16 · 18 → 15 · 17 · 19 · 22) — 3b 가 `{size.icon}` (M 18) 로 둔 것이 S2 (M 14) 와 달랐다. 그래서 새 형 (`{ em }` 객체) 대신 **이미 두 벌인 글자 · 행간 토큰을 참조** 한다 — 기기 두 벌 · 토큰 출처 · 빌더 고정이 그대로 따라온다.
+
+**변경**:
+
+| 영역 | 파일 | 내용 |
+| --- | --- | --- |
+| rule | `componentRulesTable.ts` | iconSize: Button · ToggleButton · FileTrigger · SearchField → `{typography.<그 크기 글자>--line-height}` (S2 `1lh`) · DatePicker · DateRangePicker → `{typography.<글자>}` (S2 `1em` — desktop M 18 → 14). Select · ComboBox chevron · NumberField 증감은 ui-icon 자리라 3b 그대로 |
+| 생성 CSS | rendering `tokenResolver.ts` (`tokenToCSSLength` · `ICON_SIZE_TOKEN_REF`) · `CSSGenerator.ts` | 행간 토큰은 CSS 에서 단위 없는 비율이라 길이 자리에서는 `calc(var(--…-text-sm) * var(--…-text-sm--line-height))`. 컴포넌트 고정 변수 (3b) 뒤의 fallback 이라 빌더는 295 전 px |
+| 정의 | `codeCatalogLibrary.ts` (part visual 의 token 변환) · `rulePartRules.ts` (Button 의 Icon 자식) | 글자 · 행간 ref 도 library token 값으로 (출처 기억) — `ICON_SIZE_TOKEN_REF` 한 술어 |
+| DOM 터치 | `deviceTypography.ts` (`catalogDeviceLength`) | 글리프 · 부품 변 (`width` · `height`) 의 기기 길이: size 토큰 → 변수, 글자 → 글자 변수, 행간 → 글자 × 행간 비율 |
+| Canvas | `presence.ts` (`treeChevronIcon`) | Tree 잎 항목의 숨은 chevron 상자 하한 = Button rule 의 S 아이콘 토큰 (3b 는 `{size.icon.S}` 고정 — 터치 arm Tree S · M · L 이 Canvas 20 · DOM 18 로 갈렸다) |
+| 게이트 도구 | `apps/builder/scripts/adr295BuilderGeneratedSheets.mjs` (`substitute`) | 변수 fallback 을 괄호 짝까지 읽는다 — `var(pin, calc(var(--text-sm) * var(--text-sm--line-height)))` 의 행간 변수가 다시 `calc()` 를 들어 한 단계 정규식이 pin 을 못 풀었다 (빌더 값은 18px 그대로였다). 개정 뒤 게이트 (c) 전 entry 통과 = 옛 치환기 결과와 같다 |
+
+**G4** (`d3S2Alignment`): 「Button 아이콘의 터치 차이 표」 를 지우고 Button · ToggleButton · SearchField (`1lh`) · DatePicker (`1em`) 의 iconSize ref = 그 크기 글자 토큰 · desktop · touch 두 벌 = S2 svg 를 단언. **원복 RED**: Button M 을 `{size.icon.M}` 로 되살리면 1 FAIL (복원 cmp 일치).
+
+**G2 두 arm**: desktop 263/263 · touch 263/263. 경과 (터치): 3 (Tree chevron 상자 하한) → 0.
+
+**회귀**: type-check PASS · rendering 1,320 · shared 2,049 · builder unit (chromeIsland 1 — 기존) · parity (GeometryDelta case 2 — 기존) · G3 (propAxisCanvasDom 5 · paletteBaseCanvas — 3b 와 같은 목록). 값 단언 갱신 1 파일 (`mixedButtonText` DOM 아이콘 식).
+
+**live (Chrome MCP, 5175 · `adr295-live`)**: 팔레트 Button 추가 + Properties 아이콘 선택. Compare Mode Preview: 버튼 32 · 아이콘 18 (inline `calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height))`). 「터치 크기로 미리보기」: 버튼 40 · 아이콘 22 · 글자 17 (S2 터치 값 — 3b 는 22.5), 끄면 32 · 18. 빌더 root 고정값 `--catalog-token-button-icon-size-M 18px` · `-L 24px` · `--catalog-token-search-field-icon-size-S 14px`. 새로고침 (아이콘 Button hydration) 뒤 콘솔 오류 0. 추가한 Button 은 삭제 명령으로 지움.
+
+**3c-2 로 넘긴 것 (실측 근거)**:
+
+- **minWidth**: S2 TextField · SearchField 에는 min-width 가 없다 (1.5 × · 3 × 는 Spectrum 1). 지우면 생성 시트에서 선언이 사라지는데, 빌더 위젯이 같은 시트를 읽어 게이트 (c) 가 막는다 — 사라지는 선언을 빌더만 유지하는 길이 필요하다. ProgressBar 48 은 S2 `bar-utils.ts` `minWidth: 48` (`size()` — 터치 60).
+- **ListBoxItem**: S2 메뉴 항목 (`menuitem` = `control({wrap, icon})`) 은 테두리 없이 label padding 7 (= (32 − 18) / 2) · description 사이 2 — 우리 생성기 식 (테두리 포함 6) 과 리터럴 4 둘 다 아니다. ListBox 시트는 빌더 chrome 과 공유 (위와 같은 문제).
+- **Button minWidth**: S2 `control()` 은 `minWidth: controlSize()` (= 높이) 를 준다 — 2026-10-14 결정 「S2 Button 에 min-width 없음」 의 전제와 다르다. 지금 padding 으로는 보이는 차이가 없어 (아이콘만 Button M = 12 + 18 + 12 = 42 > 32) 이번엔 두고 보고만 한다.
+
 - G1 before/after: §6.1
 - G2 두 arm: §6.2 · Phase 3a §6.3 · Phase 3b §6.4
 - G4 (b) 최종 snapshot (preset 5 × 델타) · (c) 컴포넌트별 desktop/touch vs S2 computed: §6.4 (c 의 padding · gap 은 3c)

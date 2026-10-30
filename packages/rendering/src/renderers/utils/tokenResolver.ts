@@ -307,6 +307,28 @@ export function colorTokenCssNames(): string[] {
 }
 
 /**
+ * ADR-295 Phase 3c — 길이 자리 (`--icon-size` · width · height) 의 CSS 값. 행간 토큰
+ * (`{typography.text-sm--line-height}`) 은 CSS 에서 unitless 비율이라 길이로 쓰려면 글자 크기를 곱한다
+ * (S2 control 안 아이콘 `size: '1lh'` — 그 글자의 행간 상자). 나머지는 `tokenToCSSVar` 그대로.
+ */
+export function tokenToCSSLength(ref: TokenRef): string {
+  const line =
+    typeof ref === "string"
+      ? /^\{typography\.(text-[a-z0-9-]+)--line-height\}$/.exec(ref)
+      : null;
+  if (!line) return tokenToCSSVar(ref);
+  const font = `{typography.${line[1]}}` as TokenRef;
+  return `calc(${tokenToCSSVar(font)} * ${tokenToCSSVar(ref)})`;
+}
+
+/**
+ * ADR-295 Phase 3b · 3c — rule `iconSize` 가 받는 토큰: S2 아이콘 단 (`{size.icon.<S>}`), 그 크기 글자의
+ * 행간 (`{typography.<text>--line-height}` — S2 `1lh`), 글자 크기 (`{typography.<text>}` — S2 `1em`).
+ */
+export const ICON_SIZE_TOKEN_REF =
+  /^\{(?:size\.icon\.[A-Z]+|typography\.text-[a-z0-9-]+)\}$/;
+
+/**
  * CSS 변수명으로 변환
  */
 export function tokenToCSSVar(ref: TokenRef): string {

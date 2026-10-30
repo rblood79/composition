@@ -1,6 +1,7 @@
 import { LIBRARY_CONTRACT_VERSION } from "./types";
 import { scalarFitsType } from "./valueType";
 import {
+  ICON_SIZE_TOKEN_REF,
   resolveToken,
   s2ControlPaddingY,
   type TokenRef,
@@ -220,7 +221,12 @@ function buttonDefinition(
       // ADR-295 Phase 3: the S2 control height (`{size.height.<S>}` — the generated CSS `min-height`).
       ...(values.minHeight !== undefined
         ? {
-            minHeight: sourceToken(values.minHeight, "minHeight", theme, tokens),
+            minHeight: sourceToken(
+              values.minHeight,
+              "minHeight",
+              theme,
+              tokens,
+            ),
           }
         : {}),
       paddingX: values.paddingX,
@@ -705,16 +711,28 @@ function withRuleParts(
                       }
                     : {}),
                   // ADR-295 Phase 3: an S2 control height (`compileDeclarations`) is a token value
+                  //   (Phase 3c: as is an icon side of a font's line · font — S2 `1lh` · `1em`).
                   ...Object.fromEntries(
                     (["width", "height", "minHeight", "iconSize"] as const)
                       .filter(
                         (key) =>
                           typeof part.visual[key] === "string" &&
-                          /^\{size\.[^{}]+\}$/.test(part.visual[key] as string),
+                          (/^\{size\.[^{}]+\}$/.test(
+                            part.visual[key] as string,
+                          ) ||
+                            (key !== "minHeight" &&
+                              ICON_SIZE_TOKEN_REF.test(
+                                part.visual[key] as string,
+                              ))),
                       )
                       .map((key) => [
                         key,
-                        sourceToken(part.visual[key], "minHeight", theme, tokens),
+                        sourceToken(
+                          part.visual[key],
+                          "minHeight",
+                          theme,
+                          tokens,
+                        ),
                       ]),
                   ),
                 } as VisualValues,
