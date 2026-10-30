@@ -1,0 +1,1 @@
+export{t as VariableTable}from"./VariableTable-CoPw209X.js";
