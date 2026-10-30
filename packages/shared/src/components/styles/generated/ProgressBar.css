@@ -139,7 +139,7 @@
     grid-area: bar;
     box-shadow: var(--inset-shadow-xs);
     forced-color-adjust: none;
-    height: var(--spacing-sm);
+    height: 6px;
     border-radius: var(--catalog-token-radius-sm);
     overflow: hidden;
     will-change: transform;
@@ -155,7 +155,7 @@
 
 
   .react-aria-ProgressBar[data-size="S"] .bar {
-    height: var(--spacing-xs);
+    height: 4px;
     border-radius: var(--catalog-token-radius-sm);
   }
 
@@ -168,7 +168,7 @@
   }
 
   .react-aria-ProgressBar[data-size="M"] .bar {
-    height: var(--spacing-sm);
+    height: 6px;
     border-radius: var(--catalog-token-radius-sm);
   }
 
@@ -181,7 +181,7 @@
   }
 
   .react-aria-ProgressBar[data-size="L"] .bar {
-    height: var(--spacing-md);
+    height: 8px;
     border-radius: var(--catalog-token-radius-lg);
   }
 
@@ -194,7 +194,7 @@
   }
 
   .react-aria-ProgressBar[data-size="XL"] .bar {
-    height: var(--spacing-lg);
+    height: 10px;
     border-radius: var(--catalog-token-radius-lg);
   }
 

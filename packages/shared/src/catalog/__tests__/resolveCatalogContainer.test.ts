@@ -84,7 +84,7 @@ describe("resolveCatalogSizeField (Δ4 size-value 단일 진입)", () => {
   it("ProgressBarTrack height (md) → catalog sizes.M.height", () => {
     const h = resolveCatalogSizeField("ProgressBarTrack", "M", "height");
     expect(typeof h).toBe("number");
-    expect(h).toBe(8); // VALUE_FILL_TRACK_HEIGHT.M mirror 와 byte 일치
+    expect(h).toBe(6); // S2 progress-bar-thickness-medium (ADR-295 Phase 3c-3c)
   });
 
   it("Checkbox gap (md) → catalog sizes.M.gap", () => {

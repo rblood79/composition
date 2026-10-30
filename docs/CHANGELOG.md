@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-295 Phase 3c-3c ① — 막대 · 원 · swatch · Slider 손잡이 = S2] - 2026-10-31
+
+### Changed
+
+- **Meter · ProgressBar 막대 두께를 S2 로**: S 4 · M 6 · L 8 · XL 10 (전에는 4 · 8 · 12 · 16).
+- **ProgressCircle S 지름 16** (전 24 — Canvas 와 Preview DOM 같이), **ColorSwatch** S 24 · M 32 · L 40 (전 20 · 28 · 36), **Slider 손잡이** 18 · 20 · 22 · 24 (전 14 · 18 · 22 · 26), Slider 값 글자 줄 16 · 18 · 20 · 22.
+- **TimeField · ColorField 루트 글자를 S2 field 글자로** (한 단 위였다 — M 16 → 14).
+- 빌더 패널 위젯은 같은 시트를 읽어 295 전 값을 고정 시트로 유지한다. 「S2 대조 대기」 45 → 32.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`, `components/ProgressCircle.tsx`, `components/styles/builder-catalog-pins.css`, breakdown §6.11
+
 ## [Side 라벨의 불필요한 grid 안내선 제거] - 2026-10-31
 
 ### Fixed

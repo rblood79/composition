@@ -231,7 +231,8 @@ describe("ADR-258 Phase 2 — the Canvas lays the parts out where RAC puts them"
     const track = box(root, "SliderTrack").rect;
     const thumb = box(root, "ColorThumb").rect;
     expect(slider.width).toBe(300); // the rule's max-width
-    expect(track).toMatchObject({ x: 0, y: 24, width: 300, height: 20 });
+    // (The label · output row is the SliderOutput line — S2 controlFont line 18, ADR-295 Phase 3c-3c.)
+    expect(track).toMatchObject({ x: 0, y: 22, width: 300, height: 20 });
     expect(thumb.x + thumb.width / 2).toBeCloseTo((120 / 360) * 300, 2);
     expect(thumb.y + thumb.height / 2).toBe(10);
   });

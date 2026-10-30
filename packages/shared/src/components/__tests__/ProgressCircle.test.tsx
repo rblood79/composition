@@ -100,9 +100,9 @@ describe("ProgressCircle — value 비례 호 + indeterminate", () => {
 describe("ProgressCircle — size → 지름(rule height) + strokeWidth 3 uniform (Skia base 정합)", () => {
   // strokeWidth 3 uniform: rule(ComponentRuleSize)에 strokeWidth 필드 없음 → Skia value_fill_arc
   //   기본값 3 으로 해소 → DOM 도 3 으로 대칭(spec lg=4 는 rule 미이전 잔재).
-  it("size sm → diameter 24, strokeWidth 3", () => {
+  it("size sm → diameter 16 (S2), strokeWidth 3", () => {
     const html = renderToStaticMarkup(<ProgressCircle size="S" value={50} />);
-    expect(html).toMatch(/width="24"/);
+    expect(html).toMatch(/width="16"/);
     expect(html).toMatch(/stroke-width="3"/);
   });
 

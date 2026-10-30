@@ -18,31 +18,31 @@
   display: flex;
 
   /* Default size */
-  font-size: var(--catalog-token-text-base);
+  font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
   gap: var(--catalog-token-time-field-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
 }
 
 .react-aria-TimeField[data-size="S"] {
-  font-size: var(--catalog-token-text-sm);
+  font-size: var(--catalog-token-text-xs);
   border-radius: var(--catalog-token-radius-none);
   gap: var(--catalog-token-time-field-gap-S, calc(var(--catalog-token-size-height-S) * 1 / 2 + calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)) * -1 / 2));
 }
 
 .react-aria-TimeField[data-size="M"] {
-  font-size: var(--catalog-token-text-base);
+  font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
   gap: var(--catalog-token-time-field-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
 }
 
 .react-aria-TimeField[data-size="L"] {
-  font-size: var(--catalog-token-text-lg);
+  font-size: var(--catalog-token-text-base);
   border-radius: var(--catalog-token-radius-none);
   gap: var(--catalog-token-time-field-gap-L, calc(var(--catalog-token-size-height-L) * 1 / 2 + calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)) * -1 / 2));
 }
 
 .react-aria-TimeField[data-size="XL"] {
-  font-size: var(--catalog-token-text-xl);
+  font-size: var(--catalog-token-text-lg);
   border-radius: var(--catalog-token-radius-none);
   gap: var(--catalog-token-time-field-gap-XL, calc(var(--catalog-token-size-height-XL) * 1 / 2 + calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * -1 / 2));
 }

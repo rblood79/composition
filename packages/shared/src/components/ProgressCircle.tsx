@@ -83,9 +83,10 @@ export interface ProgressCircleProps {
   [dataAttr: `data-${string}`]: string | number | boolean | undefined;
 }
 
-// size → 지름 px (rule sizes.height 정합). strokeWidth 는 별도(아래 STROKE_WIDTH 참조).
+// size → 지름 px (rule sizes.height 정합 — S2 `ProgressCircle.tsx` S 16 · M 32 · L 64, ADR-295 Phase 3c-3c).
+// strokeWidth 는 별도(아래 STROKE_WIDTH 참조).
 const DIAMETER: Record<string, number> = {
-  S: 24,
+  S: 16,
   M: 32,
   L: 64,
 };

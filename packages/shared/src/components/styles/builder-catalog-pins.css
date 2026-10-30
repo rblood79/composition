@@ -213,4 +213,79 @@
     --sf-icon-inset: 16px;
     --sf-input-pad: 52px;
   }
+
+  /* generated/Slider.css — S2 thumb 18 · 20 · 22 · 24 (ADR-295 Phase 3c-3c — 295 전 14 · 18 · 22 · 26) */
+  .react-aria-Slider[data-size="S"]
+    .react-aria-SliderThumb:not(:where(.publish-app *)) {
+    width: 14px;
+    height: 14px;
+  }
+  .react-aria-Slider[data-size="M"]
+    .react-aria-SliderThumb:not(:where(.publish-app *)) {
+    width: 18px;
+    height: 18px;
+  }
+  .react-aria-Slider[data-size="XL"]
+    .react-aria-SliderThumb:not(:where(.publish-app *)) {
+    width: 26px;
+    height: 26px;
+  }
+
+  /* generated/TimeField.css · ColorField.css — 루트 글자 = S2 field 글자 (3c-3c — 295 전 한 단 위) */
+  .react-aria-TimeField:not(:where(.publish-app *)) {
+    font-size: 16px;
+  }
+  .react-aria-TimeField[data-size="S"]:not(:where(.publish-app *)) {
+    font-size: 14px;
+  }
+  .react-aria-TimeField[data-size="M"]:not(:where(.publish-app *)) {
+    font-size: 16px;
+  }
+  .react-aria-TimeField[data-size="L"]:not(:where(.publish-app *)) {
+    font-size: 18px;
+  }
+  .react-aria-TimeField[data-size="XL"]:not(:where(.publish-app *)) {
+    font-size: 20px;
+  }
+  .react-aria-ColorField:not(:where(.publish-app *)) {
+    font-size: 16px;
+  }
+  .react-aria-ColorField[data-size="XS"]:not(:where(.publish-app *)) {
+    font-size: 12px;
+  }
+  .react-aria-ColorField[data-size="S"]:not(:where(.publish-app *)) {
+    font-size: 14px;
+  }
+  .react-aria-ColorField[data-size="M"]:not(:where(.publish-app *)) {
+    font-size: 16px;
+  }
+  .react-aria-ColorField[data-size="L"]:not(:where(.publish-app *)) {
+    font-size: 18px;
+  }
+
+  /* generated/ProgressBar.css · Meter.css — 막대 두께 = S2 4 · 6 · 8 · 10 (3c-3c — 295 전 4 · 8 · 12 · 16) */
+  .react-aria-ProgressBar .bar:not(:where(.publish-app *)) {
+    height: 8px;
+  }
+  .react-aria-ProgressBar[data-size="M"] .bar:not(:where(.publish-app *)) {
+    height: 8px;
+  }
+  .react-aria-ProgressBar[data-size="L"] .bar:not(:where(.publish-app *)) {
+    height: 12px;
+  }
+  .react-aria-ProgressBar[data-size="XL"] .bar:not(:where(.publish-app *)) {
+    height: 16px;
+  }
+  .react-aria-Meter .bar:not(:where(.publish-app *)) {
+    height: 8px;
+  }
+  .react-aria-Meter[data-size="M"] .bar:not(:where(.publish-app *)) {
+    height: 8px;
+  }
+  .react-aria-Meter[data-size="L"] .bar:not(:where(.publish-app *)) {
+    height: 12px;
+  }
+  .react-aria-Meter[data-size="XL"] .bar:not(:where(.publish-app *)) {
+    height: 16px;
+  }
 }

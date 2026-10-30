@@ -108,8 +108,8 @@ describe("S2 ColorSwatch rounding", () => {
     // The rounding variants live on the rule's top level: under structure.composition they flip
     // `catalogSizeAxisSkip`'s ownsContainerBox and the per-size height stops reaching the Canvas
     // (live: a 2×2 swatch). The swatch is square (S2 size × size — the DOM sheet's aspect-ratio).
-    expect(geometry.height).toBe(28);
-    expect(geometry.width).toBe(28);
+    expect(geometry.height).toBe(32); // S2 ColorSwatch M (ADR-295 Phase 3c-3c)
+    expect(geometry.width).toBe(32);
   });
 
   it.each([

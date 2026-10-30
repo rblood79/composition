@@ -147,7 +147,7 @@
     grid-area: bar;
     box-shadow: var(--inset-shadow-xs);
     forced-color-adjust: none;
-    height: var(--spacing-sm);
+    height: 6px;
     border-radius: var(--catalog-token-radius-sm);
     overflow: hidden;
     background: var(--bg-muted);
@@ -162,7 +162,7 @@
 
 
   .react-aria-Meter[data-size="S"] .bar {
-    height: var(--spacing-xs);
+    height: 4px;
     border-radius: var(--catalog-token-radius-sm);
   }
 
@@ -171,7 +171,7 @@
   }
 
   .react-aria-Meter[data-size="M"] .bar {
-    height: var(--spacing-sm);
+    height: 6px;
     border-radius: var(--catalog-token-radius-sm);
   }
 
@@ -180,7 +180,7 @@
   }
 
   .react-aria-Meter[data-size="L"] .bar {
-    height: var(--spacing-md);
+    height: 8px;
     border-radius: var(--catalog-token-radius-lg);
   }
 
@@ -189,7 +189,7 @@
   }
 
   .react-aria-Meter[data-size="XL"] .bar {
-    height: var(--spacing-lg);
+    height: 10px;
     border-radius: var(--catalog-token-radius-lg);
   }
 

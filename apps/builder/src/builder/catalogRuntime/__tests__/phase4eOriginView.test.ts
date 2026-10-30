@@ -1061,7 +1061,7 @@ describe("ADR-248 4e library origin view", () => {
     );
     // A ProgressCircle is its diameter square (the `progress` archetype drops a bar's height).
     for (const [key, diameter] of [
-      ["S", 24],
+      ["S", 16], // S2 ProgressCircle S (ADR-295 Phase 3c-3c)
       ["M", 32],
       ["L", 64],
     ] as const) {

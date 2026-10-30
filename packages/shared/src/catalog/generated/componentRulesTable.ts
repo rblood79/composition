@@ -2580,45 +2580,45 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   ColorField: {
     defaultSize: "M",
     variants: {},
-    // gap = S2 `--field-gap` (높이 − 행간) / 2 — 행간은 그 크기의 S2 field 글자 (이 루트의 fontSize 는 한 단 위라
-    //   `centerPadding` 에 글자를 적는다, ADR-295 Phase 3c-3b ③).
+    // gap = S2 `--field-gap` (높이 − 행간) / 2 · fontSize = S2 field 글자 (XS 2xs … XL lg — ADR-295 Phase 3c-3b
+    //   ③ 까지 한 단 위였다, 3c-3c 에서 S2 로).
     sizes: {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
       //   재생성용 (ColorField.spec.sizes 미러). padding 은 composition.layout=flex-column root
       //   ownsContainerBox → 미emit 이라 보강 불요(gap 만).
       XS: {
-        fontSize: "{typography.text-xs}",
+        fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.sm}",
         height: 0,
-        gap: centerPadding("XS", "text-2xs"),
+        gap: centerPadding("XS"),
         iconSize: 18,
       },
       S: {
-        fontSize: "{typography.text-sm}",
+        fontSize: "{typography.text-xs}",
         borderRadius: 7,
         height: 0,
-        gap: centerPadding("S", "text-xs"),
+        gap: centerPadding("S"),
         iconSize: 20,
       },
       M: {
-        fontSize: "{typography.text-base}",
+        fontSize: "{typography.text-sm}",
         borderRadius: 8,
         height: 0,
-        gap: centerPadding("M", "text-sm"),
+        gap: centerPadding("M"),
         iconSize: 26,
       },
       L: {
-        fontSize: "{typography.text-lg}",
+        fontSize: "{typography.text-base}",
         borderRadius: 9,
         height: 0,
-        gap: centerPadding("L", "text-base"),
+        gap: centerPadding("L"),
         iconSize: 32,
       },
       XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: 10,
         height: 0,
-        gap: centerPadding("XL", "text-lg"),
+        gap: centerPadding("XL"),
         iconSize: 36,
       },
     },
@@ -2935,17 +2935,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
-        height: 20,
+        height: 24,
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.full}",
-        height: 28,
+        height: 32,
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.full}",
-        height: 36,
+        height: 40,
       },
     },
     structure: {
@@ -3005,19 +3005,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.md}",
         height: 0,
-        iconSize: 20,
+        iconSize: 24,
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.lg}",
         height: 0,
-        iconSize: 28,
+        iconSize: 32,
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.xl}",
         height: 0,
-        iconSize: 36,
+        iconSize: 40,
       },
     },
   },
@@ -7654,7 +7654,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.sm}",
-        height: 8,
+        height: 6,
         minWidth: "{size.bar.min-width}",
         maxWidth: 768,
         gap: 4,
@@ -7663,7 +7663,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.md}",
-        height: 12,
+        height: 8,
         minWidth: "{size.bar.min-width}",
         maxWidth: 768,
         gap: 4,
@@ -7672,7 +7672,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.lg}",
-        height: 16,
+        height: 10,
         minWidth: "{size.bar.min-width}",
         maxWidth: 768,
         gap: 4,
@@ -7721,7 +7721,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             "grid-area": "bar",
             "box-shadow": "var(--inset-shadow-xs)",
             "forced-color-adjust": "none",
-            height: "var(--spacing-sm)",
+            height: "6px",
             "border-radius": "var(--radius-sm)",
             overflow: "hidden",
             // (사용자 판정 2026-10-09: Meter track 은 회색 — MeterTrack rule 의 neutral-subtle 과 같은 값.)
@@ -7784,10 +7784,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
         },
+        // 막대 두께 = S2 `progress-bar-thickness-*` 4 · 6 · 8 · 10 (기본 6 — `Meter.tsx` · `ProgressBar.tsx` trackStyles,
+        //   ADR-295 Phase 3c-3c). S2 는 터치에서 × 1.25 (sizing) — 여기는 desktop 값.
         sizeSelectors: {
           S: {
             ".bar": {
-              height: "var(--spacing-xs)",
+              height: "4px",
               "border-radius": "var(--radius-sm)",
             },
             ".value": {
@@ -7796,7 +7798,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           M: {
             ".bar": {
-              height: "var(--spacing-sm)",
+              height: "6px",
               "border-radius": "var(--radius-sm)",
             },
             ".value": {
@@ -7805,7 +7807,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           L: {
             ".bar": {
-              height: "var(--spacing-md)",
+              height: "8px",
               "border-radius": "var(--radius-lg)",
             },
             ".value": {
@@ -7814,7 +7816,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           XL: {
             ".bar": {
-              height: "var(--spacing-lg)",
+              height: "10px",
               "border-radius": "var(--radius-lg)",
             },
             ".value": {
@@ -7987,17 +7989,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
-        height: 8,
+        height: 6,
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
-        height: 12,
+        height: 8,
       },
       XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
-        height: 16,
+        height: 10,
       },
     },
     structure: {
@@ -8083,19 +8085,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.none}",
-        height: 20,
+        height: 18,
       },
       L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.none}",
-        height: 24,
+        height: 20,
       },
       XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.none}",
-        height: 28,
+        height: 22,
       },
     },
     structure: {
@@ -8741,7 +8743,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.sm}",
-        height: 8,
+        height: 6,
         minWidth: "{size.bar.min-width}",
         maxWidth: 768,
         gap: 4,
@@ -8750,7 +8752,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.md}",
-        height: 12,
+        height: 8,
         minWidth: "{size.bar.min-width}",
         maxWidth: 768,
         gap: 4,
@@ -8759,7 +8761,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.md}",
-        height: 16,
+        height: 10,
         minWidth: "{size.bar.min-width}",
         maxWidth: 768,
         gap: 4,
@@ -8809,7 +8811,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             "grid-area": "bar",
             "box-shadow": "var(--inset-shadow-xs)",
             "forced-color-adjust": "none",
-            height: "var(--spacing-sm)",
+            height: "6px",
             "border-radius": "var(--radius-sm)",
             overflow: "hidden",
             "will-change": "transform",
@@ -8868,10 +8870,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
         },
+        // 막대 두께 = S2 `progress-bar-thickness-*` 4 · 6 · 8 · 10 (기본 6 — `Meter.tsx` · `ProgressBar.tsx` trackStyles,
+        //   ADR-295 Phase 3c-3c). S2 는 터치에서 × 1.25 (sizing) — 여기는 desktop 값.
         sizeSelectors: {
           S: {
             ".bar": {
-              height: "var(--spacing-xs)",
+              height: "4px",
               "border-radius": "var(--radius-sm)",
             },
             ".fill": {
@@ -8883,7 +8887,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           M: {
             ".bar": {
-              height: "var(--spacing-sm)",
+              height: "6px",
               "border-radius": "var(--radius-sm)",
             },
             ".fill": {
@@ -8895,7 +8899,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           L: {
             ".bar": {
-              height: "var(--spacing-md)",
+              height: "8px",
               "border-radius": "var(--radius-lg)",
             },
             ".fill": {
@@ -8907,7 +8911,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           XL: {
             ".bar": {
-              height: "var(--spacing-lg)",
+              height: "10px",
               "border-radius": "var(--radius-lg)",
             },
             ".fill": {
@@ -8967,17 +8971,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
-        height: 8,
+        height: 6,
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
-        height: 12,
+        height: 8,
       },
       XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
-        height: 16,
+        height: 10,
       },
     },
     structure: {
@@ -9063,19 +9067,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.none}",
-        height: 20,
+        height: 18,
       },
       L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.none}",
-        height: 24,
+        height: 20,
       },
       XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.none}",
-        height: 28,
+        height: 22,
       },
     },
     structure: {
@@ -9107,7 +9111,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
-        height: 24,
+        height: 16,
       },
       M: {
         fontSize: "{typography.text-sm}",
@@ -10417,7 +10421,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 4,
         gap: 4,
         columnGap: 16,
-        indicator: { trackHeight: 4, thumbSize: 14 },
+        indicator: { trackHeight: 4, thumbSize: 18 },
       },
       M: {
         fontSize: "{typography.text-sm}",
@@ -10426,7 +10430,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 8,
         gap: 4,
         columnGap: 16,
-        indicator: { trackHeight: 8, thumbSize: 18 },
+        indicator: { trackHeight: 8, thumbSize: 20 },
       },
       L: {
         fontSize: "{typography.text-base}",
@@ -10444,7 +10448,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 16,
         gap: 4,
         columnGap: 20,
-        indicator: { trackHeight: 16, thumbSize: 26 },
+        indicator: { trackHeight: 16, thumbSize: 24 },
       },
     },
     structure: {
@@ -10615,19 +10619,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.none}",
-        height: 20,
+        height: 18,
       },
       L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.none}",
-        height: 24,
+        height: 20,
       },
       XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.none}",
-        height: 28,
+        height: 22,
       },
     },
     structure: {
@@ -10674,12 +10678,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
-        height: 14,
+        height: 18,
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.full}",
-        height: 18,
+        height: 20,
       },
       L: {
         fontSize: "{typography.text-base}",
@@ -10689,7 +10693,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.full}",
-        height: 26,
+        height: 24,
       },
     },
   },
@@ -10728,13 +10732,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
         height: 4,
-        thumbSize: 14,
+        thumbSize: 18,
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.full}",
         height: 8,
-        thumbSize: 18,
+        thumbSize: 20,
       },
       L: {
         fontSize: "{typography.text-base}",
@@ -10746,7 +10750,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.full}",
         height: 16,
-        thumbSize: 26,
+        thumbSize: 24,
       },
     },
     structure: {
@@ -12942,35 +12946,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   TimeField: {
     defaultSize: "M",
     variants: {},
-    // gap = S2 `--field-gap` (높이 − 행간) / 2 — 행간은 그 크기의 S2 field 글자 (이 루트의 fontSize 는 한 단 위라
-    //   `centerPadding` 에 글자를 적는다, ADR-295 Phase 3c-3b ③).
+    // gap = S2 `--field-gap` (높이 − 행간) / 2 · fontSize = S2 field 글자 (S xs … XL lg — ADR-295 Phase 3c-3b
+    //   ③ 까지 한 단 위였다, 3c-3c 에서 S2 로).
     sizes: {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
       //   재생성용 (TimeField.spec.sizes 미러). padding 은 composition.layout=flex-column root
       //   ownsContainerBox → 미emit 이라 보강 불요(gap 만). borderRadius:0 은 spec 일치.
       S: {
+        fontSize: "{typography.text-xs}",
+        borderRadius: "{radius.none}",
+        height: 0,
+        gap: centerPadding("S"),
+      },
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
-        gap: centerPadding("S", "text-xs"),
+        gap: centerPadding("M"),
       },
-      M: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 0,
-        gap: centerPadding("M", "text-sm"),
+        gap: centerPadding("L"),
       },
-      L: {
+      XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 0,
-        gap: centerPadding("L", "text-base"),
-      },
-      XL: {
-        fontSize: "{typography.text-xl}",
-        borderRadius: "{radius.none}",
-        height: 0,
-        gap: centerPadding("XL", "text-lg"),
+        gap: centerPadding("XL"),
       },
     },
     // ADR-913 slice 2 (2026-06-18): label-position:side Skia 복구 — DateField/ComboBox 동형

@@ -731,7 +731,111 @@ describe("ADR-295 G4 (c) — 컴포넌트 값 = S2 computed", () => {
             (height(size) - line(FIELD_FONT[size]!)) / 2,
             10,
           );
+          // (3c-3c: the field root's own font is the S2 field font too — TimeField · ColorField were one step up.)
+          expect(block.fontSize, `${type}.${size} fontSize`).toBe(
+            `{typography.${FIELD_FONT[size]}}`,
+          );
         }
     }
+  });
+});
+
+/**
+ * 설치본 소스의 크기 표 — `anchor` 뒤 첫 `{ … }` (중첩 없는 칸) 의 `이름: 숫자` 와, anchor 바로 뒤 `default: n`.
+ * S2 style macro 의 크기별 숫자 표를 손으로 옮기지 않고 읽는다 (fixture 추출기가 컴포넌트 표는 뽑지 않는다).
+ */
+function s2SizeTable(
+  file: string,
+  anchor: RegExp,
+): Readonly<Record<string, number>> {
+  const source = readFileSync(
+    resolve(__dirname, "../../../../node_modules/@react-spectrum/s2/src", file),
+    "utf8",
+  );
+  const at = anchor.exec(source);
+  if (!at) throw new Error(`${file}: ${anchor} 없음`);
+  const rest = source.slice(at.index + at[0].length);
+  const table: Record<string, number> = {};
+  const fallback = /^\s*default:\s*(\d+)/.exec(rest);
+  const block = /\{([^{}]*)\}/.exec(rest)![1]!;
+  for (const [, name, value] of block.matchAll(/(\w+):\s*(\d+)/g))
+    table[name!] = Number(value);
+  if (fallback) table.default = Number(fallback[1]);
+  return table;
+}
+
+describe("ADR-295 G4 — 3c-3c ① 컴포넌트 고정 치수 = S2 설치본 표", () => {
+  type Rule = {
+    sizes: Record<string, Record<string, unknown>>;
+    structure?: {
+      composition?: {
+        sizeSelectors?: Record<string, Record<string, Record<string, string>>>;
+      };
+    };
+  };
+  const rules = COMPONENT_RULES_TABLE as unknown as Record<string, Rule>;
+  const heights = (type: string, key = "height") =>
+    Object.fromEntries(
+      Object.entries(rules[type]!.sizes).map(([size, block]) => [
+        size,
+        block[key],
+      ]),
+    );
+
+  it("ColorSwatch · ColorSwatchPicker swatch = S2 ColorSwatch (S · M · L)", () => {
+    const s2 = s2SizeTable("ColorSwatch.tsx", /size:\s*\{\s*size:\s*/);
+    const expected = { S: s2.S, M: s2.M, L: s2.L };
+    expect(heights("ColorSwatch")).toEqual(expected);
+    expect(heights("ColorSwatchPicker", "iconSize")).toEqual(expected);
+  });
+
+  it("ProgressCircle 지름 = S2 (default = M)", () => {
+    const s2 = s2SizeTable(
+      "ProgressCircle.tsx",
+      /const wrapper[\s\S]*?size:\s*\{/,
+    );
+    expect(heights("ProgressCircle")).toEqual({
+      S: s2.S,
+      M: s2.default,
+      L: s2.L,
+    });
+  });
+
+  it("Meter · ProgressBar 막대 두께 (`.bar` sizeSelectors · 기본) = S2 trackStyles", () => {
+    for (const [type, file] of [
+      ["Meter", "Meter.tsx"],
+      ["ProgressBar", "ProgressBar.tsx"],
+    ] as const) {
+      const s2 = s2SizeTable(file, /const trackStyles[\s\S]*?height:\s*\{/);
+      const selectors = rules[type]!.structure!.composition!.sizeSelectors!;
+      for (const size of ["S", "M", "L", "XL"])
+        expect(selectors[size]![".bar"]!.height, `${type}.${size}`).toBe(
+          `${s2[size]}px`,
+        );
+      const base = (
+        rules[type]!.structure!.composition as unknown as {
+          staticSelectors: Record<string, Record<string, string>>;
+        }
+      ).staticSelectors[".bar"]!.height;
+      expect(base, `${type} 기본`).toBe(`${s2.default}px`);
+    }
+  });
+
+  it("Slider thumb (indicator.thumbSize · SliderThumb · SliderTrack.thumbSize) = S2 thumb", () => {
+    const s2 = s2SizeTable(
+      "Slider.tsx",
+      /thumbStyle:\s*\{\s*default:\s*\{\s*size:\s*/,
+    );
+    const expected = { S: s2.S, M: s2.M, L: s2.L, XL: s2.XL };
+    expect(
+      Object.fromEntries(
+        Object.entries(rules.Slider!.sizes).map(([size, block]) => [
+          size,
+          (block.indicator as { thumbSize: number }).thumbSize,
+        ]),
+      ),
+    ).toEqual(expected);
+    expect(heights("SliderThumb")).toEqual(expected);
+    expect(heights("SliderTrack", "thumbSize")).toEqual(expected);
   });
 });

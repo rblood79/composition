@@ -553,6 +553,35 @@ field 버튼 (ComboBox · DatePicker · DateRangePicker): 정사각형 `{size.fi
 
 **live (Chrome MCP, 5175 · `adr295-live`)**: 팔레트 TimeField · Menu 를 body 에 (기존 ListBox · TextField · Text 는 그대로). Compare Mode Preview desktop: TextField · TimeField 라벨 아래 → 입력 위 7 (rule gap 7px, 라벨 18 · 입력 32 — S2 (32 − 18) / 2). 「터치 크기로 미리보기」: 9 (라벨 22 · 입력 40 — S2 (40 − 22) / 2). MenuItem 은 되돌린 뒤 32 (S2 형으로 바꿨을 때 34 를 이 live 에서 찾았다). 콘솔 오류 0. 두 요소는 삭제 명령으로 지움.
 
+### 6.11 Phase 3c-3c (2026-10-31 ~, 진행 중 — 사용자 결정 「S2 로 변경」)
+
+> 3c-3b ③ 의 「S2 대조 대기」 45 자리와 TimeField · ColorField 루트 글자를 S2 값으로 바꾼다 (사용자 결정 2026-10-31). 읽는 곳 조사 (서브에이전트 · 근거 재확인) 결과 45 자리 중 15 자리는 아무도 읽지 않는 값이라 — 실제 출처가 다른 곳에 있다 (막대 두께 = `.bar` sizeSelectors · ProgressCircle DOM 지름 = `components/ProgressCircle.tsx` 상수 · ColorArea · ColorThumb = composition containerStyles) — 화면을 바꾸려면 출처를 같이 바꾼다. 읽히지 않는 리터럴은 S2 값으로 맞추고 (0 으로 바꾸면 `buildCatalogShapes` 의 글자 정렬 분기가 바뀔 수 있다) 「의도적」 목록으로 옮긴다. 분할 (실행 판단 — 사후 보고): ① 같은 크기 축의 고정 치수 · ② 식 · 토큰이 필요한 자리 (Breadcrumbs · TagGroup = control 높이, Header · Tooltip = centerPadding, Tabs = density 높이, Table 칸, StatusLight, DropZone, Toast, Tree, Calendar, Slider track 행) · ③ MenuItem (안 label Text 글자 먼저).
+
+**S2 에 size 축이 없는 컴포넌트의 규칙**: S2 값이 식 (centerPadding · edge-to-text · control 높이) 이면 composition 의 각 크기에 그 식을 적용하고, 고정 숫자 (TreeView 행 40 · Toast 56 · ColorArea 192) 면 모든 크기에 그 숫자.
+
+**① 고정 치수 (이 커밋)**:
+
+| 자리                                                                       | 전                       | S2 (출처)                                                                           |
+| -------------------------------------------------------------------------- | ------------------------ | ----------------------------------------------------------------------------------- |
+| Meter · ProgressBar 막대 두께 (`.bar` sizeSelectors · 기본)                | 4 · 8 · 12 · 16 (기본 8) | 4 · 6 · 8 · 10 (기본 6) — `Meter.tsx` · `ProgressBar.tsx` `trackStyles`             |
+| ProgressCircle 지름 (rule + DOM `DIAMETER`)                                | S 24                     | S 16 · M 32 · L 64 — `ProgressCircle.tsx`                                           |
+| ColorSwatch · ColorSwatchPicker swatch                                     | 20 · 28 · 36             | 24 · 32 · 40 — `ColorSwatch.tsx`                                                    |
+| Slider thumb (`indicator.thumbSize` · SliderThumb · SliderTrack.thumbSize) | 14 · 18 · 22 · 26        | 18 · 20 · 22 · 24 — `Slider.tsx` `thumbContainer` (precise 높이 = thumb + 2 → M 22) |
+| SliderOutput 높이                                                          | 16 · 20 · 24 · 28        | controlFont 행간 16 · 18 · 20 · 22                                                  |
+| TimeField · ColorField 루트 글자                                           | 한 단 위 (M text-base)   | S2 field 글자 (M text-sm) — gap 의 `centerPadding` 글자 인자 제거                   |
+
+읽는 곳 없는 리터럴 (S2 값으로 맞춤): Meter · MeterTrack · ProgressBar · ProgressBarTrack 높이 4 · 6 · 8 · 10, MeterValue · ProgressBarValue 16 · 18 · 20 · 22. 이미 S2 값이던 ColorThumb 16 · Illustration 48 · 96 · 160 · Keyboard 18 은 「의도적」 으로 옮김. 「S2 대조 대기」 45 → 32.
+
+**빌더**: Slider thumb · TimeField · ColorField 글자 · ProgressBar · Meter 막대는 빌더 위젯도 같은 시트를 읽어 `builder-catalog-pins.css` 에 295 전 값 (Decision 9 (c)).
+
+**게이트**: G4 「3c-3c ① — 컴포넌트 고정 치수 = S2 설치본 표」 — 설치본 소스 (`ColorSwatch.tsx` · `ProgressCircle.tsx` · `Meter.tsx` · `ProgressBar.tsx` · `Slider.tsx`) 의 크기 표를 테스트가 직접 읽어 (`s2SizeTable` — fixture 추출기는 컴포넌트 표를 뽑지 않는다) rule 과 대조. 「field label ↔ control 간격」 에 field 루트 글자 = S2 field 글자. G3 대조 대기 ≤ 32.
+
+**원복 RED**: ColorSwatch M 32 → 28 → G3 2 · G4 1 FAIL · Meter `.bar` M 6px → 8px → G4 1 · TimeField M 글자 text-sm → text-base → G4 1 · Slider thumbSize M 20 → 18 → G4 1 · pins 의 ProgressBar L 지움 → Decision 9 (c) 1 FAIL. 복원 cmp 일치.
+
+**회귀**: type-check PASS · shared 2,050 · rendering 1,283 · builder unit 7,187 pass — 값 단언 갱신 `resolveCatalogContainer` (ProgressBarTrack M 6) · `ProgressCircle.test` (S 16) · `adr258ColorNodeTree` (ColorSlider track y 22 — 출력 줄 18) · `colorSwatchRounding` (32) · `phase4eOriginView` (ProgressCircle S 16) · `sliderS2Styles` (precise 22). 실패 = `chromeIsland` · `labelKeyCatalog` (다른 세션 WIP) · `phase4eG5LeafScope` (전체 실행에서만, 단독 PASS). G2 desktop · touch 263/263.
+
+**live (Chrome MCP, 5175 · `adr295-live`)**: 팔레트 ProgressBar · ProgressCircle · ColorField · Slider · Meter 를 body 에. Canvas: ProgressBar 390 × 28 (라벨 18 + 4 + 막대 6) · Meter 390 × 28 · Slider 390 × 30 · ProgressCircle Size S → 16 × 16. Compare Mode Preview: 막대 6 · ProgressCircle S 16 (svg width 16) · thumb 20 · SliderOutput 18 · ColorField 글자 14. 콘솔 오류 0. 다섯 요소는 삭제 명령으로 지움 (Compare Mode 에서는 Preview iframe 이 포커스를 가져가 Delete 가 Canvas 에 닿지 않는다 — 끄고 지웠다). ColorSwatch 는 팔레트 항목이 없어 unit (`colorSwatchRounding` Canvas 32) 으로만. 터치 × 1.25 는 이 묶음 값에 없다 (S2 는 sizing 이라 터치에서 커진다 — 후속).
+
 - G1 before/after: §6.1
 - G2 두 arm: §6.2 · Phase 3a §6.3 · Phase 3b §6.4
 - G4 (b) 최종 snapshot (preset 5 × 델타) · (c) 컴포넌트별 desktop/touch vs S2 computed: §6.4 (c 의 padding · gap 은 3c)

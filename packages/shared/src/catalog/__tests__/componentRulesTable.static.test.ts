@@ -128,7 +128,6 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
       "field 안 swatch 상자 — 아이콘이 아니다 (S2 ColorField 에 swatch 없음 · composition 확장)",
   },
   ...[
-    ["ColorSwatchPicker", { S: 20, M: 28, L: 36 }],
     ["ColorArea", { S: 14, M: 18, L: 22 }],
     ["ColorWheel", { S: 14, M: 18, L: 22 }],
   ].map(([component, values]): IntentionalLiteral => ({
@@ -182,6 +181,66 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     reason:
       "차트 축 글자 — S2 컴포넌트 없음 · 장면 계산 (`computeChartScene`) 입력은 px 숫자",
   },
+  sizes(
+    "ColorSwatchPicker",
+    "iconSize",
+    { S: 24, M: 32, L: 40 },
+    "picker 안 swatch 치수 = S2 ColorSwatch S 24 · M 32 · L 40 (`ColorSwatch.tsx`) — 아이콘이 아니다",
+  ),
+  sizes(
+    "ColorSwatch",
+    "height",
+    { S: 24, M: 32, L: 40 },
+    "S2 ColorSwatch S 24 · M 32 · L 40 (`ColorSwatch.tsx` — XS 16 은 composition 에 없다) · 터치 × 1.25 는 다루지 않음",
+  ),
+  sizes(
+    "ColorThumb",
+    "height",
+    { M: 16 },
+    "S2 ColorHandle 16 (`ColorHandle.tsx` HANDLE_SIZE) — 읽는 곳 없음 (실제 값은 composition containerStyles 16px)",
+  ),
+  sizes(
+    "Illustration",
+    "height",
+    { S: 48, M: 96, L: 160 },
+    "S2 illustration S 48 · M 96 · L 160 (`Icon.tsx`) — 읽는 곳 없음 (glyph 는 iconSize)",
+  ),
+  sizes(
+    "Keyboard",
+    "height",
+    { M: 18 },
+    "S2 Menu keyboard 글자 `ui` 의 행간 18 (`Menu.tsx` — 높이 지정 없이 한 줄)",
+  ),
+  ...(["Meter", "MeterTrack", "ProgressBar", "ProgressBarTrack"] as const).map(
+    (component) =>
+      sizes(
+        component,
+        "height",
+        { S: 4, M: 6, L: 8, XL: 10 },
+        "S2 막대 두께 `progress-bar-thickness-*` (`Meter.tsx` · `ProgressBar.tsx`) — 읽는 곳 없음 (progress archetype 이 건너뛴다 · 실제 두께는 `.bar` sizeSelectors 같은 값)",
+      ),
+  ),
+  ...(["MeterValue", "ProgressBarValue", "SliderOutput"] as const).map(
+    (component) =>
+      sizes(
+        component,
+        "height",
+        { S: 16, M: 18, L: 20, XL: 22 },
+        "S2 값 글자 한 줄 = controlFont 행간 16 · 18 · 20 · 22 (`fieldLabel()` · Slider output — 높이 지정 없음)",
+      ),
+  ),
+  sizes(
+    "ProgressCircle",
+    "height",
+    { S: 16, M: 32, L: 64 },
+    "S2 ProgressCircle S 16 · M 32 · L 64 (`ProgressCircle.tsx`) — DOM 지름 (`components/ProgressCircle.tsx` DIAMETER) 과 같은 값",
+  ),
+  sizes(
+    "SliderThumb",
+    "height",
+    { S: 18, M: 20, L: 22, XL: 24 },
+    "S2 Slider thumb 18 · 20 · 22 · 24 (`Slider.tsx` `thumbContainer`) — 슬라이더 안에서는 Slider `indicator.thumbSize` 가 같은 값",
+  ),
   sizes(
     "Avatar",
     "height",
@@ -319,13 +378,6 @@ export const S2_PENDING_LITERAL: readonly PendingLiteral[] = [
     { S: 120, M: 180, L: 240 },
     "S2 ColorArea 192 · size 축 없음 (`ColorArea.tsx`)",
   ),
-  pending(
-    "ColorSwatch",
-    "height",
-    { S: 20, M: 28, L: 36 },
-    "S2 ColorSwatch XS 16 · S 24 · M 32 · L 40 (`ColorSwatch.tsx`)",
-  ),
-  pending("ColorThumb", "height", { M: 16 }, "S2 대조 전"),
   pending("DropZone", "height", { S: 80, M: 120, L: 160 }, "S2 대조 전"),
   pending("Header", "paddingY", { M: 6 }, "S2 대조 전"),
   pending(
@@ -333,35 +385,6 @@ export const S2_PENDING_LITERAL: readonly PendingLiteral[] = [
     "height",
     { XS: 16, S: 18, M: 24, L: 36, XL: 48 },
     "S2 대조 전",
-  ),
-  pending("Illustration", "height", { S: 48, M: 96, L: 160 }, "S2 대조 전"),
-  pending("Keyboard", "height", { M: 18 }, "S2 대조 전"),
-  pending("Meter", "height", { S: 4, M: 8, L: 12, XL: 16 }, "S2 대조 전"),
-  pending("MeterTrack", "height", { S: 4, M: 8, L: 12, XL: 16 }, "S2 대조 전"),
-  pending(
-    "MeterValue",
-    "height",
-    { S: 16, M: 20, L: 24, XL: 28 },
-    "S2 대조 전",
-  ),
-  pending("ProgressBar", "height", { S: 4, M: 8, L: 12, XL: 16 }, "S2 대조 전"),
-  pending(
-    "ProgressBarTrack",
-    "height",
-    { S: 4, M: 8, L: 12, XL: 16 },
-    "S2 대조 전",
-  ),
-  pending(
-    "ProgressBarValue",
-    "height",
-    { S: 16, M: 20, L: 24, XL: 28 },
-    "S2 대조 전",
-  ),
-  pending(
-    "ProgressCircle",
-    "height",
-    { S: 24, M: 32, L: 64 },
-    "S2 ProgressCircle S 16 · M 32 · L 64 (`ProgressCircle.tsx`)",
   ),
   pending("RangeCalendar", "gap", { M: 6 }, "S2 대조 전"),
   pending(
@@ -375,18 +398,6 @@ export const S2_PENDING_LITERAL: readonly PendingLiteral[] = [
     "height",
     { S: 4, M: 8, L: 12, XL: 16 },
     "S2 Slider track 행 24 · 32 · 40 · 48 (`Slider.tsx` `track`) — 막대 두께는 대조 전",
-  ),
-  pending(
-    "SliderOutput",
-    "height",
-    { S: 16, M: 20, L: 24, XL: 28 },
-    "S2 대조 전",
-  ),
-  pending(
-    "SliderThumb",
-    "height",
-    { S: 14, M: 18, L: 22, XL: 26 },
-    "S2 Slider thumb 18 · 20 · 22 · 24 (`Slider.tsx` `thumbContainer`)",
   ),
   pending(
     "SliderTrack",
@@ -570,7 +581,7 @@ describe("ADR-295 G3 — rule 치수 리터럴", () => {
     expect(stale).toEqual([]);
   });
 
-  it("S2 값 대조 대기는 줄기만 한다 (2026-10-31 3c-3b ③ — 45 자리)", () => {
-    expect(S2_PENDING_LITERAL.length).toBeLessThanOrEqual(45);
+  it("S2 값 대조 대기는 줄기만 한다 (3c-3b ③ 45 자리 → 3c-3c ① 32)", () => {
+    expect(S2_PENDING_LITERAL.length).toBeLessThanOrEqual(32);
   });
 });

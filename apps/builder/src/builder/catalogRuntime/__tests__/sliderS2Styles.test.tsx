@@ -86,7 +86,9 @@ async function open(props: Record<string, unknown>) {
 }
 
 const geometry = (
-  root: { getGeometry: (ids: readonly string[]) => ReadonlyMap<string, unknown> },
+  root: {
+    getGeometry: (ids: readonly string[]) => ReadonlyMap<string, unknown>;
+  },
   id: string,
 ) =>
   root.getGeometry([id]).get(id) as {
@@ -144,7 +146,7 @@ describe("S2 Slider trackStyle · thumbStyle · fillOffset", () => {
     void thumb;
     const box = geometry(root, thumbRecord.id);
     expect(box.width).toBe(6);
-    expect(box.height).toBe(20);
+    expect(box.height).toBe(22); // S2 precise M 22 (thumb 20 + 2 — ADR-295 Phase 3c-3c)
     expect(html).toMatch(/width:6px/);
   });
 
