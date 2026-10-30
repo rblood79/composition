@@ -147,10 +147,13 @@ export function resolveBuilderGeneratedSheets(rootFiles, pinFiles = []) {
     root.walkDecls((d) => {
       const rule = d.parent;
       if (rule.type !== "rule") return;
-      // (the pin's `/publish` exclusion is not part of the generated selector)
+      // (the pin's `/publish` exclusion is not part of the generated selector; a long pin selector may be
+      //   wrapped by the formatter — `:is(\n  a,\n  b\n)` — so the spaces inside brackets go first)
       const selector = rule.selector
-        .replace(/:not\(:where\(\.publish-app \*\)\)/g, "")
-        .replace(/\s+/g, " ");
+        .replace(/\s+/g, " ")
+        .replace(/\(\s+/g, "(")
+        .replace(/\s+\)/g, ")")
+        .replace(/:not\(:where\(\.publish-app \*\)\)/g, "");
       const at = `${contextOf(rule)} › ${selector}`;
       const owners = [...(blocks.get(at) ?? [])];
       if (owners.length !== 1)

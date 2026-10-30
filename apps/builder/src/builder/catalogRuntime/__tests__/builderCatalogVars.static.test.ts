@@ -59,6 +59,24 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
     expect(at).toBeLessThan(order.indexOf('@import "./generated/'));
   });
 
+  it("(b2) 같은 탭의 `/publish` 경로 (`.publish-app`) 에는 빌더 값을 싣지 않는다", () => {
+    // 헤더 Preview 버튼의 `/publish` 는 빌더 번들이라 이 시트도 실린다. resolver 가 내지 않는 빌더 전용 변수
+    //   (`--catalog-token-input-padding-x-*` · 아이콘 · gap …) 가 사용자 컴포넌트에 새면 생성 시트의 S2 식
+    //   (fallback) 대신 chrome 값이 된다 (Phase 4 G5: Publish Input 여백 12 vs Preview 터치 15).
+    const rules = varsCss
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .matchAll(/([^{}]+)\{([^{}]*)\}/g);
+    const selectors = [...rules]
+      .filter(([, , body]) => /--catalog-token-/.test(body!))
+      .map(([, selector]) => selector!.trim());
+    expect(selectors.length).toBeGreaterThan(0);
+    expect(
+      selectors.filter(
+        (selector) => selector !== ":root:not(:has(.publish-app))",
+      ),
+    ).toEqual([]);
+  });
+
   it("(c) 빌더 값으로 푼 생성 시트 치수 == 295 전 기준", () => {
     const now = resolveBuilderGeneratedSheets(
       [THEME_CSS, BUILDER_CATALOG_VARS_CSS],
@@ -77,19 +95,11 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
       .filter(([key, value]) => after[key] !== value)
       .map(([key, value]) => `${key}: ${value} → ${after[key]}`);
     expect(changed).toEqual([]);
-    // 새 선언은 `min-height` (와 그 값을 나르는 변수) 뿐 (Phase 3), 빌더 값은 효과가 없는 셋 중 하나: control
-    //   상자의 `{size.height.<S>}` = 빌더 control 높이 (그 상자의 295 전 한 줄 높이 — 행간 + padding × 2 + 테두리
-    //   × 2) · `0` (field 버튼 · 범위 상자 안 DateInput — Button · DateInput 의 S2 높이를 받지 않는 자리) ·
-    //   `auto` (초기값 — 빌더 root 가 범위 상자 Group 의 S2 높이를 끈다).
-    const builderControlHeights = new Set([
-      "20px",
-      "22px",
-      "30px",
-      "42px",
-      "54px",
-    ]);
-    const inert = (value: string) =>
-      builderControlHeights.has(value) || value === "0" || value === "auto";
+    // 새 선언은 빌더에서 효과가 없어야 한다 — 속성의 초기값으로 고정 (`builder-catalog-pins.css`) 하거나 빌더 값으로
+    //   풀었을 때 초기값이다. `min-height` 도 같다 (Phase 4 G5): 처음에는 「control 상자의 `{size.height.<S>}` = 빌더
+    //   control 높이 = 295 전 한 줄 높이」 라 효과가 없다고 봤지만, 빌더 chrome CSS 가 글자 · 여백을 줄인 위젯
+    //   (Design 패널 Input 18 · NumberField 16 · ToggleButton 20) 은 그보다 작아 min-height 30 이 상자를 키웠다.
+    const inert = (value: string) => value === "auto";
     const added = Object.keys(after).filter((key) => !(key in before));
     // (a sheet-local variable carrying the minimum — every declaration of it is inert)
     const inertLocal = new Set(
@@ -109,6 +119,7 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
     const INITIAL: Record<string, string> = {
       "min-width": "auto",
       "max-width": "none",
+      "min-height": "auto",
       "margin-left": "0",
       // (3c-3c ②c: the Slider track row's new margins — S2 `track` 24 · 32 · 40 · 48 around the 4px bar — are 0 in
       //   the builder.)
@@ -127,14 +138,11 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
       added.filter((key) => {
         const prop = key.split(" | ")[1]!;
         if (prop.startsWith("--")) return !inertLocal.has(prop);
-        if (INITIAL[prop] !== undefined) return after[key] !== INITIAL[prop];
-        if (BUILDER_LAYER_ZERO.has(unsized(key))) {
-          const local = /^var\((--[\w-]+)\)$/.exec(after[key]!)?.[1];
-          return !(after[key] === "0" || (local && inertLocal.has(local)));
-        }
-        if (prop !== "min-height") return true;
         const local = /^var\((--[\w-]+)\)$/.exec(after[key]!)?.[1];
-        return !(inert(after[key]!) || (local && inertLocal.has(local)));
+        if (local && inertLocal.has(local)) return false;
+        if (INITIAL[prop] !== undefined) return after[key] !== INITIAL[prop];
+        if (BUILDER_LAYER_ZERO.has(unsized(key))) return after[key] !== "0";
+        return true;
       }),
     ).toEqual([]);
   });
@@ -158,7 +166,14 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
     expect(css).not.toMatch(/@media|var\(/);
     // 같은 탭의 `/publish` 경로 (Preview 버튼) 는 빌더 번들의 시트를 같이 싣는다 — 사용자 컴포넌트는 뺀다.
     const selectors = [...css.matchAll(/([^{}]+)\{/g)]
-      .map((m) => m[1]!.trim())
+      // (a long selector may be wrapped by the formatter)
+      .map((m) =>
+        m[1]!
+          .trim()
+          .replace(/\s+/g, " ")
+          .replace(/\(\s+/g, "(")
+          .replace(/\s+\)/g, ")"),
+      )
       .filter((selector) => !selector.startsWith("@"));
     expect(selectors.length).toBeGreaterThan(0);
     expect(

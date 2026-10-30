@@ -323,4 +323,107 @@
   .react-aria-DropZone[data-size="L"]:not(:where(.publish-app *)) {
     height: 160px;
   }
+
+  /* Phase 4 G5 — S2 control 최소 높이 (`min-height: {size.height.<S>}`, Phase 3a) 는 빌더 위젯에서 초기값.
+     빌더 chrome CSS 가 글자 · 여백을 줄인 위젯 (Design 패널 Input 18 · NumberField 16 · ToggleButton 20) 은
+     빌더 control 높이 (30 · 22) 보다 작아, 최소 높이가 상자를 키웠다 (295 전: 선언 없음). */
+  /* generated/ToggleButton.css */
+  .react-aria-ToggleButton:not(:where(.publish-app *)) {
+    min-height: auto;
+  }
+  .react-aria-ToggleButton[data-size="XS"]:not(:where(.publish-app *)) {
+    min-height: auto;
+  }
+  .react-aria-ToggleButton[data-size="S"]:not(:where(.publish-app *)) {
+    min-height: auto;
+  }
+  .react-aria-ToggleButton[data-size="M"]:not(:where(.publish-app *)) {
+    min-height: auto;
+  }
+  .react-aria-ToggleButton[data-size="L"]:not(:where(.publish-app *)) {
+    min-height: auto;
+  }
+  .react-aria-ToggleButton[data-size="XL"]:not(:where(.publish-app *)) {
+    min-height: auto;
+  }
+  /* generated/Input.css */
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):not(
+    :where(.publish-app *)
+  ) {
+    min-height: auto;
+  }
+  :is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    )[data-size="XS"]:not(:where(.publish-app *)) {
+    min-height: auto;
+  }
+  :is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    )[data-size="S"]:not(:where(.publish-app *)) {
+    min-height: auto;
+  }
+  :is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    )[data-size="M"]:not(:where(.publish-app *)) {
+    min-height: auto;
+  }
+  :is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    )[data-size="L"]:not(:where(.publish-app *)) {
+    min-height: auto;
+  }
+  :is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    )[data-size="XL"]:not(:where(.publish-app *)) {
+    min-height: auto;
+  }
+  /* generated/DateInput.css */
+  .react-aria-DateInput:not(:where(.publish-app *)) {
+    min-height: auto;
+  }
+  .react-aria-DateInput[data-size="XS"]:not(:where(.publish-app *)) {
+    min-height: auto;
+  }
+  .react-aria-DateInput[data-size="S"]:not(:where(.publish-app *)) {
+    min-height: auto;
+  }
+  .react-aria-DateInput[data-size="M"]:not(:where(.publish-app *)) {
+    min-height: auto;
+  }
+  .react-aria-DateInput[data-size="L"]:not(:where(.publish-app *)) {
+    min-height: auto;
+  }
+  .react-aria-DateInput[data-size="XL"]:not(:where(.publish-app *)) {
+    min-height: auto;
+  }
+  /* field 안 버튼 · 범위 상자 안 DateInput 의 `min-height: 0` (Button · DateInput 의 S2 높이 끄기) — 295 전: 선언 없음 */
+  .react-aria-NumberField .react-aria-Button:not(:where(.publish-app *)) {
+    min-height: auto;
+  }
+  .react-aria-SearchField .react-aria-Button:not(:where(.publish-app *)) {
+    min-height: auto;
+  }
+  .react-aria-ComboBox .react-aria-Button:not(:where(.publish-app *)) {
+    min-height: auto;
+  }
+  .react-aria-DatePicker .react-aria-Button:not(:where(.publish-app *)) {
+    min-height: auto;
+  }
+  .react-aria-DateRangePicker
+    .react-aria-DateInput:not(:where(.publish-app *)) {
+    min-height: auto;
+  }
+  .react-aria-DateRangePicker .react-aria-Button:not(:where(.publish-app *)) {
+    min-height: auto;
+  }
 }

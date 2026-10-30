@@ -13,9 +13,12 @@
    - 게이트: builderCatalogVars.static.test.ts — (a) 빌더가 싣는 생성 시트의 `--catalog-token-*` 가 전부
      여기 선언 · (b) 이 파일에 미디어 쿼리 0 · (c) 이 값으로 푼 생성 시트 치수 == 295 전 기준 JSON.
    - Preview · Publish 는 이 파일을 싣지 않는다 (theme/generated/theme-seed.generated.css + resolver 변수).
+     같은 탭의 `/publish` 경로 (헤더 Preview 버튼 — 빌더 번들) 는 이 시트도 싣지만 `.publish-app` 이 있으면
+     적용하지 않는다: resolver 가 내지 않는 빌더 전용 변수 (`--catalog-token-input-padding-x-*` · 아이콘 · gap)
+     가 사용자 컴포넌트의 S2 식 (fallback) 을 chrome 값으로 덮었다 (Phase 4 G5).
    ============================================ */
 @layer shared-tokens {
-  :root {
+  :root:not(:has(.publish-app)) {
     --catalog-token-text-2xs: 10px;
     --catalog-token-text-xs: 12px;
     --catalog-token-text-sm: 14px;

@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-295 Phase 4 — 빌더 패널 입력 높이 · Publish 입력 행간 · Preview 탭의 빌더 값 누수 수정] - 2026-10-31
+
+### Fixed
+
+- **Design 패널의 입력 칸 · 토글이 커지던 문제**: Phase 3a 에서 사용자 컴포넌트에 들어간 S2 최소 높이가 빌더 위젯 (Design 패널 Input · NumberField · ToggleButton) 에도 닿아 State 절 행이 28 → 38 로 커졌다. 빌더에서는 그 최소 높이를 초기값으로 고정한다 — 빌더 패널 스크린샷 before/after 차이 0 (desktop · 터치 기기).
+- **Publish 의 입력 칸 높이**: Publish reset 이 입력 칸에 글꼴 전체를 상속시켜 행간이 1.5 로 바뀌어 TextField 가 Preview 보다 3px (터치 3.5px) 컸다. Preview 와 같이 글꼴 이름 · 기능만 상속한다 — Publish Input desktop 32 · 터치 40.
+- **헤더 Preview 탭에 빌더 전용 값이 섞이던 문제**: 같은 탭의 `/publish` 경로가 빌더 위젯용 고정값까지 실어, 터치 기기에서 Input 좌우 여백이 S2 값 (15) 대신 12 였다. 빌더 고정값은 `.publish-app` 이 있으면 적용하지 않는다.
+  - 위치: `packages/shared/src/components/styles/builder-catalog-pins.css` · `builder-catalog-vars.css` · `apps/publish/src/styles/index.css`
+
 ## [Side 라벨 가로 스크롤바 수정 — Canvas overflow tolerance] - 2026-10-31
 
 ### Fixed

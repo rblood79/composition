@@ -38,11 +38,15 @@ svg {
   max-width: 100%;
 }
 
+/* 글꼴 이름 · 기능만 상속한다 — Preview reset (apps/builder/src/preview/baseStyles.ts) 과 같다. 이 reset 은
+   layer 밖이라 `font: inherit` 는 생성 시트의 행간 · 글자 크기 (@layer components) 까지 body 값으로 덮는다
+   (ADR-295 Phase 4 — Input 35 vs Preview 32). */
 input,
 button,
 textarea,
 select {
-  font: inherit;
+  font-family: inherit;
+  font-feature-settings: inherit;
 }
 
 p,
