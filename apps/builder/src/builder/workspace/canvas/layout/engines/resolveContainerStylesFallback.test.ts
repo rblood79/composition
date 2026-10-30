@@ -334,13 +334,14 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
   //   2. kebab→camel: resolveCatalogContainerBase 출력은 kebab(flex-direction), wrapper 는 camelCase
   //   3. gap CSS-var: catalog gap='var(--spacing-xs)' (isValidTokenRef reject) → cssVarToTokenRef
   describe("field류 — catalog structure.composition base 재배선 (Phase 3-A-3a)", () => {
-    it("textfield → flex-column base (camelCase) + size md gap 6 + width:100%", () => {
+    // ADR-295 Phase 3c-3b ③: size 블록 gap = S2 `--field-gap` (control 높이 − 행간) / 2 — M (32 − 18) / 2 = 7.
+    it("textfield → flex-column base (camelCase) + size md gap 7 + width:100%", () => {
       const fb = resolveContainerStylesFallback("textfield", {});
       expect(fb.display).toBe("flex");
       expect(fb.flexDirection).toBe("column");
       expect(fb.alignItems).toBe("flex-start");
       // CSS size 블록이 composition base gap보다 우선한다.
-      expect(fb.gap).toBe(6);
+      expect(fb.gap).toBe(7);
       expect(fb.width).toBe("100%");
       // kebab key 가 누출되면 안 됨 (camelCase 정규화 필수)
       expect(fb).not.toHaveProperty("flex-direction");
@@ -357,22 +358,22 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
     });
 
     // ADR-256 G5 (예제 5): SearchField 는 레퍼런스 grid (Group 없음 — glyph 빈 열 · Input · 지우기 버튼).
-    it("searchfield → grid (0px · 1fr · auto) + size md 행 간격 8 · 열 간격 0", () => {
+    it("searchfield → grid (0px · 1fr · auto) + size md 행 간격 7 · 열 간격 0", () => {
       const fb = resolveContainerStylesFallback("searchfield", {});
       expect(fb.display).toBe("grid");
       expect(fb.gridTemplateColumns).toBe("0px minmax(0, 1fr) auto");
-      expect(fb.gap).toBe(8);
+      expect(fb.gap).toBe(7);
       expect(fb.columnGap).toBe(0);
     });
 
     it.each([
-      ["numberfield", 6],
-      ["datefield", 6],
-      ["timefield", 6],
-      ["datepicker", 4],
-      ["daterangepicker", 4],
-      ["combobox", 6],
-      ["select", 6],
+      ["numberfield", 7],
+      ["datefield", 7],
+      ["timefield", 7],
+      ["datepicker", 7],
+      ["daterangepicker", 7],
+      ["combobox", 7],
+      ["select", 7],
     ] as const)("%s → flex-column base + size md gap %s", (tag, gap) => {
       const fb = resolveContainerStylesFallback(tag, {});
       expect(fb.display).toBe("flex");

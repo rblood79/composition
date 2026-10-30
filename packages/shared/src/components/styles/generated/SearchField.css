@@ -20,7 +20,7 @@
   /* Default size */
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-md);
-  gap: 8px;
+  gap: var(--catalog-token-search-field-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
   column-gap: 0px;
   --icon-size: var(--catalog-token-search-field-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
 }
@@ -28,7 +28,7 @@
 .react-aria-SearchField[data-size="S"] {
   font-size: var(--catalog-token-text-xs);
   border-radius: var(--catalog-token-radius-sm);
-  gap: 6px;
+  gap: var(--catalog-token-search-field-gap-S, calc(var(--catalog-token-size-height-S) * 1 / 2 + calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)) * -1 / 2));
   column-gap: 0px;
   --icon-size: var(--catalog-token-search-field-icon-size-S, calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)));
 }
@@ -36,7 +36,7 @@
 .react-aria-SearchField[data-size="M"] {
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-md);
-  gap: 8px;
+  gap: var(--catalog-token-search-field-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
   column-gap: 0px;
   --icon-size: var(--catalog-token-search-field-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
 }
@@ -44,7 +44,7 @@
 .react-aria-SearchField[data-size="L"] {
   font-size: var(--catalog-token-text-base);
   border-radius: var(--catalog-token-radius-lg);
-  gap: 10px;
+  gap: var(--catalog-token-search-field-gap-L, calc(var(--catalog-token-size-height-L) * 1 / 2 + calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)) * -1 / 2));
   column-gap: 0px;
   --icon-size: var(--catalog-token-search-field-icon-size-L, calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)));
 }
@@ -52,7 +52,7 @@
 .react-aria-SearchField[data-size="XL"] {
   font-size: var(--catalog-token-text-lg);
   border-radius: var(--catalog-token-radius-xl);
-  gap: 10px;
+  gap: var(--catalog-token-search-field-gap-XL, calc(var(--catalog-token-size-height-XL) * 1 / 2 + calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * -1 / 2));
   column-gap: 0px;
   --icon-size: var(--catalog-token-search-field-icon-size-XL, calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)));
 }
@@ -71,19 +71,19 @@
 /* ── Tier 2: Composite Delegation ── */
 
 .react-aria-SearchField[data-size="S"] {
-  --sf-field-gap: 6px;
+  --sf-field-gap: var(--catalog-token-search-field-gap-S, calc(var(--catalog-token-size-height-S) * 1 / 2 + calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)) * -1 / 2));
 }
 
 .react-aria-SearchField[data-size="M"] {
-  --sf-field-gap: 8px;
+  --sf-field-gap: var(--catalog-token-search-field-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
 }
 
 .react-aria-SearchField[data-size="L"] {
-  --sf-field-gap: 10px;
+  --sf-field-gap: var(--catalog-token-search-field-gap-L, calc(var(--catalog-token-size-height-L) * 1 / 2 + calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)) * -1 / 2));
 }
 
 .react-aria-SearchField[data-size="XL"] {
-  --sf-field-gap: 10px;
+  --sf-field-gap: var(--catalog-token-search-field-gap-XL, calc(var(--catalog-token-size-height-XL) * 1 / 2 + calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * -1 / 2));
 }
 
 .react-aria-SearchField[data-size="XS"] {

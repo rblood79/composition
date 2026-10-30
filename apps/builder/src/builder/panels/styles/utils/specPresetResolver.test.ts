@@ -254,10 +254,11 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
   });
 
   describe("Composite composition.* (ADR-036 Phase 3a 스키마) — sizes 우선, composition 은 sizes 없을 때만 반영", () => {
-    it("Select.sizes.M.gap=6 이 composition.gap=4 를 override (회귀 0 보장)", () => {
+    it("Select.sizes.M.gap=7 이 composition.gap=4 를 override (회귀 0 보장)", () => {
       // SelectSpec.sizes.M.gap = 6 우선 반영, composition.gap="var(--spacing-xs)"=4 는 fallback 만
       const preset = resolveLayoutSpecPreset("Select", "M");
-      expect(preset.gap).toBe(6);
+      // ADR-295 Phase 3c-3b ③: S2 `--field-gap` (32 − 18) / 2.
+      expect(preset.gap).toBe(7);
     });
 
     it("Select size=absent → sizes 없음 → composition.gap=4 반영", () => {
@@ -435,14 +436,14 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
       });
     });
 
-    it("Select (Composite composition.gap) — sizes.M.gap=6 우선, undefined size 시 composition fallback", () => {
-      expect(resolveLayoutSpecPreset("Select", "M").gap).toBe(6);
+    it("Select (Composite composition.gap) — sizes.M.gap=7 우선, undefined size 시 composition fallback", () => {
+      expect(resolveLayoutSpecPreset("Select", "M").gap).toBe(7);
       expect(resolveLayoutSpecPreset("Select", "xxl").gap).toBe(4);
     });
 
-    it("ComboBox (Composite composition.gap) — sizes.M.gap=6 우선", () => {
+    it("ComboBox (Composite composition.gap) — sizes.M.gap=7 우선", () => {
       // ComboBox 도 Select 와 동일 sizes.*.gap 구조 + composition.gap="var(--spacing-xs)"
-      expect(resolveLayoutSpecPreset("ComboBox", "M").gap).toBe(6);
+      expect(resolveLayoutSpecPreset("ComboBox", "M").gap).toBe(7);
       expect(resolveLayoutSpecPreset("ComboBox", "xxl").gap).toBe(4);
     });
 

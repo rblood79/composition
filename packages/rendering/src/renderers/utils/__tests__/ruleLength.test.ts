@@ -5,11 +5,14 @@
 import { describe, expect, it } from "vitest";
 import type { TokenRef } from "../../../types/token.types";
 import {
+  centerPadding,
   DEVICE_TOUCH_REF,
   parseRuleLengthRef,
   parseRuleLengthTerms,
   ruleLengthCss,
   ruleLengthPx,
+  ruleLengthRef,
+  type RuleLengthForm,
 } from "../ruleLength";
 
 const maps = (touch: 0 | 1) =>
@@ -62,5 +65,36 @@ describe("ADR-295 length refs", () => {
     expect(
       parseRuleLengthTerms("{length.size.height.M*1/2-1+size.height.M*1/1}"),
     ).toBeUndefined();
+  });
+
+  it("centerPadding — (height − 1lh) / 2: the named size's height, the block's line (or its font's line)", () => {
+    const form = centerPadding("M") as unknown as RuleLengthForm;
+    const ref = ruleLengthRef(form, { fontSize: "{typography.text-sm}" });
+    expect(ref).toBe(
+      "{length.size.height.M*1/2+typography.text-sm--line-height*-1/2}",
+    );
+    expect(ruleLengthPx(ref, resolve(0))).toBe((32 - 18) / 2);
+    expect(ruleLengthPx(ref, resolve(1))).toBe((40 - 22) / 2);
+    // (No size named: the block's own height token and line-height token.)
+    expect(
+      ruleLengthRef(centerPadding() as unknown as RuleLengthForm, {
+        minHeight: "{size.height.M}",
+        lineHeight: "{typography.text-sm--line-height}",
+      }),
+    ).toBe(ref);
+    // (A named font's line wins over the block's own font — a root one step above the S2 field font.)
+    expect(
+      ruleLengthRef(
+        centerPadding("M", "text-sm") as unknown as RuleLengthForm,
+        {
+          fontSize: "{typography.text-base}",
+        },
+      ),
+    ).toBe(ref);
+    expect(() =>
+      ruleLengthRef(centerPadding() as unknown as RuleLengthForm, {
+        fontSize: "{typography.text-sm}",
+      }),
+    ).toThrow(/centerPadding/);
   });
 });

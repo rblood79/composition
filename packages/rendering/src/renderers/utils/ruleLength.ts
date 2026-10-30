@@ -23,6 +23,7 @@ import { withCatalogTokenVars } from "../CSSGenerator";
 
 export type RuleLengthForm =
   | { readonly ofHeight: readonly [number, number] }
+  | { readonly center: { readonly height?: string; readonly font?: string } }
   | {
       readonly em: readonly [number, number];
       readonly touch?: { readonly em: readonly [number, number] };
@@ -51,12 +52,28 @@ export function em(a: number, b: number, touch?: [number, number]): number {
   } as MarkedForm as unknown as number;
 }
 
+/**
+ * A gap that centres a line in a control height (S2 `centerPadding(height)` = (height − 1lh) / 2): a field's
+ * label-to-control gap (`--field-gap` = `centerPadding('var(--field-height)')`). `height` = the size whose
+ * `{size.height.<S>}` is the base (a field root has no height token of its own), else the block's height ·
+ * minHeight token. The line is `font`'s line (`text-sm` → `{typography.text-sm--line-height}` — a field root
+ * whose own font is not the S2 field font of its size), else the block's line-height token, else its font's
+ * line. Typed as the number it reads as.
+ */
+export function centerPadding(height?: string, font?: string): number {
+  return {
+    center: { ...(height ? { height } : {}), ...(font ? { font } : {}) },
+    [FORM]: true,
+  } as MarkedForm as unknown as number;
+}
+
 function isForm(value: unknown): value is MarkedForm {
   return typeof value === "object" && value !== null && FORM in value;
 }
 
 const HEIGHT_REF = /^\{size\.height\.[A-Z]+\}$/;
-const FONT_REF = /^\{typography\.text-[a-z0-9-]+\}$/;
+const FONT_REF = /^\{typography\.text-[a-z0-9]+(?:-[a-z0-9]+)*\}$/;
+const LINE_REF = /^\{typography\.text-[a-z0-9]+--line-height\}$/;
 
 /** The length ref of a form in a size block (its base = the block's height · font token). */
 export function ruleLengthRef(
@@ -64,6 +81,25 @@ export function ruleLengthRef(
   block: Readonly<Record<string, unknown>>,
 ): TokenRef {
   const ratio = (pair: readonly [number, number]) => `${pair[0]}/${pair[1]}`;
+  if ("center" in form) {
+    const height = form.center.height
+      ? `{size.height.${form.center.height}}`
+      : ([block.height, block.minHeight].find(
+          (value) => typeof value === "string" && HEIGHT_REF.test(value),
+        ) as string | undefined);
+    const line = form.center.font
+      ? `{typography.${form.center.font}--line-height}`
+      : typeof block.lineHeight === "string" && LINE_REF.test(block.lineHeight)
+        ? block.lineHeight
+        : typeof block.fontSize === "string" && FONT_REF.test(block.fontSize)
+          ? `${block.fontSize.slice(0, -1)}--line-height}`
+          : undefined;
+    if (!height || !HEIGHT_REF.test(height) || !line)
+      throw new Error(
+        `ADR-295 centerPadding needs a {size.height.<S>} base and a {typography.text-<x>} line in its size block`,
+      );
+    return `{length.${height.slice(1, -1)}*1/2+${line.slice(1, -1)}*-1/2}` as TokenRef;
+  }
   if ("ofHeight" in form) {
     const base = [block.height, block.minHeight].find(
       (value) => typeof value === "string" && HEIGHT_REF.test(value),

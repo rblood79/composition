@@ -48,6 +48,7 @@ export type {
 // Spacing
 export {
   spacing,
+  S2_SPACING_SCALE,
   getSpacingToken,
   normalizeBreadcrumbRspSizeKey,
 } from "./spacing";

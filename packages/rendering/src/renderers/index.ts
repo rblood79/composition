@@ -19,6 +19,7 @@ export {
 export { s2ControlPaddingY } from "./utils/controlPadding";
 export {
   ofHeight,
+  centerPadding,
   em,
   ruleLengthRef,
   parseRuleLengthRef,

@@ -156,5 +156,54 @@
     --catalog-token-toggle-button-gap-M: 8px;
     --catalog-token-toggle-button-gap-L: 10px;
     --catalog-token-toggle-button-gap-XL: 12px;
+
+    /* field label ↔ control 간격 (ADR-295 Phase 3c-3b ③): S2 `--field-gap` = (높이 − 행간) / 2 — 빌더 위젯은 295 전 px. */
+    --catalog-token-text-field-gap-XS: 2px;
+    --catalog-token-text-field-gap-S: 4px;
+    --catalog-token-text-field-gap-M: 6px;
+    --catalog-token-text-field-gap-L: 8px;
+    --catalog-token-text-field-gap-XL: 10px;
+    --catalog-token-number-field-gap-XS: 2px;
+    --catalog-token-number-field-gap-S: 4px;
+    --catalog-token-number-field-gap-M: 6px;
+    --catalog-token-number-field-gap-L: 8px;
+    --catalog-token-number-field-gap-XL: 10px;
+    --catalog-token-select-gap-XS: 2px;
+    --catalog-token-select-gap-S: 4px;
+    --catalog-token-select-gap-M: 6px;
+    --catalog-token-select-gap-L: 8px;
+    --catalog-token-select-gap-XL: 10px;
+    --catalog-token-combo-box-gap-XS: 2px;
+    --catalog-token-combo-box-gap-S: 4px;
+    --catalog-token-combo-box-gap-M: 6px;
+    --catalog-token-combo-box-gap-L: 8px;
+    --catalog-token-combo-box-gap-XL: 10px;
+    --catalog-token-date-field-gap-S: 4px;
+    --catalog-token-date-field-gap-M: 6px;
+    --catalog-token-date-field-gap-L: 8px;
+    --catalog-token-date-field-gap-XL: 10px;
+    --catalog-token-time-field-gap-S: 4px;
+    --catalog-token-time-field-gap-M: 6px;
+    --catalog-token-time-field-gap-L: 8px;
+    --catalog-token-time-field-gap-XL: 10px;
+    --catalog-token-search-field-gap-S: 6px;
+    --catalog-token-search-field-gap-M: 8px;
+    --catalog-token-search-field-gap-L: 10px;
+    --catalog-token-search-field-gap-XL: 10px;
+    --catalog-token-date-picker-gap-XS: 2px;
+    --catalog-token-date-picker-gap-S: 4px;
+    --catalog-token-date-picker-gap-M: 4px;
+    --catalog-token-date-picker-gap-L: 4px;
+    --catalog-token-date-picker-gap-XL: 8px;
+    --catalog-token-date-range-picker-gap-XS: 2px;
+    --catalog-token-date-range-picker-gap-S: 4px;
+    --catalog-token-date-range-picker-gap-M: 4px;
+    --catalog-token-date-range-picker-gap-L: 4px;
+    --catalog-token-date-range-picker-gap-XL: 8px;
+    --catalog-token-color-field-gap-XS: 6px;
+    --catalog-token-color-field-gap-S: 6px;
+    --catalog-token-color-field-gap-M: 8px;
+    --catalog-token-color-field-gap-L: 10px;
+    --catalog-token-color-field-gap-XL: 12px;
   }
 }

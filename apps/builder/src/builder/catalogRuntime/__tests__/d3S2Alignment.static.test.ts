@@ -32,6 +32,7 @@ import {
   s2SizeTokens,
   s2TypographyTokens,
   spacing,
+  S2_SPACING_SCALE,
   TYPOGRAPHY_STEPS,
   type TokenRef,
 } from "@composition/rendering";
@@ -115,6 +116,10 @@ describe("ADR-295 G4 (a) — 토큰 표 · 상수 = S2 설치본", () => {
     expect(Object.keys(declared).filter((name) => !(name in spacing))).toEqual([
       "3xs",
     ]);
+  });
+
+  it("S2 spacing 단 — rule 리터럴 분류의 고정 값 단 = 설치본 `generateSpacing`", () => {
+    expect(S2_SPACING_SCALE).toEqual(t.spacing);
   });
 
   it("기기 두 벌 (scale · 기본 글자)", () => {
@@ -666,5 +671,67 @@ describe("ADR-295 G4 (c) — 컴포넌트 값 = S2 computed", () => {
         oracle.tokens,
       ),
     ]);
+  });
+  it("3c-3b ③ — field label ↔ control 간격 = S2 `--field-gap` (두 벌)", () => {
+    const px = (ref: string, device: "desktop" | "touch") => {
+      const parsed = parseRuleLengthTerms(ref)!;
+      expect(parsed, ref).toBeDefined();
+      const { scale, fontBase } = S2_DEVICE[device];
+      const sizes = s2SizeTokens(scale) as Record<string, number>;
+      const fonts = s2TypographyTokens(fontBase) as unknown as Record<
+        string,
+        number
+      >;
+      return parsed.terms.reduce((total, term) => {
+        const name = term.base.slice(1, -1);
+        const base = name.startsWith("size.")
+          ? sizes[name.slice("size.".length)]!
+          : fonts[name.slice("typography.".length)]!;
+        const ratio =
+          device === "touch" && term.touch ? term.touch.ratio : term.ratio;
+        return total + base * ratio;
+      }, parsed.add);
+    };
+    const fontOf = (block: Record<string, unknown>) =>
+      /^\{typography\.(text-[a-z0-9]+)\}$/.exec(block.fontSize as string)![1]!;
+    for (const device of ["desktop", "touch"] as const) {
+      const { scale, fontBase } = S2_DEVICE[device];
+      const height = (size: string) => s2SizeTokens(scale)[`height.${size}`]!;
+      const line = (font: string) =>
+        (s2TypographyTokens(fontBase) as unknown as Record<string, number>)[
+          `${font}--line-height`
+        ]!;
+      // S2 `field()`: `--field-gap` = centerPadding('var(--field-height)') = (control 높이 − 1lh) / 2 — 라벨의
+      // paddingBottom · 도움말의 paddingTop (Field.tsx · style-utils.ts). 1lh = 그 크기의 S2 field 글자
+      // (`controlFont` — XS ui-xs … XL ui-xl) 의 행간 — 루트 글자가 한 단 위인 TimeField · ColorField 도.
+      const FIELD_FONT: Readonly<Record<string, string>> = {
+        XS: "text-2xs",
+        S: "text-xs",
+        M: "text-sm",
+        L: "text-base",
+        XL: "text-lg",
+      };
+      for (const type of [
+        "TextField",
+        "TextArea",
+        "TimeField",
+        "DateField",
+        "NumberField",
+        "Select",
+        "ComboBox",
+        "DatePicker",
+        "DateRangePicker",
+        "ColorField",
+        "SearchField",
+      ])
+        for (const [size, block] of Object.entries(rules[type]!.sizes)) {
+          const ref = ruleSizeLengthRef(block, "gap");
+          expect(ref, `${type}.${size}`).toBeDefined();
+          expect(px(ref!, device), `${device} ${type}.${size}`).toBeCloseTo(
+            (height(size) - line(FIELD_FONT[size]!)) / 2,
+            10,
+          );
+        }
+    }
   });
 });

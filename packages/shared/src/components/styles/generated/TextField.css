@@ -20,37 +20,37 @@
   /* Default size */
   font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
-  gap: 6px;
+  gap: var(--catalog-token-text-field-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
 }
 
 .react-aria-TextField[data-size="XS"] {
   font-size: var(--catalog-token-text-2xs);
   border-radius: var(--catalog-token-radius-sm);
-  gap: 2px;
+  gap: var(--catalog-token-text-field-gap-XS, calc(var(--catalog-token-size-height-XS) * 1 / 2 + calc(var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height)) * -1 / 2));
 }
 
 .react-aria-TextField[data-size="S"] {
   font-size: var(--catalog-token-text-xs);
   border-radius: 7px;
-  gap: 4px;
+  gap: var(--catalog-token-text-field-gap-S, calc(var(--catalog-token-size-height-S) * 1 / 2 + calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)) * -1 / 2));
 }
 
 .react-aria-TextField[data-size="M"] {
   font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
-  gap: 6px;
+  gap: var(--catalog-token-text-field-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
 }
 
 .react-aria-TextField[data-size="L"] {
   font-size: var(--catalog-token-text-base);
   border-radius: 9px;
-  gap: 8px;
+  gap: var(--catalog-token-text-field-gap-L, calc(var(--catalog-token-size-height-L) * 1 / 2 + calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)) * -1 / 2));
 }
 
 .react-aria-TextField[data-size="XL"] {
   font-size: var(--catalog-token-text-lg);
   border-radius: 10px;
-  gap: 10px;
+  gap: var(--catalog-token-text-field-gap-XL, calc(var(--catalog-token-size-height-XL) * 1 / 2 + calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * -1 / 2));
 }
 
 .react-aria-TextField[data-focus-visible] {

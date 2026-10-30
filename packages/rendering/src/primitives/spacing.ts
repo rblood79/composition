@@ -30,6 +30,15 @@ export const spacing: SpacingTokens = {
 };
 
 /**
+ * ADR-295 Phase 3c-3b ③ — S2 의 spacing 단 (`spectrum-theme.ts` `generateSpacing` 의 px 목록). S2 는 고정 여백 ·
+ * 간격을 이 단의 px 로 쓴다 (`padding: 12`). rule 의 padding · gap 리터럴이 이 단 위면 「S2 고정 값」 으로
+ * 분류한다 (`componentRulesTable.static.test.ts`). 대조: `d3S2Alignment` 「S2 spacing 단」.
+ */
+export const S2_SPACING_SCALE: readonly number[] = [
+  0, 2, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 56, 64, 80, 96,
+];
+
+/**
  * 간격 토큰 값 반환
  */
 export function getSpacingToken(name: keyof SpacingTokens): number {

@@ -20,31 +20,31 @@
   /* Default size */
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
-  gap: 6px;
+  gap: var(--catalog-token-date-field-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
 }
 
 .react-aria-DateField[data-size="S"] {
   font-size: var(--catalog-token-text-xs);
   border-radius: var(--catalog-token-radius-none);
-  gap: 4px;
+  gap: var(--catalog-token-date-field-gap-S, calc(var(--catalog-token-size-height-S) * 1 / 2 + calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)) * -1 / 2));
 }
 
 .react-aria-DateField[data-size="M"] {
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
-  gap: 6px;
+  gap: var(--catalog-token-date-field-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
 }
 
 .react-aria-DateField[data-size="L"] {
   font-size: var(--catalog-token-text-base);
   border-radius: var(--catalog-token-radius-none);
-  gap: 8px;
+  gap: var(--catalog-token-date-field-gap-L, calc(var(--catalog-token-size-height-L) * 1 / 2 + calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)) * -1 / 2));
 }
 
 .react-aria-DateField[data-size="XL"] {
   font-size: var(--catalog-token-text-lg);
   border-radius: var(--catalog-token-radius-none);
-  gap: 10px;
+  gap: var(--catalog-token-date-field-gap-XL, calc(var(--catalog-token-size-height-XL) * 1 / 2 + calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * -1 / 2));
 }
 
 .react-aria-DateField[data-focus-visible] {

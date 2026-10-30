@@ -27,6 +27,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 안내선 수치 배경은 눈금자 두께 전체를 채우는 투명→흰색→투명 그라데이션으로 표시한다. 숫자를 중심으로 상단은 가로 100px, 왼쪽은 세로 100px 범위에 적용하며, 중앙 50px는 흰색으로 유지하고 양끝 25px씩만 투명하게 전환한다.
 - 상단 눈금자 우클릭에 모든 세로 안내선 제거, 왼쪽 눈금자 우클릭에 모든 가로 안내선 제거를 추가했다. 메뉴를 연 활성 페이지·breakpoint에만 적용하며 한 번의 Undo로 복원한다.
 
+## [ADR-295 Phase 3c-3b ③ — field 라벨 간격 = S2, 남은 치수 리터럴 분류] - 2026-10-31
+
+### Changed
+
+- **field 의 라벨 ↔ 입력 간격이 S2 식 (높이 − 행간) / 2 를 따른다** (TextField · TextArea · NumberField · SearchField · Select · ComboBox · DateField · TimeField · DatePicker · DateRangePicker · ColorField — Canvas · Preview · Publish, 빌더 위젯은 그대로). XS 3 · S 4 · M 7 · L 10 · XL 13 (이전 2 · 4 · 6 · 8 · 10, DatePicker 계열 2 · 4 · 4 · 4 · 8). 터치 보기에서 M 9.
+
+### Internal
+
+- rule 치수 리터럴 게이트가 상한 대신 분류를 요구한다 — 값의 형 · 내용 높이 · S2 spacing 단 · control centerPadding 은 자동, 나머지는 「의도적」 13 자리와 「S2 값 대조 대기」 45 자리 (S2 쪽 값과 출처 포함, 줄기만 한다). 읽는 곳 없던 field 루트 · Tabs · AvatarGroup · Pagination 의 높이 리터럴은 0 (내용 높이) 으로 정리.
+
 ## [ADR-295 Phase 3c-3b ② — field 버튼 · SearchField 자리 = S2] - 2026-10-31
 
 ### Changed

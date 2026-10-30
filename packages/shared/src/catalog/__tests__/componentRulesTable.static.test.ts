@@ -1,12 +1,21 @@
 /**
- * ADR-295 G3 — rule 치수 리터럴 ratchet (breakdown Phase 3 · 3b).
+ * ADR-295 G3 — rule 치수 리터럴 분류 (breakdown Phase 3 · 3b · 3c-3b ③).
  *
  * D3 값의 정본은 S2 설치본이고 rule 은 토큰 이름 (`{radius.*}` · `{typography.*}` · `{size.height.*}` ·
- * `{size.icon.*}`) 으로 참조한다. 아래 다섯 키의 px 숫자는 `INTENTIONAL_LITERAL` 에 사유와 함께 있어야
- * 한다 — 등재 없는 리터럴 · 값이 바뀐 리터럴 · 쓰이지 않는 등재 모두 FAIL. 나머지 치수 키 (height ·
- * padding · gap …) 는 3c · 3d 가 값의 형을 선언할 때까지 상한만 둔다 (내리기만 — 올리면 FAIL).
+ * `{size.icon.*}`) 이나 값의 형 (`ofHeight` · `em` · `centerPadding` — `{length.…}`) 으로 참조한다. 아래 키의
+ * px 숫자는 셋 중 하나다:
+ * - 스스로 분류되는 값 — height 0 (내용 높이), padding · gap 이 S2 spacing 단 위 (`S2_SPACING_SCALE` — S2 가
+ *   `padding: 12` 로 쓰는 고정 값), paddingY 가 control 의 centerPadding (`s2ControlPaddingY` — 생성기가 식과 대조);
+ * - `INTENTIONAL_LITERAL` — 사유와 함께 둔 값 (S2 대응 없음 · S2 값 그대로인 상자);
+ * - `S2_PENDING_LITERAL` — S2 와 다르거나 아직 대조하지 않은 값 (S2 쪽 값 · 출처와 함께 — 값 대조 대기).
+ * 등재 없는 리터럴 · 값이 바뀐 리터럴 · 쓰이지 않는 등재 모두 FAIL — 두 목록은 줄기만 한다.
  */
 import { describe, expect, it } from "vitest";
+import {
+  ruleSizeLengthRef,
+  s2ControlPaddingY,
+  S2_SPACING_SCALE,
+} from "@composition/rendering";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 
 const STRICT_KEYS = [
@@ -15,17 +24,13 @@ const STRICT_KEYS = [
   "lineHeight",
   "minHeight",
   "iconSize",
+  "minWidth",
+  "height",
+  "paddingX",
+  "paddingY",
+  "gap",
+  "iconGap",
 ] as const;
-
-/** 3c · 3d 가 형을 선언할 때까지의 상한 (2026-10-30 Phase 3b 측정값 — minWidth 는 3c-2 에서 0). */
-const CEILING: Readonly<Record<string, number>> = {
-  height: 389,
-  minWidth: 0,
-  paddingX: 167,
-  paddingY: 111,
-  gap: 178,
-  iconGap: 8,
-};
 
 const CONTROL_RADIUS = { S: 7, M: 8, L: 9, XL: 10 } as const;
 const CONTROL_RADIUS_REASON =
@@ -47,6 +52,13 @@ const controlRadius = (component: string): IntentionalLiteral => ({
   values: CONTROL_RADIUS,
   reason: CONTROL_RADIUS_REASON,
 });
+
+const sizes = (
+  component: string,
+  key: IntentionalLiteral["key"],
+  values: Readonly<Record<string, number>>,
+  reason: string,
+): IntentionalLiteral => ({ component, key, values, reason });
 
 export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
   ...[
@@ -170,6 +182,298 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     reason:
       "차트 축 글자 — S2 컴포넌트 없음 · 장면 계산 (`computeChartScene`) 입력은 px 숫자",
   },
+  sizes(
+    "Avatar",
+    "height",
+    { XS: 24, S: 28, M: 32, L: 40, XL: 48 },
+    "S2 Avatar 는 `size` 가 숫자 px (기본 24) — composition XS~XL 은 그 숫자를 고른다",
+  ),
+  sizes(
+    "Code",
+    "height",
+    { XS: 18, S: 22, M: 26, L: 32 },
+    "S2 대응 없음 — composition 코드 글자 상자",
+  ),
+  sizes(
+    "Code",
+    "paddingX",
+    { S: 6, L: 10 },
+    "S2 대응 없음 — composition 코드 글자 상자",
+  ),
+  sizes("Field", "height", { M: 32 }, "S2 대응 없음 — composition 묶음 상자"),
+  sizes(
+    "FileTrigger",
+    "gap",
+    { S: 6, L: 10 },
+    "S2 에 FileTrigger 스타일 없음 (RAC 전용) — composition 버튼 묶음",
+  ),
+  sizes(
+    "FileTrigger",
+    "iconGap",
+    { S: 6, L: 10 },
+    "S2 에 FileTrigger 스타일 없음 (RAC 전용) — composition 버튼 묶음",
+  ),
+  sizes(
+    "Image",
+    "height",
+    { S: 120, M: 200, L: 320 },
+    "S2 Image 는 size 축이 없다 — composition size 의 자리 높이",
+  ),
+  sizes(
+    "Kbd",
+    "height",
+    { XS: 18, S: 22, M: 26, L: 32 },
+    "S2 대응 없음 — composition 키 글자 상자",
+  ),
+  sizes(
+    "Kbd",
+    "paddingX",
+    { S: 6, L: 10 },
+    "S2 대응 없음 — composition 키 글자 상자",
+  ),
+  sizes(
+    "Nav",
+    "height",
+    { S: 48, M: 56, L: 64 },
+    "S2 대응 없음 — composition 탐색 막대",
+  ),
+  sizes(
+    "Separator",
+    "height",
+    { S: 1, M: 2, L: 4 },
+    "S2 Divider 두께 S 1 · M 2 · L 4 (`Divider.tsx`) 그대로",
+  ),
+  sizes(
+    "Skeleton",
+    "height",
+    { S: 16, M: 20, L: 24 },
+    "S2 Skeleton 은 감싸는 모양이라 size 가 없다 — composition 단독 자리 높이",
+  ),
+  sizes(
+    "Chart",
+    "height",
+    { S: 160, M: 240, L: 320 },
+    "S2 대응 없음 — composition 차트 (장면 계산 입력 px)",
+  ),
+];
+
+/**
+ * S2 와 다르거나 아직 대조하지 않은 리터럴 — `s2` 는 S2 쪽 값과 출처 (「대조 전」 = 설치본을 아직 읽지 않음).
+ * 값 대조 (Phase 4 전 후속) 가 rule 을 S2 형 · 토큰으로 바꾸며 이 목록을 지운다. 새 항목 추가 금지.
+ */
+interface PendingLiteral extends IntentionalLiteral {
+  readonly s2: string;
+}
+
+const pending = (
+  component: string,
+  key: IntentionalLiteral["key"],
+  values: Readonly<Record<string, number>>,
+  s2: string,
+): PendingLiteral => ({
+  component,
+  key,
+  values,
+  s2,
+  reason: `S2 값 대조 대기 — ${s2}`,
+});
+
+export const S2_PENDING_LITERAL: readonly PendingLiteral[] = [
+  pending(
+    "MenuItem",
+    "height",
+    { S: 24, M: 32, L: 40, XL: 48 },
+    "MenuItem 안 label Text 가 MenuItem 글자가 아니라 Text 기본 (16 · 행간 20) 이고 MenuItem 은 size accept 가 없어 크기별 자식 규칙이 닿지 않는다 — S2 `menuitem` (최소 높이 control · 여백 높이 × 3/8 · 간격 text-to-visual · label = control 글자) 은 그 글자를 먼저 고친 뒤",
+  ),
+  pending(
+    "MenuItem",
+    "paddingX",
+    { S: 9, L: 15, XL: 18 },
+    "MenuItem 안 label Text 가 MenuItem 글자가 아니라 Text 기본 (16 · 행간 20) 이고 MenuItem 은 size accept 가 없어 크기별 자식 규칙이 닿지 않는다 — S2 `menuitem` (최소 높이 control · 여백 높이 × 3/8 · 간격 text-to-visual · label = control 글자) 은 그 글자를 먼저 고친 뒤",
+  ),
+  pending(
+    "MenuItem",
+    "gap",
+    { S: 6, L: 10 },
+    "MenuItem 안 label Text 가 MenuItem 글자가 아니라 Text 기본 (16 · 행간 20) 이고 MenuItem 은 size accept 가 없어 크기별 자식 규칙이 닿지 않는다 — S2 `menuitem` (최소 높이 control · 여백 높이 × 3/8 · 간격 text-to-visual · label = control 글자) 은 그 글자를 먼저 고친 뒤",
+  ),
+  pending(
+    "Breadcrumb",
+    "height",
+    { S: 16, M: 24, L: 24 },
+    "S2 Breadcrumbs 항목 높이 = control 높이 (M 32 · L 40 — `Breadcrumbs.tsx` `height: controlSize()`)",
+  ),
+  pending(
+    "Breadcrumbs",
+    "height",
+    { S: 16, M: 24, L: 24 },
+    "S2 Breadcrumbs 항목 높이 = control 높이 (M 32 · L 40 — `Breadcrumbs.tsx` `height: controlSize()`)",
+  ),
+  pending("Calendar", "gap", { M: 6 }, "S2 대조 전"),
+  pending("CalendarGrid", "gap", { M: 6 }, "S2 대조 전"),
+  pending("CalendarHeader", "height", { M: 30 }, "S2 대조 전"),
+  pending("CalendarHeader", "gap", { M: 6 }, "S2 대조 전"),
+  pending(
+    "ColorArea",
+    "height",
+    { S: 120, M: 180, L: 240 },
+    "S2 ColorArea 192 · size 축 없음 (`ColorArea.tsx`)",
+  ),
+  pending(
+    "ColorSwatch",
+    "height",
+    { S: 20, M: 28, L: 36 },
+    "S2 ColorSwatch XS 16 · S 24 · M 32 · L 40 (`ColorSwatch.tsx`)",
+  ),
+  pending("ColorThumb", "height", { M: 16 }, "S2 대조 전"),
+  pending("DropZone", "height", { S: 80, M: 120, L: 160 }, "S2 대조 전"),
+  pending("Header", "paddingY", { M: 6 }, "S2 대조 전"),
+  pending(
+    "Icon",
+    "height",
+    { XS: 16, S: 18, M: 24, L: 36, XL: 48 },
+    "S2 대조 전",
+  ),
+  pending("Illustration", "height", { S: 48, M: 96, L: 160 }, "S2 대조 전"),
+  pending("Keyboard", "height", { M: 18 }, "S2 대조 전"),
+  pending("Meter", "height", { S: 4, M: 8, L: 12, XL: 16 }, "S2 대조 전"),
+  pending("MeterTrack", "height", { S: 4, M: 8, L: 12, XL: 16 }, "S2 대조 전"),
+  pending(
+    "MeterValue",
+    "height",
+    { S: 16, M: 20, L: 24, XL: 28 },
+    "S2 대조 전",
+  ),
+  pending("ProgressBar", "height", { S: 4, M: 8, L: 12, XL: 16 }, "S2 대조 전"),
+  pending(
+    "ProgressBarTrack",
+    "height",
+    { S: 4, M: 8, L: 12, XL: 16 },
+    "S2 대조 전",
+  ),
+  pending(
+    "ProgressBarValue",
+    "height",
+    { S: 16, M: 20, L: 24, XL: 28 },
+    "S2 대조 전",
+  ),
+  pending(
+    "ProgressCircle",
+    "height",
+    { S: 24, M: 32, L: 64 },
+    "S2 ProgressCircle S 16 · M 32 · L 64 (`ProgressCircle.tsx`)",
+  ),
+  pending("RangeCalendar", "gap", { M: 6 }, "S2 대조 전"),
+  pending(
+    "SelectValue",
+    "height",
+    { XS: 14, S: 16, M: 20, L: 24, XL: 28 },
+    "S2 대조 전",
+  ),
+  pending(
+    "Slider",
+    "height",
+    { S: 4, M: 8, L: 12, XL: 16 },
+    "S2 Slider track 행 24 · 32 · 40 · 48 (`Slider.tsx` `track`) — 막대 두께는 대조 전",
+  ),
+  pending(
+    "SliderOutput",
+    "height",
+    { S: 16, M: 20, L: 24, XL: 28 },
+    "S2 대조 전",
+  ),
+  pending(
+    "SliderThumb",
+    "height",
+    { S: 14, M: 18, L: 22, XL: 26 },
+    "S2 Slider thumb 18 · 20 · 22 · 24 (`Slider.tsx` `thumbContainer`)",
+  ),
+  pending(
+    "SliderTrack",
+    "height",
+    { S: 4, M: 8, L: 12, XL: 16 },
+    "S2 Slider track 행 24 · 32 · 40 · 48 (`Slider.tsx` `track`) — 막대 두께는 대조 전",
+  ),
+  pending(
+    "StatusLight",
+    "height",
+    { S: 20, M: 24, L: 28, XL: 32 },
+    "S2 StatusLight 점 8 · 10 · 12 · 14 — 행 높이는 대조 전",
+  ),
+  pending(
+    "Tab",
+    "height",
+    { S: 21, M: 29, L: 41 },
+    "S2 Tabs 항목 높이 compact 32 · regular 48 — size 축이 아니라 density (`Tabs.tsx`)",
+  ),
+  pending(
+    "Column",
+    "paddingY",
+    {
+      M: 10,
+      "densities.compact": 6,
+      "densities.regular": 10,
+      "densities.spacious": 14,
+    },
+    "S2 TableView 머리글 centerPadding (`TableView.tsx`) — 행 높이 · 경계 대조 전",
+  ),
+  pending(
+    "Cell",
+    "paddingY",
+    {
+      M: 10,
+      "densities.compact": 6,
+      "densities.regular": 10,
+      "densities.spacious": 14,
+    },
+    "S2 TableView 셀 centerPadding (행 높이 − 행간) / 2 (`TableView.tsx`) — 행 높이 · 경계 대조 전",
+  ),
+  pending("Table", "height", { S: 36, M: 44, L: 52 }, "S2 대조 전"),
+  pending(
+    "TagGroup",
+    "height",
+    { S: 24, M: 32, L: 40 },
+    "S2 Tag 높이 = control 높이 — 리터럴이 아니라 `{size.height.<S>}` (터치 보기) 로",
+  ),
+  pending("TagList", "height", { S: 32, M: 32, L: 32 }, "S2 대조 전"),
+  pending("TagList", "gap", { L: 6 }, "S2 대조 전"),
+  pending(
+    "Toast",
+    "height",
+    { S: 40, M: 48, L: 56 },
+    "S2 Toast 최소 높이 56 · size 축 없음 (`Toast.tsx`)",
+  ),
+  pending("Toolbar", "gap", { L: 10 }, "S2 대조 전"),
+  pending(
+    "Tooltip",
+    "paddingX",
+    { M: 10 },
+    "S2 Tooltip 가로 여백 대조 전 (`Tooltip.tsx`)",
+  ),
+  pending(
+    "Tooltip",
+    "paddingY",
+    { M: 6 },
+    "S2 Tooltip paddingY = centerPadding (`Tooltip.tsx`) — 최소 높이 대조 전",
+  ),
+  pending(
+    "Tree",
+    "height",
+    { S: 28, M: 36, L: 44 },
+    "S2 TreeView 행 40 · 터치 50 (`TreeView.tsx` `rowHeight`)",
+  ),
+  pending(
+    "TreeItem",
+    "gap",
+    { "variants.default.leadingIcon": 6 },
+    "S2 대조 전",
+  ),
+  pending(
+    "TreeItem",
+    "height",
+    { S: 24, M: 32, L: 32 },
+    "S2 TreeView 행 40 · 터치 50 (`TreeView.tsx` `rowHeight`)",
+  ),
 ];
 
 interface Literal {
@@ -179,15 +483,20 @@ interface Literal {
   value: number;
 }
 
+/**
+ * rule 의 치수 숫자 — 값의 형 (`ofHeight` · `em` · `centerPadding` — size 블록의 getter, `ruleSizeLengthRef`) 은
+ * 숫자로 읽혀도 리터럴이 아니다.
+ */
 function literals(): Literal[] {
   const out: Literal[] = [];
   const walk = (node: unknown, component: string, path: string[]) => {
     if (!node || typeof node !== "object") return;
+    const inSizes = path[0] === "sizes" && path.length === 2;
     for (const [key, value] of Object.entries(node)) {
       if (typeof value === "number") {
+        if (inSizes && ruleSizeLengthRef(node, key)) continue;
         // (`sizes.<S>.key` → place `<S>`; anything else keeps its path.)
-        const place =
-          path[0] === "sizes" && path.length === 2 ? path[1]! : path.join(".");
+        const place = inSizes ? path[1]! : path.join(".");
         out.push({ component, key, place, value });
       } else walk(value, component, [...path, key]);
     }
@@ -199,17 +508,36 @@ function literals(): Literal[] {
   return out;
 }
 
+const SPACING_KEYS = new Set(["paddingX", "paddingY", "gap", "iconGap"]);
+
+/** 스스로 분류되는 리터럴 — 내용 높이 · S2 spacing 단 · control centerPadding. */
+function selfClassified(literal: Literal): boolean {
+  if (literal.key === "height" && literal.value === 0) return true;
+  if (SPACING_KEYS.has(literal.key) && S2_SPACING_SCALE.includes(literal.value))
+    return true;
+  if (literal.key !== "paddingY") return false;
+  const block = (
+    COMPONENT_RULES_TABLE as unknown as Record<
+      string,
+      { sizes?: Record<string, Record<string, unknown>> }
+    >
+  )[literal.component]?.sizes?.[literal.place];
+  return block !== undefined && s2ControlPaddingY(block) === literal.value;
+}
+
+const LISTED = [...INTENTIONAL_LITERAL, ...S2_PENDING_LITERAL];
+
 describe("ADR-295 G3 — rule 치수 리터럴", () => {
   const all = literals();
 
   it.each(STRICT_KEYS)(
-    "%s: px 리터럴은 INTENTIONAL_LITERAL 의 값 그대로다 (등재 없음 · 값 drift 0)",
+    "%s: px 리터럴은 스스로 분류되거나 두 목록의 값 그대로다 (등재 없음 · 값 drift 0)",
     (key) => {
       const unlisted = all
-        .filter((literal) => literal.key === key)
+        .filter((literal) => literal.key === key && !selfClassified(literal))
         .filter(
           (literal) =>
-            INTENTIONAL_LITERAL.find(
+            LISTED.find(
               (entry) =>
                 entry.component === literal.component && entry.key === key,
             )?.values[literal.place] !== literal.value,
@@ -219,10 +547,14 @@ describe("ADR-295 G3 — rule 치수 리터럴", () => {
     },
   );
 
-  it("INTENTIONAL_LITERAL 의 모든 값이 rule 에 그대로 있다 (낡은 등재 0)", () => {
+  it("두 목록의 모든 값이 rule 에 그대로 있다 (낡은 등재 0) · 한 자리는 한 목록에만", () => {
     const stale: string[] = [];
-    for (const entry of INTENTIONAL_LITERAL) {
+    const seen = new Set<string>();
+    for (const entry of LISTED) {
       expect(entry.reason.length).toBeGreaterThan(10);
+      const id = `${entry.component}.${entry.key}`;
+      expect([id, seen.has(id)]).toEqual([id, false]);
+      seen.add(id);
       for (const [place, value] of Object.entries(entry.values))
         if (
           !all.some(
@@ -238,12 +570,7 @@ describe("ADR-295 G3 — rule 치수 리터럴", () => {
     expect(stale).toEqual([]);
   });
 
-  it.each(Object.entries(CEILING))(
-    "%s: 리터럴 수가 상한 (%i) 을 넘지 않는다 — 3c · 3d 가 내린다",
-    (key, ceiling) => {
-      expect(
-        all.filter((literal) => literal.key === key).length,
-      ).toBeLessThanOrEqual(ceiling);
-    },
-  );
+  it("S2 값 대조 대기는 줄기만 한다 (2026-10-31 3c-3b ③ — 45 자리)", () => {
+    expect(S2_PENDING_LITERAL.length).toBeLessThanOrEqual(45);
+  });
 });

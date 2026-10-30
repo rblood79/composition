@@ -531,6 +531,28 @@ field 버튼 (ComboBox · DatePicker · DateRangePicker): 정사각형 `{size.fi
 
 **live (Chrome MCP, 5175 · `adr295-live`)**: 팔레트 SearchField · ComboBox · DatePicker · DateRangePicker 를 body 에 (넣을 때마다 선택을 비움 — Layers 의 Body 행 클릭은 선택을 바꾸지 않는다). Compare Mode Preview desktop: ComboBox 끝 여백 4 · 글자↔버튼 10 · 입력 끝 공간 34, DatePicker 끝 여백 4, DateRangePicker 시작 12 · 끝 4 · 끝 입력↔버튼 10, SearchField 글리프 시작 16 · 크기 18 · 글자 시작 40 · 끝 32. 「터치 크기로 미리보기」: ComboBox 5.5 · 12.14 (S2 터치 probe 5.5), DatePicker 4 · 버튼 25, DateRangePicker 15 · 4 · 12.14, SearchField 20 · 22 · 50 · 40. 새로고침 뒤 콘솔 오류 0. 네 요소는 삭제 명령으로 지움. (측정 중 첫 탭이 탭 그룹에서 빠져 새 탭으로 이어 쟀다.)
 
+**③ 남은 치수 리터럴 분류 · field 라벨 간격**: G3 ratchet 의 상한 (height 389 · paddingX 167 · paddingY 111 · gap 178 · iconGap 8) 을 분류로 바꿨다. 값의 형 (size 블록 getter — `ruleSizeLengthRef`) 은 리터럴로 세지 않고, 숫자는 셋 중 하나다.
+
+| 분류              | 판정                                                                                                                                                                                                                                                                                                                                                   |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 스스로 분류       | height 0 (내용 높이) · padding · gap 이 S2 spacing 단 위 (`S2_SPACING_SCALE` = 설치본 `generateSpacing` — G4 「S2 spacing 단」 이 oracle 과 대조) · paddingY = control centerPadding (`s2ControlPaddingY` — 생성기가 식과 대조)                                                                                                                        |
+| 의도적 (13)       | S2 대응 없음 (Chart · Code · Kbd · Nav · Field · FileTrigger · Image · Skeleton) · S2 값 그대로인 상자 (Avatar 숫자 size · Separator = Divider 1 · 2 · 4)                                                                                                                                                                                              |
+| S2 대조 대기 (45) | S2 쪽 값과 출처를 함께 둔다 — 값이 다른 것 (Breadcrumbs 항목 = control 높이 · ColorSwatch 16 · 24 · 32 · 40 · ProgressCircle 16 · 32 · 64 · Slider thumb 18 · 20 · 22 · 24 · Tabs 32 · 48 · Toast 56 · TreeView 행 40 · MenuItem …) 과 아직 설치본을 읽지 않은 것 (Meter · ProgressBar · Calendar · Icon · Table …). 게이트가 목록을 줄이기만 허용한다 |
+
+고친 것:
+
+- **field 라벨 ↔ 입력 간격 = S2 `--field-gap`** (`field()` 의 `centerPadding('var(--field-height)')` = (control 높이 − 1lh) / 2 — 라벨 paddingBottom · 도움말 paddingTop). 새 형 `centerPadding(size?)` (`{length.size.height.<S>*1/2+typography.<x>--line-height*-1/2}`) 을 11 field 루트 (TextField · TextArea · TimeField · DateField · NumberField · Select · ComboBox · DatePicker · DateRangePicker · ColorField · SearchField) 의 gap 에. TimeField · ColorField 는 루트 fontSize 가 S2 field 글자보다 한 단 위라 (M text-base — 별도 S2 차이) 행간 글자를 형에 적는다 (`centerPadding("M", "text-sm")`). 3 · 4 · 7 · 10 · 13 (이전 2 · 4 · 6 · 8 · 10, DatePicker 계열 2 · 4 · 4 · 4 · 8), 터치 M 9. 빌더 위젯은 `builder-catalog-vars.css` 의 크기별 gap pin (295 전 px).
+- **MenuItem 은 대조 대기로**: S2 `menuitem` 형 (최소 높이 control · centerPadding · 여백 `ofHeight(3, 8)` · `text-to-visual`) 으로 바꿔 보니 live Preview 에서 항목이 34 (S2 32) — 안의 label Text 가 MenuItem 글자가 아니라 Text 기본 16 · 행간 20 이었다 (고정 높이 32 가 가리고 있었다). MenuItem 은 size accept 가 없어 Button 식 크기별 자식 규칙 (`buttonChildScaleRules`) 도 닿지 않는다. label 글자를 먼저 고쳐야 해 되돌리고 높이 · 여백 · 간격을 「S2 대조 대기」 에 그 사유와 함께 올렸다.
+- **읽는 곳 없는 리터럴 정리**: field 루트 8 (TextField · TimeField · DateField · NumberField · Select · ComboBox · ColorField · SearchField) · Tabs · TabList · AvatarGroup · Pagination 의 height (Canvas 는 `catalogSizeAxisSkip` 이 건너뛰고 생성 CSS 도 내지 않았다) → 0, ColorField 루트 paddingX (패딩 축 skip) 삭제. 생성 CSS 변화 0.
+
+**게이트**: G3 `componentRulesTable.static.test.ts` — 11 키 (글자 · 모서리 · 행간 · 최소 높이 · 아이콘 · 최소 폭 · 높이 · 여백 X · Y · 간격 · 아이콘 간격) 의 숫자가 스스로 분류되거나 두 목록의 값 그대로 · 낡은 등재 0 · 한 자리 한 목록 · 대조 대기 ≤ 45. G4 「S2 spacing 단」 (`S2_SPACING_SCALE` = oracle `tokens.spacing`) · 「3c-3b ③ — field label ↔ control 간격」 (11 field 루트 × 크기 × 두 벌 = (높이 − S2 field 글자 행간) / 2). `ruleLength.test.ts` 「centerPadding」. Decision 9 게이트 (a) · (c) 에 field gap pin 47.
+
+**원복 RED**: Avatar XS 높이 24 → 25 → G3 2 FAIL (등재 drift · 낡은 등재) · TextField M gap 형 → 리터럴 6 → G3 1 FAIL (등재 없음) · `centerPadding` 행간 계수 −1/2 → −1/3 → G4 1 FAIL · TimeField M 의 행간 글자 지움 (루트 글자 text-base 행간으로) → G4 1 FAIL · Select M gap pin 지움 → Decision 9 (a) · (c) 2 FAIL. 복원 cmp 일치.
+
+**회귀**: type-check PASS · shared 2,050 · rendering 1,283 (+1 `centerPadding`) · builder unit 7,184 pass — 값 단언 갱신 `resolveContainerStylesFallback` (field gap 7) · `specPresetResolver` (Select · ComboBox M 7). 실패 = `chromeIsland` (기존) · `labelKeyCatalog` (다른 세션 WIP) · `phase4eCanvasGesture` 3 (다른 세션이 편집 중인 테스트 파일 — 내 변경을 되돌려도 같은 실패) · `phase4eG5LeafScope` (전체 실행에서만, 단독 PASS). G2 desktop · touch 263/263. Decision 9 게이트 6/6.
+
+**live (Chrome MCP, 5175 · `adr295-live`)**: 팔레트 TimeField · Menu 를 body 에 (기존 ListBox · TextField · Text 는 그대로). Compare Mode Preview desktop: TextField · TimeField 라벨 아래 → 입력 위 7 (rule gap 7px, 라벨 18 · 입력 32 — S2 (32 − 18) / 2). 「터치 크기로 미리보기」: 9 (라벨 22 · 입력 40 — S2 (40 − 22) / 2). MenuItem 은 되돌린 뒤 32 (S2 형으로 바꿨을 때 34 를 이 live 에서 찾았다). 콘솔 오류 0. 두 요소는 삭제 명령으로 지움.
+
 - G1 before/after: §6.1
 - G2 두 arm: §6.2 · Phase 3a §6.3 · Phase 3b §6.4
 - G4 (b) 최종 snapshot (preset 5 × 델타) · (c) 컴포넌트별 desktop/touch vs S2 computed: §6.4 (c 의 padding · gap 은 3c)
