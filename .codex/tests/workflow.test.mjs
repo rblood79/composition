@@ -81,7 +81,7 @@ test("shared 원본 변경은 등록 검증을 선택한다", (t) => {
 test("ADR248 G3 테스트는 전용 browser config에서만 실행한다", (t) => {
   const out = plan(
     t,
-    "apps/builder/tests/adr248-g3/paletteBaseCanvas.browser.test.ts",
+    "apps/builder/tests/adr248-g3/propAxisCanvasDom.browser.test.ts",
   );
   assert.match(out, /--config vitest\.adr248-g3\.browser\.config\.ts/);
   assert.doesNotMatch(out, /vitest run tests\/adr248-g3/);
