@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Compare Mode 겹침 비교 — CSS / Canvas wipe] - 2026-10-31
+
+### Changed
+
+- **CSS와 Canvas를 같은 위치에 겹쳐 드래그로 비교**: 경계선을 움직여도 페이지 크기·위치·줌은 그대로 유지하고 각 렌더러가 보이는 영역만 바꾼다. 양 끝에서는 한쪽 화면 전체를 볼 수 있으며, 방향키·Home/End 조작과 경계 위치 저장을 지원한다.
+- **CSS 영역에서도 같은 휠 이동·줌 지원**: 페이지 내부와 바깥 여백에서 휠로 이동하고, Shift+휠로 가로 이동하며, Cmd/Ctrl+휠로 포인터 위치를 기준으로 확대·축소한다. iframe 입력은 검증된 메시지 경로를 통해 기존 Canvas 카메라 처리에 연결한다.
+  - 위치: `apps/builder/src/builder/workspace/Workspace.css`, `canvas/catalog/CatalogPreviewFrame.tsx`, `hooks/useWorkspaceCompareSplit.ts`
+
 ## [ADR-295 Phase 3c-3c ① — 막대 · 원 · swatch · Slider 손잡이 = S2] - 2026-10-31
 
 ### Changed
