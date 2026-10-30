@@ -73,6 +73,16 @@
     inset: auto;
     z-index: 3000;
     width: 100%;
+    /* 투명한 헤더 여백은 뒤의 눈금자에 입력을 전달한다. */
+    pointer-events: none;
+  }
+
+  .panel-dock-chrome .header_contents {
+    pointer-events: none;
+  }
+
+  .panel-dock-chrome .header_contents > *,
+  .panel-dock-chrome .builder-viewport-controls {
     pointer-events: auto;
   }
 
@@ -147,7 +157,8 @@
     height: 100%;
     overflow: hidden;
     border: 0;
-    pointer-events: auto;
+    /* 레일 전체 높이가 눈금자의 드래그 시작을 가로채지 않게 한다. */
+    pointer-events: none;
   }
 
   .panel-dock-stage > .panel-toggle-rail[data-side="left"] {
@@ -159,6 +170,7 @@
   }
 
   .panel-toggle-rail > .builder-control-group {
+    pointer-events: auto;
     max-height: 100%;
     overflow-x: hidden;
     overflow-y: auto;

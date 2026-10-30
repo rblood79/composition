@@ -28,6 +28,7 @@ import {
 } from "../canvas/viewport/viewportPresentation";
 import {
   RULER_SIZE_PX,
+  RULER_LABEL_GAP_PX,
   calculateRulerAxisMetrics,
   collectRulerLabels,
   guideAxisForRulerStrip,
@@ -42,9 +43,6 @@ const WILL_CHANGE_IDLE_MS = 200;
 /** 눈금 길이 (screen px) */
 const MAJOR_TICK_LEN_PX = 8;
 const MINOR_TICK_LEN_PX = 4;
-
-/** 라벨을 눈금선에서 띄우는 여백 (screen px) */
-const LABEL_GAP_PX = 3;
 
 function setAxisVars(
   el: HTMLElement,
@@ -91,12 +89,17 @@ function syncLabels(
     if (el.textContent !== text) el.textContent = text;
     el.style.transform =
       axis === "x"
-        ? `translateX(${pos + LABEL_GAP_PX}px)`
-        : `translateY(${pos + LABEL_GAP_PX}px)`;
+        ? `translateX(${pos + RULER_LABEL_GAP_PX}px)`
+        : `translateY(${pos + RULER_LABEL_GAP_PX}px)`;
   }
 }
 
 export interface RulerOverlayProps {
+  onOpenRulerMenu?: (
+    strip: "horizontal" | "vertical",
+    clientX: number,
+    clientY: number,
+  ) => void;
   /**
    * 눈금자 스트립 드래그로 가이드를 만든다 (ADR-181 Phase 5).
    *
@@ -112,7 +115,10 @@ export interface RulerOverlayProps {
   ) => void;
 }
 
-export function RulerOverlay({ onStartGuideCreate }: RulerOverlayProps = {}) {
+export function RulerOverlay({
+  onStartGuideCreate,
+  onOpenRulerMenu,
+}: RulerOverlayProps = {}) {
   const showRulers = useBuilderUiStore((state) => state.showRulers);
 
   const rootRef = useRef<HTMLDivElement>(null);
@@ -235,6 +241,12 @@ export function RulerOverlay({ onStartGuideCreate }: RulerOverlayProps = {}) {
     event.preventDefault();
     onStartGuideCreate(axis, event.pointerId, event.clientX, event.clientY);
   };
+  const openMenu =
+    (strip: "horizontal" | "vertical") => (event: React.MouseEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      onOpenRulerMenu?.(strip, event.clientX, event.clientY);
+    };
 
   // 커서는 그 스트립이 만드는 가이드의 축에서 파생한다 — CSS 에 따로 두면
   // 축을 바꿀 때 한쪽만 고쳐진다 (2026-08-14 실제 발생)
@@ -252,6 +264,7 @@ export function RulerOverlay({ onStartGuideCreate }: RulerOverlayProps = {}) {
         ref={hStripRef}
         style={{ cursor: guideCursorForAxis(hAxis) }}
         onPointerDown={startCreate(hAxis)}
+        onContextMenu={openMenu("horizontal")}
       >
         <div className="ruler-labels" ref={hLabelsRef} />
       </div>
@@ -260,6 +273,7 @@ export function RulerOverlay({ onStartGuideCreate }: RulerOverlayProps = {}) {
         ref={vStripRef}
         style={{ cursor: guideCursorForAxis(vAxis) }}
         onPointerDown={startCreate(vAxis)}
+        onContextMenu={openMenu("vertical")}
       >
         <div className="ruler-labels" ref={vLabelsRef} />
       </div>

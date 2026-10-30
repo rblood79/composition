@@ -22,7 +22,7 @@ describe("context menu policy", () => {
     ).toBe("native");
   });
 
-  it("suppresses the ruler menu without opening a context menu", () => {
+  it("눈금자는 브라우저 메뉴를 막고 전용 메뉴를 허용한다", () => {
     const ruler = document.createElement("div");
     ruler.dataset.rulerOverlay = "";
     const label = document.createElement("span");
@@ -34,7 +34,7 @@ describe("context menu policy", () => {
         altKey: false,
         isDevelopment: false,
       }),
-    ).toBe("suppress-without-menu");
+    ).toBe("suppress");
   });
 
   it("allows the DEV Alt-right-click escape hatch only in development", () => {

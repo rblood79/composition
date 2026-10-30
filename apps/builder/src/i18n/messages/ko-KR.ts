@@ -251,6 +251,9 @@ const catalog: TranslationKeys = {
     hide: "액션 바 숨기기",
   },
   contextMenu: {
+    deleteGuide: "안내선 제거",
+    deleteVerticalGuides: "모든 세로 안내선 제거",
+    deleteHorizontalGuides: "모든 가로 안내선 제거",
     ariaLabel: "컨텍스트 메뉴",
     bringToFront: "맨 앞으로",
     bringForward: "앞으로",

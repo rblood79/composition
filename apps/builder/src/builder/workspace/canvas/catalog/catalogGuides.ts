@@ -1,6 +1,7 @@
 import type { Canvas, CanvasKit } from "canvaskit-wasm";
 import {
   catalogDeleteGuideCommand,
+  catalogDeleteGuidesByAxisCommand,
   catalogGuideDragAt,
   catalogGuideDragCommand,
   catalogGuidesByPage,
@@ -9,6 +10,7 @@ import {
   catalogPageGuides,
 } from "../../../catalogRuntime/pageGuides";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
+import type { ContextMenuItem } from "../../../components/overlay/contextMenu/types";
 import { registerKeyboardEventHandler } from "../../../hooks/useKeyboardShortcutsRegistry";
 import { useBuilderUiStore } from "../../../stores/builderUiStore";
 import { guideCursorForAxis } from "../../components/rulerMetrics";
@@ -31,6 +33,7 @@ import {
   beginGuideDrag,
   endGuideDrag,
   getGuideDrag,
+  isGuideWithinPage,
   mergeGuideDrag,
   publishGuideDrag,
   resolveGuideDragPreview,
@@ -61,6 +64,8 @@ export interface CatalogGuideBinding {
   /** Hover: the guide cursor (or `undefined` off every guide). */
   hover(event: PointerEvent): string | undefined;
   leave(): void;
+  contextMenu(event: MouseEvent): ContextMenuItem[];
+  rulerMenu(axis: "x" | "y"): ContextMenuItem[];
   /** Paint the guides, the dragged guide and its preview (scene coordinates). */
   paint(ck: CanvasKit, canvas: Canvas): void;
   dispose(): void;
@@ -183,18 +188,21 @@ export function bindCatalogGuides(options: {
 
   const hitAt = (point: ScenePoint): GuideHitTarget | null => {
     const all = frames();
-    const pageId = catalogPageAt(all, point);
+    const underPageId = catalogPageAt(all, point);
+    const pageId = underPageId ?? workspace.session.getSnapshot().pageId;
     const frame = pageId ? all.get(pageId) : undefined;
     if (!pageId || !frame) return null;
     const guides = catalogPageGuides(
       workspace.runtime.graph,
       pageId,
       breakpoint(),
-    );
+    ).filter((guide) => isGuideWithinPage(guide.axis, guide.position, frame));
     if (!guides.length) return null;
     return resolveGuideHit(
       point,
-      buildGuideHitTargets(pageId, guides, frame, frame),
+      buildGuideHitTargets(pageId, guides, frame, frame).map((target) =>
+        underPageId ? target : { ...target, pageRect: options.viewport() },
+      ),
       GUIDE_HIT_THRESHOLD_SCREEN_PX / options.zoom(),
     );
   };
@@ -239,6 +247,15 @@ export function bindCatalogGuides(options: {
   );
   // Drag, hover and selection changes redraw the overlay (no document step).
   const unwatchRevision = subscribePageGuideRevision(options.invalidateOverlay);
+  let activePageId = workspace.session.getSnapshot().pageId;
+  const unwatchPage = workspace.session.subscribe(() => {
+    const next = workspace.session.getSnapshot().pageId;
+    if (next === activePageId) return;
+    activePageId = next;
+    clearGuideSelection();
+    setHoveredGuide(null);
+    options.invalidateOverlay();
+  });
   // Rulers off: nothing stays hovered or selected (guides cannot be grabbed then).
   const unwatchRulers = useBuilderUiStore.subscribe((state, previous) => {
     if (state.showRulers === previous.showRulers) return;
@@ -307,6 +324,79 @@ export function bindCatalogGuides(options: {
     leave() {
       setHoveredGuide(null);
     },
+    contextMenu(event) {
+      if (!rulersShown() || getGuideDrag()) return [];
+      const hit = hitAt(options.scenePoint(event));
+      if (!hit) return [];
+      const atBreakpoint = breakpoint();
+      return [
+        {
+          kind: "action",
+          id: "delete-guide",
+          labelKey: "contextMenu.deleteGuide",
+          destructive: true,
+          run: () => {
+            try {
+              const command = catalogDeleteGuideCommand(
+                workspace.runtime.graph,
+                hit.pageId,
+                hit.guideId,
+                atBreakpoint,
+              );
+              if (command) workspace.execute(command);
+              if (
+                getSelectedGuide()?.pageId === hit.pageId &&
+                getSelectedGuide()?.guideId === hit.guideId
+              )
+                clearGuideSelection();
+              setHoveredGuide(null);
+            } catch (error) {
+              options.onError(error);
+            }
+          },
+        },
+      ];
+    },
+    rulerMenu(axis) {
+      const pageId = workspace.session.getSnapshot().pageId;
+      if (!pageId) return [];
+      const atBreakpoint = breakpoint();
+      return [
+        {
+          kind: "action",
+          id: `delete-${axis}-guides`,
+          labelKey:
+            axis === "x"
+              ? "contextMenu.deleteVerticalGuides"
+              : "contextMenu.deleteHorizontalGuides",
+          destructive: true,
+          run: () => {
+            try {
+              const command = catalogDeleteGuidesByAxisCommand(
+                workspace.runtime.graph,
+                pageId,
+                axis,
+                atBreakpoint,
+              );
+              if (command) workspace.execute(command);
+              const selected = getSelectedGuide();
+              if (
+                selected?.pageId === pageId &&
+                !catalogPageGuides(
+                  workspace.runtime.graph,
+                  pageId,
+                  atBreakpoint,
+                ).some((guide) => guide.id === selected.guideId)
+              )
+                clearGuideSelection();
+              setHoveredGuide(null);
+            } catch (error) {
+              options.onError(error);
+            }
+          },
+        },
+      ];
+    },
     paint(ck, canvas) {
       const drag = getGuideDrag();
       const guidesByPage = mergeGuideDrag(
@@ -324,10 +414,9 @@ export function bindCatalogGuides(options: {
               }
             : resolveGuideEmphasisIdsForPage(target.pageId);
         renderPageGuides(ck, canvas, target, zoom, emphasis);
-        if (!emphasis.selectedGuideId && !emphasis.hoveredGuideId) continue;
         for (const line of target.lines) {
           const kind = resolveGuideEmphasis(line.id, emphasis);
-          if (kind !== "default")
+          if (target.pageId === activePageId || kind !== "default")
             renderGuideExtension(
               ck,
               canvas,
@@ -347,6 +436,7 @@ export function bindCatalogGuides(options: {
       release?.();
       releaseKeyDown();
       unwatchRevision();
+      unwatchPage();
       unwatchRulers();
       setHoveredGuide(null);
     },

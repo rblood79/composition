@@ -12,6 +12,8 @@
 
 /** 스트립 두께 (screen px) */
 export const RULER_SIZE_PX = 20;
+/** 일반 눈금과 안내선 수치가 눈금선에서 떨어지는 공통 여백 (screen px) */
+export const RULER_LABEL_GAP_PX = 3;
 
 /** 주 눈금(라벨 표시) 최소 화면 간격 — 라벨이 겹치지 않는 하한 */
 export const LABEL_MIN_SPACING_PX = 48;

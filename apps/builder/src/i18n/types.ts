@@ -89,6 +89,9 @@ export interface TranslationKeys {
     hide: string;
   };
   contextMenu: {
+    deleteGuide: string;
+    deleteVerticalGuides: string;
+    deleteHorizontalGuides: string;
     ariaLabel: string;
     bringToFront: string;
     bringForward: string;

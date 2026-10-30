@@ -109,9 +109,6 @@ export function ContextMenuProvider({
       }
 
       event.preventDefault();
-      if (disposition === "suppress-without-menu") {
-        close();
-      }
     };
 
     document.addEventListener("contextmenu", handleContextMenu, true);

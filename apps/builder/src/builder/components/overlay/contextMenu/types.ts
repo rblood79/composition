@@ -14,9 +14,7 @@ import type { ShortcutId } from "../../../config/keyboardShortcuts";
 export type ContextMenuIcon = ActionIcon;
 
 export type ContextMenuSurface =
-  | "canvas-element"
-  | "canvas-empty"
-  | "layer-item";
+  "canvas-element" | "canvas-empty" | "canvas-guide" | "ruler" | "layer-item";
 
 export interface ContextMenuRequest {
   surface: ContextMenuSurface;

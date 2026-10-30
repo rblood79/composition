@@ -114,6 +114,9 @@
   background-repeat: repeat-x;
   /* 스트립만 이벤트를 받는다 — Phase 5 가이드 드래그 진입점 */
   pointer-events: auto;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .ruler-strip--h {
@@ -187,16 +190,82 @@
   user-select: none;
 }
 
-.ruler-label--x {
+.ruler-label--x,
+.ruler-guide-position[data-axis="x"] {
   top: 3px;
 }
 
 /* 세로 자 라벨은 CSS 세로쓰기로 — rotate(90deg) + transform-origin:0 0 은
    회전 박스를 원점 **왼쪽**으로 보내 스트립 밖으로 나간다 (실측 -6px).
    vertical-rl 은 글자를 90° 눕히면서 박스도 세로로 잡아 준다. */
-.ruler-label--y {
+.ruler-label--y,
+.ruler-guide-position[data-axis="y"] {
   writing-mode: vertical-rl;
   left: 3px;
+}
+
+.ruler-guide-position-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ruler-guide-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.ruler-guide-line[data-axis="x"] {
+  width: 1px;
+  height: var(--ruler-size, 20px);
+}
+
+.ruler-guide-line[data-axis="y"] {
+  width: var(--ruler-size, 20px);
+  height: 1px;
+}
+
+.ruler-guide-position {
+  isolation: isolate;
+}
+
+.ruler-guide-position::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.ruler-guide-position[data-axis="x"]::before {
+  top: -3px;
+  left: calc(50% - 50px);
+  width: 100px;
+  height: var(--ruler-size, 20px);
+  background: linear-gradient(
+    to right,
+    transparent,
+    #fff 25%,
+    #fff 75%,
+    transparent
+  );
+}
+
+.ruler-guide-position[data-axis="y"]::before {
+  left: -3px;
+  top: calc(50% - 50px);
+  height: 100px;
+  width: var(--ruler-size, 20px);
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    #fff 25%,
+    #fff 75%,
+    transparent
+  );
 }
 
 .workspace-overlay {

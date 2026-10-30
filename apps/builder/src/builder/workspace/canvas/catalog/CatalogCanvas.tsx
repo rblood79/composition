@@ -73,6 +73,7 @@ import { useBuilderUiStore } from "../../../stores/builderUiStore";
 import { useDataStore } from "../../../stores/data";
 import { DotBackground } from "../../components/DotBackground";
 import { RulerOverlay } from "../../components/RulerOverlay";
+import { CatalogGuideRulerLabel } from "./CatalogGuideRulerLabel";
 import { WorkspaceStatusIndicator } from "../../components/WorkspaceStatusIndicator";
 import { CanvasScrollbar } from "../../scrollbar";
 import { publishCanvasFramePresentation } from "../canvasFramePresentation";
@@ -1661,6 +1662,19 @@ export function CatalogCanvas({
       event.preventDefault();
       if (gestures.pending) return;
       syncScene();
+      const guideItems = guides.contextMenu(event);
+      if (guideItems.length) {
+        setMenu({
+          request: {
+            surface: "canvas-guide",
+            clientX: event.clientX,
+            clientY: event.clientY,
+            targetElementIds: [],
+          },
+          items: guideItems,
+        });
+        return;
+      }
       const { x, y } = scenePoint(event);
       const target = picking.targetKeepingSelection(
         x,
@@ -1939,7 +1953,24 @@ export function CatalogCanvas({
         onStartGuideCreate={(axis, pointerId, clientX, clientY) =>
           guidesRef.current?.startCreate(axis, pointerId, clientX, clientY)
         }
+        onOpenRulerMenu={(strip, clientX, clientY) => {
+          // 삭제 메뉴는 눈금자가 측정하는 축: 상단은 세로선, 왼쪽은 가로선.
+          const items = guidesRef.current?.rulerMenu(
+            strip === "horizontal" ? "x" : "y",
+          );
+          if (!items?.length) return;
+          setMenu({
+            request: {
+              surface: "ruler",
+              clientX,
+              clientY,
+              targetElementIds: [],
+            },
+            items,
+          });
+        }}
       />
+      <CatalogGuideRulerLabel workspace={workspace} />
       <ContextMenuOverlay
         isOpen={!!menu}
         request={menu?.request ?? null}

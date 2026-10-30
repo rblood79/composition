@@ -1,7 +1,4 @@
-import { isRulerEventTarget } from "../../../workspace/components/rulerOverlayUtils";
-
-export type ContextMenuDisposition =
-  "native" | "suppress" | "suppress-without-menu";
+export type ContextMenuDisposition = "native" | "suppress";
 
 export interface ContextMenuPolicyInput {
   target: EventTarget | null;
@@ -30,10 +27,6 @@ export function resolveContextMenuDisposition({
 
   if (isDevelopment && altKey) {
     return "native";
-  }
-
-  if (isRulerEventTarget(target)) {
-    return "suppress-without-menu";
   }
 
   return "suppress";

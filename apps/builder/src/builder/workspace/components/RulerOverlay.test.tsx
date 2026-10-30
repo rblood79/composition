@@ -1,4 +1,4 @@
-import { act, cleanup, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { useBuilderUiStore } from "../../stores/builderUiStore";
 import {
@@ -13,6 +13,39 @@ afterEach(() => {
   resetViewportPresentation();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+});
+
+it("두 눈금자 스트립과 라벨에서 드래그와 전용 우클릭 메뉴를 연다", () => {
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  );
+  useBuilderUiStore.getState().setShowRulers(true);
+  const create = vi.fn();
+  const menu = vi.fn();
+  const { container } = render(
+    <RulerOverlay onStartGuideCreate={create} onOpenRulerMenu={menu} />,
+  );
+  for (const [suffix, strip, axis] of [
+    ["h", "horizontal", "y"],
+    ["v", "vertical", "x"],
+  ] as const) {
+    const el = container.querySelector(`.ruler-strip--${suffix}`)!;
+    // jsdom에는 PointerEvent가 없어 MouseEvent로 동일한 bubbling 입력을 보낸다.
+    fireEvent(el, new MouseEvent("pointerdown", { button: 0, bubbles: true }));
+    expect(create).toHaveBeenLastCalledWith(axis, undefined, 0, 0);
+    fireEvent.contextMenu(el.querySelector(".ruler-labels")!, {
+      clientX: 50,
+      clientY: 10,
+    });
+    expect(menu).toHaveBeenLastCalledWith(strip, 50, 10);
+    const calls = create.mock.calls.length;
+    fireEvent(el, new MouseEvent("pointerdown", { button: 2, bubbles: true }));
+    expect(create).toHaveBeenCalledTimes(calls);
+  }
 });
 
 it("팬·줌에서 고정 스타일을 다시 쓰지 않고 캔버스 원점에 맞춰 눈금을 갱신한다", () => {

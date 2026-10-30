@@ -255,6 +255,9 @@ const catalog: TranslationKeys = {
     hide: "Hide bar",
   },
   contextMenu: {
+    deleteGuide: "Remove guide",
+    deleteVerticalGuides: "Remove all vertical guides",
+    deleteHorizontalGuides: "Remove all horizontal guides",
     ariaLabel: "Context menu",
     bringToFront: "Bring to Front",
     bringForward: "Bring Forward",

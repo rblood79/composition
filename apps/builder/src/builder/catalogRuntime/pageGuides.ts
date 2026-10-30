@@ -136,6 +136,24 @@ export function catalogDeleteGuideCommand(
   );
 }
 
+/** 활성 페이지의 한 축만 제거한다. 다른 breakpoint와 페이지는 보존한다. */
+export function catalogDeleteGuidesByAxisCommand(
+  graph: CatalogGraph,
+  pageId: string,
+  axis: "x" | "y",
+  breakpoint: BreakpointName,
+): CatalogCommand | undefined {
+  return catalogGuidesCommand(
+    graph,
+    pageId,
+    breakpoint,
+    catalogPageGuides(graph, pageId, breakpoint).filter(
+      (guide) => guide.axis !== axis,
+    ),
+    axis === "x" ? "Delete vertical guides" : "Delete horizontal guides",
+  );
+}
+
 /** The top page frame under a scene point (later pages draw above earlier ones). */
 export function catalogPageAt(
   frames: ReadonlyMap<string, Rect>,
