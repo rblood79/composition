@@ -127,7 +127,7 @@ export function parseUnitValue(value: string): {
 /**
  * resolver 가 Preview · Publish root 에 싣는 범주 (radius · typography · border) 의 토큰만 — 그 값이
  * 빌더 root 의 chrome 값과 다르다. spacing 은 테마 밖이라 두 root 가 같은 `shared-tokens.css` 를 읽는다
- * (그리고 Skia `spacing` 맵은 CSS 와 md 이상이 달라 쓰지 않는다 — ADR-295 §6.0).
+ * (`{spacing.*}` 표와 같은 값 — ADR-295 Phase 3d, `d3S2Alignment` 「spacing 한 표」).
  */
 export function themedTokenRef(cssVar: string) {
   const ref = cssVarToTokenRef(cssVar);
@@ -143,7 +143,8 @@ function getCssVariableValue(value: string): string | undefined {
   const tokenRef = themedTokenRef(match[0]);
   if (tokenRef) {
     const token = resolveToken(tokenRef);
-    if (typeof token === "number" && Number.isFinite(token)) return `${token}px`;
+    if (typeof token === "number" && Number.isFinite(token))
+      return `${token}px`;
   }
   if (typeof document === "undefined") return undefined;
 

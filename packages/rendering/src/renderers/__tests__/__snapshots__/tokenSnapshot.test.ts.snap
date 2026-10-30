@@ -15,12 +15,14 @@ exports[`ADR-081 G1 — primitives resolved-value snapshot > radius tokens resol
 
 exports[`ADR-081 G1 — primitives resolved-value snapshot > spacing tokens resolved values 1`] = `
 {
-  "2xl": 48,
+  "2xl": 32,
   "2xs": 2,
-  "lg": 24,
-  "md": 16,
+  "3xl": 40,
+  "4xl": 48,
+  "lg": 16,
+  "md": 12,
   "sm": 8,
-  "xl": 32,
+  "xl": 24,
   "xs": 4,
 }
 `;

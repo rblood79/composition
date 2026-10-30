@@ -17,6 +17,8 @@ exports[`ADR-081 G2 — token consumer drift cross-reference > C1 — tokenToCSS
 {
   "2xl": "var(--spacing-2xl)",
   "2xs": "var(--spacing-2xs)",
+  "3xl": "var(--spacing-3xl)",
+  "4xl": "var(--spacing-4xl)",
   "lg": "var(--spacing-lg)",
   "md": "var(--spacing-md)",
   "sm": "var(--spacing-sm)",
@@ -80,12 +82,14 @@ exports[`ADR-081 G2 — token consumer drift cross-reference > C2 — resolveTok
 
 exports[`ADR-081 G2 — token consumer drift cross-reference > C2 — resolveToken 값 drift (Skia 렌더 경로 소비) > spacing resolved values 1`] = `
 {
-  "2xl": 48,
+  "2xl": 32,
   "2xs": 2,
-  "lg": 24,
-  "md": 16,
+  "3xl": 40,
+  "4xl": 48,
+  "lg": 16,
+  "md": 12,
   "sm": 8,
-  "xl": 32,
+  "xl": 24,
   "xs": 4,
 }
 `;

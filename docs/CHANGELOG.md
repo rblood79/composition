@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-295 Phase 3d — spacing 한 표] - 2026-10-31
+
+### Fixed
+
+- **Library 의 Spacing 카드가 패널 spacing preset 과 같은 값을 보인다** — ◆ md 16 → 12, lg 16 · xl 24 · 2xl 32 · 3xl 40 · 4xl 48 (preset M 을 고르면 12 가 들어가는데 카드는 16 이었다).
+  - **Why:** spacing 표가 둘 (rendering `{spacing.*}` md 16 · DOM `--spacing-*` md 12) 이었다. 한 표로 묶고 (값은 S2 spacing 단), Canvas 가 delegation 길이를 풀던 손 사본도 그 표에서 파생한다.
+  - 위치: `packages/rendering/src/primitives/spacing.ts`, `packages/shared/src/catalog/document/rulePartRules.ts`, 게이트 `apps/builder/src/builder/catalogRuntime/__tests__/d3S2Alignment.static.test.ts` 「spacing 한 표」.
+
 ## [ADR-295 Phase 3c-3a — 여백 · 간격 = S2 의 값의 형] - 2026-10-31
 
 ### Changed

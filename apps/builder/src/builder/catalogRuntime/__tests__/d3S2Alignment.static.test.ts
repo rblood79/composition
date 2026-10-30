@@ -9,6 +9,8 @@
  * (b) 활성 테마 최종 snapshot 의 radius (preset 배율 · 델타 · reset) 는 `resolveThemeSnapshot.test.ts`
  * 「ADR-295 R9」 가 같은 표 (`RADIUS_BASE_PX` = rendering `radius`) 로 검사한다 — 여기서는 그 표가 S2 와 같은지.
  */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   borderWidth,
@@ -87,8 +89,31 @@ describe("ADR-295 G4 (a) — 토큰 표 · 상수 = S2 설치본", () => {
     ]);
   });
 
-  it("spacing 값은 S2 spacing 단에 있다 (이름 ↔ 단 대응은 3d)", () => {
+  it("spacing 값은 S2 spacing 단에 있다", () => {
     for (const px of Object.values(spacing)) expect(t.spacing).toContain(px);
+  });
+
+  // Phase 3d 판정: `{spacing.*}` (resolveToken · Library Spacing 카드) 와 DOM `--spacing-*` (패널 preset ·
+  // 수동 시트) 는 한 표 — 그 전 md 이상이 16 · 24 · 32 · 48 ↔ 12 · 16 · 24 · 32 로 갈려 있었다.
+  it("spacing 한 표 — `{spacing.*}` = shared-tokens.css `--spacing-*`", () => {
+    const css = readFileSync(
+      resolve(
+        __dirname,
+        "../../../../../../packages/shared/src/components/styles/theme/shared-tokens.css",
+      ),
+      "utf8",
+    );
+    const declared = Object.fromEntries(
+      [...css.matchAll(/--spacing-([0-9a-z]+):\s*([\d.]+)rem;/g)].map(
+        ([, name, value]) => [name, Number(value) * 16],
+      ),
+    );
+    for (const [name, px] of Object.entries(spacing))
+      expect([name, declared[name]]).toEqual([name, px]);
+    // CSS 에만 있는 이름은 S2 단 밖의 chrome 값 (`3xs` 1px) 뿐이다.
+    expect(Object.keys(declared).filter((name) => !(name in spacing))).toEqual([
+      "3xs",
+    ]);
   });
 
   it("기기 두 벌 (scale · 기본 글자)", () => {
@@ -262,8 +287,12 @@ describe("ADR-295 G4 (c) — 컴포넌트 값 = S2 computed", () => {
           const { scale, fontBase } = S2_DEVICE[device];
           const height = s2SizeTokens(scale)[`height-sm.${size}`]!;
           const width = indicator.trackWidthEm
-            ? (s2TypographyTokens(fontBase) as unknown as Record<string, number>)[font]! *
-              indicator.trackWidthEm
+            ? (
+                s2TypographyTokens(fontBase) as unknown as Record<
+                  string,
+                  number
+                >
+              )[font]! * indicator.trackWidthEm
             : height;
           const s2 = table[probe]![size]![device]!;
           expect(height, `${type} ${size} ${device} height`).toBeCloseTo(
@@ -312,14 +341,32 @@ describe("ADR-295 G4 (c) — 컴포넌트 값 = S2 computed", () => {
         device === "touch" && parts.touch ? parts.touch.ratio : parts.ratio;
       return base * ratio;
     };
-    const cases: [probe: string, type: string, key: string, s2: string, sizes: string[]][] = [
+    const cases: [
+      probe: string,
+      type: string,
+      key: string,
+      s2: string,
+      sizes: string[],
+    ][] = [
       ["Button", "Button", "paddingX", "paddingInline", ["S", "M", "L", "XL"]],
       ["Button", "Button", "gap", "gap", ["S", "M", "L", "XL"]],
       ["Button", "Button", "iconGap", "gap", ["S", "M", "L", "XL"]],
       ["ActionButton", "ToggleButton", "paddingX", "paddingInline", [...SIZES]],
       ["ActionButton", "ToggleButton", "gap", "gap", [...SIZES]],
-      ["TextField", "Input", "paddingX", "paddingInline", ["S", "M", "L", "XL"]],
-      ["DateField", "DateInput", "paddingX", "paddingInline", ["S", "M", "L", "XL"]],
+      [
+        "TextField",
+        "Input",
+        "paddingX",
+        "paddingInline",
+        ["S", "M", "L", "XL"],
+      ],
+      [
+        "DateField",
+        "DateInput",
+        "paddingX",
+        "paddingInline",
+        ["S", "M", "L", "XL"],
+      ],
       ["TagGroup", "Tag", "paddingX", "paddingInline", ["S", "M", "L"]],
       ["Checkbox", "Checkbox", "gap", "rootGap", ["S", "M", "L", "XL"]],
       // (Radio's label gap is S2 `text-to-control` as Checkbox's — the probe's RadioGroup `rootGap` is the

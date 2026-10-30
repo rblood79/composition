@@ -423,12 +423,19 @@ size 키: XS 35 · S 102 · M 130 · L 101 · XL 58 · XXL 3.
 
 **3c-2b 로 넘긴 것**: toggle 표시 상자 — S2 `controlSize('sm')` 14 · 16 · 18 · 20 (우리 Checkbox · Radio 16 · 20 · 24 · 30 — 수동 시트가 `--text-base/xl/2xl/3xl` 을 상자 크기로 읽는다) · Checkbox 모서리 `controlBorderRadius('sm')` 4 · 4 · 5 · 5 · Switch track 폭 `fontRelative(26)` · thumb. Meter 최소 폭 48 (S2 `bar-utils` 는 Meter 도 — 빌더 시트에 새 선언이라 고정이 필요).
 
-### 6.7 Phase 3d (2026-10-30, 진행 중 — 3c-2b · 3c-3 과 병렬)
+### 6.7 Phase 3d (2026-10-30 ~ 31, 닫힘)
 
 > **병렬 (실행 판단 — 사후 보고)**: 3d 의 정리 2 건 (`paletteBaseCanvas` 은퇴 · 숨은 사본) 은 3c-2b · 3c-3 과 파일이 겹치지 않아 먼저 · 따로 한다. spacing 맵 판정은 3c-3 결과 뒤.
 
 - **`paletteBaseCanvas` 은퇴** (사용자 삭제 승인 2026-10-30): `apps/builder/tests/adr248-g3/paletteBaseCanvas.browser.test.ts` 삭제 — ADR-248 G0 의 frozen 옛 Canvas PNG 와 비교해 295 뒤로는 항상 FAIL 이었다 (§6.0). ADR-248 증거 (`248-phase3-palette-base-canvas.json` · PNG 폴더 · `adr248-g3-old-defect-ledger.mjs`) 는 완료 ADR 이 인용해 남긴다. `.codex/tests/workflow.test.mjs` 의 G3 config 선택 예시는 `propAxisCanvasDom` 경로로. 이후 G3 회귀 목록은 `propAxisCanvasDom` 의 기존 실패만.
 - **숨은 사본 (`collectionItemMetrics`)** (worktree 에이전트 `a86bfe0d0` + 사용자 삭제 승인 2026-10-30): 화면에 쓰이던 손 사본은 GridList 카드의 label ↔ description 간격 하나 — `gridlist_card` 가 rule `GridListItem.sizes.*.gap` 을 읽는다 (값 2 그대로, 원복 RED: 사본 값 고정 → 새 단언 `38 ≠ 42` FAIL). rule 과 이미 갈린 나머지 사본 (ListBoxItem paddingY 4 ↔ rule 7 · GridListItem padding 16 · 12 / radius 8 / border 1 ↔ rule 12 · 8 / none / none — §6.0 의 「radius 12 · 8 · 8」) 은 테스트 전용 resolver (`resolveListBoxSpacingMetric` · `resolveGridListSpacingMetric`) 만 읽어 화면에 닿지 않았다 → 함수와 테스트 파일 2 개 (`ListBox.spacing.test.ts` · `GridList.spacing.test.ts`) 삭제, rendering index 의 소비처 0 re-export 20 삭제, `style-ssot.md` §8 인용 정정. rendering 105 파일 · 1,279 pass · G2 263/263 (에이전트 실행) · `docs:stale-symbols` 0.
+- **spacing 맵 판정** (2026-10-31, 3c-3a 뒤): 한 표로 — rendering `spacing` (`{spacing.*}`) 을 DOM `--spacing-*` (`shared-tokens.css`) 값으로 맞춘다. 두 표 모두 S2 spacing 단 안이고 (G4 「spacing 값은 S2 단」), 갈린 것은 이름 ↔ 단 대응 (md 16 · lg 24 · xl 32 · 2xl 48 ↔ 12 · 16 · 24 · 32). CSS 쪽을 남긴 근거: ADR F2 · Decision 1 표의 spacing 값 (「S2 와 동일」) 이 CSS 값이고, 패널 preset 이 쓰는 값 (`var(--spacing-md)` → 두 root 의 computed 12) · 수동 시트 · Canvas 의 delegation 길이 (`rulePartRules` `CSS_SPACING_PX`) 가 모두 CSS 값을 읽는다. 옛 맵 값을 읽던 곳은 Library 의 Spacing 카드 (`componentsPage.ts` — ◆ md 16 이 preset M 12 와 달랐다) 와 `resolveToken("{spacing.md+}")` (rule 사용 0 — rule 은 2xs · xs · sm 만, 두 표가 같은 값) 뿐이라 화면 변화는 Library 카드 하나다.
+  - `primitives/spacing.ts` md 12 · lg 16 · xl 24 · 2xl 32 + 3xl 40 · 4xl 48 (CSS 의 나머지 이름). CSS 만의 `--spacing-3xs` (1px, chrome 시트 전용 — S2 단 밖) 은 표에 넣지 않는다.
+  - `rulePartRules.ts` `CSS_SPACING_PX` = 그 표 + CSS 만의 이름 (`--spacing-0` · `--spacing` · `--spacing-3xs`) — 손 사본 제거.
+  - 게이트 G4 「spacing 한 표」: `{spacing.*}` = `shared-tokens.css` 선언 (rem × 16) · CSS 에만 있는 이름은 `3xs` 뿐. 원복 RED: md 16 → 1 FAIL (복원 cmp 일치).
+  - 패널 preset oracle 은 그대로 (spacing 은 테마 밖 — 두 root 가 같은 시트를 읽는다). `PropertyUnitInput.runtime.ts` 주석만 정정.
+  - 회귀: type-check PASS · rendering 1,279 (snapshot 갱신 `tokenSnapshot`) · shared 2,049 · builder unit — 값 단언 갱신 `phase4eOriginView` (Library ◆ md 12) · snapshot `tokenConsumerDrift`. 실패 3 은 이 변경과 무관 (`chromeIsland` 기존 · `labelKeyCatalog` · `contextMenuPolicy` 는 같은 checkout 의 다른 세션 눈금자 작업 중 파일).
+  - live (Chrome MCP, 5175 · `adr295-live`): Navigator → Components → Library. Spacing 카드 상자 2xs 2 · xs 4 · sm 8 · ◆ md 12 · lg 16 · xl 24 · 2xl 32 · 3xl 40 · 4xl 48, 캡션 같은 값. 새로고침 뒤 콘솔 오류 0.
 
 ### 6.8 Phase 3c-2b (2026-10-30, toggle 표시 상자)
 

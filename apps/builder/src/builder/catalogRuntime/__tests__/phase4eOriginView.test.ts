@@ -412,8 +412,9 @@ describe("ADR-248 4e library origin view", () => {
     expect(cellsOf(colorRows[1]!).map((cell) => cell.name)).toEqual(
       expect.arrayContaining(["◇ hover", "◇ on-accent"]),
     );
+    // The `{spacing.*}` table = the DOM `--spacing-*` (md 12 — ADR-295 Phase 3d), the value a panel preset M writes.
     expect(themeNode("spacing/md/sample").sizing).toMatchObject({
-      width: { kind: "set", value: 16 },
+      width: { kind: "set", value: 12 },
     });
     const card = cards.find((candidate) => candidate.name === "Button")!;
     const title = nodeOf(card.children[0]!);

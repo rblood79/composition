@@ -195,10 +195,12 @@ export interface SpacingTokens {
   "2xs": number; // 2 (0.125rem) — ADR-071
   xs: number; // 4
   sm: number; // 8
-  md: number; // 16
-  lg: number; // 24
-  xl: number; // 32
-  "2xl": number; // 48
+  md: number; // 12
+  lg: number; // 16
+  xl: number; // 24
+  "2xl": number; // 32
+  "3xl": number; // 40
+  "4xl": number; // 48
 }
 
 /**

@@ -9,16 +9,24 @@
 import type { SpacingTokens } from "../types/token.types";
 
 /**
- * 간격 토큰
+ * 간격 토큰 — `{spacing.*}` 와 DOM `--spacing-*` (`theme/shared-tokens.css`, rem @ 16px) 의 한 표.
+ *
+ * ADR-295 Phase 3d: 값은 S2 spacing 단 (`spectrum-theme.ts` `generateSpacing` — 0 · 2 · 4 · 8 · 12 · 16 ·
+ * 20 · 24 · 28 · 32 · 40 · 48 …) 안이고 이름은 저장소 것 그대로다. 그 전 이 표는 md 16 · lg 24 · xl 32 ·
+ * 2xl 48 로 CSS (md 12 · lg 16 · xl 24 · 2xl 32) 와 갈려 있었다 — rule 은 2xs · xs · sm 만 읽어 화면은
+ * 같았지만 Library 의 Spacing 카드가 이 표를 그려 패널 preset (CSS 값) 과 달랐다. CSS 만 있는 `--spacing-3xs`
+ * (1px, chrome 시트 전용 — S2 단 밖) 은 여기 두지 않는다. 대조: `d3S2Alignment` 「spacing 한 표」.
  */
 export const spacing: SpacingTokens = {
   "2xs": 2, // ← ADR-071 신설. --spacing-2xs: 0.125rem = 2px 정합
   xs: 4,
   sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  "2xl": 48,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  "2xl": 32,
+  "3xl": 40,
+  "4xl": 48,
 };
 
 /**

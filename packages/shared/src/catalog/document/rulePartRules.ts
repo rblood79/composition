@@ -19,6 +19,7 @@ import {
   ICON_SIZE_TOKEN_REF,
   resolveToken,
   ruleSizeLengthRef,
+  spacing as SPACING_TOKENS,
   type TokenRef,
 } from "@composition/rendering";
 import { componentCatalog } from "../componentCatalog";
@@ -286,22 +287,20 @@ function childTypeOf(
 }
 
 /**
- * The DOM spacing scale (`theme/shared-tokens.css` `--spacing-*`, rem @ 16px). It is not the spec
- * `{spacing.*}` primitive scale (`md` 16 there, 12 here): a stylesheet `var(--spacing-md)` is 12px.
+ * The DOM spacing scale (`theme/shared-tokens.css` `--spacing-*`, rem @ 16px): the `{spacing.*}` table
+ * (one table — ADR-295 Phase 3d) plus the CSS-only names (`--spacing-0` · the `--spacing` unit · the chrome's
+ * 1px `--spacing-3xs`, outside the S2 scale).
  */
 const CSS_SPACING_PX: Readonly<Record<string, number>> = {
   "--spacing-0": 0,
   "--spacing": 4,
   "--spacing-3xs": 1,
-  "--spacing-2xs": 2,
-  "--spacing-xs": 4,
-  "--spacing-sm": 8,
-  "--spacing-md": 12,
-  "--spacing-lg": 16,
-  "--spacing-xl": 24,
-  "--spacing-2xl": 32,
-  "--spacing-3xl": 40,
-  "--spacing-4xl": 48,
+  ...Object.fromEntries(
+    Object.entries(SPACING_TOKENS).map(([name, px]) => [
+      `--spacing-${name}`,
+      px,
+    ]),
+  ),
 };
 
 /** px number of a resolved length (`0`, `Npx`, a spacing/typography token var). */

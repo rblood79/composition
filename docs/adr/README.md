@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-10-31 ADR-295 Phase 3d 닫힘** — spacing 한 표: `{spacing.*}` = DOM `--spacing-*` (md 12 · lg 16 · xl 24 · 2xl 32 · 3xl 40 · 4xl 48). 화면 변화는 Library Spacing 카드 (◆ md 16 → 12, 패널 preset M 과 같은 값). G4 「spacing 한 표」 · 원복 RED · live. breakdown §6.7.
+
 > **2026-10-31 ADR-295 Phase 3c-3a** — 여백 · 간격 = S2 의 값의 형: Button 여백 높이 / 2 (M 16) · ToggleButton · Tag · field 입력 상자 높이 × 3/8 (M 12) · 아이콘-글자 간격 글자 × 6/14 (터치 8/17) · toggle 라벨 간격 글자 × 10/14 · Checkbox · Radio · DateField 글자 한 단 아래 · field 버튼 터치 식. 형 하나를 Canvas (설치 맵 숫자) · 생성 CSS (기기 변수 식, 빌더는 고정 변수) · DOM inline (기억한 출처) 이 같이 읽는다. G4 · 원복 RED 3 · G2 두 arm 263/263. live: Preview Button 여백 16 → 터치 20 · 간격 6 → 8 · Switch 라벨 간격 10 → 12.14 · 빌더 root 295 전 값. breakdown §6.9.
 
 > **2026-10-30 ADR-295 Phase 3c-2b · 3d 정리** — toggle 표시 상자 = S2: Checkbox · Radio · Switch 상자 `{size.height-sm.<S>}` (14 · 16 · 18 · 20, 터치 × 1.25) · Checkbox 모서리 4 · 4 · 5 · 5 · Radio 흰 점 4 · Switch track 폭 글자 × 26 / 14 · thumb 안쪽 4 (선택 3). Canvas 는 `catalogToggleIndicatorMetrics`, DOM 은 rule 선택자 → 생성 시트 (수동 시트는 빌더 chrome 몫). Meter 폭 48 · 768 (빌더는 고정 시트 초기값). G4 (S2 probe 두 벌) · 원복 RED 2 · G2 263/263. live: Canvas · Preview desktop 16 · 26×16 · 터치 20 · 31.57×20 · 빌더 chrome 295 전 값. 3d: `paletteBaseCanvas` 은퇴 · 숨은 사본 삭제 (사용자 승인). breakdown §6.7 · §6.8.
