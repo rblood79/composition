@@ -75,7 +75,7 @@ size 키: XS 35 · S 102 · M 130 · L 101 · XL 58 · XXL 3.
 | size()        | `:467, 492`                                                                         | `calc(px/16 rem × var(--s2-scale))` — 높이 · 아이콘 · inset                                                                                                                                       |
 | 컴포넌트 높이 | `dist/private/{TextField,Button,Select,…}.css`                                      | TextField 1.25 · 1.5 · 2 · 2.5 · 3 rem × scale                                                                                                                                                    |
 
-식 결과 (desktop base 14, 1px 반올림): ui −2 → 11 · −1 → 12 · 0 → 14 · 1 → 16 · 2 → 18 · 3 → 20; heading 2 → 18 · 3 → 20 · 4 → 22 · 6 → 28 · 8 → 36. touch (base 17): 0 → 17 · −1 → 15 · 1 → 19 · 2 → 22 · 3 → 24. 행간 (desktop): 11 → 14 · 12 → 16 · 14 → 18 · 16 → 20 · 18 → 22 · 20 → 24 · 22 → 26 · 28 → 34 · 36 → 42. **이 숫자는 손계산 — G0 추출기와 브라우저 computed style 로 재확인한 뒤에만 토큰 표에 쓴다.**
+식 결과 (desktop base 14, 1px 반올림): ui −2 → 11 · −1 → 12 · 0 → 14 · 1 → 16 · 2 → 18 · 3 → 20; heading 2 → 18 · 3 → 20 · 4 → 22 · 6 → 28 · 8 → 36. touch (base 17): 0 → 17 · −1 → 15 · 1 → 19 · 2 → 22 · 3 → 24. 행간 (desktop): 11 → 14 · 12 → 16 · 14 → 18 · 16 → 20 · 18 → 22 · 20 → 24 · 22 → 26 · 28 → 32 (손계산 34 는 오류 — §6.0 추출기 정정) · 36 → 42. **이 숫자는 손계산 — G0 추출기와 브라우저 computed style 로 재확인한 뒤에만 토큰 표에 쓴다.**
 
 ## 3. Phase
 
@@ -152,9 +152,78 @@ size 키: XS 35 · S 102 · M 130 · L 101 · XL 58 · XXL 3.
 | 6   | 기존 문서 레이아웃 변화 수용  | Phase 0 R4 수치 뒤                          |
 | 7   | Canvas desktop 고정           | Phase 2                                     |
 
+결정 기록 (2026-10-30): 1 전부 S2 식 · 2 행간 식 도입 · 3 본문 + 제목 두 묶음 · 5 xs 2 · 2xl 24 유지 / 3xl · 4xl 삭제 · 6 수용. 4 · 7 은 Phase 2 에서.
+
 ## 6. 실측 기록 (Phase 별로 채운다)
 
-- Phase 0 대조표: (미작성)
+### 6.0 Phase 0 (2026-10-30, G0 종결)
+
+**산출물** (스크립트는 저장소, 원자료는 `.agent/runs/2026-10-30-adr295/` 로컬):
+
+| 산출물              | 위치                                                                                                                      | 내용                                                                                                                                                                                                                                                                                                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S2 추출기           | `apps/builder/scripts/adr295-s2-token-extract.mjs` + `adr295-s2-probe/`                                                   | (1) 설치본 style macro (CJS — MJS 빌드는 `properties` import 누락으로 throw) 를 가짜 MacroContext 로 실행 · `fontSize` 단계 (MJS export) · `generateSpacing` · `Provider.css` · `style-utils.ts` `controlSize` · `controlBorderRadius` (2) probe 페이지 (S2 컴포넌트 22 가족 × size) 를 vite 로 빌드해 Playwright desktop · touch 에서 computed |
+| oracle (게이트용)   | `apps/builder/src/builder/catalogRuntime/__tests__/fixtures/adr295-s2-oracle.json`                                        | tokens + 가족별 대표 상자 치수 (desktop · touch). G4 (a) · (c) 가 읽는다                                                                                                                                                                                                                                                                        |
+| rule 재집계         | `apps/builder/scripts/adr295-rule-literal-inventory.ts`                                                                   | `COMPONENT_RULES_TABLE` import 후 전수 walk                                                                                                                                                                                                                                                                                                     |
+| 빌더 생성 시트 기준 | `apps/builder/scripts/adr295-builder-generated-baseline.mjs` → `fixtures/adr295-builder-consumed-generated-baseline.json` | `builder-components.css` 가 싣는 생성 시트 33 의 치수 선언 1,193 을 빌더 root 변수 (`theme.css` 의 `:root`) 로 푼 값 — Decision 9 게이트 (c) 의 295 전 기준                                                                                                                                                                                     |
+| fixture 규모        | `apps/builder/scripts/adr295-fixture-scale.mjs`                                                                           | `app-pages` (perf-baseline 의 격리 프로젝트 · 별도 dev 서버)                                                                                                                                                                                                                                                                                    |
+| radius 한 표 게이트 | `apps/builder/src/utils/theme/__tests__/resolveThemeSnapshot.test.ts` 「ADR-295 R9」                                      | 최종 snapshot radius · `--radius-*` = `resolveRadiusTokens(scale)` (5 배율) · seed = `RADIUS_BASE_PX`. 원복 RED: seed `md 6 → 8` 만 바꾸면 1 FAIL (복원 확인)                                                                                                                                                                                   |
+
+**측정 조건**: Chromium (Playwright 1.64 headless) · DPR 1 · viewport 1200×900. touch = `newContext({ hasTouch: true })` → `(hover: hover) and (pointer: fine)` false · `--s2-scale` 1.25 · `--s2-font-size-base` 17. CDP `Emulation.setEmulatedMedia` 의 pointer · hover feature 는 Chromium 이 무시한다 (첫 실행에서 touch arm 이 desktop 과 같았다 — 측정 조건 함정).
+
+**글자 · 행간 식 = 브라우저**: S2 글자 이름 39 × (desktop · touch) 를 식 (`round(base × 1.125^단계)` · 행간 `round(fs × (1.15 + (1 − (min(32, fs) − 10) / 22) × 0.15), 2px)`) 으로 계산한 값과 macro 클래스를 실은 요소의 computed 가 **78/78 일치**. §2d 의 손계산 (desktop) 도 전부 맞았다.
+
+**토큰 (desktop)**: spacing 0 · 2 · 4 · 8 · 12 · 16 · 20 · 24 · 28 · 32 · 36 · 40 · 44 · 48 · 56 · 64 · 80 · 96 · radius sm 4 · default 8 · lg 10 · xl 16 · full 9999 · pill `calc(self(height) / 2)` · border 0 · 1 · 2 · 4 · `text-to-visual` 6/14 em (touch 8/17 em) · `text-to-control` 10/14 em (touch 같음) · `edge-to-text` 높이 × 3/8 · `pill` 높이 / 2.
+
+**새로 확인한 값의 형 — size 단계 배율 (Decision 3 보강)**: S2 control 모서리는 `round(radius × 1.125^size단계, 1px)` (`style-utils.ts` `controlBorderRadius` — XS −2 · S −1 · M 0 · L 1 · XL 2) 이고 기기 scale 을 받지 않는다. default control (field · ActionButton · TagGroup · Badge) XS 6 · S 7 · M 8 · L 9 · XL 10, sm control (Checkbox 상자) 4 · 4 · 5 · 5. 저장소 field 모서리 `FIELD_BUTTON_CORNERS` · field `sizes` (S 7 · M 8 · L 9 · XL 10, 사용자 2026-10-30) 는 이미 이 값이다 — Decision 4 의 「radius 리터럴은 가장 가까운 S2 단으로」 를 그대로 적용하면 7 · 9 가 8 · 10 으로 깨진다. Phase 3 codemod 는 이 자리를 「control radius 형」 (size 단계 배율) 으로 선언한다 (형 5 종).
+
+**rule 재집계 (스크립트 정본 — F1 손 집계와 차이)**:
+
+| 키            | 토큰 참조 | px 리터럴 | 그 밖 (문자열) | F1 손 집계 대비                                                 |
+| ------------- | --------: | --------: | -------------: | --------------------------------------------------------------- |
+| fontSize      |       419 |         5 |              0 | 리터럴 2 → 5                                                    |
+| borderRadius  |       355 |        74 |              0 | 토큰 347 → 355                                                  |
+| lineHeight    |        98 |        24 |              0 | 같음                                                            |
+| height        |         0 |   **389** |             51 | 리터럴 389 중 **201 이 `0`** (파생 높이 표지) — 참조화 대상 188 |
+| minHeight     |         0 |         7 |              2 | 같음                                                            |
+| iconSize      |         0 |        92 |              0 | 같음                                                            |
+| paddingX / Y  |         0 | 167 / 111 |              0 | paddingY 105 → 111                                              |
+| gap / iconGap |         4 |   178 / 8 |         39 / 0 | gap 174 → 178                                                   |
+
+`{typography.text-md}` (미정의 토큰) 참조 1 은 그대로 남아 있다 — Phase 1 에서 정리.
+
+**컴포넌트 대조 (desktop, S2 → 저장소 rule)** — 높이 · padding 은 S2 대표 상자, 저장소는 rule `sizes`:
+
+| 가족                                                                  | 축              | S2 (S · M · L · XL)                                                | 저장소 rule                                                | 형 (S2)                    |
+| --------------------------------------------------------------------- | --------------- | ------------------------------------------------------------------ | ---------------------------------------------------------- | -------------------------- |
+| TextField · Select · ComboBox · NumberField · SearchField · DateField | 높이            | 24 · 32 · 40 · 48 (touch 30 · 40 · 50 · 60) — 공개 size 에 XS 없음 | 22 · 30 · 42 · 54 (XS 18 · 20)                             | 기기 배율                  |
+| 같음 (SearchField 제외)                                               | paddingX        | 9 · 12 · 15 · 18                                                   | 8 · 12 · 16 · 24                                           | 컨트롤 상대 (h × 3/8)      |
+| 같음                                                                  | 모서리          | 7 · 8 · 9 · 10                                                     | 7 · 8 · 9 · 10 (XS `r.sm` 4 vs S2 XS 6)                    | size 단계 배율             |
+| SearchField                                                           | 모서리          | pill                                                               | `r.sm` · `md` · `lg` · `xl` (4 · 6 · 8 · 12)               | 컨트롤 상대                |
+| DateField · Checkbox · Radio                                          | 글자            | 12 · 14 · 16 · 18                                                  | 14 · 16 · 18 · 20 (한 단 위)                               | 글자 단계                  |
+| Button                                                                | 높이            | 24 · 32 · 40 · 48 (`min-height`)                                   | 파생 (M = 20 + 8 + 2 = 30)                                 | 기기 배율                  |
+| Button                                                                | paddingX        | 12 · 16 · 20 · 24                                                  | 8 · 12 · 16 · 24                                           | 컨트롤 상대 (h / 2)        |
+| Button · ActionButton · Picker · TagGroup · Badge                     | 아이콘-글자 gap | 5.14 · 6 · 6.86 · 7.71 (touch 7.06 · 8 · 8.94 · 10.35)             | Button 6 · 8 · 10 · 12                                     | 글자 상대 + touch override |
+| ActionButton · ToggleButton                                           | 높이 · padX     | XS 20 · 24 · 32 · 40 · 48 · padX 7.5 · 9 · 12 · 15 · 18            | ToggleButton 파생 · padX 4 · 8 · 12 · 16 · 24              | 기기 배율 · 컨트롤 상대    |
+| TagGroup (tag)                                                        | 높이 · 모서리   | 24 · 32 · 40 · 모서리 7 · 8 · 9                                    | 24 · 32 · 40 · `r.sm` · `md` · `md` (4 · 6 · 6)            | 기기 배율 · size 단계 배율 |
+| Badge                                                                 | 모서리          | 7 · 8 · 9 · 10 (pill 아님)                                         | `r.full`                                                   | size 단계 배율             |
+| Checkbox · Radio · Switch                                             | 라벨 gap        | 8.57 · 10 · 11.43 · 12.86                                          | Checkbox · Radio 6 · 8 · 10 · 12 · Switch 8 · 10 · 12 · 14 | 글자 상대 (10/14 em)       |
+| Checkbox · Switch · Radio                                             | indicator 높이  | 14 · 16 · 18 · 20 (touch × 1.25)                                   | indicator part rule (별도)                                 | 기기 배율                  |
+| Meter · ProgressBar                                                   | track 높이      | 4 · 6 · 8 · 10                                                     | 4 · 8 · 12 · 16                                            | 기기 배율                  |
+| Slider                                                                | track 높이      | 4 (모든 size)                                                      | 4 · 8 · 12 · 16                                            | 기기 배율                  |
+| Tabs                                                                  | tab 높이        | 48 (size 없음)                                                     | 21 · 29 · 41                                               | 기기 배율                  |
+| 행간 (모든 글자)                                                      | lineHeight      | 식 — 12 → 16 · 14 → 18 · 16 → 20 · 18 → 22                         | 고정 16 · 20 · 24 · 28                                     | 글자 크기의 함수           |
+
+**fixture 규모 (`app-pages` — 합성물, 규모 전용)**: 22 페이지 · 문서 노드 3,339 · 명시 `sizing.height` **0**. rule 기본값을 쓰는 컴포넌트 instance 811 (frame 789 · Text 1,551 · body 22 · Image 67 · Icon 99 제외) 은 높이 · padding 변경이, Text 1,551 은 행간 식이 닿는 **상한**이다. 분포 (비율 · 평균 Δpx) 는 인용하지 않는다 — R4 unproven 그대로.
+
+**토큰 값을 바꾸면 깨지는 기존 테스트** (Phase 1 · 3 에서 갱신 — 값 단언, 구조 불변식 아님): `tokenResolver.test.ts:110-112` (radius md 6 · lg 8 · xl 12) · `tokenSnapshot.test.ts.snap` (radius · typography 맵) · `tokenConsumerDrift.test.ts.snap` C2 (C1 매핑은 불변식) · `typography.test.ts` (행간 golden) · `typographyCssParity.test.ts:64-69` (대표값 — 72-89 전수 대조는 불변식) · `resolveThemeSnapshot.test.ts:52-55 · 234 · 292` · `phase4eTheme.test.tsx:210` · `specPresetResolver.test.ts` (radius 12 / 6) · `slotRoles.test.ts:219` (text-3xl 30) · `phase4e11PreviewFollow` · `buttonIntrinsicHeight` · `adr253FieldPartsDom` · `phase3Presence` (rule 높이 20 · 22 · 30 · 42 · 54) · `toggleIndicatorNode` · `adr251ItemsNode` (라벨 행간) · `adr248CatalogRealDom.browser` (높이 · 행간 · frozen DOM PNG 9). `paletteBaseCanvas.browser` (ADR-248 G0 frozen PNG — 옛 Canvas oracle) 는 295 뒤 전부 FAIL 이 정상이라 295 기준에서 **은퇴 대상** (ADR-248 cutover 판정용).
+
+**숨은 사본 (drift 위험)**: `packages/rendering/src/renderers/utils/collectionItemMetrics.ts:374-395` GridList 카드 radius 리터럴 12 · 8 · 8 — 토큰을 거치지 않아 테스트는 통과하고 값만 갈린다. Phase 3 참조화 목록에 넣는다.
+
+**Phase 2 허용 목록 보강**: 빌더 생성 시트가 참조하는 런타임 상태 변수는 `--catalog-hover-*` · `--catalog-selected-*` · `--catalog-selected-pressed-*` 외에 `--catalog-disabled-*` · `--catalog-focus-visible-*` · `--catalog-pressed-*` · `--catalog-selected-hover-*` 도 있다 (기준 JSON `unresolvedExternal`). ADR-293 게이트 (a) 를 좁힐 때 이 접두 전부가 상태 변수 집합이다.
+
+**G1 · G2 하니스 확정**: 신규 파일 `apps/builder/tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts` (기존 `vitest.adr248-g3.browser.config.ts` 가 디렉터리로 포함 — DPR 1 · 1440×900). 기존 두 파일은 oracle 이 달라 넓히지 않는다 (`propAxisCanvasDom` = 고정 CASES 상자 ≤ 1px · `paletteBaseCanvas` = frozen 옛 Canvas PNG). 대상 = 팔레트 전수 `getPaletteItems()` (`paletteItems.ts:318` — PALETTE_ORDER 69 + creationVariants) → `catalogPaletteDefinitionId`. Skia = `MakeWebGLCanvasSurface` + `executeRenderCommands` (paletteBaseCanvas 와 같은 길), DOM = element screenshot (`adr248CatalogRealDom.browser.test.ts:739-781` 처럼 frameHost transform 끔 · `shot.width === rect.width && devicePixelRatio === 1`). 비교 = pixelmatch (threshold 0.1 · 글자 영역 마스크) + 상자 ≤ 1px. arm 마다 `installThemeMaps(snapshot)` (`Object.assign` 금지 — 앞 arm 키가 남는다) + `:root` 변수 교체, touch arm 은 touch snapshot 의 변수를 `:root` 에 직접 (미디어 쿼리 경로는 sanity case 1). **G1 before** 는 값이 바뀌기 전 커밋을 별도 worktree (그 lockfile · 엔진 빌드) 에서 같은 파일로 잰다 — Phase 1 첫 단계가 하니스를 만들고 before 를 뜬 뒤 값을 바꾼다.
+
 - G1 before/after: (미작성)
 - G2 두 arm: (미작성)
 - G4 (b) 최종 snapshot (preset 5 × 델타) · (c) 컴포넌트별 desktop/touch vs S2 computed: (미작성)

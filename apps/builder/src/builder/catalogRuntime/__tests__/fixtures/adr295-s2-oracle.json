@@ -1,0 +1,3163 @@
+{
+  "note": "ADR-295 G0 — S2 설치본 추출 (adr295-s2-token-extract.mjs). 손 편집 금지",
+  "tokens": {
+    "s2Version": "1.8.1",
+    "spacing": [
+      0,
+      2,
+      4,
+      8,
+      12,
+      16,
+      20,
+      24,
+      28,
+      32,
+      36,
+      40,
+      44,
+      48,
+      56,
+      64,
+      80,
+      96
+    ],
+    "radius": {
+      "none": 0,
+      "sm": 4,
+      "default": 8,
+      "lg": 10,
+      "xl": 16,
+      "full": 9999,
+      "pill": "calc(var(--F, var(--M, 9999px)) / 2)"
+    },
+    "borderWidth": {
+      "0": 0,
+      "1": 1,
+      "2": 2,
+      "4": 4
+    },
+    "relativeSpacing": {
+      "text-to-control": {
+        "css": [
+          "0.7142857142857143em"
+        ],
+        "touchMedia": false
+      },
+      "text-to-visual": {
+        "css": [
+          "0.42857142857142855em",
+          "0.47058823529411764em"
+        ],
+        "touchMedia": true
+      },
+      "edge-to-text": {
+        "css": [
+          "calc(var(--F, var(--M)) * 3 / 8)"
+        ],
+        "touchMedia": false
+      },
+      "pill": {
+        "css": [
+          "calc(var(--F, var(--M)) / 2)"
+        ],
+        "touchMedia": false
+      }
+    },
+    "sizeFn": {
+      "size(32)": "calc(2rem * var(--s2-scale))",
+      "fontRelative(6)": "0.42857142857142855em",
+      "fontRelative(8,17)": "0.47058823529411764em"
+    },
+    "font": {
+      "decl": "round(var(--s2-font-size-base, 14) * var(--fs) / 16 * 1rem, 1px)",
+      "ratio": 1.125,
+      "steps": {
+        "ui-xs": -2,
+        "ui-sm": -1,
+        "ui": 0,
+        "ui-lg": 1,
+        "ui-xl": 2,
+        "ui-2xl": 3,
+        "ui-3xl": 4,
+        "heading-2xs": 0,
+        "heading-xs": 2,
+        "heading-sm": 3,
+        "heading": 4,
+        "heading-lg": 6,
+        "heading-xl": 8,
+        "heading-2xl": 10,
+        "heading-3xl": 12,
+        "title-xs": -1,
+        "title-sm": 0,
+        "title": 1,
+        "title-lg": 2,
+        "title-xl": 3,
+        "title-2xl": 4,
+        "title-3xl": 5,
+        "body-2xs": -2,
+        "body-xs": -1,
+        "body-sm": 0,
+        "body": 1,
+        "body-lg": 2,
+        "body-xl": 3,
+        "body-2xl": 4,
+        "body-3xl": 5,
+        "detail-sm": -1,
+        "detail": 0,
+        "detail-lg": 1,
+        "detail-xl": 2,
+        "code-xs": -1,
+        "code-sm": 0,
+        "code": 1,
+        "code-lg": 2,
+        "code-xl": 3
+      }
+    },
+    "lineHeight": {
+      "expr": "round(1em * (1.15 + (1 - ((min(32, var(--s2-font-size-base, 14) * var(--fs)) - 10)) / 22) * 0.15), 2px)",
+      "constants": {
+        "min": 1.15,
+        "maxFs": 32,
+        "minFs": 10,
+        "span": 22,
+        "delta": 0.15,
+        "roundTo": 2
+      }
+    },
+    "scale": {
+      "desktop": {
+        "scale": 1,
+        "fontBase": 14
+      },
+      "touch": {
+        "scale": 1.25,
+        "fontBase": 17
+      },
+      "media": "not ((hover: hover) and (pointer: fine))"
+    },
+    "fontTable": {
+      "ui-xs": {
+        "step": -2,
+        "desktop": {
+          "fontSize": 11,
+          "lineHeight": 14
+        },
+        "touch": {
+          "fontSize": 13,
+          "lineHeight": 16
+        }
+      },
+      "ui-sm": {
+        "step": -1,
+        "desktop": {
+          "fontSize": 12,
+          "lineHeight": 16
+        },
+        "touch": {
+          "fontSize": 15,
+          "lineHeight": 18
+        }
+      },
+      "ui": {
+        "step": 0,
+        "desktop": {
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "ui-lg": {
+        "step": 1,
+        "desktop": {
+          "fontSize": 16,
+          "lineHeight": 20
+        },
+        "touch": {
+          "fontSize": 19,
+          "lineHeight": 24
+        }
+      },
+      "ui-xl": {
+        "step": 2,
+        "desktop": {
+          "fontSize": 18,
+          "lineHeight": 22
+        },
+        "touch": {
+          "fontSize": 22,
+          "lineHeight": 26
+        }
+      },
+      "ui-2xl": {
+        "step": 3,
+        "desktop": {
+          "fontSize": 20,
+          "lineHeight": 24
+        },
+        "touch": {
+          "fontSize": 24,
+          "lineHeight": 28
+        }
+      },
+      "ui-3xl": {
+        "step": 4,
+        "desktop": {
+          "fontSize": 22,
+          "lineHeight": 26
+        },
+        "touch": {
+          "fontSize": 27,
+          "lineHeight": 32
+        }
+      },
+      "heading-2xs": {
+        "step": 0,
+        "desktop": {
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "heading-xs": {
+        "step": 2,
+        "desktop": {
+          "fontSize": 18,
+          "lineHeight": 22
+        },
+        "touch": {
+          "fontSize": 22,
+          "lineHeight": 26
+        }
+      },
+      "heading-sm": {
+        "step": 3,
+        "desktop": {
+          "fontSize": 20,
+          "lineHeight": 24
+        },
+        "touch": {
+          "fontSize": 24,
+          "lineHeight": 28
+        }
+      },
+      "heading": {
+        "step": 4,
+        "desktop": {
+          "fontSize": 22,
+          "lineHeight": 26
+        },
+        "touch": {
+          "fontSize": 27,
+          "lineHeight": 32
+        }
+      },
+      "heading-lg": {
+        "step": 6,
+        "desktop": {
+          "fontSize": 28,
+          "lineHeight": 32
+        },
+        "touch": {
+          "fontSize": 34,
+          "lineHeight": 40
+        }
+      },
+      "heading-xl": {
+        "step": 8,
+        "desktop": {
+          "fontSize": 36,
+          "lineHeight": 42
+        },
+        "touch": {
+          "fontSize": 44,
+          "lineHeight": 50
+        }
+      },
+      "heading-2xl": {
+        "step": 10,
+        "desktop": {
+          "fontSize": 45,
+          "lineHeight": 52
+        },
+        "touch": {
+          "fontSize": 55,
+          "lineHeight": 64
+        }
+      },
+      "heading-3xl": {
+        "step": 12,
+        "desktop": {
+          "fontSize": 58,
+          "lineHeight": 66
+        },
+        "touch": {
+          "fontSize": 70,
+          "lineHeight": 80
+        }
+      },
+      "title-xs": {
+        "step": -1,
+        "desktop": {
+          "fontSize": 12,
+          "lineHeight": 16
+        },
+        "touch": {
+          "fontSize": 15,
+          "lineHeight": 18
+        }
+      },
+      "title-sm": {
+        "step": 0,
+        "desktop": {
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "title": {
+        "step": 1,
+        "desktop": {
+          "fontSize": 16,
+          "lineHeight": 20
+        },
+        "touch": {
+          "fontSize": 19,
+          "lineHeight": 24
+        }
+      },
+      "title-lg": {
+        "step": 2,
+        "desktop": {
+          "fontSize": 18,
+          "lineHeight": 22
+        },
+        "touch": {
+          "fontSize": 22,
+          "lineHeight": 26
+        }
+      },
+      "title-xl": {
+        "step": 3,
+        "desktop": {
+          "fontSize": 20,
+          "lineHeight": 24
+        },
+        "touch": {
+          "fontSize": 24,
+          "lineHeight": 28
+        }
+      },
+      "title-2xl": {
+        "step": 4,
+        "desktop": {
+          "fontSize": 22,
+          "lineHeight": 26
+        },
+        "touch": {
+          "fontSize": 27,
+          "lineHeight": 32
+        }
+      },
+      "title-3xl": {
+        "step": 5,
+        "desktop": {
+          "fontSize": 25,
+          "lineHeight": 30
+        },
+        "touch": {
+          "fontSize": 31,
+          "lineHeight": 36
+        }
+      },
+      "body-2xs": {
+        "step": -2,
+        "desktop": {
+          "fontSize": 11,
+          "lineHeight": 14
+        },
+        "touch": {
+          "fontSize": 13,
+          "lineHeight": 16
+        }
+      },
+      "body-xs": {
+        "step": -1,
+        "desktop": {
+          "fontSize": 12,
+          "lineHeight": 16
+        },
+        "touch": {
+          "fontSize": 15,
+          "lineHeight": 18
+        }
+      },
+      "body-sm": {
+        "step": 0,
+        "desktop": {
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "body": {
+        "step": 1,
+        "desktop": {
+          "fontSize": 16,
+          "lineHeight": 20
+        },
+        "touch": {
+          "fontSize": 19,
+          "lineHeight": 24
+        }
+      },
+      "body-lg": {
+        "step": 2,
+        "desktop": {
+          "fontSize": 18,
+          "lineHeight": 22
+        },
+        "touch": {
+          "fontSize": 22,
+          "lineHeight": 26
+        }
+      },
+      "body-xl": {
+        "step": 3,
+        "desktop": {
+          "fontSize": 20,
+          "lineHeight": 24
+        },
+        "touch": {
+          "fontSize": 24,
+          "lineHeight": 28
+        }
+      },
+      "body-2xl": {
+        "step": 4,
+        "desktop": {
+          "fontSize": 22,
+          "lineHeight": 26
+        },
+        "touch": {
+          "fontSize": 27,
+          "lineHeight": 32
+        }
+      },
+      "body-3xl": {
+        "step": 5,
+        "desktop": {
+          "fontSize": 25,
+          "lineHeight": 30
+        },
+        "touch": {
+          "fontSize": 31,
+          "lineHeight": 36
+        }
+      },
+      "detail-sm": {
+        "step": -1,
+        "desktop": {
+          "fontSize": 12,
+          "lineHeight": 16
+        },
+        "touch": {
+          "fontSize": 15,
+          "lineHeight": 18
+        }
+      },
+      "detail": {
+        "step": 0,
+        "desktop": {
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "detail-lg": {
+        "step": 1,
+        "desktop": {
+          "fontSize": 16,
+          "lineHeight": 20
+        },
+        "touch": {
+          "fontSize": 19,
+          "lineHeight": 24
+        }
+      },
+      "detail-xl": {
+        "step": 2,
+        "desktop": {
+          "fontSize": 18,
+          "lineHeight": 22
+        },
+        "touch": {
+          "fontSize": 22,
+          "lineHeight": 26
+        }
+      },
+      "code-xs": {
+        "step": -1,
+        "desktop": {
+          "fontSize": 12,
+          "lineHeight": 16
+        },
+        "touch": {
+          "fontSize": 15,
+          "lineHeight": 18
+        }
+      },
+      "code-sm": {
+        "step": 0,
+        "desktop": {
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "code": {
+        "step": 1,
+        "desktop": {
+          "fontSize": 16,
+          "lineHeight": 20
+        },
+        "touch": {
+          "fontSize": 19,
+          "lineHeight": 24
+        }
+      },
+      "code-lg": {
+        "step": 2,
+        "desktop": {
+          "fontSize": 18,
+          "lineHeight": 22
+        },
+        "touch": {
+          "fontSize": 22,
+          "lineHeight": 26
+        }
+      },
+      "code-xl": {
+        "step": 3,
+        "desktop": {
+          "fontSize": 20,
+          "lineHeight": 24
+        },
+        "touch": {
+          "fontSize": 24,
+          "lineHeight": 28
+        }
+      }
+    },
+    "controlSize": {
+      "md": {
+        "M": 32,
+        "XS": 20,
+        "S": 24,
+        "L": 40,
+        "XL": 48
+      },
+      "sm": {
+        "M": 16,
+        "S": 14,
+        "L": 18,
+        "XL": 20
+      }
+    },
+    "controlRadius": {
+      "steps": {
+        "M": 0,
+        "XS": -2,
+        "S": -1,
+        "L": 1,
+        "XL": 2,
+        "ratio": 1.125
+      },
+      "default": {
+        "XS": 6,
+        "S": 7,
+        "M": 8,
+        "L": 9,
+        "XL": 10
+      },
+      "sm": {
+        "XS": 3,
+        "S": 4,
+        "M": 4,
+        "L": 5,
+        "XL": 5
+      }
+    }
+  },
+  "componentTable": {
+    "TextField": {
+      "S": {
+        "desktop": {
+          "height": 24,
+          "width": 192,
+          "minHeight": "auto",
+          "paddingInline": 9,
+          "paddingInlineEnd": 9,
+          "radius": 7,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 12,
+          "lineHeight": 16
+        },
+        "touch": {
+          "height": 30,
+          "width": 240,
+          "minHeight": "auto",
+          "paddingInline": 11.25,
+          "paddingInlineEnd": 11.25,
+          "radius": 7,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 15,
+          "lineHeight": 18
+        }
+      },
+      "M": {
+        "desktop": {
+          "height": 32,
+          "width": 208,
+          "minHeight": "auto",
+          "paddingInline": 12,
+          "paddingInlineEnd": 12,
+          "radius": 8,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "height": 40,
+          "width": 260,
+          "minHeight": "auto",
+          "paddingInline": 15,
+          "paddingInlineEnd": 15,
+          "radius": 8,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "L": {
+        "desktop": {
+          "height": 40,
+          "width": 224,
+          "minHeight": "auto",
+          "paddingInline": 15,
+          "paddingInlineEnd": 15,
+          "radius": 9,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": 20
+        },
+        "touch": {
+          "height": 50,
+          "width": 280,
+          "minHeight": "auto",
+          "paddingInline": 18.75,
+          "paddingInlineEnd": 18.75,
+          "radius": 9,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 19,
+          "lineHeight": 24
+        }
+      },
+      "XL": {
+        "desktop": {
+          "height": 48,
+          "width": 240,
+          "minHeight": "auto",
+          "paddingInline": 18,
+          "paddingInlineEnd": 18,
+          "radius": 10,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 18,
+          "lineHeight": 22
+        },
+        "touch": {
+          "height": 60,
+          "width": 300,
+          "minHeight": "auto",
+          "paddingInline": 22.5,
+          "paddingInlineEnd": 22.5,
+          "radius": 10,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 22,
+          "lineHeight": 26
+        }
+      }
+    },
+    "TextArea": {
+      "S": {
+        "desktop": {
+          "height": 48,
+          "width": 170,
+          "minHeight": 32,
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 0,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 12,
+          "lineHeight": 16
+        },
+        "touch": {
+          "height": 58,
+          "width": 213.5,
+          "minHeight": 40,
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 0,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 15,
+          "lineHeight": 18
+        }
+      },
+      "M": {
+        "desktop": {
+          "height": 50,
+          "width": 180,
+          "minHeight": 32,
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 0,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "height": 62,
+          "width": 226,
+          "minHeight": 40,
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 0,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "L": {
+        "desktop": {
+          "height": 52,
+          "width": 190,
+          "minHeight": 32,
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 0,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": 20
+        },
+        "touch": {
+          "height": 64,
+          "width": 238.5,
+          "minHeight": 40,
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 0,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 19,
+          "lineHeight": 24
+        }
+      },
+      "XL": {
+        "desktop": {
+          "height": 54,
+          "width": 200,
+          "minHeight": 32,
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 0,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 18,
+          "lineHeight": 22
+        },
+        "touch": {
+          "height": 66,
+          "width": 251,
+          "minHeight": 40,
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 0,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 22,
+          "lineHeight": 26
+        }
+      }
+    },
+    "Picker": {
+      "S": {
+        "desktop": {
+          "height": 24,
+          "width": 192,
+          "minHeight": "auto",
+          "paddingInline": 9,
+          "paddingInlineEnd": 9,
+          "radius": 7,
+          "borderWidth": 0,
+          "gap": 5.14,
+          "rootGap": 12,
+          "fontSize": 12,
+          "lineHeight": 16
+        },
+        "touch": {
+          "height": 30,
+          "width": 240,
+          "minHeight": "auto",
+          "paddingInline": 11.25,
+          "paddingInlineEnd": 11.25,
+          "radius": 7,
+          "borderWidth": 0,
+          "gap": 7.06,
+          "rootGap": 12,
+          "fontSize": 15,
+          "lineHeight": 18
+        }
+      },
+      "M": {
+        "desktop": {
+          "height": 32,
+          "width": 208,
+          "minHeight": "auto",
+          "paddingInline": 12,
+          "paddingInlineEnd": 12,
+          "radius": 8,
+          "borderWidth": 0,
+          "gap": 6,
+          "rootGap": 12,
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "height": 40,
+          "width": 260,
+          "minHeight": "auto",
+          "paddingInline": 15,
+          "paddingInlineEnd": 15,
+          "radius": 8,
+          "borderWidth": 0,
+          "gap": 8,
+          "rootGap": 12,
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "L": {
+        "desktop": {
+          "height": 40,
+          "width": 224,
+          "minHeight": "auto",
+          "paddingInline": 15,
+          "paddingInlineEnd": 15,
+          "radius": 9,
+          "borderWidth": 0,
+          "gap": 6.86,
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": 20
+        },
+        "touch": {
+          "height": 50,
+          "width": 280,
+          "minHeight": "auto",
+          "paddingInline": 18.75,
+          "paddingInlineEnd": 18.75,
+          "radius": 9,
+          "borderWidth": 0,
+          "gap": 8.94,
+          "rootGap": 12,
+          "fontSize": 19,
+          "lineHeight": 24
+        }
+      },
+      "XL": {
+        "desktop": {
+          "height": 48,
+          "width": 240,
+          "minHeight": "auto",
+          "paddingInline": 18,
+          "paddingInlineEnd": 18,
+          "radius": 10,
+          "borderWidth": 0,
+          "gap": 7.71,
+          "rootGap": 12,
+          "fontSize": 18,
+          "lineHeight": 22
+        },
+        "touch": {
+          "height": 60,
+          "width": 300,
+          "minHeight": "auto",
+          "paddingInline": 22.5,
+          "paddingInlineEnd": 22.5,
+          "radius": 10,
+          "borderWidth": 0,
+          "gap": 10.35,
+          "rootGap": 12,
+          "fontSize": 22,
+          "lineHeight": 26
+        }
+      }
+    },
+    "ComboBox": {
+      "S": {
+        "desktop": {
+          "height": 24,
+          "width": 192,
+          "minHeight": "auto",
+          "paddingInline": 9,
+          "paddingInlineEnd": 2.5,
+          "radius": 7,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 12,
+          "lineHeight": 16
+        },
+        "touch": {
+          "height": 30,
+          "width": 240,
+          "minHeight": "auto",
+          "paddingInline": 11.25,
+          "paddingInlineEnd": 3.63,
+          "radius": 7,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 15,
+          "lineHeight": 18
+        }
+      },
+      "M": {
+        "desktop": {
+          "height": 32,
+          "width": 208,
+          "minHeight": "auto",
+          "paddingInline": 12,
+          "paddingInlineEnd": 4,
+          "radius": 8,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "height": 40,
+          "width": 260,
+          "minHeight": "auto",
+          "paddingInline": 15,
+          "paddingInlineEnd": 5.5,
+          "radius": 8,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "L": {
+        "desktop": {
+          "height": 40,
+          "width": 224,
+          "minHeight": "auto",
+          "paddingInline": 15,
+          "paddingInlineEnd": 5.5,
+          "radius": 9,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": 20
+        },
+        "touch": {
+          "height": 50,
+          "width": 280,
+          "minHeight": "auto",
+          "paddingInline": 18.75,
+          "paddingInlineEnd": 7.38,
+          "radius": 9,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 19,
+          "lineHeight": 24
+        }
+      },
+      "XL": {
+        "desktop": {
+          "height": 48,
+          "width": 240,
+          "minHeight": "auto",
+          "paddingInline": 18,
+          "paddingInlineEnd": 7,
+          "radius": 10,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 18,
+          "lineHeight": 22
+        },
+        "touch": {
+          "height": 60,
+          "width": 300,
+          "minHeight": "auto",
+          "paddingInline": 22.5,
+          "paddingInlineEnd": 9.25,
+          "radius": 10,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 22,
+          "lineHeight": 26
+        }
+      }
+    },
+    "NumberField": {
+      "S": {
+        "desktop": {
+          "height": 24,
+          "width": 192,
+          "minHeight": "auto",
+          "paddingInline": 9,
+          "paddingInlineEnd": 0,
+          "radius": 7,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 12,
+          "lineHeight": 16
+        },
+        "touch": {
+          "height": 30,
+          "width": 240,
+          "minHeight": "auto",
+          "paddingInline": 11.25,
+          "paddingInlineEnd": 0,
+          "radius": 7,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 15,
+          "lineHeight": 18
+        }
+      },
+      "M": {
+        "desktop": {
+          "height": 32,
+          "width": 208,
+          "minHeight": "auto",
+          "paddingInline": 12,
+          "paddingInlineEnd": 0,
+          "radius": 8,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "height": 40,
+          "width": 260,
+          "minHeight": "auto",
+          "paddingInline": 15,
+          "paddingInlineEnd": 0,
+          "radius": 8,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "L": {
+        "desktop": {
+          "height": 40,
+          "width": 224,
+          "minHeight": "auto",
+          "paddingInline": 15,
+          "paddingInlineEnd": 0,
+          "radius": 9,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": 20
+        },
+        "touch": {
+          "height": 50,
+          "width": 280,
+          "minHeight": "auto",
+          "paddingInline": 18.75,
+          "paddingInlineEnd": 0,
+          "radius": 9,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 19,
+          "lineHeight": 24
+        }
+      },
+      "XL": {
+        "desktop": {
+          "height": 48,
+          "width": 240,
+          "minHeight": "auto",
+          "paddingInline": 18,
+          "paddingInlineEnd": 0,
+          "radius": 10,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 18,
+          "lineHeight": 22
+        },
+        "touch": {
+          "height": 60,
+          "width": 300,
+          "minHeight": "auto",
+          "paddingInline": 22.5,
+          "paddingInlineEnd": 0,
+          "radius": 10,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 22,
+          "lineHeight": 26
+        }
+      }
+    },
+    "SearchField": {
+      "S": {
+        "desktop": {
+          "height": 24,
+          "width": 186,
+          "minHeight": "auto",
+          "paddingInline": 12,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 12,
+          "lineHeight": 16
+        },
+        "touch": {
+          "height": 30,
+          "width": 232.5,
+          "minHeight": "auto",
+          "paddingInline": 15,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 15,
+          "lineHeight": 18
+        }
+      },
+      "M": {
+        "desktop": {
+          "height": 32,
+          "width": 200,
+          "minHeight": "auto",
+          "paddingInline": 16,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "height": 40,
+          "width": 250,
+          "minHeight": "auto",
+          "paddingInline": 20,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "L": {
+        "desktop": {
+          "height": 40,
+          "width": 214,
+          "minHeight": "auto",
+          "paddingInline": 20,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": 20
+        },
+        "touch": {
+          "height": 50,
+          "width": 267.5,
+          "minHeight": "auto",
+          "paddingInline": 25,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 19,
+          "lineHeight": 24
+        }
+      },
+      "XL": {
+        "desktop": {
+          "height": 48,
+          "width": 228,
+          "minHeight": "auto",
+          "paddingInline": 24,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 18,
+          "lineHeight": 22
+        },
+        "touch": {
+          "height": 60,
+          "width": 285,
+          "minHeight": "auto",
+          "paddingInline": 30,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 22,
+          "lineHeight": 26
+        }
+      }
+    },
+    "DateField": {
+      "S": {
+        "desktop": {
+          "height": 24,
+          "width": 192,
+          "minHeight": "auto",
+          "paddingInline": 9,
+          "paddingInlineEnd": 9,
+          "radius": 7,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 12,
+          "lineHeight": 16
+        },
+        "touch": {
+          "height": 30,
+          "width": 240,
+          "minHeight": "auto",
+          "paddingInline": 11.25,
+          "paddingInlineEnd": 11.25,
+          "radius": 7,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 15,
+          "lineHeight": 18
+        }
+      },
+      "M": {
+        "desktop": {
+          "height": 32,
+          "width": 208,
+          "minHeight": "auto",
+          "paddingInline": 12,
+          "paddingInlineEnd": 12,
+          "radius": 8,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "height": 40,
+          "width": 260,
+          "minHeight": "auto",
+          "paddingInline": 15,
+          "paddingInlineEnd": 15,
+          "radius": 8,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "L": {
+        "desktop": {
+          "height": 40,
+          "width": 224,
+          "minHeight": "auto",
+          "paddingInline": 15,
+          "paddingInlineEnd": 15,
+          "radius": 9,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": 20
+        },
+        "touch": {
+          "height": 50,
+          "width": 280,
+          "minHeight": "auto",
+          "paddingInline": 18.75,
+          "paddingInlineEnd": 18.75,
+          "radius": 9,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 19,
+          "lineHeight": 24
+        }
+      },
+      "XL": {
+        "desktop": {
+          "height": 48,
+          "width": 240,
+          "minHeight": "auto",
+          "paddingInline": 18,
+          "paddingInlineEnd": 18,
+          "radius": 10,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 18,
+          "lineHeight": 22
+        },
+        "touch": {
+          "height": 60,
+          "width": 300,
+          "minHeight": "auto",
+          "paddingInline": 22.5,
+          "paddingInlineEnd": 22.5,
+          "radius": 10,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 22,
+          "lineHeight": 26
+        }
+      }
+    },
+    "Button": {
+      "S": {
+        "desktop": {
+          "height": 24,
+          "width": 52,
+          "minHeight": 24,
+          "paddingInline": 12,
+          "paddingInlineEnd": 12,
+          "radius": 12,
+          "borderWidth": 0,
+          "gap": 5.14,
+          "rootGap": 5.14,
+          "fontSize": 12,
+          "lineHeight": 16
+        },
+        "touch": {
+          "height": 30,
+          "width": 65,
+          "minHeight": 30,
+          "paddingInline": 15,
+          "paddingInlineEnd": 15,
+          "radius": 15,
+          "borderWidth": 0,
+          "gap": 7.06,
+          "rootGap": 7.06,
+          "fontSize": 15,
+          "lineHeight": 18
+        }
+      },
+      "M": {
+        "desktop": {
+          "height": 32,
+          "width": 64.67,
+          "minHeight": 32,
+          "paddingInline": 16,
+          "paddingInlineEnd": 16,
+          "radius": 16,
+          "borderWidth": 0,
+          "gap": 6,
+          "rootGap": 6,
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "height": 40,
+          "width": 79.67,
+          "minHeight": 40,
+          "paddingInline": 20,
+          "paddingInlineEnd": 20,
+          "radius": 20,
+          "borderWidth": 0,
+          "gap": 8,
+          "rootGap": 8,
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "L": {
+        "desktop": {
+          "height": 40,
+          "width": 77.33,
+          "minHeight": 40,
+          "paddingInline": 20,
+          "paddingInlineEnd": 20,
+          "radius": 20,
+          "borderWidth": 0,
+          "gap": 6.86,
+          "rootGap": 6.86,
+          "fontSize": 16,
+          "lineHeight": 20
+        },
+        "touch": {
+          "height": 50,
+          "width": 94.33,
+          "minHeight": 50,
+          "paddingInline": 25,
+          "paddingInlineEnd": 25,
+          "radius": 25,
+          "borderWidth": 0,
+          "gap": 8.94,
+          "rootGap": 8.94,
+          "fontSize": 19,
+          "lineHeight": 24
+        }
+      },
+      "XL": {
+        "desktop": {
+          "height": 48,
+          "width": 90,
+          "minHeight": 48,
+          "paddingInline": 24,
+          "paddingInlineEnd": 24,
+          "radius": 24,
+          "borderWidth": 0,
+          "gap": 7.71,
+          "rootGap": 7.71,
+          "fontSize": 18,
+          "lineHeight": 22
+        },
+        "touch": {
+          "height": 60,
+          "width": 111.33,
+          "minHeight": 60,
+          "paddingInline": 30,
+          "paddingInlineEnd": 30,
+          "radius": 30,
+          "borderWidth": 0,
+          "gap": 10.35,
+          "rootGap": 10.35,
+          "fontSize": 22,
+          "lineHeight": 26
+        }
+      }
+    },
+    "ButtonIcon": {
+      "S": {
+        "desktop": {
+          "height": 24,
+          "width": 71.44,
+          "minHeight": 24,
+          "paddingInline": 12,
+          "paddingInlineEnd": 12,
+          "radius": 12,
+          "borderWidth": 0,
+          "gap": 5.14,
+          "rootGap": 5.14,
+          "fontSize": 12,
+          "lineHeight": 16
+        },
+        "touch": {
+          "height": 30,
+          "width": 87.91,
+          "minHeight": 30,
+          "paddingInline": 15,
+          "paddingInlineEnd": 15,
+          "radius": 15,
+          "borderWidth": 0,
+          "gap": 7.06,
+          "rootGap": 7.06,
+          "fontSize": 15,
+          "lineHeight": 18
+        }
+      },
+      "M": {
+        "desktop": {
+          "height": 32,
+          "width": 86.67,
+          "minHeight": 32,
+          "paddingInline": 16,
+          "paddingInlineEnd": 16,
+          "radius": 16,
+          "borderWidth": 0,
+          "gap": 6,
+          "rootGap": 6,
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "height": 40,
+          "width": 107.23,
+          "minHeight": 40,
+          "paddingInline": 20,
+          "paddingInlineEnd": 20,
+          "radius": 20,
+          "borderWidth": 0,
+          "gap": 8,
+          "rootGap": 8,
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "L": {
+        "desktop": {
+          "height": 40,
+          "width": 101.89,
+          "minHeight": 40,
+          "paddingInline": 20,
+          "paddingInlineEnd": 20,
+          "radius": 20,
+          "borderWidth": 0,
+          "gap": 6.86,
+          "rootGap": 6.86,
+          "fontSize": 16,
+          "lineHeight": 20
+        },
+        "touch": {
+          "height": 50,
+          "width": 124.56,
+          "minHeight": 50,
+          "paddingInline": 25,
+          "paddingInlineEnd": 25,
+          "radius": 25,
+          "borderWidth": 0,
+          "gap": 8.94,
+          "rootGap": 8.94,
+          "fontSize": 19,
+          "lineHeight": 24
+        }
+      },
+      "XL": {
+        "desktop": {
+          "height": 48,
+          "width": 117.14,
+          "minHeight": 48,
+          "paddingInline": 24,
+          "paddingInlineEnd": 24,
+          "radius": 24,
+          "borderWidth": 0,
+          "gap": 7.71,
+          "rootGap": 7.71,
+          "fontSize": 18,
+          "lineHeight": 22
+        },
+        "touch": {
+          "height": 60,
+          "width": 144.53,
+          "minHeight": 60,
+          "paddingInline": 30,
+          "paddingInlineEnd": 30,
+          "radius": 30,
+          "borderWidth": 0,
+          "gap": 10.35,
+          "rootGap": 10.35,
+          "fontSize": 22,
+          "lineHeight": 26
+        }
+      }
+    },
+    "ActionButton": {
+      "XS": {
+        "desktop": {
+          "height": 20,
+          "width": 39.98,
+          "minHeight": "auto",
+          "paddingInline": 7.5,
+          "paddingInlineEnd": 7.5,
+          "radius": 6,
+          "borderWidth": 0,
+          "gap": 4.71,
+          "rootGap": 4.71,
+          "fontSize": 11,
+          "lineHeight": 14
+        },
+        "touch": {
+          "height": 25,
+          "width": 48.27,
+          "minHeight": "auto",
+          "paddingInline": 9.38,
+          "paddingInlineEnd": 9.38,
+          "radius": 6,
+          "borderWidth": 0,
+          "gap": 6.12,
+          "rootGap": 6.12,
+          "fontSize": 13,
+          "lineHeight": 16
+        }
+      },
+      "S": {
+        "desktop": {
+          "height": 24,
+          "width": 45.25,
+          "minHeight": "auto",
+          "paddingInline": 9,
+          "paddingInlineEnd": 9,
+          "radius": 7,
+          "borderWidth": 0,
+          "gap": 5.14,
+          "rootGap": 5.14,
+          "fontSize": 12,
+          "lineHeight": 16
+        },
+        "touch": {
+          "height": 30,
+          "width": 56.56,
+          "minHeight": "auto",
+          "paddingInline": 11.25,
+          "paddingInlineEnd": 11.25,
+          "radius": 7,
+          "borderWidth": 0,
+          "gap": 7.06,
+          "rootGap": 7.06,
+          "fontSize": 15,
+          "lineHeight": 18
+        }
+      },
+      "M": {
+        "desktop": {
+          "height": 32,
+          "width": 55.78,
+          "minHeight": "auto",
+          "paddingInline": 12,
+          "paddingInlineEnd": 12,
+          "radius": 8,
+          "borderWidth": 0,
+          "gap": 6,
+          "rootGap": 6,
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "height": 40,
+          "width": 68.59,
+          "minHeight": "auto",
+          "paddingInline": 15,
+          "paddingInlineEnd": 15,
+          "radius": 8,
+          "borderWidth": 0,
+          "gap": 8,
+          "rootGap": 8,
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "L": {
+        "desktop": {
+          "height": 40,
+          "width": 66.33,
+          "minHeight": "auto",
+          "paddingInline": 15,
+          "paddingInlineEnd": 15,
+          "radius": 9,
+          "borderWidth": 0,
+          "gap": 6.86,
+          "rootGap": 6.86,
+          "fontSize": 16,
+          "lineHeight": 20
+        },
+        "touch": {
+          "height": 50,
+          "width": 80.64,
+          "minHeight": "auto",
+          "paddingInline": 18.75,
+          "paddingInlineEnd": 18.75,
+          "radius": 9,
+          "borderWidth": 0,
+          "gap": 8.94,
+          "rootGap": 8.94,
+          "fontSize": 19,
+          "lineHeight": 24
+        }
+      },
+      "XL": {
+        "desktop": {
+          "height": 48,
+          "width": 76.86,
+          "minHeight": "auto",
+          "paddingInline": 18,
+          "paddingInlineEnd": 18,
+          "radius": 10,
+          "borderWidth": 0,
+          "gap": 7.71,
+          "rootGap": 7.71,
+          "fontSize": 18,
+          "lineHeight": 22
+        },
+        "touch": {
+          "height": 60,
+          "width": 94.95,
+          "minHeight": "auto",
+          "paddingInline": 22.5,
+          "paddingInlineEnd": 22.5,
+          "radius": 10,
+          "borderWidth": 0,
+          "gap": 10.35,
+          "rootGap": 10.35,
+          "fontSize": 22,
+          "lineHeight": 26
+        }
+      }
+    },
+    "ActionButtonIcon": {
+      "XS": {
+        "desktop": {
+          "height": 20,
+          "width": 57.13,
+          "minHeight": "auto",
+          "paddingInline": 7.5,
+          "paddingInlineEnd": 7.5,
+          "radius": 6,
+          "borderWidth": 0,
+          "gap": 4.71,
+          "rootGap": 4.71,
+          "fontSize": 11,
+          "lineHeight": 14
+        },
+        "touch": {
+          "height": 25,
+          "width": 68.53,
+          "minHeight": "auto",
+          "paddingInline": 9.38,
+          "paddingInlineEnd": 9.38,
+          "radius": 6,
+          "borderWidth": 0,
+          "gap": 6.12,
+          "rootGap": 6.12,
+          "fontSize": 13,
+          "lineHeight": 16
+        }
+      },
+      "S": {
+        "desktop": {
+          "height": 24,
+          "width": 64.69,
+          "minHeight": "auto",
+          "paddingInline": 9,
+          "paddingInlineEnd": 9,
+          "radius": 7,
+          "borderWidth": 0,
+          "gap": 5.14,
+          "rootGap": 5.14,
+          "fontSize": 12,
+          "lineHeight": 16
+        },
+        "touch": {
+          "height": 30,
+          "width": 79.47,
+          "minHeight": "auto",
+          "paddingInline": 11.25,
+          "paddingInlineEnd": 11.25,
+          "radius": 7,
+          "borderWidth": 0,
+          "gap": 7.06,
+          "rootGap": 7.06,
+          "fontSize": 15,
+          "lineHeight": 18
+        }
+      },
+      "M": {
+        "desktop": {
+          "height": 32,
+          "width": 77.78,
+          "minHeight": "auto",
+          "paddingInline": 12,
+          "paddingInlineEnd": 12,
+          "radius": 8,
+          "borderWidth": 0,
+          "gap": 6,
+          "rootGap": 6,
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "height": 40,
+          "width": 96.16,
+          "minHeight": "auto",
+          "paddingInline": 15,
+          "paddingInlineEnd": 15,
+          "radius": 8,
+          "borderWidth": 0,
+          "gap": 8,
+          "rootGap": 8,
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "L": {
+        "desktop": {
+          "height": 40,
+          "width": 90.89,
+          "minHeight": "auto",
+          "paddingInline": 15,
+          "paddingInlineEnd": 15,
+          "radius": 9,
+          "borderWidth": 0,
+          "gap": 6.86,
+          "rootGap": 6.86,
+          "fontSize": 16,
+          "lineHeight": 20
+        },
+        "touch": {
+          "height": 50,
+          "width": 110.88,
+          "minHeight": "auto",
+          "paddingInline": 18.75,
+          "paddingInlineEnd": 18.75,
+          "radius": 9,
+          "borderWidth": 0,
+          "gap": 8.94,
+          "rootGap": 8.94,
+          "fontSize": 19,
+          "lineHeight": 24
+        }
+      },
+      "XL": {
+        "desktop": {
+          "height": 48,
+          "width": 104,
+          "minHeight": "auto",
+          "paddingInline": 18,
+          "paddingInlineEnd": 18,
+          "radius": 10,
+          "borderWidth": 0,
+          "gap": 7.71,
+          "rootGap": 7.71,
+          "fontSize": 18,
+          "lineHeight": 22
+        },
+        "touch": {
+          "height": 60,
+          "width": 128.16,
+          "minHeight": "auto",
+          "paddingInline": 22.5,
+          "paddingInlineEnd": 22.5,
+          "radius": 10,
+          "borderWidth": 0,
+          "gap": 10.35,
+          "rootGap": 10.35,
+          "fontSize": 22,
+          "lineHeight": 26
+        }
+      }
+    },
+    "ToggleButton": {
+      "XS": {
+        "desktop": {
+          "height": 20,
+          "width": 39.98,
+          "minHeight": "auto",
+          "paddingInline": 7.5,
+          "paddingInlineEnd": 7.5,
+          "radius": 6,
+          "borderWidth": 0,
+          "gap": 4.71,
+          "rootGap": 4.71,
+          "fontSize": 11,
+          "lineHeight": 14
+        },
+        "touch": {
+          "height": 25,
+          "width": 48.27,
+          "minHeight": "auto",
+          "paddingInline": 9.38,
+          "paddingInlineEnd": 9.38,
+          "radius": 6,
+          "borderWidth": 0,
+          "gap": 6.12,
+          "rootGap": 6.12,
+          "fontSize": 13,
+          "lineHeight": 16
+        }
+      },
+      "S": {
+        "desktop": {
+          "height": 24,
+          "width": 45.25,
+          "minHeight": "auto",
+          "paddingInline": 9,
+          "paddingInlineEnd": 9,
+          "radius": 7,
+          "borderWidth": 0,
+          "gap": 5.14,
+          "rootGap": 5.14,
+          "fontSize": 12,
+          "lineHeight": 16
+        },
+        "touch": {
+          "height": 30,
+          "width": 56.56,
+          "minHeight": "auto",
+          "paddingInline": 11.25,
+          "paddingInlineEnd": 11.25,
+          "radius": 7,
+          "borderWidth": 0,
+          "gap": 7.06,
+          "rootGap": 7.06,
+          "fontSize": 15,
+          "lineHeight": 18
+        }
+      },
+      "M": {
+        "desktop": {
+          "height": 32,
+          "width": 55.78,
+          "minHeight": "auto",
+          "paddingInline": 12,
+          "paddingInlineEnd": 12,
+          "radius": 8,
+          "borderWidth": 0,
+          "gap": 6,
+          "rootGap": 6,
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "height": 40,
+          "width": 68.59,
+          "minHeight": "auto",
+          "paddingInline": 15,
+          "paddingInlineEnd": 15,
+          "radius": 8,
+          "borderWidth": 0,
+          "gap": 8,
+          "rootGap": 8,
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "L": {
+        "desktop": {
+          "height": 40,
+          "width": 66.33,
+          "minHeight": "auto",
+          "paddingInline": 15,
+          "paddingInlineEnd": 15,
+          "radius": 9,
+          "borderWidth": 0,
+          "gap": 6.86,
+          "rootGap": 6.86,
+          "fontSize": 16,
+          "lineHeight": 20
+        },
+        "touch": {
+          "height": 50,
+          "width": 80.64,
+          "minHeight": "auto",
+          "paddingInline": 18.75,
+          "paddingInlineEnd": 18.75,
+          "radius": 9,
+          "borderWidth": 0,
+          "gap": 8.94,
+          "rootGap": 8.94,
+          "fontSize": 19,
+          "lineHeight": 24
+        }
+      },
+      "XL": {
+        "desktop": {
+          "height": 48,
+          "width": 76.86,
+          "minHeight": "auto",
+          "paddingInline": 18,
+          "paddingInlineEnd": 18,
+          "radius": 10,
+          "borderWidth": 0,
+          "gap": 7.71,
+          "rootGap": 7.71,
+          "fontSize": 18,
+          "lineHeight": 22
+        },
+        "touch": {
+          "height": 60,
+          "width": 94.95,
+          "minHeight": "auto",
+          "paddingInline": 22.5,
+          "paddingInlineEnd": 22.5,
+          "radius": 10,
+          "borderWidth": 0,
+          "gap": 10.35,
+          "rootGap": 10.35,
+          "fontSize": 22,
+          "lineHeight": 26
+        }
+      }
+    },
+    "Checkbox": {
+      "S": {
+        "desktop": {
+          "height": 14,
+          "width": 14,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 4,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 8.57,
+          "fontSize": 12,
+          "lineHeight": 16
+        },
+        "touch": {
+          "height": 17.5,
+          "width": 17.5,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 4,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 10.71,
+          "fontSize": 15,
+          "lineHeight": 18
+        }
+      },
+      "M": {
+        "desktop": {
+          "height": 16,
+          "width": 16,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 4,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 10,
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "height": 20,
+          "width": 20,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 4,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12.14,
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "L": {
+        "desktop": {
+          "height": 18,
+          "width": 18,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 5,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 11.43,
+          "fontSize": 16,
+          "lineHeight": 20
+        },
+        "touch": {
+          "height": 22.5,
+          "width": 22.5,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 5,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 13.57,
+          "fontSize": 19,
+          "lineHeight": 24
+        }
+      },
+      "XL": {
+        "desktop": {
+          "height": 20,
+          "width": 20,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 5,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12.86,
+          "fontSize": 18,
+          "lineHeight": 22
+        },
+        "touch": {
+          "height": 25,
+          "width": 25,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 5,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 15.71,
+          "fontSize": 22,
+          "lineHeight": 26
+        }
+      }
+    },
+    "Switch": {
+      "S": {
+        "desktop": {
+          "height": 14,
+          "width": 22.28,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 8.57,
+          "fontSize": 12,
+          "lineHeight": 16
+        },
+        "touch": {
+          "height": 17.5,
+          "width": 27.84,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 10.71,
+          "fontSize": 15,
+          "lineHeight": 18
+        }
+      },
+      "M": {
+        "desktop": {
+          "height": 16,
+          "width": 25.98,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 10,
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "height": 20,
+          "width": 31.56,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12.14,
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "L": {
+        "desktop": {
+          "height": 18,
+          "width": 29.7,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 11.43,
+          "fontSize": 16,
+          "lineHeight": 20
+        },
+        "touch": {
+          "height": 22.5,
+          "width": 35.28,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 13.57,
+          "fontSize": 19,
+          "lineHeight": 24
+        }
+      },
+      "XL": {
+        "desktop": {
+          "height": 20,
+          "width": 33.42,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12.86,
+          "fontSize": 18,
+          "lineHeight": 22
+        },
+        "touch": {
+          "height": 25,
+          "width": 40.84,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 15.71,
+          "fontSize": 22,
+          "lineHeight": 26
+        }
+      }
+    },
+    "RadioGroup": {
+      "S": {
+        "desktop": {
+          "height": 14,
+          "width": 14,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 12,
+          "lineHeight": 16
+        },
+        "touch": {
+          "height": 17.5,
+          "width": 17.5,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 15,
+          "lineHeight": 18
+        }
+      },
+      "M": {
+        "desktop": {
+          "height": 16,
+          "width": 16,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "height": 20,
+          "width": 20,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "L": {
+        "desktop": {
+          "height": 18,
+          "width": 18,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": 20
+        },
+        "touch": {
+          "height": 22.5,
+          "width": 22.5,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 19,
+          "lineHeight": 24
+        }
+      },
+      "XL": {
+        "desktop": {
+          "height": 20,
+          "width": 20,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 18,
+          "lineHeight": 22
+        },
+        "touch": {
+          "height": 25,
+          "width": 25,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 2,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 22,
+          "lineHeight": 26
+        }
+      }
+    },
+    "TagGroup": {
+      "S": {
+        "desktop": {
+          "height": 24,
+          "width": 34.66,
+          "minHeight": 0,
+          "paddingInline": 9,
+          "paddingInlineEnd": 9,
+          "radius": 7,
+          "borderWidth": 0,
+          "gap": 5.14,
+          "rootGap": 12,
+          "fontSize": 12,
+          "lineHeight": 16
+        },
+        "touch": {
+          "height": 30,
+          "width": 43.33,
+          "minHeight": 0,
+          "paddingInline": 11.25,
+          "paddingInlineEnd": 11.25,
+          "radius": 7,
+          "borderWidth": 0,
+          "gap": 7.06,
+          "rootGap": 12,
+          "fontSize": 15,
+          "lineHeight": 18
+        }
+      },
+      "M": {
+        "desktop": {
+          "height": 32,
+          "width": 43.44,
+          "minHeight": 0,
+          "paddingInline": 12,
+          "paddingInlineEnd": 12,
+          "radius": 8,
+          "borderWidth": 0,
+          "gap": 6,
+          "rootGap": 12,
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "height": 40,
+          "width": 53.59,
+          "minHeight": 0,
+          "paddingInline": 15,
+          "paddingInlineEnd": 15,
+          "radius": 8,
+          "borderWidth": 0,
+          "gap": 8,
+          "rootGap": 12,
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "L": {
+        "desktop": {
+          "height": 40,
+          "width": 52.22,
+          "minHeight": 0,
+          "paddingInline": 15,
+          "paddingInlineEnd": 15,
+          "radius": 9,
+          "borderWidth": 0,
+          "gap": 6.86,
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": 20
+        },
+        "touch": {
+          "height": 50,
+          "width": 63.88,
+          "minHeight": 0,
+          "paddingInline": 18.75,
+          "paddingInlineEnd": 18.75,
+          "radius": 9,
+          "borderWidth": 0,
+          "gap": 8.94,
+          "rootGap": 12,
+          "fontSize": 19,
+          "lineHeight": 24
+        }
+      }
+    },
+    "Badge": {
+      "S": {
+        "desktop": {
+          "height": 24,
+          "width": 52.27,
+          "minHeight": 24,
+          "paddingInline": 9,
+          "paddingInlineEnd": 9,
+          "radius": 7,
+          "borderWidth": 2,
+          "gap": 5.14,
+          "rootGap": 5.14,
+          "fontSize": 12,
+          "lineHeight": 16
+        },
+        "touch": {
+          "height": 30,
+          "width": 64.33,
+          "minHeight": 30,
+          "paddingInline": 11.25,
+          "paddingInlineEnd": 11.25,
+          "radius": 7,
+          "borderWidth": 2,
+          "gap": 7.06,
+          "rootGap": 7.06,
+          "fontSize": 15,
+          "lineHeight": 18
+        }
+      },
+      "M": {
+        "desktop": {
+          "height": 32,
+          "width": 63.31,
+          "minHeight": 32,
+          "paddingInline": 12,
+          "paddingInlineEnd": 12,
+          "radius": 8,
+          "borderWidth": 2,
+          "gap": 6,
+          "rootGap": 6,
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "height": 40,
+          "width": 76.88,
+          "minHeight": 40,
+          "paddingInline": 15,
+          "paddingInlineEnd": 15,
+          "radius": 8,
+          "borderWidth": 2,
+          "gap": 8,
+          "rootGap": 8,
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "L": {
+        "desktop": {
+          "height": 40,
+          "width": 74.34,
+          "minHeight": 40,
+          "paddingInline": 15,
+          "paddingInlineEnd": 15,
+          "radius": 9,
+          "borderWidth": 2,
+          "gap": 6.86,
+          "rootGap": 6.86,
+          "fontSize": 16,
+          "lineHeight": 20
+        },
+        "touch": {
+          "height": 50,
+          "width": 89.42,
+          "minHeight": 50,
+          "paddingInline": 18.75,
+          "paddingInlineEnd": 18.75,
+          "radius": 9,
+          "borderWidth": 2,
+          "gap": 8.94,
+          "rootGap": 8.94,
+          "fontSize": 19,
+          "lineHeight": 24
+        }
+      },
+      "XL": {
+        "desktop": {
+          "height": 48,
+          "width": 85.39,
+          "minHeight": 48,
+          "paddingInline": 18,
+          "paddingInlineEnd": 18,
+          "radius": 10,
+          "borderWidth": 2,
+          "gap": 7.71,
+          "rootGap": 7.71,
+          "fontSize": 18,
+          "lineHeight": 22
+        },
+        "touch": {
+          "height": 60,
+          "width": 104.48,
+          "minHeight": 60,
+          "paddingInline": 22.5,
+          "paddingInlineEnd": 22.5,
+          "radius": 10,
+          "borderWidth": 2,
+          "gap": 10.35,
+          "rootGap": 10.35,
+          "fontSize": 22,
+          "lineHeight": 26
+        }
+      }
+    },
+    "Slider": {
+      "M": {
+        "desktop": {
+          "height": 4,
+          "width": 208,
+          "minHeight": 0,
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 10,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 16,
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "height": 5,
+          "width": 260,
+          "minHeight": 0,
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 10,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 16,
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "L": {
+        "desktop": {
+          "height": 4,
+          "width": 224,
+          "minHeight": 0,
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 10,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 20,
+          "fontSize": 16,
+          "lineHeight": 20
+        },
+        "touch": {
+          "height": 5,
+          "width": 280,
+          "minHeight": 0,
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 10,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 20,
+          "fontSize": 19,
+          "lineHeight": 24
+        }
+      },
+      "XL": {
+        "desktop": {
+          "height": 4,
+          "width": 240,
+          "minHeight": 0,
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 10,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 24,
+          "fontSize": 18,
+          "lineHeight": 22
+        },
+        "touch": {
+          "height": 5,
+          "width": 300,
+          "minHeight": 0,
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 10,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 24,
+          "fontSize": 22,
+          "lineHeight": 26
+        }
+      },
+      "S": {
+        "touch": {
+          "height": 5,
+          "width": 240,
+          "minHeight": 0,
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 10,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 16,
+          "fontSize": 15,
+          "lineHeight": 18
+        }
+      }
+    },
+    "Meter": {
+      "S": {
+        "desktop": {
+          "height": 4,
+          "width": 192,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": "normal"
+        },
+        "touch": {
+          "height": 5,
+          "width": 240,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": "normal"
+        }
+      },
+      "M": {
+        "desktop": {
+          "height": 6,
+          "width": 208,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": "normal"
+        },
+        "touch": {
+          "height": 7.5,
+          "width": 260,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": "normal"
+        }
+      },
+      "L": {
+        "desktop": {
+          "height": 8,
+          "width": 224,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": "normal"
+        },
+        "touch": {
+          "height": 10,
+          "width": 280,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": "normal"
+        }
+      },
+      "XL": {
+        "desktop": {
+          "height": 10,
+          "width": 240,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": "normal"
+        },
+        "touch": {
+          "height": 12.5,
+          "width": 300,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": "normal"
+        }
+      }
+    },
+    "ProgressBar": {
+      "S": {
+        "desktop": {
+          "height": 4,
+          "width": 192,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": "normal"
+        },
+        "touch": {
+          "height": 5,
+          "width": 240,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": "normal"
+        }
+      },
+      "M": {
+        "desktop": {
+          "height": 6,
+          "width": 208,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": "normal"
+        },
+        "touch": {
+          "height": 7.5,
+          "width": 260,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": "normal"
+        }
+      },
+      "L": {
+        "desktop": {
+          "height": 8,
+          "width": 224,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": "normal"
+        },
+        "touch": {
+          "height": 10,
+          "width": 280,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": "normal"
+        }
+      },
+      "XL": {
+        "desktop": {
+          "height": 10,
+          "width": 240,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": "normal"
+        },
+        "touch": {
+          "height": 12.5,
+          "width": 300,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 9999,
+          "borderWidth": 0,
+          "gap": "normal",
+          "rootGap": 12,
+          "fontSize": 16,
+          "lineHeight": "normal"
+        }
+      }
+    },
+    "SegmentedControl": {
+      "S": {
+        "desktop": {
+          "height": 32,
+          "width": 68.2,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 8,
+          "borderWidth": 0,
+          "gap": 4,
+          "rootGap": 4,
+          "fontSize": 16,
+          "lineHeight": "normal"
+        },
+        "touch": {
+          "height": 40,
+          "width": 84,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 8,
+          "borderWidth": 0,
+          "gap": 4,
+          "rootGap": 4,
+          "fontSize": 16,
+          "lineHeight": "normal"
+        }
+      },
+      "M": {
+        "desktop": {
+          "height": 32,
+          "width": 68.2,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 8,
+          "borderWidth": 0,
+          "gap": 4,
+          "rootGap": 4,
+          "fontSize": 16,
+          "lineHeight": "normal"
+        },
+        "touch": {
+          "height": 40,
+          "width": 84,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 8,
+          "borderWidth": 0,
+          "gap": 4,
+          "rootGap": 4,
+          "fontSize": 16,
+          "lineHeight": "normal"
+        }
+      },
+      "L": {
+        "desktop": {
+          "height": 32,
+          "width": 68.2,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 8,
+          "borderWidth": 0,
+          "gap": 4,
+          "rootGap": 4,
+          "fontSize": 16,
+          "lineHeight": "normal"
+        },
+        "touch": {
+          "height": 40,
+          "width": 84,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 8,
+          "borderWidth": 0,
+          "gap": 4,
+          "rootGap": 4,
+          "fontSize": 16,
+          "lineHeight": "normal"
+        }
+      },
+      "XL": {
+        "desktop": {
+          "height": 32,
+          "width": 68.2,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 8,
+          "borderWidth": 0,
+          "gap": 4,
+          "rootGap": 4,
+          "fontSize": 16,
+          "lineHeight": "normal"
+        },
+        "touch": {
+          "height": 40,
+          "width": 84,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 8,
+          "borderWidth": 0,
+          "gap": 4,
+          "rootGap": 4,
+          "fontSize": 16,
+          "lineHeight": "normal"
+        }
+      }
+    },
+    "Tabs": {
+      "S": {
+        "desktop": {
+          "height": 48,
+          "width": 20.23,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 4,
+          "borderWidth": 0,
+          "gap": 6,
+          "rootGap": "normal",
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "height": 60,
+          "width": 24.56,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 4,
+          "borderWidth": 0,
+          "gap": 8,
+          "rootGap": "normal",
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "M": {
+        "desktop": {
+          "height": 48,
+          "width": 20.23,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 4,
+          "borderWidth": 0,
+          "gap": 6,
+          "rootGap": "normal",
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "height": 60,
+          "width": 24.56,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 4,
+          "borderWidth": 0,
+          "gap": 8,
+          "rootGap": "normal",
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "L": {
+        "desktop": {
+          "height": 48,
+          "width": 20.23,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 4,
+          "borderWidth": 0,
+          "gap": 6,
+          "rootGap": "normal",
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "height": 60,
+          "width": 24.56,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 4,
+          "borderWidth": 0,
+          "gap": 8,
+          "rootGap": "normal",
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      },
+      "XL": {
+        "desktop": {
+          "height": 48,
+          "width": 20.23,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 4,
+          "borderWidth": 0,
+          "gap": 6,
+          "rootGap": "normal",
+          "fontSize": 14,
+          "lineHeight": 18
+        },
+        "touch": {
+          "height": 60,
+          "width": 24.56,
+          "minHeight": "auto",
+          "paddingInline": 0,
+          "paddingInlineEnd": 0,
+          "radius": 4,
+          "borderWidth": 0,
+          "gap": 8,
+          "rootGap": "normal",
+          "fontSize": 17,
+          "lineHeight": 22
+        }
+      }
+    }
+  }
+}

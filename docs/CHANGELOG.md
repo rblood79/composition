@@ -24,6 +24,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 실제 CanvasKit surface에서 DPR 1/2 · zoom 1/1.7 · light/dark · 불투명/반투명 배경의 반복 편집·축소·삭제 결과를 전체 렌더와 픽셀 단위로 비교한다.
 
+## [ADR-295 Phase 0 — D3 값 정렬: S2 설치본 추출기 · 대조표] - 2026-10-30
+
+### Added
+
+- ADR-295 Accepted · Phase 0 (G0). 사용자-가시 변경 없음 — 값은 Phase 1 부터 바뀐다.
+  - S2 1.8.1 값 추출기 `apps/builder/scripts/adr295-s2-token-extract.mjs`: 설치본 style macro 를 실행해 spacing · radius · border · 글자 단계 · 행간 식 · scale · control 크기 · 모서리를 읽고, probe 페이지 (S2 컴포넌트 22 가족) 를 Playwright desktop · touch 에서 잰다. 글자 · 행간 식과 브라우저 computed 78/78 일치. 게이트용 oracle `catalogRuntime/__tests__/fixtures/adr295-s2-oracle.json`.
+  - rule 값 재집계 `adr295-rule-literal-inventory.ts` · 빌더가 읽는 생성 시트 33 의 치수 기준 JSON (`adr295-builder-consumed-generated-baseline.json`, Decision 9 게이트 (c) 의 295 전 기준) · `app-pages` 규모 측정 `adr295-fixture-scale.mjs`.
+  - radius 한 표 게이트 (`resolveThemeSnapshot.test.ts` 「ADR-295 R9」): 최종 snapshot radius = `RADIUS_BASE_PX` 파생 · seed 와 표가 같아야 한다.
+  - 발견: S2 control 모서리 = size 단계 배율 (6 · 7 · 8 · 9 · 10) · field paddingX = 높이 × 3/8 · Button paddingX = 높이 / 2 · rule height 리터럴 389 중 201 은 파생 표지. 대조표: `docs/adr/design/295-d3-token-values-s2-alignment-breakdown.md` §6.0.
+
 ## [ADR-294 Implemented — 사용자 컴포넌트가 값을 내보내고 받는다: event · variable property] - 2026-10-30
 
 ### Added

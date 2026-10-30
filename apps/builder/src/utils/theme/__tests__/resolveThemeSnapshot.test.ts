@@ -11,6 +11,7 @@ import {
   createThemeDefinition,
   DEFAULT_THEME_PRESET,
 } from "@composition/shared";
+import { radius as radiusSeed } from "@composition/rendering";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../builder/workspace/canvas/skia/useSkiaNode", () => ({
@@ -23,6 +24,7 @@ import {
   colorTokenCssVarName,
   resolveThemeSnapshot,
 } from "../resolveThemeSnapshot";
+import { RADIUS_BASE_PX, resolveRadiusTokens } from "../radiusScaleToSkia";
 import {
   createAccentColorTokens,
   mixWithBlackSrgb,
@@ -333,5 +335,30 @@ describe("resolveThemeSnapshot — 명시 델타 (축별 비기본값 · reset �
       expect(Math.max(...d)).toBeLessThanOrEqual(1);
     }
     expect(hexToOklch("not-a-color")).toBeNull();
+  });
+});
+
+// ADR-295 Phase 0 (R9) — radius 는 한 표 (`RADIUS_BASE_PX`) 에서 나온다. `resolveThemeSnapshot` 이 seed
+//   (`@composition/rendering` `radius`) 뒤에 preset 파생 (`resolveRadiusTokens`) 을 펼치므로 seed 만 바꾸면
+//   활성 테마는 옛 값 그대로다. Phase 1 은 표를 바꾸고 seed 를 그 표에서 파생해야 이 묶음이 통과한다.
+describe("ADR-295 R9 — radius 최종 snapshot = RADIUS_BASE_PX 파생 (seed 아님)", () => {
+  it.each(["none", "sm", "md", "lg", "xl"] as const)(
+    "radiusScale %s → 최종 radius 맵 · --radius-* = resolveRadiusTokens(scale)",
+    (radiusScale) => {
+      const s = resolve(theme({}, { ...DEFAULT_THEME_PRESET, radiusScale }));
+      const derived = resolveRadiusTokens(radiusScale);
+      for (const key of Object.keys(RADIUS_BASE_PX)) {
+        expect(s.radius[key], key).toBe(derived[key]);
+        // none · full 은 cssVars 에 싣지 않는다 (`resolveThemeSnapshot` radius 루프)
+        if (key !== "none" && key !== "full")
+          expect(varOf(s, `--radius-${key}`), key).toBe(`${derived[key]}px`);
+      }
+    },
+  );
+
+  it("seed 의 radius 키는 표의 md 배율 값과 같다 — 한쪽만 바꾸면 FAIL", () => {
+    const seed = radiusSeed as unknown as Record<string, number>;
+    for (const [key, value] of Object.entries(seed))
+      if (key in RADIUS_BASE_PX) expect(value, key).toBe(RADIUS_BASE_PX[key]);
   });
 });

@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-10-30
+Accepted — 2026-10-30 (사용자 `/execute-adr 295` + [reviews/295.md](reviews/295.md) 최신 round pending 0 · HIGH 전부 fixed)
 
 - 사용자 요청: `/create-adr` (2026-10-30) — 같은 대화의 Design 패널 일관성 감사 ([DESIGN_PANEL_CONSISTENCY_AUDIT_2026-10](../explanation/research/DESIGN_PANEL_CONSISTENCY_AUDIT_2026-10.md)) 와 S2 style macro 대조 뒤.
 - 방향을 정한 사용자 원문 (2026-10-30, 같은 대화):
@@ -16,6 +16,10 @@ Proposed — 2026-10-30
 - 리뷰 round 2 (2026-10-30, codex 수리 검증): H2 fixed · H1 · M3 잔여 → 반영 — H1 `{ em }` 한 계수로는 S2 의 기기별 계수 (`text-to-visual` desktop 6/14 em · touch 8/17 em) 를 못 담는다 → 값은 **px · 기준 글자 쌍** + `touch` override (Decision 3) · M3 변수 이름을 갈라도 빌더 root 에 resolver 값 (touch 블록) 을 설치하면 생성 시트를 읽는 빌더 위젯 (`CompactSelect` → generated Select `font-size`) 이 17px 을 받는다 → 빌더 root 는 **chrome 소유 고정 변수 시트** (desktop 만) + 생성 시트 치수 전부 변수 + 커버리지 · 스냅샷 게이트 (Decision 9 · R10). 수리 검증 1 회 끝 — phase 당 판독 1 + 수리 검증 1 (`review-loop-closure.md` §1), 종결은 실행자 선언.
 - 리뷰 round 3 (2026-10-30, claude — 사용자 재제기) · round 4 (사용자 판독 — severity 조정): HIGH 1 반영 — Design 패널 preset 이 빌더 root 의 computed value (chrome 값) 를 px 로 commit 해 (`BorderSection.tsx:229` → `cssLengthPx.ts:12` · `PropertyUnitInput.runtime.ts:126-134`) Decision 8 의 chrome 동결이 사용자 문서에 옛 값을 쓰게 한다 → preset 의 표시 · commit 값은 **활성 테마의 resolver snapshot** 에서 (Decision 5) · G5 에 preset 검사. 설계 정리 2 — 토큰 변수 접두를 생성 상태 변수 (`--catalog-hover-*` · `--catalog-selected-*`, `CatalogStates.css`) 와 가르고 (`--catalog-token-*`, Decision 9) 검사 대상을 구분 · 「22 페이지 실문서」 주장 철회 — 그 문서는 생성기 fixture 라 R4 는 unproven (사용자 결정 6 은 그 한계와 함께). 하니스 문구 정정 — `vitest.visual-parity.config.ts` 는 없고 팔레트 전수 픽셀 두 arm 하니스는 Phase 0 산출물 (LOW deferred — 설계 종결 조건 아님, `review-loop-closure.md` §2). 설계 판독 종결 — 실행자 선언 (round 4 반영, [reviews/295.md](reviews/295.md)).
 - 메모리: `project-design-panel-consistency-audit-2026-10` · `feedback-panel-scale-labels-xs-s-m-l-xl-not-token-names` · `reference-design-data-mcp-installed-query-traps` (design-data 스키마는 설치본보다 뒤처진다 — 값의 정본은 **설치본**).
+
+> **Phase 0 종결 (2026-10-30, G0)** — S2 추출기 (`adr295-s2-token-extract.mjs` — 설치본 style macro 실행 + probe 페이지 Playwright desktop · touch) 가 oracle JSON 을 만든다. 글자 · 행간 식 = 브라우저 computed 78/78. 발견: (1) S2 control 모서리는 **size 단계 배율** `round(8 × 1.125^단계)` (6 · 7 · 8 · 9 · 10, scale 무관) — Decision 3 의 형이 5 종이 되고, Decision 4 의 「가장 가까운 S2 단으로」 는 이 자리에 쓰지 않는다 (field 7 · 8 · 9 · 10 은 이미 S2) (2) field paddingX 는 높이 × 3/8 (9 · 12 · 15 · 18), Button 은 높이 / 2 (3) rule height 리터럴 389 중 201 이 파생 표지 `0` (4) touch 에뮬레이션은 `hasTouch` 로만 (CDP pointer media 무시). fixture `app-pages` 규모: 노드 3,339 · 명시 높이 0 · 컴포넌트 instance 811 · Text 1,551 (상한, R4 unproven 유지). G1 · G2 하니스 = 신규 `adr295PaletteSymmetry.browser.test.ts` (Phase 1 첫 단계). 대조표 · 깨지는 테스트 목록 · 기준 JSON: breakdown §6.0.
+
+> **사용자 결정 (2026-10-30, Phase 0 대조표 뒤 — `/execute-adr 295` 대화)**: 1 = 「전부 S2 식으로」 (padding · gap 의 형과 값 모두 S2 — field 높이 × 3/8 · Button 높이 / 2 · `text-to-visual` · `text-to-control`) · 2 = 「S2 식 도입」 (행간 식) · 3 = 「본문 + 제목 두 묶음」 (본문 XS ~ XL 12 · 14 · 16 · 18 · 20, 제목 XS ~ XL heading 단계 18 · 20 · 22 · 28 · 36) · 5 = 「xs 2 · 2xl 24 유지, 3xl · 4xl 삭제」 · 6 = 「수용」 (명시 높이 없는 요소가 움직인다 — 변환 없음). 남은 결정: 4 (Preview 터치 보기 형태) · 7 (Canvas desktop 고정) — Phase 2.
 
 > 구현 상세: [design/295-d3-token-values-s2-alignment-breakdown.md](design/295-d3-token-values-s2-alignment-breakdown.md)
 
