@@ -19,6 +19,7 @@ import {
   setFields,
   setLibraryDefault,
 } from "../../../../../../packages/shared/src/catalog/commands";
+import { catalogResolvedTokenRef } from "../../../../../../packages/shared/src/catalog/resolution/resolver";
 import { catalogSubpartOwnerType } from "../subpart";
 import { catalogRuleShapes } from "../ruleShapes";
 import { catalogAuthoredVisual } from "../../../../../../packages/shared/src/catalog/runtime/libraryVisual";
@@ -1565,6 +1566,10 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         gap: 4,
         borderWidth: 1,
       });
+      // (3c-3b: the start keeps its length ref — the DOM writes the height × 3/8 over the device variables.)
+      expect(catalogResolvedTokenRef(trigger().visual, "paddingLeft")).toBe(
+        "{length.size.height.M*3/8}",
+      );
       const shownParts = () => parts().filter((part) => !part.hidden);
       const [value, glyph] = shownParts();
       expect(rect(glyph.id)).toMatchObject({

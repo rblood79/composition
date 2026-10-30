@@ -314,6 +314,9 @@ function lengthPx(value: string): number | undefined {
     const px = resolveToken(text as TokenRef);
     return typeof px === "number" ? px : undefined;
   }
+  // ADR-295 Phase 3c-3b: a size token × a / b (a Select trigger's `edge-to-text` start) — its length ref.
+  const ratio = sizeRatioLengthRef(text);
+  if (ratio) return lengthPx(ratio);
   // `calc(a + b)` / `calc(a - b)` of resolvable lengths (side label indent: label width + gap).
   const calc = /^calc\((.+)\)$/.exec(text)?.[1];
   if (calc) {
@@ -365,6 +368,20 @@ function sizeOffsetLengthRef(value: string): string | null {
   return ref
     ? `{length.${ref.slice(1, -1)}*1/1${match![2]}${match![3]}}`
     : null;
+}
+
+/**
+ * ADR-295 Phase 3c-3b — `calc(var(--catalog-token-size-<family>-<S>) * a / b)` (S2 `edge-to-text` of a part —
+ * a Select trigger's start) → the length ref `{length.size.<family>.<S>*a/b}`, so the part keeps where the
+ * number came from (the DOM writes the device formula); else null.
+ */
+function sizeRatioLengthRef(value: string): string | null {
+  const match =
+    /^calc\((var\(--catalog-token-size-[\w-]+\))\s*\*\s*(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)\)$/.exec(
+      value.trim(),
+    );
+  const ref = match ? sizeHeightRef(match[1]!) : null;
+  return ref ? `{length.${ref.slice(1, -1)}*${match![2]}/${match![3]}}` : null;
 }
 
 /** `var(--catalog-token-size-height-<S>)` → `{size.height.<S>}` (ADR-295 Phase 3), else null. */
@@ -587,10 +604,11 @@ function compileDeclarations(
       }
     } else if (/^padding-(top|right|bottom|left)$/.test(key)) {
       const px = lengthPx(value);
-      // (ADR-295 Phase 3c-3: a side of a size token ± px — a field button's room — keeps its length ref.)
+      // (ADR-295 Phase 3c-3: a side of a size token ± px — a field button's room — or × a / b — a Select
+      //   trigger's start, 3c-3b — keeps its length ref.)
       if (px !== undefined)
         visual[`padding${key[8].toUpperCase()}${key.slice(9)}` as VisualField] =
-          sizeOffsetLengthRef(value) ?? px;
+          sizeOffsetLengthRef(value) ?? sizeRatioLengthRef(value) ?? px;
     } else if (key === "gap") {
       const px = lengthPx(value);
       // (ADR-295 Phase 3c-3: a relative gap keeps its ref — the library makes it a token value.)

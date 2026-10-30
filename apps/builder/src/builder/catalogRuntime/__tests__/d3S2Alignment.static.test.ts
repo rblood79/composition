@@ -203,6 +203,7 @@ describe("ADR-295 G4 (c) — 컴포넌트 값 = S2 computed", () => {
     "Input",
     "TextArea",
     "ToggleButton",
+    "Badge",
   ])("%s: field 모서리 S · M · L · XL = S2 control 모서리", (type) => {
     for (const size of ["S", "M", "L", "XL"])
       expect(rules[type]!.sizes[size]!.borderRadius, `${type} ${size}`).toBe(
@@ -219,8 +220,8 @@ describe("ADR-295 G4 (c) — 컴포넌트 값 = S2 computed", () => {
           );
   });
 
-  it("Input · Button 의 minHeight 는 `{size.height.<S>}`", () => {
-    for (const type of ["Input", "Button"])
+  it("Input · Button · Badge 의 minHeight 는 `{size.height.<S>}`", () => {
+    for (const type of ["Input", "Button", "Badge"])
       for (const size of ["S", "M", "L", "XL"])
         expect(rules[type]!.sizes[size]!.minHeight).toBe(
           `{size.height.${size}}`,
@@ -368,6 +369,9 @@ describe("ADR-295 G4 (c) — 컴포넌트 값 = S2 computed", () => {
         ["S", "M", "L", "XL"],
       ],
       ["TagGroup", "Tag", "paddingX", "paddingInline", ["S", "M", "L"]],
+      // 3c-3b: S2 Badge = `control({shape: 'default', wrap, icon})` — edge-to-text · text-to-visual.
+      ["Badge", "Badge", "paddingX", "paddingInline", ["S", "M", "L", "XL"]],
+      ["Badge", "Badge", "gap", "gap", ["S", "M", "L", "XL"]],
       ["Checkbox", "Checkbox", "gap", "rootGap", ["S", "M", "L", "XL"]],
       // (Radio's label gap is S2 `text-to-control` as Checkbox's — the probe's RadioGroup `rootGap` is the
       //   group's label-to-items gap, not the radio's, so it has no row here.)
@@ -403,6 +407,43 @@ describe("ADR-295 G4 (c) — 컴포넌트 값 = S2 computed", () => {
             `${type} ${size} ${device} font`,
           ).toBe(table[probe]![size]![device]!.fontSize);
       }
+  });
+
+  it("3c-3b — Select 트리거 시작 여백 = S2 Picker `edge-to-text` (높이 × 3/8, 두 벌)", () => {
+    const delegation = (
+      COMPONENT_RULES_TABLE as unknown as Record<
+        string,
+        {
+          structure: {
+            composition: {
+              delegation: {
+                prefix?: string;
+                variables?: Record<string, Record<string, string>>;
+              }[];
+            };
+          };
+        }
+      >
+    ).Select!.structure.composition.delegation.find(
+      (entry) => entry.prefix === "select-btn",
+    )!.variables!;
+    for (const size of SIZES) {
+      const css = delegation[size]!["--select-btn-pad-start"];
+      expect(css, size).toBe(
+        `calc(var(--catalog-token-size-height-${size}) * 3 / 8)`,
+      );
+      for (const device of ["desktop", "touch"] as const) {
+        const s2 = table.Picker![size]?.[device]?.paddingInline;
+        if (s2 === undefined) continue;
+        expect(
+          Math.abs(
+            s2SizeTokens(S2_DEVICE[device].scale)[`height.${size}`]! * (3 / 8) -
+              s2,
+          ),
+          `${size} ${device}: S2 ${s2}`,
+        ).toBeLessThan(0.02);
+      }
+    }
   });
 
   it("3c-2 — field 버튼 · 막대 최소 폭 · 메뉴 항목은 S2 값의 토큰, TextField · SearchField 는 최소 폭 없음", () => {

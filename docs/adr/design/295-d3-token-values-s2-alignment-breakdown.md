@@ -494,6 +494,22 @@ field 버튼 (ComboBox · DatePicker · DateRangePicker): 정사각형 `{size.fi
 
 **live (Chrome MCP, 5175 · `adr295-live`)**: 팔레트 Button · Switch 를 body 에. Canvas: Button 여백 16 · 간격 6 (라벨 x 17 = 16 + 테두리) · Switch 라벨 x 36 (track 26 + 10) · Input 여백 12. Preview desktop: Button 75.59 (Canvas 75.58) · 여백 16 · 간격 6 · Switch 간격 10 · Input 12 — inline 은 기기 식. 「터치 크기로 미리보기」: Button 여백 20 · 간격 8 · Switch 간격 12.14 · Input 15 (S2 probe 20 · 8 · 12.14 · 15). 빌더 root: `--catalog-token-input-padding-x-M` 12 · `--catalog-token-toggle-button-gap-M` 8 · 터치 flag 0 (295 전). 콘솔 오류 0. 두 요소는 삭제 명령으로 지움.
 
+### 6.10 Phase 3c-3b (2026-10-31 ~, 진행 중)
+
+> **분할 (실행 판단 — 사후 보고)**: 3c-3b 를 셋으로 나눈다 — ① Badge · Select 트리거의 터치 식 (이 절) · ② SearchField pill + field 버튼 끝 여백 (ComboBox · DatePicker · DateRangePicker · SearchField — 끝 여백 상수를 읽는 소비처가 넷: delegation · `fieldPrefix.ts` `buttonOverlayInset` · `deviceTypography.ts` offset 재구성 · 빌더 고정 시트, 그리고 SearchField 의 pill 모서리는 상자 부품 (Input) rule 이 가져야 한다 — `adr253PartShapeOwner`) · ③ 남은 리터럴 분류.
+
+**① Badge = S2 Badge**: S2 Badge 는 `control({shape: 'default', wrap: true, icon: true})` (`Badge.tsx`) — 최소 높이 control 높이 · 좌우 `edge-to-text` · control 모서리 · `text-to-visual` 간격 · 위아래는 행의 S2 가운데 식. rule: `minHeight {size.height.<S>}` · `paddingX ofHeight(3, 8)` · `gap TEXT_TO_VISUAL` · 모서리 XS `{radius.sm}` · S ~ XL 7 · 8 · 9 · 10 (ToggleButton 과 같은 `controlRadius` 등재 — pill 이 아니다) · paddingY 2 · 3 · 6 · 9 · 12 (생성기 `controlPaddingBlock` 이 식과 대조). 테두리는 1 (S2 2) 그대로 — Button 과 같다.
+
+**① Select 트리거 시작**: `--select-btn-pad-start` = `calc(var(--catalog-token-size-height-<S>) * 3 / 8)` (desktop 7.5 · 9 · 12 · 15 · 18, 터치 × 1.25). Canvas 파서 (`rulePartRules.ts` `lengthPx`) 가 `calc(<size 변수> * a / b)` 를 길이 ref `{length.size.height.<S>*a/b}` 로 읽고 (`sizeRatioLengthRef`), 패딩 변이 그 ref 를 지녀 DOM 이 기기 식을 쓴다 (`catalogDeviceSpacingCss`). 빌더는 `builder-catalog-pins.css` 의 `--select-btn-pad-start: 0` 그대로.
+
+**게이트**: G4 — Badge 의 모서리 (field 모서리 표) · minHeight · 여백 · 간격 (3c-3 형 표, 두 벌 = S2 Badge probe 0.02 안) · 「3c-3b — Select 트리거 시작 여백」 (delegation 식 = 높이 × 3/8 · 두 벌 = S2 Picker `paddingInline`). G3 ratchet 의 control 모서리 등재에 Badge. `adr253FieldPartsDom` 「select」 에 트리거 시작의 출처 ref `{length.size.height.M*3/8}`.
+
+**원복 RED**: Badge M 여백 12 → G4 1 FAIL · Select M `12px` → G4 1 FAIL · 패딩 변의 `sizeRatioLengthRef` 제거 → `adr253FieldPartsDom` 1 FAIL (출처 ref 없음 — Canvas 숫자 12 는 그대로라 숫자 단언만으로는 못 잡는다). 복원 cmp 일치.
+
+**회귀**: type-check PASS · shared 2,049 · rendering 1,279 · builder unit (`specPresetResolver` Badge 모서리 값 단언 9999 → XS 4 · M 8 로 갱신 · `chromeIsland` 기존 실패 · `labelKeyCatalog` 은 다른 세션의 눈금자 WIP) · Decision 9 게이트 (`builderCatalogVars`) 6/6 · G2 desktop 263/263 · touch 263/263.
+
+**live (Chrome MCP, 5175 · `adr295-live`)**: 팔레트 Badge · Select 를 body 에 (Select 가 처음에 Badge 안에 들어가 이동 명령으로 body 로 옮김 — 삽입 전 body 선택이 먹지 않았다). Compare Mode Preview desktop: Badge S 높이 24 · 여백 3 / 9 · 모서리 7 · 간격 5.14 (S2 probe S 24 · 9 · 7 · 5.14), Select 트리거 시작 12. 「터치 크기로 미리보기」: Badge 30 · 여백 11.25 · 간격 7.06 · 글자 15 (S2 터치 30 · 11.25 · 7.06 · 15), Select 트리거 시작 15 (높이 40). 콘솔 오류 0. 두 요소는 삭제 명령으로 지움. Canvas 숫자는 unit (resolved record) 으로만 확인했다 — 패널이 Canvas 를 가렸다.
+
 - G1 before/after: §6.1
 - G2 두 arm: §6.2 · Phase 3a §6.3 · Phase 3b §6.4
 - G4 (b) 최종 snapshot (preset 5 × 델타) · (c) 컴포넌트별 desktop/touch vs S2 computed: §6.4 (c 의 padding · gap 은 3c)

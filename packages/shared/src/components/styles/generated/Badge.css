@@ -25,13 +25,14 @@
 
   /* Default size */
   height: auto;
-  padding: 2px 8px;
+  padding: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-badge-padding-x-S, calc(var(--catalog-token-size-height-S) * 3 / 8));
   font-size: var(--catalog-token-text-xs);
-  border-radius: var(--catalog-token-radius-full);
+  border-radius: 7px;
   line-height: var(--catalog-token-text-xs--line-height);
   font-weight: 600;
   border-width: var(--border-width-thin);
-  gap: 4px;
+  min-height: var(--catalog-token-size-height-S);
+  gap: var(--catalog-token-badge-gap-S, calc(var(--catalog-token-text-xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
 }
 
 .react-aria-Badge[data-variant="accent"] {
@@ -686,57 +687,62 @@
 
 .react-aria-Badge[data-size="XS"] {
   height: auto;
-  padding: 1px 4px;
+  padding: calc((var(--catalog-token-size-height-XS) - var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-badge-padding-x-XS, calc(var(--catalog-token-size-height-XS) * 3 / 8));
   font-size: var(--catalog-token-text-2xs);
-  border-radius: var(--catalog-token-radius-full);
+  border-radius: var(--catalog-token-radius-sm);
   line-height: var(--catalog-token-text-2xs--line-height);
   font-weight: 600;
   border-width: var(--border-width-thin);
-  gap: 2px;
+  min-height: var(--catalog-token-size-height-XS);
+  gap: var(--catalog-token-badge-gap-XS, calc(var(--catalog-token-text-2xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
 }
 
 .react-aria-Badge[data-size="S"] {
   height: auto;
-  padding: 2px 8px;
+  padding: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-badge-padding-x-S, calc(var(--catalog-token-size-height-S) * 3 / 8));
   font-size: var(--catalog-token-text-xs);
-  border-radius: var(--catalog-token-radius-full);
+  border-radius: 7px;
   line-height: var(--catalog-token-text-xs--line-height);
   font-weight: 600;
   border-width: var(--border-width-thin);
-  gap: 4px;
+  min-height: var(--catalog-token-size-height-S);
+  gap: var(--catalog-token-badge-gap-S, calc(var(--catalog-token-text-xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
 }
 
 .react-aria-Badge[data-size="M"] {
   height: auto;
-  padding: 4px 12px;
+  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-badge-padding-x-M, calc(var(--catalog-token-size-height-M) * 3 / 8));
   font-size: var(--catalog-token-text-sm);
-  border-radius: var(--catalog-token-radius-full);
+  border-radius: 8px;
   line-height: var(--catalog-token-text-sm--line-height);
   font-weight: 600;
   border-width: var(--border-width-thin);
-  gap: 4px;
+  min-height: var(--catalog-token-size-height-M);
+  gap: var(--catalog-token-badge-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
 }
 
 .react-aria-Badge[data-size="L"] {
   height: auto;
-  padding: 8px 16px;
+  padding: calc((var(--catalog-token-size-height-L) - var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-badge-padding-x-L, calc(var(--catalog-token-size-height-L) * 3 / 8));
   font-size: var(--catalog-token-text-base);
-  border-radius: var(--catalog-token-radius-full);
+  border-radius: 9px;
   line-height: var(--catalog-token-text-base--line-height);
   font-weight: 600;
   border-width: var(--border-width-thin);
-  gap: 6px;
+  min-height: var(--catalog-token-size-height-L);
+  gap: var(--catalog-token-badge-gap-L, calc(var(--catalog-token-text-base) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
 }
 
 .react-aria-Badge[data-size="XL"] {
   height: auto;
-  padding: 12px 24px;
+  padding: calc((var(--catalog-token-size-height-XL) - var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-badge-padding-x-XL, calc(var(--catalog-token-size-height-XL) * 3 / 8));
   font-size: var(--catalog-token-text-lg);
-  border-radius: var(--catalog-token-radius-full);
+  border-radius: 10px;
   line-height: var(--catalog-token-text-lg--line-height);
   font-weight: 600;
   border-width: var(--border-width-thin);
-  gap: 8px;
+  min-height: var(--catalog-token-size-height-XL);
+  gap: var(--catalog-token-badge-gap-XL, calc(var(--catalog-token-text-lg) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
 }
 
 .react-aria-Badge[data-focus-visible] {

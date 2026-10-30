@@ -115,51 +115,55 @@ const togglePerSize = (
   );
 const CHECKBOX_INDICATOR_SELECTORS = togglePerSize(
   (size): Record<string, Record<string, string>> => ({
-  [`&[data-size="${size}"] .react-aria-CheckboxButton .checkbox`]: {
-    width: toggleBox(size),
-    height: toggleBox(size),
-    "border-radius": `${CHECKBOX_RADIUS[size]}px`,
-  },
-  [`&[data-size="${size}"] .react-aria-CheckboxButton .checkbox svg`]: {
-    width: toggleBox(size),
-    height: toggleBox(size),
-  },
-}));
+    [`&[data-size="${size}"] .react-aria-CheckboxButton .checkbox`]: {
+      width: toggleBox(size),
+      height: toggleBox(size),
+      "border-radius": `${CHECKBOX_RADIUS[size]}px`,
+    },
+    [`&[data-size="${size}"] .react-aria-CheckboxButton .checkbox svg`]: {
+      width: toggleBox(size),
+      height: toggleBox(size),
+    },
+  }),
+);
 const RADIO_INDICATOR_SELECTORS = togglePerSize(
   (size): Record<string, Record<string, string>> => ({
-  [`&[data-size="${size}"] .react-aria-RadioButton .indicator`]: {
-    width: toggleBox(size),
-    height: toggleBox(size),
-    "border-radius": "9999px",
-  },
-  [`&[data-size="${size}"][data-selected] .react-aria-RadioButton .indicator`]: {
-    "border-width": `calc((${toggleBox(size)} - ${RADIO_DOT}px) / 2)`,
-  },
-}));
+    [`&[data-size="${size}"] .react-aria-RadioButton .indicator`]: {
+      width: toggleBox(size),
+      height: toggleBox(size),
+      "border-radius": "9999px",
+    },
+    [`&[data-size="${size}"][data-selected] .react-aria-RadioButton .indicator`]:
+      {
+        "border-width": `calc((${toggleBox(size)} - ${RADIO_DOT}px) / 2)`,
+      },
+  }),
+);
 const switchTrackWidth = (size: ToggleSize) =>
   `calc(var(--catalog-token-${SWITCH_FONT[size]}) * 26 / 14)`;
 const SWITCH_INDICATOR_SELECTORS = togglePerSize(
   (size): Record<string, Record<string, string>> => ({
-  [`&[data-size="${size}"] .react-aria-SwitchButton .indicator`]: {
-    width: switchTrackWidth(size),
-    height: toggleBox(size),
-    "border-radius": "9999px",
-  },
-  // (The track's border is 2 — the thumb's start margin is its inset less the border.)
-  [`&[data-size="${size}"] .react-aria-SwitchButton .indicator::before`]: {
-    width: `calc(${toggleBox(size)} - ${SWITCH_THUMB_INSET * 2}px)`,
-    height: `calc(${toggleBox(size)} - ${SWITCH_THUMB_INSET * 2}px)`,
-    "border-radius": "9999px",
-    margin: `0 ${SWITCH_THUMB_INSET - 2}px`,
-  },
-  // Selected: the thumb grows to height − 6 and its end sits 3 from the track's end.
-  [`&[data-size="${size}"][data-selected] .react-aria-SwitchButton .indicator::before`]:
-    {
-      width: `calc(${toggleBox(size)} - ${SWITCH_THUMB_INSET_SELECTED * 2}px)`,
-      height: `calc(${toggleBox(size)} - ${SWITCH_THUMB_INSET_SELECTED * 2}px)`,
-      translate: `calc(${switchTrackWidth(size)} - ${toggleBox(size)} - ${SWITCH_THUMB_INSET - SWITCH_THUMB_INSET_SELECTED}px) 0`,
+    [`&[data-size="${size}"] .react-aria-SwitchButton .indicator`]: {
+      width: switchTrackWidth(size),
+      height: toggleBox(size),
+      "border-radius": "9999px",
     },
-}));
+    // (The track's border is 2 — the thumb's start margin is its inset less the border.)
+    [`&[data-size="${size}"] .react-aria-SwitchButton .indicator::before`]: {
+      width: `calc(${toggleBox(size)} - ${SWITCH_THUMB_INSET * 2}px)`,
+      height: `calc(${toggleBox(size)} - ${SWITCH_THUMB_INSET * 2}px)`,
+      "border-radius": "9999px",
+      margin: `0 ${SWITCH_THUMB_INSET - 2}px`,
+    },
+    // Selected: the thumb grows to height − 6 and its end sits 3 from the track's end.
+    [`&[data-size="${size}"][data-selected] .react-aria-SwitchButton .indicator::before`]:
+      {
+        width: `calc(${toggleBox(size)} - ${SWITCH_THUMB_INSET_SELECTED * 2}px)`,
+        height: `calc(${toggleBox(size)} - ${SWITCH_THUMB_INSET_SELECTED * 2}px)`,
+        translate: `calc(${switchTrackWidth(size)} - ${toggleBox(size)} - ${SWITCH_THUMB_INSET - SWITCH_THUMB_INSET_SELECTED}px) 0`,
+      },
+  }),
+);
 
 /**
  * ADR-295 Phase 3c-3 — S2's font-relative spacings (Decision 3, `spectrum-theme.ts` relative spacing):
@@ -952,61 +956,69 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // ADR-295 Phase 3c-3b: S2 Badge = `control({shape: 'default', wrap: true, icon: true})` — min-height
+    //   the control height, padding-inline `edge-to-text` (height × 3/8), the control corner (7 · 8 · 9 · 10 —
+    //   not a pill), `text-to-visual` gap, paddingY the S2 centring of the line ((height − line − border×2) / 2).
     sizes: {
       XS: {
-        paddingX: 4,
+        paddingX: ofHeight(3, 8),
         fontSize: "{typography.text-2xs}",
         lineHeight: "{typography.text-2xs--line-height}",
         fontWeight: 600,
-        borderRadius: "{radius.full}",
+        borderRadius: "{radius.sm}",
         borderWidth: "{border.width.thin}",
         height: 0,
-        paddingY: 1,
-        gap: 2,
+        minHeight: "{size.height.XS}",
+        paddingY: 2,
+        gap: TEXT_TO_VISUAL,
       },
       S: {
-        paddingX: 8,
+        paddingX: ofHeight(3, 8),
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         fontWeight: 600,
-        borderRadius: "{radius.full}",
+        borderRadius: 7,
         borderWidth: "{border.width.thin}",
         height: 0,
-        paddingY: 2,
-        gap: 4,
+        minHeight: "{size.height.S}",
+        paddingY: 3,
+        gap: TEXT_TO_VISUAL,
       },
       M: {
-        paddingX: 12,
+        paddingX: ofHeight(3, 8),
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         fontWeight: 600,
-        borderRadius: "{radius.full}",
+        borderRadius: 8,
         borderWidth: "{border.width.thin}",
         height: 0,
-        paddingY: 4,
-        gap: 4,
+        minHeight: "{size.height.M}",
+        paddingY: 6,
+        gap: TEXT_TO_VISUAL,
       },
       L: {
-        paddingX: 16,
+        paddingX: ofHeight(3, 8),
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         fontWeight: 600,
-        borderRadius: "{radius.full}",
+        borderRadius: 9,
         borderWidth: "{border.width.thin}",
         height: 0,
-        paddingY: 8,
-        gap: 6,
+        minHeight: "{size.height.L}",
+        paddingY: 9,
+        gap: TEXT_TO_VISUAL,
       },
       XL: {
-        paddingX: 24,
+        paddingX: ofHeight(3, 8),
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         fontWeight: 600,
-        borderRadius: "{radius.full}",
+        borderRadius: 10,
         borderWidth: "{border.width.thin}",
         height: 0,
+        minHeight: "{size.height.XL}",
         paddingY: 12,
-        gap: 8,
+        gap: TEXT_TO_VISUAL,
       },
     },
     structure: {
@@ -2168,7 +2180,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 0,
         gap: TEXT_TO_CONTROL,
-        indicator: { boxSize: "{size.height-sm.S}", boxRadius: CHECKBOX_RADIUS.S },
+        indicator: {
+          boxSize: "{size.height-sm.S}",
+          boxRadius: CHECKBOX_RADIUS.S,
+        },
       },
       M: {
         fontSize: "{typography.text-sm}",
@@ -2177,7 +2192,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 0,
         gap: TEXT_TO_CONTROL,
-        indicator: { boxSize: "{size.height-sm.M}", boxRadius: CHECKBOX_RADIUS.M },
+        indicator: {
+          boxSize: "{size.height-sm.M}",
+          boxRadius: CHECKBOX_RADIUS.M,
+        },
       },
       L: {
         fontSize: "{typography.text-base}",
@@ -2186,7 +2204,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 0,
         gap: TEXT_TO_CONTROL,
-        indicator: { boxSize: "{size.height-sm.L}", boxRadius: CHECKBOX_RADIUS.L },
+        indicator: {
+          boxSize: "{size.height-sm.L}",
+          boxRadius: CHECKBOX_RADIUS.L,
+        },
       },
       XL: {
         fontSize: "{typography.text-lg}",
@@ -2195,7 +2216,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 0,
         gap: TEXT_TO_CONTROL,
-        indicator: { boxSize: "{size.height-sm.XL}", boxRadius: CHECKBOX_RADIUS.XL },
+        indicator: {
+          boxSize: "{size.height-sm.XL}",
+          boxRadius: CHECKBOX_RADIUS.XL,
+        },
       },
     },
     // ADR-256 Phase 3 (2026-10-08): 레퍼런스 `CheckboxField > CheckboxButton (indicator + 글자) + Description +
@@ -10049,28 +10073,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             prefix: "select-btn",
             // ADR-295 Phase 3c-3: the start padding is S2 Picker's `edge-to-text` (the field height × 3/8 —
             //   7.5 · 9 · 12 · 15 · 18), not the Button's `pill` (height / 2): S2's picker trigger is a field
-            //   button, not a Button. (desktop px — its touch form comes with the field button's, 3c-3b.)
+            //   button, not a Button. The height variable carries the touch set (3c-3b).
             variables: {
               XS: {
-                "--select-btn-pad-start": "7.5px",
+                "--select-btn-pad-start":
+                  "calc(var(--catalog-token-size-height-XS) * 3 / 8)",
                 "--select-btn-pad-end": "2px",
               },
               // 사용자 2026-10-13 「M 8 → 4」 · 「S · L 도 같은 식으로」: the end padding is the
               //   Button's size paddingY (S 2 · M 4 · L 8).
               S: {
-                "--select-btn-pad-start": "9px",
+                "--select-btn-pad-start":
+                  "calc(var(--catalog-token-size-height-S) * 3 / 8)",
                 "--select-btn-pad-end": "2px",
               },
               M: {
-                "--select-btn-pad-start": "12px",
+                "--select-btn-pad-start":
+                  "calc(var(--catalog-token-size-height-M) * 3 / 8)",
                 "--select-btn-pad-end": "4px",
               },
               L: {
-                "--select-btn-pad-start": "15px",
+                "--select-btn-pad-start":
+                  "calc(var(--catalog-token-size-height-L) * 3 / 8)",
                 "--select-btn-pad-end": "8px",
               },
               XL: {
-                "--select-btn-pad-start": "18px",
+                "--select-btn-pad-start":
+                  "calc(var(--catalog-token-size-height-XL) * 3 / 8)",
                 "--select-btn-pad-end": "16px",
               },
             },

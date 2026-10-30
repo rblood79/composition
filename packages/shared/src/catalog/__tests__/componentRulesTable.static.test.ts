@@ -61,6 +61,7 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     "TextArea",
     "TextField",
     "ToggleButton",
+    "Badge",
   ].map(controlRadius),
   {
     component: "Dialog",

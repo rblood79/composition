@@ -352,12 +352,13 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
   });
 
   describe("ADR-082 P3 fix — sizes 경로 TokenRef 해석 (pickNumeric → resolveToNumber)", () => {
-    it("Badge.sizes.M.borderRadius = '{radius.full}' → 9999 로 resolve", () => {
-      // Badge 는 sizes 전체가 `"{radius.full}"` TokenRef 사용 → 기존 typeof number 필터로
-      //   전부 skip 되던 버그 수정. ADR-912 후속 Phase 4에서 bold/subtle/outline 전환 시
-      //   DOM box footprint를 고정하기 위해 transparent border 1px을 catalog 계약으로 복원했다.
+    it("Badge.sizes.XS.borderRadius = '{radius.sm}' → 4 로 resolve · M 은 control 모서리 8", () => {
+      // TokenRef 인 size 값이 기존 typeof number 필터로 skip 되던 버그의 회귀 검사. ADR-295 Phase 3c-3b 뒤
+      //   Badge 는 S2 control 모서리 (S · M · L · XL = 7 · 8 · 9 · 10 px 숫자, XS 만 `{radius.sm}`) 다.
+      //   ADR-912 후속 Phase 4: bold/subtle/outline 전환 시 DOM box footprint 고정용 transparent border 1px.
+      expect(resolveAppearanceSpecPreset("Badge", "XS").borderRadius).toBe(4);
       const preset = resolveAppearanceSpecPreset("Badge", "M");
-      expect(preset.borderRadius).toBe(9999);
+      expect(preset.borderRadius).toBe(8);
       expect(preset.borderWidth).toBe(1);
     });
 

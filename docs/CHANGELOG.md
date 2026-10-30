@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-295 Phase 3c-3b — Badge · Select 트리거 = S2] - 2026-10-31
+
+### Changed
+
+- **Badge 가 S2 Badge 모양이 된다** (Canvas · Preview · Publish): 최소 높이 = control 높이 (S ~ XL 24 · 32 · 40 · 48, 터치 × 1.25), 좌우 여백 = 높이 × 3/8 (9 · 12 · 15 · 18), 모서리 = control 모서리 7 · 8 · 9 · 10 (pill 이 아님), 아이콘-글자 간격 6/14 em (터치 8/17 em). 짧은 글자의 Badge 는 S 22 → 24 처럼 높이가 control 높이로 커진다.
+  - **Why:** S2 Badge 는 `control({shape: 'default', wrap, icon})` — 기본 모양의 control 이다. rule 은 pill 모서리와 고정 여백 (4 · 8 · 12 · 16 · 24) 이었다.
+- **Select 트리거의 시작 여백이 터치 보기에서도 S2 값이다** (높이 × 3/8 — 터치 M 15). 전에는 desktop 값 (12) 에 고정이었다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (Badge · Select), `packages/shared/src/catalog/document/rulePartRules.ts` (`calc(<size 변수> * a / b)` 를 Canvas 가 읽는다), 게이트 `apps/builder/src/builder/catalogRuntime/__tests__/d3S2Alignment.static.test.ts`.
+
 ## [ADR-295 Phase 3d — spacing 한 표] - 2026-10-31
 
 ### Fixed
