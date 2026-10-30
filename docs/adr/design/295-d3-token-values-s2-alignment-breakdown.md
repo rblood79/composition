@@ -428,6 +428,7 @@ size 키: XS 35 · S 102 · M 130 · L 101 · XL 58 · XXL 3.
 > **병렬 (실행 판단 — 사후 보고)**: 3d 의 정리 2 건 (`paletteBaseCanvas` 은퇴 · 숨은 사본) 은 3c-2b · 3c-3 과 파일이 겹치지 않아 먼저 · 따로 한다. spacing 맵 판정은 3c-3 결과 뒤.
 
 - **`paletteBaseCanvas` 은퇴** (사용자 삭제 승인 2026-10-30): `apps/builder/tests/adr248-g3/paletteBaseCanvas.browser.test.ts` 삭제 — ADR-248 G0 의 frozen 옛 Canvas PNG 와 비교해 295 뒤로는 항상 FAIL 이었다 (§6.0). ADR-248 증거 (`248-phase3-palette-base-canvas.json` · PNG 폴더 · `adr248-g3-old-defect-ledger.mjs`) 는 완료 ADR 이 인용해 남긴다. `.codex/tests/workflow.test.mjs` 의 G3 config 선택 예시는 `propAxisCanvasDom` 경로로. 이후 G3 회귀 목록은 `propAxisCanvasDom` 의 기존 실패만.
+- **숨은 사본 (`collectionItemMetrics`)** (worktree 에이전트 `a86bfe0d0` + 사용자 삭제 승인 2026-10-30): 화면에 쓰이던 손 사본은 GridList 카드의 label ↔ description 간격 하나 — `gridlist_card` 가 rule `GridListItem.sizes.*.gap` 을 읽는다 (값 2 그대로, 원복 RED: 사본 값 고정 → 새 단언 `38 ≠ 42` FAIL). rule 과 이미 갈린 나머지 사본 (ListBoxItem paddingY 4 ↔ rule 7 · GridListItem padding 16 · 12 / radius 8 / border 1 ↔ rule 12 · 8 / none / none — §6.0 의 「radius 12 · 8 · 8」) 은 테스트 전용 resolver (`resolveListBoxSpacingMetric` · `resolveGridListSpacingMetric`) 만 읽어 화면에 닿지 않았다 → 함수와 테스트 파일 2 개 (`ListBox.spacing.test.ts` · `GridList.spacing.test.ts`) 삭제, rendering index 의 소비처 0 re-export 20 삭제, `style-ssot.md` §8 인용 정정. rendering 105 파일 · 1,279 pass · G2 263/263 (에이전트 실행) · `docs:stale-symbols` 0.
 
 - G1 before/after: §6.1
 - G2 두 arm: §6.2 · Phase 3a §6.3 · Phase 3b §6.4
