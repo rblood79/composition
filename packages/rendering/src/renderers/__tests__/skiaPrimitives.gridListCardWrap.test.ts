@@ -134,6 +134,20 @@ describe("gridlist_card — wrap 블록 높이 기반 스택 offset", () => {
     expect(t[0]?.maxWidth).toBe(168);
   });
 
+  // ADR-295 Phase 3d — label↔description 간격은 rule `sizes.*.gap` (D3 SSOT) 이다. 종전엔
+  //   `collectionItemMetrics` 의 손 사본 (`descGap: 2`) 을 읽어 rule gap 을 바꿔도 Canvas 만 2 로 남았다.
+  it("label↔description 간격 = rule size.gap (손 사본 아님)", () => {
+    const t = texts(
+      draw({
+        props: flatProps,
+        size: { ...sizeMd, gap: 6 },
+        visual: undefined,
+        style: { width: 300 },
+      } as Parameters<typeof draw>[0]),
+    );
+    expect(t[1]?.y).toBe(PAD_Y + LABEL_LH + 6); // 42
+  });
+
   it("measureSpecWrappedTextHeight — 미주입/빈 텍스트/무효 폭 → null", () => {
     expect(measureSpecWrappedTextHeight("x", 16, 600, "Inter", 100)).toBeNull();
     setSpecWrappedTextHeightMeasurer(() => 48);

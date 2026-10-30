@@ -7,10 +7,17 @@
  * spacing metric 은 여전히 item 의 padding/lineHeight/gap 공식을 공유 소비한다. 이 metric resolver
  * 들은 spec body(ComponentSpec 객체) 삭제와 무관하게 **보존**되어야 하므로 본 모듈로 분리한다.
  *
- * **패키지 경계**: layout resolver(builder)와 부모 spec(specs)이 모두 호출하므로 rendering 내부에 둔다.
- * catalog rule(shared/catalog)은 같은 metric 값을 Skia 그리기용으로 보유하나(이미 spec.sizes 값을
- * 복사), rendering → shared 역방향 import 는 금지이므로 본 모듈은 rule 을 참조하지 않고 상수로 유지한다.
- * rule(Skia 그리기) ↔ 본 resolver(layout 높이)가 같은 값을 갖는 것이 D3 대칭의 조건.
+ * **패키지 경계**: rendering → shared 역방향 import 는 금지 (shared 가 rendering 을 의존) 라 본 모듈은
+ * rule 을 읽지 못한다. 그래서 rule 값 (padding · gap · radius …) 은 호출자 — `skiaPrimitives.ts` 의
+ * `gridlist_card` · `listbox_item` 이 rule `sizes` 에서 받아 인자로 넘기고, 본 모듈은 **공식만** 둔다
+ * (`resolveCollectionRowMetric` · `resolveListBoxItemInset`).
+ *
+ * **ADR-295 Phase 3d (2026-10-30)**: production 소비처는 `skiaPrimitives.ts` 하나다 (옛 layout
+ * `calculateContentHeight` · 부모 spec 은 삭제됐다). `resolveListBoxSpacingMetric` ·
+ * `resolveGridListSpacingMetric` 과 그 안의 item 상수 (`resolveListBoxItemMetric` ·
+ * `resolveGridListItemMetric`) 는 자기 단위 테스트 밖 소비처가 0 이고, 값이 이미 rule 과 갈렸다
+ * (ListBoxItem paddingY 4 ↔ rule 7 · GridListItem padding 16·12 / radius 8 / border 1 ↔ rule 12·8 /
+ * none / none). 화면에 쓰이지 않는 사본이다 — 새 소비처를 만들지 말고 rule 을 읽는다.
  *
  * @packageDocumentation
  */
@@ -25,8 +32,8 @@ import { measureSpecWrappedTextHeight } from "./measureText";
 /**
  * ADR-078 Phase 3: ListBox/ListBoxItem metric 단일 소스 resolver.
  *
- * ListBoxItem escape(listbox_item) / layout `calculateContentHeight` ListBox 분기 /
- * 부모 ListBox spacing metric 이 동일 공식을 사용하도록 공급. fontSize → lineHeight 는
+ * 부모 ListBox spacing metric (`resolveListBoxSpacingMetric`) 이 소비 (옛 escape · layout
+ * `calculateContentHeight` 소비처는 삭제됐다). fontSize → lineHeight 는
  * `getTextLineHeight`(= `ceil(fontSize*1.5)`) 단일 소스 — label/description 은 **Text** leaf 로
  * authoring 되므로 origin(실 Text 자식, leaf Text 레이아웃 = 1.5×fs)·CSS(line-height 1.5)와 동일
  * 모델이어야 한다. **Why (2026-07-21 사용자 보고 2건)**: (1) 과거 계단 매핑(>16→28 cap)은 2xl+
@@ -35,18 +42,18 @@ import { measureSpecWrappedTextHeight } from "./measureText";
  * label 에는 여전히 origin/CSS(3xl→45)와 어긋나 instance 행만 짧게 렌더됐다. Text line box =
  * 1.5×fs 로 3경로(origin·instance·CSS) 통일.
  *
- * 기본값(paddingX 12 / paddingY 4 / gap 2)은 componentRulesTable.ListBoxItem.sizes.M 와 동일.
+ * 값 (paddingX 12 / paddingY 4 / gap 2) 은 rule 의 옛 사본이다 — ADR-295 Phase 3c-2 뒤 rule
+ * `ListBoxItem.sizes.M.paddingY` 는 7 이다. 소비처는 `resolveListBoxSpacingMetric` (테스트 전용) 뿐이라
+ * 화면에 닿지 않는다 (위 머리말).
  *
  * **2026-07-22 라이브 실측 정합**: label 은 react-aria-Text 기본 16 (item/container fontSize
  * 미상속 — preview iframe 실측: item fontSize 14 여도 label 16/24) → getTextLineHeight(16)=24.
  * description 은 CSS `[slot=description]` line-height 1.333× (getDescriptionLineHeight) 로 12→16
  * (label 1.5× 와 대조). 따라서 itemHeight = 4*2 + 24 = 32, itemHeightWithDescription =
- * 4*2 + 24 + 2 + 16 = 50. 이는 row resolver(`resolveListBoxItemRowHeightFromStyle`)의 기본값과
- * 동일 — ADR-147 계약(standalone ListBoxItem 높이 = container per-item 할당)이 성립해야 잘림이
- * 없다. `fontSize` 인자는 container fontSize 로 label/desc line box 를 결정하지 않으므로(비상속)
- * item height 산출에 미사용 — 명시 slot label size 는 row resolver 가 per-item 반영한다.
+ * 4*2 + 24 + 2 + 16 = 50. `fontSize` 인자는 container fontSize 로 label/desc line box 를 결정하지
+ * 않으므로(비상속) item height 산출에 미사용.
  */
-export function resolveListBoxItemMetric(_fontSize: number): {
+function resolveListBoxItemMetric(_fontSize: number): {
   paddingX: number;
   paddingY: number;
   lineHeight: number;
@@ -60,7 +67,7 @@ export function resolveListBoxItemMetric(_fontSize: number): {
    */
   itemHeightWithDescription: number;
 } {
-  // componentRulesTable.ListBoxItem.sizes.M 정합 (paddingX 12 / paddingY 4 / gap 2).
+  // 옛 rule 사본 (rule 은 지금 paddingY 7 — 함수 머리말).
   const paddingX = 12;
   const paddingY = 4;
   const gap = 2;
@@ -77,46 +84,6 @@ export function resolveListBoxItemMetric(_fontSize: number): {
     itemHeightWithDescription:
       paddingY * 2 + labelLineHeight + gap + descriptionLineHeight,
   };
-}
-
-/**
- * ADR-147 Layer D (§2.6): ListBoxItem padding-box 행 높이 단일 공식.
- * escape(listbox_item rowHeight 기본값) 와 layout `calculateContentHeight` listboxitem 분기가
- * 동일 심볼을 호출하도록 보장 — per-element override(padding/rowGap/minHeight)를 보존하면서 공식
- * 중복(drift) 차단.
- */
-export function resolveListBoxItemRowHeight(input: {
-  lineHeight: number;
-  /**
-   * description 줄의 line-height — label 과 다른 size(예: label 3xl / description 2xl)를
-   * 지원. 미지정 시 `lineHeight`(label) 과 동일(BC — description 이 label 과 같은 size 인 경우).
-   */
-  descriptionLineHeight?: number;
-  /**
-   * 측정된 멀티라인 label 블록 높이(px). 지정 시 `lineHeight`(1줄) 대신 사용 — caller 가 실제
-   * 콘텐츠 폭에서 text wrap 을 측정해 전달한다(CSS 자동 줄바꿈 parity, 2026-07-22). 미지정 시
-   * 1줄(virtualization stride 는 균일 높이 유지 위해 미지정 = 단일 줄).
-   */
-  labelBlockHeight?: number;
-  /** 측정된 멀티라인 description 블록 높이(px). 지정 시 `descriptionLineHeight`(1줄) 대신 사용. */
-  descriptionBlockHeight?: number;
-  rowGap: number;
-  paddingTop: number;
-  paddingBottom: number;
-  hasDescription: boolean;
-  minHeight?: number;
-}): number {
-  const labelHeight = input.labelBlockHeight ?? input.lineHeight;
-  const descriptionLineHeight = input.descriptionLineHeight ?? input.lineHeight;
-  const descriptionHeight =
-    input.descriptionBlockHeight ?? descriptionLineHeight;
-  const contentHeight = input.hasDescription
-    ? labelHeight + input.rowGap + descriptionHeight
-    : labelHeight;
-  return Math.max(
-    input.paddingTop + input.paddingBottom + contentHeight,
-    input.minHeight ?? 20,
-  );
 }
 
 /** 행/카드 수직 스택의 블록 역할. */
@@ -344,17 +311,19 @@ export const COLLECTION_TEXT_DEFAULT_FONT_SIZE = 16;
 /**
  * ADR-090 Phase 2: GridListItem card metric 단일 소스 resolver.
  *
- * GridListItem escape(gridlist_card) / 부모 GridList spacing metric(resolveGridListSpacingMetric)이
- * 카드 시각 생성 시 본 resolver 를 소비. fontSize-based 분기(>14: 20/16/12, >12: 16/12/8,
- * ≤12: 12/10/8)를 내부 캡슐화.
+ * 부모 GridList spacing metric(resolveGridListSpacingMetric)이 소비. fontSize-based 분기
+ * (>14: 20/16/12, >12: 16/12/8, ≤12: 12/10/8)를 내부 캡슐화.
  *
  * descGap = label↔description 수직 간격 = GridListItem flex `gap: var(--spacing-2xs)` = **2**
  * (2026-07-22 라이브 실측). 과거 4/6 은 CSS 와 불일치(카드 +2 drift)라 전 size 2 로 통일 —
  * --spacing-2xs 는 size 무관 고정값이므로 분기하지 않는다.
- * 기본값(fontSize=14 기준: paddingX 16 / paddingY 12 / borderRadius 8)은
- * componentRulesTable.GridListItem.sizes.M 와 동일.
+ * 값 (fontSize=14 기준: paddingX 16 / paddingY 12 / borderRadius 8 / borderWidth 1) 은 rule 의 옛
+ * 사본이다 — rule `GridListItem.sizes.M` 은 지금 paddingX 12 / paddingY 8 / `{radius.none}` /
+ * `{border.width.none}` (2026-10-25 S2 ListView 행). `gridlist_card` 는 padding · radius · gap 을 rule
+ * `size` 에서 읽고 (ADR-295 Phase 3d 부터 gap 도), 본 함수의 소비처는 `resolveGridListSpacingMetric`
+ * (테스트 전용) 뿐이라 화면에 닿지 않는다 (위 머리말).
  */
-export function resolveGridListItemMetric(fontSize: number): {
+function resolveGridListItemMetric(fontSize: number): {
   cardPaddingX: number;
   cardPaddingY: number;
   cardBorderRadius: number;

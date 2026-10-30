@@ -255,42 +255,6 @@ export type { CatalogResolvedPaint } from "./renderers";
 export { LAYOUT_TOKEN_STYLES, layoutTokenToCssLines } from "./renderers";
 export type { LayoutToken } from "./renderers";
 
-export { resolveListBoxSpacingMetric } from "./renderers/utils/collectionItemMetrics";
-export type {
-  ListBoxSpacingInput,
-  ListBoxSpacingMetric,
-} from "./renderers/utils/collectionItemMetrics";
-
-export {
-  resolveListBoxItemMetric,
-  resolveListBoxItemRowHeight,
-} from "./renderers/utils/collectionItemMetrics";
-
-export { resolveCollectionRowMetric } from "./renderers/utils/collectionItemMetrics";
-export type {
-  CollectionRowMetric,
-  CollectionRowMetricInput,
-  CollectionRowMetricEntry,
-  CollectionRowSlotBlock,
-  CollectionRowSlotRole,
-} from "./renderers/utils/collectionItemMetrics";
-
-export { resolveListBoxItemInset } from "./renderers/utils/collectionItemMetrics";
-export type {
-  ListBoxItemInsetInput,
-  CollectionRowInset,
-} from "./renderers/utils/collectionItemMetrics";
-
-export {
-  resolveGridListItemMetric,
-  resolveGridListSpacingMetric,
-  COLLECTION_TEXT_DEFAULT_FONT_SIZE,
-} from "./renderers/utils/collectionItemMetrics";
-export type {
-  GridListSpacingMetric,
-  GridListSpacingInput,
-} from "./renderers/utils/collectionItemMetrics";
-
 export {
   buildDateInputDisplayText,
   buildDatePickerShapes,

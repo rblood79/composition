@@ -30,7 +30,6 @@ import {
   COLLECTION_TEXT_DEFAULT_FONT_SIZE,
   resolveCollectionRowMetric,
   resolveListBoxItemInset,
-  resolveGridListItemMetric,
 } from "./utils/collectionItemMetrics";
 import {
   buildDateInputDisplayText,
@@ -436,10 +435,11 @@ const gridListCard: SkiaPrimitiveDrawFn = ({
           COLLECTION_TEXT_DEFAULT_FONT_SIZE,
         )
       : COLLECTION_TEXT_DEFAULT_FONT_SIZE;
-  // label↔description 수직 간격 = GridListItem flex `gap: var(--spacing-2xs)` = 2 (2026-07-22 라이브
-  //   실측). ADR-160 후속: 리터럴 대신 `resolveGridListItemMetric` SSOT 경유 — layout(M1 §1.55b2)이
-  //   동일 심볼을 읽어 within-card gap 소스를 단일화(style.gap ?? 2 잔존 봉쇄).
-  const descGap = resolveGridListItemMetric(labelFontSize).descGap;
+  // label↔description 수직 간격 = GridListItem rule `sizes.*.gap` (D3 SSOT — 생성 CSS 의 항목 gap 과
+  //   같은 값). ADR-295 Phase 3d: 종전엔 `collectionItemMetrics` 의 손 사본 (`descGap: 2`) 을 읽었다 —
+  //   rule 을 거치지 않아 rule 값이 바뀌어도 Canvas 만 2 로 남는 숨은 사본. 작성 style.gap 은 종전처럼
+  //   읽지 않는다 (동작 불변 — padding 처럼 rule 값을 받되 fallback 은 옛 값).
+  const descGap = typeof size.gap === "number" ? size.gap : 2;
   const descFontSize =
     descriptionSlotStyle?.fontSize != null
       ? resolveSpecFontSize(
