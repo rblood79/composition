@@ -70,7 +70,7 @@
   "guard": "제품 코드 변경 없음 (원인 확정 전) · 다른 세션 dirty 변경 보존 · 사용자 5173 서버 건드리지 않음 (하니스는 5175)",
   "stop": "type-check 실패 커밋 금지",
   "tip": "증거 .agent/runs/2026-10-21-canvas-perf-regression/lever{1,2,3,4}/README.md · 스크립트 scratchpad/lever{1-select,2-pan,2a-live,3-load,3-refresh,3a-live,4-connect,4-steps}.mjs (인자 cms-doc-dump.json data-dump.json 필수 · SERVE_DIST 로 production · ARMS=1,4)",
-  "updatedAt": "2026-10-29T09:11:39.794595+00:00",
+  "updatedAt": "2026-10-30T06:35:28.293585+00:00",
   "componentEmptyDoubleClick": {
     "task": "Body 선택 후 컴포넌트 빈 영역 더블클릭 선택 수리",
     "phase": "verified",
@@ -1073,5 +1073,110 @@
       "기존 H1/M2/M3 설계 반영 확인",
       "HIGH: Badge subtle의 accent-subtle이 accent-content 탐색 제약에서 누락; light blue 4.318442:1"
     ]
+  },
+  "lazyModuleHelper": {
+    "task": "lazy 모듈 로더 공용 helper",
+    "phase": "verified",
+    "status": "complete_local_uncommitted",
+    "scope": "viewSerializer·formula engine의 lazy 상태·구독 공용화",
+    "validation": {
+      "tests": "shared 55/55 + Builder 60/60 PASS",
+      "preflight": "PASS (guard, format, typecheck, registration, agent catalog; skills gate skip)",
+      "browser": "별도 Chromium에서 실제 formula runtime 지연 로드·동시 요청·snapshot·late listener 및 serializer import PASS",
+      "live": "UNVERIFIED: CUA browser host unavailable/native AX timeout; 별도 Playwright는 저장된 인증 세션 없어 signin으로 이동"
+    },
+    "evidenceDirectory": ".agent/runs/2026-10-29-lazy-module-helper"
+  },
+  "canvasFitFixedPadding": {
+    "task": "Zoom to fit 가로 132px·세로 184px 차감 적용",
+    "phase": "verified_local",
+    "scope": "공통 fit 배율: min((너비-132)/프레임너비, (높이-184)/프레임높이); 중앙 정렬 및 10%~500% 제한 유지",
+    "status": "complete_local_uncommitted",
+    "validation": {
+      "tests": "viewportActions + catalogViewport 9/9 PASS (132px·184px 계산)",
+      "preflight": "PASS (132px·184px 기준, typecheck 포함)",
+      "live": "UNVERIFIED: browser host unavailable; native Chrome 사용자 조작 감지로 메뉴 exercise 미완료"
+    },
+    "guidance": "modern-web-guidance search/list 확인; 고정 fit 배율 산술에 직접 적용할 guide 없음"
+  },
+  "codeEditorFullScope": {
+    "task": "코드 편집기 전체 범위 설계 (패널 없이 코드만으로 모든 기능) — 사용자 지시 2026-10-30",
+    "phase": "adr294_executing",
+    "doc": "docs/explanation/research/CODE_EDITOR_FULL_SCOPE_DESIGN_2026-10.md",
+    "next": [
+      "[x] 설계 초안 §0~§8",
+      "[x] 레벨 표 (Step 0~8) 제시",
+      "[x] 시나리오 대조 (팝오버 → 선택값 부모로) — 컴포넌트 event property 누락 확인 (패널도)",
+      "[x] 사용자 원칙 10-30 「다섯 표면 동시」 → §9 재구성 (투영 수리 vs 기능 ADR, 둘 다) · ADR 묶음 A~D",
+      "[x] ADR-294 Proposed (컴포넌트 event/variable property) + breakdown + README (커밋 안 함)",
+      "[x] 사용자 결정 확인 (294 결정 4 = 권고안)",
+      "[ ] ADR B (code view 투영 수리 + 가상 파일 트리) 초안"
+    ],
+    "updatedAt": "2026-10-30T01:41:07.154723+00:00",
+    "adr": "294"
+  },
+  "reviewAdr293": {
+    "task": "ADR-293 설계 수리 검증",
+    "phase": "round2_resolution_confirmed",
+    "scope": "기존 수정 확인 및 전체 색 출력의 alias 충돌 검증; 제품 코드와 ADR 본문 변경 없음",
+    "evidenceDirectory": ".agent/runs/2026-10-30-review-adr293",
+    "status": "high_0_pending_0_design",
+    "reviewLog": "docs/adr/reviews/293.md (Round 2)",
+    "validation": {
+      "probe": "현재 source 매핑·순서로 제안 출력 루프의 델타 덮어쓰기 확인",
+      "schema": "184/184 PASS",
+      "guard": "PASS",
+      "diffCheck": "PASS",
+      "format": "FAIL: writer 출력 리뷰 파일; 검사만 수행"
+    },
+    "unverified": "제품 구현과 실제 Builder/Canvas/Preview/Publish·forced-colors·번들·성능은 구현 단계 gate에 남음",
+    "resolution": "2c2ce9baa Decision 1 고유 변수 및 팔레트 보호, G1 충돌 검사, G3 독립 델타, R8, review fixed 직접 확인. 추가 round 없음.",
+    "head": "2c2ce9baa1f7a178c7537128d92ba1db25bef4c6",
+    "remote": "git ls-remote origin refs/heads/main 일치 확인"
+  },
+  "reviewAdr294": {
+    "task": "ADR-294 설계 수리 검증 1회",
+    "phase": "round2_recorded",
+    "status": "high_1_pending_1",
+    "scope": "기존 HIGH 3 수리 대조; 제품 코드 및 ADR 본문/Status 변경 없음",
+    "head": "2c2ce9baa",
+    "reviewLog": "docs/adr/reviews/294.md (Round 2)",
+    "evidenceDirectory": ".agent/runs/2026-10-30-review-adr294",
+    "findings": [
+      "h1 잔여: 같은 Outer 둘 내부의 J는 (instanceId,rowKey)가 같아 수신자가 충돌한다; 전체 경로 occurrence key 필요",
+      "h2 fixed (설계): variable prop 계약 및 참조 검증",
+      "h3 fixed (설계): 파생 해석, 독자 넷, 의존성 전파, instance 행 소스, Canvas"
+    ],
+    "validation": {
+      "repairProbe": "1/1 PASS — 실제 resolver 및 제안 키 충돌 확인",
+      "reviewSchema": "185/185 PASS",
+      "guard": "PASS",
+      "diffCheck": "PASS",
+      "format": "FAIL: writer 출력 리뷰 파일, 검사만 수행"
+    },
+    "unverified": "신규 기능 구현·실제 브라우저·저장/Undo·code view 왕복·번들/성능",
+    "updatedAt": "2026-10-30T02:05:44.524954+00:00"
+  },
+  "reviewAdr295": {
+    "task": "ADR-295 설계 수리 검증 1회",
+    "phase": "round2_recorded",
+    "status": "high_1_medium_1_pending_2",
+    "scope": "Round 1 H1 H2 M3 수리 대조; 제품 코드와 ADR 본문/Status 변경 없음",
+    "reviewLog": "docs/adr/reviews/295.md (Round 2)",
+    "evidenceDirectory": ".agent/runs/2026-10-30-review-adr295",
+    "findings": [
+      "H1 잔여: 단일 em 비율이 desktop/touch 계수 변경을 표현하지 못함",
+      "H2 fixed (설계): radius 한 표 파생·최종 snapshot gate",
+      "M3 잔여: catalog namespace 분리는 Builder 공유 생성 CSS의 간접 소비를 격리하지 않음"
+    ],
+    "validation": {
+      "repairProbe": "PASS: source-derived coefficient arithmetic and CompactSelect inheritance path",
+      "schema": "186/186 PASS",
+      "guard": "PASS",
+      "diffCheck": "PASS",
+      "format": "FAIL: writer 출력 reviews/295.md; 검사만 수행"
+    },
+    "unverified": "제안 제품 구현·실제 브라우저/전체 CSS cascade·문서 영향·성능·번들",
+    "updatedAt": "2026-10-30T04:16:18.294546+00:00"
   }
 }

@@ -14,6 +14,7 @@ import {
 } from "./viewportInteractionMetrics";
 import {
   applyViewportState,
+  computeFitViewport,
   resolveBreakpointViewport,
   zoomViewportAtContainerCenter,
 } from "./viewportActions";
@@ -23,6 +24,32 @@ afterEach(() => {
   resetViewportController();
   resetViewportInteractionMetrics();
   useViewportSyncStore.getState().reset();
+});
+
+describe("computeFitViewport", () => {
+  it.each([
+    { width: 2000, height: 500, x: 66, y: 291.5 },
+    { width: 500, height: 1000, x: 346, y: 92 },
+  ])("$width × $height 프레임을 고정 여백 안에 맞춘다", (frame) => {
+    const fitted = computeFitViewport({
+      canvasSize: frame,
+      containerSize: { width: 1000, height: 800 },
+    });
+
+    expect(fitted.x).toBeCloseTo(frame.x);
+    expect(fitted.y).toBeCloseTo(frame.y);
+    expect(1000 - fitted.x - frame.width * fitted.scale).toBeCloseTo(frame.x);
+    expect(800 - fitted.y - frame.height * fitted.scale).toBeCloseTo(frame.y);
+  });
+
+  it("여백보다 작은 영역에서도 최소 배율을 유지한다", () => {
+    expect(
+      computeFitViewport({
+        canvasSize: { width: 1920, height: 1080 },
+        containerSize: { width: 80, height: 80 },
+      }).scale,
+    ).toBe(0.1);
+  });
 });
 
 describe("resolveBreakpointViewport", () => {

@@ -111,6 +111,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `packages/shared/src/catalog/document/{types,validation,graph,componentEvents,componentProperties}.ts` · `commands/{properties,structure}.ts` · `runtime/{componentBoundaries,catalogPreviewInteractions}.ts` · `interactions/dispatcher.ts`
   - 패널 (Properties · Interactions) 과 code view 는 Phase 2 · 3.
 
+## [Canvas 화면 맞추기 — 고정 여백] - 2026-10-30
+
+### Changed
+
+- `Zoom to fit`의 90% 비율 여백을 고정 여백으로 변경했다. Canvas 메뉴와 가장자리 여유 공간을 확보하도록 너비에서 132px, 높이에서 184px을 뺀 뒤 배율을 계산한다. 중앙 정렬과 기존 10%~500% 배율 제한은 유지한다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/viewport/viewportActions.ts`
+
 ## [컴포넌트 모서리 값 정리 · 필드 버튼 Preview pill 수리 · ToggleButton 선택 글자] - 2026-10-30
 
 ### Changed

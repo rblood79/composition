@@ -29,7 +29,6 @@ export interface ComputeCenteredViewportOptions {
 export interface ComputeFitViewportOptions {
   canvasSize: ViewportCanvasSize;
   containerSize: ViewportContainerSize;
-  fitPaddingRatio?: number;
 }
 
 export interface ComputeFillViewportOptions {
@@ -63,11 +62,11 @@ export function computeCenteredViewport({
 export function computeFitViewport({
   canvasSize,
   containerSize,
-  fitPaddingRatio = 0.9,
 }: ComputeFitViewportOptions): ViewportState {
-  const scaleX = containerSize.width / canvasSize.width;
-  const scaleY = containerSize.height / canvasSize.height;
-  const zoom = clampViewportZoom(Math.min(scaleX, scaleY) * fitPaddingRatio);
+  // Reserve 132px horizontally and 184px vertically for Canvas chrome and gaps.
+  const scaleX = (containerSize.width - 132) / canvasSize.width;
+  const scaleY = (containerSize.height - 184) / canvasSize.height;
+  const zoom = clampViewportZoom(Math.min(scaleX, scaleY));
 
   return computeCenteredViewport({
     canvasSize,

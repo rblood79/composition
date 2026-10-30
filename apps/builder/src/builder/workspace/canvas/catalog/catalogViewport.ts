@@ -47,7 +47,7 @@ export function fillCatalogPageFrame(
 
 /**
  * Zoom to selection (⇧2): the union of the selected elements' scene boxes — fitted like a page
- * frame (90 % of the container, centered; the old Canvas's rule). `undefined` = nothing to fit
+ * frame (132px horizontal and 184px vertical space reserved, centered). `undefined` = nothing to fit
  * (no box, or an empty one).
  */
 export function catalogUnionRect(
