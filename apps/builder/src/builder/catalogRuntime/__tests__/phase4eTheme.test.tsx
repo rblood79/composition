@@ -205,10 +205,10 @@ describe("ADR-248 Phase 4e-4d-4 Themes", () => {
       workspace.root.recordsOfSource(card)[0],
     )!;
     expect(record.ruleId).toBeTruthy();
-    // Its radius token reads the xl scale (16, the build-time value is 12), and the definition
-    // value the executor compares against reads it the same way.
-    expect(record.visual.radius).toBe(16);
-    expect(catalogLibraryVisual(workspace.root, record).radius).toBe(16);
+    // Its radius token reads the xl scale (20 = lg 10 × 2, ADR-295; the build-time value is 10),
+    // and the definition value the executor compares against reads it the same way.
+    expect(record.visual.radius).toBe(20);
+    expect(catalogLibraryVisual(workspace.root, record).radius).toBe(20);
     expect(catalogAuthoredVisual(workspace.root, record)).toEqual({});
   });
 

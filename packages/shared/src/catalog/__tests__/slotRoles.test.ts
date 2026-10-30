@@ -215,8 +215,8 @@ describe("resolveSlotComposition", () => {
       },
     ]);
 
-    // Text.sizes["XXXL"].fontSize = {typography.text-3xl} = 30
-    expect(composition?.slots.label?.style?.fontSize).toBe(30);
+    // Text.sizes["XXXL"].fontSize = {typography.text-3xl} = 25 (ADR-295 — S2 단계 5)
+    expect(composition?.slots.label?.style?.fontSize).toBe(25);
   });
 
   it("explicit style.fontSize 가 있으면 size 해소값이 덮어쓰지 않는다", () => {

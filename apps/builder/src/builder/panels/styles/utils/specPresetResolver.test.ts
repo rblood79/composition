@@ -157,11 +157,11 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
 
   describe("Non-composite containerStyles (ADR-071 스키마)", () => {
     it("ListBox.containerStyles → Appearance preset (borderRadius/borderWidth/colors)", () => {
-      // ListBox rule (2026-10-13 — the RAC reference): { borderRadius: "{radius.xl}"=12,
+      // ListBox rule (2026-10-13 — the RAC reference): { borderRadius: "{radius.xl}"=16 (ADR-295),
       //   borderWidth: "{border.width.hairline}"=0.5, background: "{color.raised}",
       //   border: "{color.border}" }
       const preset = resolveAppearanceSpecPreset("ListBox", undefined);
-      expect(preset.borderRadius).toBe(12);
+      expect(preset.borderRadius).toBe(16);
       expect(preset.borderWidth).toBe(0.5);
       expect(preset.backgroundColor).toBe("var(--bg-raised)");
       expect(preset.borderColor).toBe("var(--border)");
@@ -243,10 +243,10 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
     });
 
     it("Menu.containerStyles → Appearance preset", () => {
-      // MenuSpec.containerStyles = { borderRadius: "{radius.md}"=6, borderWidth: 1,
+      // MenuSpec.containerStyles = { borderRadius: "{radius.md}"=8 (ADR-295), borderWidth: 1,
       //   background: "{color.raised}", border: "{color.border}" }
       const preset = resolveAppearanceSpecPreset("Menu", undefined);
-      expect(preset.borderRadius).toBe(6);
+      expect(preset.borderRadius).toBe(8);
       expect(preset.borderWidth).toBe(1);
       expect(preset.backgroundColor).toBe("var(--bg-raised)");
     });
@@ -284,7 +284,7 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
     it("containerStyles 만 있고 sizes 없으면 containerStyles 반환", () => {
       // ListBox 는 sizes 블록 자체가 거의 비어있고 containerStyles 보유
       const preset = resolveAppearanceSpecPreset("ListBox", undefined);
-      expect(preset.borderRadius).toBe(12); // from containerStyles
+      expect(preset.borderRadius).toBe(16); // from containerStyles
     });
   });
 
@@ -394,7 +394,7 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
         width: "100%",
       });
       expect(resolveAppearanceSpecPreset("ListBox", undefined)).toMatchObject({
-        borderRadius: 12,
+        borderRadius: 16,
         borderWidth: 0.5,
         backgroundColor: "var(--bg-raised)",
         borderColor: "var(--border)",
@@ -411,7 +411,7 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
 
     it("Menu (Non-composite containerStyles) — Appearance / Layout", () => {
       expect(resolveAppearanceSpecPreset("Menu", undefined)).toMatchObject({
-        borderRadius: 6,
+        borderRadius: 8,
         borderWidth: 1,
         backgroundColor: "var(--bg-raised)",
       });

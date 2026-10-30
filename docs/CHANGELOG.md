@@ -24,6 +24,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 실제 CanvasKit surface에서 DPR 1/2 · zoom 1/1.7 · light/dark · 불투명/반투명 배경의 반복 편집·축소·삭제 결과를 전체 렌더와 픽셀 단위로 비교한다.
 
+## [ADR-295 Phase 1 — 사용자 컴포넌트 radius · 글자 크기를 S2 값으로] - 2026-10-30
+
+### Changed
+
+- 사용자 컴포넌트 (Canvas · Preview · Publish) 의 radius 토큰이 S2 값이 된다: md 6 → 8 · lg 8 → 10 · xl 12 → 16 · 2xl 16 → 24 (xs 2 · sm 4 그대로, 3xl · 4xl 삭제). `{radius.*}` 를 쓰는 ListBox · Menu · GridList · TagGroup · DropZone · Table · Tree 등의 모서리가 커진다. 빌더 chrome (패널 · 헤더) 은 그대로.
+- 글자 크기 토큰이 S2 단계 (`round(14 × 1.125^단계)`) 가 된다: text-2xs 10 → 11 · text-2xl 24 → 22 · 3xl 30 → 25 · 4xl 36 → 28 · 5xl 48 → 36 (xs · sm · base · lg · xl 은 S2 와 같아 그대로). XS size 컴포넌트의 글자가 1px 커진다. 제목 묶음 토큰 `text-heading-xs` ~ `3xl` (18 · 20 · 22 · 28 · 36 · 43 · 55) 추가. 행간은 Phase 3 (높이 정렬) 까지 지금 값.
+- Design 패널 Radius preset 이 사용자 컴포넌트의 값을 보여 주고 쓴다 (M · 8 · L · 10 · XL · 16 — 종전에는 빌더 화면 값 6 · 8 · 12 를 썼다).
+
+### Fixed
+
+- Preview · Publish 가 테마 글자 변수를 델타일 때만 받던 경로 — 이제 전 키 (정확한 분수 행간) 를 받아 Canvas 와 같은 값.
+
+### Internal
+
+- G1 하니스 `apps/builder/tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts` (팔레트 247 조합 Canvas ↔ DOM 상자 + 스크린샷): 새 비대칭 0. 글자 토큰을 상자 크기로 쓰던 자리 (Calendar · Radio · Switch · Checkbox) 는 이전 px 로 고정. 상세 `docs/adr/design/295-d3-token-values-s2-alignment-breakdown.md` §6.1.
+
 ## [ADR-295 Phase 0 — D3 값 정렬: S2 설치본 추출기 · 대조표] - 2026-10-30
 
 ### Added

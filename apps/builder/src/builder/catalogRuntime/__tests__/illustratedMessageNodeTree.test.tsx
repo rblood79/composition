@@ -105,7 +105,7 @@ describe("IllustratedMessage — the S2 node tree", () => {
   it.each([
     ["S", 96, 16, 12, 12],
     ["M", 96, 20, 14, 12],
-    ["L", 160, 24, 14, 8],
+    ["L", 160, 22, 14, 8], // heading text-2xl — ADR-295 (S2 단계 4)
   ])(
     "vertical %s: illustration %i · heading %ipx · content %ipx, centred, gaps %i / 4",
     async (size, picture, heading, content, gap) => {

@@ -21,6 +21,8 @@ Accepted — 2026-10-30 (사용자 `/execute-adr 295` + [reviews/295.md](reviews
 
 > **사용자 결정 (2026-10-30, Phase 0 대조표 뒤 — `/execute-adr 295` 대화)**: 1 = 「전부 S2 식으로」 (padding · gap 의 형과 값 모두 S2 — field 높이 × 3/8 · Button 높이 / 2 · `text-to-visual` · `text-to-control`) · 2 = 「S2 식 도입」 (행간 식) · 3 = 「본문 + 제목 두 묶음」 (본문 XS ~ XL 12 · 14 · 16 · 18 · 20, 제목 XS ~ XL heading 단계 18 · 20 · 22 · 28 · 36) · 5 = 「xs 2 · 2xl 24 유지, 3xl · 4xl 삭제」 · 6 = 「수용」 (명시 높이 없는 요소가 움직인다 — 변환 없음). 남은 결정: 4 (Preview 터치 보기 형태) · 7 (Canvas desktop 고정) — Phase 2.
 
+> **Phase 1 종결 (2026-10-30, G1)** — radius 한 표 (S2: md 8 · lg 10 · xl 16 · 2xl 24, `RADIUS_BASE_PX` 는 rendering 표에서 파생) · 글자 크기 = S2 단계 + 식 (본문 2xs 11 · 2xl 22 · 3xl 25 · 4xl 28 · 5xl 36, 제목 묶음 `text-heading-*`) · resolver 가 글자 변수를 전 키 emit (정확한 분수 행간) · 패널 preset = 활성 테마 해석값 (radius · typography · border). **행간 식은 Phase 3 로 이동** (사용자 결정 2026-10-30 — 높이 리터럴이 「줄 20 + 8 + 2 = 30」 과 맞물려 있어 행간만 바꾸면 2px 중간 결함). 글자 토큰을 상자 크기로 쓰던 자리 (Calendar · Radio · Switch · Checkbox) 는 이전 px 로 고정. G1: 247 조합 Canvas ↔ DOM 새 비대칭 0 · 상자 변화는 XS 글자 폭과 AvatarGroup XL 뿐 · live (Canvas · Radius preset L → 10 · Publish 변수) 확인. 상세 breakdown §6.1.
+
 > 구현 상세: [design/295-d3-token-values-s2-alignment-breakdown.md](design/295-d3-token-values-s2-alignment-breakdown.md)
 
 ## Context

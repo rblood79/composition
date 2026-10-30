@@ -179,11 +179,16 @@ function toPxOrRatio(
   sizes: Record<string, number | string>,
 ): string {
   // `--text-sm--line-height` 는 DOM 에서 unitless 비율 (calc(lh/size)) — Skia 는 px 를 든다.
-  const lhMatch = /^(text-[a-z0-9]+)--line-height$/.exec(key);
+  const lhMatch = /^(text-[a-z0-9-]+?)--line-height$/.exec(key);
   if (lhMatch) {
     const size = Number(sizes[lhMatch[1]!]);
-    if (Number.isFinite(size) && size > 0)
-      return String(Math.round((value / size) * 10000) / 10000);
+    // 정확한 분수로 — 소수 4자리 반올림 (1.3333 × 12 = 15.9996) 은 DOM 줄 상자를 Skia 의 px 보다
+    //   미세하게 줄인다 (ADR-295 G1: 전 키를 싣자 S size 글자가 16 → 15.98).
+    if (Number.isFinite(size) && size > 0) {
+      const ratio = value / size;
+      const short = Math.round(ratio * 10000) / 10000;
+      return short === ratio ? String(short) : `calc(${value} / ${size})`;
+    }
   }
   return `${value}px`;
 }
@@ -360,9 +365,11 @@ export function resolveThemeSnapshot(
         warnings.push(`${tokenKey} 미지원 카테고리 — 무시`);
     }
   }
-  // typography 델타의 DOM 변수 — 크기가 바뀌면 line-height 비율도 같이 다시 낸다
+  // typography DOM 변수 — 전 키를 싣는다 (ADR-295: seed 가 S2 값이라 `shared-tokens.css` 의 chrome 값과
+  //   다르다. 델타만 실으면 Preview · Publish 가 chrome 값을 읽어 Skia 와 갈린다). 크기가 바뀌면 line-height
+  //   비율도 같이 다시 낸다.
   for (const [key, value] of Object.entries(typography)) {
-    if (typeof value !== "number" || SEED_TYPOGRAPHY[key] === value) continue;
+    if (typeof value !== "number") continue;
     both(
       `--${key === "text-md" ? "text-base" : key}`,
       toPxOrRatio(key, value, typography),

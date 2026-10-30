@@ -93,8 +93,8 @@ describe("tokenResolver — radius xs/2xl primitive (ADR-913 slice 5 — Skia↔
     expect(resolveToken("{radius.xs}")).toBe(2);
   });
 
-  it("{radius.2xl} resolves to 16 (px) — was undefined→0px in Skia", () => {
-    expect(resolveToken("{radius.2xl}")).toBe(16);
+  it("{radius.2xl} resolves to 24 (px, ADR-295) — was undefined→0px in Skia", () => {
+    expect(resolveToken("{radius.2xl}")).toBe(24);
   });
 
   it("{radius.xs} maps to var(--radius-xs) (shared-tokens.css 0.125rem=2px)", () => {
@@ -105,11 +105,11 @@ describe("tokenResolver — radius xs/2xl primitive (ADR-913 slice 5 — Skia↔
     expect(tokenToCSSVar("{radius.2xl}")).toBe("var(--radius-2xl)");
   });
 
-  it("기존 radius 키 baseline 불변 (sm=4/md=6/lg=8/xl=12)", () => {
+  it("radius 키 = S2 (sm=4/md=8/lg=10/xl=16, ADR-295)", () => {
     expect(resolveToken("{radius.sm}")).toBe(4);
-    expect(resolveToken("{radius.md}")).toBe(6);
-    expect(resolveToken("{radius.lg}")).toBe(8);
-    expect(resolveToken("{radius.xl}")).toBe(12);
+    expect(resolveToken("{radius.md}")).toBe(8);
+    expect(resolveToken("{radius.lg}")).toBe(10);
+    expect(resolveToken("{radius.xl}")).toBe(16);
   });
 });
 

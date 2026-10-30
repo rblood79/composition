@@ -12,29 +12,19 @@ import type { RadiusTokens } from "../types/token.types";
  * 둥근 모서리 토큰
  */
 /**
- * CSS 변수 기준 (SSOT: shared-tokens.css):
- * --radius-xs:  0.125rem = 2px   ← ADR-913 slice 5 추가 (catalog {radius.xs} 10회 참조)
- * --radius-sm:  0.25rem  = 4px
- * --radius-md:  0.375rem = 6px
- * --radius-lg:  0.5rem   = 8px
- * --radius-xl:  0.75rem  = 12px
- * --radius-2xl: 1rem     = 16px  ← ADR-913 slice 5 추가 (catalog {radius.2xl} 3회 참조)
- *
- * 3xl(1.5rem)/4xl(2rem)는 shared-tokens.css 에 정의돼 있으나 catalog 미사용 → 미추가(0 drift).
+ * ADR-295 — 사용자 컴포넌트 radius 의 **한 표**. S2 1.8.1 (`spectrum-theme.ts` radius: sm 4 · default 8 ·
+ * lg 10 · xl 16 · full) + 저장소 단 xs 2 · 2xl 24 (S2 없음 — 사용자 결정 5, 3xl · 4xl 삭제).
+ * theme preset 배율 (`radiusScaleToSkia.ts` `RADIUS_BASE_PX`) 은 이 표에서 파생한다.
+ * `shared-tokens.css` 의 `--radius-*` 는 빌더 chrome 의 정적 값이라 이 표와 다르다 (Decision 8).
  */
 export const radius: RadiusTokens = {
   none: 0,
-  // ADR-913 slice 5 (2026-06-19): catalog {radius.xs}(10회 — Dialog/Form/ComboBox/DatePicker/
-  //   Table/Tree/Breadcrumbs 등)가 참조하나 primitive 누락 → Skia resolveToken undefined→0px,
-  //   DOM 은 var(--radius-xs)=2px → D3 대칭 위반. shared-tokens.css 값 1:1 복원.
-  xs: 2, // 0.125rem
-  sm: 4, // 0.25rem
-  md: 6, // 0.375rem
-  lg: 8, // 0.5rem
-  xl: 12, // 0.75rem
-  // ADR-913 slice 5 (2026-06-19): catalog {radius.2xl}(3회 — Dialog lg/xl + Form)가 참조하나
-  //   primitive 누락 → Skia 0px, DOM 은 var(--radius-2xl)=16px → 대칭 위반. 값 1:1 복원.
-  "2xl": 16, // 1rem
+  xs: 2,
+  sm: 4,
+  md: 8,
+  lg: 10,
+  xl: 16,
+  "2xl": 24,
   full: 9999,
 };
 

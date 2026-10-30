@@ -9,42 +9,85 @@
 import type { TypographyTokens } from "../types/token.types";
 
 /**
- * 폰트 크기 토큰
+ * ADR-295 — 글자 크기 · 행간은 S2 1.8.1 style macro 의 식이다 (`@react-spectrum/s2/style/spectrum-theme.ts`):
+ * 글자 = `round(base × 1.125^단계, 1px)`, 행간 = `round(fs × (1.15 + (1 − (min(32, fs) − 10) / 22) × 0.15), 2px)`.
+ * 상수는 G0 추출기 (`apps/builder/scripts/adr295-s2-token-extract.mjs`) 가 설치본에서 읽은 값이고
+ * `d3S2Alignment` 게이트가 대조한다. 숫자를 손으로 적지 않는다 — 단계 표 + 식이 정본.
  */
-export const typography: TypographyTokens = {
-  "text-2xs": 10,
-  "text-xs": 12,
-  "text-sm": 14,
-  "text-base": 16,
-  "text-md": 16,
-  "text-lg": 18,
-  "text-xl": 20,
-  "text-2xl": 24,
-  "text-3xl": 30,
-  "text-4xl": 36,
+export const S2_FONT_SIZE_BASE = 14;
+export const S2_FONT_RATIO = 1.125;
+
+export function s2FontSize(step: number, base: number = S2_FONT_SIZE_BASE): number {
+  return Math.round(base * S2_FONT_RATIO ** step);
+}
+
+/** CSS `round(…, 2px)` (nearest — 반은 +∞ 쪽) 과 같은 2px 반올림. */
+export function s2LineHeight(fontSize: number): number {
+  const ratio = 1.15 + (1 - (Math.min(32, fontSize) - 10) / 22) * 0.15;
+  return Math.round((fontSize * ratio) / 2) * 2;
+}
+
+/**
+ * 토큰 이름 → S2 단계. 본문 사다리 (`text-*` — S2 ui/body 단계) 와 제목 묶음 (`text-heading-*` — S2
+ * heading 단계, 사용자 결정 3 「본문 + 제목 두 묶음」) 두 갈래. 이름은 유지하고 값만 S2 로 (ADR-295 Decision 5).
+ */
+export const TYPOGRAPHY_STEPS = {
+  "text-2xs": -2,
+  "text-xs": -1,
+  "text-sm": 0,
+  "text-base": 1,
+  "text-md": 1,
+  "text-lg": 2,
+  "text-xl": 3,
+  "text-2xl": 4,
+  "text-3xl": 5,
+  "text-4xl": 6,
+  "text-5xl": 8,
+  "text-heading-xs": 2,
+  "text-heading-sm": 3,
+  "text-heading-md": 4,
+  "text-heading-lg": 6,
+  "text-heading-xl": 8,
+  "text-heading-2xl": 10,
+  "text-heading-3xl": 12,
+} as const;
+
+/**
+ * 본문 사다리의 현재 행간 (px). ADR-295 사용자 결정 (2026-10-30 「행간 식은 Phase 3 와 함께」): 높이 리터럴
+ * (field 30 · NumberField 증감 30 …) 이 「줄 20 + padding 8 + border 2」 와 맞물려 있어, 행간을 S2 식
+ * (`s2LineHeight`) 으로 바꾸는 것은 높이를 S2 control 높이에 묶는 Phase 3 커밋에서 한다. 그때 이 표는 지운다.
+ * 제목 묶음 (`text-heading-*`) 은 쓰는 rule 이 아직 없어 처음부터 식이다.
+ */
+const PRE_PHASE3_LINE_HEIGHT: Readonly<Record<string, number>> = {
+  "text-2xs": 16,
+  "text-xs": 16,
+  "text-sm": 20,
+  "text-base": 24,
+  "text-lg": 28,
+  "text-xl": 28,
+  "text-2xl": 32,
+  "text-3xl": 36,
+  "text-4xl": 40,
   "text-5xl": 48,
-  // line-height: CSS calc(lineHeight / fontSize) 결과와 동일한 px 값
-  // CSS: --text-2xs--line-height: calc(1 / 0.625) = 1.6 → 10 * 1.6 = 16
-  "text-2xs--line-height": 16,
-  // CSS: --text-xs--line-height: calc(1 / 0.75) ≈ 1.333 → 12 * 1.333 = 16
-  "text-xs--line-height": 16,
-  // CSS: --text-sm--line-height: calc(1.25 / 0.875) ≈ 1.4286 → 14 * 1.4286 = 20
-  "text-sm--line-height": 20,
-  // CSS: --text-base--line-height: calc(1.5 / 1) = 1.5 → 16 * 1.5 = 24
-  "text-base--line-height": 24,
-  // CSS: --text-lg--line-height: calc(1.75 / 1.125) ≈ 1.5556 → 18 * 1.5556 = 28
-  "text-lg--line-height": 28,
-  // CSS: --text-xl--line-height: calc(1.75 / 1.25) = 1.4 → 20 * 1.4 = 28
-  "text-xl--line-height": 28,
-  // CSS: --text-2xl--line-height: calc(2 / 1.5) ≈ 1.333 → 24 * 1.333 = 32
-  "text-2xl--line-height": 32,
-  // CSS: --text-3xl--line-height: calc(2.25 / 1.875) = 1.2 → 30 * 1.2 = 36
-  "text-3xl--line-height": 36,
-  // CSS: --text-4xl--line-height: calc(2.5 / 2.25) ≈ 1.111 → 36 * 1.111 = 40
-  "text-4xl--line-height": 40,
-  // CSS: --text-5xl--line-height: calc(3 / 3) = 1.0 → 48 * 1.0 = 48
-  "text-5xl--line-height": 48,
 };
+
+/** 글자 · 행간 맵 — `base` 를 바꾸면 같은 단계 표로 다른 벌 (touch 17 — ADR-295 Phase 2). */
+export function s2TypographyTokens(base: number = S2_FONT_SIZE_BASE): TypographyTokens {
+  const out: Record<string, number> = {};
+  for (const [key, step] of Object.entries(TYPOGRAPHY_STEPS)) {
+    const fontSize = s2FontSize(step, base);
+    out[key] = fontSize;
+    if (key !== "text-md")
+      out[`${key}--line-height`] =
+        PRE_PHASE3_LINE_HEIGHT[key] ?? s2LineHeight(fontSize);
+  }
+  return out as unknown as TypographyTokens;
+}
+
+/**
+ * 폰트 크기 · 행간 토큰 (desktop, base 14).
+ */
+export const typography: TypographyTokens = s2TypographyTokens();
 
 /**
  * 폰트 패밀리
@@ -81,20 +124,26 @@ export function getTypographyToken(name: keyof TypographyTokens): number {
 }
 
 /**
- * fontSize에 대응하는 CSS line-height (px)를 반환.
+ * fontSize에 대응하는 CSS line-height (px).
  * (옛 builder `fullTreeLayout.ts` 의 LABEL_SIZE_STYLE 과 같은 소스였다 — 2026-10-05 삭제.)
+ * ADR-295 Phase 1: 글자 크기가 S2 단계로 바뀐 토큰 (2xs 11 · 2xl 22 · 3xl 25 · 4xl 28) 은 그 토큰의 행간을
+ * 그대로 — Phase 3 에서 이 표 대신 `s2LineHeight` (`PRE_PHASE3_LINE_HEIGHT` 와 함께 지운다).
  */
 const FONT_SIZE_TO_LINE_HEIGHT: Record<number, number> = {
-  10: typography["text-2xs--line-height"],
-  12: typography["text-xs--line-height"],
-  14: typography["text-sm--line-height"],
-  16: typography["text-base--line-height"],
-  18: typography["text-lg--line-height"],
-  20: typography["text-xl--line-height"],
-  24: typography["text-2xl--line-height"],
-  30: typography["text-3xl--line-height"],
-  36: typography["text-4xl--line-height"],
-  48: typography["text-5xl--line-height"],
+  10: 16,
+  11: 16,
+  12: 16,
+  14: 20,
+  16: 24,
+  18: 28,
+  20: 28,
+  22: 32,
+  24: 32,
+  25: 36,
+  28: 40,
+  30: 36,
+  36: 40,
+  48: 48,
 };
 
 export function getLabelLineHeight(fontSize: number): number {

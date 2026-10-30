@@ -1,4 +1,5 @@
 import React from "react";
+import { cssVarToTokenRef, resolveToken } from "@composition/rendering";
 
 import type { PropertyUnitPreset } from "./propertyUnitPresets";
 
@@ -123,9 +124,28 @@ export function parseUnitValue(value: string): {
   return { numericValue: 0, unit: "px" };
 }
 
+/**
+ * resolver 가 Preview · Publish root 에 싣는 범주 (radius · typography · border) 의 토큰만 — 그 값이
+ * 빌더 root 의 chrome 값과 다르다. spacing 은 테마 밖이라 두 root 가 같은 `shared-tokens.css` 를 읽는다
+ * (그리고 Skia `spacing` 맵은 CSS 와 md 이상이 달라 쓰지 않는다 — ADR-295 §6.0).
+ */
+export function themedTokenRef(cssVar: string) {
+  const ref = cssVarToTokenRef(cssVar);
+  return ref && /^\{(radius|typography|border)\./.test(ref) ? ref : null;
+}
+
 function getCssVariableValue(value: string): string | undefined {
   const match = value.trim().match(/^var\((--[a-z0-9-]+)\)$/i);
-  if (!match || typeof document === "undefined") return undefined;
+  if (!match) return undefined;
+  // ADR-295 Decision 5: 토큰 preset (`var(--radius-md)` …) 의 표시 · commit 값은 활성 테마의 해석값
+  //   (`resolveToken` — 설치된 snapshot 맵) 이다. 빌더 문서 root 의 computed value 는 chrome 의 정적 값
+  //   (`shared-tokens.css`) 이라 사용자 컴포넌트 값과 다르다.
+  const tokenRef = themedTokenRef(match[0]);
+  if (tokenRef) {
+    const token = resolveToken(tokenRef);
+    if (typeof token === "number" && Number.isFinite(token)) return `${token}px`;
+  }
+  if (typeof document === "undefined") return undefined;
 
   const resolved = getComputedStyle(document.documentElement)
     .getPropertyValue(match[1])

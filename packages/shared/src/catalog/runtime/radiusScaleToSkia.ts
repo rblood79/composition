@@ -7,6 +7,7 @@
  * @see ADR-021 Phase B
  */
 
+import { radius as radiusTable } from "@composition/rendering";
 import type { ThemePreset } from "../document/types";
 type RadiusScale = ThemePreset["radius"];
 
@@ -28,21 +29,12 @@ const SCALE_FACTORS: Record<RadiusScale, number> = {
 // ============================================================================
 
 /**
- * ADR-227 — 순수: 스케일 → radius 토큰 맵 (mutation 없음). DOM `--radius-*` 와 같은 base 8 단계
- * (xs 2 · sm 4 · md 6 · lg 8 · xl 12 · 2xl 16 · 3xl 24 · 4xl 32) 를 같은 factor 로 — 종전 Skia 는
- * xs/2xl 을 스케일하지 않아 DOM 과 갈렸다 (Phase 0 발견, 여기서 한 표로 맞춘다).
+ * ADR-227 — 순수: 스케일 → radius 토큰 맵 (mutation 없음). DOM `--radius-*` 와 Skia 가 같은 표를 같은
+ * factor 로. ADR-295: 표는 `@composition/rendering` `radius` (S2 값) 하나 — 여기서 다시 적지 않는다
+ * (seed 와 preset 파생이 따로 있으면 seed 만 바꾼 값이 활성 테마에서 덮였다, R9).
  */
 export const RADIUS_BASE_PX: Readonly<Record<string, number>> = {
-  none: 0,
-  xs: 2,
-  sm: 4,
-  md: 6,
-  lg: 8,
-  xl: 12,
-  "2xl": 16,
-  "3xl": 24,
-  "4xl": 32,
-  full: 9999,
+  ...(radiusTable as unknown as Record<string, number>),
 };
 
 export function radiusScaleFactor(scale: string): number {

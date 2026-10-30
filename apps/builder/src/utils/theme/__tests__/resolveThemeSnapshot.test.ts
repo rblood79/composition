@@ -51,10 +51,10 @@ describe("resolveThemeSnapshot — seed (preset 파생) 는 종전 setter 결과
     expect(s.colors.dark["accent-hover"]).toBe(
       createAccentColorTokens(c, h, "dark")["accent-hover"],
     );
-    expect(s.radius.md).toBe(6);
+    expect(s.radius.md).toBe(8); // ADR-295 — S2 default
     expect(s.radius.xs).toBe(2);
     expect(varOf(s, "--tint")).toBe("var(--blue)");
-    expect(varOf(s, "--radius-md")).toBe("6px");
+    expect(varOf(s, "--radius-md")).toBe("8px");
     expect(
       s.cssVars.filter(
         (v) => v.name.startsWith("--color-neutral-") && !v.isDark,
@@ -99,17 +99,18 @@ describe("resolveThemeSnapshot — seed (preset 파생) 는 종전 setter 결과
     const s = resolve(
       theme({}, { ...DEFAULT_THEME_PRESET, radiusScale: "lg" }),
     );
+    // ADR-295 — S2 표 (xs 2 · sm 4 · md 8 · lg 10 · xl 16 · 2xl 24) × 1.5
     expect(s.radius).toMatchObject({
       none: 0,
       xs: 3,
       sm: 6,
-      md: 9,
-      lg: 12,
-      xl: 18,
-      "2xl": 24,
+      md: 12,
+      lg: 15,
+      xl: 24,
+      "2xl": 36,
       full: 9999,
     });
-    expect(varOf(s, "--radius-2xl")).toBe("24px");
+    expect(varOf(s, "--radius-2xl")).toBe("36px");
   });
 });
 
@@ -291,7 +292,7 @@ describe("resolveThemeSnapshot — 명시 델타 (축별 비기본값 · reset �
     expect(s.warnings.some((w) => w.includes("border.width.thin"))).toBe(false);
     expect(s.warnings.some((w) => w.includes("weird.key"))).toBe(true);
     expect(s.warnings.some((w) => w.includes("radius.md"))).toBe(true);
-    expect(s.radius.md).toBe(6);
+    expect(s.radius.md).toBe(8);
   });
 
   it("border.width.thin 3 · thick 4 (ADR-227 Phase 3) → border 맵 + --border-width-* · 음수/문자열은 경고 · seed 는 0/1/2", () => {

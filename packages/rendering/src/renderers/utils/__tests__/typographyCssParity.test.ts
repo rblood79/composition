@@ -14,6 +14,9 @@
  * (negative fixture) oracle 이 작동함이 증명된다.
  *
  * 순수 검증 — live 영향 0.
+ *
+ * ADR-295 (2026-10-30): parity 의 독립 권위를 `shared-tokens.css` (이제 빌더 chrome 의 정적 값) 에서
+ * S2 설치본 computed (`adr295-s2-oracle.json`) 로 옮겼다. CSS 파서 · 변환 단위 검증은 그대로 둔다.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -21,7 +24,11 @@ import { dirname, resolve } from "node:path";
 
 import { describe, it, expect } from "vitest";
 
-import { typography } from "../../../primitives/typography";
+import {
+  s2FontSize,
+  typography,
+  TYPOGRAPHY_STEPS,
+} from "../../../primitives/typography";
 import {
   parseCssTypographyTokens,
   cssFontSizeToPx,
@@ -53,88 +60,78 @@ describe("ADR-916 P2-CAT ② L0 — CSS 값 → px 변환", () => {
   });
 });
 
-// ── L0 parity (positive) — primitive ↔ CSS 정합 ───────────────────────────────
+// ── L0 parity — primitive ↔ S2 설치본 (독립 oracle) ─────────────────────────────
+//
+// ADR-295 (2026-10-30): `shared-tokens.css` 의 `--text-*` 는 빌더 chrome 의 정적 값이고 (Decision 8),
+// 사용자 컴포넌트의 DOM leg 는 resolver `cssVars` (primitive 와 같은 맵) 를 읽는다. 그래서 primitive 를
+// chrome CSS 와 비교하지 않는다 — 독립 권위는 S2 1.8.1 설치본을 브라우저에서 잰 값
+// (`adr295-s2-token-extract.mjs` → `adr295-s2-oracle.json` `tokens.fontTable`, desktop · base 14).
+// primitive 는 단계 표 + 식이라 같은 식을 쓰면 shared-fault 이므로, oracle 은 식이 아니라 computed 다.
 
-describe("ADR-916 P2-CAT ② L0 — primitive ↔ CSS typography parity", () => {
-  const css = readFileSync(SHARED_TOKENS_CSS, "utf8");
-  const cssTokens = parseCssTypographyTokens(css);
-
-  it("CSS 에서 --text-* fontSize 를 파싱한다", () => {
-    expect(cssTokens.fontSize.get("text-sm")).toBe(14);
-    expect(cssTokens.fontSize.get("text-base")).toBe(16);
-  });
-
-  it("CSS 에서 --text-*--line-height 를 fontSize pairing 으로 px 화한다", () => {
-    expect(cssTokens.lineHeight.get("text-sm")).toBe(20);
-    expect(cssTokens.lineHeight.get("text-base")).toBe(24);
-  });
-
-  it("primitive typography fontSize == CSS --text-* (전수 정합, ledger 밖)", () => {
-    for (const [name, px] of cssTokens.fontSize) {
-      if (KNOWN_TYPOGRAPHY_DIVERGENCES.has(`${name}:fontSize`)) continue;
-      const primitivePx = typography[name as keyof typeof typography];
-      expect(primitivePx, `신규 fontSize 발산: ${name}`).toBe(px);
+const ORACLE = resolve(
+  __dirname,
+  "../../../../../../apps/builder/src/builder/catalogRuntime/__tests__/fixtures/adr295-s2-oracle.json",
+);
+type OracleRow = {
+  step: number;
+  desktop: { fontSize: number; lineHeight: number };
+};
+const oracleByStep = (() => {
+  const table = (
+    JSON.parse(readFileSync(ORACLE, "utf8")) as {
+      tokens: { fontTable: Record<string, OracleRow> };
     }
+  ).tokens.fontTable;
+  const byStep = new Map<number, OracleRow["desktop"]>();
+  for (const row of Object.values(table)) byStep.set(row.step, row.desktop);
+  return byStep;
+})();
+
+describe("ADR-295 L0 — primitive typography == S2 설치본 computed (desktop)", () => {
+  it("모든 단계가 oracle 에 있다", () => {
+    for (const [name, step] of Object.entries(TYPOGRAPHY_STEPS))
+      expect(oracleByStep.has(step), `${name} 단계 ${step}`).toBe(true);
   });
 
-  it("primitive typography line-height == CSS --text-*--line-height px (전수 정합, ledger 밖)", () => {
-    for (const [name, px] of cssTokens.lineHeight) {
-      if (KNOWN_TYPOGRAPHY_DIVERGENCES.has(`${name}:lineHeight`)) continue;
-      const key = `${name}--line-height` as keyof typeof typography;
-      const primitivePx = typography[key];
-      expect(primitivePx, `신규 lineHeight 발산: ${name}`).toBe(px);
-    }
-  });
-
-  it("ledger 에 등록된 발산은 실제로 primitive≠CSS 다 (침묵 skip 아님 — 양값 검증)", () => {
-    // ledger 가 stale(이미 정합인데 등록만 남음)해지지 않도록, 등록된 발산이
-    // 실제로 존재하는지 CSS 파싱값·primitive 로 재확인.
-    for (const [key, entry] of KNOWN_TYPOGRAPHY_DIVERGENCES) {
-      const [name, channel] = key.split(":");
-      const cssPx =
-        channel === "lineHeight"
-          ? cssTokens.lineHeight.get(name)
-          : cssTokens.fontSize.get(name);
-      const primKey = channel === "lineHeight" ? `${name}--line-height` : name;
-      const primitivePx = typography[primKey as keyof typeof typography];
-      expect(cssPx, `ledger ${key}: CSS 값이 파싱되어야`).toBe(entry.css);
-      expect(primitivePx, `ledger ${key}: primitive 값 일치`).toBe(
-        entry.primitive,
+  it("fontSize 전수 정합 · line-height 는 제목 묶음만 (본문은 Phase 3 에서 식 — 사용자 결정 2026-10-30)", () => {
+    for (const [name, step] of Object.entries(TYPOGRAPHY_STEPS)) {
+      const oracle = oracleByStep.get(step)!;
+      expect(typography[name as keyof typeof typography], name).toBe(
+        oracle.fontSize,
       );
-      expect(primitivePx, `ledger ${key}: 여전히 발산 상태여야`).not.toBe(
-        cssPx,
-      );
+      if (!name.startsWith("text-heading-")) continue;
+      expect(
+        typography[`${name}--line-height` as keyof typeof typography],
+        `${name}--line-height`,
+      ).toBe(oracle.lineHeight);
     }
+  });
+
+  it("ledger 는 비어 있다 — primitive 와 chrome CSS 는 비교하지 않는다", () => {
+    expect(KNOWN_TYPOGRAPHY_DIVERGENCES.size).toBe(0);
   });
 });
 
 // ── negative fixture — oracle 이 발산을 실제로 잡는지 증명 ──────────────────────
 
-describe("ADR-916 P2-CAT ② L0 — negative fixture (oracle 작동 증명)", () => {
-  it("변조된 CSS 값은 parity 대조에서 발산으로 검출된다", () => {
-    // 인위적 발산: --text-sm 을 0.875rem(14px) → 1rem(16px) 으로 변조.
-    const tampered = `:root {
-      --text-sm: 1rem;
-      --text-sm--line-height: calc(1.25 / 0.875);
-    }`;
-    const parsed = parseCssTypographyTokens(tampered);
-    // 변조 CSS = 16px, primitive text-sm = 14px → 발산.
-    expect(parsed.fontSize.get("text-sm")).toBe(16);
-    expect(typography["text-sm"]).toBe(14);
-    expect(parsed.fontSize.get("text-sm")).not.toBe(typography["text-sm"]);
+describe("ADR-295 L0 — negative fixture (oracle 작동 증명)", () => {
+  it("한 단계 어긋난 값은 oracle 대조에서 발산으로 검출된다", () => {
+    // text-sm (단계 0) 자리에 단계 1 의 값을 넣으면 oracle 과 다르다.
+    const tampered = s2FontSize(1);
+    expect(tampered).not.toBe(oracleByStep.get(0)!.fontSize);
   });
 
-  it("변조된 line-height calc 배율도 발산으로 검출된다", () => {
-    // --text-base--line-height 를 calc(1.5/1)=24px → calc(2/1)=32px 으로 변조.
-    const tampered = `:root {
-      --text-base: 1rem;
-      --text-base--line-height: calc(2 / 1);
-    }`;
-    const parsed = parseCssTypographyTokens(tampered);
-    expect(parsed.lineHeight.get("text-base")).toBe(32);
-    expect(typography["text-base--line-height"]).toBe(24);
-    expect(parsed.lineHeight.get("text-base")).not.toBe(
-      typography["text-base--line-height"],
+  it("옛 고정 행간 (14px → 20) 은 oracle (18) 과 다르다", () => {
+    expect(oracleByStep.get(0)!.lineHeight).toBe(18);
+    expect(cssLineHeightToPx("calc(1.25 / 0.875)", 14)).not.toBe(
+      oracleByStep.get(0)!.lineHeight,
     );
+  });
+
+  it("CSS 파서는 그대로 동작한다 (chrome CSS 파싱 — 비교 대상 아님)", () => {
+    const parsed = parseCssTypographyTokens(
+      readFileSync(SHARED_TOKENS_CSS, "utf8"),
+    );
+    expect(parsed.fontSize.get("text-sm")).toBe(14);
   });
 });

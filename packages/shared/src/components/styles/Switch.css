@@ -3,6 +3,8 @@
  */
 
 @layer components {
+  /* ADR-295 Phase 1: 값이 S2 로 바뀐 글자 토큰 (2xl · 3xl · 4xl · 5xl) 을 상자 크기로 쓰던 자리는 그 전 px 로
+     고정했다 (Canvas 는 toggle rule `size.indicator` px). S2 control 크기 정렬은 Phase 3. */
   /* Two structures carry `.react-aria-Switch`: the shared `Switch` / PropertySwitch (RAC `Switch`, the
      `label` itself) and the catalog Switch (ADR-256 Phase 3 — RAC `SwitchField` `div` around a
      `SwitchButton` `label`). RAC puts the pressed / focus-visible state on the label, so those
@@ -40,7 +42,7 @@
     .indicator {
       display: flex;
       align-items: center;
-      width: var(--text-4xl);
+      width: 36px;
       height: var(--text-xl);
       border-radius: var(--text-xl);
       border: 2px solid var(--border-hover);
@@ -109,7 +111,7 @@
     --switch-gap: var(--spacing-sm);
 
     .indicator {
-      width: calc(var(--text-3xl) + 2px);
+      width: calc(30px + 2px);
       height: calc(var(--text-base) + 2px);
       border-radius: var(--text-base);
 
@@ -129,7 +131,7 @@
     --switch-gap: 10px;
 
     .indicator {
-      width: var(--text-4xl);
+      width: 36px;
       height: var(--text-xl);
       border-radius: var(--text-xl);
 
@@ -149,9 +151,9 @@
     --switch-gap: var(--spacing-md);
 
     .indicator {
-      width: calc(var(--text-5xl) - 4px);
-      height: var(--text-2xl);
-      border-radius: var(--text-2xl);
+      width: calc(48px - 4px);
+      height: 24px;
+      border-radius: 24px;
 
       &:before {
         width: var(--text-xl);
@@ -172,22 +174,22 @@
     --switch-gap: 14px;
 
     .indicator {
-      width: calc(var(--text-5xl) + 4px);
-      height: var(--text-3xl);
-      border-radius: var(--text-3xl);
+      width: calc(48px + 4px);
+      height: 30px;
+      border-radius: 30px;
 
       &:before {
-        width: var(--text-2xl);
-        height: var(--text-2xl);
-        border-radius: var(--text-2xl);
+        width: 24px;
+        height: 24px;
+        border-radius: 24px;
         /* (트랙 높이 - thumb 높이) / 2에서 border 2px을 뺀 내부 여백. */
-        margin: 0 calc((var(--text-3xl) - var(--text-2xl)) / 2 - 2px);
+        margin: 0 calc((30px - 24px) / 2 - 2px);
       }
     }
 
     &[data-selected] .indicator:before {
       /* 끝 여백이 상하와 같으면 이동량은 트랙 너비 - 트랙 높이. */
-      translate: calc(var(--text-5xl) + 4px - var(--text-3xl)) 0;
+      translate: calc(48px + 4px - 30px) 0;
     }
   }
 }

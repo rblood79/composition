@@ -116,6 +116,8 @@ size 키: XS 35 · S 102 · M 130 · L 101 · XL 58 · XXL 3.
 
 ### Phase 3 — rule 리터럴 참조화 · 정적 게이트 (G3 · G4)
 
+- **행간 식 (사용자 결정 2) 도 이 Phase 의 커밋에서** (2026-10-30 순서 변경 — §6.1): `PRE_PHASE3_LINE_HEIGHT` · `getLabelLineHeight` 의 표를 지우고 `s2LineHeight` 로, field · stepper · Calendar · toggle 의 높이를 S2 control 높이 토큰으로 묶는 것과 같은 커밋. 컴포넌트별 글자 매핑 (Heading · Dialog 제목 · AvatarGroup 라벨 …) 도 G4 (c) oracle 로 여기서.
+
 - `componentRulesTable.ts`: height · minHeight · iconSize · radius 리터럴 · lineHeight 리터럴 → 토큰 참조, padding · gap · inset 은 Phase 0 형 표대로 (`{ ofHeight }` · `{ em: [px, 기준] }` · 고정 숫자) 와 S2 의 `touch:` 조건이 있는 자리는 `touch` override (`{ em: [6, 14], touch: { em: [8, 17] } }` — round 2 H1) — codemod 스크립트 + 표 대조, 손 편집 · 손 분류 금지. S2 단에 없는 값은 `INTENTIONAL_LITERAL` (사유) 등재. rule 값 타입 (`packages/shared/src/catalog/types.ts`) 에 상대 형 2 와 `touch` 조건부를 더한다.
 - `componentRulesTable.static.test.ts`: 리터럴 ratchet (389 · 7 · 92 · 74 · 24 → 0) + 축 allowlist.
 - `d3S2Alignment.static.test.ts` (신규, `apps/builder/src/builder/catalogRuntime/__tests__/`): 토큰 표 · 단계 · 상수 · 높이 5단 == 추출기 결과.
@@ -224,7 +226,34 @@ size 키: XS 35 · S 102 · M 130 · L 101 · XL 58 · XXL 3.
 
 **G1 · G2 하니스 확정**: 신규 파일 `apps/builder/tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts` (기존 `vitest.adr248-g3.browser.config.ts` 가 디렉터리로 포함 — DPR 1 · 1440×900). 기존 두 파일은 oracle 이 달라 넓히지 않는다 (`propAxisCanvasDom` = 고정 CASES 상자 ≤ 1px · `paletteBaseCanvas` = frozen 옛 Canvas PNG). 대상 = 팔레트 전수 `getPaletteItems()` (`paletteItems.ts:318` — PALETTE_ORDER 69 + creationVariants) → `catalogPaletteDefinitionId`. Skia = `MakeWebGLCanvasSurface` + `executeRenderCommands` (paletteBaseCanvas 와 같은 길), DOM = element screenshot (`adr248CatalogRealDom.browser.test.ts:739-781` 처럼 frameHost transform 끔 · `shot.width === rect.width && devicePixelRatio === 1`). 비교 = pixelmatch (threshold 0.1 · 글자 영역 마스크) + 상자 ≤ 1px. arm 마다 `installThemeMaps(snapshot)` (`Object.assign` 금지 — 앞 arm 키가 남는다) + `:root` 변수 교체, touch arm 은 touch snapshot 의 변수를 `:root` 에 직접 (미디어 쿼리 경로는 sanity case 1). **G1 before** 는 값이 바뀌기 전 커밋을 별도 worktree (그 lockfile · 엔진 빌드) 에서 같은 파일로 잰다 — Phase 1 첫 단계가 하니스를 만들고 before 를 뜬 뒤 값을 바꾼다.
 
-- G1 before/after: (미작성)
+### 6.1 Phase 1 (2026-10-30, G1)
+
+**순서 변경 (사용자 결정 2026-10-30 「행간 식은 Phase 3 와 함께」)**: 행간을 S2 식으로 바꾸면 줄 상자가 줄어 (14px 20 → 18) 「줄 20 + padding 8 + border 2 = 30」 과 우연히 같던 높이 리터럴 (field `height: 30` · NumberField 증감 `--nf-btn-size: 30px` …) 과 2px 어긋난다 (Input 28 · 증감 버튼 30 · prefix Group 28 — unit 99 실패 중 확인). 그래서 Phase 1 은 radius · 글자 **크기** · 변수 · preset 만, 행간 식 (사용자 결정 2) 은 높이를 S2 control 높이에 묶는 Phase 3 커밋으로 옮겼다. 행간은 `PRE_PHASE3_LINE_HEIGHT` (본문 사다리의 지금 값) 가 그때까지 유지 — 제목 묶음 (`text-heading-*`) 은 쓰는 rule 이 없어 처음부터 식.
+
+**변경**:
+
+| 영역                         | 파일                                                                                                                                       | 내용                                                                                                                                                                                                                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| radius 한 표                 | `packages/rendering/src/primitives/radius.ts` · `packages/shared/src/catalog/runtime/radiusScaleToSkia.ts`                                 | S2 값 (xs 2 · sm 4 · md 8 · lg 10 · xl 16 · 2xl 24, 3xl · 4xl 삭제) · `RADIUS_BASE_PX` = rendering 표에서 파생 (의존 방향상 표는 rendering — shared 가 rendering 을 import)                                                                                                 |
+| 글자 단계                    | `packages/rendering/src/primitives/typography.ts` · `types/token.types.ts`                                                                 | `TYPOGRAPHY_STEPS` + `s2FontSize` · `s2LineHeight` · `s2TypographyTokens` (package export). 본문 2xs 11 · xs 12 · sm 14 · base 16 · lg 18 · xl 20 · 2xl 22 · 3xl 25 · 4xl 28 · 5xl 36, 제목 묶음 `text-heading-xs` ~ `3xl` 18 · 20 · 22 · 28 · 36 · 43 · 55 (사용자 결정 3) |
+| DOM 변수                     | `resolveThemeSnapshot.ts`                                                                                                                  | 글자 변수를 **전 키** emit (종전: 델타만 — seed 가 chrome 정적 값과 같았기에 가능했다) · 행간 비율은 정확한 분수 (`calc(16 / 12)`, 소수 4자리 반올림이 줄 상자를 15.98 로 줄였다)                                                                                           |
+| preset oracle                | `PropertyUnitInput.runtime.ts` · `panels/styles/utils/cssLengthPx.ts`                                                                      | 토큰 preset (radius · typography · border) 의 표시 · commit = `resolveToken` (활성 테마 snapshot). spacing 은 제외 — rendering `spacing` 맵 (md 16 · lg 24 · xl 32) 이 CSS `--spacing-*` (md 12 · lg 16 · xl 24) 와 295 전부터 달라 쓰지 않는다 (Phase 3 판정)              |
+| 글자 토큰을 상자로 쓰던 자리 | `manualBoxRules.ts` (`CALENDAR_HEADER.nav` · `GROUP_ITEM_INDICATORS`) · `CalendarCommon.css` · `Radio.css` · `Switch.css` · `Checkbox.css` | 값이 바뀐 글자 토큰 (2xl ~ 5xl) 을 상자 크기로 쓰던 자리를 그 전 px 로 고정 — Calendar 월 폭은 DOM 만 바뀌어 Canvas (`CalendarGrid` iconSize) 와 갈렸고, Checkbox · Switch 는 DOM 만 커졌다 (G1 새 비대칭 8 → 0). S2 control 크기 정렬은 Phase 3                            |
+
+**G1 before/after** (`adr295PaletteSymmetry.browser.test.ts`, Chromium · DPR 1 · 1440×900 · 기본 테마. before = 같은 작업 트리에서 Phase 1 값 파일 12 개만 HEAD 로 되돌려 측정 후 복원 · cmp 확인. 원자료 `.agent/runs/2026-10-30-adr295/g1/`):
+
+- 팔레트 247 조합 · 노드 1,223: 상자 무변화 215 · 변화 24. **Canvas ↔ DOM 새 비대칭 0** (기존 24 그대로 — Separator · Autocomplete · Section · Pagination · Skeleton · Select · DropZone · Keyboard · Menu · ContextualHelp, Phase 2 G2 대상).
+- 상자 변화 = 글자 크기 변화뿐: XS size (2xs 10 → 11) 의 폭 +2 ~ 8 (Badge · Button · ToggleButton(Group) · ButtonGroup · Link · field Label · DateInput), AvatarGroup XL −5 (2xl 24 → 22). 높이 변화 0.
+- 스크린샷 226 중 픽셀 변화 66, 실행 간 잡음 (after ↔ after2) 14 = Icon 5 (기본 글리프가 실행마다 다르다) · chart 9. 잡음을 뺀 변화: radius (ListBox · GridList · DropZone · TagGroup · Table · Tree · DisclosureGroup · FileUpload · ColorArea), XS 글자 (field · Button 계열), Text XXL · XXXL · IllustratedMessage L (2xl · 3xl).
+- 수리 1 (측정 도구): `screenshot({ save: false })` 는 base64 문자열을 돌려줘 첫 측정의 PNG 226 장이 전부 비어 있었다 (「픽셀 변화 0」 이 거짓 통과) — 크기 검사를 넣고 다시 쟀다.
+
+**live (Chrome MCP, 별도 dev 서버 5175 · 새 프로젝트 `adr295-live`)**: Canvas TextField · Input 모서리 8 (field 7 · 8 · 9 · 10 그대로) · 행간 유지 (20/14) · Design 패널 Radius 메뉴 「XS · 2 · S · 4 · M · 8 · L · 10 · XL · 16」 (종전 chrome 값 2 · 4 · 6 · 8 · 12) → L 선택 → 문서 `responsive.mobile.visual.radius = 10` (현재 breakpoint mobile) · Publish 탭 ListBox `border-radius 16px` · `--radius-md 8px` · `--radius-lg 10px` · `--radius-xl 16px` · `--text-2xs 11px` · `--text-2xl 22px` · `--text-sm--line-height calc(20 / 14)`.
+
+**관찰 (295 무관, 기존)**: Publish 의 Input 높이 31 — layer 밖 리셋 `input { line-height: inherit }` 가 `@layer components` 의 행간 규칙을 이겨 부모 1.5 (21px) 를 상속 (G1 하니스 DOM leg 는 30). `adr248CatalogGeometryDelta` case 2 (`subtreeNodeVisits` 4 ≠ 1) · `chromeIsland.static` 은 HEAD 값에서도 같은 실패.
+
+**테스트 갱신 (값 단언)**: rendering — `typography.test` (S2 식 · 단계) · `typographyCssParity` (독립 oracle 을 chrome CSS 에서 S2 설치본 computed 로 — 글자 크기 전수 · 제목 행간) · `tokenResolver` · `cssVarToTokenRef` · `tokenSnapshot` snapshot. shared — `slotRoles` (text-3xl 25). builder — `resolveThemeSnapshot` · `tokenConsumerDrift` snapshot · `specPresetResolver` · `phase4eTheme` · `avatarGroupLabelNode` · `illustratedMessageNodeTree` · `calendarWidth` (DOM sheet 30px).
+
+- G1 before/after: §6.1
 - G2 두 arm: (미작성)
 - G4 (b) 최종 snapshot (preset 5 × 델타) · (c) 컴포넌트별 desktop/touch vs S2 computed: (미작성)
 - G5 빌더 chrome before/after Δ (패널 표면 + 위젯 CompactSelect · PropertySelect · Data RowForm, desktop · pointer: coarse 두 조건): (미작성)

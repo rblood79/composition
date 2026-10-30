@@ -121,7 +121,7 @@ describe("AvatarGroup — the S2 label is a Text node", () => {
     ["S", 16],
     ["M", 18],
     ["L", 20],
-    ["XL", 24],
+    ["XL", 22], // text-2xl — ADR-295 (S2 단계 4)
   ])(
     "size %s: the label is %ipx (S2 `ui` · `ui-lg` · `ui-xl` … by the avatar size)",
     async (size, fontSize) => {

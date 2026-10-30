@@ -130,10 +130,10 @@ describe("ADR-082 G1 — cssVarToTokenRef 역변환 parser", () => {
       expect(resolveToken(token!)).toBe(2);
     });
 
-    it("var(--radius-lg) → {radius.lg} → 8", () => {
+    it("var(--radius-lg) → {radius.lg} → 10 (ADR-295 S2 lg)", () => {
       const token = cssVarToTokenRef("var(--radius-lg)");
       expect(token).toBe("{radius.lg}");
-      expect(resolveToken(token!)).toBe(8);
+      expect(resolveToken(token!)).toBe(10);
     });
 
     it("var(--text-sm) → {typography.text-sm} → 14", () => {

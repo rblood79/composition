@@ -205,41 +205,57 @@ export interface SpacingTokens {
  * 타이포그래피 토큰
  */
 export interface TypographyTokens {
-  "text-2xs": number; // 10
-  "text-xs": number; // 12
-  "text-sm": number; // 14
-  "text-base": number; // 16
-  "text-md": number; // 16 (alias for text-base)
-  "text-lg": number; // 18
-  "text-xl": number; // 20
-  "text-2xl": number; // 24
-  "text-3xl": number; // 30
-  "text-4xl": number; // 36
-  "text-5xl": number; // 48
-  // line-height (px): CSS calc(lineHeight / fontSize) × fontSize 결과
-  "text-2xs--line-height": number; // 16
-  "text-xs--line-height": number; // 16
-  "text-sm--line-height": number; // 20
-  "text-base--line-height": number; // 24
-  "text-lg--line-height": number; // 28
-  "text-xl--line-height": number; // 28
-  "text-2xl--line-height": number; // 32
-  "text-3xl--line-height": number; // 36
-  "text-4xl--line-height": number; // 40
-  "text-5xl--line-height": number; // 48
+  // ADR-295: 값은 `primitives/typography.ts` 의 S2 단계 표 + 식 (desktop base 14) — 주석 숫자 없음.
+  "text-2xs": number;
+  "text-xs": number;
+  "text-sm": number;
+  "text-base": number;
+  "text-md": number; // alias for text-base
+  "text-lg": number;
+  "text-xl": number;
+  "text-2xl": number;
+  "text-3xl": number;
+  "text-4xl": number;
+  "text-5xl": number;
+  "text-heading-xs": number;
+  "text-heading-sm": number;
+  "text-heading-md": number;
+  "text-heading-lg": number;
+  "text-heading-xl": number;
+  "text-heading-2xl": number;
+  "text-heading-3xl": number;
+  // line-height (px) — S2 행간 식
+  "text-2xs--line-height": number;
+  "text-xs--line-height": number;
+  "text-sm--line-height": number;
+  "text-base--line-height": number;
+  "text-lg--line-height": number;
+  "text-xl--line-height": number;
+  "text-2xl--line-height": number;
+  "text-3xl--line-height": number;
+  "text-4xl--line-height": number;
+  "text-5xl--line-height": number;
+  "text-heading-xs--line-height": number;
+  "text-heading-sm--line-height": number;
+  "text-heading-md--line-height": number;
+  "text-heading-lg--line-height": number;
+  "text-heading-xl--line-height": number;
+  "text-heading-2xl--line-height": number;
+  "text-heading-3xl--line-height": number;
 }
 
 /**
  * 둥근 모서리 토큰
  */
 export interface RadiusTokens {
+  // ADR-295: S2 radius (sm 4 · default 8 · lg 10 · xl 16) + 저장소 단 xs 2 · 2xl 24 (사용자 결정 5)
   none: number; // 0
-  xs: number; // 2  (ADR-913 slice 5 — shared-tokens.css --radius-xs:0.125rem, catalog {radius.xs})
+  xs: number; // 2 (S2 없음)
   sm: number; // 4
-  md: number; // 6  (정정: 과거 주석 8 stale — radius.ts/shared-tokens.css 정본 6px)
-  lg: number; // 8  (정정: 과거 주석 12 stale — 정본 8px)
-  xl: number; // 12 (정정: 과거 주석 16 stale — 정본 12px)
-  "2xl": number; // 16 (ADR-913 slice 5 — shared-tokens.css --radius-2xl:1rem, catalog {radius.2xl})
+  md: number; // 8 (S2 default)
+  lg: number; // 10
+  xl: number; // 16
+  "2xl": number; // 24 (S2 없음)
   full: number; // 9999
 }
 

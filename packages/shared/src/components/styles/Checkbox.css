@@ -8,6 +8,8 @@
  */
 
 @layer components {
+  /* ADR-295 Phase 1: 값이 S2 로 바뀐 글자 토큰 (2xl · 3xl · 4xl · 5xl) 을 상자 크기로 쓰던 자리는 그 전 px 로
+     고정했다 (Canvas 는 toggle rule `size.indicator` px). S2 control 크기 정렬은 Phase 3. */
   /* ADR-256 G5: the indicator always holds its svg (the reference's div.indicator > svg);
      unselected it does not show. Both structures' RAC label carries the state. */
   label:not([data-selected], [data-indeterminate]) > .checkbox > svg {
@@ -61,7 +63,7 @@
 
     &[data-size="L"] {
       --cb-font-size: var(--text-lg);
-      --cb-box-size: var(--text-2xl);
+      --cb-box-size: 24px;
       --cb-gap: 10px;
       --label-font-size: var(--text-base);
       font-size: var(--text-lg);
@@ -72,7 +74,7 @@
        catalog Checkbox.sizes.xl + Skia indicator boxSize 30(--text-3xl) 대칭. */
     &[data-size="XL"] {
       --cb-font-size: var(--text-xl);
-      --cb-box-size: var(--text-3xl);
+      --cb-box-size: 30px;
       --cb-gap: var(--spacing-md);
       --label-font-size: var(--text-lg);
       font-size: var(--text-xl);
@@ -215,7 +217,7 @@
 
   .react-aria-CheckboxGroup[data-checkbox-size="L"] .react-aria-Checkbox {
     --cb-font-size: var(--text-lg);
-    --cb-box-size: var(--text-2xl);
+    --cb-box-size: 24px;
     --cb-gap: 10px;
     --label-font-size: var(--text-base);
     line-height: var(--text-base--line-height);
@@ -223,7 +225,7 @@
 
   .react-aria-CheckboxGroup[data-checkbox-size="XL"] .react-aria-Checkbox {
     --cb-font-size: var(--text-xl);
-    --cb-box-size: var(--text-3xl);
+    --cb-box-size: 30px;
     --cb-gap: var(--spacing-md);
     --label-font-size: var(--text-lg);
     line-height: var(--text-lg--line-height);

@@ -25,11 +25,13 @@
     forced-color-adjust: none;
     width: fit-content;
 
+    /* indicator 상자는 px (ADR-295 Phase 1 — 종전 글자 토큰을 상자로 썼다). Canvas 는
+       manualBoxRules `GROUP_ITEM_INDICATORS` 의 같은 값. */
     .indicator {
       display: block;
       flex-shrink: 0;
-      width: var(--text-xl);
-      height: var(--text-xl);
+      width: 20px;
+      height: 20px;
       box-sizing: border-box;
       border: 2px solid var(--border-hover);
       background: var(--color-white);
@@ -124,8 +126,8 @@
     --radio-gap: 6px;
 
     .indicator {
-      width: var(--text-base);
-      height: var(--text-base);
+      width: 16px;
+      height: 16px;
       border-radius: var(--text-base);
     }
 
@@ -141,8 +143,8 @@
     --radio-gap: var(--spacing-sm);
 
     .indicator {
-      width: var(--text-xl);
-      height: var(--text-xl);
+      width: 20px;
+      height: 20px;
       border-radius: var(--text-xl);
     }
 
@@ -158,9 +160,9 @@
     --radio-gap: 10px;
 
     .indicator {
-      width: var(--text-2xl);
-      height: var(--text-2xl);
-      border-radius: var(--text-2xl);
+      width: 24px;
+      height: 24px;
+      border-radius: 24px;
     }
 
     &[data-selected] .indicator {
@@ -178,9 +180,9 @@
     --radio-gap: var(--spacing-md);
 
     .indicator {
-      width: var(--text-3xl);
-      height: var(--text-3xl);
-      border-radius: var(--text-3xl);
+      width: 30px;
+      height: 30px;
+      border-radius: 30px;
     }
 
     &[data-selected] .indicator {

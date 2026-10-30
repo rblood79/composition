@@ -1,53 +1,61 @@
 /**
- * ADR-916 P2-CAT ② R10 — typography SSOT line-height 회귀 앵커.
+ * ADR-295 — typography 토큰 = S2 단계 표 + 식 (ADR-916 R10 의 고정 행간 golden 을 대체).
  *
- * primitive typography.ts 는 Skia 경로(resolveToken / getLabelLineHeight)와 CSS
- * 생성 경로(tokenToCSSVar → var(--text-*--line-height))가 **공유하는 단일 SSOT**다.
- * text-xl--line-height 가 CSS 정본(shared-tokens.css `calc(1.75 / 1.25) × 20 = 28`)과
- * 발산하면 D3 시각 대칭(CSS Preview ↔ Skia Builder) 위반. 본 앵커는 R10 실수정
- * (30 → 28) 이 30 으로 되돌아가는 회귀를 primitive 소비 지점에서 직접 잡는다.
- *
- * (전수 CSS↔primitive 정합은 typographyCssParity.test.ts L0 가 담당 — 본 파일은
- * getLabelLineHeight 소비 계약 + 대표값 golden 앵커.)
+ * primitive typography.ts 는 Skia 경로 (resolveToken / getLabelLineHeight) 와 resolver `cssVars`
+ * (Preview · Publish 의 `--text-*`) 가 공유하는 단일 맵이다. 전수 대조의 독립 oracle 은
+ * typographyCssParity.test.ts (S2 설치본 computed) — 이 파일은 식 · 소비 계약의 대표값 앵커.
  */
 import { describe, it, expect } from "vitest";
 
-import { typography, getLabelLineHeight } from "../typography";
+import {
+  getLabelLineHeight,
+  s2FontSize,
+  s2LineHeight,
+  s2TypographyTokens,
+  typography,
+} from "../typography";
 
-describe("ADR-916 R10 — typography line-height SSOT", () => {
-  it("text-xl--line-height 는 CSS 정본 28 (calc(1.75/1.25)×20), 30 아님", () => {
-    // R10 실수정: primitive 주석 '20 × 1.5 = 30' 은 CSS calc 패턴 미준수 버그였음.
-    // CSS shared-tokens.css --text-xl--line-height: calc(1.75 / 1.25) = 1.4 → 20 × 1.4 = 28.
-    expect(typography["text-xl--line-height"]).toBe(28);
+describe("ADR-295 — typography S2 식", () => {
+  it("글자 = round(14 × 1.125^단계): 본문 11 · 12 · 14 · 16 · 18 · 20 · 제목 18 · 20 · 22 · 28 · 36", () => {
+    expect(
+      ["text-2xs", "text-xs", "text-sm", "text-base", "text-lg", "text-xl"].map(
+        (k) => typography[k as keyof typeof typography],
+      ),
+    ).toEqual([11, 12, 14, 16, 18, 20]);
+    expect(
+      [
+        "text-heading-xs",
+        "text-heading-sm",
+        "text-heading-md",
+        "text-heading-lg",
+        "text-heading-xl",
+      ].map((k) => typography[k as keyof typeof typography]),
+    ).toEqual([18, 20, 22, 28, 36]);
   });
 
-  it("전 line-height 토큰이 CSS calc(배율) × fontSize 결과와 정합", () => {
-    // fontSize → 기대 line-height(px) golden (shared-tokens.css calc 유도).
-    const GOLDEN: Record<string, number> = {
-      "text-2xs--line-height": 16, // calc(1 / 0.625) × 10
-      "text-xs--line-height": 16, // calc(1 / 0.75) × 12
-      "text-sm--line-height": 20, // calc(1.25 / 0.875) × 14
-      "text-base--line-height": 24, // calc(1.5 / 1) × 16
-      "text-lg--line-height": 28, // calc(1.75 / 1.125) × 18
-      "text-xl--line-height": 28, // calc(1.75 / 1.25) × 20  ← R10
-      "text-2xl--line-height": 32, // calc(2 / 1.5) × 24
-      "text-3xl--line-height": 36, // calc(2.25 / 1.875) × 30
-      "text-4xl--line-height": 40, // calc(2.5 / 2.25) × 36
-      "text-5xl--line-height": 48, // calc(3 / 3) × 48
-    };
-    for (const [key, expected] of Object.entries(GOLDEN)) {
-      expect(typography[key as keyof typeof typography], key).toBe(expected);
-    }
+  it("S2 행간 식 (2px 반올림): 12 → 16 · 14 → 18 · 16 → 20 · 22 → 26 · 28 → 32 · 36 → 42 (S2 computed)", () => {
+    expect([12, 14, 16, 22, 28, 36].map(s2LineHeight)).toEqual([
+      16, 18, 20, 26, 32, 42,
+    ]);
   });
 
-  it("getLabelLineHeight(20) 은 text-xl SSOT(28) 를 반환한다 (Skia 소비 계약)", () => {
-    // specShapeConverter.ts:703 defaultLineHeight = getLabelLineHeight(fontSize)
-    expect(getLabelLineHeight(20)).toBe(28);
-    expect(getLabelLineHeight(18)).toBe(28); // text-lg
-    expect(getLabelLineHeight(16)).toBe(24); // text-base
+  it("본문 행간은 Phase 3 전까지 지금 값 (사용자 결정 2026-10-30) · 제목 묶음은 식", () => {
+    expect(typography["text-sm--line-height"]).toBe(20);
+    expect(typography["text-base--line-height"]).toBe(24);
+    expect(typography["text-heading-md--line-height"]).toBe(s2LineHeight(22));
   });
 
-  it("getLabelLineHeight 는 미매핑 fontSize 에 1.5배 fallback", () => {
+  it("touch base 17 은 같은 단계 표로 다른 벌을 낸다 (ADR-295 Phase 2 입력)", () => {
+    const touch = s2TypographyTokens(17);
+    expect(touch["text-sm"]).toBe(17);
+    expect(s2FontSize(-1, 17)).toBe(15);
+  });
+
+  it("getLabelLineHeight 는 같은 글자 크기의 본문 토큰 행간 (Skia 소비 계약)", () => {
+    expect(getLabelLineHeight(14)).toBe(typography["text-sm--line-height"]);
+    expect(getLabelLineHeight(20)).toBe(typography["text-xl--line-height"]);
+    expect(getLabelLineHeight(11)).toBe(typography["text-2xs--line-height"]);
     expect(getLabelLineHeight(13)).toBe(Math.ceil(13 * 1.5));
   });
+
 });

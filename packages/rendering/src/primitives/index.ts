@@ -62,6 +62,12 @@ export {
   getLabelLineHeight,
   getTextLineHeight,
   getDescriptionLineHeight,
+  S2_FONT_SIZE_BASE,
+  S2_FONT_RATIO,
+  s2FontSize,
+  s2LineHeight,
+  s2TypographyTokens,
+  TYPOGRAPHY_STEPS,
 } from "./typography";
 
 // Radius

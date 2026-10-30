@@ -237,7 +237,8 @@ describe("Calendar · RangeCalendar width = the references' (no size)", () => {
       common.indexOf(".react-aria-RangeCalendar .month {"),
     );
     expect(month.slice(0, month.indexOf("}"))).toMatch(
-      /width: calc\(7 \* \(var\(--text-3xl\) \+ 2 \* var\(--spacing-2xs\)\)\);\s*flex: 1 1 auto;\s*max-width: 100%;\s*min-width: 0;\s*container-type: inline-size;/,
+      // ADR-295 Phase 1: 칸 30px 고정 (종전 글자 토큰 text-3xl — 글자 값이 S2 로 바뀌어 Canvas 와 갈렸다)
+      /width: calc\(7 \* \(30px \+ 2 \* var\(--spacing-2xs\)\)\);\s*flex: 1 1 auto;\s*max-width: 100%;\s*min-width: 0;\s*container-type: inline-size;/,
     );
     expect(common).toMatch(
       /--calendar-cell: calc\(100cqw \/ 7 - 2 \* var\(--spacing-2xs\)\);\s*width: var\(--calendar-cell\);\s*height: var\(--calendar-cell\);/,

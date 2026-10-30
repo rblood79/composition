@@ -66,7 +66,10 @@ const DATE_RANGE_GROUP_VARIABLES = () =>
  * ADR-256 Phase 9 — a calendar header's nav Button side · heading font (`CalendarCommon.css`). The
  * calendar has no size (사용자 2026-10-13 — RAC · S2 take none): the header is fixed.
  */
-const CALENDAR_HEADER = { nav: "text-3xl", font: "text-sm" } as const;
+// `nav` 는 상자 크기 (px) — 글자 토큰이 아니다. ADR-295 Phase 1 (2026-10-30): 종전 `text-3xl` (30) 을 상자로
+//   썼는데 글자 값이 S2 로 바뀌면서 (30 → 25) 월 폭 (`CalendarGrid` iconSize) 과 갈렸다 — 값을 고정하고 DOM
+//   (`CalendarCommon.css`) 도 같은 30px. S2 달력 치수 정렬은 Phase 3.
+const CALENDAR_HEADER = { nav: 30, font: "text-sm" } as const;
 
 /**
  * A calendar month block's own width: 7 cells (`CalendarGrid` rule `iconSize + 4`) plus the tds' 2px
@@ -191,19 +194,21 @@ const itemLabelFontParts = (itemType: string): CompiledPartRule[] => {
  * reaches them through it (`via`). The item's Label offset needs no group rule: the group size
  * reaches the item (`CATALOG_SIZE_PROPAGATION`), so the item's own rule gives the same offset.
  */
-const GROUP_ITEM_INDICATORS: Readonly<Record<string, string>> = {
-  S: "text-base",
-  M: "text-xl",
-  L: "text-2xl",
-  XL: "text-3xl",
+// Radio indicator 상자 (px) — `Radio.css` 의 `.indicator` 와 같은 값. ADR-295 Phase 1: 종전 글자 토큰
+//   (`text-base` · `text-xl` · `text-2xl` · `text-3xl`) 을 상자로 썼다 — 글자 값이 S2 로 바뀌어도 상자는
+//   그대로 두고 (16 · 20 · 24 · 30), S2 control 크기 (14 · 16 · 18 · 20) 정렬은 Phase 3.
+const GROUP_ITEM_INDICATORS: Readonly<Record<string, number>> = {
+  S: 16,
+  M: 20,
+  L: 24,
+  XL: 30,
 };
 const groupItemIndicatorParts = (
   itemType: string,
   wrapperType: string,
 ): CompiledPartRule[] =>
   Object.entries(GROUP_ITEM_INDICATORS).flatMap(
-    ([size, name]): CompiledPartRule[] => {
-      const indicator = textPx(name);
+    ([size, indicator]): CompiledPartRule[] => {
       return indicator
         ? [
             {
@@ -527,7 +532,7 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
     // 4}}`): 4px between the header's parts (`CalendarCommon.css`, 2026-10-13).
     visual: { gap: CALENDAR_HEADER_GAP },
     parts: ((): CompiledPartRule[] => {
-      const navHeight = textPx(CALENDAR_HEADER.nav);
+      const navHeight = CALENDAR_HEADER.nav;
       const fontSize = textPx(CALENDAR_HEADER.font);
       const triggerY = px(sizesOf("Button").M?.paddingY);
       const ratio =
