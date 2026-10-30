@@ -140,6 +140,11 @@ Dark: `bg(zinc-900) → raised(zinc-850) → overlay(zinc-800) → muted(zinc-70
 - ❌ 자리 이름 토큰 부활 (`--inspector-control-size` / `--header-height`) — 이름이 자리를 가리키면 다른 자리의 컨트롤이 소비할 근거를 잃고, 그게 파생 크기가 생긴 경로다
 - 게이트: `apps/builder/src/builder/styles/controlSize.static.test.ts`
 
+**이 2티어는 빌더 chrome 의 크기다 — 사용자 컴포넌트의 크기와 무관하다 (ADR-295 Decision 8 · 9).** 사용자 컴포넌트의 control 높이는 catalog 토큰 `{size.height.*}` (S2 값 — desktop S 24 · M 32 · L 40 · XL 48, 터치 기기 × 1.25) 이고 생성 CSS 는 그것을 `--catalog-token-*` 변수로 읽는다. 빌더 root 는 그 변수를 chrome 고정값 (`builder-catalog-vars.css` — 295 전 값 · 미디어 쿼리 0) 으로 받고, 생성 시트에서 사라진 선언은 `builder-catalog-pins.css` 가 같은 선택자로 유지한다 — 빌더 위젯 (CompactSelect · PropertySelect · Data RowForm) 은 S2 값 · 터치 scale 을 받지 않는다. 게이트: `catalogRuntime/__tests__/builderCatalogVars.static.test.ts`.
+
+- ❌ chrome CSS 에서 `var(--catalog-token-*)` 읽기 · `builder-catalog-vars.css` 에 미디어 쿼리 추가
+- ❌ 사용자 컴포넌트 rule 에서 chrome 토큰 (`var(--radius-*)` · `var(--text-*)` · `--control-size*`) 읽기
+
 **같은 선택자를 두 파일이 쓰지 않는다.** specificity 가 같으면 `@layer` 안에서는 import 순서가 판정하므로, 기하 선언은 정본 파일에만 두고 나머지 파일은 색·상태만 소유한다.
 
 ## 금지된 M3 토큰

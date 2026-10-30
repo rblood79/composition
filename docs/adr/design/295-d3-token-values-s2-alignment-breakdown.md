@@ -677,11 +677,29 @@ StatusLight 점 ↔ 글자를 S2 `text-to-visual` 형으로 바꿨다가 되돌�
 
 **live (Chrome MCP, 5175)**: 팔레트 Menu (MenuTrigger) 를 넣고 Compare Mode Preview 에서 열기 — M: 항목 32 · 여백 7 / 12 · 간격 6 · label 14 / 500. Layers 에서 Menu 노드 Size L → 항목 40 · 여백 10 / 15 · 간격 6.86 · label 16 / 500 / 행간 20 (Canvas 는 닫힌 목록이라 같은 값을 unit 이 record 로 확인). 콘솔 오류 0, 삭제 명령으로 지움.
 
+### 6.12 Phase 4 (2026-10-31, G5 · G6 — 진행 중)
+
+증거 `.agent/runs/2026-10-31-adr295-phase4/` (README 에 측정 조건). before arm = `a2f619475` + 295 밖 코드 커밋 5 (`cc787595c` · `63ecb9b9e` · `0749c164d` · `11089d94e` · `56be2e9e0`) cherry-pick, after arm = `1aeb6dce9`.
+
+**G5 번들**: Builder initial JS gzip 1,370,519 → 1,376,684 (**+6,165**) · Preview 313,065 → 316,554 (**+3,489**) — 재승인 허용치 (+5,120 · +2,560) 를 둘 다 넘는다 (절대 상한 1,390,000 · 320,000 안). 3d 측정 (+4,649 · +2,416) 뒤 늘어난 곳 (sourcemap raw): `componentRulesTable` 7,669 → 12,847 · `ruleLength` 3,894 → 6,320 · `rulePartRules` 1,365 → 2,101 · `Tab.binding` +342 · `itemLinks` +162 — 3c-3b · 3c-3c 의 S2 값의 형 (다항 길이 · 터치 식 · part rule · density · 크기 계약). **사용자 판단 대기**.
+
+**G5 테마 전환 (600 요소)**: `setActiveTheme` 동기 + 다음 프레임 (ADR-227 T6 정의), 12 회 교대 중앙값. production harness 빌드 교대 3쌍 before 70.1 · after 71.0 ms, dev 73 · 74.6 ms, 불리 케이스 `app-pages` (3,339 노드, 합성물 — 규모 전용) 700 · 715 ms. 295 몫은 ≈ +1 ms (노이즈 폭) 이지만 **25 ms 상한은 두 arm 모두 넘는다** — ADR-227 (2026-09-22, 옛 store 앱 16 ~ 25 ms) 뒤 catalog runtime 의 전환 비용이고 295 의 터치 벌 생성 몫이 아니다 (실패 대응 「터치 벌 지연 생성」 은 효과 없음). **사용자 판단 대기**.
+
+**G5 빌더 chrome (결함 2 발견 · 수리)**: Design 패널 (Select 선택, Property · Layout · Style · Text) 스크린샷을 두 arm · desktop / pointer: coarse (`hasTouch`) 로 비교 — 수정 전 탭마다 22k ~ 46k px 차이. 원인 ① 3a 의 `min-height: {size.height.<S>}` (Input · DateInput · ToggleButton) 를 게이트 (c) 는 「빌더 control 높이 = 295 전 한 줄 높이라 효과 없음」 으로 통과시켰지만, 빌더 chrome CSS 가 글자 · 여백을 줄인 위젯 (Design 패널 Input 18 · NumberField 16 · ToggleButton 20) 은 그보다 작아 상자가 30 · 22 로 커졌다 (State 절 행 28 → 38). → `builder-catalog-pins.css` 가 새 `min-height` 24 자리 (field 안 버튼 · 범위 상자 DateInput 의 `0` 포함) 를 초기값 `auto` 로 고정, 게이트 (c) 는 새 선언이 빌더에서 초기값일 것만 받는다 (`min-height` 특례 · 빌더 높이 허용 목록 삭제). 수정 뒤 Property · Style · Text 0, Layout 60 px = 사용자 Select 의 Gap 값 6 → 7 (내용), header = 프로젝트 이름. Data RowForm 은 스크린샷 대신 같은 게이트 (c) — 빌더가 싣는 생성 시트의 새 선언 전부가 초기값.
+
+**G5 live (Playwright, dev 5175)**: Canvas Input 32 · radius 8 · 글자 14, Button 32 · padding 16, Tag 32 / Preview desktop 같음 / 터치 보기 Input 40 · 글자 17 · 여백 15, Button 40 · padding 20, Tag 40 (TagGroup = TextField) / 끄면 원래 값 / Publish (`hasTouch` — `(hover: hover) and (pointer: fine)` false) Input 40 · 17 · 15, Button 40 · 20 · desktop Input 32 / Radius preset 메뉴 「M · 8」 → commit 8, 테마를 radius xl 로 바꾼 뒤 「M · 16」 → commit 16 (= 그 테마의 `{radius.md}`) / 콘솔 오류 0. **live 가 잡은 결함 2**: ② Publish (헤더 Preview — 빌더 번들의 `/publish`) 에 `builder-catalog-vars.css` 가 실려, resolver 가 내지 않는 빌더 전용 변수 119 개 (`--catalog-token-input-padding-x-*` · 아이콘 · gap …) 가 생성 시트의 S2 식 (fallback) 을 chrome 값으로 덮었다 (Input 여백 12 vs 15) → 선택자 `:root:not(:has(.publish-app))` · 게이트 (b2). ③ Publish reset 이 layer 밖에서 form control 에 `font: inherit` 를 줘 Input 행간이 body 1.5 (21 · 25.5) 가 됐다 (desktop 35 · 터치 43.5 — 295 전에도 31 vs 30) → Preview reset 처럼 `font-family` · `font-feature-settings` 만 상속 (`publishResetFormControls.static.test.ts`). Chrome MCP 확인: 같은 프로젝트에서 Design 패널 Input 18 · min-height auto, Compare Mode 겹침 화면에서 TextField · Select 가 경계 양쪽에 이어진다.
+
+**범위 밖 (기존)**: Select 트리거 테두리 Canvas 1 · DOM 0 (before arm 도 같다).
+
+**원복 RED**: 게이트 (c) 강화 → pins 전 24 자리 RED · (b2) → 선택자 `:root` 에서 RED · Publish reset 테스트 → `font: inherit` 에서 RED. **회귀**: type-check PASS · G2 desktop · touch 263/263 · publish 15 · 빌더 styles · preview 708 (실패 1 = `chromeIsland`, 기존).
+
+**G6**: `ssot-hierarchy.md` D3 (값 정본 = S2 설치본, 이름 = 저장소) · `css-tokens.md` (컨트롤 크기 2티어 = 빌더 chrome, 사용자 컴포넌트 크기와 무관) · `style-ssot.md` (토큰 preset 값 = 활성 테마 snapshot) 반영. 남은 것: ADR-227 F8 각주 · README · `### Live Exercise` (G5 판단 뒤 Implemented 와 함께).
+
 - G1 before/after: §6.1
 - G2 두 arm: §6.2 · Phase 3a §6.3 · Phase 3b §6.4
 - G4 (b) 최종 snapshot (preset 5 × 델타) · (c) 컴포넌트별 desktop/touch vs S2 computed: §6.4 (c 의 padding · gap 은 3c)
-- G5 빌더 chrome before/after Δ (패널 표면 + 위젯 CompactSelect · PropertySelect · Data RowForm, desktop · pointer: coarse 두 조건): (미작성)
+- G5 빌더 chrome before/after Δ (패널 표면 + 위젯 CompactSelect · PropertySelect · Data RowForm, desktop · pointer: coarse 두 조건): §6.12
 - Decision 9 게이트 (a) 커버리지 · (b) pointer 쿼리 0 · (c) 계산값 == 기준 JSON · RED: §6.2
 - G3 ratchet 원복 RED: §6.4
 - G5 번들 Δ: 295 직전 (`a2f619475`) + 295 밖 코드 커밋 1 → `a0c94c1d7`, 같은 lockfile 의 두 worktree 빌드. Builder initial JS gzip 1,368,540 → 1,373,189 (+4,649) · Preview 313,067 → 315,483 (+2,416) — 처음 허용치 (+2,048 · +1,024) 초과, 절대 상한 안. 늘어난 곳 (sourcemap raw): `componentRulesTable` 토큰 ref +7,669 · `ruleLength` +3,894 · `device` +1,356 · `tokenResolver` +1,324 · Builder 만 `resolveThemeSnapshot` +2,332. 모두 승인된 결정 (토큰 참조 · 터치 두 벌 · 값의 형) 의 몫이라 **사용자가 허용치를 Builder +5,120 · Preview +2,560 B gz 로 재승인 (2026-10-31)**. 3c-3b 뒤 Phase 4 를 닫을 때 같은 방법으로 다시 잰다. 증거 `.agent/runs/2026-10-31-adr295-phase4/bundle/`.
-- G5 live: (미작성)
+- G5 live · 테마 전환 · 번들 최종: §6.12

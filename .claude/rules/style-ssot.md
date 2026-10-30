@@ -55,6 +55,7 @@ Styles 패널의 CSS 키는 `NodeEntry` 의 **typed field** (`visual` · `layout
 | Props (컴포넌트 설정)         | `catalogSemanticPatchCommand` — style 과 별개 축                                                                                                                                          |
 
 - 미리보기도 commit 과 같은 맥락으로 쓰기를 만든다 — `catalogStyleWritesOf` 에 record 의 `visual` 을 넘겨 border companion (`catalogBorderCompanionWrites`) 이 노드에 이미 있는 축을 채우지 않게 한다. **Why (2026-10-15)**: 미리보기만 `visual` 없이 만들어 Width 드래그 중 색이 기본 회색 (`#d4d4d4`) 으로, Color 고르는 중 두께가 기본 1px 로 바뀌었다 (사용자 보고).
+- **토큰 preset (Radius · Typography · Border 의 XS ~ XL) 의 표시 · commit 값은 활성 테마 snapshot 의 해석값이다** — `PropertyUnitInput.runtime.ts` `getCssVariableValue` · `panels/styles/utils/cssLengthPx.ts` 가 `var(--…)` 를 TokenRef 로 바꿔 `resolveToken` 으로 푼다 (ADR-295 Decision 5). **Why (2026-10-30)**: 빌더 문서 root 의 computed value 로 풀면 chrome 고정값 (radius md 6) 이 사용자 문서에 commit 되고, 같은 요소의 rule 기본 `{radius.md}` 는 S2 값 8 이 되어 Preset M 이 기본값과 달라진다. spacing 은 테마 밖이라 두 root 가 같은 시트를 읽는다.
 - 미리보기는 끌기가 끝난 뒤 다시 걸리지 않는다 — 섹션이 프레임에 미룬 미리보기는 host `previewEpoch` (확정 · `cancelPreview` 마다 증가) 가 바뀌었으면 버리고, host 는 `root.previewing(id)` 인 record 의 기록만 이어받는다. **Why (2026-10-19)**: 마지막 이동과 놓기가 한 프레임에 오면 확정 · 해제 뒤 미뤄 둔 미리보기가 다시 걸렸고, 확정 없이 끝난 끌기의 키가 다음 끌기에 섞였다 (code-review 후보 → 테스트 재현).
 
 ## 3. 읽기 계약

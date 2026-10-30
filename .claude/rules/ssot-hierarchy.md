@@ -50,6 +50,7 @@ composition 아키텍처는 **3개의 독립 domain**으로 구성된다. 각 do
 
 - **SSOT (일반 컴포넌트)**: catalog `COMPONENT_RULES_TABLE` (`packages/shared/src/catalog/generated/componentRulesTable.ts`) + theme/tokens root collection. `PrimitiveBinding`(leaf RAC primitive ~35개)이 코드 정의를 담당
 - **CSS 생성**: `packages/rendering/scripts/generate-css.ts`가 catalog의 structure·size·variant를 읽는다. 별도 native spec 입력은 없다.
+- **값 정본 = S2 설치본, 이름 = 저장소 (ADR-295, 2026-10-31)**: 사용자 컴포넌트의 치수 값 (radius · 글자 단계 · 행간 식 · control 높이 · 아이콘 단 · 여백 · 간격 · 막대 두께) 은 설치된 `@react-spectrum/s2` 의 style macro · 표가 정본이고, TokenRef 이름 (`{radius.md}` · `{size.height.M}`) · 패널 라벨 (XS ~ XL) 은 저장소 것을 그대로 쓴다. 값의 형 (고정 · `scale` 배율 · 글자 상대 · 높이 상대) 도 S2 를 따르며 터치 기기 값 (`scale` 1.25 · 글자 기준 17) 은 resolver 가 두 벌로 낸다. rule 값과 설치본의 대조는 `d3S2Alignment.static.test.ts`, S2 와 다르게 둔 리터럴은 `componentRulesTable.static.test.ts` 의 분류 목록 (의도적 · 대기 0) 이 막는다. 빌더 chrome 은 대상이 아니다 — [css-tokens.md](css-tokens.md) §컨트롤 크기.
 - **목적**: **Builder(Skia)와 Preview/Publish(DOM/CSS)의 시각 정합성 유지**
 - **consumer (대등, symmetric)**:
   - **Builder** = Skia 렌더 (`apps/builder/src/builder/workspace/canvas/skia/*`)
