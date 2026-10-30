@@ -40,7 +40,7 @@
   border: none;
 
   /* Default size */
-  height: 8px;
+  height: 4px;
   padding: 0px 0px;
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-full);
@@ -67,21 +67,21 @@
 }
 
 .react-aria-SliderTrack[data-size="M"] {
-  height: 8px;
+  height: 4px;
   padding: 0px 0px;
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-SliderTrack[data-size="L"] {
-  height: 12px;
+  height: 4px;
   padding: 0px 0px;
   font-size: var(--catalog-token-text-base);
   border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-SliderTrack[data-size="XL"] {
-  height: 16px;
+  height: 4px;
   padding: 0px 0px;
   font-size: var(--catalog-token-text-lg);
   border-radius: var(--catalog-token-radius-full);
@@ -98,11 +98,39 @@
   pointer-events: none;
 }
 
+/* ── Tier 2: Composite Delegation ── */
+
+
 @media (forced-colors: active) {
   .react-aria-SliderTrack {
     forced-color-adjust: auto;
   }
 }
+
+
+  .react-aria-SliderTrack:is(.react-aria-Slider *)::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .react-aria-SliderTrack:is(.react-aria-Slider *)[data-size="S"]::before {
+    height: 24px;
+  }
+
+  .react-aria-SliderTrack:is(.react-aria-Slider *)[data-size="M"]::before {
+    height: 32px;
+  }
+
+  .react-aria-SliderTrack:is(.react-aria-Slider *)[data-size="L"]::before {
+    height: 40px;
+  }
+
+  .react-aria-SliderTrack:is(.react-aria-Slider *)[data-size="XL"]::before {
+    height: 48px;
+  }
 
 
 } /* @layer components */

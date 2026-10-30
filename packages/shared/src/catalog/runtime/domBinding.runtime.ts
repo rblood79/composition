@@ -177,6 +177,7 @@ import {
 
 import {
   CATALOG_SLIDER_THICK_TRACK,
+  catalogSliderThickTrackMargins,
   catalogAbsentByValue,
   catalogCalendarNavButton,
   catalogCalendarNavButtonGlyph,
@@ -1005,6 +1006,7 @@ const bindings: Readonly<Record<string, DomBinding>> = {
               ...style,
               height: CATALOG_SLIDER_THICK_TRACK.height,
               borderRadius: CATALOG_SLIDER_THICK_TRACK.radius,
+              ...catalogSliderThickTrackMargins(node),
             }
           : style,
       children: catalogStateChildren(node.id, () => children),

@@ -120,12 +120,22 @@
 }
 
 
+  .react-aria-Slider[data-size="S"] .react-aria-SliderTrack {
+    margin-top: 10px;
+    margin-bottom: 10px;
+  }
+
   .react-aria-Slider[data-size="S"] :is(.react-aria-Label, .react-aria-FieldLabel) {
     font-size: var(--catalog-token-text-xs);
   }
 
   .react-aria-Slider[data-size="S"] .react-aria-SliderOutput {
     font-size: var(--catalog-token-text-xs);
+  }
+
+  .react-aria-Slider[data-size="M"] .react-aria-SliderTrack {
+    margin-top: 14px;
+    margin-bottom: 14px;
   }
 
   .react-aria-Slider[data-size="M"] :is(.react-aria-Label, .react-aria-FieldLabel) {
@@ -136,12 +146,22 @@
     font-size: var(--catalog-token-text-sm);
   }
 
+  .react-aria-Slider[data-size="L"] .react-aria-SliderTrack {
+    margin-top: 18px;
+    margin-bottom: 18px;
+  }
+
   .react-aria-Slider[data-size="L"] :is(.react-aria-Label, .react-aria-FieldLabel) {
     font-size: var(--catalog-token-text-base);
   }
 
   .react-aria-Slider[data-size="L"] .react-aria-SliderOutput {
     font-size: var(--catalog-token-text-base);
+  }
+
+  .react-aria-Slider[data-size="XL"] .react-aria-SliderTrack {
+    margin-top: 22px;
+    margin-bottom: 22px;
   }
 
   .react-aria-Slider[data-size="XL"] :is(.react-aria-Label, .react-aria-FieldLabel) {

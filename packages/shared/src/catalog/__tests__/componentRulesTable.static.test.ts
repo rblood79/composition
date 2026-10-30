@@ -220,6 +220,18 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
         "S2 막대 두께 `progress-bar-thickness-*` (`Meter.tsx` · `ProgressBar.tsx`) — 읽는 곳 없음 (progress archetype 이 건너뛴다 · 실제 두께는 `.bar` sizeSelectors 같은 값)",
       ),
   ),
+  sizes(
+    "SliderTrack",
+    "height",
+    { S: 4, M: 4, L: 4, XL: 4 },
+    "S2 thin 막대 4 (`Slider.tsx` `trackStyling` — 크기 무관). track 행 24 · 32 · 40 · 48 은 Slider `sizeSelectors` 의 위아래 margin",
+  ),
+  sizes(
+    "Slider",
+    "height",
+    { S: 4, M: 4, L: 4, XL: 4 },
+    "S2 thin 막대 4 — 읽는 곳 없음 (막대는 SliderTrack rule, 행은 Slider `sizeSelectors` margin)",
+  ),
   ...(["MeterValue", "ProgressBarValue", "SliderOutput"] as const).map(
     (component) =>
       sizes(
@@ -449,18 +461,6 @@ export const S2_PENDING_LITERAL: readonly PendingLiteral[] = [
     { S: 6, L: 10 },
     "MenuItem 안 label Text 가 MenuItem 글자가 아니라 Text 기본 (16 · 행간 20) 이고 MenuItem 은 size accept 가 없어 크기별 자식 규칙이 닿지 않는다 — S2 `menuitem` (최소 높이 control · 여백 높이 × 3/8 · 간격 text-to-visual · label = control 글자) 은 그 글자를 먼저 고친 뒤",
   ),
-  pending(
-    "Slider",
-    "height",
-    { S: 4, M: 8, L: 12, XL: 16 },
-    "S2 Slider track 행 24 · 32 · 40 · 48 (`Slider.tsx` `track`) — 막대 두께는 대조 전",
-  ),
-  pending(
-    "SliderTrack",
-    "height",
-    { S: 4, M: 8, L: 12, XL: 16 },
-    "S2 Slider track 행 24 · 32 · 40 · 48 (`Slider.tsx` `track`) — 막대 두께는 대조 전",
-  ),
 ];
 
 interface Literal {
@@ -557,7 +557,7 @@ describe("ADR-295 G3 — rule 치수 리터럴", () => {
     expect(stale).toEqual([]);
   });
 
-  it("S2 값 대조 대기는 줄기만 한다 (3c-3b ③ 45 → 3c-3c ① 32 → ②a 16 → ②b-1 11 → ②b-2 6 → ②c Tab 5)", () => {
-    expect(S2_PENDING_LITERAL.length).toBeLessThanOrEqual(5);
+  it("S2 값 대조 대기는 줄기만 한다 (3c-3b ③ 45 → 3c-3c ① 32 → ②a 16 → ②b-1 11 → ②b-2 6 → ②c Tab 5 → Slider 3)", () => {
+    expect(S2_PENDING_LITERAL.length).toBeLessThanOrEqual(3);
   });
 });

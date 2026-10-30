@@ -230,6 +230,27 @@
     width: 26px;
     height: 26px;
   }
+  /* generated/Slider.css — S2 track 행 24 · 32 · 40 · 48 의 위아래 margin (3c-3c ②c — 295 전 없음) */
+  .react-aria-Slider[data-size="S"]
+    .react-aria-SliderTrack:not(:where(.publish-app *)) {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+  .react-aria-Slider[data-size="M"]
+    .react-aria-SliderTrack:not(:where(.publish-app *)) {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+  .react-aria-Slider[data-size="L"]
+    .react-aria-SliderTrack:not(:where(.publish-app *)) {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+  .react-aria-Slider[data-size="XL"]
+    .react-aria-SliderTrack:not(:where(.publish-app *)) {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
 
   /* generated/TimeField.css · ColorField.css — 루트 글자 = S2 field 글자 (3c-3c — 295 전 한 단 위) */
   .react-aria-TimeField:not(:where(.publish-app *)) {

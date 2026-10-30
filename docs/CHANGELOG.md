@@ -28,6 +28,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CSS 영역에서도 같은 휠 이동·줌 지원**: 페이지 내부와 바깥 여백에서 휠로 이동하고, Shift+휠로 가로 이동하며, Cmd/Ctrl+휠로 포인터 위치를 기준으로 확대·축소한다. iframe 입력은 검증된 메시지 경로를 통해 기존 Canvas 카메라 처리에 연결한다.
   - 위치: `apps/builder/src/builder/workspace/Workspace.css`, `canvas/catalog/CatalogPreviewFrame.tsx`, `hooks/useWorkspaceCompareSplit.ts`
 
+## [ADR-295 Phase 3c-3c ②c — Slider track 행 · 막대 = S2] - 2026-10-31
+
+### Changed
+
+- **Slider 막대 4px (모든 크기)** 가 **S2 track 행 24 · 32 · 40 · 48** 가운데에 놓인다 (전 막대 = 행 4 · 8 · 12 · 16). Preview 에서는 행 어디를 눌러도 손잡이가 움직인다. thick 막대 (16) 도 같은 행. ColorSlider 는 그대로. 「S2 대조 대기」 5 → 3.
+  - 위치: `componentRulesTable.ts` (Slider · SliderTrack), `runtime/presence.ts` · `compositionRoot.ts` · `domBinding.runtime.ts` (thick), `builder-catalog-pins.css`, breakdown §6.11
+
 ## [ADR-295 Phase 3c-3c ②c — Tab 높이 · 탭 사이 간격 = S2 density] - 2026-10-31
 
 ### Changed

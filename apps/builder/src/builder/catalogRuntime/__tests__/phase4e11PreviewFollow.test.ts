@@ -328,14 +328,16 @@ describe("group size reaches the items", () => {
 
 /**
  * slider-track-size-not-propagated: the Slider size reaches its track (the old `size → SliderTrack`
- * propagation): the typed SliderTrack takes the catalog track height (sm 4 · lg 12), and the DOM
+ * propagation): the typed SliderTrack takes the catalog track height (S2 thin 4) and row margins, and the DOM
  * `<SliderTrack>` carries `data-size` so the generated `SliderTrack.css` size blocks apply.
  */
 describe("Slider size reaches the track", () => {
+  // (ADR-295 Phase 3c-3c ②c: the bar is S2 thin 4 at every size; the row — S2 `track` 24 · 40 — is its
+  // margins.)
   it.each([
-    ["S", 4],
-    ["L", 12],
-  ])("Slider %s track is %d tall in both consumers", async (size, height) => {
+    ["S", 4, 24],
+    ["L", 4, 40],
+  ])("Slider %s track is %d tall in a %d row in both consumers", async (size, height, row) => {
     const workspace = await openOwner("Slider", { size });
     const root = workspace.root;
     const track = [...root.layoutInputs.values()].find(
@@ -343,6 +345,10 @@ describe("Slider size reaches the track", () => {
     )!;
     expect(track.props.size).toBe(size);
     expect(root.getGeometry([track.id]).get(track.id)!.height).toBe(height);
+    expect(height + 2 * Number.parseFloat(String(track.layout.marginTop))).toBe(
+      row,
+    );
+    expect(track.layout.marginBottom).toBe(track.layout.marginTop);
     const group = [...root.domInputs.values()].find(
       (record) => record.sourceId === "project:node:owner",
     )!;

@@ -156,6 +156,7 @@ import {
   catalogDerivedPropsDependents,
   type CatalogComposedPart,
   CATALOG_SLIDER_THICK_TRACK,
+  catalogSliderThickTrackMargins,
   catalogHiddenAtRest,
   type CatalogOriginBodyOpen,
   catalogInlineAlertBoldText,
@@ -1190,6 +1191,11 @@ function styleOf(
     // insets win.)
     ...stickyInsets(node),
     ...itemLayout(node),
+    // (ADR-295 Phase 3c-3c ②c: the thick bar keeps the S2 track row — its margins refine the row margins
+    // `itemLayout` carries, `catalogSliderThickTrackMargins`.)
+    ...(node.derivedProps?.trackStyle === "thick"
+      ? catalogSliderThickTrackMargins(node)
+      : {}),
     ...(node.fillLayout ?? {}),
     // RAC `WaterfallLayout` · S2 CardView `layout="waterfall"`: the grid's row axis is masonry —
     // the engine stacks the items under the shortest column (`waterfall.ts`).

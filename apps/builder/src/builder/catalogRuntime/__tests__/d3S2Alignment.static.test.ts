@@ -38,6 +38,7 @@ import {
 } from "@composition/rendering";
 import { COMPONENT_RULES_TABLE } from "../../../../../../packages/shared/src/catalog/generated/componentRulesTable";
 import { manualBoxRule } from "../../../../../../packages/shared/src/catalog/document/manualBoxRules";
+import { CATALOG_SLIDER_THICK_TRACK } from "../../../../../../packages/shared/src/catalog/runtime/presence";
 import oracle from "./fixtures/adr295-s2-oracle.json";
 
 const SIZES = ["XS", "S", "M", "L", "XL"] as const;
@@ -1043,5 +1044,57 @@ describe("ADR-295 G4 — 3c-3c ②c Tab 높이 · TabList 간격 = S2 density", 
     expect(s2).toEqual({ compact: 24, regular: 32 });
     for (const [density, gap] of Object.entries(s2))
       expect(rules.TabList!.densities![density]?.gap).toBe(gap);
+  });
+});
+
+describe("ADR-295 G4 — 3c-3c ②c Slider track 행 · 막대 = S2", () => {
+  const rules = COMPONENT_RULES_TABLE as unknown as Record<
+    string,
+    {
+      sizes: Record<string, Record<string, unknown>>;
+      structure?: {
+        composition?: {
+          sizeSelectors?: Record<
+            string,
+            Record<string, Record<string, string>>
+          >;
+        };
+      };
+    }
+  >;
+
+  it("막대 = S2 `trackStyling` (thin 4 · thick 16), 모든 크기", () => {
+    const s2 = s2SizeTable(
+      "Slider.tsx",
+      /const trackStyling = \{\s*height: \{\s*trackStyle: /,
+    );
+    expect(s2).toEqual({ thin: 4, thick: 16 });
+    for (const block of Object.values(rules.SliderTrack!.sizes))
+      expect(block.height).toBe(s2.thin);
+    expect(CATALOG_SLIDER_THICK_TRACK.height).toBe(s2.thick);
+  });
+
+  it("track 행 = S2 `track` height (24 · 32 · 40 · 48) = 막대 + 위아래 margin", () => {
+    const s2 = s2SizeTable(
+      "Slider.tsx",
+      /export let track = style\(\{[^}]*?height: \{\s*size: /,
+    );
+    expect(s2).toEqual({ S: 24, M: 32, L: 40, XL: 48 });
+    const selectors = rules.Slider!.structure!.composition!.sizeSelectors!;
+    for (const [size, row] of Object.entries(s2)) {
+      const track = selectors[size]![".react-aria-SliderTrack"]!;
+      expect(track["margin-top"]).toBe(track["margin-bottom"]);
+      const bar = rules.SliderTrack!.sizes[size]!.height as number;
+      expect(bar + 2 * Number.parseFloat(track["margin-top"]!)).toBe(row);
+      // (DOM: a press anywhere in the row moves the thumb — the track's row-tall `::before`.)
+      const hit = (
+        COMPONENT_RULES_TABLE.SliderTrack.structure?.composition as {
+          rootSelectors: Record<string, { styles: Record<string, string> }>;
+        }
+      ).rootSelectors[
+        `&:is(.react-aria-Slider *)[data-size="${size}"]::before`
+      ];
+      expect(hit?.styles.height).toBe(`${row}px`);
+    }
   });
 });

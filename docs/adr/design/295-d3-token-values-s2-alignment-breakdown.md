@@ -632,7 +632,7 @@ StatusLight 점 ↔ 글자를 S2 `text-to-visual` 형으로 바꿨다가 되돌�
 
 **live (Chrome MCP, 5175)**: 팔레트 StatusLight · TagGroup · ColorArea. Canvas ColorArea 192 × 192 · TagGroup 390 × 54 · StatusLight 75 × 18, Compare Mode Preview ColorArea 192 × 192 · Tag 사이 8 · StatusLight 74.9 × 18. 콘솔 오류 0, 삭제 명령으로 지움.
 
-**②c Tab (이 커밋)**:
+**②c Tab**:
 
 | 자리                 | 전                                    | S2                                                                          |
 | -------------------- | ------------------------------------- | --------------------------------------------------------------------------- |
@@ -645,6 +645,21 @@ StatusLight 점 ↔ 글자를 S2 `text-to-visual` 형으로 바꿨다가 되돌�
 **게이트**: G4 「3c-3c ②c」 — 설치본 `Tabs.tsx` 의 `tab` height · `tablist` gap 표를 읽어 대조. `oneSidedProps` 의 Tabs density 단언에 Tab 의 Canvas 높이 32 · DOM `data-density` 추가. **원복 RED**: 전파 제거 · `data-density` 라우팅 제거 · Tab density 축 제거 → 각 1 · compact 높이 30 · TabList 옛 gap → 각 2. 복원 cmp 일치. G2 desktop · touch 263/263.
 
 **live (Chrome MCP, 5175)**: 팔레트 Tabs. regular — Compare Mode Preview 탭 48 · 간격 32 · 여백 0, Canvas 화면 측정 같은 값. Density Compact 로 바꾼 뒤 Canvas TabList 94 × 32 · Gap 24, Preview TabList 94.17 × 32 · 탭 32 · 간격 24. 콘솔 오류 0, 삭제 명령으로 지움.
+
+**②c Slider track (이 커밋)**:
+
+| 자리                                      | 전                 | S2                                                                              |
+| ----------------------------------------- | ------------------ | ------------------------------------------------------------------------------- |
+| 막대 (SliderTrack 높이)                   | 4 · 8 · 12 · 16    | thin 4 (모든 크기 — `Slider.tsx` `trackStyling`), thick 16 그대로               |
+| track 행                                  | 막대 = 행 (4 ~ 16) | 24 · 32 · 40 · 48 (`track` height) = 막대 + 위아래 margin 10 · 14 · 18 · 22     |
+| 누르는 자리 (DOM)                         | 막대 상자          | 행 전체 — SliderTrack `::before` 행 높이 (상호작용 전용, Canvas 무관 — ADR-223) |
+| Slider `height` · `indicator.trackHeight` | 4 · 8 · 12 · 16    | 4 (읽는 곳 없음 — 「의도적」)                                                   |
+
+장치: RAC SliderFill 은 inline `height: 100%` (D1) 라 막대 상자가 SliderTrack 이어야 한다 — 행은 상자를 키우지 않고 Slider `sizeSelectors` 의 `.react-aria-SliderTrack` margin 으로 (생성 CSS + Canvas part rule 한 정의). thick 막대는 `catalogSliderThickTrackMargins` (행 margin − 6) 를 Canvas `styleOf` (`itemLayout` 뒤) 와 DOM inline 이 같이 읽는다. 손잡이는 막대 가운데 그대로. ColorSlider 는 `.react-aria-Slider` 선택자 밖이라 무변경 (track 20 · margin 0). 빌더 PropertySlider 는 고정 시트로 margin 0 (Decision 9 게이트 (c) 의 초기값 목록에 `margin-top` · `margin-bottom`). 대기 5 → 3.
+
+**게이트**: G4 「3c-3c ②c Slider」 — 설치본 `trackStyling` (thin 4 · thick 16) · `track` height 표를 읽어 막대 · 행 (= 막대 + margin × 2) · DOM 누르는 행 높이와 대조. `sliderS2Styles` (M 막대 4 · margin 14, thick 16 + 8 × 2 · thin 과 같은 Slider 높이), `phase4e11PreviewFollow` (S 24 · L 40 행). **원복 RED**: M margin 12 → 3 · Canvas thick 보정 제거 → 1 · DOM thick 보정 제거 → 1 · M 막대 8 → 4 · DOM 누르는 행 M 제거 → 1. 복원 cmp 일치. G2 desktop · touch 263/263.
+
+**live (Chrome MCP, 5175)**: 팔레트 Slider · ColorSlider. Canvas Slider 390 × 54, Compare Mode Preview Slider 390 × 54 (막대 4 · margin 14 · `::before` 32 · 손잡이 20 가운데 · 채움 4), Compare 겹침에서 막대 · 라벨이 경계 양쪽 같은 높이. ColorSlider Canvas 300 × 42 = Preview 300 × 42 (track 20 · `::before` 없음). 콘솔 오류 0, 삭제 명령으로 지움.
 
 - G1 before/after: §6.1
 - G2 두 arm: §6.2 · Phase 3a §6.3 · Phase 3b §6.4

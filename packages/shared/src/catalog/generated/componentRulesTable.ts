@@ -10430,6 +10430,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // ADR-295 Phase 3c-3c ②c: `height` · `indicator.trackHeight` = the S2 thin bar 4 (no reader — the
+    //   bar is the SliderTrack rule's, the row its margins below).
     sizes: {
       S: {
         fontSize: "{typography.text-xs}",
@@ -10444,28 +10446,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.full}",
-        height: 8,
+        height: 4,
         gap: 4,
         columnGap: 16,
-        indicator: { trackHeight: 8, thumbSize: 20 },
+        indicator: { trackHeight: 4, thumbSize: 20 },
       },
       L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.full}",
-        height: 12,
+        height: 4,
         gap: 4,
         columnGap: 20,
-        indicator: { trackHeight: 12, thumbSize: 22 },
+        indicator: { trackHeight: 4, thumbSize: 22 },
       },
       XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.full}",
-        height: 16,
+        height: 4,
         gap: 4,
         columnGap: 20,
-        indicator: { trackHeight: 16, thumbSize: 24 },
+        indicator: { trackHeight: 4, thumbSize: 24 },
       },
     },
     structure: {
@@ -10489,8 +10491,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       composition: {
+        // ADR-295 Phase 3c-3c ②c: the track row = S2 `track` height 24 · 32 · 40 · 48 — the 4px bar
+        //   with (row − 4) / 2 above and below (a thick 16px bar: `CATALOG_SLIDER_THICK_TRACK`).
         sizeSelectors: {
           S: {
+            ".react-aria-SliderTrack": {
+              "margin-top": "10px",
+              "margin-bottom": "10px",
+            },
             ".react-aria-Label": {
               "font-size": "var(--text-xs)",
             },
@@ -10499,6 +10507,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           M: {
+            ".react-aria-SliderTrack": {
+              "margin-top": "14px",
+              "margin-bottom": "14px",
+            },
             ".react-aria-Label": {
               "font-size": "var(--text-sm)",
             },
@@ -10507,6 +10519,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           L: {
+            ".react-aria-SliderTrack": {
+              "margin-top": "18px",
+              "margin-bottom": "18px",
+            },
             ".react-aria-Label": {
               "font-size": "var(--text-base)",
             },
@@ -10515,6 +10531,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           XL: {
+            ".react-aria-SliderTrack": {
+              "margin-top": "22px",
+              "margin-bottom": "22px",
+            },
             ".react-aria-Label": {
               "font-size": "var(--text-lg)",
             },
@@ -10742,8 +10762,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
-    // height = trackHeight (visual 트랙 두께) / thumbSize = 핸들 지름 (layout box 높이, thumb 수용).
-    //   Slider.spec.sizes.*.indicator SSOT 미러 (trackHeight 4/8/12/16, thumbSize 14/18/22/26).
+    // ADR-295 Phase 3c-3c ②c: the bar is S2 thin 4 at every size (`Slider.tsx` `trackStyling`); the
+    //   track row (S2 `track` height 24 · 32 · 40 · 48) is the bar plus the Slider's per-size margins
+    //   (`sizeSelectors` `.react-aria-SliderTrack`). thumbSize = the handle diameter.
     sizes: {
       S: {
         fontSize: "{typography.text-xs}",
@@ -10754,19 +10775,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.full}",
-        height: 8,
+        height: 4,
         thumbSize: 20,
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.full}",
-        height: 12,
+        height: 4,
         thumbSize: 22,
       },
       XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.full}",
-        height: 16,
+        height: 4,
         thumbSize: 24,
       },
     },
@@ -10786,6 +10807,36 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           pointerEvents: "none",
         },
         focusVisible: {},
+      },
+      // ADR-295 Phase 3c-3c ②c: the S2 track row (24 · 32 · 40 · 48) is where a press moves the thumb
+      //   (S2 `track` — the 4px bar sits in it). The row's margins are space, so the DOM gives the bar
+      //   a hit box of the row's height (an interaction-only box the Canvas does not draw — ADR-223).
+      //   `::before` paints below the fill and thumbs (tree order), so they keep their presses.
+      composition: {
+        rootSelectors: {
+          "&:is(.react-aria-Slider *)::before": {
+            styles: {
+              content: "''",
+              position: "absolute",
+              "inset-inline": "0",
+              top: "50%",
+              transform: "translateY(-50%)",
+            },
+          },
+          '&:is(.react-aria-Slider *)[data-size="S"]::before': {
+            styles: { height: "24px" },
+          },
+          '&:is(.react-aria-Slider *)[data-size="M"]::before': {
+            styles: { height: "32px" },
+          },
+          '&:is(.react-aria-Slider *)[data-size="L"]::before': {
+            styles: { height: "40px" },
+          },
+          '&:is(.react-aria-Slider *)[data-size="XL"]::before': {
+            styles: { height: "48px" },
+          },
+        },
+        delegation: [],
       },
     },
   },

@@ -1277,6 +1277,23 @@ export function catalogSliderThumbLayout(
 export const CATALOG_SLIDER_THICK_TRACK = { height: 16, radius: 4 } as const;
 
 /**
+ * ADR-295 Phase 3c-3c ②c — a thick track keeps the S2 track row (24 · 32 · 40 · 48): its 16px bar
+ * takes the row's margins (the Slider's `sizeSelectors`, sized for the thin bar) less half the
+ * extra height. The Canvas (`styleOf`) and the DOM inline read this one value.
+ */
+export function catalogSliderThickTrackMargins(
+  node: Pick<CatalogConsumerNode, "layout" | "visual">,
+): { marginTop: string; marginBottom: string } | undefined {
+  const px = (value: unknown) =>
+    typeof value === "string" ? Number.parseFloat(value) : Number(value);
+  const margin = px(node.layout.marginTop);
+  const bar = px(node.visual.height);
+  if (!Number.isFinite(margin) || !Number.isFinite(bar)) return undefined;
+  const value = `${margin - (CATALOG_SLIDER_THICK_TRACK.height - bar) / 2}px`;
+  return { marginTop: value, marginBottom: value };
+}
+
+/**
  * A box the owner's DOM renderer composes with no catalog node of its own (the chevron button of a
  * Tree item that has no row content — a bare TreeItem the shared Tree draws): a
  * layout leaf before the record's children. It paints nothing itself — the owner's D3 rule draws

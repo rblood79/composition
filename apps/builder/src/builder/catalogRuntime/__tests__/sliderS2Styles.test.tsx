@@ -121,6 +121,14 @@ describe("S2 Slider trackStyle · thumbStyle · fillOffset", () => {
     expect(html).toMatch(
       /<div [^>]*height:16px;border-radius:4px[^>]*data-track-style="thick"/,
     );
+    // (ADR-295 Phase 3c-3c ②c: the row stays S2 M 32 — 16 + 8 × 2, both consumers.)
+    expect(html).toMatch(
+      /height:16px;border-radius:4px;margin-top:8px;margin-bottom:8px/,
+    );
+    const thin = await open({});
+    expect(geometry(root, part("Slider")!.id).height).toBe(
+      geometry(thin.root, thin.part("Slider")!.id).height,
+    );
     const canvas = bindCatalogCanvas(root, root.pageRootRecords());
     const painted = getSkiaNode(track.id) as unknown as {
       box?: { borderRadius?: number | number[] };
@@ -130,11 +138,13 @@ describe("S2 Slider trackStyle · thumbStyle · fillOffset", () => {
     expect(Array.isArray(radius) ? radius[0] : radius).toBe(4);
   });
 
-  it("default: the track keeps its per-size bar (M 8px, full corner)", async () => {
+  it("default: the S2 thin bar (4px) in the S2 track row (M 32 — margins 14)", async () => {
     const { root, part } = await open({});
     const track = part("SliderTrack")!;
     expect(track.derivedProps?.trackStyle).toBeUndefined();
-    expect(geometry(root, track.id).height).toBe(8);
+    expect(geometry(root, track.id).height).toBe(4);
+    expect(track.layout.marginTop).toBe("14px");
+    expect(track.layout.marginBottom).toBe("14px");
   });
 
   it("thumbStyle precise: a 6-wide, size+2-tall bar in both consumers", async () => {

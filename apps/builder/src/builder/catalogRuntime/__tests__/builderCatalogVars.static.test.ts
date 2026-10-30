@@ -110,6 +110,10 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
       "min-width": "auto",
       "max-width": "none",
       "margin-left": "0",
+      // (3c-3c ②c: the Slider track row's new margins — S2 `track` 24 · 32 · 40 · 48 around the 4px bar — are 0 in
+      //   the builder.)
+      "margin-top": "0",
+      "margin-bottom": "0",
     };
     // (Phase 3c-3: the Select trigger's new start padding — S2 Picker `edge-to-text` — is 0 in the builder, the
     //   value its own Select triggers take from the builder-system layer: `form-controls.css` `padding: 0`, a
