@@ -224,8 +224,10 @@ describe("TagGroup maxRows — the Canvas paint", () => {
     const showAll = root.tagShowAllInputs.get(list.id)!;
     const box = getSkiaNode(showAll.id)!;
     expect(box.text?.content).toBe("Show all (4)");
-    // (The accent text — `.tag-show-all-btn { color: var(--accent) }`.)
-    const accent = String(resolveToken("{color.accent}" as TokenRef, "light"));
+    // (The accent text — `.tag-show-all-btn { color: var(--accent-content) }`, ADR-290.)
+    const accent = String(
+      resolveToken("{color.accent-content}" as TokenRef, "light"),
+    );
     expect(
       Array.from(box.text!.color as Float32Array)
         .slice(0, 3)

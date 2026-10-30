@@ -73,6 +73,9 @@ export interface ColorTokens {
   "accent-pressed": string;
   "on-accent": string;
   "accent-subtle": string;
+  /** 바탕 위 accent (글자 · 선 · 채움) — 배경 역할 `accent` 와 따로 목표 대비로 정한다 (ADR-290). */
+  "accent-content": string;
+  "accent-content-hover": string;
 
   // --- Neutral (기존 on-surface + secondary) ---
   neutral: string;

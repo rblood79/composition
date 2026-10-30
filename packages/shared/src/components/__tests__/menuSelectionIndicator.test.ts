@@ -51,7 +51,8 @@ describe("Menu 선택 표시 — 데이터 게이팅 + 실제 로드", () => {
 
   it("독립 수치를 만들지 않는다 — 폭은 1em, 색은 accent 토큰", () => {
     expect(menuCss).toMatch(/width: 1em/);
-    expect(menuCss).toMatch(/color: var\(--accent\)/);
+    // 바탕 위 글리프 — accent-content (ADR-290), Builder chrome 은 그 변수가 없어 accent
+    expect(menuCss).toMatch(/color: var\(--accent-content, var\(--accent\)\)/);
     // px 상수를 새로 도입하면 catalog sizes 와 갈라진다.
     expect(menuCss).not.toMatch(/\d+px/);
   });

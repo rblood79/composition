@@ -50,13 +50,13 @@
 
 .react-aria-Badge[data-variant="accent"][data-fill-style="outline"] {
   background: transparent;
-  color: var(--accent);
-  border-color: var(--accent);
+  color: var(--accent-content);
+  border-color: var(--accent-content);
 }
 
 .react-aria-Badge[data-variant="accent"][data-fill-style="subtle"] {
   background: var(--accent-subtle);
-  color: var(--accent);
+  color: var(--accent-content);
   border-color: transparent;
 }
 

@@ -388,7 +388,7 @@
     padding: var(--spacing-xs) var(--spacing-md);
     font-size: var(--text-sm);
     line-height: var(--text-sm--line-height);
-    color: var(--accent);
+    color: var(--accent-content);
     cursor: pointer;
     outline: none;
     display: flex;

@@ -24,6 +24,8 @@ const LIGHT_SNAPSHOT = {
   "accent-pressed": "#1447e6",
   "on-accent": "#ffffff",
   "accent-subtle": "#dbeafe",
+  "accent-content": "#1447e6",
+  "accent-content-hover": "#193cb8",
   neutral: "#171717",
   "neutral-subdued": "#525252",
   "neutral-subtle": "#e5e5e5",
@@ -114,8 +116,10 @@ const DARK_SNAPSHOT = {
   accent: "#2b7fff",
   "accent-hover": "#3270d1",
   "accent-pressed": "#51a2ff",
-  "on-accent": "#171717",
+  "on-accent": "#ffffff",
   "accent-subtle": "#1c398e",
+  "accent-content": "#51a2ff",
+  "accent-content-hover": "#8ec5ff",
   neutral: "#f5f5f5",
   "neutral-subdued": "#a1a1a1",
   "neutral-subtle": "#404040",
@@ -206,7 +210,8 @@ describe("ADR-193 semanticPaletteMap — colors.ts 스냅샷", () => {
     // (2026-10-28: the only keys added since are the derived hover · pressed of the table's base
     //  tokens — `resolveSemanticStateColors`; every snapshot key keeps its value, hand pairs win.
     //  2026-10-30 ADR-293: negative hover · pressed 손값 삭제 → 같은 혼합 (결정 2), neutral hover ·
-    //  pressed 는 Tone 단계 값, neutral-fill-* 추가 (결정 4).)
+    //  pressed 는 Tone 단계 값, neutral-fill-* 추가 (결정 4). ADR-290: accent-content · -hover 추가,
+    //  dark on-accent 흰색 (결정 1).)
     expect(lightColors).toEqual({
       ...resolveSemanticStateColors("light"),
       ...LIGHT_SNAPSHOT,

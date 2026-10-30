@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-10-30 ADR-290 Implemented** (G5 — 사용자 「확인했다」, 5173 Builder. live 근거 = Playwright 5178 Preview 14 조합 × 10 값 · Canvas 설치 맵 4 · Publish 1 · forced-colors 1) — 본문을 `completed/` 로 옮기고 열림 · 순서 표 · 완료 표 · 링크를 맞췄다. Phase 0 ~ 4 요약: 사용자 결정 4 권고안 (dark on-accent 흰색 · hex 자기 명도 · 대비 표시 없음 · 브랜드 Tone 범위 밖) · accent 역할 둘 (`accent` 배경 · 새 `accent-content` / `-hover` 바탕 위) · resolver 안 목표 대비 명도 탐색 (`accentContrast.ts`, 의존 0) — Tone · 명시 색 델타 반영 뒤 · 바탕 집합은 rule 에서 유도 · light 프리셋 accent 불변 · rule 재분류 48 (본문 43 정정) + DOM 상태 선택자 14 · 생성 CSS 16 · RED e · f 는 ADR-293 이 이미 닫음 · G4 Builder +1,253 B gz (게이트 +1 KB 미달, G5 보고와 함께 수용) · Preview +64. 290 이 열림에서 완료로 (완료 314).
+>
 > **2026-10-30 ADR-293 Implemented** (G5 — 사용자 「확인했다」: Preview/Publish 값 변화 · dark 랜딩 배경 포함. live 근거 = Playwright 5178 Preview · Publish · forced-colors · `/`) — 본문을 `completed/` 로 옮기고 열림 · 순서 표 · 완료 표 · 링크를 맞췄다. Phase 0 ~ 4 요약: 결정 1 ~ 3 권고안 · Phase 0 S2 대조로 결정 4 (Button primary hover = `neutral-fill-*`) · 변환표 하나 · 토큰 ↔ 변수 1:1 · resolver 최종 색 맵 전체를 DOM 에 · `preview-system.css` 색 식 15 제거 · `/` 랜딩 builder scope · G3 117/117 · G4 Builder −276 / Preview −467 B gz · 회귀 새 실패 0. ADR-290 은 이 구조 위에 accent 키만 더한다. 293 이 열림에서 완료로 (완료 313).
 
 > **2026-10-30 ADR-293 Proposed 추가** (사용자 `/create-adr` — 같은 대화의 테마 토큰 ↔ 컴포넌트 연결 조사 뒤. 원문 「accent + tone ─ resolver → Skia 맵 → Canvas / └→ preview → DOM 이렇게는 안되나」): 토큰 생성이 resolver 와 `preview-system.css` 두 곳이라 Skia · DOM 값이 10 건 갈리고 (accent-pressed · neutral-hover · raised · negative-pressed …) 생성 CSS 의 hover · pressed 변수 6 개가 DOM 어디에도 선언이 없다 (`.button-base` 폴백으로 떨어져 Button primary hover light `#141414` vs Canvas `#d4d4d4`). 채택 대안 C = resolver 가 `colors.light` / `colors.dark` 전체를 DOM 변수로 싣고 CSS 의 색 계산식을 없앤다 — ADR-290 Decision 5 (accent 7 변수) 의 설치 경로를 테마 색 전체로 넓히는 base (breakdown §1 에 fork 4 질문 lock-in, 권장 순서 293 → 290). 사용자 결정 3 (raised 값 · negative hover/pressed 식 · CSS 폴백 잔존). 추정 ~10 파일 · 리뷰 round 1 (codex) HIGH 4 반영 pending 0 · 게이트 G0 ~ G5 (생성 CSS 미정의 변수 정적 · 10 × 5 × 2 browser 값 대칭 · live). 열림 3 (Proposed 3 = 290 · 293 · 245 보류) · 완료 312.
@@ -542,11 +544,6 @@
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
 
-#### [290](290-theme-accent-contrast-target-lightness.md) — Theme Accent 를 목표 대비로 정하기: 역할별 accent 토큰 · 모드별 명도 계산 · 두 렌더러에 같은 hex
-
-- **상태**: Proposed — 2026-10-29 (사용자 `/create-adr`, Adobe Leonardo 검토 뒤 — 패키지 비도입 · 계산 직접 구현). 리뷰 round 1 ([reviews/290.md](reviews/290.md)) HIGH 1 · MEDIUM 2 설계 반영 (pending 0) — accent 하나로는 dark 에서 배경 · 글자 역할을 동시에 만족할 수 없어 **역할별 토큰 `accent` · `accent-content`** · 탐색은 Tone · 명시 surface 델타 반영 뒤 · 테마 색 변수 전체를 forced-colors media 안에. round 2 (수리 검증) HIGH 1 — Badge subtle 바탕 `accent-subtle` 누락 → 대비 대상을 rule 에서 유도한 바탕 집합으로 반영, pending 0 · 실행자 닫힘 선언. 착수는 `/execute-adr 290`.
-- **규모**: Phase 0 (대조군 기록 · hex 표본 20 고정 · rule `{color.accent}` 43 곳 역할 분류표 · RED 6) → Phase 1 `accentContrast.ts` 명도 탐색 · resolver 순서 (Tone → surface 델타 → 탐색) · 시작 명도 → Phase 2 DOM 색 변수 7 (Skia 와 같은 객체) · forced-colors media · `colorTokenToCss` 키 2 · rule 재분류 · seed → Phase 3 색 피커 사다리 · Themes 미리보기 · 요소별 accent · (결정 3) 대비 표시 → Phase 4 live (프리셋 3 + hex 2 × 모드 2 · fill · outline · Link · focus · ProgressBar · Publish · forced-colors · Tone 전환) · 번들 Δ ≤ +1 KB · 의존성 0 → G5 사용자 확인. 사용자 결정 4. 추정 ~13 파일. breakdown: [design/290](design/290-theme-accent-contrast-breakdown.md)
-
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
 - **상태**: Proposed — 2026-09-27 (선택 경로 — Phase 0 no-go 면 기각 Deprecated · 보류 Proposed 유지가 정상 종결. 개정 2026-10-05 — ADR-248 뒤 코드 인용 갱신, 결정 무변경)
@@ -576,14 +573,13 @@
 
 | 순위 | ADR                                                                                            | 착수 준비도                                                                       | 차단 · 선행                                                                                                                                                                                                                                                               |
 | :--: | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|  1   | [290](290-theme-accent-contrast-target-lightness.md)                                           | Proposed 2026-10-29 — 리뷰 round 2 닫힘 (pending 0) — `/execute-adr 290` 가능     | 리뷰 (`review-adr`) · 사용자 결정 4 (dark 글자 흰색 · hex 시작 명도 · 대비 표시 · 브랜드 Tone) · ADR-293 과 파일 3 겹침 (293 먼저 권장 — 290 Phase 2 는 키 7 만 더한다)                                                                                                   |
 |  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상) | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)                                                                                                                                                                            |
 |  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                           | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                                                                                                                                                                                                    |
 |  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                | 각 항목의 재개 조건 발생 시                                                                                                                                                                                                                                               |
 
 ---
 
-## 완료 ADR (313)
+## 완료 ADR (314)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -904,6 +900,7 @@
 | [282](completed/282-library-origin-unlock-fork-and-reset.md) | Library page 원본 잠금 해제 (프로젝트 사본) · 리셋 · Library · Local page = 문서의 page (`componentPageIds` · `originOf` · `setViewChildren`) — contract 48 · G4 번들 상한 초과 상태로 종결 · 사용자 확인 2026-10-27 | Implemented | 2026-10-27 |
 | [283](completed/283-interaction-capability-target-ref-picker.md) | Interactions capability 대상 = 장소 참조 (`nodeId` · `address` · `local` · `unset`) · 실행 record 기준 해소 · 검색 선택기 · Canvas 지정 — contract 49 · 사용자 확인 2026-10-27 | Implemented | 2026-10-27 |
 | [293](completed/293-theme-color-single-source-resolver-to-dom.md) | 테마 색 토큰 단일 생성 — resolver 가 Canvas 색 맵 전체를 DOM 변수로 (`@media not (forced-colors)`) · 변환표 하나 (`colorTokenCssValue`) · 토큰 ↔ 변수 1:1 · `preview-system.css` 색 식 제거 · Button primary hover `neutral-fill-*` (S2 한 단) · 사용자 확인 2026-10-30 | Implemented | 2026-10-30 |
+| [290](completed/290-theme-accent-contrast-target-lightness.md) | Theme accent 를 목표 대비로 — 역할 둘 (`accent` 배경 · `accent-content` / `-hover` 바탕 위) · resolver 안 명도 탐색 (`accentContrast.ts`, 흰 글자 4.5 · 바탕 글자 4.5 · 선 3.0, 바탕 집합은 rule 유도) · dark on-accent 흰색 · 사용자 hex 는 자기 명도 · rule 재분류 48 · 사용자 확인 2026-10-30 | Implemented | 2026-10-30 |
 
 **Phase 0 baseline 문서** (ADR 아님 — 게이트 기준선): [035](completed/035-phase-0-baseline.md) · [037](completed/037-phase-0-baseline.md) · [039](completed/039-phase-0-baseline.md) · [040](completed/040-phase-0-baseline.md)
 

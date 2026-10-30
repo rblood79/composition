@@ -45,7 +45,7 @@
 .react-aria-ColorSwatch[data-variant="selected"] {
   background: var(--bg);
   color: var(--fg);
-  border-color: var(--accent);
+  border-color: var(--accent-content);
 
   &[data-hovered] {
     background: var(--bg-inset);

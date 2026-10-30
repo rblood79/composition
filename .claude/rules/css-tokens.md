@@ -56,7 +56,7 @@ Dark: `bg(zinc-900) → raised(zinc-850) → overlay(zinc-800) → muted(zinc-70
 
 ```
 ❌ background: var(--border);        → 테두리 변수를 배경에 사용 금지
-❌ color: var(--accent);             → accent를 일반 텍스트에 사용 금지
+❌ color: var(--accent);             → accent를 일반 텍스트에 사용 금지 (바탕 위 글자는 --accent-content, ADR-290)
 ❌ var(--color-gray-200)             → 원시 토큰 직접 사용 금지 (theme/ 정의 파일 제외)
 ❌ var(--gray-100)                   → 구 alias 사용 금지
 ❌ background: #fff / #1a1a1a        → 하드코딩 금지
@@ -176,8 +176,10 @@ Spec TokenRef: {color.primary}, {color.secondary}, {color.tertiary},
 | `{color.accent}`               | `--accent`                          | 주요 강조 배경                                                                                    |
 | `{color.accent-hover}`         | `--accent-hover` (resolver)         | accent hover — 검정 85% 혼합 (ADR-290 범위)                                                       |
 | `{color.accent-pressed}`       | `--accent-pressed` (resolver)       | accent pressed — 검정 75% 혼합                                                                    |
-| `{color.on-accent}`            | `--fg-on-accent`                    | accent 위 텍스트                                                                                  |
+| `{color.on-accent}`            | `--fg-on-accent`                    | accent 위 텍스트 — 두 모드 흰색 (ADR-290 결정 1)                                                  |
 | `{color.accent-subtle}`        | `--accent-subtle`                   | 연한 accent 배경                                                                                  |
+| `{color.accent-content}`       | `--accent-content` (resolver)       | **바탕 위** accent — 글자 · 선 · track 채움 (ADR-290). 위에 on-accent 를 얹는 면은 `accent`        |
+| `{color.accent-content-hover}` | `--accent-content-hover` (resolver) | 바탕 위 accent 의 hover — 바탕과 대비를 한 단 더 (light 어둡게 · dark 밝게)                       |
 | `{color.neutral}`              | `--fg`                              | 기본 텍스트                                                                                       |
 | `{color.neutral-subdued}`      | `--fg-muted`                        | 보조 텍스트                                                                                       |
 | `{color.neutral-subtle}`       | `--bg-muted`                        | 연한 중립 배경                                                                                    |
@@ -235,6 +237,14 @@ catalog 가 `{color.X}` 로 읽는 테마 색은 `resolveThemeSnapshot` (`packag
 - 바탕의 hover · pressed 는 그 바탕의 다음 단: `neutral-subtle` → `neutral-hover/-pressed`, `neutral` → `neutral-fill-hover/-pressed`. 명시 델타 뒤 파생은 이 짝을 따른다 (`DERIVED_STATE_KEYS`).
 - 값 대조: `apps/builder/tests/parity/themeColorParity.browser.test.ts` (프리셋 10 × Tone 5 × 모드 2 + 델타 — DOM 계산값 = Skia hex).
 - **Builder chrome 은 별도** (`builder-system.css`, `[data-context="builder"]`) — Builder 문서의 `:root` 에는 테마 색이 없다. `/` 랜딩 · Signin · Dashboard 는 `data-context="builder"`.
+
+## accent 는 역할 둘 — 목표 대비로 명도를 정한다 (ADR-290, 2026-10-30)
+
+규칙 하나: **같은 상태에서 그 면 위에 on-accent 글자 · 아이콘을 얹으면 `{color.accent}`, surface 위에 바로 놓이는 글자 · 선 · 채움이면 `{color.accent-content}`.** dark 에서는 두 역할을 동시에 만족하는 명도가 없다 (흰 글자를 얹을 면은 어둡고, 어두운 바탕 위 글자는 밝아야 한다).
+
+- 명도는 resolver (`tintToSkiaColors.ts` `createAccentColorTokens` → `accentContrast.ts` `solveLightness`) 가 Tone · 명시 색 델타를 반영한 바탕에 대해 정한다 — `accent` 는 흰 글자 4.5 · base 3.0, `accent-content` 는 `ACCENT_CONTENT_TEXT_BACKDROPS` 4.5 · `_GRAPHIC_` 3.0. (chroma, hue) 는 프리셋 · 사용자 hex 그대로. 사용자 hex 는 자기 명도에서 시작해 통과하면 그대로.
+- 새 rule 이 accent 를 쓰면 `adr290AccentRoles.static.test.ts` 의 분류표에 넣는다 — 새 바탕 위에 `accent-content` 를 놓으면 그 바탕이 탐색 대상인지 같은 테스트가 본다 (아니면 RED → 바탕 집합에 더한다).
+- ❌ surface 위 글자 · 테두리 · focus 표시에 `var(--accent)` — `var(--accent-content)`. Builder chrome 과 같이 쓰는 sheet 는 `var(--accent-content, var(--accent))` (builder-system 에는 그 변수가 없다).
 
 ## Tint 사다리 (preview-system.css — DOM 전용)
 

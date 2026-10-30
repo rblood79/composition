@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-290 Implemented — Theme accent 를 목표 대비로: 배경 accent 와 바탕 위 accent 를 따로] - 2026-10-30
+
+### Changed
+
+- dark 모드에서 accent 배경 위 글자 · 아이콘 (Button accent · 선택된 Checkbox · Radio · Switch · ListBox 항목 · Table 행 · 강조 Tag · ToggleButton) 이 흰색이 된다 — 종전 어두운 글자 `#171717` 은 프리셋 10 종 전부 대비 3.29 ~ 3.93 으로 WCAG 4.5 미달이었다 (S2 와 같은 흰 글자). accent 배경 색 자체는 두 모드 모두 그대로.
+- 바탕 위에 바로 놓이는 accent (Button outline 글자 · Link · Badge subtle · outline 글자 · 입력 focus · quiet 밑줄 · Card · ColorSwatch · Popover · TagGroup 선택 테두리 · ProgressBar · 강조 Slider 채움 · thumb · TagGroup 「Show all」 · Menu 선택 표시) 가 새 토큰 `accent-content` 를 쓴다 — Tone · 테마 바탕에 대해 글자 4.5 · 선 · 채움 3.0 이 나오도록 명도를 resolver 가 정한다. dark 는 밝아지고, light 는 green · turquoise · Badge subtle 위 글자처럼 미달이던 자리만 한두 단 어두워진다. Link · 입력 hover 는 `accent-content-hover` (바탕과 대비를 한 단 더).
+- Theme 에 사용자 hex accent 를 넣으면 그 hex 의 명도에서 시작한다 — 대비를 통과하면 브랜드색 그대로 (종전에는 명도를 55% 로 접어 `#1E3A8A` 도 `#4a6dc1` 로 바뀌었다). 미달이면 가장 가까운 통과 명도로 움직이고, 어떤 명도로도 조건을 다 맞출 수 없으면 글자 대비를 우선하고 경고를 남긴다.
+- 색 피커 Theme 팔레트의 accent 사다리에 실제 쓰이는 accent · accent-content 두 칸이 들어가고, Tone 을 바꾸면 다시 계산한다.
+
+### Added
+
+- 색 토큰 `accent-content` · `accent-content-hover` (`{color.accent-content}` → `var(--accent-content)`, forced-colors 에서는 `LinkText`). 규칙: 같은 상태에서 그 면 위에 on-accent 를 얹으면 `accent`, surface 위에 바로 놓이면 `accent-content` — `adr290AccentRoles.static.test.ts` 가 rule 의 accent 참조 48 곳과 바탕 집합을 지킨다.
+- 명도 탐색 `accentContrast.ts` (WCAG 2 대비 · `solveLightness`, 새 의존성 0). G3 live: 프리셋 3 · hex 2 · Tone 4 × 모드 14 조합 × 10 값 Preview = resolver 값, Canvas 설치 맵 · Publish · forced-colors 1 회씩.
+- 번들: Builder initial +1,253 B · Preview +64 B gz (ADR 게이트 +1 KB 미달 — 사용자 확인과 함께 수용). G5 사용자 확인 2026-10-30 → ADR-290 Implemented (`docs/adr/completed/290-*.md`).
+
 ## [ADR-293 Implemented — 테마 색 토큰을 resolver 한 곳에서: Preview · Publish 가 Canvas 와 같은 값] - 2026-10-30
 
 ### Changed

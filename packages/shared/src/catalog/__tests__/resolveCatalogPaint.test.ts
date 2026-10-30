@@ -228,7 +228,7 @@ describe("resolveCatalogPaint", () => {
   it("_isShowAll data signal은 투명 background/accent text/no-border를 고정한다", () => {
     expect(resolve({ _isShowAll: true })).toMatchObject({
       backgroundColor: "{color.transparent}",
-      color: "{color.accent}",
+      color: "{color.accent-content}",
       borderColor: undefined,
     });
   });

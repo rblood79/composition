@@ -976,7 +976,7 @@ export function catalogComponentsPageEntries(
           backgroundColor: color("accent-subtle"),
           borderWidth: 1,
           borderStyle: "solid",
-          borderColor: color("accent"),
+          borderColor: color("accent-content"),
         }),
         `${mark} ${name}`,
         `${size}px`,

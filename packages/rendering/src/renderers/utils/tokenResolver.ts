@@ -142,6 +142,8 @@ const COLOR_TOKEN_TO_CSS: Record<string, string> = {
     "var(--accent-pressed, color-mix(in srgb, var(--accent) 75%, black))",
   "on-accent": "var(--fg-on-accent)",
   "accent-subtle": "var(--accent-subtle)",
+  "accent-content": "var(--accent-content)",
+  "accent-content-hover": "var(--accent-content-hover)",
 
   // --- Neutral ---
   neutral: "var(--fg)",

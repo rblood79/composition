@@ -2,18 +2,27 @@
 
 ## Status
 
-Proposed — 2026-10-29
+Implemented — 2026-10-30 (G5 — 사용자 「확인했다」, 5173 Builder). Accepted 같은 날 (리뷰 [reviews/290.md](../reviews/290.md) round 2 pending 0 · CRITICAL/HIGH 전부 fixed + 사용자 `/execute-adr 290`).
+
+- 사용자 결정 4건 (2026-10-30, 전부 권고안): 1 dark on-accent = 흰색 · 2 사용자 hex 는 자기 명도에서 · 3 대비 표시 넣지 않음 · 4 브랜드 Tone 범위 밖.
+
+> **Phase 0 (2026-10-30)**: accent 참조 48 곳 분류 (본문 43 은 hover · pressed 키 누락 — breakdown §5). RED a ~ d 는 계산으로 확인 (dark 배경 역할 3.29 ~ 3.93 · dark 바탕 위 · light green/turquoise 글자 · `#00A86B` 4.42). **RED e · f 는 [ADR-293](293-theme-color-single-source-resolver-to-dom.md) 이 이미 닫았다** — DOM accent-pressed 가 resolver 값을 읽고 (preview-system 50% 식 삭제) 색 변수가 forced-colors media 안에 있다. Decision 5 의 남은 몫은 새 변수 2 개의 forced-colors 시스템 색뿐. 본문이 적은 `--fg-on-accent-pressed` 토큰은 없다 (forced-colors 블록의 DOM 변수만).
+> **Phase 1 (2026-10-30)**: `accentContrast.ts` (WCAG 대비 · `solveLightness`) · `createAccentColorTokens` 역할별 탐색 · resolver 순서 (Tone → 명시 색 델타 → accent 탐색 → 명시 accent 계열 덮기) · 사용자 hex 는 자기 명도 · 통과하면 hex 그대로. G1 단위 40 + 사다리 1 PASS (breakdown §6 결과표).
+> **Phase 2 (2026-10-30)**: 토큰 `accent-content` · `accent-content-hover` (rendering 표 · seed · 타입) · rule 재분류 27 + DOM 상태 선택자 14 · Slider thumb 생성식 · show-all · Menu 글리프 · forced-colors `LinkText`. 생성 CSS 16 파일 재생성. G2 정적 (`adr290AccentRoles.static.test.ts` — 분류표 oracle 48 + 바탕 유도 27) PASS · 변이 RED 4/4.
+> **Phase 3 (2026-10-30)**: 색 피커 Theme 사다리에 탐색된 accent · accent-content 칸 (Tone 변경에 다시 계산). `MiniThemePreview` 는 accent 를 그리지 않고 `resolveAccentColorTokens` 는 production 소비처가 없어 (테스트만) 바꿀 것 없음. 결정 3 (대비 표시) 은 넣지 않음.
+> **Phase 4 (2026-10-30)**: G3 live 14/14 PASS · Canvas 설치 맵 4/4 · Publish 1 · forced-colors 1 (아래 `### Live Exercise`). **G4 미달** — Builder initial JS gzip +1,253 B (게이트 +1 KB, 경고 문구 축소 뒤 값), Preview +64 B. 절대 상한 (1,390,000 B) 안 (1,363,539). G5 확인 요청에 함께 보고했고 사용자는 「확인했다」 로 답했다 — 별도 축소 지시 없이 수용으로 기록한다.
+> **G5 (2026-10-30)**: 사용자 「확인했다」 — 5173 Builder (이 작업 트리의 dev 서버) 에서 dark accent 버튼 · Link · Badge 확인.
 
 - 사용자 요청: `/create-adr` (2026-10-29) — 같은 대화의 Adobe 공개 저장소 분석 검증 뒤.
 - 방향을 정한 사용자 원문 (2026-10-28 ~ 29, 같은 대화):
   - 「Leonardo: 는 Theme 의 Accent, Tone 선택 Token 에 자동화 에 영향을 줄수있는지 분석해」 → Accent · Tone 파생 경로 실측과 대비 계산 (Context §현재 · §계산).
   - 「도입할만한건가」 → 권고: Leonardo 패키지는 넣지 않고, 「목표 대비로 명도 정하기」 계산을 테마 resolver 안에 직접 구현. 이 권고 직후 `/create-adr` 입력 — 이 ADR 은 그 방향 (대안 C) 을 채택안으로 쓴다.
 - 사용자가 이미 답한 확인 항목: 없음. 시각 결과가 바뀌는 선택은 아래 「사용자 결정 4건」 에 모았다.
-- 리뷰 round 1 (2026-10-29, codex — [reviews/290.md](reviews/290.md)): HIGH 1 · MEDIUM 2 를 설계에 반영 — H1 accent 하나를 배경과 글자에 같이 쓰면 dark 에서 대비를 만족하는 명도가 없다 → **역할별 토큰 둘** (Decision 1) · M2 탐색의 바탕 입력이 실제 인접 surface 와 연결되지 않음 → Tone · 명시 델타를 반영한 뒤 역할별 인접 surface 목록으로 탐색 (Decision 2) · M3 명시 색 델타도 layer 없는 변수로 forced-colors 를 이김 → 테마 색 변수 전체를 `@media not (forced-colors: active)` 안에 (Decision 5). 판독이 지적하지 않은 같은 계열 두 건도 같이 반영 — accent 를 글자로 쓰는 곳은 Button outline 외에 Link · Badge · DropZone 도 있고, light 에서도 green 계열 글자가 layer-1 위 4.37 로 미달.
+- 리뷰 round 1 (2026-10-29, codex — [reviews/290.md](../reviews/290.md)): HIGH 1 · MEDIUM 2 를 설계에 반영 — H1 accent 하나를 배경과 글자에 같이 쓰면 dark 에서 대비를 만족하는 명도가 없다 → **역할별 토큰 둘** (Decision 1) · M2 탐색의 바탕 입력이 실제 인접 surface 와 연결되지 않음 → Tone · 명시 델타를 반영한 뒤 역할별 인접 surface 목록으로 탐색 (Decision 2) · M3 명시 색 델타도 layer 없는 변수로 forced-colors 를 이김 → 테마 색 변수 전체를 `@media not (forced-colors: active)` 안에 (Decision 5). 판독이 지적하지 않은 같은 계열 두 건도 같이 반영 — accent 를 글자로 쓰는 곳은 Button outline 외에 Link · Badge · DropZone 도 있고, light 에서도 green 계열 글자가 layer-1 위 4.37 로 미달.
 - 리뷰 round 2 (2026-10-29, codex 수리 검증): round 1 세 수리는 fixed 로 인정, HIGH 1 — `accent-content` 의 대비 대상에 Badge subtle 의 실제 바탕 `accent-subtle` 이 빠짐 (light blue `#3660f0` 대 `#daeeff` 4.32 · green 4.15 · turquoise 4.14). 수리: 대비 대상을 고정 목록 대신 **catalog rule 에서 유도한 실제 바탕 집합**으로 (Decision 2) — `accent-subtle` 은 파생 · 명시 델타를 탐색 전에 해석. 같은 계열로 ProgressBar 채움 (accent) 이 `accent-subtle` track 위에 놓이는 것도 실행자 확인 (`componentRulesTable.ts` `ProgressBarTrack`). 수리 검증 HIGH 는 실행자가 반영으로 닫는다 (`review-loop-closure.md` §1 — 라운드 재개 없음).
 - 메모리: `project-theme-accent-contrast-leonardo-analysis-2026-10` (이 ADR 의 실측 원본) · `reference-design-data-mcp-installed-query-traps` · `feedback-design-whole-scope-upfront-no-deferral` (설계는 처음부터 전체 범위) · `feedback-no-document-migration-code-dev-stage` (마이그레이션 코드 금지).
 
-> 구현 상세: [design/290-theme-accent-contrast-breakdown.md](design/290-theme-accent-contrast-breakdown.md)
+> 구현 상세: [design/290-theme-accent-contrast-breakdown.md](../design/290-theme-accent-contrast-breakdown.md)
 
 ## Context
 
@@ -129,7 +138,7 @@ Proposed — 2026-10-29
    - 탐색 함수 하나 (`accentContrast.ts`): 시작 명도가 조건을 만족하면 그대로 두고, 아니면 통과 구간에서 시작 명도에 가장 가까운 끝값. 구간이 비면 글자 조건만으로 풀고 `warnings` 에 남긴다.
 3. **on-accent 와 상태색** — on-accent 는 두 모드 모두 흰색 (S2 와 같음 — 사용자 결정 1 권고안). `accent-hover` · `accent-pressed` 는 지금처럼 검정 85% · 75% 혼합. 이 둘의 `base` 대비 (dark 2.18 ~ 3.03) 는 조건으로 두지 않는다 — 1.4.11 은 구성요소를 **식별하는** 시각 정보를 요구하고, 누르는 동안의 상태 차이는 기본 상태 경계 (≥ 3.0) 와 글자 (≥ 4.5) 가 이미 보장한 위에 얹힌다. S2 도 dark hover 에서 배경을 바꾼다 (`Button.tsx:156`). 이 판단은 R7 로 기록한다.
 4. **시작 명도** — 프리셋은 55% (현재 값). 그래서 **light 프리셋의 `accent` (배경) 값은 바뀌지 않는다** (10 종 모두 흰 글자 4.57 이상 · 바탕 3.0 이상). `accent-content` 는 같은 55% 에서 출발해 미달일 때만 움직인다 (light 는 green · turquoise 만, dark 는 전부). 사용자 hex 는 **hex 자신의 명도**에서 출발 (사용자 결정 2).
-5. **DOM 설치와 forced-colors** — resolver 가 모드별 `--accent` · `--accent-hover` · `--accent-pressed` · `--fg-on-accent` · `--fg-on-accent-pressed` · `--accent-content` · `--accent-content-hover` 를 Skia 맵과 같은 객체에서 싣는다. `ThemeCssVar` 에 색 여부를 표시하고, `applyCatalogPreviewTheme` (Preview · Publish 공용 설치 한 곳) 은 **색 변수 블록 전체를 `@media not (forced-colors: active)` 안에** 둔다. seed 와 명시 델타가 같은 경로라 둘 다 forced-colors 에서 layer 안 시스템 색에 양보한다. 반경 · 글꼴 · 테두리 폭 변수는 media 밖에 남긴다. (설치 범위를 테마 색 전체로 넓히는 것은 [ADR-293](completed/293-theme-color-single-source-resolver-to-dom.md) — 이 7 변수는 그 부분집합. 2026-10-30)
+5. **DOM 설치와 forced-colors** — resolver 가 모드별 `--accent` · `--accent-hover` · `--accent-pressed` · `--fg-on-accent` · `--fg-on-accent-pressed` · `--accent-content` · `--accent-content-hover` 를 Skia 맵과 같은 객체에서 싣는다. `ThemeCssVar` 에 색 여부를 표시하고, `applyCatalogPreviewTheme` (Preview · Publish 공용 설치 한 곳) 은 **색 변수 블록 전체를 `@media not (forced-colors: active)` 안에** 둔다. seed 와 명시 델타가 같은 경로라 둘 다 forced-colors 에서 layer 안 시스템 색에 양보한다. 반경 · 글꼴 · 테두리 폭 변수는 media 밖에 남긴다. (설치 범위를 테마 색 전체로 넓히는 것은 [ADR-293](293-theme-color-single-source-resolver-to-dom.md) — 이 7 변수는 그 부분집합. 2026-10-30)
 6. **같은 계산을 쓰는 표면** — 색 피커 Theme 팔레트 (`resolveAccentLadder`) · Themes 패널 미리보기 (`MiniThemePreview`) · 요소별 accent (`resolveAccentColorTokens`).
 7. **Tone 은 바꾸지 않는다** — 5 종 모두 글자 대비가 통과한다. accent 탐색의 입력 (surface) 으로만 쓴다. 브랜드색으로 물든 Tone 은 사용자 결정 4.
 8. **chart accent 4 단계 · `--tint-N` 사다리 (DOM 전용 link · focus-ring)** 는 지금 공식을 유지한다 (`--tint` 는 계속 싣는다). chart 는 장식 단계이고, link · focus-ring 은 catalog rule 이 쓰지 않는 DOM 전용 변수다.
@@ -188,7 +197,13 @@ Proposed — 2026-10-29
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+2026-10-30 · 별도 dev 서버 5178 (사용자 5173 무관) · headless Playwright (Chromium, DPR 1) · `visibilityState` visible · 콘솔 오류 0.
+
+- **G3 Preview (Compare Mode iframe, `getComputedStyle`)**: 새 프로젝트에 Button accent fill · Button accent outline · Link · Badge accent subtle · TextField · ProgressBar 60 을 심고, Themes host (`setActiveThemePreset` · `setThemeToken` — 패널이 쓰는 같은 명령) 로 프리셋 blue · yellow · green × light · dark, hex `#FFCC00` · `#1E3A8A` × light · dark, green dark × Tone slate · gray · zinc · stone 을 바꿔 가며 10 값 (fill 배경 · 글자, hover · pressed 배경, outline 글자, Link, Badge 배경 · 글자, Input focus 테두리, ProgressBar 채움) 을 resolver 기대값 (= Skia 맵, node 에서 따로 계산) 과 대조 — **14/14 조합 PASS** (140 값).
+- **Canvas**: 앱과 같은 모듈 인스턴스의 설치 토큰 맵 (`lightColors` · `darkColors`) 을 green light · dark, yellow dark, blue dark 에서 읽어 accent · accent-content · -hover · on-accent 가 기대값과 같음 — 4/4.
+- **Publish 1 회** (상단 Preview → `/publish?project=blob:…`, blue dark): `#runtime-theme-vars` 에 `--accent-content` · forced-colors media 있음, Fill 버튼 `#3660f0` 위 흰 글자, Link · Badge · ProgressBar `#5587ff`.
+- **forced-colors 에뮬레이션 1 회**: `--accent` = Highlight · `--accent-content` = LinkText · `--radius-md` = 6px (테마 값 유지) · Link 시스템 색.
+- 사용자 Builder 확인 (G5): 「확인했다」 (2026-10-30, 5173).
 
 ## Consequences
 

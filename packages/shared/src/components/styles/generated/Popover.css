@@ -32,7 +32,7 @@
 .react-aria-Popover[data-variant="accent"] {
   background: var(--bg);
   color: var(--fg);
-  border-color: var(--accent);
+  border-color: var(--accent-content);
 
   &[data-hovered] {
     background: var(--bg);

@@ -134,20 +134,20 @@ describe("S2 Slider isEmphasized", () => {
     expect(painted.thumb).toEqual(painted.fill);
   });
 
-  it("the sheets paint the same pair: neutral (--fg) · accent", () => {
+  it("the sheets paint the same pair: neutral (--fg) · accent-content (ADR-290)", () => {
     const fill = readFileSync(`${STYLES}/SliderFill.css`, "utf8");
     expect(fill).toMatch(
       /\.react-aria-SliderFill \{[^}]*background: var\(--fg\)/,
     );
     expect(fill).toMatch(
-      /\.react-aria-SliderFill\[data-variant="emphasized"\] \{[^}]*background: var\(--accent\)/,
+      /\.react-aria-SliderFill\[data-variant="emphasized"\] \{[^}]*background: var\(--accent-content\)/,
     );
     const slider = readFileSync(`${STYLES}/Slider.css`, "utf8");
     expect(slider).toMatch(
       /\.react-aria-SliderThumb \{[^}]*background: var\(--fg\)/,
     );
     expect(slider).toMatch(
-      /\[data-emphasized\] \.react-aria-SliderThumb \{[^}]*background: var\(--accent\)/,
+      /\[data-emphasized\] \.react-aria-SliderThumb \{[^}]*background: var\(--accent-content\)/,
     );
   });
 });

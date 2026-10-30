@@ -1,6 +1,6 @@
 # ADR-290 breakdown — Theme Accent 역할별 토큰 · 목표 대비 명도
 
-> 본문: [ADR-290](../290-theme-accent-contrast-target-lightness.md). 이 문서는 phase · 파일 · 테스트 목록만 둔다. 결정 · 대안 · 위험은 본문이 정본이다.
+> 본문: [ADR-290](../completed/290-theme-accent-contrast-target-lightness.md). 이 문서는 phase · 파일 · 테스트 목록만 둔다. 결정 · 대안 · 위험은 본문이 정본이다.
 
 ## §1 전제 lock-in
 
@@ -94,4 +94,74 @@
 
 ## §5 역할 분류표
 
-(Phase 0 에서 채운다 — 컴포넌트 · 상태 · 칸 · 현재 키 · 역할 · 근거)
+Phase 0 (2026-10-30) 실측: variant 의 accent 참조는 **48 곳** (본문의 43 은 hover · pressed 키 일부를 세지 않은 값), 그 밖에 rule 의 DOM 상태 선택자 리터럴 17 곳 · 생성기 고정 문자열 1 · 손 CSS 2 · Canvas 코드 2. 정본은 `adr290AccentRoles.static.test.ts` 의 `CLASSIFICATION` (rule 이 바뀌면 그 표와 함께 고친다).
+
+**배경 역할 `accent` (21)** — 같은 상태에서 그 면 위에 on-accent 글자 · 아이콘:
+
+| 컴포넌트 · variant                      | 칸                                                     | 바탕 위 내용               |
+| --------------------------------------- | ------------------------------------------------------ | -------------------------- |
+| Badge accent                            | fill default base · hover · pressed                    | `text` = on-accent         |
+| Button accent                           | fill default base · hover · pressed, border · borderHover | `text` = on-accent (테두리 = 배경색) |
+| Checkbox · Radio emphasized             | fill selected, selectedBorder                          | 체크 · 점                  |
+| Switch emphasized                       | fill selected                                          | thumb                      |
+| ListBoxItem default · Row default       | fill selected                                          | `selectedText` = on-accent |
+| Tag selectedEmphasized                  | fill base · hover · pressed, border                    | `text` = on-accent         |
+| ToggleButton default                    | fill emphasizedSelected, emphasizedSelectedBorder      | `emphasizedSelectedText`   |
+
+**바탕 위 역할 `accent-content` (27)** — 아래 바탕 (같은 variant · fillStyle 의 fill, 투명이면 컨테이너 surface 전부):
+
+| 컴포넌트 · variant          | 칸 → 토큰                                                        | 아래 바탕                                       | 조건      |
+| --------------------------- | ---------------------------------------------------------------- | ----------------------------------------------- | --------- |
+| Badge accent                | subtleText · outlineText · outlineBorder                         | `accent-subtle` · 투명 (surface)                | 글자 4.5  |
+| Button accent               | outlineText                                                      | 투명 (surface)                                  | 글자 4.5  |
+| Card primary · secondary · tertiary · quiet | selectedBorder                                   | layer-2 · layer-1 · neutral-subtle · accent-subtle | 선 3.0 |
+| ColorSwatch selected        | border                                                           | base · layer-2 · layer-1                        | 선 3.0    |
+| DateInput · Input accent    | border, borderHover → `accent-content-hover`                     | layer-2 · layer-1                               | 선 3.0    |
+| DropZone default            | textHover · borderHover                                          | base · layer-2                                  | 글자 4.5  |
+| Group accent                | text                                                             | base                                            | 글자 4.5  |
+| Link primary · secondary    | text, textHover → `accent-content-hover` (secondary textHover → content) | base                                    | 글자 4.5  |
+| Popover accent              | border                                                           | base                                            | 선 3.0    |
+| TagGroup accent             | border                                                           | accent-subtle                                   | 선 3.0    |
+| ProgressBarTrack · ProgressBarFill | fillBar · fill base · hover · pressed                     | track `accent-subtle`                           | 채움 3.0  |
+| SliderFill · SliderThumb emphasized | fill base                                               | SliderTrack `neutral-subtle`                    | 채움 3.0  |
+
+**rule 밖 같은 역할**: DOM 상태 선택자 (DateInput · DateRangePicker · Input focus outline · border, quiet 밑줄, Select quiet 밑줄 3, DropZone drop-target 글자 2, ProgressBar `--fill-color`) 14 → `var(--accent-content)` · Slider 생성기 thumb (`CSSGenerator.ts`) · TagGroup `.tag-show-all-btn` 글자 (+ Canvas `canvasBinding.ts` show-all · `resolveCatalogPaint` `_isShowAll`) · Menu 선택 글리프 (`var(--accent-content, var(--accent))` — Builder chrome 도 이 sheet 를 쓰고 builder-system 에는 그 변수가 없다) · Components page spacing 견본 테두리. 배경 칠 (`background` · `background-color`) 3 곳은 배경 역할로 둔다. focus outline 이 아닌 Builder 전용 블록 (`:not([data-catalog-id])` · 쓰이지 않는 `.listbox-item-check`) 은 건드리지 않았다.
+
+**유도한 바탕 집합** (`ACCENT_CONTENT_TEXT_BACKDROPS` · `_GRAPHIC_`): 글자 4.5 = base · raised · layer-1 · layer-2 · elevated · accent-subtle, 선 · 채움만 3.0 = neutral-subtle. 정적 테스트가 위 27 자리의 바탕을 rule 에서 다시 유도해 집합 안인지 본다.
+
+## §6 G1 결과표 (프리셋 10 × 모드, Tone neutral — 2026-10-30)
+
+| tint      | 모드  | accent (흰 글자 · base) | accent-content (가장 가까운 글자 바탕 · neutral-subtle) | content-hover |
+| --------- | ----- | ----------------------- | ------------------------------------------------------- | ------------- |
+| red       | light | #c53631 (5.32 · 5.32)   | #c1322d (4.53 · 4.43)                                   | #b11e1f       |
+| red       | dark  | #c53631 (5.32 · 3.37)   | #ed5c52 (4.51 · 3.09)                                   | #ff776b       |
+| orange    | light | #b25300 (5.08 · 5.08)   | #ad4f00 (4.52 · 4.28)                                   | #9e4000       |
+| orange    | dark  | #b25300 (5.08 · 3.53)   | #d57222 (4.51 · 3.09)                                   | #ec883d       |
+| yellow    | light | #9d6300 (4.98 · 4.98)   | #995f00 (4.53 · 4.18)                                   | #8a5100       |
+| yellow    | dark  | #9d6300 (4.98 · 3.60)   | #bc811d (4.54 · 3.11)                                   | #d39539       |
+| green     | light | #228652 (4.57 · 4.57)   | #157d4a (4.51 · 4.10)                                   | #006e3c       |
+| green     | dark  | #228652 (4.57 · 3.93)   | #3f9e68 (4.54 · 3.11)                                   | #56b37b       |
+| turquoise | light | #287f88 (4.69 · 4.69)   | #1f7882 (4.51 · 4.10)                                   | #046a73       |
+| turquoise | dark  | #287f88 (4.69 · 3.83)   | #4498a1 (4.51 · 3.09)                                   | #5badb7       |
+| cyan      | light | #0077bd (4.80 · 4.80)   | #0070b6 (4.52 · 4.17)                                   | #0061a6       |
+| cyan      | dark  | #0077bd (4.80 · 3.73)   | #2893da (4.52 · 3.10)                                   | #42a8f1       |
+| blue      | light | #3660f0 (5.14 · 5.14)   | #345dec (4.50 · 4.25)                                   | #284ddc       |
+| blue      | dark  | #3660f0 (5.14 · 3.49)   | #5587ff (4.54 · 3.11)                                   | #6ba1ff       |
+| indigo    | light | #6b45fa (5.44 · 5.44)   | #6b45fa (4.55 · 4.32)                                   | #6033ea       |
+| indigo    | dark  | #6b45fa (5.44 · 3.29)   | #9177ff (4.53 · 3.10)                                   | #a791ff       |
+| purple    | light | #8c40db (5.42 · 5.42)   | #8c40db (4.54 · 4.31)                                   | #7f2fcb       |
+| purple    | dark  | #8c40db (5.42 · 3.30)   | #b068ff (4.52 · 3.10)                                   | #c982ff       |
+| pink      | light | #b73984 (5.34 · 5.34)   | #b53882 (4.50 · 4.33)                                   | #a52775       |
+| pink      | dark  | #b73984 (5.34 · 3.36)   | #de5ea6 (4.51 · 3.09)                                   | #f674bc       |
+
+- `accent` (배경) 는 두 모드 모두 변경 전 공식 (L 55%) 그대로 — 흰 글자로 바뀐 dark 에서도 조건 통과 (결정 1 의 예측대로).
+- light `accent-content` 는 대부분 한두 단 어두워진다 — 가장 가까운 글자 바탕이 `accent-subtle` (Badge subtle) 이라서 (round 2 H1 의 그 반례). indigo · purple 은 그대로.
+- hex 표본 20 (Gates Q1, `accentContrast.test.ts` `HEX_SAMPLES`): 전부 통과 또는 warning. `#1E3A8A` light 는 브랜드색 그대로, `#FFCC00` 는 light 배경이 `#9e6d00` 로 내려가고 dark 글자 역할은 `#ffcc00` 그대로.
+- `resolveThemeSnapshot` 1 회 0.57 ms (vitest · node, 50 회 평균 — B 등급 값만).
+
+## §7 기록
+
+- **2026-10-30 Phase 0 ~ 4** (`/execute-adr 290`, 한 세션): 범위 사후 보고 — 본문 추정 ~13 파일 → 제품 14 + 생성 CSS 16 + 테스트 12 (새 2). 늘어난 몫은 rule 밖 같은 역할 자리 (DOM 상태 선택자 14 · 생성기 thumb · show-all 3 곳 · Menu 글리프) 와 이 값들을 박아 둔 기존 테스트 11. 1.5 배를 넘지만 같은 분류 규칙의 적용이라 sub-group 을 나누지 않았다.
+- ADR-293 (같은 날 Implemented) 과 겹친 항목: Decision 5 (색 변수 forced-colors media · seed 와 명시 델타 경로) 와 RED e (accent-pressed 공식) 는 293 이 닫아 이 ADR 은 새 토큰 2 개만 그 경로에 얹었다.
+- 검증: G1 단위 41 (`accentContrast.test.ts`) · G2 정적 29 (`adr290AccentRoles.static.test.ts`) · 변이 RED 4/4 (Link 재분류 되돌림 · Badge subtle 바탕 교체 · 바탕 집합에서 accent-subtle 제거 · on-accent `#171717`). 회귀: rendering 1320/1320 · shared 2036/2036 · builder unit 실패 5 는 이 변경과 무관 (`chromeIsland` 1 기존 실패 · `phase4eG5LeafScope` 1 단독 재실행 PASS · `componentBoundRows` 3 다른 세션의 미추적 파일) · parity 1000/1001 (기존 `adr248CatalogGeometryDelta` 1).
+- G4: Builder +1,253 B gzip (게이트 +1 KB 미달 — 새 코드가 작은 `tintToSkiaColors` chunk 에 들어가 그 chunk 만 gzip +936 B, 경고 문구 축소로 −52 B) · Preview +64 B · `package.json` 의존성 변화 0 · `resolveThemeSnapshot` 1 회 0.57 ms.

@@ -41,7 +41,8 @@ export interface ResolvedCatalogPaint {
 }
 
 const TRANSPARENT_TOKEN = "{color.transparent}";
-const ACCENT_TOKEN = "{color.accent}";
+// "Show all" 글자 — 바탕 위 accent (ADR-290)
+const ACCENT_TOKEN = "{color.accent-content}";
 
 /**
  * Catalog variant와 authored semantic props에서 root symbolic paint를 선택한다.

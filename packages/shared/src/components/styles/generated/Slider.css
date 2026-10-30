@@ -28,7 +28,7 @@
       border: 2px solid var(--bg);
       box-sizing: border-box;
     }
-    &[data-emphasized] .react-aria-SliderThumb { background: var(--accent); }
+    &[data-emphasized] .react-aria-SliderThumb { background: var(--accent-content); }
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   display: grid;

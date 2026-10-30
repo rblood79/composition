@@ -49,11 +49,11 @@
 .react-aria-DateInput[data-variant="accent"] {
   background: var(--bg-inset);
   color: var(--fg);
-  border-color: var(--accent);
+  border-color: var(--accent-content);
 
   &[data-hovered] {
     background: var(--bg-inset);
-    border-color: var(--accent-hover, color-mix(in srgb, var(--accent) 85%, black));
+    border-color: var(--accent-content-hover);
   }
 
   &[data-pressed] {
@@ -196,9 +196,9 @@
   }
 
   .react-aria-DateInput[data-focus-within] {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--accent-content);
     outline-offset: -1px;
-    border-color: var(--accent);
+    border-color: var(--accent-content);
   }
 
   .react-aria-DateInput[data-invalid] {
@@ -225,7 +225,7 @@
   .react-aria-DateInput[data-quiet][data-focus-within] {
     outline: none;
     border-color: transparent;
-    border-bottom-color: var(--accent);
+    border-bottom-color: var(--accent-content);
   }
 
   .react-aria-DateInput[data-quiet][data-invalid] {

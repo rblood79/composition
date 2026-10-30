@@ -321,9 +321,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.on-accent}",
           border: "{color.transparent}",
-          subtleText: "{color.accent}",
-          outlineText: "{color.accent}",
-          outlineBorder: "{color.accent}",
+          subtleText: "{color.accent-content}",
+          outlineText: "{color.accent-content}",
+          outlineBorder: "{color.accent-content}",
         },
       },
       informative: {
@@ -1153,7 +1153,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.on-accent}",
           border: "{color.accent}",
           borderHover: "{color.accent-hover}",
-          outlineText: "{color.accent}",
+          outlineText: "{color.accent-content}",
           outlineBorder: "{color.border-hover}",
         },
       },
@@ -1594,7 +1594,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
           border: "{color.transparent}",
-          selectedBorder: "{color.accent}",
+          selectedBorder: "{color.accent-content}",
         },
       },
       // secondary — 약한 elevation(layer-1 base). S2 secondary 대응.
@@ -1610,7 +1610,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
           border: "{color.transparent}",
-          selectedBorder: "{color.accent}",
+          selectedBorder: "{color.accent-content}",
         },
       },
       // tertiary — outline 형(transparent base + 가시 border). S2 tertiary 대응.
@@ -1626,7 +1626,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
           border: "{color.border}",
-          selectedBorder: "{color.accent}",
+          selectedBorder: "{color.accent-content}",
         },
       },
       // quiet — 무배경(hover 시만 표시). 구 spec 의 isQuiet=true 흡수.
@@ -1642,7 +1642,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
           border: "{color.transparent}",
-          selectedBorder: "{color.accent}",
+          selectedBorder: "{color.accent-content}",
         },
       },
     },
@@ -2795,7 +2795,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
         colors: {
           text: "{color.neutral}",
-          border: "{color.accent}",
+          border: "{color.accent-content}",
         },
       },
     },
@@ -3426,8 +3426,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
         colors: {
           text: "{color.neutral}",
-          border: "{color.accent}",
-          borderHover: "{color.accent-hover}",
+          border: "{color.accent-content}",
+          borderHover: "{color.accent-content-hover}",
         },
       },
       negative: {
@@ -3533,9 +3533,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           "&[data-focus-within]": {
             styles: {
-              outline: "2px solid var(--accent)",
+              outline: "2px solid var(--accent-content)",
               "outline-offset": "-1px",
-              "border-color": "var(--accent)",
+              "border-color": "var(--accent-content)",
             },
           },
           "&[data-invalid]": {
@@ -3571,7 +3571,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             styles: {
               outline: "none",
               "border-color": "transparent",
-              "border-bottom-color": "var(--accent)",
+              "border-bottom-color": "var(--accent-content)",
             },
           },
           "&[data-quiet][data-invalid]": {
@@ -4108,9 +4108,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 background: "var(--bg-overlay)",
               },
               "[data-focus-within]": {
-                outline: "2px solid var(--accent)",
+                outline: "2px solid var(--accent-content)",
                 "outline-offset": "-1px",
-                "border-color": "var(--accent)",
+                "border-color": "var(--accent-content)",
                 background: "var(--bg-overlay)",
               },
               "[data-invalid]": {
@@ -4776,9 +4776,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
         colors: {
           text: "{color.neutral-subdued}",
-          textHover: "{color.accent}",
+          textHover: "{color.accent-content}",
           border: "{color.border}",
-          borderHover: "{color.accent}",
+          borderHover: "{color.accent-content}",
         },
         borderStyle: "dashed",
         textWeight: 400,
@@ -4850,7 +4850,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "&[data-drop-target]": {
             styles: {
               background: "var(--bg-inset)",
-              color: "var(--accent)",
+              color: "var(--accent-content)",
             },
           },
           // S2 1.8.0 isFilled · replaceMessage (2026-10-10): 채워진 영역 위로 끌 때의 교체 배너.
@@ -4868,7 +4868,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "align-items": "center",
               "justify-content": "center",
               background: "var(--bg-overlay)",
-              color: "var(--accent)",
+              color: "var(--accent-content)",
               "font-weight": "700",
               "border-radius": "inherit",
             },
@@ -5519,7 +5519,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         colors: {
-          text: "{color.accent}",
+          text: "{color.accent-content}",
         },
       },
     },
@@ -6286,8 +6286,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
         colors: {
           text: "{color.neutral}",
-          border: "{color.accent}",
-          borderHover: "{color.accent-hover}",
+          border: "{color.accent-content}",
+          borderHover: "{color.accent-content-hover}",
         },
       },
       negative: {
@@ -6410,9 +6410,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           "&:is([data-focused], [data-focus-within])": {
             styles: {
-              outline: "2px solid var(--accent)",
+              outline: "2px solid var(--accent-content)",
               "outline-offset": "-1px",
-              "border-color": "var(--accent)",
+              "border-color": "var(--accent-content)",
             },
           },
           "&[data-invalid]": {
@@ -6448,7 +6448,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             styles: {
               outline: "none",
               "border-color": "transparent",
-              "border-bottom-color": "var(--accent)",
+              "border-bottom-color": "var(--accent-content)",
             },
           },
           "&[data-quiet][data-invalid]": {
@@ -6676,8 +6676,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           alpha: 0,
         },
         colors: {
-          text: "{color.accent}",
-          textHover: "{color.accent-hover}",
+          text: "{color.accent-content}",
+          textHover: "{color.accent-content-hover}",
         },
         // 링크 400 (사용자 결정 2026-09-29): Canvas 는 textWeight 를, 생성 CSS 는 sizes.fontWeight 를 읽는다.
         textWeight: 400,
@@ -6693,7 +6693,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
         colors: {
           text: "{color.neutral}",
-          textHover: "{color.accent}",
+          textHover: "{color.accent-content}",
         },
         textWeight: 400,
       },
@@ -8369,7 +8369,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
         colors: {
           text: "{color.neutral}",
-          border: "{color.accent}",
+          border: "{color.accent-content}",
         },
       },
       neutral: {
@@ -8543,7 +8543,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           width: "100%",
           color: "var(--fg)",
           "font-size": "var(--text-sm)",
-          "--fill-color": "var(--accent)",
+          "--fill-color": "var(--accent-content)",
           "--track-color": "var(--accent-subtle)",
         },
         staticSelectors: {
@@ -8695,7 +8695,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     variants: {
       default: {
         // (A value-fill track: a static color paints it at S2 `transparent-overlay-300` — 0.17.)
-        fillBar: "{color.accent}",
+        fillBar: "{color.accent-content}",
         staticAlpha: 0.17,
         fill: {
           default: {
@@ -8762,9 +8762,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         staticAlpha: 0.94,
         fill: {
           default: {
-            base: "{color.accent}",
-            hover: "{color.accent}",
-            pressed: "{color.accent}",
+            base: "{color.accent-content}",
+            hover: "{color.accent-content}",
+            pressed: "{color.accent-content}",
           },
         },
         colors: {
@@ -9757,7 +9757,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     background: "transparent",
                     "border-color": "transparent",
                     "box-shadow": "none",
-                    "border-bottom-color": "var(--accent)",
+                    "border-bottom-color": "var(--accent-content)",
                   },
                 },
                 {
@@ -9768,7 +9768,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     background: "transparent",
                     "border-color": "transparent",
                     "box-shadow": "none",
-                    "border-bottom-color": "var(--accent)",
+                    "border-bottom-color": "var(--accent-content)",
                   },
                 },
                 {
@@ -9779,7 +9779,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     background: "transparent",
                     "border-color": "transparent",
                     "box-shadow": "none",
-                    "border-bottom-color": "var(--accent)",
+                    "border-bottom-color": "var(--accent-content)",
                   },
                 },
                 {
@@ -10248,7 +10248,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       emphasized: {
         fill: {
           default: {
-            base: "{color.accent}",
+            base: "{color.accent-content}",
           },
         },
         colors: {
@@ -10340,7 +10340,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       emphasized: {
         fill: {
           default: {
-            base: "{color.accent}",
+            base: "{color.accent-content}",
           },
         },
         colors: {
@@ -12019,7 +12019,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
         colors: {
           text: "{color.neutral}",
-          border: "{color.accent}",
+          border: "{color.accent-content}",
         },
       },
       neutral: {

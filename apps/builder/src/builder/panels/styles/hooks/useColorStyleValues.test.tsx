@@ -124,7 +124,10 @@ describe("Style Panel catalog color values", () => {
       backgroundColor: PICKER_TRANSPARENT,
       borderColor: lightColors["border-hover"],
     });
-    expect(typography.result.current?.color).toBe(lightColors.accent);
+    // outline 글자는 바탕 위 accent (ADR-290)
+    expect(typography.result.current?.color).toBe(
+      lightColors["accent-content"],
+    );
   });
 
   it("premium catalog 색상을 현재 dark theme의 picker 입력값으로 해석한다", async () => {
@@ -164,7 +167,7 @@ describe("Style Panel catalog color values", () => {
         lightColors.accent,
         lightColors["accent-subtle"],
         lightColors["on-accent"],
-        lightColors.accent,
+        lightColors["accent-content"],
       ],
       [
         "informative",

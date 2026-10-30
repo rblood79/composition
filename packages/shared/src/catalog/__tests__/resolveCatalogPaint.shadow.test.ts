@@ -140,7 +140,7 @@ function resolveLegacySemantic(
       stateBackground ??
       (isOutline ? "{color.transparent}" : undefined));
   const color = isShowAll
-    ? "{color.accent}"
+    ? "{color.accent-content}"
     : ((style?.color as string | undefined) ??
       staticTextColor ??
       (isSelected

@@ -81,7 +81,8 @@ describe("CSSGenerator fillStyle", () => {
         boldBackground: "var(--accent)",
         subtleBackground: "var(--accent-subtle)",
         boldText: "var(--fg-on-accent)",
-        hue: "var(--accent)",
+        // 바탕 위 글자 · 선 — accent-content (ADR-290)
+        hue: "var(--accent-content)",
       },
       {
         variant: "informative",

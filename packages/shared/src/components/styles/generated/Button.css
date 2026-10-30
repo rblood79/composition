@@ -54,7 +54,7 @@
 
 .react-aria-Button[data-variant="accent"][data-fill-style="outline"] {
   --button-color: transparent;
-  --button-text: var(--accent);
+  --button-text: var(--accent-content);
   --button-border: var(--border-hover);
 }
 

@@ -38,8 +38,8 @@
 
   &[data-hovered] {
     background: var(--bg-inset);
-    color: var(--accent);
-    border-color: var(--accent);
+    color: var(--accent-content);
+    border-color: var(--accent-content);
   }
 
   &[data-pressed] {
@@ -125,7 +125,7 @@
 
   .react-aria-DropZone[data-drop-target] {
     background: var(--bg-inset);
-    color: var(--accent);
+    color: var(--accent-content);
   }
 
   .react-aria-DropZone .dropzone-replace {
@@ -139,7 +139,7 @@
     align-items: center;
     justify-content: center;
     background: var(--bg-overlay);
-    color: var(--accent);
+    color: var(--accent-content);
     font-weight: 700;
     border-radius: inherit;
   }

@@ -326,6 +326,9 @@
       --accent-pressed: Highlight;
       --accent-negative: LinkText;
       --accent-subtle: Highlight;
+      /* 바탕 위 accent (글자 · 선 · 채움, ADR-290) — link 와 같은 시스템 색 */
+      --accent-content: LinkText;
+      --accent-content-hover: LinkText;
       --fg-on-accent: HighlightText;
       --fg-on-accent-pressed: HighlightText;
       --negative: LinkText;

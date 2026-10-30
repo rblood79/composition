@@ -136,9 +136,9 @@
 }
 
 .react-aria-DateRangePicker .react-aria-Group:where([data-focus-within]) {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-content);
   outline-offset: -1px;
-  border-color: var(--accent);
+  border-color: var(--accent-content);
   background: var(--bg-overlay);
 }
 

@@ -1197,9 +1197,9 @@ function tagShowAllData(showAll: CatalogTagShowAll, rect: Rect): SkiaNodeData {
       fontFamilies: ["Pretendard"],
       fontSize: showAll.fontSize,
       lineHeight: showAll.fontSize * showAll.lineHeight,
-      // (The theme's accent in the bind's color mode — the sheet's `var(--accent)`.)
+      // (The theme's accent in the bind's color mode — the sheet's `var(--accent-content)`.)
       color: rgba(
-        resolveToken("{color.accent}" as TokenRef, colorMode) as string,
+        resolveToken("{color.accent-content}" as TokenRef, colorMode) as string,
       ),
       paddingLeft: inset(showAll.paddingX),
       paddingTop: inset(showAll.paddingY),

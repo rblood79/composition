@@ -16,9 +16,10 @@
  * 테마 색으로 덮지 않는다.
  *
  * 색 델타 규칙:
- *   - `color.accent` (hex) 는 **tint 대체** — hex 의 (c, h) 로 tint 프리셋과 같은 파생 (L 55% accent ·
- *     hover 85%/pressed 75% black mix · subtle · chart) 을 만든다. DOM 의 `--tint` 는 `--tint-N` 사다리 ·
- *     link · focus-ring 의 입력으로만 남는다. (사용자 hex 의 L 은 55% 로 접힌다.)
+ *   - `color.accent` (hex) 는 **tint 대체** — hex 의 (c, h) 로 tint 프리셋과 같은 파생 (역할별 목표 대비
+ *     accent · accent-content · hover 85%/pressed 75% black mix · subtle · chart) 을 만든다. 명도 탐색은
+ *     hex 자신의 명도에서 시작해 통과하면 hex 그대로 (ADR-290). accent 탐색은 Tone 과 명시 색 델타가 반영된
+ *     바탕을 입력으로 받는다. DOM 의 `--tint` 는 `--tint-N` 사다리 · link · focus-ring 의 입력으로만 남는다.
  *   - 그 밖의 `color.<key>` 는 값 그대로 양 모드 맵에. 명시된 `<x>` 의 미명시 `<x>-hover` / `<x>-pressed`
  *     는 base 에서 다시 혼합한다 (아래 파생 블록) — DOM 은 최종 맵을 받으므로 같은 값.
  */
@@ -131,10 +132,26 @@ function tintOf(
   preset: ThemeDefinition["preset"],
   accentHex: string | undefined,
   warnings: string[],
-) {
+): {
+  c: number;
+  h: number;
+  tintVar: string;
+  startL?: number;
+  startHex?: string;
+} {
   if (accentHex) {
     const oklch = hexToOklch(accentHex);
-    if (oklch) return { c: oklch.c, h: oklch.h, tintVar: accentHex };
+    // 사용자 hex 는 자기 명도에서 탐색을 시작한다 — 통과하면 브랜드색 그대로 (ADR-290 결정 2)
+    if (oklch)
+      return {
+        c: oklch.c,
+        h: oklch.h,
+        tintVar: accentHex,
+        startL: oklch.l,
+        startHex: /^#[0-9a-f]{6}$/i.test(accentHex.trim())
+          ? accentHex.trim().toLowerCase()
+          : undefined,
+      };
     warnings.push(
       `color.accent "${accentHex}" 는 hex 가 아니라 tint 프리셋으로 대체`,
     );
@@ -187,18 +204,43 @@ export function resolveThemeSnapshot(
   const accentDelta = delta["color.accent"];
   const accentHex =
     typeof accentDelta?.value === "string" ? accentDelta.value : undefined;
-  const { c, h, tintVar } = tintOf(preset, accentHex, warnings);
+  const { c, h, tintVar, startL, startHex } = tintOf(
+    preset,
+    accentHex,
+    warnings,
+  );
   const neutral = (preset.neutral || "neutral") as NeutralPreset;
-  const light: Record<string, string> = {
-    ...SEED_LIGHT_COLORS,
-    ...resolveNeutralColorTokens(neutral, "light"),
-    ...createAccentColorTokens(c, h, "light"),
+  // accent 는 실제 바탕을 알고 정한다 (ADR-290): Tone → 명시 색 델타 → accent 탐색. 명시 accent 계열
+  //   델타 (`accent-hover` …) 는 아래 델타 루프가 탐색 결과를 덮는다.
+  const explicitColors: Record<string, string> = {};
+  for (const [tokenKey, entry] of Object.entries(delta))
+    if (
+      tokenKey.startsWith("color.") &&
+      tokenKey !== "color.accent" &&
+      typeof entry.value === "string" &&
+      entry.value.trim() !== ""
+    )
+      explicitColors[tokenKey.slice(6)] = entry.value;
+  const seedColors = (mode: "light" | "dark"): Record<string, string> => ({
+    ...(mode === "dark" ? SEED_DARK_COLORS : SEED_LIGHT_COLORS),
+    ...resolveNeutralColorTokens(neutral, mode),
+  });
+  const withAccent = (mode: "light" | "dark"): Record<string, string> => {
+    const seed = seedColors(mode);
+    return {
+      ...seed,
+      ...createAccentColorTokens(c, h, mode, {
+        surfaces: { ...seed, ...explicitColors },
+        startL,
+        startHex,
+        subtle: explicitColors["accent-subtle"],
+        content: explicitColors["accent-content"],
+        warnings,
+      }),
+    };
   };
-  const dark: Record<string, string> = {
-    ...SEED_DARK_COLORS,
-    ...resolveNeutralColorTokens(neutral, "dark"),
-    ...createAccentColorTokens(c, h, "dark"),
-  };
+  const light = withAccent("light");
+  const dark = withAccent("dark");
   const typography: Record<string, number | string> = { ...SEED_TYPOGRAPHY };
   const radius: Record<string, number> = {
     ...SEED_RADIUS,
@@ -332,6 +374,8 @@ export function resolveThemeSnapshot(
   //   가 명시되지 않았으면 Skia 맵은 seed 파생값 그대로 (DOM 은 color-mix 가 base 변수를 따라간다)
   //   — 두 leg 가 갈리지 않게 Skia 도 base 로부터 mix 한다.
   for (const key of explicitColorKeys) {
+    // 명시 `accent-content` 의 hover 는 accent 탐색이 그 값에서 이미 풀었다 (dark 는 밝히는 방향)
+    if (key === "accent-content") continue;
     const [hoverKey, pressedKey] = DERIVED_STATE_KEYS[key] ?? [
       `${key}-hover`,
       `${key}-pressed`,

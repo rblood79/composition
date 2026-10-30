@@ -36,7 +36,7 @@
 }
 
 .react-aria-SliderFill[data-variant="emphasized"] {
-  background: var(--accent);
+  background: var(--accent-content);
   color: var(--fg);
 
   &[data-hovered] {

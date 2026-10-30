@@ -26,7 +26,7 @@
 
   /* Default variant */
   background: var(--bg);
-  color: var(--accent);
+  color: var(--accent-content);
   border: none;
 
   /* Default size */
@@ -40,12 +40,12 @@
 
 .react-aria-Link[data-variant="primary"] {
   background: var(--bg);
-  color: var(--accent);
+  color: var(--accent-content);
   background: transparent;
 
   &[data-hovered] {
     background: var(--bg);
-    color: var(--accent-hover, color-mix(in srgb, var(--accent) 85%, black));
+    color: var(--accent-content-hover);
   }
 
   &[data-pressed] {
@@ -60,7 +60,7 @@
 
   &[data-hovered] {
     background: var(--bg);
-    color: var(--accent);
+    color: var(--accent-content);
   }
 
   &[data-pressed] {

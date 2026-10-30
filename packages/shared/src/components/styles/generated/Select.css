@@ -210,7 +210,7 @@
   background: transparent;
   border-color: transparent;
   box-shadow: none;
-  border-bottom-color: var(--accent);
+  border-bottom-color: var(--accent-content);
 }
 
 .react-aria-Select[data-quiet="true"] .react-aria-Button[data-focused]:not([data-disabled]) {
@@ -218,7 +218,7 @@
   background: transparent;
   border-color: transparent;
   box-shadow: none;
-  border-bottom-color: var(--accent);
+  border-bottom-color: var(--accent-content);
 }
 
 .react-aria-Select[data-quiet="true"] .react-aria-Button[data-pressed]:not([data-disabled]) {
@@ -226,7 +226,7 @@
   background: transparent;
   border-color: transparent;
   box-shadow: none;
-  border-bottom-color: var(--accent);
+  border-bottom-color: var(--accent-content);
 }
 
 .react-aria-Select[data-quiet="true"][data-invalid] .react-aria-Button {

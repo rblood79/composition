@@ -93,7 +93,7 @@ describe("ADR-227 G3 — catalog border 폭 리터럴 0 ratchet", () => {
     let borderBottom = 0;
     walk(COMPONENT_RULES_TABLE, (key, v) => {
       if (typeof v !== "string") return;
-      if (key === "outline" && /^2px solid var\(--accent\)$/.test(v))
+      if (key === "outline" && /^2px solid var\(--accent-content\)$/.test(v))
         outline += 1;
       if (key === "border-bottom" && /^1px solid var\(--border\)$/.test(v))
         borderBottom += 1;

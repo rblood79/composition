@@ -35,7 +35,7 @@
     flex: none;
     width: 1em;
     text-align: center;
-    color: var(--accent);
+    color: var(--accent-content, var(--accent));
   }
 
   /* 글리프 자체는 장식 — `/ ""` 로 대체 텍스트를 비워 스크린리더가 두 번 말하지 않게 한다

@@ -21,7 +21,7 @@
   display: block;
 
   /* Default variant */
-  background: var(--accent);
+  background: var(--accent-content);
   color: var(--fg);
   border: none;
 
@@ -32,15 +32,15 @@
 }
 
 .react-aria-ProgressBarFill[data-variant="default"] {
-  background: var(--accent);
+  background: var(--accent-content);
   color: var(--fg);
 
   &[data-hovered] {
-    background: var(--accent);
+    background: var(--accent-content);
   }
 
   &[data-pressed] {
-    background: var(--accent);
+    background: var(--accent-content);
   }
 }
 

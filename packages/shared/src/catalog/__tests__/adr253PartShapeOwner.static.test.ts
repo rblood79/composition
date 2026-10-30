@@ -381,7 +381,7 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
       });
       expect(
         selectors?.[`&[data-quiet]${focus}`]?.styles?.["border-bottom-color"],
-      ).toBe("var(--accent)");
+      ).toBe("var(--accent-content)");
       expect(
         selectors?.["&[data-quiet][data-invalid]"]?.styles?.[
           "border-bottom-color"

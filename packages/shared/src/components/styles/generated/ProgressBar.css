@@ -16,7 +16,7 @@
     width: 100%;
     color: var(--fg);
     font-size: var(--text-sm);
-    --fill-color: var(--accent);
+    --fill-color: var(--accent-content);
     --track-color: var(--accent-subtle);
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */

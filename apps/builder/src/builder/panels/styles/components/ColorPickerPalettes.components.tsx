@@ -136,9 +136,11 @@ export const ColorPickerPalettes = memo(function ColorPickerPalettes({
   const [documentOpen, setDocumentOpen] = useState(true);
   const [themeOpen, setThemeOpen] = useState(true);
 
+  // 사다리의 accent · accent-content 칸은 활성 테마 바탕 (설치된 토큰 맵) 에서 탐색한다 — Tone 이
+  //   바뀌면 다시 (ADR-290)
   const accentLadder = useMemo(
     () => resolveAccentLadder(tint, darkMode === "dark" ? "dark" : "light"),
-    [tint, darkMode],
+    [tint, darkMode, neutral],
   );
   const neutralLadder = useMemo(
     () => NEUTRAL_LADDER_STEPS.map((step) => NEUTRAL_PALETTES[neutral][step]),

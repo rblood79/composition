@@ -131,7 +131,8 @@ export const ARCHETYPE_BASE_STYLES: Record<ArchetypeId, string[]> = {
     // ADR-256 Phase 7c: the track's bar is the SliderTrack itself (its rule — background · radius),
     //   the fill is RAC's SliderFill node (its rule), the thumb RAC's SliderThumb (here — its size
     //   per owner size from `generateSliderSizeMetrics`). Thumb colors: --fg (--accent when the
-    //   Slider is emphasized — S2 `isEmphasized`, the SliderThumb rule's pair) · border --bg.
+    //   Slider is emphasized — S2 `isEmphasized`, the SliderThumb rule's pair; `accent-content`, ADR-290 —
+    //   a mark on the track, not a fill under on-accent text) · border --bg.
     `    .react-aria-SliderThumb {`,
     `      top: 50%;`,
     `      border-radius: var(--radius-full);`,
@@ -139,7 +140,7 @@ export const ARCHETYPE_BASE_STYLES: Record<ArchetypeId, string[]> = {
     `      border: 2px solid var(--bg);`,
     `      box-sizing: border-box;`,
     `    }`,
-    `    &[data-emphasized] .react-aria-SliderThumb { background: var(--accent); }`,
+    `    &[data-emphasized] .react-aria-SliderThumb { background: var(--accent-content); }`,
   ],
   "tabs-indicator": [
     `    display: flex;`,

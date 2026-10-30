@@ -36,6 +36,9 @@ export const lightColors: ColorTokens = {
   "accent-pressed": TAILWIND_PALETTE.blue[700],
   "on-accent": "#ffffff",
   "accent-subtle": TAILWIND_PALETTE.blue[100], // blue-100
+  // 바탕 위 accent (ADR-290) — 테마가 설치되면 resolver 의 목표 대비 값이 덮는다
+  "accent-content": TAILWIND_PALETTE.blue[700],
+  "accent-content-hover": TAILWIND_PALETTE.blue[800],
 
   // --- Neutral ---
   neutral: TAILWIND_PALETTE.neutral[900], // neutral-900 (기존 on-surface)
@@ -88,8 +91,10 @@ export const darkColors: ColorTokens = {
   accent: TAILWIND_PALETTE.blue[500], // blue-500
   "accent-hover": "#3270d1",
   "accent-pressed": TAILWIND_PALETTE.blue[400],
-  "on-accent": TAILWIND_PALETTE.neutral[900], // v3 neutral-900 #171717
+  "on-accent": "#ffffff", // S2 — accent 배경 위 글자는 두 모드 모두 흰색 (ADR-290 결정 1)
   "accent-subtle": TAILWIND_PALETTE.blue[900], // blue-900
+  "accent-content": TAILWIND_PALETTE.blue[400],
+  "accent-content-hover": TAILWIND_PALETTE.blue[300],
 
   // --- Neutral ---
   neutral: TAILWIND_PALETTE.neutral[100], // neutral-100 (dark mode에서 밝은 텍스트)
