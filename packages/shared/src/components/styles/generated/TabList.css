@@ -51,11 +51,11 @@
 /* ── Tier 2: Composite Delegation ── */
 
 .react-aria-TabList[data-density="compact"] {
-  gap: 0px;
+  gap: 24px;
 }
 
 .react-aria-TabList[data-density="regular"] {
-  gap: 8px;
+  gap: 32px;
 }
 
 

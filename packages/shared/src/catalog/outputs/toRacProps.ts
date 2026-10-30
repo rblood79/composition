@@ -50,6 +50,9 @@ const DATA_ATTR_ENUM_KEYS: ReadonlySet<string> = new Set([
   // S2 ColorSwatch `rounding` (2026-10-10) — RAC prop 아님. 생성 sheet 의
   // `[data-rounding]` (rule containerVariants) 가 소비.
   "rounding",
+  // S2 `density` (ADR-295 Phase 3c-3c ②c) — RAC prop 아님. 생성 sheet 의 `[data-density]`
+  // (rule containerVariants · densities) 가 소비. Tab 은 Tabs 의 값을 resolver 가 실어 준다.
+  "density",
 ]);
 
 /**

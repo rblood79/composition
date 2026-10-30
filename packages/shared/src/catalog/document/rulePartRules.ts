@@ -1552,6 +1552,8 @@ const TYPE_CONTAINER_VARIANT_AXES: Readonly<
   AvatarGroup: { size: "size" },
   // S2 Disclosure (2026-10-10): its trigger's height per density, its rounded quiet trigger.
   Disclosure: { density: "density", quiet: "isQuiet" },
+  // ADR-295 Phase 3c-3c ②c: S2 Tab height per density (32 · 48).
+  Tab: { density: "density" },
   // ADR-257 Phase 3: S2 Column `align` · Cell `align` · `showDivider`, and the Table's
   // `overflowMode` (carried to its Columns · Cells — `CATALOG_OVERFLOW_MODE_OWNERS`).
   // (and a sortable Column's row — the reference's `.column-header`, G5 example 11)

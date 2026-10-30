@@ -11317,29 +11317,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // ADR-295 Phase 3c-3c ②c: S2 Tabs has no size axis — a tab's height is its density's
+    //   (`Tabs.tsx` `tab` height: compact 32 · regular 48), paddingX 0 (the spacing between tabs
+    //   is the TabList's gap). The height is `containerVariants.density` below; the size keeps
+    //   only the font.
     sizes: {
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
-        height: 21,
-        paddingX: 8,
-        paddingY: 2,
+        height: 0,
+        paddingX: 0,
+        paddingY: 0,
         fontWeight: 500,
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
-        height: 29,
-        paddingX: 12,
-        paddingY: 4,
+        height: 0,
+        paddingX: 0,
+        paddingY: 0,
         fontWeight: 500,
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
-        height: 41,
-        paddingX: 16,
-        paddingY: 8,
+        height: 0,
+        paddingX: 0,
+        paddingY: 0,
         fontWeight: 500,
       },
     },
@@ -11368,6 +11372,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-223 (2026-09-18): 미지정 archetype base 가 DOM 에만 주던 interaction 세 선언을 generator 전용
       //   rootSelectors 채널에 명시. `archetype: "button"` 은 width:fit-content 가 딸려와 TabList 안 폭이 바뀐다.
       composition: {
+        // ADR-295 Phase 3c-3c ②c: S2 tab height per density (the Tabs' value, carried by the
+        //   resolver — `CATALOG_DENSITY_PROPAGATION_OWNER.Tab`).
+        containerVariants: {
+          density: {
+            compact: { styles: { height: "32px" } },
+            regular: { styles: { height: "48px" } },
+          },
+        },
         rootSelectors: {
           "&": {
             styles: {
@@ -11395,9 +11407,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   = "regular", ActionGroup 도 동일). 2026-08-21 사용자 결정으로 구 compact 기본에서
     //   전환 — 탭 사이 간격이 0 에서 8 로 벌어진다.
     defaultDensity: "regular",
+    // ADR-295 Phase 3c-3c ②c: S2 `tablist` gap — compact 24 · regular 32 (the tabs have no
+    //   paddingX of their own).
     densities: {
-      compact: { gap: 0 },
-      regular: { gap: 8 },
+      compact: { gap: 24 },
+      regular: { gap: 32 },
     },
     sizes: {
       S: {

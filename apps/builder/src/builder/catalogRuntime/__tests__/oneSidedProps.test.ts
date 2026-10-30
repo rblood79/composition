@@ -126,10 +126,19 @@ describe("a prop reaches the Canvas and the Preview alike", () => {
     });
     const [list] = canvas("TabList");
     expect(list!.props).toMatchObject({ size: "L", density: "compact" });
-    expect(list!.visual.gap).toBe(0);
+    // (ADR-295 Phase 3c-3c ②c: S2 tablist gap compact 24 · tab height compact 32.)
+    expect(list!.visual.gap).toBe(24);
     const [tag] = tags(html(), "react-aria-TabList");
     expect(tag).toContain('data-size="L"');
     expect(tag).toContain('data-density="compact"');
+    const tabs = canvas("Tab");
+    expect(tabs.length).toBeGreaterThan(0);
+    for (const tab of tabs) {
+      expect(tab.props.density).toBe("compact");
+      expect(tab.visual.height).toBe(32);
+    }
+    for (const tabTag of tags(html(), "react-aria-Tab"))
+      expect(tabTag).toContain('data-density="compact"');
     const decided = catalogOwnerDecidedProps(root, list!);
     expect(decided?.owner).toBe("Tabs");
     expect(decided?.keys.has("size")).toBe(true);

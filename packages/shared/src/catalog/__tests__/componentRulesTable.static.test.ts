@@ -461,12 +461,6 @@ export const S2_PENDING_LITERAL: readonly PendingLiteral[] = [
     { S: 4, M: 8, L: 12, XL: 16 },
     "S2 Slider track 행 24 · 32 · 40 · 48 (`Slider.tsx` `track`) — 막대 두께는 대조 전",
   ),
-  pending(
-    "Tab",
-    "height",
-    { S: 21, M: 29, L: 41 },
-    "S2 Tabs 항목 높이 compact 32 · regular 48 — size 축이 아니라 density (`Tabs.tsx`)",
-  ),
 ];
 
 interface Literal {
@@ -563,7 +557,7 @@ describe("ADR-295 G3 — rule 치수 리터럴", () => {
     expect(stale).toEqual([]);
   });
 
-  it("S2 값 대조 대기는 줄기만 한다 (3c-3b ③ 45 → 3c-3c ① 32 → ②a 16 → ②b-1 11 → ②b-2 6)", () => {
-    expect(S2_PENDING_LITERAL.length).toBeLessThanOrEqual(6);
+  it("S2 값 대조 대기는 줄기만 한다 (3c-3b ③ 45 → 3c-3c ① 32 → ②a 16 → ②b-1 11 → ②b-2 6 → ②c Tab 5)", () => {
+    expect(S2_PENDING_LITERAL.length).toBeLessThanOrEqual(5);
   });
 });

@@ -18,52 +18,25 @@
   justify-content: center;
   position: relative;
 
-  /* Default variant */
-  background: transparent;
-  color: var(--fg-muted);
-  border: none;
-
   /* Default size */
-  height: 29px;
-  padding: 4px 12px;
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
   font-weight: 500;
 }
 
-.react-aria-Tab[data-variant="default"] {
-  background: transparent;
-  color: var(--fg-muted);
-
-  &[data-hovered] {
-    background: transparent;
-    color: var(--fg);
-  }
-
-  &[data-pressed] {
-    background: transparent;
-  }
-}
-
 .react-aria-Tab[data-size="S"] {
-  height: 21px;
-  padding: 2px 8px;
   font-size: var(--catalog-token-text-xs);
   border-radius: var(--catalog-token-radius-none);
   font-weight: 500;
 }
 
 .react-aria-Tab[data-size="M"] {
-  height: 29px;
-  padding: 4px 12px;
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
   font-weight: 500;
 }
 
 .react-aria-Tab[data-size="L"] {
-  height: 41px;
-  padding: 8px 16px;
   font-size: var(--catalog-token-text-base);
   border-radius: var(--catalog-token-radius-none);
   font-weight: 500;
@@ -81,6 +54,14 @@
 }
 
 /* ── Tier 2: Composite Delegation ── */
+
+.react-aria-Tab[data-density="compact"] {
+  height: 32px;
+}
+
+.react-aria-Tab[data-density="regular"] {
+  height: 48px;
+}
 
 
 @media (forced-colors: active) {

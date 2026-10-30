@@ -38,6 +38,19 @@ export const tabBinding: PrimitiveBinding = {
         section: "appearance",
         default: "M",
       },
+      // Tabs 의 density 내부 운반 값 (resolver 전파 — 패널 미노출). 탭 높이 32 · 48
+      //   (rule containerVariants.density, ADR-295 Phase 3c-3c ②c).
+      density: {
+        kind: "enum",
+        label: "Density",
+        section: "appearance",
+        editorHidden: true,
+        default: "regular",
+        options: [
+          { value: "compact", label: "Compact" },
+          { value: "regular", label: "Regular" },
+        ],
+      },
       // ADR-237 Phase 2 — RAC/RSP 항목 `isDisabled`. Canvas 는 이미 읽는데 (상태 층 disabled) accepts 미선언이라
       //   DOM 에만 닿지 않았다 (두 leg 발산) — Tag 와 같은 선언.
       // ADR-259 Phase 1: S2 · RAC item link (`href` · `target` · `rel` — RAC draws the link).

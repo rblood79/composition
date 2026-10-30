@@ -1001,3 +1001,47 @@ describe("ADR-295 G4 — 3c-3c ②b-2 ColorArea · StatusLight · Tag 간격", (
     ).toEqual(new Set([margin * 2]));
   });
 });
+
+describe("ADR-295 G4 — 3c-3c ②c Tab 높이 · TabList 간격 = S2 density", () => {
+  const rules = COMPONENT_RULES_TABLE as unknown as Record<
+    string,
+    {
+      sizes: Record<string, Record<string, unknown>>;
+      densities?: Record<string, { gap?: number }>;
+      structure?: {
+        composition?: {
+          containerVariants?: Record<
+            string,
+            Record<string, { styles?: Record<string, string> }>
+          >;
+        };
+      };
+    }
+  >;
+
+  it("Tab 높이 = S2 `tab` height (compact 32 · regular 48) — density 축, size 는 글자만", () => {
+    const s2 = s2SizeTable(
+      "Tabs.tsx",
+      /gap: 'text-to-visual',\s*height: \{\s*orientation: \{\s*horizontal: \{\s*density: /,
+    );
+    expect(s2).toEqual({ compact: 32, regular: 48 });
+    const variants =
+      rules.Tab!.structure!.composition!.containerVariants!.density!;
+    for (const [density, height] of Object.entries(s2))
+      expect(variants[density]?.styles?.height).toBe(`${height}px`);
+    for (const block of Object.values(rules.Tab!.sizes)) {
+      expect(block.height).toBe(0);
+      expect(block.paddingX).toBe(0);
+    }
+  });
+
+  it("TabList 간격 = S2 `tablist` gap (compact 24 · regular 32)", () => {
+    const s2 = s2SizeTable(
+      "Tabs.tsx",
+      /const tablist = style\(\{\s*display: 'flex',\s*gap: \{\s*orientation: \{\s*horizontal: \{\s*density: /,
+    );
+    expect(s2).toEqual({ compact: 24, regular: 32 });
+    for (const [density, gap] of Object.entries(s2))
+      expect(rules.TabList!.densities![density]?.gap).toBe(gap);
+  });
+});

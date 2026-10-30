@@ -191,6 +191,8 @@ export const CATALOG_DENSITY_PROPAGATION_OWNER: Readonly<
   Cell: "Table",
   // S2 Tabs `density` spaces its tabs (2026-10-14 — the DOM's TabList read the Tabs' value).
   TabList: "Tabs",
+  // ADR-295 Phase 3c-3c ②c: S2 Tabs `density` sets each tab's height (32 · 48).
+  Tab: "Tabs",
 };
 
 /**

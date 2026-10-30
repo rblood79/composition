@@ -617,7 +617,7 @@ Breadcrumb (조각) 높이는 옛 Skia `breadcrumb_crumb` 만 읽어 control 값
 
 **live (Chrome MCP, 5175)**: Breadcrumbs — Canvas 390 × 32, Compare Mode Preview nav 32 (`min-height: 32px`) · 항목 20.6 가운데. 콘솔 오류 0, 삭제 명령으로 지움. Tooltip 은 Canvas 에서 닫혀 있고 Menu 기본 원본에 section header 가 없어 G2 · unit 으로만.
 
-**②b-2 (이 커밋)**:
+**②b-2**:
 
 | 자리                                                  | 전                | S2                                                                                                                         |
 | ----------------------------------------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------- |
@@ -631,6 +631,20 @@ StatusLight 점 ↔ 글자를 S2 `text-to-visual` 형으로 바꿨다가 되돌�
 **게이트**: G4 「3c-3c ②b-2」 — ColorArea `size` · StatusLight 점 표 · 행간 · Tag `margin` × 2 를 설치본에서 읽어 대조. **원복 RED**: ColorArea 192px → 180px → G4 1 · StatusLight M 높이 24 → G3 2 · G4 1 · TagList gap 4 → G4 1. 복원 cmp 일치. **회귀**: builder unit — `tagGroupMaxRowsCanvas` (행 간격 36 → 40). G2 desktop · touch 263/263.
 
 **live (Chrome MCP, 5175)**: 팔레트 StatusLight · TagGroup · ColorArea. Canvas ColorArea 192 × 192 · TagGroup 390 × 54 · StatusLight 75 × 18, Compare Mode Preview ColorArea 192 × 192 · Tag 사이 8 · StatusLight 74.9 × 18. 콘솔 오류 0, 삭제 명령으로 지움.
+
+**②c Tab (이 커밋)**:
+
+| 자리                 | 전                                    | S2                                                                          |
+| -------------------- | ------------------------------------- | --------------------------------------------------------------------------- |
+| Tab 높이             | size 축 21 · 29 · 41 (여백 2 · 4 · 8) | density 축 compact 32 · regular 48 — `Tabs.tsx` `tab` height (size 축 없음) |
+| Tab 좌우 여백        | 8 · 12 · 16                           | 0 (탭 사이는 TabList gap)                                                   |
+| TabList 탭 사이 간격 | densities compact 0 · regular 8       | compact 24 · regular 32 — `tablist` gap                                     |
+
+장치: Tab rule `containerVariants.density` (높이 — Disclosure 와 같은 축 `TYPE_CONTAINER_VARIANT_AXES.Tab`, 두 consumer 가 이미 읽는 채널) · Tabs → Tab density 전파 (`CATALOG_DENSITY_PROPAGATION_OWNER.Tab`) · Tab binding `density` (패널 미노출, 기본 regular) · `toRacProps` 의 `DATA_ATTR_ENUM_KEYS` 에 `density` (Tab 요소의 `data-density` — 같은 경로를 타는 Cell · Column 은 RAC 가 버리던 raw prop 이 `data-density` 로 바뀔 뿐, Tabs · TabList · Disclosure · ToggleButtonGroup 은 delegated 렌더러라 무관). 글자는 크기별 그대로 (S2 `ui` 하나 — 별도 S2 차이). 대기 6 → 5.
+
+**게이트**: G4 「3c-3c ②c」 — 설치본 `Tabs.tsx` 의 `tab` height · `tablist` gap 표를 읽어 대조. `oneSidedProps` 의 Tabs density 단언에 Tab 의 Canvas 높이 32 · DOM `data-density` 추가. **원복 RED**: 전파 제거 · `data-density` 라우팅 제거 · Tab density 축 제거 → 각 1 · compact 높이 30 · TabList 옛 gap → 각 2. 복원 cmp 일치. G2 desktop · touch 263/263.
+
+**live (Chrome MCP, 5175)**: 팔레트 Tabs. regular — Compare Mode Preview 탭 48 · 간격 32 · 여백 0, Canvas 화면 측정 같은 값. Density Compact 로 바꾼 뒤 Canvas TabList 94 × 32 · Gap 24, Preview TabList 94.17 × 32 · 탭 32 · 간격 24. 콘솔 오류 0, 삭제 명령으로 지움.
 
 - G1 before/after: §6.1
 - G2 두 arm: §6.2 · Phase 3a §6.3 · Phase 3b §6.4

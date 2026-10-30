@@ -17,8 +17,8 @@ import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 
 describe("density 채널 — catalog SSOT", () => {
   it("TabList: compact/regular 이 서로 다른 gap 을 준다", () => {
-    expect(resolveCatalogDensityField("TabList", "compact", "gap")).toBe(0);
-    expect(resolveCatalogDensityField("TabList", "regular", "gap")).toBe(8);
+    expect(resolveCatalogDensityField("TabList", "compact", "gap")).toBe(24);
+    expect(resolveCatalogDensityField("TabList", "regular", "gap")).toBe(32);
   });
 
   it("density 미지정이면 defaultDensity 를 따른다 — Spectrum default 인 regular", () => {
@@ -26,7 +26,7 @@ describe("density 채널 — catalog SSOT", () => {
     //   2026-08-21 사용자 결정으로 구 compact 기본에서 전환.
     const rule = COMPONENT_RULES_TABLE.TabList;
     expect(rule?.defaultDensity).toBe("regular");
-    expect(resolveCatalogDensityField("TabList", undefined, "gap")).toBe(8);
+    expect(resolveCatalogDensityField("TabList", undefined, "gap")).toBe(32);
   });
 
   it("densities 미정의 컴포넌트는 density 를 줘도 undefined — 기존 동작 보존", () => {
