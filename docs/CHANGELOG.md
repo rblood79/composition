@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas 부분 갱신 경계 잔상 — device pixel clip] - 2026-10-30
+
+### Fixed
+
+- **속성 편집 후 어두운 배경에 남는 부분 갱신 테두리**
+  - 갱신 영역을 device pixel 정수 경계로 바깥 정렬하고 콘텐츠·standby 복사에 AA 없는 clip을 적용한다. contributor 조회도 넓어진 영역을 포함한다.
+  - **Why:** 소수점 AA clip에서 clear·재합성을 반복하면 경계의 불투명도가 낮아져 선택 해제 후에도 캐시에서 선이 표시됐다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/SkiaRenderer.ts`
+
+### Tests
+
+- 실제 CanvasKit surface에서 DPR 1/2 · zoom 1/1.7 · light/dark · 불투명/반투명 배경의 반복 편집·축소·삭제 결과를 전체 렌더와 픽셀 단위로 비교한다.
+
 ## [ADR-294 Implemented — 사용자 컴포넌트가 값을 내보내고 받는다: event · variable property] - 2026-10-30
 
 ### Added

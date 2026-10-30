@@ -718,7 +718,7 @@ export class SkiaRenderer {
         deviceBounds.right,
         deviceBounds.bottom,
       );
-      canvas.clipRect(rect, this.ck.ClipOp.Intersect, true);
+      canvas.clipRect(rect, this.ck.ClipOp.Intersect, false);
       canvas.drawColor(this.ck.Color4f(0, 0, 0, 0), this.ck.BlendMode.Clear);
     } else {
       // full sync 시에도 damage와 같은 clear draw path를 사용해 cold shader/setup
@@ -734,7 +734,7 @@ export class SkiaRenderer {
       canvas.clipRect(
         this.ck.LTRBRect(0, 0, 1, 1),
         this.ck.ClipOp.Intersect,
-        true,
+        false,
       );
       canvas.drawColor(this.ck.Color4f(0, 0, 0, 0), this.ck.BlendMode.Clear);
       canvas.drawImage(snapshot, 0, 0);
@@ -817,29 +817,35 @@ export class SkiaRenderer {
         renderCounters.contentDamageRenders += 1;
       return true;
     }
-    const sceneDamage = new DOMRect(
-      damageLeft,
-      damageTop,
-      damageRight - damageLeft,
-      damageBottom - damageTop,
+    // 교체 영역은 device pixel 전체를 소유해야 한다. 소수점 AA clip에서
+    // clear + SrcOver를 반복하면 경계 alpha가 줄어 선택선 같은 잔상이 남는다.
+    const left = Math.max(
+      0,
+      Math.floor((damageLeft * camera.zoom + camera.panX + padCss) * this.dpr),
     );
-    const left =
-      (sceneDamage.x * camera.zoom + camera.panX + padCss) * this.dpr;
-    const top = (sceneDamage.y * camera.zoom + camera.panY + padCss) * this.dpr;
-    const right =
-      ((sceneDamage.x + sceneDamage.width) * camera.zoom +
-        camera.panX +
-        padCss) *
-      this.dpr;
-    const bottom =
-      ((sceneDamage.y + sceneDamage.height) * camera.zoom +
-        camera.panY +
-        padCss) *
-      this.dpr;
+    const top = Math.max(
+      0,
+      Math.floor((damageTop * camera.zoom + camera.panY + padCss) * this.dpr),
+    );
+    const right = Math.min(
+      targetSurface.width(),
+      Math.ceil((damageRight * camera.zoom + camera.panX + padCss) * this.dpr),
+    );
+    const bottom = Math.min(
+      targetSurface.height(),
+      Math.ceil((damageBottom * camera.zoom + camera.panY + padCss) * this.dpr),
+    );
+    // 정수 정렬로 넓어진 경계의 contributor도 다시 그려야 빈 픽셀이 생기지 않는다.
+    const sceneDamage = new DOMRect(
+      (left / this.dpr - camera.panX - padCss) / camera.zoom,
+      (top / this.dpr - camera.panY - padCss) / camera.zoom,
+      (right - left) / this.dpr / camera.zoom,
+      (bottom - top) / this.dpr / camera.zoom,
+    );
 
     targetCanvas.save();
     const damageRect = this.ck.LTRBRect(left, top, right, bottom);
-    targetCanvas.clipRect(damageRect, this.ck.ClipOp.Intersect, true);
+    targetCanvas.clipRect(damageRect, this.ck.ClipOp.Intersect, false);
     // standby는 직전 content revision과 동기화되어 있다. damage 영역만 비운 뒤
     // 현재 scene의 교차 contributor를 다시 그리면 삭제/투명 변경도 ghost 없이 복원된다.
     targetCanvas.drawColor(
