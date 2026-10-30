@@ -310,6 +310,31 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     "S2 Menu sectionHeader 좌우 `edgeToText` 9 · 12 · 15 (rem — 터치에서 그대로, M 12 는 spacing 단)",
   ),
   sizes(
+    "ColorArea",
+    "height",
+    { S: 192, M: 192, L: 192 },
+    "S2 ColorArea `size: 192` (`ColorArea.tsx` — size 축 없음) · 읽는 곳 없음 (실제 상자는 composition containerStyles 192px)",
+  ),
+  sizes(
+    "StatusLight",
+    "height",
+    { S: 16, M: 18, L: 20, XL: 22 },
+    "S2 StatusLight 행 = controlFont 한 줄 행간 (`StatusLight.tsx` — 높이 지정 없음) · 터치 × 1.25 는 다루지 않음",
+  ),
+  ...(["Column", "Cell"] as const).map((component) =>
+    sizes(
+      component,
+      "paddingY",
+      {
+        M: 10,
+        "densities.compact": 6,
+        "densities.regular": 10,
+        "densities.spacious": 14,
+      },
+      "S2 TableView 행 compact 32 · regular 40 · spacious 48 (`TableView.tsx` — 칸은 minHeight + 가운데) = 칸 행간 20 + 2 × 여백 (칸 글자가 S2 ui 14 보다 한 단 위라 여백이 S2 의 7 · 11 · 15 보다 1 작다)",
+    ),
+  ),
+  sizes(
     "Avatar",
     "height",
     { XS: 24, S: 28, M: 32, L: 40, XL: 48 },
@@ -425,12 +450,6 @@ export const S2_PENDING_LITERAL: readonly PendingLiteral[] = [
     "MenuItem 안 label Text 가 MenuItem 글자가 아니라 Text 기본 (16 · 행간 20) 이고 MenuItem 은 size accept 가 없어 크기별 자식 규칙이 닿지 않는다 — S2 `menuitem` (최소 높이 control · 여백 높이 × 3/8 · 간격 text-to-visual · label = control 글자) 은 그 글자를 먼저 고친 뒤",
   ),
   pending(
-    "ColorArea",
-    "height",
-    { S: 120, M: 180, L: 240 },
-    "S2 ColorArea 192 · size 축 없음 (`ColorArea.tsx`)",
-  ),
-  pending(
     "Slider",
     "height",
     { S: 4, M: 8, L: 12, XL: 16 },
@@ -443,40 +462,11 @@ export const S2_PENDING_LITERAL: readonly PendingLiteral[] = [
     "S2 Slider track 행 24 · 32 · 40 · 48 (`Slider.tsx` `track`) — 막대 두께는 대조 전",
   ),
   pending(
-    "StatusLight",
-    "height",
-    { S: 20, M: 24, L: 28, XL: 32 },
-    "S2 StatusLight 점 8 · 10 · 12 · 14 — 행 높이는 대조 전",
-  ),
-  pending(
     "Tab",
     "height",
     { S: 21, M: 29, L: 41 },
     "S2 Tabs 항목 높이 compact 32 · regular 48 — size 축이 아니라 density (`Tabs.tsx`)",
   ),
-  pending(
-    "Column",
-    "paddingY",
-    {
-      M: 10,
-      "densities.compact": 6,
-      "densities.regular": 10,
-      "densities.spacious": 14,
-    },
-    "S2 TableView 머리글 centerPadding (`TableView.tsx`) — 행 높이 · 경계 대조 전",
-  ),
-  pending(
-    "Cell",
-    "paddingY",
-    {
-      M: 10,
-      "densities.compact": 6,
-      "densities.regular": 10,
-      "densities.spacious": 14,
-    },
-    "S2 TableView 셀 centerPadding (행 높이 − 행간) / 2 (`TableView.tsx`) — 행 높이 · 경계 대조 전",
-  ),
-  pending("TagList", "gap", { L: 6 }, "S2 대조 전"),
 ];
 
 interface Literal {
@@ -573,7 +563,7 @@ describe("ADR-295 G3 — rule 치수 리터럴", () => {
     expect(stale).toEqual([]);
   });
 
-  it("S2 값 대조 대기는 줄기만 한다 (3c-3b ③ 45 → 3c-3c ① 32 → ②a 16 → ②b-1 11)", () => {
-    expect(S2_PENDING_LITERAL.length).toBeLessThanOrEqual(11);
+  it("S2 값 대조 대기는 줄기만 한다 (3c-3b ③ 45 → 3c-3c ① 32 → ②a 16 → ②b-1 11 → ②b-2 6)", () => {
+    expect(S2_PENDING_LITERAL.length).toBeLessThanOrEqual(6);
   });
 });

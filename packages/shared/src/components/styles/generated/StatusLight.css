@@ -22,7 +22,7 @@
   border: none;
 
   /* Default size */
-  height: 24px;
+  height: 18px;
   padding: 0px 0px;
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
@@ -277,7 +277,7 @@
 }
 
 .react-aria-StatusLight[data-size="S"] {
-  height: 20px;
+  height: 16px;
   padding: 0px 0px;
   font-size: var(--catalog-token-text-xs);
   border-radius: var(--catalog-token-radius-none);
@@ -285,7 +285,7 @@
 }
 
 .react-aria-StatusLight[data-size="M"] {
-  height: 24px;
+  height: 18px;
   padding: 0px 0px;
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
@@ -293,7 +293,7 @@
 }
 
 .react-aria-StatusLight[data-size="L"] {
-  height: 28px;
+  height: 20px;
   padding: 0px 0px;
   font-size: var(--catalog-token-text-base);
   border-radius: var(--catalog-token-radius-none);
@@ -301,7 +301,7 @@
 }
 
 .react-aria-StatusLight[data-size="XL"] {
-  height: 32px;
+  height: 22px;
   padding: 0px 0px;
   font-size: var(--catalog-token-text-lg);
   border-radius: var(--catalog-token-radius-none);

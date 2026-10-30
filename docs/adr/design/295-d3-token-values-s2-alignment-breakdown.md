@@ -617,6 +617,21 @@ Breadcrumb (조각) 높이는 옛 Skia `breadcrumb_crumb` 만 읽어 control 값
 
 **live (Chrome MCP, 5175)**: Breadcrumbs — Canvas 390 × 32, Compare Mode Preview nav 32 (`min-height: 32px`) · 항목 20.6 가운데. 콘솔 오류 0, 삭제 명령으로 지움. Tooltip 은 Canvas 에서 닫혀 있고 Menu 기본 원본에 section header 가 없어 G2 · unit 으로만.
 
+**②b-2 (이 커밋)**:
+
+| 자리                                                  | 전                | S2                                                                                                                         |
+| ----------------------------------------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| ColorArea 상자 (composition containerStyles)          | 100% × 180        | 192 × 192 — `ColorArea.tsx` `size: 192` (ADR-258 사용자 결정 2 「지금 값 그대로」 를 이번 결정 「S2 로 변경」 이 대신한다) |
+| StatusLight 높이                                      | 20 · 24 · 28 · 32 | controlFont 행간 16 · 18 · 20 · 22 (S2 는 높이 지정 없이 한 줄)                                                            |
+| Tag 사이 간격 (TagList rule · `TagGroup.css`)         | 4 · 4 · 6         | 8 — S2 Tag `margin: 4` 양쪽 (크기 무관)                                                                                    |
+| Table 칸 위아래 (Column · Cell densities 6 · 10 · 14) | —                 | 바꾸지 않음: 칸 행간 20 + 2 × 여백 = S2 행 32 · 40 · 48 — 「의도적」 (칸 글자가 S2 ui 14 보다 한 단 위 — 별도 S2 차이)     |
+
+StatusLight 점 ↔ 글자를 S2 `text-to-visual` 형으로 바꿨다가 되돌렸다 — DOM `StatusLight.tsx` 가 rule 의 길이 형을 읽게 했지만 Preview 에서 `ruleSizeLengthRef` 가 비어 폴백 8 이 그려졌다 (unit SSR 에서는 식이 나온다 — Preview 모듈 그래프의 길이 형 등록 공유 문제로 보인다). 원래 대기 목록에 없던 값 (8, spacing 단) 이라 후속. 대기 11 → 6.
+
+**게이트**: G4 「3c-3c ②b-2」 — ColorArea `size` · StatusLight 점 표 · 행간 · Tag `margin` × 2 를 설치본에서 읽어 대조. **원복 RED**: ColorArea 192px → 180px → G4 1 · StatusLight M 높이 24 → G3 2 · G4 1 · TagList gap 4 → G4 1. 복원 cmp 일치. **회귀**: builder unit — `tagGroupMaxRowsCanvas` (행 간격 36 → 40). G2 desktop · touch 263/263.
+
+**live (Chrome MCP, 5175)**: 팔레트 StatusLight · TagGroup · ColorArea. Canvas ColorArea 192 × 192 · TagGroup 390 × 54 · StatusLight 75 × 18, Compare Mode Preview ColorArea 192 × 192 · Tag 사이 8 · StatusLight 74.9 × 18. 콘솔 오류 0, 삭제 명령으로 지움.
+
 - G1 before/after: §6.1
 - G2 두 arm: §6.2 · Phase 3a §6.3 · Phase 3b §6.4
 - G4 (b) 최종 snapshot (preset 5 × 델타) · (c) 컴포넌트별 desktop/touch vs S2 computed: §6.4 (c 의 padding · gap 은 3c)

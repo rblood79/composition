@@ -16,7 +16,8 @@
     /* S2 labelAlign (2026-10-10): the side label's text alignment. Its width is its text (S2 side
        label column `auto`) — the list takes the rest. */
     /* (ADR-259 Phase 3: a label row in the Label's place — the generated sheets' `partAliases`.) */
-    &[data-label-position="side"] > :is(.react-aria-Label, .react-aria-FieldLabel) {
+    &[data-label-position="side"]
+      > :is(.react-aria-Label, .react-aria-FieldLabel) {
       text-align: var(--form-label-align, start);
       justify-content: var(--form-label-align, start);
     }
@@ -47,9 +48,9 @@
   .tag-list-wrapper {
     display: flex;
     flex-wrap: wrap;
-    /* chip 간 gap 정본 = TagList catalog rule(sm/md=4px). ADR-907 Layer D — Skia projection
-       (appendTagRowProjection → resolveTagListGap)과 동일 값. size 별 override 는 아래 selector. */
-    gap: var(--spacing-xs);
+    /* chip 간 gap 정본 = TagList catalog rule (S2 Tag `margin: 4` 양쪽 = 8, 크기 무관 — ADR-295 Phase 3c-3c).
+       ADR-907 Layer D — Skia projection (appendTagRowProjection → resolveTagListGap) 과 동일 값. */
+    gap: var(--spacing-sm);
     align-items: center;
     /* 기본 크기 = catalog TagList (containerStyles.height 100% · sizes[size].minHeight = chip 높이) — Tag 가
        없어도 목록 자리가 보인다 (사용자 지시 2026-09-24). TagList 는 display: contents 라 이 wrapper 가 상자.
@@ -66,10 +67,7 @@
     min-height: 30px;
   }
 
-  /* lg: catalog TagList.sizes.lg.gap = 6 (--spacing-xs 4 / --spacing-sm 8 사이, 대응 토큰 없어 직접 지정).
-     Skia projection resolveTagListGap("lg") = 6 과 정합. */
   .react-aria-TagGroup[data-tag-size="L"] .tag-list-wrapper {
-    gap: 6px;
     min-height: 42px;
   }
 

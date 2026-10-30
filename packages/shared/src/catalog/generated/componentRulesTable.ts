@@ -2540,19 +2540,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
-        height: 120,
+        height: 192,
         iconSize: 14,
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
-        height: 180,
+        height: 192,
         iconSize: 18,
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
-        height: 240,
+        height: 192,
         iconSize: 22,
       },
     },
@@ -2563,9 +2563,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       skipStateStyles: true,
       composition: {
         delegation: [],
+        // S2 ColorArea `size: 192` (`ColorArea.tsx` — 정사각, size 축 없음, ADR-295 Phase 3c-3c — 전 100% × 180).
         containerStyles: {
-          width: "100%",
-          height: "180px",
+          width: "192px",
+          height: "192px",
           "border-radius": "var(--radius-md)",
           "flex-shrink": "0",
           contain: "layout style",
@@ -11098,32 +11099,34 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     // `indicator.dotSize`: the dot diameter (DOM inline style · Skia `status_light` · the Canvas
     //   content width) — not emitted to CSS.
+    // S2 StatusLight (`StatusLight.tsx`, ADR-295 Phase 3c-3c): 행 = controlFont 한 줄 (행간 16 · 18 · 20 · 22 — 높이 지정
+    //   없음) · 점 8 · 10 · 12 · 14. 점 ↔ 글자는 S2 `text-to-visual` 이지만 아직 8 (DOM `StatusLight.tsx` 가 길이 형을 못 읽는다 — 후속).
     sizes: {
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
-        height: 20,
+        height: 16,
         gap: 8,
         indicator: { dotSize: 8 },
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
-        height: 24,
+        height: 18,
         gap: 8,
         indicator: { dotSize: 10 },
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
-        height: 28,
+        height: 20,
         gap: 8,
         indicator: { dotSize: 12 },
       },
       XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
-        height: 32,
+        height: 22,
         gap: 8,
         indicator: { dotSize: 14 },
       },
@@ -12511,7 +12514,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         // minHeight = Tag 의 S2 control 높이 (chip border-box, ADR-295 Phase 3b) — 빈 목록 틀의 기본 높이.
         minHeight: "{size.height.S}",
-        gap: 4,
+        gap: 8,
       },
       M: {
         fontSize: "{typography.text-base}",
@@ -12519,7 +12522,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         // minHeight = Tag 의 S2 control 높이 (chip border-box, ADR-295 Phase 3b) — 빈 목록 틀의 기본 높이.
         minHeight: "{size.height.M}",
-        gap: 4,
+        gap: 8,
       },
       L: {
         fontSize: "{typography.text-base}",
@@ -12527,7 +12530,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         // minHeight = Tag 의 S2 control 높이 (chip border-box, ADR-295 Phase 3b) — 빈 목록 틀의 기본 높이.
         minHeight: "{size.height.L}",
-        gap: 6,
+        gap: 8,
       },
     },
   },

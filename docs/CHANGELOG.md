@@ -28,6 +28,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CSS 영역에서도 같은 휠 이동·줌 지원**: 페이지 내부와 바깥 여백에서 휠로 이동하고, Shift+휠로 가로 이동하며, Cmd/Ctrl+휠로 포인터 위치를 기준으로 확대·축소한다. iframe 입력은 검증된 메시지 경로를 통해 기존 Canvas 카메라 처리에 연결한다.
   - 위치: `apps/builder/src/builder/workspace/Workspace.css`, `canvas/catalog/CatalogPreviewFrame.tsx`, `hooks/useWorkspaceCompareSplit.ts`
 
+## [ADR-295 Phase 3c-3c ②b-2 — ColorArea · StatusLight · Tag 간격 = S2] - 2026-10-31
+
+### Changed
+
+- **ColorArea 192 × 192 정사각** (전 폭 100% × 높이 180), **StatusLight 높이** 16 · 18 · 20 · 22 (글자 한 줄 — 전 20 ~ 32), **Tag 사이 간격 8** (전 4 · 4 · 6). 「S2 대조 대기」 11 → 6.
+  - 위치: `componentRulesTable.ts`, `components/styles/TagGroup.css`, breakdown §6.11
+
 ## [ADR-295 Phase 3c-3c ②b-1 — Tooltip · Menu 묶음 제목 · Breadcrumbs 높이 = S2] - 2026-10-31
 
 ### Changed

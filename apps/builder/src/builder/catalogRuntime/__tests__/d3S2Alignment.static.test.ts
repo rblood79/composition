@@ -961,3 +961,43 @@ describe("ADR-295 G4 — 3c-3c ②b-1 control 높이 형 (Tooltip · Menu sectio
     }
   });
 });
+
+describe("ADR-295 G4 — 3c-3c ②b-2 ColorArea · StatusLight · Tag 간격", () => {
+  const rules = COMPONENT_RULES_TABLE as unknown as Record<
+    string,
+    {
+      sizes: Record<string, Record<string, unknown>>;
+      structure?: {
+        composition?: { containerStyles?: Record<string, string> };
+      };
+    }
+  >;
+
+  it("ColorArea 상자 = S2 `size` 정사각", () => {
+    const s2 = s2Value("ColorArea.tsx", /size: (\d+),\s*minSize/);
+    const box = rules.ColorArea!.structure!.composition!.containerStyles!;
+    expect([box.width, box.height]).toEqual([`${s2}px`, `${s2}px`]);
+  });
+
+  it("StatusLight: 점 = S2 light 표 · 행 = controlFont 행간 (점 ↔ 글자 text-to-visual 은 후속)", () => {
+    const dots = s2SizeTable(
+      "StatusLight.tsx",
+      /const light = style[\s\S]*?size:\s*\{\s*size:\s*/,
+    );
+    for (const [size, block] of Object.entries(rules.StatusLight!.sizes)) {
+      expect((block.indicator as { dotSize: number }).dotSize, size).toBe(
+        dots[size],
+      );
+      expect(block.height, size).toBe(
+        s2LineHeight(s2FontSize({ S: -1, M: 0, L: 1, XL: 2 }[size]!)),
+      );
+    }
+  });
+
+  it("TagList 간격 = S2 Tag `margin` × 2 (크기 무관)", () => {
+    const margin = s2Value("TagGroup.tsx", /\n  margin: (\d+),/);
+    expect(
+      new Set(Object.values(rules.TagList!.sizes).map((b) => b.gap)),
+    ).toEqual(new Set([margin * 2]));
+  });
+});
