@@ -25,15 +25,17 @@ argument-hint: [검증 대상 기능 + 완료 기준 (한 줄씩)]
   새로고침·HMR 은 스택을 비웁니다. 정리 전후 `workspace.history.getSnapshot()` 의 entry 에 남의
   항목이 섞였는지 보고, 사용자가 탭을 쓰는 중일 수 있으면 별도 live 전용 프로젝트를 씁니다
   (로컬 scratch 프로젝트의 데이터 손실은 보고 대상이 아닙니다).
-- Compare Mode 에서는 축소된 Preview 의 좌표 클릭이 Builder 헤더에 막히므로 요소에
-  직접 click 이벤트를 보냅니다. Preview 에서 누른 노드는 Builder 선택이 되어 다음 팔레트 추가가
+- Compare Mode 는 CSS (왼쪽, Preview iframe) 와 Canvas (오른쪽) 두 전체 크기 화면을 겹쳐 두고
+  가운데 손잡이로 노출 경계만 바꿉니다 (`Home` = Canvas 전체 · `End` = CSS 전체). 좌표 클릭은 경계
+  왼쪽에서만 iframe 에 닿으므로 Preview 요소에는 직접 click 이벤트를 보냅니다. Preview 에서 누른 노드는 Builder 선택이 되어 다음 팔레트 추가가
   그 안으로 들어가고, Compare Mode 를 토글하면 iframe 이 교체되어 붙잡아 둔 참조가 죽습니다.
 
 ## 관찰
 
 - Canvas·시각 결과는 foreground 또는 활성 RAF가 확인된 환경에서 측정합니다.
   hidden 탭의 stale overlay를 시각 근거로 사용하지 않습니다. Skia 캔버스 픽셀은 페이지 안에서
-  읽을 수 없으므로 스크린샷을 찍어 분석하고, 픽셀 측정은 Compare Mode 를 끄고 합니다 (반폭 축소).
+  읽을 수 없으므로 스크린샷을 찍어 분석합니다. Compare Mode 에서 한쪽 전체 픽셀이 필요하면 손잡이를
+  끝으로 옮깁니다 (경계 위치가 보이는 영역을 정합니다).
 - 상태 변경은 Inspector·Canvas·Preview 반영과 Undo/Redo를 관련 범위에서 확인합니다.
 - 컴포넌트 자식·slot·조건부 표시가 바뀌면 [RAC 조립 계약](../composition-patterns/rules/domain-rac-composition.md)의
   변경 범위 검증을 적용합니다. DOM 구조·상태 연결과 Canvas↔Preview 시각 판정을 구분합니다.

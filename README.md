@@ -118,6 +118,18 @@ pnpm dev
 [Vite dependency pre-bundling](https://vite.dev/guide/dep-pre-bundling.html),
 [pnpm filtering](https://pnpm.io/filtering)
 
+## Canvas ↔ CSS 비교 (Compare Mode)
+
+Builder 헤더의 Compare Mode 버튼 (`Compare Mode (Preview + Skia)`) 을 켜면 CSS 화면
+(Preview iframe, 왼쪽 라벨 「CSS」) 과 Canvas 화면 (Skia, 오른쪽 라벨 「Canvas」) 이 같은
+자리에 겹쳐 표시됩니다. 두 화면은 페이지 크기 · 위치 · 줌이 같고, 가운데 손잡이를 좌우로
+밀면 경계 왼쪽은 CSS, 오른쪽은 Canvas 가 보입니다.
+
+- 손잡이를 비교할 요소 위로 옮기면 같은 요소의 CSS 와 Canvas 결과가 맞닿아 보여 어긋남을 바로 찾을 수 있습니다.
+- 방향키로 조금씩, `Home` 으로 Canvas 전체, `End` 로 CSS 전체를 봅니다. 경계 위치는 브라우저에 저장됩니다.
+- 휠 이동 · `Shift`+휠 가로 이동 · `Cmd/Ctrl`+휠 줌은 두 화면에서 똑같이 동작합니다.
+- 클릭은 보이는 쪽 화면이 받습니다 (가려진 영역은 클릭도 받지 않음).
+
 ## Documentation
 
 - [모노레포 구조](docs/reference/architecture/MONOREPO.md)

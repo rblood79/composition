@@ -41,7 +41,9 @@ Canvas(Skia)와 Preview(DOM/CSS)는 catalog + theme/tokens의 대등한 소비�
   rasterizer 의 전후 비교에만 씁니다.
 - DOM leg 은 shared CSS 만이 아니라 Preview 가 주입하는 전역 reset 까지 실어야 production 입니다.
   빠지면 가짜 격차가 「별도 작업」 으로 문서를 떠돕니다.
-- Compare Mode 는 캔버스를 반폭으로 줄여 면적 변화를 지웁니다. 픽셀 측정은 Compare Mode 를 끄고 합니다.
+- Compare Mode 는 CSS (왼쪽) · Canvas (오른쪽) 를 같은 크기 · 줌으로 겹쳐 두고 손잡이를 좌우로 밀어
+  비교합니다. 경계를 요소 위에 두면 두 결과가 맞닿아 보입니다. 한쪽 전체 픽셀은 손잡이를 끝으로
+  (`Home` = Canvas · `End` = CSS) 옮겨 잽니다.
 - G3 승인 쌍은 변경이 쓸고 간 영역만 귀속합니다. old∪new 상자 전체를 귀속하면 상자 안의 칠 변화가
   PASS 로 가려집니다. 판정기를 바꿨으면 원복 RED 로 판정기 자체를 확인합니다.
 
