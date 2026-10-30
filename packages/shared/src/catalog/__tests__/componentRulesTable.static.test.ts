@@ -242,6 +242,62 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     "S2 Slider thumb 18 · 20 · 22 · 24 (`Slider.tsx` `thumbContainer`) — 슬라이더 안에서는 Slider `indicator.thumbSize` 가 같은 값",
   ),
   sizes(
+    "Icon",
+    "height",
+    { XS: 14, S: 16, M: 18, L: 20, XL: 22 },
+    "S2 iconStyle XS 14 · S 16 · M 18 · L 20 · XL 22 (`style/index.ts`) = `{size.icon.<S>}` — catalog Icon 은 글리프 크기 (iconSize) 로 그려 이 높이는 catalog 밖 Icon 의 생성 CSS 만",
+  ),
+  sizes(
+    "SelectValue",
+    "height",
+    { XS: 14, S: 16, M: 18, L: 20, XL: 22 },
+    "S2 Picker 값 글자 한 줄 = controlFont 행간 (`Picker.tsx` — 높이는 버튼 100%) · 읽는 곳 없음 (manual omit)",
+  ),
+  sizes(
+    "Table",
+    "height",
+    { S: 32, M: 40, L: 48 },
+    "S2 TableView 행 compact 32 · regular 40 · spacious 48 (`TableView.tsx` rowHeight) · 읽는 곳 없음 (top-level containerStyles — 칸 여백은 Column · Cell densities)",
+  ),
+  sizes(
+    "TagGroup",
+    "height",
+    { S: 24, M: 32, L: 40 },
+    "S2 Tag 높이 = control 높이 S 24 · M 32 · L 40 (`TagGroup.tsx`) 그대로 · 읽는 곳 없음 (top-level containerStyles)",
+  ),
+  ...(["Tree", "TreeItem"] as const).map((component) =>
+    sizes(
+      component,
+      "height",
+      { S: 40, M: 40, L: 40 },
+      "S2 TreeView 행 40 (`TreeView.tsx` — size 축 없음, 모든 크기에) · 이 칸은 읽는 곳 없음 (행 높이 출처는 manualBoxRules TreeItem · Tree.css)",
+    ),
+  ),
+  sizes(
+    "TreeItem",
+    "gap",
+    { "variants.default.leadingIcon": 6 },
+    "S2 TreeView 아이콘 `marginEnd: text-to-visual` = 6 (ui 14) — 옛 항목 (TreeItemContent 없음) 의 Skia 글자 밀기만",
+  ),
+  sizes(
+    "CalendarHeader",
+    "height",
+    { M: 32 },
+    "S2 Calendar 머리 = 이전 · 다음 quiet ActionButton M 32 (`Calendar.tsx`) · 읽는 곳 없음 (manual replace)",
+  ),
+  sizes(
+    "Toast",
+    "minHeight",
+    { S: 56, M: 56, L: 56 },
+    "S2 Toast minHeight 56 (`Toast.tsx` — size 축 없음, 모든 크기에)",
+  ),
+  sizes(
+    "Toolbar",
+    "gap",
+    { L: 10 },
+    "S2 Toolbar 는 RAC 를 감싸기만 하고 스타일이 없다 (`Toolbar.tsx`) — composition 묶음 간격",
+  ),
+  sizes(
     "Avatar",
     "height",
     { XS: 24, S: 28, M: 32, L: 40, XL: 48 },
@@ -368,31 +424,13 @@ export const S2_PENDING_LITERAL: readonly PendingLiteral[] = [
     { S: 16, M: 24, L: 24 },
     "S2 Breadcrumbs 항목 높이 = control 높이 (M 32 · L 40 — `Breadcrumbs.tsx` `height: controlSize()`)",
   ),
-  pending("Calendar", "gap", { M: 6 }, "S2 대조 전"),
-  pending("CalendarGrid", "gap", { M: 6 }, "S2 대조 전"),
-  pending("CalendarHeader", "height", { M: 30 }, "S2 대조 전"),
-  pending("CalendarHeader", "gap", { M: 6 }, "S2 대조 전"),
   pending(
     "ColorArea",
     "height",
     { S: 120, M: 180, L: 240 },
     "S2 ColorArea 192 · size 축 없음 (`ColorArea.tsx`)",
   ),
-  pending("DropZone", "height", { S: 80, M: 120, L: 160 }, "S2 대조 전"),
   pending("Header", "paddingY", { M: 6 }, "S2 대조 전"),
-  pending(
-    "Icon",
-    "height",
-    { XS: 16, S: 18, M: 24, L: 36, XL: 48 },
-    "S2 대조 전",
-  ),
-  pending("RangeCalendar", "gap", { M: 6 }, "S2 대조 전"),
-  pending(
-    "SelectValue",
-    "height",
-    { XS: 14, S: 16, M: 20, L: 24, XL: 28 },
-    "S2 대조 전",
-  ),
   pending(
     "Slider",
     "height",
@@ -439,22 +477,7 @@ export const S2_PENDING_LITERAL: readonly PendingLiteral[] = [
     },
     "S2 TableView 셀 centerPadding (행 높이 − 행간) / 2 (`TableView.tsx`) — 행 높이 · 경계 대조 전",
   ),
-  pending("Table", "height", { S: 36, M: 44, L: 52 }, "S2 대조 전"),
-  pending(
-    "TagGroup",
-    "height",
-    { S: 24, M: 32, L: 40 },
-    "S2 Tag 높이 = control 높이 — 리터럴이 아니라 `{size.height.<S>}` (터치 보기) 로",
-  ),
-  pending("TagList", "height", { S: 32, M: 32, L: 32 }, "S2 대조 전"),
   pending("TagList", "gap", { L: 6 }, "S2 대조 전"),
-  pending(
-    "Toast",
-    "height",
-    { S: 40, M: 48, L: 56 },
-    "S2 Toast 최소 높이 56 · size 축 없음 (`Toast.tsx`)",
-  ),
-  pending("Toolbar", "gap", { L: 10 }, "S2 대조 전"),
   pending(
     "Tooltip",
     "paddingX",
@@ -466,24 +489,6 @@ export const S2_PENDING_LITERAL: readonly PendingLiteral[] = [
     "paddingY",
     { M: 6 },
     "S2 Tooltip paddingY = centerPadding (`Tooltip.tsx`) — 최소 높이 대조 전",
-  ),
-  pending(
-    "Tree",
-    "height",
-    { S: 28, M: 36, L: 44 },
-    "S2 TreeView 행 40 · 터치 50 (`TreeView.tsx` `rowHeight`)",
-  ),
-  pending(
-    "TreeItem",
-    "gap",
-    { "variants.default.leadingIcon": 6 },
-    "S2 대조 전",
-  ),
-  pending(
-    "TreeItem",
-    "height",
-    { S: 24, M: 32, L: 32 },
-    "S2 TreeView 행 40 · 터치 50 (`TreeView.tsx` `rowHeight`)",
   ),
 ];
 
@@ -581,7 +586,7 @@ describe("ADR-295 G3 — rule 치수 리터럴", () => {
     expect(stale).toEqual([]);
   });
 
-  it("S2 값 대조 대기는 줄기만 한다 (3c-3b ③ 45 자리 → 3c-3c ① 32)", () => {
-    expect(S2_PENDING_LITERAL.length).toBeLessThanOrEqual(32);
+  it("S2 값 대조 대기는 줄기만 한다 (3c-3b ③ 45 → 3c-3c ① 32 → ②a 16)", () => {
+    expect(S2_PENDING_LITERAL.length).toBeLessThanOrEqual(16);
   });
 });

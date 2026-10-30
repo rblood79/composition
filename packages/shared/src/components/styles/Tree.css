@@ -65,7 +65,8 @@
     box-sizing: border-box;
     align-items: center;
     gap: var(--spacing-2xs);
-    min-height: 32px;
+    /* S2 TreeView 행 40 (`TreeView.tsx` — ADR-295 Phase 3c-3c, 전 32). */
+    min-height: 40px;
     padding: var(--spacing-xs) var(--spacing-sm);
     --padding: var(--spacing);
     border-radius: var(--radius-sm);

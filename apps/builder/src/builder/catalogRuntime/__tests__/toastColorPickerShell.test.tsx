@@ -78,8 +78,8 @@ describe("container shells without a palette entry: Canvas = Preview", () => {
     expect(tag).toMatch(/class="react-aria-Toast"/);
     expect(tag).toMatch(/data-size="M"/);
     expect(tag).toMatch(/data-variant="info"/);
-    // The Canvas box the sheet's `.react-aria-Toast { height: 48px }` (size M) matches.
-    expect(root.getGeometry([id]).get(id)?.height).toBe(48);
+    // The Canvas box the sheet's `.react-aria-Toast { min-height: 56px }` matches (S2 Toast — ADR-295 Phase 3c-3c).
+    expect(root.getGeometry([id]).get(id)?.height).toBe(56);
   });
 
   it("ColorPicker: the Canvas paints no fill or border of its own (RAC ColorPicker draws no element)", async () => {

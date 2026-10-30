@@ -37,6 +37,7 @@ import {
   type TokenRef,
 } from "@composition/rendering";
 import { COMPONENT_RULES_TABLE } from "../../../../../../packages/shared/src/catalog/generated/componentRulesTable";
+import { manualBoxRule } from "../../../../../../packages/shared/src/catalog/document/manualBoxRules";
 import oracle from "./fixtures/adr295-s2-oracle.json";
 
 const SIZES = ["XS", "S", "M", "L", "XL"] as const;
@@ -837,5 +838,61 @@ describe("ADR-295 G4 — 3c-3c ① 컴포넌트 고정 치수 = S2 설치본 표
     ).toEqual(expected);
     expect(heights("SliderThumb")).toEqual(expected);
     expect(heights("SliderTrack", "thumbSize")).toEqual(expected);
+  });
+});
+
+/** 설치본 소스에서 `pattern` 의 첫 캡처 숫자. */
+function s2Value(file: string, pattern: RegExp): number {
+  const source = readFileSync(
+    resolve(__dirname, "../../../../node_modules/@react-spectrum/s2/src", file),
+    "utf8",
+  );
+  const match = pattern.exec(source);
+  if (!match) throw new Error(`${file}: ${pattern} 없음`);
+  return Number(match[1]);
+}
+
+describe("ADR-295 G4 — 3c-3c ②a 크기 축 없는 S2 고정 치수 (모든 크기에)", () => {
+  const rules = COMPONENT_RULES_TABLE as unknown as Record<
+    string,
+    { sizes: Record<string, Record<string, unknown>> }
+  >;
+  const every = (type: string, key: string) =>
+    Object.values(rules[type]!.sizes).map((block) => block[key]);
+
+  it("Toast 최소 높이 = S2 Toast minHeight (높이는 내용)", () => {
+    const s2 = s2Value("Toast.tsx", /borderRadius: 'lg',\s*minHeight: (\d+)/);
+    expect(new Set(every("Toast", "minHeight"))).toEqual(new Set([s2]));
+    expect(new Set(every("Toast", "height"))).toEqual(new Set([0]));
+  });
+
+  it("TreeView 행 = S2 TreeView row height — manualBoxRules TreeItem · Tree.css 행 둘 다", () => {
+    const s2 = s2Value(
+      "TreeView.tsx",
+      /display: 'flex',\s*height: (\d+),\s*width: 'full'/,
+    );
+    expect(manualBoxRule("TreeItem")!.visual?.minHeight).toBe(s2);
+    const sheet = readFileSync(
+      resolve(
+        __dirname,
+        "../../../../../../packages/shared/src/components/styles/Tree.css",
+      ),
+      "utf8",
+    );
+    const row =
+      /:where\(\.react-aria-Tree\[data-composition-tree\]\) \.react-aria-TreeItem \{[^}]*?min-height: (\d+)px/.exec(
+        sheet,
+      );
+    expect(Number(row![1])).toBe(s2);
+  });
+
+  it("Calendar · RangeCalendar 월 블록 간격 = S2 Calendar root gap", () => {
+    const s2 = s2Value("Calendar.tsx", /flexDirection: 'column',\s*gap: (\d+)/);
+    expect(every("Calendar", "gap")).toEqual([s2]);
+    expect(every("RangeCalendar", "gap")).toEqual([s2]);
+  });
+
+  it("DropZone 높이 = 내용 (S2 DropZone 에 높이 · 최소 높이 지정 없음)", () => {
+    expect(new Set(every("DropZone", "height"))).toEqual(new Set([0]));
   });
 });

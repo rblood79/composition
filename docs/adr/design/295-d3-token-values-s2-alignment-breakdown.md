@@ -582,6 +582,27 @@ field 버튼 (ComboBox · DatePicker · DateRangePicker): 정사각형 `{size.fi
 
 **live (Chrome MCP, 5175 · `adr295-live`)**: 팔레트 ProgressBar · ProgressCircle · ColorField · Slider · Meter 를 body 에. Canvas: ProgressBar 390 × 28 (라벨 18 + 4 + 막대 6) · Meter 390 × 28 · Slider 390 × 30 · ProgressCircle Size S → 16 × 16. Compare Mode Preview: 막대 6 · ProgressCircle S 16 (svg width 16) · thumb 20 · SliderOutput 18 · ColorField 글자 14. 콘솔 오류 0. 다섯 요소는 삭제 명령으로 지움 (Compare Mode 에서는 Preview iframe 이 포커스를 가져가 Delete 가 Canvas 에 닿지 않는다 — 끄고 지웠다). ColorSwatch 는 팔레트 항목이 없어 unit (`colorSwatchRounding` Canvas 32) 으로만. 터치 × 1.25 는 이 묶음 값에 없다 (S2 는 sizing 이라 터치에서 커진다 — 후속).
 
+**②a 크기 축 없는 고정 숫자 · 읽히지 않는 리터럴 (이 커밋)**:
+
+| 자리                                                                           | 전                  | S2 (출처)                                                                                                                   |
+| ------------------------------------------------------------------------------ | ------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| TreeView 행 (`manualBoxRules` TreeItem `TREE_ROW_HEIGHT` · `Tree.css` 기본 행) | 32                  | 40 — `TreeView.tsx` `height: 40` (행 내용 여백도 같은 상수로 — 안 고치면 Canvas 행 내용이 32 에 남아 G2 Tree 3 FAIL 이었다) |
+| Toast                                                                          | 높이 40 · 48 · 56   | 높이 내용 + 최소 56 (모든 크기) — `Toast.tsx`                                                                               |
+| DropZone                                                                       | 높이 80 · 120 · 160 | 내용 높이 (S2 에 높이 지정 없음)                                                                                            |
+| Calendar · RangeCalendar 월 블록 간격                                          | 6                   | 24 — `Calendar.tsx` root `gap`                                                                                              |
+
+읽히지 않는 리터럴 (S2 값 · 0 으로): Icon 14 · 16 · 18 · 20 · 22 (= `{size.icon.<S>}`), SelectValue 행간 14 ~ 22, Table 32 · 40 · 48, TagGroup 24 · 32 · 40 (그대로), Tree · TreeItem 40, CalendarHeader 32 · gap 24, CalendarGrid gap 0, TagList 0. TreeItem 아이콘 간격 6 · Toolbar (S2 스타일 없음) 은 「의도적」. 대기 32 → 16.
+
+**빌더**: DropZone 높이 295 전 값 pin (Decision 9 (c)).
+
+**게이트**: G4 「3c-3c ②a — 크기 축 없는 S2 고정 치수」 — Toast minHeight · TreeView 행 (manual · `Tree.css` 둘 다) · Calendar gap 을 설치본 소스에서 읽어 대조, DropZone 높이 0. G3 대기 ≤ 16.
+
+**원복 RED**: Toast M 56 → 48 → G3 2 · G4 1 · `TREE_ROW_HEIGHT` 32 → G4 1 · `Tree.css` 행 32px → G4 1 · Calendar gap 6 → G4 1 · pins DropZone M 지움 → Decision 9 (c) 1. 복원 cmp 일치.
+
+**회귀**: shared 2,050 · builder unit — 값 단언 갱신 `treeItemChevronNode` (chevron y 12 · 옛 항목 글리프 cy 20 — 행 40) · `toastColorPickerShell` (56) · `resolveContainerStylesFallback` (Calendar gap 24). G2 desktop · touch 263/263.
+
+**live (Chrome MCP, 5175)**: 팔레트 Tree · DropZone. Canvas Tree 390 × 90 (행 40 × 2) · DropZone 143 × 117, Compare Mode Preview TreeItem 380 × 40 · Tree 390 × 90 · DropZone 142.84 × 117. 콘솔 오류 0, 삭제 명령으로 지움. Toast 는 팔레트 항목이 없어 unit (`toastColorPickerShell` Canvas 56) 으로만.
+
 - G1 before/after: §6.1
 - G2 두 arm: §6.2 · Phase 3a §6.3 · Phase 3b §6.4
 - G4 (b) 최종 snapshot (preset 5 × 델타) · (c) 컴포넌트별 desktop/touch vs S2 computed: §6.4 (c 의 padding · gap 은 3c)

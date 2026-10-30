@@ -175,19 +175,19 @@ describe("TreeItem chevron — Button[slot=chevron] in the row content", () => {
       const rows = expanded
         ? [
             // (Its row is the content node — the child item is the next row, not beside it: the
-            // chevron is centered in the 32px row as when collapsed — ADR-256 후속 14.)
-            { item: parentItem, chevron: [8, 8, 20, 16], labelX: 30 },
+            // chevron is centered in the 40px row (S2 TreeView — ADR-295 Phase 3c-3c) as when collapsed — ADR-256 후속 14.)
+            { item: parentItem, chevron: [8, 12, 20, 16], labelX: 30 },
             // level 2: the button grows by its level indent — S2 TreeView's `level-padding`
             // column, `(level − 1) × --indent` (16px)
             {
               item: kids(parentItem.id)[1],
-              chevron: [8, 8, 36, 16],
+              chevron: [8, 12, 36, 16],
               labelX: 46,
             },
           ]
         : [
-            { item: parentItem, chevron: [8, 8, 20, 16], labelX: 30 },
-            { item: leafItem, chevron: [8, 8, 20, 16], labelX: 30 },
+            { item: parentItem, chevron: [8, 12, 20, 16], labelX: 30 },
+            { item: leafItem, chevron: [8, 12, 20, 16], labelX: 30 },
           ];
       for (const { item, chevron, labelX } of rows) {
         const [, button, label] = kids(kids(item.id)[0].id);
@@ -354,7 +354,7 @@ describe("TreeItem chevron — Button[slot=chevron] in the row content", () => {
     const canvas = bindCatalogCanvas(root, root.pageRootRecords());
     const [glyph] = glyphs(getSkiaNode(item.id));
     // The row's own `leading_icon` (at `paddingX + iconSize / 2`, as before the node).
-    expect(glyph.iconPath).toMatchObject({ cx: 16, cy: 16, size: 16 });
+    expect(glyph.iconPath).toMatchObject({ cx: 16, cy: 20, size: 16 }); // (row 40 — S2 TreeView)
     canvas.dispose();
     workspace.dispose();
   });

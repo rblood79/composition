@@ -27,7 +27,7 @@
   padding: 0px 0px;
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-lg);
-  gap: 6px;
+  gap: 24px;
   --icon-size: 26px;
 }
 

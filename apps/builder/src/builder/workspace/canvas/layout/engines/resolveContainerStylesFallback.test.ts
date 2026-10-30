@@ -228,8 +228,8 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         paddingRight: 0,
         paddingBottom: 0,
         paddingLeft: 0,
-        rowGap: 6,
-        columnGap: 6,
+        rowGap: 24,
+        columnGap: 24,
       });
     });
 
@@ -246,8 +246,8 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         paddingRight: 0,
         paddingBottom: 0,
         paddingLeft: 0,
-        rowGap: 6,
-        columnGap: 6,
+        rowGap: 24,
+        columnGap: 24,
       });
     });
   });
@@ -265,8 +265,8 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         paddingRight: 0,
         paddingBottom: 0,
         paddingLeft: 0,
-        rowGap: 6,
-        columnGap: 6,
+        rowGap: 24,
+        columnGap: 24,
       });
     });
   });

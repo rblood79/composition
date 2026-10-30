@@ -246,6 +246,9 @@ const linkLineHeightRatio = (): number | undefined => {
  */
 const GRID_LIST_TRACKS = "repeat(2, minmax(0, 1fr))";
 
+/** S2 TreeView 행 40 (`TreeView.tsx` `height: 40` — ADR-295 Phase 3c-3c, 전 32) — `Tree.css` 행의 `min-height` 와 같은 값. */
+const TREE_ROW_HEIGHT = 40;
+
 const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   Separator: () => ({
     conditional: Object.entries(SEPARATOR_MARGIN).flatMap(
@@ -469,7 +472,10 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
           layout: { gridColumnStart: "2" },
           visual: {
             ...(fontSize && lineHeight
-              ? { fontSize: textFont("text-sm"), lineHeight: lineHeight / fontSize }
+              ? {
+                  fontSize: textFont("text-sm"),
+                  lineHeight: lineHeight / fontSize,
+                }
               : {}),
           },
         },
@@ -480,7 +486,10 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
           visual: {
             fontWeight: 400,
             ...(descSize && descLine
-              ? { fontSize: textFont("text-xs"), lineHeight: descLine / descSize }
+              ? {
+                  fontSize: textFont("text-xs"),
+                  lineHeight: descLine / descSize,
+                }
               : {}),
           },
         },
@@ -826,13 +835,20 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
     ],
   }),
   // `Tree.css` row (`:where(.react-aria-Tree[data-composition-tree]) .react-aria-TreeItem`): flex,
-  // centered, `gap: --spacing-2xs`, `min-height: 32px`, `padding: --spacing-xs --spacing-sm`. Its
+  // centered, `gap: --spacing-2xs`, `min-height: 40px` (S2 TreeView 행 — ADR-295 Phase 3c-3c, 전 32),
+  // `padding: --spacing-xs --spacing-sm`. Its
   // chevron button is an owner-composed part (`catalogComposedParts`).
   // (Its list's width — user 2026-10-25 「treeItem(origin) 에 width:100%」: an item drawn alone, the
   // Library page's ◆, hugged its label.)
   TreeItem: (): ManualBoxRule => ({
     layout: { display: "flex", flexDirection: "row", alignItems: "center" },
-    visual: { width: "100%", gap: 2, minHeight: 32, paddingY: 4, paddingX: 8 },
+    visual: {
+      width: "100%",
+      gap: 2,
+      minHeight: TREE_ROW_HEIGHT,
+      paddingY: 4,
+      paddingX: 8,
+    },
     parts: [
       // ADR-256 Phase 5h: the row content (RAC `TreeItemContent` — no element: its children sit in
       // the row's `display: contents` cell, so they are the row's flex items). The Canvas lays it
@@ -847,16 +863,18 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
           alignItems: "center",
         },
         // (No minimum of its own — user 2026-10-25 「treeItemcontent 에 minWidth 0 → auto, minHeight
-        // auto」: the row's 32 is its item's.) The DOM row centres its line in that 32 (`align-items:
-        // center`), so the row content's paddingY is what centres the item's line (`Tree.css` row
-        // font `--text-base`) in 32 — at least the sheet's 4. ADR-295 Phase 3: with the S2
+        // auto」: the row's height is its item's.) The DOM row centres its line in that height
+        // (`align-items: center`), so the row content's paddingY is what centres the item's line
+        // (`Tree.css` row font `--text-base`) in `TREE_ROW_HEIGHT` — at least the sheet's 4. ADR-295 Phase 3: with the S2
         // line-height formula (16 → 20) the old fixed 4 left the Canvas row 28 (it was 32 only
         // because the old line was 24).
         visual: {
           gap: 2,
           paddingY: Math.max(
             4,
-            (32 - (px("{typography.text-base--line-height}") ?? 24)) / 2,
+            (TREE_ROW_HEIGHT -
+              (px("{typography.text-base--line-height}") ?? 24)) /
+              2,
           ),
           paddingX: 8,
         },

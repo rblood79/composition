@@ -288,4 +288,18 @@
   .react-aria-Meter[data-size="XL"] .bar:not(:where(.publish-app *)) {
     height: 16px;
   }
+
+  /* generated/DropZone.css — S2 DropZone 은 높이 지정 없이 내용 높이 (ADR-295 Phase 3c-3c — 295 전 고정 80 · 120 · 160) */
+  .react-aria-DropZone:not(:where(.publish-app *)) {
+    height: 120px;
+  }
+  .react-aria-DropZone[data-size="S"]:not(:where(.publish-app *)) {
+    height: 80px;
+  }
+  .react-aria-DropZone[data-size="M"]:not(:where(.publish-app *)) {
+    height: 120px;
+  }
+  .react-aria-DropZone[data-size="L"]:not(:where(.publish-app *)) {
+    height: 160px;
+  }
 }

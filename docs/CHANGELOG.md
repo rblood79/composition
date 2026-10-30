@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CSS 영역에서도 같은 휠 이동·줌 지원**: 페이지 내부와 바깥 여백에서 휠로 이동하고, Shift+휠로 가로 이동하며, Cmd/Ctrl+휠로 포인터 위치를 기준으로 확대·축소한다. iframe 입력은 검증된 메시지 경로를 통해 기존 Canvas 카메라 처리에 연결한다.
   - 위치: `apps/builder/src/builder/workspace/Workspace.css`, `canvas/catalog/CatalogPreviewFrame.tsx`, `hooks/useWorkspaceCompareSplit.ts`
 
+## [ADR-295 Phase 3c-3c ②a — TreeView 행 · Toast · DropZone · Calendar 간격 = S2] - 2026-10-31
+
+### Changed
+
+- **TreeView 행 높이 40** (전 32 — Canvas · Preview 같이), **Toast 최소 높이 56** (전 크기별 고정 40 · 48 · 56), **DropZone 은 내용 높이** (전 고정 80 · 120 · 160), **Calendar 여러 달 사이 간격 24** (전 6). S2 에 크기 축이 없는 값이라 모든 크기에 같다.
+- 읽히지 않던 높이 숫자 (Icon · SelectValue · Table · Tree · CalendarHeader 등) 를 S2 값으로 정리. 빌더 위젯의 DropZone 은 295 전 높이 유지. 「S2 대조 대기」 32 → 16.
+  - 위치: `componentRulesTable.ts`, `catalog/document/manualBoxRules.ts`, `components/styles/Tree.css`, breakdown §6.11
+
 ## [ADR-295 Phase 3c-3c ① — 막대 · 원 · swatch · Slider 손잡이 = S2] - 2026-10-31
 
 ### Changed

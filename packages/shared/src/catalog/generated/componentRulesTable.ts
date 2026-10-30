@@ -1562,7 +1562,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       M: {
         paddingX: 0,
         paddingY: 0,
-        gap: 6,
+        gap: 24,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.lg}",
         height: 0,
@@ -1615,7 +1615,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.none}",
         height: 0,
         iconSize: 26,
-        gap: 6,
+        gap: 0,
       },
     },
   },
@@ -1660,9 +1660,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
-        height: 30,
+        height: 32,
         iconSize: 26,
-        gap: 6,
+        gap: 24,
         paddingX: 0,
       },
     },
@@ -5023,7 +5023,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         borderWidth: "{border.width.thick}",
-        height: 80,
+        height: 0,
         iconSize: 24,
       },
       M: {
@@ -5033,7 +5033,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.lg}",
         borderWidth: "{border.width.thick}",
-        height: 120,
+        height: 0,
         iconSize: 32,
       },
       L: {
@@ -5043,7 +5043,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         borderWidth: "{border.width.thick}",
-        height: 160,
+        height: 0,
         iconSize: 40,
       },
     },
@@ -5974,31 +5974,31 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       XS: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
-        height: 16,
+        height: 14,
         iconSize: "{size.icon.XS}",
       },
       S: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
-        height: 18,
+        height: 16,
         iconSize: "{size.icon.S}",
       },
       M: {
         fontSize: "{typography.text-2xl}",
         borderRadius: "{radius.none}",
-        height: 24,
+        height: 18,
         iconSize: "{size.icon.M}",
       },
       L: {
         fontSize: "{typography.text-4xl}",
         borderRadius: "{radius.none}",
-        height: 36,
+        height: 20,
         iconSize: "{size.icon.L}",
       },
       XL: {
         fontSize: "{typography.text-5xl}",
         borderRadius: "{radius.none}",
-        height: 48,
+        height: 22,
         iconSize: "{size.icon.XL}",
       },
     },
@@ -9493,7 +9493,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       M: {
         paddingX: 0,
         paddingY: 0,
-        gap: 6,
+        gap: 24,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.lg}",
         height: 0,
@@ -10269,17 +10269,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
-        height: 20,
+        height: 18,
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
-        height: 24,
+        height: 20,
       },
       XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
-        height: 28,
+        height: 22,
       },
     },
   },
@@ -11885,19 +11885,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 8,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
-        height: 36,
+        height: 32,
       },
       M: {
         paddingX: 12,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
-        height: 44,
+        height: 40,
       },
       L: {
         paddingX: 16,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.md}",
-        height: 52,
+        height: 48,
       },
     },
   },
@@ -12492,7 +12492,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       S: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
-        height: 32,
+        height: 0,
         // minHeight = Tag 의 S2 control 높이 (chip border-box, ADR-295 Phase 3b) — 빈 목록 틀의 기본 높이.
         minHeight: "{size.height.S}",
         gap: 4,
@@ -12500,7 +12500,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
-        height: 32,
+        height: 0,
         // minHeight = Tag 의 S2 control 높이 (chip border-box, ADR-295 Phase 3b) — 빈 목록 틀의 기본 높이.
         minHeight: "{size.height.M}",
         gap: 4,
@@ -12508,7 +12508,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
-        height: 32,
+        height: 0,
         // minHeight = Tag 의 S2 control 높이 (chip border-box, ADR-295 Phase 3b) — 빈 목록 틀의 기본 높이.
         minHeight: "{size.height.L}",
         gap: 6,
@@ -13174,19 +13174,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
-        height: 40,
+        height: 0,
+        minHeight: 56,
         iconSize: 16,
       },
       M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
-        height: 48,
+        height: 0,
+        minHeight: 56,
         iconSize: 20,
       },
       L: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
-        height: 56,
+        height: 0,
+        minHeight: 56,
         iconSize: 24,
       },
     },
@@ -13985,21 +13988,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 8,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
-        height: 28,
+        height: 40,
         iconSize: 14,
       },
       M: {
         paddingX: 12,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
-        height: 36,
+        height: 40,
         iconSize: 16,
       },
       L: {
         paddingX: 16,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.md}",
-        height: 44,
+        height: 40,
         iconSize: 20,
       },
     },
@@ -14049,7 +14052,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         // height 24 = spec rowHeight(fontSize 12 + paddingY 6*2). box(height>0) → text
         //   baseline:middle + leading icon y=height/2 (DisclosureHeader parity). 이전 height:0
         //   (inline)은 leading icon 동반 시 baseline drift.
-        height: 24,
+        height: 40,
         paddingX: 8,
         // iconSize = round(fontSize * 1.1) (spec chevronSize 공식).
         iconSize: 13,
@@ -14062,7 +14065,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   line box 24) + font-size text-base(16) + chevron svg 16. 구 28/text-sm/15 는
         //   spec rowHeight 산술 잔존으로 CSS 실측 대비 -4~-8 drift (2026-07-14 sweep).
         fontSize: "{typography.text-base}",
-        height: 32,
+        height: 40,
         paddingX: 8,
         iconSize: 16,
         indentPerLevel: 16,
@@ -14070,7 +14073,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       L: {
         fontSize: "{typography.text-base}",
-        height: 32,
+        height: 40,
         paddingX: 12,
         iconSize: 18,
         indentPerLevel: 16,
