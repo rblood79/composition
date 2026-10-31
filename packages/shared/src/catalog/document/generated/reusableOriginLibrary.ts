@@ -5391,7 +5391,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "selectionMode": "none",
-      "size": "S",
       "height": 400
     },
     "visual": {}

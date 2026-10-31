@@ -25,6 +25,10 @@ import {
   catalogCollectionId,
 } from "../../../builder/catalogRuntime/dataBinding";
 import { catalogItemInsertChoices } from "../../../builder/catalogRuntime/itemInsert";
+import {
+  catalogInteractionsCommand,
+  catalogNewInteraction,
+} from "../../../builder/catalogRuntime/interactions";
 import { catalogPaletteDefinitionId } from "../../../builder/catalogRuntime/paletteInsert";
 import {
   catalogPreviewRuntime,
@@ -360,6 +364,50 @@ describe("ADR-257 Phase 5 · ADR-277 — the resizable Table in RAC's container"
     ) as HTMLElement;
     expect(table.style.getPropertyValue("--table-resized-tracks")).toBe(
       "150px 75px",
+    );
+  });
+});
+
+describe("ADR-295 후속 C1 — a resizable draggable Table's drag column (S2 useScale 16 · 20)", () => {
+  afterEach(() =>
+    document.documentElement.style.removeProperty("--catalog-token-size-unit"),
+  );
+  // The device unit is the theme sheet's `--catalog-token-size-unit` (desktop 1px · touch 1.25px —
+  // S2 media / Preview touch view); RAC's column widths are px numbers, so the drag Column's
+  // width is the unit × 16 in JS as S2's `useScale()` gives it.
+  it.each([
+    ["desktop", "", "16px"],
+    ["touch", "1.25px", "20px"],
+  ])("%s (unit %j): first width %s", async (_, unit, first) => {
+    if (unit)
+      document.documentElement.style.setProperty(
+        "--catalog-token-size-unit",
+        unit,
+      );
+    const { view, workspace, flush } = await open(
+      authoredTable({ allowsResizing: true }),
+    );
+    const owner = { ownerId: id("t") };
+    workspace.execute(
+      catalogInteractionsCommand(
+        owner,
+        [
+          catalogNewInteraction(
+            owner,
+            "onReorder",
+            { opcode: "navigate", pageId: HOME },
+            workspace.newId,
+          ),
+        ],
+        "Rules",
+      ),
+    );
+    flush();
+    const table = view.container.querySelector(
+      "table[data-node-table]",
+    ) as HTMLElement;
+    expect(table.style.getPropertyValue("--table-resized-tracks")).toBe(
+      `${first} 120px 75px`,
     );
   });
 });

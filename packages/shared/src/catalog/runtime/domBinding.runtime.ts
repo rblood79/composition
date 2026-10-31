@@ -175,6 +175,7 @@ import {
   catalogDeviceScaledCss,
   catalogDeviceTypographyCss,
 } from "./deviceTypography";
+import { useCatalogDeviceUnit } from "./deviceUnit.runtime";
 
 import {
   CATALOG_SLIDER_THICK_TRACK,
@@ -445,6 +446,20 @@ const VISUALLY_HIDDEN: CSSProperties = {
 };
 
 /**
+ * ADR-295 후속 C1 — the drag column's RAC Column. Its width is a px number (RAC `ColumnSize` — the
+ * resizable Table's column widths are RAC's arithmetic, `CatalogTableResizeTracks`), so it takes the
+ * device unit in JS as S2 does (`useScale()` — `width={scale === 'medium' ? 16 : 20}`).
+ */
+function CatalogTableDragColumn(): ReactElement {
+  const width = CATALOG_DRAG_COLUMN_WIDTH * useCatalogDeviceUnit();
+  return createElement(
+    RAC.Column as ElementType,
+    { "data-drag-column": "", width, minWidth: width },
+    createElement("span", { style: VISUALLY_HIDDEN }, "Drag"),
+  );
+}
+
+/**
  * ADR-295 후속 — S2 / RAC Table's drag column (`allowsDragging` — the Table drags,
  * `withTableDrag`): the header's first RAC Column (S2 width 16 · 20, its name for a screen reader
  * only) and each Row's first RAC Cell holding RAC's drag `Button` (S2 `DragHandleButton` — 10 × 22,
@@ -453,16 +468,9 @@ const VISUALLY_HIDDEN: CSSProperties = {
  */
 function catalogTableDragPart(lower: "tableheader" | "row"): ReactElement {
   if (lower === "tableheader")
-    return createElement(
-      RAC.Column as ElementType,
-      {
-        key: "catalog:drag-column",
-        "data-drag-column": "",
-        width: CATALOG_DRAG_COLUMN_WIDTH,
-        minWidth: CATALOG_DRAG_COLUMN_WIDTH,
-      },
-      createElement("span", { style: VISUALLY_HIDDEN }, "Drag"),
-    );
+    return createElement(CatalogTableDragColumn, {
+      key: "catalog:drag-column",
+    });
   return createElement(
     RAC.Cell as ElementType,
     { key: "catalog:drag-cell", "data-drag-cell": "" },

@@ -326,7 +326,6 @@ describe("ADR-277 — one table type", () => {
     const table = getPrimitiveBinding("Table")!;
     for (const key of [
       "dataBinding",
-      "size",
       "isQuiet",
       "density",
       "selectionMode",
@@ -336,6 +335,8 @@ describe("ADR-277 — one table type", () => {
       "height",
     ])
       expect(table.props.accepts, key).toHaveProperty(key);
+    // (S2 TableView has no size axis — ADR-295 후속 C1 removed the Table's S · M · L.)
+    expect(table.props.accepts).not.toHaveProperty("size");
   });
 
   it("raises the library contract to 44 — a 43 document is refused, not converted", async () => {

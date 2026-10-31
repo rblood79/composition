@@ -66,7 +66,8 @@ describe("family ⑤ Tree·Table — catalog 등록 + cutover gate", () => {
     expect(getCatalogEntry("Table")?.kind).toBe("primitive");
   });
 
-  it("toRacProps: dataBinding(kind:binding) 통과 + size data-* 라우팅", () => {
+  // ADR-295 후속 C1 (2026-10-31): S2 TableView 에 size 축이 없다 — Table 은 size 를 받지 않는다 (data-size 없음).
+  it("toRacProps: dataBinding(kind:binding) 통과 · size 는 받지 않음 (S2 축 없음)", () => {
     const dataBinding = { source: "rows", name: "userRows" };
     const result = toRacProps(
       {
@@ -78,6 +79,6 @@ describe("family ⑤ Tree·Table — catalog 등록 + cutover gate", () => {
     );
     expect(result.dataBinding).toEqual(dataBinding);
     expect(result.selectionMode).toBe("multiple");
-    expect(result["data-size"]).toBe("L");
+    expect(result["data-size"]).toBeUndefined();
   });
 });

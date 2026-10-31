@@ -75,7 +75,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Canvas: 머리글 행 · 모든 Row 의 트랙 맨 앞 16px + 빈 칸 (문서 노드 아님). DOM: RAC Column (화면 낭독용 이름 「Drag」) + Row 마다 RAC Cell > RAC `Button[slot=drag]` (RAC 가 이름 「Drag Item 1」 · 끌기 동작을 준다). 손잡이 크기는 기기 배율, 칸 좌우 4.
   - 위치: `collectionDragState.ts` (신규) · `effectiveInteractions.ts` · `compositionRoot.ts` (`withTableDrag` · composed part) · `tableTracks.ts` · `domBinding.runtime.ts` (`catalogTableDragPart` · 터치 트랙) · `domBinding.components.tsx` · `catalogPreviewInteractions.ts` · `Table.css`.
   - 검증: `s2TableDragColumn.test.tsx` (규칙 없음 · onReorder · onDragEnd · 제자리 편집으로 열이 빠짐 — Canvas 첫 Column x 0 → 16, DOM drag Column · Cell) · 원복 RED 3 · `adr284Drop` (Preview drag 동작) 통과 · live 5175 (Canvas 첫 Column · Cell x 16 · Preview drag 열 16 / 첫 Column 16 에서 시작 · 키보드 focus 시 손잡이 10 × 22 표시, 콘솔 0).
-  - 남은 것: 크기 조절 Table 의 RAC 열 폭은 숫자라 터치에서도 16 이다 (일반 Table 은 20).
+  - ~~남은 것: 크기 조절 Table 의 RAC 열 폭은 숫자라 터치에서도 16~~ → 7차에서 닫음.
+- **크기 조절 Table 의 drag 열이 터치에서 16 이던 것 · Table 에 S2 없는 크기 축 (7차)**:
+  - drag 열 폭: RAC 열 폭은 px 숫자라 CSS 기기 식을 받지 못한다 — S2 처럼 JS 로 기기 배율을 읽어 (`useScale()` → `16 : 20`) RAC Column `width` 에 준다. 배율은 문서 root 의 `--catalog-token-size-unit` (테마 시트의 S2 기기 미디어 · Preview 「터치 크기로 미리보기」 와 같은 판정) 이라 생성 CSS 와 갈리지 않는다 (`deviceUnit.runtime.ts` 신규). 크기 조절 Table 은 RAC 가 나머지 열을 줄여 전체 폭을 맞춘다.
+  - Table S · M · L 크기 축 삭제: S2 TableView 에는 size 가 없다 (칸 글자 = `controlFont()`, 행 높이 = `density`). Properties 의 Size 행이 사라진다. Table 상자의 한 벌 = 모서리 6 (S2 `borderRadius: '[6px]'`, 전 S 4 · M 8) · 글자는 팔레트 Table 이 쓰던 단. 원본 template 의 `size: "S"` · 수동 `Table.css` 의 `[data-size]` 블록 3 (칸 여백 · 글자는 rule inline 이 이미 이기고 있었다) 삭제.
+  - 위치: `deviceUnit.runtime.ts` · `domBinding.runtime.ts` (`CatalogTableDragColumn`) · `Table.binding.ts` · `componentRulesTable.ts` (Table) · `reusableOriginLibrary.ts` · `Table.css`.
+  - 검증: `adr257TableOperations.test.tsx` (크기 조절 + drag 규칙 Table — desktop 첫 트랙 16 · 터치 단위 20) · 원복 RED (상수 16 → 터치 FAIL) · `adr277TableOrigin` · `treeTableBindings` (size 없음) · G3 (모서리 6 등재 · 읽는 곳 없던 높이 등재 삭제) · live 5175 (Properties Appearance 에 Size 없음 · Preview Table 모서리 6 / `data-size` 없음 / 칸 14px · Canvas ↔ CSS 같은 모습, 크기 조절 + drag 규칙 Table 의 drag 열 desktop 16 → 터치 보기 20 · 나머지 열 124 → 122~123, 콘솔 0).
 
 ## [ADR-295 후속 — S2 고정 치수의 터치 배율 (`scaled`)] - 2026-10-31
 

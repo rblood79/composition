@@ -27,12 +27,9 @@ export const tableBinding: PrimitiveBinding = {
       },
       // S2 TableView `loadingState` (`useAsyncList.loadingState`) — derived, not authored.
       loadingState: LOADING_STATE_PROP,
-      size: {
-        kind: "size",
-        label: "Size",
-        section: "appearance",
-        default: "M",
-      },
+      // (No `size`: S2 TableView has no size axis — its cells take `controlFont()` and the row
+      //   height is `density`. ADR-295 후속 C1 (2026-10-31, 사용자 「Table S/M/L 크기 축 제거」)
+      //   removed the S · M · L the Table carried.)
       // S2 1.8.0 Table `isQuiet` (2026-10-10): 바깥 틀 없음 — 배경 · 테두리 색을 지우고
       //   radius 0 (rule fill.quiet + containerVariants.quiet; DOM 은 Table.css [data-quiet]).
       isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },

@@ -83,6 +83,13 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
       "S2 xl 16 — 빌더 chrome 이 Dialog 생성 시트를 같이 읽어 `{radius.xl}` 이면 빌더 고정값 12 로 풀린다 (Decision 8 · 9)",
   },
   {
+    component: "Table",
+    key: "borderRadius",
+    values: { M: 6 },
+    reason:
+      "S2 TableView `table` style `borderRadius: '[6px]'` — 임의 px (scale 무관), 저장소 radius 토큰 단에 6 이 없다 (ADR-295 후속 C1)",
+  },
+  {
     component: "Breadcrumb",
     key: "iconSize",
     values: { S: 14, M: 16, L: 18 },
@@ -200,12 +207,6 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     "height",
     { XS: 14, S: 16, M: 18, L: 20, XL: 22 },
     "S2 Picker 값 글자 한 줄 = controlFont 행간 (`Picker.tsx` — 높이는 버튼 100%) · 읽는 곳 없음 (manual omit)",
-  ),
-  sizes(
-    "Table",
-    "height",
-    { S: 32, M: 40, L: 48 },
-    "S2 TableView 행 compact 32 · regular 40 · spacious 48 (`TableView.tsx` rowHeight) · 읽는 곳 없음 (top-level containerStyles — 칸 여백은 Column · Cell densities)",
   ),
   sizes(
     "TagGroup",

@@ -12180,24 +12180,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // ADR-295 후속 C1 (2026-10-31, 사용자 「Table S/M/L 크기 축 제거」): S2 TableView 에 size 축이 없다 —
+    //   한 벌. 모서리 = S2 `table` style `borderRadius: '[6px]'` (임의 px — scale 무관). 글자는 팔레트
+    //   Table 이 쓰던 S 의 단 (칸 · 머리글은 각자 controlFont — Column · Cell rule). 여백 · 높이는
+    //   Table 상자가 읽지 않아 (행 높이 = Column · Cell density, 상자 높이 = catalogTableHeight) 뺐다.
     sizes: {
-      S: {
-        paddingX: 8,
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.sm}",
-        height: 32,
-      },
       M: {
-        paddingX: 12,
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.md}",
-        height: 40,
-      },
-      L: {
-        paddingX: 16,
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.md}",
-        height: 48,
+        fontSize: "{typography.text-sm}",
+        borderRadius: 6,
       },
     },
   },
