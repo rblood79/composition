@@ -20,6 +20,8 @@ export interface CatalogComponentBoundary {
   readonly occurrence: string;
   /** The record that draws the instance. */
   readonly recordId: string;
+  /** Full resolution path through this instance, including collapsed layers. */
+  readonly instancePath?: readonly string[];
 }
 
 export function componentBoundariesOf(
@@ -51,8 +53,24 @@ export function componentBoundariesOf(
         definitionId: entry.definitionId as DefinitionId,
         occurrence: `${record.id}|${id}`,
         recordId: record.id,
+        instancePath: componentInstancePath(record, id),
       });
     }
   }
   return boundaries;
+}
+
+/** A source layer's resolution path before consumer records collapse composite roots. */
+export function componentInstancePath(
+  record: Pick<
+    CatalogConsumerNode,
+    "instancePath" | "sourceId" | "collapsedSourceIds"
+  >,
+  sourceId: string,
+): readonly string[] {
+  const layers = [record.sourceId, ...(record.collapsedSourceIds ?? [])];
+  const at = layers.indexOf(sourceId);
+  return at > 0
+    ? [...record.instancePath, ...layers.slice(1, at + 1)]
+    : record.instancePath;
 }

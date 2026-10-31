@@ -1,4 +1,6 @@
+import { parseRuleValueRef } from "../../interactions/valueRef";
 import { isInputVariable } from "../document/componentEvents";
+import { componentInstancePath } from "./componentBoundaries";
 import { resolveInputVariableAt } from "./inputVariable";
 import type { CatalogGraph } from "../document/graph";
 import type {
@@ -29,6 +31,7 @@ import {
   catalogCountOnlyView,
   catalogCountlessViews,
   catalogRowQueryResolve,
+  catalogRowQueryKey,
   type CatalogRowQuery,
 } from "./viewQuery";
 import { onFormulaEngineLoaded } from "../../collections/formula/engine";
@@ -499,6 +502,8 @@ export class CatalogPreviewSession {
   private viewReloadTimer: ReturnType<typeof setTimeout> | undefined;
   /** Collections the session loads only for the view their request carries. */
   private readonly viewLoaded = new Set<string>();
+  /** The resolved view the accepted API rows answer (never the next request's view). */
+  private readonly loadedViewQueries = new Map<string, CatalogRowQuery>();
   /** Tables the server sorts (their endpoint reads `sortDescriptor`) — no client sort on them. */
   private readonly serverSortedTables = new Set<string>();
   /** Each collection's load (`useAsyncList.loadingState`) — what a bound Table · Skeleton shows. */
@@ -616,8 +621,10 @@ export class CatalogPreviewSession {
         if (
           this.receivedItems.has(collection.id) &&
           this.receivedItems.get(collection.id) !== received
-        )
+        ) {
           this.reloadedItems.delete(collection.id);
+          this.loadedViewQueries.delete(collection.id);
+        }
         this.receivedItems.set(collection.id, received);
       }
       this.syncServices();
@@ -1171,6 +1178,7 @@ export class CatalogPreviewSession {
     const resolve = this.endpointTemplateFor(collectionId, cursor);
     // ADR-284 Decision 6: the views reading the collection, in the endpoint's query format (with
     // the page the format carries — ADR-291 Decision 6).
+    const requestedView = this.uniqueView(collectionId, { cursor });
     const extra = this.viewRequest(collectionId, { cursor });
     try {
       await Promise.allSettled([...this.pendingSubmits]);
@@ -1189,6 +1197,9 @@ export class CatalogPreviewSession {
       );
       // (A newer load started meanwhile — `useAsyncList` aborts this one: its answer is dropped.)
       if (!latest()) return undefined;
+      if (requestedView && requestedView.serialized.load !== "all")
+        this.loadedViewQueries.set(collectionId, requestedView.query);
+      else this.loadedViewQueries.delete(collectionId);
       if (page.total !== undefined)
         this.loadTotals.set(collectionId, page.total);
       const args = this.loadArguments.get(collectionId) ?? {};
@@ -1267,23 +1278,61 @@ export class CatalogPreviewSession {
       const entry = graph.getEntry(nodeId as never);
       const binding = entry?.kind === "node" ? entry.binding : undefined;
       if (!binding || (!binding.view && !binding.viewId)) continue;
-      const query = catalogBindingQuery(
-        graph,
-        binding,
-        nodeId,
-        this.stateSource(),
-      );
-      // (A count of a view is that view's request — 「결과 수 표시」 reads the server's total.)
-      if (query) {
-        const base = catalogCountlessViews(query.queries);
-        views.set(JSON.stringify(base), {
-          query: { ...query, queries: base },
+      // A template is a different query at each drawn instance occurrence. An unused origin
+      // has no request; the Canvas/Preview record path also restores collapsed inner instances.
+      const root = this.currentRoot;
+      const records = root?.recordsOfSource(nodeId) ?? [];
+      for (const recordId of records) {
+        const record = root!.domInputs.get(recordId);
+        if (!record) continue;
+        const query = catalogBindingQuery(
+          graph,
+          binding,
           nodeId,
-        });
+          this.stateSource(),
+          undefined,
+          componentInstancePath(record, nodeId),
+        );
+        if (!query) continue;
+        const base = {
+          ...query,
+          queries: catalogCountlessViews(query.queries),
+        };
+        views.set(catalogRowQueryKey(base), { query: base, nodeId });
       }
     }
-    if (views.size !== 1) return undefined;
+    if (!views.size) return undefined;
     const [{ query, nodeId }] = [...views.values()];
+    if (views.size > 1) {
+      // Preserve ADR-284's standalone MULTI_VIEW policy; instance-dependent inputs require
+      // the unfiltered local load because no one instance's filtered response can be shared.
+      const inputDependent = [...views.values()].some(({ query }) =>
+        Object.keys(query.values).some((ref) => {
+          const parsed = parseRuleValueRef(ref);
+          return (
+            parsed?.from === "var" &&
+            isInputVariable(graph.getEntry(parsed.variableId as never))
+          );
+        }),
+      );
+      if (!inputDependent) return undefined;
+      return {
+        query,
+        nodeId,
+        // One collection stores one answer. Different instance filters need unfiltered rows,
+        // loaded to the existing local-evaluation cap, then evaluated separately per instance.
+        serialized: {
+          ...serializeViewQueries(
+            format,
+            { queries: [], schema: [], resolve: () => undefined },
+            endpoint.method,
+            page,
+          ),
+          warnings: [{ code: "MULTI_VIEW" }],
+          load: "all",
+        },
+      };
+    }
     return {
       query,
       nodeId,
@@ -1557,11 +1606,13 @@ export class CatalogPreviewSession {
     if (authored.query) {
       const id = authored.collectionId.replace(/^data:collection:/, "");
       const view = this.serverView(id);
-      const depth = view?.query.queries.length ?? 0;
+      const loaded = this.loadedViewQueries.get(id);
+      const depth = loaded?.queries.length ?? 0;
       if (
         view &&
-        JSON.stringify(view.query.queries) ===
-          JSON.stringify(authored.query.queries.slice(0, depth)) &&
+        loaded &&
+        catalogRowQueryKey(loaded) ===
+          catalogRowQueryKey(authored.query, depth) &&
         authored.query.queries.slice(depth).every(catalogCountOnlyView)
       ) {
         const total = this.loadTotals.get(id);
@@ -1662,6 +1713,7 @@ export class CatalogPreviewSession {
           this.loadedUrls.delete(collection.id);
           this.loadTotals.delete(collection.id);
           this.reloadedItems.delete(collection.id);
+          this.loadedViewQueries.delete(collection.id);
           const errors =
             this.currentRoot?.refreshRows(
               new Set([`data:collection:${collection.id}`]),

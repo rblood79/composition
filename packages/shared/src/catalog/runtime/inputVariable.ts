@@ -1,6 +1,12 @@
 import { isInputVariable } from "../document/componentEvents";
 import type { CatalogGraph } from "../document/graph";
-import type { DefinitionId, EntryId } from "../document/types";
+import type {
+  DefinitionId,
+  EntryId,
+  NodeId,
+  TemplateId,
+} from "../document/types";
+import { layeredOverride, overridesAt } from "../resolution/templateOwners";
 import { parseRuleValueRef } from "../../interactions/valueRef";
 import {
   componentBoundariesOf,
@@ -11,6 +17,39 @@ import {
   catalogRecordVariables,
   type CatalogStateSource,
 } from "./stateTemplate";
+
+type InputBoundary = Pick<
+  CatalogComponentBoundary,
+  "instanceId" | "definitionId" | "recordId" | "instancePath"
+>;
+
+/** Read an input at its occurrence, with the resolver's inner-to-outer patch precedence. */
+function inputPropertyWrite(
+  graph: Pick<CatalogGraph, "getEntry" | "ownerOf">,
+  boundary: InputBoundary,
+  key: string,
+) {
+  const instance = graph.getEntry(boundary.instanceId as never);
+  if (instance?.kind !== "node") return undefined;
+  const full = boundary.instancePath ?? [];
+  const index = full.lastIndexOf(instance.id);
+  const path = full.slice(0, Math.max(0, index)) as readonly (
+    NodeId | TemplateId
+  )[];
+  const owner = path
+    .map((id) => graph.getEntry(id))
+    .find((entry) => entry?.kind === "node");
+  if (owner?.kind !== "node") return instance.props[key];
+  const templatePath: TemplateId[] = [instance.id];
+  for (let id = graph.ownerOf(instance.id); id; id = graph.ownerOf(id)) {
+    if (graph.getEntry(id as never)?.kind !== "node") break;
+    templatePath.unshift(id as TemplateId);
+  }
+  const { patch } = layeredOverride(
+    overridesAt((id) => graph.getEntry(id as never), owner, path, templatePath),
+  );
+  return patch?.props?.[key] ?? instance.props[key];
+}
 
 /**
  * ADR-294 Decision 7 — a component's input variable (a `variable` property's — owned by the
@@ -28,10 +67,7 @@ import {
 export function resolveInputVariable(
   graph: Pick<CatalogGraph, "getEntry" | "ownerOf">,
   variableId: string,
-  boundaries: readonly Pick<
-    CatalogComponentBoundary,
-    "instanceId" | "definitionId" | "recordId"
-  >[],
+  boundaries: readonly InputBoundary[],
   readOther: (
     variableId: string,
     boundary: Pick<CatalogComponentBoundary, "instanceId" | "recordId">,
@@ -46,11 +82,7 @@ export function resolveInputVariable(
   // (No instance holds the origin here — the origin drawn by itself: its default.)
   if (at < 0 || depth > 16) return fallback;
   const boundary = boundaries[at]!;
-  const instance = graph.getEntry(boundary.instanceId as never);
-  const write =
-    instance?.kind === "node"
-      ? instance.props[variable.input.propertyKey]
-      : undefined;
+  const write = inputPropertyWrite(graph, boundary, variable.input.propertyKey);
   if (write?.kind !== "set") return fallback;
   const ref = parseRuleValueRef(write.value);
   if (!ref) return { value: write.value };
@@ -124,14 +156,8 @@ export function resolveInputVariableAt(
 export function instancePathBoundaries(
   graph: Pick<CatalogGraph, "getEntry" | "getDefinition">,
   instancePath: readonly string[],
-): Pick<
-  CatalogComponentBoundary,
-  "instanceId" | "definitionId" | "recordId"
->[] {
-  const out: Pick<
-    CatalogComponentBoundary,
-    "instanceId" | "definitionId" | "recordId"
-  >[] = [];
+): InputBoundary[] {
+  const out: InputBoundary[] = [];
   for (let index = instancePath.length - 1; index >= 0; index -= 1) {
     const id = instancePath[index]!;
     if (!id.startsWith("project:node:")) continue;
@@ -147,6 +173,7 @@ export function instancePathBoundaries(
       instanceId: id,
       definitionId: entry.definitionId as DefinitionId,
       recordId: "",
+      instancePath: instancePath.slice(0, index + 1),
     });
   }
   return out;
@@ -179,19 +206,32 @@ export function inputVariableDependencies(
         instance?.kind === "node"
           ? instance.props[input.input.propertyKey]
           : undefined;
-      const ref =
-        write?.kind === "set" ? parseRuleValueRef(write.value) : undefined;
-      if (ref?.from !== "var") continue;
-      const source = graph.getEntry(ref.variableId as never);
-      const name =
-        source?.kind === "stateVariable" || source?.kind === "projectVariable"
-          ? source.name
-          : undefined;
-      for (const key of [ref.variableId, name])
-        if (key) {
-          add(key, input.id);
-          add(key, input.name);
-        }
+      const writes = [write];
+      for (const referrerId of graph.referrersOf(instanceId)) {
+        const referrer = graph.getEntry(referrerId as never);
+        if (referrer?.kind !== "node") continue;
+        for (const override of referrer.descendantOverrides)
+          if (
+            override.kind !== "replace" &&
+            override.address.templatePath.at(-1) === instanceId
+          )
+            writes.push(override.props?.[input.input.propertyKey]);
+      }
+      for (const value of writes) {
+        const ref =
+          value?.kind === "set" ? parseRuleValueRef(value.value) : undefined;
+        if (ref?.from !== "var") continue;
+        const source = graph.getEntry(ref.variableId as never);
+        const name =
+          source?.kind === "stateVariable" || source?.kind === "projectVariable"
+            ? source.name
+            : undefined;
+        for (const key of [ref.variableId, name])
+          if (key) {
+            add(key, input.id);
+            add(key, input.name);
+          }
+      }
     }
   }
   return out;

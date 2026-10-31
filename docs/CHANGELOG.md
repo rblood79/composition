@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-294 — 중첩 입력값과 instance별 API 필터 수정] - 2026-10-31
+
+### Fixed
+
+- 중첩 컴포넌트의 입력 variable을 descendant override로 변경해도 Canvas·Preview가 원본 값을 읽던 문제를 수정했다. 기존 resolver의 override 합성 순서를 재사용하고, override에만 저장한 변수 참조도 갱신 의존성에 포함한다.
+- API 보기 요청이 instance의 입력값 대신 정의 기본값으로 실행되던 문제를 수정했다. 접힌 중첩 경계를 포함한 실제 instance 경로로 값을 해석하고, 응답 재사용도 해석된 query 값으로 구분한다. 서로 다른 입력으로 같은 collection을 읽는 instance는 기존 10,000행 상한 안에서 전체 행을 로드한 뒤 각자 평가한다. Builder의 새 행이 응답을 교체하면 이전 응답 식별자도 함께 버린다.
+  - 검증: 인접 통합 회귀 75개, 핵심 경로 원복 RED 3건, Undo/Redo 및 JSON snapshot 재로드.
+
 ## [ADR-295 후속 — S2 와 다르게 남은 고정 치수 (S2 1.8.1 소스 대조)] - 2026-10-31
 
 ### Fixed

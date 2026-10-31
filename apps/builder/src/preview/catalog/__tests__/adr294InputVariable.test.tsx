@@ -277,3 +277,132 @@ describe("ADR-294 G1 · R4 — an origin reads its instance's variable property"
     h.view.unmount();
   });
 });
+
+describe("ADR-294 regression — nested input overrides", () => {
+  async function nested() {
+    const h = await open();
+    h.run(
+      createComponent({ id: h.J1, name: "Outer", newId: h.workspace.newId }),
+    );
+    const outer = (h.graph().getEntry(BODY) as NodeEntry)
+      .children[0]! as NodeId;
+    const node = h.graph().getEntry(outer) as NodeEntry;
+    const definition = h
+      .graph()
+      .getEntry(node.definitionId as never) as unknown as {
+      templateRootId: NodeId;
+    };
+    const inner = definition.templateRootId;
+    const target = {
+      kind: "descendant" as const,
+      ownerId: outer,
+      address: { instances: [outer], templatePath: [inner] },
+    };
+    return { ...h, outer, inner, target };
+  }
+
+  it("uses the nested occurrence's literal in Canvas, Preview, rule values and view values; Undo/Redo restores it", async () => {
+    const h = await nested();
+    h.rule(h.origin, "onPress", [
+      { opcode: "emit", propertyKey: "select", value: `!var.${h.role}` },
+    ]);
+    h.rule(h.inner, "property:select", [
+      {
+        opcode: "setState",
+        variableId: h.picked,
+        op: "set",
+        value: "!event.value",
+      },
+    ]);
+    h.run(
+      setFields({
+        targets: [h.target],
+        props: { role: { kind: "set", value: "override-value" } },
+      }),
+    );
+    expect(h.shown(h.outer)).toContain("Role override-value");
+    expect(h.canvas(h.outer)).toContain("Role override-value");
+    // The sibling instance of the same definition keeps its independent input.
+    expect(h.shown(h.J2)).toContain("Role editor");
+    press(h.element(h.outer));
+    expect(h.session.readState(h.picked, { kind: "page", pageId: HOME })).toBe(
+      "override-value",
+    );
+    const binding = {
+      collectionId: "data:collection:users",
+      view: {
+        where: {
+          op: "and",
+          items: [{ field: "role", op: "eq", value: `!var.${h.role}` }],
+        },
+      },
+    } as never;
+    expect(
+      catalogBindingQuery(h.graph(), binding, h.origin, undefined, undefined, [
+        BODY,
+        h.outer,
+        h.inner,
+      ])?.values[`!var.${h.role}`],
+    ).toBe("override-value");
+    act(() => {
+      h.workspace.undo();
+    });
+    h.flush();
+    expect(h.shown(h.outer)).toContain("Role admin");
+    act(() => {
+      h.workspace.redo();
+    });
+    h.flush();
+    expect(h.shown(h.outer)).toContain("Role override-value");
+    // A JSON document snapshot reconstructs the same occurrence after persistence/load.
+    act(() => {
+      const graph = h.graph();
+      h.session.receive({
+        type: "CATALOG_SNAPSHOT",
+        version: 1,
+        projectId: graph.projectId,
+        revision: graph.revision,
+        document: JSON.parse(JSON.stringify(graph.exportDocument())),
+      });
+    });
+    expect(h.shown(h.outer)).toContain("Role override-value");
+    h.view.unmount();
+  });
+
+  it("tracks a reference authored only in a descendant override, including subsequent runtime writes", async () => {
+    const h = await nested();
+    h.run(
+      setFields({
+        targets: [{ kind: "node", id: h.J2 }],
+        props: { role: { kind: "set", value: "sibling" } },
+      }),
+    );
+    h.run(
+      setFields({
+        targets: [h.target],
+        props: { role: { kind: "set", value: `!var.${h.roleFilter}` } },
+      }),
+    );
+    const closed = closeOverInputs(
+      new Set([h.roleFilter]),
+      inputVariableDependencies(h.graph()),
+    );
+    expect(closed.has(h.role)).toBe(true);
+    expect(h.shown(h.outer)).toContain("Role editor");
+    act(() => {
+      h.session.writeState({
+        variableId: h.roleFilter,
+        op: "set",
+        value: "viewer",
+      });
+    });
+    expect(h.shown(h.outer)).toContain("Role viewer");
+    expect(h.canvas(h.outer)).toContain("Role editor");
+    // Removing the addressed write restores the inner instance's own literal.
+    h.run(
+      setFields({ targets: [h.target], props: { role: { kind: "remove" } } }),
+    );
+    expect(h.shown(h.outer)).toContain("Role admin");
+    h.view.unmount();
+  });
+});

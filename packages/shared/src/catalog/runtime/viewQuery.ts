@@ -119,6 +119,29 @@ export function catalogViewReferences(queries: readonly ViewQuery[]): string[] {
   return [...refs];
 }
 
+/** Request/response identity includes resolved references, not only the authored view tree. */
+export function catalogRowQueryKey(
+  query: CatalogRowQuery,
+  depth = query.queries.length,
+): string {
+  const queries = query.queries.slice(0, depth);
+  return JSON.stringify([
+    queries.map(({ where, sort, groupBy, aggregates }) => ({
+      where,
+      sort,
+      groupBy,
+      aggregates,
+    })),
+    catalogViewReferences(queries)
+      .sort()
+      .map((ref) => [
+        ref,
+        Object.prototype.hasOwnProperty.call(query.values, ref),
+        query.values[ref],
+      ]),
+  ]);
+}
+
 /** A binding's view with its references read for `ownerId`; undefined = the binding has none. */
 export function catalogBindingQuery(
   graph: CatalogGraph,

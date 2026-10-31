@@ -3,6 +3,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type {
   DataCollectionId,
   NodeId,
+  NodeEntry,
+  DefinitionEntry,
+  EntryId,
   ViewCondition,
   ViewConditionGroup,
   ViewQuery,
@@ -11,8 +14,15 @@ import { runViewQueries } from "../../../../../../packages/shared/src/collection
 import { catalogBindingRef } from "../../../builder/catalogRuntime/dataBinding";
 import { catalogBindingCommand } from "../../../builder/catalogRuntime/dataBindingCommand";
 import { catalogResultCountCommand } from "../../../builder/catalogRuntime/viewAuthoring";
-import { addView } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  createComponent,
+  addComponentOutputProperty,
+  insertNodes,
+  setFields,
+  addView,
+} from "../../../../../../packages/shared/src/catalog/commands";
 import { openAdr280Preview } from "./support/adr280Harness";
+import { CatalogPreviewSession } from "../catalogPreviewSession";
 
 /**
  * ADR-284 G2 — a view an API endpoint carries. The mock server is a separate implementation of the
@@ -634,6 +644,215 @@ describe("ADR-284 G2 — a variable write is a new query", () => {
       "/users?gender=female&_sort=age&_order=asc",
     );
     expect(h.element(created.textId)?.textContent?.trim()).toBe("4");
+    h.view.unmount();
+  });
+});
+
+describe("ADR-294 regression — component inputs in API views", () => {
+  async function component(
+    endpoint: Record<string, unknown> = {},
+    pageSize = 100,
+  ) {
+    const server = stubServer(pageSize);
+    const h = await apiPreview(SUFFIX_VIEW, endpoint);
+    const run = (command: Parameters<typeof h.workspace.execute>[0]) => {
+      act(() => {
+        h.workspace.execute(command);
+        h.flush();
+      });
+    };
+    run(
+      createComponent({
+        id: h.list,
+        name: "FilteredUsers",
+        newId: h.workspace.newId,
+      }),
+    );
+    const graph = h.workspace.runtime.graph;
+    const instance = (graph.getEntry("project:node:home-body") as NodeEntry)
+      .children[0]! as NodeId;
+    const definitionId = (graph.getEntry(instance) as NodeEntry)
+      .definitionId as EntryId<"definition">;
+    const origin = (graph.getEntry(definitionId) as DefinitionEntry)
+      .templateRootId!;
+    const variableId =
+      "project:stateVariable:genderInput" as EntryId<"stateVariable">;
+    run(
+      addComponentOutputProperty({
+        definitionId,
+        key: "genderInput",
+        name: "genderInput",
+        kind: "variable",
+        variable: { id: variableId, valueType: "string", defaultValue: "male" },
+      }),
+    );
+    run(
+      setFields({
+        targets: [{ kind: "node", id: instance }],
+        props: { genderInput: { kind: "set", value: "female" } },
+      }),
+    );
+    const query: ViewQuery = {
+      where: where([
+        condition("gender", "equals", "f-gender", {
+          value: `!var.${variableId}`,
+        }),
+      ]),
+    };
+    run(
+      catalogBindingCommand([{ kind: "node", id: origin }], {
+        ...catalogBindingRef({
+          source: "dataTable",
+          collectionId: "users",
+          name: "Users",
+        })!,
+        view: query,
+      }),
+    );
+    await pause();
+    return { ...h, server, run, graph, instance, origin };
+  }
+
+  it("sends an instance literal instead of the input default, then reloads after an authored change", async () => {
+    const h = await component();
+    expect(h.server.urls().at(-1)).toBe("/users?gender=female");
+    expect(h.shown(h.instance)).toEqual(
+      ROWS.filter((row) => row.gender === "female").map((row) => row.name),
+    );
+    h.run(
+      setFields({
+        targets: [{ kind: "node", id: h.instance }],
+        props: { genderInput: { kind: "set", value: "male" } },
+      }),
+    );
+    await pause();
+    expect(h.server.urls().at(-1)).toBe("/users?gender=male");
+    expect(h.shown(h.instance)).toEqual(
+      ROWS.filter((row) => row.gender === "male").map((row) => row.name),
+    );
+    h.view.unmount();
+  });
+
+  it("re-evaluates a referenced project variable on runtime writes", async () => {
+    const h = await component();
+    h.write("g", "female");
+    h.run(
+      setFields({
+        targets: [{ kind: "node", id: h.instance }],
+        props: { genderInput: { kind: "set", value: VAR("g") } },
+      }),
+    );
+    await pause();
+    h.write("g", "male");
+    await pause();
+    expect(h.server.urls().at(-1)).toBe("/users?gender=male");
+    expect(h.shown(h.instance)).toEqual(
+      ROWS.filter((row) => row.gender === "male").map((row) => row.name),
+    );
+    h.view.unmount();
+  });
+
+  it("drops the accepted query identity when new Builder rows replace its response", async () => {
+    const h = await component();
+    const requests = h.server.requests.length;
+    // Use the production receiver directly: the harness's CATALOG_DATA compatibility wrapper
+    // translates legacy definitions, while this message carries only the new runtime rows.
+    act(() => {
+      CatalogPreviewSession.prototype.receive.call(h.session, {
+        type: "CATALOG_DATA",
+        version: 1,
+        collections: [{ id: "users", runtimeData: [...ROWS].reverse() }],
+      });
+    });
+    await settle();
+    expect(h.server.requests).toHaveLength(requests);
+    expect(h.shown(h.instance)).toEqual(
+      [...ROWS]
+        .reverse()
+        .filter((row) => row.gender === "female")
+        .map((row) => row.name),
+    );
+    h.view.unmount();
+  });
+
+  it("uses a descendant override in a collapsed nested instance for the server request", async () => {
+    const h = await component();
+    h.run(
+      createComponent({
+        id: h.instance,
+        name: "OuterUsers",
+        newId: h.workspace.newId,
+      }),
+    );
+    const outer = (h.graph.getEntry("project:node:home-body") as NodeEntry)
+      .children[0]! as NodeId;
+    const definitionId = (h.graph.getEntry(outer) as NodeEntry).definitionId;
+    const inner = (
+      h.graph.getEntry(definitionId as EntryId<"definition">) as DefinitionEntry
+    ).templateRootId!;
+    h.run(
+      setFields({
+        targets: [
+          {
+            kind: "descendant",
+            ownerId: outer,
+            address: { instances: [outer], templatePath: [inner] },
+          },
+        ],
+        props: { genderInput: { kind: "set", value: "male" } },
+      }),
+    );
+    await pause();
+    expect(h.server.urls().at(-1)).toBe("/users?gender=male");
+    expect(h.shown(outer)).toEqual(
+      ROWS.filter((row) => row.gender === "male").map((row) => row.name),
+    );
+    h.view.unmount();
+  });
+
+  it("loads all unfiltered pages for different instance inputs and filters each occurrence independently", async () => {
+    const h = await component(
+      {
+        queryParams: [{ key: "page", value: "{{ cursor }}" }],
+        responseMapping: {
+          dataPath: "items",
+          totalPath: "total",
+          cursorPath: "next",
+        },
+      },
+      2,
+    );
+    const second = "project:node:second-filtered-users" as NodeId;
+    const first = h.graph.getEntry(h.instance) as NodeEntry;
+    const start = h.server.requests.length;
+    h.run(
+      insertNodes({
+        parent: { kind: "node", id: "project:node:home-body" as NodeId },
+        entries: [
+          {
+            ...first,
+            id: second,
+            props: { genderInput: { kind: "set", value: "male" } },
+          },
+        ],
+        rootIds: [second],
+        newId: h.workspace.newId,
+      }),
+    );
+    await pause();
+    expect(h.server.urls().slice(start)).toHaveLength(4);
+    expect(
+      h.server
+        .urls()
+        .slice(start)
+        .every((url) => !url.includes("gender=")),
+    ).toBe(true);
+    expect(h.shown(h.instance)).toEqual(
+      ROWS.filter((row) => row.gender === "female").map((row) => row.name),
+    );
+    expect(h.shown(second)).toEqual(
+      ROWS.filter((row) => row.gender === "male").map((row) => row.name),
+    );
     h.view.unmount();
   });
 });
