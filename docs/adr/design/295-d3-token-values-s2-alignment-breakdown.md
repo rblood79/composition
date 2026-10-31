@@ -677,13 +677,13 @@ StatusLight 점 ↔ 글자를 S2 `text-to-visual` 형으로 바꿨다가 되돌�
 
 **live (Chrome MCP, 5175)**: 팔레트 Menu (MenuTrigger) 를 넣고 Compare Mode Preview 에서 열기 — M: 항목 32 · 여백 7 / 12 · 간격 6 · label 14 / 500. Layers 에서 Menu 노드 Size L → 항목 40 · 여백 10 / 15 · 간격 6.86 · label 16 / 500 / 행간 20 (Canvas 는 닫힌 목록이라 같은 값을 unit 이 record 로 확인). 콘솔 오류 0, 삭제 명령으로 지움.
 
-### 6.12 Phase 4 (2026-10-31, G5 · G6 — 진행 중)
+### 6.12 Phase 4 (2026-10-31, G5 · G6)
 
 증거 `.agent/runs/2026-10-31-adr295-phase4/` (README 에 측정 조건). before arm = `a2f619475` + 295 밖 코드 커밋 5 (`cc787595c` · `63ecb9b9e` · `0749c164d` · `11089d94e` · `56be2e9e0`) cherry-pick, after arm = `1aeb6dce9`.
 
-**G5 번들**: Builder initial JS gzip 1,370,519 → 1,376,684 (**+6,165**) · Preview 313,065 → 316,554 (**+3,489**) — 재승인 허용치 (+5,120 · +2,560) 를 둘 다 넘는다 (절대 상한 1,390,000 · 320,000 안). 3d 측정 (+4,649 · +2,416) 뒤 늘어난 곳 (sourcemap raw): `componentRulesTable` 7,669 → 12,847 · `ruleLength` 3,894 → 6,320 · `rulePartRules` 1,365 → 2,101 · `Tab.binding` +342 · `itemLinks` +162 — 3c-3b · 3c-3c 의 S2 값의 형 (다항 길이 · 터치 식 · part rule · density · 크기 계약). **사용자 판단 대기**.
+**G5 번들**: Builder initial JS gzip 1,370,519 → 1,376,684 (**+6,165**) · Preview 313,065 → 316,554 (**+3,489**) — 재승인 허용치 (+5,120 · +2,560) 를 둘 다 넘는다 (절대 상한 1,390,000 · 320,000 안). 3d 측정 (+4,649 · +2,416) 뒤 늘어난 곳 (sourcemap raw): `componentRulesTable` 7,669 → 12,847 · `ruleLength` 3,894 → 6,320 · `rulePartRules` 1,365 → 2,101 · `Tab.binding` +342 · `itemLinks` +162 — 3c-3b · 3c-3c 의 S2 값의 형 (다항 길이 · 터치 식 · part rule · density · 크기 계약). **사용자 결정 (2026-10-31): 허용치를 실측에 맞춰 재승인 — Builder +6,400 · Preview +3,600 B gz** → G5 번들 통과.
 
-**G5 테마 전환 (600 요소)**: `setActiveTheme` 동기 + 다음 프레임 (ADR-227 T6 정의), 12 회 교대 중앙값. production harness 빌드 교대 3쌍 before 70.1 · after 71.0 ms, dev 73 · 74.6 ms, 불리 케이스 `app-pages` (3,339 노드, 합성물 — 규모 전용) 700 · 715 ms. 295 몫은 ≈ +1 ms (노이즈 폭) 이지만 **25 ms 상한은 두 arm 모두 넘는다** — ADR-227 (2026-09-22, 옛 store 앱 16 ~ 25 ms) 뒤 catalog runtime 의 전환 비용이고 295 의 터치 벌 생성 몫이 아니다 (실패 대응 「터치 벌 지연 생성」 은 효과 없음). **사용자 판단 대기**.
+**G5 테마 전환 (600 요소)**: `setActiveTheme` 동기 + 다음 프레임 (ADR-227 T6 정의), 12 회 교대 중앙값. production harness 빌드 교대 3쌍 before 70.1 · after 71.0 ms, dev 73 · 74.6 ms, 불리 케이스 `app-pages` (3,339 노드, 합성물 — 규모 전용) 700 · 715 ms. 295 몫은 ≈ +1 ms (노이즈 폭) 이지만 **25 ms 상한은 두 arm 모두 넘는다** — ADR-227 (2026-09-22, 옛 store 앱 16 ~ 25 ms) 뒤 catalog runtime 의 전환 비용이고 295 의 터치 벌 생성 몫이 아니다 (실패 대응 「터치 벌 지연 생성」 은 효과 없음). **사용자 결정 (2026-10-31): 295 는 더한 몫 (≈ +1 ms) 으로 판정 · 70 ms 는 별도 조사** → G5 테마 전환 통과.
 
 **G5 빌더 chrome (결함 2 발견 · 수리)**: Design 패널 (Select 선택, Property · Layout · Style · Text) 스크린샷을 두 arm · desktop / pointer: coarse (`hasTouch`) 로 비교 — 수정 전 탭마다 22k ~ 46k px 차이. 원인 ① 3a 의 `min-height: {size.height.<S>}` (Input · DateInput · ToggleButton) 를 게이트 (c) 는 「빌더 control 높이 = 295 전 한 줄 높이라 효과 없음」 으로 통과시켰지만, 빌더 chrome CSS 가 글자 · 여백을 줄인 위젯 (Design 패널 Input 18 · NumberField 16 · ToggleButton 20) 은 그보다 작아 상자가 30 · 22 로 커졌다 (State 절 행 28 → 38). → `builder-catalog-pins.css` 가 새 `min-height` 24 자리 (field 안 버튼 · 범위 상자 DateInput 의 `0` 포함) 를 초기값 `auto` 로 고정, 게이트 (c) 는 새 선언이 빌더에서 초기값일 것만 받는다 (`min-height` 특례 · 빌더 높이 허용 목록 삭제). 수정 뒤 Property · Style · Text 0, Layout 60 px = 사용자 Select 의 Gap 값 6 → 7 (내용), header = 프로젝트 이름. Data RowForm 은 스크린샷 대신 같은 게이트 (c) — 빌더가 싣는 생성 시트의 새 선언 전부가 초기값.
 
@@ -693,7 +693,7 @@ StatusLight 점 ↔ 글자를 S2 `text-to-visual` 형으로 바꿨다가 되돌�
 
 **원복 RED**: 게이트 (c) 강화 → pins 전 24 자리 RED · (b2) → 선택자 `:root` 에서 RED · Publish reset 테스트 → `font: inherit` 에서 RED. **회귀**: type-check PASS · G2 desktop · touch 263/263 · publish 15 · 빌더 styles · preview 708 (실패 1 = `chromeIsland`, 기존).
 
-**G6**: `ssot-hierarchy.md` D3 (값 정본 = S2 설치본, 이름 = 저장소) · `css-tokens.md` (컨트롤 크기 2티어 = 빌더 chrome, 사용자 컴포넌트 크기와 무관) · `style-ssot.md` (토큰 preset 값 = 활성 테마 snapshot) 반영. 남은 것: ADR-227 F8 각주 · README · `### Live Exercise` (G5 판단 뒤 Implemented 와 함께).
+**G6**: `ssot-hierarchy.md` D3 (값 정본 = S2 설치본, 이름 = 저장소) · `css-tokens.md` (컨트롤 크기 2티어 = 빌더 chrome, 사용자 컴포넌트 크기와 무관) · `style-ssot.md` (토큰 preset 값 = 활성 테마 snapshot) 반영. ADR-227 Decision 3 절 각주 (기기 축 = 시스템 소유, 테마 축 무변경) 반영. 남은 것: `### Live Exercise` · README 대시보드 (Implemented 와 함께).
 
 - G1 before/after: §6.1
 - G2 두 arm: §6.2 · Phase 3a §6.3 · Phase 3b §6.4

@@ -38,6 +38,7 @@ catalog rule 2,333 개 TokenRef 는 색 · 서체 · radius 를 이름으로만 
 ### Soft constraints
 
 - 테마가 소유하는 축은 color · typography · radius · border 폭 · shadow · focus 까지. **size / spacing** (`height` 418 · `gap` 189 · `paddingX` 182 …) 은 밀도 (density) 축이라 이 ADR 밖 — Spectrum 도 density 를 theme 와 분리한다.
+  - 각주 (2026-10-31, [ADR-295](../295-d3-token-values-s2-style-macro-scale.md)): 사용자 컴포넌트의 control 높이 · 여백 · 간격은 이제 S2 값과 **기기** 축 (`scale` 1 / 1.25 · 글자 기준 14 / 17 — 터치 기기) 을 따른다. 기기 축은 테마가 아니라 시스템 소유라 이 ADR 의 테마 소유 축은 그대로다 (테마 편집기에 노출하지 않음). 밀도 (density) 축은 여전히 밖이다 — 컴포넌트 prop `density` (Tabs · ToggleButtonGroup …) 와는 다르다.
 - 요소/페이지 스코프 테마 (DOM 의 `[data-accent]` 패턴) 는 유보 — Skia 소비처 0 이고 프레임 예산 미측정.
 - 패널 규격은 Styles 패널 시안 (2026-09-13) 어법 — 28/32 두 티어 · `1fr 1fr 28px`.
 
