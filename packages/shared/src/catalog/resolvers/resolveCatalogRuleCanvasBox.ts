@@ -354,19 +354,17 @@ export function catalogBreadcrumbSeparatorIcon(size: string | undefined): {
 
 /**
  * S2 1.8.0 ColorWheel `size` (2026-10-10): the wheel's outer diameter px — S2 clamps to a 175
- * floor (`Math.max(size, 175)`, ColorWheel.tsx); our default is the ColorWheel rule's M height
- * (180 — the Canvas box before). Both consumers read this one value: the Canvas square
- * (`compositionRoot.ts` `styleOf`) and the DOM's RAC radii (`domBinding.tsx` — outer = half,
- * inner = outer − track).
+ * floor (`Math.max(size, 175)`, ColorWheel.tsx) and defaults to 192; the ring is 24 thick
+ * (`thickness`). Both are plain px there (inline style — no `--s2-scale`), so they stay on touch.
+ * Both consumers read these values: the Canvas square (`compositionRoot.ts` `styleOf`) and the
+ * DOM's RAC radii (`domBinding.tsx` — outer = half, inner = outer − track).
  */
-export const CATALOG_COLOR_WHEEL_TRACK = 26;
+export const CATALOG_COLOR_WHEEL_TRACK = 24;
 
 export function catalogColorWheelDiameter(size: unknown): number {
   const value = Number(size);
   if (Number.isFinite(value) && value > 0) return Math.max(value, 175);
-  // The default keeps the box the ColorWheel rule's M height gave before (its size blocks are
-  // content-fit now — the diameter is this one prop's).
-  return 180;
+  return 192;
 }
 
 /**

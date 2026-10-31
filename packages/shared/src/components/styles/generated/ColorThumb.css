@@ -36,8 +36,8 @@
 
 
   .react-aria-ColorThumb[data-focus-visible] {
-    width: calc(var(--catalog-token-size-unit) * 20 / 1);
-    height: calc(var(--catalog-token-size-unit) * 20 / 1);
+    width: calc(var(--catalog-token-size-unit) * 32 / 1);
+    height: calc(var(--catalog-token-size-unit) * 32 / 1);
   }
 
 

@@ -667,8 +667,17 @@ export function ruleTypeDefinition(
             ) as ConditionalRule["layoutTokens"],
           }
         : {}),
+      // (ADR-295 후속: a variant's `scaled` side — a vertical ColorSlider's height — is a token use too.)
       ...(Object.keys(variant.visual).length
-        ? { visual: variant.visual as VisualValues }
+        ? {
+            visual: (() => {
+              const values: Record<string, VisualValues[keyof VisualValues]> = {
+                ...variant.visual,
+              };
+              withLengthTokens(values, theme, tokens);
+              return values as VisualValues;
+            })(),
+          }
         : {}),
     }));
   if (variantRules.length)

@@ -15,7 +15,7 @@
     grid-template-areas: "label output" "track track";
     grid-template-columns: 1fr auto;
     gap: 4px;
-    max-width: 300px;
+    width: calc(var(--catalog-token-size-unit) * 192 / 1);
     contain: layout style;
 
   /* Default size */
@@ -47,13 +47,14 @@
 
 .react-aria-ColorSlider[data-orientation="horizontal"] .react-aria-SliderTrack {
   width: 100%;
-  height: 20px;
+  height: calc(var(--catalog-token-size-unit) * 24 / 1);
   border-radius: var(--catalog-token-radius-md);
   touch-action: none;
 }
 
 .react-aria-ColorSlider[data-orientation="vertical"] {
-  height: 150px;
+  width: auto;
+  height: calc(var(--catalog-token-size-unit) * 192 / 1);
   display: block;
 }
 
@@ -66,7 +67,7 @@
 }
 
 .react-aria-ColorSlider[data-orientation="vertical"] .react-aria-SliderTrack {
-  width: 20px;
+  width: calc(var(--catalog-token-size-unit) * 24 / 1);
   height: 100%;
   border-radius: var(--catalog-token-radius-md);
 }

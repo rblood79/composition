@@ -16,7 +16,7 @@ import { progressCircleBinding } from "../../catalog/bindings/ProgressCircle.bin
  *   indicator stroke 를 {color.accent}(spec PROGRESSCIRCLE_FILL_COLORS / Skia escape value_fill_arc 와
  *   동일 source)로 적용. Skia escape 가 같은 두 색을 읽으므로 시각 대칭.
  *
- * **value 비례 호**: SVG circle stroke-dashoffset = circumference - (value/100)*circumference.
+ * **value 비례 호**: S2 처럼 `pathLength` 100 의 circle — stroke-dashoffset = 100 - value%.
  *   Skia escape 는 arc sweepAngle = (value/100)*360 — 같은 비율. RTL/jsdom 없이 react-dom/server
  *   renderToStaticMarkup 으로 정적 출력 직접 검사.
  */
@@ -77,10 +77,10 @@ describe("ProgressCircle — value 비례 호 + indeterminate", () => {
     const html = renderToStaticMarkup(<ProgressCircle value={75} />);
     expect(html).toContain("stroke-dasharray");
     expect(html).toContain("stroke-dashoffset");
-    // md(diameter 32, sw 3) → r=14.5, circumference=2π*14.5≈91.1, offset=circ*(1-0.75)
-    const circ = 2 * Math.PI * ((32 - 3) / 2);
-    const offset = circ - (75 / 100) * circ;
-    expect(html).toContain(`stroke-dashoffset="${offset}"`);
+    // S2 `ProgressCircle.tsx`: pathLength 100 · dasharray "100 200" · offset = 100 - percentage.
+    expect(html).toContain('pathLength="100"');
+    expect(html).toContain('stroke-dasharray="100 200"');
+    expect(html).toContain('stroke-dashoffset="25"');
   });
 
   it("isIndeterminate → 270° 정적 indicator 호 (Skia value_fill_arc 와 같은 호 — 2026-10-14 Button pending)", () => {
@@ -89,33 +89,27 @@ describe("ProgressCircle — value 비례 호 + indeterminate", () => {
       <ProgressCircle value={50} isIndeterminate />,
     );
     expect(html).toContain("data-indeterminate-arc");
-    const radius = (32 - 3) / 2;
-    const circ = 2 * Math.PI * radius;
-    expect(html).toContain(`stroke-dashoffset="${circ * 0.25}"`);
+    expect(html).toContain('stroke-dashoffset="25"');
     // aria-valuenow 없음 (indeterminate)
     expect(html).not.toContain("aria-valuenow");
   });
 });
 
-describe("ProgressCircle — size → 지름(rule height) + strokeWidth 3 uniform (Skia base 정합)", () => {
-  // strokeWidth 3 uniform: rule(ComponentRuleSize)에 strokeWidth 필드 없음 → Skia value_fill_arc
-  //   기본값 3 으로 해소 → DOM 도 3 으로 대칭(spec lg=4 는 rule 미이전 잔재).
-  it("size sm → diameter 16 (S2), strokeWidth 3", () => {
-    const html = renderToStaticMarkup(<ProgressCircle size="S" value={50} />);
-    expect(html).toMatch(/viewBox="0 0 16 16"/);
-    expect(html).toMatch(/stroke-width="3"/);
-  });
-
-  it("size md → diameter 32, strokeWidth 3", () => {
-    const html = renderToStaticMarkup(<ProgressCircle size="M" value={50} />);
-    expect(html).toMatch(/viewBox="0 0 32 32"/);
-    expect(html).toMatch(/stroke-width="3"/);
-  });
-
-  it("size lg → diameter 64, strokeWidth 3 (rule base 정합 — lg=4 spec 잔재 미적용)", () => {
-    const html = renderToStaticMarkup(<ProgressCircle size="L" value={50} />);
-    expect(html).toMatch(/viewBox="0 0 64 64"/);
-    expect(html).toMatch(/stroke-width="3"/);
+describe("ProgressCircle — size → 지름 (rule height) + 선 굵기 (rule indicator.strokeWidth) — S2", () => {
+  // S2 `ProgressCircle.tsx`: 지름 S 16 · M 32 · L 64 (`size()` — 터치 × 1.25), 선 S 2 · M 3 · L 4 (`pxToRem` — 터치 불변).
+  //   원은 상자 비율 (r = calc(50% - 굵기/2)) 이라 viewBox 가 없다 — 상자가 커져도 선 굵기는 그대로.
+  it.each([
+    ["S", 16, 2],
+    ["M", 32, 3],
+    ["L", 64, 4],
+  ] as const)("size %s → 지름 %ipx 식 · 선 %i", (size, diameter, sw) => {
+    const html = renderToStaticMarkup(
+      <ProgressCircle size={size} value={50} />,
+    );
+    expect(html).toContain(`* ${diameter} / 1)`);
+    expect(html).toContain(`stroke-width="${sw}"`);
+    expect(html).toContain(`r="calc(50% - ${sw / 2}px)"`);
+    expect(html).not.toContain("viewBox");
   });
 });
 
@@ -155,13 +149,9 @@ describe("ProgressCircle — cutover DOM 경로 (toRacProps propPassthrough)", (
   });
 
   it("cutover 경로에서 size 변경이 지름에 반영 (lg → 64px, default 32px 고정 아님)", () => {
-    expect(cutoverHtml({ size: "L", value: 50 })).toMatch(
-      /viewBox="0 0 64 64"/,
-    );
+    expect(cutoverHtml({ size: "L", value: 50 })).toContain("* 64 / 1)");
     // 버그였다면 size prop undefined → 항상 32px
-    expect(cutoverHtml({ size: "L", value: 50 })).not.toMatch(
-      /viewBox="0 0 32 32"/,
-    );
+    expect(cutoverHtml({ size: "L", value: 50 })).not.toContain("* 32 / 1)");
   });
 
   it("cutover 경로에서 value 변경이 indicator 에 반영", () => {

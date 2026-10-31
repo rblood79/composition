@@ -1150,6 +1150,9 @@ export interface IndicatorSpec {
 
   /** 선택된 Switch 의 썸과 트랙 끝의 여백 (없으면 thumbOffset) */
   thumbOffsetSelected?: number;
+
+  /** 원형 진행률의 선 굵기 (ProgressCircle — S2 S 2 · M 3 · L 4, 터치에서도 그대로) */
+  strokeWidth?: number;
 }
 
 /**

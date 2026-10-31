@@ -15,14 +15,9 @@
  *   같은 두 색을 읽으므로 시각 대칭. (legacy renderProgressCircle 의 var(--bg-muted)/var(--accent)
  *   하드코딩과 동일 값: {color.neutral-subtle}=var(--bg-muted), {color.accent}=var(--accent) — drift 0)
  *
- *   **dims = size→지름 맵(rule height 대응) + strokeWidth 3 uniform(rule base 정합)**: 지름 sm=24/
- *   md=32/lg=64(rule sizes.height). **strokeWidth 는 3 uniform** — Skia escape(value_fill_arc)가
- *   `size.strokeWidth` 를 읽는데 ComponentRuleSize 타입에 strokeWidth 필드가 없어(rule base 미보유)
- *   primitive 기본값 3 으로 해소된다. DOM 도 같은 base(3)를 써야 대칭. (spec PROGRESSCIRCLE_DIMENSIONS
- *   의 lg=4 는 rule 로 이전 안 된 spec-era 잔재 — rule SSOT 가 base 권위이므로 3 uniform 이 정본.
- *   lg sw 차등이 필요하면 ComponentRuleSize 에 strokeWidth 필드 추가 = 스키마 변경, 전 컴포넌트 영향
- *   → width-base 와 동일 별도 slice). value 비례 호: DOM stroke-dashoffset, Skia arc sweepAngle —
- *   같은 value/100 비율. 지름: Skia 는 layout size.width(factory style.width/height=32) 와 정합.
+ *   **dims = rule (DOM/Skia 대칭)**: 지름 = rule `sizes.height` (S2 S 16 · M 32 · L 64, `scaled` — 터치 × 1.25),
+ *   선 굵기 = rule `sizes.indicator.strokeWidth` (S2 S 2 · M 3 · L 4, 터치 불변). value 비례 호: DOM 은 S2 처럼
+ *   `pathLength` 100 의 dashoffset, Skia 는 arc sweepAngle — 같은 value 비율.
  *
  * D1: composition `<div role="progressbar">` (SVG circle track + indicator, internal source, 어댑터).
  * D2: value(0-100) + size(sm/md/lg) + isIndeterminate + isDisabled.
@@ -85,14 +80,12 @@ export interface ProgressCircleProps {
 }
 
 // size → 지름 px (rule sizes.height 정합 — S2 `ProgressCircle.tsx` S 16 · M 32 · L 64, ADR-295 Phase 3c-3c).
-// strokeWidth 는 별도(아래 STROKE_WIDTH 참조).
 const DIAMETER: Record<string, number> = {
   S: 16,
   M: 32,
   L: 64,
 };
-// strokeWidth 3 uniform — rule(ComponentRuleSize)에 strokeWidth 필드 없음 → Skia value_fill_arc 가
-// 기본값 3 으로 해소. DOM 도 같은 base(3)로 대칭(spec lg=4 는 rule 미이전 잔재, 3 uniform 이 정본).
+// 선 굵기 = rule `indicator.strokeWidth` (S2 S 2 · M 3 · L 4) — Skia value_fill_arc 와 같은 칸. 이 값은 rule 이 없을 때만.
 const STROKE_WIDTH = 3;
 
 /**
@@ -120,18 +113,17 @@ export function ProgressCircle({
 }: ProgressCircleProps): React.ReactElement {
   const sizeKey = String(size).toUpperCase();
   const diameter = diameterProp ?? DIAMETER[sizeKey] ?? DIAMETER.M;
-  // 상자 = rule 지름 (`scaled` — S2 `size()`, 터치 × 1.25) 의 기기 식. svg 는 desktop 좌표계 (viewBox) 를 상자에 맞춘다
-  //   (ADR-295 후속 — 터치에서 선 굵기도 같이 × 1.25: S2 는 3 고정).
+  // 상자 = rule 지름 (`scaled` — S2 `size()`, 터치 × 1.25) 의 기기 식. 원은 S2 처럼 상자 비율로 그린다 —
+  //   중심 50% · 반지름 `calc(50% - 굵기/2)` · `pathLength` 100 — 선 굵기는 px 그대로 (S2 `pxToRem`, 터치 불변).
   const block = resolveComponentRule("ProgressCircle")?.sizes?.[sizeKey];
   const diameterRef =
     diameterProp === undefined && block
       ? ruleSizeLengthRef(block, "height")
       : undefined;
   const box = (diameterRef && ruleLengthCss(diameterRef)) ?? diameter;
-  const strokeWidth = strokeWidthProp ?? STROKE_WIDTH;
-
-  const radius = (diameter - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
+  const strokeWidth =
+    strokeWidthProp ?? block?.indicator?.strokeWidth ?? STROKE_WIDTH;
+  const radius = `calc(50% - ${strokeWidth / 2}px)`;
   // (value-min)/(max-min) 정규화 — 구 0-100 하드코딩 해소 (§1-3, 2026-08-21).
   //   Skia escape(value_fill_arc)와 동일 공식. span<=0 방어는 0 비율.
   const min = Number(minValue) || 0;
@@ -139,7 +131,6 @@ export function ProgressCircle({
   const span = max - min;
   const clamped = Math.max(min, Math.min(max, Number(value) || 0));
   const fraction = span > 0 ? (clamped - min) / span : 0;
-  const offset = circumference - fraction * circumference;
 
   // track 색 = rule fill base, indicator 색 = {color.accent}. Skia escape(value_fill_arc) 와 동일 source.
   // staticColor(white/black) 시 over-background 스킴 — S2 1.8.0 `ProgressCircle` (2026-10-10):
@@ -176,43 +167,28 @@ export function ProgressCircle({
       }}
       className={className}
     >
-      <svg width="100%" height="100%" viewBox={`0 0 ${diameter} ${diameter}`}>
+      <svg width="100%" height="100%" fill="none" style={{ display: "block" }}>
         <circle
-          cx={diameter / 2}
-          cy={diameter / 2}
+          cx="50%"
+          cy="50%"
           r={radius}
-          fill="none"
           stroke={trackColor}
           strokeWidth={strokeWidth}
         />
-        {isIndeterminate && (
-          // (The 270° static arc — the Skia `value_fill_arc` indeterminate arc; the sheet may spin it.)
+        {(isIndeterminate || fraction > 0) && (
+          // S2 `fill`: 길이 100 으로 정규화한 호를 -90° 돌린다. 불결정은 270° 정적 호 (Skia `value_fill_arc` — 시트가 돌릴 수 있다).
           <circle
-            cx={diameter / 2}
-            cy={diameter / 2}
+            cx="50%"
+            cy="50%"
             r={radius}
-            fill="none"
             stroke={indicatorColor}
             strokeWidth={strokeWidth}
-            strokeDasharray={circumference}
-            strokeDashoffset={circumference * 0.25}
+            pathLength={100}
+            strokeDasharray="100 200"
+            strokeDashoffset={isIndeterminate ? 25 : 100 - fraction * 100}
             strokeLinecap="round"
-            transform={`rotate(-90 ${diameter / 2} ${diameter / 2})`}
-            data-indeterminate-arc=""
-          />
-        )}
-        {!isIndeterminate && fraction > 0 && (
-          <circle
-            cx={diameter / 2}
-            cy={diameter / 2}
-            r={radius}
-            fill="none"
-            stroke={indicatorColor}
-            strokeWidth={strokeWidth}
-            strokeDasharray={circumference}
-            strokeDashoffset={offset}
-            strokeLinecap="round"
-            transform={`rotate(-90 ${diameter / 2} ${diameter / 2})`}
+            style={{ rotate: "-90deg", transformOrigin: "center" }}
+            {...(isIndeterminate ? { "data-indeterminate-arc": "" } : {})}
           />
         )}
       </svg>

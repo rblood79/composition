@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-295 후속 — S2 와 다르게 남은 고정 치수 (S2 1.8.1 소스 대조)] - 2026-10-31
+
+### Fixed
+
+- **ProgressCircle 선 굵기 · Color 조작기 치수가 S2 와 달랐던 것 (1차)**: 설치된 `@react-spectrum/s2` 1.8.1 소스와 값을 다시 맞췄다.
+  - ProgressCircle 선 굵기: 크기 무관 3 → S2 `strokeWidth` S 2 · M 3 · L 4. 터치에서도 그대로다 (S2 `pxToRem` — 지름만 × 1.25). **Why**: rule 에 굵기 칸이 없어 DOM · Canvas 가 기본값 3 을 썼고, DOM 은 svg 를 desktop 좌표계 (viewBox) 로 늘려 터치에서 굵기도 같이 커졌다. 이제 rule `indicator.strokeWidth` 를 두 consumer 가 읽고, DOM svg 는 S2 처럼 `r = calc(50% - 굵기/2)` · `pathLength` 100 으로 그린다.
+  - ColorThumb 포커스 크기 20 → 32 (S2 `ColorHandle` `isFocusVisible`, `scaled`).
+  - ColorSlider: 가로 폭 192 (전 최대 폭 300) · 세로 높이 192 (전 150) · 트랙 두께 24 (전 20) — 모두 S2 `size()` 라 `scaled`. **Why (세로)**: 조건 규칙 (orientation 변형) 의 `visual` 길이 ref 를 Canvas 가 풀지 못해 높이 0 이 됐다 — 변형 visual 도 토큰 값으로 바꾼다.
+  - ColorWheel 기본 지름 180 → 192 · 고리 26 → 24 (S2 inline px — 터치 불변).
+  - ColorArea 최소 크기 64 (S2 `minSize`, `scaled`) · ColorSwatch · ColorSwatchPicker 크기 XS 16 추가 (S2 `size` XS).
+  - 위치: `componentRulesTable.ts` (ProgressCircle · ColorThumb · ColorSlider · ColorArea · ColorSwatch · ColorSwatchPicker) · `ProgressCircle.tsx` · `skiaPrimitives.ts` (`value_fill_arc`) · `catalog-style.types.ts` · `spec.types.ts` · `resolveCatalogRuleCanvasBox.ts` (ColorWheel) · `ruleDefinition.ts` (변형 visual 토큰).
+  - 검증: G4 `d3S2Alignment` (S2 소스 정규식 대조 5 + ColorSwatch XS) · 원복 RED (HEAD rule · 상수 → 6 FAIL) · G2 desktop · touch 263/263 · live 5175 (Canvas 192 · DOM desktop 192 · 터치 240 · ColorWheel 192 그대로 · ProgressCircle 터치 40 / 굵기 3 · 콘솔 0).
+
 ## [ADR-295 후속 — S2 고정 치수의 터치 배율 (`scaled`)] - 2026-10-31
 
 ### Fixed

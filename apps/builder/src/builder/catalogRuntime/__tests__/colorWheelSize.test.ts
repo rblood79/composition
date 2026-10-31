@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
 /**
  * S2 1.8.0 ColorWheel `size` (2026-10-10): the wheel's outer diameter in px (S2: default 192,
- * floor 175, track 24; ours: default 180 — the Canvas M box before — track 26, the shared
- * wrapper's 100/74 ring ratio). DOM gets real RAC radii (`outerRadius`/`innerRadius` — the
+ * floor 175, track 24 — ours the same, ADR-295 후속). DOM gets real RAC radii (`outerRadius`/`innerRadius` — the
  * catalog path passed none before, so RAC drew nothing), the Canvas box is the same square.
  */
 import "fake-indexeddb/auto";
@@ -87,11 +86,11 @@ describe("S2 ColorWheel size", () => {
     ).toMatchObject({ kind: "number" });
   });
 
-  it("unset: the wheel keeps its box (180 — the Canvas M box before) in both consumers", async () => {
+  it("unset: the wheel is S2's default 192 square in both consumers", async () => {
     const { html, box } = await open({});
-    expect(html).toMatch(/width:180px;height:180px/);
-    expect(box.width).toBe(180);
-    expect(box.height).toBe(180);
+    expect(html).toMatch(/width:192px;height:192px/);
+    expect(box.width).toBe(192);
+    expect(box.height).toBe(192);
   });
 
   it("size 240: the wheel is a 240 square in both consumers (no raw size on the DOM)", async () => {

@@ -154,7 +154,7 @@ describe("ADR-258 후속 — a ColorWheel's box resize is its S2 size (box · tr
     expect(entry()?.props.size).toEqual({ kind: "set", value: 260 });
     host.applySizing(id, { axis: "height", mode: "reset" });
     expect(entry()?.props.size).toBeUndefined();
-    expect(rect("ColorWheelTrack")).toMatchObject({ width: 180, height: 180 });
+    expect(rect("ColorWheelTrack")).toMatchObject({ width: 192, height: 192 });
     const before = workspace.runtime.graph.revision;
     host.applySizing(id, { axis: "width", mode: "fill" });
     expect(workspace.runtime.graph.revision).toBe(before);
@@ -168,11 +168,11 @@ describe("ADR-258 후속 — a ColorWheel's box resize is its S2 size (box · tr
     workspace.selectRecords([wheelRecord()]);
     scene.sync();
     const start = scene.stream.boundsMap.get(wheelRecord())!;
-    expect(start.width).toBe(180);
+    expect(start.width).toBe(192);
     const corner = { x: start.x + start.width, y: start.y + start.height };
     const revision = workspace.runtime.graph.revision;
     expect(gestures.beginResize(corner.x, corner.y, 1)).toBe(true);
-    gestures.update(corner.x + 60, corner.y + 20, 1);
+    gestures.update(corner.x + 48, corner.y + 20, 1);
     gestures.finish();
     expect(entry()?.props.size).toEqual({ kind: "set", value: 240 });
     expect(entry()?.sizing).toEqual({});
@@ -186,10 +186,10 @@ describe("ADR-258 후속 — a ColorWheel's box resize is its S2 size (box · tr
       width: { kind: "set", value: 300 },
       height: { kind: "set", value: 220 },
     });
-    expect(rect("ColorWheel")).toMatchObject({ width: 180, height: 180 });
-    expect(rect("ColorWheelTrack")).toMatchObject({ width: 180, height: 180 });
-    expect(dom().wheel.width).toBe("180px");
-    expect(dom().wheel.height).toBe("180px");
+    expect(rect("ColorWheel")).toMatchObject({ width: 192, height: 192 });
+    expect(rect("ColorWheelTrack")).toMatchObject({ width: 192, height: 192 });
+    expect(dom().wheel.width).toBe("192px");
+    expect(dom().wheel.height).toBe("192px");
     workspace.execute(
       setFields({
         targets: [{ kind: "node", id: WHEEL }],

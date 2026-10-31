@@ -371,6 +371,11 @@ export interface ComponentRuleSize {
     thumbInset?: number;
     /** 선택된 Switch 의 그 간격. */
     thumbInsetSelected?: number;
+    /**
+     * ProgressCircle 선 굵기 (S2 `ProgressCircle.tsx` `strokeWidth` — `pxToRem` 고정, `--s2-scale`
+     * 을 타지 않아 터치에서도 같다).
+     */
+    strokeWidth?: number;
   };
 }
 

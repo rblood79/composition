@@ -2236,8 +2236,11 @@ const valueFillArc: SkiaPrimitiveDrawFn = ({
     (typeof size.width === "number" ? size.width : 0) ||
     (typeof size.height === "number" ? size.height : 0) ||
     32;
+  // (S2 S 2 · M 3 · L 4 — rule `indicator.strokeWidth`; a flat `strokeWidth` is the caller's own.)
   const strokeWidth =
-    typeof size.strokeWidth === "number" ? size.strokeWidth : 3;
+    typeof size.strokeWidth === "number"
+      ? size.strokeWidth
+      : (size.indicator?.strokeWidth ?? 3);
   const outerRadius = diameter / 2;
   const cx = outerRadius;
   const cy = outerRadius;

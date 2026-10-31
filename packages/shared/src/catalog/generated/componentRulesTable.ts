@@ -2570,10 +2570,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       skipStateStyles: true,
       composition: {
         delegation: [],
-        // S2 ColorArea `size: 192` (`ColorArea.tsx` — 정사각, size 축 없음, ADR-295 Phase 3c-3c — 전 100% × 180).
+        // S2 ColorArea `size: 192` · `minSize: 64` (`ColorArea.tsx` — 정사각, size 축 없음, ADR-295 Phase 3c-3c — 전 100% × 180).
         containerStyles: {
           width: scaledLengthRef(192),
           height: scaledLengthRef(192),
+          "min-width": scaledLengthRef(64),
+          "min-height": scaledLengthRef(64),
           "border-radius": "var(--radius-md)",
           "flex-shrink": "0",
           contain: "layout style",
@@ -2797,7 +2799,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       display: "grid",
       gridTemplateAreas: '"label output" "track track"',
       gridTemplateColumns: "1fr auto",
-      maxWidth: "300px",
+      width: scaledLengthRef(192),
     },
     sizes: {
       S: {
@@ -2831,7 +2833,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "grid-template-areas": '"label output" "track track"',
           "grid-template-columns": "1fr auto",
           gap: "4px",
-          "max-width": "300px",
+          width: scaledLengthRef(192),
           contain: "layout style",
         },
         staticSelectors: {
@@ -2840,7 +2842,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           ".react-aria-SliderTrack": { "grid-area": "track" },
         },
         // (`[data-orientation]` on both: the track's own sheet sizes it per `data-size` — these
-        //  win by the attribute.)
+        //  win by the attribute.) S2 `ColorSlider.tsx`: 가로 폭 · 세로 높이 192, 트랙 두께 24 — 모두 `size()`
+        //  (터치 × 1.25) → `scaled`. 최대 폭은 없다 (전 300). 폭은 위 containerStyles (orientation 을 적지
+        //  않은 노드도 가로다 — 변형 블록은 prop 이 있어야 Canvas 가 고른다), 세로는 폭을 풀고 (S2 block) 높이만.
         containerVariants: {
           orientation: {
             horizontal: {
@@ -2849,7 +2853,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   selector: ".react-aria-SliderTrack",
                   styles: {
                     width: "100%",
-                    height: "20px",
+                    height: scaledLengthRef(24),
                     "border-radius": "var(--radius-md)",
                     "touch-action": "none",
                   },
@@ -2857,7 +2861,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               ],
             },
             vertical: {
-              styles: { height: "150px", display: "block" },
+              styles: {
+                width: "auto",
+                height: scaledLengthRef(192),
+                display: "block",
+              },
               nested: [
                 {
                   selector: ".react-aria-Label",
@@ -2870,7 +2878,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 {
                   selector: ".react-aria-SliderTrack",
                   styles: {
-                    width: "20px",
+                    width: scaledLengthRef(24),
                     height: "100%",
                     "border-radius": "var(--radius-md)",
                   },
@@ -2941,11 +2949,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      // ADR-295 후속: 상자 = S2 `ColorSwatch.tsx` `size` (S 24 · M 32 · L 40 — rem × `--s2-scale`, 터치 × 1.25) → `scaled`.
+      // ADR-295 후속: 상자 = S2 `ColorSwatch.tsx` `size` (XS 16 · S 24 · M 32 · L 40 — rem × `--s2-scale`, 터치 × 1.25) → `scaled`.
       // 2026-06-22 reference 정합(ADR-914 Tier1): reference ColorSwatch.css:6 `border-radius: 9999px`
       //   (정사각 box → 완전한 원형/pill). 기존 {radius.sm}/{radius.md} 는 둥근 사각 → 형태 범주 발산.
       //   {radius.full}(=9999) 는 Skia 측 nodeRendererClip 의 `Math.min(borderRadius, min(w,h)/2)` clamp 로
       //   box half-size 까지 자동 축소 → CSS border-radius:9999px 와 동일 시각(양방향 자동, segmented radius 동형).
+      XS: {
+        fontSize: "{typography.text-xs}",
+        borderRadius: "{radius.full}",
+        height: scaled(16),
+      },
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
@@ -3015,6 +3028,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      XS: {
+        fontSize: "{typography.text-xs}",
+        borderRadius: "{radius.sm}",
+        height: 0,
+        iconSize: scaled(16),
+      },
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.md}",
@@ -3067,7 +3086,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
         rootSelectors: {
           "&[data-focus-visible]": {
-            styles: { width: scaledLengthRef(20), height: scaledLengthRef(20) },
+            styles: { width: scaledLengthRef(32), height: scaledLengthRef(32) },
           },
         },
       },
@@ -3080,7 +3099,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {},
     // S2 1.8.0 ColorWheel `size` (2026-10-10): 지름은 숫자 prop 하나다 (S2 — size enum 아님).
-    //   size 블록의 height 는 content-fit(0) 으로 두고, 지름 기본 180 (종전 M height) 과 175 floor 는
+    //   size 블록의 height 는 content-fit(0) 으로 두고, 지름 기본 192 · 고리 24 (S2) 와 175 floor 는
     //   `catalogColorWheelDiameter` (resolveCatalogRuleCanvasBox.ts) 가 Canvas (`styleOf`) · DOM
     //   (`domBinding` RAC outerRadius/innerRadius + 상자 width/height) 양쪽에 공급한다.
     sizes: {
@@ -9226,21 +9245,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     // ADR-295 후속: 지름 = S2 `ProgressCircle.tsx` wrapper `size` (rem × `--s2-scale` — 터치 × 1.25) → `scaled`.
+    //   선 굵기 = S2 `strokeWidth` S 2 · M 3 · L 4 (`pxToRem` — 터치에서도 그대로).
     sizes: {
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
         height: scaled(16),
+        indicator: { strokeWidth: 2 },
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.full}",
         height: scaled(32),
+        indicator: { strokeWidth: 3 },
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.full}",
         height: scaled(64),
+        indicator: { strokeWidth: 4 },
       },
     },
     structure: {

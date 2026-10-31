@@ -176,8 +176,8 @@ describe("ADR-258 Phase 2 — the Color controls draw their node trees", () => {
         ColorWheel,
         {
           defaultValue: "hsl(90, 100%, 50%)",
-          outerRadius: 90,
-          innerRadius: 64,
+          outerRadius: 96,
+          innerRadius: 72,
         },
         createElement(ColorWheelTrack),
         createElement(ColorThumb),
@@ -223,33 +223,33 @@ describe("ADR-258 Phase 2 — the Canvas lays the parts out where RAC puts them"
     expect(thumb.width).toBe(16);
   });
 
-  it("ColorSlider: the grid (label · output over a 20px track), the thumb at the snapped channel value on the track's middle", async () => {
+  it("ColorSlider: the grid (label · output over a 24px track), the thumb at the snapped channel value on the track's middle", async () => {
     const { root } = await open("colorslider", {
       defaultValue: "hsl(120, 100%, 50%)",
     });
     const slider = box(root, "ColorSlider").rect;
     const track = box(root, "SliderTrack").rect;
     const thumb = box(root, "ColorThumb").rect;
-    expect(slider.width).toBe(300); // the rule's max-width
+    expect(slider.width).toBe(192); // S2 `ColorSlider.tsx` horizontal width
     // (The label · output row is the SliderOutput line — S2 controlFont line 18, ADR-295 Phase 3c-3c.)
-    expect(track).toMatchObject({ x: 0, y: 22, width: 300, height: 20 });
-    expect(thumb.x + thumb.width / 2).toBeCloseTo((120 / 360) * 300, 2);
-    expect(thumb.y + thumb.height / 2).toBe(10);
+    expect(track).toMatchObject({ x: 0, y: 22, width: 192, height: 24 });
+    expect(thumb.x + thumb.width / 2).toBeCloseTo((120 / 360) * 192, 2);
+    expect(thumb.y + thumb.height / 2).toBe(12);
   });
 
-  it("ColorSlider vertical: no label · output, the track 20 × 150, the thumb along it", async () => {
+  it("ColorSlider vertical: no label · output, the track 24 × 192 (S2), the thumb along it", async () => {
     const { root } = await open("colorslider", {
       defaultValue: "hsl(90, 100%, 50%)",
       orientation: "vertical",
     });
     expect(box(root, "Label").rect).toMatchObject({ width: 0, height: 0 });
     expect(box(root, "SliderTrack").rect).toMatchObject({
-      width: 20,
-      height: 150,
+      width: 24,
+      height: 192,
     });
     const thumb = box(root, "ColorThumb").rect;
-    expect(thumb.x + thumb.width / 2).toBe(10);
-    expect(thumb.y + thumb.height / 2).toBeCloseTo((1 - 90 / 360) * 150, 2);
+    expect(thumb.x + thumb.width / 2).toBe(12);
+    expect(thumb.y + thumb.height / 2).toBeCloseTo((1 - 90 / 360) * 192, 2);
   });
 
   it("ColorWheel: the ring is the wheel's square, the thumb on its mid radius at the hue (0° = 3 o'clock, clockwise)", async () => {
@@ -264,9 +264,9 @@ describe("ADR-258 Phase 2 — the Canvas lays the parts out where RAC puts them"
       height: 240,
     });
     const thumb = box(root, "ColorThumb").rect;
-    // hue 90 → 6 o'clock on the radius (120 + 94) / 2 = 107.
+    // hue 90 → 6 o'clock on the radius (120 + 96) / 2 = 108 (S2 ring 24).
     expect(thumb.x + thumb.width / 2).toBeCloseTo(120, 2);
-    expect(thumb.y + thumb.height / 2).toBeCloseTo(120 + 107, 2);
+    expect(thumb.y + thumb.height / 2).toBeCloseTo(120 + 108, 2);
   });
 
   it("the parts' derived paint follows a value edit (record diff — no reload)", async () => {
@@ -282,7 +282,7 @@ describe("ADR-258 Phase 2 — the Canvas lays the parts out where RAC puts them"
     expect(
       JSON.parse(String(after.record.derivedProps?._colorThumb)).color,
     ).toBe("#0000ffff");
-    expect(after.rect.x + 8).toBeCloseTo((240 / 360) * 300, 2);
+    expect(after.rect.x + 8).toBeCloseTo((240 / 360) * 192, 2);
     edit({ channel: "lightness" });
     const track = box(root, "SliderTrack").record;
     expect(

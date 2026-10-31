@@ -56,6 +56,13 @@
   }
 }
 
+.react-aria-ColorSwatch[data-size="XS"] {
+  height: calc(var(--catalog-token-size-unit) * 16 / 1);
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-full);
+}
+
 .react-aria-ColorSwatch[data-size="S"] {
   height: calc(var(--catalog-token-size-unit) * 24 / 1);
   padding: 0px 0px;

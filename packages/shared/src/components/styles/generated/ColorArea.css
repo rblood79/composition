@@ -13,6 +13,8 @@
     font-family: var(--font-sans);
     width: calc(var(--catalog-token-size-unit) * 192 / 1);
     height: calc(var(--catalog-token-size-unit) * 192 / 1);
+    min-width: calc(var(--catalog-token-size-unit) * 64 / 1);
+    min-height: calc(var(--catalog-token-size-unit) * 64 / 1);
     border-radius: var(--catalog-token-radius-md);
     flex-shrink: 0;
     contain: layout style;

@@ -39,6 +39,10 @@ import {
 import { COMPONENT_RULES_TABLE } from "../../../../../../packages/shared/src/catalog/generated/componentRulesTable";
 import { manualBoxRule } from "../../../../../../packages/shared/src/catalog/document/manualBoxRules";
 import { CATALOG_SLIDER_THICK_TRACK } from "../../../../../../packages/shared/src/catalog/runtime/presence";
+import {
+  CATALOG_COLOR_WHEEL_TRACK,
+  catalogColorWheelDiameter,
+} from "../../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
 import oracle from "./fixtures/adr295-s2-oracle.json";
 
 const SIZES = ["XS", "S", "M", "L", "XL"] as const;
@@ -784,9 +788,9 @@ describe("ADR-295 G4 — 3c-3c ① 컴포넌트 고정 치수 = S2 설치본 표
       ]),
     );
 
-  it("ColorSwatch · ColorSwatchPicker swatch = S2 ColorSwatch (S · M · L)", () => {
+  it("ColorSwatch · ColorSwatchPicker swatch = S2 ColorSwatch (XS · S · M · L)", () => {
     const s2 = s2SizeTable("ColorSwatch.tsx", /size:\s*\{\s*size:\s*/);
-    const expected = { S: s2.S, M: s2.M, L: s2.L };
+    const expected = { XS: s2.XS, S: s2.S, M: s2.M, L: s2.L };
     expect(heights("ColorSwatch")).toEqual(expected);
     expect(heights("ColorSwatchPicker", "iconSize")).toEqual(expected);
   });
@@ -1535,5 +1539,113 @@ describe("ADR-295 후속 — S2 고정 sizing 숫자 = 기기 배율 (`scaled` �
     expectScaled("ColorArea", "height", () => area);
     const box = rules.ColorArea!.structure!.composition!.containerStyles!;
     expect([box.width, box.height]).toEqual([scaledRef(area), scaledRef(area)]);
+  });
+});
+
+describe("ADR-295 후속 — S2 와 다르게 남은 고정 치수 (S2 1.8.1 소스 대조)", () => {
+  type Block = Record<string, unknown> & {
+    indicator?: { strokeWidth?: number };
+  };
+  type Rule = {
+    sizes: Record<string, Block>;
+    containerStyles?: Record<string, string>;
+    structure?: {
+      composition?: {
+        containerStyles?: Record<string, string>;
+        rootSelectors?: Record<string, { styles: Record<string, string> }>;
+        containerVariants?: Record<
+          string,
+          Record<
+            string,
+            {
+              styles?: Record<string, string>;
+              nested?: Array<{
+                selector: string;
+                styles: Record<string, string>;
+              }>;
+            }
+          >
+        >;
+      };
+    };
+  };
+  const rules = COMPONENT_RULES_TABLE as unknown as Record<string, Rule>;
+  const scaledRef = (px: number) => `{length.size.unit*${px}/1}`;
+
+  it("ProgressCircle 선 굵기 = S2 strokeWidth (S 2 · M 3 · L 4) — 숫자 그대로 (pxToRem, 터치 불변)", () => {
+    const m = s2Value("ProgressCircle.tsx", /let strokeWidth = (\d+);/);
+    const s = s2Value(
+      "ProgressCircle.tsx",
+      /size === 'S'\) \{\s*strokeWidth = (\d+)/,
+    );
+    const l = s2Value(
+      "ProgressCircle.tsx",
+      /size === 'L'\) \{\s*strokeWidth = (\d+)/,
+    );
+    const sizes = rules.ProgressCircle!.sizes;
+    expect({
+      S: sizes.S!.indicator?.strokeWidth,
+      M: sizes.M!.indicator?.strokeWidth,
+      L: sizes.L!.indicator?.strokeWidth,
+    }).toEqual({ S: s, M: m, L: l });
+  });
+
+  it("ColorThumb 포커스 = scaled(S2 ColorHandle isFocusVisible)", () => {
+    const focus = s2Value("ColorHandle.tsx", /isFocusVisible: (\d+)/);
+    const styles =
+      rules.ColorThumb!.structure!.composition!.rootSelectors![
+        "&[data-focus-visible]"
+      ]!.styles;
+    expect([styles.width, styles.height]).toEqual([
+      scaledRef(focus),
+      scaledRef(focus),
+    ]);
+  });
+
+  it("ColorSlider 가로 폭 · 세로 높이 · 트랙 두께 = scaled(S2 ColorSlider)", () => {
+    const width = s2Value(
+      "ColorSlider.tsx",
+      /width: \{\s*orientation: \{\s*horizontal: (\d+)/,
+    );
+    const height = s2Value(
+      "ColorSlider.tsx",
+      /height: \{\s*orientation: \{\s*vertical: (\d+)/,
+    );
+    const track = s2Value(
+      "ColorSlider.tsx",
+      /horizontal: 'full',\s*vertical: (\d+)/,
+    );
+    const rule = rules.ColorSlider!;
+    const composition = rule.structure!.composition!;
+    // (Canvas 상자 = top-level containerStyles, 생성 CSS = composition — 둘 다 같은 폭.)
+    expect(rule.containerStyles!.width).toBe(scaledRef(width));
+    expect(composition.containerStyles!.width).toBe(scaledRef(width));
+    expect(composition.containerStyles!["max-width"]).toBeUndefined();
+    const orientation = composition.containerVariants!.orientation!;
+    expect(orientation.vertical!.styles!.height).toBe(scaledRef(height));
+    const trackOf = (value: string) =>
+      orientation[value]!.nested!.find(
+        (n) => n.selector === ".react-aria-SliderTrack",
+      )!.styles;
+    expect(trackOf("horizontal").height).toBe(scaledRef(track));
+    expect(trackOf("vertical").width).toBe(scaledRef(track));
+  });
+
+  it("ColorWheel 기본 지름 · 고리 = S2 (inline px — 터치 불변)", () => {
+    expect(catalogColorWheelDiameter(undefined)).toBe(
+      s2Value("ColorWheel.tsx", /let \{size = (\d+)\}/),
+    );
+    expect(CATALOG_COLOR_WHEEL_TRACK).toBe(
+      s2Value("ColorWheel.tsx", /let thickness = (\d+);/),
+    );
+  });
+
+  it("ColorArea 최소 크기 = scaled(S2 minSize)", () => {
+    const min = s2Value("ColorArea.tsx", /minSize: (\d+)/);
+    const box = rules.ColorArea!.structure!.composition!.containerStyles!;
+    expect([box["min-width"], box["min-height"]]).toEqual([
+      scaledRef(min),
+      scaledRef(min),
+    ]);
   });
 });
