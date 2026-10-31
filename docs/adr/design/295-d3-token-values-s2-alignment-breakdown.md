@@ -494,7 +494,7 @@ field 버튼 (ComboBox · DatePicker · DateRangePicker): 정사각형 `{size.fi
 
 **live (Chrome MCP, 5175 · `adr295-live`)**: 팔레트 Button · Switch 를 body 에. Canvas: Button 여백 16 · 간격 6 (라벨 x 17 = 16 + 테두리) · Switch 라벨 x 36 (track 26 + 10) · Input 여백 12. Preview desktop: Button 75.59 (Canvas 75.58) · 여백 16 · 간격 6 · Switch 간격 10 · Input 12 — inline 은 기기 식. 「터치 크기로 미리보기」: Button 여백 20 · 간격 8 · Switch 간격 12.14 · Input 15 (S2 probe 20 · 8 · 12.14 · 15). 빌더 root: `--catalog-token-input-padding-x-M` 12 · `--catalog-token-toggle-button-gap-M` 8 · 터치 flag 0 (295 전). 콘솔 오류 0. 두 요소는 삭제 명령으로 지움.
 
-### 6.10 Phase 3c-3b (2026-10-31 ~, 진행 중)
+### 6.10 Phase 3c-3b (2026-10-31, 닫힘)
 
 > **분할 (실행 판단 — 사후 보고)**: 3c-3b 를 셋으로 나눈다 — ① Badge · Select 트리거의 터치 식 (이 절) · ② SearchField pill + field 버튼 끝 여백 (ComboBox · DatePicker · DateRangePicker · SearchField — 끝 여백 상수를 읽는 소비처가 넷: delegation · `fieldPrefix.ts` `buttonOverlayInset` · `deviceTypography.ts` offset 재구성 · 빌더 고정 시트, 그리고 SearchField 의 pill 모서리는 상자 부품 (Input) rule 이 가져야 한다 — `adr253PartShapeOwner`) · ③ 남은 리터럴 분류.
 
@@ -553,7 +553,7 @@ field 버튼 (ComboBox · DatePicker · DateRangePicker): 정사각형 `{size.fi
 
 **live (Chrome MCP, 5175 · `adr295-live`)**: 팔레트 TimeField · Menu 를 body 에 (기존 ListBox · TextField · Text 는 그대로). Compare Mode Preview desktop: TextField · TimeField 라벨 아래 → 입력 위 7 (rule gap 7px, 라벨 18 · 입력 32 — S2 (32 − 18) / 2). 「터치 크기로 미리보기」: 9 (라벨 22 · 입력 40 — S2 (40 − 22) / 2). MenuItem 은 되돌린 뒤 32 (S2 형으로 바꿨을 때 34 를 이 live 에서 찾았다). 콘솔 오류 0. 두 요소는 삭제 명령으로 지움.
 
-### 6.11 Phase 3c-3c (2026-10-31 ~, 진행 중 — 사용자 결정 「S2 로 변경」)
+### 6.11 Phase 3c-3c (2026-10-31, 닫힘 — 사용자 결정 「S2 로 변경」)
 
 > 3c-3b ③ 의 「S2 대조 대기」 45 자리와 TimeField · ColorField 루트 글자를 S2 값으로 바꾼다 (사용자 결정 2026-10-31). 읽는 곳 조사 (서브에이전트 · 근거 재확인) 결과 45 자리 중 15 자리는 아무도 읽지 않는 값이라 — 실제 출처가 다른 곳에 있다 (막대 두께 = `.bar` sizeSelectors · ProgressCircle DOM 지름 = `components/ProgressCircle.tsx` 상수 · ColorArea · ColorThumb = composition containerStyles) — 화면을 바꾸려면 출처를 같이 바꾼다. 읽히지 않는 리터럴은 S2 값으로 맞추고 (0 으로 바꾸면 `buildCatalogShapes` 의 글자 정렬 분기가 바뀔 수 있다) 「의도적」 목록으로 옮긴다. 분할 (실행 판단 — 사후 보고): ① 같은 크기 축의 고정 치수 · ② 식 · 토큰이 필요한 자리 (Breadcrumbs · TagGroup = control 높이, Header · Tooltip = centerPadding, Tabs = density 높이, Table 칸, StatusLight, DropZone, Toast, Tree, Calendar, Slider track 행) · ③ MenuItem (안 label Text 글자 먼저).
 
@@ -689,11 +689,22 @@ StatusLight 점 ↔ 글자를 S2 `text-to-visual` 형으로 바꿨다가 되돌�
 
 **G5 live (Playwright, dev 5175)**: Canvas Input 32 · radius 8 · 글자 14, Button 32 · padding 16, Tag 32 / Preview desktop 같음 / 터치 보기 Input 40 · 글자 17 · 여백 15, Button 40 · padding 20, Tag 40 (TagGroup = TextField) / 끄면 원래 값 / Publish (`hasTouch` — `(hover: hover) and (pointer: fine)` false) Input 40 · 17 · 15, Button 40 · 20 · desktop Input 32 / Radius preset 메뉴 「M · 8」 → commit 8, 테마를 radius xl 로 바꾼 뒤 「M · 16」 → commit 16 (= 그 테마의 `{radius.md}`) / 콘솔 오류 0. **live 가 잡은 결함 2**: ② Publish (헤더 Preview — 빌더 번들의 `/publish`) 에 `builder-catalog-vars.css` 가 실려, resolver 가 내지 않는 빌더 전용 변수 119 개 (`--catalog-token-input-padding-x-*` · 아이콘 · gap …) 가 생성 시트의 S2 식 (fallback) 을 chrome 값으로 덮었다 (Input 여백 12 vs 15) → 선택자 `:root:not(:has(.publish-app))` · 게이트 (b2). ③ Publish reset 이 layer 밖에서 form control 에 `font: inherit` 를 줘 Input 행간이 body 1.5 (21 · 25.5) 가 됐다 (desktop 35 · 터치 43.5 — 295 전에도 31 vs 30) → Preview reset 처럼 `font-family` · `font-feature-settings` 만 상속 (`publishResetFormControls.static.test.ts`). Chrome MCP 확인: 같은 프로젝트에서 Design 패널 Input 18 · min-height auto, Compare Mode 겹침 화면에서 TextField · Select 가 경계 양쪽에 이어진다.
 
-**범위 밖 (기존)**: Select 트리거 테두리 Canvas 1 · DOM 0 (before arm 도 같다).
+**후속 (Implemented 뒤 남은 것 — 다음 작업의 입력)**:
+
+- 터치 × 1.25 미반영: S2 가 `scale` 로 키우는 sizing 숫자 (ColorSwatch · ProgressBar · Meter 막대 · Slider thumb · Tree 행 · StatusLight 점 · Slider 행) 가 터치 벌에서도 desktop 값이다.
+- Tab 글자 크기: Tabs → Tab 전파는 density (높이) 만 — 글자는 Tab 이 Tabs 크기를 따르지 않는다 (§6.11).
+- MenuTrigger 자체 Size 와 Menu size 가 따로 있다 — 한 축으로 합칠지 판정 필요 (§6.11 live).
+- Breadcrumbs · Table 칸 글자가 S2 `ui` 보다 한 단 위 — Table 은 행 높이를 맞춘 「의도적」 (§6.11 표), 글자 단계 차이는 남는다.
+- ListBox · GridList 안 Header: manual 규칙 (4) 이 덮는다 — S2 `listboxHeader` 정렬 (§6.11).
+- StatusLight 점 ↔ 글자 `text-to-visual`: Preview 에서 `ruleSizeLengthRef` 가 비어 폴백 8 — 길이 형 등록 공유 문제를 먼저 푼다 (§6.11).
+- 테마 전환 600 요소 ≈ 70 ms: 295 전부터 ADR-227 25 ms 상한 초과 — catalog runtime 전환 경로 별도 조사 (위 G5 테마 전환).
+- 토큰 모델 A (패널 입력기 + 노드 토큰 참조 저장): 다음 ADR (머리말).
+
+**범위 밖 (295 전부터)**: Select 트리거 테두리 Canvas 1 · DOM 0 (before arm 도 같다) · TagGroup 의 숨은 측정 사본 (`aria-hidden` TagList) 에서 Tag 높이 28, 보이는 Tag 는 32 (폭 같음 — 하니스는 `:not([aria-hidden])` 로 읽는다).
 
 **원복 RED**: 게이트 (c) 강화 → pins 전 24 자리 RED · (b2) → 선택자 `:root` 에서 RED · Publish reset 테스트 → `font: inherit` 에서 RED. **회귀**: type-check PASS · G2 desktop · touch 263/263 · publish 15 · 빌더 styles · preview 708 (실패 1 = `chromeIsland`, 기존).
 
-**G6**: `ssot-hierarchy.md` D3 (값 정본 = S2 설치본, 이름 = 저장소) · `css-tokens.md` (컨트롤 크기 2티어 = 빌더 chrome, 사용자 컴포넌트 크기와 무관) · `style-ssot.md` (토큰 preset 값 = 활성 테마 snapshot) 반영. ADR-227 Decision 3 절 각주 (기기 축 = 시스템 소유, 테마 축 무변경) 반영. 남은 것: `### Live Exercise` · README 대시보드 (Implemented 와 함께).
+**G6**: `ssot-hierarchy.md` D3 (값 정본 = S2 설치본, 이름 = 저장소) · `css-tokens.md` (컨트롤 크기 2티어 = 빌더 chrome, 사용자 컴포넌트 크기와 무관) · `style-ssot.md` (토큰 preset 값 = 활성 테마 snapshot) 반영. ADR-227 Decision 3 절 각주 (기기 축 = 시스템 소유, 테마 축 무변경) 반영. `### Live Exercise` · README 대시보드는 Implemented 커밋 (`ea1b91ef3`) 에서 반영.
 
 - G1 before/after: §6.1
 - G2 두 arm: §6.2 · Phase 3a §6.3 · Phase 3b §6.4
