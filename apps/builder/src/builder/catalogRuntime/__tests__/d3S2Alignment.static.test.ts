@@ -1324,3 +1324,56 @@ describe("ADR-295 후속 — Tab 글자 = S2 Tabs 루트 `font: 'ui'` (크기 �
       expect(FONT_NAME[String(block.fontSize).slice(12, -1)], size).toBe(font);
   });
 });
+
+describe("ADR-295 후속 — picker 팝오버 안 섹션 머리글 = S2 listboxHeader (사용자 결정 「팝오버 안만 S2」)", () => {
+  it("최소 높이 = picker 크기의 control 높이 · 위아래 centerPadding · 좌우 edgeToText · 글자 ui bold — 사용자 컴포넌트 목록만", () => {
+    const s2 = readFileSync(
+      resolve(
+        __dirname,
+        "../../../../node_modules/@react-spectrum/s2/src/ComboBox.tsx",
+      ),
+      "utf8",
+    );
+    expect(s2).toMatch(
+      /export let listboxHeader = style<[\s\S]*?minHeight: controlSize\(\),\s*paddingY: centerPadding\(\),\s*marginX: \{\s*size: \{\s*S: `\[\$\{edgeToText\(24\)\}\]`/,
+    );
+    const selectors = (
+      COMPONENT_RULES_TABLE as unknown as Record<
+        string,
+        {
+          structure: {
+            composition: {
+              rootSelectors: Record<
+                string,
+                {
+                  styles?: Record<string, string>;
+                  nested?: Record<string, Record<string, string>>;
+                }
+              >;
+            };
+          };
+        }
+      >
+    ).ListBox!.structure.composition.rootSelectors;
+    const block = selectors["&[data-catalog-id]:is(.react-aria-Popover *)"]!;
+    expect(block.styles?.["--lb-header-h"]).toBe(
+      "var(--catalog-token-size-height-M)",
+    );
+    const header = block.nested![".react-aria-Header"]!;
+    expect(header["min-height"]).toBe("var(--lb-header-h)");
+    expect(header.padding).toBe(
+      "calc((var(--lb-header-h) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) / 2) calc(var(--lb-header-h) * 3 / 8)",
+    );
+    expect([header["font-size"], header["font-weight"]]).toEqual([
+      "var(--catalog-token-text-sm)",
+      "700",
+    ]);
+    for (const size of ["XS", "S", "L", "XL"])
+      expect(
+        selectors[
+          `&[data-catalog-id][data-size="${size}"]:is(.react-aria-Popover *)`
+        ]?.styles?.["--lb-header-h"],
+        size,
+      ).toBe(`var(--catalog-token-size-height-${size})`);
+  });
+});

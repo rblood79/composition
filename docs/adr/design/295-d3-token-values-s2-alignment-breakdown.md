@@ -691,16 +691,14 @@ StatusLight 점 ↔ 글자를 S2 `text-to-visual` 형으로 바꿨다가 되돌�
 
 **후속 (Implemented 뒤 남은 것 — 다음 작업의 입력)**:
 
-- 터치 × 1.25 미반영: S2 가 `scale` 로 키우는 sizing 숫자 (ColorSwatch · ProgressBar · Meter 막대 · Slider thumb · Tree 행 · StatusLight 점 · Slider 행) 가 터치 벌에서도 desktop 값이다.
-- Tab 글자 크기: Tabs → Tab 전파는 density (높이) 만 — 글자는 Tab 이 Tabs 크기를 따르지 않는다 (§6.11).
-- MenuTrigger 자체 Size 와 Menu size 가 따로 있다 — 한 축으로 합칠지 판정 필요 (§6.11 live).
-- Breadcrumbs · Table 칸 글자가 S2 `ui` 보다 한 단 위 — Table 은 행 높이를 맞춘 「의도적」 (§6.11 표), 글자 단계 차이는 남는다.
-- ListBox · GridList 안 Header: manual 규칙 (4) 이 덮는다 — S2 `listboxHeader` 정렬 (§6.11).
-- StatusLight 점 ↔ 글자 `text-to-visual`: Preview 에서 `ruleSizeLengthRef` 가 비어 폴백 8 — 길이 형 등록 공유 문제를 먼저 푼다 (§6.11).
+- 터치 × 1.25 미반영: S2 가 `size()` 로 키우는 고정 sizing 숫자 (ColorSwatch · ProgressBar · Meter 막대 · Slider thumb · Slider 행 · Tree 행 · StatusLight 점 · ProgressCircle · ColorArea · Toast 최소 높이 · Table 행 · ColorThumb · Illustration · 막대 최대 폭 768) 가 터치 벌에서도 desktop 값이다. 소비 경로가 생성 CSS 리터럴 · DOM inline · 수동 시트 · `manualBoxRules` · Canvas part rule 로 갈려 공통 형 (`size(n)` — 기기 배율 길이) 이 먼저 필요하다.
+- picker 항목 크기: Select · ComboBox L 의 팝오버 ListBox 는 `data-size=L` 인데 항목은 M (32) — S2 `listboxItem` 은 picker 크기의 control 높이.
 - 테마 전환 600 요소 ≈ 70 ms: 295 전부터 ADR-227 25 ms 상한 초과 — catalog runtime 전환 경로 별도 조사 (위 G5 테마 전환).
 - 토큰 모델 A (패널 입력기 + 노드 토큰 참조 저장): 다음 ADR (머리말).
 
-**범위 밖 (295 전부터)**: Select 트리거 테두리 Canvas 1 · DOM 0 (before arm 도 같다) · TagGroup 의 숨은 측정 사본 (`aria-hidden` TagList) 에서 Tag 높이 28, 보이는 Tag 는 32 (폭 같음 — 하니스는 `:not([aria-hidden])` 로 읽는다).
+**후속 처리 (2026-10-31, `10d474d79` · `86f8ad24b` 와 이 커밋)**: Breadcrumbs · Table 칸 · 머리글 글자 = S2 `controlFont` · StatusLight 점 ↔ 글자 = S2 `text-to-visual` (원인은 원본 template 의 `gap: 8` 작성값 — 길이 형 읽기 문제가 아니었다) · Tab · Tabs 글자 = S2 루트 `ui` · 필드 버튼 테두리 = S2 없음 (Canvas 1 · DOM 0 은 DOM 의 identity 판정이 우연히 만든 0 이었다) · TagGroup 측정 사본 Tag 32 · 간격 8 · picker 팝오버 안 섹션 머리글 = S2 `listboxHeader` (사용자 결정 「팝오버 안만 S2」 — 독립 ListBox · GridList 는 10-13 RAC 레퍼런스 테마 유지).
+
+**의도적 (사용자 결정 2026-10-31)**: 팔레트 「Menu」 의 Size 하나가 트리거 Button · Popover · Menu 를 같이 바꾼다 (S2 는 MenuTrigger 에 size 가 없고 트리거와 Menu 가 각자 갖는다) — 안쪽 Menu 노드의 Size 는 덮어쓰기로 남는다.
 
 **원복 RED**: 게이트 (c) 강화 → pins 전 24 자리 RED · (b2) → 선택자 `:root` 에서 RED · Publish reset 테스트 → `font: inherit` 에서 RED. **회귀**: type-check PASS · G2 desktop · touch 263/263 · publish 15 · 빌더 styles · preview 708 (실패 1 = `chromeIsland`, 기존).
 

@@ -7215,6 +7215,40 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           //   fill and no selected fill. The manual `ListBox.css` popover rules now stay with the
           //   Builder's own pickers (`:not([data-catalog-id])`). DOM only — the Canvas draws no open
           //   picker.
+          // ADR-295 후속 (사용자 결정 2026-10-31 「팝오버 안만 S2」): a picker's section header in a
+          //   user component (`[data-catalog-id]` — the Builder's own pickers keep the block below,
+          //   Decision 8) is S2 `listboxHeader` (`ComboBox.tsx` — Picker · ComboBox): minimum height
+          //   the picker size's control height (the list's `data-size`), `centerPadding()` above and
+          //   below, `edgeToText` (height × 3/8) at the sides, S2 `sectionHeading` text (ui bold),
+          //   no surface or lines.
+          "&[data-catalog-id]:is(.react-aria-Popover *)": {
+            styles: { "--lb-header-h": "var(--catalog-token-size-height-M)" },
+            nested: {
+              ".react-aria-Header": {
+                "box-sizing": "border-box",
+                "min-height": "var(--lb-header-h)",
+                padding:
+                  "calc((var(--lb-header-h) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) / 2) calc(var(--lb-header-h) * 3 / 8)",
+                "font-size": "var(--catalog-token-text-sm)",
+                "line-height": "var(--catalog-token-text-sm--line-height)",
+                "font-weight": "700",
+                background: "transparent",
+                "border-block": "0",
+              },
+            },
+          },
+          '&[data-catalog-id][data-size="XS"]:is(.react-aria-Popover *)': {
+            styles: { "--lb-header-h": "var(--catalog-token-size-height-XS)" },
+          },
+          '&[data-catalog-id][data-size="S"]:is(.react-aria-Popover *)': {
+            styles: { "--lb-header-h": "var(--catalog-token-size-height-S)" },
+          },
+          '&[data-catalog-id][data-size="L"]:is(.react-aria-Popover *)': {
+            styles: { "--lb-header-h": "var(--catalog-token-size-height-L)" },
+          },
+          '&[data-catalog-id][data-size="XL"]:is(.react-aria-Popover *)': {
+            styles: { "--lb-header-h": "var(--catalog-token-size-height-XL)" },
+          },
           "&:is(.react-aria-Popover *)[data-empty]": {
             styles: {
               "min-height": "var(--spacing-2xl)",
