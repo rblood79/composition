@@ -74,6 +74,9 @@ import { useDataStore } from "../../../stores/data";
 import { DotBackground } from "../../components/DotBackground";
 import { RulerOverlay } from "../../components/RulerOverlay";
 import { CatalogGuideRulerLabel } from "./CatalogGuideRulerLabel";
+import { CatalogSelectionRuler } from "./CatalogSelectionRuler";
+import { catalogRulerOrigin } from "./catalogRulerOrigin";
+import { calculateCombinedBounds, type BoundingBox } from "../selection/types";
 import { WorkspaceStatusIndicator } from "../../components/WorkspaceStatusIndicator";
 import { CanvasScrollbar } from "../../scrollbar";
 import { publishCanvasFramePresentation } from "../canvasFramePresentation";
@@ -143,7 +146,7 @@ import {
   type CatalogDragPlacement,
   createOverlayChromeCache,
 } from "./catalogOverlayChrome";
-import { catalogOverlayNode } from "./catalogOverlay";
+import { catalogOverlayNode, catalogSelectionBox } from "./catalogOverlay";
 import { catalogScrollbarContent } from "./catalogScrollbarContent";
 import { CatalogSpacingInput } from "./CatalogSpacingInput";
 import { CatalogTextEditor } from "./CatalogTextEditor";
@@ -300,6 +303,14 @@ export function CatalogCanvas({
     [],
   );
   const readGestureActive = useCallback(() => gestureActiveRef.current(), []);
+  const selectionBoxRef = useRef<() => BoundingBox | null>(() => null);
+  const readSelectionBox = useCallback(() => selectionBoxRef.current(), []);
+  const readRulerOrigin = useCallback(() => {
+    return catalogRulerOrigin(
+      workspace.session.getSnapshot(),
+      workspace.root.pageFrameRects(),
+    );
+  }, [workspace]);
   const readBounds = useCallback(
     (identity: string) => viewState.boundsOf(identity),
     [viewState],
@@ -561,6 +572,16 @@ export function CatalogCanvas({
       return gridTracksCache.get(identity);
     };
     gestureActiveRef.current = () => gestures.active;
+    selectionBoxRef.current = () => {
+      const state = workspace.session.getSnapshot();
+      if (!state.selection.length) return null;
+      const preview = gestures.preview();
+      const ghosts = [...(preview?.ghosts ?? [])];
+      if (preview?.ghost) ghosts.push(preview.ghost);
+      return ghosts.length
+        ? calculateCombinedBounds(ghosts)
+        : catalogSelectionBox(state, scene.stream.boundsMap);
+    };
     const overlay = catalogOverlayNode(ck, {
       session: workspace.session.getSnapshot,
       bounds: () => scene.stream.boundsMap,
@@ -1833,6 +1854,7 @@ export function CatalogCanvas({
       cancelPanAnimation();
       setEditingElementId(null);
       sceneRef.current = undefined;
+      selectionBoxRef.current = () => null;
       unsubscribeSession();
       unsubscribeSteps();
       unsubscribePreviews();
@@ -1950,6 +1972,7 @@ export function CatalogCanvas({
       />
       <CatalogDefinitionBar workspace={workspace} />
       <RulerOverlay
+        readOrigin={readRulerOrigin}
         onStartGuideCreate={(axis, pointerId, clientX, clientY) =>
           guidesRef.current?.startCreate(axis, pointerId, clientX, clientY)
         }
@@ -1969,6 +1992,10 @@ export function CatalogCanvas({
             items,
           });
         }}
+      />
+      <CatalogSelectionRuler
+        selectionBox={readSelectionBox}
+        readOrigin={readRulerOrigin}
       />
       <CatalogGuideRulerLabel workspace={workspace} />
       <ContextMenuOverlay

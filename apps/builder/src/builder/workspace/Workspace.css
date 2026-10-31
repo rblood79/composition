@@ -32,6 +32,11 @@
 }
 
 .canvas-container {
+  --canvas-selection-tint: color-mix(
+    in srgb,
+    var(--focus-ring) 12%,
+    transparent
+  );
   position: absolute;
   inset: 0;
   outline: none;
@@ -210,6 +215,85 @@
   z-index: 4;
   overflow: hidden;
   pointer-events: none;
+}
+
+/* 선택 범위는 눈금자 안에만 표시하며 기존 눈금자 드래그 입력을 통과시킨다. */
+.ruler-selection-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.ruler-selection-strip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: clip;
+  clip-path: inset(0 0 0 var(--ruler-size, 20px));
+}
+
+.ruler-selection-strip[data-axis="x"] {
+  width: 100%;
+  height: var(--ruler-size, 20px);
+}
+
+.ruler-selection-strip[data-axis="y"] {
+  width: var(--ruler-size, 20px);
+  height: 100%;
+  clip-path: inset(var(--ruler-size, 20px) 0 0 0);
+}
+
+.ruler-selection-range {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--canvas-selection-tint);
+}
+
+.ruler-selection-range::before,
+.ruler-selection-range::after {
+  content: "";
+  position: absolute;
+  background: var(--focus-ring-strong);
+}
+
+.ruler-selection-strip[data-axis="x"] .ruler-selection-range::before,
+.ruler-selection-strip[data-axis="x"] .ruler-selection-range::after {
+  top: 0;
+  width: 1px;
+  height: 100%;
+}
+
+.ruler-selection-strip[data-axis="x"] .ruler-selection-range::before {
+  left: 0;
+}
+
+.ruler-selection-strip[data-axis="x"] .ruler-selection-range::after {
+  right: 0;
+}
+
+.ruler-selection-strip[data-axis="y"] .ruler-selection-range::before,
+.ruler-selection-strip[data-axis="y"] .ruler-selection-range::after {
+  left: 0;
+  width: 100%;
+  height: 1px;
+}
+
+.ruler-selection-strip[data-axis="y"] .ruler-selection-range::before {
+  top: 0;
+}
+
+.ruler-selection-strip[data-axis="y"] .ruler-selection-range::after {
+  bottom: 0;
+}
+
+.ruler-selection-value {
+  color: var(--focus-ring-strong);
+  background: var(--bg-overlay);
+  box-shadow: 0 0 0 2px var(--bg-overlay);
 }
 
 .ruler-guide-line {

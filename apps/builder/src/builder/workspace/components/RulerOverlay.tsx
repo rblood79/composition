@@ -22,6 +22,7 @@
 import { useEffect, useRef } from "react";
 
 import { useBuilderUiStore } from "../../stores/builderUiStore";
+import { subscribeCanvasFramePresentation } from "../canvas/canvasFramePresentation";
 import {
   getViewportPresentationSnapshot,
   subscribeViewportPresentation,
@@ -95,6 +96,8 @@ function syncLabels(
 }
 
 export interface RulerOverlayProps {
+  /** 선택한 페이지의 scene 좌상단. 선택이 없으면 Canvas 화면 중앙을 사용한다. */
+  readOrigin?: () => { x: number; y: number } | null;
   onOpenRulerMenu?: (
     strip: "horizontal" | "vertical",
     clientX: number,
@@ -116,6 +119,7 @@ export interface RulerOverlayProps {
 }
 
 export function RulerOverlay({
+  readOrigin,
   onStartGuideCreate,
   onOpenRulerMenu,
 }: RulerOverlayProps = {}) {
@@ -147,16 +151,21 @@ export function RulerOverlay({
     const strips = [hStrip, vStrip];
     // 고정 크기는 표시할 때 한 번만 설정한다. 위치는 CSS의 캔버스 원점이다.
     root.style.setProperty("--ruler-size", `${RULER_SIZE_PX}px`);
+    let pageOrigin = readOrigin?.() ?? null;
 
     const apply = () => {
       const { x, y, scale } = getViewportPresentationSnapshot();
       const { width, height } = sizeRef.current;
 
       // 가로 자: 스트립 로컬 원점 = 캔버스 좌단
-      const xAxis = { pan: x, zoom: scale, origin: 0 };
+      const xAxis = {
+        pan: pageOrigin ? x + pageOrigin.x * scale : width / 2,
+        zoom: scale,
+        origin: 0,
+      };
       // 세로 자: 코너 아래에서 시작 — 원점이 스트립 두께만큼 내려간다
       const yAxis = {
-        pan: y,
+        pan: pageOrigin ? y + pageOrigin.y * scale : height / 2,
         zoom: scale,
         origin: RULER_SIZE_PX,
       };
@@ -209,9 +218,16 @@ export function RulerOverlay({
 
     apply();
     const unsubscribe = subscribeViewportPresentation(apply);
+    const unsubscribeFrame = subscribeCanvasFramePresentation(() => {
+      const next = readOrigin?.() ?? null;
+      if (next?.x === pageOrigin?.x && next?.y === pageOrigin?.y) return;
+      pageOrigin = next;
+      apply();
+    });
 
     return () => {
       unsubscribe();
+      unsubscribeFrame();
       sizeObserver.disconnect();
       if (willChangeTimerRef.current !== null) {
         clearTimeout(willChangeTimerRef.current);
@@ -223,7 +239,7 @@ export function RulerOverlay({
         pool.length = 0;
       }
     };
-  }, [showRulers]);
+  }, [readOrigin, showRulers]);
 
   if (!showRulers) return null;
 
