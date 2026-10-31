@@ -1,1 +1,0 @@
-export{t as VariableTable}from"./VariableTable-BY0YOWjr.js";
