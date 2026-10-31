@@ -2486,7 +2486,14 @@ const statusLight: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
   const dotSize = size.indicator?.dotSize ?? 10;
   const dotRadius = dotSize / 2;
   const gap = typeof size.gap === "number" ? size.gap : 8;
-  const h = typeof size.height === "number" ? size.height : 24;
+  // (The row is its text line — S2 sets no height (ADR-295 후속 B3): the laid-out box.)
+  const laidOut = Number((props as Record<string, unknown>)._containerHeight);
+  const h =
+    laidOut > 0
+      ? laidOut
+      : typeof size.height === "number" && size.height > 0
+        ? size.height
+        : 24;
   const centerY = h / 2;
 
   const dotColor =

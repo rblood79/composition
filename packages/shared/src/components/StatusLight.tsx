@@ -80,6 +80,13 @@ export function StatusLight({
     typeof ruleFont === "string"
       ? withCatalogTokenVars(tokenToCSSVar(ruleFont as Parameters<typeof tokenToCSSVar>[0]))
       : undefined;
+  // 행 = 글자 한 줄 (S2 wrapper `font: controlFont()` — 높이 지정 없음, ADR-295 후속 B3): rule `lineHeight` 토큰의 DOM 변수.
+  const ruleLine =
+    rule?.sizes?.[sizeKey]?.lineHeight ?? rule?.sizes?.M?.lineHeight;
+  const lineHeight =
+    typeof ruleLine === "string"
+      ? withCatalogTokenVars(tokenToCSSVar(ruleLine as Parameters<typeof tokenToCSSVar>[0]))
+      : undefined;
   // dot 지름 = rule sizes[size].indicator.dotSize (Skia · Canvas 폭 계산과 같은 source).
   //   S2 `light` 의 `size` (rem × `--s2-scale`) — rule 의 `scaled(n)` 이라 기기 식으로 (터치 × 1.25, ADR-295 후속).
   const indicator = rule?.sizes?.[sizeKey]?.indicator;
@@ -92,9 +99,7 @@ export function StatusLight({
   const fillBase = rule?.variants?.[variant]?.fill?.default?.base;
   const dotColor = colorTokenToCss(fillBase);
 
-  // ADR-151 B9 (2026-07-16): catalog sizes[size].height(고정 높이 — md 24) read-through.
-  //   미주입 시 텍스트 상속 line-height(1.5)로 DOM 21px vs Skia(catalog 24) 발산.
-  //   fontSize/dotColor 와 동일한 catalog 런타임 직독 패턴.
+  // catalog sizes[size].height read-through (0 = 글자 줄 — S2, ADR-295 후속 B3. 전 ADR-151 B9 의 고정 높이).
   // 점 ↔ 글자 = rule `sizes[size].gap` — S2 `text-to-visual` 형 (6/14 em, 터치 8/17 em). 그 식을 기기 변수로
   //   (Canvas 는 같은 rule 값의 desktop 숫자 — ADR-295 후속).
   const gapBlock = rule?.sizes?.[sizeKey] ?? rule?.sizes?.M;
@@ -132,7 +137,7 @@ export function StatusLight({
         }}
       />
       {children != null && children !== "" && (
-        <span style={{ fontSize }}>{children}</span>
+        <span style={{ fontSize, lineHeight }}>{children}</span>
       )}
     </div>
   );

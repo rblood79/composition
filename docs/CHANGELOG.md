@@ -37,6 +37,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Toast 최대 폭 336 (S2 `--maxWidth`, `scaled`). S2 의 `min(…, 90vw)` 쪽은 Canvas 에 viewport 축이 없어 싣지 않았다.
   - 위치: `componentRulesTable.ts` (Column · Cell 주석 · Toast) · `presence.ts` (`catalogTreeChevronBox` · `catalogTreeChevronLevel`) · `domBinding.runtime.ts` (`treeChevronSheetBox`) · `Tree.css` (펼침 열 · 끌어 놓기 표시 위치 46).
   - 검증: G4 (Tree 펼침 열 · Toast 최대 폭 · 머리글 = S2 `DEFAULT_HEADER_HEIGHT`) · 원복 RED 8 · G2 desktop · touch 263/263 · live 5175 (펼침 열 desktop 40 · 터치 50, 머리글 Canvas 32 · DOM 32 · 터치 40, 콘솔 0).
+- **StatusLight 행 높이가 터치에서 글자 줄과 어긋나던 것 (3차)**: S2 StatusLight 는 높이를 두지 않고 `font: controlFont()` 한 줄이 행을 정한다. rule 의 desktop 행간 리터럴 16 · 18 · 20 · 22 를 지우고 (height 0) controlFont 행간 토큰을 넣었다 — 터치 보기에서 행 18 → 22 (M). **Why**: 높이가 숫자로 박혀 터치 행간 (22) 과 갈렸고, 행간 토큰이 없어 높이를 풀면 Canvas 는 글자 높이 (17) · DOM 은 상속 1.5 배 (21) 로 다시 갈렸다. Canvas 점은 배치된 상자 높이의 가운데 (`_containerHeight`), DOM 라벨은 같은 토큰의 변수.
+  - ProgressBar · Meter 최소 폭은 이미 S2 (`{size.bar.min-width}` 48 · 터치 60) 라 그대로. 「기본 폭 208」 은 S2 소스에 없다.
+  - 위치: `componentRulesTable.ts` (StatusLight) · `StatusLight.tsx` · `skiaPrimitives.ts` (`status_light`) · `ruleShapes.ts` (`BOX_SIZE_TYPES`).
+  - 검증: G4 (height 0 · 행간 토큰 = S2 controlFont 행간) · 원복 RED (rule → 1 FAIL · DOM 행간 없이 → G2 StatusLight 4 × 2 FAIL) · G2 desktop · touch 263/263 · live 5175 (Canvas 18 · DOM desktop 18 · 터치 22, 콘솔 0).
 
 ## [ADR-295 후속 — S2 고정 치수의 터치 배율 (`scaled`)] - 2026-10-31
 

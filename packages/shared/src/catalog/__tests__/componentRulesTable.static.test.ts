@@ -244,12 +244,6 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     "S2 Menu sectionHeader 좌우 `edgeToText` 9 · 12 · 15 (rem — 터치에서 그대로, M 12 는 spacing 단)",
   ),
   sizes(
-    "StatusLight",
-    "height",
-    { S: 16, M: 18, L: 20, XL: 22 },
-    "S2 StatusLight 행 = controlFont 한 줄 행간 (`StatusLight.tsx` — 높이 지정 없음) · 터치 × 1.25 는 다루지 않음",
-  ),
-  sizes(
     "Cell",
     "paddingY",
     {

@@ -982,7 +982,9 @@ describe("ADR-295 G4 — 3c-3c ②b-2 ColorArea · StatusLight · Tag 간격", (
       expect((block.indicator as { dotSize: number }).dotSize, size).toBe(
         dots[size],
       );
-      expect(block.height, size).toBe(
+      // (행 = 글자 한 줄 — S2 는 높이를 두지 않는다: height 0 + controlFont 행간 토큰, ADR-295 후속 B3.)
+      expect(block.height, size).toBe(0);
+      expect(resolveToken(block.lineHeight as TokenRef), size).toBe(
         s2LineHeight(s2FontSize({ S: -1, M: 0, L: 1, XL: 2 }[size]!)),
       );
       // (ADR-295 후속: S2 `text-to-visual` = 6/14 em, 터치 8/17 em — Button 아이콘 간격과 같은 형.)

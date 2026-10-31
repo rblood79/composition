@@ -11275,34 +11275,38 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     // `indicator.dotSize`: the dot diameter (DOM inline style · Skia `status_light` · the Canvas
     //   content width) — not emitted to CSS.
-    // S2 StatusLight (`StatusLight.tsx`, ADR-295 Phase 3c-3c): 행 = controlFont 한 줄 (행간 16 · 18 · 20 · 22 — 높이 지정
-    //   없음) · 점 8 · 10 · 12 · 14 · 점 ↔ 글자 = S2 wrapper `gap: 'text-to-visual'` (6/14 em, 터치 8/17 em — ADR-295 후속).
+    // S2 StatusLight (`StatusLight.tsx`, ADR-295 Phase 3c-3c): 행 = controlFont 한 줄 — 높이 지정 없음 (height 0 =
+    //   글자 줄이 정한다 — 터치 행간도 따라간다, ADR-295 후속 B3. 전에는 desktop 행간 16 · 18 · 20 · 22 리터럴) · 점 8 · 10 · 12 · 14 · 점 ↔ 글자 = S2 wrapper `gap: 'text-to-visual'` (6/14 em, 터치 8/17 em — ADR-295 후속).
     sizes: {
       S: {
         fontSize: "{typography.text-xs}",
+        lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.none}",
-        height: 16,
+        height: 0,
         gap: em(6, 14, [8, 17]),
         indicator: { dotSize: scaled(8) },
       },
       M: {
         fontSize: "{typography.text-sm}",
+        lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.none}",
-        height: 18,
+        height: 0,
         gap: em(6, 14, [8, 17]),
         indicator: { dotSize: scaled(10) },
       },
       L: {
         fontSize: "{typography.text-base}",
+        lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.none}",
-        height: 20,
+        height: 0,
         gap: em(6, 14, [8, 17]),
         indicator: { dotSize: scaled(12) },
       },
       XL: {
         fontSize: "{typography.text-lg}",
+        lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.none}",
-        height: 22,
+        height: 0,
         gap: em(6, 14, [8, 17]),
         indicator: { dotSize: scaled(14) },
       },

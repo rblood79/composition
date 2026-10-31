@@ -22,10 +22,11 @@
   border: none;
 
   /* Default size */
-  height: 18px;
+  height: auto;
   padding: 0px 0px;
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-sm--line-height);
   gap: var(--catalog-token-status-light-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
 }
 
@@ -277,34 +278,38 @@
 }
 
 .react-aria-StatusLight[data-size="S"] {
-  height: 16px;
+  height: auto;
   padding: 0px 0px;
   font-size: var(--catalog-token-text-xs);
   border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-xs--line-height);
   gap: var(--catalog-token-status-light-gap-S, calc(var(--catalog-token-text-xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
 }
 
 .react-aria-StatusLight[data-size="M"] {
-  height: 18px;
+  height: auto;
   padding: 0px 0px;
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-sm--line-height);
   gap: var(--catalog-token-status-light-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
 }
 
 .react-aria-StatusLight[data-size="L"] {
-  height: 20px;
+  height: auto;
   padding: 0px 0px;
   font-size: var(--catalog-token-text-base);
   border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-base--line-height);
   gap: var(--catalog-token-status-light-gap-L, calc(var(--catalog-token-text-base) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
 }
 
 .react-aria-StatusLight[data-size="XL"] {
-  height: 22px;
+  height: auto;
   padding: 0px 0px;
   font-size: var(--catalog-token-text-lg);
   border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-lg--line-height);
   gap: var(--catalog-token-status-light-gap-XL, calc(var(--catalog-token-text-lg) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
 }
 
