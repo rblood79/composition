@@ -1252,7 +1252,7 @@ describe("ADR-295 후속 — 글자 단계 = S2 controlFont (Breadcrumbs · Tabl
     expect(column.densities).toBeUndefined();
     expect(
       (resolveToken(column.sizes.M!.lineHeight as TokenRef) as number) +
-        2 * column.sizes.M!.paddingY! +
+        2 * Number(column.sizes.M!.paddingY) +
         1,
     ).toBe(header);
     expect(ruleSizeLengthRef(column.sizes.M!, "minHeight")).toBe(
