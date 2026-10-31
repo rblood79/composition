@@ -56,7 +56,8 @@ import { catalogBindingCommand } from "./dataBindingCommand";
 const COLLECTION = "data:collection:";
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
 /** A sort variable's direction line (`let <v>Dir = <v>?.direction === 'descending' ? -1 : 1;`). */
-const DIR = /^let ([\w$]+) = ([\w$]+)\?\.direction === 'descending' \? -1 : 1;$/;
+const DIR =
+  /^let ([\w$]+) = ([\w$]+)\?\.direction === 'descending' \? -1 : 1;$/;
 
 type Reason = "outsideVocabulary" | "unknownReference" | "notInCode";
 
@@ -181,7 +182,8 @@ class ViewPlanner {
       const unchanged = this.baselineOwners.has(
         codeViewNormalized(statement.code),
       );
-      const spec = this.groupedOf(statement, groups, statements, unchanged) ??
+      const spec =
+        this.groupedOf(statement, groups, statements, unchanged) ??
         this.specOf(statement, unchanged);
       if (spec) this.specs.set(spec.name, spec);
     }
@@ -481,7 +483,12 @@ class ViewPlanner {
     const groupName = m[2] ?? m[6]!;
     const group = groups.get(groupName);
     const rowsStatement = group ? statements.get(group.rows) : undefined;
-    if (!group || !rowsStatement || group.key !== m[8] || (m[4] && m[4] !== group.key)) {
+    if (
+      !group ||
+      !rowsStatement ||
+      group.key !== m[8] ||
+      (m[4] && m[4] !== group.key)
+    ) {
       this.input.reject(statement.from, "outsideVocabulary", statement.name);
       return undefined;
     }
@@ -555,7 +562,9 @@ class ViewPlanner {
       // (An `applied` count names no source: as the baseline wrote it, its view's source.)
       let at = sourceOf(source ?? "");
       if (!at && unchanged) {
-        const owner = this.baselineOwners.get(codeViewNormalized(statement.code));
+        const owner = this.baselineOwners.get(
+          codeViewNormalized(statement.code),
+        );
         const view =
           owner && "viewId" in owner
             ? (this.reader.getEntry(owner.viewId) as ViewEntry | undefined)
@@ -895,9 +904,8 @@ class ViewPlanner {
     const read = termOf(text, { symbols }, collectionId);
     if (!read) return undefined;
     // (`startsWithVariant` — a `useFilter` of another sensitivity than `base`.)
-    const sensitivity = /\b(?:contains|startsWith|endsWith)([A-Z][a-z]+)\(/.exec(
-      text,
-    )?.[1];
+    const sensitivity =
+      /\b(?:contains|startsWith|endsWith)([A-Z][a-z]+)\(/.exec(text)?.[1];
     return {
       id: `code-${this.input.newId("node").slice(-8)}`,
       ...read,
@@ -965,7 +973,8 @@ class ViewPlanner {
         (/url\.searchParams/.test(line) ||
           (/^if \([\w$]+\) \{$/.test(line) &&
             /url\.searchParams\.set/.test(all[index + 1] ?? "")) ||
-          (line === "}" && /url\.searchParams\.set/.test(all[index - 1] ?? ""))),
+          (line === "}" &&
+            /url\.searchParams\.set/.test(all[index - 1] ?? ""))),
     );
     const fail = (line: string) => {
       this.input.reject(

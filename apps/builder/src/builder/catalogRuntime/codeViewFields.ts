@@ -78,9 +78,7 @@ export function planCodeViewFields(input: CodeViewFieldsInput): void {
     }
     const block = value as Record<string, unknown>;
     const computedKeys = new Set(
-      entry.schema
-        .filter(hasFormula)
-        .map((field) => field.key),
+      entry.schema.filter(hasFormula).map((field) => field.key),
     );
     for (const key of Object.keys(block))
       if (!computedKeys.has(key))

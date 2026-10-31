@@ -65,12 +65,14 @@
     "[x] (사용자 /fix 2026-10-24) code-review 5·7: Preview endpoint 찾기 id 우선 (endpointFilling) · endpointWithTarget id 전달 · 끊긴 연결은 대상 없음 · store 한 번 읽기 — fd7b81dfb push. 남은 것: previewBuilderAuthoringImport.static 실패 (HEAD c3be6f5b8 compositionRoot → commands/components)",
     "[x] (사용자 2026-10-24) previewBuilderAuthoringImport.static 수리: componentOriginOf → document/componentOrigin.ts (commands/components 는 재수출) · 11/11 · 1e5e7711c push. HEAD 부터 실패 19건 (shared 13: g0DescendantRoutes 8 · codeCatalogLibrary 2 · propSectionConsistency · fieldSource · positions / builder 6: treeItemChevronNode 4 · adr256Followups · phase3Presence) — 이번 변경과 무관, 미조사",
     "[x] (사용자 2026-10-24) HEAD 부터 실패하던 테스트 23 정리 + 제품 결함 3 (Tree 자동 체크박스 비대칭 · State 이름표 i18n · body 높이 기본값) — ce44113f2 push. shared 1727 · builder 6412 전부 PASS",
-    "[x] (사용자 2026-10-24 「레퍼런스에 나온대로」) State 절 상태 이름표 8 = RAC prop 이름 · 「항목 key」 통일 — 71de2aacb push"
+    "[x] (사용자 2026-10-24 「레퍼런스에 나온대로」) State 절 상태 이름표 8 = RAC prop 이름 · 「항목 key」 통일 — 71de2aacb push",
+    "[x] 295 후속 C8 토스트 action 버튼 = S2 (17b79e9c6, live 5175 PASS)",
+    "[x] 295 후속 C9 Toast 컴포넌트 패널 노출 (ab5dcbbb6, live 5175 PASS) = S2 모양 (아이콘 · 닫기 = Toast 가 그림, 글자 · action Button = 자식 노드)"
   ],
   "guard": "제품 코드 변경 없음 (원인 확정 전) · 다른 세션 dirty 변경 보존 · 사용자 5173 서버 건드리지 않음 (하니스는 5175)",
   "stop": "type-check 실패 커밋 금지",
   "tip": "증거 .agent/runs/2026-10-21-canvas-perf-regression/lever{1,2,3,4}/README.md · 스크립트 scratchpad/lever{1-select,2-pan,2a-live,3-load,3-refresh,3a-live,4-connect,4-steps}.mjs (인자 cms-doc-dump.json data-dump.json 필수 · SERVE_DIST 로 production · ARMS=1,4)",
-  "updatedAt": "2026-10-30T06:35:28.293585+00:00",
+  "updatedAt": "2026-10-31T13:33:37.913657+00:00",
   "componentEmptyDoubleClick": {
     "task": "Body 선택 후 컴포넌트 빈 영역 더블클릭 선택 수리",
     "phase": "verified",
@@ -1178,5 +1180,462 @@
     },
     "unverified": "제안 제품 구현·실제 브라우저/전체 CSS cascade·문서 영향·성능·번들",
     "updatedAt": "2026-10-30T04:16:18.294546+00:00"
+  },
+  "selectionGhostAnalysis": {
+    "status": "fix-verified",
+    "scope": "사용자 수정 요청 반영",
+    "evidenceDirectory": ".agent/runs/2026-10-30-selection-ghost-analysis",
+    "finding": "device pixel outward alignment + hard clip + expanded contributor query",
+    "validation": {
+      "regression": "3 files / 31 PASS; prior source 16 RED",
+      "typecheck": "6 packages PASS; baseline 0",
+      "guard": "PASS",
+      "format": "4 owned files PASS",
+      "live": "사용자 직접 발생 문제 해결 확인; native Chrome dark 301% 관찰",
+      "preflight": "동시 작업으로 README 범위별 검증 적용"
+    },
+    "commit": "e6167eb9a13f4442cbaee2643a899e28437d3528",
+    "remote": "origin/main ls-remote 일치 확인"
+  },
+  "selectionGhostPerformance": {
+    "status": "analysis-complete",
+    "scope": "성능 영향 분석; 제품 코드 추가 변경 없음",
+    "evidenceDirectory": ".agent/runs/2026-10-30-selection-ghost-analysis",
+    "result": "CPU CanvasKit paired 12 batches x150: 4 scenarios all lower median/p95; no extra optimization justified",
+    "limitation": "Browser GPU/end-to-end and dense-scene contributor costs UNVERIFIED"
+  },
+  "reviewAdr296": {
+    "task": "ADR-296 기존 h1 잔여 설계 수리 확인",
+    "phase": "repair_review_recorded",
+    "status": "design_review_complete_high_0_pending_0",
+    "scope": "기존 Round 2 h1 경로 반례만 확인; 제품 코드 및 ADR 상태 승격 없음",
+    "head": "99d6e460e",
+    "findings": [
+      "h1 fixed: 중첩 instance 경로 키 및 CSS 위치 경로로 L/R 분리; G4 격리 반례 반영",
+      "h2/h3 fixed 유지"
+    ],
+    "verification": "문서와 현재 InstanceAddress/Preview 소비 계약 정적 대조; 기존 테스트 재실행 없음; ADR-296 구현과 G0~G6 UNVERIFIED",
+    "reviewLog": "docs/adr/reviews/296.md"
+  },
+  "spectrumHubResearch": {
+    "status": "public_corpus_collected_concept_analysis_recorded",
+    "scope": "Spectrum 전체 공통 개념과 그 관계. 기존 로컬 컴포넌트의 신규 도입/재구현 요청 아님.",
+    "evidenceDirectory": ".agent/runs/2026-10-30-spectrum-research",
+    "coverage": {
+      "markdown": 640,
+      "apiJson": 77
+    },
+    "sourceCorrection": {
+      "local_project": "컴포넌트 구현. 이번 조사에서 코드 정합성 판정하지 않음.",
+      "design_data": "컴포넌트 문서가 documentBlocks에 구조화됨. 공식 component JSON과 document-block spec에서 확인. 이 세션에는 design-data MCP 도구가 노출되지 않아 MCP 직접 호출은 하지 못함.",
+      "hub": "문서 표시 계층. 현재 .md에서 fragments/components와 deps/rsp 또는 deps/swc 참조 확인. 사용자가 설명한 design-data→Hub 생성 연계의 빌드 파이프라인은 직접 검증하지 않음.",
+      "duplication": "Hub component fragment 수를 독립적인 디자인 개념 수로 해석하지 않음."
+    },
+    "unverified": "수집/목차 추출과 모든 문장·이미지·API의 개별 검증은 구분. 이미지 전체 시각검사, playground 전수 실행, MCP 직접 응답 검증 미수행."
+  },
+  "canvasBorderBoxInspection": {
+    "status": "analysis-complete",
+    "scope": "Canvas Skia Rust border-box 계산 지원 확인; 제품 코드 변경 없음",
+    "finding": "styleOf가 width/height/padding/border를 전달하고 Rust spec_to_content가 border-box 기준으로 내부 공간 계산. boxSizing 전환 필드 없음.",
+    "validation": "cargo test --manifest-path packages/engine/Cargo.toml border_box -- --nocapture: unit 12 + golden 1 PASS",
+    "unverified": "현재 브라우저에 로드된 WASM과 실제 Canvas 화면"
+  },
+  "rulerInsetInspection": {
+    "status": "committed-and-pushed",
+    "scope": "눈금자 원점 (0,0), inset 측정/구독 제거, 고정 크기 1회 대입",
+    "validation": {
+      "unit": "3 files / 32 PASS",
+      "regressionRed": "HEAD 원본을 별도 임시 모듈로 실행: 고정 스타일 6회 재대입으로 FAIL; 현재 구현 0회 PASS",
+      "typecheck": "6 packages PASS; baseline 0",
+      "format": "owned 5 files PASS",
+      "guard": "PASS",
+      "diffCheck": "PASS",
+      "live": "Native Chrome localhost:5173: 메뉴 Toggle Rulers ON, 상단/좌측 가장자리 표시, 수직 스크롤로 라벨 100..700 -> 850..1450 변경 및 스트립 위치 고정 확인, 역방향 스크롤로 원래 화면 복원",
+      "preflight": "다른 세션 dirty 파일이 있어 .agents/README.md 범위별 검증 적용"
+    },
+    "unverified": "브라우저 Layout/Paint 비용과 FPS 수치 미계측. DOM 브라우저 연결 미제공으로 native UI 시각 검증 사용. console/CPU throttle 미계측.",
+    "updatedAt": "2026-10-30T16:19:24.267156+00:00",
+    "commit": "cc787595c1146e787362adf54b0d224b11fcddc9",
+    "remote": "origin/main ls-remote 일치 확인"
+  },
+  "guideInteractionRepair": {
+    "status": "implemented",
+    "scope": "활성 페이지 안내선 연장/재이동/삭제 메뉴/눈금자 드래그 범위/선택 안내선 수치 표시",
+    "decisions": [
+      "삭제 범위는 메뉴를 연 활성 페이지/current breakpoint에 고정",
+      "상단 눈금자 x(세로) 삭제, 왼쪽 y(가로) 삭제; 생성 축은 기존 동작 유지"
+    ],
+    "verification": {
+      "vitest": "6 files, 39 tests PASS",
+      "typecheck": "6 tasks PASS; baseline 0",
+      "guard": "PASS",
+      "diffCheck": "PASS",
+      "format": "변경 소유 15 files PASS. CatalogCanvas.tsx/en-US.ts/ko-KR.ts의 기존 포맷 차이 2/2/1건은 HEAD와 동일함을 비교 확인. 새 hunk 포맷 차이 없음.",
+      "red": "HEAD 원본 catalogGuides 임시 모듈로 x/y 재이동 테스트 각각 실패: 점선 hover 결과 undefined, 기대 col-resize/row-resize. 현재 두 축 PASS."
+    },
+    "liveEvidence": ".agent/runs/2026-10-31-guide-interactions/verification.json",
+    "liveUnverified": [
+      "마지막 추가 수치 표시의 실화면: cua 연결 30초 및 10초 timeout으로 확인 불가",
+      "여러 페이지 전환 실화면: 실제 workspace 기반 인접 테스트로 검증",
+      "실제 OS 커서 모양의 최종 계측: hover 반환값과 실제 재드래그 검증은 완료"
+    ],
+    "git": "63ecb9b9e24055f480139d41294e6a05470151bb 커밋 및 origin/main push 완료. ls-remote 일치 확인. 안내선 관련 19 files만 포함, 병렬 작업 dirty 보존.",
+    "valueDisplay": "drag > hover > selected; guide warm red SSOT",
+    "hoverValueEvidence": ".agent/runs/2026-10-31-guide-interactions/hover-value-verification.json",
+    "hoverValueVerification": {
+      "method": "cua native Chrome DevTools에서 실제 canvas pointermove 이벤트 전달 후 DOM computed style 확인",
+      "result": {
+        "value": "241",
+        "hidden": false,
+        "color": "rgb(242, 72, 34)",
+        "cursor": "col-resize"
+      },
+      "limits": "가로 축의 최종 재계측은 사용자의 앱 전환으로 중단; 가로/세로 전환과 hover 해제/선택 fallback은 인접 테스트 PASS"
+    },
+    "valuePositionOffset": {
+      "rule": "기존 ruler-label 스타일과 RULER_LABEL_GAP_PX 3px 공유; 이전 -1px 및 중심 정렬 제거",
+      "verification": "인접 테스트 35개, typecheck 6 tasks, format, guard, diff check PASS",
+      "live": "UNVERIFIED: native Chrome action rejected because another user changed app",
+      "files": [
+        "Workspace.css",
+        "RulerOverlay.tsx",
+        "rulerMetrics.ts",
+        "CatalogGuideRulerLabel.tsx"
+      ]
+    },
+    "rulerGuideExtent": "상단 top 0, 왼쪽 left 0까지 DOM 선분으로 연결; 활성/강조 안내선 및 드래그 미리보기 동기화",
+    "rulerGuideExtentEvidence": ".agent/runs/2026-10-31-guide-interactions/ruler-guide-extent.json",
+    "valueGradient": {
+      "rule": "전체 범위 상단 가로 100px / 왼쪽 세로 100px 복원. 양끝 전환 구간은 각 25px로 50% 축소하고 중앙 50px는 흰색 유지 (color stops 25%,75%). 눈금자 두께와 숫자 위치 유지.",
+      "evidence": ".agent/runs/2026-10-31-guide-interactions/ruler-value-gradient.json",
+      "verification": {
+        "format": "Workspace.css, docs/CHANGELOG.md PASS",
+        "guard": "PASS",
+        "diffCheck": "PASS",
+        "live": "UNVERIFIED: 브라우저가 다른 작업 페이지로 전환되어 마지막 color-stop 변경의 실화면 측정은 수행하지 않음"
+      }
+    },
+    "createValue": {
+      "status": "implemented",
+      "evidence": ".agent/runs/2026-10-31-guide-interactions/create-value-verification.json",
+      "verification": {
+        "red": "새 x/y 생성 테스트가 label.hidden true로 실패, 기존 7 tests PASS",
+        "green": "9 tests PASS",
+        "typecheck": "6 tasks PASS; baseline 0",
+        "format": "3 changed files PASS",
+        "guard": "PASS",
+        "diffCheck": "PASS",
+        "live": "UNVERIFIED: native Chrome Builder 탭 클릭 30초 timeout 및 cua kernel reset으로 생성 드래그 실화면 확인 불가"
+      }
+    }
+  },
+  "sideLabelGridLines": {
+    "status": "implemented",
+    "scope": "CheckboxGroup RadioGroup SearchField labelPosition side 선택 영역 밖 grid 선",
+    "evidence": ".agent/runs/2026-10-31-side-label-grid-lines/verification.json",
+    "verification": {
+      "red": "CheckboxGroup/RadioGroup/SearchField 각각 expected 1 row, received 3 실패",
+      "vitest": "phase4eCanvasGesture, canvasGridCells, gridTrackHeaders: 82 tests PASS",
+      "typecheck": "6 tasks PASS baseline 0",
+      "format": "changed 5 files PASS",
+      "guard": "PASS",
+      "diffCheck": "PASS",
+      "preflight": "공유 로컬 .agent/task-state.json의 기존 포맷 차이에서 중단. 제품 파일 범위 format/typecheck/tests/guard 별도 통과",
+      "live": {
+        "tool": "cua native Chrome",
+        "project": "http://localhost:5173/builder/d83bb779-c7a1-435b-9aa0-acd3378ad0ec",
+        "before": "SearchField Side 선택 아래 파란 가로선 2개 관찰",
+        "after": [
+          "RadioGroup Side 선택 아래 불필요한 선 없음",
+          "SearchField Side 선택 아래 불필요한 선 없음",
+          "CheckboxGroup Top에서 Property Side 직접 전환 후 불필요한 선 없음"
+        ],
+        "limits": "콘솔 오류 수 미계측; 편집용 grid overlay 수정으로 Preview 렌더 경로 변경 없음"
+      }
+    },
+    "git": "0749c164d537ba1a0a39a05287e4016f59a919a9 커밋 및 origin/main push 완료; ls-remote 일치 확인"
+  },
+  "compareWipe": {
+    "task": "Compare Mode CSS/Canvas 드래그 비교",
+    "phase": "remote_verified",
+    "scope": "같은 viewport 위 CSS/Canvas clip 비교; camera/iframe 계약 보존",
+    "status": "committed_and_pushed",
+    "validation": [
+      "Vitest 5 files / 28 tests PASS",
+      "codex:typecheck PASS",
+      "owned-file format / guard / diff-check PASS",
+      "Chrome Mobile/Tablet wipe + Tab/Home/End/Arrow + left edge re-entry PASS"
+    ],
+    "limitations": [
+      "브라우저 제어 timeout 및 외부 화면 조작으로 오른쪽 끝 재진입·reload 복원·실기기 touch는 live 미검증; 범위/저장 unit PASS"
+    ],
+    "evidenceDirectory": ".agent/runs/2026-10-31-compare-wipe",
+    "wheelScope": "CSS iframe와 여백 입력을 Canvas wheel session에 연결",
+    "wheelValidation": {
+      "vitest": "4 files / 17 tests PASS: pan, Shift, Cmd/Ctrl anchor, selected scroll route, message readiness/source/origin, cleanup",
+      "typecheck": "6 packages PASS; baseline 0",
+      "scopedGates": "guard / owned 7 files format / diff-check PASS; shared dirty worktree scoped validation",
+      "live": "Chrome localhost:5173 Compare: CSS iframe 내부 일반 wheel로 페이지 이동, CSS 여백에서 반대 wheel로 복귀 확인",
+      "unverified": "실제 Cmd/Ctrl+wheel은 native CUA가 modifier 단독 hold+scroll을 지원하지 않아 미검증. 포인터 기준 zoom은 단위 테스트 PASS."
+    },
+    "commits": [
+      "11089d94e",
+      "4594f2b59"
+    ],
+    "remote": "origin/main 4594f2b59a34050272a5bc90c786f05409b61e35 ls-remote confirmed"
+  },
+  "selectionLinesAudit": {
+    "task": "selection 주변 선 잔류 유사 패턴 조사",
+    "phase": "review_complete",
+    "status": "findings_3_product_unchanged",
+    "findings": [
+      "HIGH: 숨긴 자식이 포함된 grid 열 내용 삭제에서 잘못된 자식 삭제",
+      "MEDIUM: 숨긴 flex 자식으로 잘못된 gap 표시 생성",
+      "MEDIUM: 상위 display:none grid의 overlay cell 생성"
+    ],
+    "validation": "실제 Catalog/레이아웃 엔진 진단 검사 4/4; 신규 브라우저 화면 재현 UNVERIFIED",
+    "evidenceDirectory": ".agent/runs/2026-10-31-selection-lines-audit"
+  },
+  "sideLabelOverflowAudit": {
+    "task": "Label Position Side 가로 스크롤바 원인 조사",
+    "phase": "remote_verified",
+    "status": "committed_and_pushed",
+    "evidenceDirectory": ".agent/runs/2026-10-31-side-label-overflow",
+    "finding": "Side grid의 f32 끝점 오차가 catalogScrollRange에서 양수로 남고 catalogScrollbar >0 조건을 통과한다",
+    "validation": "195 samples; ColorField 및 768px TextField/DateField/DateRangePicker에서 미세 overflow + horizontal bar 확인",
+    "live": "기존 Builder RadioGroup Top→Side 확인; 해당 샘플 가로 스크롤바 미재현; Top 복구 확인. 사용자 원본 현상과 동일 원인인지 실화면 확정은 UNVERIFIED.",
+    "scope": "사용자 수정 승인; 공통 scroll range 오차 정규화 및 인접 회귀 검증",
+    "fixVerification": {
+      "status": "implemented",
+      "change": "catalogScrollRange의 가로/세로 overflow 0.5px 이하를 0으로 정규화; 실제 overflow는 값 보존",
+      "red": {
+        "ColorField390": "side maxScrollLeft 0.000020000000006348273, expected 0",
+        "TextField768": "side maxScrollLeft 0.00003000000003794412, expected 0",
+        "DateField768": "side maxScrollLeft 0.00003000000003794412, expected 0",
+        "DateRangePicker768": "side maxScrollLeft 0.00003000000003794412, expected 0",
+        "boundary": "0.00002px, 0.5px 실패"
+      },
+      "green": "3 files / 97 tests PASS; overflow binding 포함",
+      "typecheck": "6 tasks PASS; baseline 0",
+      "scopedGates": "공유 dirty worktree: owned 5 files format check, codex:guard, git diff --check PASS",
+      "live": {
+        "date": "2026-10-31",
+        "tool": "CUA native Chrome",
+        "observed": "Compare 화면 DateField Side 선택 및 속성 확인",
+        "result": "UNVERIFIED: Top 전환 클릭이 사용자 앱 변경으로 거부되어 실제 전환 검증 미완료",
+        "console": "미계측"
+      },
+      "commit": "56be2e9e0e1313ac320d90b3720a3da53cde9eb4"
+    },
+    "git": {
+      "commit": "56be2e9e0e1313ac320d90b3720a3da53cde9eb4",
+      "remote": "origin/main",
+      "verification": "git ls-remote exact match"
+    }
+  },
+  "compareMultiPageAudit": {
+    "task": "Compare CSS에 Canvas와 동일한 다중 페이지 표시 가능성 분석",
+    "phase": "analysis_complete",
+    "status": "feasible_requires_multi_preview_contract",
+    "scope": "분석만; 제품 코드 변경 없음",
+    "findings": [
+      "snapshot에는 일반 페이지 전체 포함; iframe placement, CATALOG_VIEW, DOM render가 단일 page 선택",
+      "workspace.attachPreview는 새 연결마다 기존 channel.dispose; 단순 iframe 반복은 불가",
+      "pageFrameRects/camera/paint order/current-page filter를 CSS와 공통 사용 가능",
+      "페이지별 iframe은 viewport/portal 격리에 유리하나 전체 graph 및 runtime 복제, API 실행/값 보고 정책 필요",
+      "단일 iframe 다중 DOM은 session.shownPage/path/runtime scope 및 viewport 기반 CSS/portal 계약 확장 필요"
+    ],
+    "recommendation": "페이지별 iframe + 공유 manager로 channels/lifecycle/data broadcast 관리; 보이는 페이지 우선 로드와 상태 보존 비용 검증",
+    "validation": "현재 source contract 정적 확인; 브라우저/성능 측정 및 구현 미실행"
+  },
+  "selectionRuler": {
+    "task": "선택 요소 눈금자 구간·수치·경계선과 선택 page 기준 원점",
+    "phase": "complete",
+    "status": "committed_and_pushed",
+    "scope": "선택 없음은 Canvas 중앙 원점; 선택된 신규 페이지를 포함해 페이지 선택 시 좌상단 0,0",
+    "validation": {
+      "tests": "5 files, 55 tests PASS",
+      "typecheck": "6 tasks PASS, baseline 0",
+      "guard": "PASS",
+      "diffCheck": "PASS",
+      "format": "8 owned files PASS; CatalogCanvas.tsx has 2 pre-existing formatting differences outside edited hunks, reproduced in git HEAD snapshot",
+      "live": {
+        "browser": "CUA native Chrome, localhost:5173 Guide verification 1031",
+        "checks": [
+          "Meter selection x44..346, y116..144 at 122%",
+          "Resize 302x28 to 322x38 updated x-end366 and y-end154; Undo restored",
+          "80% zoom retained coordinate values and aligned ruler range",
+          "Empty Canvas click cleared ruler selection",
+          "Desktop 24% Page4 selection shifted ruler origin to page top-left, values 0..1920 and 0..1080",
+          "Range background and page header use shared 12% focus-ring tint; darker 1px boundaries stay inside rulers"
+        ],
+        "unverified": [
+          "continuous drag intermediate frames not recorded",
+          "dark theme not exercised",
+          "console not instrumented"
+        ]
+      },
+      "files": [
+        "apps/builder/src/builder/workspace/Workspace.css",
+        "apps/builder/src/builder/workspace/canvas/catalog/CatalogCanvas.tsx",
+        "apps/builder/src/builder/workspace/canvas/catalog/CatalogSelectionRuler.tsx",
+        "apps/builder/src/builder/workspace/canvas/catalog/CatalogSelectionRuler.test.tsx",
+        "apps/builder/src/builder/workspace/canvas/overlay/pageHeader/PageHeaderLayer.css",
+        "apps/builder/src/builder/workspace/components/RulerOverlay.tsx",
+        "apps/builder/src/builder/workspace/components/RulerOverlay.test.tsx",
+        "apps/builder/src/builder/workspace/components/rulerMetrics.ts",
+        "docs/CHANGELOG.md",
+        "apps/builder/src/builder/workspace/canvas/catalog/catalogRulerOrigin.ts",
+        "apps/builder/src/builder/workspace/canvas/catalog/catalogRulerOrigin.test.ts"
+      ],
+      "centerOrigin": {
+        "tests": "4 files, 35 tests PASS",
+        "typecheck": "6 tasks PASS, baseline 0",
+        "format": "Changed origin files PASS; existing CatalogCanvas formatting limitation retained",
+        "live": [
+          "Fresh Builder tab without selection used centered signed ruler values at Tablet 40%",
+          "Page 2 selection moved both zeros to page top-left and highlighted 0..768 / 0..1024",
+          "Clearing selection restored centered signed ruler values"
+        ],
+        "newPage": "User confirmed selected new page top-left is 0,0; creation command selects page body (source verified, creation not exercised live)"
+      }
+    },
+    "evidenceDirectory": ".agent/runs/2026-10-31-selection-ruler",
+    "commit": "d6aba8c53811c172b7d2ba0598c1258ecd548dd0",
+    "remote": "origin/main verified via git ls-remote"
+  },
+  "layoutParticipationFix": {
+    "task": "공통 레이아웃 참여 및 조상 표시 판정으로 편집 overlay/조작 일치",
+    "phase": "committed_pushed",
+    "status": "pushed_live_unverified",
+    "evidenceDirectory": ".agent/runs/2026-10-31-layout-participation-fix",
+    "validation": {
+      "red": "4 failing assertions before product edits: gap, own-hidden spacing, hidden ancestor grid, wrong track deletion",
+      "tests": "148 unique focused/adjacent tests plus 6 registration tests PASS",
+      "typecheck": "6/6 tasks PASS, baseline 0",
+      "format": "10 owned files PASS",
+      "guard": "PASS",
+      "agentCatalog": "PASS; FAIL 0 WARN 0",
+      "skillsGate": "SKIP no relevant skill changes",
+      "diffCheck": "PASS",
+      "preflight": "STOP at shared .agent/task-state.json formatting; remaining gates individually verified",
+      "browser": "UNVERIFIED: browser access host unavailable; native Chrome action timed out and subsequent user focus changes prevented isolated exercise. No fixture mutations executed in browser."
+    },
+    "files": [
+      "packages/shared/src/catalog/runtime/layoutParticipation.ts",
+      "packages/shared/src/catalog/runtime/__tests__/layoutParticipation.test.ts",
+      "packages/shared/src/catalog/runtime/compositionRoot.ts",
+      "apps/builder/src/builder/catalogRuntime/__tests__/layoutParticipation.test.ts",
+      "apps/builder/src/builder/catalogRuntime/canvasGesture.ts",
+      "apps/builder/src/builder/catalogRuntime/canvasSpacing.ts",
+      "apps/builder/src/builder/workspace/canvas/catalog/CatalogGridTrackLayer.tsx",
+      "apps/builder/src/builder/panels/styles/catalog/catalogStylesHost.ts",
+      ".claude/rules/canvas-rendering.md",
+      "docs/CHANGELOG.md"
+    ],
+    "commit": "398a786f973f0a13fbe9e0654e0bc36555ea1efe",
+    "remote": "origin/main verified"
+  },
+  "adr295Followups": {
+    "task": "ADR-295 후속 1 · 2 묶음을 S2 식으로 (사용자 지시 2026-10-31 「후속 1,2 항목 S2 식으로 수정해」)",
+    "next": [
+      "[x] 조사 — 9 항목의 S2 설치본 값 · composition 현재 출처 (서브에이전트 지도 + 진단 확인)",
+      "[x] A 터치 × 1.25 sizing (154b497a1 · ce13c680a · f8cd11174) — 11 치수 · 소비 경로 5~6 (생성 CSS 리터럴 · DOM inline · 수동 시트 · manualBoxRules · Canvas part rule). 공통 형 (size(n) = {length.size.unit*n/1}) 설계 필요",
+      "[x] B Table 칸 · 머리글 · Breadcrumbs 글자 = controlFont (10d474d79)",
+      "[x] C ListBox · GridList Header — S2 listboxHeader 는 picker 팝오버 전용 · 독립 ListBox 는 10-13 사용자 결정 (RAC 레퍼런스 테마) · GridList(S2 ListView) 는 섹션 없음 → 사용자 확인 필요",
+      "[x] D StatusLight text-to-visual — 원인 = template gap 8 작성값 (10d474d79)",
+      "[x] E Tab 글자 — S2 Tabs 루트 font ui 고정 (크기 무관)",
+      "[x] F MenuTrigger Size ↔ Menu size — MenuTrigger binding 에 size 없음, 패널 노출 위치 live 확인",
+      "[x] G 필드 버튼 테두리 = 0 (catalog field-button 블록 · DOM identity 판정) (10d474d79)",
+      "[x] H TagGroup 측정 사본 Tag 32 · 간격 8 (10d474d79)",
+      "[x] breakdown §6.12 후속 목록 갱신 (52812fcf7)",
+      "[x] A 설계 — 공통 형 size(n) (`{length.size.unit*n/1}`, 시스템 토큰 size.unit = scale px · 빌더 1px) → 소비 경로별 적용 (CSSGenerator height/min/max · sizeSelectors 문자열 · DOM inline · Tree.css · manualBoxRules · Canvas part rule)",
+      "[x] picker 항목 크기 — Select · ComboBox → (Popover) → ListBox → ListBoxItem 전파 + ListBox · ListBoxItem 다섯 단 + 팝오버 항목 높이 --lb-control-h (44af0b81e)",
+      "[x] S2 와 다르게 남은 것 (사용자 지시 10-31 「S2 원본 소스 확인해서 수정해」) — S2 1.8.1 src 대조 완료",
+      "[x] B1 ProgressCircle 선 S2·M3·L4 고정 (rem, 터치 불변 — svg pathLength 100 · r calc(50% - sw/2)) · ColorThumb focus 32 · ColorSlider 트랙 24 · 가로 폭 192 · 세로 192 (scaled) · ColorWheel 192 · 고리 24 (S2 inline px 불변) · ColorArea minSize 64 · ColorSwatch XS 16 (262319401)",
+      "[x] B2 Tree 펼침 열 40 (scaled) · 들여쓰기 16 · Table 머리글 32 고정 (터치 40, density 무관) · drag 열 16 · Toast max-width min(336 scaled, 90vw) (7f2df24eb — drag 열은 고정 칸 없음, 별도)",
+      "[x] B3 StatusLight 행 높이 리터럴 제거 (S2 한 줄 · controlFont) · ProgressBar minWidth 48 (scaled) — 「기본 폭 208」 은 S2 소스에 없음 (제외) (d4b3548b2)",
+      "[x] ColorSwatch 기본 rounding default (sm) · ColorSwatchPicker size → 견본 크기 · 견본 none (1bf196e91)",
+      "[x] Table drag 열 — drag 규칙이 있는 Table 맨 앞 16 (터치 20) · Canvas 빈 칸 · DOM RAC Column + Cell > Button[slot=drag] (0f96e2083). 남은 것: 크기 조절 Table 의 RAC 열 폭은 터치에서도 16",
+      "[x] C1 Table drag 열 RAC width = 기기 배율 (S2 useScale 16 · 20) — 크기 조절 Table (714127a76)",
+      "[x] C1 Table S/M/L 크기 축 제거 (binding size · rule S/L) (714127a76)",
+      "[x] C2 Toast = S2 소스 대조 후 수정 (d695b91cc)",
+      "[x] C3 ColorSwatch · ColorSwatchPicker 컴포넌트 패널 노출 (6439fff01)",
+      "[x] C3 Canvas ColorSwatch 색 칠하기 (단독 · Picker 항목 color) (6439fff01)",
+      "[x] C4 b41f89499 — Table 선택 열 S2 40 · 터치 52 (토큰 {size.table.selection-column}) · 크기 조절 Table 선택 열 75 결함 수리 · live 5175",
+      "[x] C5 ~ C7 a20b5cc52 — code view toast variant · timeout · 토스트 view transition · 펼친 목록 useModalOverlay + FocusScope · Table 칸 여백 S2 16 / 선택 16·8 · 선택 체크박스 안 보임 = 맨 노드 탓 (live 확인)",
+      "[ ] 사용자 결정 대기: 토스트 action 버튼 (규칙 안에 Do 를 하나 더 두는 구조)"
+    ],
+    "updatedAt": "2026-10-31T11:15:50.500159+00:00",
+    "note": "push 사고: zsh 단어 분리로 git add 실패 → 다음 줄 git push 가 다른 세션 커밋 398a786f9 를 origin 에 올림 (사용자 보고 필요)",
+    "task2": "후속 C (사용자 지시 2026-10-31): 1순위 Table drag 열 폭(터치) · Table S/M/L 축 제거 / 2순위 Toast = S2 / 3순위 ColorSwatch · ColorSwatchPicker 컴포넌트 패널 노출 + Canvas 견본 색"
+  },
+  "adr292To295CompletionAudit": {
+    "task": "ADR 292-295 계획 대비 완료 검토",
+    "phase": "review_complete",
+    "status": "adr294_high_2_reproduced",
+    "scope": "리뷰만; 제품 코드 및 ADR 상태 변경 없음",
+    "evidenceDirectory": ".agent/runs/2026-10-31-adr292-295-audit",
+    "findings": [
+      "HIGH ADR294 중첩 입력 override 무시",
+      "HIGH ADR294 API 보기 instance 값 대신 기본값 요청"
+    ],
+    "validation": "기존 관련 테스트 211 PASS; 신규 통합 반례 2 RED; review schema 4 PASS; guard PASS; review writer 포맷 4 FAIL, 자동 포맷 없음; browser/bundle 재측정 UNVERIFIED"
+  },
+  "adr294HighFix": {
+    "task": "ADR-294 HIGH 2건 수정",
+    "phase": "remote_verified",
+    "status": "committed_and_pushed",
+    "scope": "ADR294 입력 override 및 instance API query 수리; ADR295 파일 보존",
+    "validation": {
+      "tests": "11 files / 75 unique integration tests PASS; final API suite 14 and input suite 7 PASS; registration 6 PASS",
+      "red": "input, dependencies, API path transforms each 1 RED",
+      "typecheck": "최종 5/6; builder ADR295 d3S2Alignment.static.test.ts:1253 TS2363 1건; ADR294 오류 없음. 직전 6/6 PASS.",
+      "live": "headed Chromium dev5173 isolated project; Canvas record/Preview role, female→male API rows, IndexedDB reload PASS; pageerror 0",
+      "unverified": [
+        "combined bundle after ADR295",
+        "console.error separate instrumentation",
+        "pixel-wide parity"
+      ],
+      "format": "owned code/doc additions pass; Session, breakdown and state rule formatting differences exactly match HEAD (format-baseline.json)"
+    },
+    "evidenceDirectory": ".agent/runs/2026-10-31-adr294-high-fix",
+    "committed": true,
+    "commit": "31a367dbae57d1356fc845f44f09b6fb7fefaeb9",
+    "remote": "origin/main",
+    "remoteVerification": "git ls-remote refs/heads/main exact match"
+  },
+  "adr296": {
+    "task": "ADR-296 execute — Phase 0 → 1 → 2 → 3 (사용자 /execute-adr 296, 2026-10-31)",
+    "phase": "phase0-3-closed — Phase 4~7 남음 (사용자 지시 범위 0~3 완료)",
+    "decisions": "결정 4 받는다 · 7 이름 붙은 handler 함수 · 5 state/project.ts + useProjectState() (사용자 2026-10-31)",
+    "guard": "다른 세션 dirty (ADR-295 ListBox · componentRulesTable 등) 보존 · 번들/성능 측정은 다른 작업과 동시에 돌리지 않고 기준 커밋 기록 · 사용자 5173 서버 미사용",
+    "next": [
+      "[x] Phase 0: G0 — fieldCoverage.ts 220 키 · RED 16 · oracle 진입점 · 번들 1,380,329/317,190 · 생성 0.32 ms (기준 44af0b81e)",
+      "[x] Phase 1: page 결함 수리 + read 실증 게이트 + golden · 판독 1 (HIGH 0 · MEDIUM-1 수리)",
+      "[x] Phase 2: 프로젝트 세션 · Apply 5 단계 · 파일 트리 · App.tsx · <Page>/meta/metadata/enabled · 패널",
+      "[x] Phase 3: data · api · state 파일 + E8 · E11 · 측정 +102 B / 0 / 0.39 ms · live 5176",
+      "[ ] (사용자 판단) 커밋 · push — 요청 시",
+      "[ ] Phase 4 (CSS · 결정 1 · 6 — 295 최신 토큰/scale/resolver 계약 반영) · 5 · 6 · 7"
+    ],
+    "updatedAt": "2026-10-31T09:46:58.076742+00:00"
+  },
+  "adr292293295ReviewReflection": {
+    "task": "리뷰 292/293/295 지적의 현재 코드 반영 검토",
+    "phase": "review_complete",
+    "scope": "리뷰만; 제품 코드 및 ADR 상태 변경 없음",
+    "head": "6439fff013b4f218d0d430ff0f132096391cd332",
+    "updatedAt": "2026-10-31T11:25:31.811Z",
+    "result": "기존 수정 대상 반영 확인; 새 차단 결함 없음; ADR293 L6 deferred 및 ADR295 성능 후속 유지",
+    "validation": "18 files / 327 tests PASS; live/browser/bundle/remote UNVERIFIED",
+    "evidenceDirectory": ".agent/runs/2026-10-31-adr292-293-295-reflection",
+    "checks": {
+      "tests": "18 files / 327 PASS at execution snapshot",
+      "schema": "3 PASS",
+      "guard": "PASS",
+      "diffCheck": "PASS",
+      "format": "3 review docs FAIL; 검사만 수행, 자동 포맷 없음"
+    },
+    "concurrentChanges": "327 PASS 이후 다른 세션 Table 선택 열 source/test dirty 변경 발생. 그 변경은 이번 PASS 집계에서 제외, UNVERIFIED."
   }
 }
