@@ -24,7 +24,13 @@ export interface NavigateAction {
 /** 앱 액션 2 — RAC ToastQueue.add() (ADR-158 R2: `UNSTABLE_` 접두 API 격리 지점) */
 export interface ToastAction {
   kind: "toast";
-  params: { message: string };
+  params: { message: string } & CatalogToastOptions;
+}
+
+/** S2 1.8.1 `ToastQueue.<variant>(children, {timeout})` — the toast's color and auto close (ms). */
+export interface CatalogToastOptions {
+  variant?: "neutral" | "info" | "positive" | "negative";
+  timeout?: number;
 }
 
 /**

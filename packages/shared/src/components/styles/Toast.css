@@ -1,184 +1,225 @@
 /*
- * imperative 런타임 Toast 전용 스타일 (`components/Toast.tsx` — ToastProvider /
- * ToastRegion / showToast).
+ * 앱 실행 toast (`components/Toast.tsx` — ToastProvider / ToastRegion, 규칙 Do 「toast」 · 실패 안내).
  *
- * **전 규칙이 `.react-aria-ToastRegion` 하위로 스코프된다 (2026-08-20)**: canonical
- * `Toast` element (팔레트/AI/import 로 생성되어 `renderToast` 가 `<div role="alert"
- * class="react-aria-Toast">` 로 렌더) 와 런타임 Toast 가 **같은 클래스명을 공유**하는데,
- * 이 파일은 unlayered 이고 generated CSS 는 `@layer components` 안이라 cascade layer
- * 규칙상 이 파일이 **항상 이겼다**. 그 결과 canonical Toast 가 catalog(D3 SSOT) 대신
- * 런타임용 값을 받아 Skia(=catalog 직접 read)와 시각 비대칭이 발생했다
- * (`[data-variant="info"]` 는 catalog `{color.informative-subtle}` 대신 accent 12% mix).
- * 또한 variant 어휘 자체가 서로 다르다 — 런타임은 `info|success|warning|error`
- * (`ToastVariant`), catalog 은 `info|positive|neutral|negative`. ToastRegion 스코프로
- * 한정하면 런타임 시각은 그대로 보존되고 canonical 은 generated(catalog 파생) 로
- * 되돌아간다. D3 규칙: 수동 CSS 가 SSOT 에서 파생 아닌 경우 위반 (`.claude/rules/
- * css-tokens.md`, ADR-059 계열).
+ * ADR-295 후속 C2 (2026-10-31, 사용자 「Toast - RSC 기준으로 수정해」): S2 1.8.1 `Toast.tsx` 의
+ * `toastRegion` · `toastList` · `toastStyle` · `toastBody` · `toastContent` · `controls` 값. 색 · 글자 ·
+ * 기기 배율 치수 (최소 높이 56 · 최대 폭 336 · 닫기 버튼) 는 컴포넌트 inline (테마 토큰 · 기기 식) —
+ * 이 시트는 기기와 무관한 S2 여백 · 배치만 둔다 (S2 spacing 은 `size()` 가 아니라 터치에서 그대로).
  *
- * 원시 토큰(`--color-green-500`) / 하드코딩(`#ff9800`) 잔존은 런타임 경로 한정 기술
- * 부채 — variant 어휘를 catalog 과 통일할 때 함께 정리 대상.
+ * class 는 `catalog-toast*` 만 쓴다 — `.react-aria-Toast` 는 문서의 Toast 노드 (생성 sheet) 것이다.
  */
 
-/* Toast Region - Container for all toasts */
-.react-aria-ToastRegion {
+/* S2 `toastRegion` — 화면 가장자리에서 16, placement 의 가로 정렬 (`end` = 오른쪽). */
+.catalog-toast-region {
   position: fixed;
   z-index: 9999;
+  inset-inline: 0;
+  width: fit-content;
+  max-height: 100%;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm, 8px);
-  padding: var(--spacing-md, 16px);
-  pointer-events: none;
-  max-width: 400px;
+  margin-inline: auto;
+  border-radius: 10px;
+  outline: none;
 }
-
-/* Position variants */
-.react-aria-ToastRegion[data-position="top-right"] {
+.catalog-toast-region[data-placement="top"] {
+  top: 16px;
+}
+.catalog-toast-region[data-placement="bottom"] {
+  bottom: 16px;
+  flex-direction: column-reverse;
+}
+.catalog-toast-region[data-align="end"] {
+  margin-inline: auto 16px;
+}
+.catalog-toast-region[data-expanded][data-placement="top"] {
   top: 0;
-  right: 0;
 }
-
-.react-aria-ToastRegion[data-position="top-left"] {
-  top: 0;
-  left: 0;
-}
-
-.react-aria-ToastRegion[data-position="bottom-right"] {
+.catalog-toast-region[data-expanded][data-placement="bottom"] {
   bottom: 0;
-  right: 0;
+}
+.catalog-toast-region[data-focus-visible] {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
-.react-aria-ToastRegion[data-position="bottom-left"] {
-  bottom: 0;
-  left: 0;
-}
-
-.react-aria-ToastRegion[data-position="top-center"] {
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.react-aria-ToastRegion[data-position="bottom-center"] {
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-/* Individual Toast (런타임 region 내부 한정) */
-.react-aria-ToastRegion .react-aria-Toast {
-  /* 생성 sheet (`generated/Toast.css` — 문서의 Toast 노드용, 2026-10-12 부터 index.css 가 싣는다)
-     가 같은 class 에 주는 상자 값을 런타임 toast 의 종전 값으로 되돌린다: 가로 줄 · 내용 높이 ·
-     테두리 없음 · 상속 글자 크기 · content-box (min-width 280 이 내용 폭). */
-  flex-direction: row;
-  box-sizing: content-box;
-  width: auto;
-  height: auto;
-  border: none;
-  font-size: inherit;
+/* S2 `toastList` — 간격 8 · 펼치면 focus 링 몫의 여백과 스크롤. */
+.catalog-toast-list {
+  position: relative;
+  flex-grow: 1;
   display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-sm, 8px);
-  padding: var(--spacing-md, 12px) var(--spacing-lg, 16px);
-  background-color: var(--bg-overlay);
-  border-radius: var(--radius-md, 6px);
-  box-shadow: var(
-    --shadow-md,
-    0 4px 8px 3px rgba(0, 0, 0, 0.15),
-    0 1px 3px rgba(0, 0, 0, 0.3)
-  );
-  pointer-events: auto;
-  animation: toast-slide-in 0.3s ease-out;
-  min-width: 280px;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+.catalog-toast-region[data-placement="bottom"] .catalog-toast-list {
+  flex-direction: column-reverse;
+}
+.catalog-toast-region[data-expanded] .catalog-toast-list {
+  padding: 16px 8px 8px;
+  margin-inline: -8px;
+  overflow: auto;
+}
+.catalog-toast-region[data-expanded][data-placement="bottom"]
+  .catalog-toast-list {
+  padding: 8px 8px 16px;
 }
 
-@keyframes toast-slide-in {
-  from {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/* Variant: info */
-.react-aria-ToastRegion .react-aria-Toast[data-variant="info"] {
-  background-color: color-mix(in srgb, var(--accent) 12%, var(--bg-overlay));
-  color: var(--fg);
-}
-
-.react-aria-ToastRegion .react-aria-Toast[data-variant="info"] .toast-icon {
-  color: var(--accent);
-}
-
-/* Variant: success */
-.react-aria-ToastRegion .react-aria-Toast[data-variant="success"] {
-  background-color: color-mix(
-    in srgb,
-    var(--color-green-500, #4caf50) 12%,
-    var(--bg-overlay)
-  );
-  color: var(--fg);
-}
-
-.react-aria-ToastRegion .react-aria-Toast[data-variant="success"] .toast-icon {
-  color: var(--color-green-500, #4caf50);
-}
-
-/* Variant: warning */
-.react-aria-ToastRegion .react-aria-Toast[data-variant="warning"] {
-  background-color: color-mix(in srgb, #ff9800 12%, var(--bg-overlay));
-  color: var(--fg);
-}
-
-.react-aria-ToastRegion .react-aria-Toast[data-variant="warning"] .toast-icon {
-  color: #ff9800;
-}
-
-/* Variant: error */
-.react-aria-ToastRegion .react-aria-Toast[data-variant="error"] {
-  background-color: color-mix(in srgb, var(--negative) 12%, var(--bg-overlay));
-  color: var(--fg);
-}
-
-.react-aria-ToastRegion .react-aria-Toast[data-variant="error"] .toast-icon {
-  color: var(--negative);
-}
-
-/* Toast content (런타임 region 내부 한정) */
-.react-aria-ToastRegion .toast-icon {
+/* S2 `toastStyle` — 여백 시작 16 · 끝 8 · 위아래 12, 간격 16, 모서리 lg 10, elevated 그림자. */
+.catalog-toast {
+  display: flex;
+  gap: 16px;
+  padding-block: 12px;
+  padding-inline: 16px 8px;
+  border-radius: 10px;
+  box-sizing: border-box;
   flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-family: inherit;
+  font-weight: normal;
+  box-shadow: var(--shadow-lg);
+  outline: none;
+}
+.catalog-toast[data-focus-visible] {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.catalog-toast-region[data-expanded] .catalog-toast {
+  box-shadow: none;
+}
+.catalog-toast-region[data-expanded] .catalog-toast[data-focus-visible] {
+  outline-color: white;
 }
 
-.react-aria-ToastRegion .toast-content {
-  flex: 1;
+/* S2 `toastBody` — 맨 위 toast 는 grid (내용 / 「모두 표시」), 나머지는 flex 줄바꿈. */
+.catalog-toast-body {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    "content content content"
+    "expand . action";
+  flex-grow: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 24px;
+  row-gap: 8px;
+}
+.catalog-toast-body[data-single] {
+  display: flex;
+}
+
+/* S2 `toastContent` — 아이콘 · 글자 간격 8, 기준선 정렬. */
+.catalog-toast-content {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  grid-area: content;
+  cursor: default;
+  width: fit-content;
+  overflow-wrap: break-word;
+  word-break: break-word;
   min-width: 0;
 }
 
-.react-aria-ToastRegion .toast-title {
-  font-size: var(--text-base, 16px);
-  font-weight: 500;
-  line-height: 1.4;
+.catalog-toast-title {
+  color: inherit;
+  font: inherit;
 }
 
-.react-aria-ToastRegion .toast-description {
-  font-size: var(--text-sm, 14px);
-  margin-top: var(--spacing-xs, 4px);
-  opacity: 0.8;
-  line-height: 1.4;
-}
-
-.react-aria-ToastRegion .toast-close {
+/* S2 `CenterBaseline` — 글자 한 줄 높이의 가운데에 아이콘. */
+.catalog-toast-icon {
+  display: flex;
+  align-items: center;
   flex-shrink: 0;
-  margin-left: auto;
-  opacity: 0.6;
-  transition: opacity 0.2s;
+}
+.catalog-toast-icon::before {
+  content: "\00a0";
+  width: 0;
+  visibility: hidden;
 }
 
-.react-aria-ToastRegion .toast-close:hover {
-  opacity: 1;
+/* S2 `ActionButton isQuiet staticColor="white"` (「모두 표시」) · `CloseButton staticColor="white"`. */
+.catalog-toast-expand,
+.catalog-toast-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: default;
+  outline: none;
+  transition: background-color 130ms ease-in-out;
+}
+.catalog-toast-expand {
+  grid-area: expand;
+  gap: 4px;
+  padding-inline: 12px;
+  margin-inline-start: -12px;
+  border-radius: 8px;
+}
+.catalog-toast-expand svg {
+  width: 1em;
+  height: 1em;
+}
+.catalog-toast-close {
+  flex-shrink: 0;
+  padding: 0;
+  border-radius: 9999px;
+}
+.catalog-toast-close svg {
+  width: 12px;
+  height: 12px;
+}
+.catalog-toast-expand[data-hovered],
+.catalog-toast-expand[data-pressed],
+.catalog-toast-close[data-hovered],
+.catalog-toast-close[data-pressed] {
+  background-color: rgb(255 255 255 / 0.1);
+}
+.catalog-toast-expand[data-focus-visible],
+.catalog-toast-close[data-focus-visible] {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+/* S2 펼친 목록 — 뒤 화면을 덮는 반투명 검정 · 「모두 지우기」 · 「접기」 (ActionButton size S, 밝은 배경). */
+.catalog-toast-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgb(0 0 0 / 0.5);
+}
+.catalog-toast-controls {
+  position: relative;
+  display: flex;
+  justify-content: end;
+  gap: 8px;
+  color-scheme: light;
+}
+.catalog-toast-control {
+  min-height: 24px;
+  padding-inline: 8px;
+  border: none;
+  border-radius: 6px;
+  background: white;
+  color: black;
+  font: inherit;
+  font-size: 12px;
+  outline: none;
+}
+.catalog-toast-control[data-hovered] {
+  background: rgb(233 233 233);
+}
+.catalog-toast-control[data-focus-visible] {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+@media (forced-colors: active) {
+  .catalog-toast {
+    border: 1px solid CanvasText;
+  }
 }

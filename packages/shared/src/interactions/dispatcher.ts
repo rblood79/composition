@@ -30,6 +30,7 @@ import {
   checkCapabilityConstraints,
 } from "./constraints";
 import type {
+  CatalogToastOptions,
   InteractionAction,
   InteractionRule,
 } from "./interactionRule.types";
@@ -45,8 +46,8 @@ export interface DispatchDeps {
   updateElementProps: (id: string, props: Record<string, unknown>) => void;
   /** preview router 페이지 전환 */
   navigate: (path: string) => void;
-  /** toast 큐 추가 */
-  showToast: (message: string) => void;
+  /** toast 큐 추가 (S2 `ToastQueue.<variant>` · `timeout`) */
+  showToast: (message: string, options?: CatalogToastOptions) => void;
   /**
    * ADR-214 Phase 4 — 변수 값 쓰기 (shared runtimeState). `instanceKeyFor` 는 트리거 요소의
    * 렌더 문맥 (조상 origin id → instanceKey) — 요소 변수의 스코프를 정한다. 미주입 환경
@@ -709,7 +710,11 @@ function executeInteractionAction(
   if (action.kind === "toast") {
     const message = action.params?.message;
     if (!message) return { ok: false, reason: "toast 에 message 가 없다" };
-    deps.showToast(message);
+    const { variant, timeout } = action.params;
+    deps.showToast(message, {
+      ...(variant ? { variant } : {}),
+      ...(timeout ? { timeout } : {}),
+    });
     return { ok: true, kind: "toast" };
   }
 

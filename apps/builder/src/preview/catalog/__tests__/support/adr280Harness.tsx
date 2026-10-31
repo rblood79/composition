@@ -153,8 +153,13 @@ export async function openAdr280Preview(
   channel.setView(HOME);
   channel.onReady();
   const toasts: string[] = [];
+  /** Each toast's S2 options (`variant` · `timeout`), in the same order as `toasts`. */
+  const toastOptions: unknown[] = [];
   const runtime = catalogPreviewRuntime(session, {
-    show: (message) => toasts.push(message),
+    show: (message, options) => {
+      toasts.push(message);
+      toastOptions.push(options);
+    },
   });
   const view = render(
     <CatalogPreviewView session={session} runtime={runtime} />,
@@ -206,6 +211,7 @@ export async function openAdr280Preview(
     flush,
     ids,
     toasts,
+    toastOptions,
     declare,
     rule,
     element,

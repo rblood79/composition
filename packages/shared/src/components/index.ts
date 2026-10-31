@@ -94,7 +94,8 @@ export type { ChartProps } from "./Chart";
 export { StatusLight } from "./StatusLight";
 export { Avatar } from "./Avatar";
 export { ProgressCircle } from "./ProgressCircle";
-export { Toast, ToastProvider, ToastRegion } from "./Toast";
+export { ToastProvider } from "./Toast";
+export type { ToastOptions, ToastPlacement, ToastVariant } from "./Toast";
 export { useToast } from "./ToastContext";
 export {
   CollectionState,

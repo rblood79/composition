@@ -1,8 +1,8 @@
 import { createContext, useContext } from "react";
-import type { ToastItem, ToastOptions } from "./Toast";
+import type { ToastOptions } from "./Toast";
 
 export interface ToastContextValue {
-  toasts: ToastItem[];
+  /** Queues a toast (S2 `ToastQueue.<variant>`) — its key. */
   addToast: (options: ToastOptions) => string;
   removeToast: (id: string) => void;
   removeAllToasts: () => void;

@@ -7,6 +7,7 @@ import {
   type InteractionIndex,
   type InteractionRule,
 } from "@composition/shared";
+import type { CatalogToastOptions } from "../../interactions/interactionRule.types";
 import {
   composeEventHandlers,
   normalizeImplicitStateValue,
@@ -122,7 +123,14 @@ function actionOf(
         : undefined;
     }
     case "toast":
-      return { kind: "toast", params: { message: action.message } };
+      return {
+        kind: "toast",
+        params: {
+          message: action.message,
+          ...(action.variant ? { variant: action.variant } : {}),
+          ...(action.timeout ? { timeout: action.timeout } : {}),
+        },
+      };
     case "capability": {
       // ADR-283 Decision 2: the target as the record that fired sees it (same row · instance).
       const resolved = resolveCapabilityTarget(
@@ -364,7 +372,8 @@ export interface CatalogPreviewInteractionsOptions {
   navigate: (pageId: EntryId<"page">) => void;
   /** Go to a path (routes with `:param`, the 404 fallback); absent = exact routes via `navigate`. */
   navigateTo?: (path: string) => void;
-  showToast: (message: string) => void;
+  /** S2 `ToastQueue.<variant>(message, {timeout})` — a failure the session reports is `negative`. */
+  showToast: (message: string, options?: CatalogToastOptions) => void;
   /** Variable writes (`setState`); absent = the rule reports that it cannot run. */
   writeState?: DispatchDeps["writeState"];
   /** A variable's current value (`!var.<id>` in a rule value). */
@@ -422,6 +431,9 @@ export interface CatalogPreviewInteractionsOptions {
  * in the Preview; a capability writes a prop override of its target record (runtime only — the
  * document and the Builder never see it). `setState` writes the session's runtime values.
  */
+/** A failure the session reports (a load · a submit) — S2's error toast (`ToastQueue.negative`). */
+const FAILURE_TOAST: CatalogToastOptions = { variant: "negative" };
+
 /** Bound components whose selection is one key (`selectedKey`) — a load's first key. */
 const LOADED_SINGLE_SELECTION_TYPES: ReadonlySet<string> = new Set([
   "ComboBox",
@@ -467,7 +479,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         console.warn(
           `[interactions] collection ${collectionId} ${what} 실패 — ${message}`,
         );
-        options.showToast(message);
+        options.showToast(message, FAILURE_TOAST);
       });
     this.deps = {
       getElement: (id) => {
@@ -499,7 +511,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
           console.warn(
             `[interactions] endpoint ${endpointId} 제출 실패 — ${message}`,
           );
-          options.showToast(message);
+          options.showToast(message, FAILURE_TOAST);
         });
         return { ok: true };
       },
@@ -883,7 +895,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       console.warn(
         `[interactions] collection ${collectionId} 검색 실패 — ${message}`,
       );
-      this.options.showToast(message);
+      this.options.showToast(message, FAILURE_TOAST);
     });
   }
   loadMore(collectionId: string): void {
@@ -894,7 +906,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       console.warn(
         `[interactions] collection ${collectionId} 더 불러오기 실패 — ${message}`,
       );
-      this.options.showToast(message);
+      this.options.showToast(message, FAILURE_TOAST);
     });
   }
   /**

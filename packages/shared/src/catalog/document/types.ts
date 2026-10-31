@@ -839,6 +839,16 @@ export interface CatalogPageMeta {
   socialImage?: CatalogAssetUrl;
   hidden?: { search?: boolean; sitemap?: boolean };
 }
+/** S2 1.8.1 `SpectrumToastValue.variant` — the `ToastQueue` method. */
+export type CatalogToastVariant = "neutral" | "info" | "positive" | "negative";
+export const CATALOG_TOAST_VARIANTS: readonly CatalogToastVariant[] = [
+  "neutral",
+  "info",
+  "positive",
+  "negative",
+];
+/** S2 1.8.1 `addToast` — a set timeout is at least 5s (Spectrum toast guideline). */
+export const CATALOG_TOAST_MIN_TIMEOUT = 5000;
 /** S2 1.8.0 `ToastPlacement`. */
 export type CatalogToastPlacement = "top" | "top end" | "bottom" | "bottom end";
 export const CATALOG_TOAST_PLACEMENTS: readonly CatalogToastPlacement[] = [
@@ -1351,7 +1361,17 @@ export type InteractionAction =
       /** The items' keys: `"!event.key"` · `"!event.keys"` (a selection) · a literal. */
       keys?: Scalar;
     }
-  | { opcode: "toast"; message: string }
+  | {
+      /**
+       * S2 1.8.1 `ToastQueue.<variant>(children, {timeout})` — `variant` is the queue method (absent =
+       * `info`, S2's `toast.content.variant || 'info'`), `timeout` ms (absent = stays until closed —
+       * S2 queues no timeout; S2 raises a set one to 5000). ADR-295 후속 C2.
+       */
+      opcode: "toast";
+      message: string;
+      variant?: CatalogToastVariant;
+      timeout?: number;
+    }
   | {
       /**
        * ADR-294 — the component's `event` property, sent to the instance that holds this origin

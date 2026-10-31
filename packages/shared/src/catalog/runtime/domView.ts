@@ -6,7 +6,7 @@ export {
 } from "./domView.components";
 export {
   applyCatalogPreviewTheme,
-  catalogToastPosition,
+  catalogToastPlacement,
   catalogPreviewRuntime,
   catalogPreviewLinkClick,
 } from "./domView.runtime";

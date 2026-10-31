@@ -15,7 +15,7 @@ import { CatalogPreviewSession } from "./catalogPreviewSession";
 
 import { renderCatalogDom, type CatalogDomRuntime } from "./domBinding";
 
-import { catalogToastPosition, rootKey } from "./domView.runtime";
+import { catalogToastPlacement, rootKey } from "./domView.runtime";
 
 /** The Preview router's `navigate`: a route moves the page, an `#anchor` scrolls to its element. */
 export function catalogPreviewNavigate(
@@ -93,7 +93,7 @@ export function CatalogToastProvider({
   const project = session.graph?.getEntry(session.graph.projectId);
   return (
     <ToastProvider
-      position={catalogToastPosition(
+      placement={catalogToastPlacement(
         project?.kind === "project" ? project.toastPlacement : undefined,
       )}
     >
@@ -110,7 +110,9 @@ export function CatalogPreviewToasts({
 }) {
   const { addToast } = useToast();
   useEffect(() => {
-    return toast.connect((message) => addToast({ title: message }));
+    return toast.connect((message, options) =>
+      addToast({ title: message, ...options }),
+    );
   }, [addToast, toast]);
   return null;
 }

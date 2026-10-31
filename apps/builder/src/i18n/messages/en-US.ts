@@ -1036,6 +1036,8 @@ const catalog: TranslationKeys = {
     paramValueToSelect: "Value to select",
     paramPath: "Path",
     paramMessage: "Message",
+    paramToastVariant: "Variant",
+    paramTimeout: "Timeout (ms)",
     setProp: "Set {prop}",
     propOn: "{prop} on",
     propOff: "{prop} off",

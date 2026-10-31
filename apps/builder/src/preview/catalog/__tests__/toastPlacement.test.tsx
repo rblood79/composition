@@ -1,5 +1,5 @@
 import "fake-indexeddb/auto";
-import { act, render } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import { useEffect } from "react";
 import { describe, expect, it } from "vitest";
 import { useToast } from "@composition/shared/components";
@@ -27,7 +27,7 @@ const HOME = "project:page:home" as EntryId<"page">;
 function Toasted() {
   const { addToast } = useToast();
   useEffect(() => {
-    addToast({ title: "Saved", timeout: 0 });
+    addToast({ title: "Saved" });
   }, [addToast]);
   return null;
 }
@@ -69,29 +69,38 @@ async function open() {
       <Toasted />
     </CatalogToastProvider>,
   );
-  const region = () =>
-    view.container.ownerDocument.querySelector(".react-aria-ToastRegion");
+  // The region's S2 place: `data-placement` (top · bottom) + `data-align` (center · end).
+  const region = () => {
+    const element = view.container.ownerDocument.querySelector(
+      ".catalog-toast-region",
+    );
+    return element
+      ? `${element.getAttribute("data-placement")} ${element.getAttribute("data-align")}`
+      : undefined;
+  };
+  // (The region module loads with the first toast — `ToastProvider`.)
+  await waitFor(() => expect(region()).toBeDefined());
   return { workspace, flush, region };
 }
 
 describe("S2 toast placement — the project's toast region", () => {
   it("a new project's toasts show at the bottom end (the region's place before)", async () => {
     const { region } = await open();
-    expect(region()?.getAttribute("data-position")).toBe("bottom-right");
+    expect(region()).toBe("bottom end");
   });
 
   it.each([
-    ["top", "top-center"],
-    ["top end", "top-right"],
-    ["bottom", "bottom-center"],
-    ["bottom end", "bottom-right"],
+    ["top", "top center"],
+    ["top end", "top end"],
+    ["bottom", "bottom center"],
+    ["bottom end", "bottom end"],
   ] as const)(
     "placement %s → the region at %s in the Preview",
     async (placement, position) => {
       const { workspace, flush, region } = await open();
       workspace.execute(setToastPlacement({ placement }));
       await flush();
-      expect(region()?.getAttribute("data-position")).toBe(position);
+      expect(region()).toBe(position);
     },
   );
 
@@ -99,10 +108,10 @@ describe("S2 toast placement — the project's toast region", () => {
     const { workspace, flush, region } = await open();
     workspace.execute(setToastPlacement({ placement: "top" }));
     await flush();
-    expect(region()?.getAttribute("data-position")).toBe("top-center");
+    expect(region()).toBe("top center");
     workspace.undo();
     await flush();
-    expect(region()?.getAttribute("data-position")).toBe("bottom-right");
+    expect(region()).toBe("bottom end");
   });
 
   it("a placement S2 does not name is refused", async () => {

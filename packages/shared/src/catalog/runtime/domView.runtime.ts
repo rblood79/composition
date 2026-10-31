@@ -1,4 +1,5 @@
 import type { CatalogToastPlacement } from "../document/types";
+import type { CatalogToastOptions } from "../../interactions/interactionRule.types";
 
 import { CatalogPreviewInteractions } from "./catalogPreviewInteractions";
 
@@ -44,28 +45,19 @@ export const rootKey = (root: CatalogCompositionRoot) => {
 };
 
 /**
- * S2 1.8.0 `ToastPlacement` → the toast region's place (`end` is the right of a left-to-right
- * page). Absent = `bottom end` — the region's place before the project chose one.
+ * The project's toast region place (S2 1.8.1 `ToastContainer` `placement`). Absent = `bottom end` — the
+ * region's place before the project chose one (S2's own default is `bottom`).
  */
-export function catalogToastPosition(
+export function catalogToastPlacement(
   placement: CatalogToastPlacement | undefined,
-): "top-center" | "top-right" | "bottom-center" | "bottom-right" {
-  switch (placement) {
-    case "top":
-      return "top-center";
-    case "top end":
-      return "top-right";
-    case "bottom":
-      return "bottom-center";
-    default:
-      return "bottom-right";
-  }
+): CatalogToastPlacement {
+  return placement ?? "bottom end";
 }
 
 /** The session's rule runtime (rules · capability overrides · toasts · navigation by route). */
 export function catalogPreviewRuntime(
   session: CatalogPreviewSession,
-  toast: { show: (message: string) => void },
+  toast: { show: (message: string, options?: CatalogToastOptions) => void },
 ): CatalogPreviewInteractions {
   return new CatalogPreviewInteractions({
     graph: () => session.graph,
@@ -73,7 +65,7 @@ export function catalogPreviewRuntime(
     subscribe: session.subscribe,
     navigate: (pageId) => session.navigate(pageId),
     navigateTo: (path) => session.navigateTo(path),
-    showToast: (message) => toast.show(message),
+    showToast: (message, options) => toast.show(message, options),
     writeState: session.writeState,
     readState: session.readVariable,
     itemsByKeys: (collectionId, keys) =>

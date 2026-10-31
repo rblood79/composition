@@ -12,11 +12,14 @@ import {
   type ExposureInput,
   type SetStateOp,
 } from "@composition/shared";
-import type {
-  CatalogCapabilityTarget,
-  EditTarget,
-  InteractionEntry,
-  Scalar,
+import {
+  CATALOG_TOAST_MIN_TIMEOUT,
+  CATALOG_TOAST_VARIANTS,
+  type CatalogCapabilityTarget,
+  type CatalogToastVariant,
+  type EditTarget,
+  type InteractionEntry,
+  type Scalar,
 } from "../../../../../../../packages/shared/src/catalog/document/types";
 import {
   catalogDefaultAction,
@@ -469,13 +472,51 @@ export const CatalogEventRow = memo(function CatalogEventRow({
           )}
 
           {action.opcode === "toast" && (
-            <ParamField
-              param={APP_ACTIONS.toast.param}
-              value={action.message}
-              onChange={(value) =>
-                setAction({ opcode: "toast", message: String(value) })
-              }
-            />
+            <>
+              <ParamField
+                param={APP_ACTIONS.toast.param}
+                value={action.message}
+                onChange={(value) =>
+                  setAction({ ...action, message: String(value) })
+                }
+              />
+              {/* S2 `ToastQueue.<variant>(message, {timeout})` — ADR-295 후속 C2. Absent variant =
+                  info (S2's), absent timeout = until closed (a set one is at least 5000 ms). */}
+              <PropertySelect
+                label={t("capabilities.paramToastVariant")}
+                value={action.variant ?? "info"}
+                onChange={(variant) =>
+                  setAction({
+                    ...action,
+                    variant: variant as CatalogToastVariant,
+                  })
+                }
+                options={CATALOG_TOAST_VARIANTS.map((variant) => ({
+                  value: variant,
+                  label: variant[0]!.toUpperCase() + variant.slice(1),
+                }))}
+                translateOptions={false}
+              />
+              <ParamField
+                param={{ kind: "number", labelKey: "capabilities.paramTimeout" }}
+                value={action.timeout ?? ""}
+                onChange={(value) => {
+                  const { timeout: _old, ...rest } = action;
+                  const ms = Number(value);
+                  setAction(
+                    value === "" || !Number.isFinite(ms) || ms <= 0
+                      ? rest
+                      : {
+                          ...rest,
+                          timeout: Math.max(
+                            Math.round(ms),
+                            CATALOG_TOAST_MIN_TIMEOUT,
+                          ),
+                        },
+                  );
+                }}
+              />
+            </>
           )}
 
           {action.opcode === "setState" && (

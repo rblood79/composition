@@ -1035,6 +1035,8 @@ const catalog: TranslationKeys = {
     paramValueToSelect: "선택할 값",
     paramPath: "경로",
     paramMessage: "메시지",
+    paramToastVariant: "변형",
+    paramTimeout: "자동 닫힘 (ms)",
     setProp: "{prop} 설정",
     propOn: "{prop} 켜기",
     propOff: "{prop} 끄기",

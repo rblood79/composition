@@ -81,6 +81,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Table S · M · L 크기 축 삭제: S2 TableView 에는 size 가 없다 (칸 글자 = `controlFont()`, 행 높이 = `density`). Properties 의 Size 행이 사라진다. Table 상자의 한 벌 = 모서리 6 (S2 `borderRadius: '[6px]'`, 전 S 4 · M 8) · 글자는 팔레트 Table 이 쓰던 단. 원본 template 의 `size: "S"` · 수동 `Table.css` 의 `[data-size]` 블록 3 (칸 여백 · 글자는 rule inline 이 이미 이기고 있었다) 삭제.
   - 위치: `deviceUnit.runtime.ts` · `domBinding.runtime.ts` (`CatalogTableDragColumn`) · `Table.binding.ts` · `componentRulesTable.ts` (Table) · `reusableOriginLibrary.ts` · `Table.css`.
   - 검증: `adr257TableOperations.test.tsx` (크기 조절 + drag 규칙 Table — desktop 첫 트랙 16 · 터치 단위 20) · 원복 RED (상수 16 → 터치 FAIL) · `adr277TableOrigin` · `treeTableBindings` (size 없음) · G3 (모서리 6 등재 · 읽는 곳 없던 높이 등재 삭제) · live 5175 (Properties Appearance 에 Size 없음 · Preview Table 모서리 6 / `data-size` 없음 / 칸 14px · Canvas ↔ CSS 같은 모습, 크기 조절 + drag 규칙 Table 의 drag 열 desktop 16 → 터치 보기 20 · 나머지 열 124 → 122~123, 콘솔 0).
+- **앱 실행 토스트가 S2 Toast 와 달랐던 것 (8차, 사용자 「Toast - RSC 기준으로 수정해」 → 실행 토스트로 결정)**: 규칙 Do 「toast」 · 실패 안내가 띄우는 Preview · Publish 토스트를 S2 1.8.1 `ToastQueue` + `ToastContainer` 대로 바꿨다. 팔레트에 없는 Toast 노드 type 은 그대로.
+  - 전: 옛 `ToastProvider` — `div role="alert"`, variant info · success · warning · error, 연한 배경 + 진한 글자, 기본 5초 자동 닫힘, 오른쪽 위로 밀려 들어옴.
+  - 후: RAC toast primitive (`UNSTABLE_ToastRegion` · `ToastList` · `Toast` — region landmark · `alertdialog` · 닫기 버튼 이름) 위에 S2 모양. variant neutral · info (기본) · positive · negative — 진한 색 + 흰 글자 · 아이콘 (neutral 없음) · 닫기 버튼. 최소 높이 56 · 최대 폭 min(336, 90vw) · 닫기 32 (터치 × 1.25) · 여백 12 / 16 · 8 · 모서리 10. timeout 없음 = 닫을 때까지, 지정하면 최소 5초 (S2). 쌓이면 맨 위 하나 + 뒤 두 장의 색 띠, 「모두 표시」 로 펼치고 「모두 지우기」 · 「접기」 (Escape · 바깥 클릭도 접기). 뒤에 쌓인 토스트는 맨 위에 올라온 뒤부터 시간을 잰다 (S2 · RAC 와 같다).
+  - Do 「toast」 에 S2 `ToastQueue.<variant>` · `timeout` 입력 (Interactions 패널 Variant · Timeout). 로드 · 제출 실패 안내는 negative.
+  - region 모듈은 첫 토스트 때 불러온다 — Preview 초기 JS gzip 319,160 B (상한 320,000, 다른 세션의 미커밋 변경 포함 측정).
+  - 넣지 않은 것: S2 의 view transition (밀려 들어오기 · 교차 fade) · action 버튼 (`actionLabel` · `onAction` — 규칙 안에 Do 를 둘 자리가 없다) · 펼친 목록의 focus 가두기 · 스크롤 잠금.
+  - 위치: `Toast.tsx` · `ToastRegion.lazy.tsx` (신규) · `ToastContext.ts` · `Toast.css` · `types.ts` (Do variant · timeout) · `validation.ts` · `interactionRule.types.ts` · `dispatcher.ts` · `catalogPreviewInteractions.ts` · `toastBridge.ts` · `domView.runtime.ts` (`catalogToastPlacement`) · `domView.components.tsx` · `CatalogEventRow.tsx` · i18n 2.
+  - 검증: `s2RuntimeToast.test.tsx` (Do → 옵션 · 거절 3 · variant 4 색 · 기본 info · timeout 5초 하한 · 쌓임 / 펼침 / 지우기) · `toastPlacement` · `reload` (실패 = negative) · 원복 RED 2 · live 5175 (Button 규칙 3 → Preview 토스트 info 위 · negative · positive 띠, 오른쪽 아래 16, 흰 글자 · 패딩 12/8/12/16 · 모서리 10, 「모두 표시」 → 3 개 · 「모두 지우기」 → 0, 터치 보기 최소 높이 70 · 최대 폭 351 (= 90vw) · 글자 17 · 닫기 40, 맨 위를 닫자 6초 지정 negative 가 6초 뒤 닫힘, Interactions 패널 Variant Negative → Positive 한 step, 콘솔 0).
+  - 남은 것 (다른 세션 몫): code view 는 Do 「toast」 를 `toasts.add({title})` 로만 내 variant · timeout 이 코드에 나오지 않는다.
 
 ## [ADR-295 후속 — S2 고정 치수의 터치 배율 (`scaled`)] - 2026-10-31
 

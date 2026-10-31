@@ -258,6 +258,8 @@ describe("reload — useAsyncList.reload", () => {
     expect(calls).toEqual([]);
     expect(warnings()).toHaveLength(1);
     expect(h.toasts).toHaveLength(1);
+    // (ADR-295 후속 C2: a failure the session reports is S2's error toast — `ToastQueue.negative`.)
+    expect(h.toastOptions).toEqual([{ variant: "negative" }]);
     h.view.unmount();
   });
 });

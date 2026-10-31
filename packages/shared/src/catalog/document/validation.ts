@@ -7,10 +7,12 @@ import {
   CATALOG_PRESENT_WHEN,
   CATALOG_STATE_KEYS,
   CATALOG_TOAST_PLACEMENTS,
+  CATALOG_TOAST_VARIANTS,
   CATALOG_COLLECTION_ROW_LIMIT,
   COMPONENT_PROPERTY_KINDS,
   type CatalogStateKey,
   type CatalogToastPlacement,
+  type CatalogToastVariant,
   type CatalogPresentWhen,
   DISPLAY_STATE_NAMES,
   type DisplayStateName,
@@ -2149,8 +2151,24 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           id(action.collectionId, "data:collection:", `${at}.collectionId`);
           if (action.keys !== undefined) scalar(action.keys, `${at}.keys`);
         } else if (action.opcode === "toast") {
-          exact(action, ["opcode", "message"], `${at}`);
+          exact(action, ["opcode", "message", "variant", "timeout"], `${at}`);
           string(action.message, `${at}.message`);
+          if (
+            action.variant !== undefined &&
+            !CATALOG_TOAST_VARIANTS.includes(
+              action.variant as CatalogToastVariant,
+            )
+          )
+            invalid("INVALID_TOAST_VARIANT", `${at}.variant`);
+          if (
+            action.timeout !== undefined &&
+            !(
+              typeof action.timeout === "number" &&
+              Number.isInteger(action.timeout) &&
+              action.timeout > 0
+            )
+          )
+            invalid("INVALID_TOAST_TIMEOUT", `${at}.timeout`);
         } else if (action.opcode === "emit") {
           exact(action, ["opcode", "propertyKey", "value"], `${at}`);
           const key = string(action.propertyKey, `${at}.propertyKey`);

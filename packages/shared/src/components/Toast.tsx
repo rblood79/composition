@@ -1,172 +1,106 @@
-import { useCallback, useState, ReactNode } from "react";
-import { Button } from "./Button";
-import { X, CircleCheck, CircleAlert, AlertTriangle, Info } from "lucide-react";
+/**
+ * ADR-295 후속 C2 — the app's toasts as S2 1.8.1 draws them (`@react-spectrum/s2` `Toast.tsx`), on RAC's
+ * toast primitives (D1 — `UNSTABLE_ToastRegion` · `UNSTABLE_ToastList` · `UNSTABLE_Toast` — region
+ * landmark, `alertdialog`, the close button's name, F6 to the region).
+ *
+ * - `ToastQueue.<variant>(message, {timeout})`: `neutral` · `info` (absent) · `positive` · `negative` —
+ *   a solid color with white text, its icon (`neutral` none). No timeout = the toast stays until closed;
+ *   a set one is at least 5s (S2 `addToast`).
+ * - One stack (S2 `ToastContainer`): the newest toast on top, the ones behind it a sliver of their color
+ *   (three at most); 「Show all」 expands the list over a backdrop with 「Clear all」 · 「Collapse」
+ *   (Escape · backdrop collapse it).
+ * - Placement: S2 `ToastPlacement` (`top` · `top end` · `bottom` · `bottom end`), 16 from the edge.
+ *
+ * Its class names are its own (`catalog-toast*`): RAC's default `react-aria-Toast` is the document's Toast
+ * node's (the generated sheet), not this. Sizes S2 grows on a touch device (`size()` — min height 56 ·
+ * max width 336 · the close button) go inline as the device formula; the color · font come from the
+ * theme tokens (`colorTokenToCss` · the `ui` font = `{typography.text-sm}`). Not shown: S2's view
+ * transitions (slide · cross fade), the action button (`actionLabel` · `onAction` — a rule has no nested Do).
+ */
+import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { ToastContext } from "./ToastContext";
 
-
-/**
- * Toast types and interfaces
- */
-export type ToastVariant = "info" | "success" | "warning" | "error";
-export type ToastPosition =
-  | "top-right"
-  | "top-left"
-  | "bottom-right"
-  | "bottom-left"
-  | "top-center"
-  | "bottom-center";
+/** S2 1.8.1 `SpectrumToastValue.variant`. */
+export type ToastVariant = "neutral" | "info" | "positive" | "negative";
+/** S2 1.8.1 `ToastPlacement`. */
+export type ToastPlacement = "top" | "top end" | "bottom" | "bottom end";
 
 export interface ToastOptions {
+  /** The toast's text (S2 `children`). */
   title: string;
-  description?: string;
+  /** Absent = `info` (S2 `toast.content.variant || 'info'`). */
   variant?: ToastVariant;
+  /** ms; absent = until closed. A set timeout is at least 5000 (S2). */
   timeout?: number;
   onClose?: () => void;
 }
 
-export interface ToastItem extends ToastOptions {
-  id: string;
+type RegionModule = typeof import("./ToastRegion.lazy");
+
+interface ToastProviderProps {
+  children: ReactNode;
+  /** S2 `ToastContainer` `placement` — default `bottom` (S2's). */
+  placement?: ToastPlacement;
 }
 
 /**
- * ToastProvider - Provides toast context to children
+ * The app's toast queue and region (S2 `ToastQueue` + `ToastContainer`). The region module loads with
+ * the first toast; toasts added before it arrives are queued in order then.
  */
-interface ToastProviderProps {
-  children: ReactNode;
-  position?: ToastPosition;
-  maxToasts?: number;
-}
-
 export function ToastProvider({
   children,
-  position = "top-right",
-  maxToasts = 5,
+  placement = "bottom",
 }: ToastProviderProps) {
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
-
-  const removeToast = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  const [region, setRegion] = useState<{
+    module: RegionModule;
+    queue: import("./ToastRegion.lazy").CatalogToastQueue;
+  } | null>(null);
+  const queue = useRef<import("./ToastRegion.lazy").CatalogToastQueue | null>(
+    null,
+  );
+  const pending = useRef<{ key: string; options: ToastOptions }[]>([]);
+  const loading = useRef(false);
+  const load = useCallback(() => {
+    if (loading.current) return;
+    loading.current = true;
+    void import("./ToastRegion.lazy").then((module) => {
+      const next = module.createCatalogToastQueue();
+      queue.current = next;
+      for (const { options } of pending.current.splice(0)) next.add(options);
+      setRegion({ module, queue: next });
+    });
   }, []);
-
-  const removeAllToasts = useCallback(() => {
-    setToasts([]);
-  }, []);
-
   const addToast = useCallback(
     (options: ToastOptions): string => {
-      const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const timeout = options.timeout ?? 5000;
-
-      setToasts((prev) => {
-        const newToasts = [...prev, { ...options, id }];
-        // Limit max toasts
-        if (newToasts.length > maxToasts) {
-          return newToasts.slice(-maxToasts);
-        }
-        return newToasts;
-      });
-
-      // Auto dismiss
-      if (timeout > 0) {
-        setTimeout(() => {
-          removeToast(id);
-          options.onClose?.();
-        }, timeout);
-      }
-
-      return id;
+      if (queue.current) return queue.current.add(options);
+      const key = `pending-toast-${pending.current.length}-${Date.now()}`;
+      pending.current.push({ key, options });
+      load();
+      return key;
     },
-    [maxToasts, removeToast],
+    [load],
   );
-
+  const value = useMemo(
+    () => ({
+      addToast,
+      removeToast: (key: string) => {
+        pending.current = pending.current.filter((item) => item.key !== key);
+        queue.current?.close(key);
+      },
+      removeAllToasts: () => {
+        pending.current = [];
+        queue.current?.clear();
+      },
+    }),
+    [addToast],
+  );
+  const Region = region?.module.ToastRegion;
   return (
-    <ToastContext.Provider
-      value={{ toasts, addToast, removeToast, removeAllToasts }}
-    >
+    <ToastContext.Provider value={value}>
       {children}
-      <ToastRegion
-        toasts={toasts}
-        position={position}
-        onDismiss={removeToast}
-      />
+      {Region && region && (
+        <Region queue={region.queue.queue} placement={placement} />
+      )}
     </ToastContext.Provider>
   );
 }
-
-/**
- * ToastRegion - Container for displaying toasts
- */
-interface ToastRegionProps {
-  toasts: ToastItem[];
-  position: ToastPosition;
-  onDismiss: (id: string) => void;
-}
-
-function ToastRegion({ toasts, position, onDismiss }: ToastRegionProps) {
-  if (toasts.length === 0) return null;
-
-  return (
-    <div
-      className="react-aria-ToastRegion"
-      data-position={position}
-      role="region"
-      aria-label="Notifications"
-      aria-live="polite"
-    >
-      {toasts.map((toast) => (
-        <Toast
-          key={toast.id}
-          toast={toast}
-          onDismiss={() => onDismiss(toast.id)}
-        />
-      ))}
-    </div>
-  );
-}
-
-/**
- * Toast - Individual toast notification
- */
-interface ToastProps {
-  toast: ToastItem;
-  onDismiss: () => void;
-}
-
-function Toast({ toast, onDismiss }: ToastProps) {
-  const { title, description, variant = "info" } = toast;
-
-  const Icon = {
-    info: Info,
-    success: CircleCheck,
-    warning: AlertTriangle,
-    error: CircleAlert,
-  }[variant];
-
-  return (
-    <div
-      className="react-aria-Toast"
-      data-variant={variant}
-      role="alert"
-      aria-atomic="true"
-    >
-      <div className="toast-icon">
-        <Icon size={20} />
-      </div>
-      <div className="toast-content">
-        <div className="toast-title">{title}</div>
-        {description && <div className="toast-description">{description}</div>}
-      </div>
-      <Button
-        className="toast-close"
-        aria-label="Dismiss"
-        onPress={onDismiss}
-        variant="secondary"
-        size="S"
-      >
-        <X size={16} />
-      </Button>
-    </div>
-  );
-}
-
-export { Toast, ToastRegion };
