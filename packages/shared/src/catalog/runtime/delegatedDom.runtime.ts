@@ -26,11 +26,13 @@ import {
   Fragment,
   createContext,
   createElement,
+  useContext,
   type CSSProperties,
   type ElementType,
   type ReactElement,
   type ReactNode,
 } from "react";
+import { CatalogToastShapeContext } from "./toastShapeContext";
 
 import { DEFAULT_SLOT, TextContext } from "react-aria-components";
 
@@ -674,6 +676,9 @@ function toastGlyph(iconName: string): ReactElement {
 /** S2 `CloseButton staticColor="white"` of a placed Toast (its name in the locale — en · ko). */
 function ToastNodeClose({ onClose }: { onClose?: () => void }): ReactElement {
   const { locale } = useLocale();
+  // (In the app's toast region — the shape of a queued toast — closing closes that toast.)
+  const shape = useContext(CatalogToastShapeContext);
+  const press = shape ? shape.close : onClose;
   return createElement(
     AriaButton,
     {
@@ -681,9 +686,21 @@ function ToastNodeClose({ onClose }: { onClose?: () => void }): ReactElement {
       "aria-label":
         CATALOG_TOAST_CLOSE_LABELS[locale.split("-")[0] ?? "en"] ??
         CATALOG_TOAST_CLOSE_LABELS.en,
-      ...(onClose ? { onPress: onClose } : {}),
+      ...(press ? { onPress: press } : {}),
     },
     toastGlyph(CATALOG_TOAST_CLOSE_ICON),
+  );
+}
+/** The Toast's box: `alert` on a page; inside RAC's Toast (the region — already an alertdialog) none. */
+function ToastNodeBox(
+  props: Record<string, unknown> & { children?: ReactNode },
+): ReactElement {
+  const shape = useContext(CatalogToastShapeContext);
+  const { children, ...rest } = props;
+  return createElement(
+    "div",
+    { ...rest, ...(shape ? {} : { role: "alert" }) },
+    children,
   );
 }
 
@@ -3008,13 +3025,12 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             })
         : undefined;
       return createElement(
-        "div",
+        ToastNodeBox,
         {
           ...marker(input),
           // The rule's class · variant: the generated `.react-aria-Toast` sheet sizes and paints it
           // as the Canvas does (without the class an empty Toast was its text's height).
           ...chrome(input, "Toast"),
-          role: "alert",
           style: input.style,
         },
         ...(icon

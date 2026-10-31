@@ -171,6 +171,18 @@ function validateDataReferences(
       if (!root.pageIds.includes(pageId))
         throw new CatalogValidationError("DANGLING_PAGE", pageId);
 }
+/** The app's toast shape is one of the project's components (its Toast root: `setToastShape`). */
+function validateToastShape(
+  root: ProjectEntry,
+  get: (id: string) => CatalogEntry | undefined,
+): void {
+  if (!root.toastShapeId) return;
+  if (
+    !root.definitionIds.includes(root.toastShapeId) ||
+    get(root.toastShapeId)?.kind !== "definition"
+  )
+    throw new CatalogValidationError("DANGLING_DEFINITION", root.toastShapeId);
+}
 export function referencedIds(entry: CatalogEntry): string[] {
   const ids: string[] = [];
   const address = (value: {
@@ -207,6 +219,9 @@ export function referencedIds(entry: CatalogEntry): string[] {
       // (ADR-294: a variable property's input variable.)
       if (property.variableId) ids.push(property.variableId);
     }
+  // (The app's toast shape — a deleted component leaves it.)
+  if (entry.kind === "project" && entry.toastShapeId)
+    ids.push(entry.toastShapeId);
   if (entry.kind === "interaction") {
     ids.push(entry.ownerId);
     if (entry.address) address(entry.address);
@@ -944,6 +959,7 @@ export class CatalogGraph {
       }
       if (root.activeThemeId && !root.themeIds.includes(root.activeThemeId))
         throw new CatalogValidationError("DANGLING_THEME", root.activeThemeId);
+      validateToastShape(root, get);
       validateDataReferences(root, get);
       // (An entry the project listed and still holds stays listed — only the entries this step
       //   changes are checked below, so a project put that drops one would leave it unowned.)
@@ -1194,6 +1210,7 @@ export class CatalogGraph {
     }
     if (root.activeThemeId && !root.themeIds.includes(root.activeThemeId))
       throw new CatalogValidationError("DANGLING_THEME", root.activeThemeId);
+    validateToastShape(root, get);
     validateDataReferences(root, get);
     const owners = new Map<string, string>();
     const templateRoots = new Set<string>();

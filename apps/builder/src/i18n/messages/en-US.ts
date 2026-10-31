@@ -1709,6 +1709,8 @@ const catalog: TranslationKeys = {
     toastAlign: "Toast Align",
     toastAlignCenter: "Center",
     toastAlignEnd: "End",
+    toastShape: "Toast Shape",
+    toastShapeDefault: "Default (Library Toast)",
     sitePublishPending:
       "Title, description, favicon, language and app icon apply to the Preview and the published page — search, redirects and access are coming.",
     siteGeneral: "General",

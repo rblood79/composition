@@ -1120,6 +1120,10 @@ export function removeWithReferrers(
         pruneComponentPropertyTargets(draft, pruned, (_property, target) =>
           draft.removed(target.id),
         );
+      } else if (entry.kind === "project") {
+        // (A deleted component that was the app's toast shape — the Library's Toast again.)
+        const { toastShapeId, ...rest } = draft.project();
+        if (toastShapeId && draft.removed(toastShapeId)) draft.write(rest);
       } else if (entry.kind === "node") {
         const kept = entry.descendantOverrides.filter(
           (item) =>

@@ -1602,10 +1602,13 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "activeThemeId",
           "pageLayout",
           "toastPlacement",
+          "toastShapeId",
         ],
         "entry",
       );
       string(item.name, "entry.name");
+      if (item.toastShapeId !== undefined)
+        id(item.toastShapeId, "project:definition:", "entry.toastShapeId");
       for (const [key, prefix] of [
         ["pageIds", "project:page:"],
         ["definitionIds", "project:definition:"],

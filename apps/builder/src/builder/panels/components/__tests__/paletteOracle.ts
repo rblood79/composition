@@ -11,6 +11,7 @@ export interface PaletteOracleItem {
   label: string;
   icon: string;
   layoutOnly?: boolean;
+  libraryOnly?: boolean;
 }
 
 export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
@@ -87,11 +88,13 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "AlertTriangle",
   },
   // 295 후속 C9 (사용자 「Toast 컴포넌트가 컴포넌트 패널에 없다」): S2 Toast — InlineAlert 뒤.
+  // 2026-11-01: the Library card only (the app's toast shape) — the panel does not insert it.
   {
     type: "Toast",
     category: "content",
     label: "toast",
     icon: "Bell",
+    libraryOnly: true,
   },
   {
     type: "ProgressCircle",

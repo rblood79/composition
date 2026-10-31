@@ -113,13 +113,13 @@ async function open(props: Record<string, string> = {}) {
 }
 
 describe("S2 Toast node (palette 「toast」)", () => {
-  it("the Components panel offers it in Content, after InlineAlert", () => {
+  it("the Library draws its card in Content after InlineAlert; the Components panel does not insert it (user 2026-11-01 — the app's one toast shape)", () => {
     const items = getPaletteItems();
     const types = items.map((item) => item.type);
     expect(types[types.indexOf("InlineAlert") + 1]).toBe("Toast");
-    expect(items.find((item) => item.type === "Toast")?.category).toBe(
-      "content",
-    );
+    const toast = items.find((item) => item.type === "Toast")!;
+    expect(toast.category).toBe("content");
+    expect(toast.libraryOnly).toBe(true);
   });
 
   it("its origin: Text + the S2 action Button; info by default", async () => {

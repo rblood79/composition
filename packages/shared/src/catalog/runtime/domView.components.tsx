@@ -2,14 +2,27 @@ import { CollectionDataContext } from "@composition/shared";
 import { CatalogPreviewToastBridge } from "./toastBridge";
 import { RouterProvider } from "react-aria-components";
 
-import { ToastProvider, useToast } from "@composition/shared/components";
+import {
+  ToastProvider,
+  useToast,
+  type ToastRenderInput,
+} from "@composition/shared/components";
 
 import {
   Fragment,
+  useCallback,
   useEffect,
+  useMemo,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
+
+import type { CatalogCompositionRoot } from "./compositionRoot";
+import {
+  CatalogToastShapeContext,
+  catalogToastShapeParts,
+  catalogToastShapeRuntime,
+} from "./toastShape";
 
 import { CatalogPreviewSession } from "./catalogPreviewSession";
 
@@ -81,24 +94,73 @@ export function CatalogPreviewDataProvider({
   );
 }
 
-/** The app's toast region, where the project places it (S2 `ToastContainer` `placement`). */
+/**
+ * The app's toast region, where the project places it (S2 `ToastContainer` `placement`), drawing
+ * the project's toast shape when it chose one (user 2026-11-01 — RAC `MyToastRegion`: the shape
+ * component's template with the toast's data over it, `toastShape.ts`).
+ */
 export function CatalogToastProvider({
   session,
+  runtime,
   children,
 }: {
   session: CatalogPreviewSession;
+  /** The session's rule runtime — the shape's own rules · overrides render with it. */
+  runtime?: CatalogDomRuntime;
   children: ReactNode;
 }) {
   useSyncExternalStore(session.subscribe, session.getVersion);
   const project = session.graph?.getEntry(session.graph.projectId);
+  const shape = session.toastShapeRoot();
+  const renderToast = useCallback(
+    (toast: ToastRenderInput) =>
+      shape ? (
+        <CatalogToastShape root={shape} runtime={runtime} toast={toast} />
+      ) : null,
+    [shape, runtime],
+  );
   return (
     <ToastProvider
       placement={catalogToastPlacement(
         project?.kind === "project" ? project.toastPlacement : undefined,
       )}
+      {...(shape ? { renderToast } : {})}
     >
       {children}
     </ToastProvider>
+  );
+}
+
+/** One toast as the app's shape: the shape's template, this toast's data over its records. */
+function CatalogToastShape({
+  root,
+  runtime,
+  toast,
+}: {
+  root: CatalogCompositionRoot;
+  runtime?: CatalogDomRuntime;
+  toast: ToastRenderInput;
+}) {
+  const [record] = root.pageRootRecords();
+  const shaped = useMemo(
+    () =>
+      record
+        ? catalogToastShapeRuntime(
+            runtime,
+            catalogToastShapeParts(root, record),
+            toast,
+          )
+        : undefined,
+    [root, record, runtime, toast],
+  );
+  const context = useMemo(() => ({ close: toast.close }), [toast.close]);
+  if (!record || !shaped) return null;
+  return (
+    <CatalogToastShapeContext.Provider value={context}>
+      <Fragment key={`${rootKey(root)}:${record}`}>
+        {renderCatalogDom(root, record, { slotMode: "page", runtime: shaped })}
+      </Fragment>
+    </CatalogToastShapeContext.Provider>
   );
 }
 

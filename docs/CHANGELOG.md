@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Toast = 앱의 토스트 모양 하나 (RAC `MyToastRegion`) — 페이지 요소가 아니다] - 2026-11-01
+
+### Changed
+
+- **Toast 의 구조 (사용자 결정 2026-11-01 「RAC · RSC 레퍼런스가 제공하는 것이 Trigger 없는 Toast 가 맞는가」 → 「제안대로 진행」)** — 레퍼런스 대조 결과: Popover · Modal · Tooltip 은 버튼에 붙는 overlay 라 Trigger 가 열림 상태 · 위치를 소유하지만, Toast 는 **앱 전체 큐** 다 — ToastTrigger 가 없고 어디서든 `queue.add(...)` (S2 `ToastQueue.positive(...)`) 를 부르면 root 의 region 하나가 그린다. RAC `<Toast>` 는 `ToastRegion` 의 render 함수 안에서만 `toast` 객체를 받아 존재하고 S2 는 `<Toast>` 를 노출하지 않는다 (`ToastContainer` + `ToastQueue`). 그래서 사용자가 만드는 것은 **앱의 토스트 모양 하나** (`Toast.tsx` 의 `MyToastRegion` · `MyToast`) 이고, 띄울 때는 데이터만 넘긴다. 페이지에 고정으로 보이는 알림은 InlineAlert 다.
+  - **컴포넌트 패널에서 Toast 삽입을 뺀다** (295 후속 C9 의 팔레트 삽입을 되돌림 — `PaletteItem.libraryOnly`). Library 의 Toast 카드 (원본) 는 그대로다 — 잠금을 풀어 고치면 그것이 앱의 토스트 모양이다. swap · slot 추천에서도 빠진다. 이미 페이지에 놓인 Toast 노드는 그대로 둔다 (마이그레이션 없음).
+  - **Site 설정 앱 절에 「토스트 모양」** (`ProjectEntry.toastShapeId` · `setToastShape`, 히스토리 「Toast shape」): 기본 (Library Toast) 또는 root 가 Toast 인 사용자 컴포넌트 (사용자 프로젝트의 `ToastTest`). Toast 가 아닌 컴포넌트는 `TOAST_SHAPE_NOT_TOAST` 로 거절, 모양으로 쓰던 컴포넌트를 지우면 기본으로 돌아간다 (`removeWithReferrers`).
+  - **Preview · Publish 의 region 이 고른 모양으로 그린다** (`toastShape.ts` · `CatalogToastProvider renderToast`): RAC `<Toast>` (alertdialog · F6 · focus) 안에 그 컴포넌트의 template 을 세션의 정의 보기 root (`toastShapeRoot`) 로 그리고, Do 의 데이터를 record 위에 얹는다 — title 은 Toast 의 첫 글자 (Button 안 제외), actionLabel 은 첫 Button 의 글자 (없으면 Button 숨김), variant 는 root. 모양의 닫기 버튼은 그 토스트를 닫고 (`CatalogToastShapeContext`), Button 은 Do 의 action 을 실행한 뒤 `shouldCloseOnAction` 이면 닫는다. 안쪽 상자는 region 안에서 `role="alert"` 를 내지 않는다 (바깥이 이미 alertdialog). 모양을 고르지 않으면 종전 S2 토스트.
+  - Do 「toast」 와 Interactions 패널은 그대로 (데이터만) — 레퍼런스의 호출 방식이다.
+  - 위치: `paletteItems.ts` · `ComponentList.tsx` · `swapInstance.ts` · `slots.ts` · `document/types.ts` · `validation.ts` · `graph.ts` (`validateToastShape` · 참조) · `commands/project.ts` (`setToastShape`) · `commands/structure.ts` · `runtime/toastShape.ts` (새) · `toastShapeContext.ts` (새) · `catalogPreviewSession.ts` (`toastShapeRoot`) · `domView.components.tsx` · `delegatedDom.runtime.ts` (`ToastNodeBox` · 닫기) · `components/Toast.tsx` (`ToastRenderer`) · `ToastRegion.lazy.tsx` · `Toast.css` · `panels/site/useCatalogToastShape.ts` (새) · `SitePageSections.tsx` · i18n · `catalogHistoryLabels.ts` · `codeView/fieldCoverage.ts` (`src/Toast.tsx` — code view 는 다음 커밋).
+  - 검증: `s2ToastShape` 3 (제목 · variant · Button 숨김 · 닫기 · 안쪽 role 없음 / actionLabel → Button · 누르면 action + 닫힘 / Toast 아닌 컴포넌트 거절 · 컴포넌트 삭제 → 기본 · undo 복원) · 원복 RED 3종 (모양 렌더 끊기 → 2 실패 · 삭제 정리 끊기 → 1 · Button 숨김 끊기 → 1) · `SitePageSections` 모양 picker · `paletteItems` oracle (`libraryOnly`) · `s2ToastNode` · `fieldCoverage` 인벤토리 +1 · type-check · live 5175 (Content 16 → 15 · Toast 원본으로 `ToastTest` 컴포넌트 → Button 규칙 toast → Site › App › Toast Shape 에 「Default (Library Toast)」 · 「ToastTest」 → ToastTest 선택 (히스토리 「Toast shape」) → Preview 에서 버튼 → 오른쪽 아래에 ToastTest 모양 154.9 × 56 · info · 「Message」 · Button display none · 닫기 → 사라짐; 규칙을 negative · actionLabel 「Undo」 · 누르면 닫기로 바꾸고 다시 Preview → 바탕 rgb(251 44 54) · 「Deleted」 · 흰 「Undo」 → 누르면 사라짐, 두 Preview 콘솔 오류 0).
+  - 남은 것: code view (`Toast.tsx` 큐 + 모양 + region · `App.tsx` `<MyToastRegion/>` · 페이지 `queue.add`) 는 다음 커밋. 사용자 컴포넌트 파일 (`src/components/<Name>.tsx`) 은 ADR-296 Phase 4 · 5 대상이라 아직 트리에 없다.
+
 ## [ADR-296 Phase 0 ~ 3 — 코드 보기 = 프로젝트 파일 트리 (App · pages · data · api · state)] - 2026-10-31
 
 ### Added

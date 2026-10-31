@@ -37,6 +37,7 @@ export type CodeViewFile =
   | "index.html"
   | "site.config.ts"
   | "src/App.tsx"
+  | "src/Toast.tsx"
   | "src/theme.css"
   | "src/state/project.ts"
   | "src/data/<collection>.ts"
@@ -177,6 +178,12 @@ export const PROJECT_COVERAGE: CodeViewCoverage<ProjectEntry> = {
     "src/App.tsx",
     '<ToastRegion placement="…">',
     "setToastPlacement",
+    2,
+  ),
+  toastShapeId: at(
+    "src/Toast.tsx",
+    "<ToastRegion>{({toast}) => <Shape toast={toast} />}</ToastRegion>",
+    "setToastShape",
     2,
   ),
 };

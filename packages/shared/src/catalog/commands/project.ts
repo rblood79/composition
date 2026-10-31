@@ -23,7 +23,12 @@ import type {
   TokenType,
 } from "../document/types";
 import type { CatalogCommand } from "./compose";
-import { CommandDraft, fail, sameAddress } from "./context";
+import {
+  CommandDraft,
+  definitionTypeName,
+  fail,
+  sameAddress,
+} from "./context";
 import type { NewId } from "./materialize";
 import {
   removeWithReferrers,
@@ -320,6 +325,29 @@ export const setToastPlacement =
         : project,
     );
     return { label: input.label ?? "Toast placement", ops: draft.ops() };
+  };
+
+/**
+ * The app's toast shape (user 2026-11-01 — RAC `MyToastRegion`: one shape per app, the Do passes
+ * data): a project component whose root is a Toast; `undefined` = the Library's Toast origin.
+ */
+export const setToastShape =
+  (input: {
+    id: EntryId<"definition"> | undefined;
+    label?: string;
+  }): CatalogCommand =>
+  (reader) => {
+    const draft = new CommandDraft(reader);
+    if (input.id) {
+      const definition = draft.read(input.id);
+      if (definition?.kind !== "definition" || definition.usage === "layout")
+        fail("DANGLING_DEFINITION", input.id);
+      if (definitionTypeName(reader, input.id) !== "Toast")
+        fail("TOAST_SHAPE_NOT_TOAST", input.id);
+    }
+    const { toastShapeId: _shape, ...project } = draft.project();
+    draft.write(input.id ? { ...project, toastShapeId: input.id } : project);
+    return { label: input.label ?? "Toast shape", ops: draft.ops() };
   };
 
 // ── Reusable page layouts ──────────────────────────────────────────────────

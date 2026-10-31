@@ -173,6 +173,8 @@ const ComponentList = memo(
       for (const key of Object.keys(categoryConfig)) groups[key] = [];
       for (const item of getPaletteItems()) {
         if (!isLayoutMode && item.layoutOnly) continue;
+        // (The Library's card only — the app's toast shape, not a page element.)
+        if (item.libraryOnly) continue;
         (groups[item.category] ??= []).push(item);
       }
       return groups;

@@ -110,6 +110,12 @@ export interface PaletteItem {
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   /** Layout 모드에서만 노출(Slot). */
   layoutOnly?: boolean;
+  /**
+   * The Library page draws its origin card, but the Components panel does not offer it on a page
+   * (user 2026-11-01 — Toast is the app's one toast shape, RAC `MyToastRegion`, not a page element;
+   * `toast` Do data shows in it). Swap · slot suggestions leave it out too.
+   */
+  libraryOnly?: boolean;
 }
 
 /**
@@ -207,6 +213,7 @@ const PALETTE_ONLY: Record<string, Omit<PanelMeta, "placeable">> = {
 const PALETTE_ORDER: ReadonlyArray<{
   type: string;
   source: "catalog" | "overlay";
+  libraryOnly?: true;
 }> = [
   { type: "Text", source: "catalog" },
   { type: "Icon", source: "catalog" },
@@ -224,7 +231,9 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "StatusLight", source: "catalog" },
   { type: "InlineAlert", source: "catalog" },
   // 295 후속 C9 (사용자 「Toast 컴포넌트가 컴포넌트 패널에 없다」): S2 Toast 한 장 — InlineAlert 뒤 (content).
-  { type: "Toast", source: "catalog" },
+  // 2026-11-01 (user — RAC · S2 have no Toast element on a page, only the app's toast shape):
+  // the Library card only; the panel does not insert it.
+  { type: "Toast", source: "catalog", libraryOnly: true },
   { type: "ProgressCircle", source: "catalog" },
   { type: "Image", source: "overlay" },
   { type: "IllustratedMessage", source: "catalog" },
@@ -326,7 +335,7 @@ function resolveIcon(
  * 순서 = PALETTE_ORDER(palette UI 표시 순서).
  */
 export function getPaletteItems(): PaletteItem[] {
-  return PALETTE_ORDER.flatMap(({ type, source }) => {
+  return PALETTE_ORDER.flatMap(({ type, source, libraryOnly }) => {
     const meta =
       source === "catalog"
         ? // ADR-148 Phase 1: 동명 primitive/reusable 공존 type(Toolbar/Form)은 placeable
@@ -356,6 +365,7 @@ export function getPaletteItems(): PaletteItem[] {
       icon: resolveIcon(meta.icon),
     };
     if (meta.layoutOnly) item.layoutOnly = true;
+    if (libraryOnly) item.libraryOnly = true;
     return item;
   });
 }

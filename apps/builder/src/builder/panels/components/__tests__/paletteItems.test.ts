@@ -55,6 +55,10 @@ describe("ADR-912 collapse — getPaletteItems() == palette oracle (회귀 0)", 
         mismatches.push(
           `${o.type}.layoutOnly: oracle=${!!o.layoutOnly} derived=${!!d.layoutOnly}`,
         );
+      if (Boolean(d.libraryOnly) !== Boolean(o.libraryOnly))
+        mismatches.push(
+          `${o.type}.libraryOnly: oracle=${!!o.libraryOnly} derived=${!!d.libraryOnly}`,
+        );
     }
     expect(mismatches, `panel 메타 불일치:\n${mismatches.join("\n")}`).toEqual(
       [],

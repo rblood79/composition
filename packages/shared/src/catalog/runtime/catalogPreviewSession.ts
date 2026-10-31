@@ -1960,6 +1960,53 @@ export class CatalogPreviewSession {
     this.options.applyTheme?.(state);
     return changed;
   }
+  private shapeRoot:
+    | { definitionId: string; revision: number; theme?: string; root: CatalogCompositionRoot }
+    | undefined;
+  /**
+   * The app's toast shape drawn (user 2026-11-01 — RAC `MyToastRegion`): a root in the shape
+   * component's definition view, one per document revision · theme. `undefined` = S2's toast
+   * (no shape chosen, or the component gone).
+   */
+  toastShapeRoot(): CatalogCompositionRoot | undefined {
+    const graph = this.graph;
+    const project = graph?.getEntry(graph.projectId);
+    const definitionId =
+      project?.kind === "project" ? project.toastShapeId : undefined;
+    if (!graph || !this.runtime || !definitionId) return undefined;
+    if (graph.getEntry(definitionId)?.kind !== "definition") return undefined;
+    const known = this.shapeRoot;
+    if (
+      known &&
+      known.definitionId === definitionId &&
+      known.revision === graph.revision &&
+      known.theme === this.themeKey
+    )
+      return known.root;
+    const root = new CatalogCompositionRoot(
+      this.runtime,
+      this.options.engine(),
+      this.options.viewport,
+      undefined,
+      undefined,
+      undefined,
+      this.options.locale,
+      {
+        ...this.options.root,
+        breakpoint: this.breakpoint,
+        definitionView: definitionId,
+        state: this.stateSource(),
+        ...(this.colorMode ? { colorMode: this.colorMode } : {}),
+      },
+    );
+    this.shapeRoot = {
+      definitionId,
+      revision: graph.revision,
+      theme: this.themeKey,
+      root,
+    };
+    return root;
+  }
   private createRoot(): CatalogCompositionRoot {
     return new CatalogCompositionRoot(
       this.runtime!,

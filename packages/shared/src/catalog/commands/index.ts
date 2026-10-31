@@ -99,6 +99,7 @@ export {
   setPageLayoutSettings,
   setSiteSettings,
   setToastPlacement,
+  setToastShape,
   setThemeToken,
   updatePage,
   updateRecord,

@@ -41,7 +41,12 @@ import {
   catalogDeviceScaledCss,
 } from "../catalog/runtime/deviceTypography";
 
-import type { ToastOptions, ToastPlacement, ToastVariant } from "./Toast";
+import type {
+  ToastOptions,
+  ToastPlacement,
+  ToastRenderer,
+  ToastVariant,
+} from "./Toast";
 
 interface ToastValue {
   title: string;
@@ -154,6 +159,8 @@ interface StackValue {
   placement: "top" | "bottom";
   align: "center" | "end";
   reduceMotion: boolean;
+  /** The app's own toast shape (absent = S2's look). */
+  renderToast?: ToastRenderer;
 }
 const StackContext = createContext<StackValue>({
   expanded: false,
@@ -186,9 +193,11 @@ function usePrefersReducedMotion(): boolean {
 export function ToastRegion({
   queue,
   placement,
+  renderToast,
 }: {
   queue: RACToastQueue<ToastValue>;
   placement: ToastPlacement;
+  renderToast?: ToastRenderer;
 }) {
   const [side, align = "center"] = placement.split(" ") as [
     "top" | "bottom",
@@ -262,8 +271,9 @@ export function ToastRegion({
       placement: side,
       align: align === "end" ? ("end" as const) : ("center" as const),
       reduceMotion: prefersReducedMotion,
+      ...(renderToast ? { renderToast } : {}),
     }),
-    [expanded, toggle, count, side, align, prefersReducedMotion],
+    [expanded, toggle, count, side, align, prefersReducedMotion, renderToast],
   );
   return (
     <RACToastRegion
@@ -336,8 +346,15 @@ function toastBoxStyle(variant: ToastVariant): CSSProperties {
  * Text node's sheet, which paints `--fg` over the toast's white.)
  */
 function ToastItem({ toast }: { toast: QueuedToast<ToastValue> }) {
-  const { expanded, toggle, count, placement, align, reduceMotion } =
-    useContext(StackContext);
+  const {
+    expanded,
+    toggle,
+    count,
+    placement,
+    align,
+    reduceMotion,
+    renderToast,
+  } = useContext(StackContext);
   const toastRef = useRef<HTMLDivElement>(null);
   const messages = useMessages();
   const variant = toast.content.variant;
@@ -371,6 +388,56 @@ function ToastItem({ toast }: { toast: QueuedToast<ToastValue> }) {
     );
   const Icon = ICONS[variant];
   const single = !isMain || count <= 1 || expanded;
+  // The app's own shape (user 2026-11-01 — RAC `MyToastRegion`): RAC's `<Toast>` (the alertdialog ·
+  // F6 · focus) holds the shape's element; the shape draws the box, its text, its action and close.
+  if (renderToast)
+    return (
+      <RACToast
+        ref={toastRef}
+        toast={toast}
+        className="catalog-toast catalog-toast-shaped"
+        data-variant={variant}
+        style={{
+          zIndex: count - index - 1,
+          ...viewTransition(toast.key, [
+            "catalog-toast",
+            isMain ? "" : "catalog-toast-bg",
+            `catalog-toast-${placement}`,
+            align === "end" ? "catalog-toast-end" : "",
+          ]),
+        }}
+      >
+        {renderToast({
+          key: toast.key,
+          title: toast.content.title,
+          variant,
+          ...(toast.content.actionLabel
+            ? {
+                actionLabel: toast.content.actionLabel,
+                onAction: toast.content.onAction,
+                shouldCloseOnAction: toast.content.shouldCloseOnAction,
+              }
+            : {}),
+          close: () => state?.close(toast.key),
+        })}
+        {!single && (
+          <Button
+            className="catalog-toast-expand catalog-toast-shaped-expand"
+            style={{ minHeight: catalogDeviceLength("{size.height.M}") }}
+            onPress={() => {
+              toastRef.current?.focus();
+              toggle();
+            }}
+          >
+            <Text className="catalog-toast-title">{messages.showAll}</Text>
+            <ChevronDown
+              aria-hidden
+              style={placement === "bottom" ? { rotate: "180deg" } : undefined}
+            />
+          </Button>
+        )}
+      </RACToast>
+    );
   return (
     <RACToast
       ref={toastRef}

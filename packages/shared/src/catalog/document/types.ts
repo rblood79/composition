@@ -790,6 +790,13 @@ export interface ProjectEntry {
    * = `bottom end`, the region's place before (S2's own default is `bottom`).
    */
   toastPlacement?: CatalogToastPlacement;
+  /**
+   * The app's toast shape (user 2026-11-01 — RAC `Toast.tsx` `MyToastRegion`: one shape per app,
+   * a `toast` Do passes data): a project component whose root is a Toast; absent = the Library's
+   * Toast origin. The region renders every toast as it, the Do's title in its text, its action
+   * label on its Button.
+   */
+  toastShapeId?: EntryId<"definition">;
 }
 /** ADR-235 content address of an uploaded asset (`asset:sha256-<hex>` — the asset GC reads it). */
 export type CatalogAssetUrl = `asset:sha256-${string}`;

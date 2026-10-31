@@ -93,7 +93,7 @@ export function catalogSwapCandidates(
         add(id, definition.name, "local");
     }
   for (const item of getPaletteItems()) {
-    if (item.layoutOnly) continue;
+    if (item.layoutOnly || item.libraryOnly) continue;
     const definitionId = catalogPaletteDefinitionId(graph.library, item.type);
     if (graph.library.definitions.has(definitionId))
       add(definitionId, item.label, "library");

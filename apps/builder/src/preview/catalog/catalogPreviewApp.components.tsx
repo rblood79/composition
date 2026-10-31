@@ -19,7 +19,7 @@ export function CatalogPreviewApp({
 }) {
   return (
     <PreviewLocale session={session}>
-      <CatalogToastProvider session={session}>
+      <CatalogToastProvider session={session} runtime={runtime}>
         <CatalogPreviewToasts toast={toast} />
         <CatalogPreviewDataProvider session={session}>
           <CatalogPreviewView session={session} runtime={runtime} />

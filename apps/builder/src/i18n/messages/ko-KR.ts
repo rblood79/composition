@@ -1704,6 +1704,8 @@ const catalog: TranslationKeys = {
     toastAlign: "토스트 정렬",
     toastAlignCenter: "가운데",
     toastAlignEnd: "끝",
+    toastShape: "토스트 모양",
+    toastShapeDefault: "기본 (Library Toast)",
     sitePublishPending:
       "제목 · 설명 · favicon · 언어 · 앱 아이콘은 Preview 와 게시 페이지에 적용됩니다 — 검색 · 리디렉션 · 접근 설정의 게시 반영은 준비 중입니다.",
     siteGeneral: "일반",

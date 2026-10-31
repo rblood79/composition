@@ -487,6 +487,7 @@ export function catalogSlotInsertOptions(
     }
     // The palette's primitives (Text · Icon · Image · Separator · Frame …): no origin of their own.
     for (const item of getPaletteItems()) {
+      if (item.libraryOnly) continue;
       const itemType = item.componentType ?? item.type;
       const option = ofType(itemType);
       if (!option || origins.has(option.definitionId)) continue;

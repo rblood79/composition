@@ -44,10 +44,29 @@ export interface ToastOptions {
 
 type RegionModule = typeof import("./ToastRegion.lazy");
 
+/** One queued toast as the app's own shape receives it (RAC `MyToastRegion`'s render function's `toast`). */
+export interface ToastRenderInput {
+  key: string;
+  title: string;
+  variant: ToastVariant;
+  actionLabel?: string;
+  onAction?: () => void;
+  shouldCloseOnAction?: boolean;
+  /** Closes this toast (the shape's close button · its action when `shouldCloseOnAction`). */
+  close: () => void;
+}
+/**
+ * The app's toast shape (user 2026-11-01 — RAC `Toast.tsx` `MyToastRegion`: one shape per app, the
+ * queue passes data): what the region renders inside RAC's `<Toast>` for each toast instead of the
+ * S2 look. Absent = S2's toast.
+ */
+export type ToastRenderer = (toast: ToastRenderInput) => ReactNode;
+
 interface ToastProviderProps {
   children: ReactNode;
   /** S2 `ToastContainer` `placement` — default `bottom` (S2's). */
   placement?: ToastPlacement;
+  renderToast?: ToastRenderer;
 }
 
 /**
@@ -57,6 +76,7 @@ interface ToastProviderProps {
 export function ToastProvider({
   children,
   placement = "bottom",
+  renderToast,
 }: ToastProviderProps) {
   const [region, setRegion] = useState<{
     module: RegionModule;
@@ -106,7 +126,11 @@ export function ToastProvider({
     <ToastContext.Provider value={value}>
       {children}
       {Region && region && (
-        <Region queue={region.queue.queue} placement={placement} />
+        <Region
+          queue={region.queue.queue}
+          placement={placement}
+          renderToast={renderToast}
+        />
       )}
     </ToastContext.Provider>
   );

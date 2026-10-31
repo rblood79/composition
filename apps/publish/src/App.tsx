@@ -128,7 +128,7 @@ function PublishedView({
         })
       : [];
   return (
-    <CatalogToastProvider session={session}>
+    <CatalogToastProvider session={session} runtime={runtime}>
       <CatalogPreviewToasts toast={toast} />
       <div className="publish-layout">
         <PageNav

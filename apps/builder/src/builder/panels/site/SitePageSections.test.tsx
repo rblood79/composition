@@ -5,14 +5,23 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SiteAppSection } from "./SitePageSections";
 
-const { changeToastMock } = vi.hoisted(() => ({
+const { changeToastMock, changeShapeMock } = vi.hoisted(() => ({
   changeToastMock: vi.fn(),
+  changeShapeMock: vi.fn(),
 }));
 // The app toast placement moved from Settings (2026-10-28); the page grid stays in Settings.
 vi.mock("./useCatalogToastPlacement", () => ({
   useCatalogToastPlacement: () => ({
     value: "bottom end",
     change: changeToastMock,
+  }),
+}));
+// The app's toast shape (user 2026-11-01): the Library's Toast or a Toast-rooted component.
+vi.mock("./useCatalogToastShape", () => ({
+  useCatalogToastShape: () => ({
+    value: "",
+    options: [{ value: "project:definition:toast-test", label: "ToastTest" }],
+    change: changeShapeMock,
   }),
 }));
 
@@ -133,6 +142,7 @@ vi.mock("@/i18n", () => ({
 describe("Site 패널 — 앱", () => {
   beforeEach(() => {
     changeToastMock.mockReset();
+    changeShapeMock.mockReset();
   });
 
   afterEach(() => {
@@ -149,5 +159,22 @@ describe("Site 패널 — 앱", () => {
       target: { value: "center" },
     });
     expect(changeToastMock).toHaveBeenLastCalledWith("bottom");
+  });
+
+  it("toast 모양 — 기본 (Library Toast) 과 root 가 Toast 인 사용자 컴포넌트 중 고른다", () => {
+    render(<SiteAppSection />);
+    const select = screen.getByLabelText("settings.toastShape") as HTMLSelectElement;
+    expect([...select.options].map((option) => option.textContent)).toEqual([
+      "settings.toastShapeDefault",
+      "ToastTest",
+    ]);
+    fireEvent.change(select, {
+      target: { value: "project:definition:toast-test" },
+    });
+    expect(changeShapeMock).toHaveBeenLastCalledWith(
+      "project:definition:toast-test",
+    );
+    fireEvent.change(select, { target: { value: "" } });
+    expect(changeShapeMock).toHaveBeenLastCalledWith(undefined);
   });
 });

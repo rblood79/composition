@@ -6,12 +6,12 @@ exports[`ADR-296 — every document field has a place in the code (G0) > the inv
   "phases": [
     40,
     7,
-    17,
+    18,
     40,
     37,
     21,
     14,
   ],
-  "total": 221,
+  "total": 222,
 }
 `;
