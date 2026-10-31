@@ -1936,9 +1936,27 @@ export function catalogDerivedProps(
   // (S2 Meter · ProgressBar `staticColor`: the label and the value text in the static color.)
   const staticText = catalogProgressStaticText(node, get, typeOf);
   const colored = staticText ? { ...placed, staticColor: staticText } : placed;
-  // (ADR-257: a Table's header row · Row is a grid on its Table's shared column tracks.)
-  const tracks = catalogTableRowTracks(node, get, typeOf);
-  const tracked = tracks ? { ...colored, _tableTracks: tracks } : colored;
+  // (ADR-257: a Table's header row · Row is a grid on its Table's shared column tracks — the
+  //  selection column at S2's `{size.table.selection-column}`: the Canvas's px, the DOM's
+  //  device variable `_tableDeviceTracks`, ADR-295 후속.)
+  const selectionWidth = resolveToken(
+    "{size.table.selection-column}" as TokenRef,
+  );
+  const tracks = catalogTableRowTracks(
+    node,
+    get,
+    typeOf,
+    typeof selectionWidth === "number" ? selectionWidth : undefined,
+  );
+  const tracked = tracks
+    ? {
+        ...colored,
+        _tableTracks: tracks.tracks,
+        ...(tracks.deviceTracks
+          ? { _tableDeviceTracks: tracks.deviceTracks }
+          : {}),
+      }
+    : colored;
   // (ADR-267: a standalone list's section header sticks — the ListBox rule's section header.)
   const sticky = catalogListSectionHeaderInsets(node, get, typeOf);
   const stuck = sticky ? { ...tracked, ...sticky } : tracked;

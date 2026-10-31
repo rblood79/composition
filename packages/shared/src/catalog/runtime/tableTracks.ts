@@ -8,8 +8,9 @@
  * `ColumnStaticSize` (`minWidth` · `maxWidth` — a px number, `"N%"`). Defaults are RAC's
  * (`TableColumnLayout` — width `1fr`, min width 75px; S2 does not override them). RAC clamps a
  * static width by its min/max too (`calculateColumnSizes`). A selection column (a Column holding
- * `Checkbox[slot=selection]`) is S2's fixed 40px column when it authors no width (S2 TableView
- * `width/minWidth 40`).
+ * `Checkbox[slot=selection]`) is S2's fixed column when it authors no width (S2 TableView
+ * `width/minWidth` 40 · touch 52 — the device token `{size.table.selection-column}`: the Canvas
+ * track is its px, the DOM's its CSS variable, `deviceTrack`).
  *
  * Combinations a grid track cannot express (ADR-257 사용자 결정 3 (a) — stored, not applied, the
  * Design panel names them): `Nfr` + `maxWidth`, a px width with a `%` min/max, a `%` width with a
@@ -20,6 +21,12 @@
 export const CATALOG_COLUMN_DEFAULT_MIN_WIDTH = 75;
 /** S2 TableView selection checkbox column (scale medium — `TableView.tsx` width/minWidth 40). */
 export const CATALOG_SELECTION_COLUMN_WIDTH = 40;
+/**
+ * ADR-295 후속 — the selection column's device width in the DOM (S2 40 · touch 52, not × 1.25 —
+ * `{size.table.selection-column}`, the theme sheet's two sets).
+ */
+export const CATALOG_SELECTION_COLUMN_VAR =
+  "--catalog-token-size-table-selection-column";
 /**
  * ADR-295 후속 — S2 TableView drag column (`TableView.tsx` `allowsDragging` — width/minWidth 16 at
  * scale medium, 20 at large = × 1.25: the device-scaled 16). RAC's reference Table adds the same
@@ -55,24 +62,35 @@ export interface CatalogColumnTrack {
   readonly track: string;
   /** Authored bounds a track cannot express (stored, not applied). */
   readonly ignored?: readonly ("minWidth" | "maxWidth")[];
+  /**
+   * The DOM's track when it follows the device (a selection column without an authored width —
+   * `CATALOG_SELECTION_COLUMN_VAR`, clamped as `track` is); absent = `track` on every device.
+   */
+  readonly deviceTrack?: string;
 }
 
 export interface CatalogColumnInput {
   readonly props: Readonly<Record<string, unknown>>;
   /** The column holds the selection checkbox (`Checkbox[slot=selection]`). */
   readonly selection?: boolean;
+  /**
+   * The selection column's px (`{size.table.selection-column}` — desktop 40, the Canvas's);
+   * default `CATALOG_SELECTION_COLUMN_WIDTH`.
+   */
+  readonly selectionWidth?: number;
 }
 
 /** One Column's track (RAC `calculateColumnSizes` meaning, as one CSS grid track). */
 export function catalogColumnTrack({
   props,
   selection,
+  selectionWidth = CATALOG_SELECTION_COLUMN_WIDTH,
 }: CatalogColumnInput): CatalogColumnTrack {
   const authoredWidth = parseSize(props.width) ?? parseSize(props.defaultWidth);
   const width: Size =
     authoredWidth ??
     (selection
-      ? { kind: "px", value: CATALOG_SELECTION_COLUMN_WIDTH }
+      ? { kind: "px", value: selectionWidth }
       : { kind: "fr", value: 1 });
   const parsedMin = parseSize(props.minWidth);
   const min: Size =
@@ -82,7 +100,7 @@ export function catalogColumnTrack({
           kind: "px",
           value:
             selection && !authoredWidth
-              ? CATALOG_SELECTION_COLUMN_WIDTH
+              ? selectionWidth
               : CATALOG_COLUMN_DEFAULT_MIN_WIDTH,
         };
   const parsedMax = parseSize(props.maxWidth);
@@ -104,7 +122,15 @@ export function catalogColumnTrack({
     else if (max) ignored.push("maxWidth");
     if (min.kind === "px") value = Math.max(value, min.value);
     else ignored.push("minWidth");
-    return done(`${value}px`);
+    const track = done(`${value}px`);
+    if (!selection || authoredWidth) return track;
+    // The selection column's device width — its own floor too, so an authored px max cannot cut
+    // it; an authored px floor clamps it as above.
+    const device = `var(${CATALOG_SELECTION_COLUMN_VAR})`;
+    if (parsedMin?.kind !== "px") return { ...track, deviceTrack: device };
+    const capped =
+      max?.kind === "px" ? `min(${device}, ${max.value}px)` : device;
+    return { ...track, deviceTrack: `max(${capped}, ${parsedMin.value}px)` };
   }
   // A percentage width: `%` bounds clamp it as constants; a px floor (the default 75 or an
   // authored one) is the track's minimum — `minmax(75px, 25%)` = max(75px, 25%) when the row has
@@ -121,6 +147,19 @@ export function catalogTableColumnTracks(
   columns: readonly CatalogColumnInput[],
 ): string {
   return columns.map((column) => catalogColumnTrack(column).track).join(" ");
+}
+
+/**
+ * The DOM's track list when a track follows the device (`deviceTrack`); undefined when every
+ * track is the same on every device (the DOM then reads `catalogTableColumnTracks`).
+ */
+export function catalogTableColumnDeviceTracks(
+  columns: readonly CatalogColumnInput[],
+): string | undefined {
+  const tracks = columns.map((column) => catalogColumnTrack(column));
+  return tracks.some((track) => track.deviceTrack)
+    ? tracks.map((track) => track.deviceTrack ?? track.track).join(" ")
+    : undefined;
 }
 
 // ── Records: the shared track list of a Table's rows ─────────────────────────
@@ -179,7 +218,7 @@ function tableColumns<T extends TrackRecord>(
 }
 
 /** A Column · Cell holding the selection checkbox (`Checkbox[slot=selection]`, in it or one frame down). */
-function isSelectionColumn<T extends TrackRecord>(
+export function catalogTableSelectionColumn<T extends TrackRecord>(
   column: T,
   get: TrackLookup<T>,
   typeOf: TrackTypeOf<T>,
@@ -195,28 +234,38 @@ function isSelectionColumn<T extends TrackRecord>(
 
 /**
  * The track list a Table's header row · Row lays out on (`display: grid` — Canvas `styleOf`, DOM
- * `catalogDomStyle` · the Table parts). Undefined for any other record or a Table without
- * Columns.
+ * `catalogDomStyle` · the Table parts): `tracks` in px (the Canvas's — the selection column at
+ * `selectionWidth`, desktop 40) and `deviceTracks` when a track follows the device (the DOM's — the
+ * selection column's CSS variable). Undefined for any other record or a Table without Columns.
  */
 export function catalogTableRowTracks<T extends TrackRecord>(
   node: T,
   get: TrackLookup<T>,
   typeOf: TrackTypeOf<T>,
-): string | undefined {
+  selectionWidth?: number,
+): { tracks: string; deviceTracks?: string } | undefined {
   const table = catalogTrackTableOf(node, get, typeOf);
   if (!table) return undefined;
   // (A highlight-selection Table has no selection column — Phase 3.)
   const columns = tableColumns(table, get, typeOf).filter(
     (column) =>
-      !(highlightSelection(table) && isSelectionColumn(column, get, typeOf)),
+      !(
+        highlightSelection(table) &&
+        catalogTableSelectionColumn(column, get, typeOf)
+      ),
   );
   if (!columns.length) return undefined;
-  return catalogTableColumnTracks(
-    columns.map((column) => ({
-      props: column.props,
-      ...(isSelectionColumn(column, get, typeOf) ? { selection: true } : {}),
-    })),
-  );
+  const inputs = columns.map((column) => ({
+    props: column.props,
+    ...(catalogTableSelectionColumn(column, get, typeOf)
+      ? { selection: true, selectionWidth }
+      : {}),
+  }));
+  const deviceTracks = catalogTableColumnDeviceTracks(inputs);
+  return {
+    tracks: catalogTableColumnTracks(inputs),
+    ...(deviceTracks ? { deviceTracks } : {}),
+  };
 }
 
 /**
@@ -276,7 +325,9 @@ export function catalogTableSelectionPartHidden<T extends TrackRecord>(
   const row = get(node.parentId);
   const table = row ? catalogTrackTableOf(row, get, typeOf) : undefined;
   return (
-    !!table && highlightSelection(table) && isSelectionColumn(node, get, typeOf)
+    !!table &&
+    highlightSelection(table) &&
+    catalogTableSelectionColumn(node, get, typeOf)
   );
 }
 
@@ -300,7 +351,7 @@ export function catalogTableSelectionParts<T extends TrackRecord>(
     .filter(
       (part) =>
         (typeOf(part) === "Column" || typeOf(part) === "Cell") &&
-        isSelectionColumn(part, get, typeOf),
+        catalogTableSelectionColumn(part, get, typeOf),
     );
 }
 

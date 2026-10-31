@@ -257,6 +257,45 @@ describe("ADR-257 Table column tracks", () => {
     expect(recordOf(workspace, "r1").derivedProps?._tableTracks).toBe(
       "40px minmax(75px, 1fr)",
     );
+    // ADR-295 후속 — the DOM's selection track is the device value (S2 40 · touch 52 — the theme
+    // sheet's two sets), the Canvas's the desktop px above.
+    const html = renderToStaticMarkup(
+      renderCatalogDom(workspace.root, recordOf(workspace, "t").id),
+    );
+    expect(html).toContain(
+      "--table-column-tracks:var(--catalog-token-size-table-selection-column) minmax(75px, 1fr)",
+    );
+    expect(html).toMatch(
+      /<tr[^>]*style="[^"]*grid-template-columns:var\(--catalog-token-size-table-selection-column\) minmax\(75px, 1fr\)/,
+    );
+    // An authored px floor stays the floor on either device; an authored width is the author's.
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("c0") }],
+        props: { minWidth: { kind: "set", value: 45 } },
+      }),
+    );
+    expect(recordOf(workspace, "r1").derivedProps?._tableTracks).toBe(
+      "45px minmax(75px, 1fr)",
+    );
+    expect(
+      renderToStaticMarkup(
+        renderCatalogDom(workspace.root, recordOf(workspace, "t").id),
+      ),
+    ).toContain(
+      "--table-column-tracks:max(var(--catalog-token-size-table-selection-column), 45px) minmax(75px, 1fr)",
+    );
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("c0") }],
+        props: { width: { kind: "set", value: 90 } },
+      }),
+    );
+    const authored = renderToStaticMarkup(
+      renderCatalogDom(workspace.root, recordOf(workspace, "t").id),
+    );
+    expect(authored).toContain("--table-column-tracks:90px minmax(75px, 1fr)");
+    expect(authored).not.toContain("table-selection-column");
   });
 });
 

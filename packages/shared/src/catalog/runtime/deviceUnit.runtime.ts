@@ -9,18 +9,19 @@
  * number and the generated CSS never disagree. No sheet (a test document) → 1.
  */
 import { S2_TOUCH_MEDIA } from "@composition/rendering";
-import { useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { CATALOG_TOUCH_VIEW_ATTRIBUTE } from "./themeVarsCss";
 
 const SIZE_UNIT_VAR = "--catalog-token-size-unit";
 
-function readDeviceUnit(): number {
+/** A device token's px from the document root (`--catalog-token-size-*`); no sheet → `fallback`. */
+function readDeviceTokenPx(name: string, fallback: number): number {
   if (typeof document === "undefined" || typeof getComputedStyle !== "function")
-    return 1;
-  const unit = Number.parseFloat(
-    getComputedStyle(document.documentElement).getPropertyValue(SIZE_UNIT_VAR),
+    return fallback;
+  const value = Number.parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue(name),
   );
-  return Number.isFinite(unit) && unit > 0 ? unit : 1;
+  return Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
 function subscribe(onChange: () => void): () => void {
@@ -44,7 +45,24 @@ function subscribe(onChange: () => void): () => void {
   };
 }
 
+/**
+ * A device token's px (`--catalog-token-size-*` — the theme sheet's desktop / touch set) for a px
+ * number a DOM prop needs; `fallback` (the desktop value) without the sheet and on the server.
+ * ADR-295 후속 — the selection column's S2 40 · 52 (`{size.table.selection-column}`), which is not
+ * the unit × 40.
+ */
+export function useCatalogDeviceTokenPx(
+  name: string,
+  fallback: number,
+): number {
+  const read = useCallback(
+    () => readDeviceTokenPx(name, fallback),
+    [name, fallback],
+  );
+  return useSyncExternalStore(subscribe, read, () => fallback);
+}
+
 /** The device unit (`{size.unit}` — 1 · 1.25) for a px number a DOM prop needs. */
 export function useCatalogDeviceUnit(): number {
-  return useSyncExternalStore(subscribe, readDeviceUnit, () => 1);
+  return useCatalogDeviceTokenPx(SIZE_UNIT_VAR, 1);
 }

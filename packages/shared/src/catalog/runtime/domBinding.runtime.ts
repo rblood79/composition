@@ -175,7 +175,10 @@ import {
   catalogDeviceScaledCss,
   catalogDeviceTypographyCss,
 } from "./deviceTypography";
-import { useCatalogDeviceUnit } from "./deviceUnit.runtime";
+import {
+  useCatalogDeviceTokenPx,
+  useCatalogDeviceUnit,
+} from "./deviceUnit.runtime";
 
 import {
   CATALOG_SLIDER_THICK_TRACK,
@@ -232,8 +235,11 @@ import {
 import {
   CATALOG_DRAG_COLUMN_WIDTH,
   catalogCellSpan,
+  catalogTableSelectionColumn,
   catalogTableSelectionPartHidden,
   catalogTrackTableOf,
+  CATALOG_SELECTION_COLUMN_VAR,
+  CATALOG_SELECTION_COLUMN_WIDTH,
 } from "./tableTracks";
 
 import {
@@ -460,6 +466,27 @@ function CatalogTableDragColumn(): ReactElement {
 }
 
 /**
+ * ADR-295 후속 — a resizable Table's selection Column (a Column holding `Checkbox[slot=selection]`
+ * with no authored width): S2's fixed checkbox column (`TableView.tsx` — `width` · `minWidth`
+ * `scale === 'medium' ? 40 : 52`). RAC's column widths are px numbers, so the device value is read
+ * in JS (`{size.table.selection-column}` — not the unit × 40); without it RAC gave the column its
+ * default 1fr over a 75 floor. An authored floor stays the floor (the track's clamp).
+ */
+function CatalogTableSelectionColumn(
+  props: Record<string, unknown>,
+): ReactElement {
+  const width = useCatalogDeviceTokenPx(
+    CATALOG_SELECTION_COLUMN_VAR,
+    CATALOG_SELECTION_COLUMN_WIDTH,
+  );
+  return createElement(RAC.Column as ElementType, {
+    ...props,
+    width,
+    minWidth: props.minWidth ?? width,
+  });
+}
+
+/**
  * ADR-295 후속 — S2 / RAC Table's drag column (`allowsDragging` — the Table drags,
  * `withTableDrag`): the header's first RAC Column (S2 width 16 · 20, its name for a screen reader
  * only) and each Row's first RAC Cell holding RAC's drag `Button` (S2 `DragHandleButton` — 10 × 22,
@@ -506,7 +533,11 @@ function catalogTableTrackStyle(
   // (Phase 2: a Cell's `colSpan` takes that many of its row's tracks.)
   if (node.bindingId === "cell" && catalogCellSpan(node) > 1)
     return { gridColumn: `span ${catalogCellSpan(node)}` };
-  const shared = node.derivedProps?._tableTracks;
+  // (ADR-295 후속: a track that follows the device — the selection column's S2 40 · touch 52 —
+  //  is its CSS variable here, `_tableDeviceTracks`; the Canvas reads the px list.)
+  const device = node.derivedProps?._tableDeviceTracks;
+  const shared =
+    typeof device === "string" ? device : node.derivedProps?._tableTracks;
   if (typeof shared !== "string") return {};
   // (ADR-295 후속: a draggable Table's first track is S2's drag column — the device-scaled 16, 20 on
   //  a touch device; the Canvas reads its desktop px from the same list.)
@@ -2513,8 +2544,16 @@ function ruleDom(
         : tableSelected?.length && !context.runtime?.setRuntimeProps
           ? `${node.id}|selected:${tableSelected.join(",")}`
           : node.id;
+  // (ADR-295 후속: a resizable Table's selection Column without a width of its own is S2's
+  //  fixed device-width column — `CatalogTableSelectionColumn`.)
+  const selectionColumn =
+    lower === "column" &&
+    resizable &&
+    node.props.width === undefined &&
+    node.props.defaultWidth === undefined &&
+    catalogTableSelectionColumn(node, domGet, domType);
   const element = createElement(
-    Component,
+    selectionColumn ? CatalogTableSelectionColumn : Component,
     {
       key:
         widthKey !== undefined

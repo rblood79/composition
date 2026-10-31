@@ -411,3 +411,53 @@ describe("ADR-295 후속 C1 — a resizable draggable Table's drag column (S2 us
     );
   });
 });
+
+describe("ADR-295 후속 — a resizable Table's selection column (S2 useScale 40 · 52)", () => {
+  afterEach(() =>
+    document.documentElement.style.removeProperty(
+      "--catalog-token-size-table-selection-column",
+    ),
+  );
+  /** A resizable Table whose first Column holds the select-all checkbox (S2's checkbox column). */
+  const selectionTable = () => () => [
+    node("t", "Table", ["th", "tb"], {
+      heightMode: "auto",
+      selectionMode: "multiple",
+    }),
+    node("th", "TableHeader", ["c0", "c1", "c2"]),
+    node("c0", "Column", ["c0x"]),
+    node("c0x", "Checkbox", [], { slot: "selection" }),
+    node("c1", "Column", [], {
+      children: "Name",
+      width: 120,
+      allowsResizing: true,
+    }),
+    node("c2", "Column", [], { children: "Index" }),
+    node("tb", "TableBody", ["r0"]),
+    node("r0", "Row", ["r0c0", "r0c1", "r0c2"]),
+    node("r0c0", "Cell", ["r0c0x"]),
+    node("r0c0x", "Checkbox", [], { slot: "selection" }),
+    node("r0c1", "Cell", [], { children: "a" }),
+    node("r0c2", "Cell", [], { children: "0" }),
+  ];
+  // The device width is the theme sheet's `--catalog-token-size-table-selection-column` (40px ·
+  // touch 52px); RAC's column widths are px numbers, so the selection Column's is read in JS as
+  // S2's `useScale()` gives it — not RAC's default 1fr over a 75 floor.
+  it.each([
+    ["desktop", "", "40px"],
+    ["touch", "52px", "52px"],
+  ])("%s (%j): the selection column's width %s", async (_, width, first) => {
+    if (width)
+      document.documentElement.style.setProperty(
+        "--catalog-token-size-table-selection-column",
+        width,
+      );
+    const { view } = await open(selectionTable());
+    const table = view.container.querySelector(
+      "table[data-node-table]",
+    ) as HTMLElement;
+    expect(table.style.getPropertyValue("--table-resized-tracks")).toBe(
+      `${first} 120px 75px`,
+    );
+  });
+});

@@ -95,6 +95,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 컴포넌트 패널: Forms 의 Color 조작기 (ColorWheel) 뒤에 color swatch · color swatch picker (팔레트 category 가 쓰이지 않는 `color` 였다).
   - 위치: `colorControlParts.ts` (`catalogColorSwatchColor` · 파생 · 항목 → 견본 의존) · `rulePaint.ts` · `componentCatalog.ts` · `paletteItems.ts` · `ColorSwatch.binding.ts` (주석).
   - 검증: `s2ColorSwatchPaint.test.ts` (단독 Canvas = DOM 색 · picker 6 견본 = 항목 색 · 항목 색 편집 · 분리한 picker 편집 · 패널 순서) · `paletteItems` oracle · 원복 RED (칠 제거 → 3 FAIL · 의존 제거 → 분리 picker 1 FAIL) · live 5175 (검색 「swatch」 → Forms 2 항목, picker 삽입 → Canvas 6 색 · 단독 견본 Color Value `#3366ff` → Canvas 파랑, Preview DOM 7 색과 같음 · 모서리 0 / 4, 콘솔 0).
+- **Table 선택 checkbox 열이 터치에서도 40 · 크기 조절 Table 에서는 75 이던 것 (10차, 사용자 「Table 선택 열 터치 52 도 S2 식으로」)**: S2 TableView 는 선택 checkbox 열을 `width={scale === 'medium' ? 40 : 52}` 로 둔다 — 터치 값이 40 × 1.25 (50) 가 아닌 S2 리터럴 52 라 기기 배율 식으로는 만들 수 없다.
+  - 기기 두 벌 size 토큰 `{size.table.selection-column}` (desktop 40 · 터치 52 — 테마 시트 `--catalog-token-size-table-selection-column`) 추가. 폭을 작성하지 않은 선택 열의 트랙: Canvas 는 토큰 px (40), DOM 은 그 CSS 변수 (파생 `_tableDeviceTracks` — 작성한 px 최소 폭은 `max(…)` 로 그대로 바닥). 작성한 폭이 있으면 작성값.
+  - 크기 조절 Table: RAC 열 폭은 px 숫자라 선택 Column 이 폭 없이 RAC 기본 1fr · 최소 75 를 받아 데스크톱에서도 75 였다 (기존 결함). S2 처럼 JS 로 기기 값을 읽어 (`useCatalogDeviceTokenPx` — S2 `useScale()` 대응) RAC Column `width` · `minWidth` 에 준다.
+  - 위치: `device.ts` (`S2_TABLE_SELECTION_COLUMN_WIDTH` · `s2SizeTokens`) · `tableTracks.ts` (`deviceTrack` · `catalogTableColumnDeviceTracks` · `catalogTableSelectionColumn` 공개) · `presence.ts` · `compositionRoot.ts` (`withTableDrag` 가 device 목록에도 drag 열) · `domBinding.runtime.ts` (`CatalogTableSelectionColumn`) · `deviceUnit.runtime.ts` · 생성 `theme-seed.generated.css`.
+  - 검증: `adr257TableTracks` (Canvas 40px · DOM 변수 · 작성 최소 45 → `max(var, 45px)` · 작성 폭 90 → 변수 없음) · `adr257TableOperations` (크기 조절 + 선택 열 desktop 40 · 터치 52) · `resolveThemeSnapshot` (두 벌 40px · 52px) · G4 (S2 `TableView.tsx` 대조) · 원복 RED 3 (토큰 → 2 FAIL · DOM 변수 → 1 · RAC 폭 → 2) · live 5175 (선택 열 Table — Canvas 40 · Preview 40 → 터치 보기 52 → 되돌림 40, 크기 조절로 바꾼 뒤 RAC 폭 `40px 174px 174px` → 터치 `52px 168px 168px` → 40, 콘솔 오류 0).
+  - 남은 것: S2 선택 칸 여백 (시작 16 · 끝 8) 은 이번에 대조하지 않았다.
 
 ## [ADR-295 후속 — S2 고정 치수의 터치 배율 (`scaled`)] - 2026-10-31
 

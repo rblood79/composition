@@ -161,6 +161,7 @@ export {
   S2_CONTROL_HEIGHT_SM,
   S2_FIELD_BUTTON_SIZE,
   S2_BAR_MIN_WIDTH,
+  S2_TABLE_SELECTION_COLUMN_WIDTH,
   s2ControlHeights,
   s2SizeTokens,
   size,

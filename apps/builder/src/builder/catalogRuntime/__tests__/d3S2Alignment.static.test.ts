@@ -1409,6 +1409,28 @@ describe("ADR-295 후속 — S2 고정 sizing 숫자 = 기기 배율 (`scaled` �
       );
   };
 
+  it("Table 선택 checkbox 열 = S2 TableView `width={scale === 'medium' ? 40 : 52}` (터치는 × 1.25 아닌 리터럴)", () => {
+    const table = readFileSync(
+      resolve(
+        __dirname,
+        "../../../../node_modules/@react-spectrum/s2/src/TableView.tsx",
+      ),
+      "utf8",
+    );
+    const column =
+      /selectionStyle === 'checkbox' && \(\s*<RACColumn[\s\S]*?width=\{scale === 'medium' \? (\d+) : (\d+)\}\s*minWidth=\{scale === 'medium' \? (\d+) : (\d+)\}/.exec(
+        table,
+      )!;
+    expect(column[1]).toBe(column[3]);
+    expect(column[2]).toBe(column[4]);
+    expect(
+      s2SizeTokens(S2_DEVICE.desktop.scale)["table.selection-column"],
+    ).toBe(Number(column[1]));
+    expect(s2SizeTokens(S2_DEVICE.touch.scale)["table.selection-column"]).toBe(
+      Number(column[2]),
+    );
+  });
+
   it("기기 단위 `{size.unit}` = scale px (desktop 1 · 터치 1.25)", () => {
     expect(s2SizeTokens(S2_DEVICE.desktop.scale).unit).toBe(1);
     expect(s2SizeTokens(S2_DEVICE.touch.scale).unit).toBe(1.25);

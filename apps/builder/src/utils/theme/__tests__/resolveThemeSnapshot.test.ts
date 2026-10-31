@@ -406,6 +406,18 @@ describe("ADR-295 Phase 2 — 기기 두 벌 · --catalog-token-*", () => {
     expect(s.device.touch.typography["text-sm"]).toBe(17);
   });
 
+  it("Table 선택 열 폭 = S2 리터럴 두 벌 40 · 52 (× 1.25 = 50 이 아니다 — TableView `scale === 'medium' ? 40 : 52`)", () => {
+    const s = resolve(theme());
+    expect(varOf(s, "--catalog-token-size-table-selection-column")).toBe(
+      "40px",
+    );
+    expect(touchVarOf(s, "--catalog-token-size-table-selection-column")).toBe(
+      "52px",
+    );
+    expect(s.size["table.selection-column"]).toBe(40);
+    expect(touchThemeSnapshot(s).size["table.selection-column"]).toBe(52);
+  });
+
   it("테마가 명시한 글자 크기는 터치에서 같은 비율 (14 → 17), 명시 행간은 그대로", () => {
     const s = resolve(
       theme({

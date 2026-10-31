@@ -69,6 +69,15 @@ export const S2_FIELD_BUTTON_SIZE = {
   XL: 32,
 } as const;
 
+/**
+ * S2 TableView 선택 checkbox 열의 폭 (`TableView.tsx` `TableHeader` — `width={scale === 'medium' ? 40 : 52}`).
+ * 터치 값이 desktop × 1.25 (50) 가 아닌 S2 리터럴이라 `scaled(n)` 이 아니라 기기 두 벌 토큰
+ * `{size.table.selection-column}` 이다 (ADR-295 후속).
+ */
+export const S2_TABLE_SELECTION_COLUMN_WIDTH: Readonly<
+  Record<S2Device, number>
+> = { desktop: 40, touch: 52 };
+
 /** S2 막대 (ProgressBar · Meter) 의 최소 폭 — `bar-utils.ts` `minWidth: 48` (rem × `--s2-scale`). */
 export const S2_BAR_MIN_WIDTH = 48;
 
@@ -104,6 +113,14 @@ export function s2SizeTokens(scale: number): Record<string, number> {
       px * scale,
     ]),
     ["bar.min-width", S2_BAR_MIN_WIDTH * scale],
+    // ADR-295 후속: `{size.table.selection-column}` — S2's two literals (not × scale). DOM
+    //   `--catalog-token-size-table-selection-column`.
+    [
+      "table.selection-column",
+      S2_TABLE_SELECTION_COLUMN_WIDTH[
+        scale > S2_DEVICE.desktop.scale ? "touch" : "desktop"
+      ],
+    ],
     // ADR-295 Phase 3c-3: `{size.device.touch}` — 1 in the touch set (the scale above desktop's), the flag
     //   a relative length's touch coefficient reads (S2 `text-to-visual` 8/17 em). DOM
     //   `--catalog-token-size-device-touch`.

@@ -2650,9 +2650,14 @@ export class CatalogCompositionRoot {
     if (typeof tracks !== "string") return derived;
     const table = catalogTrackTableOf(record, get, this.typeOf);
     if (!table || !this.tableDrags(table)) return derived;
+    const drag = `${catalogScaledPx(CATALOG_DRAG_COLUMN_WIDTH)}px`;
+    const device = derived?._tableDeviceTracks;
     return {
       ...derived,
-      _tableTracks: `${catalogScaledPx(CATALOG_DRAG_COLUMN_WIDTH)}px ${tracks}`,
+      _tableTracks: `${drag} ${tracks}`,
+      ...(typeof device === "string"
+        ? { _tableDeviceTracks: `${drag} ${device}` }
+        : {}),
       _allowsDragging: true,
     };
   }
