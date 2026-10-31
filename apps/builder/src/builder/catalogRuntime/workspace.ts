@@ -52,6 +52,7 @@ import type { OwnFields } from "../../../../../packages/shared/src/catalog/resol
 import {
   catalogComponentPageBaseline,
   catalogComponentPageCreation,
+  catalogLibraryPageSync,
   catalogLocalPageSync,
   catalogComponentPageStored,
   catalogProjectComponents,
@@ -385,12 +386,14 @@ export class CatalogWorkspace {
       view === COMPONENTS_VIEW ? libraryForksKey(graph) : undefined;
     // ADR-282 Phase 3: a page the project stores is the document's (its layout is the user's);
     // the first open stores it (user 2026-10-25 — library-body is a page's body, the Local page
-    // too), and the Local page follows the project's components. Either is a step the project
+    // too), the Local page follows the project's components and the Library the built-in
+    // origins (a card for an origin added after it was stored). Either is a step the project
     // takes, not the user's: saved, no history entry.
     const plan = catalogComponentPageStored(graph, view)
-      ? isProjectComponentsView(view)
-        ? catalogLocalPageSync(graph, this.colorMode)?.(graph.commandReader)
-        : undefined
+      ? (isProjectComponentsView(view)
+          ? catalogLocalPageSync(graph, this.colorMode)
+          : catalogLibraryPageSync(graph, this.colorMode)
+        )?.(graph.commandReader)
       : catalogComponentPageCreation(
           graph,
           view,

@@ -187,7 +187,9 @@ const NO_VARIANTS_LINE: ReadonlySet<string> = new Set([
  * 2026-10-25: a Chart's 320px widened the mobile page's one column · 「colorSlider - width: 100%,
  * maxWidth: auto」 · 「dropZone - width: 100%, height: auto」).
  */
-const SAMPLE_VISUAL: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+const SAMPLE_VISUAL: Readonly<
+  Record<string, Readonly<Record<string, string>>>
+> = {
   Chart: { width: "100%" },
   ColorSlider: { width: "100%", maxWidth: "none" },
   DropZone: { width: "100%", height: "auto" },
@@ -1324,10 +1326,7 @@ export function catalogComponentsPageEntries(
           { track: cellWidth },
         ),
       );
-    } else if (
-      facets.states.length > 0 &&
-      !NO_STATES_LINE.has(origin.name)
-    ) {
+    } else if (facets.states.length > 0 && !NO_STATES_LINE.has(origin.name)) {
       lines.push(
         ...line(base("line", "states"), "States", stateCells(undefined), {
           track: cellWidth,
@@ -1812,6 +1811,70 @@ export function catalogLocalPageSync(
       });
     }
     for (const entry of parents.values()) ops.push({ kind: "put", entry });
+    return { label: "Sync components page", ops };
+  };
+}
+
+/**
+ * The stored Library page follows the built-in origins (user 2026-10-31 「toast 원본이 library 에
+ * 없다」 — a page stored before an origin joined the palette never drew its card): a card for each
+ * origin it has none for, placed after the card of the origin before it in palette order (the
+ * derived page's order — else before the next one's, else last). Its other content — moved cards,
+ * edited frames — stays the user's. `undefined` = nothing to do. The caller runs it as a step the
+ * project takes (no history), as the Local page's.
+ */
+export function catalogLibraryPageSync(
+  graph: CatalogGraph,
+  mode?: "light" | "dark",
+): CatalogCommand | undefined {
+  const root = graph.storedEntry(ORIGIN_VIEW_NODE);
+  if (root?.kind !== "node") return undefined;
+  const added = catalogBuiltinOrigins(graph.library)
+    .map((origin) => originCardId(origin.id))
+    .filter((card) => !graph.storedEntry(componentPageNodeId(card)));
+  if (!added.length) return undefined;
+  return (reader) => {
+    const entries = catalogComponentsPageEntries(graph, mode);
+    // A card's nodes: what the derived page holds under it (its instances' ids are not under the
+    // card's own path — `originInstanceId`).
+    const taken = new Set<string>();
+    const take = (id: NodeId) => {
+      const compute = entries.get(id);
+      if (!compute || taken.has(id)) return;
+      taken.add(id);
+      compute().children.forEach(take);
+    };
+    added.forEach(take);
+    const inCard = (id: NodeId) => taken.has(id);
+    const ops: CatalogOperation[] = storedPageNodes(
+      reader,
+      entries,
+      inCard,
+    ).map((entry) => ({ kind: "put", entry }));
+    // The derived body's order (theme cards, then the origins' in palette order).
+    const order = entries.get(ORIGIN_VIEW_NODE)?.().children ?? [];
+    const body = reader.getEntry(ORIGIN_VIEW_NODE);
+    if (body?.kind !== "node") return { label: "Sync components page", ops };
+    const children = [...body.children];
+    for (const card of added) {
+      const at = order.indexOf(card as NodeId);
+      const stored = componentPageNodeId(card);
+      const before = order
+        .slice(0, Math.max(at, 0))
+        .reverse()
+        .map(componentPageNodeId)
+        .find((id) => children.includes(id));
+      const after = order
+        .slice(at + 1)
+        .map(componentPageNodeId)
+        .find((id) => children.includes(id));
+      if (at >= 0 && before)
+        children.splice(children.indexOf(before) + 1, 0, stored);
+      else if (at >= 0 && after)
+        children.splice(children.indexOf(after), 0, stored);
+      else children.push(stored);
+    }
+    ops.push({ kind: "put", entry: { ...body, children } });
     return { label: "Sync components page", ops };
   };
 }
