@@ -803,26 +803,6 @@ describe("ADR-295 G4 — 3c-3c ① 컴포넌트 고정 치수 = S2 설치본 표
     });
   });
 
-  it("Meter · ProgressBar 막대 두께 (`.bar` sizeSelectors · 기본) = S2 trackStyles", () => {
-    for (const [type, file] of [
-      ["Meter", "Meter.tsx"],
-      ["ProgressBar", "ProgressBar.tsx"],
-    ] as const) {
-      const s2 = s2SizeTable(file, /const trackStyles[\s\S]*?height:\s*\{/);
-      const selectors = rules[type]!.structure!.composition!.sizeSelectors!;
-      for (const size of ["S", "M", "L", "XL"])
-        expect(selectors[size]![".bar"]!.height, `${type}.${size}`).toBe(
-          `${s2[size]}px`,
-        );
-      const base = (
-        rules[type]!.structure!.composition as unknown as {
-          staticSelectors: Record<string, Record<string, string>>;
-        }
-      ).staticSelectors[".bar"]!.height;
-      expect(base, `${type} 기본`).toBe(`${s2.default}px`);
-    }
-  });
-
   it("Slider thumb (indicator.thumbSize · SliderThumb · SliderTrack.thumbSize) = S2 thumb", () => {
     const s2 = s2SizeTable(
       "Slider.tsx",
@@ -973,12 +953,6 @@ describe("ADR-295 G4 — 3c-3c ②b-2 ColorArea · StatusLight · Tag 간격", (
       };
     }
   >;
-
-  it("ColorArea 상자 = S2 `size` 정사각", () => {
-    const s2 = s2Value("ColorArea.tsx", /size: (\d+),\s*minSize/);
-    const box = rules.ColorArea!.structure!.composition!.containerStyles!;
-    expect([box.width, box.height]).toEqual([`${s2}px`, `${s2}px`]);
-  });
 
   it("StatusLight: 점 = S2 light 표 · 행 = controlFont 행간 · 점 ↔ 글자 = text-to-visual", () => {
     expect(
@@ -1375,5 +1349,72 @@ describe("ADR-295 후속 — picker 팝오버 안 섹션 머리글 = S2 listboxH
         ]?.styles?.["--lb-header-h"],
         size,
       ).toBe(`var(--catalog-token-size-height-${size})`);
+  });
+});
+
+describe("ADR-295 후속 — S2 고정 sizing 숫자 = 기기 배율 (`scaled` — S2 `size()` · sizing 속성의 숫자)", () => {
+  type Rule = {
+    sizes: Record<string, Record<string, unknown>>;
+    structure?: {
+      composition?: {
+        containerStyles?: Record<string, string>;
+        staticSelectors?: Record<string, Record<string, string>>;
+        sizeSelectors?: Record<string, Record<string, Record<string, string>>>;
+      };
+    };
+  };
+  const rules = COMPONENT_RULES_TABLE as unknown as Record<string, Rule>;
+  const scaledRef = (px: number) => `{length.size.unit*${px}/1}`;
+  /** Every size block's `key` is `scaled(<the S2 number of that size>)`. */
+  const expectScaled = (
+    type: string,
+    key: string,
+    s2: (size: string) => number,
+  ) => {
+    for (const [size, block] of Object.entries(rules[type]!.sizes))
+      expect(ruleSizeLengthRef(block, key), `${type}.${size}.${key}`).toBe(
+        scaledRef(s2(size)),
+      );
+  };
+
+  it("기기 단위 `{size.unit}` = scale px (desktop 1 · 터치 1.25)", () => {
+    expect(s2SizeTokens(S2_DEVICE.desktop.scale).unit).toBe(1);
+    expect(s2SizeTokens(S2_DEVICE.touch.scale).unit).toBe(1.25);
+  });
+
+  it("ColorSwatch · ColorSwatchPicker swatch = scaled(S2 ColorSwatch size)", () => {
+    const s2 = s2SizeTable("ColorSwatch.tsx", /size:\s*\{\s*size:\s*/);
+    expectScaled("ColorSwatch", "height", (size) => s2[size]!);
+    expectScaled("ColorSwatchPicker", "iconSize", (size) => s2[size]!);
+  });
+
+  it("Meter · ProgressBar 막대 두께 · 최대 폭 = scaled(S2 trackStyles · bar-utils maxWidth)", () => {
+    const maxWidth = s2Value("bar-utils.ts", /maxWidth: (\d+), \/\//);
+    for (const [type, file] of [
+      ["Meter", "Meter.tsx"],
+      ["ProgressBar", "ProgressBar.tsx"],
+    ] as const) {
+      const s2 = s2SizeTable(file, /const trackStyles[\s\S]*?height:\s*\{/);
+      expectScaled(type, "height", (size) => s2[size]!);
+      expectScaled(`${type}Track`, "height", (size) => s2[size]!);
+      expectScaled(type, "maxWidth", () => maxWidth);
+      const composition = rules[type]!.structure!.composition!;
+      for (const size of ["S", "M", "L", "XL"])
+        expect(composition.sizeSelectors![size]![".bar"]!.height).toBe(
+          scaledRef(s2[size]!),
+        );
+      expect(composition.staticSelectors![".bar"]!.height).toBe(
+        scaledRef(s2.default!),
+      );
+    }
+  });
+
+  it("Toast 최소 높이 · ColorArea 상자 = scaled(S2)", () => {
+    const toast = s2Value("Toast.tsx", /borderRadius: 'lg',\s*minHeight: (\d+)/);
+    expectScaled("Toast", "minHeight", () => toast);
+    const area = s2Value("ColorArea.tsx", /size: (\d+),\s*minSize/);
+    expectScaled("ColorArea", "height", () => area);
+    const box = rules.ColorArea!.structure!.composition!.containerStyles!;
+    expect([box.width, box.height]).toEqual([scaledRef(area), scaledRef(area)]);
   });
 });

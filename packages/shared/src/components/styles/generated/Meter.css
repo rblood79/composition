@@ -28,7 +28,7 @@
   border-radius: var(--catalog-token-radius-sm);
   line-height: var(--catalog-token-text-sm--line-height);
   min-width: var(--catalog-token-size-bar-min-width);
-  max-width: 768px;
+  max-width: calc(var(--catalog-token-size-unit) * 768 / 1);
   gap: 4px;
 }
 
@@ -37,7 +37,7 @@
   border-radius: var(--catalog-token-radius-sm);
   line-height: var(--catalog-token-text-xs--line-height);
   min-width: var(--catalog-token-size-bar-min-width);
-  max-width: 768px;
+  max-width: calc(var(--catalog-token-size-unit) * 768 / 1);
   gap: 4px;
 }
 
@@ -46,7 +46,7 @@
   border-radius: var(--catalog-token-radius-sm);
   line-height: var(--catalog-token-text-sm--line-height);
   min-width: var(--catalog-token-size-bar-min-width);
-  max-width: 768px;
+  max-width: calc(var(--catalog-token-size-unit) * 768 / 1);
   gap: 4px;
 }
 
@@ -55,7 +55,7 @@
   border-radius: var(--catalog-token-radius-md);
   line-height: var(--catalog-token-text-base--line-height);
   min-width: var(--catalog-token-size-bar-min-width);
-  max-width: 768px;
+  max-width: calc(var(--catalog-token-size-unit) * 768 / 1);
   gap: 4px;
 }
 
@@ -64,7 +64,7 @@
   border-radius: var(--catalog-token-radius-lg);
   line-height: var(--catalog-token-text-lg--line-height);
   min-width: var(--catalog-token-size-bar-min-width);
-  max-width: 768px;
+  max-width: calc(var(--catalog-token-size-unit) * 768 / 1);
   gap: 4px;
 }
 
@@ -147,7 +147,7 @@
     grid-area: bar;
     box-shadow: var(--inset-shadow-xs);
     forced-color-adjust: none;
-    height: 6px;
+    height: calc(var(--catalog-token-size-unit) * 6 / 1);
     border-radius: var(--catalog-token-radius-sm);
     overflow: hidden;
     background: var(--bg-muted);
@@ -162,7 +162,7 @@
 
 
   .react-aria-Meter[data-size="S"] .bar {
-    height: 4px;
+    height: calc(var(--catalog-token-size-unit) * 4 / 1);
     border-radius: var(--catalog-token-radius-sm);
   }
 
@@ -171,7 +171,7 @@
   }
 
   .react-aria-Meter[data-size="M"] .bar {
-    height: 6px;
+    height: calc(var(--catalog-token-size-unit) * 6 / 1);
     border-radius: var(--catalog-token-radius-sm);
   }
 
@@ -180,7 +180,7 @@
   }
 
   .react-aria-Meter[data-size="L"] .bar {
-    height: 8px;
+    height: calc(var(--catalog-token-size-unit) * 8 / 1);
     border-radius: var(--catalog-token-radius-lg);
   }
 
@@ -189,7 +189,7 @@
   }
 
   .react-aria-Meter[data-size="XL"] .bar {
-    height: 10px;
+    height: calc(var(--catalog-token-size-unit) * 10 / 1);
     border-radius: var(--catalog-token-radius-lg);
   }
 

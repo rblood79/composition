@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-295 후속 — S2 고정 치수의 터치 배율 (`scaled`)] - 2026-10-31
+
+### Fixed
+
+- **터치 기기에서 S2 고정 치수가 desktop 값 그대로였던 것 (1차)**: S2 는 sizing 속성의 숫자 (`size()`) 를 `--s2-scale` 로 키운다 (터치 × 1.25). rule 에 새 형 `scaled(n)` 과 기기 단위 토큰 `{size.unit}` (desktop 1px · 터치 1.25px) 을 두고 ColorSwatch 상자 · ColorSwatchPicker swatch · ProgressBar · Meter 막대 두께 · 최대 폭 768 · Toast 최소 높이 56 · ColorArea 192 · StatusLight 점을 그 형으로 바꿨다 — Preview 터치 보기 · 터치 기기에서 swatch 32 → 40 · ColorArea 192 → 240 · 막대 6 → 7.5 · 점 10 → 12.5. Canvas 는 desktop 그대로, 빌더 chrome 은 단위 1px 고정이라 변화 없음.
+  - 위치: `ruleLength.ts` (`scaled` · `scaledLengthRef`) · `device.ts` (`{size.unit}`) · `CSSGenerator.ts` (size 블록 높이 · 최소/최대 · 아이콘 · rule CSS 문자열의 길이 ref) · `ruleDefinition.ts` · `rulePartRules.ts` · `codeCatalogLibrary.ts` (토큰 출처 기억) · `deviceTypography.ts` (DOM inline 기기 식) · `StatusLight.tsx` · `builder-catalog-vars.css`.
+  - 검증: G4 `d3S2Alignment` (S2 설치본 숫자 = `scaled` ref) · G3 리터럴 목록 정리 · G2 desktop · touch 263/263 · 원복 RED (DOM 길이 ref 변환 제거 → 터치 ProgressBar · Meter 6 FAIL) · live 5175 Compare Mode + 터치 보기.
+
 ## [ADR-295 후속 — 글자 단계 · StatusLight 간격 · 필드 버튼 테두리 · TagGroup 측정 사본을 S2 로] - 2026-10-31
 
 ### Fixed

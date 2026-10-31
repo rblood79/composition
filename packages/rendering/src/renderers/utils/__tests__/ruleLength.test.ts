@@ -12,6 +12,7 @@ import {
   ruleLengthCss,
   ruleLengthPx,
   ruleLengthRef,
+  scaled,
   type RuleLengthForm,
 } from "../ruleLength";
 
@@ -21,6 +22,7 @@ const maps = (touch: 0 | 1) =>
     "{size.field-button.M}": touch ? 25 : 20,
     "{typography.text-sm}": touch ? 17 : 14,
     "{typography.text-sm--line-height}": touch ? 22 : 18,
+    "{size.unit}": touch ? 1.25 : 1,
     [DEVICE_TOUCH_REF]: touch,
   }) as Record<string, number>;
 const resolve = (touch: 0 | 1) => (ref: TokenRef) => maps(touch)[ref];
@@ -96,5 +98,13 @@ describe("ADR-295 length refs", () => {
         fontSize: "{typography.text-sm}",
       }),
     ).toThrow(/centerPadding/);
+  });
+
+  it("scaled — a fixed S2 sizing number (S2 `size(n)`): n px × the device scale, no size-block base", () => {
+    const ref = ruleLengthRef(scaled(24) as unknown as RuleLengthForm, {});
+    expect(ref).toBe("{length.size.unit*24/1}");
+    expect(ruleLengthPx(ref, resolve(0))).toBe(24);
+    expect(ruleLengthPx(ref, resolve(1))).toBe(30);
+    expect(ruleLengthCss(ref)).toBe("calc(var(--catalog-token-size-unit) * 24 / 1)");
   });
 });

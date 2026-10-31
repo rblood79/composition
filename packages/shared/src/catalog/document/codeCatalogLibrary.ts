@@ -777,8 +777,19 @@ function withRuleParts(
                   ),
                   // ADR-295 Phase 3c-3: a relative gap · padding side (`{length.…}` — S2 `text-to-control`, a field
                   //   button's room) is a token value.
+                  //   (ADR-295 후속: as is a fixed S2 sizing number — `scaled(n)` side · minimum.)
                   ...Object.fromEntries(
-                    (["gap", "paddingLeft", "paddingRight"] as const)
+                    (
+                      [
+                        "gap",
+                        "paddingLeft",
+                        "paddingRight",
+                        "width",
+                        "height",
+                        "minWidth",
+                        "minHeight",
+                      ] as const
+                    )
                       .filter(
                         (key) =>
                           typeof part.visual[key] === "string" &&

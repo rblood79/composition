@@ -690,7 +690,13 @@ export function generateCSS<Props>(
     lines.push(...atRules);
   }
 
-  let css = withCatalogTokenVars(lines.join("\n"));
+  // ADR-295 후속: a length ref in a rule's CSS string (`scaled(n)` → `{length.size.unit*n/1}` — a `.bar`
+  //   thickness, a ColorArea side) is its formula over the device variables.
+  let css = withCatalogTokenVars(
+    lines
+      .join("\n")
+      .replace(/\{length\.[^{}]+\}/g, (ref) => ruleLengthCss(ref) ?? ref),
+  );
   for (const [part, aliases] of Object.entries(spec.partAliases ?? {}))
     css = withPartAliases(css, part, aliases);
   // ADR-253: a spec that also styles another RAC class as its root (`classAliases`).
@@ -1077,9 +1083,10 @@ function generateSizeStyles(
 
   // height — Composite 컨테이너는 자식이 높이를 결정하므로 skip
   if (!options?.skipHeight) {
+    // (ADR-295 후속: a `scaled(n)` height is its device formula — `sizeLengthCss`.)
     const heightValue =
       typeof size.height === "number" && size.height > 0
-        ? `${size.height}px`
+        ? sizeLengthCss(size, "height")
         : "auto";
     lines.push(`  height: ${heightValue};`);
   }
@@ -1151,17 +1158,17 @@ function generateSizeStyles(
   if (size.minWidth !== undefined) {
     // ADR-295 Phase 3c-2: `{size.bar.min-width}` → `var(--catalog-token-size-bar-min-width)` (기기 두 벌).
     lines.push(
-      `  min-width: ${typeof size.minWidth === "number" ? `${size.minWidth}px` : tokenToCSSVar(size.minWidth)};`,
+      `  min-width: ${typeof size.minWidth === "number" ? sizeLengthCss(size, "minWidth") : tokenToCSSVar(size.minWidth)};`,
     );
   }
   if (size.minHeight !== undefined) {
     // ADR-295 Phase 3: `{size.height.<S>}` → `var(--catalog-token-size-height-<S>)` (기기 두 벌).
     lines.push(
-      `  min-height: ${typeof size.minHeight === "number" ? `${size.minHeight}px` : tokenToCSSVar(size.minHeight)};`,
+      `  min-height: ${typeof size.minHeight === "number" ? sizeLengthCss(size, "minHeight") : tokenToCSSVar(size.minHeight)};`,
     );
   }
   if (size.maxWidth !== undefined) {
-    lines.push(`  max-width: ${size.maxWidth}px;`);
+    lines.push(`  max-width: ${sizeLengthCss(size, "maxWidth")};`);
   }
 
   // gap — ADR-071: containerStyles.gap 존재 시 skip (이중 emit 방지)
@@ -1186,7 +1193,8 @@ function generateSizeStyles(
       `  --icon-size: ${options?.iconPin ? `var(${options.iconPin}, ${step})` : step};`,
     );
   } else if (size.iconSize !== undefined) {
-    lines.push(`  --icon-size: ${size.iconSize}px;`);
+    // (ADR-295 후속: a `scaled(n)` icon side is its device formula.)
+    lines.push(`  --icon-size: ${sizeLengthCss(size, "iconSize")};`);
   }
 
   // icon-gap (CSS 변수로 출력)

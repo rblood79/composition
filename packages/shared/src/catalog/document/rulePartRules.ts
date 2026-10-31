@@ -600,7 +600,8 @@ function compileDeclarations(
           .exec(value.trim())
           ?.slice(1, 2)
           .map((name) => `{${name}}`)[0] ??
-        null;
+        // (ADR-295 후속: any other length ref — `scaled(n)` — keeps its ref, the DOM writes its formula.)
+        (/^\{length\.[^{}]+\}$/.test(value.trim()) ? value.trim() : null);
       if (px !== undefined) visual[key] = sizeRef ?? px;
       else if (/^(\d+(?:\.\d+)?%|fit-content|auto)$/.test(value))
         visual[key] = value;
@@ -611,12 +612,15 @@ function compileDeclarations(
       if (value === "auto") visual[field] = "auto";
       else {
         const px = lengthPx(value);
-        if (px !== undefined) visual[field] = sizeHeightRef(value) ?? px;
+        if (px !== undefined)
+          visual[field] =
+            sizeHeightRef(value) ??
+            (/^\{length\.[^{}]+\}$/.test(value.trim()) ? value.trim() : px);
       }
     } else if (key === "max-width" || key === "max-height") {
       const px = lengthPx(value);
       const field = key === "max-width" ? "maxWidth" : "maxHeight";
-      if (px !== undefined) layout[field] = `${px}px`;
+      if (px !== undefined) layoutLength(field, value, px);
       else if (/^\d+(?:\.\d+)?(?:%|ch)$/.test(value)) layout[field] = value;
     } else if (key === "padding") {
       const [t, r = t, b = t, l = r] = spacing(value) ?? [];

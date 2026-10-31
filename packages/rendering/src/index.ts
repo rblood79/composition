@@ -213,6 +213,8 @@ export {
   withCatalogTokenVars,
   s2ControlPaddingY,
   ofHeight,
+  scaled,
+  scaledLengthRef,
   centerPadding,
   em,
   ruleLengthRef,

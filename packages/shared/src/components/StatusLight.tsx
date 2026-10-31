@@ -81,8 +81,14 @@ export function StatusLight({
       ? withCatalogTokenVars(tokenToCSSVar(ruleFont as Parameters<typeof tokenToCSSVar>[0]))
       : undefined;
   // dot 지름 = rule sizes[size].indicator.dotSize (Skia · Canvas 폭 계산과 같은 source).
+  //   S2 `light` 의 `size` (rem × `--s2-scale`) — rule 의 `scaled(n)` 이라 기기 식으로 (터치 × 1.25, ADR-295 후속).
+  const indicator = rule?.sizes?.[sizeKey]?.indicator;
+  const dotRef = indicator ? ruleSizeLengthRef(indicator, "dotSize") : undefined;
   const dotSize =
-    rule?.sizes?.[sizeKey]?.indicator?.dotSize ?? DOT_SIZE[sizeKey] ?? 10;
+    (dotRef ? ruleLengthCss(dotRef) : undefined) ??
+    indicator?.dotSize ??
+    DOT_SIZE[sizeKey] ??
+    10;
   const fillBase = rule?.variants?.[variant]?.fill?.default?.base;
   const dotColor = colorTokenToCss(fillBase);
 

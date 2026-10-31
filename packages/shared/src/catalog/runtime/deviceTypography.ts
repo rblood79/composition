@@ -68,9 +68,12 @@ const TYPOGRAPHY_LENGTH_REF =
 /**
  * ADR-295 Phase 3b · 3c — the device-set CSS length of a token a record's side · glyph came from: an S2
  * size-map length (`var(--catalog-token-size-<family>-<key>)`), a font size (S2 `1em` — the font variable)
- * or a font's line (S2 `1lh` — font × the unitless line ratio). `undefined` for any other.
+ * or a font's line (S2 `1lh` — font × the unitless line ratio), a rule length ref (`scaled(n)` — its formula).
+ * `undefined` for any other.
  */
 export function catalogDeviceLength(ref: string): string | undefined {
+  // (ADR-295 후속: a rule length ref — `scaled(n)`'s `{length.size.unit*n/1}` — is its device formula.)
+  if (ref.startsWith("{length.")) return ruleLengthCss(ref);
   const side = SIZE_SIDE_REF.exec(ref);
   if (side) return `var(--catalog-token-size-${side[1]}-${side[2]})`;
   const text = TYPOGRAPHY_LENGTH_REF.exec(ref);
@@ -110,6 +113,15 @@ export function catalogDeviceControlCss(
     const side = sideRef ? catalogDeviceLength(sideRef) : undefined;
     if (side && resolveToken(sideRef as TokenRef) === px(style[key]))
       style[key] = side;
+  }
+  // (ADR-295 후속: a fixed S2 minimum — `scaled(n)`'s length ref — goes inline as its formula.)
+  for (const key of ["minWidth", "minHeight"] as const) {
+    const lengthRef = catalogResolvedTokenRef(visual, key);
+    if (
+      lengthRef?.startsWith("{length.") &&
+      resolveToken(lengthRef as TokenRef) === px(style[key])
+    )
+      style[key] = ruleLengthCss(lengthRef);
   }
   const ref = catalogResolvedTokenRef(visual, "minHeight");
   const size = ref ? SIZE_HEIGHT_REF.exec(ref)?.[1] : undefined;
@@ -189,6 +201,9 @@ export function catalogDeviceLayoutCss(
     "marginRight",
     "marginTop",
     "marginBottom",
+    // (ADR-295 후속: a fixed S2 maximum — `scaled(n)`.)
+    "maxWidth",
+    "maxHeight",
   ] as const) {
     const ref = catalogResolvedTokenRef(layout, key);
     if (!ref?.startsWith("{length.")) continue;

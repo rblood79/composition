@@ -2,7 +2,7 @@
  * ADR-295 G3 — rule 치수 리터럴 분류 (breakdown Phase 3 · 3b · 3c-3b ③).
  *
  * D3 값의 정본은 S2 설치본이고 rule 은 토큰 이름 (`{radius.*}` · `{typography.*}` · `{size.height.*}` ·
- * `{size.icon.*}`) 이나 값의 형 (`ofHeight` · `em` · `centerPadding` — `{length.…}`) 으로 참조한다. 아래 키의
+ * `{size.icon.*}`) 이나 값의 형 (`ofHeight` · `em` · `centerPadding` · `scaled` — `{length.…}`) 으로 참조한다. 아래 키의
  * px 숫자는 셋 중 하나다:
  * - 스스로 분류되는 값 — height 0 (내용 높이), padding · gap 이 S2 spacing 단 위 (`S2_SPACING_SCALE` — S2 가
  *   `padding: 12` 로 쓰는 고정 값), paddingY 가 control 의 centerPadding (`s2ControlPaddingY` — 생성기가 식과 대조);
@@ -182,18 +182,6 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
       "차트 축 글자 — S2 컴포넌트 없음 · 장면 계산 (`computeChartScene`) 입력은 px 숫자",
   },
   sizes(
-    "ColorSwatchPicker",
-    "iconSize",
-    { S: 24, M: 32, L: 40 },
-    "picker 안 swatch 치수 = S2 ColorSwatch S 24 · M 32 · L 40 (`ColorSwatch.tsx`) — 아이콘이 아니다",
-  ),
-  sizes(
-    "ColorSwatch",
-    "height",
-    { S: 24, M: 32, L: 40 },
-    "S2 ColorSwatch S 24 · M 32 · L 40 (`ColorSwatch.tsx` — XS 16 은 composition 에 없다) · 터치 × 1.25 는 다루지 않음",
-  ),
-  sizes(
     "ColorThumb",
     "height",
     { M: 16 },
@@ -210,15 +198,6 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     "height",
     { M: 18 },
     "S2 Menu keyboard 글자 `ui` 의 행간 18 (`Menu.tsx` — 높이 지정 없이 한 줄)",
-  ),
-  ...(["Meter", "MeterTrack", "ProgressBar", "ProgressBarTrack"] as const).map(
-    (component) =>
-      sizes(
-        component,
-        "height",
-        { S: 4, M: 6, L: 8, XL: 10 },
-        "S2 막대 두께 `progress-bar-thickness-*` (`Meter.tsx` · `ProgressBar.tsx`) — 읽는 곳 없음 (progress archetype 이 건너뛴다 · 실제 두께는 `.bar` sizeSelectors 같은 값)",
-      ),
   ),
   sizes(
     "SliderTrack",
@@ -298,12 +277,6 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     "S2 Calendar 머리 = 이전 · 다음 quiet ActionButton M 32 (`Calendar.tsx`) · 읽는 곳 없음 (manual replace)",
   ),
   sizes(
-    "Toast",
-    "minHeight",
-    { S: 56, M: 56, L: 56 },
-    "S2 Toast minHeight 56 (`Toast.tsx` — size 축 없음, 모든 크기에)",
-  ),
-  sizes(
     "Toolbar",
     "gap",
     { L: 10 },
@@ -320,12 +293,6 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     "paddingX",
     { S: 9, L: 15 },
     "S2 Menu sectionHeader 좌우 `edgeToText` 9 · 12 · 15 (rem — 터치에서 그대로, M 12 는 spacing 단)",
-  ),
-  sizes(
-    "ColorArea",
-    "height",
-    { S: 192, M: 192, L: 192 },
-    "S2 ColorArea `size: 192` (`ColorArea.tsx` — size 축 없음) · 읽는 곳 없음 (실제 상자는 composition containerStyles 192px)",
   ),
   sizes(
     "StatusLight",

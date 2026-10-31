@@ -168,6 +168,21 @@ const BOX_LAYOUT_KEYS: ReadonlySet<string> = new Set<LayoutField>([
   "maxHeight",
 ]);
 
+/**
+ * ADR-295 후속 — a box side the rule states as a length ref (a container `width` · `height` of
+ * `scaledLengthRef(n)` — S2 `size(n)`) is a token use of the ref: the Canvas reads its px, the resolver
+ * remembers it and the DOM writes the device formula.
+ */
+function withLengthTokens(
+  visual: Record<string, VisualValues[keyof VisualValues]>,
+  theme: "light" | "dark",
+  tokens: Map<LibraryTokenId, LibraryToken>,
+): void {
+  for (const [key, value] of Object.entries(visual))
+    if (typeof value === "string" && /^\{length\.[^{}]+\}$/.test(value))
+      visual[key] = lengthValue(value, theme, tokens)!;
+}
+
 /** `12` / `"12px"` → 12; other values (auto, %, var) → undefined. */
 function boxPixels(value: string | number | undefined): number | undefined {
   if (typeof value === "number") return value;
@@ -442,6 +457,7 @@ export function ruleTypeDefinition(
   const visual: Record<string, VisualValues[keyof VisualValues]> = {
     ...box.visual,
   };
+  withLengthTokens(visual, theme, tokens);
   const defaultVariant =
     rule.defaultVariant !== undefined
       ? rule.variants[rule.defaultVariant]
@@ -526,12 +542,26 @@ export function ruleTypeDefinition(
         if (entry.visual[key] !== undefined) own[key] = entry.visual[key];
       // ADR-295 Phase 3c-3: a box padding · gap still at its rule form's value (`ofHeight` · `em`) is a token
       //   use of the length ref — the resolver remembers it, the DOM writes the device formula.
-      for (const key of ["paddingX", "gap"] as const) {
-        const ref = ruleSizeLengthRef(rule.sizes[name] ?? {}, key);
-        if (ref && own[key] !== undefined && own[key] === pixels(ref, theme))
-          own[key] = lengthValue(ref, theme, tokens)!;
+      //   (ADR-295 후속: a fixed S2 sizing number — `scaled(n)` height · width — the same way.)
+      const merged = { ...own, ...sizes[name] } as Record<
+        string,
+        VisualValues[keyof VisualValues]
+      >;
+      for (const key of ["paddingX", "gap", "height", "width"] as const) {
+        const ref = ruleSizeLengthRef(
+          rule.sizes[name] ?? {},
+          // (A circle leaf's width is its height — `CIRCLE_LEAF_RULES`.)
+          key === "width" && CIRCLE_LEAF_RULES.has(type) ? "height" : key,
+        );
+        if (
+          ref &&
+          merged[key] !== undefined &&
+          merged[key] === pixels(ref, theme)
+        )
+          merged[key] = lengthValue(ref, theme, tokens)!;
       }
-      sizes[name] = { ...own, ...sizes[name] } as VisualValues;
+      withLengthTokens(merged, theme, tokens);
+      sizes[name] = merged as VisualValues;
     }
     if (layoutVarying.length)
       definition.conditionalRules = Object.entries(boxes).flatMap(

@@ -23,6 +23,7 @@ import { withCatalogTokenVars } from "../CSSGenerator";
 
 export type RuleLengthForm =
   | { readonly ofHeight: readonly [number, number] }
+  | { readonly scaled: number }
   | { readonly center: { readonly height?: string; readonly font?: string } }
   | {
       readonly em: readonly [number, number];
@@ -38,6 +39,20 @@ type MarkedForm = RuleLengthForm & { readonly [FORM]: true };
  */
 export function ofHeight(a: number, b: number): number {
   return { ofHeight: [a, b], [FORM]: true } as MarkedForm as unknown as number;
+}
+
+/**
+ * ADR-295 후속 — a fixed S2 sizing number (S2 `size(n)`, or a plain number on a sizing property: rem ×
+ * `--s2-scale`) — desktop n px, touch n × 1.25. Its ref is `{length.size.unit*n/1}`. Typed as the number it
+ * reads as.
+ */
+export function scaled(px: number): number {
+  return { scaled: px, [FORM]: true } as MarkedForm as unknown as number;
+}
+
+/** The length ref of a fixed S2 sizing number (`scaled(n)` outside a size block — a part · selector style). */
+export function scaledLengthRef(px: number): TokenRef {
+  return `{length.size.unit*${px}/1}` as TokenRef;
 }
 
 /**
@@ -81,6 +96,7 @@ export function ruleLengthRef(
   block: Readonly<Record<string, unknown>>,
 ): TokenRef {
   const ratio = (pair: readonly [number, number]) => `${pair[0]}/${pair[1]}`;
+  if ("scaled" in form) return scaledLengthRef(form.scaled);
   if ("center" in form) {
     const height = form.center.height
       ? `{size.height.${form.center.height}}`
@@ -272,8 +288,19 @@ export function defineRuleLengthForms(
   rules: Readonly<Record<string, { sizes?: Readonly<Record<string, object>> }>>,
   resolve: (ref: TokenRef) => unknown,
 ): void {
+  const blocks = (block: object): object[] => [
+    block,
+    // (ADR-295 후속: a nested part block — `indicator: { dotSize: scaled(8) }` — reads its own forms.)
+    ...Object.values(block).filter(
+      (value): value is object =>
+        typeof value === "object" &&
+        value !== null &&
+        !Array.isArray(value) &&
+        !isForm(value),
+    ),
+  ];
   for (const rule of Object.values(rules))
-    for (const block of Object.values(rule.sizes ?? {})) {
+    for (const block of Object.values(rule.sizes ?? {}).flatMap(blocks)) {
       const record = block as Record<string, unknown>;
       for (const [key, value] of Object.entries(record)) {
         if (!isForm(value)) continue;

@@ -19,6 +19,8 @@ import {
   em,
   ofHeight,
   resolveToken,
+  scaled,
+  scaledLengthRef,
 } from "@composition/rendering";
 
 /**
@@ -2545,19 +2547,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
-        height: 192,
+        height: scaled(192),
         iconSize: 14,
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
-        height: 192,
+        height: scaled(192),
         iconSize: 18,
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
-        height: 192,
+        height: scaled(192),
         iconSize: 22,
       },
     },
@@ -2570,8 +2572,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         delegation: [],
         // S2 ColorArea `size: 192` (`ColorArea.tsx` — 정사각, size 축 없음, ADR-295 Phase 3c-3c — 전 100% × 180).
         containerStyles: {
-          width: "192px",
-          height: "192px",
+          width: scaledLengthRef(192),
+          height: scaledLengthRef(192),
           "border-radius": "var(--radius-md)",
           "flex-shrink": "0",
           contain: "layout style",
@@ -2939,6 +2941,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      // ADR-295 후속: 상자 = S2 `ColorSwatch.tsx` `size` (S 24 · M 32 · L 40 — rem × `--s2-scale`, 터치 × 1.25) → `scaled`.
       // 2026-06-22 reference 정합(ADR-914 Tier1): reference ColorSwatch.css:6 `border-radius: 9999px`
       //   (정사각 box → 완전한 원형/pill). 기존 {radius.sm}/{radius.md} 는 둥근 사각 → 형태 범주 발산.
       //   {radius.full}(=9999) 는 Skia 측 nodeRendererClip 의 `Math.min(borderRadius, min(w,h)/2)` clamp 로
@@ -2946,17 +2949,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
-        height: 24,
+        height: scaled(24),
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.full}",
-        height: 32,
+        height: scaled(32),
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.full}",
-        height: 40,
+        height: scaled(40),
       },
     },
     structure: {
@@ -3016,19 +3019,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.md}",
         height: 0,
-        iconSize: 24,
+        iconSize: scaled(24),
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.lg}",
         height: 0,
-        iconSize: 32,
+        iconSize: scaled(32),
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.xl}",
         height: 0,
-        iconSize: 40,
+        iconSize: scaled(40),
       },
     },
   },
@@ -7760,36 +7763,36 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.sm}",
-        height: 4,
+        height: scaled(4),
         minWidth: "{size.bar.min-width}", // S2 `bar-utils.ts` `bar()` — Meter 도 ProgressBar 와 같은 최소 · 최대 폭 (ADR-295 Phase 3c-2b)
-        maxWidth: 768,
+        maxWidth: scaled(768),
         gap: 4,
       },
       M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.sm}",
-        height: 6,
+        height: scaled(6),
         minWidth: "{size.bar.min-width}",
-        maxWidth: 768,
+        maxWidth: scaled(768),
         gap: 4,
       },
       L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.md}",
-        height: 8,
+        height: scaled(8),
         minWidth: "{size.bar.min-width}",
-        maxWidth: 768,
+        maxWidth: scaled(768),
         gap: 4,
       },
       XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.lg}",
-        height: 10,
+        height: scaled(10),
         minWidth: "{size.bar.min-width}",
-        maxWidth: 768,
+        maxWidth: scaled(768),
         gap: 4,
       },
     },
@@ -7836,7 +7839,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             "grid-area": "bar",
             "box-shadow": "var(--inset-shadow-xs)",
             "forced-color-adjust": "none",
-            height: "6px",
+            height: scaledLengthRef(6),
             "border-radius": "var(--radius-sm)",
             overflow: "hidden",
             // (사용자 판정 2026-10-09: Meter track 은 회색 — MeterTrack rule 의 neutral-subtle 과 같은 값.)
@@ -7904,7 +7907,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         sizeSelectors: {
           S: {
             ".bar": {
-              height: "4px",
+              height: scaledLengthRef(4),
               "border-radius": "var(--radius-sm)",
             },
             ".value": {
@@ -7913,7 +7916,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           M: {
             ".bar": {
-              height: "6px",
+              height: scaledLengthRef(6),
               "border-radius": "var(--radius-sm)",
             },
             ".value": {
@@ -7922,7 +7925,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           L: {
             ".bar": {
-              height: "8px",
+              height: scaledLengthRef(8),
               "border-radius": "var(--radius-lg)",
             },
             ".value": {
@@ -7931,7 +7934,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           XL: {
             ".bar": {
-              height: "10px",
+              height: scaledLengthRef(10),
               "border-radius": "var(--radius-lg)",
             },
             ".value": {
@@ -8099,22 +8102,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
-        height: 4,
+        height: scaled(4),
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
-        height: 6,
+        height: scaled(6),
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
-        height: 8,
+        height: scaled(8),
       },
       XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
-        height: 10,
+        height: scaled(10),
       },
     },
     structure: {
@@ -8849,36 +8852,36 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.sm}",
-        height: 4,
+        height: scaled(4),
         minWidth: "{size.bar.min-width}", // S2 `bar-utils.ts` `minWidth: 48` (`size()` — 터치 60, ADR-295 Phase 3c-2)
-        maxWidth: 768,
+        maxWidth: scaled(768),
         gap: 4,
       },
       M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.sm}",
-        height: 6,
+        height: scaled(6),
         minWidth: "{size.bar.min-width}",
-        maxWidth: 768,
+        maxWidth: scaled(768),
         gap: 4,
       },
       L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.md}",
-        height: 8,
+        height: scaled(8),
         minWidth: "{size.bar.min-width}",
-        maxWidth: 768,
+        maxWidth: scaled(768),
         gap: 4,
       },
       XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.md}",
-        height: 10,
+        height: scaled(10),
         minWidth: "{size.bar.min-width}",
-        maxWidth: 768,
+        maxWidth: scaled(768),
         gap: 4,
       },
     },
@@ -8926,7 +8929,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             "grid-area": "bar",
             "box-shadow": "var(--inset-shadow-xs)",
             "forced-color-adjust": "none",
-            height: "6px",
+            height: scaledLengthRef(6),
             "border-radius": "var(--radius-sm)",
             overflow: "hidden",
             "will-change": "transform",
@@ -8990,7 +8993,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         sizeSelectors: {
           S: {
             ".bar": {
-              height: "4px",
+              height: scaledLengthRef(4),
               "border-radius": "var(--radius-sm)",
             },
             ".fill": {
@@ -9002,7 +9005,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           M: {
             ".bar": {
-              height: "6px",
+              height: scaledLengthRef(6),
               "border-radius": "var(--radius-sm)",
             },
             ".fill": {
@@ -9014,7 +9017,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           L: {
             ".bar": {
-              height: "8px",
+              height: scaledLengthRef(8),
               "border-radius": "var(--radius-lg)",
             },
             ".fill": {
@@ -9026,7 +9029,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           XL: {
             ".bar": {
-              height: "10px",
+              height: scaledLengthRef(10),
               "border-radius": "var(--radius-lg)",
             },
             ".fill": {
@@ -9081,22 +9084,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
-        height: 4,
+        height: scaled(4),
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
-        height: 6,
+        height: scaled(6),
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
-        height: 8,
+        height: scaled(8),
       },
       XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
-        height: 10,
+        height: scaled(10),
       },
     },
     structure: {
@@ -11256,28 +11259,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.none}",
         height: 16,
         gap: em(6, 14, [8, 17]),
-        indicator: { dotSize: 8 },
+        indicator: { dotSize: scaled(8) },
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 18,
         gap: em(6, 14, [8, 17]),
-        indicator: { dotSize: 10 },
+        indicator: { dotSize: scaled(10) },
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 20,
         gap: em(6, 14, [8, 17]),
-        indicator: { dotSize: 12 },
+        indicator: { dotSize: scaled(12) },
       },
       XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 22,
         gap: em(6, 14, [8, 17]),
-        indicator: { dotSize: 14 },
+        indicator: { dotSize: scaled(14) },
       },
     },
     structure: {
@@ -13358,21 +13361,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 0,
-        minHeight: 56,
+        minHeight: scaled(56),
         iconSize: 16,
       },
       M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
         height: 0,
-        minHeight: 56,
+        minHeight: scaled(56),
         iconSize: 20,
       },
       L: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
         height: 0,
-        minHeight: 56,
+        minHeight: scaled(56),
         iconSize: 24,
       },
     },

@@ -81,6 +81,10 @@
     /* ProgressBar 최소 폭 (ADR-295 Phase 3c-2): S2 `bar-utils.ts` `minWidth: 48` 은 `size()` (터치 60) — 빌더는 desktop. */
     --catalog-token-size-bar-min-width: 48px;
 
+    /* 고정 sizing 숫자의 기기 배율 (ADR-295 후속): rule `scaled(n)` = `calc(var(--catalog-token-size-unit) * n)` — S2 `size(n)`
+       (터치 × 1.25). 빌더는 desktop 1px 이라 295 전 px 그대로. */
+    --catalog-token-size-unit: 1px;
+
     /* 아이콘 (ADR-295 Phase 3b): 생성 시트의 `--icon-size` 는 컴포넌트 고정 변수 → S2 아이콘 단 `--catalog-token-size-icon-*`
        순으로 읽는다. 빌더 위젯은 295 전 rule 의 px 를 고정 변수로 (Preview · Publish 는 고정 변수를 선언하지 않는다). */
     --catalog-token-size-icon-XS: 14px;

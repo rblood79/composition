@@ -108,6 +108,9 @@ export function s2SizeTokens(scale: number): Record<string, number> {
     //   a relative length's touch coefficient reads (S2 `text-to-visual` 8/17 em). DOM
     //   `--catalog-token-size-device-touch`.
     ["device.touch", scale > S2_DEVICE.desktop.scale ? 1 : 0],
+    // ADR-295 후속: `{size.unit}` — 1 px × scale, the base of a rule's fixed S2 sizing number (`scaled(n)` —
+    //   S2 `size(n)` · a plain number on a sizing property = rem × `--s2-scale`). DOM `--catalog-token-size-unit`.
+    ["unit", scale],
   ]);
 }
 

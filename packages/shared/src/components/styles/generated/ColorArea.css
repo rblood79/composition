@@ -11,8 +11,8 @@
     display: block;
     box-sizing: border-box;
     font-family: var(--font-sans);
-    width: 192px;
-    height: 192px;
+    width: calc(var(--catalog-token-size-unit) * 192 / 1);
+    height: calc(var(--catalog-token-size-unit) * 192 / 1);
     border-radius: var(--catalog-token-radius-md);
     flex-shrink: 0;
     contain: layout style;
