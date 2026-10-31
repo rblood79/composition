@@ -499,11 +499,30 @@ export type PropCondition = Readonly<Record<string, Scalar>>;
  * Ordered rule applied after `propVisualRules`: matches when every `when` prop equals the resolved
  * value and, if present, `state` is the resolution state. Later rules win.
  */
+/**
+ * ADR-295 Phase 3c-3b — the token a `layout` length's px came from (a length ref: S2 `pill` · `edge-to-text`
+ * sums of a SearchField's glyph · a field button's start; 후속: a `scaled(n)` maximum): the resolver notes it on
+ * the record's layout, so the DOM writes the device formula. The px stays in `layout` (the engine reads it).
+ */
+export type LayoutTokenUses = Readonly<
+  Partial<
+    Record<
+      | "marginLeft"
+      | "marginRight"
+      | "marginTop"
+      | "marginBottom"
+      | "maxWidth"
+      | "maxHeight",
+      TokenUse
+    >
+  >
+>;
 export interface ConditionalRule {
   when: PropCondition;
   state?: StateName;
   visual?: VisualValues;
   layout?: LayoutValues;
+  layoutTokens?: LayoutTokenUses;
 }
 /**
  * Values a parent definition applies to its direct children of `child.definitionId` (and, when
@@ -525,19 +544,8 @@ export interface PartRule {
   state?: StateName;
   visual?: VisualValues;
   layout?: LayoutValues;
-  /**
-   * ADR-295 Phase 3c-3b — the token a `layout` margin's px came from (a length ref — S2 `pill` · `edge-to-text`
-   * sums of a SearchField's glyph · a field button's start): the resolver notes it on the record's layout, so
-   * the DOM writes the device formula. The px stays in `layout` (the engine reads it).
-   */
-  layoutTokens?: Readonly<
-    Partial<
-      Record<
-        "marginLeft" | "marginRight" | "marginTop" | "marginBottom",
-        TokenUse
-      >
-    >
-  >;
+  /** The token a `layout` length's px came from (`LayoutTokenUses`). */
+  layoutTokens?: LayoutTokenUses;
 }
 
 export interface InstanceAddress {

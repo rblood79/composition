@@ -1,5 +1,9 @@
 import { parseColor } from "react-stately";
-import { cssVarToTokenRef } from "@composition/rendering";
+import {
+  cssVarToTokenRef,
+  resolveToken,
+  type TokenRef,
+} from "@composition/rendering";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import {
   CATALOG_COLOR_WHEEL_TRACK,
@@ -274,7 +278,11 @@ export function catalogColorThumbRing(): Omit<
     }
   ).structure?.composition?.containerStyles;
   const border = /^(\d+(?:\.\d+)?)px solid (.+)$/.exec(styles?.border ?? "");
-  const size = Number.parseFloat(styles?.width ?? "");
+  // (ADR-295 후속: the S2 handle is `scaled(16)` — its px in the installed maps.)
+  const width = styles?.width ?? "";
+  const size = /^\{length\.[^{}]+\}$/.test(width)
+    ? Number(resolveToken(width as TokenRef))
+    : Number.parseFloat(width);
   if (!border || !Number.isFinite(size))
     throw new Error("CATALOG_COLOR_THUMB_RULE_UNSUPPORTED");
   const shadow = styles?.["box-shadow"];

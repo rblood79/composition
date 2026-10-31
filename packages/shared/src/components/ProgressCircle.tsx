@@ -32,6 +32,7 @@
 import React from "react";
 import { resolveComponentRule } from "../catalog/resolvers/resolveComponentRule";
 import { colorTokenToCss } from "../catalog/resolvers/colorTokenToCss";
+import { ruleLengthCss, ruleSizeLengthRef } from "@composition/rendering";
 
 export interface ProgressCircleProps {
   /** 진행률 (minValue~maxValue 구간, 기본 0-100) */
@@ -119,6 +120,14 @@ export function ProgressCircle({
 }: ProgressCircleProps): React.ReactElement {
   const sizeKey = String(size).toUpperCase();
   const diameter = diameterProp ?? DIAMETER[sizeKey] ?? DIAMETER.M;
+  // 상자 = rule 지름 (`scaled` — S2 `size()`, 터치 × 1.25) 의 기기 식. svg 는 desktop 좌표계 (viewBox) 를 상자에 맞춘다
+  //   (ADR-295 후속 — 터치에서 선 굵기도 같이 × 1.25: S2 는 3 고정).
+  const block = resolveComponentRule("ProgressCircle")?.sizes?.[sizeKey];
+  const diameterRef =
+    diameterProp === undefined && block
+      ? ruleSizeLengthRef(block, "height")
+      : undefined;
+  const box = (diameterRef && ruleLengthCss(diameterRef)) ?? diameter;
   const strokeWidth = strokeWidthProp ?? STROKE_WIDTH;
 
   const radius = (diameter - strokeWidth) / 2;
@@ -159,19 +168,15 @@ export function ProgressCircle({
       aria-valuemax={max}
       aria-valuenow={isIndeterminate ? undefined : clamped}
       style={{
-        width: diameter,
-        height: diameter,
+        width: box,
+        height: box,
         flexShrink: 0,
         ...(isDisabled ? { opacity: 0.38, pointerEvents: "none" } : {}),
         ...style,
       }}
       className={className}
     >
-      <svg
-        width={diameter}
-        height={diameter}
-        viewBox={`0 0 ${diameter} ${diameter}`}
-      >
+      <svg width="100%" height="100%" viewBox={`0 0 ${diameter} ${diameter}`}>
         <circle
           cx={diameter / 2}
           cy={diameter / 2}

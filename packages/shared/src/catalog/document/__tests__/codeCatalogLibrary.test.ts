@@ -278,12 +278,10 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
     for (const type of ["Icon", "Illustration"] as const) {
       const glyph = library.definitions.get(catalogTypeDefinitionId(type))!;
       expect(glyph.bindingId).toBe(type.toLowerCase());
-      // (ADR-295 Phase 3b: the Icon's S2 icon step is a token value; the Illustration keeps px.)
-      const ruleIcon = COMPONENT_RULES_TABLE[type].sizes.M.iconSize;
+      // (ADR-295 Phase 3b: the Icon's S2 icon step is a token value; 후속: so is the Illustration's
+      //   `scaled` glyph — the token of its length ref.)
       expect(glyph.propVisualRules?.size?.M?.iconSize).toEqual(
-        typeof ruleIcon === "number"
-          ? ruleIcon
-          : expect.objectContaining({ kind: "token" }),
+        expect.objectContaining({ kind: "token" }),
       );
       expect(glyph.visual.color).toEqual(
         expect.objectContaining({ kind: "token" }),

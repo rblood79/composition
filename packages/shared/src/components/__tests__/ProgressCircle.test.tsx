@@ -102,19 +102,19 @@ describe("ProgressCircle — size → 지름(rule height) + strokeWidth 3 unifor
   //   기본값 3 으로 해소 → DOM 도 3 으로 대칭(spec lg=4 는 rule 미이전 잔재).
   it("size sm → diameter 16 (S2), strokeWidth 3", () => {
     const html = renderToStaticMarkup(<ProgressCircle size="S" value={50} />);
-    expect(html).toMatch(/width="16"/);
+    expect(html).toMatch(/viewBox="0 0 16 16"/);
     expect(html).toMatch(/stroke-width="3"/);
   });
 
   it("size md → diameter 32, strokeWidth 3", () => {
     const html = renderToStaticMarkup(<ProgressCircle size="M" value={50} />);
-    expect(html).toMatch(/width="32"/);
+    expect(html).toMatch(/viewBox="0 0 32 32"/);
     expect(html).toMatch(/stroke-width="3"/);
   });
 
   it("size lg → diameter 64, strokeWidth 3 (rule base 정합 — lg=4 spec 잔재 미적용)", () => {
     const html = renderToStaticMarkup(<ProgressCircle size="L" value={50} />);
-    expect(html).toMatch(/width="64"/);
+    expect(html).toMatch(/viewBox="0 0 64 64"/);
     expect(html).toMatch(/stroke-width="3"/);
   });
 });
@@ -155,9 +155,13 @@ describe("ProgressCircle — cutover DOM 경로 (toRacProps propPassthrough)", (
   });
 
   it("cutover 경로에서 size 변경이 지름에 반영 (lg → 64px, default 32px 고정 아님)", () => {
-    expect(cutoverHtml({ size: "L", value: 50 })).toMatch(/width="64"/);
+    expect(cutoverHtml({ size: "L", value: 50 })).toMatch(
+      /viewBox="0 0 64 64"/,
+    );
     // 버그였다면 size prop undefined → 항상 32px
-    expect(cutoverHtml({ size: "L", value: 50 })).not.toMatch(/width="32"/);
+    expect(cutoverHtml({ size: "L", value: 50 })).not.toMatch(
+      /viewBox="0 0 32 32"/,
+    );
   });
 
   it("cutover 경로에서 value 변경이 indicator 에 반영", () => {

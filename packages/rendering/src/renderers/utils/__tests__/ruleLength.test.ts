@@ -105,6 +105,8 @@ describe("ADR-295 length refs", () => {
     expect(ref).toBe("{length.size.unit*24/1}");
     expect(ruleLengthPx(ref, resolve(0))).toBe(24);
     expect(ruleLengthPx(ref, resolve(1))).toBe(30);
-    expect(ruleLengthCss(ref)).toBe("calc(var(--catalog-token-size-unit) * 24 / 1)");
+    expect(ruleLengthCss(ref)).toBe(
+      "calc(var(--catalog-token-size-unit) * 24 / 1)",
+    );
   });
 });

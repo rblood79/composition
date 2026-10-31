@@ -458,6 +458,21 @@ export function ruleTypeDefinition(
     ...box.visual,
   };
   withLengthTokens(visual, theme, tokens);
+  // (ADR-295 후속: a box side every size shares — a SliderTrack's `scaled(4)` bar — stays on the definition:
+  //   a token use of the default size's length ref while it is still that ref's value.)
+  const defaultBlock = rule.defaultSize
+    ? rule.sizes[rule.defaultSize]
+    : undefined;
+  if (defaultBlock)
+    for (const key of ["height", "width", "minHeight", "minWidth"] as const) {
+      const ref = ruleSizeLengthRef(defaultBlock, key);
+      if (
+        ref &&
+        visual[key] !== undefined &&
+        visual[key] === pixels(ref, theme)
+      )
+        visual[key] = lengthValue(ref, theme, tokens)!;
+    }
   const defaultVariant =
     rule.defaultVariant !== undefined
       ? rule.variants[rule.defaultVariant]
@@ -547,7 +562,14 @@ export function ruleTypeDefinition(
         string,
         VisualValues[keyof VisualValues]
       >;
-      for (const key of ["paddingX", "gap", "height", "width"] as const) {
+      for (const key of [
+        "paddingX",
+        "gap",
+        "height",
+        "width",
+        "minHeight",
+        "minWidth",
+      ] as const) {
         const ref = ruleSizeLengthRef(
           rule.sizes[name] ?? {},
           // (A circle leaf's width is its height — `CIRCLE_LEAF_RULES`.)
@@ -621,6 +643,17 @@ export function ruleTypeDefinition(
       ),
       ...(Object.keys(variant.layout).length
         ? { layout: variant.layout as LayoutValues }
+        : {}),
+      // (ADR-295 후속: a length ref the layout px came from — a `scaled` max width — is a token use.)
+      ...(variant.layoutRefs
+        ? {
+            layoutTokens: Object.fromEntries(
+              Object.entries(variant.layoutRefs).map(([key, ref]) => [
+                key,
+                lengthValue(ref, theme, tokens),
+              ]),
+            ) as ConditionalRule["layoutTokens"],
+          }
         : {}),
       ...(Object.keys(variant.visual).length
         ? { visual: variant.visual as VisualValues }

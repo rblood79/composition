@@ -172,6 +172,7 @@ import {
   catalogDeviceLayoutCss,
   catalogDeviceGlyphSize,
   catalogDeviceRowsHeightCss,
+  catalogDeviceScaledCss,
   catalogDeviceTypographyCss,
 } from "./deviceTypography";
 
@@ -888,7 +889,9 @@ const bindings: Readonly<Record<string, DomBinding>> = {
   // The S2 IllustratedMessage's picture: its own class (the owner sheet places it) and its glyph
   // box (the Icon sheet's `.react-aria-Icon` height is the Icon scale's).
   illustration: (node, style, children, context) => {
-    const size = catalogGlyphSize(node) ?? 96;
+    // (ADR-295 후속: the S2 picture is `scaled(n)` — its box is the device formula.)
+    const size =
+      catalogDeviceGlyphSize(node.visual) ?? catalogGlyphSize(node) ?? 96;
     return glyph("image", 96, "react-aria-Illustration")(
       node,
       { ...style, width: size, height: size },
@@ -1004,9 +1007,17 @@ const bindings: Readonly<Record<string, DomBinding>> = {
         node.derivedProps?.trackStyle === "thick"
           ? {
               ...style,
-              height: CATALOG_SLIDER_THICK_TRACK.height,
+              // (ADR-295 후속: the S2 bar · row are `size()` numbers — the device formula of the desktop px.)
+              height: catalogDeviceScaledCss(CATALOG_SLIDER_THICK_TRACK.height),
               borderRadius: CATALOG_SLIDER_THICK_TRACK.radius,
-              ...catalogSliderThickTrackMargins(node),
+              ...Object.fromEntries(
+                Object.entries(catalogSliderThickTrackMargins(node) ?? {}).map(
+                  ([key, value]) => [
+                    key,
+                    catalogDeviceScaledCss(Number.parseFloat(value)),
+                  ],
+                ),
+              ),
             }
           : style,
       children: catalogStateChildren(node.id, () => children),
@@ -1130,8 +1141,13 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       "data-catalog-id": node.id,
       ...(precise ? { "data-thumb-style": "precise" } : {}),
       index: Number(node.props._thumbIndex ?? 0),
+      // (ADR-295 후속: S2 `size()` numbers — the device formula of the desktop px.)
       style: precise
-        ? { ...withoutRacPlacement(style), width: 6, height: size + 2 }
+        ? {
+            ...withoutRacPlacement(style),
+            width: catalogDeviceScaledCss(6),
+            height: catalogDeviceScaledCss(size + 2),
+          }
         : withoutRacPlacement(style),
     });
   },
@@ -3318,6 +3334,8 @@ export function renderNode(
   // inline.
   if (node.bindingId === "sliderthumb" && parentInput) {
     const { borderWidth: _ring, ...visual } = node.visual;
+    // (The copy keeps the token refs — the thumb's `scaled` sides go inline as the device formula.)
+    copyResolvedTokenRefs(visual, node.visual, Object.keys(visual));
     node = {
       ...node,
       visual,

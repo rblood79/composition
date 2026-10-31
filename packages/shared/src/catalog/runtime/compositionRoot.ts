@@ -157,6 +157,7 @@ import {
   catalogDerivedPropsDependents,
   type CatalogComposedPart,
   CATALOG_SLIDER_THICK_TRACK,
+  catalogScaledPx,
   catalogSliderThickTrackMargins,
   catalogHiddenAtRest,
   type CatalogOriginBodyOpen,
@@ -1181,7 +1182,7 @@ function styleOf(
     // S2 Slider `trackStyle: thick` — the track bar's 16px (the DOM track inline reads the same
     // value, `CATALOG_SLIDER_THICK_TRACK`).
     ...(node.derivedProps?.trackStyle === "thick"
-      ? { height: `${CATALOG_SLIDER_THICK_TRACK.height}px` }
+      ? { height: `${catalogScaledPx(CATALOG_SLIDER_THICK_TRACK.height)}px` }
       : {}),
     // A standalone list's item does not shrink (its list rule's item selector — the resolver's
     // `_itemShrink`, 2026-10-13); an authored flex shrink wins.

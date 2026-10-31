@@ -1077,7 +1077,10 @@ describe("ADR-295 G4 — 3c-3c ②c Slider track 행 · 막대 = S2", () => {
       const track = selectors[size]![".react-aria-SliderTrack"]!;
       expect(track["margin-top"]).toBe(track["margin-bottom"]);
       const bar = rules.SliderTrack!.sizes[size]!.height as number;
-      expect(bar + 2 * Number.parseFloat(track["margin-top"]!)).toBe(row);
+      // (ADR-295 후속: the margin is `scaled` — its desktop px.)
+      expect(
+        bar + 2 * Number(resolveToken(track["margin-top"]! as TokenRef)),
+      ).toBe(row);
       // (DOM: a press anywhere in the row moves the thumb — the track's row-tall `::before`.)
       const hit = (
         COMPONENT_RULES_TABLE.SliderTrack.structure?.composition as {
@@ -1086,7 +1089,7 @@ describe("ADR-295 G4 — 3c-3c ②c Slider track 행 · 막대 = S2", () => {
       ).rootSelectors[
         `&:is(.react-aria-Slider *)[data-size="${size}"]::before`
       ];
-      expect(hit?.styles.height).toBe(`${row}px`);
+      expect(hit?.styles.height).toBe(`{length.size.unit*${row}/1}`);
     }
   });
 });
@@ -1409,8 +1412,86 @@ describe("ADR-295 후속 — S2 고정 sizing 숫자 = 기기 배율 (`scaled` �
     }
   });
 
+  it("Slider thumb · 막대 · 행 여백 · 누르는 상자 = scaled(S2 thumb · trackStyling · track)", () => {
+    const thumb = s2SizeTable(
+      "Slider.tsx",
+      /thumbStyle:\s*\{\s*default:\s*\{\s*size:\s*/,
+    );
+    const bar = s2SizeTable(
+      "Slider.tsx",
+      /const trackStyling = \{\s*height: \{\s*trackStyle: /,
+    );
+    const row = s2SizeTable(
+      "Slider.tsx",
+      /export let track = style\(\{[^}]*?height: \{\s*size: /,
+    );
+    for (const [size, block] of Object.entries(rules.Slider!.sizes)) {
+      const indicator = block.indicator as object;
+      expect(ruleSizeLengthRef(indicator, "thumbSize"), size).toBe(
+        scaledRef(thumb[size]!),
+      );
+      expect(ruleSizeLengthRef(indicator, "trackHeight"), size).toBe(
+        scaledRef(bar.thin!),
+      );
+      const track =
+        rules.Slider!.structure!.composition!.sizeSelectors![size]![
+          ".react-aria-SliderTrack"
+        ]!;
+      expect(track["margin-top"], size).toBe(
+        scaledRef((row[size]! - bar.thin!) / 2),
+      );
+    }
+    expectScaled("SliderThumb", "height", (size) => thumb[size]!);
+    expectScaled("SliderTrack", "height", () => bar.thin!);
+    expectScaled("SliderTrack", "thumbSize", (size) => thumb[size]!);
+    // (thick 막대 · precise 손잡이: Canvas `catalogScaledPx` · DOM `catalogDeviceScaledCss` — 같은 S2 숫자.)
+    expect(CATALOG_SLIDER_THICK_TRACK.height).toBe(bar.thick);
+  });
+
+  it("ProgressCircle 지름 = scaled(S2 wrapper size)", () => {
+    const s2 = s2SizeTable(
+      "ProgressCircle.tsx",
+      /const wrapper[\s\S]*?size:\s*\{/,
+    );
+    expectScaled("ProgressCircle", "height", (size) =>
+      size === "M" ? s2.default! : s2[size]!,
+    );
+  });
+
+  it("ColorThumb 손잡이 · Illustration 그림 · IllustratedMessage 최대 폭 · 격자 숫자 = scaled(S2)", () => {
+    const handle = s2Value("ColorHandle.tsx", /const HANDLE_SIZE = (\d+)/);
+    expectScaled("ColorThumb", "height", () => handle);
+    const thumb = rules.ColorThumb!.structure!.composition!.containerStyles!;
+    expect([thumb.width, thumb.height]).toEqual([
+      scaledRef(handle),
+      scaledRef(handle),
+    ]);
+    const art = s2SizeTable(
+      "Icon.tsx",
+      /const illustrationStyles = style\(\s*\{\s*size: \{\s*size: /,
+    );
+    expectScaled("Illustration", "height", (size) => art[size]!);
+    expectScaled("Illustration", "iconSize", (size) => art[size]!);
+    const message = readFileSync(
+      resolve(
+        __dirname,
+        "../../../../node_modules/@react-spectrum/s2/src/IllustratedMessage.tsx",
+      ),
+      "utf8",
+    );
+    const vertical = Number(/vertical: (\d+),/.exec(message)![1]);
+    const horizontal = Number(/horizontal: (\d+) \/\//.exec(message)![1]);
+    const css = JSON.stringify(rules.IllustratedMessage!.structure);
+    for (const px of [vertical, horizontal, 12, 8, 4])
+      expect(css, String(px)).toContain(scaledRef(px));
+    expect(css).not.toMatch(/"(380|528|12|8|4)px"/);
+  });
+
   it("Toast 최소 높이 · ColorArea 상자 = scaled(S2)", () => {
-    const toast = s2Value("Toast.tsx", /borderRadius: 'lg',\s*minHeight: (\d+)/);
+    const toast = s2Value(
+      "Toast.tsx",
+      /borderRadius: 'lg',\s*minHeight: (\d+)/,
+    );
     expectScaled("Toast", "minHeight", () => toast);
     const area = s2Value("ColorArea.tsx", /size: (\d+),\s*minSize/);
     expectScaled("ColorArea", "height", () => area);

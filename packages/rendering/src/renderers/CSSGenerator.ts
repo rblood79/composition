@@ -24,7 +24,11 @@ import {
   borderWidthToCSS,
 } from "./utils/tokenResolver";
 import { s2ControlPaddingY } from "./utils/controlPadding";
-import { lengthPinVar, ruleLengthCss } from "./utils/ruleLength";
+import {
+  lengthPinVar,
+  ruleLengthCss,
+  ruleSizeLengthRef,
+} from "./utils/ruleLength";
 import { CHART_OTHERS_FALLBACK_TOKEN } from "../chart/budget";
 import { CHART_REFERENCE_FALLBACK_TOKEN } from "../chart/marks/referenceLine";
 import { deriveAutoDelegationVariables } from "../runtime/deriveAutoDelegationVariables";
@@ -1828,9 +1832,14 @@ function generateSliderSizeMetrics<Props>(
     if (trackHeight == null && thumbSize == null) continue;
 
     const sel = `${rootSel}[data-size="${sizeKey}"]`;
+    // (ADR-295 후속: an S2 `scaled(n)` thumb is its device formula.)
+    const thumbRef = indicator
+      ? ruleSizeLengthRef(indicator, "thumbSize")
+      : undefined;
+    const thumbCss = (thumbRef && ruleLengthCss(thumbRef)) ?? `${thumbSize}px`;
     if (thumbSize != null) {
       lines.push(
-        `  ${sel} .react-aria-SliderThumb { width: ${thumbSize}px; height: ${thumbSize}px; }`,
+        `  ${sel} .react-aria-SliderThumb { width: ${thumbCss}; height: ${thumbCss}; }`,
       );
     }
     lines.push("");

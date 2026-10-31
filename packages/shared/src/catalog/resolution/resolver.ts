@@ -864,7 +864,12 @@ export function resolveCatalogNode(
           (rule.state === undefined || rule.state === nodeState)
         ) {
           if (rule.visual) applyValues(visual, rule.visual);
-          if (rule.layout) Object.assign(layout, rule.layout);
+          if (rule.layout) {
+            Object.assign(layout, rule.layout);
+            // (ADR-295 후속: a `scaled` maximum's length token — the DOM writes its device formula.)
+            for (const key of Object.keys(rule.layout))
+              noteTokenRef(layout, key, rule.layoutTokens?.[key as "maxWidth"]);
+          }
         }
     const near = structuralParent(parent);
     if (!near) return;

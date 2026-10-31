@@ -15,6 +15,7 @@ import {
   catalogTokenVarName,
   resolveToken,
   ruleLengthCss,
+  scaledLengthRef,
   type TokenRef,
 } from "@composition/rendering";
 import { catalogResolvedTokenRef } from "../resolution/resolver";
@@ -83,6 +84,15 @@ export function catalogDeviceLength(ref: string): string | undefined {
   return text[2]
     ? `calc(${font} * var(${catalogTokenVarName(`--${name}--line-height`)}))`
     : font;
+}
+
+/**
+ * ADR-295 후속 — an S2 fixed sizing number (`size(n)`) the DOM writes inline from a desktop px (a thick
+ * Slider bar · its row margins, a precise thumb): `calc(var(--catalog-token-size-unit) * n)` — the Canvas
+ * reads the same number as `catalogScaledPx`.
+ */
+export function catalogDeviceScaledCss(px: number): string {
+  return ruleLengthCss(scaledLengthRef(px))!;
 }
 
 const px = (value: unknown): number | undefined =>

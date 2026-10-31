@@ -118,12 +118,13 @@ describe("S2 Slider trackStyle · thumbStyle · fillOffset", () => {
     expect(track.derivedProps?.trackStyle).toBe("thick");
     expect(geometry(root, track.id).height).toBe(16);
     // (The style attribute precedes the class in the markup.)
+    // (ADR-295 후속: the DOM writes S2 `size()` numbers as the device formula — 16 px on desktop.)
     expect(html).toMatch(
-      /<div [^>]*height:16px;border-radius:4px[^>]*data-track-style="thick"/,
+      /<div [^>]*height:calc\(var\(--catalog-token-size-unit\) \* 16 \/ 1\);border-radius:4px[^>]*data-track-style="thick"/,
     );
     // (ADR-295 Phase 3c-3c ②c: the row stays S2 M 32 — 16 + 8 × 2, both consumers.)
     expect(html).toMatch(
-      /height:16px;border-radius:4px;margin-top:8px;margin-bottom:8px/,
+      /height:calc\(var\(--catalog-token-size-unit\) \* 16 \/ 1\);border-radius:4px;margin-top:calc\(var\(--catalog-token-size-unit\) \* 8 \/ 1\);margin-bottom:calc\(var\(--catalog-token-size-unit\) \* 8 \/ 1\)/,
     );
     const thin = await open({});
     expect(geometry(root, part("Slider")!.id).height).toBe(
@@ -157,7 +158,9 @@ describe("S2 Slider trackStyle · thumbStyle · fillOffset", () => {
     const box = geometry(root, thumbRecord.id);
     expect(box.width).toBe(6);
     expect(box.height).toBe(22); // S2 precise M 22 (thumb 20 + 2 — ADR-295 Phase 3c-3c)
-    expect(html).toMatch(/width:6px/);
+    expect(html).toMatch(
+      /width:calc\(var\(--catalog-token-size-unit\) \* 6 \/ 1\);height:calc\(var\(--catalog-token-size-unit\) \* 22 \/ 1\)/,
+    );
   });
 
   it("fillOffset 50 (value 30, 0–100): the fill runs 30% → 50% of the track", async () => {

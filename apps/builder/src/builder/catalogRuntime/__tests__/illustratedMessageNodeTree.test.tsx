@@ -187,7 +187,11 @@ describe("IllustratedMessage — the S2 node tree", () => {
     expect(el.dataset.orientation).toBe("horizontal");
     const [picture, heading, description] = [...el.children] as HTMLElement[];
     expect(picture.classList.contains("react-aria-Illustration")).toBe(true);
-    expect(picture.querySelector("svg")?.getAttribute("width")).toBe("96");
+    // (ADR-295 후속: the picture box is `scaled(96)` — the svg is its glyph square.)
+    expect(picture.style.height).toBe(
+      "calc(var(--catalog-token-size-unit) * 96 / 1)",
+    );
+    expect(picture.querySelector("svg")?.getAttribute("width")).toBe("1em");
     expect(heading.textContent).toBe("No results");
     expect(heading.style.textAlign).toBe("start");
     expect(description.getAttribute("slot")).toBe("description");

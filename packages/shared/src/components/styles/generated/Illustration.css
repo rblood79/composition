@@ -22,11 +22,11 @@
   border: none;
 
   /* Default size */
-  height: 96px;
+  height: calc(var(--catalog-token-size-unit) * 96 / 1);
   padding: 0px 0px;
   font-size: var(--catalog-token-text-base);
   border-radius: var(--catalog-token-radius-none);
-  --icon-size: 96px;
+  --icon-size: calc(var(--catalog-token-size-unit) * 96 / 1);
 }
 
 .react-aria-Illustration[data-variant="default"] {
@@ -43,27 +43,27 @@
 }
 
 .react-aria-Illustration[data-size="S"] {
-  height: 48px;
+  height: calc(var(--catalog-token-size-unit) * 48 / 1);
   padding: 0px 0px;
   font-size: var(--catalog-token-text-base);
   border-radius: var(--catalog-token-radius-none);
-  --icon-size: 48px;
+  --icon-size: calc(var(--catalog-token-size-unit) * 48 / 1);
 }
 
 .react-aria-Illustration[data-size="M"] {
-  height: 96px;
+  height: calc(var(--catalog-token-size-unit) * 96 / 1);
   padding: 0px 0px;
   font-size: var(--catalog-token-text-base);
   border-radius: var(--catalog-token-radius-none);
-  --icon-size: 96px;
+  --icon-size: calc(var(--catalog-token-size-unit) * 96 / 1);
 }
 
 .react-aria-Illustration[data-size="L"] {
-  height: 160px;
+  height: calc(var(--catalog-token-size-unit) * 160 / 1);
   padding: 0px 0px;
   font-size: var(--catalog-token-text-base);
   border-radius: var(--catalog-token-radius-none);
-  --icon-size: 160px;
+  --icon-size: calc(var(--catalog-token-size-unit) * 160 / 1);
 }
 
 .react-aria-Illustration[data-focus-visible] {

@@ -121,8 +121,8 @@
 
 
   .react-aria-Slider[data-size="S"] .react-aria-SliderTrack {
-    margin-top: 10px;
-    margin-bottom: 10px;
+    margin-top: calc(var(--catalog-token-size-unit) * 10 / 1);
+    margin-bottom: calc(var(--catalog-token-size-unit) * 10 / 1);
   }
 
   .react-aria-Slider[data-size="S"] :is(.react-aria-Label, .react-aria-FieldLabel) {
@@ -134,8 +134,8 @@
   }
 
   .react-aria-Slider[data-size="M"] .react-aria-SliderTrack {
-    margin-top: 14px;
-    margin-bottom: 14px;
+    margin-top: calc(var(--catalog-token-size-unit) * 14 / 1);
+    margin-bottom: calc(var(--catalog-token-size-unit) * 14 / 1);
   }
 
   .react-aria-Slider[data-size="M"] :is(.react-aria-Label, .react-aria-FieldLabel) {
@@ -147,8 +147,8 @@
   }
 
   .react-aria-Slider[data-size="L"] .react-aria-SliderTrack {
-    margin-top: 18px;
-    margin-bottom: 18px;
+    margin-top: calc(var(--catalog-token-size-unit) * 18 / 1);
+    margin-bottom: calc(var(--catalog-token-size-unit) * 18 / 1);
   }
 
   .react-aria-Slider[data-size="L"] :is(.react-aria-Label, .react-aria-FieldLabel) {
@@ -160,8 +160,8 @@
   }
 
   .react-aria-Slider[data-size="XL"] .react-aria-SliderTrack {
-    margin-top: 22px;
-    margin-bottom: 22px;
+    margin-top: calc(var(--catalog-token-size-unit) * 22 / 1);
+    margin-bottom: calc(var(--catalog-token-size-unit) * 22 / 1);
   }
 
   .react-aria-Slider[data-size="XL"] :is(.react-aria-Label, .react-aria-FieldLabel) {
@@ -173,13 +173,13 @@
   }
 
 
-  .react-aria-Slider[data-size="S"] .react-aria-SliderThumb { width: 18px; height: 18px; }
+  .react-aria-Slider[data-size="S"] .react-aria-SliderThumb { width: calc(var(--catalog-token-size-unit) * 18 / 1); height: calc(var(--catalog-token-size-unit) * 18 / 1); }
 
-  .react-aria-Slider[data-size="M"] .react-aria-SliderThumb { width: 20px; height: 20px; }
+  .react-aria-Slider[data-size="M"] .react-aria-SliderThumb { width: calc(var(--catalog-token-size-unit) * 20 / 1); height: calc(var(--catalog-token-size-unit) * 20 / 1); }
 
-  .react-aria-Slider[data-size="L"] .react-aria-SliderThumb { width: 22px; height: 22px; }
+  .react-aria-Slider[data-size="L"] .react-aria-SliderThumb { width: calc(var(--catalog-token-size-unit) * 22 / 1); height: calc(var(--catalog-token-size-unit) * 22 / 1); }
 
-  .react-aria-Slider[data-size="XL"] .react-aria-SliderThumb { width: 24px; height: 24px; }
+  .react-aria-Slider[data-size="XL"] .react-aria-SliderThumb { width: calc(var(--catalog-token-size-unit) * 24 / 1); height: calc(var(--catalog-token-size-unit) * 24 / 1); }
 
 
 } /* @layer components */

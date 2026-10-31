@@ -138,13 +138,6 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
       "Color 조작기의 swatch · thumb 치수 — 아이콘이 아니다 (3c 에서 S2 ColorSwatch · ColorThumb 와 대조)",
   })),
   {
-    component: "Illustration",
-    key: "iconSize",
-    values: { S: 48, M: 96, L: 160 },
-    reason:
-      "일러스트 상자 — S2 아이콘 단이 아니다 (S2 IllustratedMessage 96 · 96 · 160, 3c 대조)",
-  },
-  {
     component: "DropZone",
     key: "iconSize",
     values: { S: 24, M: 32, L: 40 },
@@ -182,34 +175,10 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
       "차트 축 글자 — S2 컴포넌트 없음 · 장면 계산 (`computeChartScene`) 입력은 px 숫자",
   },
   sizes(
-    "ColorThumb",
-    "height",
-    { M: 16 },
-    "S2 ColorHandle 16 (`ColorHandle.tsx` HANDLE_SIZE) — 읽는 곳 없음 (실제 값은 composition containerStyles 16px)",
-  ),
-  sizes(
-    "Illustration",
-    "height",
-    { S: 48, M: 96, L: 160 },
-    "S2 illustration S 48 · M 96 · L 160 (`Icon.tsx`) — 읽는 곳 없음 (glyph 는 iconSize)",
-  ),
-  sizes(
     "Keyboard",
     "height",
     { M: 18 },
     "S2 Menu keyboard 글자 `ui` 의 행간 18 (`Menu.tsx` — 높이 지정 없이 한 줄)",
-  ),
-  sizes(
-    "SliderTrack",
-    "height",
-    { S: 4, M: 4, L: 4, XL: 4 },
-    "S2 thin 막대 4 (`Slider.tsx` `trackStyling` — 크기 무관). track 행 24 · 32 · 40 · 48 은 Slider `sizeSelectors` 의 위아래 margin",
-  ),
-  sizes(
-    "Slider",
-    "height",
-    { S: 4, M: 4, L: 4, XL: 4 },
-    "S2 thin 막대 4 — 읽는 곳 없음 (막대는 SliderTrack rule, 행은 Slider `sizeSelectors` margin)",
   ),
   ...(["MeterValue", "ProgressBarValue", "SliderOutput"] as const).map(
     (component) =>
@@ -219,18 +188,6 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
         { S: 16, M: 18, L: 20, XL: 22 },
         "S2 값 글자 한 줄 = controlFont 행간 16 · 18 · 20 · 22 (`fieldLabel()` · Slider output — 높이 지정 없음)",
       ),
-  ),
-  sizes(
-    "ProgressCircle",
-    "height",
-    { S: 16, M: 32, L: 64 },
-    "S2 ProgressCircle S 16 · M 32 · L 64 (`ProgressCircle.tsx`) — DOM 지름 (`components/ProgressCircle.tsx` DIAMETER) 과 같은 값",
-  ),
-  sizes(
-    "SliderThumb",
-    "height",
-    { S: 18, M: 20, L: 22, XL: 24 },
-    "S2 Slider thumb 18 · 20 · 22 · 24 (`Slider.tsx` `thumbContainer`) — 슬라이더 안에서는 Slider `indicator.thumbSize` 가 같은 값",
   ),
   sizes(
     "Icon",

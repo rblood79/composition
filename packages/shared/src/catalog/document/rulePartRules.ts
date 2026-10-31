@@ -791,8 +791,13 @@ function sliderThumbPartRules(parentType: string): CompiledPartRule[] {
   if (rule?.structure?.archetype !== "slider" || parentType !== "Slider")
     return [];
   return Object.entries(rule.sizes ?? {}).flatMap(([size, values]) => {
-    const thumb = (values as { indicator?: { thumbSize?: number } }).indicator
-      ?.thumbSize;
+    const indicator = (values as { indicator?: { thumbSize?: number } })
+      .indicator;
+    const thumb = indicator?.thumbSize;
+    // (ADR-295 후속: the S2 thumb is `scaled(n)` — the part keeps its length ref, the DOM writes the formula.)
+    const ref = indicator
+      ? ruleSizeLengthRef(indicator, "thumbSize")
+      : undefined;
     return typeof thumb === "number"
       ? [
           {
@@ -800,7 +805,7 @@ function sliderThumbPartRules(parentType: string): CompiledPartRule[] {
             via: "SliderTrack",
             size,
             layout: {},
-            visual: { width: thumb, height: thumb },
+            visual: { width: ref ?? thumb, height: ref ?? thumb },
           },
         ]
       : [];
@@ -1692,6 +1697,7 @@ export function catalogContainerVariantRootRules(type: string): Array<{
   when: Readonly<Record<string, string>>;
   layout: Record<string, string>;
   visual: Record<string, Scalar>;
+  layoutRefs?: Record<string, string>;
 }> {
   const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
     domStyleRuleType(type)

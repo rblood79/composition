@@ -157,12 +157,14 @@ describe("Canvas box = Preview box", () => {
       )!.id;
       await act(async () => reactRoot.render(renderCatalogDom(root, id)));
       const svg = host.querySelector("svg")!;
-      expect(svg.getAttribute("width")).toBe(String(px));
+      // (ADR-295 후속: the S2 picture is `scaled(n)` — the box is the device formula of its px, the svg its
+      //   glyph square `1em` of that font size.)
+      expect(svg.getAttribute("width")).toBe("1em");
       // (Its box, not the Icon sheet's 24px `.react-aria-Icon` height.)
       expect(
         host.querySelector<HTMLElement>(".react-aria-Illustration")?.style
           .height,
-      ).toBe(`${px}px`);
+      ).toBe(`calc(var(--catalog-token-size-unit) * ${px} / 1)`);
       const geometry = root.getGeometry([record.id]).get(record.id)!;
       expect([geometry.width, geometry.height]).toEqual([px, px]);
       await act(async () => reactRoot.unmount());

@@ -1252,11 +1252,11 @@ export function catalogSliderThumbLayout(
   const size = number(node.visual.height ?? node.visual.width, 18);
   // S2 `thumbStyle: precise` — a narrow bar (width 6, size + 2 tall — S2 Slider.tsx thumb).
   const precise = slider.props.thumbStyle === "precise";
-  const width = precise ? 6 : size;
-  const height = precise ? size + 2 : size;
+  const width = precise ? catalogScaledPx(6) : size;
+  const height = precise ? size + catalogScaledPx(2) : size;
   const trackHeight =
     slider.props.trackStyle === "thick"
-      ? CATALOG_SLIDER_THICK_TRACK.height
+      ? catalogScaledPx(CATALOG_SLIDER_THICK_TRACK.height)
       : number(track.visual.height, height);
   return {
     position: "absolute",
@@ -1277,6 +1277,16 @@ export function catalogSliderThumbLayout(
 export const CATALOG_SLIDER_THICK_TRACK = { height: 16, radius: 4 } as const;
 
 /**
+ * ADR-295 후속 — an S2 fixed sizing number (`size(n)` — rem × `--s2-scale`) in the installed maps: n × the
+ * device unit `{size.unit}` (desktop 1 — the Canvas; the G2 harness's touch arm 1.25). The DOM writes the same
+ * number as `catalogDeviceScaledCss`.
+ */
+export function catalogScaledPx(px: number): number {
+  const unit = resolveToken("{size.unit}" as TokenRef);
+  return px * (typeof unit === "number" ? unit : 1);
+}
+
+/**
  * ADR-295 Phase 3c-3c ②c — a thick track keeps the S2 track row (24 · 32 · 40 · 48): its 16px bar
  * takes the row's margins (the Slider's `sizeSelectors`, sized for the thin bar) less half the
  * extra height. The Canvas (`styleOf`) and the DOM inline read this one value.
@@ -1289,7 +1299,7 @@ export function catalogSliderThickTrackMargins(
   const margin = px(node.layout.marginTop);
   const bar = px(node.visual.height);
   if (!Number.isFinite(margin) || !Number.isFinite(bar)) return undefined;
-  const value = `${margin - (CATALOG_SLIDER_THICK_TRACK.height - bar) / 2}px`;
+  const value = `${margin - (catalogScaledPx(CATALOG_SLIDER_THICK_TRACK.height) - bar) / 2}px`;
   return { marginTop: value, marginBottom: value };
 }
 

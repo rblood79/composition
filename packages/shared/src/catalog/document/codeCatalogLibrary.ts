@@ -61,7 +61,11 @@ function iconValue(
   value: unknown,
   theme: "light" | "dark",
   tokens: Map<LibraryTokenId, LibraryToken>,
+  block?: object,
 ): number | ReturnType<typeof sourceToken> {
+  // (ADR-295 후속: an S2 `scaled(n)` glyph — an Illustration's 48 · 96 · 160 — is a token use of its length ref.)
+  const ref = block ? ruleSizeLengthRef(block, "iconSize") : undefined;
+  if (ref) return sourceToken(ref, "iconSize", theme, tokens);
   if (typeof value === "number") return value;
   return sourceToken(value, "iconSize", theme, tokens);
 }
@@ -268,7 +272,14 @@ function buttonDefinition(
         {
           ...values,
           ...(rule.sizes[size]?.iconSize !== undefined
-            ? { iconSize: iconValue(rule.sizes[size].iconSize, theme, tokens) }
+            ? {
+                iconSize: iconValue(
+                  rule.sizes[size].iconSize,
+                  theme,
+                  tokens,
+                  rule.sizes[size],
+                ),
+              }
             : {}),
         },
       ]),
@@ -484,7 +495,9 @@ function glyphDefinition(
   for (const [size, values] of Object.entries(rule.sizes)) {
     if (values.iconSize === undefined)
       throw new Error(`CODE_CATALOG_GLYPH_SIZE_MISSING:${type}:${size}`);
-    sizes[size] = { iconSize: iconValue(values.iconSize, theme, tokens) };
+    sizes[size] = {
+      iconSize: iconValue(values.iconSize, theme, tokens, values),
+    };
   }
   const accepts: Record<string, ValueType> = {};
   const defaults: Record<string, string | number> = {

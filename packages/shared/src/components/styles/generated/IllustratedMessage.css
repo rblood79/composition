@@ -11,7 +11,7 @@
     display: block;
     box-sizing: border-box;
     font-family: var(--font-sans);
-    --im-illustration-gap: 12px;
+    --im-illustration-gap: calc(var(--catalog-token-size-unit) * 12 / 1);
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   width: 100%;
@@ -53,14 +53,14 @@
 /* ── Tier 2: Composite Delegation ── */
 
 .react-aria-IllustratedMessage[data-size="L"] {
-  --im-illustration-gap: 8px;
+  --im-illustration-gap: calc(var(--catalog-token-size-unit) * 8 / 1);
 }
 
 .react-aria-IllustratedMessage[data-orientation="vertical"] {
   display: flex;
   flex-direction: column;
   align-items: center;
-  max-width: 380px;
+  max-width: calc(var(--catalog-token-size-unit) * 380 / 1);
 }
 
 .react-aria-IllustratedMessage[data-orientation="vertical"] > .react-aria-Illustration {
@@ -68,7 +68,7 @@
 }
 
 .react-aria-IllustratedMessage[data-orientation="vertical"] > .react-aria-Heading {
-  margin-bottom: 4px;
+  margin-bottom: calc(var(--catalog-token-size-unit) * 4 / 1);
   text-align: center;
 }
 
@@ -80,9 +80,9 @@
   display: grid;
   grid-template-columns: auto 1fr;
   grid-template-rows: 1fr 1fr;
-  column-gap: 12px;
-  row-gap: 4px;
-  max-width: 528px;
+  column-gap: calc(var(--catalog-token-size-unit) * 12 / 1);
+  row-gap: calc(var(--catalog-token-size-unit) * 4 / 1);
+  max-width: calc(var(--catalog-token-size-unit) * 528 / 1);
 }
 
 .react-aria-IllustratedMessage[data-orientation="horizontal"] > .react-aria-Illustration {

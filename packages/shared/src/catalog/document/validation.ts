@@ -1152,6 +1152,25 @@ function propCondition(
       invalid("CONDITION_PROP_CHOICE", `${at}.${prop}`);
   }
 }
+/** A rule's `layoutTokens` (`LayoutTokenUses`): a token use per layout length key it states. */
+function layoutTokenUses(rule: Record<string, unknown>, at: string): void {
+  if (rule.layoutTokens === undefined) return;
+  for (const [key, use] of Object.entries(
+    object(rule.layoutTokens, `${at}.layoutTokens`),
+  )) {
+    const token = object(use, `${at}.layoutTokens.${key}`);
+    exact(token, ["kind", "tokenId"], `${at}.layoutTokens.${key}`);
+    if (
+      !/^(margin(Left|Right|Top|Bottom)|max(Width|Height))$/.test(key) ||
+      token.kind !== "token" ||
+      typeof (rule.layout as Record<string, unknown> | undefined)?.[key] !==
+        "string"
+    )
+      invalid("INVALID_LAYOUT_VALUE", `${at}.layoutTokens.${key}`);
+    string(token.tokenId, `${at}.layoutTokens.${key}.tokenId`);
+  }
+}
+
 function ruleOutput(item: Record<string, unknown>, at: string): void {
   if (item.state !== undefined && !stateNames.has(item.state as string))
     invalid("UNKNOWN_STATE", `${at}.state`);
@@ -2484,7 +2503,8 @@ export function validateLibraryDefinition(value: unknown): LibraryDefinition {
     item.conditionalRules.forEach((raw, index) => {
       const at = `library.definition.conditionalRules[${index}]`;
       const rule = object(raw, at);
-      exact(rule, ["when", "state", "visual", "layout"], at);
+      exact(rule, ["when", "state", "visual", "layout", "layoutTokens"], at);
+      layoutTokenUses(rule, at);
       propCondition(rule.when, `${at}.when`, acceptedProps, propChoices);
       if (!Object.keys(object(rule.when, `${at}.when`)).length && !rule.state)
         invalid("EMPTY_RULE_CONDITION", at);
@@ -2502,22 +2522,7 @@ export function validateLibraryDefinition(value: unknown): LibraryDefinition {
         ["child", "when", "state", "visual", "layout", "layoutTokens"],
         at,
       );
-      if (rule.layoutTokens !== undefined)
-        for (const [key, use] of Object.entries(
-          object(rule.layoutTokens, `${at}.layoutTokens`),
-        )) {
-          const token = object(use, `${at}.layoutTokens.${key}`);
-          exact(token, ["kind", "tokenId"], `${at}.layoutTokens.${key}`);
-          if (
-            !/^margin(Left|Right|Top|Bottom)$/.test(key) ||
-            token.kind !== "token" ||
-            typeof (rule.layout as Record<string, unknown> | undefined)?.[
-              key
-            ] !== "string"
-          )
-            invalid("INVALID_LAYOUT_VALUE", `${at}.layoutTokens.${key}`);
-          string(token.tokenId, `${at}.layoutTokens.${key}.tokenId`);
-        }
+      layoutTokenUses(rule, at);
       const child = object(rule.child, `${at}.child`);
       exact(child, ["definitionId", "props", "via", "viaProps"], `${at}.child`);
       id(child.definitionId, "lib:definition:", `${at}.child.definitionId`);

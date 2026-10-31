@@ -3046,7 +3046,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.full}",
-        height: 16,
+        height: scaled(16),
       },
     },
     structure: {
@@ -3059,15 +3059,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         containerStyles: {
           border: "4px solid var(--bg-raised)",
           "box-shadow": "var(--shadow-sm)",
-          width: "16px",
-          height: "16px",
+          width: scaledLengthRef(16),
+          height: scaledLengthRef(16),
           "border-radius": "50%",
           "box-sizing": "border-box",
           "will-change": "transform",
         },
         rootSelectors: {
           "&[data-focus-visible]": {
-            styles: { width: "20px", height: "20px" },
+            styles: { width: scaledLengthRef(20), height: scaledLengthRef(20) },
           },
         },
       },
@@ -6097,13 +6097,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       composition: {
         // S2 vertical rows: picture → heading 12 (L 8), heading → content 4.
         containerStyles: {
-          "--im-illustration-gap": "12px",
+          "--im-illustration-gap": scaledLengthRef(12),
         },
         containerVariants: {
           size: {
             L: {
               styles: {
-                "--im-illustration-gap": "8px",
+                "--im-illustration-gap": scaledLengthRef(8),
               },
             },
           },
@@ -6115,7 +6115,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 display: "flex",
                 "flex-direction": "column",
                 "align-items": "center",
-                "max-width": "380px",
+                "max-width": scaledLengthRef(380),
               },
               nested: [
                 {
@@ -6127,7 +6127,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 {
                   selector: "> .react-aria-Heading",
                   styles: {
-                    "margin-bottom": "4px",
+                    "margin-bottom": scaledLengthRef(4),
                     "text-align": "center",
                   },
                 },
@@ -6146,9 +6146,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 display: "grid",
                 "grid-template-columns": "auto 1fr",
                 "grid-template-rows": "1fr 1fr",
-                "column-gap": "12px",
-                "row-gap": "4px",
-                "max-width": "528px",
+                "column-gap": scaledLengthRef(12),
+                "row-gap": scaledLengthRef(4),
+                "max-width": scaledLengthRef(528),
               },
               nested: [
                 {
@@ -6209,20 +6209,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       S: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
-        height: 48,
-        iconSize: 48,
+        height: scaled(48),
+        iconSize: scaled(48),
       },
       M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
-        height: 96,
-        iconSize: 96,
+        height: scaled(96),
+        iconSize: scaled(96),
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
-        height: 160,
-        iconSize: 160,
+        height: scaled(160),
+        iconSize: scaled(160),
       },
     },
     structure: {
@@ -9225,21 +9225,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // ADR-295 후속: 지름 = S2 `ProgressCircle.tsx` wrapper `size` (rem × `--s2-scale` — 터치 × 1.25) → `scaled`.
     sizes: {
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
-        height: 16,
+        height: scaled(16),
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.full}",
-        height: 32,
+        height: scaled(32),
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.full}",
-        height: 64,
+        height: scaled(64),
       },
     },
     structure: {
@@ -10538,37 +10539,37 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.full}",
-        height: 4,
+        height: scaled(4),
         gap: 4,
         columnGap: 16,
-        indicator: { trackHeight: 4, thumbSize: 18 },
+        indicator: { trackHeight: scaled(4), thumbSize: scaled(18) },
       },
       M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.full}",
-        height: 4,
+        height: scaled(4),
         gap: 4,
         columnGap: 16,
-        indicator: { trackHeight: 4, thumbSize: 20 },
+        indicator: { trackHeight: scaled(4), thumbSize: scaled(20) },
       },
       L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.full}",
-        height: 4,
+        height: scaled(4),
         gap: 4,
         columnGap: 20,
-        indicator: { trackHeight: 4, thumbSize: 22 },
+        indicator: { trackHeight: scaled(4), thumbSize: scaled(22) },
       },
       XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.full}",
-        height: 4,
+        height: scaled(4),
         gap: 4,
         columnGap: 20,
-        indicator: { trackHeight: 4, thumbSize: 24 },
+        indicator: { trackHeight: scaled(4), thumbSize: scaled(24) },
       },
     },
     structure: {
@@ -10597,8 +10598,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         sizeSelectors: {
           S: {
             ".react-aria-SliderTrack": {
-              "margin-top": "10px",
-              "margin-bottom": "10px",
+              "margin-top": scaledLengthRef(10),
+              "margin-bottom": scaledLengthRef(10),
             },
             ".react-aria-Label": {
               "font-size": "var(--text-xs)",
@@ -10609,8 +10610,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           M: {
             ".react-aria-SliderTrack": {
-              "margin-top": "14px",
-              "margin-bottom": "14px",
+              "margin-top": scaledLengthRef(14),
+              "margin-bottom": scaledLengthRef(14),
             },
             ".react-aria-Label": {
               "font-size": "var(--text-sm)",
@@ -10621,8 +10622,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           L: {
             ".react-aria-SliderTrack": {
-              "margin-top": "18px",
-              "margin-bottom": "18px",
+              "margin-top": scaledLengthRef(18),
+              "margin-bottom": scaledLengthRef(18),
             },
             ".react-aria-Label": {
               "font-size": "var(--text-base)",
@@ -10633,8 +10634,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           XL: {
             ".react-aria-SliderTrack": {
-              "margin-top": "22px",
-              "margin-bottom": "22px",
+              "margin-top": scaledLengthRef(22),
+              "margin-bottom": scaledLengthRef(22),
             },
             ".react-aria-Label": {
               "font-size": "var(--text-lg)",
@@ -10816,22 +10817,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
-        height: 18,
+        height: scaled(18),
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.full}",
-        height: 20,
+        height: scaled(20),
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.full}",
-        height: 22,
+        height: scaled(22),
       },
       XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.full}",
-        height: 24,
+        height: scaled(24),
       },
     },
   },
@@ -10870,26 +10871,26 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
-        height: 4,
-        thumbSize: 18,
+        height: scaled(4),
+        thumbSize: scaled(18),
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.full}",
-        height: 4,
-        thumbSize: 20,
+        height: scaled(4),
+        thumbSize: scaled(20),
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.full}",
-        height: 4,
-        thumbSize: 22,
+        height: scaled(4),
+        thumbSize: scaled(22),
       },
       XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.full}",
-        height: 4,
-        thumbSize: 24,
+        height: scaled(4),
+        thumbSize: scaled(24),
       },
     },
     structure: {
@@ -10925,16 +10926,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           '&:is(.react-aria-Slider *)[data-size="S"]::before': {
-            styles: { height: "24px" },
+            styles: { height: scaledLengthRef(24) },
           },
           '&:is(.react-aria-Slider *)[data-size="M"]::before': {
-            styles: { height: "32px" },
+            styles: { height: scaledLengthRef(32) },
           },
           '&:is(.react-aria-Slider *)[data-size="L"]::before': {
-            styles: { height: "40px" },
+            styles: { height: scaledLengthRef(40) },
           },
           '&:is(.react-aria-Slider *)[data-size="XL"]::before': {
-            styles: { height: "48px" },
+            styles: { height: scaledLengthRef(48) },
           },
         },
         delegation: [],
