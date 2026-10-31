@@ -213,6 +213,10 @@ export const PAGE_COVERAGE: CodeViewCoverage<PageEntry> = {
     "updatePage (meta)",
     2,
   ),
+  originIds: {
+    notInCode:
+      "the Library page's given cards (ADR-282 Phase 3) — a Builder tool page record",
+  },
 };
 
 export const PAGE_META_COVERAGE: CodeViewCoverage<CatalogPageMeta> = {

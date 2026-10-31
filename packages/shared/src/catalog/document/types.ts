@@ -956,6 +956,12 @@ export interface PageEntry {
   parentId?: EntryId<"page">;
   /** ADR-286 Decision 6 — the page's own title · description · social image · search. */
   meta?: CatalogPageMeta;
+  /**
+   * The Library page (ADR-282 Phase 3): the built-in origins it has given a card — a card the user
+   * deleted stays deleted (user 2026-10-31); an origin not listed (one that joined the palette
+   * after the page was stored) gets its card on the next open.
+   */
+  originIds?: readonly LibraryDefinitionId[];
 }
 export interface DefinitionEntry {
   kind: "definition";

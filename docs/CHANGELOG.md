@@ -130,6 +130,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Library 에 Toast 원본이 없던 것 (14차, 사용자 「toast 컴퍼넌트 origin 이 library 에 없다」)** — Library 페이지는 처음 열 때 문서에 저장되는데 (ADR-282 Phase 3), 그 뒤 팔레트에 들어온 원본의 카드를 더하는 단계가 Local 페이지에만 있었다. 그래서 이미 Library 를 한 번 연 프로젝트에는 Toast (13차) · ColorSwatch · ColorSwatchPicker (C3) 카드가 없었다. 이제 Library 를 열 때 없는 원본의 카드를 팔레트 순서 자리 (앞 원본의 카드 뒤) 에 넣는다 — 히스토리 없는 저장 단계, 옮긴 카드 · 고친 frame 은 그대로.
   - 위치: `componentsPage.ts` (`catalogLibraryPageSync`) · `workspace.ts`.
   - 검증: `libraryPageSync` (Toast 카드 없이 저장된 페이지 → 열면 InlineAlert 뒤에 같은 노드로 복원 · ◆ 가 Toast 원본 · 히스토리 0 · 다시 열면 단계 없음) · 원복 RED 1/1 · live 5175 (adr295-live 의 저장된 Library 70 장 → Navigator Components › Library 열기 → 73 장: Toast 가 InlineAlert 뒤 · ColorSwatch · ColorSwatchPicker 가 ColorWheel 뒤, 히스토리 0, Toast 카드 = ◆ + Variants 4 줄 · ◆ 선택 시 Design 「Toast ORIGIN」, 새로고침 뒤 73 장 유지, 콘솔 오류 0).
+- **Library 에서 지운 카드가 다시 들어오던 것 (15차, 사용자 「Library 에서 지운 카드는 다시 넣지 마라」)** — 14차의 동기화는 「카드가 없는 원본」 에 카드를 넣어, 사용자가 지운 카드와 아직 받지 못한 카드를 가르지 못했다. Library 페이지가 카드를 준 원본 목록 `PageEntry.originIds` 를 기록한다 (페이지를 만들 때 · 동기화할 때). 목록에 없는 원본만 카드를 받고, 목록에 있는데 카드가 없으면 사용자가 지운 것이라 그대로 둔다. 목록 없이 저장된 페이지는 빠진 카드를 한 번 받은 뒤 목록을 기록한다.
+  - 위치: `document/types.ts` (`PageEntry.originIds`) · `validation.ts` · `codeView/fieldCoverage.ts` (code 에 없는 Builder 기록) · `componentsPage.ts` (`catalogComponentPageCreation` · `catalogLibraryPageSync`).
+  - 검증: `libraryPageSync` 4 (새 페이지가 원본 목록 기록 · 목록에 없는 Toast 는 InlineAlert 뒤로 · 목록 없는 옛 페이지는 한 번 받고 기록 · 잠금 풀고 지운 Toast 카드는 다시 열어도 없음 · 단계 없음) · 원복 RED 2종 (기록 무시 → 지운 카드 테스트 실패 · 생성 때 기록 안 함 → 2 실패) · `fieldCoverage` 인벤토리 +1 · live 5175 (목록 없던 Library 를 열자 원본 70 기록 · 히스토리 0 → 잠금 풀고 Toast 카드 선택 → Delete → 72 장 → Local 갔다가 Library · 새로고침 뒤 다시 열어도 72 장, 정리로 기록에서 Toast 를 빼고 다시 열자 InlineAlert 뒤에 복원, 콘솔 오류 0).
 
 ## [ADR-295 후속 — S2 고정 치수의 터치 배율 (`scaled`)] - 2026-10-31
 

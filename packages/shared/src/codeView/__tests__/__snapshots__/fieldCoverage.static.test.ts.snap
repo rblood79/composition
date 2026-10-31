@@ -2,7 +2,7 @@
 
 exports[`ADR-296 — every document field has a place in the code (G0) > the inventory's size (recorded — a change is a table change) 1`] = `
 {
-  "notInCode": 44,
+  "notInCode": 45,
   "phases": [
     40,
     7,
@@ -12,6 +12,6 @@ exports[`ADR-296 — every document field has a place in the code (G0) > the inv
     21,
     14,
   ],
-  "total": 220,
+  "total": 221,
 }
 `;

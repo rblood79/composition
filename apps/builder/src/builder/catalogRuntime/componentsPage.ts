@@ -1630,6 +1630,14 @@ export function catalogComponentPageCreation(
           route: isProjectComponentsView(view) ? "/local" : "/library",
           name: isProjectComponentsView(view) ? "Local" : "Library",
           children: [componentsViewRoot(view)],
+          // (The Library's cards — a card deleted later is not given again.)
+          ...(isProjectComponentsView(view)
+            ? {}
+            : {
+                originIds: catalogBuiltinOrigins(graph.library).map(
+                  (origin) => origin.id,
+                ),
+              }),
         },
       },
       {
@@ -1818,21 +1826,29 @@ export function catalogLocalPageSync(
 /**
  * The stored Library page follows the built-in origins (user 2026-10-31 「toast 원본이 library 에
  * 없다」 — a page stored before an origin joined the palette never drew its card): a card for each
- * origin it has none for, placed after the card of the origin before it in palette order (the
- * derived page's order — else before the next one's, else last). Its other content — moved cards,
- * edited frames — stays the user's. `undefined` = nothing to do. The caller runs it as a step the
- * project takes (no history), as the Local page's.
+ * origin the page has not given one yet (`PageEntry.originIds`), placed after the card of the
+ * origin before it in palette order (the derived page's order — else before the next one's, else
+ * last). A card the user deleted is not given again (user 2026-10-31 「Library 에서 지운 카드는
+ * 다시 넣지 마라」); a page stored before the list gives every missing card once, then keeps it.
+ * Its other content — moved cards, edited frames — stays the user's. `undefined` = nothing to do.
+ * The caller runs it as a step the project takes (no history), as the Local page's.
  */
 export function catalogLibraryPageSync(
   graph: CatalogGraph,
   mode?: "light" | "dark",
 ): CatalogCommand | undefined {
   const root = graph.storedEntry(ORIGIN_VIEW_NODE);
-  if (root?.kind !== "node") return undefined;
-  const added = catalogBuiltinOrigins(graph.library)
-    .map((origin) => originCardId(origin.id))
+  const page = graph.storedEntry(catalogComponentPageId(COMPONENTS_VIEW));
+  if (root?.kind !== "node" || page?.kind !== "page") return undefined;
+  const origins = catalogBuiltinOrigins(graph.library).map(
+    (origin) => origin.id,
+  );
+  const given = page.originIds ? new Set<string>(page.originIds) : undefined;
+  const fresh = given ? origins.filter((id) => !given.has(id)) : origins;
+  if (given && !fresh.length) return undefined;
+  const added = fresh
+    .map((id) => originCardId(id))
     .filter((card) => !graph.storedEntry(componentPageNodeId(card)));
-  if (!added.length) return undefined;
   return (reader) => {
     const entries = catalogComponentsPageEntries(graph, mode);
     // A card's nodes: what the derived page holds under it (its instances' ids are not under the
@@ -1845,36 +1861,37 @@ export function catalogLibraryPageSync(
       compute().children.forEach(take);
     };
     added.forEach(take);
-    const inCard = (id: NodeId) => taken.has(id);
-    const ops: CatalogOperation[] = storedPageNodes(
-      reader,
-      entries,
-      inCard,
+    const ops: CatalogOperation[] = storedPageNodes(reader, entries, (id) =>
+      taken.has(id),
     ).map((entry) => ({ kind: "put", entry }));
     // The derived body's order (theme cards, then the origins' in palette order).
     const order = entries.get(ORIGIN_VIEW_NODE)?.().children ?? [];
     const body = reader.getEntry(ORIGIN_VIEW_NODE);
-    if (body?.kind !== "node") return { label: "Sync components page", ops };
-    const children = [...body.children];
-    for (const card of added) {
-      const at = order.indexOf(card as NodeId);
-      const stored = componentPageNodeId(card);
-      const before = order
-        .slice(0, Math.max(at, 0))
-        .reverse()
-        .map(componentPageNodeId)
-        .find((id) => children.includes(id));
-      const after = order
-        .slice(at + 1)
-        .map(componentPageNodeId)
-        .find((id) => children.includes(id));
-      if (at >= 0 && before)
-        children.splice(children.indexOf(before) + 1, 0, stored);
-      else if (at >= 0 && after)
-        children.splice(children.indexOf(after), 0, stored);
-      else children.push(stored);
+    if (added.length && body?.kind === "node") {
+      const children = [...body.children];
+      for (const card of added) {
+        const at = order.indexOf(card);
+        const stored = componentPageNodeId(card);
+        const before = order
+          .slice(0, Math.max(at, 0))
+          .reverse()
+          .map(componentPageNodeId)
+          .find((id) => children.includes(id));
+        const after = order
+          .slice(at + 1)
+          .map(componentPageNodeId)
+          .find((id) => children.includes(id));
+        if (at >= 0 && before)
+          children.splice(children.indexOf(before) + 1, 0, stored);
+        else if (at >= 0 && after)
+          children.splice(children.indexOf(after), 0, stored);
+        else children.push(stored);
+      }
+      ops.push({ kind: "put", entry: { ...body, children } });
     }
-    ops.push({ kind: "put", entry: { ...body, children } });
+    const current = reader.getEntry(page.id);
+    if (current?.kind === "page")
+      ops.push({ kind: "put", entry: { ...current, originIds: origins } });
     return { label: "Sync components page", ops };
   };
 }

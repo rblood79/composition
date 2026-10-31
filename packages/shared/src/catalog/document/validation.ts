@@ -1653,10 +1653,13 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "guideEntries",
           "parentId",
           "meta",
+          "originIds",
         ],
         "entry",
       );
       if (item.meta !== undefined) pageMeta(item.meta, "entry.meta");
+      if (item.originIds !== undefined)
+        list(item.originIds, "lib:definition:", "entry.originIds");
       string(item.route, "entry.route");
       if (item.parentId !== undefined)
         id(item.parentId, "project:page:", "entry.parentId");
