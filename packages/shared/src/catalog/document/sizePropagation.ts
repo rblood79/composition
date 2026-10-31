@@ -88,6 +88,8 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   ComboBox: [...WRAPPED_FIELD_PARTS, "ListBox"],
   // A ListBox's size is its items' (S2 picker list — the items are the list's control rows).
   ListBox: ["ListBoxItem"],
+  // S2 ColorSwatchPicker `size` is its swatches' (`InternalColorSwatchContext`) — past the RAC item.
+  ColorSwatchPicker: ["ColorSwatch"],
   DateField: DATE_FIELD_PARTS,
   TimeField: DATE_FIELD_PARTS,
   DatePicker: WRAPPED_FIELD_PARTS,
@@ -136,6 +138,8 @@ export const CATALOG_SIZE_PASS_THROUGH: ReadonlySet<string> = new Set([
   //   the picker's size reaches its ListBox, the ListBox's the items in a section.
   "Popover",
   "ListBoxSection",
+  // A ColorSwatchPicker's RAC item around each swatch (the picker's size reaches the swatch).
+  "ColorSwatchPickerItem",
 ]);
 
 /** ADR-259 Phase 3: the fields whose label row holds a ContextualHelp (`CATALOG_CONTEXTUAL_HELP_FIELDS`). */

@@ -33,6 +33,21 @@
     }
   }
   
+  /* ADR-295 후속 (2026-10-31): S2 `ColorSwatchPicker` 항목의 모서리 = 견본 `rounding` (none 0 · default sm ·
+     full 원) — 선택 링 (::after inherit) · focus 링이 견본 모양을 따른다. 사용자 컴포넌트만
+     ([data-catalog-id] — 빌더 색 팔레트는 위 값 그대로). DOM 상호작용 표시라 Canvas 대응은 없다. */
+  .react-aria-ColorSwatchPickerItem[data-catalog-id] {
+    border-radius: var(--radius-sm);
+
+    &:has(> .react-aria-ColorSwatch[data-rounding="none"]) {
+      border-radius: 0;
+    }
+
+    &:has(> .react-aria-ColorSwatch[data-rounding="full"]) {
+      border-radius: 9999px;
+    }
+  }
+
   .react-aria-ColorSwatchPicker {
     &[data-layout=stack] {
       flex-direction: column;

@@ -1748,4 +1748,30 @@ describe("ADR-295 후속 — S2 와 다르게 남은 고정 치수 (S2 1.8.1 소
     ]!;
     expect(popover["min-height"]).toBe("var(--lb-control-h)");
   });
+
+  it("ColorSwatch 기본 모서리 = S2 `rounding` 기본 default (sm) · picker 의 크기 = 견본 크기 · picker 견본 = none", () => {
+    const read = (file: string) =>
+      readFileSync(
+        resolve(
+          __dirname,
+          "../../../../node_modules/@react-spectrum/s2/src",
+          file,
+        ),
+        "utf8",
+      );
+    expect(read("ColorSwatch.tsx")).toMatch(
+      /rounding = ctx\?\.rounding \|\| 'default'/,
+    );
+    expect(read("ColorSwatch.tsx")).toMatch(
+      /rounding: \{\s*default: 'sm',\s*none: 'none',\s*full: 'full'/,
+    );
+    expect(read("ColorSwatchPicker.tsx")).toMatch(/rounding = 'none'/);
+    expect(read("ColorSwatchPicker.tsx")).toMatch(
+      /InternalColorSwatchContext\.Provider value=\{\{useWrapper, size, rounding\}\}/,
+    );
+    for (const size of Object.values(rules.ColorSwatch!.sizes))
+      expect(size.borderRadius).toBe("{radius.sm}");
+    expect(CATALOG_SIZE_PROPAGATION.ColorSwatchPicker).toEqual(["ColorSwatch"]);
+    expect(CATALOG_SIZE_PASS_THROUGH.has("ColorSwatchPickerItem")).toBe(true);
+  });
 });

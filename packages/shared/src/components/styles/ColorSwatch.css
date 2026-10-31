@@ -16,16 +16,20 @@
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fg) 10%, transparent);
   }
 
-  /* S2 1.8.0 `rounding` (2026-10-10): default → sm · none → 0 — full 은 생성 CSS 의
-     {radius.full} 그대로. 값의 정본은 catalog ColorSwatch rule 의 top-level
+  /* S2 1.8.0 `rounding` (2026-10-10): default → sm · none → 0 · full → 원 — 생성 size 블록은 S2 기본
+     (default = {radius.sm}, ADR-295 후속 2026-10-31). 값의 정본은 catalog ColorSwatch rule 의 top-level
      containerVariants.rounding (Canvas 가 같은 블록을 읽는다 — rulePaint.ts). nested
      composition 에 두면 catalogSizeAxisSkip 이 per-size height 공급을 끊어 수동 sheet 로 적는다.
-     [data-size] 를 겹쳐 생성 size 블록(동일 특이도, 뒤 순서)의 radius-full 을 이긴다. */
+     [data-size] 를 겹쳐 생성 size 블록(동일 특이도, 뒤 순서)의 모서리를 이긴다. */
   .react-aria-ColorSwatch[data-size][data-rounding="default"] {
     border-radius: var(--radius-sm);
   }
 
   .react-aria-ColorSwatch[data-size][data-rounding="none"] {
     border-radius: 0;
+  }
+
+  .react-aria-ColorSwatch[data-size][data-rounding="full"] {
+    border-radius: 9999px;
   }
 }

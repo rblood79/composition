@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
- * S2 1.8.0 ColorSwatch `rounding` (2026-10-10): the swatch's corner — `full` (our box's shape
- * before, the default), `default` (S2 `sm`), `none` (square). DOM carries `data-rounding` (the
+ * S2 1.8.0 ColorSwatch `rounding` (2026-10-10): the swatch's corner — `default` (S2 `sm`, the
+ * default — ADR-295 후속 2026-10-31; before, ours was `full`), `none` (square), `full` (circle). DOM carries `data-rounding` (the
  * generated sheet's `[data-rounding]` blocks), the Canvas box paints the same radius from the
  * rule's `containerVariants` (S2 itself: borderRadius sm · none · full — ColorSwatch.tsx).
  */
@@ -94,17 +94,17 @@ const radiusOf = (painted: {
 };
 
 describe("S2 ColorSwatch rounding", () => {
-  it("the Design panel offers Rounding — full (the swatch's shape before) by default", async () => {
+  it("the Design panel offers Rounding — S2's default (sm) by default", async () => {
     const { definitionId } = await open({});
     expect(
       catalogSemanticContracts(definitionId, "ColorSwatch").rounding,
-    ).toMatchObject({ kind: "enum", default: "full" });
+    ).toMatchObject({ kind: "enum", default: "default" });
   });
 
-  it("unset: the swatch stays a circle (data-rounding full, Canvas radius full)", async () => {
+  it("unset: the S2 default corner (data-rounding default, Canvas radius sm 4)", async () => {
     const { html, painted, geometry } = await open({});
-    expect(html).toContain('data-rounding="full"');
-    expect(radiusOf(painted)).toBe(9999);
+    expect(html).toContain('data-rounding="default"');
+    expect(radiusOf(painted)).toBe(4);
     // The rounding variants live on the rule's top level: under structure.composition they flip
     // `catalogSizeAxisSkip`'s ownsContainerBox and the per-size height stops reaching the Canvas
     // (live: a 2×2 swatch). The swatch is square (S2 size × size — the DOM sheet's aspect-ratio).
@@ -115,6 +115,7 @@ describe("S2 ColorSwatch rounding", () => {
   it.each([
     ["none", 0],
     ["default", 4],
+    ["full", 9999],
   ] as const)(
     "rounding %s: DOM data-rounding and the Canvas box radius %s",
     async (rounding, radius) => {

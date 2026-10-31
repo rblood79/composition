@@ -48,6 +48,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 사용자 picker 팝오버 (`[data-catalog-id]`) 안 항목의 최소 높이 · 위아래 여백 = 목록 크기의 control 높이 (머리글이 쓰던 변수를 `--lb-control-h` 로 이름만 바꿔 같이 쓴다). 빌더 자체 picker 는 생성 ListBox 시트를 싣지 않아 그대로다.
   - 위치: `sizePropagation.ts` · `componentRulesTable.ts` (ListBox · ListBoxItem).
   - 검증: `s2PickerItemSize.test.tsx` (Select 5 크기 · ComboBox · 단독 ListBox Canvas 높이 · DOM `data-size`) · G4 (S2 `Picker.tsx` 대조 + 크기별 최소 높이 · 위아래 여백) · 원복 RED 11 · live 5175 (Select L → ListBox `data-size="L"` · 팝오버 항목 4개 높이 40 · 글자 16, 콘솔 0).
+- **ColorSwatch 기본 모서리 · ColorSwatchPicker 견본 크기가 S2 와 달랐던 것 (5차)**:
+  - ColorSwatch 기본 `rounding`: `full` (원) → S2 기본 `default` (sm 4). `full` 은 그대로 고를 수 있다 (변형 블록 추가). **Why**: 2026-06-22 RAC 레퍼런스의 원형에 맞춘 값이 S2 (`rounding = ctx?.rounding || 'default'`) 와 갈려 있었다.
+  - ColorSwatchPicker: 견본이 picker 크기와 무관하게 28 고정 원이었다 → S2 처럼 picker `size` 가 견본 크기 (XS 16 · S 24 · M 32 · L 40, 터치 × 1.25) 이고 견본은 각진 모서리 (S2 picker `rounding = 'none'`). 원본 template 의 견본 28 × 28 작성값을 지우고 `rounding: none` 을 둔다. 사용자 picker 항목의 선택 · focus 링 모서리도 견본 모서리를 따른다 (DOM 상호작용 표시).
+  - 위치: `ColorSwatch.binding.ts` · `componentRulesTable.ts` (ColorSwatch) · `sizePropagation.ts` (ColorSwatchPicker → ColorSwatch, 항목 통과) · `reusableOriginLibrary.ts` (picker 견본) · `ColorSwatch.css` · `ColorSwatchPicker.css`.
+  - 검증: `s2ColorSwatchRounding.test.tsx` (기본 · 세 값 · picker 네 크기) · `colorSwatchRounding.test.ts` (Skia 칠 모서리 4 · 0 · 9999) · G4 (S2 `ColorSwatch.tsx` · `ColorSwatchPicker.tsx` 대조) · 원복 RED 6 · live 5175 (단독 견본 Canvas · Preview 32 / 모서리 4, picker L 견본 6개 Canvas · Preview 40 × 40 / 모서리 0, 콘솔 0).
+  - 남은 것: Canvas 는 picker 견본의 색 (RAC 항목 `color`) 을 칠하지 않는다 (흰 상자) — 이번 변경 전부터의 비대칭, 별도 수리.
 
 ## [ADR-295 후속 — S2 고정 치수의 터치 배율 (`scaled`)] - 2026-10-31
 

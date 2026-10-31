@@ -2908,8 +2908,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   ColorSwatch: {
     defaultVariant: "default",
     defaultSize: "M",
-    // S2 1.8.0 ColorSwatch `rounding` (2026-10-10): default → sm · none → 0 (S2 ColorSwatch.tsx
-    //   borderRadius) — full 은 base 의 {radius.full} 그대로. Canvas 가 읽는 top-level 변형이다
+    // S2 1.8.0 ColorSwatch `rounding` (2026-10-10): default → sm · none → 0 · full → 원 (S2 ColorSwatch.tsx
+    //   borderRadius) — base (size 블록) 는 S2 기본 `default` 의 {radius.sm} (ADR-295 후속 2026-10-31, 전
+    //   {radius.full}). Canvas 가 읽는 top-level 변형이다
     //   (`rulePaint.ts` containerVariantPaint); DOM 은 수동 `ColorSwatch.css` 의 `[data-rounding]`
     //   블록이 같은 값을 적는다. structure.composition 에 두면 `catalogSizeAxisSkip` 의
     //   ownsContainerBox 가 뒤집혀 per-size height 공급이 끊긴다 (live 실측 2×2 — CheckboxGroup
@@ -2918,6 +2919,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       rounding: {
         default: { styles: { "border-radius": "var(--radius-sm)" } },
         none: { styles: { "border-radius": "0" } },
+        full: { styles: { "border-radius": "var(--radius-full)" } },
       },
     },
     variants: {
@@ -2950,28 +2952,26 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       // ADR-295 후속: 상자 = S2 `ColorSwatch.tsx` `size` (XS 16 · S 24 · M 32 · L 40 — rem × `--s2-scale`, 터치 × 1.25) → `scaled`.
-      // 2026-06-22 reference 정합(ADR-914 Tier1): reference ColorSwatch.css:6 `border-radius: 9999px`
-      //   (정사각 box → 완전한 원형/pill). 기존 {radius.sm}/{radius.md} 는 둥근 사각 → 형태 범주 발산.
-      //   {radius.full}(=9999) 는 Skia 측 nodeRendererClip 의 `Math.min(borderRadius, min(w,h)/2)` clamp 로
-      //   box half-size 까지 자동 축소 → CSS border-radius:9999px 와 동일 시각(양방향 자동, segmented radius 동형).
+      // 모서리 = S2 `rounding` 기본 `default` 의 sm (ADR-295 후속 2026-10-31 — 전에는 2026-06-22 reference 의 원형
+      //   {radius.full}). `rounding: full` 은 변형 블록이 원으로 (Skia 는 `min(w,h)/2` clamp).
       XS: {
         fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.full}",
+        borderRadius: "{radius.sm}",
         height: scaled(16),
       },
       S: {
         fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.full}",
+        borderRadius: "{radius.sm}",
         height: scaled(24),
       },
       M: {
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.full}",
+        borderRadius: "{radius.sm}",
         height: scaled(32),
       },
       L: {
         fontSize: "{typography.text-base}",
-        borderRadius: "{radius.full}",
+        borderRadius: "{radius.sm}",
         height: scaled(40),
       },
     },
