@@ -23,7 +23,7 @@
 }
 
 .react-aria-Tabs[data-size="S"] {
-  font-size: var(--catalog-token-text-xs);
+  font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
 }
 
@@ -33,7 +33,7 @@
 }
 
 .react-aria-Tabs[data-size="L"] {
-  font-size: var(--catalog-token-text-base);
+  font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
 }
 

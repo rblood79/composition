@@ -426,4 +426,12 @@
   .react-aria-DateRangePicker .react-aria-Button:not(:where(.publish-app *)) {
     min-height: auto;
   }
+
+  /* generated/Tabs.css — S2 Tabs 루트 글자 ui 하나 (ADR-295 후속 — 295 전: S text-xs · L text-base) */
+  .react-aria-Tabs[data-size="S"]:not(:where(.publish-app *)) {
+    font-size: 12px;
+  }
+  .react-aria-Tabs[data-size="L"]:not(:where(.publish-app *)) {
+    font-size: 16px;
+  }
 }

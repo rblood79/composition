@@ -11434,11 +11434,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     // ADR-295 Phase 3c-3c ②c: S2 Tabs has no size axis — a tab's height is its density's
     //   (`Tabs.tsx` `tab` height: compact 32 · regular 48), paddingX 0 (the spacing between tabs
-    //   is the TabList's gap). The height is `containerVariants.density` below; the size keeps
-    //   only the font.
+    //   is the TabList's gap). The height is `containerVariants.density` below. The font is S2
+    //   Tabs' root `font: 'ui'` at every size (ADR-295 후속 — it was a step per size).
     sizes: {
       S: {
-        fontSize: "{typography.text-xs}",
+        fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
         paddingX: 0,
@@ -11454,7 +11454,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontWeight: 500,
       },
       L: {
-        fontSize: "{typography.text-base}",
+        fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
         paddingX: 0,
@@ -12191,10 +12191,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // 글자 = S2 Tabs 루트 `font: 'ui'` (크기 무관 — ADR-295 후속).
     sizes: {
       S: {
         paddingX: 8,
-        fontSize: "{typography.text-xs}",
+        fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
       },
@@ -12206,7 +12207,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       L: {
         paddingX: 16,
-        fontSize: "{typography.text-base}",
+        fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
       },

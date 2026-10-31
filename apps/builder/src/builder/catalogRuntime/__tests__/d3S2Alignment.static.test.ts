@@ -1300,3 +1300,27 @@ describe("ADR-295 후속 — 필드 버튼 테두리 = S2 (없음)", () => {
       expect(block.styles?.["border-width"], size).toBe("0");
   });
 });
+
+describe("ADR-295 후속 — Tab 글자 = S2 Tabs 루트 `font: 'ui'` (크기 무관)", () => {
+  it("Tab · Tabs 의 모든 크기 글자 = ui", () => {
+    const s2 = readFileSync(
+      resolve(
+        __dirname,
+        "../../../../node_modules/@react-spectrum/s2/src/Tabs.tsx",
+      ),
+      "utf8",
+    );
+    const font = /const tabs = style\(\s*\{[\s\S]*?font: '([\w-]+)'/.exec(
+      s2,
+    )![1];
+    const sizes = COMPONENT_RULES_TABLE as unknown as Record<
+      string,
+      { sizes: Record<string, { fontSize?: string }> }
+    >;
+    for (const [size, block] of [
+      ...Object.entries(sizes.Tab!.sizes),
+      ...Object.entries(sizes.Tabs!.sizes),
+    ])
+      expect(FONT_NAME[String(block.fontSize).slice(12, -1)], size).toBe(font);
+  });
+});
