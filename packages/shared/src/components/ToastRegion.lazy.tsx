@@ -1,6 +1,12 @@
 /**
  * ADR-295 후속 C2 — the toast region (RAC toast primitives + S2's look), loaded with the first toast
  * (`Toast.tsx` `ToastProvider`) so a page that shows none does not carry it in its first bundle.
+ *
+ * C6 (S2 1.8.1 `Toast.tsx` · `Toast.module.css`): every queue update and the expand · collapse run in
+ * a view transition (`document.startViewTransition` + `flushSync`, the type as an html class — the
+ * new toast slides in from its edge, a removed one slides out, the stack and the list morph; reduced
+ * motion cross-fades); the expanded list takes over the screen as S2's does — `useModalOverlay`
+ * (scroll lock · the rest hidden from assistive tech) and `FocusScope contain`.
  */
 import {
   createContext,
@@ -9,11 +15,13 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
   useSyncExternalStore,
   type CSSProperties,
-  type ReactNode,
 } from "react";
+import { flushSync } from "react-dom";
+import { FocusScope } from "react-aria/FocusScope";
+import { useModalOverlay } from "react-aria/useModalOverlay";
+import { useOverlayTriggerState } from "react-stately/useOverlayTriggerState";
 import {
   UNSTABLE_Toast as RACToast,
   UNSTABLE_ToastContent as RACToastContent,
@@ -56,9 +64,41 @@ const ICONS: Partial<Record<ToastVariant, typeof Info>> = {
   negative: TriangleAlert,
 };
 
+/** S2 `globalReduceMotion` — the region's `prefers-reduced-motion` while it is mounted. */
+let reduceMotion = false;
+
+/**
+ * S2 `startViewTransition`: the update in a view transition, its type as a class on the html element
+ * (Safari has no `:active-view-transition-type()` — `Toast.css` reads the class). No API → the update.
+ */
+function startViewTransition(fn: () => void, type: string) {
+  if (typeof document === "undefined" || !("startViewTransition" in document)) {
+    fn();
+    return;
+  }
+  const root = document.documentElement;
+  const classes = [`catalog-toast-${type}`];
+  if (reduceMotion) classes.push("catalog-toast-reduce-motion");
+  root.classList.add(...classes);
+  const transition = (
+    document as Document & {
+      startViewTransition: (update: () => void) => {
+        ready: Promise<void>;
+        finished: Promise<void>;
+      };
+    }
+  ).startViewTransition(() => flushSync(fn));
+  transition.ready.catch(() => {});
+  void transition.finished.finally(() => root.classList.remove(...classes));
+}
+
 /** The queue the provider fills (S2 `getGlobalToastQueue` — every toast visible, the stack shows them). */
 export function createCatalogToastQueue() {
-  const queue = new RACToastQueue<ToastValue>({ maxVisibleToasts: Infinity });
+  const queue = new RACToastQueue<ToastValue>({
+    maxVisibleToasts: Infinity,
+    // (S2: an add · remove · clear is a view transition — `toast-add` · `toast-remove` · `toast-clear`.)
+    wrapUpdate: (fn, action) => startViewTransition(fn, action),
+  });
   return {
     queue,
     add: ({
@@ -95,13 +135,35 @@ interface StackValue {
   toggle: () => void;
   count: number;
   placement: "top" | "bottom";
+  align: "center" | "end";
+  reduceMotion: boolean;
 }
 const StackContext = createContext<StackValue>({
   expanded: false,
   toggle: () => {},
   count: 0,
   placement: "bottom",
+  align: "center",
+  reduceMotion: false,
 });
+
+const REDUCED_MOTION = "(prefers-reduced-motion)";
+/** S2 `useMediaQuery('(prefers-reduced-motion)')`. */
+function usePrefersReducedMotion(): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      if (typeof window === "undefined" || !window.matchMedia) return () => {};
+      const media = window.matchMedia(REDUCED_MOTION);
+      media.addEventListener("change", onChange);
+      return () => media.removeEventListener("change", onChange);
+    },
+    () =>
+      typeof window !== "undefined" && !!window.matchMedia
+        ? window.matchMedia(REDUCED_MOTION).matches
+        : false,
+    () => false,
+  );
+}
 
 /** S2 `ToastContainer`: the region at its placement, the stack, and the expanded list's controls. */
 export function ToastRegion({
@@ -124,30 +186,67 @@ export function ToastRegion({
     () => queue.visibleToasts.length,
     () => 0,
   );
-  const [expanded, setExpanded] = useState(false);
-  // (S2: collapsed again when the queue empties; a single toast does not expand.)
+  // (S2: the expanded list is an overlay state — `useModalOverlay` below reads it.)
+  const state = useOverlayTriggerState({});
+  const { isOpen: expanded, close, toggle: flip } = state;
+  // (S2: collapsed again when the queue empties.)
   useEffect(() => {
-    if (count === 0 && expanded) setExpanded(false);
-  }, [count, expanded]);
-  const toggle = useCallback(
-    () => setExpanded((open) => (open ? false : count > 1)),
-    [count],
-  );
+    if (count === 0 && expanded) close();
+  }, [count, expanded, close]);
+  // (S2 `toggleExpanded`: a single toast does not expand; the change is a view transition.)
+  const toggle = useCallback(() => {
+    if (!expanded && queue.visibleToasts.length <= 1) return;
+    startViewTransition(flip, expanded ? "collapse" : "expand");
+  }, [expanded, flip, queue]);
   const messages = useMessages();
-  // (S2: Escape collapses the expanded list — on the region's element, RAC's region takes no onKeyDown.)
   const region = useRef<HTMLDivElement>(null);
+  // (S2: collapsing moves focus to the region first — the list's toasts are leaving the screen.)
+  const collapse = useCallback(() => {
+    region.current?.focus();
+    toggle();
+  }, [toggle]);
+  // S2: the expanded list takes over the screen — scroll lock, the rest hidden from assistive tech
+  // (focus is contained by the `FocusScope` below).
+  useModalOverlay({}, state, region);
+  // (S2: Escape collapses — on the region's element, RAC's region takes no onKeyDown.)
   useEffect(() => {
     const element = region.current;
     if (!element || !expanded) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setExpanded(false);
+      if (event.key === "Escape") collapse();
     };
     element.addEventListener("keydown", onKeyDown);
     return () => element.removeEventListener("keydown", onKeyDown);
-  }, [expanded]);
+  }, [expanded, collapse]);
+  const prefersReducedMotion = usePrefersReducedMotion();
+  useEffect(() => {
+    const before = reduceMotion;
+    reduceMotion = prefersReducedMotion;
+    return () => {
+      reduceMotion = before;
+    };
+  }, [prefersReducedMotion]);
+  // (S2: a click on the collapsed stack — not on a button — expands it; native, RAC's list takes no onClick.)
+  const list = useRef<HTMLOListElement>(null);
+  useEffect(() => {
+    const element = list.current;
+    if (!element || expanded) return;
+    const onClick = (event: MouseEvent) => {
+      if (!(event.target as Element | null)?.closest?.("button")) toggle();
+    };
+    element.addEventListener("click", onClick);
+    return () => element.removeEventListener("click", onClick);
+  }, [expanded, toggle]);
   const stack = useMemo(
-    () => ({ expanded, toggle, count, placement: side }),
-    [expanded, toggle, count, side],
+    () => ({
+      expanded,
+      toggle,
+      count,
+      placement: side,
+      align: align === "end" ? ("end" as const) : ("center" as const),
+      reduceMotion: prefersReducedMotion,
+    }),
+    [expanded, toggle, count, side, align, prefersReducedMotion],
   );
   return (
     <RACToastRegion
@@ -158,45 +257,47 @@ export function ToastRegion({
       data-expanded={expanded || undefined}
       ref={region}
     >
-      <StackContext.Provider value={stack}>
-        {expanded && (
+      <FocusScope contain={expanded}>
+        <StackContext.Provider value={stack}>
+          {expanded && (
+            <div
+              className="catalog-toast-backdrop"
+              aria-hidden
+              onClick={collapse}
+            />
+          )}
+          <RACToastList<ToastValue>
+            ref={list}
+            className={`catalog-toast-list ${expanded ? "catalog-toast-list-expanded" : "catalog-toast-list-collapsed"}`}
+            style={({ isHovered }) => {
+              // (S2: the stack's slivers lean away from the top toast — a perspective origin past it.)
+              const origin = isHovered ? 95 : 55;
+              return {
+                perspective: 80,
+                perspectiveOrigin: `center ${side === "top" ? `calc(100% + ${origin}px)` : `${-origin}px`}`,
+                transition: "perspective-origin 400ms",
+              };
+            }}
+          >
+            {({ toast }) => <ToastItem toast={toast} />}
+          </RACToastList>
+          {/* (S2: the controls stay in the DOM — the view transition shows them while it runs.) */}
           <div
-            className="catalog-toast-backdrop"
-            aria-hidden
-            onClick={() => setExpanded(false)}
-          />
-        )}
-        <RACToastList<ToastValue>
-          className="catalog-toast-list"
-          style={({ isHovered }) => {
-            // (S2: the stack's slivers lean away from the top toast — a perspective origin past it.)
-            const origin = isHovered ? 95 : 55;
-            return {
-              perspective: 80,
-              perspectiveOrigin: `center ${side === "top" ? `calc(100% + ${origin}px)` : `${-origin}px`}`,
-              transition: "perspective-origin 400ms",
-            };
-          }}
-        >
-          {({ toast }) => <ToastItem toast={toast} />}
-        </RACToastList>
-        {expanded && (
-          <div className="catalog-toast-controls">
+            className="catalog-toast-controls"
+            data-expanded={expanded || undefined}
+          >
             <Button
               className="catalog-toast-control"
               onPress={() => queue.clear()}
             >
               {messages.clearAll}
             </Button>
-            <Button
-              className="catalog-toast-control"
-              onPress={() => setExpanded(false)}
-            >
+            <Button className="catalog-toast-control" onPress={collapse}>
               {messages.collapse}
             </Button>
           </div>
-        )}
-      </StackContext.Provider>
+        </StackContext.Provider>
+      </FocusScope>
     </RACToastRegion>
   );
 }
@@ -218,7 +319,9 @@ function toastBoxStyle(variant: ToastVariant): CSSProperties {
  * Text node's sheet, which paints `--fg` over the toast's white.)
  */
 function ToastItem({ toast }: { toast: QueuedToast<ToastValue> }) {
-  const { expanded, toggle, count, placement } = useContext(StackContext);
+  const { expanded, toggle, count, placement, align, reduceMotion } =
+    useContext(StackContext);
+  const toastRef = useRef<HTMLDivElement>(null);
   const messages = useMessages();
   const variant = toast.content.variant;
   const index = useIndexOf(toast);
@@ -239,6 +342,12 @@ function ToastItem({ toast }: { toast: QueuedToast<ToastValue> }) {
           translate: `0 0 ${(-12 * index) / 16}rem`,
           opacity: index >= 3 ? 0 : 1,
           zIndex: count - index - 1,
+          // (S2: a toast's transition name is its key — reduced motion adds its index, so a move
+          //  cross-fades instead of sliding.)
+          ...viewTransition(toast.key + (reduceMotion ? `-${index}` : ""), [
+            "catalog-toast",
+            "catalog-toast-bg",
+          ]),
         }}
       />
     );
@@ -246,17 +355,29 @@ function ToastItem({ toast }: { toast: QueuedToast<ToastValue> }) {
   const single = !isMain || count <= 1 || expanded;
   return (
     <RACToast
+      ref={toastRef}
       toast={toast}
       className="catalog-toast"
       data-variant={variant}
-      style={{ ...toastBoxStyle(variant), zIndex: count - index - 1 }}
+      style={{
+        ...toastBoxStyle(variant),
+        zIndex: count - index - 1,
+        ...viewTransition(toast.key, [
+          "catalog-toast",
+          isMain ? "" : "catalog-toast-bg",
+          `catalog-toast-${placement}`,
+          align === "end" ? "catalog-toast-end" : "",
+        ]),
+      }}
     >
       <div
         role="presentation"
         className="catalog-toast-body"
         data-single={single || undefined}
       >
-        <RACToastContent className="catalog-toast-content">
+        <RACToastContent
+          className={`catalog-toast-content${isMain ? " catalog-toast-vt-content" : ""}`}
+        >
           {Icon && (
             <span className="catalog-toast-icon" aria-hidden>
               <Icon
@@ -273,9 +394,13 @@ function ToastItem({ toast }: { toast: QueuedToast<ToastValue> }) {
         </RACToastContent>
         {!single && (
           <Button
-            className="catalog-toast-expand"
+            className="catalog-toast-expand catalog-toast-vt-expand"
             style={{ minHeight: catalogDeviceLength("{size.height.M}") }}
-            onPress={toggle}
+            onPress={() => {
+              // (S2: this button goes away when pressed — focus moves to the toast.)
+              toastRef.current?.focus();
+              toggle();
+            }}
           >
             <Text className="catalog-toast-title">{messages.showAll}</Text>
             <ChevronDown
@@ -287,7 +412,7 @@ function ToastItem({ toast }: { toast: QueuedToast<ToastValue> }) {
       </div>
       <Button
         slot="close"
-        className="catalog-toast-close"
+        className={`catalog-toast-close${isMain ? " catalog-toast-vt-close" : ""}`}
         style={{
           width: catalogDeviceLength("{size.height.M}"),
           height: catalogDeviceLength("{size.height.M}"),
@@ -298,6 +423,19 @@ function ToastItem({ toast }: { toast: QueuedToast<ToastValue> }) {
     </RACToast>
   );
 }
+
+/** S2's per-toast `viewTransitionName` · `viewTransitionClass` (React has no typed key for the class). */
+function viewTransition(name: string, classes: string[]): CSSProperties {
+  return {
+    viewTransitionName: CSS_ESCAPE(name),
+    viewTransitionClass: classes.filter(Boolean).join(" "),
+  } as CSSProperties;
+}
+/** (A toast key is a generated id — escaped for a CSS identifier, S2 `CSS.escape`.) */
+const CSS_ESCAPE = (value: string) =>
+  typeof CSS !== "undefined" && CSS.escape
+    ? CSS.escape(value)
+    : value.replace(/[^\w-]/g, "_");
 
 /** The toast's place in the visible list (0 = the newest, on top). */
 function useIndexOf(toast: QueuedToast<ToastValue>): number {

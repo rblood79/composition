@@ -188,3 +188,139 @@ describe("S2 toast — the region", () => {
     h.view.unmount();
   });
 });
+
+describe("S2 toast — view transitions · the expanded list takes over the screen (C6)", () => {
+  type Transition = { type: string[]; reduce: boolean };
+  let transitions: Transition[] = [];
+  let finish: (() => void)[] = [];
+  const doc = document as unknown as { startViewTransition?: unknown };
+  afterEach(async () => {
+    delete doc.startViewTransition;
+    finish.splice(0).forEach((done) => done());
+    await Promise.resolve();
+    document.documentElement.removeAttribute("class");
+    transitions = [];
+  });
+  /** jsdom has no View Transitions API: run the update now, record the html classes it ran under. */
+  function stubViewTransitions() {
+    doc.startViewTransition = (update: () => void) => {
+      const classes = [...document.documentElement.classList].filter((name) =>
+        name.startsWith("catalog-toast-"),
+      );
+      transitions.push({
+        type: classes.filter((name) => name !== "catalog-toast-reduce-motion"),
+        reduce: classes.includes("catalog-toast-reduce-motion"),
+      });
+      update();
+      let done!: () => void;
+      const finished = new Promise<void>((resolve) => (done = resolve));
+      finish.push(done);
+      return { ready: Promise.resolve(), finished };
+    };
+  }
+
+  it("an add · remove is a view transition typed on the html element; the class goes when it finishes", async () => {
+    stubViewTransitions();
+    const h = await show([{ title: "one" }]);
+    expect(transitions.map((t) => t.type)).toEqual([["catalog-toast-add"]]);
+    expect(
+      document.documentElement.classList.contains("catalog-toast-add"),
+    ).toBe(true);
+    await act(async () => {
+      finish.splice(0).forEach((done) => done());
+    });
+    expect(
+      document.documentElement.classList.contains("catalog-toast-add"),
+    ).toBe(false);
+    // Each toast carries its key as its transition name and its classes (the edge it slides from).
+    const [toast] = h.toasts();
+    expect(toast?.style.getPropertyValue("view-transition-name")).toBeTruthy();
+    expect(toast?.style.getPropertyValue("view-transition-class")).toBe(
+      "catalog-toast catalog-toast-bottom catalog-toast-end",
+    );
+    act(() => {
+      fireEvent.click(toast!.querySelector("button[slot=close]")!);
+    });
+    expect(transitions.at(-1)?.type).toEqual(["catalog-toast-remove"]);
+    h.view.unmount();
+  });
+
+  it("expand · collapse are view transitions; expanded = scroll lock, the page hidden from assistive tech, focus contained", async () => {
+    stubViewTransitions();
+    const outside = document.createElement("button");
+    outside.textContent = "outside";
+    document.body.append(outside);
+    const h = await show([{ title: "one" }, { title: "two" }]);
+    await act(async () => {
+      finish.splice(0).forEach((done) => done());
+    });
+    transitions = [];
+    act(() => {
+      fireEvent.click(h.button("Show all")!);
+    });
+    expect(transitions.map((t) => t.type)).toEqual([["catalog-toast-expand"]]);
+    expect(document.documentElement.style.overflow).toBe("hidden");
+    expect(outside.closest("[aria-hidden=true]")).not.toBeNull();
+    // Focus stays in the region (S2 `FocusScope contain`).
+    const region = document.querySelector<HTMLElement>(
+      ".catalog-toast-region",
+    )!;
+    const collapse = h.button("Collapse")!;
+    act(() => collapse.focus());
+    await act(async () => {
+      outside.focus();
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(region.contains(document.activeElement)).toBe(true);
+    await act(async () => {
+      finish.splice(0).forEach((done) => done());
+    });
+    act(() => {
+      fireEvent.click(h.button("Collapse")!);
+    });
+    expect(transitions.at(-1)?.type).toEqual(["catalog-toast-collapse"]);
+    expect(document.documentElement.style.overflow).not.toBe("hidden");
+    expect(outside.closest("[aria-hidden=true]")).toBeNull();
+    h.view.unmount();
+    outside.remove();
+  });
+
+  it("a click on the collapsed stack (not a button) expands it", async () => {
+    const h = await show([{ title: "one" }, { title: "two" }]);
+    act(() => {
+      fireEvent.click(h.toasts()[0]!.querySelector(".catalog-toast-title")!);
+    });
+    expect(h.dialogs()).toHaveLength(2);
+    h.view.unmount();
+  });
+
+  it("reduced motion: the transition carries it; a sliver's name takes its index (a cross fade)", async () => {
+    const matchMedia = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: query === "(prefers-reduced-motion)",
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof window.matchMedia;
+    try {
+      stubViewTransitions();
+      const h = await show([{ title: "one" }]);
+      act(() => {
+        h.add({ title: "two" });
+      });
+      expect(transitions.at(-1)).toEqual({
+        type: ["catalog-toast-add"],
+        reduce: true,
+      });
+      const sliver = document.querySelector<HTMLElement>(
+        ".catalog-toast-behind",
+      )!;
+      expect(sliver.style.getPropertyValue("view-transition-name")).toMatch(
+        /-1$/,
+      );
+      h.view.unmount();
+    } finally {
+      window.matchMedia = matchMedia;
+    }
+  });
+});

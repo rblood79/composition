@@ -873,7 +873,7 @@ export const ACTION_COVERAGE: Readonly<
   ),
   toast: at(
     "src/pages/<Page>.tsx",
-    "toasts.add({title})",
+    "toasts.add({title, variant}, {timeout}) (295 후속 C5)",
     "setNodeInteractions",
     0,
   ),

@@ -19,6 +19,7 @@ import type {
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { renderCatalogDom } from "../domBinding";
+import { catalogBoxModel } from "../../../../../../packages/shared/src/catalog/runtime/boxModel";
 import { catalogItemInsertChoices } from "../itemInsert";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
@@ -296,6 +297,63 @@ describe("ADR-257 Table column tracks", () => {
     );
     expect(authored).toContain("--table-column-tracks:90px minmax(75px, 1fr)");
     expect(authored).not.toContain("table-selection-column");
+  });
+});
+
+describe("ADR-295 후속 C7 — S2 칸 여백 (TableView `paddingX: 16` · 선택 칸 시작 16 · 끝 8)", () => {
+  /** The Canvas box padding (engine `styleOf` input) and the DOM inline padding of a record. */
+  const paddings = (workspace: CatalogWorkspace, name: string) => {
+    const record = recordOf(workspace, name);
+    const html = renderToStaticMarkup(
+      renderCatalogDom(workspace.root, recordOf(workspace, "t").id),
+    );
+    const element = new DOMParser()
+      .parseFromString(html, "text/html")
+      .querySelector<HTMLElement>(`[data-catalog-id$="::${record.sourceId}"]`)!;
+    // (The Canvas engine input's padding is the shared box model — `styleOf`.)
+    const box = catalogBoxModel(record).padding;
+    return {
+      canvas: [`${box?.left}px`, `${box?.right}px`],
+      // (The inline declaration as written — jsdom's style object mixes the four longhands up.)
+      dom: ["left", "right"].map(
+        (side) =>
+          new RegExp(`padding-${side}:([^;]+)`).exec(
+            element.getAttribute("style") ?? "",
+          )?.[1],
+      ),
+    };
+  };
+
+  it("a Cell · Column: 16 at both ends (S2 table-edge-to-content)", async () => {
+    const workspace = await openTable("Table", [{}, {}]);
+    for (const name of ["c1", "r1d1"])
+      expect(paddings(workspace, name), name).toEqual({
+        canvas: ["16px", "16px"],
+        dom: ["16px", "16px"],
+      });
+  });
+
+  it("the selection Column · Cell: 16 at the start, 8 at the end (S2 checkbox column)", async () => {
+    const workspace = await openTable("Table", [{}, {}]);
+    for (const parent of ["c0", "r1d0"])
+      workspace.execute(
+        insertNodes({
+          parent: { kind: "node", id: id(parent) },
+          index: 0,
+          entries: [
+            node(`${parent}sel`, "Checkbox", [], { slot: "selection" }),
+          ],
+          rootIds: [id(`${parent}sel`)],
+          newId: workspace.newId,
+        }),
+      );
+    for (const name of ["c0", "r1d0"])
+      expect(paddings(workspace, name), name).toEqual({
+        canvas: ["16px", "8px"],
+        dom: ["16px", "8px"],
+      });
+    // The other cells keep 16 · 16.
+    expect(paddings(workspace, "r1d1").dom).toEqual(["16px", "16px"]);
   });
 });
 

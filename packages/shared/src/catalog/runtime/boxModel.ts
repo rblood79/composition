@@ -101,6 +101,9 @@ const blockBindings = new Set([
   "paragraph",
 ]);
 
+/** S2 TableView checkbox column · cell `paddingEnd: 8` (rem — the same on a touch device). */
+export const CATALOG_SELECTION_PART_PADDING_END = 8;
+
 const length = (value: unknown): CatalogLength | undefined =>
   typeof value === "number" || typeof value === "string" ? value : undefined;
 
@@ -139,7 +142,14 @@ export function catalogBoxModel(node: CatalogConsumerNode): CatalogBoxModel {
     length(node.visual[key]) ?? axis;
   const padding = {
     top: side("paddingTop", paddingY),
-    right: side("paddingRight", paddingX),
+    // ADR-295 후속 C7 — S2's checkbox column (`TableView.tsx` `selectAllCheckboxColumn` ·
+    //   `checkboxCellStyle` — `paddingStart: 16`, `paddingEnd: 8`): the Column · Cell holding the
+    //   selection checkbox ends 8 in (`_tableSelectionPart`, `presence.ts`); an authored end wins.
+    right:
+      length(node.visual.paddingRight) ??
+      (node.derivedProps?._tableSelectionPart === true
+        ? CATALOG_SELECTION_PART_PADDING_END
+        : paddingX),
     bottom: side("paddingBottom", paddingY),
     left: side("paddingLeft", paddingX),
   };

@@ -521,9 +521,9 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
       // (ADR-295 후속 B2: the S2 header 32 — density-free — over the cell line 18 and its 1px line.)
       expect(resolveLayoutSpecPreset("Column", undefined)).toMatchObject({
         paddingTop: 6.5,
-        paddingRight: 8,
+        paddingRight: 16, // (S2 table-edge-to-content — ADR-295 후속 C7)
         paddingBottom: 6.5,
-        paddingLeft: 8,
+        paddingLeft: 16,
       });
       expect(resolveTypographySpecPreset("Column", undefined)).toMatchObject({
         fontWeight: "600",
@@ -531,9 +531,9 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
       // (ADR-295 후속: regular 11 — the S2 row 40 over the cell line 18.)
       expect(resolveLayoutSpecPreset("Cell", undefined)).toMatchObject({
         paddingTop: 11,
-        paddingRight: 8,
+        paddingRight: 16, // (S2 table-edge-to-content — ADR-295 후속 C7)
         paddingBottom: 11,
-        paddingLeft: 8,
+        paddingLeft: 16,
       });
     });
   });

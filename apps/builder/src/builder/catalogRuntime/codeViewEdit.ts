@@ -1978,7 +1978,11 @@ class Planner {
       )
         continue;
       const set = /^(set[A-Z][\w$]*)\(([\s\S]*)\)$/.exec(raw);
-      const toast = /^toasts\.add\(\{title: ('(?:[^'\\]|\\.)*')\}\)$/.exec(raw);
+      // (ADR-295 후속 C5 — the S2 options: `variant` in the content, `timeout` in RAC's options.)
+      const toast =
+        /^toasts\.add\(\{title: ('(?:[^'\\]|\\.)*')(?:, variant: '(\w+)')?\}(?:, \{timeout: (\d+)\})?\)$/.exec(
+          raw,
+        );
       const go = /^navigate\(('(?:[^'\\]|\\.)*')\)$/.exec(raw);
       const list = /^([\w$]+)\.(\w+)\(([\s\S]*)\)$/.exec(raw);
       const each =
@@ -2157,6 +2161,8 @@ class Planner {
         actions.push({
           opcode: "toast",
           message: literalOf(toast[1]!),
+          ...(toast[2] ? { variant: toast[2] } : {}),
+          ...(toast[3] ? { timeout: Number(toast[3]) } : {}),
         } as InteractionAction);
         continue;
       }

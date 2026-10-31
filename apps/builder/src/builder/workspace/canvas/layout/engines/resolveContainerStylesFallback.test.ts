@@ -568,18 +568,22 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         flexDirection: "row",
       });
       // ADR-257: no flex share — a column's width is its track in the row grid (`tableTracks.ts`).
-      // (ADR-295 후속 B2: the S2 header 32 — 6.5 above and below, {spacing.sm} beside.)
+      // (ADR-295 후속 B2: the S2 header 32 — 6.5 above and below; C7: S2 16 beside.)
       expect(resolveContainerStylesFallback("column", {})).toMatchObject({
         paddingTop: "6.5px",
-        paddingRight: 8,
+        paddingRight: 16,
         paddingBottom: "6.5px",
-        paddingLeft: 8,
+        paddingLeft: 16,
       });
       expect(resolveContainerStylesFallback("column", {})).not.toHaveProperty(
         "flex",
       );
+      // (ADR-295 후속 C7: S2 16 beside, 8 above and below — the density's paddingY wins.)
       expect(resolveContainerStylesFallback("cell", {})).toMatchObject({
-        padding: 8,
+        paddingTop: 8,
+        paddingRight: 16,
+        paddingBottom: 8,
+        paddingLeft: 16,
       });
       expect(resolveContainerStylesFallback("cell", {})).not.toHaveProperty(
         "flex",

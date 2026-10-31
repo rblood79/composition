@@ -295,13 +295,26 @@ export function catalogTableTrackDependents<T extends TrackRecord>(
               )
               .find((record) => !!record)
           : undefined;
-  if (!table || !TRACK_TABLE_TYPES.has(typeOf(table))) return [];
-  return recordChildren(table, get).flatMap((part) => {
-    const partType = typeOf(part);
-    if (partType === "TableHeader") return [part];
-    if (partType !== "TableBody") return [];
-    return recordChildren(part, get).filter((row) => typeOf(row) === "Row");
-  });
+  // (ADR-295 후속 C7: a selection checkbox also makes the Column · Cell holding it — in it or one frame
+  //  down — S2's checkbox column part, `_tableSelectionPart`.)
+  const holders =
+    type === "Checkbox"
+      ? [up(owner), up(up(owner))].filter(
+          (record): record is T =>
+            !!record &&
+            (typeOf(record) === "Column" || typeOf(record) === "Cell"),
+        )
+      : [];
+  if (!table || !TRACK_TABLE_TYPES.has(typeOf(table))) return holders;
+  return [
+    ...holders,
+    ...recordChildren(table, get).flatMap((part) => {
+      const partType = typeOf(part);
+      if (partType === "TableHeader") return [part];
+      if (partType !== "TableBody") return [];
+      return recordChildren(part, get).filter((row) => typeOf(row) === "Row");
+    }),
+  ];
 }
 
 /** S2 `selectionStyle` highlight (RAC `selectionBehavior="replace"`). */

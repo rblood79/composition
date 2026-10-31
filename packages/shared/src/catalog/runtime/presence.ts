@@ -12,6 +12,8 @@ import { NumberFormatter } from "@internationalized/number";
 import { catalogNumberFormatOptions } from "../document/numberFormatValue";
 import {
   catalogTableRowTracks,
+  catalogTableSelectionColumn,
+  catalogTrackTableOf,
   catalogTableSelectionPartHidden,
   catalogTableSelectionParts,
   catalogTableTrackDependents,
@@ -1957,9 +1959,18 @@ export function catalogDerivedProps(
           : {}),
       }
     : colored;
+  // (ADR-295 후속 C7: S2's checkbox column — its Column · Cells end 8 in, not 16 — `catalogBoxModel`.)
+  const selectionPart =
+    (typeOf(node) === "Column" || typeOf(node) === "Cell") &&
+    catalogTrackTableOf(get(node.parentId) ?? node, get, typeOf) !==
+      undefined &&
+    catalogTableSelectionColumn(node, get, typeOf);
+  const selectionMarked = selectionPart
+    ? { ...tracked, _tableSelectionPart: true }
+    : tracked;
   // (ADR-267: a standalone list's section header sticks — the ListBox rule's section header.)
   const sticky = catalogListSectionHeaderInsets(node, get, typeOf);
-  const stuck = sticky ? { ...tracked, ...sticky } : tracked;
+  const stuck = sticky ? { ...selectionMarked, ...sticky } : selectionMarked;
   // (S2 Button is a pill; a field's own button keeps its size's corner — the Button rule's
   //  `field-button` blocks, `catalogFieldButtonSize`.)
   const fieldButton = catalogFieldButtonSize(node, get, typeOf);

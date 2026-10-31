@@ -192,12 +192,18 @@
   inset: 0;
   background-color: rgb(0 0 0 / 0.5);
 }
+/* S2 `controls` — 펼쳤을 때만 (view transition 동안은 아래 규칙이 보이게 한다). */
 .catalog-toast-controls {
   position: relative;
-  display: flex;
+  display: none;
   justify-content: end;
   gap: 8px;
   color-scheme: light;
+  opacity: 0;
+}
+.catalog-toast-controls[data-expanded] {
+  display: flex;
+  opacity: 1;
 }
 .catalog-toast-control {
   min-height: 24px;
@@ -221,5 +227,159 @@
 @media (forced-colors: active) {
   .catalog-toast {
     border: 1px solid CanvasText;
+  }
+}
+
+/*
+ * ADR-295 후속 C6 — S2 1.8.1 `Toast.module.css` 의 view transition (이름만 `catalog-toast-*`).
+ * `ToastRegion.lazy.tsx` 가 queue 갱신 (add · remove · clear) · 펼침 · 접힘을 view transition 으로 돌리고
+ * 그 종류를 html class 로 단다 (Safari 에 `:active-view-transition-type()` 이 없다 — S2 와 같은 우회).
+ * 새 toast 는 가장자리에서 미끄러져 들어오고 닫힌 toast 는 나가며, 펼침 · 접힘은 맨 위 toast 의 부품
+ * (내용 · 「모두 표시」 · 닫기) 이 따로 움직인다. 동작 줄이기면 교차 fade.
+ */
+html.catalog-toast-add,
+html.catalog-toast-remove,
+html.catalog-toast-expand,
+html.catalog-toast-collapse,
+html.catalog-toast-clear {
+  view-transition-name: none;
+
+  .catalog-toast-controls {
+    view-transition-name: catalog-toast-controls;
+  }
+
+  .catalog-toast-backdrop {
+    view-transition-name: catalog-toast-backdrop;
+  }
+
+  &::view-transition-group(catalog-toast-backdrop) {
+    z-index: 0;
+    will-change: transform;
+  }
+
+  &::view-transition-group(.catalog-toast),
+  &::view-transition-group(catalog-toast-list-expanded),
+  &::view-transition-group(catalog-toast-list-collapsed) {
+    z-index: 1;
+    will-change: transform;
+  }
+
+  &::view-transition-group(catalog-toast-controls) {
+    z-index: 2;
+    will-change: transform;
+  }
+
+  &::view-transition-group(catalog-toast-vt-content),
+  &::view-transition-group(catalog-toast-vt-expand),
+  &::view-transition-group(catalog-toast-vt-close) {
+    z-index: 3;
+    will-change: transform;
+  }
+
+  &::view-transition-group(*) {
+    animation-duration: 400ms;
+  }
+}
+
+html.catalog-toast-add,
+html.catalog-toast-remove {
+  &:not(.catalog-toast-reduce-motion) {
+    &::view-transition-new(.catalog-toast):only-child {
+      animation-name: catalog-toast-slide-in;
+    }
+
+    &::view-transition-old(.catalog-toast):only-child {
+      animation-name: catalog-toast-slide-out;
+    }
+  }
+
+  &::view-transition-group(.catalog-toast.catalog-toast-bottom) {
+    --slideX: 0;
+    --slideY: calc(100% + 12px);
+  }
+
+  &::view-transition-group(.catalog-toast.catalog-toast-top) {
+    --slideX: 0;
+    --slideY: calc(-100% - 12px);
+  }
+
+  &::view-transition-group(.catalog-toast.catalog-toast-end) {
+    --slideX: calc(100% + 12px);
+    --slideY: 0;
+  }
+}
+
+/* 「모두 표시」 는 펼칠 때 조금 빨리 · 접을 때 늦게 — 글자가 다시 놓이는 동안 겹쳐 보이지 않게 (S2). */
+html.catalog-toast-expand {
+  &::view-transition-group(catalog-toast-vt-expand) {
+    animation-duration: 300ms;
+  }
+}
+
+html.catalog-toast-collapse {
+  &::view-transition-group(catalog-toast-vt-expand) {
+    animation-duration: 600ms;
+  }
+}
+
+html.catalog-toast-expand,
+html.catalog-toast-collapse {
+  &:not(.catalog-toast-reduce-motion) {
+    .catalog-toast-vt-content {
+      view-transition-name: catalog-toast-vt-content;
+    }
+
+    .catalog-toast-vt-expand {
+      view-transition-name: catalog-toast-vt-expand;
+    }
+
+    .catalog-toast-vt-close {
+      view-transition-name: catalog-toast-vt-close;
+    }
+
+    .catalog-toast-controls {
+      display: flex;
+    }
+
+    &::view-transition-old(.catalog-toast),
+    &::view-transition-new(.catalog-toast) {
+      height: 100%;
+      width: 100%;
+    }
+
+    &::view-transition-old(.catalog-toast-bg),
+    &::view-transition-new(.catalog-toast-bg) {
+      object-fit: cover;
+      object-position: top center;
+      clip-path: inset(0px round 10px);
+    }
+  }
+
+  &.catalog-toast-reduce-motion {
+    .catalog-toast {
+      view-transition-name: none !important;
+    }
+
+    .catalog-toast-list-expanded {
+      view-transition-name: catalog-toast-list-expanded;
+    }
+
+    .catalog-toast-list-collapsed {
+      view-transition-name: catalog-toast-list-collapsed;
+    }
+  }
+}
+
+@keyframes catalog-toast-slide-in {
+  from {
+    translate: var(--slideX) var(--slideY);
+    opacity: 0;
+  }
+}
+
+@keyframes catalog-toast-slide-out {
+  to {
+    translate: var(--slideX) var(--slideY);
+    opacity: 0;
   }
 }

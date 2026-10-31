@@ -51,6 +51,7 @@ import {
   CATALOG_SIZE_PROPAGATION,
 } from "../../../../../../packages/shared/src/catalog/document/sizePropagation";
 import oracle from "./fixtures/adr295-s2-oracle.json";
+import { CATALOG_SELECTION_PART_PADDING_END } from "../../../../../../packages/shared/src/catalog/runtime/boxModel";
 
 const SIZES = ["XS", "S", "M", "L", "XL"] as const;
 const rem = (css: string) => Number(/([\d.]+)rem/.exec(css)![1]) * 16;
@@ -1429,6 +1430,44 @@ describe("ADR-295 후속 — S2 고정 sizing 숫자 = 기기 배율 (`scaled` �
     expect(s2SizeTokens(S2_DEVICE.touch.scale)["table.selection-column"]).toBe(
       Number(column[2]),
     );
+  });
+
+  it("Table 칸 · 머리글 좌우 = S2 `paddingX: 16` · 선택 checkbox 칸 = 시작 16 · 끝 8", () => {
+    const table = readFileSync(
+      resolve(
+        __dirname,
+        "../../../../node_modules/@react-spectrum/s2/src/TableView.tsx",
+      ),
+      "utf8",
+    );
+    const cellX = Number(
+      /const commonCellStyles = \{[\s\S]*?paddingX: (\d+)/.exec(table)![1],
+    );
+    const columnX = Number(
+      /const columnStyles = style\(\{[\s\S]*?paddingX: \{\s*default: (\d+)/.exec(
+        table,
+      )![1],
+    );
+    const checkbox =
+      /const checkboxCellStyle = style\(\{[\s\S]*?paddingStart: (\d+),\s*paddingEnd: (\d+)/.exec(
+        table,
+      )!;
+    const header =
+      /const selectAllCheckboxColumn = style\(\{\s*paddingStart: \{[^}]*?':has\(\[slot="selection"\]\)': (\d+)[\s\S]*?paddingEnd: \{[^}]*?':has\(\[slot="selection"\]\)': (\d+)/.exec(
+        table,
+      )!;
+    const ruleX = (type: string) =>
+      (
+        COMPONENT_RULES_TABLE as unknown as Record<
+          string,
+          { sizes: Record<string, { paddingX?: number }> }
+        >
+      )[type]!.sizes.M!.paddingX;
+    expect(ruleX("Cell")).toBe(cellX);
+    expect(ruleX("Column")).toBe(columnX);
+    expect([Number(checkbox[1]), Number(header[1])]).toEqual([cellX, cellX]);
+    expect(Number(checkbox[2])).toBe(CATALOG_SELECTION_PART_PADDING_END);
+    expect(Number(header[2])).toBe(CATALOG_SELECTION_PART_PADDING_END);
   });
 
   it("기기 단위 `{size.unit}` = scale px (desktop 1 · 터치 1.25)", () => {

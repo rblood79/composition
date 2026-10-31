@@ -520,6 +520,9 @@ importers:
       react:
         specifier: 'catalog:'
         version: 19.3.0
+      react-aria:
+        specifier: 'catalog:'
+        version: 3.53.1(patch_hash=8fdbff66a8ab37501bc381dc7d4d3da46968bd1c26b7f9479ec650bbdac956ea)(react-dom@19.3.0(patch_hash=57eb26d122c46c8e56dbed622fb76f4613705ecb1b05adb3e7b2885bf41ee10f)(react@19.3.0))(react@19.3.0)
       react-aria-components:
         specifier: 'catalog:'
         version: 1.22.1(react-dom@19.3.0(patch_hash=57eb26d122c46c8e56dbed622fb76f4613705ecb1b05adb3e7b2885bf41ee10f)(react@19.3.0))(react@19.3.0)
@@ -2938,12 +2941,6 @@ packages:
       react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
       react-dom: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
 
-  react-aria@3.53.0:
-    resolution: {integrity: sha512-xnr61tc2ZZ0MBPn52AiUSnO89Q2zwvBFFghipxuRM5H5n4cfPt3D0rB6OQoKCwNyD/ozm9BTFoNainzafd/RkQ==}
-    peerDependencies:
-      react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
-      react-dom: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
-
   react-aria@3.53.1:
     resolution: {integrity: sha512-dikisyOjJd3D2fFrIDWmVWzqiLz5B86GzZv1zxs7xI4dVc0JIz/1Wa52I20gYvVL2WXeFXlygYsle/QcOMhtcg==}
     peerDependencies:
@@ -4052,7 +4049,7 @@ snapshots:
     dependencies:
       '@swc/helpers': 0.5.23
       react: 19.3.0
-      react-aria: 3.53.0(react-dom@19.3.0(patch_hash=57eb26d122c46c8e56dbed622fb76f4613705ecb1b05adb3e7b2885bf41ee10f)(react@19.3.0))(react@19.3.0)
+      react-aria: 3.53.1(patch_hash=8fdbff66a8ab37501bc381dc7d4d3da46968bd1c26b7f9479ec650bbdac956ea)(react-dom@19.3.0(patch_hash=57eb26d122c46c8e56dbed622fb76f4613705ecb1b05adb3e7b2885bf41ee10f)(react@19.3.0))(react@19.3.0)
       react-dom: 19.3.0(patch_hash=57eb26d122c46c8e56dbed622fb76f4613705ecb1b05adb3e7b2885bf41ee10f)(react@19.3.0)
       react-stately: 3.51.0(react@19.3.0)
 
@@ -5581,20 +5578,6 @@ snapshots:
       client-only: 0.0.1
       react: 19.3.0
       react-aria: 3.53.1(patch_hash=8fdbff66a8ab37501bc381dc7d4d3da46968bd1c26b7f9479ec650bbdac956ea)(react-dom@19.3.0(patch_hash=57eb26d122c46c8e56dbed622fb76f4613705ecb1b05adb3e7b2885bf41ee10f)(react@19.3.0))(react@19.3.0)
-      react-dom: 19.3.0(patch_hash=57eb26d122c46c8e56dbed622fb76f4613705ecb1b05adb3e7b2885bf41ee10f)(react@19.3.0)
-      react-stately: 3.51.0(react@19.3.0)
-      use-sync-external-store: 1.6.0(react@19.3.0)
-
-  react-aria@3.53.0(react-dom@19.3.0(patch_hash=57eb26d122c46c8e56dbed622fb76f4613705ecb1b05adb3e7b2885bf41ee10f)(react@19.3.0))(react@19.3.0):
-    dependencies:
-      '@internationalized/date': 3.12.4
-      '@internationalized/number': 3.6.9
-      '@internationalized/string': 3.2.10
-      '@react-types/shared': 3.37.0(react@19.3.0)
-      '@swc/helpers': 0.5.23
-      aria-hidden: 1.2.6
-      clsx: 2.1.1
-      react: 19.3.0
       react-dom: 19.3.0(patch_hash=57eb26d122c46c8e56dbed622fb76f4613705ecb1b05adb3e7b2885bf41ee10f)(react@19.3.0)
       react-stately: 3.51.0(react@19.3.0)
       use-sync-external-store: 1.6.0(react@19.3.0)

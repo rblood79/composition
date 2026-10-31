@@ -39,6 +39,7 @@ import type {
   ViewEntry,
   ViewQuery,
 } from "../catalog/document/types";
+import { CATALOG_TOAST_VARIANTS } from "../catalog/document/types";
 import { isPropVar, isPropWhen } from "../catalog/document/valueType";
 import { resolveField } from "../collections/resolveBoundCollection";
 import {
@@ -342,6 +343,8 @@ class Generator {
   private filterFns = new Set<string>();
   private collator = false;
   private toasts = false;
+  /** A toast Do names a variant (the queue's content type carries it). */
+  private toastVariants = false;
   private navigate = false;
   /** ADR-296 E9 — the rules of a When that holds several, as named functions (written before `return`). */
   private readonly handlerFns: {
@@ -426,7 +429,11 @@ class Generator {
     out.line();
     if (this.toasts) {
       out.anchorLine(
-        "const toasts = new UNSTABLE_ToastQueue<{title: string}>();",
+        `const toasts = new UNSTABLE_ToastQueue<{title: string${
+          this.toastVariants
+            ? `; variant?: ${CATALOG_TOAST_VARIANTS.map((variant) => `'${variant}'`).join(" | ")}`
+            : ""
+        }}>();`,
         { kind: "derived", key: "toasts" },
       );
       out.line();
@@ -2237,11 +2244,20 @@ class Generator {
           `props.${callback}?.(${action.value !== undefined ? value(action.value) : ""});`,
         );
       }
-      case "toast":
+      case "toast": {
+        // ADR-295 후속 C5 — the Do's S2 options as RAC's queue takes them: the variant in the
+        // content, the timeout in the options (`UNSTABLE_ToastQueue.add(content, {timeout})`).
         this.toasts = true;
+        if (action.variant) this.toastVariants = true;
+        const content = action.variant
+          ? `{title: ${literal(action.message)}, variant: ${literal(action.variant)}}`
+          : `{title: ${literal(action.message)}}`;
         return void out.line(
-          `toasts.add({title: ${literal(action.message)}});`,
+          action.timeout !== undefined
+            ? `toasts.add(${content}, {timeout: ${action.timeout}});`
+            : `toasts.add(${content});`,
         );
+      }
       case "navigate": {
         this.navigate = true;
         const page = this.doc.get(action.pageId);

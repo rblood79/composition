@@ -148,10 +148,10 @@ describe("ADR-256 G5 example 11 — the reference's sort indicator", () => {
     const group = record("project:node:name-group");
     expect(group.layout.flexGrow ?? group.layout.flex).toBeDefined();
     // The Canvas name Group ends where the DOM indicator begins: the column's content box less
-    // the indicator (16px chevron + 2px each side).
+    // the indicator (16px chevron + 2px each side). (Its side padding = S2 16 — ADR-295 후속 C7.)
     const columnBox = rect("project:node:name");
     const groupBox = rect("project:node:name-group");
-    expect(groupBox.width).toBe(columnBox.width - 8 * 2 - 20);
+    expect(groupBox.width).toBe(columnBox.width - 16 * 2 - 20);
     void root;
   });
 

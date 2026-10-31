@@ -81,6 +81,7 @@
     "@tanstack/react-virtual": "catalog:",
     "jszip": "^3.10.1",
     "lucide-react": "catalog:",
+    "react-aria": "catalog:",
     "react-aria-components": "catalog:",
     "react-stately": "catalog:",
     "recharts": "3.10.1",

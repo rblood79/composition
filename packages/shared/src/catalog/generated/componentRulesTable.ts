@@ -11985,7 +11985,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   값 8 = {spacing.sm}(containerStyles.padding)과 동일 → 시각 일치.
         //   세로 정합: calculateContentHeight(utils.ts §1.56)가 estimateTextHeight(16,24)=24 +
         //   paddingY*2(16) = 40 = CSS border-box height. baseline middle 이 텍스트를 셀 세로 중앙 배치.
-        paddingX: 8,
+        // ADR-295 후속 C7: 좌우 = S2 `columnStyles` `paddingX: 16` (table-edge-to-content, rem — 터치 그대로).
+        paddingX: 16,
         // ADR-295 후속 B2: 머리글 = S2 `DEFAULT_HEADER_HEIGHT` (32 · 터치 40 — `TableView.tsx` component-height-100,
         //   density 무관) → 최소 높이 `scaled(32)`. 여백 = (32 − 줄 18 − 아래 선 1) / 2.
         paddingY: 6.5,
@@ -11994,12 +11995,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     // (머리글은 density 를 따르지 않는다 — S2 `headingHeight: DEFAULT_HEADER_HEIGHT[scale]`. 칸 (Cell) 만 density 축.)
     // ADR-257: no flex share — the column's width is its track in the row grid (`tableTracks.ts`).
-    // (머리글 위아래 여백 = S2 32 의 6.5 — 아래 size 블록 주석. 좌우 = {spacing.sm}.)
+    // (머리글 위아래 여백 = S2 32 의 6.5 — 아래 size 블록 주석. 좌우 = S2 16 (ADR-295 후속 C7) — 선택
+    //  checkbox 열은 끝 8 (`catalogBoxModel` 의 `_tableSelectionPart`).)
     containerStyles: {
       paddingTop: "6.5px",
-      paddingRight: "{spacing.sm}",
+      paddingRight: "{spacing.lg}",
       paddingBottom: "6.5px",
-      paddingLeft: "{spacing.sm}",
+      paddingLeft: "{spacing.lg}",
     },
     // ADR-257 Phase 3: the header cell's own alignment (S2 Column `align` — not its Cells').
     containerVariants: {
@@ -12071,9 +12073,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   셀 height 정합(calculateContentHeight estimateTextHeight(16,24)=24 + paddingY*2=40).
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
-        // paddingX/Y 8: Column 과 동형 — containerStyles.padding 은 Skia 텍스트 x 에 미도달이라
-        //   sizes.paddingX 가 텍스트 padding 정본 채널(buildCatalogShapes textX). 값 8={spacing.sm}.
-        paddingX: 8,
+        // paddingX: Column 과 동형 — containerStyles.padding 은 Skia 텍스트 x 에 미도달이라
+        //   sizes.paddingX 가 텍스트 padding 정본 채널(buildCatalogShapes textX). ADR-295 후속 C7: S2
+        //   `commonCellStyles` `paddingX: 16` (table-edge-to-content — `cellContent` 의 padding 4 · margin −4 는
+        //   focus 링 몫이라 글자는 16 에서 시작).
+        paddingX: 16,
         paddingY: 11,
       },
     },
@@ -12089,8 +12093,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       spacious: { paddingY: 15, minHeight: scaled(48) },
     },
     // ADR-257: no flex share — the column's width is its track in the row grid (`tableTracks.ts`).
+    // (좌우 = S2 16, ADR-295 후속 C7 — 선택 checkbox 칸은 끝 8, `catalogBoxModel` 의 `_tableSelectionPart`.)
     containerStyles: {
-      padding: "{spacing.sm}",
+      paddingTop: "{spacing.sm}",
+      paddingRight: "{spacing.lg}",
+      paddingBottom: "{spacing.sm}",
+      paddingLeft: "{spacing.lg}",
     },
     // ADR-257 Phase 3: the cell's own S2 `align` · `showDivider` (S2 Cell reads neither from its
     //   Column — 사용자 결정 7) and the Table's `overflowMode`.

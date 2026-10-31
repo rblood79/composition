@@ -2178,6 +2178,11 @@ function ruleDom(
   let style = {
     ...authoredStyle(root, node),
     ...catalogTableTrackStyle(node, resizable),
+    // (ADR-295 후속 C7: S2's checkbox column part ends 8 in — `catalogBoxModel`; an authored end wins.)
+    ...(node.derivedProps?._tableSelectionPart === true &&
+    catalogAuthoredVisual(root, node).paddingRight === undefined
+      ? { paddingRight: cssLength(catalogBoxModel(node).padding?.right ?? 0) }
+      : {}),
   };
   const racProps = binding ? toRacProps({ props: node.props }, binding) : {};
   const { children: textChildren, ...rest } = racProps;
