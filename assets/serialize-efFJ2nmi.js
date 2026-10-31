@@ -1,0 +1,1 @@
+export{t as DEFAULT_QUERY_SUFFIXES,n as VIEW_LOCAL_LOAD_CAP,r as computedViewUses,i as serializeViewQueries,a as viewQueryLimits}from"./serialize-CWVKSI9E.js";
