@@ -208,14 +208,21 @@ describe("ADR-281 G3 — the inherited rule row", () => {
     expect(screen.queryByRole("switch")).toBeNull();
   });
 
-  it("one reading: effectiveInteractionsOf is called by the panel and the Preview only (grep gate)", () => {
+  it("one reading: effectiveInteractionsOf is called by the panel and the record match the Preview reads (grep gate)", () => {
     const read = (path: string) =>
       readFileSync(resolve(import.meta.dirname, path), "utf8");
     const callers = [
       "../../../catalogRuntime/interactions.ts",
-      "../../../../../../../packages/shared/src/catalog/runtime/catalogPreviewInteractions.ts",
+      // (`catalogInteractionAppliesTo` — the Preview's records of a rule and a Table's drag column,
+      //  ADR-295 후속.)
+      "../../../../../../../packages/shared/src/catalog/resolution/effectiveInteractions.ts",
     ];
     for (const path of callers)
       expect(read(path)).toMatch(/effectiveInteractionsOf\(/);
+    for (const path of [
+      "../../../../../../../packages/shared/src/catalog/runtime/catalogPreviewInteractions.ts",
+      "../../../../../../../packages/shared/src/catalog/runtime/collectionDragState.ts",
+    ])
+      expect(read(path)).toMatch(/catalogInteractionAppliesTo\(/);
   });
 });

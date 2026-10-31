@@ -74,6 +74,48 @@
       border-bottom: none;
     }
 
+    /* ADR-295 후속 — S2 / RAC drag column (a draggable Table — `catalogTableDragPart`): the header
+       cell has no padding (S2 `selectAllCheckboxColumn` without a checkbox), each row's cell 4px at
+       both ends with RAC's drag Button centred — S2 `DragHandleButton`, shown only while the row has
+       keyboard focus (`useVisuallyHidden` otherwise). Its 10 × 22 box is inline (device-scaled). The
+       Canvas draws the column as an empty cell. */
+    .react-aria-Column[data-drag-column] {
+      padding: 0;
+    }
+
+    .react-aria-Cell[data-drag-cell] {
+      display: flex;
+      align-items: center;
+      padding: 0 4px;
+      overflow: visible;
+
+      > .catalog-drag-handle {
+        all: unset;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: inherit;
+        border-radius: 4px;
+        cursor: grab;
+
+        &[data-focus-visible] {
+          outline: 2px solid var(--focus-ring);
+        }
+      }
+
+      &:not([data-focus-visible-within-row]) > .catalog-drag-handle {
+        position: absolute;
+        width: 1px !important;
+        height: 1px !important;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+    }
+
     /* A selection Checkbox in a cell (ADR-256 Phase 5i-2 — the reference's selection column) sits
        at the top of the cell's line, as the Canvas places it — not on the text baseline. */
     :is(.react-aria-Column, .react-aria-Cell) > .react-aria-Checkbox {

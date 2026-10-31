@@ -20,6 +20,13 @@
 export const CATALOG_COLUMN_DEFAULT_MIN_WIDTH = 75;
 /** S2 TableView selection checkbox column (scale medium — `TableView.tsx` width/minWidth 40). */
 export const CATALOG_SELECTION_COLUMN_WIDTH = 40;
+/**
+ * ADR-295 후속 — S2 TableView drag column (`TableView.tsx` `allowsDragging` — width/minWidth 16 at
+ * scale medium, 20 at large = × 1.25: the device-scaled 16). RAC's reference Table adds the same
+ * column (`allowsDragging && <Column />`); the composition root prepends its track when the
+ * Table drags (`collectionDragState.ts`).
+ */
+export const CATALOG_DRAG_COLUMN_WIDTH = 16;
 
 const FR = /^([1-9]\d*)fr$/;
 const PERCENT = /^(\d+)%$/;

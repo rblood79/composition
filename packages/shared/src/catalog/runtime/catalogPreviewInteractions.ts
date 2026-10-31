@@ -38,10 +38,7 @@ import {
   CATALOG_OPEN_BODY_TYPES,
 } from "./runtimeStateProps";
 import { catalogToggleGroupOf } from "./presence";
-import {
-  catalogRecordInteractionOverrides,
-  effectiveInteractionsOf,
-} from "../resolution/effectiveInteractions";
+import { catalogInteractionAppliesTo } from "../resolution/effectiveInteractions";
 import { catalogAncestorInherited } from "./inheritedProps";
 import {
   componentEventKeyOf,
@@ -61,31 +58,20 @@ function recordsOfOwner(
   root: CatalogCompositionRoot,
   entry: InteractionEntry,
 ): readonly string[] {
-  if (!entry.address) {
-    const get = (id: string) => graph.getEntry(id as never);
-    return root.recordsOfSource(entry.ownerId).filter((id) => {
-      const path = root.domInputs.get(id)?.instancePath ?? [];
-      if (!path.length) return true;
-      const overrides = catalogRecordInteractionOverrides(
-        get,
-        path,
-        entry.ownerId,
-      );
-      return (
-        !overrides ||
-        effectiveInteractionsOf(get, [entry], overrides)[0]!.status === "on"
-      );
-    });
-  }
-  const { instances, templatePath } = entry.address;
-  const templateId = templatePath[templatePath.length - 1];
-  if (!templateId) return [];
-  return root.recordsOfSource(templateId).filter((id) => {
-    const path = root.domInputs.get(id)?.instancePath ?? [];
-    const tail = path.slice(path.length - instances.length);
+  const templatePath = entry.address?.templatePath;
+  const sourceId = entry.address
+    ? templatePath?.[templatePath.length - 1]
+    : entry.ownerId;
+  if (!sourceId) return [];
+  return root.recordsOfSource(sourceId).filter((id) => {
+    const record = root.domInputs.get(id);
     return (
-      tail.length === instances.length &&
-      tail.every((item, index) => item === instances[index])
+      !!record &&
+      catalogInteractionAppliesTo(
+        (key) => graph.getEntry(key as never),
+        entry,
+        record,
+      )
     );
   });
 }

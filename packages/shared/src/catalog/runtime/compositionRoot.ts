@@ -100,7 +100,16 @@ import {
 import type { LayoutEngineAPI } from "./layoutEngine";
 import type { LayoutResult, StickyConstraints } from "./engineTypes";
 import { parseGridTemplate } from "./gridStyleAdapter";
-import { catalogCellSpan, catalogTableTrackDependents } from "./tableTracks";
+import {
+  CATALOG_DRAG_COLUMN_WIDTH,
+  catalogCellSpan,
+  catalogTableTrackDependents,
+  catalogTrackTableOf,
+} from "./tableTracks";
+import {
+  catalogCollectionDragState,
+  catalogDragDropTriggers,
+} from "./collectionDragState";
 import {
   catalogBreadcrumbSeparatorIcon,
   catalogColorWheelDiameter,
@@ -2545,11 +2554,10 @@ export class CatalogCompositionRoot {
     record: CatalogConsumerNode,
     get: (id: string) => CatalogConsumerNode | undefined,
   ): Readonly<Record<string, string | number | boolean>> | undefined {
-    const derived = catalogDerivedProps(
+    const derived = this.withTableDrag(
       record,
       get,
-      this.typeOf,
-      this.environmentLocale,
+      catalogDerivedProps(record, get, this.typeOf, this.environmentLocale),
     );
     // A Select's value shows its placeholder (the Canvas draws no selection): the Select sheet's
     // `[data-placeholder]` paint, unless the value authors its own color. The DOM leaves its color
@@ -2625,6 +2633,39 @@ export class CatalogCompositionRoot {
       theme: this.colorMode,
     });
     return color === undefined ? derived : { ...derived, color };
+  }
+  /**
+   * ADR-295 후속 — S2 / RAC Table draw a drag column first whenever the table drags
+   * (`allowsDragging` — RAC's `getItems`): a draggable Table's header row · Rows take its track
+   * before the Columns' (`_tableTracks`) and the flag the DOM draws its RAC Column · Cell from
+   * (`domBinding.runtime.ts`) and the Canvas its empty cell (`partsFor`). Whether it drags is the
+   * document's rules (`collectionDragState.ts` — the Preview's `dragAndDropHooks` read the same).
+   */
+  private withTableDrag(
+    record: CatalogConsumerNode,
+    get: (id: string) => CatalogConsumerNode | undefined,
+    derived: Readonly<Record<string, string | number | boolean>> | undefined,
+  ): Readonly<Record<string, string | number | boolean>> | undefined {
+    const tracks = derived?._tableTracks;
+    if (typeof tracks !== "string") return derived;
+    const table = catalogTrackTableOf(record, get, this.typeOf);
+    if (!table || !this.tableDrags(table)) return derived;
+    return {
+      ...derived,
+      _tableTracks: `${catalogScaledPx(CATALOG_DRAG_COLUMN_WIDTH)}px ${tracks}`,
+      _allowsDragging: true,
+    };
+  }
+  /** A Table whose items drag (its drag and drop rules — `catalogCollectionDragState`). */
+  private tableDrags(table: CatalogConsumerNode): boolean {
+    const graph = this.runtime.graph;
+    return (
+      catalogCollectionDragState(
+        graph,
+        table,
+        catalogDragDropTriggers(graph, table),
+      )?.draggable === true
+    );
   }
   /** Registered type name of a record (rule key, else definition name). */
   readonly typeOf = (node: CatalogConsumerNode): string =>
@@ -2711,6 +2752,14 @@ export class CatalogCompositionRoot {
       this.records.get(id),
   ): readonly CatalogComposedPart[] {
     const parts = [...catalogComposedParts(record, get, this.typeOf)];
+    // ADR-295 후속: a draggable Table's header row · Row — S2's drag column cell first (its track is
+    // the row's first, `withTableDrag`): an empty box on the Canvas (S2 shows the handle only while
+    // the row has keyboard focus), the RAC Column · Cell in the DOM.
+    if (record.derivedProps?._allowsDragging === true)
+      parts.unshift({
+        id: `${record.id}::part:drag`,
+        style: { display: "block" },
+      });
     if (
       !record.children.length ||
       (record.bindingId !== "button" && record.bindingId !== "togglebutton")

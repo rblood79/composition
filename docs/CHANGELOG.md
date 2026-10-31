@@ -54,6 +54,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `ColorSwatch.binding.ts` · `componentRulesTable.ts` (ColorSwatch) · `sizePropagation.ts` (ColorSwatchPicker → ColorSwatch, 항목 통과) · `reusableOriginLibrary.ts` (picker 견본) · `ColorSwatch.css` · `ColorSwatchPicker.css`.
   - 검증: `s2ColorSwatchRounding.test.tsx` (기본 · 세 값 · picker 네 크기) · `colorSwatchRounding.test.ts` (Skia 칠 모서리 4 · 0 · 9999) · G4 (S2 `ColorSwatch.tsx` · `ColorSwatchPicker.tsx` 대조) · 원복 RED 6 · live 5175 (단독 견본 Canvas · Preview 32 / 모서리 4, picker L 견본 6개 Canvas · Preview 40 × 40 / 모서리 0, 콘솔 0).
   - 남은 것: Canvas 는 picker 견본의 색 (RAC 항목 `color`) 을 칠하지 않는다 (흰 상자) — 이번 변경 전부터의 비대칭, 별도 수리.
+- **Table 에 drag 열이 없던 것 (6차)**: S2 TableView · RAC 레퍼런스 Table 은 행을 끌 수 있는 표 (`allowsDragging`) 맨 앞에 drag 열을 자동으로 둔다 — 폭 16 (터치 20), 행마다 drag 손잡이 (S2 `DragHandleButton` 10 × 22) 는 그 행에 키보드 focus 가 있을 때만 보인다. 우리 Table 은 이 열이 없어 키보드로 끌 손잡이가 없었다.
+  - 판정: Table 의 drag 규칙 (Interactions 의 `onReorder` · `onDragEnd` …) — Preview 가 `dragAndDropHooks` 를 주는 판정을 공용 함수로 옮겨 (`collectionDragState.ts`) Canvas · DOM 이 같은 답을 읽는다. 규칙 적용 판정 (`catalogInteractionAppliesTo`) 도 Preview 의 `recordsOfOwner` 와 한 함수.
+  - Canvas: 머리글 행 · 모든 Row 의 트랙 맨 앞 16px + 빈 칸 (문서 노드 아님). DOM: RAC Column (화면 낭독용 이름 「Drag」) + Row 마다 RAC Cell > RAC `Button[slot=drag]` (RAC 가 이름 「Drag Item 1」 · 끌기 동작을 준다). 손잡이 크기는 기기 배율, 칸 좌우 4.
+  - 위치: `collectionDragState.ts` (신규) · `effectiveInteractions.ts` · `compositionRoot.ts` (`withTableDrag` · composed part) · `tableTracks.ts` · `domBinding.runtime.ts` (`catalogTableDragPart` · 터치 트랙) · `domBinding.components.tsx` · `catalogPreviewInteractions.ts` · `Table.css`.
+  - 검증: `s2TableDragColumn.test.tsx` (규칙 없음 · onReorder · onDragEnd · 제자리 편집으로 열이 빠짐 — Canvas 첫 Column x 0 → 16, DOM drag Column · Cell) · 원복 RED 3 · `adr284Drop` (Preview drag 동작) 통과 · live 5175 (Canvas 첫 Column · Cell x 16 · Preview drag 열 16 / 첫 Column 16 에서 시작 · 키보드 focus 시 손잡이 10 × 22 표시, 콘솔 0).
+  - 남은 것: 크기 조절 Table 의 RAC 열 폭은 숫자라 터치에서도 16 이다 (일반 Table 은 20).
 
 ## [ADR-295 후속 — S2 고정 치수의 터치 배율 (`scaled`)] - 2026-10-31
 

@@ -16,48 +16,12 @@ import {
 import * as RAC from "react-aria-components";
 import { COLLECTION_DRAG_DROP_EVENTS } from "../../interactions/concepts/collectionDragDrop";
 import { resolveTriggers } from "../../interactions/capabilityRegistry";
+import { catalogCollectionDragState } from "./collectionDragState";
 
 /** ADR-284 Phase 5 — `useDragAndDrop` and its drop indicator load with the first list that drags. */
 const CatalogDragAndDrop = lazy(
   () => import("./catalogDragAndDrop.components"),
 );
-
-const DRAG_TYPE = "application/x-composition-item+";
-/** The drops that bring items from elsewhere (`onReorder` · `onDragEnd` stay in the list). */
-const FOREIGN_DROPS = new Set(["onInsert", "onRootDrop", "onItemDrop"]);
-
-/**
- * ADR-284 Phase 6 — the collections each node's drop rules write (`update` · `move` …
- * `collectionId`), and all of them: the photos sidebar's `onItemDrop` updates the photos — so the
- * album Tree accepts photos and the photo grid drags. One scan per document revision.
- */
-const dropWrites = new WeakMap<
-  object,
-  { revision: number; byOwner: Map<string, Set<string>>; all: Set<string> }
->();
-function catalogDropWrites(root: CatalogCompositionRoot) {
-  const graph = root.runtime.graph;
-  const cached = dropWrites.get(graph);
-  if (cached?.revision === graph.revision) return cached;
-  const byOwner = new Map<string, Set<string>>();
-  const all = new Set<string>();
-  const project = graph.getEntry(graph.projectId);
-  for (const id of project?.kind === "project" ? project.interactionIds : []) {
-    const entry = graph.getEntry(id);
-    if (entry?.kind !== "interaction" || !FOREIGN_DROPS.has(entry.trigger))
-      continue;
-    for (const action of entry.actions)
-      if ("collectionId" in action && action.collectionId) {
-        let owned = byOwner.get(entry.ownerId);
-        if (!owned) byOwner.set(entry.ownerId, (owned = new Set()));
-        owned.add(action.collectionId);
-        all.add(action.collectionId);
-      }
-  }
-  const next = { revision: graph.revision, byOwner, all };
-  dropWrites.set(graph, next);
-  return next;
-}
 
 /**
  * A collection whose rules handle a drag and drop (`onInsert` …) gets `dragAndDropHooks` — the
@@ -82,32 +46,13 @@ function withDragAndDrop(
   //  takes no `dragAndDropHooks`.)
   if (!resolveTriggers(catalogTypeName(root, record)).includes("onReorder"))
     return element;
-  const source = root.runtime.graph.getEntry(record.sourceId as never);
-  const binding = source?.kind === "node" ? source.binding : undefined;
-  const writes = catalogDropWrites(root);
-  if (
-    !Object.keys(dnd).length &&
-    !(binding && writes.all.has(binding.collectionId))
-  )
-    return element;
-  const own = binding?.collectionId ?? record.sourceId;
-  const dragType = `${DRAG_TYPE}${own}`;
-  // (The collections its drop rules write — its own too when it reorders; a list whose drop
-  //  rules write nothing takes its own items. Unbound: its own node's items, as before.)
-  const written = writes.byOwner.get(record.sourceId);
-  const acceptedTypes = [
-    ...new Set(
-      written?.size ? [...(dnd.onReorder ? [own] : []), ...written] : [own],
-    ),
-  ].map((id) => `${DRAG_TYPE}${id}`);
-  // (Not when its drop rules only write other collections and nothing takes its own items — the
-  //  album sidebar takes photos, its albums do not drag.)
-  const draggable =
-    !binding ||
-    writes.all.has(own) ||
-    !!dnd.onReorder ||
-    !!dnd.onDragEnd ||
-    !writes.byOwner.get(record.sourceId)?.size;
+  const state = catalogCollectionDragState(
+    root.runtime.graph,
+    record,
+    Object.keys(dnd),
+  );
+  if (!state) return element;
+  const { dragType, acceptedTypes, draggable } = state;
   return createElement(
     Suspense,
     { fallback: element },

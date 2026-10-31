@@ -229,6 +229,7 @@ import {
 } from "./tableSort";
 
 import {
+  CATALOG_DRAG_COLUMN_WIDTH,
   catalogCellSpan,
   catalogTableSelectionPartHidden,
   catalogTrackTableOf,
@@ -429,6 +430,62 @@ function catalogNodeLayoutCss(node: CatalogConsumerNode): CSSProperties {
   return css;
 }
 
+/** S2 `useVisuallyHidden` — read by a screen reader, no box. */
+const VISUALLY_HIDDEN: CSSProperties = {
+  border: 0,
+  clip: "rect(0 0 0 0)",
+  clipPath: "inset(50%)",
+  height: 1,
+  margin: -1,
+  overflow: "hidden",
+  padding: 0,
+  position: "absolute",
+  width: 1,
+  whiteSpace: "nowrap",
+};
+
+/**
+ * ADR-295 후속 — S2 / RAC Table's drag column (`allowsDragging` — the Table drags,
+ * `withTableDrag`): the header's first RAC Column (S2 width 16 · 20, its name for a screen reader
+ * only) and each Row's first RAC Cell holding RAC's drag `Button` (S2 `DragHandleButton` — 10 × 22,
+ * shown while the row has keyboard focus, `Table.css`). Not document nodes: the Canvas keeps the
+ * same first track as an empty cell.
+ */
+function catalogTableDragPart(lower: "tableheader" | "row"): ReactElement {
+  if (lower === "tableheader")
+    return createElement(
+      RAC.Column as ElementType,
+      {
+        key: "catalog:drag-column",
+        "data-drag-column": "",
+        width: CATALOG_DRAG_COLUMN_WIDTH,
+        minWidth: CATALOG_DRAG_COLUMN_WIDTH,
+      },
+      createElement("span", { style: VISUALLY_HIDDEN }, "Drag"),
+    );
+  return createElement(
+    RAC.Cell as ElementType,
+    { key: "catalog:drag-cell", "data-drag-cell": "" },
+    createElement(
+      RAC.Button as ElementType,
+      {
+        slot: "drag",
+        className: "react-aria-Button catalog-drag-handle",
+        style: {
+          width: catalogDeviceScaledCss(10),
+          height: catalogDeviceScaledCss(22),
+        },
+      },
+      createElement(Icon, {
+        "aria-hidden": true,
+        iconName: "grip-vertical",
+        strokeWidth: 2,
+        style: { fontSize: 16, width: 16, height: 16 },
+      }),
+    ),
+  );
+}
+
 /**
  * ADR-257: a Table's Row is a grid on the Columns' shared tracks (as `styleOf`). The header row is
  * the `tr` RAC makes inside the TableHeader (no node of its own): the TableHeader carries the
@@ -441,8 +498,14 @@ function catalogTableTrackStyle(
   // (Phase 2: a Cell's `colSpan` takes that many of its row's tracks.)
   if (node.bindingId === "cell" && catalogCellSpan(node) > 1)
     return { gridColumn: `span ${catalogCellSpan(node)}` };
-  const derived = node.derivedProps?._tableTracks;
-  if (typeof derived !== "string") return {};
+  const shared = node.derivedProps?._tableTracks;
+  if (typeof shared !== "string") return {};
+  // (ADR-295 후속: a draggable Table's first track is S2's drag column — the device-scaled 16, 20 on
+  //  a touch device; the Canvas reads its desktop px from the same list.)
+  const derived =
+    node.derivedProps?._allowsDragging === true
+      ? `${catalogDeviceScaledCss(CATALOG_DRAG_COLUMN_WIDTH)} ${shared.slice(shared.indexOf(" ") + 1)}`
+      : shared;
   // (Phase 4: in a resizable Table the tracks are RAC's column widths — `tableOperationsDom`.)
   const tracks = resizable ? catalogResizableTracks(derived) : derived;
   return node.bindingId === "tableheader"
@@ -2271,6 +2334,12 @@ function ruleDom(
         : [String(textChildren)]),
     ...(linkOut ? [catalogLinkOutGlyphElement(node, type)] : []),
   ];
+  // ADR-295 후속: a draggable Table's header row · Row — S2's drag column first.
+  if (
+    (lower === "tableheader" || lower === "row") &&
+    node.derivedProps?._allowsDragging === true
+  )
+    content.unshift(catalogTableDragPart(lower));
   const collection = collectionAncestor(root, node);
   // A collection-only item outside its collection is not a RAC item (Preview catalog path).
   const outsideCollection =
@@ -2377,10 +2446,12 @@ function ruleDom(
     );
   // ADR-257 Phase 2: RAC keeps a cell's column index from when its row was built — a row whose
   // spans change (`colSpan`, a cell taken or left) is built again (RAC throws on a stale index).
-  // (A selection cell a highlight Table leaves out moves the others' indices too — Phase 3.)
+  // (A selection cell a highlight Table leaves out moves the others' indices too — Phase 3; so does
+  //  the drag cell a draggable Table puts first — ADR-295 후속.)
   const rowSpans =
     lower === "row"
-      ? node.children
+      ? (node.derivedProps?._allowsDragging === true ? "drag," : "") +
+        node.children
           .map((childId) => {
             const child = root.domInputs.get(childId);
             if (!child) return 1;

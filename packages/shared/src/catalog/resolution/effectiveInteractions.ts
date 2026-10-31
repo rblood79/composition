@@ -88,3 +88,46 @@ export function effectiveInteractionsOf(
       : { rule, status: "on" as const };
   });
 }
+
+/** The record shape the rule match reads (a subset of `CatalogConsumerNode`). */
+export interface CatalogInteractionRecord {
+  readonly sourceId: string;
+  readonly collapsedSourceIds?: readonly string[];
+  readonly instancePath: readonly string[];
+}
+
+/**
+ * Whether `entry` runs on `record` (the Preview's `recordsOfOwner` — one answer): an unaddressed
+ * rule on the node the record draws (its own source, or a layer it collapses), unless the record's
+ * instance turned it off or replaced it (ADR-281 Decision 4); an addressed rule on the record that
+ * draws that template position under those instances.
+ */
+export function catalogInteractionAppliesTo(
+  get: Get,
+  entry: InteractionEntry,
+  record: CatalogInteractionRecord,
+): boolean {
+  const sources = [record.sourceId, ...(record.collapsedSourceIds ?? [])];
+  const path = record.instancePath;
+  if (!entry.address) {
+    if (!sources.includes(entry.ownerId)) return false;
+    if (!path.length) return true;
+    const overrides = catalogRecordInteractionOverrides(
+      get,
+      path as never,
+      entry.ownerId,
+    );
+    return (
+      !overrides ||
+      effectiveInteractionsOf(get, [entry], overrides)[0]!.status === "on"
+    );
+  }
+  const { instances, templatePath } = entry.address;
+  const templateId = templatePath[templatePath.length - 1];
+  if (!templateId || !sources.includes(templateId)) return false;
+  const tail = path.slice(path.length - instances.length);
+  return (
+    tail.length === instances.length &&
+    tail.every((item, index) => item === instances[index])
+  );
+}
