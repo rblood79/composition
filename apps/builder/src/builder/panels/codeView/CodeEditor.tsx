@@ -86,6 +86,14 @@ export interface CodeEditorProblem {
 export interface CodeEditorProps {
   /** The session's baseline code — a new one while nothing is typed is written in place. */
   readonly code: string;
+  /**
+   * ADR-296 Phase 2 — a draft of this file kept while another file was open: the editor starts on
+   * it (its text, its changes since `code`) instead of the baseline.
+   */
+  readonly draft?: {
+    readonly text: string;
+    readonly changes: readonly CodeViewChange[];
+  };
   readonly label: string;
   readonly vocabulary: CodeEditorVocabulary;
   /** A dry run of the text (the panel's plan) — its refusals as line diagnostics. */
@@ -210,18 +218,16 @@ function vocabularySource(
       from: word.from,
       options: [
         // (A snippet replaces the typed word with the action's code — the lines that differ.)
-        ...snippets().map(
-          (snippet): Completion => ({
-            label: snippet.label,
-            ...(snippet.detail ? { detail: snippet.detail } : {}),
-            type: "text",
-            boost: -1,
-            apply: (view, _completion, from, to) => {
-              view.dispatch({ changes: { from, to, insert: "" } });
-              void insert(view, snippet.id);
-            },
-          }),
-        ),
+        ...snippets().map((snippet): Completion => ({
+          label: snippet.label,
+          ...(snippet.detail ? { detail: snippet.detail } : {}),
+          type: "text",
+          boost: -1,
+          apply: (view, _completion, from, to) => {
+            view.dispatch({ changes: { from, to, insert: "" } });
+            void insert(view, snippet.id);
+          },
+        })),
         ...vocabulary.variables.flatMap((name): Completion[] => [
           { label: name, type: "variable" },
           { label: `set${capital(name)}`, type: "function" },
@@ -268,7 +274,16 @@ export default function CodeEditor(props: CodeEditorProps) {
   useEffect(() => {
     const parent = host.current;
     if (!parent) return;
-    let changes = ChangeSet.empty(props.code.length);
+    let changes = props.draft
+      ? ChangeSet.of(
+          props.draft.changes.map((change) => ({
+            from: change.fromA,
+            to: change.toA,
+            insert: change.insert,
+          })),
+          props.code.length,
+        )
+      : ChangeSet.empty(props.code.length);
     const typed = new Compartment();
     const insertSnippet = async (target: EditorView, id: string) => {
       const text = target.state.doc.toString();
@@ -286,7 +301,7 @@ export default function CodeEditor(props: CodeEditorProps) {
     const view = new EditorView({
       parent,
       state: EditorState.create({
-        doc: props.code,
+        doc: props.draft?.text ?? props.code,
         extensions: [
           lineNumbers(),
           highlightActiveLineGutter(),
@@ -393,9 +408,13 @@ export default function CodeEditor(props: CodeEditorProps) {
 
   // A new baseline (the document changed while nothing was typed): the lines that differ are
   // written in place — scroll and cursor stay — and the edit is counted from it again.
+  // (The baseline it was made on or last written in — a kept draft is not overwritten on mount.)
+  const written = useRef(props.code);
   useEffect(() => {
     const current = editor.current;
     if (!current) return;
+    if (written.current === props.code) return;
+    written.current = props.code;
     const text = current.view.state.doc.toString();
     if (text !== props.code)
       current.view.dispatch({

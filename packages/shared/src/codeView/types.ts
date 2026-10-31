@@ -118,7 +118,8 @@ export type CodeViewAnchorTarget =
       readonly kind: "attribute";
       readonly nodeId: string;
       readonly name: string;
-      readonly source: "prop" | "state" | "handler" | "items" | "dnd";
+      readonly source:
+        "prop" | "state" | "handler" | "items" | "dnd" | "ref" | "metadata";
       readonly interactionIds?: readonly string[];
     }
   /** An element's text (`children` — a literal or a template). */
@@ -146,7 +147,16 @@ export type CodeViewAnchorTarget =
    * `dnd:<nodeId>` · `state:<nodeId>:<prop>` · `comment`): not edited itself, checked against the
    * code the document gives (Decision 6).
    */
-  | { readonly kind: "derived"; readonly key: string };
+  | { readonly kind: "derived"; readonly key: string }
+  /**
+   * ADR-296 E9 — one rule of a When that holds several (`function on<Node><When>() { … }`): the
+   * function is the rule, its name the rule's code identifier.
+   */
+  | { readonly kind: "handler"; readonly interactionId: string }
+  /** ADR-296 Phase 2 — a route of `App.tsx` (`{path, element}`): the page it is. */
+  | { readonly kind: "route"; readonly pageId: string }
+  /** ADR-296 Phase 2 — a page's `<title>` · `<meta>` (its `meta`). */
+  | { readonly kind: "pageMeta"; readonly pageId: string };
 
 export interface CodeViewAnchor {
   readonly start: number;
@@ -176,4 +186,27 @@ export interface CodeViewSymbols {
   readonly states?: Readonly<
     Record<string, { readonly nodeId: string; readonly prop: string }>
   >;
+  /** ADR-296 E9 — a named handler function → its rule (`onSaveButtonPress` → the rule's id). */
+  readonly handlers?: Readonly<Record<string, string>>;
+  /** ADR-296 E3 — a node's ref (`formRef`) → the node (an imperative Do — `formRef.current?.submit()`). */
+  readonly refs?: Readonly<Record<string, string>>;
+  /**
+   * ADR-296 E4 · E13 — a Do's target the page code names by text (`capability('hide', {target:
+   * '<ref>'})`): an instance position (`'<instance>/<path>'`), an origin's own (`'local:<path>'`) or
+   * a node of another page (`'<route>#<node>'`) → the document's target.
+   */
+  readonly targets?: Readonly<Record<string, unknown>>;
+  /**
+   * ADR-296 E13 — a Do the page code cannot write (a variable of another page …), kept as
+   * `keep('<token>')`: the token → the Do as the document holds it (read back unchanged).
+   */
+  readonly kept?: Readonly<Record<string, unknown>>;
+  /** ADR-296 — a token prop's name (`token('<name>')`) → the token id. */
+  readonly tokens?: Readonly<Record<string, string>>;
+  /** ADR-296 Phase 2 — a page's component name (`App.tsx` · its file) → the page id. */
+  readonly pages?: Readonly<Record<string, string>>;
+  /** ADR-296 Phase 2 — a layout's component name → its definition id. */
+  readonly layouts?: Readonly<Record<string, string>>;
+  /** ADR-296 Phase 2 — a theme's name → its id. */
+  readonly themes?: Readonly<Record<string, string>>;
 }

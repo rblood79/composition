@@ -33,6 +33,14 @@ export type CodeViewStatementKind =
   | "fields"
   /** ADR-291 — `let <rows> = <rows>Data.map(item => computed(item, <rows>Fields));` (derived). */
   | "computedRows"
+  /** ADR-296 E3 — `let formRef = useRef<HTMLFormElement>(null);` (derived). */
+  | "ref"
+  /** ADR-296 Phase 2 — `let params = useParams();` (derived — the page reads its route's params). */
+  | "params"
+  /** ADR-296 E8 — `let {cart, setCart} = useProjectState();` (derived — the project variables it uses). */
+  | "projectState"
+  /** ADR-296 E9 — `function on<Node><When>(…) { … }`: one rule of a When that holds several. */
+  | "handler"
   | "view";
 
 export interface CodeViewStatement extends CodeViewSpan {
@@ -78,7 +86,11 @@ export interface CodeViewParsed {
   /** `export default function <name>() { … }`. */
   readonly component?: CodeViewSpan & { readonly name: string };
   /** `return (<> … </>)` — the page's elements. */
-  readonly jsx?: CodeViewSpan & { readonly roots: readonly CodeViewElement[] };
+  readonly jsx?: CodeViewSpan & {
+    readonly roots: readonly CodeViewElement[];
+    /** ADR-296 E7 — `return (<Page …> … </Page>)`: the page body's own element (its attributes). */
+    readonly page?: CodeViewElement;
+  };
   readonly problems: readonly CodeViewProblem[];
 }
 
@@ -91,6 +103,7 @@ const STATEMENTS: readonly [RegExp, CodeViewStatementKind][] = [
   [/^let ([A-Za-z_$][\w$]*) = use(?:List|Async)(?:Data|List)\(/, "collection"],
   [/^useEffect\(/, "effect"],
   [/^let \{[^}]*\} = useFilter\(/, "useFilter"],
+  [/^let \{[^}]*\} = useProjectState\(\);$/, "projectState"],
   [/^let collator = useCollator\(\);$/, "collator"],
   [/^let navigate = useNavigate\(\);$/, "navigate"],
   [/^let \{dragAndDropHooks: ([A-Za-z_$][\w$]*)\} = useDragAndDrop\(/, "dnd"],
@@ -101,6 +114,9 @@ const STATEMENTS: readonly [RegExp, CodeViewStatementKind][] = [
     /^let ([A-Za-z_$][\w$]*) = [A-Za-z_$][\w$]*\.map\(item => computed\(item, [A-Za-z_$][\w$]*Fields\)\);$/,
     "computedRows",
   ],
+  [/^let ([A-Za-z_$][\w$]*) = useRef<[\w]+>\(null\);$/, "ref"],
+  [/^let params = useParams\(\);$/, "params"],
+  [/^(?:async )?function ([A-Za-z_$][\w$]*)\(/, "handler"],
   [/^let ([A-Za-z_$][\w$]*) = /, "view"],
 ];
 
@@ -193,7 +209,10 @@ export function parseCodeView(code: string): CodeViewParsed {
         child.name === "VariableDeclaration" ||
         child.name === "ExpressionStatement"
           ? STATEMENTS.find(([pattern]) => pattern.test(source))?.[1]
-          : undefined;
+          : child.name === "FunctionDeclaration" &&
+              /^(?:async )?function /.test(source)
+            ? "handler"
+            : undefined;
       if (
         !kind ||
         (kind === "effect") !== (child.name === "ExpressionStatement")
@@ -207,6 +226,20 @@ export function parseCodeView(code: string): CodeViewParsed {
     let value = node.firstChild?.nextSibling ?? null;
     while (value?.name === "ParenthesizedExpression")
       value = value.firstChild?.nextSibling ?? null;
+    const open = value?.getChild("JSXOpenTag");
+    const pageTag =
+      open?.getChild("JSXIdentifier") &&
+      text(open.getChild("JSXIdentifier")!) === "Page";
+    if (value?.name === "JSXElement" && pageTag) {
+      const page = element(value, undefined);
+      if (page.text || page.rows) outside(value);
+      return {
+        from: value.from,
+        to: value.to,
+        roots: page.children,
+        page: { ...page, children: [] },
+      };
+    }
     if (value?.name !== "JSXElement" || !value.getChild("JSXFragmentTag")) {
       outside(node);
       return undefined;
@@ -258,7 +291,8 @@ export function parseCodeView(code: string): CodeViewParsed {
               inner.lastChild,
             ];
             if (
-              left?.name === "VariableName" &&
+              (left?.name === "VariableName" ||
+                (left?.name === "BooleanLiteral" && text(left) === "false")) &&
               op &&
               text(op) === "&&" &&
               right?.name === "JSXElement"

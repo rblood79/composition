@@ -57,6 +57,11 @@ const KO: CodeViewMessages = {
     reason: "편집을 시작한 뒤 문서가 바뀌었습니다",
     alternative: "「다시 불러오기」 로 지금 코드를 열고 초안을 옮기세요.",
   },
+  ambiguousEndpoint: {
+    reason: "같은 주소의 API 가 둘 이상",
+    alternative:
+      "Interactions 패널에서 부를 API 를 고르세요. (코드에서 API 를 이름으로 부르는 모양은 다음 단계에서 열립니다.)",
+  },
 };
 
 const EN: CodeViewMessages = {
@@ -103,6 +108,11 @@ const EN: CodeViewMessages = {
     reason: "the document changed after you started editing",
     alternative:
       "Use Reload current code to open the current code and carry your draft over.",
+  },
+  ambiguousEndpoint: {
+    reason: "two APIs share this URL",
+    alternative:
+      "Pick the API to call in the Interactions panel. (Calling an API by its name in code comes in a later step.)",
   },
 };
 

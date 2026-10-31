@@ -2551,7 +2551,7 @@ const catalog: TranslationKeys = {
   },
   codeView: {
     title: "Code",
-    section: "Page code",
+    section: "Code",
     noPage: "Open a page to see its code.",
     codeLabel: "The page's React Aria code",
     editorLabel:
@@ -2563,6 +2563,10 @@ const catalog: TranslationKeys = {
     editorUnavailable: "The editor did not load — the code is read only.",
     rejected:
       "Nothing was applied because of the lines below (no partial apply).",
+    files: "Files",
+    filesLabel: "The project's files",
+    openFiles: "Open files",
+    drafted: "edited",
   },
   dataView: {
     section: "Search · filter",

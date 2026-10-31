@@ -12,6 +12,8 @@ import {
 } from "react";
 import { Code } from "lucide-react";
 import { Button } from "react-aria-components/Button";
+import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
+import { Tab, TabList, Tabs } from "react-aria-components/Tabs";
 import { Menu, MenuItem, MenuTrigger } from "react-aria-components/Menu";
 import { Popover } from "react-aria-components/Popover";
 import { useI18n } from "@/i18n";
@@ -31,12 +33,22 @@ import {
   useFormulaEngine,
 } from "../../catalogRuntime/formulaEngine";
 import {
-  catalogCodeViewApply,
-  catalogCodeViewPlan,
-  catalogCodeViewSession,
   type CatalogCodeViewRejection,
   type CatalogCodeViewSession,
 } from "../../catalogRuntime/codeViewEdit";
+import {
+  catalogCodeViewFileBaseline,
+  catalogCodeViewProjectApply,
+  catalogCodeViewProjectPlan,
+  catalogCodeViewProjectSession,
+  type CatalogCodeViewFileRejection,
+  type CatalogCodeViewProjectSession,
+} from "../../catalogRuntime/codeViewApply";
+import {
+  codeViewFileTree,
+  generateCodeViewFile,
+  type CodeViewFileEntry,
+} from "../../../../../../packages/shared/src/codeView/files/tree";
 import {
   catalogCodeViewSnippetCode,
   catalogCodeViewSnippets,
@@ -75,11 +87,16 @@ export function CatalogCodeViewPanel() {
 }
 
 interface Draft {
-  readonly session: CatalogCodeViewSession;
   readonly text: string;
   readonly changes: readonly CodeViewChange[];
 }
 
+/**
+ * ADR-296 Phase 2 — the project's files (`codeViewFileTree` — names only, nothing generated until a
+ * file opens), the open files' tabs, and one Apply for every edited file (one step, all or nothing).
+ * The first keystroke starts the project session (its baseline is the document's revision then);
+ * with no draft left the editor follows the document again.
+ */
 function CodeViewContent() {
   const { t, locale } = useI18n();
   const messages = codeViewMessages(locale);
@@ -89,59 +106,75 @@ function CodeViewContent() {
     workspace.session.subscribe,
     () => workspace.session.getSnapshot().pageId,
   );
-  // The page's code reads the whole document (its nodes, data, variables) — the whole revision.
   const revision = useCatalogRevision(workspace);
+  const graph = workspace.runtime.graph;
   // ADR-286: the data definitions are the document's — the code reads one source.
   const tables = useMemo(() => {
     void revision;
-    return catalogCollectionTables(workspace.runtime.graph);
-  }, [revision, workspace]);
+    return catalogCollectionTables(graph);
+  }, [revision, graph]);
   const data = useMemo(() => {
     void revision;
-    return catalogCodeViewData(workspace.runtime.graph);
-  }, [revision, workspace]);
+    return catalogCodeViewData(graph);
+  }, [revision, graph]);
   // ADR-291 — a computed column's formula is shown over field keys once the engine is loaded.
   const formulaEngine = useFormulaEngine(
     data.collections.some((collection) => schemaHasFormula(collection.schema)),
   );
-  // The page's code now — the editor's baseline while nothing is typed.
-  const live = useMemo((): CatalogCodeViewSession | undefined => {
+  const files = useMemo(() => {
     void revision;
-    void formulaEngine;
-    if (!pageId) return undefined;
-    try {
-      return catalogCodeViewSession(
-        workspace.runtime.graph,
-        pageId as EntryId<"page">,
-        data,
-      );
-    } catch {
-      return undefined;
-    }
-  }, [data, formulaEngine, pageId, revision, workspace]);
-  const result: CodeViewResult | undefined = live?.baseline;
-  // (A draft per page — the typed text on the baseline it started from. Another page's draft is
-  // kept, never applied here.)
+    return codeViewFileTree(graph);
+  }, [revision, graph]);
+  const pagePath = files.find(
+    (file) => file.kind === "page" && file.id === pageId,
+  )?.path;
+  const [selected, setSelected] = useState<string | null>(null);
+  const path =
+    (selected && files.some((file) => file.path === selected)
+      ? selected
+      : pagePath) ?? files[0]?.path;
+  const file = files.find((item) => item.path === path);
+  // The project session (from the first keystroke) and each file's draft on it.
+  const [project, setProject] = useState<CatalogCodeViewProjectSession | null>(
+    null,
+  );
   const [drafts, setDrafts] = useState<ReadonlyMap<string, Draft>>(new Map());
   const [previous, setPrevious] = useState<string | null>(null);
   const [report, setReport] = useState<
     | { kind: "applied"; count: number }
-    | { kind: "rejected"; lines: readonly CatalogCodeViewRejection[] }
+    | { kind: "rejected"; lines: readonly CatalogCodeViewFileRejection[] }
     | null
   >(null);
-  const draft = pageId ? drafts.get(pageId) : undefined;
-  const session = draft?.session ?? live;
-  // (Cancel and 「다시 불러오기」 start the editor again on the current code.)
   const [opened, setOpened] = useState(0);
-  const setDraft = (next: Draft | undefined) =>
-    setDrafts((map) => {
-      const copy = new Map(map);
-      if (next) copy.set(next.session.pageId, next);
-      else if (pageId) copy.delete(pageId);
-      return copy;
-    });
+  // The file's code now — the editor's baseline while nothing is typed.
+  const live = useMemo((): CodeViewResult | undefined => {
+    void revision;
+    void formulaEngine;
+    if (!file) return undefined;
+    try {
+      return generateCodeViewFile({ reader: graph as never, file, ...data });
+    } catch {
+      return undefined;
+    }
+  }, [data, file, formulaEngine, graph, revision]);
+  const baseline: CodeViewResult | undefined =
+    (project && path
+      ? catalogCodeViewFileBaseline(project, graph.commandReader, path, data)
+      : undefined) ?? live;
+  const draft = path ? drafts.get(path) : undefined;
   const reasonText = (line: CatalogCodeViewRejection) =>
     `${messages[line.reason].reason}${line.detail ? ` (${line.detail})` : ""} — ${messages[line.reason].alternative}`;
+  const result = baseline;
+  /** A page file's session (the snippets read one page). */
+  const pageSession = useMemo((): CatalogCodeViewSession | undefined => {
+    if (file?.kind !== "page" || !result) return undefined;
+    return {
+      projectId: graph.projectId,
+      pageId: file.id as EntryId<"page">,
+      revision: project?.revision ?? graph.revision,
+      baseline: result,
+    };
+  }, [file, graph, project, result]);
 
   const vocabulary = useMemo(
     (): CodeEditorVocabulary => ({
@@ -161,14 +194,14 @@ function CodeViewContent() {
   // Snippets: the Data panel's actions on the page's bound lists (their code for the draft).
   const snippets = useMemo(() => {
     void revision;
-    if (!pageId) return [];
+    if (file?.kind !== "page") return [];
     return catalogCodeViewSnippets(
-      workspace.runtime.graph.commandReader,
-      pageId as EntryId<"page">,
+      graph.commandReader,
+      file.id as EntryId<"page">,
       tables,
       data,
     );
-  }, [data, pageId, revision, tables, workspace]);
+  }, [data, file, revision, tables, graph]);
   const snippetItems = useMemo(
     () =>
       snippets.map((snippet) => ({
@@ -181,18 +214,18 @@ function CodeViewContent() {
     [snippetLabels, snippets],
   );
   // (The editor's check · snippets read the session at commit — not a ref written during render.)
-  const sessionRef = useRef(session);
+  const stateRef = useRef({ pageSession, project, drafts, path });
   useEffect(() => {
-    sessionRef.current = session;
+    stateRef.current = { pageSession, project, drafts, path };
   });
   const editorApi = useRef<CodeEditorApi | null>(null);
   const snippetCode = useCallback(
     async (id: string, text: string, changes: readonly CodeViewChange[]) => {
-      const session = sessionRef.current;
+      const session = stateRef.current.pageSession;
       const snippet = snippets.find((item) => item.id === id);
       if (!session || !snippet) return undefined;
       return catalogCodeViewSnippetCode({
-        graph: workspace.runtime.graph,
+        graph,
         session,
         edited: text,
         changes,
@@ -212,25 +245,31 @@ function CodeViewContent() {
   );
   const check = useCallback(
     (text: string, changes: readonly CodeViewChange[]) => {
-      const session = sessionRef.current;
-      if (!session) return [];
-      return catalogCodeViewPlan({
-        reader: workspace.runtime.graph.commandReader,
+      const { project, drafts, path } = stateRef.current;
+      if (!path) return [];
+      const session =
+        project ?? catalogCodeViewProjectSession(graph.commandReader);
+      catalogCodeViewFileBaseline(session, graph.commandReader, path, data);
+      const all = new Map(drafts);
+      all.set(path, { text, changes });
+      return catalogCodeViewProjectPlan({
+        reader: graph.commandReader,
         session,
-        edited: text,
-        changes,
-        data,
+        drafts: [...all].map(([file, draft]) => ({
+          path: file,
+          edited: draft.text,
+          changes: draft.changes,
+        })),
         newId: workspace.newId,
-      }).rejected.map((line) => ({
-        line: line.line,
-        message: reasonText(line),
-      }));
+      })
+        .rejected.filter((line) => line.path === path || line.path === "")
+        .map((line) => ({ line: line.line, message: reasonText(line) }));
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, workspace, messages],
+    [data, graph, workspace, messages],
   );
 
-  if (!session || !result || !pageId)
+  if (!baseline || !path || !file)
     return (
       <>
         <PanelHeader
@@ -248,17 +287,20 @@ function CodeViewContent() {
     );
 
   const restart = () => {
-    setDraft(undefined);
+    setDrafts(new Map());
+    setProject(null);
     setOpened((count) => count + 1);
   };
   const apply = () => {
-    if (!draft) return;
-    const outcome = catalogCodeViewApply(
+    if (!project || !drafts.size) return;
+    const outcome = catalogCodeViewProjectApply(
       workspace,
-      draft.session,
-      draft.text,
-      draft.changes,
-      data,
+      project,
+      [...drafts].map(([file, draft]) => ({
+        path: file,
+        edited: draft.text,
+        changes: draft.changes,
+      })),
     );
     if (!outcome.applied) {
       setReport({ kind: "rejected", lines: outcome.rejected });
@@ -266,7 +308,7 @@ function CodeViewContent() {
     }
     setReport({ kind: "applied", count: outcome.count });
     setPrevious(null);
-    setDraft(undefined);
+    restart();
   };
   const reload = () => {
     if (draft) setPrevious(draft.text);
@@ -276,6 +318,16 @@ function CodeViewContent() {
   const stale =
     report?.kind === "rejected" &&
     report.lines.some((line) => line.reason === "staleBaseline");
+  // The open files: the selected one and every one with a draft (tree order).
+  // (New objects when a draft starts or ends — RAC keeps a collection item's render by its object.)
+  const open = files
+    .filter((item) => item.path === path || drafts.has(item.path))
+    .map((item) => ({ ...item, drafted: drafts.has(item.path) }));
+  const listed = files.map((item) => ({
+    ...item,
+    drafted: drafts.has(item.path),
+  }));
+  const label = (item: CodeViewFileEntry) => item.path.replace(/^src\//, "");
 
   return (
     <>
@@ -285,7 +337,54 @@ function CodeViewContent() {
         panelId="codeView"
       />
       <PanelContents>
+        <Section title={t("codeView.files")}>
+          <ListBox
+            className="react-aria-ListBox code-view-files"
+            aria-label={t("codeView.filesLabel")}
+            selectionMode="single"
+            disallowEmptySelection
+            selectedKeys={[path]}
+            onSelectionChange={(keys) => {
+              const next = [...(keys as Set<string>)][0];
+              if (next) setSelected(String(next));
+            }}
+            items={listed}
+          >
+            {(item) => (
+              <ListBoxItem
+                id={item.path}
+                textValue={item.path}
+                className="react-aria-ListBoxItem code-view-file"
+              >
+                <span className="code-view-file-path">{item.path}</span>
+                {item.drafted ? (
+                  <span className="code-view-file-drafted">
+                    {t("codeView.drafted")}
+                  </span>
+                ) : null}
+              </ListBoxItem>
+            )}
+          </ListBox>
+        </Section>
         <Section title={t("codeView.section")}>
+          <Tabs
+            className="code-view-tabs"
+            selectedKey={path}
+            onSelectionChange={(key) => setSelected(String(key))}
+          >
+            <TabList
+              className="code-view-tablist"
+              aria-label={t("codeView.openFiles")}
+              items={open}
+            >
+              {(item) => (
+                <Tab id={item.path} className="code-view-tab">
+                  {label(item)}
+                  {item.drafted ? " •" : ""}
+                </Tab>
+              )}
+            </TabList>
+          </Tabs>
           <EditorBoundary
             fallback={
               <>
@@ -296,7 +395,7 @@ function CodeViewContent() {
                   className="code-view-code"
                   aria-label={t("codeView.codeLabel")}
                 >
-                  {draft ? draft.text : <code>{marked(result)}</code>}
+                  {draft ? draft.text : <code>{marked(baseline)}</code>}
                 </pre>
               </>
             }
@@ -304,28 +403,38 @@ function CodeViewContent() {
             <Suspense
               fallback={
                 <pre className="code-view-code">
-                  {draft?.text ?? session.baseline.code}
+                  {draft?.text ?? baseline.code}
                 </pre>
               }
             >
               <CodeEditor
-                key={`${pageId}:${opened}`}
-                code={session.baseline.code}
+                key={`${path}:${opened}`}
+                code={baseline.code}
+                {...(draft ? { draft } : {})}
                 label={t("codeView.editorLabel")}
                 vocabulary={vocabulary}
                 check={check}
-                snippets={snippetItems}
+                snippets={file.kind === "page" ? snippetItems : []}
                 snippet={snippetCode}
                 onReady={(api) => {
                   editorApi.current = api;
                 }}
                 onChange={(text, changes) => {
-                  // (Back to the baseline text: nothing is typed — it follows the document again.)
-                  setDraft(
-                    text === session.baseline.code
-                      ? undefined
-                      : { session, text, changes },
+                  const session =
+                    project ??
+                    catalogCodeViewProjectSession(graph.commandReader);
+                  const base = catalogCodeViewFileBaseline(
+                    session,
+                    graph.commandReader,
+                    path,
+                    data,
                   );
+                  const next = new Map(drafts);
+                  // (Back to the baseline text: nothing is typed in this file.)
+                  if (base && text === base.code) next.delete(path);
+                  else next.set(path, { text, changes });
+                  setDrafts(next);
+                  setProject(next.size ? session : null);
                   setReport(null);
                 }}
               />
@@ -336,7 +445,12 @@ function CodeViewContent() {
               <p>{t("codeView.rejected")}</p>
               <ul>
                 {report.lines.map((line) => (
-                  <li key={`${line.line}:${line.reason}:${line.text}`}>
+                  <li
+                    key={`${line.path}:${line.line}:${line.reason}:${line.text}`}
+                  >
+                    {line.path ? (
+                      <code>{label({ path: line.path, kind: "app" })}</code>
+                    ) : null}{" "}
                     {t("codeView.rejectedLine", {
                       line: line.line,
                       reason: reasonText(line),
@@ -361,13 +475,18 @@ function CodeViewContent() {
             <Button
               className="control-button"
               data-variant="primary"
-              isDisabled={!draft}
+              isDisabled={!drafts.size}
               onPress={apply}
             >
               {t("codeView.apply")}
             </Button>
             <MenuTrigger>
-              <Button className="control-button">{snippetLabels.menu}</Button>
+              <Button
+                className="control-button"
+                isDisabled={file.kind !== "page"}
+              >
+                {snippetLabels.menu}
+              </Button>
               {/* The Builder menu surface (PropertyRowMenu.css): border · shadow on the Popover,
                   the Menu borderless — RAC reference, 2026-10-29. */}
               <Popover
@@ -403,7 +522,7 @@ function CodeViewContent() {
                 {t("codeView.reload")}
               </Button>
             ) : null}
-            {draft ? (
+            {drafts.size ? (
               <Button
                 className="control-button"
                 onPress={() => {

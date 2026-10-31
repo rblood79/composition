@@ -2,7 +2,15 @@
 
 ## Status
 
-Proposed — 2026-10-30
+Accepted — 2026-10-31 (사용자 `/execute-adr 296` + [reviews/296.md](reviews/296.md) 최신 round pending 0 · HIGH 전부 fixed). Proposed — 2026-10-30
+
+> **Phase 0 닫힘 (2026-10-31, G0)** — inventory 정본 `packages/shared/src/codeView/fieldCoverage.ts` (문서 타입 23 개 · 220 키 — 키마다 한 칸 또는 「코드에 없음」 이유, 타입에 키가 늘면 컴파일 RED) · RED 16 (`adr296Phase0.test.tsx` — E1 ~ E13 · token 표지 · calendar duration read · instance 이름, setup 가드 1) · G3 oracle 진입점 고정 (`root.recordsOfSource` → `canvasInputs` · `getLayoutInput`, 새 export 0) · 기준선 (기준 커밋 `44af0b81e`) Builder initial JS gz 1,380,329 · Preview 317,190 · 가장 큰 page 생성 0.32 ms. 실측 정정: entry kind 14 · `{kind}` 생략은 TokenUse 만 · E12 `increment` 재현 불가 (검증이 숫자만) · E13 = 다른 page 대상. 사용자 결정 4 · 7 · 5 = 권고안. 상세 breakdown §2d · §7.
+
+> **Phase 1 닫힘 (2026-10-31, G1)** — page 파일 결함 수리: E1 · E2 · E3 · E4 · E9 · E10 · E12 · E13 + E5 · E11 임시 모양 · `keep()` · `token()` · 객체 prop read. RED 12 → GREEN · read 실증 게이트 `adr296Vocabulary.test.tsx` (어휘표 행마다 문서 · strict 왕복 · 편집 → 문서 변경) · golden `adr296-page.tsx.txt`. 판독 1 (HIGH 0 · MEDIUM 1 수리 — 위치로 붙는 handler 이름이 삭제 · 삽입 편집을 거절하던 것, 원복 RED 3).
+>
+> **Phase 2 닫힘 (2026-10-31, G1 · G2)** — 프로젝트 세션 · Apply 다섯 단계 (`codeViewApply.ts`) · 파일 트리 · `App.tsx` (routes · 순서 · parent · layout · toast · theme) · page `<Page>` 래퍼 (E7) · `<title>` · `<meta>` · `useParams` · 작성자 id · class · aria-label · `{false && …}` · 패널 파일 목록 + 탭 + Apply 하나. 원복 RED (stage → baseline reader). 노드 이름 class 는 Phase 4 로 (inventory 정정).
+>
+> **Phase 3 닫힘 (2026-10-31, G1 · G2)** — `data/<c>.ts` · `api/<e>.ts` · `state/project.ts` (결정 5) + E8 `useProjectState()` · E11 이름 호출. 파일 간 참조 반례 (새 collection + 그 목록 · 변수 rename + setter) 각 한 Apply · history 1. 측정 (기준 `44af0b81e`): Builder initial +102 B · Preview 0 · 가장 큰 page 생성 0.32 → 0.39 ms. live (5176, Chrome MCP): App + page 두 파일 한 Apply → Undo 1 · 새로고침 유지 · state 파일 Apply · 콘솔 0 — live 중 편집기 결함 2 수리. 남은 Phase 4 ~ 7 (CSS · 컴포넌트 파일 · 사이트 · G5/G6).
 
 - 사용자 요청: `/create-adr` (2026-10-30) — ADR-294 의 「남은 한계 (이 ADR 밖)」 를 묻는 대화 직후. 294 가 「후속 ADR B 에서 다룬다」 고 적은 그 ADR 이다.
 - 방향을 정한 사용자 원문 (2026-10-30, 연구 [CODE_EDITOR_FULL_SCOPE_DESIGN_2026-10](../explanation/research/CODE_EDITOR_FULL_SCOPE_DESIGN_2026-10.md) §0 · §9): 「code editor 기능 가능한 부분 최대한 확장 가능 하게 설계 시작해. 인터렉션 없이 스크립트 만으로 이벤트나 모든 기능들을 가능한 code editor에서 할수있게 확장 설계해」 · 「이제 catalog - canvas(화면)- code, interaction, design 개별이 아니다」 · 「(투영 수리 vs 기능 ADR) 중 어차피 둘다 해야하는것 아닌가」 → 둘 다 한다. 기능 ADR (A) 가 294, **이 ADR 이 투영 수리 (B)** 다.

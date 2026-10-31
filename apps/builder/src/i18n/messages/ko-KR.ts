@@ -2539,7 +2539,7 @@ const catalog: TranslationKeys = {
   },
   codeView: {
     title: "코드",
-    section: "페이지 코드",
+    section: "코드",
     noPage: "페이지를 열면 코드가 보입니다.",
     codeLabel: "페이지의 React Aria 코드",
     editorLabel:
@@ -2551,6 +2551,10 @@ const catalog: TranslationKeys = {
     editorUnavailable:
       "편집기를 불러오지 못했습니다 — 코드는 읽기만 할 수 있습니다.",
     rejected: "아래 줄 때문에 아무것도 적용하지 않았습니다 (부분 적용 없음).",
+    files: "파일",
+    filesLabel: "프로젝트 파일",
+    openFiles: "열린 파일",
+    drafted: "편집됨",
   },
   dataView: {
     section: "검색 · 필터",

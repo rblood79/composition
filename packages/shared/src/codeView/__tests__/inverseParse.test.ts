@@ -117,7 +117,6 @@ export default function Home() {
     ["a computed declaration", "let [a, setA] = useReducer(r, 0);"],
     ["a loop", "while (true) {}"],
     ["a class", "class Foo {}"],
-    ["a nested function", "function helper() { return 1; }"],
     ["an if statement", "if (q) setQ('');"],
     ["a const", "const total = 1;"],
     ["a throw", "throw new Error('x');"],
@@ -126,6 +125,16 @@ export default function Home() {
     const parsed = parseCodeView(code);
     expect(parsed.problems.length).toBeGreaterThan(0);
     expect(codeViewLineAt(code, parsed.problems[0]!.from)).toBe(2);
+  });
+
+  it("reads a function in the component as a handler statement (ADR-296 E9 — the planner reads its body)", () => {
+    const parsed = parseCodeView(
+      "export default function Home() {\n  function onButtonPress() {\n    setQ('');\n  }\n  return (\n    <>\n    </>\n  );\n}\n",
+    );
+    expect(parsed.problems).toEqual([]);
+    expect(parsed.statements).toMatchObject([
+      { kind: "handler", name: "onButtonPress" },
+    ]);
   });
 
   it("refuses a module function and a spread attribute", () => {

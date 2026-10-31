@@ -85,3 +85,54 @@
   padding-inline-start: var(--spacing-md);
   color: var(--fg-muted);
 }
+
+/* ADR-296 Phase 2 — the project's files and the open files' tabs. */
+.code-view-files {
+  max-block-size: 180px;
+  overflow: auto;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--text-xs);
+}
+
+.code-view-file {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.code-view-file-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.code-view-file-drafted {
+  color: var(--fg-muted);
+}
+
+.code-view-tablist {
+  display: flex;
+  gap: var(--spacing-xs);
+  overflow-x: auto;
+}
+
+.code-view-tab {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--text-xs);
+  color: var(--fg-muted);
+  cursor: default;
+  white-space: nowrap;
+
+  &[data-selected] {
+    background: var(--bg-overlay);
+    color: var(--fg);
+    box-shadow: var(--shadow-sm);
+  }
+
+  &[data-focus-visible] {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+  }
+}

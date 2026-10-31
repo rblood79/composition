@@ -210,11 +210,16 @@ describe("ADR-294 G3 — the instance's event and variable property in the page 
         } as InteractionEntry,
       }),
     );
+    // (ADR-296 E9 — two rules on one When are two named functions the handler calls.)
     const two = h.code();
-    expect(two).toContain("onSelect={(value) => {");
+    expect(two).toMatch(
+      /onSelect=\{\(value\) => \{ on\w+Select\(value\); on\w+Select2\(value\); \}\}/,
+    );
     expect(h.apply(two).rejected).toEqual([]);
     const removed = h.apply(
-      two.replace(/ onSelect=\{\(value\) => \{[\s\S]*?\n\s*\}\}/, ""),
+      two
+        .replace(/ onSelect=\{\(value\) => \{ [^}]*\}\}/, "")
+        .replace(/ {2}function on\w+\(value\) \{[\s\S]*?\n {2}\}\n/g, ""),
     );
     expect(removed.rejected).toEqual([]);
     expect(h.rulesOf(h.J)).toEqual([]);

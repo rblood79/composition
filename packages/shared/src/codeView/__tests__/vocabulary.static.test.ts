@@ -11,10 +11,21 @@ import { CODE_VIEW_VOCABULARY } from "../vocabulary";
  * acceptance set — `adr284CodeView.test.tsx` — is the behavior gate).
  */
 const here = dirname(fileURLToPath(import.meta.url));
-const generator = readFileSync(join(here, "../generate.ts"), "utf8");
+const generator = [
+  "../generate.ts",
+  "../files/app.ts",
+  "../files/definitions.ts",
+]
+  .map((file) => readFileSync(join(here, file), "utf8"))
+  .join("\n");
 const readers = [
   readFileSync(join(here, "../inverse/parse.ts"), "utf8"),
-  ...["codeViewEdit.ts", "codeViewViews.ts"].map((file) =>
+  ...[
+    "codeViewEdit.ts",
+    "codeViewViews.ts",
+    "codeViewApp.ts",
+    "codeViewData.ts",
+  ].map((file) =>
     readFileSync(
       join(
         here,

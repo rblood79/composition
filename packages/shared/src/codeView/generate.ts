@@ -58,6 +58,7 @@ import {
   conceptStateOf,
 } from "../interactions/conceptState";
 import { CodeWriter } from "./writer";
+import { codeViewPageNames } from "./files/names";
 import { componentPropertiesOf } from "../catalog/document/componentProperties";
 import {
   COMPONENT_EVENT_ARGS,
@@ -104,7 +105,7 @@ const DRAG_EVENTS = new Set([
   "onDragEnd",
 ]);
 const RESERVED = new Set(
-  "break case catch class const continue debugger default delete do else enum export extends false finally for function if import in instanceof new null return super switch this throw true try typeof var void while with yield let static implements interface package private protected public await item e keys key formula computed".split(
+  "break case catch class const continue debugger default delete do else enum export extends false finally for function if import in instanceof new null return super switch this throw true try typeof var void while with yield let static implements interface package private protected public await item e keys key formula computed keep token capability".split(
     " ",
   ),
 );
@@ -128,6 +129,18 @@ function identifier(raw: string, fallback: string): string {
   return name;
 }
 const capital = (name: string) => name.charAt(0).toUpperCase() + name.slice(1);
+/** ADR-296 — a label as kebab-case (`Save Button` → `save-button`). */
+export function kebab(raw: string): string {
+  return (
+    raw
+      .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+      .replace(/[^A-Za-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .toLowerCase() || "node"
+  );
+}
+/** ADR-296 — the composition helpers the code calls (closed vocabulary — `capability` · `keep` · `token`). */
+export const CODE_VIEW_HELPERS_MODULE = "@composition/code";
 
 class Names {
   private readonly used = new Set<string>(RESERVED);
@@ -220,7 +233,11 @@ class Doc {
       ownerOf?: (id: string) => string | undefined;
     };
     return reader.ownerOf
-      ? templateDefinitionOf(id, (entry) => this.get(entry), reader.ownerOf.bind(reader))
+      ? templateDefinitionOf(
+          id,
+          (entry) => this.get(entry),
+          reader.ownerOf.bind(reader),
+        )
       : undefined;
   }
   typeOf(node: NodeEntry): string {
@@ -270,6 +287,8 @@ interface VariableCode {
   name: string;
   setter: string;
   selection: boolean;
+  /** ADR-296 E8 — a project variable (`useProjectState()` — `state/project.ts`). */
+  project?: boolean;
   /** Written by the list it names (`let {selectedKeys, setSelectedKeys} = list`). */
   fromList?: string;
 }
@@ -324,6 +343,22 @@ class Generator {
   private collator = false;
   private toasts = false;
   private navigate = false;
+  /** ADR-296 E9 — the rules of a When that holds several, as named functions (written before `return`). */
+  private readonly handlerFns: {
+    name: string;
+    ruleId: string;
+    code: string;
+  }[] = [];
+  /** ADR-296 E3 — a node an imperative Do calls (`formRef.current?.submit()`) → its ref name. */
+  private readonly refs = new Map<string, string>();
+  /** ADR-296 E4 · E13 — a Do target the code names by text → the document's target. */
+  private readonly targetRefs: Record<string, unknown> = {};
+  /** ADR-296 E13 — a Do the code cannot write, kept by token (`keep('do-1')`). */
+  private readonly kept: Record<string, unknown> = {};
+  /** ADR-296 — a token prop's name → the token. */
+  private readonly tokenNames: Record<string, string> = {};
+  /** ADR-296 E5 — the rules at an instance position (`address`): not the instance element's own. */
+  private readonly addressRules: InteractionEntry[] = [];
 
   constructor(
     private readonly doc: Doc,
@@ -335,6 +370,7 @@ class Generator {
     const body = new CodeWriter();
     body.in();
     this.writeState(body);
+    this.writeRefs(body);
     this.writeCollections(body);
     const views = body.fragment();
     this.writeViews(views);
@@ -366,6 +402,19 @@ class Generator {
       });
     body.append(views);
     body.append(dnd);
+    // ADR-296 E9 — the rules of a When that holds several (each a named function).
+    for (const fn of this.handlerFns) {
+      const at = body.length;
+      body.write(fn.code);
+      body.anchor(at, { kind: "handler", interactionId: fn.ruleId });
+      body.end();
+    }
+    // ADR-296 E5 — a rule at an instance position is the position's (Phase 5: the instance's
+    // `overrides`), not the instance element's handler: named here, read only (page edits keep it).
+    for (const rule of this.addressRules)
+      body.line(
+        `// composition: ${rule.trigger} of the instance position ${this.addressRef(rule.ownerId, rule.address!)} — its rule stays (ADR-296 Phase 5)`,
+      );
     body.line();
     body.line("return (");
     body.append(jsx);
@@ -383,7 +432,7 @@ class Generator {
       out.line();
     }
     out.line(
-      `export default function ${capital(identifier(this.page.name, "page"))}() {`,
+      `export default function ${codeViewPageNames(this.doc.input.reader as never).get(this.page.id) ?? capital(identifier(this.page.name, "page"))}() {`,
     );
     out.append(body);
     out.line("}");
@@ -395,6 +444,10 @@ class Generator {
       const [nodeId = "", prop = ""] = key.split("\u0000");
       states[state.name] = { nodeId, prop };
     }
+    const handlers: Record<string, string> = {};
+    for (const fn of this.handlerFns) handlers[fn.name] = fn.ruleId;
+    const refs: Record<string, string> = {};
+    for (const [nodeId, name] of this.refs) refs[name] = nodeId;
     const fields: Record<string, Record<string, string>> = {};
     for (const collection of this.doc.input.collections) {
       const map: Record<string, string> = {};
@@ -408,6 +461,15 @@ class Generator {
         variables,
         fields,
         ...(Object.keys(states).length ? { states } : {}),
+        ...(Object.keys(handlers).length ? { handlers } : {}),
+        ...(Object.keys(refs).length ? { refs } : {}),
+        ...(Object.keys(this.targetRefs).length
+          ? { targets: this.targetRefs }
+          : {}),
+        ...(Object.keys(this.kept).length ? { kept: this.kept } : {}),
+        ...(Object.keys(this.tokenNames).length
+          ? { tokens: this.tokenNames }
+          : {}),
       },
     };
   }
@@ -428,7 +490,9 @@ class Generator {
       this.nodeNames.set(node.id, this.names.take(node.name ?? type, "node"));
     }
     for (const rule of this.doc.interactions)
-      if (this.nodeIds.has(rule.ownerId)) {
+      if (this.nodeIds.has(rule.ownerId) && rule.address)
+        this.addressRules.push(rule);
+      else if (this.nodeIds.has(rule.ownerId)) {
         const list = this.rules.get(rule.ownerId) ?? [];
         list.push(rule);
         this.rules.set(rule.ownerId, list);
@@ -444,6 +508,37 @@ class Generator {
         name,
         setter: `set${capital(name)}`,
         selection: isSelectionVariable(entry, interactions),
+      });
+    }
+    // ADR-296 E8 — the project variables the page reads or writes (`useProjectState()`).
+    const pageText = JSON.stringify([
+      this.nodes.map((node) => [node.props, node.binding]),
+      [...this.rules.values()].flat().map((rule) => rule.actions),
+    ]);
+    for (const id of this.doc.project.projectVariableIds ?? []) {
+      const entry = this.doc.get(id);
+      if (entry?.kind !== "projectVariable") continue;
+      const read =
+        pageText.includes(`"${id}"`) ||
+        pageText.includes(`!var.${id}`) ||
+        new RegExp(
+          `\\{\\{\\s*${entry.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
+        ).test(pageText);
+      if (!read) continue;
+      const name = this.names.take(entry.name, "state");
+      this.variables.set(id, {
+        entry: {
+          kind: "stateVariable",
+          id: id as never,
+          ownerId: this.page.id,
+          name: entry.name,
+          valueType: entry.valueType,
+          defaultValue: (entry.defaultValue ?? "") as never,
+        },
+        name,
+        setter: `set${capital(name)}`,
+        selection: false,
+        project: true,
       });
     }
     // Collections: the bound ones, the ones a rule writes, the views' sources.
@@ -533,6 +628,11 @@ class Generator {
           const def = resolveCapabilities(this.doc.typeOf(target))[
             action.capabilityId
           ];
+          if (def?.imperative && !this.refs.has(target.id))
+            this.refs.set(
+              target.id,
+              this.names.take(`${this.nodeNames.get(target.id)}Ref`, "ref"),
+            );
           if (!def || def.imperative) continue;
           const prop = def.prop.startsWith("style.") ? "isVisible" : def.prop;
           const key = `${target.id}\u0000${prop}`;
@@ -616,6 +716,7 @@ class Generator {
       "react-aria-components/useAsyncList",
       "react-aria-components/useDragAndDrop",
       "react-router",
+      CODE_VIEW_HELPERS_MODULE,
     ];
     if (this.filterFns.size || this.sensitiveFns.size)
       this.import("react-aria", "useFilter");
@@ -641,7 +742,26 @@ class Generator {
   /* ── state ── */
 
   private writeState(out: CodeWriter): void {
-    const states = [...this.variables.values(), ...this.ruleStates.values()];
+    // ADR-296 Phase 2 — a page that reads its route's parameters (`{{ params.id }}`) declares them.
+    if (this.readsParams()) {
+      this.import("react-router", "useParams");
+      out.anchorLine("let params = useParams();", {
+        kind: "derived",
+        key: "params",
+      });
+    }
+    const project = [...this.variables.values()].filter((item) => item.project);
+    if (project.length) {
+      this.dataImports.push("import {useProjectState} from './state/project';");
+      out.anchorLine(
+        `let {${project.map((item) => `${item.name}, ${item.setter}`).join(", ")}} = useProjectState();`,
+        { kind: "derived", key: "projectState" },
+      );
+    }
+    const states = [
+      ...[...this.variables.values()].filter((item) => !item.project),
+      ...this.ruleStates.values(),
+    ];
     if (!states.length) return;
     this.import("react", "useState");
     for (const variable of states) {
@@ -685,6 +805,136 @@ class Generator {
         )
         .end();
     }
+  }
+
+  /** ADR-296 E3 — `let formRef = useRef<HTMLFormElement>(null);` for a node an imperative Do calls. */
+  private writeRefs(out: CodeWriter): void {
+    if (!this.refs.size) return;
+    this.import("react", "useRef");
+    for (const [nodeId, name] of this.refs) {
+      const node = this.doc.node(nodeId);
+      const element =
+        node && this.doc.typeOf(node) === "Form"
+          ? "HTMLFormElement"
+          : "HTMLElement";
+      out.anchorLine(`let ${name} = useRef<${element}>(null);`, {
+        kind: "derived",
+        key: `ref:${nodeId}`,
+      });
+    }
+  }
+
+  /* ── target references (ADR-296 E4 · E13) ── */
+
+  /** A template node's label in a reference path (its name, else its type — kebab-case). */
+  private templateLabel(id: string): string {
+    const entry = id.startsWith("lib:")
+      ? this.doc.input.reader.library.templates.get(id as never)
+      : this.doc.get(id);
+    const named =
+      entry && "name" in entry && typeof entry.name === "string"
+        ? entry.name
+        : undefined;
+    let type = "node";
+    try {
+      type = definitionTypeName(
+        this.doc.input.reader as never,
+        (entry as { definitionId: NodeEntry["definitionId"] }).definitionId,
+      );
+    } catch {
+      // (a dangling template: its label is "node")
+    }
+    return kebab(named ?? type);
+  }
+
+  /** An instance position as text: the instance's code name, then its nested instances and node. */
+  private addressRef(
+    ownerId: string,
+    address: { instances: readonly string[]; templatePath: readonly string[] },
+  ): string {
+    const head = this.nodeNames.get(address.instances[0] ?? ownerId) ?? "node";
+    return [
+      head,
+      ...address.instances.slice(1).map((id) => this.templateLabel(id)),
+      ...(address.templatePath.length > 1
+        ? [this.templateLabel(address.templatePath.at(-1)!)]
+        : []),
+    ].join("/");
+  }
+
+  /** A Do target that is not this page's node, as text (unique within the page's code). */
+  private targetRef(target: Record<string, unknown>): string | null {
+    if ("unset" in target) return null;
+    let text: string;
+    if ("address" in target) {
+      const address = target.address as {
+        instances: readonly string[];
+        templatePath: readonly string[];
+      };
+      text = this.addressRef(address.instances[0] ?? "", address);
+    } else if ("local" in target) {
+      const local = target.local as {
+        instances: readonly string[];
+        templatePath: readonly string[];
+      };
+      text = `local:${[
+        ...local.instances.map((id) => this.templateLabel(id)),
+        this.templateLabel(local.templatePath.at(-1) ?? ""),
+      ].join("/")}`;
+    } else {
+      const node = this.doc.node(String(target.nodeId));
+      const page = this.doc.project.pageIds
+        .map((id) => this.doc.get(id))
+        .find(
+          (entry): entry is PageEntry =>
+            entry?.kind === "page" &&
+            this.pageHolds(entry, String(target.nodeId)),
+        );
+      text = `${page?.route ?? "?"}#${kebab(node?.name ?? (node ? this.doc.typeOf(node) : "node"))}`;
+    }
+    let ref = text;
+    for (
+      let index = 2;
+      ref in this.targetRefs &&
+      JSON.stringify(this.targetRefs[ref]) !== JSON.stringify(target);
+      index += 1
+    )
+      ref = `${text}~${index}`;
+    this.targetRefs[ref] = target;
+    return ref;
+  }
+
+  private pageHolds(page: PageEntry, id: string): boolean {
+    const visit = (nodeId: string): boolean => {
+      if (nodeId === id) return true;
+      return (this.doc.node(nodeId)?.children ?? []).some(visit);
+    };
+    return page.children.some(visit);
+  }
+
+  /** ADR-296 E13 — a Do the code cannot write: `keep('<token>')` (read back as the document holds it). */
+  private keepDo(
+    out: CodeWriter,
+    action: InteractionAction,
+    why: string,
+  ): void {
+    this.import(CODE_VIEW_HELPERS_MODULE, "keep");
+    const token = `do-${Object.keys(this.kept).length + 1}`;
+    this.kept[token] = action;
+    out.line(`// composition: ${why} — kept as the document holds it`);
+    out.line(`keep(${literal(token)});`);
+  }
+
+  private readsParams(): boolean {
+    const reads = (value: unknown) =>
+      typeof value === "string" && /\{\{\s*params\./.test(value);
+    return this.nodes.some(
+      (node) =>
+        reads(node.binding?.key) ||
+        Object.values(node.props).some(
+          (write) => write.kind === "set" && reads(write.value),
+        ),
+    );
   }
 
   private isSortVariable(entry: StateVariableEntry): boolean {
@@ -1868,8 +2118,12 @@ class Generator {
       case "setState": {
         const variable = this.variables.get(action.variableId);
         if (!variable)
-          return void out.line(
-            `// (a variable not on this page: ${action.variableId})`,
+          return this.keepDo(
+            out,
+            action,
+            action.variableId.startsWith("data:variable:")
+              ? "a project variable (ADR-296 Phase 3: state/project.ts)"
+              : "a variable not on this page",
           );
         const setter = variable.setter;
         if (action.op === "toggle")
@@ -1930,21 +2184,33 @@ class Generator {
         return;
       }
       case "move":
+        // (`useTreeData.move(key, toParentKey, index)` — a parent key; E10.)
         return void out.line(
-          `${listName}.move(${value(action.key)}, ${value(action.toIndex)});`,
+          action.toParentKey !== undefined
+            ? `${listName}.move(${value(action.key)}, ${value(action.toParentKey)}, ${value(action.toIndex)});`
+            : `${listName}.move(${value(action.key)}, ${value(action.toIndex)});`,
         );
       case "removeSelectedItems":
         return void out.line(`${listName}.removeSelectedItems();`);
-      case "remove":
-        return void out.line(`${listName}.remove(...${value(action.keys)});`);
+      case "remove": {
+        // (A key list — a selection's `keys` — spreads; one key is one argument, E12.)
+        const keys =
+          typeof action.keys === "string" &&
+          action.keys.startsWith("!") &&
+          /keys$/.test(action.keys);
+        return void out.line(
+          `${listName}.remove(${keys ? "..." : ""}${value(action.keys)});`,
+        );
+      }
       case "append":
       case "prepend":
+        // (`useTreeData.append(parentKey, …)` — a parent key; E10.)
         return void out.line(
-          `${listName}.${action.opcode}(${value(action.value)});`,
+          `${listName}.${action.opcode}(${action.parentKey !== undefined ? `${value(action.parentKey)}, ` : ""}${value(action.value)});`,
         );
       case "insert":
         return void out.line(
-          `${listName}.insert(${value(action.index)}, ${value(action.value)});`,
+          `${listName}.insert(${action.parentKey !== undefined ? `${value(action.parentKey)}, ` : ""}${value(action.index)}, ${value(action.value)});`,
         );
       case "insertBefore":
       case "insertAfter":
@@ -1984,6 +2250,16 @@ class Generator {
         );
       }
       case "callEndpoint": {
+        // ADR-296 E11 — the endpoint by its name (its file `api/<name>.ts`).
+        const declared = this.doc.get(action.endpointId);
+        if (declared?.kind === "endpoint") {
+          const name = identifier(declared.name, "endpoint");
+          const line = `import ${name} from './api/${name}';`;
+          if (!this.dataImports.includes(line)) this.dataImports.push(line);
+          return void out.line(
+            `await ${name}(${action.body !== undefined ? `{body: ${value(action.body)}}` : ""});`,
+          );
+        }
         const endpoint = this.doc.input.endpoints?.find(
           (entry) =>
             `data:endpoint:${entry.id}` === action.endpointId ||
@@ -1999,24 +2275,42 @@ class Generator {
         );
       }
       case "capability": {
-        if (!("nodeId" in action.target))
-          return void out.line("// (a capability with no target)");
-        const target = this.doc.node(action.target.nodeId);
-        if (!target) return;
-        const def = resolveCapabilities(this.doc.typeOf(target))[
-          action.capabilityId
-        ];
-        if (!def)
-          return void out.line(
-            `// (${action.capabilityId}: not a capability of this component)`,
+        // ADR-296 E4 · E13 — a target that is not a node of this page: the Do by its reference.
+        const onPage =
+          "nodeId" in action.target && this.nodeIds.has(action.target.nodeId);
+        const target = onPage
+          ? this.doc.node((action.target as { nodeId: string }).nodeId)
+          : undefined;
+        const def = target
+          ? resolveCapabilities(this.doc.typeOf(target))[action.capabilityId]
+          : undefined;
+        if (target && !def)
+          return this.keepDo(
+            out,
+            action,
+            `${action.capabilityId}: not a capability of this component`,
           );
+        if (!target || !def) {
+          const ref = this.targetRef(
+            action.target as unknown as Record<string, unknown>,
+          );
+          this.import(CODE_VIEW_HELPERS_MODULE, "capability");
+          return void out.line(
+            `capability(${literal(action.capabilityId)}, {target: ${ref === null ? "null" : literal(ref)}${action.value !== undefined ? `, value: ${value(action.value as Scalar)}` : ""}});`,
+          );
+        }
         if (def.imperative)
           return void out.line(
-            `${this.nodeNames.get(target.id)}Ref.current?.${action.capabilityId}();`,
+            `${this.refs.get(target.id) ?? `${this.nodeNames.get(target.id)}Ref`}.current?.${action.capabilityId}();`,
           );
         const prop = def.prop.startsWith("style.") ? "isVisible" : def.prop;
         const state = this.namedStateOf(target.id, prop);
-        if (!state) return;
+        if (!state)
+          return this.keepDo(
+            out,
+            action,
+            `${action.capabilityId}: no state to write`,
+          );
         let next: string;
         if (def.prop.startsWith("style."))
           next =
@@ -2107,34 +2401,91 @@ class Generator {
   }
 
   private writeJsx(out: CodeWriter): void {
+    const body = this.page.children
+      .map((id) => this.doc.node(id))
+      .find((node) => !!node && isBodyType(this.doc.typeOf(node)));
     const roots = this.page.children.flatMap((id) => {
       const node = this.doc.node(id);
       // (The page's body is the page itself — its children are the fragment.)
       return node && isBodyType(this.doc.typeOf(node)) ? node.children : [id];
     });
+    const head = (writer: CodeWriter) => this.writeHead(writer);
+    // ADR-296 E7 — a body with its own props · rules · states is the page element (`<Page …>`).
+    if (body && this.bodyIsElement(body)) {
+      this.writeNode(out, body.id, undefined, "Page", head);
+      return;
+    }
     out.line("<>");
     out.in();
+    head(out);
     for (const id of roots) this.writeNode(out, id, undefined);
     out.out();
     out.line("</>");
+  }
+
+  private bodyIsElement(body: NodeEntry): boolean {
+    return (
+      Object.values(body.props).some((write) => write.kind === "set") ||
+      (this.rules.get(body.id) ?? []).length > 0 ||
+      [...this.ruleStates.values()].some(
+        (state) => state.entry.ownerId === body.id,
+      ) ||
+      [...this.variables.values()].some(
+        (variable) => variable.entry.source?.nodeId === body.id,
+      )
+    );
+  }
+
+  /** ADR-296 Phase 2 — the page's `meta` as React 19 head elements. */
+  private writeHead(out: CodeWriter): void {
+    const meta = this.page.meta;
+    if (!meta) return;
+    const anchor = { kind: "pageMeta", pageId: this.page.id } as const;
+    const attr = (text: string) => literal(text).replace(/^'(.*)'$/, '"$1"');
+    if (meta.title !== undefined)
+      out.anchorLine(
+        /[{}<>]/.test(meta.title)
+          ? `<title>{${literal(meta.title)}}</title>`
+          : `<title>${meta.title}</title>`,
+        anchor,
+      );
+    if (meta.description !== undefined)
+      out.anchorLine(
+        `<meta name="description" content=${attr(meta.description)} />`,
+        anchor,
+      );
+    if (meta.socialImage !== undefined)
+      out.anchorLine(
+        `<meta property="og:image" content=${attr(meta.socialImage)} />`,
+        anchor,
+      );
+    if (meta.hidden?.search)
+      out.anchorLine('<meta name="robots" content="noindex" />', anchor);
+    if (meta.hidden?.sitemap)
+      out.anchorLine('<meta name="sitemap" content="exclude" />', anchor);
   }
 
   private writeNode(
     out: CodeWriter,
     id: string,
     row: string | undefined,
+    /** ADR-296 E7 — the page body as the page element (`<Page …>`). */
+    as?: string,
+    /** Elements written first inside it (the page's `<title>` · `<meta>`). */
+    head?: (out: CodeWriter) => void,
   ): void {
     const node = this.doc.node(id);
     if (!node) return;
     let type = this.doc.typeOf(node);
     if (type === "frame" || (type === "Group" && !node.props["aria-label"]))
       type = type === "frame" ? "div" : type;
-    if (type !== "div") this.import("react-aria-components", type);
+    if (as) this.import(CODE_VIEW_HELPERS_MODULE, as);
+    else if (type !== "div") this.import("react-aria-components", type);
     const attributes: { part: CodeWriter; target: CodeViewAnchorTarget }[] = [];
     const attribute = (
       name: string,
       value: string | CodeWriter,
-      source: "prop" | "state" | "dnd" = "prop",
+      source: "prop" | "state" | "dnd" | "ref" | "metadata" = "prop",
     ) => {
       const part = new CodeWriter().write(`${name}=`);
       if (typeof value === "string") part.write(value);
@@ -2237,14 +2588,6 @@ class Generator {
           variable.entry.source?.nodeId === node.id &&
           callbackOf(type, variable.entry.source.prop) === trigger,
       );
-      const value = this.handlerCode(
-        rules,
-        node,
-        trigger,
-        controlled.get(trigger)?.variable,
-        named,
-        out.depth,
-      );
       // (ADR-294 — a received component event is the instance's callback prop: `onSelect`.)
       const eventKey = componentEventKeyOf(trigger);
       const event =
@@ -2252,6 +2595,17 @@ class Generator {
           ? [...properties.values()].find((item) => item.key === eventKey)
           : undefined;
       const attributeName = event ? componentEventAttribute(event) : trigger;
+      const value =
+        rules.length > 1
+          ? this.namedHandlers(rules, node, trigger, attributeName, named)
+          : this.handlerCode(
+              rules,
+              node,
+              trigger,
+              controlled.get(trigger)?.variable,
+              named,
+              out.depth,
+            );
       const name = new CodeWriter().slot(attributeName, slotTarget);
       const part = new CodeWriter().append(name).write("=");
       part.write(`{${value}}`);
@@ -2269,6 +2623,18 @@ class Generator {
     }
     const dnd = this.dndNames.get(node.id);
     if (dnd) attribute("dragAndDropHooks", `{${dnd}}`, "dnd");
+    const ref = this.refs.get(node.id);
+    if (ref) attribute("ref", `{${ref}}`, "ref" as never);
+    // ADR-296 Phase 2 — the author's DOM id · classes · accessible name (`metadata`). An id the app
+    // gave (`<type>_N`, ADR-248 4e-8 — every element has one) is the app's, not the author's.
+    const metadata = node.metadata;
+    const jsx = (text: string) => literal(text).replace(/^'(.*)'$/, '"$1"');
+    if (metadata?.htmlId && !/^[a-z][a-z0-9-]*_\d+$/.test(metadata.htmlId))
+      attribute("id", jsx(metadata.htmlId), "metadata");
+    if (metadata?.className)
+      attribute("className", jsx(metadata.className), "metadata");
+    if (metadata?.ariaLabel && !node.props["aria-label"])
+      attribute("aria-label", jsx(metadata.ariaLabel), "metadata");
     const binding = node.binding;
     const children = node.children;
     const visible = [...this.ruleStates.values()].find(
@@ -2278,7 +2644,11 @@ class Generator {
     );
     out.start();
     const from = out.length;
-    if (visible) out.write(`{${visible.name} && `);
+    // ADR-296 Phase 2 — a node switched off for every consumer (`enabled: false`).
+    const off = node.enabled === false && !as;
+    if (off) out.write("{false && ");
+    else if (visible && !as) out.write(`{${visible.name} && `);
+    if (as) type = as;
     out.write(`<${type}`);
     for (const { part, target } of attributes) {
       out.write(" ");
@@ -2340,13 +2710,15 @@ class Generator {
         );
         out.out().start().write(`</${type}>`);
       }
-    } else if (!children.length && text === undefined) out.write(" />");
+    } else if (!children.length && text === undefined && !head)
+      out.write(" />");
     else {
       out.write(">");
-      if (text !== undefined && !children.length)
+      if (text !== undefined && !children.length && !head)
         text$(this.textCode(text, row));
       else {
         out.end().in();
+        head?.(out);
         if (text !== undefined)
           out.anchorLine(this.textCode(text, row), {
             kind: "text",
@@ -2357,8 +2729,12 @@ class Generator {
       }
       out.write(`</${type}>`);
     }
-    if (visible) out.write("}");
-    out.anchor(from, { kind: "node", nodeId: node.id }).end();
+    if (off || (visible && !as)) out.write("}");
+    out.anchor(
+      from,
+      as ? { kind: "derived", key: "page" } : { kind: "node", nodeId: node.id },
+    );
+    out.end();
   }
 
   /** A list's item component (undefined = not a collection — a keyed binding's container). */
@@ -2453,8 +2829,70 @@ class Generator {
     }
     if (typeof value === "number" || typeof value === "boolean")
       return value === true ? "{true}" : `{${JSON.stringify(value)}}`;
-    if (value && typeof value === "object" && "kind" in value) return undefined;
+    if (value && typeof value === "object" && "kind" in value) {
+      // ADR-296 — a token prop: `token('<name>')` (the name → the token in `symbols.tokens`).
+      const tokenId = (value as { tokenId?: string }).tokenId;
+      if ((value as { kind: string }).kind !== "token" || !tokenId)
+        return undefined;
+      const name = this.tokenName(tokenId);
+      this.tokenNames[name] = tokenId;
+      this.import(CODE_VIEW_HELPERS_MODULE, "token");
+      return `{token(${literal(name)})}`;
+    }
     return `{${literal(value)}}`;
+  }
+
+  /** A token's name in the code (a project token's name, a library token's theme path). */
+  private tokenName(tokenId: string): string {
+    if (tokenId.startsWith("lib:token:")) {
+      const token = this.doc.input.reader.library.tokens.get(tokenId as never);
+      return token?.ref ? token.ref.slice(1, -1) : tokenId.slice(10);
+    }
+    const entry = this.doc.get(tokenId);
+    return entry?.kind === "token" ? entry.name : tokenId;
+  }
+
+  /**
+   * ADR-296 E9 (사용자 결정 7) — a When with several rules: each rule a named function (written
+   * before `return`), the handler calls them in order — each rule runs on its own.
+   */
+  private namedHandlers(
+    rules: readonly InteractionEntry[],
+    node: NodeEntry,
+    trigger: string,
+    attributeName: string,
+    named: VariableCode | undefined,
+  ): string {
+    const args = componentEventKeyOf(trigger)
+      ? COMPONENT_EVENT_ARGS
+      : (eventArgNames(trigger)[0] ?? []);
+    const fields = eventArgsAreFields(trigger);
+    const params = fields
+      ? "e"
+      : args.map((arg) => identifier(arg, "value")).join(", ");
+    const base = `on${capital(this.nodeNames.get(node.id) ?? "node")}${attributeName.replace(/^on/, "")}`;
+    const calls: string[] = [];
+    if (named)
+      calls.push(
+        `${named.setter}(${identifier(args[0] ?? "value", "value")});`,
+      );
+    for (const rule of rules) {
+      const name = this.names.take(base, "handler");
+      const body = new CodeWriter();
+      body.in().in();
+      for (const action of rule.actions)
+        this.writeAction(body, action, { node, trigger, fields, args });
+      const isAsync = rule.actions.some(
+        (action) => action.opcode === "callEndpoint",
+      );
+      this.handlerFns.push({
+        name,
+        ruleId: rule.id,
+        code: `  ${isAsync ? "async " : ""}function ${name}(${params}) {\n${body.done().code}  }`,
+      });
+      calls.push(`${name}(${params});`);
+    }
+    return `(${params}) => { ${calls.join(" ")} }`;
   }
 
   /** A rule list on one When as the handler's code. */

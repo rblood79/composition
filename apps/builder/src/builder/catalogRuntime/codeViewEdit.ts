@@ -18,6 +18,9 @@ import {
   moveNodes,
   removeTargets,
   setFields,
+  setHtmlId,
+  setNodeAttribute,
+  setWholeField,
   stageOver,
   type CatalogCommand,
   type CatalogCommandPlan,
@@ -27,7 +30,11 @@ import {
   removeRecords,
   updateRecord,
 } from "../../../../../packages/shared/src/catalog/commands/project";
-import { setNodeInteractions } from "../../../../../packages/shared/src/catalog/commands/project";
+import {
+  setNodeInteractions,
+  updatePage,
+} from "../../../../../packages/shared/src/catalog/commands/project";
+import { getPrimitiveBinding } from "../../../../../packages/shared/src/catalog/bindings";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import type { CatalogReader } from "../../../../../packages/shared/src/catalog/transactions/transaction";
 import type {
@@ -79,11 +86,22 @@ import type {
   CodeViewResult,
 } from "../../../../../packages/shared/src/codeView/types";
 import {
+  CAPABILITY_REGISTRY,
   eventArgNames,
   eventArgsAreFields,
   resolveCapabilities,
   resolveTriggers,
 } from "../../../../../packages/shared/src/interactions/capabilityRegistry";
+
+/**
+ * ADR-296 E1 (사용자 결정 4) — every When the type's RAC component has: the registry's events and
+ * the ones the panel hides (press side · hover · focus · keyboard). Hiding is the panel's policy,
+ * not the document's.
+ */
+function allTriggers(type: string): readonly string[] {
+  const entry = CAPABILITY_REGISTRY[type];
+  return [...resolveTriggers(type), ...(entry?.hiddenEvents ?? [])];
+}
 import { conceptStateOf } from "../../../../../packages/shared/src/interactions/conceptState";
 import type { catalogCodeViewData } from "./codeView";
 import { planCodeViewFields } from "./codeViewFields";
@@ -131,7 +149,9 @@ export type CatalogCodeViewReason =
   | "commandRefused"
   | "derivedChanged"
   | "ambiguousIdentity"
-  | "staleBaseline";
+  | "staleBaseline"
+  /** ADR-296 E11 — the code names an endpoint by its URL and two endpoints share it. */
+  | "ambiguousEndpoint";
 
 export interface CatalogCodeViewRejection {
   /** 1-based line of the edited code. */
@@ -173,7 +193,17 @@ const DERIVED_KINDS = new Set([
   // ADR-291 — the json-formula helpers and the computed rows line (the fields block is edited).
   "formula",
   "computedRows",
+  // ADR-296 E3 — a node's ref (`useRef`) for an imperative Do.
+  "ref",
+  // ADR-296 Phase 2 — the route's parameters (`useParams`).
+  "params",
+  // ADR-296 E8 — the project variables a page uses (`useProjectState`).
+  "projectState",
 ]);
+
+/** ADR-296 Phase 2 — the page's head elements (`<title>` · `<meta>` — its `meta`, not nodes). */
+const isHead = (element: CodeViewElement) =>
+  element.type === "title" || element.type === "meta";
 
 interface PlanInput {
   readonly reader: CatalogReader;
@@ -195,21 +225,7 @@ interface PlanInput {
 export function catalogCodeViewPlan(input: PlanInput): CatalogCodeViewPlan {
   const { reader, session, edited } = input;
   const rejected: CatalogCodeViewRejection[] = [];
-  const reject = (
-    from: number,
-    reason: CatalogCodeViewReason,
-    detail?: string,
-  ) => {
-    const line = codeViewLineAt(edited, from);
-    if (rejected.some((item) => item.line === line && item.reason === reason))
-      return;
-    rejected.push({
-      line,
-      reason,
-      text: edited.split("\n")[line - 1] ?? "",
-      ...(detail ? { detail } : {}),
-    });
-  };
+  const reject = rejecter(edited, rejected);
   if (
     reader.revision !== session.revision ||
     reader.getEntry(session.pageId)?.kind !== "page"
@@ -219,32 +235,10 @@ export function catalogCodeViewPlan(input: PlanInput): CatalogCodeViewPlan {
     };
   if (edited === session.baseline.code && !input.strict)
     return { rejected: [] };
-
-  const parsed = parseCodeView(edited);
-  for (const problem of parsed.problems) reject(problem.from, problem.reason);
-  if (!parsed.jsx) reject(0, "outsideVocabulary");
-  if (rejected.length) return { rejected };
-
-  const baseline = session.baseline;
-  const anchors = baseline.anchors;
-  const outcomes = codeViewAnchorOutcomes(
-    anchors.map((anchor) => ({ from: anchor.start, to: anchor.end })),
-    input.changes,
-  );
-  const planner = new Planner(input, parsed, outcomes, reject);
-  const steps = planner.plan();
-  if (rejected.length) return { rejected };
-
-  const command: CatalogCommand = (commandReader) => {
-    const stage = stageOver(commandReader);
-    const ops: CatalogCommandPlan["ops"][number][] = [];
-    for (const step of steps) {
-      const plan = step(stage);
-      stage.apply(plan.ops);
-      ops.push(...plan.ops);
-    }
-    return { label: "Edit code", ops };
-  };
+  const page = planCodeViewPageEdit(input, reject);
+  if (!page || rejected.length) return { rejected };
+  const { steps } = page;
+  const command = composeSteps(steps);
 
   // Dry run: the staged document's code must give back what the edit wrote.
   let regenerated: string;
@@ -258,20 +252,107 @@ export function catalogCodeViewPlan(input: PlanInput): CatalogCodeViewPlan {
     }).code;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    reject(planner.lastFrom, "commandRefused", message);
+    reject(page.lastFrom, "commandRefused", message);
     return { rejected };
   }
-  compareRegenerated(
-    parsed,
-    parseCodeView(regenerated),
-    parseCodeView(session.baseline.code),
-    planner,
-    reject,
-  );
+  page.compare(regenerated);
   if (rejected.length) return { rejected };
   return steps.length
     ? { command, count: steps.length, rejected }
     : { rejected };
+}
+
+/** A refusal collector (one per line and reason) over the edited code's lines. */
+export function rejecter(
+  edited: string,
+  rejected: CatalogCodeViewRejection[],
+): Reject {
+  return (from, reason, detail) => {
+    const line = codeViewLineAt(edited, from);
+    if (rejected.some((item) => item.line === line && item.reason === reason))
+      return;
+    rejected.push({
+      line,
+      reason,
+      text: edited.split("\n")[line - 1] ?? "",
+      ...(detail ? { detail } : {}),
+    });
+  };
+}
+
+/** Steps as one command: each plans on the stage the ones before it made. */
+export function composeSteps(
+  steps: readonly CatalogCommand[],
+  onStep?: (index: number) => void,
+): CatalogCommand {
+  return (commandReader) => {
+    const stage = stageOver(commandReader);
+    const ops: CatalogCommandPlan["ops"][number][] = [];
+    steps.forEach((step, index) => {
+      onStep?.(index);
+      const plan = step(stage);
+      stage.apply(plan.ops);
+      ops.push(...plan.ops);
+    });
+    return { label: "Edit code", ops };
+  };
+}
+
+/**
+ * ADR-296 Decision 1 — a page file's edit planned against `input.reader` (the Apply's stage: the
+ * definition files' commands already on it), without running: its steps, and the check of the
+ * regenerated page (`compare` — the staged document's code must give back what the edit wrote).
+ * Undefined = refused before planning (the reasons are in `reject`).
+ */
+export function planCodeViewPageEdit(
+  input: PlanInput,
+  reject: Reject,
+):
+  | {
+      steps: CatalogCommand[];
+      compare: (regenerated: string) => void;
+      lastFrom: number;
+    }
+  | undefined {
+  const { session, edited } = input;
+  const parsed = parseCodeView(edited);
+  for (const problem of parsed.problems) reject(problem.from, problem.reason);
+  if (!parsed.jsx) reject(0, "outsideVocabulary");
+  if (parsed.problems.length || !parsed.jsx) return undefined;
+  const baseline = session.baseline;
+  const outcomes = codeViewAnchorOutcomes(
+    baseline.anchors.map((anchor) => ({ from: anchor.start, to: anchor.end })),
+    input.changes,
+  );
+  let failed = false;
+  const planner = new Planner(
+    input,
+    parsed,
+    outcomes,
+    (from, reason, detail) => {
+      failed = true;
+      reject(from, reason, detail);
+    },
+  );
+  const steps = planner.plan();
+  const result = {
+    steps: steps.map((step) => step),
+    lastFrom: 0,
+    compare: (regenerated: string) =>
+      compareRegenerated(
+        parsed,
+        parseCodeView(regenerated),
+        parseCodeView(baseline.code),
+        planner,
+        reject,
+      ),
+  };
+  // (A refusal names the line of the step that failed — the planner records where each began.)
+  Object.defineProperty(result, "lastFrom", {
+    get: () => planner.lastFrom,
+    set: (value: number) => void value,
+  });
+  return failed ? undefined : result;
 }
 
 /* ─── the planner ────────────────────────────────────────────────────────────────────────── */
@@ -291,6 +372,35 @@ class Planner {
   lastFrom = 0;
   /** Elements that are new in this edit (their palette defaults may show in the code). */
   readonly added = new Set<CodeViewElement>();
+  /**
+   * ADR-296 (판독 MEDIUM-1) — the handlers this edit read into rules, and the named functions they
+   * call: their meaning is the rules planned, not their names (a name is a position — another rule
+   * removed, an element added before renumbers it), so the check compares them by presence only.
+   */
+  readonly readHandlers = new Set<CodeViewAttribute>();
+  readonly readFunctions = new Set<string>();
+  /** Whether a kept element's attribute is as the baseline wrote it (unchanged — nothing to read). */
+  sameAsBaseline(
+    element: CodeViewElement,
+    attribute: CodeViewAttribute,
+  ): boolean {
+    const id = this.ids?.get(element);
+    const old = id
+      ? this.baseline.anchors.find(
+          (anchor) =>
+            anchor.target.kind === "attribute" &&
+            anchor.target.nodeId === id &&
+            anchor.target.name === attribute.name,
+        )
+      : undefined;
+    return (
+      !!old &&
+      codeViewNormalized(this.code(old)) ===
+        codeViewNormalized(
+          this.input.edited.slice(attribute.from, attribute.to),
+        )
+    );
+  }
   /** Code name → variable id, as the edited code names them. */
   private readonly variables = new Map<string, string>();
   private readonly baseline: CodeViewResult;
@@ -306,6 +416,18 @@ class Planner {
     this.page = input.reader.getEntry(input.session.pageId) as PageEntry;
     for (const [name, id] of Object.entries(this.baseline.symbols.variables))
       this.variables.set(name, id);
+    // ADR-296 E8 — the project variables by their code names, as the Apply's stage has them (a
+    // variable `state/project.ts` declares or renames in the same Apply is there).
+    const project = input.reader.getEntry(
+      input.reader.projectId,
+    ) as ProjectEntry;
+    for (const id of project.projectVariableIds ?? []) {
+      const entry = input.reader.getEntry(id);
+      if (entry?.kind !== "projectVariable") continue;
+      for (const [name, known] of [...this.variables])
+        if (known === id) this.variables.delete(name);
+      this.variables.set(codeNameOf(entry.name), id);
+    }
   }
 
   private get reader() {
@@ -851,7 +973,7 @@ class Planner {
     );
     const identity = codeViewMatchElements(
       units,
-      this.parsed.jsx!.roots,
+      this.parsed.jsx!.roots.filter((element) => !isHead(element)),
       this.input.edited,
     );
     for (const span of identity.ambiguous)
@@ -959,8 +1081,72 @@ class Planner {
           visit(id, child.children, child.from);
       }
     };
-    if (body) visit(body.id, this.parsed.jsx!.roots, this.parsed.jsx!.from);
-    else this.reject(this.parsed.jsx!.from, "notInCode");
+    if (body) {
+      visit(
+        body.id,
+        this.parsed.jsx!.roots.filter((element) => !isHead(element)),
+        this.parsed.jsx!.from,
+      );
+      // ADR-296 E7 — the page element's attributes are the body's (none = `<>`).
+      const page = this.parsed.jsx!.page;
+      const had = this.baseline.anchors.some(
+        (anchor) =>
+          anchor.target.kind === "derived" && anchor.target.key === "page",
+      );
+      if (page || had)
+        this.planAttributes(
+          page ?? {
+            ...this.parsed.jsx!,
+            type: "Page",
+            attributes: [],
+            children: [],
+          },
+          body.id,
+        );
+      this.planHead(this.parsed.jsx!.roots.filter(isHead));
+    } else this.reject(this.parsed.jsx!.from, "notInCode");
+  }
+
+  /** ADR-296 Phase 2 — `<title>` · `<meta …>` → the page's `meta` (`updatePage`). */
+  private planHead(elements: readonly CodeViewElement[]): void {
+    const meta: NonNullable<PageEntry["meta"]> = {};
+    const attr = (element: CodeViewElement, name: string) => {
+      const value = element.attributes.find(
+        (item) => item.name === name,
+      )?.value;
+      return value?.kind === "string"
+        ? value.code.replace(/\\(.)/g, "$1")
+        : undefined;
+    };
+    for (const element of elements) {
+      if (element.type === "title") {
+        const text = element.text?.code.trim() ?? "";
+        const quoted = /^\{('(?:[^'\\]|\\.)*')\}$/.exec(text);
+        meta.title = quoted ? String(literalOf(quoted[1]!)) : text;
+        continue;
+      }
+      const name = attr(element, "name");
+      const property = attr(element, "property");
+      const content = attr(element, "content");
+      if (name === "description" && content !== undefined)
+        meta.description = content;
+      else if (property === "og:image" && content !== undefined)
+        meta.socialImage = content as never;
+      else if (name === "robots" && content === "noindex")
+        meta.hidden = { ...meta.hidden, search: true };
+      else if (name === "sitemap" && content === "exclude")
+        meta.hidden = { ...meta.hidden, sitemap: true };
+      else this.reject(element.from, "outsideVocabulary", element.type);
+    }
+    if (JSON.stringify(meta) === JSON.stringify(this.page.meta ?? {})) return;
+    this.step(
+      elements[0]?.from ?? 0,
+      updatePage({
+        id: this.page.id,
+        fields: { meta: Object.keys(meta).length ? meta : undefined },
+        label: "Edit page",
+      }),
+    );
   }
 
   /** A new element and its new subtree as entries (the palette's origin · decision 1). */
@@ -980,6 +1166,11 @@ class Planner {
       if (
         /^on[A-Z]/.test(attribute.name) ||
         attribute.name === "items" ||
+        attribute.name === "ref" ||
+        this.isMetadata(
+          attribute.name,
+          definitionTypeName(this.reader, definitionId),
+        ) ||
         sorted.has(attribute.name) ||
         this.selectionOwned(attribute)
       )
@@ -996,6 +1187,10 @@ class Planner {
     const children = element.children.flatMap((child) =>
       this.entriesOf(child, ids),
     );
+    const metadata = this.metadataOf(
+      element,
+      definitionTypeName(this.reader, definitionId),
+    );
     return [
       {
         kind: "node",
@@ -1006,9 +1201,41 @@ class Planner {
         visual: {},
         sizing: {},
         descendantOverrides: [],
+        ...(element.visibleState === "false" ? { enabled: false } : {}),
+        ...(Object.keys(metadata).length ? { metadata } : {}),
       } as NodeEntry,
       ...children,
     ];
+  }
+
+  /**
+   * ADR-296 Phase 2 — whether an attribute is the author's metadata (`id` · `className` · an
+   * `aria-label` the component does not take as its prop).
+   */
+  private isMetadata(name: string, type: string): boolean {
+    if (name === "id" || name === "className") return true;
+    return (
+      name === "aria-label" &&
+      !(getPrimitiveBinding(type)?.props.accepts ?? {})["aria-label"]
+    );
+  }
+  private metadataOf(
+    element: { attributes: readonly CodeViewAttribute[] },
+    type: string,
+  ): NonNullable<NodeEntry["metadata"]> {
+    const out: NonNullable<NodeEntry["metadata"]> = {};
+    for (const attribute of element.attributes) {
+      if (!this.isMetadata(attribute.name, type)) continue;
+      if (attribute.value?.kind !== "string") {
+        this.reject(attribute.from, "outsideVocabulary", attribute.name);
+        continue;
+      }
+      const value = attribute.value.code.replace(/\\(.)/g, "$1");
+      if (attribute.name === "id") out.htmlId = value;
+      else if (attribute.name === "className") out.className = value;
+      else out.ariaLabel = value;
+    }
+    return out;
   }
 
   /** A new element's handlers (and its new subtree's) — rules on the node it becomes. */
@@ -1060,12 +1287,14 @@ class Planner {
     const propKey = (name: string) =>
       properties.find(
         (property) =>
-          property.kind !== "event" && componentPropertyCodeName(property) === name,
+          property.kind !== "event" &&
+          componentPropertyCodeName(property) === name,
       )?.key ?? name;
     const handlerTrigger = (name: string) => {
       const event = properties.find(
         (property) =>
-          property.kind === "event" && componentEventAttribute(property) === name,
+          property.kind === "event" &&
+          componentEventAttribute(property) === name,
       );
       return event ? componentEventTrigger(event.key) : name;
     };
@@ -1079,8 +1308,44 @@ class Planner {
         ? (value as { ref: string }).ref
         : value;
     };
+    // ADR-296 Phase 2 — the author's metadata (`id` · `className` · `aria-label`).
+    const metadata = this.metadataOf(element, type);
+    const nowMeta = node.metadata ?? {};
+    const autoId =
+      !!nowMeta.htmlId && /^[a-z][a-z0-9-]*_\d+$/.test(nowMeta.htmlId);
+    if (
+      (metadata.htmlId ?? (autoId ? nowMeta.htmlId : undefined)) !==
+      nowMeta.htmlId
+    )
+      this.step(
+        element.from,
+        setHtmlId({ id: id as NodeId, htmlId: metadata.htmlId ?? "" }),
+      );
+    for (const field of ["className", "ariaLabel"] as const)
+      if ((metadata[field] ?? "") !== (nowMeta[field] ?? ""))
+        this.step(
+          element.from,
+          setNodeAttribute({
+            id: id as NodeId,
+            field,
+            value: metadata[field] ?? "",
+          }),
+        );
+    // ADR-296 Phase 2 — `{false && <T/>}`: switched off for every consumer.
+    if ((element.visibleState === "false") !== (node.enabled === false))
+      this.step(
+        element.from,
+        setWholeField({
+          targets: [{ kind: "node", id: id as NodeId }],
+          field: "enabled",
+          value: element.visibleState !== "false",
+        }),
+      );
     for (const attribute of element.attributes) {
       const old = before.find((anchor) => nameOf(anchor) === attribute.name);
+      // (ADR-296 E3 — a node's ref is derived from the Dos that call it.)
+      if (attribute.name === "ref") continue;
+      if (this.isMetadata(attribute.name, type)) continue;
       if (
         !old &&
         (attribute.name === "items" ||
@@ -1094,7 +1359,8 @@ class Planner {
         codeViewNormalized(this.code(old)) ===
           codeViewNormalized(
             this.input.edited.slice(attribute.from, attribute.to),
-          )
+          ) &&
+        !this.callsChangedHandler(attribute)
       )
         continue;
       const source = old
@@ -1120,7 +1386,9 @@ class Planner {
       )
         continue;
       const source = (anchor.target as { source: string }).source;
-      if (source === "prop") props[propKey(nameOf(anchor))] = { kind: "remove" };
+      if (source === "metadata") continue; // (read above)
+      if (source === "prop")
+        props[propKey(nameOf(anchor))] = { kind: "remove" };
       else if (source === "handler")
         handlers.set(handlerTrigger(nameOf(anchor)), undefined);
     }
@@ -1160,6 +1428,24 @@ class Planner {
     if (!value) return true;
     if (value.kind === "string") return value.code.replace(/\\(.)/g, "$1");
     const text = value.code.trim();
+    // ADR-296 — a token prop (`token('<name>')`): the token the code names.
+    const token = /^token\(('(?:[^'\\]|\\.)*')\)$/.exec(text);
+    if (token) {
+      const name = String(literalOf(token[1]!));
+      const tokenId =
+        this.baseline.symbols.tokens?.[name] ?? this.tokenByName(name);
+      if (!tokenId) {
+        this.reject(value.from, "unknownReference", name);
+        return undefined;
+      }
+      return { kind: "token", tokenId };
+    }
+    // ADR-296 — a prop's typed object (a calendar duration · a number format) — the graph checks it.
+    if (text.startsWith("{") && !text.startsWith("{`")) {
+      const object = structuredLiteralOf(text)?.value;
+      if (object && typeof object === "object" && !Array.isArray(object))
+        return object;
+    }
     if (/^`[\s\S]*`$/.test(text)) {
       const template = this.textValue(`{${text}}`, value.from);
       return template;
@@ -1184,6 +1470,18 @@ class Planner {
     const when = this.whenOf(text);
     if (when) return when;
     this.reject(value.from, "outsideVocabulary");
+    return undefined;
+  }
+
+  /** A token by its code name (a project token's name, a library token's theme path). */
+  private tokenByName(name: string): string | undefined {
+    const project = this.reader.getEntry(this.reader.projectId) as ProjectEntry;
+    const own = project.tokenIds.find(
+      (id) => (this.reader.getEntry(id) as { name?: string })?.name === name,
+    );
+    if (own) return own;
+    for (const [id, token] of this.reader.library.tokens)
+      if (token.ref === `{${name}}` || id === `lib:token:${name}`) return id;
     return undefined;
   }
 
@@ -1279,13 +1577,89 @@ class Planner {
 
   /* ── handlers (a When's rules) ── */
 
+  /* ── named handler functions (ADR-296 E9) ── */
+
+  /** The edited code's handler functions: name → its parts. */
+  private get handlerFns(): ReadonlyMap<
+    string,
+    { from: number; code: string; params: string[]; body: string }
+  > {
+    if (this.fnCache) return this.fnCache;
+    const out = new Map<
+      string,
+      { from: number; code: string; params: string[]; body: string }
+    >();
+    for (const statement of this.parsed.statements) {
+      if (statement.kind !== "handler" || !statement.name) continue;
+      const m = /^(?:async )?function [\w$]+\(([^)]*)\) \{([\s\S]*)\}$/.exec(
+        statement.code.trim(),
+      );
+      if (!m) {
+        this.reject(statement.from, "outsideVocabulary", statement.name);
+        continue;
+      }
+      out.set(statement.name, {
+        from: statement.from,
+        code: statement.code,
+        params: m[1]!
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean),
+        body: m[2]!,
+      });
+    }
+    return (this.fnCache = out);
+  }
+  private fnCache?: ReadonlyMap<
+    string,
+    { from: number; code: string; params: string[]; body: string }
+  >;
+
+  /** A handler `(…) => { onA(…); onB(…); }` → the named functions it calls (undefined = inline). */
+  private namedCalls(attribute: CodeViewAttribute): string[] | undefined {
+    const code =
+      attribute.value?.kind === "expression" ? attribute.value.code.trim() : "";
+    const arrow = /^\(([^)]*)\) => \{([\s\S]*)\}$/.exec(code);
+    if (!arrow) return undefined;
+    const calls = arrow[2]!
+      .split(";")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const names = calls.map(
+      (call) => /^([A-Za-z_$][\w$]*)\(([^)]*)\)$/.exec(call)?.[1],
+    );
+    const fns = this.handlerFns;
+    // (A named state's setter may lead — derived from the control's state, ADR-287.)
+    const named = names.filter((name) => !!name && fns.has(name));
+    return named.length &&
+      names.every((name) => !!name && (fns.has(name) || /^set[A-Z]/.test(name)))
+      ? (named as string[])
+      : undefined;
+  }
+
+  /** Whether a handler attribute calls a function whose code the edit changed. */
+  private callsChangedHandler(attribute: CodeViewAttribute): boolean {
+    const calls = this.namedCalls(attribute);
+    if (!calls) return false;
+    const before = new Map(
+      parseCodeView(this.baseline.code)
+        .statements.filter((item) => item.kind === "handler")
+        .map((item) => [item.name, codeViewNormalized(item.code)]),
+    );
+    return calls.some(
+      (name) =>
+        before.get(name) !==
+        codeViewNormalized(this.handlerFns.get(name)?.code ?? ""),
+    );
+  }
+
   private planHandlers(
     element: CodeViewElement,
     node: { readonly id: NodeId },
     type: string,
     handlers: ReadonlyMap<string, CodeViewAttribute | undefined>,
   ): void {
-    const triggers = resolveTriggers(type);
+    const triggers = allTriggers(type);
     const rules = (
       this.reader.getEntry(this.reader.projectId) as ProjectEntry
     ).interactionIds
@@ -1299,6 +1673,18 @@ class Planner {
     const next: InteractionEntry[] = rules.filter(
       (rule) => !handlers.has(rule.trigger),
     );
+    const newRule = (
+      trigger: string,
+      actions: InteractionAction[],
+      id?: string,
+    ) =>
+      ({
+        kind: "interaction",
+        id: id ?? (this.input.newId("interaction") as EntryId<"interaction">),
+        ownerId: node.id,
+        trigger,
+        actions,
+      }) as InteractionEntry;
     for (const [trigger, attribute] of handlers) {
       if (!attribute) continue;
       // (ADR-294 — a received component event is the instance's own When; the document checks it.)
@@ -1306,18 +1692,38 @@ class Planner {
         this.reject(attribute.from, "outsideVocabulary", trigger);
         continue;
       }
+      const own = rules.filter((rule) => rule.trigger === trigger);
+      // ADR-296 E9 — several rules: each named function is one rule (its id by its name).
+      const calls = this.namedCalls(attribute);
+      this.readHandlers.add(attribute);
+      if (calls) {
+        for (const name of calls) this.readFunctions.add(name);
+        const used = new Set<string>();
+        for (const name of calls) {
+          const fn = this.handlerFns.get(name)!;
+          const known = this.baseline.symbols.handlers?.[name];
+          const kept =
+            known && own.some((rule) => rule.id === known) && !used.has(known)
+              ? known
+              : undefined;
+          const actions = this.dosOf(fn.body, fn.from, {
+            trigger,
+            args: componentEventKeyOf(trigger)
+              ? COMPONENT_EVENT_ARGS
+              : (eventArgNames(trigger)[0] ?? []),
+            fields: eventArgsAreFields(trigger),
+            params: fn.params,
+            ownerId: node.id,
+          });
+          if (!actions) continue;
+          if (kept) used.add(kept);
+          next.push(newRule(trigger, actions, kept));
+        }
+        continue;
+      }
       const actions = this.actionsOf(trigger, attribute, node.id);
       if (!actions) continue;
-      const kept = rules.find((rule) => rule.trigger === trigger);
-      next.push({
-        kind: "interaction",
-        id:
-          kept?.id ??
-          (this.input.newId("interaction") as EntryId<"interaction">),
-        ownerId: node.id,
-        trigger,
-        actions,
-      } as InteractionEntry);
+      next.push(newRule(trigger, actions, own[0]?.id));
     }
     this.step(
       element.from,
@@ -1411,9 +1817,30 @@ class Planner {
   ): InteractionAction | undefined {
     const node = this.reader.getEntry(nodeId);
     if (node?.kind !== "node") return undefined;
-    const defs = Object.entries(
-      resolveCapabilities(definitionTypeName(this.reader, node.definitionId)),
-    ).filter(([, def]) => !def.imperative && def.prop === prop);
+    const all = resolveCapabilities(
+      definitionTypeName(this.reader, node.definitionId),
+    );
+    // ADR-296 E2 — the display state (`isVisible`): show · hide · toggle by the value written.
+    if (prop === "isVisible") {
+      const id =
+        next === "true"
+          ? "show"
+          : next === "false"
+            ? "hide"
+            : next === "v => !v"
+              ? "toggle"
+              : undefined;
+      return id && all[id]
+        ? ({
+            opcode: "capability",
+            target: { nodeId: node.id },
+            capabilityId: id,
+          } as InteractionAction)
+        : undefined;
+    }
+    const defs = Object.entries(all).filter(
+      ([, def]) => !def.imperative && def.prop === prop,
+    );
     const add = /^v => new Set\(\[\.\.\.v, (.+)\]\)$/.exec(next);
     const remove =
       /^v => new Set\(\[\.\.\.v\]\.filter\(key => key !== (.+)\)\)$/.exec(next);
@@ -1536,6 +1963,8 @@ class Planner {
     };
     const actions: InteractionAction[] = [];
     const lines = body
+      // (A line comment — the generator's note over a kept Do — is not a Do.)
+      .replace(/^\s*\/\/.*$/gm, "")
       .split(/;\s*\n/)
       .map((line) => line.trim().replace(/;$/, ""))
       .filter(Boolean);
@@ -1564,10 +1993,72 @@ class Planner {
         /^await fetch\(('(?:[^'\\]|\\.)*'), \{method: ('[A-Z]+')(?:, body: JSON\.stringify\(([\s\S]+)\))?\}\)$/.exec(
           raw,
         );
+      // ADR-296 E3 — an imperative Do on a node's ref (`formRef.current?.submit()`).
+      const imperative = /^([A-Za-z_$][\w$]*)\.current\?\.(\w+)\(\)$/.exec(raw);
+      if (imperative) {
+        const nodeId = this.baseline.symbols.refs?.[imperative[1]!];
+        const node = nodeId ? this.reader.getEntry(nodeId) : undefined;
+        const def =
+          node?.kind === "node"
+            ? resolveCapabilities(
+                definitionTypeName(this.reader, node.definitionId),
+              )[imperative[2]!]
+            : undefined;
+        if (!nodeId || !def?.imperative) {
+          this.reject(from, "unknownReference", imperative[1]);
+          return undefined;
+        }
+        actions.push({
+          opcode: "capability",
+          target: { nodeId },
+          capabilityId: imperative[2]!,
+        } as InteractionAction);
+        continue;
+      }
+      // ADR-296 E4 · E13 — a Do on a target the code names by reference (`{target: null}` = unset).
+      const targeted =
+        /^capability\(('(?:[^'\\]|\\.)*'), \{target: (null|'(?:[^'\\]|\\.)*')(?:, value: ([\s\S]+))?\}\)$/.exec(
+          raw,
+        );
+      if (targeted) {
+        const ref = targeted[2] === "null" ? null : literalOf(targeted[2]!);
+        const target =
+          ref === null
+            ? { unset: true }
+            : this.baseline.symbols.targets?.[String(ref)];
+        if (!target) {
+          this.reject(from, "unknownReference", String(ref));
+          return undefined;
+        }
+        actions.push({
+          opcode: "capability",
+          target,
+          capabilityId: literalOf(targeted[1]!),
+          ...(targeted[3] !== undefined ? { value: valueOf(targeted[3]) } : {}),
+        } as InteractionAction);
+        continue;
+      }
+      // ADR-296 E13 — a Do the code cannot write, as the document holds it.
+      const keep = /^keep\(('(?:[^'\\]|\\.)*')\)$/.exec(raw);
+      if (keep) {
+        const action =
+          this.baseline.symbols.kept?.[String(literalOf(keep[1]!))];
+        if (!action) {
+          this.reject(from, "unknownReference", keep[1]);
+          return undefined;
+        }
+        actions.push(action as InteractionAction);
+        continue;
+      }
       // ADR-294 — an origin rule sends its component's event (`props.onSelect?.(value)`).
       const sent = /^props\.(on[A-Z][\w$]*)\?\.\(([\s\S]*)\)$/.exec(raw);
       if (sent) {
-        const action = this.emitOf(sent[1]!, sent[2]!, context.ownerId, valueOf);
+        const action = this.emitOf(
+          sent[1]!,
+          sent[2]!,
+          context.ownerId,
+          valueOf,
+        );
         if (!action) {
           this.reject(from, "unknownReference", sent[1]);
           return undefined;
@@ -1686,11 +2177,41 @@ class Planner {
         actions.push({ opcode: "navigate", pageId } as InteractionAction);
         continue;
       }
+      // ADR-296 E11 — an endpoint by its name (`await saveOrder({body})` — `api/saveOrder.ts`).
+      const named =
+        /^await ([A-Za-z_$][\w$]*)\((?:\{body: ([\s\S]+)\})?\)$/.exec(raw);
+      if (named && !fetchCall) {
+        const project = this.reader.getEntry(
+          this.reader.projectId,
+        ) as ProjectEntry;
+        const endpointId = (project.endpointIds ?? []).find((id) => {
+          const entry = this.reader.getEntry(id);
+          return (
+            entry?.kind === "endpoint" && codeNameOf(entry.name) === named[1]
+          );
+        });
+        if (!endpointId) {
+          this.reject(from, "unknownReference", named[1]);
+          return undefined;
+        }
+        actions.push({
+          opcode: "callEndpoint",
+          endpointId,
+          ...(named[2] !== undefined ? { body: valueOf(named[2]) } : {}),
+        } as InteractionAction);
+        continue;
+      }
       if (fetchCall) {
         const url = literalOf(fetchCall[1]!);
-        const endpoint = this.input.data.endpoints.find(
+        const matches = this.input.data.endpoints.filter(
           (item) => item.url === url,
         );
+        // ADR-296 E11 — the URL names two endpoints: the call is refused (Phase 3: by name).
+        if (matches.length > 1) {
+          this.reject(from, "ambiguousEndpoint", String(url));
+          return undefined;
+        }
+        const endpoint = matches[0];
         if (!endpoint) {
           this.reject(from, "unknownReference", String(url));
           return undefined;
@@ -1763,18 +2284,42 @@ class Planner {
           parts.length === 1
         )
           action = one("value", parts[0]!);
-        else if (
-          method === "remove" &&
-          parts.length === 1 &&
-          parts[0]!.startsWith("...")
-        )
-          action = one("keys", parts[0]!.slice(3));
+        // ADR-296 E10 — `useTreeData.append(parentKey, …)` · `prepend(parentKey, …)`.
+        else if (["append", "prepend"].includes(method) && parts.length === 2)
+          action = {
+            opcode: method,
+            collectionId,
+            parentKey: valueOf(parts[0]!),
+            value: valueOf(parts[1]!),
+          } as never;
+        else if (method === "remove" && parts.length === 1)
+          // (`...keys` — a key list; one key is one argument, E12.)
+          action = one(
+            "keys",
+            parts[0]!.startsWith("...") ? parts[0]!.slice(3) : parts[0]!,
+          );
         else if (method === "insert" && parts.length === 2)
           action = {
             opcode: "insert",
             collectionId,
             index: valueOf(parts[0]!),
             value: valueOf(parts[1]!),
+          } as never;
+        else if (method === "insert" && parts.length === 3)
+          action = {
+            opcode: "insert",
+            collectionId,
+            parentKey: valueOf(parts[0]!),
+            index: valueOf(parts[1]!),
+            value: valueOf(parts[2]!),
+          } as never;
+        else if (method === "move" && parts.length === 3)
+          action = {
+            opcode: "move",
+            collectionId,
+            key: valueOf(parts[0]!),
+            toParentKey: valueOf(parts[1]!),
+            toIndex: valueOf(parts[2]!),
           } as never;
         else if (
           ["insertBefore", "insertAfter"].includes(method) &&
@@ -1868,7 +2413,20 @@ function compareRegenerated(
   // Statements: each written one comes back (in any order); a derived one the edit did not
   // write is the document's to add — any other the edit did not write is not what it wrote.
   const pool = [...regenerated.statements];
+  const baselineHandlers = new Set(
+    baseline.statements
+      .filter((item) => item.kind === "handler")
+      .map((item) => codeViewNormalized(item.code)),
+  );
   for (const statement of edited.statements) {
+    // ADR-296 (판독 MEDIUM-1) — a named handler is its rule: read (planned) or as the baseline wrote
+    // it; its name is a position the regenerated code may number again.
+    if (
+      statement.kind === "handler" &&
+      (planner.readFunctions.has(statement.name ?? "") ||
+        baselineHandlers.has(codeViewNormalized(statement.code)))
+    )
+      continue;
     const text = codeViewNormalized(statement.code);
     const index = pool.findIndex(
       (item) => codeViewNormalized(item.code) === text,
@@ -1897,7 +2455,11 @@ function compareRegenerated(
         : "outsideVocabulary",
     );
   }
-  if (pool.some((item) => !DERIVED_KINDS.has(item.kind)))
+  if (
+    pool.some(
+      (item) => !DERIVED_KINDS.has(item.kind) && item.kind !== "handler",
+    )
+  )
     reject(edited.component?.from ?? 0, "outsideVocabulary");
   // Elements: the same tree, each written attribute · text as written (a new element may gain
   // its palette defaults).
@@ -1925,6 +2487,16 @@ function compareRegenerated(
         const twin = other.attributes.find(
           (item) => item.name === attribute.name,
         );
+        // (A node's ref is derived from the Dos that call it — ADR-296 E3.)
+        if (attribute.name === "ref") continue;
+        // (A handler read into rules, or as the baseline wrote it: its rules are the meaning.)
+        if (
+          twin &&
+          /^on[A-Z]/.test(attribute.name) &&
+          (planner.readHandlers.has(attribute) ||
+            planner.sameAsBaseline(element, attribute))
+        )
+          continue;
         if (
           !twin ||
           codeViewNormalized(
@@ -1935,7 +2507,10 @@ function compareRegenerated(
       }
       if (!fresh)
         for (const twin of other.attributes)
-          if (!element.attributes.some((item) => item.name === twin.name))
+          if (
+            twin.name !== "ref" &&
+            !element.attributes.some((item) => item.name === twin.name)
+          )
             reject(element.from, "notInCode", twin.name);
       if (
         (element.text || !fresh) &&
@@ -1956,6 +2531,11 @@ function compareRegenerated(
     regenerated.jsx?.roots ?? [],
     edited.jsx?.from ?? 0,
   );
+  // ADR-296 E7 — the page element (`<Page …>`) as written, or `<>` on both sides.
+  const page = edited.jsx?.page;
+  const twin = regenerated.jsx?.page;
+  if (!!page !== !!twin) reject(edited.jsx?.from ?? 0, "notInCode", "Page");
+  else if (page && twin) compare([page], [twin], edited.jsx?.from ?? 0);
 }
 
 /** An import the document's code covers: the same module, names the document imports too. */

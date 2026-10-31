@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-296 Phase 0 ~ 3 — 코드 보기 = 프로젝트 파일 트리 (App · pages · data · api · state)] - 2026-10-31
+
+### Added
+
+- **코드 패널의 파일 목록 · 탭 · 여러 파일 Apply**: 코드 보기가 page 한 파일에서 프로젝트의 가상 파일 트리로 넓어졌다 — `src/App.tsx` · `src/pages/<Page>.tsx` · `src/data/<collection>.ts` · `src/api/<endpoint>.ts` · `src/state/project.ts`. 목록은 이름만 열거하고 파일은 열 때 하나만 만든다. 초안이 있는 파일은 탭 · 목록에 표시되고, **Apply 한 번이 초안 전부를 한 명령 (Undo 1) 으로** 적용한다 — 하나라도 거절이면 아무것도 적용하지 않는다. 정의 파일 (App · data · api · state) 을 먼저 계획하므로 같은 Apply 에서 새로 만든 page · collection · 바꾼 변수 이름을 page 코드가 바로 쓸 수 있다.
+- **`App.tsx`** = `createBrowserRouter([{path, element, children}])` (page 추가 · 삭제 · path · 부모 · 이름 · 순서 · layout route) · `<ToastContainer placement>` · `<Theme name>`.
+- **page 파일**: body 자신의 prop · 규칙이 있으면 `<Page …>` 래퍼 · `<title>` · `<meta>` (page meta) · `useParams()` · 작성자 `id` · `className` · `aria-label` · `{false && <T/>}` (꺼진 노드).
+- **data · api · state 파일**: collection 의 필드 · 설정 · 행 (`updateCollection` · 새 파일은 `addCollection`) · `endpoint({…})` (`setEndpoint`) · 프로젝트 변수 `cart: 0, // persist` (`setProjectVariable` · `renameVariable` · 삭제). page 는 프로젝트 변수를 `let {cart, setCart} = useProjectState();` 로, endpoint 를 `await saveOrder({body})` 로 부른다.
+
+### Fixed
+
+- **코드에 출력만 되고 고치면 거절되던 형태**: 패널이 숨기는 When (hover · press 부수 · focus) · show / hide / toggle (`setTextIsVisible(false)`) · Form submit · reset (`formRef` 선언 없음) · 대상이 instance 안 · 원본 · 다른 page · 「대상 없음」 인 Do (주석으로 나가 편집하면 사라짐) → `capability('hide', {target: '<ref>' | null})` · `keep('do-N')` 로 문서 그대로 보존.
+- **같은 When 의 규칙 여러 개가 handler 하나로 합쳐지던 것**: 규칙마다 이름 붙은 함수 (`function onButtonPress() {…}`) — 규칙 경계 · id · 독립 실행이 코드에서도 유지된다 (사용자 결정 7).
+- tree `append` · `insert` · `move` 의 부모 key 가 코드에서 빠지던 것 · 한 key `remove` 가 `...key` 로 쓰이던 것 · token prop 이 조용히 빠지던 것 (`token('<name>')`) · CalendarDuration · NumberFormat prop 을 고치면 거절되던 것 · instance 위치 규칙이 instance 요소의 handler 로 잘못 나오던 것.
+- 검증: RED 16 (Phase 0) → GREEN 14 (남은 2 = Phase 5 몫) · 어휘표 행마다 read 실증 게이트 · 파일 간 참조 · 원자성 반례 · 원복 RED 2 종 · 번들 Builder initial +102 B / Preview 0 (기준 `44af0b81e`) · live (별도 dev 서버 — App + page 한 Apply → Undo 1 · 새로고침 유지).
+
 ## [ADR-294 — 중첩 입력값과 instance별 API 필터 수정] - 2026-10-31
 
 ### Fixed
