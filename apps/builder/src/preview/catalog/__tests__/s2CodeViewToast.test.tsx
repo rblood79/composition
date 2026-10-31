@@ -119,3 +119,71 @@ describe("S2 toast options in the code view", () => {
     expect(actions(h, button)[0]).toMatchObject({ variant: "info" });
   });
 });
+
+/**
+ * 295 후속 C8 — S2 `ToastOptions` `actionLabel` · `shouldCloseOnAction` · `onAction`: the action
+ * button's Dos are the arrow's body (a closure over the handler's event); they read back to the
+ * same nested Dos, and an edit inside the arrow is their edit.
+ */
+describe("S2 toast action button in the code view", () => {
+  const actionToast: InteractionAction = {
+    opcode: "toast",
+    message: "Deleted",
+    variant: "neutral",
+    actionLabel: "Undo",
+    shouldCloseOnAction: true,
+    onAction: [{ opcode: "toast", message: "Restored", variant: "positive" }],
+  };
+
+  it("actionLabel · shouldCloseOnAction · onAction are in the code; the queue's type names them", async () => {
+    const { h } = await open(actionToast);
+    const code = h.code();
+    expect(code).toContain(
+      "toasts.add({title: 'Deleted', variant: 'neutral', actionLabel: 'Undo', shouldCloseOnAction: true, onAction: () => {",
+    );
+    expect(code).toContain(
+      "toasts.add({title: 'Restored', variant: 'positive'});",
+    );
+    expect(code).toMatch(
+      /onAction\?: \(\) => void; shouldCloseOnAction\?: boolean\}>\(\);/,
+    );
+    expect(strictRejected(h)).toEqual([]);
+  });
+
+  it("an edit inside onAction is the nested Do's edit; removing the arrow removes them", async () => {
+    const { h, button } = await open(actionToast);
+    let result = h.apply(
+      h.code().replace("title: 'Restored'", "title: 'Back again'"),
+    );
+    expect(result.rejected).toEqual([]);
+    expect(actions(h, button)).toEqual([
+      {
+        ...actionToast,
+        onAction: [
+          { opcode: "toast", message: "Back again", variant: "positive" },
+        ],
+      },
+    ]);
+    const code = h.code();
+    const start = code.indexOf(", onAction: () => {");
+    const end = code.indexOf("}});", start);
+    result = h.apply(code.slice(0, start) + "});" + code.slice(end + 4));
+    expect(result.rejected).toEqual([]);
+    const { onAction: _dos, ...withoutDos } = actionToast;
+    expect(actions(h, button)).toEqual([withoutDos]);
+  });
+
+  it("a button label with a timeout is refused (S2: an actionable toast stays)", async () => {
+    const { h, button } = await open({ opcode: "toast", message: "Hi" });
+    const refused = h.apply(
+      h
+        .code()
+        .replace(
+          "toasts.add({title: 'Hi'});",
+          "toasts.add({title: 'Hi', actionLabel: 'Undo'}, {timeout: 6000});",
+        ),
+    );
+    expect(refused.rejected.length).toBeGreaterThan(0);
+    expect(actions(h, button)).toEqual([{ opcode: "toast", message: "Hi" }]);
+  });
+});

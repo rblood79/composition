@@ -1,4 +1,5 @@
 import { componentTypeSet } from "../../domain/componentTraits";
+import { mapCatalogActionsDeep } from "../document/interactionActions";
 import { ownedChildren } from "../document/graph";
 import {
   mapShowWhenAddress,
@@ -1084,7 +1085,7 @@ function reanchorInteractions(
         };
     }
     // (ADR-284: every capability Do of the rule.)
-    const actions = next.actions.map((action) => {
+    const actions = mapCatalogActionsDeep(next.actions, (action) => {
     if (action.opcode === "capability" && "address" in action.target) {
       const moved = move(action.target.address);
       const target =

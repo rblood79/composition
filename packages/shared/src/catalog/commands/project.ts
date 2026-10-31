@@ -1,4 +1,5 @@
 import { mapBindingViewVariables } from "../document/viewRefs";
+import { mapCatalogActionsDeep } from "../document/interactionActions";
 import { cloneNodeSubgraph } from "../document/clone";
 import type {
   CatalogReader,
@@ -215,7 +216,7 @@ export const duplicatePage =
         if (entry.kind === "interaction")
           related.push({
             ...entry,
-            actions: entry.actions.map((action) =>
+            actions: mapCatalogActionsDeep(entry.actions, (action) =>
               action.opcode === "setState" && variables.has(action.variableId)
                 ? { ...action, variableId: variables.get(action.variableId)! }
                 : action,

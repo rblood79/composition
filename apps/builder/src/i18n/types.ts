@@ -670,6 +670,8 @@ export interface TranslationKeys {
     addEvent: string;
     deleteEvent: string;
     addDo: string;
+    toastActionDos: string;
+    addToastActionDo: string;
     removeDo: string;
     doList: string;
     editEvent: string;
@@ -750,6 +752,8 @@ export interface TranslationKeys {
     paramMessage: string;
     paramToastVariant: string;
     paramTimeout: string;
+    paramToastActionLabel: string;
+    paramToastCloseOnAction: string;
     /** ADR-287 — a reference API Do's label: the prop name in a generic phrase. */
     setProp: string;
     propOn: string;

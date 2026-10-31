@@ -100,6 +100,23 @@
   grid-template-columns: minmax(0, 1fr) var(--control-size);
 }
 
+/* 295 후속 C8 — toast 의 action 버튼 Do (S2 onAction): 같은 편집기를 안쪽에 한 단 들여 그린다.
+   요약 · When 은 없다 (바깥 규칙의 event 를 읽는다). */
+.interaction-rule-toast-action {
+  border-inline-start: 2px solid var(--border);
+  padding-inline-start: var(--spacing-sm);
+}
+
+.interaction-rule-nested > .interaction-rule-editor {
+  padding: 0;
+  border-top: 0;
+}
+
+.interaction-rule-dos.fieldset-row:has(> :only-child) {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: end;
+}
+
 /* ADR-281 Decision 1 — 선언값이 막는 규칙의 표식 (삭제하지 않는다) */
 .interaction-rule-refusal {
   margin: 0;

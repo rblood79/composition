@@ -1,4 +1,5 @@
 import { instanceContract } from "../document/library";
+import { mapCatalogActionsDeep } from "../document/interactionActions";
 import { mapShowWhenAddresses } from "../document/stateOwnerRefs";
 import type {
   CatalogReader,
@@ -519,7 +520,7 @@ export function planSwapInstance(
       // ADR-283 Decision 3: a capability target through the node moves the same way; one with no
       // place stays as 「no target」 (user decision 3).
       let counted = next !== entry;
-      const actions = next.actions.map((action) => {
+      const actions = mapCatalogActionsDeep(next.actions, (action) => {
         if (action.opcode !== "capability") return action;
         const target = action.target;
         const steps =

@@ -1,4 +1,5 @@
 import { mapNodeRefIds, mapShowWhenNodeIds } from "./stateOwnerRefs";
+import { catalogActionsDeep } from "./interactionActions";
 import type {
   CatalogReader,
   DefinitionId,
@@ -126,7 +127,9 @@ export function cloneNodeSubgraph(
         id: relatedIds.get(entry.id) as EntryId<"stateVariable">,
         ownerId: map(entry.ownerId as NodeId),
       };
-    const actions = structuredClone(entry.actions).map((action) => {
+    // (Nested Dos too — a toast's `onAction`.)
+    const actions = structuredClone(entry.actions);
+    for (const action of catalogActionsDeep(actions)) {
       if (
         action.opcode === "setState" &&
         action.variableId.startsWith("project:")
@@ -135,8 +138,7 @@ export function cloneNodeSubgraph(
           action.variableId) as EntryId<"stateVariable">;
       if (action.opcode === "capability")
         action.target = mapNodeRefIds(action.target, map);
-      return action;
-    });
+    }
     return {
       ...structuredClone(entry),
       id: relatedIds.get(entry.id) as EntryId<"interaction">,

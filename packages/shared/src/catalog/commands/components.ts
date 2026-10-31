@@ -15,6 +15,7 @@ import type {
   TemplateId,
   WriteValue,
 } from "../document/types";
+import { mapCatalogActionsDeep } from "../document/interactionActions";
 import {
   positionLayout,
   withoutPositionLayout,
@@ -232,7 +233,7 @@ function rewriteAddressesThroughExtracted(
       // ADR-283 Decision 3: a capability target through the node. An address · a `local` held
       // outside the node passes through the instance; a `local` held inside it is relative to the
       // new template root (above it — unreachable from the new template: no target).
-      const actions = next.actions.map((action) => {
+      const actions = mapCatalogActionsDeep(next.actions, (action) => {
         if (action.opcode !== "capability" || "nodeId" in action.target)
           return action;
         const target = action.target;
@@ -412,7 +413,7 @@ function rewriteTargetsIntoComponent(
       return next;
       };
       // (ADR-284: every capability Do of the rule.)
-      const actions = entry.actions.map((action) => {
+      const actions = mapCatalogActionsDeep(entry.actions, (action) => {
         if (action.opcode !== "capability") return action;
         const next = retarget(action.target);
         return next ? { ...action, target: next } : action;

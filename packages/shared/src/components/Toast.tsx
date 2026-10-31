@@ -14,8 +14,9 @@
  * Its class names are its own (`catalog-toast*`): RAC's default `react-aria-Toast` is the document's Toast
  * node's (the generated sheet), not this. Sizes S2 grows on a touch device (`size()` — min height 56 ·
  * max width 336 · the close button) go inline as the device formula; the color · font come from the
- * theme tokens (`colorTokenToCss` · the `ui` font = `{typography.text-sm}`). Not shown: S2's view
- * transitions (slide · cross fade), the action button (`actionLabel` · `onAction` — a rule has no nested Do).
+ * theme tokens (`colorTokenToCss` · the `ui` font = `{typography.text-sm}`). The action button (S2
+ * `actionLabel` · `onAction` · `shouldCloseOnAction`) is S2's `Button variant="secondary"
+ * fillStyle="outline" staticColor="white"` — the document Button's sheet paints it.
  */
 import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { ToastContext } from "./ToastContext";
@@ -30,9 +31,15 @@ export interface ToastOptions {
   title: string;
   /** Absent = `info` (S2 `toast.content.variant || 'info'`). */
   variant?: ToastVariant;
-  /** ms; absent = until closed. A set timeout is at least 5000 (S2). */
+  /** ms; absent = until closed. A set timeout is at least 5000 (S2); an actionable toast has none. */
   timeout?: number;
   onClose?: () => void;
+  /** S2 `ToastOptions.actionLabel` — the action button's text (absent = no button). */
+  actionLabel?: string;
+  /** S2 `ToastOptions.onAction` — runs when the action button is pressed. */
+  onAction?: () => void;
+  /** S2 `ToastOptions.shouldCloseOnAction` — the toast closes after its action. */
+  shouldCloseOnAction?: boolean;
 }
 
 type RegionModule = typeof import("./ToastRegion.lazy");

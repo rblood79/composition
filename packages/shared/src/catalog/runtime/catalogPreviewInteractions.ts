@@ -122,15 +122,27 @@ function actionOf(
         ? { kind: "navigate", params: { path: page.route } }
         : undefined;
     }
-    case "toast":
+    case "toast": {
+      // S2 `onAction` — its Dos convert as the rule's do: one that does not resolve here drops the
+      // rule (the button would run a list with a step missing).
+      const onAction: InteractionRule["actions"][number][] = [];
+      for (const nested of action.onAction ?? []) {
+        const converted = actionOf(graph, root, entry, nested, elementId);
+        if (!converted) return undefined;
+        onAction.push(converted);
+      }
       return {
         kind: "toast",
         params: {
           message: action.message,
           ...(action.variant ? { variant: action.variant } : {}),
           ...(action.timeout ? { timeout: action.timeout } : {}),
+          ...(action.actionLabel ? { actionLabel: action.actionLabel } : {}),
+          ...(action.shouldCloseOnAction ? { shouldCloseOnAction: true } : {}),
         },
+        ...(onAction.length ? { onAction } : {}),
       };
+    }
     case "capability": {
       // ADR-283 Decision 2: the target as the record that fired sees it (same row · instance).
       const resolved = resolveCapabilityTarget(

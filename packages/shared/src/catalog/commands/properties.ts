@@ -1,4 +1,5 @@
 import { ownedChildren } from "../document/graph";
+import { catalogActionsDeep, filterCatalogActionsDeep } from "../document/interactionActions";
 import {
   componentEventAttribute,
   componentEventKeyOf,
@@ -200,13 +201,14 @@ function removeComponentOutputs(
         continue;
       }
       if (
-        !rule.actions.some(
+        !catalogActionsDeep(rule.actions).some(
           (action) => action.opcode === "emit" && events.has(action.propertyKey),
         ) ||
         emitDefinitionOf(rule, get, ownerOf) !== definitionId
       )
         continue;
-      const actions = rule.actions.filter(
+      const actions = filterCatalogActionsDeep(
+        rule.actions,
         (action) => action.opcode !== "emit" || !events.has(action.propertyKey),
       );
       if (actions.length) draft.write({ ...rule, actions });

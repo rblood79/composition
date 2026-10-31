@@ -2018,8 +2018,8 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
       // ADR-284 Decision 8 — the Do list (one action = a list of one).
       if (!Array.isArray(item.actions) || item.actions.length === 0)
         invalid("ACTIONS_REQUIRED", "entry.actions");
-      for (const [actionIndex, raw] of item.actions.entries()) {
-        const at = `entry.actions[${actionIndex}]`;
+      // (A toast's `onAction` holds its own Dos — S2 `ToastOptions.onAction` — checked the same way.)
+      const validateAction = (raw: unknown, at: string): void => {
         const action = object(raw, at);
         if (action.opcode === "setState") {
           exact(action, ["opcode", "variableId", "op", "value"], `${at}`);
@@ -2151,8 +2151,41 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           id(action.collectionId, "data:collection:", `${at}.collectionId`);
           if (action.keys !== undefined) scalar(action.keys, `${at}.keys`);
         } else if (action.opcode === "toast") {
-          exact(action, ["opcode", "message", "variant", "timeout"], `${at}`);
+          exact(
+            action,
+            [
+              "opcode",
+              "message",
+              "variant",
+              "timeout",
+              "actionLabel",
+              "shouldCloseOnAction",
+              "onAction",
+            ],
+            `${at}`,
+          );
           string(action.message, `${at}.message`);
+          // S2: the action button needs its label; `onAction` · `shouldCloseOnAction` go with it.
+          if (action.actionLabel !== undefined)
+            string(action.actionLabel, `${at}.actionLabel`);
+          else if (
+            action.onAction !== undefined ||
+            action.shouldCloseOnAction !== undefined
+          )
+            invalid("TOAST_ACTION_LABEL_REQUIRED", `${at}.actionLabel`);
+          // (S2 `addToast`: an actionable toast is never auto dismissed — WCAG 2.2.1.)
+          if (action.actionLabel !== undefined && action.timeout !== undefined)
+            invalid("INVALID_TOAST_TIMEOUT", `${at}.timeout`);
+          if (action.shouldCloseOnAction !== undefined)
+            boolean(action.shouldCloseOnAction, `${at}.shouldCloseOnAction`);
+          if (action.onAction !== undefined) {
+            if (!Array.isArray(action.onAction) || action.onAction.length === 0)
+              invalid("ACTIONS_REQUIRED", `${at}.onAction`);
+            for (const [index, nested] of (
+              action.onAction as unknown[]
+            ).entries())
+              validateAction(nested, `${at}.onAction[${index}]`);
+          }
           if (
             action.variant !== undefined &&
             !CATALOG_TOAST_VARIANTS.includes(
@@ -2187,7 +2220,9 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
             else scalar(action.value, `${at}.value`);
           }
         } else invalid("UNKNOWN_ACTION_OPCODE", `${at}.opcode`);
-      }
+      };
+      for (const [actionIndex, raw] of item.actions.entries())
+        validateAction(raw, `entry.actions[${actionIndex}]`);
       break;
     }
     case "collection": {

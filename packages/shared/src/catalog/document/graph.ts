@@ -1,4 +1,5 @@
 import { catalogColorControlPropsError } from "./colorValue";
+import { catalogActionsDeep } from "./interactionActions";
 import { isDateValueText } from "../../state/dateValue";
 import { LIBRARY_CONTRACT_VERSION } from "./types";
 import { catalogPropValueFits, isPropVar } from "./valueType";
@@ -209,7 +210,8 @@ export function referencedIds(entry: CatalogEntry): string[] {
   if (entry.kind === "interaction") {
     ids.push(entry.ownerId);
     if (entry.address) address(entry.address);
-    for (const action of entry.actions) {
+    // (Nested Dos too — a toast's `onAction`.)
+    for (const action of catalogActionsDeep(entry.actions)) {
       if (action.opcode === "navigate") ids.push(action.pageId);
       // ADR-283 Decision 3: every project id of a target's address (a swap · extraction · delete
       // of a middle step finds the rule), as the owner address.
@@ -1556,7 +1558,7 @@ export class CatalogGraph {
       // ADR-284 Decision 8 — a rule's Do list: at least one, each checked as one rule was.
       if (!entry.actions.length)
         throw new CatalogValidationError("EMPTY_ACTIONS", entry.id);
-      for (const action of entry.actions) {
+      for (const action of catalogActionsDeep(entry.actions)) {
         if (!library.execution.actionOpCodes.has(action.opcode))
           throw new CatalogValidationError(
             "UNKNOWN_ACTION_OPCODE",

@@ -7,6 +7,7 @@ import type {
   NodeId,
   TemplateId,
 } from "../../../../../packages/shared/src/catalog/document/types";
+import { catalogActionsDeep } from "../../../../../packages/shared/src/catalog/document/interactionActions";
 import { ownedChildren } from "../../../../../packages/shared/src/catalog/document/graph";
 import type { CatalogInteractionOwner } from "./interactions";
 import type { CatalogVariableReader } from "./stateVariables";
@@ -133,7 +134,7 @@ export function catalogUnsetTargetRuleCount(document: {
   for (const entry of Object.values(document.entries) as InteractionEntry[])
     if (
       entry?.kind === "interaction" &&
-      entry.actions.some(
+      catalogActionsDeep(entry.actions).some(
         (action) => action.opcode === "capability" && "unset" in action.target,
       )
     )

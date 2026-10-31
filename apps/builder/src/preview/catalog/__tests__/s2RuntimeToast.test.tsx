@@ -324,3 +324,120 @@ describe("S2 toast — view transitions · the expanded list takes over the scre
     }
   });
 });
+
+describe("S2 toast action button (295 후속 C8)", () => {
+  it("a rule's toast Do carries actionLabel · shouldCloseOnAction; the button runs its nested Dos", async () => {
+    const h = await openAdr280Preview(["Button"]);
+    const [button] = h.ids as [NodeId];
+    h.rule(button, "onPress", {
+      opcode: "toast",
+      message: "Deleted",
+      actionLabel: "Undo",
+      shouldCloseOnAction: true,
+      onAction: [{ opcode: "toast", message: "Restored", variant: "positive" }],
+    });
+    act(() => {
+      fireEvent.click(h.element(button)!);
+    });
+    expect(h.toasts).toEqual(["Deleted"]);
+    const options = h.toastOptions[0] as ToastOptions;
+    expect(options).toMatchObject({
+      actionLabel: "Undo",
+      shouldCloseOnAction: true,
+    });
+    act(() => options.onAction!());
+    expect(h.toasts).toEqual(["Deleted", "Restored"]);
+    expect(h.toastOptions[1]).toEqual({ variant: "positive" });
+    h.view.unmount();
+  });
+
+  it.each([
+    [
+      { onAction: [{ opcode: "toast", message: "x" }] },
+      "TOAST_ACTION_LABEL_REQUIRED",
+    ],
+    [{ shouldCloseOnAction: true }, "TOAST_ACTION_LABEL_REQUIRED"],
+    [{ actionLabel: "Undo", timeout: 6000 }, "INVALID_TOAST_TIMEOUT"],
+    [
+      {
+        actionLabel: "Undo",
+        onAction: [{ opcode: "toast", message: "x", variant: "warning" }],
+      },
+      "INVALID_TOAST_VARIANT",
+    ],
+    [{ actionLabel: "Undo", onAction: [] }, "ACTIONS_REQUIRED"],
+    // (A nested Do's reference is checked as a rule's — the document's reference index walks it.)
+    [
+      {
+        actionLabel: "Undo",
+        onAction: [{ opcode: "navigate", pageId: "project:page:gone" }],
+      },
+      "DANGLING_PAGE",
+    ],
+  ])("%j is refused (%s)", async (extra, code) => {
+    const h = await openAdr280Preview(["Button"]);
+    const [button] = h.ids as [NodeId];
+    let refused: unknown;
+    try {
+      h.rule(button, "onPress", {
+        opcode: "toast",
+        message: "x",
+        ...extra,
+      } as never);
+    } catch (error) {
+      refused = (error as { code?: unknown }).code;
+    }
+    expect(refused).toBe(code);
+    h.view.unmount();
+  });
+
+  it("the region draws S2's action Button (the document Button sheet: secondary · outline · static white); pressing runs onAction, then closes when asked", async () => {
+    const onAction = vi.fn();
+    const h = await show([
+      {
+        title: "Deleted",
+        actionLabel: "Undo",
+        onAction,
+        shouldCloseOnAction: true,
+      },
+    ]);
+    const action = h.button("Undo")!;
+    expect(action.className).toContain("react-aria-Button");
+    expect(action.className).toContain("button-base");
+    expect(action.dataset).toMatchObject({
+      variant: "secondary",
+      fillStyle: "outline",
+      staticColor: "white",
+      size: "M",
+    });
+    act(() => {
+      fireEvent.click(action);
+    });
+    expect(onAction).toHaveBeenCalledTimes(1);
+    expect(h.toasts()).toHaveLength(0);
+    h.view.unmount();
+  });
+
+  it("without shouldCloseOnAction the toast stays; an actionable toast has no timeout (S2)", async () => {
+    const onAction = vi.fn();
+    const h = await show([{ title: "first" }]);
+    vi.useFakeTimers();
+    act(() => {
+      h.add({ title: "Deleted", actionLabel: "Undo", onAction, timeout: 5000 });
+    });
+    act(() => {
+      vi.advanceTimersByTime(10000);
+    });
+    act(() => {
+      fireEvent.click(h.button("Show all")!);
+    });
+    act(() => {
+      fireEvent.click(h.button("Undo")!);
+    });
+    expect(onAction).toHaveBeenCalledTimes(1);
+    expect(h.view.container.ownerDocument.body.textContent).toContain(
+      "Deleted",
+    );
+    h.view.unmount();
+  });
+});

@@ -19,6 +19,7 @@
  * Markup is the document's node tree (types as RAC components, scalar props); styles are not code.
  * The slots (`CodeViewSlot`) record the 1:1 positions an edit maps back to.
  */
+import { catalogActionsDeep } from "../catalog/document/interactionActions";
 import { getPrimitiveBinding } from "../catalog/bindings";
 import { parseDateValue, type DateValueKind } from "../state/dateValue";
 import { definitionTypeName } from "../catalog/commands/context";
@@ -196,7 +197,7 @@ function isSelectionVariable(
   if (entry.valueType !== "array") return false;
   if (entry.source || !Array.isArray(entry.defaultValue)) return true;
   return interactions.some((rule) =>
-    rule.actions.some(
+    catalogActionsDeep(rule.actions).some(
       (action) =>
         action.opcode === "setState" &&
         action.variableId === entry.id &&
@@ -345,6 +346,8 @@ class Generator {
   private toasts = false;
   /** A toast Do names a variant (the queue's content type carries it). */
   private toastVariants = false;
+  /** A toast Do has an action button (S2 `actionLabel` · `onAction` · `shouldCloseOnAction`). */
+  private toastActions = false;
   private navigate = false;
   /** ADR-296 E9 — the rules of a When that holds several, as named functions (written before `return`). */
   private readonly handlerFns: {
@@ -432,6 +435,10 @@ class Generator {
         `const toasts = new UNSTABLE_ToastQueue<{title: string${
           this.toastVariants
             ? `; variant?: ${CATALOG_TOAST_VARIANTS.map((variant) => `'${variant}'`).join(" | ")}`
+            : ""
+        }${
+          this.toastActions
+            ? "; actionLabel?: string; onAction?: () => void; shouldCloseOnAction?: boolean"
             : ""
         }}>();`,
         { kind: "derived", key: "toasts" },
@@ -552,7 +559,7 @@ class Generator {
     const written = new Set<string>();
     for (const rules of this.rules.values())
       for (const rule of rules)
-        for (const action of rule.actions)
+        for (const action of catalogActionsDeep(rule.actions))
           if ("collectionId" in action && action.collectionId)
             written.add(action.collectionId);
     const addRowSource = (collectionId: string) => {
@@ -627,7 +634,7 @@ class Generator {
     // A capability's target prop that no variable names: a state of its own.
     for (const rules of this.rules.values())
       for (const rule of rules)
-        for (const action of rule.actions) {
+        for (const action of catalogActionsDeep(rule.actions)) {
           if (action.opcode !== "capability" || !("nodeId" in action.target))
             continue;
           const target = this.doc.node(action.target.nodeId);
@@ -2249,14 +2256,31 @@ class Generator {
         // content, the timeout in the options (`UNSTABLE_ToastQueue.add(content, {timeout})`).
         this.toasts = true;
         if (action.variant) this.toastVariants = true;
-        const content = action.variant
-          ? `{title: ${literal(action.message)}, variant: ${literal(action.variant)}}`
-          : `{title: ${literal(action.message)}}`;
-        return void out.line(
-          action.timeout !== undefined
-            ? `toasts.add(${content}, {timeout: ${action.timeout}});`
-            : `toasts.add(${content});`,
-        );
+        const fields = [
+          `title: ${literal(action.message)}`,
+          ...(action.variant ? [`variant: ${literal(action.variant)}`] : []),
+        ];
+        const options =
+          action.timeout !== undefined ? `, {timeout: ${action.timeout}}` : "";
+        if (!action.actionLabel)
+          return void out.line(`toasts.add({${fields.join(", ")}}${options});`);
+        // 295 후속 C8 — S2 `ToastOptions` `actionLabel` · `shouldCloseOnAction` · `onAction`: the
+        // button's Dos as the arrow's body (a closure over the handler's event).
+        this.toastActions = true;
+        fields.push(`actionLabel: ${literal(action.actionLabel)}`);
+        if (action.shouldCloseOnAction)
+          fields.push("shouldCloseOnAction: true");
+        const nested = action.onAction ?? [];
+        if (!nested.length)
+          return void out.line(`toasts.add({${fields.join(", ")}}${options});`);
+        const isAsync = nested.some((item) => item.opcode === "callEndpoint");
+        out
+          .line(
+            `toasts.add({${fields.join(", ")}, onAction: ${isAsync ? "async " : ""}() => {`,
+          )
+          .in();
+        for (const item of nested) this.writeAction(out, item, context);
+        return void out.out().line(`}}${options});`);
       }
       case "navigate": {
         this.navigate = true;
@@ -2379,7 +2403,7 @@ class Generator {
       if (!variable || variable.entry.source) continue;
       // (Only writer: no other rule writes it.)
       const writers = this.doc.interactions.filter((other) =>
-        other.actions.some(
+        catalogActionsDeep(other.actions).some(
           (item) =>
             item.opcode === "setState" && item.variableId === variable.entry.id,
         ),

@@ -31,7 +31,10 @@ import {
 } from "../../../catalogRuntime/interactions";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { ACTION_ICONS } from "../../../config/actionIcons";
-import { CatalogTargetPicker, catalogTargetLabels } from "./CatalogTargetPicker";
+import {
+  CatalogTargetPicker,
+  catalogTargetLabels,
+} from "./CatalogTargetPicker";
 import { catalogTargetPickFallback } from "../../../catalogRuntime/targetRef";
 import { useI18n } from "@/i18n";
 import { ActionPicker } from "../ActionPicker";
@@ -41,6 +44,7 @@ import { ValueField } from "../ValueField";
 import type { CatalogValueSources } from "../valueOptions";
 import { StateActionFieldsView } from "../StateActionFields";
 import { TriggerPicker } from "../TriggerPicker";
+import { PropertySwitch } from "../../../components/property/PropertySwitch";
 import {
   ACTION_CHOICE_LABEL_KEYS,
   capabilityChoices,
@@ -84,7 +88,11 @@ function listDataFieldLabelKey(opcode: ListDataOpcode, field: string): string {
   if (field === "parentKey") return "interactions.parentKey";
   if (field === "toParentKey") return "interactions.toParentKey";
   if (field === "dropPosition") return "interactions.dropPosition";
-  if (opcode === "moveBefore" || opcode === "moveAfter" || opcode.startsWith("insert"))
+  if (
+    opcode === "moveBefore" ||
+    opcode === "moveAfter" ||
+    opcode.startsWith("insert")
+  )
     return "interactions.targetKey";
   return "interactions.itemKey";
 }
@@ -134,9 +142,13 @@ interface CatalogEventRowProps {
   /** Do choices that have something to point at. */
   choices: readonly ActionChoice[];
   /** ADR-283 — the option a stored target stands for (its type, labels, document place). */
-  describeTarget: (ref: CatalogCapabilityTarget) => CatalogTargetOption | undefined;
+  describeTarget: (
+    ref: CatalogCapabilityTarget,
+  ) => CatalogTargetOption | undefined;
   /** ADR-283 Decision 2 — whether the target names a record from the selected place. */
-  targetNotice: (ref: CatalogCapabilityTarget) => CatalogTargetNotice | undefined;
+  targetNotice: (
+    ref: CatalogCapabilityTarget,
+  ) => CatalogTargetNotice | undefined;
   /** ADR-283 Decision 4 — the list highlights its option on the Canvas (and back). */
   onTargetHover: (option: CatalogTargetOption | undefined) => void;
   canvasHoverKey?: string;
@@ -151,6 +163,11 @@ interface CatalogEventRowProps {
   onToggle: () => void;
   onChange: (rule: InteractionEntry) => void;
   onRemove: () => void;
+  /**
+   * 295 후속 C8 — a toast's action button Dos (S2 `onAction`) edited with this same editor: no
+   * summary · When (they run in the When's context), and the last Do can be removed.
+   */
+  nested?: boolean;
 }
 
 /**
@@ -176,6 +193,7 @@ export const CatalogEventRow = memo(function CatalogEventRow({
   onToggle,
   onChange,
   onRemove,
+  nested = false,
 }: CatalogEventRowProps) {
   const { t } = useI18n();
   // ADR-284 Decision 8 — the rule's Do list: the editor shows one Do at a time (the order list
@@ -270,15 +288,31 @@ export const CatalogEventRow = memo(function CatalogEventRow({
     }
     if (action.opcode === "capability") {
       const capability = resolveCapabilities(targetType)[action.capabilityId];
-      const label = capability ? labelOfCapability(capability, t) : action.capabilityId;
+      const label = capability
+        ? labelOfCapability(capability, t)
+        : action.capabilityId;
       return `${when} → ${label} @ ${target && notice !== "unset" ? targetLabel(target) : t("interactions.targetUnset")}`;
     }
     return when;
-  }, [action, componentEvents, componentType, context, notice, rule.trigger, t, target, targetType]);
+  }, [
+    action,
+    componentEvents,
+    componentType,
+    context,
+    notice,
+    rule.trigger,
+    t,
+    target,
+    targetType,
+  ]);
   const more = rule.actions.length - 1;
   const doName = (item: CatalogInteractionAction) =>
     item.opcode in ACTION_CHOICE_LABEL_KEYS
-      ? t(ACTION_CHOICE_LABEL_KEYS[item.opcode as keyof typeof ACTION_CHOICE_LABEL_KEYS])
+      ? t(
+          ACTION_CHOICE_LABEL_KEYS[
+            item.opcode as keyof typeof ACTION_CHOICE_LABEL_KEYS
+          ],
+        )
       : item.opcode;
 
   // ADR-281 Decision 1 — a rule the declared props now stop is kept, marked with the reason the
@@ -294,7 +328,14 @@ export const CatalogEventRow = memo(function CatalogEventRow({
           target ? targetExposure(target.edit) : { props: {} },
         )
       : undefined;
-  }, [action, componentType, exposure, rule.trigger, targetExposure, targetType]);
+  }, [
+    action,
+    componentType,
+    exposure,
+    rule.trigger,
+    targetExposure,
+    targetType,
+  ]);
 
   const capabilityDef =
     action.opcode === "capability"
@@ -304,12 +345,14 @@ export const CatalogEventRow = memo(function CatalogEventRow({
   // (ADR-294 — a component's input variable is read only: no Set state writes it.)
   const variableOptions = useMemo(
     () =>
-      context.variables.filter((variable) => !variable.readOnly).map((variable) => ({
-        id: variable.id,
-        name: variable.name,
-        type: variable.type,
-        groupLabelKey: GROUP_LABEL_KEYS[variable.group],
-      })),
+      context.variables
+        .filter((variable) => !variable.readOnly)
+        .map((variable) => ({
+          id: variable.id,
+          name: variable.name,
+          type: variable.type,
+          groupLabelKey: GROUP_LABEL_KEYS[variable.group],
+        })),
     [context.variables],
   );
   // 「값 고르기」 — what this rule's values can name: its When's arguments, the owner's selected
@@ -324,65 +367,74 @@ export const CatalogEventRow = memo(function CatalogEventRow({
   );
 
   return (
-    <div className="interaction-rule" data-expanded={expanded || undefined}>
-      <div className="interaction-rule-summary">
-        <button
-          type="button"
-          className="interaction-rule-toggle"
-          onClick={() => {
-            setDoIndex(0);
-            onToggle();
-          }}
-          aria-expanded={expanded}
-        >
-          {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-          <span className="interaction-rule-text">
-            {more > 0
-              ? t("interactions.summaryMoreDos", { summary, count: more })
-              : summary}
-          </span>
-        </button>
-        <button
-          type="button"
-          className="interaction-rule-remove"
-          onClick={onRemove}
-          aria-label={t("interactions.deleteEvent")}
-        >
-          <DeleteIcon size={14} />
-        </button>
-      </div>
-      {refusal && (
+    <div
+      className={nested ? "interaction-rule-nested" : "interaction-rule"}
+      data-expanded={expanded || undefined}
+    >
+      {!nested && (
+        <div className="interaction-rule-summary">
+          <button
+            type="button"
+            className="interaction-rule-toggle"
+            onClick={() => {
+              setDoIndex(0);
+              onToggle();
+            }}
+            aria-expanded={expanded}
+          >
+            {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            <span className="interaction-rule-text">
+              {more > 0
+                ? t("interactions.summaryMoreDos", { summary, count: more })
+                : summary}
+            </span>
+          </button>
+          <button
+            type="button"
+            className="interaction-rule-remove"
+            onClick={onRemove}
+            aria-label={t("interactions.deleteEvent")}
+          >
+            <DeleteIcon size={14} />
+          </button>
+        </div>
+      )}
+      {!nested && refusal && (
         <p className="interaction-rule-refusal">
           {t("interactions.racRefuses", { reason: refusal })}
         </p>
       )}
 
-      {expanded && (
+      {(expanded || nested) && (
         <div className="interaction-rule-editor">
-          <div className="fieldset-row interaction-rule-row">
-            <TriggerPicker
-              componentType={componentType}
-              componentEvents={componentEvents}
-              value={rule.trigger}
-              exposure={exposure}
-              onChange={(trigger) => onChange({ ...rule, trigger })}
-            />
-          </div>
-          {rule.actions.length > 1 && (
-            <div className="fieldset-row interaction-rule-dos">
-              <PropertySelect
-                label={t("interactions.doList")}
-                value={String(at)}
-                onChange={(value) => setDoIndex(Number(value))}
-                options={rule.actions.map((item, index) => ({
-                  value: String(index),
-                  label: t("interactions.doStep", {
-                    index: index + 1,
-                    name: doName(item),
-                  }),
-                }))}
-                translateOptions={false}
+          {!nested && (
+            <div className="fieldset-row interaction-rule-row">
+              <TriggerPicker
+                componentType={componentType}
+                componentEvents={componentEvents}
+                value={rule.trigger}
+                exposure={exposure}
+                onChange={(trigger) => onChange({ ...rule, trigger })}
               />
+            </div>
+          )}
+          {(rule.actions.length > 1 || nested) && (
+            <div className="fieldset-row interaction-rule-dos">
+              {rule.actions.length > 1 && (
+                <PropertySelect
+                  label={t("interactions.doList")}
+                  value={String(at)}
+                  onChange={(value) => setDoIndex(Number(value))}
+                  options={rule.actions.map((item, index) => ({
+                    value: String(index),
+                    label: t("interactions.doStep", {
+                      index: index + 1,
+                      name: doName(item),
+                    }),
+                  }))}
+                  translateOptions={false}
+                />
+              )}
               <div className="fieldset-actions actions-remove-do">
                 <button
                   type="button"
@@ -391,7 +443,9 @@ export const CatalogEventRow = memo(function CatalogEventRow({
                   onClick={() => {
                     onChange({
                       ...rule,
-                      actions: rule.actions.filter((_item, index) => index !== at),
+                      actions: rule.actions.filter(
+                        (_item, index) => index !== at,
+                      ),
                     });
                     setDoIndex(Math.max(0, at - 1));
                   }}
@@ -497,25 +551,135 @@ export const CatalogEventRow = memo(function CatalogEventRow({
                 }))}
                 translateOptions={false}
               />
+              {/* S2: an actionable toast is not auto dismissed (WCAG 2.2.1) — no timeout with a
+                  button. */}
+              {!action.actionLabel && (
+                <ParamField
+                  param={{
+                    kind: "number",
+                    labelKey: "capabilities.paramTimeout",
+                  }}
+                  value={action.timeout ?? ""}
+                  onChange={(value) => {
+                    const { timeout: _old, ...rest } = action;
+                    const ms = Number(value);
+                    setAction(
+                      value === "" || !Number.isFinite(ms) || ms <= 0
+                        ? rest
+                        : {
+                            ...rest,
+                            timeout: Math.max(
+                              Math.round(ms),
+                              CATALOG_TOAST_MIN_TIMEOUT,
+                            ),
+                          },
+                    );
+                  }}
+                />
+              )}
+              {/* 295 후속 C8 — S2 `ToastOptions` `actionLabel` · `shouldCloseOnAction` · `onAction`:
+                  the button's text, whether it closes the toast, and the Dos it runs. Clearing the
+                  text removes the button. */}
               <ParamField
-                param={{ kind: "number", labelKey: "capabilities.paramTimeout" }}
-                value={action.timeout ?? ""}
+                param={{
+                  kind: "text",
+                  labelKey: "capabilities.paramToastActionLabel",
+                }}
+                value={action.actionLabel ?? ""}
                 onChange={(value) => {
-                  const { timeout: _old, ...rest } = action;
-                  const ms = Number(value);
+                  const label = String(value);
+                  const {
+                    actionLabel: _label,
+                    shouldCloseOnAction: _close,
+                    onAction: _dos,
+                    timeout: _timeout,
+                    ...rest
+                  } = action;
                   setAction(
-                    value === "" || !Number.isFinite(ms) || ms <= 0
-                      ? rest
-                      : {
+                    label
+                      ? {
                           ...rest,
-                          timeout: Math.max(
-                            Math.round(ms),
-                            CATALOG_TOAST_MIN_TIMEOUT,
-                          ),
-                        },
+                          actionLabel: label,
+                          ...(action.shouldCloseOnAction
+                            ? { shouldCloseOnAction: true }
+                            : {}),
+                          ...(action.onAction
+                            ? { onAction: action.onAction }
+                            : {}),
+                        }
+                      : action.timeout !== undefined
+                        ? { ...rest, timeout: action.timeout }
+                        : rest,
                   );
                 }}
               />
+              {action.actionLabel && (
+                <>
+                  <PropertySwitch
+                    label={t("capabilities.paramToastCloseOnAction")}
+                    isSelected={!!action.shouldCloseOnAction}
+                    onChange={(close) => {
+                      const { shouldCloseOnAction: _old, ...rest } = action;
+                      setAction(
+                        close ? { ...rest, shouldCloseOnAction: true } : rest,
+                      );
+                    }}
+                  />
+                  {action.onAction?.length ? (
+                    <div
+                      className="interaction-rule-toast-action"
+                      role="group"
+                      aria-label={t("interactions.toastActionDos")}
+                    >
+                      <CatalogEventRow
+                        rule={{ ...rule, actions: action.onAction }}
+                        componentType={componentType}
+                        componentEvents={componentEvents}
+                        context={context}
+                        choices={choices}
+                        describeTarget={describeTarget}
+                        targetNotice={targetNotice}
+                        onTargetHover={onTargetHover}
+                        canvasHoverKey={canvasHoverKey}
+                        exposure={exposure}
+                        targetExposure={targetExposure}
+                        expanded
+                        onToggle={() => {}}
+                        onChange={(next) => {
+                          const { onAction: _old, ...rest } = action;
+                          setAction(
+                            next.actions.length
+                              ? { ...rest, onAction: next.actions }
+                              : rest,
+                          );
+                        }}
+                        onRemove={() => {}}
+                        nested
+                      />
+                    </div>
+                  ) : (
+                    <Button
+                      className="control-button"
+                      data-variant="add"
+                      onPress={() => {
+                        // (The first Do kind that has something to point at; another toast last.)
+                        for (const choice of [
+                          ...choices.filter((item) => item !== "toast"),
+                          "toast" as const,
+                        ]) {
+                          const next = catalogDefaultAction(choice, context);
+                          if (!next) continue;
+                          setAction({ ...action, onAction: [next] });
+                          break;
+                        }
+                      }}
+                    >
+                      <AddIcon size={14} />
+                      {t("interactions.addToastActionDo")}
+                    </Button>
+                  )}
+                </>
+              )}
             </>
           )}
 
@@ -581,7 +745,10 @@ export const CatalogEventRow = memo(function CatalogEventRow({
                 onChange={(value) =>
                   setAction(
                     value === "" || value === undefined
-                      ? { opcode: "callEndpoint", endpointId: action.endpointId }
+                      ? {
+                          opcode: "callEndpoint",
+                          endpointId: action.endpointId,
+                        }
                       : { ...action, body: value as Scalar },
                   )
                 }
@@ -635,7 +802,12 @@ export const CatalogEventRow = memo(function CatalogEventRow({
               {LIST_DATA_FIELDS[action.opcode].map((field) => (
                 <ValueField
                   key={field}
-                  label={t(listDataFieldLabelKey(action.opcode as ListDataOpcode, field))}
+                  label={t(
+                    listDataFieldLabelKey(
+                      action.opcode as ListDataOpcode,
+                      field,
+                    ),
+                  )}
                   kind="text"
                   value={(action as Record<string, unknown>)[field]}
                   sources={valueSources}
@@ -667,7 +839,9 @@ export const CatalogEventRow = memo(function CatalogEventRow({
                   );
                   const keeps = action.capabilityId in capabilities;
                   const label = (id: string) => {
-                    const def = resolveCapabilities(next.type)[id] ?? resolveCapabilities(targetType)[id];
+                    const def =
+                      resolveCapabilities(next.type)[id] ??
+                      resolveCapabilities(targetType)[id];
                     return def ? labelOfCapability(def, t) : id;
                   };
                   setFallback(

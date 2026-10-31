@@ -19,6 +19,7 @@
  * or `enabled` reads a variable, and the controls whose rules set that variable. Re-entering edits
  * that condition; it never makes a second variable or rule.
  */
+import { catalogActionsDeep } from "../../../../../packages/shared/src/catalog/document/interactionActions";
 import { registerCodeViewActions } from "./codeViewActions";
 import {
   COLLECTION_FAMILIES,
@@ -1013,7 +1014,7 @@ export function catalogFilterConnections(
         const rule = reader.getEntry(id);
         if (
           rule?.kind === "interaction" &&
-          rule.actions.some(
+          catalogActionsDeep(rule.actions).some(
             (action) =>
               action.opcode === "setState" && action.variableId === variableId,
           ) &&
@@ -1292,7 +1293,7 @@ function catalogFilterRuleOf(
     if (
       rule?.kind === "interaction" &&
       rule.ownerId === controlId &&
-      rule.actions.some(
+      catalogActionsDeep(rule.actions).some(
         (action) =>
           action.opcode === "setState" && action.variableId === variableId,
       )
@@ -1348,7 +1349,7 @@ export function catalogUnreadFilterVariables(
         catalogFilterControlsOfType(typeOf(reader, owner.definitionId)).length >
         0;
     if (!filterControl) continue;
-    for (const action of rule.actions) {
+    for (const action of catalogActionsDeep(rule.actions)) {
       if (action.opcode !== "setState" || read.has(action.variableId)) continue;
       if (out.some((item) => item.variableId === action.variableId)) continue;
       const variable = reader.getEntry(action.variableId);

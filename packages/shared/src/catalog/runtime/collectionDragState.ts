@@ -5,6 +5,7 @@
  * Table draw a drag column whenever the table drags: `allowsDragging`), so the Canvas and the DOM
  * agree on whether the column is there.
  */
+import { catalogActionsDeep } from "../document/interactionActions";
 import { COLLECTION_DRAG_DROP_EVENTS } from "../../interactions/concepts/collectionDragDrop";
 import type { CatalogGraph } from "../document/graph";
 import type { InteractionEntry } from "../document/types";
@@ -45,7 +46,7 @@ function dragRulesOf(graph: CatalogGraph): DragRules {
       continue;
     rules.push(entry);
     if (!FOREIGN_DROPS.has(entry.trigger)) continue;
-    for (const action of entry.actions)
+    for (const action of catalogActionsDeep(entry.actions))
       if ("collectionId" in action && action.collectionId) {
         let owned = writesByOwner.get(entry.ownerId);
         if (!owned) writesByOwner.set(entry.ownerId, (owned = new Set()));

@@ -1962,10 +1962,10 @@ class Planner {
       return collectionId;
     };
     const actions: InteractionAction[] = [];
-    const lines = body
+    const lines = statementsOf(
       // (A line comment — the generator's note over a kept Do — is not a Do.)
-      .replace(/^\s*\/\/.*$/gm, "")
-      .split(/;\s*\n/)
+      body.replace(/^\s*\/\/.*$/gm, ""),
+    )
       .map((line) => line.trim().replace(/;$/, ""))
       .filter(Boolean);
     for (let index = 0; index < lines.length; index += 1) {
@@ -1978,9 +1978,10 @@ class Planner {
       )
         continue;
       const set = /^(set[A-Z][\w$]*)\(([\s\S]*)\)$/.exec(raw);
-      // (ADR-295 후속 C5 — the S2 options: `variant` in the content, `timeout` in RAC's options.)
+      // (ADR-295 후속 C5 — the S2 options: `variant` in the content, `timeout` in RAC's options;
+      //  C8 — `actionLabel` · `shouldCloseOnAction` · `onAction: () => {…}` (its body = Dos).)
       const toast =
-        /^toasts\.add\(\{title: ('(?:[^'\\]|\\.)*')(?:, variant: '(\w+)')?\}(?:, \{timeout: (\d+)\})?\)$/.exec(
+        /^toasts\.add\(\{title: ('(?:[^'\\]|\\.)*')(?:, variant: '(\w+)')?(?:, actionLabel: ('(?:[^'\\]|\\.)*'))?(, shouldCloseOnAction: true)?(?:, onAction: (?:async )?\(\) => \{([\s\S]*)\})?\}(?:, \{timeout: (\d+)\})?\)$/.exec(
           raw,
         );
       const go = /^navigate\(('(?:[^'\\]|\\.)*')\)$/.exec(raw);
@@ -2158,11 +2159,18 @@ class Planner {
         continue;
       }
       if (toast) {
+        // (The button's Dos read the handler's event — the same context, a closure.)
+        const onAction =
+          toast[5] !== undefined ? this.dosOf(toast[5], from, context) : [];
+        if (!onAction) return undefined;
         actions.push({
           opcode: "toast",
           message: literalOf(toast[1]!),
           ...(toast[2] ? { variant: toast[2] } : {}),
-          ...(toast[3] ? { timeout: Number(toast[3]) } : {}),
+          ...(toast[3] ? { actionLabel: literalOf(toast[3]) } : {}),
+          ...(toast[4] ? { shouldCloseOnAction: true } : {}),
+          ...(onAction.length ? { onAction } : {}),
+          ...(toast[6] ? { timeout: Number(toast[6]) } : {}),
         } as InteractionAction);
         continue;
       }
@@ -2622,4 +2630,36 @@ export function catalogCodeViewApply(
     };
   }
   return { applied: true, count: plan.count ?? 0, rejected: [] };
+}
+
+/**
+ * A handler body's statements: split at a `;` that ends a line outside quotes and brackets — a
+ * toast's `onAction: () => {…}` keeps its own statements inside (295 후속 C8).
+ */
+function statementsOf(body: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let quote: string | undefined;
+  let start = 0;
+  for (let index = 0; index < body.length; index += 1) {
+    const char = body[index]!;
+    if (quote) {
+      if (char === "\\") index += 1;
+      else if (char === quote) quote = undefined;
+      continue;
+    }
+    if (char === "'" || char === '"' || char === "`") quote = char;
+    else if (char === "(" || char === "[" || char === "{") depth += 1;
+    else if (char === ")" || char === "]" || char === "}") depth -= 1;
+    else if (
+      char === ";" &&
+      depth === 0 &&
+      /^[ \t]*(\n|$)/.test(body.slice(index + 1))
+    ) {
+      out.push(body.slice(start, index + 1));
+      start = index + 1;
+    }
+  }
+  out.push(body.slice(start));
+  return out;
 }

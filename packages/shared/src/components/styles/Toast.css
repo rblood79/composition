@@ -128,6 +128,13 @@
   font: inherit;
 }
 
+/* S2 action `Button` — `styles={style({marginStart: 'auto', gridArea: 'action'})}`; its look is the
+   document Button sheet (secondary · outline · static white). */
+.catalog-toast-action {
+  margin-inline-start: auto;
+  grid-area: action;
+}
+
 /* S2 `CenterBaseline` — 글자 한 줄 높이의 가운데에 아이콘. */
 .catalog-toast-icon {
   display: flex;
@@ -271,6 +278,7 @@ html.catalog-toast-clear {
 
   &::view-transition-group(catalog-toast-vt-content),
   &::view-transition-group(catalog-toast-vt-expand),
+  &::view-transition-group(catalog-toast-vt-action),
   &::view-transition-group(catalog-toast-vt-close) {
     z-index: 3;
     will-change: transform;
@@ -331,6 +339,10 @@ html.catalog-toast-collapse {
 
     .catalog-toast-vt-expand {
       view-transition-name: catalog-toast-vt-expand;
+    }
+
+    .catalog-toast-vt-action {
+      view-transition-name: catalog-toast-vt-action;
     }
 
     .catalog-toast-vt-close {

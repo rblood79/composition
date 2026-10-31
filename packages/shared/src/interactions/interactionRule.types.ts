@@ -25,12 +25,23 @@ export interface NavigateAction {
 export interface ToastAction {
   kind: "toast";
   params: { message: string } & CatalogToastOptions;
+  /**
+   * S2 `ToastOptions.onAction` — the Dos the action button runs (in order, stopping at a failure),
+   * in the context of the event that showed the toast (a closure over it).
+   */
+  onAction?: readonly InteractionAction[];
 }
 
-/** S2 1.8.1 `ToastQueue.<variant>(children, {timeout})` — the toast's color and auto close (ms). */
+/**
+ * S2 1.8.1 `ToastQueue.<variant>(children, {timeout, actionLabel, onAction, shouldCloseOnAction})` —
+ * the toast's color, auto close (ms) and action button.
+ */
 export interface CatalogToastOptions {
   variant?: "neutral" | "info" | "positive" | "negative";
   timeout?: number;
+  actionLabel?: string;
+  shouldCloseOnAction?: boolean;
+  onAction?: () => void;
 }
 
 /**

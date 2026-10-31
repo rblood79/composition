@@ -1,4 +1,5 @@
 import { docCounters } from "../docCounters";
+import { catalogActionsDeep } from "../document/interactionActions";
 import type {
   CatalogEntry,
   CatalogLibrary,
@@ -772,7 +773,9 @@ export function applyCatalogTransaction(
         const referrer = get(referrerId);
         if (
           referrer?.kind === "interaction" &&
-          referrer.actions.some((action) => action.opcode === "capability")
+          catalogActionsDeep(referrer.actions).some(
+            (action) => action.opcode === "capability",
+          )
         )
           graph.validateEntryReferences(referrer, get, library, ownerOf);
       }

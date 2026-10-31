@@ -46,6 +46,10 @@ import type { ToastOptions, ToastPlacement, ToastVariant } from "./Toast";
 interface ToastValue {
   title: string;
   variant: ToastVariant;
+  /** S2 `SpectrumToastValue.actionLabel` · `onAction` · `shouldCloseOnAction`. */
+  actionLabel?: string;
+  onAction?: () => void;
+  shouldCloseOnAction?: boolean;
 }
 
 /** S2 `addToast` — "Minimum time of 5s" (Spectrum toast options). */
@@ -106,11 +110,24 @@ export function createCatalogToastQueue() {
       variant = "info",
       timeout,
       onClose,
+      actionLabel,
+      onAction,
+      shouldCloseOnAction,
     }: ToastOptions): string =>
       queue.add(
-        { title, variant },
         {
-          ...(timeout ? { timeout: Math.max(timeout, MIN_TIMEOUT) } : {}),
+          title,
+          variant,
+          ...(actionLabel
+            ? { actionLabel, onAction, shouldCloseOnAction }
+            : {}),
+        },
+        {
+          // S2 `addToast`: "Actionable toasts cannot be auto dismissed" (WCAG 2.2.1) — a timeout
+          // only without an action label, and at least 5s.
+          ...(timeout && !actionLabel
+            ? { timeout: Math.max(timeout, MIN_TIMEOUT) }
+            : {}),
           ...(onClose ? { onClose } : {}),
         },
       ),
@@ -325,6 +342,7 @@ function ToastItem({ toast }: { toast: QueuedToast<ToastValue> }) {
   const messages = useMessages();
   const variant = toast.content.variant;
   const index = useIndexOf(toast);
+  const state = useContext(RACToastStateContext);
   const isMain = index <= 0;
   // (S2: behind the top toast of a collapsed stack, only the color — a sliver pushed back in depth.)
   if (!isMain && !expanded)
@@ -407,6 +425,24 @@ function ToastItem({ toast }: { toast: QueuedToast<ToastValue> }) {
               aria-hidden
               style={placement === "bottom" ? { rotate: "180deg" } : undefined}
             />
+          </Button>
+        )}
+        {toast.content.actionLabel && (
+          // S2 `<Button variant="secondary" fillStyle="outline" staticColor="white">` — the document
+          // Button's generated sheet (`react-aria-Button` + its data attributes) and `.button-base`
+          // paint it, as a Button node with those props.
+          <Button
+            className={`react-aria-Button button-base catalog-toast-action${isMain ? " catalog-toast-vt-action" : ""}`}
+            data-variant="secondary"
+            data-fill-style="outline"
+            data-static-color="white"
+            data-size="M"
+            onPress={() => {
+              toast.content.onAction?.();
+              if (toast.content.shouldCloseOnAction) state?.close(toast.key);
+            }}
+          >
+            {toast.content.actionLabel}
           </Button>
         )}
       </div>

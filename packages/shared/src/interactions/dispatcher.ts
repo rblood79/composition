@@ -563,14 +563,23 @@ export function executeInteractionRule(
   deps: DispatchDeps,
   context?: DispatchContext,
 ): DispatchOutcome {
+  return executeActionList(rule.actions, deps, context);
+}
+
+/** A Do list in order, stopping at the first failure (a rule's · a toast action's). */
+function executeActionList(
+  actions: readonly InteractionAction[],
+  deps: DispatchDeps,
+  context?: DispatchContext,
+): DispatchOutcome {
   let outcome: DispatchOutcome = {
     ok: false,
     reason: "규칙에 Do 가 없다",
   };
-  for (const [index, action] of rule.actions.entries()) {
+  for (const [index, action] of actions.entries()) {
     outcome = executeInteractionAction(action, deps, context);
     if (!outcome.ok)
-      return rule.actions.length > 1
+      return actions.length > 1
         ? { ...outcome, reason: `Do ${index + 1}: ${outcome.reason}` }
         : outcome;
   }
@@ -710,10 +719,29 @@ function executeInteractionAction(
   if (action.kind === "toast") {
     const message = action.params?.message;
     if (!message) return { ok: false, reason: "toast 에 message 가 없다" };
-    const { variant, timeout } = action.params;
+    const { variant, timeout, actionLabel, shouldCloseOnAction } =
+      action.params;
+    const nested = action.onAction ?? [];
     deps.showToast(message, {
       ...(variant ? { variant } : {}),
       ...(timeout ? { timeout } : {}),
+      ...(actionLabel
+        ? {
+            actionLabel,
+            ...(shouldCloseOnAction ? { shouldCloseOnAction: true } : {}),
+            // S2 `onAction` — a closure over the event that showed the toast: its Dos read the same
+            // `!event` · `!item` · `!var` context. It runs later (a press), so its failure is
+            // reported here — no caller is waiting for it.
+            onAction: () => {
+              if (!nested.length) return;
+              const outcome = executeActionList(nested, deps, context);
+              if (!outcome.ok)
+                console.warn(
+                  `[interactions] toast action 실행 실패 — ${outcome.reason}`,
+                );
+            },
+          }
+        : {}),
     });
     return { ok: true, kind: "toast" };
   }

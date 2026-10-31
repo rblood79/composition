@@ -2,6 +2,7 @@ import {
   addRecord,
   setNodeInteractions,
 } from "../../../../../packages/shared/src/catalog/commands";
+import { catalogActionsDeep, mapCatalogActionsDeep } from "../../../../../packages/shared/src/catalog/document/interactionActions";
 import {
   composeOver,
   type CatalogCommand,
@@ -108,7 +109,7 @@ export function catalogVariableUsageCounter(
     const ids = new Set([variableId, entryId]);
     const count =
       interactions.filter((entry: InteractionEntry) =>
-        entry.actions.some(
+        catalogActionsDeep(entry.actions).some(
           (action) =>
             action.opcode === "setState" && ids.has(action.variableId),
         ),
@@ -175,7 +176,7 @@ export function catalogLegacyVariableMove(
       ? project.interactionIds.flatMap((ruleId) => {
           const rule = graph.getEntry(ruleId);
           return rule?.kind === "interaction" &&
-            rule.actions.some(
+            catalogActionsDeep(rule.actions).some(
               (action) =>
                 action.opcode === "setState" && action.variableId === oldId,
             )
@@ -208,7 +209,7 @@ export function catalogLegacyVariableMove(
         ...(first.address ? { address: first.address } : {}),
         entries: all.map((rule) => ({
           ...rule,
-          actions: rule.actions.map((action) =>
+          actions: mapCatalogActionsDeep(rule.actions, (action) =>
             action.opcode === "setState" && action.variableId === oldId
               ? { ...action, variableId: id }
               : action,

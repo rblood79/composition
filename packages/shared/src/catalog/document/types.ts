@@ -1370,7 +1370,18 @@ export type InteractionAction =
       opcode: "toast";
       message: string;
       variant?: CatalogToastVariant;
+      /** Ignored with an action label — S2: an actionable toast is not auto dismissed (WCAG 2.2.1). */
       timeout?: number;
+      /** S2 `ToastOptions.actionLabel` — the action button's text (absent = no button). */
+      actionLabel?: string;
+      /** S2 `ToastOptions.shouldCloseOnAction` — the toast closes after its action runs. */
+      shouldCloseOnAction?: boolean;
+      /**
+       * S2 `ToastOptions.onAction` — the Dos the action button runs (in order, a failure stops the
+       * rest), reading the event that showed the toast. Every reader of a rule's Dos walks these too
+       * (`interactionActions.ts` — references, copies, address rewrites).
+       */
+      onAction?: readonly InteractionAction[];
     }
   | {
       /**
