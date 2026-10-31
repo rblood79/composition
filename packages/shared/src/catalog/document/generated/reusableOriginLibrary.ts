@@ -2822,9 +2822,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "children": "Available",
       "size": "M"
     },
-    "visual": {
-      "gap": 8
-    },
+    "visual": {},
     "layout": {
       "display": "inline-flex",
       "flexDirection": "row",

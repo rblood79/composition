@@ -980,7 +980,16 @@ describe("ADR-295 G4 — 3c-3c ②b-2 ColorArea · StatusLight · Tag 간격", (
     expect([box.width, box.height]).toEqual([`${s2}px`, `${s2}px`]);
   });
 
-  it("StatusLight: 점 = S2 light 표 · 행 = controlFont 행간 (점 ↔ 글자 text-to-visual 은 후속)", () => {
+  it("StatusLight: 점 = S2 light 표 · 행 = controlFont 행간 · 점 ↔ 글자 = text-to-visual", () => {
+    expect(
+      readFileSync(
+        resolve(
+          __dirname,
+          "../../../../node_modules/@react-spectrum/s2/src/StatusLight.tsx",
+        ),
+        "utf8",
+      ),
+    ).toMatch(/gap: 'text-to-visual'/);
     const dots = s2SizeTable(
       "StatusLight.tsx",
       /const light = style[\s\S]*?size:\s*\{\s*size:\s*/,
@@ -992,6 +1001,15 @@ describe("ADR-295 G4 — 3c-3c ②b-2 ColorArea · StatusLight · Tag 간격", (
       expect(block.height, size).toBe(
         s2LineHeight(s2FontSize({ S: -1, M: 0, L: 1, XL: 2 }[size]!)),
       );
+      // (ADR-295 후속: S2 `text-to-visual` = 6/14 em, 터치 8/17 em — Button 아이콘 간격과 같은 형.)
+      expect(
+        parseRuleLengthRef(ruleSizeLengthRef(block, "gap")!),
+        size,
+      ).toMatchObject({
+        base: block.fontSize,
+        ratio: 6 / 14,
+        touch: { ratio: 8 / 17 },
+      });
     }
   });
 
@@ -1176,5 +1194,109 @@ describe("ADR-295 G4 — 3c-3c ③ MenuItem = S2 menuitem (control 형 · label 
         size,
       ).toBe(s2Description[size as keyof typeof s2Description]);
     }
+  });
+});
+
+describe("ADR-295 후속 — 글자 단계 = S2 controlFont (Breadcrumbs · Table 칸)", () => {
+  const rules = COMPONENT_RULES_TABLE as unknown as Record<
+    string,
+    {
+      sizes: Record<string, Record<string, unknown>>;
+      densities?: Record<string, { paddingY?: number }>;
+    }
+  >;
+  const source = (file: string) =>
+    readFileSync(
+      resolve(
+        __dirname,
+        "../../../../node_modules/@react-spectrum/s2/src",
+        file,
+      ),
+      "utf8",
+    );
+  const CONTROL_FONT: Readonly<Record<string, string>> = {
+    S: "ui-sm",
+    M: "ui",
+    L: "ui-lg",
+    XL: "ui-xl",
+  };
+  const fontOf = (block: Record<string, unknown>) =>
+    FONT_NAME[String(block.fontSize).slice(12, -1)];
+
+  it("Breadcrumbs · Breadcrumb 글자 = S2 링크 `font: controlFont()` (크기별)", () => {
+    expect(source("Breadcrumbs.tsx")).toMatch(
+      /const linkStyles = style<[\s\S]*?font: controlFont\(\)/,
+    );
+    for (const type of ["Breadcrumbs", "Breadcrumb"])
+      for (const [size, block] of Object.entries(rules[type]!.sizes))
+        expect(fontOf(block), `${type} ${size}`).toBe(CONTROL_FONT[size]);
+  });
+
+  it("Table 칸 글자 = S2 cell · column `fontSize: controlFont()` (M) · 행 = S2 행 높이 32 · 40 · 48", () => {
+    const table = source("TableView.tsx");
+    expect(table).toMatch(
+      /const cell = style<[\s\S]*?fontSize: controlFont\(\)/,
+    );
+    const rows =
+      /ROW_HEIGHTS = \{\s*compact: \{\s*medium: (\d+)[\s\S]*?regular: \{\s*medium: (\d+)[\s\S]*?spacious: \{\s*medium: (\d+)/.exec(
+        table,
+      )!;
+    const s2Rows = {
+      compact: Number(rows[1]),
+      regular: Number(rows[2]),
+      spacious: Number(rows[3]),
+    };
+    for (const type of ["Cell", "Column"]) {
+      const block = rules[type]!.sizes.M!;
+      expect(fontOf(block), type).toBe(CONTROL_FONT.M);
+      const line = resolveToken(block.lineHeight as TokenRef) as number;
+      for (const [density, height] of Object.entries(s2Rows))
+        expect(
+          line + 2 * rules[type]!.densities![density]!.paddingY!,
+          `${type} ${density}`,
+        ).toBe(height);
+    }
+    // 머리글 칸의 이름 Text 도 칸 글자 (Column 직속 · 정렬 이름 Group 안 — manual part rule).
+    const parts = (manualBoxRule("Column")?.parts ?? []).filter(
+      (part) => part.childType === "Text",
+    );
+    expect(parts.map((part) => part.via ?? null).sort()).toEqual(
+      ["Group", null].sort(),
+    );
+    for (const part of parts)
+      expect(part.visual.fontSize).toBe(rules.Column!.sizes.M!.fontSize);
+  });
+});
+
+describe("ADR-295 후속 — 필드 버튼 테두리 = S2 (없음)", () => {
+  const source = (file: string) =>
+    readFileSync(
+      resolve(
+        __dirname,
+        "../../../../node_modules/@react-spectrum/s2/src",
+        file,
+      ),
+      "utf8",
+    );
+
+  it("S2 Picker · NumberField · ComboBox · DatePicker 버튼 = `borderStyle: 'none'` → Button rule field-button 블록 border-width 0", () => {
+    expect(source("Picker.tsx")).toMatch(
+      /const inputButton = style<[\s\S]*?borderStyle: \{\s*default: 'none'/,
+    );
+    for (const file of ["NumberField.tsx", "ComboBox.tsx", "DatePicker.tsx"])
+      expect(source(file), file).toMatch(/borderStyle: 'none'/);
+    const blocks = (
+      COMPONENT_RULES_TABLE as unknown as Record<
+        string,
+        {
+          containerVariants?: Record<
+            string,
+            Record<string, { styles?: Record<string, string> }>
+          >;
+        }
+      >
+    ).Button!.containerVariants!["field-button"]!;
+    for (const [size, block] of Object.entries(blocks))
+      expect(block.styles?.["border-width"], size).toBe("0");
   });
 });

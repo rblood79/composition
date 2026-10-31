@@ -91,10 +91,17 @@ async function open(type: string, size: string, bindingId = "button") {
     ).box?.borderRadius;
     return value ?? null;
   });
+  // ADR-295 후속: the Canvas border of each button (S2 field buttons draw none).
+  const borders = buttons.map((button) => {
+    const node = getSkiaNode(button.id) as unknown as {
+      box?: { strokeWidth?: number; strokeColor?: unknown };
+    };
+    return node.box?.strokeColor ? (node.box.strokeWidth ?? 0) : 0;
+  });
   canvas.dispose();
   // (The document value — a closed overlay body has no Canvas node.)
   const visualRadii = buttons.map((button) => button.visual.radius ?? null);
-  return { html, radii, visualRadii, count: buttons.length };
+  return { html, radii, visualRadii, borders, count: buttons.length };
 }
 
 /**
@@ -154,10 +161,38 @@ describe("S2 Button shape — a pill; a field's own button keeps its corner", ()
       expect(html).toContain("data-field-button=");
       // (The DOM: no inline corner over the sheet's `[data-field-button]` block — the rule's pill
       //  went inline and beat it in the Preview, 2026-10-30 live.)
-      for (const tag of html.match(/<button[^>]*data-field-button[^>]*>/g) ?? [])
+      for (const tag of html.match(/<button[^>]*data-field-button[^>]*>/g) ??
+        [])
         expect(tag).not.toMatch(/border(-[a-z]+)*-radius:\s*9999px/);
     },
   );
+
+  // ADR-295 후속 — S2 field buttons draw no border (Picker `inputButton` · NumberField · ComboBox ·
+  // DatePicker `borderStyle: 'none'`): the Canvas paints none, the DOM writes no inline border over
+  // the sheet's `[data-field-button]` block (`border-width: 0`). The DOM zeroed every field button's
+  // border by accident (an identity test on a wrapped record) while the Canvas drew 1px.
+  it.each(["Select", "NumberField", "ComboBox", "DatePicker"])(
+    "%s: its field buttons draw no border on either side",
+    async (type) => {
+      const { html, borders } = await open(type, "M");
+      expect(
+        borders.every((width) => width === 0),
+        JSON.stringify(borders),
+      ).toBe(true);
+      for (const tag of html.match(/<button[^>]*data-field-button[^>]*>/g) ??
+        [])
+        expect(tag).not.toMatch(
+          // (A Select trigger writes no inline width — the quiet underline is the sheet's; a button
+          // whose record is 0 may write its 0.)
+          type === "Select" ? /border-width/ : /border-width:\s*[1-9]/,
+        );
+    },
+  );
+
+  it("a Button outside a field keeps the rule's 1px border (Canvas)", async () => {
+    const { borders } = await open("Button", "M");
+    expect(borders).toEqual([1]);
+  });
 
   // The Popover component's trigger (2026-10-30 — 사용자 「popover 컴포넌트의 클릭하는 버튼
   // border-radius: S, M, L 모두 8px」): its template Button's own `radius: 8` beats the pill.
@@ -244,13 +279,16 @@ describe("S2 Button shape — a pill; a field's own button keeps its corner", ()
   it.each([
     ["Dialog", "dialog", [""]],
     ["Popover", "popover", ["S", "M", "L"]],
-  ] as const)("the %s body is 16 at every size it takes", async (type, binding, sizes) => {
-    for (const size of sizes) {
-      const { visualRadii, count } = await open(type, size, binding);
-      expect(count).toBe(1);
-      expect(visualRadii).toEqual([16]);
-    }
-  });
+  ] as const)(
+    "the %s body is 16 at every size it takes",
+    async (type, binding, sizes) => {
+      for (const size of sizes) {
+        const { visualRadii, count } = await open(type, size, binding);
+        expect(count).toBe(1);
+        expect(visualRadii).toEqual([16]);
+      }
+    },
+  );
 
   it("the generated sheet: sizes are pills, and a field's button takes the size's corner after them", () => {
     const css = readFileSync(

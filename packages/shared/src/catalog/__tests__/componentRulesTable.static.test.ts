@@ -338,12 +338,12 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
       component,
       "paddingY",
       {
-        M: 10,
-        "densities.compact": 6,
-        "densities.regular": 10,
-        "densities.spacious": 14,
+        M: 11,
+        "densities.compact": 7,
+        "densities.regular": 11,
+        "densities.spacious": 15,
       },
-      "S2 TableView 행 compact 32 · regular 40 · spacious 48 (`TableView.tsx` — 칸은 minHeight + 가운데) = 칸 행간 20 + 2 × 여백 (칸 글자가 S2 ui 14 보다 한 단 위라 여백이 S2 의 7 · 11 · 15 보다 1 작다)",
+      "S2 TableView 행 compact 32 · regular 40 · spacious 48 (`TableView.tsx` — 칸은 minHeight + 가운데) = 칸 행간 18 (S2 cell controlFont 14) + 2 × 여백",
     ),
   ),
   sizes(

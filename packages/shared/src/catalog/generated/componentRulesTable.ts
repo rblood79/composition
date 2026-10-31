@@ -58,6 +58,10 @@ const FIELD_PREFIX_SIZES = {
 // `presence.ts` `catalogFieldButtonSize`) and the DOM (`rootSelectors` — `data-field-button`).
 // (2026-10-30 — 사용자 「field 입력폼 부분 S:7, M:8, L:9, XL:10」: the field input box's corner
 // (`Input` · `DateInput` · field `sizes`), so a Select trigger · NumberField stepper meets its box.)
+// (ADR-295 후속 — S2 field buttons draw no border: Picker `inputButton` · NumberField · ComboBox ·
+// DatePicker buttons are `borderStyle: 'none'`. The Canvas read the Button rule's 1px while the DOM
+// dropped it by accident — `domBinding` wrapped every field button and its `stepper !== node`
+// identity test zeroed the inline border; now both read this block.)
 const FIELD_BUTTON_CORNERS = {
   XS: "var(--radius-sm)",
   S: "7px",
@@ -68,13 +72,13 @@ const FIELD_BUTTON_CORNERS = {
 const FIELD_BUTTON_CORNER_VARIANTS = Object.fromEntries(
   Object.entries(FIELD_BUTTON_CORNERS).map(([size, corner]) => [
     size,
-    { styles: { "border-radius": corner } },
+    { styles: { "border-radius": corner, "border-width": "0" } },
   ]),
 );
 const FIELD_BUTTON_CORNER_SELECTORS = Object.fromEntries(
   Object.entries(FIELD_BUTTON_CORNERS).map(([size, corner]) => [
     `&[data-field-button="${size}"]`,
-    { styles: { "border-radius": corner } },
+    { styles: { "border-radius": corner, "border-width": "0" } },
   ]),
 );
 
@@ -1131,21 +1135,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   2026-09-29).
     sizes: {
       S: {
-        fontSize: "{typography.text-sm}",
+        fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 24,
         iconSize: 14,
         gap: 0,
       },
       M: {
-        fontSize: "{typography.text-base}",
+        fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 32,
         iconSize: 16,
         gap: 2,
       },
       L: {
-        fontSize: "{typography.text-lg}",
+        fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 40,
         iconSize: 18,
@@ -1190,25 +1194,26 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     // gap = 조각 사이 간격 (Breadcrumb.sizes.gap 과 같은 값 — 구분자 Icon 양옆 간격).
+    // 글자 = S2 Breadcrumb 링크 `font: controlFont()` (S ui-sm 12 · M ui 14 · L ui-lg 16 — ADR-295 후속).
     // 높이 = S2 Breadcrumbs 항목 `height: controlSize()` (M 32 · L 40 — S 는 control S 24, ADR-295 Phase 3c-3c):
     //   최소 높이 control 토큰 (터치 × 1.25 도 S2 와 같다), 항목은 루트의 `align-items: center` 로 가운데.
     sizes: {
       S: {
-        fontSize: "{typography.text-sm}",
+        fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 0,
         minHeight: "{size.height.S}",
         gap: 0,
       },
       M: {
-        fontSize: "{typography.text-base}",
+        fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
         minHeight: "{size.height.M}",
         gap: 2,
       },
       L: {
-        fontSize: "{typography.text-lg}",
+        fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 0,
         minHeight: "{size.height.L}",
@@ -11210,34 +11215,34 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // `indicator.dotSize`: the dot diameter (DOM inline style · Skia `status_light` · the Canvas
     //   content width) — not emitted to CSS.
     // S2 StatusLight (`StatusLight.tsx`, ADR-295 Phase 3c-3c): 행 = controlFont 한 줄 (행간 16 · 18 · 20 · 22 — 높이 지정
-    //   없음) · 점 8 · 10 · 12 · 14. 점 ↔ 글자는 S2 `text-to-visual` 이지만 아직 8 (DOM `StatusLight.tsx` 가 길이 형을 못 읽는다 — 후속).
+    //   없음) · 점 8 · 10 · 12 · 14 · 점 ↔ 글자 = S2 wrapper `gap: 'text-to-visual'` (6/14 em, 터치 8/17 em — ADR-295 후속).
     sizes: {
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 16,
-        gap: 8,
+        gap: em(6, 14, [8, 17]),
         indicator: { dotSize: 8 },
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 18,
-        gap: 8,
+        gap: em(6, 14, [8, 17]),
         indicator: { dotSize: 10 },
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 20,
-        gap: 8,
+        gap: em(6, 14, [8, 17]),
         indicator: { dotSize: 12 },
       },
       XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 22,
-        gap: 8,
+        gap: em(6, 14, [8, 17]),
         indicator: { dotSize: 14 },
       },
     },
@@ -11814,8 +11819,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   텍스트 크기를 CSS 와 일치시키려면 catalog 가 동일 값을 명시해야 한다(미명시 시 Skia
         //   기본 14 + estimateTextHeight≈16 → 행 height 32 vs CSS 40 발산). 양쪽 모두 catalog 파생
         //   으로 SSOT 통일(CSS=상속 → catalog 명시 미러).
-        fontSize: "{typography.text-base}",
-        lineHeight: "{typography.text-base--line-height}",
+        fontSize: "{typography.text-sm}",
+        lineHeight: "{typography.text-sm--line-height}",
         // paddingX/Y 8: buildCatalogShapes 의 textX = paddingX(= size.paddingX ?? 0)로 텍스트를
         //   셀 안쪽으로 민다. containerStyles.padding(8px)은 Taffy box / Preview CSS 용이고 leaf
         //   Column/Cell 의 Skia 텍스트 x offset 에는 도달 안 함(resolveMergedStyle base=sizes 만,
@@ -11825,7 +11830,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   세로 정합: calculateContentHeight(utils.ts §1.56)가 estimateTextHeight(16,24)=24 +
         //   paddingY*2(16) = 40 = CSS border-box height. baseline middle 이 텍스트를 셀 세로 중앙 배치.
         paddingX: 8,
-        paddingY: 10,
+        paddingY: 11,
       },
     },
     // density (2026-08-21): Spectrum `table.item.padding` × density(compact/regular/spacious)
@@ -11833,15 +11838,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   (`table-row-height-*` 은 density 무관, 구 `-regular` 접미사는 deprecated). 폰트는
     //   불변이므로 sizes 와 직교한 densities 축에 둔다. 소비 주체가 Column/Cell 이라 채널도
     //   여기 산다 — Table 은 density **값**만 넘긴다(당시 Skia 위임 경로 applyImplicitStyles 는 2026-10-05 삭제).
-    //   행 높이 = lineHeight + paddingY×2 → compact 32 / regular 40 / spacious 48 (ADR-295 Phase 3: S2 행간
-    //   식으로 줄 20 — paddingY 6 / 10 / 14).
+    //   행 높이 = lineHeight + paddingY×2 → compact 32 / regular 40 / spacious 48 (ADR-295 후속: 칸 글자 =
+    //   S2 cell `fontSize: controlFont()` 14 · 줄 18 — paddingY 7 / 11 / 15).
     //   Column/Cell 은 `structure` 미보유라 virtual spec 이 안 생기고, 따라서 generated CSS
     //   emit 도 없다(DOM 은 옛 표 subtree 인라인이 정본이었다) → CSS diff 0.
     defaultDensity: "regular",
     densities: {
-      compact: { paddingY: 6 },
-      regular: { paddingY: 10 },
-      spacious: { paddingY: 14 },
+      compact: { paddingY: 7 },
+      regular: { paddingY: 11 },
+      spacious: { paddingY: 15 },
     },
     // ADR-257: no flex share — the column's width is its track in the row grid (`tableTracks.ts`).
     containerStyles: {
@@ -11913,23 +11918,23 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       M: {
-        // fontSize/lineHeight text-base 토큰 (ADR-295 Phase 3 — 16/20): Column 과 동형 — CSS Preview 와 Skia 텍스트·
+        // fontSize/lineHeight text-sm 토큰 (ADR-295 후속 — S2 cell controlFont 14/18): Column 과 동형 — CSS Preview 와 Skia 텍스트·
         //   셀 height 정합(calculateContentHeight estimateTextHeight(16,24)=24 + paddingY*2=40).
-        fontSize: "{typography.text-base}",
-        lineHeight: "{typography.text-base--line-height}",
+        fontSize: "{typography.text-sm}",
+        lineHeight: "{typography.text-sm--line-height}",
         // paddingX/Y 8: Column 과 동형 — containerStyles.padding 은 Skia 텍스트 x 에 미도달이라
         //   sizes.paddingX 가 텍스트 padding 정본 채널(buildCatalogShapes textX). 값 8={spacing.sm}.
         paddingX: 8,
-        paddingY: 10,
+        paddingY: 11,
       },
     },
     // density: Column 과 동일 축·동일 값 (같은 행 안에서 header/body 여백이 갈리면 안 된다).
     //   근거·행 높이 산식은 Column 주석 참조.
     defaultDensity: "regular",
     densities: {
-      compact: { paddingY: 6 },
-      regular: { paddingY: 10 },
-      spacious: { paddingY: 14 },
+      compact: { paddingY: 7 },
+      regular: { paddingY: 11 },
+      spacious: { paddingY: 15 },
     },
     // ADR-257: no flex share — the column's width is its track in the row grid (`tableTracks.ts`).
     containerStyles: {

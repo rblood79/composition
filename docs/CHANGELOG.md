@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-295 후속 — 글자 단계 · StatusLight 간격 · 필드 버튼 테두리 · TagGroup 측정 사본을 S2 로] - 2026-10-31
+
+### Fixed
+
+- **Breadcrumbs · Table 칸 글자가 S2 보다 한 단계 컸던 것**: Breadcrumbs · Breadcrumb 은 S2 링크 `controlFont()` (S 12 · M 14 · L 16), Table 칸 · 머리글은 S2 cell `controlFont()` 14 · 줄 18 로 바꿨다. 행 높이 32 · 40 · 48 은 여백 7 · 11 · 15 로 그대로 지킨다. 머리글 이름 Text 가 자기 기본 글자 (16) 를 쓰던 것도 칸 글자를 물려받게 했다 (머리글 43 → 41, Canvas · Preview 같음).
+- **StatusLight 점 ↔ 글자 간격**: S2 `text-to-visual` (6/14 em, 터치 8/17 em) — M desktop 6 · 터치 보기 8. 원본 template 이 `gap: 8` 을 직접 갖고 있어 rule 값을 덮던 것이 원인이었다 (지난번 「Preview 가 길이 형을 못 읽는다」 는 잘못된 판정).
+- **Select · NumberField · ComboBox · DatePicker 의 필드 버튼 테두리**: S2 처럼 없음. Canvas 는 Button rule 의 1px 을 그리고 Preview 는 우연히 0 이었다 — 10-30 의 필드 버튼 모서리 수리가 노드를 새 객체로 감싸면서 prefix 증감 버튼용 identity 판정 (`stepper !== node`) 이 모든 필드 버튼의 inline 테두리를 0 으로 덮었다 (quiet Select 의 밑줄 폭까지). 이제 Button rule 의 field-button 블록 `border-width: 0` 하나를 생성 CSS 와 Canvas 조건 규칙이 같이 읽는다. Pagination 버튼도 같은 블록이라 테두리가 없다.
+- **TagGroup maxRows 측정 사본**: 사본의 Tag 가 28 (실제 32) · 간격 4 (실제 8) 로 재어 행당 개수를 많이 셌다 — 사본 Tag 에 S2 control 높이 최소값, 간격은 TagList record 값.
+  - 위치: `componentRulesTable.ts` (Breadcrumb · Breadcrumbs · Column · Cell · StatusLight · field-button 블록) · `manualBoxRules.ts` (Column) · `reusableOriginLibrary.ts` (StatusLight template) · `codeCatalogLibrary.ts` · `domBinding.runtime.ts` · `StatusLight.tsx` · `TagGroup.components.tsx` · `delegatedDom.components.tsx`.
+  - 검증: G4 `d3S2Alignment` (S2 설치본 대조 4 묶음) · `s2ButtonPill` (Canvas 테두리 0 · Select inline 없음) · `previewCanvasBox` (측정 사본) · 원복 RED (library 변환 · DOM identity · rule 선언 · 사본) · G2 desktop · touch 263/263 · live 5175 Compare Mode + 터치 보기.
+
 ## [편집 표시와 Grid 조작의 가시성 일치 — 공통 레이아웃 참여 판정] - 2026-10-31
 
 ### Fixed

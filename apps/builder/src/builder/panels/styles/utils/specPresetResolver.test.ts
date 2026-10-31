@@ -518,21 +518,21 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
         display: "flex",
         flexDirection: "row",
       });
-      // (ADR-295 Phase 3: regular 10 — the S2 row 40 over the line 20.)
+      // (ADR-295 후속: regular 11 — the S2 row 40 over the cell line 18.)
       expect(resolveLayoutSpecPreset("Column", undefined)).toMatchObject({
-        paddingTop: 10,
+        paddingTop: 11,
         paddingRight: 8,
-        paddingBottom: 10,
+        paddingBottom: 11,
         paddingLeft: 8,
       });
       expect(resolveTypographySpecPreset("Column", undefined)).toMatchObject({
         fontWeight: "600",
       });
-      // (ADR-295 Phase 3: regular 10 — the S2 row 40 over the line 20.)
+      // (ADR-295 후속: regular 11 — the S2 row 40 over the cell line 18.)
       expect(resolveLayoutSpecPreset("Cell", undefined)).toMatchObject({
-        paddingTop: 10,
+        paddingTop: 11,
         paddingRight: 8,
-        paddingBottom: 10,
+        paddingBottom: 11,
         paddingLeft: 8,
       });
     });

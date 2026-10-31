@@ -95,13 +95,44 @@ describe("Canvas box = Preview box", () => {
       (r) => r.sourceId === ROOT,
     )!.id;
     await act(async () => reactRoot.render(renderCatalogDom(root, id)));
-    const el = host.querySelector<HTMLElement>(
-      `[data-catalog-id="${id}"]`,
-    )!;
+    const el = host.querySelector<HTMLElement>(`[data-catalog-id="${id}"]`)!;
     expect(el.style.display).toBe("inline-flex");
     expect(root.getGeometry([record.id]).get(record.id)!.width).toBeLessThan(
       200,
     );
+    await act(async () => reactRoot.unmount());
+    host.remove();
+  });
+
+  // ADR-295 후속 — a TagGroup's maxRows mirror (`TagMaxRowsMirror`) measures the chips as the visible
+  // list lays them out: the chip's S2 control box (`minHeight` = the size's control height token) and
+  // the TagList's gap (8). It kept the pre-295 「L 6 · else 4」 gap and no chip minimum (28 vs 32).
+  it("TagGroup maxRows: the mirror's chips and gap are the visible list's", async () => {
+    const { root } = await open("TagGroup", {
+      maxRows: 1 as unknown as string,
+    });
+    (
+      globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+    ).IS_REACT_ACT_ENVIRONMENT = true;
+    (globalThis as { ResizeObserver?: unknown }).ResizeObserver ??= class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+    const host = document.body.appendChild(document.createElement("div"));
+    const reactRoot = createRoot(host);
+    const id = [...root.domInputs.values()].find(
+      (r) => r.sourceId === ROOT,
+    )!.id;
+    await act(async () => reactRoot.render(renderCatalogDom(root, id)));
+    const mirror = host.querySelector<HTMLElement>(
+      '.react-aria-TagList[aria-hidden="true"]',
+    )!;
+    expect(mirror).not.toBeNull();
+    expect(mirror.style.gap).toBe("8px");
+    const chip = mirror.querySelector<HTMLElement>(".react-aria-Tag")!;
+    expect(chip.style.minHeight).toBe("var(--catalog-token-size-height-M)");
+    expect(chip.style.boxSizing).toBe("border-box");
     await act(async () => reactRoot.unmount());
     host.remove();
   });

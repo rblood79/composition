@@ -757,12 +757,13 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       undefined,
       () => ({ width: 120, minWidth: 120, height: 20 }),
     );
-    // md: dot 10 (rule `indicator.dotSize`) + gap 8 + the label's 120.
+    // md: dot 10 (rule `indicator.dotSize`) + gap 6 (S2 `text-to-visual` 6/14 em of 14 — ADR-295
+    // 후속) + the label's 120.
     expect(
       [...engine.styles.values()].filter(
-        (style) => style.contentMaxWidth === 138,
+        (style) => style.contentMaxWidth === 136,
       ),
-    ).toEqual([expect.objectContaining({ contentMinWidth: 138 })]);
+    ).toEqual([expect.objectContaining({ contentMinWidth: 136 })]);
   });
 
   it("paints a Button's Icon and Text in the Button's text color in every state (Preview `.button-base > *` inherit)", async () => {

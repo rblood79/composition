@@ -234,22 +234,27 @@
 
   .react-aria-Button[data-field-button="XS"] {
     border-radius: var(--catalog-token-radius-sm);
+    border-width: 0;
   }
 
   .react-aria-Button[data-field-button="S"] {
     border-radius: 7px;
+    border-width: 0;
   }
 
   .react-aria-Button[data-field-button="M"] {
     border-radius: 8px;
+    border-width: 0;
   }
 
   .react-aria-Button[data-field-button="L"] {
     border-radius: 9px;
+    border-width: 0;
   }
 
   .react-aria-Button[data-field-button="XL"] {
     border-radius: 10px;
+    border-width: 0;
   }
 
 

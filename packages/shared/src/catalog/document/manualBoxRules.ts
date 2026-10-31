@@ -822,6 +822,29 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
       },
     ],
   }),
+  // ADR-295 후속: a header cell's name takes the cell's font — S2 Column `fontSize: controlFont()` ·
+  // bold (the name's own Text default was a step above, the header 43 tall). The name is the Column's
+  // Text, or the Text in its sortable name Group (`.column-header`).
+  Column: () => {
+    const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)
+      .Column;
+    const base = rule?.defaultSize ? rule.sizes[rule.defaultSize] : undefined;
+    const font = px(base?.fontSize);
+    const line = px(base?.lineHeight);
+    const visual = {
+      ...(font ? { fontSize: fontOf(base?.fontSize, font) } : {}),
+      ...(font && line ? { lineHeight: line / font } : {}),
+      ...(typeof base?.fontWeight === "number"
+        ? { fontWeight: base.fontWeight }
+        : {}),
+    } as CompiledPartRule["visual"];
+    return {
+      parts: [
+        { childType: "Text", layout: {}, visual },
+        { childType: "Text", via: "Group", layout: {}, visual },
+      ],
+    };
+  },
   // ADR-256 Phase 5b: a picker item is the sheet's `.react-aria-ColorSwatchPicker >
   // .react-aria-ColorSwatchPickerItem { display: flex }` box, `width: fit-content` (manual
   // `ColorSwatchPicker.css`) around its ColorSwatch.

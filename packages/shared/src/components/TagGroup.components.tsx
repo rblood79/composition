@@ -636,6 +636,7 @@ export function TagMaxRowsMirror({
   entries,
   chipStyle,
   composition,
+  gap,
 }: {
   hiddenRef: React.RefObject<HTMLDivElement | null>;
   size: string;
@@ -647,6 +648,8 @@ export function TagMaxRowsMirror({
   }>;
   chipStyle?: React.CSSProperties;
   composition?: TagItemTemplate["composition"];
+  /** The visible wrapper's chip gap (default = `.tag-list-wrapper`'s `--spacing-sm`). */
+  gap?: string;
 }): JSX.Element {
   return (
     <div
@@ -659,9 +662,10 @@ export function TagMaxRowsMirror({
       style={{
         display: "flex",
         flexWrap: "wrap",
-        // chip 간 gap 정본 = TagList catalog rule (lg=6, 그 외 4). 실제 wrapper(.tag-list-wrapper)
-        //   의 size 별 gap 과 동일해야 maxRows wrap 측정이 정확. Skia resolveTagListGap 과 정합.
-        gap: size === "L" ? "6px" : "var(--spacing-xs)",
+        // chip 간 gap = 실제 wrapper (.tag-list-wrapper) 와 같은 값이어야 maxRows wrap 측정이 정확하다 —
+        //   TagList catalog rule (S2 Tag `margin: 4` 양쪽 = 8, ADR-295 Phase 3c-3c). 종전 「L 6 · 그 외 4」
+        //   가 남아 실제 8 보다 촘촘히 재어 행당 개수를 많이 셌다 (ADR-295 후속).
+        gap: gap ?? "var(--spacing-sm)",
         position: "absolute",
         visibility: "hidden",
         overflow: "hidden",

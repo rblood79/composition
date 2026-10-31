@@ -23,7 +23,12 @@
 import React from "react";
 import { resolveComponentRule } from "../catalog/resolvers/resolveComponentRule";
 import { colorTokenToCss } from "../catalog/resolvers/colorTokenToCss";
-import { tokenToCSSVar, withCatalogTokenVars } from "@composition/rendering";
+import {
+  ruleLengthCss,
+  ruleSizeLengthRef,
+  tokenToCSSVar,
+  withCatalogTokenVars,
+} from "@composition/rendering";
 
 export interface StatusLightProps {
   /** 상태 색 variant (rule table 의 20 variant) */
@@ -84,6 +89,13 @@ export function StatusLight({
   // ADR-151 B9 (2026-07-16): catalog sizes[size].height(고정 높이 — md 24) read-through.
   //   미주입 시 텍스트 상속 line-height(1.5)로 DOM 21px vs Skia(catalog 24) 발산.
   //   fontSize/dotColor 와 동일한 catalog 런타임 직독 패턴.
+  // 점 ↔ 글자 = rule `sizes[size].gap` — S2 `text-to-visual` 형 (6/14 em, 터치 8/17 em). 그 식을 기기 변수로
+  //   (Canvas 는 같은 rule 값의 desktop 숫자 — ADR-295 후속).
+  const gapBlock = rule?.sizes?.[sizeKey] ?? rule?.sizes?.M;
+  const gapRef = gapBlock ? ruleSizeLengthRef(gapBlock, "gap") : undefined;
+  const gap =
+    (gapRef ? ruleLengthCss(gapRef) : undefined) ??
+    (typeof gapBlock?.gap === "number" ? gapBlock.gap : 8);
   const ruleHeight = rule?.sizes?.[sizeKey]?.height;
   const boxHeight =
     typeof ruleHeight === "number" && ruleHeight > 0 ? ruleHeight : undefined;
@@ -97,7 +109,7 @@ export function StatusLight({
         display: "inline-flex",
         flexDirection: "row",
         alignItems: "center",
-        gap: 8,
+        gap,
         ...(boxHeight !== undefined ? { height: boxHeight } : {}),
         ...(isDisabled ? { opacity: 0.38, pointerEvents: "none" } : {}),
         ...style,

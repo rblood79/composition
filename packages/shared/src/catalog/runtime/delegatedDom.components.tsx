@@ -394,6 +394,14 @@ export function TagListRun({
             icon: null,
             avatar: null,
           })),
+          // (ADR-295 후속: the chips' box and gap are the visible ones' — a chip is an S2 control box,
+          // `minHeight` the size's control height token (Tag rule — the touch set too), the gap the
+          // TagList record's. Without them the mirror's chips were 28 tall and 4 apart.)
+          chipStyle: {
+            boxSizing: "border-box",
+            minHeight: `var(--catalog-token-size-height-${size})`,
+          },
+          gap: `${Number(input.node.visual.gap ?? 8)}px`,
         })
       : null,
     createElement(

@@ -369,12 +369,17 @@ function buttonDefinition(
     const px = /^(\d+(?:\.\d+)?)px$/.exec(value)?.[1];
     if (!corner && px === undefined)
       throw new Error(`CODE_CATALOG_BUTTON_FIELD_CORNER_UNSUPPORTED:${size}`);
+    // (ADR-295 후속: S2 field buttons draw no border — the block's `border-width`.)
+    const borderWidth = block.styles?.["border-width"];
     conditionalRules.push({
       when: { fieldButton: size },
       visual: {
         radius: corner
           ? sourceToken(`{radius.${corner}}`, "radius", theme, tokens)
           : Number(px),
+        ...(borderWidth !== undefined
+          ? { borderWidth: Number.parseFloat(borderWidth) }
+          : {}),
       },
     });
   }

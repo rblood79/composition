@@ -3340,17 +3340,22 @@ export function renderNode(
           (entry) => catalogTypeName(root, entry),
         )
       : node;
-  // A field's own Button (derived `fieldButton`) draws its size's corner, not the rule's pill: the
-  // same rest value the Canvas paints (`catalogDerivedRestVisual`). The record's pill went inline
+  // A field's own Button (derived `fieldButton`) draws its size's corner and no border (S2 — ADR-295
+  // 후속), not the rule's pill and 1px: the same rest values the Canvas paints (`catalogDerivedRestVisual`). The record's pill went inline
   // and beat the sheet's `[data-field-button]` block — Select trigger · NumberField stepper ·
   // Pagination were pills in the Preview (2026-10-30 live).
-  const restRadius = node.derivedProps?.fieldButton
-    ? catalogDerivedRestVisual(root, node).radius
+  const rest = node.derivedProps?.fieldButton
+    ? catalogDerivedRestVisual(root, node)
     : undefined;
-  const stepper: CatalogConsumerNode =
-    typeof restRadius === "number"
-      ? { ...fieldBox, visual: { ...fieldBox.visual, radius: restRadius } }
-      : fieldBox;
+  const stepper: CatalogConsumerNode = rest
+    ? {
+        ...fieldBox,
+        visual: {
+          ...fieldBox.visual,
+          ...rest,
+        } as CatalogConsumerNode["visual"],
+      }
+    : fieldBox;
   const bound = binding
     ? {
         ...catalogDomStyle(
@@ -3359,7 +3364,10 @@ export function renderNode(
             ? parentInput
             : watchedParent,
         ),
-        ...(stepper !== node ? { borderWidth: 0 } : {}),
+        // (Only a stepper in a prefix box lays its border down here — `fieldBox` is a new record
+        // then. An identity test on `stepper` caught every field button once the rest values above
+        // wrapped it, zeroing their border by accident — ADR-295 후속.)
+        ...(fieldBox !== node ? { borderWidth: 0 } : {}),
       }
     : undefined;
   if (bound && !catalogIsAuthoredPlaced(node))
