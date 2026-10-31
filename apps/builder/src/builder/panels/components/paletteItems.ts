@@ -48,6 +48,7 @@ import {
   ImageIcon,
   InspectionPanel,
   Layers,
+  LayoutGrid,
   Link,
   ListIcon,
   ListTree,
@@ -152,6 +153,7 @@ export const ICON_MAP: Record<
   ImageIcon,
   InspectionPanel,
   Layers,
+  LayoutGrid,
   Link,
   ListIcon,
   ListTree,
@@ -264,6 +266,10 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "ColorArea", source: "catalog" },
   { type: "ColorSlider", source: "catalog" },
   { type: "ColorWheel", source: "catalog" },
+  // ADR-295 후속 C3 (사용자 「컴포넌트 패널에 없다」): S2 ColorSwatch · ColorSwatchPicker — the Color
+  //   family after its controls (the picker's origin is the reference tree: items × ColorSwatch).
+  { type: "ColorSwatch", source: "catalog" },
+  { type: "ColorSwatchPicker", source: "catalog" },
   { type: "Checkbox", source: "catalog" },
   { type: "CheckboxGroup", source: "catalog" },
   { type: "RadioGroup", source: "catalog" },

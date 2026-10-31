@@ -4,9 +4,10 @@
  * 사용자 방침(2026-06-11): Color 계열은 빌더 완성 후 제일 나중에 진짜 구현. 지금은 spec 제거 +
  * catalog cutover 등록(6 registry collapse)을 위해 **box 영역만** 등록한다.
  *
- * D1: RAC `<ColorSwatch>` 단일 leaf(자식 없음). 색 프리뷰 = style fn(linear-gradient(color)).
- * D3: box-only — 동적 색(props.color)은 generic buildCatalogShapes 로 재현 안 함(의도적 손실).
- *     실제 색 프리뷰는 후속 작업에서 escape/전용 렌더로 복원.
+ * D1: RAC `<ColorSwatch>` 단일 leaf(자식 없음). 색 = RAC 가 inline `background-color` 로 쓴다.
+ * D3: 상자는 rule. 색 (props.color — 없으면 ColorSwatchPickerItem 의 color) 은 Canvas 도 칠한다
+ *     (ADR-295 후속 C3, 2026-10-31 — `colorControlParts.ts` `catalogColorSwatchColor` → 파생
+ *     `_swatchColor` → `rulePaint.ts` 의 상자 바탕). 그 전에는 모든 견본이 rule 의 흰 상자였다.
  */
 
 import type { PrimitiveBinding } from "../types";

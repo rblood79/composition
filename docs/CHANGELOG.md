@@ -69,7 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - ColorSwatchPicker: 견본이 picker 크기와 무관하게 28 고정 원이었다 → S2 처럼 picker `size` 가 견본 크기 (XS 16 · S 24 · M 32 · L 40, 터치 × 1.25) 이고 견본은 각진 모서리 (S2 picker `rounding = 'none'`). 원본 template 의 견본 28 × 28 작성값을 지우고 `rounding: none` 을 둔다. 사용자 picker 항목의 선택 · focus 링 모서리도 견본 모서리를 따른다 (DOM 상호작용 표시).
   - 위치: `ColorSwatch.binding.ts` · `componentRulesTable.ts` (ColorSwatch) · `sizePropagation.ts` (ColorSwatchPicker → ColorSwatch, 항목 통과) · `reusableOriginLibrary.ts` (picker 견본) · `ColorSwatch.css` · `ColorSwatchPicker.css`.
   - 검증: `s2ColorSwatchRounding.test.tsx` (기본 · 세 값 · picker 네 크기) · `colorSwatchRounding.test.ts` (Skia 칠 모서리 4 · 0 · 9999) · G4 (S2 `ColorSwatch.tsx` · `ColorSwatchPicker.tsx` 대조) · 원복 RED 6 · live 5175 (단독 견본 Canvas · Preview 32 / 모서리 4, picker L 견본 6개 Canvas · Preview 40 × 40 / 모서리 0, 콘솔 0).
-  - 남은 것: Canvas 는 picker 견본의 색 (RAC 항목 `color`) 을 칠하지 않는다 (흰 상자) — 이번 변경 전부터의 비대칭, 별도 수리.
+  - ~~남은 것: Canvas 는 picker 견본의 색을 칠하지 않는다~~ → 9차에서 닫음.
 - **Table 에 drag 열이 없던 것 (6차)**: S2 TableView · RAC 레퍼런스 Table 은 행을 끌 수 있는 표 (`allowsDragging`) 맨 앞에 drag 열을 자동으로 둔다 — 폭 16 (터치 20), 행마다 drag 손잡이 (S2 `DragHandleButton` 10 × 22) 는 그 행에 키보드 focus 가 있을 때만 보인다. 우리 Table 은 이 열이 없어 키보드로 끌 손잡이가 없었다.
   - 판정: Table 의 drag 규칙 (Interactions 의 `onReorder` · `onDragEnd` …) — Preview 가 `dragAndDropHooks` 를 주는 판정을 공용 함수로 옮겨 (`collectionDragState.ts`) Canvas · DOM 이 같은 답을 읽는다. 규칙 적용 판정 (`catalogInteractionAppliesTo`) 도 Preview 의 `recordsOfOwner` 와 한 함수.
   - Canvas: 머리글 행 · 모든 Row 의 트랙 맨 앞 16px + 빈 칸 (문서 노드 아님). DOM: RAC Column (화면 낭독용 이름 「Drag」) + Row 마다 RAC Cell > RAC `Button[slot=drag]` (RAC 가 이름 「Drag Item 1」 · 끌기 동작을 준다). 손잡이 크기는 기기 배율, 칸 좌우 4.
@@ -90,6 +90,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `Toast.tsx` · `ToastRegion.lazy.tsx` (신규) · `ToastContext.ts` · `Toast.css` · `types.ts` (Do variant · timeout) · `validation.ts` · `interactionRule.types.ts` · `dispatcher.ts` · `catalogPreviewInteractions.ts` · `toastBridge.ts` · `domView.runtime.ts` (`catalogToastPlacement`) · `domView.components.tsx` · `CatalogEventRow.tsx` · i18n 2.
   - 검증: `s2RuntimeToast.test.tsx` (Do → 옵션 · 거절 3 · variant 4 색 · 기본 info · timeout 5초 하한 · 쌓임 / 펼침 / 지우기) · `toastPlacement` · `reload` (실패 = negative) · 원복 RED 2 · live 5175 (Button 규칙 3 → Preview 토스트 info 위 · negative · positive 띠, 오른쪽 아래 16, 흰 글자 · 패딩 12/8/12/16 · 모서리 10, 「모두 표시」 → 3 개 · 「모두 지우기」 → 0, 터치 보기 최소 높이 70 · 최대 폭 351 (= 90vw) · 글자 17 · 닫기 40, 맨 위를 닫자 6초 지정 negative 가 6초 뒤 닫힘, Interactions 패널 Variant Negative → Positive 한 step, 콘솔 0).
   - 남은 것 (다른 세션 몫): code view 는 Do 「toast」 를 `toasts.add({title})` 로만 내 variant · timeout 이 코드에 나오지 않는다.
+- **Canvas 가 ColorSwatch 색을 칠하지 않던 것 · ColorSwatch · ColorSwatchPicker 가 컴포넌트 패널에 없던 것 (9차)**:
+  - Canvas: 견본 상자가 그 색이다 — 자기 `color`, 없으면 ColorSwatchPickerItem 의 `color` (RAC `ColorSwatchContext` — 자기 prop 이 이긴다). 전에는 단독 견본 · picker 견본 모두 rule 의 흰 상자였다 (Preview 는 RAC 가 inline 으로 칠함 — 비대칭). 파생 `_swatchColor` (`#rrggbbaa`) 를 rule 칠이 상자 바탕으로 읽고, 항목 색이 바뀌면 견본이 다시 그려진다 (분리한 picker 의 소유 항목도).
+  - 컴포넌트 패널: Forms 의 Color 조작기 (ColorWheel) 뒤에 color swatch · color swatch picker (팔레트 category 가 쓰이지 않는 `color` 였다).
+  - 위치: `colorControlParts.ts` (`catalogColorSwatchColor` · 파생 · 항목 → 견본 의존) · `rulePaint.ts` · `componentCatalog.ts` · `paletteItems.ts` · `ColorSwatch.binding.ts` (주석).
+  - 검증: `s2ColorSwatchPaint.test.ts` (단독 Canvas = DOM 색 · picker 6 견본 = 항목 색 · 항목 색 편집 · 분리한 picker 편집 · 패널 순서) · `paletteItems` oracle · 원복 RED (칠 제거 → 3 FAIL · 의존 제거 → 분리 picker 1 FAIL) · live 5175 (검색 「swatch」 → Forms 2 항목, picker 삽입 → Canvas 6 색 · 단독 견본 Color Value `#3366ff` → Canvas 파랑, Preview DOM 7 색과 같음 · 모서리 0 / 4, 콘솔 0).
 
 ## [ADR-295 후속 — S2 고정 치수의 터치 배율 (`scaled`)] - 2026-10-31
 

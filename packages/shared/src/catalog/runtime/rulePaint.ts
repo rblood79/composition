@@ -229,6 +229,11 @@ export function catalogRulePaint(
         ? cssVarColor(value, theme)
         : value;
   }
+  // ADR-295 후속 C3: a ColorSwatch's box is its color (`_swatchColor` — its own `color` or its picker
+  //   item's; the DOM's RAC ColorSwatch writes the same `background-color` inline). It is the content,
+  //   so it paints over an authored fill as RAC's inline style does.
+  if (typeof node.derivedProps?._swatchColor === "string")
+    style.backgroundColor = node.derivedProps._swatchColor;
   // A box whose text starts at its top (a TextArea's Input — `textAreaPartRules`): the shape
   // builder's `verticalAlign: "top"` puts it at the top padding, as the `<textarea>` does.
   if (node.layout.verticalAlign === "top") style.verticalAlign = "top";

@@ -1212,8 +1212,10 @@ const FAMILY_7_ENTRIES: ComponentCatalogEntry[] = [
     label: "date range picker",
     icon: "CalendarDays",
   }),
+  // ADR-295 후속 C3 (2026-10-31, 사용자 「컴포넌트 패널에 없다」): ColorSwatch · ColorSwatchPicker 는 S2
+  //   컴포넌트 (`ColorSwatch.tsx` · `ColorSwatchPicker.tsx`) — Forms 의 Color 조작기 뒤에 꺼낸다.
   primitiveEntry("ColorSwatch", "date-color", FAMILY_7_CUTOVER, {
-    category: "color",
+    category: "forms",
     label: "color swatch",
     icon: "Palette",
   }),
@@ -1259,7 +1261,7 @@ const FAMILY_7_ENTRIES: ComponentCatalogEntry[] = [
   // ADR-912 Color container cutover (2026-06-17): factory children(ColorSwatch[]) 를 rendererMap 이
   //   RAC ColorSwatchPickerItem 으로 합성. Skia 는 parent shell + child ColorSwatch 독립 렌더.
   primitiveEntry("ColorSwatchPicker", "date-color", FAMILY_7_CUTOVER, {
-    category: "color",
+    category: "forms",
     label: "color swatch picker",
     icon: "LayoutGrid",
   }),

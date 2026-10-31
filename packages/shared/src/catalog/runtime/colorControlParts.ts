@@ -184,6 +184,10 @@ export function catalogColorControlDerivedProps(
   typeOf: CatalogTypeOf,
 ): Readonly<Record<string, string | number>> | undefined {
   const type = typeOf(node);
+  if (type === "ColorSwatch") {
+    const color = catalogColorSwatchColor(node, get, typeOf);
+    return color ? { _swatchColor: color } : undefined;
+  }
   if (type === "ColorArea") {
     const disabled =
       node.props.isDisabled === true
@@ -261,6 +265,32 @@ export function catalogColorControlDerivedProps(
     };
   }
   return undefined;
+}
+
+/**
+ * ADR-295 후속 C3 — the color a ColorSwatch shows (`#rrggbbaa`): its own `color`, else its
+ * ColorSwatchPickerItem's (RAC `ColorSwatchPickerItem` gives the swatch inside its `color` through
+ * `ColorSwatchContext`; the swatch's own prop wins — `useContextProps`). The Canvas paints the box with it
+ * (`catalogRulePaint` — `_swatchColor`), the DOM's RAC ColorSwatch writes the same color inline. A value
+ * that does not parse leaves the rule's box (RAC's `parseColor` throws on it too).
+ */
+export function catalogColorSwatchColor(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): string | undefined {
+  const parent = get(node.parentId);
+  const value =
+    node.props.color ??
+    (parent && typeOf(parent) === "ColorSwatchPickerItem"
+      ? parent.props.color
+      : undefined);
+  if (typeof value !== "string" || !value.trim()) return undefined;
+  try {
+    return catalogColorHex(value);
+  } catch {
+    return undefined;
+  }
 }
 
 /** The ColorThumb rule's box (`composition.containerStyles`): size, ring and shadow. */
@@ -347,6 +377,11 @@ export function catalogColorControlParts(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
+  // (A ColorSwatchPickerItem's swatch shows the item's color — ADR-295 후속 C3.)
+  if (typeOf(control) === "ColorSwatchPickerItem")
+    return catalogPartChildren(control, get, typeOf).filter(
+      (child) => typeOf(child) === "ColorSwatch",
+    );
   if (!COLOR_CONTROL_TYPES.has(typeOf(control))) return [];
   const out: CatalogConsumerNode[] = [];
   const visit = (record: CatalogConsumerNode) => {

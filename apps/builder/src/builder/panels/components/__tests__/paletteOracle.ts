@@ -268,6 +268,18 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "Disc3",
   },
   {
+    type: "ColorSwatch",
+    category: "forms",
+    label: "color swatch",
+    icon: "Palette",
+  },
+  {
+    type: "ColorSwatchPicker",
+    category: "forms",
+    label: "color swatch picker",
+    icon: "LayoutGrid",
+  },
+  {
     type: "Checkbox",
     category: "forms",
     label: "checkbox",
