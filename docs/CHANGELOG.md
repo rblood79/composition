@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-295 Implemented — 사용자 컴포넌트 치수를 S2 값으로] - 2026-10-31
+
+### Changed
+
+- **ADR-295 완료**: 사용자 컴포넌트의 radius · 글자 단계 · 행간 · control 높이 · 아이콘 · 여백 · 간격 · 막대 두께가 설치된 Spectrum 2 (S2) 값을 따른다 (토큰 이름 · 패널 라벨 XS ~ XL 은 그대로). 터치 기기 (pointer: coarse) 에서는 S2 처럼 1.25 배 · 글자 기준 17 로 Preview · Publish 가 커지고, Builder 의 「터치 크기로 미리보기」 로 미리 본다. Canvas 는 desktop 값, 빌더 패널 위젯은 이전 크기 그대로다.
+  - 검증: Canvas = Preview desktop (TextField 32 · Button padding 16 · 글자 14) · 터치 40 · 20 · 17 · Publish 터치 기기 40 · Radius preset M = 활성 테마 값 (8 → radius xl 테마 16) · 빌더 패널 before/after 차이 0 · 번들 Builder +6,165 · Preview +3,489 B gz (허용치 재승인).
+  - 문서: `docs/adr/completed/295-d3-token-values-s2-style-macro-scale.md`
+
 ## [ADR-295 Phase 4 — 빌더 패널 입력 높이 · Publish 입력 행간 · Preview 탭의 빌더 값 누수 수정] - 2026-10-31
 
 ### Fixed

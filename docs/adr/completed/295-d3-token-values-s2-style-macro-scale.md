@@ -2,19 +2,21 @@
 
 ## Status
 
-Accepted — 2026-10-30 (사용자 `/execute-adr 295` + [reviews/295.md](reviews/295.md) 최신 round pending 0 · HIGH 전부 fixed)
+Implemented — 2026-10-31 (G5 사용자 「확인했다」 — 번들 허용치 재승인 · 테마 전환은 295 몫으로 판정, `### Live Exercise` 참조)
 
-- 사용자 요청: `/create-adr` (2026-10-30) — 같은 대화의 Design 패널 일관성 감사 ([DESIGN_PANEL_CONSISTENCY_AUDIT_2026-10](../explanation/research/DESIGN_PANEL_CONSISTENCY_AUDIT_2026-10.md)) 와 S2 style macro 대조 뒤.
+Accepted — 2026-10-30 (사용자 `/execute-adr 295` + [reviews/295.md](../reviews/295.md) 최신 round pending 0 · HIGH 전부 fixed)
+
+- 사용자 요청: `/create-adr` (2026-10-30) — 같은 대화의 Design 패널 일관성 감사 ([DESIGN_PANEL_CONSISTENCY_AUDIT_2026-10](../../explanation/research/DESIGN_PANEL_CONSISTENCY_AUDIT_2026-10.md)) 와 S2 style macro 대조 뒤.
 - 방향을 정한 사용자 원문 (2026-10-30, 같은 대화):
   - 「빌더가 제공하는 스타일규격화가된 RSC 를 하려다가 RAC 자체가 스타일이 빠져있는 headless 컴퍼넌트였고 … RAC 스타터킷 베이스에 RSC 의 스타일과 테마를 따라하다보니 일관되지 않고 있다」 → 세 어휘 공존 진단 (Context §문제).
   - 「저장소의 token 값도 style macro 의 값으로 교체 되어야 components 와 맞아지지않나?」 → 토큰 표 · rule 리터럴 · S2 설치본 세 값의 대조 (Context §코드 사실).
   - 「scale 변수 까지 가져가야 맞아지는것 아닌가?」 → 상수만이 아니라 기기 scale · 글자 식까지 (대안 B 채택).
   - 「XS,SM,LG,XL 등 일반이 보기에 단순하지않아 XS, S, M, L, XL 이런식으로 나눈 것이었다」 → 패널 라벨은 XS · S · M · L · XL, 토큰 원이름은 내부용 (Decision 5).
 - 사용자가 이미 답한 확인 항목: 라벨 어휘 (위). 시각 결과가 바뀌는 선택은 아래 「사용자 결정 7건」 에 모았다.
-- 이 ADR 은 **값 층** 만 다룬다. 패널 입력기가 노드에 토큰 참조를 저장하는 「토큰 모델 A」 ([시안 docs/design/styles-token-model/](../design/styles-token-model/canvas.json)) 는 후속 ADR 이며 이 ADR 뒤에 온다 — 노드가 토큰을 참조하기 시작한 뒤 토큰 값을 바꾸면 사용자 문서가 같이 바뀌기 때문 (breakdown §1 분리 4 질문).
-- 리뷰 round 1 (2026-10-30, codex — [reviews/295.md](reviews/295.md)): HIGH 2 · MEDIUM 1 을 설계에 반영 — H1 축 이름으로 scale 을 가르면 S2 의 높이 상대 padding (`calc(self(height) / 2)`) · 글자 상대 gap (`fontRelative`) 을 놓친다 → **값의 형 4 종** (Decision 3) · H2 radius seed 가 preset 의 `RADIUS_BASE_PX` 로 덮인다 → 한 표에서 파생 + G4 는 최종 snapshot 검사 (Decision 1 · G4) · M3 빌더가 생성 시트 (`builder-components.css`) 를 읽어 `var(--radius-md)` 가 chrome 값 6 으로 풀린다 → 컴포넌트 토큰 변수 네임스페이스 분리 (Decision 8 · 9).
+- 이 ADR 은 **값 층** 만 다룬다. 패널 입력기가 노드에 토큰 참조를 저장하는 「토큰 모델 A」 ([시안 docs/design/styles-token-model/](../../design/styles-token-model/canvas.json)) 는 후속 ADR 이며 이 ADR 뒤에 온다 — 노드가 토큰을 참조하기 시작한 뒤 토큰 값을 바꾸면 사용자 문서가 같이 바뀌기 때문 (breakdown §1 분리 4 질문).
+- 리뷰 round 1 (2026-10-30, codex — [reviews/295.md](../reviews/295.md)): HIGH 2 · MEDIUM 1 을 설계에 반영 — H1 축 이름으로 scale 을 가르면 S2 의 높이 상대 padding (`calc(self(height) / 2)`) · 글자 상대 gap (`fontRelative`) 을 놓친다 → **값의 형 4 종** (Decision 3) · H2 radius seed 가 preset 의 `RADIUS_BASE_PX` 로 덮인다 → 한 표에서 파생 + G4 는 최종 snapshot 검사 (Decision 1 · G4) · M3 빌더가 생성 시트 (`builder-components.css`) 를 읽어 `var(--radius-md)` 가 chrome 값 6 으로 풀린다 → 컴포넌트 토큰 변수 네임스페이스 분리 (Decision 8 · 9).
 - 리뷰 round 2 (2026-10-30, codex 수리 검증): H2 fixed · H1 · M3 잔여 → 반영 — H1 `{ em }` 한 계수로는 S2 의 기기별 계수 (`text-to-visual` desktop 6/14 em · touch 8/17 em) 를 못 담는다 → 값은 **px · 기준 글자 쌍** + `touch` override (Decision 3) · M3 변수 이름을 갈라도 빌더 root 에 resolver 값 (touch 블록) 을 설치하면 생성 시트를 읽는 빌더 위젯 (`CompactSelect` → generated Select `font-size`) 이 17px 을 받는다 → 빌더 root 는 **chrome 소유 고정 변수 시트** (desktop 만) + 생성 시트 치수 전부 변수 + 커버리지 · 스냅샷 게이트 (Decision 9 · R10). 수리 검증 1 회 끝 — phase 당 판독 1 + 수리 검증 1 (`review-loop-closure.md` §1), 종결은 실행자 선언.
-- 리뷰 round 3 (2026-10-30, claude — 사용자 재제기) · round 4 (사용자 판독 — severity 조정): HIGH 1 반영 — Design 패널 preset 이 빌더 root 의 computed value (chrome 값) 를 px 로 commit 해 (`BorderSection.tsx:229` → `cssLengthPx.ts:12` · `PropertyUnitInput.runtime.ts:126-134`) Decision 8 의 chrome 동결이 사용자 문서에 옛 값을 쓰게 한다 → preset 의 표시 · commit 값은 **활성 테마의 resolver snapshot** 에서 (Decision 5) · G5 에 preset 검사. 설계 정리 2 — 토큰 변수 접두를 생성 상태 변수 (`--catalog-hover-*` · `--catalog-selected-*`, `CatalogStates.css`) 와 가르고 (`--catalog-token-*`, Decision 9) 검사 대상을 구분 · 「22 페이지 실문서」 주장 철회 — 그 문서는 생성기 fixture 라 R4 는 unproven (사용자 결정 6 은 그 한계와 함께). 하니스 문구 정정 — `vitest.visual-parity.config.ts` 는 없고 팔레트 전수 픽셀 두 arm 하니스는 Phase 0 산출물 (LOW deferred — 설계 종결 조건 아님, `review-loop-closure.md` §2). 설계 판독 종결 — 실행자 선언 (round 4 반영, [reviews/295.md](reviews/295.md)).
+- 리뷰 round 3 (2026-10-30, claude — 사용자 재제기) · round 4 (사용자 판독 — severity 조정): HIGH 1 반영 — Design 패널 preset 이 빌더 root 의 computed value (chrome 값) 를 px 로 commit 해 (`BorderSection.tsx:229` → `cssLengthPx.ts:12` · `PropertyUnitInput.runtime.ts:126-134`) Decision 8 의 chrome 동결이 사용자 문서에 옛 값을 쓰게 한다 → preset 의 표시 · commit 값은 **활성 테마의 resolver snapshot** 에서 (Decision 5) · G5 에 preset 검사. 설계 정리 2 — 토큰 변수 접두를 생성 상태 변수 (`--catalog-hover-*` · `--catalog-selected-*`, `CatalogStates.css`) 와 가르고 (`--catalog-token-*`, Decision 9) 검사 대상을 구분 · 「22 페이지 실문서」 주장 철회 — 그 문서는 생성기 fixture 라 R4 는 unproven (사용자 결정 6 은 그 한계와 함께). 하니스 문구 정정 — `vitest.visual-parity.config.ts` 는 없고 팔레트 전수 픽셀 두 arm 하니스는 Phase 0 산출물 (LOW deferred — 설계 종결 조건 아님, `review-loop-closure.md` §2). 설계 판독 종결 — 실행자 선언 (round 4 반영, [reviews/295.md](../reviews/295.md)).
 - 메모리: `project-design-panel-consistency-audit-2026-10` · `feedback-panel-scale-labels-xs-s-m-l-xl-not-token-names` · `reference-design-data-mcp-installed-query-traps` (design-data 스키마는 설치본보다 뒤처진다 — 값의 정본은 **설치본**).
 
 > **Phase 0 종결 (2026-10-30, G0)** — S2 추출기 (`adr295-s2-token-extract.mjs` — 설치본 style macro 실행 + probe 페이지 Playwright desktop · touch) 가 oracle JSON 을 만든다. 글자 · 행간 식 = 브라우저 computed 78/78. 발견: (1) S2 control 모서리는 **size 단계 배율** `round(8 × 1.125^단계)` (6 · 7 · 8 · 9 · 10, scale 무관) — Decision 3 의 형이 5 종이 되고, Decision 4 의 「가장 가까운 S2 단으로」 는 이 자리에 쓰지 않는다 (field 7 · 8 · 9 · 10 은 이미 S2) (2) field paddingX 는 높이 × 3/8 (9 · 12 · 15 · 18), Button 은 높이 / 2 (3) rule height 리터럴 389 중 201 이 파생 표지 `0` (4) touch 에뮬레이션은 `hasTouch` 로만 (CDP pointer media 무시). fixture `app-pages` 규모: 노드 3,339 · 명시 높이 0 · 컴포넌트 instance 811 · Text 1,551 (상한, R4 unproven 유지). G1 · G2 하니스 = 신규 `adr295PaletteSymmetry.browser.test.ts` (Phase 1 첫 단계). 대조표 · 깨지는 테스트 목록 · 기준 JSON: breakdown §6.0.
@@ -39,7 +41,7 @@ Accepted — 2026-10-30 (사용자 `/execute-adr 295` + [reviews/295.md](reviews
 >
 > **Phase 3d 닫힘 (2026-10-31)** — spacing 맵 판정: `{spacing.*}` (rendering 맵) 을 DOM `--spacing-*` 값으로 맞춰 한 표 (md 12 · lg 16 · xl 24 · 2xl 32 · 3xl 40 · 4xl 48 — 모두 S2 단). 옛 맵 값 (md 16 …) 을 읽던 곳은 Library Spacing 카드뿐이었다 (rule 은 2xs · xs · sm 만). Canvas delegation 의 손 사본 (`CSS_SPACING_PX`) 은 그 표에서 파생. G4 「spacing 한 표」 (원복 RED) · live Library 카드 ◆ md 12. 숨은 사본 · `paletteBaseCanvas` 은퇴와 함께 3d 닫힘. breakdown §6.7.
 
-> 구현 상세: [design/295-d3-token-values-s2-alignment-breakdown.md](design/295-d3-token-values-s2-alignment-breakdown.md)
+> 구현 상세: [design/295-d3-token-values-s2-alignment-breakdown.md](../design/295-d3-token-values-s2-alignment-breakdown.md)
 
 ## Context
 
@@ -265,7 +267,7 @@ ADR-293 (색 토큰 단일 생성 — `resolveThemeSnapshot` · `cssVars` 구조
 
 ### Live Exercise
 
-2026-10-31 · dev 5175 (main 작업 트리) · Playwright headless (DPR 1 · 1440×900) + Chrome MCP · 콘솔 오류 0. 상세 [breakdown §6.12](design/295-d3-token-values-s2-alignment-breakdown.md) · 증거 `.agent/runs/2026-10-31-adr295-phase4/`.
+2026-10-31 · dev 5175 (main 작업 트리) · Playwright headless (DPR 1 · 1440×900) + Chrome MCP · 콘솔 오류 0. 상세 [breakdown §6.12](../design/295-d3-token-values-s2-alignment-breakdown.md) · 증거 `.agent/runs/2026-10-31-adr295-phase4/`.
 
 | 시나리오 | 결과 |
 | --- | --- |

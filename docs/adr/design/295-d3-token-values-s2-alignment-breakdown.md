@@ -1,6 +1,6 @@
 # ADR-295 설계 breakdown — D3 값 정렬 (S2 style macro 값 · scale · 글자 식)
 
-> 본문: [../295-d3-token-values-s2-style-macro-scale.md](../295-d3-token-values-s2-style-macro-scale.md). 이 문서는 구현 상세 (분리 4 질문 · 인벤토리 · S2 값 표 · Phase · 파일 · 게이트 절차) 만 담는다. `docs/adr/evidence/` 는 gitignore 라 실측 결론은 여기 §6 에 둔다.
+> 본문: [../completed/295-d3-token-values-s2-style-macro-scale.md](../completed/295-d3-token-values-s2-style-macro-scale.md). 이 문서는 구현 상세 (분리 4 질문 · 인벤토리 · S2 값 표 · Phase · 파일 · 게이트 절차) 만 담는다. `docs/adr/evidence/` 는 gitignore 라 실측 결론은 여기 §6 에 둔다.
 
 ## 1. 분리 4 질문 lock-in (adr-writing.md §Fork)
 
@@ -677,7 +677,7 @@ StatusLight 점 ↔ 글자를 S2 `text-to-visual` 형으로 바꿨다가 되돌�
 
 **live (Chrome MCP, 5175)**: 팔레트 Menu (MenuTrigger) 를 넣고 Compare Mode Preview 에서 열기 — M: 항목 32 · 여백 7 / 12 · 간격 6 · label 14 / 500. Layers 에서 Menu 노드 Size L → 항목 40 · 여백 10 / 15 · 간격 6.86 · label 16 / 500 / 행간 20 (Canvas 는 닫힌 목록이라 같은 값을 unit 이 record 로 확인). 콘솔 오류 0, 삭제 명령으로 지움.
 
-### 6.12 Phase 4 (2026-10-31, G5 · G6)
+### 6.12 Phase 4 (2026-10-31, G5 · G6 — Implemented)
 
 증거 `.agent/runs/2026-10-31-adr295-phase4/` (README 에 측정 조건). before arm = `a2f619475` + 295 밖 코드 커밋 5 (`cc787595c` · `63ecb9b9e` · `0749c164d` · `11089d94e` · `56be2e9e0`) cherry-pick, after arm = `1aeb6dce9`.
 
