@@ -1,0 +1,1 @@
+export{t as VariableTable}from"./VariableTable-Ba6Efs3m.js";
