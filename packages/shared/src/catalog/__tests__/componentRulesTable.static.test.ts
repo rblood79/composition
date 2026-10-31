@@ -249,18 +249,22 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     { S: 16, M: 18, L: 20, XL: 22 },
     "S2 StatusLight 행 = controlFont 한 줄 행간 (`StatusLight.tsx` — 높이 지정 없음) · 터치 × 1.25 는 다루지 않음",
   ),
-  ...(["Column", "Cell"] as const).map((component) =>
-    sizes(
-      component,
-      "paddingY",
-      {
-        M: 11,
-        "densities.compact": 7,
-        "densities.regular": 11,
-        "densities.spacious": 15,
-      },
-      "S2 TableView 행 compact 32 · regular 40 · spacious 48 (`TableView.tsx` — 칸은 minHeight + 가운데) = 칸 행간 18 (S2 cell controlFont 14) + 2 × 여백",
-    ),
+  sizes(
+    "Cell",
+    "paddingY",
+    {
+      M: 11,
+      "densities.compact": 7,
+      "densities.regular": 11,
+      "densities.spacious": 15,
+    },
+    "S2 TableView 행 compact 32 · regular 40 · spacious 48 (`TableView.tsx` — 칸은 minHeight + 가운데) = 칸 행간 18 (S2 cell controlFont 14) + 2 × 여백",
+  ),
+  sizes(
+    "Column",
+    "paddingY",
+    { M: 6.5 },
+    "S2 TableView 머리글 32 (`DEFAULT_HEADER_HEIGHT` — density 무관) = 행간 18 + 2 × 여백 + 아래 선 1 · Skia 글자 밀기만 (상자 여백은 top-level containerStyles 의 같은 6.5px)",
   ),
   sizes(
     "Avatar",

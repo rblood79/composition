@@ -89,9 +89,10 @@
       align-items: center;
       justify-content: center;
       /* The level indent before the glyph — S2 TreeView's `level-padding` column,
-         `(level − 1) × --indent` (16px): the box grows by it and the 20px glyph area stays
-         (border-box — the Canvas's `catalogTreeChevronLayout` box). */
-      width: calc(20px + (var(--tree-item-level) - 1) * 16px);
+         `(level − 1) × --indent` (16px): the box grows by it and the S2 `expandButton` 40px area
+         stays (border-box — the Canvas's `catalogTreeChevronLayout` box). Desktop numbers: the
+         catalog DOM writes the device formula inline (touch × 1.25, `treeChevronSheetBox`). */
+      width: calc(40px + (var(--tree-item-level) - 1) * 16px);
       height: 100%;
       padding-left: calc((var(--tree-item-level) - 1) * 16px);
       /* Keeps its width beside the full-width label (4e-11). */
@@ -258,7 +259,7 @@
       outline: 1px solid var(--accent);
       margin-left: calc(
         8px + var(--checkbox-width, 0px) + var(--drag-button-width, 0px) +
-          26px + (var(--tree-item-level) - 1) * 16px
+          46px + (var(--tree-item-level) - 1) * 16px
       );
     }
   }

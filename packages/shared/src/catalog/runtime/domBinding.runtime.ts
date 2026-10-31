@@ -198,6 +198,8 @@ import {
   catalogStateValue,
   catalogStepperHidden,
   catalogTreeChevronButtonItem,
+  catalogTreeChevronBox,
+  catalogTreeChevronLevel,
   catalogTreeChevronGlyphItem,
   catalogToggleButtonGlyphOwner,
   FIELD_HINT_OWNERS,
@@ -673,6 +675,30 @@ const glyph =
           fallbackSize,
       },
     });
+
+/**
+ * A TreeItem chevron button's inline box: `Tree.css` states the desktop S2 40 + level indent (a manual
+ * sheet reads no `--catalog-token-*`), inline writes its device formula (touch × 1.25 — S2 `size()`),
+ * then what the document wrote (ADR-295 후속 B2).
+ */
+function treeChevronSheetBox(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  get: (id: string) => CatalogConsumerNode | undefined,
+  typeOf: (entry: CatalogConsumerNode) => string,
+): CSSProperties {
+  const level = catalogTreeChevronLevel(node, get, typeOf);
+  const box = level === undefined ? undefined : catalogTreeChevronBox(level);
+  return {
+    ...(box
+      ? {
+          width: catalogDeviceScaledCss(box.width),
+          paddingLeft: catalogDeviceScaledCss(box.indent),
+        }
+      : {}),
+    ...authoredStyle(root, node),
+  };
+}
 
 function withInheritedIconColor(
   node: CatalogConsumerNode,
@@ -3541,7 +3567,7 @@ export function renderNode(
         )
       : node.bindingId === "button" &&
           catalogTreeChevronButtonItem(node, domGet, domType)
-        ? authoredStyle(root, node)
+        ? treeChevronSheetBox(root, node, domGet, domType)
         : undefined;
   // Its glyph takes the button's color (`all: unset` inherits the row's — selected, disabled), so
   // the Canvas resting color (the item's, `derivedOf`) does not go inline.

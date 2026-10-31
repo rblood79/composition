@@ -171,23 +171,23 @@ describe("TreeItem chevron — Button[slot=chevron] in the row content", () => {
       expect(kids(kids(content.id)[1].id).map((c) => c.bindingId)).toEqual([
         "icon",
       ]);
-      // The `TreeItemChevron` node's box and the label beside it (main `7c806db22`).
+      // The chevron Button's box (S2 `expandButton` 40 — ADR-295 후속 B2) and the label beside it.
       const rows = expanded
         ? [
             // (Its row is the content node — the child item is the next row, not beside it: the
             // chevron is centered in the 40px row (S2 TreeView — ADR-295 Phase 3c-3c) as when collapsed — ADR-256 후속 14.)
-            { item: parentItem, chevron: [8, 12, 20, 16], labelX: 30 },
+            { item: parentItem, chevron: [8, 12, 40, 16], labelX: 50 },
             // level 2: the button grows by its level indent — S2 TreeView's `level-padding`
             // column, `(level − 1) × --indent` (16px)
             {
               item: kids(parentItem.id)[1],
-              chevron: [8, 12, 36, 16],
-              labelX: 46,
+              chevron: [8, 12, 56, 16],
+              labelX: 66,
             },
           ]
         : [
-            { item: parentItem, chevron: [8, 12, 20, 16], labelX: 30 },
-            { item: leafItem, chevron: [8, 12, 20, 16], labelX: 30 },
+            { item: parentItem, chevron: [8, 12, 40, 16], labelX: 50 },
+            { item: leafItem, chevron: [8, 12, 40, 16], labelX: 50 },
           ];
       for (const { item, chevron, labelX } of rows) {
         const [, button, label] = kids(kids(item.id)[0].id);
@@ -231,10 +231,10 @@ describe("TreeItem chevron — Button[slot=chevron] in the row content", () => {
     const { button, label, icon } = glyphOf(parentItem);
     const painted = glyphs(getSkiaNode(icon.id));
     expect(painted).toHaveLength(1);
-    // (Centered as the old node's `leading_icon`: the button's 20px box, glyph 16.)
+    // (Centered in the button's S2 `expandButton` 40px box, glyph 16.)
     const [bx, by] = rectIn(root, button.id, parentItem.id);
     const [ix, iy, iw, ih] = rectIn(root, icon.id, parentItem.id);
-    expect([ix + iw / 2 - bx, iy + ih / 2 - by]).toEqual([10, 8]);
+    expect([ix + iw / 2 - bx, iy + ih / 2 - by]).toEqual([20, 8]);
     expect(painted[0].iconPath?.size).toBe(16);
     // (The item's text color — not the Button variant's text color its Icon part rule names.)
     expect(icon.visual.color).not.toBe(label.visual.color);

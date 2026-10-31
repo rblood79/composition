@@ -11891,27 +11891,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   세로 정합: calculateContentHeight(utils.ts §1.56)가 estimateTextHeight(16,24)=24 +
         //   paddingY*2(16) = 40 = CSS border-box height. baseline middle 이 텍스트를 셀 세로 중앙 배치.
         paddingX: 8,
-        paddingY: 11,
+        // ADR-295 후속 B2: 머리글 = S2 `DEFAULT_HEADER_HEIGHT` (32 · 터치 40 — `TableView.tsx` component-height-100,
+        //   density 무관) → 최소 높이 `scaled(32)`. 여백 = (32 − 줄 18 − 아래 선 1) / 2.
+        paddingY: 6.5,
+        minHeight: scaled(32),
       },
     },
-    // density (2026-08-21): Spectrum `table.item.padding` × density(compact/regular/spacious)
-    //   모델. Spectrum 은 행 높이를 size 축이 정하고 density 는 **item 내부 여백**만 바꾼다
-    //   (`table-row-height-*` 은 density 무관, 구 `-regular` 접미사는 deprecated). 폰트는
-    //   불변이므로 sizes 와 직교한 densities 축에 둔다. 소비 주체가 Column/Cell 이라 채널도
-    //   여기 산다 — Table 은 density **값**만 넘긴다(당시 Skia 위임 경로 applyImplicitStyles 는 2026-10-05 삭제).
-    //   행 높이 = lineHeight + paddingY×2 → compact 32 / regular 40 / spacious 48 (ADR-295 후속: 칸 글자 =
-    //   S2 cell `fontSize: controlFont()` 14 · 줄 18 — paddingY 7 / 11 / 15).
-    //   Column/Cell 은 `structure` 미보유라 virtual spec 이 안 생기고, 따라서 generated CSS
-    //   emit 도 없다(DOM 은 옛 표 subtree 인라인이 정본이었다) → CSS diff 0.
-    defaultDensity: "regular",
-    densities: {
-      compact: { paddingY: 7 },
-      regular: { paddingY: 11 },
-      spacious: { paddingY: 15 },
-    },
+    // (머리글은 density 를 따르지 않는다 — S2 `headingHeight: DEFAULT_HEADER_HEIGHT[scale]`. 칸 (Cell) 만 density 축.)
     // ADR-257: no flex share — the column's width is its track in the row grid (`tableTracks.ts`).
+    // (머리글 위아래 여백 = S2 32 의 6.5 — 아래 size 블록 주석. 좌우 = {spacing.sm}.)
     containerStyles: {
-      padding: "{spacing.sm}",
+      paddingTop: "6.5px",
+      paddingRight: "{spacing.sm}",
+      paddingBottom: "6.5px",
+      paddingLeft: "{spacing.sm}",
     },
     // ADR-257 Phase 3: the header cell's own alignment (S2 Column `align` — not its Cells').
     containerVariants: {
@@ -11989,8 +11982,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 11,
       },
     },
-    // density: Column 과 동일 축·동일 값 (같은 행 안에서 header/body 여백이 갈리면 안 된다).
-    //   근거·행 높이 산식은 Column 주석 참조. 최소 높이 = S2 cell `minHeight` (compact 32 · regular 40 ·
+    // density (2026-08-21): Spectrum `table.item.padding` × density 모델 — 폰트는 그대로, 여백만 바꾼다.
+    //   행 높이 = 줄 18 (S2 cell `controlFont()` 14) + paddingY × 2 → compact 32 · regular 40 · spacious 48.
+    //   머리글 (Column) 은 density 를 따르지 않는다 (S2 32 고정, ADR-295 후속 B2). 최소 높이 = S2 cell `minHeight` (compact 32 · regular 40 ·
     //   spacious 48 — rem × `--s2-scale`, 터치 × 1.25 → `scaled`, ADR-295 후속): desktop 은 여백 + 행간과 같은 값,
     //   터치는 행간 22 + 여백보다 큰 40 · 50 · 60.
     defaultDensity: "regular",
@@ -13382,12 +13376,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // ADR-295 후속 B2: 최대 폭 = S2 `toastStyle` `--maxWidth: 336` (`maxWidth` sizing — 터치 × 1.25 → `scaled`).
+    //   S2 는 `min(336, 90vw)` — 90vw 쪽은 Canvas 에 viewport 축이 없어 싣지 않는다 (좁은 화면 상한).
     sizes: {
       S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 0,
         minHeight: scaled(56),
+        maxWidth: scaled(336),
         iconSize: 16,
       },
       M: {
@@ -13395,6 +13392,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.md}",
         height: 0,
         minHeight: scaled(56),
+        maxWidth: scaled(336),
         iconSize: 20,
       },
       L: {
@@ -13402,6 +13400,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.lg}",
         height: 0,
         minHeight: scaled(56),
+        maxWidth: scaled(336),
         iconSize: 24,
       },
     },

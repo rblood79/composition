@@ -154,9 +154,10 @@ describe("S2 Table density", () => {
       { bindingId?: string; visual: Record<string, unknown> }
     >;
   }) =>
-    [...root.domInputs.values()].filter(
-      (item) => item.bindingId === "cell" || item.bindingId === "column",
-    );
+    [...root.domInputs.values()].filter((item) => item.bindingId === "cell");
+  // (S2 머리글은 density 를 따르지 않는다 — `headingHeight: DEFAULT_HEADER_HEIGHT[scale]`, ADR-295 후속 B2.)
+  const columns = (root: Parameters<typeof cells>[0]) =>
+    [...root.domInputs.values()].filter((item) => item.bindingId === "column");
 
   it("the Design panel offers Density on a Table", async () => {
     const { definitionId } = await open("Table", {});
@@ -166,11 +167,14 @@ describe("S2 Table density", () => {
     ).toMatchObject({ kind: "enum", default: "regular" });
   });
 
-  it("compact: every Column · Cell tightens to paddingY 7", async () => {
+  it("compact: every Cell tightens to paddingY 7 — the Columns keep the S2 header (6.5, density-free)", async () => {
     const { root } = await openTable({ density: "compact" });
     const parts = cells(root);
-    expect(parts.length).toBeGreaterThan(3);
+    expect(parts.length).toBeGreaterThan(1);
     expect(parts.every((part) => part.visual.paddingY === 7)).toBe(true);
+    const heads = columns(root);
+    expect(heads.length).toBeGreaterThan(1);
+    expect(heads.every((part) => part.visual.paddingY === 6.5)).toBe(true);
   });
 
   it("spacious: paddingY 15", async () => {
@@ -188,14 +192,14 @@ describe("S2 Table density", () => {
       }),
     );
     const parts = cells(root);
-    expect(parts.length).toBeGreaterThan(3);
+    expect(parts.length).toBeGreaterThan(1);
     expect(parts.every((part) => part.visual.paddingY === 7)).toBe(true);
   });
 
   it("default: the regular paddingY 11 stays", async () => {
     const { root } = await openTable({});
     const parts = cells(root);
-    expect(parts.length).toBeGreaterThan(3);
+    expect(parts.length).toBeGreaterThan(1);
     expect(parts.every((part) => part.visual.paddingY === 11)).toBe(true);
   });
 });

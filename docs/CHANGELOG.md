@@ -23,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - ColorArea 최소 크기 64 (S2 `minSize`, `scaled`) · ColorSwatch · ColorSwatchPicker 크기 XS 16 추가 (S2 `size` XS).
   - 위치: `componentRulesTable.ts` (ProgressCircle · ColorThumb · ColorSlider · ColorArea · ColorSwatch · ColorSwatchPicker) · `ProgressCircle.tsx` · `skiaPrimitives.ts` (`value_fill_arc`) · `catalog-style.types.ts` · `spec.types.ts` · `resolveCatalogRuleCanvasBox.ts` (ColorWheel) · `ruleDefinition.ts` (변형 visual 토큰).
   - 검증: G4 `d3S2Alignment` (S2 소스 정규식 대조 5 + ColorSwatch XS) · 원복 RED (HEAD rule · 상수 → 6 FAIL) · G2 desktop · touch 263/263 · live 5175 (Canvas 192 · DOM desktop 192 · 터치 240 · ColorWheel 192 그대로 · ProgressCircle 터치 40 / 굵기 3 · 콘솔 0).
+- **Tree 펼침 버튼 열 · Table 머리글 · Toast 최대 폭 (2차)**:
+  - Tree 펼침 버튼 열 20 → S2 `expandButton` 40 (+ 단계 들여쓰기 16 그대로) — 둘 다 S2 `size()` 라 터치 × 1.25. `Tree.css` 는 desktop 값, catalog DOM 은 펼침 Button inline 에 기기 식, Canvas 는 `catalogScaledPx`.
+  - Table 머리글: 밀도를 따라 33 · 41 · 49 → S2 `DEFAULT_HEADER_HEIGHT` 32 고정 (터치 40). **Why**: S2 는 `headingHeight` 를 scale 로만 고르고 density 는 칸 (Cell) 만 바꾸는데, Column 이 Cell 과 같은 density 표를 갖고 있었다. Column 의 density 표를 지우고 위아래 여백 6.5 (= (32 − 줄 18 − 아래 선 1) / 2) · 최소 높이 `scaled(32)`.
+  - Toast 최대 폭 336 (S2 `--maxWidth`, `scaled`). S2 의 `min(…, 90vw)` 쪽은 Canvas 에 viewport 축이 없어 싣지 않았다.
+  - 위치: `componentRulesTable.ts` (Column · Cell 주석 · Toast) · `presence.ts` (`catalogTreeChevronBox` · `catalogTreeChevronLevel`) · `domBinding.runtime.ts` (`treeChevronSheetBox`) · `Tree.css` (펼침 열 · 끌어 놓기 표시 위치 46).
+  - 검증: G4 (Tree 펼침 열 · Toast 최대 폭 · 머리글 = S2 `DEFAULT_HEADER_HEIGHT`) · 원복 RED 8 · G2 desktop · touch 263/263 · live 5175 (펼침 열 desktop 40 · 터치 50, 머리글 Canvas 32 · DOM 32 · 터치 40, 콘솔 0).
 
 ## [ADR-295 후속 — S2 고정 치수의 터치 배율 (`scaled`)] - 2026-10-31
 

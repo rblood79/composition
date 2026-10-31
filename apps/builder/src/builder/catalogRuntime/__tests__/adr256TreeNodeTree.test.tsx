@@ -235,10 +235,12 @@ describe("ADR-256 Phase 5h — TreeItem is the reference's node tree", () => {
       expect(button.getAttribute("tabindex")).toBe("-1");
       expect(button.getAttribute("aria-label")).toBeTruthy();
       expect(button.className).toBe("react-aria-Button");
-      // (`Tree.css` styles it — no inline box of the Button type; its glyph takes the button's
-      // color, the row's: no inline color.)
-      expect(button.getAttribute("style") ?? "").not.toMatch(
-        /padding-left|box-sizing|font-size/,
+      // (`Tree.css` styles it — no inline box of the Button type, only the S2 40 + indent's device
+      // formula (ADR-295 후속 B2); its glyph takes the button's color, the row's: no inline color.)
+      const style = button.getAttribute("style") ?? "";
+      expect(style).not.toMatch(/box-sizing|font-size|(^|;)color:/);
+      expect(style).toMatch(
+        /^width:calc\(var\(--catalog-token-size-unit\) \* (40|56) \/ 1\);padding-left:calc\(var\(--catalog-token-size-unit\) \* (0|16) \/ 1\);/,
       );
       expect(button.querySelector("svg")?.getAttribute("stroke")).toBe(
         "currentColor",

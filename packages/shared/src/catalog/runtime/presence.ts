@@ -1321,11 +1321,22 @@ export interface CatalogComposedPart {
 }
 
 /**
- * `Tree.css` chevron button: `width: 20px + indent` with `padding-left: indent`, indent =
- * `(level − 1) × 16px` — S2 TreeView's `level-padding` column before the expand button (`--indent: 16`).
+ * `Tree.css` chevron button: `width: 40px + indent` with `padding-left: indent`, indent =
+ * `(level − 1) × 16px` — S2 TreeView's `level-padding` column (`--indent: 16`) before the expand button
+ * (`expandButton` 40 × 40). Both are S2 sizing numbers (`size()` — touch × 1.25): the Canvas reads
+ * them through `catalogScaledPx`, the DOM writes `catalogTreeChevronDeviceBox` inline (ADR-295 후속 B2).
  */
-const TREE_CHEVRON_WIDTH = 20;
+const TREE_CHEVRON_WIDTH = 40;
 const TREE_LEVEL_PADDING = 16;
+
+/** The chevron button's S2 width · level indent px at `level` (desktop numbers — callers scale them). */
+export function catalogTreeChevronBox(level: number): {
+  readonly width: number;
+  readonly indent: number;
+} {
+  const indent = (level - 1) * TREE_LEVEL_PADDING;
+  return { width: TREE_CHEVRON_WIDTH + indent, indent };
+}
 /**
  * The chevron glyph's box: the button's content height — its Icon, the Button rule's size-S icon (the
  * chevron Button is size S — S2 `1lh` of its font since ADR-295 Phase 3c: 16 desktop · 18 touch). A
@@ -1364,17 +1375,16 @@ function catalogTreeLevel(
  * fills the row's content box when the row's height is definite (a Tree of set height), else it is
  * its svg's height (the minimum).
  */
-const treeChevronIndent = (level: number) => (level - 1) * TREE_LEVEL_PADDING;
 function treeChevronStyle(level: number): Record<string, string | number> {
-  const padding = treeChevronIndent(level);
+  const box = catalogTreeChevronBox(level);
   return {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    width: `${TREE_CHEVRON_WIDTH + padding}px`,
+    width: `${catalogScaledPx(box.width)}px`,
     height: "100%",
     minHeight: `${treeChevronIcon()}px`,
-    paddingLeft: `${padding}px`,
+    paddingLeft: `${catalogScaledPx(box.indent)}px`,
     flexShrink: 0,
   };
 }
@@ -1529,7 +1539,7 @@ export function catalogTreeChevrons(
 }
 
 /** A chevron button record's TreeItem level; undefined for any other node. */
-function treeChevronLevel(
+export function catalogTreeChevronLevel(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
@@ -1548,7 +1558,7 @@ export function catalogTreeChevronLayout(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): Record<string, string | number> | undefined {
-  const level = treeChevronLevel(node, get, typeOf);
+  const level = catalogTreeChevronLevel(node, get, typeOf);
   return level === undefined ? undefined : treeChevronStyle(level);
 }
 

@@ -38,7 +38,10 @@ import {
 } from "@composition/rendering";
 import { COMPONENT_RULES_TABLE } from "../../../../../../packages/shared/src/catalog/generated/componentRulesTable";
 import { manualBoxRule } from "../../../../../../packages/shared/src/catalog/document/manualBoxRules";
-import { CATALOG_SLIDER_THICK_TRACK } from "../../../../../../packages/shared/src/catalog/runtime/presence";
+import {
+  CATALOG_SLIDER_THICK_TRACK,
+  catalogTreeChevronBox,
+} from "../../../../../../packages/shared/src/catalog/runtime/presence";
 import {
   CATALOG_COLOR_WHEEL_TRACK,
   catalogColorWheelDiameter,
@@ -1230,16 +1233,29 @@ describe("ADR-295 후속 — 글자 단계 = S2 controlFont (Breadcrumbs · Tabl
       regular: Number(rows[2]),
       spacious: Number(rows[3]),
     };
-    for (const type of ["Cell", "Column"]) {
-      const block = rules[type]!.sizes.M!;
-      expect(fontOf(block), type).toBe(CONTROL_FONT.M);
-      const line = resolveToken(block.lineHeight as TokenRef) as number;
-      for (const [density, height] of Object.entries(s2Rows))
-        expect(
-          line + 2 * rules[type]!.densities![density]!.paddingY!,
-          `${type} ${density}`,
-        ).toBe(height);
-    }
+    for (const type of ["Cell", "Column"])
+      expect(fontOf(rules[type]!.sizes.M!), type).toBe(CONTROL_FONT.M);
+    const cellBlock = rules.Cell!.sizes.M!;
+    const line = resolveToken(cellBlock.lineHeight as TokenRef) as number;
+    for (const [density, height] of Object.entries(s2Rows))
+      expect(
+        line + 2 * rules.Cell!.densities![density]!.paddingY!,
+        `Cell ${density}`,
+      ).toBe(height);
+    // 머리글 = S2 `DEFAULT_HEADER_HEIGHT.medium` (density 무관 — ADR-295 후속 B2): 줄 + 여백 × 2 + 아래 선 1.
+    const header = Number(
+      /DEFAULT_HEADER_HEIGHT = \{\s*medium: (\d+)/.exec(table)![1],
+    );
+    const column = rules.Column!;
+    expect(column.densities).toBeUndefined();
+    expect(
+      (resolveToken(column.sizes.M!.lineHeight as TokenRef) as number) +
+        2 * column.sizes.M!.paddingY! +
+        1,
+    ).toBe(header);
+    expect(ruleSizeLengthRef(column.sizes.M!, "minHeight")).toBe(
+      `{length.size.unit*${header}/1}`,
+    );
     // 머리글 칸의 이름 Text 도 칸 글자 (Column 직속 · 정렬 이름 Group 안 — manual part rule).
     const parts = (manualBoxRule("Column")?.parts ?? []).filter(
       (part) => part.childType === "Text",
@@ -1638,6 +1654,41 @@ describe("ADR-295 후속 — S2 와 다르게 남은 고정 치수 (S2 1.8.1 소
     expect(CATALOG_COLOR_WHEEL_TRACK).toBe(
       s2Value("ColorWheel.tsx", /let thickness = (\d+);/),
     );
+  });
+
+  it("Tree 펼침 버튼 열 = S2 expandButton 40 + 단계 들여쓰기 --indent 16 (`Tree.css` desktop · DOM inline 기기 식 · Canvas `catalogScaledPx`)", () => {
+    const button = s2Value(
+      "TreeView.tsx",
+      /const expandButton = style<[\s\S]*?height: (\d+),\s*width: \1,/,
+    );
+    const indent = s2Value(
+      "TreeView.tsx",
+      /'--indent': \{\s*type: 'width',\s*value: (\d+)/,
+    );
+    expect(catalogTreeChevronBox(1)).toEqual({ width: button, indent: 0 });
+    expect(catalogTreeChevronBox(3)).toEqual({
+      width: button + 2 * indent,
+      indent: 2 * indent,
+    });
+    const sheet = readFileSync(
+      resolve(
+        __dirname,
+        "../../../../../../packages/shared/src/components/styles/Tree.css",
+      ),
+      "utf8",
+    );
+    expect(sheet).toContain(
+      `width: calc(${button}px + (var(--tree-item-level) - 1) * ${indent}px);`,
+    );
+  });
+
+  it("Toast 최대 폭 = scaled(S2 toastStyle --maxWidth)", () => {
+    const max = s2Value(
+      "Toast.tsx",
+      /'--maxWidth': \{\s*type: 'maxWidth',\s*value: (\d+)/,
+    );
+    for (const [size, block] of Object.entries(rules.Toast!.sizes))
+      expect(ruleSizeLengthRef(block, "maxWidth"), size).toBe(scaledRef(max));
   });
 
   it("ColorArea 최소 크기 = scaled(S2 minSize)", () => {

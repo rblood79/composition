@@ -518,11 +518,11 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
         display: "flex",
         flexDirection: "row",
       });
-      // (ADR-295 후속: regular 11 — the S2 row 40 over the cell line 18.)
+      // (ADR-295 후속 B2: the S2 header 32 — density-free — over the cell line 18 and its 1px line.)
       expect(resolveLayoutSpecPreset("Column", undefined)).toMatchObject({
-        paddingTop: 11,
+        paddingTop: 6.5,
         paddingRight: 8,
-        paddingBottom: 11,
+        paddingBottom: 6.5,
         paddingLeft: 8,
       });
       expect(resolveTypographySpecPreset("Column", undefined)).toMatchObject({

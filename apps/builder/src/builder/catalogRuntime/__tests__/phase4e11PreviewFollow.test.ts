@@ -465,10 +465,10 @@ describe("TreeItem chevron — Tree.css width in every host", () => {
   });
 
   it.each(["Tree", "TreeItem"])(
-    "%s row label starts after padding 8 + chevron 20 + gap 2",
+    "%s row label starts after padding 8 + chevron 40 (S2 expandButton) + gap 2",
     async (type) => {
       const { workspace, root, inset } = await labelInset(type);
-      expect(inset).toBe(30);
+      expect(inset).toBe(50);
       if (type === "TreeItem") {
         const owner = [...root.domInputs.values()].find(
           (record) => record.sourceId === "project:node:owner",

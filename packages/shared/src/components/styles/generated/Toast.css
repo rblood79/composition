@@ -26,6 +26,7 @@
   font-size: var(--catalog-token-text-base);
   border-radius: var(--catalog-token-radius-md);
   min-height: calc(var(--catalog-token-size-unit) * 56 / 1);
+  max-width: calc(var(--catalog-token-size-unit) * 336 / 1);
   --icon-size: 20px;
 }
 
@@ -91,6 +92,7 @@
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-md);
   min-height: calc(var(--catalog-token-size-unit) * 56 / 1);
+  max-width: calc(var(--catalog-token-size-unit) * 336 / 1);
   --icon-size: 16px;
 }
 
@@ -100,6 +102,7 @@
   font-size: var(--catalog-token-text-base);
   border-radius: var(--catalog-token-radius-md);
   min-height: calc(var(--catalog-token-size-unit) * 56 / 1);
+  max-width: calc(var(--catalog-token-size-unit) * 336 / 1);
   --icon-size: 20px;
 }
 
@@ -109,6 +112,7 @@
   font-size: var(--catalog-token-text-lg);
   border-radius: var(--catalog-token-radius-lg);
   min-height: calc(var(--catalog-token-size-unit) * 56 / 1);
+  max-width: calc(var(--catalog-token-size-unit) * 336 / 1);
   --icon-size: 24px;
 }
 

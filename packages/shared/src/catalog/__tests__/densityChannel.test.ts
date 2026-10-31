@@ -63,12 +63,12 @@ describe("density 채널 — catalog SSOT", () => {
  * Table 로 통합 — 2026-10-21.)
  */
 describe("density 채널 — Table(Column/Cell)", () => {
-  it("Column/Cell 이 같은 축·같은 값을 갖는다 — 한 행 안에서 header/body 여백이 갈리면 안 된다", () => {
-    for (const key of ["compact", "regular", "spacious"] as const) {
+  it("머리글 (Column) 은 density 를 따르지 않는다 — S2 `headingHeight: DEFAULT_HEADER_HEIGHT[scale]` (ADR-295 후속 B2)", () => {
+    expect(COMPONENT_RULES_TABLE.Column?.densities).toBeUndefined();
+    for (const key of ["compact", "regular", "spacious"] as const)
       expect(resolveCatalogDensityField("Column", key, "paddingY")).toBe(
-        resolveCatalogDensityField("Cell", key, "paddingY"),
+        undefined,
       );
-    }
   });
 
   it("행 높이가 Spectrum medium 계열(32/40/48)로 떨어진다 — 텍스트 줄 + paddingY×2", () => {
@@ -86,7 +86,7 @@ describe("density 채널 — Table(Column/Cell)", () => {
   });
 
   it("기본값 regular 는 기존 sizes.M.paddingY 와 같다 — 미지정 프로젝트 회귀 0", () => {
-    for (const type of ["Column", "Cell"] as const) {
+    for (const type of ["Cell"] as const) {
       const rule = COMPONENT_RULES_TABLE[type];
       expect(rule?.defaultDensity).toBe("regular");
       expect(resolveCatalogDensityField(type, undefined, "paddingY")).toBe(
@@ -96,7 +96,7 @@ describe("density 채널 — Table(Column/Cell)", () => {
   });
 
   it("density 는 세로 여백만 바꾼다 — paddingX/폰트는 densities 밖", () => {
-    for (const type of ["Column", "Cell"] as const) {
+    for (const type of ["Cell"] as const) {
       const densities = COMPONENT_RULES_TABLE[type]?.densities ?? {};
       expect(Object.keys(densities)).toEqual([
         "compact",
@@ -105,9 +105,7 @@ describe("density 채널 — Table(Column/Cell)", () => {
       ]);
       for (const spacing of Object.values(densities)) {
         // (Cell 은 S2 cell `minHeight` 의 density 표도 — ADR-295 후속. 폰트 · paddingX 는 여전히 밖.)
-        expect(Object.keys(spacing)).toEqual(
-          type === "Cell" ? ["paddingY", "minHeight"] : ["paddingY"],
-        );
+        expect(Object.keys(spacing)).toEqual(["paddingY", "minHeight"]);
       }
     }
   });
