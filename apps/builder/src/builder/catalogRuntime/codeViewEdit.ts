@@ -183,7 +183,6 @@ const DRAG_TRIGGERS = new Set([
 /** The derived statements (the document makes them — checked, never applied · Decision 6). */
 const DERIVED_KINDS = new Set([
   "import",
-  "toasts",
   "collection",
   "effect",
   "useFilter",
@@ -1981,7 +1980,7 @@ class Planner {
       // (ADR-295 후속 C5 — the S2 options: `variant` in the content, `timeout` in RAC's options;
       //  C8 — `actionLabel` · `shouldCloseOnAction` · `onAction: () => {…}` (its body = Dos).)
       const toast =
-        /^toasts\.add\(\{title: ('(?:[^'\\]|\\.)*')(?:, variant: '(\w+)')?(?:, actionLabel: ('(?:[^'\\]|\\.)*'))?(, shouldCloseOnAction: true)?(?:, onAction: (?:async )?\(\) => \{([\s\S]*)\})?\}(?:, \{timeout: (\d+)\})?\)$/.exec(
+        /^queue\.add\(\{title: ('(?:[^'\\]|\\.)*')(?:, variant: '(\w+)')?(?:, actionLabel: ('(?:[^'\\]|\\.)*'))?(, shouldCloseOnAction: true)?(?:, onAction: (?:async )?\(\) => \{([\s\S]*)\})?\}(?:, \{timeout: (\d+)\})?\)$/.exec(
           raw,
         );
       const go = /^navigate\(('(?:[^'\\]|\\.)*')\)$/.exec(raw);

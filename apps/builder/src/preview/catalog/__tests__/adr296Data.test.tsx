@@ -117,6 +117,7 @@ describe("ADR-296 Phase 3 — data · api · state files", () => {
     const s = session(h);
     expect(codeViewFileTree(h.graph()).map((file) => file.path)).toEqual([
       "src/App.tsx",
+      "src/Toast.tsx",
       HOME_FILE,
       "src/data/users.ts",
       "src/api/saveOrder.ts",

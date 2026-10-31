@@ -19,6 +19,7 @@ import type {
   CodeViewResult,
 } from "../types";
 import { generateAppFile } from "./app";
+import { generateToastFile } from "./toast";
 import { codeViewProjectNames, pascal } from "./names";
 import {
   codeName,
@@ -28,7 +29,13 @@ import {
 } from "./definitions";
 
 export type CodeViewFileKind =
-  "app" | "page" | "collection" | "endpoint" | "state";
+  | "app"
+  /** `src/Toast.tsx` — the app's toast queue and shape (RAC `MyToastRegion`). */
+  | "toast"
+  | "page"
+  | "collection"
+  | "endpoint"
+  | "state";
 
 export interface CodeViewFileEntry {
   readonly path: string;
@@ -45,7 +52,10 @@ export function codeViewFileTree(
 ): CodeViewFileEntry[] {
   const project = reader.getEntry(reader.projectId) as ProjectEntry;
   const names = codeViewProjectNames(reader);
-  const files: CodeViewFileEntry[] = [{ path: "src/App.tsx", kind: "app" }];
+  const files: CodeViewFileEntry[] = [
+    { path: "src/App.tsx", kind: "app" },
+    { path: "src/Toast.tsx", kind: "toast" },
+  ];
   for (const [pageId, name] of names.pages)
     files.push({ path: `src/pages/${name}.tsx`, kind: "page", id: pageId });
   // ADR-296 Phase 3 — the data definitions (their names — the code imports them by these).
@@ -93,6 +103,8 @@ export function generateCodeViewFile(
   switch (file.kind) {
     case "app":
       return generateAppFile({ reader: reader as never });
+    case "toast":
+      return generateToastFile({ reader: reader as never });
     case "page":
       return generateCodeView({
         reader,

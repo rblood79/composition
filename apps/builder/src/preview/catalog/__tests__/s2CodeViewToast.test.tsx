@@ -11,7 +11,7 @@ import { HOME, openAdr296, type Adr296Harness } from "./support/adr296Harness";
 
 /**
  * ADR-295 후속 C5 — a rule's toast Do in the code view carries its S2 options (C2: `variant` ·
- * `timeout`) as RAC's queue takes them: `toasts.add({title, variant}, {timeout})` (RAC
+ * `timeout`) as RAC's queue takes them: `queue.add({title, variant}, {timeout})` (RAC
  * `UNSTABLE_ToastQueue.add(content, options)` — S2 `ToastQueue.<variant>(message, {timeout})` is the
  * same queue). The code reads back to the same Do, and an edit of either option is that Do's edit.
  */
@@ -52,21 +52,19 @@ describe("S2 toast options in the code view", () => {
     });
     const code = h.code();
     expect(code).toContain(
-      "toasts.add({title: 'Saved', variant: 'positive'}, {timeout: 6000});",
+      "queue.add({title: 'Saved', variant: 'positive'}, {timeout: 6000});",
     );
-    expect(code).toContain(
-      "const toasts = new UNSTABLE_ToastQueue<{title: string; variant?: 'neutral' | 'info' | 'positive' | 'negative'}>();",
-    );
+    // (User 2026-11-01 — the app's one queue lives in `src/Toast.tsx`; the page imports it.)
+    expect(code).toContain("import {queue} from '../Toast';");
+    expect(code).not.toContain("UNSTABLE_ToastQueue");
     expect(strictRejected(h)).toEqual([]);
   });
 
   it("a toast without options keeps the plain form", async () => {
     const { h } = await open({ opcode: "toast", message: "Hi" });
     const code = h.code();
-    expect(code).toContain("toasts.add({title: 'Hi'});");
-    expect(code).toContain(
-      "const toasts = new UNSTABLE_ToastQueue<{title: string}>();",
-    );
+    expect(code).toContain("queue.add({title: 'Hi'});");
+    expect(code).toContain("import {queue} from '../Toast';");
   });
 
   it("an edit of the variant · timeout is the Do's edit; removing them clears them", async () => {
@@ -90,8 +88,8 @@ describe("S2 toast options in the code view", () => {
       h
         .code()
         .replace(
-          "toasts.add({title: 'Saved', variant: 'negative'}, {timeout: 8000});",
-          "toasts.add({title: 'Saved'});",
+          "queue.add({title: 'Saved', variant: 'negative'}, {timeout: 8000});",
+          "queue.add({title: 'Saved'});",
         ),
     );
     expect(result.rejected).toEqual([]);
@@ -104,8 +102,8 @@ describe("S2 toast options in the code view", () => {
       h
         .code()
         .replace(
-          "toasts.add({title: 'Hi'});",
-          "toasts.add({title: 'Hi', variant: 'info'}, {timeout: 5000});",
+          "queue.add({title: 'Hi'});",
+          "queue.add({title: 'Hi', variant: 'info'}, {timeout: 5000});",
         ),
     );
     expect(result.rejected).toEqual([]);
@@ -139,14 +137,12 @@ describe("S2 toast action button in the code view", () => {
     const { h } = await open(actionToast);
     const code = h.code();
     expect(code).toContain(
-      "toasts.add({title: 'Deleted', variant: 'neutral', actionLabel: 'Undo', shouldCloseOnAction: true, onAction: () => {",
+      "queue.add({title: 'Deleted', variant: 'neutral', actionLabel: 'Undo', shouldCloseOnAction: true, onAction: () => {",
     );
     expect(code).toContain(
-      "toasts.add({title: 'Restored', variant: 'positive'});",
+      "queue.add({title: 'Restored', variant: 'positive'});",
     );
-    expect(code).toMatch(
-      /onAction\?: \(\) => void; shouldCloseOnAction\?: boolean\}>\(\);/,
-    );
+    expect(code).toContain("import {queue} from '../Toast';");
     expect(strictRejected(h)).toEqual([]);
   });
 
@@ -179,8 +175,8 @@ describe("S2 toast action button in the code view", () => {
       h
         .code()
         .replace(
-          "toasts.add({title: 'Hi'});",
-          "toasts.add({title: 'Hi', actionLabel: 'Undo'}, {timeout: 6000});",
+          "queue.add({title: 'Hi'});",
+          "queue.add({title: 'Hi', actionLabel: 'Undo'}, {timeout: 6000});",
         ),
     );
     expect(refused.rejected.length).toBeGreaterThan(0);

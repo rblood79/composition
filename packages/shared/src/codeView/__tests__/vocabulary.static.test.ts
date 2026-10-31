@@ -15,6 +15,7 @@ const generator = [
   "../generate.ts",
   "../files/app.ts",
   "../files/definitions.ts",
+  "../files/toast.ts",
 ]
   .map((file) => readFileSync(join(here, file), "utf8"))
   .join("\n");

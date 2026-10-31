@@ -40,7 +40,6 @@ import type {
   ViewEntry,
   ViewQuery,
 } from "../catalog/document/types";
-import { CATALOG_TOAST_VARIANTS } from "../catalog/document/types";
 import { isPropVar, isPropWhen } from "../catalog/document/valueType";
 import { resolveField } from "../collections/resolveBoundCollection";
 import {
@@ -345,9 +344,7 @@ class Generator {
   private collator = false;
   private toasts = false;
   /** A toast Do names a variant (the queue's content type carries it). */
-  private toastVariants = false;
   /** A toast Do has an action button (S2 `actionLabel` · `onAction` · `shouldCloseOnAction`). */
-  private toastActions = false;
   private navigate = false;
   /** ADR-296 E9 — the rules of a When that holds several, as named functions (written before `return`). */
   private readonly handlerFns: {
@@ -430,21 +427,6 @@ class Generator {
     const out = new CodeWriter();
     this.writeImports(out);
     out.line();
-    if (this.toasts) {
-      out.anchorLine(
-        `const toasts = new UNSTABLE_ToastQueue<{title: string${
-          this.toastVariants
-            ? `; variant?: ${CATALOG_TOAST_VARIANTS.map((variant) => `'${variant}'`).join(" | ")}`
-            : ""
-        }${
-          this.toastActions
-            ? "; actionLabel?: string; onAction?: () => void; shouldCloseOnAction?: boolean"
-            : ""
-        }}>();`,
-        { kind: "derived", key: "toasts" },
-      );
-      out.line();
-    }
     out.line(
       `export default function ${codeViewPageNames(this.doc.input.reader as never).get(this.page.id) ?? capital(identifier(this.page.name, "page"))}() {`,
     );
@@ -731,12 +713,12 @@ class Generator {
       "react-aria-components/useDragAndDrop",
       "react-router",
       CODE_VIEW_HELPERS_MODULE,
+      "../Toast",
     ];
     if (this.filterFns.size || this.sensitiveFns.size)
       this.import("react-aria", "useFilter");
     if (this.collator) this.import("react-aria", "useCollator");
-    if (this.toasts)
-      this.import("react-aria-components", "UNSTABLE_ToastQueue");
+    if (this.toasts) this.import("../Toast", "queue");
     if (this.navigate) this.import("react-router", "useNavigate");
     for (const from of [...this.imports.keys()].sort(
       (a, b) => order.indexOf(a) - order.indexOf(b),
@@ -2255,7 +2237,6 @@ class Generator {
         // ADR-295 후속 C5 — the Do's S2 options as RAC's queue takes them: the variant in the
         // content, the timeout in the options (`UNSTABLE_ToastQueue.add(content, {timeout})`).
         this.toasts = true;
-        if (action.variant) this.toastVariants = true;
         const fields = [
           `title: ${literal(action.message)}`,
           ...(action.variant ? [`variant: ${literal(action.variant)}`] : []),
@@ -2263,20 +2244,19 @@ class Generator {
         const options =
           action.timeout !== undefined ? `, {timeout: ${action.timeout}}` : "";
         if (!action.actionLabel)
-          return void out.line(`toasts.add({${fields.join(", ")}}${options});`);
+          return void out.line(`queue.add({${fields.join(", ")}}${options});`);
         // 295 후속 C8 — S2 `ToastOptions` `actionLabel` · `shouldCloseOnAction` · `onAction`: the
         // button's Dos as the arrow's body (a closure over the handler's event).
-        this.toastActions = true;
         fields.push(`actionLabel: ${literal(action.actionLabel)}`);
         if (action.shouldCloseOnAction)
           fields.push("shouldCloseOnAction: true");
         const nested = action.onAction ?? [];
         if (!nested.length)
-          return void out.line(`toasts.add({${fields.join(", ")}}${options});`);
+          return void out.line(`queue.add({${fields.join(", ")}}${options});`);
         const isAsync = nested.some((item) => item.opcode === "callEndpoint");
         out
           .line(
-            `toasts.add({${fields.join(", ")}, onAction: ${isAsync ? "async " : ""}() => {`,
+            `queue.add({${fields.join(", ")}, onAction: ${isAsync ? "async " : ""}() => {`,
           )
           .in();
         for (const item of nested) this.writeAction(out, item, context);

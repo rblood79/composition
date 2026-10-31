@@ -4,6 +4,7 @@ import {
   addRecord,
   createComponent,
   createPage,
+  setToastShape,
   setWholeField,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import {
@@ -524,7 +525,7 @@ const CASES: Record<string, Case> = {
       rule(h, J, "property:pick", [{ opcode: "toast", message: "picked" }]);
       return { J };
     },
-    shows: /onPick=\{\(value\) => \{\n\s+toasts\.add\(\{title: 'picked'\}\);/,
+    shows: /onPick=\{\(value\) => \{\n\s+queue\.add\(\{title: 'picked'\}\);/,
     edit: (code) => code.replace("'picked'", "'chosen'"),
     check: (h, made) =>
       expect(actions(h, made.J)).toEqual([
@@ -611,13 +612,13 @@ const CASES: Record<string, Case> = {
         variableId: "project:stateVariable:r",
       }),
   },
-  "onX={() => { setX(…); toasts.add(…); navigate(…); }}": {
+  "onX={() => { setX(…); queue.add(…); navigate(…); }}": {
     build: (h) => {
       const button = h.add("Button");
       rule(h, button, "onPress", [{ opcode: "toast", message: "one" }]);
       return { button };
     },
-    shows: /onPress=\{\(\) => \{\n\s+toasts\.add\(\{title: 'one'\}\);/,
+    shows: /onPress=\{\(\) => \{\n\s+queue\.add\(\{title: 'one'\}\);/,
     edit: (code) => code.replace("'one'", "'two'"),
     check: (h, made) =>
       expect(actions(h, made.button)).toEqual([
@@ -684,7 +685,7 @@ const CASES: Record<string, Case> = {
           )
           .replace(
             "onPress={() => { onButtonPress(); onButtonPress2(); }}",
-            "onPress={() => {\n        toasts.add({title: 'one'});\n      }}",
+            "onPress={() => {\n        queue.add({title: 'one'});\n      }}",
           ),
       check: (h, made) =>
         expect(h.rulesOf(made.button as string).map((item) => item.id)).toEqual(
@@ -954,14 +955,14 @@ const FILE_CASES: Record<
     check: (h: Adr296Harness) => void;
   }
 > = {
-  "createBrowserRouter([{path, element, children}]) · <ToastContainer placement> · <Theme name>":
+  "createBrowserRouter([{path, element, children}]) · <MyToastRegion placement> · <Theme name>":
     {
       path: "src/App.tsx",
       build: () => undefined,
       edit: (code) =>
         code.replace(
-          "<ToastContainer />",
-          '<ToastContainer placement="top" />',
+          "<MyToastRegion />",
+          '<MyToastRegion placement="top" />',
         ),
       check: (h) =>
         expect(
@@ -971,6 +972,33 @@ const FILE_CASES: Record<
             }
           ).toastPlacement,
         ).toBe("top"),
+    },
+  // User 2026-11-01 — the app's toast shape: `<ShapeA toast={toast} />` → `<ShapeB …>` picks the
+  // other Toast-rooted component (the default body `<Toast …>` would pick the Library's Toast).
+  "export const queue = new ToastQueue<…>() · <ToastRegion queue={queue}>{({toast}) => <Shape toast={toast} /> | <Toast …>}":
+    {
+      path: "src/Toast.tsx",
+      build: (h) => {
+        const a = h.add("Toast");
+        const b = h.add("Toast");
+        h.run(createComponent({ id: a, name: "ShapeA", newId: h.workspace.newId }));
+        h.run(createComponent({ id: b, name: "ShapeB", newId: h.workspace.newId }));
+        const project = h.graph().getEntry(h.graph().projectId) as {
+          definitionIds: readonly EntryId<"definition">[];
+        };
+        h.run(setToastShape({ id: project.definitionIds[0] }));
+      },
+      edit: (code) =>
+        code
+          .replace("import ShapeA from './components/ShapeA';", "import ShapeB from './components/ShapeB';")
+          .replace("<ShapeA toast={toast} />", "<ShapeB toast={toast} />"),
+      check: (h) => {
+        const project = h.graph().getEntry(h.graph().projectId) as {
+          definitionIds: readonly EntryId<"definition">[];
+          toastShapeId?: string;
+        };
+        expect(project.toastShapeId).toBe(project.definitionIds[1]);
+      },
     },
   "export const fields = […] · settings · export default [rows]": {
     path: "src/data/users.ts",

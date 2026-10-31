@@ -32,7 +32,7 @@ export interface CodeViewAppParsed {
   readonly imports: readonly CodeViewAppImport[];
   readonly routes?: readonly CodeViewAppRoute[];
   readonly routesFrom: number;
-  /** `<ToastContainer placement="…" />` — absent placement = the default. */
+  /** `<MyToastRegion placement="…" />` — absent placement = the default. */
   readonly toast?: { readonly from: number; readonly placement?: string };
   /** `<Theme name="…">`. */
   readonly theme?: { readonly from: number; readonly name: string };
@@ -124,7 +124,7 @@ export function parseAppFile(code: string): CodeViewAppParsed {
     return out;
   };
   const jsx = (node: SyntaxNode) => {
-    // `<Theme name="…">` · `<ToastContainer placement="…" />` · `<RouterProvider router={router} />`.
+    // `<Theme name="…">` · `<MyToastRegion placement="…" />` · `<RouterProvider router={router} />`.
     const open =
       node.getChild("JSXOpenTag") ?? node.getChild("JSXSelfClosingTag");
     const name = open?.getChild("JSXIdentifier");
@@ -143,7 +143,7 @@ export function parseAppFile(code: string): CodeViewAppParsed {
       const name = unquote(attributes.get("name") ?? "");
       if (name === undefined || attributes.size !== 1) outside(open!);
       else theme = { from: node.from, name };
-    } else if (tag === "ToastContainer") {
+    } else if (tag === "MyToastRegion") {
       const raw = attributes.get("placement");
       const placement = raw === undefined ? undefined : unquote(raw);
       if (

@@ -2,7 +2,8 @@
  * ADR-296 Phase 2 (Decision 6) — `src/App.tsx`: the project's routes as the reference apps write
  * them (`createBrowserRouter([{path, element, children}])`) — the pages in their order, a child page
  * under its parent, the pages of a layout under a layout route (`element: <Layout />`, no path) —
- * the app's toast region (`<ToastContainer placement>`, S2) and its active theme (`<Theme name>`).
+ * the app's toast region (`<MyToastRegion placement>` — `src/Toast.tsx`, the RAC reference's; user
+ * 2026-11-01) and its active theme (`<Theme name>`).
  *
  * The routes are the pages' order in a depth-first walk: the generator writes `pageIds` so (a child
  * after its parent; a layout's run of pages together), and the reader reorders the pages only when
@@ -21,9 +22,6 @@ import { CodeWriter } from "../writer";
 import { codeViewPageLayout, codeViewProjectNames } from "./names";
 
 type Reader = Pick<CatalogReader, "projectId" | "getEntry">;
-
-/** The S2 module the App's toast region comes from (text in the code — never imported here). */
-const S2_MODULE = "@react-spectrum/s2";
 
 const literal = (value: string) =>
   `'${value.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`;
@@ -86,9 +84,9 @@ export function generateAppFile(input: { reader: Reader }): CodeViewResult {
     "import {createBrowserRouter, RouterProvider} from 'react-router';",
     { kind: "derived", key: "import:react-router" },
   );
-  out.anchorLine(`import {ToastContainer} from '${S2_MODULE}';`, {
+  out.anchorLine("import {MyToastRegion} from './Toast';", {
     kind: "derived",
-    key: "import:@react-spectrum/s2",
+    key: "import:./Toast",
   });
   if (theme)
     out.anchorLine(`import {Theme} from '${CODE_VIEW_HELPERS_MODULE}';`, {
@@ -148,8 +146,8 @@ export function generateAppFile(input: { reader: Reader }): CodeViewResult {
   const toastFrom = out.length;
   out.write(
     project.toastPlacement
-      ? `<ToastContainer placement=${JSON.stringify(project.toastPlacement)} />`
-      : "<ToastContainer />",
+      ? `<MyToastRegion placement=${JSON.stringify(project.toastPlacement)} />`
+      : "<MyToastRegion />",
   );
   out.anchor(toastFrom, { kind: "derived", key: "toasts" }).end();
   out.line("<RouterProvider router={router} />");

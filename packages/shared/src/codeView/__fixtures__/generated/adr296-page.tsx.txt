@@ -2,12 +2,11 @@
 // Golden output of apps/builder/src/preview/catalog/__tests__/adr296Vocabulary.test.tsx (UPDATE_CODE_VIEW=1 rewrites).
 
 import {useRef, useState} from 'react';
-import {Button, Calendar, Form, ProgressBar, Text, UNSTABLE_ToastQueue} from 'react-aria-components';
+import {Button, Calendar, Form, ProgressBar, Text} from 'react-aria-components';
 import {useListData} from 'react-aria-components/useListData';
 import {capability, token} from '@composition/code';
+import {queue} from '../Toast';
 import usersData from './data/users';
-
-const toasts = new UNSTABLE_ToastQueue<{title: string}>();
 
 export default function Home() {
   let [textIsVisible, setTextIsVisible] = useState(true);
@@ -35,7 +34,7 @@ export default function Home() {
       <ProgressBar label="Progress Bar" value={token('typography.text-xs')} />
       <Calendar visibleDuration={{months: 2}} />
       <Button onPress={() => { onButtonPress(); onButtonPress2(); onButtonPress3(); }} onHoverStart={() => {
-        toasts.add({title: 'hover'});
+        queue.add({title: 'hover'});
       }} />
     </>
   );

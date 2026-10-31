@@ -207,6 +207,8 @@ export interface CodeViewSymbols {
   readonly pages?: Readonly<Record<string, string>>;
   /** ADR-296 Phase 2 — a layout's component name → its definition id. */
   readonly layouts?: Readonly<Record<string, string>>;
+  /** The app's toast shape component's name (`Toast.tsx` — `<Shape toast={toast} />`) → its definition id. */
+  readonly components?: Readonly<Record<string, string>>;
   /** ADR-296 Phase 2 — a theme's name → its id. */
   readonly themes?: Readonly<Record<string, string>>;
 }

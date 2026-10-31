@@ -176,7 +176,7 @@ export const PROJECT_COVERAGE: CodeViewCoverage<ProjectEntry> = {
   },
   toastPlacement: at(
     "src/App.tsx",
-    '<ToastRegion placement="…">',
+    '<MyToastRegion placement="…" />',
     "setToastPlacement",
     2,
   ),

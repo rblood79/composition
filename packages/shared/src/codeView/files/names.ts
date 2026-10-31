@@ -18,7 +18,12 @@ const APP_RESERVED = new Set([
   "Theme",
   "Outlet",
   "RouterProvider",
-  "ToastContainer",
+  "MyToastRegion",
+  "Toast",
+  "ToastRegion",
+  "ToastContent",
+  "ToastQueue",
+  "queue",
   "createBrowserRouter",
   "router",
 ]);

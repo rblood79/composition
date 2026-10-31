@@ -115,10 +115,11 @@ describe("ADR-296 G2 — App.tsx and the project Apply", () => {
     expect(code(s, APP)).toMatch(
       /const router = createBrowserRouter\(\[\n {2}\{path: '\/', element: <Home \/>\},\n {2}\{path: '\/about', element: <About \/>\},\n\]\);/,
     );
-    expect(code(s, APP)).toMatch(/<ToastContainer \/>/);
+    expect(code(s, APP)).toMatch(/<MyToastRegion \/>/);
     // (The tree names the files without generating them — R5.)
     expect(codeViewFileTree(h.graph()).map((file) => file.path)).toEqual([
       APP,
+      "src/Toast.tsx",
       HOME_FILE,
       "src/pages/About.tsx",
       "src/state/project.ts",
@@ -211,7 +212,7 @@ describe("ADR-296 G2 — App.tsx and the project Apply", () => {
             "import Company from './pages/Company';",
           )
           .replace("element: <About />", "element: <Company />")
-          .replace("<ToastContainer />", '<ToastContainer placement="top" />'),
+          .replace("<MyToastRegion />", '<MyToastRegion placement="top" />'),
     });
     expect(result.rejected).toEqual([]);
     expect(pages(h).map((page) => page.name)).toEqual([

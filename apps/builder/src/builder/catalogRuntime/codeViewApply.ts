@@ -27,7 +27,10 @@ import { generateCodeView } from "../../../../../packages/shared/src/codeView/ge
 import type { CodeViewChange } from "../../../../../packages/shared/src/codeView/inverse/identity";
 import type { CodeViewResult } from "../../../../../packages/shared/src/codeView/types";
 import { catalogCodeViewData } from "./codeView";
-import { compareAppFile, planCodeViewApp } from "./codeViewApp";
+import { compareAppFile, planCodeViewApp,
+  compareToastFile,
+  planCodeViewToast,
+} from "./codeViewApp";
 import {
   compareDefinitionFile,
   planCodeViewCollection,
@@ -107,6 +110,7 @@ export interface CatalogCodeViewProjectPlan {
 
 const DEFINITION_KINDS = new Set<CodeViewFileEntry["kind"]>([
   "app",
+  "toast",
   "collection",
   "endpoint",
   "state",
@@ -225,6 +229,14 @@ export function catalogCodeViewProjectPlan(input: {
         reject,
       }).steps;
       checks.push((final) => compareAppFile(final, draft.edited, reject));
+    } else if (file.kind === "toast") {
+      planned = planCodeViewToast({
+        reader: stage,
+        baseline: result!,
+        edited: draft.edited,
+        reject,
+      });
+      checks.push((final) => compareToastFile(final, draft.edited, reject));
     } else if (file.kind === "page") {
       if (stage.getEntry(file.id!)?.kind !== "page") {
         reject(0, "notInCode", "page removed in App.tsx");

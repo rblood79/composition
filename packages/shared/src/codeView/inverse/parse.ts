@@ -18,7 +18,6 @@ export interface CodeViewSpan {
 /** A statement of the page component (or the module) by the vocabulary it belongs to. */
 export type CodeViewStatementKind =
   | "import"
-  | "toasts"
   | "state"
   | "listSelection"
   | "collection"
@@ -167,13 +166,6 @@ export function parseCodeView(code: string): CodeViewParsed {
     if (isComment(node) || node.type.isError) continue;
     if (node.name === "ImportDeclaration") {
       statement(node, "import");
-      continue;
-    }
-    if (
-      node.name === "VariableDeclaration" &&
-      /^const toasts = new UNSTABLE_ToastQueue\b/.test(text(node))
-    ) {
-      statement(node, "toasts");
       continue;
     }
     const fn =

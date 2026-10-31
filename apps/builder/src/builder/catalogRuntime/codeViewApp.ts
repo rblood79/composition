@@ -14,6 +14,7 @@ import {
   reorderPages,
   setActiveTheme,
   setToastPlacement,
+  setToastShape,
   stageOver,
   updatePage,
   type CatalogCommand,
@@ -34,7 +35,14 @@ import {
   codeViewRoutes,
   generateAppFile,
 } from "../../../../../packages/shared/src/codeView/files/app";
-import { codeViewPageLayout } from "../../../../../packages/shared/src/codeView/files/names";
+import {
+  codeViewPageLayout,
+  pascal,
+} from "../../../../../packages/shared/src/codeView/files/names";
+import {
+  codeViewToastShape,
+  generateToastFile,
+} from "../../../../../packages/shared/src/codeView/files/toast";
 import {
   parseAppFile,
   type CodeViewAppRoute,
@@ -252,7 +260,7 @@ export function planCodeViewApp(input: {
   // The toast region · the theme.
   const placement = parsed.toast?.placement;
   if (!parsed.toast)
-    reject(parsed.routesFrom, "outsideVocabulary", "ToastContainer");
+    reject(parsed.routesFrom, "outsideVocabulary", "MyToastRegion");
   else if (
     placement !== undefined &&
     !CATALOG_TOAST_PLACEMENTS.includes(placement as CatalogToastPlacement)
@@ -316,4 +324,68 @@ export function compareAppFile(
   for (let i = 0; i < at; i += 1) offset += full[i]!.length + 1;
   reject(offset, "notInCode", b[line - 1]?.trim());
   void codeViewLineAt;
+}
+
+/**
+ * User 2026-11-01 — `src/Toast.tsx` (the RAC reference's): the app's one queue and the shape the
+ * region renders. The one unit it reads is the shape — `{({toast}) => <Shape toast={toast} />}` names
+ * a Toast-rooted project component (its code name), `{({toast}) => (<Toast …>` the Library's Toast.
+ * The queue's type and the default toast body are derived.
+ */
+export function planCodeViewToast(input: {
+  reader: CatalogReader;
+  baseline: CodeViewResult;
+  edited: string;
+  reject: Reject;
+}): readonly CatalogCommand[] {
+  const { reader, baseline, edited, reject } = input;
+  const project = reader.getEntry(reader.projectId) as ProjectEntry;
+  const match =
+    /\{\(\{toast\}\) => (?:<([A-Za-z_$][\w$]*) toast=\{toast\} \/>\}|\()/.exec(
+      edited,
+    );
+  if (!match) {
+    reject(0, "outsideVocabulary", "MyToastRegion");
+    return [];
+  }
+  const tag = match[1];
+  if (!tag) {
+    return project.toastShapeId ? [setToastShape({ id: undefined })] : [];
+  }
+  const known = baseline.symbols.components?.[tag];
+  const id =
+    known ??
+    project.definitionIds.find((definitionId) => {
+      const definition = reader.getEntry(definitionId);
+      return (
+        definition?.kind === "definition" &&
+        definition.usage !== "layout" &&
+        pascal(definition.name, "ToastShape") === tag
+      );
+    });
+  if (!id) {
+    reject(match.index, "unknownReference", tag);
+    return [];
+  }
+  return id === project.toastShapeId
+    ? []
+    : [setToastShape({ id: id as EntryId<"definition"> })];
+}
+
+/** The check: `Toast.tsx` of the staged document is what the edit wrote (the first differing line). */
+export function compareToastFile(
+  reader: CatalogReader,
+  edited: string,
+  reject: Reject,
+): void {
+  const regenerated = generateToastFile({ reader }).code;
+  if (codeViewNormalized(regenerated) === codeViewNormalized(edited)) return;
+  const left = edited.split("\n");
+  const right = regenerated.split("\n");
+  const at = left.findIndex(
+    (line, index) =>
+      codeViewNormalized(line) !== codeViewNormalized(right[index] ?? ""),
+  );
+  const from = left.slice(0, Math.max(at, 0)).join("\n").length;
+  reject(from, "notInCode", codeViewToastShape(reader)?.name ?? "Toast");
 }

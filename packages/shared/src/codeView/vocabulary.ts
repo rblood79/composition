@@ -166,7 +166,7 @@ export const CODE_VIEW_VOCABULARY: readonly CodeViewVocabularyItem[] = [
     unit: "rule (Set state)",
   },
   {
-    form: "onX={() => { setX(…); toasts.add(…); navigate(…); }}",
+    form: "onX={() => { setX(…); queue.add(…); navigate(…); }}",
     emit: "writeAction",
     read: "actionsOf",
     unit: "rule Dos",
@@ -284,11 +284,19 @@ export const CODE_VIEW_VOCABULARY: readonly CodeViewVocabularyItem[] = [
     file: "src/state/project.ts",
   },
   {
-    form: "createBrowserRouter([{path, element, children}]) · <ToastContainer placement> · <Theme name>",
+    form: "createBrowserRouter([{path, element, children}]) · <MyToastRegion placement> · <Theme name>",
     emit: "generateAppFile",
     read: "planCodeViewApp",
     unit: "pages (routes · order · parent · layout) · toast · theme",
     file: "src/App.tsx",
+  },
+  {
+    // User 2026-11-01 — the app's one toast queue and shape (the RAC reference's `Toast.tsx`).
+    form: "export const queue = new ToastQueue<…>() · <ToastRegion queue={queue}>{({toast}) => <Shape toast={toast} /> | <Toast …>}",
+    emit: "generateToastFile",
+    read: "planCodeViewToast",
+    unit: "toast shape (the Library's Toast · a Toast-rooted component)",
+    file: "src/Toast.tsx",
   },
   {
     form: "<Page …> · <title> · <meta> · id · className · aria-label · {false && <T/>} · useParams()",
