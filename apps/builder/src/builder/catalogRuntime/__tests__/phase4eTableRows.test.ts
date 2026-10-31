@@ -180,9 +180,10 @@ describe("ADR-248 4e bound Table rows", () => {
     expect(geometry(firstColumn.id)!.width).toBeGreaterThan(150);
     expect(geometry(firstCell.id)!.width).toBe(geometry(firstColumn.id)!.width);
     const firstRow = all.find((record) => typeOf(workspace, record) === "Row")!;
-    // One line like the header (this environment measures no text: both are padding only).
+    // (This environment measures no text: the header is padding only; a row is its cells' S2 minimum —
+    //   regular 40, ADR-295 후속 — plus its divider.)
     expect(geometry(firstRow.id)!.height).toBe(
-      geometry(firstColumn.id)!.height,
+      Math.max(geometry(firstColumn.id)!.height, 40 + 1),
     );
     // Rows past the height are cut (Table.css clips the table; the body holds the rows).
     expect(records.get(table)!.visual.overflow).toBe("hidden");

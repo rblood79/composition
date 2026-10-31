@@ -104,7 +104,10 @@ describe("density 채널 — Table(Column/Cell)", () => {
         "spacious",
       ]);
       for (const spacing of Object.values(densities)) {
-        expect(Object.keys(spacing)).toEqual(["paddingY"]);
+        // (Cell 은 S2 cell `minHeight` 의 density 표도 — ADR-295 후속. 폰트 · paddingX 는 여전히 밖.)
+        expect(Object.keys(spacing)).toEqual(
+          type === "Cell" ? ["paddingY", "minHeight"] : ["paddingY"],
+        );
       }
     }
   });
@@ -177,7 +180,8 @@ describe("density 채널 — 전역 회귀 계약", () => {
   it("densities 를 가진 컴포넌트는 간격 계열 필드만 쓴다 — 폰트는 sizes 단독 소유", () => {
     // Spectrum 규칙("retains the same font and icon sizes")의 기계 집행. 새 컴포넌트에
     // density 를 추가할 때 fontSize 류를 섞으면 여기서 걸린다.
-    const ALLOWED = new Set(["gap", "paddingY"]);
+    // (minHeight: S2 Table cell `minHeight` 의 density 표 — 상자 높이지 글자가 아니다, ADR-295 후속.)
+    const ALLOWED = new Set(["gap", "paddingY", "minHeight"]);
     for (const [type, rule] of Object.entries(COMPONENT_RULES_TABLE)) {
       if (!rule?.densities) continue;
       for (const [name, spacing] of Object.entries(rule.densities)) {

@@ -586,7 +586,11 @@ const ITEM_SLOT_CHILD_TYPES: ReadonlySet<string> = new Set([
   "Checkbox",
 ]);
 
-function withRuleBox(input: LibraryDefinition): LibraryDefinition {
+function withRuleBox(
+  input: LibraryDefinition,
+  theme: "light" | "dark" = "light",
+  tokens: Map<LibraryTokenId, LibraryToken> = new Map(),
+): LibraryDefinition {
   const definition =
     ITEM_SLOT_CHILD_TYPES.has(input.name) && input.mode !== "composite"
       ? { ...input, accepts: { ...input.accepts, slot: "slot" as const } }
@@ -623,7 +627,7 @@ function withRuleBox(input: LibraryDefinition): LibraryDefinition {
   const sizes: Record<string, VisualValues> = {
     ...("propVisualRules" in next ? next.propVisualRules?.size : undefined),
   };
-  applyManualBox(definition.name, next, layout, visual, sizes);
+  applyManualBox(definition.name, next, layout, visual, sizes, theme, tokens);
   next.layout = layout as LayoutValues;
   next.visual = visual as VisualValues;
   if ("propVisualRules" in next && next.propVisualRules?.size)
@@ -915,8 +919,12 @@ export async function buildCodeCatalogLibrary(
     });
   const sourceDefinitions = withRuleParts(
     [
-      ...textDefinitions.map(withRuleBox),
-      ...typeDefinitions.map(withRuleBox),
+      ...textDefinitions.map((definition) =>
+        withRuleBox(definition, theme, tokens),
+      ),
+      ...typeDefinitions.map((definition) =>
+        withRuleBox(definition, theme, tokens),
+      ),
       ...REUSABLE_ORIGIN_DEFINITIONS,
     ],
     theme,

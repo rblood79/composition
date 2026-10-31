@@ -213,14 +213,6 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     { S: 24, M: 32, L: 40 },
     "S2 Tag 높이 = control 높이 S 24 · M 32 · L 40 (`TagGroup.tsx`) 그대로 · 읽는 곳 없음 (top-level containerStyles)",
   ),
-  ...(["Tree", "TreeItem"] as const).map((component) =>
-    sizes(
-      component,
-      "height",
-      { S: 40, M: 40, L: 40 },
-      "S2 TreeView 행 40 (`TreeView.tsx` — size 축 없음, 모든 크기에) · 이 칸은 읽는 곳 없음 (행 높이 출처는 manualBoxRules TreeItem · Tree.css)",
-    ),
-  ),
   sizes(
     "TreeItem",
     "gap",
@@ -374,7 +366,8 @@ function literals(): Literal[] {
     const inSizes = path[0] === "sizes" && path.length === 2;
     for (const [key, value] of Object.entries(node)) {
       if (typeof value === "number") {
-        if (inSizes && ruleSizeLengthRef(node, key)) continue;
+        // (A form's getter — size blocks, their part blocks and density blocks.)
+        if (ruleSizeLengthRef(node, key)) continue;
         // (`sizes.<S>.key` → place `<S>`; anything else keeps its path.)
         const place = inSizes ? path[1]! : path.join(".");
         out.push({ component, key, place, value });

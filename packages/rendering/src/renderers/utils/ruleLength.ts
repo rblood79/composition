@@ -285,7 +285,15 @@ export function ruleSizeLengthRefs(
  * the rule table after it is built; a block shared by several rules is converted once.
  */
 export function defineRuleLengthForms(
-  rules: Readonly<Record<string, { sizes?: Readonly<Record<string, object>> }>>,
+  rules: Readonly<
+    Record<
+      string,
+      {
+        sizes?: Readonly<Record<string, object>>;
+        densities?: Readonly<Record<string, object>>;
+      }
+    >
+  >,
   resolve: (ref: TokenRef) => unknown,
 ): void {
   const blocks = (block: object): object[] => [
@@ -300,7 +308,11 @@ export function defineRuleLengthForms(
     ),
   ];
   for (const rule of Object.values(rules))
-    for (const block of Object.values(rule.sizes ?? {}).flatMap(blocks)) {
+    for (const block of [
+      ...Object.values(rule.sizes ?? {}),
+      // (ADR-295 후속: a density block's S2 minimum — `scaled(n)`.)
+      ...Object.values(rule.densities ?? {}),
+    ].flatMap(blocks)) {
       const record = block as Record<string, unknown>;
       for (const [key, value] of Object.entries(record)) {
         if (!isForm(value)) continue;

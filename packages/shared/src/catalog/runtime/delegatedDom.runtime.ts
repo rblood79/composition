@@ -3,6 +3,7 @@ import { resolveTextSourceText } from "@composition/rendering";
 import { CatalogWaterfallGrid } from "./waterfall.components";
 import { catalogWaterfallLayout } from "./waterfall";
 import { catalogItemLinkProps } from "../document/itemLinks";
+import { catalogDeviceValueCss } from "./deviceTypography";
 
 import {
   OWNER_DRAWN_PART_HOSTS,
@@ -724,6 +725,18 @@ function treeItemIds(
   );
 }
 
+/**
+ * ADR-295 후속 — a Tree row's S2 minimum (`manualBoxRules` TreeItem `scaledLengthRef(40)`, rem × `--s2-scale`):
+ * the `Tree.css` row states the desktop 40, the row inline its device formula (the touch set × 1.25 — a manual
+ * sheet reads no `--catalog-token-*`).
+ */
+function treeRowDeviceStyle(
+  item: CatalogConsumerNode,
+): { style: CSSProperties } | Record<string, never> {
+  const minHeight = catalogDeviceValueCss(item.visual, "minHeight");
+  return minHeight ? { style: { minHeight } } : {};
+}
+
 function treeItemElements(
   input: DelegatedDomInput,
   list: readonly CatalogConsumerNode[],
@@ -755,7 +768,9 @@ function treeItemElements(
         {
           key: id === item.id ? item.id : `${item.id}#${id}`,
           "data-catalog-id": item.id,
-          ...(item.id === input.node.id ? { style: input.style } : {}),
+          ...(item.id === input.node.id
+            ? { style: input.style }
+            : treeRowDeviceStyle(item)),
           id,
           textValue: text
             ? resolveTextSourceText(
@@ -785,8 +800,11 @@ function treeItemElements(
     return createElement(TreeItem as ElementType, {
       key: id === item.id ? item.id : `${item.id}#${id}`,
       "data-catalog-id": item.id,
-      // A standalone item is the node itself: its authored inline style (the Tree's items take none).
-      ...(item.id === input.node.id ? { style: input.style } : {}),
+      // A standalone item is the node itself: its authored inline style (the Tree's items take none —
+      //   but their S2 row minimum's device formula, `treeRowDeviceStyle`).
+      ...(item.id === input.node.id
+        ? { style: input.style }
+        : treeRowDeviceStyle(item)),
       id,
       title,
       textValue: label

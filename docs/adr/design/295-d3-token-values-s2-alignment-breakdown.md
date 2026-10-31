@@ -691,12 +691,15 @@ StatusLight 점 ↔ 글자를 S2 `text-to-visual` 형으로 바꿨다가 되돌�
 
 **후속 (Implemented 뒤 남은 것 — 다음 작업의 입력)**:
 
-- 터치 × 1.25 미반영: S2 가 `size()` 로 키우는 고정 sizing 숫자 (ColorSwatch · ProgressBar · Meter 막대 · Slider thumb · Slider 행 · Tree 행 · StatusLight 점 · ProgressCircle · ColorArea · Toast 최소 높이 · Table 행 · ColorThumb · Illustration · 막대 최대 폭 768) 가 터치 벌에서도 desktop 값이다. 소비 경로가 생성 CSS 리터럴 · DOM inline · 수동 시트 · `manualBoxRules` · Canvas part rule 로 갈려 공통 형 (`size(n)` — 기기 배율 길이) 이 먼저 필요하다.
+- ~~터치 × 1.25 미반영~~ → 아래 「후속 A (터치 배율)」 에서 처리.
+- S2 desktop 값과 다른 고정 치수 (후속 A 조사에서 발견 — 터치 배율과 별개): ColorThumb focus 20 (S2 32) · ColorSlider 트랙 20 (S2 24) · 가로 폭 없음 (S2 192) · 세로 150 (S2 192) · ColorWheel 기본 지름 180 (S2 192) · 고리 26 (S2 24) · ProgressCircle 선 굵기 3 고정 (S2 S 2 · M 3 · L 4) · Tree chevron 열 20 (S2 40) · Table 머리글이 density 를 따름 (S2 32 고정, 터치 40 — 지금 41 · 45) · Table drag 열 15 (S2 16) · Table S/M/L 크기 축 (S2 없음) · Toast 최대 폭 없음 (S2 336) · ColorSwatch XS 없음 (S2 16) · ColorArea 최소 64 없음 · ProgressBar 막대의 최소 폭 (control) · 기본 폭 208 없음 · StatusLight 행 높이 리터럴 16 · 18 · 20 · 22 (S2 는 높이 없이 한 줄 — 터치에서 행간 22 와 갈린다).
 - picker 항목 크기: Select · ComboBox L 의 팝오버 ListBox 는 `data-size=L` 인데 항목은 M (32) — S2 `listboxItem` 은 picker 크기의 control 높이.
 - 테마 전환 600 요소 ≈ 70 ms: 295 전부터 ADR-227 25 ms 상한 초과 — catalog runtime 전환 경로 별도 조사 (위 G5 테마 전환).
 - 토큰 모델 A (패널 입력기 + 노드 토큰 참조 저장): 다음 ADR (머리말).
 
 **후속 처리 (2026-10-31, `10d474d79` · `86f8ad24b` 와 이 커밋)**: Breadcrumbs · Table 칸 · 머리글 글자 = S2 `controlFont` · StatusLight 점 ↔ 글자 = S2 `text-to-visual` (원인은 원본 template 의 `gap: 8` 작성값 — 길이 형 읽기 문제가 아니었다) · Tab · Tabs 글자 = S2 루트 `ui` · 필드 버튼 테두리 = S2 없음 (Canvas 1 · DOM 0 은 DOM 의 identity 판정이 우연히 만든 0 이었다) · TagGroup 측정 사본 Tag 32 · 간격 8 · picker 팝오버 안 섹션 머리글 = S2 `listboxHeader` (사용자 결정 「팝오버 안만 S2」 — 독립 ListBox · GridList 는 10-13 RAC 레퍼런스 테마 유지).
+
+**후속 A (터치 배율, 2026-10-31 — `154b497a1` · `ce13c680a` 와 이 커밋)**: S2 는 sizing 속성의 숫자 (`size()`) 를 `--s2-scale` 로 키운다. rule 에 `scaled(n)` 형 (→ `{length.size.unit*n/1}`) 과 기기 단위 토큰 `{size.unit}` (desktop 1px · 터치 1.25px, 빌더 chrome 1px 고정) 을 두었다. 생성 CSS 는 size · density 블록과 rule CSS 문자열 안의 길이 ref 를 기기 식으로, Canvas 는 getter 가 설치 맵의 px 를, DOM 은 library 가 기억한 토큰 출처로 inline 을 기기 식으로 쓴다 (폭 · 높이 · 최소 · 최대 · 조건 규칙의 `layoutTokens`). 상수 경로는 Canvas `catalogScaledPx` · DOM `catalogDeviceScaledCss`. 대상: ColorSwatch · ColorSwatchPicker · ProgressBar · Meter (막대 · 최대 폭) · Toast 최소 높이 · ColorArea · StatusLight 점 · Slider (손잡이 · 막대 · 행 · thick · precise) · ProgressCircle · ColorThumb · Illustration · IllustratedMessage · Tree 행 (수동 상자 — DOM 은 Tree 항목 inline, 수동 시트는 `--catalog-token-*` 금지라 desktop 40) · Table 칸 최소 높이 (density). G4 가 S2 설치본 숫자 = `scaled` ref 를 대조하고 (G2 는 두 leg 가 같이 desktop 이어도 통과해 이 축을 못 본다), 원복 RED 는 DOM 길이 ref 변환 제거 → 터치 ProgressBar · Meter 6 FAIL · density 최소 높이를 숫자로 → 터치 Table 3 FAIL (A2 는 수리 전 상태가 RED — thumb 출처 복사 전 Slider 4 · 조건 규칙 `layoutTokens` 전 IllustratedMessage 3). **알려진 차이**: ProgressCircle 선 굵기는 터치에서 같이 × 1.25 (svg 를 상자에 맞춰 늘림 — S2 는 3 고정). ColorWheel 은 S2 도 키우지 않는다 (`ColorWheel.tsx` TODO) — 그대로.
 
 **의도적 (사용자 결정 2026-10-31)**: 팔레트 「Menu」 의 Size 하나가 트리거 Button · Popover · Menu 를 같이 바꾼다 (S2 는 MenuTrigger 에 size 가 없고 트리거와 Menu 가 각자 갖는다) — 안쪽 Menu 노드의 Size 는 덮어쓰기로 남는다.
 

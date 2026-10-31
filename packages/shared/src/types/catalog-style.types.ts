@@ -411,6 +411,8 @@ export interface ComponentRuleDensity {
   gap?: number;
   /** 수직 padding (px) — 폰트 불변, 높이만 조절. */
   paddingY?: number;
+  /** 최소 높이 (px) — S2 Table cell `minHeight` 의 density 표 (ADR-295 후속 — `scaled`, 터치 × 1.25). */
+  minHeight?: number;
 }
 
 /**

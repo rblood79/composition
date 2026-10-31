@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **같은 문제 (2차)**: Slider (손잡이 · 막대 · 행 여백 · 누르는 상자 · thick 막대 · precise 손잡이) · ProgressCircle 지름 · ColorThumb 손잡이 · Illustration 그림 · IllustratedMessage 최대 폭 · 격자 간격도 `scaled` 로 — 터치 보기에서 손잡이 20 → 25 · 지름 32 → 40 · ColorThumb 16 → 20 · IllustratedMessage 380 → 475 · 그림 96 → 120. Canvas 상수 (thick 16 · precise 6) 는 `catalogScaledPx`, DOM inline 은 `catalogDeviceScaledCss`, 조건 규칙 (orientation 의 최대 폭) 도 `layoutTokens` 로 길이 출처를 싣는다. DOM 이 SliderThumb visual 을 복사하며 토큰 출처를 잃던 것도 고쳤다. ProgressCircle 의 선 굵기는 터치에서 같이 × 1.25 (S2 는 3 고정 — svg 를 상자에 맞춰 늘린다).
   - 위치: `presence.ts` (`catalogScaledPx`) · `deviceTypography.ts` (`catalogDeviceScaledCss`) · `domBinding.runtime.ts` · `ProgressCircle.tsx` · `colorControlParts.ts` · `types.ts` · `validation.ts` · `resolver.ts` (조건 규칙 `layoutTokens`) · `ruleDefinition.ts` · `codeCatalogLibrary.ts` (glyph).
   - 검증: G4 (Slider · ProgressCircle · ColorThumb · Illustration · IllustratedMessage) · G2 desktop · touch · live 5175 터치 보기.
+- **같은 문제 (3차)**: Tree 행 40 (수동 상자 — DOM 은 Tree 항목 inline 의 기기 식, 수동 `Tree.css` 는 desktop 40 그대로) 과 Table 칸 최소 높이 (S2 cell density 표 compact 32 · regular 40 · spacious 48 — 밀도 블록이 `minHeight` 를 받는다) 도 `scaled` — 터치 보기에서 Tree 행 · Table 칸 40 → 50. Table 머리글 (S2 32 고정) 은 desktop 값부터 달라 breakdown 후속으로 남겼다.
+  - 검증: G4 (Table density · Tree) · 원복 RED (density 최소 높이를 숫자로 → 터치 Table 3 FAIL) · G2 desktop · touch · live 5175 터치 보기.
+  - 위치: `manualBoxRules.ts` · `delegatedDom.runtime.ts` (Tree 행) · `deviceTypography.ts` (`catalogDeviceValueCss`) · `ruleDefinition.ts` (`applyManualBox` 토큰 · density `minHeight`) · `codeCatalogLibrary.ts` · `generate-css.ts` (density `min-height`) · `ruleLength.ts` (density 블록의 형) · `catalog-style.types.ts`.
 
 ## [ADR-295 후속 — 글자 단계 · StatusLight 간격 · 필드 버튼 테두리 · TagGroup 측정 사본을 S2 로] - 2026-10-31
 

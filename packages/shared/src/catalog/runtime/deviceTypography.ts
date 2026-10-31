@@ -95,6 +95,19 @@ export function catalogDeviceScaledCss(px: number): string {
   return ruleLengthCss(scaledLengthRef(px))!;
 }
 
+/**
+ * ADR-295 후속 — the device-set CSS length of a record value the resolver read from a token (a Tree row's
+ * `scaled(40)` minimum), while the value is still that token's installed value; else `undefined`.
+ */
+export function catalogDeviceValueCss(
+  values: Readonly<Record<string, unknown>>,
+  key: string,
+): string | undefined {
+  const ref = catalogResolvedTokenRef(values, key);
+  if (!ref || resolveToken(ref as TokenRef) !== values[key]) return undefined;
+  return catalogDeviceLength(ref);
+}
+
 const px = (value: unknown): number | undefined =>
   typeof value === "number"
     ? value

@@ -852,7 +852,10 @@ describe("ADR-295 G4 — 3c-3c ②a 크기 축 없는 S2 고정 치수 (모든 �
       "TreeView.tsx",
       /display: 'flex',\s*height: (\d+),\s*width: 'full'/,
     );
-    expect(manualBoxRule("TreeItem")!.visual?.minHeight).toBe(s2);
+    // (ADR-295 후속: S2 sizing 숫자 — `scaled`, 터치 × 1.25.)
+    expect(manualBoxRule("TreeItem")!.visual?.minHeight).toBe(
+      `{length.size.unit*${s2}/1}`,
+    );
     const sheet = readFileSync(
       resolve(
         __dirname,
@@ -1485,6 +1488,41 @@ describe("ADR-295 후속 — S2 고정 sizing 숫자 = 기기 배율 (`scaled` �
     for (const px of [vertical, horizontal, 12, 8, 4])
       expect(css, String(px)).toContain(scaledRef(px));
     expect(css).not.toMatch(/"(380|528|12|8|4)px"/);
+  });
+
+  it("Table 칸 최소 높이 (density) · Tree 행 = scaled(S2 cell minHeight · TreeView row)", () => {
+    const source = readFileSync(
+      resolve(
+        __dirname,
+        "../../../../node_modules/@react-spectrum/s2/src/TableView.tsx",
+      ),
+      "utf8",
+    );
+    const cell =
+      /const cell = style<[\s\S]*?minHeight: \{\s*default: (\d+),\s*density: \{\s*compact: (\d+),\s*spacious: (\d+)/.exec(
+        source,
+      )!;
+    const s2 = {
+      regular: Number(cell[1]),
+      compact: Number(cell[2]),
+      spacious: Number(cell[3]),
+    };
+    const densities = (
+      COMPONENT_RULES_TABLE as unknown as Record<
+        string,
+        { densities: Record<string, object> }
+      >
+    ).Cell!.densities;
+    for (const [density, px] of Object.entries(s2))
+      expect(ruleSizeLengthRef(densities[density]!, "minHeight"), density).toBe(
+        scaledRef(px),
+      );
+    const row = s2Value(
+      "TreeView.tsx",
+      /display: 'flex',\s*height: (\d+),\s*width: 'full'/,
+    );
+    expectScaled("Tree", "height", () => row);
+    expectScaled("TreeItem", "height", () => row);
   });
 
   it("Toast 최소 높이 · ColorArea 상자 = scaled(S2)", () => {

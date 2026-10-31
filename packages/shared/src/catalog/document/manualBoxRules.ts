@@ -15,6 +15,7 @@
 import {
   cssVarToTokenRef,
   resolveToken,
+  scaledLengthRef,
   type TokenRef,
 } from "@composition/rendering";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
@@ -246,8 +247,11 @@ const linkLineHeightRatio = (): number | undefined => {
  */
 const GRID_LIST_TRACKS = "repeat(2, minmax(0, 1fr))";
 
-/** S2 TreeView 행 40 (`TreeView.tsx` `height: 40` — ADR-295 Phase 3c-3c, 전 32) — `Tree.css` 행의 `min-height` 와 같은 값. */
-const TREE_ROW_HEIGHT = 40;
+/**
+ * S2 TreeView 행 40 (`TreeView.tsx` `height: 40` — ADR-295 Phase 3c-3c, 전 32) — `Tree.css` 행의 `min-height` 와 같은 값.
+ * S2 sizing 숫자라 터치 × 1.25 (ADR-295 후속 — `scaledLengthRef`, 정의가 토큰 사용으로 바꾼다).
+ */
+const TREE_ROW_HEIGHT = scaledLengthRef(40);
 
 const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   Separator: () => ({
@@ -895,7 +899,7 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
           gap: 2,
           paddingY: Math.max(
             4,
-            (TREE_ROW_HEIGHT -
+            ((px(TREE_ROW_HEIGHT) ?? 40) -
               (px("{typography.text-base--line-height}") ?? 24)) /
               2,
           ),

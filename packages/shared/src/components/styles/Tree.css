@@ -65,7 +65,8 @@
     box-sizing: border-box;
     align-items: center;
     gap: var(--spacing-2xs);
-    /* S2 TreeView 행 40 (`TreeView.tsx` — ADR-295 Phase 3c-3c, 전 32). */
+    /* S2 TreeView 행 40 (`TreeView.tsx` — ADR-295 Phase 3c-3c, 전 32). 터치 × 1.25 는 catalog 행의 inline 기기 식
+       (`manualBoxRules` TreeItem `scaledLengthRef(40)` — 수동 시트는 `--catalog-token-*` 를 읽지 않는다, ADR-295 후속). */
     min-height: 40px;
     padding: var(--spacing-xs) var(--spacing-sm);
     --padding: var(--spacing);

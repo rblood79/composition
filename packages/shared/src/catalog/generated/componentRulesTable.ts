@@ -11967,12 +11967,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     // density: Column 과 동일 축·동일 값 (같은 행 안에서 header/body 여백이 갈리면 안 된다).
-    //   근거·행 높이 산식은 Column 주석 참조.
+    //   근거·행 높이 산식은 Column 주석 참조. 최소 높이 = S2 cell `minHeight` (compact 32 · regular 40 ·
+    //   spacious 48 — rem × `--s2-scale`, 터치 × 1.25 → `scaled`, ADR-295 후속): desktop 은 여백 + 행간과 같은 값,
+    //   터치는 행간 22 + 여백보다 큰 40 · 50 · 60.
     defaultDensity: "regular",
     densities: {
-      compact: { paddingY: 7 },
-      regular: { paddingY: 11 },
-      spacious: { paddingY: 15 },
+      compact: { paddingY: 7, minHeight: scaled(32) },
+      regular: { paddingY: 11, minHeight: scaled(40) },
+      spacious: { paddingY: 15, minHeight: scaled(48) },
     },
     // ADR-257: no flex share — the column's width is its track in the row grid (`tableTracks.ts`).
     containerStyles: {
@@ -14184,21 +14186,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 8,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
-        height: 40,
+        height: scaled(40),
         iconSize: 14,
       },
       M: {
         paddingX: 12,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
-        height: 40,
+        height: scaled(40),
         iconSize: 16,
       },
       L: {
         paddingX: 16,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.md}",
-        height: 40,
+        height: scaled(40),
         iconSize: 20,
       },
     },
@@ -14248,7 +14250,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         // height 24 = spec rowHeight(fontSize 12 + paddingY 6*2). box(height>0) → text
         //   baseline:middle + leading icon y=height/2 (DisclosureHeader parity). 이전 height:0
         //   (inline)은 leading icon 동반 시 baseline drift.
-        height: 40,
+        height: scaled(40),
         paddingX: 8,
         // iconSize = round(fontSize * 1.1) (spec chevronSize 공식).
         iconSize: 13,
@@ -14261,7 +14263,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   line box 24) + font-size text-base(16) + chevron svg 16. 구 28/text-sm/15 는
         //   spec rowHeight 산술 잔존으로 CSS 실측 대비 -4~-8 drift (2026-07-14 sweep).
         fontSize: "{typography.text-base}",
-        height: 40,
+        height: scaled(40),
         paddingX: 8,
         iconSize: 16,
         indentPerLevel: 16,
@@ -14269,7 +14271,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       L: {
         fontSize: "{typography.text-base}",
-        height: 40,
+        height: scaled(40),
         paddingX: 12,
         iconSize: 18,
         indentPerLevel: 16,

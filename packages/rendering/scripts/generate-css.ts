@@ -8,7 +8,11 @@
 
 import { catalogStateStylesheet } from "../../shared/src/catalog/runtime/stateStyles";
 import { generateCSS, isArchetypeId } from "../src/renderers/CSSGenerator";
-import { ruleSizeLengthRefs } from "../src/renderers/utils/ruleLength";
+import {
+  ruleLengthCss,
+  ruleSizeLengthRef,
+  ruleSizeLengthRefs,
+} from "../src/renderers/utils/ruleLength";
 import type { ComponentVisualRule } from "../src/renderers/utils/resolveComponentVisual";
 import type {
   ArchetypeId,
@@ -302,7 +306,9 @@ function ruleVariantToVariantSpec(v: ComponentRuleVariant): VariantSpec {
  */
 function mergeDensityVariants(
   composition: ComponentSpec<unknown>["composition"] | undefined,
-  densities: Record<string, { gap?: number; paddingY?: number }> | undefined,
+  densities:
+    | Record<string, { gap?: number; paddingY?: number; minHeight?: number }>
+    | undefined,
 ): ComponentSpec<unknown>["composition"] {
   if (!densities || Object.keys(densities).length === 0) {
     return composition as ComponentSpec<unknown>["composition"];
@@ -320,6 +326,12 @@ function mergeDensityVariants(
     if (spacing.paddingY !== undefined) {
       styles["padding-top"] = `${spacing.paddingY}px`;
       styles["padding-bottom"] = `${spacing.paddingY}px`;
+    }
+    // (ADR-295 후속: an S2 cell minimum — `scaled(n)` — is its device formula.)
+    if (spacing.minHeight !== undefined) {
+      const ref = ruleSizeLengthRef(spacing, "minHeight");
+      styles["min-height"] =
+        (ref && ruleLengthCss(ref)) ?? `${spacing.minHeight}px`;
     }
     if (Object.keys(styles).length === 0) continue;
     // 수동 정의(주로 `nested`)를 보존하고 `styles` 만 얹는다 — 같은 속성이면 densities 우선

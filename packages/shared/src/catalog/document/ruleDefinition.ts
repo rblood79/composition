@@ -444,7 +444,7 @@ export function ruleTypeDefinition(
     if (manualBoxRule(type)) {
       const layout: Record<string, string> = {};
       const visual: Record<string, VisualValues[keyof VisualValues]> = {};
-      applyManualBox(type, definition, layout, visual, {});
+      applyManualBox(type, definition, layout, visual, {}, theme, tokens);
       if (Object.keys(layout).length)
         definition.layout = layout as LayoutValues;
       definition.visual = visual as VisualValues;
@@ -501,7 +501,19 @@ export function ruleTypeDefinition(
       ...(typeof values.paddingY === "number"
         ? { paddingY: values.paddingY }
         : {}),
-    };
+      // (ADR-295 후속: an S2 cell minimum — `scaled(n)` — is a token use of its length ref.)
+      ...(typeof values.minHeight === "number"
+        ? {
+            minHeight: ruleSizeLengthRef(values, "minHeight")
+              ? lengthValue(
+                  ruleSizeLengthRef(values, "minHeight"),
+                  theme,
+                  tokens,
+                )!
+              : values.minHeight,
+          }
+        : {}),
+    } as VisualValues;
   if (rule.densities)
     choose("density", Object.keys(densities), rule.defaultDensity ?? "compact");
   if (Object.keys(choices).length) definition.propChoices = choices;
@@ -613,7 +625,7 @@ export function ruleTypeDefinition(
     };
   else if (rule.densities)
     Object.assign(visual, densities[rule.defaultDensity ?? "compact"] ?? {});
-  applyManualBox(type, definition, layout, visual, sizes);
+  applyManualBox(type, definition, layout, visual, sizes, theme, tokens);
   const disabled = disabledStateRules(rule, accepts);
   if (disabled.length)
     definition.conditionalRules = [
@@ -721,6 +733,8 @@ export function applyManualBox(
   layout: Record<string, string>,
   visual: Record<string, VisualValues[keyof VisualValues]>,
   sizes: Record<string, VisualValues>,
+  theme: "light" | "dark" = "light",
+  tokens: Map<LibraryTokenId, LibraryToken> = new Map(),
 ): void {
   const manual = manualBoxRule(type);
   if (!manual) return;
@@ -749,6 +763,8 @@ export function applyManualBox(
   }
   Object.assign(layout, manual.layout);
   Object.assign(visual, manual.visual);
+  // (ADR-295 후속: a manual sheet's S2 sizing number — a Tree row's `scaledLengthRef(40)` — is a token use.)
+  withLengthTokens(visual, theme, tokens);
   const accepted = (when: Readonly<Record<string, Scalar>>) =>
     Object.entries(when).every(
       ([prop, value]) =>
