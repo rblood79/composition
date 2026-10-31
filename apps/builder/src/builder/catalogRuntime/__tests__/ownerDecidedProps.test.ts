@@ -107,11 +107,12 @@ describe("props an owner decides are not the node's to edit", () => {
   it("a Select's trigger Button takes its size; its list's selection is the picker's", async () => {
     const { decided } = await open(["select", "button"]);
     expect(decided(0, "Button")).toEqual(["Select: size"]);
+    // (ADR-295 후속: the list's size is the picker's too — S2 `listbox({size})`.)
     expect(decided(0, "ListBox")).toEqual([
-      "Select: disallowEmptySelection,selectionMode",
+      "Select: disallowEmptySelection,selectionMode,size",
     ]);
     expect(new Set(decided(0, "ListBoxItem"))).toEqual(
-      new Set(["Select: isSelected"]),
+      new Set(["Select: isSelected,size"]),
     );
     // (A Button on its own keeps its size.)
     expect(decided(1, "Button")).toEqual([""]);

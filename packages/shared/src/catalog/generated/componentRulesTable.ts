@@ -7101,10 +7101,36 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       outline: "none",
       borderWidth: "{border.width.hairline}",
     },
+    // ADR-295 후속: S2 picker `listbox({size})` (`ComboBox.tsx`) — the list's font is the picker size's control
+    //   font, and its size is its items' (`CATALOG_SIZE_PROPAGATION` Select · ComboBox → ListBox → ListBoxItem).
     sizes: {
+      XS: {
+        paddingX: 4,
+        fontSize: "{typography.text-2xs}",
+        borderRadius: "{radius.xl}",
+        height: 0,
+      },
+      S: {
+        paddingX: 4,
+        fontSize: "{typography.text-xs}",
+        borderRadius: "{radius.xl}",
+        height: 0,
+      },
       M: {
         paddingX: 4,
         fontSize: "{typography.text-sm}",
+        borderRadius: "{radius.xl}",
+        height: 0,
+      },
+      L: {
+        paddingX: 4,
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.xl}",
+        height: 0,
+      },
+      XL: {
+        paddingX: 4,
+        fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: 0,
       },
@@ -7244,13 +7270,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           //   below, `edgeToText` (height × 3/8) at the sides, S2 `sectionHeading` text (ui bold),
           //   no surface or lines.
           "&[data-catalog-id]:is(.react-aria-Popover *)": {
-            styles: { "--lb-header-h": "var(--catalog-token-size-height-M)" },
+            styles: { "--lb-control-h": "var(--catalog-token-size-height-M)" },
             nested: {
+              // ADR-295 후속: S2 `listboxItem` — the item's minimum height is the picker size's control
+              //   height, its label centred in it (`(height − line) / 2`; the item's own line from its
+              //   size block). The sides stay the reference's (the check glyph's room — the block below).
+              ".react-aria-ListBoxItem": {
+                "min-height": "var(--lb-control-h)",
+                "padding-top": "calc((var(--lb-control-h) - 1lh) / 2)",
+                "padding-bottom": "calc((var(--lb-control-h) - 1lh) / 2)",
+              },
               ".react-aria-Header": {
                 "box-sizing": "border-box",
-                "min-height": "var(--lb-header-h)",
+                "min-height": "var(--lb-control-h)",
                 padding:
-                  "calc((var(--lb-header-h) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) / 2) calc(var(--lb-header-h) * 3 / 8)",
+                  "calc((var(--lb-control-h) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) / 2) calc(var(--lb-control-h) * 3 / 8)",
                 "font-size": "var(--catalog-token-text-sm)",
                 "line-height": "var(--catalog-token-text-sm--line-height)",
                 "font-weight": "700",
@@ -7260,16 +7294,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           '&[data-catalog-id][data-size="XS"]:is(.react-aria-Popover *)': {
-            styles: { "--lb-header-h": "var(--catalog-token-size-height-XS)" },
+            styles: { "--lb-control-h": "var(--catalog-token-size-height-XS)" },
           },
           '&[data-catalog-id][data-size="S"]:is(.react-aria-Popover *)': {
-            styles: { "--lb-header-h": "var(--catalog-token-size-height-S)" },
+            styles: { "--lb-control-h": "var(--catalog-token-size-height-S)" },
           },
           '&[data-catalog-id][data-size="L"]:is(.react-aria-Popover *)': {
-            styles: { "--lb-header-h": "var(--catalog-token-size-height-L)" },
+            styles: { "--lb-control-h": "var(--catalog-token-size-height-L)" },
           },
           '&[data-catalog-id][data-size="XL"]:is(.react-aria-Popover *)': {
-            styles: { "--lb-header-h": "var(--catalog-token-size-height-XL)" },
+            styles: { "--lb-control-h": "var(--catalog-token-size-height-XL)" },
           },
           "&:is(.react-aria-Popover *)[data-empty]": {
             styles: {
@@ -7395,7 +7429,37 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         textWeight: 400,
       },
     },
+    // ADR-295 후속: S2 `listboxItem({size})` (`ComboBox.tsx` — Picker · ComboBox items) = `control({wrap, icon})`
+    //   at the list's size (its picker's — `CATALOG_SIZE_PROPAGATION`): the control height as its minimum, the
+    //   centring padding `(height − line) / 2`, `edge-to-text` at the sides, the control font. M keeps its
+    //   notes below; the other sizes are the same form (MenuItem — S2 `menuitem` — has the same values).
     sizes: {
+      XS: {
+        fontSize: "{typography.text-2xs}",
+        lineHeight: "{typography.text-2xs--line-height}",
+        borderRadius: "{radius.lg}",
+        height: 0,
+        minHeight: "{size.height.XS}",
+        borderWidth: "{border.width.none}",
+        fontWeight: 400,
+        paddingX: ofHeight(3, 8),
+        paddingY: 3,
+        gap: 2,
+        iconSize: 16,
+      },
+      S: {
+        fontSize: "{typography.text-xs}",
+        lineHeight: "{typography.text-xs--line-height}",
+        borderRadius: "{radius.lg}",
+        height: 0,
+        minHeight: "{size.height.S}",
+        borderWidth: "{border.width.none}",
+        fontWeight: 400,
+        paddingX: ofHeight(3, 8),
+        paddingY: 4,
+        gap: 2,
+        iconSize: 16,
+      },
       M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
@@ -7414,12 +7478,39 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         // The item's weight (normal — the reference's `font` shorthand); the label slot's 500 is
         //   the ListBox rule's item selector (the Canvas's ListBox part rule).
         fontWeight: 400,
-        // paddingX 12 (S2 `edge-to-text` 는 3c-3) · paddingY = the S2 centring above (desktop result).
-        paddingX: 12,
+        // paddingX = S2 `edge-to-text` (height × 3/8 — desktop 12) · paddingY = the S2 centring above
+        //   (desktop result).
+        paddingX: ofHeight(3, 8),
         paddingY: 7,
         // label↔description 수직 간격 (S2 menuitem description 2).
         gap: 2,
         // selection indicator / icon glyph 크기 (spec iconSize 16).
+        iconSize: 16,
+      },
+      L: {
+        fontSize: "{typography.text-base}",
+        lineHeight: "{typography.text-base--line-height}",
+        borderRadius: "{radius.lg}",
+        height: 0,
+        minHeight: "{size.height.L}",
+        borderWidth: "{border.width.none}",
+        fontWeight: 400,
+        paddingX: ofHeight(3, 8),
+        paddingY: 10,
+        gap: 2,
+        iconSize: 16,
+      },
+      XL: {
+        fontSize: "{typography.text-lg}",
+        lineHeight: "{typography.text-lg--line-height}",
+        borderRadius: "{radius.lg}",
+        height: 0,
+        minHeight: "{size.height.XL}",
+        borderWidth: "{border.width.none}",
+        fontWeight: 400,
+        paddingX: ofHeight(3, 8),
+        paddingY: 13,
+        gap: 2,
         iconSize: 16,
       },
     },

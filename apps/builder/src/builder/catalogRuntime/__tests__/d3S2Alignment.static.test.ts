@@ -46,6 +46,10 @@ import {
   CATALOG_COLOR_WHEEL_TRACK,
   catalogColorWheelDiameter,
 } from "../../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
+import {
+  CATALOG_SIZE_PASS_THROUGH,
+  CATALOG_SIZE_PROPAGATION,
+} from "../../../../../../packages/shared/src/catalog/document/sizePropagation";
 import oracle from "./fixtures/adr295-s2-oracle.json";
 
 const SIZES = ["XS", "S", "M", "L", "XL"] as const;
@@ -1358,13 +1362,13 @@ describe("ADR-295 후속 — picker 팝오버 안 섹션 머리글 = S2 listboxH
       >
     ).ListBox!.structure.composition.rootSelectors;
     const block = selectors["&[data-catalog-id]:is(.react-aria-Popover *)"]!;
-    expect(block.styles?.["--lb-header-h"]).toBe(
+    expect(block.styles?.["--lb-control-h"]).toBe(
       "var(--catalog-token-size-height-M)",
     );
     const header = block.nested![".react-aria-Header"]!;
-    expect(header["min-height"]).toBe("var(--lb-header-h)");
+    expect(header["min-height"]).toBe("var(--lb-control-h)");
     expect(header.padding).toBe(
-      "calc((var(--lb-header-h) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) / 2) calc(var(--lb-header-h) * 3 / 8)",
+      "calc((var(--lb-control-h) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) / 2) calc(var(--lb-control-h) * 3 / 8)",
     );
     expect([header["font-size"], header["font-weight"]]).toEqual([
       "var(--catalog-token-text-sm)",
@@ -1374,7 +1378,7 @@ describe("ADR-295 후속 — picker 팝오버 안 섹션 머리글 = S2 listboxH
       expect(
         selectors[
           `&[data-catalog-id][data-size="${size}"]:is(.react-aria-Popover *)`
-        ]?.styles?.["--lb-header-h"],
+        ]?.styles?.["--lb-control-h"],
         size,
       ).toBe(`var(--catalog-token-size-height-${size})`);
   });
@@ -1700,5 +1704,48 @@ describe("ADR-295 후속 — S2 와 다르게 남은 고정 치수 (S2 1.8.1 소
       scaledRef(min),
       scaledRef(min),
     ]);
+  });
+
+  it("picker 항목 = S2 `listboxItem({size})` — Select · ComboBox 크기가 ListBox 를 지나 항목에 (control 높이 · 중앙 여백)", () => {
+    const s2 = readFileSync(
+      resolve(
+        __dirname,
+        "../../../../node_modules/@react-spectrum/s2/src/Picker.tsx",
+      ),
+      "utf8",
+    );
+    expect(s2).toMatch(/className=\{listbox\(\{size\}\)\}/);
+    expect(s2).toMatch(/listboxItem\(\{\.\.\.renderProps, size, isLink\}/);
+    for (const picker of ["Select", "ComboBox"])
+      expect(CATALOG_SIZE_PROPAGATION[picker], picker).toContain("ListBox");
+    expect(CATALOG_SIZE_PROPAGATION.ListBox).toEqual(["ListBoxItem"]);
+    expect(CATALOG_SIZE_PASS_THROUGH.has("Popover")).toBe(true);
+    expect(CATALOG_SIZE_PASS_THROUGH.has("ListBoxSection")).toBe(true);
+    const item = rules.ListBoxItem!.sizes;
+    for (const size of SIZES) {
+      expect(Object.keys(rules.ListBox!.sizes), "ListBox").toContain(size);
+      expect(item[size]!.minHeight, size).toBe(`{size.height.${size}}`);
+      const line =
+        (oracle.tokens.controlSize.md as Record<string, number>)[size]! -
+        s2LineHeight(
+          (
+            s2TypographyTokens(S2_FONT_SIZE_BASE) as unknown as Record<
+              string,
+              number
+            >
+          )[String(item[size]!.fontSize).slice("{typography.".length, -1)]!,
+        );
+      expect(item[size]!.paddingY, size).toBe(line / 2);
+    }
+    // 사용자 picker 팝오버 안 항목: 최소 높이 = 목록 크기의 control 높이 (빌더 picker 는 제외 — [data-catalog-id]).
+    const popover = (
+      rules.ListBox!.structure!.composition!.rootSelectors as unknown as Record<
+        string,
+        { nested?: Record<string, Record<string, string>> }
+      >
+    )["&[data-catalog-id]:is(.react-aria-Popover *)"]!.nested![
+      ".react-aria-ListBoxItem"
+    ]!;
+    expect(popover["min-height"]).toBe("var(--lb-control-h)");
   });
 });

@@ -153,7 +153,7 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
   {
     component: "ListBoxItem",
     key: "iconSize",
-    values: { M: 16 },
+    values: { XS: 16, S: 16, M: 16, L: 16, XL: 16 },
     reason:
       "목록 항목 icon slot (`--lb-icon-size` 16) — 수동 ListBox.css 와 같은 값",
   },

@@ -26,7 +26,7 @@
 
   /* Default size */
   height: auto;
-  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-none)) / 2) 12px;
+  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-list-box-item-padding-x-M, calc(var(--catalog-token-size-height-M) * 3 / 8));
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-lg);
   line-height: var(--catalog-token-text-sm--line-height);
@@ -53,6 +53,71 @@
     background: var(--accent);
     color: var(--fg-on-accent);
   }
+}
+
+.react-aria-ListBoxItem[data-size="XS"] {
+  height: auto;
+  padding: calc((var(--catalog-token-size-height-XS) - var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-list-box-item-padding-x-XS, calc(var(--catalog-token-size-height-XS) * 3 / 8));
+  font-size: var(--catalog-token-text-2xs);
+  border-radius: var(--catalog-token-radius-lg);
+  line-height: var(--catalog-token-text-2xs--line-height);
+  font-weight: 400;
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-XS);
+  gap: 2px;
+  --icon-size: 16px;
+}
+
+.react-aria-ListBoxItem[data-size="S"] {
+  height: auto;
+  padding: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-list-box-item-padding-x-S, calc(var(--catalog-token-size-height-S) * 3 / 8));
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-lg);
+  line-height: var(--catalog-token-text-xs--line-height);
+  font-weight: 400;
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-S);
+  gap: 2px;
+  --icon-size: 16px;
+}
+
+.react-aria-ListBoxItem[data-size="M"] {
+  height: auto;
+  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-list-box-item-padding-x-M, calc(var(--catalog-token-size-height-M) * 3 / 8));
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-lg);
+  line-height: var(--catalog-token-text-sm--line-height);
+  font-weight: 400;
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-M);
+  gap: 2px;
+  --icon-size: 16px;
+}
+
+.react-aria-ListBoxItem[data-size="L"] {
+  height: auto;
+  padding: calc((var(--catalog-token-size-height-L) - var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-list-box-item-padding-x-L, calc(var(--catalog-token-size-height-L) * 3 / 8));
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-lg);
+  line-height: var(--catalog-token-text-base--line-height);
+  font-weight: 400;
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-L);
+  gap: 2px;
+  --icon-size: 16px;
+}
+
+.react-aria-ListBoxItem[data-size="XL"] {
+  height: auto;
+  padding: calc((var(--catalog-token-size-height-XL) - var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-list-box-item-padding-x-XL, calc(var(--catalog-token-size-height-XL) * 3 / 8));
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-lg);
+  line-height: var(--catalog-token-text-lg--line-height);
+  font-weight: 400;
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-XL);
+  gap: 2px;
+  --icon-size: 16px;
 }
 
 .react-aria-ListBoxItem[data-focus-visible] {

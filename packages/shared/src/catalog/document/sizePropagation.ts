@@ -81,9 +81,13 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   NumberField: WRAPPED_FIELD_PARTS,
   SearchField: WRAPPED_FIELD_PARTS,
   ColorField: INPUT_FIELD_PARTS,
-  // (A Select's trigger is a Button instance — ADR-253.)
-  Select: [...FIELD_PARTS, "Button"],
-  ComboBox: WRAPPED_FIELD_PARTS,
+  // (A Select's trigger is a Button instance — ADR-253.) ADR-295 후속: S2 Picker · ComboBox `size` is
+  //   their list's (`InternalPickerContext` → `listbox({size})` · `listboxItem({size})`, `ComboBox.tsx`) —
+  //   the ListBox in the Popover (passed through) takes it and gives it to its items.
+  Select: [...FIELD_PARTS, "Button", "ListBox"],
+  ComboBox: [...WRAPPED_FIELD_PARTS, "ListBox"],
+  // A ListBox's size is its items' (S2 picker list — the items are the list's control rows).
+  ListBox: ["ListBoxItem"],
   DateField: DATE_FIELD_PARTS,
   TimeField: DATE_FIELD_PARTS,
   DatePicker: WRAPPED_FIELD_PARTS,
@@ -128,6 +132,10 @@ export const CATALOG_SIZE_PASS_THROUGH: ReadonlySet<string> = new Set([
   // ADR-295 Phase 3c-3c ③: a Menu's section and submenu trigger — the Menu's size reaches the items in them.
   "MenuSection",
   "SubmenuTrigger",
+  // ADR-295 후속: a picker's Popover (its own size is a standalone popover's) and a ListBox section —
+  //   the picker's size reaches its ListBox, the ListBox's the items in a section.
+  "Popover",
+  "ListBoxSection",
 ]);
 
 /** ADR-259 Phase 3: the fields whose label row holds a ContextualHelp (`CATALOG_CONTEXTUAL_HELP_FIELDS`). */

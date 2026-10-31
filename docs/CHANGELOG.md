@@ -41,6 +41,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - ProgressBar · Meter 최소 폭은 이미 S2 (`{size.bar.min-width}` 48 · 터치 60) 라 그대로. 「기본 폭 208」 은 S2 소스에 없다.
   - 위치: `componentRulesTable.ts` (StatusLight) · `StatusLight.tsx` · `skiaPrimitives.ts` (`status_light`) · `ruleShapes.ts` (`BOX_SIZE_TYPES`).
   - 검증: G4 (height 0 · 행간 토큰 = S2 controlFont 행간) · 원복 RED (rule → 1 FAIL · DOM 행간 없이 → G2 StatusLight 4 × 2 FAIL) · G2 desktop · touch 263/263 · live 5175 (Canvas 18 · DOM desktop 18 · 터치 22, 콘솔 0).
+- **Select · ComboBox 목록 항목이 크기와 무관하게 32 였던 것 (4차)**: S2 Picker · ComboBox 는 자기 `size` 를 목록과 항목에 준다 (`InternalPickerContext` → `listbox({size})` · `listboxItem({size})`). Select L 의 항목이 40 이 아니라 32 였다.
+  - **Why**: ListBox · ListBoxItem rule 에 M 크기만 있어 (`propChoices.size = ["M"]`) 다른 크기가 버려졌고, Select · ComboBox → ListBox 전파도 없었으며, 사용자 picker 팝오버의 항목 여백이 `--spacing-2xl` (32) 고정이었다.
+  - 전파: Select · ComboBox → (Popover 통과) → ListBox → ListBoxItem (ListBoxSection 통과). picker 안 ListBox · 항목의 크기는 picker 소유 (패널에서 편집하지 않음).
+  - ListBoxItem 크기 XS · S · L · XL 추가 — S2 `control({wrap, icon})`: 최소 높이 = control 높이 (20 · 24 · 32 · 40 · 48), 위아래 = `(높이 − 줄) / 2`, 좌우 = 높이 × 3/8, 글자 = control 글자. ListBox 크기도 같은 다섯 단 (글자만).
+  - 사용자 picker 팝오버 (`[data-catalog-id]`) 안 항목의 최소 높이 · 위아래 여백 = 목록 크기의 control 높이 (머리글이 쓰던 변수를 `--lb-control-h` 로 이름만 바꿔 같이 쓴다). 빌더 자체 picker 는 생성 ListBox 시트를 싣지 않아 그대로다.
+  - 위치: `sizePropagation.ts` · `componentRulesTable.ts` (ListBox · ListBoxItem).
+  - 검증: `s2PickerItemSize.test.tsx` (Select 5 크기 · ComboBox · 단독 ListBox Canvas 높이 · DOM `data-size`) · G4 (S2 `Picker.tsx` 대조 + 크기별 최소 높이 · 위아래 여백) · 원복 RED 11 · live 5175 (Select L → ListBox `data-size="L"` · 팝오버 항목 4개 높이 40 · 글자 16, 콘솔 0).
 
 ## [ADR-295 후속 — S2 고정 치수의 터치 배율 (`scaled`)] - 2026-10-31
 
