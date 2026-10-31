@@ -30,6 +30,7 @@ paths:
 ## 1. Skia 단일 렌더러 (ADR-900)
 
 - grid 안내선·셀 교환은 `hidden` 또는 `display: none`인 자식을 배치 항목에서 제외한다. **Why (2026-10-31):** Side 라벨의 CheckboxGroup·RadioGroup·SearchField에서 숨긴 Description·FieldError의 0 높이 상자를 포함해 실제 1행을 3행으로 계산하고 선택 영역 아래에 선 두 개를 그렸다.
+- 레이아웃 입력·편집 계산은 shared `layoutParticipation.ts`의 참여 판정을 사용한다. Grid·간격 표시는 조상의 표시 여부도 확인하고, 삭제·Hug 점유 계산과 숨긴 자식의 저작 Grid line 재매핑을 분리한다. **Why (2026-10-31):** 숨긴 flex 자식이 가짜 간격 두 개를 만들고, 상위가 숨겨진 Grid에 셀 네 개가 남았으며, A/B/C 중 B를 숨긴 2열 Grid에서 2열 내용 삭제가 C 대신 B를 지웠다 (실제 엔진 회귀 재현).
 - Skia 가 화면 + 이벤트 (EventBoundary) 를 통합 처리하고, 엔진 계산 결과 (x/y/w/h) 로 직접 배치한다. 다른 렌더러 · 레이아웃 층을 끼우지 않는다.
 - 부분 갱신 영역은 device pixel 정수 경계로 바깥 정렬하고, clear·재렌더·standby 복사에 같은 AA 없는 clip을 쓴다. contributor 조회도 정렬된 영역을 scene 좌표로 역변환한다. **Why (2026-10-30)**: 소수점 AA clip에서 clear와 SrcOver를 반복하면 불투명 경계 alpha가 255→191→171로 줄어 어두운 배경에 선택선 같은 잔상이 남았다 (실제 CanvasKit 재현).
 

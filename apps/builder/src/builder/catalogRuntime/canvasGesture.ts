@@ -4,6 +4,10 @@ import {
   catalogIsOutOfFlow,
 } from "../../../../../packages/shared/src/catalog/runtime/positioning";
 import {
+  catalogHasDisplayedLayout,
+  catalogParticipatesInFlow,
+} from "../../../../../packages/shared/src/catalog/runtime/layoutParticipation";
+import {
   containerTypeSet,
   getRatioDependentAxis,
   resolveNestingViolation,
@@ -2050,13 +2054,7 @@ export class CatalogCanvasGestures {
     const records = this.host.records;
     return container.children.flatMap((id) => {
       const child = records.get(id);
-      if (
-        dragged.has(id) ||
-        !child ||
-        child.hidden ||
-        child.layout.display === "none" ||
-        catalogIsOutOfFlow(child)
-      )
+      if (dragged.has(id) || !child || !catalogParticipatesInFlow(child))
         return [];
       const box = this.host.bounds(id);
       return box ? [{ id, box }] : [];
@@ -2448,6 +2446,8 @@ export class CatalogCanvasGestures {
   ): GridLayout | undefined {
     const display = container.layout.display;
     if (display !== "grid" && display !== "inline-grid") return undefined;
+    if (!catalogHasDisplayedLayout(container, this.host.records))
+      return undefined;
     const frame = this.host.bounds(container.id);
     if (!frame) return undefined;
     const entries = this.flowEntries(container, new Set());

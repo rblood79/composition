@@ -1,4 +1,7 @@
-import { catalogIsOutOfFlow } from "../../../../../../../packages/shared/src/catalog/runtime/positioning";
+import {
+  catalogHasDisplayedLayout,
+  catalogParticipatesInFlow,
+} from "../../../../../../../packages/shared/src/catalog/runtime/layoutParticipation";
 /**
  * CatalogGridTrackLayer — 선택한 grid 의 열 · 행 머리 (Figma grid 의 canvas track 편집 —
  * 2026-10-16 사용자 「1,2,3 한번에 진행」).
@@ -204,6 +207,7 @@ export function CatalogGridTrackLayer({
       const parentId = records.get(selectedIds[0]!)?.parentId;
       const grid = parentId ? records.get(parentId) : undefined;
       if (!grid || parentId === PAGE_ROOT) return null;
+      if (!catalogHasDisplayedLayout(grid, records)) return null;
       if (
         grid.layout.display !== "grid" &&
         grid.layout.display !== "inline-grid"
@@ -211,12 +215,7 @@ export function CatalogGridTrackLayer({
         return null;
       const flow = grid.children.filter((child) => {
         const record = records.get(child);
-        return (
-          !!record &&
-          !record.hidden &&
-          record.layout.display !== "none" &&
-          !catalogIsOutOfFlow(record)
-        );
+        return !!record && catalogParticipatesInFlow(record);
       });
       const columns =
         gridTrackList(String(grid.layout.gridTemplateColumns ?? ""))?.length ||

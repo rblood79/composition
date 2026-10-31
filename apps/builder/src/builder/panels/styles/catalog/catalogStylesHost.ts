@@ -1,5 +1,9 @@
 import { catalogReadPositionConstraint } from "../../../catalogRuntime/positionConstraint";
 import { catalogIsOutOfFlow } from "../../../../../../../packages/shared/src/catalog/runtime/positioning";
+import {
+  catalogHasDisplayedLayout,
+  catalogParticipatesInFlow,
+} from "../../../../../../../packages/shared/src/catalog/runtime/layoutParticipation";
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import {
   removeTargets,
@@ -366,10 +370,11 @@ export function createCatalogStylesHost(
     const records = workspace.root.domInputs;
     const grid = records.get(gridId);
     const rect = grid && workspace.root.getGeometry([gridId]).get(gridId);
-    if (!grid || !rect) return edits;
+    if (!grid || !rect || !catalogHasDisplayedLayout(grid, records))
+      return edits;
     const flow = grid.children.filter((child) => {
       const record = records.get(child);
-      return !!record && !catalogIsOutOfFlow(record);
+      return !!record && catalogParticipatesInFlow(record);
     });
     const boxes = workspace.root.getGeometry(flow);
     const model = catalogBoxModel(grid);
@@ -933,9 +938,11 @@ export function createCatalogStylesHost(
           ? (records.get(items[0].identity)?.children ?? [])
           : [];
         // A track delete removes the items only in it (Figma), placed as CSS places them.
+        const grid = records.get(items[0].identity);
+        const displayed = !!grid && catalogHasDisplayedLayout(grid, records);
         const flow = children.filter((child) => {
           const record = records.get(child);
-          return !!record && !catalogIsOutOfFlow(record);
+          return displayed && !!record && catalogParticipatesInFlow(record);
         });
         const deleted = new Set<string>();
         const deletes = edits.filter((edit) => edit.deleteContents);
@@ -961,6 +968,8 @@ export function createCatalogStylesHost(
           ))
             deleted.add(flow[index]!);
         }
+        // Authored lines still follow the track structure on hidden children. Only occupancy
+        // (deletion and Hug sizing) excludes them; hiding must not freeze their line indices.
         for (const child of children) {
           if (deleted.has(child)) continue;
           const record = records.get(child);

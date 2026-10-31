@@ -1,4 +1,7 @@
-import { catalogIsOutOfFlow } from "../../../../../packages/shared/src/catalog/runtime/positioning";
+import {
+  catalogHasDisplayedLayout,
+  catalogParticipatesInFlow,
+} from "../../../../../packages/shared/src/catalog/runtime/layoutParticipation";
 import {
   buildSpacingBands,
   type SpacingBand,
@@ -34,6 +37,7 @@ export function catalogSpacingBands(
   bounds: (id: string) => BoundingBox | undefined,
   preview: CatalogSpacingPreview = {},
 ): readonly SpacingBand[] {
+  if (!catalogHasDisplayedLayout(record, records)) return [];
   const ownerBounds = bounds(record.id);
   if (!ownerBounds) return [];
   const box = catalogBoxModel(record);
@@ -54,7 +58,7 @@ export function catalogSpacingBands(
     .map((id) => records.get(id))
     .filter(
       (child): child is CatalogConsumerNode =>
-        !!child && !catalogIsOutOfFlow(child),
+        !!child && catalogParticipatesInFlow(child),
     )
     .map((child) => bounds(child.id))
     .filter((child): child is BoundingBox => !!child);

@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [편집 표시와 Grid 조작의 가시성 일치 — 공통 레이아웃 참여 판정] - 2026-10-31
+
+### Fixed
+
+- **숨긴 요소로 생기는 간격 표시·Grid 선과 잘못된 트랙 내용 삭제**: 레이아웃 입력, 흐름 배치, 간격 핸들, Grid 셀·트랙·교환, 삭제·Hug 계산이 공통 참여 판정을 사용한다. 자신이나 조상이 숨겨진 Grid·간격 표시는 생성하지 않는다. 숨긴 자식의 명시적 Grid line은 트랙 구조 변경에 맞춰 계속 갱신한다.
+  - **Why:** 숨긴 자식의 0 크기 상자를 실제 배치 항목에 포함해 가짜 간격을 만들고, A/B/C 중 B를 숨긴 2열 Grid에서 2열 내용 삭제가 C 대신 B를 지웠다. 상위가 숨겨진 Grid도 고정 행 크기로 표시선을 계속 생성했다.
+  - 위치: `packages/shared/src/catalog/runtime/layoutParticipation.ts`, Builder `canvasSpacing.ts` · `canvasGesture.ts` · `CatalogGridTrackLayer.tsx` · `catalogStylesHost.ts`.
+  - 검증: 실제 레이아웃 엔진의 간격·자신/조상 숨김·트랙 삭제·Hug·숨긴 Grid line 갱신 및 Undo/Redo 회귀 검사.
+
 ## [선택 요소 눈금자 범위 표시] - 2026-10-31
 
 ### Added

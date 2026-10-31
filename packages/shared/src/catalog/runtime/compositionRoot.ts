@@ -1,4 +1,5 @@
 import { isInputVariable } from "../document/componentEvents";
+import { catalogParticipatesInLayout } from "./layoutParticipation";
 import {
   closeOverInputs,
   inputVariableDependencies,
@@ -997,7 +998,7 @@ function styleOf(
   labelSuffix = "",
   inheritedLineHeight?: number,
 ): Record<string, unknown> {
-  if (node.hidden) return { display: "none" };
+  if (!catalogParticipatesInLayout(node)) return { display: "none" };
   const box = catalogBoxModel(node);
   const px = (value: CatalogLength | undefined): string | undefined =>
     typeof value === "number" ? `${value}px` : value;
@@ -2091,7 +2092,8 @@ export class CatalogCompositionRoot {
     let out: P | undefined;
     for (const [key, value] of Object.entries(authored)) {
       const allowed = choices[key];
-      if (!allowed || !isPropVar(value) || allowed.includes(props[key])) continue;
+      if (!allowed || !isPropVar(value) || allowed.includes(props[key]))
+        continue;
       out ??= { ...props };
       delete out[key];
       const warned = `${record.id}\u0000${key}\u0000${String(props[key])}`;
@@ -2487,7 +2489,10 @@ export class CatalogCompositionRoot {
     const siteLocale = this.siteLocale();
     this.resolvedSiteLocale = siteLocale;
     for (const [id, record] of output) {
-      if (!isBodyType(this.typeOf(record)) || record.props.locale === siteLocale)
+      if (
+        !isBodyType(this.typeOf(record)) ||
+        record.props.locale === siteLocale
+      )
         continue;
       const { locale: _authored, ...props } = record.props;
       output.set(id, {
@@ -2503,7 +2508,12 @@ export class CatalogCompositionRoot {
     // ADR-256 Decision 12: value bindings read their owners' records (a part's final text decides
     // its `presentWhen` below).
     for (const [id, record] of output) {
-      const valued = catalogWithValues(record, get, this.typeOf, this.environmentLocale);
+      const valued = catalogWithValues(
+        record,
+        get,
+        this.typeOf,
+        this.environmentLocale,
+      );
       if (valued !== record) output.set(id, valued);
     }
     for (const [id, record] of output)
@@ -2534,7 +2544,12 @@ export class CatalogCompositionRoot {
     record: CatalogConsumerNode,
     get: (id: string) => CatalogConsumerNode | undefined,
   ): Readonly<Record<string, string | number | boolean>> | undefined {
-    const derived = catalogDerivedProps(record, get, this.typeOf, this.environmentLocale);
+    const derived = catalogDerivedProps(
+      record,
+      get,
+      this.typeOf,
+      this.environmentLocale,
+    );
     // A Select's value shows its placeholder (the Canvas draws no selection): the Select sheet's
     // `[data-placeholder]` paint, unless the value authors its own color. The DOM leaves its color
     // to that sheet (`domBinding.tsx`), so the derived color is the Canvas's.
@@ -2988,7 +3003,9 @@ export class CatalogCompositionRoot {
       locale: ((own, system) => (system ? `${own}-u-ca-${system}` : own))(
         typeof prop("locale") === "string" && prop("locale")
           ? String(prop("locale"))
-          : (this.environmentLocale ?? globalThis.navigator?.language ?? "en-US"),
+          : (this.environmentLocale ??
+              globalThis.navigator?.language ??
+              "en-US"),
         typeof prop("calendarSystem") === "string"
           ? String(prop("calendarSystem"))
           : "",
