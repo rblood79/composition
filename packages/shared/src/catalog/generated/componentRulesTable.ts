@@ -13407,103 +13407,187 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // 295 후속 C9 (사용자 「Toast 컴포넌트가 컴포넌트 패널에 없다 · S2 원본대로」): S2 1.8.1 `Toast.tsx`
+  //   `toastStyle` — variant 진한 색 (neutral = neutral-subdued) · 흰 글자 · 테두리 없음 · `borderRadius: 'lg'` ·
+  //   최소 높이 56 · 최대 폭 336 (`size()` — 터치 × 1.25) · `paddingStart: 16` · `paddingEnd: 8` ·
+  //   `paddingY: 12` · `boxShadow: 'elevated'` (= `{shadow.md}`) · `font: 'ui'`. S2 처럼 크기 축이 없다.
+  //   variant 아이콘 (CenterBaseline · Icon M) 과 닫기 (CloseButton staticColor white · control M) 는 S2 가 늘
+  //   그리는 것이라 Toast 가 자기 여백 안에 그린다 — 시작 여백 = 16 + 아이콘 + 8 (neutral 은 아이콘 없이 16),
+  //   끝 여백 = 8 + 닫기 + 16 (`{size.toast.*}` 기기 두 벌 — `device.ts` `S2_TOAST_EDGE`). Canvas =
+  //   `ruleShapes.ts` `catalogToastChromeShapes`, DOM = `delegatedDom` `toast` 의 `toast-variant-icon` · `toast-close-button`.
+  //   글자 · action 버튼은 자식 노드 (원본 `component-toast` — Text + S2 action Button), 사이 간격 = S2
+  //   `toastBody` `columnGap: 24`. 안의 글자는 흰색 (파생 `color` — `presence.ts` `catalogToastText`).
   Toast: {
     defaultVariant: "info",
     defaultSize: "M",
     variants: {
-      // design-data 감사 (2026-08-20): info 가 fill/border 모두 neutral 과 완전
-      //   동일값이라 informative 시맨틱이 죽어 있었다 (positive/negative 는 자기
-      //   시맨틱 색 보유, Tooltip.info 는 informative-subtle 사용 — 내부 비대칭).
-      //   Spectrum toast guideline "informative toast uses the informative
-      //   semantic color (blue)" 에 맞춰 형제 variant 와 같은 스킴으로 정렬.
-      info: {
+      neutral: {
         fill: {
           default: {
-            base: "{color.informative-subtle}",
-            hover: "{color.informative-subtle}",
-            pressed: "{color.informative-subtle}",
+            base: "{color.neutral-subdued}",
+            hover: "{color.neutral-subdued}",
+            pressed: "{color.neutral-subdued}",
           },
         },
         colors: {
-          text: "{color.neutral}",
+          text: "{color.white}",
+          border: "{color.neutral-subdued}",
+        },
+      },
+      info: {
+        fill: {
+          default: {
+            base: "{color.informative}",
+            hover: "{color.informative}",
+            pressed: "{color.informative}",
+          },
+        },
+        colors: {
+          text: "{color.white}",
           border: "{color.informative}",
         },
       },
       positive: {
         fill: {
           default: {
-            base: "{color.positive-subtle}",
-            hover: "{color.positive-subtle}",
-            pressed: "{color.positive-subtle}",
+            base: "{color.positive}",
+            hover: "{color.positive}",
+            pressed: "{color.positive}",
           },
         },
         colors: {
-          text: "{color.neutral}",
+          text: "{color.white}",
           border: "{color.positive}",
-        },
-      },
-      neutral: {
-        fill: {
-          default: {
-            base: "{color.neutral-subtle}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-subtle}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
         },
       },
       negative: {
         fill: {
           default: {
-            base: "{color.negative-subtle}",
-            hover: "{color.negative-subtle}",
-            pressed: "{color.negative-subtle}",
+            base: "{color.negative}",
+            hover: "{color.negative}",
+            pressed: "{color.negative}",
           },
         },
         colors: {
-          text: "{color.neutral}",
+          text: "{color.white}",
           border: "{color.negative}",
         },
       },
     },
-    // ADR-295 후속 B2: 최대 폭 = S2 `toastStyle` `--maxWidth: 336` (`maxWidth` sizing — 터치 × 1.25 → `scaled`).
-    //   S2 는 `min(336, 90vw)` — 90vw 쪽은 Canvas 에 viewport 축이 없어 싣지 않는다 (좁은 화면 상한).
+    containerStyles: {
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "center",
+      position: "relative",
+      width: "fit-content",
+      boxSizing: "border-box",
+      paddingTop: "12px",
+      paddingRight: "{size.toast.padding-end}",
+      paddingBottom: "12px",
+      paddingLeft: "{size.toast.padding-start-icon}",
+      boxShadow: "{shadow.md}",
+    },
+    // (neutral 은 아이콘이 없다 — S2 `ICONS[variant]` 에 neutral 없음 — 시작 여백 16.)
+    containerVariants: {
+      variant: {
+        neutral: { styles: { "padding-left": "16px" } },
+      },
+    },
     sizes: {
-      S: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
-        height: 0,
-        minHeight: scaled(56),
-        maxWidth: scaled(336),
-        iconSize: 16,
-      },
       M: {
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.md}",
-        height: 0,
-        minHeight: scaled(56),
-        maxWidth: scaled(336),
-        iconSize: 20,
-      },
-      L: {
-        fontSize: "{typography.text-lg}",
+        fontSize: "{typography.text-sm}",
         borderRadius: "{radius.lg}",
         height: 0,
         minHeight: scaled(56),
         maxWidth: scaled(336),
-        iconSize: 24,
+        gap: 24,
+        borderWidth: "{border.width.none}",
+        iconSize: "{size.icon.M}",
       },
     },
     structure: {
       archetype: "alert",
       element: "div",
-      containerStyles: undefined,
+      containerStyles: {
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        position: "relative",
+        width: "fit-content",
+        boxSizing: "border-box",
+        paddingTop: "12px",
+        paddingRight: "{size.toast.padding-end}",
+        paddingBottom: "12px",
+        paddingLeft: "{size.toast.padding-start-icon}",
+        boxShadow: "{shadow.md}",
+      },
       states: {
         disabled: {
           opacity: 0.38,
+        },
+      },
+      composition: {
+        delegation: [],
+        rootSelectors: {
+          // (The size block takes px numbers only — the S2 padding is the device token pair, so the
+          //  DOM reads it here as the Canvas reads `containerStyles` · `containerVariants`.)
+          "&[data-variant]": {
+            styles: {
+              padding:
+                "12px var(--catalog-token-size-toast-padding-end) 12px var(--catalog-token-size-toast-padding-start-icon)",
+            },
+          },
+          '&[data-variant="neutral"]': {
+            styles: { "padding-left": "16px" },
+          },
+          // S2 CenterBaseline 아이콘 — 시작 여백 16 안, 세로 가운데 (`toast-variant-icon`, aria-hidden).
+          "& > .toast-variant-icon": {
+            styles: {
+              position: "absolute",
+              left: "16px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              display: "flex",
+              color: "inherit",
+              "pointer-events": "none",
+            },
+          },
+          "& > .toast-variant-icon svg": {
+            styles: {
+              width: "var(--catalog-token-size-icon-M)",
+              height: "var(--catalog-token-size-icon-M)",
+            },
+          },
+          // S2 CloseButton staticColor="white" — control M, 끝 여백 8 안, 투명 · hover 흰 10%.
+          "& > .toast-close-button": {
+            styles: {
+              position: "absolute",
+              right: "8px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              display: "inline-flex",
+              "align-items": "center",
+              "justify-content": "center",
+              width: "var(--catalog-token-size-height-M)",
+              height: "var(--catalog-token-size-height-M)",
+              padding: "0",
+              border: "none",
+              "border-radius": "9999px",
+              background: "transparent",
+              color: "inherit",
+              outline: "none",
+              transition: "background-color 130ms ease-in-out",
+            },
+          },
+          "& > .toast-close-button svg": {
+            styles: { width: "12px", height: "12px" },
+          },
+          "& > .toast-close-button:is([data-hovered], [data-pressed])": {
+            styles: { background: "rgb(255 255 255 / 0.1)" },
+          },
+          "& > .toast-close-button[data-focus-visible]": {
+            styles: { outline: "2px solid white", "outline-offset": "2px" },
+          },
         },
       },
     },

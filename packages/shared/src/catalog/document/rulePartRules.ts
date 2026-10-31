@@ -1581,6 +1581,8 @@ const TYPE_CONTAINER_VARIANT_AXES: Readonly<
   Badge: { "overflow-mode": "overflowMode" },
   // S2 InlineAlert (2026-10-13): its title keeps clear of the variant's icon (`inlineAlertIcon.ts`).
   InlineAlert: { variant: "variant" },
+  // 295 후속 C9: S2 Toast — neutral has no icon, so its start padding is S2's 16.
+  Toast: { variant: "variant" },
   GridListItem: { "overflow-mode": "overflowMode" },
   // S2 Button (2026-10-28): a pill, and a field's own button at its size's corner — the derived
   // `fieldButton` (`presence.ts` `catalogFieldButtonSize`, `derivedVariantProps.ts`).

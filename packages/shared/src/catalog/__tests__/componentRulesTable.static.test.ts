@@ -150,13 +150,7 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     values: { S: 24, M: 32, L: 40 },
     reason: "DropZone 일러스트 글리프 — S2 아이콘 단이 아니다 (3c 대조)",
   },
-  {
-    component: "Toast",
-    key: "iconSize",
-    values: { S: 16, M: 20, L: 24 },
-    reason:
-      "S2 Toast 에 size 축이 없다 — composition size 의 아이콘 (3c 에서 S2 대조)",
-  },
+  // (Toast: 295 후속 C9 — size 축을 지우고 아이콘은 S2 Icon M `{size.icon.M}` 토큰.)
   {
     component: "ListBoxItem",
     key: "iconSize",

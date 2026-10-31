@@ -171,6 +171,7 @@ import {
   catalogHiddenAtRest,
   type CatalogOriginBodyOpen,
   catalogInlineAlertBoldText,
+  catalogToastText,
   catalogPresenceDependents,
   catalogStateDependents,
   catalogToggleGroupItems,
@@ -2576,6 +2577,10 @@ export class CatalogCompositionRoot {
     const alertText = catalogInlineAlertBoldText(record, get, this.typeOf);
     if (alertText && catalogAuthoredVisual(this, record).color === undefined)
       return { ...derived, color: alertText };
+    // 295 후속 C9 — S2 Toast: its text nodes are white (not the action Button's — its rule paints it).
+    const toastText = catalogToastText(record, get, this.typeOf);
+    if (toastText && catalogAuthoredVisual(this, record).color === undefined)
+      return { ...derived, color: toastText };
     // A static ProgressBar · Meter's label (S2 `FieldLabel staticColor` — `catalogProgressStaticText`):
     // the static color, unless the label authors its own color (the DOM's inline style wins over
     // the sheet's). A rule-backed value text paints it from its own rule (`resolveCatalogPaint`).

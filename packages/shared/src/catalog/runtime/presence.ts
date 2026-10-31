@@ -5,8 +5,10 @@ import {
 import {
   getIconData,
   resolveToken,
+  S2_TOAST_EDGE,
   type TokenRef,
 } from "@composition/rendering";
+import { catalogToastIcon } from "../document/toastChrome";
 import { catalogButtonPending } from "../document/buttonPending";
 import { NumberFormatter } from "@internationalized/number";
 import { catalogNumberFormatOptions } from "../document/numberFormatValue";
@@ -1716,6 +1718,47 @@ export function catalogInlineAlertBoldText(
 }
 
 /**
+ * 295 후속 C9 — S2 Toast's start · end padding (`S2_TOAST_EDGE` — 16 + icon M + 8, neutral 16 · 8 +
+ * close + 16), the device tokens' px (`{size.toast.*}`). `catalogBoxModel` reads them under an
+ * authored padding.
+ */
+export function catalogToastEdges(props: Readonly<Record<string, unknown>>): {
+  _toastPaddingLeft: number;
+  _toastPaddingRight: number;
+} {
+  const px = (ref: string, fallback: number) => {
+    const value = resolveToken(ref as TokenRef);
+    return typeof value === "number" ? value : fallback;
+  };
+  return {
+    _toastPaddingLeft: catalogToastIcon(props)
+      ? px("{size.toast.padding-start-icon}", 42)
+      : S2_TOAST_EDGE.start,
+    _toastPaddingRight: px("{size.toast.padding-end}", 56),
+  };
+}
+
+/**
+ * 295 후속 C9 — S2 Toast `toastStyle` `color: 'white'` (every variant): a text node in a Toast is white,
+ * unless it is a Button's own text (the action Button paints its text from its rule — S2
+ * `staticColor="white"`). The derived `color` wins over the node's definition color in both
+ * consumers (`compositionRoot` `derivedProps`); an authored color wins over it.
+ */
+export function catalogToastText(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): string | undefined {
+  if (!INLINE_ALERT_TEXT_TYPES.has(typeOf(node))) return undefined;
+  for (let cursor = get(node.parentId); cursor; cursor = get(cursor.parentId)) {
+    const type = typeOf(cursor);
+    if (type === "Toast") return "#ffffff";
+    if (type === "Button" || type === "ToggleButton") return undefined;
+  }
+  return undefined;
+}
+
+/**
  * S2 1.8.0 Skeleton `isLoading` (2026-10-10): the placeholder is only there while loading — S2
  * draws the skeleton only when `isLoading`; our Skeleton is the placeholder itself. The Canvas
  * (`catalogHiddenAtRest`) and the DOM (`renderNode`) read this one predicate.
@@ -1965,9 +2008,15 @@ export function catalogDerivedProps(
     catalogTrackTableOf(get(node.parentId) ?? node, get, typeOf) !==
       undefined &&
     catalogTableSelectionColumn(node, get, typeOf);
-  const selectionMarked = selectionPart
+  const selectionPart_ = selectionPart
     ? { ...tracked, _tableSelectionPart: true }
     : tracked;
+  // (295 후속 C9: S2 Toast's start · end padding hold its variant icon · close button — device
+  //  tokens, neutral 16 with no icon — `catalogBoxModel`; the DOM reads the Toast rule's selectors.)
+  const selectionMarked =
+    typeOf(node) === "Toast"
+      ? { ...selectionPart_, ...catalogToastEdges(node.props) }
+      : selectionPart_;
   // (ADR-267: a standalone list's section header sticks — the ListBox rule's section header.)
   const sticky = catalogListSectionHeaderInsets(node, get, typeOf);
   const stuck = sticky ? { ...selectionMarked, ...sticky } : selectionMarked;

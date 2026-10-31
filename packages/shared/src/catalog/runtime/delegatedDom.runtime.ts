@@ -1,5 +1,10 @@
 import { isPropVar } from "../document/valueType";
-import { resolveTextSourceText } from "@composition/rendering";
+import { getIconData, resolveTextSourceText } from "@composition/rendering";
+import {
+  CATALOG_TOAST_CLOSE_ICON,
+  CATALOG_TOAST_CLOSE_LABELS,
+  catalogToastIcon,
+} from "../document/toastChrome";
 import { CatalogWaterfallGrid } from "./waterfall.components";
 import { catalogWaterfallLayout } from "./waterfall";
 import { catalogItemLinkProps } from "../document/itemLinks";
@@ -35,6 +40,7 @@ import {
 } from "react-aria-components/Breadcrumbs";
 
 import { Button as AriaButton } from "react-aria-components/Button";
+import { useLocale } from "react-aria-components/I18nProvider";
 
 import { Calendar as RacCalendar } from "react-aria-components/Calendar";
 
@@ -644,6 +650,43 @@ function inheritedForm(input: DelegatedDomInput) {
 }
 
 /** Common catalog chrome of composition-owned wrappers (`react-aria-{Type}` + data axes). */
+/** A Lucide glyph as the DOM draws icons here (`getIconData` — the Canvas `icon_font` reads the same). */
+function toastGlyph(iconName: string): ReactElement {
+  const data = getIconData(iconName);
+  return createElement(
+    "svg",
+    {
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: 2,
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      "aria-hidden": true,
+    },
+    ...(data?.paths ?? []).map((d, i) => createElement("path", { key: i, d })),
+    ...(data?.circles ?? []).map((c, i) =>
+      createElement("circle", { key: `c${i}`, cx: c.cx, cy: c.cy, r: c.r }),
+    ),
+  );
+}
+
+/** S2 `CloseButton staticColor="white"` of a placed Toast (its name in the locale — en · ko). */
+function ToastNodeClose({ onClose }: { onClose?: () => void }): ReactElement {
+  const { locale } = useLocale();
+  return createElement(
+    AriaButton,
+    {
+      className: "toast-close-button",
+      "aria-label":
+        CATALOG_TOAST_CLOSE_LABELS[locale.split("-")[0] ?? "en"] ??
+        CATALOG_TOAST_CLOSE_LABELS.en,
+      ...(onClose ? { onPress: onClose } : {}),
+    },
+    toastGlyph(CATALOG_TOAST_CLOSE_ICON),
+  );
+}
+
 function chrome(input: DelegatedDomInput, type: string) {
   const rule = input.root.runtime.graph.library.rules.get(type);
   return {
@@ -2951,21 +2994,49 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     render: (input) => {
       const props = input.node.props;
       const list = children(input);
+      // 295 후속 C9 — S2 Toast draws its variant icon and its CloseButton itself (in the rule's
+      // padding — `toastChrome.ts`); closing a placed Toast hides it in a running Preview (the
+      // common `hide`'s `style.display`).
+      const icon = catalogToastIcon(props);
+      const hide = input.setRuntimeProps
+        ? () =>
+            input.setRuntimeProps!(input.node.id, {
+              style: {
+                ...((props.style as Record<string, unknown>) ?? {}),
+                display: "none",
+              },
+            })
+        : undefined;
       return createElement(
         "div",
         {
           ...marker(input),
-          // The rule's class · size · variant: the generated `.react-aria-Toast` sheet sizes and
-          // paints it as the Canvas does (without the class an empty Toast was its text's height).
+          // The rule's class · variant: the generated `.react-aria-Toast` sheet sizes and paints it
+          // as the Canvas does (without the class an empty Toast was its text's height).
           ...chrome(input, "Toast"),
           role: "alert",
-          "data-position": str(props.position || "top-right"),
-          "data-max-toasts": opt(props.maxToasts),
           style: input.style,
         },
+        ...(icon
+          ? [
+              createElement(
+                "span",
+                {
+                  key: "toast-variant-icon",
+                  className: "toast-variant-icon",
+                  "aria-hidden": true,
+                },
+                toastGlyph(icon),
+              ),
+            ]
+          : []),
         ...(list.length
           ? renderAll(input, list)
           : [(props.children as ReactNode) || "Toast"]),
+        createElement(ToastNodeClose, {
+          key: "toast-close-button",
+          onClose: hide,
+        }),
       );
     },
   },

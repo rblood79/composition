@@ -152,6 +152,8 @@ describe("ADR-276 Button origin template", () => {
       "lib:template:component-fieldbutton": "",
       "lib:template:component-togglebuttongroup__1": "Toggle 1",
       "lib:template:component-togglebuttongroup__2": "Toggle 2",
+      // 295 후속 C9 — S2 Toast's action Button.
+      "lib:template:component-toast__action": "Action",
     };
     const nested = REUSABLE_ORIGIN_TEMPLATES.filter(
       (template) =>
@@ -159,8 +161,8 @@ describe("ADR-276 Button origin template", () => {
         template.definitionId ===
           "lib:definition:origin-component-togglebutton",
     );
-    // 28 Button + 7 ToggleButton positions; the 9 state variants carry no text of their own.
-    expect(nested).toHaveLength(35);
+    // 29 Button + 7 ToggleButton positions; the 9 state variants carry no text of their own.
+    expect(nested).toHaveLength(36);
     const labels = Object.fromEntries(
       nested
         .filter((template) => !template.displayState)

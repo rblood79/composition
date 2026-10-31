@@ -15,105 +15,85 @@
     width: 100%;
     font-family: var(--font-sans);
 
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  box-shadow: var(--shadow-md);
+  width: fit-content;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  position: relative;
+
   /* Default variant */
-  background: var(--informative-subtle);
-  color: var(--fg);
-  border: var(--border-width-thin) solid var(--informative);
+  background: var(--informative);
+  color: var(--color-white);
+  border: var(--border-width-none) solid var(--informative);
 
   /* Default size */
   height: auto;
   padding: 0px 0px;
-  font-size: var(--catalog-token-text-base);
-  border-radius: var(--catalog-token-radius-md);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-lg);
+  border-width: var(--border-width-none);
   min-height: calc(var(--catalog-token-size-unit) * 56 / 1);
   max-width: calc(var(--catalog-token-size-unit) * 336 / 1);
-  --icon-size: 20px;
+  gap: 24px;
+  --icon-size: var(--catalog-token-toast-icon-size-M, var(--catalog-token-size-icon-M));
 }
 
-.react-aria-Toast[data-variant="info"] {
-  background: var(--informative-subtle);
-  color: var(--fg);
-  border-color: var(--informative);
+.react-aria-Toast[data-variant="neutral"] {
+  background: var(--fg-muted);
+  color: var(--color-white);
+  border-color: var(--fg-muted);
 
   &[data-hovered] {
-    background: var(--informative-subtle);
+    background: var(--fg-muted);
   }
 
   &[data-pressed] {
-    background: var(--informative-subtle);
+    background: var(--fg-muted);
+  }
+}
+
+.react-aria-Toast[data-variant="info"] {
+  background: var(--informative);
+  color: var(--color-white);
+  border-color: var(--informative);
+
+  &[data-hovered] {
+    background: var(--informative);
+  }
+
+  &[data-pressed] {
+    background: var(--informative);
   }
 }
 
 .react-aria-Toast[data-variant="positive"] {
-  background: var(--positive-subtle);
-  color: var(--fg);
+  background: var(--positive);
+  color: var(--color-white);
   border-color: var(--positive);
 
   &[data-hovered] {
-    background: var(--positive-subtle);
+    background: var(--positive);
   }
 
   &[data-pressed] {
-    background: var(--positive-subtle);
-  }
-}
-
-.react-aria-Toast[data-variant="neutral"] {
-  background: var(--bg-muted);
-  color: var(--fg);
-  border-color: var(--border);
-
-  &[data-hovered] {
-    background: var(--bg-muted);
-  }
-
-  &[data-pressed] {
-    background: var(--bg-muted);
+    background: var(--positive);
   }
 }
 
 .react-aria-Toast[data-variant="negative"] {
-  background: var(--negative-subtle);
-  color: var(--fg);
+  background: var(--negative);
+  color: var(--color-white);
   border-color: var(--negative);
 
   &[data-hovered] {
-    background: var(--negative-subtle);
+    background: var(--negative);
   }
 
   &[data-pressed] {
-    background: var(--negative-subtle);
+    background: var(--negative);
   }
-}
-
-.react-aria-Toast[data-size="S"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--catalog-token-text-sm);
-  border-radius: var(--catalog-token-radius-md);
-  min-height: calc(var(--catalog-token-size-unit) * 56 / 1);
-  max-width: calc(var(--catalog-token-size-unit) * 336 / 1);
-  --icon-size: 16px;
-}
-
-.react-aria-Toast[data-size="M"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--catalog-token-text-base);
-  border-radius: var(--catalog-token-radius-md);
-  min-height: calc(var(--catalog-token-size-unit) * 56 / 1);
-  max-width: calc(var(--catalog-token-size-unit) * 336 / 1);
-  --icon-size: 20px;
-}
-
-.react-aria-Toast[data-size="L"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--catalog-token-text-lg);
-  border-radius: var(--catalog-token-radius-lg);
-  min-height: calc(var(--catalog-token-size-unit) * 56 / 1);
-  max-width: calc(var(--catalog-token-size-unit) * 336 / 1);
-  --icon-size: 24px;
 }
 
 .react-aria-Toast[data-focus-visible] {
@@ -127,11 +107,71 @@
   pointer-events: none;
 }
 
+/* ── Tier 2: Composite Delegation ── */
+
+
 @media (forced-colors: active) {
   .react-aria-Toast {
     forced-color-adjust: auto;
   }
 }
+
+
+  .react-aria-Toast[data-variant] {
+    padding: 12px var(--catalog-token-size-toast-padding-end) 12px var(--catalog-token-size-toast-padding-start-icon);
+  }
+
+  .react-aria-Toast[data-variant="neutral"] {
+    padding-left: 16px;
+  }
+
+  .react-aria-Toast > .toast-variant-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    color: inherit;
+    pointer-events: none;
+  }
+
+  .react-aria-Toast > .toast-variant-icon svg {
+    width: var(--catalog-token-size-icon-M);
+    height: var(--catalog-token-size-icon-M);
+  }
+
+  .react-aria-Toast > .toast-close-button {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--catalog-token-size-height-M);
+    height: var(--catalog-token-size-height-M);
+    padding: 0;
+    border: none;
+    border-radius: 9999px;
+    background: transparent;
+    color: inherit;
+    outline: none;
+    transition: background-color 130ms ease-in-out;
+  }
+
+  .react-aria-Toast > .toast-close-button svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .react-aria-Toast > .toast-close-button:is([data-hovered], [data-pressed]) {
+    background: rgb(255 255 255 / 0.1);
+  }
+
+  .react-aria-Toast > .toast-close-button[data-focus-visible] {
+    outline: 2px solid white;
+    outline-offset: 2px;
+  }
 
 
 } /* @layer components */

@@ -86,6 +86,13 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     label: "inline alert",
     icon: "AlertTriangle",
   },
+  // 295 후속 C9 (사용자 「Toast 컴포넌트가 컴포넌트 패널에 없다」): S2 Toast — InlineAlert 뒤.
+  {
+    type: "Toast",
+    category: "content",
+    label: "toast",
+    icon: "Bell",
+  },
   {
     type: "ProgressCircle",
     category: "content",

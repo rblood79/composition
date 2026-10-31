@@ -16,6 +16,7 @@
 
 import {
   AlertTriangle,
+  Bell,
   Keyboard,
   AppWindow,
   AppWindowMac,
@@ -121,6 +122,7 @@ export const ICON_MAP: Record<
   React.ComponentType<React.SVGProps<SVGSVGElement>>
 > = {
   AlertTriangle,
+  Bell,
   Keyboard,
   AppWindow,
   AppWindowMac,
@@ -221,6 +223,8 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "AvatarGroup", source: "catalog" },
   { type: "StatusLight", source: "catalog" },
   { type: "InlineAlert", source: "catalog" },
+  // 295 후속 C9 (사용자 「Toast 컴포넌트가 컴포넌트 패널에 없다」): S2 Toast 한 장 — InlineAlert 뒤 (content).
+  { type: "Toast", source: "catalog" },
   { type: "ProgressCircle", source: "catalog" },
   { type: "Image", source: "overlay" },
   { type: "IllustratedMessage", source: "catalog" },

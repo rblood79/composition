@@ -78,6 +78,20 @@ export const S2_TABLE_SELECTION_COLUMN_WIDTH: Readonly<
   Record<S2Device, number>
 > = { desktop: 40, touch: 52 };
 
+/**
+ * S2 Toast 의 가로 여백 (`Toast.tsx` `toastStyle` — `paddingStart: 16` · `paddingEnd: 8` · `gap: 16`, 그 안의
+ * `CloseButton` = control M · variant 아이콘 = `CenterBaseline` 의 Icon M + `toastContent` `gap: 8`). 여백 ·
+ * 간격은 rem (터치에서 그대로), 버튼 · 아이콘은 터치 × 1.25 라 합은 배율 식이 아니다 — 기기 두 벌 토큰
+ * `{size.toast.padding-end}` (8 + 16 + 닫기 버튼) · `{size.toast.padding-start-icon}` (16 + 아이콘 + 8).
+ * 아이콘 · 닫기는 Toast 가 그 여백 안에 그린다 (295 후속 C9).
+ */
+export const S2_TOAST_EDGE = {
+  start: 16,
+  end: 8,
+  closeGap: 16,
+  iconGap: 8,
+} as const;
+
 /** S2 막대 (ProgressBar · Meter) 의 최소 폭 — `bar-utils.ts` `minWidth: 48` (rem × `--s2-scale`). */
 export const S2_BAR_MIN_WIDTH = 48;
 
@@ -120,6 +134,16 @@ export function s2SizeTokens(scale: number): Record<string, number> {
       S2_TABLE_SELECTION_COLUMN_WIDTH[
         scale > S2_DEVICE.desktop.scale ? "touch" : "desktop"
       ],
+    ],
+    // 295 후속 C9: `{size.toast.padding-end}` · `{size.toast.padding-start-icon}` (`S2_TOAST_EDGE`). DOM
+    //   `--catalog-token-size-toast-padding-end` · `--catalog-token-size-toast-padding-start-icon`.
+    [
+      "toast.padding-end",
+      S2_TOAST_EDGE.end + S2_TOAST_EDGE.closeGap + s2ControlHeights(scale).M,
+    ],
+    [
+      "toast.padding-start-icon",
+      S2_TOAST_EDGE.start + S2_ICON_SIZE.M * scale + S2_TOAST_EDGE.iconGap,
     ],
     // ADR-295 Phase 3c-3: `{size.device.touch}` — 1 in the touch set (the scale above desktop's), the flag
     //   a relative length's touch coefficient reads (S2 `text-to-visual` 8/17 em). DOM

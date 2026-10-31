@@ -162,6 +162,7 @@ export {
   S2_FIELD_BUTTON_SIZE,
   S2_BAR_MIN_WIDTH,
   S2_TABLE_SELECTION_COLUMN_WIDTH,
+  S2_TOAST_EDGE,
   s2ControlHeights,
   s2SizeTokens,
   size,

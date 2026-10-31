@@ -363,6 +363,28 @@ function buttonDefinition(
         childColor(color, { variant, fillStyle: "fill" }, state);
     }
   }
+  // S2 `staticColor` — the fixed white · black scheme over a colored background (`Button.css`
+  // `[data-static-color]`, the DOM's): fill = the static color with the opposite text and a static
+  // border, outline = static text · border on the outline's own fill. After the variant rules, so it
+  // wins over them. (295 후속 C9 — the Canvas painted a static outline Button with the variant's
+  // outline gray and dark text: these conditions were missing, the DOM sheet had them.)
+  for (const [staticColor, token, inverse] of [
+    ["white", "{color.white}", "{color.black}"],
+    ["black", "{color.black}", "{color.white}"],
+  ] as const) {
+    const own = sourceToken(token, "color", theme, tokens);
+    const opposite = sourceToken(inverse, "color", theme, tokens);
+    conditionalRules.push({
+      when: { staticColor, fillStyle: "fill" },
+      visual: { fill: own, color: opposite, borderColor: own },
+    });
+    childColor(opposite, { staticColor, fillStyle: "fill" });
+    conditionalRules.push({
+      when: { staticColor, fillStyle: "outline" },
+      visual: { color: own, borderColor: own },
+    });
+    childColor(own, { staticColor, fillStyle: "outline" });
+  }
   // S2 Button is a pill (`sizes` `{radius.full}`); a field's own button keeps its size's corner —
   // the rule's `containerVariants["field-button"]` (the DOM's `[data-field-button]` blocks), turned
   // on by the derived `fieldButton` (`catalogDerivedRestVisual` — never an authored prop).

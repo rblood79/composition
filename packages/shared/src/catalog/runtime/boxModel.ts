@@ -149,9 +149,13 @@ export function catalogBoxModel(node: CatalogConsumerNode): CatalogBoxModel {
       length(node.visual.paddingRight) ??
       (node.derivedProps?._tableSelectionPart === true
         ? CATALOG_SELECTION_PART_PADDING_END
-        : paddingX),
+        : (length(node.derivedProps?._toastPaddingRight) ?? paddingX)),
     bottom: side("paddingBottom", paddingY),
-    left: side("paddingLeft", paddingX),
+    // (295 후속 C9: S2 Toast's start · end hold its icon · close — `catalogToastEdges`.)
+    left: side(
+      "paddingLeft",
+      length(node.derivedProps?._toastPaddingLeft) ?? paddingX,
+    ),
   };
   if (Object.values(padding).some((value) => value !== undefined))
     model.padding = {

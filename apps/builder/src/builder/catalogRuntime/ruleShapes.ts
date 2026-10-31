@@ -5,6 +5,7 @@ import {
   getSkiaPrimitive,
   getSkiaPrimitiveMode,
   resolveToken,
+  S2_TOAST_EDGE,
   snapBorderWidth,
   type Shape,
   type SizeSpec,
@@ -31,6 +32,11 @@ import {
   catalogLinkOutGlyph,
 } from "../../../../../packages/shared/src/catalog/document/itemLinks";
 import { catalogInlineAlertIcon } from "../../../../../packages/shared/src/catalog/document/inlineAlertIcon";
+import {
+  CATALOG_TOAST_CLOSE_GLYPH_SIZE,
+  CATALOG_TOAST_CLOSE_ICON,
+  catalogToastIcon,
+} from "../../../../../packages/shared/src/catalog/document/toastChrome";
 import { catalogBoxModel } from "../../../../../packages/shared/src/catalog/runtime/boxModel";
 import { catalogToggleIndicatorMetrics } from "../../../../../packages/shared/src/catalog/document/rulePartRules";
 import {
@@ -169,6 +175,7 @@ export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
     ...ruleShapes(input),
     ...linkOutShapes(input),
     ...inlineAlertIconShapes(input),
+    ...catalogToastChromeShapes(input),
   ];
   const quiet = catalogQuietStyles(input.rule, input.node.props, input.state);
   if (!quiet) return invalidBorder(input, shapes);
@@ -321,6 +328,51 @@ function inlineAlertIconShapes(input: CatalogRuleShapeInput): Shape[] {
       strokeWidth: 2,
     } as Shape,
   ];
+}
+
+/**
+ * 295 후속 C9 — a placed S2 Toast's own glyphs (`toastChrome.ts`): its variant icon (Icon M) in the
+ * start padding (16 from the edge) and its CloseButton's cross (12, centred in a control-M box 8 from
+ * the end), both centred vertically, white (S2 `color: 'white'` · `staticColor="white"`). The DOM
+ * draws the same boxes (`toast-variant-icon` · `toast-close-button` — the Toast rule's `rootSelectors`).
+ */
+export function catalogToastChromeShapes(
+  input: Pick<CatalogRuleShapeInput, "type" | "node" | "rect" | "theme">,
+): Shape[] {
+  if (input.type !== "Toast") return [];
+  const theme = input.theme ?? "light";
+  const tokenPx = (ref: string) => {
+    const value = resolveToken(ref as TokenRef, theme);
+    return typeof value === "number"
+      ? value
+      : Number.parseFloat(String(value)) || 0;
+  };
+  const fill = resolveToken("{color.white}" as TokenRef, theme) as string;
+  const y = input.rect.height / 2;
+  const shapes: Shape[] = [];
+  const icon = catalogToastIcon(input.node.props);
+  if (icon) {
+    const size = tokenPx("{size.icon.M}");
+    shapes.push({
+      type: "icon_font",
+      iconName: icon,
+      x: S2_TOAST_EDGE.start + size / 2,
+      y,
+      fontSize: size,
+      fill,
+      strokeWidth: 2,
+    } as Shape);
+  }
+  shapes.push({
+    type: "icon_font",
+    iconName: CATALOG_TOAST_CLOSE_ICON,
+    x: input.rect.width - S2_TOAST_EDGE.end - tokenPx("{size.height.M}") / 2,
+    y,
+    fontSize: CATALOG_TOAST_CLOSE_GLYPH_SIZE,
+    fill,
+    strokeWidth: 2,
+  } as Shape);
+  return shapes;
 }
 
 /**

@@ -63,10 +63,9 @@ export const COMPLEX_COMPONENT_TAGS = new Set([
   // Feedback
   // ADR-912 R-5: Form 은 reusable composite origin(`component-form`) 전환 → COMPLEX 제외.
   //   useElementCreator 가 COMPLEX 분기 前 REUSABLE_COMPOSITE_ORIGINS 체크로 type:"ref" 생성.
-  "Toast",
   // ADR-148 Phase 3: InlineAlert 는 reusable composite origin(`component-inline-alert`) 전환
-  //   → COMPLEX 제외 (Form 동형). Toast 는 생성 진입점 0(palette 비노출 — imperative 알림
-  //   설계)이라 보류 — 유지.
+  //   → COMPLEX 제외 (Form 동형). Toast 도 295 후속 C9 (2026-10-31) 에 팔레트 원본
+  //   (`component-toast`) 이 생겨 제외.
   // Date & Color
   "DatePicker",
   "DateRangePicker",

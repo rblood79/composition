@@ -35,6 +35,8 @@
   --catalog-token-size-field-button-XL: 32px;
   --catalog-token-size-bar-min-width: 48px;
   --catalog-token-size-table-selection-column: 40px;
+  --catalog-token-size-toast-padding-end: 56px;
+  --catalog-token-size-toast-padding-start-icon: 42px;
   --catalog-token-size-device-touch: 0;
   --catalog-token-size-unit: 1px;
   --catalog-token-text-2xs: 11px;
@@ -97,6 +99,8 @@
   --catalog-token-size-field-button-XL: 40px;
   --catalog-token-size-bar-min-width: 60px;
   --catalog-token-size-table-selection-column: 52px;
+  --catalog-token-size-toast-padding-end: 64px;
+  --catalog-token-size-toast-padding-start-icon: 46.5px;
   --catalog-token-size-device-touch: 1;
   --catalog-token-size-unit: 1.25px;
   --catalog-token-text-2xs: 13px;
@@ -160,6 +164,8 @@
   --catalog-token-size-field-button-XL: 40px;
   --catalog-token-size-bar-min-width: 60px;
   --catalog-token-size-table-selection-column: 52px;
+  --catalog-token-size-toast-padding-end: 64px;
+  --catalog-token-size-toast-padding-start-icon: 46.5px;
   --catalog-token-size-device-touch: 1;
   --catalog-token-size-unit: 1.25px;
   --catalog-token-text-2xs: 13px;

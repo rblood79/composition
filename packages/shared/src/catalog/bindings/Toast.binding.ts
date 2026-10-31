@@ -20,9 +20,15 @@ import type { PrimitiveBinding } from "../types";
  *   두면 DELEGATING_INTERNAL_RENDERERS 매칭(renderer 기준)을 못 타 자식이 그려지지 않는다 → 고유
  *   renderer id(`"toast"`) + renderFacetDeclaration delegating-internal 등록.
  *
+ * **295 후속 C9 (2026-10-31, 사용자 「컴포넌트 패널에 없다 · S2 원본대로」)**: 팔레트 「toast」 = S2 1.8.1
+ *   Toast 한 장 — 원본 `component-toast` (Text + S2 action Button), variant 4 (neutral · info · positive ·
+ *   negative — S2 `SpectrumToastValue.variant`) · 크기 축 없음 (S2 대로). variant 아이콘 · 닫기 버튼은 Toast
+ *   가 그린다 (rule 여백 안 — Canvas `ruleShapes.ts` · DOM `toast-variant-icon` · `toast-close-button`), 닫기는 Preview 에서
+ *   이 Toast 를 숨긴다 (공통 `hide` 와 같은 `style.display`).
+ *
  * D1: composition `<div role="alert">` (internal source, `delegatedDom.tsx` `toast`).
- * D2: variant/size(appearance) surface.
- * D3: 시각(variant fill + border + radius)은 theme rule(COMPONENT_RULES_TABLE.Toast).
+ * D2: variant (S2 값).
+ * D3: 시각은 theme rule (COMPONENT_RULES_TABLE.Toast).
  */
 export const toastBinding: PrimitiveBinding = {
   source: {
@@ -40,12 +46,6 @@ export const toastBinding: PrimitiveBinding = {
         label: "Variant",
         section: "appearance",
         default: "info",
-      },
-      size: {
-        kind: "size",
-        label: "Size",
-        section: "appearance",
-        default: "M",
       },
     },
     toRacProps: "default",

@@ -1164,8 +1164,11 @@ const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
   //   변형이라 제거(사용자 결정 2026-06-15) → skiaPrimitive 없는 순수 box shell. DOM=dedicated
   //   renderToast(<div role="alert">) + 자식. palette 미노출(imperative 알림 — paletteItems 비포함)이나
   //   TAG_SPEC_MAP 등록 type 이라 catalog cutover 로 spec 의존 끊기(step 4 삭제 안전).
+  // 295 후속 C9 (2026-10-31, 사용자 「Toast 컴포넌트가 컴포넌트 패널에 없다」): 팔레트 Content 의 InlineAlert
+  //   뒤 — S2 Toast 한 장 (원본 `component-toast`, `PALETTE_REUSABLE_ORIGIN_TYPES`). 앱이 띄우는 토스트는
+  //   여전히 규칙 Do 「toast」 (S2 `ToastQueue`) 다.
   primitiveEntry("Toast", "overlays", FAMILY_6_CUTOVER, {
-    category: "overlays",
+    category: "content",
     label: "toast",
     icon: "Bell",
   }),
@@ -1344,8 +1347,9 @@ const REUSABLE_ENTRIES: ComponentCatalogEntry[] = [
   // (ADR-148 Phase 2 의 IconButton reusable 은 ADR-276 에서 Button 에 통합 — 팔레트 Button origin
   // 이 그 template (`Button > Icon{icon} + Text{label}`) 이다. S2 에 IconButton 은 없다.)
   // ADR-148 Phase 3 — factory-대체군 2종 (재판정 적격: DOM 자식 재귀 + Skia box shell +
-  // 전용 escape/어댑터 없음). Toast 는 생성 진입점 0(palette 비노출 — imperative 알림 설계)
-  // 으로 보류, IllustratedMessage 는 escape+어댑터 flat self-compose 로 부적격 (breakdown §3).
+  // 전용 escape/어댑터 없음). Toast 는 그때 생성 진입점 0 이라 보류했고 295 후속 C9 (2026-10-31) 에
+  // 팔레트 원본 (`PALETTE_REUSABLE_ORIGIN_TYPES`) 이 됐다. IllustratedMessage 는 escape+어댑터 flat
+  // self-compose 로 부적격 (breakdown §3).
   reusableEntry("InlineAlert", "primitives", "component-inline-alert", {
     category: "content",
     label: "inline alert",
@@ -1394,6 +1398,8 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "AvatarGroup",
   "StatusLight",
   "ProgressCircle",
+  // 295 후속 C9 — S2 Toast (InlineAlert 뒤에 놓인다 — `PALETTE_ORDER`).
+  "Toast",
   // layout / navigation
   "Tabs",
   "Breadcrumbs",

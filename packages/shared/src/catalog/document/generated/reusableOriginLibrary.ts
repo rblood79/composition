@@ -238,6 +238,20 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "templateRootId": "lib:template:component-inline-alert"
   },
   {
+    "id": "lib:definition:origin-component-toast",
+    "name": "Toast",
+    "mode": "composite",
+    "accepts": {
+      "variant": "string"
+    },
+    "defaults": {
+      "variant": "info"
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-toast"
+  },
+  {
     "id": "lib:definition:origin-component-illustratedmessage",
     "name": "IllustratedMessage",
     "mode": "composite",
@@ -2493,6 +2507,40 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-inline-alert__description"
     ],
     "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-toast",
+    "definitionId": "lib:definition:type-Toast",
+    "children": [
+      "lib:template:component-toast__title",
+      "lib:template:component-toast__action"
+    ],
+    "props": {
+      "variant": "info"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-toast__title",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "Toast message",
+      "size": "S"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-toast__action",
+    "definitionId": "lib:definition:origin-component-button",
+    "children": [],
+    "props": {
+      "label": "Action",
+      "variant": "secondary",
+      "fillStyle": "outline",
+      "staticColor": "white"
+    },
     "visual": {}
   },
   {
