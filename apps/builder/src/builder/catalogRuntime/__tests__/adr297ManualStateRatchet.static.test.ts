@@ -27,11 +27,6 @@ const REMAINING: Readonly<Record<string, { count: number; reason: string }>> = {
     reason:
       "portal 된 팝오버 안 입력칸 (rule 루트 아래 선택자로 못 잡는다) · Builder 색 버튼 (`.color-swatch-button`)",
   },
-  "ListBox.css": {
-    count: 1,
-    reason:
-      "선택 바탕 — DOM (연한 accent) ≠ rule 트리 · Canvas (accent): S2 ListBox 는 스타일이 없어 oracle 없음 (사용자 결정 대기)",
-  },
   "Table.css": {
     count: 3,
     reason:

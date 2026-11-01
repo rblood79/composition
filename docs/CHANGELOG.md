@@ -51,7 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Checkbox · Radio · Switch 표시 · 달력 날짜 · Tag · Tree · Table 행 · 견본 · Menu 선택 글리프의 선택 · focus 칠이 catalog rule 에서 나온다 (ADR-297 Phase 3g)**
   - 수동 CSS 가 그리던 부품 · 셀 · `::before` · `::after` 의 상태를 rule 의 `partStateStyles` 조건 트리로 옮겼다 — 값은 그대로 (실제 Preview DOM 하니스에서 전후 차이 0). 생성 sheet 가 없던 TagGroup · Tree · Table · GridList · ColorSwatchPicker · Row 는 상태 블록만 담은 생성 sheet 를 싣는다.
   - 수동 규칙은 Builder 자체 위젯 전용으로 좁혔다 — Builder 화면 변화 0.
-  - 남은 것: ListBox 항목 선택 바탕 (Preview 연한 accent · Canvas accent) 은 S2 에 기준이 없어 결정 대기.
+  - ListBox 항목의 선택 바탕이 Preview 에서도 Canvas · RAC 처럼 진한 accent 에 흰 글자다 (전에는 Preview 만 연한 accent 에 진한 글자 — 사용자 결정).
 
 ## [ADR-297 Phase 3 (일부 2) — 상태 스타일 · `&` 상태 선택자 · 선택 variant 를 조건 트리로] - 2026-11-01
 
