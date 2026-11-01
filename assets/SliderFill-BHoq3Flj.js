@@ -1,0 +1,83 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog SliderFill — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-SliderFill {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Default variant */
+  background: var(--fg);
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-full);
+}
+
+.react-aria-SliderFill:where([data-variant="default"]) {
+  background: var(--fg);
+  color: var(--fg);
+}
+
+.react-aria-SliderFill:where([data-variant="emphasized"]) {
+  background: var(--accent-content);
+  color: var(--fg);
+}
+
+.react-aria-SliderFill[data-size="S"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-full);
+}
+
+.react-aria-SliderFill[data-size="M"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-full);
+}
+
+.react-aria-SliderFill[data-size="L"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-full);
+}
+
+.react-aria-SliderFill[data-size="XL"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-full);
+}
+
+.react-aria-SliderFill.react-aria-SliderFill:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-SliderFill.react-aria-SliderFill:where([data-disabled]) {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-SliderFill {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

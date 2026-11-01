@@ -1,0 +1,113 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog Text — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: text
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Text {
+  /* Base styles — archetype: text */
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  width: 100%;
+  display: block;
+
+  /* Default variant */
+  background: transparent;
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-base--line-height);
+}
+
+.react-aria-Text:where([data-variant="default"]) {
+  background: transparent;
+  color: var(--fg);
+}
+
+.react-aria-Text:where([data-variant="default"][data-hovered]) {
+  background: transparent;
+}
+
+.react-aria-Text:where([data-variant="default"][data-pressed]) {
+  background: transparent;
+}
+
+.react-aria-Text[data-size="XS"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-xs--line-height);
+}
+
+.react-aria-Text[data-size="S"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-sm--line-height);
+}
+
+.react-aria-Text[data-size="M"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-base--line-height);
+}
+
+.react-aria-Text[data-size="L"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-lg--line-height);
+}
+
+.react-aria-Text[data-size="XL"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xl);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-xl--line-height);
+}
+
+.react-aria-Text[data-size="XXL"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-2xl);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-2xl--line-height);
+}
+
+.react-aria-Text[data-size="XXXL"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-3xl);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-3xl--line-height);
+}
+
+.react-aria-Text.react-aria-Text:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+@media (forced-colors: active) {
+  .react-aria-Text {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

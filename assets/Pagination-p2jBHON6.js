@@ -1,0 +1,100 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog Pagination — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: default
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Pagination {
+  /* Base styles — archetype: default */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+    --btn-radius: var(--catalog-token-radius-md);
+    --btn-font-size: var(--catalog-token-text-base);
+    --btn-transition: background-color 200ms, opacity 200ms;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  gap: var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  /* Default size */
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-md);
+}
+
+.react-aria-Pagination[data-size="S"] {
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-sm);
+}
+
+.react-aria-Pagination[data-size="M"] {
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-md);
+}
+
+.react-aria-Pagination[data-size="L"] {
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-md);
+}
+
+.react-aria-Pagination.react-aria-Pagination:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-Pagination.react-aria-Pagination:where([data-disabled]) {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-Pagination {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-Pagination .pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .react-aria-Pagination .pagination-info {
+    font-size: var(--catalog-token-text-base);
+    color: var(--fg-muted);
+    text-align: center;
+  }
+
+  .react-aria-Pagination .pagination-ellipsis {
+    color: var(--fg-muted);
+  }
+
+  .react-aria-Pagination .react-aria-Button[data-current="true"] {
+    background-color: var(--accent);
+    color: var(--fg-on-accent);
+  }
+
+  .react-aria-Pagination .react-aria-Button:not([data-current="true"]) {
+    background-color: var(--bg-overlay);
+    color: var(--fg);
+  }
+
+  .react-aria-Pagination .react-aria-Button:not([data-current="true"]):hover:not(:disabled) {
+    background-color: color-mix(in srgb, var(--bg-overlay) 92%, black);
+  }
+
+  .react-aria-Pagination .react-aria-Button:disabled {
+    opacity: 0.38;
+  }
+
+
+} /* @layer components */`;export{e as default};

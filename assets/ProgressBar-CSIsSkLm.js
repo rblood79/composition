@@ -1,0 +1,226 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog ProgressBar — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: progress
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-ProgressBar {
+  /* Base styles — archetype: progress */
+    display: grid;
+    box-sizing: border-box;
+    box-sizing: border-box;
+    row-gap: var(--spacing-xs);
+    column-gap: var(--spacing-md);
+    width: 100%;
+    color: var(--fg);
+    font-size: var(--catalog-token-text-sm);
+    --fill-color: var(--accent-content);
+    --track-color: var(--accent-subtle);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: grid;
+  grid-template-areas: "label value" "bar bar";
+  grid-template-columns: 1fr auto;
+
+  /* Default size */
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-sm--line-height);
+  min-width: var(--catalog-token-size-bar-min-width);
+  max-width: calc(var(--catalog-token-size-unit) * 768 / 1);
+  gap: 4px;
+}
+
+.react-aria-ProgressBar[data-size="S"] {
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-xs--line-height);
+  min-width: var(--catalog-token-size-bar-min-width);
+  max-width: calc(var(--catalog-token-size-unit) * 768 / 1);
+  gap: 4px;
+}
+
+.react-aria-ProgressBar[data-size="M"] {
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-sm--line-height);
+  min-width: var(--catalog-token-size-bar-min-width);
+  max-width: calc(var(--catalog-token-size-unit) * 768 / 1);
+  gap: 4px;
+}
+
+.react-aria-ProgressBar[data-size="L"] {
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-md);
+  line-height: var(--catalog-token-text-base--line-height);
+  min-width: var(--catalog-token-size-bar-min-width);
+  max-width: calc(var(--catalog-token-size-unit) * 768 / 1);
+  gap: 4px;
+}
+
+.react-aria-ProgressBar[data-size="XL"] {
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-md);
+  line-height: var(--catalog-token-text-lg--line-height);
+  min-width: var(--catalog-token-size-bar-min-width);
+  max-width: calc(var(--catalog-token-size-unit) * 768 / 1);
+  gap: 4px;
+}
+
+.react-aria-ProgressBar.react-aria-ProgressBar:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-ProgressBar.react-aria-ProgressBar:where([data-disabled]) {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-ProgressBar[data-label-position="side"] {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.react-aria-ProgressBar[data-label-position="side"] .bar {
+  order: 1;
+  flex: 1;
+}
+
+.react-aria-ProgressBar[data-label-position="side"] .value {
+  order: 2;
+}
+
+.react-aria-ProgressBar[data-indeterminate="true"] .fill {
+  width: 100%;
+  border-radius: inherit;
+  animation: ProgressBar-indeterminate 1.5s infinite ease-in-out;
+  will-change: opacity;
+}
+
+.react-aria-ProgressBar[data-disabled="true"] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-ProgressBar {
+    forced-color-adjust: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .react-aria-ProgressBar {
+    transition-duration: 0s !important;
+  }
+}
+
+  .react-aria-ProgressBar .react-aria-Label {
+    grid-area: label;
+    white-space: nowrap;
+  }
+
+  .react-aria-ProgressBar .value {
+    grid-area: value;
+    font-size: var(--catalog-token-text-sm);
+    color: var(--fg-muted);
+    white-space: nowrap;
+  }
+
+  .react-aria-ProgressBar .bar {
+    grid-area: bar;
+    box-shadow: var(--inset-shadow-xs);
+    forced-color-adjust: none;
+    height: calc(var(--catalog-token-size-unit) * 6 / 1);
+    border-radius: var(--catalog-token-radius-sm);
+    overflow: hidden;
+    will-change: transform;
+    background: var(--track-color);
+  }
+
+  .react-aria-ProgressBar .fill {
+    border-radius: var(--catalog-token-radius-sm);
+    background: var(--fill-color);
+    height: 100%;
+    transition: width 200ms ease-out;
+  }
+
+
+  .react-aria-ProgressBar[data-size="S"] .bar {
+    height: calc(var(--catalog-token-size-unit) * 4 / 1);
+    border-radius: var(--catalog-token-radius-sm);
+  }
+
+  .react-aria-ProgressBar[data-size="S"] .fill {
+    border-radius: var(--catalog-token-radius-sm);
+  }
+
+  .react-aria-ProgressBar[data-size="S"] .value {
+    font-size: var(--catalog-token-text-xs);
+  }
+
+  .react-aria-ProgressBar[data-size="M"] .bar {
+    height: calc(var(--catalog-token-size-unit) * 6 / 1);
+    border-radius: var(--catalog-token-radius-sm);
+  }
+
+  .react-aria-ProgressBar[data-size="M"] .fill {
+    border-radius: var(--catalog-token-radius-sm);
+  }
+
+  .react-aria-ProgressBar[data-size="M"] .value {
+    font-size: var(--catalog-token-text-sm);
+  }
+
+  .react-aria-ProgressBar[data-size="L"] .bar {
+    height: calc(var(--catalog-token-size-unit) * 8 / 1);
+    border-radius: var(--catalog-token-radius-lg);
+  }
+
+  .react-aria-ProgressBar[data-size="L"] .fill {
+    border-radius: var(--catalog-token-radius-md);
+  }
+
+  .react-aria-ProgressBar[data-size="L"] .value {
+    font-size: var(--catalog-token-text-base);
+  }
+
+  .react-aria-ProgressBar[data-size="XL"] .bar {
+    height: calc(var(--catalog-token-size-unit) * 10 / 1);
+    border-radius: var(--catalog-token-radius-lg);
+  }
+
+  .react-aria-ProgressBar[data-size="XL"] .fill {
+    border-radius: var(--catalog-token-radius-lg);
+  }
+
+  .react-aria-ProgressBar[data-size="XL"] .value {
+    font-size: var(--catalog-token-text-lg);
+  }
+
+
+} /* @layer components */
+
+@keyframes ProgressBar-indeterminate {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .react-aria-ProgressBar {
+    transition-duration: 0s;
+  }
+}
+`;export{e as default};

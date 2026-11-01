@@ -1,0 +1,102 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog ColorSwatch — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: simple
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-ColorSwatch {
+  /* Base styles — archetype: simple */
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: inline-flex;
+  align-items: center;
+
+  /* Default variant */
+  background: var(--bg);
+  color: var(--fg);
+  border: var(--border-width-thin) solid var(--border);
+
+  /* Default size */
+  height: calc(var(--catalog-token-size-unit) * 32 / 1);
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-sm);
+}
+
+.react-aria-ColorSwatch:where([data-variant="default"]) {
+  background: var(--bg);
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+.react-aria-ColorSwatch:where([data-variant="default"][data-hovered]) {
+  background: var(--bg-inset);
+}
+
+.react-aria-ColorSwatch:where([data-variant="default"][data-pressed]) {
+  background: var(--bg-overlay);
+}
+
+.react-aria-ColorSwatch:where([data-variant="default"][data-selected]) {
+  border-color: var(--accent-content);
+}
+
+.react-aria-ColorSwatch[data-size="XS"] {
+  height: calc(var(--catalog-token-size-unit) * 16 / 1);
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-sm);
+}
+
+.react-aria-ColorSwatch[data-size="S"] {
+  height: calc(var(--catalog-token-size-unit) * 24 / 1);
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-sm);
+}
+
+.react-aria-ColorSwatch[data-size="M"] {
+  height: calc(var(--catalog-token-size-unit) * 32 / 1);
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-sm);
+}
+
+.react-aria-ColorSwatch[data-size="L"] {
+  height: calc(var(--catalog-token-size-unit) * 40 / 1);
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-sm);
+}
+
+.react-aria-ColorSwatch.react-aria-ColorSwatch:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-ColorSwatch.react-aria-ColorSwatch:where([data-disabled]) {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-ColorSwatchPicker > .react-aria-ColorSwatchPickerItem {
+  display: flex;
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-ColorSwatch {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

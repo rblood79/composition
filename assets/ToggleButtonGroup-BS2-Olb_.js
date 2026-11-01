@@ -1,0 +1,219 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog ToggleButtonGroup — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: default
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-ToggleButtonGroup {
+  /* Base styles — archetype: default */
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    box-sizing: border-box;
+    width: fit-content;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  height: fit-content;
+  display: flex;
+  align-items: center;
+
+  /* Default size */
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
+}
+
+.react-aria-ToggleButtonGroup[data-size="XS"] {
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-none);
+}
+
+.react-aria-ToggleButtonGroup[data-size="S"] {
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+}
+
+.react-aria-ToggleButtonGroup[data-size="M"] {
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
+}
+
+.react-aria-ToggleButtonGroup[data-size="L"] {
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-none);
+}
+
+.react-aria-ToggleButtonGroup[data-size="XL"] {
+  font-size: var(--catalog-token-text-xl);
+  border-radius: var(--catalog-token-radius-none);
+}
+
+.react-aria-ToggleButtonGroup.react-aria-ToggleButtonGroup:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-ToggleButtonGroup.react-aria-ToggleButtonGroup:where([data-disabled]) {
+  opacity: 1;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-ToggleButtonGroup[data-size="XS"] {
+  --btn-border-radius: var(--catalog-token-radius-sm);
+}
+
+.react-aria-ToggleButtonGroup[data-size="S"] {
+  --btn-border-radius: 7px;
+}
+
+.react-aria-ToggleButtonGroup[data-size="M"] {
+  --btn-border-radius: 8px;
+}
+
+.react-aria-ToggleButtonGroup[data-size="L"] {
+  --btn-border-radius: 9px;
+}
+
+.react-aria-ToggleButtonGroup[data-size="XL"] {
+  --btn-border-radius: 10px;
+}
+
+.react-aria-ToggleButtonGroup[data-orientation="horizontal"] {
+  flex-direction: row;
+}
+
+.react-aria-ToggleButtonGroup[data-orientation="vertical"] {
+  flex-direction: column;
+  width: fit-content;
+}
+
+.react-aria-ToggleButtonGroup[data-density="compact"] {
+  gap: 0px;
+}
+
+.react-aria-ToggleButtonGroup[data-density="compact"][data-orientation="horizontal"] > * > .react-aria-ToggleButton {
+  border-radius: 0;
+  margin-inline-start: -1px;
+}
+
+.react-aria-ToggleButtonGroup[data-density="compact"][data-orientation="horizontal"] > *:first-child > .react-aria-ToggleButton {
+  border-radius: var(--btn-border-radius) 0 0 var(--btn-border-radius);
+  margin-inline-start: 0;
+}
+
+.react-aria-ToggleButtonGroup[data-density="compact"][data-orientation="horizontal"] > *:last-child > .react-aria-ToggleButton {
+  border-radius: 0 var(--btn-border-radius) var(--btn-border-radius) 0;
+}
+
+.react-aria-ToggleButtonGroup[data-density="compact"][data-orientation="vertical"] > * > .react-aria-ToggleButton {
+  border-radius: 0;
+  margin-block-start: -1px;
+}
+
+.react-aria-ToggleButtonGroup[data-density="compact"][data-orientation="vertical"] > *:first-child > .react-aria-ToggleButton {
+  border-radius: var(--btn-border-radius) var(--btn-border-radius) 0 0;
+  margin-block-start: 0;
+}
+
+.react-aria-ToggleButtonGroup[data-density="compact"][data-orientation="vertical"] > *:last-child > .react-aria-ToggleButton {
+  border-radius: 0 0 var(--btn-border-radius) var(--btn-border-radius);
+}
+
+.react-aria-ToggleButtonGroup[data-density="compact"][data-orientation="horizontal"] > .react-aria-ToggleButton {
+  border-radius: 0;
+  margin-inline-start: -1px;
+}
+
+.react-aria-ToggleButtonGroup[data-density="compact"][data-orientation="horizontal"] > .react-aria-ToggleButton:first-child {
+  border-radius: var(--btn-border-radius) 0 0 var(--btn-border-radius);
+  margin-inline-start: 0;
+}
+
+.react-aria-ToggleButtonGroup[data-density="compact"][data-orientation="horizontal"] > .react-aria-ToggleButton:last-child {
+  border-radius: 0 var(--btn-border-radius) var(--btn-border-radius) 0;
+}
+
+.react-aria-ToggleButtonGroup[data-density="compact"][data-orientation="vertical"] > .react-aria-ToggleButton {
+  border-radius: 0;
+  margin-block-start: -1px;
+}
+
+.react-aria-ToggleButtonGroup[data-density="compact"][data-orientation="vertical"] > .react-aria-ToggleButton:first-child {
+  border-radius: var(--btn-border-radius) var(--btn-border-radius) 0 0;
+  margin-block-start: 0;
+}
+
+.react-aria-ToggleButtonGroup[data-density="compact"][data-orientation="vertical"] > .react-aria-ToggleButton:last-child {
+  border-radius: 0 0 var(--btn-border-radius) var(--btn-border-radius);
+}
+
+.react-aria-ToggleButtonGroup[data-density="regular"] {
+  gap: 8px;
+}
+
+
+/* ── Indicator Mode ── */
+.react-aria-ToggleButtonGroup[data-indicator="true"] {
+  --button-color: var(--bg-muted);
+}
+
+.react-aria-ToggleButtonGroup[data-indicator="true"] .react-aria-ToggleButton .react-aria-SelectionIndicator {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: var(--btn-border-radius);
+  box-shadow: var(--shadow-sm);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1), translate 200ms cubic-bezier(0.16, 1, 0.3, 1), width 200ms cubic-bezier(0.16, 1, 0.3, 1), height 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.react-aria-ToggleButtonGroup[data-indicator="true"] .react-aria-ToggleButton[data-selected] .react-aria-SelectionIndicator {
+  opacity: 1;
+}
+
+.react-aria-ToggleButtonGroup[data-indicator="true"] .react-aria-ToggleButton {
+  position: relative;
+  z-index: 0;
+  background: transparent;
+  border-color: transparent;
+  border-width: 0;
+  color: var(--button-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .react-aria-ToggleButtonGroup[data-indicator="true"] .react-aria-ToggleButton .react-aria-SelectionIndicator {
+    transition: none;
+  }
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-ToggleButtonGroup {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-ToggleButtonGroup .react-aria-ToggleButton[data-pressed] {
+    transform: none;
+  }
+
+  .react-aria-ToggleButtonGroup .react-aria-ToggleButton > span {
+    display: inherit;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: scale 200ms;
+  }
+
+  .react-aria-ToggleButtonGroup .react-aria-ToggleButton[data-pressed] > span {
+    scale: 0.9;
+  }
+
+
+} /* @layer components */`;export{e as default};

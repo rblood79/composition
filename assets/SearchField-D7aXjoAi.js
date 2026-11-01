@@ -1,0 +1,267 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog SearchField — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: default
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-SearchField {
+  /* Base styles — archetype: default */
+    display: grid;
+    box-sizing: border-box;
+    width: 100%;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: grid;
+  align-items: center;
+  grid-template-columns: 0px minmax(0, 1fr) auto;
+
+  /* Default size */
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
+  gap: var(--catalog-token-search-field-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
+  column-gap: 0px;
+  --icon-size: var(--catalog-token-search-field-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
+}
+
+.react-aria-SearchField[data-size="S"] {
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-sm);
+  gap: var(--catalog-token-search-field-gap-S, calc(var(--catalog-token-size-height-S) * 1 / 2 + calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)) * -1 / 2));
+  column-gap: 0px;
+  --icon-size: var(--catalog-token-search-field-icon-size-S, calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)));
+}
+
+.react-aria-SearchField[data-size="M"] {
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
+  gap: var(--catalog-token-search-field-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
+  column-gap: 0px;
+  --icon-size: var(--catalog-token-search-field-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
+}
+
+.react-aria-SearchField[data-size="L"] {
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-lg);
+  gap: var(--catalog-token-search-field-gap-L, calc(var(--catalog-token-size-height-L) * 1 / 2 + calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)) * -1 / 2));
+  column-gap: 0px;
+  --icon-size: var(--catalog-token-search-field-icon-size-L, calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)));
+}
+
+.react-aria-SearchField[data-size="XL"] {
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-xl);
+  gap: var(--catalog-token-search-field-gap-XL, calc(var(--catalog-token-size-height-XL) * 1 / 2 + calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * -1 / 2));
+  column-gap: 0px;
+  --icon-size: var(--catalog-token-search-field-icon-size-XL, calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)));
+}
+
+.react-aria-SearchField.react-aria-SearchField:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-SearchField.react-aria-SearchField:where([data-disabled]) {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-SearchField[data-size="S"] {
+  --sf-field-gap: var(--catalog-token-search-field-gap-S, calc(var(--catalog-token-size-height-S) * 1 / 2 + calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)) * -1 / 2));
+}
+
+.react-aria-SearchField[data-size="M"] {
+  --sf-field-gap: var(--catalog-token-search-field-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
+}
+
+.react-aria-SearchField[data-size="L"] {
+  --sf-field-gap: var(--catalog-token-search-field-gap-L, calc(var(--catalog-token-size-height-L) * 1 / 2 + calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)) * -1 / 2));
+}
+
+.react-aria-SearchField[data-size="XL"] {
+  --sf-field-gap: var(--catalog-token-search-field-gap-XL, calc(var(--catalog-token-size-height-XL) * 1 / 2 + calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * -1 / 2));
+}
+
+.react-aria-SearchField[data-size="XS"] {
+  --sf-icon-size: calc(calc(var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height)) * 1 / 1);
+  --sf-icon-inset: calc(var(--catalog-token-size-height-XS) * 1 / 2 + 1px);
+}
+
+.react-aria-SearchField[data-size="S"] {
+  --sf-icon-size: calc(calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)) * 1 / 1);
+  --sf-icon-inset: calc(var(--catalog-token-size-height-S) * 1 / 2 + 1px);
+}
+
+.react-aria-SearchField[data-size="M"] {
+  --sf-icon-size: calc(calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * 1 / 1);
+  --sf-icon-inset: calc(var(--catalog-token-size-height-M) * 1 / 2 + 1px);
+}
+
+.react-aria-SearchField[data-size="L"] {
+  --sf-icon-size: calc(calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)) * 1 / 1);
+  --sf-icon-inset: calc(var(--catalog-token-size-height-L) * 1 / 2 + 1px);
+}
+
+.react-aria-SearchField[data-size="XL"] {
+  --sf-icon-size: calc(calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * 1 / 1);
+  --sf-icon-inset: calc(var(--catalog-token-size-height-XL) * 1 / 2 + 1px);
+}
+
+.react-aria-SearchField > .react-aria-Icon {
+  height: auto;
+  margin-inline-start: var(--sf-icon-inset);
+}
+
+.react-aria-SearchField > .react-aria-Icon svg {
+  width: var(--sf-icon-size);
+  height: var(--sf-icon-size);
+}
+
+.react-aria-SearchField[data-size="XS"] {
+  --sf-input-pad: calc(var(--catalog-token-size-height-XS) * 1 / 2 + calc(var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height)) * 1 / 1 + var(--catalog-token-text-2xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch)));
+  --sf-input-pad-end: calc(var(--catalog-token-size-height-XS) * 1 / 1);
+}
+
+.react-aria-SearchField[data-size="S"] {
+  --sf-input-pad: calc(var(--catalog-token-size-height-S) * 1 / 2 + calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)) * 1 / 1 + var(--catalog-token-text-xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch)));
+  --sf-input-pad-end: calc(var(--catalog-token-size-height-S) * 1 / 1);
+}
+
+.react-aria-SearchField[data-size="M"] {
+  --sf-input-pad: calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * 1 / 1 + var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch)));
+  --sf-input-pad-end: calc(var(--catalog-token-size-height-M) * 1 / 1);
+}
+
+.react-aria-SearchField[data-size="L"] {
+  --sf-input-pad: calc(var(--catalog-token-size-height-L) * 1 / 2 + calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)) * 1 / 1 + var(--catalog-token-text-base) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch)));
+  --sf-input-pad-end: calc(var(--catalog-token-size-height-L) * 1 / 1);
+}
+
+.react-aria-SearchField[data-size="XL"] {
+  --sf-input-pad: calc(var(--catalog-token-size-height-XL) * 1 / 2 + calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * 1 / 1 + var(--catalog-token-text-lg) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch)));
+  --sf-input-pad-end: calc(var(--catalog-token-size-height-XL) * 1 / 1);
+}
+
+.react-aria-SearchField .react-aria-Input {
+  min-width: 0;
+  padding-left: var(--sf-input-pad);
+  padding-right: var(--sf-input-pad-end);
+}
+
+.react-aria-SearchField[data-size="XS"] {
+  --sf-btn-size: 12px;
+  --sf-btn-offset: calc(var(--catalog-token-size-height-XS) * -1 / 2 - 7px);
+}
+
+.react-aria-SearchField[data-size="S"] {
+  --sf-btn-size: 14px;
+  --sf-btn-offset: calc(var(--catalog-token-size-height-S) * -1 / 2 - 8px);
+}
+
+.react-aria-SearchField[data-size="M"] {
+  --sf-btn-size: 16px;
+  --sf-btn-offset: calc(var(--catalog-token-size-height-M) * -1 / 2 - 9px);
+}
+
+.react-aria-SearchField[data-size="L"] {
+  --sf-btn-size: 20px;
+  --sf-btn-offset: calc(var(--catalog-token-size-height-L) * -1 / 2 - 11px);
+}
+
+.react-aria-SearchField[data-size="XL"] {
+  --sf-btn-size: 24px;
+  --sf-btn-offset: calc(var(--catalog-token-size-height-XL) * -1 / 2 - 13px);
+}
+
+.react-aria-SearchField .react-aria-Button {
+  width: var(--sf-btn-size);
+  height: var(--sf-btn-size);
+  min-height: 0;
+  min-width: 0;
+  margin-inline-start: var(--sf-btn-offset);
+}
+
+.react-aria-SearchField[data-label-position="side"] {
+  display: grid;
+  grid-template-columns: auto 0px minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.react-aria-SearchField[data-label-position="side"] > :is(.react-aria-Label, .react-aria-FieldLabel) {
+  grid-column: 1 / 2;
+  margin-inline-end: var(--sf-field-gap);
+  width: var(--form-label-width);
+  align-self: center;
+  text-align: var(--form-label-align, start);
+  justify-content: var(--form-label-align, start);
+}
+
+.react-aria-SearchField[data-label-position="side"] > .react-aria-Icon {
+  grid-column: 2 / 3;
+}
+
+.react-aria-SearchField[data-label-position="side"] > .react-aria-Input {
+  grid-column: 3 / 4;
+  min-width: 0;
+}
+
+.react-aria-SearchField[data-label-position="side"] > .react-aria-Button {
+  grid-column: 4 / 5;
+}
+
+.react-aria-SearchField[data-label-position="side"] > .react-aria-FieldError {
+  grid-column: 2 / 5;
+}
+
+.react-aria-SearchField[data-label-position="side"] > [slot="description"] {
+  grid-column: 2 / 5;
+}
+
+.react-aria-SearchField[data-label-align="end"] {
+  --form-label-align: end;
+}
+
+.react-aria-SearchField[data-empty="true"] .react-aria-Button {
+  display: none;
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-SearchField {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-SearchField > :is(.react-aria-Label, .react-aria-FieldLabel) {
+    grid-column: 1 / 4;
+    justify-self: flex-start;
+  }
+
+  .react-aria-SearchField > .react-aria-Icon {
+    grid-column: 1;
+  }
+
+  .react-aria-SearchField > .react-aria-Input {
+    grid-column: 2;
+  }
+
+  .react-aria-SearchField > .react-aria-Button {
+    grid-column: 3;
+  }
+
+  .react-aria-SearchField > [slot="description"] {
+    grid-column: 1 / 4;
+  }
+
+  .react-aria-SearchField > .react-aria-FieldError {
+    grid-column: 1 / 4;
+    justify-self: flex-start;
+  }
+
+
+} /* @layer components */`;export{e as default};

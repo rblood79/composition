@@ -1,0 +1,47 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog Body — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: default
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Body {
+  /* Base styles — archetype: default */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  overflow: auto;
+
+  /* Default variant */
+  background: var(--bg);
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
+}
+
+.react-aria-Body.react-aria-Body:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-Body {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

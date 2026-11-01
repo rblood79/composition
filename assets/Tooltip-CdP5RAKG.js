@@ -1,0 +1,126 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog Tooltip — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: simple
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Tooltip {
+  /* Base styles — archetype: simple */
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  box-shadow: var(--shadow-sm);
+  display: inline-flex;
+  align-items: center;
+
+  /* Default variant */
+  background: var(--bg-muted);
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  height: auto;
+  padding: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-tooltip-padding-x-M, calc(var(--catalog-token-size-height-S) * 3 / 8));
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-xs--line-height);
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-S);
+  max-width: 160px;
+}
+
+.react-aria-Tooltip:where([data-variant="neutral"]) {
+  background: var(--bg-muted);
+  color: var(--fg);
+}
+
+.react-aria-Tooltip:where([data-variant="neutral"][data-hovered]) {
+  background: var(--bg-muted);
+}
+
+.react-aria-Tooltip:where([data-variant="neutral"][data-pressed]) {
+  background: var(--bg-muted);
+}
+
+.react-aria-Tooltip:where([data-variant="informative"]) {
+  background: var(--informative-subtle);
+  color: var(--fg);
+}
+
+.react-aria-Tooltip:where([data-variant="informative"][data-hovered]) {
+  background: var(--informative-subtle);
+}
+
+.react-aria-Tooltip:where([data-variant="informative"][data-pressed]) {
+  background: var(--informative-subtle);
+}
+
+.react-aria-Tooltip:where([data-variant="negative"]) {
+  background: var(--negative-subtle);
+  color: var(--fg);
+}
+
+.react-aria-Tooltip:where([data-variant="negative"][data-hovered]) {
+  background: var(--negative-subtle);
+}
+
+.react-aria-Tooltip:where([data-variant="negative"][data-pressed]) {
+  background: var(--negative-subtle);
+}
+
+.react-aria-Tooltip[data-size="S"] {
+  height: auto;
+  padding: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-tooltip-padding-x-S, calc(var(--catalog-token-size-height-S) * 3 / 8));
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-xs--line-height);
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-S);
+  max-width: 160px;
+}
+
+.react-aria-Tooltip[data-size="M"] {
+  height: auto;
+  padding: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-tooltip-padding-x-M, calc(var(--catalog-token-size-height-S) * 3 / 8));
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-xs--line-height);
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-S);
+  max-width: 160px;
+}
+
+.react-aria-Tooltip[data-size="L"] {
+  height: auto;
+  padding: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-tooltip-padding-x-L, calc(var(--catalog-token-size-height-S) * 3 / 8));
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-md);
+  line-height: var(--catalog-token-text-xs--line-height);
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-S);
+  max-width: 160px;
+}
+
+.react-aria-Tooltip.react-aria-Tooltip:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-Tooltip.react-aria-Tooltip:where([data-disabled]) {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-Tooltip {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

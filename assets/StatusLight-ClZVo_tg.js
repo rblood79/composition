@@ -1,0 +1,327 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog StatusLight — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: simple
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-StatusLight {
+  /* Base styles — archetype: simple */
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: inline-flex;
+  align-items: center;
+
+  /* Default variant */
+  background: var(--fg-muted);
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-sm--line-height);
+  gap: var(--catalog-token-status-light-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+}
+
+.react-aria-StatusLight:where([data-variant="neutral"]) {
+  background: var(--fg-muted);
+  color: var(--fg);
+}
+
+.react-aria-StatusLight:where([data-variant="neutral"][data-hovered]) {
+  background: var(--fg-muted);
+}
+
+.react-aria-StatusLight:where([data-variant="neutral"][data-pressed]) {
+  background: var(--fg-muted);
+}
+
+.react-aria-StatusLight:where([data-variant="informative"]) {
+  background: var(--informative);
+  color: var(--fg);
+}
+
+.react-aria-StatusLight:where([data-variant="informative"][data-hovered]) {
+  background: var(--informative);
+}
+
+.react-aria-StatusLight:where([data-variant="informative"][data-pressed]) {
+  background: var(--informative);
+}
+
+.react-aria-StatusLight:where([data-variant="positive"]) {
+  background: var(--positive);
+  color: var(--fg);
+}
+
+.react-aria-StatusLight:where([data-variant="positive"][data-hovered]) {
+  background: var(--positive);
+}
+
+.react-aria-StatusLight:where([data-variant="positive"][data-pressed]) {
+  background: var(--positive);
+}
+
+.react-aria-StatusLight:where([data-variant="notice"]) {
+  background: var(--notice);
+  color: var(--fg);
+}
+
+.react-aria-StatusLight:where([data-variant="notice"][data-hovered]) {
+  background: var(--notice);
+}
+
+.react-aria-StatusLight:where([data-variant="notice"][data-pressed]) {
+  background: var(--notice);
+}
+
+.react-aria-StatusLight:where([data-variant="negative"]) {
+  background: var(--negative);
+  color: var(--fg);
+}
+
+.react-aria-StatusLight:where([data-variant="negative"][data-hovered]) {
+  background: var(--negative);
+}
+
+.react-aria-StatusLight:where([data-variant="negative"][data-pressed]) {
+  background: var(--negative);
+}
+
+.react-aria-StatusLight:where([data-variant="celery"]) {
+  background: var(--hue-celery);
+  color: var(--fg);
+}
+
+.react-aria-StatusLight:where([data-variant="celery"][data-hovered]) {
+  background: var(--hue-celery);
+}
+
+.react-aria-StatusLight:where([data-variant="celery"][data-pressed]) {
+  background: var(--hue-celery);
+}
+
+.react-aria-StatusLight:where([data-variant="chartreuse"]) {
+  background: var(--hue-chartreuse);
+  color: var(--fg);
+}
+
+.react-aria-StatusLight:where([data-variant="chartreuse"][data-hovered]) {
+  background: var(--hue-chartreuse);
+}
+
+.react-aria-StatusLight:where([data-variant="chartreuse"][data-pressed]) {
+  background: var(--hue-chartreuse);
+}
+
+.react-aria-StatusLight:where([data-variant="cyan"]) {
+  background: var(--hue-cyan);
+  color: var(--fg);
+}
+
+.react-aria-StatusLight:where([data-variant="cyan"][data-hovered]) {
+  background: var(--hue-cyan);
+}
+
+.react-aria-StatusLight:where([data-variant="cyan"][data-pressed]) {
+  background: var(--hue-cyan);
+}
+
+.react-aria-StatusLight:where([data-variant="fuchsia"]) {
+  background: var(--hue-fuchsia);
+  color: var(--fg);
+}
+
+.react-aria-StatusLight:where([data-variant="fuchsia"][data-hovered]) {
+  background: var(--hue-fuchsia);
+}
+
+.react-aria-StatusLight:where([data-variant="fuchsia"][data-pressed]) {
+  background: var(--hue-fuchsia);
+}
+
+.react-aria-StatusLight:where([data-variant="indigo"]) {
+  background: var(--hue-indigo);
+  color: var(--fg);
+}
+
+.react-aria-StatusLight:where([data-variant="indigo"][data-hovered]) {
+  background: var(--hue-indigo);
+}
+
+.react-aria-StatusLight:where([data-variant="indigo"][data-pressed]) {
+  background: var(--hue-indigo);
+}
+
+.react-aria-StatusLight:where([data-variant="magenta"]) {
+  background: var(--hue-magenta);
+  color: var(--fg);
+}
+
+.react-aria-StatusLight:where([data-variant="magenta"][data-hovered]) {
+  background: var(--hue-magenta);
+}
+
+.react-aria-StatusLight:where([data-variant="magenta"][data-pressed]) {
+  background: var(--hue-magenta);
+}
+
+.react-aria-StatusLight:where([data-variant="purple"]) {
+  background: var(--hue-purple);
+  color: var(--fg);
+}
+
+.react-aria-StatusLight:where([data-variant="purple"][data-hovered]) {
+  background: var(--hue-purple);
+}
+
+.react-aria-StatusLight:where([data-variant="purple"][data-pressed]) {
+  background: var(--hue-purple);
+}
+
+.react-aria-StatusLight:where([data-variant="yellow"]) {
+  background: var(--hue-yellow);
+  color: var(--fg);
+}
+
+.react-aria-StatusLight:where([data-variant="yellow"][data-hovered]) {
+  background: var(--hue-yellow);
+}
+
+.react-aria-StatusLight:where([data-variant="yellow"][data-pressed]) {
+  background: var(--hue-yellow);
+}
+
+.react-aria-StatusLight:where([data-variant="seafoam"]) {
+  background: var(--hue-seafoam);
+  color: var(--fg);
+}
+
+.react-aria-StatusLight:where([data-variant="seafoam"][data-hovered]) {
+  background: var(--hue-seafoam);
+}
+
+.react-aria-StatusLight:where([data-variant="seafoam"][data-pressed]) {
+  background: var(--hue-seafoam);
+}
+
+.react-aria-StatusLight:where([data-variant="pink"]) {
+  background: var(--hue-pink);
+  color: var(--fg);
+}
+
+.react-aria-StatusLight:where([data-variant="pink"][data-hovered]) {
+  background: var(--hue-pink);
+}
+
+.react-aria-StatusLight:where([data-variant="pink"][data-pressed]) {
+  background: var(--hue-pink);
+}
+
+.react-aria-StatusLight:where([data-variant="turquoise"]) {
+  background: var(--hue-turquoise);
+  color: var(--fg);
+}
+
+.react-aria-StatusLight:where([data-variant="turquoise"][data-hovered]) {
+  background: var(--hue-turquoise);
+}
+
+.react-aria-StatusLight:where([data-variant="turquoise"][data-pressed]) {
+  background: var(--hue-turquoise);
+}
+
+.react-aria-StatusLight:where([data-variant="cinnamon"]) {
+  background: var(--hue-cinnamon);
+  color: var(--fg);
+}
+
+.react-aria-StatusLight:where([data-variant="cinnamon"][data-hovered]) {
+  background: var(--hue-cinnamon);
+}
+
+.react-aria-StatusLight:where([data-variant="cinnamon"][data-pressed]) {
+  background: var(--hue-cinnamon);
+}
+
+.react-aria-StatusLight:where([data-variant="brown"]) {
+  background: var(--hue-brown);
+  color: var(--fg);
+}
+
+.react-aria-StatusLight:where([data-variant="brown"][data-hovered]) {
+  background: var(--hue-brown);
+}
+
+.react-aria-StatusLight:where([data-variant="brown"][data-pressed]) {
+  background: var(--hue-brown);
+}
+
+.react-aria-StatusLight:where([data-variant="silver"]) {
+  background: var(--hue-silver);
+  color: var(--fg);
+}
+
+.react-aria-StatusLight:where([data-variant="silver"][data-hovered]) {
+  background: var(--hue-silver);
+}
+
+.react-aria-StatusLight:where([data-variant="silver"][data-pressed]) {
+  background: var(--hue-silver);
+}
+
+.react-aria-StatusLight[data-size="S"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-xs--line-height);
+  gap: var(--catalog-token-status-light-gap-S, calc(var(--catalog-token-text-xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+}
+
+.react-aria-StatusLight[data-size="M"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-sm--line-height);
+  gap: var(--catalog-token-status-light-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+}
+
+.react-aria-StatusLight[data-size="L"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-base--line-height);
+  gap: var(--catalog-token-status-light-gap-L, calc(var(--catalog-token-text-base) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+}
+
+.react-aria-StatusLight[data-size="XL"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-lg--line-height);
+  gap: var(--catalog-token-status-light-gap-XL, calc(var(--catalog-token-text-lg) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+}
+
+.react-aria-StatusLight.react-aria-StatusLight:where([data-disabled]) {
+  opacity: 0.38;
+}
+
+@media (forced-colors: active) {
+  .react-aria-StatusLight {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

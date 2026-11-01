@@ -1,0 +1,127 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog DateField — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: default
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-DateField {
+  /* Base styles — archetype: default */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    box-sizing: border-box;
+    width: 100%;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: flex;
+
+  /* Default size */
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  gap: var(--catalog-token-date-field-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
+}
+
+.react-aria-DateField[data-size="S"] {
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-none);
+  gap: var(--catalog-token-date-field-gap-S, calc(var(--catalog-token-size-height-S) * 1 / 2 + calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)) * -1 / 2));
+}
+
+.react-aria-DateField[data-size="M"] {
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  gap: var(--catalog-token-date-field-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
+}
+
+.react-aria-DateField[data-size="L"] {
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
+  gap: var(--catalog-token-date-field-gap-L, calc(var(--catalog-token-size-height-L) * 1 / 2 + calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)) * -1 / 2));
+}
+
+.react-aria-DateField[data-size="XL"] {
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-none);
+  gap: var(--catalog-token-date-field-gap-XL, calc(var(--catalog-token-size-height-XL) * 1 / 2 + calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * -1 / 2));
+}
+
+.react-aria-DateField.react-aria-DateField:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-DateField.react-aria-DateField:where([data-disabled]) {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-DateField[data-size="XS"] {
+  --df-input-min-width: 100px;
+}
+
+.react-aria-DateField[data-size="S"] {
+  --df-input-min-width: 120px;
+}
+
+.react-aria-DateField[data-size="M"] {
+  --df-input-min-width: 150px;
+}
+
+.react-aria-DateField[data-size="L"] {
+  --df-input-min-width: 180px;
+}
+
+.react-aria-DateField[data-size="XL"] {
+  --df-input-min-width: 220px;
+}
+
+.react-aria-DateField .react-aria-DateInput {
+  width: 100%;
+  min-width: var(--df-input-min-width);
+}
+
+.react-aria-DateField[data-label-position="side"] {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+}
+
+.react-aria-DateField[data-label-position="side"] > :is(.react-aria-Label, .react-aria-FieldLabel) {
+  grid-column: 1;
+  width: var(--form-label-width);
+  align-self: center;
+  text-align: var(--form-label-align, start);
+  justify-content: var(--form-label-align, start);
+}
+
+.react-aria-DateField[data-label-position="side"] > :not(.react-aria-Label, .react-aria-FieldLabel, .react-aria-FieldError, [slot="description"]) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.react-aria-DateField[data-label-position="side"] > .react-aria-FieldError {
+  grid-column: 2;
+}
+
+.react-aria-DateField[data-label-position="side"] > [slot="description"] {
+  grid-column: 2;
+}
+
+.react-aria-DateField[data-label-align="end"] {
+  --form-label-align: end;
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-DateField {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

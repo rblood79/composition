@@ -1,0 +1,83 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog Calendar — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: calendar
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Calendar {
+  /* Base styles — archetype: calendar */
+    display: grid;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  width: fit-content;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+
+  /* Default variant */
+  background: transparent;
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-lg);
+  gap: 24px;
+  --icon-size: 26px;
+}
+
+.react-aria-Calendar:where([data-variant="default"]) {
+  background: transparent;
+  color: var(--fg);
+}
+
+.react-aria-Calendar:where([data-variant="default"][data-hovered]) {
+  background: transparent;
+}
+
+.react-aria-Calendar:where([data-variant="default"][data-pressed]) {
+  background: transparent;
+}
+
+.react-aria-Calendar.react-aria-Calendar:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-Calendar.react-aria-Calendar:where([data-disabled]) {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.react-aria-Calendar.react-aria-Calendar .react-aria-CalendarCell:where([data-selected]) {
+  background: var(--accent);
+  color: var(--fg-on-accent);
+}
+
+.react-aria-Calendar.react-aria-Calendar .react-aria-CalendarCell:where([data-selected][data-hovered]) {
+  background: color-mix(in srgb, var(--accent) 85%, black);
+}
+
+.react-aria-Calendar.react-aria-Calendar .react-aria-CalendarCell:where([data-focus-visible]) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.react-aria-Calendar.react-aria-Calendar .react-aria-CalendarCell:where([data-today][data-selected])::after {
+  background: var(--fg-on-accent);
+}
+
+@media (forced-colors: active) {
+  .react-aria-Calendar {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

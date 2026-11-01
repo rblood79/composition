@@ -1,0 +1,164 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog RangeCalendar — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: calendar
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-RangeCalendar {
+  /* Base styles — archetype: calendar */
+    display: grid;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  width: fit-content;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+
+  /* Default variant */
+  background: transparent;
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-lg);
+  gap: 24px;
+  --icon-size: 26px;
+}
+
+.react-aria-RangeCalendar:where([data-variant="default"]) {
+  background: transparent;
+  color: var(--fg);
+}
+
+.react-aria-RangeCalendar:where([data-variant="default"][data-hovered]) {
+  background: transparent;
+}
+
+.react-aria-RangeCalendar:where([data-variant="default"][data-pressed]) {
+  background: transparent;
+}
+
+.react-aria-RangeCalendar.react-aria-RangeCalendar:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-RangeCalendar.react-aria-RangeCalendar:where([data-disabled]) {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarGridBody td:has(> .react-aria-CalendarCell:where([data-selected])):not(:has(> [data-selection-start][data-selection-end])) {
+  position: relative;
+}
+
+.react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarGridBody td:has(> .react-aria-CalendarCell:where([data-selected])):not(:has(> [data-selection-start][data-selection-end]))::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: var(--spacing-2xs) 0;
+  background: var(--accent-subtle);
+  border: 1px solid var(--focus-ring);
+  border-inline-width: 0;
+}
+
+.react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarGridBody td:has(> .react-aria-CalendarCell:where([data-selected][data-invalid])):not(:has(> [data-selection-start][data-selection-end]))::before {
+  background: var(--negative-subtle);
+  border-color: var(--negative);
+}
+
+.react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarGridBody td:has(> .react-aria-CalendarCell:where([data-selected])):not(:has(> [data-selection-start][data-selection-end])):has(> [data-selection-start])::before {
+  inset-inline-start: var(--spacing-2xs);
+  border-inline-start-width: 1px;
+  border-start-start-radius: var(--catalog-token-radius-full);
+  border-end-start-radius: var(--catalog-token-radius-full);
+}
+
+.react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarGridBody td:has(> .react-aria-CalendarCell:where([data-selected])):not(:has(> [data-selection-start][data-selection-end])):first-child::before {
+  inset-inline-start: var(--spacing-2xs);
+  border-inline-start-width: 1px;
+  border-start-start-radius: var(--catalog-token-radius-full);
+  border-end-start-radius: var(--catalog-token-radius-full);
+}
+
+.react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarGridBody td:has(> [data-outside-month]) + td:has(> .react-aria-CalendarCell:where([data-selected])):not(:has(> [data-selection-start][data-selection-end]))::before {
+  inset-inline-start: var(--spacing-2xs);
+  border-inline-start-width: 1px;
+  border-start-start-radius: var(--catalog-token-radius-full);
+  border-end-start-radius: var(--catalog-token-radius-full);
+}
+
+.react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarGridBody td:has(> .react-aria-CalendarCell:where([data-selected])):not(:has(> [data-selection-start][data-selection-end])):has(> [data-selection-end])::before {
+  inset-inline-end: var(--spacing-2xs);
+  border-inline-end-width: 1px;
+  border-start-end-radius: var(--catalog-token-radius-full);
+  border-end-end-radius: var(--catalog-token-radius-full);
+}
+
+.react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarGridBody td:has(> .react-aria-CalendarCell:where([data-selected])):not(:has(> [data-selection-start][data-selection-end])):last-child::before {
+  inset-inline-end: var(--spacing-2xs);
+  border-inline-end-width: 1px;
+  border-start-end-radius: var(--catalog-token-radius-full);
+  border-end-end-radius: var(--catalog-token-radius-full);
+}
+
+.react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarGridBody td:has(> .react-aria-CalendarCell:where([data-selected])):not(:has(> [data-selection-start][data-selection-end])):has(+ td > [data-outside-month])::before {
+  inset-inline-end: var(--spacing-2xs);
+  border-inline-end-width: 1px;
+  border-start-end-radius: var(--catalog-token-radius-full);
+  border-end-end-radius: var(--catalog-token-radius-full);
+}
+
+.react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarCell:where([data-selected]) {
+  background: transparent;
+  color: var(--fg);
+}
+
+.react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarCell:where([data-selected][data-hovered]) {
+  background: color-mix(in srgb, var(--accent-subtle) 50%, var(--accent));
+}
+
+.react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarCell:where([data-selected][data-invalid]) {
+  background: transparent;
+}
+
+.react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarCell:where([data-focus-visible]) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarCell:where([data-focus-visible][data-selection-start]) {
+  outline-offset: 2px;
+}
+
+.react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarCell:where([data-focus-visible][data-selection-end]) {
+  outline-offset: 2px;
+}
+
+.react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarCell:where([data-today][data-selected])::after {
+  background: var(--accent);
+}
+
+.react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarCell:where([data-today][data-selected][data-selection-start])::after {
+  background: var(--fg-on-accent);
+}
+
+.react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarCell:where([data-today][data-selected][data-selection-end])::after {
+  background: var(--fg-on-accent);
+}
+
+@media (forced-colors: active) {
+  .react-aria-RangeCalendar {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

@@ -1,0 +1,168 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog ColorField — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: default
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-ColorField {
+  /* Base styles — archetype: default */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    box-sizing: border-box;
+    width: 100%;
+    color: var(--fg);
+
+  /* Default size */
+  font-size: var(--catalog-token-text-sm);
+  border-radius: 8px;
+  gap: var(--catalog-token-color-field-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
+  --icon-size: 26px;
+}
+
+.react-aria-ColorField[data-size="XS"] {
+  font-size: var(--catalog-token-text-2xs);
+  border-radius: var(--catalog-token-radius-sm);
+  gap: var(--catalog-token-color-field-gap-XS, calc(var(--catalog-token-size-height-XS) * 1 / 2 + calc(var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height)) * -1 / 2));
+  --icon-size: 18px;
+}
+
+.react-aria-ColorField[data-size="S"] {
+  font-size: var(--catalog-token-text-xs);
+  border-radius: 7px;
+  gap: var(--catalog-token-color-field-gap-S, calc(var(--catalog-token-size-height-S) * 1 / 2 + calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)) * -1 / 2));
+  --icon-size: 20px;
+}
+
+.react-aria-ColorField[data-size="M"] {
+  font-size: var(--catalog-token-text-sm);
+  border-radius: 8px;
+  gap: var(--catalog-token-color-field-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
+  --icon-size: 26px;
+}
+
+.react-aria-ColorField[data-size="L"] {
+  font-size: var(--catalog-token-text-base);
+  border-radius: 9px;
+  gap: var(--catalog-token-color-field-gap-L, calc(var(--catalog-token-size-height-L) * 1 / 2 + calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)) * -1 / 2));
+  --icon-size: 32px;
+}
+
+.react-aria-ColorField[data-size="XL"] {
+  font-size: var(--catalog-token-text-lg);
+  border-radius: 10px;
+  gap: var(--catalog-token-color-field-gap-XL, calc(var(--catalog-token-size-height-XL) * 1 / 2 + calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * -1 / 2));
+  --icon-size: 36px;
+}
+
+.react-aria-ColorField.react-aria-ColorField:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-ColorField.react-aria-ColorField:where([data-disabled]) {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-ColorField[data-label-position="side"] {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+}
+
+.react-aria-ColorField[data-label-position="side"] > :is(.react-aria-Label, .react-aria-FieldLabel) {
+  grid-column: 1;
+  width: var(--form-label-width);
+  align-self: center;
+  text-align: var(--form-label-align, start);
+  justify-content: var(--form-label-align, start);
+}
+
+.react-aria-ColorField[data-label-position="side"] > :not(.react-aria-Label, .react-aria-FieldLabel, .react-aria-FieldError, [slot="description"]) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.react-aria-ColorField[data-label-position="side"] > .react-aria-FieldError {
+  grid-column: 2;
+}
+
+.react-aria-ColorField[data-label-position="side"] > [slot="description"] {
+  grid-column: 2;
+}
+
+.react-aria-ColorField[data-label-align="end"] {
+  --form-label-align: end;
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-ColorField {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-ColorField :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
+    color: var(--fg-muted);
+    flex-shrink: 0;
+  }
+
+  .react-aria-ColorField .react-aria-Text[slot="prefix"] {
+    width: auto;
+  }
+
+
+  .react-aria-ColorField[data-size="XS"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
+    margin-inline-end: 4px;
+  }
+
+  .react-aria-ColorField[data-size="XS"] .react-aria-Text[slot="prefix"] {
+    font-size: var(--catalog-token-text-2xs);
+    line-height: var(--catalog-token-text-2xs--line-height);
+  }
+
+  .react-aria-ColorField[data-size="S"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
+    margin-inline-end: 5px;
+  }
+
+  .react-aria-ColorField[data-size="S"] .react-aria-Text[slot="prefix"] {
+    font-size: var(--catalog-token-text-xs);
+    line-height: var(--catalog-token-text-xs--line-height);
+  }
+
+  .react-aria-ColorField[data-size="M"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
+    margin-inline-end: 6px;
+  }
+
+  .react-aria-ColorField[data-size="M"] .react-aria-Text[slot="prefix"] {
+    font-size: var(--catalog-token-text-sm);
+    line-height: var(--catalog-token-text-sm--line-height);
+  }
+
+  .react-aria-ColorField[data-size="L"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
+    margin-inline-end: 7px;
+  }
+
+  .react-aria-ColorField[data-size="L"] .react-aria-Text[slot="prefix"] {
+    font-size: var(--catalog-token-text-base);
+    line-height: var(--catalog-token-text-base--line-height);
+  }
+
+  .react-aria-ColorField[data-size="XL"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
+    margin-inline-end: 8px;
+  }
+
+  .react-aria-ColorField[data-size="XL"] .react-aria-Text[slot="prefix"] {
+    font-size: var(--catalog-token-text-lg);
+    line-height: var(--catalog-token-text-lg--line-height);
+  }
+
+
+} /* @layer components */`;export{e as default};

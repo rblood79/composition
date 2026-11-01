@@ -1,0 +1,95 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog Kbd — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: simple
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Kbd {
+  /* Base styles — archetype: simple */
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: inline-flex;
+  align-items: center;
+
+  /* Default variant */
+  background: var(--bg-inset);
+  color: var(--fg);
+  border: var(--border-width-thin) solid var(--border);
+
+  /* Default size */
+  height: 22px;
+  padding: 0px 6px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-sm--line-height);
+  border-width: var(--border-width-thin);
+}
+
+.react-aria-Kbd:where([data-variant="default"]) {
+  background: var(--bg-inset);
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+.react-aria-Kbd:where([data-variant="default"][data-hovered]) {
+  background: var(--bg-inset);
+}
+
+.react-aria-Kbd:where([data-variant="default"][data-pressed]) {
+  background: var(--neutral-pressed, color-mix(in srgb, var(--bg-muted) 75%, black));
+}
+
+.react-aria-Kbd[data-size="XS"] {
+  height: 18px;
+  padding: 0px 4px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-xs);
+  line-height: var(--catalog-token-text-xs--line-height);
+  border-width: var(--border-width-thin);
+}
+
+.react-aria-Kbd[data-size="S"] {
+  height: 22px;
+  padding: 0px 6px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-sm--line-height);
+  border-width: var(--border-width-thin);
+}
+
+.react-aria-Kbd[data-size="M"] {
+  height: 26px;
+  padding: 0px 8px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-base--line-height);
+  border-width: var(--border-width-thin);
+}
+
+.react-aria-Kbd[data-size="L"] {
+  height: 32px;
+  padding: 0px 10px;
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-md);
+  line-height: var(--catalog-token-text-lg--line-height);
+  border-width: var(--border-width-thin);
+}
+
+.react-aria-Kbd.react-aria-Kbd:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+@media (forced-colors: active) {
+  .react-aria-Kbd {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

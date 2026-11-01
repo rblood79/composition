@@ -1,0 +1,286 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog DateRangePicker — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: default
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-DateRangePicker {
+  /* Base styles — archetype: default */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    box-sizing: border-box;
+    width: 100%;
+    color: var(--fg);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: flex;
+
+  /* Default size */
+  font-size: var(--catalog-token-text-sm);
+  border-radius: 8px;
+  gap: var(--catalog-token-date-range-picker-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
+  --icon-size: var(--catalog-token-date-range-picker-icon-size-M, var(--catalog-token-text-sm));
+}
+
+.react-aria-DateRangePicker[data-size="XS"] {
+  font-size: var(--catalog-token-text-2xs);
+  border-radius: var(--catalog-token-radius-xs);
+  gap: var(--catalog-token-date-range-picker-gap-XS, calc(var(--catalog-token-size-height-XS) * 1 / 2 + calc(var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height)) * -1 / 2));
+  --icon-size: var(--catalog-token-date-range-picker-icon-size-XS, var(--catalog-token-text-2xs));
+}
+
+.react-aria-DateRangePicker[data-size="S"] {
+  font-size: var(--catalog-token-text-xs);
+  border-radius: 7px;
+  gap: var(--catalog-token-date-range-picker-gap-S, calc(var(--catalog-token-size-height-S) * 1 / 2 + calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)) * -1 / 2));
+  --icon-size: var(--catalog-token-date-range-picker-icon-size-S, var(--catalog-token-text-xs));
+}
+
+.react-aria-DateRangePicker[data-size="M"] {
+  font-size: var(--catalog-token-text-sm);
+  border-radius: 8px;
+  gap: var(--catalog-token-date-range-picker-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
+  --icon-size: var(--catalog-token-date-range-picker-icon-size-M, var(--catalog-token-text-sm));
+}
+
+.react-aria-DateRangePicker[data-size="L"] {
+  font-size: var(--catalog-token-text-base);
+  border-radius: 9px;
+  gap: var(--catalog-token-date-range-picker-gap-L, calc(var(--catalog-token-size-height-L) * 1 / 2 + calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)) * -1 / 2));
+  --icon-size: var(--catalog-token-date-range-picker-icon-size-L, var(--catalog-token-text-base));
+}
+
+.react-aria-DateRangePicker[data-size="XL"] {
+  font-size: var(--catalog-token-text-lg);
+  border-radius: 10px;
+  gap: var(--catalog-token-date-range-picker-gap-XL, calc(var(--catalog-token-size-height-XL) * 1 / 2 + calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * -1 / 2));
+  --icon-size: var(--catalog-token-date-range-picker-icon-size-XL, var(--catalog-token-text-lg));
+}
+
+.react-aria-DateRangePicker.react-aria-DateRangePicker:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-DateRangePicker.react-aria-DateRangePicker:where([data-disabled]) {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-DateRangePicker[data-size="XS"] {
+  --drp-group-radius: var(--catalog-token-radius-xs);
+  --drp-group-min-height: var(--catalog-token-drp-group-min-height, var(--catalog-token-size-height-XS));
+  --drp-group-pad-y: 1px;
+  --drp-group-pad-start: calc(var(--catalog-token-size-height-XS) * 3 / 8);
+  --drp-group-pad-end: 4px;
+  --drp-group-font-size: var(--catalog-token-text-2xs);
+  --drp-group-line-height: var(--catalog-token-text-2xs--line-height);
+  --drp-group-gap: var(--spacing-2xs);
+}
+
+.react-aria-DateRangePicker[data-size="S"] {
+  --drp-group-radius: 7px;
+  --drp-group-min-height: var(--catalog-token-drp-group-min-height, var(--catalog-token-size-height-S));
+  --drp-group-pad-y: 1px;
+  --drp-group-pad-start: calc(var(--catalog-token-size-height-S) * 3 / 8);
+  --drp-group-pad-end: 4px;
+  --drp-group-font-size: var(--catalog-token-text-xs);
+  --drp-group-line-height: var(--catalog-token-text-xs--line-height);
+  --drp-group-gap: var(--spacing-xs);
+}
+
+.react-aria-DateRangePicker[data-size="M"] {
+  --drp-group-radius: 8px;
+  --drp-group-min-height: var(--catalog-token-drp-group-min-height, var(--catalog-token-size-height-M));
+  --drp-group-pad-y: 3px;
+  --drp-group-pad-start: calc(var(--catalog-token-size-height-M) * 3 / 8);
+  --drp-group-pad-end: 4px;
+  --drp-group-font-size: var(--catalog-token-text-sm);
+  --drp-group-line-height: var(--catalog-token-text-sm--line-height);
+  --drp-group-gap: var(--spacing-xs);
+}
+
+.react-aria-DateRangePicker[data-size="L"] {
+  --drp-group-radius: 9px;
+  --drp-group-min-height: var(--catalog-token-drp-group-min-height, var(--catalog-token-size-height-L));
+  --drp-group-pad-y: 3px;
+  --drp-group-pad-start: calc(var(--catalog-token-size-height-L) * 3 / 8);
+  --drp-group-pad-end: 4px;
+  --drp-group-font-size: var(--catalog-token-text-base);
+  --drp-group-line-height: var(--catalog-token-text-base--line-height);
+  --drp-group-gap: var(--spacing-xs);
+}
+
+.react-aria-DateRangePicker[data-size="XL"] {
+  --drp-group-radius: 10px;
+  --drp-group-min-height: var(--catalog-token-drp-group-min-height, var(--catalog-token-size-height-XL));
+  --drp-group-pad-y: 3px;
+  --drp-group-pad-start: calc(var(--catalog-token-size-height-XL) * 3 / 8);
+  --drp-group-pad-end: 4px;
+  --drp-group-font-size: var(--catalog-token-text-lg);
+  --drp-group-line-height: var(--catalog-token-text-lg--line-height);
+  --drp-group-gap: var(--spacing-sm);
+}
+
+.react-aria-DateRangePicker .react-aria-Group {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: var(--drp-group-gap);
+  padding-top: var(--drp-group-pad-y);
+  padding-bottom: var(--drp-group-pad-y);
+  padding-left: var(--drp-group-pad-start);
+  padding-right: var(--drp-group-pad-end);
+  min-height: var(--drp-group-min-height);
+  border: var(--border-width-thin) solid var(--border);
+  border-radius: var(--drp-group-radius);
+  background: var(--bg-inset);
+  color: var(--fg);
+  white-space: nowrap;
+  forced-color-adjust: none;
+  font-size: var(--drp-group-font-size);
+  line-height: var(--drp-group-line-height);
+  transition: border-color 200ms ease, background-color 200ms ease;
+}
+
+.react-aria-DateRangePicker .react-aria-Group:where([data-hovered]) {
+  border-color: var(--border-hover);
+  background: var(--bg-overlay);
+}
+
+.react-aria-DateRangePicker .react-aria-Group:where([data-focus-within]) {
+  outline: 2px solid var(--accent-content);
+  outline-offset: -1px;
+  border-color: var(--accent-content);
+  background: var(--bg-overlay);
+}
+
+.react-aria-DateRangePicker .react-aria-Group:where([data-invalid]) {
+  border-color: var(--negative);
+}
+
+.react-aria-DateRangePicker .react-aria-Group:where([data-disabled]) {
+  opacity: 0.38;
+  cursor: not-allowed;
+  background: var(--bg-muted);
+}
+
+.react-aria-DateRangePicker .react-aria-DateInput {
+  width: auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.react-aria-DateRangePicker .react-aria-DateInput:where([data-focus-within]) {
+  outline: none;
+}
+
+.react-aria-DateRangePicker .react-aria-DateInput[slot="end"] {
+  flex: 1;
+}
+
+.react-aria-DateRangePicker .react-aria-Group > .react-aria-Text {
+  flex: 0 0 auto;
+  width: auto;
+  padding: 0 4px;
+  font-size: var(--drp-group-font-size);
+}
+
+.react-aria-DateRangePicker[data-size="XS"] {
+  --drp-btn-size: var(--catalog-token-size-field-button-XS);
+  --drp-btn-start: calc(var(--catalog-token-text-2xs) * 10 / 14 - 2px);
+}
+
+.react-aria-DateRangePicker[data-size="S"] {
+  --drp-btn-size: var(--catalog-token-size-field-button-S);
+  --drp-btn-start: calc(var(--catalog-token-text-xs) * 10 / 14 - 4px);
+}
+
+.react-aria-DateRangePicker[data-size="M"] {
+  --drp-btn-size: var(--catalog-token-size-field-button-M);
+  --drp-btn-start: calc(var(--catalog-token-text-sm) * 10 / 14 - 4px);
+}
+
+.react-aria-DateRangePicker[data-size="L"] {
+  --drp-btn-size: var(--catalog-token-size-field-button-L);
+  --drp-btn-start: calc(var(--catalog-token-text-base) * 10 / 14 - 4px);
+}
+
+.react-aria-DateRangePicker[data-size="XL"] {
+  --drp-btn-size: var(--catalog-token-size-field-button-XL);
+  --drp-btn-start: calc(var(--catalog-token-text-lg) * 10 / 14 - 8px);
+}
+
+.react-aria-DateRangePicker .react-aria-Button {
+  flex: 0 0 auto;
+  width: var(--drp-btn-size);
+  height: var(--drp-btn-size);
+  min-height: 0;
+  min-width: 0;
+  margin-inline-start: var(--drp-btn-start);
+}
+
+.react-aria-Popover[data-trigger="DateRangePicker"] {
+  max-width: unset;
+}
+
+.react-aria-Popover[data-trigger="DateRangePicker"] .react-aria-RangeCalendar {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.react-aria-DateRangePicker-start-time {
+  width: 100%;
+}
+
+.react-aria-DateRangePicker-end-time {
+  width: 100%;
+}
+
+.react-aria-DateRangePicker[data-label-position="side"] {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+}
+
+.react-aria-DateRangePicker[data-label-position="side"] > :is(.react-aria-Label, .react-aria-FieldLabel) {
+  grid-column: 1;
+  width: var(--form-label-width);
+  align-self: center;
+  text-align: var(--form-label-align, start);
+  justify-content: var(--form-label-align, start);
+}
+
+.react-aria-DateRangePicker[data-label-position="side"] > :not(.react-aria-Label, .react-aria-FieldLabel, .react-aria-FieldError, [slot="description"]) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.react-aria-DateRangePicker[data-label-position="side"] > .react-aria-FieldError {
+  grid-column: 2;
+}
+
+.react-aria-DateRangePicker[data-label-position="side"] > [slot="description"] {
+  grid-column: 2;
+}
+
+.react-aria-DateRangePicker[data-label-align="end"] {
+  --form-label-align: end;
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-DateRangePicker {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

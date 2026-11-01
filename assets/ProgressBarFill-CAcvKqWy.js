@@ -1,0 +1,114 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog ProgressBarFill — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: progress
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-ProgressBarFill {
+  /* Base styles — archetype: progress */
+    display: grid;
+    grid-template-areas: "label value" "track track";
+    grid-template-columns: 1fr auto;
+    box-sizing: border-box;
+
+    .react-aria-Label { grid-area: label; }
+    [slot="value"] { grid-area: value; }
+    .bar { grid-area: track; }
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: block;
+
+  /* Default variant */
+  background: var(--accent-content);
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  padding: 0px 0px;
+  font-size: ;
+  border-radius: var(--catalog-token-radius-sm);
+}
+
+.react-aria-ProgressBarFill:where([data-variant="default"]) {
+  background: var(--accent-content);
+  color: var(--fg);
+}
+
+.react-aria-ProgressBarFill:where([data-variant="default"][data-hovered]) {
+  background: var(--accent-content);
+}
+
+.react-aria-ProgressBarFill:where([data-variant="default"][data-pressed]) {
+  background: var(--accent-content);
+}
+
+.react-aria-ProgressBarFill:where([data-variant="default"][data-static-color="black"]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-ProgressBarFill:where([data-variant="default"][data-static-color="black"][data-hovered]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-ProgressBarFill:where([data-variant="default"][data-static-color="black"][data-pressed]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-ProgressBarFill:where([data-variant="default"][data-static-color="white"]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-ProgressBarFill:where([data-variant="default"][data-static-color="white"][data-hovered]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-ProgressBarFill:where([data-variant="default"][data-static-color="white"][data-pressed]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-ProgressBarFill[data-size="S"] {
+  padding: 0px 0px;
+  font-size: ;
+  border-radius: var(--catalog-token-radius-sm);
+}
+
+.react-aria-ProgressBarFill[data-size="M"] {
+  padding: 0px 0px;
+  font-size: ;
+  border-radius: var(--catalog-token-radius-sm);
+}
+
+.react-aria-ProgressBarFill[data-size="L"] {
+  padding: 0px 0px;
+  font-size: ;
+  border-radius: var(--catalog-token-radius-md);
+}
+
+.react-aria-ProgressBarFill[data-size="XL"] {
+  padding: 0px 0px;
+  font-size: ;
+  border-radius: var(--catalog-token-radius-lg);
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-ProgressBarFill {
+    forced-color-adjust: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .react-aria-ProgressBarFill {
+    transition-duration: 0s !important;
+  }
+}
+
+} /* @layer components */`;export{e as default};

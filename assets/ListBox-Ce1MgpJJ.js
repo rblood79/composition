@@ -1,0 +1,277 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog ListBox — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: collection
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-ListBox {
+  /* Base styles — archetype: collection */
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  background: var(--bg-raised);
+  color: var(--fg);
+  border: var(--border-width-hairline) solid var(--border);
+  border-radius: var(--catalog-token-radius-xl);
+  padding: var(--spacing-xs);
+  gap: 0px;
+  width: 100%;
+  overflow: auto;
+  outline: none;
+  display: flex;
+  flex-direction: column;
+
+  /* Default size */
+  height: auto;
+  font-size: var(--catalog-token-text-sm);
+}
+
+.react-aria-ListBox[data-size="XS"] {
+  height: auto;
+  font-size: var(--catalog-token-text-2xs);
+}
+
+.react-aria-ListBox[data-size="S"] {
+  height: auto;
+  font-size: var(--catalog-token-text-xs);
+}
+
+.react-aria-ListBox[data-size="M"] {
+  height: auto;
+  font-size: var(--catalog-token-text-sm);
+}
+
+.react-aria-ListBox[data-size="L"] {
+  height: auto;
+  font-size: var(--catalog-token-text-base);
+}
+
+.react-aria-ListBox[data-size="XL"] {
+  height: auto;
+  font-size: var(--catalog-token-text-lg);
+}
+
+.react-aria-ListBox.react-aria-ListBox:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-ListBox.react-aria-ListBox:where([data-disabled]) {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.react-aria-ListBox.react-aria-ListBox:where(:is(.react-aria-Popover *)) {
+  display: block;
+  border: none;
+  padding: var(--spacing-xs);
+  background: transparent;
+  border-radius: inherit;
+}
+
+.react-aria-ListBox.react-aria-ListBox:where(:is(.react-aria-Popover *)[data-empty]) {
+  padding: var(--spacing-sm);
+  min-height: var(--spacing-2xl);
+}
+
+.react-aria-ListBox.react-aria-ListBox:where(:is(.react-aria-Popover *)[data-catalog-id]) {
+  --lb-control-h: var(--catalog-token-size-height-M);
+}
+
+.react-aria-ListBox.react-aria-ListBox:where(:is(.react-aria-Popover *)[data-catalog-id][data-size="XS"]) {
+  --lb-control-h: var(--catalog-token-size-height-XS);
+}
+
+.react-aria-ListBox.react-aria-ListBox:where(:is(.react-aria-Popover *)[data-catalog-id][data-size="S"]) {
+  --lb-control-h: var(--catalog-token-size-height-S);
+}
+
+.react-aria-ListBox.react-aria-ListBox:where(:is(.react-aria-Popover *)[data-catalog-id][data-size="L"]) {
+  --lb-control-h: var(--catalog-token-size-height-L);
+}
+
+.react-aria-ListBox.react-aria-ListBox:where(:is(.react-aria-Popover *)[data-catalog-id][data-size="XL"]) {
+  --lb-control-h: var(--catalog-token-size-height-XL);
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-ListBox {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-ListBox:not(.react-aria-Popover *) .react-aria-ListBoxItem {
+    flex-shrink: 0;
+    --listbox-separator: var(--border);
+  }
+
+  .react-aria-ListBox:not(.react-aria-Popover *) .react-aria-ListBoxItem:not(:last-child)::after {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    width: calc(100% - var(--spacing-xl));
+    border-bottom: var(--border-width-hairline) solid var(--listbox-separator);
+  }
+
+  .react-aria-ListBox:not(.react-aria-Popover *) .react-aria-ListBoxItem[data-selected] {
+    --listbox-separator: transparent;
+  }
+
+  .react-aria-ListBox:not(.react-aria-Popover *) .react-aria-ListBoxItem[data-selected]:has(+ [data-selected]) {
+    --listbox-separator: color-mix(in srgb, var(--fg-on-accent) 30%, transparent);
+    border-end-start-radius: 0;
+    border-end-end-radius: 0;
+  }
+
+  .react-aria-ListBox:not(.react-aria-Popover *) .react-aria-ListBoxItem[data-selected] + [data-selected] {
+    border-start-start-radius: 0;
+    border-start-end-radius: 0;
+  }
+
+  .react-aria-ListBox:not(.react-aria-Popover *) .react-aria-ListBoxItem[data-focus-visible] {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+    z-index: 2;
+  }
+
+  .react-aria-ListBox:not(.react-aria-Popover *) .react-aria-ListBoxItem[data-selected][data-focus-visible] {
+    outline-color: var(--fg-on-accent);
+    outline-offset: -4px;
+  }
+
+  .react-aria-ListBox:not(.react-aria-Popover *) .react-aria-ListBoxItem[data-selected][data-pressed] {
+    background: var(--accent-pressed);
+  }
+
+  .react-aria-ListBox:not(.react-aria-Popover *) .react-aria-ListBoxItem [slot="label"] {
+    font-size: inherit;
+    line-height: inherit;
+    font-weight: 500;
+    color: inherit;
+  }
+
+  .react-aria-ListBox:not(.react-aria-Popover *) .react-aria-ListBoxItem [slot="description"] {
+    font-size: var(--catalog-token-text-xs);
+    line-height: var(--catalog-token-text-xs--line-height);
+    color: inherit;
+  }
+
+  .react-aria-ListBox:not(.react-aria-Popover *) .react-aria-ListBoxSection .react-aria-Header {
+    display: block;
+    position: sticky;
+    top: calc(-1 * var(--border-width-hairline));
+    z-index: 2;
+    margin: 0;
+    font-size: var(--catalog-token-text-xs);
+    font-weight: 600;
+    color: var(--fg);
+    padding: var(--spacing-xs) var(--spacing-lg);
+    background: var(--bg-overlay);
+    border-block: var(--border-width-hairline) solid var(--border);
+  }
+
+  .react-aria-ListBox[data-catalog-id]:is(.react-aria-Popover *) .react-aria-ListBoxItem {
+    min-height: var(--lb-control-h);
+    padding-top: calc((var(--lb-control-h) - 1lh) / 2);
+    padding-bottom: calc((var(--lb-control-h) - 1lh) / 2);
+  }
+
+  .react-aria-ListBox[data-catalog-id]:is(.react-aria-Popover *) .react-aria-Header {
+    box-sizing: border-box;
+    min-height: var(--lb-control-h);
+    padding: calc((var(--lb-control-h) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) / 2) calc(var(--lb-control-h) * 3 / 8);
+    font-size: var(--catalog-token-text-sm);
+    line-height: var(--catalog-token-text-sm--line-height);
+    font-weight: 700;
+    background: transparent;
+    border-block: 0;
+  }
+
+  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem {
+    padding: calc((var(--spacing-2xl) - 1lh) / 2) var(--spacing-md) calc((var(--spacing-2xl) - 1lh) / 2) var(--spacing-xl);
+    font-weight: 500;
+  }
+
+  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem[data-selected] {
+    background: transparent;
+    color: var(--fg);
+  }
+
+  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem[data-selected]:not([data-selection-mark])::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: var(--spacing-xs);
+    translate: 0 -50%;
+    width: var(--spacing-lg);
+    height: var(--spacing-lg);
+    background: currentColor;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
+
+  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem[data-selection-mark] > .react-aria-Icon:not([slot]) {
+    position: absolute;
+    top: 50%;
+    left: var(--spacing-xs);
+    translate: 0 -50%;
+    width: var(--spacing-lg);
+    height: var(--spacing-lg);
+  }
+
+  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem[data-pressed] {
+    background: var(--bg-muted);
+  }
+
+  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem[data-focused] {
+    background: var(--accent);
+    color: var(--fg-on-accent);
+  }
+
+  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem[data-focus-visible] {
+    outline: none;
+  }
+
+  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem [slot="label"] {
+    font-size: inherit;
+    line-height: inherit;
+    font-weight: 500;
+    color: inherit;
+  }
+
+  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem [slot="description"] {
+    font-size: var(--catalog-token-text-xs);
+    line-height: var(--catalog-token-text-xs--line-height);
+    color: inherit;
+  }
+
+  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem [slot="icon"] {
+    left: var(--spacing-xl);
+  }
+
+  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem:has([slot="icon"]) {
+    padding-left: calc(var(--spacing-xl) + var(--lb-icon-size, 16px) + 6px);
+  }
+
+  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-Header {
+    display: block;
+    margin: 0;
+    font-size: var(--catalog-token-text-xs);
+    font-weight: 600;
+    color: var(--fg);
+    padding: var(--spacing-xs) var(--spacing-lg) var(--spacing-xs) calc(var(--spacing-xl) + var(--spacing-xs));
+    background: var(--bg-overlay);
+    border-block: var(--border-width-hairline) solid var(--border);
+  }
+
+
+} /* @layer components */`;export{e as default};

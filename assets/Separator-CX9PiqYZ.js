@@ -1,0 +1,96 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog Separator — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: simple
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Separator {
+  /* Base styles — archetype: simple */
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: inline-flex;
+  align-items: center;
+
+  /* Default variant */
+  background: var(--bg);
+  color: var(--border);
+  border: var(--border-width-thin) solid var(--border);
+
+  /* Default size */
+  height: 2px;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-none);
+}
+
+.react-aria-Separator:where([data-variant="default"]) {
+  background: transparent;
+  color: var(--border);
+  border-color: var(--border);
+}
+
+.react-aria-Separator:where([data-variant="default"][data-static-color="black"]) {
+  color: #000000;
+  border-color: #000000;
+}
+
+.react-aria-Separator:where([data-variant="default"][data-static-color="black"][data-hovered]) {
+  color: #000000;
+}
+
+.react-aria-Separator:where([data-variant="default"][data-static-color="black"][data-pressed]) {
+  color: #000000;
+}
+
+.react-aria-Separator:where([data-variant="default"][data-static-color="white"]) {
+  color: #ffffff;
+  border-color: #ffffff;
+}
+
+.react-aria-Separator:where([data-variant="default"][data-static-color="white"][data-hovered]) {
+  color: #ffffff;
+}
+
+.react-aria-Separator:where([data-variant="default"][data-static-color="white"][data-pressed]) {
+  color: #ffffff;
+}
+
+.react-aria-Separator[data-size="S"] {
+  height: 1px;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-none);
+}
+
+.react-aria-Separator[data-size="M"] {
+  height: 2px;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-none);
+}
+
+.react-aria-Separator[data-size="L"] {
+  height: 4px;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-none);
+}
+
+.react-aria-Separator.react-aria-Separator:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+@media (forced-colors: active) {
+  .react-aria-Separator {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

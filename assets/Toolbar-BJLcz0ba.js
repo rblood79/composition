@@ -1,0 +1,105 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog Toolbar — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: default
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Toolbar {
+  /* Base styles — archetype: default */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: fit-content;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  width: fit-content;
+  height: fit-content;
+  display: flex;
+  align-items: center;
+
+  /* Default size */
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-md);
+  gap: 8px;
+}
+
+.react-aria-Toolbar[data-size="S"] {
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
+  gap: 4px;
+}
+
+.react-aria-Toolbar[data-size="M"] {
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-md);
+  gap: 8px;
+}
+
+.react-aria-Toolbar[data-size="L"] {
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-lg);
+  gap: 10px;
+}
+
+.react-aria-Toolbar.react-aria-Toolbar:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-Toolbar.react-aria-Toolbar:where([data-disabled]) {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-Toolbar[data-orientation="horizontal"] {
+  flex-direction: row;
+}
+
+.react-aria-Toolbar[data-orientation="vertical"] {
+  flex-direction: column;
+  align-items: start;
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-Toolbar {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-Toolbar .react-aria-Group {
+    display: contents;
+  }
+
+  .react-aria-Toolbar .react-aria-ToggleButton {
+    width: 32px;
+  }
+
+  .react-aria-Toolbar .react-aria-Separator {
+    align-self: stretch;
+    background-color: var(--bg-muted);
+  }
+
+  .react-aria-Toolbar .react-aria-Separator[aria-orientation="vertical"] {
+    width: 1px;
+    margin: 0px 10px;
+  }
+
+  .react-aria-Toolbar .react-aria-Separator:not([aria-orientation="vertical"]) {
+    border: none;
+    height: 1px;
+    width: 100%;
+    margin: 10px 0;
+  }
+
+
+} /* @layer components */`;export{e as default};

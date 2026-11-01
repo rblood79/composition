@@ -1,0 +1,65 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog DisclosureGroup — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: default
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-DisclosureGroup {
+  /* Base styles — archetype: default */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    box-sizing: border-box;
+    width: 100%;
+    font-size: var(--catalog-token-text-base);
+    border-radius: var(--catalog-token-radius-md);
+    overflow: hidden;
+
+  /* Default size */
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
+  border-width: var(--border-width-none);
+}
+
+.react-aria-DisclosureGroup[data-size="S"] {
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
+  border-width: var(--border-width-none);
+}
+
+.react-aria-DisclosureGroup[data-size="M"] {
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
+  border-width: var(--border-width-none);
+}
+
+.react-aria-DisclosureGroup[data-size="L"] {
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-lg);
+  border-width: var(--border-width-none);
+}
+
+.react-aria-DisclosureGroup.react-aria-DisclosureGroup:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-DisclosureGroup.react-aria-DisclosureGroup:where([data-disabled]) {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-DisclosureGroup {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};
