@@ -2873,6 +2873,7 @@ const semanticLabels: Record<string, string> = {
   "styles.transform.sizeMode.ratioTrigger": "Auto (ratio)",
   "styles.transform.sizeMode.groupBasic": "Size mode",
   "styles.transform.sizeMode.groupRelative": "Relative size",
+  "styles.token.offScale": "Not a theme step — pick one from the menu",
   "styles.transform.ratio.dependentAxis": "Unlock the ratio to edit this axis.",
   "styles.transform.computedSize": "Computed size",
   "styles.transform.notMeasured": "not measured",

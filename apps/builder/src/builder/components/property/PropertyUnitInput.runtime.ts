@@ -64,6 +64,11 @@ export interface PropertyUnitInputProps {
    * (panel-structure §1 · 감사 E2 — 종전 절 아래 전폭 `<p>`).
    */
   afterControl?: React.ReactNode;
+  /**
+   * ADR-298 Phase 4 — keep the unit menu beside the token steps: one list of the presets then the
+   * units (Position — a `%` inset stays reachable). Without it presets replace the unit menu.
+   */
+  presetUnits?: boolean;
 }
 
 export const DEFAULT_UNITS = ["px", "%", "rem", "em", "vh", "vw", "reset"];
@@ -168,13 +173,17 @@ export function tokenChipLabel(
 ): string | undefined {
   const trimmed = value.trim();
   if (!isTokenValue(trimmed)) return undefined;
-  const preset = presets?.find((candidate) => candidate.value.trim() === trimmed);
+  const preset = presets?.find(
+    (candidate) => candidate.value.trim() === trimmed,
+  );
   // 제목 묶음은 첫 글자로 본문의 같은 라벨과 가른다 (본문 「M」 · 제목 「H M」).
   if (preset)
     return preset.group === "Heading"
       ? `${preset.group[0]} ${preset.label}`
       : preset.label;
-  const step = /([a-z0-9]+)\)$/.exec(trimmed.replace(/--line-height\)$/, ")"))?.[1];
+  const step = /([a-z0-9]+)\)$/.exec(
+    trimmed.replace(/--line-height\)$/, ")"),
+  )?.[1];
   return step ? (STEP_LABELS[step] ?? step) : undefined;
 }
 

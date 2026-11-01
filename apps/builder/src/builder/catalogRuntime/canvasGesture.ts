@@ -65,6 +65,20 @@ import {
   type SpacingProperty,
 } from "../workspace/canvas/interaction/spacingTypes";
 import type { CatalogSpacingLive } from "./spacingLive";
+import { panelTokenUse } from "./panelTokens";
+import { SPACING_PRESET_OPTIONS } from "../components/property/propertyUnitPresets";
+import {
+  nearestPropertyUnitStep,
+  propertyUnitSteps,
+  type PropertyUnitStep,
+} from "../components/property/propertyUnitSteps";
+
+/**
+ * ADR-298 D6 — the Canvas spacing handle walks the Spacing field's ladder (0 · XS ~ XL at the
+ * active theme's px). Read per drag: a theme change moves the steps.
+ */
+const CANVAS_SPACING_STEPS = (): readonly PropertyUnitStep[] =>
+  propertyUnitSteps(SPACING_PRESET_OPTIONS);
 import { catalogSizingCommand } from "./sizing";
 import {
   readOwnFields,
@@ -318,6 +332,8 @@ type Gesture =
       sides: ("top" | "right" | "bottom" | "left")[];
       start: number;
       active: boolean;
+      /** The token step the value snapped to (its variable · chip) — ADR-298 D6; none when free. */
+      step?: { value: string; label?: string };
       value: number;
     }
   | {
@@ -679,6 +695,11 @@ export class CatalogCanvasGestures {
       bypassSize?: boolean;
       /** Control held: a flow drag drops the nodes absolutely at the dropped position. */
       absolute?: boolean;
+      /**
+       * ⌘/Ctrl held: a spacing drag takes free 1px values (Shift 10) instead of the token steps
+       * (ADR-298 D6 — ⌥ is the both-sides modifier here, so the snap-off key is the Canvas's ⌘).
+       */
+      free?: boolean;
     } = {},
   ): boolean {
     const gesture = this.gesture;
@@ -692,14 +713,22 @@ export class CatalogCanvasGestures {
       return false;
     gesture.active = true;
     if (gesture.kind === "spacing") {
-      gesture.value = Math.max(
-        0,
-        gesture.start +
-          applySpacingStep(
-            spacingDeltaFromPointer(gesture.band, dx, dy),
-            !!options.axisLock,
-          ),
-      );
+      const delta = spacingDeltaFromPointer(gesture.band, dx, dy);
+      const step = options.free
+        ? undefined
+        : nearestPropertyUnitStep(
+            CANVAS_SPACING_STEPS(),
+            Math.max(0, gesture.start + delta),
+          );
+      gesture.step = step?.preset
+        ? { value: step.value, label: step.preset.label }
+        : undefined;
+      gesture.value = step
+        ? step.px
+        : Math.max(
+            0,
+            gesture.start + applySpacingStep(delta, !!options.axisLock),
+          );
       this.showReflow(gesture);
       return true;
     }
@@ -1056,6 +1085,7 @@ export class CatalogCanvasGestures {
             bandId: gesture.band.id,
             bandIds: gesture.bandIds,
             mode: "drag",
+            ...(gesture.step?.label ? { label: gesture.step.label } : {}),
           },
         },
       };
@@ -1444,7 +1474,13 @@ export class CatalogCanvasGestures {
           )
         : undefined;
     if (gesture.kind === "spacing") {
+      // A token step commits the token (ADR-298 D6 — the node keeps the reference). Back at the
+      //   start value is no edit (a literal start stays the literal).
       if (gesture.value === gesture.start) return undefined;
+      const token = gesture.step
+        ? panelTokenUse(gesture.step.value)
+        : undefined;
+      const value = token ?? gesture.value;
       return setFields({
         targets: [gesture.item.target],
         breakpoint,
@@ -1452,10 +1488,10 @@ export class CatalogCanvasGestures {
           ? Object.fromEntries(
               gesture.sides.map((side) => [
                 PADDING_KEY[side],
-                { kind: "set", value: gesture.value },
+                { kind: "set", value },
               ]),
             )
-          : { gap: { kind: "set", value: gesture.value } },
+          : { gap: { kind: "set", value } },
         label: gesture.band.side ? "Padding" : "Gap",
       });
     }

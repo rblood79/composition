@@ -1291,8 +1291,7 @@ export function CatalogCanvas({
      */
     // (The pick's raise tables load when a pick starts — they stay out of the initial bundle, G4.)
     let pickModule:
-      | typeof import("../../../catalogRuntime/targetPick")
-      | undefined;
+      typeof import("../../../catalogRuntime/targetPick") | undefined;
     const loadPickModule = () => {
       if (!pickModule && workspace.session.getSnapshot().targetPick)
         void import("../../../catalogRuntime/targetPick").then((module) => {
@@ -1312,7 +1311,11 @@ export function CatalogCanvas({
       return {
         ruleId: pick.ruleId,
         found: target
-          ? pickModule.catalogCanvasTargetPick(workspace, pick.ruleId, target.id)
+          ? pickModule.catalogCanvasTargetPick(
+              workspace,
+              pick.ruleId,
+              target.id,
+            )
           : undefined,
       };
     };
@@ -1516,6 +1519,8 @@ export function CatalogCanvas({
           // a Mac drops a flow node absolutely (Ignore auto layout · Framer ⌃ drag).
           bypassSize: IS_MAC ? event.metaKey : event.ctrlKey,
           absolute: IS_MAC && event.ctrlKey,
+          // ADR-298 D6: a spacing drag snaps to the token steps; ⌘/Ctrl held = free 1px.
+          free: event.metaKey || event.ctrlKey,
         })
       ) {
         deferredSelect = undefined;

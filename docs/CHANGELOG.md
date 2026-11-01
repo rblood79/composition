@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-298 Phase 4 — Canvas 간격 핸들 · 입력 칸 끌기가 테마 단계를 밟는다] - 2026-11-02
+
+### Changed
+
+- **Canvas 의 padding · gap 핸들을 끌면 테마 간격 단계 (0 · XS 4 · S 8 · M 12 · L 16 · XL 24) 로 맞춰지고, 놓으면 그 토큰이 저장된다 (ADR-298 Phase 4)** — 끄는 동안 값 배지에 단계 이름이 같이 보인다 (「M 12」). 테마의 간격 값을 바꾸면 그 요소도 따라온다. 전에는 1px 단위 숫자가 저장됐다.
+  - 1px 단위로 끌고 싶으면 끄는 동안 ⌘ (Windows Ctrl) 를 누른다 (⇧ 를 더하면 10px). ⌥ 는 전처럼 양쪽 변을 같이 끈다.
+  - Design 패널 숫자 칸의 라벨 (아이콘 · 이름) 을 좌우로 끌면 값이 바뀐다. 토큰 칸 (Padding · Gap · Radius · Border Width · Font Size · Position) 은 한 번에 한 단계씩, ⌥ 를 누르면 1 단위 숫자. 놓을 때 한 번 저장된다.
+  - 테마 단계에 없는 숫자 (예: 옛 문서의 10) 는 칸 앞에 주황 테두리 점이 붙는다. 값은 그대로이고, 메뉴에서 단계를 고르면 토큰이 된다. 비어 있는 칸은 흐린 「—」 (rule 기본값을 따름).
+  - Position 의 Left · Top · Right · Bottom ▾ 메뉴에 간격 단계와 단위 (px · %) 가 함께 나온다. 단계를 고르면 토큰, % 를 고르면 % 값.
+  - **Why**: 토큰 모델 A — 패널 메뉴만 토큰을 쓰고 Canvas 핸들 · 끌기는 숫자를 저장하면, 같은 화면의 다른 편집 경로가 테마 밖 값을 다시 만든다.
+  - 위치: `apps/builder/src/builder/components/property/propertyUnitSteps.ts` · `PropertyUnitInput.components.tsx` · `catalogRuntime/canvasGesture.ts` · `workspace/canvas/skia/spacingOverlayRenderer.ts` · `panels/styles/sections/TransformSection.tsx` · 테스트 `adr298Phase4Panel.test.tsx` · `phase4eCanvasGesture.test.ts`
+
 ## [ADR-298 Phase 3 — 색 · 위치 · 간격 칸도 테마 토큰을 쓴다] - 2026-11-02
 
 ### Changed

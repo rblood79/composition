@@ -2861,6 +2861,8 @@ const semanticLabels: Record<string, string> = {
   "styles.transform.sizeMode.ratioTrigger": "자동(비율)",
   "styles.transform.sizeMode.groupBasic": "크기 방식",
   "styles.transform.sizeMode.groupRelative": "상대 크기",
+  "styles.token.offScale":
+    "테마 단계가 아닌 값 — 메뉴에서 단계를 고르면 토큰이 된다",
   "styles.transform.ratio.dependentAxis":
     "Ratio 잠금을 해제하면 이 축을 직접 편집할 수 있습니다.",
   "styles.transform.computedSize": "계산된 크기",

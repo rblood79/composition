@@ -719,7 +719,7 @@ describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
     ];
     const before = applied();
     expect(gestures.beginSpacing(tx, ty, 1)).toBe(true);
-    gestures.update(tx, ty + 10, 1);
+    gestures.update(tx, ty + 10, 1, { free: true });
     expect(box("a").y).toBe(aTop + 10);
     gestures.cancel();
     expect(box("a").y).toBe(aTop);
@@ -728,8 +728,8 @@ describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
     // Dragged and brought back to the start value: no command, and the record is its own again
     // (no previewed value left for the DOM readers of the same inputs).
     expect(gestures.beginSpacing(tx, ty, 1)).toBe(true);
-    gestures.update(tx, ty + 10, 1);
-    gestures.update(tx, ty, 1);
+    gestures.update(tx, ty + 10, 1, { free: true });
+    gestures.update(tx, ty, 1, { free: true });
     expect(gestures.finish()).toBe(false);
     expect(
       workspace.root.domInputs.get(record("list"))?.visual,
@@ -825,7 +825,7 @@ describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
     const [tx, ty] = center("padding", "top");
     expect(gestures.spacingAt(tx, ty, 1)?.onHandle).toBe(true);
     expect(gestures.beginSpacing(tx, ty, 1, { alt: true })).toBe(true);
-    gestures.update(tx, ty + 10, 1);
+    gestures.update(tx, ty + 10, 1, { free: true });
     expect(gestures.preview()?.spacing?.active.bandIds).toHaveLength(2);
     gestures.finish();
     expect(visual()).toMatchObject({
@@ -843,9 +843,61 @@ describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
         band.rect.y + band.rect.height / 2,
       ])[0];
     gestures.beginSpacing(gx, gy, 1);
-    gestures.update(gx, gy + 13, 1, { axisLock: true });
+    gestures.update(gx, gy + 13, 1, { axisLock: true, free: true });
     gestures.finish();
     expect(visual()).toMatchObject({ gap: { kind: "set", value: 14 } });
+  });
+
+  // ADR-298 Phase 4 (D6): the handle walks the Spacing ladder (0 · XS 4 · S 8 · M 12 · L 16 · XL 24 at
+  //   the active theme) and commits the step's token; ⌘/Ctrl (`free`) is the old 1px value.
+  it("a spacing drag snaps to the token steps and commits the token; ⌘ drags free px", async () => {
+    const { workspace, gestures, record } = await open();
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("list") }],
+        visual: { padding: { kind: "set", value: 8 } },
+      }),
+    );
+    workspace.selectRecords([record("list")]);
+    const visual = () => {
+      const entry = workspace.runtime.graph.getEntry(id("list"));
+      return entry?.kind === "node" ? entry.visual : {};
+    };
+    const top = () => {
+      const band = gestures
+        .spacingBands()
+        .find((item) => item.kind === "padding" && item.side === "top")!;
+      return [
+        band.rect.x + band.rect.width / 2,
+        band.rect.y + band.rect.height / 2,
+      ] as const;
+    };
+    // 8 + 5 = 13 → the nearest step M (12): the badge names it, the node keeps its token.
+    let [tx, ty] = top();
+    gestures.beginSpacing(tx, ty, 1);
+    gestures.update(tx, ty + 5, 1);
+    expect(gestures.preview()?.spacing?.active.label).toBe("M");
+    gestures.finish();
+    expect(visual().paddingTop).toEqual({
+      kind: "set",
+      value: { kind: "token", tokenId: "lib:token:spacing_md" },
+    });
+    // Far past the ladder: it stops at XL (24) — larger values are typed or dragged with ⌘.
+    [tx, ty] = top();
+    gestures.beginSpacing(tx, ty, 1);
+    gestures.update(tx, ty + 200, 1);
+    gestures.finish();
+    expect(visual().paddingTop).toEqual({
+      kind: "set",
+      value: { kind: "token", tokenId: "lib:token:spacing_xl" },
+    });
+    // ⌘ held: the free 1px value, a literal, no step label.
+    [tx, ty] = top();
+    gestures.beginSpacing(tx, ty, 1);
+    gestures.update(tx, ty + 7, 1, { free: true });
+    expect(gestures.preview()?.spacing?.active.label).toBeUndefined();
+    gestures.finish();
+    expect(visual().paddingTop).toEqual({ kind: "set", value: 31 });
   });
 
   // The old spacing interaction read the Styles box model's padding link (any side → all four)
@@ -869,7 +921,7 @@ describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
       top.rect.y + top.rect.height / 2,
     ];
     expect(gestures.beginSpacing(tx, ty, 1)).toBe(true);
-    gestures.update(tx, ty + 10, 1);
+    gestures.update(tx, ty + 10, 1, { free: true });
     // The panel's view while dragging: 18 on all four sides of this record.
     const view = useSpacingSessionView(live.at(-1)!);
     expect(view.properties).toEqual([
@@ -917,7 +969,7 @@ describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
     };
     // A drag is not a click.
     gestures.beginSpacing(tx, ty, 1);
-    gestures.update(tx, ty + 10, 1);
+    gestures.update(tx, ty + 10, 1, { free: true });
     gestures.finish();
     expect(gestures.takeSpacingClick()).toBeUndefined();
     // A press released in place (Alt: both sides) is, once.

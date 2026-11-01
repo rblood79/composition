@@ -114,6 +114,8 @@ function drawBadge(
   value: number,
   zoom: number,
   fontMgr: FontMgr,
+  /** A token step's chip (ADR-298 D6 — 「M 12」), else the number. */
+  step?: string,
 ): void {
   const invZoom = 1 / zoom;
   const fontSize = BADGE_FONT_SIZE_PX * invZoom;
@@ -132,7 +134,9 @@ function drawBadge(
     text.setStyle(ck.PaintStyle.Fill);
     text.setColor(ck.Color4f(1, 1, 1, 1));
 
-    const label = `${Math.round(value)}`;
+    const label = step
+      ? `${step} ${Math.round(value)}`
+      : `${Math.round(value)}`;
     const textWidth = measureGlyphRunWidth(font, label);
     const textHeight = BADGE_LINE_HEIGHT_PX * invZoom;
     const paddingX = BADGE_PADDING_X_PX * invZoom;
@@ -217,7 +221,16 @@ export function renderSpacingOverlay(
   if (!fontMgr) return;
   if (active && active.mode !== "input") {
     const grabbed = bands.find((band) => band.id === active.bandId);
-    if (grabbed) drawBadge(ck, canvas, grabbed, grabbed.value, zoom, fontMgr);
+    if (grabbed)
+      drawBadge(
+        ck,
+        canvas,
+        grabbed,
+        grabbed.value,
+        zoom,
+        fontMgr,
+        active.mode === "drag" ? active.label : undefined,
+      );
   } else if (hovered) {
     drawBadge(ck, canvas, hovered, hovered.value, zoom, fontMgr);
   }

@@ -46,6 +46,8 @@ export interface SpacingActiveTarget {
   /** 같이 움직이는 띠 전부 (Option/Alt 양쪽 · 4변) */
   readonly bandIds: readonly string[];
   readonly mode: SpacingActiveMode;
+  /** The drag's token step (「M 12」 — ADR-298 D6); absent for a free value. */
+  readonly label?: string;
 }
 
 /** Why a container's padding · gap cannot be edited on the Canvas (ADR-222). */

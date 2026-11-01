@@ -45,7 +45,14 @@ import {
   UNIT_GATED_KEYWORDS,
 } from "./PropertyUnitInput.runtime";
 import type { PropertyUnitPreset } from "./propertyUnitPresets";
+import { propertyUnitStepFrom, propertyUnitSteps } from "./propertyUnitSteps";
 import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
+
+/** ADR-298 D6 — scrub: px of pointer travel before a drag starts, and per ladder step. */
+const SCRUB_THRESHOLD_PX = 3;
+const SCRUB_STRIDE_PX = 8;
+/** A unit row's key in the combined step + unit menu (a preset id never starts with it). */
+const UNIT_KEY = "unit:";
 
 /** Consecutive presets of one `group` (ungrouped ones — Reset — stand alone). */
 function presetGroups(presets: readonly PropertyUnitPreset[]) {
@@ -88,6 +95,7 @@ export const PropertyUnitInputControl = memo(
     unitSuffix = false,
     sizeControl,
     afterControl,
+    presetUnits = false,
   }: PropertyUnitInputProps) {
     const i18n = useOptionalI18n();
     const displayLabel =
@@ -115,11 +123,14 @@ export const PropertyUnitInputControl = memo(
     const [draftUnit, setDraftUnit] = useState<string | null>(null);
     const unit = draftUnit ?? resolvedUnit;
     const hasPresets = Boolean(presets?.length);
+    // ADR-298 Phase 4: the step menu and the unit menu in one list (Position — `%` stays a unit).
+    const unitsWithPresets = hasPresets && presetUnits;
     const isTypedKeyword = (keyword: string) =>
       KEYWORDS.includes(keyword) &&
       (!UNIT_GATED_KEYWORDS.includes(keyword) || units.includes(keyword));
     const hasUnitPresets = presetsUseCssUnits(presets);
-    const inputUnit = hasPresets && hasUnitPresets ? "px" : unit;
+    const inputUnit =
+      hasPresets && hasUnitPresets && !unitsWithPresets ? "px" : unit;
     // ADR-298 D4: a token value (`var(--spacing-md)`) — chip + the active value, not a keyword.
     const valueIsToken = isTokenValue(value);
     const tokenChip = tokenChipLabel(value, presets);
@@ -219,7 +230,7 @@ export const PropertyUnitInputControl = memo(
     //   않는다 (2026-09-17). 아니면 현재 단위, 키워드 단위(auto, fit-content 등)에서 숫자로
     //   전환 시 px.
     const resolveTypedUnit = (typed: string): string => {
-      if (hasPresets) return hasUnitPresets ? "px" : "";
+      if (hasPresets && !unitsWithPresets) return hasUnitPresets ? "px" : "";
       const typedUnit = parseUnitValue(typed).unit;
       if (
         typedUnit !== "" &&
@@ -524,7 +535,9 @@ export const PropertyUnitInputControl = memo(
     const suffixIsTrigger = isSuffix && !hasPresets && Boolean(displayLabel);
     // legend 모드 + unitSuffix: 트리거 글자가 현재 단위 (「8 PX」, 단위 없음은 —)
     const unitIsTrigger =
-      !isSuffix && (unitSuffix || isIconMode) && !hasPresets;
+      !isSuffix &&
+      (unitSuffix || isIconMode) &&
+      (!hasPresets || unitsWithPresets);
     const sizeReadOnly =
       sizeControl &&
       sizeControl.kind !== "css" &&
@@ -556,19 +569,135 @@ export const PropertyUnitInputControl = memo(
                 "Auto (ratio)",
               )
             : undefined;
-    const unitSuffixText =
-      unit === "" ||
-      unit === "reset" ||
-      isKeyword ||
-      (value === "" && units.includes("reset"))
+    const unitSuffixText = valueIsToken
+      ? "px"
+      : unit === "" ||
+          unit === "reset" ||
+          isKeyword ||
+          (value === "" && units.includes("reset"))
         ? "—"
         : unit;
+
+    // ADR-298 D4 · D6 — the field's step ladder (its token presets at the active px, + 0).
+    const steps = useMemo(() => propertyUnitSteps(presets), [presets]);
+    const pxValued = valueIsToken || inputUnit === "px";
+    /** A literal not on the ladder (an old document's 10 — D9): shown with a dot, kept as it is. */
+    const offScale =
+      steps.length > 0 &&
+      !valueIsToken &&
+      pxValued &&
+      numericValue !== null &&
+      numericValue !== 0 &&
+      !steps.some((step) => step.px === numericValue);
+    /** Empty = the rule's value shows through (inherit) — a dim 「—」, not 「reset」. */
+    const emptyInherits =
+      steps.length > 0 && value.trim() === "" && placeholder === "reset";
+    const offScaleText = i18n
+      ? translateKey(
+          i18n.t,
+          "styles.token.offScale",
+          "Not a theme step — pick one from the menu",
+        )
+      : "Not a theme step — pick one from the menu";
+    const scrubbable =
+      !isDisabled &&
+      !isKeyword &&
+      !(sizeControl && !(sizeControl.kind === "css"));
+    const scrubRef = useRef<{
+      x: number;
+      start: number;
+      original: string;
+      next: string;
+      moved: boolean;
+    } | null>(null);
+    /**
+     * Pointer scrub on the field's label (icon · legend — Figma's label drag): a token field walks
+     * its ladder one step per {@link SCRUB_STRIDE_PX} (D6 — the same steps the Canvas handle snaps
+     * to), ⌥ is the free value (1 per px, ⇧ ×10), a field without steps is always free. The drag
+     * previews through `onDrag` (a field without one only shows the value); release commits once.
+     */
+    const scrubHandlers = scrubbable
+      ? {
+          onPointerDown: (event: React.PointerEvent<HTMLElement>) => {
+            if (event.button !== 0) return;
+            const typed = parseFloat(inputValue);
+            const start = Number.isFinite(typed) ? typed : (numericValue ?? 0);
+            scrubRef.current = {
+              x: event.clientX,
+              start,
+              original: value,
+              next: value,
+              moved: false,
+            };
+            event.currentTarget.setPointerCapture?.(event.pointerId);
+            event.preventDefault();
+          },
+          onPointerMove: (event: React.PointerEvent<HTMLElement>) => {
+            const scrub = scrubRef.current;
+            if (!scrub) return;
+            const dx = event.clientX - scrub.x;
+            if (!scrub.moved && Math.abs(dx) < SCRUB_THRESHOLD_PX) return;
+            scrub.moved = true;
+            let next: string;
+            if (steps.length && pxValued && !event.altKey) {
+              const count = Math.trunc(dx / SCRUB_STRIDE_PX);
+              next =
+                count === 0
+                  ? scrub.original
+                  : (propertyUnitStepFrom(steps, scrub.start, count)?.value ??
+                    scrub.original);
+            } else {
+              const delta = Math.round(dx) * (event.shiftKey ? 10 : 1);
+              const n = Math.min(max, Math.max(min, scrub.start + delta));
+              next = `${Number(n.toFixed(4))}${inputUnit}`;
+            }
+            if (next === scrub.next) return;
+            scrub.next = next;
+            setInputValue(
+              getInputDisplayValue(next, parseUnitValue(next), false, presets),
+            );
+            // A field without a preview shows the step and commits once on release (one History).
+            onDrag?.(next);
+          },
+          onPointerUp: (event: React.PointerEvent<HTMLElement>) => {
+            const scrub = scrubRef.current;
+            scrubRef.current = null;
+            event.currentTarget.releasePointerCapture?.(event.pointerId);
+            if (!scrub?.moved) return;
+            syncAfterPresetRef.current = true;
+            if (
+              scrub.next !== scrub.original &&
+              scrub.next !== lastSavedValueRef.current
+            ) {
+              lastSavedValueRef.current = scrub.next;
+              onChange(scrub.next);
+            }
+          },
+          onPointerCancel: () => {
+            const scrub = scrubRef.current;
+            scrubRef.current = null;
+            if (!scrub?.moved) return;
+            setInputValue(
+              getInputDisplayValue(
+                value,
+                parsed,
+                isPreservedEmptyValue,
+                presets,
+              ),
+            );
+            onDrag?.(scrub.original);
+          },
+        }
+      : undefined;
     return (
       <fieldset
         className={`properties-aria property-unit-input ${className || ""}`}
         title={sizeControl?.description}
         data-size-control={sizeControl ? "true" : undefined}
         data-token-value={valueIsToken ? "true" : undefined}
+        data-off-scale={offScale ? "true" : undefined}
+        data-empty={emptyInherits ? "true" : undefined}
+        data-scrub={scrubHandlers ? "true" : undefined}
         data-label-mode={
           labelMode === "suffix" ? "suffix" : unitIsTrigger ? "unit" : undefined
         }
@@ -577,11 +706,13 @@ export const PropertyUnitInputControl = memo(
         }
       >
         {displayLabel && labelMode === "legend" && (
-          <legend className="fieldset-legend">{displayLabel}</legend>
+          <legend className="fieldset-legend" {...scrubHandlers}>
+            {displayLabel}
+          </legend>
         )}
         <div className="react-aria-control react-aria-Group" ref={groupRef}>
           {Icon && (labelMode === "legend" || isIconMode) && (
-            <label className="control-label">
+            <label className="control-label" {...scrubHandlers}>
               <Icon
                 color={iconProps.color}
                 size={iconProps.size}
@@ -620,6 +751,10 @@ export const PropertyUnitInputControl = memo(
                 return;
               }
 
+              if (unitsWithPresets && String(key).startsWith(UNIT_KEY)) {
+                handleUnitChange(String(key).slice(UNIT_KEY.length));
+                return;
+              }
               if (hasPresets) {
                 const preset = presets?.find(
                   (candidate) => candidate.id === String(key),
@@ -648,14 +783,18 @@ export const PropertyUnitInputControl = memo(
               handleUnitChange(selectedUnit);
             }}
             selectedKey={
-              hasPresets
-                ? (selectedPreset?.id ?? null)
-                : (draftUnit ??
-                  (value === "" && units.includes("reset")
-                    ? "reset"
-                    : unit === ""
-                      ? "—"
-                      : unit))
+              unitsWithPresets
+                ? valueIsToken
+                  ? (selectedPreset?.id ?? null)
+                  : `${UNIT_KEY}${unit}`
+                : hasPresets
+                  ? (selectedPreset?.id ?? null)
+                  : (draftUnit ??
+                    (value === "" && units.includes("reset")
+                      ? "reset"
+                      : unit === ""
+                        ? "—"
+                        : unit))
             }
             aria-label={
               hasPresets
@@ -670,6 +809,13 @@ export const PropertyUnitInputControl = memo(
             }
           >
             <div className="combobox-container" ref={comboBoxContainerRef}>
+              {offScale && (
+                <span
+                  className="property-unit-input__off-scale"
+                  aria-hidden="true"
+                  title={offScaleText}
+                />
+              )}
               {tokenChip && (
                 <span
                   className="property-unit-input__token"
@@ -687,7 +833,10 @@ export const PropertyUnitInputControl = memo(
                   sizeReadOnly ? "" : showKeywordAsPlaceholder ? "" : inputValue
                 }
                 readOnly={!!sizeReadOnly}
-                aria-description={sizeControl?.description}
+                aria-description={
+                  sizeControl?.description ??
+                  (offScale ? offScaleText : undefined)
+                }
                 onChange={(e) => handleInputChange(e.target.value)}
                 onFocus={handleInputFocus}
                 onBlur={handleInputBlur}
@@ -715,7 +864,9 @@ export const PropertyUnitInputControl = memo(
                       : String(Math.round(sizeControl.computed))
                     : showKeywordAsPlaceholder && inputValue.trim() !== ""
                       ? inputValue
-                      : placeholder
+                      : emptyInherits
+                        ? "—"
+                        : placeholder
                 }
               />
               {suffixIsTrigger || unitIsTrigger ? (
@@ -811,35 +962,67 @@ export const PropertyUnitInputControl = memo(
                       </ListBoxSection>,
                     ]
                   : hasPresets
-                    ? presetGroups(presets ?? []).map(({ group, items }) => {
-                        const rows = items.map((preset) => (
-                          <ListBoxItem
-                            key={preset.id}
-                            id={preset.id}
-                            className="react-aria-ListBoxItem"
-                            textValue={presetName(preset)}
-                            aria-label={presetName(preset)}
-                          >
-                            {/* 「XS · 4」 — 토큰 이름 + 풀린 px (Border 프리셋 메뉴와 같은 표기).
+                    ? [
+                        ...presetGroups(presets ?? []).map(
+                          ({ group, items }) => {
+                            const rows = items.map((preset) => (
+                              <ListBoxItem
+                                key={preset.id}
+                                id={preset.id}
+                                className="react-aria-ListBoxItem"
+                                textValue={presetName(preset)}
+                                aria-label={presetName(preset)}
+                              >
+                                {/* 「XS · 4」 — 토큰 이름 + 풀린 px (Border 프리셋 메뉴와 같은 표기).
                               이름이 곧 값이면 (Grid Columns 「3」) 하나만 — 「3 · 3」 금지 */}
-                            {preset.value.trim() === "" ||
-                            preset.label === getPresetDisplayValue(preset.value)
-                              ? preset.label
-                              : `${preset.label} · ${getPresetDisplayValue(preset.value)}`}
-                          </ListBoxItem>
-                        ));
-                        // ADR-298 D3: 묶음 (Font Size 본문 · 제목) 은 ListBox section 하나씩.
-                        return group ? (
-                          <ListBoxSection key={group} aria-label={group}>
-                            <Header className="property-unit-input__group">
-                              {group}
-                            </Header>
-                            {rows}
-                          </ListBoxSection>
-                        ) : (
-                          rows
-                        );
-                      })
+                                {preset.value.trim() === "" ||
+                                preset.label ===
+                                  getPresetDisplayValue(preset.value)
+                                  ? preset.label
+                                  : `${preset.label} · ${getPresetDisplayValue(preset.value)}`}
+                              </ListBoxItem>
+                            ));
+                            // ADR-298 D3: 묶음 (Font Size 본문 · 제목) 은 ListBox section 하나씩.
+                            return group ? (
+                              <ListBoxSection key={group} aria-label={group}>
+                                <Header className="property-unit-input__group">
+                                  {group}
+                                </Header>
+                                {rows}
+                              </ListBoxSection>
+                            ) : (
+                              rows
+                            );
+                          },
+                        ),
+                        // ADR-298 Phase 4 — the unit rows after the steps (Position keeps `%`).
+                        ...(unitsWithPresets
+                          ? [
+                              <ListBoxSection
+                                key={UNIT_KEY}
+                                aria-label={unitLabel}
+                              >
+                                <Header className="property-unit-input__group">
+                                  {unitLabel}
+                                </Header>
+                                {units
+                                  .filter(
+                                    (u) => u !== "" && !KEYWORDS.includes(u),
+                                  )
+                                  .map((u) => (
+                                    <ListBoxItem
+                                      key={`${UNIT_KEY}${u}`}
+                                      id={`${UNIT_KEY}${u}`}
+                                      className="react-aria-ListBoxItem"
+                                      textValue={u}
+                                    >
+                                      {u}
+                                    </ListBoxItem>
+                                  ))}
+                              </ListBoxSection>,
+                            ]
+                          : []),
+                      ]
                     : units.map((u) => (
                         <ListBoxItem
                           key={u === "" ? "—" : u}

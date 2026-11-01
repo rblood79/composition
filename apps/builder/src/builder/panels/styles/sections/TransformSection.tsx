@@ -22,6 +22,12 @@ import { PropertySegment } from "../../../components/property/PropertySegment";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
 import { isTokenValue } from "../../../components/property/PropertyUnitInput.runtime";
+import { SPACING_PRESET_OPTIONS } from "../../../components/property/propertyUnitPresets";
+
+/** ADR-298 Phase 4 — a Position side's steps: the Spacing ladder (empty = auto is typed, not a step). */
+const POSITION_STEP_PRESETS = SPACING_PRESET_OPTIONS.filter(
+  (preset) => preset.value.trim() !== "",
+);
 import {
   SwatchIconButton,
   SwatchIconToggleButton,
@@ -687,10 +693,12 @@ const PositionControls = memo(function PositionControls({
         ? view(side) !== undefined && view(side) !== "auto"
         : !end && relative;
     const disabled = rulePlaced || (!absolute && !sticky && end);
-    // A spacing token the side was written with (code view · a later preset menu — Phase 4 merges the
-    //   unit menu with the steps, keeping `%`) shows as its chip with the token's px.
+    // A spacing token the side was written with shows as its chip with the token's px. The ▾ menu
+    //   lists the Spacing steps then the units (ADR-298 Phase 4 — `%` stays reachable); a Center
+    //   offset is a distance from the centre, written in px (no steps).
     const own = authored?.[side];
-    const token = typeof own === "string" && isTokenValue(own) ? own : undefined;
+    const token =
+      typeof own === "string" && isTokenValue(own) ? own : undefined;
     const value = pinned ? (token ?? view(side) ?? "0px") : "";
     const centerOffset = absolute && constraint[axis] === "center" && !end;
     return (
@@ -702,6 +710,8 @@ const PositionControls = memo(function PositionControls({
         className={`position-field position-field--${side}${pinned ? "" : " position-field--auto"}`}
         value={value}
         units={["px", "%"]}
+        presets={centerOffset ? undefined : POSITION_STEP_PRESETS}
+        presetUnits
         preserveEmptyValueOnUnitChange
         allowEmptyReset
         isDisabled={disabled}
