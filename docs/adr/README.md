@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-11-02 ADR-297 Implemented** — Phase 0 ~ 4 닫힘 (G5 live Chrome MCP 5177 · `### Live Exercise`). 본문을 `completed/` 로 옮기고 열림 · 순서 표에서 뺐다 (열림 2 = 245 Proposed · 298 Accepted — 표의 열림 수는 298 추가 때 빠져 있던 것을 같이 맞춤). G5 중 찾은 Tag 지우기 버튼 높이 · Preview 에서 Button 작성 색이 사라지던 297 회귀를 같이 수리 (`54f7e8ecc`). 후속 (트리 계약 밖, LOW) 은 breakdown §6.4 ② ~ ⑥.
+
 > **2026-11-02 ADR-297 Phase 4 G5 · G6** — live (Chrome MCP 5177): Button accent 휴지 · hover · pressed · disabled / quiet ToggleButton 선택 · hover / TextField invalid + hover / 강조 Tag 선택 / 강조 Checkbox 선택을 Canvas node data 와 Preview computed style 로 대조 — 6 경우 PASS · 콘솔 0, Styles 패널 Fill 도 같음 (패널은 휴지 상태로 트리를 읽는다). 규칙 문서 3 (`ssot-hierarchy.md` D3 · `canvas-rendering.md` §2.5.5 · `style-ssot.md` §3). Implemented 는 사용자 확인 뒤.
 
 > **2026-11-02 ADR-297 Phase 3 닫힘** — 상태 표현 ③ ④ ⑤ 와 수동 selected · focus CSS 가 조건 트리 하나 · 확정 8 건 S2 값 (사용자 결정 2) · 옛 칠 형식 삭제 (커밋 `ced88ded1` · `1c1cca5af` · `e87b917c6`). 표 전수 칠 대조 판정: 합성 요소 300 행을 실제 노드 트리 하니스 (`adr297RealPaintParity`) 로 다시 재 536 칸 중 36 — 그중 트리를 두 소비자가 다르게 읽은 묶음 컨테이너 (CheckboxGroup · RadioGroup · DisclosureGroup · Form · Pagination · Toolbar) 의 Canvas 전용 바탕 · 테두리 8 칸을 S2 대로 칠 없음으로 수리 (사용자 결정 「① 만 수리 후 닫기」 · 게이트 `adr297ContainerPaintGate`), 남은 28 칸은 후속 (breakdown §6.4). 다음 Phase 4.
@@ -557,8 +559,8 @@
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     295 |
-| ├ Implemented / Complete(d)   |     249 |
+| 완료 (`completed/`)           |     296 |
+| ├ Implemented / Complete(d)   |     250 |
 | ├ Accepted                    |      14 |
 | ├ Superseded                  |      18 |
 | ├ Deprecated                  |      13 |
@@ -567,7 +569,7 @@
 | ├ Proposed                    |       1 |
 | ├ Accepted (미착수·일부 착수) |       1 |
 | └ 부분 완료                   |       0 |
-| **합계**                      | **299** |
+| **합계**                      | **298** |
 
 > 2026-10-21 재대조 (9): ADR-277 Implemented (완료 +1 · 열림 −1) — 열림 3 = 245 (사용자 보류) · 275 · 276 (둘 다 Accepted, G5 대기). 직전 표는 275 · 276 · 277 Accepted 추가가 반영되지 않아 열림 1 · 합계 295 로 적혀 있었다 — 실측 (완료 표 행 296 · `adr/` 직속 ADR 3) 에 맞췄다.
 >
@@ -606,11 +608,6 @@
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
 
-#### [297](297-rule-state-condition-tree-single-priority.md) — catalog rule 상태 표현을 조건 트리 하나로 — Canvas evaluator · CSS compiler 가 같은 트리를 읽어 상태 우선순위를 데이터로 단일화
-
-- **상태**: Accepted — 2026-11-01 (`/execute-adr 297`, 리뷰 round 3 승인). **Phase 0 · 1 닫힘** — 기준선 스크립트 (`adr297-baseline.ts`) · `conditionTree.ts` (evaluator · compiler `:where()`) · `rulePaintTree.ts` · `paintReach.ts` · Button 가족 5 rule 10 variant 트리 전환 (codemod `adr297-rule-to-tree.ts`). G1: 생성 CSS diff 0 · paint 닿는 입력 10,044 행 동일 · 표 전수 동치 · Chromium computed 대조 PASS · 원복 RED 2 · live 5177. **Phase 2 (상태 칠 ① ②) 닫힘** — 표 전수 190 variant 트리 · 옛 칸 · 옛 사슬 · `paintVariant` 삭제 · 투영기 · DOM 컴포넌트 트리 읽기 (CSS diff 0 · paint 동일 · RED 2 · live). **Phase 3 닫힘** (2026-11-02) — ③ `structure.states` · ④ `&` rootSelectors · ⑤ `selected` variant · 수동 selected · focus CSS 를 같은 트리로, 확정 8 건 S2 값 (사용자 결정 2), 옛 칠 형식 삭제 (`VariantSpec` · `cssEmitMode` · 승인 4 파일), 표 전수 칠 대조 판정 — 실제 노드 트리 536 칸 중 36, 트리를 두 소비자가 다르게 읽은 묶음 컨테이너 6 rule 8 칸 수리 (나머지 28 칸 후속). **Phase 4 G5 · G6 (2026-11-02)** — G5 live 6 경우 PASS (Chrome MCP 5177) · 규칙 문서 3. 남은 것: 사용자 확인 뒤 Implemented.
-- **규모**: Phase 0 (인벤토리 freeze · 「다름 9」 Compare Mode 실측 · 기준선 JSON 3 · RED) → 1 `conditionTree.ts` evaluator · compiler + Button 가족 (diff 0) → 2 표 전수 codemod · 투영기 3 · 소비자 · 타입 1 벌 · 어댑터 삭제 (diff 0 · ratchet) → 3 우선순위 통일 (`legacyOrder` 삭제 · `button-base` 흡수 · static 수동 CSS) → 4 live · 문서. 추정 ~70 파일 (표 14,484 줄 codemod 1 커밋). 문서 스키마 0. breakdown: [design/297](design/297-rule-state-condition-tree-breakdown.md)
-
 #### [298](298-node-token-reference-panel-token-first.md) — 노드 값의 토큰 참조 저장 — Design 패널이 px · hex 리터럴 대신 테마 토큰을 먼저 쓰게 (토큰 모델 A)
 
 - **상태**: Accepted — 2026-11-01 (`/execute-adr 298` + reviews round 2 pending 0). **Phase 0 ~ 4 닫힘** · 사용자 결정 7 = 선행 `/fix` · 3 = 토큰 칸 · 6 = 묶는다 · 2 = 넣는다 (fills 색 · inset). 다음 Phase 5 (번들 · 패널 입력 프레임 · 그림자 역매핑 삭제 판단 · 시안 대조 · Implemented). 남은 질문 0.
@@ -645,8 +642,7 @@
 
 | 순위 | ADR                                                                                            | 착수 준비도                                                                                                                                                                               | 차단 · 선행                                                                                                                                                                                                                |
 | :--: | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|  1   | [297](297-rule-state-condition-tree-single-priority.md)                                        | Accepted 2026-11-01 — **Phase 0 ~ 3 닫힘** (조건 트리 + 표 전수 · 상태 · 선택 · 수동 CSS 흡수 · S2 8 건 · 옛 형식 삭제 · 칠 대조 판정) · Phase 4 G5 live · G6 문서 (2026-11-02) → 사용자 확인 뒤 Implemented | 선행 295 · 293 Implemented 충족 · 사용자 결정 3 (Canvas 상태 집합 · S2 에 없는 조합 순서 · 수동 CSS 흡수 폭) · 296 과 파일 겹침 없음 (코드 보기는 D3 rule 을 내보내지 않음) · 295 후속 세션과 표 겹침 — 착수 전 dirty 확인 |
-|  2   | [298](298-node-token-reference-panel-token-first.md)                                           | Accepted 2026-11-01 — **Phase 0 ~ 4 닫힘** (토큰 층 · 패널 · 색 · Position · Canvas 스냅 · scrub) → 다음 Phase 5 (live · 번들 · 문서 · Implemented)                                                                      | 선행 295 · 293 · 296 Implemented 충족 · 사용자 결정 질문 0 (7 · 3 · 6 · 2 답함) · 297 과 `resolver.ts` 겹침 (297 paint 분기 · 298 `tokenValue`) — 297 Phase 3 뒤 착수 권고 |
+|  1   | [298](298-node-token-reference-panel-token-first.md)                                           | Accepted 2026-11-01 — **Phase 0 ~ 4 닫힘** (토큰 층 · 패널 · 색 · Position · Canvas 스냅 · scrub) → 다음 Phase 5 (live · 번들 · 문서 · Implemented)                                                                      | 선행 295 · 293 · 296 Implemented 충족 · 사용자 결정 질문 0 (7 · 3 · 6 · 2 답함) · 297 과 `resolver.ts` 겹침 (297 paint 분기 · 298 `tokenValue`) — 297 Phase 3 뒤 착수 권고 |
 |  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상)                                                                                                         | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)                                                                                                                             |
 |  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                                                                                                                                   | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                                                                                                                                                     |
 |  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                                                                                                                        | 각 항목의 재개 조건 발생 시                                                                                                                                                                                                |
@@ -978,6 +974,7 @@
 | [294](completed/294-component-event-variable-properties.md) | 사용자 컴포넌트의 event · variable property — 원본이 값을 내보내고 (`emit` → instance When `property:<key>`) 받는 (입력 변수 — 리터럴 · page 변수 참조) 경계 · 경계 함수 · 해석 함수 하나 · Properties · Interactions · code view (`onPick={…}` · `team={…}`) · contract 52 · G4 Builder 상한 +4,608 정정 · 사용자 확인 2026-10-30 | Implemented | 2026-10-30 |
 | [295](completed/295-d3-token-values-s2-style-macro-scale.md) | D3 값 정렬 — 사용자 컴포넌트의 치수 값 (radius · 글자 단계 · 행간 식 · control 높이 · 아이콘 단 · 여백 · 간격 · 막대) 을 설치된 S2 style macro 에 맞춤 (TokenRef 이름 · 패널 라벨은 유지) · 값의 형 (고정 · scale 배율 · 글자 상대 · 높이 상대) · 터치 기기 두 벌 (scale 1.25 · 글자 기준 17, Preview 「터치 크기로 미리보기」) · 생성 CSS 치수 변수 `--catalog-token-*` · 빌더 chrome 은 고정 시트 (`builder-catalog-vars` · `builder-catalog-pins`) · 「S2 대조 대기」 45 → 0 · 게이트 d3S2Alignment · 분류 목록 · Decision 9 (a) ~ (d) · G2 두 arm 263/263 · G5 번들 Builder +6,165 · Preview +3,489 B gz (허용치 재승인) · 사용자 확인 2026-10-31 | Implemented | 2026-10-31 |
 | [296](completed/296-code-view-project-file-tree-projection.md) | 코드 보기 투영 수리 + 프로젝트 가상 파일 트리 — page 결함 E1 ~ E13 수리 · `App.tsx` (routes · layout · toast · theme) · `pages/<P>.tsx` · `.css` (노드 class · typed field 하나 = 선언 하나 · `@media` = breakpoint · token = `var(--catalog-token-*)`) · `theme.css` · `data/` · `api/` · `state/project.ts` · `components/<Name>.tsx` · `.css` (원본 명령 · instance `overrides` = instance 명령만 · slot 채움 = children) · Library 읽기 전용 + unlock · `index.html` · `site.config.ts` (ADR-286 D8 해당 문장 Superseded) · 여러 파일 한 Apply = history 1 · G3 Canvas 해석 3 breakpoint 동일 · G4 쓰기 경계 · G5 Builder +216 B gz · Preview 0 · G6 빈 프로젝트 코드만 live · 사용자 확인 2026-11-01 | Implemented | 2026-11-01 |
+| [297](completed/297-rule-state-condition-tree-single-priority.md) | catalog rule 상태 표현을 조건 트리 하나로 — variant 칠과 상태 (hover · pressed · selected · emphasized · quiet · fillStyle · staticColor · disabled) 를 `paint` 조건 트리 하나로, Canvas evaluator 와 생성 CSS compiler 가 같은 트리를 읽는다 (키 순서 = 우선순위 = cascade). 표 전수 190 variant · `button-base` · static · 수동 selected · focus CSS 흡수 · S2 확정 8 건 · 옛 칠 형식 삭제 · 묶음 컨테이너 칠 게이트 | Implemented 2026-11-02 |
 
 **Phase 0 baseline 문서** (ADR 아님 — 게이트 기준선): [035](completed/035-phase-0-baseline.md) · [037](completed/037-phase-0-baseline.md) · [039](completed/039-phase-0-baseline.md) · [040](completed/040-phase-0-baseline.md)
 

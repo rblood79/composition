@@ -2,9 +2,13 @@
 
 ## Status
 
-Accepted — 2026-11-01 (In Progress)
+Implemented — 2026-11-02
 
-- 승격 근거: 사용자 `/execute-adr 297` (2026-11-01) + [reviews/297.md](reviews/297.md) round 3 (pending 0 · HIGH 전부 fixed). 사용자 결정 3 건은 Phase 3 이 닿을 때 묻는다 (Phase 0 ~ 2 는 결정 1 의 기본 권고 「단일 상태 유지」 그대로).
+- 승격 근거: Phase 0 ~ 4 닫힘 · G5 live (Chrome MCP 5177, `### Live Exercise`) · 사용자 「커밋하고 다음 단계 진행해」 (2026-11-02). 후속 (트리 계약 밖, LOW) 은 breakdown §6.4 「3 닫힘 판정」 의 ② ~ ⑥.
+
+Accepted — 2026-11-01
+
+- 승격 근거: 사용자 `/execute-adr 297` (2026-11-01) + [reviews/297.md](../reviews/297.md) round 3 (pending 0 · HIGH 전부 fixed). 사용자 결정 3 건은 Phase 3 이 닿을 때 묻는다 (Phase 0 ~ 2 는 결정 1 의 기본 권고 「단일 상태 유지」 그대로).
 
 > **Phase 0 · 1 닫힘 (2026-11-01)** — 인벤토리 · 기준선은 스크립트가 정본 (`apps/builder/scripts/adr297-baseline.ts`, breakdown §6.3). `packages/shared/src/catalog/rule/conditionTree.ts` (evaluator · compiler — 순회 하나, 조건 선택자 전부 `:where()`) · `rulePaintTree.ts` (옛 `fill` · `colors` ↔ 트리, `paintVariant` — Phase 2 에서 삭제) · `paintReach.ts` (닿는 축). Button 가족 5 rule 10 variant 를 codemod (`adr297-rule-to-tree.ts`) 로 트리로 옮기고 `resolveCatalogPaint` 는 트리 variant 를 evaluator 로 칠한다. G1: 생성 CSS `validate:sync` diff 0 · paint 닿는 입력 10,044 행 동일 · library 투영 동일 (`revision` 내용 해시만) · 표 전수 동치 (131 rule 의 모든 variant 를 트리로 옮겨도 옛 사슬과 같음) · 겹침 조합 computed 대조 PASS · 원복 RED 2 (나중 키 → 먼저 키 = 동치 4 FAIL · `:where` 제거 = round 1 h1 반례 FAIL).
 
@@ -12,16 +16,16 @@ Accepted — 2026-11-01 (In Progress)
 
 > **Phase 3 닫힘 (2026-11-02)** — 3a compiler 전환 · 3e button-base · 3f static (커밋 `e7b3d04a9`), 3b `structure.states` → `structure.stateStyles` · 3c `&` 대상 rootSelectors 42 키 → 같은 트리 (어휘 `fieldButton` · `inGroup` · `isAutofilled` · `isDialogTrigger` · `isCatalogNode` · `isLink`) · 3d variant 이름 `selected` → `isSelected` · 3h 확정 8 건 S2 값 · 3g 수동 selected · focus CSS → rule 최상위 `partStateStyles` (부품 · 셀 · pseudo 의 상태 — 생성 sheet 가 없는 rule 은 상태 블록만 담은 sheet; 실제 catalog DOM 하니스 Δ0 · ratchet 사유 목록 · ListBoxItem 선택 바탕 = RAC 처럼 진한 accent (사용자 결정 2026-11-01)). 상태 트리는 size 블록 위 층이라 클래스 두 번 (0-2-0) + `:where` 로 compile 한다 (조건 순서 = cascade 는 그대로 — breakdown §6.4 판정). 3h 확정 8 건 S2 대로 (사용자 결정 2 — Button pressed = hover 단 · outline hover `gray-100` · disabled 색 (opacity 없음) · static `transparent-overlay` α · quiet ToggleButton hover 단 · InlineAlert subtle 테두리 투명 · Input invalid > hover; oracle `adr297S2Paint.test.ts`). 3i 정리 (2026-11-02, 출력 동일) — 칠 타입은 트리 하나 (`VariantSpec` · `FillTokenSpec` · `cssEmitMode` · 옛 variant 블록 · 어댑터 · 승인 4 파일 삭제, `ComponentVisualRule` 은 비-칠 값만). 표 전수 칠 대조 판정 (2026-11-02): 합성 요소 하니스의 300 행을 실제 노드 트리 하니스 (`adr297RealPaintParity` — 팔레트 instance 의 같은 record 를 Canvas node data · Preview DOM computed 로) 로 다시 재 536 칸 중 36 — 나머지는 합성 artifact (조상 · 부품 없는 요소). 36 칸은 전부 ADR-297 전부터 있던 type. 그중 트리 하나를 두 소비자가 다르게 읽은 8 칸 (생성 CSS 는 composition 이 상자를 가진 rule 의 variant 칠을 내지 않는데 Canvas 는 그렸다 — CheckboxGroup · RadioGroup · DisclosureGroup · Form · Pagination · Toolbar 바탕 · 테두리) 을 수리 (사용자 결정 2026-11-02 — S2 대로 칠 없음, 게이트 `adr297ContainerPaintGate.test.ts`). 남은 28 칸 (수동 CSS 만 칠함 · Table 선 · Pagination 쪽 버튼 · 값 차이 · genai 그라데이션) 은 후속 — 이 ADR 의 트리 계약 밖. 다음 Phase 4. 기록 breakdown §6.4.
 
-> **Phase 4 G5 · G6 (2026-11-02)** — G5 live 6 경우 PASS (Chrome MCP 5177, `### Live Exercise`) · G6 규칙 문서 3 (`ssot-hierarchy.md` D3 · `canvas-rendering.md` §2.5.5 · `style-ssot.md` §3). Implemented 승격은 사용자 확인 뒤.
+> **Phase 4 G5 · G6 (2026-11-02)** — G5 live 6 경우 PASS (Chrome MCP 5177, `### Live Exercise`) · G6 규칙 문서 3 (`ssot-hierarchy.md` D3 · `canvas-rendering.md` §2.5.5 · `style-ssot.md` §3). Implemented 2026-11-02.
 
-- 사용자 요청: `/create-adr` (2026-11-01) — 같은 대화의 조사 [RULE_STATE_CONDITION_TREE_2026-11](../explanation/research/RULE_STATE_CONDITION_TREE_2026-11.md) (저장 장소 · 소비자 전수 · 상태 분기 전수) 직후.
+- 사용자 요청: `/create-adr` (2026-11-01) — 같은 대화의 조사 [RULE_STATE_CONDITION_TREE_2026-11](../../explanation/research/RULE_STATE_CONDITION_TREE_2026-11.md) (저장 장소 · 소비자 전수 · 상태 분기 전수) 직후.
 - 방향을 정한 사용자 원문 (2026-11-01): 「React-Spectrum 레퍼런스 style 유틸 들 패턴 Canvas에 적용하는것이 좋지않나」 → 조사 결과 「S2 macro 자체가 아니라 **값을 적는 방식** (속성마다 조건을 중첩한 트리) 을 가져온다」 권고 → 「확인되지 않은 항목(사용자 override 형식)과 상태 분기 전수 목록을 먼저 조사해」 → 「이 내용을 docs/explanation/research/ 연구 문서로 정리후 /create-adr」.
 - 사용자가 이미 답한 것: 값은 ADR-295 (Implemented 2026-10-31) 로 S2 에 맞췄고 이름은 저장소 것을 유지한다 — 이 ADR 은 **값을 바꾸지 않는다**. S2 생성 CSS 를 그대로 쓰는 길은 ADR-295 대안 E 로 기각됐다 (Skia 가 못 읽음).
 - ADR 분리 4 질문 lock-in: breakdown §1 (297 = base — rule 의 **형식** 과 두 소비자의 판정기. 295 는 값 층 · 293 은 색 토큰 출력 — 셋 다 직교).
-- 리뷰: [reviews/297.md](reviews/297.md) Round 1 (2026-10-31, codex — HIGH 2: h1 compiler 가 raw selector 출력 순서만으로는 트리 우선순위를 보장 못 함 (Chromium 반례 quiet+hover+invalid: `[data-quiet][data-hovered]` 0-3-0 > `[data-invalid]` 0-2-0) · h2 `tintToSkiaColors.ts:304-305` 는 Canvas 사본이 아니라 양 leg 의 `accent-hover` 토큰 **생성원** (`resolveThemeSnapshot.ts:267, 487-495`)) → 같은 날 설계 수리 (Decision 2 specificity 계약 · Decision 5 토큰 생성원 유지 · F8 · R9 · G1 (e) · breakdown §2b · §3 · §5 · 연구 §2.5 ⑥ 정정) → Round 2 (2026-10-31, codex — h1 · h2 **fixed**, 새 HIGH 1: h3 G3 (e) 의 「`domOnly` 와 트리의 같은 속성 전면 금지」 가 Input · DateInput 의 마우스 포커스 테두리 (`&:is([data-focused],[data-focus-within])` border-color, `componentRulesTable.ts:6688-6693`) 를 표현 못 함 — 공통 `isInvalid` 도 border-color 라 둘 중 하나를 버려야 함, Chromium 축소 반례 focus 테두리 `rgb(0,68,255)` → 기본 `rgb(80,80,80)`) → 같은 날 설계 수리 (Decision 1 DOM 전용 **조건** 어휘 — `isFocused` · `isFocusWithin` · `forcedColors` 등 — 를 트리 안의 자리 있는 조건으로 · `domOnly` 는 다른 대상 (자손 · 형제) 전용 raw 선택자로 좁힘 · G3 (e) 를 「`&` 대상 raw 선택자 + 트리 속성 겹침 0」 으로 · G1 (e) 에 DOM 전용 조건 oracle) → Round 3 (2026-10-31, codex — h3 **fixed**, HIGH 0 · pending 0, 설계 수리 범위 승인). **전제 확정** (CLAUDE.md §전제 확정 종결 계약 1 — 최신 round pending 0 · HIGH 전부 fixed) — scope 무변경인 한 구현 전 과정에서 재질문 금지. 구현 · gate 실행 · 실제 Builder · 성능은 UNVERIFIED (Proposed 그대로).
+- 리뷰: [reviews/297.md](../reviews/297.md) Round 1 (2026-10-31, codex — HIGH 2: h1 compiler 가 raw selector 출력 순서만으로는 트리 우선순위를 보장 못 함 (Chromium 반례 quiet+hover+invalid: `[data-quiet][data-hovered]` 0-3-0 > `[data-invalid]` 0-2-0) · h2 `tintToSkiaColors.ts:304-305` 는 Canvas 사본이 아니라 양 leg 의 `accent-hover` 토큰 **생성원** (`resolveThemeSnapshot.ts:267, 487-495`)) → 같은 날 설계 수리 (Decision 2 specificity 계약 · Decision 5 토큰 생성원 유지 · F8 · R9 · G1 (e) · breakdown §2b · §3 · §5 · 연구 §2.5 ⑥ 정정) → Round 2 (2026-10-31, codex — h1 · h2 **fixed**, 새 HIGH 1: h3 G3 (e) 의 「`domOnly` 와 트리의 같은 속성 전면 금지」 가 Input · DateInput 의 마우스 포커스 테두리 (`&:is([data-focused],[data-focus-within])` border-color, `componentRulesTable.ts:6688-6693`) 를 표현 못 함 — 공통 `isInvalid` 도 border-color 라 둘 중 하나를 버려야 함, Chromium 축소 반례 focus 테두리 `rgb(0,68,255)` → 기본 `rgb(80,80,80)`) → 같은 날 설계 수리 (Decision 1 DOM 전용 **조건** 어휘 — `isFocused` · `isFocusWithin` · `forcedColors` 등 — 를 트리 안의 자리 있는 조건으로 · `domOnly` 는 다른 대상 (자손 · 형제) 전용 raw 선택자로 좁힘 · G3 (e) 를 「`&` 대상 raw 선택자 + 트리 속성 겹침 0」 으로 · G1 (e) 에 DOM 전용 조건 oracle) → Round 3 (2026-10-31, codex — h3 **fixed**, HIGH 0 · pending 0, 설계 수리 범위 승인). **전제 확정** (CLAUDE.md §전제 확정 종결 계약 1 — 최신 round pending 0 · HIGH 전부 fixed) — scope 무변경인 한 구현 전 과정에서 재질문 금지. 구현 · gate 실행 · 실제 Builder · 성능은 UNVERIFIED (Proposed 그대로).
 - 착수는 사용자 `/execute-adr 297`.
 
-> 구현 상세: [design/297-rule-state-condition-tree-breakdown.md](design/297-rule-state-condition-tree-breakdown.md)
+> 구현 상세: [design/297-rule-state-condition-tree-breakdown.md](../design/297-rule-state-condition-tree-breakdown.md)
 
 ## Context
 

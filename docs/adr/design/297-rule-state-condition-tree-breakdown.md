@@ -1,6 +1,6 @@
 # ADR-297 설계 breakdown — rule 상태 조건 트리 (evaluator · compiler)
 
-> 본문: [../297-rule-state-condition-tree-single-priority.md](../297-rule-state-condition-tree-single-priority.md). 이 문서는 구현 상세 (분리 4 질문 · 인벤토리 · 형식 · Phase · 파일 · 게이트 절차) 만 담는다. `docs/adr/evidence/` 는 gitignore 라 실측 결론은 여기 §6 에 둔다. 조사 원문: [RULE_STATE_CONDITION_TREE_2026-11](../../explanation/research/RULE_STATE_CONDITION_TREE_2026-11.md).
+> 본문: [../completed/297-rule-state-condition-tree-single-priority.md](../completed/297-rule-state-condition-tree-single-priority.md). 이 문서는 구현 상세 (분리 4 질문 · 인벤토리 · 형식 · Phase · 파일 · 게이트 절차) 만 담는다. `docs/adr/evidence/` 는 gitignore 라 실측 결론은 여기 §6 에 둔다. 조사 원문: [RULE_STATE_CONDITION_TREE_2026-11](../../explanation/research/RULE_STATE_CONDITION_TREE_2026-11.md).
 
 ## 1. 분리 4 질문 lock-in (adr-writing.md §Fork)
 

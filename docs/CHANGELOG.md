@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-297 Implemented — rule 상태 칠은 조건 트리 하나 (Canvas · Preview 가 같은 순서로 읽는다)] - 2026-11-02
+
+### Changed
+
+- **컴포넌트의 상태 칠 (hover · pressed · selected · 강조 · quiet · fillStyle · staticColor · disabled · invalid) 이 rule 의 조건 트리 하나다 (ADR-297 Implemented)** — Canvas 는 트리를 평가하고, Preview · Publish 의 생성 CSS 는 같은 트리를 같은 순서로 compile 한다. 상태가 겹칠 때 (invalid + hover · 선택 + hover · static + disabled) 어느 색이 이기는지가 두 화면에서 같다.
+  - live (Chrome MCP 5177): Button accent 휴지 · hover · pressed · disabled / quiet ToggleButton 선택 · hover / TextField invalid + hover / 강조 Tag 선택 / 강조 Checkbox 선택 — Canvas 와 Preview 같은 색, Styles 패널 Fill 도 같음. 콘솔 0.
+  - Styles 패널의 칠 칸은 휴지 상태 값을 보인다 — hover · pressed 상태 원본을 골라도 휴지 색 (패널은 휴지 칠을 편집하는 곳).
+  - **Why**: 상태 표현이 5 방식 · 타입 3 벌로 갈려 Canvas 와 CSS 가 겹친 상태의 우선순위를 다르게 정했다 (S2 style macro 처럼 데이터 한 곳으로).
+  - 위치: `packages/shared/src/catalog/rule/conditionTree.ts` · `packages/shared/src/catalog/generated/componentRulesTable.ts` · 규칙 `.claude/rules/canvas-rendering.md` §2.5.5 · `ssot-hierarchy.md` D3 · 본문 `docs/adr/completed/297-rule-state-condition-tree-single-priority.md`
+
 ## [TagGroup 지우기 버튼 높이 · 바탕 수리 · Preview 에서 Button 작성 색이 안 보이던 것] - 2026-11-02
 
 ### Fixed
