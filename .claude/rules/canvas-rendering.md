@@ -48,8 +48,9 @@ variant 의 칠 (배경 · 글자 · 테두리와 그 상태 — hover · presse
 
 - Canvas: `resolveCatalogPaint` 가 record 조건 (`isHovered` · `isPressed` · `isSelected` · `isDisabled` · `fillStyle` · `staticColor` …) 으로 트리를 평가해 primitive 에 `paint` 를 준다. primitive 는 해석된 `paint` 만 읽는다.
 - DOM: `generate-css.ts` `variantPaintCssFor` 가 같은 트리를 `compileConditionTree` 로 `:where()` 블록에 compile 한다 (트리 순서 = cascade). 생성 sheet 의 기본 블록은 기본 variant 의 휴지 칠 (`VariantRestPaint` — 트리의 `default`) 만 싣는다.
-- 투영기 (library 정의 · Design 패널) 는 `evaluatePaint` · `paintAt` 으로 같은 트리를 읽는다.
+- 투영기 (library 정의 · Design 패널) 는 `evaluatePaint` · `paintAt` 으로 같은 트리를 읽는다. Styles 패널의 칠 표시 (`useColorStyleValues.ts` — record 실효값 → `specPresetResolver.ts`) 는 `interactionState: "default"` — prop 상태 (disabled · selected) 는 보이고, hover · pressed 상태 카드는 휴지 값을 보인다 (설계).
 - `ComponentVisualRule` 은 비-칠 값 (글자 굵기 · 글꼴 · 선 모양 · value 채움 색 · 아이콘) 만 싣는다.
+- **composition 이 상자를 가진 rule 은 보이는 칠을 두지 않는다** (2026-11-02 Phase 3 닫힘): 생성 CSS 는 `compositionOwnsContainerBox` 인 rule (containerStyles 에 색이 없을 때) 의 variant 칠을 내지 않으므로, 그 트리에 바탕 · 테두리가 있으면 Canvas 만 그린다. 게이트 `adr297ContainerPaintGate.test.ts` (CheckboxGroup · RadioGroup · DisclosureGroup · Form · Pagination · Toolbar 가 그렇게 갈렸다). 두 consumer 의 칠은 실제 노드 트리 하니스 `adr297RealPaintParity.browser.test.ts` 로 잰다 — 합성 요소 (조상 · 부품 없음) 하니스의 차이는 artifact 가 대부분이다.
 
 ### 금지 패턴
 

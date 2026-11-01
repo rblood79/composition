@@ -12,6 +12,8 @@ Accepted — 2026-11-01 (In Progress)
 
 > **Phase 3 닫힘 (2026-11-02)** — 3a compiler 전환 · 3e button-base · 3f static (커밋 `e7b3d04a9`), 3b `structure.states` → `structure.stateStyles` · 3c `&` 대상 rootSelectors 42 키 → 같은 트리 (어휘 `fieldButton` · `inGroup` · `isAutofilled` · `isDialogTrigger` · `isCatalogNode` · `isLink`) · 3d variant 이름 `selected` → `isSelected` · 3h 확정 8 건 S2 값 · 3g 수동 selected · focus CSS → rule 최상위 `partStateStyles` (부품 · 셀 · pseudo 의 상태 — 생성 sheet 가 없는 rule 은 상태 블록만 담은 sheet; 실제 catalog DOM 하니스 Δ0 · ratchet 사유 목록 · ListBoxItem 선택 바탕 = RAC 처럼 진한 accent (사용자 결정 2026-11-01)). 상태 트리는 size 블록 위 층이라 클래스 두 번 (0-2-0) + `:where` 로 compile 한다 (조건 순서 = cascade 는 그대로 — breakdown §6.4 판정). 3h 확정 8 건 S2 대로 (사용자 결정 2 — Button pressed = hover 단 · outline hover `gray-100` · disabled 색 (opacity 없음) · static `transparent-overlay` α · quiet ToggleButton hover 단 · InlineAlert subtle 테두리 투명 · Input invalid > hover; oracle `adr297S2Paint.test.ts`). 3i 정리 (2026-11-02, 출력 동일) — 칠 타입은 트리 하나 (`VariantSpec` · `FillTokenSpec` · `cssEmitMode` · 옛 variant 블록 · 어댑터 · 승인 4 파일 삭제, `ComponentVisualRule` 은 비-칠 값만). 표 전수 칠 대조 판정 (2026-11-02): 합성 요소 하니스의 300 행을 실제 노드 트리 하니스 (`adr297RealPaintParity` — 팔레트 instance 의 같은 record 를 Canvas node data · Preview DOM computed 로) 로 다시 재 536 칸 중 36 — 나머지는 합성 artifact (조상 · 부품 없는 요소). 36 칸은 전부 ADR-297 전부터 있던 type. 그중 트리 하나를 두 소비자가 다르게 읽은 8 칸 (생성 CSS 는 composition 이 상자를 가진 rule 의 variant 칠을 내지 않는데 Canvas 는 그렸다 — CheckboxGroup · RadioGroup · DisclosureGroup · Form · Pagination · Toolbar 바탕 · 테두리) 을 수리 (사용자 결정 2026-11-02 — S2 대로 칠 없음, 게이트 `adr297ContainerPaintGate.test.ts`). 남은 28 칸 (수동 CSS 만 칠함 · Table 선 · Pagination 쪽 버튼 · 값 차이 · genai 그라데이션) 은 후속 — 이 ADR 의 트리 계약 밖. 다음 Phase 4. 기록 breakdown §6.4.
 
+> **Phase 4 G5 · G6 (2026-11-02)** — G5 live 6 경우 PASS (Chrome MCP 5177, `### Live Exercise`) · G6 규칙 문서 3 (`ssot-hierarchy.md` D3 · `canvas-rendering.md` §2.5.5 · `style-ssot.md` §3). Implemented 승격은 사용자 확인 뒤.
+
 - 사용자 요청: `/create-adr` (2026-11-01) — 같은 대화의 조사 [RULE_STATE_CONDITION_TREE_2026-11](../explanation/research/RULE_STATE_CONDITION_TREE_2026-11.md) (저장 장소 · 소비자 전수 · 상태 분기 전수) 직후.
 - 방향을 정한 사용자 원문 (2026-11-01): 「React-Spectrum 레퍼런스 style 유틸 들 패턴 Canvas에 적용하는것이 좋지않나」 → 조사 결과 「S2 macro 자체가 아니라 **값을 적는 방식** (속성마다 조건을 중첩한 트리) 을 가져온다」 권고 → 「확인되지 않은 항목(사용자 override 형식)과 상태 분기 전수 목록을 먼저 조사해」 → 「이 내용을 docs/explanation/research/ 연구 문서로 정리후 /create-adr」.
 - 사용자가 이미 답한 것: 값은 ADR-295 (Implemented 2026-10-31) 로 S2 에 맞췄고 이름은 저장소 것을 유지한다 — 이 ADR 은 **값을 바꾸지 않는다**. S2 생성 CSS 를 그대로 쓰는 길은 ADR-295 대안 E 로 기각됐다 (Skia 가 못 읽음).
@@ -187,7 +189,20 @@ Phase 0 (인벤토리 freeze · 「다름 9」 Compare Mode 실측 · RED · 기
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+2026-11-02 · Chrome MCP · 5177 (사용자 5173 무관) · 콘솔 오류 0 (Builder · Preview 두 탭). G5 — 같은 노드를 Canvas node data (`getSkiaNode` — 바탕 · 테두리 · 글자) 와 Preview (`/publish`) computed style 로 대조, Styles 패널 Fill 칸 확인. 넣은 노드 10 개는 삭제 명령으로 정리.
+
+| 경우                                                                                              | Canvas                                          | Preview DOM                                              | 판정 |
+| ------------------------------------------------------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------------- | ---- |
+| Button accent 휴지 · hover · pressed (Library 상태 원본 `button--hover` · `--pressed`) · disabled | 3660F0 · 2E52CC · 2E52CC · E5E5E5 (글자 525252) | 같음 (`data-hovered` · `data-pressed` · `data-disabled`) | PASS |
+| ToggleButton quiet 선택 · 선택+hover · quiet hover                                                | 171717 · 171717 · D4D4D4 (테두리 없음)          | 같음 (quiet hover 테두리 투명 1px)                       | PASS |
+| TextField invalid + Input hover (invalid > hover)                                                 | Input 바탕 FAFAFA · 테두리 FB2C36               | 휴지 · hover 모두 FB2C36                                 | PASS |
+| TagGroup 강조 · Tag 선택 (Preview 는 실제 클릭)                                                   | 3660F0 · 글자 흰색                              | 같음                                                     | PASS |
+| Checkbox 강조 · 선택 (indicator)                                                                  | 3660F0 · 테두리 2                               | 같음                                                     | PASS |
+| Styles 패널 Fill — disabled · quiet 선택 ToggleButton                                             | E5E5E5 · 171717                                 | —                                                        | PASS |
+
+- breakdown 의 「Checkbox static white」 는 대상이 없다 — Checkbox 는 `staticColor` 를 받지 않는다 (S2 도 없음, 검증이 `…staticColor` 로 거절). 같은 자리의 상태 칠로 강조 선택을 쟀다.
+- Styles 패널은 트리를 `interactionState: "default"` 로 읽는다 — hover · pressed 상태 원본을 고르면 휴지 값 (3660F0) 을 보인다. 297 전부터 같은 동작 (상태 원본 칠은 정의의 `state` 규칙) 이고 패널은 휴지 칠을 편집하는 곳이라 설계로 둔다.
+- 관찰 (LOW, 후속 ② 와 같은 부류): 강조 Tag 의 선택 + hover 에서 Preview 테두리가 회색 (A1A1A1) · 바탕이 한 단 어둡다 — 수동 `TagGroup.css` `&[data-hovered]` 가 catalog Tag 에도 닿는다 (Canvas 는 hover 를 그리지 않는 자리).
 
 ## Consequences
 
