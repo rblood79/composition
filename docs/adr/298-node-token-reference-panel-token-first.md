@@ -2,7 +2,11 @@
 
 ## Status
 
-Proposed — 2026-11-01
+Accepted — 2026-11-01 (사용자 `/execute-adr 298` + [reviews/298.md](reviews/298.md) round 2 pending 0 · HIGH 전부 fixed)
+
+> **Phase 0 종결 (2026-11-01, G0)** — 인벤토리 freeze (breakdown §6.0): 라이브러리 토큰 149 개 전부 `_light` id (dark 0 — 투영이 light 한 벌만 만든다) · ref 분류 typography 14 · radius 8 · color 24 · size 19 · length 84 — **spacing · shadow · border 토큰은 0** (Phase 1 표가 새로 만든다) · fills 색 소비처 33 파일 · inset 19 파일 (Phase 3 추정 대비 1.5 배 이상 — 사후 보고). RED 3 (`adr298Red.test.ts` — ① Radius preset M commit = `visual.radius` 8 (px 숫자) · ② `catalogStyleView` 가 TokenUse gap 을 건너뜀 · ③ DOM inline 그림자 = light 리터럴 (Canvas 는 `normalizeShadowForTheme(…, root.colorMode)` 로 dark)). 추정 2 판정: F10 **코드 확정** — `setColorScheme` 은 `colorMode` 만 바꾸고 root 를 다시 만들지 않는다 (`catalogPreviewSession.ts:800-806` · root 생성은 `:1999` 의 `colorMode`) → 노드 색 TokenUse (지금은 코드 보기로만 저작) 의 inline 리터럴이 옛 모드에 남는다, Phase 1 RED 로. F12 **현재 영향 0** — DOM 이 값 리터럴만 내므로 같은 값 교체는 화면이 같다; Phase 1 이 `var()` 를 내는 순간 필요 조건 (출처 기억 `RESOLVED_TOKEN_REFS` 는 WeakMap 이라 `sameRecord` 가 못 본다). 기준선: 295 G2 하니스 두 arm PASS (desktop 274/274 · touch 274/274, dirty tree 에 ADR-297 Phase 3 WIP 포함). paint 픽셀 oracle 은 노드 토큰 arm 과 함께 Phase 1 (G2 DOM arm) 에서 넣는다.
+>
+> **사용자 결정 7 (2026-11-01, Phase 0 뒤)**: 「선행 /fix」 → **수리 완료 (같은 날)**. 원인: ADR-166 후속이 DOM 짝으로 둔 `shadowLiteralToCssVar` 는 옛 DOM 경로 `adaptElementStyle` (`fillAdapter.ts`) 에서만 불렸고, ADR-248 catalog DOM consumer `catalogAuthoredDomStyle` 이 그 자리를 대체하며 호출을 싣지 않았다 → Canvas 만 색 모드를 따름. 수리: `catalogAuthoredDomStyle` 이 그림자 preset 리터럴을 `var(--shadow-*)` 로 (생성 CSS 의 `{shadow.*}` 와 같은 변수 — `shadowCssParity.test.ts` 가 CSS ↔ TS 값을 지킨다). Canvas 입력 (`catalogAuthoredPaintCss`) 은 그대로 — Skia 파서는 `var()` 를 못 읽는다. 기존 문서의 리터럴 그림자도 함께 고쳐진다 (읽기 쪽 수리). RED ③ → GREEN (원복 RED: inline 이 light 리터럴). live (5178, 새 프로젝트 · 테마 darkMode dark · Frame 에 패널 preset S 리터럴): Canvas 판정 (`applyCatalogAuthoredPaint`, `root.colorMode` dark) alpha 0.24 · 0.12 · 0.24 = Preview inline `var(--shadow-sm)` · computed `rgba(0,0,0,.24) 0 2px 8px, rgba(0,0,0,.12) 0 1px 4px, rgba(0,0,0,.24) 0 0 1px` · 원복 arm 은 Preview 0.08 · 0.04 · 0.08 (결함 재현) · 콘솔 오류 0. D7 의 「기존 리터럴 그림자의 DOM dark 결함은 범위 밖」 은 이 수리로 해소 — 298 은 새 저장을 토큰 참조로 바꾸는 몫만 남는다 (역매핑 삭제 판단은 Phase 5 그대로).
 
 - 사용자 요청: `/create-adr` (2026-11-01) — 같은 대화에서 「295는 착수 완료 되었으니 범위 밖 후속 작업으로 다시 상세하게 분석해」 → 분석 [TOKEN_MODEL_A_NODE_TOKEN_REFERENCE_2026-11](../explanation/research/TOKEN_MODEL_A_NODE_TOKEN_REFERENCE_2026-11.md) → 「시안을 위 3절대로 갱신, 이분석을 문서로 저장, /create-adr」.
 - 방향을 정한 사용자 원문 (이미 답한 항목):

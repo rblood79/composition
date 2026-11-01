@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-298 Accepted · Phase 0 + 그림자 dark 수리 — Preview 그림자가 Canvas 처럼 색 모드를 따른다] - 2026-11-01
+
+### Fixed
+
+- **Design 패널 Box Shadow preset (S · M · L) 을 고른 요소가 dark 모드 Preview · Publish 에서 light 그림자로 남던 문제** — Canvas 는 dark 그림자를 그리는데 Preview 는 고른 순간의 light 값을 inline 으로 써서 두 화면이 달랐다. 이제 Preview 도 같은 판정으로 테마 그림자 변수 (`var(--shadow-sm|md|lg)`) 를 내 색 모드를 따른다 (`catalogAuthoredDomStyle`). 이미 저장된 문서도 함께 고쳐진다. 임의 CSS 그림자 · inset 은 원문 그대로 (Canvas 와 같다).
+  - 원인: ADR-248 의 catalog DOM 경로가 옛 DOM 경로의 그림자 변환 호출을 옮기지 않았다.
+  - 검증: dark 테마 새 프로젝트 · Frame 에 preset S → Canvas 알파 0.24 · 0.12 · 0.24 = Preview computed (수정 전 0.08 · 0.04 · 0.08), 콘솔 오류 0.
+
+### Changed
+
+- **ADR-298 (토큰 모델 A — 노드 값의 토큰 참조) Accepted · Phase 0 닫힘**: 인벤토리 (라이브러리 토큰 149 · spacing · shadow · border 토큰 없음) · RED 3 (`adr298Red.test.ts`) · 295 두 arm 기준선 PASS. 사용자 결정 7 = 위 그림자 수리를 먼저. 다음 Phase 1 (토큰 층 — 화면 변화 없음).
+  - 문서: `docs/adr/298-node-token-reference-panel-token-first.md` · `docs/adr/design/298-node-token-reference-breakdown.md` §6.0
+
 ## [ADR-296 Implemented — 코드 보기 = 프로젝트 파일 트리: 문서 전체를 레퍼런스 모양의 파일로] - 2026-11-01
 
 ### Changed

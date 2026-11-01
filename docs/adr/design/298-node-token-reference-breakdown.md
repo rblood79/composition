@@ -84,4 +84,19 @@ Phase 1 과 2 는 커밋을 나눈다 — Phase 1 은 「동작 변경 0」 (rev
 
 ## 6. 기록 (Phase 종결마다)
 
-(비어 있음 — Proposed)
+### 6.0 Phase 0 (2026-11-01 — G0 닫힘, 사용자 결정 7 = 선행 `/fix`)
+
+| 항목 | 실측 (dirty tree — ADR-297 Phase 3 WIP 포함) |
+| --- | --- |
+| 라이브러리 토큰 (`buildCodeCatalogLibrary`) | 149 개 · id 전부 `lib:token:<ref>_light` (dark 0). ref 분류: typography 14 · radius 8 (none · xs · sm · md · lg · xl · 2xl · full) · color 24 · size 19 · length 84 (`{length.size.height.M*3/8}` 같은 식 토큰). **spacing · shadow · border.width · 제목 typography 는 0** — Phase 1 의 테마 무관 표가 새로 만든다 |
+| `_light` id fixture | 기존 fixture 0 (`phase4eTheme.test.tsx:90` 주석만) — Phase 1 G1 원복 RED 가 만든다 |
+| 패널 쓰기 | `cssPx` 호출 6 (비테스트) · `catalogStyleView` 호출 7 (sizing · effectiveStyle · responsiveFields 2 · aiHost · catalogStylesHost 2) |
+| fills 색 소비처 (Phase 3) | 33 파일 (`catalogFillItems` · `fillsToCssBackgroundStyle` · `codeViewFillsCss` · 패널 Fill 계열 · AI fill 도구) · inset 19 파일 — §2.2 추정 (~30, 전 phase) 대비 1.5 배 이상 → 사후 보고 (adr-writing M3) |
+| preset 상수 | Radius M commit = 8 (S2 값, ADR-295) · spacing preset 은 `themedTokenRef` 밖이라 jsdom 에서 `var()` 그대로 → `CatalogStyleValueError` (브라우저는 computed px) · border width 1 · 2 · 4 · 8 · 12 · `PAGE_GAP_PRESETS` 사용 0 |
+| F10 `setColorScheme` | 코드 확정 — `colorMode` 만 갱신, root 재생성 없음 (`catalogPreviewSession.ts:800-806`, root 는 `:1999` 에서 `colorMode` 로 만든다) → Phase 1 RED |
+| F12 `sameRecord` | 현재 영향 0 (DOM 은 값 리터럴만) — Phase 1 의 `var()` 출력 도입 시 출처 비교 필요 (`RESOLVED_TOKEN_REFS` WeakMap 은 비교 밖) |
+| F11 그림자 | 코드 재현 — Canvas `applyCatalogAuthoredPaint(…, root.colorMode)` → `normalizeShadowForTheme` = dark 값 · DOM `catalogAuthoredDomStyle` = light 리터럴 (`shadowLiteralToCssVar` production 호출 0) |
+| RED | `apps/builder/src/builder/catalogRuntime/__tests__/adr298Red.test.ts` — GREEN 준비 2 + `it.fails` 3 (① Phase 2 · ② Phase 2 · ③ 선행 `/fix`). 각 `it.fails` 를 `it` 으로 바꾸면 실패 사유가 계약 그대로임을 확인 (8 ≠ token · undefined · 같은 리터럴) |
+| 기준선 | 295 G2 `adr295PaletteSymmetry.browser.test.ts` desktop 274/274 · touch 274/274 PASS |
+| 결정 7 선행 `/fix` (F11) | `catalogAuthoredDomStyle` (`packages/shared/src/catalog/runtime/authoredStyle.ts`) 가 `shadowLiteralToCssVar` 를 부른다 — RED ③ GREEN (light · dark preset sm · md · lg → `var(--shadow-*)`, 임의 CSS · inset 토글 · none · inset preset 은 원문 = Canvas 와 같은 판정). 원복 RED 1 (inline = light 리터럴). 인접 스위트 builder 5 파일 76 · shared 4 파일 21 PASS · type-check shared · builder 0. live 5178 (Playwright, 저장 인증 세션 · 테마 darkMode dark): Canvas alpha 0.24/0.12/0.24 = Preview computed, 원복 arm Preview 0.08/0.04/0.08 |
+

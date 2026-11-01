@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { fillsToCssBackgroundStyle } from "@composition/shared";
+import { shadowLiteralToCssVar } from "@composition/rendering";
 import type { CatalogFillLayer } from "../document/types";
 import type { CatalogConsumerNode } from "./compositionRoot";
 
@@ -128,11 +129,18 @@ export function hasCatalogAuthoredPaint(
   );
 }
 
-/** DOM inline additions: authored paint CSS and fill layers as CSS backgrounds. */
+/**
+ * DOM inline additions: authored paint CSS and fill layers as CSS backgrounds. A shadow preset
+ * literal the Effect section wrote (one theme's value) becomes its `var(--shadow-*)` — the same
+ * judgment the Canvas makes with `normalizeShadowForTheme` in the root's color mode
+ * (`applyCatalogAuthoredPaint`), and the variable the rule sheets use for `{shadow.*}`.
+ */
 export function catalogAuthoredDomStyle(
   node: Pick<CatalogConsumerNode, "visual" | "fills">,
 ): CSSProperties {
   const style = catalogAuthoredPaintCss(node) as CSSProperties;
+  if (typeof style.boxShadow === "string")
+    style.boxShadow = shadowLiteralToCssVar(style.boxShadow);
   const fills = catalogFillItems(node.fills);
   if (fills) Object.assign(style, fillsToCssBackgroundStyle(fills));
   return style;
