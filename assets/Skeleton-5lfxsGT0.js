@@ -1,0 +1,83 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog Skeleton — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: simple
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Skeleton {
+  /* Base styles — archetype: simple */
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: block;
+  align-items: center;
+
+  /* Default variant */
+  background: var(--bg-inset);
+  color: var(--fg-muted);
+  border: none;
+
+  /* Default size */
+  height: 20px;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-md);
+}
+
+.react-aria-Skeleton:where([data-variant="default"]) {
+  background: var(--bg-inset);
+  color: var(--fg-muted);
+}
+
+.react-aria-Skeleton:where([data-variant="default"][data-hovered]) {
+  background: var(--bg-inset);
+}
+
+.react-aria-Skeleton:where([data-variant="default"][data-pressed]) {
+  background: var(--bg-inset);
+}
+
+.react-aria-Skeleton[data-size="S"] {
+  height: 16px;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-sm);
+}
+
+.react-aria-Skeleton[data-size="M"] {
+  height: 20px;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-md);
+}
+
+.react-aria-Skeleton[data-size="L"] {
+  height: 24px;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-md);
+}
+
+.react-aria-Skeleton[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-Skeleton[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-Skeleton {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

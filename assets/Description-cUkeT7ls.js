@@ -1,0 +1,103 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog Description — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: text
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Description {
+  /* Base styles — archetype: text */
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  width: 100%;
+  display: block;
+
+  /* Default variant */
+  background: transparent;
+  color: var(--fg-muted);
+  border: none;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-xs--line-height);
+}
+
+.react-aria-Description:where([data-variant="default"]) {
+  background: transparent;
+  color: var(--fg-muted);
+}
+
+.react-aria-Description:where([data-variant="default"][data-hovered]) {
+  background: transparent;
+}
+
+.react-aria-Description:where([data-variant="default"][data-pressed]) {
+  background: transparent;
+}
+
+.react-aria-Description[data-size="XS"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-2xs);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-2xs--line-height);
+}
+
+.react-aria-Description[data-size="S"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-xs--line-height);
+}
+
+.react-aria-Description[data-size="M"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-xs--line-height);
+}
+
+.react-aria-Description[data-size="L"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-sm--line-height);
+}
+
+.react-aria-Description[data-size="XL"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-base--line-height);
+}
+
+.react-aria-Description[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-Description[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-Description {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

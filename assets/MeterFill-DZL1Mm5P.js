@@ -1,0 +1,253 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog MeterFill — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: progress
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-MeterFill {
+  /* Base styles — archetype: progress */
+    display: grid;
+    grid-template-areas: "label value" "track track";
+    grid-template-columns: 1fr auto;
+    box-sizing: border-box;
+
+    .react-aria-Label { grid-area: label; }
+    [slot="value"] { grid-area: value; }
+    .bar { grid-area: track; }
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: block;
+
+  /* Default variant */
+  background: var(--informative);
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  padding: 0px 0px;
+  font-size: ;
+  border-radius: var(--catalog-token-radius-sm);
+}
+
+.react-aria-MeterFill:where([data-variant="informative"]) {
+  background: var(--informative);
+  color: var(--fg);
+}
+
+.react-aria-MeterFill:where([data-variant="informative"][data-hovered]) {
+  background: var(--informative);
+}
+
+.react-aria-MeterFill:where([data-variant="informative"][data-pressed]) {
+  background: var(--informative);
+}
+
+.react-aria-MeterFill:where([data-variant="informative"][data-static-color="black"]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-MeterFill:where([data-variant="informative"][data-static-color="black"][data-hovered]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-MeterFill:where([data-variant="informative"][data-static-color="black"][data-pressed]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-MeterFill:where([data-variant="informative"][data-static-color="white"]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-MeterFill:where([data-variant="informative"][data-static-color="white"][data-hovered]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-MeterFill:where([data-variant="informative"][data-static-color="white"][data-pressed]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-MeterFill:where([data-variant="positive"]) {
+  background: var(--positive);
+  color: var(--fg);
+}
+
+.react-aria-MeterFill:where([data-variant="positive"][data-hovered]) {
+  background: var(--positive);
+}
+
+.react-aria-MeterFill:where([data-variant="positive"][data-pressed]) {
+  background: var(--positive);
+}
+
+.react-aria-MeterFill:where([data-variant="positive"][data-static-color="black"]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-MeterFill:where([data-variant="positive"][data-static-color="black"][data-hovered]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-MeterFill:where([data-variant="positive"][data-static-color="black"][data-pressed]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-MeterFill:where([data-variant="positive"][data-static-color="white"]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-MeterFill:where([data-variant="positive"][data-static-color="white"][data-hovered]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-MeterFill:where([data-variant="positive"][data-static-color="white"][data-pressed]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-MeterFill:where([data-variant="notice"]) {
+  background: var(--notice);
+  color: var(--fg);
+}
+
+.react-aria-MeterFill:where([data-variant="notice"][data-hovered]) {
+  background: var(--notice);
+}
+
+.react-aria-MeterFill:where([data-variant="notice"][data-pressed]) {
+  background: var(--notice);
+}
+
+.react-aria-MeterFill:where([data-variant="notice"][data-static-color="black"]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-MeterFill:where([data-variant="notice"][data-static-color="black"][data-hovered]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-MeterFill:where([data-variant="notice"][data-static-color="black"][data-pressed]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-MeterFill:where([data-variant="notice"][data-static-color="white"]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-MeterFill:where([data-variant="notice"][data-static-color="white"][data-hovered]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-MeterFill:where([data-variant="notice"][data-static-color="white"][data-pressed]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-MeterFill:where([data-variant="negative"]) {
+  background: var(--negative);
+  color: var(--fg);
+}
+
+.react-aria-MeterFill:where([data-variant="negative"][data-hovered]) {
+  background: var(--negative);
+}
+
+.react-aria-MeterFill:where([data-variant="negative"][data-pressed]) {
+  background: var(--negative);
+}
+
+.react-aria-MeterFill:where([data-variant="negative"][data-static-color="black"]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-MeterFill:where([data-variant="negative"][data-static-color="black"][data-hovered]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-MeterFill:where([data-variant="negative"][data-static-color="black"][data-pressed]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-MeterFill:where([data-variant="negative"][data-static-color="white"]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-MeterFill:where([data-variant="negative"][data-static-color="white"][data-hovered]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-MeterFill:where([data-variant="negative"][data-static-color="white"][data-pressed]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-MeterFill[data-size="S"] {
+  padding: 0px 0px;
+  font-size: ;
+  border-radius: var(--catalog-token-radius-sm);
+}
+
+.react-aria-MeterFill[data-size="M"] {
+  padding: 0px 0px;
+  font-size: ;
+  border-radius: var(--catalog-token-radius-sm);
+}
+
+.react-aria-MeterFill[data-size="L"] {
+  padding: 0px 0px;
+  font-size: ;
+  border-radius: var(--catalog-token-radius-lg);
+}
+
+.react-aria-MeterFill[data-size="XL"] {
+  padding: 0px 0px;
+  font-size: ;
+  border-radius: var(--catalog-token-radius-lg);
+}
+
+.react-aria-MeterFill[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-MeterFill[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-MeterFill {
+    forced-color-adjust: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .react-aria-MeterFill {
+    transition-duration: 0s !important;
+  }
+}
+
+} /* @layer components */`;export{e as default};

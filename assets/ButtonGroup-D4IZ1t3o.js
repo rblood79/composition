@@ -1,0 +1,91 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog ButtonGroup — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: default
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-ButtonGroup {
+  /* Base styles — archetype: default */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  height: fit-content;
+
+  /* Default variant */
+  background: transparent;
+  color: var(--fg);
+  border: var(--border-width-thin) solid transparent;
+
+  /* Default size */
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-md);
+}
+
+.react-aria-ButtonGroup:where([data-variant="default"]) {
+  background: transparent;
+  color: var(--fg);
+  border-color: transparent;
+}
+
+.react-aria-ButtonGroup:where([data-variant="default"][data-hovered]) {
+  background: transparent;
+}
+
+.react-aria-ButtonGroup:where([data-variant="default"][data-pressed]) {
+  background: transparent;
+}
+
+.react-aria-ButtonGroup[data-size="XS"] {
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-sm);
+}
+
+.react-aria-ButtonGroup[data-size="S"] {
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
+}
+
+.react-aria-ButtonGroup[data-size="M"] {
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-md);
+}
+
+.react-aria-ButtonGroup[data-size="L"] {
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-lg);
+}
+
+.react-aria-ButtonGroup[data-size="XL"] {
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xl);
+  border-radius: var(--catalog-token-radius-xl);
+}
+
+.react-aria-ButtonGroup[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-ButtonGroup[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-ButtonGroup {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

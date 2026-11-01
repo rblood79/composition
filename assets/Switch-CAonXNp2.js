@@ -1,0 +1,226 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog Switch — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: toggle-indicator
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Switch {
+  /* Base styles — archetype: toggle-indicator */
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    box-sizing: border-box;
+    user-select: none;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  position: relative;
+
+  /* Default variant */
+  background: transparent;
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  height: auto;
+  padding: 4px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-full);
+  gap: var(--catalog-token-switch-gap-M, calc(var(--catalog-token-text-sm) * 10 / 14));
+}
+
+.react-aria-Switch:where([data-variant="default"]) {
+  background: transparent;
+  color: var(--fg);
+}
+
+.react-aria-Switch:where([data-variant="default"][data-hovered]) {
+  background: transparent;
+}
+
+.react-aria-Switch:where([data-variant="default"][data-pressed]) {
+  background: transparent;
+}
+
+.react-aria-Switch:where([data-variant="emphasized"]) {
+  background: transparent;
+  color: var(--fg);
+}
+
+.react-aria-Switch:where([data-variant="emphasized"][data-hovered]) {
+  background: transparent;
+}
+
+.react-aria-Switch:where([data-variant="emphasized"][data-pressed]) {
+  background: transparent;
+}
+
+.react-aria-Switch[data-size="S"] {
+  height: auto;
+  padding: 4px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-full);
+  gap: var(--catalog-token-switch-gap-S, calc(var(--catalog-token-text-xs) * 10 / 14));
+}
+
+.react-aria-Switch[data-size="M"] {
+  height: auto;
+  padding: 4px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-full);
+  gap: var(--catalog-token-switch-gap-M, calc(var(--catalog-token-text-sm) * 10 / 14));
+}
+
+.react-aria-Switch[data-size="L"] {
+  height: auto;
+  padding: 4px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-full);
+  gap: var(--catalog-token-switch-gap-L, calc(var(--catalog-token-text-base) * 10 / 14));
+}
+
+.react-aria-Switch[data-size="XL"] {
+  height: auto;
+  padding: 4px 0px;
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-full);
+  gap: var(--catalog-token-switch-gap-XL, calc(var(--catalog-token-text-lg) * 10 / 14));
+}
+
+.react-aria-Switch[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-Switch[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-Switch[data-size="S"] {
+  --sw-button-gap: var(--catalog-token-switch-gap-S, calc(var(--catalog-token-text-xs) * 10 / 14));
+}
+
+.react-aria-Switch[data-size="M"] {
+  --sw-button-gap: var(--catalog-token-switch-gap-M, calc(var(--catalog-token-text-sm) * 10 / 14));
+}
+
+.react-aria-Switch[data-size="L"] {
+  --sw-button-gap: var(--catalog-token-switch-gap-L, calc(var(--catalog-token-text-base) * 10 / 14));
+}
+
+.react-aria-Switch[data-size="XL"] {
+  --sw-button-gap: var(--catalog-token-switch-gap-XL, calc(var(--catalog-token-text-lg) * 10 / 14));
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-Switch {
+    forced-color-adjust: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .react-aria-Switch {
+    transition-duration: 0s !important;
+  }
+}
+
+  .react-aria-Switch .react-aria-SwitchButton {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sw-button-gap);
+  }
+
+  .react-aria-Switch .react-aria-SwitchButton[data-focus-visible] {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+
+  .react-aria-Switch[data-size="S"] .react-aria-SwitchButton .indicator {
+    width: calc(var(--catalog-token-text-xs) * 26 / 14);
+    height: var(--catalog-token-size-height-sm-S);
+    border-radius: 9999px;
+  }
+
+  .react-aria-Switch[data-size="S"] .react-aria-SwitchButton .indicator::before {
+    width: calc(var(--catalog-token-size-height-sm-S) - 8px);
+    height: calc(var(--catalog-token-size-height-sm-S) - 8px);
+    border-radius: 9999px;
+    margin: 0 2px;
+  }
+
+  .react-aria-Switch[data-size="S"][data-selected] .react-aria-SwitchButton .indicator::before {
+    width: calc(var(--catalog-token-size-height-sm-S) - 6px);
+    height: calc(var(--catalog-token-size-height-sm-S) - 6px);
+    translate: calc(calc(var(--catalog-token-text-xs) * 26 / 14) - var(--catalog-token-size-height-sm-S) - 1px) 0;
+  }
+
+  .react-aria-Switch[data-size="M"] .react-aria-SwitchButton .indicator {
+    width: calc(var(--catalog-token-text-sm) * 26 / 14);
+    height: var(--catalog-token-size-height-sm-M);
+    border-radius: 9999px;
+  }
+
+  .react-aria-Switch[data-size="M"] .react-aria-SwitchButton .indicator::before {
+    width: calc(var(--catalog-token-size-height-sm-M) - 8px);
+    height: calc(var(--catalog-token-size-height-sm-M) - 8px);
+    border-radius: 9999px;
+    margin: 0 2px;
+  }
+
+  .react-aria-Switch[data-size="M"][data-selected] .react-aria-SwitchButton .indicator::before {
+    width: calc(var(--catalog-token-size-height-sm-M) - 6px);
+    height: calc(var(--catalog-token-size-height-sm-M) - 6px);
+    translate: calc(calc(var(--catalog-token-text-sm) * 26 / 14) - var(--catalog-token-size-height-sm-M) - 1px) 0;
+  }
+
+  .react-aria-Switch[data-size="L"] .react-aria-SwitchButton .indicator {
+    width: calc(var(--catalog-token-text-base) * 26 / 14);
+    height: var(--catalog-token-size-height-sm-L);
+    border-radius: 9999px;
+  }
+
+  .react-aria-Switch[data-size="L"] .react-aria-SwitchButton .indicator::before {
+    width: calc(var(--catalog-token-size-height-sm-L) - 8px);
+    height: calc(var(--catalog-token-size-height-sm-L) - 8px);
+    border-radius: 9999px;
+    margin: 0 2px;
+  }
+
+  .react-aria-Switch[data-size="L"][data-selected] .react-aria-SwitchButton .indicator::before {
+    width: calc(var(--catalog-token-size-height-sm-L) - 6px);
+    height: calc(var(--catalog-token-size-height-sm-L) - 6px);
+    translate: calc(calc(var(--catalog-token-text-base) * 26 / 14) - var(--catalog-token-size-height-sm-L) - 1px) 0;
+  }
+
+  .react-aria-Switch[data-size="XL"] .react-aria-SwitchButton .indicator {
+    width: calc(var(--catalog-token-text-lg) * 26 / 14);
+    height: var(--catalog-token-size-height-sm-XL);
+    border-radius: 9999px;
+  }
+
+  .react-aria-Switch[data-size="XL"] .react-aria-SwitchButton .indicator::before {
+    width: calc(var(--catalog-token-size-height-sm-XL) - 8px);
+    height: calc(var(--catalog-token-size-height-sm-XL) - 8px);
+    border-radius: 9999px;
+    margin: 0 2px;
+  }
+
+  .react-aria-Switch[data-size="XL"][data-selected] .react-aria-SwitchButton .indicator::before {
+    width: calc(var(--catalog-token-size-height-sm-XL) - 6px);
+    height: calc(var(--catalog-token-size-height-sm-XL) - 6px);
+    translate: calc(calc(var(--catalog-token-text-lg) * 26 / 14) - var(--catalog-token-size-height-sm-XL) - 1px) 0;
+  }
+
+
+} /* @layer components */`;export{e as default};
