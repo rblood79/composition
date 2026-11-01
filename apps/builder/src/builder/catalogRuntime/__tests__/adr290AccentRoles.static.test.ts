@@ -19,58 +19,77 @@ import {
 const ACCENT_REF =
   /\{color\.(accent|accent-hover|accent-pressed|accent-content|accent-content-hover)\}|var\(--(accent|accent-hover|accent-pressed|accent-content|accent-content-hover)\)/g;
 
-/** `경로 → 토큰` — breakdown §5 역할 분류표 (2026-10-30). */
+/**
+ * `경로 → 토큰` — breakdown §5 역할 분류표 (2026-10-30). ADR-297 Phase 2 (2026-11-01): 경로는 variant 칠 조건 트리
+ * (`paint.<속성>.<조건…>`) — 옛 `fill.default.hover` · `colors.outlineText` 경로를 기계로 옮겼고 rule · variant
+ * 별 (토큰 · 역할) 묶음은 옛 표와 같다 (48 = 48).
+ */
 const CLASSIFICATION: Record<string, string> = {
   // 배경 역할 — 위에 on-accent 글자 · 아이콘
-  "Badge.variants.accent.fill.default.base": "accent",
-  "Badge.variants.accent.fill.default.hover": "accent",
-  "Badge.variants.accent.fill.default.pressed": "accent",
-  "Button.variants.accent.fill.default.base": "accent",
-  "Button.variants.accent.fill.default.hover": "accent-hover",
-  "Button.variants.accent.fill.default.pressed": "accent-pressed",
-  "Button.variants.accent.colors.border": "accent",
-  "Button.variants.accent.colors.borderHover": "accent-hover",
-  "Checkbox.variants.emphasized.fill.default.selected": "accent",
-  "Checkbox.variants.emphasized.colors.selectedBorder": "accent",
-  "ListBoxItem.variants.default.fill.default.selected": "accent",
-  "Radio.variants.emphasized.fill.default.selected": "accent",
-  "Radio.variants.emphasized.colors.selectedBorder": "accent",
-  "Switch.variants.emphasized.fill.default.selected": "accent",
-  "Row.variants.default.fill.default.selected": "accent",
-  "Tag.variants.selectedEmphasized.fill.default.base": "accent",
-  "Tag.variants.selectedEmphasized.fill.default.hover": "accent",
-  "Tag.variants.selectedEmphasized.fill.default.pressed": "accent",
-  "Tag.variants.selectedEmphasized.colors.border": "accent",
-  "ToggleButton.variants.default.fill.default.emphasizedSelected": "accent",
-  "ToggleButton.variants.default.colors.emphasizedSelectedBorder": "accent",
+  "Badge.variants.accent.paint.backgroundColor.default": "accent",
+  "Badge.variants.accent.paint.backgroundColor.isHovered": "accent",
+  "Badge.variants.accent.paint.backgroundColor.isPressed": "accent",
+  "Button.variants.accent.paint.backgroundColor.default": "accent",
+  "Button.variants.accent.paint.backgroundColor.isHovered": "accent-hover",
+  "Button.variants.accent.paint.backgroundColor.isPressed": "accent-pressed",
+  "Button.variants.accent.paint.borderColor.default": "accent",
+  "Button.variants.accent.paint.borderColor.isHovered": "accent-hover",
+  "Checkbox.variants.emphasized.paint.backgroundColor.isSelected.default":
+    "accent",
+  "Checkbox.variants.emphasized.paint.borderColor.isSelected.default": "accent",
+  "ListBoxItem.variants.default.paint.backgroundColor.isSelected.default":
+    "accent",
+  "Radio.variants.emphasized.paint.backgroundColor.isSelected.default":
+    "accent",
+  "Radio.variants.emphasized.paint.borderColor.isSelected.default": "accent",
+  "Switch.variants.emphasized.paint.backgroundColor.isSelected.default":
+    "accent",
+  "Row.variants.default.paint.backgroundColor.isSelected.default": "accent",
+  "Tag.variants.selectedEmphasized.paint.backgroundColor.default": "accent",
+  "Tag.variants.selectedEmphasized.paint.backgroundColor.isHovered": "accent",
+  "Tag.variants.selectedEmphasized.paint.backgroundColor.isPressed": "accent",
+  "Tag.variants.selectedEmphasized.paint.borderColor.default": "accent",
+  "ToggleButton.variants.default.paint.backgroundColor.isSelected.isEmphasized":
+    "accent",
+  "ToggleButton.variants.default.paint.borderColor.isSelected.isEmphasized":
+    "accent",
   // 바탕 위 역할 — 글자 · 선 · track 위 채움
-  "Badge.variants.accent.colors.subtleText": "accent-content",
-  "Badge.variants.accent.colors.outlineText": "accent-content",
-  "Badge.variants.accent.colors.outlineBorder": "accent-content",
-  "Button.variants.accent.colors.outlineText": "accent-content",
-  "Card.variants.primary.colors.selectedBorder": "accent-content",
-  "Card.variants.secondary.colors.selectedBorder": "accent-content",
-  "Card.variants.tertiary.colors.selectedBorder": "accent-content",
-  "Card.variants.quiet.colors.selectedBorder": "accent-content",
-  "ColorSwatch.variants.selected.colors.border": "accent-content",
-  "DateInput.variants.accent.colors.border": "accent-content",
-  "DateInput.variants.accent.colors.borderHover": "accent-content-hover",
-  "DropZone.variants.default.colors.textHover": "accent-content",
-  "DropZone.variants.default.colors.borderHover": "accent-content",
-  "Group.variants.accent.colors.text": "accent-content",
-  "Input.variants.accent.colors.border": "accent-content",
-  "Input.variants.accent.colors.borderHover": "accent-content-hover",
-  "Link.variants.primary.colors.text": "accent-content",
-  "Link.variants.primary.colors.textHover": "accent-content-hover",
-  "Link.variants.secondary.colors.textHover": "accent-content",
-  "Popover.variants.accent.colors.border": "accent-content",
+  "Badge.variants.accent.paint.color.fillStyle.outline": "accent-content",
+  "Badge.variants.accent.paint.color.fillStyle.subtle": "accent-content",
+  "Badge.variants.accent.paint.borderColor.fillStyle.outline": "accent-content",
+  "Button.variants.accent.paint.color.fillStyle.outline": "accent-content",
+  "Card.variants.primary.paint.borderColor.isSelected.default":
+    "accent-content",
+  "Card.variants.secondary.paint.borderColor.isSelected.default":
+    "accent-content",
+  "Card.variants.tertiary.paint.borderColor.isSelected.default":
+    "accent-content",
+  "Card.variants.quiet.paint.borderColor.isSelected.default": "accent-content",
+  "ColorSwatch.variants.selected.paint.borderColor.default": "accent-content",
+  "DateInput.variants.accent.paint.borderColor.default": "accent-content",
+  "DateInput.variants.accent.paint.borderColor.isHovered":
+    "accent-content-hover",
+  "DropZone.variants.default.paint.color.isHovered": "accent-content",
+  "DropZone.variants.default.paint.borderColor.isHovered": "accent-content",
+  "Group.variants.accent.paint.color.default": "accent-content",
+  "Input.variants.accent.paint.borderColor.default": "accent-content",
+  "Input.variants.accent.paint.borderColor.isHovered": "accent-content-hover",
+  "Link.variants.primary.paint.color.default": "accent-content",
+  "Link.variants.primary.paint.color.isHovered": "accent-content-hover",
+  "Link.variants.secondary.paint.color.isHovered": "accent-content",
+  "Popover.variants.accent.paint.borderColor.default": "accent-content",
   "ProgressBarTrack.variants.default.fillBar": "accent-content",
-  "ProgressBarFill.variants.default.fill.default.base": "accent-content",
-  "ProgressBarFill.variants.default.fill.default.hover": "accent-content",
-  "ProgressBarFill.variants.default.fill.default.pressed": "accent-content",
-  "SliderFill.variants.emphasized.fill.default.base": "accent-content",
-  "SliderThumb.variants.emphasized.fill.default.base": "accent-content",
-  "TagGroup.variants.accent.colors.border": "accent-content",
+  "ProgressBarFill.variants.default.paint.backgroundColor.default":
+    "accent-content",
+  "ProgressBarFill.variants.default.paint.backgroundColor.isHovered":
+    "accent-content",
+  "ProgressBarFill.variants.default.paint.backgroundColor.isPressed":
+    "accent-content",
+  "SliderFill.variants.emphasized.paint.backgroundColor.default":
+    "accent-content",
+  "SliderThumb.variants.emphasized.paint.backgroundColor.default":
+    "accent-content",
+  "TagGroup.variants.accent.paint.borderColor.default": "accent-content",
 };
 
 /** 생성 sheet 로 가는 DOM 상태 선택자 (focus · drop · quiet 밑줄) — 전부 바탕 위 선 · 글자. */
@@ -121,13 +140,18 @@ function tokensOf(value: unknown): string[] {
   return out;
 }
 
-/** `colors.<key>` 가 놓이는 fill 축 — subtle* · outline* 은 그 fillStyle, 나머지는 default. */
-function fillFor(variant: Json, key: string): unknown {
-  const fill = variant.fill as Json | undefined;
-  if (!fill) return undefined;
-  if (key.startsWith("subtle")) return fill.subtle;
-  if (key.startsWith("outline")) return fill.outline;
-  return fill.default;
+/**
+ * 글자 · 테두리 leaf 가 놓이는 배경 가지 — `fillStyle.<값>` 가지의 leaf 는 배경 트리의 같은 fillStyle 가지, 나머지는
+ * fillStyle · quiet 가지를 뺀 배경 트리 (옛 `fill.default` — 모든 상태).
+ */
+function backgroundFor(variant: Json, path: string[]): unknown {
+  const bg = (variant.paint as Json | undefined)?.backgroundColor;
+  if (!bg || typeof bg !== "object") return bg;
+  const at = path.indexOf("fillStyle");
+  if (at >= 0)
+    return ((bg as Json).fillStyle as Json | undefined)?.[path[at + 1]!];
+  const { fillStyle: _f, isQuiet: _q, ...rest } = bg as Json;
+  return rest;
 }
 
 function backdropsOf(type: string, path: string[]): string[] {
@@ -135,12 +159,13 @@ function backdropsOf(type: string, path: string[]): string[] {
   const variants = rules[type]!.variants as Record<string, Json>;
   const variant = variants[path[2]!]!;
   let fill: unknown;
-  if (path[3] === "colors") fill = fillFor(variant, path[4]!);
-  else if (path[3] === "fillBar") fill = (variant.fill as Json).default;
+  if (path[3] === "paint" && path[4] !== "backgroundColor")
+    fill = backgroundFor(variant, path.slice(5));
+  else if (path[3] === "fillBar") fill = backgroundFor(variant, []);
   else {
     const track = rules[TRACK_OF[type]!]!;
-    fill = Object.values(track.variants as Record<string, Json>).map(
-      (v) => (v.fill as Json).default,
+    fill = Object.values(track.variants as Record<string, Json>).map((v) =>
+      backgroundFor(v, []),
     );
   }
   const tokens = tokensOf(fill).filter(
@@ -191,7 +216,7 @@ describe("ADR-290 G2 — accent-content 의 바탕은 탐색의 대비 대상 �
     const parts = path.split(".");
     const backdrops = backdropsOf(parts[0]!, parts);
     expect(backdrops.length).toBeGreaterThan(0);
-    const isText = parts[3] === "colors" && /text/i.test(parts[4]!);
+    const isText = parts[3] === "paint" && parts[4] === "color";
     const allowed = isText ? text : any;
     expect(backdrops.filter((b) => !allowed.has(b))).toEqual([]);
   });

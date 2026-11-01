@@ -9,7 +9,7 @@
  *   를 React 컴포넌트로 렌더(Avatar 선례 동형).
  *
  *   **track 색 = rule(DOM/Skia 대칭)**: track stroke 를 resolveComponentRule("ProgressCircle").
- *   variants.default.fill.default.base(TokenRef) → colorTokenToCss 로 변환해 적용. indicator stroke 는
+ *   variants.default.paint.backgroundColor 의 기본 값(TokenRef) → colorTokenToCss 로 변환해 적용. indicator stroke 는
  *   {color.accent}(rule 에 indicator 필드 없음 — spec PROGRESSCIRCLE_FILL_COLORS.default 및 Skia escape
  *   value_fill_arc 의 `visual.fillBar ?? {color.accent}` 와 동일 source). Skia escape(value_fill_arc)도
  *   같은 두 색을 읽으므로 시각 대칭. (legacy renderProgressCircle 의 var(--bg-muted)/var(--accent)
@@ -27,6 +27,7 @@
 import React from "react";
 import { resolveComponentRule } from "../catalog/resolvers/resolveComponentRule";
 import { colorTokenToCss } from "../catalog/resolvers/colorTokenToCss";
+import { paintAt } from "../catalog/rule/rulePaintTree";
 import { ruleLengthCss, ruleSizeLengthRef } from "@composition/rendering";
 
 export interface ProgressCircleProps {
@@ -144,7 +145,10 @@ export function ProgressCircle({
     trackColorProp ??
     (isStatic
       ? `rgb(${staticRgb} / 0.17)`
-      : colorTokenToCss(variant?.fill?.default?.base, "var(--bg-muted)"));
+      : colorTokenToCss(
+          paintAt(variant?.paint.backgroundColor),
+          "var(--bg-muted)",
+        ));
   const indicatorColor =
     indicatorColorProp ??
     (isStatic

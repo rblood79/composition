@@ -16,6 +16,7 @@ import {
 } from "../generated/reusableOriginLibrary";
 import { CatalogGraph } from "../graph";
 import type { CatalogEntry, NodeEntry } from "../types";
+import { paintAt } from "../../rule/rulePaintTree";
 
 const sourceValue = (value: string | number | undefined) => {
   if (typeof value !== "string" || !/^\{.+\}$/.test(value))
@@ -72,12 +73,12 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
     };
     // ADR-276: the Button origin is the old IconButton template with no glyph default — an unfilled
     // `{icon}` stays a placeholder (its Icon position is not present in the Canvas or the DOM).
-    expect(
-      leaf("lib:template:component-button__icon")?.props.iconName,
-    ).toBe("{icon}");
-    expect(
-      leaf("lib:template:component-button__label")?.props.children,
-    ).toBe("Button");
+    expect(leaf("lib:template:component-button__icon")?.props.iconName).toBe(
+      "{icon}",
+    );
+    expect(leaf("lib:template:component-button__label")?.props.children).toBe(
+      "Button",
+    );
     applyCatalogTransaction(graph, {
       projectId: graph.projectId,
       expectedRevision: graph.revision,
@@ -97,12 +98,12 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
         },
       ],
     });
-    expect(
-      leaf("lib:template:component-button__icon")?.props.iconName,
-    ).toBe("heart");
-    expect(
-      leaf("lib:template:component-button__label")?.props.children,
-    ).toBe("Like");
+    expect(leaf("lib:template:component-button__icon")?.props.iconName).toBe(
+      "heart",
+    );
+    expect(leaf("lib:template:component-button__label")?.props.children).toBe(
+      "Like",
+    );
     applyCatalogTransaction(graph, {
       projectId: graph.projectId,
       expectedRevision: graph.revision,
@@ -118,9 +119,9 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
     });
     // Old contract (`resolveTemplateBindingValues`): a removed instance value binds the schema default
     // — the Button origin has none for `icon`, so the placeholder comes back.
-    expect(
-      leaf("lib:template:component-button__icon")?.props.iconName,
-    ).toBe("{icon}");
+    expect(leaf("lib:template:component-button__icon")?.props.iconName).toBe(
+      "{icon}",
+    );
     applyCatalogTransaction(graph, {
       projectId: graph.projectId,
       expectedRevision: graph.revision,
@@ -366,7 +367,7 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
     expect(textResolved.props.children).toBe("Source Text");
     expect(textResolved.visual).toMatchObject({
       color: sourceValue(
-        COMPONENT_RULES_TABLE.Text.variants.default.colors?.text,
+        paintAt(COMPONENT_RULES_TABLE.Text.variants.default.paint.color),
       ),
       fontSize: sourceValue(COMPONENT_RULES_TABLE.Text.sizes.M.fontSize),
       fontWeight: COMPONENT_RULES_TABLE.Text.variants.default.textWeight,
@@ -440,10 +441,18 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
     expect(resolveCatalogNode(graph, buttonId).visual).toMatchObject({
       fill: "transparent",
       color: sourceValue(
-        COMPONENT_RULES_TABLE.Button.variants.accent.colors?.outlineText,
+        paintAt(
+          COMPONENT_RULES_TABLE.Button.variants.accent.paint.color,
+          "fillStyle",
+          "outline",
+        ),
       ),
       borderColor: sourceValue(
-        COMPONENT_RULES_TABLE.Button.variants.accent.colors?.outlineBorder,
+        paintAt(
+          COMPONENT_RULES_TABLE.Button.variants.accent.paint.borderColor,
+          "fillStyle",
+          "outline",
+        ),
       ),
       fontSize: sourceValue(COMPONENT_RULES_TABLE.Button.sizes.L.fontSize),
       paddingX: COMPONENT_RULES_TABLE.Button.sizes.L.paddingX,
@@ -451,7 +460,7 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
     expect(resolveCatalogNode(graph, glyphId).visual).toMatchObject({
       iconSize: sourceValue(COMPONENT_RULES_TABLE.Icon.sizes.XS.iconSize),
       color: sourceValue(
-        COMPONENT_RULES_TABLE.Icon.variants.default.colors?.text,
+        paintAt(COMPONENT_RULES_TABLE.Icon.variants.default.paint.color),
       ),
     });
   });

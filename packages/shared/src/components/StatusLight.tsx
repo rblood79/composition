@@ -11,7 +11,7 @@
  *   (`react-aria-{Type}[data-variant] { background }`, 컨테이너에 칠함)를 쓸 수 없는 outlier
  *   (archetype simple 41 컴포넌트 중 유일 — 나머지는 컨테이너 색이 정확). generated CSS dot redirect 는
  *   CSSGenerator broad-shared rework(41 컴포넌트 공유) 라 격리 회피. 대신 본 컴포넌트가
- *   resolveComponentRule("StatusLight").variants[v].fill.default.base(TokenRef) → colorTokenToCss 로
+ *   resolveComponentRule("StatusLight").variants[v].paint.backgroundColor 의 기본 값(TokenRef) → colorTokenToCss 로
  *   dot 에 인라인 색 적용. Skia escape(skiaPrimitives.ts status_light)도 같은 rule fill base 를
  *   읽으므로 양쪽이 같은 source(rule) → 시각 대칭. (사용자 결정 2026-06-06: "DOM 도 rule 기반 20 variant")
  *
@@ -23,6 +23,7 @@
 import React from "react";
 import { resolveComponentRule } from "../catalog/resolvers/resolveComponentRule";
 import { colorTokenToCss } from "../catalog/resolvers/colorTokenToCss";
+import { paintAt } from "../catalog/rule/rulePaintTree";
 import {
   ruleLengthCss,
   ruleSizeLengthRef,
@@ -78,25 +79,31 @@ export function StatusLight({
   const ruleFont = rule?.sizes?.[sizeKey]?.fontSize ?? rule?.sizes?.M?.fontSize;
   const fontSize =
     typeof ruleFont === "string"
-      ? withCatalogTokenVars(tokenToCSSVar(ruleFont as Parameters<typeof tokenToCSSVar>[0]))
+      ? withCatalogTokenVars(
+          tokenToCSSVar(ruleFont as Parameters<typeof tokenToCSSVar>[0]),
+        )
       : undefined;
   // 행 = 글자 한 줄 (S2 wrapper `font: controlFont()` — 높이 지정 없음, ADR-295 후속 B3): rule `lineHeight` 토큰의 DOM 변수.
   const ruleLine =
     rule?.sizes?.[sizeKey]?.lineHeight ?? rule?.sizes?.M?.lineHeight;
   const lineHeight =
     typeof ruleLine === "string"
-      ? withCatalogTokenVars(tokenToCSSVar(ruleLine as Parameters<typeof tokenToCSSVar>[0]))
+      ? withCatalogTokenVars(
+          tokenToCSSVar(ruleLine as Parameters<typeof tokenToCSSVar>[0]),
+        )
       : undefined;
   // dot 지름 = rule sizes[size].indicator.dotSize (Skia · Canvas 폭 계산과 같은 source).
   //   S2 `light` 의 `size` (rem × `--s2-scale`) — rule 의 `scaled(n)` 이라 기기 식으로 (터치 × 1.25, ADR-295 후속).
   const indicator = rule?.sizes?.[sizeKey]?.indicator;
-  const dotRef = indicator ? ruleSizeLengthRef(indicator, "dotSize") : undefined;
+  const dotRef = indicator
+    ? ruleSizeLengthRef(indicator, "dotSize")
+    : undefined;
   const dotSize =
     (dotRef ? ruleLengthCss(dotRef) : undefined) ??
     indicator?.dotSize ??
     DOT_SIZE[sizeKey] ??
     10;
-  const fillBase = rule?.variants?.[variant]?.fill?.default?.base;
+  const fillBase = paintAt(rule?.variants?.[variant]?.paint.backgroundColor);
   const dotColor = colorTokenToCss(fillBase);
 
   // catalog sizes[size].height read-through (0 = 글자 줄 — S2, ADR-295 후속 B3. 전 ADR-151 B9 의 고정 높이).

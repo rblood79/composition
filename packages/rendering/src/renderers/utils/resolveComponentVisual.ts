@@ -36,16 +36,20 @@ import { resolveFillTokens } from "../../utils/fillTokens";
 /**
  * 단일 variant 의 시각 규칙 — fill(2축) + 비-fill 색상(text/border 계열).
  *
+ * ADR-297 전환 단계: 칠 필드 (`fill` · `text` · `border` 와 상태 접미사 키) 는 생성 CSS 의 옛 블록 순서 입력이라
+ * 선택이다 — generate-css 가 rule 의 칠 조건 트리에서 채우고 (`legacyPaintOf`), Skia primitive 는 해석된 `paint`
+ * (`resolveCatalogPaint`) 만 읽어 builder 어댑터는 싣지 않는다. Phase 3 에서 생성기가 트리를 직접 읽을 때 지운다.
+ *
  * VariantSpec 의 색상 필드 전수 투영. fill 은 ADR-908 FillTokenSpec(fillStyle×state 2축),
  * 비-fill 은 VariantSpec 직접 필드(ADR-908 §"비-background 색상" 보존).
  */
 export interface ComponentVisualRule {
   /** fillStyle × state 2축 배경 토큰 (ADR-908). variant 없으면 undefined. */
-  fill: FillTokenSpec | undefined;
+  fill?: FillTokenSpec | undefined;
   /** 기본 텍스트 색 */
-  text: TokenRef | undefined;
+  text?: TokenRef | undefined;
   /** hover 텍스트 색 (미지정 시 consumer 가 text fallback) */
-  textHover: TokenRef | undefined;
+  textHover?: TokenRef | undefined;
   /** 텍스트 굵기 (CSS font-weight 동형, 미지정 시 consumer 가 기본 굵기 fallback) */
   textWeight: number | undefined;
   /** RAC `data-current` 항목의 텍스트 굵기 (Breadcrumb 현재 조각, 미지정 시 consumer fallback) */
@@ -53,9 +57,9 @@ export interface ComponentVisualRule {
   /** 폰트 패밀리 (CSS font-family 동형 — Code/Kbd mono, 미지정 시 consumer 가 sans fallback) */
   fontFamily: string | undefined;
   /** 기본 테두리 색 */
-  border: TokenRef | undefined;
+  border?: TokenRef | undefined;
   /** hover 테두리 색 */
-  borderHover: TokenRef | undefined;
+  borderHover?: TokenRef | undefined;
   /** 테두리 선 스타일 (CSS border-style 동형, 미지정 시 consumer 가 "solid" fallback) */
   borderStyle: "solid" | "dashed" | "dotted" | undefined;
   /**
@@ -64,19 +68,19 @@ export interface ComponentVisualRule {
    */
   fillBar: TokenRef | undefined;
   /** outline fillStyle 텍스트 색 */
-  outlineText: TokenRef | undefined;
+  outlineText?: TokenRef | undefined;
   /** outline fillStyle 테두리 색 */
-  outlineBorder: TokenRef | undefined;
+  outlineBorder?: TokenRef | undefined;
   /** subtle fillStyle 텍스트 색 */
-  subtleText: TokenRef | undefined;
+  subtleText?: TokenRef | undefined;
   /** selected 상태 텍스트 색 */
-  selectedText: TokenRef | undefined;
+  selectedText?: TokenRef | undefined;
   /** selected 상태 테두리 색 */
-  selectedBorder: TokenRef | undefined;
+  selectedBorder?: TokenRef | undefined;
   /** data-emphasized + data-selected 텍스트 색 */
-  emphasizedSelectedText: TokenRef | undefined;
+  emphasizedSelectedText?: TokenRef | undefined;
   /** data-emphasized + data-selected 테두리 색 */
-  emphasizedSelectedBorder: TokenRef | undefined;
+  emphasizedSelectedBorder?: TokenRef | undefined;
   /**
    * leading icon (텍스트 좌측 아이콘 — DisclosureHeader chevron 등, ADR-912 (B+icon)).
    * `leading_icon` skiaPrimitive(append 모드)가 본 필드 name/color 로 chevron 을 그리고,

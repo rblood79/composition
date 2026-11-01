@@ -17,43 +17,28 @@ import {
 } from "@composition/shared";
 import type { ComponentVisualRule } from "@composition/rendering";
 
-/** shared ComponentRuleVariant(string) → specs ComponentVisualRule(TokenRef). 런타임 동형 캐스팅. */
+/**
+ * shared ComponentRuleVariant(string) → specs ComponentVisualRule(TokenRef) — 비-칠 시각 값만. 칠 (배경 ·
+ * 글자 · 테두리와 그 상태) 은 variant 의 조건 트리를 `resolveCatalogPaint` 가 평가해 primitive 에 `paint` 로
+ * 준다 (ADR-297) — 여기서 옮기지 않는다.
+ */
 export function ruleVariantToVisual(
   v: ComponentRuleVariant,
 ): ComponentVisualRule {
-  const c = v.colors ?? {};
-  // fill 은 ComponentRuleFill(string) 과 FillTokenSpec(TokenRef) 가 동형 — 구조 그대로 캐스팅.
-  // borderStyle/textWeight 는 ComponentRuleVariant 본문 정식 필드(DropZone dashed/400 등 보편 D3).
   return {
-    fill: v.fill as unknown as ComponentVisualRule["fill"],
-    text: c.text as ComponentVisualRule["text"],
-    textHover: c.textHover as ComponentVisualRule["textHover"],
     textWeight: v.textWeight,
     currentTextWeight: v.currentTextWeight,
     // fontFamily 는 ComponentRuleVariant 본문 정식 필드(Code/Kbd mono 등 보편 D3).
     fontFamily: v.fontFamily,
-    border: c.border as ComponentVisualRule["border"],
-    borderHover: c.borderHover as ComponentVisualRule["borderHover"],
     borderStyle: v.borderStyle,
     // value 채움 색 (ADR-912 선행-2) — ComponentRuleVariant.fillBar 정식 필드.
     fillBar: v.fillBar as ComponentVisualRule["fillBar"],
-    outlineText: c.outlineText as ComponentVisualRule["outlineText"],
-    outlineBorder: c.outlineBorder as ComponentVisualRule["outlineBorder"],
-    subtleText: c.subtleText as ComponentVisualRule["subtleText"],
-    selectedText: c.selectedText as ComponentVisualRule["selectedText"],
-    selectedBorder: c.selectedBorder as ComponentVisualRule["selectedBorder"],
-    emphasizedSelectedText:
-      c.emphasizedSelectedText as ComponentVisualRule["emphasizedSelectedText"],
-    emphasizedSelectedBorder:
-      c.emphasizedSelectedBorder as ComponentVisualRule["emphasizedSelectedBorder"],
-    // leading icon (ADR-912 (B+icon)) — ComponentRuleVariant.leadingIcon 정식 필드.
-    //   name/gap/color 동형 캐스팅(color 만 string→TokenRef 런타임 동형).
+    // leading icon (ADR-912 (B+icon)) — name/gap/color 동형 캐스팅(color 만 string→TokenRef 런타임 동형).
     leadingIcon: v.leadingIcon as ComponentVisualRule["leadingIcon"],
     // leading avatar (2026-08-21 Tag chip 아바타) — leadingIcon 과 같은 좌측 슬롯,
     //   둘 다 있으면 avatar 우선(resolveLeadingSlot 단일 판정). 동형 캐스팅.
     leadingAvatar: v.leadingAvatar as ComponentVisualRule["leadingAvatar"],
-    // trailing icon + textAlign (ADR-912 (B+icon) CalendarHeader) — inline_icon_text replace
-    //   module 이 leading+center text+trailing 을 함께 그릴 때 사용. 동형 캐스팅.
+    // trailing icon + textAlign (ADR-912 (B+icon) CalendarHeader) — 동형 캐스팅.
     trailingIcon: v.trailingIcon as ComponentVisualRule["trailingIcon"],
     textAlign: v.textAlign,
   };

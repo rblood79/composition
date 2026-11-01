@@ -3,6 +3,8 @@ import type {
   ComponentRuleSize,
   ComponentRuleVariant,
 } from "../../types/catalog-style.types";
+import type { ConditionSet } from "../rule/conditionTree";
+import { evaluatePaint, type ComponentRulePaint } from "../rule/rulePaintTree";
 
 export type CatalogInteractionState = "default" | "hover" | "pressed";
 
@@ -58,33 +60,27 @@ export function resolveCatalogPaint({
   interactionState,
   fillStyleValues,
 }: ResolveCatalogPaintInput): ResolvedCatalogPaint {
-  const fill = variant?.fill;
-  const colors = variant?.colors;
 
   const fillKey = catalogFillStyleKey(props.fillStyle, fillStyleValues);
   const isOutline = fillKey === "outline";
   const isSubtle = fillKey === "subtle";
-  const isQuiet = props.isQuiet === true && fill?.quiet != null;
-  const fillStates = isQuiet
-    ? fill?.quiet
-    : isOutline
-      ? fill?.outline
-      : isSubtle
-        ? fill?.subtle
-        : fill?.default;
-
   const isSelected = props.isSelected === true;
-  const isEmphasized = props.isEmphasized === true;
   const isShowAll = props._isShowAll === true;
-  const stateBackground = isSelected
-    ? isEmphasized
-      ? (fill?.default.emphasizedSelected ?? fill?.default.selected)
-      : fill?.default.selected
-    : interactionState === "hover"
-      ? (fillStates?.hover ?? fillStates?.base)
-      : interactionState === "pressed"
-        ? (fillStates?.pressed ?? fillStates?.base)
-        : fillStates?.base;
+  // ADR-297: the state-dependent paint is the variant's condition tree (`paint`) — key order is
+  //   the priority. A variant without one paints no state colors.
+  const state = variant?.paint
+    ? treeStatePaint(variant.paint, {
+        isHovered: interactionState === "hover",
+        isPressed: interactionState === "pressed",
+        isSelected,
+        isEmphasized: props.isEmphasized === true,
+        isQuiet: props.isQuiet === true,
+        ...(typeof props.fillStyle === "string"
+          ? { fillStyle: props.fillStyle }
+          : {}),
+      })
+    : NO_STATE_PAINT;
+  const stateBackground = state.background;
 
   const staticColor = props.staticColor;
   const staticHex =
@@ -93,7 +89,7 @@ export function resolveCatalogPaint({
       : staticColor === "white"
         ? "#ffffff"
         : undefined;
-  const catalogAlpha = fill?.alpha ?? 1;
+  const catalogAlpha = variant?.alpha ?? 1;
   const staticOnOpaqueBackground =
     staticHex != null &&
     !isOutline &&
@@ -119,29 +115,9 @@ export function resolveCatalogPaint({
       (isOutline ? TRANSPARENT_TOKEN : undefined));
   const color = isShowAll
     ? ACCENT_TOKEN
-    : ((style?.color as string | undefined) ??
-      staticTextColor ??
-      (isSelected
-        ? isEmphasized
-          ? (colors?.emphasizedSelectedText ?? colors?.selectedText)
-          : colors?.selectedText
-        : isOutline
-          ? (colors?.outlineText ?? colors?.text)
-          : isSubtle
-            ? (colors?.subtleText ?? colors?.text)
-            : interactionState === "hover" && colors?.textHover
-              ? colors.textHover
-              : colors?.text));
+    : ((style?.color as string | undefined) ?? staticTextColor ?? state.color);
 
-  const variantBorderColor = isSelected
-    ? isEmphasized
-      ? (colors?.emphasizedSelectedBorder ?? colors?.selectedBorder)
-      : colors?.selectedBorder
-    : isOutline
-      ? (colors?.outlineBorder ?? colors?.border)
-      : interactionState === "hover" && colors?.borderHover
-        ? colors.borderHover
-        : colors?.border;
+  const variantBorderColor = state.border;
   const hasBorderWidthChannel =
     size?.borderWidth != null || style?.borderWidth != null;
   const staticBorderEligible =
@@ -182,5 +158,28 @@ export function resolveCatalogPaint({
     staticTrackWash,
     hasVisibleBoxPaint,
     hasOpaqueCatalogBackground,
+  };
+}
+
+interface StatePaint {
+  background: string | undefined;
+  color: string | undefined;
+  border: string | undefined;
+}
+const NO_STATE_PAINT: StatePaint = {
+  background: undefined,
+  color: undefined,
+  border: undefined,
+};
+
+/** ADR-297 — the condition tree's paint for one condition set (key order = priority). */
+function treeStatePaint(
+  paint: ComponentRulePaint,
+  conditions: ConditionSet,
+): StatePaint {
+  return {
+    background: evaluatePaint(paint.backgroundColor, conditions),
+    color: evaluatePaint(paint.color, conditions),
+    border: evaluatePaint(paint.borderColor, conditions),
   };
 }

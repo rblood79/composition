@@ -6,35 +6,46 @@ import type {
 } from "../../types/catalog-style.types";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import { resolveCatalogPaint } from "../resolvers/resolveCatalogPaint";
+import { evaluatePaint } from "../rule/rulePaintTree";
 
 const SIZE: ComponentRuleSize = { borderWidth: 1 };
 
+// ADR-297: a variant's state paint is its condition tree (`paint` — later keys win).
 const BUTTON_VARIANT: ComponentRuleVariant = {
-  fill: {
-    default: {
-      base: "base-bg",
-      hover: "hover-bg",
-      pressed: "pressed-bg",
-      selected: "selected-bg",
-      emphasizedSelected: "emphasized-selected-bg",
+  alpha: 0.8,
+  paint: {
+    backgroundColor: {
+      default: "base-bg",
+      isHovered: "hover-bg",
+      isPressed: "pressed-bg",
+      fillStyle: {
+        outline: { default: "outline-bg", isHovered: "outline-hover-bg" },
+        subtle: { default: "subtle-bg", isPressed: "subtle-pressed-bg" },
+      },
+      isQuiet: { default: "quiet-bg", isHovered: "quiet-hover-bg" },
+      isSelected: {
+        default: "selected-bg",
+        isEmphasized: "emphasized-selected-bg",
+      },
     },
-    outline: { base: "outline-bg", hover: "outline-hover-bg" },
-    subtle: { base: "subtle-bg", pressed: "subtle-pressed-bg" },
-    quiet: { base: "quiet-bg", hover: "quiet-hover-bg" },
-    alpha: 0.8,
-  },
-  colors: {
-    text: "base-text",
-    textHover: "hover-text",
-    border: "base-border",
-    borderHover: "hover-border",
-    outlineText: "outline-text",
-    outlineBorder: "outline-border",
-    subtleText: "subtle-text",
-    selectedText: "selected-text",
-    selectedBorder: "selected-border",
-    emphasizedSelectedText: "emphasized-selected-text",
-    emphasizedSelectedBorder: "emphasized-selected-border",
+    color: {
+      default: "base-text",
+      isHovered: "hover-text",
+      fillStyle: { outline: "outline-text", subtle: "subtle-text" },
+      isSelected: {
+        default: "selected-text",
+        isEmphasized: "emphasized-selected-text",
+      },
+    },
+    borderColor: {
+      default: "base-border",
+      isHovered: "hover-border",
+      fillStyle: { outline: "outline-border" },
+      isSelected: {
+        default: "selected-border",
+        isEmphasized: "emphasized-selected-border",
+      },
+    },
   },
 };
 
@@ -141,11 +152,8 @@ describe("resolveCatalogPaint", () => {
 
   it("text-only/transparent variant에서 staticColor가 새 border나 opaque box를 만들지 않는다", () => {
     const textOnly: ComponentRuleVariant = {
-      fill: {
-        default: { base: "{color.transparent}" },
-        alpha: 0,
-      },
-      colors: { text: "variant-text" },
+      alpha: 0,
+      paint: { backgroundColor: "{color.transparent}", color: "variant-text" },
     };
 
     expect(
@@ -163,11 +171,8 @@ describe("resolveCatalogPaint", () => {
 
   it("사용자 inline border 는 box archetype 신호가 아니다 — text-only variant 에 border 를 줘도 inline", () => {
     const textOnly: ComponentRuleVariant = {
-      fill: {
-        default: { base: "{color.transparent}" },
-        alpha: 0,
-      },
-      colors: { text: "variant-text" },
+      alpha: 0,
+      paint: { backgroundColor: "{color.transparent}", color: "variant-text" },
     };
     expect(
       resolve(
@@ -185,8 +190,10 @@ describe("resolveCatalogPaint", () => {
 
   it("transparent border는 width channel이 있을 때만 static border 교체 대상이다", () => {
     const transparentBorder: ComponentRuleVariant = {
-      fill: { default: { base: "opaque-bg" } },
-      colors: { border: "{color.transparent}" },
+      paint: {
+        backgroundColor: "opaque-bg",
+        borderColor: "{color.transparent}",
+      },
     };
 
     expect(
@@ -260,7 +267,9 @@ describe("resolveCatalogPaint — catalog Link (§9 매트릭스 행)", () => {
 
   it("staticColor=auto 는 variant text 를 쓰고 box paint 를 만들지 않는다", () => {
     const paint = link({});
-    expect(paint.color).toBe(rule.variants.primary.colors?.text);
+    expect(paint.color).toBe(
+      evaluatePaint(rule.variants.primary.paint?.color, {}),
+    );
     expect(paint.hasVisibleBoxPaint).toBe(false);
     expect(paint.hasOpaqueCatalogBackground).toBe(false);
     expect(paint.borderColor).toBeUndefined();

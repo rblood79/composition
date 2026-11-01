@@ -4,7 +4,7 @@
  * **ADR-912 진로 1번 StatusLight proof slice (2026-06-06)**: catalog 발효 leaf 중 시각 구조가
  * archetype 의 "background=컨테이너" 가정에서 벗어나는 outlier(예: StatusLight = dot 인디케이터)는
  * generated CSS(`react-aria-{Type}[data-variant] { background }`, 컨테이너에 칠함)를 쓸 수 없다.
- * 이런 leaf 의 DOM 컴포넌트가 rule 색(`resolveComponentRule(type).variants[v].fill.default.base`,
+ * 이런 leaf 의 DOM 컴포넌트가 rule 색(`resolveComponentRule(type).variants[v].paint.backgroundColor` 기본 값,
  * TokenRef)을 dot/sub-element 에 직접 인라인 적용할 때 본 헬퍼로 CSS 값을 얻는다.
  *
  * **표는 하나 (ADR-293)**: `{color.X}` → CSS 값 표는 `@composition/rendering` 의 `colorTokenCssValue`

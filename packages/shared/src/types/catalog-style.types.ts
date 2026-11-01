@@ -1,4 +1,5 @@
 /** Catalog 시각 규칙, 테마 snapshot, 페이지 배치의 공용 값 계약. 문서 저장 모델은 catalog/document/types. */
+import type { ComponentRulePaint } from "../catalog/rule/rulePaintTree";
 import type { BreakpointName, ResponsiveValue } from "./responsive.types";
 export interface ThemeSnapshot {
   /** ADR-021 Tint 프리셋 ("blue" | "indigo" | "purple" | ...) */
@@ -79,58 +80,15 @@ export type TokensSnapshot = Record<string, TokensSnapshotEntry>;
 // ComponentRulesTable — ADR-142 G2(b) B: 컴포넌트 시각 규칙 SSOT
 // ─────────────────────────────────────────────
 
-/**
- * 단일 variant 의 fillStyle 별 state 배경 토큰 (ADR-908 FillStateTokens 투영).
- *
- * value 는 TokenRef 문자열(`{color.accent}`) — runtime 에서 `resolveCanonicalToken` /
- * `resolveToken` 으로 실수 값 변환(dark mode 자동 반전 보존). shared 는 specs FillTokenSpec 을
- * import 하지 않으므로(`specs ← shared` 의존 방향) 동형 구조를 string 으로 독립 선언한다.
- */
-export interface ComponentRuleFillState {
-  /** 해당 fillStyle 의 default state (required) */
-  base: string;
-  hover?: string;
-  pressed?: string;
-  selected?: string;
-  selectedHover?: string;
-  selectedPressed?: string;
-  emphasizedSelected?: string;
-}
-
-/** fillStyle(fill/outline/subtle) × state 2축 + quiet — ADR-908 FillTokenSpec 투영. */
-export interface ComponentRuleFill {
-  default: ComponentRuleFillState;
-  outline?: Partial<ComponentRuleFillState>;
-  subtle?: Partial<ComponentRuleFillState>;
-  /**
-   * quiet 변형 — 배경 없는 저강조 스타일 (RSP `isQuiet`, 2026-08-21 신설).
-   * 다른 키가 `fillStyle` enum 값인 것과 달리 boolean prop 이 고르는 preset 이다.
-   * 상세 계약은 specs `FillTokenSpec.quiet` 주석 참조.
-   */
-  quiet?: Partial<ComponentRuleFillState>;
-  /** 배경 투명도 0-1 */
-  alpha?: number;
-}
-
-/** 비-fill 색상 (text/border 계열) — VariantSpec 직접 필드 투영. */
-export interface ComponentRuleVariantColors {
-  text?: string;
-  textHover?: string;
-  border?: string;
-  borderHover?: string;
-  outlineText?: string;
-  outlineBorder?: string;
-  subtleText?: string;
-  selectedText?: string;
-  selectedBorder?: string;
-  emphasizedSelectedText?: string;
-  emphasizedSelectedBorder?: string;
-}
-
-/** 단일 variant 규칙 = fill 2축 + 비-fill 색상 + border-style. */
+/** 단일 variant 규칙 = 칠 조건 트리 + 배경 투명도 + 비-칠 시각 값 (border-style · 글자 굵기 …). */
 export interface ComponentRuleVariant {
-  fill: ComponentRuleFill;
-  colors?: ComponentRuleVariantColors;
+  /**
+   * ADR-297 — 상태 의존 칠 (배경 · 글자 · 테두리) 의 조건 트리. 우선순위 = 키 순서 (같은 깊이의 나중 키가
+   * 이긴다). Canvas · Styles 패널은 `evaluateConditionTree` 로, 생성 CSS 는 같은 트리를 읽는다.
+   */
+  paint: ComponentRulePaint;
+  /** 배경 투명도 0-1 (미지정 = 1). */
+  alpha?: number;
   /** 테두리 선 스타일 (CSS border-style 동형 — DropZone dashed 등 보편 D3 속성). */
   borderStyle?: "solid" | "dashed" | "dotted";
   /** 텍스트 굵기 (CSS font-weight 동형 — DropZone 400 등 보편 D3 속성). */

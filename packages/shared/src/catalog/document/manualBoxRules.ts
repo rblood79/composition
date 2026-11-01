@@ -19,6 +19,7 @@ import {
   type TokenRef,
 } from "@composition/rendering";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
+import { paintAt } from "../rule/rulePaintTree";
 import type { ComponentRule } from "../../types/catalog-style.types";
 import type { CompiledPartRule } from "./rulePartRules";
 import type { Scalar } from "./types";
@@ -686,9 +687,10 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
         const crumb = sizesOf("Breadcrumb")[name];
         const gap = typeof crumb?.gap === "number" ? crumb.gap : 0;
         const iconSize = px(crumb?.iconSize) ?? 16;
-        const crumbText = (
-          COMPONENT_RULES_TABLE as Record<string, ComponentRule>
-        ).Breadcrumb?.variants.default?.colors?.text;
+        const crumbText = paintAt(
+          (COMPONENT_RULES_TABLE as Record<string, ComponentRule>).Breadcrumb
+            ?.variants.default?.paint.color,
+        );
         return [
           {
             childType: "Breadcrumb",
@@ -778,8 +780,8 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
               : {}),
             ...(ratio ? { lineHeight: ratio } : {}),
             fontWeight: 400,
-            ...(rule?.variants.default?.colors?.text
-              ? { color: rule.variants.default.colors.text }
+            ...(paintAt(rule?.variants.default?.paint.color)
+              ? { color: paintAt(rule?.variants.default?.paint.color) }
               : {}),
           } as CompiledPartRule["visual"],
         },

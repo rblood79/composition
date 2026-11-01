@@ -7,12 +7,13 @@ import { resolveComponentRule } from "../../catalog/resolvers/resolveComponentRu
 import { colorTokenToCss } from "../../catalog/resolvers/colorTokenToCss";
 import { toRacProps } from "../../catalog/outputs/toRacProps";
 import { avatarBinding } from "../../catalog/bindings/Avatar.binding";
+import { paintAt } from "../../catalog/rule/rulePaintTree";
 
 /**
  * ADR-912 진로 1번 Avatar proof slice (internal leaf catalog 발효, 2026-06-06).
  *
  * **circle bg / 이니셜 색 = rule(DOM/Skia 대칭)**: Avatar 의 circle 배경/이니셜 텍스트 색을
- *   resolveComponentRule("Avatar").variants.default.fill.default.base / .colors.text(TokenRef) →
+ *   resolveComponentRule("Avatar").variants.default.paint 의 기본 배경 / 글자(TokenRef) →
  *   colorTokenToCss 로 변환해 인라인 적용. Skia escape(skiaPrimitives avatar)도 같은 rule 값을
  *   읽으므로 양쪽이 같은 source → 시각 대칭.
  *
@@ -42,33 +43,32 @@ describe("Avatar — DOM circle bg / 이니셜 색 = rule (DOM/Skia 대칭)", ()
     const html = renderToStaticMarkup(<Avatar initials="AB" />);
     const rule = resolveComponentRule("Avatar");
     const expected = colorTokenToCss(
-      rule?.variants?.default?.fill?.default?.base,
+      paintAt(rule?.variants?.default?.paint.backgroundColor),
       "var(--bg-muted)",
     );
     expect(rootBackgroundColor(html)).toBe(expected);
     expect(rootBackgroundColor(html)).toBe("var(--bg-muted)");
   });
 
-  it("이니셜 색 = rule variant.colors.text ({color.neutral} → var(--fg))", () => {
+  it("이니셜 색 = rule variant 칠 트리의 글자 ({color.neutral} → var(--fg))", () => {
     const html = renderToStaticMarkup(<Avatar initials="AB" />);
     const rule = resolveComponentRule("Avatar");
     const expected = colorTokenToCss(
-      rule?.variants?.default?.colors?.text,
+      paintAt(rule?.variants?.default?.paint.color),
       "var(--fg)",
     );
     expect(rootColor(html)).toBe(expected);
     expect(rootColor(html)).toBe("var(--fg)");
   });
 
-  it("rule colors.text 가 variant.text 가 아닌 colors.text 에 있음 (잘못된 읽기 경로 회귀 방지)", () => {
+  it("rule 글자 색은 variant 칠 트리 (`paint.color`) 에 있음 (잘못된 읽기 경로 회귀 방지)", () => {
     const rule = resolveComponentRule("Avatar");
-    const variant = rule?.variants?.default as {
-      text?: string;
-      colors?: { text?: string };
-    };
-    // variant.text 는 타입상 미존재(undefined), colors.text 가 정본
+    const variant = rule?.variants?.default as
+      | ({ text?: string } & NonNullable<typeof rule>["variants"][string])
+      | undefined;
+    // variant.text 는 타입상 미존재(undefined), paint.color 가 정본 (ADR-297)
     expect(variant?.text).toBeUndefined();
-    expect(variant?.colors?.text).toBe("{color.neutral}");
+    expect(paintAt(variant?.paint.color)).toBe("{color.neutral}");
   });
 });
 

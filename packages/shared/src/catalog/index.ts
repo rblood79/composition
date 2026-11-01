@@ -22,6 +22,18 @@ export * from "./templateBinding";
 export * from "./resolvers/resolveComponentRule";
 // ADR-912 후속 Phase 1 — root symbolic paint state/precedence 단일 진입점
 export * from "./resolvers/resolveCatalogPaint";
+export {
+  evaluateConditionTree,
+  type ConditionSet,
+  type ConditionalValue,
+} from "./rule/conditionTree";
+export {
+  evaluatePaint,
+  paintAt,
+  type ComponentRulePaint,
+  type PaintTree,
+  type PaintValue,
+} from "./rule/rulePaintTree";
 // 그릴 catalog 변형 이름 — Canvas rule 실행기와 DOM 쪽 rule paint 판정이 같이 읽는다 (ADR-248 G5)
 export * from "./resolvers/resolveCatalogVariantName";
 // ADR-227 — 테마 snapshot 의 DOM 의미 변수 이름을 같은 표에서 읽는다

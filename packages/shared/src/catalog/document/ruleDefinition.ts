@@ -20,6 +20,7 @@ import {
 } from "./rulePartRules";
 import { RULE_TYPE_PROP_CONTRACTS } from "./itemLinks";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
+import { paintAt } from "../rule/rulePaintTree";
 import type { InspectorFieldKind } from "../types";
 import type {
   ComponentRule,
@@ -286,8 +287,8 @@ export function ruleRootBox(type: string, rule: ComponentRule): RootBox {
     !colorContainer &&
     !ownsContainerBox &&
     structure?.archetype !== "toggle-indicator" &&
-    !!defaultVariant?.colors?.border;
-  const variantColor = defaultVariant?.colors?.border;
+    !!paintAt(defaultVariant?.paint.borderColor);
+  const variantColor = paintAt(defaultVariant?.paint.borderColor);
   const thin = pixels("{border.width.thin}", "light");
   // DOM border of the root: a container border shorthand (with its width), else the generated
   // per-size `border-width` (`resolveCatalogRuleCanvasBox`), else the default variant border when

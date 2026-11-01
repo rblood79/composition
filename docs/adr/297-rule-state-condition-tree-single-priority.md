@@ -2,7 +2,13 @@
 
 ## Status
 
-Proposed — 2026-11-01
+Accepted — 2026-11-01 (In Progress)
+
+- 승격 근거: 사용자 `/execute-adr 297` (2026-11-01) + [reviews/297.md](reviews/297.md) round 3 (pending 0 · HIGH 전부 fixed). 사용자 결정 3 건은 Phase 3 이 닿을 때 묻는다 (Phase 0 ~ 2 는 결정 1 의 기본 권고 「단일 상태 유지」 그대로).
+
+> **Phase 0 · 1 닫힘 (2026-11-01)** — 인벤토리 · 기준선은 스크립트가 정본 (`apps/builder/scripts/adr297-baseline.ts`, breakdown §6.3). `packages/shared/src/catalog/rule/conditionTree.ts` (evaluator · compiler — 순회 하나, 조건 선택자 전부 `:where()`) · `rulePaintTree.ts` (옛 `fill` · `colors` ↔ 트리, `paintVariant` — Phase 2 에서 삭제) · `paintReach.ts` (닿는 축). Button 가족 5 rule 10 variant 를 codemod (`adr297-rule-to-tree.ts`) 로 트리로 옮기고 `resolveCatalogPaint` 는 트리 variant 를 evaluator 로 칠한다. G1: 생성 CSS `validate:sync` diff 0 · paint 닿는 입력 10,044 행 동일 · library 투영 동일 (`revision` 내용 해시만) · 표 전수 동치 (131 rule 의 모든 variant 를 트리로 옮겨도 옛 사슬과 같음) · 겹침 조합 computed 대조 PASS · 원복 RED 2 (나중 키 → 먼저 키 = 동치 4 FAIL · `:where` 제거 = round 1 h1 반례 FAIL).
+
+> **Phase 2 (상태 칠 ① ②) 닫힘 (2026-11-01)** — 나머지 180 variant 도 codemod 로 트리 (표 전수 190 variant = 인벤토리 `fill.default.base` 190). 표는 `paint` 하나만 적고 (`fill` · `colors` 칸 0, `ComponentRuleVariant.paint` 필수 · 투명도 `alpha`), `paintVariant` 감싸기도 걷었다. Canvas 옛 사슬 삭제 (`resolveCatalogPaint` = evaluator). 투영기 3 · DOM 컴포넌트 3 은 트리 가지를 그대로 읽고 (`paintAt`), Skia 어댑터는 칠을 싣지 않는다. 생성 CSS 는 Phase 3 compile 전환까지 트리 → 옛 블록 순서 입력 (`generate-css.ts` `legacyPaintOf` = breakdown §3 `legacyOrder`). G1: CSS diff 0 · paint 닿는 입력 10,044 행 동일 · library 동일 · 원복 RED 2. G3 (Phase 2 분): 옛 칸 0 · 트리 조건 키 ∈ 어휘. live 5177 콘솔 0. **Phase 3 로 옮김** (사후 보고, breakdown §6.4): ③ `structure.states` · ④ `rootSelectors` `&` 대상 · ⑤ variant 이름 `selected` 의 트리 전환과 `VariantSpec` 삭제 — 생성 CSS 선택자가 바뀌어 Phase 2 diff 0 과 양립하지 않고, ④ 는 어휘 밖 속성 12 키가 G3 (e) 와 충돌한다. G2 ratchet 은 커밋 뒤 (dirty 트리는 HEAD 를 잰다).
 
 - 사용자 요청: `/create-adr` (2026-11-01) — 같은 대화의 조사 [RULE_STATE_CONDITION_TREE_2026-11](../explanation/research/RULE_STATE_CONDITION_TREE_2026-11.md) (저장 장소 · 소비자 전수 · 상태 분기 전수) 직후.
 - 방향을 정한 사용자 원문 (2026-11-01): 「React-Spectrum 레퍼런스 style 유틸 들 패턴 Canvas에 적용하는것이 좋지않나」 → 조사 결과 「S2 macro 자체가 아니라 **값을 적는 방식** (속성마다 조건을 중첩한 트리) 을 가져온다」 권고 → 「확인되지 않은 항목(사용자 override 형식)과 상태 분기 전수 목록을 먼저 조사해」 → 「이 내용을 docs/explanation/research/ 연구 문서로 정리후 /create-adr」.

@@ -7,12 +7,13 @@ import { resolveComponentRule } from "../../catalog/resolvers/resolveComponentRu
 import { colorTokenToCss } from "../../catalog/resolvers/colorTokenToCss";
 import { toRacProps } from "../../catalog/outputs/toRacProps";
 import { progressCircleBinding } from "../../catalog/bindings/ProgressCircle.binding";
+import { paintAt } from "../../catalog/rule/rulePaintTree";
 
 /**
  * ADR-912 진로 1번 ProgressCircle proof slice (value-fill internal leaf catalog 발효, 2026-06-06).
  *
  * **track/indicator 색 = rule + {color.accent}(DOM/Skia 대칭)**: track stroke 를
- *   resolveComponentRule("ProgressCircle").variants.default.fill.default.base(TokenRef) → colorTokenToCss,
+ *   resolveComponentRule("ProgressCircle").variants.default.paint.backgroundColor 의 기본 값(TokenRef) → colorTokenToCss,
  *   indicator stroke 를 {color.accent}(spec PROGRESSCIRCLE_FILL_COLORS / Skia escape value_fill_arc 와
  *   동일 source)로 적용. Skia escape 가 같은 두 색을 읽으므로 시각 대칭.
  *
@@ -43,7 +44,7 @@ describe("ProgressCircle — track/indicator 색 = rule (DOM/Skia 대칭)", () =
     const html = renderToStaticMarkup(<ProgressCircle value={50} />);
     const rule = resolveComponentRule("ProgressCircle");
     const expected = colorTokenToCss(
-      rule?.variants?.default?.fill?.default?.base,
+      paintAt(rule?.variants?.default?.paint.backgroundColor),
       "var(--bg-muted)",
     );
     expect(trackStroke(html)).toBe(expected);
@@ -57,12 +58,11 @@ describe("ProgressCircle — track/indicator 색 = rule (DOM/Skia 대칭)", () =
 
   it("rule 에 indicator 색 필드 없음 — track 만 fill base, indicator 는 {color.accent} 고정", () => {
     const rule = resolveComponentRule("ProgressCircle");
-    const variant = rule?.variants?.default as {
-      fill?: { default?: { base?: string } };
-      colors?: { text?: string };
-    };
-    // track = fill base, indicator 별도 필드 미존재 → {color.accent}(spec PROGRESSCIRCLE_FILL_COLORS)
-    expect(variant?.fill?.default?.base).toBe("{color.neutral-subtle}");
+    const variant = rule?.variants?.default;
+    // track = 칠 트리의 기본 배경, indicator 별도 필드 미존재 → {color.accent}(spec PROGRESSCIRCLE_FILL_COLORS)
+    expect(paintAt(variant?.paint.backgroundColor)).toBe(
+      "{color.neutral-subtle}",
+    );
   });
 });
 

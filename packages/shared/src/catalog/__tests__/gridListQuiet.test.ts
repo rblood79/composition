@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import { gridListBinding } from "../bindings/GridList.binding";
+import { paintAt } from "../rule/rulePaintTree";
 
 /**
  * design-data 감사 §1-2 축② 잔여 — 컬렉션 quiet (GridList, 2026-08-22).
@@ -32,17 +33,23 @@ describe("GridList quiet — 채널은 컨테이너가 아니라 카드", () => 
 
     const quiet = COMPONENT_RULES_TABLE.GridListItem.variants.quiet;
     expect(quiet).toBeDefined();
-    expect(quiet!.fill?.default.base).toBe("{color.transparent}");
+    expect(paintAt(quiet!.paint.backgroundColor)).toBe("{color.transparent}");
     // (The row's separator color — 2026-10-25 S2 ListView row; its border width is none.)
-    expect(quiet!.colors?.border).toBe("{color.border}");
+    expect(paintAt(quiet!.paint.borderColor)).toBe("{color.border}");
     // 쉬는 상태만 비우고 hover/pressed 는 배경이 돌아온다 (Spectrum quiet 정의).
-    expect(quiet!.fill?.default.hover).toBe("{color.neutral-subtle}");
+    expect(paintAt(quiet!.paint.backgroundColor, "isHovered")).toBe(
+      "{color.neutral-subtle}",
+    );
     // 선택 표시는 행 바탕 (S2 ListView 의 선택 tint — 2026-10-25 목록 행) 이라 테두리 링은 없다.
-    expect(quiet!.colors?.selectedBorder).toBe("{color.transparent}");
+    expect(paintAt(quiet!.paint.borderColor, "isSelected")).toBe(
+      "{color.transparent}",
+    );
     expect(
-      COMPONENT_RULES_TABLE.GridListItem.variants.default!.fill?.default
-        .selected,
+      paintAt(
+        COMPONENT_RULES_TABLE.GridListItem.variants.default!.paint
+          .backgroundColor,
+        "isSelected",
+      ),
     ).toBe("{color.accent-subtle}");
   });
-
 });

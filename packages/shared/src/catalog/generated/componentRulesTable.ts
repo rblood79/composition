@@ -218,15 +218,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.neutral-subtle}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-subtle}",
+        paint: {
+          backgroundColor: {
+            default: "{color.neutral-subtle}",
+            isHovered: "{color.neutral-subtle}",
+            isPressed: "{color.neutral-subtle}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -280,17 +280,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-          alpha: 0,
+          color: {
+            default: "{color.neutral}",
+          },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+        alpha: 0,
       },
     },
     sizes: {
@@ -413,553 +413,653 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     variants: {
       accent: {
-        fill: {
-          default: {
-            base: "{color.accent}",
-            hover: "{color.accent}",
-            pressed: "{color.accent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.accent}",
+            isHovered: "{color.accent}",
+            isPressed: "{color.accent}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.accent-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.accent-subtle}",
+          color: {
+            default: "{color.on-accent}",
+            fillStyle: {
+              outline: "{color.accent-content}",
+              subtle: "{color.accent-content}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.accent-content}",
+            },
           },
-        },
-        colors: {
-          text: "{color.on-accent}",
-          border: "{color.transparent}",
-          subtleText: "{color.accent-content}",
-          outlineText: "{color.accent-content}",
-          outlineBorder: "{color.accent-content}",
         },
       },
       informative: {
-        fill: {
-          default: {
-            base: "{color.informative}",
-            hover: "{color.informative}",
-            pressed: "{color.informative}",
+        paint: {
+          backgroundColor: {
+            default: "{color.informative}",
+            isHovered: "{color.informative}",
+            isPressed: "{color.informative}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.informative-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.informative-subtle}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              outline: "{color.informative}",
+              subtle: "{color.informative}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.informative}",
+            },
           },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.transparent}",
-          subtleText: "{color.informative}",
-          outlineText: "{color.informative}",
-          outlineBorder: "{color.informative}",
         },
       },
       neutral: {
-        fill: {
-          default: {
-            base: "{color.neutral}",
-            hover: "{color.neutral}",
-            pressed: "{color.neutral}",
+        paint: {
+          backgroundColor: {
+            default: "{color.neutral}",
+            isHovered: "{color.neutral}",
+            isPressed: "{color.neutral}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.neutral-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.neutral-subtle}",
+          color: {
+            default: "{color.base}",
+            fillStyle: {
+              outline: "{color.neutral}",
+              subtle: "{color.neutral}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.neutral}",
+            },
           },
-        },
-        colors: {
-          text: "{color.base}",
-          border: "{color.transparent}",
-          subtleText: "{color.neutral}",
-          outlineText: "{color.neutral}",
-          outlineBorder: "{color.neutral}",
         },
       },
       positive: {
-        fill: {
-          default: {
-            base: "{color.positive}",
-            hover: "{color.positive}",
-            pressed: "{color.positive}",
+        paint: {
+          backgroundColor: {
+            default: "{color.positive}",
+            isHovered: "{color.positive}",
+            isPressed: "{color.positive}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.positive-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.positive-subtle}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              outline: "{color.positive}",
+              subtle: "{color.positive}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.positive}",
+            },
           },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.transparent}",
-          subtleText: "{color.positive}",
-          outlineText: "{color.positive}",
-          outlineBorder: "{color.positive}",
         },
       },
       notice: {
-        fill: {
-          default: {
-            base: "{color.notice}",
-            hover: "{color.notice}",
-            pressed: "{color.notice}",
+        paint: {
+          backgroundColor: {
+            default: "{color.notice}",
+            isHovered: "{color.notice}",
+            isPressed: "{color.notice}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.notice-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.notice-subtle}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              outline: "{color.notice}",
+              subtle: "{color.notice}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.notice}",
+            },
           },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.transparent}",
-          subtleText: "{color.notice}",
-          outlineText: "{color.notice}",
-          outlineBorder: "{color.notice}",
         },
       },
       negative: {
-        fill: {
-          default: {
-            base: "{color.negative}",
-            hover: "{color.negative}",
-            pressed: "{color.negative}",
+        paint: {
+          backgroundColor: {
+            default: "{color.negative}",
+            isHovered: "{color.negative}",
+            isPressed: "{color.negative}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.negative-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.negative-subtle}",
+          color: {
+            default: "{color.on-negative}",
+            fillStyle: {
+              outline: "{color.negative}",
+              subtle: "{color.negative}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.negative}",
+            },
           },
-        },
-        colors: {
-          text: "{color.on-negative}",
-          border: "{color.transparent}",
-          subtleText: "{color.negative}",
-          outlineText: "{color.negative}",
-          outlineBorder: "{color.negative}",
         },
       },
       gray: {
-        fill: {
-          default: {
-            base: "{color.gray}",
-            hover: "{color.gray}",
-            pressed: "{color.gray}",
+        paint: {
+          backgroundColor: {
+            default: "{color.gray}",
+            isHovered: "{color.gray}",
+            isPressed: "{color.gray}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.neutral-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.neutral-subtle}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              outline: "{color.gray}",
+              subtle: "{color.gray}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.gray}",
+            },
           },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.transparent}",
-          subtleText: "{color.gray}",
-          outlineText: "{color.gray}",
-          outlineBorder: "{color.gray}",
         },
       },
       red: {
-        fill: {
-          default: {
-            base: "{color.red}",
-            hover: "{color.red}",
-            pressed: "{color.red}",
+        paint: {
+          backgroundColor: {
+            default: "{color.red}",
+            isHovered: "{color.red}",
+            isPressed: "{color.red}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.red-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.red-subtle}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              outline: "{color.red}",
+              subtle: "{color.red}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.red}",
+            },
           },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.transparent}",
-          subtleText: "{color.red}",
-          outlineText: "{color.red}",
-          outlineBorder: "{color.red}",
         },
       },
       orange: {
-        fill: {
-          default: {
-            base: "{color.orange}",
-            hover: "{color.orange}",
-            pressed: "{color.orange}",
+        paint: {
+          backgroundColor: {
+            default: "{color.orange}",
+            isHovered: "{color.orange}",
+            isPressed: "{color.orange}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.orange-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.orange-subtle}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              outline: "{color.orange}",
+              subtle: "{color.orange}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.orange}",
+            },
           },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.transparent}",
-          subtleText: "{color.orange}",
-          outlineText: "{color.orange}",
-          outlineBorder: "{color.orange}",
         },
       },
       yellow: {
-        fill: {
-          default: {
-            base: "{color.yellow}",
-            hover: "{color.yellow}",
-            pressed: "{color.yellow}",
+        paint: {
+          backgroundColor: {
+            default: "{color.yellow}",
+            isHovered: "{color.yellow}",
+            isPressed: "{color.yellow}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.yellow-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.yellow-subtle}",
+          color: {
+            default: "{color.black}",
+            fillStyle: {
+              outline: "{color.yellow}",
+              subtle: "{color.yellow}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.yellow}",
+            },
           },
-        },
-        colors: {
-          text: "{color.black}",
-          border: "{color.transparent}",
-          subtleText: "{color.yellow}",
-          outlineText: "{color.yellow}",
-          outlineBorder: "{color.yellow}",
         },
       },
       green: {
-        fill: {
-          default: {
-            base: "{color.green-named}",
-            hover: "{color.green-named}",
-            pressed: "{color.green-named}",
+        paint: {
+          backgroundColor: {
+            default: "{color.green-named}",
+            isHovered: "{color.green-named}",
+            isPressed: "{color.green-named}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.green-named-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.green-named-subtle}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              outline: "{color.green-named}",
+              subtle: "{color.green-named}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.green-named}",
+            },
           },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.transparent}",
-          subtleText: "{color.green-named}",
-          outlineText: "{color.green-named}",
-          outlineBorder: "{color.green-named}",
         },
       },
       blue: {
-        fill: {
-          default: {
-            base: "{color.blue}",
-            hover: "{color.blue}",
-            pressed: "{color.blue}",
+        paint: {
+          backgroundColor: {
+            default: "{color.blue}",
+            isHovered: "{color.blue}",
+            isPressed: "{color.blue}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.blue-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.blue-subtle}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              outline: "{color.blue}",
+              subtle: "{color.blue}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.blue}",
+            },
           },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.transparent}",
-          subtleText: "{color.blue}",
-          outlineText: "{color.blue}",
-          outlineBorder: "{color.blue}",
         },
       },
       purple: {
-        fill: {
-          default: {
-            base: "{color.purple}",
-            hover: "{color.purple}",
-            pressed: "{color.purple}",
+        paint: {
+          backgroundColor: {
+            default: "{color.purple}",
+            isHovered: "{color.purple}",
+            isPressed: "{color.purple}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.purple-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.purple-subtle}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              outline: "{color.purple}",
+              subtle: "{color.purple}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.purple}",
+            },
           },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.transparent}",
-          subtleText: "{color.purple}",
-          outlineText: "{color.purple}",
-          outlineBorder: "{color.purple}",
         },
       },
       indigo: {
-        fill: {
-          default: {
-            base: "{color.indigo}",
-            hover: "{color.indigo}",
-            pressed: "{color.indigo}",
+        paint: {
+          backgroundColor: {
+            default: "{color.indigo}",
+            isHovered: "{color.indigo}",
+            isPressed: "{color.indigo}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.indigo-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.indigo-subtle}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              outline: "{color.indigo}",
+              subtle: "{color.indigo}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.indigo}",
+            },
           },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.transparent}",
-          subtleText: "{color.indigo}",
-          outlineText: "{color.indigo}",
-          outlineBorder: "{color.indigo}",
         },
       },
       cyan: {
-        fill: {
-          default: {
-            base: "{color.cyan}",
-            hover: "{color.cyan}",
-            pressed: "{color.cyan}",
+        paint: {
+          backgroundColor: {
+            default: "{color.cyan}",
+            isHovered: "{color.cyan}",
+            isPressed: "{color.cyan}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.cyan-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.cyan-subtle}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              outline: "{color.cyan}",
+              subtle: "{color.cyan}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.cyan}",
+            },
           },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.transparent}",
-          subtleText: "{color.cyan}",
-          outlineText: "{color.cyan}",
-          outlineBorder: "{color.cyan}",
         },
       },
       pink: {
-        fill: {
-          default: {
-            base: "{color.pink}",
-            hover: "{color.pink}",
-            pressed: "{color.pink}",
+        paint: {
+          backgroundColor: {
+            default: "{color.pink}",
+            isHovered: "{color.pink}",
+            isPressed: "{color.pink}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.pink-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.pink-subtle}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              outline: "{color.pink}",
+              subtle: "{color.pink}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.pink}",
+            },
           },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.transparent}",
-          subtleText: "{color.pink}",
-          outlineText: "{color.pink}",
-          outlineBorder: "{color.pink}",
         },
       },
       turquoise: {
-        fill: {
-          default: {
-            base: "{color.turquoise}",
-            hover: "{color.turquoise}",
-            pressed: "{color.turquoise}",
+        paint: {
+          backgroundColor: {
+            default: "{color.turquoise}",
+            isHovered: "{color.turquoise}",
+            isPressed: "{color.turquoise}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.turquoise-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.turquoise-subtle}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              outline: "{color.turquoise}",
+              subtle: "{color.turquoise}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.turquoise}",
+            },
           },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.transparent}",
-          subtleText: "{color.turquoise}",
-          outlineText: "{color.turquoise}",
-          outlineBorder: "{color.turquoise}",
         },
       },
       fuchsia: {
-        fill: {
-          default: {
-            base: "{color.fuchsia}",
-            hover: "{color.fuchsia}",
-            pressed: "{color.fuchsia}",
+        paint: {
+          backgroundColor: {
+            default: "{color.fuchsia}",
+            isHovered: "{color.fuchsia}",
+            isPressed: "{color.fuchsia}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.fuchsia-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.fuchsia-subtle}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              outline: "{color.fuchsia}",
+              subtle: "{color.fuchsia}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.fuchsia}",
+            },
           },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.transparent}",
-          subtleText: "{color.fuchsia}",
-          outlineText: "{color.fuchsia}",
-          outlineBorder: "{color.fuchsia}",
         },
       },
       magenta: {
-        fill: {
-          default: {
-            base: "{color.magenta}",
-            hover: "{color.magenta}",
-            pressed: "{color.magenta}",
+        paint: {
+          backgroundColor: {
+            default: "{color.magenta}",
+            isHovered: "{color.magenta}",
+            isPressed: "{color.magenta}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.magenta-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.magenta-subtle}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              outline: "{color.magenta}",
+              subtle: "{color.magenta}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.magenta}",
+            },
           },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.transparent}",
-          subtleText: "{color.magenta}",
-          outlineText: "{color.magenta}",
-          outlineBorder: "{color.magenta}",
         },
       },
       chartreuse: {
-        fill: {
-          default: {
-            base: "{color.chartreuse}",
-            hover: "{color.chartreuse-hover}",
-            pressed: "{color.chartreuse-pressed}",
+        paint: {
+          backgroundColor: {
+            default: "{color.chartreuse}",
+            isHovered: "{color.chartreuse-hover}",
+            isPressed: "{color.chartreuse-pressed}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.chartreuse-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.chartreuse-subtle}",
+          color: {
+            default: "{color.black}",
+            fillStyle: {
+              outline: "{color.chartreuse}",
+              subtle: "{color.chartreuse}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.chartreuse}",
+            },
           },
-        },
-        colors: {
-          text: "{color.black}",
-          border: "{color.transparent}",
-          subtleText: "{color.chartreuse}",
-          outlineText: "{color.chartreuse}",
-          outlineBorder: "{color.chartreuse}",
         },
       },
       celery: {
-        fill: {
-          default: {
-            base: "{color.celery}",
-            hover: "{color.celery-hover}",
-            pressed: "{color.celery-pressed}",
+        paint: {
+          backgroundColor: {
+            default: "{color.celery}",
+            isHovered: "{color.celery-hover}",
+            isPressed: "{color.celery-pressed}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.celery-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.celery-subtle}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              outline: "{color.celery}",
+              subtle: "{color.celery}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.celery}",
+            },
           },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.transparent}",
-          subtleText: "{color.celery}",
-          outlineText: "{color.celery}",
-          outlineBorder: "{color.celery}",
         },
       },
       seafoam: {
-        fill: {
-          default: {
-            base: "{color.seafoam}",
-            hover: "{color.seafoam-hover}",
-            pressed: "{color.seafoam-pressed}",
+        paint: {
+          backgroundColor: {
+            default: "{color.seafoam}",
+            isHovered: "{color.seafoam-hover}",
+            isPressed: "{color.seafoam-pressed}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.neutral-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.neutral-subtle}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              outline: "{color.seafoam}",
+              subtle: "{color.seafoam}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.seafoam}",
+            },
           },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.transparent}",
-          subtleText: "{color.seafoam}",
-          outlineText: "{color.seafoam}",
-          outlineBorder: "{color.seafoam}",
         },
       },
       brown: {
-        fill: {
-          default: {
-            base: "{color.brown}",
-            hover: "{color.brown-hover}",
-            pressed: "{color.brown-pressed}",
+        paint: {
+          backgroundColor: {
+            default: "{color.brown}",
+            isHovered: "{color.brown-hover}",
+            isPressed: "{color.brown-pressed}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.orange-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.orange-subtle}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              outline: "{color.brown}",
+              subtle: "{color.brown}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.brown}",
+            },
           },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.transparent}",
-          subtleText: "{color.brown}",
-          outlineText: "{color.brown}",
-          outlineBorder: "{color.brown}",
         },
       },
       cinnamon: {
-        fill: {
-          default: {
-            base: "{color.cinnamon}",
-            hover: "{color.cinnamon-hover}",
-            pressed: "{color.cinnamon-pressed}",
+        paint: {
+          backgroundColor: {
+            default: "{color.cinnamon}",
+            isHovered: "{color.cinnamon-hover}",
+            isPressed: "{color.cinnamon-pressed}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.orange-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.orange-subtle}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              outline: "{color.cinnamon}",
+              subtle: "{color.cinnamon}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.cinnamon}",
+            },
           },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.transparent}",
-          subtleText: "{color.cinnamon}",
-          outlineText: "{color.cinnamon}",
-          outlineBorder: "{color.cinnamon}",
         },
       },
       silver: {
-        fill: {
-          default: {
-            base: "{color.silver}",
-            hover: "{color.silver-hover}",
-            pressed: "{color.silver-pressed}",
+        paint: {
+          backgroundColor: {
+            default: "{color.silver}",
+            isHovered: "{color.silver-hover}",
+            isPressed: "{color.silver-pressed}",
+            fillStyle: {
+              outline: "{color.transparent}",
+              subtle: "{color.neutral-subtle}",
+            },
           },
-          subtle: {
-            base: "{color.neutral-subtle}",
+          color: {
+            default: "{color.black}",
+            fillStyle: {
+              outline: "{color.silver}",
+              subtle: "{color.silver}",
+            },
           },
-          outline: {
-            base: "{color.transparent}",
+          borderColor: {
+            default: "{color.transparent}",
+            fillStyle: {
+              outline: "{color.silver}",
+            },
           },
-        },
-        colors: {
-          text: "{color.black}",
-          border: "{color.transparent}",
-          subtleText: "{color.silver}",
-          outlineText: "{color.silver}",
-          outlineBorder: "{color.silver}",
         },
       },
     },
@@ -1063,13 +1163,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.base}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -1109,21 +1209,23 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.base}",
+            isPressed: "{color.base}",
+          },
+          color: {
+            default: "{color.neutral-subdued}",
+            isHovered: "{color.neutral}",
           },
         },
-        colors: {
-          text: "{color.neutral-subdued}",
-          textHover: "{color.neutral}",
-        },
+
         // 현재 페이지 조각 (RAC data-current = 마지막 조각) 굵기 700 (사용자 결정 2026-09-29).
         //   Canvas 는 이 값을 읽고, DOM 은 생성 Breadcrumb.css 가 로드되지 않아 손 `Breadcrumbs.css`
         //   `.react-aria-Link[data-current]` 가 같은 값을 적는다.
         currentTextWeight: 700,
+
         // 조각 뒤 구분자 = 편집 가능한 Icon 자식 (`slot="separator"`, 사용자 결정 2026-09-29 — 종전
         //   `::after` "›" 대체). 이름은 seed · 데이터 행의 기본값, 색은 구분자 글리프 색.
         trailingIcon: {
@@ -1182,16 +1284,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.base}",
+            isPressed: "{color.base}",
           },
-        },
-        colors: {
-          text: "{color.neutral-subdued}",
-          textHover: "{color.neutral}",
+          color: {
+            default: "{color.neutral-subdued}",
+            isHovered: "{color.neutral}",
+          },
         },
       },
     },
@@ -1262,107 +1364,155 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     containerStyles: BUTTON_ROOT_BOX,
     variants: {
       accent: {
-        fill: {
-          default: {
-            base: "{color.accent}",
-            hover: "{color.accent-hover}",
-            pressed: "{color.accent-pressed}",
+        // outline fillStyle — 투명 배경(Button.css 수동 override 의 단일 소스화, 2026-06-27).
+        paint: {
+          backgroundColor: {
+            default: "{color.accent}",
+            isHovered: "{color.accent-hover}",
+            isPressed: "{color.accent-pressed}",
+            fillStyle: {
+              outline: "{color.transparent}",
+            },
           },
-          // outline fillStyle — 투명 배경(Button.css 수동 override 의 단일 소스화, 2026-06-27).
-          outline: { base: "{color.transparent}" },
-        },
-        colors: {
-          text: "{color.on-accent}",
-          border: "{color.accent}",
-          borderHover: "{color.accent-hover}",
-          outlineText: "{color.accent-content}",
-          outlineBorder: "{color.border-hover}",
+          color: {
+            default: "{color.on-accent}",
+            fillStyle: {
+              outline: "{color.accent-content}",
+            },
+          },
+          borderColor: {
+            default: "{color.accent}",
+            isHovered: "{color.accent-hover}",
+            fillStyle: {
+              outline: "{color.border-hover}",
+            },
+          },
         },
       },
       primary: {
-        fill: {
-          default: {
-            base: "{color.neutral}",
-            // 진한 바탕의 한 단 — `neutral-hover` 는 밝은 바탕 (neutral-subtle) 의 다음 단이라 흰 글자가
-            // 사라진다 (ADR-293 결정 4, S2 `baseColor('neutral')`)
-            hover: "{color.neutral-fill-hover}",
-            pressed: "{color.neutral-fill-pressed}",
+        // 진한 바탕의 한 단 — `neutral-hover` 는 밝은 바탕 (neutral-subtle) 의 다음 단이라 흰 글자가
+        // 사라진다 (ADR-293 결정 4, S2 `baseColor('neutral')`)
+        paint: {
+          backgroundColor: {
+            default: "{color.neutral}",
+            isHovered: "{color.neutral-fill-hover}",
+            isPressed: "{color.neutral-fill-pressed}",
+            fillStyle: {
+              outline: "{color.transparent}",
+            },
           },
-          outline: { base: "{color.transparent}" },
-        },
-        colors: {
-          text: "{color.base}",
-          border: "{color.neutral}",
-          borderHover: "{color.neutral-fill-hover}",
-          outlineText: "{color.neutral}",
-          outlineBorder: "{color.border-hover}",
+          color: {
+            default: "{color.base}",
+            fillStyle: {
+              outline: "{color.neutral}",
+            },
+          },
+          borderColor: {
+            default: "{color.neutral}",
+            isHovered: "{color.neutral-fill-hover}",
+            fillStyle: {
+              outline: "{color.border-hover}",
+            },
+          },
         },
       },
       secondary: {
-        fill: {
-          default: {
-            base: "{color.layer-1}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-subtle}",
+        paint: {
+          backgroundColor: {
+            default: "{color.layer-1}",
+            isHovered: "{color.neutral-subtle}",
+            isPressed: "{color.neutral-subtle}",
+            fillStyle: {
+              outline: "{color.transparent}",
+            },
           },
-          outline: { base: "{color.transparent}" },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
-          outlineText: "{color.neutral}",
-          outlineBorder: "{color.border-hover}",
+          color: {
+            default: "{color.neutral}",
+            fillStyle: {
+              outline: "{color.neutral}",
+            },
+          },
+          borderColor: {
+            default: "{color.border}",
+            fillStyle: {
+              outline: "{color.border-hover}",
+            },
+          },
         },
       },
       negative: {
-        fill: {
-          default: {
-            base: "{color.negative}",
-            hover: "{color.negative-hover}",
-            pressed: "{color.negative-pressed}",
+        paint: {
+          backgroundColor: {
+            default: "{color.negative}",
+            isHovered: "{color.negative-hover}",
+            isPressed: "{color.negative-pressed}",
+            fillStyle: {
+              outline: "{color.transparent}",
+            },
           },
-          outline: { base: "{color.transparent}" },
-        },
-        colors: {
-          text: "{color.on-negative}",
-          border: "{color.negative}",
-          borderHover: "{color.negative-hover}",
-          outlineText: "{color.negative}",
-          outlineBorder: "{color.border-hover}",
+          color: {
+            default: "{color.on-negative}",
+            fillStyle: {
+              outline: "{color.negative}",
+            },
+          },
+          borderColor: {
+            default: "{color.negative}",
+            isHovered: "{color.negative-hover}",
+            fillStyle: {
+              outline: "{color.border-hover}",
+            },
+          },
         },
       },
       premium: {
-        fill: {
-          default: {
-            base: "{color.purple}",
-            hover: "{color.purple-hover}",
-            pressed: "{color.purple-pressed}",
+        paint: {
+          backgroundColor: {
+            default: "{color.purple}",
+            isHovered: "{color.purple-hover}",
+            isPressed: "{color.purple-pressed}",
+            fillStyle: {
+              outline: "{color.transparent}",
+            },
           },
-          outline: { base: "{color.transparent}" },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.purple}",
-          borderHover: "{color.purple-hover}",
-          outlineText: "{color.purple}",
-          outlineBorder: "{color.border-hover}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              outline: "{color.purple}",
+            },
+          },
+          borderColor: {
+            default: "{color.purple}",
+            isHovered: "{color.purple-hover}",
+            fillStyle: {
+              outline: "{color.border-hover}",
+            },
+          },
         },
       },
       genai: {
-        fill: {
-          default: {
-            base: "{color.purple}",
-            hover: "{color.purple-hover}",
-            pressed: "{color.purple-pressed}",
+        paint: {
+          backgroundColor: {
+            default: "{color.purple}",
+            isHovered: "{color.purple-hover}",
+            isPressed: "{color.purple-pressed}",
+            fillStyle: {
+              outline: "{color.transparent}",
+            },
           },
-          outline: { base: "{color.transparent}" },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.purple}",
-          borderHover: "{color.purple-hover}",
-          outlineText: "{color.purple}",
-          outlineBorder: "{color.border-hover}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              outline: "{color.purple}",
+            },
+          },
+          borderColor: {
+            default: "{color.purple}",
+            isHovered: "{color.purple-hover}",
+            fillStyle: {
+              outline: "{color.border-hover}",
+            },
+          },
         },
       },
     },
@@ -1479,16 +1629,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.transparent}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.transparent}",
+          },
         },
       },
     },
@@ -1537,15 +1689,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       default: {
         // (No background, hovered or pressed either — the references paint none, 사용자 2026-10-13
         //   「같이 지워」.)
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -1608,16 +1760,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.transparent}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.transparent}",
+          },
         },
       },
     },
@@ -1639,29 +1793,31 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   Button[next]) — the chevrons are the Buttons' Icon nodes (the old `inline_icon_text`
       //   leadingIcon / trailingIcon are deleted).
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
+          },
+          color: {
+            default: "{color.neutral}",
           },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+
         textAlign: "center",
       },
       accent: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
+          },
+          color: {
+            default: "{color.neutral}",
           },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+
         textAlign: "center",
       },
     },
@@ -1712,66 +1868,102 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     variants: {
       // primary — 기본 표면(구 spec 의 비-quiet 기본값 보존: layer-2/layer-1/neutral-subtle).
       primary: {
-        fill: {
-          default: {
-            base: "{color.layer-2}",
-            hover: "{color.layer-1}",
-            pressed: "{color.neutral-subtle}",
-            selected: "{color.accent-subtle}",
+        paint: {
+          backgroundColor: {
+            default: "{color.layer-2}",
+            isHovered: "{color.layer-1}",
+            isPressed: "{color.neutral-subtle}",
+            isSelected: {
+              default: "{color.accent-subtle}",
+            },
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.transparent}",
-          selectedBorder: "{color.accent-content}",
+          color: {
+            default: "{color.neutral}",
+            isSelected: {
+              default: null,
+            },
+          },
+          borderColor: {
+            default: "{color.transparent}",
+            isSelected: {
+              default: "{color.accent-content}",
+            },
+          },
         },
       },
       // secondary — 약한 elevation(layer-1 base). S2 secondary 대응.
       secondary: {
-        fill: {
-          default: {
-            base: "{color.layer-1}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-subtle}",
-            selected: "{color.accent-subtle}",
+        paint: {
+          backgroundColor: {
+            default: "{color.layer-1}",
+            isHovered: "{color.neutral-subtle}",
+            isPressed: "{color.neutral-subtle}",
+            isSelected: {
+              default: "{color.accent-subtle}",
+            },
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.transparent}",
-          selectedBorder: "{color.accent-content}",
+          color: {
+            default: "{color.neutral}",
+            isSelected: {
+              default: null,
+            },
+          },
+          borderColor: {
+            default: "{color.transparent}",
+            isSelected: {
+              default: "{color.accent-content}",
+            },
+          },
         },
       },
       // tertiary — outline 형(transparent base + 가시 border). S2 tertiary 대응.
       tertiary: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-subtle}",
-            selected: "{color.accent-subtle}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.neutral-subtle}",
+            isPressed: "{color.neutral-subtle}",
+            isSelected: {
+              default: "{color.accent-subtle}",
+            },
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
-          selectedBorder: "{color.accent-content}",
+          color: {
+            default: "{color.neutral}",
+            isSelected: {
+              default: null,
+            },
+          },
+          borderColor: {
+            default: "{color.border}",
+            isSelected: {
+              default: "{color.accent-content}",
+            },
+          },
         },
       },
       // quiet — 무배경(hover 시만 표시). 구 spec 의 isQuiet=true 흡수.
       quiet: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-subtle}",
-            selected: "{color.accent-subtle}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.neutral-subtle}",
+            isPressed: "{color.neutral-subtle}",
+            isSelected: {
+              default: "{color.accent-subtle}",
+            },
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.transparent}",
-          selectedBorder: "{color.accent-content}",
+          color: {
+            default: "{color.neutral}",
+            isSelected: {
+              default: null,
+            },
+          },
+          borderColor: {
+            default: "{color.transparent}",
+            isSelected: {
+              default: "{color.accent-content}",
+            },
+          },
         },
       },
     },
@@ -2058,51 +2250,51 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // S2 1.8.0 값 정렬 (2026-10-10): primary · secondary · tertiary · quiet — view 상자는
       //   전부 투명 (S2 CardView 는 variant 를 안의 Card 로 전달한다 — resolver 가 채운다).
       primary: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       secondary: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       tertiary: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       quiet: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -2145,35 +2337,55 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   이라 불필요 — Checkbox/Radio/Switch 만 명시). textWeight 는 ComponentRuleVariant 필드.
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-1}",
-            selected: "{color.neutral}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.layer-2}",
+            isPressed: "{color.layer-1}",
+            isSelected: {
+              default: "{color.neutral}",
+            },
+          },
+          color: {
+            default: "{color.neutral}",
+            isSelected: {
+              default: null,
+            },
+          },
+          borderColor: {
+            default: "{color.border}",
+            isSelected: {
+              default: "{color.neutral}",
+            },
           },
         },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
-          selectedBorder: "{color.neutral}",
-        },
+
         textWeight: 400,
       },
       emphasized: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.accent-subtle}",
-            pressed: "{color.accent-subtle}",
-            selected: "{color.accent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.accent-subtle}",
+            isPressed: "{color.accent-subtle}",
+            isSelected: {
+              default: "{color.accent}",
+            },
+          },
+          color: {
+            default: "{color.neutral}",
+            isSelected: {
+              default: null,
+            },
+          },
+          borderColor: {
+            default: "{color.border}",
+            isSelected: {
+              default: "{color.accent}",
+            },
           },
         },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
-          selectedBorder: "{color.accent}",
-        },
+
         textWeight: 400,
       },
     },
@@ -2290,15 +2502,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.base}",
+            isPressed: "{color.base}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -2481,20 +2693,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "S",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.neutral-subtle}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-pressed}",
+        paint: {
+          backgroundColor: {
+            default: "{color.neutral-subtle}",
+            isHovered: "{color.neutral-subtle}",
+            isPressed: "{color.neutral-pressed}",
+          },
+          color: {
+            default: "{color.neutral}",
           },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+
         // ADR-912 위험군 해소(2026-06-04): Code catalog 측정/렌더 drift 차단. spec render.shapes
         //   fontFamily.mono + fontWeight 400 ↔ buildCatalogShapes fallback sans/500.
         //   rule fontFamily(mono) + textWeight(400) 명시(buildCatalogShapes visual.fontFamily 읽음).
         fontFamily: "JetBrains Mono, Consolas, monospace",
+
         textWeight: 400,
       },
     },
@@ -2757,16 +2971,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   variant 이름은 남긴다 — S2 · RAC 에 없는 `variant` 의 존폐는 조사 §4.2 F 묶음 결정.
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.transparent}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.transparent}",
+          },
         },
       },
     },
@@ -2924,29 +3140,51 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-1}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.layer-2}",
+            isPressed: "{color.layer-1}",
+            isSelected: {
+              default: null,
+            },
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
+          color: {
+            default: "{color.neutral}",
+            isSelected: {
+              default: null,
+            },
+          },
+          borderColor: {
+            default: "{color.border}",
+            isSelected: {
+              default: null,
+            },
+          },
         },
       },
       selected: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-1}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.layer-2}",
+            isPressed: "{color.layer-1}",
+            isSelected: {
+              default: null,
+            },
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.accent-content}",
+          color: {
+            default: "{color.neutral}",
+            isSelected: {
+              default: null,
+            },
+          },
+          borderColor: {
+            default: "{color.accent-content}",
+            isSelected: {
+              default: null,
+            },
+          },
         },
       },
     },
@@ -3014,17 +3252,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-          alpha: 0,
+          color: {
+            default: "{color.neutral}",
+          },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+        alpha: 0,
       },
     },
     sizes: {
@@ -3605,45 +3843,51 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.layer-2}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-2}",
+        paint: {
+          backgroundColor: {
+            default: "{color.layer-2}",
+            isHovered: "{color.layer-2}",
+            isPressed: "{color.layer-2}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
-          borderHover: "{color.border-hover}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.border}",
+            isHovered: "{color.border-hover}",
+          },
         },
       },
       accent: {
-        fill: {
-          default: {
-            base: "{color.layer-2}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-2}",
+        paint: {
+          backgroundColor: {
+            default: "{color.layer-2}",
+            isHovered: "{color.layer-2}",
+            isPressed: "{color.layer-2}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.accent-content}",
-          borderHover: "{color.accent-content-hover}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.accent-content}",
+            isHovered: "{color.accent-content-hover}",
+          },
         },
       },
       negative: {
-        fill: {
-          default: {
-            base: "{color.layer-2}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-2}",
+        paint: {
+          backgroundColor: {
+            default: "{color.layer-2}",
+            isHovered: "{color.layer-2}",
+            isPressed: "{color.layer-2}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.negative}",
-          borderHover: "{color.negative-hover}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.negative}",
+            isHovered: "{color.negative-hover}",
+          },
         },
       },
     },
@@ -4455,16 +4699,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
+          },
+          color: {
+            default: "{color.neutral-subdued}",
           },
         },
-        colors: {
-          text: "{color.neutral-subdued}",
-        },
+
         // ADR-912 위험군 해소 (선행-6 field/form Description catalog 등록, 2026-06-04):
         //   spec render.shapes 기본 fontWeight=400(Description.spec.ts:111-116, fwRaw 미지정 시 400)
         //   → variant.textWeight=400 명시. 누락 시 catalog 가 default weight 로 drift. Label(600) 과 달리
@@ -4571,15 +4816,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.layer-1}",
-            hover: "{color.layer-1}",
-            pressed: "{color.layer-1}",
+        paint: {
+          backgroundColor: {
+            default: "{color.layer-1}",
+            isHovered: "{color.layer-1}",
+            isPressed: "{color.layer-1}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -4956,16 +5201,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.base}",
+            isPressed: "{color.base}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.border}",
+          },
         },
       },
     },
@@ -5026,19 +5273,23 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.layer-2}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.layer-2}",
+          },
+          color: {
+            default: "{color.neutral-subdued}",
+            isHovered: "{color.accent-content}",
+          },
+          borderColor: {
+            default: "{color.border}",
+            isHovered: "{color.accent-content}",
           },
         },
-        colors: {
-          text: "{color.neutral-subdued}",
-          textHover: "{color.accent-content}",
-          border: "{color.border}",
-          borderHover: "{color.accent-content}",
-        },
+
         borderStyle: "dashed",
+
         textWeight: 400,
       },
     },
@@ -5175,15 +5426,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -5229,17 +5480,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        // 에러 메시지 — negative(빨강) 텍스트. Description(neutral-subdued)/Label(neutral) 과 색만 다름.
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
+          },
+          color: {
+            default: "{color.negative}",
           },
         },
-        colors: {
-          // 에러 메시지 — negative(빨강) 텍스트. Description(neutral-subdued)/Label(neutral) 과 색만 다름.
-          text: "{color.negative}",
-        },
+
         // ADR-912 위험군 해소 (선행-6 field/form FieldError catalog 등록, 2026-06-04):
         //   spec render.shapes 기본 fontWeight=400(FieldError.spec.ts:106-111, fwRaw 미지정 시 400)
         //   → variant.textWeight=400 명시. 누락 시 catalog 가 default weight(500) 로 drift.
@@ -5311,17 +5563,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-          alpha: 0,
+          color: {
+            default: "{color.neutral}",
+          },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+        alpha: 0,
       },
     },
     sizes: {
@@ -5355,16 +5607,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.layer-1}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-subtle}",
+        paint: {
+          backgroundColor: {
+            default: "{color.layer-1}",
+            isHovered: "{color.neutral-subtle}",
+            isPressed: "{color.neutral-subtle}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.border}",
+          },
         },
       },
     },
@@ -5463,15 +5717,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.base}",
+            isPressed: "{color.base}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -5594,15 +5848,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -5690,23 +5944,30 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       default: {
         // The S2 ListView row (`listRowBackground`): transparent at rest, a light neutral wash on
         //   hover · press, the selection tint (S2 `highlight` — a blue wash; here the accent's).
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-subtle}",
-            selected: "{color.accent-subtle}",
-          },
-        },
         // The row's separator color (its 1px bottom line — `manualBoxRules` · `GridList.css`; the
         //   rule's own border width is none), clear while selected (S2 `isSelected: transparent`).
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
-          selectedBorder: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.neutral-subtle}",
+            isPressed: "{color.neutral-subtle}",
+            isSelected: {
+              default: "{color.accent-subtle}",
+            },
+          },
+          color: {
+            default: "{color.neutral}",
+            isSelected: {
+              default: null,
+            },
+          },
+          borderColor: {
+            default: "{color.border}",
+            isSelected: {
+              default: "{color.transparent}",
+            },
+          },
         },
-        // 굵기 선언 없음 (사용자 결정 2026-09-29): 카드 label · description 모두 기본 굵기 (400).
-        //   종전 600 은 description 까지 굵게 했다 (DOM 상속).
       },
       /* quiet (2026-08-22, 감사 §1-2 축② 잔여) — 컬렉션 quiet 은 **컨테이너가 아니라 카드**
          에서 성립한다. GridList 컨테이너는 catalog·CSS 양쪽 다 이미 transparent/border none
@@ -5719,22 +5980,32 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
          selectedBorder 는 accent 를 유지한다 — 선택 표시까지 지우면 어떤 카드가 선택됐는지
          알 수 없다(ToggleButton quiet 이 selected 를 그대로 둔 것과 같은 판단). */
       quiet: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            // 쉬는 상태만 비우고 hover/pressed 에서는 배경이 돌아온다 — Spectrum quiet 의
-            //   정의이자 "누를 수 있는 것" 이라는 신호를 남기는 최소한이다. 테두리는
-            //   hover 에서도 돌아오지 않는다(그러면 quiet 이 아니다).
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-hover}",
-          },
-        },
+        // 쉬는 상태만 비우고 hover/pressed 에서는 배경이 돌아온다 — Spectrum quiet 의
+        //   정의이자 "누를 수 있는 것" 이라는 신호를 남기는 최소한이다. 테두리는
+        //   hover 에서도 돌아오지 않는다(그러면 quiet 이 아니다).
         // The row's separator color (its 1px bottom line — `manualBoxRules` · `GridList.css`; the
         //   rule's own border width is none), clear while selected (S2 `isSelected: transparent`).
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
-          selectedBorder: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.neutral-subtle}",
+            isPressed: "{color.neutral-hover}",
+            isSelected: {
+              default: null,
+            },
+          },
+          color: {
+            default: "{color.neutral}",
+            isSelected: {
+              default: null,
+            },
+          },
+          borderColor: {
+            default: "{color.border}",
+            isSelected: {
+              default: "{color.transparent}",
+            },
+          },
         },
       },
     },
@@ -5758,27 +6029,27 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.base}",
+            isPressed: "{color.base}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       accent: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.base}",
+            isPressed: "{color.base}",
           },
-        },
-        colors: {
-          text: "{color.accent-content}",
+          color: {
+            default: "{color.accent-content}",
+          },
         },
       },
     },
@@ -5925,16 +6196,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
+          },
+          color: {
+            default: "{color.neutral}",
           },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+
         // 2026-06-24: textWeight 700 → 600 (Heading 시각 정본 정합). standalone/Toast/Card/Dialog
         //   Heading factory inline 이 fontWeight 600 으로 일관(4곳) — Skia(style.fontWeight 600 우선)
         //   ·CSS(inline 600) 둘 다 600 렌더라 catalog 700 은 dead 였고, dirty baseline 만 700 으로
@@ -6002,15 +6274,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -6068,15 +6340,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -6212,15 +6484,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -6259,15 +6531,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.neutral-subtle}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-subtle}",
+        paint: {
+          backgroundColor: {
+            default: "{color.neutral-subtle}",
+            isHovered: "{color.neutral-subtle}",
+            isPressed: "{color.neutral-subtle}",
           },
-        },
-        colors: {
-          text: "{color.neutral-subdued}",
+          color: {
+            default: "{color.neutral-subdued}",
+          },
         },
       },
     },
@@ -6304,109 +6576,119 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     fillStyleValues: { outline: "border", subtle: "subtleFill" },
     variants: {
       neutral: {
-        fill: {
-          default: {
-            base: "{color.neutral-subdued}",
-            hover: "{color.neutral-subdued}",
-            pressed: "{color.neutral-subdued}",
+        paint: {
+          backgroundColor: {
+            default: "{color.neutral-subdued}",
+            isHovered: "{color.neutral-subdued}",
+            isPressed: "{color.neutral-subdued}",
+            fillStyle: {
+              border: "{color.base}",
+              subtleFill: "{color.neutral-subtle}",
+            },
           },
-          outline: {
-            base: "{color.base}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              border: "{color.neutral}",
+              subtleFill: "{color.neutral}",
+            },
           },
-          subtle: {
-            base: "{color.neutral-subtle}",
+          borderColor: {
+            default: "{color.neutral-subdued}",
           },
-        },
-        colors: {
-          text: "{color.white}",
-          subtleText: "{color.neutral}",
-          outlineText: "{color.neutral}",
-          border: "{color.neutral-subdued}",
         },
       },
       // S2 1.8.0 값 정렬 (2026-10-10): info → informative.
       informative: {
-        fill: {
-          default: {
-            base: "{color.informative}",
-            hover: "{color.informative}",
-            pressed: "{color.informative}",
+        paint: {
+          backgroundColor: {
+            default: "{color.informative}",
+            isHovered: "{color.informative}",
+            isPressed: "{color.informative}",
+            fillStyle: {
+              border: "{color.base}",
+              subtleFill: "{color.informative-subtle}",
+            },
           },
-          outline: {
-            base: "{color.base}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              border: "{color.neutral}",
+              subtleFill: "{color.neutral}",
+            },
           },
-          subtle: {
-            base: "{color.informative-subtle}",
+          borderColor: {
+            default: "{color.informative}",
           },
-        },
-        colors: {
-          text: "{color.white}",
-          subtleText: "{color.neutral}",
-          outlineText: "{color.neutral}",
-          border: "{color.informative}",
         },
       },
       positive: {
-        fill: {
-          default: {
-            base: "{color.positive}",
-            hover: "{color.positive}",
-            pressed: "{color.positive}",
+        paint: {
+          backgroundColor: {
+            default: "{color.positive}",
+            isHovered: "{color.positive}",
+            isPressed: "{color.positive}",
+            fillStyle: {
+              border: "{color.base}",
+              subtleFill: "{color.positive-subtle}",
+            },
           },
-          outline: {
-            base: "{color.base}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              border: "{color.neutral}",
+              subtleFill: "{color.neutral}",
+            },
           },
-          subtle: {
-            base: "{color.positive-subtle}",
+          borderColor: {
+            default: "{color.positive}",
           },
-        },
-        colors: {
-          text: "{color.white}",
-          subtleText: "{color.neutral}",
-          outlineText: "{color.neutral}",
-          border: "{color.positive}",
         },
       },
       notice: {
-        fill: {
-          default: {
-            base: "{color.notice}",
-            hover: "{color.notice}",
-            pressed: "{color.notice}",
+        paint: {
+          backgroundColor: {
+            default: "{color.notice}",
+            isHovered: "{color.notice}",
+            isPressed: "{color.notice}",
+            fillStyle: {
+              border: "{color.base}",
+              subtleFill: "{color.notice-subtle}",
+            },
           },
-          outline: {
-            base: "{color.base}",
+          color: {
+            default: "{color.black}",
+            fillStyle: {
+              border: "{color.neutral}",
+              subtleFill: "{color.neutral}",
+            },
           },
-          subtle: {
-            base: "{color.notice-subtle}",
+          borderColor: {
+            default: "{color.notice}",
           },
-        },
-        colors: {
-          text: "{color.black}",
-          subtleText: "{color.neutral}",
-          outlineText: "{color.neutral}",
-          border: "{color.notice}",
         },
       },
       negative: {
-        fill: {
-          default: {
-            base: "{color.negative}",
-            hover: "{color.negative}",
-            pressed: "{color.negative}",
+        paint: {
+          backgroundColor: {
+            default: "{color.negative}",
+            isHovered: "{color.negative}",
+            isPressed: "{color.negative}",
+            fillStyle: {
+              border: "{color.base}",
+              subtleFill: "{color.negative-subtle}",
+            },
           },
-          outline: {
-            base: "{color.base}",
+          color: {
+            default: "{color.white}",
+            fillStyle: {
+              border: "{color.neutral}",
+              subtleFill: "{color.neutral}",
+            },
           },
-          subtle: {
-            base: "{color.negative-subtle}",
+          borderColor: {
+            default: "{color.negative}",
           },
-        },
-        colors: {
-          text: "{color.white}",
-          subtleText: "{color.neutral}",
-          outlineText: "{color.neutral}",
-          border: "{color.negative}",
         },
       },
     },
@@ -6533,45 +6815,51 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.layer-2}",
-            hover: "{color.layer-1}",
-            pressed: "{color.layer-1}",
+        paint: {
+          backgroundColor: {
+            default: "{color.layer-2}",
+            isHovered: "{color.layer-1}",
+            isPressed: "{color.layer-1}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
-          borderHover: "{color.border-hover}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.border}",
+            isHovered: "{color.border-hover}",
+          },
         },
       },
       accent: {
-        fill: {
-          default: {
-            base: "{color.layer-2}",
-            hover: "{color.layer-1}",
-            pressed: "{color.layer-1}",
+        paint: {
+          backgroundColor: {
+            default: "{color.layer-2}",
+            isHovered: "{color.layer-1}",
+            isPressed: "{color.layer-1}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.accent-content}",
-          borderHover: "{color.accent-content-hover}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.accent-content}",
+            isHovered: "{color.accent-content-hover}",
+          },
         },
       },
       negative: {
-        fill: {
-          default: {
-            base: "{color.layer-2}",
-            hover: "{color.layer-1}",
-            pressed: "{color.layer-1}",
+        paint: {
+          backgroundColor: {
+            default: "{color.layer-2}",
+            isHovered: "{color.layer-1}",
+            isPressed: "{color.layer-1}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.negative}",
-          borderHover: "{color.negative-hover}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.negative}",
+            isHovered: "{color.negative-hover}",
+          },
         },
       },
     },
@@ -6743,21 +7031,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "S",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.layer-2}",
-            hover: "{color.layer-2}",
-            pressed: "{color.neutral-pressed}",
+        paint: {
+          backgroundColor: {
+            default: "{color.layer-2}",
+            isHovered: "{color.layer-2}",
+            isPressed: "{color.neutral-pressed}",
+          },
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.border}",
           },
         },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
-        },
+
         // ADR-912 위험군 해소(2026-06-04): Kbd catalog 측정/렌더 drift 차단. spec render.shapes
         //   fontFamily.mono + fontWeight 500(키 표시 약간 굵게, Kbd.spec L153) ↔ buildCatalogShapes
         //   fallback sans/500. fontFamily(mono) 명시 + textWeight 500(spec 일치).
         fontFamily: "JetBrains Mono, Consolas, monospace",
+
         textWeight: 500,
       },
     },
@@ -6812,17 +7104,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.neutral-subtle}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-subtle}",
+        paint: {
+          backgroundColor: {
+            default: "{color.neutral-subtle}",
+            isHovered: "{color.neutral-subtle}",
+            isPressed: "{color.neutral-subtle}",
+          },
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.border}",
           },
         },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
-        },
+
         textWeight: 400,
       },
     },
@@ -6862,16 +7157,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
+          },
+          color: {
+            default: "{color.neutral}",
           },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+
         // 굵기 500 (ADR-253 — react-aria.adobe.com 레퍼런스의 Label 기본값). 전 Label 의 정본:
         //   field 계열의 Label 은 Label 원본의 instance 이고 부모 rule 은 굵기를 선언하지 않는다.
         textWeight: 500,
@@ -6944,34 +7240,36 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     variants: {
       primary: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.base}",
+            isPressed: "{color.base}",
           },
-          alpha: 0,
+          color: {
+            default: "{color.accent-content}",
+            isHovered: "{color.accent-content-hover}",
+          },
         },
-        colors: {
-          text: "{color.accent-content}",
-          textHover: "{color.accent-content-hover}",
-        },
+        alpha: 0,
+
         // 링크 400 (사용자 결정 2026-09-29): Canvas 는 textWeight 를, 생성 CSS 는 sizes.fontWeight 를 읽는다.
         textWeight: 400,
       },
       secondary: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.base}",
+            isPressed: "{color.base}",
           },
-          alpha: 0,
+          color: {
+            default: "{color.neutral}",
+            isHovered: "{color.accent-content}",
+          },
         },
-        colors: {
-          text: "{color.neutral}",
-          textHover: "{color.accent-content}",
-        },
+        alpha: 0,
+
         textWeight: 400,
       },
     },
@@ -7055,16 +7353,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.raised}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-1}",
+        paint: {
+          backgroundColor: {
+            default: "{color.raised}",
+            isHovered: "{color.layer-2}",
+            isPressed: "{color.layer-1}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.border}",
+          },
         },
       },
     },
@@ -7412,18 +7712,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   `data-variant="default"` so this block reaches the sheet.
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.neutral-subtle}",
-            selected: "{color.accent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.neutral-subtle}",
+            isSelected: {
+              default: "{color.accent}",
+            },
+          },
+          color: {
+            default: "{color.neutral}",
+            isSelected: {
+              default: "{color.on-accent}",
+            },
+          },
+          borderColor: {
+            isSelected: {
+              default: null,
+            },
           },
         },
-        colors: {
-          text: "{color.neutral}",
-          selectedText: "{color.on-accent}",
-        },
+
         // The item's own weight (`font: var(--font-size) system-ui`); its label is 500
         //   (`[slot='label']` — the ListBox part rule).
         textWeight: 400,
@@ -7547,16 +7857,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   (variant 색 · Button padding) 이었다 — Menu 노드가 trigger 와 목록을 같이 맡던 때.
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.raised}",
-            hover: "{color.raised}",
-            pressed: "{color.raised}",
+        paint: {
+          backgroundColor: {
+            default: "{color.raised}",
+            isHovered: "{color.raised}",
+            isPressed: "{color.raised}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.border}",
+          },
         },
       },
     },
@@ -7818,53 +8130,53 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     variants: {
       informative: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       positive: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       // S2 1.8.0 값 정렬 (2026-10-10): warning → notice.
       notice: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       // S2 1.8.0 값 정렬 (2026-10-10): critical → negative.
       negative: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -8064,62 +8376,66 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       informative: {
-        // (A static color fills at S2 `transparent-overlay-900` — 0.94.)
-        staticAlpha: 0.94,
-        fill: {
-          default: {
-            base: "{color.informative}",
-            hover: "{color.informative}",
-            pressed: "{color.informative}",
+        paint: {
+          backgroundColor: {
+            default: "{color.informative}",
+            isHovered: "{color.informative}",
+            isPressed: "{color.informative}",
+          },
+          color: {
+            default: "{color.neutral}",
           },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+
+        // (A static color fills at S2 `transparent-overlay-900` — 0.94.)
+        staticAlpha: 0.94,
       },
       positive: {
-        // (A static color fills at S2 `transparent-overlay-900` — 0.94.)
-        staticAlpha: 0.94,
-        fill: {
-          default: {
-            base: "{color.positive}",
-            hover: "{color.positive}",
-            pressed: "{color.positive}",
+        paint: {
+          backgroundColor: {
+            default: "{color.positive}",
+            isHovered: "{color.positive}",
+            isPressed: "{color.positive}",
+          },
+          color: {
+            default: "{color.neutral}",
           },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+
+        // (A static color fills at S2 `transparent-overlay-900` — 0.94.)
+        staticAlpha: 0.94,
       },
       // S2 1.8.0 값 정렬 (2026-10-10): warning → notice.
       notice: {
-        // (A static color fills at S2 `transparent-overlay-900` — 0.94.)
-        staticAlpha: 0.94,
-        fill: {
-          default: {
-            base: "{color.notice}",
-            hover: "{color.notice}",
-            pressed: "{color.notice}",
+        paint: {
+          backgroundColor: {
+            default: "{color.notice}",
+            isHovered: "{color.notice}",
+            isPressed: "{color.notice}",
+          },
+          color: {
+            default: "{color.neutral}",
           },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+
+        // (A static color fills at S2 `transparent-overlay-900` — 0.94.)
+        staticAlpha: 0.94,
       },
       // S2 1.8.0 값 정렬 (2026-10-10): critical → negative.
       negative: {
-        // (A static color fills at S2 `transparent-overlay-900` — 0.94.)
-        staticAlpha: 0.94,
-        fill: {
-          default: {
-            base: "{color.negative}",
-            hover: "{color.negative}",
-            pressed: "{color.negative}",
+        paint: {
+          backgroundColor: {
+            default: "{color.negative}",
+            isHovered: "{color.negative}",
+            isPressed: "{color.negative}",
+          },
+          color: {
+            default: "{color.neutral}",
           },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+
+        // (A static color fills at S2 `transparent-overlay-900` — 0.94.)
+        staticAlpha: 0.94,
       },
     },
     // ADR-256 후속 11: the track's corners (the DOM fill is clipped by the rounded `.bar`; the Canvas
@@ -8145,66 +8461,74 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // The track's own box (neutral-subtle — the Meter sheet's `.bar` --bg-muted); its fill is the
       //   MeterFill node (ADR-256 Phase 7b).
       informative: {
+        paint: {
+          backgroundColor: {
+            default: "{color.neutral-subtle}",
+            isHovered: "{color.neutral-subtle}",
+            isPressed: "{color.neutral-subtle}",
+          },
+          color: {
+            default: "{color.neutral}",
+          },
+        },
+
         // (A value-fill track: a static color paints it at S2 `transparent-overlay-300` — 0.17.)
         fillBar: "{color.informative}",
+
         staticAlpha: 0.17,
-        fill: {
-          default: {
-            base: "{color.neutral-subtle}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-subtle}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-        },
       },
       positive: {
-        // (A value-fill track: a static color paints it at S2 `transparent-overlay-300` — 0.17.)
-        fillBar: "{color.positive}",
-        staticAlpha: 0.17,
-        fill: {
-          default: {
-            base: "{color.neutral-subtle}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-subtle}",
+        paint: {
+          backgroundColor: {
+            default: "{color.neutral-subtle}",
+            isHovered: "{color.neutral-subtle}",
+            isPressed: "{color.neutral-subtle}",
+          },
+          color: {
+            default: "{color.neutral}",
           },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+
+        // (A value-fill track: a static color paints it at S2 `transparent-overlay-300` — 0.17.)
+        fillBar: "{color.positive}",
+
+        staticAlpha: 0.17,
       },
       // S2 1.8.0 값 정렬 (2026-10-10): warning → notice.
       notice: {
-        // (A value-fill track: a static color paints it at S2 `transparent-overlay-300` — 0.17.)
-        fillBar: "{color.notice}",
-        staticAlpha: 0.17,
-        fill: {
-          default: {
-            base: "{color.neutral-subtle}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-subtle}",
+        paint: {
+          backgroundColor: {
+            default: "{color.neutral-subtle}",
+            isHovered: "{color.neutral-subtle}",
+            isPressed: "{color.neutral-subtle}",
+          },
+          color: {
+            default: "{color.neutral}",
           },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+
+        // (A value-fill track: a static color paints it at S2 `transparent-overlay-300` — 0.17.)
+        fillBar: "{color.notice}",
+
+        staticAlpha: 0.17,
       },
       // S2 1.8.0 값 정렬 (2026-10-10): critical → negative.
       negative: {
-        // (A value-fill track: a static color paints it at S2 `transparent-overlay-300` — 0.17.)
-        fillBar: "{color.negative}",
-        staticAlpha: 0.17,
-        fill: {
-          default: {
-            base: "{color.neutral-subtle}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-subtle}",
+        paint: {
+          backgroundColor: {
+            default: "{color.neutral-subtle}",
+            isHovered: "{color.neutral-subtle}",
+            isPressed: "{color.neutral-subtle}",
+          },
+          color: {
+            default: "{color.neutral}",
           },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+
+        // (A value-fill track: a static color paints it at S2 `transparent-overlay-300` — 0.17.)
+        fillBar: "{color.negative}",
+
+        staticAlpha: 0.17,
       },
     },
     // ADR-256 후속 11: the corners of the ProgressBar · Meter sheet's `.bar` · `.fill` (per size).
@@ -8252,53 +8576,53 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       informative: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       positive: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       // S2 1.8.0 값 정렬 (2026-10-10): warning → notice.
       notice: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       // S2 1.8.0 값 정렬 (2026-10-10): critical → negative.
       negative: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -8341,15 +8665,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -8406,15 +8730,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.base}",
+            isPressed: "{color.base}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -8665,16 +8989,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-1}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.layer-2}",
+            isPressed: "{color.layer-1}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.border}",
+          },
         },
       },
     },
@@ -8765,16 +9091,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
+          },
+          color: {
+            default: "{color.neutral}",
           },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+
         // ADR-912 위험군 해소(2026-06-04): Paragraph spec render.shapes fontWeight 400 ↔
         //   buildCatalogShapes fallback 500 drift 차단. variant.textWeight=400 명시.
         textWeight: 400,
@@ -8838,42 +9165,48 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       accent: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.base}",
+            isPressed: "{color.base}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.accent-content}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.accent-content}",
+          },
         },
       },
       neutral: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.base}",
+            isPressed: "{color.base}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.neutral-subtle}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.neutral-subtle}",
+          },
         },
       },
       surface: {
-        fill: {
-          default: {
-            base: "{color.layer-2}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-2}",
+        paint: {
+          backgroundColor: {
+            default: "{color.layer-2}",
+            isHovered: "{color.layer-2}",
+            isPressed: "{color.layer-2}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.border}",
+          },
         },
       },
     },
@@ -8945,15 +9278,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -9174,19 +9507,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        // (A value-fill track: a static color paints it at S2 `transparent-overlay-300` — 0.17.)
-        fillBar: "{color.accent-content}",
-        staticAlpha: 0.17,
-        fill: {
-          default: {
-            base: "{color.accent-subtle}",
-            hover: "{color.accent-subtle}",
-            pressed: "{color.accent-subtle}",
+        paint: {
+          backgroundColor: {
+            default: "{color.accent-subtle}",
+            isHovered: "{color.accent-subtle}",
+            isPressed: "{color.accent-subtle}",
+          },
+          color: {
+            default: "{color.neutral}",
           },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+
+        // (A value-fill track: a static color paints it at S2 `transparent-overlay-300` — 0.17.)
+        fillBar: "{color.accent-content}",
+
+        staticAlpha: 0.17,
       },
     },
     // ADR-256 후속 11: the corners of the ProgressBar · Meter sheet's `.bar` · `.fill` (per size).
@@ -9238,18 +9573,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        // (A static color fills at S2 `transparent-overlay-900` — 0.94.)
-        staticAlpha: 0.94,
-        fill: {
-          default: {
-            base: "{color.accent-content}",
-            hover: "{color.accent-content}",
-            pressed: "{color.accent-content}",
+        paint: {
+          backgroundColor: {
+            default: "{color.accent-content}",
+            isHovered: "{color.accent-content}",
+            isPressed: "{color.accent-content}",
+          },
+          color: {
+            default: "{color.neutral}",
           },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+
+        // (A static color fills at S2 `transparent-overlay-900` — 0.94.)
+        staticAlpha: 0.94,
       },
     },
     // ADR-256 후속 11: the corners of the ProgressBar · Meter sheet's `.bar` · `.fill` (per size).
@@ -9272,15 +9608,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -9323,15 +9659,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.neutral-subtle}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-subtle}",
+        paint: {
+          backgroundColor: {
+            default: "{color.neutral-subtle}",
+            isHovered: "{color.neutral-subtle}",
+            isPressed: "{color.neutral-subtle}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -9374,35 +9710,55 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // S2 1.8.0 강조 축 (2026-10-10): 기본 선택 고리는 중립 (S2 gray-800), emphasized 가
       //   accent — 옛 accent · neutral · negative 변형은 S2 에 없어 삭제 (로드 시 1회 전환).
       default: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-1}",
-            selected: "{color.neutral}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.layer-2}",
+            isPressed: "{color.layer-1}",
+            isSelected: {
+              default: "{color.neutral}",
+            },
+          },
+          color: {
+            default: "{color.neutral}",
+            isSelected: {
+              default: null,
+            },
+          },
+          borderColor: {
+            default: "{color.border-hover}",
+            isSelected: {
+              default: "{color.neutral}",
+            },
           },
         },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border-hover}",
-          selectedBorder: "{color.neutral}",
-        },
+
         textWeight: 400,
       },
       emphasized: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-1}",
-            selected: "{color.accent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.layer-2}",
+            isPressed: "{color.layer-1}",
+            isSelected: {
+              default: "{color.accent}",
+            },
+          },
+          color: {
+            default: "{color.neutral}",
+            isSelected: {
+              default: null,
+            },
+          },
+          borderColor: {
+            default: "{color.border-hover}",
+            isSelected: {
+              default: "{color.accent}",
+            },
           },
         },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border-hover}",
-          selectedBorder: "{color.accent}",
-        },
+
         textWeight: 400,
       },
     },
@@ -9503,15 +9859,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.base}",
+            isPressed: "{color.base}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -9693,15 +10049,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       default: {
         // (No background, hovered or pressed either — the references paint none, 사용자 2026-10-13
         //   「같이 지워」.)
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -10084,15 +10440,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   the base color itself, not `alpha: 0` over `base` — the generated base block then
       //   carries it.)
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -10476,15 +10832,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -10521,18 +10877,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.base}",
+            isPressed: "{color.base}",
           },
-          alpha: 0,
+          color: {
+            default: "{color.border}",
+          },
+          borderColor: {
+            default: "{color.border}",
+          },
         },
-        colors: {
-          text: "{color.border}",
-          border: "{color.border}",
-        },
+        alpha: 0,
       },
     },
     sizes: {
@@ -10576,15 +10934,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.layer-2}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-2}",
+        paint: {
+          backgroundColor: {
+            default: "{color.layer-2}",
+            isHovered: "{color.layer-2}",
+            isPressed: "{color.layer-2}",
           },
-        },
-        colors: {
-          text: "{color.neutral-subdued}",
+          color: {
+            default: "{color.neutral-subdued}",
+          },
         },
       },
     },
@@ -10815,23 +11173,23 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   variant is derived from the Slider — `presence.ts`).
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.neutral}",
+        paint: {
+          backgroundColor: {
+            default: "{color.neutral}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       emphasized: {
-        fill: {
-          default: {
-            base: "{color.accent-content}",
+        paint: {
+          backgroundColor: {
+            default: "{color.accent-content}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -10907,23 +11265,23 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   variant is derived from the Slider — `presence.ts`).
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.neutral}",
+        paint: {
+          backgroundColor: {
+            default: "{color.neutral}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       emphasized: {
-        fill: {
-          default: {
-            base: "{color.accent-content}",
+        paint: {
+          backgroundColor: {
+            default: "{color.accent-content}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -10966,15 +11324,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     variants: {
       // The bar (neutral-subtle — the generated `--bg-muted`).
       default: {
-        fill: {
-          default: {
-            base: "{color.neutral-subtle}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-subtle}",
+        paint: {
+          backgroundColor: {
+            default: "{color.neutral-subtle}",
+            isHovered: "{color.neutral-subtle}",
+            isPressed: "{color.neutral-subtle}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -11136,231 +11494,231 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       neutral: {
-        fill: {
-          default: {
-            base: "{color.neutral-subdued}",
-            hover: "{color.neutral-subdued}",
-            pressed: "{color.neutral-subdued}",
+        paint: {
+          backgroundColor: {
+            default: "{color.neutral-subdued}",
+            isHovered: "{color.neutral-subdued}",
+            isPressed: "{color.neutral-subdued}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       informative: {
-        fill: {
-          default: {
-            base: "{color.informative}",
-            hover: "{color.informative}",
-            pressed: "{color.informative}",
+        paint: {
+          backgroundColor: {
+            default: "{color.informative}",
+            isHovered: "{color.informative}",
+            isPressed: "{color.informative}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       positive: {
-        fill: {
-          default: {
-            base: "{color.positive}",
-            hover: "{color.positive}",
-            pressed: "{color.positive}",
+        paint: {
+          backgroundColor: {
+            default: "{color.positive}",
+            isHovered: "{color.positive}",
+            isPressed: "{color.positive}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       notice: {
-        fill: {
-          default: {
-            base: "{color.notice}",
-            hover: "{color.notice}",
-            pressed: "{color.notice}",
+        paint: {
+          backgroundColor: {
+            default: "{color.notice}",
+            isHovered: "{color.notice}",
+            isPressed: "{color.notice}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       negative: {
-        fill: {
-          default: {
-            base: "{color.negative}",
-            hover: "{color.negative}",
-            pressed: "{color.negative}",
+        paint: {
+          backgroundColor: {
+            default: "{color.negative}",
+            isHovered: "{color.negative}",
+            isPressed: "{color.negative}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       celery: {
-        fill: {
-          default: {
-            base: "{color.celery}",
-            hover: "{color.celery}",
-            pressed: "{color.celery}",
+        paint: {
+          backgroundColor: {
+            default: "{color.celery}",
+            isHovered: "{color.celery}",
+            isPressed: "{color.celery}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       chartreuse: {
-        fill: {
-          default: {
-            base: "{color.chartreuse}",
-            hover: "{color.chartreuse}",
-            pressed: "{color.chartreuse}",
+        paint: {
+          backgroundColor: {
+            default: "{color.chartreuse}",
+            isHovered: "{color.chartreuse}",
+            isPressed: "{color.chartreuse}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       cyan: {
-        fill: {
-          default: {
-            base: "{color.cyan}",
-            hover: "{color.cyan}",
-            pressed: "{color.cyan}",
+        paint: {
+          backgroundColor: {
+            default: "{color.cyan}",
+            isHovered: "{color.cyan}",
+            isPressed: "{color.cyan}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       fuchsia: {
-        fill: {
-          default: {
-            base: "{color.fuchsia}",
-            hover: "{color.fuchsia}",
-            pressed: "{color.fuchsia}",
+        paint: {
+          backgroundColor: {
+            default: "{color.fuchsia}",
+            isHovered: "{color.fuchsia}",
+            isPressed: "{color.fuchsia}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       indigo: {
-        fill: {
-          default: {
-            base: "{color.indigo}",
-            hover: "{color.indigo}",
-            pressed: "{color.indigo}",
+        paint: {
+          backgroundColor: {
+            default: "{color.indigo}",
+            isHovered: "{color.indigo}",
+            isPressed: "{color.indigo}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       magenta: {
-        fill: {
-          default: {
-            base: "{color.magenta}",
-            hover: "{color.magenta}",
-            pressed: "{color.magenta}",
+        paint: {
+          backgroundColor: {
+            default: "{color.magenta}",
+            isHovered: "{color.magenta}",
+            isPressed: "{color.magenta}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       purple: {
-        fill: {
-          default: {
-            base: "{color.purple}",
-            hover: "{color.purple}",
-            pressed: "{color.purple}",
+        paint: {
+          backgroundColor: {
+            default: "{color.purple}",
+            isHovered: "{color.purple}",
+            isPressed: "{color.purple}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       yellow: {
-        fill: {
-          default: {
-            base: "{color.yellow}",
-            hover: "{color.yellow}",
-            pressed: "{color.yellow}",
+        paint: {
+          backgroundColor: {
+            default: "{color.yellow}",
+            isHovered: "{color.yellow}",
+            isPressed: "{color.yellow}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       seafoam: {
-        fill: {
-          default: {
-            base: "{color.seafoam}",
-            hover: "{color.seafoam}",
-            pressed: "{color.seafoam}",
+        paint: {
+          backgroundColor: {
+            default: "{color.seafoam}",
+            isHovered: "{color.seafoam}",
+            isPressed: "{color.seafoam}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       pink: {
-        fill: {
-          default: {
-            base: "{color.pink}",
-            hover: "{color.pink}",
-            pressed: "{color.pink}",
+        paint: {
+          backgroundColor: {
+            default: "{color.pink}",
+            isHovered: "{color.pink}",
+            isPressed: "{color.pink}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       turquoise: {
-        fill: {
-          default: {
-            base: "{color.turquoise}",
-            hover: "{color.turquoise}",
-            pressed: "{color.turquoise}",
+        paint: {
+          backgroundColor: {
+            default: "{color.turquoise}",
+            isHovered: "{color.turquoise}",
+            isPressed: "{color.turquoise}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       cinnamon: {
-        fill: {
-          default: {
-            base: "{color.cinnamon}",
-            hover: "{color.cinnamon}",
-            pressed: "{color.cinnamon}",
+        paint: {
+          backgroundColor: {
+            default: "{color.cinnamon}",
+            isHovered: "{color.cinnamon}",
+            isPressed: "{color.cinnamon}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       brown: {
-        fill: {
-          default: {
-            base: "{color.brown}",
-            hover: "{color.brown}",
-            pressed: "{color.brown}",
+        paint: {
+          backgroundColor: {
+            default: "{color.brown}",
+            isHovered: "{color.brown}",
+            isPressed: "{color.brown}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       silver: {
-        fill: {
-          default: {
-            base: "{color.silver}",
-            hover: "{color.silver}",
-            pressed: "{color.silver}",
+        paint: {
+          backgroundColor: {
+            default: "{color.silver}",
+            isHovered: "{color.silver}",
+            isPressed: "{color.silver}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -11423,31 +11781,53 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   (Switch.spec label fontWeight 미emit → 측정 fallback 400 정합). [[Checkbox 참조]]
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
-            selected: "{color.neutral}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
+            isSelected: {
+              default: "{color.neutral}",
+            },
+          },
+          color: {
+            default: "{color.neutral}",
+            isSelected: {
+              default: null,
+            },
+          },
+          borderColor: {
+            isSelected: {
+              default: null,
+            },
           },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+
         textWeight: 400,
       },
       emphasized: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
-            selected: "{color.accent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
+            isSelected: {
+              default: "{color.accent}",
+            },
+          },
+          color: {
+            default: "{color.neutral}",
+            isSelected: {
+              default: null,
+            },
+          },
+          borderColor: {
+            isSelected: {
+              default: null,
+            },
           },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+
         textWeight: 400,
       },
     },
@@ -11575,16 +11955,27 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
+            isSelected: {
+              default: null,
+            },
           },
-        },
-        colors: {
-          text: "{color.neutral-subdued}",
-          textHover: "{color.neutral}",
+          color: {
+            default: "{color.neutral-subdued}",
+            isHovered: "{color.neutral}",
+            isSelected: {
+              default: null,
+            },
+          },
+          borderColor: {
+            isSelected: {
+              default: null,
+            },
+          },
         },
       },
     },
@@ -11725,15 +12116,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -11797,15 +12188,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -11855,17 +12246,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-          alpha: 0,
+          color: {
+            default: "{color.neutral}",
+          },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+        alpha: 0,
       },
     },
     sizes: {
@@ -11881,17 +12272,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-          alpha: 0,
+          color: {
+            default: "{color.neutral}",
+          },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+        alpha: 0,
       },
     },
     sizes: {
@@ -11909,17 +12300,26 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // `Table.css` `.react-aria-Row[data-selected]` accent fill and on-accent text.
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
-            selected: "{color.accent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
+            isSelected: {
+              default: "{color.accent}",
+            },
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          selectedText: "{color.on-accent}",
+          color: {
+            default: "{color.neutral}",
+            isSelected: {
+              default: "{color.on-accent}",
+            },
+          },
+          borderColor: {
+            isSelected: {
+              default: null,
+            },
+          },
         },
       },
     },
@@ -11948,17 +12348,29 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
+            isSelected: {
+              default: null,
+            },
           },
-          alpha: 0,
+          color: {
+            default: "{color.neutral}",
+            isSelected: {
+              default: null,
+            },
+          },
+          borderColor: {
+            isSelected: {
+              default: null,
+            },
+          },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+        alpha: 0,
+
         // textAlign left: react-aria-starter Table.css `.react-aria-Cell,.react-aria-Column
         //   { text-align: left }`(line 162) 정본. buildCatalogShapes 는 transparent-fill +
         //   size.height>0 인 Column/Cell 을 box 로 판정해 기본 center 로 그렸다(Skia=center,
@@ -12052,17 +12464,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-          alpha: 0,
+          color: {
+            default: "{color.neutral}",
+          },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+        alpha: 0,
+
         // textAlign left: starter Table.css 정본(Column 과 동일 규칙). box 기본 center override.
         textAlign: "left",
       },
@@ -12172,19 +12585,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-1}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.layer-2}",
+            isPressed: "{color.layer-1}",
+            isQuiet: "{color.transparent}",
           },
-          quiet: {
-            base: "{color.transparent}",
+          color: {
+            default: "{color.neutral}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
+          borderColor: {
+            default: "{color.border}",
+          },
         },
       },
     },
@@ -12208,16 +12621,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.layer-1}",
-            hover: "{color.layer-1}",
-            pressed: "{color.layer-1}",
+        paint: {
+          backgroundColor: {
+            default: "{color.layer-1}",
+            isHovered: "{color.layer-1}",
+            isPressed: "{color.layer-1}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.border}",
+          },
         },
       },
     },
@@ -12328,16 +12743,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   `.react-aria-Tabs` 는 배경/박스 border 없음 — tab indicator `::before` 선만 있다(컨테이너
         //   border 아님). buildCatalogShapes 가 `visual.border`(=colors.border)를 컨테이너 박스 border 로
         //   그리면 legacy render.shapes `[]` 와 불일치(kill: "Tabs border 추가"). text/textHover 는 유지.
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral-subdued}",
-          textHover: "{color.neutral}",
+          color: {
+            default: "{color.neutral-subdued}",
+            isHovered: "{color.neutral}",
+          },
         },
       },
     },
@@ -12408,20 +12823,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.layer-1}",
-            hover: "{color.layer-1}",
-            pressed: "{color.layer-1}",
+        paint: {
+          backgroundColor: {
+            default: "{color.layer-1}",
+            isHovered: "{color.layer-1}",
+            isPressed: "{color.layer-1}",
+            isSelected: {
+              default: null,
+            },
+          },
+          color: {
+            default: "{color.neutral}",
+            isSelected: {
+              default: null,
+            },
+          },
+          borderColor: {
+            default: "{color.border}",
+            isSelected: {
+              default: null,
+            },
           },
         },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
-        },
+
         // DOM `.react-aria-Tag` 는 font-weight 미선언 (상속 400) — generic 폴백 500 이면 캔버스 chip 글자만
         //   굵고 폭이 DOM 보다 넓다 (2026-09-21, Checkbox/Radio/Switch 와 같은 명시).
         textWeight: 400,
+
         // ADR-912 영역 B (A) Tag cutover (2026-06-12): allowsRemoving remove X 를
         //   trailing_icon(Lucide "x" glyph)으로 그린다 — buildCatalogShapes 가 showProp(allowsRemoving)
         //   true 일 때만 text 우측에 덧그림(SearchField clear / DOM Button slot=remove 와 동일 icon).
@@ -12438,6 +12866,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           gap: 4,
           color: "{color.neutral}",
         },
+
         // leading avatar (2026-08-21, design-data 감사 §2-C Tag avatar 슬롯):
         //   icon 과 **같은 좌측 슬롯**의 이미지 표현 — 항목이 둘 다 가지면 avatar 가 이긴다
         //   (resolveLeadingSlot 단일 판정). `srcProp` 으로 `props.avatar`(itemSchema)를 읽고,
@@ -12449,6 +12878,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           gap: 4,
           fallbackFill: "{color.neutral-subtle}",
         },
+
         trailingIcon: {
           name: "x",
           gap: 2,
@@ -12462,18 +12892,31 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // S2 TagGroup (2026-10-10): a selected Tag is neutral (`baseColor('neutral')`, text
       //   `gray-25`) — accent only when the group is emphasized (`selectedEmphasized`).
       selected: {
-        fill: {
-          default: {
-            base: "{color.neutral}",
-            hover: "{color.neutral}",
-            pressed: "{color.neutral}",
+        paint: {
+          backgroundColor: {
+            default: "{color.neutral}",
+            isHovered: "{color.neutral}",
+            isPressed: "{color.neutral}",
+            isSelected: {
+              default: null,
+            },
+          },
+          color: {
+            default: "{color.base}",
+            isSelected: {
+              default: null,
+            },
+          },
+          borderColor: {
+            default: "{color.neutral}",
+            isSelected: {
+              default: null,
+            },
           },
         },
-        colors: {
-          text: "{color.base}",
-          border: "{color.neutral}",
-        },
+
         textWeight: 400,
+
         // selected variant: remove X color = base (text 와 동일).
         // leading icon (2026-08-21, design-data 감사 §2-? Tag avatar/icon 슬롯):
         //   chip 아이콘은 **항목별 데이터**라 rule 에 정적 이름을 둘 수 없다 → `nameProp` 으로
@@ -12486,6 +12929,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           gap: 4,
           color: "{color.base}",
         },
+
         // leading avatar (2026-08-21) — default variant 와 같은 채널. 선택 chip 만 아바타가
         //   사라지면 안 되므로 양 variant 에 동일 배선(폭 계약 테스트가 불일치를 잡는다).
         //   fallback 원은 accent 배경 위라 layer-1(밝은 자리표시).
@@ -12495,6 +12939,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           gap: 4,
           fallbackFill: "{color.layer-1}",
         },
+
         trailingIcon: {
           name: "x",
           gap: 2,
@@ -12506,18 +12951,31 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // S2 TagGroup `isEmphasized` (2026-10-10): a selected Tag of an emphasized group (the Tag's
       //   `_emphasized` — `rulePaint.ts` picks it over `selected`).
       selectedEmphasized: {
-        fill: {
-          default: {
-            base: "{color.accent}",
-            hover: "{color.accent}",
-            pressed: "{color.accent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.accent}",
+            isHovered: "{color.accent}",
+            isPressed: "{color.accent}",
+            isSelected: {
+              default: null,
+            },
+          },
+          color: {
+            default: "{color.on-accent}",
+            isSelected: {
+              default: null,
+            },
+          },
+          borderColor: {
+            default: "{color.accent}",
+            isSelected: {
+              default: null,
+            },
           },
         },
-        colors: {
-          text: "{color.on-accent}",
-          border: "{color.accent}",
-        },
+
         textWeight: 400,
+
         // selected variant: remove X color = on-accent (text 와 동일).
         // leading icon (2026-08-21, design-data 감사 §2-? Tag avatar/icon 슬롯):
         //   chip 아이콘은 **항목별 데이터**라 rule 에 정적 이름을 둘 수 없다 → `nameProp` 으로
@@ -12530,6 +12988,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           gap: 4,
           color: "{color.on-accent}",
         },
+
         // leading avatar (2026-08-21) — default variant 와 같은 채널. 선택 chip 만 아바타가
         //   사라지면 안 되므로 양 variant 에 동일 배선(폭 계약 테스트가 불일치를 잡는다).
         //   fallback 원은 accent 배경 위라 layer-1(밝은 자리표시).
@@ -12539,6 +12998,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           gap: 4,
           fallbackFill: "{color.layer-1}",
         },
+
         trailingIcon: {
           name: "x",
           gap: 2,
@@ -12634,54 +13094,60 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   entry: fill `{color.layer-1}` + border)이 담당한다. 발효 시 buildCatalogShapes 가 default
         //   variant 의 불투명 `{color.layer-2}` + border 를 컨테이너 박스로 그리면 legacy `[]` 와 불일치
         //   (kill: "TagGroup 배경+border 추가"). accent/neutral/negative variant(사용자 명시 강조)는 유지.
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       accent: {
-        fill: {
-          default: {
-            base: "{color.accent-subtle}",
-            hover: "{color.accent-subtle}",
-            pressed: "{color.accent-subtle}",
+        paint: {
+          backgroundColor: {
+            default: "{color.accent-subtle}",
+            isHovered: "{color.accent-subtle}",
+            isPressed: "{color.accent-subtle}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.accent-content}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.accent-content}",
+          },
         },
       },
       neutral: {
-        fill: {
-          default: {
-            base: "{color.neutral-subtle}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-subtle}",
+        paint: {
+          backgroundColor: {
+            default: "{color.neutral-subtle}",
+            isHovered: "{color.neutral-subtle}",
+            isPressed: "{color.neutral-subtle}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.neutral-subtle}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.neutral-subtle}",
+          },
         },
       },
       negative: {
-        fill: {
-          default: {
-            base: "{color.negative-subtle}",
-            hover: "{color.negative-subtle}",
-            pressed: "{color.negative-subtle}",
+        paint: {
+          backgroundColor: {
+            default: "{color.negative-subtle}",
+            isHovered: "{color.negative-subtle}",
+            isPressed: "{color.negative-subtle}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.negative}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.negative}",
+          },
         },
       },
     },
@@ -12765,14 +13231,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.transparent}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.transparent}",
+          },
         },
       },
     },
@@ -12825,16 +13293,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
+          },
+          color: {
+            default: "{color.neutral}",
           },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+
         // ADR-912 위험군 해소(2026-06-04): TEXT_LEAF catalog 측정/렌더 fontWeight drift 차단.
         //   buildCatalogShapes fallback 500 ↔ Text spec render.shapes 400 → variant.textWeight=400
         //   명시(Checkbox/Radio step 2 선례 동형). 누락 시 catalog 전환으로 Text 가 400→500 굵어짐.
@@ -13422,55 +13891,63 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       neutral: {
-        fill: {
-          default: {
-            base: "{color.neutral-subdued}",
-            hover: "{color.neutral-subdued}",
-            pressed: "{color.neutral-subdued}",
+        paint: {
+          backgroundColor: {
+            default: "{color.neutral-subdued}",
+            isHovered: "{color.neutral-subdued}",
+            isPressed: "{color.neutral-subdued}",
           },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.neutral-subdued}",
+          color: {
+            default: "{color.white}",
+          },
+          borderColor: {
+            default: "{color.neutral-subdued}",
+          },
         },
       },
       info: {
-        fill: {
-          default: {
-            base: "{color.informative}",
-            hover: "{color.informative}",
-            pressed: "{color.informative}",
+        paint: {
+          backgroundColor: {
+            default: "{color.informative}",
+            isHovered: "{color.informative}",
+            isPressed: "{color.informative}",
           },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.informative}",
+          color: {
+            default: "{color.white}",
+          },
+          borderColor: {
+            default: "{color.informative}",
+          },
         },
       },
       positive: {
-        fill: {
-          default: {
-            base: "{color.positive}",
-            hover: "{color.positive}",
-            pressed: "{color.positive}",
+        paint: {
+          backgroundColor: {
+            default: "{color.positive}",
+            isHovered: "{color.positive}",
+            isPressed: "{color.positive}",
           },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.positive}",
+          color: {
+            default: "{color.white}",
+          },
+          borderColor: {
+            default: "{color.positive}",
+          },
         },
       },
       negative: {
-        fill: {
-          default: {
-            base: "{color.negative}",
-            hover: "{color.negative}",
-            pressed: "{color.negative}",
+        paint: {
+          backgroundColor: {
+            default: "{color.negative}",
+            isHovered: "{color.negative}",
+            isPressed: "{color.negative}",
           },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.negative}",
+          color: {
+            default: "{color.white}",
+          },
+          borderColor: {
+            default: "{color.negative}",
+          },
         },
       },
     },
@@ -13601,33 +14078,41 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     containerStyles: BUTTON_ROOT_BOX,
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.neutral-subtle}",
-            hover: "{color.neutral-hover}",
-            pressed: "{color.neutral-pressed}",
-            selected: "{color.neutral}",
-            emphasizedSelected: "{color.accent}",
+        // quiet (2026-08-21): `isQuiet` D2 표면과 `data-quiet` emit 은 있었으나 시각
+        //   정의가 rules/CSS 어디에도 없어 켜도 아무 일이 없던 dead prop 이었다. Spectrum
+        //   quiet ActionButton 정의대로 "기본은 배경 없음, hover/pressed 에서만 표시".
+        //   selected 는 quiet 을 타지 않는다 — buildCatalogShapes 가 isSelected 를
+        //   fillStates 보다 우선 처리하므로 선택 표시가 유지된다 (Spectrum 정합).
+        //   border 는 이미 `{color.transparent}` 라 별도 quiet 채널이 필요 없다.
+        paint: {
+          backgroundColor: {
+            default: "{color.neutral-subtle}",
+            isHovered: "{color.neutral-hover}",
+            isPressed: "{color.neutral-pressed}",
+            isQuiet: {
+              default: "{color.transparent}",
+              isHovered: "{color.neutral-subtle}",
+              isPressed: "{color.neutral-hover}",
+            },
+            isSelected: {
+              default: "{color.neutral}",
+              isEmphasized: "{color.accent}",
+            },
           },
-          // quiet (2026-08-21): `isQuiet` D2 표면과 `data-quiet` emit 은 있었으나 시각
-          //   정의가 rules/CSS 어디에도 없어 켜도 아무 일이 없던 dead prop 이었다. Spectrum
-          //   quiet ActionButton 정의대로 "기본은 배경 없음, hover/pressed 에서만 표시".
-          //   selected 는 quiet 을 타지 않는다 — buildCatalogShapes 가 isSelected 를
-          //   fillStates 보다 우선 처리하므로 선택 표시가 유지된다 (Spectrum 정합).
-          //   border 는 이미 `{color.transparent}` 라 별도 quiet 채널이 필요 없다.
-          quiet: {
-            base: "{color.transparent}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-hover}",
+          color: {
+            default: "{color.neutral}",
+            isSelected: {
+              default: "{color.base}",
+              isEmphasized: "{color.on-accent}",
+            },
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.transparent}",
-          selectedText: "{color.base}",
-          selectedBorder: "{color.neutral}",
-          emphasizedSelectedText: "{color.on-accent}",
-          emphasizedSelectedBorder: "{color.accent}",
+          borderColor: {
+            default: "{color.transparent}",
+            isSelected: {
+              default: "{color.neutral}",
+              isEmphasized: "{color.accent}",
+            },
+          },
         },
       },
     },
@@ -13753,16 +14238,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.transparent}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.transparent}",
+          },
         },
       },
     },
@@ -14072,16 +14559,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-1}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.layer-2}",
+            isPressed: "{color.layer-1}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.border}",
+          },
         },
       },
     },
@@ -14182,40 +14671,40 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       neutral: {
-        fill: {
-          default: {
-            base: "{color.neutral-subtle}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-subtle}",
+        paint: {
+          backgroundColor: {
+            default: "{color.neutral-subtle}",
+            isHovered: "{color.neutral-subtle}",
+            isPressed: "{color.neutral-subtle}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       // S2 값 정렬 (2026-10-10 — design-data Tooltip): info → informative, positive 삭제.
       informative: {
-        fill: {
-          default: {
-            base: "{color.informative-subtle}",
-            hover: "{color.informative-subtle}",
-            pressed: "{color.informative-subtle}",
+        paint: {
+          backgroundColor: {
+            default: "{color.informative-subtle}",
+            isHovered: "{color.informative-subtle}",
+            isPressed: "{color.informative-subtle}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
       negative: {
-        fill: {
-          default: {
-            base: "{color.negative-subtle}",
-            hover: "{color.negative-subtle}",
-            pressed: "{color.negative-subtle}",
+        paint: {
+          backgroundColor: {
+            default: "{color.negative-subtle}",
+            isHovered: "{color.negative-subtle}",
+            isPressed: "{color.negative-subtle}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
+          color: {
+            default: "{color.neutral}",
+          },
         },
       },
     },
@@ -14353,30 +14842,34 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-1}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.layer-2}",
+            isPressed: "{color.layer-1}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.border}",
+          },
         },
       },
       // S2 강조 축 (2026-10-10): accent → emphasized — 공개 prop 은 isEmphasized.
       emphasized: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.accent-subtle}",
-            pressed: "{color.accent-subtle}",
+        paint: {
+          backgroundColor: {
+            default: "{color.base}",
+            isHovered: "{color.accent-subtle}",
+            isPressed: "{color.accent-subtle}",
           },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.border}",
+          },
         },
       },
     },
@@ -14421,15 +14914,26 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         // A selected item (2026-10-13 — a TreeItem set Selected starts its Tree's selection): the
         //   DOM's `Tree.css` `.react-aria-TreeItem[data-selected]` accent-subtle fill. Its chevron
         //   glyph and label Text keep their color there (the Icon · Text own one).
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            selected: "{color.accent-subtle}",
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isSelected: {
+              default: "{color.accent-subtle}",
+            },
+          },
+          color: {
+            default: "{color.neutral}",
+            isSelected: {
+              default: null,
+            },
+          },
+          borderColor: {
+            isSelected: {
+              default: null,
+            },
           },
         },
-        colors: {
-          text: "{color.neutral}",
-        },
+
         // ADR-912 R1 후속 (2026-06-12): expand/collapse chevron (TreeItem.spec render.shapes 의
         //   chevron-right 이전, DisclosureHeader (B+icon) 동형). color 는 spec 의
         //   {color.neutral-subdued} 보존. leading_icon skiaPrimitive(append) 가 좌측에 그리고
@@ -14440,7 +14944,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           gap: 6,
           color: "{color.neutral-subdued}",
         },
-        // (선택 체크박스는 ADR-256 Phase 5h 부터 작성자의 `Checkbox[slot=selection]` 노드다.)
       },
     },
     sizes: {

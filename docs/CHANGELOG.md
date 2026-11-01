@@ -20,6 +20,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 이 ADR 밖: 노드 dark 강제는 Canvas · Preview 가 노드 `themeOverride` 를 읽지 않아 화면에 나타나지 않는다 (기존). hover 스타일은 노드 상태를 쓰는 명령이 없어 CSS 에서 읽기 전용.
   - 문서: `docs/adr/completed/296-code-view-project-file-tree-projection.md`
 
+## [ADR-297 Phase 2 — rule 190 variant 의 상태 칠을 조건 트리 하나로 (옛 fill · colors 칸 삭제)] - 2026-11-01
+
+### Changed
+
+- **catalog rule 의 상태 칠 (배경 · 글자 · 테두리) 은 이제 variant 의 조건 트리 `paint` 하나다 (ADR-297 Phase 2)** — 나머지 180 variant 를 codemod 로 옮겨 표 전수 190 variant 가 트리이고, 옛 `fill.<style>.<state>` · `colors` 접미사 키는 표 · 타입에서 없어졌다 (`ComponentRuleVariant.paint` 필수 · 배경 투명도는 `alpha`). 화면 값 변화 없음.
+  - Canvas: `resolveCatalogPaint` 의 옛 삼항 사슬을 지웠다 — 상태 칠은 트리 evaluator 하나 (Styles 패널 미리보기도 같은 경로).
+  - 트리를 읽는 곳: rule → 문서 투영기 (`codeCatalogLibrary.ts` · `ruleDefinition.ts` · `manualBoxRules.ts`) 와 DOM 컴포넌트 (Avatar · StatusLight · ProgressCircle) 는 트리의 한 가지에 적힌 값을 그대로 읽는다 (`paintAt` — `packages/shared/src/catalog/rule/rulePaintTree.ts`). Skia 어댑터 (`ruleVariantToVisual`) 는 칠을 싣지 않는다 — primitive 는 해석된 `paint` 만 읽는다.
+  - 생성 CSS 는 Phase 3 에서 `compileConditionTree` 로 바꿀 때까지 트리를 옛 블록 순서 입력으로 읽는다 (`generate-css.ts` `legacyPaintOf` — 출력 동일).
+  - `paintVariant` helper 와 `ComponentRuleFill` · `ComponentRuleFillState` · `ComponentRuleVariantColors` 공개 타입은 지웠다 (옛 형식은 `rulePaintTree.ts` 의 전환 단계 타입 `Legacy*` 로만 남는다).
+  - 검증: 생성 CSS `validate:sync` diff 0 · paint 기준선 닿는 입력 10,044 행 동일 · library 투영 동일 · 정적 게이트 (`componentRulesTable.static.test.ts` — 옛 칸 0 · 트리 조건 키 ∈ 어휘) · 원복 RED 2 (옛 칸 하나 → 게이트 FAIL · Button accent hover 칸 삭제 → 기준선 4 행 차이) · live (5177 — Badge · Checkbox · Avatar · StatusLight · Button · ToggleButton 의 Canvas 칠과 Preview 값, 콘솔 오류 0).
+  - Phase 3 로 옮긴 것: `structure.states` · `rootSelectors` `&[data-*]` · variant 이름 `selected` 의 트리 전환과 `VariantSpec` 삭제 — 셋 다 생성 CSS 선택자가 바뀌어 Phase 2 의 diff 0 안에서 할 수 없다.
+
+## [ADR-297 Phase 0 · 1 — rule 상태 칠의 조건 트리 (evaluator · compiler) + Button 가족 전환] - 2026-11-01
+
+### Changed
+
+- **catalog rule 의 상태 칠을 조건 트리로 적기 시작 (ADR-297 Accepted — 사용자 `/execute-adr 297`)** — S2 style macro 의 **형식** 만 가져온다: 속성 (`backgroundColor` · `color` · `borderColor`) 마다 조건을 중첩하고 같은 깊이의 나중 키가 이긴다. 같은 트리를 Canvas 는 `evaluateConditionTree` (조건 집합 → 값) 로, 생성 CSS 는 `compileConditionTree` (조건 선택자 전부 `:where()` — 블록 specificity 가 같아 cascade = 트리 순서) 로 읽는다 (`packages/shared/src/catalog/rule/conditionTree.ts`). 화면 값 변화 없음.
+  - Button · ToggleButton · ToggleButtonGroup · ButtonGroup · FileTrigger 의 10 variant 를 codemod (`apps/builder/scripts/adr297-rule-to-tree.ts`) 로 `paintVariant({ paint })` 로 옮겼다. `resolveCatalogPaint` 는 트리 variant 를 evaluator 로 칠하고, 옛 형식 소비자 (생성 CSS · 투영기) 는 트리에서 되살린 `fill` · `colors` 를 그대로 읽는다 (전환 단계 — Phase 2 에서 전 rule · 소비자 이관).
+  - 트리는 지금 Canvas 의 우선순위를 그대로 담는다 — 선택 · outline · subtle 은 그 칸만 칠하는 배타 가지이고, 칸이 비면 `null` (값 없음) 가지를 **컴포넌트가 닿는 축에만** 둔다 (`paintReach.ts` — 선택 = RAC `data-selected` · 컬렉션 항목, fillStyle = binding 이 받는 값).
+  - 검증: 생성 CSS `validate:sync` diff 0 · paint 기준선 닿는 입력 10,044 행 동일 (`adr297-baseline.ts`) · library 투영 동일 · 표 전수 동치 (131 rule 의 모든 variant 를 트리로 옮겨도 옛 사슬과 같음 + 왕복 동일) · Chromium computed 대조 (`adr297ConditionCascade.browser.test.ts` — 겹친 조건 조합 전부 == evaluator) · 원복 RED 2 · live (5177 — Button primary · ToggleButton selected / +emphasized / +quiet 의 Canvas 와 Preview 색 일치, 콘솔 오류 0). `resolveCatalogPaint.shadow.test.ts` 는 닿는 입력으로 좁힘 (6,840 → 3,387, diffs 0).
+
 ## [Toast = 앱의 토스트 모양 하나 (RAC `MyToastRegion`) — 페이지 요소가 아니다] - 2026-11-01
 
 ### Changed

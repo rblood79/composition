@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { isCatalogCutover, resolveComponentRule } from "@composition/shared";
+import {
+  isCatalogCutover,
+  paintAt,
+  resolveComponentRule,
+} from "@composition/shared";
 import { resolveSkiaVisualRule } from "./resolveSkiaVisualRule";
 
 /**
@@ -41,13 +45,17 @@ describe("resolveComponentRule — Button size source = theme rule table (ADR-91
   });
 });
 
-describe("resolveSkiaVisualRule — TokenRef 문자열 보존 (dark mode 반전 runtime 위임)", () => {
-  it("adaptive 토큰(`{color.base}` 등)이 변환 없이 string 그대로 전달된다", () => {
-    // Badge accent variant 의 fill base 는 TokenRef — resolve(실수값 변환)는 runtime 책임.
+describe("resolveSkiaVisualRule — 칠은 싣지 않는다 (ADR-297)", () => {
+  it("visual 은 비-칠 값만 — 칠은 rule 의 조건 트리를 resolveCatalogPaint 가 평가해 paint 로 준다", () => {
     const visual = resolveSkiaVisualRule("Button", "primary");
-    const base = visual?.fill?.default.base;
+    expect(visual).toBeDefined();
+    for (const key of ["fill", "text", "border", "textHover", "borderHover"])
+      expect(visual).not.toHaveProperty(key);
+    // 트리의 leaf 는 TokenRef 문자열 그대로 (resolveToken 이 light/dark 분기) — 미리 hex 로 변환되면 안 됨.
+    const base = paintAt(
+      resolveComponentRule("Button")?.variants.primary?.paint.backgroundColor,
+    );
     expect(typeof base).toBe("string");
-    // `{color.X}` 형태 보존 (resolveToken 이 light/dark 분기) — 미리 hex 로 변환되면 안 됨.
     if (base) expect(base.startsWith("{")).toBe(true);
   });
 });

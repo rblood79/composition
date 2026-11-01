@@ -8,7 +8,7 @@
  *   INTERNAL_RENDERERS["avatar"] 를 React 컴포넌트로 렌더(StatusLight 선례 동형).
  *
  *   **circle bg 색 + text 색 = rule(DOM/Skia 대칭)**: Avatar circle 배경/이니셜 텍스트 색을
- *   resolveComponentRule("Avatar").variants.default.fill.default.base / .text(TokenRef) → colorTokenToCss
+ *   resolveComponentRule("Avatar").variants.default.paint 의 기본 배경 / 글자(TokenRef) → colorTokenToCss
  *   로 변환해 인라인 적용. Skia escape(skiaPrimitives.ts avatar)도 같은 rule 값을 읽으므로 양쪽이
  *   같은 source → 시각 대칭. (legacy renderAvatar 의 var(--bg-muted)/var(--fg) 하드코딩과 동일 값:
  *   {color.neutral-subtle}=var(--bg-muted), {color.neutral}=var(--fg) — drift 0)
@@ -25,6 +25,7 @@
 import React from "react";
 import { resolveComponentRule } from "../catalog/resolvers/resolveComponentRule";
 import { colorTokenToCss } from "../catalog/resolvers/colorTokenToCss";
+import { paintAt } from "../catalog/rule/rulePaintTree";
 import { resolveAssetUrl } from "../utils/assetRef";
 
 export interface AvatarProps {
@@ -90,15 +91,14 @@ export function Avatar({
   const diameter = DIAMETER[sizeKey] ?? 32;
   const fontSize = FONT_SIZE[sizeKey] ?? 14;
 
-  // circle bg / 이니셜 색 = rule fill base / colors.text. Skia escape 와 같은 source.
-  // 비-fill 색(text)은 ComponentRuleVariant.colors.text 에 있음(variant.text 아님 — 타입상 미존재).
+  // circle bg / 이니셜 색 = rule 칠 트리의 기본 배경 / 글자 (ADR-297). Skia escape 와 같은 source.
   const rule = resolveComponentRule("Avatar");
   const variant = rule?.variants?.default;
   const bgColor = colorTokenToCss(
-    variant?.fill?.default?.base,
+    paintAt(variant?.paint.backgroundColor),
     "var(--bg-muted)",
   );
-  const textColor = colorTokenToCss(variant?.colors?.text, "var(--fg)");
+  const textColor = colorTokenToCss(paintAt(variant?.paint.color), "var(--fg)");
 
   const label = initials || alt?.slice(0, 2).toUpperCase() || "?";
   // S2 `isOverBackground`: a solid outline in the background color — 2px over 64px (S2

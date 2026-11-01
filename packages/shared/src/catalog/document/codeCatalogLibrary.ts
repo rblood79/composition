@@ -21,6 +21,7 @@ import {
 } from "./ruleDefinition";
 export { PROP_KIND_VALUE_TYPE } from "./ruleDefinition";
 import { compileRulePartRules } from "./rulePartRules";
+import { paintAt } from "../rule/rulePaintTree";
 import {
   REUSABLE_ORIGIN_DEFINITIONS,
   REUSABLE_ORIGIN_TEMPLATES,
@@ -166,11 +167,8 @@ function textDefinition(
   if (!rule || rule.defaultVariant !== "default" || rule.defaultSize !== "M")
     throw new Error(`CODE_CATALOG_RULE_UNSUPPORTED:${type}`);
   const variant = rule.variants.default;
-  if (
-    !variant ||
-    !variant.colors?.text ||
-    typeof variant.textWeight !== "number"
-  )
+  const text = variant && paintAt(variant.paint.color);
+  if (!variant || !text || typeof variant.textWeight !== "number")
     throw new Error(`CODE_CATALOG_VISUAL_UNSUPPORTED:${type}`);
   const sizes: Record<string, VisualValues> = {};
   for (const [size, values] of Object.entries(rule.sizes)) {
@@ -198,7 +196,7 @@ function textDefinition(
     defaults: { size: rule.defaultSize },
     propChoices: { size: Object.keys(sizes) },
     visual: {
-      color: sourceToken(variant.colors.text, "color", theme, tokens),
+      color: sourceToken(text, "color", theme, tokens),
       fontWeight: variant.textWeight,
     },
     propVisualRules: { size: sizes },
@@ -301,40 +299,49 @@ function buttonDefinition(
         visual: { color },
       });
   };
-  for (const [variant, paint] of Object.entries(rule.variants)) {
+  // ADR-297: the variant's condition tree — each value read at its own branch (`paintAt`).
+  const outline = rule.fillStyleValues?.outline ?? "outline";
+  for (const [variant, { paint }] of Object.entries(rule.variants)) {
+    const base = {
+      fill: paintAt(paint.backgroundColor),
+      text: paintAt(paint.color),
+      border: paintAt(paint.borderColor),
+    };
+    const outlined = {
+      fill: paintAt(paint.backgroundColor, "fillStyle", outline),
+      text: paintAt(paint.color, "fillStyle", outline),
+      border: paintAt(paint.borderColor, "fillStyle", outline),
+    };
     if (
-      !paint.colors?.text ||
-      !paint.colors.border ||
-      !paint.colors.outlineText ||
-      !paint.colors.outlineBorder ||
-      !paint.fill.outline?.base
+      !base.fill ||
+      !base.text ||
+      !base.border ||
+      !outlined.text ||
+      !outlined.border ||
+      !outlined.fill
     )
       throw new Error(`CODE_CATALOG_BUTTON_VARIANT_UNSUPPORTED:${variant}`);
     variants[variant] = {
-      fill: sourceToken(paint.fill.default.base, "color", theme, tokens),
-      color: sourceToken(paint.colors.text, "color", theme, tokens),
-      borderColor: sourceToken(paint.colors.border, "color", theme, tokens),
+      fill: sourceToken(base.fill, "color", theme, tokens),
+      color: sourceToken(base.text, "color", theme, tokens),
+      borderColor: sourceToken(base.border, "color", theme, tokens),
     };
     childColor(variants[variant].color, { variant, fillStyle: "fill" });
-    childColor(sourceToken(paint.colors.outlineText, "color", theme, tokens), {
+    childColor(sourceToken(outlined.text, "color", theme, tokens), {
       variant,
       fillStyle: "outline",
     });
     conditionalRules.push({
       when: { variant, fillStyle: "outline" },
       visual: {
-        fill: sourceToken(paint.fill.outline.base, "color", theme, tokens),
-        color: sourceToken(paint.colors.outlineText, "color", theme, tokens),
-        borderColor: sourceToken(
-          paint.colors.outlineBorder,
-          "color",
-          theme,
-          tokens,
-        ),
+        fill: sourceToken(outlined.fill, "color", theme, tokens),
+        color: sourceToken(outlined.text, "color", theme, tokens),
+        borderColor: sourceToken(outlined.border, "color", theme, tokens),
       },
     });
     for (const state of ["hover", "pressed"] as const) {
-      const fill = paint.fill.default[state];
+      const branch = state === "hover" ? "isHovered" : "isPressed";
+      const fill = paintAt(paint.backgroundColor, branch);
       // (Every variant's hover · pressed token resolves since 2026-10-28 — the palette derives
       //  `purple-hover` · `-pressed` as the DOM's color-mix, `resolveSemanticStateColors`. A token
       //  the palette lacks still leaves its state axis open.)
@@ -347,8 +354,8 @@ function buttonDefinition(
         typeof resolveToken(token as TokenRef, theme) === "string"
           ? sourceToken(token, "color", theme, tokens)
           : undefined;
-      const borderColor = hoverColor(paint.colors.borderHover);
-      const color = hoverColor(paint.colors.textHover);
+      const borderColor = hoverColor(paintAt(paint.borderColor, "isHovered"));
+      const color = hoverColor(paintAt(paint.color, "isHovered"));
       if (typeof resolved === "string")
         conditionalRules.push({
           when: { variant, fillStyle: "fill" },
@@ -511,7 +518,7 @@ function glyphDefinition(
   )
     throw new Error(`CODE_CATALOG_GLYPH_BINDING_UNSUPPORTED:${type}`);
   const rule = COMPONENT_RULES_TABLE[type];
-  const color = rule.variants.default?.colors?.text;
+  const color = paintAt(rule.variants.default?.paint.color);
   if (!color) throw new Error(`CODE_CATALOG_GLYPH_COLOR_MISSING:${type}`);
   const sizes: Record<string, VisualValues> = {};
   for (const [size, values] of Object.entries(rule.sizes)) {
@@ -565,7 +572,7 @@ function selectValueDefinition(
   )
     throw new Error("CODE_CATALOG_SELECT_VALUE_BINDING_UNSUPPORTED");
   const rule = COMPONENT_RULES_TABLE.SelectValue;
-  const text = rule.variants.default?.colors?.text;
+  const text = paintAt(rule.variants.default?.paint.color);
   if (!text) throw new Error("CODE_CATALOG_SELECT_VALUE_COLOR_MISSING");
   const sizes: Record<string, VisualValues> = {};
   for (const [size, values] of Object.entries(rule.sizes))

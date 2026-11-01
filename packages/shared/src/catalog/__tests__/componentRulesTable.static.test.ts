@@ -17,6 +17,12 @@ import {
   S2_SPACING_SCALE,
 } from "@composition/rendering";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
+import {
+  CONDITIONS,
+  DOM_CONDITIONS,
+  VALUE_CONDITIONS,
+  conditionTreeKeys,
+} from "../rule/conditionTree";
 
 const STRICT_KEYS = [
   "fontSize",
@@ -438,5 +444,42 @@ describe("ADR-295 G3 — rule 치수 리터럴", () => {
 
   it("S2 값 대조 대기는 줄기만 한다 (3c-3b ③ 45 → 3c-3c ① 32 → ②a 16 → ②b-1 11 → ②b-2 6 → ②c Tab 5 → Slider 3 → ③ MenuItem 0)", () => {
     expect(S2_PENDING_LITERAL.length).toBeLessThanOrEqual(0);
+  });
+});
+
+/**
+ * ADR-297 G3 (Phase 2 분) — variant 의 상태 칠은 조건 트리 (`paint`) 하나다. 옛 방식 ① (`fill.<style>.<state>`) ·
+ * ② (`colors` 접미사 키) 의 칸이 다시 생기면 RED, 트리 조건 키가 어휘 (`CONDITIONS` ∪ `DOM_CONDITIONS` ∪ 값 조건)
+ * 밖이면 순회가 `CONDITION_TREE_UNKNOWN_KEY` 로 RED. (③ `structure.states` · ④ `rootSelectors` · ⑤ variant 이름은
+ * Phase 3 — breakdown §6.4.)
+ */
+describe("ADR-297 G3 — variant 칠 = 조건 트리 하나", () => {
+  const variants = Object.entries(COMPONENT_RULES_TABLE).flatMap(
+    ([type, rule]) =>
+      Object.entries(rule.variants).map(
+        ([name, variant]) => [`${type}.${name}`, variant] as const,
+      ),
+  );
+
+  it("옛 fill · colors 칸 0 (190 variant 전부 paint)", () => {
+    expect(variants.length).toBeGreaterThanOrEqual(190);
+    const legacy = variants
+      .filter(([, v]) => "fill" in v || "colors" in v || !v.paint)
+      .map(([id]) => id);
+    expect(legacy).toEqual([]);
+  });
+
+  it("트리 조건 키는 어휘 안 (Canvas 조건 · DOM 전용 조건 · 값 조건)", () => {
+    const keys = new Set<string>();
+    for (const [, v] of variants)
+      for (const tree of Object.values(v.paint))
+        for (const key of conditionTreeKeys(tree)) keys.add(key);
+    const vocabulary = new Set<string>([
+      ...CONDITIONS,
+      ...DOM_CONDITIONS,
+      ...VALUE_CONDITIONS,
+    ]);
+    expect([...keys].filter((k) => !vocabulary.has(k))).toEqual([]);
+    expect(keys.size).toBeGreaterThan(0);
   });
 });

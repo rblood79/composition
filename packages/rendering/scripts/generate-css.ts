@@ -30,11 +30,13 @@ import {
 import {
   getComponentRulesTable,
   getPrimitiveBinding,
+  type CatalogFillStyleValues,
   type ComponentRuleVariant,
 } from "../../shared/src/index";
 import { CATALOG_FIELD_LABEL_PART_ALIASES } from "../../shared/src/catalog/document/contextualHelp";
 import { CATALOG_CONTEXTUAL_HELP_FIELDS } from "../../shared/src/domain/componentTraits";
 import { createThemeDefinition } from "../../shared/src/theme/themesCollection";
+import { legacyVariantPaint } from "../../shared/src/catalog/rule/rulePaintTree";
 import { DEFAULT_BASE_TYPOGRAPHY } from "../../shared/src/catalog/runtime/fontDefaults";
 import { resolveThemeSnapshot } from "../../shared/src/catalog/runtime/resolveThemeSnapshot";
 import { catalogTouchVarsCss } from "../../shared/src/catalog/runtime/themeVarsCss";
@@ -96,12 +98,15 @@ async function writeOrCheck(filePath: string, css: string, label: string) {
  * (builder 의 ruleVariantToVisual 과 동일 로직 — 패키지 경계상 builder import 불가라 build script 에 복제.
  *  단계 5 에서 spec seam 제거 후 shared hoisting 통합 검토.)
  */
-function ruleVariantToVisual(v: ComponentRuleVariant): ComponentVisualRule {
-  const c = v.colors ?? {};
+function ruleVariantToVisual(
+  v: ComponentRuleVariant,
+  fillStyleValues: CatalogFillStyleValues | undefined,
+): ComponentVisualRule {
+  const { fill, colors: c = {} } = legacyPaintOf(v, fillStyleValues);
   // fill 은 ComponentRuleFill(string) 과 FillTokenSpec(TokenRef) 가 동형 — 구조 그대로 캐스팅.
   // builder `ruleVariantToVisual` 과 동일 필드 — ComponentVisualRule 은 전 필드 필수(| undefined).
   return {
-    fill: v.fill as unknown as ComponentVisualRule["fill"],
+    fill: fill as unknown as ComponentVisualRule["fill"],
     text: c.text as ComponentVisualRule["text"],
     textHover: c.textHover as ComponentVisualRule["textHover"],
     textWeight: v.textWeight,
@@ -127,6 +132,23 @@ function ruleVariantToVisual(v: ComponentRuleVariant): ComponentVisualRule {
   };
 }
 
+/**
+ * ADR-297 전환 단계 — variant 의 칠 조건 트리를 생성기가 읽는 옛 블록 순서 입력 (`fill` · `colors`) 으로
+ * (breakdown §3 `legacyOrder`). 출력 CSS 는 Phase 1 · 2 동안 옛 선택자 · 순서 그대로이고, Phase 3 에서 생성기가
+ * `compileConditionTree` 로 트리를 직접 읽을 때 지운다.
+ */
+function legacyPaintOf(
+  v: ComponentRuleVariant,
+  fillStyleValues: CatalogFillStyleValues | undefined,
+) {
+  const legacy = legacyVariantPaint(v.paint, fillStyleValues);
+  return {
+    fill:
+      v.alpha === undefined ? legacy.fill : { ...legacy.fill, alpha: v.alpha },
+    colors: legacy.colors,
+  };
+}
+
 /** catalog `structure.archetype` 은 string("default" 포함). spec 에 없는 값은 미지정과 같다. */
 function toArchetypeId(value: string): ArchetypeId | undefined {
   return isArchetypeId(value) ? value : undefined;
@@ -143,7 +165,7 @@ export function variantSourceFor(
   if (!rule || !rule.variants) return undefined;
   const map: Record<string, ComponentVisualRule> = {};
   for (const [name, variant] of Object.entries(rule.variants)) {
-    map[name] = ruleVariantToVisual(variant);
+    map[name] = ruleVariantToVisual(variant, rule.fillStyleValues);
   }
   return map;
 }
@@ -221,7 +243,9 @@ function ruleSizeToSizeSpec(
     ...(s.gap !== undefined ? { gap: s.gap as number } : {}),
     // ADR-912 collection item leaf (2026-06-14): ListBoxItem 의 `min-height` (virtual/short 콘텐츠
     //   축소 하한, line-box 최소) 가 rule.sizes.minHeight 에서 emit 되도록 변환에 포함. 미정의 leaf 는 미emit.
-    ...(s.minHeight !== undefined ? { minHeight: s.minHeight as SizeSpec["minHeight"] } : {}),
+    ...(s.minHeight !== undefined
+      ? { minHeight: s.minHeight as SizeSpec["minHeight"] }
+      : {}),
     // Spectrum 식별성 하한 (2026-08-20): Button 의 `min-width`(2.25×height) 가 rule.sizes.minWidth
     //   에서 emit 되도록 변환에 포함 (CSSGenerator size.minWidth → `min-width: {n}px`). 미정의 leaf 는 미emit.
     ...(s.minWidth !== undefined ? { minWidth: s.minWidth as number } : {}),
@@ -262,10 +286,13 @@ function ruleSizeToSizeSpec(
  * ComponentRuleVariant → VariantSpec 변환 (TEXT_LEAF 용).
  * variantSourceFor 가 이미 색상을 override 하므로, 순회 키 + fill 구조만 맞추면 됨.
  */
-function ruleVariantToVariantSpec(v: ComponentRuleVariant): VariantSpec {
-  const c = v.colors ?? {};
+function ruleVariantToVariantSpec(
+  v: ComponentRuleVariant,
+  fillStyleValues: CatalogFillStyleValues | undefined,
+): VariantSpec {
+  const { fill, colors: c = {} } = legacyPaintOf(v, fillStyleValues);
   return {
-    fill: v.fill as unknown as VariantSpec["fill"],
+    fill: fill as unknown as VariantSpec["fill"],
     text: (c.text ?? "{color.neutral}") as VariantSpec["text"],
     ...(c.border !== undefined
       ? { border: c.border as VariantSpec["border"] }
@@ -409,7 +436,10 @@ export function buildVirtualSpecs(): ComponentSpec<unknown>[] {
     // variants: rule.variants 의 각 entry 를 VariantSpec 으로 변환
     const variants: Record<string, VariantSpec> = {};
     for (const [variantName, ruleVariant] of Object.entries(rule.variants)) {
-      variants[variantName] = ruleVariantToVariantSpec(ruleVariant);
+      variants[variantName] = ruleVariantToVariantSpec(
+        ruleVariant,
+        rule.fillStyleValues,
+      );
     }
 
     const virtualSpec: ComponentSpec<unknown> = {
@@ -439,7 +469,9 @@ export function buildVirtualSpecs(): ComponentSpec<unknown>[] {
       // classAliases (ADR-253): 이 rule 의 sheet 가 같이 그리는 RAC class (Input → `<textarea>`).
       ...(meta.classAliases ? { classAliases: meta.classAliases } : {}),
       // fillStyleValues: the `fillStyle` values that pick the outline · subtle fills (InlineAlert's S2 names).
-      ...(rule.fillStyleValues ? { fillStyleValues: rule.fillStyleValues } : {}),
+      ...(rule.fillStyleValues
+        ? { fillStyleValues: rule.fillStyleValues }
+        : {}),
       // ADR-259 Phase 3: a field's label row stands in its Label's place (S2 FieldLabel).
       ...(CATALOG_CONTEXTUAL_HELP_FIELDS.has(name)
         ? { partAliases: CATALOG_FIELD_LABEL_PART_ALIASES }

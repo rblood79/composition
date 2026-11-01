@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import type { ComponentVisualRule } from "@composition/rendering";
 import type {
+  CatalogFillStyleValues,
   ComponentRuleSize,
   ComponentRuleVariant,
 } from "../../types/catalog-style.types";
+import { legacyVariantPaint } from "../rule/rulePaintTree";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
+import { rulePaintReach } from "../rule/paintReach";
 import {
   resolveCatalogPaint,
   type CatalogInteractionState,
@@ -46,10 +49,22 @@ const PROP_CASES: ReadonlyArray<
   ],
 ];
 
-function toLegacyVisual(variant: ComponentRuleVariant): ComponentVisualRule {
-  const colors = variant.colors ?? {};
+/**
+ * ADR-297: the variant's condition tree as the generator's legacy-order input (`legacyVariantPaint`
+ * — what the generated CSS reads until Phase 3), run through the old Skia semantics below.
+ */
+function toLegacyVisual(
+  variant: ComponentRuleVariant,
+  fillStyleValues: CatalogFillStyleValues | undefined,
+): ComponentVisualRule {
+  const legacy = legacyVariantPaint(variant.paint, fillStyleValues);
+  const colors = legacy.colors ?? {};
+  const fill =
+    variant.alpha === undefined
+      ? legacy.fill
+      : { ...legacy.fill, alpha: variant.alpha };
   return {
-    fill: variant.fill as unknown as ComponentVisualRule["fill"],
+    fill: fill as unknown as ComponentVisualRule["fill"],
     text: colors.text as ComponentVisualRule["text"],
     textHover: colors.textHover as ComponentVisualRule["textHover"],
     textWeight: variant.textWeight,
@@ -208,10 +223,20 @@ describe("resolveCatalogPaint — 기존 Skia shadow parity", () => {
     for (const [type, rule] of Object.entries(COMPONENT_RULES_TABLE)) {
       const ruleSize =
         rule.sizes[rule.defaultSize ?? ""] ?? Object.values(rule.sizes)[0];
+      const reach = rulePaintReach(type, rule);
       for (const [variantName, variant] of Object.entries(rule.variants)) {
-        const legacyVisual = toLegacyVisual(variant);
+        const legacyVisual = toLegacyVisual(variant, rule.fillStyleValues);
 
         for (const [caseName, caseProps] of PROP_CASES) {
+          // ADR-297: inputs the rule's component can reach — a selection only where it can be selected,
+          //   a fillStyle value only where its binding takes it (`rulePaintReach`). The condition tree
+          //   keeps the legacy paint there; a Button never selected has no selected branch.
+          if (
+            (caseProps.isSelected === true && !reach.selectable) ||
+            (typeof caseProps.fillStyle === "string" &&
+              !reach.fillStyles?.includes(caseProps.fillStyle))
+          )
+            continue;
           const style = caseProps.style as
             Readonly<Record<string, unknown>> | undefined;
 
@@ -289,7 +314,10 @@ describe("resolveCatalogPaint — 기존 Skia shadow parity", () => {
     //   8,136 → 6,912 (−1,224 = 34 × 36). diffs 0 유지.
     // ADR-277 (2026-10-21): − 옛 둘째 표 type 의 default · quiet (표는 Table 하나) 6,912 → 6,840
     //   (−72 = 2 × 36). diffs 0 유지.
-    expect(compared).toBe(6_840);
+    // ADR-297 Phase 1 (2026-11-01): 닿는 입력만 — selected 는 선택될 수 있는 rule, fillStyle 은 binding 이 받는 값
+    //   (`rulePaintReach`). 6,840 → 3,387 (빠진 3,453 행 = 어떤 컴포넌트도 만들지 못하는 입력 — Button 의 selected ·
+    //   subtle 등). diffs 0 유지.
+    expect(compared).toBe(3_387);
     expect(diffs.slice(0, 20)).toEqual([]);
   });
 });

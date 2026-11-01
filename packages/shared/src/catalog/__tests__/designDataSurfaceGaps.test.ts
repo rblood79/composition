@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import { getPrimitiveBinding } from "../bindings";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
+import { paintAt } from "../rule/rulePaintTree";
 
 /**
  * design-data 대조 감사 (2026-08-20, `docs/reference/audits/2026-08-20-design-data-
@@ -41,7 +42,10 @@ describe("design-data 감사 §1-1 — 표면 단절 회귀 가드", () => {
   it("DatePicker/DateRangePicker: 형제 대칭 — 둘 다 placeholder 가 없다 (RAC · S2 에 없음, 2026-10-09)", () => {
     for (const type of ["DatePicker", "DateRangePicker"] as const) {
       const accepts = getPrimitiveBinding(type)?.props?.accepts;
-      expect(accepts?.placeholder, `${type} accepts.placeholder`).toBeUndefined();
+      expect(
+        accepts?.placeholder,
+        `${type} accepts.placeholder`,
+      ).toBeUndefined();
     }
   });
 });
@@ -70,7 +74,7 @@ describe("design-data 감사 §1-2 — staticColor 축 전개", () => {
   it("ToggleButton: default variant fill 이 opaque — Skia static 분기 전제", () => {
     const rule = COMPONENT_RULES_TABLE.ToggleButton;
     const defaultVariant = rule?.variants?.[rule?.defaultVariant ?? ""];
-    const base = defaultVariant?.fill?.default?.base;
+    const base = paintAt(defaultVariant?.paint.backgroundColor);
 
     expect(base, "ToggleButton default fill base").toBeDefined();
     expect(base).not.toBe("{color.transparent}");
@@ -113,17 +117,17 @@ describe("design-data 감사 §1-1 — 시맨틱 variant 미배선 회귀 가드
     expect(info, "Toast.variants.info").toBeDefined();
     expect(neutral, "Toast.variants.neutral").toBeDefined();
 
-    const infoBase = info?.fill?.default?.base;
-    const neutralBase = neutral?.fill?.default?.base;
+    const infoBase = paintAt(info?.paint.backgroundColor);
+    const neutralBase = paintAt(neutral?.paint.backgroundColor);
     expect(infoBase).not.toBe(neutralBase);
     expect(infoBase).toContain("informative");
-    expect(info?.colors?.border).toContain("informative");
+    expect(paintAt(info?.paint.borderColor)).toContain("informative");
   });
 
   it("Toast: 시맨틱 variant 3종이 각각 고유한 fill 을 갖는다", () => {
     const variants = COMPONENT_RULES_TABLE.Toast?.variants ?? {};
-    const bases = (["info", "positive", "negative"] as const).map(
-      (key) => variants[key]?.fill?.default?.base,
+    const bases = (["info", "positive", "negative"] as const).map((key) =>
+      paintAt(variants[key]?.paint.backgroundColor),
     );
 
     expect(bases.every(Boolean), "3종 fill base 존재").toBe(true);
@@ -146,8 +150,7 @@ describe("design-data 감사 §1-1 — 시맨틱 variant 미배선 회귀 가드
   it("collection 컨테이너: catalog 가 고정 maxHeight 를 강제하지 않는다", () => {
     for (const type of ["ListBox", "Tree"] as const) {
       const container = COMPONENT_RULES_TABLE[type]?.containerStyles as
-        | Record<string, unknown>
-        | undefined;
+        Record<string, unknown> | undefined;
       expect(container, `${type} containerStyles`).toBeDefined();
       expect(container?.maxHeight, `${type} 고정 maxHeight`).toBeUndefined();
       // overflow 는 남아야 한다 — 높이를 저작했을 때 스크롤이 살아나는 채널.

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { getPrimitiveBinding } from "../bindings";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
+import { paintAt } from "../rule/rulePaintTree";
 
 describe("ADR-912 후속 Phase 4 — Badge catalog paint", () => {
   it("D1 Badge fillStyle binding option마다 catalog paint channel이 존재한다", () => {
@@ -17,26 +18,24 @@ describe("ADR-912 후속 Phase 4 — Badge catalog paint", () => {
 
     for (const [variantName, variant] of Object.entries(variants)) {
       for (const option of options) {
-        const fillKey = option.value === "bold" ? "default" : option.value;
+        // ADR-297: the fillStyle branch of the variant's paint tree (`bold` = the default branch).
+        const branch =
+          option.value === "bold" ? [] : ["fillStyle", option.value];
         expect(
-          variant.fill[fillKey as keyof typeof variant.fill],
-          `Badge.${variantName}.fill.${fillKey}`,
+          paintAt(variant.paint.backgroundColor, ...branch),
+          `Badge.${variantName}.paint.backgroundColor.${branch.join(".")}`,
         ).toBeDefined();
 
-        if (fillKey === "subtle") {
+        if (option.value === "subtle" || option.value === "outline") {
           expect(
-            variant.colors?.subtleText,
-            `Badge.${variantName}.colors.subtleText`,
+            paintAt(variant.paint.color, ...branch),
+            `Badge.${variantName}.paint.color.${branch.join(".")}`,
           ).toBeDefined();
         }
-        if (fillKey === "outline") {
+        if (option.value === "outline") {
           expect(
-            variant.colors?.outlineText,
-            `Badge.${variantName}.colors.outlineText`,
-          ).toBeDefined();
-          expect(
-            variant.colors?.outlineBorder,
-            `Badge.${variantName}.colors.outlineBorder`,
+            paintAt(variant.paint.borderColor, ...branch),
+            `Badge.${variantName}.paint.borderColor.${branch.join(".")}`,
           ).toBeDefined();
         }
       }

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { getComponentRulesTable } from "../../../../shared/src/index";
+import { legacyVariantPaint } from "../../../../shared/src/catalog/rule/rulePaintTree";
 import { generateCSS } from "../CSSGenerator";
 import type { ComponentSpec, SizeSpec, VariantSpec } from "../../types";
 
@@ -41,9 +42,11 @@ function cssFor(name: string): string {
   }
   const variants: Record<string, VariantSpec> = {};
   for (const [k, v] of Object.entries(rule.variants)) {
+    // ADR-297: the generator's legacy-order input of the variant's paint tree (generate-css `legacyPaintOf`).
+    const legacy = legacyVariantPaint(v.paint, rule.fillStyleValues);
     variants[k] = {
-      fill: v.fill as unknown as VariantSpec["fill"],
-      text: (v.colors?.text ?? "{color.neutral}") as VariantSpec["text"],
+      fill: legacy.fill as unknown as VariantSpec["fill"],
+      text: (legacy.colors?.text ?? "{color.neutral}") as VariantSpec["text"],
     } as VariantSpec;
   }
   const spec: ComponentSpec<unknown> = {

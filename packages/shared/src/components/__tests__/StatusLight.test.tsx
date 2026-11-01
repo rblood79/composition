@@ -7,6 +7,7 @@ import { resolveComponentRule } from "../../catalog/resolvers/resolveComponentRu
 import { colorTokenToCss } from "../../catalog/resolvers/colorTokenToCss";
 import { toRacProps } from "../../catalog/outputs/toRacProps";
 import { statusLightBinding } from "../../catalog/bindings/StatusLight.binding";
+import { paintAt } from "../../catalog/rule/rulePaintTree";
 
 /**
  * ADR-912 진로 1번 StatusLight proof slice (internal leaf catalog 발효, 2026-06-06).
@@ -63,7 +64,9 @@ describe("StatusLight — DOM/Skia 시각 대칭 source 정합", () => {
     const rule = resolveComponentRule("StatusLight");
     // DOM 컴포넌트가 실제로 쓰는 값과, Skia escape 가 읽는 rule fill base 변환값이 일치해야 대칭.
     for (const variant of ["yellow", "positive", "neutral", "negative"]) {
-      const fillBase = rule?.variants?.[variant]?.fill?.default?.base;
+      const fillBase = paintAt(
+        rule?.variants?.[variant]?.paint.backgroundColor,
+      );
       const expected = colorTokenToCss(fillBase);
       const html = renderToStaticMarkup(
         <StatusLight variant={variant}>x</StatusLight>,
@@ -78,7 +81,9 @@ describe("StatusLight — DOM/Skia 시각 대칭 source 정합", () => {
     expect(variants.length).toBeGreaterThanOrEqual(19);
     // 하드코딩 5-color 맵이 아니라 rule 전수 → 모든 variant 가 변환 가능
     for (const v of variants) {
-      const css = colorTokenToCss(rule?.variants?.[v]?.fill?.default?.base);
+      const css = colorTokenToCss(
+        paintAt(rule?.variants?.[v]?.paint.backgroundColor),
+      );
       expect(css).not.toBe(""); // fallback 포함 항상 유효 CSS
     }
   });
