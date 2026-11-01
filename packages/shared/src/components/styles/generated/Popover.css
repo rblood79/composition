@@ -29,46 +29,46 @@
   gap: 12px;
 }
 
-.react-aria-Popover[data-variant="accent"] {
+.react-aria-Popover:where([data-variant="accent"]) {
   background: var(--bg);
   color: var(--fg);
   border-color: var(--accent-content);
-
-  &[data-hovered] {
-    background: var(--bg);
-  }
-
-  &[data-pressed] {
-    background: var(--bg);
-  }
 }
 
-.react-aria-Popover[data-variant="neutral"] {
+.react-aria-Popover:where([data-variant="accent"][data-hovered]) {
+  background: var(--bg);
+}
+
+.react-aria-Popover:where([data-variant="accent"][data-pressed]) {
+  background: var(--bg);
+}
+
+.react-aria-Popover:where([data-variant="neutral"]) {
   background: var(--bg);
   color: var(--fg);
   border-color: var(--bg-muted);
-
-  &[data-hovered] {
-    background: var(--bg);
-  }
-
-  &[data-pressed] {
-    background: var(--bg);
-  }
 }
 
-.react-aria-Popover[data-variant="surface"] {
+.react-aria-Popover:where([data-variant="neutral"][data-hovered]) {
+  background: var(--bg);
+}
+
+.react-aria-Popover:where([data-variant="neutral"][data-pressed]) {
+  background: var(--bg);
+}
+
+.react-aria-Popover:where([data-variant="surface"]) {
   background: var(--bg-inset);
   color: var(--fg);
   border-color: var(--border);
+}
 
-  &[data-hovered] {
-    background: var(--bg-inset);
-  }
+.react-aria-Popover:where([data-variant="surface"][data-hovered]) {
+  background: var(--bg-inset);
+}
 
-  &[data-pressed] {
-    background: var(--bg-inset);
-  }
+.react-aria-Popover:where([data-variant="surface"][data-pressed]) {
+  background: var(--bg-inset);
 }
 
 .react-aria-Popover[data-size="S"] {

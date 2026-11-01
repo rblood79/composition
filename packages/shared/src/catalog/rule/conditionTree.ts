@@ -38,8 +38,16 @@ export const DOM_CONDITIONS = [
 ] as const;
 export type DomCondition = (typeof DOM_CONDITIONS)[number];
 
-/** 값으로 가지를 고르는 조건 — `{ variant: { accent: …, primary: … } }`. */
-export const VALUE_CONDITIONS = ["variant", "size", "fillStyle"] as const;
+/**
+ * 값으로 가지를 고르는 조건 — `{ variant: { accent: …, primary: … } }`. `staticColor` (ADR-297 Phase 3) 는 S2
+ * `staticColor` 의 고정 흑백 (`black` · `white` — `auto` 는 가지가 없다): 유색 바탕 위 칠이 테마 대신 그 색을 쓴다.
+ */
+export const VALUE_CONDITIONS = [
+  "variant",
+  "size",
+  "fillStyle",
+  "staticColor",
+] as const;
 export type ValueCondition = (typeof VALUE_CONDITIONS)[number];
 
 export type ConditionalValue<T> =
@@ -183,6 +191,7 @@ const VALUE_ATTRIBUTES: Readonly<Record<ValueCondition, string>> = {
   variant: "data-variant",
   size: "data-size",
   fillStyle: "data-fill-style",
+  staticColor: "data-static-color",
 };
 
 export interface CompiledBlock<T> {

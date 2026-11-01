@@ -32,30 +32,30 @@
   --icon-size: 26px;
 }
 
-.react-aria-CalendarHeader[data-variant="default"] {
+.react-aria-CalendarHeader:where([data-variant="default"]) {
   background: transparent;
   color: var(--fg);
-
-  &[data-hovered] {
-    background: transparent;
-  }
-
-  &[data-pressed] {
-    background: transparent;
-  }
 }
 
-.react-aria-CalendarHeader[data-variant="accent"] {
+.react-aria-CalendarHeader:where([data-variant="default"][data-hovered]) {
+  background: transparent;
+}
+
+.react-aria-CalendarHeader:where([data-variant="default"][data-pressed]) {
+  background: transparent;
+}
+
+.react-aria-CalendarHeader:where([data-variant="accent"]) {
   background: transparent;
   color: var(--fg);
+}
 
-  &[data-hovered] {
-    background: transparent;
-  }
+.react-aria-CalendarHeader:where([data-variant="accent"][data-hovered]) {
+  background: transparent;
+}
 
-  &[data-pressed] {
-    background: transparent;
-  }
+.react-aria-CalendarHeader:where([data-variant="accent"][data-pressed]) {
+  background: transparent;
 }
 
 .react-aria-CalendarHeader[data-focus-visible] {

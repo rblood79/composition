@@ -27,6 +27,8 @@ const BUTTON_VARIANT: ComponentRuleVariant = {
         default: "selected-bg",
         isEmphasized: "emphasized-selected-bg",
       },
+      // (ADR-297 Phase 3: the static scheme is a tree branch — the codemod writes it from the old rule)
+      staticColor: { black: "#000000", white: "#ffffff" },
     },
     color: {
       default: "base-text",
@@ -36,6 +38,7 @@ const BUTTON_VARIANT: ComponentRuleVariant = {
         default: "selected-text",
         isEmphasized: "emphasized-selected-text",
       },
+      staticColor: { black: "#ffffff", white: "#000000" },
     },
     borderColor: {
       default: "base-border",
@@ -45,6 +48,7 @@ const BUTTON_VARIANT: ComponentRuleVariant = {
         default: "selected-border",
         isEmphasized: "emphasized-selected-border",
       },
+      staticColor: { black: "#000000", white: "#ffffff" },
     },
   },
 };
@@ -133,6 +137,11 @@ describe("resolveCatalogPaint", () => {
     // (a value-fill track — S2 `transparent-overlay-300`: its text keeps the static color)
     const track = resolve({ staticColor: "white" }, "default", {
       ...BUTTON_VARIANT,
+      // (a track's static text keeps the static color — its tree branch says so)
+      paint: {
+        ...BUTTON_VARIANT.paint,
+        color: { default: "base-text", staticColor: { white: "#ffffff" } },
+      },
       fillBar: "value-fill",
       staticAlpha: 0.17,
     });
@@ -153,7 +162,13 @@ describe("resolveCatalogPaint", () => {
   it("text-only/transparent variant에서 staticColor가 새 border나 opaque box를 만들지 않는다", () => {
     const textOnly: ComponentRuleVariant = {
       alpha: 0,
-      paint: { backgroundColor: "{color.transparent}", color: "variant-text" },
+      paint: {
+        backgroundColor: "{color.transparent}",
+        color: {
+          default: "variant-text",
+          staticColor: { black: "#000000", white: "#ffffff" },
+        },
+      },
     };
 
     expect(
@@ -188,27 +203,32 @@ describe("resolveCatalogPaint", () => {
     });
   });
 
-  it("transparent border는 width channel이 있을 때만 static border 교체 대상이다", () => {
+  it("static 테두리는 트리의 staticColor 가지만 — size 의 폭 채널로 판정하지 않는다 (ADR-297 Phase 3)", () => {
+    // (the width-channel rule moved into the codemod `adr297-static-to-tree.ts`: a transparent border
+    //  gets a static branch only where the rule's sizes carry a border width)
     const transparentBorder: ComponentRuleVariant = {
       paint: {
         backgroundColor: "opaque-bg",
         borderColor: "{color.transparent}",
       },
     };
-
+    for (const size of [undefined, { borderWidth: 1 }])
+      expect(
+        resolve({ staticColor: "black" }, "default", transparentBorder, size)
+          .borderColor,
+      ).toBe("{color.transparent}");
+    const withBranch: ComponentRuleVariant = {
+      paint: {
+        backgroundColor: "opaque-bg",
+        borderColor: {
+          default: "{color.transparent}",
+          staticColor: { black: "#000000" },
+        },
+      },
+    };
     expect(
-      resolveCatalogPaint({
-        variant: transparentBorder,
-        size: undefined,
-        props: { staticColor: "black" },
-        style: undefined,
-        interactionState: "default",
-      }).borderColor,
-    ).toBe("{color.transparent}");
-    expect(
-      resolve({ staticColor: "black" }, "default", transparentBorder, {
-        borderWidth: 1,
-      }).borderColor,
+      resolve({ staticColor: "black" }, "default", withBranch, undefined)
+        .borderColor,
     ).toBe("#000000");
   });
 

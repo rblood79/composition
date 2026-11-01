@@ -29,17 +29,17 @@
   --icon-size: calc(var(--catalog-token-size-unit) * 96 / 1);
 }
 
-.react-aria-Illustration[data-variant="default"] {
+.react-aria-Illustration:where([data-variant="default"]) {
   background: transparent;
   color: var(--fg);
+}
 
-  &[data-hovered] {
-    background: transparent;
-  }
+.react-aria-Illustration:where([data-variant="default"][data-hovered]) {
+  background: transparent;
+}
 
-  &[data-pressed] {
-    background: transparent;
-  }
+.react-aria-Illustration:where([data-variant="default"][data-pressed]) {
+  background: transparent;
 }
 
 .react-aria-Illustration[data-size="S"] {

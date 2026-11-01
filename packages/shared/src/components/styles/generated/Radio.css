@@ -33,30 +33,30 @@
   gap: var(--catalog-token-radio-gap-M, calc(var(--catalog-token-text-sm) * 10 / 14));
 }
 
-.react-aria-Radio[data-variant="default"] {
+.react-aria-Radio:where([data-variant="default"]) {
   background: var(--bg);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--bg-inset);
-  }
-
-  &[data-pressed] {
-    background: var(--bg-overlay);
-  }
 }
 
-.react-aria-Radio[data-variant="emphasized"] {
+.react-aria-Radio:where([data-variant="default"][data-hovered]) {
+  background: var(--bg-inset);
+}
+
+.react-aria-Radio:where([data-variant="default"][data-pressed]) {
+  background: var(--bg-overlay);
+}
+
+.react-aria-Radio:where([data-variant="emphasized"]) {
   background: var(--bg);
   color: var(--fg);
+}
 
-  &[data-hovered] {
-    background: var(--bg-inset);
-  }
+.react-aria-Radio:where([data-variant="emphasized"][data-hovered]) {
+  background: var(--bg-inset);
+}
 
-  &[data-pressed] {
-    background: var(--bg-overlay);
-  }
+.react-aria-Radio:where([data-variant="emphasized"][data-pressed]) {
+  background: var(--bg-overlay);
 }
 
 .react-aria-Radio[data-size="S"] {

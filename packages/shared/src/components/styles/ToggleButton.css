@@ -22,6 +22,50 @@
  */
 
 @layer components {
+  /* ===== Builder 자체 ToggleButton 의 칠 변수 (ADR-297 Phase 3) =====
+     catalog 노드 ([data-catalog-id]) 의 칠은 ToggleButton rule 의 트리 — 생성 시트가 `:where()` 블록으로 바로 칠한다
+     (Canvas 와 같은 트리 · 같은 순서). 생성 시트가 Phase 3 전까지 내던 `--button-*` 변수 블록은 Builder 위젯이
+     `.button-base` ramp (utilities) 로 읽고 있어, 그 선언을 같은 선택자 · 같은 specificity (`:where` 는 0) 로 여기
+     옮겨 Builder 화면을 그대로 둔다. 값을 고치면 Builder 위젯만 바뀐다 (catalog 노드에는 걸리지 않는다). */
+  .react-aria-ToggleButton:where(:not([data-catalog-id])) {
+    --button-color: var(--bg-muted);
+    --button-text: var(--fg);
+    --button-border: transparent;
+  }
+
+  .react-aria-ToggleButton:where(:not([data-catalog-id]))[data-variant="default"] {
+    --button-color: var(--bg-muted);
+    --button-text: var(--fg);
+    --button-color-hover: var(--neutral-hover);
+    --button-color-pressed: var(--neutral-pressed);
+    --button-border: transparent;
+
+
+    &[data-selected] {
+      --button-color: var(--fg);
+      --button-text: var(--bg);
+      --button-border: var(--fg);
+    }
+
+    &[data-emphasized][data-selected] {
+      --button-color: var(--accent);
+      --button-text: var(--fg-on-accent);
+      --button-border: var(--accent);
+    }
+  }
+
+  .react-aria-ToggleButton:where(:not([data-catalog-id]))[data-variant="default"][data-quiet] {
+    --button-color: transparent;
+  }
+
+  .react-aria-ToggleButton:where(:not([data-catalog-id]))[data-variant="default"][data-quiet]:where([data-hovered]) {
+    --button-color: var(--bg-muted);
+  }
+
+  .react-aria-ToggleButton:where(:not([data-catalog-id]))[data-variant="default"][data-quiet]:where([data-pressed]) {
+    --button-color: var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black));
+  }
+
   .react-aria-ToggleButton {
     /* ===== Static Color (RSP S2 staticColor — 유색/이미지 배경 위 고정 흑백 스킴) ===== */
     &[data-static-color="black"][data-static-color]:not(

@@ -25,17 +25,17 @@
   gap: 12px;
 }
 
-.react-aria-Section[data-variant="default"] {
+.react-aria-Section:where([data-variant="default"]) {
   background: transparent;
   color: var(--fg);
+}
 
-  &[data-hovered] {
-    background: transparent;
-  }
+.react-aria-Section:where([data-variant="default"][data-hovered]) {
+  background: transparent;
+}
 
-  &[data-pressed] {
-    background: transparent;
-  }
+.react-aria-Section:where([data-variant="default"][data-pressed]) {
+  background: transparent;
 }
 
 .react-aria-Section[data-size="S"] {

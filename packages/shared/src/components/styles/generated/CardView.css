@@ -24,56 +24,56 @@
   border-radius: var(--catalog-token-radius-none);
 }
 
-.react-aria-CardView[data-variant="primary"] {
+.react-aria-CardView:where([data-variant="primary"]) {
   background: transparent;
   color: var(--fg);
-
-  &[data-hovered] {
-    background: transparent;
-  }
-
-  &[data-pressed] {
-    background: transparent;
-  }
 }
 
-.react-aria-CardView[data-variant="secondary"] {
+.react-aria-CardView:where([data-variant="primary"][data-hovered]) {
   background: transparent;
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: transparent;
-  }
-
-  &[data-pressed] {
-    background: transparent;
-  }
 }
 
-.react-aria-CardView[data-variant="tertiary"] {
+.react-aria-CardView:where([data-variant="primary"][data-pressed]) {
   background: transparent;
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: transparent;
-  }
-
-  &[data-pressed] {
-    background: transparent;
-  }
 }
 
-.react-aria-CardView[data-variant="quiet"] {
+.react-aria-CardView:where([data-variant="secondary"]) {
   background: transparent;
   color: var(--fg);
+}
 
-  &[data-hovered] {
-    background: transparent;
-  }
+.react-aria-CardView:where([data-variant="secondary"][data-hovered]) {
+  background: transparent;
+}
 
-  &[data-pressed] {
-    background: transparent;
-  }
+.react-aria-CardView:where([data-variant="secondary"][data-pressed]) {
+  background: transparent;
+}
+
+.react-aria-CardView:where([data-variant="tertiary"]) {
+  background: transparent;
+  color: var(--fg);
+}
+
+.react-aria-CardView:where([data-variant="tertiary"][data-hovered]) {
+  background: transparent;
+}
+
+.react-aria-CardView:where([data-variant="tertiary"][data-pressed]) {
+  background: transparent;
+}
+
+.react-aria-CardView:where([data-variant="quiet"]) {
+  background: transparent;
+  color: var(--fg);
+}
+
+.react-aria-CardView:where([data-variant="quiet"][data-hovered]) {
+  background: transparent;
+}
+
+.react-aria-CardView:where([data-variant="quiet"][data-pressed]) {
+  background: transparent;
 }
 
 .react-aria-CardView[data-size="S"] {

@@ -31,19 +31,16 @@
   --icon-size: 32px;
 }
 
-.react-aria-DropZone[data-variant="default"] {
+.react-aria-DropZone:where([data-variant="default"]) {
   background: var(--bg);
   color: var(--fg-muted);
   border-color: var(--border);
+}
 
-  &[data-hovered] {
-    background: var(--bg-inset);
-    color: var(--accent-content);
-    border-color: var(--accent-content);
-  }
-
-  &[data-pressed] {
-  }
+.react-aria-DropZone:where([data-variant="default"][data-hovered]) {
+  background: var(--bg-inset);
+  color: var(--accent-content);
+  border-color: var(--accent-content);
 }
 
 .react-aria-DropZone[data-size="S"] {

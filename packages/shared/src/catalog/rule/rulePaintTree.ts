@@ -101,6 +101,8 @@ export interface PaintReach {
   readonly selectable?: boolean;
   /** 받는 fillStyle 값 — outline · subtle 값이면 그 칸만 칠한다 (없으면 값 없음 `null`). */
   readonly fillStyles?: readonly string[];
+  /** staticColor (black · white) 가 닿는다 — 칠 트리에 `staticColor` 가지가 있다 (ADR-297 Phase 3). */
+  readonly staticColor?: boolean;
 }
 
 /**

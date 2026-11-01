@@ -1,6 +1,10 @@
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
-import { buildVirtualSpecs, variantSourceFor } from "../scripts/generate-css";
+import {
+  buildVirtualSpecs,
+  variantPaintCssFor,
+  variantSourceFor,
+} from "../scripts/generate-css";
 import { generateCSS } from "../src/renderers/CSSGenerator";
 import { COMPONENT_RULES_TABLE } from "../../shared/src/catalog/generated/componentRulesTable";
 
@@ -8,7 +12,11 @@ import { COMPONENT_RULES_TABLE } from "../../shared/src/catalog/generated/compon
 it("catalog 단독 생성 CSS가 배포 CSS 102개와 byte-identical이다", () => {
   let count = 0;
   for (const input of buildVirtualSpecs()) {
-    const css = generateCSS(input, variantSourceFor(input.name));
+    const css = generateCSS(
+      input,
+      variantSourceFor(input.name),
+      variantPaintCssFor(input.name),
+    );
     if (css === null) continue;
     count++;
     expect(css, input.name).toBe(

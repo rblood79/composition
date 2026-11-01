@@ -14,7 +14,10 @@
      Set --button-color, --button-text on the element.
      Hover/pressed/border are auto-derived.
      ========================================= */
-  .button-base {
+  /* ADR-297 Phase 3 — catalog 노드 (`[data-catalog-id]` — Preview · Publish 의 Button · ToggleButton) 는 rule 의
+     칠 트리가 상태 색 · 순서의 정본 (생성 `generated/Button.css` — Canvas 와 같은 트리). 이 ramp 는 utilities
+     layer 라 그 블록을 덮으므로 Builder 자체 버튼 (`--button-color` 를 직접 주는 chrome) 에만 건다. */
+  .button-base:not([data-catalog-id]) {
     background: var(--button-color);
     color: var(--button-text, var(--color-white));
     border-color: var(--button-border, var(--button-color));
@@ -90,7 +93,7 @@
   }
 
   /* S2 outline fill style — transparent bg, tinted hover */
-  .button-base:where([data-fill-style="outline"]) {
+  .button-base:not([data-catalog-id]):where([data-fill-style="outline"]) {
     background: transparent;
 
     &:where([data-hovered]) {

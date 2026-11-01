@@ -33,30 +33,30 @@
   gap: var(--catalog-token-checkbox-gap-M, calc(var(--catalog-token-text-sm) * 10 / 14));
 }
 
-.react-aria-Checkbox[data-variant="default"] {
+.react-aria-Checkbox:where([data-variant="default"]) {
   background: var(--bg);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--bg-inset);
-  }
-
-  &[data-pressed] {
-    background: var(--bg-overlay);
-  }
 }
 
-.react-aria-Checkbox[data-variant="emphasized"] {
+.react-aria-Checkbox:where([data-variant="default"][data-hovered]) {
+  background: var(--bg-inset);
+}
+
+.react-aria-Checkbox:where([data-variant="default"][data-pressed]) {
+  background: var(--bg-overlay);
+}
+
+.react-aria-Checkbox:where([data-variant="emphasized"]) {
   background: var(--bg);
   color: var(--fg);
+}
 
-  &[data-hovered] {
-    background: var(--accent-subtle);
-  }
+.react-aria-Checkbox:where([data-variant="emphasized"][data-hovered]) {
+  background: var(--accent-subtle);
+}
 
-  &[data-pressed] {
-    background: var(--accent-subtle);
-  }
+.react-aria-Checkbox:where([data-variant="emphasized"][data-pressed]) {
+  background: var(--accent-subtle);
 }
 
 .react-aria-Checkbox[data-size="S"] {

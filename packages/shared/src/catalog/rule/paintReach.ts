@@ -6,11 +6,24 @@
  *   — 소유자가 `_isSelected` 를 준다) · `selected` variant 가 있는 rule (`rulePaint` 가 선택을 variant 로 칠한다) ·
  *   Column (Table 선택 열 머리).
  * - fillStyle: binding `accepts.fillStyle` 의 값 (D2).
+ * - staticColor: binding `accepts.staticColor` (D2) · 파생 static 을 받는 부품 — ProgressBar · Meter 의 Label ·
+ *   값 글자 · 트랙 · 채움 (`presence.ts` `catalogProgressStaticText` · `catalogProgressFillOwner` · 트랙 파생).
  */
 import { getPrimitiveBinding } from "../bindings";
 import { COLLECTION_ITEM_OWNERS } from "../document/collectionItems";
 import type { ComponentRule } from "../../types/catalog-style.types";
 import type { PaintReach } from "./rulePaintTree";
+
+/** Parts that take their progress owner's `staticColor` as a derived prop (`presence.ts`). */
+const DERIVED_STATIC_TYPES: ReadonlySet<string> = new Set([
+  "Label",
+  "ProgressBarValue",
+  "MeterValue",
+  "ProgressBarTrack",
+  "MeterTrack",
+  "ProgressBarFill",
+  "MeterFill",
+]);
 
 export function rulePaintReach(type: string, rule: ComponentRule): PaintReach {
   const binding = getPrimitiveBinding(type) as
@@ -34,5 +47,7 @@ export function rulePaintReach(type: string, rule: ComponentRule): PaintReach {
   const fillStyles = (accepts.fillStyle?.options ?? [])
     .map((option) => option.value)
     .filter((value): value is string => typeof value === "string");
-  return { selectable, fillStyles };
+  const staticColor =
+    accepts.staticColor !== undefined || DERIVED_STATIC_TYPES.has(type);
+  return { selectable, fillStyles, staticColor };
 }

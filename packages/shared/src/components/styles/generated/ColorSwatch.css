@@ -28,32 +28,44 @@
   border-radius: var(--catalog-token-radius-sm);
 }
 
-.react-aria-ColorSwatch[data-variant="default"] {
+.react-aria-ColorSwatch:where([data-variant="default"]) {
   background: var(--bg);
   color: var(--fg);
   border-color: var(--border);
-
-  &[data-hovered] {
-    background: var(--bg-inset);
-  }
-
-  &[data-pressed] {
-    background: var(--bg-overlay);
-  }
 }
 
-.react-aria-ColorSwatch[data-variant="selected"] {
+.react-aria-ColorSwatch:where([data-variant="default"][data-hovered]) {
+  background: var(--bg-inset);
+}
+
+.react-aria-ColorSwatch:where([data-variant="default"][data-pressed]) {
+  background: var(--bg-overlay);
+}
+
+.react-aria-ColorSwatch:where([data-variant="default"][data-selected]) {
+  background: transparent;
+  color: inherit;
+  border-color: transparent;
+}
+
+.react-aria-ColorSwatch:where([data-variant="selected"]) {
   background: var(--bg);
   color: var(--fg);
   border-color: var(--accent-content);
+}
 
-  &[data-hovered] {
-    background: var(--bg-inset);
-  }
+.react-aria-ColorSwatch:where([data-variant="selected"][data-hovered]) {
+  background: var(--bg-inset);
+}
 
-  &[data-pressed] {
-    background: var(--bg-overlay);
-  }
+.react-aria-ColorSwatch:where([data-variant="selected"][data-pressed]) {
+  background: var(--bg-overlay);
+}
+
+.react-aria-ColorSwatch:where([data-variant="selected"][data-selected]) {
+  background: transparent;
+  color: inherit;
+  border-color: transparent;
 }
 
 .react-aria-ColorSwatch[data-size="XS"] {

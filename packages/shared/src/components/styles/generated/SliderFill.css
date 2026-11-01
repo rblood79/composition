@@ -24,26 +24,14 @@
   border-radius: var(--catalog-token-radius-full);
 }
 
-.react-aria-SliderFill[data-variant="default"] {
+.react-aria-SliderFill:where([data-variant="default"]) {
   background: var(--fg);
   color: var(--fg);
-
-  &[data-hovered] {
-  }
-
-  &[data-pressed] {
-  }
 }
 
-.react-aria-SliderFill[data-variant="emphasized"] {
+.react-aria-SliderFill:where([data-variant="emphasized"]) {
   background: var(--accent-content);
   color: var(--fg);
-
-  &[data-hovered] {
-  }
-
-  &[data-pressed] {
-  }
 }
 
 .react-aria-SliderFill[data-size="S"] {

@@ -150,9 +150,11 @@ describe("ADR-297 condition tree ≡ legacy paint chain (whole table)", () => {
           rule.fillStyleValues,
           rulePaintReach(type, rule),
         );
+        // (Phase 3: the `staticColor` branch has no legacy slot — the generator's legacy input never
+        //  carried the static scheme, the manual sheets did)
         if (
-          JSON.stringify(sortDeep(back)) !==
-          JSON.stringify(sortDeep(variant.paint))
+          JSON.stringify(sortDeep(withoutStatic(back))) !==
+          JSON.stringify(sortDeep(withoutStatic(variant.paint)))
         )
           mismatches.push(
             `${type}.${name}: ${JSON.stringify(variant.paint)} → ${JSON.stringify(back)}`,
@@ -161,6 +163,16 @@ describe("ADR-297 condition tree ≡ legacy paint chain (whole table)", () => {
     expect(mismatches).toEqual([]);
   });
 });
+
+/** The paint without its `staticColor` branches — a node left with `default` only is that leaf (both forms mean the same). */
+function withoutStatic(value: unknown): unknown {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const out: Record<string, unknown> = {};
+  for (const [key, child] of Object.entries(value as Record<string, unknown>))
+    if (key !== "staticColor") out[key] = withoutStatic(child);
+  const keys = Object.keys(out);
+  return keys.length === 1 && keys[0] === "default" ? out.default : out;
+}
 
 function sortDeep(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sortDeep);

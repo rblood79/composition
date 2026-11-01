@@ -38,34 +38,76 @@
   font-weight: 400;
 }
 
-.react-aria-Link[data-variant="primary"] {
-  background: var(--bg);
-  color: var(--accent-content);
+.react-aria-Link:where([data-variant="primary"]) {
   background: transparent;
-
-  &[data-hovered] {
-    background: var(--bg);
-    color: var(--accent-content-hover);
-  }
-
-  &[data-pressed] {
-    background: var(--bg);
-  }
 }
 
-.react-aria-Link[data-variant="secondary"] {
-  background: var(--bg);
-  color: var(--fg);
+.react-aria-Link:where([data-variant="secondary"]) {
   background: transparent;
+}
 
-  &[data-hovered] {
-    background: var(--bg);
-    color: var(--accent-content);
-  }
+.react-aria-Link:where([data-variant="primary"]) {
+  color: var(--accent-content);
+}
 
-  &[data-pressed] {
-    background: var(--bg);
-  }
+.react-aria-Link:where([data-variant="primary"][data-hovered]) {
+  color: var(--accent-content-hover);
+}
+
+.react-aria-Link:where([data-variant="primary"][data-static-color="black"]) {
+  color: #000000;
+}
+
+.react-aria-Link:where([data-variant="primary"][data-static-color="black"][data-hovered]) {
+  color: #000000;
+}
+
+.react-aria-Link:where([data-variant="primary"][data-static-color="black"][data-pressed]) {
+  color: #000000;
+}
+
+.react-aria-Link:where([data-variant="primary"][data-static-color="white"]) {
+  color: #ffffff;
+}
+
+.react-aria-Link:where([data-variant="primary"][data-static-color="white"][data-hovered]) {
+  color: #ffffff;
+}
+
+.react-aria-Link:where([data-variant="primary"][data-static-color="white"][data-pressed]) {
+  color: #ffffff;
+}
+
+.react-aria-Link:where([data-variant="secondary"]) {
+  color: var(--fg);
+}
+
+.react-aria-Link:where([data-variant="secondary"][data-hovered]) {
+  color: var(--accent-content);
+}
+
+.react-aria-Link:where([data-variant="secondary"][data-static-color="black"]) {
+  color: #000000;
+}
+
+.react-aria-Link:where([data-variant="secondary"][data-static-color="black"][data-hovered]) {
+  color: #000000;
+}
+
+.react-aria-Link:where([data-variant="secondary"][data-static-color="black"][data-pressed]) {
+  color: #000000;
+}
+
+.react-aria-Link:where([data-variant="secondary"][data-static-color="white"]) {
+  color: #ffffff;
+}
+
+.react-aria-Link:where([data-variant="secondary"][data-static-color="white"][data-hovered]) {
+  color: #ffffff;
+}
+
+.react-aria-Link:where([data-variant="secondary"][data-static-color="white"][data-pressed]) {
+  color: #ffffff;
 }
 
 .react-aria-Link[data-icon-only] {

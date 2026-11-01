@@ -33,43 +33,43 @@
   max-width: 160px;
 }
 
-.react-aria-Tooltip[data-variant="neutral"] {
+.react-aria-Tooltip:where([data-variant="neutral"]) {
   background: var(--bg-muted);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--bg-muted);
-  }
-
-  &[data-pressed] {
-    background: var(--bg-muted);
-  }
 }
 
-.react-aria-Tooltip[data-variant="informative"] {
+.react-aria-Tooltip:where([data-variant="neutral"][data-hovered]) {
+  background: var(--bg-muted);
+}
+
+.react-aria-Tooltip:where([data-variant="neutral"][data-pressed]) {
+  background: var(--bg-muted);
+}
+
+.react-aria-Tooltip:where([data-variant="informative"]) {
   background: var(--informative-subtle);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--informative-subtle);
-  }
-
-  &[data-pressed] {
-    background: var(--informative-subtle);
-  }
 }
 
-.react-aria-Tooltip[data-variant="negative"] {
+.react-aria-Tooltip:where([data-variant="informative"][data-hovered]) {
+  background: var(--informative-subtle);
+}
+
+.react-aria-Tooltip:where([data-variant="informative"][data-pressed]) {
+  background: var(--informative-subtle);
+}
+
+.react-aria-Tooltip:where([data-variant="negative"]) {
   background: var(--negative-subtle);
   color: var(--fg);
+}
 
-  &[data-hovered] {
-    background: var(--negative-subtle);
-  }
+.react-aria-Tooltip:where([data-variant="negative"][data-hovered]) {
+  background: var(--negative-subtle);
+}
 
-  &[data-pressed] {
-    background: var(--negative-subtle);
-  }
+.react-aria-Tooltip:where([data-variant="negative"][data-pressed]) {
+  background: var(--negative-subtle);
 }
 
 .react-aria-Tooltip[data-size="S"] {

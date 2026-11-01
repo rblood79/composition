@@ -32,56 +32,176 @@
   line-height: var(--catalog-token-text-sm--line-height);
 }
 
-.react-aria-MeterValue[data-variant="informative"] {
+.react-aria-MeterValue:where([data-variant="informative"]) {
   background: transparent;
   color: var(--fg);
-
-  &[data-hovered] {
-    background: transparent;
-  }
-
-  &[data-pressed] {
-    background: transparent;
-  }
 }
 
-.react-aria-MeterValue[data-variant="positive"] {
+.react-aria-MeterValue:where([data-variant="informative"][data-hovered]) {
   background: transparent;
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: transparent;
-  }
-
-  &[data-pressed] {
-    background: transparent;
-  }
 }
 
-.react-aria-MeterValue[data-variant="notice"] {
+.react-aria-MeterValue:where([data-variant="informative"][data-pressed]) {
   background: transparent;
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: transparent;
-  }
-
-  &[data-pressed] {
-    background: transparent;
-  }
 }
 
-.react-aria-MeterValue[data-variant="negative"] {
+.react-aria-MeterValue:where([data-variant="informative"][data-static-color="black"]) {
+  background: transparent;
+  color: #000000;
+}
+
+.react-aria-MeterValue:where([data-variant="informative"][data-static-color="black"][data-hovered]) {
+  background: transparent;
+  color: #000000;
+}
+
+.react-aria-MeterValue:where([data-variant="informative"][data-static-color="black"][data-pressed]) {
+  background: transparent;
+  color: #000000;
+}
+
+.react-aria-MeterValue:where([data-variant="informative"][data-static-color="white"]) {
+  background: transparent;
+  color: #ffffff;
+}
+
+.react-aria-MeterValue:where([data-variant="informative"][data-static-color="white"][data-hovered]) {
+  background: transparent;
+  color: #ffffff;
+}
+
+.react-aria-MeterValue:where([data-variant="informative"][data-static-color="white"][data-pressed]) {
+  background: transparent;
+  color: #ffffff;
+}
+
+.react-aria-MeterValue:where([data-variant="positive"]) {
   background: transparent;
   color: var(--fg);
+}
 
-  &[data-hovered] {
-    background: transparent;
-  }
+.react-aria-MeterValue:where([data-variant="positive"][data-hovered]) {
+  background: transparent;
+}
 
-  &[data-pressed] {
-    background: transparent;
-  }
+.react-aria-MeterValue:where([data-variant="positive"][data-pressed]) {
+  background: transparent;
+}
+
+.react-aria-MeterValue:where([data-variant="positive"][data-static-color="black"]) {
+  background: transparent;
+  color: #000000;
+}
+
+.react-aria-MeterValue:where([data-variant="positive"][data-static-color="black"][data-hovered]) {
+  background: transparent;
+  color: #000000;
+}
+
+.react-aria-MeterValue:where([data-variant="positive"][data-static-color="black"][data-pressed]) {
+  background: transparent;
+  color: #000000;
+}
+
+.react-aria-MeterValue:where([data-variant="positive"][data-static-color="white"]) {
+  background: transparent;
+  color: #ffffff;
+}
+
+.react-aria-MeterValue:where([data-variant="positive"][data-static-color="white"][data-hovered]) {
+  background: transparent;
+  color: #ffffff;
+}
+
+.react-aria-MeterValue:where([data-variant="positive"][data-static-color="white"][data-pressed]) {
+  background: transparent;
+  color: #ffffff;
+}
+
+.react-aria-MeterValue:where([data-variant="notice"]) {
+  background: transparent;
+  color: var(--fg);
+}
+
+.react-aria-MeterValue:where([data-variant="notice"][data-hovered]) {
+  background: transparent;
+}
+
+.react-aria-MeterValue:where([data-variant="notice"][data-pressed]) {
+  background: transparent;
+}
+
+.react-aria-MeterValue:where([data-variant="notice"][data-static-color="black"]) {
+  background: transparent;
+  color: #000000;
+}
+
+.react-aria-MeterValue:where([data-variant="notice"][data-static-color="black"][data-hovered]) {
+  background: transparent;
+  color: #000000;
+}
+
+.react-aria-MeterValue:where([data-variant="notice"][data-static-color="black"][data-pressed]) {
+  background: transparent;
+  color: #000000;
+}
+
+.react-aria-MeterValue:where([data-variant="notice"][data-static-color="white"]) {
+  background: transparent;
+  color: #ffffff;
+}
+
+.react-aria-MeterValue:where([data-variant="notice"][data-static-color="white"][data-hovered]) {
+  background: transparent;
+  color: #ffffff;
+}
+
+.react-aria-MeterValue:where([data-variant="notice"][data-static-color="white"][data-pressed]) {
+  background: transparent;
+  color: #ffffff;
+}
+
+.react-aria-MeterValue:where([data-variant="negative"]) {
+  background: transparent;
+  color: var(--fg);
+}
+
+.react-aria-MeterValue:where([data-variant="negative"][data-hovered]) {
+  background: transparent;
+}
+
+.react-aria-MeterValue:where([data-variant="negative"][data-pressed]) {
+  background: transparent;
+}
+
+.react-aria-MeterValue:where([data-variant="negative"][data-static-color="black"]) {
+  background: transparent;
+  color: #000000;
+}
+
+.react-aria-MeterValue:where([data-variant="negative"][data-static-color="black"][data-hovered]) {
+  background: transparent;
+  color: #000000;
+}
+
+.react-aria-MeterValue:where([data-variant="negative"][data-static-color="black"][data-pressed]) {
+  background: transparent;
+  color: #000000;
+}
+
+.react-aria-MeterValue:where([data-variant="negative"][data-static-color="white"]) {
+  background: transparent;
+  color: #ffffff;
+}
+
+.react-aria-MeterValue:where([data-variant="negative"][data-static-color="white"][data-hovered]) {
+  background: transparent;
+  color: #ffffff;
+}
+
+.react-aria-MeterValue:where([data-variant="negative"][data-static-color="white"][data-pressed]) {
+  background: transparent;
+  color: #ffffff;
 }
 
 .react-aria-MeterValue[data-size="S"] {

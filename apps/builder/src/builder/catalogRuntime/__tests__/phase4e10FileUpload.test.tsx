@@ -41,7 +41,10 @@ describe("FileTrigger — rule box on the trigger button", () => {
     // (The Button's M box — user 2026-10-25 「FILETRIGGER 의 size 모두 button 의 size 와 동일하게」.)
     expect(md).toContain("padding: 4px 12px;");
     expect(md).not.toContain("height: 40px;");
-    expect(css).toContain('.react-aria-FileTrigger[data-variant="default"]');
+    // (ADR-297 Phase 3: the variant paint is the tree's `:where` block)
+    expect(css).toContain(
+      '.react-aria-FileTrigger:where([data-variant="default"])',
+    );
     expect(blockOf(css, ".react-aria-FileTrigger")).not.toContain(
       "display: inline-block;",
     );

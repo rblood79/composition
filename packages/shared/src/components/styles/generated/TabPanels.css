@@ -28,17 +28,17 @@
   border-radius: var(--catalog-token-radius-none);
 }
 
-.react-aria-TabPanels[data-variant="default"] {
+.react-aria-TabPanels:where([data-variant="default"]) {
   background: transparent;
   color: var(--fg);
+}
 
-  &[data-hovered] {
-    background: transparent;
-  }
+.react-aria-TabPanels:where([data-variant="default"][data-hovered]) {
+  background: transparent;
+}
 
-  &[data-pressed] {
-    background: transparent;
-  }
+.react-aria-TabPanels:where([data-variant="default"][data-pressed]) {
+  background: transparent;
 }
 
 .react-aria-TabPanels[data-size="S"] {

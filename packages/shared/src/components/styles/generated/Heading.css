@@ -29,17 +29,17 @@
   line-height: var(--catalog-token-text-base--line-height);
 }
 
-.react-aria-Heading[data-variant="default"] {
+.react-aria-Heading:where([data-variant="default"]) {
   background: transparent;
   color: var(--fg);
+}
 
-  &[data-hovered] {
-    background: transparent;
-  }
+.react-aria-Heading:where([data-variant="default"][data-hovered]) {
+  background: transparent;
+}
 
-  &[data-pressed] {
-    background: transparent;
-  }
+.react-aria-Heading:where([data-variant="default"][data-pressed]) {
+  background: transparent;
 }
 
 .react-aria-Heading[data-size="XS"] {

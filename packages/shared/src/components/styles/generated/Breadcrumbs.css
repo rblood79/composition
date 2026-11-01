@@ -32,18 +32,18 @@
   gap: 2px;
 }
 
-.react-aria-Breadcrumbs[data-variant="default"] {
+.react-aria-Breadcrumbs:where([data-variant="default"]) {
   background: var(--bg);
   color: var(--fg-muted);
+}
 
-  &[data-hovered] {
-    background: var(--bg);
-    color: var(--fg);
-  }
+.react-aria-Breadcrumbs:where([data-variant="default"][data-hovered]) {
+  background: var(--bg);
+  color: var(--fg);
+}
 
-  &[data-pressed] {
-    background: var(--bg);
-  }
+.react-aria-Breadcrumbs:where([data-variant="default"][data-pressed]) {
+  background: var(--bg);
 }
 
 .react-aria-Breadcrumbs[data-size="S"] {

@@ -140,7 +140,8 @@ describe("S2 Slider isEmphasized", () => {
       /\.react-aria-SliderFill \{[^}]*background: var\(--fg\)/,
     );
     expect(fill).toMatch(
-      /\.react-aria-SliderFill\[data-variant="emphasized"\] \{[^}]*background: var\(--accent-content\)/,
+      // (ADR-297 Phase 3: the variant paint is the tree's `:where` block)
+      /\.react-aria-SliderFill:where\(\[data-variant="emphasized"\]\) \{[^}]*background: var\(--accent-content\)/,
     );
     const slider = readFileSync(`${STYLES}/Slider.css`, "utf8");
     expect(slider).toMatch(

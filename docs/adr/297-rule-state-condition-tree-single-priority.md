@@ -148,6 +148,8 @@ Phase 0 (인벤토리 freeze · 「다름 9」 Compare Mode 실측 · RED · 기
 
 ### 사용자 결정 3건 (execute-adr 가 닿을 때 묻는다)
 
+> **답 (2026-11-01, Phase 3 착수)** — 결정 1: 묻지 않음 (Phase 3 가 닿지 않아 기본 권고 「단일 유지」 그대로). 결정 2: 「8 건 모두 S2 대로」 — 실측 (breakdown §6.1) 의 확정 8 건이 전부 S2 설치본 oracle 을 가져 S2 에 없는 조합은 0, 트리 순서 · 값을 S2 소스에 맞추고 저장소에 없는 S2 토큰은 가장 가까운 기존 토큰. 결정 3: 「전부」 — 수동 CSS 의 selected 74 줄 (17 파일) · focus 78 줄 (21 파일) 도 트리로 (static 32 줄 6 파일은 원래 흡수). 추가 질문 (breakdown §6.4 (d)): `&` 대상 어휘 밖 12 키는 「어휘 확장」 — G3 (e) 는 그대로.
+
 1. **Canvas 상태 집합** — `displayState` 를 단일 상태에서 집합 (`selected` + `hover` 동시) 으로 넓힐 것인가. 넓히면 `selectedHover` 류 결합 가지를 Canvas 도 그리고, 패널에 state 선택기가 필요해진다 (scope 확장). 기본 권고: **이 ADR 에서는 단일 유지** (Decision 3), 결합은 후속.
 2. **S2 에 없는 조합의 우선순위** — quiet · invalid · subtle 의 상대 순서 (연구 §2.3 「다름」 중 S2 oracle 이 없는 건). Phase 0 실측 표를 보고 건마다 Canvas 쪽 / DOM 쪽 / 제3 안.
 3. **수동 CSS 흡수 폭** — static 42 는 흡수 (Decision 5). selected 79 · focus 72 (17 + 파일) 는 Phase 0 인벤토리 뒤 「전부 / 상태 색만 / 이번엔 두고 후속」.

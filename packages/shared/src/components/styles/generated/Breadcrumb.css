@@ -30,18 +30,18 @@
   --icon-size: 16px;
 }
 
-.react-aria-Breadcrumb[data-variant="default"] {
+.react-aria-Breadcrumb:where([data-variant="default"]) {
   background: var(--bg);
   color: var(--fg-muted);
+}
 
-  &[data-hovered] {
-    background: var(--bg);
-    color: var(--fg);
-  }
+.react-aria-Breadcrumb:where([data-variant="default"][data-hovered]) {
+  background: var(--bg);
+  color: var(--fg);
+}
 
-  &[data-pressed] {
-    background: var(--bg);
-  }
+.react-aria-Breadcrumb:where([data-variant="default"][data-pressed]) {
+  background: var(--bg);
 }
 
 .react-aria-Breadcrumb[data-size="S"] {

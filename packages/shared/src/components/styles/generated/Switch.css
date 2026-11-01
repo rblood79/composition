@@ -34,30 +34,30 @@
   gap: var(--catalog-token-switch-gap-M, calc(var(--catalog-token-text-sm) * 10 / 14));
 }
 
-.react-aria-Switch[data-variant="default"] {
+.react-aria-Switch:where([data-variant="default"]) {
   background: transparent;
   color: var(--fg);
-
-  &[data-hovered] {
-    background: transparent;
-  }
-
-  &[data-pressed] {
-    background: transparent;
-  }
 }
 
-.react-aria-Switch[data-variant="emphasized"] {
+.react-aria-Switch:where([data-variant="default"][data-hovered]) {
+  background: transparent;
+}
+
+.react-aria-Switch:where([data-variant="default"][data-pressed]) {
+  background: transparent;
+}
+
+.react-aria-Switch:where([data-variant="emphasized"]) {
   background: transparent;
   color: var(--fg);
+}
 
-  &[data-hovered] {
-    background: transparent;
-  }
+.react-aria-Switch:where([data-variant="emphasized"][data-hovered]) {
+  background: transparent;
+}
 
-  &[data-pressed] {
-    background: transparent;
-  }
+.react-aria-Switch:where([data-variant="emphasized"][data-pressed]) {
+  background: transparent;
 }
 
 .react-aria-Switch[data-size="S"] {

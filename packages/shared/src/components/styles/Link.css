@@ -13,7 +13,6 @@
     transition: all 200ms;
     border-radius: var(--radius-sm);
     outline: none;
-    color: var(--link-color);
 
     /* External icon spacing */
     & .link-external-icon {
@@ -24,18 +23,12 @@
     }
 
     &[data-hovered] {
-      color: color-mix(in srgb, var(--link-color) 85%, black);
       text-decoration: underline;
       text-decoration-thickness: 2px;
       text-underline-offset: 4px;
     }
 
-    &[data-pressed] {
-      color: color-mix(in srgb, var(--link-color) 75%, black);
-    }
-
     &[data-disabled] {
-      color: color-mix(in srgb, var(--fg) 38%, transparent);
       cursor: not-allowed;
       pointer-events: none;
       opacity: 0.38;
@@ -100,6 +93,24 @@
 
     &[data-size="XL"] {
       font-size: var(--text-lg);
+    }
+  }
+
+  /* 글자색 — Builder 자체 Link 만 (catalog 노드 `[data-catalog-id]` 는 Link rule 의 칠 트리가 정본, 생성
+     `generated/Link.css` — ADR-297 Phase 3: 트리 블록이 `:where()` 라 이 시트의 상태 색이 이기면 Canvas 와 갈린다). */
+  .react-aria-Link:not([data-catalog-id]) {
+    color: var(--link-color);
+
+    &[data-hovered] {
+      color: color-mix(in srgb, var(--link-color) 85%, black);
+    }
+
+    &[data-pressed] {
+      color: color-mix(in srgb, var(--link-color) 75%, black);
+    }
+
+    &[data-disabled] {
+      color: color-mix(in srgb, var(--fg) 38%, transparent);
     }
   }
 

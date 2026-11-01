@@ -31,17 +31,47 @@
   border-radius: var(--catalog-token-radius-sm);
 }
 
-.react-aria-ProgressBarFill[data-variant="default"] {
+.react-aria-ProgressBarFill:where([data-variant="default"]) {
   background: var(--accent-content);
   color: var(--fg);
+}
 
-  &[data-hovered] {
-    background: var(--accent-content);
-  }
+.react-aria-ProgressBarFill:where([data-variant="default"][data-hovered]) {
+  background: var(--accent-content);
+}
 
-  &[data-pressed] {
-    background: var(--accent-content);
-  }
+.react-aria-ProgressBarFill:where([data-variant="default"][data-pressed]) {
+  background: var(--accent-content);
+}
+
+.react-aria-ProgressBarFill:where([data-variant="default"][data-static-color="black"]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-ProgressBarFill:where([data-variant="default"][data-static-color="black"][data-hovered]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-ProgressBarFill:where([data-variant="default"][data-static-color="black"][data-pressed]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-ProgressBarFill:where([data-variant="default"][data-static-color="white"]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-ProgressBarFill:where([data-variant="default"][data-static-color="white"][data-hovered]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-ProgressBarFill:where([data-variant="default"][data-static-color="white"][data-pressed]) {
+  background: #ffffff;
+  color: #000000;
 }
 
 .react-aria-ProgressBarFill[data-size="S"] {

@@ -20,6 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 이 ADR 밖: 노드 dark 강제는 Canvas · Preview 가 노드 `themeOverride` 를 읽지 않아 화면에 나타나지 않는다 (기존). hover 스타일은 노드 상태를 쓰는 명령이 없어 CSS 에서 읽기 전용.
   - 문서: `docs/adr/completed/296-code-view-project-file-tree-projection.md`
 
+## [ADR-297 Phase 3 (일부) — Preview 칠을 Canvas 와 같은 조건 트리 하나로: 생성 CSS compiler 전환 · button-base · static] - 2026-11-01
+
+### Fixed
+
+- **Preview · Publish 의 상태 칠이 Canvas 와 같은 트리 · 같은 순서로 정해진다 (ADR-297 Phase 3 — 3a · 3e · 3f)** — 표 전수 비교 (DOM computed ↔ Canvas, 닿는 입력 2,196 행) 에서 다른 행 557 → 303.
+  - 생성 CSS 가 variant 조건 트리를 직접 compile 한다 (`generate-css.ts` `variantPaintCssFor` — 조건 선택자 전부 `:where()`, 트리 순서 = cascade). alpha 0 variant 는 모든 상태에서 배경 없음 (전에는 Link 가 hover 때 흰 바탕을 칠했다).
+  - Button · ToggleButton 의 hover · pressed · selected 색이 `.button-base` color-mix ramp 가 아니라 트리 값이다. ramp 와 옛 `--button-*` 변수는 Builder 자체 버튼에만 남는다 (`:not([data-catalog-id])` — Builder 화면 변화 0).
+  - staticColor (black · white) 가 트리 가지 (`staticColor` 값 조건) 다 — Canvas 의 static 판정을 codemod 로 옮겨 두 화면이 같은 값을 읽는다. Preview 에서 static white Button 의 hover 가 파랑으로 바뀌던 것, quiet 선택 ToggleButton 이 흰 바탕에 흰 글자로 보이던 것이 고쳐졌다.
+
 ## [ADR-297 Phase 2 — rule 190 variant 의 상태 칠을 조건 트리 하나로 (옛 fill · colors 칸 삭제)] - 2026-11-01
 
 ### Changed

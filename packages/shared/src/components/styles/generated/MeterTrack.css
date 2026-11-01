@@ -31,56 +31,176 @@
   border-radius: var(--catalog-token-radius-sm);
 }
 
-.react-aria-MeterTrack[data-variant="informative"] {
+.react-aria-MeterTrack:where([data-variant="informative"]) {
   background: var(--bg-muted);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--bg-muted);
-  }
-
-  &[data-pressed] {
-    background: var(--bg-muted);
-  }
 }
 
-.react-aria-MeterTrack[data-variant="positive"] {
+.react-aria-MeterTrack:where([data-variant="informative"][data-hovered]) {
   background: var(--bg-muted);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--bg-muted);
-  }
-
-  &[data-pressed] {
-    background: var(--bg-muted);
-  }
 }
 
-.react-aria-MeterTrack[data-variant="notice"] {
+.react-aria-MeterTrack:where([data-variant="informative"][data-pressed]) {
   background: var(--bg-muted);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--bg-muted);
-  }
-
-  &[data-pressed] {
-    background: var(--bg-muted);
-  }
 }
 
-.react-aria-MeterTrack[data-variant="negative"] {
+.react-aria-MeterTrack:where([data-variant="informative"][data-static-color="black"]) {
+  background: #000000;
+  color: #000000;
+}
+
+.react-aria-MeterTrack:where([data-variant="informative"][data-static-color="black"][data-hovered]) {
+  background: #000000;
+  color: #000000;
+}
+
+.react-aria-MeterTrack:where([data-variant="informative"][data-static-color="black"][data-pressed]) {
+  background: #000000;
+  color: #000000;
+}
+
+.react-aria-MeterTrack:where([data-variant="informative"][data-static-color="white"]) {
+  background: #ffffff;
+  color: #ffffff;
+}
+
+.react-aria-MeterTrack:where([data-variant="informative"][data-static-color="white"][data-hovered]) {
+  background: #ffffff;
+  color: #ffffff;
+}
+
+.react-aria-MeterTrack:where([data-variant="informative"][data-static-color="white"][data-pressed]) {
+  background: #ffffff;
+  color: #ffffff;
+}
+
+.react-aria-MeterTrack:where([data-variant="positive"]) {
   background: var(--bg-muted);
   color: var(--fg);
+}
 
-  &[data-hovered] {
-    background: var(--bg-muted);
-  }
+.react-aria-MeterTrack:where([data-variant="positive"][data-hovered]) {
+  background: var(--bg-muted);
+}
 
-  &[data-pressed] {
-    background: var(--bg-muted);
-  }
+.react-aria-MeterTrack:where([data-variant="positive"][data-pressed]) {
+  background: var(--bg-muted);
+}
+
+.react-aria-MeterTrack:where([data-variant="positive"][data-static-color="black"]) {
+  background: #000000;
+  color: #000000;
+}
+
+.react-aria-MeterTrack:where([data-variant="positive"][data-static-color="black"][data-hovered]) {
+  background: #000000;
+  color: #000000;
+}
+
+.react-aria-MeterTrack:where([data-variant="positive"][data-static-color="black"][data-pressed]) {
+  background: #000000;
+  color: #000000;
+}
+
+.react-aria-MeterTrack:where([data-variant="positive"][data-static-color="white"]) {
+  background: #ffffff;
+  color: #ffffff;
+}
+
+.react-aria-MeterTrack:where([data-variant="positive"][data-static-color="white"][data-hovered]) {
+  background: #ffffff;
+  color: #ffffff;
+}
+
+.react-aria-MeterTrack:where([data-variant="positive"][data-static-color="white"][data-pressed]) {
+  background: #ffffff;
+  color: #ffffff;
+}
+
+.react-aria-MeterTrack:where([data-variant="notice"]) {
+  background: var(--bg-muted);
+  color: var(--fg);
+}
+
+.react-aria-MeterTrack:where([data-variant="notice"][data-hovered]) {
+  background: var(--bg-muted);
+}
+
+.react-aria-MeterTrack:where([data-variant="notice"][data-pressed]) {
+  background: var(--bg-muted);
+}
+
+.react-aria-MeterTrack:where([data-variant="notice"][data-static-color="black"]) {
+  background: #000000;
+  color: #000000;
+}
+
+.react-aria-MeterTrack:where([data-variant="notice"][data-static-color="black"][data-hovered]) {
+  background: #000000;
+  color: #000000;
+}
+
+.react-aria-MeterTrack:where([data-variant="notice"][data-static-color="black"][data-pressed]) {
+  background: #000000;
+  color: #000000;
+}
+
+.react-aria-MeterTrack:where([data-variant="notice"][data-static-color="white"]) {
+  background: #ffffff;
+  color: #ffffff;
+}
+
+.react-aria-MeterTrack:where([data-variant="notice"][data-static-color="white"][data-hovered]) {
+  background: #ffffff;
+  color: #ffffff;
+}
+
+.react-aria-MeterTrack:where([data-variant="notice"][data-static-color="white"][data-pressed]) {
+  background: #ffffff;
+  color: #ffffff;
+}
+
+.react-aria-MeterTrack:where([data-variant="negative"]) {
+  background: var(--bg-muted);
+  color: var(--fg);
+}
+
+.react-aria-MeterTrack:where([data-variant="negative"][data-hovered]) {
+  background: var(--bg-muted);
+}
+
+.react-aria-MeterTrack:where([data-variant="negative"][data-pressed]) {
+  background: var(--bg-muted);
+}
+
+.react-aria-MeterTrack:where([data-variant="negative"][data-static-color="black"]) {
+  background: #000000;
+  color: #000000;
+}
+
+.react-aria-MeterTrack:where([data-variant="negative"][data-static-color="black"][data-hovered]) {
+  background: #000000;
+  color: #000000;
+}
+
+.react-aria-MeterTrack:where([data-variant="negative"][data-static-color="black"][data-pressed]) {
+  background: #000000;
+  color: #000000;
+}
+
+.react-aria-MeterTrack:where([data-variant="negative"][data-static-color="white"]) {
+  background: #ffffff;
+  color: #ffffff;
+}
+
+.react-aria-MeterTrack:where([data-variant="negative"][data-static-color="white"][data-hovered]) {
+  background: #ffffff;
+  color: #ffffff;
+}
+
+.react-aria-MeterTrack:where([data-variant="negative"][data-static-color="white"][data-pressed]) {
+  background: #ffffff;
+  color: #ffffff;
 }
 
 .react-aria-MeterTrack[data-size="S"] {

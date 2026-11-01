@@ -32,49 +32,49 @@
   min-height: var(--catalog-token-size-height-M);
 }
 
-:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox)[data-variant="default"] {
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-variant="default"]) {
   background: var(--bg-inset);
   color: var(--fg);
   border-color: var(--border);
-
-  &[data-hovered] {
-    background: var(--bg-overlay);
-    border-color: var(--border-hover);
-  }
-
-  &[data-pressed] {
-    background: var(--bg-overlay);
-  }
 }
 
-:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox)[data-variant="accent"] {
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-variant="default"][data-hovered]) {
+  background: var(--bg-overlay);
+  border-color: var(--border-hover);
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-variant="default"][data-pressed]) {
+  background: var(--bg-overlay);
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-variant="accent"]) {
   background: var(--bg-inset);
   color: var(--fg);
   border-color: var(--accent-content);
-
-  &[data-hovered] {
-    background: var(--bg-overlay);
-    border-color: var(--accent-content-hover);
-  }
-
-  &[data-pressed] {
-    background: var(--bg-overlay);
-  }
 }
 
-:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox)[data-variant="negative"] {
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-variant="accent"][data-hovered]) {
+  background: var(--bg-overlay);
+  border-color: var(--accent-content-hover);
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-variant="accent"][data-pressed]) {
+  background: var(--bg-overlay);
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-variant="negative"]) {
   background: var(--bg-inset);
   color: var(--fg);
   border-color: var(--negative);
+}
 
-  &[data-hovered] {
-    background: var(--bg-overlay);
-    border-color: var(--negative-hover, color-mix(in srgb, var(--negative) 85%, black));
-  }
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-variant="negative"][data-hovered]) {
+  background: var(--bg-overlay);
+  border-color: var(--negative-hover, color-mix(in srgb, var(--negative) 85%, black));
+}
 
-  &[data-pressed] {
-    background: var(--bg-overlay);
-  }
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-variant="negative"][data-pressed]) {
+  background: var(--bg-overlay);
 }
 
 :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox)[data-size="XS"] {

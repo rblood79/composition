@@ -27,17 +27,17 @@
   gap: 8px;
 }
 
-.react-aria-Modal[data-variant="default"] {
+.react-aria-Modal:where([data-variant="default"]) {
   background: transparent;
   color: var(--fg);
+}
 
-  &[data-hovered] {
-    background: transparent;
-  }
+.react-aria-Modal:where([data-variant="default"][data-hovered]) {
+  background: transparent;
+}
 
-  &[data-pressed] {
-    background: transparent;
-  }
+.react-aria-Modal:where([data-variant="default"][data-pressed]) {
+  background: transparent;
 }
 
 .react-aria-Modal[data-focus-visible] {

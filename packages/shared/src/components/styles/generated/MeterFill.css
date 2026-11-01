@@ -31,56 +31,176 @@
   border-radius: var(--catalog-token-radius-sm);
 }
 
-.react-aria-MeterFill[data-variant="informative"] {
+.react-aria-MeterFill:where([data-variant="informative"]) {
   background: var(--informative);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--informative);
-  }
-
-  &[data-pressed] {
-    background: var(--informative);
-  }
 }
 
-.react-aria-MeterFill[data-variant="positive"] {
+.react-aria-MeterFill:where([data-variant="informative"][data-hovered]) {
+  background: var(--informative);
+}
+
+.react-aria-MeterFill:where([data-variant="informative"][data-pressed]) {
+  background: var(--informative);
+}
+
+.react-aria-MeterFill:where([data-variant="informative"][data-static-color="black"]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-MeterFill:where([data-variant="informative"][data-static-color="black"][data-hovered]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-MeterFill:where([data-variant="informative"][data-static-color="black"][data-pressed]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-MeterFill:where([data-variant="informative"][data-static-color="white"]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-MeterFill:where([data-variant="informative"][data-static-color="white"][data-hovered]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-MeterFill:where([data-variant="informative"][data-static-color="white"][data-pressed]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-MeterFill:where([data-variant="positive"]) {
   background: var(--positive);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--positive);
-  }
-
-  &[data-pressed] {
-    background: var(--positive);
-  }
 }
 
-.react-aria-MeterFill[data-variant="notice"] {
+.react-aria-MeterFill:where([data-variant="positive"][data-hovered]) {
+  background: var(--positive);
+}
+
+.react-aria-MeterFill:where([data-variant="positive"][data-pressed]) {
+  background: var(--positive);
+}
+
+.react-aria-MeterFill:where([data-variant="positive"][data-static-color="black"]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-MeterFill:where([data-variant="positive"][data-static-color="black"][data-hovered]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-MeterFill:where([data-variant="positive"][data-static-color="black"][data-pressed]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-MeterFill:where([data-variant="positive"][data-static-color="white"]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-MeterFill:where([data-variant="positive"][data-static-color="white"][data-hovered]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-MeterFill:where([data-variant="positive"][data-static-color="white"][data-pressed]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-MeterFill:where([data-variant="notice"]) {
   background: var(--notice);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--notice);
-  }
-
-  &[data-pressed] {
-    background: var(--notice);
-  }
 }
 
-.react-aria-MeterFill[data-variant="negative"] {
+.react-aria-MeterFill:where([data-variant="notice"][data-hovered]) {
+  background: var(--notice);
+}
+
+.react-aria-MeterFill:where([data-variant="notice"][data-pressed]) {
+  background: var(--notice);
+}
+
+.react-aria-MeterFill:where([data-variant="notice"][data-static-color="black"]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-MeterFill:where([data-variant="notice"][data-static-color="black"][data-hovered]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-MeterFill:where([data-variant="notice"][data-static-color="black"][data-pressed]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-MeterFill:where([data-variant="notice"][data-static-color="white"]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-MeterFill:where([data-variant="notice"][data-static-color="white"][data-hovered]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-MeterFill:where([data-variant="notice"][data-static-color="white"][data-pressed]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-MeterFill:where([data-variant="negative"]) {
   background: var(--negative);
   color: var(--fg);
+}
 
-  &[data-hovered] {
-    background: var(--negative);
-  }
+.react-aria-MeterFill:where([data-variant="negative"][data-hovered]) {
+  background: var(--negative);
+}
 
-  &[data-pressed] {
-    background: var(--negative);
-  }
+.react-aria-MeterFill:where([data-variant="negative"][data-pressed]) {
+  background: var(--negative);
+}
+
+.react-aria-MeterFill:where([data-variant="negative"][data-static-color="black"]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-MeterFill:where([data-variant="negative"][data-static-color="black"][data-hovered]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-MeterFill:where([data-variant="negative"][data-static-color="black"][data-pressed]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-MeterFill:where([data-variant="negative"][data-static-color="white"]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-MeterFill:where([data-variant="negative"][data-static-color="white"][data-hovered]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-MeterFill:where([data-variant="negative"][data-static-color="white"][data-pressed]) {
+  background: #ffffff;
+  color: #000000;
 }
 
 .react-aria-MeterFill[data-size="S"] {

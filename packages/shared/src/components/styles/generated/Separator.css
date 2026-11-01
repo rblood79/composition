@@ -28,19 +28,36 @@
   border-radius: var(--catalog-token-radius-none);
 }
 
-.react-aria-Separator[data-variant="default"] {
-  background: var(--bg);
+.react-aria-Separator:where([data-variant="default"]) {
+  background: transparent;
   color: var(--border);
   border-color: var(--border);
-  background: transparent;
+}
 
-  &[data-hovered] {
-    background: var(--bg);
-  }
+.react-aria-Separator:where([data-variant="default"][data-static-color="black"]) {
+  color: #000000;
+  border-color: #000000;
+}
 
-  &[data-pressed] {
-    background: var(--bg);
-  }
+.react-aria-Separator:where([data-variant="default"][data-static-color="black"][data-hovered]) {
+  color: #000000;
+}
+
+.react-aria-Separator:where([data-variant="default"][data-static-color="black"][data-pressed]) {
+  color: #000000;
+}
+
+.react-aria-Separator:where([data-variant="default"][data-static-color="white"]) {
+  color: #ffffff;
+  border-color: #ffffff;
+}
+
+.react-aria-Separator:where([data-variant="default"][data-static-color="white"][data-hovered]) {
+  color: #ffffff;
+}
+
+.react-aria-Separator:where([data-variant="default"][data-static-color="white"][data-pressed]) {
+  color: #ffffff;
 }
 
 .react-aria-Separator[data-size="S"] {

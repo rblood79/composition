@@ -28,18 +28,18 @@
   border-radius: var(--catalog-token-radius-md);
 }
 
-.react-aria-Chart[data-variant="default"] {
+.react-aria-Chart:where([data-variant="default"]) {
   background: var(--bg-overlay);
   color: var(--fg);
   border-color: var(--border);
+}
 
-  &[data-hovered] {
-    background: var(--bg-overlay);
-  }
+.react-aria-Chart:where([data-variant="default"][data-hovered]) {
+  background: var(--bg-overlay);
+}
 
-  &[data-pressed] {
-    background: var(--bg-overlay);
-  }
+.react-aria-Chart:where([data-variant="default"][data-pressed]) {
+  background: var(--bg-overlay);
 }
 
 

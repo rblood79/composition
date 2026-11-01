@@ -30,251 +30,251 @@
   gap: var(--catalog-token-status-light-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
 }
 
-.react-aria-StatusLight[data-variant="neutral"] {
+.react-aria-StatusLight:where([data-variant="neutral"]) {
   background: var(--fg-muted);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--fg-muted);
-  }
-
-  &[data-pressed] {
-    background: var(--fg-muted);
-  }
 }
 
-.react-aria-StatusLight[data-variant="informative"] {
+.react-aria-StatusLight:where([data-variant="neutral"][data-hovered]) {
+  background: var(--fg-muted);
+}
+
+.react-aria-StatusLight:where([data-variant="neutral"][data-pressed]) {
+  background: var(--fg-muted);
+}
+
+.react-aria-StatusLight:where([data-variant="informative"]) {
   background: var(--informative);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--informative);
-  }
-
-  &[data-pressed] {
-    background: var(--informative);
-  }
 }
 
-.react-aria-StatusLight[data-variant="positive"] {
+.react-aria-StatusLight:where([data-variant="informative"][data-hovered]) {
+  background: var(--informative);
+}
+
+.react-aria-StatusLight:where([data-variant="informative"][data-pressed]) {
+  background: var(--informative);
+}
+
+.react-aria-StatusLight:where([data-variant="positive"]) {
   background: var(--positive);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--positive);
-  }
-
-  &[data-pressed] {
-    background: var(--positive);
-  }
 }
 
-.react-aria-StatusLight[data-variant="notice"] {
+.react-aria-StatusLight:where([data-variant="positive"][data-hovered]) {
+  background: var(--positive);
+}
+
+.react-aria-StatusLight:where([data-variant="positive"][data-pressed]) {
+  background: var(--positive);
+}
+
+.react-aria-StatusLight:where([data-variant="notice"]) {
   background: var(--notice);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--notice);
-  }
-
-  &[data-pressed] {
-    background: var(--notice);
-  }
 }
 
-.react-aria-StatusLight[data-variant="negative"] {
+.react-aria-StatusLight:where([data-variant="notice"][data-hovered]) {
+  background: var(--notice);
+}
+
+.react-aria-StatusLight:where([data-variant="notice"][data-pressed]) {
+  background: var(--notice);
+}
+
+.react-aria-StatusLight:where([data-variant="negative"]) {
   background: var(--negative);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--negative);
-  }
-
-  &[data-pressed] {
-    background: var(--negative);
-  }
 }
 
-.react-aria-StatusLight[data-variant="celery"] {
+.react-aria-StatusLight:where([data-variant="negative"][data-hovered]) {
+  background: var(--negative);
+}
+
+.react-aria-StatusLight:where([data-variant="negative"][data-pressed]) {
+  background: var(--negative);
+}
+
+.react-aria-StatusLight:where([data-variant="celery"]) {
   background: var(--hue-celery);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--hue-celery);
-  }
-
-  &[data-pressed] {
-    background: var(--hue-celery);
-  }
 }
 
-.react-aria-StatusLight[data-variant="chartreuse"] {
+.react-aria-StatusLight:where([data-variant="celery"][data-hovered]) {
+  background: var(--hue-celery);
+}
+
+.react-aria-StatusLight:where([data-variant="celery"][data-pressed]) {
+  background: var(--hue-celery);
+}
+
+.react-aria-StatusLight:where([data-variant="chartreuse"]) {
   background: var(--hue-chartreuse);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--hue-chartreuse);
-  }
-
-  &[data-pressed] {
-    background: var(--hue-chartreuse);
-  }
 }
 
-.react-aria-StatusLight[data-variant="cyan"] {
+.react-aria-StatusLight:where([data-variant="chartreuse"][data-hovered]) {
+  background: var(--hue-chartreuse);
+}
+
+.react-aria-StatusLight:where([data-variant="chartreuse"][data-pressed]) {
+  background: var(--hue-chartreuse);
+}
+
+.react-aria-StatusLight:where([data-variant="cyan"]) {
   background: var(--hue-cyan);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--hue-cyan);
-  }
-
-  &[data-pressed] {
-    background: var(--hue-cyan);
-  }
 }
 
-.react-aria-StatusLight[data-variant="fuchsia"] {
+.react-aria-StatusLight:where([data-variant="cyan"][data-hovered]) {
+  background: var(--hue-cyan);
+}
+
+.react-aria-StatusLight:where([data-variant="cyan"][data-pressed]) {
+  background: var(--hue-cyan);
+}
+
+.react-aria-StatusLight:where([data-variant="fuchsia"]) {
   background: var(--hue-fuchsia);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--hue-fuchsia);
-  }
-
-  &[data-pressed] {
-    background: var(--hue-fuchsia);
-  }
 }
 
-.react-aria-StatusLight[data-variant="indigo"] {
+.react-aria-StatusLight:where([data-variant="fuchsia"][data-hovered]) {
+  background: var(--hue-fuchsia);
+}
+
+.react-aria-StatusLight:where([data-variant="fuchsia"][data-pressed]) {
+  background: var(--hue-fuchsia);
+}
+
+.react-aria-StatusLight:where([data-variant="indigo"]) {
   background: var(--hue-indigo);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--hue-indigo);
-  }
-
-  &[data-pressed] {
-    background: var(--hue-indigo);
-  }
 }
 
-.react-aria-StatusLight[data-variant="magenta"] {
+.react-aria-StatusLight:where([data-variant="indigo"][data-hovered]) {
+  background: var(--hue-indigo);
+}
+
+.react-aria-StatusLight:where([data-variant="indigo"][data-pressed]) {
+  background: var(--hue-indigo);
+}
+
+.react-aria-StatusLight:where([data-variant="magenta"]) {
   background: var(--hue-magenta);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--hue-magenta);
-  }
-
-  &[data-pressed] {
-    background: var(--hue-magenta);
-  }
 }
 
-.react-aria-StatusLight[data-variant="purple"] {
+.react-aria-StatusLight:where([data-variant="magenta"][data-hovered]) {
+  background: var(--hue-magenta);
+}
+
+.react-aria-StatusLight:where([data-variant="magenta"][data-pressed]) {
+  background: var(--hue-magenta);
+}
+
+.react-aria-StatusLight:where([data-variant="purple"]) {
   background: var(--hue-purple);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--hue-purple);
-  }
-
-  &[data-pressed] {
-    background: var(--hue-purple);
-  }
 }
 
-.react-aria-StatusLight[data-variant="yellow"] {
+.react-aria-StatusLight:where([data-variant="purple"][data-hovered]) {
+  background: var(--hue-purple);
+}
+
+.react-aria-StatusLight:where([data-variant="purple"][data-pressed]) {
+  background: var(--hue-purple);
+}
+
+.react-aria-StatusLight:where([data-variant="yellow"]) {
   background: var(--hue-yellow);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--hue-yellow);
-  }
-
-  &[data-pressed] {
-    background: var(--hue-yellow);
-  }
 }
 
-.react-aria-StatusLight[data-variant="seafoam"] {
+.react-aria-StatusLight:where([data-variant="yellow"][data-hovered]) {
+  background: var(--hue-yellow);
+}
+
+.react-aria-StatusLight:where([data-variant="yellow"][data-pressed]) {
+  background: var(--hue-yellow);
+}
+
+.react-aria-StatusLight:where([data-variant="seafoam"]) {
   background: var(--hue-seafoam);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--hue-seafoam);
-  }
-
-  &[data-pressed] {
-    background: var(--hue-seafoam);
-  }
 }
 
-.react-aria-StatusLight[data-variant="pink"] {
+.react-aria-StatusLight:where([data-variant="seafoam"][data-hovered]) {
+  background: var(--hue-seafoam);
+}
+
+.react-aria-StatusLight:where([data-variant="seafoam"][data-pressed]) {
+  background: var(--hue-seafoam);
+}
+
+.react-aria-StatusLight:where([data-variant="pink"]) {
   background: var(--hue-pink);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--hue-pink);
-  }
-
-  &[data-pressed] {
-    background: var(--hue-pink);
-  }
 }
 
-.react-aria-StatusLight[data-variant="turquoise"] {
+.react-aria-StatusLight:where([data-variant="pink"][data-hovered]) {
+  background: var(--hue-pink);
+}
+
+.react-aria-StatusLight:where([data-variant="pink"][data-pressed]) {
+  background: var(--hue-pink);
+}
+
+.react-aria-StatusLight:where([data-variant="turquoise"]) {
   background: var(--hue-turquoise);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--hue-turquoise);
-  }
-
-  &[data-pressed] {
-    background: var(--hue-turquoise);
-  }
 }
 
-.react-aria-StatusLight[data-variant="cinnamon"] {
+.react-aria-StatusLight:where([data-variant="turquoise"][data-hovered]) {
+  background: var(--hue-turquoise);
+}
+
+.react-aria-StatusLight:where([data-variant="turquoise"][data-pressed]) {
+  background: var(--hue-turquoise);
+}
+
+.react-aria-StatusLight:where([data-variant="cinnamon"]) {
   background: var(--hue-cinnamon);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--hue-cinnamon);
-  }
-
-  &[data-pressed] {
-    background: var(--hue-cinnamon);
-  }
 }
 
-.react-aria-StatusLight[data-variant="brown"] {
+.react-aria-StatusLight:where([data-variant="cinnamon"][data-hovered]) {
+  background: var(--hue-cinnamon);
+}
+
+.react-aria-StatusLight:where([data-variant="cinnamon"][data-pressed]) {
+  background: var(--hue-cinnamon);
+}
+
+.react-aria-StatusLight:where([data-variant="brown"]) {
   background: var(--hue-brown);
   color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--hue-brown);
-  }
-
-  &[data-pressed] {
-    background: var(--hue-brown);
-  }
 }
 
-.react-aria-StatusLight[data-variant="silver"] {
+.react-aria-StatusLight:where([data-variant="brown"][data-hovered]) {
+  background: var(--hue-brown);
+}
+
+.react-aria-StatusLight:where([data-variant="brown"][data-pressed]) {
+  background: var(--hue-brown);
+}
+
+.react-aria-StatusLight:where([data-variant="silver"]) {
   background: var(--hue-silver);
   color: var(--fg);
+}
 
-  &[data-hovered] {
-    background: var(--hue-silver);
-  }
+.react-aria-StatusLight:where([data-variant="silver"][data-hovered]) {
+  background: var(--hue-silver);
+}
 
-  &[data-pressed] {
-    background: var(--hue-silver);
-  }
+.react-aria-StatusLight:where([data-variant="silver"][data-pressed]) {
+  background: var(--hue-silver);
 }
 
 .react-aria-StatusLight[data-size="S"] {

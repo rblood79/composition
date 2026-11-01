@@ -32,17 +32,17 @@
   gap: 12px;
 }
 
-.react-aria-Dialog[data-variant="default"] {
+.react-aria-Dialog:where([data-variant="default"]) {
   background: var(--bg-overlay);
   color: var(--fg);
+}
 
-  &[data-hovered] {
-    background: var(--bg-overlay);
-  }
+.react-aria-Dialog:where([data-variant="default"][data-hovered]) {
+  background: var(--bg-overlay);
+}
 
-  &[data-pressed] {
-    background: var(--bg-overlay);
-  }
+.react-aria-Dialog:where([data-variant="default"][data-pressed]) {
+  background: var(--bg-overlay);
 }
 
 .react-aria-Dialog[data-size="XS"] {

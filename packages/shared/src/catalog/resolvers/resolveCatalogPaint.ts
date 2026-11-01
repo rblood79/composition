@@ -67,68 +67,55 @@ export function resolveCatalogPaint({
   const isSelected = props.isSelected === true;
   const isShowAll = props._isShowAll === true;
   // ADR-297: the state-dependent paint is the variant's condition tree (`paint`) — key order is
-  //   the priority. A variant without one paints no state colors.
-  const state = variant?.paint
-    ? treeStatePaint(variant.paint, {
-        isHovered: interactionState === "hover",
-        isPressed: interactionState === "pressed",
-        isSelected,
-        isEmphasized: props.isEmphasized === true,
-        isQuiet: props.isQuiet === true,
-        ...(typeof props.fillStyle === "string"
-          ? { fillStyle: props.fillStyle }
-          : {}),
-      })
-    : NO_STATE_PAINT;
-  const stateBackground = state.background;
-
+  //   the priority. A variant without one paints no state colors. Phase 3: the static color scheme
+  //   (`staticColor` black · white) is the tree's `staticColor` branch too — one evaluation.
   const staticColor = props.staticColor;
-  const staticHex =
-    staticColor === "black"
-      ? "#000000"
-      : staticColor === "white"
-        ? "#ffffff"
-        : undefined;
+  const staticTone =
+    staticColor === "black" || staticColor === "white" ? staticColor : undefined;
+  const conditions: ConditionSet = {
+    isHovered: interactionState === "hover",
+    isPressed: interactionState === "pressed",
+    isSelected,
+    isEmphasized: props.isEmphasized === true,
+    isQuiet: props.isQuiet === true,
+    ...(typeof props.fillStyle === "string"
+      ? { fillStyle: props.fillStyle }
+      : {}),
+  };
+  const state = variant?.paint
+    ? treeStatePaint(
+        variant.paint,
+        staticTone ? { ...conditions, staticColor: staticTone } : conditions,
+      )
+    : NO_STATE_PAINT;
+  // (the theme paint of the same state — the static overlay alpha and the track wash ask whether the
+  //  static color sits on an opaque background)
+  const themeBackground =
+    staticTone && variant?.paint
+      ? evaluatePaint(variant.paint.backgroundColor, conditions)
+      : state.background;
+
   const catalogAlpha = variant?.alpha ?? 1;
   const staticOnOpaqueBackground =
-    staticHex != null &&
+    staticTone != null &&
     !isOutline &&
     !isSubtle &&
-    stateBackground != null &&
-    stateBackground !== TRANSPARENT_TOKEN &&
+    themeBackground != null &&
+    themeBackground !== TRANSPARENT_TOKEN &&
     catalogAlpha !== 0;
   const staticTrackWash = staticOnOpaqueBackground && variant?.fillBar != null;
-  const staticTextColor =
-    staticHex == null
-      ? undefined
-      : staticOnOpaqueBackground && !staticTrackWash
-        ? staticHex === "#000000"
-          ? "#ffffff"
-          : "#000000"
-        : staticHex;
 
   const backgroundColor = isShowAll
     ? TRANSPARENT_TOKEN
     : ((style?.backgroundColor as string | undefined) ??
-      (staticOnOpaqueBackground ? staticHex : undefined) ??
-      stateBackground ??
+      state.background ??
       (isOutline ? TRANSPARENT_TOKEN : undefined));
   const color = isShowAll
     ? ACCENT_TOKEN
-    : ((style?.color as string | undefined) ?? staticTextColor ?? state.color);
+    : ((style?.color as string | undefined) ?? state.color);
 
-  const variantBorderColor = state.border;
-  const hasBorderWidthChannel =
-    size?.borderWidth != null || style?.borderWidth != null;
-  const staticBorderEligible =
-    variantBorderColor != null &&
-    (variantBorderColor !== TRANSPARENT_TOKEN || hasBorderWidthChannel);
-  // catalog 이 준 테두리 (variant colors · staticColor) — 사용자 인라인 border 는 아래 borderColor 에만.
-  const catalogBorderColor = isShowAll
-    ? undefined
-    : staticHex != null && staticBorderEligible
-      ? staticHex
-      : variantBorderColor;
+  // catalog 이 준 테두리 (variant 트리 · static 가지) — 사용자 인라인 border 는 아래 borderColor 에만.
+  const catalogBorderColor = isShowAll ? undefined : state.border;
   const borderColor = isShowAll
     ? undefined
     : ((style?.borderColor as string | undefined) ?? catalogBorderColor);
@@ -142,8 +129,8 @@ export function resolveCatalogPaint({
   //   종전엔 `!!borderColor` 가 사용자 border 를 포함해 Text 에 1px 테두리만 줘도 box 로 판정 → 텍스트가
   //   중앙 배치되고 (padding 0 이면 7줄이 상자 밖) DOM 과 갈렸다 (사용자 live 2026-09-20).
   const hasOpaqueCatalogBackground =
-    (stateBackground != null &&
-      stateBackground !== TRANSPARENT_TOKEN &&
+    (state.background != null &&
+      state.background !== TRANSPARENT_TOKEN &&
       catalogAlpha !== 0) ||
     !!catalogBorderColor;
 

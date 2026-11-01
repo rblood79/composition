@@ -29,17 +29,17 @@
   line-height: var(--catalog-token-text-xs--line-height);
 }
 
-.react-aria-FieldError[data-variant="default"] {
+.react-aria-FieldError:where([data-variant="default"]) {
   background: transparent;
   color: var(--negative);
+}
 
-  &[data-hovered] {
-    background: transparent;
-  }
+.react-aria-FieldError:where([data-variant="default"][data-hovered]) {
+  background: transparent;
+}
 
-  &[data-pressed] {
-    background: transparent;
-  }
+.react-aria-FieldError:where([data-variant="default"][data-pressed]) {
+  background: transparent;
 }
 
 .react-aria-FieldError[data-size="XS"] {

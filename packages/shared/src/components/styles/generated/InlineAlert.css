@@ -34,129 +34,124 @@
   gap: 12px;
 }
 
-.react-aria-InlineAlert[data-variant="neutral"] {
+.react-aria-InlineAlert:where([data-variant="neutral"]) {
   background: var(--fg-muted);
   color: var(--color-white);
   border-color: var(--fg-muted);
-
-  &[data-hovered] {
-    background: var(--fg-muted);
-  }
-
-  &[data-pressed] {
-    background: var(--fg-muted);
-  }
 }
 
-.react-aria-InlineAlert[data-variant="neutral"][data-fill-style="border"] {
+.react-aria-InlineAlert:where([data-variant="neutral"][data-hovered]) {
+  background: var(--fg-muted);
+}
+
+.react-aria-InlineAlert:where([data-variant="neutral"][data-pressed]) {
+  background: var(--fg-muted);
+}
+
+.react-aria-InlineAlert:where([data-variant="neutral"][data-fill-style="border"]) {
   background: var(--bg);
   color: var(--fg);
 }
 
-.react-aria-InlineAlert[data-variant="neutral"][data-fill-style="subtleFill"] {
+.react-aria-InlineAlert:where([data-variant="neutral"][data-fill-style="subtleFill"]) {
   background: var(--bg-muted);
   color: var(--fg);
-  border-color: transparent;
 }
 
-.react-aria-InlineAlert[data-variant="informative"] {
+.react-aria-InlineAlert:where([data-variant="informative"]) {
   background: var(--informative);
   color: var(--color-white);
   border-color: var(--informative);
-
-  &[data-hovered] {
-    background: var(--informative);
-  }
-
-  &[data-pressed] {
-    background: var(--informative);
-  }
 }
 
-.react-aria-InlineAlert[data-variant="informative"][data-fill-style="border"] {
+.react-aria-InlineAlert:where([data-variant="informative"][data-hovered]) {
+  background: var(--informative);
+}
+
+.react-aria-InlineAlert:where([data-variant="informative"][data-pressed]) {
+  background: var(--informative);
+}
+
+.react-aria-InlineAlert:where([data-variant="informative"][data-fill-style="border"]) {
   background: var(--bg);
   color: var(--fg);
 }
 
-.react-aria-InlineAlert[data-variant="informative"][data-fill-style="subtleFill"] {
+.react-aria-InlineAlert:where([data-variant="informative"][data-fill-style="subtleFill"]) {
   background: var(--informative-subtle);
   color: var(--fg);
-  border-color: transparent;
 }
 
-.react-aria-InlineAlert[data-variant="positive"] {
+.react-aria-InlineAlert:where([data-variant="positive"]) {
   background: var(--positive);
   color: var(--color-white);
   border-color: var(--positive);
-
-  &[data-hovered] {
-    background: var(--positive);
-  }
-
-  &[data-pressed] {
-    background: var(--positive);
-  }
 }
 
-.react-aria-InlineAlert[data-variant="positive"][data-fill-style="border"] {
+.react-aria-InlineAlert:where([data-variant="positive"][data-hovered]) {
+  background: var(--positive);
+}
+
+.react-aria-InlineAlert:where([data-variant="positive"][data-pressed]) {
+  background: var(--positive);
+}
+
+.react-aria-InlineAlert:where([data-variant="positive"][data-fill-style="border"]) {
   background: var(--bg);
   color: var(--fg);
 }
 
-.react-aria-InlineAlert[data-variant="positive"][data-fill-style="subtleFill"] {
+.react-aria-InlineAlert:where([data-variant="positive"][data-fill-style="subtleFill"]) {
   background: var(--positive-subtle);
   color: var(--fg);
-  border-color: transparent;
 }
 
-.react-aria-InlineAlert[data-variant="notice"] {
+.react-aria-InlineAlert:where([data-variant="notice"]) {
   background: var(--notice);
   color: var(--color-black);
   border-color: var(--notice);
-
-  &[data-hovered] {
-    background: var(--notice);
-  }
-
-  &[data-pressed] {
-    background: var(--notice);
-  }
 }
 
-.react-aria-InlineAlert[data-variant="notice"][data-fill-style="border"] {
+.react-aria-InlineAlert:where([data-variant="notice"][data-hovered]) {
+  background: var(--notice);
+}
+
+.react-aria-InlineAlert:where([data-variant="notice"][data-pressed]) {
+  background: var(--notice);
+}
+
+.react-aria-InlineAlert:where([data-variant="notice"][data-fill-style="border"]) {
   background: var(--bg);
   color: var(--fg);
 }
 
-.react-aria-InlineAlert[data-variant="notice"][data-fill-style="subtleFill"] {
+.react-aria-InlineAlert:where([data-variant="notice"][data-fill-style="subtleFill"]) {
   background: var(--notice-subtle);
   color: var(--fg);
-  border-color: transparent;
 }
 
-.react-aria-InlineAlert[data-variant="negative"] {
+.react-aria-InlineAlert:where([data-variant="negative"]) {
   background: var(--negative);
   color: var(--color-white);
   border-color: var(--negative);
-
-  &[data-hovered] {
-    background: var(--negative);
-  }
-
-  &[data-pressed] {
-    background: var(--negative);
-  }
 }
 
-.react-aria-InlineAlert[data-variant="negative"][data-fill-style="border"] {
+.react-aria-InlineAlert:where([data-variant="negative"][data-hovered]) {
+  background: var(--negative);
+}
+
+.react-aria-InlineAlert:where([data-variant="negative"][data-pressed]) {
+  background: var(--negative);
+}
+
+.react-aria-InlineAlert:where([data-variant="negative"][data-fill-style="border"]) {
   background: var(--bg);
   color: var(--fg);
 }
 
-.react-aria-InlineAlert[data-variant="negative"][data-fill-style="subtleFill"] {
+.react-aria-InlineAlert:where([data-variant="negative"][data-fill-style="subtleFill"]) {
   background: var(--negative-subtle);
   color: var(--fg);
-  border-color: transparent;
 }
 
 .react-aria-InlineAlert[data-size="S"] {

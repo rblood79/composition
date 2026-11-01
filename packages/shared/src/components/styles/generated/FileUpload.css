@@ -30,18 +30,9 @@
   gap: 12px;
 }
 
-.react-aria-FileUpload[data-variant="default"] {
+.react-aria-FileUpload:where([data-variant="default"]) {
   background: transparent;
   color: var(--fg);
-  background: transparent;
-
-  &[data-hovered] {
-    background: transparent;
-  }
-
-  &[data-pressed] {
-    background: transparent;
-  }
 }
 
 .react-aria-FileUpload[data-focus-visible] {

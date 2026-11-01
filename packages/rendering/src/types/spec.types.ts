@@ -307,6 +307,9 @@ export interface ComponentSpec<Props = Record<string, unknown>> {
    */
   cssEmitMode?: "direct" | "button-base";
 
+  /** ADR-297 Phase 3 — the default-variant base block sets only `border-color` (catalog `structure.defaultBorder`). */
+  defaultBorderColorOnly?: boolean;
+
   /**
    * variants CSS 자동 emit skip (default: false).
    *

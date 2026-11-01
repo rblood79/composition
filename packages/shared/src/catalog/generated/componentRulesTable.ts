@@ -1373,11 +1373,47 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             fillStyle: {
               outline: "{color.transparent}",
             },
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+                fillStyle: {
+                  outline: "{color.transparent}",
+                },
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+                fillStyle: {
+                  outline: "{color.transparent}",
+                },
+              },
+            },
           },
           color: {
             default: "{color.on-accent}",
             fillStyle: {
               outline: "{color.accent-content}",
+            },
+            staticColor: {
+              black: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+                fillStyle: {
+                  outline: "#000000",
+                },
+              },
+              white: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+                fillStyle: {
+                  outline: "#ffffff",
+                },
+              },
             },
           },
           borderColor: {
@@ -1385,6 +1421,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             isHovered: "{color.accent-hover}",
             fillStyle: {
               outline: "{color.border-hover}",
+            },
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                fillStyle: {
+                  outline: "#000000",
+                },
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                fillStyle: {
+                  outline: "#ffffff",
+                },
+              },
             },
           },
         },
@@ -1400,11 +1452,47 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             fillStyle: {
               outline: "{color.transparent}",
             },
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+                fillStyle: {
+                  outline: "{color.transparent}",
+                },
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+                fillStyle: {
+                  outline: "{color.transparent}",
+                },
+              },
+            },
           },
           color: {
             default: "{color.base}",
             fillStyle: {
               outline: "{color.neutral}",
+            },
+            staticColor: {
+              black: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+                fillStyle: {
+                  outline: "#000000",
+                },
+              },
+              white: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+                fillStyle: {
+                  outline: "#ffffff",
+                },
+              },
             },
           },
           borderColor: {
@@ -1412,6 +1500,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             isHovered: "{color.neutral-fill-hover}",
             fillStyle: {
               outline: "{color.border-hover}",
+            },
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                fillStyle: {
+                  outline: "#000000",
+                },
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                fillStyle: {
+                  outline: "#ffffff",
+                },
+              },
             },
           },
         },
@@ -1425,17 +1529,67 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             fillStyle: {
               outline: "{color.transparent}",
             },
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+                fillStyle: {
+                  outline: "{color.transparent}",
+                },
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+                fillStyle: {
+                  outline: "{color.transparent}",
+                },
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
             fillStyle: {
               outline: "{color.neutral}",
             },
+            staticColor: {
+              black: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+                fillStyle: {
+                  outline: "#000000",
+                },
+              },
+              white: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+                fillStyle: {
+                  outline: "#ffffff",
+                },
+              },
+            },
           },
           borderColor: {
             default: "{color.border}",
             fillStyle: {
               outline: "{color.border-hover}",
+            },
+            staticColor: {
+              black: {
+                default: "#000000",
+                fillStyle: {
+                  outline: "#000000",
+                },
+              },
+              white: {
+                default: "#ffffff",
+                fillStyle: {
+                  outline: "#ffffff",
+                },
+              },
             },
           },
         },
@@ -1449,11 +1603,47 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             fillStyle: {
               outline: "{color.transparent}",
             },
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+                fillStyle: {
+                  outline: "{color.transparent}",
+                },
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+                fillStyle: {
+                  outline: "{color.transparent}",
+                },
+              },
+            },
           },
           color: {
             default: "{color.on-negative}",
             fillStyle: {
               outline: "{color.negative}",
+            },
+            staticColor: {
+              black: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+                fillStyle: {
+                  outline: "#000000",
+                },
+              },
+              white: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+                fillStyle: {
+                  outline: "#ffffff",
+                },
+              },
             },
           },
           borderColor: {
@@ -1461,6 +1651,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             isHovered: "{color.negative-hover}",
             fillStyle: {
               outline: "{color.border-hover}",
+            },
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                fillStyle: {
+                  outline: "#000000",
+                },
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                fillStyle: {
+                  outline: "#ffffff",
+                },
+              },
             },
           },
         },
@@ -1474,11 +1680,47 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             fillStyle: {
               outline: "{color.transparent}",
             },
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+                fillStyle: {
+                  outline: "{color.transparent}",
+                },
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+                fillStyle: {
+                  outline: "{color.transparent}",
+                },
+              },
+            },
           },
           color: {
             default: "{color.white}",
             fillStyle: {
               outline: "{color.purple}",
+            },
+            staticColor: {
+              black: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+                fillStyle: {
+                  outline: "#000000",
+                },
+              },
+              white: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+                fillStyle: {
+                  outline: "#ffffff",
+                },
+              },
             },
           },
           borderColor: {
@@ -1486,6 +1728,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             isHovered: "{color.purple-hover}",
             fillStyle: {
               outline: "{color.border-hover}",
+            },
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                fillStyle: {
+                  outline: "#000000",
+                },
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                fillStyle: {
+                  outline: "#ffffff",
+                },
+              },
             },
           },
         },
@@ -1499,11 +1757,47 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             fillStyle: {
               outline: "{color.transparent}",
             },
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+                fillStyle: {
+                  outline: "{color.transparent}",
+                },
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+                fillStyle: {
+                  outline: "{color.transparent}",
+                },
+              },
+            },
           },
           color: {
             default: "{color.white}",
             fillStyle: {
               outline: "{color.purple}",
+            },
+            staticColor: {
+              black: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+                fillStyle: {
+                  outline: "#000000",
+                },
+              },
+              white: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+                fillStyle: {
+                  outline: "#ffffff",
+                },
+              },
             },
           },
           borderColor: {
@@ -1511,6 +1805,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             isHovered: "{color.purple-hover}",
             fillStyle: {
               outline: "{color.border-hover}",
+            },
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                fillStyle: {
+                  outline: "#000000",
+                },
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                fillStyle: {
+                  outline: "#ffffff",
+                },
+              },
             },
           },
         },
@@ -1617,7 +1927,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           focusRing: "{focus.ring.default}",
         },
       },
-      cssEmitMode: "button-base",
+      // ADR-297 Phase 3: paint = the variant trees (generated `:where` blocks) — the class stays for
+      //   the Skia child-color gate and the Builder chrome ramp (`.button-base:not([data-catalog-id])`).
+      buttonBase: true,
+      defaultBorder: "color",
       composition: {
         delegation: [],
         rootSelectors: FIELD_BUTTON_CORNER_SELECTORS,
@@ -7162,9 +7475,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.transparent}",
             isHovered: "{color.transparent}",
             isPressed: "{color.transparent}",
+            staticColor: {
+              black: {
+                default: "{color.transparent}",
+                isHovered: "{color.transparent}",
+                isPressed: "{color.transparent}",
+              },
+              white: {
+                default: "{color.transparent}",
+                isHovered: "{color.transparent}",
+                isPressed: "{color.transparent}",
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
         },
 
@@ -7245,10 +7582,34 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.base}",
             isHovered: "{color.base}",
             isPressed: "{color.base}",
+            staticColor: {
+              black: {
+                default: "{color.base}",
+                isHovered: "{color.base}",
+                isPressed: "{color.base}",
+              },
+              white: {
+                default: "{color.base}",
+                isHovered: "{color.base}",
+                isPressed: "{color.base}",
+              },
+            },
           },
           color: {
             default: "{color.accent-content}",
             isHovered: "{color.accent-content-hover}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
         },
         alpha: 0,
@@ -7262,10 +7623,34 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.base}",
             isHovered: "{color.base}",
             isPressed: "{color.base}",
+            staticColor: {
+              black: {
+                default: "{color.base}",
+                isHovered: "{color.base}",
+                isPressed: "{color.base}",
+              },
+              white: {
+                default: "{color.base}",
+                isHovered: "{color.base}",
+                isPressed: "{color.base}",
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
             isHovered: "{color.accent-content}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
         },
         alpha: 0,
@@ -8135,9 +8520,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.transparent}",
             isHovered: "{color.transparent}",
             isPressed: "{color.transparent}",
+            staticColor: {
+              black: {
+                default: "{color.transparent}",
+                isHovered: "{color.transparent}",
+                isPressed: "{color.transparent}",
+              },
+              white: {
+                default: "{color.transparent}",
+                isHovered: "{color.transparent}",
+                isPressed: "{color.transparent}",
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
         },
       },
@@ -8147,9 +8556,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.transparent}",
             isHovered: "{color.transparent}",
             isPressed: "{color.transparent}",
+            staticColor: {
+              black: {
+                default: "{color.transparent}",
+                isHovered: "{color.transparent}",
+                isPressed: "{color.transparent}",
+              },
+              white: {
+                default: "{color.transparent}",
+                isHovered: "{color.transparent}",
+                isPressed: "{color.transparent}",
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
         },
       },
@@ -8160,9 +8593,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.transparent}",
             isHovered: "{color.transparent}",
             isPressed: "{color.transparent}",
+            staticColor: {
+              black: {
+                default: "{color.transparent}",
+                isHovered: "{color.transparent}",
+                isPressed: "{color.transparent}",
+              },
+              white: {
+                default: "{color.transparent}",
+                isHovered: "{color.transparent}",
+                isPressed: "{color.transparent}",
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
         },
       },
@@ -8173,9 +8630,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.transparent}",
             isHovered: "{color.transparent}",
             isPressed: "{color.transparent}",
+            staticColor: {
+              black: {
+                default: "{color.transparent}",
+                isHovered: "{color.transparent}",
+                isPressed: "{color.transparent}",
+              },
+              white: {
+                default: "{color.transparent}",
+                isHovered: "{color.transparent}",
+                isPressed: "{color.transparent}",
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
         },
       },
@@ -8381,9 +8862,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.informative}",
             isHovered: "{color.informative}",
             isPressed: "{color.informative}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
+            staticColor: {
+              black: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+              white: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+            },
           },
         },
 
@@ -8396,9 +8901,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.positive}",
             isHovered: "{color.positive}",
             isPressed: "{color.positive}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
+            staticColor: {
+              black: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+              white: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+            },
           },
         },
 
@@ -8412,9 +8941,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.notice}",
             isHovered: "{color.notice}",
             isPressed: "{color.notice}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
+            staticColor: {
+              black: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+              white: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+            },
           },
         },
 
@@ -8428,9 +8981,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.negative}",
             isHovered: "{color.negative}",
             isPressed: "{color.negative}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
+            staticColor: {
+              black: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+              white: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+            },
           },
         },
 
@@ -8466,9 +9043,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.neutral-subtle}",
             isHovered: "{color.neutral-subtle}",
             isPressed: "{color.neutral-subtle}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
         },
 
@@ -8483,9 +9084,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.neutral-subtle}",
             isHovered: "{color.neutral-subtle}",
             isPressed: "{color.neutral-subtle}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
         },
 
@@ -8501,9 +9126,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.neutral-subtle}",
             isHovered: "{color.neutral-subtle}",
             isPressed: "{color.neutral-subtle}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
         },
 
@@ -8519,9 +9168,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.neutral-subtle}",
             isHovered: "{color.neutral-subtle}",
             isPressed: "{color.neutral-subtle}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
         },
 
@@ -8581,9 +9254,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.transparent}",
             isHovered: "{color.transparent}",
             isPressed: "{color.transparent}",
+            staticColor: {
+              black: {
+                default: "{color.transparent}",
+                isHovered: "{color.transparent}",
+                isPressed: "{color.transparent}",
+              },
+              white: {
+                default: "{color.transparent}",
+                isHovered: "{color.transparent}",
+                isPressed: "{color.transparent}",
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
         },
       },
@@ -8593,9 +9290,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.transparent}",
             isHovered: "{color.transparent}",
             isPressed: "{color.transparent}",
+            staticColor: {
+              black: {
+                default: "{color.transparent}",
+                isHovered: "{color.transparent}",
+                isPressed: "{color.transparent}",
+              },
+              white: {
+                default: "{color.transparent}",
+                isHovered: "{color.transparent}",
+                isPressed: "{color.transparent}",
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
         },
       },
@@ -8606,9 +9327,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.transparent}",
             isHovered: "{color.transparent}",
             isPressed: "{color.transparent}",
+            staticColor: {
+              black: {
+                default: "{color.transparent}",
+                isHovered: "{color.transparent}",
+                isPressed: "{color.transparent}",
+              },
+              white: {
+                default: "{color.transparent}",
+                isHovered: "{color.transparent}",
+                isPressed: "{color.transparent}",
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
         },
       },
@@ -8619,9 +9364,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.transparent}",
             isHovered: "{color.transparent}",
             isPressed: "{color.transparent}",
+            staticColor: {
+              black: {
+                default: "{color.transparent}",
+                isHovered: "{color.transparent}",
+                isPressed: "{color.transparent}",
+              },
+              white: {
+                default: "{color.transparent}",
+                isHovered: "{color.transparent}",
+                isPressed: "{color.transparent}",
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
         },
       },
@@ -9283,9 +10052,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.transparent}",
             isHovered: "{color.transparent}",
             isPressed: "{color.transparent}",
+            staticColor: {
+              black: {
+                default: "{color.transparent}",
+                isHovered: "{color.transparent}",
+                isPressed: "{color.transparent}",
+              },
+              white: {
+                default: "{color.transparent}",
+                isHovered: "{color.transparent}",
+                isPressed: "{color.transparent}",
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
         },
       },
@@ -9512,9 +10305,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.accent-subtle}",
             isHovered: "{color.accent-subtle}",
             isPressed: "{color.accent-subtle}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
         },
 
@@ -9578,9 +10395,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.accent-content}",
             isHovered: "{color.accent-content}",
             isPressed: "{color.accent-content}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
+            staticColor: {
+              black: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+              white: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+            },
           },
         },
 
@@ -9613,9 +10454,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.transparent}",
             isHovered: "{color.transparent}",
             isPressed: "{color.transparent}",
+            staticColor: {
+              black: {
+                default: "{color.transparent}",
+                isHovered: "{color.transparent}",
+                isPressed: "{color.transparent}",
+              },
+              white: {
+                default: "{color.transparent}",
+                isHovered: "{color.transparent}",
+                isPressed: "{color.transparent}",
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
         },
       },
@@ -9664,9 +10529,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.neutral-subtle}",
             isHovered: "{color.neutral-subtle}",
             isPressed: "{color.neutral-subtle}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
+            staticColor: {
+              black: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+              white: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+            },
           },
         },
       },
@@ -10882,12 +11771,44 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.base}",
             isHovered: "{color.base}",
             isPressed: "{color.base}",
+            staticColor: {
+              black: {
+                default: "{color.base}",
+                isHovered: "{color.base}",
+                isPressed: "{color.base}",
+              },
+              white: {
+                default: "{color.base}",
+                isHovered: "{color.base}",
+                isPressed: "{color.base}",
+              },
+            },
           },
           color: {
             default: "{color.border}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
           borderColor: {
             default: "{color.border}",
+            staticColor: {
+              black: {
+                default: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+              },
+            },
           },
         },
         alpha: 0,
@@ -14098,6 +15019,36 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               default: "{color.neutral}",
               isEmphasized: "{color.accent}",
             },
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+                isQuiet: {
+                  default: "{color.transparent}",
+                  isHovered: "#000000",
+                  isPressed: "#000000",
+                },
+                isSelected: {
+                  default: "#000000",
+                  isEmphasized: "#000000",
+                },
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+                isQuiet: {
+                  default: "{color.transparent}",
+                  isHovered: "#ffffff",
+                  isPressed: "#ffffff",
+                },
+                isSelected: {
+                  default: "#ffffff",
+                  isEmphasized: "#ffffff",
+                },
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
@@ -14105,12 +15056,58 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               default: "{color.base}",
               isEmphasized: "{color.on-accent}",
             },
+            staticColor: {
+              black: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+                isQuiet: {
+                  default: "#000000",
+                  isHovered: "#ffffff",
+                  isPressed: "#ffffff",
+                },
+                isSelected: {
+                  default: "#ffffff",
+                  isEmphasized: "#ffffff",
+                },
+              },
+              white: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+                isQuiet: {
+                  default: "#ffffff",
+                  isHovered: "#000000",
+                  isPressed: "#000000",
+                },
+                isSelected: {
+                  default: "#000000",
+                  isEmphasized: "#000000",
+                },
+              },
+            },
           },
           borderColor: {
             default: "{color.transparent}",
             isSelected: {
               default: "{color.neutral}",
               isEmphasized: "{color.accent}",
+            },
+            staticColor: {
+              black: {
+                default: "#000000",
+                isSelected: {
+                  default: "#000000",
+                  isEmphasized: "#000000",
+                },
+              },
+              white: {
+                default: "#ffffff",
+                isSelected: {
+                  default: "#ffffff",
+                  isEmphasized: "#ffffff",
+                },
+              },
             },
           },
         },
@@ -14202,7 +15199,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           focusRing: "{focus.ring.default}",
         },
       },
-      cssEmitMode: "button-base",
+      // ADR-297 Phase 3: paint = the variant trees (generated `:where` blocks) — the class stays for
+      //   the Skia child-color gate and the Builder chrome ramp (`.button-base:not([data-catalog-id])`).
+      buttonBase: true,
+      defaultBorder: "color",
     },
   },
   ToggleButtonGroup: {
@@ -14243,12 +15243,44 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.transparent}",
             isHovered: "{color.transparent}",
             isPressed: "{color.transparent}",
+            staticColor: {
+              black: {
+                default: "{color.transparent}",
+                isHovered: "{color.transparent}",
+                isPressed: "{color.transparent}",
+              },
+              white: {
+                default: "{color.transparent}",
+                isHovered: "{color.transparent}",
+                isPressed: "{color.transparent}",
+              },
+            },
           },
           color: {
             default: "{color.neutral}",
+            staticColor: {
+              black: {
+                default: "#000000",
+                isHovered: "#000000",
+                isPressed: "#000000",
+              },
+              white: {
+                default: "#ffffff",
+                isHovered: "#ffffff",
+                isPressed: "#ffffff",
+              },
+            },
           },
           borderColor: {
             default: "{color.transparent}",
+            staticColor: {
+              black: {
+                default: "{color.transparent}",
+              },
+              white: {
+                default: "{color.transparent}",
+              },
+            },
           },
         },
       },

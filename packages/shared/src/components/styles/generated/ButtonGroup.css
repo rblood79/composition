@@ -26,18 +26,18 @@
   border-radius: var(--catalog-token-radius-md);
 }
 
-.react-aria-ButtonGroup[data-variant="default"] {
+.react-aria-ButtonGroup:where([data-variant="default"]) {
   background: transparent;
   color: var(--fg);
   border-color: transparent;
+}
 
-  &[data-hovered] {
-    background: transparent;
-  }
+.react-aria-ButtonGroup:where([data-variant="default"][data-hovered]) {
+  background: transparent;
+}
 
-  &[data-pressed] {
-    background: transparent;
-  }
+.react-aria-ButtonGroup:where([data-variant="default"][data-pressed]) {
+  background: transparent;
 }
 
 .react-aria-ButtonGroup[data-size="XS"] {

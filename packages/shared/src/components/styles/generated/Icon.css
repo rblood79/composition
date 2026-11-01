@@ -29,17 +29,17 @@
   --icon-size: var(--catalog-token-icon-icon-size-M, var(--catalog-token-size-icon-M));
 }
 
-.react-aria-Icon[data-variant="default"] {
+.react-aria-Icon:where([data-variant="default"]) {
   background: transparent;
   color: var(--fg);
+}
 
-  &[data-hovered] {
-    background: transparent;
-  }
+.react-aria-Icon:where([data-variant="default"][data-hovered]) {
+  background: transparent;
+}
 
-  &[data-pressed] {
-    background: transparent;
-  }
+.react-aria-Icon:where([data-variant="default"][data-pressed]) {
+  background: transparent;
 }
 
 .react-aria-Icon[data-size="XS"] {

@@ -25,17 +25,17 @@
   gap: 12px;
 }
 
-.react-aria-Nav[data-variant="default"] {
+.react-aria-Nav:where([data-variant="default"]) {
   background: var(--bg);
   color: var(--fg);
+}
 
-  &[data-hovered] {
-    background: var(--bg);
-  }
+.react-aria-Nav:where([data-variant="default"][data-hovered]) {
+  background: var(--bg);
+}
 
-  &[data-pressed] {
-    background: var(--bg);
-  }
+.react-aria-Nav:where([data-variant="default"][data-pressed]) {
+  background: var(--bg);
 }
 
 .react-aria-Nav[data-size="S"] {

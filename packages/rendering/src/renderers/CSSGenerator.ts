@@ -263,6 +263,11 @@ export function generateCSS<Props>(
    * 읽혀 DOM CSS 와 Skia runtime rule 이 같은 정본 table 파생이 된다. 미제공(undefined) variant 는 skip.
    */
   _variantSource?: Record<string, ComponentVisualRule>,
+  /**
+   * ADR-297 Phase 3 — the variants' paint compiled from their condition trees (`generate-css.ts`
+   * `variantPaintCssFor`). When given it replaces the legacy per-variant blocks below.
+   */
+  _variantPaintCss?: readonly string[],
 ): string | null {
   // Container/Composite 컴포넌트: 수동 CSS가 구조 담당, Spec은 Skia용.
   if (spec.skipCSSGeneration) return null;
@@ -316,6 +321,14 @@ export function generateCSS<Props>(
     spec.containerStyles?.border
   );
   if (
+    !compositionOwnsContainerBox(spec) &&
+    !containerHasColors &&
+    spec.variants != null &&
+    !spec.skipVariantCss &&
+    _variantPaintCss
+  )
+    lines.push(..._variantPaintCss);
+  else if (
     !compositionOwnsContainerBox(spec) &&
     !containerHasColors &&
     spec.variants != null &&
@@ -846,7 +859,7 @@ function generateBaseStyles<Props>(spec: ComponentSpec<Props>): string[] {
     if (defaultVariant.border && !omitContainerBorder) {
       // ADR-227 P3: 숫자 → px · `{border.width.*}` → var · 미지정 → thin 변수 (종전 `?? 1`)
       const bw = borderWidthToCSS(defaultSize?.borderWidth);
-      if (mode === "button-base") {
+      if (mode === "button-base" || spec.defaultBorderColorOnly) {
         lines.push(
           emitColorLine("border", tokenToCSSVar(defaultVariant.border), mode),
         );

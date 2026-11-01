@@ -31,17 +31,17 @@
   --icon-size: 26px;
 }
 
-.react-aria-Calendar[data-variant="default"] {
+.react-aria-Calendar:where([data-variant="default"]) {
   background: transparent;
   color: var(--fg);
+}
 
-  &[data-hovered] {
-    background: transparent;
-  }
+.react-aria-Calendar:where([data-variant="default"][data-hovered]) {
+  background: transparent;
+}
 
-  &[data-pressed] {
-    background: transparent;
-  }
+.react-aria-Calendar:where([data-variant="default"][data-pressed]) {
+  background: transparent;
 }
 
 .react-aria-Calendar[data-focus-visible] {

@@ -31,17 +31,47 @@
   border-radius: var(--catalog-token-radius-sm);
 }
 
-.react-aria-ProgressBarTrack[data-variant="default"] {
+.react-aria-ProgressBarTrack:where([data-variant="default"]) {
   background: var(--accent-subtle);
   color: var(--fg);
+}
 
-  &[data-hovered] {
-    background: var(--accent-subtle);
-  }
+.react-aria-ProgressBarTrack:where([data-variant="default"][data-hovered]) {
+  background: var(--accent-subtle);
+}
 
-  &[data-pressed] {
-    background: var(--accent-subtle);
-  }
+.react-aria-ProgressBarTrack:where([data-variant="default"][data-pressed]) {
+  background: var(--accent-subtle);
+}
+
+.react-aria-ProgressBarTrack:where([data-variant="default"][data-static-color="black"]) {
+  background: #000000;
+  color: #000000;
+}
+
+.react-aria-ProgressBarTrack:where([data-variant="default"][data-static-color="black"][data-hovered]) {
+  background: #000000;
+  color: #000000;
+}
+
+.react-aria-ProgressBarTrack:where([data-variant="default"][data-static-color="black"][data-pressed]) {
+  background: #000000;
+  color: #000000;
+}
+
+.react-aria-ProgressBarTrack:where([data-variant="default"][data-static-color="white"]) {
+  background: #ffffff;
+  color: #ffffff;
+}
+
+.react-aria-ProgressBarTrack:where([data-variant="default"][data-static-color="white"][data-hovered]) {
+  background: #ffffff;
+  color: #ffffff;
+}
+
+.react-aria-ProgressBarTrack:where([data-variant="default"][data-static-color="white"][data-pressed]) {
+  background: #ffffff;
+  color: #ffffff;
 }
 
 .react-aria-ProgressBarTrack[data-size="S"] {

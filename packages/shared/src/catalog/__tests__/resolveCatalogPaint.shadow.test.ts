@@ -234,7 +234,9 @@ describe("resolveCatalogPaint — 기존 Skia shadow parity", () => {
           if (
             (caseProps.isSelected === true && !reach.selectable) ||
             (typeof caseProps.fillStyle === "string" &&
-              !reach.fillStyles?.includes(caseProps.fillStyle))
+              !reach.fillStyles?.includes(caseProps.fillStyle)) ||
+            // (Phase 3: the static scheme is the tree's `staticColor` branch — where staticColor reaches)
+            (typeof caseProps.staticColor === "string" && !reach.staticColor)
           )
             continue;
           const style = caseProps.style as
@@ -317,7 +319,11 @@ describe("resolveCatalogPaint — 기존 Skia shadow parity", () => {
     // ADR-297 Phase 1 (2026-11-01): 닿는 입력만 — selected 는 선택될 수 있는 rule, fillStyle 은 binding 이 받는 값
     //   (`rulePaintReach`). 6,840 → 3,387 (빠진 3,453 행 = 어떤 컴포넌트도 만들지 못하는 입력 — Button 의 selected ·
     //   subtle 등). diffs 0 유지.
-    expect(compared).toBe(3_387);
+    // ADR-297 Phase 3 (2026-11-01): static 은 트리의 `staticColor` 가지 (codemod `adr297-static-to-tree.ts`) —
+    //   static 입력은 staticColor 가 닿는 rule 만 (`rulePaintReach` — binding 이 받거나 ProgressBar · Meter 파생).
+    //   3,387 → 2,238 (빠진 1,149 행 = staticColor 를 받지 못하는 rule 의 static 입력). diffs 0 유지 — 이 사본의
+    //   옛 static 판정이 codemod 의 oracle.
+    expect(compared).toBe(2_238);
     expect(diffs.slice(0, 20)).toEqual([]);
   });
 });

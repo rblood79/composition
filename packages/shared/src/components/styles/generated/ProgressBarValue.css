@@ -32,17 +32,47 @@
   line-height: var(--catalog-token-text-sm--line-height);
 }
 
-.react-aria-ProgressBarValue[data-variant="default"] {
+.react-aria-ProgressBarValue:where([data-variant="default"]) {
   background: transparent;
   color: var(--fg);
+}
 
-  &[data-hovered] {
-    background: transparent;
-  }
+.react-aria-ProgressBarValue:where([data-variant="default"][data-hovered]) {
+  background: transparent;
+}
 
-  &[data-pressed] {
-    background: transparent;
-  }
+.react-aria-ProgressBarValue:where([data-variant="default"][data-pressed]) {
+  background: transparent;
+}
+
+.react-aria-ProgressBarValue:where([data-variant="default"][data-static-color="black"]) {
+  background: transparent;
+  color: #000000;
+}
+
+.react-aria-ProgressBarValue:where([data-variant="default"][data-static-color="black"][data-hovered]) {
+  background: transparent;
+  color: #000000;
+}
+
+.react-aria-ProgressBarValue:where([data-variant="default"][data-static-color="black"][data-pressed]) {
+  background: transparent;
+  color: #000000;
+}
+
+.react-aria-ProgressBarValue:where([data-variant="default"][data-static-color="white"]) {
+  background: transparent;
+  color: #ffffff;
+}
+
+.react-aria-ProgressBarValue:where([data-variant="default"][data-static-color="white"][data-hovered]) {
+  background: transparent;
+  color: #ffffff;
+}
+
+.react-aria-ProgressBarValue:where([data-variant="default"][data-static-color="white"][data-pressed]) {
+  background: transparent;
+  color: #ffffff;
 }
 
 .react-aria-ProgressBarValue[data-size="S"] {

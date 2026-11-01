@@ -91,7 +91,15 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
       effectiveEntries(baseline.entries as Record<string, string>),
     );
     const after = normalizedEntries(effectiveEntries(now.entries));
+    // (ADR-297 Phase 3: ToggleButton's `--button-*` paint variables left the generated sheet — the
+    //  catalog paint is the tree's `:where` blocks — and live on in `ToggleButton.css` for the Builder's
+    //  own buttons under the same selectors; `adr297DomPaintParity.browser.test.ts` (Builder bundle)
+    //  measures those widgets' computed paint unchanged. Not a dimension of this gate.)
+    const movedPaintVariable = (key: string) =>
+      key.startsWith("generated/ToggleButton.css ›") &&
+      / \| --button-/.test(key);
     const changed = Object.entries(before)
+      .filter(([key]) => !movedPaintVariable(key))
       .filter(([key, value]) => after[key] !== value)
       .map(([key, value]) => `${key}: ${value} → ${after[key]}`);
     expect(changed).toEqual([]);

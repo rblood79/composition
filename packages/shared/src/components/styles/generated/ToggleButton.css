@@ -27,9 +27,9 @@
   justify-content: center;
 
   /* Default variant */
-  --button-color: var(--bg-muted);
-  --button-text: var(--fg);
-  --button-border: transparent;
+  background: var(--bg-muted);
+  color: var(--fg);
+  border-color: transparent;
 
   /* Default size */
   padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-toggle-button-padding-x-M, calc(var(--catalog-token-size-height-M) * 3 / 8));
@@ -43,37 +43,128 @@
   --icon-size: var(--catalog-token-toggle-button-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
 }
 
-.react-aria-ToggleButton[data-variant="default"] {
-  --button-color: var(--bg-muted);
-  --button-text: var(--fg);
-  --button-color-hover: var(--neutral-hover);
-  --button-color-pressed: var(--neutral-pressed);
-  --button-border: transparent;
-
-
-  &[data-selected] {
-    --button-color: var(--fg);
-    --button-text: var(--bg);
-    --button-border: var(--fg);
-  }
-
-  &[data-emphasized][data-selected] {
-    --button-color: var(--accent);
-    --button-text: var(--fg-on-accent);
-    --button-border: var(--accent);
-  }
+.react-aria-ToggleButton:where([data-variant="default"]) {
+  background: var(--bg-muted);
+  color: var(--fg);
+  border-color: transparent;
 }
 
-.react-aria-ToggleButton[data-variant="default"][data-quiet] {
-  --button-color: transparent;
+.react-aria-ToggleButton:where([data-variant="default"][data-hovered]) {
+  background: var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black));
 }
 
-.react-aria-ToggleButton[data-variant="default"][data-quiet]:where([data-hovered]) {
-  --button-color: var(--bg-muted);
+.react-aria-ToggleButton:where([data-variant="default"][data-pressed]) {
+  background: var(--neutral-pressed, color-mix(in srgb, var(--bg-muted) 75%, black));
 }
 
-.react-aria-ToggleButton[data-variant="default"][data-quiet]:where([data-pressed]) {
-  --button-color: var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black));
+.react-aria-ToggleButton:where([data-variant="default"][data-quiet]) {
+  background: transparent;
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-quiet][data-hovered]) {
+  background: var(--bg-muted);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-quiet][data-pressed]) {
+  background: var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black));
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-selected]) {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-selected][data-emphasized]) {
+  background: var(--accent);
+  color: var(--fg-on-accent);
+  border-color: var(--accent);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"]) {
+  background: #000000;
+  color: #ffffff;
+  border-color: #000000;
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"][data-hovered]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"][data-pressed]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"][data-quiet]) {
+  background: transparent;
+  color: #000000;
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"][data-quiet][data-hovered]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"][data-quiet][data-pressed]) {
+  background: #000000;
+  color: #ffffff;
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"][data-selected]) {
+  background: #000000;
+  color: #ffffff;
+  border-color: #000000;
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"][data-selected][data-emphasized]) {
+  background: #000000;
+  color: #ffffff;
+  border-color: #000000;
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"]) {
+  background: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"][data-hovered]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"][data-pressed]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"][data-quiet]) {
+  background: transparent;
+  color: #ffffff;
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"][data-quiet][data-hovered]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"][data-quiet][data-pressed]) {
+  background: #ffffff;
+  color: #000000;
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"][data-selected]) {
+  background: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"][data-selected][data-emphasized]) {
+  background: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
 }
 
 .react-aria-ToggleButton[data-icon-only] {

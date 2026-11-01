@@ -40,60 +40,60 @@
   --icon-size: var(--catalog-token-toast-icon-size-M, var(--catalog-token-size-icon-M));
 }
 
-.react-aria-Toast[data-variant="neutral"] {
+.react-aria-Toast:where([data-variant="neutral"]) {
   background: var(--fg-muted);
   color: var(--color-white);
   border-color: var(--fg-muted);
-
-  &[data-hovered] {
-    background: var(--fg-muted);
-  }
-
-  &[data-pressed] {
-    background: var(--fg-muted);
-  }
 }
 
-.react-aria-Toast[data-variant="info"] {
+.react-aria-Toast:where([data-variant="neutral"][data-hovered]) {
+  background: var(--fg-muted);
+}
+
+.react-aria-Toast:where([data-variant="neutral"][data-pressed]) {
+  background: var(--fg-muted);
+}
+
+.react-aria-Toast:where([data-variant="info"]) {
   background: var(--informative);
   color: var(--color-white);
   border-color: var(--informative);
-
-  &[data-hovered] {
-    background: var(--informative);
-  }
-
-  &[data-pressed] {
-    background: var(--informative);
-  }
 }
 
-.react-aria-Toast[data-variant="positive"] {
+.react-aria-Toast:where([data-variant="info"][data-hovered]) {
+  background: var(--informative);
+}
+
+.react-aria-Toast:where([data-variant="info"][data-pressed]) {
+  background: var(--informative);
+}
+
+.react-aria-Toast:where([data-variant="positive"]) {
   background: var(--positive);
   color: var(--color-white);
   border-color: var(--positive);
-
-  &[data-hovered] {
-    background: var(--positive);
-  }
-
-  &[data-pressed] {
-    background: var(--positive);
-  }
 }
 
-.react-aria-Toast[data-variant="negative"] {
+.react-aria-Toast:where([data-variant="positive"][data-hovered]) {
+  background: var(--positive);
+}
+
+.react-aria-Toast:where([data-variant="positive"][data-pressed]) {
+  background: var(--positive);
+}
+
+.react-aria-Toast:where([data-variant="negative"]) {
   background: var(--negative);
   color: var(--color-white);
   border-color: var(--negative);
+}
 
-  &[data-hovered] {
-    background: var(--negative);
-  }
+.react-aria-Toast:where([data-variant="negative"][data-hovered]) {
+  background: var(--negative);
+}
 
-  &[data-pressed] {
-    background: var(--negative);
-  }
+.react-aria-Toast:where([data-variant="negative"][data-pressed]) {
+  background: var(--negative);
 }
 
 .react-aria-Toast[data-focus-visible] {

@@ -28,17 +28,17 @@
   border-radius: var(--catalog-token-radius-md);
 }
 
-.react-aria-Skeleton[data-variant="default"] {
+.react-aria-Skeleton:where([data-variant="default"]) {
   background: var(--bg-inset);
   color: var(--fg-muted);
+}
 
-  &[data-hovered] {
-    background: var(--bg-inset);
-  }
+.react-aria-Skeleton:where([data-variant="default"][data-hovered]) {
+  background: var(--bg-inset);
+}
 
-  &[data-pressed] {
-    background: var(--bg-inset);
-  }
+.react-aria-Skeleton:where([data-variant="default"][data-pressed]) {
+  background: var(--bg-inset);
 }
 
 .react-aria-Skeleton[data-size="S"] {

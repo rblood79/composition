@@ -37,6 +37,13 @@ import { CATALOG_FIELD_LABEL_PART_ALIASES } from "../../shared/src/catalog/docum
 import { CATALOG_CONTEXTUAL_HELP_FIELDS } from "../../shared/src/domain/componentTraits";
 import { createThemeDefinition } from "../../shared/src/theme/themesCollection";
 import { legacyVariantPaint } from "../../shared/src/catalog/rule/rulePaintTree";
+import {
+  compileConditionTree,
+  isConditionNode,
+  type ConditionalValue,
+} from "../../shared/src/catalog/rule/conditionTree";
+import { tokenToCSSVar } from "../src/renderers/utils/tokenResolver";
+import type { TokenRef } from "../src/types";
 import { DEFAULT_BASE_TYPOGRAPHY } from "../../shared/src/catalog/runtime/fontDefaults";
 import { resolveThemeSnapshot } from "../../shared/src/catalog/runtime/resolveThemeSnapshot";
 import { catalogTouchVarsCss } from "../../shared/src/catalog/runtime/themeVarsCss";
@@ -170,6 +177,139 @@ export function variantSourceFor(
   return map;
 }
 
+/** ADR-297 Phase 3 — the paint properties a variant's condition tree carries, as CSS properties. */
+const PAINT_CSS_PROPERTIES = {
+  backgroundColor: "background",
+  color: "color",
+  borderColor: "border-color",
+} as const;
+
+/**
+ * A `null` leaf — no catalog paint in that state: Canvas draws no fill · no border and leaves the
+ * glyph color to the owner. (`revert-layer` would also roll back the rule's own base block in the same
+ * layer — a selected ColorSwatch drew a currentColor border the Canvas does not draw.)
+ */
+const NO_CATALOG_VALUE = {
+  backgroundColor: "transparent",
+  color: "inherit",
+  borderColor: "transparent",
+} as const;
+
+/** A tree without the branches under `drop` conditions (a toggle-indicator's container paints no selected box). */
+function withoutConditions<T>(
+  tree: ConditionalValue<T>,
+  drop: ReadonlySet<string>,
+): ConditionalValue<T> {
+  if (!isConditionNode(tree)) return tree;
+  const out: Record<string, unknown> = {};
+  for (const [key, child] of Object.entries(tree as Record<string, unknown>))
+    if (!drop.has(key))
+      out[key] =
+        key === "variant" ||
+        key === "size" ||
+        key === "fillStyle" ||
+        key === "staticColor"
+          ? Object.fromEntries(
+              Object.entries(child as Record<string, unknown>).map(
+                ([value, branch]) => [
+                  value,
+                  withoutConditions(branch as ConditionalValue<T>, drop),
+                ],
+              ),
+            )
+          : withoutConditions(child as ConditionalValue<T>, drop);
+  return out as ConditionalValue<T>;
+}
+
+/**
+ * ADR-297 Phase 3 — a rule's variant paint as CSS: each variant's condition tree under its
+ * `[data-variant]` value, compiled by `compileConditionTree` (every condition inside `:where()`, so
+ * the blocks share the component class's specificity and the tree order is the cascade — the same
+ * order the Canvas evaluator reads). `null` leaves are `NO_CATALOG_VALUE`. A variant
+ * whose background alpha is 0 paints no background in any state (Canvas multiplies every state's
+ * background by it). `undefined` = the rule keeps the legacy emit (`button-base` until its ramp moves
+ * into the tree).
+ */
+export function variantPaintCssFor(specName: string): string[] | undefined {
+  const rule = getComponentRulesTable()[specName];
+  if (!rule?.variants) return undefined;
+  const structure = rule.structure as
+    | { cssEmitMode?: string; archetype?: string }
+    | undefined;
+  if (structure?.cssEmitMode === "button-base") return undefined;
+  const indicator = structure?.archetype === "toggle-indicator";
+  const root = `.react-aria-${specName}`;
+  const blocks: { selector: string; media?: string; line: string }[] = [];
+  for (const property of Object.keys(PAINT_CSS_PROPERTIES) as Array<
+    keyof typeof PAINT_CSS_PROPERTIES
+  >) {
+    if (indicator && property === "borderColor") continue;
+    const variant: Record<string, ConditionalValue<string | null>> = {};
+    for (const [name, v] of Object.entries(rule.variants)) {
+      let tree = v.paint[property] as ConditionalValue<string | null> | undefined;
+      if (tree === undefined) continue;
+      if (property === "backgroundColor" && v.alpha === 0) tree = "transparent";
+      if (indicator)
+        tree = withoutConditions(tree, new Set(["isSelected", "isEmphasized"]));
+      variant[name] = tree;
+    }
+    if (Object.keys(variant).length === 0) continue;
+    for (const block of compileConditionTree({ variant }, root, PAINT_CSS_PROPERTIES[property])) {
+      const value =
+        block.value === null
+          ? NO_CATALOG_VALUE[property]
+          : typeof block.value === "string" && block.value.startsWith("{")
+            ? tokenToCSSVar(block.value as TokenRef)
+            : String(block.value);
+      blocks.push({
+        selector: block.selector,
+        ...(block.media ? { media: block.media } : {}),
+        line: `${block.property}: ${value};`,
+      });
+    }
+  }
+  // (Blocks are grouped by selector when that keeps every property's own block order — the cascade
+  //  only orders blocks that set the same property. Otherwise each block stands alone, in order.)
+  const groups = new Map<
+    string,
+    { selector: string; media?: string; lines: string[] }
+  >();
+  const order = new Map<string, number>();
+  const lastIndex = new Map<string, number>();
+  let grouped = true;
+  for (const block of blocks) {
+    const key = `${block.media ?? ""}|${block.selector}`;
+    if (!order.has(key)) order.set(key, order.size);
+    const property = block.line.slice(0, block.line.indexOf(":"));
+    const at = order.get(key)!;
+    if ((lastIndex.get(property) ?? -1) > at) grouped = false;
+    lastIndex.set(property, at);
+    const group = groups.get(key);
+    if (group) group.lines.push(block.line);
+    else
+      groups.set(key, {
+        selector: block.selector,
+        ...(block.media ? { media: block.media } : {}),
+        lines: [block.line],
+      });
+  }
+  const runs = grouped
+    ? [...groups.values()]
+    : blocks.map((block) => ({
+        selector: block.selector,
+        ...(block.media ? { media: block.media } : {}),
+        lines: [block.line],
+      }));
+  const lines: string[] = [];
+  for (const group of runs) {
+    const body = group.lines.map((line) => `  ${line}`);
+    if (group.media)
+      lines.push(`${group.media} {`, `${group.selector} {`, ...body, "}", "}", "");
+    else lines.push(`${group.selector} {`, ...body, "}", "");
+  }
+  return lines;
+}
+
 /**
  * 모든 스펙에서 CSS 파일 생성. Node 전용 — 브라우저 번들(`CSSGenerator`)에 두지 않는다.
  */
@@ -187,7 +327,11 @@ async function generateAllCSS(
       throw new Error("CATALOG_CSS_STALE:CatalogStates");
   } else await fs.writeFile(statePath, stateCss, "utf8");
   for (const spec of specs) {
-    const css = generateCSS(spec, variantSource(spec.name));
+    const css = generateCSS(
+      spec,
+      variantSource(spec.name),
+      variantPaintCssFor(spec.name),
+    );
     if (css === null) {
       console.log(`  ⏭ Skipped: ${spec.name} (skipCSSGeneration)`);
       continue;
@@ -462,6 +606,7 @@ export function buildVirtualSpecs(): ComponentSpec<unknown>[] {
       }) as ComponentSpec<unknown>["states"],
       // cssEmitMode: Button/ToggleButton 의 button-base(변수 + color-mix 파생). 미설정 시 direct.
       ...(meta.cssEmitMode ? { cssEmitMode: meta.cssEmitMode } : {}),
+      ...(meta.defaultBorder === "color" ? { defaultBorderColorOnly: true } : {}),
       // skipCSSGeneration: DOM 시각을 수동 CSS 가 소유 (Label) — structure 는 Canvas 정본으로만.
       ...(meta.skipCSSGeneration ? { skipCSSGeneration: true } : {}),
       // skipStateStyles (ADR-258): 상태 시각은 rootSelectors 정본 — 기본 ring · opacity 블록 없음.

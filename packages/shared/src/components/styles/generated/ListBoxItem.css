@@ -37,22 +37,23 @@
   --icon-size: 16px;
 }
 
-.react-aria-ListBoxItem[data-variant="default"] {
+.react-aria-ListBoxItem:where([data-variant="default"]) {
   background: transparent;
   color: var(--fg);
+}
 
-  &[data-hovered] {
-    background: transparent;
-  }
+.react-aria-ListBoxItem:where([data-variant="default"][data-hovered]) {
+  background: transparent;
+}
 
-  &[data-pressed] {
-    background: var(--bg-muted);
-  }
+.react-aria-ListBoxItem:where([data-variant="default"][data-pressed]) {
+  background: var(--bg-muted);
+}
 
-  &[data-selected] {
-    background: var(--accent);
-    color: var(--fg-on-accent);
-  }
+.react-aria-ListBoxItem:where([data-variant="default"][data-selected]) {
+  background: var(--accent);
+  color: var(--fg-on-accent);
+  border-color: transparent;
 }
 
 .react-aria-ListBoxItem[data-size="XS"] {
