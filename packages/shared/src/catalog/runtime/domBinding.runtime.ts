@@ -1,3 +1,4 @@
+import { paintAt } from "../rule/rulePaintTree";
 import {
   catalogIsAuthoredAbsolute,
   catalogIsAuthoredPlaced,
@@ -2422,15 +2423,30 @@ function ruleDom(
       dataAttrs["data-fill-style"] = String(node.props.fillStyle);
     // An Image outside an S2 Card's preview is the RAC examples' plain `img` (G5 example 10 — the
     // GridList item's photo): the element is the box (no source — the placeholder fill).
-    if (type === "Image" && !imageInS2CardPreview(root, node))
+    if (type === "Image" && !imageInS2CardPreview(root, node)) {
+      // (The placeholder is the Image rule's rest paint — S2 `Image` wrapper `gray-100`, the Canvas box's;
+      //  the rule has no generated sheet, so it goes inline under an authored fill. ADR-297 후속 ⑤.)
+      const rule = node.ruleId
+        ? root.runtime.graph.library.rules.get(node.ruleId)
+        : undefined;
+      const placeholder = paintAt(
+        rule?.variants[rule.defaultVariant ?? "default"]?.paint.backgroundColor,
+      );
       return createElement("img", {
         key: node.id,
         "data-catalog-id": node.id,
         className: "react-aria-Image",
         ...imageElementProps(node.props),
         ...dataAttrs,
-        style: { objectFit: "cover", ...style },
+        style: {
+          objectFit: "cover",
+          ...(placeholder?.startsWith("{")
+            ? { backgroundColor: tokenToCSSVar(placeholder as TokenRef) }
+            : {}),
+          ...style,
+        },
       });
+    }
     // S2 InlineAlert's variant icon — first, as S2 renders it (`catalogInlineAlertIcon`; the
     // Canvas draws the same box, `ruleShapes`).
     const alertIcon =

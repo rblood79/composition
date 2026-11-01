@@ -254,6 +254,12 @@ export function generateCSS<Props>(
    * `stateStylesCssFor`): focus ring · disabled dim · pressed scale … in the tree order.
    */
   _stateStylesCss?: readonly string[],
+  /**
+   * ADR-297 후속 ⑤ — the variants' text color alone (`variantPaintCssFor(name, {color})`): a box the
+   * composition owns paints no variant background · border (Phase 3 closure), but its tree's text color
+   * is still the rule's — the Canvas paints it (an unselected Tab's S2 `neutral-subdued` label).
+   */
+  _variantColorCss?: readonly string[],
 ): string | null {
   // Container/Composite 컴포넌트: 수동 CSS가 구조 담당, Spec은 Skia용 — 상태 트리가 있으면 그 블록만
   //   (ADR-297 Phase 3g: 수동 sheet 의 selected · focus 규칙을 rule 트리로 옮긴 자리).
@@ -317,13 +323,14 @@ export function generateCSS<Props>(
     spec.containerStyles?.border
   );
   if (
-    !compositionOwnsContainerBox(spec) &&
     !containerHasColors &&
     spec.variants != null &&
-    !spec.skipVariantCss &&
-    _variantPaintCss
-  )
-    lines.push(..._variantPaintCss);
+    !spec.skipVariantCss
+  ) {
+    if (!compositionOwnsContainerBox(spec)) {
+      if (_variantPaintCss) lines.push(..._variantPaintCss);
+    } else if (_variantColorCss) lines.push(..._variantColorCss);
+  }
 
   // icon-only 지원 (archetype: button에만)
   if (spec.archetype === "button") {
@@ -588,12 +595,16 @@ function generateBaseStyles<Props>(spec: ComponentSpec<Props>): string[] {
     // default variant 휴지 칠 — Composite 컨테이너는 자식이 관리하므로 skip
     lines.push("");
     lines.push("  /* Default variant */");
-    lines.push(
-      emitColorLine(
-        "background",
-        tokenToCSSVar(defaultVariant.background as TokenRef),
-      ),
-    );
+    // toggle-indicator: the variant background is the indicator box's (Skia — Checkbox · Radio box,
+    //   the DOM's `partStateStyles` rest), as the border below — the container paints none (ADR-297 후속 ②:
+    //   a white box behind the whole Checkbox in the Preview only).
+    if (spec.archetype !== "toggle-indicator")
+      lines.push(
+        emitColorLine(
+          "background",
+          tokenToCSSVar(defaultVariant.background as TokenRef),
+        ),
+      );
     lines.push(emitColorLine("text", tokenToCSSVar(defaultVariant.text)));
     // toggle-indicator: border 는 indicator box 전용(Skia) → 컨테이너는 border: none(ADR-142 B2).
     const omitContainerBorder = spec.archetype === "toggle-indicator";

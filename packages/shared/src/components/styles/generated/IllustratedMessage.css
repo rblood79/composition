@@ -24,6 +24,10 @@
   border-radius: var(--catalog-token-radius-none);
 }
 
+.react-aria-IllustratedMessage {
+  color: var(--fg);
+}
+
 .react-aria-IllustratedMessage[data-size="S"] {
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);

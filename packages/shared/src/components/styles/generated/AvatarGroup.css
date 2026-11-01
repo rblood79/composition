@@ -17,6 +17,10 @@
   border-radius: var(--catalog-token-radius-full);
 }
 
+.react-aria-AvatarGroup {
+  color: var(--fg);
+}
+
 .react-aria-AvatarGroup[data-size="XS"] {
   font-size: var(--catalog-token-text-2xs);
   border-radius: var(--catalog-token-radius-full);

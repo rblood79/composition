@@ -22,7 +22,6 @@
   position: relative;
 
   /* Default variant */
-  background: transparent;
   color: var(--fg);
   border: none;
 
@@ -35,29 +34,11 @@
 }
 
 .react-aria-Switch:where([data-variant="default"]) {
-  background: transparent;
   color: var(--fg);
-}
-
-.react-aria-Switch:where([data-variant="default"][data-hovered]) {
-  background: transparent;
-}
-
-.react-aria-Switch:where([data-variant="default"][data-pressed]) {
-  background: transparent;
 }
 
 .react-aria-Switch:where([data-variant="emphasized"]) {
-  background: transparent;
   color: var(--fg);
-}
-
-.react-aria-Switch:where([data-variant="emphasized"][data-hovered]) {
-  background: transparent;
-}
-
-.react-aria-Switch:where([data-variant="emphasized"][data-pressed]) {
-  background: transparent;
 }
 
 .react-aria-Switch[data-size="S"] {

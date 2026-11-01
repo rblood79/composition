@@ -24,6 +24,18 @@
   font-weight: 500;
 }
 
+.react-aria-Tab {
+  color: var(--fg-muted);
+}
+
+.react-aria-Tab:where([data-hovered]) {
+  color: var(--fg);
+}
+
+.react-aria-Tab:where([data-selected]) {
+  color: var(--fg);
+}
+
 .react-aria-Tab[data-size="S"] {
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);

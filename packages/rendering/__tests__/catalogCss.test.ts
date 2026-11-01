@@ -17,6 +17,7 @@ it("catalog 단독 생성 CSS가 배포 CSS 103개와 byte-identical이다", () 
       input,
       variantPaintCssFor(input.name),
       stateStylesCssFor(input.name),
+      variantPaintCssFor(input.name, new Set(["color"])),
     );
     if (css === null) continue;
     count++;

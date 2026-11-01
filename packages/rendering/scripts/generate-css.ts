@@ -160,7 +160,11 @@ function withoutConditions<T>(
  * whose background alpha is 0 paints no background in any state (Canvas multiplies every state's
  * background by it). `undefined` = the rule has no variants.
  */
-export function variantPaintCssFor(specName: string): string[] | undefined {
+export function variantPaintCssFor(
+  specName: string,
+  /** Only these paint properties (a composition-owned box's text color — `generateCSS` `_variantColorCss`). */
+  only?: ReadonlySet<keyof typeof PAINT_CSS_PROPERTIES>,
+): string[] | undefined {
   const rule = getComponentRulesTable()[specName];
   if (!rule?.variants) return undefined;
   const structure = rule.structure as { archetype?: string } | undefined;
@@ -170,7 +174,10 @@ export function variantPaintCssFor(specName: string): string[] | undefined {
   for (const property of Object.keys(PAINT_CSS_PROPERTIES) as Array<
     keyof typeof PAINT_CSS_PROPERTIES
   >) {
-    if (indicator && property === "borderColor") continue;
+    // (A toggle-indicator's background · border are its indicator box's — the rule's `partStateStyles`.)
+    if (indicator && (property === "borderColor" || property === "backgroundColor"))
+      continue;
+    if (only && !only.has(property)) continue;
     const variant: Record<string, ConditionalValue<string | null>> = {};
     for (const [name, v] of Object.entries(rule.variants)) {
       let tree = v.paint[property] as ConditionalValue<string | null> | undefined;
@@ -181,7 +188,28 @@ export function variantPaintCssFor(specName: string): string[] | undefined {
       variant[name] = tree;
     }
     if (Object.keys(variant).length === 0) continue;
-    for (const block of compileConditionTree({ variant }, root, PAINT_CSS_PROPERTIES[property])) {
+    // (A composition-owned box's text color — `only` — is the default variant's tree on the element itself:
+    //  such an element (a Tab) carries no `data-variant` (the rule's variant is not a prop of it), so its
+    //  states compile without the variant condition and the other variants' after it.)
+    const defaultName = rule.defaultVariant ?? "default";
+    const trees: ConditionalValue<string | null>[] =
+      only && variant[defaultName] !== undefined
+        ? [
+            variant[defaultName]!,
+            ...(Object.keys(variant).length > 1
+              ? [
+                  {
+                    variant: Object.fromEntries(
+                      Object.entries(variant).filter(([name]) => name !== defaultName),
+                    ),
+                  } as ConditionalValue<string | null>,
+                ]
+              : []),
+          ]
+        : [{ variant } as ConditionalValue<string | null>];
+    for (const block of trees.flatMap((tree) =>
+      compileConditionTree(tree, root, PAINT_CSS_PROPERTIES[property]),
+    )) {
       const value =
         block.value === null
           ? NO_CATALOG_VALUE[property]
@@ -385,6 +413,7 @@ async function generateAllCSS(
       spec,
       variantPaintCssFor(spec.name),
       stateStylesCssFor(spec.name),
+      variantPaintCssFor(spec.name, new Set(["color"])),
     );
     if (css === null) {
       console.log(`  ⏭ Skipped: ${spec.name} (skipCSSGeneration)`);

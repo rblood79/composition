@@ -26,6 +26,10 @@
   border-radius: var(--catalog-token-radius-md);
 }
 
+.react-aria-Pagination {
+  color: var(--fg);
+}
+
 .react-aria-Pagination[data-size="S"] {
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-sm);
@@ -76,24 +80,6 @@
 
   .react-aria-Pagination .pagination-ellipsis {
     color: var(--fg-muted);
-  }
-
-  .react-aria-Pagination .react-aria-Button[data-current="true"] {
-    background-color: var(--accent);
-    color: var(--fg-on-accent);
-  }
-
-  .react-aria-Pagination .react-aria-Button:not([data-current="true"]) {
-    background-color: var(--bg-overlay);
-    color: var(--fg);
-  }
-
-  .react-aria-Pagination .react-aria-Button:not([data-current="true"]):hover:not(:disabled) {
-    background-color: color-mix(in srgb, var(--bg-overlay) 92%, black);
-  }
-
-  .react-aria-Pagination .react-aria-Button:disabled {
-    opacity: 0.38;
   }
 
 

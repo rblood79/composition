@@ -21,7 +21,6 @@
   justify-content: center;
 
   /* Default variant */
-  background: var(--bg);
   color: var(--fg);
   border: none;
 
@@ -34,29 +33,11 @@
 }
 
 .react-aria-Radio:where([data-variant="default"]) {
-  background: var(--bg);
   color: var(--fg);
-}
-
-.react-aria-Radio:where([data-variant="default"][data-hovered]) {
-  background: var(--bg-inset);
-}
-
-.react-aria-Radio:where([data-variant="default"][data-pressed]) {
-  background: var(--bg-overlay);
 }
 
 .react-aria-Radio:where([data-variant="emphasized"]) {
-  background: var(--bg);
   color: var(--fg);
-}
-
-.react-aria-Radio:where([data-variant="emphasized"][data-hovered]) {
-  background: var(--bg-inset);
-}
-
-.react-aria-Radio:where([data-variant="emphasized"][data-pressed]) {
-  background: var(--bg-overlay);
 }
 
 .react-aria-Radio[data-size="S"] {
@@ -124,6 +105,10 @@
 
 .react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-pressed][data-selected]) .indicator {
   border-color: color-mix(in srgb, var(--radio-color) 75%, black);
+}
+
+.react-aria-Radio.react-aria-Radio .react-aria-RadioButton .indicator {
+  background: var(--bg);
 }
 
 .react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-focus-visible]) .indicator {

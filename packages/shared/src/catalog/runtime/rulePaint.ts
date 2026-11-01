@@ -222,7 +222,25 @@ export function catalogRulePaint(
     rule,
     node.props,
   );
-  for (const [key, value] of Object.entries(authoredVisual)) {
+  // A rule without `structure` has no generated sheet: the DOM inlines the record's whole resolved
+  //   visual (`domBinding.runtime.ts` `authoredStyle` `noSheet`) — a part rule's paint (a Table's header
+  //   row and lines, the GridList box — `manualBoxRules`) included. The Canvas paints the same record
+  //   paint over the tree (ADR-297 후속 ②: it painted only the authored layer, the tree's transparent
+  //   under it).
+  const recordPaint = rule.structure
+    ? authoredVisual
+    : {
+        ...Object.fromEntries(
+          Object.keys(PAINT_STYLE_KEYS)
+            .filter(
+              (key) =>
+                node.visual[key as keyof typeof node.visual] !== undefined,
+            )
+            .map((key) => [key, node.visual[key as keyof typeof node.visual]]),
+        ),
+        ...authoredVisual,
+      };
+  for (const [key, value] of Object.entries(recordPaint)) {
     const styleKey = PAINT_STYLE_KEYS[key] ?? GEOMETRY_STYLE_KEYS[key];
     if (styleKey)
       style[styleKey] = PAINT_STYLE_KEYS[key]

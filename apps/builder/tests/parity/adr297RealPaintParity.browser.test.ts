@@ -266,12 +266,24 @@ it("Canvas node data == DOM computed paint per record on the real node tree (the
         skiaBytes(data.box.fillColor),
         cssBytes(computed.backgroundColor),
       ]);
+      // (Per side — a Table's Column · Row draw their bottom line only, the Canvas `strokeWidths`
+      //  top · right · bottom · left; a uniform stroke is every side's.)
       const width = data.box.strokeWidth ?? 0;
+      const sides = (data.box as { strokeWidths?: readonly number[] })
+        .strokeWidths;
+      const side = sides
+        ? Math.max(
+            0,
+            sides.findIndex((w) => w > 0),
+          )
+        : 0;
+      const css = (["Top", "Right", "Bottom", "Left"] as const)[side]!;
+      const canvasWidth = sides ? (sides[side] ?? 0) : width;
       pairs.push([
         "bd",
-        width > 0 ? skiaBytes(data.box.strokeColor) : "none",
-        parseFloat(computed.borderTopWidth) > 0
-          ? cssBytes(computed.borderTopColor)
+        canvasWidth > 0 ? skiaBytes(data.box.strokeColor) : "none",
+        parseFloat(computed[`border${css}Width`]) > 0
+          ? cssBytes(computed[`border${css}Color`])
           : "none",
       ]);
     }
@@ -298,4 +310,11 @@ it("Canvas node data == DOM computed paint per record on the real node tree (the
     "../../.agent/runs/adr297-real-paint.json",
     `${JSON.stringify({ owners: owners.map((o) => o.label), missing, compared, noDom, noCanvas, byType, rows }, null, 1)}\n`,
   );
+  // ADR-297 후속 (2026-11-02): every record paints the same on both consumers but the genai Button's
+  //   gradient (S2 `gradient` — a background image the rule tree's color leaves cannot state yet).
+  expect(
+    rows
+      .filter((row) => !(row.type === "Button" && row.owner.includes("genai")))
+      .map((row) => `${row.owner} ${row.type} ${row.channel} ${row.canvas} / ${row.dom}`),
+  ).toEqual([]);
 });

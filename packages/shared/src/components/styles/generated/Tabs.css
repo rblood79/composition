@@ -22,6 +22,10 @@
   border-radius: var(--catalog-token-radius-none);
 }
 
+.react-aria-Tabs {
+  color: var(--fg);
+}
+
 .react-aria-Tabs[data-size="S"] {
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);

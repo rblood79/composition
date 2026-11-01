@@ -208,6 +208,9 @@ const RADIO_RING_STATE = {
       isSelected: "color-mix(in srgb, var(--radio-color) 75%, black)",
     },
   },
+  // (The ring's inside is S2 `gray-25` at rest — the variant tree's `default`, the Canvas ring's; off the root
+  //  since ADR-297 후속 ②. The manual sheet's `--color-white` was light-mode only.)
+  background: { default: "var(--bg)" },
   outline: { isFocusVisible: "2px solid var(--radio-color)" },
   outlineOffset: { isFocusVisible: "2px" },
 } as const;
@@ -325,7 +328,10 @@ const CHECKBOX_BOX_STATE = {
       isInvalid: "color-mix(in srgb, var(--negative) 75%, black)",
     },
   },
+  // (The rest box is S2 `box` `gray-25` — the variant tree's `default`, the Canvas box's; ADR-297 후속 ②
+  //  moved it off the Checkbox root, which painted it behind the whole control in the Preview only.)
   background: {
+    default: "var(--bg)",
     isSelected: CHECKBOX_SELECTED_FILL,
     isIndeterminate: CHECKBOX_SELECTED_FILL,
   },
@@ -2588,8 +2594,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.base}",
-            isHovered: "{color.layer-2}",
-            isPressed: "{color.layer-1}",
             isSelected: {
               default: "{color.neutral}",
             },
@@ -2614,8 +2618,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.base}",
-            isHovered: "{color.accent-subtle}",
-            isPressed: "{color.accent-subtle}",
             isSelected: {
               default: "{color.accent}",
             },
@@ -9621,22 +9623,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           ".pagination-ellipsis": {
             color: "var(--fg-muted)",
           },
-          '.react-aria-Button[data-current="true"]': {
-            "background-color": "var(--accent)",
-            color: "var(--fg-on-accent)",
-          },
-          '.react-aria-Button:not([data-current="true"])': {
-            "background-color": "var(--bg-overlay)",
-            color: "var(--fg)",
-          },
-          '.react-aria-Button:not([data-current="true"]):hover:not(:disabled)':
-            {
-              "background-color":
-                "color-mix(in srgb, var(--bg-overlay) 92%, black)",
-            },
-          ".react-aria-Button:disabled": {
-            opacity: "0.38",
-          },
+          // (ADR-297 후속 ④: the page buttons are Button instances — their paint is the Button rule's tree per
+          //  instance variant (the current page `accent`, the rest `secondary` outline — the template), on both
+          //  consumers. The `[data-current]` blocks of the pre-node-tree renderer painted every button
+          //  `--bg-overlay` in the DOM only — no node carries `data-current`.)
         },
         delegation: [],
       },
@@ -10395,8 +10385,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.base}",
-            isHovered: "{color.layer-2}",
-            isPressed: "{color.layer-1}",
             isSelected: {
               default: "{color.neutral}",
             },
@@ -10421,8 +10409,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.base}",
-            isHovered: "{color.layer-2}",
-            isPressed: "{color.layer-1}",
             isSelected: {
               default: "{color.accent}",
             },
@@ -12662,11 +12648,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               default: null,
             },
           },
+          // S2 `tab` color: neutral-subdued · selected neutral (stated — `null` inherited the Tabs root's,
+          //   ADR-297 후속 ⑤).
           color: {
             default: "{color.neutral-subdued}",
             isHovered: "{color.neutral}",
             isSelected: {
-              default: null,
+              default: "{color.neutral}",
             },
           },
           borderColor: {
@@ -12940,7 +12928,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.neutral}",
           },
         },
-        alpha: 0,
+        // ADR-297 후속 ②: no `alpha: 0` — the Table's header row paints the Table part rule's
+        //   `--bg-raised` (S2 TableView `tableHeader` gray-75, `manualBoxRules` Table) on both consumers.
       },
     },
     sizes: {
@@ -13533,9 +13522,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             isHovered: "{color.transparent}",
             isPressed: "{color.transparent}",
           },
+          // (The tabs' own colors are the Tab rule's — S2 `tabs` states none; the container keeps the body text.)
           color: {
-            default: "{color.neutral-subdued}",
-            isHovered: "{color.neutral}",
+            default: "{color.neutral}",
           },
         },
       },
@@ -15415,7 +15404,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           ".react-aria-Separator": {
             "align-self": "stretch",
-            "background-color": "var(--bg-muted)",
+            // (The Separator rule's line color — `{color.border}`, the Canvas line's; ADR-297 후속 ⑤,
+            //  `--bg-muted` before: a lighter line in the Preview only.)
+            "background-color": "var(--border)",
           },
           '.react-aria-Separator[aria-orientation="vertical"]': {
             width: "1px",
@@ -15653,9 +15644,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       default: {
         paint: {
           backgroundColor: {
-            default: "{color.base}",
-            isHovered: "{color.layer-2}",
-            isPressed: "{color.layer-1}",
+            // S2 TreeView `tree` paints no background (only its drop target) — ADR-297 후속 ②.
+            default: "{color.transparent}",
           },
           color: {
             default: "{color.neutral}",
@@ -15669,9 +15659,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       emphasized: {
         paint: {
           backgroundColor: {
-            default: "{color.base}",
-            isHovered: "{color.accent-subtle}",
-            isPressed: "{color.accent-subtle}",
+            // S2 TreeView `tree` paints no background (only its drop target) — ADR-297 후속 ②.
+            default: "{color.transparent}",
           },
           color: {
             default: "{color.neutral}",

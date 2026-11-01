@@ -32,6 +32,118 @@
   gap: 4px;
 }
 
+.react-aria-Meter {
+  color: var(--fg);
+}
+
+.react-aria-Meter:where([data-static-color="black"]) {
+  color: #000000;
+}
+
+.react-aria-Meter:where([data-static-color="black"][data-hovered]) {
+  color: #000000;
+}
+
+.react-aria-Meter:where([data-static-color="black"][data-pressed]) {
+  color: #000000;
+}
+
+.react-aria-Meter:where([data-static-color="white"]) {
+  color: #ffffff;
+}
+
+.react-aria-Meter:where([data-static-color="white"][data-hovered]) {
+  color: #ffffff;
+}
+
+.react-aria-Meter:where([data-static-color="white"][data-pressed]) {
+  color: #ffffff;
+}
+
+.react-aria-Meter:where([data-variant="positive"]) {
+  color: var(--fg);
+}
+
+.react-aria-Meter:where([data-variant="positive"][data-static-color="black"]) {
+  color: #000000;
+}
+
+.react-aria-Meter:where([data-variant="positive"][data-static-color="black"][data-hovered]) {
+  color: #000000;
+}
+
+.react-aria-Meter:where([data-variant="positive"][data-static-color="black"][data-pressed]) {
+  color: #000000;
+}
+
+.react-aria-Meter:where([data-variant="positive"][data-static-color="white"]) {
+  color: #ffffff;
+}
+
+.react-aria-Meter:where([data-variant="positive"][data-static-color="white"][data-hovered]) {
+  color: #ffffff;
+}
+
+.react-aria-Meter:where([data-variant="positive"][data-static-color="white"][data-pressed]) {
+  color: #ffffff;
+}
+
+.react-aria-Meter:where([data-variant="notice"]) {
+  color: var(--fg);
+}
+
+.react-aria-Meter:where([data-variant="notice"][data-static-color="black"]) {
+  color: #000000;
+}
+
+.react-aria-Meter:where([data-variant="notice"][data-static-color="black"][data-hovered]) {
+  color: #000000;
+}
+
+.react-aria-Meter:where([data-variant="notice"][data-static-color="black"][data-pressed]) {
+  color: #000000;
+}
+
+.react-aria-Meter:where([data-variant="notice"][data-static-color="white"]) {
+  color: #ffffff;
+}
+
+.react-aria-Meter:where([data-variant="notice"][data-static-color="white"][data-hovered]) {
+  color: #ffffff;
+}
+
+.react-aria-Meter:where([data-variant="notice"][data-static-color="white"][data-pressed]) {
+  color: #ffffff;
+}
+
+.react-aria-Meter:where([data-variant="negative"]) {
+  color: var(--fg);
+}
+
+.react-aria-Meter:where([data-variant="negative"][data-static-color="black"]) {
+  color: #000000;
+}
+
+.react-aria-Meter:where([data-variant="negative"][data-static-color="black"][data-hovered]) {
+  color: #000000;
+}
+
+.react-aria-Meter:where([data-variant="negative"][data-static-color="black"][data-pressed]) {
+  color: #000000;
+}
+
+.react-aria-Meter:where([data-variant="negative"][data-static-color="white"]) {
+  color: #ffffff;
+}
+
+.react-aria-Meter:where([data-variant="negative"][data-static-color="white"][data-hovered]) {
+  color: #ffffff;
+}
+
+.react-aria-Meter:where([data-variant="negative"][data-static-color="white"][data-pressed]) {
+  color: #ffffff;
+}
+
 .react-aria-Meter[data-size="S"] {
   font-size: var(--catalog-token-text-xs);
   border-radius: var(--catalog-token-radius-sm);

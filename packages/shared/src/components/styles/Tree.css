@@ -19,7 +19,9 @@
     padding: var(--spacing);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    background: var(--bg-raised);
+    /* S2 TreeView paints no background (the catalog Tree rule's tree — ADR-297 후속 ②, `--bg-raised`
+       before: the Canvas drew the rule's base). */
+    background: transparent;
     color: var(--fg);
     forced-color-adjust: none;
     outline: none;

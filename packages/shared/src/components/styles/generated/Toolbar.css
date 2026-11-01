@@ -28,6 +28,10 @@
   gap: 8px;
 }
 
+.react-aria-Toolbar {
+  color: var(--fg);
+}
+
 .react-aria-Toolbar[data-size="S"] {
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-md);
@@ -86,7 +90,7 @@
 
   .react-aria-Toolbar .react-aria-Separator {
     align-self: stretch;
-    background-color: var(--bg-muted);
+    background-color: var(--border);
   }
 
   .react-aria-Toolbar .react-aria-Separator[aria-orientation="vertical"] {

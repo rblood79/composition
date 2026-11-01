@@ -23,6 +23,10 @@
   border-width: var(--border-width-none);
 }
 
+.react-aria-DisclosureGroup {
+  color: var(--fg);
+}
+
 .react-aria-DisclosureGroup[data-size="S"] {
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-md);

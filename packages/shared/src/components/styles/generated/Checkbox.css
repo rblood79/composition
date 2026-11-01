@@ -21,7 +21,6 @@
   justify-content: center;
 
   /* Default variant */
-  background: var(--bg);
   color: var(--fg);
   border: none;
 
@@ -34,29 +33,11 @@
 }
 
 .react-aria-Checkbox:where([data-variant="default"]) {
-  background: var(--bg);
   color: var(--fg);
-}
-
-.react-aria-Checkbox:where([data-variant="default"][data-hovered]) {
-  background: var(--bg-inset);
-}
-
-.react-aria-Checkbox:where([data-variant="default"][data-pressed]) {
-  background: var(--bg-overlay);
 }
 
 .react-aria-Checkbox:where([data-variant="emphasized"]) {
-  background: var(--bg);
   color: var(--fg);
-}
-
-.react-aria-Checkbox:where([data-variant="emphasized"][data-hovered]) {
-  background: var(--accent-subtle);
-}
-
-.react-aria-Checkbox:where([data-variant="emphasized"][data-pressed]) {
-  background: var(--accent-subtle);
 }
 
 .react-aria-Checkbox[data-size="S"] {
@@ -132,6 +113,10 @@
 
 .react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-pressed][data-invalid]) .checkbox {
   border-color: color-mix(in srgb, var(--negative) 75%, black);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton .checkbox {
+  background: var(--bg);
 }
 
 .react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-selected]) .checkbox {

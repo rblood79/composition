@@ -33,6 +33,34 @@
   gap: 4px;
 }
 
+.react-aria-ProgressBar {
+  color: var(--fg);
+}
+
+.react-aria-ProgressBar:where([data-static-color="black"]) {
+  color: #000000;
+}
+
+.react-aria-ProgressBar:where([data-static-color="black"][data-hovered]) {
+  color: #000000;
+}
+
+.react-aria-ProgressBar:where([data-static-color="black"][data-pressed]) {
+  color: #000000;
+}
+
+.react-aria-ProgressBar:where([data-static-color="white"]) {
+  color: #ffffff;
+}
+
+.react-aria-ProgressBar:where([data-static-color="white"][data-hovered]) {
+  color: #ffffff;
+}
+
+.react-aria-ProgressBar:where([data-static-color="white"][data-pressed]) {
+  color: #ffffff;
+}
+
 .react-aria-ProgressBar[data-size="S"] {
   font-size: var(--catalog-token-text-xs);
   border-radius: var(--catalog-token-radius-sm);

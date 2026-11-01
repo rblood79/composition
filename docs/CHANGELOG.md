@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-297 후속 — Canvas 와 Preview 가 다르게 칠하던 8 컴포넌트 (GridList · Table 머리글 · Checkbox · Radio · Tree · Image · Toolbar 구분선 · Tabs · Pagination)] - 2026-11-02
+
+### Fixed
+
+- **Checkbox · Radio 를 색 바탕 위에 두면 Preview 에서만 컨트롤 전체 뒤에 흰 상자가 보이던 것** — 상자 바탕을 루트가 아니라 체크 상자 · 고리에 칠한다 (Canvas 와 같은 자리). Radio 고리 안쪽은 dark 에서도 테마 바탕.
+- **Canvas 에서 GridList 상자 (흰 바탕 · 테두리) 와 Table 머리글 바탕이 빠지던 것** — Preview 가 그리던 part rule 값을 Canvas 도 그린다.
+- **Preview 의 Pagination 쪽 버튼이 전부 회색이던 것** — 현재 쪽 accent · 나머지 outline (Canvas · template 값). 노드 트리 전 renderer 의 선택자가 남아 Button 칠을 덮고 있었다.
+- **Tree 바탕** — Canvas 흰색 · Preview 회색 → 둘 다 투명 (S2 TreeView). **Image** placeholder 회색을 Preview 도 칠한다 (투명 이미지 뒤). **Toolbar 구분선** 색을 Canvas 와 같게. **Tabs** 비선택 탭 글자가 Preview 에서도 옅은 색 (S2).
+  - **Why**: ADR-297 Phase 3 닫힘 때 남긴 LOW 목록 (실제 노드 트리 대조 28 행) — 남은 것은 genai 그라데이션 2 행 (rule 칠 형식이 그라데이션을 아직 담지 못한다).
+  - 위치: `packages/shared/src/catalog/runtime/rulePaint.ts` · `packages/rendering/src/renderers/CSSGenerator.ts` · `packages/rendering/scripts/generate-css.ts` · `packages/shared/src/catalog/generated/componentRulesTable.ts` · `packages/shared/src/catalog/runtime/domBinding.runtime.ts` · `Tree.css` · 게이트 `apps/builder/tests/parity/adr297RealPaintParity.browser.test.ts`
+
 ## [ADR-297 Implemented — rule 상태 칠은 조건 트리 하나 (Canvas · Preview 가 같은 순서로 읽는다)] - 2026-11-02
 
 ### Changed
