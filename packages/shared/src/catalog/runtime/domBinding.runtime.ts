@@ -167,6 +167,7 @@ import {
   catalogDerivedRestVisual,
   catalogHasAuthoredColor,
 } from "./libraryVisual";
+import { catalogNodeTokenCss } from "./nodeTokenCss";
 import {
   catalogDeviceControlCss,
   catalogDeviceLayoutCss,
@@ -725,6 +726,8 @@ export function catalogDomStyle(
     if (visual.lineHeight !== undefined)
       style.lineHeight = Number(visual.lineHeight);
   }
+  // ADR-298 D5: a value read from a theme token goes inline as the token's variable.
+  catalogNodeTokenCss(style, visual);
   return style;
 }
 
@@ -3001,6 +3004,8 @@ function authoredStyle(
   // ADR-295 Phase 2: a token font size over the rule sheet (a part rule's) — its device variable.
   if (node.bindingId !== "icon") catalogDeviceTypographyCss(style, node.visual);
   catalogDeviceControlCss(style, node.visual);
+  // ADR-298 D5: a value read from a theme token goes inline as the token's variable.
+  catalogNodeTokenCss(style, node.visual);
   for (const key of ["width", "height", "minWidth", "minHeight"] as const) {
     const value = node.sizing[key];
     if (typeof value === "number") style[key] = value;

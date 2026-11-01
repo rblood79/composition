@@ -76,7 +76,11 @@ import type {
   CatalogOperation,
   CatalogTransactionResult,
 } from "../transactions/transaction";
-import { catalogNodeState, resolveCatalogNode } from "../resolution/resolver";
+import {
+  catalogNodeState,
+  catalogSameResolvedTokenRefs,
+  resolveCatalogNode,
+} from "../resolution/resolver";
 import {
   catalogAuthoredVisual,
   catalogHasAuthoredColor,
@@ -1400,6 +1404,7 @@ function sameRecord(
     sameFields(left.props, right.props) &&
     sameFields(left.templateProps ?? {}, right.templateProps ?? {}) &&
     sameFields(left.visual, right.visual) &&
+    catalogSameResolvedTokenRefs(left.visual, right.visual) &&
     sameFields(left.layout, right.layout) &&
     sameFields(left.sizing, right.sizing) &&
     sameFields(left.authoredLayout ?? {}, right.authoredLayout ?? {}) &&

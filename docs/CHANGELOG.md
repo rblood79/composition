@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-298 Phase 1 — 노드 값의 토큰 참조가 테마 · 색 모드를 따른다 (토큰 층)] - 2026-11-01
+
+### Changed
+
+- **요소에 토큰으로 저장한 값이 Preview · Publish 에서 테마 · 색 모드를 CSS 로 따른다 (ADR-298 Phase 1)** — 지금은 코드 보기에서 `var(--catalog-token-*)` 로 적은 값이 해당 (패널 메뉴는 Phase 2). spacing · radius · border 폭 · 색 토큰은 Preview inline 에 같은 변수로 들어가, 테마 radius 를 바꾸거나 dark 로 바꾸면 Canvas 와 같은 값으로 바뀐다. rule 이 준 값은 그대로.
+  - 토큰 단계 전체 (spacing · radius · border · 그림자 · 글자 본문/제목/행간 · 색) 를 요소가 참조할 수 있다 — rule 이 쓰지 않는 단계도.
+  - 글자 크기를 토큰으로 바꾸면 행간이 그 단계의 짝으로 맞춰진다 (제목 M 22 → 행간 26). 행간을 직접 적었으면 그 값이 이긴다.
+  - 같은 값의 리터럴을 토큰으로 바꿔도 Preview 가 갱신된다.
+  - 검증: 테마 radius md → xl · light → dark 전환에서 Preview computed = Canvas (7 축), 콘솔 오류 0.
+  - 문서: `docs/adr/298-node-token-reference-panel-token-first.md` · breakdown §6.1
+
 ## [ADR-298 Accepted · Phase 0 + 그림자 dark 수리 — Preview 그림자가 Canvas 처럼 색 모드를 따른다] - 2026-11-01
 
 ### Fixed

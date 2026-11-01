@@ -100,3 +100,19 @@ Phase 1 과 2 는 커밋을 나눈다 — Phase 1 은 「동작 변경 0」 (rev
 | 기준선 | 295 G2 `adr295PaletteSymmetry.browser.test.ts` desktop 274/274 · touch 274/274 PASS |
 | 결정 7 선행 `/fix` (F11) | `catalogAuthoredDomStyle` (`packages/shared/src/catalog/runtime/authoredStyle.ts`) 가 `shadowLiteralToCssVar` 를 부른다 — RED ③ GREEN (light · dark preset sm · md · lg → `var(--shadow-*)`, 임의 CSS · inset 토글 · none · inset preset 은 원문 = Canvas 와 같은 판정). 원복 RED 1 (inline = light 리터럴). 인접 스위트 builder 5 파일 76 · shared 4 파일 21 PASS · type-check shared · builder 0. live 5178 (Playwright, 저장 인증 세션 · 테마 darkMode dark): Canvas alpha 0.24/0.12/0.24 = Preview computed, 원복 arm Preview 0.08/0.04/0.08 |
 
+
+### 6.1 Phase 1 (2026-11-01 — G1 · G2 DOM arm 닫힘)
+
+| 항목 | 결과 |
+| --- | --- |
+| D2 토큰 표 | `packages/shared/src/catalog/document/libraryTokenScale.ts` (`libraryTokenId` · `libraryTokenScaleRefs` · `addLibraryTokenScale`) — `buildCodeCatalogLibrary` 가 digest 앞에서 더한다. 옛 `_light` 149 유지 |
+| D4 검증 표 | `graph.ts` `LENGTH_TOKEN_FIELDS` (29 키) — fontFamily · boxShadow 는 이미 string 토큰을 받았다 (F7 정정: 막힌 것은 길이 키) |
+| D4 행간 | `resolver.ts` `LINE_WRITES` · `finishLineHeight` (소유 노드 · template 위치 두 끝) · `LINE_FINISHED` → `instanceRoot` 가 배율을 함께 넘김 |
+| D5 DOM | `runtime/nodeTokenCss.ts` `catalogNodeTokenCss` — `catalogDomStyle` 끝 · rule 요소 경로 (`catalogDeviceControlCss` 뒤) 두 곳. 출처 = `AUTHORED_TOKEN_REFS` (문서 쓰기만, `copyResolvedTokenRefs` 가 함께 복사) |
+| F12 | `catalogSameResolvedTokenRefs` (resolved · authored 두 맵) — `sameRecord` |
+| F10 | 색 · 그림자 변수화로 해소 — root 재생성 없음 |
+| 테스트 | `adr298TokenScale.test.ts` 3 · `adr298Phase1.test.ts` 9 · 원복 RED 5 arm (`scratchpad/revert298p1.sh` — 출처 비교 1 · 행간 2 · 검증 표 4 · DOM 3 · 토큰 표 10 행 실패) |
+| 범위 조정 | rule 토큰의 변수화는 제외 — 기존 테스트 14 (adr253 · adr254 · adr259 · inlineAlert) 가 rule 리터럴 inline 을 기대하고, 시트가 변수를 국소 재정의하면 Canvas 와 갈린다 |
+| live G2 | 5178 Playwright — 27/27 (선언 `var()` 7 축 × 3 arm + arm 유효성 2 + 선언 불변 1), 콘솔 0 |
+| 회귀 | builder 4,085 통과 · 실패 10 = HEAD 목록 (builderCatalogVars c · calendarReferenceBox 2 · formContext · phase4e11 · phase4eG5LeafScope · interactionWhenReach Calendar 4) · shared 2,309 통과 (designDataSurfaceGaps 파일 — 다른 세션 편집 중) |
+| LOW deferred | G2 픽셀 arm · 터치 arm |

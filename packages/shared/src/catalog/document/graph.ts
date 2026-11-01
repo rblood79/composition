@@ -481,6 +481,43 @@ function sameOwnedChildren(a: CatalogEntry, b: CatalogEntry): boolean {
 }
 
 /** One private mutable table with atomic commits; no product singleton or subscription. */
+/**
+ * Visual keys a length / number token may fill. ADR-298 D4 adds the sides · corners · side borders the
+ * Design panel writes one by one, the line height (the resolver turns the token's px into the ratio the
+ * field holds) and the other lengths it edits (F7).
+ */
+const LENGTH_TOKEN_FIELDS: ReadonlySet<string> = new Set([
+  "width",
+  "height",
+  "minWidth",
+  "minHeight",
+  "fontSize",
+  "lineHeight",
+  "letterSpacing",
+  "radius",
+  "radiusTopLeft",
+  "radiusTopRight",
+  "radiusBottomRight",
+  "radiusBottomLeft",
+  "gap",
+  "padding",
+  "paddingX",
+  "paddingY",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+  "borderWidth",
+  "borderTopWidth",
+  "borderRightWidth",
+  "borderBottomWidth",
+  "borderLeftWidth",
+  "thumbSize",
+  "indentPerLevel",
+  "iconGap",
+  "iconSize",
+]);
+
 export class CatalogGraph {
   private readonly table = new Map<string, CatalogEntry>();
   private readonly viewEntries = new Map<string, () => NodeEntry>();
@@ -1852,18 +1889,7 @@ export class CatalogGraph {
           ? ["color"]
           : ["opacity", "fontWeight"].includes(key)
             ? ["number"]
-            : [
-                  "width",
-                  "height",
-                  "fontSize",
-                  "radius",
-                  "gap",
-                  "padding",
-                  "borderWidth",
-                  "thumbSize",
-                  "indentPerLevel",
-                  "iconGap",
-                ].includes(key)
+            : LENGTH_TOKEN_FIELDS.has(key)
               ? ["length", "number"]
               : ["string"];
       if (!allowed.includes(actual))

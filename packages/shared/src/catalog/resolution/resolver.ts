@@ -62,7 +62,7 @@ import {
   CATALOG_FORM_FIELDS,
 } from "../document/formContext";
 import { OWNER_DRAWN_PART_HOSTS } from "../resolvers/resolveDelegatedChildFontSize";
-import { catalogTokenValue } from "../document/themedToken";
+import { catalogTokenValue, readThemeTokenValue } from "../document/themedToken";
 import {
   compileFieldTemplate,
   interpolateFieldTemplate,
@@ -214,6 +214,27 @@ export interface CatalogViewResultMeta {
  * it as it reaches the generated sheets; the Canvas reads the number (desktop, 사용자 결정 7).
  */
 const RESOLVED_TOKEN_REFS = new WeakMap<object, Record<string, string>>();
+/**
+ * ADR-298 D4 행간 계약 — what the document's writes on one record's visual said about its line: a font
+ * size from a typography token (its ref), a line-height token's px, an authored line height at all. The
+ * record's `lineHeight` is a ratio (the rule's px ÷ its font size), so `finishLineHeight` turns these into
+ * that ratio once every write is in.
+ */
+interface LineWrites {
+  fontRef?: string;
+  linePx?: number;
+  lineAuthored?: boolean;
+}
+const LINE_WRITES = new WeakMap<object, LineWrites>();
+/**
+ * ADR-298 D5 — the token refs the document wrote (a node's · template node's · override's `TokenUse`),
+ * a subset of `RESOLVED_TOKEN_REFS` (which also holds the definitions' rule tokens). The DOM writes these
+ * as the token's variable; a rule token keeps the value its sheet was built with.
+ */
+const AUTHORED_TOKEN_REFS = new WeakMap<object, Record<string, string>>();
+/** Visuals whose line ratio `finishLineHeight` set — the ratio travels with the font size to an instance's root. */
+const LINE_FINISHED = new WeakSet<object>();
+const TYPOGRAPHY_FONT_REF = /^\{typography\.(text-[a-z0-9-]+)\}$/;
 
 /** The token ref of `values[key]` as resolved (`undefined` = a literal, an authored px, no record). */
 export function catalogResolvedTokenRef(
@@ -221,6 +242,23 @@ export function catalogResolvedTokenRef(
   key: string,
 ): string | undefined {
   return RESOLVED_TOKEN_REFS.get(values)?.[key];
+}
+
+/**
+ * ADR-298 D5 (F12) — whether two resolved value objects read the same keys from the same tokens: a record
+ * whose value stayed but whose source changed (a literal 12 → `{spacing.md}`) is a changed record for the
+ * DOM, which writes the token's variable.
+ */
+export function catalogSameResolvedTokenRefs(left: object, right: object): boolean {
+  return [RESOLVED_TOKEN_REFS, AUTHORED_TOKEN_REFS].every((map) => {
+    const a = map.get(left) ?? {};
+    const b = map.get(right) ?? {};
+    const keys = Object.keys(a);
+    return (
+      keys.length === Object.keys(b).length &&
+      keys.every((key) => a[key] === b[key])
+    );
+  });
 }
 
 /** `{ ...visual, ...extra }` with `visual`'s token refs. */
@@ -236,15 +274,25 @@ export function copyResolvedTokenRefs(
   source: object,
   keys: readonly string[] = Object.keys(source),
 ): void {
-  const refs = RESOLVED_TOKEN_REFS.get(source);
-  const own = RESOLVED_TOKEN_REFS.get(target);
-  if (!refs && !own) return;
-  const out = own ?? {};
-  for (const key of keys) {
-    if (refs?.[key]) out[key] = refs[key]!;
-    else delete out[key];
+  for (const map of [RESOLVED_TOKEN_REFS, AUTHORED_TOKEN_REFS]) {
+    const refs = map.get(source);
+    const own = map.get(target);
+    if (!refs && !own) continue;
+    const out = own ?? {};
+    for (const key of keys) {
+      if (refs?.[key]) out[key] = refs[key]!;
+      else delete out[key];
+    }
+    map.set(target, out);
   }
-  RESOLVED_TOKEN_REFS.set(target, out);
+}
+
+/** The token ref the document wrote for `key` of a resolved values object (ADR-298 D5), else undefined. */
+export function catalogAuthoredTokenRef(
+  values: object,
+  key: string,
+): string | undefined {
+  return AUTHORED_TOKEN_REFS.get(values)?.[key];
 }
 
 const LOADING_STATE_TYPES: ReadonlySet<string> = new Set([
@@ -750,12 +798,13 @@ export function resolveCatalogNode(
     target: object,
     key: string,
     value: AuthoredValue | number | null | undefined,
+    map: WeakMap<object, Record<string, string>> = RESOLVED_TOKEN_REFS,
   ) => {
     const ref = value === undefined ? undefined : tokenRefOf(value);
-    const refs = RESOLVED_TOKEN_REFS.get(target);
+    const refs = map.get(target);
     if (ref) {
       if (refs) refs[key] = ref;
-      else RESOLVED_TOKEN_REFS.set(target, { [key]: ref });
+      else map.set(target, { [key]: ref });
     } else if (refs) delete refs[key];
   };
   const tokenValue = (value: AuthoredValue): PropValue => {
@@ -784,11 +833,60 @@ export function resolveCatalogNode(
       if (write.kind === "mask") {
         delete target[key];
         noteTokenRef(target, key, undefined);
+        noteTokenRef(target, key, undefined, AUTHORED_TOKEN_REFS);
       } else if (write.kind === "set") {
         target[key] = write.value === null ? null : tokenValue(write.value);
         noteTokenRef(target, key, write.value);
+        noteTokenRef(target, key, write.value, AUTHORED_TOKEN_REFS);
+        if (key === "fontSize" || key === "lineHeight")
+          noteLineWrite(target, key, write.value);
       }
       // remove resets this local layer; the inherited value remains visible.
+    }
+  };
+  const noteLineWrite = (
+    target: object,
+    key: "fontSize" | "lineHeight",
+    value: AuthoredValue | number | null,
+  ) => {
+    const state = LINE_WRITES.get(target) ?? {};
+    LINE_WRITES.set(target, state);
+    const ref = value === null ? undefined : tokenRefOf(value);
+    if (key === "fontSize") {
+      state.fontRef = ref && TYPOGRAPHY_FONT_REF.test(ref) ? ref : undefined;
+      return;
+    }
+    state.lineAuthored = true;
+    const px = ref ? (target as Record<string, unknown>)[key] : undefined;
+    state.linePx = typeof px === "number" ? px : undefined;
+  };
+  /**
+   * ADR-298 D4 ① ② — the line ratio of a record whose writes set a typography font size or a line-height
+   * token: ② a line-height token is px, held as px ÷ the final font size; ① with no authored line height,
+   * a font size token brings its pair (`{typography.<name>--line-height}`) ÷ that size — the rule's ratio
+   * was for the rule's font size.
+   */
+  const finishLineHeight = (visual: Record<string, PropValue | null>) => {
+    const state = LINE_WRITES.get(visual);
+    if (!state) return;
+    LINE_WRITES.delete(visual);
+    const fontSize = visual.fontSize;
+    if (typeof fontSize !== "number" || !(fontSize > 0)) return;
+    if (state.linePx !== undefined) {
+      visual.lineHeight = state.linePx / fontSize;
+      LINE_FINISHED.add(visual);
+      return;
+    }
+    if (state.lineAuthored || !state.fontRef) return;
+    const name = TYPOGRAPHY_FONT_REF.exec(state.fontRef)![1]!;
+    const pair = readThemeTokenValue(
+      `{typography.${name === "text-md" ? "text-base" : name}--line-height}`,
+      "number",
+      tokenMode ?? "light",
+    );
+    if (typeof pair === "number") {
+      visual.lineHeight = pair / fontSize;
+      LINE_FINISHED.add(visual);
     }
   };
   /** `ResolvedCatalogNode.stateVisual` of the state rule layers a node takes, lowest first. */
@@ -1008,6 +1106,9 @@ export function resolveCatalogNode(
     for (const key of propKeys) if (key in props) root.props[key] = props[key];
     for (const key of visualKeys)
       if (key in visual) root.visual[key] = visual[key];
+    // (ADR-298 D4: a line ratio the font size token brought goes along with it.)
+    if (LINE_FINISHED.has(visual) && "fontSize" in root.visual)
+      root.visual.lineHeight = visual.lineHeight;
     copyResolvedTokenRefs(root.visual, visual, Object.keys(root.visual));
     return root;
   };
@@ -1476,6 +1577,7 @@ export function resolveCatalogNode(
       applyLayoutWrites(layout, layer.layout);
       applyLayoutWrites(ownLayout, layer.layout);
     }
+    finishLineHeight(visual);
     const self: ParentContext = {
       definitionId: node.definitionId,
       props,
@@ -2177,6 +2279,7 @@ export function resolveCatalogNode(
     if (patch?.visual) applyWrites(visual, patch.visual);
     for (const layer of patchLayers)
       if (layer.visual) applyWrites(visual, layer.visual);
+    finishLineHeight(visual);
     // This position's fills: a path patch's, else the owning instance's (template root), else the
     // template node's own — the output fields below and a nested instance's root read the same.
     const ownPaint =

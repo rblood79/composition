@@ -1,4 +1,5 @@
 import { LIBRARY_CONTRACT_VERSION } from "./types";
+import { addLibraryTokenScale } from "./libraryTokenScale";
 import { scalarFitsType } from "./valueType";
 import {
   ICON_SIZE_TOKEN_REF,
@@ -972,6 +973,8 @@ export async function buildCodeCatalogLibrary(
       rules[definition.ruleId] = (
         COMPONENT_RULES_TABLE as Record<string, ComponentRule>
       )[definition.ruleId];
+  // ADR-298 D2: the theme-agnostic scale node values reference (after the rule tokens).
+  addLibraryTokenScale(tokens, theme);
   const execution = codeExecutionVocabulary();
   const digest = await crypto.subtle.digest(
     "SHA-256",
