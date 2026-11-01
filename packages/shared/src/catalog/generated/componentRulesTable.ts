@@ -2745,11 +2745,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
+        // ADR-297 Phase 3 닫힘 — 묶음 컨테이너는 상자를 칠하지 않는다 (S2 그대로). 생성 CSS 는 composition 이
+        //   상자를 가진 rule 의 variant 칠을 내지 않아 DOM 은 투명이었고, Canvas 만 트리의 바탕 · 테두리를 그렸다.
         paint: {
           backgroundColor: {
-            default: "{color.base}",
-            isHovered: "{color.base}",
-            isPressed: "{color.base}",
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
           color: {
             default: "{color.neutral}",
@@ -5352,17 +5354,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
+        // ADR-297 Phase 3 닫힘 — 묶음 컨테이너는 상자를 칠하지 않는다 (S2 그대로). 생성 CSS 는 composition 이
+        //   상자를 가진 rule 의 variant 칠을 내지 않아 DOM 은 투명이었고, Canvas 만 트리의 바탕 · 테두리를 그렸다.
         paint: {
           backgroundColor: {
-            default: "{color.base}",
-            isHovered: "{color.base}",
-            isPressed: "{color.base}",
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
           color: {
             default: "{color.neutral}",
-          },
-          borderColor: {
-            default: "{color.border}",
           },
         },
       },
@@ -5846,11 +5847,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
+        // ADR-297 Phase 3 닫힘 — 묶음 컨테이너는 상자를 칠하지 않는다 (S2 그대로). 생성 CSS 는 composition 이
+        //   상자를 가진 rule 의 variant 칠을 내지 않아 DOM 은 투명이었고, Canvas 만 트리의 바탕 · 테두리를 그렸다.
         paint: {
           backgroundColor: {
-            default: "{color.base}",
-            isHovered: "{color.base}",
-            isPressed: "{color.base}",
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
           color: {
             default: "{color.neutral}",
@@ -9550,17 +9553,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
+        // ADR-297 Phase 3 닫힘 — 묶음 컨테이너는 상자를 칠하지 않는다 (S2 그대로). 생성 CSS 는 composition 이
+        //   상자를 가진 rule 의 variant 칠을 내지 않아 DOM 은 투명이었고, Canvas 만 트리의 바탕 · 테두리를 그렸다.
         paint: {
           backgroundColor: {
-            default: "{color.base}",
-            isHovered: "{color.layer-2}",
-            isPressed: "{color.layer-1}",
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
           color: {
             default: "{color.neutral}",
-          },
-          borderColor: {
-            default: "{color.border}",
           },
         },
       },
@@ -10534,11 +10536,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
+        // ADR-297 Phase 3 닫힘 — 묶음 컨테이너는 상자를 칠하지 않는다 (S2 그대로). 생성 CSS 는 composition 이
+        //   상자를 가진 rule 의 variant 칠을 내지 않아 DOM 은 투명이었고, Canvas 만 트리의 바탕 · 테두리를 그렸다.
         paint: {
           backgroundColor: {
-            default: "{color.base}",
-            isHovered: "{color.base}",
-            isPressed: "{color.base}",
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
           color: {
             default: "{color.neutral}",
@@ -15327,17 +15331,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
+        // ADR-297 Phase 3 닫힘 — 묶음 컨테이너는 상자를 칠하지 않는다 (S2 그대로). 생성 CSS 는 composition 이
+        //   상자를 가진 rule 의 variant 칠을 내지 않아 DOM 은 투명이었고, Canvas 만 트리의 바탕 · 테두리를 그렸다.
         paint: {
           backgroundColor: {
-            default: "{color.base}",
-            isHovered: "{color.layer-2}",
-            isPressed: "{color.layer-1}",
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
           },
           color: {
             default: "{color.neutral}",
-          },
-          borderColor: {
-            default: "{color.border}",
           },
         },
       },

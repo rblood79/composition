@@ -36,6 +36,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why**: 토큰 모델 A — 노드 값이 토큰 이름을 저장해야 테마 · 모드 전환이 rule 값과 노드 값에 같이 닿는다. fills 색 · inset 은 리터럴만 받는 저장 자리였다 (문서 스키마 `string | TokenUse` 로 확장).
   - 위치: `packages/shared/src/catalog/document/types.ts` (`CatalogFillColor` · `LayoutTokenField`) · `resolution/resolver.ts` (`resolvedFills` · `applyLayoutWrites`) · `runtime/authoredStyle.ts` · `runtime/nodeTokenCss.ts` · `utils/fillAdapter.ts` · `codeView/files/styles.ts` · `apps/builder/src/builder/catalogRuntime/panelTokens.ts` · `panels/styles/components/ColorPickerPalettes.*` · 테스트 `adr298Phase3.test.ts` · `adr298Phase3Panel.test.tsx` · `adr298CodeViewRoundTrip.test.tsx`
 
+## [ADR-297 Phase 3 닫힘 — 묶음 컨테이너가 Canvas 에서만 칠하던 바탕 · 테두리 제거] - 2026-11-02
+
+### Fixed
+
+- **CheckboxGroup · RadioGroup · DisclosureGroup · Form · Pagination · Toolbar (Canvas)**: Builder Canvas 가 이 묶음 컨테이너에 흰 바탕을 깔고 Pagination · Toolbar 에는 회색 테두리 상자를 그렸다. Preview · publish 에는 없던 칠이다. 이제 두 화면 모두 칠하지 않는다 (S2 그대로).
+  - **Why**: rule 의 칠 트리에 바탕 · 테두리가 적혀 있었지만, 생성 CSS 는 composition 이 상자를 가진 rule 의 variant 칠을 내지 않아 Canvas 만 그것을 읽었다. 트리 하나를 두 소비자가 다르게 읽은 경우다.
+  - 판정: 표 전수 칠 대조를 실제 노드 트리 (팔레트 instance 의 같은 record 를 Canvas node data · Preview DOM computed 로) 로 다시 재 536 칸 중 36 이 달랐고, 이 8 칸이 트리 계약 위반이었다. 나머지 28 칸 (수동 CSS 만 칠하는 GridList · Table 선 · Pagination 쪽 버튼 등) 은 ADR-297 전부터 있던 다른 원천이라 후속으로 둔다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` · 게이트 `packages/shared/src/catalog/__tests__/adr297ContainerPaintGate.test.ts` · 하니스 `apps/builder/tests/parity/adr297RealPaintParity.browser.test.ts`
+
 ## [ADR-298 Phase 2 — Design 패널이 테마 토큰을 먼저 쓴다 (패널)] - 2026-11-01
 
 ### Changed
