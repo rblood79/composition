@@ -1,0 +1,109 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog Tab — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: default
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Tab {
+  /* Base styles — archetype: default */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+
+  /* Default size */
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  font-weight: 500;
+}
+
+.react-aria-Tab {
+  color: var(--fg-muted);
+}
+
+.react-aria-Tab:where([data-hovered]) {
+  color: var(--fg);
+}
+
+.react-aria-Tab:where([data-selected]) {
+  color: var(--fg);
+}
+
+.react-aria-Tab[data-size="S"] {
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  font-weight: 500;
+}
+
+.react-aria-Tab[data-size="M"] {
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  font-weight: 500;
+}
+
+.react-aria-Tab[data-size="L"] {
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  font-weight: 500;
+}
+
+.react-aria-Tab.react-aria-Tab:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+}
+
+.react-aria-Tab.react-aria-Tab:where([data-focus-visible]) {
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-Tab.react-aria-Tab:where([data-disabled]) {
+  opacity: 0.38;
+}
+
+.react-aria-Tab.react-aria-Tab {
+  cursor: pointer;
+}
+
+.react-aria-Tab.react-aria-Tab:where([data-disabled]) {
+  cursor: not-allowed;
+}
+
+.react-aria-Tab.react-aria-Tab:where([data-disabled]) {
+  pointer-events: none;
+}
+
+.react-aria-Tab.react-aria-Tab:where([href]) {
+  text-decoration: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-Tab[data-density="compact"] {
+  height: 32px;
+}
+
+.react-aria-Tab[data-density="regular"] {
+  height: 48px;
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-Tab {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-Tab {
+    user-select: none;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  }
+
+
+} /* @layer components */`;export{e as default};
