@@ -1,0 +1,60 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog ColorWheel — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-ColorWheel {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Default size */
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-full);
+  --icon-size: 18px;
+}
+
+.react-aria-ColorWheel[data-size="S"] {
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-full);
+  --icon-size: 14px;
+}
+
+.react-aria-ColorWheel[data-size="M"] {
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-full);
+  --icon-size: 18px;
+}
+
+.react-aria-ColorWheel[data-size="L"] {
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-full);
+  --icon-size: 22px;
+}
+
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-ColorWheel {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-ColorWheel[data-disabled] .react-aria-ColorWheelTrack {
+    background: gray !important;
+  }
+
+  .react-aria-ColorWheel[data-disabled] .react-aria-ColorThumb {
+    background: gray !important;
+    opacity: 0.5;
+  }
+
+
+} /* @layer components */`;export{e as default};

@@ -1,0 +1,114 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog ColorSlider — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-ColorSlider {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+    display: grid;
+    grid-template-areas: "label output" "track track";
+    grid-template-columns: 1fr auto;
+    gap: 4px;
+    width: calc(var(--catalog-token-size-unit) * 192 / 1);
+    contain: layout style;
+
+  /* Default size */
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  gap: 4px;
+}
+
+.react-aria-ColorSlider[data-size="S"] {
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-none);
+  gap: 4px;
+}
+
+.react-aria-ColorSlider[data-size="M"] {
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  gap: 4px;
+}
+
+.react-aria-ColorSlider[data-size="L"] {
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
+  gap: 4px;
+}
+
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-ColorSlider[data-orientation="horizontal"] .react-aria-SliderTrack {
+  width: 100%;
+  height: calc(var(--catalog-token-size-unit) * 24 / 1);
+  border-radius: var(--catalog-token-radius-md);
+  touch-action: none;
+}
+
+.react-aria-ColorSlider[data-orientation="vertical"] {
+  width: auto;
+  height: calc(var(--catalog-token-size-unit) * 192 / 1);
+  display: block;
+}
+
+.react-aria-ColorSlider[data-orientation="vertical"] :is(.react-aria-Label, .react-aria-FieldLabel) {
+  display: none;
+}
+
+.react-aria-ColorSlider[data-orientation="vertical"] .react-aria-SliderOutput {
+  display: none;
+}
+
+.react-aria-ColorSlider[data-orientation="vertical"] .react-aria-SliderTrack {
+  width: calc(var(--catalog-token-size-unit) * 24 / 1);
+  height: 100%;
+  border-radius: var(--catalog-token-radius-md);
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-ColorSlider {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-ColorSlider :is(.react-aria-Label, .react-aria-FieldLabel) {
+    grid-area: label;
+  }
+
+  .react-aria-ColorSlider .react-aria-SliderOutput {
+    grid-area: output;
+  }
+
+  .react-aria-ColorSlider .react-aria-SliderTrack {
+    grid-area: track;
+  }
+
+
+  .react-aria-ColorSlider[data-orientation="horizontal"] .react-aria-ColorThumb {
+    top: 50%;
+  }
+
+  .react-aria-ColorSlider[data-orientation="vertical"] .react-aria-ColorThumb {
+    left: 50%;
+  }
+
+  .react-aria-ColorSlider[data-disabled] .react-aria-SliderTrack {
+    background: gray !important;
+  }
+
+  .react-aria-ColorSlider[data-disabled] .react-aria-ColorThumb {
+    background: gray !important;
+    opacity: 0.5;
+  }
+
+
+} /* @layer components */`;export{e as default};

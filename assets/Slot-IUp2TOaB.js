@@ -1,0 +1,94 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog Slot — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Slot {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: block;
+
+  /* Default size */
+  height: auto;
+  padding: 12px 12px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
+  min-height: 60px;
+  gap: 8px;
+}
+
+.react-aria-Slot[data-size="S"] {
+  height: auto;
+  padding: 8px 8px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-md);
+  min-height: 40px;
+  gap: 4px;
+}
+
+.react-aria-Slot[data-size="M"] {
+  height: auto;
+  padding: 12px 12px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
+  min-height: 60px;
+  gap: 8px;
+}
+
+.react-aria-Slot[data-size="L"] {
+  height: auto;
+  padding: 16px 16px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-lg);
+  min-height: 80px;
+  gap: 12px;
+}
+
+.react-aria-Slot[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-Slot[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-Slot > .react-aria-Slot-placeholder {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.react-aria-Slot .react-aria-Slot-icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+
+.react-aria-Slot .react-aria-Slot-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-Slot {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

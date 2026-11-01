@@ -1,0 +1,91 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog Breadcrumb — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: simple
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Breadcrumb {
+  /* Base styles — archetype: simple */
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: inline-flex;
+  align-items: center;
+
+  /* Default variant */
+  background: var(--bg);
+  color: var(--fg-muted);
+  border: none;
+
+  /* Default size */
+  height: 32px;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  gap: 2px;
+  --icon-size: 16px;
+}
+
+.react-aria-Breadcrumb[data-variant="default"] {
+  background: var(--bg);
+  color: var(--fg-muted);
+
+  &[data-hovered] {
+    background: var(--bg);
+    color: var(--fg);
+  }
+
+  &[data-pressed] {
+    background: var(--bg);
+  }
+}
+
+.react-aria-Breadcrumb[data-size="S"] {
+  height: 24px;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-none);
+  --icon-size: 14px;
+}
+
+.react-aria-Breadcrumb[data-size="M"] {
+  height: 32px;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  gap: 2px;
+  --icon-size: 16px;
+}
+
+.react-aria-Breadcrumb[data-size="L"] {
+  height: 40px;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
+  gap: 4px;
+  --icon-size: 18px;
+}
+
+.react-aria-Breadcrumb[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-Breadcrumb[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-Breadcrumb {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

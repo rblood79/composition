@@ -1,0 +1,79 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog CalendarHeader — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: simple
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-CalendarHeader {
+  /* Base styles — archetype: simple */
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+
+  /* Default variant */
+  background: transparent;
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  height: 32px;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  gap: 24px;
+  --icon-size: 26px;
+}
+
+.react-aria-CalendarHeader[data-variant="default"] {
+  background: transparent;
+  color: var(--fg);
+
+  &[data-hovered] {
+    background: transparent;
+  }
+
+  &[data-pressed] {
+    background: transparent;
+  }
+}
+
+.react-aria-CalendarHeader[data-variant="accent"] {
+  background: transparent;
+  color: var(--fg);
+
+  &[data-hovered] {
+    background: transparent;
+  }
+
+  &[data-pressed] {
+    background: transparent;
+  }
+}
+
+.react-aria-CalendarHeader[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-CalendarHeader[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-CalendarHeader {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

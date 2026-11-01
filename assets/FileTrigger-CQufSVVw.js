@@ -1,0 +1,146 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog FileTrigger — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: button
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-FileTrigger {
+  /* Base styles — archetype: button */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    box-sizing: border-box;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Default variant */
+  background: var(--bg-overlay);
+  color: var(--fg);
+  border: var(--border-width-thin) solid var(--border);
+
+  /* Default size */
+  height: auto;
+  padding: 4px 12px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
+  line-height: var(--catalog-token-text-sm--line-height);
+  font-weight: 500;
+  border-width: var(--border-width-thin);
+  gap: 8px;
+  --icon-size: var(--catalog-token-file-trigger-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
+  --icon-gap: 8px;
+}
+
+.react-aria-FileTrigger[data-variant="default"] {
+  background: var(--bg-overlay);
+  color: var(--fg);
+  border-color: var(--border);
+
+  &[data-hovered] {
+    background: var(--bg-muted);
+  }
+
+  &[data-pressed] {
+    background: var(--bg-muted);
+  }
+}
+
+.react-aria-FileTrigger[data-icon-only] {
+  padding: 0;
+  aspect-ratio: 1;
+}
+
+.react-aria-FileTrigger[data-size="S"] {
+  height: auto;
+  padding: 2px 8px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-xs--line-height);
+  font-weight: 500;
+  border-width: var(--border-width-thin);
+  gap: 6px;
+  --icon-size: var(--catalog-token-file-trigger-icon-size-S, calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)));
+  --icon-gap: 6px;
+}
+
+.react-aria-FileTrigger[data-size="M"] {
+  height: auto;
+  padding: 4px 12px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
+  line-height: var(--catalog-token-text-sm--line-height);
+  font-weight: 500;
+  border-width: var(--border-width-thin);
+  gap: 8px;
+  --icon-size: var(--catalog-token-file-trigger-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
+  --icon-gap: 8px;
+}
+
+.react-aria-FileTrigger[data-size="L"] {
+  height: auto;
+  padding: 8px 16px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-lg);
+  line-height: var(--catalog-token-text-base--line-height);
+  font-weight: 500;
+  border-width: var(--border-width-thin);
+  gap: 10px;
+  --icon-size: var(--catalog-token-file-trigger-icon-size-L, calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)));
+  --icon-gap: 10px;
+}
+
+.react-aria-FileTrigger[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-FileTrigger[data-pressed] {
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.react-aria-FileTrigger[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-FileTrigger {
+    forced-color-adjust: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .react-aria-FileTrigger {
+    transition-duration: 0s !important;
+  }
+}
+
+  .react-aria-FileTrigger input[type='file'] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+
+} /* @layer components */`;export{e as default};

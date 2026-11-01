@@ -1,0 +1,257 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog ComboBox — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: default
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-ComboBox {
+  /* Base styles — archetype: default */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    box-sizing: border-box;
+    width: 100%;
+    color: var(--fg);
+
+  /* Default size */
+  font-size: var(--catalog-token-text-sm);
+  border-radius: 8px;
+  gap: var(--catalog-token-combo-box-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
+  --icon-size: var(--catalog-token-combo-box-icon-size-M, var(--catalog-token-size-icon-M));
+}
+
+.react-aria-ComboBox[data-size="XS"] {
+  font-size: var(--catalog-token-text-2xs);
+  border-radius: var(--catalog-token-radius-xs);
+  gap: var(--catalog-token-combo-box-gap-XS, calc(var(--catalog-token-size-height-XS) * 1 / 2 + calc(var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height)) * -1 / 2));
+  --icon-size: var(--catalog-token-combo-box-icon-size-XS, var(--catalog-token-size-icon-XS));
+}
+
+.react-aria-ComboBox[data-size="S"] {
+  font-size: var(--catalog-token-text-xs);
+  border-radius: 7px;
+  gap: var(--catalog-token-combo-box-gap-S, calc(var(--catalog-token-size-height-S) * 1 / 2 + calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)) * -1 / 2));
+  --icon-size: var(--catalog-token-combo-box-icon-size-S, var(--catalog-token-size-icon-S));
+}
+
+.react-aria-ComboBox[data-size="M"] {
+  font-size: var(--catalog-token-text-sm);
+  border-radius: 8px;
+  gap: var(--catalog-token-combo-box-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
+  --icon-size: var(--catalog-token-combo-box-icon-size-M, var(--catalog-token-size-icon-M));
+}
+
+.react-aria-ComboBox[data-size="L"] {
+  font-size: var(--catalog-token-text-base);
+  border-radius: 9px;
+  gap: var(--catalog-token-combo-box-gap-L, calc(var(--catalog-token-size-height-L) * 1 / 2 + calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)) * -1 / 2));
+  --icon-size: var(--catalog-token-combo-box-icon-size-L, var(--catalog-token-size-icon-L));
+}
+
+.react-aria-ComboBox[data-size="XL"] {
+  font-size: var(--catalog-token-text-lg);
+  border-radius: 10px;
+  gap: var(--catalog-token-combo-box-gap-XL, calc(var(--catalog-token-size-height-XL) * 1 / 2 + calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * -1 / 2));
+  --icon-size: var(--catalog-token-combo-box-icon-size-XL, var(--catalog-token-size-icon-XL));
+}
+
+.react-aria-ComboBox[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-ComboBox[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-ComboBox .combobox-container {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.react-aria-ComboBox[data-size="XS"] {
+  --combo-input-pad-end: calc(var(--catalog-token-size-height-XS) * 3 / 16 + var(--catalog-token-size-field-button-XS) * 1 / 1 + var(--catalog-token-text-2xs) * 10 / 14 - 2px);
+}
+
+.react-aria-ComboBox[data-size="S"] {
+  --combo-input-pad-end: calc(var(--catalog-token-size-height-S) * 3 / 16 + var(--catalog-token-size-field-button-S) * 1 / 1 + var(--catalog-token-text-xs) * 10 / 14 - 2px);
+}
+
+.react-aria-ComboBox[data-size="M"] {
+  --combo-input-pad-end: calc(var(--catalog-token-size-height-M) * 3 / 16 + var(--catalog-token-size-field-button-M) * 1 / 1 + var(--catalog-token-text-sm) * 10 / 14 - 2px);
+}
+
+.react-aria-ComboBox[data-size="L"] {
+  --combo-input-pad-end: calc(var(--catalog-token-size-height-L) * 3 / 16 + var(--catalog-token-size-field-button-L) * 1 / 1 + var(--catalog-token-text-base) * 10 / 14 - 2px);
+}
+
+.react-aria-ComboBox[data-size="XL"] {
+  --combo-input-pad-end: calc(var(--catalog-token-size-height-XL) * 3 / 16 + var(--catalog-token-size-field-button-XL) * 1 / 1 + var(--catalog-token-text-lg) * 10 / 14 - 2px);
+}
+
+.react-aria-ComboBox .react-aria-Input {
+  min-width: 0;
+  padding-right: var(--combo-input-pad-end);
+}
+
+.react-aria-ComboBox[data-size="XS"] {
+  --combo-btn-size: var(--catalog-token-size-field-button-XS);
+  --combo-btn-offset: calc(var(--catalog-token-size-field-button-XS) * -1 / 1 + var(--catalog-token-size-height-XS) * -3 / 16 + 1px);
+}
+
+.react-aria-ComboBox[data-size="S"] {
+  --combo-btn-size: var(--catalog-token-size-field-button-S);
+  --combo-btn-offset: calc(var(--catalog-token-size-field-button-S) * -1 / 1 + var(--catalog-token-size-height-S) * -3 / 16 + 1px);
+}
+
+.react-aria-ComboBox[data-size="M"] {
+  --combo-btn-size: var(--catalog-token-size-field-button-M);
+  --combo-btn-offset: calc(var(--catalog-token-size-field-button-M) * -1 / 1 + var(--catalog-token-size-height-M) * -3 / 16 + 1px);
+}
+
+.react-aria-ComboBox[data-size="L"] {
+  --combo-btn-size: var(--catalog-token-size-field-button-L);
+  --combo-btn-offset: calc(var(--catalog-token-size-field-button-L) * -1 / 1 + var(--catalog-token-size-height-L) * -3 / 16 + 1px);
+}
+
+.react-aria-ComboBox[data-size="XL"] {
+  --combo-btn-size: var(--catalog-token-size-field-button-XL);
+  --combo-btn-offset: calc(var(--catalog-token-size-field-button-XL) * -1 / 1 + var(--catalog-token-size-height-XL) * -3 / 16 + 1px);
+}
+
+.react-aria-ComboBox .react-aria-Button {
+  flex: 0 0 auto;
+  width: var(--combo-btn-size);
+  height: var(--combo-btn-size);
+  min-height: 0;
+  min-width: 0;
+  margin-inline-start: var(--combo-btn-offset);
+}
+
+.react-aria-Popover[data-trigger="ComboBox"][data-catalog-id] {
+  padding: 0;
+}
+
+.react-aria-Popover[data-trigger="ComboBox"] {
+  width: var(--trigger-width);
+  max-width: none;
+  max-height: 300px;
+  overflow: auto;
+  box-sizing: border-box;
+  border: var(--border-width-thin) solid var(--border);
+  border-radius: var(--border-radius);
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-lg);
+  contain: layout style;
+}
+
+.react-aria-Popover[data-trigger="ComboBox"] .react-aria-ListBox {
+  border: none;
+  background: transparent;
+  max-height: none;
+  min-height: 24px;
+}
+
+.react-aria-ComboBox[data-label-position="side"] {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+}
+
+.react-aria-ComboBox[data-label-position="side"] > :is(.react-aria-Label, .react-aria-FieldLabel) {
+  grid-column: 1;
+  width: var(--form-label-width);
+  align-self: center;
+  text-align: var(--form-label-align, start);
+  justify-content: var(--form-label-align, start);
+}
+
+.react-aria-ComboBox[data-label-position="side"] > :not(.react-aria-Label, .react-aria-FieldLabel, .react-aria-FieldError, [slot="description"]) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.react-aria-ComboBox[data-label-position="side"] > .react-aria-FieldError {
+  grid-column: 2;
+}
+
+.react-aria-ComboBox[data-label-position="side"] > [slot="description"] {
+  grid-column: 2;
+}
+
+.react-aria-ComboBox[data-label-align="end"] {
+  --form-label-align: end;
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-ComboBox {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-ComboBox :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
+    color: var(--fg-muted);
+    flex-shrink: 0;
+  }
+
+  .react-aria-ComboBox .react-aria-Text[slot="prefix"] {
+    width: auto;
+  }
+
+
+  .react-aria-ComboBox[data-size="XS"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
+    margin-inline-end: 4px;
+  }
+
+  .react-aria-ComboBox[data-size="XS"] .react-aria-Text[slot="prefix"] {
+    font-size: var(--catalog-token-text-2xs);
+    line-height: var(--catalog-token-text-2xs--line-height);
+  }
+
+  .react-aria-ComboBox[data-size="S"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
+    margin-inline-end: 5px;
+  }
+
+  .react-aria-ComboBox[data-size="S"] .react-aria-Text[slot="prefix"] {
+    font-size: var(--catalog-token-text-xs);
+    line-height: var(--catalog-token-text-xs--line-height);
+  }
+
+  .react-aria-ComboBox[data-size="M"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
+    margin-inline-end: 6px;
+  }
+
+  .react-aria-ComboBox[data-size="M"] .react-aria-Text[slot="prefix"] {
+    font-size: var(--catalog-token-text-sm);
+    line-height: var(--catalog-token-text-sm--line-height);
+  }
+
+  .react-aria-ComboBox[data-size="L"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
+    margin-inline-end: 7px;
+  }
+
+  .react-aria-ComboBox[data-size="L"] .react-aria-Text[slot="prefix"] {
+    font-size: var(--catalog-token-text-base);
+    line-height: var(--catalog-token-text-base--line-height);
+  }
+
+  .react-aria-ComboBox[data-size="XL"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
+    margin-inline-end: 8px;
+  }
+
+  .react-aria-ComboBox[data-size="XL"] .react-aria-Text[slot="prefix"] {
+    font-size: var(--catalog-token-text-lg);
+    line-height: var(--catalog-token-text-lg--line-height);
+  }
+
+
+} /* @layer components */`;export{e as default};

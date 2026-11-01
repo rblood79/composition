@@ -1,0 +1,150 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog MenuItem — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: simple
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-MenuItem {
+  /* Base styles — archetype: simple */
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: inline-flex;
+  align-items: center;
+
+  /* Default size */
+  height: auto;
+  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-menu-item-padding-x-M, calc(var(--catalog-token-size-height-M) * 3 / 8));
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
+  line-height: var(--catalog-token-text-sm--line-height);
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-M);
+  gap: var(--catalog-token-menu-item-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+}
+
+.react-aria-MenuItem[data-size="S"] {
+  height: auto;
+  padding: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-menu-item-padding-x-S, calc(var(--catalog-token-size-height-S) * 3 / 8));
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-xs--line-height);
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-S);
+  gap: var(--catalog-token-menu-item-gap-S, calc(var(--catalog-token-text-xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+}
+
+.react-aria-MenuItem[data-size="M"] {
+  height: auto;
+  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-menu-item-padding-x-M, calc(var(--catalog-token-size-height-M) * 3 / 8));
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
+  line-height: var(--catalog-token-text-sm--line-height);
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-M);
+  gap: var(--catalog-token-menu-item-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+}
+
+.react-aria-MenuItem[data-size="L"] {
+  height: auto;
+  padding: calc((var(--catalog-token-size-height-L) - var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-menu-item-padding-x-L, calc(var(--catalog-token-size-height-L) * 3 / 8));
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-lg);
+  line-height: var(--catalog-token-text-base--line-height);
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-L);
+  gap: var(--catalog-token-menu-item-gap-L, calc(var(--catalog-token-text-base) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+}
+
+.react-aria-MenuItem[data-size="XL"] {
+  height: auto;
+  padding: calc((var(--catalog-token-size-height-XL) - var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-menu-item-padding-x-XL, calc(var(--catalog-token-size-height-XL) * 3 / 8));
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-xl);
+  line-height: var(--catalog-token-text-lg--line-height);
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-XL);
+  gap: var(--catalog-token-menu-item-gap-XL, calc(var(--catalog-token-text-lg) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+}
+
+.react-aria-MenuItem[data-hovered] {
+  background: var(--bg-overlay);
+}
+
+.react-aria-MenuItem[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-MenuItem[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-MenuItem {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-MenuItem[data-size="S"] .react-aria-Text[slot="label"] {
+    font-size: var(--catalog-token-text-xs);
+    line-height: var(--catalog-token-text-xs--line-height);
+    font-weight: 500;
+  }
+
+  .react-aria-MenuItem[data-size="S"] .react-aria-Text[slot="description"] {
+    font-size: var(--catalog-token-text-2xs);
+    line-height: var(--catalog-token-text-2xs--line-height);
+  }
+
+  .react-aria-MenuItem[data-size="M"] .react-aria-Text[slot="label"] {
+    font-size: var(--catalog-token-text-sm);
+    line-height: var(--catalog-token-text-sm--line-height);
+    font-weight: 500;
+  }
+
+  .react-aria-MenuItem[data-size="M"] .react-aria-Text[slot="description"] {
+    font-size: var(--catalog-token-text-xs);
+    line-height: var(--catalog-token-text-xs--line-height);
+  }
+
+  .react-aria-MenuItem[data-size="L"] .react-aria-Text[slot="label"] {
+    font-size: var(--catalog-token-text-base);
+    line-height: var(--catalog-token-text-base--line-height);
+    font-weight: 500;
+  }
+
+  .react-aria-MenuItem[data-size="L"] .react-aria-Text[slot="description"] {
+    font-size: var(--catalog-token-text-sm);
+    line-height: var(--catalog-token-text-sm--line-height);
+  }
+
+  .react-aria-MenuItem[data-size="XL"] .react-aria-Text[slot="label"] {
+    font-size: var(--catalog-token-text-lg);
+    line-height: var(--catalog-token-text-lg--line-height);
+    font-weight: 500;
+  }
+
+  .react-aria-MenuItem[data-size="XL"] .react-aria-Text[slot="description"] {
+    font-size: var(--catalog-token-text-base);
+    line-height: var(--catalog-token-text-base--line-height);
+  }
+
+
+  .react-aria-MenuItem[href] {
+    text-decoration: none;
+    color: inherit;
+  }
+
+
+} /* @layer components */`;export{e as default};

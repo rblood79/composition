@@ -1,0 +1,123 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog CheckboxGroup — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: default
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-CheckboxGroup {
+  /* Base styles — archetype: default */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    box-sizing: border-box;
+    color: var(--fg);
+    --cb-items-gap: 12px;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: flex;
+
+  /* Default size */
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
+  gap: 12px;
+}
+
+.react-aria-CheckboxGroup[data-size="S"] {
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  gap: 8px;
+}
+
+.react-aria-CheckboxGroup[data-size="M"] {
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
+  gap: 12px;
+}
+
+.react-aria-CheckboxGroup[data-size="L"] {
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-none);
+  gap: 16px;
+}
+
+.react-aria-CheckboxGroup[data-size="XL"] {
+  font-size: var(--catalog-token-text-xl);
+  border-radius: var(--catalog-token-radius-none);
+  gap: 20px;
+}
+
+.react-aria-CheckboxGroup[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-CheckboxGroup[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-CheckboxGroup[data-size="S"] {
+  --cb-items-gap: 8px;
+}
+
+.react-aria-CheckboxGroup[data-size="L"] {
+  --cb-items-gap: 16px;
+}
+
+.react-aria-CheckboxGroup[data-label-position="side"] {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+}
+
+.react-aria-CheckboxGroup[data-label-position="side"] > :is(.react-aria-Label, .react-aria-FieldLabel) {
+  grid-column: 1;
+  width: var(--form-label-width);
+  text-align: var(--form-label-align, start);
+  justify-content: var(--form-label-align, start);
+}
+
+.react-aria-CheckboxGroup[data-label-position="side"] > :not(.react-aria-Label, .react-aria-FieldLabel, .react-aria-FieldError, [slot="description"]) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.react-aria-CheckboxGroup[data-label-position="side"] > .react-aria-FieldError {
+  grid-column: 2;
+}
+
+.react-aria-CheckboxGroup[data-label-position="side"] > [slot="description"] {
+  grid-column: 2;
+}
+
+.react-aria-CheckboxGroup[data-label-align="end"] {
+  --form-label-align: end;
+}
+
+.react-aria-CheckboxGroup[data-orientation="vertical"] .checkbox-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cb-items-gap, var(--spacing-md));
+}
+
+.react-aria-CheckboxGroup[data-orientation="horizontal"] .checkbox-items {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--cb-items-gap, var(--spacing-md));
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-CheckboxGroup {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

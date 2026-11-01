@@ -1,0 +1,201 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog Meter — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: progress
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Meter {
+  /* Base styles — archetype: progress */
+    display: grid;
+    box-sizing: border-box;
+    box-sizing: border-box;
+    row-gap: var(--spacing-xs);
+    column-gap: var(--spacing-md);
+    width: 100%;
+    color: var(--fg);
+    font-size: var(--catalog-token-text-sm);
+    --fill-color: var(--informative);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: grid;
+  grid-template-areas: "label value" "bar bar";
+  grid-template-columns: 1fr auto;
+
+  /* Default size */
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-sm--line-height);
+  min-width: var(--catalog-token-size-bar-min-width);
+  max-width: calc(var(--catalog-token-size-unit) * 768 / 1);
+  gap: 4px;
+}
+
+.react-aria-Meter[data-size="S"] {
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-xs--line-height);
+  min-width: var(--catalog-token-size-bar-min-width);
+  max-width: calc(var(--catalog-token-size-unit) * 768 / 1);
+  gap: 4px;
+}
+
+.react-aria-Meter[data-size="M"] {
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-sm--line-height);
+  min-width: var(--catalog-token-size-bar-min-width);
+  max-width: calc(var(--catalog-token-size-unit) * 768 / 1);
+  gap: 4px;
+}
+
+.react-aria-Meter[data-size="L"] {
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-md);
+  line-height: var(--catalog-token-text-base--line-height);
+  min-width: var(--catalog-token-size-bar-min-width);
+  max-width: calc(var(--catalog-token-size-unit) * 768 / 1);
+  gap: 4px;
+}
+
+.react-aria-Meter[data-size="XL"] {
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-lg);
+  line-height: var(--catalog-token-text-lg--line-height);
+  min-width: var(--catalog-token-size-bar-min-width);
+  max-width: calc(var(--catalog-token-size-unit) * 768 / 1);
+  gap: 4px;
+}
+
+.react-aria-Meter[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-Meter[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-Meter[data-label-position="side"] {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.react-aria-Meter[data-label-position="side"] .bar {
+  order: 1;
+  flex: 1;
+}
+
+.react-aria-Meter[data-label-position="side"] .value {
+  order: 2;
+}
+
+.react-aria-Meter[data-variant="informative"] {
+  --fill-color: var(--informative);
+}
+
+.react-aria-Meter[data-variant="positive"] {
+  --fill-color: var(--positive);
+}
+
+.react-aria-Meter[data-variant="notice"] {
+  --fill-color: var(--notice);
+}
+
+.react-aria-Meter[data-variant="negative"] {
+  --fill-color: var(--negative);
+}
+
+.react-aria-Meter[data-disabled="true"] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-Meter {
+    forced-color-adjust: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .react-aria-Meter {
+    transition-duration: 0s !important;
+  }
+}
+
+  .react-aria-Meter .react-aria-Label {
+    grid-area: label;
+    white-space: nowrap;
+  }
+
+  .react-aria-Meter .value {
+    grid-area: value;
+    font-size: var(--catalog-token-text-sm);
+    color: var(--fg-muted);
+    white-space: nowrap;
+  }
+
+  .react-aria-Meter .bar {
+    grid-area: bar;
+    box-shadow: var(--inset-shadow-xs);
+    forced-color-adjust: none;
+    height: calc(var(--catalog-token-size-unit) * 6 / 1);
+    border-radius: var(--catalog-token-radius-sm);
+    overflow: hidden;
+    background: var(--bg-muted);
+  }
+
+  .react-aria-Meter .fill {
+    background: var(--fill-color);
+    height: 100%;
+    transition: width 200ms ease-out;
+    forced-color-adjust: auto;
+  }
+
+
+  .react-aria-Meter[data-size="S"] .bar {
+    height: calc(var(--catalog-token-size-unit) * 4 / 1);
+    border-radius: var(--catalog-token-radius-sm);
+  }
+
+  .react-aria-Meter[data-size="S"] .value {
+    font-size: var(--catalog-token-text-xs);
+  }
+
+  .react-aria-Meter[data-size="M"] .bar {
+    height: calc(var(--catalog-token-size-unit) * 6 / 1);
+    border-radius: var(--catalog-token-radius-sm);
+  }
+
+  .react-aria-Meter[data-size="M"] .value {
+    font-size: var(--catalog-token-text-sm);
+  }
+
+  .react-aria-Meter[data-size="L"] .bar {
+    height: calc(var(--catalog-token-size-unit) * 8 / 1);
+    border-radius: var(--catalog-token-radius-lg);
+  }
+
+  .react-aria-Meter[data-size="L"] .value {
+    font-size: var(--catalog-token-text-base);
+  }
+
+  .react-aria-Meter[data-size="XL"] .bar {
+    height: calc(var(--catalog-token-size-unit) * 10 / 1);
+    border-radius: var(--catalog-token-radius-lg);
+  }
+
+  .react-aria-Meter[data-size="XL"] .value {
+    font-size: var(--catalog-token-text-lg);
+  }
+
+
+} /* @layer components */`;export{e as default};

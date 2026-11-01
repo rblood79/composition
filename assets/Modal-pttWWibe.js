@@ -1,0 +1,75 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog Modal — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: overlay
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Modal {
+  /* Base styles — archetype: overlay */
+    position: fixed;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  box-shadow: var(--shadow-lg);
+
+  /* Default variant */
+  background: transparent;
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-xl);
+  gap: 8px;
+}
+
+.react-aria-Modal[data-variant="default"] {
+  background: transparent;
+  color: var(--fg);
+
+  &[data-hovered] {
+    background: transparent;
+  }
+
+  &[data-pressed] {
+    background: transparent;
+  }
+}
+
+.react-aria-Modal[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-Modal[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-Modal {
+    forced-color-adjust: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .react-aria-Modal {
+    transition-duration: 0s !important;
+  }
+}
+
+  .react-aria-Modal[data-dialog-trigger] {
+    position: relative;
+    max-height: 90vh;
+  }
+
+
+} /* @layer components */`;export{e as default};

@@ -1,0 +1,95 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog Code — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: simple
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Code {
+  /* Base styles — archetype: simple */
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: inline-flex;
+  align-items: center;
+
+  /* Default variant */
+  background: var(--bg-muted);
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  height: 22px;
+  padding: 0px 6px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-sm--line-height);
+}
+
+.react-aria-Code[data-variant="default"] {
+  background: var(--bg-muted);
+  color: var(--fg);
+
+  &[data-hovered] {
+    background: var(--bg-muted);
+  }
+
+  &[data-pressed] {
+    background: var(--neutral-pressed, color-mix(in srgb, var(--bg-muted) 75%, black));
+  }
+}
+
+.react-aria-Code[data-size="XS"] {
+  height: 18px;
+  padding: 0px 4px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-xs);
+  line-height: var(--catalog-token-text-xs--line-height);
+}
+
+.react-aria-Code[data-size="S"] {
+  height: 22px;
+  padding: 0px 6px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-sm--line-height);
+}
+
+.react-aria-Code[data-size="M"] {
+  height: 26px;
+  padding: 0px 8px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-base--line-height);
+}
+
+.react-aria-Code[data-size="L"] {
+  height: 32px;
+  padding: 0px 10px;
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-md);
+  line-height: var(--catalog-token-text-lg--line-height);
+}
+
+.react-aria-Code[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-Code[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-Code {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

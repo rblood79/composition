@@ -1,0 +1,136 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog SliderTrack — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: slider
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-SliderTrack {
+  /* Base styles — archetype: slider */
+    display: grid;
+    grid-template-areas: "label output" "track track";
+    grid-template-columns: 1fr auto;
+    box-sizing: border-box;
+
+    .react-aria-Label { grid-area: label; }
+    .react-aria-SliderOutput { grid-area: output; justify-self: end; }
+    .react-aria-SliderTrack {
+      grid-area: track;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .react-aria-SliderThumb {
+      top: 50%;
+      border-radius: var(--catalog-token-radius-full);
+      background: var(--fg);
+      border: 2px solid var(--bg);
+      box-sizing: border-box;
+    }
+    &[data-emphasized] .react-aria-SliderThumb { background: var(--accent-content); }
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: grid;
+  position: relative;
+
+  /* Default variant */
+  background: var(--bg-muted);
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  height: calc(var(--catalog-token-size-unit) * 4 / 1);
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-full);
+}
+
+.react-aria-SliderTrack[data-variant="default"] {
+  background: var(--bg-muted);
+  color: var(--fg);
+
+  &[data-hovered] {
+    background: var(--bg-muted);
+  }
+
+  &[data-pressed] {
+    background: var(--bg-muted);
+  }
+}
+
+.react-aria-SliderTrack[data-size="S"] {
+  height: calc(var(--catalog-token-size-unit) * 4 / 1);
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-full);
+}
+
+.react-aria-SliderTrack[data-size="M"] {
+  height: calc(var(--catalog-token-size-unit) * 4 / 1);
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-full);
+}
+
+.react-aria-SliderTrack[data-size="L"] {
+  height: calc(var(--catalog-token-size-unit) * 4 / 1);
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-full);
+}
+
+.react-aria-SliderTrack[data-size="XL"] {
+  height: calc(var(--catalog-token-size-unit) * 4 / 1);
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-full);
+}
+
+.react-aria-SliderTrack[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-SliderTrack[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-SliderTrack {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-SliderTrack:is(.react-aria-Slider *)::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .react-aria-SliderTrack:is(.react-aria-Slider *)[data-size="S"]::before {
+    height: calc(var(--catalog-token-size-unit) * 24 / 1);
+  }
+
+  .react-aria-SliderTrack:is(.react-aria-Slider *)[data-size="M"]::before {
+    height: calc(var(--catalog-token-size-unit) * 32 / 1);
+  }
+
+  .react-aria-SliderTrack:is(.react-aria-Slider *)[data-size="L"]::before {
+    height: calc(var(--catalog-token-size-unit) * 40 / 1);
+  }
+
+  .react-aria-SliderTrack:is(.react-aria-Slider *)[data-size="XL"]::before {
+    height: calc(var(--catalog-token-size-unit) * 48 / 1);
+  }
+
+
+} /* @layer components */`;export{e as default};

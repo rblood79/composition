@@ -1,0 +1,77 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog SliderOutput — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: simple
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-SliderOutput {
+  /* Base styles — archetype: simple */
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: inline-flex;
+  align-items: center;
+
+  /* Default size */
+  height: 18px;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-sm--line-height);
+}
+
+.react-aria-SliderOutput[data-size="S"] {
+  height: 16px;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-xs--line-height);
+}
+
+.react-aria-SliderOutput[data-size="M"] {
+  height: 18px;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-sm--line-height);
+}
+
+.react-aria-SliderOutput[data-size="L"] {
+  height: 20px;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-base--line-height);
+}
+
+.react-aria-SliderOutput[data-size="XL"] {
+  height: 22px;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-lg--line-height);
+}
+
+.react-aria-SliderOutput[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-SliderOutput[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-SliderOutput {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

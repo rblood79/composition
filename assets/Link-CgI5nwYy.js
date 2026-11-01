@@ -1,0 +1,160 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog Link — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: button
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Link {
+  /* Base styles — archetype: button */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    box-sizing: border-box;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Default variant */
+  background: var(--bg);
+  color: var(--accent-content);
+  border: none;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-sm--line-height);
+  font-weight: 400;
+}
+
+.react-aria-Link[data-variant="primary"] {
+  background: var(--bg);
+  color: var(--accent-content);
+  background: transparent;
+
+  &[data-hovered] {
+    background: var(--bg);
+    color: var(--accent-content-hover);
+  }
+
+  &[data-pressed] {
+    background: var(--bg);
+  }
+}
+
+.react-aria-Link[data-variant="secondary"] {
+  background: var(--bg);
+  color: var(--fg);
+  background: transparent;
+
+  &[data-hovered] {
+    background: var(--bg);
+    color: var(--accent-content);
+  }
+
+  &[data-pressed] {
+    background: var(--bg);
+  }
+}
+
+.react-aria-Link[data-icon-only] {
+  padding: 0;
+  aspect-ratio: 1;
+}
+
+.react-aria-Link[data-size="XS"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-2xs);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-2xs--line-height);
+  font-weight: 400;
+}
+
+.react-aria-Link[data-size="S"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-xs--line-height);
+  font-weight: 400;
+}
+
+.react-aria-Link[data-size="M"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-sm--line-height);
+  font-weight: 400;
+}
+
+.react-aria-Link[data-size="L"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-base--line-height);
+  font-weight: 400;
+}
+
+.react-aria-Link[data-size="XL"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-lg--line-height);
+  font-weight: 400;
+}
+
+.react-aria-Link[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-Link[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-Link {
+    forced-color-adjust: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .react-aria-Link {
+    transition-duration: 0s !important;
+  }
+}
+
+  .react-aria-Link {
+    text-decoration: underline;
+  }
+
+  .react-aria-Link[data-hovered] {
+    text-decoration-thickness: 1.5px;
+  }
+
+  .react-aria-Link[data-quiet="true"]:not([data-hovered]) {
+    text-decoration: none;
+  }
+
+
+} /* @layer components */`;export{e as default};

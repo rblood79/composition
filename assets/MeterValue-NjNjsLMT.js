@@ -1,0 +1,138 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog MeterValue — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: progress
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-MeterValue {
+  /* Base styles — archetype: progress */
+    display: grid;
+    grid-template-areas: "label value" "track track";
+    grid-template-columns: 1fr auto;
+    box-sizing: border-box;
+
+    .react-aria-Label { grid-area: label; }
+    [slot="value"] { grid-area: value; }
+    .bar { grid-area: track; }
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: grid;
+
+  /* Default variant */
+  background: transparent;
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-sm--line-height);
+}
+
+.react-aria-MeterValue[data-variant="informative"] {
+  background: transparent;
+  color: var(--fg);
+
+  &[data-hovered] {
+    background: transparent;
+  }
+
+  &[data-pressed] {
+    background: transparent;
+  }
+}
+
+.react-aria-MeterValue[data-variant="positive"] {
+  background: transparent;
+  color: var(--fg);
+
+  &[data-hovered] {
+    background: transparent;
+  }
+
+  &[data-pressed] {
+    background: transparent;
+  }
+}
+
+.react-aria-MeterValue[data-variant="notice"] {
+  background: transparent;
+  color: var(--fg);
+
+  &[data-hovered] {
+    background: transparent;
+  }
+
+  &[data-pressed] {
+    background: transparent;
+  }
+}
+
+.react-aria-MeterValue[data-variant="negative"] {
+  background: transparent;
+  color: var(--fg);
+
+  &[data-hovered] {
+    background: transparent;
+  }
+
+  &[data-pressed] {
+    background: transparent;
+  }
+}
+
+.react-aria-MeterValue[data-size="S"] {
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-xs--line-height);
+}
+
+.react-aria-MeterValue[data-size="M"] {
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-sm--line-height);
+}
+
+.react-aria-MeterValue[data-size="L"] {
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-base--line-height);
+}
+
+.react-aria-MeterValue[data-size="XL"] {
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-lg--line-height);
+}
+
+.react-aria-MeterValue[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-MeterValue[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-MeterValue {
+    forced-color-adjust: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .react-aria-MeterValue {
+    transition-duration: 0s !important;
+  }
+}
+
+} /* @layer components */`;export{e as default};

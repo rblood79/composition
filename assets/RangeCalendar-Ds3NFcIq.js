@@ -1,0 +1,65 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog RangeCalendar — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: calendar
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-RangeCalendar {
+  /* Base styles — archetype: calendar */
+    display: grid;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  width: fit-content;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+
+  /* Default variant */
+  background: transparent;
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-lg);
+  gap: 24px;
+  --icon-size: 26px;
+}
+
+.react-aria-RangeCalendar[data-variant="default"] {
+  background: transparent;
+  color: var(--fg);
+
+  &[data-hovered] {
+    background: transparent;
+  }
+
+  &[data-pressed] {
+    background: transparent;
+  }
+}
+
+.react-aria-RangeCalendar[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-RangeCalendar[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-RangeCalendar {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

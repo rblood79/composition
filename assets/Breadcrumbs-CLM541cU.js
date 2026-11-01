@@ -1,0 +1,93 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog Breadcrumbs — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: simple
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Breadcrumbs {
+  /* Base styles — archetype: simple */
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+
+  /* Default variant */
+  background: var(--bg);
+  color: var(--fg-muted);
+  border: none;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  min-height: var(--catalog-token-size-height-M);
+  gap: 2px;
+}
+
+.react-aria-Breadcrumbs[data-variant="default"] {
+  background: var(--bg);
+  color: var(--fg-muted);
+
+  &[data-hovered] {
+    background: var(--bg);
+    color: var(--fg);
+  }
+
+  &[data-pressed] {
+    background: var(--bg);
+  }
+}
+
+.react-aria-Breadcrumbs[data-size="S"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-none);
+  min-height: var(--catalog-token-size-height-S);
+}
+
+.react-aria-Breadcrumbs[data-size="M"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  min-height: var(--catalog-token-size-height-M);
+  gap: 2px;
+}
+
+.react-aria-Breadcrumbs[data-size="L"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
+  min-height: var(--catalog-token-size-height-L);
+  gap: 4px;
+}
+
+.react-aria-Breadcrumbs[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-Breadcrumbs[data-disabled] {
+  opacity: 1;
+  cursor: default;
+  pointer-events: auto;
+}
+
+@media (forced-colors: active) {
+  .react-aria-Breadcrumbs {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

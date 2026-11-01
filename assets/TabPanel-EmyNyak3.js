@@ -1,0 +1,83 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog TabPanel — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: collection
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-TabPanel {
+  /* Base styles — archetype: collection */
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: flex;
+  flex-direction: column;
+
+  /* Default variant */
+  background: transparent;
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  height: auto;
+  padding: 12px 12px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
+}
+
+.react-aria-TabPanel[data-variant="default"] {
+  background: transparent;
+  color: var(--fg);
+
+  &[data-hovered] {
+    background: transparent;
+  }
+
+  &[data-pressed] {
+    background: transparent;
+  }
+}
+
+.react-aria-TabPanel[data-size="S"] {
+  height: auto;
+  padding: 8px 8px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
+}
+
+.react-aria-TabPanel[data-size="M"] {
+  height: auto;
+  padding: 12px 12px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
+}
+
+.react-aria-TabPanel[data-size="L"] {
+  height: auto;
+  padding: 16px 16px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-lg);
+}
+
+.react-aria-TabPanel[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-TabPanel[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-TabPanel {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

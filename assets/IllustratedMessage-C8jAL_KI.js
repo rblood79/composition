@@ -1,0 +1,116 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog IllustratedMessage — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-IllustratedMessage {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+    --im-illustration-gap: calc(var(--catalog-token-size-unit) * 12 / 1);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  /* Default size */
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+}
+
+.react-aria-IllustratedMessage[data-size="S"] {
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+}
+
+.react-aria-IllustratedMessage[data-size="M"] {
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+}
+
+.react-aria-IllustratedMessage[data-size="L"] {
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
+}
+
+.react-aria-IllustratedMessage[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-IllustratedMessage[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-IllustratedMessage[data-size="L"] {
+  --im-illustration-gap: calc(var(--catalog-token-size-unit) * 8 / 1);
+}
+
+.react-aria-IllustratedMessage[data-orientation="vertical"] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: calc(var(--catalog-token-size-unit) * 380 / 1);
+}
+
+.react-aria-IllustratedMessage[data-orientation="vertical"] > .react-aria-Illustration {
+  margin-bottom: var(--im-illustration-gap);
+}
+
+.react-aria-IllustratedMessage[data-orientation="vertical"] > .react-aria-Heading {
+  margin-bottom: calc(var(--catalog-token-size-unit) * 4 / 1);
+  text-align: center;
+}
+
+.react-aria-IllustratedMessage[data-orientation="vertical"] > [slot="description"] {
+  text-align: center;
+}
+
+.react-aria-IllustratedMessage[data-orientation="horizontal"] {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: 1fr 1fr;
+  column-gap: calc(var(--catalog-token-size-unit) * 12 / 1);
+  row-gap: calc(var(--catalog-token-size-unit) * 4 / 1);
+  max-width: calc(var(--catalog-token-size-unit) * 528 / 1);
+}
+
+.react-aria-IllustratedMessage[data-orientation="horizontal"] > .react-aria-Illustration {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  align-self: center;
+}
+
+.react-aria-IllustratedMessage[data-orientation="horizontal"] > .react-aria-Heading {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: end;
+  text-align: start;
+}
+
+.react-aria-IllustratedMessage[data-orientation="horizontal"] > [slot="description"] {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: start;
+  text-align: start;
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-IllustratedMessage {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};
