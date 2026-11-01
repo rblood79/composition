@@ -50,10 +50,12 @@ export function codeViewPageNames(reader: Reader): Map<string, string> {
   return codeViewProjectNames(reader).pages;
 }
 
-/** The page and layout component names, unique together. */
+/** The page, layout and component names, unique together. */
 export function codeViewProjectNames(reader: Reader): {
   pages: Map<string, string>;
   layouts: Map<string, string>;
+  /** ADR-296 Phase 5 — a user component's name (`src/components/<Name>.tsx` · `<Name …/>`). */
+  components: Map<string, string>;
 } {
   const taken = new Set(APP_RESERVED);
   const take = (raw: string, fallback: string) => {
@@ -70,12 +72,27 @@ export function codeViewProjectNames(reader: Reader): {
     if (page?.kind === "page") pages.set(id, take(page.name, "Page"));
   }
   const layouts = new Map<string, string>();
+  const components = new Map<string, string>();
   for (const id of project.definitionIds) {
     const definition = reader.getEntry(id) as DefinitionEntry | undefined;
     if (definition?.kind === "definition" && definition.usage === "layout")
       layouts.set(id, take(definition.name, "Layout"));
   }
-  return { pages, layouts };
+  // R6 — a component never takes a React Aria name (`Button` → `Button2`): the palette's types.
+  for (const definition of (
+    reader as Partial<Pick<CatalogReader, "library">>
+  ).library?.definitions.values() ?? [])
+    taken.add(definition.name);
+  for (const id of project.definitionIds) {
+    const definition = reader.getEntry(id) as DefinitionEntry | undefined;
+    if (
+      definition?.kind === "definition" &&
+      definition.usage !== "layout" &&
+      definition.templateRootId
+    )
+      components.set(id, take(definition.name, "Component"));
+  }
+  return { pages, layouts, components };
 }
 
 /**

@@ -2,7 +2,7 @@
 // Golden output of apps/builder/src/preview/catalog/__tests__/adr296Vocabulary.test.tsx (UPDATE_CODE_VIEW=1 rewrites).
 
 import {useRef, useState} from 'react';
-import {Button, Calendar, Form, ProgressBar, Text} from 'react-aria-components';
+import {Button, ButtonGroup, Calendar, Form, ProgressBar, Text, TextField} from 'react-aria-components';
 import {useListData} from 'react-aria-components/useListData';
 import {capability, token} from '@composition/code';
 import {queue} from '../Toast';
@@ -15,13 +15,13 @@ export default function Home() {
     initialItems: usersData,
     getKey: item => item.id
   });
-  function onButtonPress() {
+  function onButton3Press() {
     setTextIsVisible(false);
   }
-  function onButtonPress2() {
+  function onButton3Press2() {
     formRef.current?.submit();
   }
-  function onButtonPress3() {
+  function onButton3Press3() {
     capability('hide', {target: null});
     users.append('u1', 'child');
     users.remove('u1');
@@ -30,10 +30,17 @@ export default function Home() {
   return (
     <>
       {textIsVisible && <Text>Hi</Text>}
-      <Form ref={formRef} />
+      <Form ref={formRef}>
+        <TextField label="Name" placeholder="Enter your full name" isRequired={true} name="name" />
+        <TextField label="Email" placeholder="Enter your email" type="email" isRequired={true} name="email" />
+        <ButtonGroup>
+          <Button label="Cancel" variant="secondary" fillStyle="outline" type="reset" />
+          <Button label="Save" variant="accent" type="submit" />
+        </ButtonGroup>
+      </Form>
       <ProgressBar label="Progress Bar" value={token('typography.text-xs')} />
       <Calendar visibleDuration={{months: 2}} />
-      <Button onPress={() => { onButtonPress(); onButtonPress2(); onButtonPress3(); }} onHoverStart={() => {
+      <Button onPress={() => { onButton3Press(); onButton3Press2(); onButton3Press3(); }} onHoverStart={() => {
         queue.add({title: 'hover'});
       }} />
     </>

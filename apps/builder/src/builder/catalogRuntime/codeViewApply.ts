@@ -16,7 +16,11 @@ import {
   type CatalogCommand,
 } from "../../../../../packages/shared/src/catalog/commands";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
-import type { EntryId } from "../../../../../packages/shared/src/catalog/document/types";
+import type {
+  DefinitionEntry,
+  EntryId,
+  ProjectEntry,
+} from "../../../../../packages/shared/src/catalog/document/types";
 import type { CatalogReader } from "../../../../../packages/shared/src/catalog/transactions/transaction";
 import {
   codeViewFileTree,
@@ -24,10 +28,13 @@ import {
   type CodeViewFileEntry,
 } from "../../../../../packages/shared/src/codeView/files/tree";
 import { generateCodeView } from "../../../../../packages/shared/src/codeView/generate";
+import { codeViewLibraryReader } from "../../../../../packages/shared/src/codeView/files/library";
 import type { CodeViewChange } from "../../../../../packages/shared/src/codeView/inverse/identity";
 import type { CodeViewResult } from "../../../../../packages/shared/src/codeView/types";
 import { catalogCodeViewData } from "./codeView";
-import { compareAppFile, planCodeViewApp,
+import {
+  compareAppFile,
+  planCodeViewApp,
   compareToastFile,
   planCodeViewToast,
 } from "./codeViewApp";
@@ -38,6 +45,19 @@ import {
   planCodeViewProjectState,
 } from "./codeViewData";
 import {
+  compareHtmlFile,
+  compareSiteConfigFile,
+  planCodeViewHtml,
+  planCodeViewSiteConfig,
+} from "./codeViewSite";
+import {
+  comparePageStyleFile,
+  compareThemeFile,
+  planCodeViewPageStyle,
+  planCodeViewTheme,
+} from "./codeViewStyles";
+import {
+  codeViewFinalClasses,
   composeSteps,
   planCodeViewPageEdit,
   rejecter,
@@ -45,6 +65,28 @@ import {
 } from "./codeViewEdit";
 
 type Data = ReturnType<typeof catalogCodeViewData>;
+
+/** A new file's baseline (nothing yet). */
+const EMPTY_RESULT: CodeViewResult = {
+  code: "",
+  slots: [],
+  anchors: [],
+  symbols: { variables: {}, fields: {} },
+};
+
+/** The project definition whose origin root is `rootId`. */
+function definitionOfRoot(
+  reader: CatalogReader,
+  rootId: string | undefined,
+): string | undefined {
+  if (!rootId) return undefined;
+  const project = reader.getEntry(reader.projectId) as ProjectEntry;
+  return project.definitionIds.find(
+    (id) =>
+      (reader.getEntry(id) as DefinitionEntry | undefined)?.templateRootId ===
+      rootId,
+  );
+}
 
 /** 「코드 고치기」 over the project: the revision the edit started at, and each opened file's code then. */
 export interface CatalogCodeViewProjectSession {
@@ -114,6 +156,10 @@ const DEFINITION_KINDS = new Set<CodeViewFileEntry["kind"]>([
   "collection",
   "endpoint",
   "state",
+  "theme",
+  "component",
+  "html",
+  "siteConfig",
 ]);
 
 /** Plan an Apply of every draft (nothing runs here). */
@@ -156,6 +202,14 @@ export function catalogCodeViewProjectPlan(input: {
       });
       return true;
     }
+    // ADR-296 Phase 5 (G2) — a new component file.
+    if (
+      !baseline &&
+      /^src\/components\/[A-Za-z_$][\w$]*\.tsx$/.test(draft.path)
+    ) {
+      created.set(draft.path, { path: draft.path, kind: "component" });
+      return true;
+    }
     if (!baseline) {
       rejected.push({
         path: draft.path,
@@ -176,10 +230,15 @@ export function catalogCodeViewProjectPlan(input: {
   const stage = stageOver(reader);
   const steps: CatalogCommand[] = [];
   const checks: ((final: CatalogReader) => void)[] = [];
-  const ordered = [
-    ...drafts.filter((draft) => DEFINITION_KINDS.has(kindOf(draft).kind)),
-    ...drafts.filter((draft) => !DEFINITION_KINDS.has(kindOf(draft).kind)),
-  ];
+  // (A page's style file after its JSX: a class names a node the stage has.)
+  const rank = (draft: CatalogCodeViewDraft) =>
+    DEFINITION_KINDS.has(kindOf(draft).kind)
+      ? 0
+      : kindOf(draft).kind === "pageStyle" ||
+          kindOf(draft).kind === "componentStyle"
+        ? 2
+        : 1;
+  const ordered = [...drafts].sort((a, b) => rank(a) - rank(b));
   for (const draft of ordered) {
     const file = kindOf(draft);
     const result = session.baselines.get(draft.path)?.result;
@@ -267,11 +326,106 @@ export function catalogCodeViewProjectPlan(input: {
                 pageId: file.id as EntryId<"page">,
                 ...catalogCodeViewData(final),
               }).code,
+              codeViewFinalClasses(final, file.id!),
             ),
           );
         }
       }
-    } else reject(0, "outsideVocabulary", file.kind);
+    } else if (file.kind === "component") {
+      // ADR-296 Phase 5 — the component's origin: its edits are origin commands (every instance).
+      // (An unlocked Library origin: its copy, shown as a definition — 결정 3. A new file: a
+      // definition the Apply makes — G2.)
+      const library = !!file.id?.startsWith("lib:");
+      const definition = file.id
+        ? (library ? codeViewLibraryReader(stage) : stage).getEntry(file.id)
+        : ({
+            kind: "definition",
+            id: `new:${fileName}`,
+            name: fileName,
+          } as unknown as DefinitionEntry);
+      if (
+        definition?.kind !== "definition" ||
+        (file.id && !definition.templateRootId)
+      ) {
+        reject(0, "notInCode", "component removed");
+      } else {
+        const origin = planCodeViewPageEdit(
+          {
+            reader: stage,
+            session: {
+              projectId: session.projectId,
+              pageId: (file.id ?? definition.id) as EntryId<"page">,
+              revision: stage.revision,
+              baseline: result ?? EMPTY_RESULT,
+            },
+            edited: draft.edited,
+            changes: draft.changes,
+            data: catalogCodeViewData(stage),
+            newId: input.newId,
+            component: definition,
+            ...(input.strict ? { strict: true } : {}),
+          },
+          reject,
+        );
+        if (origin) {
+          planned = origin.steps;
+          checks.push((final) =>
+            origin.compare(
+              generateCodeView({
+                reader: (library
+                  ? codeViewLibraryReader(final)
+                  : final) as never,
+                pageId: "" as EntryId<"page">,
+                componentId:
+                  file.id ?? definitionOfRoot(final, origin.newRoot) ?? "",
+                ...catalogCodeViewData(final),
+              }).code,
+            ),
+          );
+        }
+      }
+    } else if (file.kind === "html" || file.kind === "siteConfig") {
+      // ADR-296 Phase 6 (결정 2) — the Site panel's settings.
+      const html = file.kind === "html";
+      planned = (html ? planCodeViewHtml : planCodeViewSiteConfig)({
+        reader: stage,
+        edited: draft.edited,
+        reject,
+      });
+      checks.push((final) =>
+        (html ? compareHtmlFile : compareSiteConfigFile)(
+          final,
+          draft.edited,
+          reject,
+        ),
+      );
+    } else if (file.kind === "theme") {
+      planned = planCodeViewTheme({
+        reader: stage,
+        baseline: result!,
+        edited: draft.edited,
+        newId: input.newId,
+        reject,
+      });
+      checks.push((final) => compareThemeFile(final, draft.edited, reject));
+    } else if (file.kind === "pageStyle" || file.kind === "componentStyle") {
+      const owner = stage.getEntry(file.id!)?.kind;
+      if (owner !== (file.kind === "pageStyle" ? "page" : "definition")) {
+        reject(0, "notInCode", "page removed in App.tsx");
+      } else {
+        planned = planCodeViewPageStyle({
+          reader: stage,
+          pageId: file.id!,
+          baseline: result!,
+          edited: draft.edited,
+          reject,
+        });
+        checks.push((final) =>
+          comparePageStyleFile(final, file.id!, draft.edited, reject, result),
+        );
+      }
+    } else if (file.readOnly) reject(0, "readOnlyFile", draft.path);
+    else reject(0, "outsideVocabulary", file.kind);
     // The stage takes this file's commands before the next file plans.
     try {
       for (const step of planned) stage.apply(step(stage).ops);

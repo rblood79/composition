@@ -2,7 +2,7 @@
 // Golden output of apps/builder/src/preview/catalog/__tests__/adr294CodeView.test.tsx (UPDATE_CODE_VIEW=1 rewrites).
 
 import {useState} from 'react';
-import {ListBox} from 'react-aria-components';
+import {UserPicker} from './components/UserPicker';
 
 export default function Home() {
   let [roleFilter, setRoleFilter] = useState('admin');
@@ -10,7 +10,7 @@ export default function Home() {
 
   return (
     <>
-      <ListBox role={roleFilter} onSelect={setPicked} />
+      <UserPicker role={roleFilter} onSelect={setPicked} />
     </>
   );
 }

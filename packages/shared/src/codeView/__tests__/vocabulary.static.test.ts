@@ -16,6 +16,12 @@ const generator = [
   "../files/app.ts",
   "../files/definitions.ts",
   "../files/toast.ts",
+  "../files/styles.ts",
+  "../files/theme.ts",
+  "../files/library.ts",
+  "../files/overrides.ts",
+  "../files/tree.ts",
+  "../files/site.ts",
 ]
   .map((file) => readFileSync(join(here, file), "utf8"))
   .join("\n");
@@ -26,6 +32,9 @@ const readers = [
     "codeViewViews.ts",
     "codeViewApp.ts",
     "codeViewData.ts",
+    "codeViewStyles.ts",
+    "codeViewApply.ts",
+    "codeViewSite.ts",
   ].map((file) =>
     readFileSync(
       join(

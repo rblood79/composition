@@ -80,6 +80,13 @@
   gap: var(--spacing-sm);
 }
 
+/* ADR-296 Phase 5 — a Library origin's file is read only (unlock to edit). */
+.code-view-note {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+}
+
 .code-view-snippet-detail {
   margin-inline-start: auto;
   padding-inline-start: var(--spacing-md);
@@ -135,4 +142,14 @@
     outline: 2px solid var(--focus-ring);
     outline-offset: -2px;
   }
+}
+
+/* ADR-296 Phase 5 — a new file's path (a component · data · API file). */
+.code-view-new-file-row {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+.code-view-new-file-path {
+  flex: 1;
+  min-width: 0;
 }

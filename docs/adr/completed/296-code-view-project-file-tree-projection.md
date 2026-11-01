@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-10-31 (사용자 `/execute-adr 296` + [reviews/296.md](reviews/296.md) 최신 round pending 0 · HIGH 전부 fixed). Proposed — 2026-10-30
+Implemented — 2026-11-01 (G6 — 사용자 「확인했다」). Accepted — 2026-10-31 (사용자 `/execute-adr 296` + [reviews/296.md](../reviews/296.md) 최신 round pending 0 · HIGH 전부 fixed). Proposed — 2026-10-30
 
 > **Phase 0 닫힘 (2026-10-31, G0)** — inventory 정본 `packages/shared/src/codeView/fieldCoverage.ts` (문서 타입 23 개 · 220 키 — 키마다 한 칸 또는 「코드에 없음」 이유, 타입에 키가 늘면 컴파일 RED) · RED 16 (`adr296Phase0.test.tsx` — E1 ~ E13 · token 표지 · calendar duration read · instance 이름, setup 가드 1) · G3 oracle 진입점 고정 (`root.recordsOfSource` → `canvasInputs` · `getLayoutInput`, 새 export 0) · 기준선 (기준 커밋 `44af0b81e`) Builder initial JS gz 1,380,329 · Preview 317,190 · 가장 큰 page 생성 0.32 ms. 실측 정정: entry kind 14 · `{kind}` 생략은 TokenUse 만 · E12 `increment` 재현 불가 (검증이 숫자만) · E13 = 다른 page 대상. 사용자 결정 4 · 7 · 5 = 권고안. 상세 breakdown §2d · §7.
 
@@ -11,18 +11,26 @@ Accepted — 2026-10-31 (사용자 `/execute-adr 296` + [reviews/296.md](reviews
 > **Phase 2 닫힘 (2026-10-31, G1 · G2)** — 프로젝트 세션 · Apply 다섯 단계 (`codeViewApply.ts`) · 파일 트리 · `App.tsx` (routes · 순서 · parent · layout · toast · theme) · page `<Page>` 래퍼 (E7) · `<title>` · `<meta>` · `useParams` · 작성자 id · class · aria-label · `{false && …}` · 패널 파일 목록 + 탭 + Apply 하나. 원복 RED (stage → baseline reader). 노드 이름 class 는 Phase 4 로 (inventory 정정).
 >
 > **Phase 3 닫힘 (2026-10-31, G1 · G2)** — `data/<c>.ts` · `api/<e>.ts` · `state/project.ts` (결정 5) + E8 `useProjectState()` · E11 이름 호출. 파일 간 참조 반례 (새 collection + 그 목록 · 변수 rename + setter) 각 한 Apply · history 1. 측정 (기준 `44af0b81e`): Builder initial +102 B · Preview 0 · 가장 큰 page 생성 0.32 → 0.39 ms. live (5176, Chrome MCP): App + page 두 파일 한 Apply → Undo 1 · 새로고침 유지 · state 파일 Apply · 콘솔 0 — live 중 편집기 결함 2 수리. 남은 Phase 4 ~ 7 (CSS · 컴포넌트 파일 · 사이트 · G5/G6).
+>
+> **Phase 4 닫힘 (2026-11-01, G1 · G3)** — 사용자 결정 1 (CSS 파일 + class) · 6 (노드 이름 kebab + 접미사) · 3 · 2 권고안. `src/pages/<Page>.css` (`codeView/files/styles.ts` — 노드 하나 = class 하나, 선언 하나 = typed field 하나: Styles 패널 키는 그 CSS 이름 · 패널에 없는 필드는 `--<field>` · token 은 `var(--catalog-token-*)` = 생성 catalog CSS 와 같은 이름 (ADR-295 — 기기 scale 은 resolver 몫, 테스트로 resolver 변수와 대조) · `@media (max-width: 1279px | 767px)` = breakpoint 층 · `background` = fill 레이어 · `color-scheme` · `--theme-tint` = 노드 강제 테마 · `display: none | revert` = visibility) · 역문법 `catalogRuntime/codeViewStyles.ts` (Styles 패널의 `catalogStyleWrites` 로 같은 명령 — 단 패널의 border 동반 값은 더하지 않음) · `src/theme.css` (`[data-theme]` 블록 — 프리셋 4 · 토큰, Themes 패널 명령) · 읽기 전용 `node_modules/@composition/catalog/<Type>.css` (생성 시트, 열 때 lazy 로드). class 는 표시용 — 이동으로 번호가 바뀌어도 대조는 노드로 (원복 RED). G3 oracle: 스타일을 없앤 뒤 그 CSS 를 붙이면 Canvas 해석 입력이 desktop · tablet · mobile 모두 같다. 판독 · live 는 breakdown §9.
+>
+> **Phase 5 닫힘 (2026-11-01, G1 · G2 · G4)** — 사용자 결정 3 (Library 읽기 전용 + unlock). `src/components/<Name>.tsx` (원본 template 루트가 JSX 루트 · `<Name>Props` · variable property `let {…} = props` · event `props.on<Name>?.(v)`) → 원본 명령 · `components/<Name>.css`. page 는 instance 를 컴포넌트 이름으로 (`<Picker …/>` — RAC · Library 이름과 겹치면 `Card2`) 쓰고 instance 몫은 `overrides={{'<경로>': {prop, hidden, on<When>: rules({inherited, own})}}}` → instance 명령만 (`pushInstanceOverrides` 미사용 — R10). 안쪽 위치 스타일 = page CSS 경로 선택자 (`.picker .save-button`). slot 채움 (그동안 코드에 없던 Card · ListBox · TagGroup 내용) = instance JSX children · 안쪽 자리는 `<Slot name>` → `insertNodes` · `moveNodes` 의 descendant 부모. 노드 선언 `composition={{…}}`. Library 원본 = `node_modules/@composition/library/<Name>.tsx` (잠김 — 편집 `readOnlyFile` · 「잠금 해제하고 편집」 = `unlockOrigin`). 새 컴포넌트 파일 + page 한 Apply = `insertNodes` → `createComponent` → `removeTargets`. G4 19 (`adr296Component.test.tsx` — A · B 격리 · 중첩 두 자리 · 원본 편집 = 모든 instance · 원복 RED). 판독 1 (HIGH 0 · MEDIUM 3 수리 — event 인자 매개변수 · 이름표 하나 · 새 파일 slot 채움, 원복 RED 4) + 수리 검증 1 (HIGH 0 · MEDIUM 1 · LOW 가설 2 수리, 원복 RED 3) · live (5176): 새 컴포넌트 + instance 2 (한쪽만 own 규칙) 한 Apply → Preview A 만 자기 규칙 · ⌘Z 1 번 · 새로고침 유지.
+>
+> **Phase 6 닫힘 (2026-11-01, G1 · G2)** — 사용자 결정 2 (사이트를 코드에 — ADR-286 Decision 8 의 해당 문장 Superseded). `index.html` (lang · title · description · 아이콘 · 앱 이름 · theme color · og:image) · `site.config.ts` (`siteConfig({search, redirects, access})` — 보호 page 는 이름, 비밀 0) → `setSiteSettings` (바뀐 설정만). 고정 모양 밖 줄 · 키는 `outsideVocabulary`. G2 3 (`adr296Site.test.tsx`).
+>
+> **Phase 7 닫힘 · Implemented (2026-11-01, G5 · G6 — 사용자 「확인했다」)**: G5 (기준 `b140aed14`) Builder initial +114 B (ADR 전체 ≈ +216 B ≤ +1,024) · Preview Δ 0 · 생성 0.32 ms. G6 live (5176, 빈 프로젝트, 코드 패널만): 8 파일 한 Apply (14 changes — collection + 그 목록 · api · state · 원본 + instance 2 · CSS 반응형 · route · 사이트 제목) + 한 instance 만 원본 규칙 끄기 → Preview 에서 그 instance 만 토스트 0 · Undo 1 번씩 · 새로고침 유지 · 콘솔 0. 못 한 것: 노드 dark 강제 (`themeOverride` 소비처 0) · hover (노드 상태 명령 없음) — 이 ADR 밖 (기존 사실, 아래 Live Exercise). breakdown §9.
 
 - 사용자 요청: `/create-adr` (2026-10-30) — ADR-294 의 「남은 한계 (이 ADR 밖)」 를 묻는 대화 직후. 294 가 「후속 ADR B 에서 다룬다」 고 적은 그 ADR 이다.
-- 방향을 정한 사용자 원문 (2026-10-30, 연구 [CODE_EDITOR_FULL_SCOPE_DESIGN_2026-10](../explanation/research/CODE_EDITOR_FULL_SCOPE_DESIGN_2026-10.md) §0 · §9): 「code editor 기능 가능한 부분 최대한 확장 가능 하게 설계 시작해. 인터렉션 없이 스크립트 만으로 이벤트나 모든 기능들을 가능한 code editor에서 할수있게 확장 설계해」 · 「이제 catalog - canvas(화면)- code, interaction, design 개별이 아니다」 · 「(투영 수리 vs 기능 ADR) 중 어차피 둘다 해야하는것 아닌가」 → 둘 다 한다. 기능 ADR (A) 가 294, **이 ADR 이 투영 수리 (B)** 다.
+- 방향을 정한 사용자 원문 (2026-10-30, 연구 [CODE_EDITOR_FULL_SCOPE_DESIGN_2026-10](../../explanation/research/CODE_EDITOR_FULL_SCOPE_DESIGN_2026-10.md) §0 · §9): 「code editor 기능 가능한 부분 최대한 확장 가능 하게 설계 시작해. 인터렉션 없이 스크립트 만으로 이벤트나 모든 기능들을 가능한 code editor에서 할수있게 확장 설계해」 · 「이제 catalog - canvas(화면)- code, interaction, design 개별이 아니다」 · 「(투영 수리 vs 기능 ADR) 중 어차피 둘다 해야하는것 아닌가」 → 둘 다 한다. 기능 ADR (A) 가 294, **이 ADR 이 투영 수리 (B)** 다.
 - 사용자가 이미 답한 것: A 를 B 앞에 따로 간다 (연구 §9c 결정 10 — 294 Implemented 2026-10-30 로 끝났다). 코드 = 레퍼런스 모양의 RAC 코드 · 닫힌 어휘 · 정본 = 문서 · 「불가 → 스크립트 escape」 금지 (10-26 · 10-27 원칙 — 메모리 `project-code-view-is-rac-reference-code` · `project-code-view-structural-edit-closed-vocabulary`). 코드 내보내기 (zip) 는 범위 밖 유지 (`project-publish-link-only-defer-until-builder-stable`).
-- ADR 분리 4 질문 lock-in: [ADR-294 breakdown §1](design/294-component-event-variable-properties-breakdown.md) 에 이미 적혀 있고 (294 = base — 스키마 · 실행기 · 패널, **B = 응용 — 그 스키마를 파일로 투영, 스키마 변경 0**), 사용자가 294 `/create-adr` 때 「둘 다 한다」 로 confirm 했다. 이 ADR 은 그 lock-in 을 그대로 가져온다 (breakdown §1 에 1 줄씩 재기록) — 재질문하지 않는다.
+- ADR 분리 4 질문 lock-in: [ADR-294 breakdown §1](../design/294-component-event-variable-properties-breakdown.md) 에 이미 적혀 있고 (294 = base — 스키마 · 실행기 · 패널, **B = 응용 — 그 스키마를 파일로 투영, 스키마 변경 0**), 사용자가 294 `/create-adr` 때 「둘 다 한다」 로 confirm 했다. 이 ADR 은 그 lock-in 을 그대로 가져온다 (breakdown §1 에 1 줄씩 재기록) — 재질문하지 않는다.
 - 범위 밖 (후속 기능 ADR — 연구 §9b): **C. 규칙 제어문** (`if` · `stop` · `await` 응답 · `try/catch` · `wait` — 문서 스키마 · 실행기 · 패널 · 코드 동시, ADR-158 재결정) · **D. 미등록 RAC callback 등록 (E15) + 편집기 UX** (Apply 전 diff · 커서 ↔ Canvas 동기 · 스니펫 = 패널 전부 · 레퍼런스 통째 붙여넣기). C 는 이 ADR 의 규칙 분리 (E9) 를, D 는 이 ADR 의 파일 트리를 선행으로 둔다.
-- 리뷰: [reviews/296.md](reviews/296.md) Round 1 (2026-10-30, codex — HIGH 3: h1 instance 규칙의 적용 범위 · h2 `themeOverride` 의 뜻과 명령 · h3 같은 Apply 안 파일 간 참조 순서) → 같은 날 설계 수리 (Decision 1 · 3 · 4 · R3 · R4 · R10 · G2 · G3 · G4) → Round 2 (수리 검증 — h2 · h3 fixed · h1 잔여 HIGH 1: 바깥 instance 안 같은 원본 중첩 instance 둘의 `save-button` 을 노드 이름 하나로 못 가름) → 같은 날 수리 (`overrides` 키 = 안쪽 경로 `'left-picker/save-button'` · CSS 선택자 체인 · G4 중첩 반례). 라운드 상한 (판독 1 + 수리 검증 1) 을 넘었으므로 추가 검증은 사용자 판단.
+- 리뷰: [reviews/296.md](../reviews/296.md) Round 1 (2026-10-30, codex — HIGH 3: h1 instance 규칙의 적용 범위 · h2 `themeOverride` 의 뜻과 명령 · h3 같은 Apply 안 파일 간 참조 순서) → 같은 날 설계 수리 (Decision 1 · 3 · 4 · R3 · R4 · R10 · G2 · G3 · G4) → Round 2 (수리 검증 — h2 · h3 fixed · h1 잔여 HIGH 1: 바깥 instance 안 같은 원본 중첩 instance 둘의 `save-button` 을 노드 이름 하나로 못 가름) → 같은 날 수리 (`overrides` 키 = 안쪽 경로 `'left-picker/save-button'` · CSS 선택자 체인 · G4 중첩 반례). 라운드 상한 (판독 1 + 수리 검증 1) 을 넘었으므로 추가 검증은 사용자 판단.
 - 착수는 사용자 `/execute-adr 296`.
 
-> 2026-10-30 Codex: 기존 Round 2 h1 잔여 반례에 한정해 경로 키 · CSS 위치 경로 · G4 수리를 확인했다. h1 fixed, 미해소 HIGH 0 · pending 0. 설계 검토상 승인 가능하며 구현 및 G0~G6 실행은 UNVERIFIED. [리뷰 기록](reviews/296.md).
+> 2026-10-30 Codex: 기존 Round 2 h1 잔여 반례에 한정해 경로 키 · CSS 위치 경로 · G4 수리를 확인했다. h1 fixed, 미해소 HIGH 0 · pending 0. 설계 검토상 승인 가능하며 구현 및 G0~G6 실행은 UNVERIFIED. [리뷰 기록](../reviews/296.md).
 
-> 구현 상세: [design/296-code-view-project-file-tree-projection-breakdown.md](design/296-code-view-project-file-tree-projection-breakdown.md)
+> 구현 상세: [design/296-code-view-project-file-tree-projection-breakdown.md](../design/296-code-view-project-file-tree-projection-breakdown.md)
 
 ## Context
 
@@ -159,7 +167,18 @@ Accepted — 2026-10-31 (사용자 `/execute-adr 296` + [reviews/296.md](reviews
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+2026-11-01, Chrome MCP, 별도 dev 서버 5176 (사용자 5173 미사용), 새 프로젝트 `adr296-g6` · Undo 확인용 `adr296-g6b`. **패널을 열지 않고 코드 패널만으로** 진행했다.
+
+- **첫 Apply (8 파일, 「Applied 14 change(s)」)**: 「새 파일」 로 `src/data/teams.ts` (행 2) · `src/api/saveOrder.ts` (POST) · `src/components/Tile.tsx` (원본 Button + onPress toast 「origin」) 를 만들고, `index.html` (`lang` · `<title>G6 Site</title>`) · `App.tsx` (`/about` route) · `Home.tsx` (`<Text>` + teams 를 `items` 로 읽는 ListBox + `<Tile/>` 2) · `Home.css` (`.text` 색 · 크기 + `@media (max-width: 767px)`) · `state/project.ts` (`cart: 0, // persist`) 를 고쳤다. collection 과 그것을 쓰는 목록이 같은 Apply 에 들어갔다.
+- **둘째 Apply (「Applied 2 change(s)」)**: 한 instance 에만 `overrides={{'button': {label: 'Quiet', onPress: rules({inherited: {onButtonPress: 'off'}})}}}`.
+- **Canvas**: 빨간 Hello · Alpha · Beta 목록 · Go · Quiet.
+- **Preview (publish 탭, 폭 1800)**: 탭 제목 「G6 Site」 · `lang="en"` · Hello computed `rgb(204, 0, 0)` · 24px · 목록 Alpha · Beta · **Go 클릭 = 토스트 「origin」 1 · Quiet 클릭 = 토스트 0** (한 instance 만 원본 규칙을 끄고 다른 instance 는 유지) · Home → About route 이동.
+- **Undo**: 둘째 Apply ⌘Z 1 번 = Quiet → Go. 첫 Apply ⌘Z 1 번 = 8 파일 몫 (노드 · About page) 전부 사라짐 → ⌘⇧Z 2 번 복원 (data · api · state · Tile 파일과 overrides 그대로).
+- **새로고침** 뒤 내용 유지 (History 는 메모리 스택이라 새로고침 뒤 Undo 없음 — 설계대로).
+- **콘솔 오류 0** (Builder · Preview 탭). live 중 제품 결함 0 — 처음 본 「Couldn't load this panel」 은 판독 수리 중 HMR 이 붙잡은 옛 모듈이었고 dev 서버 재시작으로 해소.
+- **G6 에서 못 한 것 (이 ADR 밖, 기존 사실)**: 노드 dark 강제 — 노드 `themeOverride` 를 Canvas · Preview 어디서도 읽지 않는다 (ADR-021 잔존 field, Phase 4 live 발견 — 코드 보기는 field 를 정확히 쓰고 읽는다, G3) · hover 스타일 — 노드 상태 스타일을 쓰는 명령이 없어 CSS state 블록은 읽기 전용 (G2 「새 명령 신설 금지」). 「패널로 만든 문서와 모양 대조」 는 live 가 아니라 unit 게이트 (G3 Design 패널 명령과 같은 문서 · G4) 로 대신했다.
+- Phase 3 · 4 · 5 live (같은 서버 · `adr296-p4` 등) 는 breakdown §9.
+- **사용자 confirm**: 2026-11-01 「확인했다」.
 
 ## Consequences
 

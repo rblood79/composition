@@ -95,6 +95,10 @@ export interface CodeEditorProps {
     readonly changes: readonly CodeViewChange[];
   };
   readonly label: string;
+  /** ADR-296 Phase 4 — a read-only file (a catalog rule's sheet): shown, not edited. */
+  readonly readOnly?: boolean;
+  /** The file's language (`css` — no JS highlighting). */
+  readonly language?: "tsx" | "css";
   readonly vocabulary: CodeEditorVocabulary;
   /** A dry run of the text (the panel's plan) — its refusals as line diagnostics. */
   readonly check?: (
@@ -314,7 +318,12 @@ export default function CodeEditor(props: CodeEditorProps) {
           highlightActiveLine(),
           highlightSelectionMatches(),
           syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-          javascript({ jsx: true, typescript: true }),
+          ...(props.language === "css"
+            ? []
+            : [javascript({ jsx: true, typescript: true })]),
+          ...(props.readOnly
+            ? [EditorState.readOnly.of(true), EditorView.editable.of(false)]
+            : []),
           autocompletion({
             override: [
               vocabularySource(

@@ -62,6 +62,11 @@ const KO: CodeViewMessages = {
     alternative:
       "Interactions 패널에서 부를 API 를 고르세요. (코드에서 API 를 이름으로 부르는 모양은 다음 단계에서 열립니다.)",
   },
+  readOnlyFile: {
+    reason: "읽기 전용 (컴포넌트 기본 스타일 · spec 토큰 · Design 패널 값)",
+    alternative:
+      "되돌리세요. 컴포넌트 기본 모양은 그 요소의 CSS class 에, 값은 Design 패널에서 고칩니다.",
+  },
 };
 
 const EN: CodeViewMessages = {
@@ -113,6 +118,12 @@ const EN: CodeViewMessages = {
     reason: "two APIs share this URL",
     alternative:
       "Pick the API to call in the Interactions panel. (Calling an API by its name in code comes in a later step.)",
+  },
+  readOnlyFile: {
+    reason:
+      "read only (a component's base style · a spec token · a Design panel value)",
+    alternative:
+      "Undo it. Style the element through its CSS class, or edit the value in the Design panel.",
   },
 };
 

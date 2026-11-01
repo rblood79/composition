@@ -1,3 +1,26 @@
+import { codeViewProjectNames } from "../../../../../packages/shared/src/codeView/files/names";
+import { catalogInteractionOverridesAt } from "../../../../../packages/shared/src/catalog/resolution/effectiveInteractions";
+import {
+  catalogInheritedRuleEnabledCommand,
+  catalogReplaceInheritedRuleCommand,
+} from "./interactions";
+import {
+  codeViewAddressOf,
+  codeViewTemplateRoot,
+  codeViewRootSlot,
+  codeViewRuleKeys,
+  codeViewSameAddress,
+  codeViewTreeClasses,
+} from "../../../../../packages/shared/src/codeView/files/overrides";
+import {
+  parseCodeViewOverrides,
+  type CodeViewOverrideEntry,
+} from "../../../../../packages/shared/src/codeView/inverse/overrides";
+import {
+  codeViewNodeClasses,
+  codeViewNodeHasStyle,
+  codeViewPageNodes,
+} from "../../../../../packages/shared/src/codeView/files/styles";
 /**
  * ADR-285 — an edit of the code view applied back to the document across the closed vocabulary
  * (Decision 2 · 3 · 4 · 5 · 6): the edited code is parsed (lezer — never run), each element's
@@ -14,7 +37,11 @@
  */
 import { isDateValueText } from "../../../../../packages/shared/src/state/dateValue";
 import {
+  createComponent,
   insertNodes,
+  renameDefinition,
+  setShowWhen,
+  setSlotDeclaration,
   moveNodes,
   removeTargets,
   setFields,
@@ -40,17 +67,25 @@ import type { CatalogReader } from "../../../../../packages/shared/src/catalog/t
 import type {
   CatalogEntry,
   EntryId,
+  AuthoredValue,
+  InstanceAddress,
   InteractionAction,
+  NodeParent,
+  WriteValue,
   InteractionEntry,
   NodeEntry,
   NodeId,
+  DefinitionEntry,
   PageEntry,
   ProjectEntry,
   StateVariableEntry,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import { isBodyType } from "../../../../../packages/shared/src/domain/predicates";
-import { generateCodeView } from "../../../../../packages/shared/src/codeView/generate";
+import {
+  codeViewComponentPage,
+  generateCodeView,
+} from "../../../../../packages/shared/src/codeView/generate";
 import { componentPropertiesOf } from "../../../../../packages/shared/src/catalog/document/componentProperties";
 import {
   COMPONENT_EVENT_ARGS,
@@ -151,7 +186,12 @@ export type CatalogCodeViewReason =
   | "ambiguousIdentity"
   | "staleBaseline"
   /** ADR-296 E11 — the code names an endpoint by its URL and two endpoints share it. */
-  | "ambiguousEndpoint";
+  | "ambiguousEndpoint"
+  /**
+   * ADR-296 Phase 4 · 5 — a read-only file or value (a catalog rule's sheet · a spec token · a value
+   * only the Design panel holds · a Library origin) was edited.
+   */
+  | "readOnlyFile";
 
 export interface CatalogCodeViewRejection {
   /** 1-based line of the edited code. */
@@ -198,6 +238,9 @@ const DERIVED_KINDS = new Set([
   "params",
   // ADR-296 E8 — the project variables a page uses (`useProjectState`).
   "projectState",
+  // ADR-296 Phase 5 — a component's props type and its inputs (`let {…} = props;`).
+  "propsType",
+  "props",
 ]);
 
 /** ADR-296 Phase 2 — the page's head elements (`<title>` · `<meta>` — its `meta`, not nodes). */
@@ -213,6 +256,11 @@ interface PlanInput {
   readonly changes: readonly CodeViewChange[];
   readonly data: Data;
   readonly newId: NewId;
+  /**
+   * ADR-296 Phase 5 — a component's file: its origin template is the root (`session.pageId` is the
+   * definition's id). Its edits are origin commands — every instance follows.
+   */
+  readonly component?: DefinitionEntry;
   /**
    * Read every unit again, changed or not (the G1 gate: each vocabulary form's reader gives back
    * the document's value — unchanged code then plans nothing that changes the code).
@@ -241,6 +289,7 @@ export function catalogCodeViewPlan(input: PlanInput): CatalogCodeViewPlan {
 
   // Dry run: the staged document's code must give back what the edit wrote.
   let regenerated: string;
+  let final: CodeViewFinalClasses;
   try {
     const stage = stageOver(reader);
     stage.apply(command(reader).ops);
@@ -249,12 +298,13 @@ export function catalogCodeViewPlan(input: PlanInput): CatalogCodeViewPlan {
       pageId: session.pageId,
       ...input.data,
     }).code;
+    final = codeViewFinalClasses(stage, session.pageId);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     reject(page.lastFrom, "commandRefused", message);
     return { rejected };
   }
-  page.compare(regenerated);
+  page.compare(regenerated, final);
   if (rejected.length) return { rejected };
   return steps.length
     ? { command, count: steps.length, rejected }
@@ -309,8 +359,9 @@ export function planCodeViewPageEdit(
 ):
   | {
       steps: CatalogCommand[];
-      compare: (regenerated: string) => void;
+      compare: (regenerated: string, classes?: CodeViewFinalClasses) => void;
       lastFrom: number;
+      newRoot?: string;
     }
   | undefined {
   const { session, edited } = input;
@@ -334,16 +385,35 @@ export function planCodeViewPageEdit(
     },
   );
   const steps = planner.plan();
+  // ADR-296 Phase 5 — a component file's function name is its definition's name.
+  const named = parsed.component?.name;
+  const was = parseCodeView(baseline.code).component?.name;
+  if (input.component?.templateRootId && named && was && named !== was) {
+    if (input.component.id.startsWith("lib:"))
+      reject(parsed.component!.from, "readOnlyFile", "name");
+    else
+      steps.push(
+        renameDefinition({
+          id: input.component.id as EntryId<"definition">,
+          name: named,
+          label: "Code",
+        }),
+      );
+  }
   const result = {
     steps: steps.map((step) => step),
     lastFrom: 0,
-    compare: (regenerated: string) =>
+    /** ADR-296 Phase 5 (G2) — a new component file's origin root (undefined otherwise). */
+    newRoot: planner.newRoot,
+    /** `classes` — the final document's node classes and styled nodes (Phase 4 — display only). */
+    compare: (regenerated: string, classes?: CodeViewFinalClasses) =>
       compareRegenerated(
         parsed,
         parseCodeView(regenerated),
         parseCodeView(baseline.code),
         planner,
         reject,
+        classes,
       ),
   };
   // (A refusal names the line of the step that failed — the planner records where each began.)
@@ -356,7 +426,7 @@ export function planCodeViewPageEdit(
 
 /* ─── the planner ────────────────────────────────────────────────────────────────────────── */
 
-type Reject = (
+export type Reject = (
   from: number,
   reason: CatalogCodeViewReason,
   detail?: string,
@@ -412,7 +482,9 @@ class Planner {
     private readonly reject: Reject,
   ) {
     this.baseline = input.session.baseline;
-    this.page = input.reader.getEntry(input.session.pageId) as PageEntry;
+    this.page = input.component
+      ? codeViewComponentPage(input.component)
+      : (input.reader.getEntry(input.session.pageId) as PageEntry);
     for (const [name, id] of Object.entries(this.baseline.symbols.variables))
       this.variables.set(name, id);
     // ADR-296 E8 — the project variables by their code names, as the Apply's stage has them (a
@@ -666,7 +738,7 @@ class Planner {
           entry: {
             kind: "stateVariable",
             id,
-            ownerId: this.page.id,
+            ownerId: this.variableOwner(),
             name,
             valueType: "string[]",
             defaultValue: [],
@@ -849,7 +921,7 @@ class Planner {
           entry: {
             kind: "stateVariable",
             id,
-            ownerId: this.page.id,
+            ownerId: this.variableOwner(),
             name: statement.name!,
             valueType: next.valueType,
             defaultValue: next.defaultValue as never,
@@ -1006,22 +1078,54 @@ class Planner {
     this.ids = ids;
     // New elements: ids now (the plan names them before they exist).
     for (const element of identity.added) {
+      if (element.type === "Slot") continue; // (an instance's slot position, not a node)
       const type = element.type === "div" ? "frame" : element.type;
-      const definitionId = catalogPaletteDefinitionId(reader.library, type);
-      if (!reader.library.definitions.has(definitionId)) {
+      const definitionId =
+        this.componentDefinition(element.type) ??
+        catalogPaletteDefinitionId(reader.library, type);
+      if (
+        !reader.library.definitions.has(definitionId as never) &&
+        reader.getEntry(definitionId)?.kind !== "definition"
+      ) {
         this.reject(element.from, "unknownTag", element.type);
         continue;
       }
       ids.set(element, this.input.newId("node"));
     }
+    // ADR-296 Phase 5 — a new instance's slot contents: an element of a type its placing fills
+    // with (`<Tag>` in a TagGroup — the Library's `Tag/Default`) is that definition.
+    this.planSlotDefaults(identity.added, ids, reader);
     // (Their entries now — reading their text is planning: a row read names the view to bind.)
     const entries = new Map<CodeViewElement, NodeEntry[]>();
     for (const element of identity.added)
       if (ids.has(element)) entries.set(element, this.entriesOf(element, ids));
 
     // Structure: each parent's children as the code lists them (places · moves · inserts).
+    /** A parent's place for its children: a node · page, or an instance's slot position. */
+    type Place = {
+      readonly parent: NodeParent;
+      readonly current: (stage: CatalogReader) => readonly string[] | undefined;
+    };
+    const nodePlace = (parentId: string): Place => ({
+      parent: { kind: "node", id: parentId as NodeId },
+      current: (stage) =>
+        (stage.getEntry(parentId) as NodeEntry | PageEntry | undefined)
+          ?.children,
+    });
+    const slotPlace = (ownerId: string, address: InstanceAddress): Place => ({
+      parent: { kind: "descendant", ownerId: ownerId as NodeId, address },
+      current: (stage) => {
+        const owner = stage.getEntry(ownerId) as NodeEntry | undefined;
+        const fill = owner?.descendantOverrides.find(
+          (item) =>
+            item.kind === "fillSlot" &&
+            codeViewSameAddress(item.address, address),
+        );
+        return fill?.kind === "fillSlot" ? fill.childIds : [];
+      },
+    });
     const placeChildren = (
-      parentId: string,
+      place: Place,
       children: readonly CodeViewElement[],
       from: number,
     ) => {
@@ -1029,22 +1133,18 @@ class Planner {
         .map((child) => ids.get(child))
         .filter((id): id is string => !!id);
       // (Already so — the removals aside: nothing to arrange.)
-      const now = (
-        reader.getEntry(parentId) as NodeEntry | PageEntry | undefined
-      )?.children.filter((id) => !removed.has(id));
+      const now = place.current(reader)?.filter((id) => !removed.has(id));
       if (now && JSON.stringify(now) === JSON.stringify(wanted)) return;
       this.step(from, (stageReader) => {
         const stage = stageOver(stageReader);
         const ops: CatalogCommandPlan["ops"][number][] = [];
         wanted.forEach((id, index) => {
-          const current = (
-            stage.getEntry(parentId) as NodeEntry | PageEntry | undefined
-          )?.children;
+          const current = place.current(stage);
           if (current?.[index] === id) return;
           const element = children.find((child) => ids.get(child) === id)!;
           const plan = this.added.has(element)
             ? insertNodes({
-                parent: { kind: "node", id: parentId as NodeId },
+                parent: place.parent,
                 index,
                 entries: entries.get(element)!,
                 rootIds: [id as NodeId],
@@ -1053,7 +1153,7 @@ class Planner {
               })(stage)
             : moveNodes({
                 ids: [id as NodeId],
-                parent: { kind: "node", id: parentId as NodeId },
+                parent: place.parent,
                 index,
                 newId: this.input.newId,
                 label: "Move",
@@ -1064,20 +1164,68 @@ class Planner {
         return { label: "Arrange", ops };
       });
     };
+    /** Every new instance of a new subtree: its slots as written, outer first. */
+    const fill = (element: CodeViewElement) => {
+      const elementId = ids.get(element);
+      const definitionId = (entries.get(element) ?? [])[0]?.definitionId;
+      if (elementId && definitionId)
+        this.fillNewSlots(element, elementId, definitionId, entries);
+      for (const inner of element.children.flatMap((item) =>
+        item.type === "Slot" ? item.children : [item],
+      ))
+        fill(inner);
+    };
+    const visitChildren = (children: readonly CodeViewElement[]) => {
+      for (const child of children) {
+        const id = ids.get(child);
+        if (!id) continue;
+        if (!this.added.has(child)) this.planAttributes(child, id);
+        else {
+          fill(child);
+          this.planNewHandlers(child, id);
+        }
+        // (A new element's subtree goes in with it; a list's rows are its binding's.)
+        if (!this.added.has(child) && !child.rows)
+          visit(id, child.children, child.from);
+      }
+    };
     const visit = (
       parentId: string,
       children: readonly CodeViewElement[],
       from: number,
     ) => {
-      placeChildren(parentId, children, from);
-      for (const child of children) {
-        const id = ids.get(child);
-        if (!id) continue;
-        if (!this.added.has(child)) this.planAttributes(child, id);
-        else this.planNewHandlers(child, id);
-        // (A new element's subtree goes in with it; a list's rows are its binding's.)
-        if (!this.added.has(child) && !child.rows)
-          visit(id, child.children, child.from);
+      // ADR-296 Phase 5 — an instance's children fill its template root's slot; a `<Slot
+      // name="<path>">` fills that position (instance commands — descendant parents).
+      const parent = reader.getEntry(parentId) as NodeEntry | undefined;
+      const rootSlot =
+        parent?.kind === "node"
+          ? codeViewRootSlot(reader as never, parent)
+          : undefined;
+      const plain = children.filter((child) => child.type !== "Slot");
+      placeChildren(
+        rootSlot
+          ? slotPlace(parentId, {
+              instances: [parentId as NodeId],
+              templatePath: rootSlot.templatePath,
+            } as InstanceAddress)
+          : nodePlace(parentId),
+        plain,
+        from,
+      );
+      visitChildren(plain);
+      for (const slot of children.filter((child) => child.type === "Slot")) {
+        const name = slot.attributes.find((item) => item.name === "name")?.value
+          ?.code;
+        const address =
+          name && parent?.kind === "node"
+            ? codeViewAddressOf(reader as never, parentId, name)
+            : undefined;
+        if (!address) {
+          this.reject(slot.from, "unknownReference", name ?? "Slot");
+          continue;
+        }
+        placeChildren(slotPlace(parentId, address), slot.children, slot.from);
+        visitChildren(slot.children);
       }
     };
     if (body) {
@@ -1103,6 +1251,81 @@ class Planner {
           body.id,
         );
       this.planHead(this.parsed.jsx!.roots.filter(isHead));
+    } else if (this.input.component && !this.input.component.templateRootId) {
+      // ADR-296 Phase 5 (G2) — a new component's file: its one root element becomes the origin —
+      // placed on a host page's body, made a component (`createComponent`), its instance there taken
+      // away (existing commands only — no new one).
+      const roots = this.parsed.jsx!.roots;
+      const root = roots[0];
+      const rootId = root ? ids.get(root) : undefined;
+      const host = (
+        reader.getEntry(
+          (reader.getEntry(reader.projectId) as ProjectEntry).pageIds[0] ?? "",
+        ) as PageEntry | undefined
+      )?.children[0];
+      if (
+        roots.length !== 1 ||
+        !root ||
+        !rootId ||
+        !this.added.has(root) ||
+        !host
+      ) {
+        this.reject(root?.from ?? this.parsed.jsx!.from, "notInCode", "root");
+        return;
+      }
+      this.newRoot = rootId;
+      this.step(
+        root.from,
+        insertNodes({
+          parent: { kind: "node", id: host as NodeId },
+          entries: entries.get(root)!,
+          rootIds: [rootId as NodeId],
+          newId: this.input.newId,
+          label: "Code",
+        }),
+      );
+      // (Its new instances' slot contents — a ListBox's items — as in a page: 판독 Phase 5 MEDIUM-3.)
+      fill(root);
+      this.planNewHandlers(root, rootId);
+      const name = this.input.component.name;
+      // (One definition id for the plan and the run — the page file of the Apply names it.)
+      const definitionId = this.input.newId("definition");
+      const newId = ((kind: string) =>
+        kind === "definition"
+          ? definitionId
+          : this.input.newId(kind as never)) as NewId;
+      this.step(
+        root.from,
+        createComponent({ id: rootId as NodeId, name, newId }),
+      );
+      this.step(root.from, (stage) => {
+        const instance = (stage.getEntry(host) as NodeEntry).children.find(
+          (id) => {
+            const node = stage.getEntry(id) as NodeEntry | undefined;
+            const definition = node
+              ? (stage.getEntry(node.definitionId) as
+                  DefinitionEntry | undefined)
+              : undefined;
+            return definition?.templateRootId === rootId;
+          },
+        );
+        return removeTargets({
+          targets: instance ? [{ kind: "node", id: instance as NodeId }] : [],
+          newId: this.input.newId,
+          label: "Code",
+        })(stage);
+      });
+    } else if (this.input.component?.templateRootId) {
+      // ADR-296 Phase 5 — a component's file: one root, its origin's template root (kept).
+      const rootId = this.input.component.templateRootId;
+      const roots = this.parsed.jsx!.roots;
+      const root = roots[0];
+      if (roots.length !== 1 || !root || ids.get(root) !== rootId) {
+        this.reject(root?.from ?? this.parsed.jsx!.from, "notInCode", "root");
+        return;
+      }
+      this.planAttributes(root, rootId);
+      if (!root.rows) visit(rootId, root.children, root.from);
     } else this.reject(this.parsed.jsx!.from, "notInCode");
   }
 
@@ -1155,8 +1378,17 @@ class Planner {
   ): NodeEntry[] {
     const type = element.type === "div" ? "frame" : element.type;
     const library = this.reader.library;
-    const definitionId = catalogPaletteDefinitionId(library, type);
-    const props = catalogCreationProps(library, definitionId, type);
+    // ADR-296 Phase 5 — `<Picker …/>` is an instance of the user component.
+    const component = this.componentDefinition(element.type);
+    const definitionId = (this.slotDefaults.get(element) ??
+      component ??
+      catalogPaletteDefinitionId(library, type)) as ReturnType<
+      typeof catalogPaletteDefinitionId
+    >;
+    const props = component
+      ? {}
+      : catalogCreationProps(library, definitionId, type);
+    this.idIsProp = this.acceptsId(definitionId);
     const sorted = this.sortControlled(
       element,
       definitionTypeName(this.reader, definitionId),
@@ -1166,6 +1398,8 @@ class Planner {
         /^on[A-Z]/.test(attribute.name) ||
         attribute.name === "items" ||
         attribute.name === "ref" ||
+        attribute.name === "overrides" ||
+        attribute.name === "composition" ||
         this.isMetadata(
           attribute.name,
           definitionTypeName(this.reader, definitionId),
@@ -1183,19 +1417,22 @@ class Planner {
       : undefined;
     if (text !== undefined)
       props.children = { kind: "set", value: text } as never;
-    const children = element.children.flatMap((child) =>
-      this.entriesOf(child, ids),
-    );
+    // ADR-296 Phase 5 — a new instance's slot contents are its positions' (filled after it is
+    // placed — `fillNewSlots`), not its own children.
+    const owned = this.ownChildren(element, definitionId);
+    const children = owned.flatMap((child) => this.entriesOf(child, ids));
     const metadata = this.metadataOf(
       element,
       definitionTypeName(this.reader, definitionId),
     );
+    this.idIsProp = false;
     return [
       {
         kind: "node",
         id: ids.get(element) as NodeId,
         definitionId,
-        children: element.children.map((child) => ids.get(child) as NodeId),
+        children: owned.map((child) => ids.get(child) as NodeId),
+        ...this.declarationsOf(element),
         props: props as NodeEntry["props"],
         visual: {},
         sizing: {},
@@ -1212,7 +1449,13 @@ class Planner {
    * `aria-label` the component does not take as its prop).
    */
   private isMetadata(name: string, type: string): boolean {
-    if (name === "id" || name === "className") return true;
+    if (name === "className") return true;
+    // (A collection item's `id` is its key prop — ADR-296 Phase 5 slot contents show items.)
+    if (name === "id")
+      return (
+        !(getPrimitiveBinding(type)?.props.accepts ?? {})["id"] &&
+        !this.idIsProp
+      );
     return (
       name === "aria-label" &&
       !(getPrimitiveBinding(type)?.props.accepts ?? {})["aria-label"]
@@ -1221,6 +1464,8 @@ class Planner {
   private metadataOf(
     element: { attributes: readonly CodeViewAttribute[] },
     type: string,
+    /** A kept node: its class (ADR-296 Phase 4 — the style file's selector) is not the author's. */
+    nodeId?: string,
   ): NonNullable<NodeEntry["metadata"]> {
     const out: NonNullable<NodeEntry["metadata"]> = {};
     for (const attribute of element.attributes) {
@@ -1231,14 +1476,24 @@ class Planner {
       }
       const value = attribute.value.code.replace(/\\(.)/g, "$1");
       if (attribute.name === "id") out.htmlId = value;
-      else if (attribute.name === "className") out.className = value;
-      else out.ariaLabel = value;
+      else if (attribute.name === "className") {
+        const tokens = value.split(/\s+/).filter(Boolean);
+        // (Only a styled node's code carries its class — 판독 HIGH-1: an unstyled node's same-named
+        // author class is the author's.)
+        const own =
+          nodeId && this.styledNodes().has(nodeId)
+            ? this.nodeClasses().get(nodeId)
+            : undefined;
+        if (own && tokens[0] === own) tokens.shift();
+        if (tokens.length) out.className = tokens.join(" ");
+      } else out.ariaLabel = value;
     }
     return out;
   }
 
   /** A new element's handlers (and its new subtree's) — rules on the node it becomes. */
   private planNewHandlers(element: CodeViewElement, id: string): void {
+    if (this.keptParts.has(element)) return;
     const handlers = new Map(
       element.attributes
         .filter(
@@ -1252,21 +1507,637 @@ class Planner {
         ? "frame"
         : definitionTypeName(
             this.reader,
-            catalogPaletteDefinitionId(this.reader.library, element.type),
+            (this.componentDefinition(element.type) ??
+              catalogPaletteDefinitionId(
+                this.reader.library,
+                element.type,
+              )) as ReturnType<typeof catalogPaletteDefinitionId>,
           );
     if (handlers.size)
       this.planHandlers(element, { id: id as NodeId }, type, handlers);
-    for (const child of element.children) {
+    // ADR-296 Phase 5 — a new instance's `overrides` (its positions are its component's).
+    const definitionId =
+      this.slotDefaults.get(element) ??
+      this.componentDefinition(element.type) ??
+      catalogPaletteDefinitionId(this.reader.library, element.type);
+    if (element.attributes.some((item) => item.name === "overrides"))
+      this.planOverrides(element, {
+        id,
+        definitionId,
+        descendantOverrides: [],
+      } as unknown as NodeEntry);
+    for (const child of element.children.flatMap((item) =>
+      item.type === "Slot" ? item.children : [item],
+    )) {
       const childId = this.ids?.get(child);
       if (childId) this.planNewHandlers(child, childId);
     }
   }
   private ids?: ReadonlyMap<CodeViewElement, string>;
+  private classes?: Map<string, string>;
+  /** ADR-296 Phase 5 (G2) — a new component file's root (its definition is made in the Apply). */
+  newRoot?: string;
+  /** The node being read holds `id` as its prop (a collection item's key). */
+  private idIsProp = false;
+  /** A definition that takes `id` as a prop (a collection item origin — its key). */
+  private acceptsId(definitionId: string): boolean {
+    const definition = definitionId.startsWith("lib:")
+      ? this.reader.library.definitions.get(definitionId as never)
+      : (this.reader.getEntry(definitionId) as DefinitionEntry | undefined);
+    return !!(definition as { accepts?: Record<string, unknown> } | undefined)
+      ?.accepts?.id;
+  }
+  /** A new variable's owner: the page, or a component's template root (its origin's state). */
+  private variableOwner(): StateVariableEntry["ownerId"] {
+    return this.input.component?.templateRootId ?? this.page.id;
+  }
+  /** ADR-296 Phase 5 — a tag that names a user component → its definition. */
+  private componentDefinition(tag: string): string | undefined {
+    for (const [id, name] of codeViewProjectNames(this.reader as never)
+      .components)
+      if (name === tag) return id;
+    return undefined;
+  }
+  /** The page's node classes (the baseline's, as the stage names them before this file). */
+  baselineClasses(): ReadonlyMap<string, string> {
+    return this.nodeClasses();
+  }
+  private styled?: Set<string>;
+  /** The nodes whose code carries their class (a style — ADR-296 Phase 4). */
+  styledNodes(): ReadonlySet<string> {
+    this.styled ??= new Set(
+      [...this.nodeClasses().keys()].filter((id) => {
+        const node = this.reader.getEntry(id) as NodeEntry | undefined;
+        return !!node && codeViewNodeHasStyle(this.reader as never, node);
+      }),
+    );
+    return this.styled;
+  }
+  /** Each code element's node (kept · new). */
+  elementIds(): ReadonlyMap<CodeViewElement, string> {
+    return this.ids ?? new Map();
+  }
+  /** ADR-296 Phase 4 — the page's node classes (사용자 결정 6), as the stage names them. */
+  private nodeClasses(): Map<string, string> {
+    this.classes ??= codeViewNodeClasses(this.reader as never, this.page.id);
+    return this.classes;
+  }
+
+  /**
+   * ADR-296 Phase 5 · Decision 4 (R10) — an instance's `overrides` against the baseline's: instance
+   * commands only — a position's props · `hidden` (descendant patch writes), an origin rule off
+   * (`catalogInheritedRuleEnabledCommand`) · replaced (`catalogReplaceInheritedRuleCommand`), the
+   * position's own rules (`setNodeInteractions` at the address). Never an origin command.
+   */
+  private planOverrides(element: CodeViewElement, node: NodeEntry): void {
+    const attribute = element.attributes.find(
+      (item) => item.name === "overrides",
+    );
+    const anchor = this.baseline.anchors.find(
+      (item) =>
+        item.target.kind === "attribute" &&
+        item.target.nodeId === node.id &&
+        item.target.name === "overrides",
+    );
+    const valueOf = (code: string) =>
+      code.replace(/^overrides=\{([\s\S]*)\}$/, "$1");
+    const was = anchor
+      ? valueOf(this.baseline.code.slice(anchor.start, anchor.end))
+      : "{}";
+    const now = attribute?.value?.code ?? "{}";
+    if (
+      codeViewNormalized(was) === codeViewNormalized(now) &&
+      !this.input.strict
+    )
+      return;
+    const from = attribute?.from ?? element.from;
+    const parsed = parseCodeViewOverrides(now);
+    const old = parseCodeViewOverrides(was);
+    if ("error" in parsed) {
+      this.reject(from, "outsideVocabulary", "overrides");
+      return;
+    }
+    const before = new Map(
+      ("error" in old ? [] : old.entries).map((entry) => [entry.key, entry]),
+    );
+    const after = new Map(parsed.entries.map((entry) => [entry.key, entry]));
+    if (after.size !== parsed.entries.length) {
+      this.reject(from, "ambiguousIdentity", "overrides");
+      return;
+    }
+    for (const key of new Set([...before.keys(), ...after.keys()])) {
+      const address = codeViewAddressOf(
+        this.reader as never,
+        node.id,
+        key,
+        node.definitionId,
+      );
+      if (!address) {
+        this.reject(from, "unknownReference", key);
+        continue;
+      }
+      const entry = after.get(key);
+      const previous = before.get(key);
+      const target = {
+        kind: "descendant" as const,
+        ownerId: node.id,
+        address,
+      };
+      // Props (a descendant patch's).
+      const props: Record<string, WriteValue<AuthoredValue>> = {};
+      for (const prop of new Set([
+        ...(previous?.props.keys() ?? []),
+        ...(entry?.props.keys() ?? []),
+      ])) {
+        const next = entry?.props.get(prop);
+        const last = previous?.props.get(prop);
+        if (
+          next &&
+          last &&
+          codeViewNormalized(next.code) === codeViewNormalized(last.code)
+        )
+          continue;
+        if (!next) {
+          props[prop] = { kind: "remove" };
+          continue;
+        }
+        const value = this.propValue({
+          name: prop,
+          from: from + next.from,
+          to: from + next.from,
+          value: {
+            kind: "expression",
+            code: next.code,
+            from: from + next.from,
+            to: from + next.from,
+          },
+        } as CodeViewAttribute);
+        if (value === undefined) continue;
+        props[prop] = { kind: "set", value: value as AuthoredValue };
+      }
+      if (Object.keys(props).length)
+        this.step(from, setFields({ targets: [target], props, label: "Code" }));
+      if (entry?.hidden !== previous?.hidden)
+        this.step(
+          from,
+          setWholeField({
+            targets: [target],
+            field: "enabled",
+            value: entry?.hidden === undefined ? undefined : !entry.hidden,
+          }),
+        );
+      this.planOverrideRules(node, address, entry, previous, from);
+    }
+  }
+
+  /** One position's rules (`rules({inherited, own})` per When) against the baseline's. */
+  private planOverrideRules(
+    instance: NodeEntry,
+    address: InstanceAddress,
+    entry: CodeViewOverrideEntry | undefined,
+    previous: CodeViewOverrideEntry | undefined,
+    from: number,
+  ): void {
+    const owner = { ownerId: instance.id as NodeId, address };
+    const sourceId = address.templatePath.at(-1) as string;
+    const sourceClass = codeViewTreeClasses(this.reader as never, [
+      address.templatePath[0] as string,
+    ]).get(sourceId);
+    const keys = sourceClass
+      ? codeViewRuleKeys(this.reader as never, sourceId, sourceClass)
+      : new Map<string, string>();
+    const ruleOf = (handler: string) =>
+      [...keys].find(([, name]) => name === handler)?.[0];
+    const rulesOf = (item: CodeViewOverrideEntry | undefined) =>
+      new Map((item?.rules ?? []).map((rules) => [rules.trigger, rules]));
+    const next = rulesOf(entry);
+    const last = rulesOf(previous);
+    let ownChanged = false;
+    /** The replacing rules' new Dos (origin rule id → actions). */
+    const bodies = new Map<string, InteractionAction[]>();
+    const own: { trigger: string; actions: InteractionAction[] }[] = [];
+    const contextOf = (trigger: string, params: readonly string[] = []) => ({
+      trigger,
+      args: componentEventKeyOf(trigger)
+        ? COMPONENT_EVENT_ARGS
+        : (eventArgNames(trigger)[0] ?? []),
+      fields: eventArgsAreFields(trigger),
+      params,
+      ownerId: instance.id,
+    });
+    for (const trigger of new Set([...last.keys(), ...next.keys()])) {
+      const now = next.get(trigger);
+      const was = last.get(trigger);
+      for (const handler of new Set([
+        ...(was?.inherited.keys() ?? []),
+        ...(now?.inherited.keys() ?? []),
+      ])) {
+        const ruleId = ruleOf(handler);
+        if (!ruleId) {
+          this.reject(from, "unknownReference", handler);
+          continue;
+        }
+        const after = now?.inherited.get(handler);
+        const before = was?.inherited.get(handler);
+        const same =
+          after && before && "off" in after && "off" in before
+            ? true
+            : after && before && "body" in after && "body" in before
+              ? codeViewNormalized(after.body) ===
+                codeViewNormalized(before.body)
+              : !after && !before;
+        if (same) continue;
+        if (!after) {
+          this.step(
+            from,
+            catalogInheritedRuleEnabledCommand(owner, ruleId as never, true),
+          );
+          ownChanged ||= !!before && "body" in before;
+          continue;
+        }
+        if ("off" in after) {
+          this.step(
+            from,
+            catalogInheritedRuleEnabledCommand(owner, ruleId as never, false),
+          );
+          ownChanged ||= !!before && "body" in before;
+          continue;
+        }
+        const actions = this.dosOf(
+          after.body,
+          from + after.from,
+          contextOf(trigger, after.params),
+        );
+        if (!actions) continue;
+        if (before && "body" in before) {
+          bodies.set(ruleId, actions);
+          ownChanged = true;
+          continue;
+        }
+        const origin = this.reader.getEntry(ruleId) as InteractionEntry;
+        this.step(
+          from,
+          catalogReplaceInheritedRuleCommand(
+            owner,
+            { ...origin, actions },
+            this.input.newId,
+          ),
+        );
+      }
+      const nowOwn = now?.own ?? [];
+      const wasOwn = was?.own ?? [];
+      if (
+        nowOwn.length !== wasOwn.length ||
+        nowOwn.some(
+          (item, index) =>
+            codeViewNormalized(item.body) !==
+            codeViewNormalized(wasOwn[index]!.body),
+        )
+      )
+        ownChanged = true;
+      for (const item of nowOwn) {
+        const actions = this.dosOf(
+          item.body,
+          from + item.from,
+          contextOf(trigger, item.params),
+        );
+        if (actions) own.push({ trigger, actions });
+      }
+    }
+    if (
+      !ownChanged &&
+      ![...next.values()].some((rules) => rules.own.length) &&
+      ![...last.values()].some((rules) => rules.own.length)
+    )
+      return;
+    if (!ownChanged) return;
+    // The position's own rules: the replacing ones (kept, Dos as written) and the written own ones
+    // (each takes a former own rule's id by its place — its identity).
+    this.step(from, (reader) => {
+      const get = (id: string) => reader.getEntry(id as never);
+      const map: Readonly<Record<string, string>> =
+        catalogInteractionOverridesAt(get as never, address) ?? {};
+      const replacing = new Set<string>(
+        Object.values(map).filter((value) => value !== "off"),
+      );
+      const current = (
+        reader.getEntry(reader.projectId) as ProjectEntry
+      ).interactionIds
+        .map((id) => reader.getEntry(id) as InteractionEntry | undefined)
+        .filter(
+          (rule): rule is InteractionEntry =>
+            rule?.kind === "interaction" &&
+            rule.ownerId === instance.id &&
+            codeViewSameAddress(rule.address, address),
+        );
+      const kept = current
+        .filter((rule) => replacing.has(rule.id))
+        .map((rule) => {
+          const origin = Object.entries(map).find(
+            ([, value]) => value === rule.id,
+          )?.[0];
+          const actions = origin ? bodies.get(origin) : undefined;
+          return actions ? { ...rule, actions } : rule;
+        });
+      const former = current.filter((rule) => !replacing.has(rule.id));
+      const written = own.map((item, index) => {
+        const reused = former.filter((rule) => rule.trigger === item.trigger)[
+          own.filter(
+            (other, at) => at < index && other.trigger === item.trigger,
+          ).length
+        ];
+        return {
+          kind: "interaction",
+          id: reused?.id ?? this.input.newId("interaction"),
+          ownerId: instance.id,
+          address,
+          trigger: item.trigger,
+          actions: item.actions,
+        } as InteractionEntry;
+      });
+      return setNodeInteractions({
+        ownerId: instance.id as NodeId,
+        address,
+        entries: [...kept, ...written],
+        label: "Code",
+      })(reader);
+    });
+  }
+
+  /** A new instance's slot contents → the definition its placing fills that type with. */
+  private readonly slotDefaults = new Map<CodeViewElement, string>();
+  /** A new instance's required part its placing made (the empty state) — not written again. */
+  private readonly keptParts = new Set<CodeViewElement>();
+  private planSlotDefaults(
+    added: readonly CodeViewElement[],
+    ids: ReadonlyMap<CodeViewElement, string>,
+    reader: CatalogReader,
+  ): void {
+    const host = (
+      reader.getEntry(
+        (reader.getEntry(reader.projectId) as ProjectEntry).pageIds[0] ?? "",
+      ) as PageEntry | undefined
+    )?.children[0];
+    if (!host) return;
+    for (const element of added) {
+      const content = element.children.filter((child) => child.type !== "Slot");
+      const slots = element.children.filter((child) => child.type === "Slot");
+      if (!slots.length && !content.length) continue;
+      const definitionId =
+        this.componentDefinition(element.type) ??
+        catalogPaletteDefinitionId(reader.library, element.type);
+      if (!codeViewTemplateRoot(reader as never, definitionId)) continue;
+      // Place it once on a scratch stage: its fills' definitions by type.
+      try {
+        const stage = stageOver(reader);
+        const id = "project:node:code-view-scratch" as NodeId;
+        stage.apply(
+          insertNodes({
+            parent: { kind: "node", id: host as NodeId },
+            entries: [
+              {
+                kind: "node",
+                id,
+                definitionId,
+                children: [],
+                props: {},
+                visual: {},
+                sizing: {},
+                descendantOverrides: [],
+              } as unknown as NodeEntry,
+            ],
+            rootIds: [id],
+            newId: this.input.newId,
+          })(stage).ops,
+        );
+        const placed = stage.getEntry(id) as NodeEntry;
+        const byType = new Map<string, string>();
+        for (const fill of placed.descendantOverrides)
+          if (fill.kind === "fillSlot")
+            for (const child of fill.childIds) {
+              const node = stage.getEntry(child) as NodeEntry | undefined;
+              if (!node) continue;
+              const type = definitionTypeName(stage, node.definitionId);
+              if (!byType.has(type)) byType.set(type, node.definitionId);
+            }
+        for (const child of [
+          ...content,
+          ...slots.flatMap((slot) => slot.children),
+        ]) {
+          const definition = byType.get(child.type);
+          if (definition && ids.has(child))
+            this.slotDefaults.set(child, definition);
+          // (A collection's empty state stays the one its placing made — the code's is that.)
+          if (child.type === "IllustratedMessage" && definition)
+            this.keptParts.add(child);
+        }
+      } catch {
+        // (A type that cannot be placed here: its children read by their tags.)
+      }
+    }
+  }
+
+  /** The children an element owns (a new instance's slot contents are its positions'). */
+  private ownChildren(
+    element: CodeViewElement,
+    definitionId: string,
+  ): readonly CodeViewElement[] {
+    const plain = element.children.filter((child) => child.type !== "Slot");
+    return codeViewRootSlot(
+      this.reader as never,
+      {
+        definitionId,
+        descendantOverrides: [],
+      } as never,
+    )
+      ? []
+      : plain;
+  }
+
+  /**
+   * ADR-296 Phase 5 — a new instance's slot contents as written: each position's default fill
+   * (made when it was placed) is replaced by the code's elements (descendant parents — instance
+   * commands).
+   */
+  private fillNewSlots(
+    element: CodeViewElement,
+    id: string,
+    definitionId: string,
+    entries: ReadonlyMap<CodeViewElement, NodeEntry[]>,
+  ): void {
+    const ids = this.ids!;
+    const groups: {
+      address: InstanceAddress;
+      children: readonly CodeViewElement[];
+    }[] = [];
+    const root = codeViewRootSlot(
+      this.reader as never,
+      {
+        definitionId,
+        descendantOverrides: [],
+      } as never,
+    );
+    const plain = element.children.filter((child) => child.type !== "Slot");
+    // (A bound list's rows are its binding's; a new instance written without slot content keeps
+    // the defaults its placing gave.)
+    if (
+      element.rows ||
+      element.attributes.some((item) => item.name === "items")
+    )
+      return;
+    if (
+      !element.children.some((child) => child.type === "Slot") &&
+      !(root && plain.length)
+    )
+      return;
+    if (root && plain.length)
+      groups.push({
+        address: {
+          instances: [id as NodeId],
+          templatePath: root.templatePath,
+        } as InstanceAddress,
+        children: plain,
+      });
+    for (const slot of element.children.filter(
+      (child) => child.type === "Slot",
+    )) {
+      const name = slot.attributes.find((item) => item.name === "name")?.value
+        ?.code;
+      const address = name
+        ? codeViewAddressOf(this.reader as never, id, name, definitionId)
+        : undefined;
+      if (!address) {
+        this.reject(slot.from, "unknownReference", name ?? "Slot");
+        continue;
+      }
+      groups.push({ address, children: slot.children });
+    }
+    if (!groups.length) return;
+    this.step(element.from, (stageReader) => {
+      const stage = stageOver(stageReader);
+      const ops: CatalogCommandPlan["ops"][number][] = [];
+      const run = (command: CatalogCommand) => {
+        const plan = command(stage);
+        stage.apply(plan.ops);
+        ops.push(...plan.ops);
+      };
+      for (const group of groups) {
+        const owner = stage.getEntry(id) as NodeEntry | undefined;
+        const fill = owner?.descendantOverrides.find(
+          (item) =>
+            item.kind === "fillSlot" &&
+            codeViewSameAddress(item.address, group.address),
+        );
+        const defaults = fill?.kind === "fillSlot" ? fill.childIds : [];
+        // (A collection's empty state goes only with it — it stays; the code's is that one.)
+        const emptyState = (child: string) => {
+          const node = stage.getEntry(child) as NodeEntry | undefined;
+          return (
+            !!node &&
+            definitionTypeName(stage, node.definitionId) ===
+              "IllustratedMessage"
+          );
+        };
+        const removable = defaults.filter((child) => !emptyState(child));
+        const kept = defaults.length - removable.length;
+        if (removable.length)
+          run(
+            removeTargets({
+              targets: removable.map((child) => ({
+                kind: "node" as const,
+                id: child as NodeId,
+              })),
+              newId: this.input.newId,
+              label: "Code",
+            }),
+          );
+        group.children
+          .filter((child) => !(kept && child.type === "IllustratedMessage"))
+          .forEach((child, index) => {
+            const childId = ids.get(child);
+            const made = childId ? entries.get(child) : undefined;
+            if (!childId || !made) return;
+            run(
+              insertNodes({
+                parent: {
+                  kind: "descendant",
+                  ownerId: id as NodeId,
+                  address: group.address,
+                },
+                index,
+                entries: made,
+                rootIds: [childId as NodeId],
+                newId: this.input.newId,
+                label: "Code",
+              }),
+            );
+          });
+      }
+      return { label: "Code", ops };
+    });
+  }
+
+  /** ADR-296 Phase 5 — an element's `composition={{…}}` (slot · regions · placeholder · showWhen · presentWhen). */
+  private declarationsOf(element: CodeViewElement): Partial<NodeEntry> {
+    const attribute = element.attributes.find(
+      (item) => item.name === "composition",
+    );
+    if (!attribute) return {};
+    const value = attribute.value?.code
+      ? structuredLiteralOf(attribute.value.code)?.value
+      : undefined;
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      this.reject(attribute.from, "outsideVocabulary", "composition");
+      return {};
+    }
+    const known = ["slot", "regions", "placeholder", "showWhen", "presentWhen"];
+    for (const key of Object.keys(value))
+      if (!known.includes(key))
+        this.reject(attribute.from, "outsideVocabulary", key);
+    return value as Partial<NodeEntry>;
+  }
+  private planDeclarations(element: CodeViewElement, node: NodeEntry): void {
+    const now = this.declarationsOf(element);
+    const from =
+      element.attributes.find((item) => item.name === "composition")?.from ??
+      element.from;
+    const same = (a: unknown, b: unknown) =>
+      JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+    if (
+      !same(now.slot, node.slot) ||
+      !same(now.regions, node.regions) ||
+      !same(now.placeholder, node.placeholder)
+    )
+      this.step(
+        from,
+        setSlotDeclaration({
+          id: node.id,
+          ...(now.slot ? { slot: now.slot } : {}),
+          ...(now.regions ? { regions: now.regions } : {}),
+          ...(now.placeholder ? { placeholder: true } : {}),
+          label: "Code",
+        }),
+      );
+    if (!same(now.showWhen, node.showWhen))
+      this.step(
+        from,
+        setShowWhen({
+          id: node.id,
+          showWhen: now.showWhen ?? null,
+          label: "Code",
+        }),
+      );
+    // (A text part's presence condition has no command of its own — read only.)
+    if (!same(now.presentWhen, node.presentWhen))
+      this.reject(from, "readOnlyFile", "presentWhen");
+  }
 
   /** A kept element's attributes · text against the baseline's (only what changed). */
   private planAttributes(element: CodeViewElement, id: string): void {
     const node = this.reader.getEntry(id) as NodeEntry;
     const type = definitionTypeName(this.reader, node.definitionId);
+    this.planOverrides(element, node);
+    this.planDeclarations(element, node);
     const before = this.baseline.anchors.filter(
       (anchor) =>
         anchor.target.kind === "attribute" && anchor.target.nodeId === id,
@@ -1308,7 +2179,10 @@ class Planner {
         : value;
     };
     // ADR-296 Phase 2 — the author's metadata (`id` · `className` · `aria-label`).
-    const metadata = this.metadataOf(element, type);
+    this.idIsProp =
+      node.props.id?.kind === "set" || this.acceptsId(node.definitionId);
+    const metadata = this.metadataOf(element, type, id);
+    this.idIsProp = false;
     const nowMeta = node.metadata ?? {};
     const autoId =
       !!nowMeta.htmlId && /^[a-z][a-z0-9-]*_\d+$/.test(nowMeta.htmlId);
@@ -1341,6 +2215,8 @@ class Planner {
         }),
       );
     for (const attribute of element.attributes) {
+      if (attribute.name === "overrides" || attribute.name === "composition")
+        continue; // (planOverrides · planDeclarations)
       const old = before.find((anchor) => nameOf(anchor) === attribute.name);
       // (ADR-296 E3 — a node's ref is derived from the Dos that call it.)
       if (attribute.name === "ref") continue;
@@ -2416,13 +3292,63 @@ function stateOf(reader: CatalogReader, node: NodeEntry | undefined): string {
 
 /* ─── the check: the regenerated code gives back what the edit wrote ─────────────────────── */
 
+/** ADR-296 Phase 4 — a document's node classes and the nodes whose code carries them. */
+export interface CodeViewFinalClasses {
+  readonly classes: ReadonlyMap<string, string>;
+  readonly styled: ReadonlySet<string>;
+}
+
+/** A page's node classes and styled nodes in a (final) document. */
+export function codeViewFinalClasses(
+  final: CatalogReader,
+  pageId: string,
+): CodeViewFinalClasses {
+  return {
+    classes: codeViewNodeClasses(final as never, pageId),
+    styled: new Set(
+      codeViewPageNodes(final, pageId)
+        .filter((node) => codeViewNodeHasStyle(final as never, node))
+        .map((node) => node.id),
+    ),
+  };
+}
+
 function compareRegenerated(
   edited: CodeViewParsed,
   regenerated: CodeViewParsed,
   baseline: CodeViewParsed,
   planner: Planner,
   reject: Reject,
+  final?: CodeViewFinalClasses,
 ): void {
+  // ADR-296 Phase 4 — a styled node's class (the first `className` token) is display only: it
+  // follows the node's name and document order, so a move may number it again. Only the author's
+  // classes are compared — the class is taken off only where the code carries it (a styled node).
+  const mine: CodeViewFinalClasses = {
+    classes: planner.baselineClasses(),
+    styled: planner.styledNodes(),
+  };
+  const theirs = final ?? mine;
+  const authorClasses = (
+    text: string,
+    nodeId: string | undefined,
+    side: CodeViewFinalClasses,
+  ) => {
+    const value =
+      /^className=(?:"((?:[^"\\]|\\.)*)"|\{['"`](.*)['"`]\})$/s.exec(
+        text.trim(),
+      );
+    const tokens = (value?.[1] ?? value?.[2] ?? text)
+      .split(/\s+/)
+      .filter(Boolean);
+    if (
+      nodeId &&
+      side.styled.has(nodeId) &&
+      tokens[0] === side.classes.get(nodeId)
+    )
+      tokens.shift();
+    return tokens.join(" ");
+  };
   // Statements: each written one comes back (in any order); a derived one the edit did not
   // write is the document's to add — any other the edit did not write is not what it wrote.
   const pool = [...regenerated.statements];
@@ -2502,6 +3428,24 @@ function compareRegenerated(
         );
         // (A node's ref is derived from the Dos that call it — ADR-296 E3.)
         if (attribute.name === "ref") continue;
+        if (attribute.name === "className") {
+          const id = planner.elementIds().get(element);
+          const written = authorClasses(
+            edited.code.slice(attribute.from, attribute.to),
+            id,
+            mine,
+          );
+          const given = twin
+            ? authorClasses(
+                regenerated.code.slice(twin.from, twin.to),
+                id,
+                theirs,
+              )
+            : "";
+          if (written !== given)
+            reject(attribute.from, "notInCode", attribute.name);
+          continue;
+        }
         // (A handler read into rules, or as the baseline wrote it: its rules are the meaning.)
         if (
           twin &&
@@ -2522,7 +3466,15 @@ function compareRegenerated(
         for (const twin of other.attributes)
           if (
             twin.name !== "ref" &&
-            !element.attributes.some((item) => item.name === twin.name)
+            !element.attributes.some((item) => item.name === twin.name) &&
+            !(
+              twin.name === "className" &&
+              !authorClasses(
+                regenerated.code.slice(twin.from, twin.to),
+                planner.elementIds().get(element),
+                theirs,
+              )
+            )
           )
             reject(element.from, "notInCode", twin.name);
       if (
@@ -2536,7 +3488,19 @@ function compareRegenerated(
         codeViewNormalized(other.rows?.code ?? "")
       )
         reject(element.rows?.from ?? element.from, "notInCode");
-      compare(element.children, other.children, element.from);
+      // (A new element written without children may gain its palette defaults' — ADR-296 Phase 5
+      // slot contents.)
+      // (A new collection keeps its template's empty state — 사용자 결정 2026-10-23 — when the code
+      // writes none: 판독 Phase 5 MEDIUM-3.)
+      const gained =
+        fresh &&
+        !element.children.some((child) => child.type === "IllustratedMessage")
+          ? other.children.filter(
+              (child) => child.type !== "IllustratedMessage",
+            )
+          : other.children;
+      if (!(fresh && !element.children.length))
+        compare(element.children, gained, element.from);
     });
   };
   compare(

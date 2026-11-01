@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-296 Implemented — 코드 보기 = 프로젝트 파일 트리: 문서 전체를 레퍼런스 모양의 파일로] - 2026-11-01
+
+### Changed
+
+- **ADR-296 완료**: 코드 보기가 page 한 파일에서 프로젝트 전체 파일로 넓어졌다 — `App.tsx` (경로 · layout · toast · 테마) · `pages/<P>.tsx` · `.css` · `theme.css` · `data/` · `api/` · `state/project.ts` · `components/<Name>.tsx` · `.css` · `index.html` · `site.config.ts`. 어느 파일을 고쳐도 패널과 같은 명령으로 반영되고, 여러 파일을 한 번에 Apply 하면 Undo 1 번에 되돌아간다. 한 instance 의 `overrides` 편집은 원본 · 다른 instance 로 번지지 않는다.
+  - 검증 (빈 프로젝트, 코드 패널만): 8 파일 한 Apply (data · 그 data 를 쓰는 목록 · api · state · 컴포넌트 원본 + instance 2 · 반응형 CSS · `/about` 경로 · 사이트 제목) → Preview 탭 제목 · 목록 · 빨간 글자 24px · About 이동 · 한 instance 만 원본 규칙을 끈 둘째 Apply 뒤 그 버튼만 토스트 없음 · Undo 1 번씩 · 새로고침 유지 · 콘솔 오류 0. 번들 Builder +216 B gz (ADR 전체) · Preview 0.
+  - 이 ADR 밖: 노드 dark 강제는 Canvas · Preview 가 노드 `themeOverride` 를 읽지 않아 화면에 나타나지 않는다 (기존). hover 스타일은 노드 상태를 쓰는 명령이 없어 CSS 에서 읽기 전용.
+  - 문서: `docs/adr/completed/296-code-view-project-file-tree-projection.md`
+
 ## [Toast = 앱의 토스트 모양 하나 (RAC `MyToastRegion`) — 페이지 요소가 아니다] - 2026-11-01
 
 ### Changed
@@ -25,6 +34,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **code view 도 같은 구조 (사용자 「code 에서도 동일하게 나타내야겠지」)** — RAC 레퍼런스 `Toast.tsx` 모양으로: 파일 트리에 `src/Toast.tsx` (App 다음) — `export const queue = new ToastQueue<{title; variant?; actionLabel?; onAction?; shouldCloseOnAction?}>()` 와 `MyToastRegion({placement})` = `<ToastRegion queue={queue} data-placement={placement}>{({toast}) => …}</ToastRegion>`; 모양을 골랐으면 `import ToastTest from './components/ToastTest'` + `<ToastTest toast={toast} />`, 아니면 RAC `<Toast toast={toast} data-variant>` 에 `<ToastContent><Text slot="title">` · action Button · `<Button slot="close">`. `App.tsx` 는 `import {MyToastRegion} from './Toast'` + `<MyToastRegion [placement] />` (S2 `<ToastContainer>` 대신), 페이지는 `import {queue} from '../Toast'` + `queue.add({...})` (페이지마다 있던 `const toasts = new UNSTABLE_ToastQueue<…>()` 제거). Toast.tsx 의 읽기 단위는 모양 하나 — `<ShapeB toast={toast} />` 로 고치면 그 컴포넌트가 모양이 되고 (`planCodeViewToast`), 기본 몸체로 돌리면 Library Toast; 큐 타입 · 기본 몸체는 파생이라 바꾸면 거절. 사용자 컴포넌트 파일 (`src/components/<Name>.tsx`) 은 ADR-296 Phase 4 · 5 대상이라 아직 트리에 없다.
   - 위치 (code view): `codeView/files/toast.ts` (새 — `generateToastFile` · `codeViewToastShape`) · `files/tree.ts` (`toast` kind) · `files/app.ts` · `files/names.ts` · `inverse/app.ts` · `inverse/parse.ts` (`toasts` 문 제거) · `generate.ts` (`queue.add` · `../Toast` import) · `vocabulary.ts` (Toast.tsx 행 · App 행) · `types.ts` (`symbols.components`) · `codeViewApp.ts` (`planCodeViewToast` · `compareToastFile`) · `codeViewApply.ts` · `codeViewEdit.ts` (`queue.add` 정규식).
   - 검증 (code view): `adr296Vocabulary` 45 (Toast.tsx 행의 FILE_CASE — ShapeA → ShapeB 로 고치면 모양이 바뀜 · 원복 RED 1/1 · golden fixture 재생성) · `adr296Apply` · `adr296Data` (트리에 Toast.tsx) · `s2CodeViewToast` · shared `codeView` 311 · type-check · live 5175 (Code 패널 Files 에 `src/Toast.tsx` — 열면 `import ToastTest from './components/ToastTest'` · `queue` · `<ToastTest toast={toast} />`, App.tsx 에 `import {MyToastRegion} from './Toast'` · `<MyToastRegion />`, Home.tsx 에 `import {queue} from '../Toast'` · `queue.add({title: 'Deleted', variant: 'negative', …})`; 확인용 컴포넌트 · 노드는 삭제, 콘솔 오류 0).
+
+## [ADR-296 Phase 5 · 6 — 코드 보기 컴포넌트 파일 · instance overrides · 사이트 파일] - 2026-11-01
+
+### Added
+
+- **컴포넌트 파일 (ADR-296 Phase 5 — 사용자 결정 3)** — 코드 보기 파일 트리에 `src/components/<Name>.tsx` · `<Name>.css`. 원본 template 루트가 JSX 루트이고 `type <Name>Props` · variable property (`let {team} = props`) · 컴포넌트 event (`props.on<Name>?.(v)` — ADR-294) 가 나온다. 이 파일 편집은 원본 명령 (모든 instance 에 반영), 함수 이름 변경은 컴포넌트 이름 변경.
+  - page 의 instance 는 컴포넌트 이름 (`<Picker …/>` — RAC · Library 이름과 겹치면 `Card2`) 으로 쓰고, instance 몫은 `overrides={{'<안쪽 경로>': {prop, hidden, on<When>: rules({inherited: {…: 'off' | () => {…}}, own: [(value) => {…}]})}}}` — instance 명령만이라 한 instance 의 편집이 원본 · 다른 instance 로 번지지 않는다. 안쪽 자리 스타일은 page CSS 경로 선택자 (`.picker .save-button`).
+  - 그동안 코드에 없던 slot 내용 (팔레트로 놓은 Card · ListBox · TagGroup 의 내용) 이 instance 의 JSX children · 안쪽 자리는 `<Slot name="…">` 로 나오고 고칠 수 있다. 노드의 slot · region · placeholder · showWhen 선언은 `composition={{…}}`.
+  - Library 원본은 `node_modules/@composition/library/<Name>.tsx` 읽기 전용 (편집 시 「잠금 해제하고 편집」 = Library unlock 한 명령).
+  - 패널 Files 의 「새 파일」 로 `src/components/<Name>.tsx` 를 만들고 page 의 `<Name/>` 과 한 Apply (history 1).
+  - 위치: `packages/shared/src/codeView/files/{overrides,library}.ts` · `inverse/overrides.ts` · `generate.ts` · `apps/builder/src/builder/catalogRuntime/codeViewEdit.ts` · `codeViewApply.ts` · `panels/codeView/CatalogCodeViewPanel.tsx`
+- **사이트 파일 (ADR-296 Phase 6 — 사용자 결정 2, ADR-286 Decision 8 의 해당 문장 Superseded)** — `index.html` (lang · title · description · 아이콘 · 앱 이름 · theme color · og:image) · `site.config.ts` (`siteConfig({search, redirects, access})` — 보호 page 는 이름, 비밀 없음) = Site 패널의 `setSiteSettings` (바뀐 설정만). 정해진 모양 밖의 줄은 거절. 위치: `packages/shared/src/codeView/files/site.ts` · `apps/builder/src/builder/catalogRuntime/codeViewSite.ts`
+
+### Fixed
+
+- **Phase 5 판독 MEDIUM 3 (ADR-296)** — event 값을 읽는 instance 규칙 함수가 매개변수 없이 나와 같은 `overrides` 편집이 거절되던 것 (이제 `(value) => {…}`) · 컴포넌트 파일의 class 이름과 `overrides` 키가 slot 내용이 있을 때 번호가 달라지던 것 (이름표 하나) · ListBox 항목 등 slot 내용이 든 새 컴포넌트 파일이 늘 거절되던 것.
+  - 수리 검증에서 더: 규칙만 있는 slot 채움 자리의 `overrides` 키가 역으로 풀리지 않던 것 · endpoint 를 부르는 instance 규칙 함수에 `async` 가 없던 것 · 중첩 instance 의 컴포넌트 event 자리 키가 따옴표 없이 (`property:x:`) 나오던 것.
+  - **Why**: 생성기 · 역문법이 같은 이름표 · 같은 slot 채움 경로를 각자 따로 갖고 있었다.
+
+### Tests
+
+- `adr296Component.test.tsx` 19 (G4 — A · B 격리 · 중첩 두 자리 · 원본 편집 = 모든 instance · Library 잠김 / 해제 · 새 컴포넌트 · 판독 3 · 수리 검증 3 + 가설 반증 1, 원복 RED) · `adr296Site.test.tsx` 3 · 어휘표 read 실증 행 추가.
+
+## [ADR-296 Phase 4 — 코드 보기 스타일 파일 (page CSS · theme.css)] - 2026-11-01
+
+### Added
+
+- **`src/pages/<Page>.css`**: page 의 스타일이 CSS 파일로 보이고 고쳐진다 — 노드 하나 = class 하나 (노드 이름 kebab-case, 없으면 type, 같으면 `-2`), 선언 하나 = 문서 field 하나 (Styles 패널의 CSS 키 · 패널에 없는 field 는 `--icon-size` 같은 사용자 속성), `@media (max-width: 1279px | 767px)` = tablet · mobile, `background` = fill 레이어, `color-scheme` · `--theme-tint` = 노드 강제 테마, `display: none` = 숨김. 고친 값은 Styles · Fill 패널과 같은 명령으로 들어간다. page JSX 에는 스타일 있는 노드의 `className` 과 `import './<Page>.css'` 가 나온다.
+- **`src/theme.css`**: 테마마다 `[data-theme="<name>"] { color-scheme; --theme-tint; --theme-neutral; --theme-radius; --<token> }` — 테마 추가 · 이름 · 프리셋 · 토큰 추가 · 변경 · 삭제가 Themes 패널 명령으로.
+- **읽기 전용 `node_modules/@composition/catalog/<Type>.css`**: page 가 쓰는 컴포넌트의 생성 시트 (열 때 불러옴, 편집 불가).
+- token 은 생성 catalog CSS 와 같은 변수 이름 (`var(--catalog-token-radius-md)`) — 터치 기기 값은 resolver 가 그대로 고른다 (ADR-295).
+
+### Fixed
+
+- (판독) 스타일 없는 노드의 작성자 class 가 노드 class 와 같으면 다른 곳을 고친 Apply 에서 지워지던 것 · 한 CSS 속성에 field 둘이 겹치면 앞쪽 편집이 무시되던 것 · `line-height: 24px` 거절 · Design 패널 전용 fill 블록에 `background` 를 넣으면 레이어가 바뀌던 것 · 숨긴 flex frame 의 `display` 를 지우면 거절되던 것.
 
 ## [ADR-296 Phase 0 ~ 3 — 코드 보기 = 프로젝트 파일 트리 (App · pages · data · api · state)] - 2026-10-31
 

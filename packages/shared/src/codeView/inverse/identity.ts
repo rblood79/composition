@@ -134,10 +134,20 @@ export function codeViewMatchElements(
   // The edited elements, pre-order, with their parents.
   const elements: CodeViewElement[] = [];
   const parentOf = new Map<CodeViewElement, CodeViewElement | undefined>();
+  // (ADR-296 Phase 5 — a `<Slot name>` is an instance's position, not a document unit: its
+  // children are the instance's.)
+  const kids = (element: CodeViewElement): CodeViewElement[] =>
+    element.children.flatMap((child) =>
+      child.type === "Slot" ? kids(child) : [child],
+    );
   const visit = (element: CodeViewElement, parent?: CodeViewElement) => {
+    if (element.type === "Slot") {
+      kids(element).forEach((child) => visit(child, parent));
+      return;
+    }
     elements.push(element);
     parentOf.set(element, parent);
-    element.children.forEach((child) => visit(child, element));
+    kids(element).forEach((child) => visit(child, element));
   };
   roots.forEach((root) => visit(root));
   const childrenOf = (id: string) =>
@@ -157,9 +167,9 @@ export function codeViewMatchElements(
   /** An equal text: the subtrees pair element by element (same text = same shape). */
   const pairTree = (element: CodeViewElement, unit: CodeViewIdentityUnit) => {
     pair(element, unit);
-    const kids = childrenOf(unit.id);
-    element.children.forEach((child, index) => {
-      const kid = kids[index];
+    const units = childrenOf(unit.id);
+    kids(element).forEach((child, index) => {
+      const kid = units[index];
       if (kid && !used.has(kid.id)) pairTree(child, kid);
     });
   };
@@ -171,7 +181,8 @@ export function codeViewMatchElements(
     if (unit.outcome.kind !== "kept") continue;
     const { from } = unit.outcome;
     const element = elements.find(
-      (item) => item.from === from && !matched.has(item) && item.type === unit.type,
+      (item) =>
+        item.from === from && !matched.has(item) && item.type === unit.type,
     );
     if (element) pair(element, unit);
   }

@@ -20,6 +20,21 @@ import type {
 } from "../types";
 import { generateAppFile } from "./app";
 import { generateToastFile } from "./toast";
+import { definitionTypeName } from "../../catalog/commands/context";
+import { codeViewPageNodes, generatePageStyleFile } from "./styles";
+import { CODE_VIEW_THEME_PATH, generateThemeFile } from "./theme";
+import {
+  CODE_VIEW_HTML_PATH,
+  CODE_VIEW_SITE_CONFIG_PATH,
+  generateHtmlFile,
+  generateSiteConfigFile,
+} from "./site";
+import {
+  CODE_VIEW_LIBRARY_DIR,
+  codeViewLibraryDefaults,
+  codeViewLibraryOrigins,
+  codeViewLibraryReader,
+} from "./library";
 import { codeViewProjectNames, pascal } from "./names";
 import {
   codeName,
@@ -35,7 +50,23 @@ export type CodeViewFileKind =
   | "page"
   | "collection"
   | "endpoint"
-  | "state";
+  | "state"
+  /** ADR-296 Phase 4 — `src/pages/<Page>.css` (the page's node styles). */
+  | "pageStyle"
+  /** ADR-296 Phase 5 — `src/components/<Name>.tsx` (a user component's origin — origin commands). */
+  | "component"
+  /** ADR-296 Phase 5 — `src/components/<Name>.css` (its origin template's node styles). */
+  | "componentStyle"
+  /** ADR-296 Phase 5 — a locked Library origin (`node_modules/@composition/library/<Name>.tsx`, read only). */
+  | "library"
+  /** ADR-296 Phase 6 (결정 2) — `index.html` (the site's head settings). */
+  | "html"
+  /** ADR-296 Phase 6 (결정 2) — `site.config.ts` (search · redirects · access). */
+  | "siteConfig"
+  /** ADR-296 Phase 4 — `src/theme.css` (themes · tokens). */
+  | "theme"
+  /** ADR-296 Phase 4 — a component type's catalog rule CSS (read only — the generated sheet). */
+  | "catalogStyle";
 
 export interface CodeViewFileEntry {
   readonly path: string;
@@ -46,18 +77,55 @@ export interface CodeViewFileEntry {
   readonly readOnly?: boolean;
 }
 
+/** The read-only catalog sheets' folder (the component types' generated CSS). */
+export const CODE_VIEW_CATALOG_STYLE_DIR = "node_modules/@composition/catalog";
+
 /** The files of the project, in the tree's order (App first, then pages). */
 export function codeViewFileTree(
   reader: Pick<CatalogReader, "projectId" | "getEntry">,
+  options: {
+    /** The component types whose catalog sheet exists (absent = none listed). */
+    readonly catalogStyles?: ReadonlySet<string>;
+  } = {},
 ): CodeViewFileEntry[] {
   const project = reader.getEntry(reader.projectId) as ProjectEntry;
   const names = codeViewProjectNames(reader);
   const files: CodeViewFileEntry[] = [
+    { path: CODE_VIEW_HTML_PATH, kind: "html" },
+    { path: CODE_VIEW_SITE_CONFIG_PATH, kind: "siteConfig" },
     { path: "src/App.tsx", kind: "app" },
     { path: "src/Toast.tsx", kind: "toast" },
   ];
-  for (const [pageId, name] of names.pages)
+  files.push({ path: CODE_VIEW_THEME_PATH, kind: "theme" });
+  // ADR-296 Phase 5 (결정 3) — the Library origins the pages use: locked = read only; unlocked =
+  // a component file over its copy.
+  const origins = codeViewLibraryOrigins(reader as never);
+  for (const origin of origins.filter((item) => !item.locked))
+    files.push({
+      path: `src/components/${origin.name}.tsx`,
+      kind: "component",
+      id: origin.id,
+    });
+  for (const [definitionId, name] of names.components) {
+    files.push({
+      path: `src/components/${name}.tsx`,
+      kind: "component",
+      id: definitionId,
+    });
+    files.push({
+      path: `src/components/${name}.css`,
+      kind: "componentStyle",
+      id: definitionId,
+    });
+  }
+  for (const [pageId, name] of names.pages) {
     files.push({ path: `src/pages/${name}.tsx`, kind: "page", id: pageId });
+    files.push({
+      path: `src/pages/${name}.css`,
+      kind: "pageStyle",
+      id: pageId,
+    });
+  }
   // ADR-296 Phase 3 — the data definitions (their names — the code imports them by these).
   const taken = new Set<string>();
   const unique = (base: string) => {
@@ -86,6 +154,33 @@ export function codeViewFileTree(
       });
   }
   files.push({ path: "src/state/project.ts", kind: "state" });
+  for (const origin of origins.filter((item) => item.locked))
+    files.push({
+      path: `${CODE_VIEW_LIBRARY_DIR}/${origin.name}.tsx`,
+      kind: "library",
+      id: origin.id,
+      readOnly: true,
+    });
+  // ADR-296 Phase 4 — the catalog sheets of the component types the pages use (read only).
+  if (options.catalogStyles?.size) {
+    const types = new Set<string>();
+    for (const pageId of names.pages.keys())
+      for (const node of codeViewPageNodes(reader, pageId)) {
+        try {
+          const type = definitionTypeName(reader as never, node.definitionId);
+          if (options.catalogStyles.has(type)) types.add(type);
+        } catch {
+          // (a dangling definition has no sheet)
+        }
+      }
+    for (const type of [...types].sort())
+      files.push({
+        path: `${CODE_VIEW_CATALOG_STYLE_DIR}/${type}.css`,
+        kind: "catalogStyle",
+        id: type,
+        readOnly: true,
+      });
+  }
   return files;
 }
 
@@ -118,6 +213,40 @@ export function generateCodeViewFile(
       return generateEndpointFile({ reader: reader as never, id: file.id! });
     case "state":
       return generateProjectStateFile({ reader: reader as never });
+    case "html":
+      return generateHtmlFile({ reader });
+    case "siteConfig":
+      return generateSiteConfigFile({ reader });
+    case "pageStyle":
+    case "componentStyle":
+      return generatePageStyleFile({ reader, pageId: file.id! });
+    case "component":
+    case "library": {
+      const result = generateCodeView({
+        reader: file.id!.startsWith("lib:")
+          ? codeViewLibraryReader(reader as never)
+          : reader,
+        pageId: "" as EntryId<"page">,
+        componentId: file.id!,
+        collections: input.collections,
+        ...(input.endpoints ? { endpoints: input.endpoints } : {}),
+      });
+      // (A Library origin's project defaults — the Components panel's — shown, read only.)
+      const defaults = codeViewLibraryDefaults(reader as never, file.id!);
+      return defaults
+        ? { ...result, code: `${result.code}\n${defaults}\n` }
+        : result;
+    }
+    case "theme":
+      return generateThemeFile({ reader });
+    case "catalogStyle":
+      // (Its text is the generated sheet — the builder reads it; the code view does not generate it.)
+      return {
+        code: "",
+        slots: [],
+        anchors: [],
+        symbols: { variables: {}, fields: {} },
+      };
     default:
       throw new Error(`CODE_VIEW_FILE_KIND: ${file.kind as string}`);
   }

@@ -214,29 +214,26 @@ describe("ADR-296 Phase 0 — RED (E1 ~ E13 · the silent omissions)", () => {
     ).toEqual([[2, "onPress"]]);
   });
 
-  it.fails(
-    "E6 (5) — an inherited rule turned off at an instance shows in the page code",
-    async () => {
-      const { h } = await setup("E6", (h) => {
-        const parts = picker(h);
-        const [ruleId] = h.rules(parts.button, [
-          {
-            trigger: "onPress",
-            actions: [{ opcode: "toast", message: "origin" }],
-          },
-        ]);
-        h.run(
-          catalogInheritedRuleEnabledCommand(
-            { ownerId: parts.J, address: parts.address },
-            ruleId as EntryId<"interaction">,
-            false,
-          ),
-        );
-        return parts;
-      });
-      expect(h.code()).toMatch(/'off'/);
-    },
-  );
+  it("E6 (5) — an inherited rule turned off at an instance shows in the page code (Phase 5 — GREEN)", async () => {
+    const { h } = await setup("E6", (h) => {
+      const parts = picker(h);
+      const [ruleId] = h.rules(parts.button, [
+        {
+          trigger: "onPress",
+          actions: [{ opcode: "toast", message: "origin" }],
+        },
+      ]);
+      h.run(
+        catalogInheritedRuleEnabledCommand(
+          { ownerId: parts.J, address: parts.address },
+          ruleId as EntryId<"interaction">,
+          false,
+        ),
+      );
+      return parts;
+    });
+    expect(h.code()).toMatch(/'off'/);
+  });
 
   it("E7 (2) — the page body's own props are the page element's (not flattened away)", async () => {
     const { h } = await setup("E7", (h) => {
@@ -507,13 +504,10 @@ describe("ADR-296 Phase 0 — RED (E1 ~ E13 · the silent omissions)", () => {
     });
   });
 
-  it.fails(
-    "omission (5) — an instance is its component's name, not its root's type",
-    async () => {
-      const { h } = await setup("instance", (h) => picker(h));
-      expect(h.code()).toMatch(/<Picker\b/);
-    },
-  );
+  it("omission (5) — an instance is its component's name, not its root's type (Phase 5 — GREEN)", async () => {
+    const { h } = await setup("instance", (h) => picker(h));
+    expect(h.code()).toMatch(/<Picker\b/);
+  });
 
   it("G3 oracle entry point — the root's resolved record per breakpoint (no new export)", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});

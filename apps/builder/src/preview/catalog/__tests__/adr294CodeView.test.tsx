@@ -183,9 +183,11 @@ describe("ADR-294 G3 — the instance's event and variable property in the page 
   it("writing onSelect makes the property:<key> rule; a two-Do handler reads back; removing it deletes the rule", async () => {
     const h = await open();
     const code = h.code();
-    const tag = /<ListBox\b/;
+    const tag = /<UserPicker\b/; // (ADR-296 Phase 5 — the instance is its component)
     expect(code).toMatch(tag);
-    const first = h.apply(code.replace(tag, "<ListBox onSelect={setPicked}"));
+    const first = h.apply(
+      code.replace(tag, "<UserPicker onSelect={setPicked}"),
+    );
     expect(first.rejected).toEqual([]);
     expect(h.rulesOf(h.J).map((rule) => rule.trigger)).toEqual([
       "property:propselect",
@@ -230,7 +232,7 @@ describe("ADR-294 G3 — the instance's event and variable property in the page 
     const h = await open();
     const code = h.code();
     const literal = h.apply(
-      code.replace(/<ListBox\b/, '<ListBox role="admin"'),
+      code.replace(/<UserPicker\b/, '<UserPicker role="admin"'),
     );
     expect(literal.rejected).toEqual([]);
     expect((h.graph().getEntry(h.J) as NodeEntry).props.proprole).toEqual({

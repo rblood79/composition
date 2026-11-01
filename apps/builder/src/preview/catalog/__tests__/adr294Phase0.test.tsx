@@ -104,96 +104,88 @@ describe("ADR-294 Phase 0 — RED 1 (control): an origin rule's Set state offers
 
 describe("ADR-294 Phase 0 — RED 2: an event property · emit · property: rule are refused", () => {
   // (Phase 1 fixed it — now `it`.)
-  it(
-    "the document takes an event property, an emit Do and a property:select rule",
-    async () => {
-      const h = await openPicker();
-      h.run(
-        addComponentOutputProperty({
-          definitionId: h.definitionId,
-          key: "select",
-          name: "select",
-          kind: "event",
-        }),
-      );
-      h.run(
-        addRecord({
-          entry: {
-            kind: "interaction",
-            id: "project:interaction:emit" as EntryId<"interaction">,
-            ownerId: h.origin,
-            trigger: "onPress",
-            actions: [
-              { opcode: "emit", propertyKey: "select", value: "picked!" },
-            ],
-          } as unknown as InteractionEntry,
-        }),
-      );
-      h.run(
-        addRecord({
-          entry: {
-            kind: "interaction",
-            id: "project:interaction:receive" as EntryId<"interaction">,
-            ownerId: h.instance as NodeId,
-            trigger: "property:select",
-            actions: [
-              {
-                opcode: "setState",
-                variableId: h.pageVariable.id,
-                op: "set",
-                value: "!event.value",
-              },
-            ],
-          } as InteractionEntry,
-        }),
-      );
-      expect(h.graph().getEntry("project:interaction:receive")).toBeDefined();
-      h.view.unmount();
-    },
-  );
+  it("the document takes an event property, an emit Do and a property:select rule", async () => {
+    const h = await openPicker();
+    h.run(
+      addComponentOutputProperty({
+        definitionId: h.definitionId,
+        key: "select",
+        name: "select",
+        kind: "event",
+      }),
+    );
+    h.run(
+      addRecord({
+        entry: {
+          kind: "interaction",
+          id: "project:interaction:emit" as EntryId<"interaction">,
+          ownerId: h.origin,
+          trigger: "onPress",
+          actions: [
+            { opcode: "emit", propertyKey: "select", value: "picked!" },
+          ],
+        } as unknown as InteractionEntry,
+      }),
+    );
+    h.run(
+      addRecord({
+        entry: {
+          kind: "interaction",
+          id: "project:interaction:receive" as EntryId<"interaction">,
+          ownerId: h.instance as NodeId,
+          trigger: "property:select",
+          actions: [
+            {
+              opcode: "setState",
+              variableId: h.pageVariable.id,
+              op: "set",
+              value: "!event.value",
+            },
+          ],
+        } as InteractionEntry,
+      }),
+    );
+    expect(h.graph().getEntry("project:interaction:receive")).toBeDefined();
+    h.view.unmount();
+  });
 });
 
 describe("ADR-294 Phase 0 — RED 3: the code view refuses an instance's on<Name> handler", () => {
   // (Phase 3 fixed it — now `it`.)
-  it(
-    "onSelect on the Picker instance becomes a property:select rule",
-    async () => {
-      const h = await openPicker();
-      h.run(
-        addComponentOutputProperty({
-          definitionId: h.definitionId,
-          key: "select",
-          name: "select",
-          kind: "event",
-        }),
-      );
-      const data = { collections: [], endpoints: [] };
-      const session = catalogCodeViewSession(h.graph(), HOME, data)!;
-      const code = session.baseline.code;
-      const edited = code.replace(
-        /<Button\b/,
-        "<Button onSelect={setPicked}",
-      );
-      expect(edited).not.toBe(code);
-      const result = catalogCodeViewApply(
-        h.workspace,
-        session,
-        edited,
-        [{ fromA: 0, toA: code.length, insert: edited }],
-        data,
-      );
-      expect(result.rejected).toEqual([]);
-      const project = h.graph().getEntry(h.graph().projectId);
-      const rules =
-        project?.kind === "project"
-          ? project.interactionIds
-              .map((id) => h.graph().getEntry(id) as InteractionEntry)
-              .filter((rule) => rule.ownerId === h.instance)
-          : [];
-      expect(rules.map((rule) => rule.trigger)).toContain("property:select");
-      h.view.unmount();
-    },
-  );
+  it("onSelect on the Picker instance becomes a property:select rule", async () => {
+    const h = await openPicker();
+    h.run(
+      addComponentOutputProperty({
+        definitionId: h.definitionId,
+        key: "select",
+        name: "select",
+        kind: "event",
+      }),
+    );
+    const data = { collections: [], endpoints: [] };
+    const session = catalogCodeViewSession(h.graph(), HOME, data)!;
+    const code = session.baseline.code;
+    // (ADR-296 Phase 5 — the instance is written by its component's name.)
+    const edited = code.replace(/<Picker\b/, "<Picker onSelect={setPicked}");
+    expect(edited).not.toBe(code);
+    const result = catalogCodeViewApply(
+      h.workspace,
+      session,
+      edited,
+      [{ fromA: 0, toA: code.length, insert: edited }],
+      data,
+    );
+    expect(result.rejected).toEqual([]);
+    const project = h.graph().getEntry(h.graph().projectId);
+    const rules =
+      project?.kind === "project"
+        ? project.interactionIds
+            .map((id) => h.graph().getEntry(id) as InteractionEntry)
+            .filter((rule) => rule.ownerId === h.instance)
+        : [];
+    expect(rules.map((rule) => rule.trigger)).toContain("property:select");
+    h.view.unmount();
+  });
 });
 
 /** The Picker with a variable property `role` (its input variable owned by the origin root). */
@@ -263,37 +255,34 @@ describe("ADR-294 Phase 0 — RED 4b: a view inside the origin does not read the
 
 describe("ADR-294 Phase 0 — RED 4c: the runtime state has no derived variable", () => {
   // (Phase 4 fixed it — now `it`.)
-  it(
-    "a definition's derive is what read returns · a write is refused",
-    () => {
-      const state = createRuntimeState({ projectId: "p", storage: null });
-      state.setDefinitions({
-        projectVariables: [],
-        variables: [
-          {
-            def: {
-              id: "role",
-              name: "role",
-              type: "string",
-              defaultValue: "guest",
-            },
-            owner: { kind: "element", elementId: "root" },
-            derive: () => "admin",
-          } as never,
-        ],
-      });
-      const scope = { kind: "element", instanceKey: "I1/root" } as const;
-      expect(state.read("role", scope)).toBe("admin");
-      expect(
-        state.write({
-          variableId: "role",
-          scope,
-          op: "set",
-          value: "x",
-        } as never),
-      ).toMatchObject({ ok: false, reason: "input-read-only" });
-    },
-  );
+  it("a definition's derive is what read returns · a write is refused", () => {
+    const state = createRuntimeState({ projectId: "p", storage: null });
+    state.setDefinitions({
+      projectVariables: [],
+      variables: [
+        {
+          def: {
+            id: "role",
+            name: "role",
+            type: "string",
+            defaultValue: "guest",
+          },
+          owner: { kind: "element", elementId: "root" },
+          derive: () => "admin",
+        } as never,
+      ],
+    });
+    const scope = { kind: "element", instanceKey: "I1/root" } as const;
+    expect(state.read("role", scope)).toBe("admin");
+    expect(
+      state.write({
+        variableId: "role",
+        scope,
+        op: "set",
+        value: "x",
+      } as never),
+    ).toMatchObject({ ok: false, reason: "input-read-only" });
+  });
 });
 
 /**

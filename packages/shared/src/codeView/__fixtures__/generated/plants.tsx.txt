@@ -3,7 +3,8 @@
 
 import {useState} from 'react';
 import {useCollator, useFilter} from 'react-aria';
-import {Button, Checkbox, GridList, GridListItem, Row, SearchField, Table, TagGroup, Text, type Selection, type SortDescriptor} from 'react-aria-components';
+import {Button, Checkbox, GridList, GridListItem, IllustratedMessage, Row, SearchField, Table, Tag, TagGroup, Text, type Selection, type SortDescriptor} from 'react-aria-components';
+import {Slot} from '@composition/code';
 import plants from './data/plants';
 
 export default function Home() {
@@ -30,9 +31,51 @@ export default function Home() {
     <>
       <SearchField label="common_name" value={search} onChange={setSearch} />
       <Checkbox isSelected={favorite} onChange={setFavorite}>isFavorite</Checkbox>
-      <TagGroup label="cycle" selectedKeys={cycles} onSelectionChange={setCycles} />
-      <TagGroup label="sunlight" selectedKeys={sunlight} onSelectionChange={setSunlight} />
-      <TagGroup label="watering" selectedKeys={watering} onSelectionChange={setWatering} />
+      <TagGroup label="cycle" selectedKeys={cycles} onSelectionChange={setCycles}>
+        <Slot name="tag-list">
+          <Tag id="Perennial" overrides={{
+            'icon': {hidden: true},
+            'text': {children: 'Perennial'},
+          }} />
+          <Tag id="Annual" overrides={{
+            'icon': {hidden: true},
+            'text': {children: 'Annual'},
+          }} />
+          <IllustratedMessage overrides={{
+            'illustration': {iconName: 'folder-open'},
+          }} />
+        </Slot>
+      </TagGroup>
+      <TagGroup label="sunlight" selectedKeys={sunlight} onSelectionChange={setSunlight}>
+        <Slot name="tag-list">
+          <Tag id="full sun" overrides={{
+            'icon': {hidden: true},
+            'text': {children: 'full sun'},
+          }} />
+          <Tag id="part shade" overrides={{
+            'icon': {hidden: true},
+            'text': {children: 'part shade'},
+          }} />
+          <IllustratedMessage overrides={{
+            'illustration': {iconName: 'folder-open'},
+          }} />
+        </Slot>
+      </TagGroup>
+      <TagGroup label="watering" selectedKeys={watering} onSelectionChange={setWatering}>
+        <Slot name="tag-list">
+          <Tag id="Frequent" overrides={{
+            'icon': {hidden: true},
+            'text': {children: 'Frequent'},
+          }} />
+          <Tag id="Average" overrides={{
+            'icon': {hidden: true},
+            'text': {children: 'Average'},
+          }} />
+          <IllustratedMessage overrides={{
+            'illustration': {iconName: 'folder-open'},
+          }} />
+        </Slot>
+      </TagGroup>
       <Text>{`${itemsApplied.find(row => row.id === 'row-1')?.applied ?? ''}`}</Text>
       <Table sortDescriptor={sortDescriptor} onSortChange={setSortDescriptor} items={items}>
         {item => <Row id={item.id} textValue={String(item.id)}>{item.id}</Row>}

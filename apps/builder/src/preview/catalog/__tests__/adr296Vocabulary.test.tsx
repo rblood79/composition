@@ -4,6 +4,8 @@ import {
   addRecord,
   createComponent,
   createPage,
+  createTheme,
+  setFields,
   setToastShape,
   setWholeField,
 } from "../../../../../../packages/shared/src/catalog/commands";
@@ -12,6 +14,7 @@ import {
   setEndpoint,
   setProjectVariable,
 } from "../../../../../../packages/shared/src/catalog/commands/data";
+import { catalogInheritedRuleEnabledCommand } from "../../../builder/catalogRuntime/interactions";
 import {
   catalogCodeViewFileBaseline,
   catalogCodeViewProjectApply,
@@ -141,12 +144,64 @@ const rule = (
   trigger: string,
   list: InteractionAction[],
 ) => h.rules(owner, [{ trigger, actions: list }]);
+/** ADR-296 Phase 5 — `Picker` (a frame + "save-button"), placed once: its parts. */
+function pickerOf(h: Adr296Harness) {
+  const frame = h.add("frame", {}, BODY, "picker");
+  const button = h.add("Button", { label: "Save" }, frame, "save-button");
+  h.run(
+    createComponent({ id: frame, name: "Picker", newId: h.workspace.newId }),
+  );
+  const project = h.graph().getEntry(h.graph().projectId) as unknown as {
+    definitionIds: string[];
+  };
+  const definitionId = project.definitionIds.at(-1) as EntryId<"definition">;
+  const J = h.node(BODY).children[0]! as NodeId;
+  return { frame, button, definitionId, J };
+}
 const capabilityOf = (type: string, prop: string) =>
   Object.entries(resolveCapabilities(type)).find(
     ([, def]) => def.prop === prop && def.value === "!param" && !def.op,
   )?.[0];
 
 const CASES: Record<string, Case> = {
+  "<Name …/> · overrides={{'<path>': {prop, hidden, onX: rules({inherited, own})}}}":
+    {
+      build: (h) => {
+        const { frame, button, J } = pickerOf(h);
+        const [ruleId] = h.rules(button, [
+          {
+            trigger: "onPress",
+            actions: [{ opcode: "toast", message: "one" }],
+          },
+        ]);
+        h.run(
+          catalogInheritedRuleEnabledCommand(
+            {
+              ownerId: J,
+              address: { instances: [J], templatePath: [frame, button] },
+            } as never,
+            ruleId as never,
+            false,
+          ),
+        );
+        return { J };
+      },
+      shows:
+        /<Picker overrides=\{\{\n\s+'save-button': \{onPress: rules\(\{inherited: \{onSaveButtonPress: 'off'\}\}\)\},/,
+      edit: (code) =>
+        code.replace(
+          "'save-button': {onPress",
+          "'save-button': {hidden: true, onPress",
+        ),
+      check: (h, made) =>
+        expect(
+          (
+            h.node(made.J as NodeId).descendantOverrides[0] as {
+              enabled?: boolean;
+            }
+          ).enabled,
+        ).toBe(false),
+    },
   "import {…} from '…'": {
     build: (h) => void h.add("Button"),
     shows: /import \{Button\} from 'react-aria-components';/,
@@ -960,10 +1015,7 @@ const FILE_CASES: Record<
       path: "src/App.tsx",
       build: () => undefined,
       edit: (code) =>
-        code.replace(
-          "<MyToastRegion />",
-          '<MyToastRegion placement="top" />',
-        ),
+        code.replace("<MyToastRegion />", '<MyToastRegion placement="top" />'),
       check: (h) =>
         expect(
           (
@@ -981,8 +1033,12 @@ const FILE_CASES: Record<
       build: (h) => {
         const a = h.add("Toast");
         const b = h.add("Toast");
-        h.run(createComponent({ id: a, name: "ShapeA", newId: h.workspace.newId }));
-        h.run(createComponent({ id: b, name: "ShapeB", newId: h.workspace.newId }));
+        h.run(
+          createComponent({ id: a, name: "ShapeA", newId: h.workspace.newId }),
+        );
+        h.run(
+          createComponent({ id: b, name: "ShapeB", newId: h.workspace.newId }),
+        );
         const project = h.graph().getEntry(h.graph().projectId) as {
           definitionIds: readonly EntryId<"definition">[];
         };
@@ -990,7 +1046,10 @@ const FILE_CASES: Record<
       },
       edit: (code) =>
         code
-          .replace("import ShapeA from './components/ShapeA';", "import ShapeB from './components/ShapeB';")
+          .replace(
+            "import ShapeA from './components/ShapeA';",
+            "import ShapeB from './components/ShapeB';",
+          )
           .replace("<ShapeA toast={toast} />", "<ShapeB toast={toast} />"),
       check: (h) => {
         const project = h.graph().getEntry(h.graph().projectId) as {
@@ -1058,13 +1117,225 @@ const FILE_CASES: Record<
           .persist,
       ).toBe(true),
   },
+  // ADR-296 Phase 4 — a node's declaration (the Styles panel's key) and a breakpoint layer.
+  ".<class> { prop: value } · @media (max-width: …) { … } · --<field> · var(--token) · unset":
+    {
+      path: "src/pages/Home.css",
+      build: (h) => {
+        const text = h.add("Text", { children: "Hi" });
+        h.run(
+          setFields({
+            targets: [{ kind: "node", id: text }],
+            visual: { color: { kind: "set", value: "#111111" } },
+          }),
+        );
+      },
+      edit: (code) =>
+        code
+          .replace("color: #111111;", "color: #222222;\n  --icon-size: 20px;")
+          .concat(
+            "\n@media (max-width: 767px) {\n  .text {\n    font-size: 12px;\n  }\n}\n",
+          ),
+      check: (h) => {
+        const text = h.node(h.node(BODY).children[0]!);
+        expect(text.visual).toEqual({
+          color: { kind: "set", value: "#222222" },
+          iconSize: { kind: "set", value: 20 },
+        });
+        expect(text.responsive?.mobile?.visual).toEqual({
+          fontSize: { kind: "set", value: 12 },
+        });
+      },
+    },
+  "background: <layers> · --fill-width · color-scheme · --theme-tint · display: none | revert":
+    {
+      path: "src/pages/Home.css",
+      build: (h) => {
+        const text = h.add("Text", { children: "Hi" });
+        h.run(
+          setFields({
+            targets: [{ kind: "node", id: text }],
+            visual: { color: { kind: "set", value: "#111111" } },
+          }),
+        );
+      },
+      edit: (code) =>
+        code.replace(
+          "color: #111111;",
+          "color: #111111;\n  background: #ffeeee;\n  --fill-width: 2;\n  color-scheme: dark;\n  --theme-tint: red;\n  display: none;",
+        ),
+      check: (h) => {
+        const text = h.node(h.node(BODY).children[0]!);
+        expect(text.fills).toEqual([
+          {
+            id: "fill-1",
+            kind: "color",
+            color: "#ffeeeeff",
+            enabled: true,
+            opacity: 1,
+            blendMode: "normal",
+          },
+        ]);
+        expect(text.fillSizing).toEqual({ width: { factor: 2 } });
+        expect(text.themeOverride).toEqual({ mode: "dark", tint: "red" });
+        expect(text.visibility).toEqual({ desktop: false });
+      },
+    },
+  '[data-theme="<name>"] { color-scheme · --theme-tint · --theme-neutral · --theme-radius · --<token>: value }':
+    {
+      path: "src/theme.css",
+      build: (h) =>
+        h.run(
+          createTheme({
+            theme: {
+              kind: "theme",
+              id: "project:theme:base" as never,
+              name: "Base",
+              tokenIds: [],
+              preset: {
+                tint: "blue",
+                neutral: "slate",
+                radius: "md",
+                darkMode: "light",
+              },
+            },
+            activate: true,
+          }),
+        ),
+      edit: (code) =>
+        code
+          .replace(
+            "--theme-tint: blue;",
+            "--theme-tint: red;\n  --gap-lg: 24px;",
+          )
+          .replace("color-scheme: light;", "color-scheme: light dark;"),
+      check: (h) => {
+        const theme = h.graph().getEntry("project:theme:base") as {
+          preset: { tint: string; darkMode: string };
+          tokenIds: readonly string[];
+        };
+        expect(theme.preset).toMatchObject({ tint: "red", darkMode: "system" });
+        expect(
+          theme.tokenIds.map((id) => {
+            const token = h.graph().getEntry(id) as {
+              name: string;
+              value: unknown;
+            };
+            return [token.name, token.value];
+          }),
+        ).toEqual([["gap-lg", 24]]);
+      },
+    },
 };
+
+Object.assign(FILE_CASES, {
+  // ADR-296 Phase 6 (결정 2) — the site settings.
+  "<html lang> · <title> · <meta name=description | application-name | theme-color> · <link rel=icon | apple-touch-icon> · og:image":
+    {
+      path: "index.html",
+      build: () => undefined,
+      edit: (code: string) =>
+        code.replace('<meta charset="utf-8" />', '<meta charset="utf-8" />\n    <title>Hello</title>'),
+      check: (h: Adr296Harness) =>
+        expect(
+          (h.graph().getEntry(h.graph().projectId) as unknown as {
+            site?: { title?: string };
+          }).site?.title,
+        ).toBe("Hello"),
+    },
+  "export default siteConfig({search, redirects, access})": {
+    path: "site.config.ts",
+    build: () => undefined,
+    edit: () =>
+      "import {siteConfig} from '@composition/code';\n\nexport default siteConfig({\n  redirects: [{from: '/a', to: '/b', permanent: false}],\n});\n",
+    check: (h: Adr296Harness) =>
+      expect(
+        (h.graph().getEntry(h.graph().projectId) as unknown as {
+          site?: { redirects?: unknown };
+        }).site?.redirects,
+      ).toEqual([{ from: "/a", to: "/b", permanent: false }]),
+  },
+  // ADR-294 — the origin rule's event (its component's own file — ADR-296 Phase 5).
+  "props.onName?.(value)": {
+    path: "src/components/Picker.tsx",
+    build: (h: Adr296Harness) => {
+      const { definitionId, button } = pickerOf(h);
+      h.run(
+        addComponentOutputProperty({
+          definitionId,
+          key: "select",
+          name: "select",
+          kind: "event",
+        }),
+      );
+      rule(h, button, "onPress", [
+        { opcode: "emit", propertyKey: "select", value: "a" } as never,
+      ]);
+    },
+    edit: (code: string) =>
+      code.replace("props.onSelect?.('a')", "props.onSelect?.('b')"),
+    check: (h: Adr296Harness) => {
+      const button = h.node(h.node(BODY).children[0]!);
+      void button;
+      const rules = (
+        h.graph().getEntry(h.graph().projectId) as unknown as {
+          interactionIds: string[];
+        }
+      ).interactionIds.map(
+        (id) => h.graph().getEntry(id) as unknown as { actions: unknown[] },
+      );
+      expect(rules.map((rule) => rule.actions)).toEqual([
+        [{ opcode: "emit", propertyKey: "select", value: "b" }],
+      ]);
+    },
+  },
+  "export function <Name>(props: <Name>Props) { … }": {
+    path: "src/components/Picker.tsx",
+    build: (h: Adr296Harness) => void pickerOf(h),
+    edit: (code: string) => code.replace('label="Save"', 'label="Store"'),
+    check: (h: Adr296Harness) => {
+      const definition = h.graph().getEntry(
+        (
+          h.graph().getEntry(h.graph().projectId) as unknown as {
+            definitionIds: string[];
+          }
+        ).definitionIds.at(-1)!,
+      ) as { templateRootId: string };
+      const root = h.node(definition.templateRootId as NodeId);
+      expect(h.node(root.children[0]!).props.label).toEqual({
+        kind: "set",
+        value: "Store",
+      });
+    },
+  },
+  ".<instance> .<path…> { … } (an instance's position)": {
+    path: "src/pages/Home.css",
+    build: (h: Adr296Harness) => void pickerOf(h),
+    edit: () => ".picker .save-button {\n  color: #ff0000;\n}\n",
+    check: (h: Adr296Harness) =>
+      expect(
+        (
+          h.node(h.node(BODY).children[0]!).descendantOverrides[0] as {
+            visual?: unknown;
+          }
+        ).visual,
+      ).toEqual({ color: { kind: "set", value: "#ff0000" } }),
+  },
+  "node_modules/@composition/library/<Name>.tsx (read only — unlock)": {
+    path: "node_modules/@composition/library/Card.tsx",
+    build: (h: Adr296Harness) => void h.add("Card"),
+    edit: (code: string) => `${code}// edited\n`,
+    refused: "readOnlyFile",
+    check: () => undefined,
+  },
+});
 
 describe("ADR-296 G1 — the file rows are read (project Apply)", () => {
   it("every file row has its case (a later phase's file waits)", () => {
-    const rows = CODE_VIEW_VOCABULARY.filter(
-      (item) => item.file && item.file !== "src/components/<Name>.tsx",
-    ).map((item) => item.form);
+    const rows = CODE_VIEW_VOCABULARY.filter((item) => item.file).map(
+      (item) => item.form,
+    );
+    expect(rows.length).toBeGreaterThanOrEqual(8);
     expect(Object.keys(FILE_CASES).sort()).toEqual([...rows].sort());
   });
   it.each(Object.entries(FILE_CASES))("%s", async (_, item) => {
@@ -1083,7 +1354,11 @@ describe("ADR-296 G1 — the file rows are read (project Apply)", () => {
     const result = catalogCodeViewProjectApply(h.workspace, session, [
       { path: item.path, edited, changes: [] },
     ]);
-    expect(result.rejected).toEqual([]);
+    // (A read-only file's read is its refusal — 결정 3.)
+    const refused = (item as { refused?: string }).refused;
+    if (refused)
+      expect(result.rejected.map((line) => line.reason)).toEqual([refused]);
+    else expect(result.rejected).toEqual([]);
     item.check(h);
   });
 });

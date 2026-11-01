@@ -3,6 +3,7 @@ import { appendFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   insertNodes,
+  renameNode,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import type {
@@ -282,6 +283,13 @@ const colorOf = (h: Harness, id: string) => {
 };
 const typeOf = (h: Harness, id: string) => h.node(id)?.definitionId;
 
+/** The whole line (with its newline) that contains `text`. */
+function lineWith(code: string, text: string): string {
+  const at = code.indexOf(text);
+  const start = code.lastIndexOf("\n", at) + 1;
+  return code.slice(start, code.indexOf("\n", at) + 1);
+}
+
 describe("ADR-285 G0 — RED 8 (code edit across the closed vocabulary)", () => {
   it("① a Text line added to the page's code adds a Text node (one Undo)", async () => {
     const h = await open(["Text"]);
@@ -380,12 +388,14 @@ describe("ADR-285 G0 — RED 8 (code edit across the closed vocabulary)", () => 
     const b = h.add("Text", { children: "B" });
     h.color(a, "#ff0000");
     const session = begin(h);
-    // (Cut the A line, then paste it after the B line — two editor operations.)
-    const cut = replace(session.code, "      <Text>A</Text>\n", "");
+    // (Cut the A line, then paste it after the B line — two editor operations. ADR-296 Phase 4: a
+    // styled node's line carries its class.)
+    const lineA = lineWith(session.code, ">A</Text>");
+    const cut = replace(session.code, lineA, "");
     const paste = replace(
       edited(session, [cut]),
       "      <Text>B</Text>\n",
-      "      <Text>B</Text>\n      <Text>A</Text>\n",
+      `      <Text>B</Text>\n${lineA}`,
     );
     const result = applyCode(h, session, [cut, paste]);
     expect(result).toEqual({ applied: true, reasons: [] });
@@ -399,7 +409,7 @@ describe("ADR-285 G0 — RED 8 (code edit across the closed vocabulary)", () => 
       const a = h.add("Text", { children: "A" });
       h.color(a, "#ff0000");
       const session = begin(h);
-      const at = session.code.indexOf("<Text>A</Text>") + "<Text>".length;
+      const at = session.code.indexOf(">A</Text>") + 1;
       const result = applyCode(h, session, [
         { from: at, to: at + 1, insert: "B" },
       ]);
@@ -409,12 +419,13 @@ describe("ADR-285 G0 — RED 8 (code edit across the closed vocabulary)", () => 
       expect(colorOf(h, a)).toBe("#ff0000");
     });
 
-    it("the second of two same lines deleted deletes the second node (the first keeps its style)", async () => {
+    // (ADR-296 Phase 4 — a style is in the code now (a class on the line), so two same lines are
+    // two unstyled nodes; their identity is their ids.)
+    it("the second of two same lines deleted deletes the second node", async () => {
       const h = await open([]);
       const first = h.add("Text");
       const second = h.add("Text");
-      h.color(first, "#ff0000");
-      h.color(second, "#0000ff");
+      void second;
       const session = begin(h);
       const line = "      <Text>Text</Text>\n";
       const at = session.code.indexOf(line) + line.length;
@@ -423,15 +434,15 @@ describe("ADR-285 G0 — RED 8 (code edit across the closed vocabulary)", () => 
       ]);
       expect(result).toEqual({ applied: true, reasons: [] });
       expect(h.body()).toEqual([first]);
-      expect(colorOf(h, first)).toBe("#ff0000");
     });
 
-    it("two same lines (different styles) pasted over as one are refused — nothing changes", async () => {
+    it("two same lines (different hidden names) pasted over as one are refused — nothing changes", async () => {
       const h = await open([]);
       const first = h.add("Text");
       const second = h.add("Text");
-      h.color(first, "#ff0000");
-      h.color(second, "#0000ff");
+      // (An unstyled node's name is not in its line — the two lines are the same.)
+      h.workspace.execute(renameNode({ id: first, name: "Lead" }));
+      h.workspace.execute(renameNode({ id: second, name: "Note" }));
       const session = begin(h);
       const line = "      <Text>Text</Text>\n";
       const result = applyCode(h, session, [
@@ -449,12 +460,10 @@ describe("ADR-285 G0 — RED 8 (code edit across the closed vocabulary)", () => 
       h.color(a, "#ff0000");
       h.color(b, "#0000ff");
       const session = begin(h);
+      const lineA = lineWith(session.code, ">A</Text>");
+      const lineB = lineWith(session.code, ">B</Text>");
       const result = applyCode(h, session, [
-        replace(
-          session.code,
-          "      <Text>A</Text>\n      <Text>B</Text>\n",
-          "      <Text>B</Text>\n      <Text>A</Text>\n",
-        ),
+        replace(session.code, lineA + lineB, lineB + lineA),
       ]);
       expect(result).toEqual({ applied: true, reasons: [] });
       expect(h.body().map((id) => [id, textOf(h, id), colorOf(h, id)])).toEqual(

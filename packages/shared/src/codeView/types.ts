@@ -56,6 +56,11 @@ export interface CodeViewEndpoint {
 export interface CodeViewInput {
   readonly reader: CodeViewReader;
   readonly pageId: EntryId<"page">;
+  /**
+   * ADR-296 Phase 5 — a user component's file (`src/components/<Name>.tsx`): its origin template
+   * is the root (`pageId` is not read).
+   */
+  readonly componentId?: string;
   readonly collections: readonly CodeViewCollection[];
   readonly endpoints?: readonly CodeViewEndpoint[];
 }
@@ -119,7 +124,15 @@ export type CodeViewAnchorTarget =
       readonly nodeId: string;
       readonly name: string;
       readonly source:
-        "prop" | "state" | "handler" | "items" | "dnd" | "ref" | "metadata";
+        | "prop"
+        | "state"
+        | "handler"
+        | "items"
+        | "dnd"
+        | "ref"
+        | "metadata"
+        /** ADR-296 Phase 5 — an instance's own share inside its component. */
+        | "overrides";
       readonly interactionIds?: readonly string[];
     }
   /** An element's text (`children` — a literal or a template). */
@@ -156,7 +169,21 @@ export type CodeViewAnchorTarget =
   /** ADR-296 Phase 2 — a route of `App.tsx` (`{path, element}`): the page it is. */
   | { readonly kind: "route"; readonly pageId: string }
   /** ADR-296 Phase 2 — a page's `<title>` · `<meta>` (its `meta`). */
-  | { readonly kind: "pageMeta"; readonly pageId: string };
+  | { readonly kind: "pageMeta"; readonly pageId: string }
+  /**
+   * ADR-296 Phase 4 — a CSS rule of a page's style file: the node's style at a breakpoint layer
+   * (`@media`) and, with `state`, a state (`[data-hovered]`).
+   */
+  | {
+      readonly kind: "cssRule";
+      readonly nodeId: string;
+      readonly breakpoint: "desktop" | "tablet" | "mobile";
+      readonly state?: string;
+      /** ADR-296 Phase 5 — an instance's position (`left-picker/save-button`). */
+      readonly path?: string;
+    }
+  /** ADR-296 Phase 4 — a theme's block of `theme.css` (`[data-theme="<name>"] {…}`). */
+  | { readonly kind: "theme"; readonly themeId: string };
 
 export interface CodeViewAnchor {
   readonly start: number;
@@ -211,4 +238,6 @@ export interface CodeViewSymbols {
   readonly components?: Readonly<Record<string, string>>;
   /** ADR-296 Phase 2 — a theme's name → its id. */
   readonly themes?: Readonly<Record<string, string>>;
+  /** ADR-296 Phase 4 — a node's class (`hero-title`) → the node id. */
+  readonly classes?: Readonly<Record<string, string>>;
 }

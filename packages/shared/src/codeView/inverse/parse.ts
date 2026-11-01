@@ -40,6 +40,10 @@ export type CodeViewStatementKind =
   | "projectState"
   /** ADR-296 E9 — `function on<Node><When>(…) { … }`: one rule of a When that holds several. */
   | "handler"
+  /** ADR-296 Phase 5 — `type <Name>Props = {…};` (derived — a component's properties). */
+  | "propsType"
+  /** ADR-296 Phase 5 — `let {team, label} = props;` (derived — a component's inputs). */
+  | "props"
   | "view";
 
 export interface CodeViewStatement extends CodeViewSpan {
@@ -115,6 +119,7 @@ const STATEMENTS: readonly [RegExp, CodeViewStatementKind][] = [
   ],
   [/^let ([A-Za-z_$][\w$]*) = useRef<[\w]+>\(null\);$/, "ref"],
   [/^let params = useParams\(\);$/, "params"],
+  [/^let \{[^}]*\} = props;$/, "props"],
   [/^(?:async )?function ([A-Za-z_$][\w$]*)\(/, "handler"],
   [/^let ([A-Za-z_$][\w$]*) = /, "view"],
 ];
@@ -168,10 +173,16 @@ export function parseCodeView(code: string): CodeViewParsed {
       statement(node, "import");
       continue;
     }
+    // ADR-296 Phase 5 — a component's props type (`type <Name>Props = {…};`): derived.
+    if (
+      node.name === "TypeAliasDeclaration" &&
+      /^type [A-Za-z_$][\w$]*Props = /.test(text(node))
+    ) {
+      statement(node, "propsType");
+      continue;
+    }
     const fn =
-      node.name === "ExportDeclaration" &&
-      node.getChild("default") &&
-      node.getChild("FunctionDeclaration");
+      node.name === "ExportDeclaration" && node.getChild("FunctionDeclaration");
     if (!fn || component) {
       outside(node);
       continue;
@@ -179,7 +190,16 @@ export function parseCodeView(code: string): CodeViewParsed {
     const name = fn.getChild("VariableDefinition");
     const params = fn.getChild("ParamList");
     const block = fn.getChild("Block");
-    if (!name || !block || (params && text(params) !== "()")) {
+    // A page: `export default function <Page>()`; a component: `export function <Name>(props: <Name>Props)`.
+    const isDefault = !!node.getChild("default");
+    const paramText = params ? text(params).replace(/\s+/g, " ") : "()";
+    if (
+      !name ||
+      !block ||
+      (isDefault
+        ? paramText !== "()"
+        : paramText !== `(props: ${text(name)}Props)`)
+    ) {
       outside(node);
       continue;
     }

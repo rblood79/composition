@@ -328,19 +328,20 @@ export const DEFINITION_COVERAGE: CodeViewCoverage<DefinitionEntry> = {
     "—",
     5,
   ),
-  defaults: at(
-    "src/components/<Name>.tsx",
-    "({prop = default}) — a property's default",
-    "applyComponentProperty",
-    5,
-  ),
-  visual: at("src/components/<Name>.css", ".<root> {…}", "setFields", 4),
-  stateRules: at(
-    "src/components/<Name>.css",
-    ".<root>[data-hovered] {…}",
-    "setFields (state)",
-    4,
-  ),
+  // (Phase 5 실측: a Local component's definition keeps these empty — `createComponent` — its
+  // look is its template root's node (`components/<Name>.css`), a property's default its target's.)
+  defaults: {
+    notInCode:
+      "a Local component's definition keeps no defaults — a property's default is its target node's own value (ADR-261)",
+  },
+  visual: {
+    notInCode:
+      "a Local component's definition keeps no visual — its template root node's style is `components/<Name>.css`",
+  },
+  stateRules: {
+    notInCode:
+      "a Local component's definition keeps no state rules — its template nodes' (read only, no node state command)",
+  },
   bindingId: {
     notInCode:
       "the catalog primitive binding — the Library's, not the author's",
@@ -359,7 +360,7 @@ export const DEFINITION_COVERAGE: CodeViewCoverage<DefinitionEntry> = {
   ),
   properties: at(
     "src/components/<Name>.tsx",
-    "({label, isActive, team, onPick, children, header}) — the 5 kinds + slots",
+    "<Name>Props (derived) · `let {team} = props` (variable) · `props.onPick?.(v)` (event) · instances write them by name",
     "addComponentProperty · addComponentOutputProperty · renameComponentProperty · removeComponentProperty",
     5,
   ),
@@ -370,23 +371,29 @@ export const DEFINITION_OVERRIDE_COVERAGE: CodeViewCoverage<DefinitionOverrideEn
     kind: KIND,
     id: IDENTITY,
     targetId: at(
-      "src/components/<Name>.tsx",
-      "import {<Name>} from '@composition/library' — the origin it overrides",
+      "node_modules/@composition/library/<Name>.tsx",
+      "the Library origin's file (read only) — unlocked: `src/components/<Name>.tsx` (결정 3)",
       "unlockOrigin",
       5,
     ),
+    // (Phase 5 실측 — the Components panel's project defaults of a Library origin: shown, read only.)
     defaults: at(
-      "src/components/<Name>.tsx",
-      "the changed defaults",
-      "override commands",
+      "node_modules/@composition/library/<Name>.tsx",
+      "// composition: this project's defaults … (read only — Components panel)",
+      "— (setLibraryDefault — Components panel)",
       5,
     ),
-    visual: at("src/components/<Name>.css", ".<root> {…}", "setFields", 4),
+    visual: at(
+      "node_modules/@composition/library/<Name>.tsx",
+      "// composition: this project's defaults … (read only — Components panel)",
+      "— (setLibraryDefault — Components panel)",
+      5,
+    ),
     stateRules: at(
-      "src/components/<Name>.css",
-      "[data-…] {…}",
-      "setFields (state)",
-      4,
+      "node_modules/@composition/library/<Name>.tsx",
+      "// composition: this project's defaults … (read only — Components panel)",
+      "— (setLibraryDefault — Components panel)",
+      5,
     ),
     templateRootId: at(
       "src/components/<Name>.tsx",
@@ -444,7 +451,7 @@ export const NODE_COVERAGE: CodeViewCoverage<NodeEntry> = {
   stateRules: at(
     "src/pages/<Page>.css",
     ".<class>[data-hovered] · [data-pressed] · …",
-    "setFields (state)",
+    "— (read only: no node state command — G2)",
     4,
   ),
   descendantOverrides: at(
@@ -461,13 +468,13 @@ export const NODE_COVERAGE: CodeViewCoverage<NodeEntry> = {
   ),
   slot: at(
     "src/components/<Name>.tsx",
-    "{children} · {header} — a slot of the component",
+    "composition={{slot: {name, required}}} on the template node",
     "setSlotDeclaration",
     5,
   ),
   regions: at(
     "src/components/<Name>.tsx",
-    "a layout's named content regions — named slot props",
+    "composition={{regions: […]}}",
     "createLayout",
     5,
   ),
@@ -482,13 +489,13 @@ export const NODE_COVERAGE: CodeViewCoverage<NodeEntry> = {
   ),
   presentWhen: at(
     "src/components/<Name>.tsx",
-    "{label && <Text>{label}</Text>} — a text part present while not empty",
+    "composition={{presentWhen: 'nonEmptyText'}} (read only — no command)",
     "template node commands",
     5,
   ),
   showWhen: at(
     "src/components/<Name>.tsx",
-    "{({isSelected}) => isSelected && <T/>} — a RAC render prop",
+    "composition={{showWhen: {all: […]}}}",
     "setShowWhen",
     5,
   ),
@@ -644,19 +651,19 @@ export const DESCENDANT_PATCH_COVERAGE: CodeViewCoverage<DescendantPatchFields> 
       "src/pages/<Page>.css",
       ".<instance> .<path…> {…}",
       "setFields (descendant)",
-      4,
+      5,
     ),
     sizing: at(
       "src/pages/<Page>.css",
       ".<instance> .<path…> {…}",
       "setFields (descendant)",
-      4,
+      5,
     ),
     stateRules: at(
       "src/pages/<Page>.css",
       ".<instance> .<path…>[data-hovered] {…}",
       "setFields (descendant · state)",
-      4,
+      5,
     ),
     enabled: at(
       "src/pages/<Page>.tsx",
@@ -672,31 +679,31 @@ export const DESCENDANT_PATCH_COVERAGE: CodeViewCoverage<DescendantPatchFields> 
       "src/pages/<Page>.css",
       ".<instance> .<path…> {…}",
       "setFields (descendant)",
-      4,
+      5,
     ),
     fills: at(
       "src/pages/<Page>.css",
       ".<instance> .<path…> { background }",
       "setWholeField",
-      4,
+      5,
     ),
     fillSizing: at(
       "src/pages/<Page>.css",
       ".<instance> .<path…> { flex }",
       "setFillSizing",
-      4,
+      5,
     ),
     responsive: at(
       "src/pages/<Page>.css",
       "@media { .<instance> .<path…> {…} }",
       "setFields (breakpoint)",
-      4,
+      5,
     ),
     visibility: at(
       "src/pages/<Page>.css",
       "@media { … display: none }",
       "setWholeField (visibility)",
-      4,
+      5,
     ),
     interactions: at(
       "src/pages/<Page>.tsx",

@@ -23,13 +23,28 @@ import { catalogActionsDeep } from "../catalog/document/interactionActions";
 import { getPrimitiveBinding } from "../catalog/bindings";
 import { parseDateValue, type DateValueKind } from "../state/dateValue";
 import { definitionTypeName } from "../catalog/commands/context";
+import {
+  codeViewNodeClasses,
+  codeViewNodeHasStyle,
+  codeViewPageNodes,
+} from "./files/styles";
+import {
+  codeViewAddressKey,
+  codeViewRuleKeys,
+  codeViewSlotFills,
+  codeViewTreeClasses,
+} from "./files/overrides";
 import type {
   AuthoredValue,
+  DescendantPatchFields,
+  InstanceAddress,
   CatalogEntry,
   DataBindingRef,
   InteractionAction,
   InteractionEntry,
   NodeEntry,
+  DefinitionEntry,
+  EntryId,
   PageEntry,
   PropWhen,
   Scalar,
@@ -59,7 +74,7 @@ import {
   conceptStateOf,
 } from "../interactions/conceptState";
 import { CodeWriter } from "./writer";
-import { codeViewPageNames } from "./files/names";
+import { codeViewPageNames, codeViewProjectNames } from "./files/names";
 import { componentPropertiesOf } from "../catalog/document/componentProperties";
 import {
   COMPONENT_EVENT_ARGS,
@@ -292,6 +307,8 @@ interface VariableCode {
   project?: boolean;
   /** Written by the list it names (`let {selectedKeys, setSelectedKeys} = list`). */
   fromList?: string;
+  /** ADR-296 Phase 5 — a component's input (a `variable` property): `props`, not `useState`. */
+  input?: boolean;
 }
 interface CollectionCode {
   id: string;
@@ -317,9 +334,75 @@ interface ViewCode {
 
 export function generateCodeView(input: CodeViewInput): CodeViewResult {
   const doc = new Doc(input);
+  // ADR-296 Phase 5 — a component's file: its origin template is the root.
+  if (input.componentId) {
+    const definition = doc.get(input.componentId);
+    if (definition?.kind !== "definition" || !definition.templateRootId)
+      throw new Error("CODE_VIEW_NO_COMPONENT");
+    return new Generator(
+      doc,
+      codeViewComponentPage(definition),
+      definition,
+    ).run();
+  }
   const page = doc.get(input.pageId);
   if (page?.kind !== "page") throw new Error("CODE_VIEW_NO_PAGE");
   return new Generator(doc, page).run();
+}
+
+/** A JS literal of plain data (`{name: 'content', required: false}`) — the closed declarations. */
+export function jsLiteral(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(jsLiteral).join(", ")}]`;
+  if (value && typeof value === "object")
+    return `{${Object.entries(value)
+      .filter(([, item]) => item !== undefined)
+      .map(
+        ([key, item]) =>
+          `${/^[A-Za-z_$][\w$]*$/.test(key) ? key : literal(key)}: ${jsLiteral(item)}`,
+      )
+      .join(", ")}}`;
+  if (typeof value === "string") return literal(value);
+  return String(value);
+}
+
+/** A component's origin as the page the generator (and the planner) reads: its template root. */
+export function codeViewComponentPage(definition: DefinitionEntry): PageEntry {
+  return {
+    kind: "page",
+    id: definition.id as unknown as EntryId<"page">,
+    route: "",
+    name: definition.name,
+    children: definition.templateRootId ? [definition.templateRootId] : [],
+  };
+}
+
+/** A component's props type (`type <Name>Props = {…}` — derived from its properties). */
+function componentPropsType(definition: DefinitionEntry, name: string): string {
+  const tsType = (type: string | undefined) =>
+    type === "string" || type === "date"
+      ? "string"
+      : type === "number"
+        ? "number"
+        : type === "boolean"
+          ? "boolean"
+          : "unknown";
+  const fields = (componentPropertiesOf(definition) ?? []).map((property) => {
+    if (property.kind === "event")
+      return `${componentEventAttribute(property)}?: (${
+        property.valueType ? `value: ${tsType(property.valueType)}` : ""
+      }) => void`;
+    const code = componentPropertyCodeName(property);
+    return `${code}?: ${
+      property.kind === "text"
+        ? "string"
+        : property.kind === "boolean"
+          ? "boolean"
+          : property.kind === "variable"
+            ? tsType(property.valueType)
+            : "unknown"
+    }`;
+  });
+  return `type ${name}Props = {${fields.join("; ")}};`;
 }
 
 class Generator {
@@ -362,10 +445,15 @@ class Generator {
   private readonly tokenNames: Record<string, string> = {};
   /** ADR-296 E5 — the rules at an instance position (`address`): not the instance element's own. */
   private readonly addressRules: InteractionEntry[] = [];
+  /** ADR-296 Phase 4 — each node's class (사용자 결정 6) and the nodes that have a style. */
+  private nodeClasses = new Map<string, string>();
+  private readonly styled = new Set<string>();
 
   constructor(
     private readonly doc: Doc,
     private readonly page: PageEntry,
+    /** ADR-296 Phase 5 — the component whose file this is (its template = the root). */
+    private readonly component?: DefinitionEntry,
   ) {}
 
   run(): CodeViewResult {
@@ -415,9 +503,10 @@ class Generator {
     // ADR-296 E5 — a rule at an instance position is the position's (Phase 5: the instance's
     // `overrides`), not the instance element's handler: named here, read only (page edits keep it).
     for (const rule of this.addressRules)
-      body.line(
-        `// composition: ${rule.trigger} of the instance position ${this.addressRef(rule.ownerId, rule.address!)} — its rule stays (ADR-296 Phase 5)`,
-      );
+      if (!codeViewAddressKey(this.doc.input.reader as never, rule.address!))
+        body.line(
+          `// composition: ${rule.trigger} of the instance position ${this.addressRef(rule.ownerId, rule.address!)} — its rule stays (ADR-296 Phase 5)`,
+        );
     body.line();
     body.line("return (");
     body.append(jsx);
@@ -427,9 +516,22 @@ class Generator {
     const out = new CodeWriter();
     this.writeImports(out);
     out.line();
-    out.line(
-      `export default function ${codeViewPageNames(this.doc.input.reader as never).get(this.page.id) ?? capital(identifier(this.page.name, "page"))}() {`,
-    );
+    if (this.component) {
+      // ADR-296 Phase 5 — the component's function and its props (derived from its properties).
+      const name =
+        codeViewProjectNames(this.doc.input.reader as never).components.get(
+          this.component.id,
+        ) ?? capital(identifier(this.component.name, "component"));
+      out.anchorLine(componentPropsType(this.component, name), {
+        kind: "derived",
+        key: "propsType",
+      });
+      out.line();
+      out.line(`export function ${name}(props: ${name}Props) {`);
+    } else
+      out.line(
+        `export default function ${codeViewPageNames(this.doc.input.reader as never).get(this.page.id) ?? capital(identifier(this.page.name, "page"))}() {`,
+      );
     out.append(body);
     out.line("}");
     const variables: Record<string, string> = {};
@@ -473,12 +575,26 @@ class Generator {
   /* ── collect ── */
 
   private collect(): void {
+    // ADR-296 Phase 4 — the page's style file names each styled node by its class.
+    const reader = this.doc.input.reader as never;
+    this.nodeClasses = codeViewNodeClasses(reader, this.page.id);
+    for (const node of codeViewPageNodes(reader, this.page.id))
+      if (codeViewNodeHasStyle(reader, node)) this.styled.add(node.id);
+    if (this.styled.size) {
+      const name = this.component
+        ? codeViewProjectNames(reader).components.get(this.component.id)
+        : codeViewPageNames(reader).get(this.page.id);
+      if (name) this.dataImports.push(`import './${name}.css';`);
+    }
     const visit = (id: string) => {
       const node = this.doc.node(id);
       if (!node || this.nodeIds.has(id)) return;
       this.nodes.push(node);
       this.nodeIds.add(id);
       node.children.forEach(visit);
+      // (ADR-296 Phase 5 — an instance's slot fills are its children in the code.)
+      for (const fill of node.descendantOverrides)
+        if (fill.kind === "fillSlot") fill.childIds.forEach(visit);
     };
     this.page.children.forEach(visit);
     for (const node of this.nodes) {
@@ -498,12 +614,22 @@ class Generator {
     for (const entry of this.doc.variables) {
       if (entry.ownerId !== this.page.id && !this.nodeIds.has(entry.ownerId))
         continue;
-      const name = this.names.take(entry.name, "state");
+      // ADR-296 Phase 5 — a component's input variable is its `variable` property (`props`).
+      const property = entry.input
+        ? (componentPropertiesOf(this.component) ?? []).find(
+            (item) => item.variableId === entry.id,
+          )
+        : undefined;
+      const name = this.names.take(
+        property ? componentPropertyCodeName(property) : entry.name,
+        "state",
+      );
       this.variables.set(entry.id, {
         entry,
         name,
         setter: `set${capital(name)}`,
         selection: isSelectionVariable(entry, interactions),
+        ...(property ? { input: true } : {}),
       });
     }
     // ADR-296 E8 — the project variables the page reads or writes (`useProjectState()`).
@@ -754,8 +880,17 @@ class Generator {
         { kind: "derived", key: "projectState" },
       );
     }
+    // ADR-296 Phase 5 — a component's inputs are its props.
+    const inputs = [...this.variables.values()].filter((item) => item.input);
+    if (inputs.length)
+      out.anchorLine(
+        `let {${inputs.map((item) => item.name).join(", ")}} = props;`,
+        { kind: "derived", key: "props" },
+      );
     const states = [
-      ...[...this.variables.values()].filter((item) => !item.project),
+      ...[...this.variables.values()].filter(
+        (item) => !item.project && !item.input,
+      ),
       ...this.ruleStates.values(),
     ];
     if (!states.length) return;
@@ -2443,6 +2578,154 @@ class Generator {
     out.line("</>");
   }
 
+  /**
+   * ADR-296 Phase 5 · Decision 4 — an instance's `overrides`: per position (its inner path), the
+   * position's props · `hidden` · per When `rules({inherited, own})` (undefined = none).
+   */
+  private overridesCode(node: NodeEntry, depth: number): string | undefined {
+    const reader = this.doc.input.reader as never;
+    interface Position {
+      address: InstanceAddress;
+      patch?: DescendantPatchFields;
+      own: InteractionEntry[];
+    }
+    const positions = new Map<string, Position>();
+    for (const override of node.descendantOverrides) {
+      if (override.kind === "replace") continue;
+      const key = codeViewAddressKey(reader, override.address);
+      if (key)
+        positions.set(key, {
+          address: override.address,
+          patch: override,
+          own: [],
+        });
+    }
+    for (const rule of this.addressRules) {
+      if (rule.ownerId !== node.id) continue;
+      const key = codeViewAddressKey(reader, rule.address!);
+      if (!key) continue;
+      const position = positions.get(key) ?? {
+        address: rule.address!,
+        own: [],
+      };
+      position.own.push(rule);
+      positions.set(key, position);
+    }
+    const pad = "  ".repeat(depth + 1);
+    const fn = (rule: InteractionEntry, indent: string) => {
+      // (The When's event arguments are the function's parameters — 판독 Phase 5 MEDIUM-1; a
+      // received component event gives its value — ADR-294, as on a page handler.)
+      const args = componentEventKeyOf(rule.trigger)
+        ? COMPONENT_EVENT_ARGS
+        : (eventArgNames(rule.trigger)[0] ?? []);
+      const fields = eventArgsAreFields(rule.trigger);
+      const body = new CodeWriter();
+      for (let index = 0; index < indent.length / 2 + 1; index += 1) body.in();
+      for (const action of rule.actions)
+        this.writeAction(body, action, {
+          node,
+          trigger: rule.trigger,
+          fields,
+          args,
+        });
+      const params = fields
+        ? "e"
+        : args.map((arg) => identifier(arg, "value")).join(", ");
+      const isAsync = rule.actions.some(
+        (action) => action.opcode === "callEndpoint",
+      );
+      return `${isAsync ? "async " : ""}(${params}) => {\n${body.done().code}${indent}}`;
+    };
+    const entries: string[] = [];
+    for (const [key, position] of positions) {
+      const fields: string[] = [];
+      for (const [prop, write] of Object.entries(
+        position.patch?.props ?? {},
+      ) as [string, { kind: string; value?: unknown }][])
+        if (write.kind === "set") {
+          const code = this.propCode(
+            write.value as AuthoredValue,
+            undefined,
+            prop,
+          );
+          if (code === undefined) continue;
+          fields.push(
+            `${/^[A-Za-z_$][\w$]*$/.test(prop) ? prop : literal(prop)}: ${
+              code.startsWith("{")
+                ? code.slice(1, -1)
+                : code.replace(/^"(.*)"$/, (_m, text: string) =>
+                    literal(text.replace(/\\"/g, '"')),
+                  )
+            }`,
+          );
+        }
+      if (position.patch?.enabled !== undefined)
+        fields.push(`hidden: ${String(!position.patch.enabled)}`);
+      // Rules by When: the origin's (off · replaced) and this position's own.
+      const target = position.address.templatePath.at(-1);
+      const targetClass = target
+        ? codeViewTreeClasses(reader, [position.address.templatePath[0]!]).get(
+            target,
+          )
+        : undefined;
+      const keys =
+        target && targetClass
+          ? codeViewRuleKeys(reader, target, targetClass)
+          : new Map<string, string>();
+      const inherited = new Map<string, string[]>();
+      const replacing = new Set<string>();
+      for (const [ruleId, value] of Object.entries(
+        position.patch?.interactions ?? {},
+      )) {
+        const origin = this.doc.get(ruleId);
+        const name = keys.get(ruleId);
+        if (origin?.kind !== "interaction" || !name) continue;
+        const list = inherited.get(origin.trigger) ?? [];
+        if (value === "off") list.push(`${name}: 'off'`);
+        else {
+          const own = position.own.find((rule) => rule.id === value);
+          if (!own) continue;
+          replacing.add(own.id);
+          list.push(`${name}: ${fn(own, `${pad}  `)}`);
+        }
+        inherited.set(origin.trigger, list);
+      }
+      const own = new Map<string, string[]>();
+      for (const rule of position.own) {
+        if (replacing.has(rule.id)) continue;
+        const list = own.get(rule.trigger) ?? [];
+        list.push(fn(rule, `${pad}  `));
+        own.set(rule.trigger, list);
+      }
+      for (const trigger of new Set([...inherited.keys(), ...own.keys()])) {
+        this.import(CODE_VIEW_HELPERS_MODULE, "rules");
+        const parts = [
+          ...(inherited.get(trigger)?.length
+            ? [`inherited: {${inherited.get(trigger)!.join(", ")}}`]
+            : []),
+          ...(own.get(trigger)?.length
+            ? [`own: [${own.get(trigger)!.join(", ")}]`]
+            : []),
+        ];
+        // (`property:<key>` — a component event's When — is a quoted key.)
+        const name = /^[A-Za-z_$][\w$]*$/.test(trigger) ? trigger : literal(trigger);
+        fields.push(`${name}: rules({${parts.join(", ")}})`);
+      }
+      if (fields.length)
+        entries.push(`${pad}${literal(key)}: {${fields.join(", ")}},`);
+    }
+    if (!entries.length) return undefined;
+    return `{{\n${entries.join("\n")}\n${"  ".repeat(depth)}}}`;
+  }
+
+  /** ADR-296 Phase 5 — a user component's name for its instance (undefined = not an instance). */
+  private componentTag(node: NodeEntry): string | undefined {
+    if (node.definitionId.startsWith("lib:")) return undefined;
+    return codeViewProjectNames(this.doc.input.reader as never).components.get(
+      node.definitionId,
+    );
+  }
+
   private bodyIsElement(body: NodeEntry): boolean {
     return (
       Object.values(body.props).some((write) => write.kind === "set") ||
@@ -2499,13 +2782,19 @@ class Generator {
     let type = this.doc.typeOf(node);
     if (type === "frame" || (type === "Group" && !node.props["aria-label"]))
       type = type === "frame" ? "div" : type;
+    // ADR-296 Phase 5 — an instance of a user component is its component (`<Picker …/>`).
+    const component = as ? undefined : this.componentTag(node);
     if (as) this.import(CODE_VIEW_HELPERS_MODULE, as);
-    else if (type !== "div") this.import("react-aria-components", type);
+    else if (component) {
+      const line = `import {${component}} from './components/${component}';`;
+      if (!this.dataImports.includes(line)) this.dataImports.push(line);
+    } else if (type !== "div") this.import("react-aria-components", type);
     const attributes: { part: CodeWriter; target: CodeViewAnchorTarget }[] = [];
     const attribute = (
       name: string,
       value: string | CodeWriter,
-      source: "prop" | "state" | "dnd" | "ref" | "metadata" = "prop",
+      source:
+        "prop" | "state" | "dnd" | "ref" | "metadata" | "overrides" = "prop",
     ) => {
       const part = new CodeWriter().write(`${name}=`);
       if (typeof value === "string") part.write(value);
@@ -2645,18 +2934,69 @@ class Generator {
     if (dnd) attribute("dragAndDropHooks", `{${dnd}}`, "dnd");
     const ref = this.refs.get(node.id);
     if (ref) attribute("ref", `{${ref}}`, "ref" as never);
+    // ADR-296 Phase 5 — the instance's own share inside its component (`overrides`).
+    const overrides = this.overridesCode(node, out.depth);
+    if (overrides) attribute("overrides", overrides, "overrides");
+    // ADR-296 Phase 5 — the node's declarations no RAC prop holds (a component's slot · a layout's
+    // regions · placeholder · its presence conditions): one closed literal.
+    const declared = {
+      ...(node.slot ? { slot: node.slot } : {}),
+      ...(node.regions ? { regions: node.regions } : {}),
+      ...(node.placeholder ? { placeholder: true } : {}),
+      ...(node.showWhen ? { showWhen: node.showWhen } : {}),
+      ...(node.presentWhen ? { presentWhen: node.presentWhen } : {}),
+    };
+    if (Object.keys(declared).length)
+      attribute("composition", `{${jsLiteral(declared)}}`, "overrides");
     // ADR-296 Phase 2 — the author's DOM id · classes · accessible name (`metadata`). An id the app
     // gave (`<type>_N`, ADR-248 4e-8 — every element has one) is the app's, not the author's.
     const metadata = node.metadata;
     const jsx = (text: string) => literal(text).replace(/^'(.*)'$/, '"$1"');
     if (metadata?.htmlId && !/^[a-z][a-z0-9-]*_\d+$/.test(metadata.htmlId))
       attribute("id", jsx(metadata.htmlId), "metadata");
-    if (metadata?.className)
-      attribute("className", jsx(metadata.className), "metadata");
+    // ADR-296 Phase 4 — a styled node's class first (its CSS rule's selector), then the author's.
+    const className = [
+      this.styled.has(node.id) ? this.nodeClasses.get(node.id) : undefined,
+      metadata?.className,
+    ]
+      .filter(Boolean)
+      .join(" ");
+    if (className) attribute("className", jsx(className), "metadata");
     if (metadata?.ariaLabel && !node.props["aria-label"])
       attribute("aria-label", jsx(metadata.ariaLabel), "metadata");
     const binding = node.binding;
-    const children = node.children;
+    // ADR-296 Phase 5 — an instance's slot fills: the template root's are its children, a deeper
+    // position's are a `<Slot name="<path>">` (a bound list's rows are its binding's).
+    const fills = binding
+      ? []
+      : codeViewSlotFills(this.doc.input.reader as never, node);
+    const children = [
+      ...node.children,
+      ...fills.filter((fill) => fill.root).flatMap((fill) => fill.childIds),
+    ];
+    const slots = fills.filter((fill) => !fill.root);
+    if (slots.length) this.import(CODE_VIEW_HELPERS_MODULE, "Slot");
+    const writeSlots = (writer: CodeWriter) => {
+      for (const slot of slots) {
+        writer.start();
+        const at = writer.length;
+        if (!slot.childIds.length) {
+          writer.write(`<Slot name=${jsx(slot.key)} />`);
+        } else {
+          writer
+            .write(`<Slot name=${jsx(slot.key)}>`)
+            .end()
+            .in();
+          for (const child of slot.childIds) this.writeNode(writer, child, row);
+          writer.out().start().write("</Slot>");
+        }
+        writer.anchor(at, {
+          kind: "derived",
+          key: `slot:${node.id}:${slot.key}`,
+        });
+        writer.end();
+      }
+    };
     const visible = [...this.ruleStates.values()].find(
       (state) =>
         state.entry.ownerId === node.id &&
@@ -2669,7 +3009,8 @@ class Generator {
     if (off) out.write("{false && ");
     else if (visible && !as) out.write(`{${visible.name} && `);
     if (as) type = as;
-    out.write(`<${type}`);
+    const tag = component ?? type;
+    out.write(`<${tag}`);
     for (const { part, target } of attributes) {
       out.write(" ");
       const at = out.length;
@@ -2687,7 +3028,7 @@ class Generator {
         if (text !== undefined && !children.length) {
           out.write(">");
           text$(this.textCode(text, rows));
-          out.write(`</${type}>`);
+          out.write(`</${tag}>`);
         } else {
           out.write(">").end().in();
           if (text !== undefined)
@@ -2696,7 +3037,7 @@ class Generator {
               nodeId: node.id,
             });
           for (const child of children) this.writeNode(out, child, rows);
-          out.out().start().write(`</${type}>`);
+          out.out().start().write(`</${tag}>`);
         }
       } else {
         out.write(" ");
@@ -2728,13 +3069,13 @@ class Generator {
           `{item => <${item} id={item.${key}} textValue={String(${member("item", labelKey)})}>{${member("item", labelKey)}}</${item}>}`,
           { kind: "rows", nodeId: node.id },
         );
-        out.out().start().write(`</${type}>`);
+        out.out().start().write(`</${tag}>`);
       }
-    } else if (!children.length && text === undefined && !head)
+    } else if (!children.length && !slots.length && text === undefined && !head)
       out.write(" />");
     else {
       out.write(">");
-      if (text !== undefined && !children.length && !head)
+      if (text !== undefined && !children.length && !slots.length && !head)
         text$(this.textCode(text, row));
       else {
         out.end().in();
@@ -2745,9 +3086,10 @@ class Generator {
             nodeId: node.id,
           });
         for (const child of children) this.writeNode(out, child, row);
+        writeSlots(out);
         out.out().start();
       }
-      out.write(`</${type}>`);
+      out.write(`</${tag}>`);
     }
     if (off || (visible && !as)) out.write("}");
     out.anchor(

@@ -909,7 +909,8 @@ const catalog: TranslationKeys = {
     emitEvent: "이벤트",
     emitValue: "보낼 값",
     summaryEmit: "{when} → {name} 보내기",
-    emitHint: "이 컴포넌트를 쓰는 화면에 값을 넘기려면 컴포넌트 속성에 이벤트를 만들고 「컴포넌트 이벤트 보내기」 를 쓴다",
+    emitHint:
+      "이 컴포넌트를 쓰는 화면에 값을 넘기려면 컴포넌트 속성에 이벤트를 만들고 「컴포넌트 이벤트 보내기」 를 쓴다",
     actionCallEndpoint: "endpoint 호출",
     endpoint: "엔드포인트",
     endpointBody: "본문",
@@ -2563,6 +2564,12 @@ const catalog: TranslationKeys = {
     filesLabel: "프로젝트 파일",
     openFiles: "열린 파일",
     drafted: "편집됨",
+    /** ADR-296 Phase 5 (결정 3) — a Library origin's file: copy it into the project to edit it. */
+    unlock: "잠금 해제하고 편집",
+    newFile: "새 파일",
+    addFile: "추가",
+    libraryReadOnly:
+      "Library 컴포넌트 — 읽기 전용. 잠금을 해제하면 프로젝트 컴포넌트로 고칠 수 있습니다.",
   },
   dataView: {
     section: "검색 · 필터",

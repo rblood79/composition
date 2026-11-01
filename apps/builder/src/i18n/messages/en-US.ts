@@ -911,7 +911,8 @@ const catalog: TranslationKeys = {
     emitEvent: "Event",
     emitValue: "Value to send",
     summaryEmit: "{when} → send {name}",
-    emitHint: "To pass a value to the screen that uses this component, add an event to its component properties and use Send component event",
+    emitHint:
+      "To pass a value to the screen that uses this component, add an event to its component properties and use Send component event",
     actionCallEndpoint: "Call an endpoint",
     actionAppend: "Append to a collection",
     actionUpdate: "Update a collection item",
@@ -2187,7 +2188,8 @@ const catalog: TranslationKeys = {
     fieldFormulaErrorFORMULA_UNKNOWN_FUNCTION: "No such function.",
     fieldFormulaErrorFORMULA_FUNCTION_HIDDEN:
       "That function is not available to a formula.",
-    fieldFormulaErrorFORMULA_CYCLE: "Computed columns read each other in a loop.",
+    fieldFormulaErrorFORMULA_CYCLE:
+      "Computed columns read each other in a loop.",
     fieldFormulaErrorFORMULA_RESULT_TYPE:
       "A computed column's type is Number, String, Boolean or Date.",
     gridFormulaCellError: "The formula failed on this row.",
@@ -2575,6 +2577,12 @@ const catalog: TranslationKeys = {
     filesLabel: "The project's files",
     openFiles: "Open files",
     drafted: "edited",
+    /** ADR-296 Phase 5 (결정 3) — a Library origin's file: copy it into the project to edit it. */
+    unlock: "Unlock to edit",
+    newFile: "New file",
+    addFile: "Add",
+    libraryReadOnly:
+      "Library component — read only. Unlock it to edit it as a project component.",
   },
   dataView: {
     section: "Search · filter",

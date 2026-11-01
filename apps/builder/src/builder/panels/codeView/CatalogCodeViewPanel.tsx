@@ -13,6 +13,8 @@ import {
 import { Code } from "lucide-react";
 import { Button } from "react-aria-components/Button";
 import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
+import { TextField } from "react-aria-components/TextField";
+import { Input } from "react-aria-components/Input";
 import { Tab, TabList, Tabs } from "react-aria-components/Tabs";
 import { Menu, MenuItem, MenuTrigger } from "react-aria-components/Menu";
 import { Popover } from "react-aria-components/Popover";
@@ -60,6 +62,9 @@ import { Section } from "../../components/panel/Section";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import type { CodeEditorApi, CodeEditorVocabulary } from "./CodeEditor";
 import { codeViewMessages, codeViewSnippetLabels } from "./codeViewMessages";
+import { CATALOG_SHEET_TYPES, loadCatalogSheet } from "./catalogSheets";
+import { unlockOrigin } from "../../../../../../packages/shared/src/catalog/commands";
+import { runCatalogCommand } from "../../catalogRuntime/commandRunner";
 import "./CatalogCodeViewPanel.css";
 import "../../components/property/PropertyRowMenu.css";
 
@@ -97,6 +102,10 @@ interface Draft {
  * The first keystroke starts the project session (its baseline is the document's revision then);
  * with no draft left the editor follows the document again.
  */
+/** The new files the code view makes (ADR-296 — a component · data · API file). */
+const NEW_FILE =
+  /^src\/(?:components\/[A-Za-z_$][\w$]*\.tsx|(?:data|api)\/[A-Za-z_$][\w$]*\.ts)$/;
+
 function CodeViewContent() {
   const { t, locale } = useI18n();
   const messages = codeViewMessages(locale);
@@ -121,10 +130,27 @@ function CodeViewContent() {
   const formulaEngine = useFormulaEngine(
     data.collections.some((collection) => schemaHasFormula(collection.schema)),
   );
+  // ADR-296 Phase 5 — a new file (a component · data · API) the author names: drafted, then made
+  // by the Apply (`catalogCodeViewProjectPlan` reads a path the tree does not have as new).
+  const [newPaths, setNewPaths] = useState<readonly string[]>([]);
+  const [newPath, setNewPath] = useState("");
   const files = useMemo(() => {
     void revision;
-    return codeViewFileTree(graph);
-  }, [revision, graph]);
+    const tree = codeViewFileTree(graph, { catalogStyles: CATALOG_SHEET_TYPES });
+    const fresh = newPaths
+      .filter((item) => !tree.some((file) => file.path === item))
+      .map(
+        (item): CodeViewFileEntry => ({
+          path: item,
+          kind: item.startsWith("src/components/")
+            ? "component"
+            : item.startsWith("src/data/")
+              ? "collection"
+              : "endpoint",
+        }),
+      );
+    return [...tree, ...fresh];
+  }, [revision, graph, newPaths]);
   const pagePath = files.find(
     (file) => file.kind === "page" && file.id === pageId,
   )?.path;
@@ -146,17 +172,44 @@ function CodeViewContent() {
     | null
   >(null);
   const [opened, setOpened] = useState(0);
+  // ADR-296 Phase 4 — a catalog sheet's text (read only, loaded when its file opens).
+  const [sheets, setSheets] = useState<ReadonlyMap<string, string>>(new Map());
+  const sheetType = file?.kind === "catalogStyle" ? file.id : undefined;
+  useEffect(() => {
+    if (!sheetType || sheets.has(sheetType)) return;
+    let live = true;
+    void loadCatalogSheet(sheetType)?.then((text) => {
+      if (live) setSheets((map) => new Map(map).set(sheetType, text));
+    });
+    return () => {
+      live = false;
+    };
+  }, [sheetType, sheets]);
   // The file's code now — the editor's baseline while nothing is typed.
   const live = useMemo((): CodeViewResult | undefined => {
     void revision;
     void formulaEngine;
     if (!file) return undefined;
+    if (!file.id && ["component", "collection", "endpoint"].includes(file.kind))
+      return {
+        code: "",
+        slots: [],
+        anchors: [],
+        symbols: { variables: {}, fields: {} },
+      };
+    if (file.kind === "catalogStyle")
+      return {
+        code: sheets.get(file.id!) ?? "/* … */",
+        slots: [],
+        anchors: [],
+        symbols: { variables: {}, fields: {} },
+      };
     try {
       return generateCodeViewFile({ reader: graph as never, file, ...data });
     } catch {
       return undefined;
     }
-  }, [data, file, formulaEngine, graph, revision]);
+  }, [data, file, formulaEngine, graph, revision, sheets]);
   const baseline: CodeViewResult | undefined =
     (project && path
       ? catalogCodeViewFileBaseline(project, graph.commandReader, path, data)
@@ -365,6 +418,31 @@ function CodeViewContent() {
               </ListBoxItem>
             )}
           </ListBox>
+          <fieldset className="properties-aria code-view-new-file">
+            <legend className="fieldset-legend">{t("codeView.newFile")}</legend>
+            <div className="code-view-new-file-row">
+              <TextField
+                aria-label={t("codeView.newFile")}
+                value={newPath}
+                onChange={setNewPath}
+                className="react-aria-TextField code-view-new-file-path"
+              >
+                <Input placeholder="src/components/Card.tsx" />
+              </TextField>
+              <Button
+                className="control-button"
+                isDisabled={!NEW_FILE.test(newPath.trim())}
+                onPress={() => {
+                  const next = newPath.trim();
+                  setNewPaths((items) => [...items, next]);
+                  setSelected(next);
+                  setNewPath("");
+                }}
+              >
+                {t("codeView.addFile")}
+              </Button>
+            </div>
+          </fieldset>
         </Section>
         <Section title={t("codeView.section")}>
           <Tabs
@@ -408,8 +486,10 @@ function CodeViewContent() {
               }
             >
               <CodeEditor
-                key={`${path}:${opened}`}
-                code={baseline.code}
+                key={`${path}:${opened}${file.readOnly ? `:${sheets.has(file.id!)}` : ""}`}
+                code={file.readOnly ? (live?.code ?? "") : baseline.code}
+                {...(file.readOnly ? { readOnly: true } : {})}
+                language={/\.css$/.test(path) ? "css" : "tsx"}
                 {...(draft ? { draft } : {})}
                 label={t("codeView.editorLabel")}
                 vocabulary={vocabulary}
@@ -471,7 +551,27 @@ function CodeViewContent() {
               <pre className="code-view-code">{previous}</pre>
             </details>
           ) : null}
+          {file.kind === "library" ? (
+            <p className="code-view-note">{t("codeView.libraryReadOnly")}</p>
+          ) : null}
           <div className="code-view-actions">
+            {file.kind === "library" ? (
+              // ADR-296 Phase 5 (결정 3) — 「Unlock」: ADR-282 `unlockOrigin`, one history step.
+              <Button
+                className="control-button"
+                onPress={() =>
+                  runCatalogCommand(
+                    workspace,
+                    unlockOrigin({
+                      definitionId: file.id as never,
+                      newId: workspace.newId,
+                    }),
+                  )
+                }
+              >
+                {t("codeView.unlock")}
+              </Button>
+            ) : null}
             <Button
               className="control-button"
               data-variant="primary"

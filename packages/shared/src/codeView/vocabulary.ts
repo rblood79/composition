@@ -299,6 +299,71 @@ export const CODE_VIEW_VOCABULARY: readonly CodeViewVocabularyItem[] = [
     file: "src/Toast.tsx",
   },
   {
+    // ADR-296 Phase 4 (결정 1 · 6) — a node's style: its class, a declaration per typed field.
+    form: ".<class> { prop: value } · @media (max-width: …) { … } · --<field> · var(--token) · unset",
+    emit: "generatePageStyleFile",
+    read: "planCodeViewPageStyle",
+    unit: "node style (visual · layout · sizing — base and breakpoint layers)",
+    file: "src/pages/<Page>.css",
+  },
+  {
+    form: "background: <layers> · --fill-width · color-scheme · --theme-tint · display: none | revert",
+    emit: "codeViewStyleBlocks",
+    read: "planCodeViewPageStyle",
+    unit: "node fills · fill sizing · forced theme · visibility",
+    file: "src/pages/<Page>.css#whole",
+  },
+  {
+    form: '[data-theme="<name>"] { color-scheme · --theme-tint · --theme-neutral · --theme-radius · --<token>: value }',
+    emit: "generateThemeFile",
+    read: "planCodeViewTheme",
+    unit: "theme (preset · tokens · name)",
+    file: "src/theme.css",
+  },
+  {
+    // ADR-296 Phase 5 · Decision 4 — an instance by its component's name, its own share inside.
+    form: "<Name …/> · overrides={{'<path>': {prop, hidden, onX: rules({inherited, own})}}}",
+    emit: "overridesCode",
+    read: "planOverrides",
+    unit: "instance (component name) · its positions (descendant patch · inherited off / replace · own rules)",
+  },
+  {
+    form: "export function <Name>(props: <Name>Props) { … }",
+    emit: "codeViewComponentPage",
+    read: "planCodeViewPageEdit",
+    unit: "a user component's origin (template · rules) — origin commands",
+    file: "src/components/<Name>.tsx#origin",
+  },
+  {
+    form: ".<instance> .<path…> { … } (an instance's position)",
+    emit: "codeViewPositionBlocks",
+    read: "codeViewAddressOf",
+    unit: "instance position style (descendant patch visual · layout · sizing · layers)",
+    file: "src/pages/<Page>.css#position",
+  },
+  {
+    form: "node_modules/@composition/library/<Name>.tsx (read only — unlock)",
+    emit: "codeViewLibraryReader",
+    read: "codeViewLibraryReader",
+    unit: "a Library origin (read only; unlocked = a component file)",
+    file: "node_modules/@composition/library/<Name>.tsx",
+  },
+  {
+    // ADR-296 Phase 6 (결정 2) — the site's head settings.
+    form: "<html lang> · <title> · <meta name=description | application-name | theme-color> · <link rel=icon | apple-touch-icon> · og:image",
+    emit: "generateHtmlFile",
+    read: "planCodeViewHtml",
+    unit: "site settings (lang · title · description · icons · app name · theme color · social image)",
+    file: "index.html",
+  },
+  {
+    form: "export default siteConfig({search, redirects, access})",
+    emit: "generateSiteConfigFile",
+    read: "planCodeViewSiteConfig",
+    unit: "site settings (search · redirects · access)",
+    file: "site.config.ts",
+  },
+  {
     form: "<Page …> · <title> · <meta> · id · className · aria-label · {false && <T/>} · useParams()",
     emit: "writeHead",
     read: "planHead",

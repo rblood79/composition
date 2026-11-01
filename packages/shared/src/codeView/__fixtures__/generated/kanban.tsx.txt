@@ -4,6 +4,7 @@
 import {GridList, GridListItem, Text} from 'react-aria-components';
 import {useListData} from 'react-aria-components/useListData';
 import {isTextDropItem, useDragAndDrop} from 'react-aria-components/useDragAndDrop';
+import './Home.css';
 import ticketsData from './data/tickets';
 
 export default function Home() {
@@ -84,20 +85,20 @@ export default function Home() {
 
   return (
     <>
-      <div>
-        <div>
+      <div className="frame">
+        <div className="frame-2">
           <Text>{`Open · ${itemsStatusCount.find(row => row.id === 'Open')?.count ?? ''}`}</Text>
           <GridList dragAndDropHooks={gridListDragAndDrop} items={itemsOpen}>
             {item => <GridListItem id={item.id} textValue={String(item.id)}>{item.id}</GridListItem>}
           </GridList>
         </div>
-        <div>
+        <div className="frame-3">
           <Text>{`In Progress · ${itemsStatusCount.find(row => row.id === 'In Progress')?.count ?? ''}`}</Text>
           <GridList dragAndDropHooks={gridList2DragAndDrop} items={itemsInProgress}>
             {item => <GridListItem id={item.id} textValue={String(item.id)}>{item.id}</GridListItem>}
           </GridList>
         </div>
-        <div>
+        <div className="frame-4">
           <Text>{`Closed · ${itemsStatusCount.find(row => row.id === 'Closed')?.count ?? ''}`}</Text>
           <GridList dragAndDropHooks={gridList3DragAndDrop} items={itemsClosed}>
             {item => <GridListItem id={item.id} textValue={String(item.id)}>{item.id}</GridListItem>}

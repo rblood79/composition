@@ -118,11 +118,18 @@ describe("ADR-296 G2 — App.tsx and the project Apply", () => {
     expect(code(s, APP)).toMatch(/<MyToastRegion \/>/);
     // (The tree names the files without generating them — R5.)
     expect(codeViewFileTree(h.graph()).map((file) => file.path)).toEqual([
+      "index.html",
+      "site.config.ts",
       APP,
       "src/Toast.tsx",
+      "src/theme.css",
       HOME_FILE,
+      "src/pages/Home.css",
       "src/pages/About.tsx",
+      "src/pages/About.css",
       "src/state/project.ts",
+      // (ADR-296 Phase 5 — the Library origin the page uses, read only.)
+      "node_modules/@composition/library/Button.tsx",
     ]);
   });
 
