@@ -1,0 +1,1 @@
+export{t as VariableTable}from"./VariableTable-DJT4PnB0.js";
