@@ -1301,7 +1301,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       ).toEqual(["#0000ff", "#ff0000", "#ff0000"]);
       for (const button of stepperElements())
         expect(button.getAttribute("style")).toMatch(
-          /--button-color:\s*#ff0000/,
+          /background-color:\s*#ff0000/,
         );
       expect(
         host()
@@ -1414,8 +1414,8 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         "search",
       );
       // DOM: the container's children are those nodes' elements; the Input is the combobox RAC
-      // wires, the button its trigger. The button's authored fill is the sheet's own variable,
-      // so its hover and pressed colors derive from it.
+      // wires, the button its trigger. The button's authored fill goes inline over every state, as
+      // the Canvas paints it (ADR-297 — the `.button-base` variables skip catalog nodes).
       const container = host().querySelector(
         ".combobox-container:not(template *)",
       )!;
@@ -1431,9 +1431,8 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       const buttonElement = container.querySelector("button")!;
       expect(buttonElement.getAttribute("aria-haspopup")).toBe("listbox");
       const style = buttonElement.getAttribute("style")!;
-      expect(style).toMatch(/--button-color:\s*var\(--accent-subtle\)/);
-      expect(style).toMatch(/--button-color-hover:\s*initial/);
-      expect(style).not.toMatch(/background-color|border-color/);
+      expect(style).toMatch(/background-color:\s*var\(--accent-subtle\)/);
+      expect(style).not.toMatch(/--button-color|border-color/);
       // (The sheet gives every Button a border: the one the FieldButton removes is written out.)
       expect(style).toMatch(/border-width:\s*0(;|$)/);
       // (ADR-295 Phase 3c-3b: its overlap margin and the input's room are the S2 formula over the device
@@ -1504,8 +1503,8 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       const edited = host()
         .querySelector(".combobox-container:not(template *) button")!
         .getAttribute("style")!;
-      expect(edited).toMatch(/--button-color:\s*#ff0000/);
-      expect(edited).toMatch(/--button-text:\s*#00aa00/);
+      expect(edited).toMatch(/background-color:\s*#ff0000/);
+      expect(edited).toMatch(/(^|;)color:\s*#00aa00/);
       // Edit axes: the Input's text is the field's, its style and the button's are their own.
       const graph = workspace.runtime.graph;
       const dom = workspace.root.domInputs;
@@ -1723,7 +1722,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       );
       expect(trigger().visual.fill).toBe("#0000ff");
       expect(button().getAttribute("style")).toMatch(
-        /--button-color:\s*#0000ff/,
+        /background-color:\s*#0000ff/,
       );
       // Edit axes: the trigger is its own (an instance); so is the value's style (above).
       const graph = workspace.runtime.graph;
@@ -2144,7 +2143,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       const clearElement = container.querySelector("button")!;
       expect(clearElement.getAttribute("aria-label")).toBeTruthy();
       expect(clearElement.getAttribute("style")).toMatch(
-        /--button-color:\s*var\(--fg-muted\)/,
+        /background-color:\s*var\(--fg-muted\)/,
       );
       // The field's sheet hides the clear button while the input is empty (`[data-empty]`, RAC's
       // run state): an inline display would keep it shown.
@@ -2259,10 +2258,9 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         renderCatalogDom(workspace.root, field.id),
       );
       const overridden = host.querySelector("button")!.getAttribute("style")!;
-      // (As the sheet's own variable: its hover and pressed colors derive from it.)
-      expect(overridden).toMatch(/--button-color:\s*#ff0000/);
-      expect(overridden).toMatch(/--button-color-hover:\s*initial/);
-      expect(overridden).not.toMatch(/background-color|border-color/);
+      // (Inline over every state, as the Canvas paints it — not the `.button-base` variable.)
+      expect(overridden).toMatch(/background-color:\s*#ff0000/);
+      expect(overridden).not.toMatch(/--button-color|border-color/);
     },
   );
 

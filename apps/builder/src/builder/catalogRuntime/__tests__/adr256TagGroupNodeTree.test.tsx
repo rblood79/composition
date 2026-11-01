@@ -237,6 +237,44 @@ describe("ADR-256 Phase 5d — TagGroup is the reference's node tree", () => {
     expect(width() - plain).toBe(4 + 2 + 18 - 8);
   });
 
+  // 2026-11-02 사용자 보고: the remove button grew the chip — the Button rule's size blocks carry
+  //   S2 `minHeight: {size.height.*}` (ADR-295 3a, M 32) over the part rule's 18px box.
+  it("the remove button keeps the chip's height: an 18px box, no Button min-height (Canvas and DOM)", async () => {
+    const { root, html, of, edit } = await open();
+    const height = (
+      type: string,
+      pick = (r: { props: Record<string, unknown> }) => !!r,
+    ) => {
+      const record = of(type).find(pick)!;
+      return root.getGeometry([record.id]).get(record.id)!.height;
+    };
+    const plain = height("Tag");
+    edit({ allowsRemoving: true });
+    expect(height("Button", (r) => r.props.slot === "remove")).toBe(18);
+    expect(height("Tag")).toBe(plain);
+    const host = document.createElement("div");
+    host.innerHTML = html();
+    const button = host.querySelector<HTMLElement>(
+      ".react-aria-TagGroup button[slot=remove]",
+    )!;
+    expect(button.style.minHeight).toBe("0px");
+  });
+
+  // 2026-11-02 사용자 보고 「remove button 배경차이」: the Canvas draws the button transparent (the
+  //   part rule's fill), the Preview drew the Button variant's dark fill — the DOM wrote the fill as
+  //   `--button-color`, which the generated sheet stopped reading for catalog nodes (ADR-297 3e).
+  it("the remove button's transparent fill reaches the DOM as its background (as the Canvas)", async () => {
+    const { html, edit } = await open();
+    edit({ allowsRemoving: true });
+    const host = document.createElement("div");
+    host.innerHTML = html();
+    const button = host.querySelector<HTMLElement>(
+      ".react-aria-TagGroup button[slot=remove]",
+    )!;
+    expect(button.style.backgroundColor).toBe("transparent");
+    expect(button.style.getPropertyValue("--button-color")).toBe("");
+  });
+
   it("an empty description or error message is not there (Canvas and DOM)", async () => {
     const { html, of, edit } = await open();
     // (The TagGroup's own hints — not the empty state IllustratedMessage's description.)

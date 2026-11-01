@@ -3644,30 +3644,18 @@ export function renderNode(
     // is empty (`[data-empty]`, RAC's run state): that Button's display stays the sheet's.
     if (partField?.bindingId === "searchfield") delete bound.display;
     if (node.props.isDisabled !== true && !fieldDisabled) {
-      // A color the document wrote goes out as the sheet's own variable (`.button-base` reads
-      // `--button-color` · `--button-border` · `--button-text`), so its hover and pressed colors
-      // derive from it; the variant's explicit hover / pressed colors are released with it.
+      // The rule's colors and their states are the generated sheet's (the variant's condition tree —
+      // ADR-297); only a color the document wrote goes inline, over every state, as the Canvas
+      // paints it (`resolveCatalogPaint` — the authored style wins over the tree). Not the
+      // `.button-base` variables: that ramp skips catalog nodes since ADR-297 3e, so a fill written
+      // as `--button-color` reached nothing (2026-11-02 — the Tag remove button drew the variant's
+      // dark fill in the Preview, transparent on the Canvas). Fill layers are their own background.
       const authored = catalogAuthoredVisual(root, node, true);
-      const variables = bound as Record<string, unknown>;
       const fillAuthored =
         authored.fill !== undefined || authored.backgroundColor !== undefined;
-      // (An outline Button's sheet does not read `--button-color`: its fill stays a property;
-      // fill layers are their own background.)
-      const direct = node.fills?.length || node.props.fillStyle === "outline";
-      if (!(fillAuthored && direct) && !node.fills?.length) {
-        if (fillAuthored) {
-          variables["--button-color"] = bound.backgroundColor;
-          variables["--button-color-hover"] = "initial";
-          variables["--button-color-pressed"] = "initial";
-        }
-        delete bound.backgroundColor;
-      }
-      if (authored.borderColor !== undefined)
-        variables["--button-border"] = bound.borderColor;
-      delete bound.borderColor;
-      if (authored.color !== undefined)
-        variables["--button-text"] = bound.color;
-      delete bound.color;
+      if (!fillAuthored && !node.fills?.length) delete bound.backgroundColor;
+      if (authored.borderColor === undefined) delete bound.borderColor;
+      if (authored.color === undefined) delete bound.color;
     } else if (fieldDisabled && node.props.isDisabled !== true)
       bound.opacity = 1;
   }

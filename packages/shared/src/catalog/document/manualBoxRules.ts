@@ -1007,7 +1007,9 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
           visual: {
             width: 18,
             height: 18,
+            // (not the Button rule's S2 control minimums — `{size.height.*}` would grow the chip)
             minWidth: 0,
+            minHeight: 0,
             paddingX: 2,
             paddingY: 2,
             borderWidth: 0,

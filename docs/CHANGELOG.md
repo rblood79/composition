@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [TagGroup 지우기 버튼 높이 · 바탕 수리 · Preview 에서 Button 작성 색이 안 보이던 것] - 2026-11-02
+
+### Fixed
+
+- **`allowsRemoving` 을 켠 TagGroup 의 Tag 가 32 → 46 으로 커지던 것 (Canvas · Preview 모두)** — 지우기 버튼 (`Button[slot=remove]`) 이 Button rule 의 S2 최소 높이 (`{size.height.M}` 32) 를 받아 18 상자가 32 로 늘었다. Tag 의 part rule 이 그 버튼의 18px 상자를 줄 때 최소 폭과 함께 최소 높이도 0 으로 둔다.
+  - **Why**: ADR-295 Phase 3a 가 Button 크기에 S2 control 최소 높이를 넣었는데, Tag 의 part rule 은 최소 폭만 풀고 있었다 (사용자 보고).
+  - 위치: `packages/shared/src/catalog/document/manualBoxRules.ts` (Tag) · 회귀 `apps/builder/src/builder/catalogRuntime/__tests__/adr256TagGroupNodeTree.test.tsx`
+- **Preview · Publish 에서 Button 에 작성한 바탕 · 테두리 · 글자색이 보이지 않던 것** — Styles 패널로 Button 의 Fill 을 바꾸면 Canvas 에는 보이고 Preview 는 variant 색 (primary 검정) 그대로였다. Tag 지우기 버튼도 같은 원인으로 Preview 에서만 검은 바탕 · 흰 X 였다 (Canvas 는 투명 · Tag 글자색). 이제 작성한 색은 inline 으로 나가 hover · pressed 에서도 그대로 (Canvas 와 같은 규칙 — 작성 값이 상태 칠을 이긴다), 지우기 버튼의 X 는 Tag 글자색을 따른다.
+  - **Why**: ADR-297 Phase 3e 가 `.button-base` 변수 ramp 를 catalog 노드에서 껐는데, DOM 은 작성 색을 여전히 그 변수 (`--button-color` · `--button-border` · `--button-text`) 로 내고 있었다. 테스트는 변수 문자열만 확인해 결과를 놓쳤다.
+  - 위치: `packages/shared/src/catalog/runtime/domBinding.runtime.ts` · `packages/shared/src/components/styles/TagGroup.css` · 회귀 `adr256TagGroupNodeTree.test.tsx` · `adr253FieldPartsDom.test.ts` (변수 → inline 기대값)
+
 ## [ADR-298 Phase 4 — Canvas 간격 핸들 · 입력 칸 끌기가 테마 단계를 밟는다] - 2026-11-02
 
 ### Changed

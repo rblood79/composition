@@ -213,7 +213,9 @@
         scale: 0.9;
       }
 
-      &:where(:not([data-catalog-id], [data-catalog-id] *))[data-focus-visible] {
+      &:where(
+          :not([data-catalog-id], [data-catalog-id] *)
+        )[data-focus-visible] {
         outline: 2px solid var(--focus-ring);
         outline-offset: -1px;
       }
@@ -225,9 +227,9 @@
     .react-aria-Button[slot="remove"] {
       flex-shrink: 0;
       /* Its X takes the Tag's color — RAC's run selection recolors it (the Canvas: the item color,
-         `derivedOf`). The button sheet (`.button-base`, utilities layer) colors by `--button-text`:
-         `currentColor` there is the inherited (the Tag's) color. */
-      --button-text: currentColor;
+         `derivedOf`). Over the Button variant's text color (the generated sheet's condition tree —
+         `--button-text` stopped reaching catalog nodes with ADR-297 3e, so the X drew white). */
+      color: inherit;
     }
 
     &:where(:not([data-catalog-id], [data-catalog-id] *))[data-selected] {
@@ -250,7 +252,10 @@
   /* ===== Parent-delegated Color Variants ===== */
 
   /* S2 `isEmphasized`: the group's selected Tags take the accent pair. */
-  .react-aria-TagGroup[data-emphasized] .react-aria-Tag:where(:not([data-catalog-id], [data-catalog-id] *))[data-selected] {
+  .react-aria-TagGroup[data-emphasized]
+    .react-aria-Tag:where(
+      :not([data-catalog-id], [data-catalog-id] *)
+    )[data-selected] {
     --tag-color: var(--accent);
     --tag-text: var(--fg-on-accent);
     --tag-border: var(--accent);
