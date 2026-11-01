@@ -1,0 +1,225 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog InlineAlert — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: alert
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-InlineAlert {
+  /* Base styles — archetype: alert */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    box-sizing: border-box;
+    width: 100%;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+
+  /* Default variant */
+  background: var(--informative);
+  color: var(--color-white);
+  border: var(--border-width-thin) solid var(--informative);
+
+  /* Default size */
+  height: auto;
+  padding: 16px 16px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-lg);
+  gap: 12px;
+}
+
+.react-aria-InlineAlert:where([data-variant="neutral"]) {
+  background: var(--fg-muted);
+  color: var(--color-white);
+  border-color: var(--fg-muted);
+}
+
+.react-aria-InlineAlert:where([data-variant="neutral"][data-hovered]) {
+  background: var(--fg-muted);
+}
+
+.react-aria-InlineAlert:where([data-variant="neutral"][data-pressed]) {
+  background: var(--fg-muted);
+}
+
+.react-aria-InlineAlert:where([data-variant="neutral"][data-fill-style="border"]) {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.react-aria-InlineAlert:where([data-variant="neutral"][data-fill-style="subtleFill"]) {
+  background: var(--bg-muted);
+  color: var(--fg);
+  border-color: transparent;
+}
+
+.react-aria-InlineAlert:where([data-variant="informative"]) {
+  background: var(--informative);
+  color: var(--color-white);
+  border-color: var(--informative);
+}
+
+.react-aria-InlineAlert:where([data-variant="informative"][data-hovered]) {
+  background: var(--informative);
+}
+
+.react-aria-InlineAlert:where([data-variant="informative"][data-pressed]) {
+  background: var(--informative);
+}
+
+.react-aria-InlineAlert:where([data-variant="informative"][data-fill-style="border"]) {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.react-aria-InlineAlert:where([data-variant="informative"][data-fill-style="subtleFill"]) {
+  background: var(--informative-subtle);
+  color: var(--fg);
+  border-color: transparent;
+}
+
+.react-aria-InlineAlert:where([data-variant="positive"]) {
+  background: var(--positive);
+  color: var(--color-white);
+  border-color: var(--positive);
+}
+
+.react-aria-InlineAlert:where([data-variant="positive"][data-hovered]) {
+  background: var(--positive);
+}
+
+.react-aria-InlineAlert:where([data-variant="positive"][data-pressed]) {
+  background: var(--positive);
+}
+
+.react-aria-InlineAlert:where([data-variant="positive"][data-fill-style="border"]) {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.react-aria-InlineAlert:where([data-variant="positive"][data-fill-style="subtleFill"]) {
+  background: var(--positive-subtle);
+  color: var(--fg);
+  border-color: transparent;
+}
+
+.react-aria-InlineAlert:where([data-variant="notice"]) {
+  background: var(--notice);
+  color: var(--color-black);
+  border-color: var(--notice);
+}
+
+.react-aria-InlineAlert:where([data-variant="notice"][data-hovered]) {
+  background: var(--notice);
+}
+
+.react-aria-InlineAlert:where([data-variant="notice"][data-pressed]) {
+  background: var(--notice);
+}
+
+.react-aria-InlineAlert:where([data-variant="notice"][data-fill-style="border"]) {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.react-aria-InlineAlert:where([data-variant="notice"][data-fill-style="subtleFill"]) {
+  background: var(--notice-subtle);
+  color: var(--fg);
+  border-color: transparent;
+}
+
+.react-aria-InlineAlert:where([data-variant="negative"]) {
+  background: var(--negative);
+  color: var(--color-white);
+  border-color: var(--negative);
+}
+
+.react-aria-InlineAlert:where([data-variant="negative"][data-hovered]) {
+  background: var(--negative);
+}
+
+.react-aria-InlineAlert:where([data-variant="negative"][data-pressed]) {
+  background: var(--negative);
+}
+
+.react-aria-InlineAlert:where([data-variant="negative"][data-fill-style="border"]) {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.react-aria-InlineAlert:where([data-variant="negative"][data-fill-style="subtleFill"]) {
+  background: var(--negative-subtle);
+  color: var(--fg);
+  border-color: transparent;
+}
+
+.react-aria-InlineAlert[data-size="S"] {
+  height: auto;
+  padding: 8px 8px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-lg);
+  gap: 8px;
+}
+
+.react-aria-InlineAlert[data-size="M"] {
+  height: auto;
+  padding: 16px 16px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-lg);
+  gap: 12px;
+}
+
+.react-aria-InlineAlert[data-size="L"] {
+  height: auto;
+  padding: 24px 24px;
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-lg);
+  gap: 16px;
+}
+
+.react-aria-InlineAlert.react-aria-InlineAlert:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-InlineAlert[data-variant="informative"] > .react-aria-Heading {
+  width: auto;
+  align-self: stretch;
+  margin-right: 20px;
+}
+
+.react-aria-InlineAlert[data-variant="positive"] > .react-aria-Heading {
+  width: auto;
+  align-self: stretch;
+  margin-right: 20px;
+}
+
+.react-aria-InlineAlert[data-variant="notice"] > .react-aria-Heading {
+  width: auto;
+  align-self: stretch;
+  margin-right: 20px;
+}
+
+.react-aria-InlineAlert[data-variant="negative"] > .react-aria-Heading {
+  width: auto;
+  align-self: stretch;
+  margin-right: 20px;
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-InlineAlert {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};
