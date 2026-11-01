@@ -5,6 +5,7 @@ import type {
   VisualField,
   WriteValue,
 } from "../../../../../packages/shared/src/catalog/document/types";
+import { panelTokenUse, panelTokenVar } from "./panelTokens";
 
 /**
  * ADR-248 Phase 4e-4d: the Styles panel's CSS keys ↔ the catalog node's typed fields
@@ -209,11 +210,19 @@ export function catalogStyleWrites(
       )
       .reduce(merge, {});
   }
-  if (VISUAL_TEXT.has(key))
-    return { visual: { [key]: empty ? REMOVE : set(cssText(raw)) } };
+  if (VISUAL_TEXT.has(key)) {
+    // ADR-298 D7: a shadow preset is the `{shadow.*}` token (colors stay text until Phase 3).
+    const token = key === "boxShadow" ? panelTokenUse(raw) : undefined;
+    return {
+      visual: { [key]: empty ? REMOVE : set(token ?? cssText(raw)) },
+    };
+  }
   if (VISUAL_NUMBER.has(key) || key in RADIUS) {
     const field = (RADIUS[key] ?? key) as VisualField;
     if (empty) return { visual: { [field]: REMOVE } };
+    // ADR-298 D4: a theme token's variable (`var(--spacing-md)`) is the node's token reference.
+    const token = panelTokenUse(raw);
+    if (token) return { visual: { [field]: set(token) } };
     const weight =
       key === "fontWeight"
         ? ({ normal: 400, bold: 700 } as Record<string, number>)[cssText(raw)]
@@ -232,8 +241,12 @@ export function catalogStyleWrites(
       : fail();
   }
   if (key === "lineHeight") {
-    if (empty || cssText(raw) === "normal")
+    // `auto` (ADR-298 결정 5) = no authored line height: the font size token's pair or the rule's ratio.
+    if (empty || cssText(raw) === "normal" || cssText(raw) === "auto")
       return { visual: { lineHeight: REMOVE } };
+    // ADR-298 D4 ②: a line-height token — the resolver turns its px into the ratio.
+    const token = panelTokenUse(raw);
+    if (token) return { visual: { lineHeight: set(token) } };
     const text = cssText(raw);
     // Unitless = the ratio itself; px = a ratio to the node's own font size.
     const ratio = /^\d+(?:\.\d+)?$/.test(text)
@@ -435,7 +448,8 @@ const px = (value: unknown) =>
 /**
  * The CSS view of a node's authored typed fields (what the old panel read from `props.style`):
  * lengths as px text, `line-height` in px when the font size is known, `gap` from `visual.gap`
- * unless a row/column gap is authored. Token uses and structured values are left out.
+ * unless a row/column gap is authored. A library token use is the token's variable (`var(--spacing-md)`,
+ * ADR-298 D4 — the text the panel's presets write); project tokens and structured values are left out.
  */
 export function catalogStyleView(
   fields: CatalogStyleFields,
@@ -444,6 +458,14 @@ export function catalogStyleView(
   const style: Record<string, string | number> = {};
   const { visual, layout, sizing } = fields;
   for (const [key, value] of Object.entries(visual)) {
+    const token = panelTokenVar(value);
+    if (
+      token &&
+      (VISUAL_NUMBER.has(key) || key === "boxShadow" || key === "lineHeight")
+    ) {
+      style[key] = token;
+      continue;
+    }
     if (value === undefined || (typeof value === "object" && value !== null))
       continue;
     if (VISUAL_TEXT.has(key) && typeof value === "string") style[key] = value;
@@ -453,7 +475,9 @@ export function catalogStyleView(
   }
   for (const [cssKey, field] of Object.entries(RADIUS)) {
     const value = visual[field];
-    if (typeof value === "number") style[cssKey] = `${value}px`;
+    const token = panelTokenVar(value);
+    if (token) style[cssKey] = token;
+    else if (typeof value === "number") style[cssKey] = `${value}px`;
   }
   if (typeof visual.opacity === "number") style.opacity = visual.opacity;
   if (typeof visual.lineHeight === "number") {

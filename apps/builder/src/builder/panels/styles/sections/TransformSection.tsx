@@ -534,13 +534,20 @@ const TransformSectionContent = memo(function TransformSectionContent({
                 onDrag={(value) => previewConstraint("maxHeight", value)}
                 min={0}
                 max={9999}
+                afterControl={
+                  constraintError ? (
+                    <span
+                      slot="description"
+                      className="property-field__status"
+                      data-tone="error"
+                      role="alert"
+                    >
+                      {localize("Minimum size cannot exceed maximum size")}
+                    </span>
+                  ) : undefined
+                }
               />
               <div className="fieldset-actions actions-constraint-max" />
-              {constraintError && (
-                <p className="transform-constraint-error" role="alert">
-                  {localize("Minimum size cannot exceed maximum size")}
-                </p>
-              )}
             </>
           )}
           <PropertySelect
@@ -556,6 +563,18 @@ const TransformSectionContent = memo(function TransformSectionContent({
             value={styleValues.aspectRatio || ""}
             options={ASPECT_RATIO_OPTIONS}
             onChange={commitRatio}
+            afterControl={
+              sizingError ? (
+                <span
+                  slot="description"
+                  className="property-field__status"
+                  data-tone="error"
+                  role="alert"
+                >
+                  {localize(RATIO_ERROR_LABELS[sizingError])}
+                </span>
+              ) : undefined
+            }
           />
           <div className="fieldset-actions actions-ratio">
             <SwatchIconButton
@@ -580,11 +599,6 @@ const TransformSectionContent = memo(function TransformSectionContent({
               )}
             </SwatchIconButton>
           </div>
-          {sizingError && (
-            <p className="transform-ratio-error" role="alert">
-              {localize(RATIO_ERROR_LABELS[sizingError])}
-            </p>
-          )}
         </div>
       )}
     </>
@@ -739,6 +753,17 @@ const PositionControls = memo(function PositionControls({
   const stickySides = (["top", "right", "bottom", "left"] as const).filter(
     (side) => view(side) !== undefined && view(side) !== "auto",
   );
+  const summary = rulePlaced
+    ? localize("Placed by its component")
+    : absolute
+      ? `${fixed ? `${localize("In the screen")} — ` : ""}${describe("x")} · ${describe("y")}`
+      : sticky
+        ? stickySides.length
+          ? `${localize("Sticks when scrolled")} — ${stickySides
+              .map((side) => `${localize(SIDE_AXIS[side].label)} ${view(side)}`)
+              .join(" · ")}`
+          : localize("No side set — it scrolls away")
+        : localize("In the flow — Left · Top move it from its place");
   const mode = fixed
     ? "fixed"
     : absolute
@@ -757,6 +782,28 @@ const PositionControls = memo(function PositionControls({
           rulePlaced ? ["relative", "absolute", "sticky", "fixed"] : []
         }
         disabledHint="Not allowed yet"
+        // 위치 요약 · 오류 = 이 필드의 상태 문구 (panel-structure §1 · 감사 E2 — 종전 절 아래 문단)
+        afterControl={
+          <>
+            <span
+              slot="description"
+              className="property-field__status"
+              aria-live="polite"
+            >
+              {summary}
+            </span>
+            {error && (
+              <span
+                slot="description"
+                className="property-field__status"
+                data-tone="error"
+                role="alert"
+              >
+                {error}
+              </span>
+            )}
+          </>
+        }
         onChange={(next) => {
           if (
             next === "absolute" ||
@@ -794,27 +841,6 @@ const PositionControls = memo(function PositionControls({
           </SwatchIconButton>
         )}
       </div>
-      <p className="position-summary" aria-live="polite">
-        {rulePlaced
-          ? localize("Placed by its component")
-          : absolute
-            ? `${fixed ? `${localize("In the screen")} — ` : ""}${describe("x")} · ${describe("y")}`
-            : sticky
-              ? stickySides.length
-                ? `${localize("Sticks when scrolled")} — ${stickySides
-                    .map(
-                      (side) =>
-                        `${localize(SIDE_AXIS[side].label)} ${view(side)}`,
-                    )
-                    .join(" · ")}`
-                : localize("No side set — it scrolls away")
-              : localize("In the flow — Left · Top move it from its place")}
-      </p>
-      {error && (
-        <p className="transform-ratio-error" role="alert">
-          {error}
-        </p>
-      )}
     </div>
   );
 });

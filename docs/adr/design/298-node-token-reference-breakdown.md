@@ -116,3 +116,22 @@ Phase 1 과 2 는 커밋을 나눈다 — Phase 1 은 「동작 변경 0」 (rev
 | live G2 | 5178 Playwright — 27/27 (선언 `var()` 7 축 × 3 arm + arm 유효성 2 + 선언 불변 1), 콘솔 0 |
 | 회귀 | builder 4,085 통과 · 실패 10 = HEAD 목록 (builderCatalogVars c · calendarReferenceBox 2 · formContext · phase4e11 · phase4eG5LeafScope · interactionWhenReach Calendar 4) · shared 2,309 통과 (designDataSurfaceGaps 파일 — 다른 세션 편집 중) |
 | LOW deferred | G2 픽셀 arm · 터치 arm |
+
+### 6.2 Phase 2 (2026-11-01 — G2 · G3 · G5 패널 몫 닫힘, 사용자 결정 3 · 6 = 권고안)
+
+| 항목 | 결과 |
+| --- | --- |
+| 사용자 결정 | 3 = 「토큰 칸으로」 (Border Width — 2026-09-15 슬라이더 판정 변경) · 6 = 「묶는다」 (감사 C4 · E2) · 5 = auto (자율 · 보고) |
+| 패널 토큰 글자 | `catalogRuntime/panelTokens.ts` — `var(--…)` (`tokenToCSSVar`) ↔ `TokenUse` (`panelTokenUse` · `panelTokenVar`). shared `libraryTokenRef` 가 scale id · 옛 `_light` id 를 ref 로 |
+| 쓰기 · 읽기 (D4 · F5 · F6) | `styleFields.ts` `catalogStyleWrites` — 길이 키 · 코너 · `lineHeight` (`auto` = 제거) · `boxShadow` 토큰 / `catalogStyleView` — TokenUse → 변수 글자 |
+| preset 표 (D3) | `propertyUnitPresets.ts` 토큰 표 파생 (숫자 0) · `group` (Font Size 본문 · 제목) · `PAGE_GAP_PRESETS` 삭제 · commit = 토큰 (`getPresetCommitValue`) |
+| 칩 모드 (D4) | `PropertyUnitInput` — 칩 + 해석값 · 숫자 입력 = 리터럴 · 보기만 하고 떠나면 토큰 유지 · 화살표는 해석값에서 리터럴 · 묶음 메뉴 (`ListBoxSection` + `Header`) · `afterControl` (상태 문구) |
+| 절 | Border Width 토큰 칸 (슬라이더 · ⋮ 삭제) · Radius · Padding · Gap 칩 · Effect 그림자 `{shadow.*}` + legend 칩 · Blur 단위 입력칸 (C4) · Font Size 두 묶음 · Line Height auto · Size (Max H · Ratio) · Position 상태 문구 `slot="description"` (E2 — 절 아래 `<p>` 3 · `.position-summary` 삭제) |
+| 범위 조정 | layout longhand = CSS 글자 → 한 줄 flex Gap 토큰은 `visual.gap` + 주축 longhand 삭제, grid Gap X · Y 는 해석값 리터럴 (layout 토큰 형은 Phase 3 inset 과 함께). 표시 순서: 한 줄 flex 의 Gap = 주축 longhand ?? `gap` (`useLayoutValues`) |
+| 규칙 | `.claude/rules/style-ssot.md` §2 토큰 preset 줄 — commit 이 해석값 → 토큰 참조 (Why 갱신) |
+| 테스트 | `adr298Phase2Panel.test.tsx` 7 · G3 `adr298CodeViewRoundTrip.test.tsx` 2 (Apply 가 같은 tokenId · 토큰 → 토큰 → 리터럴 → 토큰) · RED ① ② → GREEN · 기존 테스트 정정 4 (단위 입력 preset commit · Border 정적 · Effect legend · 토큰 표 개수 149 → 대응 검사) |
+| 원복 RED | `scratchpad/revert298p2.sh` 7 arm 전부 RED (쓰기 7 · 읽기 6 · preset commit 7 · blur 유지 2 · 그림자 1 · Gap 주축 1 · E2 1 행 실패) |
+| live G5 | 5178 Playwright · 실제 패널 클릭 — 35/35 · 콘솔 0 (ADR 본문 Live Exercise) |
+| 회귀 | builder components · catalogRuntime · panels · preview · styles 5,098 통과 · 실패 6 = 내 변경 밖 (catalogHistoryLabels `toastShape` 번역 · chromeIsland `workspace-panel-frame` · interactionWhenReach Calendar 4 — Phase 1 목록과 같은 몫) · shared document · codeView 411 통과 · type-check builder 0 (shared 의 `codeCatalogLibrary.ts` 오류는 다른 세션 미커밋 편집 — 내 파일 0) |
+| LOW deferred | 터치 arm · 픽셀 arm (Phase 1 과 같음) |
+

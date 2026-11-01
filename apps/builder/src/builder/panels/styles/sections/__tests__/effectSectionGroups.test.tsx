@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * 2026-10-28 사용자 결정 — Effect 절의 Opacity · Box Shadows · Filters 는 기본 「없음」 이고
+ * 2026-10-28 사용자 결정 — Effect 절의 Opacity · Box Shadows · Blur 는 기본 「없음」 이고
  * 절 머리줄 「+」 메뉴로 추가한다. 값이 있는 효과만 `fieldset` (legend + 내용) 으로 그린다.
  */
 import "fake-indexeddb/auto";
@@ -56,7 +56,8 @@ describe("EffectSection groups", () => {
     ]);
     expect(legendsOf(view.container)).toEqual([
       "Opacity",
-      "Filters",
+      // Blur — 다른 px 길이 칸과 같은 단위 입력칸 행 (감사 C4 · ADR-298 결정 6, 종전 「Filters」 묶음)
+      "Blur",
       "Box Shadows",
     ]);
   });

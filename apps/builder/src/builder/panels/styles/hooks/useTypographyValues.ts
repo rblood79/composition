@@ -10,6 +10,7 @@ import {
 } from "../../../fonts/customFonts";
 import { numToPx, firstDefined } from "../utils/styleValueHelpers";
 import { useColorStyleValues } from "./useColorStyleValues";
+import { isTokenValue } from "../../../components/property/PropertyUnitInput.runtime";
 
 export interface TypographyStyleValues {
   fontFamily: string;
@@ -111,11 +112,18 @@ export function useTypographyValues(
         : (effectiveFontWeight ?? "400"),
     );
 
-    const lineHeight = firstDefined(
-      s.lineHeight,
-      numToPx(e.lineHeight) ?? numToPx(preset.lineHeight),
-      "normal",
-    );
+    // ADR-298 결정 5: 글자 크기가 토큰이고 행간이 미작성이면 「auto」 — resolver 가 그 단계의
+    //   짝 행간을 쓴다 (D4 ①). 값은 저장하지 않는다.
+    const lineHeight =
+      (s.lineHeight === undefined || s.lineHeight === "") &&
+      typeof s.fontSize === "string" &&
+      isTokenValue(s.fontSize)
+        ? "auto"
+        : firstDefined(
+            s.lineHeight,
+            numToPx(e.lineHeight) ?? numToPx(preset.lineHeight),
+            "normal",
+          );
     const letterSpacing = firstDefined(
       s.letterSpacing,
       numToPx(e.letterSpacing) ?? numToPx(preset.letterSpacing),

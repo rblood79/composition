@@ -59,6 +59,23 @@ export function libraryTokenScaleRefs(): readonly {
   ];
 }
 
+let scaleByTokenId: Map<string, `{${string}}`> | undefined;
+
+/**
+ * ADR-298 Phase 2 — the ref of a library token id: a scale id (`lib:token:spacing_md`) or a rule token's
+ * (`lib:token:radius_md_light` — the theme suffix is the mode it was built in, not part of the step). A
+ * project token or an unknown id is undefined.
+ */
+export function libraryTokenRef(tokenId: string): `{${string}}` | undefined {
+  scaleByTokenId ??= new Map(
+    libraryTokenScaleRefs().map(({ ref }) => [libraryTokenId(ref), ref]),
+  );
+  return (
+    scaleByTokenId.get(tokenId) ??
+    scaleByTokenId.get(tokenId.replace(/_(?:light|dark)$/, ""))
+  );
+}
+
 /** Adds the scale to a library token map (a rule token is never replaced — its id has a suffix). */
 export function addLibraryTokenScale(
   tokens: Map<LibraryTokenId, LibraryToken>,

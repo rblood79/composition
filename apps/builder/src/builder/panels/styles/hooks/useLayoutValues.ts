@@ -80,8 +80,12 @@ export function useLayoutValues(id: string | null): LayoutStyleValues | null {
       // store 는 longhand (rowGap/columnGap) 만 유지 — shorthand gap 은
       // inspectorActions 에서 longhand 로 분배. Panel Gap 필드는 rowGap
       // 우선, 없으면 columnGap, 없으면 shorthand `s.gap` (legacy) 표시.
+      // 한 줄 flex 의 주축은 그 longhand, 없으면 `gap` (교차축 longhand 는 주축에 닿지 않는다 —
+      //   패널의 토큰 gap 이 주축 longhand 를 지우고 `visual.gap` 에 쓴다, ADR-298 D4).
       gap: firstDefined(
-        axisGap ?? s.rowGap ?? s.columnGap ?? s.gap,
+        gapAxis
+          ? (axisGap ?? s.gap)
+          : (s.rowGap ?? s.columnGap ?? s.gap),
         numToPx(axisEffectiveGap ?? e.rowGap ?? e.columnGap ?? e.gap),
         "0px",
       ),

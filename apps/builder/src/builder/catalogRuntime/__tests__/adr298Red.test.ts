@@ -24,8 +24,8 @@ import { catalogStyleView, catalogStyleWrites } from "../styleFields";
 const radiusM = BORDER_RADIUS_PRESET_OPTIONS.find((preset) => preset.id === "md")!;
 
 describe("ADR-298 Phase 0 — 준비 (GREEN)", () => {
-  it("Radius preset M 의 commit 값은 활성 snapshot 의 px 리터럴이다 (ADR-295 Decision 5)", () => {
-    expect(getPresetCommitValue(radiusM)).toMatch(/^\d+(?:\.\d+)?px$/);
+  it("Radius preset M 의 commit 값은 토큰 자신이다 (Phase 2 — 종전 ADR-295 Decision 5 의 px 리터럴)", () => {
+    expect(getPresetCommitValue(radiusM)).toBe("var(--radius-md)");
   });
   it("Canvas 는 light preset 그림자 리터럴을 dark 에서 dark 값으로 되돌린다 (F11 의 한쪽)", () => {
     expect(normalizeShadowForTheme(lightShadows.sm, "dark")).toBe(darkShadows.sm);
@@ -54,8 +54,9 @@ describe("ADR-298 결정 7 선행 /fix — GREEN", () => {
   });
 });
 
-describe("ADR-298 Phase 0 — RED", () => {
-  it.fails("① preset M commit 이 노드에 토큰 참조 (TokenUse) 로 저장된다 — 지금은 px 숫자", () => {
+describe("ADR-298 Phase 0 RED → Phase 2 GREEN", () => {
+  // (Phase 2 GREEN — `cssPx` 앞에서 `panelTokenUse` 가 토큰 변수를 TokenUse 로.)
+  it("① preset M commit 이 노드에 토큰 참조 (TokenUse) 로 저장된다", () => {
     const writes = catalogStyleWrites("borderRadius", getPresetCommitValue(radiusM));
     const radius = (writes.visual as Record<string, { kind: string; value?: unknown }>)
       .radius;
@@ -63,13 +64,14 @@ describe("ADR-298 Phase 0 — RED", () => {
     expect(radius?.value).toMatchObject({ kind: "token" });
   });
 
-  it.fails("② catalogStyleView 가 토큰 gap 을 패널에 보인다 — 지금은 건너뛴다", () => {
+  // (Phase 2 GREEN — `catalogStyleView` 가 라이브러리 토큰을 그 변수 글자로 올린다.)
+  it("② catalogStyleView 가 토큰 gap 을 패널에 보인다", () => {
     const style = catalogStyleView({
       visual: { gap: { kind: "token", tokenId: "lib:token:radius_md_light" } },
       layout: {},
       sizing: {},
     } as never);
-    expect(style.gap).toBeDefined();
+    expect(style.gap).toBe("var(--radius-md)");
   });
 
 });

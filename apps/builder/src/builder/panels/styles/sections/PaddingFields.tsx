@@ -18,6 +18,7 @@ import {
   SquareDashed,
 } from "lucide-react";
 import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
+import { SPACING_PRESET_OPTIONS } from "../../../components/property/propertyUnitPresets";
 import { SwatchIconToggleButton } from "../../../components/ui/SwatchIconButton";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import { useSemanticLabel } from "../../../../i18n";
@@ -103,6 +104,9 @@ export const PaddingFields = memo(function PaddingFields({
         placeholder={value === "" ? localize("Mixed") : undefined}
         units={["px"]}
         defaultUnit="px"
+        // ADR-298 D3 · D4: spacing 토큰 (XS ~ XL) — 고르면 토큰 참조로 저장, 칸은 칩 + 값.
+        presets={SPACING_PRESET_OPTIONS}
+        presetAriaLabel={localize(`${label} presets`)}
         // 빈 값 (Mixed) 을 0 으로 그리지 않는다 — 입력할 때까지 placeholder
         preserveEmptyValueOnUnitChange
         allowKeywords={false}

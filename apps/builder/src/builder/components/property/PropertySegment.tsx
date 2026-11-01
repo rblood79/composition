@@ -8,7 +8,7 @@
  *
  * 값이 옵션 밖 (size 의 2XL · 3XL — 상한 5단 초과) 이면 선택 없음 + legend 뒤에 값·출처.
  */
-import { memo, useCallback } from "react";
+import { memo, useCallback, type ReactNode } from "react";
 import type { Key } from "react-aria-components/Collection";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -46,6 +46,8 @@ interface PropertySegmentProps {
   disabledValues?: readonly string[];
   disabledHint?: string;
   className?: string;
+  /** 필드 상태 문구 (`slot="description"`) — 값에 반응하는 요약 · 오류 (panel-structure §1). */
+  afterControl?: ReactNode;
 }
 
 export const PropertySegment = memo(function PropertySegment({
@@ -58,6 +60,7 @@ export const PropertySegment = memo(function PropertySegment({
   disabledValues,
   disabledHint,
   className,
+  afterControl,
 }: PropertySegmentProps) {
   const i18n = useOptionalI18n();
   const localize = (text: string) =>
@@ -133,6 +136,7 @@ export const PropertySegment = memo(function PropertySegment({
           );
         })}
       </ToggleButtonGroup>
+      {afterControl}
     </fieldset>
   );
 });

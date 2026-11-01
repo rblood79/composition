@@ -1,16 +1,16 @@
 /**
  * BorderSection — Style 탭 Border 절
  *
- *   「Width  ──●──── 1 px」  [프리셋 ⋮]
+ *   「Width  [thin] 1     ▾」
  *   Style  [— - - ···]       Color [■ 000000]
  *   Sides  [전체 · 좌 · 우 · 상 · 하]
  *   「Radius  8         ▾」   [코너 펼침 ⊡]  → 코너 2×2 (토글 on 또는 비균일)
  *
  * 순서는 2026-09-15 사용자 판정 (Width → Style/Color → Sides → Radius). 종전 Appearance 절
  * (Background + Border + Opacity + Shadow 한 절) 을 Fill · Border · Effect 셋으로 나눴다
- * (panel-ui 02, 2026-09-14). Width 는 슬라이더 행 — 0~24 범위는 드래그가 타이핑보다 빠르고,
- * 값 칸을 클릭하면 직접 입력, 토큰 프리셋 (XS~XL) 은 28 열 메뉴. Radius 는 Gap 과 같은
- * 「값 + ▾ 토큰 preset」 필드.
+ * (panel-ui 02, 2026-09-14). Width 는 토큰 칸 (none · thin · thick ▾ + 숫자 직접 입력 — 사용자
+ * 결정 3, ADR-298 2026-11-01; 종전 슬라이더 + ⋮ 메뉴) · Radius 는 Gap 과 같은 「값 + ▾ 토큰
+ * preset」 필드. preset 은 토큰 참조로 저장되고 칸은 칩 + 활성 테마 값을 보인다 (ADR-298 D4).
  * Style 은 셀렉트 10항목 → seg 4 (none · solid · dashed · dotted) — double/groove/ridge/
  * inset/outset 은 저장값이 있으면 렌더는 그대로 (Skia 8종) 되지만 seg 에 선택이 없다.
  *
@@ -39,13 +39,11 @@ import {
 } from "@composition/shared/components";
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertyColor } from "../../../components/property/PropertyColor";
-import { PropertyRowMenu } from "../../../components/property/PropertyRowMenu";
-import { PropertySlider } from "../../../components/property/PropertySlider";
 import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
+import { isTokenValue } from "../../../components/property/PropertyUnitInput.runtime";
 import {
   BORDER_RADIUS_PRESET_OPTIONS,
   BORDER_WIDTH_PRESET_OPTIONS,
-  type PropertyUnitPreset,
 } from "../../../components/property/propertyUnitPresets";
 import {
   CornerRadius,
@@ -59,12 +57,9 @@ import { useStyleActions } from "../hooks/useStyleActions";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
 import { useAppearanceValues } from "../hooks/useAppearanceValues";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
-import { resolveCssLengthPx } from "../utils/cssLengthPx";
 import { useSemanticLabel } from "../../../../i18n";
 import { useStylesHost, useStylesSelectedId } from "../stylesHost";
 
-/** 슬라이더 범위 — 값 칸 직접 입력은 이 위로도 간다 (썸은 끝에 머문다). */
-const WIDTH_SLIDER_MAX = 24;
 const INPUT_MAX = 9999;
 
 // 「없음 (×)」 토글 없음 — 활성 토글 재클릭이 해제 = none (Text 탭 세그먼트와 같은 패턴, 2026-09-14)
@@ -133,17 +128,6 @@ const CORNER_FIELDS = [
   },
 ] as const;
 
-/** 프리셋 (XS~XL, Reset) → 행 메뉴 항목. value "" (Reset) 은 inline 키 삭제. */
-function toPresetMenuItems(presets: readonly PropertyUnitPreset[]) {
-  return presets.map((preset) => ({
-    id: preset.id,
-    label:
-      preset.id === "reset"
-        ? preset.label
-        : `${preset.label} · ${resolveCssLengthPx(preset.value) ?? preset.value}`,
-  }));
-}
-
 const BorderSectionContent = memo(function BorderSectionContent() {
   const localize = useSemanticLabel();
   const { updateStyle } = useStyleActions();
@@ -171,6 +155,15 @@ const BorderSectionContent = memo(function BorderSectionContent() {
     styleValues.borderGeometry;
   const widthPx = uniformWidth ?? Math.max(...widths);
   const radiusPx = uniformRadius ?? Math.max(...radii);
+  // ADR-298 D4: a uniform token value shows as the token (chip + the active theme's value).
+  const widthValue =
+    uniformWidth !== null && isTokenValue(styleValues.borderWidth)
+      ? styleValues.borderWidth
+      : `${widthPx}px`;
+  const radiusValue =
+    uniformRadius !== null && isTokenValue(styleValues.borderRadius)
+      ? styleValues.borderRadius
+      : `${radiusPx}px`;
   // 코너 4방향 펼침 — 토글 on 이거나 비균일이면 보인다
   const showCorners = cornersOpen || uniformRadius === null;
   const sidesOn = (["top", "right", "bottom", "left"] as const).filter(
@@ -217,44 +210,23 @@ const BorderSectionContent = memo(function BorderSectionContent() {
     });
   };
 
-  const applyPreset = (
-    prop: "borderWidth" | "borderRadius",
-    presets: readonly PropertyUnitPreset[],
-    id: string,
-  ): void => {
-    const preset = presets.find((p) => p.id === id);
-    if (!preset) return;
-    // 토큰 preset (var(--radius-xl)) 은 px 로 풀어 쓴다 — border 기하 배치 (ADR-219) 는
-    //   숫자만 읽어 var() 가 0 이 됐다. 메뉴 글자 (「XL · 12」) 와 같은 값.
-    const px = resolveCssLengthPx(preset.value);
-    updateStyleImmediate(prop, px !== null ? `${px}px` : preset.value);
-  };
-
   return (
     <>
       <div className="style-border-width">
-        <PropertySlider
+        <PropertyUnitInput
           label="Width"
           className="border-width"
-          editable
-          unit="px"
-          value={widthPx}
+          value={widthValue}
+          units={["px"]}
+          presets={BORDER_WIDTH_PRESET_OPTIONS}
+          presetAriaLabel={localize("Border width presets")}
+          allowKeywords={false}
           min={0}
-          max={WIDTH_SLIDER_MAX}
-          inputMax={INPUT_MAX}
-          step={1}
-          onChange={(px) => updateStylePreview("borderWidth", `${px}px`)}
-          onChangeEnd={(px) => updateStyleImmediate("borderWidth", `${px}px`)}
+          max={INPUT_MAX}
+          onChange={(value) => updateStyleImmediate("borderWidth", value)}
+          onDrag={(value) => updateStylePreview("borderWidth", value)}
         />
-        <div className="fieldset-actions actions-icon">
-          <PropertyRowMenu
-            label={localize("Border width presets")}
-            items={toPresetMenuItems(BORDER_WIDTH_PRESET_OPTIONS)}
-            onAction={(id) =>
-              applyPreset("borderWidth", BORDER_WIDTH_PRESET_OPTIONS, id)
-            }
-          />
-        </div>
+        <div className="fieldset-actions actions-icon" />
       </div>
 
       <div className="style-border">
@@ -348,7 +320,7 @@ const BorderSectionContent = memo(function BorderSectionContent() {
         <PropertyUnitInput
           label="Radius"
           className="border-radius"
-          value={`${radiusPx}px`}
+          value={radiusValue}
           units={["px"]}
           presets={BORDER_RADIUS_PRESET_OPTIONS}
           allowKeywords={false}

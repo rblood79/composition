@@ -59,6 +59,11 @@ export interface PropertyUnitInputProps {
    * 20 Settings). preset 이 있으면 무시 (preset 은 ▾ 메뉴 그대로).
    */
   unitSuffix?: boolean;
+  /**
+   * 필드 상태 문구 (`slot="description"`) — 값에 반응하는 메시지 (오류 · 요약) 를 필드 안에 둔다
+   * (panel-structure §1 · 감사 E2 — 종전 절 아래 전폭 `<p>`).
+   */
+  afterControl?: React.ReactNode;
 }
 
 export const DEFAULT_UNITS = ["px", "%", "rem", "em", "vh", "vw", "reset"];
@@ -131,7 +136,46 @@ export function parseUnitValue(value: string): {
  */
 export function themedTokenRef(cssVar: string) {
   const ref = cssVarToTokenRef(cssVar);
-  return ref && /^\{(radius|typography|border)\./.test(ref) ? ref : null;
+  return ref && /^\{(spacing|radius|typography|border)\./.test(ref)
+    ? ref
+    : null;
+}
+
+/**
+ * ADR-298 D4 — a theme token value (`var(--spacing-md)` …): the node stores the token reference, and
+ * the field shows the step's chip with the active theme's value (`resolveToken`).
+ */
+export function isTokenValue(value: string): boolean {
+  return themedTokenRef(value.trim()) !== null;
+}
+
+const STEP_LABELS: Readonly<Record<string, string>> = {
+  xs: "XS",
+  sm: "S",
+  md: "M",
+  base: "M",
+  lg: "L",
+  xl: "XL",
+};
+
+/**
+ * The chip of a token value: the preset's label when the field offers that token, else the step's
+ * panel label (XS · S · M · L · XL — memory `feedback-panel-scale-labels`), else the step name.
+ */
+export function tokenChipLabel(
+  value: string,
+  presets?: readonly PropertyUnitPreset[],
+): string | undefined {
+  const trimmed = value.trim();
+  if (!isTokenValue(trimmed)) return undefined;
+  const preset = presets?.find((candidate) => candidate.value.trim() === trimmed);
+  // 묶음의 첫 글자로 두 묶음의 같은 라벨을 가른다 (본문 「M」 · 제목 「H M」).
+  if (preset)
+    return preset.group && preset.group !== "Body"
+      ? `${preset.group[0]} ${preset.label}`
+      : preset.label;
+  const step = /([a-z0-9]+)\)$/.exec(trimmed.replace(/--line-height\)$/, ")"))?.[1];
+  return step ? (STEP_LABELS[step] ?? step) : undefined;
 }
 
 function getCssVariableValue(value: string): string | undefined {
@@ -198,11 +242,11 @@ export function findMatchingPreset(
 
   return presets?.find((preset) => {
     const presetValue = preset.value.trim();
-    const presetDisplayValue = getPresetDisplayValue(preset.value);
-    return (
-      presetValue === trimmedInputValue ||
-      presetDisplayValue === trimmedInputValue
-    );
+    if (presetValue === trimmedInputValue) return true;
+    // ADR-298 D9: a typed number is a literal (the number escape) — it names a token preset only
+    //   by the token itself, never by the token's current value.
+    if (isTokenValue(presetValue)) return false;
+    return getPresetDisplayValue(preset.value) === trimmedInputValue;
   });
 }
 
@@ -213,6 +257,9 @@ export function getPresetCommitValue(preset: {
 }): string {
   const trimmed = preset.value.trim();
   if (trimmed === "") return "";
+  // ADR-298 D4: a token preset commits the token (the node keeps the reference, its value follows
+  //   the theme). Other variables still commit the active value.
+  if (isTokenValue(trimmed)) return trimmed;
 
   const resolved = getCssVariableValue(trimmed);
   return resolved ? toPixelValue(resolved) : preset.value;
@@ -250,6 +297,8 @@ export function getInputDisplayValue(
   if (matchingPreset) {
     return getPresetDisplayValue(matchingPreset.value);
   }
+  // A token value with no preset in this field still shows its value (the chip names the step).
+  if (isTokenValue(trimmed)) return getPresetDisplayValue(trimmed);
 
   return parsed.numericValue !== null
     ? String(parsed.numericValue)

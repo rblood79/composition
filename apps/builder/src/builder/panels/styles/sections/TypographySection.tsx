@@ -11,6 +11,7 @@
 import { memo, useCallback, useMemo } from "react";
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
+import { FONT_SIZE_PRESET_OPTIONS } from "../../../components/property/propertyUnitPresets";
 import { PropertyColor } from "../../../components/property/PropertyColor";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import {
@@ -190,6 +191,8 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         value={styleValues.fontSize}
         units={["reset", "px"]}
         defaultUnit="px"
+        presets={FONT_SIZE_PRESET_OPTIONS}
+        presetAriaLabel={localize("Font size presets")}
         onChange={handleTextMetricCommit}
         onDrag={handleTextMetricPreview}
         min={8}
@@ -200,7 +203,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         className="line-height"
         unitSuffix
         value={styleValues.lineHeight}
-        units={["reset", "px"]}
+        units={["auto", "px"]}
         onChange={(value) => updateStyleImmediate("lineHeight", value)}
         onDrag={(value) => updateStylePreview("lineHeight", value)}
         min={0}

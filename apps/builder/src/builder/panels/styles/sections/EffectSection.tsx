@@ -4,8 +4,8 @@
  *   Effect                                 [+ Opacity · Blur · 그림자 · 프리셋 S/M/L]  [↺]
  *   Opacity                                     ← fieldset (legend + 슬라이더)
  *   [──●── 50 %                          ][−]
- *   Filters                                     ← fieldset (legend + blur 한 종)
- *   [Blur                          4 px  ][−]
+ *   Blur                                        ← fieldset-row (legend + 단위 입력칸 — 감사 C4)
+ *   [4                              PX   ][−]
  *   Box Shadows                                 ← fieldset (legend + 레이어 목록)
  *   [■ 0 · 4 · 12 · 0                  −][▢]   ← 레이어마다 (클릭 → 편집 팝오버)
  *
@@ -16,13 +16,12 @@
  *
  * 종전 Appearance 절에서 분리 (panel-ui 02, 2026-09-14). Skia 는 parseAllBoxShadows 로 다중 ·
  * inset · spread 를 그리고, 프리셋 (sm/md/lg = Spectrum elevation, theme 별 정규화) 은 3 레이어
- * 문자열이라 목록 전체를 바꾼다. Filters 는 Skia 가 blur 를 LayerBlurEffect 로 접붙이므로 blur
+ * 문자열이라 목록 전체를 바꾼다 — 저장은 `{shadow.*}` 토큰 참조 (ADR-298 D7, legend 에 단계 칩). Filters 는 Skia 가 blur 를 LayerBlurEffect 로 접붙이므로 blur
  * 한 종 (다른 함수는 저장값 보존).
  * 접힌 섹션의 훅 실행을 방지하기 위해 내용 컴포넌트 분리.
  */
 
 import { memo, useState } from "react";
-import { Button } from "react-aria-components/Button";
 import { Minus } from "lucide-react";
 import { PropertyRowMenu } from "../../../components/property/PropertyRowMenu";
 import { Section as PropertySection } from "../../../components/panel/Section";
@@ -41,7 +40,7 @@ import {
   BoxShadowLayerRow,
   type BoxShadowLayerAction,
 } from "../components/BoxShadowLayerRow";
-import { ScrubInput } from "../components/ScrubInput";
+import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
 import {
   addBoxShadowPresentationLayer,
   parseBoxShadowPresentation,
@@ -73,6 +72,25 @@ const SHADOW_PRESET_LABEL: Record<(typeof SHADOW_PRESET_KEYS)[number], string> =
     lg: "L",
   };
 
+/**
+ * ADR-298 D7 — 그림자 preset 은 `{shadow.sm|md|lg}` 토큰 참조로 저장된다 (`var(--shadow-*)` — 패널
+ * 값의 토큰 글자). 레이어 목록은 그 토큰의 값 (light 정규형) 으로 보이고, 레이어를 고치면 리터럴이 된다.
+ */
+function shadowTokenKey(
+  value: string,
+): (typeof SHADOW_PRESET_KEYS)[number] | undefined {
+  const key = /^var\(--shadow-([a-z]+)\)$/.exec(value.trim())?.[1];
+  return SHADOW_PRESET_KEYS.find((preset) => preset === key);
+}
+
+/** 그림자 값의 레이어 모델 — 토큰이면 그 토큰의 값으로. */
+function shadowModelOf(value: string): BoxShadowPresentationValue | null {
+  const token = shadowTokenKey(value);
+  return parseBoxShadowPresentation(
+    token ? (getShadowToken(token, "light") ?? "") : value,
+  );
+}
+
 /** 새 blur 기본값 (px) */
 const DEFAULT_BLUR_PX = 4;
 
@@ -98,29 +116,6 @@ function percentToOpacityValue(percent: number): string {
   return String(Math.max(0, Math.min(100, percent)) / 100);
 }
 
-/** 목록 행 액션 칸의 「−」 (Blur — 액션이 하나뿐인 레이어 행) */
-function RemoveActionButton({
-  label,
-  onPress,
-}: {
-  label: string;
-  onPress: () => void;
-}) {
-  return (
-    <Button
-      className="effect-layer-row__action effect-layer-row__remove"
-      aria-label={label}
-      onPress={onPress}
-    >
-      <Minus
-        color={iconProps.color}
-        size={iconProps.size}
-        strokeWidth={iconProps.strokeWidth}
-      />
-    </Button>
-  );
-}
-
 const EffectSectionContent = memo(function EffectSectionContent() {
   const localize = useSemanticLabel();
   const { updateStyle } = useStyleActions();
@@ -135,7 +130,8 @@ const EffectSectionContent = memo(function EffectSectionContent() {
 
   if (!styleValues) return null;
 
-  const boxShadowModel = parseBoxShadowPresentation(styleValues.boxShadow);
+  const boxShadowModel = shadowModelOf(styleValues.boxShadow);
+  const shadowToken = shadowTokenKey(styleValues.boxShadow);
   const shadowLayers = boxShadowModel?.layers ?? [];
   const blurPx = parseFilterBlurPx(styleValues.filter);
   const hasOpacity = styleValues.opacity !== "";
@@ -238,46 +234,61 @@ const EffectSectionContent = memo(function EffectSectionContent() {
         </div>
       )}
 
-      {/* Filters — legend + blur 한 종 · [Blur 176][−] */}
+      {/* Blur — px 길이는 다른 길이 칸과 같은 PropertyUnitInput (감사 C4 · ADR-298 결정 6 — 종전
+          ScrubInput) · Opacity 와 같은 [176][−] 행 */}
       {blurPx !== null && (
-        <fieldset className="properties-aria effect-group style-filter">
-          <legend className="fieldset-legend">{localize("Filters")}</legend>
-          <div className="effect-group__list">
-            <div className="effect-layer-row">
-              <div className="effect-layer-row__body">
-                <span className="effect-layer-row__value">
-                  {localize("Blur")}
-                </span>
-                <ScrubInput
-                  value={blurPx}
-                  onScrub={handleBlurScrub}
-                  onCommit={handleBlurCommit}
-                  min={0}
-                  max={200}
-                  suffix="px"
-                  label="Blur radius"
-                  className="effect-layer-row__scrub"
-                />
-              </div>
-              <div className="effect-layer-row__actions">
-                <RemoveActionButton
-                  label={localize("Remove blur filter")}
-                  onPress={() =>
-                    updateStyleImmediate(
-                      "filter",
-                      setFilterBlurPx(styleValues.filter, null),
-                    )
-                  }
-                />
-              </div>
-            </div>
+        <div className="fieldset-row style-blur" data-wide>
+          <PropertyUnitInput
+            label="Blur"
+            className="effect-blur"
+            unitSuffix
+            value={`${blurPx}px`}
+            units={["px"]}
+            allowKeywords={false}
+            min={0}
+            max={200}
+            onChange={(value) => {
+              const px = Number.parseFloat(value);
+              if (Number.isFinite(px)) handleBlurCommit(px);
+            }}
+            onDrag={(value) => {
+              const px = Number.parseFloat(value);
+              if (Number.isFinite(px)) handleBlurScrub(px);
+            }}
+          />
+          <div className="fieldset-actions actions-remove">
+            <SwatchIconButton
+              aria-label={localize("Remove blur filter")}
+              onPress={() =>
+                updateStyleImmediate(
+                  "filter",
+                  setFilterBlurPx(styleValues.filter, null),
+                )
+              }
+            >
+              <Minus
+                color={iconProps.color}
+                size={iconProps.size}
+                strokeWidth={iconProps.strokeWidth}
+              />
+            </SwatchIconButton>
           </div>
-        </fieldset>
+        </div>
       )}
       {/* Box Shadows — legend + 레이어 목록 */}
       {boxShadowModel && shadowLayers.length > 0 && (
         <fieldset className="properties-aria effect-group style-shadow">
-          <legend className="fieldset-legend">{localize("Box Shadows")}</legend>
+          <legend className="fieldset-legend">
+            {localize("Box Shadows")}
+            {shadowToken && (
+              <span
+                className="property-unit-input__token"
+                data-token={styleValues.boxShadow.trim()}
+              >
+                {SHADOW_PRESET_LABEL[shadowToken]}
+              </span>
+            )}
+          </legend>
           <div className="effect-group__list">
             {shadowLayers.map((_, index) => (
               <BoxShadowLayerRow
@@ -315,7 +326,7 @@ const EffectAddMenu = memo(function EffectAddMenu() {
   const styleValues = useAppearanceValues(selectedId);
   if (!styleValues) return null;
 
-  const boxShadowModel = parseBoxShadowPresentation(styleValues.boxShadow);
+  const boxShadowModel = shadowModelOf(styleValues.boxShadow);
   const hasOpacity = styleValues.opacity !== "";
   const hasBlur = parseFilterBlurPx(styleValues.filter) !== null;
 
@@ -362,16 +373,16 @@ const EffectAddMenu = memo(function EffectAddMenu() {
     }
     const presetKey = SHADOW_PRESET_KEYS.find((key) => key === action);
     if (!presetKey) return;
-    // **light 를 정규형으로 기록한다** (ADR-166 후속). 저장 형식은 리터럴이라 theme 정보를
-    //   담지 못하므로 읽는 쪽 (Skia `normalizeShadowForTheme` / DOM `shadowLiteralToCssVar`)
-    //   이 현재 theme 으로 되돌린다. 목록에 inset 레이어가 있었으면 프리셋도 inset 으로.
-    const cssValue = getShadowToken(presetKey, "light");
-    if (!cssValue) return;
+    // ADR-298 D7: preset = `{shadow.*}` 토큰 참조 — 값은 렌더 쪽이 활성 테마 · 색 모드에서 읽는다.
+    //   목록에 inset 레이어가 있었으면 inset 판은 토큰이 없어 light 정규형 리터럴로 (ADR-166 후속 —
+    //   읽는 쪽 `normalizeShadowForTheme` / `shadowLiteralToCssVar` 가 theme 으로 되돌린다).
     const insetActive = boxShadowModel?.layers.some((l) => l.inset) ?? false;
-    updateStyle(
-      "boxShadow",
-      insetActive ? applyShadowInset(cssValue) : cssValue,
-    );
+    if (insetActive) {
+      const cssValue = getShadowToken(presetKey, "light");
+      if (cssValue) updateStyle("boxShadow", applyShadowInset(cssValue));
+      return;
+    }
+    updateStyle("boxShadow", `var(--shadow-${presetKey})`);
   };
 
   return (

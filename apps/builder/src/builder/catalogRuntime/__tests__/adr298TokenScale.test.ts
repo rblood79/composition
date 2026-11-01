@@ -72,7 +72,8 @@ describe("ADR-298 G1 — theme-agnostic library token scale", () => {
     const ruleTokens = [...library.tokens.values()].filter((token) =>
       token.id.endsWith("_light"),
     );
-    expect(ruleTokens.length).toBe(149);
+    // (Phase 1 실측 149 — 그 수는 rule 표 편집에 따라 바뀐다: 계약은 개수가 아니라 아래 대응.)
+    expect(ruleTokens.length).toBeGreaterThan(0);
     // A rule token on a scale axis has its scale twin with the same ref (one ref, one value source).
     const scaleCategories = new Set(
       libraryTokenScaleRefs().map(({ ref }) => ref.slice(1).split(".")[0]),
@@ -84,6 +85,7 @@ describe("ADR-298 G1 — theme-agnostic library token scale", () => {
     const json = JSON.stringify([...library.definitions.values()]);
     const used = new Set([...json.matchAll(/"tokenId":"(lib:token:[^"]+)"/g)].map((m) => m[1]));
     expect([...used].every((id) => id!.endsWith("_light"))).toBe(true);
+    expect([...used].every((id) => library.tokens.has(id as LibraryTokenId))).toBe(true);
   });
 
   it("revert RED: a document's `_light` token use dangles once the rule entry is gone", async () => {

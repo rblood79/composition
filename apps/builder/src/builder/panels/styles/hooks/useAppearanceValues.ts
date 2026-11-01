@@ -4,6 +4,8 @@
 
 import { useMemo } from "react";
 import { numToPx, firstDefined } from "../utils/styleValueHelpers";
+import { isTokenValue } from "../../../components/property/PropertyUnitInput.runtime";
+import { resolveCssLengthPx } from "../utils/cssLengthPx";
 import { useColorStyleValues } from "./useColorStyleValues";
 import {
   resolveBorderGeometry,
@@ -26,6 +28,20 @@ export interface AppearanceStyleValues {
    * 패널 표시는 이것으로, 쓰기는 shorthand (전체) 또는 longhand (칸/변) 로.
    */
   borderGeometry: BorderGeometry;
+}
+
+/**
+ * ADR-298 D4 — a token value (`var(--radius-md)`) as the active theme's px for the geometry: the
+ * builder root's computed variable is the chrome's static value, not the user component's.
+ */
+function themedLengths(
+  style: Readonly<Record<string, unknown>>,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...style };
+  for (const [key, value] of Object.entries(style))
+    if (typeof value === "string" && isTokenValue(value))
+      out[key] = `${resolveCssLengthPx(value) ?? 0}px`;
+  return out;
 }
 
 const text = (value: string | number | undefined) =>
@@ -64,7 +80,10 @@ export function useAppearanceValues(
       ),
       opacity: firstDefined(s.opacity, undefined, ""),
       filter: firstDefined(s.filter, undefined, ""),
-      borderGeometry: resolveBorderGeometry(s, { borderRadius, borderWidth }),
+      borderGeometry: resolveBorderGeometry(themedLengths(s), {
+        borderRadius,
+        borderWidth,
+      }),
     };
   }, [id, colorValues]);
 }

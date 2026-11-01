@@ -590,6 +590,42 @@
       user-select: none;
     }
 
+    /* 필드 상태 문구 — 필드 안 `slot="description"` (panel-structure §1, 감사 E2). 값에 반응하는
+       요약 · 오류만 (정적 설명 문단은 두지 않는다). */
+    .property-field__status {
+      display: block;
+      margin: 0;
+      color: var(--fg-muted);
+      font-size: var(--text-xs);
+      font-variant-numeric: tabular-nums;
+
+      &[data-tone="error"] {
+        color: var(--negative);
+      }
+    }
+
+    /* ADR-298 D4 칩 모드 — 값이 테마 토큰이면 단계 칩 (XS · S · M · L · XL / none · thin · thick) 뒤에
+       활성 테마의 해석값. 칩은 표시 전용 — 단계는 ▾ 메뉴에서 고르고, 숫자를 치면 리터럴이 된다. */
+    .property-unit-input__token {
+      flex: none;
+      padding-inline: var(--spacing-xs);
+      border-radius: var(--radius-sm);
+      /* 패널의 선택 표면 어법 (panel-structure — `--bg-overlay` + `--shadow-sm`) — 입력칸 바탕과 갈린다 */
+      background: var(--bg-overlay);
+      box-shadow: var(--shadow-sm);
+      color: var(--fg);
+      font-family: var(--font-mono);
+      font-size: var(--text-2xs);
+      line-height: 16px;
+      pointer-events: none;
+      user-select: none;
+
+      /* legend 안 (Box Shadows 단계) — 라벨 글자와 띄운다 */
+      .fieldset-legend > & {
+        margin-inline-start: var(--spacing-xs);
+      }
+    }
+
     /* Size mode 선택 결과는 CSS 단위가 아닌 의도 토큰이다. 저장값과 같은
        fr / % / vh / px / fit 표기를 보존해 모드를 즉시 구분한다. */
     .property-unit-input[data-size-control="true"]

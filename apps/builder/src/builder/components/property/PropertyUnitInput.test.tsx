@@ -18,9 +18,15 @@ import {
 } from "./propertySelection";
 import {
   BORDER_WIDTH_PRESET_OPTIONS,
-  PAGE_GAP_PRESETS,
   SPACING_PRESET_OPTIONS,
 } from "./propertyUnitPresets";
+
+/** Number presets (no token) — a field whose preset values are plain numbers. */
+const PAGE_GAP_PRESETS = [
+  { id: "sm", label: "S", value: "40" },
+  { id: "md", label: "M", value: "80" },
+  { id: "lg", label: "L", value: "120" },
+] as const;
 
 // The selection the field edits (the catalog Builder provides its session's selection).
 const useStore = create<{ selectedElementId: string | null }>(() => ({
@@ -511,7 +517,11 @@ describe("PropertyUnitInput numeric editing", () => {
 
     fireEvent.click(screen.getByRole("option", { name: "XL" }));
     expect((input as HTMLInputElement).value).toBe("24");
-    expect(onChange).toHaveBeenLastCalledWith("24px");
+    // ADR-298 D4: the preset commits the token itself — the node keeps the reference.
+    expect(onChange).toHaveBeenLastCalledWith("var(--spacing-xl)");
+    expect(
+      document.querySelector(".property-unit-input__token")?.textContent,
+    ).toBe("XL");
 
     fireEvent.click(trigger);
     await waitFor(() => {

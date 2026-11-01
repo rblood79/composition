@@ -6,6 +6,7 @@ import { Button } from "react-aria-components/Button";
 
 import { ComboBox as AriaComboBox } from "react-aria-components/ComboBox";
 
+import { Header } from "react-aria-components/Header";
 import { Input } from "react-aria-components/Input";
 
 import {
@@ -35,13 +36,32 @@ import {
   getPresetCommitValue,
   getPresetDisplayValue,
   INPUT_LABEL_TO_KEYWORD,
+  isTokenValue,
   KEYWORDS,
   parseUnitValue,
   presetsUseCssUnits,
   PropertyUnitInputProps,
+  tokenChipLabel,
   UNIT_GATED_KEYWORDS,
 } from "./PropertyUnitInput.runtime";
+import type { PropertyUnitPreset } from "./propertyUnitPresets";
 import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
+
+/** Consecutive presets of one `group` (ungrouped ones — Reset — stand alone). */
+function presetGroups(presets: readonly PropertyUnitPreset[]) {
+  const out: { group?: string; items: PropertyUnitPreset[] }[] = [];
+  for (const preset of presets) {
+    const last = out[out.length - 1];
+    if (last && preset.group && last.group === preset.group)
+      last.items.push(preset);
+    else out.push({ group: preset.group, items: [preset] });
+  }
+  return out;
+}
+
+/** A preset's accessible name — the group joins it (「Heading M」) so two groups' 「M」 differ. */
+const presetName = (preset: PropertyUnitPreset) =>
+  preset.group ? `${preset.group} ${preset.label}` : preset.label;
 
 export const PropertyUnitInputControl = memo(
   function PropertyUnitInput({
@@ -67,6 +87,7 @@ export const PropertyUnitInputControl = memo(
     suffixLabel,
     unitSuffix = false,
     sizeControl,
+    afterControl,
   }: PropertyUnitInputProps) {
     const i18n = useOptionalI18n();
     const displayLabel =
@@ -99,7 +120,10 @@ export const PropertyUnitInputControl = memo(
       (!UNIT_GATED_KEYWORDS.includes(keyword) || units.includes(keyword));
     const hasUnitPresets = presetsUseCssUnits(presets);
     const inputUnit = hasPresets && hasUnitPresets ? "px" : unit;
-    const isKeyword = parsed.numericValue === null;
+    // ADR-298 D4: a token value (`var(--spacing-md)`) — chip + the active value, not a keyword.
+    const valueIsToken = isTokenValue(value);
+    const tokenChip = tokenChipLabel(value, presets);
+    const isKeyword = parsed.numericValue === null && !valueIsToken;
     const [inputValue, setInputValue] = useState(() =>
       getInputDisplayValue(value, parsed, isPreservedEmptyValue, presets),
     );
@@ -114,6 +138,9 @@ export const PropertyUnitInputControl = memo(
     const numericInputValue = Number(inputValue.trim());
     const matchingPreset = findMatchingPreset(inputValue, presets);
     const selectedPreset =
+      (valueIsToken
+        ? presets?.find((preset) => preset.value.trim() === value.trim())
+        : undefined) ??
       (matchingPreset?.value.trim() !== "" ? matchingPreset : undefined) ??
       (inputValue.trim() !== "" && Number.isFinite(numericInputValue)
         ? presets?.find((preset) => {
@@ -167,6 +194,9 @@ export const PropertyUnitInputControl = memo(
         setDraftUnit(null);
       });
     }, [value, selectedElementId, parsed, isPreservedEmptyValue, presets]);
+
+    const tokenDisplay = () =>
+      getInputDisplayValue(value, parsed, isPreservedEmptyValue, presets);
 
     const handleInputChange = (newValue: string) => {
       setInputValue(newValue);
@@ -233,6 +263,11 @@ export const PropertyUnitInputControl = memo(
       const trimmed = inputValue.trim();
       const resolved =
         INPUT_LABEL_TO_KEYWORD[trimmed.toLowerCase()] ?? trimmed.toLowerCase();
+      // A token value left as shown stays the token (its shown number is not a literal edit).
+      if (valueIsToken && trimmed === tokenDisplay()) {
+        focusedElementIdRef.current = null;
+        return;
+      }
 
       const matchingPreset = findMatchingPreset(trimmed, presets);
       if (hasPresets && matchingPreset) {
@@ -422,7 +457,9 @@ export const PropertyUnitInputControl = memo(
         const matchingPreset = findMatchingPreset(trimmed, presets);
         let shouldSave = false;
 
-        if (hasPresets && matchingPreset) {
+        if (valueIsToken && trimmed === tokenDisplay()) {
+          // unchanged token — nothing to commit
+        } else if (hasPresets && matchingPreset) {
           const newVal = getPresetCommitValue(matchingPreset);
           if (newVal !== value && newVal !== lastSavedValueRef.current) {
             lastSavedValueRef.current = newVal;
@@ -531,6 +568,7 @@ export const PropertyUnitInputControl = memo(
         className={`properties-aria property-unit-input ${className || ""}`}
         title={sizeControl?.description}
         data-size-control={sizeControl ? "true" : undefined}
+        data-token-value={valueIsToken ? "true" : undefined}
         data-label-mode={
           labelMode === "suffix" ? "suffix" : unitIsTrigger ? "unit" : undefined
         }
@@ -632,6 +670,15 @@ export const PropertyUnitInputControl = memo(
             }
           >
             <div className="combobox-container" ref={comboBoxContainerRef}>
+              {tokenChip && (
+                <span
+                  className="property-unit-input__token"
+                  data-token={value.trim()}
+                  title={value.trim()}
+                >
+                  {tokenChip}
+                </span>
+              )}
               <Input
                 ref={inputElementRef}
                 className="react-aria-Input"
@@ -764,22 +811,35 @@ export const PropertyUnitInputControl = memo(
                       </ListBoxSection>,
                     ]
                   : hasPresets
-                    ? presets?.map((preset) => (
-                        <ListBoxItem
-                          key={preset.id}
-                          id={preset.id}
-                          className="react-aria-ListBoxItem"
-                          textValue={preset.label}
-                          aria-label={preset.label}
-                        >
-                          {/* 「XS · 4」 — 토큰 이름 + 풀린 px (Border 프리셋 메뉴와 같은 표기).
+                    ? presetGroups(presets ?? []).map(({ group, items }) => {
+                        const rows = items.map((preset) => (
+                          <ListBoxItem
+                            key={preset.id}
+                            id={preset.id}
+                            className="react-aria-ListBoxItem"
+                            textValue={presetName(preset)}
+                            aria-label={presetName(preset)}
+                          >
+                            {/* 「XS · 4」 — 토큰 이름 + 풀린 px (Border 프리셋 메뉴와 같은 표기).
                               이름이 곧 값이면 (Grid Columns 「3」) 하나만 — 「3 · 3」 금지 */}
-                          {preset.value.trim() === "" ||
-                          preset.label === getPresetDisplayValue(preset.value)
-                            ? preset.label
-                            : `${preset.label} · ${getPresetDisplayValue(preset.value)}`}
-                        </ListBoxItem>
-                      ))
+                            {preset.value.trim() === "" ||
+                            preset.label === getPresetDisplayValue(preset.value)
+                              ? preset.label
+                              : `${preset.label} · ${getPresetDisplayValue(preset.value)}`}
+                          </ListBoxItem>
+                        ));
+                        // ADR-298 D3: 묶음 (Font Size 본문 · 제목) 은 ListBox section 하나씩.
+                        return group ? (
+                          <ListBoxSection key={group} aria-label={group}>
+                            <Header className="property-unit-input__group">
+                              {group}
+                            </Header>
+                            {rows}
+                          </ListBoxSection>
+                        ) : (
+                          rows
+                        );
+                      })
                     : units.map((u) => (
                         <ListBoxItem
                           key={u === "" ? "—" : u}
@@ -794,6 +854,7 @@ export const PropertyUnitInputControl = memo(
             </Popover>
           </AriaComboBox>
         </div>
+        {afterControl}
       </fieldset>
     );
   },
@@ -816,6 +877,7 @@ export const PropertyUnitInputControl = memo(
       prevProps.suffixLabel === nextProps.suffixLabel &&
       prevProps.sizeControl === nextProps.sizeControl &&
       prevProps.unitSuffix === nextProps.unitSuffix &&
+      prevProps.afterControl === nextProps.afterControl &&
       prevProps.preserveEmptyValueOnUnitChange ===
         nextProps.preserveEmptyValueOnUnitChange &&
       JSON.stringify(prevProps.units) === JSON.stringify(nextProps.units)

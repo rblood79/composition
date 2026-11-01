@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-298 Phase 2 — Design 패널이 테마 토큰을 먼저 쓴다 (패널)] - 2026-11-01
+
+### Changed
+
+- **Design 패널의 크기 단계 (XS ~ XL · none · thin · thick · S · M · L) 를 고르면 요소에 토큰으로 저장된다 (ADR-298 Phase 2)** — Gap · Padding · Radius · Border Width · Shadow · Font Size. 테마 radius 를 바꾸거나 dark 로 바꾸면 그 요소 값도 Canvas · Preview 에서 같이 바뀐다 (전에는 고른 순간의 숫자가 저장됐다).
+  - 칸에는 단계 칩과 지금 테마의 값이 보인다 (「L 10」). 숫자를 직접 치면 그 숫자가 저장된다.
+  - Border Width 는 슬라이더 대신 Radius 와 같은 「값 + ▾」 칸 (none · thin · thick, 사용자 결정 3). Font Size 메뉴는 본문 · 제목 두 묶음. 글자 크기가 토큰이면 Line Height 는 「auto」 — 그 단계의 짝 행간을 쓴다.
+  - Effect 의 Blur 는 다른 길이 칸과 같은 입력칸이다 (전에는 끌기 숫자). Size · Position 의 오류 · 위치 요약 문구가 절 아래 문단이 아니라 해당 필드 안에 보인다.
+  - 코드 보기 Page.css 에는 `var(--spacing-md)` 같은 토큰 변수 줄로 나오고, 고쳐 Apply 해도 같은 토큰으로 돌아온다.
+  - 아직: grid 의 Gap X · Y 는 고른 단계의 숫자로 저장된다 (Phase 3).
+  - 문서: `docs/adr/298-node-token-reference-panel-token-first.md` · breakdown §6.2
+
 ## [ADR-298 Phase 1 — 노드 값의 토큰 참조가 테마 · 색 모드를 따른다 (토큰 층)] - 2026-11-01
 
 ### Changed
