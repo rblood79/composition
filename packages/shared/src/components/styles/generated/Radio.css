@@ -91,15 +91,44 @@
   gap: var(--catalog-token-radio-gap-XL, calc(var(--catalog-token-text-lg) * 10 / 14));
 }
 
-.react-aria-Radio[data-focus-visible] {
+.react-aria-Radio.react-aria-Radio:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-Radio[data-disabled] {
+.react-aria-Radio.react-aria-Radio:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-selected]) .indicator {
+  border-color: var(--radio-color);
+}
+
+.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-invalid]) .indicator {
+  border-color: var(--negative);
+}
+
+.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-disabled]) .indicator {
+  border-color: var(--border-disabled);
+}
+
+.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-disabled][data-invalid][data-selected]) .indicator {
+  border-color: var(--negative);
+}
+
+.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-pressed]) .indicator {
+  border-color: var(--border-hover);
+}
+
+.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-pressed][data-selected]) .indicator {
+  border-color: color-mix(in srgb, var(--radio-color) 75%, black);
+}
+
+.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-focus-visible]) .indicator {
+  outline: 2px solid var(--radio-color);
+  outline-offset: 2px;
 }
 
 /* ── Tier 2: Composite Delegation ── */

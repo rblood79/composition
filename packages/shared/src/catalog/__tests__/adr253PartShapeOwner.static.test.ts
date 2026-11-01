@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
+import {
+  evaluateConditionTree,
+  type ConditionSet,
+} from "../rule/conditionTree";
+import type { ComponentRule } from "../../types/catalog-style.types";
 
 /**
  * ADR-253 G3 (정적): a part's shape is the part rule's — the rule of the component that holds the
@@ -370,29 +375,26 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
     }
     expect(found).toEqual([]);
     // (ADR-259 Phase 2: the Input rule also draws a prefix box — focused within, not itself.)
+    // (ADR-297 Phase 3c: the quiet shape is the box rule's state tree — `structure.stateStyles`.)
     for (const [type, focus] of [
-      ["Input", ":is([data-focused], [data-focus-within])"],
-      ["DateInput", "[data-focus-within]"],
+      ["Input", "isFocused"],
+      ["DateInput", "isFocusWithin"],
     ] as const) {
-      const selectors = (
-        (COMPONENT_RULES_TABLE as Record<string, (typeof rules)[number][1]>)[
-          type
-        ].structure?.composition as
-          { rootSelectors?: Record<string, { styles?: Styles }> } | undefined
-      )?.rootSelectors;
-      expect(selectors?.["&[data-quiet]"]?.styles).toMatchObject({
-        background: "transparent",
-        "border-bottom": "1px solid var(--border)",
-        "border-radius": "0",
-      });
-      expect(
-        selectors?.[`&[data-quiet]${focus}`]?.styles?.["border-bottom-color"],
-      ).toBe("var(--accent-content)");
-      expect(
-        selectors?.["&[data-quiet][data-invalid]"]?.styles?.[
-          "border-bottom-color"
-        ],
-      ).toBe("var(--negative)");
+      const trees = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
+        type
+      ]!.structure?.stateStyles;
+      const at = (property: string, conditions: ConditionSet) =>
+        evaluateConditionTree(trees?.[property], conditions);
+      const quiet = { isQuiet: true };
+      expect(at("background", quiet)).toBe("transparent");
+      expect(at("borderBottom", quiet)).toBe("1px solid var(--border)");
+      expect(at("borderRadius", quiet)).toBe("0");
+      expect(at("borderBottomColor", { ...quiet, [focus]: true })).toBe(
+        "var(--accent-content)",
+      );
+      expect(at("borderBottomColor", { ...quiet, isInvalid: true })).toBe(
+        "var(--negative)",
+      );
     }
   });
 });

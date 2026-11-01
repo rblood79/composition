@@ -313,15 +313,8 @@
   gap: var(--catalog-token-status-light-gap-XL, calc(var(--catalog-token-text-lg) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
 }
 
-.react-aria-StatusLight[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-StatusLight[data-disabled] {
+.react-aria-StatusLight.react-aria-StatusLight:where([data-disabled]) {
   opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
 }
 
 @media (forced-colors: active) {

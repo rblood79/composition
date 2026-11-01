@@ -56,12 +56,12 @@
   line-height: var(--catalog-token-text-lg--line-height);
 }
 
-.react-aria-Menu[data-focus-visible] {
+.react-aria-Menu.react-aria-Menu:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-Menu[data-disabled] {
+.react-aria-Menu.react-aria-Menu:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;

@@ -461,8 +461,9 @@ describe("ADR-297 G3 — variant 칠 = 조건 트리 하나", () => {
       ),
   );
 
-  it("옛 fill · colors 칸 0 (190 variant 전부 paint)", () => {
-    expect(variants.length).toBeGreaterThanOrEqual(190);
+  // (Phase 3d: 190 → 187 — Tag `selected` · `selectedEmphasized` and ColorSwatch `selected` became `isSelected` branches)
+  it("옛 fill · colors 칸 0 (187 variant 전부 paint)", () => {
+    expect(variants.length).toBeGreaterThanOrEqual(187);
     const legacy = variants
       .filter(([, v]) => "fill" in v || "colors" in v || !v.paint)
       .map(([id]) => id);
@@ -481,5 +482,103 @@ describe("ADR-297 G3 — variant 칠 = 조건 트리 하나", () => {
     ]);
     expect([...keys].filter((k) => !vocabulary.has(k))).toEqual([]);
     expect(keys.size).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * ADR-297 G3 (Phase 3b 분) — 루트의 상태 스타일 (칠 밖) 은 `structure.stateStyles` 조건 트리다. 옛 방식 ③
+ * (`structure.states` 상태별 맵) 이 다시 생기면 RED, 트리 조건 키가 어휘 밖이면 RED.
+ */
+describe("ADR-297 G3 — 상태 스타일 = 조건 트리 (3b)", () => {
+  const rules = Object.entries(COMPONENT_RULES_TABLE);
+
+  it("옛 structure.states 0", () => {
+    expect(
+      rules
+        .filter(([, rule]) => rule.structure && "states" in rule.structure)
+        .map(([type]) => type),
+    ).toEqual([]);
+  });
+
+  it("상태 트리 조건 키는 어휘 안", () => {
+    const vocabulary = new Set<string>([
+      ...CONDITIONS,
+      ...DOM_CONDITIONS,
+      ...VALUE_CONDITIONS,
+    ]);
+    const keys = new Set<string>();
+    for (const [, rule] of rules)
+      for (const tree of Object.values(rule.structure?.stateStyles ?? {}))
+        for (const key of conditionTreeKeys(tree)) keys.add(key);
+    expect([...keys].filter((k) => !vocabulary.has(k))).toEqual([]);
+    expect(keys.has("isDisabled") && keys.has("isFocusVisible")).toBe(true);
+  });
+
+  // (Phase 3g) the parts' trees — the old manual sheets' selected · focus — speak the same vocabulary, and a
+  //   template names the root (`&`) at most one condition anchor (`%`).
+  it("부품 상태 트리 (partStateStyles) 도 어휘 안 · 틀은 `&` 하나 · `%` 하나 이하", () => {
+    const vocabulary = new Set<string>([
+      ...CONDITIONS,
+      ...DOM_CONDITIONS,
+      ...VALUE_CONDITIONS,
+    ]);
+    const keys = new Set<string>();
+    const badTemplates: string[] = [];
+    for (const [type, rule] of rules)
+      for (const [template, trees] of Object.entries(
+        rule.partStateStyles ?? {},
+      )) {
+        if (
+          template.split("&").length !== 2 ||
+          template.split("%").length > 2
+        )
+          badTemplates.push(`${type}: ${template}`);
+        for (const tree of Object.values(trees))
+          for (const key of conditionTreeKeys(tree)) keys.add(key);
+      }
+    expect(badTemplates).toEqual([]);
+    expect([...keys].filter((k) => !vocabulary.has(k))).toEqual([]);
+    expect(keys.has("isSelected") && keys.has("isFocusVisible")).toBe(true);
+  });
+});
+
+/**
+ * ADR-297 G3 (e) (Phase 3c 분) — `composition.rootSelectors` 에 `&` 자신의 상태를 고르는 키 (`&[data-*]` · `&:is(…)` ·
+ * `&:not(…)` — 결합자 · `::` 없음) 가 선언을 가지면 RED. 그 상태 분기는 `structure.stateStyles` 의 조건 어휘로 적는다.
+ * 남는 것: 맨 `&` (쉴 때 값) 와 자손 · 형제 · pseudo 대상 (`nested` · `& .x` · `&::before`).
+ */
+describe("ADR-297 G3 (e) — & 자신의 상태 분기 = 상태 트리 (3c)", () => {
+  // (⑤ — ADR-297 Phase 3d: a variant named `selected` · `selectedEmphasized` is selection written as a variant;
+  //  it is the `isSelected` · `isEmphasized` branch of the tree.)
+  it("variant 이름 selected · selectedEmphasized 0 (3d)", () => {
+    expect(
+      Object.entries(COMPONENT_RULES_TABLE).flatMap(([type, rule]) =>
+        Object.keys(rule.variants)
+          .filter((name) => /^selected/.test(name))
+          .map((name) => `${type}.${name}`),
+      ),
+    ).toEqual([]);
+  });
+
+  it("& 대상 rootSelectors 키의 styles 0", () => {
+    const offenders: string[] = [];
+    for (const [type, rule] of Object.entries(COMPONENT_RULES_TABLE)) {
+      const selectors = (
+        rule.structure?.composition as
+          | { rootSelectors?: Record<string, { styles?: object }> }
+          | undefined
+      )?.rootSelectors;
+      for (const [key, entry] of Object.entries(selectors ?? {})) {
+        if (key === "&" || !key.startsWith("&")) continue;
+        const flat = key
+          .slice(1)
+          .replace(/:(is|not|where)\([^)]*\)/g, "")
+          .replace(/\[[^\]]*\]/g, "");
+        const self = !/[\s>+~]|::/.test(flat);
+        if (self && entry.styles && Object.keys(entry.styles).length > 0)
+          offenders.push(`${type} ${key}`);
+      }
+    }
+    expect(offenders).toEqual([]);
   });
 });

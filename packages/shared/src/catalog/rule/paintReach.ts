@@ -13,6 +13,7 @@ import { getPrimitiveBinding } from "../bindings";
 import { COLLECTION_ITEM_OWNERS } from "../document/collectionItems";
 import type { ComponentRule } from "../../types/catalog-style.types";
 import type { PaintReach } from "./rulePaintTree";
+import { conditionTreeKeys } from "./conditionTree";
 
 /** Parts that take their progress owner's `staticColor` as a derived prop (`presence.ts`). */
 const DERIVED_STATIC_TYPES: ReadonlySet<string> = new Set([
@@ -42,7 +43,12 @@ export function rulePaintReach(type: string, rule: ComponentRule): PaintReach {
     binding?.rac?.dataAttributes?.includes("data-selected") === true ||
     accepts.isSelected !== undefined ||
     type in COLLECTION_ITEM_OWNERS ||
-    rule.variants?.selected !== undefined ||
+    // (ADR-297 Phase 3d: a rule whose paint answers selection — was its `selected` variant)
+    Object.values(rule.variants ?? {}).some((variant) =>
+      Object.values(variant.paint ?? {}).some((tree) =>
+        conditionTreeKeys(tree as never).has("isSelected"),
+      ),
+    ) ||
     type === "Column";
   const fillStyles = (accepts.fillStyle?.options ?? [])
     .map((option) => option.value)

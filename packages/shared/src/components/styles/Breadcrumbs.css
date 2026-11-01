@@ -67,7 +67,8 @@
         font-weight: 700;
       }
 
-      &[data-focus-visible]:after {
+      /* (ADR-297 Phase 3g: a catalog crumb's is the Breadcrumbs rule's tree) */
+      &:where(:not([data-catalog-id], [data-catalog-id] *))[data-focus-visible]:after {
         content: "";
         position: absolute;
         inset: -2px -4px;

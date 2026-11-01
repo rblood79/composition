@@ -1,0 +1,24 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog ColorSwatchPicker — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * State styles only — the rest of its DOM visuals is a manual sheet (skipCSSGeneration)
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-ColorSwatchPicker.react-aria-ColorSwatchPicker .react-aria-ColorSwatchPickerItem:where([data-focus-visible]) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.react-aria-ColorSwatchPicker.react-aria-ColorSwatchPicker .react-aria-ColorSwatchPickerItem:where([data-selected])::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid black;
+  outline: 2px solid white;
+  outline-offset: -4px;
+  border-radius: inherit;
+}
+
+} /* @layer components */

@@ -227,16 +227,6 @@
   border-radius: var(--catalog-token-radius-lg);
 }
 
-.react-aria-MeterFill[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-MeterFill[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
 
 @media (forced-colors: active) {
   .react-aria-MeterFill {

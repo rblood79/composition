@@ -513,16 +513,41 @@
   --icon-gap: var(--catalog-token-button-icon-gap-XL, calc(var(--catalog-token-text-lg) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
 }
 
-.react-aria-Button[data-focus-visible] {
+.react-aria-Button.react-aria-Button:where([data-field-button="XS"]) {
+  border-radius: var(--catalog-token-radius-sm);
+  border-width: 0;
+}
+
+.react-aria-Button.react-aria-Button:where([data-field-button="S"]) {
+  border-radius: 7px;
+  border-width: 0;
+}
+
+.react-aria-Button.react-aria-Button:where([data-field-button="M"]) {
+  border-radius: 8px;
+  border-width: 0;
+}
+
+.react-aria-Button.react-aria-Button:where([data-field-button="L"]) {
+  border-radius: 9px;
+  border-width: 0;
+}
+
+.react-aria-Button.react-aria-Button:where([data-field-button="XL"]) {
+  border-radius: 10px;
+  border-width: 0;
+}
+
+.react-aria-Button.react-aria-Button:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-Button[data-pressed] {
+.react-aria-Button.react-aria-Button:where([data-pressed]) {
   transform: scale(0.95);
 }
 
-.react-aria-Button[data-disabled] {
+.react-aria-Button.react-aria-Button:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;
@@ -542,31 +567,5 @@
     transition-duration: 0s !important;
   }
 }
-
-  .react-aria-Button[data-field-button="XS"] {
-    border-radius: var(--catalog-token-radius-sm);
-    border-width: 0;
-  }
-
-  .react-aria-Button[data-field-button="S"] {
-    border-radius: 7px;
-    border-width: 0;
-  }
-
-  .react-aria-Button[data-field-button="M"] {
-    border-radius: 8px;
-    border-width: 0;
-  }
-
-  .react-aria-Button[data-field-button="L"] {
-    border-radius: 9px;
-    border-width: 0;
-  }
-
-  .react-aria-Button[data-field-button="XL"] {
-    border-radius: 10px;
-    border-width: 0;
-  }
-
 
 } /* @layer components */

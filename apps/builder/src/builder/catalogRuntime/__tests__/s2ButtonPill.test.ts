@@ -299,7 +299,10 @@ describe("S2 Button shape — a pill; a field's own button keeps its corner", ()
       "utf8",
     );
     const sizeBlock = css.indexOf('.react-aria-Button[data-size="M"]');
-    const fieldBlock = css.indexOf('.react-aria-Button[data-field-button="M"]');
+    // (ADR-297 Phase 3c: the field-button corner is the Button's state tree — value condition `fieldButton`)
+    const fieldBlock = css.indexOf(
+      '.react-aria-Button.react-aria-Button:where([data-field-button="M"])',
+    );
     expect(sizeBlock).toBeGreaterThan(-1);
     expect(fieldBlock).toBeGreaterThan(sizeBlock);
     expect(css.slice(sizeBlock, css.indexOf("}", sizeBlock))).toContain(

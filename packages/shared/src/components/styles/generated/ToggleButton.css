@@ -232,16 +232,16 @@
   --icon-size: var(--catalog-token-toggle-button-icon-size-XL, calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)));
 }
 
-.react-aria-ToggleButton[data-focus-visible] {
+.react-aria-ToggleButton.react-aria-ToggleButton:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-ToggleButton[data-pressed] {
+.react-aria-ToggleButton.react-aria-ToggleButton:where([data-pressed]) {
   transform: scale(0.95);
 }
 
-.react-aria-ToggleButton[data-disabled] {
+.react-aria-ToggleButton.react-aria-ToggleButton:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;

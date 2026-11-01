@@ -1,4 +1,5 @@
 /** Catalog 시각 규칙, 테마 snapshot, 페이지 배치의 공용 값 계약. 문서 저장 모델은 catalog/document/types. */
+import type { ConditionalValue } from "../catalog/rule/conditionTree";
 import type { ComponentRulePaint } from "../catalog/rule/rulePaintTree";
 import type { BreakpointName, ResponsiveValue } from "./responsive.types";
 export interface ThemeSnapshot {
@@ -452,6 +453,15 @@ export interface CatalogFillStyleValues {
 }
 
 export interface ComponentRule {
+  /**
+   * ADR-297 Phase 3g — 수동 sheet 가 그리던 요소 (자손 부품 · pseudo · RAC 가 그리는 셀 · 생성 sheet 가 없는 rule 의
+   * 루트) 의 상태 스타일. 키 = 루트 기준 선택자 틀 (`&` = 루트 · `%` = 조건이 붙는 자리, 없으면 `&` 바로 뒤):
+   * `"& .react-aria-CheckboxButton% .checkbox"` 는 CheckboxButton 의 상태로 그 안 상자를, `"& .react-aria-CalendarCell%"`
+   * 는 셀 자신의 상태로 셀을, `"& .react-aria-Tag%"` 는 Tag 를 칠한다. 값은 `structure.stateStyles` 와 같은 속성 → 조건
+   * 트리. 생성 CSS 만 읽는다 (그 요소는 Canvas 가 primitive · item rule 로 그린다). `structure` 가 없거나
+   * `skipCSSGeneration` 인 rule 은 이 블록만 담은 sheet 를 낸다.
+   */
+  partStateStyles?: Readonly<Record<string, ComponentRuleStateStyles>>;
   defaultVariant?: string;
   defaultSize?: string;
   variants: Record<string, ComponentRuleVariant>;
@@ -546,8 +556,14 @@ export interface ComponentRuleStructure {
    * — 기존 STRUCTURE_META.composition 전체 이동). `composition.layout` 이 field 류 root layout 의 정본.
    */
   composition?: ComponentRuleComposition;
-  /** 상태별 CSS (hover/pressed/disabled/focusVisible — 기존 STRUCTURE_META.states 이동). */
-  states?: ComponentRuleStates;
+  /**
+   * ADR-297 Phase 3b — 루트의 상태 스타일 (칠 밖: `opacity` · `cursor` · `pointerEvents` · `transform` ·
+   * `boxShadow` · `focusRing` …) 을 속성마다 조건 트리 하나로 (variant 칠 `paint` 와 같은 형식 · 같은 순서 규칙).
+   * 생성 CSS 는 `compileConditionTree` 로, Canvas 는 `evaluateConditionTree` 로 같은 트리를 읽는다 (disabled 의
+   * 흐림 — `disabledStateRules`). 키 = camelCase CSS 속성, `focusRing` 만 ring 토큰 (`{focus.ring.*}` →
+   * `outline` + `outline-offset`). 옛 `states.{hover,pressed,disabled,focusVisible}` 를 대체한다.
+   */
+  stateStyles?: ComponentRuleStateStyles;
   /** CSS emit 모드. button-base = `--button-color` 변수 + utility color-mix 자동 파생. */
   cssEmitMode?: "direct" | "button-base";
   /**
@@ -601,14 +617,10 @@ export interface ComponentRuleComposition {
   [key: string]: unknown;
 }
 
-/** structure.states (ADR-912). 상태별 CSS 속성 맵 (generator emit 전용). */
-export interface ComponentRuleStates {
-  hover?: Record<string, unknown>;
-  pressed?: Record<string, unknown>;
-  disabled?: Record<string, unknown>;
-  focusVisible?: Record<string, unknown>;
-  [state: string]: Record<string, unknown> | undefined;
-}
+/** `structure.stateStyles` (ADR-297 Phase 3b) — camelCase CSS 속성 (· `focusRing`) → 조건 트리. */
+export type ComponentRuleStateStyles = Readonly<
+  Record<string, ConditionalValue<string | number>>
+>;
 
 /**
  * 컴포넌트×variant×state 시각 규칙 테이블 (ADR-142 G2(b) B — D3 시각 SSOT).

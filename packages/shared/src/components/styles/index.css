@@ -160,6 +160,7 @@
 @import "./generated/CheckboxGroup.css";
 @import "./generated/RadioGroup.css";
 @import "./TagGroup.css";
+@import "./generated/TagGroup.css"; /* ADR-297 Phase 3g: Tag 선택 · focus 상태 블록 (rule 에 생성 sheet 가 없다) */
 @import "./generated/ToggleButtonGroup.css";
 @import "./generated/DisclosureGroup.css";
 
@@ -194,6 +195,7 @@
 @import "./ListBox.css"; /* ADR-076 §0-2: ListBoxItem base + complex selectors 수동 유지 */
 @import "./generated/GridListItem.css"; /* catalog GridListItem rule 이 카드 variant 시각의 SSOT — 특히 quiet(배경·테두리 제거). 파일은 진작 생성되고 있었으나 어디서도 import 되지 않아 [data-variant] 규칙이 통째로 dead 였다(2026-08-22). 수동 GridList.css **앞**에 둔다: 동일 특이도(0,1,0) base 는 뒤에 오는 수동 규칙이 이기고(카드 flex-column 레이아웃 보존), variant 규칙(0,2,0)만 추가로 걸린다 */
 @import "./GridList.css"; /* skipCSSGeneration: true — 수동 CSS가 구조 담당 */
+@import "./generated/GridList.css"; /* ADR-297 Phase 3g: GridList focus · drop target 상태 블록 (rule 에 생성 sheet 가 없다) */
 
 /* Overlay Components */
 @import "./generated/Modal.css";
@@ -205,6 +207,7 @@
 /* Advanced Color Components — skipCSSGeneration, 수동 CSS */
 @import "./generated/ColorField.css";
 @import "./ColorSwatchPicker.css";
+@import "./generated/ColorSwatchPicker.css"; /* ADR-297 Phase 3g: 견본 항목 focus · 선택 상태 블록 (rule 에 생성 sheet 가 없다) */
 
 /* Menu Components */
 @import "./generated/Menu.css";
@@ -230,9 +233,12 @@
 @import "./TabsIndicator.css"; /* manual supplement — ::before + SelectionIndicator 패턴 */
 @import "./generated/Toolbar.css"; /* ADR-059 Phase 4.5a — Spec 자동 생성 */
 @import "./Tree.css"; /* Tier 3 — 수동 유지 (재귀 nesting, :has() 선택자) */
+@import "./generated/Tree.css"; /* ADR-297 Phase 3g: Tree · TreeItem 상태 블록 (rule 에 생성 sheet 가 없다) */
 
 /* Data Display */
 @import "./Table.css"; /* Tier 3 — 수동 유지 (가상 스크롤, column resizer) */
+@import "./generated/Table.css"; /* ADR-297 Phase 3g: Table · Row · Cell 상태 블록 (rule 에 생성 sheet 가 없다) */
+@import "./generated/Row.css"; /* ADR-297 Phase 3g: Row rule 의 상태 트리 (skipCSSGeneration — 상태 블록만) */
 /* Slider: generated from Spec */
 @import "./generated/Slider.css";
 @import "./generated/SliderTrack.css";

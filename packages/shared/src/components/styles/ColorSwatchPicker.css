@@ -13,12 +13,14 @@
     width: fit-content;
     forced-color-adjust: none;
   
-    &[data-focus-visible] {
+    /* ADR-297 Phase 3g: a catalog item's focus · selected ring are the ColorSwatchPicker rule's tree
+       (generated — state blocks only) — these are Builder widgets'. */
+    &:where(:not([data-catalog-id], [data-catalog-id] *))[data-focus-visible] {
       outline: 2px solid var(--focus-ring);
       outline-offset: 2px;
     }
   
-    &[data-selected]::after {
+    &:where(:not([data-catalog-id], [data-catalog-id] *))[data-selected]::after {
       content: '';
       position: absolute;
       inset: 0;

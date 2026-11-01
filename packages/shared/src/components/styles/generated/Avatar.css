@@ -76,15 +76,8 @@
   border-radius: var(--catalog-token-radius-full);
 }
 
-.react-aria-Avatar[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Avatar[data-disabled] {
+.react-aria-Avatar.react-aria-Avatar:where([data-disabled]) {
   opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
 }
 
 @media (forced-colors: active) {

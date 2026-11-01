@@ -477,15 +477,23 @@ describe("toggle indicator node", () => {
       );
       expect(html).toMatch(/^<div class="checkbox"><svg [^>]*aria-hidden="true"/);
     }
+    // (ADR-297 Phase 3g — a catalog checkbox's is the Checkbox rule's tree: hidden, shown when selected or
+    //  indeterminate)
     const sheet = readFileSync(
       resolve(
         __dirname,
-        "../../../../../../packages/shared/src/components/styles/Checkbox.css",
+        "../../../../../../packages/shared/src/components/styles/generated/Checkbox.css",
       ),
       "utf8",
     );
     expect(sheet).toMatch(
-      /label:not\(\[data-selected\], \[data-indeterminate\]\) > \.checkbox > svg \{\s*visibility: hidden;/,
+      /\.react-aria-CheckboxButton \.checkbox svg \{\s*visibility: hidden;/,
     );
+    for (const state of ["selected", "indeterminate"])
+      expect(sheet).toMatch(
+        new RegExp(
+          `\\.react-aria-CheckboxButton:where\\(\\[data-${state}\\]\\) \\.checkbox svg \\{\\s*visibility: visible;`,
+        ),
+      );
   });
 });

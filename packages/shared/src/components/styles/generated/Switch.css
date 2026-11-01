@@ -92,15 +92,47 @@
   gap: var(--catalog-token-switch-gap-XL, calc(var(--catalog-token-text-lg) * 10 / 14));
 }
 
-.react-aria-Switch[data-focus-visible] {
+.react-aria-Switch.react-aria-Switch:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-Switch[data-disabled] {
+.react-aria-Switch.react-aria-Switch:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-selected]) .indicator {
+  border-color: var(--switch-color);
+  background: var(--switch-color);
+}
+
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-pressed]) .indicator {
+  border-color: var(--border-hover);
+}
+
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-pressed][data-selected]) .indicator {
+  border-color: color-mix(in srgb, var(--switch-color) 75%, black);
+}
+
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-selected][data-pressed]) .indicator {
+  background: color-mix(in srgb, var(--switch-color) 75%, black);
+}
+
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-focus-visible]) .indicator {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-selected]) .indicator::before {
+  background: var(--switch-thumb-color);
+  transform-origin: right center;
+}
+
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-pressed]) .indicator::before {
+  background: var(--bg-emphasis);
+  scale: 1.2 1;
 }
 
 /* ── Tier 2: Composite Delegation ── */

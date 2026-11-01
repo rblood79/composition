@@ -136,7 +136,9 @@ describe("Calendar · RangeCalendar box = the references' (no border, no padding
       const own = css
         .split("\n}")
         .filter((block) =>
-          new RegExp(`\\.react-aria-${type}(\\[[^\\]]*\\])*\\s*\\{`).test(
+          new RegExp(
+            `\\.react-aria-${type}(\\[[^\\]]*\\]|:where\\((\\[[^\\]]*\\])+\\))*\\s*\\{`,
+          ).test(
             block.split("\n").find((line) => line.includes("{")) ?? "",
           ),
         )

@@ -98,14 +98,8 @@
   border-radius: var(--catalog-token-radius-lg);
 }
 
-.react-aria-ProgressBarTrack[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-ProgressBarTrack[data-disabled] {
+.react-aria-ProgressBarTrack.react-aria-ProgressBarTrack:where([data-disabled]) {
   opacity: 0.38;
-  cursor: not-allowed;
   pointer-events: none;
 }
 

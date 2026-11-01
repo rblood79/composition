@@ -40,15 +40,14 @@
   background: transparent;
 }
 
-.react-aria-Modal[data-focus-visible] {
+.react-aria-Modal.react-aria-Modal:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-Modal[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
+.react-aria-Modal.react-aria-Modal:where([data-dialog-trigger]) {
+  position: relative;
+  max-height: 90vh;
 }
 
 /* ── Tier 2: Composite Delegation ── */
@@ -65,11 +64,5 @@
     transition-duration: 0s !important;
   }
 }
-
-  .react-aria-Modal[data-dialog-trigger] {
-    position: relative;
-    max-height: 90vh;
-  }
-
 
 } /* @layer components */

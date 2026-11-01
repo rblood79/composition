@@ -82,12 +82,12 @@
   --icon-size: var(--catalog-token-icon-icon-size-XL, var(--catalog-token-size-icon-XL));
 }
 
-.react-aria-Icon[data-focus-visible] {
+.react-aria-Icon.react-aria-Icon:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-Icon[data-disabled] {
+.react-aria-Icon.react-aria-Icon:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;

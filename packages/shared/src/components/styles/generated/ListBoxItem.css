@@ -121,14 +121,31 @@
   --icon-size: 16px;
 }
 
-.react-aria-ListBoxItem[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
+.react-aria-ListBoxItem.react-aria-ListBoxItem:where([data-focus-visible]) {
+  outline: 2px solid var(--accent);
 }
 
-.react-aria-ListBoxItem[data-disabled] {
+.react-aria-ListBoxItem.react-aria-ListBoxItem:where([data-focus-visible]) {
+  outline-offset: -2px;
+}
+
+.react-aria-ListBoxItem.react-aria-ListBoxItem:where([data-focus-visible][data-selected]) {
+  outline-offset: -4px;
+}
+
+.react-aria-ListBoxItem.react-aria-ListBoxItem:where([data-disabled]) {
   opacity: 0.38;
+}
+
+.react-aria-ListBoxItem.react-aria-ListBoxItem {
+  cursor: pointer;
+}
+
+.react-aria-ListBoxItem.react-aria-ListBoxItem:where([data-disabled]) {
   cursor: not-allowed;
+}
+
+.react-aria-ListBoxItem.react-aria-ListBoxItem:where([data-disabled]) {
   pointer-events: none;
 }
 

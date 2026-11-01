@@ -80,15 +80,9 @@
   border-width: var(--border-width-thin);
 }
 
-.react-aria-Kbd[data-focus-visible] {
+.react-aria-Kbd.react-aria-Kbd:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Kbd[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
 }
 
 @media (forced-colors: active) {

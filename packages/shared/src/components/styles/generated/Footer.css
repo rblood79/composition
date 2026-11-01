@@ -60,15 +60,9 @@
   border-radius: var(--catalog-token-radius-none);
 }
 
-.react-aria-Footer[data-focus-visible] {
+.react-aria-Footer.react-aria-Footer:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Footer[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
 }
 
 @media (forced-colors: active) {

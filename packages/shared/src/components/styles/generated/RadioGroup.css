@@ -48,12 +48,12 @@
   gap: 20px;
 }
 
-.react-aria-RadioGroup[data-focus-visible] {
+.react-aria-RadioGroup.react-aria-RadioGroup:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-RadioGroup[data-disabled] {
+.react-aria-RadioGroup.react-aria-RadioGroup:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;

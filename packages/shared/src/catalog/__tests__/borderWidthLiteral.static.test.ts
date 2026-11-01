@@ -23,12 +23,28 @@ const HANDLE_RINGS: ReadonlySet<string> = new Set([
 ]);
 const TABLE_PATH = resolve(__dirname, "../generated/componentRulesTable.ts");
 
+/**
+ * Every key · value of the table — a rule's state tree (`structure.stateStyles`, ADR-297 Phase 3c) is
+ * visited as its property's leaves (`borderBottom` → each branch's value, under the CSS name), the way its
+ * `rootSelectors` strings were before.
+ */
 function walk(value: unknown, visit: (key: string, v: unknown) => void): void {
   if (!value || typeof value !== "object") return;
   for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (k === "stateStyles" && v && typeof v === "object") {
+      for (const [property, tree] of Object.entries(v as object))
+        for (const leaf of leaves(tree))
+          visit(property.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`), leaf);
+      continue;
+    }
     visit(k, v);
     walk(v, visit);
   }
+}
+function leaves(tree: unknown): unknown[] {
+  return tree && typeof tree === "object"
+    ? Object.values(tree).flatMap(leaves)
+    : [tree];
 }
 
 describe("ADR-227 G3 — catalog border 폭 리터럴 0 ratchet", () => {

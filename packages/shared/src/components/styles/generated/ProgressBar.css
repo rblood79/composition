@@ -69,12 +69,12 @@
   gap: 4px;
 }
 
-.react-aria-ProgressBar[data-focus-visible] {
+.react-aria-ProgressBar.react-aria-ProgressBar:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-ProgressBar[data-disabled] {
+.react-aria-ProgressBar.react-aria-ProgressBar:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;

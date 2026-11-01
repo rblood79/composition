@@ -57,12 +57,12 @@
   --icon-size: var(--catalog-token-combo-box-icon-size-XL, var(--catalog-token-size-icon-XL));
 }
 
-.react-aria-ComboBox[data-focus-visible] {
+.react-aria-ComboBox.react-aria-ComboBox:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-ComboBox[data-disabled] {
+.react-aria-ComboBox.react-aria-ComboBox:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;

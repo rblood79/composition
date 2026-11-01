@@ -47,12 +47,12 @@
   gap: var(--catalog-token-date-field-gap-XL, calc(var(--catalog-token-size-height-XL) * 1 / 2 + calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * -1 / 2));
 }
 
-.react-aria-DateField[data-focus-visible] {
+.react-aria-DateField.react-aria-DateField:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-DateField[data-disabled] {
+.react-aria-DateField.react-aria-DateField:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;

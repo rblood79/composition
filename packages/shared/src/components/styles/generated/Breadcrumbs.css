@@ -72,15 +72,23 @@
   gap: 4px;
 }
 
-.react-aria-Breadcrumbs[data-focus-visible] {
+.react-aria-Breadcrumbs.react-aria-Breadcrumbs:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-Breadcrumbs[data-disabled] {
+.react-aria-Breadcrumbs.react-aria-Breadcrumbs:where([data-disabled]) {
   opacity: 1;
   cursor: default;
   pointer-events: auto;
+}
+
+.react-aria-Breadcrumbs.react-aria-Breadcrumbs .react-aria-Link:where([data-focus-visible])::after {
+  content: "";
+  position: absolute;
+  inset: -2px -4px;
+  border-radius: var(--catalog-token-radius-xs);
+  border: 2px solid var(--breadcrumb-accent);
 }
 
 @media (forced-colors: active) {

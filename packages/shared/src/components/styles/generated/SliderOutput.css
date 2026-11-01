@@ -56,12 +56,12 @@
   line-height: var(--catalog-token-text-lg--line-height);
 }
 
-.react-aria-SliderOutput[data-focus-visible] {
+.react-aria-SliderOutput.react-aria-SliderOutput:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-SliderOutput[data-disabled] {
+.react-aria-SliderOutput.react-aria-SliderOutput:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;

@@ -56,7 +56,8 @@
 
   /* ===== State ===== */
 
-  .react-aria-Label[data-focus-visible] {
+  /* (RAC `Label` is not focusable — D1: this never reaches a catalog label; Builder widgets only) */
+  .react-aria-Label:where(:not([data-catalog-id], [data-catalog-id] *))[data-focus-visible] {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }

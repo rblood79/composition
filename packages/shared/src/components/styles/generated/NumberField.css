@@ -60,12 +60,12 @@
   --icon-size: var(--catalog-token-number-field-icon-size-XL, var(--catalog-token-size-icon-XL));
 }
 
-.react-aria-NumberField[data-focus-visible] {
+.react-aria-NumberField.react-aria-NumberField:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-NumberField[data-disabled] {
+.react-aria-NumberField.react-aria-NumberField:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;

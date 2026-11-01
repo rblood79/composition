@@ -282,21 +282,10 @@ export function catalogRulePaint(
   )
     props._hasChildren = true;
 
-  // The DOM styles selection by `[data-selected]` over `data-variant`: a selected node of a rule
-  // with a `selected` variant paints it unless another (non-default) variant is authored. The typed
-  // `variant` default is not an authored choice (`resolveCatalogVariantName` reads any value as one).
-  // (An emphasized owner's selection — S2 TagGroup `isEmphasized`, the item's `_emphasized` —
-  // paints the rule's `selectedEmphasized` where it has one.)
-  const selectedName =
-    props._emphasized === true && rule.variants.selectedEmphasized
-      ? "selectedEmphasized"
-      : "selected";
-  const variantName =
-    props.isSelected === true &&
-    rule.variants.selected &&
-    (props.variant === undefined || props.variant === rule.defaultVariant)
-      ? selectedName
-      : resolveCatalogVariantName(rule, props);
+  // ADR-297 Phase 3d: a selected item paints its variant's `isSelected` branch (the DOM's `[data-selected]`)
+  //   — no rule swaps in a `selected` variant any more. An emphasized owner's selection (S2 TagGroup
+  //   `isEmphasized` — the item's derived `_emphasized`) is the tree's `isEmphasized` condition.
+  const variantName = resolveCatalogVariantName(rule, props);
   const variant = variantName ? rule.variants[variantName] : undefined;
   const sizeName = (props.size as string | undefined) ?? rule.defaultSize;
   const size =
@@ -304,8 +293,8 @@ export function catalogRulePaint(
     (rule.defaultSize ? rule.sizes[rule.defaultSize] : undefined) ??
     {};
   const paintProps =
-    variantName === selectedName && props.isSelected === true
-      ? { ...props, isSelected: false }
+    props._emphasized === true && props.isEmphasized === undefined
+      ? { ...props, isEmphasized: true }
       : props;
   const paint = resolveCatalogPaint({
     variant,
@@ -331,7 +320,6 @@ export function catalogRuleTextColor(
   const color =
     style.color === undefined &&
     props.isSelected === true &&
-    input.rule.variants.selected === undefined &&
     manual?.selectedText
       ? manual.selectedText
       : paint.color;

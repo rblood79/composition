@@ -556,7 +556,7 @@ describe("standalone collection items — item slot roles", () => {
     expect(item.visual.opacity).toBe(0.38);
     const css = readFileSync(`${GENERATED}/GridListItem.css`, "utf8");
     expect(css).toMatch(
-      /\.react-aria-GridListItem\[data-disabled\] \{[^}]*opacity: 0\.38/,
+      /\.react-aria-GridListItem:where\(\[data-disabled\]\) \{[^}]*opacity: 0\.38/,
     );
   });
 

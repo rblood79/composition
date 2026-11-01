@@ -37,12 +37,12 @@
   border-radius: var(--catalog-token-radius-none);
 }
 
-.react-aria-Tabs[data-focus-visible] {
+.react-aria-Tabs.react-aria-Tabs:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-inset-offset);
 }
 
-.react-aria-Tabs[data-disabled] {
+.react-aria-Tabs.react-aria-Tabs:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;

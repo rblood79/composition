@@ -49,12 +49,12 @@
   border-radius: var(--catalog-token-radius-none);
 }
 
-.react-aria-ToggleButtonGroup[data-focus-visible] {
+.react-aria-ToggleButtonGroup.react-aria-ToggleButtonGroup:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-ToggleButtonGroup[data-disabled] {
+.react-aria-ToggleButtonGroup.react-aria-ToggleButtonGroup:where([data-disabled]) {
   opacity: 1;
   cursor: not-allowed;
   pointer-events: none;

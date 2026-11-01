@@ -40,11 +40,12 @@
 
   /* 글리프 자체는 장식 — `/ ""` 로 대체 텍스트를 비워 스크린리더가 두 번 말하지 않게 한다
      (선택 여부는 RAC 가 aria-checked / aria-selected 로 이미 전달한다). */
-  .react-aria-MenuItem[data-selection-mode="multiple"][data-selected]::before {
+  /* (ADR-297 Phase 3g: a catalog item's glyph is the MenuItem rule's tree — these are Builder menus') */
+  .react-aria-MenuItem:where(:not([data-catalog-id], [data-catalog-id] *))[data-selection-mode="multiple"][data-selected]::before {
     content: "✓" / "";
   }
 
-  .react-aria-MenuItem[data-selection-mode="single"][data-selected]::before {
+  .react-aria-MenuItem:where(:not([data-catalog-id], [data-catalog-id] *))[data-selection-mode="single"][data-selected]::before {
     content: "●" / "";
   }
 

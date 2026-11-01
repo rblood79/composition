@@ -44,6 +44,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 이 ADR 밖: 노드 dark 강제는 Canvas · Preview 가 노드 `themeOverride` 를 읽지 않아 화면에 나타나지 않는다 (기존). hover 스타일은 노드 상태를 쓰는 명령이 없어 CSS 에서 읽기 전용.
   - 문서: `docs/adr/completed/296-code-view-project-file-tree-projection.md`
 
+## [ADR-297 Phase 3 (일부 3) — 수동 CSS 의 선택 · focus 상태를 rule 트리로] - 2026-11-01
+
+### Changed
+
+- **Checkbox · Radio · Switch 표시 · 달력 날짜 · Tag · Tree · Table 행 · 견본 · Menu 선택 글리프의 선택 · focus 칠이 catalog rule 에서 나온다 (ADR-297 Phase 3g)**
+  - 수동 CSS 가 그리던 부품 · 셀 · `::before` · `::after` 의 상태를 rule 의 `partStateStyles` 조건 트리로 옮겼다 — 값은 그대로 (실제 Preview DOM 하니스에서 전후 차이 0). 생성 sheet 가 없던 TagGroup · Tree · Table · GridList · ColorSwatchPicker · Row 는 상태 블록만 담은 생성 sheet 를 싣는다.
+  - 수동 규칙은 Builder 자체 위젯 전용으로 좁혔다 — Builder 화면 변화 0.
+  - 남은 것: ListBox 항목 선택 바탕 (Preview 연한 accent · Canvas accent) 은 S2 에 기준이 없어 결정 대기.
+
+## [ADR-297 Phase 3 (일부 2) — 상태 스타일 · `&` 상태 선택자 · 선택 variant 를 조건 트리로] - 2026-11-01
+
+### Fixed
+
+- **disabled 흐림 · focus ring · pressed 축소 · quiet 밑줄 · field 버튼 모서리가 Canvas 와 Preview 에서 같은 트리를 읽는다 (ADR-297 Phase 3 — 3b · 3c · 3d)**
+  - rule 의 상태 스타일이 `structure.stateStyles` 조건 트리 하나다 (옛 `structure.states` · `rootSelectors` 의 `&[data-*]` 키 42 를 옮김). 생성 CSS 는 같은 트리를 compile 하고 (size 블록 위 층 — 클래스 두 번 + `:where`), Canvas 의 quiet 칠 · invalid 테두리 · Disclosure 테두리 · Color 조작기 disabled 는 같은 트리의 evaluator 로 읽는다.
+  - Link · Card · SliderFill · SliderOutput 이 disabled 일 때 Canvas 도 흐려진다 (Preview 는 이미 0.38). RAC 가 disabled 상태를 내지 않는 21 종 (Form · Dialog · Heading …) 의 죽은 disabled 블록은 없앴다.
+  - 입력칸 (Input · DateInput) 이 invalid 이면 hover 중에도 빨간 테두리 · 밑줄이다 (S2 — 전에는 Preview 에서 hover 회색이 이겼다). Builder 자체 입력칸도 같다.
+  - Tag 선택 · TagGroup 강조 선택 · ColorSwatch 선택 칠이 variant 이름 (`selected`) 이 아니라 `isSelected` 조건이다 — Canvas 값 그대로.
+  - 조건 어휘: `fieldButton` · `inGroup` · `isAutofilled` · `isDialogTrigger` · `isCatalogNode` · `isLink`.
+
 ## [ADR-297 Phase 3 (일부) — Preview 칠을 Canvas 와 같은 조건 트리 하나로: 생성 CSS compiler 전환 · button-base · static] - 2026-11-01
 
 ### Fixed

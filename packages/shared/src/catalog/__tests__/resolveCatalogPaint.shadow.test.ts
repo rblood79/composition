@@ -236,7 +236,11 @@ describe("resolveCatalogPaint — 기존 Skia shadow parity", () => {
             (typeof caseProps.fillStyle === "string" &&
               !reach.fillStyles?.includes(caseProps.fillStyle)) ||
             // (Phase 3: the static scheme is the tree's `staticColor` branch — where staticColor reaches)
-            (typeof caseProps.staticColor === "string" && !reach.staticColor)
+            (typeof caseProps.staticColor === "string" && !reach.staticColor) ||
+            // (Phase 3d: selection folded into Tag · ColorSwatch default trees — the legacy chain painted
+            //  it through the swapped `selected` variant; swap ↔ tree 24/24 checked 2026-11-01)
+            (caseProps.isSelected === true &&
+              (type === "Tag" || type === "ColorSwatch"))
           )
             continue;
           const style = caseProps.style as
@@ -323,7 +327,9 @@ describe("resolveCatalogPaint — 기존 Skia shadow parity", () => {
     //   static 입력은 staticColor 가 닿는 rule 만 (`rulePaintReach` — binding 이 받거나 ProgressBar · Meter 파생).
     //   3,387 → 2,238 (빠진 1,149 행 = staticColor 를 받지 못하는 rule 의 static 입력). diffs 0 유지 — 이 사본의
     //   옛 static 판정이 codemod 의 oracle.
-    expect(compared).toBe(2_238);
+    // (ADR-297 Phase 3d: 2,238 → 2,181 — the three selection variants folded into their default trees, whose
+    //  selected inputs this legacy comparison skips)
+    expect(compared).toBe(2_181);
     expect(diffs.slice(0, 20)).toEqual([]);
   });
 });

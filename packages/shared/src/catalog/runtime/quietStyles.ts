@@ -1,10 +1,15 @@
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import type { ComponentRule } from "../../types/catalog-style.types";
 import type { StateName } from "../document/types";
+import {
+  conditionTreeKeys,
+  evaluateConditionTree,
+  type ConditionSet,
+} from "../rule/conditionTree";
 
 /**
  * The quiet paint of a quiet field's box part, the same declarations its DOM sheet applies:
- * the part rule's root selectors (`&[data-quiet]` — an Input / DateInput instance), else, for a
+ * the part rule's state tree (its quiet branches — an Input / DateInput instance), else, for a
  * box the field's own rule styles (`_quietOwner` — a Select's trigger Button), that rule's `quiet.true.nested` blocks for the box (`.react-aria-Select[data-quiet="true"]
  * .react-aria-Button`). Undefined when the part is not quiet.
  */
@@ -58,12 +63,36 @@ export function catalogQuietStyles(
     return ok;
   };
   const result: Record<string, string> = {};
-  const selectors = rule?.structure?.composition?.rootSelectors as
-    Record<string, { styles?: Record<string, string> }> | undefined;
-  if (selectors?.["&[data-quiet]"]) {
-    for (const [selector, entry] of Object.entries(selectors))
-      if (selector.startsWith("&[data-quiet]") && matches(selector, "&"))
-        Object.assign(result, entry.styles);
+  // ADR-297 Phase 3c — a box part's quiet paint is its rule's state tree (`structure.stateStyles` — the
+  //   properties with a quiet branch), evaluated in the box's state. The focus the DOM tree reads
+  //   (`isFocused` · `isFocusWithin`) is the Canvas focus state's (RAC sets both with `data-focus-visible`);
+  //   a disabled box is never hovered (RAC `useHover({ isDisabled })`).
+  //   (A field box part = a rule whose quiet branch draws the underline — `borderBottom`; a Disclosure's or a
+  //   Link's quiet branch is not a field box.)
+  const trees = rule?.structure?.stateStyles;
+  const quietTrees = Object.entries(trees ?? {}).filter(([, tree]) =>
+    conditionTreeKeys(tree).has("isQuiet"),
+  );
+  if (
+    trees?.borderBottom !== undefined &&
+    conditionTreeKeys(trees.borderBottom).has("isQuiet")
+  ) {
+    const conditions: ConditionSet = {
+      isQuiet: true,
+      isHovered: active["data-hovered"] && !active["data-disabled"],
+      isPressed: active["data-pressed"],
+      isFocusVisible: active["data-focus-visible"],
+      isFocused: active["data-focused"],
+      isFocusWithin: active["data-focus-within"],
+      isDisabled: active["data-disabled"],
+      isInvalid: active["data-invalid"],
+    };
+    for (const [property, tree] of quietTrees) {
+      const value = evaluateConditionTree(tree, conditions);
+      if (value !== undefined)
+        result[property.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)] =
+          String(value);
+    }
     return result;
   }
   const owner =
@@ -100,8 +129,8 @@ const QUIET_OWNER_BOX_TOKENS: Readonly<Record<string, string>> = {
 };
 
 /**
- * The border color an invalid field's box takes outside quiet (the box rule's `&[data-invalid]`
- * root selector — `--negative`): its own `isInvalid`, or its field's (`_fieldInvalid`). Undefined
+ * The border color an invalid field's box takes outside quiet (the box rule's state tree under
+ * `isInvalid` — `--negative`): its own `isInvalid`, or its field's (`_fieldInvalid`). Undefined
  * when the box is valid, quiet (`catalogQuietStyles` has its own invalid underline) or its rule
  * declares none.
  */
@@ -111,7 +140,8 @@ export function catalogInvalidBorderColor(
 ): string | undefined {
   if (props.isQuiet === true) return undefined;
   if (props.isInvalid !== true && props._fieldInvalid !== true) return undefined;
-  const selectors = rule?.structure?.composition?.rootSelectors as
-    Record<string, { styles?: Record<string, string> }> | undefined;
-  return selectors?.["&[data-invalid]"]?.styles?.["border-color"];
+  const color = evaluateConditionTree(rule?.structure?.stateStyles?.borderColor, {
+    isInvalid: true,
+  });
+  return color === undefined ? undefined : String(color);
 }

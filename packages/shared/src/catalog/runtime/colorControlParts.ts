@@ -5,6 +5,8 @@ import {
   type TokenRef,
 } from "@composition/rendering";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
+import { evaluateConditionTree } from "../rule/conditionTree";
+import type { ComponentRule } from "../../types/catalog-style.types";
 import {
   CATALOG_COLOR_WHEEL_TRACK,
   catalogColorWheelDiameter,
@@ -103,14 +105,24 @@ function rootSelectors(type: string): RootSelectors {
   return rule?.structure?.composition?.rootSelectors ?? {};
 }
 
-/** The rule's disabled declaration for a part (`&[data-disabled] .react-aria-<Part>`). */
+/** The rule's disabled declaration for a part (`&[data-disabled] .react-aria-<Part>`) or the control itself (its state tree). */
 function disabledStyles(
   controlType: string,
   partClass: string,
 ): Record<string, string> | undefined {
-  const selectors = rootSelectors(controlType);
-  return selectors[
-    partClass ? `&[data-disabled] .react-aria-${partClass}` : "&[data-disabled]"
+  if (!partClass) {
+    // (the control's own box — its state tree, ADR-297 Phase 3c)
+    const background = evaluateConditionTree(
+      (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[controlType]
+        ?.structure?.stateStyles?.background,
+      { isDisabled: true },
+    );
+    return background === undefined
+      ? undefined
+      : { background: String(background) };
+  }
+  return rootSelectors(controlType)[
+    `&[data-disabled] .react-aria-${partClass}`
   ]?.styles;
 }
 
@@ -125,14 +137,14 @@ function disabledColor(
   return color ? catalogColorHex(color) : undefined;
 }
 
-/** The SliderTrack rule's disabled opacity (`structure.states.disabled`). */
+/** The SliderTrack rule's disabled opacity (its state tree under `isDisabled` — `structure.stateStyles`). */
 function sliderTrackDisabledOpacity(): number | undefined {
   const opacity = Number(
-    (
-      (COMPONENT_RULES_TABLE as Record<string, unknown>).SliderTrack as {
-        structure?: { states?: { disabled?: { opacity?: number } } };
-      }
-    ).structure?.states?.disabled?.opacity,
+    evaluateConditionTree(
+      (COMPONENT_RULES_TABLE as Record<string, ComponentRule>).SliderTrack
+        ?.structure?.stateStyles?.opacity,
+      { isDisabled: true },
+    ),
   );
   return Number.isFinite(opacity) && opacity < 1 ? opacity : undefined;
 }

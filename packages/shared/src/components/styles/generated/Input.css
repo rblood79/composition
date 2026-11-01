@@ -127,15 +127,108 @@
   min-height: var(--catalog-token-size-height-XL);
 }
 
-:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox)[data-focus-visible] {
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-focus-visible]) {
   outline-offset: var(--focus-ring-offset);
 }
 
-:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox)[data-disabled] {
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-disabled]) {
   opacity: 1;
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-disabled]) {
   cursor: not-allowed;
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-disabled]) {
   pointer-events: none;
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-quiet]) {
+  background: transparent;
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-hovered]) {
+  border-color: var(--border-hover);
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-invalid]) {
+  border-color: var(--negative);
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where(:is([data-focused],[data-focus-within])) {
+  border-color: var(--accent-content);
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where(:is([data-focused],[data-focus-within])[data-invalid]) {
+  border-color: var(--negative);
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-quiet]) {
+  border-color: transparent;
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-quiet]) {
+  box-shadow: none;
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-quiet]) {
+  border-radius: 0;
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-quiet]) {
+  border-bottom: 1px solid var(--border);
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-quiet][data-hovered]) {
+  border-bottom-color: var(--border-hover);
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-quiet][data-invalid]) {
+  border-bottom-color: var(--negative);
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-quiet]:is([data-focused],[data-focus-within])) {
+  border-bottom-color: var(--accent-content);
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-quiet]:is([data-focused],[data-focus-within])[data-invalid]) {
+  border-bottom-color: var(--negative);
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where(:is([data-focused],[data-focus-within])) {
+  outline: 2px solid var(--accent-content);
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-quiet]:is([data-focused],[data-focus-within])) {
+  outline: none;
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where(:is([data-focused],[data-focus-within])[data-invalid]) {
+  outline-color: var(--negative);
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where([data-quiet]:is([data-focused],[data-focus-within])) {
+  outline-color: currentcolor;
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where(:is([data-focused],[data-focus-within])) {
+  outline-offset: -1px;
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where(:is(:-webkit-autofill, :-webkit-autofill:hover, :-webkit-autofill:focus)) {
+  -webkit-text-fill-color: var(--fg) !important;
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where(:is(:-webkit-autofill, :-webkit-autofill:hover, :-webkit-autofill:focus)) {
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-inset) inset !important;
+}
+
+:is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where(:is(:-webkit-autofill, :-webkit-autofill:hover, :-webkit-autofill:focus)) {
+  caret-color: var(--fg);
 }
 
 /* ── Tier 2: Composite Delegation ── */
@@ -152,54 +245,6 @@
     margin: 0;
     font-family: inherit;
     transition: border-color 200ms ease, color 200ms ease;
-  }
-
-  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(:-webkit-autofill, :-webkit-autofill:hover, :-webkit-autofill:focus) {
-    -webkit-text-fill-color: var(--fg) !important;
-    -webkit-box-shadow: 0 0 0 1000px var(--bg-inset) inset !important;
-    caret-color: var(--fg);
-  }
-
-  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox)[data-hovered]:not([data-focused], [data-focus-within]):not([data-disabled]) {
-    border-color: var(--border-hover);
-  }
-
-  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is([data-focused], [data-focus-within]) {
-    outline: 2px solid var(--accent-content);
-    outline-offset: -1px;
-    border-color: var(--accent-content);
-  }
-
-  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox)[data-invalid] {
-    border-color: var(--negative);
-  }
-
-  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox)[data-invalid]:is([data-focused], [data-focus-within]) {
-    outline-color: var(--negative);
-  }
-
-  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox)[data-quiet] {
-    background: transparent;
-    border-color: transparent;
-    box-shadow: none;
-    border-radius: 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox)[data-quiet][data-hovered]:not([data-focused], [data-focus-within]):not([data-disabled]) {
-    border-color: transparent;
-    border-bottom-color: var(--border-hover);
-  }
-
-  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox)[data-quiet]:is([data-focused], [data-focus-within]) {
-    outline: none;
-    border-color: transparent;
-    border-bottom-color: var(--accent-content);
-  }
-
-  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox)[data-quiet][data-invalid] {
-    border-color: transparent;
-    border-bottom-color: var(--negative);
   }
 
 

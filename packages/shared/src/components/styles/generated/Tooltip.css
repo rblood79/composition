@@ -105,12 +105,12 @@
   max-width: 160px;
 }
 
-.react-aria-Tooltip[data-focus-visible] {
+.react-aria-Tooltip.react-aria-Tooltip:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-Tooltip[data-disabled] {
+.react-aria-Tooltip.react-aria-Tooltip:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;

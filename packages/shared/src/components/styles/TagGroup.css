@@ -116,14 +116,16 @@
       scale: 0.96;
     }
 
-    &[data-focus-visible] {
+    /* ADR-297 Phase 3g: a catalog Tag's selected · focus are the TagGroup rule's tree (generated
+       `TagGroup.css` — state blocks only) — these are Builder widgets'. */
+    &:where(:not([data-catalog-id], [data-catalog-id] *))[data-focus-visible] {
       outline: 2px solid var(--accent);
       outline-offset: 2px;
     }
 
     /* S2 TagGroup (2026-10-10): a selected Tag is neutral — accent when the group is emphasized
        (below). The Tag rule's `selected` · `selectedEmphasized` (the Canvas). */
-    &[data-selected] {
+    &:where(:not([data-catalog-id], [data-catalog-id] *))[data-selected] {
       --tag-color: var(--fg);
       --tag-text: var(--bg);
       --tag-border: var(--fg);
@@ -211,7 +213,7 @@
         scale: 0.9;
       }
 
-      &[data-focus-visible] {
+      &:where(:not([data-catalog-id], [data-catalog-id] *))[data-focus-visible] {
         outline: 2px solid var(--focus-ring);
         outline-offset: -1px;
       }
@@ -228,7 +230,7 @@
       --button-text: currentColor;
     }
 
-    &[data-selected] {
+    &:where(:not([data-catalog-id], [data-catalog-id] *))[data-selected] {
       .tag-remove-btn {
         color: inherit;
       }
@@ -248,7 +250,7 @@
   /* ===== Parent-delegated Color Variants ===== */
 
   /* S2 `isEmphasized`: the group's selected Tags take the accent pair. */
-  .react-aria-TagGroup[data-emphasized] .react-aria-Tag[data-selected] {
+  .react-aria-TagGroup[data-emphasized] .react-aria-Tag:where(:not([data-catalog-id], [data-catalog-id] *))[data-selected] {
     --tag-color: var(--accent);
     --tag-text: var(--fg-on-accent);
     --tag-border: var(--accent);
@@ -400,7 +402,7 @@
       color: var(--tag-text, var(--fg));
     }
 
-    &:focus-visible {
+    &:where(:not([data-catalog-id], [data-catalog-id] *)):focus-visible {
       outline: 2px solid var(--accent);
       outline-offset: 2px;
     }

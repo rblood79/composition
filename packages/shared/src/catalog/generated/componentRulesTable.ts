@@ -77,12 +77,16 @@ const FIELD_BUTTON_CORNER_VARIANTS = Object.fromEntries(
     { styles: { "border-radius": corner, "border-width": "0" } },
   ]),
 );
-const FIELD_BUTTON_CORNER_SELECTORS = Object.fromEntries(
-  Object.entries(FIELD_BUTTON_CORNERS).map(([size, corner]) => [
-    `&[data-field-button="${size}"]`,
-    { styles: { "border-radius": corner, "border-width": "0" } },
-  ]),
-);
+/** ADR-297 Phase 3c — the field-button corners as the Button's state tree (value condition `fieldButton` —
+ *  the DOM's `data-field-button`; the Canvas reads `containerVariants["field-button"]` of the same table). */
+const FIELD_BUTTON_CORNER_STATE = {
+  borderRadius: { fieldButton: { ...FIELD_BUTTON_CORNERS } },
+  borderWidth: {
+    fieldButton: Object.fromEntries(
+      Object.keys(FIELD_BUTTON_CORNERS).map((size) => [size, "0"]),
+    ),
+  },
+} as const;
 
 // Button and ToggleButton have one root box for CSS generation and Canvas typed definitions.
 // Keeping separate copies dropped fit-content in Canvas when the parent became a flex column.
@@ -171,6 +175,164 @@ const SWITCH_INDICATOR_SELECTORS = togglePerSize(
       },
   }),
 );
+
+/**
+ * ADR-297 Phase 3b — 상태 스타일 트리 (`structure.stateStyles`) 에서 rule 대부분이 같이 쓰는 가지: 키보드 focus 의 ring
+ * 과 disabled 의 흐림 · 조작 차단. 생성 CSS 는 `compileConditionTree` 로 (`:where([data-focus-visible])` ·
+ * `:where([data-disabled])`), Canvas 는 disabled 흐림을 같은 트리에서 읽는다 (`disabledStateRules`).
+ */
+const FOCUS_RING_STATE = {
+  focusRing: { isFocusVisible: "{focus.ring.default}" },
+} as const;
+const DISABLED_STATE = {
+  opacity: { isDisabled: 0.38 },
+  cursor: { isDisabled: "not-allowed" },
+  pointerEvents: { isDisabled: "none" },
+} as const;
+
+/**
+ * ADR-297 Phase 3g — toggle indicator 상자 (Checkbox `.checkbox`) 의 상태. 옛 수동 sheet 의 specificity 순서
+ * (0-3-0 selected < invalid < disabled · 0-4-0 pressed · 0-5-0 selected·pressed < invalid·pressed) 를 트리 순서로.
+ */
+/** Radio 의 고리 (`.indicator`) — 옛 수동 `Radio.css` 순서 (0-3-0 selected < invalid < disabled · 0-4-0 pressed < invalid·selected · 0-5-0 selected·pressed). */
+const RADIO_RING_STATE = {
+  borderColor: {
+    isSelected: "var(--radio-color)",
+    isInvalid: "var(--negative)",
+    isDisabled: {
+      default: "var(--border-disabled)",
+      isInvalid: { isSelected: "var(--negative)" },
+    },
+    isPressed: {
+      default: "var(--border-hover)",
+      isSelected: "color-mix(in srgb, var(--radio-color) 75%, black)",
+    },
+  },
+  outline: { isFocusVisible: "2px solid var(--radio-color)" },
+  outlineOffset: { isFocusVisible: "2px" },
+} as const;
+/** Switch 의 track · thumb — 옛 수동 `Switch.css` 순서 (pressed 0-4-0 이 selected 0-3-0 을, selected·pressed 0-5-0 이 둘을 이긴다). */
+const SWITCH_TRACK_STATE = {
+  borderColor: {
+    isSelected: "var(--switch-color)",
+    isPressed: {
+      default: "var(--border-hover)",
+      isSelected: "color-mix(in srgb, var(--switch-color) 75%, black)",
+    },
+  },
+  background: {
+    isSelected: {
+      default: "var(--switch-color)",
+      isPressed: "color-mix(in srgb, var(--switch-color) 75%, black)",
+    },
+  },
+  outline: { isFocusVisible: "2px solid var(--focus-ring)" },
+  outlineOffset: { isFocusVisible: "2px" },
+} as const;
+const SWITCH_THUMB_STATE = {
+  background: {
+    isSelected: "var(--switch-thumb-color)",
+    isPressed: "var(--bg-emphasis)",
+  },
+  transformOrigin: { isSelected: "right center" },
+  scale: { isPressed: "1.2 1" },
+} as const;
+/**
+ * Calendar · RangeCalendar 의 날짜 셀 (RAC `CalendarCell` — rule 이 없는 RAC 부품) 의 선택 · focus. 옛 수동
+ * `Calendar.css` · `RangeCalendar.css` · `CalendarCommon.css` 값 — 트리 블록 (0-3-0) 은 공통 시트 (hover · pressed ·
+ * invalid, 0-3-0) 뒤 · 범위 시트 (`[data-selection-start]` …) 앞에 실린다.
+ */
+const CALENDAR_CELL_STATE = {
+  background: {
+    isSelected: {
+      default: "var(--accent)",
+      isHovered: "color-mix(in srgb, var(--accent) 85%, black)",
+    },
+  },
+  color: { isSelected: "var(--fg-on-accent)" },
+  outline: { isFocusVisible: "2px solid var(--accent)" },
+  outlineOffset: { isFocusVisible: "2px" },
+} as const;
+const RANGE_CALENDAR_CELL_STATE = {
+  background: {
+    isSelected: {
+      default: "transparent",
+      isHovered: "color-mix(in srgb, var(--accent-subtle) 50%, var(--accent))",
+      isInvalid: "transparent",
+    },
+  },
+  color: { isSelected: "var(--fg)" },
+  outline: { isFocusVisible: "2px solid var(--focus-ring)" },
+  outlineOffset: {
+    isFocusVisible: {
+      default: "-2px",
+      isSelectionStart: "2px",
+      isSelectionEnd: "2px",
+    },
+  },
+} as const;
+/**
+ * RangeCalendar 의 기간 띠 (S2 `selectionBackgroundStyles` · `selectionBorderStyles` — td 의 `::before`, 옛 수동
+ * `RangeCalendar.css`): 선택된 날짜 칸 (`td:has(> cell%)`) 마다, 하루만 고른 기간 (시작 = 끝) 은 띠 없이.
+ */
+const RANGE_BAND = `& .react-aria-CalendarGridBody td:has(> .react-aria-CalendarCell%):not(:has(> [data-selection-start][data-selection-end]))`;
+const RANGE_BAND_STATE = {
+  content: { isSelected: '""' },
+  position: { isSelected: "absolute" },
+  zIndex: { isSelected: "-1" },
+  inset: { isSelected: "var(--spacing-2xs) 0" },
+  background: {
+    isSelected: {
+      default: "var(--accent-subtle)",
+      isInvalid: "var(--negative-subtle)",
+    },
+  },
+  border: { isSelected: "1px solid var(--focus-ring)" },
+  borderInlineWidth: { isSelected: "0" },
+  borderColor: { isSelected: { isInvalid: "var(--negative)" } },
+} as const;
+/** 띠의 둥근 시작 (기간 시작 · 주의 첫 날 · 달의 첫 날) · 끝. */
+const RANGE_BAND_START = {
+  insetInlineStart: { isSelected: "var(--spacing-2xs)" },
+  borderInlineStartWidth: { isSelected: "1px" },
+  borderStartStartRadius: { isSelected: "var(--radius-full)" },
+  borderEndStartRadius: { isSelected: "var(--radius-full)" },
+} as const;
+const RANGE_BAND_END = {
+  insetInlineEnd: { isSelected: "var(--spacing-2xs)" },
+  borderInlineEndWidth: { isSelected: "1px" },
+  borderStartEndRadius: { isSelected: "var(--radius-full)" },
+  borderEndEndRadius: { isSelected: "var(--radius-full)" },
+} as const;
+const CHECKBOX_SELECTED_FILL = {
+  default: "var(--selected-color)",
+  isInvalid: "var(--negative)",
+  isPressed: {
+    default: "color-mix(in srgb, var(--selected-color) 75%, black)",
+    isInvalid: "color-mix(in srgb, var(--negative) 75%, black)",
+  },
+} as const;
+const CHECKBOX_BOX_STATE = {
+  borderColor: {
+    isSelected: "var(--selected-color)",
+    isIndeterminate: "var(--selected-color)",
+    isInvalid: "var(--negative)",
+    isDisabled: "var(--border-disabled)",
+    isPressed: {
+      default: "var(--border-pressed)",
+      isSelected: "color-mix(in srgb, var(--selected-color) 75%, black)",
+      isIndeterminate: "color-mix(in srgb, var(--selected-color) 75%, black)",
+      isInvalid: "color-mix(in srgb, var(--negative) 75%, black)",
+    },
+  },
+  background: {
+    isSelected: CHECKBOX_SELECTED_FILL,
+    isIndeterminate: CHECKBOX_SELECTED_FILL,
+  },
+  outline: { isFocusVisible: "2px solid var(--focus-ring)" },
+  outlineOffset: { isFocusVisible: "2px" },
+  "--checkmark-color": { isInvalid: "var(--color-white)" },
+} as const;
 
 /**
  * ADR-295 Phase 3c-3 — S2's font-relative spacings (Decision 3, `spectrum-theme.ts` relative spacing):
@@ -268,10 +430,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "flex",
         alignItems: "center",
       },
-      states: {
-        disabled: {
-          opacity: 0.38,
-        },
+      stateStyles: {
+        opacity: { isDisabled: 0.38 },
       },
     },
   },
@@ -324,10 +484,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       archetype: "default",
       element: "div",
       containerStyles: undefined,
-      states: {
-        disabled: {
-          opacity: 0.38,
-        },
+      stateStyles: {
+        opacity: { isDisabled: 0.38 },
       },
       // S2 AvatarGroup (`@react-spectrum/s2/src/AvatarGroup.tsx` `avatar`): each avatar overlaps the
       //   one before by a quarter of its size (`marginStart: calc(var(--size) / -4)`), the first
@@ -1137,10 +1295,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         justifyContent: "center",
         width: "fit-content",
       },
-      states: {
-        disabled: {
-          opacity: 0.38,
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
     },
   },
@@ -1201,6 +1358,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       composition: {
         rootSelectors: {},
         delegation: [],
+      },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
       },
     },
   },
@@ -1267,19 +1427,24 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "inline-flex",
         alignItems: "center",
       },
-      states: {
-        hover: {},
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        opacity: { isDisabled: 0.38 },
+        pointerEvents: { isDisabled: "none" },
       },
     },
   },
   Breadcrumbs: {
+    // ADR-297 Phase 3g — a crumb's keyboard focus box (옛 수동 `Breadcrumbs.css`).
+    partStateStyles: {
+      "& .react-aria-Link%::after": {
+        content: { isFocusVisible: '""' },
+        position: { isFocusVisible: "absolute" },
+        inset: { isFocusVisible: "-2px -4px" },
+        borderRadius: { isFocusVisible: "var(--radius-xs)" },
+        border: { isFocusVisible: "2px solid var(--breadcrumb-accent)" },
+      },
+    },
     defaultVariant: "default",
     defaultSize: "M",
     variants: {
@@ -1333,16 +1498,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         flexWrap: "nowrap",
         alignItems: "center",
       },
-      states: {
-        hover: {},
-        disabled: {
-          opacity: 1,
-          pointerEvents: "auto",
-          cursor: "default",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        opacity: { isDisabled: 1 },
+        cursor: { isDisabled: "default" },
+        pointerEvents: { isDisabled: "auto" },
       },
     },
   },
@@ -1913,19 +2073,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       archetype: "button",
       element: "button",
       containerStyles: BUTTON_ROOT_BOX,
-      states: {
-        hover: {},
-        pressed: {
-          scale: 0.95,
-        },
-        disabled: {
-          opacity: 0.38,
-          cursor: "not-allowed",
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FIELD_BUTTON_CORNER_STATE,
+        ...FOCUS_RING_STATE,
+        transform: { isPressed: "scale(0.95)" },
+        ...DISABLED_STATE,
       },
       // ADR-297 Phase 3: paint = the variant trees (generated `:where` blocks) — the class stays for
       //   the Skia child-color gate and the Builder chrome ramp (`.button-base:not([data-catalog-id])`).
@@ -1933,7 +2085,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       defaultBorder: "color",
       composition: {
         delegation: [],
-        rootSelectors: FIELD_BUTTON_CORNER_SELECTORS,
       },
     },
   },
@@ -1988,14 +2139,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       archetype: "default",
       element: "div",
       containerStyles: { height: "fit-content" },
-      states: {
-        disabled: {
-          opacity: 0.38,
-        },
+      stateStyles: {
+        opacity: { isDisabled: 0.38 },
       },
     },
   },
   Calendar: {
+    // ADR-297 Phase 3g — the day cells' selected · focus (옛 수동 `Calendar.css` · `CalendarCommon.css`).
+    partStateStyles: {
+      "& .react-aria-CalendarCell%": CALENDAR_CELL_STATE,
+      "& .react-aria-CalendarCell%::after": {
+        background: { isToday: { isSelected: "var(--fg-on-accent)" } },
+      },
+    },
     defaultVariant: "default",
     defaultSize: "M",
     variants: {
@@ -2055,16 +2211,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         width: "fit-content",
         maxWidth: "100%",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
     },
   },
@@ -2355,7 +2504,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         rootSelectors: {
           "&": {
             styles: {
-              cursor: "pointer",
               // S2 Card `textDecoration: 'none'` — a link Card (`href` → RAC Link `<a>`) keeps its
               //   text undecorated (the UA underline would reach every line inside). The Canvas draws
               //   no decoration either.
@@ -2417,6 +2565,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
         delegation: [],
       },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
+        // (ADR-297 Phase 3b: the interactive pointer — was `rootSelectors["&"]`, after the state blocks)
+        cursor: { default: "pointer", isDisabled: "not-allowed" },
+      },
     },
   },
   Content: {
@@ -2459,6 +2613,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         alignItems: "stretch",
         width: "100%",
         // (ADR-256 Phase 10: its gap is its owner's — the Card rule's `sizeSelectors`.)
+      },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
       },
     },
   },
@@ -2503,6 +2660,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         // (ADR-256 Phase 10: its alignment and gap are its owner's — the Card rule's
         //   `staticSelectors`. A Card's footer has no top padding of its own — the template's inline
         //   `paddingTop: 8px` was removed, user 2026-10-25 「footer 에 paddingtop:8px 기본값 제거」.)
+      },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
       },
     },
   },
@@ -2553,6 +2713,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         // height: "fit-content" 는 **이관 불가** — 생성기 `emitContainerStyles` allowlist 에
         //   `height` 키가 없어 DOM 에 안 실린다(ADR-171 은 Generator 스키마를 확장하지 않는다).
         //   catalog 에 두면 Skia 만 받아 역방향 발산이 되므로 인라인에 남긴다.
+      },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
       },
     },
   },
@@ -2632,14 +2795,26 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       archetype: "default",
       element: "div",
       containerStyles: undefined,
-      states: {
-        disabled: {
-          opacity: 0.38,
-        },
+      stateStyles: {
+        opacity: { isDisabled: 0.38 },
       },
     },
   },
   Checkbox: {
+    // ADR-297 Phase 3g — the indicator box's states (옛 수동 `Checkbox.css` — specificity 순서를 트리 순서로:
+    //   selected < invalid < disabled < pressed < selected·pressed < invalid·pressed). RAC 는 상태를 CheckboxButton
+    //   (`label`) 에 싣는다. 선택 색은 root 의 `--selected-color` (emphasized 가 정한다 — 수동 sheet).
+    partStateStyles: {
+      "& .react-aria-CheckboxButton% .checkbox": CHECKBOX_BOX_STATE,
+      "& .react-aria-CheckboxButton% .checkbox svg": {
+        strokeDashoffset: { isSelected: 44, isIndeterminate: 44 },
+        visibility: {
+          default: "hidden",
+          isSelected: "visible",
+          isIndeterminate: "visible",
+        },
+      },
+    },
     defaultVariant: "default",
     defaultSize: "M",
     // ADR-912 단계 5 step 2: replace-primitive(checkbox indicator) measurement 를 generic
@@ -2776,14 +2951,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         alignItems: "flex-start",
         justifyContent: "center",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          cursor: "not-allowed",
-          pointerEvents: "none",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       composition: {
         staticSelectors: {
@@ -2880,16 +3050,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "flex",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       composition: {
         layout: "flex-column",
@@ -3062,6 +3225,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "inline-flex",
         alignItems: "center",
       },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+      },
     },
   },
   // ADR-258 Phase 2: the area is RAC's gradient (`color_area_fill` — the Canvas paints the same
@@ -3109,13 +3275,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "touch-action": "none",
         },
         rootSelectors: {
-          "&[data-disabled]": {
-            styles: { background: "gray !important" },
-          },
           "&[data-disabled] .react-aria-ColorThumb": {
             styles: { background: "gray !important" },
           },
         },
+      },
+      stateStyles: {
+        // ADR-297 Phase 3c (was `rootSelectors["&[data-disabled]"]` — the Canvas reads it too, `colorControlParts`)
+        background: { isDisabled: "gray !important" },
       },
     },
   },
@@ -3183,17 +3350,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       archetype: "default",
       element: "div",
       containerStyles: undefined,
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          cursor: "not-allowed",
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       composition: {
         // ADR-259 Phase 2: the S2 prefix in the control Group (`FIELD_PREFIX_*`).
@@ -3453,50 +3612,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     variants: {
       default: {
+        // ADR-297 Phase 3d — a selected swatch keeps its fill and takes the accent ring (was the `selected`
+        //   variant the Canvas swapped in for `isSelected`).
         paint: {
           backgroundColor: {
             default: "{color.base}",
             isHovered: "{color.layer-2}",
             isPressed: "{color.layer-1}",
-            isSelected: {
-              default: null,
-            },
           },
           color: {
             default: "{color.neutral}",
-            isSelected: {
-              default: null,
-            },
           },
           borderColor: {
             default: "{color.border}",
-            isSelected: {
-              default: null,
-            },
-          },
-        },
-      },
-      selected: {
-        paint: {
-          backgroundColor: {
-            default: "{color.base}",
-            isHovered: "{color.layer-2}",
-            isPressed: "{color.layer-1}",
-            isSelected: {
-              default: null,
-            },
-          },
-          color: {
-            default: "{color.neutral}",
-            isSelected: {
-              default: null,
-            },
-          },
-          borderColor: {
-            default: "{color.accent-content}",
-            isSelected: {
-              default: null,
-            },
+            isSelected: "{color.accent-content}",
           },
         },
       },
@@ -3533,16 +3662,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "inline-flex",
         alignItems: "center",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       // Preview ColorSwatchPicker 항목 틀 = swatch 상자 (2026-09-25 Preview 확인). RAC `ColorSwatchPickerItem` 은 block
       //   div 이고 swatch 는 inline-flex 라 줄 상자 (line-height 24 + baseline 아래 여백) 가 생겨 항목이 28 → 35 로 커졌다
@@ -3561,6 +3683,23 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   ColorSwatchPicker: {
+    // ADR-297 Phase 3g — the swatch items' focus · selected ring (옛 수동 `ColorSwatchPicker.css` — 생성 sheet 가 없는
+    //   rule 이라 상태 블록만 담은 `generated/ColorSwatchPicker.css`).
+    partStateStyles: {
+      "& .react-aria-ColorSwatchPickerItem%": {
+        outline: { isFocusVisible: "2px solid var(--focus-ring)" },
+        outlineOffset: { isFocusVisible: "2px" },
+      },
+      "& .react-aria-ColorSwatchPickerItem%::after": {
+        content: { isSelected: '""' },
+        position: { isSelected: "absolute" },
+        inset: { isSelected: "0" },
+        border: { isSelected: "2px solid black" },
+        outline: { isSelected: "2px solid white" },
+        outlineOffset: { isSelected: "-4px" },
+        borderRadius: { isSelected: "inherit" },
+      },
+    },
     defaultVariant: "default",
     defaultSize: "M",
     variants: {
@@ -3635,11 +3774,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "box-sizing": "border-box",
           "will-change": "transform",
         },
-        rootSelectors: {
-          "&[data-focus-visible]": {
-            styles: { width: scaledLengthRef(32), height: scaledLengthRef(32) },
-          },
-        },
+        rootSelectors: {},
+      },
+      stateStyles: {
+        // ADR-297 Phase 3c — the keyboard-focused thumb grows (was `rootSelectors["&[data-focus-visible]"]`)
+        width: { isFocusVisible: "{length.size.unit*32/1}" },
+        height: { isFocusVisible: "{length.size.unit*32/1}" },
       },
     },
   },
@@ -3770,17 +3910,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "default",
       element: "div",
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          cursor: "not-allowed",
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       composition: {
         // ADR-259 Phase 2: the S2 prefix in the control Group (`FIELD_PREFIX_*`).
@@ -4041,15 +4173,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "flex",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       composition: {
         layout: "flex-column",
@@ -4269,17 +4395,47 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "inline-flex",
         width: "100%",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 1,
-          cursor: "not-allowed",
-          pointerEvents: "none",
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        opacity: { isDisabled: 1 },
+        cursor: { isDisabled: "not-allowed" },
+        pointerEvents: { isDisabled: "none" },
+        // ADR-297 Phase 3c — the box's own states (was `rootSelectors` `&[data-*]`). Order = priority: hover,
+        //   invalid, then focus (invalid wins inside it), quiet last. (3h — S2 `field`: invalid beats hover; the
+        //   old sheet let hover win by specificity, 0-4-0 over 0-2-0. 사용자 결정 2 · breakdown §6.1 #6.)
+        background: { isQuiet: "transparent" },
+        borderColor: {
+          isHovered: "var(--border-hover)",
+          isInvalid: "var(--negative)",
+          isFocusWithin: {
+            default: "var(--accent-content)",
+            isInvalid: "var(--negative)",
+          },
+          isQuiet: "transparent",
         },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
+        boxShadow: { isQuiet: "none" },
+        borderRadius: { isQuiet: "0" },
+        borderBottom: { isQuiet: "1px solid var(--border)" },
+        borderBottomColor: {
+          isQuiet: {
+            isHovered: "var(--border-hover)",
+            isInvalid: "var(--negative)",
+            isFocusWithin: {
+              default: "var(--accent-content)",
+              isInvalid: "var(--negative)",
+            },
+          },
         },
+        outline: {
+          isFocusWithin: "2px solid var(--accent-content)",
+          isQuiet: { isFocusWithin: "none" },
+        },
+        // (after `outline` — the invalid focus recolors it; a quiet box's `outline: none` resets it)
+        outlineColor: {
+          isFocusWithin: { isInvalid: "var(--negative)" },
+          isQuiet: { isFocusWithin: "currentcolor" },
+        },
+        outlineOffset: { isFocusWithin: "-1px" },
       },
       composition: {
         rootSelectors: {
@@ -4288,60 +4444,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "white-space": "nowrap",
               "forced-color-adjust": "none",
               transition: "border-color 200ms ease, color 200ms ease",
-            },
-          },
-          "&[data-hovered]:not([data-focus-within]):not([data-disabled])": {
-            styles: {
-              "border-color": "var(--border-hover)",
-            },
-          },
-          "&[data-focus-within]": {
-            styles: {
-              outline: "2px solid var(--accent-content)",
-              "outline-offset": "-1px",
-              "border-color": "var(--accent-content)",
-            },
-          },
-          "&[data-invalid]": {
-            styles: {
-              "border-color": "var(--negative)",
-            },
-          },
-          "&[data-invalid][data-focus-within]": {
-            styles: {
-              "outline-color": "var(--negative)",
-            },
-          },
-          // quiet (RSP `isQuiet` — ADR-253): the field's box as an underline. The part's own state
-          //   (`data-quiet`, set on the part of a quiet field) — one definition for every field
-          //   whose box is an instance of this origin.
-          "&[data-quiet]": {
-            styles: {
-              background: "transparent",
-              "border-color": "transparent",
-              "box-shadow": "none",
-              "border-radius": "0",
-              "border-bottom": "1px solid var(--border)",
-            },
-          },
-          "&[data-quiet][data-hovered]:not([data-focus-within]):not([data-disabled])":
-            {
-              styles: {
-                "border-color": "transparent",
-                "border-bottom-color": "var(--border-hover)",
-              },
-            },
-          "&[data-quiet][data-focus-within]": {
-            styles: {
-              outline: "none",
-              "border-color": "transparent",
-              "border-bottom-color": "var(--accent-content)",
-            },
-          },
-          "&[data-quiet][data-invalid]": {
-            styles: {
-              "border-color": "transparent",
-              "border-bottom-color": "var(--negative)",
             },
           },
         },
@@ -4455,16 +4557,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "flex",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       composition: {
         layout: "flex-column",
@@ -4705,16 +4800,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "flex",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       composition: {
         layout: "flex-column",
@@ -5075,6 +5163,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "block",
         width: "100%",
       },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+      },
     },
   },
   // ADR-256 G5: RAC DialogTrigger has no element — `display: contents` (MenuTrigger 의 주석).
@@ -5208,7 +5299,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         maxWidth: "100%",
         overflow: "auto",
       },
-      states: {},
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+      },
     },
   },
   DialogFooter: {
@@ -5295,15 +5388,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "block",
         width: "100%",
       },
-      states: {
-        hover: {},
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
+        // ADR-297 Phase 3c — quiet: no top · bottom border; in a group only the last keeps its bottom border
+        //   (S2 `isInGroup` · `:last-child`). The Canvas reads the same tree (`catalogDisclosureBorders`).
+        borderTopWidth: { isQuiet: "0" },
+        borderBottomWidth: { isQuiet: "0", inGroup: "0" },
       },
       composition: {
         containerStyles: {
@@ -5314,20 +5405,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         // S2 `isQuiet` 는 위아래 테두리를 없애고, DisclosureGroup 안에서는 마지막 항목만 아래 테두리를
         //   남긴다 (S2 `isInGroup` · `:last-child`). `data-in-group` 은 DisclosureGroup 안의 Disclosure 에
         //   DOM 이 붙인다 (RAC 그룹 context 가 닿는 깊이 — `catalogDisclosureGroupOf`).
-        rootSelectors: {
-          // (`="true"`: the field boxes' `&[data-quiet]` is their own quiet paint — `catalogQuietStyles`.)
-          '&[data-quiet="true"]': {
-            styles: {
-              "border-top-width": "0",
-              "border-bottom-width": "0",
-            },
-          },
-          "&[data-in-group]:not(:last-child)": {
-            styles: {
-              "border-bottom-width": "0",
-            },
-          },
-        },
+        rootSelectors: {},
         // S2 density · quiet (2026-10-10): trigger 높이 = S2 `minHeight` (size × density — S 18/24/32 ·
         //   M 24/32/40 · L 32/40/48) — `min-height` 와, 한 줄 내용 (S chevron 18 · M 줄 20 · L 줄 22.857)
         //   을 그 높이 안 가운데에 두는 세로 padding (S2 `centerPadding` — 내림, 남는 몫은 min-height).
@@ -5560,14 +5638,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "default",
       element: "div",
-      states: {
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       composition: {
         layout: "flex-column",
@@ -5651,15 +5724,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "inline-flex",
         alignItems: "center",
       },
-      states: {
-        hover: {},
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
+        // ADR-297 Phase 3c — a drag over it (was `rootSelectors["&[data-drop-target]"]`)
+        background: { isDropTarget: "var(--bg-inset)" },
+        color: { isDropTarget: "var(--accent-content)" },
       },
       composition: {
         rootSelectors: {
@@ -5667,12 +5737,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             // S2 isFilled 배너의 absolute 기준 (끄는 중에만 보이는 DOM 전용 상태 — Canvas 비소비).
             styles: {
               position: "relative",
-            },
-          },
-          "&[data-drop-target]": {
-            styles: {
-              background: "var(--bg-inset)",
-              color: "var(--accent-content)",
             },
           },
           // S2 1.8.0 isFilled · replaceMessage (2026-10-10): 채워진 영역 위로 끌 때의 교체 배너.
@@ -5785,6 +5849,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         // (Not stretched to its grid · flex line — as the Label, whose sheet is `height:
         //   fit-content`: a Slider's label row beside its output. A side field's rule centers it.)
         alignSelf: "flex-start",
+      },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
       },
     },
   },
@@ -5907,11 +5974,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         flexDirection: "column",
         width: "100%",
       },
-      states: {
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
     },
   },
@@ -5989,19 +6054,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         justifyContent: "center",
         width: "fit-content",
       },
-      states: {
-        hover: {},
-        pressed: {
-          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.1)",
-        },
-        disabled: {
-          opacity: 0.38,
-          cursor: "not-allowed",
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        boxShadow: { isPressed: "inset 0 1px 2px rgba(0,0,0,0.1)" },
+        ...DISABLED_STATE,
       },
       // ADR-248 4e-10 (2026-10-02): no `composition.containerStyles` — the root is the
       //   self-composed `.react-aria-FileTrigger` button (renderFileTrigger, 2026-09-10), not a
@@ -6081,10 +6137,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: undefined,
       // (No disabled state — S2 Form draws none: its `isDisabled` is the Form context its fields
       //   take, each dimming itself — 2026-10-09. Before, nothing set it.)
-      states: {
-        hover: {},
-        pressed: {},
-        focusVisible: {},
+      stateStyles: {
+        ...FOCUS_RING_STATE,
       },
       composition: {
         layout: "flex-column",
@@ -6135,6 +6189,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   GridList: {
+    // ADR-297 Phase 3g — the list's focus · drop target (옛 수동 `GridList.css` — 생성 sheet 가 없는 rule 이라 상태
+    //   블록만 담은 `generated/GridList.css`).
+    partStateStyles: {
+      "&%": {
+        background: { isDropTarget: "var(--accent-subtle)" },
+        outline: {
+          isFocusVisible: "2px solid var(--focus-ring)",
+          isDropTarget: "2px solid var(--accent)",
+        },
+        outlineOffset: { isDropTarget: "-1px" },
+      },
+    },
     // 2026-07-29 사용자 보고("components page 에서 Container Align 을 주면 GridList 자식이
     //   전부 깨진다. home page 에서는 멀쩡하다") 의 근본 원인 — GridList 는 **catalog 에
     //   containerStyles 가 아예 없었다**. 수동 CSS `.react-aria-GridList` 는 `width:100%` 를
@@ -6187,6 +6253,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
      selectedBorder 공급 → gridListCard(skiaPrimitives) 가 isSelected 시 visual.selectedBorder
      소비. DOM(builder GridList.css [data-selected] accent 2px)과 대칭. schema 기존 보유. */
   GridListItem: {
+    // ADR-297 Phase 3g — the row's drag handle focus (옛 수동 `GridList.css`).
+    partStateStyles: {
+      '& .react-aria-Button[slot="drag"]%': {
+        borderRadius: { isFocusVisible: "4px" },
+        outline: { isFocusVisible: "2px solid var(--focus-ring)" },
+      },
+    },
     defaultVariant: "default",
     defaultSize: "M",
     // ADR-257 후속 — the GridList's S2 `overflowMode` (ListView — carried here by the resolver):
@@ -6240,12 +6313,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       // ADR-248 4e-11: `GridList.css` `[data-disabled]` (opacity 0.38) — the same disabled state as
       //   ListBoxItem, read by both consumers.
-      states: {
-        disabled: {
-          opacity: 0.38,
-          cursor: "not-allowed",
-          pointerEvents: "none",
-        },
+      stateStyles: {
+        // (ADR-297 Phase 3g: the row's keyboard ring sits inside it — was the manual `GridList.css`)
+        outline: { isFocusVisible: "2px solid var(--focus-ring)" },
+        outlineOffset: { isFocusVisible: "-2px" },
+        ...DISABLED_STATE,
+        // (ADR-297 Phase 3b: the row's resting cursor — was the manual `GridList.css` root, which a `:where` state
+        //   block no longer outranks)
+        cursor: { default: "default", isDisabled: "not-allowed" },
       },
     },
     // ADR-912 collection sub-part cutover (2026-06-14, TreeItem escape 선례 동형):
@@ -6495,7 +6570,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "inline-flex",
         alignItems: "center",
       },
-      states: {},
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+      },
     },
   },
   Heading: {
@@ -6580,6 +6657,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "block",
         width: "100%",
       },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+      },
     },
   },
   Icon: {
@@ -6638,13 +6718,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "inline-flex",
         alignItems: "center",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-        },
-        focusVisible: {},
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
     },
   },
@@ -6697,7 +6773,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         alignItems: "center",
         width: "100%",
       },
-      states: {},
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+      },
       composition: {
         // S2 vertical rows: picture → heading 12 (L 8), heading → content 4.
         containerStyles: {
@@ -6836,7 +6914,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "inline-flex",
         alignItems: "center",
       },
-      states: {},
     },
   },
   Image: {
@@ -7060,7 +7137,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         alignItems: "flex-start",
         width: "100%",
       },
-      states: {},
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+      },
       // S2 InlineAlert icon (2026-10-13 — `inlineAlertIcon.ts`): the alert draws its variant's icon
       //   at the padding box's top end (S2 floats it inline-end; the engine has no float). The
       //   title keeps clear of it: placed (ADR-253 — a parent rule places its parts, their shape is
@@ -7246,20 +7325,53 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "block",
         width: "100%",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        // 흐림은 field root 가 한다 (`[data-disabled] { opacity: 0.38 }` — Canvas 도 root 한 번). RAC 는
-        //   field 의 disabled 를 입력칸에도 `data-disabled` 로 주므로, 입력칸이 자기 모양을 한 번 더 바꾸면
-        //   DOM 만 겹쳐 흐려진다 (종전 TextField: root 0.38 × 입력칸 0.38 × 글자 38%). 여기서는 바꾸지 않는다.
-        disabled: {
-          opacity: 1,
-          cursor: "not-allowed",
-          pointerEvents: "none",
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        opacity: { isDisabled: 1 },
+        cursor: { isDisabled: "not-allowed" },
+        pointerEvents: { isDisabled: "none" },
+        // ADR-297 Phase 3c — the box's own states (was `rootSelectors` `&[data-*]`). Order = priority: hover,
+        //   invalid, then focus (invalid wins inside it), quiet last. (3h — S2 `field`: invalid beats hover; the
+        //   old sheet let hover win by specificity, 0-4-0 over 0-2-0. 사용자 결정 2 · breakdown §6.1 #6.)
+        background: { isQuiet: "transparent" },
+        borderColor: {
+          isHovered: "var(--border-hover)",
+          isInvalid: "var(--negative)",
+          isFocused: {
+            default: "var(--accent-content)",
+            isInvalid: "var(--negative)",
+          },
+          isQuiet: "transparent",
         },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
+        boxShadow: { isQuiet: "none" },
+        borderRadius: { isQuiet: "0" },
+        borderBottom: { isQuiet: "1px solid var(--border)" },
+        borderBottomColor: {
+          isQuiet: {
+            isHovered: "var(--border-hover)",
+            isInvalid: "var(--negative)",
+            isFocused: {
+              default: "var(--accent-content)",
+              isInvalid: "var(--negative)",
+            },
+          },
         },
+        outline: {
+          isFocused: "2px solid var(--accent-content)",
+          isQuiet: { isFocused: "none" },
+        },
+        // (after `outline` — the invalid focus recolors it; a quiet box's `outline: none` resets it)
+        outlineColor: {
+          isFocused: { isInvalid: "var(--negative)" },
+          isQuiet: { isFocused: "currentcolor" },
+        },
+        outlineOffset: { isFocused: "-1px" },
+        // (the browser's autofill paint — kept to the field colors)
+        WebkitTextFillColor: { isAutofilled: "var(--fg) !important" },
+        WebkitBoxShadow: {
+          isAutofilled: "0 0 0 1000px var(--bg-inset) inset !important",
+        },
+        caretColor: { isAutofilled: "var(--fg)" },
       },
       composition: {
         delegation: [],
@@ -7269,70 +7381,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               margin: "0",
               "font-family": "inherit",
               transition: "border-color 200ms ease, color 200ms ease",
-            },
-          },
-          "&:is(:-webkit-autofill, :-webkit-autofill:hover, :-webkit-autofill:focus)":
-            {
-              styles: {
-                "-webkit-text-fill-color": "var(--fg) !important",
-                "-webkit-box-shadow":
-                  "0 0 0 1000px var(--bg-inset) inset !important",
-                "caret-color": "var(--fg)",
-              },
-            },
-          "&[data-hovered]:not([data-focused], [data-focus-within]):not([data-disabled])":
-            {
-              styles: {
-                "border-color": "var(--border-hover)",
-              },
-            },
-          "&:is([data-focused], [data-focus-within])": {
-            styles: {
-              outline: "2px solid var(--accent-content)",
-              "outline-offset": "-1px",
-              "border-color": "var(--accent-content)",
-            },
-          },
-          "&[data-invalid]": {
-            styles: {
-              "border-color": "var(--negative)",
-            },
-          },
-          "&[data-invalid]:is([data-focused], [data-focus-within])": {
-            styles: {
-              "outline-color": "var(--negative)",
-            },
-          },
-          // quiet (RSP `isQuiet` — ADR-253): the field's box as an underline. The part's own state
-          //   (`data-quiet`, set on the part of a quiet field) — one definition for every field
-          //   whose box is an instance of this origin.
-          "&[data-quiet]": {
-            styles: {
-              background: "transparent",
-              "border-color": "transparent",
-              "box-shadow": "none",
-              "border-radius": "0",
-              "border-bottom": "1px solid var(--border)",
-            },
-          },
-          "&[data-quiet][data-hovered]:not([data-focused], [data-focus-within]):not([data-disabled])":
-            {
-              styles: {
-                "border-color": "transparent",
-                "border-bottom-color": "var(--border-hover)",
-              },
-            },
-          "&[data-quiet]:is([data-focused], [data-focus-within])": {
-            styles: {
-              outline: "none",
-              "border-color": "transparent",
-              "border-bottom-color": "var(--accent-content)",
-            },
-          },
-          "&[data-quiet][data-invalid]": {
-            styles: {
-              "border-color": "transparent",
-              "border-bottom-color": "var(--negative)",
             },
           },
         },
@@ -7407,6 +7455,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "inline-flex",
         alignItems: "center",
       },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+      },
     },
   },
   // ADR-256 Phase 5g: a keyboard shortcut (RAC Keyboard — a MenuItem's shortcut). The reference
@@ -7462,6 +7513,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         delegation: [],
+      },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
       },
     },
   },
@@ -7714,22 +7768,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "text-decoration": "underline",
             },
           },
-          "&[data-hovered]": {
-            styles: {
-              "text-decoration-thickness": "1.5px",
-            },
-          },
-          // S2 1.8.0 Link `isQuiet` (2026-10-14): no underline until hovered (S2 Link.tsx
-          //   `textDecoration: { isQuiet: { default: 'none', isHovered: 'underline' } }`). The
-          //   Canvas reads `isQuiet` in `catalogTextDecoration` (`ruleShapes.ts`). (Was the manual
-          //   `Link.css` block with an extra 0.72 opacity S2 does not have — the Canvas drew neither.)
-          '&[data-quiet="true"]:not([data-hovered])': {
-            styles: {
-              "text-decoration": "none",
-            },
-          },
         },
         delegation: [],
+      },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
+        // ADR-297 Phase 3c — quiet: no underline until hovered; hover thins it (was `rootSelectors`)
+        textDecoration: {
+          isQuiet: { default: "none", isHovered: "underline" },
+        },
+        textDecorationThickness: { isHovered: "1.5px" },
       },
     },
   },
@@ -7839,15 +7888,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         overflow: "auto",
         outline: "none",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
+        // ADR-297 Phase 3c — a picker's list in its Popover (the RAC reference `.dropdown-listbox` — was
+        //   `rootSelectors["&:is(.react-aria-Popover *)"]`): no box of its own; an empty one keeps a row.
+        display: { inPopover: "block" },
+        border: { inPopover: "none" },
+        padding: {
+          inPopover: {
+            default: "var(--spacing-xs)",
+            isEmpty: "var(--spacing-sm)",
+          },
         },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
+        background: { inPopover: "transparent" },
+        borderRadius: { inPopover: "inherit" },
+        minHeight: { inPopover: { isEmpty: "var(--spacing-2xl)" } },
+        // (a document node's option row height — the Builder's own pickers keep theirs, `ListBox.css`)
+        "--lb-control-h": {
+          inPopover: {
+            isCatalogNode: {
+              default: "var(--catalog-token-size-height-M)",
+              size: {
+                XS: "var(--catalog-token-size-height-XS)",
+                S: "var(--catalog-token-size-height-S)",
+                L: "var(--catalog-token-size-height-L)",
+                XL: "var(--catalog-token-size-height-XL)",
+              },
+            },
+          },
         },
       },
       // 2026-10-13 (사용자 「listbox 를 RAC 레퍼런스 테마 기준으로」) — the reference
@@ -7955,7 +8024,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           //   below, `edgeToText` (height × 3/8) at the sides, S2 `sectionHeading` text (ui bold),
           //   no surface or lines.
           "&[data-catalog-id]:is(.react-aria-Popover *)": {
-            styles: { "--lb-control-h": "var(--catalog-token-size-height-M)" },
             nested: {
               // ADR-295 후속: S2 `listboxItem` — the item's minimum height is the picker size's control
               //   height, its label centred in it (`(height − line) / 2`; the item's own line from its
@@ -7978,32 +8046,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
             },
           },
-          '&[data-catalog-id][data-size="XS"]:is(.react-aria-Popover *)': {
-            styles: { "--lb-control-h": "var(--catalog-token-size-height-XS)" },
-          },
-          '&[data-catalog-id][data-size="S"]:is(.react-aria-Popover *)': {
-            styles: { "--lb-control-h": "var(--catalog-token-size-height-S)" },
-          },
-          '&[data-catalog-id][data-size="L"]:is(.react-aria-Popover *)': {
-            styles: { "--lb-control-h": "var(--catalog-token-size-height-L)" },
-          },
-          '&[data-catalog-id][data-size="XL"]:is(.react-aria-Popover *)': {
-            styles: { "--lb-control-h": "var(--catalog-token-size-height-XL)" },
-          },
-          "&:is(.react-aria-Popover *)[data-empty]": {
-            styles: {
-              "min-height": "var(--spacing-2xl)",
-              padding: "var(--spacing-sm)",
-            },
-          },
           "&:is(.react-aria-Popover *)": {
-            styles: {
-              display: "block",
-              border: "none",
-              padding: "var(--spacing-xs)",
-              background: "transparent",
-              "border-radius": "inherit",
-            },
             nested: {
               ".react-aria-ListBoxItem": {
                 padding:
@@ -8220,15 +8263,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         // ADR-171 Phase 1 (2026-07-29): 수동 `ListBox.css` 의 실효값 이관 (값 불변).
         position: "relative",
       },
-      states: {
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
-        disabled: {
-          opacity: 0.38,
-          cursor: "not-allowed",
-          pointerEvents: "none",
-        },
+      stateStyles: {
+        // (ADR-297 Phase 3g: the option's keyboard ring sits inside it, a selected one's deeper — was the manual
+        //   `ListBox.css`)
+        outline: { isFocusVisible: "2px solid var(--accent)" },
+        outlineOffset: { isFocusVisible: { default: "-2px", isSelected: "-4px" } },
+        ...DISABLED_STATE,
+        // (ADR-297 Phase 3b: the option's resting cursor — was the manual `ListBox.css` root)
+        cursor: { default: "pointer", isDisabled: "not-allowed" },
       },
     },
   },
@@ -8312,15 +8354,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         overflow: "auto",
         outline: "none",
       },
-      states: {
-        hover: {},
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       // ADR-239 Preview 확인 (2026-09-25 사용자 지시 "이중 테두리도 영향 범위 확인하고 고쳐") — 메뉴 popover 는
       //   틀 없는 wrapper, 목록 틀 (배경 · 테두리 · 모서리 · 여백 = 위 containerStyles) 과 그림자는 Menu 한 겹이다.
@@ -8367,6 +8403,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   MenuItem: {
+    // ADR-297 Phase 3g — the selection glyph of a selectable menu's item (옛 수동 `Menu.css` — 열은 수동 sheet).
+    partStateStyles: {
+      '&[data-selection-mode="multiple"]%::before': {
+        content: { isSelected: '"✓" / ""' },
+      },
+      '&[data-selection-mode="single"]%::before': {
+        content: { isSelected: '"●" / ""' },
+      },
+    },
     defaultSize: "M",
     variants: {},
     // ADR-295 Phase 3c-3c ③: S2 `menuitem` = `control({ shape: 'default', icon: true })` — the control height as its
@@ -8425,17 +8470,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "inline-flex",
         alignItems: "center",
       },
-      states: {
-        hover: {
-          background: "{color.layer-1}",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
+      stateStyles: {
+        background: { isHovered: "{color.layer-1}" },
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
+        // ADR-297 Phase 3c — a link item (RAC's `<a>`) keeps the item's text look (was `rootSelectors["&[href]"]`)
+        textDecoration: { isLink: "none" },
+        color: { isLink: "inherit" },
       },
       // ADR-259 Phase 1 (R4): a link MenuItem is RAC's `<a>` — no browser link underline or link
       //   color (the reference's `&[href]`): it keeps its Menu's text color like any item.
@@ -8488,11 +8529,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
         },
-        rootSelectors: {
-          "&[href]": {
-            styles: { "text-decoration": "none", color: "inherit" },
-          },
-        },
+        rootSelectors: {},
         delegation: [],
       },
     },
@@ -8707,14 +8744,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gridTemplateAreas: '"label value" "bar bar"',
         gridTemplateColumns: "1fr auto",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
-        focusVisible: {},
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       composition: {
         layout: "grid",
@@ -9233,14 +9265,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "grid",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
-        focusVisible: {},
+      stateStyles: {
+        opacity: { isDisabled: 0.38 },
+        pointerEvents: { isDisabled: "none" },
       },
     },
   },
@@ -9478,20 +9505,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         boxShadow: "{shadow.lg}",
       },
       composition: {
-        rootSelectors: {
-          // `data-dialog-trigger` = shared `Dialog` 가 DialogTrigger 바로 아래 (Modal 노드 없이) 놓인
-          //   Dialog 를 RAC Modal 로 감쌀 때 붙인다 (`components/Dialog.tsx`). padding 0 은 2026-10-22
-          //   부터 size M 과 같아 뺐다 — 남은 둘만 그 자동 Modal 의 몫.
-          "&[data-dialog-trigger]": {
-            styles: {
-              position: "relative",
-              "max-height": "90vh",
-            },
-          },
-        },
+        rootSelectors: {},
         delegation: [],
       },
-      states: {},
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        // ADR-297 Phase 3c — a DialogTrigger's Modal (was `rootSelectors["&[data-dialog-trigger]"]`)
+        position: { isDialogTrigger: "relative" },
+        maxHeight: { isDialogTrigger: "90vh" },
+      },
     },
   },
   Nav: {
@@ -9541,13 +9563,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       archetype: "container",
       element: "nav",
       containerStyles: undefined,
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
     },
   },
@@ -9623,17 +9641,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "flex",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          cursor: "not-allowed",
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       composition: {
         // ADR-259 Phase 2: the S2 prefix in the control Group (`FIELD_PREFIX_*`).
@@ -9803,10 +9813,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   채널로 이관 — row 의도와 일치하고 Skia 도 같은 값을 읽는다.
         alignItems: "center",
       },
-      states: {
-        disabled: {
-          opacity: 0.38,
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       composition: {
         containerStyles: {
@@ -9927,6 +9936,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "block",
         width: "100%",
       },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+      },
     },
   },
   Popover: {
@@ -10026,7 +10038,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "flex",
         flexDirection: "column",
       },
-      states: {},
+      stateStyles: {
+        // (ADR-297 Phase 3b: `outline: none` at rest — was the manual `Popover.css` root, after the generated sheet)
+        focusRing: { default: "none", isFocusVisible: "{focus.ring.default}" },
+      },
     },
   },
   ProgressBar: {
@@ -10129,14 +10144,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gridTemplateAreas: '"label value" "bar bar"',
         gridTemplateColumns: "1fr auto",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
-        focusVisible: {},
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       composition: {
         layout: "grid",
@@ -10370,14 +10380,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "grid",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
-        focusVisible: {},
+      stateStyles: {
+        opacity: { isDisabled: 0.38 },
+        pointerEvents: { isDisabled: "none" },
       },
     },
   },
@@ -10591,6 +10596,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   Radio: {
+    // ADR-297 Phase 3g — the ring's states (옛 수동 `Radio.css`); 선택 고리 두께는 위 size 선택자.
+    partStateStyles: {
+      "& .react-aria-RadioButton% .indicator": RADIO_RING_STATE,
+    },
     defaultVariant: "default",
     defaultSize: "M",
     // ADR-912 단계 5 step 2: replace-primitive measurement generic 전환 — variant.textWeight=400
@@ -10709,14 +10718,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         alignItems: "flex-start",
         justifyContent: "center",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          cursor: "not-allowed",
-          pointerEvents: "none",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       composition: {
         staticSelectors: {
@@ -10810,16 +10814,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "flex",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       composition: {
         layout: "flex-column",
@@ -10932,6 +10929,31 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   RangeCalendar: {
+    // ADR-297 Phase 3g — the day cells' selected · focus (옛 수동 `RangeCalendar.css` · `CalendarCommon.css` —
+    //   기간 시작 · 끝의 원과 띠는 수동 sheet 에 남는다).
+    partStateStyles: {
+      [RANGE_BAND]: { position: { isSelected: "relative" } },
+      [`${RANGE_BAND}::before`]: RANGE_BAND_STATE,
+      [`${RANGE_BAND}:has(> [data-selection-start])::before`]: RANGE_BAND_START,
+      [`${RANGE_BAND}:first-child::before`]: RANGE_BAND_START,
+      [`& .react-aria-CalendarGridBody td:has(> [data-outside-month]) + td:has(> .react-aria-CalendarCell%):not(:has(> [data-selection-start][data-selection-end]))::before`]:
+        RANGE_BAND_START,
+      [`${RANGE_BAND}:has(> [data-selection-end])::before`]: RANGE_BAND_END,
+      [`${RANGE_BAND}:last-child::before`]: RANGE_BAND_END,
+      [`${RANGE_BAND}:has(+ td > [data-outside-month])::before`]: RANGE_BAND_END,
+      "& .react-aria-CalendarCell%": RANGE_CALENDAR_CELL_STATE,
+      "& .react-aria-CalendarCell%::after": {
+        background: {
+          isToday: {
+            isSelected: {
+              default: "var(--accent)",
+              isSelectionStart: "var(--fg-on-accent)",
+              isSelectionEnd: "var(--fg-on-accent)",
+            },
+          },
+        },
+      },
+    },
     defaultVariant: "default",
     defaultSize: "M",
     variants: {
@@ -10987,16 +11009,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         width: "fit-content",
         maxWidth: "100%",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
     },
   },
@@ -11071,17 +11086,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gridTemplateColumns: "0px minmax(0, 1fr) auto",
         alignItems: "center",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          cursor: "not-allowed",
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       composition: {
         layout: "grid",
@@ -11373,13 +11380,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       archetype: "container",
       element: "section",
       containerStyles: undefined,
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
     },
   },
@@ -11436,17 +11439,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "default",
       element: "div",
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          cursor: "not-allowed",
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       composition: {
         layout: "flex-column",
@@ -11847,7 +11842,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "inline-flex",
         alignItems: "center",
       },
-      states: {},
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+      },
     },
   },
   Skeleton: {
@@ -11895,7 +11892,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "block",
         alignItems: "center",
       },
-      states: {},
     },
   },
   // ADR-912 단계5 step4 (2026-06-17): Slider.spec.ts 삭제 대비 시각/layout 값 SSOT 보강.
@@ -11973,17 +11969,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gridTemplateAreas: '"label output" "track track"',
         gridTemplateColumns: "1fr auto",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          cursor: "not-allowed",
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       composition: {
         // ADR-295 Phase 3c-3c ②c: the track row = S2 `track` height 24 · 32 · 40 · 48 — the 4px bar
@@ -12135,6 +12123,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "container",
       element: "div",
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
+      },
     },
   },
   SliderOutput: {
@@ -12172,6 +12164,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "inline-flex",
         alignItems: "center",
+      },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
     },
   },
@@ -12293,15 +12289,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "grid",
         position: "relative",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          cursor: "not-allowed",
-          pointerEvents: "none",
-        },
-        focusVisible: {},
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       // ADR-295 Phase 3c-3c ②c: the S2 track row (24 · 32 · 40 · 48) is where a press moves the thumb
       //   (S2 `track` — the 4px bar sits in it). The row's margins are space, so the DOM gives the bar
@@ -12407,7 +12397,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         ],
       },
-      states: {},
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+      },
     },
   },
   StatusLight: {
@@ -12688,14 +12680,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "inline-flex",
         alignItems: "center",
       },
-      states: {
-        disabled: {
-          opacity: 0.38,
-        },
+      stateStyles: {
+        opacity: { isDisabled: 0.38 },
       },
     },
   },
   Switch: {
+    // ADR-297 Phase 3g — the track's and thumb's states (옛 수동 `Switch.css`); 선택 thumb 자리는 위 size 선택자.
+    partStateStyles: {
+      "& .react-aria-SwitchButton% .indicator": SWITCH_TRACK_STATE,
+      "& .react-aria-SwitchButton% .indicator::before": SWITCH_THUMB_STATE,
+    },
     defaultVariant: "default",
     defaultSize: "M",
     // ADR-912 단계 5 step 2: replace-primitive measurement generic 전환 — variant.textWeight=400
@@ -12835,14 +12830,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         // ADR-171 Phase 1 (2026-07-29): 수동 `Switch.css` 의 실효값 이관 (값 불변).
         position: "relative",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          cursor: "not-allowed",
-          pointerEvents: "none",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       composition: {
         staticSelectors: {
@@ -12943,14 +12933,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         alignItems: "center",
         justifyContent: "center",
       },
-      states: {
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
+        // (ADR-297 Phase 3b: the interactive pointer — was `rootSelectors["&"]`, after the state blocks)
+        cursor: { default: "pointer", isDisabled: "not-allowed" },
+        // ADR-259 Phase 1 (R4) · ADR-297 Phase 3c: a link Tab is RAC's `<a>` — no browser link underline
+        textDecoration: { isLink: "none" },
       },
       // ADR-223 (2026-09-18): 미지정 archetype base 가 DOM 에만 주던 interaction 세 선언을 generator 전용
       //   rootSelectors 채널에 명시. `archetype: "button"` 은 width:fit-content 가 딸려와 TabList 안 폭이 바뀐다.
@@ -12966,15 +12955,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         rootSelectors: {
           "&": {
             styles: {
-              cursor: "pointer",
               "user-select": "none",
               transition:
                 "background 0.15s ease, border-color 0.15s ease, transform 0.15s ease",
             },
           },
-          // ADR-259 Phase 1 (R4): a link Tab is RAC's `<a>` — no browser link underline (the
-          //   reference's `&[href]`; its color is the Tab's own).
-          "&[href]": { styles: { "text-decoration": "none" } },
         },
         delegation: [],
       },
@@ -13020,11 +13005,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "flex",
         flexDirection: "row",
       },
-      states: {
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       composition: {
         layout: "flex-row",
@@ -13093,14 +13076,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "flex",
         flexDirection: "column",
       },
-      states: {
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
     },
   },
@@ -13154,11 +13132,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "flex",
         flexDirection: "column",
       },
-      states: {
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
     },
   },
@@ -13257,10 +13233,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       archetype: "container",
       element: "div",
       skipCSSGeneration: true,
-      states: {
-        disabled: {
-          opacity: 0.38,
-        },
+      stateStyles: {
+        opacity: { isDisabled: 0.38 },
       },
     },
   },
@@ -13474,6 +13448,99 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   Table: {
+    // ADR-297 Phase 3g — the table's, rows' and cells' states (옛 수동 `Table.css` — 생성 sheet 가 없는 rule 이라
+    //   상태 블록만 담은 `generated/Table.css`). 행의 hover · pressed · selected · drop target 은 같은 바탕에서 옛 순서
+    //   그대로, S2 `selectionStyle="highlight"` 는 그 위 층 (연한 accent + 이어진 선택마다 테두리 하나).
+    partStateStyles: {
+      "&%": {
+        background: {
+          isDropTarget: "color-mix(in srgb, var(--accent) 8%, transparent)",
+        },
+        outline: {
+          isFocusVisible: "2px solid var(--accent)",
+          isDropTarget: "2px solid var(--accent)",
+        },
+        outlineOffset: { isFocusVisible: "-1px", isDropTarget: "-1px" },
+      },
+      "& .react-aria-Row%": {
+        background: {
+          isHovered: "var(--bg-muted)",
+          isPressed: "var(--bg-overlay)",
+          isSelected: "var(--tbl-selected-bg)",
+          isDropTarget: "color-mix(in srgb, var(--accent) 12%, transparent)",
+        },
+        color: { isSelected: "var(--tbl-selected-color)" },
+        outline: {
+          isFocusVisible: "2px solid var(--accent)",
+          isDropTarget: "2px solid var(--accent)",
+        },
+        outlineOffset: { isFocusVisible: { default: "-2px", isSelected: "-4px" } },
+      },
+      "& .react-aria-Row[data-selected] .react-aria-Cell%": {
+        outlineColor: { isFocusVisible: "var(--accent)" },
+        outlineOffset: { isFocusVisible: "-4px" },
+      },
+      "& .react-aria-Row%:has(+ [data-selected])": {
+        "--radius-bottom": { isSelected: "0px" },
+      },
+      "& .react-aria-Row%:has(+ .react-aria-DropIndicator + [data-selected])": {
+        "--radius-bottom": { isSelected: "0px" },
+      },
+      "& .react-aria-Row[data-selected] + .react-aria-Row%": {
+        "--radius-top": { isSelected: "0px" },
+      },
+      "& .react-aria-Row[data-selected] + .react-aria-DropIndicator + .react-aria-Row%": {
+        "--radius-top": { isSelected: "0px" },
+      },
+      "& .react-aria-Row% .react-aria-Checkbox": {
+        "--selected-color": { isSelected: "var(--tbl-cb-selected-on)" },
+        "--checkmark-color": { isSelected: "var(--tbl-cb-checkmark-on)" },
+      },
+      "& .react-aria-Cell%": {
+        outline: { isFocusVisible: "2px solid var(--accent)" },
+        outlineOffset: { isFocusVisible: "-2px" },
+      },
+      "& .react-aria-Column%": {
+        outline: { isFocusVisible: "2px solid var(--accent)" },
+        outlineOffset: { isFocusVisible: "-2px" },
+      },
+      '& .react-aria-Row [slot="drag"]%': {
+        borderRadius: { isFocusVisible: "4px" },
+        outline: { isFocusVisible: "2px solid var(--accent)" },
+      },
+      "&[data-node-table] .react-aria-Cell[data-drag-cell] > .catalog-drag-handle%": {
+        outline: { isFocusVisible: "2px solid var(--focus-ring)" },
+      },
+      "& .react-aria-ColumnResizer%": {
+        display: { isFocusVisible: "block" },
+      },
+      "& .react-aria-ColumnResizer%::before": {
+        width: { isFocusVisible: "2px" },
+        background: { isFocusVisible: "var(--informative)" },
+      },
+      '&[data-selection-style="highlight"] .react-aria-Row%': {
+        "--row-highlight-top": { isSelected: "inset 0 1px var(--accent)" },
+        "--row-highlight-bottom": { isSelected: "inset 0 -1px var(--accent)" },
+        background: {
+          isSelected: {
+            default: "color-mix(in srgb, var(--accent) 10%, var(--bg))",
+            isHovered: "color-mix(in srgb, var(--accent) 15%, var(--bg))",
+            isPressed: "color-mix(in srgb, var(--accent) 15%, var(--bg))",
+          },
+        },
+        color: { isSelected: "var(--fg)" },
+        boxShadow: {
+          isSelected:
+            "inset 1px 0 var(--accent), inset -1px 0 var(--accent), var(--row-highlight-top), var(--row-highlight-bottom)",
+        },
+      },
+      '&[data-selection-style="highlight"] .react-aria-Row%:has(+ [data-selected])': {
+        "--row-highlight-bottom": { isSelected: "0 0 transparent" },
+      },
+      '&[data-selection-style="highlight"] .react-aria-Row[data-selected] + .react-aria-Row%': {
+        "--row-highlight-top": { isSelected: "0 0 transparent" },
+      },
+    },
     defaultVariant: "default",
     defaultSize: "M",
     // S2 1.8.0 Table `density` (2026-10-10): 값은 Table 의 prop 하나 — 그 안의 Column · Cell 로
@@ -13653,6 +13720,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "block",
         width: "100%",
       },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+      },
     },
   },
   Tabs: {
@@ -13705,15 +13775,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "flex",
         flexDirection: "column",
       },
-      states: {
-        hover: {},
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.inset}",
-        },
+      stateStyles: {
+        focusRing: { isFocusVisible: "{focus.ring.inset}" },
+        ...DISABLED_STATE,
       },
       composition: {
         layout: "flex-column",
@@ -13744,25 +13808,30 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
+        // ADR-297 Phase 3d — a selected Tag (S2 TagGroup: neutral, accent in an emphasized group) is its own
+        //   `isSelected` branch (was the `selected` · `selectedEmphasized` variants the Canvas swapped in).
         paint: {
           backgroundColor: {
             default: "{color.layer-1}",
             isHovered: "{color.layer-1}",
             isPressed: "{color.layer-1}",
             isSelected: {
-              default: null,
+              default: "{color.neutral}",
+              isEmphasized: "{color.accent}",
             },
           },
           color: {
             default: "{color.neutral}",
             isSelected: {
-              default: null,
+              default: "{color.base}",
+              isEmphasized: "{color.on-accent}",
             },
           },
           borderColor: {
             default: "{color.border}",
             isSelected: {
-              default: null,
+              default: "{color.neutral}",
+              isEmphasized: "{color.accent}",
             },
           },
         },
@@ -13785,7 +13854,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         leadingIcon: {
           nameProp: "icon",
           gap: 4,
-          color: "{color.neutral}",
+          // (no color — the glyph is the chip's text color in every state, the primitive's paint fallback;
+          //   the DOM `.tag-leading-icon { color: inherit }`)
         },
 
         // leading avatar (2026-08-21, design-data 감사 §2-C Tag avatar 슬롯):
@@ -13803,128 +13873,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         trailingIcon: {
           name: "x",
           gap: 2,
-          color: "{color.neutral}",
           showProp: "allowsRemoving",
           // remove X 우측 여백 = paddingY + insetRight. CSS 실측(md chip): icon 우측 → chip 경계 7px =
           //   paddingY(4) + .tag-remove-btn padding(2) + chip border(1). insetRight=3 으로 대칭.
-          insetRight: 3,
-        },
-      },
-      // S2 TagGroup (2026-10-10): a selected Tag is neutral (`baseColor('neutral')`, text
-      //   `gray-25`) — accent only when the group is emphasized (`selectedEmphasized`).
-      selected: {
-        paint: {
-          backgroundColor: {
-            default: "{color.neutral}",
-            isHovered: "{color.neutral}",
-            isPressed: "{color.neutral}",
-            isSelected: {
-              default: null,
-            },
-          },
-          color: {
-            default: "{color.base}",
-            isSelected: {
-              default: null,
-            },
-          },
-          borderColor: {
-            default: "{color.neutral}",
-            isSelected: {
-              default: null,
-            },
-          },
-        },
-
-        textWeight: 400,
-
-        // selected variant: remove X color = base (text 와 동일).
-        // leading icon (2026-08-21, design-data 감사 §2-? Tag avatar/icon 슬롯):
-        //   chip 아이콘은 **항목별 데이터**라 rule 에 정적 이름을 둘 수 없다 → `nameProp` 으로
-        //   `props.icon`(itemSchema 의 icon 필드)을 읽는다. 값이 없는 chip 은 아이콘도, 텍스트
-        //   shift 도 없다(폭 = 라벨 + padding 그대로). trailingIcon 의 `showProp` 과 같은
-        //   데이터-게이팅 idiom — 컴포넌트 식별 분기 아님(ADR-142 §3).
-        //   크기는 `sizes[*].iconSize`(전 size 14 — DOM 고정 14px glyph 컨벤션과 대칭).
-        leadingIcon: {
-          nameProp: "icon",
-          gap: 4,
-          color: "{color.base}",
-        },
-
-        // leading avatar (2026-08-21) — default variant 와 같은 채널. 선택 chip 만 아바타가
-        //   사라지면 안 되므로 양 variant 에 동일 배선(폭 계약 테스트가 불일치를 잡는다).
-        //   fallback 원은 accent 배경 위라 layer-1(밝은 자리표시).
-        leadingAvatar: {
-          srcProp: "avatar",
-          size: 16,
-          gap: 4,
-          fallbackFill: "{color.layer-1}",
-        },
-
-        trailingIcon: {
-          name: "x",
-          gap: 2,
-          color: "{color.base}",
-          showProp: "allowsRemoving",
-          insetRight: 3,
-        },
-      },
-      // S2 TagGroup `isEmphasized` (2026-10-10): a selected Tag of an emphasized group (the Tag's
-      //   `_emphasized` — `rulePaint.ts` picks it over `selected`).
-      selectedEmphasized: {
-        paint: {
-          backgroundColor: {
-            default: "{color.accent}",
-            isHovered: "{color.accent}",
-            isPressed: "{color.accent}",
-            isSelected: {
-              default: null,
-            },
-          },
-          color: {
-            default: "{color.on-accent}",
-            isSelected: {
-              default: null,
-            },
-          },
-          borderColor: {
-            default: "{color.accent}",
-            isSelected: {
-              default: null,
-            },
-          },
-        },
-
-        textWeight: 400,
-
-        // selected variant: remove X color = on-accent (text 와 동일).
-        // leading icon (2026-08-21, design-data 감사 §2-? Tag avatar/icon 슬롯):
-        //   chip 아이콘은 **항목별 데이터**라 rule 에 정적 이름을 둘 수 없다 → `nameProp` 으로
-        //   `props.icon`(itemSchema 의 icon 필드)을 읽는다. 값이 없는 chip 은 아이콘도, 텍스트
-        //   shift 도 없다(폭 = 라벨 + padding 그대로). trailingIcon 의 `showProp` 과 같은
-        //   데이터-게이팅 idiom — 컴포넌트 식별 분기 아님(ADR-142 §3).
-        //   크기는 `sizes[*].iconSize`(전 size 14 — DOM 고정 14px glyph 컨벤션과 대칭).
-        leadingIcon: {
-          nameProp: "icon",
-          gap: 4,
-          color: "{color.on-accent}",
-        },
-
-        // leading avatar (2026-08-21) — default variant 와 같은 채널. 선택 chip 만 아바타가
-        //   사라지면 안 되므로 양 variant 에 동일 배선(폭 계약 테스트가 불일치를 잡는다).
-        //   fallback 원은 accent 배경 위라 layer-1(밝은 자리표시).
-        leadingAvatar: {
-          srcProp: "avatar",
-          size: 16,
-          gap: 4,
-          fallbackFill: "{color.layer-1}",
-        },
-
-        trailingIcon: {
-          name: "x",
-          gap: 2,
-          color: "{color.on-accent}",
-          showProp: "allowsRemoving",
           insetRight: 3,
         },
       },
@@ -14006,6 +13957,34 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   TagGroup: {
+    // ADR-297 Phase 3g — the Tags' selected · focus (옛 수동 `TagGroup.css` — 생성 sheet 가 없는 rule 이라
+    //   상태 블록만 담은 `generated/TagGroup.css`). 선택 Tag 는 neutral 쌍, 강조 그룹은 accent 쌍 (S2) — Tag 의 칠은
+    //   `--tag-*` 변수로 (수동 sheet 의 바탕 · 글자 · 테두리가 읽는다).
+    partStateStyles: {
+      "& .react-aria-Tag%": {
+        "--tag-color": { isSelected: "var(--fg)" },
+        "--tag-text": { isSelected: "var(--bg)" },
+        "--tag-border": { isSelected: "var(--fg)" },
+        outline: { isFocusVisible: "2px solid var(--accent)" },
+        outlineOffset: { isFocusVisible: "2px" },
+      },
+      "& .react-aria-Tag% .tag-remove-btn": {
+        color: { isSelected: "inherit" },
+      },
+      "& .react-aria-Tag .tag-remove-btn%": {
+        outline: { isFocusVisible: "2px solid var(--focus-ring)" },
+        outlineOffset: { isFocusVisible: "-1px" },
+      },
+      "&[data-emphasized] .react-aria-Tag%": {
+        "--tag-color": { isSelected: "var(--accent)" },
+        "--tag-text": { isSelected: "var(--fg-on-accent)" },
+        "--tag-border": { isSelected: "var(--accent)" },
+      },
+      "& .tag-show-all-btn:focus-visible": {
+        outline: "2px solid var(--accent)",
+        outlineOffset: "2px",
+      },
+    },
     defaultVariant: "default",
     defaultSize: "M",
     variants: {
@@ -14282,6 +14261,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "block",
         width: "100%",
       },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+      },
     },
   },
   TextArea: {
@@ -14354,17 +14336,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "flex",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          cursor: "not-allowed",
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       composition: {
         // ADR-259 Phase 2: the S2 prefix in the control Group (`FIELD_PREFIX_*`).
@@ -14500,17 +14474,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "flex",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-          cursor: "not-allowed",
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       composition: {
         // ADR-259 Phase 2: the S2 prefix in the control Group (`FIELD_PREFIX_*`).
@@ -14687,15 +14653,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "flex",
       },
-      states: {
-        hover: {},
-        pressed: {},
-        disabled: {
-          opacity: 0.38,
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       composition: {
         layout: "flex-column",
@@ -14919,25 +14879,27 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingLeft: "{size.toast.padding-start-icon}",
         boxShadow: "{shadow.md}",
       },
-      states: {
-        disabled: {
-          opacity: 0.38,
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
+        // ADR-297 Phase 3c — every variant's padding (was `rootSelectors["&[data-variant]"]` — a Toast always
+        //   carries one), the neutral one with no icon starts closer (was `&[data-variant="neutral"]`).
+        padding: {
+          variant: {
+            neutral:
+              "12px var(--catalog-token-size-toast-padding-end) 12px var(--catalog-token-size-toast-padding-start-icon)",
+            info: "12px var(--catalog-token-size-toast-padding-end) 12px var(--catalog-token-size-toast-padding-start-icon)",
+            positive:
+              "12px var(--catalog-token-size-toast-padding-end) 12px var(--catalog-token-size-toast-padding-start-icon)",
+            negative:
+              "12px var(--catalog-token-size-toast-padding-end) 12px var(--catalog-token-size-toast-padding-start-icon)",
+          },
         },
+        paddingLeft: { variant: { neutral: "16px" } },
       },
       composition: {
         delegation: [],
         rootSelectors: {
-          // (The size block takes px numbers only — the S2 padding is the device token pair, so the
-          //  DOM reads it here as the Canvas reads `containerStyles` · `containerVariants`.)
-          "&[data-variant]": {
-            styles: {
-              padding:
-                "12px var(--catalog-token-size-toast-padding-end) 12px var(--catalog-token-size-toast-padding-start-icon)",
-            },
-          },
-          '&[data-variant="neutral"]': {
-            styles: { "padding-left": "16px" },
-          },
           // S2 CenterBaseline 아이콘 — 시작 여백 16 안, 세로 가운데 (`toast-variant-icon`, aria-hidden).
           "& > .toast-variant-icon": {
             styles: {
@@ -15185,19 +15147,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       archetype: "button",
       element: "button",
       containerStyles: BUTTON_ROOT_BOX,
-      states: {
-        hover: {},
-        pressed: {
-          scale: 0.95,
-        },
-        disabled: {
-          opacity: 0.38,
-          cursor: "not-allowed",
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        transform: { isPressed: "scale(0.95)" },
+        ...DISABLED_STATE,
       },
       // ADR-297 Phase 3: paint = the variant trees (generated `:where` blocks) — the class stays for
       //   the Skia child-color gate and the Builder chrome ramp (`.button-base:not([data-catalog-id])`).
@@ -15321,19 +15274,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         alignItems: "center",
         height: "fit-content",
       },
-      states: {
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
-        // 2026-10-14: a disabled group dims its buttons (RAC group state → each ToggleButton's own
-        //   disabled 0.38 — resolver `CATALOG_GROUP_TURNS_ON`), not itself as well (S2 ActionButtonGroup
-        //   has no group opacity). Without this block the generated sheet gave the group the default
-        //   0.38 too — the DOM drew 0.14, the Canvas 0.38.
-        disabled: {
-          opacity: 1,
-          cursor: "not-allowed",
-          pointerEvents: "none",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        opacity: { isDisabled: 1 },
+        cursor: { isDisabled: "not-allowed" },
+        pointerEvents: { isDisabled: "none" },
       },
       composition: {
         layout: "flex-row",
@@ -15641,14 +15586,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         width: "fit-content",
         height: "fit-content",
       },
-      states: {
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
       composition: {
         containerStyles: {
@@ -15789,15 +15729,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   (0 2px 8px)가 SP2 `emphasized` 최상위 레이어와 정확히 일치 — 출처 복귀(ADR §9-4).
         boxShadow: "{shadow.sm}",
       },
-      states: {
-        disabled: {
-          opacity: 0.38,
-          cursor: "not-allowed",
-          pointerEvents: "none",
-        },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
-        },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        ...DISABLED_STATE,
       },
     },
   },
@@ -15844,6 +15778,53 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   Tree: {
+    // ADR-297 Phase 3g — the tree's and its items' states (옛 수동 `Tree.css` — 생성 sheet 가 없는 rule 이라
+    //   상태 블록만 담은 `generated/Tree.css`). 항목의 hover · pressed · selected · disabled · drop target 은 같은 바탕 ·
+    //   글자에서 옛 순서 그대로 (forced-colors 의 선택 · focus 가 마지막).
+    partStateStyles: {
+      "&%": {
+        outline: { isFocusVisible: "2px solid var(--accent)" },
+        outlineOffset: { isFocusVisible: "-1px" },
+      },
+      "& .react-aria-TreeItem%": {
+        background: {
+          isHovered: "color-mix(in srgb, var(--fg) 8%, transparent)",
+          isPressed: "color-mix(in srgb, var(--fg) 12%, transparent)",
+          isSelected: "var(--accent-subtle)",
+          isDropTarget: "color-mix(in srgb, var(--accent) 8%, transparent)",
+          forcedColors: { isSelected: "Highlight" },
+        },
+        color: {
+          isSelected: "var(--fg-on-accent)",
+          isDisabled: "color-mix(in srgb, var(--fg) 38%, transparent)",
+          forcedColors: { isSelected: "HighlightText" },
+        },
+        cursor: { isDisabled: "not-allowed" },
+        pointerEvents: { isDisabled: "none" },
+        outline: {
+          isFocusVisible: "2px solid var(--accent)",
+          isDropTarget: "2px solid var(--accent)",
+        },
+        outlineOffset: { isFocusVisible: { default: "-2px", isSelected: "-4px" } },
+        outlineColor: { forcedColors: { isFocusVisible: "Highlight" } },
+      },
+      "& .react-aria-TreeItem% .react-aria-Button": {
+        color: { isSelected: "var(--fg-on-accent)" },
+      },
+      '& .react-aria-TreeItem [slot="drag"]%': {
+        borderRadius: { isFocusVisible: "var(--radius-xs)" },
+        outline: { isFocusVisible: "2px solid var(--accent)" },
+      },
+      // (선택이 이어진 항목끼리 모서리를 붙인다)
+      "& .react-aria-TreeItem%:has(+ [data-selected])": {
+        borderEndStartRadius: { isSelected: "0" },
+        borderEndEndRadius: { isSelected: "0" },
+      },
+      "& .react-aria-TreeItem[data-selected] + .react-aria-TreeItem%": {
+        borderStartStartRadius: { isSelected: "0" },
+        borderStartEndRadius: { isSelected: "0" },
+      },
+    },
     defaultVariant: "default",
     defaultSize: "M",
     // ADR-913 slice 4 (2026-06-19): ListBox/Menu/TagGroup 동형 collection cutover 멤버인데

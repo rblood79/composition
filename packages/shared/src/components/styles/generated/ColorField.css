@@ -57,12 +57,12 @@
   --icon-size: 36px;
 }
 
-.react-aria-ColorField[data-focus-visible] {
+.react-aria-ColorField.react-aria-ColorField:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-ColorField[data-disabled] {
+.react-aria-ColorField.react-aria-ColorField:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;

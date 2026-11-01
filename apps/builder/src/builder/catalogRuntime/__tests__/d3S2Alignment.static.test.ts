@@ -37,6 +37,7 @@ import {
   type TokenRef,
 } from "@composition/rendering";
 import { COMPONENT_RULES_TABLE } from "../../../../../../packages/shared/src/catalog/generated/componentRulesTable";
+import { evaluateConditionTree } from "../../../../../../packages/shared/src/catalog/rule/conditionTree";
 import { manualBoxRule } from "../../../../../../packages/shared/src/catalog/document/manualBoxRules";
 import {
   CATALOG_SLIDER_THICK_TRACK,
@@ -1362,10 +1363,20 @@ describe("ADR-295 후속 — picker 팝오버 안 섹션 머리글 = S2 listboxH
         }
       >
     ).ListBox!.structure.composition.rootSelectors;
+    // (ADR-297 Phase 3c: the row height is the ListBox's state tree — in a Popover, a document node; the
+    //  Header rule stays a descendant selector)
     const block = selectors["&[data-catalog-id]:is(.react-aria-Popover *)"]!;
-    expect(block.styles?.["--lb-control-h"]).toBe(
-      "var(--catalog-token-size-height-M)",
-    );
+    const rowHeight = (size?: string) =>
+      evaluateConditionTree(
+        (
+          COMPONENT_RULES_TABLE as unknown as Record<
+            string,
+            { structure?: { stateStyles?: Record<string, unknown> } }
+          >
+        ).ListBox!.structure!.stateStyles!["--lb-control-h"] as never,
+        { inPopover: true, isCatalogNode: true, ...(size ? { size } : {}) },
+      );
+    expect(rowHeight()).toBe("var(--catalog-token-size-height-M)");
     const header = block.nested![".react-aria-Header"]!;
     expect(header["min-height"]).toBe("var(--lb-control-h)");
     expect(header.padding).toBe(
@@ -1376,12 +1387,9 @@ describe("ADR-295 후속 — picker 팝오버 안 섹션 머리글 = S2 listboxH
       "700",
     ]);
     for (const size of ["XS", "S", "L", "XL"])
-      expect(
-        selectors[
-          `&[data-catalog-id][data-size="${size}"]:is(.react-aria-Popover *)`
-        ]?.styles?.["--lb-control-h"],
-        size,
-      ).toBe(`var(--catalog-token-size-height-${size})`);
+      expect(rowHeight(size), size).toBe(
+        `var(--catalog-token-size-height-${size})`,
+      );
   });
 });
 
@@ -1675,11 +1683,16 @@ describe("ADR-295 후속 — S2 와 다르게 남은 고정 치수 (S2 1.8.1 소
 
   it("ColorThumb 포커스 = scaled(S2 ColorHandle isFocusVisible)", () => {
     const focus = s2Value("ColorHandle.tsx", /isFocusVisible: (\d+)/);
-    const styles =
-      rules.ColorThumb!.structure!.composition!.rootSelectors![
-        "&[data-focus-visible]"
-      ]!.styles;
-    expect([styles.width, styles.height]).toEqual([
+    // (ADR-297 Phase 3c: the thumb's own state — its state tree)
+    const trees = (
+      COMPONENT_RULES_TABLE as unknown as Record<
+        string,
+        { structure?: { stateStyles?: Record<string, unknown> } }
+      >
+    ).ColorThumb!.structure!.stateStyles!;
+    const focused = (property: string) =>
+      evaluateConditionTree(trees[property] as never, { isFocusVisible: true });
+    expect([focused("width"), focused("height")]).toEqual([
       scaledRef(focus),
       scaledRef(focus),
     ]);

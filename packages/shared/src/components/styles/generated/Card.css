@@ -159,14 +159,27 @@
   gap: 20px;
 }
 
-.react-aria-Card[data-focus-visible] {
+.react-aria-Card.react-aria-Card:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
+}
+
+.react-aria-Card.react-aria-Card:where([data-focus-visible]) {
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-Card[data-disabled] {
+.react-aria-Card.react-aria-Card:where([data-disabled]) {
   opacity: 0.38;
+}
+
+.react-aria-Card.react-aria-Card {
+  cursor: pointer;
+}
+
+.react-aria-Card.react-aria-Card:where([data-disabled]) {
   cursor: not-allowed;
+}
+
+.react-aria-Card.react-aria-Card:where([data-disabled]) {
   pointer-events: none;
 }
 
@@ -265,7 +278,6 @@
 
 
   .react-aria-Card {
-    cursor: pointer;
     text-decoration: none;
   }
 

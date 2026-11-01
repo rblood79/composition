@@ -42,15 +42,32 @@
   font-weight: 500;
 }
 
-.react-aria-Tab[data-focus-visible] {
+.react-aria-Tab.react-aria-Tab:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
+}
+
+.react-aria-Tab.react-aria-Tab:where([data-focus-visible]) {
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-Tab[data-disabled] {
+.react-aria-Tab.react-aria-Tab:where([data-disabled]) {
   opacity: 0.38;
+}
+
+.react-aria-Tab.react-aria-Tab {
+  cursor: pointer;
+}
+
+.react-aria-Tab.react-aria-Tab:where([data-disabled]) {
   cursor: not-allowed;
+}
+
+.react-aria-Tab.react-aria-Tab:where([data-disabled]) {
   pointer-events: none;
+}
+
+.react-aria-Tab.react-aria-Tab:where([href]) {
+  text-decoration: none;
 }
 
 /* ── Tier 2: Composite Delegation ── */
@@ -72,13 +89,8 @@
 
 
   .react-aria-Tab {
-    cursor: pointer;
     user-select: none;
     transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
-  }
-
-  .react-aria-Tab[href] {
-    text-decoration: none;
   }
 
 

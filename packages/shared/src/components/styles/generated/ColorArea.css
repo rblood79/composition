@@ -44,6 +44,9 @@
   --icon-size: 22px;
 }
 
+.react-aria-ColorArea.react-aria-ColorArea:where([data-disabled]) {
+  background: gray !important;
+}
 
 /* ── Tier 2: Composite Delegation ── */
 
@@ -54,10 +57,6 @@
   }
 }
 
-
-  .react-aria-ColorArea[data-disabled] {
-    background: gray !important;
-  }
 
   .react-aria-ColorArea[data-disabled] .react-aria-ColorThumb {
     background: gray !important;

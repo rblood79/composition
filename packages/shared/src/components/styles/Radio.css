@@ -40,40 +40,44 @@
       transition: all 0.2s ease;
     }
 
-    .react-aria-RadioButton[data-pressed] .indicator {
-      border-color: var(--border-hover);
-    }
-
-    &[data-selected] {
-      .indicator {
-        border-color: var(--radio-color);
-        border-width: 6px;
-      }
-
-      .react-aria-RadioButton[data-pressed] .indicator {
-        border-color: color-mix(in srgb, var(--radio-color) 75%, black);
-      }
-    }
-
-    .react-aria-RadioButton[data-focus-visible] .indicator {
-      outline: 2px solid var(--radio-color);
-      outline-offset: 2px;
-    }
-
-    &[data-invalid] {
-      .indicator {
-        border-color: var(--negative);
-      }
-
-      &[data-selected] .indicator {
-        border-color: var(--negative);
-      }
-    }
-
     &[data-disabled] {
       color: var(--fg-disabled);
+    }
 
-      .indicator {
+    /* ADR-297 Phase 3g: the ring's states are the Radio rule's tree (generated `partStateStyles`) on a
+       catalog node — these are Builder widgets'. */
+    &:where(:not([data-catalog-id], [data-catalog-id] *)) {
+      .react-aria-RadioButton[data-pressed] .indicator {
+        border-color: var(--border-hover);
+      }
+
+      &[data-selected] {
+        .indicator {
+          border-color: var(--radio-color);
+          border-width: 6px;
+        }
+
+        .react-aria-RadioButton[data-pressed] .indicator {
+          border-color: color-mix(in srgb, var(--radio-color) 75%, black);
+        }
+      }
+
+      .react-aria-RadioButton[data-focus-visible] .indicator {
+        outline: 2px solid var(--radio-color);
+        outline-offset: 2px;
+      }
+
+      &[data-invalid] {
+        .indicator {
+          border-color: var(--negative);
+        }
+
+        &[data-selected] .indicator {
+          border-color: var(--negative);
+        }
+      }
+
+      &[data-disabled] .indicator {
         border-color: var(--border-disabled);
       }
     }
@@ -96,7 +100,9 @@
   .react-aria-RadioGroup[data-radio-variant="surface"] .react-aria-Radio {
     --radio-color: var(--accent-subtle);
 
-    .react-aria-RadioButton[data-focus-visible] .indicator {
+    &:where(:not([data-catalog-id], [data-catalog-id] *))
+      .react-aria-RadioButton[data-focus-visible]
+      .indicator {
       outline-color: var(--fg);
     }
   }
@@ -132,7 +138,7 @@
       border-radius: 16px;
     }
 
-    &[data-selected] .indicator {
+    &[data-selected]:where(:not([data-catalog-id], [data-catalog-id] *)) .indicator {
       border-width: 5px;
     }
   }
@@ -149,7 +155,7 @@
       border-radius: 20px;
     }
 
-    &[data-selected] .indicator {
+    &[data-selected]:where(:not([data-catalog-id], [data-catalog-id] *)) .indicator {
       border-width: 6px;
     }
   }
@@ -166,7 +172,7 @@
       border-radius: 24px;
     }
 
-    &[data-selected] .indicator {
+    &[data-selected]:where(:not([data-catalog-id], [data-catalog-id] *)) .indicator {
       border-width: 7px;
     }
   }
@@ -186,7 +192,7 @@
       border-radius: 30px;
     }
 
-    &[data-selected] .indicator {
+    &[data-selected]:where(:not([data-catalog-id], [data-catalog-id] *)) .indicator {
       border-width: 8px;
     }
   }

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { getComponentRulesTable } from "../../../../shared/src/index";
 import { legacyVariantPaint } from "../../../../shared/src/catalog/rule/rulePaintTree";
+import { stateStylesCssFor } from "../../../scripts/generate-css";
 import { generateCSS } from "../CSSGenerator";
 import type { ComponentSpec, SizeSpec, VariantSpec } from "../../types";
 
@@ -10,7 +11,8 @@ import type { ComponentSpec, SizeSpec, VariantSpec } from "../../types";
  * align/justify center · cursor pointer · user-select none · transition) 은 Skia 가 읽지 않는
  * DOM 전용 채널이라 Section/Toolbar 류 컨테이너에서 정렬 발산의 원천이었다.
  *
- * DOM interaction 이 필요한 entry 는 `composition.rootSelectors["&"]` 로 명시한다 (Card · Tab).
+ * DOM interaction 이 필요한 entry 는 `composition.rootSelectors["&"]` 로 명시한다 (Card · Tab) — 커서는 ADR-297
+ * Phase 3b 부터 rule 의 상태 트리 (`structure.stateStyles.cursor` — 쉴 때 pointer · disabled not-allowed).
  * 여기서는 production `buildVirtualSpecs` 동형으로 실제 catalog rule → virtual spec 을 합성해
  * 확인한다. `DEFAULT_BASE_STYLES` 를 버튼 어법으로 되돌리면 Toolbar/Disclosure 케이스가 RED,
  * Card/Tab 의 rootSelectors 를 지우면 각 interaction 케이스가 RED 다.
@@ -59,16 +61,10 @@ function cssFor(name: string): string {
     defaultSize: rule.defaultSize ?? "M",
     variants,
     sizes,
-    states: meta.states ?? {
-      hover: {},
-      pressed: {},
-      disabled: { opacity: 0.38 },
-      focusVisible: {},
-    },
     ...(meta.composition ? { composition: meta.composition } : {}),
     render: { shapes: () => [] },
   };
-  return generateCSS(spec)!;
+  return generateCSS(spec, undefined, undefined, stateStylesCssFor(name))!;
 }
 
 /** root 블록 (`.react-aria-X {` 첫 블록) 만 잘라낸다. */
@@ -102,27 +98,32 @@ describe("ADR-223 archetype 미지정 base = 중립 상자", () => {
     for (const re of BUTTON_VOCABULARY) expect(root).not.toMatch(re);
   });
 
-  it("Card: rootSelectors['&'] 가 cursor:pointer · text-decoration:none 만 emit — user-select/transition 은 사라진다", () => {
+  it("Card: 상태 트리가 cursor:pointer · rootSelectors['&'] 가 text-decoration:none 만 emit — user-select/transition 은 사라진다", () => {
     const css = cssFor("Card");
     const root = rootBlock(css, "Card");
     for (const re of BUTTON_VOCABULARY) expect(root).not.toMatch(re);
-    // rootSelectors 규칙 = 같은 selector 의 뒤 블록 (base 뒤에 emit → cascade 승)
+    // 뒤 블록 (base 뒤에 emit → cascade 승) — 상태 트리의 쉴 때 커서 · rootSelectors
     const after = css.slice(root.length);
+    expect(after).toMatch(/\.react-aria-Card \{\s*cursor: pointer;\s*\}/);
+    expect(after).toMatch(
+      /\.react-aria-Card:where\(\[data-disabled\]\) \{[^}]*cursor: not-allowed;/,
+    );
     // (text-decoration: S2 Card — a link Card's `<a>` keeps its text undecorated, 2026-10-09.)
     expect(after).toMatch(
-      /\.react-aria-Card \{\s*cursor: pointer;\s*text-decoration: none;\s*\}/,
+      /\.react-aria-Card \{\s*text-decoration: none;\s*\}/,
     );
     expect(css).not.toMatch(/user-select:\s*none/);
     expect(css).not.toMatch(/transition:\s*background 0\.15s ease/);
   });
 
-  it("Tab: rootSelectors['&'] 가 cursor · user-select · transition 세 선언을 emit", () => {
+  it("Tab: 상태 트리가 cursor · rootSelectors['&'] 가 user-select · transition 을 emit", () => {
     const css = cssFor("Tab");
     const root = rootBlock(css, "Tab");
     expect(root).toMatch(/display:\s*inline-flex/); // structure.containerStyles 가 재선언
     for (const re of BUTTON_VOCABULARY) expect(root).not.toMatch(re);
+    expect(css).toMatch(/\.react-aria-Tab \{\s*cursor: pointer;\s*\}/);
     expect(css).toMatch(
-      /\.react-aria-Tab \{\s*cursor: pointer;\s*user-select: none;\s*transition: background 0\.15s ease, border-color 0\.15s ease, transform 0\.15s ease;\s*\}/,
+      /\.react-aria-Tab \{\s*user-select: none;\s*transition: background 0\.15s ease, border-color 0\.15s ease, transform 0\.15s ease;\s*\}/,
     );
   });
 

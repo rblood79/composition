@@ -21,6 +21,7 @@ import { COMPONENT_RULES_TABLE } from "../../../../packages/shared/src/catalog/g
 import { resolveCatalogPaint } from "../../../../packages/shared/src/catalog/resolvers/resolveCatalogPaint";
 import { usesButtonBaseUtility } from "../../../../packages/shared/src/catalog/resolvers/resolveComponentRule";
 import { colorTokenToCss } from "../../../../packages/shared/src/catalog/resolvers/colorTokenToCss";
+import { disabledStateRules } from "../../../../packages/shared/src/catalog/document/ruleDefinition";
 import { rulePaintReach } from "../../../../packages/shared/src/catalog/rule/paintReach";
 import { applyCatalogPreviewTheme } from "../../../../packages/shared/src/catalog/runtime/domView.runtime";
 import { DEFAULT_BASE_TYPOGRAPHY } from "../../../../packages/shared/src/catalog/runtime/fontDefaults";
@@ -275,5 +276,168 @@ it("records the Builder widgets' (no catalog id) computed paint — R7 before/af
   await commands.writeFile(
     "../../.agent/runs/adr297-chrome-paint.json",
     `${JSON.stringify(chrome, null, 1)}\n`,
+  );
+});
+
+/** ADR-297 Phase 3b · 3c — the root's state styles (not paint) in each RAC state, DOM + the Canvas disabled dim. */
+const STATE_ATTRS = {
+  rest: [],
+  hovered: ["data-hovered"],
+  pressed: ["data-pressed"],
+  focused: ["data-focused"],
+  focusVisible: ["data-focused", "data-focus-visible"],
+  disabled: ["data-disabled"],
+} as const;
+function stateStyleRows(mode: "catalog" | "chrome"): Record<string, string> {
+  const out: Record<string, string> = {};
+  const element = document.createElement("div");
+  host.append(element);
+  for (const [type, rule] of Object.entries(
+    COMPONENT_RULES_TABLE as Record<string, ComponentRule>,
+  )) {
+    const variant = rule.defaultVariant ?? Object.keys(rule.variants ?? {})[0];
+    const size = rule.defaultSize ?? Object.keys(rule.sizes ?? {})[0];
+    for (const [state, attrs] of Object.entries(STATE_ATTRS)) {
+      element.className = `react-aria-${type}${usesButtonBaseUtility(type) ? " button-base" : ""}`;
+      for (const name of [...element.getAttributeNames()])
+        if (name !== "class") element.removeAttribute(name);
+      if (mode === "catalog")
+        element.setAttribute("data-catalog-id", `parity:${type}`);
+      element.setAttribute("data-rac", "");
+      if (variant) element.setAttribute("data-variant", variant);
+      if (size) element.setAttribute("data-size", size);
+      for (const attr of attrs) element.setAttribute(attr, "true");
+      const c = getComputedStyle(element);
+      out[`${type} ${state}`] = [
+        `op ${c.opacity}`,
+        `ol ${c.outlineStyle} ${c.outlineWidth} ${rgba(c.outlineColor)} ${c.outlineOffset}`,
+        `cur ${c.cursor}`,
+        `pe ${c.pointerEvents}`,
+        `tf ${c.transform}`,
+        `bs ${c.boxShadow}`,
+        `bg ${rgba(c.backgroundColor)}`,
+      ].join(" · ");
+    }
+  }
+  element.remove();
+  return out;
+}
+
+it("records the root state styles (DOM catalog · chrome) and the Canvas disabled dim — 3b before/after", async () => {
+  const catalog = stateStyleRows("catalog");
+  css.textContent = builderCss;
+  const chrome = stateStyleRows("chrome");
+  css.textContent = bundleCss;
+  const canvasDim: Record<string, string> = {};
+  for (const [type, rule] of Object.entries(
+    COMPONENT_RULES_TABLE as Record<string, ComponentRule>,
+  )) {
+    const accepts = (
+      getPrimitiveBinding(type) as
+        { props?: { accepts?: Record<string, unknown> } } | undefined
+    )?.props?.accepts;
+    canvasDim[type] = JSON.stringify(
+      disabledStateRules(rule, (accepts ?? {}) as never),
+    );
+  }
+  expect(Object.keys(catalog).length).toBeGreaterThan(500);
+  await commands.writeFile(
+    "../../.agent/runs/adr297-state-styles.json",
+    `${JSON.stringify({ catalog, chrome, canvasDim }, null, 1)}\n`,
+  );
+});
+
+/**
+ * ADR-297 Phase 3c — rules whose `rootSelectors` branch on the root's own state: every combination of the
+ * attributes their keys name (+ hover · focus), inside / outside a Popover, catalog node / Builder widget.
+ */
+const SELF_STATE_TYPES = [
+  "Button",
+  "ColorArea",
+  "ColorThumb",
+  "DateInput",
+  "Disclosure",
+  "DropZone",
+  "Input",
+  "Link",
+  "ListBox",
+  "MenuItem",
+  "Modal",
+  "Tab",
+  "Toast",
+] as const;
+const SELF_STATE_ATTRS: Record<string, readonly (readonly [string, string])[]> = {
+  Button: [["data-field-button", "M"], ["data-field-button", "XS"], ["data-hovered", "true"]],
+  ColorArea: [["data-disabled", "true"]],
+  ColorThumb: [["data-focus-visible", "true"]],
+  DateInput: [["data-hovered", "true"], ["data-focus-within", "true"], ["data-invalid", "true"], ["data-quiet", "true"], ["data-disabled", "true"]],
+  Disclosure: [["data-quiet", "true"], ["data-in-group", "true"]],
+  DropZone: [["data-drop-target", "true"]],
+  Input: [["data-hovered", "true"], ["data-focused", "true"], ["data-focus-within", "true"], ["data-invalid", "true"], ["data-quiet", "true"], ["data-disabled", "true"]],
+  Link: [["data-hovered", "true"], ["data-quiet", "true"]],
+  ListBox: [["data-empty", "true"], ["data-size", "S"]],
+  MenuItem: [["href", "#"]],
+  Modal: [["data-dialog-trigger", "true"]],
+  Tab: [["href", "#"]],
+  Toast: [["data-variant", "neutral"], ["data-variant", "positive"]],
+};
+const SELF_STATE_PROPS = [
+  "border-top-color", "border-bottom-color", "border-top-width", "border-bottom-width",
+  "border-top-left-radius", "outline-style", "outline-width", "outline-color", "outline-offset",
+  "background-color", "color", "box-shadow", "text-decoration-line", "text-decoration-thickness",
+  "padding-top", "padding-left", "padding-right", "position", "max-height", "min-height", "display",
+  "width", "height", "--lb-control-h", "caret-color",
+] as const;
+function selfStateRows(mode: "catalog" | "chrome"): Record<string, string> {
+  const out: Record<string, string> = {};
+  const popover = document.createElement("div");
+  popover.className = "react-aria-Popover";
+  host.append(popover);
+  const tail = document.createElement("div");
+  for (const type of SELF_STATE_TYPES) {
+    const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[type]!;
+    const attrs = SELF_STATE_ATTRS[type]!;
+    const variant = rule.defaultVariant ?? Object.keys(rule.variants ?? {})[0];
+    for (const parent of type === "ListBox" ? [host, popover] : [host])
+      for (let mask = 0; mask < 1 << attrs.length; mask += 1) {
+        const element = document.createElement("div");
+        element.className = `react-aria-${type}${usesButtonBaseUtility(type) ? " button-base" : ""}`;
+        if (mode === "catalog")
+          element.setAttribute("data-catalog-id", `parity:${type}`);
+        element.setAttribute("data-rac", "");
+        if (variant) element.setAttribute("data-variant", variant);
+        element.setAttribute("data-size", rule.defaultSize ?? "M");
+        const on: string[] = [];
+        attrs.forEach(([name, value], i) => {
+          if (mask & (1 << i)) {
+            element.setAttribute(name, value);
+            on.push(`${name}=${value}`);
+          }
+        });
+        parent.append(element);
+        parent.append(tail); // (`:not(:last-child)`)
+        const c = getComputedStyle(element);
+        out[`${type} ${parent === popover ? "popover" : "-"} ${on.join(",") || "rest"}`] =
+          SELF_STATE_PROPS.map((p) => {
+            const v = c.getPropertyValue(p);
+            return /color/.test(p) ? rgba(v) : v;
+          }).join(" · ");
+        element.remove();
+      }
+  }
+  tail.remove();
+  popover.remove();
+  return out;
+}
+
+it("records the self-state rootSelectors' computed styles (catalog · chrome) — 3c before/after", async () => {
+  const catalog = selfStateRows("catalog");
+  css.textContent = builderCss;
+  const chrome = selfStateRows("chrome");
+  css.textContent = bundleCss;
+  expect(Object.keys(catalog).length).toBeGreaterThan(100);
+  await commands.writeFile(
+    "../../.agent/runs/adr297-self-state.json",
+    `${JSON.stringify({ catalog, chrome }, null, 1)}\n`,
   );
 });

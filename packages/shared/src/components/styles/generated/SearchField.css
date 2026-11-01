@@ -57,12 +57,12 @@
   --icon-size: var(--catalog-token-search-field-icon-size-XL, calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)));
 }
 
-.react-aria-SearchField[data-focus-visible] {
+.react-aria-SearchField.react-aria-SearchField:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-SearchField[data-disabled] {
+.react-aria-SearchField.react-aria-SearchField:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;

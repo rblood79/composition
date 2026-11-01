@@ -24,6 +24,10 @@
   border-radius: var(--catalog-token-radius-full);
 }
 
+.react-aria-ColorThumb.react-aria-ColorThumb:where([data-focus-visible]) {
+  width: calc(var(--catalog-token-size-unit) * 32 / 1);
+  height: calc(var(--catalog-token-size-unit) * 32 / 1);
+}
 
 /* ── Tier 2: Composite Delegation ── */
 
@@ -33,12 +37,6 @@
     forced-color-adjust: auto;
   }
 }
-
-
-  .react-aria-ColorThumb[data-focus-visible] {
-    width: calc(var(--catalog-token-size-unit) * 32 / 1);
-    height: calc(var(--catalog-token-size-unit) * 32 / 1);
-  }
 
 
 } /* @layer components */

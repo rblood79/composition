@@ -127,15 +127,96 @@
   min-height: var(--catalog-token-size-height-XL);
 }
 
-.react-aria-DateInput[data-focus-visible] {
+.react-aria-DateInput.react-aria-DateInput:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
+}
+
+.react-aria-DateInput.react-aria-DateInput:where([data-focus-visible]) {
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-DateInput[data-disabled] {
+.react-aria-DateInput.react-aria-DateInput:where([data-disabled]) {
   opacity: 1;
+}
+
+.react-aria-DateInput.react-aria-DateInput:where([data-disabled]) {
   cursor: not-allowed;
+}
+
+.react-aria-DateInput.react-aria-DateInput:where([data-disabled]) {
   pointer-events: none;
+}
+
+.react-aria-DateInput.react-aria-DateInput:where([data-quiet]) {
+  background: transparent;
+}
+
+.react-aria-DateInput.react-aria-DateInput:where([data-hovered]) {
+  border-color: var(--border-hover);
+}
+
+.react-aria-DateInput.react-aria-DateInput:where([data-invalid]) {
+  border-color: var(--negative);
+}
+
+.react-aria-DateInput.react-aria-DateInput:where([data-focus-within]) {
+  border-color: var(--accent-content);
+}
+
+.react-aria-DateInput.react-aria-DateInput:where([data-focus-within][data-invalid]) {
+  border-color: var(--negative);
+}
+
+.react-aria-DateInput.react-aria-DateInput:where([data-quiet]) {
+  border-color: transparent;
+}
+
+.react-aria-DateInput.react-aria-DateInput:where([data-quiet]) {
+  box-shadow: none;
+}
+
+.react-aria-DateInput.react-aria-DateInput:where([data-quiet]) {
+  border-radius: 0;
+}
+
+.react-aria-DateInput.react-aria-DateInput:where([data-quiet]) {
+  border-bottom: 1px solid var(--border);
+}
+
+.react-aria-DateInput.react-aria-DateInput:where([data-quiet][data-hovered]) {
+  border-bottom-color: var(--border-hover);
+}
+
+.react-aria-DateInput.react-aria-DateInput:where([data-quiet][data-invalid]) {
+  border-bottom-color: var(--negative);
+}
+
+.react-aria-DateInput.react-aria-DateInput:where([data-quiet][data-focus-within]) {
+  border-bottom-color: var(--accent-content);
+}
+
+.react-aria-DateInput.react-aria-DateInput:where([data-quiet][data-focus-within][data-invalid]) {
+  border-bottom-color: var(--negative);
+}
+
+.react-aria-DateInput.react-aria-DateInput:where([data-focus-within]) {
+  outline: 2px solid var(--accent-content);
+}
+
+.react-aria-DateInput.react-aria-DateInput:where([data-quiet][data-focus-within]) {
+  outline: none;
+}
+
+.react-aria-DateInput.react-aria-DateInput:where([data-focus-within][data-invalid]) {
+  outline-color: var(--negative);
+}
+
+.react-aria-DateInput.react-aria-DateInput:where([data-quiet][data-focus-within]) {
+  outline-color: currentcolor;
+}
+
+.react-aria-DateInput.react-aria-DateInput:where([data-focus-within]) {
+  outline-offset: -1px;
 }
 
 /* ── Tier 2: Composite Delegation ── */
@@ -195,48 +276,6 @@
     white-space: nowrap;
     forced-color-adjust: none;
     transition: border-color 200ms ease, color 200ms ease;
-  }
-
-  .react-aria-DateInput[data-hovered]:not([data-focus-within]):not([data-disabled]) {
-    border-color: var(--border-hover);
-  }
-
-  .react-aria-DateInput[data-focus-within] {
-    outline: 2px solid var(--accent-content);
-    outline-offset: -1px;
-    border-color: var(--accent-content);
-  }
-
-  .react-aria-DateInput[data-invalid] {
-    border-color: var(--negative);
-  }
-
-  .react-aria-DateInput[data-invalid][data-focus-within] {
-    outline-color: var(--negative);
-  }
-
-  .react-aria-DateInput[data-quiet] {
-    background: transparent;
-    border-color: transparent;
-    box-shadow: none;
-    border-radius: 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .react-aria-DateInput[data-quiet][data-hovered]:not([data-focus-within]):not([data-disabled]) {
-    border-color: transparent;
-    border-bottom-color: var(--border-hover);
-  }
-
-  .react-aria-DateInput[data-quiet][data-focus-within] {
-    outline: none;
-    border-color: transparent;
-    border-bottom-color: var(--accent-content);
-  }
-
-  .react-aria-DateInput[data-quiet][data-invalid] {
-    border-color: transparent;
-    border-bottom-color: var(--negative);
   }
 
 

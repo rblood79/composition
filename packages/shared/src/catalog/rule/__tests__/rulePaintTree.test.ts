@@ -85,6 +85,14 @@ function legacyStatePaint(
   return { background, color, border };
 }
 
+/**
+ * ADR-297 Phase 3d — selection folded into these variants' trees (`isSelected` · `isEmphasized`, was the
+ * `selected` · `selectedEmphasized` variants the Canvas swapped in). The legacy chain has no slot for it;
+ * the swap ↔ tree equality was checked over every selection × emphasis × state (24/24, 2026-11-01).
+ * Gone with the legacy chain in 3i.
+ */
+const SELECTION_FOLDED = new Set(["Tag.default", "ColorSwatch.default"]);
+
 describe("ADR-297 condition tree ≡ legacy paint chain (whole table)", () => {
   it("evaluator state paint == legacy chain on the generator's input, every rule × variant × condition", () => {
     const mismatches: string[] = [];
@@ -94,6 +102,7 @@ describe("ADR-297 condition tree ≡ legacy paint chain (whole table)", () => {
       const fillStyles = [undefined, ...(reach.fillStyles ?? [])];
       const selections = reach.selectable ? [false, true] : [false];
       for (const [name, variant] of Object.entries(rule.variants ?? {})) {
+        if (SELECTION_FOLDED.has(`${type}.${name}`)) continue;
         const paint = variant.paint;
         const legacy = legacyVariantPaint(paint, rule.fillStyleValues);
         for (const fillStyle of fillStyles)
@@ -145,6 +154,7 @@ describe("ADR-297 condition tree ≡ legacy paint chain (whole table)", () => {
     const mismatches: string[] = [];
     for (const [type, rule] of RULES)
       for (const [name, variant] of Object.entries(rule.variants ?? {})) {
+        if (SELECTION_FOLDED.has(`${type}.${name}`)) continue;
         const back = variantPaintTree(
           legacyVariantPaint(variant.paint, rule.fillStyleValues),
           rule.fillStyleValues,

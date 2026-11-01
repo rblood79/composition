@@ -62,12 +62,12 @@
   border-radius: var(--catalog-token-radius-full);
 }
 
-.react-aria-SliderFill[data-focus-visible] {
+.react-aria-SliderFill.react-aria-SliderFill:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-SliderFill[data-disabled] {
+.react-aria-SliderFill.react-aria-SliderFill:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;

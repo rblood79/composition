@@ -71,15 +71,33 @@
   border-color: transparent;
 }
 
-.react-aria-GridListItem[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
+.react-aria-GridListItem.react-aria-GridListItem:where([data-focus-visible]) {
+  outline: 2px solid var(--focus-ring);
 }
 
-.react-aria-GridListItem[data-disabled] {
+.react-aria-GridListItem.react-aria-GridListItem:where([data-focus-visible]) {
+  outline-offset: -2px;
+}
+
+.react-aria-GridListItem.react-aria-GridListItem:where([data-disabled]) {
   opacity: 0.38;
+}
+
+.react-aria-GridListItem.react-aria-GridListItem {
+  cursor: default;
+}
+
+.react-aria-GridListItem.react-aria-GridListItem:where([data-disabled]) {
   cursor: not-allowed;
+}
+
+.react-aria-GridListItem.react-aria-GridListItem:where([data-disabled]) {
   pointer-events: none;
+}
+
+.react-aria-GridListItem.react-aria-GridListItem .react-aria-Button[slot="drag"]:where([data-focus-visible]) {
+  border-radius: 4px;
+  outline: 2px solid var(--focus-ring);
 }
 
 @media (forced-colors: active) {

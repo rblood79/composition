@@ -70,14 +70,13 @@
   --icon-size: 18px;
 }
 
-.react-aria-Breadcrumb[data-focus-visible] {
+.react-aria-Breadcrumb.react-aria-Breadcrumb:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-Breadcrumb[data-disabled] {
+.react-aria-Breadcrumb.react-aria-Breadcrumb:where([data-disabled]) {
   opacity: 0.38;
-  cursor: not-allowed;
   pointer-events: none;
 }
 

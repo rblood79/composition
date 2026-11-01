@@ -224,10 +224,11 @@ describe("S2 Disclosure isQuiet · density", () => {
       /\.react-aria-Disclosure \{[^}]*border-top: 1px solid var\(--border\);\s*border-bottom: 1px solid var\(--border\);/,
     );
     expect(sheet).toMatch(
-      /\.react-aria-Disclosure\[data-quiet="true"\] \{\s*border-top-width: 0;\s*border-bottom-width: 0;/,
+      // (ADR-297 Phase 3c: the state tree — `structure.stateStyles`, conditions inside `:where()`)
+      /\.react-aria-Disclosure\.react-aria-Disclosure:where\(\[data-quiet\]\) \{\s*border-top-width: 0;\s*border-bottom-width: 0;/,
     );
     expect(sheet).toMatch(
-      /\.react-aria-Disclosure\[data-in-group\]:not\(:last-child\) \{\s*border-bottom-width: 0;/,
+      /\.react-aria-Disclosure\.react-aria-Disclosure:where\(\[data-in-group\]:not\(:last-child\)\) \{\s*border-bottom-width: 0;/,
     );
     expect(sheet).toMatch(
       /\.react-aria-Disclosure\[data-size="M"\] \{\s*--disclosure-trigger-h: 32px;\s*--disclosure-trigger-py: 6px;\s*--disclosure-trigger-h-compact: 24px;\s*--disclosure-trigger-py-compact: 2px;\s*--disclosure-trigger-h-spacious: 40px;\s*--disclosure-trigger-py-spacious: 10px;/,

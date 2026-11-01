@@ -5,7 +5,9 @@ import { describe, expect, it } from "vitest";
 
 import { getPrimitiveBinding } from "../bindings";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
+import { evaluateConditionTree } from "../rule/conditionTree";
 import { paintAt } from "../rule/rulePaintTree";
+import type { ComponentRule } from "../../types/catalog-style.types";
 
 /**
  * design-data 대조 감사 (2026-08-20, `docs/reference/audits/2026-08-20-design-data-
@@ -176,26 +178,20 @@ describe("design-data 감사 §1-1 — 시맨틱 variant 미배선 회귀 가드
 });
 
 describe("design-data 감사 §2-F — isDisabled 노출 결손 보수 (2026-08-21)", () => {
-  // D3 states.disabled(opacity 0.38)는 3종 모두 준비돼 있었으나 binding accepts 미노출로
+  // D3 disabled 흐림 (opacity 0.38 — ADR-297 Phase 3b 부터 `structure.stateStyles` 트리)은 3종 모두 준비돼 있었으나 binding accepts 미노출로
   // 패널 편집이 불가능하던 결손. Skia 는 buildSpecNodeData componentState generic 이 소비,
   // DOM 은 Badge=data-disabled(generated CSS)/StatusLight·Avatar=인라인 dim (class 미부여 outlier).
   it.each(["Badge", "StatusLight", "Avatar"] as const)(
-    "%s: rules states.disabled 존재 + accepts.isDisabled 선언",
+    "%s: rules disabled 흐림 (상태 트리) 존재 + accepts.isDisabled 선언",
     (type) => {
-      const rule = (
-        COMPONENT_RULES_TABLE as Record<
-          string,
-          | {
-              structure?: {
-                states?: { disabled?: { opacity?: number | string } };
-              };
-            }
-          | undefined
-        >
-      )[type];
+      const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
+        type
+      ];
       expect(
-        rule?.structure?.states?.disabled?.opacity,
-        `${type} D3 states.disabled`,
+        evaluateConditionTree(rule?.structure?.stateStyles?.opacity, {
+          isDisabled: true,
+        }),
+        `${type} D3 stateStyles.opacity isDisabled`,
       ).toBeDefined();
 
       const accepts = getPrimitiveBinding(type)?.props?.accepts;

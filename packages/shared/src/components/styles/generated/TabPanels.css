@@ -62,12 +62,12 @@
   border-radius: var(--catalog-token-radius-none);
 }
 
-.react-aria-TabPanels[data-focus-visible] {
+.react-aria-TabPanels.react-aria-TabPanels:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-TabPanels[data-disabled] {
+.react-aria-TabPanels.react-aria-TabPanels:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;

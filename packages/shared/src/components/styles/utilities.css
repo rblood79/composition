@@ -144,28 +144,28 @@
     --indicator-selected: var(--indicator-color, var(--accent));
     --indicator-hover: color-mix(in srgb, var(--indicator-selected) 85%, black);
 
-    &:where([data-selected]) {
+    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-selected]) {
       background: var(--indicator-selected);
       border-color: var(--indicator-selected);
       color: var(--fg-on-accent);
     }
 
-    &:where([data-selected][data-hovered]) {
+    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-selected][data-hovered]) {
       background: var(--indicator-hover);
       border-color: var(--indicator-hover);
     }
 
-    &:where([data-selected][data-pressed]) {
+    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-selected][data-pressed]) {
       background: color-mix(in srgb, var(--indicator-selected) 75%, black);
       border-color: color-mix(in srgb, var(--indicator-selected) 75%, black);
     }
 
-    &:where([data-focus-visible]) {
+    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-focus-visible]) {
       outline: 2px solid var(--indicator-selected);
       outline-offset: 2px;
     }
 
-    &:where([data-disabled]) {
+    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-disabled]) {
       opacity: 0.38;
       pointer-events: none;
     }
@@ -187,7 +187,7 @@
       opacity: 0.6;
     }
 
-    &:where(
+    &:where(:not([data-catalog-id], [data-catalog-id] *)):where(
       [data-hovered]:not([data-focused]):not([data-focus-within]):not(
           [data-disabled]
         )
@@ -196,23 +196,23 @@
       background: var(--inset-hover-bg, var(--bg-overlay));
     }
 
-    &:where([data-focused]),
-    &:where([data-focus-within]) {
+    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-focused]),
+    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-focus-within]) {
       outline: 2px solid var(--inset-focus-color, var(--accent));
       outline-offset: -1px;
       border-color: var(--inset-focus-color, var(--accent));
       background: var(--inset-focus-bg, var(--bg-overlay));
     }
 
-    &:where([data-invalid]) {
+    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-invalid]) {
       border-color: var(--negative);
     }
 
-    &:where([data-invalid][data-focused]) {
+    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-invalid][data-focused]) {
       outline-color: var(--negative);
     }
 
-    &:where([data-disabled]) {
+    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-disabled]) {
       background: color-mix(in srgb, var(--fg) 4%, transparent);
       border-color: color-mix(in srgb, var(--fg) 12%, transparent);
       color: color-mix(in srgb, var(--fg) 38%, transparent);
@@ -220,7 +220,7 @@
       opacity: 0.38;
     }
 
-    &:where([data-readonly]) {
+    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-readonly]) {
       background: var(--bg-inset);
       border-color: var(--border);
       cursor: default;
@@ -241,7 +241,7 @@
     border-bottom: 1px solid var(--border);
     outline: none;
 
-    &:where(
+    &:where(:not([data-catalog-id], [data-catalog-id] *)):where(
       [data-hovered]:not([data-focused]):not([data-focus-within]):not(
           [data-disabled]
         )
@@ -251,15 +251,15 @@
       border-bottom-color: var(--border-hover);
     }
 
-    &:where([data-focused]),
-    &:where([data-focus-within]) {
+    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-focused]),
+    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-focus-within]) {
       outline: none;
       background: transparent;
       border-color: transparent;
       border-bottom-color: var(--accent);
     }
 
-    &:where([data-invalid]) {
+    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-invalid]) {
       border-color: transparent;
       border-bottom-color: var(--negative);
     }

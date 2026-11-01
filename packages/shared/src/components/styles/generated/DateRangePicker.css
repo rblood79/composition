@@ -60,12 +60,12 @@
   --icon-size: var(--catalog-token-date-range-picker-icon-size-XL, var(--catalog-token-text-lg));
 }
 
-.react-aria-DateRangePicker[data-focus-visible] {
+.react-aria-DateRangePicker.react-aria-DateRangePicker:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-DateRangePicker[data-disabled] {
+.react-aria-DateRangePicker.react-aria-DateRangePicker:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;

@@ -46,12 +46,12 @@
   gap: 10px;
 }
 
-.react-aria-Toolbar[data-focus-visible] {
+.react-aria-Toolbar.react-aria-Toolbar:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-Toolbar[data-disabled] {
+.react-aria-Toolbar.react-aria-Toolbar:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;

@@ -25,21 +25,24 @@ const read = (rel: string) =>
   readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8");
 
 const menuCss = read("../styles/Menu.css").replace(/\s+/g, " ");
+// ADR-297 Phase 3g — a catalog item's glyph is the MenuItem rule's tree (generated); Menu.css keeps the
+// column and the Builder menus' glyph.
+const menuItemCss = read("../styles/generated/MenuItem.css").replace(/\s+/g, " ");
 const indexCss = read("../styles/index.css");
 const menuTsx = read("../Menu.components.tsx");
 
 describe("Menu 선택 표시 — 데이터 게이팅 + 실제 로드", () => {
   it("selectionMode 별 글리프를 [data-selection-mode] 로 게이팅한다", () => {
-    expect(menuCss).toMatch(
-      /\.react-aria-MenuItem\[data-selection-mode="multiple"\]\[data-selected\]::before \{ content: "✓"/,
+    expect(menuItemCss).toMatch(
+      /\.react-aria-MenuItem\.react-aria-MenuItem\[data-selection-mode="multiple"\]:where\(\[data-selected\]\)::before \{ content: "✓"/,
     );
-    expect(menuCss).toMatch(
-      /\.react-aria-MenuItem\[data-selection-mode="single"\]\[data-selected\]::before \{ content: "●"/,
+    expect(menuItemCss).toMatch(
+      /\.react-aria-MenuItem\.react-aria-MenuItem\[data-selection-mode="single"\]:where\(\[data-selected\]\)::before \{ content: "●"/,
     );
     // selectionMode:"none" 은 두 값 어디에도 안 걸린다 — 선택 미사용 메뉴의 배치 보존.
     expect(menuCss).not.toMatch(/data-selection-mode="none"/);
     // 글리프는 장식 — 대체 텍스트를 비워 RAC 의 aria 상태와 이중 동작하지 않게 한다.
-    expect(menuCss).toMatch(/content: "✓" \/ ""/);
+    expect(menuItemCss).toMatch(/content: "✓" \/ ""/);
   });
 
   it("선택 전에도 열을 잡아 라벨이 밀리지 않는다", () => {

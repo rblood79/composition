@@ -47,15 +47,24 @@
   --icon-size: 20px;
 }
 
-.react-aria-Disclosure[data-focus-visible] {
+.react-aria-Disclosure.react-aria-Disclosure:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-Disclosure[data-disabled] {
+.react-aria-Disclosure.react-aria-Disclosure:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+.react-aria-Disclosure.react-aria-Disclosure:where([data-quiet]) {
+  border-top-width: 0;
+  border-bottom-width: 0;
+}
+
+.react-aria-Disclosure.react-aria-Disclosure:where([data-in-group]:not(:last-child)) {
+  border-bottom-width: 0;
 }
 
 /* ── Tier 2: Composite Delegation ── */
@@ -180,16 +189,6 @@
     font-size: inherit;
     line-height: inherit;
     color: inherit;
-  }
-
-
-  .react-aria-Disclosure[data-quiet="true"] {
-    border-top-width: 0;
-    border-bottom-width: 0;
-  }
-
-  .react-aria-Disclosure[data-in-group]:not(:last-child) {
-    border-bottom-width: 0;
   }
 
 

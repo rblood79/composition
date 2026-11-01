@@ -66,39 +66,43 @@
       }
     }
 
-    &[data-pressed] .indicator,
-    & .react-aria-SwitchButton[data-pressed] .indicator {
-      border-color: var(--border-hover);
-
-      &:before {
-        background: var(--bg-emphasis);
-        scale: 1.2 1;
-      }
-    }
-
-    &[data-selected] {
-      .indicator {
-        border-color: var(--switch-color);
-        background: var(--switch-color);
+    /* ADR-297 Phase 3g: the track's and thumb's states are the Switch rule's tree (generated
+       `partStateStyles`) on a catalog node — these are Builder widgets'. */
+    &:where(:not([data-catalog-id], [data-catalog-id] *)) {
+      &[data-pressed] .indicator,
+      & .react-aria-SwitchButton[data-pressed] .indicator {
+        border-color: var(--border-hover);
 
         &:before {
-          background: var(--switch-thumb-color);
-          translate: 100% 0;
-          transform-origin: right center;
+          background: var(--bg-emphasis);
+          scale: 1.2 1;
         }
       }
 
-      &[data-pressed] .indicator,
-      & .react-aria-SwitchButton[data-pressed] .indicator {
-        border-color: color-mix(in srgb, var(--switch-color) 75%, black);
-        background: color-mix(in srgb, var(--switch-color) 75%, black);
-      }
-    }
+      &[data-selected] {
+        .indicator {
+          border-color: var(--switch-color);
+          background: var(--switch-color);
 
-    &[data-focus-visible] .indicator,
-    & .react-aria-SwitchButton[data-focus-visible] .indicator {
-      outline: 2px solid var(--focus-ring);
-      outline-offset: 2px;
+          &:before {
+            background: var(--switch-thumb-color);
+            translate: 100% 0;
+            transform-origin: right center;
+          }
+        }
+
+        &[data-pressed] .indicator,
+        & .react-aria-SwitchButton[data-pressed] .indicator {
+          border-color: color-mix(in srgb, var(--switch-color) 75%, black);
+          background: color-mix(in srgb, var(--switch-color) 75%, black);
+        }
+      }
+
+      &[data-focus-visible] .indicator,
+      & .react-aria-SwitchButton[data-focus-visible] .indicator {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 2px;
+      }
     }
 
     /* 비활성 시각은 catalog structure.states.disabled의 opacity로만 적용한다.
@@ -190,7 +194,7 @@
       }
     }
 
-    &[data-selected] .indicator:before {
+    &[data-selected]:where(:not([data-catalog-id], [data-catalog-id] *)) .indicator:before {
       /* 끝 여백이 상하와 같으면 이동량은 트랙 너비 - 트랙 높이. */
       translate: calc(48px + 4px - 30px) 0;
     }

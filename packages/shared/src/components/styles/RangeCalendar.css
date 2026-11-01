@@ -10,7 +10,9 @@
    * 띠는 td 의 ::before — 셀 (원) 의 배경 · press scale 과 다른 층이라 원이 띠 위에 그려진다.
    * Canvas 는 달력 선택을 그리지 않는다 (선택은 Preview 실행 상태).
    */
-  .react-aria-RangeCalendar {
+  /* ADR-297 Phase 3g: a catalog RangeCalendar's band · selected · focus cells are the RangeCalendar rule's
+     tree (generated `partStateStyles`) — the scoped blocks below are Builder widgets'. */
+  .react-aria-RangeCalendar:where(:not([data-catalog-id], [data-catalog-id] *)) {
     .react-aria-CalendarGridBody
       td:has(> .react-aria-CalendarCell[data-selected]):not(
         :has(> [data-selection-start][data-selection-end])
@@ -68,7 +70,11 @@
         background: transparent;
         color: var(--fg);
       }
+    }
+  }
 
+  .react-aria-RangeCalendar {
+    .react-aria-CalendarCell {
       /* 시작 · 종료일: 꽉 찬 accent 원 */
       &[data-selection-start],
       &[data-selection-end] {
@@ -85,7 +91,11 @@
           color: var(--fg-on-accent);
         }
       }
+    }
+  }
 
+  .react-aria-RangeCalendar:where(:not([data-catalog-id], [data-catalog-id] *)) {
+    .react-aria-CalendarCell {
       /* focus ring — 중간 날짜는 원 안쪽, 시작 · 종료일은 원 바깥 (S2 outlineOffset -2 · 2) */
       &[data-focus-visible] {
         outline: 2px solid var(--focus-ring);

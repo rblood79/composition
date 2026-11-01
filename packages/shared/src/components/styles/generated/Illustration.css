@@ -66,16 +66,6 @@
   --icon-size: calc(var(--catalog-token-size-unit) * 160 / 1);
 }
 
-.react-aria-Illustration[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Illustration[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
 
 @media (forced-colors: active) {
   .react-aria-Illustration {

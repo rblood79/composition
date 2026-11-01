@@ -232,16 +232,6 @@
   line-height: var(--catalog-token-text-lg--line-height);
 }
 
-.react-aria-MeterValue[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-MeterValue[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
 
 @media (forced-colors: active) {
   .react-aria-MeterValue {

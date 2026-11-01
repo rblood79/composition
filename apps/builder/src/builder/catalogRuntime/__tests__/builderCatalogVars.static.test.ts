@@ -87,10 +87,35 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
     //   비율이 빌더 값에서 295 전 px 와 같으면 같다 (ADR-295 Phase 3).
     //   (3c-3b: 크기별 실효 값 — 지역 변수를 크기 블록 값으로 풀고 단축형을 네 변으로 펼쳐, 이름을 바꾼 선언 · 변수도
     //   빌더가 받는 값으로 비교한다.)
-    const before = normalizedEntries(
-      effectiveEntries(baseline.entries as Record<string, string>),
-    );
-    const after = normalizedEntries(effectiveEntries(now.entries));
+    // (ADR-297 Phase 3: the generated state blocks moved inside `:where()` — the same condition, the
+    //  component class's specificity. The gate compares values, so the key drops the wrapper.)
+    //  The state layer's blocks carry the class twice (0-2-0 — `stateStylesCssFor`), so the key drops the
+    //  repeat too, and a list's spacing (`:is([a], [b])` · `:is([a],[b])`).)
+    const unwhere = (key: string) => {
+      let out = key.replace(/,\s+/g, ",");
+      for (;;) {
+        const at = out.indexOf(":where(");
+        if (at < 0) break;
+        let depth = 0;
+        let end = at + 6;
+        for (; end < out.length; end += 1) {
+          if (out[end] === "(") depth += 1;
+          else if (out[end] === ")" && --depth === 0) break;
+        }
+        out = out.slice(0, at) + out.slice(at + 7, end) + out.slice(end + 1);
+      }
+      return out
+        .replace(/(\.react-aria-[\w-]+)\1/g, "$1")
+        .replace(/(:is\(\.react-aria-[^)]*\))\1/g, "$1");
+    };
+    const unwhered = (entries: Record<string, string>) =>
+      Object.fromEntries(
+        Object.entries(normalizedEntries(effectiveEntries(entries))).map(
+          ([key, value]) => [unwhere(key), value],
+        ),
+      );
+    const before = unwhered(baseline.entries as Record<string, string>);
+    const after = unwhered(now.entries);
     // (ADR-297 Phase 3: ToggleButton's `--button-*` paint variables left the generated sheet — the
     //  catalog paint is the tree's `:where` blocks — and live on in `ToggleButton.css` for the Builder's
     //  own buttons under the same selectors; `adr297DomPaintParity.browser.test.ts` (Builder bundle)

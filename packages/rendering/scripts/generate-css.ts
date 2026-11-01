@@ -33,6 +33,7 @@ import {
   type CatalogFillStyleValues,
   type ComponentRuleVariant,
 } from "../../shared/src/index";
+import type { ComponentRuleStateStyles } from "../../shared/src/types/catalog-style.types";
 import { CATALOG_FIELD_LABEL_PART_ALIASES } from "../../shared/src/catalog/document/contextualHelp";
 import { CATALOG_CONTEXTUAL_HELP_FIELDS } from "../../shared/src/domain/componentTraits";
 import { createThemeDefinition } from "../../shared/src/theme/themesCollection";
@@ -42,7 +43,10 @@ import {
   isConditionNode,
   type ConditionalValue,
 } from "../../shared/src/catalog/rule/conditionTree";
-import { tokenToCSSVar } from "../src/renderers/utils/tokenResolver";
+import {
+  resolveFocusRingToken,
+  tokenToCSSVar,
+} from "../src/renderers/utils/tokenResolver";
 import type { TokenRef } from "../src/types";
 import { DEFAULT_BASE_TYPOGRAPHY } from "../../shared/src/catalog/runtime/fontDefaults";
 import { resolveThemeSnapshot } from "../../shared/src/catalog/runtime/resolveThemeSnapshot";
@@ -208,7 +212,8 @@ function withoutConditions<T>(
         key === "variant" ||
         key === "size" ||
         key === "fillStyle" ||
-        key === "staticColor"
+        key === "staticColor" ||
+        key === "fieldButton"
           ? Object.fromEntries(
               Object.entries(child as Record<string, unknown>).map(
                 ([value, branch]) => [
@@ -268,8 +273,21 @@ export function variantPaintCssFor(specName: string): string[] | undefined {
       });
     }
   }
-  // (Blocks are grouped by selector when that keeps every property's own block order — the cascade
-  //  only orders blocks that set the same property. Otherwise each block stands alone, in order.)
+  return groupedCss(blocks);
+}
+
+interface CssBlock {
+  readonly selector: string;
+  readonly media?: string;
+  readonly line: string;
+}
+
+/**
+ * Compiled blocks → sheet lines. Blocks are grouped by selector when that keeps every property's own
+ * block order (the cascade only orders blocks that set the same property); otherwise each block stands
+ * alone, in order.
+ */
+function groupedCss(blocks: readonly CssBlock[]): string[] {
   const groups = new Map<
     string,
     { selector: string; media?: string; lines: string[] }
@@ -310,6 +328,117 @@ export function variantPaintCssFor(specName: string): string[] | undefined {
   return lines;
 }
 
+const kebab = (property: string) =>
+  property.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+
+/** A state-style leaf as CSS declarations — `focusRing` is a ring token (outline + offset). */
+function stateStyleDeclarations(
+  property: string,
+  value: string | number,
+): string[] {
+  if (property === "focusRing") {
+    if (value === "none") return ["outline: none;"];
+    const ring = resolveFocusRingToken(value as TokenRef);
+    return [`outline: ${ring.outline};`, `outline-offset: ${ring.outlineOffset};`];
+  }
+  const css =
+    typeof value === "string" && value.startsWith("{shadow.")
+      ? `var(--shadow-${value.slice(8, -1)})`
+      : // (a length ref — `{length.…}` — is resolved by the sheet's length pass, like a rootSelectors string)
+        typeof value === "string" &&
+          value.startsWith("{") &&
+          !value.startsWith("{length.")
+        ? tokenToCSSVar(value as TokenRef)
+        : String(value);
+  return [`${kebab(property)}: ${css};`];
+}
+
+/**
+ * ADR-297 Phase 3b — a rule's root state styles (`structure.stateStyles`) as CSS: each property's
+ * condition tree compiled by `compileConditionTree` (conditions inside `:where()` — every block has
+ * the same specificity, the tree order is the cascade). `undefined` = the rule has no tree.
+ */
+export function stateStylesCssFor(specName: string): string[] | undefined {
+  const table = getComponentRulesTable();
+  // (a lowercase rule key — `body` — is emitted under its PascalCase spec name)
+  const rule =
+    table[specName] ?? table[specName[0].toLowerCase() + specName.slice(1)];
+  const trees = (
+    rule?.structure as { stateStyles?: ComponentRuleStateStyles } | undefined
+  )?.stateStyles;
+  const parts = rule?.partStateStyles;
+  if (!trees && !parts) return undefined;
+  // (The state layer sits on the size blocks — `.react-aria-X[data-size]`, 0-2-0 — and overrides their
+  //  values (a quiet Input's corner, a field Button's radius): its blocks carry the class twice, so
+  //  every one is 0-2-0 (the old `.react-aria-X[data-disabled]` height) and the tree order alone
+  //  orders them. The conditions stay inside `:where()`.)
+  const root = `.react-aria-${specName}.react-aria-${specName}`;
+  const blocks: CssBlock[] = [];
+  for (const [property, tree] of Object.entries(trees ?? {}))
+    for (const block of compileConditionTree(tree, root, property))
+      for (const line of stateStyleDeclarations(property, block.value))
+        blocks.push({
+          selector: block.selector,
+          ...(block.media ? { media: block.media } : {}),
+          line,
+        });
+  // (ADR-297 Phase 3g — the parts: the template's `%` takes the conditions, `&` the doubled root.
+  //  Each part stands in its own run — a part's blocks never reorder another target's.)
+  const lines: string[] = [];
+  for (const [template, partTrees] of Object.entries(parts ?? {})) {
+    const anchored = template.includes("%")
+      ? template
+      : template.replace("&", "&%");
+    const partBlocks: CssBlock[] = [];
+    for (const [property, tree] of Object.entries(partTrees))
+      for (const block of compileConditionTree(tree, "\u0000", property)) {
+        if (!block.selector.startsWith("\u0000"))
+          throw new Error(`PART_STATE_DOM_ONLY:${specName}:${template}`);
+        const selector = anchored
+          .replace("%", block.selector.slice(1))
+          .replaceAll("&", root);
+        for (const line of stateStyleDeclarations(property, block.value))
+          partBlocks.push({
+            selector,
+            ...(block.media ? { media: block.media } : {}),
+            line,
+          });
+      }
+    lines.push(...groupedCss(partBlocks));
+  }
+  // (the state blocks close the size section — no trailing blank line before the next section)
+  lines.unshift(...groupedCss(blocks));
+  while (lines.at(-1) === "") lines.pop();
+  return lines;
+}
+
+/**
+ * ADR-297 Phase 3g — a rule without `structure` (no generated sheet: its DOM visuals are a manual sheet, its
+ * catalog values inline — `domBinding.runtime.ts` `noSheet`) still gets its `partStateStyles` as a sheet of
+ * state blocks only.
+ */
+export function stateOnlySheets(): { name: string; css: string }[] {
+  const out: { name: string; css: string }[] = [];
+  for (const [key, rule] of Object.entries(getComponentRulesTable())) {
+    if (rule.structure || !rule.partStateStyles) continue;
+    const name = key[0].toUpperCase() + key.slice(1);
+    const css = generateCSS(
+      {
+        name,
+        skipCSSGeneration: true,
+        variants: {},
+        sizes: {},
+        render: { shapes: () => [] },
+      } as unknown as ComponentSpec<unknown>,
+      undefined,
+      undefined,
+      stateStylesCssFor(name),
+    );
+    if (css !== null) out.push({ name, css });
+  }
+  return out;
+}
+
 /**
  * 모든 스펙에서 CSS 파일 생성. Node 전용 — 브라우저 번들(`CSSGenerator`)에 두지 않는다.
  */
@@ -326,11 +455,19 @@ async function generateAllCSS(
     if ((await fs.readFile(statePath, "utf8")) !== stateCss)
       throw new Error("CATALOG_CSS_STALE:CatalogStates");
   } else await fs.writeFile(statePath, stateCss, "utf8");
+  for (const { name, css } of stateOnlySheets()) {
+    const filePath = path.join(outputDir, `${name}.css`);
+    if (process.argv.includes("--check")) {
+      if ((await fs.readFile(filePath, "utf8")) !== css)
+        throw new Error(`CATALOG_CSS_STALE:${name}`);
+    } else await fs.writeFile(filePath, css, "utf-8");
+  }
   for (const spec of specs) {
     const css = generateCSS(
       spec,
       variantSource(spec.name),
       variantPaintCssFor(spec.name),
+      stateStylesCssFor(spec.name),
     );
     if (css === null) {
       console.log(`  ⏭ Skipped: ${spec.name} (skipCSSGeneration)`);
@@ -596,14 +733,6 @@ export function buildVirtualSpecs(): ComponentSpec<unknown>[] {
       defaultSize: rule.defaultSize ?? "M",
       variants,
       sizes,
-      // states: 기본 hover/pressed/disabled(opacity)/focusVisible. meta.states 설정 시 override
-      //   (ProgressBarTrack 처럼 disabled 에 pointerEvents:none 추가 필요한 군).
-      states: (meta.states ?? {
-        hover: {},
-        pressed: {},
-        disabled: { opacity: 0.38 },
-        focusVisible: {},
-      }) as ComponentSpec<unknown>["states"],
       // cssEmitMode: Button/ToggleButton 의 button-base(변수 + color-mix 파생). 미설정 시 direct.
       ...(meta.cssEmitMode ? { cssEmitMode: meta.cssEmitMode } : {}),
       ...(meta.defaultBorder === "color" ? { defaultBorderColorOnly: true } : {}),

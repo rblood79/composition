@@ -50,17 +50,20 @@ describe("ADR-223 G4 — archetype 미지정 cohort ratchet", () => {
     expect(stale).toEqual([]);
   });
 
-  it("Card · Tab 의 DOM interaction 은 rootSelectors['&'] 채널에 있다 (containerStyles 가장 금지)", () => {
+  it("Card · Tab 의 DOM interaction 은 rootSelectors['&'] · 상태 트리 채널에 있다 (containerStyles 가장 금지)", () => {
     type RootSelectors = Record<string, { styles?: Record<string, string> }>;
     const card = COMPONENT_RULES_TABLE.Card.structure?.composition
       ?.rootSelectors as RootSelectors | undefined;
     const tab = COMPONENT_RULES_TABLE.Tab.structure?.composition
       ?.rootSelectors as RootSelectors | undefined;
-    expect(card?.["&"]?.styles).toMatchObject({ cursor: "pointer" });
-    expect(tab?.["&"]?.styles).toMatchObject({
-      cursor: "pointer",
-      "user-select": "none",
-    });
+    // (ADR-297 Phase 3b: the cursor is the state tree's — pointer at rest, not-allowed when disabled)
+    for (const key of ["Card", "Tab"])
+      expect(
+        COMPONENT_RULES_TABLE[key].structure?.stateStyles?.cursor,
+        key,
+      ).toEqual({ default: "pointer", isDisabled: "not-allowed" });
+    expect(card?.["&"]?.styles).toMatchObject({ "text-decoration": "none" });
+    expect(tab?.["&"]?.styles).toMatchObject({ "user-select": "none" });
     for (const key of ["Card", "Tab", "Pagination", "Toolbar"]) {
       const cs = COMPONENT_RULES_TABLE[key].structure?.containerStyles as
         Record<string, unknown> | undefined;

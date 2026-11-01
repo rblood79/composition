@@ -57,12 +57,12 @@
   --icon-size: var(--catalog-token-select-icon-size-XL, var(--catalog-token-size-icon-XL));
 }
 
-.react-aria-Select[data-focus-visible] {
+.react-aria-Select.react-aria-Select:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-Select[data-disabled] {
+.react-aria-Select.react-aria-Select:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;

@@ -62,12 +62,12 @@
   gap: 16px;
 }
 
-.react-aria-Nav[data-focus-visible] {
+.react-aria-Nav.react-aria-Nav:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-Nav[data-disabled] {
+.react-aria-Nav.react-aria-Nav:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;

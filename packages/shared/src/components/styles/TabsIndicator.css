@@ -23,7 +23,8 @@
   }
 
   /* selected 상태 — 색상만 변경 (font-weight는 spec sizes에서 500 고정) */
-  .react-aria-Tab[data-selected] {
+  /* (ADR-297 Phase 3g: a catalog Tab's selected color is the Tab rule's paint tree — Builder tabs only) */
+  .react-aria-Tab:where(:not([data-catalog-id], [data-catalog-id] *))[data-selected] {
     color: var(--fg);
   }
 
@@ -50,7 +51,7 @@
     transition: background 200ms;
   }
 
-  .react-aria-Tab[data-orientation="horizontal"][data-selected]::before {
+  .react-aria-Tab:where(:not([data-catalog-id], [data-catalog-id] *))[data-orientation="horizontal"][data-selected]::before {
     background: var(--tab-accent);
   }
 
@@ -65,7 +66,7 @@
     transition: background 200ms;
   }
 
-  .react-aria-Tab[data-orientation="vertical"][data-selected]::before {
+  .react-aria-Tab:where(:not([data-catalog-id], [data-catalog-id] *))[data-orientation="vertical"][data-selected]::before {
     background: var(--tab-accent);
   }
 

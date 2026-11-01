@@ -21,6 +21,9 @@ export const CONDITIONS = [
   "isQuiet",
   "isInvalid",
   "touch",
+  // ADR-297 Phase 3c — 그룹 안의 마지막이 아닌 항목 (S2 `isInGroup` 의 구분선 — DisclosureGroup). Canvas 도 노드
+  //   트리에서 안다 (`catalogDisclosureBorders`).
+  "inGroup",
 ] as const;
 export type Condition = (typeof CONDITIONS)[number];
 
@@ -35,18 +38,31 @@ export const DOM_CONDITIONS = [
   "isEmpty",
   "inPopover",
   "forcedColors",
+  // ADR-297 Phase 3c (사용자 결정 「어휘 확장」 2026-11-01) — `&` 대상 rootSelectors 의 어휘 밖 상태:
+  "isAutofilled", // 브라우저 자동 완성 (`:-webkit-autofill` — Input)
+  "isDialogTrigger", // DialogTrigger 가 연 Modal (`[data-dialog-trigger]`)
+  "isCatalogNode", // 문서 노드 — Builder 자체 위젯이 아님 (`[data-catalog-id]` — ListBox 팝오버)
+  "isLink", // 링크로 그려진 항목 (`[href]` — RAC MenuItem · Tab 의 `<a>`)
+  // ADR-297 Phase 3g — 수동 sheet 의 부품 상태:
+  "isIndeterminate", // RAC Checkbox 의 반쯤 선택 (`[data-indeterminate]` — Canvas 는 selected 로 그린다)
+  "isToday", // RAC CalendarCell 의 오늘 (`[data-today]`)
+  "isSelectionStart", // RAC RangeCalendar 셀의 기간 시작 · 끝 (`[data-selection-start]` · `-end`)
+  "isSelectionEnd",
 ] as const;
 export type DomCondition = (typeof DOM_CONDITIONS)[number];
 
 /**
  * 값으로 가지를 고르는 조건 — `{ variant: { accent: …, primary: … } }`. `staticColor` (ADR-297 Phase 3) 는 S2
  * `staticColor` 의 고정 흑백 (`black` · `white` — `auto` 는 가지가 없다): 유색 바탕 위 칠이 테마 대신 그 색을 쓴다.
+ * `fieldButton` (Phase 3c) 은 field 가 소유한 Button 의 크기 (파생 — `presence.ts` `catalogFieldButtonSize`, DOM
+ * `data-field-button`): S2 field 버튼은 Button 이 아니라 자기 크기의 모서리를 쓴다.
  */
 export const VALUE_CONDITIONS = [
   "variant",
   "size",
   "fillStyle",
   "staticColor",
+  "fieldButton",
 ] as const;
 export type ValueCondition = (typeof VALUE_CONDITIONS)[number];
 
@@ -186,12 +202,23 @@ const FLAG_SELECTORS: Readonly<Record<Condition | DomCondition, string>> = {
   isEmpty: "[data-empty]",
   inPopover: ":is(.react-aria-Popover *)",
   forcedColors: "",
+  isAutofilled:
+    ":is(:-webkit-autofill, :-webkit-autofill:hover, :-webkit-autofill:focus)",
+  inGroup: "[data-in-group]:not(:last-child)",
+  isDialogTrigger: "[data-dialog-trigger]",
+  isCatalogNode: "[data-catalog-id]",
+  isLink: "[href]",
+  isIndeterminate: "[data-indeterminate]",
+  isToday: "[data-today]",
+  isSelectionStart: "[data-selection-start]",
+  isSelectionEnd: "[data-selection-end]",
 };
 const VALUE_ATTRIBUTES: Readonly<Record<ValueCondition, string>> = {
   variant: "data-variant",
   size: "data-size",
   fillStyle: "data-fill-style",
   staticColor: "data-static-color",
+  fieldButton: "data-field-button",
 };
 
 export interface CompiledBlock<T> {

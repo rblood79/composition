@@ -20,7 +20,6 @@ import type { ShadowTokenRef, TokenRef } from "../types/token.types";
 import {
   tokenToCSSVar,
   tokenToCSSLength,
-  resolveFocusRingToken,
   borderWidthToCSS,
 } from "./utils/tokenResolver";
 import { s2ControlPaddingY } from "./utils/controlPadding";
@@ -268,9 +267,30 @@ export function generateCSS<Props>(
    * `variantPaintCssFor`). When given it replaces the legacy per-variant blocks below.
    */
   _variantPaintCss?: readonly string[],
+  /**
+   * ADR-297 Phase 3b — the root's state styles compiled from `structure.stateStyles` (`generate-css.ts`
+   * `stateStylesCssFor`): focus ring · disabled dim · pressed scale … in the tree order.
+   */
+  _stateStylesCss?: readonly string[],
 ): string | null {
-  // Container/Composite 컴포넌트: 수동 CSS가 구조 담당, Spec은 Skia용.
-  if (spec.skipCSSGeneration) return null;
+  // Container/Composite 컴포넌트: 수동 CSS가 구조 담당, Spec은 Skia용 — 상태 트리가 있으면 그 블록만
+  //   (ADR-297 Phase 3g: 수동 sheet 의 selected · focus 규칙을 rule 트리로 옮긴 자리).
+  if (spec.skipCSSGeneration) {
+    if (!_stateStylesCss?.length) return null;
+    return [
+      `/* ============================================================`,
+      ` * AUTO-GENERATED from catalog ${spec.name} — DO NOT EDIT MANUALLY`,
+      ` * Source: packages/shared/src/catalog/generated/componentRulesTable.ts`,
+      ` * State styles only — the rest of its DOM visuals is a manual sheet (skipCSSGeneration)`,
+      ` * ============================================================ */`,
+      "",
+      "@layer components {",
+      "",
+      ..._stateStylesCss,
+      "",
+      "} /* @layer components */",
+    ].join("\n");
+  }
 
   const archetype = spec.archetype;
 
@@ -645,8 +665,9 @@ export function generateCSS<Props>(
     lines.push("");
   }
 
-  // 상태 스타일 (ADR-258: rootSelectors 가 상태 시각의 정본이면 기본 블록 없음)
-  if (!spec.skipStateStyles) lines.push(...generateStateStyles(spec));
+  // 상태 스타일 — ADR-297 Phase 3b: rule 의 상태 트리를 compile 한 블록 (트리가 없는 rule 은 상태 블록 없음 —
+  //   ADR-258 skipStateStyles 의 rule 은 rootSelectors 가 정본).
+  if (_stateStylesCss) lines.push(..._stateStylesCss);
 
   // ─── Phase 3a: Tier 2 Composite CSS (CompositionSpec) ───
   if (spec.composition) {
@@ -1306,132 +1327,6 @@ function resolveBoxShadow(
     return `var(--shadow-${name})`;
   }
   return value;
-}
-
-function generateStateStyles<Props>(spec: ComponentSpec<Props>): string[] {
-  const lines: string[] = [];
-  const states = spec.states;
-
-  // hover
-  if (states?.hover) {
-    lines.push(`.react-aria-${spec.name}[data-hovered] {`);
-    // ADR-070: hover 상태 색상 emit (optional)
-    if (states.hover.background) {
-      lines.push(`  background: ${tokenToCSSVar(states.hover.background)};`);
-    }
-    if (states.hover.text) {
-      lines.push(`  color: ${tokenToCSSVar(states.hover.text)};`);
-    }
-    if (states.hover.border) {
-      lines.push(`  border-color: ${tokenToCSSVar(states.hover.border)};`);
-    }
-    if (states.hover.boxShadow) {
-      lines.push(`  box-shadow: ${resolveBoxShadow(states.hover.boxShadow)};`);
-    }
-    if (states.hover.transform) {
-      lines.push(`  transform: ${states.hover.transform};`);
-    }
-    if (states.hover.scale !== undefined) {
-      lines.push(`  transform: scale(${states.hover.scale});`);
-    }
-    if (states.hover.opacity !== undefined) {
-      lines.push(`  opacity: ${states.hover.opacity};`);
-    }
-    lines.push("}");
-    lines.push("");
-  }
-
-  // focused
-  if (states?.focused) {
-    lines.push(`.react-aria-${spec.name}[data-focused] {`);
-    if (states.focused.boxShadow) {
-      lines.push(
-        `  box-shadow: ${resolveBoxShadow(states.focused.boxShadow)};`,
-      );
-    }
-    if (states.focused.transform) {
-      lines.push(`  transform: ${states.focused.transform};`);
-    }
-    lines.push("}");
-    lines.push("");
-  }
-
-  // focusVisible (ADR-061: focusRing TokenRef 기반. 미설정 시 default ring)
-  lines.push(`.react-aria-${spec.name}[data-focus-visible] {`);
-  {
-    const ringRef = states?.focusVisible?.focusRing ?? "{focus.ring.default}";
-    const resolved = resolveFocusRingToken(ringRef);
-    lines.push(`  outline: ${resolved.outline};`);
-    lines.push(`  outline-offset: ${resolved.outlineOffset};`);
-    if (states?.focusVisible?.boxShadow) {
-      lines.push(
-        `  box-shadow: ${resolveBoxShadow(states.focusVisible.boxShadow)};`,
-      );
-    }
-  }
-  lines.push("}");
-  lines.push("");
-
-  // pressed
-  if (states?.pressed) {
-    lines.push(`.react-aria-${spec.name}[data-pressed] {`);
-    if (states.pressed.boxShadow) {
-      lines.push(
-        `  box-shadow: ${resolveBoxShadow(states.pressed.boxShadow)};`,
-      );
-    }
-    if (states.pressed.transform) {
-      lines.push(`  transform: ${states.pressed.transform};`);
-    }
-    if (states.pressed.scale !== undefined) {
-      lines.push(`  transform: scale(${states.pressed.scale});`);
-    }
-    lines.push("}");
-    lines.push("");
-  }
-
-  // disabled
-  lines.push(`.react-aria-${spec.name}[data-disabled] {`);
-  if (states?.disabled) {
-    lines.push(`  opacity: ${states.disabled.opacity ?? 0.38};`);
-    lines.push(`  cursor: ${states.disabled.cursor ?? "not-allowed"};`);
-    lines.push(`  pointer-events: ${states.disabled.pointerEvents ?? "none"};`);
-    // ADR-070: disabled 상태 색상 emit (optional)
-    if (states.disabled.background) {
-      lines.push(`  background: ${tokenToCSSVar(states.disabled.background)};`);
-    }
-    if (states.disabled.text) {
-      lines.push(`  color: ${tokenToCSSVar(states.disabled.text)};`);
-    }
-    if (states.disabled.border) {
-      lines.push(`  border-color: ${tokenToCSSVar(states.disabled.border)};`);
-    }
-  } else {
-    lines.push("  opacity: 0.38;");
-    lines.push("  cursor: not-allowed;");
-    lines.push("  pointer-events: none;");
-  }
-  lines.push("}");
-
-  return dropEmptyBlocks(lines);
-}
-
-/**
- * 선언이 없는 `selector {\n}` 블록을 지운다 — 기본 states (`hover: {}` / `pressed: {}`) 가
- * 빈 `[data-hovered] {}` 를 내던 것. 선언 0 이라 computed style 불변 (2026-09-18).
- */
-function dropEmptyBlocks(lines: string[]): string[] {
-  const out: string[] = [];
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (line.endsWith(" {") && lines[i + 1] === "}") {
-      i += 1;
-      if (lines[i + 1] === "") i += 1;
-      continue;
-    }
-    out.push(line);
-  }
-  return out;
 }
 
 // ─── Phase 3a: Tier 2 Composite CSS Generation ─────────────────────────────

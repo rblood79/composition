@@ -96,15 +96,32 @@
   background: var(--negative);
 }
 
-.react-aria-Toast[data-focus-visible] {
+.react-aria-Toast.react-aria-Toast:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-Toast[data-disabled] {
+.react-aria-Toast.react-aria-Toast:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+.react-aria-Toast.react-aria-Toast:where([data-variant="neutral"]) {
+  padding: 12px var(--catalog-token-size-toast-padding-end) 12px var(--catalog-token-size-toast-padding-start-icon);
+  padding-left: 16px;
+}
+
+.react-aria-Toast.react-aria-Toast:where([data-variant="info"]) {
+  padding: 12px var(--catalog-token-size-toast-padding-end) 12px var(--catalog-token-size-toast-padding-start-icon);
+}
+
+.react-aria-Toast.react-aria-Toast:where([data-variant="positive"]) {
+  padding: 12px var(--catalog-token-size-toast-padding-end) 12px var(--catalog-token-size-toast-padding-start-icon);
+}
+
+.react-aria-Toast.react-aria-Toast:where([data-variant="negative"]) {
+  padding: 12px var(--catalog-token-size-toast-padding-end) 12px var(--catalog-token-size-toast-padding-start-icon);
 }
 
 /* ── Tier 2: Composite Delegation ── */
@@ -116,14 +133,6 @@
   }
 }
 
-
-  .react-aria-Toast[data-variant] {
-    padding: 12px var(--catalog-token-size-toast-padding-end) 12px var(--catalog-token-size-toast-padding-start-icon);
-  }
-
-  .react-aria-Toast[data-variant="neutral"] {
-    padding-left: 16px;
-  }
 
   .react-aria-Toast > .toast-variant-icon {
     position: absolute;

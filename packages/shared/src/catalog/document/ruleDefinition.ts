@@ -20,6 +20,7 @@ import {
 } from "./rulePartRules";
 import { RULE_TYPE_PROP_CONTRACTS } from "./itemLinks";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
+import { evaluateConditionTree } from "../rule/conditionTree";
 import { paintAt } from "../rule/rulePaintTree";
 import type { InspectorFieldKind } from "../types";
 import type {
@@ -692,18 +693,18 @@ export function ruleTypeDefinition(
 }
 
 /**
- * The rule's disabled dimming (`structure.states.disabled.opacity` — the generated
- * `[data-disabled] { opacity }` and the old Canvas state effect): an accepted `isDisabled` or the
- * disabled resolution state sets it. Opacity 1 (Breadcrumbs) is no dimming.
+ * The rule's disabled dimming — its state tree's `opacity` under `isDisabled` (`structure.stateStyles`, ADR-297
+ * Phase 3b: the generated `:where([data-disabled]) { opacity }` compiles the same tree): an accepted
+ * `isDisabled` or the disabled resolution state sets it. Opacity 1 (Breadcrumbs) is no dimming.
  */
 export function disabledStateRules(
   rule: Readonly<ComponentRule>,
   accepts: Readonly<Record<string, ValueType>>,
 ): ConditionalRule[] {
-  const raw = (
-    rule.structure as
-      { states?: { disabled?: { opacity?: unknown } } } | undefined
-  )?.states?.disabled?.opacity;
+  const raw = evaluateConditionTree(
+    rule.structure?.stateStyles?.opacity,
+    { isDisabled: true },
+  );
   const opacity = typeof raw === "string" ? Number.parseFloat(raw) : raw;
   if (typeof opacity !== "number" || !Number.isFinite(opacity) || opacity >= 1)
     return [];

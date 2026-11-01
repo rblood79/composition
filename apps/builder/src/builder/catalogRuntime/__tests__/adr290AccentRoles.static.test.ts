@@ -45,10 +45,10 @@ const CLASSIFICATION: Record<string, string> = {
   "Switch.variants.emphasized.paint.backgroundColor.isSelected.default":
     "accent",
   "Row.variants.default.paint.backgroundColor.isSelected.default": "accent",
-  "Tag.variants.selectedEmphasized.paint.backgroundColor.default": "accent",
-  "Tag.variants.selectedEmphasized.paint.backgroundColor.isHovered": "accent",
-  "Tag.variants.selectedEmphasized.paint.backgroundColor.isPressed": "accent",
-  "Tag.variants.selectedEmphasized.paint.borderColor.default": "accent",
+  // (ADR-297 Phase 3d: the emphasized selection is the default tree's `isSelected.isEmphasized` branch)
+  "Tag.variants.default.paint.backgroundColor.isSelected.isEmphasized":
+    "accent",
+  "Tag.variants.default.paint.borderColor.isSelected.isEmphasized": "accent",
   "ToggleButton.variants.default.paint.backgroundColor.isSelected.isEmphasized":
     "accent",
   "ToggleButton.variants.default.paint.borderColor.isSelected.isEmphasized":
@@ -65,7 +65,7 @@ const CLASSIFICATION: Record<string, string> = {
   "Card.variants.tertiary.paint.borderColor.isSelected.default":
     "accent-content",
   "Card.variants.quiet.paint.borderColor.isSelected.default": "accent-content",
-  "ColorSwatch.variants.selected.paint.borderColor.default": "accent-content",
+  "ColorSwatch.variants.default.paint.borderColor.isSelected": "accent-content",
   "DateInput.variants.accent.paint.borderColor.default": "accent-content",
   "DateInput.variants.accent.paint.borderColor.isHovered":
     "accent-content-hover",

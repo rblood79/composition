@@ -1,6 +1,8 @@
 @layer components {
   /* ========== CalendarCell State Styles (Generated CSS에 미포함) ========== */
-  .react-aria-Calendar {
+  /* ADR-297 Phase 3g: a catalog Calendar's cells take these from the Calendar rule's tree (generated
+     `partStateStyles`) — these are Builder widgets'. */
+  .react-aria-Calendar:where(:not([data-catalog-id], [data-catalog-id] *)) {
     .react-aria-CalendarCell {
       &[data-selected] {
         background: var(--accent);

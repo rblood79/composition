@@ -35,7 +35,8 @@ const GROUP = "project:node:tags" as NodeId;
 const DEFINITION = "lib:definition:origin-component-taggroup";
 const SHEET = resolve(
   dirname(fileURLToPath(import.meta.url)),
-  "../../../../../../packages/shared/src/components/styles/TagGroup.css",
+  // (ADR-297 Phase 3g — a catalog Tag's selected pair is the TagGroup rule's tree: the generated state sheet)
+  "../../../../../../packages/shared/src/components/styles/generated/TagGroup.css",
 );
 const set = <T>(value: T) => ({ kind: "set" as const, value });
 
@@ -160,10 +161,10 @@ describe("S2 TagGroup isEmphasized", () => {
   it("the sheet paints the same pair: selected --fg · emphasized selected --accent", () => {
     const sheet = readFileSync(SHEET, "utf8");
     expect(sheet).toMatch(
-      /&\[data-selected\] \{\s*--tag-color: var\(--fg\);\s*--tag-text: var\(--bg\);\s*--tag-border: var\(--fg\);/,
+      /\.react-aria-TagGroup\.react-aria-TagGroup \.react-aria-Tag:where\(\[data-selected\]\) \{\s*--tag-color: var\(--fg\);\s*--tag-text: var\(--bg\);\s*--tag-border: var\(--fg\);/,
     );
     expect(sheet).toMatch(
-      /\.react-aria-TagGroup\[data-emphasized\] \.react-aria-Tag\[data-selected\] \{\s*--tag-color: var\(--accent\);\s*--tag-text: var\(--fg-on-accent\);\s*--tag-border: var\(--accent\);/,
+      /\.react-aria-TagGroup\.react-aria-TagGroup\[data-emphasized\] \.react-aria-Tag:where\(\[data-selected\]\) \{\s*--tag-color: var\(--accent\);\s*--tag-text: var\(--fg-on-accent\);\s*--tag-border: var\(--accent\);/,
     );
   });
 });

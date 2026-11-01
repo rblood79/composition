@@ -43,7 +43,9 @@
       border-radius: 0;
     }
 
-    &[data-focus-visible] {
+    /* ADR-297 Phase 3g: a catalog list's · row's focus and drop target are the GridList · GridListItem rules'
+       trees (generated) — the scoped blocks are Builder widgets'. */
+    &:where(:not([data-catalog-id], [data-catalog-id] *))[data-focus-visible] {
       outline: 2px solid var(--focus-ring);
     }
 
@@ -55,7 +57,7 @@
       font-style: italic;
     }
 
-    &[data-drop-target] {
+    &:where(:not([data-catalog-id], [data-catalog-id] *))[data-drop-target] {
       outline: 2px solid var(--accent);
       outline-offset: -1px;
       background: var(--accent-subtle);
@@ -118,10 +120,14 @@
     box-sizing: border-box;
     position: relative;
     outline: none;
-    cursor: default;
     -webkit-tap-highlight-color: transparent;
 
-    &[data-focus-visible] {
+    /* ADR-297 Phase 3b: a catalog row's cursor is the GridListItem rule's state tree (generated). */
+    &:where(:not([data-catalog-id])) {
+      cursor: default;
+    }
+
+    &:where(:not([data-catalog-id], [data-catalog-id] *))[data-focus-visible] {
       outline: 2px solid var(--focus-ring);
       outline-offset: -2px;
     }
@@ -192,7 +198,7 @@
       justify-content: center;
       color: var(--fg);
 
-      &[data-focus-visible] {
+      &:where(:not([data-catalog-id], [data-catalog-id] *))[data-focus-visible] {
         border-radius: 4px;
         outline: 2px solid var(--focus-ring);
       }

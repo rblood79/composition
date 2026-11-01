@@ -73,15 +73,20 @@
   --icon-size: 40px;
 }
 
-.react-aria-DropZone[data-focus-visible] {
+.react-aria-DropZone.react-aria-DropZone:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-DropZone[data-disabled] {
+.react-aria-DropZone.react-aria-DropZone:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+.react-aria-DropZone.react-aria-DropZone:where([data-drop-target]) {
+  background: var(--bg-inset);
+  color: var(--accent-content);
 }
 
 /* ── Tier 2: Composite Delegation ── */
@@ -118,11 +123,6 @@
 
   .react-aria-DropZone {
     position: relative;
-  }
-
-  .react-aria-DropZone[data-drop-target] {
-    background: var(--bg-inset);
-    color: var(--accent-content);
   }
 
   .react-aria-DropZone .dropzone-replace {
