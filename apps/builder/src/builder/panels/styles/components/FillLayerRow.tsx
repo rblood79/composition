@@ -38,6 +38,11 @@ import { useSemanticLabel } from "../../../../i18n";
 
 import "./FillLayerRow.css";
 import { useResolvedAssetUrl } from "../../../../lib/assets/useResolvedAssetUrl";
+import { useThemeConfigDarkMode } from "../../../../stores/themeConfigStore";
+import {
+  panelColorTokenName,
+  panelFillColorHex,
+} from "../../../catalogRuntime/panelTokens";
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
 
@@ -94,16 +99,35 @@ export const FillLayerRow = memo(function FillLayerRow({
     fill.type === FillType.AngularGradient;
   const isMeshGradient = fill.type === FillType.MeshGradient;
 
-  const colorValue = isColor ? (fill as ColorFillItem).color : "#000000FF";
-  const displayLabel = getFillDisplayLabel(fill);
+  // ADR-298 Phase 3 — a theme color token shows its value in the active mode and its name (a chip).
+  const mode = useThemeConfigDarkMode() === "dark" ? "dark" : "light";
+  const shownFill = useMemo(() => {
+    const hex = (color: string) => panelFillColorHex(color, mode);
+    const item = fill as FillItem & {
+      color?: string;
+      stops?: { color: string; position: number }[];
+    };
+    return {
+      ...item,
+      ...(isColor && item.color ? { color: hex(item.color) } : {}),
+      ...(item.stops
+        ? { stops: item.stops.map((stop) => ({ ...stop, color: hex(stop.color) })) }
+        : {}),
+    } as FillItem;
+  }, [fill, mode, isColor]);
+  const colorValue = isColor ? (shownFill as ColorFillItem).color : "#000000FF";
+  const tokenName = isColor
+    ? panelColorTokenName((fill as ColorFillItem).color)
+    : undefined;
+  const displayLabel = tokenName ?? getFillDisplayLabel(shownFill);
   // ADR-235 — image fill 의 `asset:` 이 준비되면 swatch 를 다시 만든다
   const imageUrl = useResolvedAssetUrl(
     fill.type === FillType.Image ? (fill as ImageFillItem).url : null,
   );
   const swatchStyle = useMemo(
-    () => buildFillSwatchStyle(fill),
+    () => buildFillSwatchStyle(shownFill),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- imageUrl 은 해석 준비 신호
-    [fill, imageUrl],
+    [shownFill, imageUrl],
   );
 
   const handleToggle = useCallback(() => {
@@ -190,7 +214,9 @@ export const FillLayerRow = memo(function FillLayerRow({
                 style={swatchStyle}
               />
             )}
-            <span className="fill-layer-row__hex">{displayLabel}</span>
+            <span className="fill-layer-row__hex" data-token={tokenName}>
+              {displayLabel}
+            </span>
           </AriaButton>
           <Popover
             placement="bottom start"

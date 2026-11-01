@@ -20,6 +20,7 @@ import {
 } from "@composition/rendering";
 import { readThemeTokenValue } from "../document/themedToken";
 import { catalogAuthoredTokenRef } from "../resolution/resolver";
+import type { LayoutTokenField } from "../document/types";
 
 /** Token axes a node value can reference whose variable the DOM root declares (D2's scale). */
 const NODE_TOKEN_REF = /^\{(spacing|radius|border|color)\.[^{}]+\}$/;
@@ -140,5 +141,31 @@ export function catalogNodeTokenCss(
       if (color || Math.abs((px(current) ?? Number.NaN) - Number(value)) < 1e-3)
         inline[property] = css;
     }
+  }
+}
+
+const LAYOUT_TOKEN_KEYS: readonly LayoutTokenField[] = [
+  "insetLeft",
+  "insetTop",
+  "insetRight",
+  "insetBottom",
+  "rowGap",
+  "columnGap",
+];
+
+/**
+ * ADR-298 Phase 3 — the layout values the document wrote as a theme token (an inset side, a gap
+ * longhand — `LayoutTokenField`) as the token's variable, in the DOM's copy of the authored layout.
+ */
+export function catalogLayoutTokenCss(
+  layout: Record<string, string>,
+  authored: Readonly<Record<string, string>>,
+): void {
+  for (const key of LAYOUT_TOKEN_KEYS) {
+    if (layout[key] === undefined) continue;
+    const ref = catalogAuthoredTokenRef(authored, key);
+    if (!ref || !NODE_TOKEN_REF.test(ref)) continue;
+    const css = withCatalogTokenVars(tokenToCSSVar(ref as TokenRef));
+    if (/^var\(--[\w-]+\)$/.test(css)) layout[key] = css;
   }
 }

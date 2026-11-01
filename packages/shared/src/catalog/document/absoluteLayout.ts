@@ -1,4 +1,4 @@
-import type { LayoutWrites, WriteValue } from "./types";
+import type { LayoutWriteValue, LayoutWrites, WriteValue } from "./types";
 
 /**
  * ADR-275 — an authored absolute box is `layout.position: absolute` + `inset*` (+ the Center axis'
@@ -15,12 +15,15 @@ export const POSITION_LAYOUT_KEYS = [
   "alignSelf",
 ] as const;
 
-const setText = (write: WriteValue<string> | undefined) =>
-  write?.kind === "set" ? write.value : undefined;
+/** A set write's CSS text (a token write — ADR-298 Phase 3 — has none: it is not px here). */
+const setText = (write: WriteValue<LayoutWriteValue> | undefined) =>
+  write?.kind === "set" && typeof write.value === "string"
+    ? write.value
+    : undefined;
 
-/** An inset's px value (`12px` · `0`); undefined for other units or no write. */
+/** An inset's px value (`12px` · `0`); undefined for other units, a token or no write. */
 export function insetPx(
-  write: WriteValue<string> | undefined,
+  write: WriteValue<LayoutWriteValue> | undefined,
 ): number | undefined {
   const text = setText(write)?.trim();
   if (text === "0") return 0;
@@ -47,7 +50,7 @@ export function positionLayout(layout: LayoutWrites): LayoutWrites {
 
 /** A layout without its position keys. */
 export function withoutPositionLayout(layout: LayoutWrites): LayoutWrites {
-  const next: Record<string, WriteValue<string>> = { ...layout };
+  const next: Record<string, WriteValue<LayoutWriteValue>> = { ...layout };
   for (const key of POSITION_LAYOUT_KEYS) delete next[key];
   return next;
 }
@@ -61,14 +64,14 @@ const AXES = {
  * Moves an authored absolute box by `(dx, dy)` px and keeps its constraint: a set start inset
  * grows, a set end inset shrinks (Left · Right · Left+Right · Center alike), an axis with neither
  * becomes start-pinned at the move. A non-px inset is left as it is (a copy has no containing
- * block size to convert it with).
+ * block size to convert it with), and so is a token inset (ADR-298 Phase 3 — no library here).
  */
 export function shiftAbsoluteLayout(
   layout: LayoutWrites,
   dx: number,
   dy: number,
 ): LayoutWrites {
-  const next: Record<string, WriteValue<string>> = { ...layout };
+  const next: Record<string, WriteValue<LayoutWriteValue>> = { ...layout };
   for (const [axis, delta] of [
     ["x", dx],
     ["y", dy],

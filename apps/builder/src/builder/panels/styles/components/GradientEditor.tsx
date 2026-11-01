@@ -22,6 +22,8 @@ import type {
 } from "../../../../types/builder/fill.types";
 import { hex8ToRgba, rgbaToHex8 } from "../utils/colorUtils";
 import { ColorPickerPanel } from "./ColorPickerPanel";
+import { useThemeConfigDarkMode } from "../../../../stores/themeConfigStore";
+import { panelFillColorHex } from "../../../catalogRuntime/panelTokens";
 import { GradientBar } from "./GradientBar";
 import { GradientControls } from "./GradientControls";
 import { GradientStopList } from "./GradientStopList";
@@ -145,7 +147,18 @@ export const GradientEditor = memo(function GradientEditor({
     setCommittedStopColor(activeStop?.color ?? "#000000FF");
   }
 
-  const gradientCss = useMemo(() => buildGradientCss(localStops), [localStops]);
+  // ADR-298 Phase 3 — a token stop (`var(--accent)`) shows (and interpolates from) its value in the
+  //   active color mode; the stop list keeps the token.
+  const mode = useThemeConfigDarkMode() === "dark" ? "dark" : "light";
+  const shownStops = useMemo(
+    () =>
+      localStops.map((stop) => ({
+        ...stop,
+        color: panelFillColorHex(stop.color, mode),
+      })),
+    [localStops, mode],
+  );
+  const gradientCss = useMemo(() => buildGradientCss(shownStops), [shownStops]);
 
   // --- Gradient sub-type select ---
   const handleSubTypeChange = useCallback(
@@ -187,13 +200,13 @@ export const GradientEditor = memo(function GradientEditor({
   // --- Stop add ---
   const handleStopAdd = useCallback(
     (position: number) => {
-      const color = getColorAtPosition(localStops, position);
+      const color = getColorAtPosition(shownStops, position);
       const newStops = [...localStops, { color, position }];
       setActiveStopIndex(newStops.length - 1);
       setLocalStops(newStops);
       onChangeEnd({ stops: newStops } as Partial<FillItem>);
     },
-    [localStops, onChangeEnd],
+    [localStops, shownStops, onChangeEnd],
   );
 
   const handleStopAddFromList = useCallback(() => {
@@ -203,12 +216,12 @@ export const GradientEditor = memo(function GradientEditor({
             localStops[localStops.length - 1].position) /
           2
         : 0.5;
-    const color = getColorAtPosition(localStops, midPosition);
+    const color = getColorAtPosition(shownStops, midPosition);
     const newStops = [...localStops, { color, position: midPosition }];
     setActiveStopIndex(newStops.length - 1);
     setLocalStops(newStops);
     onChangeEnd({ stops: newStops } as Partial<FillItem>);
-  }, [localStops, onChangeEnd]);
+  }, [localStops, shownStops, onChangeEnd]);
 
   // --- Stop remove ---
   const handleStopRemove = useCallback(
@@ -279,7 +292,7 @@ export const GradientEditor = memo(function GradientEditor({
         onChange={handleSubTypeChange}
       />
       <GradientBar
-        stops={localStops}
+        stops={shownStops}
         gradientCss={gradientCss}
         activeStopIndex={activeStopIndex}
         onStopSelect={handleStopSelect}
@@ -290,7 +303,7 @@ export const GradientEditor = memo(function GradientEditor({
       />
 
       <GradientStopList
-        stops={localStops}
+        stops={shownStops}
         activeStopIndex={activeStopIndex}
         onStopSelect={handleStopSelect}
         onStopPositionChange={handleStopPositionChange}

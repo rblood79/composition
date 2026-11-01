@@ -384,8 +384,12 @@ describe("ADR-296 Phase 4 — page style · theme files", () => {
         ),
     });
     expect(result.rejected).toEqual([]);
+    // (ADR-298 D2 — the theme-independent scale id, the same ref as the rule token's.)
     expect(node(h, text).visual.radius).toEqual(
-      set({ kind: "token", tokenId: lg }),
+      set({ kind: "token", tokenId: "lib:token:radius_lg" }),
+    );
+    expect(h.library.tokens.get("lib:token:radius_lg" as never)?.ref).toBe(
+      h.library.tokens.get(lg)?.ref,
     );
   });
 

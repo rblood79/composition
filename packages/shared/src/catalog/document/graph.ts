@@ -6,6 +6,7 @@ import { catalogPropValueFits, isPropVar } from "./valueType";
 import { definitionTypeName } from "../commands/context";
 import { conceptStatePropsOf } from "../../interactions/conceptState";
 import type {
+  CatalogFillLayer,
   CatalogDocument,
   DataCollectionId,
   CatalogEntry,
@@ -396,6 +397,9 @@ function edgesOf(entry: CatalogEntry, withOwner = true): Edge[] {
     tokenRefs(entry.stateRules, refs);
     tokenRefs(entry.descendantOverrides, refs);
     tokenRefs(entry.responsive, refs);
+    // (ADR-298 Phase 3 — a fill color · an inset / gap longhand may name a token.)
+    tokenRefs(entry.fills, refs);
+    tokenRefs(entry.layout, refs);
   } else if (
     entry.kind === "definition" ||
     entry.kind === "definitionOverride"
@@ -516,6 +520,13 @@ const LENGTH_TOKEN_FIELDS: ReadonlySet<string> = new Set([
   "indentPerLevel",
   "iconGap",
   "iconSize",
+  // ADR-298 Phase 3 — the layout fields a node writes as a token (`LayoutTokenField`).
+  "insetLeft",
+  "insetTop",
+  "insetRight",
+  "insetBottom",
+  "rowGap",
+  "columnGap",
 ]);
 
 export class CatalogGraph {
@@ -1454,6 +1465,9 @@ export class CatalogGraph {
       this.validateTokenFields(entry.props, definition.accepts, get, entry.id);
       this.validateTokenFields(entry.visual, undefined, get, entry.id);
       this.validateStateTokenRules(entry.stateRules, get, entry.id);
+      this.validatePaintLayoutTokens(entry, get, entry.id);
+      for (const layer of Object.values(entry.responsive ?? {}))
+        if (layer) this.validatePaintLayoutTokens(layer, get, entry.id);
       for (const override of entry.descendantOverrides) {
         const target = validateInstanceAddress(
           entry,
@@ -1498,6 +1512,7 @@ export class CatalogGraph {
             );
           if (override.visual)
             this.validateTokenFields(override.visual, undefined, get, entry.id);
+          this.validatePaintLayoutTokens(override, get, entry.id);
           if (override.stateRules)
             this.validateStateTokenRules(override.stateRules, get, entry.id);
         }
@@ -1894,6 +1909,43 @@ export class CatalogGraph {
               : ["string"];
       if (!allowed.includes(actual))
         throw new CatalogValidationError("TOKEN_TYPE_MISMATCH", `${at}.${key}`);
+    }
+  }
+  /**
+   * ADR-298 Phase 3 — the token types of a node's (a layer's, a patch's) fill colors (color) and layout
+   * token fields (length · number — `validateTokenFields` with the layout keys).
+   */
+  private validatePaintLayoutTokens(
+    fields: {
+      readonly fills?: readonly CatalogFillLayer[];
+      readonly layout?: Readonly<Record<string, unknown>>;
+    },
+    get: (id: string) => CatalogEntry | undefined,
+    at: string,
+  ): void {
+    if (fields.layout)
+      this.validateTokenFields(fields.layout, undefined, get, `${at}.layout`);
+    const colors: Record<string, unknown> = {};
+    fields.fills?.forEach((layer, index) => {
+      if (layer.kind === "color") colors[`fill${index}`] = layer.color;
+      if ("stops" in layer)
+        layer.stops.forEach((stop, stopIndex) => {
+          colors[`fill${index}-${stopIndex}`] = stop.color;
+        });
+    });
+    for (const [key, value] of Object.entries(colors)) {
+      if (!value || typeof value !== "object") continue;
+      const tokenId = (value as { tokenId: TokenId }).tokenId;
+      const token = tokenId.startsWith("lib:")
+        ? this.library.tokens.get(tokenId as `lib:token:${string}`)
+        : get(tokenId);
+      if (!token || !("tokenType" in token))
+        throw new CatalogValidationError("DANGLING_TOKEN", tokenId);
+      if (token.tokenType !== "color")
+        throw new CatalogValidationError(
+          "TOKEN_TYPE_MISMATCH",
+          `${at}.fills.${key}`,
+        );
     }
   }
   private validateStateTokenRules(

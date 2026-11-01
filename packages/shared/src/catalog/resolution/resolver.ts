@@ -2,6 +2,7 @@ import type {
   AuthoredValue,
   BreakpointName,
   CatalogFillLayer,
+  CatalogResolvedFillLayer,
   CatalogLibrary,
   DataBindingRef,
   FillSizing,
@@ -92,8 +93,8 @@ export interface ResolvedCatalogNode {
    */
   authoredLayout?: Readonly<Record<string, string>>;
   sizing: Readonly<Record<string, number | null>>;
-  /** Authored paint layers (Phase 4a); absent = the definition's fill. */
-  fills?: readonly CatalogFillLayer[];
+  /** Authored paint layers (Phase 4a); absent = the definition's fill. Colors are `#RRGGBBAA` (ADR-298). */
+  fills?: readonly CatalogResolvedFillLayer[];
   /** ADR-224 fill intent after the breakpoint cascade. */
   fillSizing?: FillSizing;
   themeOverride?: NodeThemeOverride;
@@ -232,6 +233,40 @@ const LINE_WRITES = new WeakMap<object, LineWrites>();
  * as the token's variable; a rule token keeps the value its sheet was built with.
  */
 const AUTHORED_TOKEN_REFS = new WeakMap<object, Record<string, string>>();
+/**
+ * ADR-298 Phase 3 — the theme color token a resolved fill layer's (or gradient stop's) color came from,
+ * by that object: the record holds the token's `#RRGGBBAA` in its color mode (the Canvas paints it), the
+ * DOM writes the token's variable so a color-mode change reaches it through CSS.
+ */
+const FILL_TOKEN_REFS = new WeakMap<object, string>();
+
+/** The theme token ref a resolved fill layer's or stop's color came from, else undefined. */
+export function catalogFillTokenRef(item: object): string | undefined {
+  return FILL_TOKEN_REFS.get(item);
+}
+
+/** Every token ref of resolved fills in order (`""` = a literal color) — the DOM's change check (F12). */
+export function catalogFillTokenRefs(
+  fills: readonly CatalogResolvedFillLayer[] | undefined,
+): string {
+  const out: string[] = [];
+  for (const layer of fills ?? []) {
+    out.push(FILL_TOKEN_REFS.get(layer) ?? "");
+    if ("stops" in layer)
+      for (const stop of layer.stops) out.push(FILL_TOKEN_REFS.get(stop) ?? "");
+  }
+  return out.join("|");
+}
+
+/** A theme color token's value as a fill color (`#RRGGBBAA`), else undefined. */
+export function catalogFillColorOf(value: unknown): string | undefined {
+  if (value === "transparent") return "#00000000";
+  if (typeof value !== "string") return undefined;
+  const hex = /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.exec(value.trim())?.[1];
+  if (!hex) return undefined;
+  return `#${hex.length === 6 ? `${hex}ff` : hex}`.toLowerCase();
+}
+
 /** Visuals whose line ratio `finishLineHeight` set — the ratio travels with the font size to an instance's root. */
 const LINE_FINISHED = new WeakSet<object>();
 const TYPOGRAPHY_FONT_REF = /^\{typography\.(text-[a-z0-9-]+)\}$/;
@@ -595,19 +630,6 @@ export function catalogNodeVisibleAt(
   }
   return true;
 }
-function applyLayoutWrites(
-  target: Record<string, string>,
-  writes: LayoutWrites | undefined,
-): void {
-  for (const [key, write] of Object.entries(writes ?? {})) {
-    if (!write || write.kind === "remove") continue;
-    if (write.kind === "mask") delete target[key];
-    else target[key] = write.value;
-    // (An authored write replaces a part rule's length — its token ref goes with it.)
-    const refs = RESOLVED_TOKEN_REFS.get(target);
-    if (refs) delete refs[key];
-  }
-}
 function cascadeFillSizing(
   node: NodeEntry,
   layers: readonly NodeResponsiveLayer[],
@@ -657,7 +679,7 @@ export function resolveCatalogNode(
   ) => {
     const fillSizing = cascadeFillSizing(node, layers);
     return {
-      ...(node.fills ? { fills: node.fills } : {}),
+      ...(node.fills ? { fills: resolvedFills(node.fills) } : {}),
       ...(fillSizing ? { fillSizing } : {}),
       ...(node.themeOverride ? { themeOverride: node.themeOverride } : {}),
       ...(node.metadata?.htmlId ? { htmlId: node.metadata.htmlId } : {}),
@@ -815,6 +837,84 @@ export function resolveCatalogNode(
     if (!token)
       throw new CatalogValidationError("DANGLING_TOKEN", value.tokenId);
     return catalogTokenValue(token, tokenMode);
+  };
+  /**
+   * Authored layout writes onto a resolved layout. An authored write replaces a part rule's length — its
+   * token ref goes with it; a token write (ADR-298 Phase 3 — inset · gap longhands) puts the token's px
+   * (the engine reads CSS text) and notes the ref, also as the document's (the DOM writes its variable).
+   */
+  const applyLayoutWrites = (
+    target: Record<string, string>,
+    writes: LayoutWrites | undefined,
+  ): void => {
+    for (const [key, write] of Object.entries(writes ?? {})) {
+      if (!write || write.kind === "remove") continue;
+      const value = write.kind === "set" ? write.value : undefined;
+      if (value === undefined) delete target[key];
+      else if (typeof value === "string") target[key] = value;
+      else {
+        const read = tokenValue(value);
+        target[key] = typeof read === "number" ? `${read}px` : String(read);
+      }
+      noteTokenRef(target, key, value);
+      noteTokenRef(target, key, value, AUTHORED_TOKEN_REFS);
+    }
+  };
+  /** `Object.assign(target, source)` for resolved layouts, with the token refs of the copied keys. */
+  const assignLayout = (
+    target: Record<string, string>,
+    source: Readonly<Record<string, string>> | undefined,
+  ): void => {
+    if (!source) return;
+    Object.assign(target, source);
+    copyResolvedTokenRefs(target, source);
+  };
+  /**
+   * ADR-298 Phase 3 — a node's fill layers as a record holds them: a color token (a layer's · a gradient
+   * stop's) becomes its `#RRGGBBAA` in this resolution's color mode, its ref noted on the new object
+   * (`catalogFillTokenRef`). Layers without a token are returned as they are.
+   */
+  const resolvedFills = (
+    fills: readonly CatalogFillLayer[] | undefined,
+  ): readonly CatalogResolvedFillLayer[] | undefined => {
+    if (!fills) return undefined;
+    const color = (value: unknown): { color: string; ref?: string } => {
+      if (typeof value === "string") return { color: value };
+      const use = value as { kind?: string; tokenId?: string };
+      if (use?.kind !== "token" || !use.tokenId)
+        throw new CatalogValidationError("FILL_COLOR", String(use?.tokenId));
+      const token = graph.getToken(use.tokenId as never);
+      if (!token)
+        throw new CatalogValidationError("DANGLING_TOKEN", use.tokenId);
+      const hex = catalogFillColorOf(catalogTokenValue(token, tokenMode));
+      if (!hex)
+        throw new CatalogValidationError("TOKEN_TYPE_MISMATCH", use.tokenId);
+      return { color: hex, ref: token.ref };
+    };
+    let changed = false;
+    const out = fills.map((layer) => {
+      if (layer.kind === "color") {
+        if (typeof layer.color === "string") return layer;
+        changed = true;
+        const read = color(layer.color);
+        const resolved = { ...layer, color: read.color };
+        if (read.ref) FILL_TOKEN_REFS.set(resolved, read.ref);
+        return resolved;
+      }
+      if (!("stops" in layer)) return layer;
+      if (layer.stops.every((stop) => typeof stop.color === "string"))
+        return layer;
+      changed = true;
+      const stops = layer.stops.map((stop) => {
+        if (typeof stop.color === "string") return stop;
+        const read = color(stop.color);
+        const resolved = { ...stop, color: read.color };
+        if (read.ref) FILL_TOKEN_REFS.set(resolved, read.ref);
+        return resolved;
+      });
+      return { ...layer, stops };
+    });
+    return (changed ? out : fills) as readonly CatalogResolvedFillLayer[];
   };
   const applyValues = (
     target: Props,
@@ -1110,6 +1210,7 @@ export function resolveCatalogNode(
     if (LINE_FINISHED.has(visual) && "fontSize" in root.visual)
       root.visual.lineHeight = visual.lineHeight;
     copyResolvedTokenRefs(root.visual, visual, Object.keys(root.visual));
+    copyResolvedTokenRefs(root.layout, layout);
     return root;
   };
   /**
@@ -2247,12 +2348,11 @@ export function resolveCatalogNode(
       for (const layer of templateLayers)
         applyLayoutWrites(authoredLayout, layer.layout);
     }
-    Object.assign(layout, authoredLayout);
-    if (root) Object.assign(layout, root.layout);
-    const templateAuthored: Record<string, string> = {
-      ...authoredLayout,
-      ...root?.layout,
-    };
+    assignLayout(layout, authoredLayout);
+    if (root) assignLayout(layout, root.layout);
+    const templateAuthored: Record<string, string> = {};
+    assignLayout(templateAuthored, authoredLayout);
+    assignLayout(templateAuthored, root?.layout);
     if (patch) {
       for (const target of [layout, templateAuthored]) {
         applyLayoutWrites(target, patch.layout);
@@ -2714,7 +2814,9 @@ export function resolveCatalogNode(
         ? { authoredLayout: templateAuthored }
         : {}),
       ...("kind" in template ? authoredExtras(template, templateLayers) : {}),
-      ...(templatePaint.fills ? { fills: templatePaint.fills } : {}),
+      ...(templatePaint.fills
+        ? { fills: resolvedFills(templatePaint.fills) }
+        : {}),
       ...(templatePaint.fillSizing
         ? { fillSizing: templatePaint.fillSizing }
         : {}),

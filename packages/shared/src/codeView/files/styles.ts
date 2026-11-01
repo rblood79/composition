@@ -15,6 +15,7 @@ import { tokenToCSSVar, withCatalogTokenVars } from "@composition/rendering";
 import type {
   BreakpointName,
   DefinitionEntry,
+  CatalogFillColor,
   CatalogFillLayer,
   CatalogReader,
   FillSizing,
@@ -355,23 +356,32 @@ export const CODE_VIEW_VISIBLE_CSS = "--visible";
  */
 export function codeViewFillsCss(
   fills: readonly CatalogFillLayer[],
+  reader?: Reader,
+  tokens?: Record<string, string>,
 ): string | undefined {
+  // ADR-298 Phase 3 — a color token is its CSS variable (the name `codeViewTokenVar` gives a visual one).
+  const color = (value: CatalogFillColor): string => {
+    if (typeof value === "string") return value;
+    const css = reader
+      ? codeViewTokenVar(reader, value.tokenId)
+      : `var(--${codeViewKebab(value.tokenId.slice(10), "token")})`;
+    if (tokens) tokens[css.slice(4, -1)] = value.tokenId;
+    return css;
+  };
   const parts: string[] = [];
   for (const [index, layer] of fills.entries()) {
     if (!layer.enabled || layer.opacity !== 1 || layer.blendMode !== "normal")
       return undefined;
-    if (layer.kind === "color")
-      parts.push(
-        index === 0
-          ? layer.color
-          : `linear-gradient(${layer.color}, ${layer.color})`,
-      );
+    if (layer.kind === "color") {
+      const css = color(layer.color);
+      parts.push(index === 0 ? css : `linear-gradient(${css}, ${css})`);
+    }
     else if (layer.kind === "linear-gradient")
       parts.push(
         `linear-gradient(${layer.rotation}deg, ${layer.stops
           .map(
             (stop) =>
-              `${stop.color} ${Math.round(stop.position * 10000) / 100}%`,
+              `${color(stop.color)} ${Math.round(stop.position * 10000) / 100}%`,
           )
           .join(", ")})`,
       );
@@ -434,7 +444,11 @@ export function codeViewFillColor(text: string): string | undefined {
 export function codeViewFillsOf(
   text: string,
   ids: readonly string[] = [],
+  /** ADR-298 Phase 3 — a `var(--…)` color as the token it names (the code view's `tokenOf`). */
+  tokenColor?: (text: string) => CatalogFillColor | undefined,
 ): CatalogFillLayer[] | undefined {
+  const fillColor = (part: string): CatalogFillColor | undefined =>
+    codeViewFillColor(part) ?? tokenColor?.(part.trim());
   const layers = codeViewCssList(text).reverse();
   const out: CatalogFillLayer[] = [];
   const base = { enabled: true, opacity: 1, blendMode: "normal" as const };
@@ -443,7 +457,7 @@ export function codeViewFillsOf(
     const solid =
       /^linear-gradient\(\s*([^,()]+(?:\([^()]*\))?)\s*,\s*\1\s*\)$/.exec(part);
     if (solid) {
-      const color = codeViewFillColor(solid[1]!);
+      const color = fillColor(solid[1]!);
       if (!color) return undefined;
       out.push({ ...base, id, kind: "color", color });
       continue;
@@ -454,7 +468,7 @@ export function codeViewFillsOf(
     if (linear) {
       const stops = codeViewCssList(linear[2]!).map((stop) => {
         const match = /^(.*?)\s+(-?\d+(?:\.\d+)?)%$/.exec(stop);
-        const color = match ? codeViewFillColor(match[1]!) : undefined;
+        const color = match ? fillColor(match[1]!) : undefined;
         return match && color
           ? { color, position: Number(match[2]) / 100 }
           : undefined;
@@ -465,7 +479,7 @@ export function codeViewFillsOf(
         id,
         kind: "linear-gradient",
         rotation: Number(linear[1]),
-        stops: stops as { color: string; position: number }[],
+        stops: stops as { color: CatalogFillColor; position: number }[],
       });
       continue;
     }
@@ -489,7 +503,7 @@ export function codeViewFillsOf(
       continue;
     }
     // A plain color is the bottom layer only (CSS's background color).
-    const color = index === 0 ? codeViewFillColor(part) : undefined;
+    const color = index === 0 ? fillColor(part) : undefined;
     if (color) {
       out.push({ ...base, id, kind: "color", color });
       continue;
@@ -568,7 +582,7 @@ export function codeViewStyleBlocks(
   writesOf(reader, "layout", node.layout, layoutPlace, tokens, base);
   writesOf(reader, "sizing", node.sizing, sizingPlace, tokens, base);
   if (node.fills?.length) {
-    const css = codeViewFillsCss(node.fills);
+    const css = codeViewFillsCss(node.fills, reader, tokens);
     if (css) base.push({ property: CODE_VIEW_FILLS_CSS, value: css });
     else markers.push(CODE_VIEW_DESIGN_PANEL_MARKER("fills"));
   }

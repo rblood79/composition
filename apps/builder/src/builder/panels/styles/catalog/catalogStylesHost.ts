@@ -29,8 +29,11 @@ import {
 } from "../../../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
 import type { FillItem } from "../../../../types/builder/fill.types";
 import {
-  catalogFillItems,
-  catalogFillLayers,
+  panelFillItems,
+  panelFillLayers,
+  panelResolvedFillLayers,
+} from "../../../catalogRuntime/panelTokens";
+import {
 } from "../../../catalogRuntime/authoredStyle";
 import { catalogBoxModel } from "../../../catalogRuntime/boxModel";
 import { catalogPageDropCommand } from "../../../catalogRuntime/canvasPage";
@@ -317,9 +320,9 @@ export function createCatalogStylesHost(
     const background = catalogAuthoredValues(own.visual).backgroundColor;
     const master = masterTargetOf(workspace, target);
     return resolveElementFills({
-      fills: (catalogFillItems(own.fills) ??
+      fills: (panelFillItems(own.fills) ??
         (master
-          ? catalogFillItems(workspace.readModel.ownFields(master).fills)
+          ? panelFillItems(workspace.readModel.ownFields(master).fills)
           : undefined)) as FillItem[] | undefined,
       props: {
         style: {
@@ -681,7 +684,7 @@ export function createCatalogStylesHost(
           size: typeof props.size === "string" ? props.size : undefined,
           sizing: Object.keys(fill).length ? fill : undefined,
           fills:
-            catalogFillItems(own?.fills) ?? catalogFillItems(master?.fills),
+            panelFillItems(own?.fills) ?? panelFillItems(master?.fills),
           props,
         };
       }, [
@@ -1084,7 +1087,7 @@ export function createCatalogStylesHost(
           return setWholeField({
             targets: [item.target],
             field: "fills",
-            value: next.length ? catalogFillLayers(next) : [],
+            value: next.length ? panelFillLayers(next) : [],
             label: "Fill",
           });
         });
@@ -1115,7 +1118,9 @@ export function createCatalogStylesHost(
             : replayFillEdit(before, fills, fillsOf(item.target));
         const preview: CatalogRecordPreview = {
           ...heldPreview(item.identity),
-          fills: next.length ? catalogFillLayers(next) : [],
+          fills: next.length
+            ? panelResolvedFillLayers(next, workspace.root.colorMode)
+            : [],
           omitVisual: FILL_DERIVED_STYLE_PROPS,
         };
         previewed.set(item.identity, preview);

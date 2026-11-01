@@ -28,6 +28,11 @@ import {
   PropertyColorProps,
 } from "./PropertyColor.runtime";
 import { usePropertySelection } from "./propertySelection";
+import { useThemeConfigDarkMode } from "../../../stores/themeConfigStore";
+import {
+  panelColorTokenName,
+  panelFillColorHex,
+} from "../../catalogRuntime/panelTokens";
 
 /**
  * PropertyColor — 색상 스와치 + 풀 컬러 피커 popover.
@@ -56,6 +61,10 @@ export const PropertyColorControl = memo(
   }: PropertyColorProps) {
     // 값이 없으면 placeholder 색을 흐린 글자로 보인다 (값이 비면 견본이 검정으로 보여 「설정됨」 처럼 읽혔다)
     const shown = value || placeholder || "";
+    // ADR-298 Phase 3 — a theme color token shows its value in the active mode and its name.
+    const mode = useThemeConfigDarkMode() === "dark" ? "dark" : "light";
+    const swatch = panelFillColorHex(shown, mode);
+    const tokenName = panelColorTokenName(shown);
     const i18n = useOptionalI18n();
     const displayLabel =
       label && i18n
@@ -100,13 +109,14 @@ export const PropertyColorControl = memo(
                 : "Color")
             }
           >
-            <ColorSwatch color={parseRacColorOrBlack(shown)} />
+            <ColorSwatch color={parseRacColorOrBlack(swatch)} />
             {showValue && (
               <span
                 className="color-swatch-value"
                 data-placeholder={(!value && placeholder) || undefined}
+                data-token={tokenName}
               >
-                {toDisplayHex(shown)}
+                {tokenName ?? toDisplayHex(swatch)}
               </span>
             )}
           </AriaButton>

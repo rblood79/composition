@@ -3,7 +3,7 @@ import type {
   NodeEntry,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import type { FillItem } from "../../types/builder/fill.types";
-import { catalogFillItems } from "./authoredStyle";
+import { panelFillItems } from "./panelTokens";
 import { catalogAuthoredValues } from "./styleFields";
 
 /** One authored color source: a node's colors as the old `props.style` and its fill layers. */
@@ -44,7 +44,7 @@ export function catalogDocumentColorSources(
     if (node.fills)
       sources.push({
         style: {},
-        fills: catalogFillItems(node.fills) as FillItem[] | undefined,
+        fills: panelFillItems(node.fills) as FillItem[] | undefined,
       });
     for (const child of node.children) visit(child);
   };

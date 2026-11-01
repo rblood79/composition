@@ -927,6 +927,15 @@ function layoutWrites(value: unknown, at: string): void {
     const write = object(raw, `${at}.${key}`);
     if (write.kind === "set") {
       exact(write, ["kind", "value"], `${at}.${key}`);
+      // ADR-298 Phase 3 — an inset side · gap longhand may be a theme token (its type is the graph's).
+      if (
+        LAYOUT_TOKEN_FIELDS.has(key) &&
+        typeof write.value === "object" &&
+        write.value !== null
+      ) {
+        tokenUseShape(write.value, `${at}.${key}.value`);
+        continue;
+      }
       if (typeof write.value !== "string" || !accepts(write.value))
         invalid("INVALID_LAYOUT_VALUE", `${at}.${key}`);
     } else if (write.kind === "mask") exact(write, ["kind"], `${at}.${key}`);
@@ -940,8 +949,40 @@ const unit = (value: unknown): boolean =>
   Number.isFinite(value) &&
   value >= 0 &&
   value <= 1;
-const fillColor = (value: unknown): boolean =>
-  typeof value === "string" && /^#[0-9a-fA-F]{8}$/.test(value);
+/** ADR-298 Phase 3 — the layout fields that take a theme token (`LayoutTokenField`). */
+const LAYOUT_TOKEN_FIELDS: ReadonlySet<string> = new Set([
+  "insetLeft",
+  "insetTop",
+  "insetRight",
+  "insetBottom",
+  "rowGap",
+  "columnGap",
+]);
+/** A `TokenUse` (`{ kind: "token", tokenId }` — a library or project token id). */
+function tokenUseShape(value: unknown, at: string): void {
+  const ref = object(value, at);
+  exact(ref, ["kind", "tokenId"], at);
+  if (ref.kind !== "token") invalid("UNKNOWN_VALUE_KIND", at);
+  id(ref.tokenId, "", `${at}.tokenId`);
+  if (
+    !(ref.tokenId as string).startsWith("lib:token:") &&
+    !(ref.tokenId as string).startsWith("project:token:")
+  )
+    invalid("TOKEN_ID_REQUIRED", at);
+}
+/** A fill color: `#RRGGBBAA`, or a theme color token (ADR-298 Phase 3 — its type is the graph's). */
+const fillColor = (value: unknown): boolean => {
+  if (typeof value === "string") return /^#[0-9a-fA-F]{8}$/.test(value);
+  if (!value || typeof value !== "object") return false;
+  const ref = value as Record<string, unknown>;
+  return (
+    Object.keys(ref).length === 2 &&
+    ref.kind === "token" &&
+    typeof ref.tokenId === "string" &&
+    (ref.tokenId.startsWith("lib:token:") ||
+      ref.tokenId.startsWith("project:token:"))
+  );
+};
 const fillBlendModes = new Set([
   "normal",
   "multiply",

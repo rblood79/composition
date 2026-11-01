@@ -12,6 +12,7 @@ import type {
   BreakpointName,
   EditTarget,
   LayoutField,
+  LayoutWriteValue,
   NodeId,
   WriteValue,
 } from "../../../../../packages/shared/src/catalog/document/types";
@@ -27,6 +28,9 @@ import {
   type CatalogAxisConstraint,
 } from "./positionConstraint";
 import { CatalogStyleValueError } from "./styleFields";
+import { panelTokenUse } from "./panelTokens";
+import { libraryTokenRef } from "../../../../../packages/shared/src/catalog/document/libraryTokenScale";
+import { readThemeTokenValue } from "../../../../../packages/shared/src/catalog/document/themedToken";
 
 interface PositionItem {
   target: EditTarget;
@@ -258,6 +262,22 @@ function insetText(raw: string): string | undefined {
   if (/^-?\d+(?:\.\d+)?$/.test(text)) return `${text}px`;
   return /^-?\d+(?:\.\d+)?(px|%)$/.test(text) ? text : undefined;
 }
+/**
+ * ADR-298 Phase 3 — a typed inset: a spacing token's variable (`var(--spacing-md)` — the Position
+ * fields' presets) is the token, else CSS text (`insetText`).
+ */
+function insetValue(raw: string): LayoutWriteValue | undefined {
+  const token = panelTokenUse(raw.trim());
+  if (token?.tokenId.startsWith("lib:token:spacing_")) return token;
+  return insetText(raw);
+}
+/** A token inset as its px text (a Center offset writes both sides, one negated). */
+function insetPxText(value: LayoutWriteValue): string | undefined {
+  if (typeof value === "string") return value;
+  const ref = libraryTokenRef(value.tokenId);
+  const px = ref ? readThemeTokenValue(ref, "number", "light") : undefined;
+  return typeof px === "number" ? `${px}px` : undefined;
+}
 const negate = (text: string) =>
   text.startsWith("-")
     ? text.slice(1)
@@ -297,7 +317,7 @@ export function catalogPositionChangeCommand(input: {
     }
     if (change.kind === "stickyInset") {
       const raw = change.value.trim();
-      const value = raw === "" || raw === "auto" ? undefined : insetText(raw);
+      const value = raw === "" || raw === "auto" ? undefined : insetValue(raw);
       if (raw !== "" && raw !== "auto" && !value)
         throw new CatalogStyleValueError(change.side, change.value);
       const key = SIDE[change.side].key;
@@ -313,7 +333,7 @@ export function catalogPositionChangeCommand(input: {
     }
     if (change.kind === "relative") {
       const value =
-        change.value.trim() === "" ? "0px" : insetText(change.value);
+        change.value.trim() === "" ? "0px" : insetValue(change.value);
       if (!value) throw new CatalogStyleValueError(change.side, change.value);
       // Entering Relative: the insets a flow box kept from an absolute past would come back as
       // offsets — only the typed side is an offset.
@@ -354,13 +374,14 @@ export function catalogPositionChangeCommand(input: {
     const next: { x: CatalogAxisConstraint; y: CatalogAxisConstraint } = {
       ...current,
     };
-    const writes: Partial<Record<LayoutField, WriteValue<string>>> = {};
+    const writes: Partial<Record<LayoutField, WriteValue<LayoutWriteValue>>> =
+      {};
     const sizing: Partial<
       Record<"width" | "height", WriteValue<number | null>>
     > = {};
     const visual: Partial<Record<"width" | "height", WriteValue<string>>> = {};
     /** Explicit side values typed by the user (over the computed ones). */
-    const typed: Partial<Record<LayoutField, string>> = {};
+    const typed: Partial<Record<LayoutField, LayoutWriteValue>> = {};
     if (change.kind === "constraint") next[change.axis] = change.constraint;
     else if (change.kind === "fill") {
       next.x = "both";
@@ -382,11 +403,14 @@ export function catalogPositionChangeCommand(input: {
         if (kind !== "both") continue;
         next[axis] = side.end ? "start" : "end";
       } else {
-        const text = insetText(value);
+        const text = insetValue(value);
         if (!text) throw new CatalogStyleValueError(change.side, change.value);
         if (kind === "center" && !side.end) {
-          typed[AXIS_KEYS[axis].start] = text;
-          typed[AXIS_KEYS[axis].end] = negate(text);
+          const offset = insetPxText(text);
+          if (!offset)
+            throw new CatalogStyleValueError(change.side, change.value);
+          typed[AXIS_KEYS[axis].start] = offset;
+          typed[AXIS_KEYS[axis].end] = negate(offset);
         } else if (kind === "both") typed[side.key] = text;
         else {
           next[axis] = side.end ? "end" : "start";

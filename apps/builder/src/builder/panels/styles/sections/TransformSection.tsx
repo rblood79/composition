@@ -21,6 +21,7 @@ import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertySegment } from "../../../components/property/PropertySegment";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
+import { isTokenValue } from "../../../components/property/PropertyUnitInput.runtime";
 import {
   SwatchIconButton,
   SwatchIconToggleButton,
@@ -395,6 +396,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
     return (
       <PositionControls
         effective={sizeContext.effective}
+        authored={sizeContext.style}
         authoredPosition={bundle?.position.inline}
         onMode={(mode) =>
           mode === "sticky"
@@ -641,6 +643,7 @@ const sidePinned = (constraint: CatalogAxisConstraint, end: boolean) =>
  */
 const PositionControls = memo(function PositionControls({
   effective,
+  authored,
   authoredPosition,
   onMode,
   onChange,
@@ -648,6 +651,8 @@ const PositionControls = memo(function PositionControls({
   error,
 }: {
   effective: Record<string, string | number> | undefined;
+  /** The node's own style (a token inset reads back as its variable — ADR-298 Phase 3). */
+  authored?: Readonly<Record<string, unknown>>;
   authoredPosition: string | number | undefined;
   onMode: (mode: "relative" | "absolute" | "sticky" | "fixed") => void;
   onChange: (change: CatalogPositionChange) => void;
@@ -682,7 +687,11 @@ const PositionControls = memo(function PositionControls({
         ? view(side) !== undefined && view(side) !== "auto"
         : !end && relative;
     const disabled = rulePlaced || (!absolute && !sticky && end);
-    const value = pinned ? (view(side) ?? "0px") : "";
+    // A spacing token the side was written with (code view · a later preset menu — Phase 4 merges the
+    //   unit menu with the steps, keeping `%`) shows as its chip with the token's px.
+    const own = authored?.[side];
+    const token = typeof own === "string" && isTokenValue(own) ? own : undefined;
+    const value = pinned ? (token ?? view(side) ?? "0px") : "";
     const centerOffset = absolute && constraint[axis] === "center" && !end;
     return (
       <PropertyUnitInput

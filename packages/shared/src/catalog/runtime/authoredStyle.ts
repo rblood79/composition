@@ -1,7 +1,16 @@
 import type { CSSProperties } from "react";
 import { fillsToCssBackgroundStyle } from "@composition/shared";
-import { shadowLiteralToCssVar } from "@composition/rendering";
-import type { CatalogFillLayer } from "../document/types";
+import {
+  shadowLiteralToCssVar,
+  tokenToCSSVar,
+  withCatalogTokenVars,
+  type TokenRef,
+} from "@composition/rendering";
+import type {
+  CatalogFillLayer,
+  CatalogResolvedFillLayer,
+} from "../document/types";
+import { catalogFillTokenRef } from "../resolution/resolver";
 import type { CatalogConsumerNode } from "./compositionRoot";
 
 /**
@@ -141,7 +150,38 @@ export function catalogAuthoredDomStyle(
   const style = catalogAuthoredPaintCss(node) as CSSProperties;
   if (typeof style.boxShadow === "string")
     style.boxShadow = shadowLiteralToCssVar(style.boxShadow);
-  const fills = catalogFillItems(node.fills);
+  const fills = catalogFillItems(catalogFillTokenVars(node.fills));
   if (fills) Object.assign(style, fillsToCssBackgroundStyle(fills));
   return style;
+}
+
+/** A theme color token's CSS variable (`var(--accent)`), else undefined (a composite expression). */
+function colorTokenVar(ref: string | undefined): string | undefined {
+  if (!ref?.startsWith("{color.")) return undefined;
+  const css = withCatalogTokenVars(tokenToCSSVar(ref as TokenRef));
+  return /^var\(--[\w-]+\)$/.test(css) ? css : undefined;
+}
+
+/**
+ * ADR-298 Phase 3 — a record's fill colors read from a theme color token (`catalogFillTokenRef`) as the
+ * token's variable, for the DOM: the Preview root declares it per color mode, as it does for a visual
+ * color token (`catalogNodeTokenCss`). The Canvas paints the record's `#RRGGBBAA`.
+ */
+export function catalogFillTokenVars(
+  fills: readonly CatalogResolvedFillLayer[] | undefined,
+): readonly CatalogFillLayer<string>[] | undefined {
+  if (!fills) return fills;
+  return fills.map((layer) => {
+    const own = colorTokenVar(catalogFillTokenRef(layer));
+    if (layer.kind === "color") return own ? { ...layer, color: own } : layer;
+    if (!("stops" in layer)) return layer;
+    if (!layer.stops.some((stop) => catalogFillTokenRef(stop))) return layer;
+    return {
+      ...layer,
+      stops: layer.stops.map((stop) => {
+        const css = colorTokenVar(catalogFillTokenRef(stop));
+        return css ? { ...stop, color: css } : stop;
+      }),
+    };
+  });
 }

@@ -164,7 +164,7 @@ describe("ADR-298 Phase 2 — Text", () => {
 });
 
 describe("ADR-298 Phase 2 — Layout Gap", () => {
-  it("one-line flex: a Gap token is `visual.gap` and the main-axis longhand gives way", async () => {
+  it("one-line flex: a Gap token is the main-axis longhand's token (Phase 3 — layout token fields)", async () => {
     const { fixture, view } = await renderWith(LayoutSection, [
       {
         id: "box",
@@ -172,11 +172,11 @@ describe("ADR-298 Phase 2 — Layout Gap", () => {
       },
     ]);
     await pick(view.container.querySelector("fieldset.displayGap") as HTMLElement, "M");
-    expect(visualOf(fixture, "box").gap).toEqual(tokenSet("lib:token:spacing_md"));
     expect(
       (fixture.nodeOf("box") as unknown as { layout?: Record<string, unknown> })
         .layout?.columnGap,
-    ).toBeUndefined();
+    ).toEqual(tokenSet("lib:token:spacing_md"));
+    expect(visualOf(fixture, "box").gap).toBeUndefined();
     const gap = view.container.querySelector("fieldset.displayGap")!;
     expect(gap.querySelector(".property-unit-input__token")?.textContent).toBe("M");
   });

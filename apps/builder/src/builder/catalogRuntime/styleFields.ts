@@ -33,6 +33,21 @@ export interface CatalogStyleFields {
 const REMOVE = { kind: "remove" } as const;
 const set = <T>(value: T): WriteValue<T> => ({ kind: "set", value });
 
+/** ADR-298 Phase 3 — the visual color keys a theme color token may fill. */
+const COLOR_KEYS = new Set<string>(["color", "backgroundColor", "borderColor"]);
+/** A panel value's `{color.*}` token, else undefined (a literal · another axis' variable stays text). */
+const panelColorTokenUse = (raw: string | number) => {
+  const token = panelTokenUse(raw);
+  return token?.tokenId.startsWith("lib:token:color_") ? token : undefined;
+};
+/** A panel value's length token (spacing · radius · border width · typography px), else undefined. */
+const panelLengthTokenUse = (raw: string | number) => {
+  const token = panelTokenUse(raw);
+  return token && !/^lib:token:(?:color|shadow)_/.test(token.tokenId)
+    ? token
+    : undefined;
+};
+
 /** Visual fields whose CSS key and catalog key are the same and whose value is CSS text. */
 const VISUAL_TEXT = new Set<string>([
   "color",
@@ -211,8 +226,14 @@ export function catalogStyleWrites(
       .reduce(merge, {});
   }
   if (VISUAL_TEXT.has(key)) {
-    // ADR-298 D7: a shadow preset is the `{shadow.*}` token (colors stay text until Phase 3).
-    const token = key === "boxShadow" ? panelTokenUse(raw) : undefined;
+    // ADR-298 D7: a shadow preset is the `{shadow.*}` token; Phase 3: a theme color's variable on a
+    // color key is the `{color.*}` token.
+    const token =
+      key === "boxShadow"
+        ? panelTokenUse(raw)
+        : COLOR_KEYS.has(key)
+          ? panelColorTokenUse(raw)
+          : undefined;
     return {
       visual: { [key]: empty ? REMOVE : set(token ?? cssText(raw)) },
     };
@@ -263,6 +284,13 @@ export function catalogStyleWrites(
     const value = /^\d+(?:\.\d+)?$/.test(text) ? Number(text) : text;
     return { visual: { aspectRatio: set(value) } };
   }
+  // ADR-298 Phase 3 — an inset side · a gap longhand takes a length token (`LayoutTokenField`).
+  const layoutToken =
+    !empty && (key in INSET || key === "rowGap" || key === "columnGap")
+      ? panelLengthTokenUse(raw)
+      : undefined;
+  if (layoutToken)
+    return { layout: { [INSET[key] ?? key]: set(layoutToken) } };
   if (key in INSET)
     return {
       layout: { [INSET[key]]: empty ? REMOVE : set(lengthText(raw)) },
@@ -461,7 +489,10 @@ export function catalogStyleView(
     const token = panelTokenVar(value);
     if (
       token &&
-      (VISUAL_NUMBER.has(key) || key === "boxShadow" || key === "lineHeight")
+      (VISUAL_NUMBER.has(key) ||
+        key === "boxShadow" ||
+        key === "lineHeight" ||
+        COLOR_KEYS.has(key))
     ) {
       style[key] = token;
       continue;
@@ -492,7 +523,9 @@ export function catalogStyleView(
     if (typeof ratio === "number" || typeof ratio === "string")
       style.aspectRatio = String(ratio);
   }
-  for (const [key, value] of Object.entries(layout)) {
+  for (const [key, raw] of Object.entries(layout)) {
+    // (ADR-298 Phase 3 — a layout token reads back as its variable.)
+    const value = typeof raw === "string" ? raw : panelTokenVar(raw);
     if (typeof value !== "string") continue;
     const inset = Object.entries(INSET).find(([, field]) => field === key)?.[0];
     if (inset) style[inset] = value;

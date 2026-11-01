@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { setFields } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  setFields,
+  setWholeField,
+} from "../../../../../../packages/shared/src/catalog/commands";
 import type { NodeEntry } from "../../../../../../packages/shared/src/catalog/document/types";
 import { codeViewFileTree } from "../../../../../../packages/shared/src/codeView/files/tree";
 import {
@@ -126,5 +129,91 @@ describe("ADR-298 G3 — panel token ↔ code view round trip", () => {
     expect(node(h, frame).visual.gap).toEqual(token("lib:token:spacing_sm"));
     s = session(h);
     expect(code(s, CSS)).toContain("gap: var(--spacing-sm);");
+  });
+});
+
+/**
+ * ADR-298 G4 (Phase 3) — a fill color token and an inset token in `Page.css`: `background: var(--accent)`
+ * and `left: var(--spacing-lg)`, Apply back to the same `TokenUse`, and token ↔ literal swaps.
+ */
+describe("ADR-298 G4 — fill · inset tokens ↔ code view", () => {
+  const use = (tokenId: string) => ({ kind: "token", tokenId });
+  it("a fill color token is a `background: var(--…)` line; edits swap token ↔ literal", async () => {
+    const h = await open();
+    const frame = h.add("frame");
+    h.run(
+      setWholeField({
+        targets: [{ kind: "node", id: frame as NodeEntry["id"] }],
+        field: "fills",
+        value: [
+          {
+            id: "fill-1",
+            kind: "color",
+            enabled: true,
+            opacity: 1,
+            blendMode: "normal",
+            color: use("lib:token:color_accent") as never,
+          },
+        ],
+      }),
+    );
+    let s = session(h);
+    expect(code(s, CSS)).toContain("background: var(--accent);");
+    expect(
+      apply(h, s, (css) => css.replace("background: var(--accent);", "background: var(--positive);"))
+        .rejected,
+    ).toEqual([]);
+    expect((node(h, frame).fills![0] as { color: unknown }).color).toEqual(
+      use("lib:token:color_positive"),
+    );
+    s = session(h);
+    expect(
+      apply(h, s, (css) => css.replace("background: var(--positive);", "background: #ff0000;"))
+        .rejected,
+    ).toEqual([]);
+    expect((node(h, frame).fills![0] as { color: unknown }).color).toBe("#ff0000ff");
+    s = session(h);
+    expect(
+      apply(h, s, (css) =>
+        css.replace(
+          "background: #ff0000ff;",
+          "background: linear-gradient(90deg, var(--accent) 0%, #000000ff 100%);",
+        ),
+      ).rejected,
+    ).toEqual([]);
+    const layer = node(h, frame).fills![0] as unknown as {
+      stops: { color: unknown }[];
+    };
+    expect(layer.stops[0]!.color).toEqual(use("lib:token:color_accent"));
+    expect(layer.stops[1]!.color).toBe("#000000ff");
+  });
+
+  it("an inset token is a `left: var(--spacing-*)` line and Apply keeps it", async () => {
+    const h = await open();
+    const frame = h.add("frame");
+    h.run(
+      setFields({
+        targets: [{ kind: "node", id: frame as NodeEntry["id"] }],
+        layout: {
+          position: { kind: "set", value: "absolute" },
+          insetLeft: { kind: "set", value: use("lib:token:spacing_lg") as never },
+        },
+      }),
+    );
+    let s = session(h);
+    expect(code(s, CSS)).toContain("left: var(--spacing-lg);");
+    expect(
+      apply(h, s, (css) => css.replace("left: var(--spacing-lg);", "left: var(--spacing-sm);"))
+        .rejected,
+    ).toEqual([]);
+    expect(node(h, frame).layout?.insetLeft).toEqual({
+      kind: "set",
+      value: use("lib:token:spacing_sm"),
+    });
+    s = session(h);
+    expect(
+      apply(h, s, (css) => css.replace("left: var(--spacing-sm);", "left: 30px;")).rejected,
+    ).toEqual([]);
+    expect(node(h, frame).layout?.insetLeft).toEqual({ kind: "set", value: "30px" });
   });
 });

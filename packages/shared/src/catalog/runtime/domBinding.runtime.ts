@@ -167,7 +167,7 @@ import {
   catalogDerivedRestVisual,
   catalogHasAuthoredColor,
 } from "./libraryVisual";
-import { catalogNodeTokenCss } from "./nodeTokenCss";
+import { catalogLayoutTokenCss, catalogNodeTokenCss } from "./nodeTokenCss";
 import {
   catalogDeviceControlCss,
   catalogDeviceLayoutCss,
@@ -421,6 +421,9 @@ function catalogNodeLayoutCss(node: CatalogConsumerNode): CSSProperties {
   const layout: Record<string, string> = {};
   for (const key of NODE_ITEM_LAYOUT_KEYS)
     if (authored[key] !== undefined) layout[key] = authored[key];
+  // ADR-298 Phase 3 — an inset · gap longhand the document wrote as a theme token: its variable (the
+  // record holds the token's px for the engine).
+  catalogLayoutTokenCss(layout, authored);
   for (const key of ["maxWidth", "maxHeight"] as const)
     if (layout[key] === undefined && typeof node.sizing[key] === "number")
       layout[key] = `${node.sizing[key]}px`;

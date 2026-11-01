@@ -17,6 +17,7 @@ import type {
   SizingField,
   VisualField,
   WriteValue,
+  LayoutWriteValue,
   AuthoredValue,
 } from "../document/types";
 import { descendantPatchOf } from "../document/types";
@@ -54,7 +55,7 @@ export type CatalogOperation =
       kind: "patchNodeLayout";
       id: NodeId;
       key: LayoutField;
-      write: WriteValue<string>;
+      write: WriteValue<LayoutWriteValue>;
       breakpoint?: ResponsiveBreakpointName;
     }
   | NodeFieldOperation
@@ -601,7 +602,7 @@ export class CatalogStage implements CatalogReader {
         ...op,
         write: prior[op.key] ?? { kind: "remove" },
       });
-      const next = { ...prior } as Record<string, WriteValue<string>>;
+      const next = { ...prior } as Record<string, WriteValue<LayoutWriteValue>>;
       if (op.write.kind === "remove") delete next[op.key];
       else next[op.key] = op.write;
       const entry = { ...node } as Record<string, unknown>;

@@ -6,6 +6,7 @@ import type {
   DescendantOverride,
   FillSizing,
   LayoutField,
+  LayoutWriteValue,
   NodeEntry,
   NodeResponsiveLayer,
   NodeThemeOverride,
@@ -47,7 +48,7 @@ export interface SetFieldsInput {
   breakpoint?: BreakpointName;
   props?: Writes<string, AuthoredValue>;
   visual?: Writes<VisualField, AuthoredValue>;
-  layout?: Writes<LayoutField, string>;
+  layout?: Writes<LayoutField, LayoutWriteValue>;
   sizing?: Writes<SizingField, number | null>;
   label?: string;
 }

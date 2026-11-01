@@ -21,6 +21,11 @@ import { ColorInputFields, HexField } from "./ColorInputFields";
 import { EyeDropperButton } from "./EyeDropperButton";
 import { ColorPickerPalettes } from "./ColorPickerPalettes";
 import { parseRacColorOrBlack } from "../utils/colorUtils";
+import { useThemeConfigDarkMode } from "../../../../stores/themeConfigStore";
+import {
+  panelFillColorHex,
+  panelTokenRef,
+} from "../../../catalogRuntime/panelTokens";
 import {
   recordEditorPresentationRawInput,
   recordEditorPresentationTerminalEvent,
@@ -28,8 +33,13 @@ import {
 
 import "./ColorPickerPanel.css";
 
+/** ADR-298 Phase 3 — a theme color token's variable (`var(--accent)`), the panel's token text. */
+const isColorToken = (value: string) =>
+  !!panelTokenRef(value)?.startsWith("{color.");
+
 interface ColorPickerPanelProps {
-  value: string; // "#RRGGBBAA" hex8
+  /** "#RRGGBBAA" hex8, or a theme color token's variable (`var(--accent)` — ADR-298 Phase 3). */
+  value: string;
   resetKey?: string;
   /**
    * `onChange` previews on the Canvas through the Styles host (catalog): Escape / pointer cancel
@@ -54,8 +64,13 @@ export const ColorPickerPanel = memo(function ColorPickerPanel({
   onChange,
   onChangeEnd,
 }: ColorPickerPanelProps) {
+  const mode = useThemeConfigDarkMode() === "dark" ? "dark" : "light";
   const [localColor, setLocalColor] = useState<Color>(() =>
-    parseRacColorOrBlack(initialValue),
+    parseRacColorOrBlack(panelFillColorHex(initialValue, mode)),
+  );
+  // The committed value when it is a theme token (its swatch shows selected); a picked literal clears it.
+  const [token, setToken] = useState<string | undefined>(() =>
+    isColorToken(initialValue) ? initialValue : undefined,
   );
   const lastSavedRef = useRef<string>(initialValue);
   /**
@@ -73,10 +88,13 @@ export const ColorPickerPanel = memo(function ColorPickerPanel({
     }
     lastResetKeyRef.current = resetKey;
 
-    const parsed = parseRacColorOrBlack(initialValue);
+    const parsed = parseRacColorOrBlack(panelFillColorHex(initialValue, mode));
     setLocalColor(parsed);
-    lastSavedRef.current = parsed.toString("hexa");
-  }, [initialValue, resetKey]);
+    setToken(isColorToken(initialValue) ? initialValue : undefined);
+    lastSavedRef.current = isColorToken(initialValue)
+      ? initialValue
+      : parsed.toString("hexa");
+  }, [initialValue, resetKey, mode]);
 
   // 드래그 중: 로컬 상태를 즉시 갱신하고 `onChange` 로 미리보기를 넘긴다 (프레임 배칭은
   // Styles host 미리보기 쪽 — `useOptimizedStyleActions`).
@@ -104,6 +122,7 @@ export const ColorPickerPanel = memo(function ColorPickerPanel({
       const color = reconcileAlpha(raw);
       recordEditorPresentationRawInput();
       setLocalColor(color);
+      setToken(undefined);
       onChange(color.toString("hexa"));
     },
     [onChange, reconcileAlpha],
@@ -120,6 +139,7 @@ export const ColorPickerPanel = memo(function ColorPickerPanel({
       }
       // 최종 색상으로 로컬 상태 동기화
       setLocalColor(color);
+      setToken(undefined);
 
       const hex = color.toString("hexa");
       if (hex !== lastSavedRef.current) {
@@ -130,9 +150,19 @@ export const ColorPickerPanel = memo(function ColorPickerPanel({
     [onChangeEnd],
   );
 
-  // InputFields에서 직접 hex8 문자열로 변경
+  // InputFields에서 직접 hex8 문자열로 변경 · Theme 스와치는 토큰 변수 (ADR-298 Phase 3)
   const handleInputChange = useCallback(
     (hex: string) => {
+      if (isColorToken(hex)) {
+        setLocalColor(parseRacColorOrBlack(panelFillColorHex(hex, mode)));
+        setToken(hex);
+        if (lastSavedRef.current !== hex) {
+          lastSavedRef.current = hex;
+          onChangeEnd(hex);
+        }
+        return;
+      }
+      setToken(undefined);
       try {
         const parsed = parseColor(hex);
         setLocalColor(parsed);
@@ -142,14 +172,16 @@ export const ColorPickerPanel = memo(function ColorPickerPanel({
         // 무효한 입력 무시
       }
     },
-    [onChangeEnd],
+    [onChangeEnd, mode],
   );
 
   /** A live drag in progress ends: the picker shows the committed color again. */
   const cancelLiveDrag = () => {
     if (!livePreview || !draggingRef.current) return;
     cancelledRef.current = true;
-    setLocalColor(parseRacColorOrBlack(lastSavedRef.current));
+    setLocalColor(
+      parseRacColorOrBlack(panelFillColorHex(lastSavedRef.current, mode)),
+    );
   };
 
   const hexValue = localColor.toString("hexa");
@@ -199,7 +231,11 @@ export const ColorPickerPanel = memo(function ColorPickerPanel({
           </div>
           <ColorInputFields value={hexValue} onChange={handleInputChange} />
         </div>
-        <ColorPickerPalettes value={hexValue} onSelect={handleInputChange} />
+        <ColorPickerPalettes
+          value={hexValue}
+          token={token}
+          onSelect={handleInputChange}
+        />
       </div>
     </AriaColorPicker>
   );

@@ -24,6 +24,11 @@ import type {
 } from "../../../../types/builder/fill.types";
 import { FillType } from "../../../../types/builder/fill.types";
 import { normalizeToHex8 } from "../utils/colorUtils";
+import { useThemeConfigDarkMode } from "../../../../stores/themeConfigStore";
+import {
+  panelColorTokenName,
+  panelFillColorHex,
+} from "../../../catalogRuntime/panelTokens";
 import { FillTypeSelector, type FillCategory } from "./FillTypeSelector";
 import { ColorPickerPanel } from "./ColorPickerPanel";
 import { GradientEditor } from "./GradientEditor";
@@ -111,23 +116,32 @@ export const FillDetailPopover = memo(function FillDetailPopover({
   const isGradient = currentCategory === "gradient" && !isMeshGradient;
   const isImage = fill.type === FillType.Image;
 
+  const mode = useThemeConfigDarkMode() === "dark" ? "dark" : "light";
   const rawColorValue = isColor ? (fill as ColorFillItem).color : "#000000FF";
   const isVariableBound = rawColorValue.startsWith("$--");
+  // ADR-298 Phase 3 — a theme color token (`var(--accent)`): the picker gets the token itself (it
+  //   shows the active value and the Theme swatch selected); the layer opacity stays its own.
+  const isToken = isColor && !!panelColorTokenName(rawColorValue);
   // 단색 fill 의 불투명도는 한 숫자 — 피커의 알파 슬라이더 · A 와 레이어 행의 「%」 scrub 이 같은
   //   fill.opacity 를 읽고 쓴다 (Figma 어법, 2026-09-15 사용자 판정 — 종전엔 색 알파 × 레이어
   //   opacity 두 축이 fill 행 · 팝오버 · Effect 세 곳의 opacity 로 보였다). 색은 불투명 (…FF) 저장.
   const colorRgbFF = isVariableBound
     ? "#000000FF"
-    : `${normalizeToHex8(rawColorValue).slice(0, 7)}FF`;
+    : isToken
+      ? `${panelFillColorHex(rawColorValue, mode).slice(0, 7).toUpperCase()}FF`
+      : `${normalizeToHex8(rawColorValue).slice(0, 7)}FF`;
   // 피커는 이 값을 마운트 · resetKey (fill id/type) 변경 시에만 읽는다 — 드래그 중 미리보기로
   //   재초기화하지 않는다 (ColorPickerPanel). 별도 「commit 된 값」 state 로 미러링할 이유가 없다.
-  const colorValue = `${colorRgbFF.slice(0, 7)}${opacityToAlphaHex(fill.opacity)}`;
+  const colorValue = isToken
+    ? rawColorValue
+    : `${colorRgbFF.slice(0, 7)}${opacityToAlphaHex(fill.opacity)}`;
 
   // 종전 문서의 색 알파 (…80 등) 는 레이어 opacity 로 접는다 (알파 × opacity → opacity, 색 …FF) —
   //   렌더는 fillAdapter 가 둘을 곱해 왔으므로 화면은 그대로. fill 마다 한 번.
   const foldedRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!isColor || isVariableBound || foldedRef.current === fill.id) return;
+    if (!isColor || isVariableBound || isToken || foldedRef.current === fill.id)
+      return;
     const alpha = alphaHexToOpacity(normalizeToHex8(rawColorValue).slice(7, 9));
     if (alpha >= 1) return;
     foldedRef.current = fill.id;
@@ -140,6 +154,7 @@ export const FillDetailPopover = memo(function FillDetailPopover({
     fill.id,
     fill.opacity,
     isColor,
+    isToken,
     isVariableBound,
     onUpdateEnd,
     rawColorValue,
@@ -193,11 +208,16 @@ export const FillDetailPopover = memo(function FillDetailPopover({
 
   const handleColorChangeEndCommitted = useCallback(
     (color: string) => {
+      // A Theme swatch is the token — its own color, the layer opacity unchanged.
+      if (panelColorTokenName(color)) {
+        if (color !== rawColorValue) onColorChangeEnd(color);
+        return;
+      }
       const { rgbFF, alpha, rgbChanged, alphaChanged } = splitPicked(color);
       if (rgbChanged) onColorChangeEnd(rgbFF);
       if (alphaChanged) onOpacityChangeEnd(alpha);
     },
-    [onColorChangeEnd, onOpacityChangeEnd, splitPicked],
+    [onColorChangeEnd, onOpacityChangeEnd, splitPicked, rawColorValue],
   );
 
   // BlendMode 변경

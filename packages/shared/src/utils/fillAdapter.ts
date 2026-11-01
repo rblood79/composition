@@ -75,6 +75,14 @@ function toCssColorWithAlpha(
   color: unknown,
   opacity: number,
 ): string | undefined {
+  // ADR-298 Phase 3 — a theme color token's variable (the DOM writes a token fill so a color-mode
+  // change reaches it through CSS); a layer opacity mixes it with transparent (= rgba alpha in srgb).
+  if (typeof color === "string" && /^var\(--[\w-]+\)$/.test(color)) {
+    const alpha = round3(opacity);
+    return alpha >= 1
+      ? color
+      : `color-mix(in srgb, ${color} ${round3(alpha * 100)}%, transparent)`;
+  }
   const parsed = parseHexColor(color);
   if (!parsed) return undefined;
   const alpha = round3(parsed.a * opacity);

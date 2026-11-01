@@ -14,8 +14,6 @@ import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
 import { PropertyInput } from "../../../components/property/PropertyInput";
 import { SPACING_PRESET_OPTIONS } from "../../../components/property/propertyUnitPresets";
-import { isTokenValue } from "../../../components/property/PropertyUnitInput.runtime";
-import { resolveCssLengthPx } from "../utils/cssLengthPx";
 import {
   ToggleButton,
   ToggleButtonGroup,
@@ -213,7 +211,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
     updateStyles,
   } = useStyleActions();
   // 🚀 Phase 1: RAF 기반 스로틀 업데이트
-  const { updateStyleImmediate, updateStylePreview, updateStylesImmediate } =
+  const { updateStyleImmediate, updateStylePreview } =
     useOptimizedStyleActions();
 
   // ADR-067 Phase 2: Zustand 직접 구독 + Spec 직접 lookup
@@ -297,13 +295,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
       : readSessionSpacingValue(spacingSession, selectedId, gapProperty);
 
   const handleSpacingCommit = (value: string) => {
-    // ADR-298 D4: a spacing token is the node's `visual.gap` reference (layout longhands hold CSS
-    //   text, not token references — Phase 3). One-line flex draws only its main axis, so the main
-    //   axis longhand gives way to the token gap.
-    if (gapProperty !== "gap" && isTokenValue(value)) {
-      updateStylesImmediate({ gap: value, [gapProperty]: "" });
-      return;
-    }
+    // ADR-298 Phase 3: a layout longhand takes the token itself (`LayoutTokenField`).
     updateStyleImmediate(gapProperty, value);
   };
 
@@ -314,10 +306,8 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
   if (!styleValues) return null;
   const isGrid = flexDirectionKeys[0] === "grid";
   const commitGap = (property: "rowGap" | "columnGap", value: string) => {
-    // Grid Gap X · Y are per-axis layout text — a token preset writes its active value there
-    //   (ADR-298: layout token references come with Phase 3's inset).
-    const px = isTokenValue(value) ? resolveCssLengthPx(value) : null;
-    updateStyleImmediate(property, px !== null ? `${px}px` : value);
+    // Grid Gap X · Y — a token preset is the longhand's token reference (ADR-298 Phase 3).
+    updateStyleImmediate(property, value);
   };
   const previewGap = (property: "rowGap" | "columnGap", value: string) => {
     updateStylePreview(property, value);

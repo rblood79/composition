@@ -4,6 +4,7 @@ import type {
   BreakpointName,
   EditTarget,
   LayoutField,
+  LayoutWrites as DocumentLayoutWrites,
   ResponsiveBreakpointName,
   WriteValue,
 } from "../../../../../packages/shared/src/catalog/document/types";
@@ -189,7 +190,7 @@ export function catalogClearPositionCommands(
   target: EditTarget,
 ): CatalogCommand[] {
   const removals = (
-    layout: Readonly<Record<string, WriteValue<string>>> | undefined,
+    layout: DocumentLayoutWrites | undefined,
   ) => {
     const out: LayoutWrites = {};
     if (!layout) return out;

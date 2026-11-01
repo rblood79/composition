@@ -405,9 +405,23 @@ export type LayoutField =
   /** CSS `order` of a flex / grid item (the composition root reorders the engine children). */
   | "order";
 export type LayoutValues = Readonly<Partial<Record<LayoutField, string>>>;
+/**
+ * ADR-298 Phase 3 — the layout fields a node may write as a theme token (`TokenUse` — a length · number
+ * token): the inset sides and the gap longhands. The resolver writes the token's px into the record's
+ * layout (the engine reads CSS text) and notes the source, so the DOM writes the token's variable.
+ */
+export type LayoutTokenField =
+  | "insetLeft"
+  | "insetTop"
+  | "insetRight"
+  | "insetBottom"
+  | "rowGap"
+  | "columnGap";
+/** A node-authored layout value: CSS text, or a token on a `LayoutTokenField`. */
+export type LayoutWriteValue = string | TokenUse;
 /** Node-authored box layout writes (CSS text values, validated per field). */
 export type LayoutWrites = Readonly<
-  Partial<Record<LayoutField, WriteValue<string>>>
+  Partial<Record<LayoutField, WriteValue<LayoutWriteValue>>>
 >;
 export type SizingField =
   "width" | "height" | "minWidth" | "minHeight" | "maxWidth" | "maxHeight";
@@ -893,9 +907,13 @@ export type FillBlendMode =
   | "soft-light"
   | "difference"
   | "exclusion";
-export interface CatalogGradientStop {
-  /** `#RRGGBBAA`. */
-  color: string;
+/**
+ * A fill color: `#RRGGBBAA`, or a theme color token (ADR-298 Phase 3 — the resolver writes the token's
+ * value in the record's color mode, so a resolved record's fills hold `#RRGGBBAA` only).
+ */
+export type CatalogFillColor = string | TokenUse;
+export interface CatalogGradientStop<C = CatalogFillColor> {
+  color: C;
   /** 0–1. */
   position: number;
 }
@@ -906,23 +924,26 @@ interface FillLayerBase {
   opacity: number;
   blendMode: FillBlendMode;
 }
-/** A node paint layer (the Fill panel's item), bottom to top. */
-export type CatalogFillLayer =
-  | (FillLayerBase & { kind: "color"; color: string })
+/**
+ * A node paint layer (the Fill panel's item), bottom to top. `C` = the color form: the document's
+ * (`CatalogFillColor`) or a resolved record's (`string` — `CatalogResolvedFillLayer`).
+ */
+export type CatalogFillLayer<C = CatalogFillColor> =
+  | (FillLayerBase & { kind: "color"; color: C })
   | (FillLayerBase & {
       kind: "linear-gradient";
-      stops: readonly CatalogGradientStop[];
+      stops: readonly CatalogGradientStop<C>[];
       rotation: number;
     })
   | (FillLayerBase & {
       kind: "radial-gradient";
-      stops: readonly CatalogGradientStop[];
+      stops: readonly CatalogGradientStop<C>[];
       center: { x: number; y: number };
       radius: { width: number; height: number };
     })
   | (FillLayerBase & {
       kind: "angular-gradient";
-      stops: readonly CatalogGradientStop[];
+      stops: readonly CatalogGradientStop<C>[];
       center: { x: number; y: number };
       rotation: number;
     })
@@ -944,6 +965,8 @@ export type CatalogFillLayer =
         bottomHandle?: readonly [number, number];
       }[];
     });
+/** A resolved record's fill layer: every color is `#RRGGBBAA` (the resolver read the tokens). */
+export type CatalogResolvedFillLayer = CatalogFillLayer<string>;
 /** ADR-021 per-node tint/dark mode override. */
 export interface NodeThemeOverride {
   mode?: "light" | "dark";

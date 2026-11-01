@@ -30,7 +30,7 @@ import type {
   AiWriteHost,
 } from "../../services/ai/aiWriteHost";
 import { FILL_DERIVED_STYLE_PROPS } from "../panels/styles/utils/fillDerivedStyleProps";
-import { catalogFillItems, catalogFillLayers } from "./authoredStyle";
+import { panelFillItems, panelFillLayers } from "./panelTokens";
 import {
   catalogDefinitionPropKeys,
   catalogEditContract,
@@ -109,7 +109,7 @@ function projectElements(workspace: CatalogWorkspace): AiElementRow[] {
     const style = catalogStyleView(catalogFieldsAt(own, breakpoint), {
       fontSize: fontSizeOf(workspace, position.identity),
     });
-    const fills = catalogFillItems(own.fills);
+    const fills = panelFillItems(own.fills);
     const props: Record<string, unknown> = {
       ...(records.get(position.identity)?.props ?? {}),
     };
@@ -410,7 +410,7 @@ function writeCommands(
       setWholeField({
         targets,
         field: "fills",
-        value: input.fills.length ? catalogFillLayers(input.fills) : [],
+        value: input.fills.length ? panelFillLayers(input.fills) : [],
         label: "AI: fill",
       }),
       setFields({

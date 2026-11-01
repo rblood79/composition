@@ -79,6 +79,7 @@ import type {
 import {
   catalogNodeState,
   catalogSameResolvedTokenRefs,
+  catalogFillTokenRefs,
   resolveCatalogNode,
 } from "../resolution/resolver";
 import {
@@ -1430,6 +1431,14 @@ function sameRecord(
     left.ariaLabel === right.ariaLabel &&
     JSON.stringify(left.fills ?? null) ===
       JSON.stringify(right.fills ?? null) &&
+    // (ADR-298 Phase 3 — a fill color or layout length whose source changed: the DOM writes the variable.)
+    catalogFillTokenRefs(left.fills) === catalogFillTokenRefs(right.fills) &&
+    catalogSameResolvedTokenRefs(left.layout, right.layout) &&
+    (left.authoredLayout === right.authoredLayout ||
+      catalogSameResolvedTokenRefs(
+        left.authoredLayout ?? {},
+        right.authoredLayout ?? {},
+      )) &&
     JSON.stringify(left.fillSizing ?? null) ===
       JSON.stringify(right.fillSizing ?? null) &&
     JSON.stringify(left.themeOverride ?? null) ===

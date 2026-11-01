@@ -1,11 +1,6 @@
 /**
- * ColorPickerPalettes — 색 피커 아래 「Document · Theme」 팔레트 (panel-ui 05 #1, 2026-09-15)
- *
- * Document = 이 문서에서 쓰인 색 자동 수집 (useDocumentColors — 저장소 없음).
- * Theme = ADR-110 theme/tokens 의 실제 모델: 현재 accent tint 사다리 (theme 이 쓰는 lightness 6)
- * + neutral tone 사다리 (Tailwind 50 · 200 · 400 · 600 · 800 · 950) 두 행 — ThemesPanel Colors
- * 절과 같은 값, 이름 있는 팔레트는 없다. swatch 28 · 6열 gap 8 (208, 팝오버 215 안) · 헤더 28 ·
- * 그룹 라벨 18 — 새 값 0. 스와치 클릭 = 그 색을 commit (입력 필드와 같은 경로).
+ * ColorPickerPalettes — 색 피커 아래 「Theme · Document」 팔레트 — 설명은 `ColorPickerPalettes.runtime.ts`
+ * (ADR-298 Phase 3: Theme = 테마 색 토큰, 먼저).
  */
 import { ColorSwatch } from "@composition/shared/components/ColorSwatch";
 
@@ -25,16 +20,18 @@ import {
   useThemeConfigTint,
 } from "../../../../stores/themeConfigStore";
 
-import { NEUTRAL_PALETTES } from "../../../../utils/theme/neutralToSkiaColors";
+import { tokenToCSSVar, type TokenRef } from "@composition/rendering";
 
-import { resolveAccentLadder } from "../../../../utils/theme/tintToSkiaColors";
+import { readThemeTokenValue } from "../../../../../../../packages/shared/src/catalog/document/themedToken";
+
+import { catalogFillColorOf } from "../../../../../../../packages/shared/src/catalog/resolution/resolver";
 
 import { useDocumentColors } from "../hooks/useDocumentColors";
 
 import { hex8ToHex6 } from "../utils/colorUtils";
 import {
-  ColorPickerPalettesProps,
-  NEUTRAL_LADDER_STEPS,
+  type ColorPickerPalettesProps,
+  THEME_PALETTE_GROUPS,
 } from "./ColorPickerPalettes.runtime";
 
 /** 스와치 하나 — 드래그 프레임마다 바뀌는 건 선택 링 2개뿐이라 행 단위 memo (parseColor 도 색당 1회) */
@@ -124,8 +121,46 @@ function PaletteHeader({
   );
 }
 
+/** Theme 스와치 하나 — 활성 모드 값으로 칠하고 이름 (토큰) 을 접근 이름 · title 로. */
+const TokenSwatch = memo(function TokenSwatch({
+  name,
+  value,
+  hex,
+  selected,
+  onSelect,
+}: {
+  name: string;
+  /** The token's CSS variable (`tokenToCSSVar` — `{color.neutral-subtle}` is not `var(--neutral-subtle)`). */
+  value: string;
+  hex: string;
+  selected: boolean;
+  onSelect: (value: string) => void;
+}) {
+  const color = useMemo(() => parseColor(hex), [hex]);
+  const handlePress = useCallback(() => onSelect(value), [onSelect, value]);
+  return (
+    <Button
+      className="color-picker-palette__swatch"
+      aria-label={name}
+      aria-pressed={selected}
+      data-selected={selected || undefined}
+      data-token={name}
+      onPress={handlePress}
+    >
+      <ColorSwatch color={color} />
+    </Button>
+  );
+});
+
+/** A theme color token's CSS variable when it is a plain `var(--name)` (the panel's token text). */
+function themeTokenVar(name: string): string | undefined {
+  const css = tokenToCSSVar(`{color.${name}}` as TokenRef);
+  return /^var\(--[\w-]+\)$/.test(css) ? css : undefined;
+}
+
 export const ColorPickerPalettes = memo(function ColorPickerPalettes({
   value,
+  token,
   onSelect,
 }: ColorPickerPalettesProps) {
   const localize = useSemanticLabel();
@@ -136,27 +171,66 @@ export const ColorPickerPalettes = memo(function ColorPickerPalettes({
   const [documentOpen, setDocumentOpen] = useState(true);
   const [themeOpen, setThemeOpen] = useState(true);
 
-  // 사다리의 accent · accent-content 칸은 활성 테마 바탕 (설치된 토큰 맵) 에서 탐색한다 — Tone 이
-  //   바뀌면 다시 (ADR-290)
-  const accentLadder = useMemo(
-    () => resolveAccentLadder(tint, darkMode === "dark" ? "dark" : "light"),
-    [tint, darkMode, neutral],
-  );
-  const neutralLadder = useMemo(
-    () => NEUTRAL_LADDER_STEPS.map((step) => NEUTRAL_PALETTES[neutral][step]),
-    [neutral],
-  );
+  // 토큰 값은 활성 테마 맵 (설치된 tint · neutral) 과 색 모드에서 읽는다 — 바뀌면 다시
+  const themeGroups = useMemo(() => {
+    const mode = darkMode === "dark" ? "dark" : "light";
+    return THEME_PALETTE_GROUPS.map((group) => ({
+      label: group.label,
+      swatches: group.tokens.flatMap((name) => {
+        const css = themeTokenVar(name);
+        const hex = catalogFillColorOf(
+          readThemeTokenValue(`{color.${name}}`, "color", mode),
+        );
+        return css && hex ? [{ name, css, hex }] : [];
+      }),
+    }));
+  }, [tint, neutral, darkMode]);
   const current = hex8ToHex6(value);
 
-  // 선택한 스와치 색을 hex8 로 commit — 문서 색은 alpha 를 보존, theme 사다리는 불투명
+  // 문서 색은 hex8 로 commit (alpha 보존), Theme 은 토큰 변수
   const handleSelect = useCallback(
-    (hex: string) =>
-      onSelect(hex.length === 9 ? hex : `${hex}FF`.toUpperCase()),
+    (picked: string) =>
+      onSelect(
+        picked.startsWith("var(") || picked.length === 9
+          ? picked
+          : `${picked}FF`.toUpperCase(),
+      ),
     [onSelect],
   );
 
   return (
     <div className="color-picker-palettes">
+      <section className="color-picker-palette" data-palette="theme">
+        <PaletteHeader
+          title={localize("Theme")}
+          open={themeOpen}
+          onToggle={() => setThemeOpen((v) => !v)}
+        />
+        {themeOpen &&
+          themeGroups.map((group) => (
+            <div key={group.label} className="color-picker-palette__group">
+              <span className="color-picker-palette__label">
+                {localize(group.label)}
+              </span>
+              <div
+                className="color-picker-palette__grid"
+                role="group"
+                aria-label={localize(group.label)}
+              >
+                {group.swatches.map((swatch) => (
+                  <TokenSwatch
+                    key={swatch.name}
+                    name={swatch.name}
+                    value={swatch.css}
+                    hex={swatch.hex}
+                    selected={token === swatch.css}
+                    onSelect={handleSelect}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+      </section>
       <section className="color-picker-palette" data-palette="document">
         <PaletteHeader
           title={localize("Document")}
@@ -168,7 +242,7 @@ export const ColorPickerPalettes = memo(function ColorPickerPalettes({
           (documentColors.length > 0 ? (
             <SwatchGrid
               colors={documentColors}
-              current={current}
+              current={token ? "" : current}
               labelPrefix={localize("Document")}
               onSelect={handleSelect}
             />
@@ -177,35 +251,6 @@ export const ColorPickerPalettes = memo(function ColorPickerPalettes({
               {localize("No colors used yet")}
             </p>
           ))}
-      </section>
-      <section className="color-picker-palette" data-palette="theme">
-        <PaletteHeader
-          title={localize("Theme")}
-          open={themeOpen}
-          onToggle={() => setThemeOpen((v) => !v)}
-        />
-        {themeOpen && (
-          <>
-            <span className="color-picker-palette__label">
-              {localize("Accent")} · {tint}
-            </span>
-            <SwatchGrid
-              colors={accentLadder}
-              current={current}
-              labelPrefix={localize("Accent")}
-              onSelect={handleSelect}
-            />
-            <span className="color-picker-palette__label">
-              {localize("Neutral")} · {neutral}
-            </span>
-            <SwatchGrid
-              colors={neutralLadder}
-              current={current}
-              labelPrefix={localize("Neutral")}
-              onSelect={handleSelect}
-            />
-          </>
-        )}
       </section>
     </div>
   );

@@ -30,7 +30,9 @@ export function absolutePlacementOf(
   const layout = node.layout ?? {};
   const text = (key: keyof LayoutWrites) => {
     const write = layout[key];
-    return write?.kind === "set" ? write.value : undefined;
+    return write?.kind === "set" && typeof write.value === "string"
+      ? write.value
+      : undefined;
   };
   if (text("position") !== "absolute") return undefined;
   return {

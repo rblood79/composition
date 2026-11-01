@@ -21,6 +21,7 @@ import {
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import type {
   AuthoredValue,
+  TokenUse,
   BreakpointName,
   CatalogFillLayer,
   EditTarget,
@@ -343,9 +344,30 @@ function tokenOf(
   const project = reader.getEntry(reader.projectId) as ProjectEntry;
   for (const id of project.tokenIds)
     if (codeViewTokenVar(reader as never, id) === `var(${name})`) return id;
+  // (ADR-298 D2 — the theme-independent scale id before a rule token's `_light` · `_dark` twin.)
+  let twin: string | undefined;
   for (const id of reader.library.tokens.keys())
-    if (codeViewTokenVar(reader as never, id) === `var(${name})`) return id;
-  return undefined;
+    if (codeViewTokenVar(reader as never, id) === `var(${name})`) {
+      if (!/_(?:light|dark)$/.test(id)) return id;
+      twin ??= id;
+    }
+  return twin;
+}
+
+/** ADR-298 Phase 3 — a fill's `var(--…)` as the color token it names (a non-color token = not a fill). */
+function colorTokenOf(
+  reader: CatalogReader,
+  value: string,
+  known: Readonly<Record<string, string>> | undefined,
+): TokenUse | undefined {
+  const tokenId = tokenOf(reader, value, known);
+  if (!tokenId) return undefined;
+  const token = tokenId.startsWith("lib:")
+    ? reader.library.tokens.get(tokenId as never)
+    : (reader.getEntry(tokenId) as { tokenType?: string } | undefined);
+  return token?.tokenType === "color"
+    ? { kind: "token", tokenId: tokenId as TokenUse["tokenId"] }
+    : undefined;
 }
 
 /**
@@ -562,6 +584,7 @@ export function planCodeViewPageStyle(input: {
           ? codeViewFillsOf(
               value,
               (source.fills ?? []).map((layer) => layer.id),
+              (text) => colorTokenOf(reader, text, tokens),
             )
           : undefined;
         if (value && !fills) {
@@ -776,7 +799,9 @@ function compareStyleFiles(
           // (The fill layers by their paint — a layer's id is the panel's handle.)
           const fills =
             declaration.property === CODE_VIEW_FILLS_CSS
-              ? codeViewFillsOf(value)?.map(({ id: _id, ...layer }) => layer)
+              ? codeViewFillsOf(value, [], (text) =>
+                  colorTokenOf(reader, text, tokens),
+                )?.map(({ id: _id, ...layer }) => layer)
               : undefined;
           values.set(`css:${declaration.property}`, {
             value: fills ? JSON.stringify(fills) : value,

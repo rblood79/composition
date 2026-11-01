@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-298 Phase 3 — 색 · 위치 · 간격 칸도 테마 토큰을 쓴다] - 2026-11-02
+
+### Changed
+
+- **색 피커의 Theme 팔레트가 테마 색 토큰이 되었고 맨 위에 온다 (ADR-298 Phase 3, 사용자 결정 2 · 4)** — Accent · Surface · Neutral · Status 묶음의 스와치를 고르면 Fill · 글자색 · 테두리색이 그 토큰을 참조한다. 테마 색이나 dark 모드를 바꾸면 그 요소의 색도 따라 바뀐다 (Canvas · Preview · 내보낸 코드 모두). 전에는 고른 순간의 hex 가 저장돼 모드를 바꿔도 남았다.
+  - 칸에는 토큰 이름 (「neutral-subtle」) 과 지금 모드의 색이 보인다. 피커를 끌거나 hex 를 치면 그 색이 리터럴로 저장된다. 옛 accent · neutral 사다리는 토큰이 아니어서 팔레트에서 뺐다.
+  - 그라데이션 스톱도 토큰을 받는다. 층 불투명도는 그대로 따로 적용된다.
+  - Grid 의 Gap X · Y 단계 (XS ~ XL) 가 그 축에 토큰으로 저장된다 (전에는 그 순간의 px). 한 줄 flex 의 Gap 도 그 축 값으로 저장된다.
+  - Position 의 Left · Top · Right · Bottom 이 토큰이면 칸에 단계 칩과 px 가 보인다 (단계 메뉴는 다음 Phase — 지금 메뉴를 붙이면 `%` 단위를 고를 수 없어서).
+  - 코드 보기 Page.css 에 `background: var(--bg-muted)` · `left: var(--spacing-lg)` 로 보이고, 고쳐서 Apply 하면 같은 토큰으로 돌아온다.
+  - **Why**: 토큰 모델 A — 노드 값이 토큰 이름을 저장해야 테마 · 모드 전환이 rule 값과 노드 값에 같이 닿는다. fills 색 · inset 은 리터럴만 받는 저장 자리였다 (문서 스키마 `string | TokenUse` 로 확장).
+  - 위치: `packages/shared/src/catalog/document/types.ts` (`CatalogFillColor` · `LayoutTokenField`) · `resolution/resolver.ts` (`resolvedFills` · `applyLayoutWrites`) · `runtime/authoredStyle.ts` · `runtime/nodeTokenCss.ts` · `utils/fillAdapter.ts` · `codeView/files/styles.ts` · `apps/builder/src/builder/catalogRuntime/panelTokens.ts` · `panels/styles/components/ColorPickerPalettes.*` · 테스트 `adr298Phase3.test.ts` · `adr298Phase3Panel.test.tsx` · `adr298CodeViewRoundTrip.test.tsx`
+
 ## [ADR-298 Phase 2 — Design 패널이 테마 토큰을 먼저 쓴다 (패널)] - 2026-11-01
 
 ### Changed

@@ -169,9 +169,9 @@ export function tokenChipLabel(
   const trimmed = value.trim();
   if (!isTokenValue(trimmed)) return undefined;
   const preset = presets?.find((candidate) => candidate.value.trim() === trimmed);
-  // 묶음의 첫 글자로 두 묶음의 같은 라벨을 가른다 (본문 「M」 · 제목 「H M」).
+  // 제목 묶음은 첫 글자로 본문의 같은 라벨과 가른다 (본문 「M」 · 제목 「H M」).
   if (preset)
-    return preset.group && preset.group !== "Body"
+    return preset.group === "Heading"
       ? `${preset.group[0]} ${preset.label}`
       : preset.label;
   const step = /([a-z0-9]+)\)$/.exec(trimmed.replace(/--line-height\)$/, ")"))?.[1];
