@@ -1578,8 +1578,8 @@ const overlayBackdrop: SkiaPrimitiveDrawFn = () => [
  * `calendar_grid` — 월 단위 날짜 grid(nav + month/year text + 7 weekday + 최대 31 date cell +
  * today dot). box+text 로 표현 불가한 복합 primitive → `"replace"` 모드(box+text 대체).
  *
- * 값/좌표식은 `CalendarSpec.render.shapes`(Calendar.spec.ts) 1:1 이식 — 단, spec VariantSpec
- * (`variant.text`/`variant.border`/`resolveStateColors`) 대신 보편 rule 테이블에서 해소된
+ * 값/좌표식은 `CalendarSpec.render.shapes`(Calendar.spec.ts) 1:1 이식 — 단, 옛 spec variant 색
+ * 대신 보편 rule 테이블에서 해소된
  * `ctx.visual`(text/border/fill.default[state]) + `ctx.size`(fontSize/borderRadius/iconSize)를
  * 읽는다(ADR-912 ②-6-A theme rule base SSOT 정합 — spec-free). RangeCalendar 도 동일 primitive
  * 사용(RangeCalendar.spec = `...CalendarSpec`, 시각 동형). 자식이 있으면(`_hasChildren`)

@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { getComponentRulesTable } from "../../../../shared/src/index";
 import { generateCSS } from "../CSSGenerator";
 import type { ComponentSpec, SizeSpec, VariantSpec } from "../../types";
-import type { ComponentVisualRule } from "../utils/resolveComponentVisual";
+import type { FixtureVisual as ComponentVisualRule } from "./fixtureVisual";
 
 /**
  * 회귀 방지 (2026-06-25): Disclosure 군 generated CSS 가 catalog rule SSOT(structure 메타)에서

@@ -5,7 +5,6 @@ import {
   stateOnlySheets,
   stateStylesCssFor,
   variantPaintCssFor,
-  variantSourceFor,
 } from "../scripts/generate-css";
 import { generateCSS } from "../src/renderers/CSSGenerator";
 import { COMPONENT_RULES_TABLE } from "../../shared/src/catalog/generated/componentRulesTable";
@@ -16,7 +15,6 @@ it("catalog 단독 생성 CSS가 배포 CSS 103개와 byte-identical이다", () 
   for (const input of buildVirtualSpecs()) {
     const css = generateCSS(
       input,
-      variantSourceFor(input.name),
       variantPaintCssFor(input.name),
       stateStylesCssFor(input.name),
     );

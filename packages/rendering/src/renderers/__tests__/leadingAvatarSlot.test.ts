@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { buildCatalogShapes, resolveLeadingSlot } from "./catalogPaintFixture";
 import { getSkiaPrimitive, getSkiaPrimitiveMode } from "./catalogPaintFixture";
-import type { ComponentVisualRule } from "../utils/resolveComponentVisual";
+import type { FixtureVisual as ComponentVisualRule } from "./fixtureVisual";
 import type { Shape, SizeSpec } from "../../types";
 
 /**

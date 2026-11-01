@@ -200,19 +200,28 @@ describe("ButtonGroup Disabled — its Buttons (S2: all the Buttons are disabled
       );
     expect(buttons().length).toBeGreaterThan(0);
     expect(canvas().every(Boolean)).toBe(true);
-    // The Canvas dims them as the DOM's `[data-disabled]` does (the rule's disabled opacity).
-    const dimmed = () => {
+    // S2: a disabled Button is painted in the disabled colors, not dimmed (ADR-297 3h #7 — `Button.tsx`
+    //   `isDisabled: 'disabled'`), the same tree branch as the DOM's `[data-disabled]`.
+    const painted = () => {
       const binding = bindCatalogCanvas(root, root.pageRootRecords());
-      const out = buttons().map(
-        (button) =>
-          getSkiaNode(button.id)?.effects?.find(
-            (effect) => effect.type === "opacity",
-          )?.value,
-      );
+      const out = buttons().map((button) => {
+        const node = getSkiaNode(button.id);
+        return {
+          opacity: node?.effects?.find((effect) => effect.type === "opacity")
+            ?.value,
+          // (the box paint — fill and border; an outline Button changes only its border)
+          fill: JSON.stringify(node?.box ?? null, (_key, value) =>
+            ArrayBuffer.isView(value) ? Array.from(value as Float32Array) : value,
+          ),
+        };
+      });
       binding.dispose();
       return out;
     };
-    expect(dimmed().every((value) => typeof value === "number" && value < 1)).toBe(true);
+    const disabledPaint = painted();
+    expect(disabledPaint.every((paint) => paint.opacity === undefined)).toBe(
+      true,
+    );
     const dom = await mount(workspace);
     const disabled = () =>
       [...dom.host.querySelectorAll("button")].map((button) =>
@@ -236,7 +245,15 @@ describe("ButtonGroup Disabled — its Buttons (S2: all the Buttons are disabled
     );
     expect(canvas().some(Boolean)).toBe(false);
     expect(disabled().some(Boolean)).toBe(false);
-    expect(dimmed().every((value) => value === undefined)).toBe(true);
+    const enabledPaint = painted();
+    expect(
+      enabledPaint.every(
+        (paint, index) =>
+          paint.opacity === undefined &&
+          paint.fill !== "null" &&
+          paint.fill !== disabledPaint[index]!.fill,
+      ),
+    ).toBe(true);
     await dom.close();
   });
 });

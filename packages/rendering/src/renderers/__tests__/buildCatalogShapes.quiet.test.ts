@@ -15,7 +15,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ComponentSpec, SizeSpec, TokenRef } from "../../types";
 import { buildCatalogShapes } from "./catalogPaintFixture";
-import { resolveComponentVisual } from "../utils/resolveComponentVisual";
+import { resolveComponentVisual } from "./fixtureVisual";
 
 const size = {
   paddingX: 8,

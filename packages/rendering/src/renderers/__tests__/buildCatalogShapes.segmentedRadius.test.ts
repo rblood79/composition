@@ -18,7 +18,7 @@ import {
   buildCatalogShapes,
   resolveSegmentedRadius,
 } from "./catalogPaintFixture";
-import type { ComponentVisualRule } from "../utils/resolveComponentVisual";
+import type { FixtureVisual as ComponentVisualRule } from "./fixtureVisual";
 import type { SizeSpec } from "../../types";
 
 const pos = (

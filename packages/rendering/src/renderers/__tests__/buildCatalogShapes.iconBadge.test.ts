@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { ComponentVisualRule } from "../utils/resolveComponentVisual";
+import type { FixtureVisual as ComponentVisualRule } from "./fixtureVisual";
 import type { SizeSpec, TokenRef } from "../../types";
 import { getSkiaPrimitive } from "./catalogPaintFixture";
 import { buildCatalogShapes } from "./catalogPaintFixture";

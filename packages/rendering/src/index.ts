@@ -2,9 +2,7 @@
 export type {
   ComponentSpec,
   ComponentState,
-  VariantSpec,
-  FillStateTokens,
-  FillTokenSpec,
+  VariantRestPaint,
   SizeSpec,
   RenderSpec,
   ContainerVariantStyles,
@@ -105,10 +103,6 @@ export {
 } from "./icons/lucideIcons";
 export type { LucideIconData } from "./icons/lucideIcons";
 
-export { resolveStateColors } from "./utils/stateEffect";
-
-export { resolveFillTokens, resolveIndicatorFill } from "./utils/fillTokens";
-
 export { racStateAttrs, type RacStateInput } from "./utils/racStateAttrs";
 
 export {
@@ -207,8 +201,6 @@ export type {
 } from "./primitives";
 
 export {
-  getVariantColors,
-  getSizePreset,
   generateCSS,
   CATALOG_TOKEN_VAR_PREFIX,
   catalogTokenVarName,

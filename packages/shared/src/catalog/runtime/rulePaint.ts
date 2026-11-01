@@ -270,7 +270,16 @@ export function catalogRulePaint(
     props.isSelected = true;
     props._isSelected = true;
   } else if (ownerSelected === false) delete props.isSelected;
-  if (state === "disabled") props.isDisabled = true;
+  // (Disabled as `catalogStateValue` reads it: the display state, the record's own flag, or the one an
+  //  owner hands it — a Button in a disabled ButtonGroup, a field's part. The flags OR — the palette
+  //  default `isDisabled: false` does not hide an owner's `true`. ADR-297 3h #7: a disabled color.)
+  const derived = node.derivedProps as Record<string, unknown> | undefined;
+  if (
+    state === "disabled" ||
+    derived?.isDisabled === true ||
+    derived?._fieldDisabled === true
+  )
+    props.isDisabled = true;
   props.style = box
     ? { ...style, width: box.width, height: box.height }
     : style;

@@ -42,26 +42,20 @@ paths:
 - Spec fontSize 우선순위: `props.size` 명시 시 `size.fontSize` 우선. **Why**: Propagation은 size prop만 변경, style.fontSize 미갱신
 - Spec Container Dimension Injection: `_containerWidth`/`_containerHeight` props 주입 (`catalogRuntime/ruleShapes.ts`). `BOX_SIZE_TYPES` Set 등록 필수 (옛 `buildSpecNodeData.ts` `CONTAINER_DIMENSION_TAGS` — Phase 4e-9-8 삭제). **Why**: Spec shapes가 레이아웃 엔진 결과를 모르면 우측/중앙 배치 불가
 
-## 2.5.5. Fill token consumer 계약 (ADR-908 Implemented 2026-04-24)
+## 2.5.5. 칠 계약 — variant 조건 트리 하나 (ADR-297, 2026-11-02 3i)
 
-VariantSpec 의 배경 계열 필드 + IndicatorModeSpec 의 background\* 는 `FillTokenSpec` (fillStyle × state 2축) + `FillStateTokens` 하나로 통합돼 있다. legacy `background / backgroundHover / backgroundPressed / backgroundAlpha / selectedBackground* / emphasizedSelectedBackground / outlineBackground / subtleBackground` 필드는 없다.
+variant 의 칠 (배경 · 글자 · 테두리와 그 상태 — hover · pressed · selected · emphasized · quiet · fillStyle · staticColor · disabled) 은 rule 의 `ComponentRuleVariant.paint` 조건 트리 하나가 정본이다. 우선순위 = 키 순서 (`default` 다음 키 순, 마지막에 맞는 가지가 이긴다).
 
-### Fill token 구조
+- Canvas: `resolveCatalogPaint` 가 record 조건 (`isHovered` · `isPressed` · `isSelected` · `isDisabled` · `fillStyle` · `staticColor` …) 으로 트리를 평가해 primitive 에 `paint` 를 준다. primitive 는 해석된 `paint` 만 읽는다.
+- DOM: `generate-css.ts` `variantPaintCssFor` 가 같은 트리를 `compileConditionTree` 로 `:where()` 블록에 compile 한다 (트리 순서 = cascade). 생성 sheet 의 기본 블록은 기본 variant 의 휴지 칠 (`VariantRestPaint` — 트리의 `default`) 만 싣는다.
+- 투영기 (library 정의 · Design 패널) 는 `evaluatePaint` · `paintAt` 으로 같은 트리를 읽는다.
+- `ComponentVisualRule` 은 비-칠 값 (글자 굵기 · 글꼴 · 선 모양 · value 채움 색 · 아이콘) 만 싣는다.
 
-타입 정의는 소스가 정본 — `packages/rendering/src/types/spec.types.ts` 의 `FillStateTokens` (state 축: `base` 필수, 나머지 선택) / `FillTokenSpec` (fillStyle 축: `default` 필수, `outline`/`subtle` 은 `Partial`, `alpha` 0-1). 여기에 복사본을 두지 않는다 (drift 방지).
+### 금지 패턴
 
-### Consumer 규약
-
-- `packages/rendering` 의 consumer (`renderers/CSSGenerator.ts` · `variantColors.ts` · `skiaPrimitives.ts` 등 `VariantSpec` 을 읽는 모든 곳) 는 항상 `resolveFillTokens(variant)` / `resolveIndicatorFill(im)` 경유로 fill 접근. **Why**: 단일 진입점 유지 + 향후 merge/override 확장 포인트 보존
-- `variant.background` / `variant.backgroundHover` 등 직접 property access **금지** (타입상 존재 안 함, compile error).
-- hover / pressed 는 optional 이므로 consumer 에서 fallback 필요: `fill.default.hover ?? fill.default.base` 패턴.
-
-### 금지 패턴 (ADR-908 Phase 4)
-
-- ❌ VariantSpec / IndicatorModeSpec 에 `background` / `backgroundHover` / `backgroundPressed` / `selectedBackground*` / `outlineBackground` / `subtleBackground` / `backgroundAlpha` 개별 필드 신규 도입
-- ❌ `variantSpec.background*` / `variant.background*` / `im.background*` property access — 타입 삭제됨, 단일 진입점만 사용
-- ❌ `variantSpecToFillTokens()` 호출 — Phase 4-c 에서 삭제됨, `resolveFillTokens()` 만 사용
-- ❌ local const 의 property 이름에 legacy naming 유지 (DropZone/Card 예시는 historical, 신규 금지)
+- ❌ variant 에 칠 칸을 트리 밖에 따로 두기 (옛 `fill.<style>.<state>` · `colors` 접미사 키 · `VariantSpec` · `FillTokenSpec` 은 3i 에서 삭제) — 상태 칠은 트리의 조건 가지로
+- ❌ 한 consumer 에만 상태 분기 추가 (Canvas 사슬 · 수동 CSS 상태 블록) — 두 consumer 가 같은 트리를 읽는다
+- ❌ 상태 칠을 color-mix · opacity 같은 두 번째 파생식으로 (옛 `.button-base` ramp · disabled opacity) — S2 값을 트리 leaf 로
 
 ## 2.6. Container style pipeline (ADR-907 Implemented)
 

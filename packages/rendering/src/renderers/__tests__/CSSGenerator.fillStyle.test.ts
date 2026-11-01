@@ -4,57 +4,28 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import type { ComponentSpec } from "../../types/spec.types";
-import type { TokenRef } from "../../types/token.types";
-import { generateCSS } from "../CSSGenerator";
-import { variantToVisual } from "../utils/resolveComponentVisual";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
-function makeFillStyleSpec(): ComponentSpec {
-  return {
-    name: "TestBadge",
-    archetype: "simple",
-    element: "span",
-    defaultVariant: "accent",
-    defaultSize: "S",
-    variants: {
-      accent: {
-        fill: {
-          default: { base: "{color.accent}" as TokenRef },
-          subtle: { base: "{color.accent-subtle}" as TokenRef },
-        },
-        text: "{color.on-accent}" as TokenRef,
-        border: "{color.transparent}" as TokenRef,
-        subtleText: "{color.accent}" as TokenRef,
-      },
-    },
-    sizes: {
-      sm: {
-        height: 0,
-        paddingX: 8,
-        paddingY: 2,
-        fontSize: "{typography.text-xs}" as TokenRef,
-        lineHeight: "{typography.text-xs--line-height}" as TokenRef,
-        borderRadius: "{radius.full}" as TokenRef,
-        borderWidth: 1,
-      },
-    },
-  } as ComponentSpec;
-}
-
 describe("CSSGenerator fillStyle", () => {
   it("subtle fill이 outline과 같은 1px box footprint를 유지한다", () => {
-    const spec = makeFillStyleSpec();
-    const visual = variantToVisual(spec.variants!.accent);
-
-    const css = generateCSS(spec, { accent: visual }) ?? "";
-    const subtleRule = css.match(
-      /\[data-fill-style="subtle"\] \{([\s\S]*?)\n\}/,
-    )?.[1];
-
-    expect(subtleRule).toContain("border-color: transparent;");
-    expect(subtleRule).not.toContain("border: none;");
+    // ADR-297 3i: the variant blocks are the compiled trees — the subtle block never drops the base block's
+    //   1px transparent border (`border: none`), so subtle · outline · fill keep one box size.
+    const css = readFileSync(
+      resolve(
+        here,
+        "../../../../shared/src/components/styles/generated/Badge.css",
+      ),
+      "utf8",
+    );
+    expect(css).toMatch(
+      /^\.react-aria-Badge \{[\s\S]*?border: var\(--border-width-thin\) solid transparent;/m,
+    );
+    const subtle = [
+      ...css.matchAll(/\[data-fill-style="subtle"\]\) \{([\s\S]*?)\n\}/g),
+    ];
+    expect(subtle.length).toBeGreaterThan(0);
+    for (const [, block] of subtle) expect(block).not.toContain("border: none");
   });
 
   it("Badge의 variant/fill/size 선택자는 generated CSS만 소유한다", () => {

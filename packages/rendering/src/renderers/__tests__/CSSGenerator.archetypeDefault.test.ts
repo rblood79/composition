@@ -1,9 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { getComponentRulesTable } from "../../../../shared/src/index";
-import { legacyVariantPaint } from "../../../../shared/src/catalog/rule/rulePaintTree";
+import { paintAt } from "../../../../shared/src/catalog/rule/rulePaintTree";
 import { stateStylesCssFor } from "../../../scripts/generate-css";
 import { generateCSS } from "../CSSGenerator";
-import type { ComponentSpec, SizeSpec, VariantSpec } from "../../types";
+import type {
+  ComponentSpec,
+  SizeSpec,
+  TokenRef,
+  VariantRestPaint,
+} from "../../types";
 
 /**
  * ADR-223 (2026-09-18): archetype 미지정 (catalog `"default"`) 의 생성 CSS base 는 중립 상자
@@ -42,15 +47,13 @@ function cssFor(name: string): string {
   for (const [k, v] of Object.entries(rule.sizes)) {
     sizes[k] = ruleSizeToSizeSpec(v as Record<string, unknown>);
   }
-  const variants: Record<string, VariantSpec> = {};
-  for (const [k, v] of Object.entries(rule.variants)) {
-    // ADR-297: the generator's legacy-order input of the variant's paint tree (generate-css `legacyPaintOf`).
-    const legacy = legacyVariantPaint(v.paint, rule.fillStyleValues);
+  const variants: Record<string, VariantRestPaint> = {};
+  for (const [k, v] of Object.entries(rule.variants))
+    // ADR-297 3i: the rest paint — the trees' `default` (generate-css `variantRestPaint`).
     variants[k] = {
-      fill: legacy.fill as unknown as VariantSpec["fill"],
-      text: (legacy.colors?.text ?? "{color.neutral}") as VariantSpec["text"],
-    } as VariantSpec;
-  }
+      background: paintAt(v.paint.backgroundColor) as TokenRef | undefined,
+      text: (paintAt(v.paint.color) ?? "{color.neutral}") as TokenRef,
+    };
   const spec: ComponentSpec<unknown> = {
     name,
     // catalog "default" 는 ArchetypeId 가 아니다 — generate-css `toArchetypeId` 와 같이 미지정으로 넘긴다.
@@ -64,7 +67,7 @@ function cssFor(name: string): string {
     ...(meta.composition ? { composition: meta.composition } : {}),
     render: { shapes: () => [] },
   };
-  return generateCSS(spec, undefined, undefined, stateStylesCssFor(name))!;
+  return generateCSS(spec, undefined, stateStylesCssFor(name))!;
 }
 
 /** root 블록 (`.react-aria-X {` 첫 블록) 만 잘라낸다. */

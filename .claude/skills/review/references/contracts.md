@@ -58,8 +58,8 @@ ADR-248 Phase 4 이전의 Zustand store · spec 경로 항목은 걷어냈습니
   자식 칠 변경" 회귀 테스트를 요구합니다.
 - 닫힌 overlay 자식 (Popover 안 ListBox · 달력) 은 Canvas 가 그리지 않습니다
   (`TRIGGER_OVERLAY_CHILDREN`). DOM 은 RAC Popover 안에 그립니다.
-- `TokenRef` 숫자 연산은 `resolveToken` 경유, fill 은 `resolveFillTokens`/`resolveIndicatorFill`
-  경유. gap/padding 은 longhand 우선과 shorthand fallback 을 함께 처리합니다.
+- `TokenRef` 숫자 연산은 `resolveToken` 경유. variant 칠은 rule 의 조건 트리 하나 (Canvas
+  `resolveCatalogPaint` · DOM `variantPaintCssFor` — ADR-297). gap/padding 은 longhand 우선과 shorthand fallback 을 함께 처리합니다.
 - Skia 전용 시각 효과 (DOM/CSS 로 재현 불가) 도입은 D3 대칭 위반입니다. 한쪽 소비자만 고친
   렌더 수정은 `/cross-check` 결과를 요구합니다.
 - 상태 변수 `{{ name }}` 은 Canvas 가 기본값 env, Preview/publish 가 런타임 env — 설계된

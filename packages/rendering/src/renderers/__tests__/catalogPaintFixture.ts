@@ -11,7 +11,7 @@ import {
   getSkiaPrimitive as getPrimitive,
   type SkiaPrimitiveDrawFn,
 } from "../skiaPrimitives";
-import type { ComponentVisualRule } from "../utils/resolveComponentVisual";
+import type { FixtureVisual as ComponentVisualRule } from "./fixtureVisual";
 
 export {
   resolveLeadingIconName,

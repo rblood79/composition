@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ComponentSpec, SizeSpec, TokenRef } from "../../types";
 import { buildCatalogShapes } from "./catalogPaintFixture";
-import { resolveComponentVisual } from "../utils/resolveComponentVisual";
+import { resolveComponentVisual } from "./fixtureVisual";
 
 /**
  * Phase 2 — catalog 경로 border-style 3경로 공통 소비 회귀 테스트.

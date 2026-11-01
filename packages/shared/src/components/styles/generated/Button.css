@@ -46,142 +46,134 @@
 
 .react-aria-Button:where([data-variant="accent"]) {
   background: var(--accent);
-  color: var(--fg-on-accent);
-  border-color: var(--accent);
 }
 
 .react-aria-Button:where([data-variant="accent"][data-hovered]) {
   background: var(--accent-hover, color-mix(in srgb, var(--accent) 85%, black));
-  border-color: var(--accent-hover, color-mix(in srgb, var(--accent) 85%, black));
 }
 
 .react-aria-Button:where([data-variant="accent"][data-pressed]) {
-  background: var(--accent-pressed, color-mix(in srgb, var(--accent) 75%, black));
+  background: var(--accent-hover, color-mix(in srgb, var(--accent) 85%, black));
+}
+
+.react-aria-Button:where([data-variant="accent"][data-disabled]) {
+  background: var(--bg-disabled);
 }
 
 .react-aria-Button:where([data-variant="accent"][data-fill-style="outline"]) {
   background: transparent;
-  color: var(--accent-content);
-  border-color: var(--border-hover);
 }
 
-.react-aria-Button:where([data-variant="accent"][data-static-color="black"]) {
-  background: #000000;
-  color: #ffffff;
-  border-color: #000000;
+.react-aria-Button:where([data-variant="accent"][data-fill-style="outline"][data-hovered]) {
+  background: var(--bg-muted);
 }
 
-.react-aria-Button:where([data-variant="accent"][data-static-color="black"][data-hovered]) {
-  background: #000000;
-  color: #ffffff;
-  border-color: #000000;
+.react-aria-Button:where([data-variant="accent"][data-fill-style="outline"][data-pressed]) {
+  background: var(--bg-muted);
 }
 
-.react-aria-Button:where([data-variant="accent"][data-static-color="black"][data-pressed]) {
-  background: #000000;
-  color: #ffffff;
-}
-
-.react-aria-Button:where([data-variant="accent"][data-static-color="black"][data-fill-style="outline"]) {
+.react-aria-Button:where([data-variant="accent"][data-fill-style="outline"][data-disabled]) {
   background: transparent;
-  color: #000000;
-  border-color: #000000;
-}
-
-.react-aria-Button:where([data-variant="accent"][data-static-color="white"]) {
-  background: #ffffff;
-  color: #000000;
-  border-color: #ffffff;
-}
-
-.react-aria-Button:where([data-variant="accent"][data-static-color="white"][data-hovered]) {
-  background: #ffffff;
-  color: #000000;
-  border-color: #ffffff;
-}
-
-.react-aria-Button:where([data-variant="accent"][data-static-color="white"][data-pressed]) {
-  background: #ffffff;
-  color: #000000;
-}
-
-.react-aria-Button:where([data-variant="accent"][data-static-color="white"][data-fill-style="outline"]) {
-  background: transparent;
-  color: #ffffff;
-  border-color: #ffffff;
 }
 
 .react-aria-Button:where([data-variant="primary"]) {
   background: var(--fg);
-  color: var(--bg);
-  border-color: var(--fg);
 }
 
 .react-aria-Button:where([data-variant="primary"][data-hovered]) {
   background: var(--neutral-fill-hover);
-  border-color: var(--neutral-fill-hover);
 }
 
 .react-aria-Button:where([data-variant="primary"][data-pressed]) {
-  background: var(--neutral-fill-pressed);
+  background: var(--neutral-fill-hover);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-disabled]) {
+  background: var(--bg-disabled);
 }
 
 .react-aria-Button:where([data-variant="primary"][data-fill-style="outline"]) {
   background: transparent;
-  color: var(--fg);
-  border-color: var(--border-hover);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-fill-style="outline"][data-hovered]) {
+  background: var(--bg-muted);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-fill-style="outline"][data-pressed]) {
+  background: var(--bg-muted);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-fill-style="outline"][data-disabled]) {
+  background: transparent;
 }
 
 .react-aria-Button:where([data-variant="primary"][data-static-color="black"]) {
-  background: #000000;
-  color: #ffffff;
-  border-color: #000000;
+  background: rgba(0, 0, 0, 0.85);
 }
 
 .react-aria-Button:where([data-variant="primary"][data-static-color="black"][data-hovered]) {
-  background: #000000;
-  color: #ffffff;
-  border-color: #000000;
+  background: rgba(0, 0, 0, 0.94);
 }
 
 .react-aria-Button:where([data-variant="primary"][data-static-color="black"][data-pressed]) {
-  background: #000000;
-  color: #ffffff;
+  background: rgba(0, 0, 0, 0.94);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-static-color="black"][data-disabled]) {
+  background: rgba(0, 0, 0, 0.11);
 }
 
 .react-aria-Button:where([data-variant="primary"][data-static-color="black"][data-fill-style="outline"]) {
   background: transparent;
-  color: #000000;
-  border-color: #000000;
+}
+
+.react-aria-Button:where([data-variant="primary"][data-static-color="black"][data-fill-style="outline"][data-hovered]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-static-color="black"][data-fill-style="outline"][data-pressed]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-static-color="black"][data-fill-style="outline"][data-disabled]) {
+  background: transparent;
 }
 
 .react-aria-Button:where([data-variant="primary"][data-static-color="white"]) {
-  background: #ffffff;
-  color: #000000;
-  border-color: #ffffff;
+  background: rgba(255, 255, 255, 0.85);
 }
 
 .react-aria-Button:where([data-variant="primary"][data-static-color="white"][data-hovered]) {
-  background: #ffffff;
-  color: #000000;
-  border-color: #ffffff;
+  background: rgba(255, 255, 255, 0.94);
 }
 
 .react-aria-Button:where([data-variant="primary"][data-static-color="white"][data-pressed]) {
-  background: #ffffff;
-  color: #000000;
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-static-color="white"][data-disabled]) {
+  background: rgba(255, 255, 255, 0.11);
 }
 
 .react-aria-Button:where([data-variant="primary"][data-static-color="white"][data-fill-style="outline"]) {
   background: transparent;
-  color: #ffffff;
-  border-color: #ffffff;
+}
+
+.react-aria-Button:where([data-variant="primary"][data-static-color="white"][data-fill-style="outline"][data-hovered]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-static-color="white"][data-fill-style="outline"][data-pressed]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-static-color="white"][data-fill-style="outline"][data-disabled]) {
+  background: transparent;
 }
 
 .react-aria-Button:where([data-variant="secondary"]) {
   background: var(--bg-overlay);
-  color: var(--fg);
-  border-color: var(--border);
 }
 
 .react-aria-Button:where([data-variant="secondary"][data-hovered]) {
@@ -192,255 +184,856 @@
   background: var(--bg-muted);
 }
 
+.react-aria-Button:where([data-variant="secondary"][data-disabled]) {
+  background: var(--bg-disabled);
+}
+
 .react-aria-Button:where([data-variant="secondary"][data-fill-style="outline"]) {
   background: transparent;
-  color: var(--fg);
-  border-color: var(--border-hover);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-fill-style="outline"][data-hovered]) {
+  background: var(--bg-muted);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-fill-style="outline"][data-pressed]) {
+  background: var(--bg-muted);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-fill-style="outline"][data-disabled]) {
+  background: transparent;
 }
 
 .react-aria-Button:where([data-variant="secondary"][data-static-color="black"]) {
-  background: #000000;
-  color: #ffffff;
-  border-color: #000000;
+  background: rgba(0, 0, 0, 0.11);
 }
 
 .react-aria-Button:where([data-variant="secondary"][data-static-color="black"][data-hovered]) {
-  background: #000000;
-  color: #ffffff;
+  background: rgba(0, 0, 0, 0.14);
 }
 
 .react-aria-Button:where([data-variant="secondary"][data-static-color="black"][data-pressed]) {
-  background: #000000;
-  color: #ffffff;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-static-color="black"][data-disabled]) {
+  background: rgba(0, 0, 0, 0.11);
 }
 
 .react-aria-Button:where([data-variant="secondary"][data-static-color="black"][data-fill-style="outline"]) {
   background: transparent;
-  color: #000000;
-  border-color: #000000;
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-static-color="black"][data-fill-style="outline"][data-hovered]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-static-color="black"][data-fill-style="outline"][data-pressed]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-static-color="black"][data-fill-style="outline"][data-disabled]) {
+  background: transparent;
 }
 
 .react-aria-Button:where([data-variant="secondary"][data-static-color="white"]) {
-  background: #ffffff;
-  color: #000000;
-  border-color: #ffffff;
+  background: rgba(255, 255, 255, 0.11);
 }
 
 .react-aria-Button:where([data-variant="secondary"][data-static-color="white"][data-hovered]) {
-  background: #ffffff;
-  color: #000000;
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .react-aria-Button:where([data-variant="secondary"][data-static-color="white"][data-pressed]) {
-  background: #ffffff;
-  color: #000000;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-static-color="white"][data-disabled]) {
+  background: rgba(255, 255, 255, 0.11);
 }
 
 .react-aria-Button:where([data-variant="secondary"][data-static-color="white"][data-fill-style="outline"]) {
   background: transparent;
-  color: #ffffff;
-  border-color: #ffffff;
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-static-color="white"][data-fill-style="outline"][data-hovered]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-static-color="white"][data-fill-style="outline"][data-pressed]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-static-color="white"][data-fill-style="outline"][data-disabled]) {
+  background: transparent;
 }
 
 .react-aria-Button:where([data-variant="negative"]) {
   background: var(--negative);
-  color: var(--fg-on-negative);
-  border-color: var(--negative);
 }
 
 .react-aria-Button:where([data-variant="negative"][data-hovered]) {
   background: var(--negative-hover, color-mix(in srgb, var(--negative) 85%, black));
-  border-color: var(--negative-hover, color-mix(in srgb, var(--negative) 85%, black));
 }
 
 .react-aria-Button:where([data-variant="negative"][data-pressed]) {
-  background: var(--negative-pressed, color-mix(in srgb, var(--negative) 75%, black));
+  background: var(--negative-hover, color-mix(in srgb, var(--negative) 85%, black));
+}
+
+.react-aria-Button:where([data-variant="negative"][data-disabled]) {
+  background: var(--bg-disabled);
 }
 
 .react-aria-Button:where([data-variant="negative"][data-fill-style="outline"]) {
   background: transparent;
-  color: var(--negative);
-  border-color: var(--border-hover);
 }
 
-.react-aria-Button:where([data-variant="negative"][data-static-color="black"]) {
-  background: #000000;
-  color: #ffffff;
-  border-color: #000000;
+.react-aria-Button:where([data-variant="negative"][data-fill-style="outline"][data-hovered]) {
+  background: var(--bg-muted);
 }
 
-.react-aria-Button:where([data-variant="negative"][data-static-color="black"][data-hovered]) {
-  background: #000000;
-  color: #ffffff;
-  border-color: #000000;
+.react-aria-Button:where([data-variant="negative"][data-fill-style="outline"][data-pressed]) {
+  background: var(--bg-muted);
 }
 
-.react-aria-Button:where([data-variant="negative"][data-static-color="black"][data-pressed]) {
-  background: #000000;
-  color: #ffffff;
-}
-
-.react-aria-Button:where([data-variant="negative"][data-static-color="black"][data-fill-style="outline"]) {
+.react-aria-Button:where([data-variant="negative"][data-fill-style="outline"][data-disabled]) {
   background: transparent;
-  color: #000000;
-  border-color: #000000;
-}
-
-.react-aria-Button:where([data-variant="negative"][data-static-color="white"]) {
-  background: #ffffff;
-  color: #000000;
-  border-color: #ffffff;
-}
-
-.react-aria-Button:where([data-variant="negative"][data-static-color="white"][data-hovered]) {
-  background: #ffffff;
-  color: #000000;
-  border-color: #ffffff;
-}
-
-.react-aria-Button:where([data-variant="negative"][data-static-color="white"][data-pressed]) {
-  background: #ffffff;
-  color: #000000;
-}
-
-.react-aria-Button:where([data-variant="negative"][data-static-color="white"][data-fill-style="outline"]) {
-  background: transparent;
-  color: #ffffff;
-  border-color: #ffffff;
 }
 
 .react-aria-Button:where([data-variant="premium"]) {
   background: var(--hue-purple);
-  color: var(--color-white);
-  border-color: var(--hue-purple);
 }
 
 .react-aria-Button:where([data-variant="premium"][data-hovered]) {
   background: var(--purple-hover, color-mix(in srgb, var(--hue-purple) 85%, black));
-  border-color: var(--purple-hover, color-mix(in srgb, var(--hue-purple) 85%, black));
 }
 
 .react-aria-Button:where([data-variant="premium"][data-pressed]) {
-  background: var(--purple-pressed, color-mix(in srgb, var(--hue-purple) 75%, black));
+  background: var(--purple-hover, color-mix(in srgb, var(--hue-purple) 85%, black));
+}
+
+.react-aria-Button:where([data-variant="premium"][data-disabled]) {
+  background: var(--bg-disabled);
 }
 
 .react-aria-Button:where([data-variant="premium"][data-fill-style="outline"]) {
   background: transparent;
-  color: var(--hue-purple);
-  border-color: var(--border-hover);
+}
+
+.react-aria-Button:where([data-variant="premium"][data-fill-style="outline"][data-hovered]) {
+  background: var(--bg-muted);
+}
+
+.react-aria-Button:where([data-variant="premium"][data-fill-style="outline"][data-pressed]) {
+  background: var(--bg-muted);
+}
+
+.react-aria-Button:where([data-variant="premium"][data-fill-style="outline"][data-disabled]) {
+  background: transparent;
 }
 
 .react-aria-Button:where([data-variant="premium"][data-static-color="black"]) {
-  background: #000000;
-  color: #ffffff;
-  border-color: #000000;
+  background: rgba(0, 0, 0, 0.11);
 }
 
 .react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-hovered]) {
-  background: #000000;
-  color: #ffffff;
-  border-color: #000000;
+  background: rgba(0, 0, 0, 0.11);
 }
 
 .react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-pressed]) {
-  background: #000000;
-  color: #ffffff;
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-disabled]) {
+  background: rgba(0, 0, 0, 0.11);
 }
 
 .react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-fill-style="outline"]) {
-  background: transparent;
-  color: #000000;
-  border-color: #000000;
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-fill-style="outline"][data-hovered]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-fill-style="outline"][data-pressed]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-fill-style="outline"][data-disabled]) {
+  background: rgba(0, 0, 0, 0.11);
 }
 
 .react-aria-Button:where([data-variant="premium"][data-static-color="white"]) {
-  background: #ffffff;
-  color: #000000;
-  border-color: #ffffff;
+  background: rgba(255, 255, 255, 0.11);
 }
 
 .react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-hovered]) {
-  background: #ffffff;
-  color: #000000;
-  border-color: #ffffff;
+  background: rgba(255, 255, 255, 0.11);
 }
 
 .react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-pressed]) {
-  background: #ffffff;
-  color: #000000;
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-disabled]) {
+  background: rgba(255, 255, 255, 0.11);
 }
 
 .react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-fill-style="outline"]) {
-  background: transparent;
-  color: #ffffff;
-  border-color: #ffffff;
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-fill-style="outline"][data-hovered]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-fill-style="outline"][data-pressed]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-fill-style="outline"][data-disabled]) {
+  background: rgba(255, 255, 255, 0.11);
 }
 
 .react-aria-Button:where([data-variant="genai"]) {
   background: var(--hue-purple);
-  color: var(--color-white);
-  border-color: var(--hue-purple);
 }
 
 .react-aria-Button:where([data-variant="genai"][data-hovered]) {
   background: var(--purple-hover, color-mix(in srgb, var(--hue-purple) 85%, black));
-  border-color: var(--purple-hover, color-mix(in srgb, var(--hue-purple) 85%, black));
 }
 
 .react-aria-Button:where([data-variant="genai"][data-pressed]) {
-  background: var(--purple-pressed, color-mix(in srgb, var(--hue-purple) 75%, black));
+  background: var(--purple-hover, color-mix(in srgb, var(--hue-purple) 85%, black));
+}
+
+.react-aria-Button:where([data-variant="genai"][data-disabled]) {
+  background: var(--bg-disabled);
 }
 
 .react-aria-Button:where([data-variant="genai"][data-fill-style="outline"]) {
   background: transparent;
-  color: var(--hue-purple);
-  border-color: var(--border-hover);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-fill-style="outline"][data-hovered]) {
+  background: var(--bg-muted);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-fill-style="outline"][data-pressed]) {
+  background: var(--bg-muted);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-fill-style="outline"][data-disabled]) {
+  background: transparent;
 }
 
 .react-aria-Button:where([data-variant="genai"][data-static-color="black"]) {
-  background: #000000;
-  color: #ffffff;
-  border-color: #000000;
+  background: rgba(0, 0, 0, 0.11);
 }
 
 .react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-hovered]) {
-  background: #000000;
-  color: #ffffff;
-  border-color: #000000;
+  background: rgba(0, 0, 0, 0.11);
 }
 
 .react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-pressed]) {
-  background: #000000;
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-disabled]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-fill-style="outline"]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-fill-style="outline"][data-hovered]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-fill-style="outline"][data-pressed]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-fill-style="outline"][data-disabled]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="white"]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-hovered]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-pressed]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-disabled]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-fill-style="outline"]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-fill-style="outline"][data-hovered]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-fill-style="outline"][data-pressed]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-fill-style="outline"][data-disabled]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-Button:where([data-variant="accent"]) {
+  color: var(--fg-on-accent);
+}
+
+.react-aria-Button:where([data-variant="accent"][data-disabled]) {
+  color: var(--fg-muted);
+}
+
+.react-aria-Button:where([data-variant="accent"][data-fill-style="outline"]) {
+  color: var(--fg);
+}
+
+.react-aria-Button:where([data-variant="accent"][data-fill-style="outline"][data-disabled]) {
+  color: var(--fg-muted);
+}
+
+.react-aria-Button:where([data-variant="primary"]) {
+  color: var(--bg);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-disabled]) {
+  color: var(--fg-muted);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-fill-style="outline"]) {
+  color: var(--fg);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-fill-style="outline"][data-disabled]) {
+  color: var(--fg-muted);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-static-color="black"]) {
+  color: #ffffff;
+}
+
+.react-aria-Button:where([data-variant="primary"][data-static-color="black"][data-fill-style="outline"]) {
+  color: #000000;
+}
+
+.react-aria-Button:where([data-variant="primary"][data-static-color="black"][data-disabled]) {
+  color: rgba(0, 0, 0, 0.21);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-static-color="white"]) {
+  color: #000000;
+}
+
+.react-aria-Button:where([data-variant="primary"][data-static-color="white"][data-fill-style="outline"]) {
+  color: #ffffff;
+}
+
+.react-aria-Button:where([data-variant="primary"][data-static-color="white"][data-disabled]) {
+  color: rgba(255, 255, 255, 0.21);
+}
+
+.react-aria-Button:where([data-variant="secondary"]) {
+  color: var(--fg);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-disabled]) {
+  color: var(--fg-muted);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-fill-style="outline"]) {
+  color: var(--fg);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-fill-style="outline"][data-disabled]) {
+  color: var(--fg-muted);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-static-color="black"]) {
+  color: #000000;
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-static-color="black"][data-fill-style="outline"]) {
+  color: #000000;
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-static-color="black"][data-disabled]) {
+  color: rgba(0, 0, 0, 0.21);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-static-color="white"]) {
+  color: #ffffff;
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-static-color="white"][data-fill-style="outline"]) {
+  color: #ffffff;
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-static-color="white"][data-disabled]) {
+  color: rgba(255, 255, 255, 0.21);
+}
+
+.react-aria-Button:where([data-variant="negative"]) {
+  color: var(--fg-on-negative);
+}
+
+.react-aria-Button:where([data-variant="negative"][data-disabled]) {
+  color: var(--fg-muted);
+}
+
+.react-aria-Button:where([data-variant="negative"][data-fill-style="outline"]) {
+  color: var(--fg);
+}
+
+.react-aria-Button:where([data-variant="negative"][data-fill-style="outline"][data-disabled]) {
+  color: var(--fg-muted);
+}
+
+.react-aria-Button:where([data-variant="premium"]) {
+  color: var(--color-white);
+}
+
+.react-aria-Button:where([data-variant="premium"][data-disabled]) {
+  color: var(--fg-muted);
+}
+
+.react-aria-Button:where([data-variant="premium"][data-fill-style="outline"]) {
+  color: var(--hue-purple);
+}
+
+.react-aria-Button:where([data-variant="premium"][data-fill-style="outline"][data-disabled]) {
+  color: var(--fg-muted);
+}
+
+.react-aria-Button:where([data-variant="premium"][data-static-color="black"]) {
+  color: #ffffff;
+}
+
+.react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-fill-style="outline"]) {
+  color: #ffffff;
+}
+
+.react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-disabled]) {
+  color: rgba(0, 0, 0, 0.21);
+}
+
+.react-aria-Button:where([data-variant="premium"][data-static-color="white"]) {
+  color: #ffffff;
+}
+
+.react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-fill-style="outline"]) {
+  color: #ffffff;
+}
+
+.react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-disabled]) {
+  color: rgba(255, 255, 255, 0.21);
+}
+
+.react-aria-Button:where([data-variant="genai"]) {
+  color: var(--color-white);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-disabled]) {
+  color: var(--fg-muted);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-fill-style="outline"]) {
+  color: var(--hue-purple);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-fill-style="outline"][data-disabled]) {
+  color: var(--fg-muted);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="black"]) {
   color: #ffffff;
 }
 
 .react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-fill-style="outline"]) {
-  background: transparent;
-  color: #000000;
-  border-color: #000000;
+  color: #ffffff;
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-disabled]) {
+  color: rgba(0, 0, 0, 0.21);
 }
 
 .react-aria-Button:where([data-variant="genai"][data-static-color="white"]) {
-  background: #ffffff;
-  color: #000000;
-  border-color: #ffffff;
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-hovered]) {
-  background: #ffffff;
-  color: #000000;
-  border-color: #ffffff;
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-pressed]) {
-  background: #ffffff;
-  color: #000000;
+  color: #ffffff;
 }
 
 .react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-fill-style="outline"]) {
-  background: transparent;
   color: #ffffff;
-  border-color: #ffffff;
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-disabled]) {
+  color: rgba(255, 255, 255, 0.21);
+}
+
+.react-aria-Button:where([data-variant="accent"]) {
+  border-color: var(--accent);
+}
+
+.react-aria-Button:where([data-variant="accent"][data-hovered]) {
+  border-color: var(--accent-hover, color-mix(in srgb, var(--accent) 85%, black));
+}
+
+.react-aria-Button:where([data-variant="accent"][data-pressed]) {
+  border-color: var(--accent-hover, color-mix(in srgb, var(--accent) 85%, black));
+}
+
+.react-aria-Button:where([data-variant="accent"][data-disabled]) {
+  border-color: var(--bg-disabled);
+}
+
+.react-aria-Button:where([data-variant="accent"][data-fill-style="outline"]) {
+  border-color: var(--border-hover);
+}
+
+.react-aria-Button:where([data-variant="accent"][data-fill-style="outline"][data-hovered]) {
+  border-color: var(--border-hover);
+}
+
+.react-aria-Button:where([data-variant="accent"][data-fill-style="outline"][data-pressed]) {
+  border-color: var(--border-hover);
+}
+
+.react-aria-Button:where([data-variant="accent"][data-fill-style="outline"][data-disabled]) {
+  border-color: var(--border-disabled);
+}
+
+.react-aria-Button:where([data-variant="primary"]) {
+  border-color: var(--fg);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-hovered]) {
+  border-color: var(--neutral-fill-hover);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-pressed]) {
+  border-color: var(--neutral-fill-hover);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-disabled]) {
+  border-color: var(--bg-disabled);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-fill-style="outline"]) {
+  border-color: var(--fg);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-fill-style="outline"][data-hovered]) {
+  border-color: var(--neutral-fill-hover);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-fill-style="outline"][data-pressed]) {
+  border-color: var(--neutral-fill-hover);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-fill-style="outline"][data-disabled]) {
+  border-color: var(--border-disabled);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-static-color="black"]) {
+  border-color: transparent;
+}
+
+.react-aria-Button:where([data-variant="primary"][data-static-color="black"][data-fill-style="outline"]) {
+  border-color: rgba(0, 0, 0, 0.85);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-static-color="black"][data-fill-style="outline"][data-hovered]) {
+  border-color: rgba(0, 0, 0, 0.94);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-static-color="black"][data-fill-style="outline"][data-pressed]) {
+  border-color: rgba(0, 0, 0, 0.94);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-static-color="black"][data-fill-style="outline"][data-disabled]) {
+  border-color: rgba(0, 0, 0, 0.17);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-static-color="white"]) {
+  border-color: transparent;
+}
+
+.react-aria-Button:where([data-variant="primary"][data-static-color="white"][data-fill-style="outline"]) {
+  border-color: rgba(255, 255, 255, 0.85);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-static-color="white"][data-fill-style="outline"][data-hovered]) {
+  border-color: rgba(255, 255, 255, 0.94);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-static-color="white"][data-fill-style="outline"][data-pressed]) {
+  border-color: rgba(255, 255, 255, 0.94);
+}
+
+.react-aria-Button:where([data-variant="primary"][data-static-color="white"][data-fill-style="outline"][data-disabled]) {
+  border-color: rgba(255, 255, 255, 0.17);
+}
+
+.react-aria-Button:where([data-variant="secondary"]) {
+  border-color: var(--border);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-hovered]) {
+  border-color: var(--border);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-pressed]) {
+  border-color: var(--border);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-disabled]) {
+  border-color: var(--bg-disabled);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-fill-style="outline"]) {
+  border-color: var(--border);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-fill-style="outline"][data-hovered]) {
+  border-color: var(--border-hover);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-fill-style="outline"][data-pressed]) {
+  border-color: var(--border-hover);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-fill-style="outline"][data-disabled]) {
+  border-color: var(--border-disabled);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-static-color="black"]) {
+  border-color: transparent;
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-static-color="black"][data-fill-style="outline"]) {
+  border-color: rgba(0, 0, 0, 0.17);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-static-color="black"][data-fill-style="outline"][data-hovered]) {
+  border-color: rgba(0, 0, 0, 0.21);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-static-color="black"][data-fill-style="outline"][data-pressed]) {
+  border-color: rgba(0, 0, 0, 0.21);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-static-color="black"][data-fill-style="outline"][data-disabled]) {
+  border-color: rgba(0, 0, 0, 0.17);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-static-color="white"]) {
+  border-color: transparent;
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-static-color="white"][data-fill-style="outline"]) {
+  border-color: rgba(255, 255, 255, 0.17);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-static-color="white"][data-fill-style="outline"][data-hovered]) {
+  border-color: rgba(255, 255, 255, 0.21);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-static-color="white"][data-fill-style="outline"][data-pressed]) {
+  border-color: rgba(255, 255, 255, 0.21);
+}
+
+.react-aria-Button:where([data-variant="secondary"][data-static-color="white"][data-fill-style="outline"][data-disabled]) {
+  border-color: rgba(255, 255, 255, 0.17);
+}
+
+.react-aria-Button:where([data-variant="negative"]) {
+  border-color: var(--negative);
+}
+
+.react-aria-Button:where([data-variant="negative"][data-hovered]) {
+  border-color: var(--negative-hover, color-mix(in srgb, var(--negative) 85%, black));
+}
+
+.react-aria-Button:where([data-variant="negative"][data-pressed]) {
+  border-color: var(--negative-hover, color-mix(in srgb, var(--negative) 85%, black));
+}
+
+.react-aria-Button:where([data-variant="negative"][data-disabled]) {
+  border-color: var(--bg-disabled);
+}
+
+.react-aria-Button:where([data-variant="negative"][data-fill-style="outline"]) {
+  border-color: var(--border-hover);
+}
+
+.react-aria-Button:where([data-variant="negative"][data-fill-style="outline"][data-hovered]) {
+  border-color: var(--border-hover);
+}
+
+.react-aria-Button:where([data-variant="negative"][data-fill-style="outline"][data-pressed]) {
+  border-color: var(--border-hover);
+}
+
+.react-aria-Button:where([data-variant="negative"][data-fill-style="outline"][data-disabled]) {
+  border-color: var(--border-disabled);
+}
+
+.react-aria-Button:where([data-variant="premium"]) {
+  border-color: var(--hue-purple);
+}
+
+.react-aria-Button:where([data-variant="premium"][data-hovered]) {
+  border-color: var(--purple-hover, color-mix(in srgb, var(--hue-purple) 85%, black));
+}
+
+.react-aria-Button:where([data-variant="premium"][data-pressed]) {
+  border-color: var(--purple-hover, color-mix(in srgb, var(--hue-purple) 85%, black));
+}
+
+.react-aria-Button:where([data-variant="premium"][data-disabled]) {
+  border-color: var(--bg-disabled);
+}
+
+.react-aria-Button:where([data-variant="premium"][data-fill-style="outline"]) {
+  border-color: var(--border-hover);
+}
+
+.react-aria-Button:where([data-variant="premium"][data-fill-style="outline"][data-hovered]) {
+  border-color: var(--border-hover);
+}
+
+.react-aria-Button:where([data-variant="premium"][data-fill-style="outline"][data-pressed]) {
+  border-color: var(--border-hover);
+}
+
+.react-aria-Button:where([data-variant="premium"][data-fill-style="outline"][data-disabled]) {
+  border-color: var(--border-disabled);
+}
+
+.react-aria-Button:where([data-variant="premium"][data-static-color="black"]) {
+  border-color: transparent;
+}
+
+.react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-fill-style="outline"]) {
+  border-color: transparent;
+}
+
+.react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-fill-style="outline"][data-hovered]) {
+  border-color: transparent;
+}
+
+.react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-fill-style="outline"][data-pressed]) {
+  border-color: transparent;
+}
+
+.react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-fill-style="outline"][data-disabled]) {
+  border-color: transparent;
+}
+
+.react-aria-Button:where([data-variant="premium"][data-static-color="white"]) {
+  border-color: transparent;
+}
+
+.react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-fill-style="outline"]) {
+  border-color: transparent;
+}
+
+.react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-fill-style="outline"][data-hovered]) {
+  border-color: transparent;
+}
+
+.react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-fill-style="outline"][data-pressed]) {
+  border-color: transparent;
+}
+
+.react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-fill-style="outline"][data-disabled]) {
+  border-color: transparent;
+}
+
+.react-aria-Button:where([data-variant="genai"]) {
+  border-color: var(--hue-purple);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-hovered]) {
+  border-color: var(--purple-hover, color-mix(in srgb, var(--hue-purple) 85%, black));
+}
+
+.react-aria-Button:where([data-variant="genai"][data-pressed]) {
+  border-color: var(--purple-hover, color-mix(in srgb, var(--hue-purple) 85%, black));
+}
+
+.react-aria-Button:where([data-variant="genai"][data-disabled]) {
+  border-color: var(--bg-disabled);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-fill-style="outline"]) {
+  border-color: var(--border-hover);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-fill-style="outline"][data-hovered]) {
+  border-color: var(--border-hover);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-fill-style="outline"][data-pressed]) {
+  border-color: var(--border-hover);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-fill-style="outline"][data-disabled]) {
+  border-color: var(--border-disabled);
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="black"]) {
+  border-color: transparent;
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-fill-style="outline"]) {
+  border-color: transparent;
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-fill-style="outline"][data-hovered]) {
+  border-color: transparent;
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-fill-style="outline"][data-pressed]) {
+  border-color: transparent;
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-fill-style="outline"][data-disabled]) {
+  border-color: transparent;
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="white"]) {
+  border-color: transparent;
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-fill-style="outline"]) {
+  border-color: transparent;
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-fill-style="outline"][data-hovered]) {
+  border-color: transparent;
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-fill-style="outline"][data-pressed]) {
+  border-color: transparent;
+}
+
+.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-fill-style="outline"][data-disabled]) {
+  border-color: transparent;
 }
 
 .react-aria-Button[data-icon-only] {
@@ -548,7 +1141,6 @@
 }
 
 .react-aria-Button.react-aria-Button:where([data-disabled]) {
-  opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;
 }

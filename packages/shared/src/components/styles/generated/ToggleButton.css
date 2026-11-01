@@ -62,11 +62,11 @@
 }
 
 .react-aria-ToggleButton:where([data-variant="default"][data-quiet][data-hovered]) {
-  background: var(--bg-muted);
+  background: var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black));
 }
 
 .react-aria-ToggleButton:where([data-variant="default"][data-quiet][data-pressed]) {
-  background: var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black));
+  background: var(--neutral-pressed, color-mix(in srgb, var(--bg-muted) 75%, black));
 }
 
 .react-aria-ToggleButton:where([data-variant="default"][data-selected]) {

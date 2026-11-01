@@ -2222,8 +2222,8 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
 
   /**
    * A Button's paint is its rule's sheet, which changes it by state: the rest colors go inline
-   * only when the document wrote them, or while the document disables the Button (the Canvas
-   * draws a disabled Button at its rest paint, faded).
+   * only when the document wrote them, or while the document disables the Button (its S2 disabled
+   * colors — ADR-297 3h #7).
    */
   it.skipIf(write)(
     "button — its rest paint is the sheet's, inline only when authored or disabled",
@@ -2238,8 +2238,9 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(await style({})).not.toMatch(paint);
       expect(await style({ variant: "secondary" })).not.toMatch(paint);
       expect(await style({ fillStyle: "outline" })).not.toMatch(paint);
+      // (ADR-297 3h #7: the disabled paint is S2's disabled color — `{color.disabled}` light #e5e5e5)
       expect(await style({ isDisabled: true })).toMatch(
-        /background-color:\s*#171717/,
+        /background-color:\s*#e5e5e5/,
       );
       // An origin override is the document's: inline over the sheet.
       const { workspace, field } = (await render("button", {}))!;

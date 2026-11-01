@@ -124,10 +124,8 @@ describe("Style Panel catalog color values", () => {
       backgroundColor: PICKER_TRANSPARENT,
       borderColor: lightColors["border-hover"],
     });
-    // outline 글자는 바탕 위 accent (ADR-290)
-    expect(typography.result.current?.color).toBe(
-      lightColors["accent-content"],
-    );
+    // outline 글자는 S2 `baseColor('neutral')` (ADR-297 3h #2 — S2 outline 에 variant 색 글자 없음)
+    expect(typography.result.current?.color).toBe(lightColors.neutral);
   });
 
   it("premium catalog 색상을 현재 dark theme의 picker 입력값으로 해석한다", async () => {
@@ -238,14 +236,15 @@ describe("Style Panel catalog color values", () => {
     it("D2 Button staticColor=black의 고정색과 역상 text를 표시한다", async () => {
       await setButton({
         size: "M",
-        variant: "accent",
+        variant: "primary",
         fillStyle: "fill",
         staticColor: "black",
       });
-
+      // (ADR-297 3h #9: S2 static primary = `transparent-overlay-800` of the static color, `auto` text,
+      //  no fill border — accent has no S2 static branch)
       expect(readColorValues("button-1")).toEqual({
-        backgroundColor: "#000000",
-        borderColor: "#000000",
+        backgroundColor: "rgba(0, 0, 0, 0.85)",
+        borderColor: "#00000000",
         color: "#ffffff",
       });
     });
@@ -275,7 +274,7 @@ describe("Style Panel catalog color values", () => {
         }),
         makeElement("button-static", "Button", {
           size: "M",
-          variant: "accent",
+          variant: "primary",
           fillStyle: "fill",
           staticColor: "black",
         }),
@@ -298,7 +297,9 @@ describe("Style Panel catalog color values", () => {
 
       appearance.rerender({ id: record("button-static") });
       typography.rerender({ id: record("button-static") });
-      expect(appearance.result.current?.backgroundColor).toBe("#000000");
+      expect(appearance.result.current?.backgroundColor).toBe(
+        "rgba(0, 0, 0, 0.85)",
+      );
       expect(typography.result.current?.color).toBe("#ffffff");
 
       appearance.rerender({ id: record("button-default") });

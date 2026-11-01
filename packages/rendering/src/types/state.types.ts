@@ -12,16 +12,16 @@ import type { ShadowTokenRef, TokenRef } from "./token.types";
  * 상태별 스타일 정의
  *
  * [역할 분리]
- * - VariantSpec: variant별 "색상" 정의 (background, text, border)
+ * - variant 칠 (배경 · 글자 · 테두리와 상태): rule 의 조건 트리 `paint` (ADR-297)
  * - StateStyles: 상태별 "효과" 정의 (transform, shadow, opacity 등)
  *
  * 두 가지가 합성되어 최종 스타일이 결정됩니다.
  */
 export interface StateStyles {
-  /** hover 상태 효과 (VariantSpec.backgroundHover와 합성) */
+  /** hover 상태 효과 */
   hover?: StateEffect;
 
-  /** pressed 상태 효과 (VariantSpec.backgroundPressed와 합성) */
+  /** pressed 상태 효과 */
   pressed?: StateEffect;
 
   /** focused 상태 효과 */
@@ -40,8 +40,8 @@ export interface StateStyles {
  * [색상 필드 정책 — ADR-070]
  * - `background` / `text` / `border`는 **hover / disabled 상태에만** CSSGenerator가 emit.
  *   pressed / focused / focusVisible의 색상 필드는 현재 silently ignored.
- * - `selected` 색상은 StateEffect에 정의하지 **않는다** — VariantSpec.selectedBackground/
- *   selectedText/selectedBorder 단일 소스를 사용 (SSOT 분산 회피).
+ * - `selected` 색상은 StateEffect에 정의하지 **않는다** — variant 조건 트리의 `isSelected` 가지
+ *   단일 소스를 사용 (SSOT 분산 회피).
  * - 색상 미정의 spec은 emit 0 (no-op). 기존 107개 CSS 파일 snapshot diff = 0 보장.
  */
 export interface StateEffect {
@@ -60,8 +60,7 @@ export interface StateEffect {
   /**
    * 배경 색상 TokenRef (ADR-070)
    *
-   * hover / disabled에서만 emit. 그 외 상태는 VariantSpec.fill.default.* 토큰 사용
-   * (ADR-908 Phase 4: legacy background* → FillTokenSpec SSOT 통합).
+   * hover / disabled에서만 emit. 그 외 상태는 variant 조건 트리 (ADR-297).
    */
   background?: TokenRef;
 

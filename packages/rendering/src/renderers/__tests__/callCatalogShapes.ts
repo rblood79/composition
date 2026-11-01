@@ -7,7 +7,7 @@
  */
 
 import { buildCatalogShapes } from "./catalogPaintFixture";
-import { resolveComponentVisual } from "../utils/resolveComponentVisual";
+import { resolveComponentVisual } from "./fixtureVisual";
 import type {
   ComponentSpec,
   ComponentState,

@@ -56,6 +56,7 @@
 .react-aria-InlineAlert:where([data-variant="neutral"][data-fill-style="subtleFill"]) {
   background: var(--bg-muted);
   color: var(--fg);
+  border-color: transparent;
 }
 
 .react-aria-InlineAlert:where([data-variant="informative"]) {
@@ -80,6 +81,7 @@
 .react-aria-InlineAlert:where([data-variant="informative"][data-fill-style="subtleFill"]) {
   background: var(--informative-subtle);
   color: var(--fg);
+  border-color: transparent;
 }
 
 .react-aria-InlineAlert:where([data-variant="positive"]) {
@@ -104,6 +106,7 @@
 .react-aria-InlineAlert:where([data-variant="positive"][data-fill-style="subtleFill"]) {
   background: var(--positive-subtle);
   color: var(--fg);
+  border-color: transparent;
 }
 
 .react-aria-InlineAlert:where([data-variant="notice"]) {
@@ -128,6 +131,7 @@
 .react-aria-InlineAlert:where([data-variant="notice"][data-fill-style="subtleFill"]) {
   background: var(--notice-subtle);
   color: var(--fg);
+  border-color: transparent;
 }
 
 .react-aria-InlineAlert:where([data-variant="negative"]) {
@@ -152,6 +156,7 @@
 .react-aria-InlineAlert:where([data-variant="negative"][data-fill-style="subtleFill"]) {
   background: var(--negative-subtle);
   color: var(--fg);
+  border-color: transparent;
 }
 
 .react-aria-InlineAlert[data-size="S"] {

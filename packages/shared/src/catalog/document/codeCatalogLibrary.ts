@@ -24,6 +24,10 @@ export { PROP_KIND_VALUE_TYPE } from "./ruleDefinition";
 import { compileRulePartRules } from "./rulePartRules";
 import { paintAt } from "../rule/rulePaintTree";
 import {
+  evaluateConditionTree,
+  type ConditionSet,
+} from "../rule/conditionTree";
+import {
   REUSABLE_ORIGIN_DEFINITIONS,
   REUSABLE_ORIGIN_TEMPLATES,
 } from "./generated/reusableOriginLibrary";
@@ -289,7 +293,7 @@ function buttonDefinition(
   // every variant, fill style and state (their own rule color is the dark `--fg`).
   const childColor = (
     color: VisualValues[keyof VisualValues],
-    when: Record<string, string>,
+    when: Record<string, string | boolean>,
     state?: "hover" | "pressed",
   ) => {
     for (const type of ["Icon", "Text", "Label"])
@@ -300,98 +304,69 @@ function buttonDefinition(
         visual: { color },
       });
   };
-  // ADR-297: the variant's condition tree — each value read at its own branch (`paintAt`).
+  // ADR-297 Phase 3h: the definition is the variant's condition tree evaluated per resting input —
+  //   fill style × static color × disabled (later rules win: the static and the disabled branch come
+  //   after the plain one, as in the tree) — and per display state over each. The tree is S2's order
+  //   (`Button.tsx`): pressed = the hover stop, disabled colors, the static overlays (`buttonPaint`).
+  //   A literal color (a static overlay's `rgba(…)`) stays a literal; a token resolves as before.
   const outline = rule.fillStyleValues?.outline ?? "outline";
+  const colorOf = (value: unknown, at: string) => {
+    if (typeof value !== "string")
+      throw new Error(`CODE_CATALOG_BUTTON_VARIANT_UNSUPPORTED:${at}`);
+    return /^\{[\w]+\.[^{}]+\}$/.test(value)
+      ? sourceToken(value, "color", theme, tokens)
+      : value;
+  };
   for (const [variant, { paint }] of Object.entries(rule.variants)) {
-    const base = {
-      fill: paintAt(paint.backgroundColor),
-      text: paintAt(paint.color),
-      border: paintAt(paint.borderColor),
-    };
-    const outlined = {
-      fill: paintAt(paint.backgroundColor, "fillStyle", outline),
-      text: paintAt(paint.color, "fillStyle", outline),
-      border: paintAt(paint.borderColor, "fillStyle", outline),
-    };
-    if (
-      !base.fill ||
-      !base.text ||
-      !base.border ||
-      !outlined.text ||
-      !outlined.border ||
-      !outlined.fill
-    )
-      throw new Error(`CODE_CATALOG_BUTTON_VARIANT_UNSUPPORTED:${variant}`);
-    variants[variant] = {
-      fill: sourceToken(base.fill, "color", theme, tokens),
-      color: sourceToken(base.text, "color", theme, tokens),
-      borderColor: sourceToken(base.border, "color", theme, tokens),
-    };
-    childColor(variants[variant].color, { variant, fillStyle: "fill" });
-    childColor(sourceToken(outlined.text, "color", theme, tokens), {
-      variant,
-      fillStyle: "outline",
+    const at = (conditions: ConditionSet, key: string) => ({
+      fill: colorOf(
+        evaluateConditionTree(paint.backgroundColor, conditions),
+        `${variant}:${key}:fill`,
+      ),
+      color: colorOf(
+        evaluateConditionTree(paint.color, conditions),
+        `${variant}:${key}:color`,
+      ),
+      borderColor: colorOf(
+        evaluateConditionTree(paint.borderColor, conditions),
+        `${variant}:${key}:border`,
+      ),
     });
-    conditionalRules.push({
-      when: { variant, fillStyle: "outline" },
-      visual: {
-        fill: sourceToken(outlined.fill, "color", theme, tokens),
-        color: sourceToken(outlined.text, "color", theme, tokens),
-        borderColor: sourceToken(outlined.border, "color", theme, tokens),
-      },
-    });
-    for (const state of ["hover", "pressed"] as const) {
-      const branch = state === "hover" ? "isHovered" : "isPressed";
-      const fill = paintAt(paint.backgroundColor, branch);
-      // (Every variant's hover · pressed token resolves since 2026-10-28 — the palette derives
-      //  `purple-hover` · `-pressed` as the DOM's color-mix, `resolveSemanticStateColors`. A token
-      //  the palette lacks still leaves its state axis open.)
-      const resolved = fill ? resolveToken(fill as TokenRef, theme) : undefined;
-      // Hover also takes the variant's hover border/text (`resolveCatalogPaint`: `borderHover`,
-      // `textHover`), when the palette resolves them.
-      const hoverColor = (token: string | undefined) =>
-        state === "hover" &&
-        token &&
-        typeof resolveToken(token as TokenRef, theme) === "string"
-          ? sourceToken(token, "color", theme, tokens)
-          : undefined;
-      const borderColor = hoverColor(paintAt(paint.borderColor, "isHovered"));
-      const color = hoverColor(paintAt(paint.color, "isHovered"));
-      if (typeof resolved === "string")
-        conditionalRules.push({
-          when: { variant, fillStyle: "fill" },
-          state,
-          visual: {
-            fill: sourceToken(fill, "color", theme, tokens),
-            ...(borderColor ? { borderColor } : {}),
-            ...(color ? { color } : {}),
-          },
-        });
-      if (typeof resolved === "string" && color)
-        childColor(color, { variant, fillStyle: "fill" }, state);
-    }
-  }
-  // S2 `staticColor` — the fixed white · black scheme over a colored background (`Button.css`
-  // `[data-static-color]`, the DOM's): fill = the static color with the opposite text and a static
-  // border, outline = static text · border on the outline's own fill. After the variant rules, so it
-  // wins over them. (295 후속 C9 — the Canvas painted a static outline Button with the variant's
-  // outline gray and dark text: these conditions were missing, the DOM sheet had them.)
-  for (const [staticColor, token, inverse] of [
-    ["white", "{color.white}", "{color.black}"],
-    ["black", "{color.black}", "{color.white}"],
-  ] as const) {
-    const own = sourceToken(token, "color", theme, tokens);
-    const opposite = sourceToken(inverse, "color", theme, tokens);
-    conditionalRules.push({
-      when: { staticColor, fillStyle: "fill" },
-      visual: { fill: own, color: opposite, borderColor: own },
-    });
-    childColor(opposite, { staticColor, fillStyle: "fill" });
-    conditionalRules.push({
-      when: { staticColor, fillStyle: "outline" },
-      visual: { color: own, borderColor: own },
-    });
-    childColor(own, { staticColor, fillStyle: "outline" });
+    variants[variant] = at({ variant, fillStyle: "fill" }, "rest");
+    for (const fillStyle of ["fill", outline] as const)
+      for (const staticColor of [undefined, "white", "black"] as const)
+        for (const isDisabled of [false, true]) {
+          const when: Record<string, string | boolean> = {
+            variant,
+            fillStyle: fillStyle === outline ? "outline" : "fill",
+            ...(staticColor ? { staticColor } : {}),
+            ...(isDisabled ? { isDisabled: true } : {}),
+          };
+          const conditions: ConditionSet = {
+            variant,
+            fillStyle,
+            ...(staticColor ? { staticColor } : {}),
+            ...(isDisabled ? { isDisabled: true } : {}),
+          };
+          const key = JSON.stringify(when);
+          const rest = at(conditions, key);
+          // (The plain fill rest is the variant's own visual — `propVisualRules.variant`.)
+          if (fillStyle !== "fill" || staticColor || isDisabled)
+            conditionalRules.push({ when, visual: rest });
+          childColor(rest.color, when);
+          for (const state of ["hover", "pressed"] as const) {
+            const visual = at(
+              {
+                ...conditions,
+                isHovered: true,
+                ...(state === "pressed" ? { isPressed: true } : {}),
+              },
+              `${key}:${state}`,
+            );
+            conditionalRules.push({ when, state, visual });
+            childColor(visual.color, when, state);
+          }
+        }
   }
   // S2 Button is a pill (`sizes` `{radius.full}`); a field's own button keeps its size's corner —
   // the rule's `containerVariants["field-button"]` (the DOM's `[data-field-button]` blocks), turned

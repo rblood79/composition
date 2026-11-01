@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ComponentSpec, SizeSpec, TokenRef } from "../../types";
 import { buildCatalogShapes } from "./catalogPaintFixture";
-import { resolveComponentVisual } from "../utils/resolveComponentVisual";
+import { resolveComponentVisual } from "./fixtureVisual";
 
 // ADR-912 box+text leaf 군 (2026-06-11): Button.spec 삭제 → render.shapes parity oracle 소멸.
 //   첫 describe(ButtonSpec parity)는 제거(catalog 가 유일 정본, CSS diff 0 으로 시각 동등 입증).

@@ -6,9 +6,6 @@
  * @packageDocumentation
  */
 
-// Variant/Size resolvers (Skia/Canvas 공용)
-export { getVariantColors, getSizePreset } from "./utils/variantColors";
-
 // CSS Generator
 export {
   generateCSS,
@@ -82,9 +79,7 @@ export {
 export type { TextSourceKey } from "./utils/textSource";
 export type { CatalogResolvedPaint } from "./catalogPaint";
 
-// ADR-912 단계5: ComponentVisualRule 타입만 production 정본으로 re-export.
-//   resolveComponentVisual / variantToVisual 함수는 test-only(production 호출 0) → barrel
-//   제외. test 는 직접 경로(./utils/resolveComponentVisual)로 import.
+// variant 의 비-칠 시각 값 (글자 굵기 · 아이콘 · 선 모양 · value 채움 색). 칠은 조건 트리 (ADR-297).
 export type { ComponentVisualRule } from "./utils/resolveComponentVisual";
 
 // ADR-142 §3 — 비-DOM-trivial primitive(원/선/아이콘) skiaPrimitive draw module

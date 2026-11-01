@@ -237,8 +237,8 @@ export interface ComponentSpec<Props = Record<string, unknown>> {
     reference?: string;
   };
 
-  /** Variant 정의 (optional — ADR-062: RSP 미규정 Field 계열은 variants 없음) */
-  variants?: Record<string, VariantSpec>;
+  /** Variant 정의 (optional — ADR-062: RSP 미규정 Field 계열은 variants 없음). 값 = 휴지 칠 (ADR-297). */
+  variants?: Record<string, VariantRestPaint>;
 
   /** Size 정의 */
   sizes: Record<string, SizeSpec>;
@@ -297,15 +297,6 @@ export interface ComponentSpec<Props = Record<string, unknown>> {
 
   /** ADR-059 B5: Selection indicator 모드 스타일 (ToggleButtonGroup 등) */
   indicatorMode?: IndicatorModeSpec;
-
-  /**
-   * CSS 색상 property emit 전략 (ADR-059 B5).
-   *
-   * - "direct" (default): background / color / border-color 직접 emit
-   * - "button-base": --button-color / --button-text / --button-border custom property emit
-   *   (RAC .button-base utility protocol 참여 — archetype="button" 표준)
-   */
-  cssEmitMode?: "direct" | "button-base";
 
   /** ADR-297 Phase 3 — the default-variant base block sets only `border-color` (catalog `structure.defaultBorder`). */
   defaultBorderColorOnly?: boolean;
@@ -787,156 +778,18 @@ export interface PropagationSpec {
 }
 
 /**
- * Variant 스펙
- *
- * [상태 스타일 우선순위 규칙]
- * VariantSpec의 색상은 "variant별 색상 토큰"을 정의합니다.
- * states의 스타일은 "공통 상태 효과"(transform, shadow, opacity 등)를 정의합니다.
- *
- * 우선순위: VariantSpec 색상 > states 효과 (합성)
- * - hover 시: VariantSpec.backgroundHover + states.hover 효과
- * - pressed 시: VariantSpec.backgroundPressed + states.pressed 효과
+ * A variant's rest paint — the `default` leaves of its condition trees (ADR-297 Phase 3i). The generated sheet's
+ * base block paints the default variant with it; every state (hover · pressed · selected · fillStyle · static …) is
+ * the compiled tree (`generate-css.ts` `variantPaintCssFor`), and the Canvas evaluates the same tree
+ * (`resolveCatalogPaint`).
  */
-export interface VariantSpec {
-  /**
-   * Fill token spec — D3 시각 SSOT 단일 소스 (ADR-908 Phase 4 완료).
-   *
-   * fillStyle × state 2축 구조로 `background / backgroundHover / backgroundPressed /
-   * selectedBackground* / emphasizedSelectedBackground / outlineBackground / subtleBackground /
-   * backgroundAlpha` 10+ 필드를 통합. Phase 4-b 에서 legacy 필드 완전 삭제.
-   */
-  fill: FillTokenSpec;
-
-  /** 텍스트 색상 */
+export interface VariantRestPaint {
+  /** rest background */
+  background?: TokenRef;
+  /** rest text color */
   text: TokenRef;
-
-  /** 텍스트 색상 hover (optional, 미지정 시 text 사용) */
-  textHover?: TokenRef;
-
-  /**
-   * 텍스트 굵기 (CSS `font-weight` 동형 — 보편 D3 속성, optional).
-   *
-   * 미지정 시 consumer 가 기본 굵기(buildCatalogShapes 500) fallback. DropZone(안내 라벨 400)
-   * 처럼 variant 의 본질 텍스트 굵기가 기본과 다른 컴포넌트가 사용. buildCatalogShapes text emit +
-   * CSSGenerator font-weight 양 consumer 가 ComponentVisualRule.textWeight 경유로 소비.
-   */
-  textWeight?: number;
-
-  /** 테두리 색상 (optional) */
+  /** rest border color */
   border?: TokenRef;
-
-  /** 테두리 색상 hover (optional) */
-  borderHover?: TokenRef;
-
-  /**
-   * 테두리 선 스타일 (CSS `border-style` 동형 — 보편 D3 속성, optional).
-   *
-   * 미지정 시 consumer 가 `"solid"` fallback. DropZone(drop 영역 dashed) 처럼
-   * variant 의 본질 시각이 점선/점인 컴포넌트가 사용. buildCatalogShapes border emit +
-   * CSSGenerator border-style 양 consumer 가 ComponentVisualRule.borderStyle 경유로 소비.
-   */
-  borderStyle?: "solid" | "dashed" | "dotted";
-
-  // ─── ADR-036 Phase 2b: fillStyle 확장 (non-background 색상) ───
-
-  /** outline fillStyle — 텍스트 색상 (optional) */
-  outlineText?: TokenRef;
-
-  /** outline fillStyle — 테두리 색상 (optional) */
-  outlineBorder?: TokenRef;
-
-  /** subtle fillStyle — 텍스트 색상 (optional) */
-  subtleText?: TokenRef;
-
-  // ─── ADR-059 B5: Selected 상태 색상 (non-background) ───
-  /** 선택 상태 텍스트 색상 (optional) */
-  selectedText?: TokenRef;
-  /** 선택 상태 테두리 색상 (optional) */
-  selectedBorder?: TokenRef;
-
-  /** data-emphasized 조합 — 선택 시 텍스트/테두리 강조 (optional) */
-  emphasizedSelectedText?: TokenRef;
-  emphasizedSelectedBorder?: TokenRef;
-}
-
-// ─── ADR-908 Phase 1: Fill Spec Schema SSOT (fill preset 타입만 도입) ───
-// 본 Phase 는 타입 선언만 수행. VariantSpec migration / CSSGenerator bridge 는 Phase 2+.
-// Hard Constraint 5 (VariantSpec background 계열 10+ 필드 전수) 를 fillStyle × state 2축으로 표현.
-
-/**
- * Fill state tokens — 하나의 fillStyle 내 state 별 배경 토큰
- *
- * VariantSpec 의 state 분기 (default / hover / pressed / selected / selectedHover /
- * selectedPressed / emphasizedSelected) 를 단일 구조에 수용. base 는 필수, 나머지는
- * optional (미지정 시 상위 state 에서 fallback).
- */
-export interface FillStateTokens {
-  /** 기본 배경 (해당 fillStyle 의 default state) */
-  base: TokenRef;
-  /** hover 상태 배경 */
-  hover?: TokenRef;
-  /** pressed 상태 배경 */
-  pressed?: TokenRef;
-  /** selected 상태 배경 */
-  selected?: TokenRef;
-  /** selected + hover 조합 배경 */
-  selectedHover?: TokenRef;
-  /** selected + pressed 조합 배경 */
-  selectedPressed?: TokenRef;
-  /** data-emphasized + data-selected 조합 배경 (accent 강조) */
-  emphasizedSelected?: TokenRef;
-}
-
-/**
- * Fill token spec — spec schema 의 fill 표현 SSOT (ADR-908)
- *
- * 설계 원칙:
- * 1. runtime FillItem raw shape 재사용 금지 — id / opacity / blendMode / string color 같은
- *    runtime 전용 필드는 포함하지 않음. spec 은 token ref 중심.
- * 2. TokenRef 를 1급 값으로 유지 — dark mode 자동 반전 보장 (D3 정본).
- * 3. fillStyle × state 2축 합성 — selectedBackgroundHover / emphasizedSelectedBackground
- *    같은 조합 상태를 단일 구조에 수용. fillStyle 단위로 state subset 을 독립 정의.
- *
- * VariantSpec.background 계열 10 필드 → FillTokenSpec 매핑:
- * - background                        → default.base
- * - backgroundHover                   → default.hover
- * - backgroundPressed                 → default.pressed
- * - selectedBackground                → default.selected
- * - selectedBackgroundHover           → default.selectedHover
- * - selectedBackgroundPressed         → default.selectedPressed
- * - emphasizedSelectedBackground      → default.emphasizedSelected
- * - outlineBackground                 → outline.base
- * - subtleBackground                  → subtle.base
- * - backgroundAlpha                   → alpha
- *
- * Phase 2+ 에서 VariantSpec 에 `fill?: FillTokenSpec` 을 추가하고 CSSGenerator/ReactRenderer
- * /variantColors/stateEffect/validate-specs 5 direct consumer 가 direct-read 로 전환.
- */
-export interface FillTokenSpec {
-  /** default fillStyle — 기본 변형 (필수) */
-  default: FillStateTokens;
-  /** outline fillStyle — VariantSpec.outlineBackground 대응 */
-  outline?: Partial<FillStateTokens>;
-  /** subtle fillStyle — VariantSpec.subtleBackground 대응 */
-  subtle?: Partial<FillStateTokens>;
-  /**
-   * quiet 변형 — 배경 없는 저강조 스타일 (RSP `isQuiet`, 2026-08-21 신설).
-   *
-   * 다른 키가 `fillStyle` enum 값인 것과 달리 quiet 은 **boolean prop(`isQuiet`)** 이
-   * 고르는 preset 이다. 두 축이 경쟁하지 않는 이유: quiet 을 D2 로 노출하는 컴포넌트
-   * (ToggleButton/TextArea/field 계열)에는 `fillStyle` prop 이 없고, `fillStyle` 을 갖는
-   * Button 계열에는 `isQuiet` 이 없다. 동시 지정 시에는 더 구체적인 요청인 quiet 이 이긴다
-   * (`buildCatalogShapes` 분기 순서).
-   *
-   * **왜 containerVariants 가 아닌 fill 축인가**: containerVariants 의 Skia 소비
-   * (`implicitStyles.resolveActiveContainerVariants`)는 layout 채널이고 색상은 보지 않는다.
-   * quiet 을 거기에 두면 DOM 만 바뀌고 Skia 는 그대로여서 즉시 시각 비대칭이 난다 — 실제로
-   * field 계열의 quiet nested 규칙이 "DOM generated CSS 전용" 으로 기록돼 있던 이유다.
-   * 배경/테두리는 ADR-908 fill preset 이 SSOT 이므로 여기로 통합한다.
-   */
-  quiet?: Partial<FillStateTokens>;
-  /** 배경 투명도 0-1 — VariantSpec.backgroundAlpha 대응 */
-  alpha?: number;
 }
 
 /**
@@ -948,12 +801,10 @@ export interface FillTokenSpec {
  */
 export interface IndicatorModeSpec {
   /**
-   * Fill state tokens — indicator pill 의 배경 (ADR-908 Phase 4 완료).
-   *
-   * `base` 는 CSSGenerator 컨테이너가 `background: transparent` 로 처리하므로 실질
+   * indicator pill 의 배경. `base` 는 CSSGenerator 컨테이너가 `background: transparent` 로 처리하므로 실질
    * emit 되지 않고 pressed 만 `[data-pressed]:not([data-selected])` 선택자에 emit.
    */
-  fill: FillStateTokens;
+  fill: { base: TokenRef; pressed?: TokenRef };
   /** indicator 위 선택 버튼 텍스트 색상 */
   selectedText: TokenRef;
   /** border-radius 토큰 (default: {radius.sm}) */

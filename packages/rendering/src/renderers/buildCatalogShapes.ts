@@ -2,18 +2,14 @@
  * ADR-142 #5 — generic box+text 시각 생성기 (component-agnostic).
  *
  * **정본 범위 (사용자 정정 2026-05-31)**: 모든 frame 이 공유하는 **보편 box+text 시각**만
- * generic 처리한다 — bg roundRect + border + text. 색/크기/형태는 `variants[variant].fill`
- * (ADR-908 `resolveFillTokens`) + `sizes[size]` + `props.style` 에서 읽되, **컴포넌트 식별
- * 분기를 두지 않는다**. fill/outline/subtle/selected 축은 모든 frame 이 가질 수 있는 보편
- * 상태축(CSS data-* 와 동형)이라 여기서 fill 색 결정에 쓴다.
+ * generic 처리한다 — bg roundRect + border + text. 색은 variant 조건 트리를 평가한 `paint`
+ * (ADR-297 — `resolveCatalogPaint`), 크기/형태는 `sizes[size]` + `props.style` 에서 읽되, **컴포넌트 식별
+ * 분기를 두지 않는다**.
  *
  * **비-DOM-trivial primitive(원/선/아이콘 등)는 본 함수가 그리지 않는다** —
  * `PrimitiveBinding.skiaPrimitive` draw module(`renderers/skiaPrimitives.ts`)이 담당하고,
  * dispatch(buildSpecNodeData)가 `binding.skiaPrimitive` 유무로 갈린다. `if (isDot)/if (divider)/
  * if (iconName)` 같은 컴포넌트 식별 분기를 본 함수에 인라인하면 컴포넌트 N++ 복제가 된다(금지).
- *
- * **전환기**: spec 의 ADR-908 FillTokenSpec 을 직접 읽음(#8 theme adapter 와 동일 패턴,
- * 목표는 theme/tokens data-* rules). 출력은 기존 `specShapesToSkia` 가 그대로 소비.
  *
  * 설계: docs/adr/design/142-starter-spec-component-system-cutover-breakdown.md §"#5 Skia backend" + §3 skiaPrimitive
  */

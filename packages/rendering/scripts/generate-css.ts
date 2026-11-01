@@ -13,12 +13,11 @@ import {
   ruleSizeLengthRef,
   ruleSizeLengthRefs,
 } from "../src/renderers/utils/ruleLength";
-import type { ComponentVisualRule } from "../src/renderers/utils/resolveComponentVisual";
 import type {
   ArchetypeId,
   ComponentSpec,
   SizeSpec,
-  VariantSpec,
+  VariantRestPaint,
 } from "../src/types";
 import {
   validateDelegationPrefixes,
@@ -30,14 +29,13 @@ import {
 import {
   getComponentRulesTable,
   getPrimitiveBinding,
-  type CatalogFillStyleValues,
   type ComponentRuleVariant,
 } from "../../shared/src/index";
 import type { ComponentRuleStateStyles } from "../../shared/src/types/catalog-style.types";
 import { CATALOG_FIELD_LABEL_PART_ALIASES } from "../../shared/src/catalog/document/contextualHelp";
 import { CATALOG_CONTEXTUAL_HELP_FIELDS } from "../../shared/src/domain/componentTraits";
 import { createThemeDefinition } from "../../shared/src/theme/themesCollection";
-import { legacyVariantPaint } from "../../shared/src/catalog/rule/rulePaintTree";
+import { paintAt } from "../../shared/src/catalog/rule/rulePaintTree";
 import {
   compileConditionTree,
   isConditionNode,
@@ -104,81 +102,9 @@ async function writeOrCheck(filePath: string, css: string, label: string) {
   } else await fs.writeFile(filePath, css, "utf8");
 }
 
-/**
- * shared ComponentRuleVariant(string) → specs ComponentVisualRule(TokenRef). 런타임 동형 캐스팅.
- * (builder 의 ruleVariantToVisual 과 동일 로직 — 패키지 경계상 builder import 불가라 build script 에 복제.
- *  단계 5 에서 spec seam 제거 후 shared hoisting 통합 검토.)
- */
-function ruleVariantToVisual(
-  v: ComponentRuleVariant,
-  fillStyleValues: CatalogFillStyleValues | undefined,
-): ComponentVisualRule {
-  const { fill, colors: c = {} } = legacyPaintOf(v, fillStyleValues);
-  // fill 은 ComponentRuleFill(string) 과 FillTokenSpec(TokenRef) 가 동형 — 구조 그대로 캐스팅.
-  // builder `ruleVariantToVisual` 과 동일 필드 — ComponentVisualRule 은 전 필드 필수(| undefined).
-  return {
-    fill: fill as unknown as ComponentVisualRule["fill"],
-    text: c.text as ComponentVisualRule["text"],
-    textHover: c.textHover as ComponentVisualRule["textHover"],
-    textWeight: v.textWeight,
-    currentTextWeight: v.currentTextWeight,
-    fontFamily: v.fontFamily,
-    border: c.border as ComponentVisualRule["border"],
-    borderHover: c.borderHover as ComponentVisualRule["borderHover"],
-    borderStyle: v.borderStyle,
-    fillBar: v.fillBar as ComponentVisualRule["fillBar"],
-    outlineText: c.outlineText as ComponentVisualRule["outlineText"],
-    outlineBorder: c.outlineBorder as ComponentVisualRule["outlineBorder"],
-    subtleText: c.subtleText as ComponentVisualRule["subtleText"],
-    selectedText: c.selectedText as ComponentVisualRule["selectedText"],
-    selectedBorder: c.selectedBorder as ComponentVisualRule["selectedBorder"],
-    emphasizedSelectedText:
-      c.emphasizedSelectedText as ComponentVisualRule["emphasizedSelectedText"],
-    emphasizedSelectedBorder:
-      c.emphasizedSelectedBorder as ComponentVisualRule["emphasizedSelectedBorder"],
-    leadingIcon: v.leadingIcon as ComponentVisualRule["leadingIcon"],
-    leadingAvatar: v.leadingAvatar as ComponentVisualRule["leadingAvatar"],
-    trailingIcon: v.trailingIcon as ComponentVisualRule["trailingIcon"],
-    textAlign: v.textAlign,
-  };
-}
-
-/**
- * ADR-297 전환 단계 — variant 의 칠 조건 트리를 생성기가 읽는 옛 블록 순서 입력 (`fill` · `colors`) 으로
- * (breakdown §3 `legacyOrder`). 출력 CSS 는 Phase 1 · 2 동안 옛 선택자 · 순서 그대로이고, Phase 3 에서 생성기가
- * `compileConditionTree` 로 트리를 직접 읽을 때 지운다.
- */
-function legacyPaintOf(
-  v: ComponentRuleVariant,
-  fillStyleValues: CatalogFillStyleValues | undefined,
-) {
-  const legacy = legacyVariantPaint(v.paint, fillStyleValues);
-  return {
-    fill:
-      v.alpha === undefined ? legacy.fill : { ...legacy.fill, alpha: v.alpha },
-    colors: legacy.colors,
-  };
-}
-
 /** catalog `structure.archetype` 은 string("default" 포함). spec 에 없는 값은 미지정과 같다. */
 function toArchetypeId(value: string): ArchetypeId | undefined {
   return isArchetypeId(value) ? value : undefined;
-}
-
-/**
- * 컴포넌트 type → { variantName: ComponentVisualRule } 맵 (정본 table 파생). rule 미존재(컨테이너 shell
- * 등)면 undefined → generateCSS 가 spec fallback.
- */
-export function variantSourceFor(
-  specName: string,
-): Record<string, ComponentVisualRule> | undefined {
-  const rule = getComponentRulesTable()[specName];
-  if (!rule || !rule.variants) return undefined;
-  const map: Record<string, ComponentVisualRule> = {};
-  for (const [name, variant] of Object.entries(rule.variants)) {
-    map[name] = ruleVariantToVisual(variant, rule.fillStyleValues);
-  }
-  return map;
 }
 
 /** ADR-297 Phase 3 — the paint properties a variant's condition tree carries, as CSS properties. */
@@ -232,16 +158,12 @@ function withoutConditions<T>(
  * the blocks share the component class's specificity and the tree order is the cascade — the same
  * order the Canvas evaluator reads). `null` leaves are `NO_CATALOG_VALUE`. A variant
  * whose background alpha is 0 paints no background in any state (Canvas multiplies every state's
- * background by it). `undefined` = the rule keeps the legacy emit (`button-base` until its ramp moves
- * into the tree).
+ * background by it). `undefined` = the rule has no variants.
  */
 export function variantPaintCssFor(specName: string): string[] | undefined {
   const rule = getComponentRulesTable()[specName];
   if (!rule?.variants) return undefined;
-  const structure = rule.structure as
-    | { cssEmitMode?: string; archetype?: string }
-    | undefined;
-  if (structure?.cssEmitMode === "button-base") return undefined;
+  const structure = rule.structure as { archetype?: string } | undefined;
   const indicator = structure?.archetype === "toggle-indicator";
   const root = `.react-aria-${specName}`;
   const blocks: { selector: string; media?: string; line: string }[] = [];
@@ -431,7 +353,6 @@ export function stateOnlySheets(): { name: string; css: string }[] {
         render: { shapes: () => [] },
       } as unknown as ComponentSpec<unknown>,
       undefined,
-      undefined,
       stateStylesCssFor(name),
     );
     if (css !== null) out.push({ name, css });
@@ -445,9 +366,6 @@ export function stateOnlySheets(): { name: string; css: string }[] {
 async function generateAllCSS(
   specs: ComponentSpec<unknown>[],
   outputDir: string,
-  variantSource: (
-    specName: string,
-  ) => Record<string, ComponentVisualRule> | undefined,
 ): Promise<void> {
   const statePath = path.join(outputDir, "CatalogStates.css");
   const stateCss = catalogStateStylesheet();
@@ -465,7 +383,6 @@ async function generateAllCSS(
   for (const spec of specs) {
     const css = generateCSS(
       spec,
-      variantSource(spec.name),
       variantPaintCssFor(spec.name),
       stateStylesCssFor(spec.name),
     );
@@ -489,7 +406,7 @@ async function generateAllCSS(
 // ADR-912 단계5 step4: TEXT_LEAF 5개(Text/Heading/Paragraph/Code/Kbd) spec 파일을 삭제하기 전에
 // spec 없이도 동일한 CSS 가 재생성되도록 rule+메타상수에서 virtual ComponentSpec input 을 합성한다.
 //
-// - 메타상수: name / archetype / element(placeholder) / containerStyles / cssEmitMode
+// - 메타상수: name / archetype / element(placeholder) / containerStyles
 // - sizes / variants / defaultVariant / defaultSize: getComponentRulesTable() 에서 읽어 변환
 // - generateCSS 본체 로직 불변 — 입력 모양만 ComponentSpec 과 동형
 //
@@ -564,33 +481,16 @@ function ruleSizeToSizeSpec(
 }
 
 /**
- * ComponentRuleVariant → VariantSpec 변환 (TEXT_LEAF 용).
- * variantSourceFor 가 이미 색상을 override 하므로, 순회 키 + fill 구조만 맞추면 됨.
+ * A variant's rest paint — the `default` leaves of its condition trees (ADR-297 Phase 3i). The generated base block
+ * paints the default variant with it (no `data-variant` match needed); every state is `variantPaintCssFor`.
  */
-function ruleVariantToVariantSpec(
-  v: ComponentRuleVariant,
-  fillStyleValues: CatalogFillStyleValues | undefined,
-): VariantSpec {
-  const { fill, colors: c = {} } = legacyPaintOf(v, fillStyleValues);
+function variantRestPaint(v: ComponentRuleVariant): VariantRestPaint {
+  const border = paintAt(v.paint.borderColor);
   return {
-    fill: fill as unknown as VariantSpec["fill"],
-    text: (c.text ?? "{color.neutral}") as VariantSpec["text"],
-    ...(c.border !== undefined
-      ? { border: c.border as VariantSpec["border"] }
-      : {}),
-    // fillStyle outline/subtle 색 (2026-06-27) — CSSGenerator Phase 2b 가 visual.outlineText/
-    //   outlineBorder/subtleText 로 [data-fill-style="outline"|"subtle"] 규칙을 emit. 누락 시
-    //   outline 변형이 generated CSS 에서 빠져 Button.css 수동 override 에 의존했다(D3 SSOT 위반).
-    ...(c.outlineText !== undefined
-      ? { outlineText: c.outlineText as VariantSpec["outlineText"] }
-      : {}),
-    ...(c.outlineBorder !== undefined
-      ? { outlineBorder: c.outlineBorder as VariantSpec["outlineBorder"] }
-      : {}),
-    ...(c.subtleText !== undefined
-      ? { subtleText: c.subtleText as VariantSpec["subtleText"] }
-      : {}),
-  } as VariantSpec;
+    background: paintAt(v.paint.backgroundColor) as TokenRef | undefined,
+    text: (paintAt(v.paint.color) ?? "{color.neutral}") as TokenRef,
+    ...(border !== undefined ? { border: border as TokenRef } : {}),
+  };
 }
 
 /**
@@ -714,14 +614,10 @@ export function buildVirtualSpecs(): ComponentSpec<unknown>[] {
       sizes[sizeName] = ruleSizeToSizeSpec(ruleSize as Record<string, unknown>);
     }
 
-    // variants: rule.variants 의 각 entry 를 VariantSpec 으로 변환
-    const variants: Record<string, VariantSpec> = {};
-    for (const [variantName, ruleVariant] of Object.entries(rule.variants)) {
-      variants[variantName] = ruleVariantToVariantSpec(
-        ruleVariant,
-        rule.fillStyleValues,
-      );
-    }
+    // variants: 각 variant 의 휴지 칠 (조건 트리의 default)
+    const variants: Record<string, VariantRestPaint> = {};
+    for (const [variantName, ruleVariant] of Object.entries(rule.variants))
+      variants[variantName] = variantRestPaint(ruleVariant);
 
     const virtualSpec: ComponentSpec<unknown> = {
       name,
@@ -733,8 +629,6 @@ export function buildVirtualSpecs(): ComponentSpec<unknown>[] {
       defaultSize: rule.defaultSize ?? "M",
       variants,
       sizes,
-      // cssEmitMode: Button/ToggleButton 의 button-base(변수 + color-mix 파생). 미설정 시 direct.
-      ...(meta.cssEmitMode ? { cssEmitMode: meta.cssEmitMode } : {}),
       ...(meta.defaultBorder === "color" ? { defaultBorderColorOnly: true } : {}),
       // skipCSSGeneration: DOM 시각을 수동 CSS 가 소유 (Label) — structure 는 Canvas 정본으로만.
       ...(meta.skipCSSGeneration ? { skipCSSGeneration: true } : {}),
@@ -810,7 +704,7 @@ async function main(): Promise<void> {
 
     // CSS 생성
     console.log("\n📝 Generating CSS files...\n");
-    await generateAllCSS(specs, OUTPUT_DIR, variantSourceFor);
+    await generateAllCSS(specs, OUTPUT_DIR);
     await writeOrCheck(THEME_SEED_PATH, themeSeedCss(), "theme-seed");
 
     console.log(

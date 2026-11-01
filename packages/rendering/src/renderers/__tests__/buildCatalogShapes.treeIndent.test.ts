@@ -13,7 +13,7 @@
 
 import { describe, it, expect } from "vitest";
 import { buildCatalogShapes, resolveTreeIndent } from "./catalogPaintFixture";
-import type { ComponentVisualRule } from "../utils/resolveComponentVisual";
+import type { FixtureVisual as ComponentVisualRule } from "./fixtureVisual";
 import type { SizeSpec } from "../../types";
 
 // COMPONENT_RULES_TABLE.TreeItem.sizes.M 미러 (indentPerLevel 16, paddingX 8, iconSize 15).

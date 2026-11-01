@@ -86,8 +86,6 @@ for (const [type, rule] of Object.entries(
     add(c, self ? "④root.self.keys" : "④root.other.keys");
     add(c, self ? "④root.self.decls" : "④root.other.decls", decls);
   }
-  if (rule.structure?.cssEmitMode === "button-base")
-    add(c, "cssEmitMode.button-base");
   if (Object.keys(c).length > 0) {
     inventory[type] = c;
     for (const [k, v] of Object.entries(c)) add(totals, k, v);

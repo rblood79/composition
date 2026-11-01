@@ -56,6 +56,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 이 ADR 밖: 노드 dark 강제는 Canvas · Preview 가 노드 `themeOverride` 를 읽지 않아 화면에 나타나지 않는다 (기존). hover 스타일은 노드 상태를 쓰는 명령이 없어 CSS 에서 읽기 전용.
   - 문서: `docs/adr/completed/296-code-view-project-file-tree-projection.md`
 
+## [ADR-297 Phase 3 (일부 5) — 옛 칠 형식 삭제 (출력 동일)] - 2026-11-02
+
+### Removed
+
+- **variant 칠의 옛 형식 · 변환기 (ADR-297 Phase 3i)** — 칠은 rule 의 조건 트리 하나다. `VariantSpec` · `FillTokenSpec` · `FillStateTokens` · `cssEmitMode`, 생성기의 옛 variant 블록과 어댑터 (`legacyPaintOf` · `variantSourceFor`), shared `legacyVariantPaint`, `@composition/rendering` 의 `resolveFillTokens` · `resolveIndicatorFill` · `resolveStateColors` · `getVariantColors` · `getSizePreset` (소비 0) 와 그 파일 (`fillTokens.ts` · `variantColors.ts` · `stateEffect.ts`). 생성 CSS 109 개는 byte 단위로 같다.
+  - **Why**: 트리를 compile 한 뒤 (3a) 옛 블록은 production 에서 닿지 않았고, 옛 형식이 남아 있으면 칠을 두 형식으로 적는 길이 열린다.
+  - 위치: `packages/rendering/src/types/spec.types.ts` (`VariantRestPaint`) · `renderers/CSSGenerator.ts` · `scripts/generate-css.ts` · `packages/shared/src/catalog/rule/rulePaintTree.ts`
+
+## [ADR-297 Phase 3 (일부 4) — Button · ToggleButton · InlineAlert 상태 칠을 S2 값으로] - 2026-11-01
+
+### Changed
+
+- **Button 의 눌림 · outline hover · disabled · static 색이 S2 와 같아진다 (ADR-297 Phase 3h, 사용자 결정 2)**
+  - 눌림 = hover 색 (테두리가 바탕과 달라 생기던 링이 없다). outline 은 hover · 눌림에 연한 회색 바탕이 깔리고, 테두리는 primary 진한 회색 · secondary 회색 단계를 따른다. accent · negative outline 의 글자는 S2 처럼 중립색.
+  - disabled 는 흐리게가 아니라 S2 disabled 색 (회색 바탕 · 회색 글자, opacity 없음) — ButtonGroup 이 끈 Button 도 같다.
+  - `staticColor` 는 S2 처럼 흰 · 검정의 반투명 단 (primary 85 % → hover 94 %, secondary 11 % → 14 %). accent · negative 에는 S2 static 칠이 없어 평소 색이다.
+  - **Why**: 칠이 S2 순서 · 값과 달랐다 (Phase 0 실측 확정 8 건) — 한 트리를 두 consumer 가 읽게 된 뒤 값만 S2 설치본에 맞췄다. Canvas 는 disabled 를 조건으로 읽지 않았고, Button 라이브러리 정의가 칠을 손으로 옮겨 static 을 불투명으로 고정하고 있었다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (`buttonPaint`) · `catalog/document/codeCatalogLibrary.ts` · `catalog/resolvers/resolveCatalogPaint.ts` · `catalog/runtime/rulePaint.ts`
+- **quiet ToggleButton 의 hover · 눌림이 한 단 진해지고, InlineAlert subtleFill 의 Canvas 테두리가 사라진다** (S2 `ActionButton` · `InlineAlert`).
+
+### Tests
+
+- `packages/shared/src/catalog/__tests__/adr297S2Paint.test.ts` — S2 설치본 소스를 oracle 로 7 건 고정 (원복 RED).
+
 ## [ADR-297 Phase 3 (일부 3) — 수동 CSS 의 선택 · focus 상태를 rule 트리로] - 2026-11-01
 
 ### Changed

@@ -352,6 +352,229 @@ const BUTTON_ROOT_BOX = {
   height: "fit-content",
 } as const;
 
+/**
+ * ADR-297 Phase 3h — Button 칠 = 설치 S2 `Button.tsx` (사용자 결정 2: 확정 8 건 S2 대로 · 저장소에 없는 S2 토큰은
+ * 가장 가까운 기존 토큰). 트리 순서 = S2 키 순서 (fill → outline → disabled → static).
+ * - #5 pressed = hover 의 단 (`baseColor` 의 `:pressed` = `:hovered` 와 같은 다음 단 · accent `accent-1000`).
+ *   S2 fill 은 테두리 폭 0 — 테두리 색은 바탕과 같은 값이라 pressed 에 테두리 링이 생기지 않는다.
+ * - #2 outline: 휴지 투명 · hover · pressed `gray-100` (`neutral-subtle`). 테두리 primary `baseColor('gray-800')`
+ *   (`neutral` → `neutral-fill-hover`) · secondary `baseColor('gray-300')` (`border` → `border-hover`); S2 에 outline
+ *   테두리가 없는 variant 는 그대로.
+ * - #7 disabled: S2 `disabled` 색 — 바탕 `{color.disabled}` · 글자는 disabled 글자 토큰이 없어 `neutral-subdued` ·
+ *   outline 테두리 `border-disabled`. opacity 없음 (`BUTTON_DISABLED_STATE`).
+ * - #9 static (variant 바깥): `transparent-overlay-N` = static 색 (white · black) 의 α — S2 `spectrum-theme`
+ *   (`lch(from --s2-container-bg …) / α`). primary 800 → hover 900 · secondary 100 → 200 · outline hover 100 ·
+ *   disabled 바탕 100 · 글자 400 · outline 테두리 primary 800 → 900 · secondary 300 → 400. primary 글자 `auto` =
+ *   바탕 반대색. accent · negative 는 S2 static 가지가 없어 평소 칠 그대로, premium · genai 는 100 고정 + 흰 글자.
+ */
+const S2_OVERLAY_ALPHA = {
+  100: 0.11,
+  200: 0.14,
+  300: 0.17,
+  400: 0.21,
+  800: 0.85,
+  900: 0.94,
+} as const;
+type StaticTone = "white" | "black";
+const overlay = (tone: StaticTone, step: keyof typeof S2_OVERLAY_ALPHA) =>
+  `rgba(${tone === "white" ? "255, 255, 255" : "0, 0, 0"}, ${S2_OVERLAY_ALPHA[step]})`;
+const opaque = (tone: StaticTone) => (tone === "white" ? "#ffffff" : "#000000");
+const opposite = (tone: StaticTone) => (tone === "white" ? "#000000" : "#ffffff");
+const TRANSPARENT = "{color.transparent}";
+const OUTLINE_HOVER_FILL = "{color.neutral-subtle}";
+
+interface ButtonPaintSpec {
+  /** fill 바탕 — 휴지 · hover (pressed 도 같은 단). */
+  readonly fill: readonly [string, string];
+  readonly text: string;
+  readonly outlineText: string;
+  /** outline 테두리 — 휴지 · hover/pressed. */
+  readonly outlineBorder: readonly [string, string];
+  /**
+   * fill 테두리 (없으면 바탕과 같은 값 — S2 fill 테두리 폭 0). secondary 는 바탕이 S2 `gray-100` 이 아니라
+   * `layer-1` 이라 테두리로 경계를 지킨다 (확정 8 건 밖 — 그대로).
+   */
+  readonly fillBorder?: readonly [string, string];
+  /** S2 static 가지 — primary · secondary 의 overlay 단, flat = premium · genai, none = 가지 없음. */
+  readonly static: "primary" | "secondary" | "flat" | "none";
+}
+
+function buttonStaticPaint(spec: ButtonPaintSpec, tone: StaticTone) {
+  const ov = (step: keyof typeof S2_OVERLAY_ALPHA) => overlay(tone, step);
+  const [rest, hover] =
+    spec.static === "primary"
+      ? [ov(800), ov(900)]
+      : spec.static === "secondary"
+        ? [ov(100), ov(200)]
+        : [ov(100), ov(100)];
+  const [borderRest, borderHover] =
+    spec.static === "primary"
+      ? [ov(800), ov(900)]
+      : spec.static === "secondary"
+        ? [ov(300), ov(400)]
+        : [TRANSPARENT, TRANSPARENT];
+  const outlineFill = spec.static === "flat" ? ov(100) : TRANSPARENT;
+  return {
+    backgroundColor: {
+      default: rest,
+      isHovered: hover,
+      isPressed: hover,
+      isDisabled: ov(100),
+      fillStyle: {
+        outline: {
+          default: outlineFill,
+          isHovered: ov(100),
+          isPressed: ov(100),
+          isDisabled: outlineFill,
+        },
+      },
+    },
+    color: {
+      default:
+        spec.static === "primary"
+          ? opposite(tone)
+          : spec.static === "flat"
+            ? "#ffffff"
+            : opaque(tone),
+      fillStyle: { outline: spec.static === "flat" ? "#ffffff" : opaque(tone) },
+      isDisabled: overlay(tone, 400),
+    },
+    borderColor: {
+      default: TRANSPARENT,
+      fillStyle: {
+        outline: {
+          default: borderRest,
+          isHovered: borderHover,
+          isPressed: borderHover,
+          isDisabled: spec.static === "flat" ? TRANSPARENT : ov(300),
+        },
+      },
+    },
+  };
+}
+
+function buttonPaint(spec: ButtonPaintSpec) {
+  const [rest, hover] = spec.fill;
+  const [outlineRest, outlineHover] = spec.outlineBorder;
+  const [borderRest, borderHover] = spec.fillBorder ?? spec.fill;
+  const statics =
+    spec.static === "none"
+      ? undefined
+      : {
+          white: buttonStaticPaint(spec, "white"),
+          black: buttonStaticPaint(spec, "black"),
+        };
+  const branch = (key: "backgroundColor" | "color" | "borderColor") =>
+    statics
+      ? {
+          staticColor: {
+            black: statics.black[key],
+            white: statics.white[key],
+          },
+        }
+      : {};
+  return {
+    paint: {
+      backgroundColor: {
+        default: rest,
+        isHovered: hover,
+        isPressed: hover,
+        isDisabled: "{color.disabled}",
+        fillStyle: {
+          outline: {
+            default: TRANSPARENT,
+            isHovered: OUTLINE_HOVER_FILL,
+            isPressed: OUTLINE_HOVER_FILL,
+            isDisabled: TRANSPARENT,
+          },
+        },
+        ...branch("backgroundColor"),
+      },
+      color: {
+        default: spec.text,
+        isDisabled: "{color.neutral-subdued}",
+        fillStyle: {
+          outline: {
+            default: spec.outlineText,
+            isDisabled: "{color.neutral-subdued}",
+          },
+        },
+        ...branch("color"),
+      },
+      borderColor: {
+        default: borderRest,
+        isHovered: borderHover,
+        isPressed: borderHover,
+        isDisabled: "{color.disabled}",
+        fillStyle: {
+          outline: {
+            default: outlineRest,
+            isHovered: outlineHover,
+            isPressed: outlineHover,
+            isDisabled: "{color.border-disabled}",
+          },
+        },
+        ...branch("borderColor"),
+      },
+    },
+  };
+}
+
+/** S2 Button — disabled 는 색 (`buttonPaint`) 이지 opacity 가 아니다 (ADR-297 3h #7). */
+const BUTTON_DISABLED_STATE = {
+  cursor: { isDisabled: "not-allowed" },
+  pointerEvents: { isDisabled: "none" },
+} as const;
+
+const BUTTON_VARIANTS = {
+  // (outline 글자 = S2 `baseColor('neutral')` — fill 밖 variant 색은 S2 outline 에 없다, #2)
+  accent: buttonPaint({
+    fill: ["{color.accent}", "{color.accent-hover}"],
+    text: "{color.on-accent}",
+    outlineText: "{color.neutral}",
+    outlineBorder: ["{color.border-hover}", "{color.border-hover}"],
+    static: "none",
+  }),
+  // 진한 바탕의 한 단 — `neutral-hover` 는 밝은 바탕 (neutral-subtle) 의 다음 단이라 흰 글자가
+  // 사라진다 (ADR-293 결정 4, S2 `baseColor('neutral')`)
+  primary: buttonPaint({
+    fill: ["{color.neutral}", "{color.neutral-fill-hover}"],
+    text: "{color.base}",
+    outlineText: "{color.neutral}",
+    outlineBorder: ["{color.neutral}", "{color.neutral-fill-hover}"],
+    static: "primary",
+  }),
+  secondary: buttonPaint({
+    fill: ["{color.layer-1}", "{color.neutral-subtle}"],
+    fillBorder: ["{color.border}", "{color.border}"],
+    text: "{color.neutral}",
+    outlineText: "{color.neutral}",
+    outlineBorder: ["{color.border}", "{color.border-hover}"],
+    static: "secondary",
+  }),
+  negative: buttonPaint({
+    fill: ["{color.negative}", "{color.negative-hover}"],
+    text: "{color.on-negative}",
+    outlineText: "{color.neutral}",
+    outlineBorder: ["{color.border-hover}", "{color.border-hover}"],
+    static: "none",
+  }),
+  premium: buttonPaint({
+    fill: ["{color.purple}", "{color.purple-hover}"],
+    text: "{color.white}",
+    outlineText: "{color.purple}",
+    outlineBorder: ["{color.border-hover}", "{color.border-hover}"],
+    static: "flat",
+  }),
+  genai: buttonPaint({
+    fill: ["{color.purple}", "{color.purple-hover}"],
+    text: "{color.white}",
+    outlineText: "{color.purple}",
+    outlineBorder: ["{color.border-hover}", "{color.border-hover}"],
+    static: "flat",
+  }),
+};
+
 export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   // ADR-256 Phase 6g — Autocomplete: RAC Autocomplete has no element (its children sit in its
   //   parent's flow). The Canvas lays it out as `display: contents` (engine CSS-DISPLAY-3 §2.5 —
@@ -1522,470 +1745,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   justifyContent (ADR-253): 생성 sheet 는 내용을 가운데에 둔다 (`structure.containerStyles`) —
     //   내용보다 넓은 Button (field 의 증감 버튼 · minWidth 가 남는 아이콘 Button) 의 Canvas 자식도 같다.
     containerStyles: BUTTON_ROOT_BOX,
-    variants: {
-      accent: {
-        // outline fillStyle — 투명 배경(Button.css 수동 override 의 단일 소스화, 2026-06-27).
-        paint: {
-          backgroundColor: {
-            default: "{color.accent}",
-            isHovered: "{color.accent-hover}",
-            isPressed: "{color.accent-pressed}",
-            fillStyle: {
-              outline: "{color.transparent}",
-            },
-            staticColor: {
-              black: {
-                default: "#000000",
-                isHovered: "#000000",
-                isPressed: "#000000",
-                fillStyle: {
-                  outline: "{color.transparent}",
-                },
-              },
-              white: {
-                default: "#ffffff",
-                isHovered: "#ffffff",
-                isPressed: "#ffffff",
-                fillStyle: {
-                  outline: "{color.transparent}",
-                },
-              },
-            },
-          },
-          color: {
-            default: "{color.on-accent}",
-            fillStyle: {
-              outline: "{color.accent-content}",
-            },
-            staticColor: {
-              black: {
-                default: "#ffffff",
-                isHovered: "#ffffff",
-                isPressed: "#ffffff",
-                fillStyle: {
-                  outline: "#000000",
-                },
-              },
-              white: {
-                default: "#000000",
-                isHovered: "#000000",
-                isPressed: "#000000",
-                fillStyle: {
-                  outline: "#ffffff",
-                },
-              },
-            },
-          },
-          borderColor: {
-            default: "{color.accent}",
-            isHovered: "{color.accent-hover}",
-            fillStyle: {
-              outline: "{color.border-hover}",
-            },
-            staticColor: {
-              black: {
-                default: "#000000",
-                isHovered: "#000000",
-                fillStyle: {
-                  outline: "#000000",
-                },
-              },
-              white: {
-                default: "#ffffff",
-                isHovered: "#ffffff",
-                fillStyle: {
-                  outline: "#ffffff",
-                },
-              },
-            },
-          },
-        },
-      },
-      primary: {
-        // 진한 바탕의 한 단 — `neutral-hover` 는 밝은 바탕 (neutral-subtle) 의 다음 단이라 흰 글자가
-        // 사라진다 (ADR-293 결정 4, S2 `baseColor('neutral')`)
-        paint: {
-          backgroundColor: {
-            default: "{color.neutral}",
-            isHovered: "{color.neutral-fill-hover}",
-            isPressed: "{color.neutral-fill-pressed}",
-            fillStyle: {
-              outline: "{color.transparent}",
-            },
-            staticColor: {
-              black: {
-                default: "#000000",
-                isHovered: "#000000",
-                isPressed: "#000000",
-                fillStyle: {
-                  outline: "{color.transparent}",
-                },
-              },
-              white: {
-                default: "#ffffff",
-                isHovered: "#ffffff",
-                isPressed: "#ffffff",
-                fillStyle: {
-                  outline: "{color.transparent}",
-                },
-              },
-            },
-          },
-          color: {
-            default: "{color.base}",
-            fillStyle: {
-              outline: "{color.neutral}",
-            },
-            staticColor: {
-              black: {
-                default: "#ffffff",
-                isHovered: "#ffffff",
-                isPressed: "#ffffff",
-                fillStyle: {
-                  outline: "#000000",
-                },
-              },
-              white: {
-                default: "#000000",
-                isHovered: "#000000",
-                isPressed: "#000000",
-                fillStyle: {
-                  outline: "#ffffff",
-                },
-              },
-            },
-          },
-          borderColor: {
-            default: "{color.neutral}",
-            isHovered: "{color.neutral-fill-hover}",
-            fillStyle: {
-              outline: "{color.border-hover}",
-            },
-            staticColor: {
-              black: {
-                default: "#000000",
-                isHovered: "#000000",
-                fillStyle: {
-                  outline: "#000000",
-                },
-              },
-              white: {
-                default: "#ffffff",
-                isHovered: "#ffffff",
-                fillStyle: {
-                  outline: "#ffffff",
-                },
-              },
-            },
-          },
-        },
-      },
-      secondary: {
-        paint: {
-          backgroundColor: {
-            default: "{color.layer-1}",
-            isHovered: "{color.neutral-subtle}",
-            isPressed: "{color.neutral-subtle}",
-            fillStyle: {
-              outline: "{color.transparent}",
-            },
-            staticColor: {
-              black: {
-                default: "#000000",
-                isHovered: "#000000",
-                isPressed: "#000000",
-                fillStyle: {
-                  outline: "{color.transparent}",
-                },
-              },
-              white: {
-                default: "#ffffff",
-                isHovered: "#ffffff",
-                isPressed: "#ffffff",
-                fillStyle: {
-                  outline: "{color.transparent}",
-                },
-              },
-            },
-          },
-          color: {
-            default: "{color.neutral}",
-            fillStyle: {
-              outline: "{color.neutral}",
-            },
-            staticColor: {
-              black: {
-                default: "#ffffff",
-                isHovered: "#ffffff",
-                isPressed: "#ffffff",
-                fillStyle: {
-                  outline: "#000000",
-                },
-              },
-              white: {
-                default: "#000000",
-                isHovered: "#000000",
-                isPressed: "#000000",
-                fillStyle: {
-                  outline: "#ffffff",
-                },
-              },
-            },
-          },
-          borderColor: {
-            default: "{color.border}",
-            fillStyle: {
-              outline: "{color.border-hover}",
-            },
-            staticColor: {
-              black: {
-                default: "#000000",
-                fillStyle: {
-                  outline: "#000000",
-                },
-              },
-              white: {
-                default: "#ffffff",
-                fillStyle: {
-                  outline: "#ffffff",
-                },
-              },
-            },
-          },
-        },
-      },
-      negative: {
-        paint: {
-          backgroundColor: {
-            default: "{color.negative}",
-            isHovered: "{color.negative-hover}",
-            isPressed: "{color.negative-pressed}",
-            fillStyle: {
-              outline: "{color.transparent}",
-            },
-            staticColor: {
-              black: {
-                default: "#000000",
-                isHovered: "#000000",
-                isPressed: "#000000",
-                fillStyle: {
-                  outline: "{color.transparent}",
-                },
-              },
-              white: {
-                default: "#ffffff",
-                isHovered: "#ffffff",
-                isPressed: "#ffffff",
-                fillStyle: {
-                  outline: "{color.transparent}",
-                },
-              },
-            },
-          },
-          color: {
-            default: "{color.on-negative}",
-            fillStyle: {
-              outline: "{color.negative}",
-            },
-            staticColor: {
-              black: {
-                default: "#ffffff",
-                isHovered: "#ffffff",
-                isPressed: "#ffffff",
-                fillStyle: {
-                  outline: "#000000",
-                },
-              },
-              white: {
-                default: "#000000",
-                isHovered: "#000000",
-                isPressed: "#000000",
-                fillStyle: {
-                  outline: "#ffffff",
-                },
-              },
-            },
-          },
-          borderColor: {
-            default: "{color.negative}",
-            isHovered: "{color.negative-hover}",
-            fillStyle: {
-              outline: "{color.border-hover}",
-            },
-            staticColor: {
-              black: {
-                default: "#000000",
-                isHovered: "#000000",
-                fillStyle: {
-                  outline: "#000000",
-                },
-              },
-              white: {
-                default: "#ffffff",
-                isHovered: "#ffffff",
-                fillStyle: {
-                  outline: "#ffffff",
-                },
-              },
-            },
-          },
-        },
-      },
-      premium: {
-        paint: {
-          backgroundColor: {
-            default: "{color.purple}",
-            isHovered: "{color.purple-hover}",
-            isPressed: "{color.purple-pressed}",
-            fillStyle: {
-              outline: "{color.transparent}",
-            },
-            staticColor: {
-              black: {
-                default: "#000000",
-                isHovered: "#000000",
-                isPressed: "#000000",
-                fillStyle: {
-                  outline: "{color.transparent}",
-                },
-              },
-              white: {
-                default: "#ffffff",
-                isHovered: "#ffffff",
-                isPressed: "#ffffff",
-                fillStyle: {
-                  outline: "{color.transparent}",
-                },
-              },
-            },
-          },
-          color: {
-            default: "{color.white}",
-            fillStyle: {
-              outline: "{color.purple}",
-            },
-            staticColor: {
-              black: {
-                default: "#ffffff",
-                isHovered: "#ffffff",
-                isPressed: "#ffffff",
-                fillStyle: {
-                  outline: "#000000",
-                },
-              },
-              white: {
-                default: "#000000",
-                isHovered: "#000000",
-                isPressed: "#000000",
-                fillStyle: {
-                  outline: "#ffffff",
-                },
-              },
-            },
-          },
-          borderColor: {
-            default: "{color.purple}",
-            isHovered: "{color.purple-hover}",
-            fillStyle: {
-              outline: "{color.border-hover}",
-            },
-            staticColor: {
-              black: {
-                default: "#000000",
-                isHovered: "#000000",
-                fillStyle: {
-                  outline: "#000000",
-                },
-              },
-              white: {
-                default: "#ffffff",
-                isHovered: "#ffffff",
-                fillStyle: {
-                  outline: "#ffffff",
-                },
-              },
-            },
-          },
-        },
-      },
-      genai: {
-        paint: {
-          backgroundColor: {
-            default: "{color.purple}",
-            isHovered: "{color.purple-hover}",
-            isPressed: "{color.purple-pressed}",
-            fillStyle: {
-              outline: "{color.transparent}",
-            },
-            staticColor: {
-              black: {
-                default: "#000000",
-                isHovered: "#000000",
-                isPressed: "#000000",
-                fillStyle: {
-                  outline: "{color.transparent}",
-                },
-              },
-              white: {
-                default: "#ffffff",
-                isHovered: "#ffffff",
-                isPressed: "#ffffff",
-                fillStyle: {
-                  outline: "{color.transparent}",
-                },
-              },
-            },
-          },
-          color: {
-            default: "{color.white}",
-            fillStyle: {
-              outline: "{color.purple}",
-            },
-            staticColor: {
-              black: {
-                default: "#ffffff",
-                isHovered: "#ffffff",
-                isPressed: "#ffffff",
-                fillStyle: {
-                  outline: "#000000",
-                },
-              },
-              white: {
-                default: "#000000",
-                isHovered: "#000000",
-                isPressed: "#000000",
-                fillStyle: {
-                  outline: "#ffffff",
-                },
-              },
-            },
-          },
-          borderColor: {
-            default: "{color.purple}",
-            isHovered: "{color.purple-hover}",
-            fillStyle: {
-              outline: "{color.border-hover}",
-            },
-            staticColor: {
-              black: {
-                default: "#000000",
-                isHovered: "#000000",
-                fillStyle: {
-                  outline: "#000000",
-                },
-              },
-              white: {
-                default: "#ffffff",
-                isHovered: "#ffffff",
-                fillStyle: {
-                  outline: "#ffffff",
-                },
-              },
-            },
-          },
-        },
-      },
-    },
+    variants: BUTTON_VARIANTS,
     // fontWeight 500 (사용자 결정 2026-09-29 — 버튼 500 · 링크 400): 생성 CSS 는 sizes.fontWeight 만
     //   `font-weight` 로 내보내고 (variant.textWeight 는 Canvas 전용 채널), Canvas 는 textWeight 미선언 시
     //   500 이라 두 소비자가 같은 값이 된다. 안의 Text/Label 자식은 Button 척도를 받았다 (옛 propagationRegistry — 2026-10-05 삭제).
@@ -2077,7 +1837,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         ...FIELD_BUTTON_CORNER_STATE,
         ...FOCUS_RING_STATE,
         transform: { isPressed: "scale(0.95)" },
-        ...DISABLED_STATE,
+        ...BUTTON_DISABLED_STATE,
       },
       // ADR-297 Phase 3: paint = the variant trees (generated `:where` blocks) — the class stays for
       //   the Skia child-color gate and the Builder chrome ramp (`.button-base:not([data-catalog-id])`).
@@ -6985,6 +6745,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           borderColor: {
             default: "{color.neutral-subdued}",
+            // S2 `InlineAlert.tsx` — subtleFill 은 테두리 transparent (ADR-297 3h #11)
+            fillStyle: {
+              subtleFill: "{color.transparent}",
+            },
           },
         },
       },
@@ -7009,6 +6773,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           borderColor: {
             default: "{color.informative}",
+            // S2 `InlineAlert.tsx` — subtleFill 은 테두리 transparent (ADR-297 3h #11)
+            fillStyle: {
+              subtleFill: "{color.transparent}",
+            },
           },
         },
       },
@@ -7032,6 +6800,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           borderColor: {
             default: "{color.positive}",
+            // S2 `InlineAlert.tsx` — subtleFill 은 테두리 transparent (ADR-297 3h #11)
+            fillStyle: {
+              subtleFill: "{color.transparent}",
+            },
           },
         },
       },
@@ -7055,6 +6827,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           borderColor: {
             default: "{color.notice}",
+            // S2 `InlineAlert.tsx` — subtleFill 은 테두리 transparent (ADR-297 3h #11)
+            fillStyle: {
+              subtleFill: "{color.transparent}",
+            },
           },
         },
       },
@@ -7078,6 +6854,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           borderColor: {
             default: "{color.negative}",
+            // S2 `InlineAlert.tsx` — subtleFill 은 테두리 transparent (ADR-297 3h #11)
+            fillStyle: {
+              subtleFill: "{color.transparent}",
+            },
           },
         },
       },
@@ -8267,7 +8047,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         // (ADR-297 Phase 3g: the option's keyboard ring sits inside it, a selected one's deeper — was the manual
         //   `ListBox.css`)
         outline: { isFocusVisible: "2px solid var(--accent)" },
-        outlineOffset: { isFocusVisible: { default: "-2px", isSelected: "-4px" } },
+        outlineOffset: {
+          isFocusVisible: { default: "-2px", isSelected: "-4px" },
+        },
         ...DISABLED_STATE,
         // (ADR-297 Phase 3b: the option's resting cursor — was the manual `ListBox.css` root)
         cursor: { default: "pointer", isDisabled: "not-allowed" },
@@ -10940,7 +10722,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         RANGE_BAND_START,
       [`${RANGE_BAND}:has(> [data-selection-end])::before`]: RANGE_BAND_END,
       [`${RANGE_BAND}:last-child::before`]: RANGE_BAND_END,
-      [`${RANGE_BAND}:has(+ td > [data-outside-month])::before`]: RANGE_BAND_END,
+      [`${RANGE_BAND}:has(+ td > [data-outside-month])::before`]:
+        RANGE_BAND_END,
       "& .react-aria-CalendarCell%": RANGE_CALENDAR_CELL_STATE,
       "& .react-aria-CalendarCell%::after": {
         background: {
@@ -13474,7 +13257,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           isFocusVisible: "2px solid var(--accent)",
           isDropTarget: "2px solid var(--accent)",
         },
-        outlineOffset: { isFocusVisible: { default: "-2px", isSelected: "-4px" } },
+        outlineOffset: {
+          isFocusVisible: { default: "-2px", isSelected: "-4px" },
+        },
       },
       "& .react-aria-Row[data-selected] .react-aria-Cell%": {
         outlineColor: { isFocusVisible: "var(--accent)" },
@@ -13489,9 +13274,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       "& .react-aria-Row[data-selected] + .react-aria-Row%": {
         "--radius-top": { isSelected: "0px" },
       },
-      "& .react-aria-Row[data-selected] + .react-aria-DropIndicator + .react-aria-Row%": {
-        "--radius-top": { isSelected: "0px" },
-      },
+      "& .react-aria-Row[data-selected] + .react-aria-DropIndicator + .react-aria-Row%":
+        {
+          "--radius-top": { isSelected: "0px" },
+        },
       "& .react-aria-Row% .react-aria-Checkbox": {
         "--selected-color": { isSelected: "var(--tbl-cb-selected-on)" },
         "--checkmark-color": { isSelected: "var(--tbl-cb-checkmark-on)" },
@@ -13508,9 +13294,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: { isFocusVisible: "4px" },
         outline: { isFocusVisible: "2px solid var(--accent)" },
       },
-      "&[data-node-table] .react-aria-Cell[data-drag-cell] > .catalog-drag-handle%": {
-        outline: { isFocusVisible: "2px solid var(--focus-ring)" },
-      },
+      "&[data-node-table] .react-aria-Cell[data-drag-cell] > .catalog-drag-handle%":
+        {
+          outline: { isFocusVisible: "2px solid var(--focus-ring)" },
+        },
       "& .react-aria-ColumnResizer%": {
         display: { isFocusVisible: "block" },
       },
@@ -13534,12 +13321,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             "inset 1px 0 var(--accent), inset -1px 0 var(--accent), var(--row-highlight-top), var(--row-highlight-bottom)",
         },
       },
-      '&[data-selection-style="highlight"] .react-aria-Row%:has(+ [data-selected])': {
-        "--row-highlight-bottom": { isSelected: "0 0 transparent" },
-      },
-      '&[data-selection-style="highlight"] .react-aria-Row[data-selected] + .react-aria-Row%': {
-        "--row-highlight-top": { isSelected: "0 0 transparent" },
-      },
+      '&[data-selection-style="highlight"] .react-aria-Row%:has(+ [data-selected])':
+        {
+          "--row-highlight-bottom": { isSelected: "0 0 transparent" },
+        },
+      '&[data-selection-style="highlight"] .react-aria-Row[data-selected] + .react-aria-Row%':
+        {
+          "--row-highlight-top": { isSelected: "0 0 transparent" },
+        },
     },
     defaultVariant: "default",
     defaultSize: "M",
@@ -14972,10 +14761,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.neutral-subtle}",
             isHovered: "{color.neutral-hover}",
             isPressed: "{color.neutral-pressed}",
+            // ADR-297 3h #10 — S2 `ActionButton.tsx`: quiet 은 휴지 바탕만 투명, hover · pressed 는 quiet 이 아닌
+            //   것과 같은 `baseColor('gray-100')` 의 다음 단 (`neutral-hover` · `neutral-pressed`).
             isQuiet: {
               default: "{color.transparent}",
-              isHovered: "{color.neutral-subtle}",
-              isPressed: "{color.neutral-hover}",
+              isHovered: "{color.neutral-hover}",
+              isPressed: "{color.neutral-pressed}",
             },
             isSelected: {
               default: "{color.neutral}",
@@ -15514,8 +15305,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
       },
-      // button-base utility 착용 (usesButtonBaseUtility 소비) — CSS emit 은 direct 유지
-      //   (cssEmitMode 미설정). DOM shared 컴포넌트(ToggleButtonGroup.tsx)가 wrapper 에
+      // button-base utility 착용 (usesButtonBaseUtility 소비) — 칠은 variant 트리 (ADR-297).
+      //   DOM shared 컴포넌트(ToggleButtonGroup.tsx)가 wrapper 에
       //   `.button-base` 를 붙이고 Skia 자식(Text/Icon/Label) color 상속 게이트가 같은
       //   membership 을 공유한다. 구 3벌 손 미러(preview BUTTON_BASE_TYPES / Skia
       //   BUTTON_BASE_PARENT_TAGS) 를 본 선언으로 단일화 (2026-08-14).
@@ -15805,7 +15596,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           isFocusVisible: "2px solid var(--accent)",
           isDropTarget: "2px solid var(--accent)",
         },
-        outlineOffset: { isFocusVisible: { default: "-2px", isSelected: "-4px" } },
+        outlineOffset: {
+          isFocusVisible: { default: "-2px", isSelected: "-4px" },
+        },
         outlineColor: { forcedColors: { isFocusVisible: "Highlight" } },
       },
       "& .react-aria-TreeItem% .react-aria-Button": {

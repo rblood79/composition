@@ -31,9 +31,11 @@ const CLASSIFICATION: Record<string, string> = {
   "Badge.variants.accent.paint.backgroundColor.isPressed": "accent",
   "Button.variants.accent.paint.backgroundColor.default": "accent",
   "Button.variants.accent.paint.backgroundColor.isHovered": "accent-hover",
-  "Button.variants.accent.paint.backgroundColor.isPressed": "accent-pressed",
+  // (ADR-297 3h #5: S2 pressed = the hover stop, and the fill border is the fill)
+  "Button.variants.accent.paint.backgroundColor.isPressed": "accent-hover",
   "Button.variants.accent.paint.borderColor.default": "accent",
   "Button.variants.accent.paint.borderColor.isHovered": "accent-hover",
+  "Button.variants.accent.paint.borderColor.isPressed": "accent-hover",
   "Checkbox.variants.emphasized.paint.backgroundColor.isSelected.default":
     "accent",
   "Checkbox.variants.emphasized.paint.borderColor.isSelected.default": "accent",
@@ -57,7 +59,7 @@ const CLASSIFICATION: Record<string, string> = {
   "Badge.variants.accent.paint.color.fillStyle.outline": "accent-content",
   "Badge.variants.accent.paint.color.fillStyle.subtle": "accent-content",
   "Badge.variants.accent.paint.borderColor.fillStyle.outline": "accent-content",
-  "Button.variants.accent.paint.color.fillStyle.outline": "accent-content",
+  // (ADR-297 3h #2: an accent outline Button's text is S2 `baseColor('neutral')` — no accent-content)
   "Card.variants.primary.paint.borderColor.isSelected.default":
     "accent-content",
   "Card.variants.secondary.paint.borderColor.isSelected.default":

@@ -5,22 +5,13 @@ import type {
 } from "../../types/spec.types";
 import type { TokenRef } from "../../types/token.types";
 import { emitContainerStyles, generateCSS } from "../CSSGenerator";
-// ADR-912 단계5: variantToVisual 은 test-only utility — production CSSGenerator 는
-//   _variantSource(rule table 파생) 단독이라 spec→visual fallback 이 사라졌다. test 는
-//   fixture spec.variants 에서 _variantSource 를 직접 구성(production variantSourceFor 동형).
-import { variantToVisual } from "../utils/resolveComponentVisual";
-import type { ComponentVisualRule } from "../utils/resolveComponentVisual";
 
-/** fixture spec.variants → _variantSource 맵 (production variantSourceFor 동형). */
-function variantSourceFromSpec(
-  spec: ComponentSpec<{ variant?: string }>,
-): Record<string, ComponentVisualRule> {
-  const map: Record<string, ComponentVisualRule> = {};
-  for (const [name, v] of Object.entries(spec.variants ?? {})) {
-    map[name] = variantToVisual(v);
-  }
-  return map;
-}
+/** The variants' compiled paint blocks (production: `generate-css.ts` `variantPaintCssFor` — ADR-297). */
+const VARIANT_PAINT_CSS = [
+  '.react-aria-FakePopover:where([data-variant="primary"]) {',
+  "  background: var(--fg);",
+  "}",
+];
 
 describe("emitContainerStyles — ADR-071", () => {
   it("emits TokenRef colors via tokenToCSSVar", () => {
@@ -103,13 +94,7 @@ describe("generateCSS — containerStyles S3 semantic (ADR-071)", () => {
     defaultSize: "M",
     variants: {
       primary: {
-        fill: {
-          default: {
-            base: "{color.neutral}" as TokenRef,
-            hover: "{color.neutral-hover}" as TokenRef,
-            pressed: "{color.neutral-pressed}" as TokenRef,
-          },
-        },
+        background: "{color.neutral}" as TokenRef,
         text: "{color.base}" as TokenRef,
         border: "{color.neutral}" as TokenRef,
       },
@@ -164,15 +149,13 @@ describe("generateCSS — containerStyles S3 semantic (ADR-071)", () => {
       ...baseSpec,
       containerStyles: { background: "{color.raised}" },
     };
-    const css = generateCSS(spec);
+    const css = generateCSS(spec, VARIANT_PAINT_CSS);
     expect(css).not.toContain('[data-variant="primary"]');
   });
 
   it("keeps defaultVariant injection + variants block when containerStyles absent (baseline)", () => {
-    // ADR-912 단계5: production 동형으로 _variantSource 주입 (구 variantToVisual fallback 제거).
-    // b6b9b3514 가 중간 boolean 파라미터를 제거해 2-인자 시그니처 — 구 3-인자
-    // 호출이 남으면 _variantSource=false 로 variant 블록이 통째 스킵된다.
-    const css = generateCSS(baseSpec, variantSourceFromSpec(baseSpec));
+    // ADR-297 3i: variant 블록 = compile 된 트리 (`variantPaintCssFor`) 뿐 — 기본 블록은 휴지 칠.
+    const css = generateCSS(baseSpec, VARIANT_PAINT_CSS);
     expect(css).toContain("background: var(--fg);");
     expect(css).toContain('[data-variant="primary"]');
   });

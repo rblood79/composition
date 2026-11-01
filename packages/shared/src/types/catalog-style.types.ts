@@ -564,12 +564,10 @@ export interface ComponentRuleStructure {
    * `outline` + `outline-offset`). 옛 `states.{hover,pressed,disabled,focusVisible}` 를 대체한다.
    */
   stateStyles?: ComponentRuleStateStyles;
-  /** CSS emit 모드. button-base = `--button-color` 변수 + utility color-mix 자동 파생. */
-  cssEmitMode?: "direct" | "button-base";
   /**
    * ADR-297 Phase 3 — 생성 sheet 의 기본 블록 (`/* Default variant *\/`) 이 테두리를 색만 낸다 (`border-color`) —
    * 폭 · 모양은 size 블록과 수동 sheet 가 정한다 (Button = `Button.css` `border: 1px solid`, ToggleButton = 없음).
-   * button-base 모드가 변수만 내던 때의 상자 크기를 그대로 둔다.
+   * (옛 button-base 모드가 변수만 내던 때의 상자 크기를 그대로 둔다.)
    */
   defaultBorder?: "color";
   /**
@@ -592,8 +590,8 @@ export interface ComponentRuleStructure {
   classAliases?: readonly string[];
   /**
    * `.button-base` utility 착용 대상 명시 선언 — CSS emit 은 direct 인데 markup 클래스와
-   * Skia 자식 color 상속 게이트만 필요한 컴포넌트용 (ToggleButtonGroup). `cssEmitMode:
-   * "button-base"` 는 이 선언을 함의하므로 중복 지정 불요. 소비는 `usesButtonBaseUtility()`.
+   * Skia 자식 color 상속 게이트가 필요한 컴포넌트 (Button · ToggleButton · ToggleButtonGroup — 칠은 트리,
+   * ADR-297). 소비는 `usesButtonBaseUtility()`.
    */
   buttonBase?: boolean;
   /** selection indicator 구조 메타 (ToggleButtonGroup pill 위치/box-shadow). */

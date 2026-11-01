@@ -60,7 +60,6 @@ export function resolveCatalogPaint({
   interactionState,
   fillStyleValues,
 }: ResolveCatalogPaintInput): ResolvedCatalogPaint {
-
   const fillKey = catalogFillStyleKey(props.fillStyle, fillStyleValues);
   const isOutline = fillKey === "outline";
   const isSubtle = fillKey === "subtle";
@@ -71,13 +70,18 @@ export function resolveCatalogPaint({
   //   (`staticColor` black · white) is the tree's `staticColor` branch too — one evaluation.
   const staticColor = props.staticColor;
   const staticTone =
-    staticColor === "black" || staticColor === "white" ? staticColor : undefined;
+    staticColor === "black" || staticColor === "white"
+      ? staticColor
+      : undefined;
   const conditions: ConditionSet = {
     isHovered: interactionState === "hover",
     isPressed: interactionState === "pressed",
     isSelected,
     isEmphasized: props.isEmphasized === true,
     isQuiet: props.isQuiet === true,
+    // ADR-297 3h #7 — S2 disabled is a color (`Button.tsx` `isDisabled: 'disabled'`), not opacity; the
+    //   record's `isDisabled` (own · inherited — `presence.ts`) is the DOM's `data-disabled`.
+    isDisabled: props.isDisabled === true,
     ...(typeof props.fillStyle === "string"
       ? { fillStyle: props.fillStyle }
       : {}),

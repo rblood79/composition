@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { getSkiaPrimitive } from "./catalogPaintFixture";
-import type { ComponentVisualRule } from "../utils/resolveComponentVisual";
+import type { FixtureVisual as ComponentVisualRule } from "./fixtureVisual";
 import type { IconFontShape, SizeSpec } from "../../types";
 
 /**

@@ -13,11 +13,183 @@ import path from "node:path";
 import ts from "typescript";
 import { COMPONENT_RULES_TABLE } from "../../../packages/shared/src/catalog/generated/componentRulesTable";
 import { rulePaintReach } from "../../../packages/shared/src/catalog/rule/paintReach";
-import {
-  variantPaintTree,
-  type LegacyVariantPaint,
+import type {
+  ComponentRulePaint,
+  PaintReach,
+  PaintTree,
 } from "../../../packages/shared/src/catalog/rule/rulePaintTree";
-import type { ComponentRule } from "../../../packages/shared/src/types/catalog-style.types";
+import type {
+  CatalogFillStyleValues,
+  ComponentRule,
+} from "../../../packages/shared/src/types/catalog-style.types";
+
+// ── 옛 형식 → 트리 (Phase 2 codemod 의 변환 — Phase 3i 에서 shared `rulePaintTree.ts` 에서 옮겨 왔다) ──
+
+/** 옛 `fill.<style>` 의 상태 칸 (ADR-908 `FillStateTokens` 투영). */
+interface LegacyFillState {
+  base: string;
+  hover?: string;
+  pressed?: string;
+  selected?: string;
+  selectedHover?: string;
+  selectedPressed?: string;
+  emphasizedSelected?: string;
+}
+/** 옛 `fill` — fillStyle (default · outline · subtle) × 상태 + quiet + 투명도. */
+interface LegacyFill {
+  default: LegacyFillState;
+  outline?: Partial<LegacyFillState>;
+  subtle?: Partial<LegacyFillState>;
+  quiet?: Partial<LegacyFillState>;
+  alpha?: number;
+}
+/** 옛 `colors` — 글자 · 테두리와 그 상태 접미사 키. */
+interface LegacyColors {
+  text?: string;
+  textHover?: string;
+  border?: string;
+  borderHover?: string;
+  outlineText?: string;
+  outlineBorder?: string;
+  subtleText?: string;
+  selectedText?: string;
+  selectedBorder?: string;
+  emphasizedSelectedText?: string;
+  emphasizedSelectedBorder?: string;
+}
+/** 옛 형식의 variant 칠 (`fill` · `colors`). */
+interface LegacyVariantPaint {
+  fill: LegacyFill;
+  colors?: LegacyColors;
+}
+
+type Node = Record<
+  string,
+  PaintTree | Readonly<Record<string, PaintTree | undefined>> | undefined
+>;
+
+const compact = (node: Node): Node | undefined => {
+  for (const key of Object.keys(node))
+    if (node[key] === undefined) delete node[key];
+  return Object.keys(node).length > 0 ? node : undefined;
+};
+
+/** `{ default: base, isHovered, isPressed }` — 한 fillStyle 의 상태 칠 (`S.hover ?? S.base`). */
+function stateNode(
+  states: Partial<LegacyFillState> | undefined,
+): PaintTree | undefined {
+  if (!states) return undefined;
+  const node = compact({
+    default: states.base,
+    isHovered: states.hover,
+    isPressed: states.pressed,
+  });
+  // 상태 하나뿐이면 leaf 로 (`fillStyle: { outline: "{color.transparent}" }`).
+  return node && Object.keys(node).length === 1 && "default" in node
+    ? (node.default as PaintTree)
+    : node;
+}
+
+/**
+ * 옛 `fill.<style>` · `colors` 접미사 키 → 트리 (전환 codemod 와 같은 변환). 트리는 현행 Canvas 사슬
+ * (`resolveCatalogPaint`) 의 뜻을 그대로 담는다 — 선택 · outline · subtle 은 그 칸만 칠하는 배타 가지라, 닿는 축
+ * (`reach`) 에서 칸이 비면 `null` 가지를 둔다.
+ */
+function variantPaintTree(
+  variant: LegacyVariantPaint,
+  fillStyleValues?: CatalogFillStyleValues,
+  reach: PaintReach = {},
+): ComponentRulePaint {
+  const fill = variant.fill;
+  const c: LegacyColors = variant.colors ?? {};
+  const outline = fillStyleValues?.outline ?? "outline";
+  const subtle = fillStyleValues?.subtle ?? "subtle";
+  const reaches = (value: string) => reach.fillStyles?.includes(value) === true;
+  const selectable = reach.selectable === true;
+  const d = fill.default;
+  // 옛 사슬: outline · subtle 에서는 hover 글자 · 테두리를 읽지 않는다. 그 칸이 비고 hover 값이 있으면 트리로
+  //   담을 수 없다 (「hover 아님」 조건이 없다) — 닿는 축에서는 표에 0 건이라 멈춘다.
+  const exclusive = (
+    value: string,
+    slot: string | undefined,
+    hover: string | undefined,
+    key: string,
+  ) => {
+    if (slot === undefined && hover !== undefined && reaches(value))
+      throw new Error(`ADR297_UNREPRESENTABLE_HOVER:${key}:${value}`);
+    return slot;
+  };
+  const fillSlot = (
+    states: Partial<LegacyFillState> | undefined,
+    value: string,
+  ) => stateNode(states) ?? (reaches(value) ? null : undefined);
+
+  const backgroundColor = compact({
+    default: d.base,
+    isHovered: d.hover,
+    isPressed: d.pressed,
+    fillStyle: compact({
+      [outline]: fillSlot(fill.outline, outline),
+      [subtle]: fillSlot(fill.subtle, subtle),
+    }) as Record<string, PaintTree> | undefined,
+    isQuiet: stateNode(fill.quiet),
+    isSelected:
+      selectable ||
+      d.selected !== undefined ||
+      d.emphasizedSelected !== undefined ||
+      d.selectedHover !== undefined ||
+      d.selectedPressed !== undefined
+        ? compact({
+            default: d.selected ?? null,
+            isHovered: d.selectedHover,
+            isPressed: d.selectedPressed,
+            isEmphasized: d.emphasizedSelected,
+          })
+        : undefined,
+  });
+
+  const color = compact({
+    default: c.text,
+    isHovered: c.textHover,
+    fillStyle: compact({
+      [outline]: exclusive(outline, c.outlineText, c.textHover, "color"),
+      [subtle]: exclusive(subtle, c.subtleText, c.textHover, "color"),
+    }) as Record<string, PaintTree> | undefined,
+    isSelected:
+      selectable ||
+      c.selectedText !== undefined ||
+      c.emphasizedSelectedText !== undefined
+        ? compact({
+            default: c.selectedText ?? null,
+            isEmphasized: c.emphasizedSelectedText,
+          })
+        : undefined,
+  });
+
+  const borderColor = compact({
+    default: c.border,
+    isHovered: c.borderHover,
+    fillStyle: compact({
+      [outline]: exclusive(outline, c.outlineBorder, c.borderHover, "border"),
+    }) as Record<string, PaintTree> | undefined,
+    isSelected:
+      selectable ||
+      c.selectedBorder !== undefined ||
+      c.emphasizedSelectedBorder !== undefined
+        ? compact({
+            default: c.selectedBorder ?? null,
+            isEmphasized: c.emphasizedSelectedBorder,
+          })
+        : undefined,
+  });
+
+  return {
+    ...(backgroundColor ? { backgroundColor } : {}),
+    ...(color ? { color } : {}),
+    ...(borderColor ? { borderColor } : {}),
+  };
+}
+
 
 const args = process.argv.slice(2);
 const dry = args.includes("--dry");

@@ -33,35 +33,23 @@ import { CHART_REFERENCE_FALLBACK_TOKEN } from "../chart/marks/referenceLine";
 import { deriveAutoDelegationVariables } from "../runtime/deriveAutoDelegationVariables";
 // ADR-912 Δ7: layout token table 단일 source — generator-private layout 매핑 상수를 대체.
 import { layoutTokenToCssLines, type LayoutToken } from "./layoutTokens";
-// ADR-908 Phase 3-A + 3-B: Fill token dual-read seam — VariantSpec + IndicatorModeSpec
-import { resolveFillTokens, resolveIndicatorFill } from "../utils/fillTokens";
-// ADR-912 단계5: variant 색상은 _variantSource(정본 table 파생) 단독 — 구 variantToVisual
-//   어댑터 의존 제거. ComponentVisualRule 타입만 계약으로 유지.
-import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
 
-// ─── ADR-059 B5: cssEmitMode helper ─────────────────────────────────────────
+// ─── variant 휴지 칠 한 줄 ────────────────────────────────────────────────────
 
 type ColorKind = "background" | "text" | "border";
+
+const COLOR_PROPS: Record<ColorKind, string> = {
+  background: "background",
+  text: "color",
+  border: "border-color",
+};
 
 function emitColorLine(
   kind: ColorKind,
   tokenRef: string,
-  mode: "direct" | "button-base",
   indent: string = "  ",
 ): string {
-  const DIRECT_PROPS: Record<ColorKind, string> = {
-    background: "background",
-    text: "color",
-    border: "border-color",
-  };
-  const BUTTON_BASE_PROPS: Record<ColorKind, string> = {
-    background: "--button-color",
-    text: "--button-text",
-    border: "--button-border",
-  };
-  const prop =
-    mode === "button-base" ? BUTTON_BASE_PROPS[kind] : DIRECT_PROPS[kind];
-  return `${indent}${prop}: ${tokenRef};`;
+  return `${indent}${COLOR_PROPS[kind]}: ${tokenRef};`;
 }
 
 // ─── Archetype별 base styles ────────────────────────────────────────────────
@@ -257,14 +245,8 @@ function isTrackOwningGridContainer<Props>(
 export function generateCSS<Props>(
   spec: ComponentSpec<Props>,
   /**
-   * ADR-912 ②-6-A (1A-(a)): variant 색상 base source 주입 (build script 가 정본 table 에서 변환해 전달).
-   * `variantName → ComponentVisualRule`. 제공 시 해당 variant 색상은 spec 이 아니라 본 맵(=table 파생)에서
-   * 읽혀 DOM CSS 와 Skia runtime rule 이 같은 정본 table 파생이 된다. 미제공(undefined) variant 는 skip.
-   */
-  _variantSource?: Record<string, ComponentVisualRule>,
-  /**
    * ADR-297 Phase 3 — the variants' paint compiled from their condition trees (`generate-css.ts`
-   * `variantPaintCssFor`). When given it replaces the legacy per-variant blocks below.
+   * `variantPaintCssFor`) — every variant · state block of the sheet. Without it the sheet has no variant blocks.
    */
   _variantPaintCss?: readonly string[],
   /**
@@ -329,12 +311,6 @@ export function generateCSS<Props>(
   // - skipVariantCss:true (escape hatch, 현재 사용처 0)
   // ADR-083 Phase 1: Layout primitive only containerStyles(display/flex/width 등)는
   //   variants 색상을 여전히 emit — InlineAlert 5-variant 케이스 지원.
-  const variantMode = spec.cssEmitMode ?? "direct";
-  // toggle-indicator(Checkbox/Radio/Switch): variant 의 border/selected/selectedBorder 는
-  // **indicator box 전용 시각**(Skia skiaPrimitive 가 소비). DOM 에선 indicator 색을 RAC/별도
-  // CSS 가 담당하므로 컨테이너 root(.react-aria-X)에 emit 하면 label 전체 오염(checked 시 label
-  // 배경/테두리 변경). → 컨테이너 variant CSS 에서 border/selected 계열 생략(ADR-142 B2).
-  const isIndicatorArchetype = spec.archetype === "toggle-indicator";
   const containerHasColors = !!(
     spec.containerStyles?.background ||
     spec.containerStyles?.text ||
@@ -348,258 +324,6 @@ export function generateCSS<Props>(
     _variantPaintCss
   )
     lines.push(..._variantPaintCss);
-  else if (
-    !compositionOwnsContainerBox(spec) &&
-    !containerHasColors &&
-    spec.variants != null &&
-    !spec.skipVariantCss
-  )
-    for (const variantName of Object.keys(spec.variants)) {
-      // ADR-912 단계5: variant 색상은 정본 table 파생(_variantSource)만 source.
-      //   구 `?? variantToVisual(spec.variants[name])` fallback 제거 — production 은
-      //   generate-css.ts 가 variantSourceFor 로 _variantSource 를 전량 주입(spec.variants 와
-      //   _variantSource 는 둘 다 rule.variants 파생이라 키 1:1). 미주입(embed 재귀·test)
-      //   variant 는 skip — embed 재귀는 production 도달 0(childSpecs 보유 spec 전수 삭제),
-      //   test 는 variantSource 명시 주입.
-      const visual = _variantSource?.[variantName];
-      if (!visual) continue;
-      const fill = visual.fill!;
-      lines.push(`.react-aria-${spec.name}[data-variant="${variantName}"] {`);
-      lines.push(
-        ...generateVariantStyles(visual, variantMode, isIndicatorArchetype),
-      );
-      lines.push("");
-
-      // hover/pressed — button-base 모드에서는 .button-base utility가 color-mix로 자동 파생
-      if (variantMode !== "button-base") {
-        // hover 상태
-        lines.push("  &[data-hovered] {");
-        if (fill.default.hover) {
-          lines.push(`    background: ${tokenToCSSVar(fill.default.hover)};`);
-        }
-        if (visual.textHover) {
-          lines.push(`    color: ${tokenToCSSVar(visual.textHover)};`);
-        }
-        if (visual.borderHover) {
-          lines.push(`    border-color: ${tokenToCSSVar(visual.borderHover)};`);
-        }
-        lines.push("  }");
-        lines.push("");
-
-        // pressed 상태
-        lines.push("  &[data-pressed] {");
-        if (fill.default.pressed) {
-          lines.push(`    background: ${tokenToCSSVar(fill.default.pressed)};`);
-        }
-        lines.push("  }");
-      }
-
-      // ─── ADR-059 B5: selected 상태 ───
-      // toggle-indicator 는 selected 색이 indicator box 전용(Skia) → 컨테이너 emit 생략(B2).
-      if (fill.default.selected && !isIndicatorArchetype) {
-        lines.push("");
-        lines.push("  &[data-selected] {");
-        lines.push(
-          emitColorLine(
-            "background",
-            tokenToCSSVar(fill.default.selected),
-            variantMode,
-            "    ",
-          ),
-        );
-        if (visual.selectedText) {
-          lines.push(
-            emitColorLine(
-              "text",
-              tokenToCSSVar(visual.selectedText),
-              variantMode,
-              "    ",
-            ),
-          );
-        }
-        if (visual.selectedBorder) {
-          lines.push(
-            emitColorLine(
-              "border",
-              tokenToCSSVar(visual.selectedBorder),
-              variantMode,
-              "    ",
-            ),
-          );
-        }
-        // selected × hover/pressed — button-base에서는 스킵
-        if (variantMode !== "button-base") {
-          if (fill.default.selectedHover) {
-            lines.push("");
-            lines.push("    &[data-hovered] {");
-            lines.push(
-              `      background: ${tokenToCSSVar(fill.default.selectedHover)};`,
-            );
-            lines.push("    }");
-          }
-          if (fill.default.selectedPressed) {
-            lines.push("");
-            lines.push("    &[data-pressed] {");
-            lines.push(
-              `      background: ${tokenToCSSVar(fill.default.selectedPressed)};`,
-            );
-            lines.push("    }");
-          }
-        }
-        lines.push("  }");
-      }
-
-      // ─── ADR-059 B5: emphasized × selected 조합 ───
-      if (fill.default.emphasizedSelected) {
-        lines.push("");
-        lines.push("  &[data-emphasized][data-selected] {");
-        lines.push(
-          emitColorLine(
-            "background",
-            tokenToCSSVar(fill.default.emphasizedSelected),
-            variantMode,
-            "    ",
-          ),
-        );
-        if (visual.emphasizedSelectedText) {
-          lines.push(
-            emitColorLine(
-              "text",
-              tokenToCSSVar(visual.emphasizedSelectedText),
-              variantMode,
-              "    ",
-            ),
-          );
-        }
-        if (visual.emphasizedSelectedBorder) {
-          lines.push(
-            emitColorLine(
-              "border",
-              tokenToCSSVar(visual.emphasizedSelectedBorder),
-              variantMode,
-              "    ",
-            ),
-          );
-        }
-        lines.push("  }");
-      }
-
-      lines.push("}");
-      lines.push("");
-
-      // ─── Phase 2b: fillStyle outline 변형 ───
-      if (fill.outline?.base || visual.outlineBorder) {
-        lines.push(
-          `.react-aria-${spec.name}[data-variant="${variantName}"][data-fill-style="${spec.fillStyleValues?.outline ?? "outline"}"] {`,
-        );
-        lines.push(
-          emitColorLine(
-            "background",
-            tokenToCSSVar(
-              fill.outline?.base ?? ("{color.transparent}" as TokenRef),
-            ),
-            variantMode,
-          ),
-        );
-        if (visual.outlineText) {
-          lines.push(
-            emitColorLine(
-              "text",
-              tokenToCSSVar(visual.outlineText),
-              variantMode,
-            ),
-          );
-        }
-        if (visual.outlineBorder) {
-          lines.push(
-            emitColorLine(
-              "border",
-              tokenToCSSVar(visual.outlineBorder),
-              variantMode,
-            ),
-          );
-        }
-        lines.push("}");
-        lines.push("");
-      }
-
-      // ─── quiet 변형 (2026-08-21) — boolean prop `isQuiet` 이 고르는 fill preset ───
-      //   컴포넌트가 `data-quiet={isQuiet || undefined}` 를 emit 하므로 존재 셀렉터로 매칭한다
-      //   (false 면 속성 자체가 없다). specificity 0-3-0 으로 base variant 규칙(0-2-0)을 이긴다.
-      //   Skia 대칭: buildCatalogShapes 의 isQuiet 분기가 같은 `fill.quiet` 을 읽는다.
-      if (fill.quiet?.base) {
-        lines.push(
-          `.react-aria-${spec.name}[data-variant="${variantName}"][data-quiet] {`,
-        );
-        lines.push(
-          emitColorLine(
-            "background",
-            tokenToCSSVar(fill.quiet.base),
-            variantMode,
-          ),
-        );
-        lines.push("}");
-        lines.push("");
-
-        if (fill.quiet.hover) {
-          lines.push(
-            `.react-aria-${spec.name}[data-variant="${variantName}"][data-quiet]:where([data-hovered]) {`,
-          );
-          lines.push(
-            emitColorLine(
-              "background",
-              tokenToCSSVar(fill.quiet.hover),
-              variantMode,
-            ),
-          );
-          lines.push("}");
-          lines.push("");
-        }
-
-        if (fill.quiet.pressed) {
-          lines.push(
-            `.react-aria-${spec.name}[data-variant="${variantName}"][data-quiet]:where([data-pressed]) {`,
-          );
-          lines.push(
-            emitColorLine(
-              "background",
-              tokenToCSSVar(fill.quiet.pressed),
-              variantMode,
-            ),
-          );
-          lines.push("}");
-          lines.push("");
-        }
-      }
-
-      // ─── Phase 2b: fillStyle subtle 변형 ───
-      if (fill.subtle?.base) {
-        lines.push(
-          `.react-aria-${spec.name}[data-variant="${variantName}"][data-fill-style="${spec.fillStyleValues?.subtle ?? "subtle"}"] {`,
-        );
-        lines.push(
-          emitColorLine(
-            "background",
-            tokenToCSSVar(fill.subtle.base),
-            variantMode,
-          ),
-        );
-        if (visual.subtleText) {
-          lines.push(
-            emitColorLine(
-              "text",
-              tokenToCSSVar(visual.subtleText),
-              variantMode,
-            ),
-          );
-        }
-        if (variantMode === "direct") {
-          lines.push("  border-color: transparent;");
-        }
-        lines.push("}");
-        lines.push("");
-      }
-    }
 
   // icon-only 지원 (archetype: button에만)
   if (spec.archetype === "button") {
@@ -861,28 +585,24 @@ function generateBaseStyles<Props>(spec: ComponentSpec<Props>): string[] {
     defaultVariant &&
     !compositionOwnsContainerBox(spec)
   ) {
-    // default variant 색상 — Composite 컨테이너는 자식이 관리하므로 skip
-    const mode = spec.cssEmitMode ?? "direct";
-    // ADR-908 Phase 4-a: defaultVariant alias 도 fill token seam 경유
-    const defaultFill = resolveFillTokens(defaultVariant);
+    // default variant 휴지 칠 — Composite 컨테이너는 자식이 관리하므로 skip
     lines.push("");
     lines.push("  /* Default variant */");
     lines.push(
       emitColorLine(
         "background",
-        tokenToCSSVar(defaultFill.default.base),
-        mode,
+        tokenToCSSVar(defaultVariant.background as TokenRef),
       ),
     );
-    lines.push(emitColorLine("text", tokenToCSSVar(defaultVariant.text), mode));
+    lines.push(emitColorLine("text", tokenToCSSVar(defaultVariant.text)));
     // toggle-indicator: border 는 indicator box 전용(Skia) → 컨테이너는 border: none(ADR-142 B2).
     const omitContainerBorder = spec.archetype === "toggle-indicator";
     if (defaultVariant.border && !omitContainerBorder) {
       // ADR-227 P3: 숫자 → px · `{border.width.*}` → var · 미지정 → thin 변수 (종전 `?? 1`)
       const bw = borderWidthToCSS(defaultSize?.borderWidth);
-      if (mode === "button-base" || spec.defaultBorderColorOnly) {
+      if (spec.defaultBorderColorOnly) {
         lines.push(
-          emitColorLine("border", tokenToCSSVar(defaultVariant.border), mode),
+          emitColorLine("border", tokenToCSSVar(defaultVariant.border)),
         );
       } else {
         lines.push(
@@ -890,9 +610,7 @@ function generateBaseStyles<Props>(spec: ComponentSpec<Props>): string[] {
         );
       }
     } else {
-      if (mode === "direct") {
-        lines.push("  border: none;");
-      }
+      lines.push("  border: none;");
     }
   }
 
@@ -1005,56 +723,6 @@ export function emitContainerStyles(c: ContainerStylesSchema): string[] {
     lines.push(`  grid-template-rows: ${c.gridTemplateRows};`);
   // ADR-089: position — 자식 absolute 배치 기준 형성. SliderTrack position:relative 리프팅.
   if (c.position) lines.push(`  position: ${c.position};`);
-
-  return lines;
-}
-
-// ─── Variant Styles ─────────────────────────────────────────────────────────
-
-function generateVariantStyles(
-  visual: ComponentVisualRule,
-  mode: "direct" | "button-base" = "direct",
-  // toggle-indicator: border 는 indicator box 전용(Skia) → 컨테이너 emit 생략(ADR-142 B2).
-  omitBorder = false,
-): string[] {
-  // ADR-142 G2(b) A: variant 색상은 ComponentVisualRule 어댑터 경유 (spec.variants 직접 접근 제거)
-  const fill = visual.fill!;
-  // visual.text 는 VariantSpec.text(required) 투영 — variant 존재 호출 경로라 항상 존재.
-  const lines = [
-    emitColorLine("background", tokenToCSSVar(fill.default.base), mode),
-    emitColorLine("text", tokenToCSSVar(visual.text!), mode),
-  ];
-  // ADR-227 — button-base 모드의 hover/pressed **override 슬롯**: variant 의 hover/pressed 토큰이
-  //   파생 키 (`{color.X-hover}` / `{color.X-pressed}`) 면 `--button-color-hover: var(--X-hover)` 를 낸다.
-  //   테마가 `--X-hover` 를 명시하지 않으면 이 선언은 guaranteed-invalid 라 `.button-base` 의
-  //   `var(--button-color-hover, color-mix(...))` 가 종전 파생으로 떨어진다 (기본 시각 무변경).
-  //   비파생 토큰 (`{color.neutral-subtle}` 등) 은 내지 않는다 — 내면 종전 `.button-base` mix 와 갈린다.
-  if (mode === "button-base") {
-    const slot = (ref: unknown) => {
-      const m =
-        typeof ref === "string"
-          ? /^\{color\.([a-z0-9-]+-(?:hover|pressed))\}$/.exec(ref)
-          : null;
-      return m ? `var(--${m[1]})` : null;
-    };
-    const hover = slot(fill.default.hover);
-    const pressed = slot(fill.default.pressed);
-    if (hover) lines.push(`  --button-color-hover: ${hover};`);
-    if (pressed) lines.push(`  --button-color-pressed: ${pressed};`);
-  }
-
-  if (visual.border && !omitBorder) {
-    lines.push(emitColorLine("border", tokenToCSSVar(visual.border), mode));
-  }
-
-  if (fill.alpha !== undefined && fill.alpha < 1) {
-    // backgroundAlpha < 1 → 투명 처리 (button-base도 동일하게 transparent)
-    lines.push(
-      mode === "button-base"
-        ? "  --button-color: transparent;"
-        : "  background: transparent;",
-    );
-  }
 
   return lines;
 }
@@ -1532,7 +1200,7 @@ function generateIndicatorModeCSS<Props>(spec: ComponentSpec<Props>): string[] {
   lines.push("");
 
   // ADR-908 Phase 3-B: IndicatorModeSpec fill dual-read seam
-  const imFill = resolveIndicatorFill(im);
+  const imFill = im.fill;
   if (imFill.pressed) {
     lines.push(
       `${base} .react-aria-ToggleButton[data-pressed]:not([data-selected]) {`,
