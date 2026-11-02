@@ -43,7 +43,7 @@ describe("resolveCssDecorationLines — the lines a CSS text-decoration draws", 
   it("DPR 1 snaps to whole px; never thinner than one device px", () => {
     expect(
       resolveCssDecorationLines({ ...at16, dpr: 1, decoration: 1 }),
-    ).toEqual([{ top: 101, thickness: 2 }]);
+    ).toEqual([{ top: 101, thickness: 1 }]);
     expect(
       resolveCssDecorationLines({
         fontSize: 4,

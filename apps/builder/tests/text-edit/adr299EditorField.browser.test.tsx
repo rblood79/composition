@@ -37,6 +37,8 @@ let current: Mounted | undefined;
 afterEach(() => {
   current?.root.unmount();
   current?.host.remove();
+  current?.panel.remove();
+  current?.outside.remove();
   current = undefined;
 });
 
@@ -272,6 +274,28 @@ describe(`ADR-299 G4 — EditorField (${browser})`, () => {
     m.outside.focus();
     await settle();
     expect(m.commits).toBe(1);
+  });
+
+  it.each(["typography", "portal"])("Tab leaving %s commits once", async (scope) => {
+    const m = await mount("Hello");
+    if (scope === "portal") {
+      m.panel.removeAttribute("data-section-id");
+      m.panel.setAttribute("data-text-edit-scope", "");
+    }
+    const outside = document.createElement("input");
+    m.panel.after(outside);
+    try {
+      await userEvent.click(page.elementLocator(m.panelInput));
+      expect(m.commits).toBe(0);
+      await userEvent.keyboard("{Tab}");
+      await settle();
+      expect(document.activeElement).toBe(outside);
+      expect(m.commits).toBe(1);
+      await userEvent.click(page.elementLocator(m.outside));
+      expect(m.commits).toBe(1);
+    } finally {
+      outside.remove();
+    }
   });
 
   it("a plain field (a bound text) takes no marks", async () => {

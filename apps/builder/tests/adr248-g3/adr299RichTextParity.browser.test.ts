@@ -2,14 +2,14 @@
  * ADR-299 G2 — range-formatted text, Canvas ↔ Preview DOM (fixture 8). Each fixture lays a Text of
  * `RichText` out with the product composition root (CanvasKit measure), paints its Canvas text node
  * with the product renderer (`renderText`) at 500 % into a raster surface, and renders the same
- * record with the Preview's DOM renderer (`renderCatalogDom`, run `<span>`s) at CSS zoom 5 — its
+ * record with the Preview's DOM renderer (`renderCatalogDom`, run `<span>`s) at transform scale(5) — its
  * element screenshot is the oracle (Chrome's line boxes, Chrome's decorations).
  *
  * Read per fixture: the ink box (dark pixels) and the ink lines (row clusters) of both rasters, the
  * run-colored ink box (a run painted red) and the engine box vs the DOM element's box. The control
  * arm is the same text without runs (the node's own type) in the same environment: the gate is the
- * run arm's ink-edge difference ≤ the control's + 2.5 device px (0.5 scene px at 500 %), the same
- * line count, and the engine box within 1 px of the DOM box.
+ * run arm's absolute ink-edge difference ≤ 2.5 device px (0.5 scene px at 500 %), the same
+ * line count, and equal engine/DOM boxes (floating-point precision only).
  *
  * Conditions: Chrome (`channel: chrome`, headless), DPR 1, `visibilityState` visible, Pretendard
  * file loaded in both legs. Report: `test-results/adr299-rich-text-parity.json`.
@@ -54,6 +54,7 @@ import {
   buildCodeCatalogLibrary,
   catalogTypeDefinitionId,
 } from "../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
+import { setFields } from "../../../../packages/shared/src/catalog/commands";
 import { CatalogGraph } from "../../../../packages/shared/src/catalog/document/graph";
 import {
   applyTextRunMarks,
@@ -90,6 +91,21 @@ const at = (text: string, part: string): [number, number] => {
 };
 const LONG =
   "Range formatting keeps one paragraph: the big words wrap with their neighbours inside the same text box.";
+const BASELINE_FIXTURES: Fixture[] = [
+  {
+    key: "large-second-hard-line",
+    text: "first\nBIG",
+    marks: [[6, 9, {fontSize: 48, color: RED}]],
+    textVisual: {fontSize: set(16), whiteSpace: set("pre-wrap")},
+  },
+  {
+    key: "large-second-soft-line",
+    text: "first BIG",
+    width: 90,
+    marks: [[6, 9, {fontSize: 48, color: RED}]],
+    textVisual: {fontSize: set(16)},
+  },
+];
 const FIXTURES: Fixture[] = [
   {
     key: "weight",
@@ -377,7 +393,7 @@ async function measureArm(fixture: Fixture, rich: boolean) {
   surface.delete();
   canvasBinding.dispose();
 
-  // DOM leg — the Preview renderer at CSS zoom 5, the element's screenshot.
+  // DOM leg — the Preview renderer at transform scale(5), the element's screenshot.
   const host = document.createElement("div");
   host.style.cssText = `position:absolute;left:0;top:0;width:${PAGE.width}px;height:${PAGE.height}px;background:#fff`;
   document.body.append(host);
@@ -396,7 +412,14 @@ async function measureArm(fixture: Fixture, rich: boolean) {
   const element = host.querySelector<HTMLElement>(
     `[data-catalog-id="${CSS.escape(textId)}"]`,
   )!;
+  const marker = document.createElement("span");
+  marker.style.cssText = "display:inline-block;width:0;height:0;padding:0;vertical-align:baseline";
+  element.prepend(marker);
   const box = element.getBoundingClientRect();
+  const domBaseline = marker.getBoundingClientRect().top - box.top;
+  marker.remove();
+  const engineBaseline = JSON.parse(root.getAppliedLayoutInput(textId)!).leafBaseline;
+
   const frameElement = host.querySelector<HTMLElement>(
     `[data-catalog-id="${CSS.escape(rootInput.id)}"]`,
   );
@@ -407,7 +430,9 @@ async function measureArm(fixture: Fixture, rich: boolean) {
       : null,
     textInline: element.style.textDecoration,
   };
-  host.style.zoom = String(SCALE);
+  // Match CatalogPreviewFrame: zooming the camera transforms the iframe, not CSS layout.
+  host.style.transformOrigin = "0 0";
+  host.style.transform = `scale(${SCALE})`;
   await new Promise((resolve) =>
     requestAnimationFrame(() => requestAnimationFrame(resolve)),
   );
@@ -417,13 +442,23 @@ async function measureArm(fixture: Fixture, rich: boolean) {
     save: false,
   });
   const domInk = inkOf(
-    await pngData((shot as unknown as { base64: string }).base64),
+    await pngData(shot),
   );
   reactRoot.unmount();
   host.remove();
+  const widthBaselines: number[] = [];
+  if (fixture.key === "large-second-soft-line") {
+    for (const width of [520, 90]) {
+      root.execute(setFields({targets: [{kind: "node", id: "project:node:text"}], sizing: {width: set(width)}}));
+      widthBaselines.push(JSON.parse(root.getAppliedLayoutInput(textId)!).leafBaseline);
+    }
+  }
   return {
+    widthBaselines,
     canvasInk,
     domInk,
+    domBaseline,
+    engineBaseline,
     engine: { width: geometry.width, height: geometry.height },
     dom: { width: box.width, height: box.height },
     plain: richTextPlain(
@@ -498,6 +533,30 @@ describe("ADR-299 G2 — range-formatted text, Canvas raster ↔ Preview DOM (50
     expect(document.visibilityState).toBe("visible");
   });
 
+  it("first-line baseline ignores larger runs after hard and soft breaks", () => {
+    const font = {fontSize: 16, fontWeight: 400, lineHeight: 1.5, whiteSpace: "pre-wrap"};
+    const hard = catalogTextMeasure("first\nBIG", font, undefined, [
+      {start: 0, end: 6}, {start: 6, end: 9, fontSize: 48},
+    ]);
+    const soft = catalogTextMeasure("first BIG", {...font, whiteSpace: "normal"}, 90, [
+      {start: 0, end: 6}, {start: 6, end: 9, fontSize: 48},
+    ]);
+    expect(hard.firstBaseline).toBe(17);
+    expect(soft.firstBaseline).toBe(17);
+    expect(catalogTextMeasure("first BIG", font, undefined, [
+      {start: 0, end: 6}, {start: 6, end: 9, fontSize: 48},
+    ]).firstBaseline).toBe(53);
+  });
+
+  for (const fixture of BASELINE_FIXTURES)
+    it(`${fixture.key}: engine first baseline equals DOM`, async () => {
+      const result = await measureArm(fixture, true);
+      report[fixture.key] = result;
+      expect(result.engineBaseline).toBe(result.domBaseline);
+      expect(result.engine.height).toBe(result.dom.height);
+      if (fixture.key === "large-second-soft-line") expect(result.widthBaselines).toEqual([53, 17]);
+    });
+
   for (const fixture of FIXTURES)
     it(fixture.key, async () => {
       const control = await measureArm(fixture, false);
@@ -525,18 +584,18 @@ describe("ADR-299 G2 — range-formatted text, Canvas raster ↔ Preview DOM (50
       // The engine box (the Canvas paragraph measure) is the DOM box.
       expect(
         Math.abs(rich.engine.height - rich.dom.height),
-      ).toBeLessThanOrEqual(1);
+      ).toBeLessThanOrEqual(0.01);
       expect(Math.abs(rich.engine.width - rich.dom.width)).toBeLessThanOrEqual(
-        1,
+        0.01,
       );
-      // Glyph ink within the control's difference + 0.5 scene px.
-      expect(richDiff).toBeLessThanOrEqual(controlDiff + 0.5 * SCALE);
+      // Absolute glyph ink error; the control arm never relaxes the gate.
+      expect(richDiff).toBeLessThanOrEqual(0.5 * SCALE);
       if (redDiff !== undefined)
-        expect(redDiff).toBeLessThanOrEqual(controlDiff + 0.5 * SCALE);
+        expect(redDiff).toBeLessThanOrEqual(0.5 * SCALE);
       // A decoration line under the red run on one side only shows as its lowest ink.
       if (rich.canvasInk.underRed !== undefined && rich.domInk.underRed !== undefined)
         expect(
           Math.abs(rich.canvasInk.underRed - rich.domInk.underRed),
-        ).toBeLessThanOrEqual(controlDiff + 0.5 * SCALE);
+        ).toBeLessThanOrEqual(0.5 * SCALE);
     });
 });

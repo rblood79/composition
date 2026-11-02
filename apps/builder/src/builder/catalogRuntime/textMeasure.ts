@@ -14,6 +14,7 @@ import {
 } from "../workspace/canvas/skia/initCanvasKit";
 import {
   catalogRunFont,
+  catalogCssLineBaseline,
   type CatalogTextMeasure,
   type CatalogTextRunFont,
 } from "./compositionRoot";
@@ -43,7 +44,15 @@ function paragraphMetrics(
   font: Font,
   maxWidth?: number,
   runs?: readonly CatalogTextRunFont[],
-): { max: number; min: number; lines: number; height: number } | undefined {
+):
+  | {
+      max: number;
+      min: number;
+      lines: number;
+      height: number;
+      firstBaseline?: number;
+    }
+  | undefined {
   if (!isCanvasKitInitialized() || !skiaFontManager.hasFont("Pretendard"))
     return undefined;
   const ck = getCanvasKit();
@@ -138,11 +147,36 @@ function paragraphMetrics(
     paragraph.layout(
       (catalogTextBreaksWords(font) ? maxWidth : Math.max(maxWidth, min)) + 0.5,
     );
+  const lineMetrics = paragraph.getLineMetrics();
+  const firstLine = lineMetrics[0];
+  let firstBaseline: number | undefined;
+  if (runs?.length && firstLine) {
+    const baselineOf = (value: Font) => {
+      const box = catalogTextMeasure.fontBox?.(value);
+      return box
+        ? catalogCssLineBaseline(
+            box,
+            value.lineHeight > 0
+              ? value.fontSize * value.lineHeight
+              : undefined,
+          )
+        : undefined;
+    };
+    firstBaseline = baselineOf(font);
+    for (const run of runs) {
+      if (run.start >= firstLine.endIndex || run.end <= firstLine.startIndex)
+        continue;
+      const baseline = baselineOf(catalogRunFont(font, run));
+      if (baseline !== undefined)
+        firstBaseline = Math.max(firstBaseline ?? 0, baseline);
+    }
+  }
   const metrics = {
     max,
     min,
-    lines: paragraph.getLineMetrics().length,
+    lines: lineMetrics.length,
     height: paragraph.getHeight(),
+    ...(firstBaseline !== undefined ? { firstBaseline } : {}),
   };
   paragraph.delete();
   builder.delete();
@@ -184,17 +218,21 @@ export const catalogTextMeasure: CatalogTextMeasure = (
   let width = 0;
   let minWidth = 0;
   let lineStart = 0;
+  let firstBaseline: number | undefined;
   for (const line of lines) {
-    const lineRuns = runs && sliceTextRuns(runs, lineStart, lineStart + line.length);
+    const lineRuns =
+      runs && sliceTextRuns(runs, lineStart, lineStart + line.length);
     lineStart += line.length + 1;
     const metrics = measureOneBlock(line || " ", font, lineWidth, lineRuns);
+    if (height === 0) firstBaseline = metrics.firstBaseline;
     height += line ? metrics.height : (lineHeight ?? metrics.height);
     width = Math.max(width, metrics.width);
     minWidth = Math.max(minWidth, metrics.minWidth ?? metrics.width);
   }
+  const baseline = firstBaseline !== undefined ? { firstBaseline } : {};
   return maxWidth === undefined
-    ? { width, exactWidth: width, minWidth, height }
-    : { width: maxWidth, height };
+    ? { width, exactWidth: width, minWidth, height, ...baseline }
+    : { width: maxWidth, height, ...baseline };
 };
 
 /**
@@ -276,8 +314,17 @@ const measureOneBlock = (
         exactWidth: paragraph.max,
         minWidth: paragraph.min,
         height: lineBox(1),
+        ...(paragraph.firstBaseline !== undefined
+          ? { firstBaseline: paragraph.firstBaseline }
+          : {}),
       };
-    return { width: maxWidth, height: lineBox(Math.max(1, paragraph.lines)) };
+    return {
+      width: maxWidth,
+      height: lineBox(Math.max(1, paragraph.lines)),
+      ...(paragraph.firstBaseline !== undefined
+        ? { firstBaseline: paragraph.firstBaseline }
+        : {}),
+    };
   }
   if (maxWidth === undefined) {
     const width = calculateMaxContentWidth(

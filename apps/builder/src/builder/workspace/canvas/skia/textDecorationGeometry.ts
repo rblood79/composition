@@ -3,7 +3,7 @@
  *
  * SkParagraph places its decorations from the font's underline metrics (16px Pretendard: 1.1px thick,
  * 1.15px under the baseline); Chrome uses its own rules (measured 2026-11-02, Chrome 156, DPR 2):
- * thickness = font size / 10 snapped to device px, underline 1px (or half the thickness) under the
+ * thickness = font size / 10 rounded down to device px, underline 1px (or half the thickness) under the
  * baseline, overline on top of the rounded ascent, line-through a third of the ascent up. The
  * Canvas text was thinner and lower than the Preview's (user report).
  *
@@ -30,7 +30,7 @@ export function resolveCssDecorationLines(
   const { fontSize, fontAscent, baseline, decoration } = input;
   const dpr = input.dpr > 0 ? input.dpr : 1;
   const auto = fontSize / 10;
-  const thickness = Math.max(1, Math.round(auto * dpr)) / dpr;
+  const thickness = Math.max(1, Math.floor(auto * dpr)) / dpr;
   const gap = Math.max(1, Math.ceil(auto / 2));
   const ascent = Math.round(fontAscent);
   const lines: CssDecorationLine[] = [];

@@ -209,3 +209,14 @@ Phase 1 · 2 는 입력이 없어도 fixture 문서 (seed 로 run 값을 직접 
 - G5: `pnpm gate:perf-ratchet` block — 등급 A 초과 161. 대조군 `perf-ratchet-gate.mjs --run --sha a59b87870` (299 직전, worktree · 5179) 도 A 초과 161 · 출력 항목 값 같음 (B 3 항목만 흔들림) → 299 몫 0. 상한은 `85363daa6` (오늘) 기록이고 그 뒤 299 전까지 코드 커밋 없음 → 상한이 그 시점 코드 값과 이미 어긋나 있었다 (원인 귀속은 299 범위 밖, `--raise` 안 함). 편집 진입 첫 1회 시간은 미측정.
 - live 추가 (사용자 보고): Typography 초기화 · 노드 값으로 되돌림 뒤 Preview DOM `span > span` 잔존 → `resetStyles` 가 섹션 축의 구간 mark 도 지움 (+ dirty 판정에 구간 축) · `EditorField` `sameAsNode` (노드와 같은 값 = mark 제거). 첫 편집 첫 글자 유실 → 편집기가 대체 textarea caret 으로 열림. 원복 RED 3 (record 1 · G4 chromium · webkit).
 - native macOS 한글 입력기: 사용자 확인 (「한글확인」).
+
+### 6.5 구현 판독 round 3 수리 (2026-11-02, Codex)
+
+- **편집 범위 이탈**: `EditorField`의 focusout을 document capture로 옮겨 Typography·portal에서 범위 밖으로 나가는 이동도 처리한다. `ended`가 pointerdown·focusout의 중복 커밋을 막는다. Chromium·WebKit 실제 Tab 회귀 4개 추가, 편집기 검사 24/24 PASS.
+- **첫 줄 baseline**: 측정 결과에 `firstBaseline`을 추가했다. CanvasKit paragraph가 결정한 첫 줄 구간만 읽으며, 명시적 줄바꿈에서는 첫 블록의 baseline을 보존한다. root는 intrinsic baseline과 rewrap의 해당 폭 baseline을 구분하고 transaction rollback도 같은 `keep` 경로로 복구한다. DOM marker 실측으로 기존 16px/24px의 기대값 17.5도 17로 정정했다. hard/soft 두 경우 DOM baseline·높이 일치, 폭 90→520→90의 baseline 17→53→17 확인. §6.4의 전체 run 최댓값 LOW deferred 항목은 해소됐다.
+- **G2 oracle**: 대조군 오차 가산과 상자 1px 허용을 제거했다. 잉크 절대 오차 ≤0.5 scene px, 엔진/DOM 상자 차 ≤0.01px(부동소수점 정밀도)로 검사한다. Preview의 실제 확대 경로 `CatalogPreviewFrame`과 같은 transform scale(5)를 사용한다. CSS zoom은 layout·decoration snapping을 바꾸므로 같은 상태의 대조가 아니다. Vitest 5의 `save:false` screenshot 반환값은 base64 문자열로 읽는다.
+- transform 경로에서 확인한 장식선 두께 차이는 `round` 대신 Chrome의 device pixel 내림으로 수리했다. 근거: Chromium `GraphicsContext::GetRectForTextLine`의 `floorf(stroke_thickness)` 및 실제 18px/DPR1 장식선 raster RED→GREEN. 원래 G2 8조건과 추가 baseline/측정 조건을 합쳐 12/12 PASS.
+- **G5 누락 보완**: 별도 production harness build·headed Chrome 156·visible·DPR1·CPU throttle 없음·새 브라우저 컨텍스트에서 편집기 chunk가 initial resource에 없음을 확인한 뒤, `startTextEdit`부터 `.ProseMirror` 마운트 다음 rAF까지 측정했다. 수치는 `.agent/runs/2026-11-02-adr299-fix/live.json`에 기록한다. 최종 빌드 관측 326.4ms (localhost 전송 JS 1.5ms, CSS 1.2ms; 앞선 빌드 관측 338.3ms); 단일 관측이며 네트워크 cold-start의 일반 성능 상한을 의미하지 않는다. 기존 G5 ratchet A161과 직전 commit 대조 결과는 유지하며 이번 수리를 근거로 상한을 올리지 않았다. plain 측정은 기존과 같이 paragraph `getLineMetrics()` 1회이며 추가 run font 측정은 RichText에만 수행한다.
+- production 사용자 흐름: 팔레트 Text 삽입·저장·reload → 첫 편집 → 입력·굵게 → Typography 안 focus 유지 → Tab 범위 밖 → 편집 종료, revision +1·페이지 오류 0. 최종 코드·검증 요약은 reviews/299.md 다음 round와 로컬 실행 기록에 남긴다.
+
+미변경 잔여: §6.4 편집 중 장식선 `none` 표시 한계는 이번 MEDIUM 3건 범위 밖이며 여전히 deferred다. G0 native IME·기존 ratchet 전체 재측정은 이번에 반복하지 않았다.

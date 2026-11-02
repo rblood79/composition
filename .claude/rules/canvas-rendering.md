@@ -28,6 +28,8 @@ paths:
 - 콘텐츠 높이를 유지하는 버튼 루트는 `height: fit-content`를 선언하고 CSS size 축의 `auto`로 덮거나 typed box에서 숫자만 남기지 않는다. **Why:** row Frame 400px에서 기본 버튼이 양쪽 renderer 모두 400px로 stretch됐고, ButtonGroup은 별도 DOM 경로에서 catalog 높이 전달도 누락됐다.
 - 배경 이미지는 box의 fill 층에서 border·inset shadow·content보다 먼저 그리며, 각 fill 층의 alpha를 독립 적용한다. **Why (2026-11-02):** genai·premium Button의 gradient를 내부 자식으로 그리면 authored 4px 테두리를 덮었고, 같은 Paint의 반투명 단색 alpha를 다음 shader에 남기면 gradient alpha가 중복 곱해졌다 (CanvasKit 픽셀 회귀).
 
+- RichText baseline은 해당 폭에서 측정한 첫 줄 metrics가 소유하고 rewrap 뒤 엔진 입력도 같이 갱신한다. **Why (2026-11-02, ADR-299)**: 모든 run의 baseline 최댓값을 쓰면 둘째 줄만 48px인 글자가 첫 줄 16px의 baseline을 53으로 올렸다. 실제 DOM baseline은 17이며, 넓힘→재줄바꿈에서도 같은 값으로 복귀해야 한다.
+
 ## 1. Skia 단일 렌더러 (ADR-900)
 
 - grid 안내선·셀 교환은 `hidden` 또는 `display: none`인 자식을 배치 항목에서 제외한다. **Why (2026-10-31):** Side 라벨의 CheckboxGroup·RadioGroup·SearchField에서 숨긴 Description·FieldError의 0 높이 상자를 포함해 실제 1행을 3행으로 계산하고 선택 영역 아래에 선 두 개를 그렸다.

@@ -28,6 +28,8 @@ Implemented — 2026-11-02 (Accepted 같은 날 — 사용자 `/execute-adr 299`
 
 > 구현 상세: [design/299-text-range-formatting-breakdown.md](../design/299-text-range-formatting-breakdown.md)
 
+> **구현 판독 수리 (2026-11-02, Codex)** — 리뷰 round 3의 MEDIUM 3건을 수정했다. Typography·portal의 focus 이탈 커밋, 첫 줄/rewrap baseline, G2 절대 오차 oracle과 장식선 두께를 수리하고 G5 첫 편집 진입 시간을 production에서 기록했다. 상세: breakdown §6.5와 reviews/299.md 수리 검증 round. 이전 Phase 종결 인용문은 당시 기록으로 보존한다.
+
 ## Context
 
 ### 도메인

@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [글자 범위 서식 수리 — ADR-299 구현 판독 3건] - 2026-11-02
+
+### Fixed
+
+- Typography·portal에서 Tab으로 편집 범위를 나가면 텍스트 편집을 한 번 커밋한다. 범위 전체의 focus 이탈을 document capture에서 처리한다.
+- RichText의 첫 줄 baseline은 측정한 첫 줄에서만 계산하고, 폭 변경 후 줄바꿈 측정의 baseline도 엔진 입력에 전달한다. 뒤쪽 줄의 큰 글자가 첫 줄 정렬을 바꾸지 않는다.
+- Canvas 장식선 두께를 Chrome의 device pixel 내림 처리와 맞췄다. G2는 실제 Preview의 transform 확대 방식과 절대 오차 0.5px 기준을 사용하며, 첫 편집 진입 시간을 production 빌드에서 기록했다.
+
 ## [SideNav 가족 — ADR-300 Phase 0 · 1 (문서 · catalog · contract 54)] - 2026-11-02
 
 ### Changed

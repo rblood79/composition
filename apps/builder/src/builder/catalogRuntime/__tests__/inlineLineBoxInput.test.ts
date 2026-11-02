@@ -198,17 +198,17 @@ describe("inline line box inputs — baseline · strut · middle", () => {
     const ascent = Math.round(size * 0.952);
     const descent = Math.round(size * 0.241);
     expect(input.leafBaseline).toBe(
-      ascent + (lineHeight - ascent - descent) / 2,
+      Math.floor(ascent + (lineHeight - ascent - descent) / 2),
     );
   });
 
-  it("the page body sends its strut: 16px · line height 24 → baseline 17.5 · x-height 8.48", async () => {
+  it("the page body sends its strut: 16px · line height 24 → baseline 17 · x-height 8.48", async () => {
     const { ofType, inputOf } = await scene(true);
     const [body] = ofType("body");
     expect(body).toBeDefined();
     expect(inputOf(body!)).toMatchObject({
       lineHeight: 24,
-      strutBaseline: 17.5,
+      strutBaseline: 17,
       strutXHeight: 16 * 0.53,
     });
   });
@@ -249,8 +249,8 @@ describe("strut font — inherited like CSS font-size", () => {
     expect(inputOf(recordOf(id("inner"))!)).toMatchObject({
       lineHeight: 36,
       strutBaseline:
-        Math.round(24 * 0.952) +
-        (36 - Math.round(24 * 0.952) - Math.round(24 * 0.241)) / 2,
+        Math.floor(Math.round(24 * 0.952) +
+        (36 - Math.round(24 * 0.952) - Math.round(24 * 0.241)) / 2),
       strutXHeight: 24 * 0.53,
     });
   });
@@ -264,5 +264,16 @@ describe("strut font — inherited like CSS font-size", () => {
       }),
     );
     expect(inputOf(recordOf(id("inner"))!).lineHeight).toBe(30);
+  });
+});
+
+describe("ADR299 first line review", () => {
+  it("a larger second line does not change first-line baseline", async () => {
+    const text = node("text", "Text", {children: {kind: "set", value: {kind: "text", runs: [{text: "first\n"}, {text: "second", marks: {fontSize: 48}}]}}});
+    text.visual = {fontSize: {kind: "set", value: 16}, lineHeight: {kind: "set", value: 1.5}, whiteSpace: {kind: "set", value: "pre-wrap"}};
+    const s = await scene(true, {nodes: [text], parts: []});
+    const record = s.recordOf(text.id)!;
+    const input = s.inputOf(record);
+    expect(input.leafBaseline).toBe(17);
   });
 });

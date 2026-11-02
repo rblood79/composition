@@ -371,19 +371,22 @@ export default function EditorField(props: EditorFieldProps) {
   // The edit scope: a press or a focus move outside it commits (a press inside — the Typography
   // section, its popovers — keeps the edit and its selection).
   useEffect(() => {
-    const element = host.current!;
     const onPointerDown = (event: PointerEvent) => {
       if (!isInTextEditScope(event.target)) endEdit();
     };
     const onFocusOut = (event: FocusEvent) => {
-      if (event.relatedTarget && !isInTextEditScope(event.relatedTarget))
+      if (
+        isInTextEditScope(event.target) &&
+        event.relatedTarget &&
+        !isInTextEditScope(event.relatedTarget)
+      )
         endEdit();
     };
     document.addEventListener("pointerdown", onPointerDown, true);
-    element.addEventListener("focusout", onFocusOut);
+    document.addEventListener("focusout", onFocusOut, true);
     return () => {
       document.removeEventListener("pointerdown", onPointerDown, true);
-      element.removeEventListener("focusout", onFocusOut);
+      document.removeEventListener("focusout", onFocusOut, true);
     };
   }, []);
 

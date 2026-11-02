@@ -51,6 +51,8 @@ paths:
 
 ## 3. 핵심 규칙
 
+- 텍스트 편집 범위의 focus 이탈은 editor DOM뿐 아니라 Typography와 portal을 포함해 감시한다. **Why (2026-11-02, ADR-299)**: editor에만 붙은 focusout은 패널 input→Tab 범위 이탈을 놓쳐 Chromium·WebKit에서 커밋 0회였다. document capture와 1회 커밋 guard로 처리한다.
+
 - **Styles scrub 미리보기 (ADR-298)**: `TokenUse`는 활성 테마 값으로 해석한 뒤 `previewRecord`에 전달한다. 취소·원점 복귀·capture 해제는 대기 RAF와 보유 preview를 끝내며 문서/History를 쓰지 않는다. **Why (2026-11-02)**: primitive 전용 변환기가 원래 토큰을 버려 Padding M(12px)에서 자유값 16px 드래그를 취소한 뒤에도 consumer가 16에 남았다.
 
 - **히스토리 의도는 필수**: `applyCatalogTransaction` 은 `history: { kind: "record", label }` 또는 `{ kind: "skip", reason }` 없이는 `HISTORY_INTENT_REQUIRED` 로 거부한다. skip 사유는 `project-create` · `load` · `fixture` · `sync` 넷뿐 — 사용자 편집은 늘 기록된다 (ADR-185 의 「조용한 생략 금지」 가 타입 · 검증으로 옮겨 왔다).

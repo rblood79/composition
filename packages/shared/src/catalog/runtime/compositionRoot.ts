@@ -657,7 +657,14 @@ export interface CatalogTextMeasure {
     maxWidth?: number,
     /** ADR-299 — a range-formatted text's runs over `text` (each run's own font over `font`). */
     runs?: readonly CatalogTextRunFont[],
-  ): { width: number; height: number; minWidth?: number; exactWidth?: number };
+  ): {
+    width: number;
+    height: number;
+    minWidth?: number;
+    exactWidth?: number;
+    /** First line after this exact wrap width; absent for a legacy measurer. */
+    firstBaseline?: number;
+  };
   /**
    * The font's CSS box (the DOM's `fontBoundingBox*` ascent · descent and its x-height) — what a
    * CSS line box is built from: a text's baseline (`leafBaseline`), a block's strut
@@ -704,7 +711,9 @@ export function catalogCssLineBaseline(
   const ascent = Math.round(box.ascent);
   const descent = Math.round(box.descent);
   const line = lineHeight && lineHeight > 0 ? lineHeight : ascent + descent;
-  return ascent + (line - ascent - descent) / 2;
+  // Blink places the first baseline on the lower whole CSS-pixel boundary when
+  // half-leading is fractional (16px/24px Pretendard: DOM marker baseline 17).
+  return Math.floor(ascent + (line - ascent - descent) / 2);
 }
 /** Inner display `flow` — a box whose inline-level children sit on line boxes (CSS 2.1 §9.4.2). */
 const flowInnerDisplay = (display: string | undefined): boolean =>
@@ -1181,6 +1190,7 @@ function styleOf(
   labelSuffix = "",
   inheritedLineHeight?: number,
   strutFont?: CatalogInheritedFont,
+  wrappedBaseline?: number,
 ): Record<string, unknown> {
   if (!catalogParticipatesInLayout(node)) return { display: "none" };
   const box = catalogBoxModel(node);
@@ -1237,10 +1247,12 @@ function styleOf(
     Number(node.visual.height) > 0
       ? Number(node.visual.height)
       : undefined;
+  let measuredBaseline: number | undefined;
   const contentText =
     measure && leaf
       ? (() => {
           const size = measure(leaf.text, leaf.font, undefined, leaf.runs);
+          measuredBaseline = size.firstBaseline;
           if (heightOnlyTextTypes.has(typeName))
             return { contentHeight: wrappedHeight ?? size.height };
           // CSS max-content is the fractional advance (the DOM box is not rounded); a single-line
@@ -1310,24 +1322,12 @@ function styleOf(
                     2,
                 )
               : 0;
-          // ADR-299 — a line of runs of several sizes: its baseline is the lowest of the inline
-          // boxes' (the strut — the text's own font — and each run's at the same line-height
-          // ratio, CSS 2.1 §10.8.1). Every run counts (the first line's runs are not known here).
-          let baseline = catalogCssLineBaseline(fontBox, lineHeight);
-          for (const run of leaf.runs ?? []) {
-            const runFont = catalogRunFont(leaf.font, run);
-            const runBox = measure!.fontBox!(runFont);
-            if (!runBox) continue;
-            baseline = Math.max(
-              baseline,
-              catalogCssLineBaseline(
-                runBox,
-                runFont.lineHeight > 0
-                  ? runFont.fontSize * runFont.lineHeight
-                  : undefined,
-              ),
-            );
-          }
+          // The measurer owns line breaking and returns the first line's baseline. Later
+          // runs must not move it; after wrapping use metrics from that exact content width.
+          const baseline =
+            wrappedBaseline ??
+            measuredBaseline ??
+            catalogCssLineBaseline(fontBox, lineHeight);
           return baseline + offset;
         })()
       : undefined;
@@ -1821,6 +1821,7 @@ export class CatalogCompositionRoot {
   private readonly tagLists = new Map<string, true>();
   /** Wrapped text-leaf content heights from the last `rewrap` (absent = one line). */
   private readonly wrapHeights = new Map<string, number>();
+  private readonly wrapBaselines = new Map<string, number>();
   /** Hears every `previewRecord` (the Canvas re-lays its scene out: siblings may move). */
   private readonly previewListeners = new Set<() => void>();
   /** Records a gesture previews (`previewRecord`): the record it replaced and the one shown. */
@@ -3151,6 +3152,7 @@ export class CatalogCompositionRoot {
       record.children.length > 0
         ? domFont(record, get, (each) => this.declaredFont(each))
         : undefined,
+      this.wrapBaselines.get(record.id),
     );
     const thumb = record.hidden
       ? undefined
@@ -3658,6 +3660,7 @@ export class CatalogCompositionRoot {
       );
       // A leaf that no longer wraps (now single-line, emptied …) drops its old wrapped height.
       let next: number | undefined;
+      let nextBaseline: number | undefined;
       if (
         leaf?.text &&
         !(
@@ -3691,17 +3694,31 @@ export class CatalogCompositionRoot {
         const breakWidth = catalogTextBreaksWords(leaf.font as CatalogTextFont)
           ? contentWidth
           : Math.max(contentWidth, single.minWidth ?? 0);
-        next =
+        if (
           contentWidth > 0 &&
           breakWidth + 0.5 < (single.exactWidth ?? single.width)
-            ? this.textMeasure(leaf.text, leaf.font, breakWidth, leaf.runs)
-                .height
-            : undefined;
+        ) {
+          const wrapped = this.textMeasure(
+            leaf.text,
+            leaf.font,
+            breakWidth,
+            leaf.runs,
+          );
+          next = wrapped.height;
+          nextBaseline = wrapped.firstBaseline;
+        }
       }
-      if (next === this.wrapHeights.get(id)) continue;
+      if (
+        next === this.wrapHeights.get(id) &&
+        nextBaseline === this.wrapBaselines.get(id)
+      )
+        continue;
       this.keep(this.wrapHeights, id);
+      this.keep(this.wrapBaselines, id);
       if (next === undefined) this.wrapHeights.delete(id);
       else this.wrapHeights.set(id, next);
+      if (nextBaseline === undefined) this.wrapBaselines.delete(id);
+      else this.wrapBaselines.set(id, nextBaseline);
       this.layout.updateNodeStyle(id, this.styleFor(record));
       changed = true;
     }
@@ -4339,6 +4356,8 @@ export class CatalogCompositionRoot {
       if (!parts.some((item) => item.id === part.id)) {
         this.keep(this.wrapHeights, part.id);
         this.wrapHeights.delete(part.id);
+        this.keep(this.wrapBaselines, part.id);
+        this.wrapBaselines.delete(part.id);
         this.layout.updateChildren(part.id, []);
         this.layout.removeNode(part.id);
       }
@@ -4395,6 +4414,8 @@ export class CatalogCompositionRoot {
       for (const part of parts) {
         this.keep(this.wrapHeights, part.id);
         this.wrapHeights.delete(part.id);
+        this.keep(this.wrapBaselines, part.id);
+        this.wrapBaselines.delete(part.id);
         this.layout.updateChildren(part.id, []);
         this.layout.removeNode(part.id);
       }
