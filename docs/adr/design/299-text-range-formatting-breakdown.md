@@ -1,6 +1,6 @@
 # ADR-299 설계 breakdown — 글자 범위 서식 (run)
 
-> 본문: [../299-text-range-formatting-runs.md](../299-text-range-formatting-runs.md). 이 문서는 구현 상세 (분리 4 질문 · 인벤토리 · 형식 · Phase · 파일 · 게이트 절차) 만 담는다. `docs/adr/evidence/` 는 gitignore 라 실측 결론은 §6 에 둔다.
+> 본문: [../completed/299-text-range-formatting-runs.md](../completed/299-text-range-formatting-runs.md). 이 문서는 구현 상세 (분리 4 질문 · 인벤토리 · 형식 · Phase · 파일 · 게이트 절차) 만 담는다. `docs/adr/evidence/` 는 gitignore 라 실측 결론은 §6 에 둔다.
 
 ## 1. 분리 4 질문 lock-in (adr-writing.md §Fork)
 
@@ -202,3 +202,10 @@ Phase 1 · 2 는 입력이 없어도 fixture 문서 (seed 로 run 값을 직접 
 - live: ADR 본문 `### Live Exercise` 표 11 행. 결함 2 수리 — (1) ⌘Z 뒤 옛 run 이 남음: `compositionRoot.ts` 증분 rebuild 의 「before 에서 버릴 필드」 에 `textRuns` (회귀 `adr299TextRunsRecord` 「a text written back to a string drops its runs」, 원복 RED 1) (2) Properties 글자 칸 `[object Object]`: `catalogFieldValueSource` plain. 패널 「Mixed」 표시 2 (Font Size 0 → 빈 값 + placeholder Mixed · Italic 은 mixed 면 꺼짐).
 - G5: `pnpm gate:perf-ratchet` 는 측정 대상이 커밋된 HEAD (dirty 트리면 HEAD 를 worktree 에서 잰다 — 메모리 `reference-perf-ratchet-dirty-tree-measures-head-worktree`) 라 커밋 요청 뒤. 구간 없는 글자의 경로 변경은 `node.text.runs` · `node.textRuns` 유무 검사뿐 (측정 · 그리기 호출 수 무변경이 설계) — 수치는 미측정.
 - native macOS 한글 IME: 사용자 확인 대기.
+
+**Phase 4 종결 · Implemented (2026-11-02)**
+
+- 커밋 `b0d1e77e4` (자기 파일 88 · `.agent/task-state.json` 제외) → push.
+- G5: `pnpm gate:perf-ratchet` block — 등급 A 초과 161. 대조군 `perf-ratchet-gate.mjs --run --sha a59b87870` (299 직전, worktree · 5179) 도 A 초과 161 · 출력 항목 값 같음 (B 3 항목만 흔들림) → 299 몫 0. 상한은 `85363daa6` (오늘) 기록이고 그 뒤 299 전까지 코드 커밋 없음 → 상한이 그 시점 코드 값과 이미 어긋나 있었다 (원인 귀속은 299 범위 밖, `--raise` 안 함). 편집 진입 첫 1회 시간은 미측정.
+- live 추가 (사용자 보고): Typography 초기화 · 노드 값으로 되돌림 뒤 Preview DOM `span > span` 잔존 → `resetStyles` 가 섹션 축의 구간 mark 도 지움 (+ dirty 판정에 구간 축) · `EditorField` `sameAsNode` (노드와 같은 값 = mark 제거). 첫 편집 첫 글자 유실 → 편집기가 대체 textarea caret 으로 열림. 원복 RED 3 (record 1 · G4 chromium · webkit).
+- native macOS 한글 입력기: 사용자 확인 (「한글확인」).

@@ -2,14 +2,14 @@
 
 ## Status
 
-Accepted — 2026-11-02 (사용자 `/execute-adr 299` · [reviews/299.md](reviews/299.md) round 2 HIGH 0 · pending 0 · l1 fixed — 설계 리뷰 닫힘)
+Implemented — 2026-11-02 (Accepted 같은 날 — 사용자 `/execute-adr 299` · [reviews/299.md](../reviews/299.md) round 2 HIGH 0 · pending 0 · l1 fixed. 구현 `b0d1e77e4` · native macOS 한글 입력기 사용자 확인)
 
 - 사용자 요청: `/create-adr 범위 서식` (2026-11-02) — 같은 대화에서 Quill 의존성을 지운 직후 (`0a33873bb`, import 0 이던 패키지).
 - 방향을 정한 사용자 원문 (2026-11-02): 「quill의 단점없이 범위 서식 기능을 하려면 자체 구현밖에 없나?」 → 권고 「입력 층은 ProseMirror core, 나머지 다섯 층 (문서 모델 · Canvas · 측정 · Preview/Publish · 패널) 은 어느 라이브러리를 골라도 직접」 → 「각각 라이브러리들 모두 라이센스가 오픈일것인데 소스코드 분석해서 우리것에 맞춰 만들어서 하는것이 낮지않나?」 → 권고 「모델 · 명령 · 렌더 · 측정은 참고해서 우리 것으로, 입력 view (`prosemirror-view`) 는 고치지 않은 의존성으로 두고 변환 층 하나」 → `/create-adr`.
 - 사용자가 이미 답한 것: 라이선스는 걸림돌이 아니다 (ProseMirror · Lexical · Slate MIT, Quill BSD-3). 입력 view 를 포크하지 않는 이유 (브라우저별 IME · selection 예외 처리가 upstream 에서 계속 들어와야 한다) 는 대안 E 의 기각 사유로 적었다.
-- 선행 ADR 의 기록: [ADR-027](completed/027-inline-text-editing.md) 은 리치 텍스트 (구 D-1) · 툴바 (구 D-3) 를 **보류** 했고 재개 조건을 「canonical 텍스트 모델이 인라인 스타일 run 을 담는 ADR 이 Implemented 된 뒤」 로 적었다 (027 §보류). 이 ADR 이 그 선행 ADR 이다.
+- 선행 ADR 의 기록: [ADR-027](027-inline-text-editing.md) 은 리치 텍스트 (구 D-1) · 툴바 (구 D-3) 를 **보류** 했고 재개 조건을 「canonical 텍스트 모델이 인라인 스타일 run 을 담는 ADR 이 Implemented 된 뒤」 로 적었다 (027 §보류). 이 ADR 이 그 선행 ADR 이다.
 - ADR 분리 4 질문 lock-in: breakdown §1 (299 = base — 글자 값의 **구간** 축. 027 은 편집 상자의 전환 무결성, 205 는 글자 축의 computed seam, 298 은 값의 토큰 참조 — 셋 다 직교).
-- 리뷰 round 1 ([reviews/299.md](reviews/299.md), 2026-11-02 codex — HIGH 3) 반영: h1 템플릿 토큰 원자 (Decision 1 · 4, F17) · h2 장식선 전파 (Decision 2, F18) · h3 편집 범위 (Decision 4 · 5, F19). Gate G2 · G3 · G4 에 반례 fixture 추가.
+- 리뷰 round 1 ([reviews/299.md](../reviews/299.md), 2026-11-02 codex — HIGH 3) 반영: h1 템플릿 토큰 원자 (Decision 1 · 4, F17) · h2 장식선 전파 (Decision 2, F18) · h3 편집 범위 (Decision 4 · 5, F19). Gate G2 · G3 · G4 에 반례 fixture 추가.
 - 리뷰 · 착수는 사용자 요청 때 (`review-adr` · `/execute-adr 299`). 아래 「사용자 결정 5건」 은 execute-adr 가 그 Phase 에 닿을 때 묻는다.
 - **사용자 결정 (2026-11-02, Phase 3 착수 질문 답)**: 2 「툴바 없음」 (⌘B · ⌘I · ⌘U + Design 패널) · 3 「노드 + 구간 전부」 (편집 밖 패널 쓰기는 구간의 그 축도 지운다).
 - **사용자 결정 (2026-11-02, Phase 1 착수 질문 답)**: 1 「다섯 축」 (굵기 · 기울임 · 장식선 · 색 · 크기) · 4 「제외」 (범위 링크는 별도 ADR) · 5 「Builder 상한 재승인」 — 착수 HEAD `75935c07b` 이 이미 Builder 1,400,437 B (상한 437 B 초과, 299 이전 몫) 라 ADR-201 상한을 Builder **1,410,000** 으로 재승인 (Preview 325,000 무변경 · 만료 11-25). 결정 2 · 3 은 Phase 3 이 닿을 때.
@@ -23,8 +23,10 @@ Accepted — 2026-11-02 (사용자 `/execute-adr 299` · [reviews/299.md](review
 > **Phase 3 종결 (2026-11-02, G4 · G1)** — 편집 상자 = ProseMirror core lazy chunk (`textEditor/EditorField` — schema = 다섯 mark + `hard_break`, `textRunsBridge` 왕복은 정규형, ⌘B · ⌘I · ⌘U 토글 · Enter 줄바꿈 · 편집 중 ⌘Z 는 편집기 자체 상태 스택, mark 쓰기는 토큰 밖으로 넓힘, 붙여넣기는 글자 + 이 편집기 mark 만) · 로드 전엔 textarea · 편집 범위 (편집 상자 + Typography 절 `[data-section-id="typography"]` + 팝오버 — 범위 밖 press · focus 만 커밋, 커밋은 한 번) · 선택 구간 유지 표시 · `textEditorHandle` (Typography 가 선택 구간 marks 를 읽고 쓴다, 편집 밖은 「Mixed」 + 노드 + run 축 지우기 — 결정 3) · 코드 보기 `<span style={{…}}>` 투영 · 적용 (닫힌 어휘 — 다른 키 · JSX 거절) · Properties 글자 칸 plain. **G4**: `tests/text-edit/adr299EditorField.browser.test.tsx` Chrome · WebKit 각 8 (실제 키 · 클릭) · 원복 RED 2 (Typography 범위 제거 · 토큰 넓힘 제거 → 두 브라우저 모두 FAIL) · 코드 보기 4 · 결정 3 host 1. **G1 · G0 (b)**: ProseMirror 는 `EditorField-*.js` (gz 58,213 B) 에만 있고 initial closure 밖 (dynamic target). Phase 3 Δ Builder +1,961 · Preview 0 → 누적 Builder **1,405,808** (+5,371, 상한 1,410,000) · Preview **322,341** (+41).
 >
 > **Phase 4 (2026-11-02) — G6 live 진행 · G5 는 커밋 뒤** — live (Chrome MCP, dev 5174, 새 프로젝트 「ADR299 live」): 결함 2 발견 · 수리 (⌘Z 뒤 옛 run 이 남음 — 증분 rebuild 의 버릴 필드 목록에 `textRuns` 추가 + 회귀 테스트 원복 RED / Properties 글자 칸 `[object Object]` — plain 으로) 와 패널 「Mixed」 표시 2 (Font Size 0 · Italic 켜짐) 수리. 아래 `### Live Exercise`. **남은 것**: G5 ratchet 은 측정 대상이 커밋된 HEAD 라 커밋 요청 뒤 · native macOS 한글 IME (MCP 입력은 조합 이벤트가 아님 — 조합 경로는 G0 의 CDP IME · WebKit 합성으로만 검증) 는 사용자 확인.
+>
+> **Phase 4 종결 · Implemented (2026-11-02, G5 · G6)** — 커밋 `b0d1e77e4` push 뒤 G5 ratchet: 등급 A 초과 161 이 직전 커밋 `a59b87870` (ADR-299 이전 — 같은 하니스 · worktree 5179) 에서도 같은 값 161 → 299 몫 0 (상한은 `85363daa6` 기록, 그 뒤 코드 커밋은 299 뿐이라 상한 쪽이 낡은 값 — 299 범위 밖, `--raise` 안 함). 편집 진입 첫 1회 (chunk 로드) 시간은 따로 재지 않았다. live 추가 2 행 (사용자 보고 「초기화 · 원래 값으로 돌려도 span - span」 수리 · 첫 편집 첫 글자 유실 수리) · native macOS 한글 입력기 사용자 확인 (「한글확인」).
 
-> 구현 상세: [design/299-text-range-formatting-breakdown.md](design/299-text-range-formatting-breakdown.md)
+> 구현 상세: [design/299-text-range-formatting-breakdown.md](../design/299-text-range-formatting-breakdown.md)
 
 ## Context
 
@@ -57,7 +59,7 @@ Accepted — 2026-11-02 (사용자 `/execute-adr 299` · [reviews/299.md](review
 | F11 | 코드 보기는 요소의 글자 ↔ `children` (plain · `{{ }}` 템플릿 · 행 필드) 을 양방향으로 투영한다 (ADR-285 · 296)                                                                                                                                                                                                                                                                                         | `catalogRuntime/codeViewEdit.ts:1419, 2270-2280, 2411`                                                                                                                             |
 | F12 | 글자 안 `{{ 변수 }}` 템플릿은 문자열을 훑어 변수 참조로 모은다 — 구간 값도 같은 사이트 수집에 들어가야 한다. 편집 상자는 템플릿을 적힌 대로 (`templateProps`) 편집한다                                                                                                                                                                                                                                 | `runtime/variableReferences.ts:224, 285, 346` · `resolution/resolver.ts:404-406` · `canvasText.ts:30-39`                                                                           |
 | F13 | History: `patchNodeProp` 은 늘 레이아웃 변경으로 센다 (`PAINT_ONLY_VISUAL_KEYS` 는 visual 만 — `color` · `textDecoration` 포함, `fontWeight` · `fontSize` 는 아님). 구간 값은 `props.children` 안이라 늘 레이아웃 변경                                                                                                                                                                                 | `transactions/transaction.ts:155-174, 227-238`                                                                                                                                     |
-| F14 | 번들 HEAD (ADR-298 Phase 5) Builder 1,397,096 · Preview 321,847 B gz — 상한 1,400,000 · 325,000 (만료 2026-11-25). **여유 2,904 · 3,153 B**                                                                                                                                                                                                                                                            | [ADR-201 재승인 절](completed/201-large-file-upload-engine-component-server-contract.md) (2026-11-02)                                                                              |
+| F14 | 번들 HEAD (ADR-298 Phase 5) Builder 1,397,096 · Preview 321,847 B gz — 상한 1,400,000 · 325,000 (만료 2026-11-25). **여유 2,904 · 3,153 B**                                                                                                                                                                                                                                                            | [ADR-201 재승인 절](201-large-file-upload-engine-component-server-contract.md) (2026-11-02)                                                                              |
 | F15 | 외부 편집기 (2026-11-02 npm): prosemirror-model 1.25.12 · state 1.4.4 · view 1.42.9 · transform 1.12.4 (전부 MIT) · lexical 0.53.0 (MIT) · slate 0.147.4 (MIT) · quill 2.0.3 (BSD-3). 저장소에 편집기 의존성 0 (CodeMirror 6 은 코드 보기 전용). run · span · mark 데이터 모델은 어느 ADR 에도 없다                                                                                                    | `apps/builder/package.json:21-28` · `docs/adr` grep                                                                                                                                |
 | F16 | 글자 세로 자리의 대칭은 2026-11-02 에 맞췄다 — Chrome 줄 상자 baseline 식 · strut · `vertical-align: middle` 을 엔진 입력으로. SkParagraph 는 baseline 을 정수 px 로 반올림 (raster 로 재야 보인다)                                                                                                                                                                                                    | `928c90685` · 메모리 `reference-skparagraph-rounds-baseline-vs-chrome-line-box`                                                                                                    |
 | F17 | 템플릿 토큰은 `{{ name(.seg)* }}` (이스케이프 `\{{`) 이고 해석 (`resolveStateTemplate`) · 참조 수집 (`collectStateTemplateRefs`) · 이름 변경 모두 **문자열 하나 안에서** 정규식으로 찾는다 — 서식 경계가 토큰 안에 생기면 세 길 모두 그 토큰을 못 본다 (리뷰 h1 이 공용 resolver 로 실행: 분할 run 은 원문 그대로 · refs `[]`)                                                                         | `state/template.ts:21-22, 66-90` · `state/stateDependencies.ts:20-35` · `runtime/variableReferences.ts:216-224`                                                                    |
@@ -223,8 +225,9 @@ C 의 잔존 위험은 변환 층 (run ↔ PM) 과 WebKit IME 의 실측 부재�
 | 11 | 콘솔 | 새로고침 뒤 error 0 |
 | 12 | (사용자 보고 11-02) 구간 서식 → Typography 초기화 · 편집 중 구간 값을 노드 값으로 되돌림 → Compare Mode CSS DOM | **FAIL → 수리** (둘 다 `span > span` 이 남음 — 초기화가 노드 값만 지웠고, 노드와 같은 값도 구간 서식으로 남았다) → 새 프로젝트 「ADR299 reset」: 「rld」 굵게 → 초기화 → 구간 span 0 · Text 하나 / 편집 중 「rld」 Font Size 24 → 16 → 커밋 → 구간 span 0 PASS |
 | 13 | 새로고침 직후 첫 편집에서 바로 입력 | **FAIL → 수리** (첫 글자 유실 — 편집기 chunk 를 받는 동안 대체 textarea 가 받은 「H」 를 편집기가 열면서 전체 선택해 다음 글자가 덮었다) → 편집기가 textarea 의 caret 으로 열림 · 「Hello world」 그대로 PASS · 콘솔 error 0 |
+| 14 | native macOS 한글 입력기로 Text 에 한글 입력 (사용자 confirm, 2026-11-02 「한글확인」) | PASS |
 
-미검증: native macOS 한글 IME 조합 (MCP 는 조합 이벤트를 내지 않는다 — 사용자 확인 대기) · WebKit live (G0 · G4 는 Playwright WebKit).
+미검증: WebKit live (G0 · G4 는 Playwright WebKit).
 
 ## Consequences
 

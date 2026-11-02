@@ -13,6 +13,8 @@
 
 > **2026-11-02 ADR-300 Proposed 추가** (사용자 `/create-adr` — 같은 대화에서 「NavigationTree(RAC) <-> SideNav(RSC) 에 대응하는 컴퍼넌트인가?」 → 「SideNavPanel … 그냥 컨테이너 역활 아닌가?」 → 「대안방안은?」 → 「A안으로 진행해」). 실측: S2 1.8.1 `SideNav` 는 RAC 1.22.1 `NavigationTree` 를 감싼 것 (`SideNav.d.ts` 가 `NavigationTreeProps` 를 확장) · `SideNavPanel` 은 RAC 대응 없는 S2 부품 (div + 접기 버튼 + 접힘 context — SideNav 가 그 context 로 아이콘 줄이 된다) · catalog 에 해당 type 0 (가장 가까운 선례 Tree 3 type, 항목 층 하나에 53 파일) · S2 는 런타임 미사용 (devDependencies · 테스트 밖 import 0) · Preview 번들 여유 약 2.7 KB vs NavigationTree 원본 gzip 3,858 B. 채택 대안 A′ — S2 7 type 표면 그대로 · RAC `NavigationTree*` + `Link` + `Button` 으로 조립 · 접힘은 Panel 상태 → SideNav 행 rule (두 consumer) · Canvas 는 정적 · 번들 초과 시 lazy. 기각: 조합 (B — S2 에 없는 `collapsed` 축) · 접기 제외 (C) · Tree 확장 (D — D1 계약이 다름) · Disclosure (E — 의미 다름). 사용자 결정 5. 열림 3 — Proposed 2 (245 보류 · 300) · Accepted 1 (299), 완료 318, 합계 321.
 
+> **2026-11-02 ADR-299 Implemented** — 구현 `b0d1e77e4` push 뒤 G5 ratchet: 등급 A 초과 161 이 299 직전 커밋 `a59b87870` 에서도 같은 값 → 299 몫 0 (상한 `85363daa6` 과의 차이는 299 이전부터 — 범위 밖). live 추가 2 (사용자 보고 「초기화 · 원래 값으로 돌려도 span - span」 → 초기화가 구간 축도 지움 · 노드와 같은 값은 구간 서식 없음 / 첫 편집 첫 글자 유실 → 편집기가 대체 입력 caret 으로 열림) · native macOS 한글 입력기 사용자 확인. 본문을 `completed/` 로 옮기고 열림 · 순서 표에서 뺐다. 열림 2 (245 · 300), 완료 319, 합계 321.
+
 > **2026-11-02 ADR-299 Phase 3 종결 · Phase 4 live** — 글자 편집 상자가 ProseMirror (편집 진입 때 lazy, gz 58 KB chunk · initial 밖) 로 바뀌어 일부만 굵게 · 기울임 · 밑줄 (⌘B · ⌘I · ⌘U) 과 Design 패널 Typography 로 선택한 글자의 굵기 · 크기 · 색을 바꾼다 — 패널을 눌러도 편집 · 선택이 유지된다. 편집 밖은 섞인 축이 「Mixed」 이고 쓰면 노드 + 구간 전부 (결정 3). 코드 보기 `<span style={{…}}>` 양방향. G4 Chrome · WebKit 16 · 원복 RED 2. live 11 행 — ⌘Z 뒤 옛 run 이 남던 결함 · Properties `[object Object]` 수리. 남은 것: 커밋 뒤 G5 ratchet · native 한글 IME 확인.
 
 > **2026-11-02 ADR-299 Phase 2 종결** — 구간 서식 글자를 Canvas 와 Preview 가 같이 그린다: 측정 · Canvas paragraph 는 run 마다 `pushStyle` (큰 run 이 줄을 키움), DOM 은 run 마다 `<span>` (mark 만 · 자기 장식선은 span 으로). G2 fixture 8 (500 % raster ↔ DOM 스크린샷, 대조 arm plain) 8/8 · 원복 RED 4. F18 정정 — 조상 장식선은 frame 이 아니라 글자 요소 자신에 inline 으로 들어간다. 번들 Builder 1,403,847 (+3,410 누적).
@@ -625,11 +627,6 @@
 - **상태**: Proposed — 2026-11-02 (사용자 `/create-adr` — 대화에서 「A안으로 진행해」). ADR-239 가 범위 밖으로 둔 NavigationTree 를 받는다.
 - **규모**: Phase 0 ~ 4 (인벤토리 · S2 값 표 · 기준 예제 DOM · 번들 기준선 → binding · rule · origin 7 type · contract +1 → Preview DOM (NavigationTree · Panel 접힘 · router) + 번들 측정 → Canvas (행 · rail · 조상 상태 dirty 확장) → 팔레트 · 패널 · Interactions · code view · live). 사용자 결정 5 (`selectedRoute` 출처 · 행 view transition · 팔레트 단위 · 행 actions 자리 · 번들 초과 시). breakdown: [design/300](design/300-sidenav-navigation-tree-breakdown.md)
 
-#### [299](299-text-range-formatting-runs.md) — 글자 범위 서식 — 구간 서식 (run) 을 문서 · Canvas · 측정 · DOM · 패널 · 코드 보기가 같이 읽고, 입력은 ProseMirror core
-
-- **상태**: Proposed — 2026-11-02 (사용자 `/create-adr 범위 서식`). ADR-027 이 보류한 리치 텍스트의 선행 ADR (데이터 모델).
-- **규모**: Phase 0 ~ 4 (G0 한글 IME Chrome + WebKit RED → 문서 형 `RichText` · contract 53 → Canvas run `pushStyle` · DOM `<span>` · run 측정 · 대칭 fixture 8 → ProseMirror lazy 편집 상자 · 패널 선택 구간 · 코드 보기 → ratchet · live). 사용자 결정 5 (구간 축 다섯 · 툴바 없음 · Mixed 쓰기 · 범위 링크 제외 · 번들 여유 2,904 / 3,153 B 초과 시 재승인). breakdown: [design/299](design/299-text-range-formatting-breakdown.md)
-
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
 - **상태**: Proposed — 2026-09-27 (선택 경로 — Phase 0 no-go 면 기각 Deprecated · 보류 Proposed 유지가 정상 종결. 개정 2026-10-05 — ADR-248 뒤 코드 인용 갱신, 결정 무변경)
@@ -659,15 +656,14 @@
 
 | 순위 | ADR                                                                                            | 착수 준비도                                                                                                                                                                                        | 차단 · 선행                                                                                                                                                   |
 | :--: | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|  1   | [299](299-text-range-formatting-runs.md)                                                       | Accepted 2026-11-02 — Phase 0 ~ 3 종결 (G0 · G1 · G2 8/8 · G3 · G4 Chrome · WebKit 16), Phase 4 live 11 행 (결함 2 수리) — 남은 것: 커밋 뒤 G5 ratchet · native 한글 IME 사용자 확인 → Implemented | 선행 없음 (027 · 205 · 298 Implemented). 사용자 결정 5건 답함 (다섯 축 · 툴바 없음 · Mixed 쓰기 = 노드 + 구간 · 범위 링크 제외 · Builder 상한 1,410,000)      |
-|  2   | [300](300-sidenav-navigation-tree.md)                                                          | Proposed 2026-11-02 — 리뷰 닫힘 ([reviews/300](reviews/300.md) round 2 HIGH 0 · pending 0), 착수 `/execute-adr 300`                                                                                | 선행 없음 (Tree 가족 239 · 256 은 등록 선례). 299 와 contract · 공용 테스트가 겹쳐 worktree 격리 · 299 Phase 반영 뒤 rebase. Preview 번들 여유 약 2.7 KB (G4) |
+|  1   | [300](300-sidenav-navigation-tree.md)                                                          | Proposed 2026-11-02 — 리뷰 닫힘 ([reviews/300](reviews/300.md) round 2 HIGH 0 · pending 0), 착수 `/execute-adr 300`                                                                                | 선행 없음 (Tree 가족 239 · 256 은 등록 선례). 299 와 contract · 공용 테스트가 겹쳐 worktree 격리 · 299 Phase 반영 뒤 rebase. Preview 번들 여유 약 2.7 KB (G4) |
 |  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상)                                                                                                                  | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)                                                                |
 |  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                                                                                                                                            | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                                                                                        |
 |  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                                                                                                                                 | 각 항목의 재개 조건 발생 시                                                                                                                                   |
 
 ---
 
-## 완료 ADR (318)
+## 완료 ADR (319)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -994,6 +990,7 @@
 | [296](completed/296-code-view-project-file-tree-projection.md) | 코드 보기 투영 수리 + 프로젝트 가상 파일 트리 — page 결함 E1 ~ E13 수리 · `App.tsx` (routes · layout · toast · theme) · `pages/<P>.tsx` · `.css` (노드 class · typed field 하나 = 선언 하나 · `@media` = breakpoint · token = `var(--catalog-token-*)`) · `theme.css` · `data/` · `api/` · `state/project.ts` · `components/<Name>.tsx` · `.css` (원본 명령 · instance `overrides` = instance 명령만 · slot 채움 = children) · Library 읽기 전용 + unlock · `index.html` · `site.config.ts` (ADR-286 D8 해당 문장 Superseded) · 여러 파일 한 Apply = history 1 · G3 Canvas 해석 3 breakpoint 동일 · G4 쓰기 경계 · G5 Builder +216 B gz · Preview 0 · G6 빈 프로젝트 코드만 live · 사용자 확인 2026-11-01 | Implemented | 2026-11-01 |
 | [297](completed/297-rule-state-condition-tree-single-priority.md) | catalog rule 상태 표현을 조건 트리 하나로 — variant 칠과 상태 (hover · pressed · selected · emphasized · quiet · fillStyle · staticColor · disabled) 를 `paint` 조건 트리 하나로, Canvas evaluator 와 생성 CSS compiler 가 같은 트리를 읽는다 (키 순서 = 우선순위 = cascade). 표 전수 190 variant · `button-base` · static · 수동 selected · focus CSS 흡수 · S2 확정 8 건 · 옛 칠 형식 삭제 · 묶음 컨테이너 칠 게이트 | Implemented 2026-11-02 |
 | [298](completed/298-node-token-reference-panel-token-first.md) | 노드 값의 토큰 참조 저장 — Design 패널이 px · hex 대신 테마 토큰을 먼저 (토큰 모델 A): 테마 무관 라이브러리 토큰 표 (`lib:token:<ref>`) · 패널 preset = `TokenUse` · 칩 + 활성 테마 값 · fill 색 · inset · gap longhand 토큰 · DOM 변수 · Canvas 간격 스냅 · 입력 scrub · 시안 4 (Border 두 줄 · auto 행간 · Theme 서체 · 그림자 한 줄) | Implemented 2026-11-02 |
+| [299](completed/299-text-range-formatting-runs.md) | 글자 범위 서식 — 글자 노드 하나 안의 구간 서식 (굵기 · 기울임 · 장식선 · 색 · 크기): 문서 형 `RichText` (contract 53 · 템플릿 토큰 원자) · Canvas run `pushStyle` · DOM run `<span>` · run 측정 · ProseMirror core lazy 편집 상자 (⌘B · ⌘I · ⌘U · Typography 가 선택 구간에) · 편집 밖 Mixed · 코드 보기 `<span style>` | Implemented 2026-11-02 |
 
 **Phase 0 baseline 문서** (ADR 아님 — 게이트 기준선): [035](completed/035-phase-0-baseline.md) · [037](completed/037-phase-0-baseline.md) · [039](completed/039-phase-0-baseline.md) · [040](completed/040-phase-0-baseline.md)
 

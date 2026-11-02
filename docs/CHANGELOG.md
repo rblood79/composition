@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [글자 범위 서식 — ADR-299 Implemented] - 2026-11-02
+
+### Changed
+
+- **ADR-299 Implemented** — 글자 노드 하나 안의 구간 서식 (굵기 · 기울임 · 장식선 · 색 · 크기). 문서 형 `RichText` (contract 53) → Canvas · Preview · 측정 · ProseMirror 편집 상자 · Design 패널 · 코드 보기. 구현 `b0d1e77e4`.
+  - G5 ratchet: 등급 A 카운트가 직전 커밋 (299 이전) 과 같은 값 — 299 몫 0. 상한과 현재 값의 차이는 299 이전부터 있던 것 (상한 기록 `85363daa6`).
+  - live: Chrome MCP 13 시나리오 (결함 5 수리) + native macOS 한글 입력기 사용자 확인.
+  - 위치: [docs/adr/completed/299-text-range-formatting-runs.md](adr/completed/299-text-range-formatting-runs.md)
+
 ## [글자 범위 서식 — ADR-299 Phase 3 (편집 · 패널 · 코드 보기) · Phase 4 live] - 2026-11-02
 
 ### Added
