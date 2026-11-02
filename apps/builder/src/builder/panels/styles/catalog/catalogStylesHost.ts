@@ -1,3 +1,7 @@
+import {
+  catalogTokenValue,
+  readThemeTokenValue,
+} from "../../../../../../../packages/shared/src/catalog/document/themedToken";
 import { catalogReadPositionConstraint } from "../../../catalogRuntime/positionConstraint";
 import { catalogIsOutOfFlow } from "../../../../../../../packages/shared/src/catalog/runtime/positioning";
 import {
@@ -30,6 +34,7 @@ import {
 import type { FillItem } from "../../../../types/builder/fill.types";
 import {
   panelFillItems,
+  panelTokenUse,
   panelFillLayers,
   panelResolvedFillLayers,
 } from "../../../catalogRuntime/panelTokens";
@@ -761,7 +766,46 @@ export function createCatalogStylesHost(
         } catch {
           continue; // a value the typed field cannot hold mid-drag: the commit reports it
         }
-        const patch = catalogStylePreviewPatch(writes);
+        const patch = catalogStylePreviewPatch(writes, {
+          fontSize: fontSizeOf(workspace, item.identity),
+          tokenValue: ({ tokenId }) => {
+            const token = workspace.runtime.graph.getToken(tokenId);
+            return token && catalogTokenValue(token, workspace.root.colorMode);
+          },
+        });
+        // Font tokens carry a paired auto line height (ADR-298 D4); preview the
+        // same ratio that the resolver commits, rather than the previous font's ratio.
+        const fontWrite = writes.visual?.fontSize;
+        const fontSize = patch.visual?.fontSize;
+        if (
+          fontWrite?.kind === "set" &&
+          typeof fontSize === "number" &&
+          fontSize > 0
+        ) {
+          const line = snapshotOf(item).style.lineHeight;
+          const lineUse = typeof line === "string" ? panelTokenUse(line) : undefined;
+          const lineToken =
+            lineUse && workspace.runtime.graph.getToken(lineUse.tokenId);
+          let linePx =
+            lineToken && catalogTokenValue(lineToken, workspace.root.colorMode);
+          if (
+            line === undefined &&
+            typeof fontWrite.value === "object" &&
+            fontWrite.value &&
+            "tokenId" in fontWrite.value
+          ) {
+            const ref = workspace.runtime.graph.getToken(fontWrite.value.tokenId)?.ref;
+            const name = ref && /^\{typography\.(text-[a-z0-9-]+)\}$/.exec(ref)?.[1];
+            if (name)
+              linePx = readThemeTokenValue(
+                `{typography.${name === "text-md" ? "text-base" : name}--line-height}`,
+                "number",
+                workspace.root.colorMode,
+              );
+          }
+          if (typeof linePx === "number")
+            patch.visual!.lineHeight = linePx / fontSize;
+        }
         if (!Object.keys(patch).length) continue;
         const held = heldPreview(item.identity) ?? {};
         const next: CatalogRecordPreview = {

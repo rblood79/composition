@@ -150,7 +150,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
   part: TransformSectionPart;
 }) {
   const localize = useSemanticLabel();
-  const { updateStyleImmediate, updateStylePreview } =
+  const { updateStyleImmediate, cancelStylePreview, updateStylePreview } =
     useOptimizedStyleActions();
   const selectedId = useStylesSelectedId();
   const bundle = useTransformValues(selectedId, part);
@@ -415,6 +415,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
           setSizingError(host.applyPosition(selectedId, change))
         }
         onPreview={updateStylePreview}
+        onCancelPreview={cancelStylePreview}
         error={sizingError ? localize(RATIO_ERROR_LABELS[sizingError]) : null}
       />
     );
@@ -443,6 +444,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
             ...(styleValues.isBody ? [] : ["fill", "fit-content"]),
           ]}
           onChange={(value) => commitAxisValue("width", value)}
+          onDragCancel={cancelStylePreview}
           onDrag={(value) => updateStylePreview("width", value)}
           min={widthMode === "fill" && isFraction("width") ? 1 : 0}
           max={widthMode === "fill" && isFraction("width") ? 1000 : 9999}
@@ -462,6 +464,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
             ...(styleValues.isBody ? [] : ["fill", "fit-content"]),
           ]}
           onChange={(value) => commitAxisValue("height", value)}
+          onDragCancel={cancelStylePreview}
           onDrag={(value) => updateStylePreview("height", value)}
           min={heightMode === "fill" && isFraction("height") ? 1 : 0}
           max={heightMode === "fill" && isFraction("height") ? 1000 : 9999}
@@ -499,6 +502,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
                 units={["reset", "px", "%", "vw"]}
                 preserveEmptyValueOnUnitChange
                 onChange={(value) => commitConstraint("minWidth", value)}
+                onDragCancel={cancelStylePreview}
                 onDrag={(value) => previewConstraint("minWidth", value)}
                 min={0}
                 max={9999}
@@ -512,6 +516,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
                 units={["reset", "px", "%", "vh"]}
                 preserveEmptyValueOnUnitChange
                 onChange={(value) => commitConstraint("minHeight", value)}
+                onDragCancel={cancelStylePreview}
                 onDrag={(value) => previewConstraint("minHeight", value)}
                 min={0}
                 max={9999}
@@ -526,6 +531,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
                 units={["reset", "px", "%", "vw"]}
                 preserveEmptyValueOnUnitChange
                 onChange={(value) => commitConstraint("maxWidth", value)}
+                onDragCancel={cancelStylePreview}
                 onDrag={(value) => previewConstraint("maxWidth", value)}
                 min={0}
                 max={9999}
@@ -539,6 +545,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
                 units={["reset", "px", "%", "vh"]}
                 preserveEmptyValueOnUnitChange
                 onChange={(value) => commitConstraint("maxHeight", value)}
+                onDragCancel={cancelStylePreview}
                 onDrag={(value) => previewConstraint("maxHeight", value)}
                 min={0}
                 max={9999}
@@ -654,6 +661,7 @@ const PositionControls = memo(function PositionControls({
   onMode,
   onChange,
   onPreview,
+  onCancelPreview,
   error,
 }: {
   effective: Record<string, string | number> | undefined;
@@ -663,6 +671,7 @@ const PositionControls = memo(function PositionControls({
   onMode: (mode: "relative" | "absolute" | "sticky" | "fixed") => void;
   onChange: (change: CatalogPositionChange) => void;
   onPreview: (property: string, value: string) => void;
+  onCancelPreview: () => void;
   error: string | null;
 }) {
   const localize = useSemanticLabel();
@@ -729,6 +738,7 @@ const PositionControls = memo(function PositionControls({
                   },
           )
         }
+        onDragCancel={onCancelPreview}
         onDrag={(next) => {
           // Live only where the drag edits one side as is (a Center offset moves both).
           if (pinned && !centerOffset) onPreview(side, next);

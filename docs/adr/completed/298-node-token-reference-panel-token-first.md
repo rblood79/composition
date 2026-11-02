@@ -2,6 +2,8 @@
 
 ## Status
 
+> **구현 리뷰 round 3 → 4 수리 (2026-11-02, codex)**: 토큰 scrub preview가 누락되어 취소·원점 복귀 뒤 자유값이 남던 HIGH 1을 수정했다. 활성 테마 토큰 해석과 preview 취소/RAF 종료를 연결했고, 관련 159 테스트 및 타입 검사 PASS. 실제 브라우저·픽셀·p95·새 번들은 연결 호스트 부재 등으로 UNVERIFIED. [수리 검증](../reviews/298.md) HIGH 0 · pending 0.
+
 Implemented — 2026-11-02 (Phase 0 ~ 5 · G0 ~ G5 통과 — G5 번들은 사용자 상한 재승인 「상한 재승인」 2026-11-02, ADR-201 재승인 절)
 
 Accepted — 2026-11-01 (사용자 `/execute-adr 298` + [reviews/298.md](../reviews/298.md) round 2 pending 0 · HIGH 전부 fixed)

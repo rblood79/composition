@@ -132,8 +132,12 @@ const CORNER_FIELDS = [
 const BorderSectionContent = memo(function BorderSectionContent() {
   const localize = useSemanticLabel();
   const { updateStyle } = useStyleActions();
-  const { updateStyleImmediate, updateStylePreview, updateStylesImmediate } =
-    useOptimizedStyleActions();
+  const {
+    updateStyleImmediate,
+    cancelStylePreview,
+    updateStylePreview,
+    updateStylesImmediate,
+  } = useOptimizedStyleActions();
   const selectedId = useStylesSelectedId();
   const styleValues = useAppearanceValues(selectedId);
   // 색 드래그도 Styles host 미리보기
@@ -227,6 +231,7 @@ const BorderSectionContent = memo(function BorderSectionContent() {
           min={0}
           max={INPUT_MAX}
           onChange={(value) => updateStyleImmediate("borderWidth", value)}
+          onDragCancel={cancelStylePreview}
           onDrag={(value) => updateStylePreview("borderWidth", value)}
         />
         <PropertyColor
@@ -327,6 +332,7 @@ const BorderSectionContent = memo(function BorderSectionContent() {
           min={0}
           max={INPUT_MAX}
           onChange={(value) => updateStyleImmediate("borderRadius", value)}
+          onDragCancel={cancelStylePreview}
           onDrag={(value) => updateStylePreview("borderRadius", value)}
         />
         <div className="fieldset-actions actions-icon">

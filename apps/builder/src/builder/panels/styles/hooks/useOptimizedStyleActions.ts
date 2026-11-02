@@ -53,6 +53,7 @@ interface OptimizedStyleActionsResult {
 
   /** 보류 중인 업데이트 취소 */
   cancelPendingUpdates: () => void;
+  cancelStylePreview: () => void;
 }
 
 // ============================================
@@ -143,6 +144,14 @@ export function useOptimizedStyleActions(): OptimizedStyleActionsResult {
     pendingUpdateRef.current = null;
     pendingPreviewRef.current = null;
   }, []);
+
+  const cancelStylePreview = useCallback(() => {
+    const epoch = pendingPreviewRef.current?.epoch ?? shownEpochRef.current;
+    cancelPendingUpdates();
+    if (epoch !== null && epoch !== undefined && epoch === host.previewEpoch?.())
+      host.cancelPreview?.();
+    shownEpochRef.current = null;
+  }, [cancelPendingUpdates, host]);
 
   /**
    * 즉시 스타일 업데이트 (blur, enter)
@@ -287,6 +296,7 @@ export function useOptimizedStyleActions(): OptimizedStyleActionsResult {
     updateStylesImmediate,
     updateStylesTransition,
     cancelPendingUpdates,
+    cancelStylePreview,
   };
 }
 

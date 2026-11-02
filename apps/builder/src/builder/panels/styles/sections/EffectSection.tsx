@@ -119,7 +119,7 @@ function percentToOpacityValue(percent: number): string {
 const EffectSectionContent = memo(function EffectSectionContent() {
   const localize = useSemanticLabel();
   const { updateStyle } = useStyleActions();
-  const { updateStyleImmediate, updateStylePreview } =
+  const { updateStyleImmediate, cancelStylePreview, updateStylePreview } =
     useOptimizedStyleActions();
   const selectedId = useStylesSelectedId();
   const styleValues = useAppearanceValues(selectedId);
@@ -259,6 +259,7 @@ const EffectSectionContent = memo(function EffectSectionContent() {
               const px = Number.parseFloat(value);
               if (Number.isFinite(px)) handleBlurCommit(px);
             }}
+            onDragCancel={cancelStylePreview}
             onDrag={(value) => {
               const px = Number.parseFloat(value);
               if (Number.isFinite(px)) handleBlurScrub(px);

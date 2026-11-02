@@ -20,6 +20,8 @@ export interface PropertyUnitInputProps {
   onChange: (value: string) => void;
   /** RAF 스로틀 업데이트 (화살표 키 반복 입력용) */
   onDrag?: (value: string) => void;
+  /** End a preview without a document edit (cancel or return to the starting value). */
+  onDragCancel?: () => void;
   icon?: React.ComponentType<{
     color?: string;
     size?: number;

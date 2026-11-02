@@ -4,6 +4,7 @@ import type {
   SizingField,
   VisualField,
   WriteValue,
+  TokenUse,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import { panelTokenUse, panelTokenVar } from "./panelTokens";
 
@@ -344,9 +345,16 @@ export function catalogStyleWrites(
 /**
  * The resolved values a Styles drag shows on the Canvas before it commits (`previewRecord`): the
  * set values of the writes. A remove has no resolved value to show (the library's) and an
- * unknown-unit value no typed one, so both wait for the commit.
+ * unknown-unit value no typed one, so both wait for the commit. Tokens resolve in the
+ * active theme before this boundary; layout lengths are px text, line heights ratios.
  */
-export function catalogStylePreviewPatch(writes: CatalogStyleFieldWrites): {
+export function catalogStylePreviewPatch(
+  writes: CatalogStyleFieldWrites,
+  context?: {
+    tokenValue: (token: TokenUse) => string | number | boolean | undefined;
+    fontSize?: number;
+  },
+): {
   visual?: Record<string, string | number | boolean>;
   sizing?: Record<string, number>;
   layout?: Record<string, string>;
@@ -355,10 +363,28 @@ export function catalogStylePreviewPatch(writes: CatalogStyleFieldWrites): {
     fields:
       Readonly<Record<string, WriteValue<unknown> | undefined>> | undefined,
     accept: (value: unknown) => value is T,
+    layout = false,
   ): Record<string, T> | undefined => {
     const out: Record<string, T> = {};
-    for (const [key, write] of Object.entries(fields ?? {}))
-      if (write?.kind === "set" && accept(write.value)) out[key] = write.value;
+    for (const [key, write] of Object.entries(fields ?? {})) {
+      if (write?.kind !== "set") continue;
+      let value = write.value;
+      if (value && typeof value === "object" && "tokenId" in value) {
+        value = context?.tokenValue(value as TokenUse);
+        if (layout && typeof value === "number") value = `${value}px`;
+        if (!layout && key === "lineHeight" && typeof value === "number") {
+          const font = writes.visual?.fontSize;
+          const size =
+            font?.kind === "set"
+              ? typeof font.value === "object" && font.value && "tokenId" in font.value
+                ? context?.tokenValue(font.value as TokenUse)
+                : font.value
+              : context?.fontSize;
+          value = typeof size === "number" && size > 0 ? value / size : undefined;
+        }
+      }
+      if (accept(value)) out[key] = value;
+    }
     return Object.keys(out).length ? out : undefined;
   };
   const visual = values(
@@ -373,6 +399,7 @@ export function catalogStylePreviewPatch(writes: CatalogStyleFieldWrites): {
   const layout = values(
     writes.layout,
     (value): value is string => typeof value === "string",
+    true,
   );
   return {
     ...(visual ? { visual } : {}),

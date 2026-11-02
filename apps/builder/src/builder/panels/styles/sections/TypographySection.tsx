@@ -100,7 +100,7 @@ const TEXT_BEHAVIOR_PRESETS: Record<string, Record<string, string>> = {
 const TypographySectionContent = memo(function TypographySectionContent() {
   const localize = useSemanticLabel();
   const { updateStyle, updateStyles } = useStyleActions();
-  const { updateStyleImmediate, updateStylePreview } =
+  const { updateStyleImmediate, cancelStylePreview, updateStylePreview } =
     useOptimizedStyleActions();
   const selectedId = useStylesSelectedId();
   const styleValues = useTypographyValues(selectedId);
@@ -195,6 +195,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         presets={FONT_SIZE_PRESET_OPTIONS}
         presetAriaLabel={localize("Font size presets")}
         onChange={handleTextMetricCommit}
+        onDragCancel={cancelStylePreview}
         onDrag={handleTextMetricPreview}
         min={8}
         max={200}
@@ -207,6 +208,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         autoValue={styleValues.lineHeightAuto}
         units={["auto", "px"]}
         onChange={(value) => updateStyleImmediate("lineHeight", value)}
+        onDragCancel={cancelStylePreview}
         onDrag={(value) => updateStylePreview("lineHeight", value)}
         min={0}
         max={999}
@@ -219,6 +221,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         value={styleValues.letterSpacing}
         units={["reset", "px"]}
         onChange={(value) => updateStyleImmediate("letterSpacing", value)}
+        onDragCancel={cancelStylePreview}
         onDrag={(value) => updateStylePreview("letterSpacing", value)}
         min={-10}
         max={10}

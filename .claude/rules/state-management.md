@@ -49,6 +49,8 @@ paths:
 
 ## 3. 핵심 규칙
 
+- **Styles scrub 미리보기 (ADR-298)**: `TokenUse`는 활성 테마 값으로 해석한 뒤 `previewRecord`에 전달한다. 취소·원점 복귀·capture 해제는 대기 RAF와 보유 preview를 끝내며 문서/History를 쓰지 않는다. **Why (2026-11-02)**: primitive 전용 변환기가 원래 토큰을 버려 Padding M(12px)에서 자유값 16px 드래그를 취소한 뒤에도 consumer가 16에 남았다.
+
 - **히스토리 의도는 필수**: `applyCatalogTransaction` 은 `history: { kind: "record", label }` 또는 `{ kind: "skip", reason }` 없이는 `HISTORY_INTENT_REQUIRED` 로 거부한다. skip 사유는 `project-create` · `load` · `fixture` · `sync` 넷뿐 — 사용자 편집은 늘 기록된다 (ADR-185 의 「조용한 생략 금지」 가 타입 · 검증으로 옮겨 왔다).
 - **히스토리는 프로젝트당 한 스택**: undo / redo 는 entry 의 `inverse` / `forward` 를 기록된 step 으로 다시 돌리고 바깥 효과 (`external`) 를 뒤따라 실행한다. 페이지별 스택 · `migrateEntryToPage` 는 없다. AI 묶음은 `mergeHistory` 로 한 entry.
 - **데이터 편집도 문서 명령 하나 (ADR-286)**: `useDataStore.applyDataChange` 는 reduce 결과를 sink (`setDataDefinitionSink` — `bindCatalogDataStore`, `catalogDataStore.ts`) 로 넘기고 sink 가 `setDataEntries` (+ 바인딩 · 문서 명령) 를 `composeOver` 로 묶어 `workspace.execute` 한 step 으로 실행한다 — history · 저장 · 프로젝트 파일이 하나. store 의 정의 Map 은 step 마다 문서에서 다시 투영된다 (직접 set 금지 — `adr286G1` 정적 검사). 옛 `recordExternal` 데이터 경로 (`dataHistory.ts`) 는 삭제됐다.

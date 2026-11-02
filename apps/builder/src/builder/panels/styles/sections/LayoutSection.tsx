@@ -211,7 +211,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
     updateStyles,
   } = useStyleActions();
   // 🚀 Phase 1: RAF 기반 스로틀 업데이트
-  const { updateStyleImmediate, updateStylePreview } =
+  const { updateStyleImmediate, cancelStylePreview, updateStylePreview } =
     useOptimizedStyleActions();
 
   // ADR-067 Phase 2: Zustand 직접 구독 + Spec 직접 lookup
@@ -530,6 +530,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
               presets={SPACING_PRESET_OPTIONS}
               allowKeywords={false}
               onChange={(value) => commitGap("columnGap", value)}
+              onDragCancel={cancelStylePreview}
               onDrag={(value) => previewGap("columnGap", value)}
               min={0}
               max={500}
@@ -542,6 +543,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
               presets={SPACING_PRESET_OPTIONS}
               allowKeywords={false}
               onChange={(value) => commitGap("rowGap", value)}
+              onDragCancel={cancelStylePreview}
               onDrag={(value) => previewGap("rowGap", value)}
               min={0}
               max={500}
@@ -605,6 +607,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
               allowKeywords={false}
               isDisabled={sessionGap !== null}
               onChange={handleSpacingCommit}
+              onDragCancel={cancelStylePreview}
               onDrag={handleSpacingPreview}
               min={0}
               max={500}

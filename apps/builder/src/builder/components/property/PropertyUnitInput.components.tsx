@@ -76,6 +76,7 @@ export const PropertyUnitInputControl = memo(
     value,
     onChange,
     onDrag,
+    onDragCancel,
     icon: Icon,
     className,
     units = DEFAULT_UNITS,
@@ -678,7 +679,18 @@ export const PropertyUnitInputControl = memo(
             ) {
               lastSavedValueRef.current = scrub.next;
               onChange(scrub.next);
+            } else {
+              onDragCancel?.();
             }
+          },
+          onLostPointerCapture: () => {
+            if (!scrubRef.current) return;
+            scrubRef.current = null;
+            setInputValue(
+              getInputDisplayValue(value, parsed, isPreservedEmptyValue, presets),
+            );
+            if (onDragCancel) onDragCancel();
+            else onDrag?.(value);
           },
           onPointerCancel: () => {
             const scrub = scrubRef.current;
@@ -692,7 +704,8 @@ export const PropertyUnitInputControl = memo(
                 presets,
               ),
             );
-            onDrag?.(scrub.original);
+            if (onDragCancel) onDragCancel();
+            else onDrag?.(scrub.original);
           },
         }
       : undefined;

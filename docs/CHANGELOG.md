@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [토큰 scrub 미리보기 복원 — ADR-298 리뷰 수리] - 2026-11-02
+
+### Fixed
+
+- Design 패널의 토큰 단계 scrub이 Canvas에 즉시 반영된다. 취소·원점 복귀·pointer capture 해제는 예약된 RAF와 미리보기를 종료해 문서 값으로 복원한다. 놓을 때만 TokenUse를 한 번 저장하며 Undo도 한 단계로 유지한다.
+- 미리보기 길이·행간은 현재 테마의 토큰 값과 필드 단위로 해석한다. 글자 크기 토큰의 auto 행간도 commit과 같은 짝을 따른다.
+
+### Tests
+
+- 실제 PropertyUnitInput·Styles host·CatalogWorkspace·WASM consumer 통합: 단계 미리보기, 자유값 취소/원점 복귀, capture 해제, RAF 취소, TokenUse commit/Undo 및 행간 비율.
+
 ## [ADR-297 후속 ⑥ — premium · genai Button 그라데이션을 S2 대로, Canvas 와 Preview 가 같이] - 2026-11-02
 
 ### Fixed
