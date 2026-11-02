@@ -519,12 +519,15 @@ export const PropertyUnitInputControl = memo(
         return;
       }
 
-      if (e.key === "ArrowUp") {
+      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+        // 목록이 열려 있으면 ↑/↓ 는 RAC 의 항목 이동이다 (숫자를 바꾸지 않는다).
+        if (menuOpenRef.current) return;
+        // 닫힌 칸의 ↑/↓ 는 숫자 stepper 하나 — RAC ComboBox 로 보내지 않는다. 보내면 RAC 가 닫힌
+        //   목록을 열고 (`state.open('last')`) 가상 포커스를 옮겨, 이어진 Tab 이 그 항목을 commit 한다
+        //   (/fix 2026-11-02 — Gap 0 에서 ↑×3 Tab = M 토큰, ↑×30 Tab = Reset 으로 값 삭제).
         e.preventDefault();
-        stepValue(1, e.shiftKey, "drag");
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        stepValue(-1, e.shiftKey, "drag");
+        e.stopPropagation();
+        stepValue(e.key === "ArrowUp" ? 1 : -1, e.shiftKey, "drag");
       }
     };
 

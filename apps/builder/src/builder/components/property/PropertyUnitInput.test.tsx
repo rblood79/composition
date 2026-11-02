@@ -322,6 +322,62 @@ describe("PropertyUnitInput numeric editing", () => {
     expect(onChange).toHaveBeenCalledWith("13px");
   });
 
+  // /fix (2026-11-02): RAC ComboBox opens the closed preset list on ↑/↓ (`state.open('last')`) and
+  //   moves its virtual focus; Tab then commits that focused option (`if (state.isOpen) state.commit()`)
+  //   — ↑×3 Tab on Gap 0 stored M (12), ↑×30 Tab stored Reset (value removed). Enter was fine.
+  it("↑ on a preset field steps the number only — Tab then commits the number, not a list option", () => {
+    for (const [presses, expected] of [
+      [3, "3px"],
+      [30, "30px"],
+    ] as const) {
+      const onChange = vi.fn();
+      useStore.setState({ selectedElementId: "element-1" });
+      render(
+        <PropertyUnitInput
+          label="Gap"
+          value="0px"
+          units={["px"]}
+          presets={SPACING_PRESET_OPTIONS}
+          onChange={onChange}
+          onDrag={vi.fn()}
+        />,
+      );
+      const input = screen.getByRole("combobox", { name: "Gap" });
+      fireEvent.focus(input);
+      for (let i = 0; i < presses; i += 1)
+        fireEvent.keyDown(input, { key: "ArrowUp" });
+      expect(input.getAttribute("aria-expanded"), "↑ must not open the list").not.toBe("true");
+      fireEvent.keyDown(input, { key: "Tab" });
+      fireEvent.blur(input);
+      expect(onChange.mock.calls.at(-1)?.[0], `↑×${presses} Tab`).toBe(expected);
+      cleanup();
+    }
+  });
+
+  it("with the preset list open, ↑/↓ move through the list and leave the number alone", async () => {
+    const onDrag = vi.fn();
+    useStore.setState({ selectedElementId: "element-1" });
+    render(
+      <PropertyUnitInput
+        label="Gap"
+        value="0px"
+        units={["px"]}
+        presets={SPACING_PRESET_OPTIONS}
+        presetAriaLabel="Gap presets"
+        onChange={vi.fn()}
+        onDrag={onDrag}
+      />,
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Gap presets" }));
+    });
+    const input = screen.getByRole("combobox", { name: "Gap" });
+    expect(input.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    expect(onDrag).not.toHaveBeenCalled();
+    expect((input as HTMLInputElement).value).toBe("0");
+  });
+
   it("keeps an empty constraint unset until a number is entered", () => {
     const onChange = vi.fn();
 

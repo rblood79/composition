@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Design 패널 숫자 칸 — ↑ 로 값을 올린 뒤 Tab 을 치면 단계 목록의 항목이 저장되던 것] - 2026-11-02
+
+### Fixed
+
+- **단계 메뉴가 있는 칸 (Gap · Padding · Radius · Border Width · Font Size · Position …) 에서 ↑/↓ 로 숫자를 바꾼 뒤 Tab 을 치면, 친 숫자 대신 보이지 않는 목록의 항목이 저장되던 것** — 예: Gap 0 에서 ↑ 세 번 + Tab 은 3 이 아니라 M (12), ↑ 서른 번 + Tab 은 Reset 이 골라져 값이 지워졌다. Enter 로 확정하면 정상이었다. 이제 닫힌 칸의 ↑/↓ 는 숫자만 바꾸고, ▾ 로 목록을 연 동안에는 ↑/↓ 가 목록 항목을 옮긴다.
+  - **Why**: 칸이 쓰는 RAC ComboBox 가 ↑/↓ 에서 닫힌 목록을 열고 그 안의 포커스를 옮겼고, Tab 은 열린 목록의 포커스 항목을 확정한다 — 칸의 숫자 stepper 가 키를 막지 않아 둘이 함께 돌았다. ADR-298 이전부터 있던 결함 (`dd7a12602` 에서도 재현).
+  - 위치: `apps/builder/src/builder/components/property/PropertyUnitInput.components.tsx` (`handleKeyDown`) · 회귀 테스트 `PropertyUnitInput.test.tsx` 2
+
 ## [ADR-298 Implemented — Design 패널 시안 맞춤 (Border 두 줄 · auto 행간 · Theme 서체 · 그림자 한 줄) · 번들 상한 재승인] - 2026-11-02
 
 ### Changed
