@@ -21,9 +21,13 @@ import {
   viewResultSchema,
   viewRunReferences,
   viewRunSchema,
+  type ViewRunCollection,
   type ViewRunResult,
 } from "../../collections/view/evaluate";
-import { hasFormula, withComputedCells } from "../../collections/formula/compute";
+import {
+  hasFormula,
+  withComputedCells,
+} from "../../collections/formula/compute";
 import { formulaRuntimeSync } from "../../collections/formula/engine";
 import { catalogRowQueryResolve, type CatalogRowQuery } from "./viewQuery";
 import type {
@@ -369,15 +373,22 @@ function partialAggregates(
  * The last run per source rows and query (ADR-284 R4 — the memo key is the view definition, the
  * values it read and the source rows; a variable write or a row change is another key).
  */
-const viewRuns = new WeakMap<object, Map<string, ViewRunResult>>();
-const rowVersions = new WeakMap<object, number>();
-let nextRowVersion = 0;
-/** One number per rows array (the data store replaces a collection's rows on every change). */
-function rowsVersion(rows: object): number {
-  let version = rowVersions.get(rows);
-  if (version === undefined)
-    rowVersions.set(rows, (version = ++nextRowVersion));
-  return version;
+interface ViewReferenceSnapshot {
+  rows: readonly unknown[];
+  schema: string;
+}
+interface CachedViewRun {
+  result: ViewRunResult;
+  references: ReadonlyMap<string, ViewReferenceSnapshot | undefined>;
+}
+const viewRuns = new WeakMap<object, Map<string, CachedViewRun>>();
+
+function referenceSnapshot(
+  target: ViewRunCollection | undefined,
+): ViewReferenceSnapshot | undefined {
+  return target
+    ? { rows: target.rows, schema: JSON.stringify(target.schema) }
+    : undefined;
 }
 
 function runBindingView(
@@ -386,44 +397,47 @@ function runBindingView(
   query: CatalogRowQuery,
   sources: readonly CollectionDataSource[],
 ): ViewRunResult {
-  // (A reference field's target rows are part of the key: a Teams change re-runs a Users view.)
-  const referenced = (table.schema ?? []).flatMap((field) => {
-    const target = field.reference
-      ? sources.find((item) => item.id === field.reference!.collectionId)
-      : undefined;
-    return target
-      ? [
-          rowsVersion(
-            (target.useMockData ? target.mockData : target.runtimeData) ?? [],
-          ),
-        ]
-      : [];
-  });
+  const references = viewRunReferences(sources);
   // (ADR-291 — a formula edit changes the rows' cells without changing the rows; a run before the
   // engine loaded read them as `null` — the load is another key, not that result.)
-  const formulas = (table.schema ?? []).map((field) => field.formula ?? "");
+  const schema = viewRunSchema(table.schema);
   const pending =
     (table.schema ?? []).some(hasFormula) && !formulaRuntimeSync();
   const signature = JSON.stringify([
     query.queries,
     query.values,
-    referenced,
-    formulas,
+    schema,
     pending,
   ]);
   let runs = viewRuns.get(rows);
   if (!runs) viewRuns.set(rows, (runs = new Map()));
   const cached = runs.get(signature);
-  if (cached) return cached;
+  // Track what the evaluator actually read, including nested and missing targets. Repeating
+  // the reference traversal here loses dependencies when the evaluator gains a new path.
+  if (
+    cached &&
+    [...cached.references].every(([id, before]) => {
+      const current = referenceSnapshot(references(id));
+      return (
+        before?.rows === current?.rows && before?.schema === current?.schema
+      );
+    })
+  )
+    return cached.result;
+  const dependencies = new Map<string, ViewReferenceSnapshot | undefined>();
   const result = runViewQueries(rows, {
     queries: query.queries,
-    schema: viewRunSchema(table.schema),
+    schema,
     resolve: catalogRowQueryResolve(query),
-    references: viewRunReferences(sources),
+    references: (id) => {
+      const target = references(id);
+      dependencies.set(id, referenceSnapshot(target));
+      return target;
+    },
   });
   // (A few views per rows: the oldest goes first.)
   if (runs.size >= 16) runs.delete(runs.keys().next().value!);
-  runs.set(signature, result);
+  runs.set(signature, { result, references: dependencies });
   return result;
 }
 

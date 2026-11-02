@@ -10,12 +10,14 @@ import type {
 } from "../types/collection.types";
 
 /** 런타임 값의 존재와 빈 성공을 구분한다. 이 정책은 Canvas와 모든 DOM collection이 공유한다. */
-export function resolveCollectionSnapshot(
-  table: Pick<
-    DataTableDefinition,
-    "mockData" | "runtimeData" | "useMockData" | "status" | "error"
-  >,
-): CollectionState {
+export function resolveCollectionSnapshot<
+  Rows extends readonly unknown[] = Record<string, unknown>[],
+>(
+  table: Pick<DataTableDefinition, "useMockData" | "status" | "error"> & {
+    mockData?: Rows;
+    runtimeData?: Rows;
+  },
+): Omit<CollectionState, "data"> & { data: Rows | [] } {
   if (table.useMockData === true)
     return { data: table.mockData ?? [], status: "success" };
   if (table.status === "loading" || table.status === "error") {

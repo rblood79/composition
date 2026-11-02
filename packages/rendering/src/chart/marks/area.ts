@@ -12,6 +12,7 @@
  * 면이 생긴다. 각 subpath 가 자기 위/아래 경계로 닫히므로 `fillRule` 은 기본
  * nonzero 로 충분하다.
  */
+import { boundsOfPoints } from "../geometry";
 import { curveCommands, toScreen } from "../curves";
 import type { AxialPoint, ScreenPoint } from "../curves";
 import { r2 } from "../scales";
@@ -26,7 +27,7 @@ import type {
   Rect,
   TextMark,
 } from "../types";
-import { bandCenter, bboxOf, pointValueLabel, splitRuns } from "./line";
+import { bandCenter, pointValueLabel, splitRuns } from "./line";
 
 export interface AreaMarkInput {
   grid: SeriesGrid;
@@ -134,7 +135,7 @@ export function buildAreaMarks(input: AreaMarkInput): AreaMarks {
       d,
       // 위/아래 경계를 모두 포함한 bbox — 컬링은 상위집합이어야 한다 (R9).
       //   monotone 은 구간 안에서 단조라 끝점 범위를 넘지 않고, step 도 마찬가지다.
-      bbox: bboxOf(outline),
+      bbox: boundsOfPoints(outline),
       fillSeries: series.seriesIndex,
       strokeSeries: series.seriesIndex,
       strokeWidth,

@@ -24,7 +24,6 @@ import type { DataBinding } from "../types";
 import {
   resolveFieldRoles,
   toItemProjectionRow,
-  COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
   type CollectionFieldRoles,
   type CollectionProjectionRow,
   type ResolvedCollectionItems,
@@ -40,7 +39,7 @@ export interface UseResolvedCollectionItemsOptions {
   componentName: string;
   /** dataBinding 미해소 시 fallback (useCollectionData 경유). */
   fallbackData?: Record<string, unknown>[];
-  /** window limit (기본 100). */
+  /** 명시한 소비자만 표시 범위를 제한한다. 기본값은 전체 데이터. */
   windowLimit?: number;
 }
 
@@ -72,7 +71,7 @@ export function useResolvedCollectionItems(
     items,
     componentName,
     fallbackData = [],
-    windowLimit = COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
+    windowLimit,
   } = options;
 
   // async/dataTable/API source 해소 (DI 경유 — 순수 함수가 못하는 비동기).
@@ -88,9 +87,7 @@ export function useResolvedCollectionItems(
     fallbackData,
   });
 
-  // dataBinding 이 실제 행을 산출했는지 — 산출했으면 boundData, 아니면 정적 items.
-  //   resolveCollectionItems 순수 계약의 우선순위와 동일 (dataBinding 우선 → props.items).
-  //   단 DOM 은 dataBinding 해소가 useCollectionData 책임이므로 boundData.length 로 판정.
+  // 연결된 빈 결과도 정적 items로 되돌리지 않는다.
   const hasBoundRows = Boolean(dataBinding);
   const hasStaticItems = Array.isArray(items) && items.length > 0;
 
@@ -116,9 +113,11 @@ export function useResolvedCollectionItems(
     const roles = hasBoundRows
       ? resolveFieldRoles(dataBinding, schema)
       : undefined;
-    const rows: CollectionProjectionRow[] = sourceRows
-      .slice(0, windowLimit)
-      .map((item, rowIndex) => toItemProjectionRow(item, rowIndex, roles));
+    const visibleRows =
+      windowLimit === undefined ? sourceRows : sourceRows.slice(0, windowLimit);
+    const rows: CollectionProjectionRow[] = visibleRows.map((item, rowIndex) =>
+      toItemProjectionRow(item, rowIndex, roles),
+    );
 
     // ADR-150 A2: totalRows = window/cap 전 원본 전체 수. DOM(Preview)은 RAC 브라우저
     //   스크롤이라 canvas window 와 무관하나, 계약 필드는 대칭 노출(캔버스 소비자 정합).

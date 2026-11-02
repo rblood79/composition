@@ -26,6 +26,8 @@ import {
 } from "./comparison";
 import { catalogTableSortCompare } from "../../catalog/runtime/tableSort";
 import { withComputedCells } from "../formula/compute";
+import { resolveCollectionSnapshot } from "../collectionSnapshot";
+import type { CollectionState } from "../../types/collection.types";
 
 /** A source schema field (the data's `DataField` — `id` without the `data:field:` prefix). */
 export interface ViewRunField {
@@ -108,6 +110,8 @@ export function viewRunSchema(
 }
 
 /** The collections a run's reference fields reach, from the loaded collections (by data id). */
+const EMPTY_REFERENCE_ROWS: readonly unknown[] = [];
+
 export function viewRunReferences(
   collections: readonly {
     id?: string;
@@ -115,6 +119,7 @@ export function viewRunReferences(
     mockData?: readonly unknown[];
     runtimeData?: readonly unknown[];
     useMockData?: boolean;
+    status?: CollectionState["status"];
   }[],
 ): NonNullable<ViewRunInput["references"]> {
   const read = new Map<string, ViewRunCollection | undefined>();
@@ -122,13 +127,12 @@ export function viewRunReferences(
     const id = collectionId.replace(/^data:collection:/, "");
     if (!read.has(id)) {
       const source = collections.find((item) => item.id === id);
+      const rows = source ? resolveCollectionSnapshot(source).data : undefined;
       read.set(
         id,
         source
           ? {
-              rows:
-                (source.useMockData ? source.mockData : source.runtimeData) ??
-                [],
+              rows: rows?.length ? rows : EMPTY_REFERENCE_ROWS,
               schema: viewRunSchema(source.schema),
             }
           : undefined,

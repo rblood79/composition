@@ -8,6 +8,7 @@
  * motion cross-fades); the expanded list takes over the screen as S2's does — `useModalOverlay`
  * (scroll lock · the rest hidden from assistive tech) and `FocusScope contain`.
  */
+import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
 import {
   createContext,
   useCallback,
@@ -170,24 +171,6 @@ const StackContext = createContext<StackValue>({
   align: "center",
   reduceMotion: false,
 });
-
-const REDUCED_MOTION = "(prefers-reduced-motion)";
-/** S2 `useMediaQuery('(prefers-reduced-motion)')`. */
-function usePrefersReducedMotion(): boolean {
-  return useSyncExternalStore(
-    (onChange) => {
-      if (typeof window === "undefined" || !window.matchMedia) return () => {};
-      const media = window.matchMedia(REDUCED_MOTION);
-      media.addEventListener("change", onChange);
-      return () => media.removeEventListener("change", onChange);
-    },
-    () =>
-      typeof window !== "undefined" && !!window.matchMedia
-        ? window.matchMedia(REDUCED_MOTION).matches
-        : false,
-    () => false,
-  );
-}
 
 /** S2 `ToastContainer`: the region at its placement, the stack, and the expanded list's controls. */
 export function ToastRegion({

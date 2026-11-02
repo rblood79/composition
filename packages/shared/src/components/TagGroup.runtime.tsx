@@ -72,7 +72,7 @@ export interface TagGroupProps<T>
    * React Aria 1.13.0: 필터링 대상 필드 목록
    * @default ['label', 'name', 'title']
    */
-  filterFields?: (keyof T)[];
+  filterFields?: readonly (keyof T)[];
   /**
    * ADR-229 Phase 1 — chip item template (Components 페이지 `component-tag-item-*` origin).
    * 렌더러 (`renderTagGroup`) 가 renderContext 에서 넘기는 wrapper 내부 계약 — canonical prop 아님

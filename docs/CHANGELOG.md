@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Packages 데이터 계약·중복 구현·반복 계산 개선] - 2026-11-03
+
+### Fixed
+
+- Collection 보기 캐시가 평가기가 실제 읽은 중첩 참조의 행·schema와 아직 없는 참조 대상을 추적한다. 참조 조회도 공용 snapshot 정책을 사용해 mock fallback·loading·error·빈 성공을 직접 바인딩과 동일하게 처리한다.
+- 공용 DOM collection의 기본 데이터 범위에서 Canvas의 100행 표시 상한을 제거했다. TagGroup의 100번째 이후 항목을 표시·검색할 수 있고, ListBox·GridList·TagGroup의 공용 필터는 숫자 `0`과 boolean `false`도 검색한다.
+
+### Changed
+
+- 업로드 큐는 상태 전이에서 활성 개수를 갱신하고 준비된 대기 항목을 처리한다. 자동 시작을 끈 200파일 준비에서 전체 항목 재순회 40,000회를 제거했다.
+- 차트 Others 순위는 범주별 점수를 한 번 계산한다. 1,000범주 × 8시리즈 회귀 입력의 값 조회를 133,808회에서 16,000회 이하로 줄이고 순위·합계를 보존한다.
+- 차트 마크의 bounds 계산, Toast·SideNav의 모션 감소 설정 구독을 공용화하고 catalog resolver의 상시 진단 로그와 로그용 순회를 제거했다.
+
 ## [SideNav 가족 — ADR-300 Phase 4 (팔레트 · Interactions) · Implemented] - 2026-11-03
 
 ### Added

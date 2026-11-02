@@ -13,7 +13,10 @@
  * - filterText: 텍스트 기반 필터링
  * - filterFields: 필터링 대상 필드
  */
-
+import {
+  DEFAULT_COLLECTION_FILTER_FIELDS,
+  filterCollectionRows,
+} from "../collections/filterCollectionRows";
 import React, {
   useRef,
   useCallback,
@@ -82,7 +85,7 @@ interface ExtendedListBoxProps<T extends object> extends Omit<
    * React Aria 1.13.0: 필터링 대상 필드 목록
    * @default ['label', 'name', 'title']
    */
-  filterFields?: (keyof T)[];
+  filterFields?: readonly (keyof T)[];
   /**
    * Show loading skeleton instead of list
    * Overrides internal loading state
@@ -119,7 +122,7 @@ export function ListBox<T extends object>({
   overscan = 5,
   filter,
   filterText,
-  filterFields = ["label", "name", "title"] as (keyof T)[],
+  filterFields = DEFAULT_COLLECTION_FILTER_FIELDS as readonly (keyof T)[],
   isLoading: externalLoading,
   skeletonCount = 5,
   rowTemplateSources,
@@ -186,41 +189,15 @@ export function ListBox<T extends object>({
       { id: 1, name: "User 1", email: "user1@example.com", role: "Admin" },
       { id: 2, name: "User 2", email: "user2@example.com", role: "User" },
     ],
-    // ADR-150 후속 F4: 전 행 — Canvas 는 스크롤 소유자의 전 행을 가상화하고 (Table 과 같음) 100 은 옛 Skia 투영
-    //   cap 이 DOM 기본값으로 따라온 것이었다 (100 행 초과 데이터에서 행 수 · 스크롤 범위가 갈렸다).
-    windowLimit: Number.MAX_SAFE_INTEGER,
   });
 
   // 아이템 높이 고정값
   const itemHeight = ITEM_HEIGHT;
 
-  // React Aria 1.13.0: 필터링 로직 (raw item 기반 — row.item 에 원본 보존).
-  //   filter/filterText 는 raw item 시그니처(T)를 받으므로 정규화 rows 의 row.item 으로 적용.
-  const filteredRows = React.useMemo(() => {
-    let result = resolvedRows;
-
-    // 커스텀 필터 적용
-    if (filter) {
-      result = result.filter((row) => filter(row.item as unknown as T));
-    }
-
-    // 텍스트 필터 적용
-    if (filterText && filterText.trim()) {
-      const searchText = filterText.toLowerCase().trim();
-      result = result.filter((row) => {
-        const item = row.item as Record<string, unknown>;
-        if (!item || typeof item !== "object") {
-          return row.label.toLowerCase().includes(searchText);
-        }
-        return filterFields.some((field) => {
-          const value = item[field as string];
-          return value && String(value).toLowerCase().includes(searchText);
-        });
-      });
-    }
-
-    return result;
-  }, [resolvedRows, filter, filterText, filterFields]);
+  const filteredRows = React.useMemo(
+    () => filterCollectionRows(resolvedRows, filter, filterText, filterFields),
+    [resolvedRows, filter, filterText, filterFields],
+  );
 
   // DataBinding이 있고 데이터가 로드되었을 때 동적 아이템 생성
   // PropertyDataBinding 형식 (source, name) 또는 DataBinding 형식 (type: "collection") 둘 다 지원

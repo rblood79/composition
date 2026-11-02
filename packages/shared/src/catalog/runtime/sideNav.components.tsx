@@ -10,6 +10,7 @@
  * moving on an item's expand · collapse (React `ViewTransition` around each row, S2
  * `SideNav.tsx:66-93`). `prefers-reduced-motion` turns the view transitions off (S2).
  */
+import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import {
   createContext,
   createElement,
@@ -20,7 +21,6 @@ import {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
   ViewTransition,
   addTransitionType,
   type CSSProperties,
@@ -64,24 +64,6 @@ const PANEL_BUTTON_LABELS: Readonly<
   en: { expand: "Expand side panel", collapse: "Collapse side panel" },
   ko: { expand: "사이드 패널 확장", collapse: "사이드 패널 축소" },
 };
-
-const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
-/** S2 `useMediaQuery('(prefers-reduced-motion: reduce)')`. */
-function usePrefersReducedMotion(): boolean {
-  return useSyncExternalStore(
-    (onChange) => {
-      if (typeof window === "undefined" || !window.matchMedia) return () => {};
-      const media = window.matchMedia(REDUCED_MOTION);
-      media.addEventListener("change", onChange);
-      return () => media.removeEventListener("change", onChange);
-    },
-    () =>
-      typeof window !== "undefined" && !!window.matchMedia
-        ? window.matchMedia(REDUCED_MOTION).matches
-        : false,
-    () => false,
-  );
-}
 
 /** S2 `SideNavPanelContext` — the collapse the rows follow (the content's, after the width). */
 const SideNavPanelRunContext = createContext<{ isCollapsed: boolean } | null>(

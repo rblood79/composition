@@ -4,7 +4,10 @@
  * M3 Variants: primary, secondary, tertiary, error, filled
  * Sizes: sm, md, lg
  */
-
+import {
+  DEFAULT_COLLECTION_FILTER_FIELDS,
+  filterCollectionRows,
+} from "../collections/filterCollectionRows";
 import React from "react";
 import { Button } from "react-aria-components/Button";
 import {
@@ -69,7 +72,7 @@ interface ExtendedGridListProps<T extends object> extends Omit<
    * React Aria 1.13.0: 필터링 대상 필드 목록
    * @default ['label', 'name', 'title']
    */
-  filterFields?: (keyof T)[];
+  filterFields?: readonly (keyof T)[];
   /**
    * ADR-159 P3: 행 텍스트 `{field}` 템플릿 소스 (renderer 가 slot text > template item
    * props precedence 로 이미 판정한 문자열). 내부 기본 렌더가 shared resolver 로 보간 —
@@ -117,7 +120,7 @@ export function GridList<T extends object>({
   variant = "primary",
   filter,
   filterText,
-  filterFields = ["label", "name", "title"] as (keyof T)[],
+  filterFields = DEFAULT_COLLECTION_FILTER_FIELDS as readonly (keyof T)[],
   rowTemplateSources,
   renderRowTemplate,
   selectionStyle,
@@ -181,37 +184,12 @@ export function GridList<T extends object>({
       { id: 1, name: "Item 1", description: "Description 1" },
       { id: 2, name: "Item 2", description: "Description 2" },
     ],
-    // ADR-150 후속 F4: 전 행 (ListBox · Table 과 같음 — Canvas 는 전 행을 가상화한다).
-    windowLimit: Number.MAX_SAFE_INTEGER,
   });
 
-  // React Aria 1.13.0: 필터링 로직 (raw item 기반 — row.item 에 원본 보존).
-  //   filter/filterText 는 raw item 시그니처(T)를 받으므로 정규화 rows 의 row.item 으로 적용.
-  const filteredRows = React.useMemo(() => {
-    let result = resolvedRows;
-
-    // 커스텀 필터 적용
-    if (filter) {
-      result = result.filter((row) => filter(row.item as unknown as T));
-    }
-
-    // 텍스트 필터 적용
-    if (filterText && filterText.trim()) {
-      const searchText = filterText.toLowerCase().trim();
-      result = result.filter((row) => {
-        const item = row.item as Record<string, unknown>;
-        if (!item || typeof item !== "object") {
-          return row.label.toLowerCase().includes(searchText);
-        }
-        return filterFields.some((field) => {
-          const value = item[field as string];
-          return value && String(value).toLowerCase().includes(searchText);
-        });
-      });
-    }
-
-    return result;
-  }, [resolvedRows, filter, filterText, filterFields]);
+  const filteredRows = React.useMemo(
+    () => filterCollectionRows(resolvedRows, filter, filterText, filterFields),
+    [resolvedRows, filter, filterText, filterFields],
+  );
 
   // DataBinding이 있고 데이터가 로드되었을 때 동적 아이템 생성
   // PropertyDataBinding 형식 (source, name) 또는 DataBinding 형식 (type: "collection") 둘 다 지원

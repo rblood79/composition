@@ -610,9 +610,15 @@ export function groupOthers(
   label: string,
 ): OthersResult {
   const n = grid.categories.length;
-  const key = (ci: number) =>
-    grid.series.reduce((a, sd) => a + Math.abs(sd.values.get(ci) ?? 0), 0);
-  const ranking = [...Array(n).keys()].sort((a, b) => key(b) - key(a) || a - b);
+  const scores = grid.categories.map((_, ci) =>
+    grid.series.reduce(
+      (sum, series) => sum + Math.abs(series.values.get(ci) ?? 0),
+      0,
+    ),
+  );
+  const ranking = [...Array(n).keys()].sort(
+    (a, b) => scores[b] - scores[a] || a - b,
+  );
   if (n <= fitEff) return { ...grid, othersIndex: null, ranking };
   if (fitEff < 2) {
     const keep = ranking.slice(0, Math.max(1, fitEff)).sort((a, b) => a - b);

@@ -7,11 +7,11 @@
  * 그래서 결측 꼭짓점은 **중심(반지름 0)으로 접는다** — 면적이 0 쪽으로 줄어드는
  * 것이 "값이 없다" 에 가장 가까운 시각 결과다.
  */
+import { boundsOfPoints } from "../geometry";
 import { polarPoint } from "../polar";
 import type { AngleScale, RadiusScale } from "../polar";
-import { r2 } from "../scales";
 import type { SeriesGrid } from "../series";
-import type { ChartLabelFormatter, PathMark, Rect, TextMark } from "../types";
+import type { ChartLabelFormatter, PathMark, TextMark } from "../types";
 import { polarLabelAnchor } from "../polarAxes";
 import type { PolarCenter } from "../polarAxes";
 
@@ -34,21 +34,6 @@ export interface RadarMarks {
   labels: TextMark[];
   /** 시리즈별 꼭짓점 — 점 표시(`buildDotMarks`) 가 그대로 받는다 */
   vertices: Array<Array<{ x: number; y: number }>>;
-}
-
-function bboxOfPoints(points: ReadonlyArray<{ x: number; y: number }>): Rect {
-  if (points.length === 0) return { x: 0, y: 0, w: 0, h: 0 };
-  let minX = points[0].x;
-  let maxX = points[0].x;
-  let minY = points[0].y;
-  let maxY = points[0].y;
-  for (const p of points) {
-    if (p.x < minX) minX = p.x;
-    if (p.x > maxX) maxX = p.x;
-    if (p.y < minY) minY = p.y;
-    if (p.y > maxY) maxY = p.y;
-  }
-  return { x: r2(minX), y: r2(minY), w: r2(maxX - minX), h: r2(maxY - minY) };
 }
 
 export function buildRadarMarks(input: RadarMarkInput): RadarMarks {
@@ -92,7 +77,7 @@ export function buildRadarMarks(input: RadarMarkInput): RadarMarks {
     marks.push({
       kind: "path",
       d: `${d} Z`,
-      bbox: bboxOfPoints(points),
+      bbox: boundsOfPoints(points),
       // 채우기를 끄면 `fillSeries` 자체를 싣지 않는다 — 두 consumer 가 "없으면 안
       //   칠한다" 로 이미 합의돼 있어 알파 0 을 따로 운반할 필요가 없다.
       ...(fillArea ? { fillSeries: series.seriesIndex } : {}),

@@ -105,6 +105,8 @@ export function createUploadQueue(options: UploadQueueOptions): UploadQueue {
   let capsPromise: Promise<AdapterCapabilities> | null = null;
   let snapshot: UploadItemState[] | null = null;
   let notifyPending = false;
+  let active = 0;
+  const waiting = new Set<Item>();
 
   // --- 알림 (microtask 로 묶음) ---------------------------------------------
   const publicState = (s: UploadState): UploadItemState => {
@@ -147,23 +149,18 @@ export function createUploadQueue(options: UploadQueueOptions): UploadQueue {
     })());
 
   // --- 슬롯 ----------------------------------------------------------------
-  const activeCount = () => {
-    let n = 0;
-    for (const it of items.values()) if (ACTIVE.has(it.state.status)) n++;
-    return n;
-  };
   const pump = () => {
     if (destroyed) return;
-    let free = o.parallelUploads - activeCount();
-    for (const id of order) {
-      if (free <= 0) break;
-      const it = items.get(id)!;
-      if (it.wanted && it.ready && !ACTIVE.has(it.state.status)) {
-        it.wanted = false;
-        dispatch(it, { kind: "start" });
-        free--;
-      }
+    while (active < o.parallelUploads && waiting.size > 0) {
+      const it = waiting.values().next().value!;
+      waiting.delete(it);
+      it.wanted = false;
+      dispatch(it, { kind: "start" });
     }
+  };
+  const requestStart = (it: Item) => {
+    it.wanted = true;
+    if (it.ready) waiting.add(it);
   };
 
   // --- reduce + command 실행 --------------------------------------------------
@@ -182,6 +179,8 @@ export function createUploadQueue(options: UploadQueueOptions): UploadQueue {
       it.chunkSize = Math.max(MIN_CHUNK, Math.floor(it.chunkSize / 2));
     }
     it.state = next;
+    active +=
+      Number(ACTIVE.has(next.status)) - Number(ACTIVE.has(before.status));
     for (const cmd of cmds) exec(it, cmd);
     if (next !== before) notify();
     if (before.status !== next.status && !ACTIVE.has(next.status)) pump();
@@ -348,7 +347,10 @@ export function createUploadQueue(options: UploadQueueOptions): UploadQueue {
             if (destroyed || !items.has(id)) return;
             it.ready = true;
             notify();
-            pump();
+            if (it.wanted) {
+              waiting.add(it);
+              pump();
+            }
           });
       }
       items.set(id, it);
@@ -362,13 +364,14 @@ export function createUploadQueue(options: UploadQueueOptions): UploadQueue {
   const start = (id?: string) => {
     for (const it of targets(id)) {
       if (it.state.status === "done" || ACTIVE.has(it.state.status)) continue;
-      it.wanted = true;
+      requestStart(it);
     }
     pump();
   };
   const pause = (id?: string) => {
     for (const it of targets(id)) {
       it.wanted = false;
+      waiting.delete(it);
       dispatch(it, { kind: "pause" });
     }
   };
@@ -379,7 +382,7 @@ export function createUploadQueue(options: UploadQueueOptions): UploadQueue {
         (it.state.status === "error" &&
           it.state.lastError?.code !== "E_CANCELLED")
       ) {
-        it.wanted = true;
+        requestStart(it);
       }
     }
     pump();
@@ -387,6 +390,7 @@ export function createUploadQueue(options: UploadQueueOptions): UploadQueue {
   const cancel = (id?: string) => {
     for (const it of targets(id)) {
       it.wanted = false;
+      waiting.delete(it);
       dispatch(it, { kind: "cancel" });
     }
   };
@@ -394,6 +398,7 @@ export function createUploadQueue(options: UploadQueueOptions): UploadQueue {
     const it = items.get(id);
     if (!it) return;
     it.wanted = false;
+    waiting.delete(it);
     if (it.state.status !== "done") dispatch(it, { kind: "cancel" });
     items.delete(id);
     order.splice(order.indexOf(id), 1);
@@ -405,9 +410,10 @@ export function createUploadQueue(options: UploadQueueOptions): UploadQueue {
     return () => void listeners.delete(listener);
   };
   const destroy = () => {
+    destroyed = true;
+    waiting.clear();
     for (const it of items.values()) exec(it, { kind: "abort" });
     listeners.clear();
-    destroyed = true;
   };
 
   return {

@@ -66,7 +66,10 @@ import {
   CATALOG_FORM_FIELDS,
 } from "../document/formContext";
 import { OWNER_DRAWN_PART_HOSTS } from "../resolvers/resolveDelegatedChildFontSize";
-import { catalogTokenValue, readThemeTokenValue } from "../document/themedToken";
+import {
+  catalogTokenValue,
+  readThemeTokenValue,
+} from "../document/themedToken";
 import {
   compileFieldTemplate,
   interpolateFieldTemplate,
@@ -287,7 +290,10 @@ export function catalogResolvedTokenRef(
  * whose value stayed but whose source changed (a literal 12 → `{spacing.md}`) is a changed record for the
  * DOM, which writes the token's variable.
  */
-export function catalogSameResolvedTokenRefs(left: object, right: object): boolean {
+export function catalogSameResolvedTokenRefs(
+  left: object,
+  right: object,
+): boolean {
   return [RESOLVED_TOKEN_REFS, AUTHORED_TOKEN_REFS].every((map) => {
     const a = map.get(left) ?? {};
     const b = map.get(right) ?? {};
@@ -2112,16 +2118,6 @@ export function resolveCatalogNode(
     const ownRecords = charted
       ? rows!(ownBinding!, "records", templateId as NodeId, instancePath)
       : undefined;
-    if ("kind" in template && template.binding)
-      console.log(
-        "DBGR",
-        templateId,
-        !!rows,
-        !!rowing?.rowSet,
-        !!rowing?.records,
-        ownRows?.length,
-        lookupDefinition(template.definitionId).mode,
-      );
     const ownRowing = ownRecords
       ? { records: ownRecords }
       : ownRows
@@ -2453,14 +2449,6 @@ export function resolveCatalogNode(
       : [];
     // The rows reach the item positions below a part without them (TagGroup > TagList > Tag).
     const passRows = rowSet && itemPositions.length === 0 ? rowSet : undefined;
-    if (rowSet)
-      console.log(
-        "DBGN",
-        templateId,
-        rowSet.length,
-        itemPositions.length,
-        template.children.map((c) => templateTypeName(c)).join(","),
-      );
     const rowLabel = !!row && templateTypeName(templateId) === "Breadcrumb";
     const childRowing =
       row || passRows

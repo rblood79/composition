@@ -4,6 +4,7 @@
  * 값이 없는 범주에서 선을 **끊는다** (M 으로 새 subpath). 이어 그으면 없는
  * 데이터를 통과하는 선분이 생겨 사용자가 준 적 없는 추세가 화면에 나온다.
  */
+import { boundsOfPoints } from "../geometry";
 import { curveCommands, toScreen } from "../curves";
 import type { AxialPoint, ScreenPoint } from "../curves";
 import { r2 } from "../scales";
@@ -106,20 +107,7 @@ export function seriesPoints(
   }));
 }
 
-export function bboxOf(points: ReadonlyArray<SeriesPoint>): Rect {
-  if (points.length === 0) return { x: 0, y: 0, w: 0, h: 0 };
-  let minX = points[0].x;
-  let maxX = points[0].x;
-  let minY = points[0].y;
-  let maxY = points[0].y;
-  for (const p of points) {
-    if (p.x < minX) minX = p.x;
-    if (p.x > maxX) maxX = p.x;
-    if (p.y < minY) minY = p.y;
-    if (p.y > maxY) maxY = p.y;
-  }
-  return { x: r2(minX), y: r2(minY), w: r2(maxX - minX), h: r2(maxY - minY) };
-}
+export { boundsOfPoints as bboxOf } from "../geometry";
 
 /**
  * 점 위 값 레이블. 세로 차트는 점 위에, 가로 차트는 점 오른쪽에 둔다 —
@@ -179,7 +167,7 @@ export function buildLineMarks(input: LineMarkInput): LineMarks {
     marks.push({
       kind: "path",
       d,
-      bbox: bboxOf(screen),
+      bbox: boundsOfPoints(screen),
       strokeSeries: grid.series[si].seriesIndex,
       strokeWidth,
     });

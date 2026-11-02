@@ -8,7 +8,7 @@
 import { r2 } from "../scales";
 import type { PathMark } from "../types";
 import type { ScreenPoint } from "../curves";
-import { bboxOf } from "./line";
+import { boundsOfPoints } from "../geometry";
 
 /** 원 하나의 path — 반원 2개 (`A` 는 시작=끝이면 호가 사라진다, pie 와 같은 규약). */
 export function circlePath(cx: number, cy: number, radius: number): string {
@@ -33,7 +33,7 @@ export function buildDotMarks(
 ): PathMark | null {
   if (points.length === 0) return null;
   const d = points.map((p) => circlePath(p.x, p.y, radius)).join(" ");
-  const box = bboxOf(points);
+  const box = boundsOfPoints(points);
   return {
     kind: "path",
     d,
