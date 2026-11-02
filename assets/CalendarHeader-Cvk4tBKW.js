@@ -1,0 +1,70 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog CalendarHeader — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: simple
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-CalendarHeader {
+  /* Base styles — archetype: simple */
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  vertical-align: middle;
+
+  /* Default variant */
+  background: transparent;
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  height: 32px;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  gap: 24px;
+  --icon-size: 26px;
+}
+
+.react-aria-CalendarHeader:where([data-variant="default"]) {
+  background: transparent;
+  color: var(--fg);
+}
+
+.react-aria-CalendarHeader:where([data-variant="default"][data-hovered]) {
+  background: transparent;
+}
+
+.react-aria-CalendarHeader:where([data-variant="default"][data-pressed]) {
+  background: transparent;
+}
+
+.react-aria-CalendarHeader:where([data-variant="accent"]) {
+  background: transparent;
+  color: var(--fg);
+}
+
+.react-aria-CalendarHeader:where([data-variant="accent"][data-hovered]) {
+  background: transparent;
+}
+
+.react-aria-CalendarHeader:where([data-variant="accent"][data-pressed]) {
+  background: transparent;
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-CalendarHeader {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */`;export{e as default};

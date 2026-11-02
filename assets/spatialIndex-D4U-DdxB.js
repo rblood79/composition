@@ -1,1 +1,0 @@
-export{i as initSpatialIndex}from"./spatialIndex-RbR-z4TO.js";
