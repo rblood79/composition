@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [SideNav 가족 — ADR-300 Phase 4 (팔레트 · Interactions) · Implemented] - 2026-11-03
+
+### Added
+
+- **컴포넌트 패널 Layout 묶음에 side nav panel · side nav** — 패널은 접기 버튼이 있는 사이드바 (폭 240), side nav 는 접기 없이 단독. 넣은 패널의 메뉴 항목은 Layers 에서 바로 고를 수 있고 code view 에도 보인다.
+- **Interactions**: 패널 접힘이 바뀔 때 (When) · 패널 접기 · 펴기 · 전환 (Do), side nav 항목 펼침이 바뀔 때 · 항목 펼치기 · 접기.
+- **Library 카드 상태 견본**: side nav 의 항목 Current (현재 경로 막대 + 굵게) · Disabled, side nav panel 의 Collapsed (아이콘 줄).
+- side nav 의 Aria Label 칸 (RAC NavigationTree 는 이름이 필요).
+  - 위치: [docs/adr/completed/300-sidenav-navigation-tree.md](adr/completed/300-sidenav-navigation-tree.md)
+
+### Changed
+
+- 사이드 패널 접기 버튼이 S2 처럼 배경 없는 32 × 32 아이콘 버튼 (전에는 어두운 pill).
+
+### Fixed
+
+- Library 의 Tree 카드 Item 줄이 글자 대신 `{label}` 원문을 보이던 것.
+
 ## [첫 텍스트 편집 서식 유지 — ADR-299] - 2026-11-03
 
 ### Fixed
@@ -36,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **SideNav · SideNavPanel 을 Canvas 에서도 Preview 와 같은 모양으로 그린다** — 행 높이 · 들여쓰기 · 아이콘 간격, 현재 경로 행은 굵게 + 왼쪽 막대 (`selectedRoute` 를 비우면 그 page 의 경로), 펼친 항목의 chevron 은 아래로, 접은 패널은 아이콘 줄 (폭 42 — 글자 · 머리 · 하위 숨김). 행 글자는 행의 크기 · 굵기 · 색을 따르고 (글자에 색을 직접 주면 색만 그 값).
-  - 위치: [docs/adr/300-sidenav-navigation-tree.md](adr/300-sidenav-navigation-tree.md)
+  - 위치: [docs/adr/completed/300-sidenav-navigation-tree.md](adr/completed/300-sidenav-navigation-tree.md)
 
 ### Fixed
 
@@ -53,7 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **SideNav · SideNavPanel 을 Preview · Publish 에서 그린다** — RAC `NavigationTree` 그대로 (화살표 이동 · 펼침 · 링크 Enter 이동 · 링크 없는 부모 행 Enter 펼침). 현재 경로 행은 굵게 + 막대, `selectedRoute` 를 비우면 보고 있는 page 경로를 쓴다. 접기 버튼은 S2 처럼 아이콘 줄 (폭 42) 로 접고, 접힌 동안 하위 행은 닫힌다 (펼친 키는 남아 다시 펴면 돌아온다). 애니메이션은 S2 값 (패널 폭 200 ms · 행 펼침 view transition, 움직임 줄이기 설정이면 끔). Canvas 그리기 · 팔레트 노출은 다음 Phase.
   - 첫 화면 번들: SideNav DOM 부품은 처음 쓰일 때 받는 chunk (Builder initial 상한 안 — 1,409,737 / 1,410,000).
   - 배포: GitHub Actions 배포가 build 뒤 initial 번들 상한 (ADR-201) 을 넘으면 실패한다.
-  - 위치: [docs/adr/300-sidenav-navigation-tree.md](adr/300-sidenav-navigation-tree.md)
+  - 위치: [docs/adr/completed/300-sidenav-navigation-tree.md](adr/completed/300-sidenav-navigation-tree.md)
 
 ## [SideNav 가족 — ADR-300 Phase 0 · 1 (문서 · catalog · contract 54)] - 2026-11-02
 
@@ -61,7 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **문서 contract 53 → 54** — S2 SideNav 가족 7 type (`SideNavPanel` · `SideNav` · `SideNavItem` · `SideNavItemContent` · `SideNavItemLink` · `SideNavSection` · `SideNavHeader`) 과 origin 3 을 등록했다. 53 문서는 거부 (변환 없음, 개발 단계 정책). 샘플 프로젝트 파일 3 은 번호만 올림. 팔레트 노출 · Preview · Canvas 그리기는 다음 Phase.
   - 접힌 패널 (S2 아이콘 줄) 의 상태가 자손 rule 에 닿는 길: 조건 `isCollapsed` · `isCurrent` (생성 CSS 는 S2 와 같은 `[data-side-panel-collapsed]` 조상 선택자) · 파생 값 · 숨김 · 증분 dependents — `packages/shared/src/catalog/runtime/sideNav.ts`.
-  - 위치: [docs/adr/300-sidenav-navigation-tree.md](adr/300-sidenav-navigation-tree.md)
+  - 위치: [docs/adr/completed/300-sidenav-navigation-tree.md](adr/completed/300-sidenav-navigation-tree.md)
 
 ## [글자 범위 서식 — ADR-299 Implemented] - 2026-11-02
 

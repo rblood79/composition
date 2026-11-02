@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted — 2026-11-02 (사용자 `/execute-adr 300` · [reviews/300.md](reviews/300.md) round 2 HIGH 0 · pending 0)
+Implemented — 2026-11-03 (Phase 0 ~ 4 닫힘 · G0 ~ G5 PASS · Live Exercise 아래). Accepted — 2026-11-02 (사용자 `/execute-adr 300` · [reviews/300.md](../reviews/300.md) round 2 HIGH 0 · pending 0)
+
+> **Phase 4 닫힘 (2026-11-03)**: G4 · G5 — 사용자 결정 3 = (b) 팔레트에 SideNavPanel · SideNav 둘 (Layout, Nav 뒤). Interactions = RAC/S2 표면 그대로 (SideNav `expansionKeys` · SideNavPanel 새 concept `sidePanelCollapse` — S2 `isCollapsed` · `defaultCollapsed` · `onCollapsedChange`), 실행 배선은 Phase 2 것. Library 상태 견본 3 (SideNavItem Current · Disabled, SideNavPanel Collapsed — `displayState` 를 `sideNav.ts` 가 읽음; CurrentAncestor 는 Current 와 같은 칠이라 두지 않음). 놓은 패널의 nav 항목 = instance 소유 노드 (template `slotFills` + `materialize.ts` 가 안쪽 원본의 선언된 slot 채움 소유) → Layers · code view (`<SideNavPanel …><Slot>…<SideNavItem>`). 접기 버튼 = S2 quiet ActionButton M (part rule — 32 · 모서리 8 · 투명 · 글리프 20 중립색). SideNav 는 늘 Aria Label. Phase 1 게이트 결함 1 같이 닫음 (레퍼런스 API 행 11 보류 사유 없음). G3 harness 12/12 (접기 버튼 DOM ↔ Canvas + S2 외부 기준 대조 추가) · 원복 RED 9/9 · G4 Builder 1,411,708 · Preview 323,910 PASS. 판독 1 HIGH 0 (LOW 2 deferred). 상세: breakdown §8.
 
 > **Phase 3 닫힘 (2026-11-03)**: G3 — Canvas 가 SideNav 가족을 Preview DOM 과 같은 모양으로 그린다. harness `apps/builder/tests/adr248-g3/adr300SideNavParity.browser.test.ts` 12/12 (본문 fixture 8 + 작성 색 글자 + 증분 arm 3 — Panel `isCollapsed` · 머리 크기+색 · 머리 색; 장면 증분 arm = `bindCatalogCanvas` 패치 결과가 새 bind 와 같고 경로가 `patched`). 비교 = 상자 ≤ 1 px · 행/머리 글자 크기 · 굵기 · 색 · 아이콘 색 · chevron 보임 · 회전 · 보이는 glyph 색 = 행 색 (S2 `currentColor`) · 현재 막대. 처음 RED 9/9 → GREEN. 원복 RED 10/10. 결함 2 수리 (DOM chevron glyph 가 Icon 시트 `--fg` · 두 consumer 모두 펼친 chevron glyph 흰색 — Button part rule 색이 작성 색으로 분류돼 행 색 상속을 막음). 사용자 결정 1 의 Canvas 쪽 = 그려지는 page 의 route. G4: Builder 1,410,880 (상한 1,410,000 초과) → ADR-201 상한 재승인 **1,414,000** (사용자 사전 승인 「상한 재 승인 필요시 승인한다」, Preview 325,000 · 만료 11-25 그대로) · Δ +1,143 / Preview −6 PASS. live (5175 Compare Mode): 펼침 · 현재 행 · 접기 42 · 다시 펼침 = 저장 키 복원 — CSS ↔ Canvas 같음, 콘솔 0. 판독 1 (HIGH 1 — 작성 색 글자가 소유자 글자 형을 잃음 → 수리 · RED → GREEN, MEDIUM 1 — 머리 편집 증분 → 반증 2 GREEN, LOW deferred). 상세: breakdown §8.
 
@@ -15,14 +17,14 @@ Accepted — 2026-11-02 (사용자 `/execute-adr 300` · [reviews/300.md](review
 - 사용자 요청: `/create-adr` (2026-11-02) — 같은 대화에서 「NavigationTree(RAC) <-> SideNav(RSC) 에 대응하는 컴퍼넌트인가?」 → 「SideNavPanel 껍데이 부분 "Panel" 그냥 컨테이너 역활 아닌가?」 → 「대안방안은?」 → 「react-spectrum 컴퍼넌트를 사용하는건가?」 → **「A안으로 진행해」** → `/create-adr`.
 - 방향을 정한 사용자 원문 (2026-11-02): 「A안으로 진행해」 — A안 = S2 `SideNavPanel` 표면 (`isCollapsed` · `defaultCollapsed` · `onCollapsedChange`) 을 그대로 catalog 에 추가하고, 접힘 모양 (아이콘 줄) 은 SideNav rule 에 둔다.
 - 사용자가 이미 답한 것: react-spectrum 컴포넌트를 **런타임에 쓰지 않는다** — S2 는 prop 이름 · 값 (D2) 과 치수 값 (ADR-295) 의 정본일 뿐이고 그리는 코드는 RAC + catalog 다 (`@react-spectrum/s2` 는 `apps/builder/package.json` devDependencies 에만 있고 테스트 밖 import 0). 「접기 제외」 (대안 C) · 「조합」 (대안 B) 은 A 를 고르며 기각됐다.
-- ADR 분리 4 질문 lock-in: breakdown §1 (fork 아님 — 새 컴포넌트 가족 등록. Tree 가족 [ADR-239](completed/239-tree-submenu-swatch-item-origins.md) 이 범위 밖으로 둔 `NavigationTree` (239 §범위 밖, 94행) 를 받는다).
+- ADR 분리 4 질문 lock-in: breakdown §1 (fork 아님 — 새 컴포넌트 가족 등록. Tree 가족 [ADR-239](239-tree-submenu-swatch-item-origins.md) 이 범위 밖으로 둔 `NavigationTree` (239 §범위 밖, 94행) 를 받는다).
 - 리뷰 · 착수는 사용자 요청 때 (`review-adr` · `/execute-adr 300`). 아래 「사용자 결정 5건」 은 execute-adr 가 그 Phase 에 닿을 때 묻는다.
 
-> **리뷰 round 1 반영 (2026-11-02, codex — HIGH 2 · MEDIUM 1, [reviews/300.md](reviews/300.md))**: h1 조상 상태 → 자손 rule 의 필수 경로 (조건 키 · CSS 매핑 · resolver 상속 · 레이아웃 · 증분 dependents) 를 Decision 3 다섯 층으로 Phase 1 범위에 명시 · R2 · G1 · G3 보강. h2 접힌 동안 RAC 유효 펼침 키 = 빈 집합 · 저장 키 보존을 Decision 4 로 추가 · R7 · G2 · G3 fixture 2 추가. m1 G4 절대 상한을 `push: main` 배포 workflow 단계로 · Δ 는 실행자 절차 + ledger (집행 수단 절).
+> **리뷰 round 1 반영 (2026-11-02, codex — HIGH 2 · MEDIUM 1, [reviews/300.md](../reviews/300.md))**: h1 조상 상태 → 자손 rule 의 필수 경로 (조건 키 · CSS 매핑 · resolver 상속 · 레이아웃 · 증분 dependents) 를 Decision 3 다섯 층으로 Phase 1 범위에 명시 · R2 · G1 · G3 보강. h2 접힌 동안 RAC 유효 펼침 키 = 빈 집합 · 저장 키 보존을 Decision 4 로 추가 · R7 · G2 · G3 fixture 2 추가. m1 G4 절대 상한을 `push: main` 배포 workflow 단계로 · Δ 는 실행자 절차 + ledger (집행 수단 절).
 
 > **리뷰 round 2 (2026-11-02, codex 수리 검증)**: h1 · h2 · m1 closed · 새 차단 이슈 0 → HIGH 0 · pending 0, 설계 리뷰 닫힘 (실행자 선언 — 판독 상한 도달). 착수는 사용자 `/execute-adr 300`.
 
-> 구현 상세: [design/300-sidenav-navigation-tree-breakdown.md](design/300-sidenav-navigation-tree-breakdown.md)
+> 구현 상세: [design/300-sidenav-navigation-tree-breakdown.md](../design/300-sidenav-navigation-tree-breakdown.md)
 
 ## Context
 
@@ -119,7 +121,7 @@ Accepted — 2026-11-02 (사용자 `/execute-adr 300` · [reviews/300.md](review
 
 1. **`selectedRoute` 의 출처** (Phase 2) — **답 (2026-11-02): (b) 현재 page route** — (a) S2 그대로 작성 값만, (b) 작성 값이 비면 **현재 page 의 route** (Canvas = 그리는 page 의 `route`, Preview = session `currentPath`, Publish = location). 권고 (b) — 이름은 S2 그대로이고 빌더 기본값만 composition 동작 (`d2Provenance` 에 출처 기록).
 2. **행 펼침 view transition** (Phase 2) — **답 (2026-11-02, 사용자 원문)**: 「행펼침 · 패널펼침이 canvas 영역에서는 필요없다 이미 Tree, Tabs, disclosure 등 canvas 영역에서는 애니메이션을 보여주지는 않는다. 프러퍼티에서 열림 닫힘으로 보여준다 다른 컴퍼넌트도, compare mode 의 css 영역과 preview 에서 애니메이션되는 실제 구동되는 화면을 보여주는것」 — Canvas 는 정적 (Properties 의 열림 · 닫힘), DOM (Compare Mode CSS 쪽 · Preview · Publish) 은 S2 의 패널 폭 · 행 펼침 애니메이션을 실제로 돈다 — S2 는 React `ViewTransition` 으로 행 펼침 · 패널 펼침을 애니메이션한다 (`SideNav.tsx:66-93`). 작성 때 권고 (「행 단위 view transition 은 범위 밖」) 는 이 답으로 바뀌었다 — DOM 은 Panel 폭 전환 200 ms 와 행 · 머리 view transition (`side-nav-item-expand` · `-collapse` · `side-panel-expand`) 을 모두 돌고, reduced motion 에서는 S2 처럼 끈다 (Phase 2).
-3. **팔레트 노출 단위** (Phase 4) — (a) `SideNavPanel` (안에 SideNav) 하나, (b) `SideNav` 와 `SideNavPanel` 둘. 권고 (b) — S2 도 SideNav 단독을 허용한다 (패널 밖 `minWidth: 160`, `SideNav.tsx:128-131`).
+3. **팔레트 노출 단위** (Phase 4) — **답 (2026-11-03): (b) `SideNav` 와 `SideNavPanel` 둘** — (a) `SideNavPanel` (안에 SideNav) 하나, (b) `SideNav` 와 `SideNavPanel` 둘. 권고 (b) — S2 도 SideNav 단독을 허용한다 (패널 밖 `minWidth: 160`, `SideNav.tsx:128-131`).
 4. **행의 actions · actionmenu 자리** (Phase 1) — **답 (2026-11-02): 권고안 「자유 내용 + grid 칸」** — S2 행 grid 에 `actions` · `actionmenu` 칸이 있다 (`SideNav.tsx:265-267` · `:505-506`). composition 에 ActionMenu type 은 없다. 권고: 행 내용은 자유 내용 (`free`) 이라 Button · ButtonGroup 은 넣을 수 있고, grid 칸은 rule 에 둔다 — ActionMenu type 신설은 이 ADR 밖.
 5. **번들 초과 시** (Phase 2) — **답 (2026-11-02): (a) lazy 분리** — (a) A′ lazy 분리 (권고), (b) ADR-201 상한 재승인.
 
@@ -152,7 +154,11 @@ Accepted — 2026-11-02 (사용자 `/execute-adr 300` · [reviews/300.md](review
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+2026-11-03 · Chrome MCP · 별도 dev 서버 5175 (사용자 5173 무접촉) · 콘솔 오류 0.
+
+- Phase 2 (11-02, Compare Mode CSS 쪽): ↓ · ← · → · 링크 없는 부모 Enter 펼침 · 링크 Enter 이동 · 접기 42 / 펴기 · 현재 행 — PASS.
+- Phase 3 (11-03, Compare Mode): SideNavPanel 원본 Canvas = CSS (현재 행 굵게 + 막대 · Guides chevron · 들여쓰기) · `isCollapsed` → 42 rail 두 쪽 같음 · 다시 펼침 = 저장 키 복원 — PASS.
+- Phase 4 (11-03, G5): 팔레트 「side nav」 검색 → Layout 2 → panel 넣기 → Layers 순서 (Panel > SideNav > SideNavItem 3 + Button) → Design `Collapsed` → 42 rail → ⌘Z · ⇧⌘Z → 항목 Design (URL · Text Value) → Interactions When 「On panel collapse or expand」 + toast → Preview: 접기 버튼 = rail + toast 실행 · 접기 버튼 32 × 32 투명 · `aria-current=page` · ← 로 행 접힘 · 링크 클릭 → router 이동 → code view 투영 → 새로고침 뒤 패널 · 규칙 유지 → 새 프로젝트 Library 카드 (SideNav Item 줄 Current · Disabled · SideNavPanel States Collapsed) — PASS. live 가 잡아 같이 고친 것 2 (Item 줄 `{label}` 원문 · SideNav 카드의 채운 instance).
 
 ## Consequences
 

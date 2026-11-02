@@ -104,10 +104,10 @@ describe("ADR-281 — When 라벨 키 ↔ 카탈로그", () => {
         });
     }
 
-  it("등록표 58 type (55 + page 루트 · frame — ADR-281 Phase 2 · MenuItem — RAC event audit 2026-10-26) 이 그룹을 싣는다", () => {
+  it("등록표 60 type (55 + page 루트 · frame — ADR-281 Phase 2 · MenuItem — RAC event audit 2026-10-26 · SideNav · SideNavPanel — ADR-300) 이 그룹을 싣는다", () => {
     // (ADR-287 — types with reference API Do only join the registry too: the spec'd 58 are counted.)
     const specs = Object.keys(COMPONENT_INTERACTION_SPECS);
-    expect(specs).toHaveLength(58);
+    expect(specs).toHaveLength(60);
     expect(specs.filter((type) => !CAPABILITY_REGISTRY[type])).toEqual([]);
     expect(keys.length).toBeGreaterThanOrEqual(55);
   });

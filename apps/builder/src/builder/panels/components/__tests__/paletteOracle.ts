@@ -157,6 +157,18 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "Menu",
   },
   {
+    type: "SideNavPanel",
+    category: "layout",
+    label: "side nav panel",
+    icon: "PanelLeft",
+  },
+  {
+    type: "SideNav",
+    category: "layout",
+    label: "side nav",
+    icon: "ListTree",
+  },
+  {
     type: "Pagination",
     category: "layout",
     label: "pagination",

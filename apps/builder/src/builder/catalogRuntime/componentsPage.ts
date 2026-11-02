@@ -127,6 +127,8 @@ const ORIGIN_ONLY_CARDS: ReadonlySet<string> = new Set([
   "ListBox",
   "GridList",
   "Tree",
+  // (ADR-300 — a SideNav is a collection: its items are the Item line.)
+  "SideNav",
   "Table",
   "CheckboxGroup",
   "RadioGroup",
@@ -163,6 +165,11 @@ const NO_ITEMS_LINE: ReadonlySet<string> = new Set([
   "Toolbar",
   "ButtonGroup",
 ]);
+/**
+ * Origins whose items are another card's Item line — the card shows its own States line instead
+ * (ADR-300: a SideNavPanel's nav holds the SideNav card's items; its line is `Collapsed`).
+ */
+const ITEMS_ON_ANOTHER_CARD: ReadonlySet<string> = new Set(["SideNavPanel"]);
 /** Origins whose card draws no States line (user 2026-10-25 「DISCLOSURE - States … 삭제」). */
 const NO_STATES_LINE: ReadonlySet<string> = new Set(["Disclosure"]);
 /**
@@ -319,6 +326,8 @@ function originFacets(
  * (2026-10-21)**: 7 Library cards drew the Button's 5 states as their "Item" (the trigger, held
  * once under the root, was found before — or instead of — the MenuItem in the popup).
  */
+/** One placeholder part of an item origin's template (its path from the item root). */
+type ItemPart = { path: LibraryTemplateId[]; label: boolean };
 function originItems(
   graph: CatalogGraph,
   originId: LibraryDefinitionId,
@@ -402,18 +411,25 @@ function originItems(
         key !== "href" && typeof value === "string" && /^\{.+\}$/.test(value),
     );
   let labelled = false;
-  const parts = item.root.children.flatMap((id) => {
-    const child = library.templates.get(id as LibraryTemplateId);
-    if (!child || !placeholder(child.props)) return [];
-    // The item's name: its first part that reads the owner's label, title or children (a
-    // ListBoxItem's label Text, a Disclosure's header).
-    const label =
-      !labelled &&
-      typeof child.props?.children === "string" &&
-      /^\{(label|title|children)\}$/.test(child.props.children);
-    labelled ||= label;
-    return [{ path: [item.rootId, id as LibraryTemplateId], label }];
-  });
+  // (Down through a box with no placeholder of its own — a TreeItem's · SideNavItem's row content
+  //  and link hold the label Text; ADR-300 Phase 4.)
+  const partsUnder = (path: LibraryTemplateId[]): ItemPart[] =>
+    (library.templates.get(path.at(-1)!)?.children ?? []).flatMap((id) => {
+      const child = library.templates.get(id as LibraryTemplateId);
+      const at = [...path, id as LibraryTemplateId];
+      if (!child) return [];
+      if (!placeholder(child.props))
+        return child.children.length ? partsUnder(at) : [];
+      // The item's name: its first part that reads the owner's label, title or children (a
+      // ListBoxItem's label Text, a Disclosure's header).
+      const label =
+        !labelled &&
+        typeof child.props?.children === "string" &&
+        /^\{(label|title|children)\}$/.test(child.props.children);
+      labelled ||= label;
+      return [{ path: at, label }];
+    });
+  const parts = partsUnder([item.rootId]);
   return { origin, parts };
 }
 
@@ -1196,7 +1212,9 @@ export function catalogComponentsPageEntries(
     ];
     // The card's other lines (variants, states, items, types) — the Origin line goes first.
     const lines: NodeId[] = [];
-    const items = originItems(graph, origin.id, stateIds);
+    const items = ITEMS_ON_ANOTHER_CARD.has(origin.name)
+      ? undefined
+      : originItems(graph, origin.id, stateIds);
     if (items && NO_ITEMS_LINE.has(origin.name)) {
       // (Its origin alone.)
     } else if (items) {

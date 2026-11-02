@@ -1,6 +1,6 @@
 import { act, createEvent, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { CAPABILITY_REGISTRY } from "@composition/shared";
 import type { NodeId } from "../../../../../../packages/shared/src/catalog/document/types";
 import { setFields } from "../../../../../../packages/shared/src/catalog/commands";
@@ -11,6 +11,7 @@ import {
 } from "../../../builder/catalogRuntime/interactions";
 import { catalogBindingRef } from "../../../builder/catalogRuntime/dataBinding";
 import { catalogBindingCommand } from "../../../builder/catalogRuntime/dataBindingCommand";
+import { loadCatalogSideNav } from "../../../../../../packages/shared/src/catalog/runtime/sideNav.lazy";
 import { openAdr280Preview } from "./support/adr280Harness";
 import {
   DROP_ITEM,
@@ -53,6 +54,10 @@ interface Row {
 afterEach(() => {
   vi.restoreAllMocks();
 });
+
+// (ADR-300 Decision 7 — the SideNav DOM parts are a lazy chunk; its first import outlasts a test's
+// 5 s in jsdom. Loaded once here, the rows draw it at once.)
+beforeAll(() => loadCatalogSideNav(), 60_000);
 
 const q = <T extends Element = HTMLElement>(h: Harness, selector: string) =>
   h.view.container.querySelector<T>(selector);
@@ -555,6 +560,20 @@ const ROWS: Row[] = [
     event: "onExpandedChange",
     act: (h, u) => press(u, q(h, "button[slot=chevron]")),
   },
+  // ADR-300 Phase 4 — the SideNav family.
+  {
+    palette: "SideNav",
+    type: "SideNav",
+    event: "onExpandedChange",
+    act: (h, u) =>
+      press(u, q(h, '.react-aria-SideNavItem button[slot="chevron"]')),
+  },
+  {
+    palette: "SideNavPanel",
+    type: "SideNavPanel",
+    event: "onCollapsedChange",
+    act: (h, u) => press(u, q(h, 'button[slot="collapse"]')),
+  },
   {
     palette: "TagGroup",
     type: "TagGroup",
@@ -1024,6 +1043,36 @@ describe("RAC event audit — the added Do capabilities reach RAC", () => {
     h.rule("collapseItem", "item-1");
     await h.press();
     expect(expanded()).toBe("false");
+    h.view.unmount();
+  });
+
+  it("SideNav expand · collapseItem change that row only (ADR-300)", async () => {
+    // (The palette SideNav's `item-2` starts expanded — `collapseItem` closes it, `expand` reopens.)
+    const h = await doRule("SideNav", "collapseItem", "item-2");
+    const expanded = () =>
+      q(h, "[role=row][data-key=item-2]")?.getAttribute("aria-expanded");
+    expect(expanded()).toBe("true");
+    await h.press();
+    await waitFor(() => expect(expanded()).toBe("false"));
+    h.rule("expand", "item-2");
+    await h.press();
+    await waitFor(() => expect(expanded()).toBe("true"));
+    h.view.unmount();
+  });
+
+  it("SideNavPanel collapse · expand · toggleCollapse (ADR-300)", async () => {
+    const h = await doRule("SideNavPanel", "collapse");
+    const collapsed = () =>
+      h.element(h.target)!.hasAttribute("data-side-panel-collapsed");
+    expect(collapsed()).toBe(false);
+    await h.press();
+    await waitFor(() => expect(collapsed()).toBe(true));
+    h.rule("expand");
+    await h.press();
+    await waitFor(() => expect(collapsed()).toBe(false));
+    h.rule("toggleCollapse");
+    await h.press();
+    await waitFor(() => expect(collapsed()).toBe(true));
     h.view.unmount();
   });
 

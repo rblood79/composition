@@ -869,6 +869,9 @@ const catalog: TranslationKeys = {
       expansion: {
         onExpandedChange: "On expand or collapse",
       },
+      collapse: {
+        onCollapsedChange: "On panel collapse or expand",
+      },
       remove: {
         onRemove: "On item removal",
       },
@@ -900,6 +903,7 @@ const catalog: TranslationKeys = {
       action: "Item action",
       sort: "Sort",
       expansion: "Expansion",
+      collapse: "Panel collapse",
       remove: "Removal",
       focusedDate: "Focused date",
       form: "Form",
@@ -1000,6 +1004,7 @@ const catalog: TranslationKeys = {
     collapseAll: "Collapse all",
     collapseItem: "Collapse item",
     toggleExpand: "Toggle expanded",
+    toggleCollapse: "Toggle collapsed",
     open: "Open",
     close: "Close",
     toggleOpen: "Toggle open",

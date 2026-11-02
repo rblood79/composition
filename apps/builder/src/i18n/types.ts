@@ -711,6 +711,7 @@ export interface TranslationKeys {
     collapseAll: string;
     collapseItem: string;
     toggleExpand: string;
+    toggleCollapse: string;
     open: string;
     close: string;
     toggleOpen: string;

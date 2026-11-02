@@ -18,6 +18,7 @@ import {
 import {
   catalogSideNavDependents,
   catalogSideNavEffectiveKeys,
+  catalogSideNavPanelCollapsed,
   catalogSideNavStoredKeys,
 } from "../sideNav";
 
@@ -247,5 +248,42 @@ describe("ADR-300 G1 — current route (Decision 5)", () => {
     expect(level("background-layers")).toBe(3);
     expect(level("support")).toBe(1);
     expect(level("color-content")).toBe(2);
+  });
+});
+
+describe("ADR-300 Phase 4 — a Library card's state samples (displayState)", () => {
+  const lone = (type: string, displayState?: string) =>
+    ({
+      id: "sample",
+      sourceId: "sample",
+      definitionId: `lib:definition:type-${type}`,
+      bindingId: type.toLowerCase(),
+      parentId: "",
+      children: [],
+      props: {},
+      visual: {},
+      layout: {},
+      sizing: {},
+      ...(displayState ? { displayState } : {}),
+    }) as unknown as CatalogConsumerNode;
+  const typeOf = (node: CatalogConsumerNode) =>
+    String(node.definitionId).replace("lib:definition:type-", "");
+  const get = () => undefined;
+
+  it("a row drawn alone in the Current sample is current (no SideNav, no route)", () => {
+    expect(
+      catalogDerivedProps(lone("SideNavItem", "current"), get, typeOf)
+        ?._sideNavCurrent,
+    ).toBe(true);
+    expect(
+      catalogDerivedProps(lone("SideNavItem"), get, typeOf)?._sideNavCurrent,
+    ).toBeUndefined();
+  });
+
+  it("a panel in the Collapsed sample is collapsed (no prop)", () => {
+    expect(catalogSideNavPanelCollapsed(lone("SideNavPanel", "collapsed"))).toBe(
+      true,
+    );
+    expect(catalogSideNavPanelCollapsed(lone("SideNavPanel"))).toBe(false);
   });
 });

@@ -59,6 +59,7 @@ import {
   MousePointer,
   Paintbrush,
   Palette,
+  PanelLeft,
   RectangleEllipsis,
   Search,
   TextSearch,
@@ -171,6 +172,7 @@ export const ICON_MAP: Record<
   MousePointer,
   Paintbrush,
   Palette,
+  PanelLeft,
   RectangleEllipsis,
   Search,
   TextSearch,
@@ -245,6 +247,10 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "Breadcrumbs", source: "catalog" },
   { type: "Link", source: "catalog" },
   { type: "Nav", source: "catalog" },
+  // ADR-300 Phase 4 (사용자 결정 3 (b), 2026-11-03): S2 SideNavPanel · SideNav — the navigation group,
+  //   after Nav (S2 lets a SideNav stand alone outside the panel).
+  { type: "SideNavPanel", source: "catalog" },
+  { type: "SideNav", source: "catalog" },
   // 2026-08-21 결손 보강 — 아래 3종도 TextArea 와 같은 형태였다: catalog panel meta +
   //   factory creator + rendererMap 전용 렌더러를 모두 갖췄는데 본 배열에만 없어 꺼낼 수
   //   없었다(코드 어디에도 제외 사유 없음). creator↔팔레트 전수 대조로 적발.

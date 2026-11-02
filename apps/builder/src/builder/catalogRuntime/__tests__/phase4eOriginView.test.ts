@@ -461,6 +461,31 @@ describe("ADR-248 4e library origin view", () => {
     // hover): the item drawn on its own, its label filled in and its placeholders off.
     const gridRows = linesOf("GridList");
     expect(gridRows.map((row) => row.name)).toEqual(["Item"]);
+    // ADR-300 Phase 4: a SideNav is a collection (its origin alone, its rows the Item line); its
+    // row's label sits in the row content's link — every Item cell fills it (not a raw `{label}`).
+    // A SideNavPanel's nav holds those rows: its card shows its States (Collapsed) instead.
+    expect(linesOf("SideNav").map((row) => row.name)).toEqual(["Item"]);
+    expect(
+      aloneCells(
+        cards.find((candidate) => candidate.name === "SideNav")!,
+        nodeOf,
+      ).map((cell) => cell.name),
+    ).toEqual(["SideNav"]);
+    // (A TreeItem's label Text is in its row content too — the same fill; before, `{label}`.)
+    for (const cell of [
+      ...cellsOf(linesOf("SideNav")[0]!),
+      ...cellsOf(linesOf("Tree").find((row) => row.name === "Item")!),
+    ])
+      expect(
+        cell.sample.descendantOverrides.some(
+          (item) =>
+            item.kind === "patch" &&
+            (item.props as { children?: { value?: unknown } } | undefined)
+              ?.children?.value === "Item",
+        ),
+        cell.name,
+      ).toBe(true);
+    expect(linesOf("SideNavPanel").map((row) => row.name)).toEqual(["States"]);
     // A field with a control Group (ADR-256 Phase 6b — a ComboBox's list items sit in its ListBox
     // part) is not a collection: no Item line.
     expect(linesOf("ComboBox").map((row) => row.name)).not.toContain("Item");

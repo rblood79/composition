@@ -695,8 +695,9 @@ const COLLECTION_ITEM_TYPES = componentTypeSet("staticCollectionItem");
  * The child lists of a library origin's own template a placed instance holds as its own nodes:
  * the outermost declared slots that hold something (a ToggleButtonGroup's root "Buttons", a Card's
  * Preview · Content · Footer, a Tabs' tab list and panels), a node holding collection items (a
- * MenuTrigger's Menu), and a nested composite's slot the template fills with items (`slotFills` —
- * a Select's · ComboBox's ListBox: the address steps into that composite, as its "+" does). A slot
+ * MenuTrigger's Menu), and a nested composite's slot the template fills with items or into its
+ * declared slot (`slotFills` — a Select's · ComboBox's ListBox, a SideNavPanel's SideNav: the
+ * address steps into that composite, as its "+" does). A slot
  * inside a slot goes with its outer one; a nested composite's other slots are its own.
  */
 function librarySlotAddresses(
@@ -738,6 +739,12 @@ function librarySlotAddresses(
           holdsBinding(template.children))
       );
     });
+  // (A fill of the nested composite's declared slot — a SideNavPanel's nav holds the SideNav's
+  //  `Items`: SideNavItem is no `staticCollectionItem`, the slot is what the fill writes. ADR-300.)
+  const fillsDeclaredSlot = (templatePath: readonly string[]) =>
+    !!library.templates.get(
+      templatePath.at(-1) as `lib:template:${string}`,
+    )?.slot;
   const out: { steps: TemplateId[]; templatePath: TemplateId[] }[] = [];
   const visit = (path: TemplateId[]) => {
     const node = library.templates.get(
@@ -760,7 +767,10 @@ function librarySlotAddresses(
         : undefined;
       if (nested?.mode === "composite") {
         for (const fill of template?.slotFills ?? [])
-          if (holdsItems(fill.childIds) && !holdsBinding(fill.childIds))
+          if (
+            (holdsItems(fill.childIds) || fillsDeclaredSlot(fill.templatePath)) &&
+            !holdsBinding(fill.childIds)
+          )
             out.push({
               steps: [child as TemplateId],
               templatePath: [...fill.templatePath],

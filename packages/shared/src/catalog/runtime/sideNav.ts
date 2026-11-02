@@ -48,6 +48,8 @@ export function catalogSideNavPanelOf(
 export function catalogSideNavPanelCollapsed(
   panel: CatalogConsumerNode,
 ): boolean {
+  // (A Library card's `Collapsed` state sample — `displayState`, no prop.)
+  if (panel.displayState === "collapsed") return true;
   const own = panel.props.isCollapsed;
   return typeof own === "boolean" ? own : panel.props.defaultCollapsed === true;
 }
@@ -256,6 +258,8 @@ export function catalogSideNavDerived(
   const out: Record<string, boolean | number | string> = {};
   if (collapsed) out._sideNavCollapsed = true;
   const marked = (item: CatalogConsumerNode) => {
+    // (A Library card's `Current` state sample — a row drawn alone, outside any SideNav.)
+    if (item.displayState === "current") return true;
     const nav = catalogSideNavOf(item, get, typeOf);
     const { isCurrent, isCurrentAncestor } = catalogSideNavItemCurrent(
       item,

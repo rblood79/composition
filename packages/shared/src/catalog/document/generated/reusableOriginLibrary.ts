@@ -1843,6 +1843,36 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "visual": {},
     "stateRules": {},
     "templateRootId": "lib:template:component-sidenavitem"
+  },
+  {
+    "id": "lib:definition:origin-component-sidenavitem--current",
+    "name": "SideNavItem/Current",
+    "mode": "composite",
+    "accepts": {},
+    "defaults": {},
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-sidenavitem--current"
+  },
+  {
+    "id": "lib:definition:origin-component-sidenavitem--disabled",
+    "name": "SideNavItem/Disabled",
+    "mode": "composite",
+    "accepts": {},
+    "defaults": {},
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-sidenavitem--disabled"
+  },
+  {
+    "id": "lib:definition:origin-component-sidenavpanel--collapsed",
+    "name": "SideNavPanel/Collapsed",
+    "mode": "composite",
+    "accepts": {},
+    "defaults": {},
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-sidenavpanel--collapsed"
   }
 ];
 
@@ -8499,9 +8529,153 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-sidenavpanel__nav",
     "definitionId": "lib:definition:origin-component-sidenav",
-    "children": [],
+    "children": [
+      "lib:template:component-sidenavpanel__item-1",
+      "lib:template:component-sidenavpanel__item-2",
+      "lib:template:component-sidenavpanel__item-3"
+    ],
     "props": {},
-    "visual": {}
+    "visual": {},
+    "slotFills": [
+      {
+        "templatePath": [
+          "lib:template:component-sidenav"
+        ],
+        "childIds": [
+          "lib:template:component-sidenavpanel__item-1",
+          "lib:template:component-sidenavpanel__item-2",
+          "lib:template:component-sidenavpanel__item-3"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "lib:template:component-sidenavpanel__item-1",
+    "definitionId": "lib:definition:origin-component-sidenavitem",
+    "children": [],
+    "props": {
+      "id": "item-1",
+      "textValue": "Home",
+      "href": "/"
+    },
+    "visual": {},
+    "descendantPatches": [
+      {
+        "templatePath": [
+          "lib:template:component-sidenavitem",
+          "lib:template:component-sidenavitem__content",
+          "lib:template:component-sidenavitem__icon"
+        ],
+        "props": {
+          "iconName": "house"
+        }
+      },
+      {
+        "templatePath": [
+          "lib:template:component-sidenavitem",
+          "lib:template:component-sidenavitem__content",
+          "lib:template:component-sidenavitem__link",
+          "lib:template:component-sidenavitem__label"
+        ],
+        "props": {
+          "children": "Home"
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib:template:component-sidenavpanel__item-2",
+    "definitionId": "lib:definition:origin-component-sidenavitem",
+    "children": [
+      "lib:template:component-sidenavpanel__item-2-1"
+    ],
+    "props": {
+      "id": "item-2",
+      "textValue": "Guides",
+      "href": "/guides"
+    },
+    "visual": {},
+    "descendantPatches": [
+      {
+        "templatePath": [
+          "lib:template:component-sidenavitem",
+          "lib:template:component-sidenavitem__content",
+          "lib:template:component-sidenavitem__icon"
+        ],
+        "props": {
+          "iconName": "book-open"
+        }
+      },
+      {
+        "templatePath": [
+          "lib:template:component-sidenavitem",
+          "lib:template:component-sidenavitem__content",
+          "lib:template:component-sidenavitem__link",
+          "lib:template:component-sidenavitem__label"
+        ],
+        "props": {
+          "children": "Guides"
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib:template:component-sidenavpanel__item-2-1",
+    "definitionId": "lib:definition:origin-component-sidenavitem",
+    "children": [],
+    "props": {
+      "id": "item-2-1",
+      "textValue": "Getting started",
+      "href": "/guides/getting-started"
+    },
+    "visual": {},
+    "descendantPatches": [
+      {
+        "templatePath": [
+          "lib:template:component-sidenavitem",
+          "lib:template:component-sidenavitem__content",
+          "lib:template:component-sidenavitem__link",
+          "lib:template:component-sidenavitem__label"
+        ],
+        "props": {
+          "children": "Getting started"
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib:template:component-sidenavpanel__item-3",
+    "definitionId": "lib:definition:origin-component-sidenavitem",
+    "children": [],
+    "props": {
+      "id": "item-3",
+      "textValue": "Settings",
+      "href": "/settings"
+    },
+    "visual": {},
+    "descendantPatches": [
+      {
+        "templatePath": [
+          "lib:template:component-sidenavitem",
+          "lib:template:component-sidenavitem__content",
+          "lib:template:component-sidenavitem__icon"
+        ],
+        "props": {
+          "iconName": "settings"
+        }
+      },
+      {
+        "templatePath": [
+          "lib:template:component-sidenavitem",
+          "lib:template:component-sidenavitem__content",
+          "lib:template:component-sidenavitem__link",
+          "lib:template:component-sidenavitem__label"
+        ],
+        "props": {
+          "children": "Settings"
+        }
+      }
+    ]
   },
   {
     "id": "lib:template:component-sidenavpanel__collapse",
@@ -8525,5 +8699,29 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "size": "S"
     },
     "visual": {}
+  },
+  {
+    "id": "lib:template:component-sidenavitem--current",
+    "definitionId": "lib:definition:origin-component-sidenavitem",
+    "children": [],
+    "props": {},
+    "visual": {},
+    "displayState": "current"
+  },
+  {
+    "id": "lib:template:component-sidenavitem--disabled",
+    "definitionId": "lib:definition:origin-component-sidenavitem",
+    "children": [],
+    "props": {},
+    "visual": {},
+    "displayState": "disabled"
+  },
+  {
+    "id": "lib:template:component-sidenavpanel--collapsed",
+    "definitionId": "lib:definition:origin-component-sidenavpanel",
+    "children": [],
+    "props": {},
+    "visual": {},
+    "displayState": "collapsed"
   }
 ];

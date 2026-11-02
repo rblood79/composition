@@ -701,6 +701,36 @@ async function compare(fixture: Fixture) {
           icon: { dom: domIcon, canvas: canvasIcon },
         });
     }
+    // ADR-300 Phase 4 — the panel's collapse Button is S2's quiet icon-only ActionButton (M: 32 square,
+    //  corner 8, no fill at rest): both sides draw that, against S2's values (an outside oracle).
+    if (type === "Button" && record.props.slot === "collapse") {
+      // biome-ignore lint/suspicious/noExplicitAny: SkiaNodeData read for the harness
+      const data = catalogCanvasNodeData(root, id) as any;
+      const fill = data.box?.fillColor;
+      const domButton = {
+        width: Math.round(dom.width),
+        height: Math.round(dom.height),
+        fill: rgba(style.backgroundColor),
+        radius: Number.parseFloat(style.borderTopLeftRadius),
+      };
+      // (No fill at rest — the Canvas draws no corner to compare; the DOM's is checked against S2.)
+      const canvasButton = {
+        width: Math.round(canvas?.width ?? 0),
+        height: Math.round(canvas?.height ?? 0),
+        fill: fill && fill[3] > 0 ? floatRgba(fill) : "0,0,0,0",
+      };
+      const s2 = { width: 32, height: 32, fill: "0,0,0,0", radius: 8 };
+      const { radius: _radius, ...domShared } = domButton;
+      if (
+        JSON.stringify(domShared) !== JSON.stringify(canvasButton) ||
+        JSON.stringify(domButton) !== JSON.stringify(s2)
+      )
+        differences.push({
+          name,
+          type,
+          collapseButton: { dom: domButton, canvas: canvasButton, s2 },
+        });
+    }
     if (type === "SideNavItem") {
       const before = getComputedStyle(element, "::before");
       const rowBox = element.getBoundingClientRect();

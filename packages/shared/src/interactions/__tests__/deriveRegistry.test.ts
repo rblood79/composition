@@ -288,6 +288,10 @@ describe("ADR-280 G1 — the derived registry covers the hand registry", () => {
     ).toEqual([
       "ColorSwatchPicker.setValue",
       "Table.sort",
+      // (ADR-300: S2 SideNavPanel's collapse has no condition — the panel takes no `isDisabled`.)
+      "SideNavPanel.collapse",
+      "SideNavPanel.expand",
+      "SideNavPanel.toggleCollapse",
       // (RAC restricts a calendar's focused date with nothing — `focusedValue` moves when disabled.)
       "Calendar.focusDate",
       "RangeCalendar.focusDate",

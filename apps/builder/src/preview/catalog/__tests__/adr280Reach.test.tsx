@@ -1,7 +1,11 @@
 import { act, fireEvent } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { NodeId } from "../../../../../../packages/shared/src/catalog/document/types";
+import { loadCatalogSideNav } from "../../../../../../packages/shared/src/catalog/runtime/sideNav.lazy";
 import { openAdr280Preview } from "./support/adr280Harness";
+
+// (ADR-300 Decision 7 — the SideNav DOM parts are a lazy chunk, loaded once before the rows.)
+beforeAll(() => loadCatalogSideNav(), 60_000);
 
 /**
  * ADR-280 G2 — every registered capability reaches RAC on the whole Preview path (the render
@@ -282,6 +286,25 @@ describe("ADR-280 G2 — collections", () => {
     const before = qa(h, '[role="row"]').length;
     h.press();
     expect(qa(h, '[role="row"]').length).toBeGreaterThan(before);
+    h.view.unmount();
+  });
+
+  it("SideNav collapseItem closes that row (ADR-300)", async () => {
+    // (The palette SideNav's `item-2` starts expanded.)
+    const h = await pressRule("SideNav", "collapseItem", { value: "item-2" });
+    const row = () => q(h, '[role="row"][data-key="item-2"]');
+    expect(row()?.getAttribute("aria-expanded")).toBe("true");
+    h.press();
+    expect(row()?.getAttribute("aria-expanded")).toBe("false");
+    h.view.unmount();
+  });
+
+  it("SideNavPanel collapse (ADR-300)", async () => {
+    const h = await pressRule("SideNavPanel", "collapse");
+    h.press();
+    expect(
+      h.element(h.target)?.hasAttribute("data-side-panel-collapsed"),
+    ).toBe(true);
     h.view.unmount();
   });
 

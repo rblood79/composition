@@ -38,6 +38,7 @@ import type {
   ListBoxProps,
   MenuItemProps,
   MenuProps,
+  NavigationTreeProps,
   MenuTriggerProps,
   ModalOverlayProps,
   NumberFieldProps,
@@ -66,6 +67,10 @@ import type {
 } from "react-aria-components";
 import type { DragAndDropOptions } from "react-aria-components/useDragAndDrop";
 import { action, itemAction, menuClose, rowAction } from "./concepts/action";
+import {
+  sidePanelCollapse,
+  type S2SideNavPanelCollapseProps,
+} from "./concepts/collapse";
 import { collectionDragDrop } from "./concepts/collectionDragDrop";
 import { expansionKeys, expansionOne } from "./concepts/expansion";
 import { dragDrop, fileSelect } from "./concepts/files";
@@ -125,7 +130,10 @@ const ITEM = [
 ] as const;
 /** (An item whose RAC props have focus — a Tag · MenuItem — or focus and keyboard — a ListBoxItem.) */
 const ITEM_FOCUS = [...ITEM, { concept: focus, owner: "item" }] as const;
-const ITEM_KEYBOARD = [...ITEM_FOCUS, { concept: keyboard, owner: "item" }] as const;
+const ITEM_KEYBOARD = [
+  ...ITEM_FOCUS,
+  { concept: keyboard, owner: "item" },
+] as const;
 const TOGGLE_BUTTON_LABELS = {
   check: "capabilities.turnOn",
   uncheck: "capabilities.turnOff",
@@ -265,6 +273,10 @@ export const COMPONENT_INTERACTION_SPECS = {
       { concept: collectionDragDrop },
     ],
   },
+  // ADR-300 Phase 4: S2 SideNav = RAC NavigationTree (expansion only — no selection, no `onAction`;
+  //   a row is a link) · S2 SideNavPanel's collapse.
+  SideNav: { concepts: [{ concept: expansionKeys }] },
+  SideNavPanel: { concepts: [{ concept: sidePanelCollapse }] },
   TagGroup: {
     concepts: [
       { concept: multiSelection },
@@ -403,6 +415,8 @@ interface RacPropsOf {
   frame: Omit<PageRootProps, "colorScheme">;
   Table: TableProps & DragAndDropOptions;
   Tree: TreeProps<object> & DragAndDropOptions;
+  SideNav: NavigationTreeProps<object>;
+  SideNavPanel: S2SideNavPanelCollapseProps;
   TagGroup: TagGroupProps;
   Menu: MenuProps<object>;
   Breadcrumbs: BreadcrumbsProps<object>;

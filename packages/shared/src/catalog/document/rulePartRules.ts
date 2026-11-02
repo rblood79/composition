@@ -1434,6 +1434,52 @@ function contextualHelpPartRules(parentType: string): CompiledPartRule[] {
 }
 
 /**
+ * ADR-300 Phase 4 — S2 `SideNavPanel`'s expand button: a quiet icon-only ActionButton (`isQuiet`,
+ * `SideNavPanel.tsx` `ExpandButton` — the default size M: `control({shape: 'default', icon: true})`
+ * 32 square, corner 8, the icon `fontRelative(20)`) over the collapse Button node's box: no fill, no
+ * border, no padding; its glyph in the text color (ActionButton `gray-800`). The ContextualHelp
+ * trigger's way — the DOM takes the record box inline.
+ */
+const SIDE_NAV_PANEL_BUTTON_PX = 32;
+const SIDE_NAV_PANEL_ICON_PX = 20;
+function sideNavPanelPartRules(parentType: string): CompiledPartRule[] {
+  if (parentType !== "SideNavPanel") return [];
+  const collapse = { slot: "collapse" } as const;
+  return [
+    {
+      childType: "Button",
+      childProps: collapse,
+      layout: {},
+      visual: {
+        width: SIDE_NAV_PANEL_BUTTON_PX,
+        height: SIDE_NAV_PANEL_BUTTON_PX,
+        minWidth: 0,
+        minHeight: 0,
+        paddingTop: 0,
+        paddingRight: 0,
+        paddingBottom: 0,
+        paddingLeft: 0,
+        borderWidth: 0,
+        radius: 8,
+        fill: "transparent",
+      },
+    },
+    {
+      childType: "Icon",
+      via: "Button",
+      viaProps: collapse,
+      layout: { flexShrink: "0" },
+      visual: {
+        width: SIDE_NAV_PANEL_ICON_PX,
+        height: SIDE_NAV_PANEL_ICON_PX,
+        iconSize: SIDE_NAV_PANEL_ICON_PX,
+        color: "{color.neutral}",
+      },
+    },
+  ];
+}
+
+/**
  * ADR-259 Phase 2 — a field's prefix (S2 `FieldGroup` `CenterBaseline` — `color: gray-600`, its
  * icon `size: 1lh`): the prefix Text · Icon in the field's control Group take the field rule's
  * prefix color (`[slot="prefix"]` static block — a color the generic part path does not carry) and
@@ -2065,6 +2111,7 @@ export function compileRulePartRules(
     ...disclosureChevronPartRules(parentType),
     ...fieldPrefixPartRules(parentType),
     ...contextualHelpPartRules(parentType),
+    ...sideNavPanelPartRules(parentType),
     ...toggleIndicatorPartRules(parentType),
     ...fieldValuePartRules(parentType),
     ...textAreaPartRules(parentType),

@@ -199,7 +199,8 @@ describe("ADR-287 G1 — derived Do vs the reference API tables", () => {
     expect(missing.filter((key) => !deferred.has(key))).toEqual([]);
     expect([...deferred].filter((key) => !missing.includes(key))).toEqual([]);
     // (The count is the ratchet — a new table row without a Do is a RED above, not a new entry.)
-    expect(deferred.size).toBe(385);
+    // (ADR-300 Phase 4: +11 — the SideNav family's RAC/S2 rows outside its accepts.)
+    expect(deferred.size).toBe(396);
   });
 
   it("(b) a derived Do's prop is a row of its type's tables, or a d2Provenance extension", () => {

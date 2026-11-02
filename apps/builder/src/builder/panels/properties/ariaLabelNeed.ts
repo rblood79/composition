@@ -14,6 +14,8 @@ const ALWAYS_NEEDS_NAME: ReadonlySet<string> = new Set([
   "GridList",
   "Table",
   "Tree",
+  // (ADR-300: RAC NavigationTree — a tree, named as one.)
+  "SideNav",
   "Tabs",
   "Toolbar",
   "Breadcrumbs",

@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-11-03 ADR-300 Phase 4 닫힘 → Implemented** — 사용자 결정 3 = (b) 팔레트에 SideNavPanel · SideNav 둘 (Layout, Nav 뒤). Interactions = RAC/S2 표면 그대로 (SideNav 펼침 · SideNavPanel `onCollapsedChange` concept). Library 카드 상태 견본 (SideNavItem Current · Disabled · SideNavPanel Collapsed) · 놓은 패널의 nav 항목이 instance 소유 노드 (Layers · code view) · 접기 버튼 S2 quiet ActionButton · SideNav Aria Label. G3 harness 12/12 (접기 버튼 S2 외부 기준 추가) · 원복 RED 9/9 · G4 Builder 1,411,708 · Preview 323,910 PASS · G5 live (5175) PASS · 판독 HIGH 0. 본문을 `completed/` 로 옮겼다. 열림 1 (245 보류), 완료 320, 합계 321.
+>
 > **2026-11-03 ADR-300 Phase 3 닫힘 (G3 · G4)** — Canvas 가 SideNav 가족을 Preview 와 같은 모양으로 그린다 (행 배치 · 들여쓰기 · 현재 막대 · 행 글자 형 · 펼침 chevron · 접힌 rail 42, 값은 DOM 이 쓰는 같은 rule 선언). 사용자 결정 1 의 Canvas 쪽 = 그려지는 page 의 route. G3 harness 12/12 (fixture 8 + 작성 색 + 증분 arm 3, 장면 패치 = 새 bind) · 원복 RED 10/10 · 결함 2 수리 (chevron glyph 행 색). Builder 1,410,880 → ADR-201 상한 1,414,000 재승인 (사용자 사전 승인). 열림 · 합계 변화 없음.
 
 > **2026-11-02 ADR-300 Phase 2 닫힘 (G2 · G4)** — Preview DOM: 설치 RAC `NavigationTree` 부품으로 SideNav · SideNavPanel 을 그린다 (`sideNav.components.tsx` — lazy chunk, 사용자 결정 5: eager 배선이 Builder 1,411,819 로 상한 초과 → 분리 뒤 1,409,737). 결정 1 = 세션 경로가 `selectedRoute` 기본값 · 결정 2 = DOM 이 S2 동작 (Panel 폭 200 ms · 행 · 머리 view transition). G2 구조 대조 3 arm · 키보드 · 접기/펴기 live PASS. 배포 workflow 에 ADR-201 절대 상한 단계 추가 (G4 a). Builder 여유 263 B. 열림 · 합계 변화 없음.
@@ -630,11 +632,6 @@
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
 
-#### [300](300-sidenav-navigation-tree.md) — SideNav 가족 — RAC `NavigationTree` 위에 S2 `SideNav` · `SideNavPanel` 표면, 접기 · 아이콘 줄은 catalog rule
-
-- **상태**: Accepted — 2026-11-02 (사용자 `/execute-adr 300` · 리뷰 round 2 pending 0). **Phase 0 · 1 닫힘** — G0 (다섯 층 현재 상태 · 기준 예제 DOM 두 arm · 번들 기준선 Builder 1,406,043 · Preview 322,341) · G1 (7 type · origin 3 · contract 54 · 다섯 층 · D2 확장 0). 다음 Phase 2 (사용자 결정 1 · 2 · 5). ADR-239 가 범위 밖으로 둔 NavigationTree 를 받는다.
-- **규모**: Phase 0 ~ 4 (인벤토리 · S2 값 표 · 기준 예제 DOM · 번들 기준선 → binding · rule · origin 7 type · contract +1 → Preview DOM (NavigationTree · Panel 접힘 · router) + 번들 측정 → Canvas (행 · rail · 조상 상태 dirty 확장) → 팔레트 · 패널 · Interactions · code view · live). 사용자 결정 5 (`selectedRoute` 출처 · 행 view transition · 팔레트 단위 · 행 actions 자리 · 번들 초과 시). breakdown: [design/300](design/300-sidenav-navigation-tree-breakdown.md)
-
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
 - **상태**: Proposed — 2026-09-27 (선택 경로 — Phase 0 no-go 면 기각 Deprecated · 보류 Proposed 유지가 정상 종결. 개정 2026-10-05 — ADR-248 뒤 코드 인용 갱신, 결정 무변경)
@@ -664,14 +661,13 @@
 
 | 순위 | ADR                                                                                            | 착수 준비도                                                                                                                                                                                        | 차단 · 선행                                                                                                                                                   |
 | :--: | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|  1   | [300](300-sidenav-navigation-tree.md)                                                          | Accepted 2026-11-02 — Phase 0 · 1 닫힘 (G0 · G1 · contract 54), 다음 Phase 2 Preview DOM (사용자 결정 1 · 2 · 5) | 선행 없음 (Tree 가족 239 · 256 은 등록 선례). 299 Implemented — 같은 checkout. 번들 여유 Builder 3,957 · Preview 2,659 B (G4) |
 |  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상)                                                                                                                  | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)                                                                |
 |  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                                                                                                                                            | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                                                                                        |
 |  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                                                                                                                                 | 각 항목의 재개 조건 발생 시                                                                                                                                   |
 
 ---
 
-## 완료 ADR (319)
+## 완료 ADR (320)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -999,6 +995,7 @@
 | [297](completed/297-rule-state-condition-tree-single-priority.md) | catalog rule 상태 표현을 조건 트리 하나로 — variant 칠과 상태 (hover · pressed · selected · emphasized · quiet · fillStyle · staticColor · disabled) 를 `paint` 조건 트리 하나로, Canvas evaluator 와 생성 CSS compiler 가 같은 트리를 읽는다 (키 순서 = 우선순위 = cascade). 표 전수 190 variant · `button-base` · static · 수동 selected · focus CSS 흡수 · S2 확정 8 건 · 옛 칠 형식 삭제 · 묶음 컨테이너 칠 게이트 | Implemented 2026-11-02 |
 | [298](completed/298-node-token-reference-panel-token-first.md) | 노드 값의 토큰 참조 저장 — Design 패널이 px · hex 대신 테마 토큰을 먼저 (토큰 모델 A): 테마 무관 라이브러리 토큰 표 (`lib:token:<ref>`) · 패널 preset = `TokenUse` · 칩 + 활성 테마 값 · fill 색 · inset · gap longhand 토큰 · DOM 변수 · Canvas 간격 스냅 · 입력 scrub · 시안 4 (Border 두 줄 · auto 행간 · Theme 서체 · 그림자 한 줄) | Implemented 2026-11-02 |
 | [299](completed/299-text-range-formatting-runs.md) | 글자 범위 서식 — 글자 노드 하나 안의 구간 서식 (굵기 · 기울임 · 장식선 · 색 · 크기): 문서 형 `RichText` (contract 53 · 템플릿 토큰 원자) · Canvas run `pushStyle` · DOM run `<span>` · run 측정 · ProseMirror core lazy 편집 상자 (⌘B · ⌘I · ⌘U · Typography 가 선택 구간에) · 편집 밖 Mixed · 코드 보기 `<span style>` | Implemented 2026-11-02 |
+| [300](completed/300-sidenav-navigation-tree.md) | SideNav 가족 — RAC `NavigationTree` 위에 S2 `SideNav` · `SideNavPanel` 7 type 표면 그대로: Preview DOM = 설치 RAC (lazy chunk) · Canvas 같은 rule (접힘 rail 42 · 현재 막대 · 들여쓰기) · 접힌 동안 유효 펼침 키 = 빈 집합 · `selectedRoute` 기본 = 현재 page route · 팔레트 SideNavPanel · SideNav · Interactions 펼침 · 접기 · Library 상태 견본 · code view | Implemented 2026-11-03 |
 
 **Phase 0 baseline 문서** (ADR 아님 — 게이트 기준선): [035](completed/035-phase-0-baseline.md) · [037](completed/037-phase-0-baseline.md) · [039](completed/039-phase-0-baseline.md) · [040](completed/040-phase-0-baseline.md)
 

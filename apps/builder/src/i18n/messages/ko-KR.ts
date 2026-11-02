@@ -867,6 +867,9 @@ const catalog: TranslationKeys = {
       expansion: {
         onExpandedChange: "펼침이 바뀔 때",
       },
+      collapse: {
+        onCollapsedChange: "패널 접힘이 바뀔 때",
+      },
       remove: {
         onRemove: "항목을 제거할 때",
       },
@@ -898,6 +901,7 @@ const catalog: TranslationKeys = {
       action: "항목 실행",
       sort: "정렬",
       expansion: "펼침",
+      collapse: "패널 접힘",
       remove: "제거",
       focusedDate: "포커스 날짜",
       form: "폼",
@@ -999,6 +1003,7 @@ const catalog: TranslationKeys = {
     collapseAll: "모두 접기",
     collapseItem: "항목 접기",
     toggleExpand: "펼침 전환",
+    toggleCollapse: "접힘 전환",
     open: "열기",
     close: "닫기",
     toggleOpen: "열림 전환",
