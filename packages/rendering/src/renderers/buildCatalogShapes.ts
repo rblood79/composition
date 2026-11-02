@@ -415,15 +415,19 @@ export function buildCatalogShapes(
       style?.paddingRight ?? style?.padding,
       size.paddingX ?? 0,
     );
-    // font-weight: 사용자 style 우선, 없으면 visual.textWeight(variant 시각 — DropZone 400 등),
-    // 최종 fallback 500. textWeight 는 보편 D3 속성(CSS font-weight 동형).
+    // font-weight: 사용자 style 우선, 다음 rule size 의 fontWeight (생성 CSS 의 size 블록
+    // `font-weight` 와 같은 값), 없으면 visual.textWeight(variant 시각 — DropZone 400 등), 최종
+    // fallback 500. **Why (2026-11-02)**: size 값을 건너뛰어 Badge (sizes 600) 가 Canvas 만 500 이었다.
     const fwRaw = style?.fontWeight;
+    const sizeWeight = (size as { fontWeight?: number | string }).fontWeight;
     const fw =
       fwRaw != null
         ? typeof fwRaw === "number"
           ? fwRaw
           : parseInt(String(fwRaw), 10) || 500
-        : (visual?.textWeight ?? 500);
+        : sizeWeight != null
+          ? Number(sizeWeight) || 500
+          : (visual?.textWeight ?? 500);
     // font-family: 사용자 style 우선, 없으면 visual.fontFamily(variant 시각 — Code/Kbd mono),
     // 최종 fallback sans. fontFamily 는 보편 D3 속성(CSS font-family 동형, textWeight 와 동형 패턴).
     const ff =

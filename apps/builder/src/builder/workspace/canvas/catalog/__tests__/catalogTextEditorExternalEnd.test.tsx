@@ -220,7 +220,80 @@ describe("CatalogTextEditor — 글자 상자 배치", () => {
       // The drawn label's color (white on the primary button), not the record's box color.
       expect(style.color).toBe("rgb(255, 255, 255)");
       // One screen pixel like the selection box — the field is scaled by the zoom (zoom 1 here).
-      expect(style.outline).toContain("1px solid");
+      // A shadow spread, not an outline: Chrome snaps outline-width before the transform.
+      expect(style.outline).toBe("none");
+      expect(style.boxShadow).toContain("0 0 0 1px");
+      // The glyph variants Skia draws with (`DEFAULT_FONT_FEATURES` — Pretendard cv11 is the
+      // single-storey a) and the Preview's body sets: without them the edit showed another "a".
+      expect(field()!.getAttribute("style")).toContain(
+        'font-feature-settings: "cv02" 1, "cv03" 1, "cv04" 1, "cv11" 1',
+      );
+    } finally {
+      unregisterSkiaNode(item.identity);
+    }
+  });
+
+  it("Skia 가 그리는 글자 설정을 편집 상자도 전부 쓴다 (기울임 · 간격 · 장식 · 줄바꿈 · 들여쓰기 · variant · stretch · 그림자)", async () => {
+    const { workspace, record, field } = await open();
+    const item = workspace.itemOfRecord(record)!;
+    const { registerSkiaNode, unregisterSkiaNode } =
+      await import("../../skia/useSkiaNode");
+    registerSkiaNode(item.identity, {
+      type: "text",
+      x: 0,
+      y: 0,
+      width: 200,
+      height: 20,
+      visible: true,
+      text: {
+        content: "Styled",
+        fontFamilies: ["Pretendard"],
+        fontSize: 16,
+        fontWeight: 600,
+        fontStyle: 1,
+        color: new Float32Array([0, 0, 0, 1]),
+        letterSpacing: 2,
+        wordSpacing: 4,
+        lineHeight: 20,
+        decoration: 1 | 4,
+        decorationStyle: "dashed",
+        decorationColor: new Float32Array([1, 0, 0, 1]),
+        paddingLeft: 0,
+        paddingTop: 0,
+        maxWidth: 200,
+        whiteSpace: "pre-wrap",
+        wordBreak: "keep-all",
+        overflowWrap: "anywhere",
+        textIndent: 8,
+        fontVariant: "small-caps",
+        fontStretch: "condensed",
+        textShadows: [
+          {
+            offsetX: 1,
+            offsetY: 2,
+            sigma: 1,
+            color: new Float32Array([0, 0, 1, 0.5]),
+          },
+        ],
+      },
+    });
+    try {
+      act(() => workspace.session.startTextEdit(item));
+      const style = field()!.style;
+      expect(style.fontStyle).toBe("italic");
+      expect(style.letterSpacing).toBe("2px");
+      expect(style.wordSpacing).toBe("4px");
+      expect(style.textDecorationLine).toBe("underline line-through");
+      expect(style.textDecorationStyle).toBe("dashed");
+      expect(style.textDecorationColor).toBe("rgb(255, 0, 0)");
+      expect(style.wordBreak).toBe("keep-all");
+      expect(style.overflowWrap).toBe("anywhere");
+      expect(style.textIndent).toBe("8px");
+      expect(style.fontVariant).toBe("small-caps");
+      expect(style.fontStretch).toBe("condensed");
+      expect(field()!.getAttribute("style")).toContain(
+        "text-shadow: 1px 2px 2.355px rgba(0, 0, 255, 0.5)",
+      );
     } finally {
       unregisterSkiaNode(item.identity);
     }

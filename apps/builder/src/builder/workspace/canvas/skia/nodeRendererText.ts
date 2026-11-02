@@ -3,6 +3,7 @@ import type {
   Canvas,
   FontMgr,
   Paragraph,
+  Paint,
   EmbindEnumEntity,
 } from "canvaskit-wasm";
 import {
@@ -26,12 +27,10 @@ import {
   needsFallback,
   measureWithCanvas2D,
 } from "../utils/canvas2dSegmentCache";
-import {
-  measureActualTextBounds,
-  type TextMeasureStyle,
-} from "../utils/textMeasure";
+import { measureFontBox, type TextMeasureStyle } from "../utils/textMeasure";
 import { registerSkiaCacheDestroy, SkiaDisposable } from "./disposable";
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
+import { buildPath } from "./buildPath";
 import { skiaFontManager } from "./fontManager";
 import { observe } from "../../../utils/perfMarks";
 import { getCacheMetrics } from "./cacheMetrics";
@@ -45,7 +44,11 @@ import {
   resolveRetainedParagraph,
   retainParagraph,
 } from "./retainedParagraph";
-import { resolveSingleLineGlyphTop } from "./textGlyphCentering";
+import { resolveCssBaselineCorrection } from "./textGlyphCentering";
+import {
+  cssLetterSpacingShift,
+  resolveCssDecorationLines,
+} from "./textDecorationGeometry";
 
 // paragraph 소유 = 텍스트 노드 (ADR-174). 구 전역 content-키 LRU 와 전환
 // 플래그는 Phase 3 에서 제거됨 — 상한/퇴거 개념 자체가 사라졌고, 수명은
@@ -221,6 +224,27 @@ export function renderText(
 
   const key = getTextParagraphCacheKey(node, processedText);
 
+  // The painted baseline at the CSS line box's (`resolveCssBaselineCorrection`): SkParagraph rounds
+  // it to whole px, Chrome rounds the font's ascent · descent instead.
+  const cssBaselineShift = (paragraph: Paragraph): number => {
+    const lineHeight = node.text!.lineHeight;
+    if (!lineHeight) return 0;
+    const baseline = paragraph.getLineMetrics()[0]?.baseline;
+    if (baseline === undefined) return 0;
+    const font = measureFontBox(
+      cssFontFamilyList(node.text!.fontFamilies),
+      node.text!.fontSize,
+      node.text!.fontWeight ?? 400,
+    );
+    if (!font) return 0;
+    return resolveCssBaselineCorrection({
+      lineHeight,
+      fontAscent: font.ascent,
+      fontDescent: font.descent,
+      paragraphBaseline: baseline,
+    });
+  };
+
   const computeDrawY = (paragraph: Paragraph): number => {
     const verticalAlign = node.text!.verticalAlign;
     const hasExplicitBottomPadding =
@@ -234,54 +258,33 @@ export function renderText(
       hasExplicitBottomPadding &&
       (!verticalAlign || verticalAlign === "baseline")
     ) {
-      const paraHeight = paragraph.getHeight();
-      const lineMetrics = paragraph.getLineMetrics();
-      const isMultiLine = lineMetrics.length > 1;
-
-      // 다줄 텍스트: paragraph.getHeight() 기반 수직 중앙 (글리프 미세 조정 불필요)
-      if (isMultiLine) {
-        const contentHeight =
-          node.height - node.text!.paddingTop - (node.text!.paddingBottom ?? 0);
-        return (
-          node.text!.paddingTop + Math.max(0, (contentHeight - paraHeight) / 2)
-        );
-      }
-
-      // 단일줄: 글리프 기반 수직 중앙. ink 는 Canvas 2D (alphabetic baseline 기준) 라 paragraph
-      //   원점도 alphabetic baseline — 스크립트 무관 (textGlyphCentering.ts 의 Why: ideographic
-      //   원점은 한글을 descent 만큼 위에 그렸다).
-      const primaryFamily = node.text!.fontFamilies[0] ?? "sans-serif";
-      const metrics = measureActualTextBounds(
-        processedText,
-        primaryFamily,
-        node.text!.fontSize,
-        node.text!.fontWeight ?? 400,
+      // The line box (one line or many) centred in the content box, as the DOM centres it. Not by
+      //   the glyphs' ink: that lifted a Badge's "gButton" above the same text in a Button (2026-11-02).
+      const contentHeight =
+        node.height - node.text!.paddingTop - (node.text!.paddingBottom ?? 0);
+      return (
+        node.text!.paddingTop +
+        Math.max(0, (contentHeight - paragraph.getHeight()) / 2) +
+        cssBaselineShift(paragraph)
       );
-      return resolveSingleLineGlyphTop({
-        contentTop: node.text!.paddingTop,
-        contentHeight:
-          node.height - node.text!.paddingTop - (node.text!.paddingBottom ?? 0),
-        inkAscent: metrics.ascent,
-        inkHeight: metrics.height,
-        alphabeticBaseline: paragraph.getAlphabeticBaseline(),
-      });
     }
 
+    const shift = cssBaselineShift(paragraph);
     if (
       !verticalAlign ||
       verticalAlign === "top" ||
       verticalAlign === "baseline"
     ) {
-      return node.text!.paddingTop;
+      return node.text!.paddingTop + shift;
     }
     const textHeight = paragraph.getHeight();
     switch (verticalAlign) {
       case "middle":
-        return (node.height - textHeight) / 2;
+        return (node.height - textHeight) / 2 + shift;
       case "bottom":
-        return node.height - textHeight;
+        return node.height - textHeight + shift;
       default:
-        return node.text!.paddingTop;
+        return node.text!.paddingTop + shift;
     }
   };
 
@@ -413,6 +416,57 @@ export function renderText(
     canvas.restore();
   };
 
+  // text-decoration lines as the Preview draws them (`resolveCssDecorationLines`): along each line's
+  // advance (letter spacing included, as CSS), from the painted baseline — SkParagraph paints a line
+  // at its baseline rounded to whole px.
+  const drawCssDecorations = (
+    paragraph: Paragraph,
+    drawX: number,
+    drawY: number,
+  ): void => {
+    const text = node.text!;
+    if (!text.decoration) return;
+    const font = measureFontBox(
+      cssFontFamilyList(text.fontFamilies),
+      text.fontSize,
+      text.fontWeight ?? 400,
+    );
+    const lines = paragraph.getLineMetrics();
+    if (lines.length === 0) return;
+    const color =
+      text.decorationColor ?? text.presentationColor ?? text.color;
+    const style = text.decorationStyle ?? "solid";
+    const dpr =
+      typeof globalThis.devicePixelRatio === "number"
+        ? globalThis.devicePixelRatio
+        : 1;
+    const paint = acquirePooledPaint(ck);
+    try {
+      paint.setAntiAlias(true);
+      paint.setColor(color);
+      for (const line of lines) {
+        if (line.width <= 0) continue;
+        const x0 = drawX + line.left;
+        const x1 = x0 + line.width;
+        const decorated = resolveCssDecorationLines({
+          fontSize: text.fontSize,
+          fontAscent: font?.ascent ?? line.ascent,
+          baseline: drawY + Math.round(line.baseline),
+          dpr,
+          decoration: text.decoration,
+        });
+        for (const { top, thickness } of decorated) {
+          drawDecorationLine(ck, canvas, paint, style, x0, x1, top, thickness);
+        }
+      }
+    } finally {
+      paint.setStyle(ck.PaintStyle.Fill);
+      paint.setPathEffect(null);
+      paint.setStrokeWidth(1);
+      releasePooledPaint(paint);
+    }
+  };
+
   // The retained hit and the fresh miss draw the same: shadows and text inside the `clipText` box
   // (ellipsis lays out one line). The hit path drew unclipped — a re-recorded fixed-height text
   // overflowed its box where the DOM clips it (audit M9).
@@ -430,8 +484,13 @@ export function renderText(
         true,
       );
     }
-    renderTextShadows(paragraph, drawX, drawY);
-    drawTextWithPresentationColor(paragraph, drawX, drawY);
+    // Glyphs where CSS puts them: SkParagraph splits the letter spacing around each glyph.
+    const glyphX = drawX + cssLetterSpacingShift(node.text?.letterSpacing);
+    renderTextShadows(paragraph, glyphX, drawY);
+    drawTextWithPresentationColor(paragraph, glyphX, drawY);
+    // Decorations from the same origin: SkParagraph's line `left` already holds the leading half
+    //   of the spacing, so the line spans the CSS advance (live Compare Mode 2026-11-02).
+    drawCssDecorations(paragraph, glyphX, drawY);
     if (shouldClip) canvas.restore();
   };
 
@@ -549,36 +608,6 @@ export function renderText(
         ...(fontFeatureTags.length > 0
           ? { fontFeatures: fontFeatureTags }
           : {}),
-        ...(node.text.decoration
-          ? {
-              decoration: node.text.decoration,
-              decorationColor: node.text.decorationColor ?? node.text.color,
-              decorationThickness: 1,
-              ...(() => {
-                if (
-                  !node.text!.decorationStyle ||
-                  node.text!.decorationStyle === "solid"
-                ) {
-                  return {};
-                }
-                const ckDs = (
-                  ck as unknown as Record<
-                    string,
-                    Record<string, EmbindEnumEntity>
-                  >
-                ).DecorationStyle;
-                if (!ckDs) return {};
-                const styleMap: Record<string, EmbindEnumEntity | undefined> = {
-                  dashed: ckDs.Dashed,
-                  dotted: ckDs.Dotted,
-                  double: ckDs.Double,
-                  wavy: ckDs.Wavy,
-                };
-                const resolved = styleMap[node.text!.decorationStyle];
-                return resolved ? { decorationStyle: resolved } : {};
-              })(),
-            }
-          : {}),
       },
       textAlign,
       ...(heightMultiplierOpt !== undefined || synthSmallCaps
@@ -693,36 +722,8 @@ export function renderText(
     // ParagraphStyle.textStyle만으로는 CanvasKit에서 Variable font의
     // weight/fontFeatures가 렌더링에 반영되지 않는 문제 대응.
     //
-    // ⚠️ ADR-057 Phase B: pushStyle의 TextStyle이 paraStyle.textStyle을 덮어쓰므로
-    // decoration(+style/color)도 여기에 포함해야 한다. 빠뜨리면 paraStyle의 decoration이
-    // 덮어써져서 underline/overline/line-through가 전혀 그려지지 않는다.
-    const decorationTextStyleFields = node.text.decoration
-      ? {
-          decoration: node.text.decoration,
-          decorationColor: node.text.decorationColor ?? node.text.color,
-          decorationThickness: 1,
-          ...(() => {
-            if (
-              !node.text!.decorationStyle ||
-              node.text!.decorationStyle === "solid"
-            ) {
-              return {};
-            }
-            const ckDs = (
-              ck as unknown as Record<string, Record<string, EmbindEnumEntity>>
-            ).DecorationStyle;
-            if (!ckDs) return {};
-            const styleMap: Record<string, EmbindEnumEntity | undefined> = {
-              dashed: ckDs.Dashed,
-              dotted: ckDs.Dotted,
-              double: ckDs.Double,
-              wavy: ckDs.Wavy,
-            };
-            const resolved = styleMap[node.text!.decorationStyle];
-            return resolved ? { decorationStyle: resolved } : {};
-          })(),
-        }
-      : {};
+    // Decorations are not SkParagraph's: it places them from the font's underline metrics, the
+    // Preview by Chrome's rules — `drawCssDecorations` draws them after the text (2026-11-02).
     const runTextStyle = (fontSize: number) =>
       new ck.TextStyle({
         fontFamilies: resolvedFamilies,
@@ -737,7 +738,6 @@ export function renderText(
         ...(fontFeatureTags.length > 0
           ? { fontFeatures: fontFeatureTags }
           : {}),
-        ...decorationTextStyleFields,
         fontVariations: [{ axis: "wght", value: node.text!.fontWeight ?? 400 }],
       });
     builder.pushStyle(runTextStyle(node.text.fontSize));
@@ -847,4 +847,81 @@ export function renderText(
   } finally {
     scope.dispose();
   }
+}
+
+/**
+ * One decoration line, `top` · `thickness` as CSS lays it. Solid is a rect; double a second line
+ * one thickness under (over, for an overline — CSS keeps the pair inside the line's side); dotted ·
+ * dashed · wavy stroke the centre line (Chrome: dots one thickness apart, dashes three thicknesses).
+ */
+function drawDecorationLine(
+  ck: CanvasKit,
+  canvas: Canvas,
+  paint: Paint,
+  style: NonNullable<NonNullable<SkiaNodeData["text"]>["decorationStyle"]>,
+  x0: number,
+  x1: number,
+  top: number,
+  thickness: number,
+): void {
+  if (style === "solid" || style === "double") {
+    paint.setStyle(ck.PaintStyle.Fill);
+    canvas.drawRect(ck.LTRBRect(x0, top, x1, top + thickness), paint);
+    if (style === "double") {
+      const second = top + thickness * 2;
+      canvas.drawRect(ck.LTRBRect(x0, second, x1, second + thickness), paint);
+    }
+    return;
+  }
+  const y = top + thickness / 2;
+  paint.setStyle(ck.PaintStyle.Stroke);
+  paint.setStrokeWidth(thickness);
+  if (style === "wavy") {
+    const wave = Math.max(2, thickness * 3);
+    const amp = Math.max(1, thickness * 1.5);
+    const path = buildPath(ck, (sink) => {
+      sink.moveTo(x0, y);
+      for (let x = x0, up = true; x < x1; x += wave, up = !up) {
+        sink.quadTo(
+          x + wave / 2,
+          up ? y - amp : y + amp,
+          Math.min(x1, x + wave),
+          y,
+        );
+      }
+    });
+    canvas.drawPath(path, paint);
+    path.delete();
+    return;
+  }
+  const dash = style === "dotted" ? thickness : thickness * 3;
+  const effect = ck.PathEffect.MakeDash([dash, dash], 0);
+  paint.setPathEffect(effect);
+  canvas.drawLine(x0, y, x1, y, paint);
+  paint.setPathEffect(null);
+  effect?.delete();
+}
+
+const GENERIC_FAMILIES = new Set([
+  "serif",
+  "sans-serif",
+  "monospace",
+  "cursive",
+  "fantasy",
+  "system-ui",
+  "ui-sans-serif",
+  "ui-serif",
+  "ui-monospace",
+  "-apple-system",
+]);
+
+/** A CSS `font-family` list for Canvas 2D `font` — names quoted, generic keywords bare. */
+function cssFontFamilyList(families: readonly string[]): string {
+  const list = families
+    .map((family) => family.trim().replace(/^["']|["']$/g, ""))
+    .filter(Boolean)
+    .map((family) =>
+      GENERIC_FAMILIES.has(family) ? family : `"${family.replace(/"/g, "")}"`,
+    );
+  return list.length > 0 ? list.join(", ") : "sans-serif";
 }

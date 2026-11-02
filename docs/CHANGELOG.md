@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas 글자 세로 자리 · 글자 편집 상자 테두리 — Preview 와 같은 줄 상자] - 2026-11-02
+
+### Fixed
+
+- **Canvas 의 글자가 Preview 보다 0.5px 아래에 그려지던 것** (줄 높이를 지정한 글자 — 16px · 줄 20 · 22 등) — 상자 안 세로 가운데가 Preview · 편집 상자와 달랐다 (사용자 보고: 테두리 있는 Text, Compare Mode 에서 CSS 와 편집 상자는 같고 Canvas 만 다름). **Why**: SkParagraph 는 줄의 baseline 을 문단 안에서 정수 px 로 반올림해 그린다 (보고 15.6875 → 그림 16, CanvasKit raster 실측). Chrome 의 줄 상자는 글꼴 ascent · descent 를 먼저 반올림하고 남은 leading 을 반씩 나눈다 (15 + (20 − 19) / 2 = 15.5). Canvas 가 CSS 줄 상자의 baseline 자리로 문단을 옮긴다 (`textGlyphCentering.ts` `resolveCssBaselineCorrection` → `nodeRendererText.ts` `computeDrawY`, DOM 글꼴 값은 `textMeasure.ts` `measureFontBox`).
+
+- **Badge 처럼 위아래 여백 안에 한 줄로 놓인 글자가 g · y · p 같은 글자를 넣으면 위로 올라가던 것** — 같은 글자의 Button 보다 높았고 (사용자 보고: 가이드라인 대조), 더블클릭 편집을 열면 글자가 위아래로 움직였다. **Why**: Canvas 만 그 한 줄을 글리프 잉크 기준으로 가운데 놓았다 (`resolveSingleLineGlyphTop`, ADR-027 D3 2026-09-20) — 아래로 내려가는 글자가 잉크를 늘려 글자 전체가 올라갔다. Preview (CSS) 는 줄 상자로 가운데 놓는다. Canvas 도 줄 상자로 (`nodeRendererText.ts` `computeDrawY`) — 잉크 측정 (`measureActualTextBounds`) 은 쓰는 곳이 없어 지웠다. Compare Mode 에서 Badge "gButton" · "Button" 의 글자 세로 중심이 CSS · Canvas 같다.
+
+- **Canvas 글자가 자간을 넣으면 자간 절반만큼 오른쪽에 그려지던 것** — SkParagraph 는 자간을 글자 앞뒤로 반씩, CSS 는 뒤에만 둔다 (자간 4 → 첫 글자 2px 늦음, CanvasKit raster 실측). 문단을 그 절반만큼 당겨 그린다 (`textDecorationGeometry.ts` `cssLetterSpacingShift` → `nodeRendererText.ts`).
+
+- **Canvas 의 밑줄 · 윗줄 · 취소선이 Preview 보다 얇고 다른 자리에 그려지던 것** — SkParagraph 는 글꼴의 밑줄 메트릭 (16px: 두께 1.1 · baseline 아래 1.15), Chrome 은 자기 규칙 (두께 = 글자 크기 / 10 을 device px 로, 밑줄 baseline + max(1, ⌈두께/2⌉), 윗줄 ascent 위, 취소선 ascent 의 1/3 위 — Chrome 156 실측) 을 쓴다. Canvas 가 장식선을 SkParagraph 에 맡기지 않고 그 규칙으로 직접 그린다 (`resolveCssDecorationLines` → `drawCssDecorations`, 점선 · 파선 · 이중선 · 물결 포함). Compare Mode 에서 밑줄 행 · 길이가 CSS 와 같다.
+
+- **Badge 글자가 Canvas 에서만 가늘던 것** (Canvas 500 · Preview 600) — Canvas 글자 shape 가 굵기를 style → variant `textWeight` → 500 으로만 골라 rule 크기 (sizes) 의 `fontWeight` 를 건너뛰었다. 생성 CSS 가 쓰는 그 값을 읽는다 (`packages/rendering/src/renderers/buildCatalogShapes.ts`). sizes 에 굵기를 둔 다른 컴포넌트도 같이 맞는다.
+
+- 더블클릭 편집 상자의 글자 모양이 Canvas · Preview 와 다르던 것 (예: "a" 가 두 층 모양) — 편집 상자가 Pretendard 대체 글리프 (`cv02` · `cv03` · `cv04` · `cv11`, `cv11` = 한 층 a) 를 켜지 않았다. **Why**: Skia 는 모든 글자에 `DEFAULT_FONT_FEATURES` 를, Preview 는 body `font-feature-settings` 를 쓰는데, ADR-248 catalog 편집기가 옛 편집 오버레이 (ADR-027 D3) 의 이 값을 옮기지 않았다 (`CatalogTextEditor.tsx` `fontFeatureSettings`). 같은 이유로 빠져 있던 나머지 글자 설정 — 기울임 · 자간 · 단어 간격 · 밑줄 등 장식 (선 · 모양 · 색) · 줄바꿈 (word-break · overflow-wrap) · 들여쓰기 · font-variant · font-stretch · 글자 그림자 · 대소문자 — 도 편집 상자가 Skia 가 그리는 값 (`resolveTextEditBox` `source`) 그대로 쓴다.
+
+- 더블클릭 글자 편집 상자의 파란 테두리가 확대 (예: 500%) 에서 selection box (화면 1px) 보다 굵게 (2.5px) 보이던 것 — 이제 어느 확대에서도 화면 1px. 원인: Chrome 이 `outline-width` 를 transform 전에 최소 1 device pixel 로 올린다 (0.2px → DPR 2 에서 0.5px, scale(5) 뒤 2.5px). 테두리를 반올림하지 않는 `box-shadow` spread 로 그린다 (`CatalogTextEditor.tsx`).
+
 ## [토큰 scrub 미리보기 복원 — ADR-298 리뷰 수리] - 2026-11-02
 
 ### Fixed

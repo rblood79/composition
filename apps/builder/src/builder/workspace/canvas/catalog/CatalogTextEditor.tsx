@@ -19,8 +19,13 @@ import { catalogPropertyTextTarget } from "../../../catalogRuntime/componentProp
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import type { BoundingBox } from "../selection/types";
 import { subscribeCanvasFrames } from "../skia/frameScheduler";
-import { resolveTextEditBox, type TextEditBox } from "../skia/textDrawOrigin";
+import {
+  cssColorOf,
+  resolveTextEditBox,
+  type TextEditBox,
+} from "../skia/textDrawOrigin";
 import { viewportState } from "../viewport/viewportState";
+import { DEFAULT_FONT_FEATURES } from "../layout/engines/cssResolver";
 
 export interface CatalogTextEditorProps {
   workspace: CatalogWorkspace;
@@ -297,10 +302,13 @@ function TextField({
   // 2026-10-20). The box the Button grows to follows a frame later; the field stays centred on it.
   const hugWidth =
     unwrapped && contentSize.width > 0 ? contentSize.width : undefined;
-  const alignFactor = textAlign === "center" ? 0.5 : textAlign === "right" ? 1 : 0;
+  const alignFactor =
+    textAlign === "center" ? 0.5 : textAlign === "right" ? 1 : 0;
   const fieldWidth = Math.max(hugWidth ?? area.width, 24);
   const fieldX =
-    hugWidth !== undefined ? area.x + (area.width - hugWidth) * alignFactor : area.x;
+    hugWidth !== undefined
+      ? area.x + (area.width - hugWidth) * alignFactor
+      : area.x;
   // The text's box, one line for one line (a textarea's default is two rows). A text typed past
   // its box keeps the box's vertical anchor: a middle-aligned label (Button) grows both ways.
   const fieldHeight = Math.max(area.height, contentSize.height);
@@ -323,8 +331,12 @@ function TextField({
     padding: 0,
     border: "none",
     // One screen pixel like the selection box (`selectionRenderer` strokes 1/zoom): the field is
-    // scaled by the zoom, so a 1px outline would be `zoom` px wide (user 2026-10-20).
-    outline: `${1 / zoom}px solid var(--color-primary-500, #3b82f6)`,
+    // scaled by the zoom, so a 1px line would be `zoom` px wide (user 2026-10-20). Drawn as a
+    // shadow spread, not an outline: Chrome snaps `outline-width` to at least one device pixel
+    // before the transform (0.2px → 0.5px at DPR 2), so 500% showed a 2.5px line (user 2026-11-02).
+    // A spread is not snapped. `outline: none` also keeps the UA focus ring off the field.
+    outline: "none",
+    boxShadow: `0 0 0 ${1 / zoom}px var(--color-primary-500, #3b82f6)`,
     background: "transparent",
     resize: "none",
     overflow: "hidden",
@@ -333,6 +345,16 @@ function TextField({
     lineHeight,
     fontWeight,
     fontFamily,
+    // The glyph variants Skia draws every text with (`DEFAULT_FONT_FEATURES` — Pretendard cv11 is
+    // the single-storey a) and the Preview's body sets: the field showed another "a" (user
+    // 2026-11-02). The old overlay carried them (ADR-027 D3); the catalog editor had dropped them.
+    fontFeatureSettings: EDIT_FONT_FEATURES,
+    // Every other type setting Skia draws the text with (user 2026-11-02 「편집에서도 모든 설정을
+    // 맞춰」) — the field is the same text, so it looks the same while it is typed.
+    ...(text ? skiaTextCss(text.source) : {}),
+    ...(typeof visual.textTransform === "string"
+      ? { textTransform: visual.textTransform as CSSProperties["textTransform"] }
+      : {}),
     color:
       text?.color ??
       (typeof visual.color === "string" ? visual.color : undefined),
@@ -367,6 +389,50 @@ function TextField({
   );
 }
 
+const EDIT_FONT_FEATURES = DEFAULT_FONT_FEATURES.map(
+  (feature) => `"${feature.name}" ${feature.value}`,
+).join(", ");
+
+const FONT_STYLES = ["normal", "italic", "oblique"] as const;
+
+/** `SkiaNodeData.text` settings as the CSS that draws the same (the inverse of `canvasBinding`). */
+function skiaTextCss(text: TextEditBox["source"]): CSSProperties {
+  const css: CSSProperties = {};
+  if (text.fontStyle) css.fontStyle = FONT_STYLES[text.fontStyle] ?? "normal";
+  if (text.letterSpacing) css.letterSpacing = `${text.letterSpacing}px`;
+  if (text.wordSpacing) css.wordSpacing = `${text.wordSpacing}px`;
+  if (text.decoration) {
+    const lines = [
+      text.decoration & 1 ? "underline" : "",
+      text.decoration & 2 ? "overline" : "",
+      text.decoration & 4 ? "line-through" : "",
+    ].filter(Boolean);
+    if (lines.length > 0) css.textDecorationLine = lines.join(" ");
+    if (text.decorationStyle) css.textDecorationStyle = text.decorationStyle;
+    const color = cssColorOf(text.decorationColor);
+    if (color) css.textDecorationColor = color;
+  }
+  if (text.wordBreak && text.wordBreak !== "normal")
+    css.wordBreak = text.wordBreak;
+  if (text.overflowWrap && text.overflowWrap !== "normal")
+    css.overflowWrap = text.overflowWrap;
+  if (text.textIndent) css.textIndent = `${text.textIndent}px`;
+  if (text.fontVariant && text.fontVariant !== "normal")
+    css.fontVariant = text.fontVariant;
+  if (text.fontStretch && text.fontStretch !== "normal")
+    css.fontStretch = text.fontStretch;
+  if (text.textShadows?.length) {
+    // `sigma` = CSS blur radius / 2.355 (`types.ts` `TextShadow`).
+    css.textShadow = text.textShadows
+      .map(
+        (shadow) =>
+          `${shadow.offsetX}px ${shadow.offsetY}px ${+(shadow.sigma * 2.355).toFixed(3)}px ${cssColorOf(shadow.color) ?? "transparent"}`,
+      )
+      .join(", ");
+  }
+  return css;
+}
+
 function sameTextBox(
   a: TextEditBox | undefined,
   b: TextEditBox | undefined,
@@ -380,7 +446,8 @@ function sameTextBox(
     a.align === b.align &&
     a.fontSize === b.fontSize &&
     a.fontWeight === b.fontWeight &&
-    a.lineHeight === b.lineHeight
+    a.lineHeight === b.lineHeight &&
+    a.source === b.source
   );
 }
 

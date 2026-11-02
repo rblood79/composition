@@ -114,10 +114,9 @@ export function resolveTextLineMetrics(
  * 진단 — text 자식의 상자 (width · height · padding · whiteSpace · maxWidth · font) 와 마지막
  * 프레임의 draw 원점. 단일행 글리프 중앙 배치 (`computeDrawY`) 의 입력을 페이지 밖에서 읽는다.
  */
-export function resolveTextNodeDebug(elementId: string): Record<
-  string,
-  unknown
-> | null {
+export function resolveTextNodeDebug(
+  elementId: string,
+): Record<string, unknown> | null {
   const textNode = findTextNode(getSkiaNode(elementId) ?? undefined);
   if (!textNode?.text) return null;
   const t = textNode.text;
@@ -139,7 +138,6 @@ export function resolveTextNodeDebug(elementId: string): Record<
     lines: resolveTextLineMetrics(elementId),
   };
 }
-
 
 /**
  * 2026-10-20 — 인라인 편집 상자가 놓일 자리: Skia 가 요소의 글자를 그리는 content 상자 (element-local
@@ -164,11 +162,17 @@ export interface TextEditBox {
   color?: string;
   /** How the text block sits in the box — a field that grows past one line keeps the same anchor. */
   verticalAlign?: "top" | "middle" | "bottom" | "baseline";
+  /**
+   * The text node Skia draws (`SkiaNodeData.text`) — the field copies the rest of its type settings
+   * (italic · spacing · decoration · breaking · indent · variant · stretch · shadows).
+   */
+  source: NonNullable<SkiaNodeData["text"]>;
 }
 
-function cssColorOf(color: Float32Array | undefined): string | undefined {
+export function cssColorOf(color: Float32Array | undefined): string | undefined {
   if (!color || color.length < 3) return undefined;
-  const channel = (value: number) => Math.round(Math.min(1, Math.max(0, value)) * 255);
+  const channel = (value: number) =>
+    Math.round(Math.min(1, Math.max(0, value)) * 255);
   const alpha = color.length > 3 ? Math.min(1, Math.max(0, color[3]!)) : 1;
   return `rgba(${channel(color[0]!)}, ${channel(color[1]!)}, ${channel(color[2]!)}, ${alpha})`;
 }
@@ -226,5 +230,6 @@ export function resolveTextEditBox(elementId: string): TextEditBox | undefined {
     whiteSpace: text.whiteSpace,
     color: cssColorOf(text.presentationColor ?? text.color),
     verticalAlign: text.verticalAlign,
+    source: text,
   };
 }

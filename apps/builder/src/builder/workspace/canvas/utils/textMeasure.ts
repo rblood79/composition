@@ -349,11 +349,6 @@ export interface FontMetrics {
   lineHeight: number;
 }
 
-export interface ActualTextBounds {
-  ascent: number;
-  descent: number;
-  height: number;
-}
 
 /**
  * 폰트 메트릭 캐시
@@ -378,12 +373,14 @@ if (typeof document !== "undefined" && document.fonts) {
   document.fonts.ready.then(() => {
     _fontsReady = true;
     _fontMetricsCache.clear();
+    _fontBoxCache.clear();
     // 폰트 로드 완료 후 레이아웃 재계산 트리거
     window.dispatchEvent(new CustomEvent("composition:fonts-ready"));
   });
   document.fonts.addEventListener("loadingdone", () => {
     _fontsReady = true;
     _fontMetricsCache.clear();
+    _fontBoxCache.clear();
     window.dispatchEvent(new CustomEvent("composition:fonts-ready"));
   });
 }
@@ -487,46 +484,44 @@ export function measureFontMetrics(
   return fallback;
 }
 
+/** The DOM font's ascent / descent (`fontBoundingBox*` — what a CSS line box is built from). */
+const _fontBoxCache = new Map<string, { ascent: number; descent: number }>();
+
 /**
- * 실제 텍스트 콘텐츠의 bounding box를 측정한다.
- *
- * `measureFontMetrics()`는 라틴 샘플 문자열 기준이라 한글/숫자/아이콘 조합에서
- * 실제 시각적 중심과 다를 수 있다. 버튼 텍스트 수직 정렬 보정용.
+ * The font's ascent and descent as the DOM line box uses them (Canvas 2D `fontBoundingBox*` of the
+ * CSS family list). `undefined` without a 2D context or that API. Cached once the fonts are ready.
  */
-export function measureActualTextBounds(
-  text: string,
+export function measureFontBox(
   fontFamily: string,
   fontSize: number,
   fontWeight: string | number = 400,
-): ActualTextBounds {
+): { ascent: number; descent: number } | undefined {
+  const cacheKey = `${fontFamily}:${fontSize}:${fontWeight}`;
+  const cached = _fontBoxCache.get(cacheKey);
+  if (cached) return cached;
   const ctx = getMeasureCtx();
-  if (ctx && text) {
-    try {
-      ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
-      const metrics = ctx.measureText(text);
-      if (
-        typeof metrics.actualBoundingBoxAscent === "number" &&
-        typeof metrics.actualBoundingBoxDescent === "number"
-      ) {
-        const ascent = metrics.actualBoundingBoxAscent;
-        const descent = metrics.actualBoundingBoxDescent;
-        return {
-          ascent,
-          descent,
-          height: ascent + descent,
-        };
-      }
-    } catch {
-      // fallback below
+  if (!ctx) return undefined;
+  try {
+    ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+    const metrics = ctx.measureText("x");
+    if (
+      typeof metrics.fontBoundingBoxAscent !== "number" ||
+      typeof metrics.fontBoundingBoxDescent !== "number"
+    )
+      return undefined;
+    const box = {
+      ascent: metrics.fontBoundingBoxAscent,
+      descent: metrics.fontBoundingBoxDescent,
+    };
+    if (_fontsReady) {
+      if (_fontBoxCache.size >= MAX_FONT_METRICS_CACHE_SIZE)
+        _fontBoxCache.clear();
+      _fontBoxCache.set(cacheKey, box);
     }
+    return box;
+  } catch {
+    return undefined;
   }
-
-  const fallback = measureFontMetrics(fontFamily, fontSize, fontWeight);
-  return {
-    ascent: fallback.ascent,
-    descent: fallback.descent,
-    height: fallback.fontHeight,
-  };
 }
 
 /**
@@ -534,6 +529,7 @@ export function measureActualTextBounds(
  */
 export function resetFontMetricsCache(): void {
   _fontMetricsCache.clear();
+  _fontBoxCache.clear();
 }
 
 // ============================================

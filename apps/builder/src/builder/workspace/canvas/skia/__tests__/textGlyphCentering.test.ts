@@ -2,49 +2,96 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { resolveSingleLineGlyphTop } from "../textGlyphCentering";
+import { resolveCssBaselineCorrection } from "../textGlyphCentering";
 
-/**
- * 단일행 글리프 중앙 배치 — 스크립트와 무관하게 alphabetic baseline 기준 (ADR-027 D3, 2026-09-20).
- * 16px Pretendard · line 24 (baseline 17.69 · descent 6.31) · 한글 ink ascent ≈ 14 · 높이 ≈ 16:
- *   글리프 top 은 (24 − 16) / 2 = 4, paragraph top = 4 − (17.69 − 14) = 0.31 (≈ 0, line box 안).
- *   종전 ideographic 원점 (24) 은 4 − (24 − 14) = −6 → descent 만큼 위.
- */
-describe("resolveSingleLineGlyphTop", () => {
-  const line = { contentTop: 0, contentHeight: 24, alphabeticBaseline: 17.6875 };
+// Pretendard: ascent 0.952em · descent 0.241em. Painted = SkParagraph's rounded baseline, measured on
+// a CanvasKit raster surface (2026-11-02): 15.6875 → 16 · 16.1875 → 16 · 16.6875 → 17 · 12.27 → 12.
+const pretendard = (size: number) => ({
+  fontAscent: 0.952 * size,
+  fontDescent: 0.241 * size,
+});
 
-  it("한글 ink (ascent 14 · 높이 16) 도 alphabetic baseline 으로 → paragraph top ≈ 0", () => {
-    const y = resolveSingleLineGlyphTop({ ...line, inkAscent: 14, inkHeight: 16 });
-    expect(y).toBeCloseTo(0.31, 2);
-    expect(y).toBeGreaterThan(-1);
+describe("resolveCssBaselineCorrection — the painted baseline goes where the CSS line box puts it", () => {
+  it("16px · line 20: CSS 15.5, painted 16 → 0.5px up", () => {
+    expect(
+      resolveCssBaselineCorrection({
+        lineHeight: 20,
+        ...pretendard(16),
+        paragraphBaseline: 15.6875,
+      }),
+    ).toBe(-0.5);
   });
 
-  it("Latin ink — 종전과 같은 식 (Button 20px content · 14px 폰트)", () => {
-    // 글리프 top 을 content 가운데 (5 + (20 − 10) / 2 = 10) 에 두고 baseline − ascent 만큼 올린다.
-    const y = resolveSingleLineGlyphTop({
-      contentTop: 5,
-      contentHeight: 20,
-      alphabeticBaseline: 14.9765625,
-      inkAscent: 10,
-      inkHeight: 10,
-    });
-    expect(y).toBeCloseTo(10 - (14.9765625 - 10), 6);
+  it("16px · line 22: CSS 16.5, painted 17 → 0.5px up", () => {
+    expect(
+      resolveCssBaselineCorrection({
+        lineHeight: 22,
+        ...pretendard(16),
+        paragraphBaseline: 16.6875,
+      }),
+    ).toBe(-0.5);
   });
 
-  it("ink 가 content 보다 크면 content top 에 붙인다 (음수 여백 0)", () => {
-    const y = resolveSingleLineGlyphTop({ ...line, inkAscent: 20, inkHeight: 30 });
-    expect(y).toBeCloseTo(2.3125, 3);
+  it("already the same: 16px · line 21 (16 · 16), 12px · line 16 (12 · 12), 32px · line 40 (31 · 31)", () => {
+    expect(
+      resolveCssBaselineCorrection({
+        lineHeight: 21,
+        ...pretendard(16),
+        paragraphBaseline: 16.1875,
+      }),
+    ).toBe(0);
+    expect(
+      resolveCssBaselineCorrection({
+        lineHeight: 16,
+        ...pretendard(12),
+        paragraphBaseline: 12.2656,
+      }),
+    ).toBe(0);
+    expect(
+      resolveCssBaselineCorrection({
+        lineHeight: 40,
+        ...pretendard(32),
+        paragraphBaseline: 31.375,
+      }),
+    ).toBe(0);
+  });
+
+  it("no explicit line height, or a DOM font that is not the drawn one: no move", () => {
+    expect(
+      resolveCssBaselineCorrection({
+        lineHeight: 0,
+        ...pretendard(16),
+        paragraphBaseline: 15.14,
+      }),
+    ).toBe(0);
+    expect(
+      resolveCssBaselineCorrection({
+        lineHeight: 20,
+        fontAscent: 30,
+        fontDescent: 2,
+        paragraphBaseline: 15.6875,
+      }),
+    ).toBe(0);
   });
 });
 
-describe("nodeRendererText 는 ideographic baseline 원점을 쓰지 않는다 (static)", () => {
-  it("getIdeographicBaseline / containsIdeographicText 호출 0", () => {
+/**
+ * A single line in a padded box (Badge, Tag …) is centred by its line box like the DOM's — not by the
+ * glyphs' ink. **Why (2026-11-02, user report)**: ink centring lifted "gButton" in a Badge above the
+ * same text in a Button (the g's descender stretched the ink downwards); the Preview does not move it.
+ * ADR-027 D3 (2026-09-20) had brought ink centring in with an alphabetic origin; the parity target is
+ * the CSS line box.
+ */
+describe("nodeRendererText 는 한 줄을 글리프 잉크로 가운데 놓지 않는다 (static)", () => {
+  it("ink 측정 · ideographic 원점 호출 0, CSS baseline 보정은 쓴다", () => {
     const source = readFileSync(
       resolve(__dirname, "../nodeRendererText.ts"),
       "utf8",
     );
     expect(source).not.toContain("getIdeographicBaseline");
     expect(source).not.toContain("containsIdeographicText(");
-    expect(source).toContain("resolveSingleLineGlyphTop(");
+    expect(source).not.toContain("measureActualTextBounds(");
+    expect(source).not.toContain("resolveSingleLineGlyphTop(");
+    expect(source).toContain("resolveCssBaselineCorrection(");
   });
 });
