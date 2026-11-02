@@ -29,6 +29,7 @@ import { CatalogPreviewSession } from "./catalogPreviewSession";
 import { renderCatalogDom, type CatalogDomRuntime } from "./domBinding";
 
 import { catalogToastPlacement, rootKey } from "./domView.runtime";
+import { CatalogCurrentRouteContext } from "./sideNavRoute";
 
 /** The Preview router's `navigate`: a route moves the page, an `#anchor` scrolls to its element. */
 export function catalogPreviewNavigate(
@@ -71,9 +72,12 @@ export function CatalogPreviewView({
   // palette Link's `#` was a 404 — RAC event audit 2026-10-26.)
   return (
     <RouterProvider navigate={catalogPreviewNavigate(session)}>
-      <Fragment key={`${rootKey(root)}:${record}`}>
-        {renderCatalogDom(root, record, { slotMode: "page", runtime })}
-      </Fragment>
+      {/* (ADR-300 user decision 1 — a SideNav without `selectedRoute` marks the shown path.) */}
+      <CatalogCurrentRouteContext.Provider value={session.path}>
+        <Fragment key={`${rootKey(root)}:${record}`}>
+          {renderCatalogDom(root, record, { slotMode: "page", runtime })}
+        </Fragment>
+      </CatalogCurrentRouteContext.Provider>
     </RouterProvider>
   );
 }

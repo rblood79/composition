@@ -59,7 +59,7 @@ export function RacSlotScope({
  * what it was given goes over the rendered element's own: a style merges (a RAC style function
  * keeps its values), a handler runs after the element's.
  */
-function overScopeProps(
+export function overScopeProps(
   element: ReactElement,
   given: Readonly<Record<string, unknown>>,
 ): Record<string, unknown> {

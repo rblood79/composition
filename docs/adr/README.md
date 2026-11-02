@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-11-02 ADR-300 Phase 2 닫힘 (G2 · G4)** — Preview DOM: 설치 RAC `NavigationTree` 부품으로 SideNav · SideNavPanel 을 그린다 (`sideNav.components.tsx` — lazy chunk, 사용자 결정 5: eager 배선이 Builder 1,411,819 로 상한 초과 → 분리 뒤 1,409,737). 결정 1 = 세션 경로가 `selectedRoute` 기본값 · 결정 2 = DOM 이 S2 동작 (Panel 폭 200 ms · 행 · 머리 view transition). G2 구조 대조 3 arm · 키보드 · 접기/펴기 live PASS. 배포 workflow 에 ADR-201 절대 상한 단계 추가 (G4 a). Builder 여유 263 B. 열림 · 합계 변화 없음.
+
 > **2026-11-02 ADR-300 Phase 1 닫힘 (G1)** — 문서 · catalog: SideNav 7 type (binding 한 파일 `SideNav.binding.ts` · entry · traits · nesting · rule 7 · 생성 CSS 6) · origin 3 (`component-sidenavpanel` · `-sidenav` · `-sidenavitem` — 팔레트 밖, Phase 4 사용자 결정 3) · contract 54 · Decision 3 다섯 층 (조건 키 `isCollapsed` · `isCurrent` → `:is([data-side-panel-collapsed], [data-side-panel-collapsed] *)` · `catalogSideNavDerived` · `catalogSideNavHidden` · `catalogSideNavDependents`). 사용자 결정 4 = 권고 (자유 내용 + grid 칸). D2 확장 0 (`d2S2Alignment` PASS · 원복 RED) · G1 단위 9 (원복 RED). 열림 · 합계 변화 없음.
 
 > **2026-11-02 ADR-300 Accepted · Phase 0 닫힘** (사용자 `/execute-adr 300` — 리뷰 round 2 HIGH 0 · pending 0). G0: Tree 선례 production 등록 15 지점 · Decision 3 다섯 층 (① `isCollapsed` 조건 키 없음 → 새로 · ② 조상 선택자는 `inPopover` 와 같은 기구 · ③ 조상 context = `_inGroup` 파생 선례 (ADR-281 Provider 값과 분리) · ④ 숨김 = presence → 엔진 `display: none` · ⑤ Panel 변경 dependents 없음 → 새로) · 설치 RAC `NavigationTree` 기준 DOM (펼침 · 빈 펼침 키 arm — 접혀도 `data-current-ancestor` 유지) · 번들 기준선 Builder 1,406,043 · Preview 322,341 (여유 3,957 · 2,659 — Builder 여유도 Δ 상한보다 작다). 299 코드가 main 에 들어가 worktree 없이 진행. 열림 2 — Proposed 1 (245 보류) · Accepted 1 (300), 완료 319, 합계 321.

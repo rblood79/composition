@@ -85,6 +85,33 @@ jobs:
           VITE_FEATURE_FILL_V2: "true"
           # VITE_CANVAS_COMPARE_MODE: 프로덕션에서는 기본값 false 사용 (디버그 전용)
 
+      # ADR-300 G4 (a) — ADR-201 initial 번들 절대 상한 (재승인 절의 현재 값). 넘은 main 은 배포하지
+      # 않는다. Δ (before/after) 는 실행자가 push 전에 `adr201-bundle-gate.mjs` 로 잰다 (before 빌드가
+      # 필요해 여기서 돌리지 않는다).
+      - name: Initial bundle ceiling (ADR-201)
+        env:
+          BUILDER_CEILING: "1410000"
+          PREVIEW_CEILING: "325000"
+        run: |
+          node apps/builder/scripts/adr209-bundle-closure.mjs --repo . --dist apps/builder/dist --entry index.html --label builder --out /tmp/bundle-builder.json
+          node apps/builder/scripts/adr209-bundle-closure.mjs --repo . --dist apps/builder/dist --entry preview.html --label preview --out /tmp/bundle-preview.json
+          node -e '
+            const read = (f) => JSON.parse(require("fs").readFileSync(f, "utf8")).initial.js.gzipBytes;
+            const rows = [
+              ["builder", read("/tmp/bundle-builder.json"), Number(process.env.BUILDER_CEILING)],
+              ["preview", read("/tmp/bundle-preview.json"), Number(process.env.PREVIEW_CEILING)],
+            ];
+            let over = false;
+            for (const [label, bytes, ceiling] of rows) {
+              console.log(`${label}: initial JS gzip ${bytes} / ceiling ${ceiling}`);
+              if (!(bytes <= ceiling)) {
+                over = true;
+                console.log(`::error::${label} initial bundle ${bytes} B > ${ceiling} B (ADR-201)`);
+              }
+            }
+            process.exit(over ? 1 : 0);
+          '
+
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
         with:

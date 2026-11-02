@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RichText의 첫 줄 baseline은 측정한 첫 줄에서만 계산하고, 폭 변경 후 줄바꿈 측정의 baseline도 엔진 입력에 전달한다. 뒤쪽 줄의 큰 글자가 첫 줄 정렬을 바꾸지 않는다.
 - Canvas 장식선 두께를 Chrome의 device pixel 내림 처리와 맞췄다. G2는 실제 Preview의 transform 확대 방식과 절대 오차 0.5px 기준을 사용하며, 첫 편집 진입 시간을 production 빌드에서 기록했다.
 
+## [SideNav 가족 — ADR-300 Phase 2 (Preview DOM)] - 2026-11-02
+
+### Added
+
+- **SideNav · SideNavPanel 을 Preview · Publish 에서 그린다** — RAC `NavigationTree` 그대로 (화살표 이동 · 펼침 · 링크 Enter 이동 · 링크 없는 부모 행 Enter 펼침). 현재 경로 행은 굵게 + 막대, `selectedRoute` 를 비우면 보고 있는 page 경로를 쓴다. 접기 버튼은 S2 처럼 아이콘 줄 (폭 42) 로 접고, 접힌 동안 하위 행은 닫힌다 (펼친 키는 남아 다시 펴면 돌아온다). 애니메이션은 S2 값 (패널 폭 200 ms · 행 펼침 view transition, 움직임 줄이기 설정이면 끔). Canvas 그리기 · 팔레트 노출은 다음 Phase.
+  - 첫 화면 번들: SideNav DOM 부품은 처음 쓰일 때 받는 chunk (Builder initial 상한 안 — 1,409,737 / 1,410,000).
+  - 배포: GitHub Actions 배포가 build 뒤 initial 번들 상한 (ADR-201) 을 넘으면 실패한다.
+  - 위치: [docs/adr/300-sidenav-navigation-tree.md](adr/300-sidenav-navigation-tree.md)
+
 ## [SideNav 가족 — ADR-300 Phase 0 · 1 (문서 · catalog · contract 54)] - 2026-11-02
 
 ### Changed

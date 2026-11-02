@@ -30,11 +30,19 @@
 }
 
 
+/* ── Tier 2: Composite Delegation ── */
+
+
 @media (forced-colors: active) {
   .react-aria-SideNavSection {
     forced-color-adjust: auto;
   }
 }
+
+
+  .react-aria-SideNavSection {
+    gap: 0;
+  }
 
 
 } /* @layer components */

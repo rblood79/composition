@@ -41,6 +41,13 @@ import {
 } from "react";
 
 import * as RAC from "react-aria-components";
+import { catalogSideNavPart } from "./sideNav.lazy";
+import {
+  catalogSideNavChevronGlyphItem,
+  catalogSideNavChevronItem,
+  catalogSideNavRowItemOf,
+  catalogSideNavTextOwner,
+} from "./sideNav";
 
 import { Heading, Label, Text } from "react-aria-components";
 import { TableLoadMoreItem } from "react-aria-components/Table";
@@ -1114,6 +1121,21 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       RAC.TreeItemContent as ElementType,
       { key: node.id },
       ...children,
+    ),
+  // ADR-300 Phase 2: the SideNav row's parts — RAC `NavigationTreeItemContent` (no element), RAC
+  // `Link` in the row's `LinkContext`, RAC `NavigationTreeHeader` (`sideNav.components.tsx`).
+  //   (In the lazy chunk its SideNav loaded — `sideNav.lazy.ts`.)
+  sidenavitemcontent: (node, _style, children) =>
+    catalogSideNavPart((parts) =>
+      parts.catalogSideNavItemContent(node.id, children),
+    ),
+  sidenavitemlink: (node, style, children) =>
+    catalogSideNavPart((parts) =>
+      parts.catalogSideNavItemLink(node.id, style, children),
+    ),
+  sidenavheader: (node, style, children) =>
+    catalogSideNavPart((parts) =>
+      parts.catalogSideNavHeader(node.id, style, children),
     ),
   // (A Select · ComboBox draws its node tree — `delegatedDom` `select` · `combobox`, ADR-256 Phase
   // 6c · 6d.)
@@ -3427,6 +3449,10 @@ export function renderNode(
                 context.runtime!.handlersOf(recordId),
             }
           : {}),
+        styleOf: (recordId: string) => {
+          const record = root.domInputs.get(recordId);
+          return record ? authoredStyle(root, record) : {};
+        },
         ...(context.runtime?.setRuntimeProps
           ? {
               setRuntimeProps: (
@@ -3648,6 +3674,26 @@ export function renderNode(
     )
   )
     bound.color = "inherit";
+  // ADR-300 — a SideNav row's · header's Text takes its owner's type and color (S2 `treeCellGrid`:
+  // `font: ui`, `neutral-subdued`, the current row `neutral` bold — the rules' `& .react-aria-Text`):
+  // RAC marks the current row at run time (`data-current` — a navigation moves it), so the Text's
+  // resting values do not go inline.
+  if (
+    bound &&
+    node.bindingId === "text" &&
+    catalogSideNavTextOwner(
+      node,
+      (id) => root.domInputs.get(id),
+      (entry) => catalogTypeName(root, entry),
+    )
+  ) {
+    const authored = catalogAuthoredVisual(root, node);
+    for (const key of ["color", "fontSize", "fontWeight", "lineHeight"])
+      if (authored[key] === undefined) delete bound[key as keyof CSSProperties];
+    // (A collapsed panel hides it — the panel rule's `display: none`; an inline box display would
+    //  beat that.)
+    if (node.authoredLayout?.display === undefined) delete bound.display;
+  }
   // The repeat templates RAC draws per day · date · segment (Decision 13) are RAC's `th` · cell ·
   // segment: their display is the element's (a table cell, the sheet's) unless the document wrote
   // one — the box default `flex` made every weekday `th` a flex box (G5 example 15: the grid 380
@@ -3754,7 +3800,11 @@ export function renderNode(
       : node.bindingId === "button" &&
           catalogTreeChevronButtonItem(node, domGet, domType)
         ? treeChevronSheetBox(root, node, domGet, domType)
-        : undefined;
+        : // (A SideNav row's chevron: the `SideNavItem` rule's sheet box — ADR-300.)
+          node.bindingId === "button" &&
+            catalogSideNavChevronItem(node, domGet, domType)
+          ? authoredStyle(root, node)
+          : undefined;
   // Its glyph takes the button's color (`all: unset` inherits the row's — selected, disabled), so
   // the Canvas resting color (the item's, `derivedOf`) does not go inline.
   // (A Disclosure trigger's chevron takes the trigger's color — hover included — the same way.)
@@ -3765,7 +3815,9 @@ export function renderNode(
       // (A calendar nav Button's chevron takes the Button's `--fg` — ADR-256 Phase 9.)
       catalogCalendarNavButtonGlyph(node, domGet, domType) ||
       // (A Tag's remove X takes the Tag's color through its button — `TagGroup.css`.)
-      catalogItemRemoveGlyphItem(node, domGet, domType))
+      catalogItemRemoveGlyphItem(node, domGet, domType) ||
+      // (A SideNav row's chevron glyph takes the row's — the `SideNavItem` rule's button.)
+      catalogSideNavChevronGlyphItem(node, domGet, domType))
       ? {
           ...node,
           visual: withTokenRefs(
@@ -3778,7 +3830,9 @@ export function renderNode(
   const toggleColored =
     node.bindingId === "icon" &&
     !catalogHasAuthoredColor(root, node) &&
-    catalogToggleButtonGlyphOwner(node, domGet, domType)
+    (catalogToggleButtonGlyphOwner(node, domGet, domType) ||
+      // (ADR-300 — a SideNav row's icon is S2's `currentColor`: the row's, current included.)
+      catalogSideNavRowItemOf(node, domGet, domType))
       ? withInheritedIconColor(node)
       : undefined;
   const rendered = helpOwner

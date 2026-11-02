@@ -15880,9 +15880,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       "& .react-aria-SideNavHeader%": {
         display: { isCollapsed: "none" },
       },
-      // S2 `treeCellGrid` `paddingEnd: { default: 4, isCollapsed: 0 }`.
-      "& .react-aria-SideNavItem > [role=gridcell]%": {
+      // S2 `treeCellGrid` `paddingEnd: { default: 4, isCollapsed: 0 }` (the DOM row is the cell — RAC's
+      //   gridcell is `display: contents`) · `treeIcon` `marginEnd: { isCollapsed: 0 }`.
+      "& .react-aria-SideNavItem%": {
         paddingInlineEnd: { isCollapsed: "0px" },
+      },
+      "& .react-aria-SideNavItem .react-aria-Icon%": {
+        marginInlineEnd: { isCollapsed: "0px" },
       },
     },
     defaultVariant: "default",
@@ -15977,13 +15981,53 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       composition: {
         delegation: [],
         rootSelectors: {
-          "&": { styles: { "user-select": "none", outline: "none" } },
+          // RAC draws every row as a sibling (`role=row`) — the row margins below are the spacing,
+          //   so the column gap (the Canvas's nested items) stays off in the DOM.
+          "&": { styles: { "user-select": "none", outline: "none", gap: "0" } },
         },
+        // S2 `SideNav.module.css` — the rows' · headers' view transitions (user decision 2: the DOM
+        //   runs S2's motion; `sideNav.components.tsx` names the transition types and classes).
+        externalStyles: [
+          {
+            selector:
+              "::view-transition-group(.side-nav-item), ::view-transition-group(.side-nav-header)",
+            styles: {
+              "animation-duration": "200ms",
+              "animation-timing-function": "cubic-bezier(0.45, 0, 0.4, 1)",
+            },
+          },
+          {
+            selector:
+              "::view-transition-old(.side-nav-item), ::view-transition-new(.side-nav-item), ::view-transition-old(.side-nav-header), ::view-transition-new(.side-nav-header)",
+            styles: { width: "100%", height: "100%" },
+          },
+          {
+            selector:
+              ":root:active-view-transition-type(side-panel-expand, side-nav-item-collapse, side-nav-item-expand)::view-transition-old(root)",
+            styles: { animation: "none", opacity: "0" },
+          },
+          {
+            selector:
+              ":root:active-view-transition-type(side-panel-expand, side-nav-item-collapse, side-nav-item-expand)::view-transition-new(root)",
+            styles: { animation: "none", "mix-blend-mode": "normal" },
+          },
+          {
+            // (A header comes back from `display: none` on expand — its fade waits for the rows.)
+            selector:
+              ":root:active-view-transition-type(side-panel-expand)::view-transition-new(.side-nav-header)",
+            styles: {
+              "animation-duration": "100ms",
+              "animation-delay": "100ms",
+            },
+          },
+        ],
         staticSelectors: {
           // RAC draws every row as a sibling (`role=row`): S2 `marginTop: space(6)`, the first 0.
           ".react-aria-SideNavItem:not(:first-child)": { "margin-top": "6px" },
           // S2 `SideNavSection`: `marginTop: 24` from the second on.
-          ".react-aria-SideNavSection:not(:first-child)": { "margin-top": "24px" },
+          ".react-aria-SideNavSection:not(:first-child)": {
+            "margin-top": "24px",
+          },
         },
       },
     },
@@ -16050,12 +16094,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             styles: {
               position: "relative",
               display: "flex",
+              // (RAC's gridcell is `display: contents` — the row is S2's `treeCellGrid` line: 12 + level
+              //   indent before, 4 after, items centered.)
+              "flex-direction": "row",
+              "align-items": "center",
+              // (The column gap is the Canvas's item column — the DOM row's parts are S2's grid line.)
+              gap: "0",
+              "padding-inline-start":
+                "calc(12px + (var(--tree-item-level, 1) - 1) * 16px)",
+              "padding-inline-end": "4px",
               "min-height": "32px",
               width: "100%",
               "box-sizing": "border-box",
-              "border-radius": "var(--catalog-token-radius-sm)",
-              "font-size": "var(--catalog-token-text-sm)",
-              color: "var(--fg-muted)",
+              // (Its color · font size are the paint tree's and the size's — a resting color here
+              //   came after the tree in the sheet and beat the current row's.)
               outline: "none",
               cursor: "default",
             },
@@ -16075,20 +16127,47 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "border-radius": "9999px",
             },
           },
-          // The row content (RAC `NavigationTreeItemContent` has no element — its gridcell): S2
-          //   `treeCellGrid` — 12 + level indent before, 4 after, items centered.
-          "& > [role=gridcell]": {
+          // The row's nodes (S2 `treeIcon` · `treeContent` · `expandButton`) — RAC's gridcell is
+          //   `display: contents`, so they are the row's flex items (the Canvas's SideNavItemContent row).
+          "& > [role=gridcell] > .react-aria-Icon": {
+            styles: { "flex-shrink": "0", "margin-inline-end": "8px" },
+          },
+          // (Its label takes the row's type and color — S2 `treeCellGrid` · `font: ui`; the Text sheet's
+          //   own color · size would win over the inheritance.)
+          "& .react-aria-Text": {
             styles: {
-              display: "flex",
-              "align-items": "center",
-              width: "100%",
-              "min-height": "100%",
-              "box-sizing": "border-box",
-              "padding-inline-start":
-                "calc(12px + (var(--tree-item-level, 1) - 1) * 16px)",
-              "padding-inline-end": "4px",
+              color: "inherit",
+              "font-size": "inherit",
+              "font-weight": "inherit",
+              "line-height": "inherit",
             },
           },
+          "& > [role=gridcell] > .react-aria-SideNavItemLink": {
+            styles: { "flex-grow": "1", "min-width": "0px" },
+          },
+          "& > [role=gridcell] > .react-aria-Text": {
+            styles: { "flex-grow": "1", "min-width": "0px" },
+          },
+          // S2 `expandButton`: 32 × 32, no button paint (the Tree chevron's `all: unset`), the glyph in
+          //   the row's color; hidden on an item without child items (its box stays — S2
+          //   `visibility: hidden`), turned 90° on an expanded item.
+          '& > [role=gridcell] > .react-aria-Button[slot="chevron"]': {
+            styles: {
+              all: "unset",
+              display: "flex",
+              "align-items": "center",
+              "justify-content": "center",
+              width: "32px",
+              height: "32px",
+              "flex-shrink": "0",
+              color: "inherit",
+              cursor: "default",
+            },
+          },
+          '&:not([data-has-child-items]) > [role=gridcell] > .react-aria-Button[slot="chevron"]':
+            { styles: { visibility: "hidden" } },
+          '&[data-expanded] > [role=gridcell] > .react-aria-Button[slot="chevron"] .react-aria-Icon':
+            { styles: { transform: "rotate(90deg)" } },
         },
       },
     },
@@ -16112,22 +16191,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingLeft: "12px",
         paddingRight: "4px",
       },
-      composition: {
-        delegation: [],
-        staticSelectors: {
-          // S2 `treeIcon`: `marginEnd: text-to-visual` (0 collapsed — the gap goes with the hidden text).
-          "> .react-aria-Icon": { "flex-shrink": "0", "margin-inline-end": "8px" },
-          // S2 `treeContent`: the text takes the rest (`1fr`), `minWidth: 0`.
-          "> .react-aria-Text": { "flex-grow": "1", "min-width": "0px" },
-          "> .react-aria-SideNavItemLink": { "flex-grow": "1", "min-width": "0px" },
-          // S2 `expandButton`: 32 × 32.
-          '> .react-aria-Button[slot="chevron"]': {
-            width: "32px",
-            height: "32px",
-            "flex-shrink": "0",
-          },
-        },
-      },
+      // (Its DOM is RAC's gridcell — the row's nodes are placed by the `SideNavItem` rule.)
+      composition: { delegation: [] },
     },
   },
   SideNavItemLink: {
@@ -16159,7 +16224,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         staticSelectors: {
-          "> .react-aria-Icon": { "flex-shrink": "0", "margin-inline-end": "8px" },
+          "> .react-aria-Icon": {
+            "flex-shrink": "0",
+            "margin-inline-end": "8px",
+          },
           "> .react-aria-Text": { "flex-grow": "1", "min-width": "0px" },
         },
       },
@@ -16174,6 +16242,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       archetype: "container",
       element: "div",
       containerStyles: { display: "flex", flexDirection: "column", gap: "6px" },
+      composition: {
+        delegation: [],
+        // RAC's rowgroup holds the header and the rows as siblings — the rows' margins (the SideNav
+        //   rule) are the DOM spacing, the column gap the Canvas's.
+        rootSelectors: { "&": { styles: { gap: "0" } } },
+      },
     },
   },
   SideNavHeader: {
@@ -16186,8 +16260,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      // S2: `font: ui-sm` · `fontWeight: medium` · `height: 16` · `marginBottom: 8` (−6 the column gap).
-      M: { height: scaled(16), fontSize: "{typography.text-xs}", fontWeight: 500 },
+      // S2: `font: ui-sm` · `fontWeight: medium` · `height: 16` · `marginBottom: 8` (the first row's
+      //   own 6 follows — S2 rows `marginTop: space(6)` but the first child; the header is first).
+      M: {
+        height: scaled(16),
+        fontSize: "{typography.text-xs}",
+        fontWeight: 500,
+      },
     },
     structure: {
       archetype: "container",
@@ -16196,12 +16275,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "flex",
         alignItems: "center",
         paddingLeft: "12px",
-        marginBottom: "2px",
+        marginBottom: "8px",
       },
       composition: {
         delegation: [],
         rootSelectors: {
-          "&": { styles: { "margin-bottom": "8px", position: "relative" } },
+          "&": { styles: { position: "relative" } },
+          // (Its text is its Text child — S2's header type and color.)
+          "& .react-aria-Text": {
+            styles: {
+              color: "inherit",
+              "font-size": "inherit",
+              "font-weight": "inherit",
+              "line-height": "inherit",
+            },
+          },
         },
       },
     },

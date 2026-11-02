@@ -75,12 +75,14 @@
   .react-aria-SideNavItem {
     position: relative;
     display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+    padding-inline-start: calc(12px + (var(--tree-item-level, 1) - 1) * 16px);
+    padding-inline-end: 4px;
     min-height: 32px;
     width: 100%;
     box-sizing: border-box;
-    border-radius: var(--catalog-token-radius-sm);
-    font-size: var(--catalog-token-text-sm);
-    color: var(--fg-muted);
     outline: none;
     cursor: default;
   }
@@ -97,14 +99,46 @@
     border-radius: 9999px;
   }
 
-  .react-aria-SideNavItem > [role=gridcell] {
+  .react-aria-SideNavItem > [role=gridcell] > .react-aria-Icon {
+    flex-shrink: 0;
+    margin-inline-end: 8px;
+  }
+
+  .react-aria-SideNavItem .react-aria-Text {
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+  }
+
+  .react-aria-SideNavItem > [role=gridcell] > .react-aria-SideNavItemLink {
+    flex-grow: 1;
+    min-width: 0px;
+  }
+
+  .react-aria-SideNavItem > [role=gridcell] > .react-aria-Text {
+    flex-grow: 1;
+    min-width: 0px;
+  }
+
+  .react-aria-SideNavItem > [role=gridcell] > .react-aria-Button[slot="chevron"] {
+    all: unset;
     display: flex;
     align-items: center;
-    width: 100%;
-    min-height: 100%;
-    box-sizing: border-box;
-    padding-inline-start: calc(12px + (var(--tree-item-level, 1) - 1) * 16px);
-    padding-inline-end: 4px;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    color: inherit;
+    cursor: default;
+  }
+
+  .react-aria-SideNavItem:not([data-has-child-items]) > [role=gridcell] > .react-aria-Button[slot="chevron"] {
+    visibility: hidden;
+  }
+
+  .react-aria-SideNavItem[data-expanded] > [role=gridcell] > .react-aria-Button[slot="chevron"] .react-aria-Icon {
+    transform: rotate(90deg);
   }
 
 

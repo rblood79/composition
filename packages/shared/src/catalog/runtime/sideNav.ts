@@ -165,7 +165,56 @@ export function catalogSideNavItemLevel(
   return level;
 }
 
-/** The item whose row `node` sits in (its SideNavItemContent, through a link). */
+/**
+ * The item whose row `node` sits in (its SideNavItemContent, through a link) — its Text and Icon
+ * take the row's type and color (S2 `treeCellGrid` — the current row bold, `currentColor` glyphs).
+ */
+export function catalogSideNavRowItemOf(
+  node: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
+): CatalogConsumerNode | undefined {
+  return rowItemOf(node, get, typeOf);
+}
+
+/**
+ * The SideNav part whose type and color a Text takes: its row's item, or the SideNavHeader it is in
+ * (S2 draws the label · header text itself — `font: ui` / `ui-sm`, the row's current color).
+ */
+export function catalogSideNavTextOwner(
+  node: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
+): CatalogConsumerNode | undefined {
+  const row = rowItemOf(node, get, typeOf);
+  if (row) return row;
+  const parent = get(node.parentId);
+  return parent && typeOf(parent) === "SideNavHeader" ? parent : undefined;
+}
+
+/** The item whose chevron `node` is: a `Button[slot=chevron]` in its row (RAC's expand button). */
+export function catalogSideNavChevronItem(
+  node: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
+): CatalogConsumerNode | undefined {
+  return typeOf(node) === "Button" && node.props.slot === "chevron"
+    ? rowItemOf(node, get, typeOf)
+    : undefined;
+}
+
+/** The item whose chevron glyph `node` is (the Icon in its chevron Button). */
+export function catalogSideNavChevronGlyphItem(
+  node: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
+): CatalogConsumerNode | undefined {
+  const button = get(node.parentId);
+  return typeOf(node) === "Icon" && button
+    ? catalogSideNavChevronItem(button, get, typeOf)
+    : undefined;
+}
+
 function rowItemOf(
   node: CatalogConsumerNode,
   get: Lookup,

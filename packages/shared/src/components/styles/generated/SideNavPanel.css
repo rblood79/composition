@@ -51,8 +51,12 @@
   display: none;
 }
 
-.react-aria-SideNavPanel.react-aria-SideNavPanel .react-aria-SideNavItem > [role=gridcell]:where(:is([data-side-panel-collapsed], [data-side-panel-collapsed] *)) {
+.react-aria-SideNavPanel.react-aria-SideNavPanel .react-aria-SideNavItem:where(:is([data-side-panel-collapsed], [data-side-panel-collapsed] *)) {
   padding-inline-end: 0px;
+}
+
+.react-aria-SideNavPanel.react-aria-SideNavPanel .react-aria-SideNavItem .react-aria-Icon:where(:is([data-side-panel-collapsed], [data-side-panel-collapsed] *)) {
+  margin-inline-end: 0px;
 }
 
 /* ── Tier 2: Composite Delegation ── */

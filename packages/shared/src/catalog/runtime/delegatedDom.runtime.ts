@@ -8,6 +8,17 @@ import {
 import { CatalogWaterfallGrid } from "./waterfall.components";
 import { catalogWaterfallLayout } from "./waterfall";
 import { catalogItemLinkProps } from "../document/itemLinks";
+import type {
+  CatalogSideNavEntry,
+  CatalogSideNavItemEntry,
+} from "./sideNav.components";
+import { catalogSideNavLazy } from "./sideNav.lazy";
+import {
+  catalogSideNavCollapsed,
+  catalogSideNavItemExpanded,
+  catalogSideNavPanelCollapsed,
+  catalogSideNavStoredKeys,
+} from "./sideNav";
 import { catalogDeviceValueCss } from "./deviceTypography";
 
 import {
@@ -284,6 +295,11 @@ export interface DelegatedDomInput {
   readonly handlersOf?: (
     recordId: string,
   ) => Readonly<Record<string, (...args: unknown[]) => void>>;
+  /**
+   * The authored inline style of a record this binding draws itself (a SideNav's RAC items ·
+   * sections — the DOM pass never sees them).
+   */
+  readonly styleOf?: (recordId: string) => CSSProperties;
 }
 
 /**
@@ -795,6 +811,81 @@ function treeRowDeviceStyle(
 ): { style: CSSProperties } | Record<string, never> {
   const minHeight = catalogDeviceValueCss(item.visual, "minHeight");
   return minHeight ? { style: { minHeight } } : {};
+}
+
+/** Every SideNavItem · SideNavSection record a SideNav draws (nested ones included). */
+function sideNavPartIds(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): string[] {
+  return childrenOf(root, node).flatMap((child) => {
+    const type = catalogTypeName(root, child);
+    return type === "SideNavItem" || type === "SideNavSection"
+      ? [child.id, ...sideNavPartIds(root, child)]
+      : [];
+  });
+}
+
+/** ADR-300 — the RAC tree of a SideNav's item · section records (`sideNav.components.tsx` draws it). */
+function sideNavEntries(
+  input: DelegatedDomInput,
+  list: readonly CatalogConsumerNode[],
+): CatalogSideNavEntry[] {
+  return list.flatMap((record): CatalogSideNavEntry[] => {
+    const type = catalogTypeName(input.root, record);
+    if (type === "SideNavItem") return [sideNavItemEntry(input, record)];
+    if (type !== "SideNavSection") return [];
+    const kids = childrenOf(input.root, record);
+    return [
+      {
+        kind: "section",
+        id: record.id,
+        attributes: { "data-catalog-id": record.id },
+        style: input.styleOf?.(record.id),
+        label: opt(record.props["aria-label"]),
+        header: kids
+          .filter((kid) => catalogTypeName(input.root, kid) === "SideNavHeader")
+          .map((kid) => input.renderChild(kid.id)),
+        items: kids
+          .filter((kid) => catalogTypeName(input.root, kid) === "SideNavItem")
+          .map((kid) => sideNavItemEntry(input, kid)),
+      },
+    ];
+  });
+}
+
+function sideNavItemEntry(
+  input: DelegatedDomInput,
+  item: CatalogConsumerNode,
+): CatalogSideNavItemEntry {
+  const kids = childrenOf(input.root, item);
+  const childItems = kids.filter(
+    (kid) => catalogTypeName(input.root, kid) === "SideNavItem",
+  );
+  const rule = input.root.runtime.graph.library.rules.get("SideNavItem");
+  return {
+    kind: "item",
+    id: item.id,
+    itemKey: resolveStaticItemKey(
+      item.props as Record<string, unknown>,
+      item.id,
+    ),
+    attributes: {
+      "data-catalog-id": item.id,
+      "data-size": str(item.props.size ?? rule?.defaultSize ?? "M"),
+      "data-variant": str(item.props.variant ?? rule?.defaultVariant ?? "default"),
+    },
+    style: input.styleOf?.(item.id),
+    textValue: str(item.props.textValue),
+    isDisabled: item.props.isDisabled === true,
+    hasChildItems: childItems.length > 0 || item.props.hasChildItems === true,
+    link: catalogItemLinkProps(item.props),
+    handlers: input.handlersOf?.(item.id),
+    content: kids
+      .filter((kid) => catalogTypeName(input.root, kid) !== "SideNavItem")
+      .map((kid) => input.renderChild(kid.id)),
+    childItems: childItems.map((kid) => sideNavItemEntry(input, kid)),
+  };
 }
 
 function treeItemElements(
@@ -2055,6 +2146,80 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         },
         ...treeItemElements(input, [input.node]),
       ),
+  },
+  // ADR-300 Phase 2 — S2 `SideNavPanel`: its collapse is the record's runtime value in a running
+  // Preview (RAC/S2 `onCollapsedChange`); the panel draws its children (the SideNav · the collapse
+  // Button) in its context.
+  sidenavpanel: {
+    render: (input) => {
+      const { key, ...marked } = marker(input);
+      const attributes = { ...marked, ...chrome(input, "SideNavPanel") };
+      // (Lazy — Decision 7: its own box, empty, until the chunk is there.)
+      return catalogSideNavLazy(
+        key,
+        createElement("div", { ...attributes, style: input.style }),
+        ({ CatalogSideNavPanel }) =>
+          createElement(CatalogSideNavPanel, {
+        attributes,
+        style: input.style,
+        label: opt(input.node.props["aria-label"]),
+        isCollapsed: runtimeState(input, "isCollapsed") === true,
+        ...(input.setRuntimeProps
+          ? {
+              setCollapsed: (next: boolean) =>
+                input.setRuntimeProps!(input.node.id, { isCollapsed: next }),
+            }
+          : {}),
+        children: renderAll(input),
+          }),
+      );
+    },
+  },
+  // ADR-300 Phase 2 — S2 `SideNav` = RAC `NavigationTree`: its items · sections are drawn here (RAC
+  // collection elements), their own nodes (the row content · the header) by the DOM pass. A closed
+  // item's child items are not rendered (RAC), nor in a collapsed panel (Decision 4).
+  sidenav: {
+    watchesChildren: (node, root) => sideNavPartIds(root, node),
+    ownsDescendant: (node, _ancestor, root) => {
+      const parent = root.domInputs.get(node.parentId);
+      const get = (id: string) => root.domInputs.get(id);
+      const typeOf = (entry: CatalogConsumerNode) =>
+        catalogTypeName(root, entry);
+      return (
+        !!parent &&
+        typeOf(node) === "SideNavItem" &&
+        typeOf(parent) === "SideNavItem" &&
+        !catalogSideNavItemExpanded(parent, get, typeOf)
+      );
+    },
+    render: (input) => {
+      const props = input.node.props;
+      const { key, ...marked } = marker(input);
+      const attributes = { ...marked, ...chrome(input, "SideNav") };
+      const get = (id: string) => input.root.domInputs.get(id);
+      const typeOf = (entry: CatalogConsumerNode) =>
+        catalogTypeName(input.root, entry);
+      return catalogSideNavLazy(
+        key,
+        createElement("div", { ...attributes, style: input.style }),
+        ({ CatalogSideNav }) =>
+          createElement(CatalogSideNav, {
+        attributes,
+        style: input.style,
+        label: str(props["aria-label"] || "Navigation"),
+        selectedRoute: opt(props.selectedRoute),
+        expandedKeys: treeKeys(runtimeState(input, "expandedKeys")),
+        ...(input.setRuntimeProps
+          ? {
+              setExpandedKeys: (keys: string[]) =>
+                input.setRuntimeProps!(input.node.id, { expandedKeys: keys }),
+            }
+          : {}),
+        collapsedByDocument: catalogSideNavCollapsed(input.node, get, typeOf),
+        entries: sideNavEntries(input, children(input)),
+          }),
+      );
+    },
   },
   filetrigger: {
     render: (input) => {
@@ -3601,6 +3766,11 @@ export function catalogStateSourceValue(
         : [];
     case "isExpanded":
       return Boolean(props.isExpanded ?? true);
+    // ADR-300 — S2 `SideNavPanel` starts from `isCollapsed`, `defaultCollapsed` while unset.
+    case "isCollapsed":
+      return type === "SideNavPanel"
+        ? catalogSideNavPanelCollapsed(node)
+        : props.isCollapsed;
     case "isSelected":
       return Boolean(props.isSelected);
     case "value": {

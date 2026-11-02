@@ -45,8 +45,14 @@
 
 
   .react-aria-SideNavHeader {
-    margin-bottom: 8px;
     position: relative;
+  }
+
+  .react-aria-SideNavHeader .react-aria-Text {
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
   }
 
 
