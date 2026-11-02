@@ -22,6 +22,7 @@ import {
   resolveToken,
   scaled,
   scaledLengthRef,
+  tokenToCSSVar,
 } from "@composition/rendering";
 
 /**
@@ -410,8 +411,8 @@ interface ButtonPaintSpec {
   /** outline 테두리 — 휴지 · hover/pressed. */
   readonly outlineBorder: readonly [string, string];
   /**
-   * fill 테두리 (없으면 바탕과 같은 값 — S2 fill 테두리 폭 0). secondary 는 바탕이 S2 `gray-100` 이 아니라
-   * `layer-1` 이라 테두리로 경계를 지킨다 (확정 8 건 밖 — 그대로).
+   * fill 테두리 색 (없으면 바탕과 같은 값). S2 fill 폭은 0이고, 저작 borderWidth가 있으면 이 색을 쓴다.
+   * secondary 는 `layer-1` 바탕에 대응하는 기존 border 색을 유지한다.
    */
   readonly fillBorder?: readonly [string, string];
   /** S2 static 가지 — primary · secondary 의 overlay 단, none = 가지 없음 (premium · genai 는 `gradientButtonPaint`). */
@@ -635,6 +636,101 @@ const BUTTON_VARIANTS = {
   premium: gradientButtonPaint(S2_GRADIENT.premium),
   genai: gradientButtonPaint(S2_GRADIENT.genai),
 };
+
+/** S2 Button.tsx: fill 0 · outline 2; gradient/field buttons have no border. */
+function buttonBoxValue<T extends string | number>(fill: T, outline: T) {
+  return {
+    default: fill,
+    fillStyle: { outline },
+    variant: { premium: fill, genai: fill },
+    fieldButton: Object.fromEntries(
+      Object.keys(FIELD_BUTTON_CORNERS).map((size) => [size, fill]),
+    ),
+  };
+}
+const BUTTON_BORDER_WIDTH = buttonBoxValue("0px", "2px");
+const BUTTON_SIZES = {
+  XS: {
+    fontSize: "{typography.text-2xs}",
+    lineHeight: "{typography.text-2xs--line-height}",
+    fontWeight: 500,
+    borderRadius: "{radius.full}",
+    borderWidth: "{border.width.none}",
+    height: 0,
+    minHeight: "{size.height.XS}",
+    iconSize: "{typography.text-2xs--line-height}",
+    paddingX: ofHeight(1, 2),
+    paddingY: 3,
+    gap: TEXT_TO_VISUAL,
+    iconGap: TEXT_TO_VISUAL,
+  },
+  S: {
+    fontSize: "{typography.text-xs}",
+    lineHeight: "{typography.text-xs--line-height}",
+    fontWeight: 500,
+    borderRadius: "{radius.full}",
+    borderWidth: "{border.width.none}",
+    height: 0,
+    minHeight: "{size.height.S}",
+    iconSize: "{typography.text-xs--line-height}",
+    paddingX: ofHeight(1, 2),
+    paddingY: 4,
+    gap: TEXT_TO_VISUAL,
+    iconGap: TEXT_TO_VISUAL,
+  },
+  M: {
+    fontSize: "{typography.text-sm}",
+    lineHeight: "{typography.text-sm--line-height}",
+    fontWeight: 500,
+    borderRadius: "{radius.full}",
+    borderWidth: "{border.width.none}",
+    height: 0,
+    minHeight: "{size.height.M}",
+    iconSize: "{typography.text-sm--line-height}",
+    paddingX: ofHeight(1, 2),
+    paddingY: 7,
+    gap: TEXT_TO_VISUAL,
+    iconGap: TEXT_TO_VISUAL,
+  },
+  L: {
+    fontSize: "{typography.text-base}",
+    lineHeight: "{typography.text-base--line-height}",
+    fontWeight: 500,
+    borderRadius: "{radius.full}",
+    borderWidth: "{border.width.none}",
+    height: 0,
+    minHeight: "{size.height.L}",
+    iconSize: "{typography.text-base--line-height}",
+    paddingX: ofHeight(1, 2),
+    paddingY: 10,
+    gap: TEXT_TO_VISUAL,
+    iconGap: TEXT_TO_VISUAL,
+  },
+  XL: {
+    fontSize: "{typography.text-lg}",
+    lineHeight: "{typography.text-lg--line-height}",
+    fontWeight: 500,
+    borderRadius: "{radius.full}",
+    borderWidth: "{border.width.none}",
+    height: 0,
+    minHeight: "{size.height.XL}",
+    iconSize: "{typography.text-lg--line-height}",
+    paddingX: ofHeight(1, 2),
+    paddingY: 13,
+    gap: TEXT_TO_VISUAL,
+    iconGap: TEXT_TO_VISUAL,
+  },
+} as const;
+// CSS and the typed definition use the same border tree to preserve the control height.
+const BUTTON_PADDING_BLOCK = (() => {
+  const sizes = Object.fromEntries(
+    Object.entries(BUTTON_SIZES).map(([name, size]) => [
+      name,
+      `calc((${tokenToCSSVar(size.minHeight)} - ${tokenToCSSVar(size.fontSize)} * ${tokenToCSSVar(size.lineHeight)} - 2 * var(--catalog-button-border-width)) / 2)`,
+    ]),
+  );
+  return { default: sizes.M, size: sizes };
+})();
 
 export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   // ADR-256 Phase 6g — Autocomplete: RAC Autocomplete has no element (its children sit in its
@@ -1818,84 +1914,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     containerVariants: { "field-button": FIELD_BUTTON_CORNER_VARIANTS },
     // iconSize = 그 크기 글자의 행간 (ADR-295 Phase 3c — S2 Button 아이콘 `size: '1lh'`: desktop 14 · 16 · 18 · 20 · 22 는
     //   S2 아이콘 단과 같고, 터치는 글자 15 · 17 · 19 · 22 의 행간 18 · 22 · 24 · 26 — × 1.25 가 아니다).
-    sizes: {
-      XS: {
-        fontSize: "{typography.text-2xs}",
-        lineHeight: "{typography.text-2xs--line-height}",
-        fontWeight: 500,
-        borderRadius: "{radius.full}",
-        borderWidth: "{border.width.thin}",
-        height: 0,
-        minHeight: "{size.height.XS}",
-        iconSize: "{typography.text-2xs--line-height}",
-        paddingX: ofHeight(1, 2),
-        paddingY: 2,
-        gap: TEXT_TO_VISUAL,
-        iconGap: TEXT_TO_VISUAL,
-      },
-      S: {
-        fontSize: "{typography.text-xs}",
-        lineHeight: "{typography.text-xs--line-height}",
-        fontWeight: 500,
-        borderRadius: "{radius.full}",
-        borderWidth: "{border.width.thin}",
-        height: 0,
-        minHeight: "{size.height.S}",
-        iconSize: "{typography.text-xs--line-height}",
-        paddingX: ofHeight(1, 2),
-        paddingY: 3,
-        gap: TEXT_TO_VISUAL,
-        iconGap: TEXT_TO_VISUAL,
-      },
-      M: {
-        fontSize: "{typography.text-sm}",
-        lineHeight: "{typography.text-sm--line-height}",
-        fontWeight: 500,
-        borderRadius: "{radius.full}",
-        borderWidth: "{border.width.thin}",
-        height: 0,
-        minHeight: "{size.height.M}",
-        iconSize: "{typography.text-sm--line-height}",
-        paddingX: ofHeight(1, 2),
-        paddingY: 6,
-        gap: TEXT_TO_VISUAL,
-        iconGap: TEXT_TO_VISUAL,
-      },
-      L: {
-        fontSize: "{typography.text-base}",
-        lineHeight: "{typography.text-base--line-height}",
-        fontWeight: 500,
-        borderRadius: "{radius.full}",
-        borderWidth: "{border.width.thin}",
-        height: 0,
-        minHeight: "{size.height.L}",
-        iconSize: "{typography.text-base--line-height}",
-        paddingX: ofHeight(1, 2),
-        paddingY: 9,
-        gap: TEXT_TO_VISUAL,
-        iconGap: TEXT_TO_VISUAL,
-      },
-      XL: {
-        fontSize: "{typography.text-lg}",
-        lineHeight: "{typography.text-lg--line-height}",
-        fontWeight: 500,
-        borderRadius: "{radius.full}",
-        borderWidth: "{border.width.thin}",
-        height: 0,
-        minHeight: "{size.height.XL}",
-        iconSize: "{typography.text-lg--line-height}",
-        paddingX: ofHeight(1, 2),
-        paddingY: 12,
-        gap: TEXT_TO_VISUAL,
-        iconGap: TEXT_TO_VISUAL,
-      },
-    },
+    sizes: BUTTON_SIZES,
     structure: {
       archetype: "button",
       element: "button",
       containerStyles: BUTTON_INLINE_ROOT_BOX,
       stateStyles: {
         ...FIELD_BUTTON_CORNER_STATE,
+        borderWidth: BUTTON_BORDER_WIDTH,
+        "--catalog-button-border-width": BUTTON_BORDER_WIDTH,
+        paddingTop: BUTTON_PADDING_BLOCK,
+        paddingBottom: BUTTON_PADDING_BLOCK,
         ...FOCUS_RING_STATE,
         transform: { isPressed: "scale(0.95)" },
         ...BUTTON_DISABLED_STATE,

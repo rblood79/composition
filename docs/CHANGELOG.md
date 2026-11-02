@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Button outline 두께 정합성 — S2 borderWidth] - 2026-11-02
+
+### Fixed
+
+- **Button의 outline 테두리를 S2 기준 2px로 수정**: fill은 0px, premium·genai 및 field 소유 버튼은 0px을 사용한다. 테두리 두께에 맞춰 세로 padding을 계산해 크기별 높이와 글자 중심을 Canvas·Preview에서 유지한다. 사용자가 지정한 border·padding은 우선한다.
+  - **Why**: 모든 fillStyle에 1px 크기 토큰을 적용하고 조건별 두께를 빠뜨렸다. catalog 조건 트리를 생성 CSS와 typed definition이 함께 읽도록 수정했다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`, `packages/shared/src/catalog/document/codeCatalogLibrary.ts`
+
 ## [Hook 억제 원인 수리 — 편집기 설정·Table 요청·단축키 구독] - 2026-11-02
 
 ### Fixed

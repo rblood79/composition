@@ -382,6 +382,26 @@ function buttonDefinition(
           }
         }
   }
+  // Compile the same border tree as CSS; the inset depends on that border width.
+  const boxAt = (size: string, conditions: ConditionSet): VisualValues => {
+    const border = evaluateConditionTree(
+      rule.structure?.stateStyles?.borderWidth,
+      conditions,
+    );
+    const borderWidth = Number.parseFloat(String(border));
+    if (!Number.isFinite(borderWidth))
+      throw new Error("CODE_CATALOG_BUTTON_BORDER_UNSUPPORTED");
+    return {
+      borderWidth,
+      paddingY: s2ControlPaddingY({ ...rule.sizes[size], borderWidth }),
+    };
+  };
+  for (const variant of Object.keys(variants))
+    for (const fillStyle of ["fill", "outline"])
+      for (const size of Object.keys(sizes)) {
+        const when = { variant, fillStyle, size };
+        conditionalRules.push({ when, visual: boxAt(size, when) });
+      }
   // S2 Button is a pill (`sizes` `{radius.full}`); a field's own button keeps its size's corner —
   // the rule's `containerVariants["field-button"]` (the DOM's `[data-field-button]` blocks), turned
   // on by the derived `fieldButton` (`catalogDerivedRestVisual` — never an authored prop).
@@ -413,6 +433,12 @@ function buttonDefinition(
       },
     });
   }
+  for (const fieldSize of Object.keys(fieldButton ?? {}))
+    for (const size of Object.keys(sizes))
+      conditionalRules.push({
+        when: { fieldButton: fieldSize, size },
+        visual: boxAt(size, { fieldButton: fieldSize, size }),
+      });
   const defaults: Record<string, string> = {
     variant: rule.defaultVariant ?? "primary",
     size: rule.defaultSize ?? "M",

@@ -33,12 +33,12 @@
   border-color: var(--fg);
 
   /* Default size */
-  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-button-padding-x-M, calc(var(--catalog-token-size-height-M) * 1 / 2));
+  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-button-padding-x-M, calc(var(--catalog-token-size-height-M) * 1 / 2));
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-full);
   line-height: var(--catalog-token-text-sm--line-height);
   font-weight: 500;
-  border-width: var(--border-width-thin);
+  border-width: var(--border-width-none);
   min-height: var(--catalog-token-size-height-M);
   gap: var(--catalog-token-button-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-button-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
@@ -773,12 +773,12 @@
 }
 
 .react-aria-Button[data-size="XS"] {
-  padding: calc((var(--catalog-token-size-height-XS) - var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-button-padding-x-XS, calc(var(--catalog-token-size-height-XS) * 1 / 2));
+  padding: calc((var(--catalog-token-size-height-XS) - var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-button-padding-x-XS, calc(var(--catalog-token-size-height-XS) * 1 / 2));
   font-size: var(--catalog-token-text-2xs);
   border-radius: var(--catalog-token-radius-full);
   line-height: var(--catalog-token-text-2xs--line-height);
   font-weight: 500;
-  border-width: var(--border-width-thin);
+  border-width: var(--border-width-none);
   min-height: var(--catalog-token-size-height-XS);
   gap: var(--catalog-token-button-gap-XS, calc(var(--catalog-token-text-2xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-button-icon-size-XS, calc(var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height)));
@@ -786,12 +786,12 @@
 }
 
 .react-aria-Button[data-size="S"] {
-  padding: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-button-padding-x-S, calc(var(--catalog-token-size-height-S) * 1 / 2));
+  padding: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-button-padding-x-S, calc(var(--catalog-token-size-height-S) * 1 / 2));
   font-size: var(--catalog-token-text-xs);
   border-radius: var(--catalog-token-radius-full);
   line-height: var(--catalog-token-text-xs--line-height);
   font-weight: 500;
-  border-width: var(--border-width-thin);
+  border-width: var(--border-width-none);
   min-height: var(--catalog-token-size-height-S);
   gap: var(--catalog-token-button-gap-S, calc(var(--catalog-token-text-xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-button-icon-size-S, calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)));
@@ -799,12 +799,12 @@
 }
 
 .react-aria-Button[data-size="M"] {
-  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-button-padding-x-M, calc(var(--catalog-token-size-height-M) * 1 / 2));
+  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-button-padding-x-M, calc(var(--catalog-token-size-height-M) * 1 / 2));
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-full);
   line-height: var(--catalog-token-text-sm--line-height);
   font-weight: 500;
-  border-width: var(--border-width-thin);
+  border-width: var(--border-width-none);
   min-height: var(--catalog-token-size-height-M);
   gap: var(--catalog-token-button-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-button-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
@@ -812,12 +812,12 @@
 }
 
 .react-aria-Button[data-size="L"] {
-  padding: calc((var(--catalog-token-size-height-L) - var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-button-padding-x-L, calc(var(--catalog-token-size-height-L) * 1 / 2));
+  padding: calc((var(--catalog-token-size-height-L) - var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-button-padding-x-L, calc(var(--catalog-token-size-height-L) * 1 / 2));
   font-size: var(--catalog-token-text-base);
   border-radius: var(--catalog-token-radius-full);
   line-height: var(--catalog-token-text-base--line-height);
   font-weight: 500;
-  border-width: var(--border-width-thin);
+  border-width: var(--border-width-none);
   min-height: var(--catalog-token-size-height-L);
   gap: var(--catalog-token-button-gap-L, calc(var(--catalog-token-text-base) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-button-icon-size-L, calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)));
@@ -825,12 +825,12 @@
 }
 
 .react-aria-Button[data-size="XL"] {
-  padding: calc((var(--catalog-token-size-height-XL) - var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-button-padding-x-XL, calc(var(--catalog-token-size-height-XL) * 1 / 2));
+  padding: calc((var(--catalog-token-size-height-XL) - var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-button-padding-x-XL, calc(var(--catalog-token-size-height-XL) * 1 / 2));
   font-size: var(--catalog-token-text-lg);
   border-radius: var(--catalog-token-radius-full);
   line-height: var(--catalog-token-text-lg--line-height);
   font-weight: 500;
-  border-width: var(--border-width-thin);
+  border-width: var(--border-width-none);
   min-height: var(--catalog-token-size-height-XL);
   gap: var(--catalog-token-button-gap-XL, calc(var(--catalog-token-text-lg) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-button-icon-size-XL, calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)));
@@ -839,31 +839,149 @@
 
 .react-aria-Button.react-aria-Button:where([data-field-button="XS"]) {
   border-radius: var(--catalog-token-radius-sm);
-  border-width: 0;
 }
 
 .react-aria-Button.react-aria-Button:where([data-field-button="S"]) {
   border-radius: 7px;
-  border-width: 0;
 }
 
 .react-aria-Button.react-aria-Button:where([data-field-button="M"]) {
   border-radius: 8px;
-  border-width: 0;
 }
 
 .react-aria-Button.react-aria-Button:where([data-field-button="L"]) {
   border-radius: 9px;
-  border-width: 0;
 }
 
 .react-aria-Button.react-aria-Button:where([data-field-button="XL"]) {
   border-radius: 10px;
-  border-width: 0;
+}
+
+.react-aria-Button.react-aria-Button {
+  border-width: 0px;
+}
+
+.react-aria-Button.react-aria-Button:where([data-fill-style="outline"]) {
+  border-width: 2px;
+}
+
+.react-aria-Button.react-aria-Button:where([data-variant="premium"]) {
+  border-width: 0px;
+}
+
+.react-aria-Button.react-aria-Button:where([data-variant="genai"]) {
+  border-width: 0px;
+}
+
+.react-aria-Button.react-aria-Button:where([data-field-button="XS"]) {
+  border-width: 0px;
+}
+
+.react-aria-Button.react-aria-Button:where([data-field-button="S"]) {
+  border-width: 0px;
+}
+
+.react-aria-Button.react-aria-Button:where([data-field-button="M"]) {
+  border-width: 0px;
+}
+
+.react-aria-Button.react-aria-Button:where([data-field-button="L"]) {
+  border-width: 0px;
+}
+
+.react-aria-Button.react-aria-Button:where([data-field-button="XL"]) {
+  border-width: 0px;
+}
+
+.react-aria-Button.react-aria-Button {
+  --catalog-button-border-width: 0px;
+}
+
+.react-aria-Button.react-aria-Button:where([data-fill-style="outline"]) {
+  --catalog-button-border-width: 2px;
+}
+
+.react-aria-Button.react-aria-Button:where([data-variant="premium"]) {
+  --catalog-button-border-width: 0px;
+}
+
+.react-aria-Button.react-aria-Button:where([data-variant="genai"]) {
+  --catalog-button-border-width: 0px;
+}
+
+.react-aria-Button.react-aria-Button:where([data-field-button="XS"]) {
+  --catalog-button-border-width: 0px;
+}
+
+.react-aria-Button.react-aria-Button:where([data-field-button="S"]) {
+  --catalog-button-border-width: 0px;
+}
+
+.react-aria-Button.react-aria-Button:where([data-field-button="M"]) {
+  --catalog-button-border-width: 0px;
+}
+
+.react-aria-Button.react-aria-Button:where([data-field-button="L"]) {
+  --catalog-button-border-width: 0px;
+}
+
+.react-aria-Button.react-aria-Button:where([data-field-button="XL"]) {
+  --catalog-button-border-width: 0px;
+}
+
+.react-aria-Button.react-aria-Button {
+  padding-top: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--catalog-button-border-width)) / 2);
+}
+
+.react-aria-Button.react-aria-Button:where([data-size="XS"]) {
+  padding-top: calc((var(--catalog-token-size-height-XS) - var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height) - 2 * var(--catalog-button-border-width)) / 2);
+}
+
+.react-aria-Button.react-aria-Button:where([data-size="S"]) {
+  padding-top: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--catalog-button-border-width)) / 2);
+}
+
+.react-aria-Button.react-aria-Button:where([data-size="M"]) {
+  padding-top: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--catalog-button-border-width)) / 2);
+}
+
+.react-aria-Button.react-aria-Button:where([data-size="L"]) {
+  padding-top: calc((var(--catalog-token-size-height-L) - var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height) - 2 * var(--catalog-button-border-width)) / 2);
+}
+
+.react-aria-Button.react-aria-Button:where([data-size="XL"]) {
+  padding-top: calc((var(--catalog-token-size-height-XL) - var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height) - 2 * var(--catalog-button-border-width)) / 2);
+}
+
+.react-aria-Button.react-aria-Button {
+  padding-bottom: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--catalog-button-border-width)) / 2);
+}
+
+.react-aria-Button.react-aria-Button:where([data-size="XS"]) {
+  padding-bottom: calc((var(--catalog-token-size-height-XS) - var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height) - 2 * var(--catalog-button-border-width)) / 2);
+}
+
+.react-aria-Button.react-aria-Button:where([data-size="S"]) {
+  padding-bottom: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--catalog-button-border-width)) / 2);
+}
+
+.react-aria-Button.react-aria-Button:where([data-size="M"]) {
+  padding-bottom: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--catalog-button-border-width)) / 2);
+}
+
+.react-aria-Button.react-aria-Button:where([data-size="L"]) {
+  padding-bottom: calc((var(--catalog-token-size-height-L) - var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height) - 2 * var(--catalog-button-border-width)) / 2);
+}
+
+.react-aria-Button.react-aria-Button:where([data-size="XL"]) {
+  padding-bottom: calc((var(--catalog-token-size-height-XL) - var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height) - 2 * var(--catalog-button-border-width)) / 2);
 }
 
 .react-aria-Button.react-aria-Button:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
+}
+
+.react-aria-Button.react-aria-Button:where([data-focus-visible]) {
   outline-offset: var(--focus-ring-offset);
 }
 
@@ -873,6 +991,9 @@
 
 .react-aria-Button.react-aria-Button:where([data-disabled]) {
   cursor: not-allowed;
+}
+
+.react-aria-Button.react-aria-Button:where([data-disabled]) {
   pointer-events: none;
 }
 

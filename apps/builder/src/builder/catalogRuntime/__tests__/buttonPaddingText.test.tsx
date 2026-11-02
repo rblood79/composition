@@ -100,11 +100,12 @@ describe("Canvas Button label — the authored padding sides", () => {
   it("padding 4 on every side: the label keeps the box's inset and width (no spill)", async () => {
     const { workspace, boxes } = await open();
     const rest = boxes();
-    // The rule's M padding (S2 `pill` 32 / 2 = 16 — ADR-295 Phase 3c-3) plus the 1px border until the
-    // document writes sides.
-    const border = 1;
+    // S2 fill has no border; the M pill keeps 16px horizontal padding.
+    const border = 0;
     expect(rest.text.x - rest.box.x).toBe(16 + border);
-    expect(rest.text.width).toBeLessThanOrEqual(rest.box.width - 32 - border * 2);
+    expect(rest.text.width).toBeLessThanOrEqual(
+      rest.box.width - 32 - border * 2,
+    );
     workspace.execute(
       setFields({
         targets: [{ kind: "node", id: BUTTON }],
@@ -125,4 +126,64 @@ describe("Canvas Button label — the authored padding sides", () => {
       padded.box.x + padded.box.width - 4 - border,
     );
   });
+});
+
+describe("Button fillStyle border and control height", () => {
+  it.each(["primary", "secondary", "accent", "negative", "premium", "genai"])(
+    "%s keeps its control height while fillStyle changes border and padding",
+    async (variant) => {
+      const { workspace, boxes } = await open();
+      try {
+        for (const [size, height] of Object.entries({
+          XS: 20,
+          S: 24,
+          M: 32,
+          L: 40,
+          XL: 48,
+        })) {
+          for (const fillStyle of ["fill", "outline", "fill"]) {
+            workspace.execute(
+              setFields({
+                targets: [{ kind: "node", id: BUTTON }],
+                props: {
+                  variant: set(variant),
+                  size: set(size),
+                  fillStyle: set(fillStyle),
+                },
+              }),
+            );
+            const border =
+              fillStyle === "outline" &&
+              variant !== "premium" &&
+              variant !== "genai"
+                ? 2
+                : 0;
+            const [id] = workspace.root.recordsOfSource(BUTTON);
+            expect(
+              workspace.root.canvasInputs.get(id)!.visual.borderWidth,
+            ).toBe(border);
+            const { box, text } = boxes();
+            expect(box.height).toBeCloseTo(height, 4);
+            expect(text.y + text.height / 2).toBeCloseTo(
+              box.y + box.height / 2,
+              4,
+            );
+            expect(text.x - box.x).toBeCloseTo(height / 2 + border, 4);
+          }
+        }
+        workspace.execute(
+          setFields({
+            targets: [{ kind: "node", id: BUTTON }],
+            props: { fillStyle: set("outline") },
+            visual: { borderWidth: set(4), paddingTop: set(5) },
+          }),
+        );
+        const [id] = workspace.root.recordsOfSource(BUTTON);
+        expect(workspace.root.canvasInputs.get(id)!.visual.borderWidth).toBe(4);
+        expect(workspace.root.canvasInputs.get(id)!.visual.paddingTop).toBe(5);
+      } finally {
+        workspace.dispose();
+      }
+    },
+  );
 });

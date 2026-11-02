@@ -12,6 +12,8 @@ paths:
 
 # CSS 토큰 규칙 — S2 + React Aria Hybrid Naming (ADR-022)
 
+- Button의 `fillStyle`별 border 폭과 그 폭을 뺀 control padding은 같은 catalog 조건 트리에서 파생한다. DOM에는 저작한 border 제거만 인라인으로 쓴다. **Why (2026-11-02)**: 크기별 thin 토큰 고정으로 outline이 2px 대신 1px이었고, 파생된 fill 0px을 인라인으로 쓰면 quiet Select의 CSS 밑줄을 덮는다 (Builder 21조건 Canvas·Preview 두께/크기 및 reload 일치, 인접 field 회귀 통과).
+
 > **SSOT 체인 연계**: CSS는 [ssot-hierarchy.md](ssot-hierarchy.md) **D3(시각 스타일)의 direct consumer** — 모든 컴포넌트가 catalog rule → `generate-css.ts` 경유 (Frame/Group/Slot 포함 — spec 파일은 ADR-248 에서 삭제, CSS 는 catalog rule 을 `generate-css.ts` 가 `renderers/CSSGenerator.ts` 로 생성; [ADR-142](../../docs/adr/completed/142-starter-spec-component-system-cutover.md) Implemented, ADR-036 Superseded). Skia consumer와 **대등(symmetric)**. 수동 CSS가 SSOT(catalog)에서 파생 아닌 경우 D3 위반 (ADR-059 로 해체 완료 — Implemented 2026-04-15). `@sync` 주석으로 CSS↔CSS 참조는 consumer-to-consumer 금지 패턴.
 
 ## 시맨틱 변수 네이밍 규칙

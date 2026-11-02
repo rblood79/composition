@@ -3663,8 +3663,13 @@ export function renderNode(
         partField.bindingId === "select" ||
         partField.bindingId === "searchfield") &&
       partField.props.isDisabled === true;
-    // (The sheet gives every Button a border: one the document removes is written out.)
-    if (Number(node.visual.borderWidth) === 0) bound.borderWidth = 0;
+    // The sheet owns fill/outline and field borders; only an authored removal goes inline.
+    // A derived fill border of 0 must not erase a quiet Select's CSS underline.
+    if (
+      Number(node.visual.borderWidth) === 0 &&
+      catalogAuthoredVisual(root, node, true).borderWidth !== undefined
+    )
+      bound.borderWidth = 0;
     // A SearchField's sheet hides its clear button (its own child — G5 example 5) while the input
     // is empty (`[data-empty]`, RAC's run state): that Button's display stays the sheet's.
     if (partField?.bindingId === "searchfield") delete bound.display;

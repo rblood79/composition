@@ -189,9 +189,9 @@ describe("S2 Button shape — a pill; a field's own button keeps its corner", ()
     },
   );
 
-  it("a Button outside a field keeps the rule's 1px border (Canvas)", async () => {
+  it("a filled Button outside a field has no border (S2)", async () => {
     const { borders } = await open("Button", "M");
-    expect(borders).toEqual([1]);
+    expect(borders).toEqual([0]);
   });
 
   // The Popover component's trigger (2026-10-30 — 사용자 「popover 컴포넌트의 클릭하는 버튼
