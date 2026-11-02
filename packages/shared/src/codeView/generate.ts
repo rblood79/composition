@@ -19,6 +19,8 @@
  * Markup is the document's node tree (types as RAC components, scalar props); styles are not code.
  * The slots (`CodeViewSlot`) record the 1:1 positions an edit maps back to.
  */
+import { isRichText } from "../catalog/document/textRuns";
+import type { RichText } from "../catalog/document/types";
 import { catalogActionsDeep } from "../catalog/document/interactionActions";
 import { getPrimitiveBinding } from "../catalog/bindings";
 import { parseDateValue, type DateValueKind } from "../state/dateValue";
@@ -2804,7 +2806,7 @@ class Generator {
         target: { kind: "attribute", nodeId: node.id, name, source },
       });
     };
-    let text: string | undefined;
+    let text: string | RichText | undefined;
     // ADR-294 Decision 6 — a user component instance's properties by their names (`role={…}`), a
     // variable property's reference as the variable (`role={roleFilter}`).
     const properties = new Map(
@@ -2817,7 +2819,10 @@ class Generator {
       // (ADR-287 — a prop a rule's implicit state holds is that state: its start is this value.)
       if (this.ruleStates.has(`${node.id}\u0000${prop}`)) continue;
       const value = write.value as AuthoredValue;
-      if (prop === "children" && typeof value === "string") {
+      if (
+        prop === "children" &&
+        (typeof value === "string" || isRichText(value))
+      ) {
         text = value;
         continue;
       }
@@ -3027,12 +3032,12 @@ class Generator {
         // (A keyed binding — one row: its text and the descendants read its fields.)
         if (text !== undefined && !children.length) {
           out.write(">");
-          text$(this.textCode(text, rows));
+          text$(this.childrenCode(text, rows));
           out.write(`</${tag}>`);
         } else {
           out.write(">").end().in();
           if (text !== undefined)
-            out.anchorLine(this.textCode(text, rows), {
+            out.anchorLine(this.childrenCode(text, rows), {
               kind: "text",
               nodeId: node.id,
             });
@@ -3076,12 +3081,12 @@ class Generator {
     else {
       out.write(">");
       if (text !== undefined && !children.length && !slots.length && !head)
-        text$(this.textCode(text, row));
+        text$(this.childrenCode(text, row));
       else {
         out.end().in();
         head?.(out);
         if (text !== undefined)
-          out.anchorLine(this.textCode(text, row), {
+          out.anchorLine(this.childrenCode(text, row), {
             kind: "text",
             nodeId: node.id,
           });
@@ -3135,6 +3140,33 @@ class Generator {
       : undefined;
     const keyCode = variable ? variable.name : literal(binding.key);
     return `${rows}.find(row => row.id === ${keyCode})`;
+  }
+
+  /**
+   * ADR-299 Decision 6 — a text node's `children`: plain text, or its runs with the marked ones as
+   * `<span style={{…}}>` (the style object's keys are the range keys; a token is `token('<name>')`).
+   */
+  private childrenCode(
+    text: string | RichText,
+    row: string | undefined,
+  ): string {
+    if (typeof text === "string") return this.textCode(text, row);
+    return text.runs
+      .map((run) => {
+        const inner = this.textCode(run.text, row);
+        if (!run.marks) return inner;
+        const style = Object.entries(run.marks)
+          .map(([key, value]) => {
+            const code = this.propCode(value as AuthoredValue, row);
+            return code === undefined
+              ? undefined
+              : `${key}: ${code.replace(/^\{([\s\S]*)\}$/, "$1")}`;
+          })
+          .filter((entry): entry is string => entry !== undefined)
+          .join(", ");
+        return `<span style={{ ${style} }}>${inner}</span>`;
+      })
+      .join("");
   }
 
   private textCode(text: string, row: string | undefined): string {

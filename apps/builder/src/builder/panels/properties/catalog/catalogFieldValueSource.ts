@@ -1,3 +1,7 @@
+import {
+  isRichText,
+  richTextPlain,
+} from "../../../../../../../packages/shared/src/catalog/document/textRuns";
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import type { FieldOrigin } from "@composition/shared";
 import type { EditTarget } from "../../../../../../../packages/shared/src/catalog/document/types";
@@ -43,7 +47,14 @@ const readValue = (
 ) =>
   key === BINDING_KEY
     ? readModel.bindingValue(target)
-    : readModel.propSource(target, key).value;
+    : plainText(readModel.propSource(target, key).value);
+/**
+ * ADR-299 — a range-formatted text shows as its plain text in a Properties text field (a string
+ * written from there replaces the runs — Decision 6 「문자열 쓰기 = 서식 초기화」; ranges are the
+ * editor's and the Typography section's).
+ */
+const plainText = (value: unknown) =>
+  isRichText(value) ? richTextPlain(value) : value;
 const subscribeValue = (
   readModel: ReturnType<typeof useCatalogWorkspace>["readModel"],
   target: EditTarget,

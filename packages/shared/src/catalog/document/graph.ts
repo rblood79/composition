@@ -1,3 +1,4 @@
+import { isRichText, RICH_TEXT_HOST_TYPES } from "./textRuns";
 import { catalogColorControlPropsError } from "./colorValue";
 import { catalogActionsDeep } from "./interactionActions";
 import { isDateValueText } from "../../state/dateValue";
@@ -1443,6 +1444,7 @@ export class CatalogGraph {
         entry.id,
         () => forkOriginAccepts(entry.id),
         stateProps,
+        RICH_TEXT_HOST_TYPES.has(found.name.split("/")[0]),
       );
       this.validatePropChoices(entry.props, definition, get, entry.id, () =>
         forkOriginAccepts(entry.id),
@@ -1500,6 +1502,9 @@ export class CatalogGraph {
               withoutInputValues(override.props, foundTarget, entry.id),
               targetDef.accepts,
               entry.id,
+              undefined,
+              undefined,
+              RICH_TEXT_HOST_TYPES.has(foundTarget.name.split("/")[0]),
             );
           if (override.props)
             this.validatePropChoices(override.props, targetDef, get, entry.id);
@@ -1786,6 +1791,8 @@ export class CatalogGraph {
     bindingAccepts?: () => Readonly<Record<string, string>> | undefined,
     /** ADR-284 Phase 6 — RAC state props a variable may drive (`PropVar`) without `accepts`. */
     stateProps?: ReadonlySet<string>,
+    /** ADR-299 — the written node is a text node (`RICH_TEXT_HOST_TYPES`): its `children` may be runs. */
+    richTextHost = false,
   ): void {
     for (const [key, write] of Object.entries(props)) {
       const type = accepts[key];
@@ -1798,6 +1805,14 @@ export class CatalogGraph {
         continue;
       if (!type)
         throw new CatalogValidationError("PROP_NOT_ACCEPTED", `${at}.${key}`);
+      // ADR-299 Decision 1 — range-formatted text is a text node's own `children` only (a parent
+      // prop's text — `label` · `title` · `placeholder` — stays a string).
+      if (
+        write.kind === "set" &&
+        isRichText(write.value) &&
+        (key !== "children" || !richTextHost)
+      )
+        throw new CatalogValidationError("RICH_TEXT_NOT_ALLOWED", `${at}.${key}`);
       if (write.kind === "set" && !propValueMatches(write.value, type)) {
         // (One binding of the origin's prop of the same type — the library template rule.)
         const bound =

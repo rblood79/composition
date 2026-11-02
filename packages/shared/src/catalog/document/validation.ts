@@ -1,9 +1,11 @@
+import { isNormalRichText, isTextRunMarkKey } from "./textRuns";
 import {
   CATALOG_FORMAT,
   CATALOG_SCHEMA_VERSION,
   LIBRARY_CONTRACT_VERSION,
   type CatalogDocument,
   type CatalogEntry,
+  type RichText,
   CATALOG_PRESENT_WHEN,
   CATALOG_STATE_KEYS,
   CATALOG_TOAST_PLACEMENTS,
@@ -713,6 +715,11 @@ function authoredValue(
     return;
   }
   const ref = object(value, at);
+  // ADR-299 — range-formatted text (a prop's value only — never a visual, a variable or a condition).
+  if (ref.kind === "text") {
+    if (!allowStructured) invalid("SCALAR_REQUIRED", at);
+    return richText(ref, at);
+  }
   if (ref.kind === "when") return propWhen(ref, at);
   if (ref.kind === "var") {
     exact(ref, ["kind", "ref"], at);
@@ -728,6 +735,45 @@ function authoredValue(
     !(ref.tokenId as string).startsWith("project:token:")
   )
     invalid("TOKEN_ID_REQUIRED", at);
+}
+/**
+ * ADR-299 — a `RichText`: runs of non-empty text, marks only the range keys (`TEXT_RUN_MARK_KEYS`)
+ * with a visual value's forms (a literal the visual field takes · a token), and already in normal
+ * form (no token split by a run boundary, no empty run, no mergeable neighbours, at least one
+ * marked run — a text without marks is stored as its string).
+ */
+function richText(node: Record<string, unknown>, at: string): void {
+  exact(node, ["kind", "runs"], at);
+  if (!Array.isArray(node.runs) || node.runs.length === 0)
+    invalid("RICH_TEXT_RUNS_REQUIRED", `${at}.runs`);
+  (node.runs as unknown[]).forEach((raw, index) => {
+    const runAt = `${at}.runs[${index}]`;
+    const run = object(raw, runAt);
+    exact(run, ["text", "marks"], runAt);
+    if (typeof run.text !== "string" || run.text.length === 0)
+      invalid("RICH_TEXT_EMPTY_RUN", `${runAt}.text`);
+    if (run.marks === undefined) return;
+    const marks = object(run.marks, `${runAt}.marks`);
+    for (const [key, item] of Object.entries(marks)) {
+      if (!isTextRunMarkKey(key))
+        invalid("UNKNOWN_FIELD", `${runAt}.marks.${key}`);
+      authoredValue(item, `${runAt}.marks.${key}`);
+      visualLiteral(key, item, `${runAt}.marks.${key}`);
+      // (A literal mark is the CSS value's form — a weight · size number or text, a style ·
+      //  decoration · color text; a token reference is checked above.)
+      if (
+        typeof item !== "object" &&
+        !(
+          typeof item === "string" ||
+          (typeof item === "number" &&
+            (key === "fontWeight" || key === "fontSize"))
+        )
+      )
+        invalid("VISUAL_VALUE_TYPE", `${runAt}.marks.${key}`);
+    }
+  });
+  if (!isNormalRichText(node as unknown as RichText))
+    invalid("RICH_TEXT_NOT_NORMAL", at);
 }
 /**
  * ADR-284 Phase 6 — a prop's value condition: a variable subject (`!var.<id>[.path]`), a closed

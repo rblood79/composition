@@ -1,4 +1,6 @@
 import {
+  lazy,
+  Suspense,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -7,12 +9,37 @@ import {
   type CSSProperties,
 } from "react";
 import {
+  isRichText,
+  richTextPlain,
+  RICH_TEXT_HOST_TYPES,
+  type TextRunMarkKey,
+} from "../../../../../../../packages/shared/src/catalog/document/textRuns";
+import type {
+  RichText,
+  TokenUse,
+} from "../../../../../../../packages/shared/src/catalog/document/types";
+import { catalogTokenValue } from "../../../../../../../packages/shared/src/catalog/document/themedToken";
+import { TEXT_EDIT_SCOPE_ATTR } from "../../../catalogRuntime/textEditorHandle";
+import {
   catalogBoundTextCommand,
   catalogTextCommand,
   catalogTextKey,
   catalogTextOf,
+  catalogTextValueOf,
   committedWhiteSpace,
 } from "../../../catalogRuntime/canvasText";
+
+/**
+ * ADR-299 Decision 4 — the editor's input chunk (ProseMirror), loaded when an edit starts: the
+ * initial bundle carries none of it (G1). Until it arrives the field is the plain textarea.
+ */
+let editorLoaded = false;
+const loadEditorField = () =>
+  import("./textEditor/EditorField").then((module) => {
+    editorLoaded = true;
+    return module;
+  });
+const EditorField = lazy(loadEditorField);
 import type { CatalogSelectionItem } from "../../../catalogRuntime/session";
 import { catalogTextBinding } from "../../../catalogRuntime/textBinding";
 import { catalogPropertyTextTarget } from "../../../catalogRuntime/componentProperties";
@@ -78,28 +105,40 @@ function TextField({
           )
         : undefined;
     const target = binding && workspace.itemOfRecord(binding.source.id)?.target;
+    const bound =
+      binding && target
+        ? { target, prop: binding.prop }
+        : // ADR-261 Decision 4: a component's text property — the edit sets the instance's value.
+          key
+          ? catalogPropertyTextTarget(workspace.runtime.graph, item.target, key)
+          : undefined;
     return {
       record,
       key,
-      bound:
-        binding && target
-          ? { target, prop: binding.prop }
-          : // ADR-261 Decision 4: a component's text property — the edit sets the instance's value.
-            key
-            ? catalogPropertyTextTarget(
-                workspace.runtime.graph,
-                item.target,
-                key,
-              )
-            : undefined,
+      bound,
       // (A bound text shows the prop's value: the position draws it as resolved.)
       text: key && record ? catalogTextOf(record, key) : "",
+      // ADR-299 — the written value (runs of a range-formatted text) and whether the edit may
+      // write runs: a text node's own `children` (a bound or a parent prop's text stays a string).
+      value: key && record ? catalogTextValueOf(record, key) : "",
+      rich:
+        key === "children" &&
+        !binding &&
+        !bound &&
+        !!record &&
+        RICH_TEXT_HOST_TYPES.has(workspace.root.typeOf(record)),
     };
   });
   const fieldRef = useRef<HTMLTextAreaElement>(null);
   const committed = useRef(false);
+  /** The fallback textarea's selection once keys went there (the editor opens with it). */
+  const typedSelection = useRef<{ from: number; to: number } | undefined>(
+    undefined,
+  );
   /** The typed text — still readable when the field unmounts (the edit ended elsewhere). */
-  const draft = useRef(start.text);
+  const draft = useRef<string | RichText>(
+    start.rich ? start.value : start.text,
+  );
   // The field sits on the record's text box — the content box Skia draws the text in (a Button's
   // label inside its padding, one line high), not the whole element (user 2026-10-20). Without a
   // Skia text node (not drawn yet) the element box stands in.
@@ -123,7 +162,7 @@ function TextField({
    */
   const [contentSize, setContentSize] = useState({ width: 0, height: 0 });
   /** The text's own size: a field already taller (wider) would report its own size. */
-  const measure = (field: HTMLTextAreaElement, unwrapped: boolean) => {
+  const measure = (field: HTMLElement, unwrapped: boolean) => {
     const { height, width } = field.style;
     field.style.height = "0px";
     if (unwrapped) field.style.width = "0px";
@@ -171,20 +210,21 @@ function TextField({
    * The typed text on the record, laid out live (the old editor's `silentUpdateTextProp`): a
    * hugging box grows and its siblings move while typing; no document write, no history.
    */
-  const preview = (text: string) => {
+  const preview = (value: string | RichText) => {
     if (!start.key) return;
+    const before = start.rich ? start.value : start.text;
+    const changed = !sameTextValue(value, before);
     // A typed line break in a nowrap / normal text would be collapsed by the layout (and the
     // commit lifts `white-space` for it): the preview lifts it the same way, so a Button grows to
     // its second line while typing (user 2026-10-20).
-    const lifted =
-      text !== start.text
-        ? committedWhiteSpace(start.record?.visual.whiteSpace, text)
-        : null;
+    const lifted = changed
+      ? committedWhiteSpace(start.record?.visual.whiteSpace, plainOf(value))
+      : null;
     workspace.root.previewRecord(
       item.identity,
-      text !== start.text
+      changed
         ? {
-            props: { [start.key]: text },
+            props: { [start.key]: value },
             ...(lifted ? { visual: { whiteSpace: lifted } } : {}),
           }
         : undefined,
@@ -205,13 +245,13 @@ function TextField({
             start.key,
             start.bound,
             start.text,
-            draft.current,
+            plainOf(draft.current),
             start.record?.visual.whiteSpace,
           )
         : catalogTextCommand(
             item,
             start.key,
-            start.text,
+            start.rich ? start.value : start.text,
             draft.current,
             start.record?.visual.whiteSpace,
           ));
@@ -250,6 +290,10 @@ function TextField({
     field.select();
     // The field hugs the text from the first paint (its width is read from the DOM).
     measure(field, isUnwrapped(placeRef.current()?.text));
+  }, []);
+  // Start the editor chunk with the edit (the textarea takes the first keys meanwhile).
+  useEffect(() => {
+    void loadEditorField();
   }, []);
 
   if (!start.record || !start.key || !placement) return null;
@@ -359,21 +403,30 @@ function TextField({
       (typeof visual.color === "string" ? visual.color : undefined),
     textAlign,
   };
-  return (
+  const textarea = (
     <textarea
       ref={fieldRef}
       className="catalog-text-editor"
       data-testid="catalog-text-editor"
-      defaultValue={start.text}
+      {...{ [TEXT_EDIT_SCOPE_ATTR]: "" }}
+      defaultValue={plainOf(draft.current)}
       rows={1}
       style={style}
       spellCheck={false}
       onChange={(event) => {
+        // (Typed before the editor chunk arrived: plain text over the written value.)
         draft.current = event.target.value;
+        typedSelection.current = {
+          from: event.target.selectionStart,
+          to: event.target.selectionEnd,
+        };
         preview(draft.current);
         measure(event.target, unwrapped);
       }}
-      onBlur={commit}
+      onBlur={() => {
+        // (The editor taking the field's place blurs the textarea — not an end of the edit.)
+        if (!editorLoaded) commit();
+      }}
       onKeyDown={(event) => {
         if (
           event.key === "Escape" ||
@@ -386,6 +439,74 @@ function TextField({
       }}
     />
   );
+  const graph = workspace.runtime.graph;
+  return (
+    <Suspense fallback={textarea}>
+      <EditorField
+        identity={item.identity}
+        initial={draft.current}
+        selection={typedSelection.current}
+        rich={start.rich}
+        nodeValues={nodeValuesOf(visual, start.record?.inheritedText)}
+        markCss={(key, value) =>
+          markCssOf(key, value, (id) => {
+            const token = graph.getToken(id as TokenUse["tokenId"]);
+            return token
+              ? catalogTokenValue(token, workspace.root.colorMode)
+              : undefined;
+          })
+        }
+        className="catalog-text-editor"
+        style={{ ...style, overflow: "hidden", cursor: "text" }}
+        onChange={(value, element) => {
+          draft.current = value;
+          preview(value);
+          measure(element, unwrapped);
+        }}
+        onCommit={commit}
+        onMount={(element) => measure(element, unwrapped)}
+      />
+    </Suspense>
+  );
+}
+
+const plainOf = (value: string | RichText): string =>
+  typeof value === "string" ? value : richTextPlain(value);
+
+/** The written values are the same (runs compared as data). */
+function sameTextValue(a: string | RichText, b: string | RichText): boolean {
+  if (typeof a === "string" || typeof b === "string") return a === b;
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/** The node's own value of each range key (a character without the mark draws it). */
+function nodeValuesOf(
+  visual: Readonly<Record<string, unknown>>,
+  inherited: Readonly<Record<string, unknown>> | undefined,
+): Partial<Record<TextRunMarkKey, unknown>> {
+  return {
+    fontWeight: visual.fontWeight ?? 400,
+    fontStyle: visual.fontStyle ?? inherited?.fontStyle ?? "normal",
+    textDecoration:
+      visual.textDecoration ?? inherited?.textDecoration ?? "none",
+    color: visual.color,
+    fontSize: visual.fontSize,
+  };
+}
+
+/** A mark value as the editor span's CSS (a token → its value in the root's color mode). */
+function markCssOf(
+  key: TextRunMarkKey,
+  value: unknown,
+  token: (id: string) => unknown,
+): string | undefined {
+  const literal =
+    value && typeof value === "object" && "tokenId" in value
+      ? token(String((value as { tokenId: string }).tokenId))
+      : value;
+  if (literal === undefined || literal === null) return undefined;
+  if (key === "fontSize" && typeof literal === "number") return `${literal}px`;
+  return String(literal);
 }
 
 const EDIT_FONT_FEATURES = DEFAULT_FONT_FEATURES.map(

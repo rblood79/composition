@@ -29,6 +29,12 @@ catalogs:
     cross-env: ^10.1.0
     eslint: ^10.12.0
     lucide-react: ^1.55.0
+    # ADR-299 — 글자 범위 서식 입력 층 (편집 진입 때 lazy). 판은 배포 2주 이상 지난 것으로 고정
+    prosemirror-keymap: 1.2.3
+    prosemirror-model: 1.25.12
+    prosemirror-state: 1.4.4
+    prosemirror-transform: 1.12.2
+    prosemirror-view: 1.42.6
     react: ^19.3.0
     react-aria: ^3.53.1
     react-aria-components: ^1.22.1

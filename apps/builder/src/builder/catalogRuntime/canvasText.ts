@@ -4,7 +4,14 @@ import {
   type CatalogCommand,
 } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
-import type { EditTarget } from "../../../../../packages/shared/src/catalog/document/types";
+import type {
+  EditTarget,
+  RichText,
+} from "../../../../../packages/shared/src/catalog/document/types";
+import {
+  isRichText,
+  richTextPlain,
+} from "../../../../../packages/shared/src/catalog/document/textRuns";
 import { readPropSource } from "../../../../../packages/shared/src/catalog/resolution/fieldSource";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import type { CatalogSelectionItem } from "./session";
@@ -34,7 +41,23 @@ export function catalogTextOf(
   const value = (
     (record.templateProps ?? record.props) as Readonly<Record<string, unknown>>
   )[key];
+  // (ADR-299 — range-formatted text as its plain text until the editor reads runs, Phase 3.)
+  if (isRichText(value)) return richTextPlain(value);
   return typeof value === "string" ? value : "";
+}
+
+/**
+ * ADR-299 — the value a record's `key` is written as: a range-formatted text's runs, else the
+ * written string (`catalogTextOf`).
+ */
+export function catalogTextValueOf(
+  record: Pick<CatalogConsumerNode, "props" | "templateProps">,
+  key: string,
+): string | RichText {
+  const value = (
+    (record.templateProps ?? record.props) as Readonly<Record<string, unknown>>
+  )[key];
+  return isRichText(value) ? value : catalogTextOf(record, key);
 }
 
 /**
@@ -47,12 +70,21 @@ export function catalogTextOf(
 export function catalogTextCommand(
   item: CatalogSelectionItem,
   key: string,
-  before: string,
-  after: string,
+  before: string | RichText,
+  after: string | RichText,
   whiteSpace?: unknown,
 ): CatalogCommand | undefined {
-  if (after === before) return undefined;
-  const lifted = committedWhiteSpace(whiteSpace, after);
+  // (Runs compare as data — ADR-299: a mark-only edit is a change of the same plain text.)
+  if (
+    typeof before === "string" || typeof after === "string"
+      ? after === before
+      : JSON.stringify(after) === JSON.stringify(before)
+  )
+    return undefined;
+  const lifted = committedWhiteSpace(
+    whiteSpace,
+    typeof after === "string" ? after : richTextPlain(after),
+  );
   return setFields({
     targets: [item.target],
     props: { [key]: { kind: "set", value: after } },

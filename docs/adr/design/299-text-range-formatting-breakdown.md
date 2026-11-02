@@ -135,11 +135,17 @@ Phase 1 · 2 는 입력이 없어도 fixture 문서 (seed 로 run 값을 직접 
 
 ### 6.1 G0 — IME 조합 (Phase 0)
 
-(Chrome · WebKit 버전 · 조합 시퀀스 · 결과)
+- 하니스: `apps/builder/tests/text-edit/adr299ImeComposition.browser.test.ts` (vitest project `text-edit` — chromium + webkit instance). 편집 상자 모양 그대로 (absolute · `scale(2)` · `white-space: pre`) 안에 PM plain schema (`doc(inline*)` = text + hard_break) `EditorView`, `dispatchTransaction` 마다 글자를 꺼내 preview (상자 width · height · top 을 글자에 맞춰 바꿈 — hugging box · middle 정렬).
+- 측정 조건: headless · DPR 1 · `visibilityState=visible`. **chromium** HeadlessChrome 156.0.8078.4 — CDP `Input.imeSetComposition` · `Input.insertText` (Blink 의 IME 경로). **webkit** Playwright WebKit (Safari 27.2 UA) — IME API 가 없어 브라우저 순서 (compositionstart → 표시 글자 교체 + input `isComposing` → compositionend) 를 **합성**. native macOS 한글 IME 증거가 아니다 (Q5) — native 확인은 G6 live.
+- 결과 (2026-11-02, 두 브라우저 각 7): 「한글」 (ㅎ 하 한 · ㄱ 그 글) · 「됐다」 (ㄷ 돠 돼 됐 · ㄷ 다) · 전체 선택 위 조합 (편집 상자는 열 때 전체 선택 → 「한」) · 줄바꿈 뒤 조합 (상자 높이가 자람) · 조합 중 Escape **PASS**. 조합 중 preview 6 회 (전부 `view.composing` 중) — 상자가 자라도 조합이 끊기지 않으므로 **조합 중 preview 보류는 필요 없다** (§4 `EditorField` 의 「G0 결과로 확정」 — 보류하지 않음).
+- 조합 중 Escape: PM 이 조합 중 keydown 을 keymap 에 넘기지 않는다 (`inOrNearComposition`) — 커밋 0, 조합 글자 유지 (`가하`). 즉 조합 중 Esc 는 편집을 끝내지 않고 (IME 가 표시 글자를 확정), 다음 Esc 가 커밋한다. 지금 `<textarea>` 는 조합 중 Esc 에 바로 커밋 — 동작 차이로 Phase 3 G4 · G6 에 적는다.
+- **대조 arm (하니스 감도)**: 매 입력마다 글자 DOM 노드를 새 노드로 바꾸는 re-render → chromium `글글그ㄱ한한하Hello ㅎ` · webkit `ㄱHello ㅎ` (두 브라우저 다 깨짐을 잡는다). 같은 글자로 PM state 만 다시 만드는 arm 은 DOM 을 건드리지 않아 깨지지 않았다 — 대조로 쓰지 않음.
+- **(b) chunk initial 밖**: 299 의 PM import 는 Phase 3 의 `textEditor/` 배선 전에는 0 이라 Phase 0 빌드에서 판정할 대상이 없다 — PM 을 처음 배선하는 커밋의 G1 (`adr209-bundle-closure.mjs` initial closure 에 `prosemirror-*` 파일 0 · `dynamicTargets` 에 편집기 chunk) 에서 판정한다 (같은 검사, 시점만 옮김). **Phase 3 판정 PASS**: ProseMirror 문자열은 dist 의 `EditorField-*.js` 하나에만 있고 (gz 58,213 B) initial 124 파일에 없음, `dynamicTargets` 에 그 chunk.
 
 ### 6.2 번들 (매 커밋)
 
-(부모 커밋 · Builder · Preview · Δ · PM chunk 파일명과 initial closure 판정)
+- 기준선 (Phase 0, 2026-11-02): HEAD `75935c07b` — 별도 worktree `.cache/adr299-bundle/wt` (`pnpm install --frozen-lockfile` · 엔진 wasm 은 같은 소스라 복사) · `pnpm -F @composition/builder build` · `adr209-bundle-closure.mjs`. Builder initial JS gz **1,400,437 B** (122 files) · Preview **322,300 B** (17 files). **Builder 는 착수 전 이미 상한 1,400,000 을 437 B 넘었다** (298 측정 1,397,096 이후 다른 커밋 몫) — 299 의 동기 경로 Δ 는 어떤 크기든 상한 초과라 사용자 결정 5 를 Phase 1 착수 때 묻는다. Preview 여유 2,700 B.
+- 의존성: `prosemirror-model` 1.25.12 · `state` 1.4.4 · `transform` 1.12.2 · `view` 1.42.6 · `keymap` 1.2.3 (전부 MIT, 배포 2주 이상 된 판 — view 1.42.7 ~ 9 · transform 1.12.3 ~ 4 는 10-22 이후 배포라 제외) · 전이 의존 `orderedmap` 2.1.1 · `w3c-keyname`. `pnpm-workspace.yaml` catalog 고정 · `apps/builder` dependencies.
 
 ### 6.3 G2 대칭 fixture 8 (Phase 2)
 
@@ -147,4 +153,52 @@ Phase 1 · 2 는 입력이 없어도 fixture 문서 (seed 로 run 값을 직접 
 
 ### 6.4 Phase 기록
 
-(Phase 마다 커밋 · 원복 RED · 사후 보고 항목)
+**Phase 0 (2026-11-02, 동작 변경 0)** — 하니스 · 기준선 · 의존성만.
+
+- 인벤토리 재grep (`props.children` · `catalogTextOf(` · `resolveTextSourceText` · `catalogTextKey(` — 테스트 제외): 41 파일. §2a 15 행 밖의 것은 대부분 다른 type 의 `children` (Cell · Column · StatusLight · Tree · 컬렉션 항목 · picker) 이라 run 대상이 아니다. **대상 글자 (Text · Paragraph · Heading · Link 의 `children`) 를 문자열로 읽는 추가 소비자**: `rendering/renderers/skiaPrimitives.ts` · `buildCatalogShapes.ts` · `resolution/resolver.ts` (템플릿 · 행 필드) · `outputs/editFields.ts` · `catalogRuntime/componentsPage.ts` · `singleSelection.ts` · `utils/element.utils.ts` · `components/Link.tsx`. 이것들이 객체를 `String()` 하면 `[object Object]` 가 된다 → Phase 1 은 **resolver 가 record 의 `props.children` 에 plain 을 두고 run 은 record 의 별도 필드** 로 싣는다 (run 을 모르는 소비자는 그대로 plain 문자열을 읽는다 — 소비자를 하나씩 고치지 않는다). run 을 읽는 곳은 §3 의 `catalogTextRuns` 하나를 거친다.
+- (Phase 2 정정 — 아래 「CSS 는 조상 상자의 color」 는 틀렸다: frame 은 DOM 에 장식선을 쓰지 않고 글자 요소가 inline 으로 받는다. Phase 2 기록 참조.) 조상 장식선의 Canvas 색 · 두께 (Decision 2 의 Phase 0 확인): Canvas 글자 노드는 장식선을 flag 만 싣고 (`canvasBinding.ts` `bindings.text` → `parseTextDecoration`, `decorationColor` 없음) 선 색 = 글자 노드 자신의 `color`, 두께 = 글자 노드 자신의 글꼴 (`nodeRendererText.ts` `drawCssDecorations`). 조상 (`inheritedText.textDecoration`, `compositionRoot.ts:344`) 값도 같은 flag 로 들어온다. CSS 는 조상 장식선을 **조상 상자의 color · 글꼴** 로 그린다 → 글자가 자기 색을 가진 경우 지금도 (299 이전) 색이 갈린다. Phase 2 G2 fixture 8 이 이 차이를 고정한다 (조상 장식선 = 조상 색).
+- G0 (a) PASS (§6.1) · 기준선 (§6.2) · 의존성 5.
+
+**Phase 1 (2026-11-02, G3)** — 문서가 run 을 담는다 (그리는 곳은 Phase 2).
+
+- 파일: `document/{types,textRuns,valueType,validation,graph}.ts` · `resolution/resolver.ts` (`resolvedRichText` — mark 토큰 → 값 + `RESOLVED_TOKEN_REFS` · `AUTHORED_TOKEN_REFS` 를 marks 객체에 / `bindRowValue` run 마다) · `runtime/compositionRoot.ts` (`withState` → `withTextRuns`, `sameRecord` 가 `textRuns` 를 mark · token ref 로 비교) · `rendering/.../textSource.ts` (`textFromValue` 가 RichText 를 plain 으로) · `catalogRuntime/canvasText.ts` (`catalogTextOf` plain — Phase 3 까지).
+- §3 대비 바뀐 것: 토큰 원자는 상태 템플릿 (`{{ }}` · `\{{`) 에 **행 필드 `{ … }` 도** 더했다 (행 템플릿 `compileFieldTemplate` 도 문자열 하나 안에서 토큰을 찾는다 — 같은 실패 형태). graph 의 host 판정은 정의 이름 첫 마디 (`found.name.split("/")[0]` — colorError 와 같은 판정).
+- `catalogStateProps` · `collectPropsStateRefs` · `variableReferences` 의 `stringLeaves` 는 이미 깊이 6 까지 중첩 문자열을 훑어 run `text` 에 닿는다 — 새 코드 0 으로 해석 · 참조 · 이름 변경이 동작 (G3 가 고정).
+- 검사: G3 `adr299TextRuns.test.ts` 14 · `adr299TextRunsRecord.test.ts` 3 · 원복 RED 2 (bash + 백업 복원 + cmp) · type-check PASS · rendering 1,274 PASS. shared · builder 실패 (1 · 15) 는 HEAD 에서 같은 테스트가 같은 수로 실패 — `designDataSurfaceGaps` Toast · `labelKeyCatalog` · `chromeIsland` · `catalogHistoryLabels` · `adr253FieldPartsDom` 2 · `adr256CalendarHeaderMode` · `elementlessNodeStyles` · `interactionWhenReach` 4 · Button padding 4 (299 이전 다른 세션 몫, 범위 밖).
+- 번들 (G1): HEAD + Phase 0 · 1 = Builder 1,401,901 (+1,464) · Preview 322,340 (+40). PM 은 dist 에 없음 (import 0).
+
+**Phase 2 (2026-11-02, G2)** — 두 consumer + 측정.
+
+- 파일: shared `runtime/textRunStyles.ts` (run 실효 스타일 — 측정 · Canvas · DOM 공용 읽기) · `runtime/textRunsDom.ts` (span) · `runtime/compositionRoot.ts` (`CatalogTextMeasure` 4번째 인자 run 폰트 · `textLeaf.runs` · `leafBaseline` = strut 과 run 줄 상자 baseline 의 최댓값) · `runtime/domBinding.runtime.ts` (text · heading · paragraph · 범용 Link span, 요소의 장식선 규칙) · builder `catalogRuntime/textMeasure.ts` (run 마다 `pushStyle`, `pre` 줄은 `sliceTextRuns`) · `textMeasureCache.ts` (키) · `canvasBinding.ts` (`canvasTextRuns` · rule 글자 `withRuleTextRuns`) · `skia/nodeRendererTypes.ts` (`SkiaTextRun` · `ancestorDecoration`) · `skia/nodeRendererText.ts` (run push · 강제 strut 해제 · 힌트 없음 · 측정 폭 · `drawRunDecorations`) · `skia/textParagraphKey.ts` · `utils/textRunAlign.ts` (`alignTextRuns` — 공백 접기 · `\n` · ZWSP 힌트를 지나 run 구간 이동).
+- §3 · Decision 2 대비 바뀐 것: (1) **조상 장식선 = 물려받은 장식선** — DOM 실측 (G2 fixture 8 의 첫 실행 FAIL: run arm DOM 에 밑줄 0) 으로 frame 은 `text-decoration` 을 쓰지 않고 `inheritedText.textDecoration` 이 글자 요소 inline 으로 간다. 그래서 「조상 상자의 색 · 두께」 가 아니라 글자 요소의 색 · 크기이고, 노드에 자기 장식선이 있으면 (요소에 쓰지 않으니) 물려받은 선은 DOM 어디에도 없다 — Canvas 도 그때 그리지 않는다. 처음 넣은 frame 색 읽기 (`ancestorDecorationOf`) 는 지웠다. (2) Link 는 Canvas 에서 rule primitive (`buildCatalogShapes`) 가 그린다 — rule 글자 node 에 run 을 붙이고 rule 밑줄 (클래스 CSS — span 이 못 지움) 을 run 아래 선으로. 작성한 `none` 은 요소에 남겨 rule 밑줄을 끈다 (DOM · Canvas 같음).
+- 검사: `adr299TextRunsRecord.test.tsx` 7 (record 3 + 정렬 · DOM span · Canvas run · plain 무변경) · **G2 `tests/adr248-g3/adr299RichTextParity.browser.test.ts` 8 fixture** (`vitest.adr248-g3.browser.config.ts` — Chrome channel) · 원복 RED 4 · type-check · shared · builder · rendering · parity 회귀 (실패는 HEAD 와 같은 테스트 · 같은 수).
+
+| fixture | 대조 arm 차 (device px @500%) | run arm 차 | run 색 잉크 차 | 줄 (Canvas / DOM) | 엔진 ↔ DOM 상자 |
+| --- | --- | --- | --- | --- | --- |
+| weight | 2 | 2 | — | 1 / 1 | 0 |
+| color | 2 | 2 | 2 | 1 / 1 | 0 |
+| size-1-line (32 px run) | 2 | 1 | 1 | 1 / 1 | 0 (h 48) |
+| size-wrap (26 px run, 폭 260) | 2 | 2 | 1 | 4 / 4 | 0 (h 132) |
+| decoration-run | 2 | 2 | 2 | 1 / 1 | 0 |
+| template `{{ who }}` | 2 | 3 | 3 | 1 / 1 | 0 |
+| node underline + run none | 2 | 2 | 2 (+ run 아래 잉크) | 1 / 1 | 0 |
+| ancestor underline + run none | 2 | 2 | 2 (+ run 아래 잉크) | 1 / 1 | 0 |
+
+- 원복 RED: A run 글자 크기 무시 → size 2 FAIL · B strut 강제 → size 2 FAIL · C run 장식선 off → 장식선 3 FAIL · D 요소가 자기 장식선 유지 (DOM) → node underline 1 FAIL (처음엔 GREEN — 잉크 전체 상자로는 가운데 단어 밑줄을 못 봐 「run 열 범위 안 최저 잉크」 를 더했다).
+- 알려진 한계 (LOW deferred): `leafBaseline` 은 첫 줄이 아니라 모든 run 의 baseline 최댓값 (큰 run 이 둘째 줄 이후에만 있으면 inline 형제 정렬이 아래로 — 재현 fixture 없음) · CanvasKit 준비 전 Canvas 2D 측정은 run 폰트를 보지 않는다 (폰트 로드 뒤 다시 잰다) · 물려받은 장식선을 준 조상의 색이 바뀌어도 그 선은 글자 색이라 영향 없음.
+- 번들 (G1): Phase 2 Δ Builder +1,946 (1,401,901 → 1,403,847) · Preview +1 (322,340 → 322,341). 누적 Builder +3,410 · Preview +41.
+
+**Phase 3 (2026-11-02, G4 · G1)** — 입력 · 패널 · 코드 보기.
+
+- 파일: `workspace/canvas/catalog/textEditor/{textRunsBridge.ts,EditorField.tsx,EditorField.css}` (§4 의 `schema` · `templateTokens` · `keymap` · `clipboard` 는 파일을 나누지 않고 두 파일에 — 토큰 넓힘은 plugin 이 아니라 mark 를 쓰는 길 (`setMark` · 토글 · handle) 이 `widenToTokens` 를 지난다: mark step 을 만드는 길이 이 셋뿐이라 plugin 이 필요 없고, 타이핑 경계는 `fromDoc` 의 정규형이 맞춘다) · `catalogRuntime/textEditorHandle.ts` (handle registry · 편집 범위 판정 `isInTextEditScope`) · `CatalogTextEditor.tsx` (lazy · `Suspense` 의 fallback = textarea · `editorLoaded` 뒤 textarea blur 는 커밋 아님) · `canvasText.ts` (`catalogTextValueOf` · `catalogTextCommand` RichText 비교) · `compositionRoot.ts` (`previewRecord` 가 draft RichText 를 plain + `textRuns` 로) · `panels/styles/sections/TypographySection.tsx` (편집 중 선택 구간 · 「Mixed」) · `catalogStylesHost.ts` (`useTextRunAxes` · 결정 3) · `stylesHostContext.ts` · `codeView/generate.ts` (`childrenCode`) · `codeView/inverse/parse.ts` (글자 안 `span` 은 자식이 아니라 글자 — lezer 의 소문자 태그는 `JSXBuiltin`) · `codeViewEdit.ts` (`childrenValue`) · `panels/properties/catalog/catalogFieldValueSource.ts` (plain).
+- §4 대비 바뀐 것: 편집 범위 표지는 Typography 절에 wrapper 를 두지 않고 Section 의 `data-section-id="typography"` 를 읽는다 — 절의 grid CSS 가 `> *` 자식 규칙이라 wrapper 가 배치를 바꾼다. 범위에는 overlay (`.react-aria-Popover` · `[role=listbox]` · `[role=dialog]` · top layer) 도 든다 — 다른 표면의 overlay 는 범위 밖 press 가 먼저 커밋한 뒤에만 열린다. 밖 press 는 pointerdown + focusout 두 번이라 커밋을 한 번으로 막는다 (`ended`).
+- 기존 테스트: textarea 를 읽던 편집 상자 테스트 2 파일은 편집기 chunk 를 대기로 고정 (`vi.mock(..., () => new Promise(() => {}))`) — 로드 전 textarea 경로를 그대로 검증, PM 경로는 browser 테스트.
+- 검사: G4 `tests/text-edit/adr299EditorField.browser.test.tsx` Chrome · WebKit 각 8 = 16 (열림 · ⌘B/I/U · 토큰 넓힘 · Enter + ⌘Z · Typography press 유지 + 선택 유지 표시 + handle 쓰기 · 밖 press 한 번 커밋 · Tab 밖 커밋 · plain 필드) · 원복 RED 2 × 두 브라우저 · `adr299CodeView.test.tsx` 4 · 결정 3 host 테스트 1 · type-check · builder 회귀 (실패 = HEAD 같은 15 + 부하 flake 1 `phase4eG5LeafScope` — 단독 3회 PASS).
+- 번들 (G1): Builder +1,961 (1,403,847 → 1,405,808) · Preview 0. 편집기 chunk gz 58,213 B (initial 밖).
+- 알려진 한계 (LOW deferred): 편집 상자 DOM 은 노드 자신의 장식선을 상자에 쓰고 run 마크 `none` 을 PM span 에 쓰므로 편집 중에만 `none` 구간 아래 밑줄이 보일 수 있다 (커밋 뒤 Canvas · Preview 는 맞음) · 패널 색 칸은 PropertyColor 가 hex 로 보내 Theme 스와치도 리터럴로 저장 (노드 색과 같은 기존 동작 — 299 고유 아님) · 「Mixed」 라벨은 i18n 표 밖 (영문).
+
+**Phase 4 (2026-11-02) — G6 live · G5 대기**
+
+- live: ADR 본문 `### Live Exercise` 표 11 행. 결함 2 수리 — (1) ⌘Z 뒤 옛 run 이 남음: `compositionRoot.ts` 증분 rebuild 의 「before 에서 버릴 필드」 에 `textRuns` (회귀 `adr299TextRunsRecord` 「a text written back to a string drops its runs」, 원복 RED 1) (2) Properties 글자 칸 `[object Object]`: `catalogFieldValueSource` plain. 패널 「Mixed」 표시 2 (Font Size 0 → 빈 값 + placeholder Mixed · Italic 은 mixed 면 꺼짐).
+- G5: `pnpm gate:perf-ratchet` 는 측정 대상이 커밋된 HEAD (dirty 트리면 HEAD 를 worktree 에서 잰다 — 메모리 `reference-perf-ratchet-dirty-tree-measures-head-worktree`) 라 커밋 요청 뒤. 구간 없는 글자의 경로 변경은 `node.text.runs` · `node.textRuns` 유무 검사뿐 (측정 · 그리기 호출 수 무변경이 설계) — 수치는 미측정.
+- native macOS 한글 IME: 사용자 확인 대기.

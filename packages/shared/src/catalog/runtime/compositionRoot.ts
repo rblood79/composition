@@ -1,3 +1,11 @@
+import {
+  isRichText,
+  resolvedTextRuns,
+  richTextPlain,
+  sameTextRunMarks,
+} from "../document/textRuns";
+import type { TextRun } from "../document/types";
+import { catalogTextRunStyles } from "./textRunStyles";
 import { isInputVariable } from "../document/componentEvents";
 import { catalogParticipatesInLayout } from "./layoutParticipation";
 import {
@@ -261,6 +269,11 @@ export interface CatalogConsumerNode {
    * text editor edits these, and a variable change re-resolves them (`refreshState`).
    */
   readonly templateProps?: ResolvedCatalogNode["props"];
+  /**
+   * ADR-299 — the runs a range-formatted text draws (`props.children` holds their plain text):
+   * templates resolved, mark tokens resolved (their refs on each `marks` object for the DOM).
+   */
+  readonly textRuns?: readonly TextRun[];
   readonly visual: ResolvedCatalogNode["visual"];
   readonly layout: ResolvedCatalogNode["layout"];
   /** Author-written layout keys (`ResolvedCatalogNode.authoredLayout`): the DOM inlines these. */
@@ -642,6 +655,8 @@ export interface CatalogTextMeasure {
     text: string,
     font: CatalogTextFont,
     maxWidth?: number,
+    /** ADR-299 — a range-formatted text's runs over `text` (each run's own font over `font`). */
+    runs?: readonly CatalogTextRunFont[],
   ): { width: number; height: number; minWidth?: number; exactWidth?: number };
   /**
    * The font's CSS box (the DOM's `fontBoundingBox*` ascent · descent and its x-height) — what a
@@ -650,6 +665,26 @@ export interface CatalogTextMeasure {
    * fallbacks (an atomic inline's baseline at its bottom edge).
    */
   fontBox?(font: CatalogTextFont): CatalogFontBox | undefined;
+}
+/** ADR-299 — one run's font over the text's (`textLeaf` → measure): `[start, end)` in the text. */
+export interface CatalogTextRunFont {
+  readonly start: number;
+  readonly end: number;
+  readonly fontSize?: number;
+  readonly fontWeight?: number;
+  readonly fontStyle?: string;
+}
+/** The text font with a run's own size · weight · style over it. */
+export function catalogRunFont(
+  font: CatalogTextFont,
+  run: CatalogTextRunFont,
+): CatalogTextFont {
+  return {
+    ...font,
+    ...(run.fontSize !== undefined ? { fontSize: run.fontSize } : {}),
+    ...(run.fontWeight !== undefined ? { fontWeight: run.fontWeight } : {}),
+    ...(run.fontStyle !== undefined ? { fontStyle: run.fontStyle } : {}),
+  };
 }
 /** A font's CSS box metrics (`CatalogTextMeasure.fontBox`). */
 export interface CatalogFontBox {
@@ -797,6 +832,8 @@ function textLeaf(
       font: CatalogTextFont;
       /** `white-space` keeps the text on one line (nowrap/pre). */
       singleLine: boolean;
+      /** ADR-299 — a range-formatted text's run fonts over `text`. */
+      runs?: readonly CatalogTextRunFont[];
     }
   | undefined {
   if (node.children.length > 0) return undefined;
@@ -815,6 +852,17 @@ function textLeaf(
   if (!text) return undefined;
   const fontSize = Number(node.visual.fontSize);
   const lineHeight = Number(node.visual.lineHeight ?? inheritedLineHeight ?? 0);
+  const runs = catalogTextRunStyles(
+    node.textRuns,
+    typography.textTransform,
+    node.visual.textDecoration,
+  )?.map(({ start, end, fontSize, fontWeight, fontStyle }) => ({
+    start,
+    end,
+    ...(fontSize !== undefined ? { fontSize } : {}),
+    ...(fontWeight !== undefined ? { fontWeight } : {}),
+    ...(fontStyle !== undefined ? { fontStyle } : {}),
+  }));
   const required = requiredTextBindings.has(node.bindingId ?? "");
   if (!(fontSize > 0) || (required && !(lineHeight > 0))) {
     if (required) throw new Error(`CATALOG_TEXT_METRIC_REQUIRED:${node.id}`);
@@ -869,6 +917,7 @@ function textLeaf(
     },
     singleLine:
       typography.whiteSpace === "nowrap" || typography.whiteSpace === "pre",
+    ...(runs ? { runs } : {}),
   };
 }
 
@@ -1191,7 +1240,7 @@ function styleOf(
   const contentText =
     measure && leaf
       ? (() => {
-          const size = measure(leaf.text, leaf.font);
+          const size = measure(leaf.text, leaf.font, undefined, leaf.runs);
           if (heightOnlyTextTypes.has(typeName))
             return { contentHeight: wrappedHeight ?? size.height };
           // CSS max-content is the fractional advance (the DOM box is not rounded); a single-line
@@ -1261,7 +1310,25 @@ function styleOf(
                     2,
                 )
               : 0;
-          return catalogCssLineBaseline(fontBox, lineHeight) + offset;
+          // ADR-299 — a line of runs of several sizes: its baseline is the lowest of the inline
+          // boxes' (the strut — the text's own font — and each run's at the same line-height
+          // ratio, CSS 2.1 §10.8.1). Every run counts (the first line's runs are not known here).
+          let baseline = catalogCssLineBaseline(fontBox, lineHeight);
+          for (const run of leaf.runs ?? []) {
+            const runFont = catalogRunFont(leaf.font, run);
+            const runBox = measure!.fontBox!(runFont);
+            if (!runBox) continue;
+            baseline = Math.max(
+              baseline,
+              catalogCssLineBaseline(
+                runBox,
+                runFont.lineHeight > 0
+                  ? runFont.fontSize * runFont.lineHeight
+                  : undefined,
+              ),
+            );
+          }
+          return baseline + offset;
         })()
       : undefined;
   // A flow box's strut (CSS 2.1 §10.8): every line box holds a zero-width inline box of the box's
@@ -1533,6 +1600,41 @@ function withHidden(
     : shown;
 }
 
+/**
+ * ADR-299 — a record whose `children` resolved to range-formatted text: `props.children` = the plain
+ * text, `textRuns` = the runs it draws (text with its templates resolved, marks with their tokens).
+ */
+function withTextRuns(record: CatalogConsumerNode): CatalogConsumerNode {
+  const children = record.props.children;
+  if (!isRichText(children)) return record;
+  return {
+    ...record,
+    props: { ...record.props, children: richTextPlain(children) },
+    textRuns: resolvedTextRuns(children),
+  };
+}
+/** `templateProps` without a RichText `children` (compared through `textRuns` — a resolve makes new objects). */
+function withoutRichChildren(
+  props: Readonly<Record<string, unknown>> | undefined,
+): Readonly<Record<string, unknown>> {
+  if (!props) return {};
+  if (!isRichText(props.children)) return props;
+  const { children: _children, ...rest } = props;
+  return rest;
+}
+function sameTextRuns(
+  left: readonly TextRun[] | undefined,
+  right: readonly TextRun[] | undefined,
+): boolean {
+  if (left === right) return true;
+  if (!left || !right || left.length !== right.length) return false;
+  return left.every(
+    (run, index) =>
+      run.text === right[index]!.text &&
+      sameTextRunMarks(run.marks, right[index]!.marks) &&
+      catalogSameResolvedTokenRefs(run.marks ?? {}, right[index]!.marks ?? {}),
+  );
+}
 function sameFields(
   left: Readonly<Record<string, unknown>>,
   right: Readonly<Record<string, unknown>>,
@@ -1563,7 +1665,11 @@ function sameRecord(
     left.parentId === right.parentId &&
     sameList(left.children, right.children) &&
     sameFields(left.props, right.props) &&
-    sameFields(left.templateProps ?? {}, right.templateProps ?? {}) &&
+    sameFields(
+      withoutRichChildren(left.templateProps),
+      withoutRichChildren(right.templateProps),
+    ) &&
+    sameTextRuns(left.textRuns, right.textRuns) &&
     sameFields(left.visual, right.visual) &&
     catalogSameResolvedTokenRefs(left.visual, right.visual) &&
     sameFields(left.layout, right.layout) &&
@@ -2253,12 +2359,21 @@ export class CatalogCompositionRoot {
             : undefined,
       ),
     );
-    if (!props) return templateProps ? { ...rest, props: authored } : record;
-    return {
+    // ADR-299 — range-formatted text: consumers read the plain text in `props.children` (every
+    // `String(children)` reader stays as it is) and the drawn runs in `textRuns`; the written runs
+    // stay in `templateProps` (the text editor's).
+    const rich = isRichText(authored.children);
+    if (!props) {
+      if (rich)
+        return withTextRuns({ ...rest, props: authored, templateProps: authored });
+      return templateProps ? { ...rest, props: authored } : record;
+    }
+    const out = {
       ...rest,
       props: this.withinChoices(record, authored, props),
       templateProps: authored,
     };
+    return rich ? withTextRuns(out) : out;
   }
   /**
    * ADR-287 R7 — a choice prop that reads a variable (`PropVar`) takes only one of its choices: a
@@ -3563,7 +3678,12 @@ export class CatalogCompositionRoot {
           num(box.padding?.right) -
           border.left -
           border.right;
-        const single = this.textMeasure(leaf.text, leaf.font);
+        const single = this.textMeasure(
+          leaf.text,
+          leaf.font,
+          undefined,
+          leaf.runs,
+        );
         // CSS breaks lines only between words (`overflow-wrap: normal`): a word wider than the box
         // overflows on its own line instead of splitting. Lines are broken at no less than the
         // min-content width (the longest word), so a lone overflowing word stays one line — unless
@@ -3574,7 +3694,8 @@ export class CatalogCompositionRoot {
         next =
           contentWidth > 0 &&
           breakWidth + 0.5 < (single.exactWidth ?? single.width)
-            ? this.textMeasure(leaf.text, leaf.font, breakWidth).height
+            ? this.textMeasure(leaf.text, leaf.font, breakWidth, leaf.runs)
+                .height
             : undefined;
       }
       if (next === this.wrapHeights.get(id)) continue;
@@ -3977,7 +4098,7 @@ export class CatalogCompositionRoot {
     if (held && !ours) this.previews.delete(id);
     if (!current || (!patch && !ours)) return [];
     const base = ours ? held!.base : current;
-    const shown: CatalogConsumerNode = patch
+    const patched: CatalogConsumerNode = patch
       ? {
           ...base,
           visual:
@@ -4002,6 +4123,13 @@ export class CatalogCompositionRoot {
             : {}),
         }
       : base;
+    // ADR-299 — a previewed `children` (the text editor's draft) is read like a resolved one: runs
+    // split into plain `children` + `textRuns`; a plain draft drops the record's old runs.
+    let shown = patched;
+    if (patch?.props && "children" in patch.props) {
+      const { textRuns: _runs, ...rest } = patched;
+      shown = isRichText(patch.props.children) ? withTextRuns(rest) : rest;
+    }
     if (patch) this.previews.set(id, { base, shown });
     else this.previews.delete(id);
     this.records.set(id, shown);
@@ -4594,6 +4722,8 @@ export class CatalogCompositionRoot {
         className: _className,
         ariaLabel: _ariaLabel,
         templateProps: _templateProps,
+        // (ADR-299 — the runs follow the new `children`: a text written back to a string has none.)
+        textRuns: _textRuns,
         stateVisual: _stateVisual,
         // (ADR-256 Decision 12 — the bindings are read again from the new written values below.)
         valueTemplate: _valueTemplate,

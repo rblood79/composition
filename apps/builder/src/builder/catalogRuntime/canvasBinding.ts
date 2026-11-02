@@ -50,6 +50,7 @@ import type { SkiaNodeData } from "../workspace/canvas/skia/nodeRendererTypes";
 import type { StickyConstraints } from "../../../../../packages/shared/src/catalog/runtime/engineTypes";
 import { catalogNodeState } from "../../../../../packages/shared/src/catalog/resolution/resolver";
 import type { CatalogConsumerNode, CatalogTagShowAll } from "./compositionRoot";
+import { catalogTextRunStyles } from "../../../../../packages/shared/src/catalog/runtime/textRunStyles";
 import {
   CATALOG_INHERITED_TEXT_KEYS,
   CATALOG_TEXT_STYLE_CONTAINERS,
@@ -461,6 +462,92 @@ const glyph: Binding = (node, rect) => {
   };
 };
 
+/**
+ * ADR-299 — a range-formatted text record's Canvas runs (`catalogTextRunStyles` — the reading the
+ * layout measure and the DOM share) and its ancestor decoration, or undefined for a plain text.
+ */
+function canvasTextRuns(
+  node: CatalogConsumerNode,
+  textTransform: string | undefined,
+): Pick<NonNullable<SkiaNodeData["text"]>, "runs" | "ancestorDecoration"> | undefined {
+  if (typeof node.derivedProps?.children === "string") return undefined;
+  const styles = catalogTextRunStyles(
+    node.textRuns,
+    textTransform,
+    node.visual.textDecoration,
+  );
+  if (!styles) return undefined;
+  // The decoration the element inherits (an ancestor's, written on the element when the node has
+  // none of its own — `domBinding`): one line under every run, in the text's color and size.
+  const inherited =
+    node.visual.textDecoration === undefined
+      ? node.inheritedText?.textDecoration
+      : undefined;
+  return {
+    runs: styles.map((style) => ({
+      start: style.start,
+      end: style.end,
+      ...(style.fontWeight !== undefined ? { fontWeight: style.fontWeight } : {}),
+      ...(style.fontStyle === "italic"
+        ? { fontStyle: 1 }
+        : style.fontStyle === "oblique"
+          ? { fontStyle: 2 }
+          : style.fontStyle !== undefined
+            ? { fontStyle: 0 }
+            : {}),
+      ...(style.fontSize !== undefined ? { fontSize: style.fontSize } : {}),
+      ...(style.color !== undefined ? { color: rgba(style.color) } : {}),
+      ...(style.textDecoration !== undefined
+        ? { decoration: parseTextDecoration(style.textDecoration) }
+        : {}),
+    })),
+    ...(typeof inherited === "string" && parseTextDecoration(inherited)
+      ? { ancestorDecoration: { decoration: parseTextDecoration(inherited) } }
+      : {}),
+  };
+}
+
+/**
+ * ADR-299 — a rule-drawn text (a Link) of range-formatted text: its runs on the rule's text node.
+ * The rule's own line (the class CSS on the element — a span cannot remove it) draws under every run
+ * like an ancestor's, unless the node's own decoration is `none` (written on the element, it turns
+ * the rule's line off — `domBinding` keeps it there).
+ */
+function withRuleTextRuns(
+  data: SkiaNodeData,
+  node: CatalogConsumerNode,
+): SkiaNodeData {
+  if (!node.textRuns) return data;
+  const attach = (item: SkiaNodeData): SkiaNodeData => {
+    if (item.text) {
+      const runs = canvasTextRuns(node, node.visual.textTransform as string);
+      if (!runs) return item;
+      const { decoration, ...text } = item.text;
+      const ownOff = /^none\b/.test(String(node.visual.textDecoration ?? ""));
+      return {
+        ...item,
+        text: {
+          ...text,
+          ...runs,
+          ...(!runs.ancestorDecoration && decoration && !ownOff
+            ? {
+                ancestorDecoration: {
+                  decoration,
+                  color: text.decorationColor ?? text.color,
+                  fontSize: text.fontSize,
+                },
+              }
+            : {}),
+        },
+      };
+    }
+    return item.children
+      ? { ...item, children: item.children.map(attach) }
+      : item;
+  };
+  return attach(data);
+}
+
 /** A text leaf's text: the one RAC writes (the record's derived `children`), else its own. */
 const textOf = (node: CatalogConsumerNode): unknown =>
   typeof node.derivedProps?.children === "string"
@@ -556,9 +643,12 @@ const bindings: Readonly<Record<string, Binding>> = {
           : metrics.textAlign === "end"
             ? { align: "right" as const }
             : {}),
-        ...(metrics.textDecoration !== undefined
-          ? { decoration: parseTextDecoration(metrics.textDecoration) }
-          : {}),
+        // ADR-299 — a range-formatted text's runs carry the decoration (its own moves onto them;
+        //  an ancestor's stays under every run).
+        ...(canvasTextRuns(node, metrics.textTransform) ??
+          (metrics.textDecoration !== undefined
+            ? { decoration: parseTextDecoration(metrics.textDecoration) }
+            : {})),
         ...(metrics.wordBreak === "break-all" ||
         metrics.wordBreak === "keep-all"
           ? { wordBreak: metrics.wordBreak }
@@ -920,7 +1010,7 @@ function ruleNodeData(
     )
       throw new Error(`CATALOG_CANVAS_VISUAL_UNSUPPORTED:${node.id}:${key}`);
   const input = fieldBoxShapeInput(root, node, rect);
-  const data = catalogRuleNodeData(input);
+  const data = withRuleTextRuns(catalogRuleNodeData(input), node);
   const content = dropZoneContentData(
     root,
     node,

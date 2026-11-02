@@ -11,6 +11,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [글자 범위 서식 — ADR-299 Phase 3 (편집 · 패널 · 코드 보기) · Phase 4 live] - 2026-11-02
+
+### Added
+
+- **글자 일부에 서식**: 글자 편집 상자가 ProseMirror 로 바뀌었다 (편집에 들어갈 때 불러온다 — 첫 화면 번들 0). 선택한 글자에 ⌘B · ⌘I · ⌘U, Design 패널 Typography 의 굵기 · 크기 · 색 · 기울임 · 장식선이 선택한 글자에만 들어간다 — 패널 · 색 팝오버를 눌러도 편집과 선택이 유지되고, 캔버스 · 다른 곳을 누르면 한 번에 커밋 (History 한 단계). 편집 중 ⌘Z 는 편집 상자 안의 되돌리기. `{{ 변수 }}` 일부를 고르면 토큰 전체에 서식. 붙여넣기는 글자만.
+- **편집 밖 패널**: 일부만 서식이 있는 축은 「Mixed」 로 보이고, 그 축을 바꾸면 글자 전체가 그 값 (구간의 그 축 서식은 지워짐 — Figma 와 같다).
+- **코드 보기**: 구간이 `<span style={{ fontWeight: 700 }}>…</span>` 로 보이고, 코드에서 고치면 문서로 돌아간다 (다섯 키 밖 · 다른 JSX 는 거절).
+  - 위치: `apps/builder/src/builder/workspace/canvas/catalog/{CatalogTextEditor.tsx,textEditor/}` · `catalogRuntime/{textEditorHandle,canvasText,codeViewEdit}.ts` · `panels/styles/{sections/TypographySection.tsx,catalog/catalogStylesHost.ts}` · `packages/shared/src/codeView/{generate.ts,inverse/parse.ts}`
+
+### Fixed
+
+- 구간 서식 글자를 문자열로 되돌린 뒤 (⌘Z · 코드 보기 · AI 쓰기) Canvas 가 옛 구간 서식을 그리던 결함 — 증분 rebuild 가 이전 record 의 `textRuns` 를 이어받았다 (live 발견).
+- Properties 의 글자 칸이 구간 서식 글자를 `[object Object]` 로 보이던 결함 — plain 글자를 보인다 (거기서 쓰면 서식이 초기화된다).
+- **Typography 초기화 · 원래 값으로 되돌려도 구간이 남던 결함** (사용자 보고): 초기화가 노드 값만 지워 구간 서식이 Preview DOM 의 `span > span` 으로 남았고, 편집 중 구간 값을 노드와 같은 값으로 되돌려도 그 값이 구간으로 남았다. 이제 초기화는 그 섹션 축의 구간 서식까지 지우고 (구간만 서식이 있어도 초기화 버튼이 보인다), 노드와 같은 값은 구간 서식을 지운다 — 남는 것이 없으면 글자가 다시 문자열이다.
+  - **Why**: 초기화는 `catalogResetStyleWrites` (노드 field) 만 썼고 결정 3 의 구간 정리는 `styleCommandOf` 에만 있었다.
+  - 위치: `apps/builder/src/builder/panels/styles/catalog/catalogStylesHost.ts` (`resetStyles` · `useDirtyStyleProps`) · `workspace/canvas/catalog/textEditor/EditorField.tsx` (`sameAsNode`)
+- **첫 편집의 첫 글자 유실**: 새로고침 뒤 첫 편집에서 편집기를 받는 동안 친 글자를, 편집기가 열리면서 전체 선택해 다음 글자가 덮었다 — 편집기는 대체 입력 상자의 caret 위치로 열린다.
+
+### Tests
+
+- G4 `apps/builder/tests/text-edit/adr299EditorField.browser.test.tsx` Chrome · WebKit 20 (실제 키 · 클릭 — 노드 값으로 되돌림 · 대체 입력 caret 포함) · 원복 RED 4 · `adr299CodeView.test.tsx` 4 · 결정 3 host 1 · 초기화 host 1 · 회귀 1 (+ 원복 RED). 편집 상자 textarea 테스트 2 파일은 편집기 chunk 를 대기로 고정.
+- 번들: Builder +1,961 (누적 1,405,808 ≤ 1,410,000) · Preview 0 · 편집기 chunk 58,213 B (initial 밖).
+
+## [글자 범위 서식 — ADR-299 Phase 2 (Canvas · Preview · 측정)] - 2026-11-02
+
+### Added
+
+- **구간 서식 글자를 Canvas 와 Preview 가 같이 그린다**: 레이아웃 측정과 Canvas paragraph 는 run 마다 자기 굵기 · 기울임 · 크기 · 색으로 (`pushStyle`), Preview · Publish 는 run 마다 `<span>` (서식 값만, 토큰은 변수 — `<strong>` · `<em>` 을 쓰지 않아 접근성 의미 무변경). 큰 run 이 있는 줄은 CSS 줄 상자처럼 높아지고, 글자의 baseline 은 strut 과 run 줄 상자 중 가장 낮은 것. 구간 장식선은 run 의 글리프 구간마다 run 색 · 크기로 그린다.
+  - **장식선 규칙**: 노드 자신의 장식선은 run 으로 옮긴다 (`none` 인 run 은 실제로 밑줄 없음). 물려받은 장식선 (조상의 값 — DOM 은 글자 요소에 inline 으로 받는다) 은 run 이 지우지 못하고 모든 run 아래 글자 색으로 — Canvas · DOM 같음. Link 의 rule 밑줄도 run 아래 선이고, 작성한 `none` 이 그것을 끈다.
+  - 위치: `packages/shared/src/catalog/runtime/{textRunStyles,textRunsDom,compositionRoot,domBinding.runtime}.ts` · `apps/builder/src/builder/catalogRuntime/{textMeasure,textMeasureCache,canvasBinding}.ts` · `apps/builder/src/builder/workspace/canvas/skia/{nodeRendererText,nodeRendererTypes,textParagraphKey}.ts` · `utils/textRunAlign.ts`
+
+### Tests
+
+- G2 `apps/builder/tests/adr248-g3/adr299RichTextParity.browser.test.ts` — fixture 8 (굵기 · 색 · 크기 섞임 1줄 · wrap · 장식선 구간 · 템플릿 · 노드 밑줄 + run none · 조상 밑줄 + run none) 를 500 % 로 Canvas raster ↔ DOM 스크린샷: 잉크 차 ≤ 3 device px (대조 arm 2) · 줄 수 동일 · 엔진 상자 = DOM 상자. 원복 RED 4.
+- 번들: Builder +1,946 B (누적 1,403,847) · Preview +1.
+
+## [글자 범위 서식 — ADR-299 Phase 0 · 1 (문서 형 · contract 53)] - 2026-11-02
+
+### Added
+
+- **글자 노드의 `children` 이 구간 서식을 담는다 (`RichText`)**: `{ kind: "text", runs: [{ text, marks? }] }` — mark 는 굵기 · 기울임 · 장식선 · 색 · 크기 다섯 (사용자 결정 1, 노드 visual 과 같은 값 형 — 리터럴 · 토큰 참조). 대상은 Text · Paragraph · Heading · Link 의 자기 `children` 뿐이고 부모 prop 에 묶인 글자 (`label` · `title`) 는 문자열 그대로 (`RICH_TEXT_NOT_ALLOWED`). 정규형 · 읽기 · 구간 쓰기는 `packages/shared/src/catalog/document/textRuns.ts` 하나 — 빈 run · 합칠 이웃 없음, mark 없는 글자는 **문자열로 저장** (저장 모양 무변경).
+  - **템플릿 토큰은 원자다**: `{{ … }}` · `\{{` · 행 필드 `{ … }` 안에는 run 경계가 오지 않는다 — 구간 쓰기는 토큰 밖으로 넓히고, 타이핑으로 생긴 경계는 토큰 첫 글자의 서식으로 맞춘다. 그래서 변수 해석 · 참조 수집 · 이름 변경이 run 마다 지금 함수 그대로이고 같은 글자의 문자열 값과 결과가 같다.
+  - record 는 `props.children` 에 plain 글자, `textRuns` 에 그릴 run (템플릿 · mark 토큰 해석) 을 싣는다 — `String(children)` 을 읽는 소비자 41 파일은 그대로다. 그리는 곳 (Canvas · DOM) 은 Phase 2.
+- **편집 입력 하니스 (G0)**: ProseMirror `EditorView` 안 한글 조합 (「한글」 · 「됐다」 · 전체 선택 위 · 줄바꿈 뒤 · 조합 중 Escape) 이 조합 중 상자가 자라도 끊기지 않음을 Chrome (CDP IME) · WebKit (합성 조합 순서) 에서 확인 — vitest project `text-edit`. 대조 arm (글자 DOM 교체) 은 두 브라우저 모두 깨짐.
+
+### Changed
+
+- **문서 contract 52 → 53** — 52 문서는 거부 (변환 없음, 개발 단계 정책). 샘플 프로젝트 파일 3 은 모양이 같아 번호만 올림.
+- **ADR-201 initial 번들 상한 Builder 1,400,000 → 1,410,000 재승인** (ADR-299 사용자 결정 5 — 착수 HEAD 가 이미 1,400,437). Preview 325,000 무변경. Phase 1 몫 Builder +1,464 · Preview +40 B gz.
+- 의존성: `prosemirror-model` 1.25.12 · `state` 1.4.4 · `transform` 1.12.2 · `view` 1.42.6 · `keymap` 1.2.3 (MIT, 편집 진입 때 lazy — Phase 3 배선 전 import 0).
+
+### Tests
+
+- `adr299TextRuns.test.ts` 14 (정규형 · 토큰 원자 · 해석 · 참조 · 이름 변경 · 검증 · contract) · `adr299TextRunsRecord.test.ts` 3 · 원복 RED 2 (정규형 제거 5 FAIL · 토큰 넓힘 제거 4 FAIL).
+
 ## [테마 전환 중복 처리 제거 — ADR-295 Phase 4 성능 후속] - 2026-11-02
 
 ### Performance

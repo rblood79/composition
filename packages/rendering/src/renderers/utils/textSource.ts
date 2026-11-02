@@ -118,6 +118,17 @@ export function textFromValue(value: unknown): string {
     }
     return out;
   }
+  // ADR-299 — range-formatted text (`RichText`): its runs' plain text.
+  if (
+    typeof value === "object" &&
+    (value as { kind?: unknown }).kind === "text" &&
+    Array.isArray((value as { runs?: unknown }).runs)
+  ) {
+    let out = "";
+    for (const run of (value as { runs: { text?: unknown }[] }).runs)
+      if (typeof run?.text === "string") out += run.text;
+    return out;
+  }
   return "";
 }
 

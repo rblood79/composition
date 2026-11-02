@@ -80,6 +80,11 @@ export interface StylesHost {
     props: Record<string, unknown>,
     styles: Record<string, string>,
   ): void;
+  /**
+   * ADR-299 — the range keys some run of a record's range-formatted text sets (the panel shows them
+   * as 「Mixed」 when reading the node as a whole). Empty for a plain text.
+   */
+  useTextRunAxes?(id: string | null): readonly string[];
   /** The parent record of a record (its layout decides the size modes on offer). */
   useParentId(id: string | null): string | null;
   /** A record's parent box layout: `display` and `flexDirection` (fill availability, size mode). */

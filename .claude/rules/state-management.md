@@ -132,6 +132,8 @@ paths:
 
 ## 7. Styles · Properties 패널 입력
 
+- **글자 편집 상자 = ProseMirror 입력 층 (ADR-299)**: 편집 진입 때 `textEditor/EditorField` chunk 를 lazy 로 열고 (로드 전엔 textarea), 매 입력은 `fromDoc` (정규형 run) → `previewRecord` (문서 쓰기 0), 커밋은 지금처럼 `setFields` 한 명령. 편집 범위 = 편집 상자 + Typography 절 (`[data-section-id="typography"]`) + 팝오버 — 그 안의 press · focus 는 편집을 끝내지 않고, 패널은 `textEditorHandle` (선택 구간 marks 읽기 · PM transaction 쓰기) 로만 편집기에 닿는다. 편집 밖 패널 쓰기는 노드 값 + run 의 그 축 지우기 (사용자 결정 3, `catalogStylesHost` `styleCommandOf`). Properties 의 글자 칸은 plain 을 보이고 거기서 쓰면 run 이 사라진다 (Decision 6). **Why (2026-11-02 live)**: Properties 가 작성 값을 그대로 읽어 `[object Object]` 를 보였다.
+
 - 구조 편집으로 template 부품이 owned node가 된 field의 Content 패널은 실제 부품 값을 읽고,
   부모의 의미 속성 편집·Reset과 부품 쓰기를 한 명령으로 적용한다. **Why (2026-10-14)**:
   Prefix 추가 시 고정된 Label·Input을 둔 채 부모 label/placeholder만 바꾸면 패널과 두 renderer가

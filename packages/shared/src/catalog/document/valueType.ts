@@ -1,3 +1,4 @@
+import { isRichText } from "./textRuns";
 import { isRacColorString } from "./colorValue";
 import { catalogNumberFormatFits } from "./numberFormatValue";
 import type { CalendarDuration, PropVar, PropWhen, ValueType } from "./types";
@@ -28,6 +29,8 @@ export function scalarFitsType(
 export function catalogPropValueFits(value: unknown, type: string): boolean {
   // (ADR-284 Phase 6 — a variable's value fits any prop: it is read when the record resolves.)
   if (isPropVar(value)) return true;
+  // (ADR-299 — range-formatted text is a string prop's value; where it may stand is the graph's.)
+  if (isRichText(value)) return type === "string";
   if (type === "calendarDuration") return catalogCalendarDurationFits(value);
   if (type === "numberFormat") return catalogNumberFormatFits(value);
   if (type === "slot") return scalarFitsType(value, type);

@@ -45,6 +45,12 @@ import { useFontRegistry } from "../../fonts/useFontRegistry";
 import { TYPOGRAPHY_PROPS } from "./styleSectionProps";
 import { useSemanticLabel } from "../../../../i18n";
 import { useStylesHost, useStylesSelectedId } from "../stylesHost";
+import { useTextEditorHandle } from "../../../catalogRuntime/textEditorHandle";
+import { catalogStyleWritesOf } from "../../../catalogRuntime/styleFields";
+import { isTextRunMarkKey } from "../../../../../../../packages/shared/src/catalog/document/textRuns";
+
+/** ADR-299 — the panel's 「Mixed」 value of a range key whose characters differ. */
+const MIXED = "mixed";
 
 /**
  * ADR-008 Text Behavior 프리셋 (빈 문자열 = 해제). `overflow` 는 Size 절의 컨트롤이라 Truncate
@@ -99,13 +105,57 @@ const TEXT_BEHAVIOR_PRESETS: Record<string, Record<string, string>> = {
 
 const TypographySectionContent = memo(function TypographySectionContent() {
   const localize = useSemanticLabel();
-  const { updateStyle, updateStyles } = useStyleActions();
+  const { updateStyle: updateNodeStyle, updateStyles } = useStyleActions();
   const { updateStyleImmediate, cancelStylePreview, updateStylePreview } =
     useOptimizedStyleActions();
   const selectedId = useStylesSelectedId();
-  const styleValues = useTypographyValues(selectedId);
+  const nodeValues = useTypographyValues(selectedId);
   // 색 드래그도 Styles host 미리보기
   const host = useStylesHost();
+  // ADR-299 Decision 5 — while the text is edited, the range keys read and write the editor's
+  // selected range (a PM transaction → preview; the edit commits one command). Otherwise the node:
+  // a key some run sets reads 「Mixed」 and a write sets node + runs (사용자 결정 3).
+  const editor = useTextEditorHandle(selectedId);
+  const runAxes = host.useTextRunAxes?.(selectedId) ?? [];
+  const styleValues = useMemo(() => {
+    if (!nodeValues) return nodeValues;
+    const range = editor?.marks();
+    const read = (key: "fontWeight" | "fontStyle" | "textDecoration" | "color" | "fontSize") =>
+      range
+        ? range[key] === undefined
+          ? nodeValues[key]
+          : String(range[key])
+        : runAxes.includes(key)
+          ? MIXED
+          : nodeValues[key];
+    return {
+      ...nodeValues,
+      fontWeight: read("fontWeight"),
+      fontStyle: read("fontStyle"),
+      textDecoration: read("textDecoration"),
+      color: read("color") === MIXED ? "" : read("color"),
+      fontSize: read("fontSize"),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `editor` re-renders per selection change
+  }, [nodeValues, editor, editor?.marks(), runAxes.join("|")]);
+  /** A range key goes to the editor's range while editing; true = taken. */
+  const writeRange = useCallback(
+    (key: string, value: string): boolean => {
+      if (!editor || !isTextRunMarkKey(key)) return false;
+      const write = catalogStyleWritesOf({ [key]: value }).visual?.[
+        key as keyof NonNullable<ReturnType<typeof catalogStyleWritesOf>["visual"]>
+      ] as { kind: string; value?: unknown } | undefined;
+      editor.apply(key, write?.kind === "set" ? write.value : undefined);
+      return true;
+    },
+    [editor],
+  );
+  const updateStyle = useCallback(
+    (key: string, value: string) => {
+      if (!writeRange(key, value)) updateNodeStyle(key, value);
+    },
+    [writeRange, updateNodeStyle],
+  );
   // 등록된 face 는 Font Weight 옵션 산출에만 쓴다 — 패밀리 목록은 FontFamilyPicker 가 직접 읽는다.
   const { registry } = useFontRegistry();
 
@@ -130,9 +180,12 @@ const TypographySectionContent = memo(function TypographySectionContent() {
     [styleValues?.fontFamily, registry.faces],
   );
 
+  // (A range's color · size apply on commit — the preview is the node's, not the range's.)
   const handleTextColorPreview = useCallback(
-    (value: string): void => updateStylePreview("color", value),
-    [updateStylePreview],
+    (value: string): void => {
+      if (!editor) updateStylePreview("color", value);
+    },
+    [updateStylePreview, editor],
   );
 
   const handleTextColorCommit = useCallback(
@@ -141,25 +194,35 @@ const TypographySectionContent = memo(function TypographySectionContent() {
   );
 
   const handleTextMetricPreview = useCallback(
-    (value: string): void => updateStylePreview("fontSize", value),
-    [updateStylePreview],
+    (value: string): void => {
+      if (!editor) updateStylePreview("fontSize", value);
+    },
+    [updateStylePreview, editor],
   );
 
   const handleTextMetricCommit = useCallback(
-    (value: string): void => updateStyleImmediate("fontSize", value),
-    [updateStyleImmediate],
+    (value: string): void => {
+      if (!writeRange("fontSize", value))
+        updateStyleImmediate("fontSize", value);
+    },
+    [updateStyleImmediate, writeRange],
   );
 
   if (!styleValues) return null;
 
   const isBold = Number(styleValues.fontWeight) >= 600;
-  const isItalic = styleValues.fontStyle !== "normal";
+  // (A mixed range — 「Mixed」 — is neither on.)
+  const isItalic =
+    styleValues.fontStyle !== "normal" && styleValues.fontStyle !== MIXED;
+  const sizeMixed = styleValues.fontSize === MIXED;
   const fontStyleKeys = [
     ...(isBold ? ["bold"] : []),
     ...(isItalic ? ["italic"] : []),
   ];
 
   return (
+    // (ADR-299 — this section is in the text edit scope: `isInTextEditScope` reads its
+    //  `data-section-id`; a wrapper here would break the section grid's direct-child rules.)
     <>
       {/* 1행: 글꼴 (이름이 곧 라벨) | 색 swatch 28 */}
       <FontFamilyPicker
@@ -189,7 +252,8 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         label="Font Size"
         className="font-size"
         unitSuffix
-        value={styleValues.fontSize}
+        value={sizeMixed ? "" : styleValues.fontSize}
+        {...(sizeMixed ? { placeholder: localize("Mixed") } : {})}
         units={["reset", "px"]}
         defaultUnit="px"
         presets={FONT_SIZE_PRESET_OPTIONS}

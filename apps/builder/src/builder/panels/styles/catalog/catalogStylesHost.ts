@@ -1,4 +1,10 @@
 import {
+  clearTextRunMarks,
+  isRichText,
+  isTextRunMarkKey,
+  richTextPlain,
+} from "../../../../../../../packages/shared/src/catalog/document/textRuns";
+import {
   catalogTokenValue,
   readThemeTokenValue,
 } from "../../../../../../../packages/shared/src/catalog/document/themedToken";
@@ -137,6 +143,21 @@ function useOwnFieldsOf(workspace: CatalogWorkspace, id: string | null) {
     target ? workspace.readModel.ownFields(target) : undefined,
   );
   return { target, own };
+}
+
+/** A node's own `children` write as its value (`{ kind: "set", value }` → value). */
+function ownChildrenValue(own: { props?: Record<string, unknown> }): unknown {
+  const write = own.props?.children as { kind?: string; value?: unknown } | undefined;
+  return write?.kind === "set" ? write.value : undefined;
+}
+
+/** ADR-299 — the range-key axes a text's written runs carry (empty for a plain text). */
+function textRunAxesOf(children: unknown): string[] {
+  if (!isRichText(children)) return [];
+  const axes = new Set<string>();
+  for (const run of children.runs)
+    for (const key of Object.keys(run.marks ?? {})) axes.add(key);
+  return [...axes];
 }
 
 /**
@@ -550,6 +571,31 @@ export function createCatalogStylesHost(
             label: "Edit style",
           } as Parameters<typeof setFields>[0]),
         );
+        // ADR-299 사용자 결정 3 — a range-formatted text written as a whole (not in the editor):
+        // the node's value wins everywhere, so the runs' value of that axis goes (Figma's Mixed).
+        const axes = Object.keys(fields).filter(isTextRunMarkKey);
+        if (axes.length)
+          for (const item of items) {
+            const record = workspace.root.domInputs.get(item.identity);
+            const written = (record?.templateProps ?? record?.props)?.children;
+            if (!isRichText(written)) continue;
+            commands.push(
+              setFields({
+                targets: [item.target],
+                props: {
+                  children: {
+                    kind: "set",
+                    value: clearTextRunMarks(
+                      written,
+                      0,
+                      richTextPlain(written).length,
+                      axes,
+                    ),
+                  },
+                },
+              }),
+            );
+          }
       }
       return ((reader) => ({
         label: "Edit style",
@@ -838,6 +884,16 @@ export function createCatalogStylesHost(
         // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read per layout version
         [id, version],
       );
+    },
+    useTextRunAxes(id) {
+      const version = useCatalogLayoutVersion(workspace);
+      return useMemo(() => {
+        const record = id ? workspace.root.domInputs.get(id) : undefined;
+        return textRunAxesOf(
+          (record?.templateProps ?? record?.props)?.children,
+        );
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read per layout version
+      }, [id, version]);
     },
     useParentLayout(id) {
       const version = useCatalogLayoutVersion(workspace);
@@ -1195,18 +1251,21 @@ export function createCatalogStylesHost(
       const id = useCatalogSession((state) => state.selection[0]?.identity);
       const breakpoint = useCatalogSession((state) => state.breakpoint);
       const { target, own } = useOwnFieldsOf(workspace, id ?? null);
-      return useMemo(
-        () =>
-          own && target
-            ? catalogDirtyStyleProps(
-                own,
-                breakpoint,
-                properties,
-                workspace.componentPageBaseline(target),
-              )
-            : [],
-        [own, target, breakpoint, properties],
-      );
+      return useMemo(() => {
+        if (!own || !target) return [];
+        const dirty = catalogDirtyStyleProps(
+          own,
+          breakpoint,
+          properties,
+          workspace.componentPageBaseline(target),
+        );
+        // ADR-299 — a range's own value of a section axis is that section's edit too (the reset
+        // takes it back, below).
+        const runs = textRunAxesOf(ownChildrenValue(own)).filter(
+          (key) => properties.includes(key) && !dirty.includes(key),
+        );
+        return runs.length ? [...dirty, ...runs] : dirty;
+      }, [own, target, breakpoint, properties]);
     },
     resetStyles(properties) {
       run(() => {
@@ -1221,14 +1280,36 @@ export function createCatalogStylesHost(
             properties,
             workspace.componentPageBaseline(target),
           );
-          if (!reset) continue;
-          if (Object.keys(reset.writes).length)
+          if (reset && Object.keys(reset.writes).length)
             commands.push(
               setFields({
                 targets: [target],
                 ...(breakpoint === "desktop" ? {} : { breakpoint }),
                 ...reset.writes,
               } as Parameters<typeof setFields>[0]),
+            );
+          // ADR-299 — the reset of a section's axes takes the runs' values of those axes too (a
+          // text whose runs then carry nothing is a plain string again).
+          const children = ownChildrenValue(workspace.readModel.ownFields(target));
+          const axes = textRunAxesOf(children).filter((key) =>
+            properties.includes(key),
+          );
+          if (axes.length && isRichText(children))
+            commands.push(
+              setFields({
+                targets: [target],
+                props: {
+                  children: {
+                    kind: "set",
+                    value: clearTextRunMarks(
+                      children,
+                      0,
+                      richTextPlain(children).length,
+                      axes.filter(isTextRunMarkKey),
+                    ),
+                  },
+                },
+              }),
             );
         }
         if (!commands.length) return undefined;

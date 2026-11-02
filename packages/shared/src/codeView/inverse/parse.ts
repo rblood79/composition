@@ -286,9 +286,20 @@ export function parseCodeView(code: string): CodeViewParsed {
             textTo = child.to - tail;
           }
           continue;
-        case "JSXElement":
+        case "JSXElement": {
+          // ADR-299 — a `<span>` in the text is a run of it (its style = the run's marks), not a
+          // child element.
+          const open = child.getChild("JSXOpenTag");
+          const tag =
+            open?.getChild("JSXBuiltin") ?? open?.getChild("JSXIdentifier");
+          if (tag && text(tag) === "span" && !children.length) {
+            textFrom ??= child.from;
+            textTo = child.to;
+            continue;
+          }
           children.push(element(child, undefined));
           continue;
+        }
         case "JSXEscape": {
           const inner = child.firstChild?.nextSibling;
           if (inner?.name === "ArrowFunction") {

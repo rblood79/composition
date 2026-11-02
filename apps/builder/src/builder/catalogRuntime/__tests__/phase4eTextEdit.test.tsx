@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { act, fireEvent, render } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
@@ -10,6 +10,12 @@ import type {
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogTextEditor } from "../../workspace/canvas/catalog/CatalogTextEditor";
+// ADR-299 — these cases read the field before the ProseMirror chunk (the lazy editor) arrives: the
+// textarea the edit opens with. The chunk is held pending (its own tests: tests/text-edit).
+vi.mock(
+  "../../workspace/canvas/catalog/textEditor/EditorField",
+  () => new Promise(() => undefined),
+);
 import { catalogTextKey, committedWhiteSpace } from "../canvasText";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";

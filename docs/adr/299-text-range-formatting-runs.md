@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-11-02
+Accepted — 2026-11-02 (사용자 `/execute-adr 299` · [reviews/299.md](reviews/299.md) round 2 HIGH 0 · pending 0 · l1 fixed — 설계 리뷰 닫힘)
 
 - 사용자 요청: `/create-adr 범위 서식` (2026-11-02) — 같은 대화에서 Quill 의존성을 지운 직후 (`0a33873bb`, import 0 이던 패키지).
 - 방향을 정한 사용자 원문 (2026-11-02): 「quill의 단점없이 범위 서식 기능을 하려면 자체 구현밖에 없나?」 → 권고 「입력 층은 ProseMirror core, 나머지 다섯 층 (문서 모델 · Canvas · 측정 · Preview/Publish · 패널) 은 어느 라이브러리를 골라도 직접」 → 「각각 라이브러리들 모두 라이센스가 오픈일것인데 소스코드 분석해서 우리것에 맞춰 만들어서 하는것이 낮지않나?」 → 권고 「모델 · 명령 · 렌더 · 측정은 참고해서 우리 것으로, 입력 view (`prosemirror-view`) 는 고치지 않은 의존성으로 두고 변환 층 하나」 → `/create-adr`.
@@ -11,6 +11,18 @@ Proposed — 2026-11-02
 - ADR 분리 4 질문 lock-in: breakdown §1 (299 = base — 글자 값의 **구간** 축. 027 은 편집 상자의 전환 무결성, 205 는 글자 축의 computed seam, 298 은 값의 토큰 참조 — 셋 다 직교).
 - 리뷰 round 1 ([reviews/299.md](reviews/299.md), 2026-11-02 codex — HIGH 3) 반영: h1 템플릿 토큰 원자 (Decision 1 · 4, F17) · h2 장식선 전파 (Decision 2, F18) · h3 편집 범위 (Decision 4 · 5, F19). Gate G2 · G3 · G4 에 반례 fixture 추가.
 - 리뷰 · 착수는 사용자 요청 때 (`review-adr` · `/execute-adr 299`). 아래 「사용자 결정 5건」 은 execute-adr 가 그 Phase 에 닿을 때 묻는다.
+- **사용자 결정 (2026-11-02, Phase 3 착수 질문 답)**: 2 「툴바 없음」 (⌘B · ⌘I · ⌘U + Design 패널) · 3 「노드 + 구간 전부」 (편집 밖 패널 쓰기는 구간의 그 축도 지운다).
+- **사용자 결정 (2026-11-02, Phase 1 착수 질문 답)**: 1 「다섯 축」 (굵기 · 기울임 · 장식선 · 색 · 크기) · 4 「제외」 (범위 링크는 별도 ADR) · 5 「Builder 상한 재승인」 — 착수 HEAD `75935c07b` 이 이미 Builder 1,400,437 B (상한 437 B 초과, 299 이전 몫) 라 ADR-201 상한을 Builder **1,410,000** 으로 재승인 (Preview 325,000 무변경 · 만료 11-25). 결정 2 · 3 은 Phase 3 이 닿을 때.
+
+> **Phase 0 종결 (2026-11-02, 동작 변경 0)** — G0 (a) 한글 IME: PM `EditorView` + 조합 중 상자가 자라는 preview 에서 Chrome 156 (CDP IME) · WebKit 27.2 (합성 조합 순서) 각 7/7 PASS, 대조 arm (글자 DOM 교체 re-render) 은 두 브라우저 모두 깨짐 = 하니스 감도 확인 → **go** · 조합 중 preview 보류 불필요 · 조합 중 Esc 는 커밋하지 않음 (PM 이 조합 중 keymap 을 건너뜀 — 다음 Esc 가 커밋). G0 (b) chunk initial 밖은 PM 을 처음 배선하는 커밋 (Phase 3) 의 G1 로. 번들 기준선 Builder 1,400,437 · Preview 322,300. PM 5 패키지 (2주 이상 된 판) 설치. 인벤토리 41 파일 → Phase 1 은 resolver 가 record `props.children` 에 plain, run 은 별도 필드 (run 을 모르는 소비자 무변경). 조상 장식선: Canvas 는 지금 글자 자신의 색으로 그린다 (CSS 는 조상 색) — G2 fixture 8 이 고정. 상세: breakdown §6.1 · §6.2 · §6.4.
+
+> **Phase 1 종결 (2026-11-02, G3)** — `RichText` 형 · `textRuns.ts` (정규형 · `widenToTokens` · 구간 쓰기 · 구간 mark 읽기) · validation (`RICH_TEXT_*` — 비정규형 · 빈 run · 어휘 밖 mark · 토큰을 가르는 경계 거부) · graph 의 host 제한 (Text · Paragraph · Heading · Link 의 `children` 만) · contract 53 · resolver 가 mark 토큰을 해석 (출처는 ADR-298 D5 의 token ref 로 marks 객체에) · 행 필드는 run 마다 · record 는 `props.children` = plain + `textRuns` (run 을 모르는 소비자 41 파일 무변경) · 편집 상자는 Phase 3 까지 plain. G3 14 + record 3 · 원복 RED 2 (정규형 제거 5 FAIL · 토큰 넓힘 제거 4 FAIL = 요청한 굵기 소실 — 리뷰 l1 그대로). 회귀: shared 2,363 중 1 FAIL · builder 7,645 중 15 FAIL — **둘 다 HEAD `75935c07b` 에서 같은 실패** (299 몫 0, 샘플 파일 contract 3 은 수리). 번들 Δ Builder +1,464 · Preview +40.
+
+> **Phase 2 종결 (2026-11-02, G2)** — 측정 · Canvas · DOM 이 같은 run 읽기 (`runtime/textRunStyles.ts`) 를 쓴다: 측정은 run 마다 `pushStyle` 한 paragraph (`textMeasure.ts` · 캐시 키에 run · 줄 높이 = paragraph 높이) · `leafBaseline` = strut 과 각 run 의 줄 상자 baseline 중 가장 낮은 것 · Canvas 는 run push (+ small-caps) · 강제 strut 해제 (큰 run 이 줄을 키운다 — CSS 줄 상자) · run 은 Canvas 2D 줄바꿈 힌트 없이 paragraph 가 끊고 측정과 같은 폭 (`max(폭, min-content) + 0.5`) · 공백 접기 · 힌트 뒤 run 구간은 `alignTextRuns` · run 장식선은 `getRectsForRange` 조각마다 run 색 · 크기 · paragraph 키에 run. DOM 은 run 마다 `<span>` (mark 만, 토큰은 변수) · 자기 장식선은 span 으로 옮기고 물려받은 장식선은 요소에 남김 · Link 는 범용 경로 span + rule 밑줄을 run 아래 선으로. **F18 정정**: frame 등 container 요소는 DOM 에 `text-decoration` 을 쓰지 않는다 — 조상 장식선은 `inheritedText` 로 글자 요소 **자신** 에 inline 으로 들어간다 (그래서 선 색 = 글자 색). RichText 도 같은 모델: 자기 장식선이 없으면 물려받은 선을 요소에 두고 (run 이 못 지움), Canvas 는 그 선을 모든 run 아래 글자 색으로. **G2 8/8** (Chrome 156 headless · DPR 1 · 500 % · 대조 arm = 같은 글자 plain): run arm 잉크 가장자리 차 ≤ 3 device px (0.6 scene px, 대조 2) · run 색 잉크 ≤ 3 · 줄 수 동일 (wrap 4줄) · 엔진 상자 = DOM 상자 (0 px). 원복 RED 4 (run 크기 무시 · strut 강제 · run 장식선 off · 요소가 자기 장식선 유지) 전부 FAIL. 회귀: parity 1,008 중 1 FAIL · builder 15 · shared 1 — 전부 HEAD 동일. 번들 Δ Builder +1,946 (누적 1,403,847) · Preview +1.
+
+> **Phase 3 종결 (2026-11-02, G4 · G1)** — 편집 상자 = ProseMirror core lazy chunk (`textEditor/EditorField` — schema = 다섯 mark + `hard_break`, `textRunsBridge` 왕복은 정규형, ⌘B · ⌘I · ⌘U 토글 · Enter 줄바꿈 · 편집 중 ⌘Z 는 편집기 자체 상태 스택, mark 쓰기는 토큰 밖으로 넓힘, 붙여넣기는 글자 + 이 편집기 mark 만) · 로드 전엔 textarea · 편집 범위 (편집 상자 + Typography 절 `[data-section-id="typography"]` + 팝오버 — 범위 밖 press · focus 만 커밋, 커밋은 한 번) · 선택 구간 유지 표시 · `textEditorHandle` (Typography 가 선택 구간 marks 를 읽고 쓴다, 편집 밖은 「Mixed」 + 노드 + run 축 지우기 — 결정 3) · 코드 보기 `<span style={{…}}>` 투영 · 적용 (닫힌 어휘 — 다른 키 · JSX 거절) · Properties 글자 칸 plain. **G4**: `tests/text-edit/adr299EditorField.browser.test.tsx` Chrome · WebKit 각 8 (실제 키 · 클릭) · 원복 RED 2 (Typography 범위 제거 · 토큰 넓힘 제거 → 두 브라우저 모두 FAIL) · 코드 보기 4 · 결정 3 host 1. **G1 · G0 (b)**: ProseMirror 는 `EditorField-*.js` (gz 58,213 B) 에만 있고 initial closure 밖 (dynamic target). Phase 3 Δ Builder +1,961 · Preview 0 → 누적 Builder **1,405,808** (+5,371, 상한 1,410,000) · Preview **322,341** (+41).
+>
+> **Phase 4 (2026-11-02) — G6 live 진행 · G5 는 커밋 뒤** — live (Chrome MCP, dev 5174, 새 프로젝트 「ADR299 live」): 결함 2 발견 · 수리 (⌘Z 뒤 옛 run 이 남음 — 증분 rebuild 의 버릴 필드 목록에 `textRuns` 추가 + 회귀 테스트 원복 RED / Properties 글자 칸 `[object Object]` — plain 으로) 와 패널 「Mixed」 표시 2 (Font Size 0 · Italic 켜짐) 수리. 아래 `### Live Exercise`. **남은 것**: G5 ratchet 은 측정 대상이 커밋된 HEAD 라 커밋 요청 뒤 · native macOS 한글 IME (MCP 입력은 조합 이벤트가 아님 — 조합 경로는 G0 의 CDP IME · WebKit 합성으로만 검증) 는 사용자 확인.
 
 > 구현 상세: [design/299-text-range-formatting-breakdown.md](design/299-text-range-formatting-breakdown.md)
 
@@ -194,7 +206,25 @@ C 의 잔존 위험은 변환 층 (run ↔ PM) 과 WebKit IME 의 실측 부재�
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+2026-11-02 · Chrome MCP (실행자) · dev 서버 5174 (사용자 5173 무관) · 새 프로젝트 「ADR299 live」 · 측정 조건 headed Chrome · DPR 2 · CPU throttle 없음.
+
+| # | 시나리오 | 결과 |
+| --- | --- | --- |
+| 1 | Text 넣기 → 더블클릭 → PM 편집기가 열리고 (`.ProseMirror` focus · 전체 선택) 「안녕 세상」 입력 | PASS (입력은 MCP 의 글자 넣기 — 조합 이벤트 아님) |
+| 2 | 「세상」 Shift+← ×2 → ⌘B | PASS — Typography 가 선택 구간 값 (Bold · B 켜짐) |
+| 3 | 편집 중 Font Size 칸 28 Enter · 색 팝오버 Theme 빨강 | PASS — 구간만 바뀌고 편집 · 선택 유지 (선택 강조), 상자가 커짐 |
+| 4 | 캔버스 빈 곳 클릭 → 커밋 | PASS — Canvas 「안녕 **세상**」 (빨강 · 굵게 · 28, 같은 baseline) |
+| 5 | ⌘Z · ⇧⌘Z | **FAIL → 수리** (⌘Z 뒤 「Tex**t**」 — 옛 run 이 남음) → 수리 뒤 새로고침 · 「안녕」 ⌘I 커밋 → ⌘Z 원래대로 · ⇧⌘Z 다시 기울임 PASS |
+| 6 | 새로고침 | PASS — RichText 저장 · 재로드 (IndexedDB) |
+| 7 | 코드 보기 | PASS — `<Text><span style={{ fontStyle: "italic" }}>안녕</span> <span style={{ fontWeight: 700, color: "#fb2c36", fontSize: 28 }}>세상</span></Text>` |
+| 8 | Compare Mode Home (Canvas) ↔ End (CSS) 확대 비교 | PASS — 같은 자리 · 모양 (500 % raster 대조는 G2 하니스) · Preview DOM span 3 · `<strong>`/`<em>` 0 |
+| 9 | 편집 밖 선택 → Properties · Text 탭 | **FAIL → 수리** (Properties 글자 `[object Object]` · Font Size `0` · Italic 켜짐) → plain 「안녕 세상」 · Font Weight — · Font Size 「Mixed」 · B · I 꺼짐 PASS |
+| 10 | 편집 밖 B (결정 3) | PASS — 노드 굵기 700, run 의 `fontWeight` 축만 지워지고 기울임 · 색 · 크기는 남음 (코드 보기) |
+| 11 | 콘솔 | 새로고침 뒤 error 0 |
+| 12 | (사용자 보고 11-02) 구간 서식 → Typography 초기화 · 편집 중 구간 값을 노드 값으로 되돌림 → Compare Mode CSS DOM | **FAIL → 수리** (둘 다 `span > span` 이 남음 — 초기화가 노드 값만 지웠고, 노드와 같은 값도 구간 서식으로 남았다) → 새 프로젝트 「ADR299 reset」: 「rld」 굵게 → 초기화 → 구간 span 0 · Text 하나 / 편집 중 「rld」 Font Size 24 → 16 → 커밋 → 구간 span 0 PASS |
+| 13 | 새로고침 직후 첫 편집에서 바로 입력 | **FAIL → 수리** (첫 글자 유실 — 편집기 chunk 를 받는 동안 대체 textarea 가 받은 「H」 를 편집기가 열면서 전체 선택해 다음 글자가 덮었다) → 편집기가 textarea 의 caret 으로 열림 · 「Hello world」 그대로 PASS · 콘솔 error 0 |
+
+미검증: native macOS 한글 IME 조합 (MCP 는 조합 이벤트를 내지 않는다 — 사용자 확인 대기) · WebKit live (G0 · G4 는 Playwright WebKit).
 
 ## Consequences
 

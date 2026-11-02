@@ -1,0 +1,11 @@
+/* ADR-299 — the inline text editor (ProseMirror inside the field, `EditorField.tsx`). */
+.catalog-text-editor-input {
+  word-wrap: break-word;
+}
+
+/* The selected range while the focus is in the Typography section (the browser drops a blurred
+   editable's selection): the selection's own color. */
+.catalog-text-editor .text-edit-held-selection {
+  background: Highlight;
+  color: HighlightText;
+}

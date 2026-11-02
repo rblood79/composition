@@ -10,6 +10,12 @@ import type {
 } from "../../../../../../../../packages/shared/src/catalog/document/types";
 import { insertNodes } from "../../../../../../../../packages/shared/src/catalog/commands";
 import { CatalogTextEditor } from "../CatalogTextEditor";
+// ADR-299 — these cases read the field before the ProseMirror chunk (the lazy editor) arrives: the
+// textarea the edit opens with. The chunk is held pending (its own tests: tests/text-edit).
+vi.mock(
+  "../textEditor/EditorField",
+  () => new Promise(() => undefined),
+);
 import { newCatalogProjectDocument } from "../../../../catalogRuntime/project";
 import { CatalogStorage } from "../../../../catalogRuntime/storage";
 import { CatalogWorkspace } from "../../../../catalogRuntime/workspace";

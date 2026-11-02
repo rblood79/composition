@@ -21,6 +21,19 @@ export interface PartialBorderData {
   borderRadius: [number, number, number, number];
 }
 
+/** ADR-299 — one run of a range-formatted text (`[start, end)` in `text.content`). */
+export interface SkiaTextRun {
+  start: number;
+  end: number;
+  fontWeight?: number;
+  /** 0 normal · 1 italic · 2 oblique (`text.fontStyle`). */
+  fontStyle?: number;
+  fontSize?: number;
+  color?: Float32Array;
+  /** The run's own decoration bits (`parseTextDecoration`); 0 = none. */
+  decoration?: number;
+}
+
 export interface SkiaNodeData {
   type:
     | "box"
@@ -115,6 +128,20 @@ export interface SkiaNodeData {
     clipText?: boolean;
     /** G4: CSS text-shadow 목록 (shadow-first 2-pass 렌더링) */
     textShadows?: TextShadow[];
+    /**
+     * ADR-299 — a range-formatted text's runs over `content` (each its own type over the node's).
+     * With runs, `decoration` is absent: every run carries its own line (`run mark ?? node's own`).
+     */
+    runs?: readonly SkiaTextRun[];
+    /**
+     * ADR-299 — the ancestor's decoration a range-formatted text's runs cannot remove (CSS
+     * propagation), drawn in the decorating box's color and font size under the runs' own lines.
+     */
+    ancestorDecoration?: {
+      decoration: number;
+      color?: Float32Array;
+      fontSize?: number;
+    };
   };
   /**
    * ADR-270 Phase 2: the image's own size (`naturalWidth/Height` — object-fit reads it) is apart from

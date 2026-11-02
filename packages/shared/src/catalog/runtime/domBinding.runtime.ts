@@ -1,3 +1,4 @@
+import { catalogTextRunsContent } from "./textRunsDom";
 import { paintAt, ruleHasPaintImage } from "../rule/rulePaintTree";
 import {
   catalogIsAuthoredAbsolute,
@@ -702,7 +703,10 @@ export function catalogDomStyle(
               metrics.textTransform as CSSProperties["textTransform"],
           }
         : {}),
-      ...(metrics.textDecoration !== undefined
+      // (ADR-299 — a range-formatted text's own decoration is on its run spans, `textRunsDom.ts`;
+      //  an inherited one stays on the element — under every run, which cannot remove it.)
+      ...(metrics.textDecoration !== undefined &&
+      (!node.textRuns || node.visual.textDecoration === undefined)
         ? { textDecoration: metrics.textDecoration }
         : {}),
       ...(metrics.wordBreak !== undefined
@@ -905,7 +909,9 @@ const bindings: Readonly<Record<string, DomBinding>> = {
             : {}),
           style,
         };
-        const text = String(node.props.children ?? "");
+        const text =
+          catalogTextRunsContent(node.textRuns, node.visual.textDecoration) ??
+          String(node.props.children ?? "");
         return detachedSlot(resolution)
           ? createElement(
               "span",
@@ -956,7 +962,10 @@ const bindings: Readonly<Record<string, DomBinding>> = {
           // ADR-256 Phase 8c.)
           ...(children.length && !node.props.children
             ? []
-            : [String(node.props.children ?? "")]),
+            : (catalogTextRunsContent(
+                node.textRuns,
+                node.visual.textDecoration,
+              ) ?? [String(node.props.children ?? "")])),
           ...children,
         ),
     }),
@@ -991,7 +1000,9 @@ const bindings: Readonly<Record<string, DomBinding>> = {
     createElement(
       "p",
       { key: node.id, "data-catalog-id": node.id, style },
-      String(node.props.children ?? ""),
+      ...(catalogTextRunsContent(node.textRuns, node.visual.textDecoration) ?? [
+        String(node.props.children ?? ""),
+      ]),
     ),
   fielderror: (node, style) =>
     createElement(
@@ -2382,7 +2393,10 @@ function ruleDom(
       ? ownChildren
       : textChildren === undefined
         ? []
-        : [String(textChildren)]),
+        : // (ADR-299 — a Link's range-formatted text: a span per run.)
+          (catalogTextRunsContent(node.textRuns, node.visual.textDecoration) ?? [
+            String(textChildren),
+          ])),
     ...(linkOut ? [catalogLinkOutGlyphElement(node, type)] : []),
   ];
   // ADR-295 후속: a draggable Table's header row · Row — S2's drag column first.
@@ -3001,6 +3015,14 @@ function authoredStyle(
     noSheet ? node.visual : catalogAuthoredVisual(root, node),
   ).sort((a, b) => authoredRank(a) - authoredRank(b))) {
     if (key === "aspectRatio") continue; // written below from the resolved ratio
+    // (ADR-299 — a range-formatted text's own decoration is on its run spans; an authored `none`
+    //  stays on the element — it turns off a rule's line (a Link's) that no span could remove.)
+    if (
+      key === "textDecoration" &&
+      node.textRuns &&
+      !/^none\b/.test(String(value))
+    )
+      continue;
     const textCss =
       TYPOGRAPHY_KEYS.has(key) &&
       carriesText &&

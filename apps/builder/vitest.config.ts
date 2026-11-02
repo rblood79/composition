@@ -137,6 +137,18 @@ export default defineConfig({
         plugins: browserPlugins(),
         test: { name: "chart", ...chartTest, browser: chromium() },
       },
+      // ADR-299 G0 — 글자 편집 상자 입력 (한글 IME 조합) 은 대상 브라우저 둘 (Chrome + WebKit) 에서 잰다.
+      {
+        plugins: browserPlugins(),
+        test: {
+          name: "text-edit",
+          include: ["tests/text-edit/**/*.browser.test.{ts,tsx}"],
+          browser: {
+            ...chromium(),
+            instances: [{ browser: "chromium" }, { browser: "webkit" }],
+          },
+        },
+      },
       {
         plugins: browserPlugins(),
         test: {

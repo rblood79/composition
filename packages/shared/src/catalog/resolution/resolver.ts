@@ -1,5 +1,8 @@
+import { isRichText } from "../document/textRuns";
 import type {
   AuthoredValue,
+  RichText,
+  TextRunMarks,
   BreakpointName,
   CatalogFillLayer,
   CatalogResolvedFillLayer,
@@ -403,6 +406,17 @@ function withoutSampleContent(writes: PropWrites): PropWrites {
 }
 /** A row value: `{field}` templates read the row (a `{{ state }}` template is not a row field). */
 function bindRowValue(value: PropValue, row: CatalogBoundRow): PropValue {
+  // ADR-299 — a range-formatted text reads the row in each run (a `{field}` token is never split).
+  if (isRichText(value)) {
+    let changed = false;
+    const runs = value.runs.map((run) => {
+      const text = bindRowValue(run.text, row) as string;
+      if (text === run.text) return run;
+      changed = true;
+      return { ...run, text: String(text) };
+    });
+    return changed ? { kind: "text", runs } : value;
+  }
   if (typeof value !== "string" || !value.includes("{") || value.includes("{{"))
     return value;
   const compiled = compileFieldTemplate(value);
@@ -829,10 +843,37 @@ export function resolveCatalogNode(
       else map.set(target, { [key]: ref });
     } else if (refs) delete refs[key];
   };
+  const resolvedRichText = (value: RichText): RichText => {
+    let changed = false;
+    const runs = value.runs.map((run) => {
+      if (!run.marks) return run;
+      let marks: Record<string, unknown> | undefined;
+      for (const [key, mark] of Object.entries(run.marks)) {
+        if (typeof mark !== "object" || mark === null) continue;
+        marks ??= { ...run.marks };
+        const token = graph.getToken(mark.tokenId);
+        if (!token)
+          throw new CatalogValidationError("DANGLING_TOKEN", mark.tokenId);
+        marks[key] = catalogTokenValue(token, tokenMode);
+      }
+      if (!marks) return run;
+      for (const [key, mark] of Object.entries(run.marks))
+        if (typeof mark === "object" && mark !== null) {
+          noteTokenRef(marks, key, mark);
+          noteTokenRef(marks, key, mark, AUTHORED_TOKEN_REFS);
+        }
+      changed = true;
+      return { ...run, marks: marks as TextRunMarks };
+    });
+    return changed ? { kind: "text", runs } : value;
+  };
   const tokenValue = (value: AuthoredValue): PropValue => {
     if (typeof value !== "object" || !("kind" in value)) return value;
     // (ADR-284 Phase 6 — a value condition resolves with the record's variables, as `{{ }}`.)
     if (value.kind === "when" || value.kind === "var") return value;
+    // ADR-299 — a run's marks resolve like a visual's values (a token → its value in the color mode,
+    // its ref noted on the marks object for the DOM's variable — ADR-298 D5).
+    if (value.kind === "text") return resolvedRichText(value);
     const token = graph.getToken(value.tokenId);
     if (!token)
       throw new CatalogValidationError("DANGLING_TOKEN", value.tokenId);

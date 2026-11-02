@@ -40,7 +40,8 @@ import { observe } from "../../../utils/perfMarks";
 import { getCacheMetrics } from "./cacheMetrics";
 import { renderCounters, renderScope } from "./renderCounters";
 import { drainPendingWasmDisposals } from "./deferredDisposal";
-import type { SkiaNodeData } from "./nodeRendererTypes";
+import type { SkiaNodeData, SkiaTextRun } from "./nodeRendererTypes";
+import { alignTextRuns } from "../utils/textRunAlign";
 import { getTextParagraphCacheKey } from "./textParagraphKey";
 import {
   getRetainedParagraphCount,
@@ -227,6 +228,18 @@ export function renderText(
     !!node.text.clipText;
 
   const key = getTextParagraphCacheKey(node, processedText);
+
+  // ADR-299 — a range-formatted text: its runs over the text the paragraph is built from. The
+  // paragraph breaks its own lines (no Canvas 2D hints — one style cannot measure runs of several
+  // sizes), as the layout measure does (`catalogTextMeasure` — the same runs, the same paragraph).
+  const richRuns = node.text.runs?.length ? node.text.runs : undefined;
+  const richText =
+    richRuns && wordBreak === "break-all" && layoutMaxWidth < 100000 && !isEllipsis
+      ? Array.from(processedText).join("\u200B")
+      : processedText;
+  const alignedRuns = richRuns
+    ? alignTextRuns(node.text.content, richRuns, richText)
+    : undefined;
 
   // The painted baseline at the CSS line box's (`resolveCssBaselineCorrection`): SkParagraph rounds
   // it to whole px, Chrome rounds the font's ascent · descent instead.
@@ -429,6 +442,18 @@ export function renderText(
     drawY: number,
   ): void => {
     const text = node.text!;
+    if (alignedRuns) {
+      drawRunDecorations(
+        ck,
+        canvas,
+        paragraph,
+        text,
+        alignedRuns,
+        drawX,
+        drawY,
+      );
+      return;
+    }
     if (!text.decoration) return;
     const font = measureFontBox(
       cssFontFamilyList(text.fontFamilies),
@@ -623,17 +648,19 @@ export function renderText(
               ...(heightMultiplierOpt !== undefined
                 ? { heightMultiplier: heightMultiplierOpt, halfLeading: true }
                 : {}),
-              forceStrutHeight: true,
+              // (Runs of other sizes grow their line past the strut, as a CSS line box grows with
+              //  its tallest inline box — ADR-299. A one-style text keeps the forced strut.)
+              forceStrutHeight: !alignedRuns,
             },
           }
         : {}),
       ...(isEllipsis ? { maxLines: 1, ellipsis: "\u2026" } : {}),
     });
 
-    let renderableText = processedText;
+    let renderableText = alignedRuns ? richText : processedText;
     let effectiveLayoutWidth = isEllipsis ? node.text.maxWidth : layoutMaxWidth;
 
-    if (!isEllipsis && layoutMaxWidth < 100000) {
+    if (!alignedRuns && !isEllipsis && layoutMaxWidth < 100000) {
       // ADR-051: Canvas 2D Break Hint Injection
       // Canvas 2D가 결정한 줄바꿈을 \n으로 삽입하여 CanvasKit 렌더링에 강제.
       // 측정(Canvas 2D)과 렌더링(CanvasKit)의 줄바꿈 일치를 구조적으로 보장.
@@ -728,12 +755,22 @@ export function renderText(
     //
     // Decorations are not SkParagraph's: it places them from the font's underline metrics, the
     // Preview by Chrome's rules — `drawCssDecorations` draws them after the text (2026-11-02).
-    const runTextStyle = (fontSize: number) =>
+    const runTextStyle = (fontSize: number, run?: SkiaTextRun) =>
       new ck.TextStyle({
         fontFamilies: resolvedFamilies,
         fontSize,
-        fontStyle: { weight: fontWeight, slant: fontSlant, width: fontWidth },
-        color: node.text!.color,
+        fontStyle: {
+          weight:
+            run?.fontWeight !== undefined
+              ? (fontWeightMap[run.fontWeight] ?? fontWeight)
+              : fontWeight,
+          slant:
+            run?.fontStyle !== undefined
+              ? (fontSlantMap[run.fontStyle] ?? fontSlant)
+              : fontSlant,
+          width: fontWidth,
+        },
+        color: run?.color ?? node.text!.color,
         letterSpacing: node.text!.letterSpacing ?? 0,
         wordSpacing: node.text!.wordSpacing ?? 0,
         ...(heightMultiplierOpt !== undefined
@@ -742,10 +779,39 @@ export function renderText(
         ...(fontFeatureTags.length > 0
           ? { fontFeatures: fontFeatureTags }
           : {}),
-        fontVariations: [{ axis: "wght", value: node.text!.fontWeight ?? 400 }],
+        fontVariations: [
+          { axis: "wght", value: run?.fontWeight ?? node.text!.fontWeight ?? 400 },
+        ],
       });
     builder.pushStyle(runTextStyle(node.text.fontSize));
-    if (synthSmallCaps) {
+    if (alignedRuns) {
+      // ADR-299 — each run in its own style over the node's (the small-caps synthesis inside it).
+      const addPart = (text: string, run?: SkiaTextRun) => {
+        const size = run?.fontSize ?? node.text!.fontSize;
+        if (!synthSmallCaps) {
+          builder.addText(text);
+          return;
+        }
+        for (const part of splitSmallCapsRuns(text, fontVariantStr)) {
+          if (!part.small) {
+            builder.addText(part.text);
+            continue;
+          }
+          builder.pushStyle(runTextStyle(size * SMALL_CAPS_SCALE, run));
+          builder.addText(part.text);
+          builder.pop();
+        }
+      };
+      let at = 0;
+      for (const run of alignedRuns) {
+        if (run.start > at) addPart(renderableText.slice(at, run.start));
+        builder.pushStyle(runTextStyle(run.fontSize ?? node.text.fontSize, run));
+        addPart(renderableText.slice(run.start, run.end), run);
+        builder.pop();
+        at = run.end;
+      }
+      if (at < renderableText.length) addPart(renderableText.slice(at));
+    } else if (synthSmallCaps) {
       // 소문자 run 만 축소 TextStyle 로 — 공백 · 숫자 · 한글 · 대문자는 본문 크기 (Chrome 합성과 같다).
       const smallStyle = runTextStyle(node.text.fontSize * SMALL_CAPS_SCALE);
       for (const run of splitSmallCapsRuns(renderableText, fontVariantStr)) {
@@ -766,6 +832,20 @@ export function renderText(
     observe("render.text.paragraph.layout", () =>
       paragraph.layout(effectiveLayoutWidth),
     );
+
+    // ADR-299 — the measure's wrap width (`paragraphMetrics`: no less than min-content unless the
+    // text breaks inside words, + 0.5 for a line that fits to the sub-pixel).
+    if (alignedRuns && !isEllipsis && layoutMaxWidth < 100000) {
+      const breaksWords =
+        wordBreak === "break-all" ||
+        overflowWrap === "break-word" ||
+        overflowWrap === "anywhere";
+      effectiveLayoutWidth =
+        (breaksWords
+          ? layoutMaxWidth
+          : Math.max(layoutMaxWidth, paragraph.getMinIntrinsicWidth())) + 0.5;
+      paragraph.layout(effectiveLayoutWidth);
+    }
 
     // CanvasKit 큰 width 렌더링 실패 방지:
     // paragraph.layout(100000+) 시 텍스트가 보이지 않는 CanvasKit 내부 버그.
@@ -789,6 +869,7 @@ export function renderText(
     // renderableText가 원본 processedText와 다르면 그 변환 결과를 신뢰하고
     // 교정 로직을 스킵 — 그렇지 않으면 break-all의 4줄 wrap이 1줄로 잘못 복구된다.
     if (
+      !alignedRuns &&
       !isEllipsis &&
       layoutMaxWidth < 100000 &&
       !renderableText.includes("\n") &&
@@ -850,6 +931,112 @@ export function renderText(
     };
   } finally {
     scope.dispose();
+  }
+}
+
+/**
+ * ADR-299 Decision 2 — a range-formatted text's decoration lines: the ancestor's (CSS propagation —
+ * in the decorating box's color and size, under every run) and then each run's own (`run mark ??
+ * node's own`, in the run's color and size), along the run's glyph rects on each line, from the
+ * line's painted baseline (SkParagraph's whole px — as the one-style `drawCssDecorations`).
+ */
+function drawRunDecorations(
+  ck: CanvasKit,
+  canvas: Canvas,
+  paragraph: Paragraph,
+  text: NonNullable<SkiaNodeData["text"]>,
+  runs: readonly SkiaTextRun[],
+  drawX: number,
+  drawY: number,
+): void {
+  const ancestor = text.ancestorDecoration;
+  if (!ancestor && !runs.some((run) => run.decoration)) return;
+  const lines = paragraph.getLineMetrics();
+  if (lines.length === 0) return;
+  const families = cssFontFamilyList(text.fontFamilies);
+  const style = text.decorationStyle ?? "solid";
+  const dpr =
+    typeof globalThis.devicePixelRatio === "number"
+      ? globalThis.devicePixelRatio
+      : 1;
+  const lineOf = (top: number, bottom: number) => {
+    const middle = (top + bottom) / 2;
+    return (
+      lines.find(
+        (line) =>
+          middle >= line.baseline - line.ascent &&
+          middle <= line.baseline + line.descent,
+      ) ?? lines[0]!
+    );
+  };
+  const paint = acquirePooledPaint(ck);
+  try {
+    paint.setAntiAlias(true);
+    const draw = (
+      start: number,
+      end: number,
+      decoration: number,
+      fontSize: number,
+      fontWeight: number,
+      color: Float32Array,
+    ) => {
+      if (!decoration || end <= start) return;
+      const font = measureFontBox(families, fontSize, fontWeight);
+      paint.setColor(color);
+      for (const box of paragraph.getRectsForRange(
+        start,
+        end,
+        ck.RectHeightStyle.Tight,
+        ck.RectWidthStyle.Tight,
+      )) {
+        const [left, top, right, bottom] = box.rect;
+        if (right - left <= 0) continue;
+        const line = lineOf(top!, bottom!);
+        for (const { top: y, thickness } of resolveCssDecorationLines({
+          fontSize,
+          fontAscent: font?.ascent ?? line.ascent,
+          baseline: drawY + Math.round(line.baseline),
+          dpr,
+          decoration,
+        }))
+          drawDecorationLine(
+            ck,
+            canvas,
+            paint,
+            style,
+            drawX + left!,
+            drawX + right!,
+            y,
+            thickness,
+          );
+      }
+    };
+    const color = text.presentationColor ?? text.color;
+    let end = 0;
+    for (const run of runs) end = Math.max(end, run.end);
+    if (ancestor)
+      draw(
+        0,
+        end,
+        ancestor.decoration,
+        ancestor.fontSize ?? text.fontSize,
+        400,
+        ancestor.color ?? color,
+      );
+    for (const run of runs)
+      draw(
+        run.start,
+        run.end,
+        run.decoration ?? 0,
+        run.fontSize ?? text.fontSize,
+        run.fontWeight ?? text.fontWeight ?? 400,
+        text.decorationColor ?? run.color ?? color,
+      );
+  } finally {
+    paint.setStyle(ck.PaintStyle.Fill);
+    paint.setPathEffect(null);
+    paint.setStrokeWidth(1);
+    releasePooledPaint(paint);
   }
 }
 

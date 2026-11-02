@@ -58,5 +58,25 @@ export function getTextParagraphCacheKey(
     overflowWrap,
     isEllipsis ? node.text.maxWidth : "0",
     textIndent,
+    // ADR-299 — a range-formatted text's runs and its ancestor decoration (absent: "").
+    node.text.runs ? runsKey(node.text) : "",
   ].join("\u0000");
+}
+
+const colorKey = (color: Float32Array | undefined) =>
+  color
+    ? `${color[0]!.toFixed(3)},${color[1]!.toFixed(3)},${color[2]!.toFixed(3)},${color[3]!.toFixed(3)}`
+    : "";
+
+function runsKey(text: NonNullable<SkiaNodeData["text"]>): string {
+  const runs = (text.runs ?? [])
+    .map(
+      (run) =>
+        `${run.start}-${run.end}:${run.fontWeight ?? ""}:${run.fontStyle ?? ""}:${run.fontSize ?? ""}:${colorKey(run.color)}:${run.decoration ?? ""}`,
+    )
+    .join(";");
+  const ancestor = text.ancestorDecoration;
+  return ancestor
+    ? `${runs}|${ancestor.decoration}:${colorKey(ancestor.color)}:${ancestor.fontSize ?? ""}`
+    : runs;
 }

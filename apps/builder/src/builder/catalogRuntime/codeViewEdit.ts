@@ -1,3 +1,11 @@
+import {
+  isTextRunMarkKey,
+  normalizeRichText,
+} from "../../../../../packages/shared/src/catalog/document/textRuns";
+import type {
+  RichText,
+  TextRun,
+} from "../../../../../packages/shared/src/catalog/document/types";
 import { codeViewProjectNames } from "../../../../../packages/shared/src/codeView/files/names";
 import { catalogInteractionOverridesAt } from "../../../../../packages/shared/src/catalog/resolution/effectiveInteractions";
 import {
@@ -1413,7 +1421,7 @@ class Planner {
         props[attribute.name] = { kind: "set", value } as never;
     }
     const text = element.text
-      ? this.textValue(element.text.code, element.text.from, element)
+      ? this.childrenValue(element.text.code, element.text.from, element)
       : undefined;
     if (text !== undefined)
       props.children = { kind: "set", value: text } as never;
@@ -2279,7 +2287,7 @@ class Planner {
     ) {
       if (!newText) props.children = { kind: "remove" };
       else {
-        const value = this.textValue(newText.code, newText.from, element);
+        const value = this.childrenValue(newText.code, newText.from, element);
         if (value !== undefined) props.children = { kind: "set", value };
       }
     }
@@ -2416,13 +2424,101 @@ class Planner {
     from: number,
     element?: CodeViewElement,
   ): string | undefined {
+    if (/<span\b/.test(code)) {
+      this.reject(from, "outsideVocabulary");
+      return undefined;
+    }
+    return this.plainTextValue(code, from, element);
+  }
+
+  /**
+   * ADR-299 Decision 6 — a text node's children: plain text (`textValue`) or runs — `<span
+   * style={{ fontWeight: 700, color: token('accent') }}>…</span>` around a part (keys = the range
+   * keys, values = a literal or a token). Anything else in the text is outside the vocabulary.
+   */
+  private childrenValue(
+    code: string,
+    from: number,
+    element?: CodeViewElement,
+  ): string | RichText | undefined {
+    if (!/<span\b/.test(code)) return this.plainTextValue(code, from, element);
+    const runs: TextRun[] = [];
+    const SPAN = /<span style=\{\{([\s\S]*?)\}\}>([\s\S]*?)<\/span>/g;
+    let at = 0;
+    let failed = false;
+    const part = (segment: string, offset: number) => {
+      if (!segment) return undefined;
+      if (/^\{`[\s\S]*`\}$/.test(segment.trim()))
+        return this.plainTextValue(segment.trim(), offset, element, true);
+      if (/[{}<>]/.test(segment)) {
+        this.reject(offset, "outsideVocabulary");
+        failed = true;
+        return undefined;
+      }
+      return segment.replace(/\s*\n\s*/g, " ");
+    };
+    for (const match of code.matchAll(SPAN)) {
+      const before = part(code.slice(at, match.index), from + at);
+      if (before) runs.push({ text: before });
+      const marks: Record<string, unknown> = {};
+      for (const entry of match[1]!.split(/,(?![^(]*\))/)) {
+        if (!entry.trim()) continue;
+        const pair = /^\s*([A-Za-z]+)\s*:\s*([\s\S]+?)\s*$/.exec(entry);
+        if (!pair || !isTextRunMarkKey(pair[1]!)) {
+          this.reject(from + match.index!, "outsideVocabulary");
+          return undefined;
+        }
+        const token = /^token\(('(?:[^'\\]|\\.)*')\)$/.exec(pair[2]!);
+        if (token) {
+          const name = String(literalOf(token[1]!));
+          const tokenId =
+            this.baseline.symbols.tokens?.[name] ?? this.tokenByName(name);
+          if (!tokenId) {
+            this.reject(from + match.index!, "unknownReference", name);
+            return undefined;
+          }
+          marks[pair[1]!] = { kind: "token", tokenId };
+          continue;
+        }
+        const literal = literalOf(pair[2]!);
+        if (typeof literal !== "string" && typeof literal !== "number") {
+          this.reject(from + match.index!, "outsideVocabulary");
+          return undefined;
+        }
+        marks[pair[1]!] = literal;
+      }
+      const inner = part(
+        match[2]!,
+        from + match.index! + match[0].indexOf(">") + 1,
+      );
+      if (inner)
+        runs.push(
+          Object.keys(marks).length
+            ? { text: inner, marks: marks as TextRun["marks"] }
+            : { text: inner },
+        );
+      at = match.index! + match[0].length;
+    }
+    const after = part(code.slice(at), from + at);
+    if (after) runs.push({ text: after });
+    if (failed) return undefined;
+    return normalizeRichText({ kind: "text", runs });
+  }
+
+  private plainTextValue(
+    code: string,
+    from: number,
+    element?: CodeViewElement,
+    /** A run's part: its spaces are the text's (no trim). */
+    keepSpaces = false,
+  ): string | undefined {
     const template = /^\{`([\s\S]*)`\}$/.exec(code.trim());
     if (!template) {
       if (/[{}]/.test(code)) {
         this.reject(from, "outsideVocabulary");
         return undefined;
       }
-      return code.trim();
+      return keepSpaces ? code : code.trim();
     }
     let failed = false;
     const text = template[1]!.replace(/\$\{([^}]*)\}/g, (_, inner: string) => {

@@ -12,7 +12,15 @@ import {
   getCanvasKit,
   isCanvasKitInitialized,
 } from "../workspace/canvas/skia/initCanvasKit";
-import type { CatalogTextMeasure } from "./compositionRoot";
+import {
+  catalogRunFont,
+  type CatalogTextMeasure,
+  type CatalogTextRunFont,
+} from "./compositionRoot";
+import {
+  alignTextRuns,
+  sliceTextRuns,
+} from "../workspace/canvas/utils/textRunAlign";
 import { catalogFontFamilies, catalogTextBreaksWords } from "./boxModel";
 import {
   collapsesSegmentBreaks,
@@ -34,6 +42,7 @@ function paragraphMetrics(
   text: string,
   font: Font,
   maxWidth?: number,
+  runs?: readonly CatalogTextRunFont[],
 ): { max: number; min: number; lines: number; height: number } | undefined {
   if (!isCanvasKitInitialized() || !skiaFontManager.hasFont("Pretendard"))
     return undefined;
@@ -85,7 +94,38 @@ function paragraphMetrics(
       fontVariations: [{ axis: "wght", value: font.fontWeight }],
     }),
   );
-  builder.addText(text);
+  if (runs?.length) {
+    // ADR-299 — each run in its own font (the paint's `pushStyle` per run, `nodeRendererText`).
+    let at = 0;
+    for (const run of runs) {
+      if (run.start > at) builder.addText(text.slice(at, run.start));
+      const runFont = catalogRunFont(font, run);
+      const runWeight =
+        (Object.values(ck.FontWeight) as EmbindEnumEntity[]).find(
+          (entry) => entry?.value === runFont.fontWeight,
+        ) ?? ck.FontWeight.Normal;
+      builder.pushStyle(
+        new ck.TextStyle({
+          ...textStyle,
+          fontSize: runFont.fontSize,
+          fontStyle: {
+            weight: runWeight,
+            slant:
+              runFont.fontStyle === "italic"
+                ? ck.FontSlant.Italic
+                : runFont.fontStyle === "oblique"
+                  ? ck.FontSlant.Oblique
+                  : ck.FontSlant.Upright,
+          },
+          fontVariations: [{ axis: "wght", value: runFont.fontWeight }],
+        }),
+      );
+      builder.addText(text.slice(run.start, run.end));
+      builder.pop();
+      at = run.end;
+    }
+    if (at < text.length) builder.addText(text.slice(at));
+  } else builder.addText(text);
   const paragraph = builder.build();
   paragraph.layout(100000);
   const max = paragraph.getMaxIntrinsicWidth();
@@ -117,14 +157,25 @@ function paragraphMetrics(
  * (`width` ceil, intrinsic `exactWidth` and `minWidth` unrounded for CSS flex sizing) and one
  * line box; with `maxWidth` the `white-space: normal` wrapped height.
  */
-export const catalogTextMeasure: CatalogTextMeasure = (raw, font, maxWidth) => {
+export const catalogTextMeasure: CatalogTextMeasure = (
+  raw,
+  font,
+  maxWidth,
+  runs,
+) => {
   // CSS white-space processing (the paint's paragraph follows the same rule, ADR-027): under
   // `normal` / `nowrap` a line break is one space; under the `pre` family it is a hard break, so
   // each line is measured on its own (`pre` never wraps) — the box grows with the lines.
   if (collapsesSegmentBreaks(font.whiteSpace)) {
-    return measureOneBlock(transformSegmentBreaks(raw), font, maxWidth);
+    const block = transformSegmentBreaks(raw);
+    return measureOneBlock(
+      block,
+      font,
+      maxWidth,
+      runs && alignTextRuns(raw, runs, block),
+    );
   }
-  if (!raw.includes("\n")) return measureOneBlock(raw, font, maxWidth);
+  if (!raw.includes("\n")) return measureOneBlock(raw, font, maxWidth, runs);
   const lineHeight =
     font.lineHeight > 0 ? font.fontSize * font.lineHeight : undefined;
   const lines = raw.split("\n");
@@ -132,8 +183,11 @@ export const catalogTextMeasure: CatalogTextMeasure = (raw, font, maxWidth) => {
   let height = 0;
   let width = 0;
   let minWidth = 0;
+  let lineStart = 0;
   for (const line of lines) {
-    const metrics = measureOneBlock(line || " ", font, lineWidth);
+    const lineRuns = runs && sliceTextRuns(runs, lineStart, lineStart + line.length);
+    lineStart += line.length + 1;
+    const metrics = measureOneBlock(line || " ", font, lineWidth, lineRuns);
     height += line ? metrics.height : (lineHeight ?? metrics.height);
     width = Math.max(width, metrics.width);
     minWidth = Math.max(minWidth, metrics.minWidth ?? metrics.width);
@@ -204,13 +258,18 @@ const measureOneBlock = (
   text: string,
   font: Parameters<CatalogTextMeasure>[1],
   maxWidth: number | undefined,
+  runs?: readonly CatalogTextRunFont[],
 ): ReturnType<CatalogTextMeasure> => {
   const lineHeight =
     font.lineHeight > 0 ? font.fontSize * font.lineHeight : undefined;
-  const paragraph = paragraphMetrics(text, font, maxWidth);
+  const paragraph = paragraphMetrics(text, font, maxWidth, runs);
   if (paragraph) {
+    // (Runs of other sizes make a line taller than the strut — the paragraph's own height, as the
+    //  CSS line box grows with its tallest inline box.)
     const lineBox = (lines: number) =>
-      lineHeight !== undefined ? lines * lineHeight : paragraph.height;
+      lineHeight !== undefined && !runs?.length
+        ? lines * lineHeight
+        : paragraph.height;
     if (maxWidth === undefined)
       return {
         width: Math.ceil(paragraph.max),

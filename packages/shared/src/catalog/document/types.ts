@@ -141,9 +141,11 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * instance's rule receives it on the `property:<key>` trigger) or a `variable` (the instance's
  * value, read inside the origin as the template root's input variable — `StateVariableEntry.input`).
  * A 51 document is refused.
+ * 53 — ADR-299: a text node's `children` may be range-formatted text (`RichText` — runs with the
+ * node visual's type keys as marks). A 52 document is refused.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 52 as const;
+export const LIBRARY_CONTRACT_VERSION = 53 as const;
 
 export type EntryKind =
   | "project"
@@ -246,6 +248,33 @@ export interface PropVar {
   kind: "var";
   ref: string;
 }
+/**
+ * ADR-299 — one run of a text node's `children`: its characters and the type it sets over the
+ * node's own (`marks` — the node visual's keys, same value forms: a literal or a token reference).
+ * Shape, normal form and the mark keys: `textRuns.ts`.
+ */
+export type TextRunMarks = Readonly<
+  Partial<
+    Record<
+      "fontWeight" | "fontStyle" | "textDecoration" | "color" | "fontSize",
+      Scalar | TokenUse
+    >
+  >
+>;
+export interface TextRun {
+  /** Never empty; may hold `{{ }}` templates (a token is never split across runs) and `\n`. */
+  readonly text: string;
+  /** Absent or non-empty. */
+  readonly marks?: TextRunMarks;
+}
+/**
+ * ADR-299 — a text node's `children` with range formatting. A text with no marked run is stored as
+ * the plain string (`normalizeRichText`), never as this.
+ */
+export interface RichText {
+  readonly kind: "text";
+  readonly runs: readonly TextRun[];
+}
 export type AuthoredValue =
   | Scalar
   | TokenUse
@@ -253,7 +282,8 @@ export type AuthoredValue =
   | CalendarDuration
   | NumberFormatValue
   | PropWhen
-  | PropVar;
+  | PropVar
+  | RichText;
 /**
  * `slot` (ADR-256 Decision 4): RAC's named slot of a part — a slot name, or `false` = the explicit
  * `slot={null}` (detach from the parent's context). Absent = unset (RAC's default slot or a plain
@@ -282,7 +312,8 @@ export type PropValue =
   | CalendarDuration
   | NumberFormatValue
   | PropWhen
-  | PropVar;
+  | PropVar
+  | RichText;
 export type TokenType = "color" | "length" | "number" | "string" | "boolean";
 export type ThemePreset = {
   tint:
