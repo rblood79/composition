@@ -1,0 +1,48 @@
+.date-value-input {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2xs);
+  width: 100%;
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.date-value-input > input {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.date-value-input__zone {
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-2xs);
+  color: var(--fg-muted);
+}
+
+.date-value-input__mode {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 var(--text-xl);
+  align-self: stretch;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: var(--text-2xs);
+  cursor: pointer;
+}
+
+.date-value-input__mode:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+/* State rows have a narrow value column: retain input space and expose the zone by its title. */
+@container (max-width: 160px) {
+  .date-value-input__zone {
+    display: none;
+  }
+}

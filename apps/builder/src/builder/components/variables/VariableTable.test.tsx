@@ -292,6 +292,59 @@ describe("VariableTable", () => {
     expect(dense.value).toBe("2026-10-29");
   });
 
+  it("date grid and State edits keep the zone and fractional precision; Escape and untouched blur do not write", () => {
+    const h = handlers();
+    const dateRows: VariableTableRow[] = [
+      {
+        id: "d",
+        name: "due",
+        type: "date",
+        defaultValue: "2026-10-29T10:30:15.500Z",
+        usage: 0,
+      },
+    ];
+    const table = (dense = false) =>
+      wrap(
+        <VariableTable
+          owner={dense ? "page" : "project"}
+          dense={dense}
+          rows={dateRows}
+          label="Dates"
+          typeOptions={TYPES}
+          {...h}
+        />,
+      );
+    const view = render(table());
+    const cell = view.container.querySelector<HTMLElement>(
+      ".variable-table__cell-default",
+    )!;
+    act(() => cell.focus());
+    fireEvent.keyDown(cell, { key: "Enter" });
+    let input = cell.querySelector("input")!;
+    fireEvent.change(input, { target: { value: "2026-10-30T10:30:15.5" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(h.onDefault).toHaveBeenLastCalledWith(
+      "d",
+      "2026-10-30T10:30:15.500Z",
+    );
+    h.onDefault.mockClear();
+    fireEvent.keyDown(cell, { key: "Enter" });
+    input = cell.querySelector("input")!;
+    fireEvent.change(input, { target: { value: "2026-10-31T10:30:15.5" } });
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(h.onDefault).not.toHaveBeenCalled();
+    view.rerender(table(true));
+    input = view.container.querySelector("input[type=datetime-local]")!;
+    fireEvent.blur(input);
+    expect(h.onDefault).not.toHaveBeenCalled();
+    fireEvent.change(input, { target: { value: "2026-10-31T10:30:15.5" } });
+    fireEvent.blur(input);
+    expect(h.onDefault).toHaveBeenLastCalledWith(
+      "d",
+      "2026-10-31T10:30:15.500Z",
+    );
+  });
+
   it("the JSON editor: Escape · Cancel drop the draft, a typed key starts it with the key", async () => {
     const h = handlers();
     const { container, findByRole, getByRole, queryByRole } = render(

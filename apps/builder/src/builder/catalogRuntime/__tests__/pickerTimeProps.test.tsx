@@ -99,6 +99,49 @@ async function place(type: string) {
 const text = (markup: string) => markup.replace(/<[^>]*>/g, "");
 
 describe("S2 picker hourCycle · placeholderValue", () => {
+  for (const type of ["datefield", "datepicker", "daterangepicker"])
+    it(`${type}: a timezone-less ISO datetime renders its original time segments`, async () => {
+      const { root, write } = await place(type);
+      write({
+        granularity: "second",
+        hourCycle: "24",
+      });
+      const id = root.recordsOfSource(FIELD)[0]!;
+      const view = render(
+        renderCatalogDom(root, id, {
+          runtime: {
+            revisionOf: () => 0,
+            handlersOf: () => ({}),
+            overrideOf: (recordId) =>
+              recordId === id
+                ? {
+                    value:
+                      type === "daterangepicker"
+                        ? {
+                            start: "2026-11-06T10:30:15",
+                            end: "2026-11-07T10:30:15",
+                          }
+                        : "2026-11-06T10:30:15",
+                  }
+                : undefined,
+            subscribe: () => () => {},
+          },
+        }),
+      );
+      for (const [name, value] of [
+        [/hour/, "10"],
+        [/minute/, "30"],
+        [/second/, "15"],
+        [/year/, "2026"],
+      ] as const)
+        expect(
+          view
+            .getAllByRole("spinbutton", { name })
+            .every((segment) => segment.textContent === value),
+        ).toBe(true);
+      view.unmount();
+    });
+
   it("the Design panel offers them", () => {
     for (const [type, keys] of [
       ["DatePicker", ["hourCycle", "placeholderValue"]],

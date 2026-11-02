@@ -111,6 +111,34 @@ const press = async (el: Element) => {
 };
 
 describe("DataGrid (ADR-212 Phase 2)", () => {
+  it("date cell writes the edited ISO envelope through set_cell, preserving offset and fractions", async () => {
+    const dates: DataTable = {
+      ...table,
+      schema: [table.schema[0], { id: "at", key: "at", type: "date" }],
+      mockData: [{ id: "a", at: "2026-10-29T10:30:15.500+09:00" }],
+    };
+    const view = render(wrap(<DataGrid table={dates} virtualized={false} />));
+    const target = cell(view.container, 0, "at");
+    act(() => target.focus());
+    fireEvent.keyDown(target, { key: "Enter" });
+    const input = view.container.querySelector<HTMLInputElement>(
+      "input[data-grid-editor=inline]",
+    )!;
+    expect(input.type).toBe("datetime-local");
+    fireEvent.change(input, { target: { value: "2026-10-30T10:30:15.5" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() => expect(applyDataChange).toHaveBeenCalledTimes(1));
+    expect(lastOps()).toEqual([
+      {
+        op: "set_cell",
+        collectionId: "c1",
+        rowIndex: 0,
+        fieldId: "at",
+        value: "2026-10-30T10:30:15.500+09:00",
+      },
+    ]);
+  });
+
   it("role=grid · 열 헤더 · 셀에 data-row-index/data-field-key · id 셀은 aria-readonly", () => {
     const { container, getByRole } = render(
       wrap(<DataGrid table={table} virtualized={false} />),

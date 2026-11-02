@@ -6,7 +6,7 @@
  * 와 다른 점). 빈 입력은 어느 타입이든 `null` (성공).
  */
 import type { DataFieldType } from "../../../../types/builder/data.types";
-import { coerceDateText } from "../../../../../../../packages/shared/src/state/dateValue";
+import { coerceDateText } from "../../../../../../../packages/shared/src/state/dateValueEditing";
 
 export type CoercedCell =
   { ok: true; value: unknown } | { ok: false; value: null };

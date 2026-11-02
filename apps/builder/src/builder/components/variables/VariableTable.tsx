@@ -63,7 +63,7 @@ import { ArrowUpRight } from "lucide-react";
 import { useI18n } from "@/i18n";
 import { iconProps, iconSmall } from "../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../config/actionIcons";
-import { nativeDateInputOf } from "../../../../../../packages/shared/src/state/dateValue";
+import { DateValueInput } from "../inputs/DateValueInput";
 import { PopoverTextEditor } from "../../panels/datatable/grid/PopoverTextEditor";
 import {
   FIELD_TYPES,
@@ -206,7 +206,7 @@ function formatDefault(value: unknown, type: string): string {
 
 /**
  * A dense row's text field — commits on Enter · blur, restores on Escape (the State section).
- * `date`: the browser's date picker instead (`nativeDateInputOf`).
+ * `date`: the shared lossless date editor.
  */
 function CommitInput({
   value,
@@ -238,28 +238,40 @@ function CommitInput({
     }
     if (draft !== value) onCommit(draft);
   };
-  const native = date ? nativeDateInputOf(draft) : undefined;
+  const handleKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      event.currentTarget.blur();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      cancel.current = true;
+      setDraft(value);
+      event.currentTarget.blur();
+    }
+  };
+  if (date)
+    return (
+      <DateValueInput
+        className="react-aria-Input"
+        aria-label={label}
+        aria-invalid={invalid || undefined}
+        value={draft}
+        onValueChange={setDraft}
+        onBlur={commit}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+      />
+    );
   return (
     <input
       className="react-aria-Input"
       aria-label={label}
       aria-invalid={invalid || undefined}
-      type={native?.type}
-      value={native ? native.value : draft}
+      value={draft}
       placeholder={placeholder}
       onChange={(event) => setDraft(event.target.value)}
       onBlur={commit}
-      onKeyDown={(event) => {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          event.currentTarget.blur();
-        } else if (event.key === "Escape") {
-          event.preventDefault();
-          cancel.current = true;
-          setDraft(value);
-          event.currentTarget.blur();
-        }
-      }}
+      onKeyDown={handleKeyDown}
     />
   );
 }
@@ -378,22 +390,11 @@ function CellEditor({
   useLayoutEffect(() => {
     latest.current = { draft, value, onCommit };
   });
-  const native =
-    date && initial === undefined ? nativeDateInputOf(draft) : undefined;
   useLayoutEffect(() => {
+    if (date && initial === undefined) return; // DateValueInput owns activation/focus.
     const input = inputRef.current;
     if (!input) return;
     input.focus();
-    if (native) {
-      // (The picker opens with the edit — `showPicker` needs the user's activation, which the
-      //   Enter · double-click that started the edit is; where it is refused, the field stays.)
-      try {
-        input.showPicker?.();
-      } catch {
-        /* no activation · unsupported — the field itself */
-      }
-      return;
-    }
     if (initial !== undefined)
       input.setSelectionRange(initial.length, initial.length);
     else input.select();
@@ -413,6 +414,33 @@ function CellEditor({
     if (draft !== value) onCommit(draft);
     onClose(refocus);
   };
+  const handleKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    event.stopPropagation();
+    if (event.key === "Enter") {
+      event.preventDefault();
+      commit(true);
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      settled.current = true;
+      onClose(true);
+    }
+  };
+  if (date && initial === undefined)
+    return (
+      <DateValueInput
+        inputRef={inputRef}
+        autoOpen
+        className="variable-table__cell-input"
+        data-cell-editor
+        aria-label={label}
+        aria-invalid={invalid || undefined}
+        placeholder={placeholder}
+        value={draft}
+        onValueChange={setDraft}
+        onBlur={() => commit(false)}
+        onKeyDown={handleKeyDown}
+      />
+    );
   return (
     <input
       ref={inputRef}
@@ -421,23 +449,11 @@ function CellEditor({
       aria-label={label}
       aria-invalid={invalid || undefined}
       placeholder={placeholder}
-      type={native?.type}
       inputMode={numeric ? "decimal" : undefined}
-      value={native ? native.value : draft}
+      value={draft}
       onChange={(event) => setDraft(event.target.value)}
       onBlur={() => commit(false)}
-      onKeyDown={(event) => {
-        // The table's cell keys (arrows · Home/End) stay in the text while editing.
-        event.stopPropagation();
-        if (event.key === "Enter") {
-          event.preventDefault();
-          commit(true);
-        } else if (event.key === "Escape") {
-          event.preventDefault();
-          settled.current = true;
-          onClose(true);
-        }
-      }}
+      onKeyDown={handleKeyDown}
     />
   );
 }

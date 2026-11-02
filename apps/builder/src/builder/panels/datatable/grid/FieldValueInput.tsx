@@ -15,7 +15,7 @@
  * box) — the error goes under the box as `role="alert"` (ADR-163 · web-interface-guidelines).
  */
 import { resolveField } from "@composition/shared";
-import { nativeDateInputOf } from "../../../../../../../packages/shared/src/state/dateValue";
+import { DateValueInput } from "../../../components/inputs/DateValueInput";
 import {
   useCallback,
   useDeferredValue,
@@ -174,15 +174,13 @@ export function FieldValueInput({
   } else if (field.type === "date") {
     // (One date type — the picker follows the value's shape: a day · a day and time · a time,
     //   the variables' date, 2026-10-29.)
-    const native = nativeDateInputOf(text);
     control = (
-      <input
+      <DateValueInput
         {...common}
-        ref={controlRef}
+        inputRef={controlRef}
         className="react-aria-Input"
-        type={native.type}
-        value={native.value}
-        onChange={(e) => onChange(e.target.value)}
+        value={text}
+        onValueChange={onChange}
         onKeyDown={submitOnEnter}
       />
     );

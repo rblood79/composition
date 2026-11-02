@@ -2084,6 +2084,8 @@ const catalog: TranslationKeys = {
     undo: "실행 취소",
   },
   datatable: {
+    dateEditIso: "ISO 날짜·시간 편집",
+    dateEditPicker: "날짜 선택기 사용",
     tabs: "DataTable 탭",
     tableTabs: "테이블 탭",
     apiTabs: "API 탭",

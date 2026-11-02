@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why**: 모든 fillStyle에 1px 크기 토큰을 적용하고 조건별 두께를 빠뜨렸다. catalog 조건 트리를 생성 CSS와 typed definition이 함께 읽도록 수정했다.
   - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`, `packages/shared/src/catalog/document/codeCatalogLibrary.ts`
 
+## [날짜 선택기 정밀도 보존 — 시간대·초·소수초] - 2026-11-02
+
+### Fixed
+
+- 변수 격자·Design State·데이터 격자·RowForm에서 날짜를 편집해도 원래 시간대와 초·소수초를 유지한다. 선택기는 저장된 시간대의 시각을 표시하며, 분만 고치면 나머지 정보는 그대로 저장한다.
+- 시간대 표기와 ISO 원문 편집을 같은 입력기에서 제공한다. native 선택기가 표현하기 어려운 세밀한 값은 원문으로 편집하며, 서머타임의 존재하지 않거나 offset으로 구분되지 않은 시각은 자동 이동하지 않고 검증 오류로 표시한다.
+- DatePicker·DateField·DateRangePicker가 시간대 없는 날짜시각을 날짜 전용 파서로 읽어 실패하던 오류를 수정했다. 달력에서 날짜를 고른 뒤 `2026-11-06T00:00:00` 같은 값도 초 단위까지 정상적으로 다시 표시한다.
+- **Why**: 선택기용 문자열을 분 단위로 자르고 그 문자열을 저장해 시간대·정밀도가 사라졌다. 공통 투영·병합 경로를 두고 기존 catalog 명령·Undo·IndexedDB 저장 경로를 유지한다.
+
 ## [Hook 억제 원인 수리 — 편집기 설정·Table 요청·단축키 구독] - 2026-11-02
 
 ### Fixed

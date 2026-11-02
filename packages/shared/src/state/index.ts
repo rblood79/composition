@@ -6,6 +6,11 @@
  */
 export * from "./variable.types";
 export * from "./dateValue";
+export {
+  coerceDateText,
+  nativeDateInputOf,
+  type NativeDateInput,
+} from "./dateValueEditing";
 export * from "./visibility";
 export * from "./cloneState";
 export * from "./stateDependencies";

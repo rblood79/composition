@@ -38,6 +38,24 @@ Implemented — 2026-10-29 (코드 main `1a6af386e`, 같은 날 사용자 지시
 
 정적: type-check PASS · shared 1,904 · builder catalogRuntime · panels · components · 코드 보기 3,993 · 데이터 · 변수 · AI · i18n 480 PASS (`chromeIsland.static` 1 건은 이 세션 전부터 실패).
 
+### 2026-11-02 날짜 정밀도 후속 검증
+
+R5 해결. 선택기 투영과 원본 ISO를 분리해 변수 격자·Design State·데이터 격자·RowForm에서
+시간대·초·소수초를 보존한다. 무편집은 원문을 유지하고, DST gap·미해결 overlap은 거절한다.
+시간대 없는 `2026-11-06T00:00:00`을 날짜 전용 파서로 읽던 DatePicker 오류도 공유 판정으로 수리했다.
+
+- 기준: main `20388ea2e` + 날짜 수리 파일. shared 14 파일 / 384 PASS, Builder 11 파일 / 96 PASS,
+  타입 검사 6/6, 등록 계약 6 PASS. 명령 1회·Undo/Redo·IndexedDB 로드를 포함한다.
+- Live: 2026-11-02, headed Playwright, `localhost:5173`, 1440×900, 기존 인증 세션으로 만든 격리 프로젝트.
+  네 입력 경로의 편집·취소·ISO 9자리 소수초·DST 거절·저장 후 새로고침,
+  한국어·Second DatePicker의 달력 선택 후 재표시 등 12개 기록 지점 PASS, console/pageerror 0.
+  로그인·인증 코드 입력은 수행하지 않았다.
+- production 빌드 PASS. initial JS gzip: Builder 1,399,940 B ≤ 1,400,000 B,
+  Preview 322,301 B ≤ 325,000 B. 편집 전용 변환은 runtime 파서에서 분리했다.
+- 검증 하니스: `apps/builder/scripts/date-value-precision-live.mjs`.
+  상세 로그·snapshot은 로컬 `.agent/runs/2026-11-02-date-value-precision-fix/`.
+  Safari·모바일 native picker, 전체 날짜 family의 픽셀 동등성은 미검증이다.
+
 ## Context
 
 ### 도메인
@@ -137,7 +155,7 @@ Implemented — 2026-10-29 (코드 main `1a6af386e`, 같은 날 사용자 지시
 | R2  | ADR-288 의 Hard 「contract 51 유지」 와 어긋난다 — 그 문서만 읽으면 페이지 · 요소 JSON 시작값이 금지로 보인다                                    |  MED   | ADR-288 본문 해당 줄에 「ADR-292 에서 넓힘」 표기 · 이 ADR 결정 7                                                                                       |
 | R3  | JSON 편집기의 바깥 누름 = 취소 (격자 규칙) — 입력 뒤 바깥을 누르면 사라진다                                                                      |  LOW   | 편집기 안의 키 안내 (⏎ 저장 · esc 취소) · Cancel · Save 버튼이 보인다. 격자와 같은 규칙이라 한 곳만 다르게 두지 않는다                                  |
 | R4  | 변수의 타입 목록이 표 열 정본 (`FIELD_TYPES`, 데이터 패널 chunk) 에 의존한다 — State 절 (Design 패널) 이 그 모듈을 끌어온다                      |  LOW   | `fieldTypes.ts` 는 아이콘 · i18n 키만 (격자 없음) · State 절의 변수 표는 이미 lazy (ADR-288 G5)                                                         |
-| R5  | `date` 의 시간대 instant (`…Z` · `[tz]`) 를 브라우저 선택기로 고치면 현지 시각의 `datetime-local` 로 저장돼 시간대가 사라진다                    |  LOW   | 글자 키로 ISO 글자를 직접 쓰면 유지. 시간대가 필요한 쓰임이 나오면 선택기 종류를 값에 더해 정한다                                                       |
+| R5  | `date` 의 시간대 instant (`…Z` · `[tz]`) 를 브라우저 선택기로 고치면 현지 시각의 `datetime-local` 로 저장돼 시간대가 사라진다                    |  LOW   | 2026-11-02 해결 — ISO 편집 adapter가 시간대·초·소수초를 보존한다. [수리·검증](#2026-11-02-날짜-정밀도-후속-검증)                                        |
 | R6  | 두 세션이 같은 파일 (`types.ts` · `validation.ts`) 을 고치던 중 커밋 — 다른 세션의 `formula` 줄은 커밋에서 뺐다 (`git update-index --cacheinfo`) |  LOW   | 커밋 `1a6af386e` 에 그 줄 없음 확인 (`git diff --cached …                                                                                               | grep -c formula` = 0) |
 
 잔존 HIGH 위험 없음.

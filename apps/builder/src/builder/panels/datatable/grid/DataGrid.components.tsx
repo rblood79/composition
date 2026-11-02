@@ -104,7 +104,7 @@ import { SHORTCUT_DEFINITIONS } from "../../../config/keyboardShortcuts";
 
 import { formatShortcut } from "../../../hooks/useKeyboardShortcutsRegistry";
 import { PopoverTextEditor } from "./PopoverTextEditor";
-import { nativeDateInputOf } from "../../../../../../../packages/shared/src/state/dateValue";
+import { DateValueInput } from "../../../components/inputs/DateValueInput";
 import {
   formulaCellErrors,
   withComputedCells,
@@ -1875,23 +1875,11 @@ function InlineCellEditor({
 
   // A date cell edits in the browser's picker of its value's shape (the variable table's date
   // cell — 2026-10-29); a typed key edits the ISO text instead (another precision can be typed).
-  const native =
-    field.type === "date" && initial === original
-      ? nativeDateInputOf(draft)
-      : undefined;
   useLayoutEffect(() => {
+    if (field.type === "date" && initial === original) return;
     const input = inputRef.current;
     if (!input) return;
     input.focus();
-    if (native) {
-      // (`showPicker` needs the activation that started the edit; where refused, the field stays.)
-      try {
-        input.showPicker?.();
-      } catch {
-        /* no activation · unsupported — the field itself */
-      }
-      return;
-    }
     // 타이핑으로 진입했으면 caret 을 끝에, Enter/F2 면 전체 선택
     if (initial !== original)
       input.setSelectionRange(initial.length, initial.length);
@@ -1939,14 +1927,39 @@ function InlineCellEditor({
     }
   };
 
+  if (field.type === "date" && initial === original)
+    return (
+      <DateValueInput
+        inputRef={inputRef}
+        autoOpen
+        data-grid-editor="inline"
+        data-shortcut-local="undo redo"
+        className="datagrid-cell-input"
+        value={draft}
+        aria-labelledby={headerId}
+        aria-invalid={isInvalid || undefined}
+        onValueChange={(value) => {
+          setDraft(value);
+          setIsInvalid(false);
+        }}
+        onKeyDown={handleKeyDown}
+        onBlur={() => {
+          if (settledRef.current) return;
+          settledRef.current = true;
+          void onCommit(coord, draft, "none").then((ok) => {
+            if (!ok) onCancel(null);
+          });
+        }}
+      />
+    );
   return (
     <input
       ref={inputRef}
       data-grid-editor="inline"
       data-shortcut-local="undo redo"
       className="datagrid-cell-input"
-      type={native?.type ?? "text"}
-      value={native ? native.value : draft}
+      type="text"
+      value={draft}
       aria-labelledby={headerId}
       aria-invalid={isInvalid || undefined}
       inputMode={field.type === "number" ? "decimal" : undefined}

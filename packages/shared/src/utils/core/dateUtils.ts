@@ -33,6 +33,7 @@ import {
   getDayOfWeek,
   type DateValue,
 } from "@internationalized/date";
+export { safeParseDateString } from "../../state/dateValue";
 
 // ============================================================================
 // Type Exports
@@ -121,24 +122,6 @@ export const parseZonedDate = (
  */
 export const parseAbsoluteDate = (isoString: string): ZonedDateTime => {
   return parseAbsoluteToLocal(isoString);
-};
-
-/**
- * Safe date parser with error handling
- * @param value - Date string or null
- * @returns CalendarDate or null
- */
-export const safeParseDateString = (
-  value: string | null | undefined,
-): CalendarDate | null => {
-  if (!value) return null;
-
-  try {
-    return parseDate(value);
-  } catch (error) {
-    console.error("Failed to parse date:", value, error);
-    return null;
-  }
 };
 
 // ============================================================================

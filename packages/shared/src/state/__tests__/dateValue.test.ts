@@ -1,9 +1,26 @@
 import { describe, expect, it } from "vitest";
 import { CalendarDate, Time } from "@internationalized/date";
 import { dateValueToText, isDateValueText, parseDateValue } from "../dateValue";
+import { nativeDateInputOf } from "../dateValueEditing";
 
 /** The `date` variable type (2026-10-29): one type, the ISO text's shape says its precision. */
 describe("dateValue", () => {
+  it("keeps seconds and fractional seconds in the picker", () => {
+    expect(nativeDateInputOf("10:30:15.500").value).toBe("10:30:15.500");
+    expect(nativeDateInputOf("2026-10-29T10:30:15.5").value).toBe(
+      "2026-10-29T10:30:15.5",
+    );
+  });
+
+  it("edits the stored zone's wall clock without a host-time-zone conversion", () => {
+    expect(nativeDateInputOf("2026-10-29T10:30:15.5Z").value).toBe(
+      "2026-10-29T10:30:15.5",
+    );
+    expect(nativeDateInputOf("2026-10-29T10:30:15.5+09:00").value).toBe(
+      "2026-10-29T10:30:15.5",
+    );
+  });
+
   it("parses each ISO shape to RAC's value of it", () => {
     expect(parseDateValue("2026-10-29")?.kind).toBe("date");
     expect(parseDateValue("2026-10-29T10:30")?.kind).toBe("dateTime");

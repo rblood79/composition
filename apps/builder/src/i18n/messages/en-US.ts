@@ -2089,6 +2089,8 @@ const catalog: TranslationKeys = {
     undo: "Undo",
   },
   datatable: {
+    dateEditIso: "Edit ISO date and time",
+    dateEditPicker: "Use date picker",
     tabs: "DataTable tabs",
     tableTabs: "Table tabs",
     apiTabs: "API tabs",
