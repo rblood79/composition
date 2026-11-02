@@ -1383,54 +1383,79 @@ const CONTEXTUAL_HELP_BUTTON_PX: Readonly<Record<string, number>> = {
   XS: 20,
   S: 24,
 };
+/**
+ * S2's quiet icon-only ActionButton square over a Button node (ContextualHelp's trigger · SideNavPanel's
+ * expand button): the box with no fill, no border, no padding, no minimum size, and its glyph in the
+ * text color. `match` narrows the Button (and the Icon's `via`) to one child; `size` keys both rules.
+ */
+function quietIconSquareRules(
+  box: number,
+  icon: Scalar | undefined,
+  options: {
+    size?: string;
+    radius?: number;
+    match?: Readonly<Record<string, string>>;
+  } = {},
+): CompiledPartRule[] {
+  const { size, radius, match } = options;
+  return [
+    {
+      childType: "Button",
+      ...(size ? { size } : {}),
+      ...(match ? { childProps: match } : {}),
+      layout: {},
+      visual: {
+        width: box,
+        height: box,
+        minWidth: 0,
+        // (ADR-295 Phase 3: an ActionButton square — not the Button's S2 min-height.)
+        minHeight: 0,
+        paddingTop: 0,
+        paddingRight: 0,
+        paddingBottom: 0,
+        paddingLeft: 0,
+        borderWidth: 0,
+        ...(radius === undefined ? {} : { radius }),
+        fill: "transparent",
+      },
+    },
+    ...(icon === undefined
+      ? []
+      : [
+          {
+            childType: "Icon",
+            via: "Button",
+            ...(size ? { size } : {}),
+            ...(match ? { viaProps: match } : {}),
+            layout: { flexShrink: "0" },
+            visual: {
+              width: icon,
+              height: icon,
+              iconSize: icon,
+              color: "{color.neutral}",
+            },
+          },
+        ]),
+  ];
+}
+
 function contextualHelpPartRules(parentType: string): CompiledPartRule[] {
   if (parentType !== "ContextualHelp") return [];
   const button = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)
     .Button;
-  return Object.entries(CONTEXTUAL_HELP_BUTTON_PX).flatMap(
-    ([size, box]): CompiledPartRule[] => {
-      const icon = button?.sizes[size]?.iconSize;
-      return [
-        {
-          childType: "Button",
-          size,
-          layout: {},
-          visual: {
-            width: box,
-            height: box,
-            minWidth: 0,
-            // (ADR-295 Phase 3: an ActionButton square — not the Button's S2 min-height.)
-            minHeight: 0,
-            paddingTop: 0,
-            paddingRight: 0,
-            paddingBottom: 0,
-            paddingLeft: 0,
-            borderWidth: 0,
-            fill: "transparent",
-          },
-        },
-        // (ADR-295 Phase 3b · 3c: the Button's S2 icon — a step, or its line `1lh` · font `1em` — keeps
-        //   its ref, a token value in the library.)
-        ...(typeof icon === "number" ||
+  return Object.entries(CONTEXTUAL_HELP_BUTTON_PX).flatMap(([size, box]) => {
+    const icon = button?.sizes[size]?.iconSize;
+    // (ADR-295 Phase 3b · 3c: the Button's S2 icon — a step, or its line `1lh` · font `1em` — keeps
+    //   its ref, a token value in the library.)
+    return quietIconSquareRules(
+      box,
+      typeof icon === "number" ||
         (typeof icon === "string" && ICON_SIZE_TOKEN_REF.test(icon))
-          ? [
-              {
-                childType: "Icon",
-                via: "Button",
-                size,
-                layout: { flexShrink: "0" },
-                visual: {
-                  width: icon,
-                  height: icon,
-                  iconSize: icon,
-                  color: "{color.neutral}",
-                },
-              },
-            ]
-          : []),
-      ];
-    },
-  );
+        ? icon
+        : undefined,
+      { size },
+    );
+  });
 }
 
 /**
@@ -1444,39 +1469,17 @@ const SIDE_NAV_PANEL_BUTTON_PX = 32;
 const SIDE_NAV_PANEL_ICON_PX = 20;
 function sideNavPanelPartRules(parentType: string): CompiledPartRule[] {
   if (parentType !== "SideNavPanel") return [];
-  const collapse = { slot: "collapse" } as const;
-  return [
+  // (The ActionButton family's M corner — the ToggleButton rule's, S2 `control` default shape.)
+  const radius = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)
+    .ToggleButton?.sizes.M?.borderRadius;
+  return quietIconSquareRules(
+    SIDE_NAV_PANEL_BUTTON_PX,
+    SIDE_NAV_PANEL_ICON_PX,
     {
-      childType: "Button",
-      childProps: collapse,
-      layout: {},
-      visual: {
-        width: SIDE_NAV_PANEL_BUTTON_PX,
-        height: SIDE_NAV_PANEL_BUTTON_PX,
-        minWidth: 0,
-        minHeight: 0,
-        paddingTop: 0,
-        paddingRight: 0,
-        paddingBottom: 0,
-        paddingLeft: 0,
-        borderWidth: 0,
-        radius: 8,
-        fill: "transparent",
-      },
+      radius: typeof radius === "number" ? radius : undefined,
+      match: { slot: "collapse" },
     },
-    {
-      childType: "Icon",
-      via: "Button",
-      viaProps: collapse,
-      layout: { flexShrink: "0" },
-      visual: {
-        width: SIDE_NAV_PANEL_ICON_PX,
-        height: SIDE_NAV_PANEL_ICON_PX,
-        iconSize: SIDE_NAV_PANEL_ICON_PX,
-        color: "{color.neutral}",
-      },
-    },
-  ];
+  );
 }
 
 /**

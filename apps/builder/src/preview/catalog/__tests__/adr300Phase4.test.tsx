@@ -18,6 +18,18 @@ const HOME = "project:page:home" as EntryId<"page">;
 
 beforeAll(() => loadCatalogSideNav(), 60_000);
 
+/** The code view of a harness's home page. */
+async function placedCode(types: string[]) {
+  vi.spyOn(console, "warn").mockImplementation(() => {});
+  const h = await openAdr280Preview(types);
+  const { code } = generateCodeView({
+    reader: h.workspace.runtime.graph,
+    pageId: HOME,
+    collections: [],
+  });
+  return { h, code };
+}
+
 describe("ADR-300 Phase 4 — palette · code view", () => {
   it("the palette offers SideNavPanel and SideNav in the layout group, after Nav", () => {
     const layout = getPaletteItems()
@@ -32,19 +44,13 @@ describe("ADR-300 Phase 4 — palette · code view", () => {
   });
 
   it("a placed SideNavPanel owns its nav's items — the code shows them in the panel", async () => {
-    vi.spyOn(console, "warn").mockImplementation(() => {});
-    const h = await openAdr280Preview(["SideNavPanel"]);
+    const { h, code } = await placedCode(["SideNavPanel"]);
     const panel = h.workspace.runtime.graph.getEntry(h.ids[0]!) as NodeEntry;
     expect(
       panel.descendantOverrides.some(
         (override) => override.kind === "fillSlot",
       ),
     ).toBe(true);
-    const { code } = generateCodeView({
-      reader: h.workspace.runtime.graph,
-      pageId: HOME,
-      collections: [],
-    });
     const inPanel =
       /<SideNavPanel>[\s\S]*<\/SideNavPanel>/.exec(code)?.[0] ?? "";
     for (const id of ["item-1", "item-2", "item-2-1", "item-3"])
@@ -57,13 +63,7 @@ describe("ADR-300 Phase 4 — palette · code view", () => {
   });
 
   it("a placed SideNav's code lists its items under it", async () => {
-    vi.spyOn(console, "warn").mockImplementation(() => {});
-    const h = await openAdr280Preview(["SideNav"]);
-    const { code } = generateCodeView({
-      reader: h.workspace.runtime.graph,
-      pageId: HOME,
-      collections: [],
-    });
+    const { h, code } = await placedCode(["SideNav"]);
     expect(code).toMatch(/<SideNav>\s*<SideNavItem id="item-1"/);
     h.view.unmount();
   });

@@ -739,19 +739,19 @@ function librarySlotAddresses(
           holdsBinding(template.children))
       );
     });
-  // (A fill of the nested composite's declared slot — a SideNavPanel's nav holds the SideNav's
-  //  `Items`: SideNavItem is no `staticCollectionItem`, the slot is what the fill writes. ADR-300.)
-  const fillsDeclaredSlot = (templatePath: readonly string[]) =>
-    !!library.templates.get(
-      templatePath.at(-1) as `lib:template:${string}`,
-    )?.slot;
+  // A list the instance owns: a declared slot, or collection items — in its own template and in a
+  // nested composite's fill alike (a SideNavPanel's nav fills the SideNav's `Items`: SideNavItem is
+  // no `staticCollectionItem`, the slot is what the fill writes. ADR-300).
+  const holdsList = (slotId: string | undefined, ids: readonly string[]) =>
+    !!library.templates.get(slotId as `lib:template:${string}`)?.slot ||
+    holdsItems(ids);
   const out: { steps: TemplateId[]; templatePath: TemplateId[] }[] = [];
   const visit = (path: TemplateId[]) => {
     const node = library.templates.get(
       path[path.length - 1] as `lib:template:${string}`,
     );
     if (!node) return;
-    if (node.slot || holdsItems(node.children)) {
+    if (holdsList(node.id, node.children)) {
       if (node.children.length && !holdsBinding(node.children))
         out.push({ steps: [], templatePath: path });
       return;
@@ -768,7 +768,7 @@ function librarySlotAddresses(
       if (nested?.mode === "composite") {
         for (const fill of template?.slotFills ?? [])
           if (
-            (holdsItems(fill.childIds) || fillsDeclaredSlot(fill.templatePath)) &&
+            holdsList(fill.templatePath.at(-1), fill.childIds) &&
             !holdsBinding(fill.childIds)
           )
             out.push({

@@ -26,6 +26,7 @@ type Spec = {
   type: string;
   props?: Record<string, unknown>;
   children?: string[];
+  displayState?: string;
 };
 
 function tree(specs: Record<string, Spec>) {
@@ -45,6 +46,7 @@ function tree(specs: Record<string, Spec>) {
       visual: {},
       layout: {},
       sizing: {},
+      ...(spec.displayState ? { displayState: spec.displayState } : {}),
     } as unknown as CatalogConsumerNode);
   const types = new Map(Object.entries(specs).map(([id, s]) => [id, s.type]));
   const get = (id: string) => records.get(id);
@@ -253,37 +255,29 @@ describe("ADR-300 G1 — current route (Decision 5)", () => {
 
 describe("ADR-300 Phase 4 — a Library card's state samples (displayState)", () => {
   const lone = (type: string, displayState?: string) =>
-    ({
-      id: "sample",
-      sourceId: "sample",
-      definitionId: `lib:definition:type-${type}`,
-      bindingId: type.toLowerCase(),
-      parentId: "",
-      children: [],
-      props: {},
-      visual: {},
-      layout: {},
-      sizing: {},
-      ...(displayState ? { displayState } : {}),
-    }) as unknown as CatalogConsumerNode;
-  const typeOf = (node: CatalogConsumerNode) =>
-    String(node.definitionId).replace("lib:definition:type-", "");
-  const get = () => undefined;
+    tree({ sample: { type, displayState } });
 
   it("a row drawn alone in the Current sample is current (no SideNav, no route)", () => {
+    const current = lone("SideNavItem", "current");
+    const rest = lone("SideNavItem");
     expect(
-      catalogDerivedProps(lone("SideNavItem", "current"), get, typeOf)
+      catalogDerivedProps(current.node("sample"), current.get, current.typeOf)
         ?._sideNavCurrent,
     ).toBe(true);
     expect(
-      catalogDerivedProps(lone("SideNavItem"), get, typeOf)?._sideNavCurrent,
+      catalogDerivedProps(rest.node("sample"), rest.get, rest.typeOf)
+        ?._sideNavCurrent,
     ).toBeUndefined();
   });
 
   it("a panel in the Collapsed sample is collapsed (no prop)", () => {
-    expect(catalogSideNavPanelCollapsed(lone("SideNavPanel", "collapsed"))).toBe(
-      true,
-    );
-    expect(catalogSideNavPanelCollapsed(lone("SideNavPanel"))).toBe(false);
+    expect(
+      catalogSideNavPanelCollapsed(
+        lone("SideNavPanel", "collapsed").node("sample"),
+      ),
+    ).toBe(true);
+    expect(
+      catalogSideNavPanelCollapsed(lone("SideNavPanel").node("sample")),
+    ).toBe(false);
   });
 });

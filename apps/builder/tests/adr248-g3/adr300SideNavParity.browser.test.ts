@@ -441,6 +441,8 @@ function canvasPaint(root: CatalogCompositionRoot, id: string) {
     visible: data.visible !== false,
     turned: JSON.stringify(data.iconPath?.paths) === CHEVRON_DOWN,
     bar,
+    // (Its box fill — none at rest reads as transparent.)
+    fill: data.box?.fillColor?.[3] > 0 ? floatRgba(data.box.fillColor) : "0,0,0,0",
   };
 }
 
@@ -643,6 +645,7 @@ async function compare(fixture: Fixture) {
           turned: false,
           color: "none",
           bar: undefined,
+          fill: "0,0,0,0",
         }
       : canvasPaint(root, id);
     const style = getComputedStyle(element);
@@ -704,9 +707,6 @@ async function compare(fixture: Fixture) {
     // ADR-300 Phase 4 — the panel's collapse Button is S2's quiet icon-only ActionButton (M: 32 square,
     //  corner 8, no fill at rest): both sides draw that, against S2's values (an outside oracle).
     if (type === "Button" && record.props.slot === "collapse") {
-      // biome-ignore lint/suspicious/noExplicitAny: SkiaNodeData read for the harness
-      const data = catalogCanvasNodeData(root, id) as any;
-      const fill = data.box?.fillColor;
       const domButton = {
         width: Math.round(dom.width),
         height: Math.round(dom.height),
@@ -717,7 +717,7 @@ async function compare(fixture: Fixture) {
       const canvasButton = {
         width: Math.round(canvas?.width ?? 0),
         height: Math.round(canvas?.height ?? 0),
-        fill: fill && fill[3] > 0 ? floatRgba(fill) : "0,0,0,0",
+        fill: paint.fill,
       };
       const s2 = { width: 32, height: 32, fill: "0,0,0,0", radius: 8 };
       const { radius: _radius, ...domShared } = domButton;

@@ -13,13 +13,6 @@ export interface S2SideNavPanelCollapseProps {
   onCollapsedChange?: (isCollapsed: boolean) => void;
 }
 
-const NAMES = [
-  "isCollapsed",
-  "defaultCollapsed",
-  "onCollapsedChange",
-] as const satisfies readonly (keyof S2SideNavPanelCollapseProps)[];
-void NAMES;
-
 export const sidePanelCollapse = {
   id: "collapse",
   racDoc: "S2 SideNav.md — SideNavPanel",
