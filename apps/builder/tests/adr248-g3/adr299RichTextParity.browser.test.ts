@@ -548,6 +548,17 @@ describe("ADR-299 G2 — range-formatted text, Canvas raster ↔ Preview DOM (50
     ]).firstBaseline).toBe(53);
   });
 
+  it("a zero-height first line keeps its own baseline, not the next line's", () => {
+    // fontSize 0 first line (height 0): the 48 px run on line 2 must not become the first baseline.
+    const font = {fontSize: 0, fontWeight: 400, lineHeight: 1.5, whiteSpace: "pre-wrap"};
+    expect(catalogTextMeasure("BIG", font, undefined, [
+      {start: 0, end: 3, fontSize: 48},
+    ]).firstBaseline).toBeGreaterThan(0);
+    expect(catalogTextMeasure("a\nBIG", font, undefined, [
+      {start: 2, end: 5, fontSize: 48},
+    ]).firstBaseline).toBeUndefined();
+  });
+
   for (const fixture of BASELINE_FIXTURES)
     it(`${fixture.key}: engine first baseline equals DOM`, async () => {
       const result = await measureArm(fixture, true);

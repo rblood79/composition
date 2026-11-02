@@ -219,12 +219,13 @@ export const catalogTextMeasure: CatalogTextMeasure = (
   let minWidth = 0;
   let lineStart = 0;
   let firstBaseline: number | undefined;
-  for (const line of lines) {
+  for (const [index, line] of lines.entries()) {
     const lineRuns =
       runs && sliceTextRuns(runs, lineStart, lineStart + line.length);
     lineStart += line.length + 1;
     const metrics = measureOneBlock(line || " ", font, lineWidth, lineRuns);
-    if (height === 0) firstBaseline = metrics.firstBaseline;
+    // (By position, not by height: a zero-height first line still owns the first baseline.)
+    if (index === 0) firstBaseline = metrics.firstBaseline;
     height += line ? metrics.height : (lineHeight ?? metrics.height);
     width = Math.max(width, metrics.width);
     minWidth = Math.max(minWidth, metrics.minWidth ?? metrics.width);

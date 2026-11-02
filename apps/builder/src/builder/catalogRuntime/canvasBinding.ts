@@ -1208,9 +1208,24 @@ function paintedNodeData(
   );
 }
 
+/** Whether the scene draws a record as hidden (it and its subtree skipped). */
+function catalogCanvasHidden(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): boolean {
+  return (
+    node.hidden ||
+    node.derivedProps?._pendingHidden === true ||
+    catalogRowSampleHidden(root, node) ||
+    root.tagRowCollapsed(node.id)
+  );
+}
+
 /**
- * A record's Canvas paint as the scene draws it (`paintedNodeData` — its binding or its rule), for
- * the G3 harnesses that hold it against the Preview DOM (ADR-300).
+ * A record's Canvas paint as the scene draws it at rest (`paintedNodeData` — its binding or its
+ * rule), for the G3 harnesses that hold it against the Preview DOM (ADR-300): hidden (not drawn)
+ * when it or an ancestor is hidden, as the scene skips that subtree. Unscrolled — no scrollbar
+ * or sticky offset (the scene's scroll table adds those).
  */
 export function catalogCanvasNodeData(
   root: CatalogCompositionRoot,
@@ -1219,6 +1234,12 @@ export function catalogCanvasNodeData(
   const node = root.canvasInputs.get(id);
   const rect = root.getGeometry([id]).get(id);
   if (!node || !rect) throw new Error(`CATALOG_CANVAS_LAYOUT_REQUIRED:${id}`);
+  for (
+    let cursor: CatalogConsumerNode | undefined = node;
+    cursor;
+    cursor = root.canvasInputs.get(cursor.parentId)
+  )
+    if (catalogCanvasHidden(root, cursor)) return hiddenNode(node, rect);
   const bindingId = bindingKey(node);
   return paintedNodeData(
     root,
@@ -1681,10 +1702,7 @@ function bindInColorMode(
       } as CanvasSceneNode);
       layoutMap.set(node.id, { ...rect, elementId: node.id });
       registerOwned(node.id, () =>
-        node.hidden ||
-        node.derivedProps?._pendingHidden === true ||
-        catalogRowSampleHidden(root, node) ||
-        root.tagRowCollapsed(node.id)
+        catalogCanvasHidden(root, node)
           ? hiddenScrollBox(node, rect)
           : bindingId === "slot" && context.slotMode === "page"
             ? container(node, rect)
@@ -2038,10 +2056,7 @@ function bindInColorMode(
       registerOwned(
         id,
         () =>
-          node.hidden ||
-          node.derivedProps?._pendingHidden === true ||
-          catalogRowSampleHidden(root, node) ||
-          root.tagRowCollapsed(node.id)
+          catalogCanvasHidden(root, node)
             ? hiddenScrollBox(node, rect)
             : withSticky(
                 node,

@@ -551,15 +551,9 @@ async function compare(fixture: Fixture) {
     for (const child of records.get(id)?.children ?? []) place(child, x, y);
   };
   place(rootInput.id, 0, 0);
-  const hiddenOnCanvas = (id: string): boolean => {
-    for (
-      let cursor = records.get(id);
-      cursor;
-      cursor = records.get(cursor.parentId)
-    )
-      if (cursor.hidden) return true;
-    return false;
-  };
+  // (The scene's own hidden test — it or an ancestor — not a copy of it.)
+  const hiddenOnCanvas = (id: string): boolean =>
+    catalogCanvasNodeData(root, id).visible === false;
 
   const host = document.createElement("div");
   host.style.cssText = `position:absolute;left:0;top:0;width:${PAGE.width}px;height:${PAGE.height}px;overflow:hidden`;
