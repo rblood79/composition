@@ -35,44 +35,26 @@
     ],
     "evidenceDirectory": ".agent/runs/2026-10-21-canvas-performance-check"
   },
-  "goal": "ADR-248 이후 Canvas 성능 저하 조사 — 사용자 체감 (이동·줌 rAF 51~532 ms · click 1,516 ms, Chrome 4x throttle · 22 페이지 프로젝트) 의 원인 귀속. 분석·측정 우선, 제품 코드 변경은 원인 확정 뒤 (사용자 지시 2026-10-21)",
-  "phase": "phase3-levers-2a-3a-4a-pushed — 레버 1 제품 몫 · 2b · 3b · 3c/3d 는 사용자 결정 대기",
+  "goal": "",
+  "phase": "adr299_proposed",
   "next": [
-    "[x] 하니스 재현 — app-pages · mixed 600 · dev headless · idle,pan,zoom,select,edit · --profile (.agent/runs/2026-10-21-canvas-perf-regression/)",
-    "[x] 4x throttle 재현 (headless · headed) — pan 여유 · zoom p99 40 · select p95 123 ms (사용자 click 1,516 ms 는 미재현)",
-    "[x] Codex 단서 코드 대조 — 가림 clip O(n²) 22 페이지 231/프레임 (프로필 상위 아님) · ActionBar 는 선택당 1회",
-    "[x] 사용자 22 페이지 프로젝트 (9168f5be) 는 5173 IndexedDB 에 없음 · 남은 3개는 contract 42·43 (7~11 entries) → 현재 build 44 에서 열리지 않음",
-    "[x] 새 프로젝트 gridlist-1000 (5173) — GridList + Users 1000 행 연결 (사용자 지시)",
-    "[x] CMS 형 22 페이지 + 17 collection × 1000 행 연결 · 탭 안 계측 (live-cms-doc-2026-10-21.md)",
-    "[ ] 사용자 결정: 레버 순위 (Navigator/Design 선택 fan-out · pan 중 content 재기록 · 로드 long task) 중 착수 항목 · 4x throttle 재현은 사용자 탭에서",
-    "[x] perfAppFixture.mjs TableView→Table 커밋",
-    "[x] 레버1: 클릭 선택 fan-out 함수 단위 귀속 (Navigator 행 렌더 · Design 섹션 재계산) — 탭 프로파일 + 코드 경로",
-    "[ ] 레버1: 원인 확정 뒤 수정 + 원복 RED + live 재측정",
-    "[x] 레버2: pan 중 CanvasKit 재기록 (picture 재생 수)",
-    "[ ] 사용자 결정: 레버1 제품 몫 (production 1x ~13 ms · 4x ~40 ms) 착수 여부 vs 레버2 로 이동 · 사용자 탭 DevTools 닫고 재측정",
-    "[x] 사용자 결정: 레버2a (overlay 입력 memo — slots · remainders · occluders · scrollbar · headers) 착수 여부 · 2b 는 ADR-266 대안 B",
-    "[x] 2a 구현: catalogOverlayChrome.ts (scene 버전 보관) · render.overlayChromeBuilt 카운트 · 테스트 · CHANGELOG · 규칙",
-    "[x] 2a 커밋 (pathspec) + push",
-    "[x] 레버3: 로드 long task 귀속 — ② root 생성 626 (loadInitial 해석+record 조립 75 %) · ③ 첫 프레임 480 (bind 50 % · refreshRows 중복 26 % · getGeometry 13 %) · prod 같은 값 · 4x 2.5+1.9 s (lever3/README.md)",
-    "[x] 레버 3a: mount refreshRows 중복 제거 — ③ 480 → 141 (prod 4x 1,906 → 490) · live 행 삽입/undo PASS · 테스트 3 · type-check PASS",
-    "[x] 레버 3a 커밋 d46265055 (로컬) — push 는 pre-push ratchet block: A 초과 20건 전부 60:app-pages · 60:app-pages-images (zoom · edit · load-edit), 2a push 때 run 과 key 집합 동일 (scratchpad/judge-*.log)",
-    "[x] 레버4 귀속: 연결 1건 = 엔진 solveVisits 46k (문서 전체 1 pass) — remove_node 가 last_compute 를 비워 다음 compute_layout 이 트리 전체 dirty · 삭제 1건도 같음 (80 ms 1x / 290 4x) · 행 수 무관 (lever4/README.md)",
-    "[x] 레버 4a: tree.rs remove_node — 삭제 80 → 10 ms · 연결 109 → 46 (4x 403 → 183) · solve 46k → 49~651 · cargo 501 PASS · live PASS",
-    "[x] 3a d46265055 · 4a 16ad74fb6 push (SKIP_PERF_RATCHET=1 — 사용자 지시 2026-10-21)",
-    "[x] ratchet 재기준 e46011883: A 150 올림 (사용자 승인 · 만료 2027-04-21 · ADR-277 fixture) · 하향 40 · 새 지표 23 · pass 2 판정 A 0 / B 경고 26",
-    "[x] e46011883 push — pre-push 게이트 통과",
-    "[x] (사용자 /fix 2026-10-24) code-review 1~4: 드래그 중 scene-box chrome (slot · remainder · badge) 이 렌더러처럼 조상 offset 합산 · top layer root 에서 멈춤 · 끌리는 서브트리는 page 가림 상자로 안 자름 — unit 8 · RED 변이 2 · 회귀 394 PASS, live PASS (5175 · 중첩 형제 offset + 실제 포인터 드래그) · 3cb0cbfe0 push (4 = page delta 호출부 0 · fixed 는 맵이 안 움직여 재현 불가)",
-    "[x] (사용자 /fix 2026-10-24) code-review 5·7: Preview endpoint 찾기 id 우선 (endpointFilling) · endpointWithTarget id 전달 · 끊긴 연결은 대상 없음 · store 한 번 읽기 — fd7b81dfb push. 남은 것: previewBuilderAuthoringImport.static 실패 (HEAD c3be6f5b8 compositionRoot → commands/components)",
-    "[x] (사용자 2026-10-24) previewBuilderAuthoringImport.static 수리: componentOriginOf → document/componentOrigin.ts (commands/components 는 재수출) · 11/11 · 1e5e7711c push. HEAD 부터 실패 19건 (shared 13: g0DescendantRoutes 8 · codeCatalogLibrary 2 · propSectionConsistency · fieldSource · positions / builder 6: treeItemChevronNode 4 · adr256Followups · phase3Presence) — 이번 변경과 무관, 미조사",
-    "[x] (사용자 2026-10-24) HEAD 부터 실패하던 테스트 23 정리 + 제품 결함 3 (Tree 자동 체크박스 비대칭 · State 이름표 i18n · body 높이 기본값) — ce44113f2 push. shared 1727 · builder 6412 전부 PASS",
-    "[x] (사용자 2026-10-24 「레퍼런스에 나온대로」) State 절 상태 이름표 8 = RAC prop 이름 · 「항목 key」 통일 — 71de2aacb push",
-    "[x] 295 후속 C8 토스트 action 버튼 = S2 (17b79e9c6, live 5175 PASS)",
-    "[x] 295 후속 C9 Toast 컴포넌트 패널 노출 (ab5dcbbb6, live 5175 PASS) = S2 모양 (아이콘 · 닫기 = Toast 가 그림, 글자 · action Button = 자식 노드)"
+    "[x] Canvas letterSpacing: Skia 앞뒤 반씩 → CSS 뒤에만",
+    "[x] Canvas 밑줄 두께 = CSS",
+    "[x] Badge 글자 굵기 Canvas = CSS 600",
+    "[x] live Compare Mode 확인 · CHANGELOG",
+    "[x] 커밋 6da24bf6c · push 완료",
+    "[x] Badge 상자 세로 원인 확인: Canvas y28 / CSS y24.25 — leafBaseline 미공급(바닥 정렬) 3px + Button vertical-align:middle 미전달 0.75px",
+    "[x] 1. styleOf 가 leafBaseline · strut (lineHeight · strutBaseline · strutXHeight) 공급 — fontBox = CanvasKit",
+    "[x] 2. 엔진 middle x-height (Rust 58 필드 · wasm) · Button verticalAlign catalog 이관 (ToggleButton 제외)",
+    "[x] live Compare Mode 5175: Badge CSS 24.242 / Canvas 24.25 · CHANGELOG",
+    "[ ] 커밋은 사용자 요청 때 — pathspec",
+    "[x] ADR-299 범위 서식 Proposed 작성 (본문 · breakdown · README) — 리뷰 · 착수 · 커밋은 사용자 요청 때",
+    "[x] ADR-299 리뷰 round 1 HIGH 3 반영 (본문 · breakdown · README · reviews outcome fixed) — 수리 검증 · 커밋은 사용자 요청 때",
+    "[x] ADR-299 리뷰 닫힘 (round 2 HIGH 0) · 커밋 73b5996f4 · push 완료 — 착수는 /execute-adr 299 요청 때"
   ],
-  "guard": "제품 코드 변경 없음 (원인 확정 전) · 다른 세션 dirty 변경 보존 · 사용자 5173 서버 건드리지 않음 (하니스는 5175)",
+  "guard": "다른 세션 dirty 변경 보존 (pathspec 커밋) · 사용자 5173 서버 건드리지 않음 (live 는 5174+) · 마이그레이션 코드 0 · 커밋/push 는 사용자 요청 때만",
   "stop": "type-check 실패 커밋 금지",
-  "tip": "증거 .agent/runs/2026-10-21-canvas-perf-regression/lever{1,2,3,4}/README.md · 스크립트 scratchpad/lever{1-select,2-pan,2a-live,3-load,3-refresh,3a-live,4-connect,4-steps}.mjs (인자 cms-doc-dump.json data-dump.json 필수 · SERVE_DIST 로 production · ARMS=1,4)",
-  "updatedAt": "2026-10-31T13:33:37.913657+00:00",
+  "updatedAt": "2026-11-02T09:18:39.562066+00:00",
   "componentEmptyDoubleClick": {
     "task": "Body 선택 후 컴포넌트 빈 영역 더블클릭 선택 수리",
     "phase": "verified",
@@ -1605,21 +1587,6 @@
     "remote": "origin/main",
     "remoteVerification": "git ls-remote refs/heads/main exact match"
   },
-  "adr296": {
-    "task": "ADR-296 execute — Phase 0 → 1 → 2 → 3 (사용자 /execute-adr 296, 2026-10-31)",
-    "phase": "phase0-3-closed — Phase 4~7 남음 (사용자 지시 범위 0~3 완료)",
-    "decisions": "결정 4 받는다 · 7 이름 붙은 handler 함수 · 5 state/project.ts + useProjectState() (사용자 2026-10-31)",
-    "guard": "다른 세션 dirty (ADR-295 ListBox · componentRulesTable 등) 보존 · 번들/성능 측정은 다른 작업과 동시에 돌리지 않고 기준 커밋 기록 · 사용자 5173 서버 미사용",
-    "next": [
-      "[x] Phase 0: G0 — fieldCoverage.ts 220 키 · RED 16 · oracle 진입점 · 번들 1,380,329/317,190 · 생성 0.32 ms (기준 44af0b81e)",
-      "[x] Phase 1: page 결함 수리 + read 실증 게이트 + golden · 판독 1 (HIGH 0 · MEDIUM-1 수리)",
-      "[x] Phase 2: 프로젝트 세션 · Apply 5 단계 · 파일 트리 · App.tsx · <Page>/meta/metadata/enabled · 패널",
-      "[x] Phase 3: data · api · state 파일 + E8 · E11 · 측정 +102 B / 0 / 0.39 ms · live 5176",
-      "[ ] (사용자 판단) 커밋 · push — 요청 시",
-      "[ ] Phase 4 (CSS · 결정 1 · 6 — 295 최신 토큰/scale/resolver 계약 반영) · 5 · 6 · 7"
-    ],
-    "updatedAt": "2026-10-31T09:46:58.076742+00:00"
-  },
   "adr292293295ReviewReflection": {
     "task": "리뷰 292/293/295 지적의 현재 코드 반영 검토",
     "phase": "review_complete",
@@ -1637,5 +1604,253 @@
       "format": "3 review docs FAIL; 검사만 수행, 자동 포맷 없음"
     },
     "concurrentChanges": "327 PASS 이후 다른 세션 Table 선택 열 source/test dirty 변경 발생. 그 변경은 이번 PASS 집계에서 제외, UNVERIFIED."
+  },
+  "adr298CompletionAudit": {
+    "task": "ADR-298 구현 완료 검증",
+    "phase": "remote_verified",
+    "scope": "제품 코드 수정 없음",
+    "evidenceDirectory": ".agent/runs/2026-11-02-adr298-review",
+    "status": "committed_and_pushed_live_unverified",
+    "head": "28d0a60f6776f01e045c99635620a5f7a270494b",
+    "validation": "159 regression PASS; 9 new tests PASS; typecheck 6/6 PASS (builder fresh); registration/catalog/guard PASS; preflight format FAIL; live/pixels/perf/bundle UNVERIFIED",
+    "review": "docs/adr/reviews/298.md round 4",
+    "checks": "review schema PASS; diff-check PASS; guard PASS; preflight stopped on task-state/review formatting",
+    "committed": true,
+    "commit": "5dd6067d79526c06078ce14350f7ec36251b97ec",
+    "remote": "origin/main",
+    "remoteVerification": "git ls-remote refs/heads/main exact match"
+  },
+  "adr297CompletionAudit": {
+    "task": "ADR-297 완료 검증",
+    "phase": "review_complete",
+    "scope": "제품 코드 수정 없음",
+    "evidenceDirectory": ".agent/runs/2026-11-02-adr297-completion-review",
+    "head": "5dd6067d79526c06078ce14350f7ec36251b97ec",
+    "verdict": "수정 필요: HIGH 1 pending 1",
+    "tests": "64 unit PASS, 2 Chromium parity PASS, authored border pixel RED, type-check 6/6 PASS, CSS sync 111 PASS",
+    "unverified": [
+      "G2 fixed-inputs frame p95 / final bundle",
+      "현재 Builder 전체 UI"
+    ]
+  },
+  "adr297BorderFix": {
+    "phase": "committed_pushed",
+    "task": "ADR-297 H4 gradient authored border 수리",
+    "scope": "background 합성 순서 · 인접 픽셀 회귀 · Chromium 정합성",
+    "evidenceDirectory": ".agent/runs/2026-11-02-adr297-border-fix",
+    "result": "H4 수리: CanvasKit 7 포함 unit 25 PASS, Chromium 2/562칸 PASS, Builder 2 variants PASS 콘솔0",
+    "unverified": [
+      "ADR-297 G2 frame p95 및 최종 bundle은 범위 밖"
+    ],
+    "review": "docs/adr/reviews/297.md round 5: H4 fixed, HIGH 0 pending 0",
+    "checks": "unit 25 / Chromium 2 / type-check 6/6 / registration 6 / schema / guard / catalog / diff PASS; preflight format warnings 남음",
+    "git": "origin/main push 완료",
+    "commit": "cfd814aba24744ecdb1bfbb0135961a787c641df",
+    "remoteVerification": "git ls-remote origin refs/heads/main exact match",
+    "committedFiles": 9
+  },
+  "adr292293295ResidualRecheck": {
+    "task": "ADR292/293/295 이전 잔여 문제 재검증",
+    "scope": "분석 및 실행 검증만; 제품 코드 수정 없음",
+    "phase": "review_complete",
+    "head": "6da24bf6c134391f9a551b54450b7232a7ef0684",
+    "evidenceDirectory": ".agent/runs/2026-11-02-adr292-293-295-recheck",
+    "validation": "863 tests PASS; Table live 6/6; G5 console 0; typecheck 6/6 PASS; current artifact bundle 1399514 / 322417 B gzip",
+    "updatedAt": "2026-11-02T05:34:51.404Z",
+    "result": "차단 결함 없음; Table/live/cascade 검증 확인; 날짜 picker 정밀도·600요소 테마 전환·L6 deferred 남음",
+    "concurrentChanges": "검증 뒤 다른 세션의 텍스트/레이아웃/Rust engine/catalog rule/CSSGenerator/생성 CSS dirty 추가. 앞선 863 PASS와 번들 수치를 해당 후속 작업까지 확대하지 않음.",
+    "checks": {
+      "schema": "3 PASS",
+      "guard": "PASS",
+      "diff": "PASS",
+      "format": "3 review docs preexisting FAIL; 자동 포맷 없음",
+      "temporaryServer": "본 검증용 5189 서버 종료"
+    }
+  },
+  "eslintDisableNextLineAudit": {
+    "task": "eslint-disable-next-line 전체 근본 수정 여부 읽기 전용 감사",
+    "phase": "review_complete",
+    "count": 50,
+    "categories": {
+      "의미상 동등 의존성": 14,
+      "불필요한 억제": 3,
+      "의도된 실행 시점": 4,
+      "예외·비제품": 9,
+      "구조 개선": 7,
+      "동작 결함": 3,
+      "의도된 갱신 신호": 10
+    },
+    "evidenceDirectory": ".agent/runs/2026-11-02-eslint-disable-next-line-audit",
+    "verification": "32 files ESLint API, source consumer inspection",
+    "unverified": [
+      "browser reproduction",
+      "regression tests",
+      "Compiler build behavior"
+    ],
+    "updatedAt": "2026-11-02T05:18:45.532808+00:00"
+  },
+  "eslintDisableNextLineFix": {
+    "phase": "committed_pushed",
+    "scope": "13 audited sites",
+    "evidenceDirectory": ".agent/runs/2026-11-02-eslint-disable-next-line-fix",
+    "validation": {
+      "tests": "71 unique focused tests PASS",
+      "originalRed": "5 assertions FAIL on original code",
+      "typecheck": "6/6 PASS baseline 0",
+      "lint": "0 errors; 2 existing warnings",
+      "preflight": "blocked by existing/shared formatting; remaining gates individually PASS",
+      "live": "8 native Chrome scenarios PASS; explicit UNVERIFIED in report"
+    },
+    "files": [
+      "apps/builder/scripts/adr248-g5-paired.mjs",
+      "apps/builder/scripts/adr253-p4-live.mjs",
+      "apps/builder/src/builder/components/overlay/CommandPalette.tsx",
+      "apps/builder/src/builder/components/property/PropertySelect.test.tsx",
+      "apps/builder/src/builder/hooks/useKeyboardShortcutsRegistry.test.tsx",
+      "apps/builder/src/builder/hooks/useKeyboardShortcutsRegistry.ts",
+      "apps/builder/src/builder/main/BuilderHeader.tsx",
+      "apps/builder/src/builder/main/useCatalogGlobalShortcuts.ts",
+      "apps/builder/src/builder/panels/codeView/CatalogCodeViewPanel.tsx",
+      "apps/builder/src/builder/panels/codeView/CodeEditor.tsx",
+      "apps/builder/src/builder/panels/codeView/__tests__/codeEditorRebase.test.tsx",
+      "apps/builder/src/builder/panels/datatable/editors/DataTableCreator.test.tsx",
+      "apps/builder/src/builder/panels/datatable/editors/DataTableCreator.tsx",
+      "apps/builder/src/builder/panels/interactions/catalog/CatalogTargetPicker.tsx",
+      "apps/builder/src/builder/panels/properties/catalog/CatalogPropertyClipboardActions.tsx",
+      "apps/builder/src/builder/panels/properties/catalog/CatalogSwapPicker.tsx",
+      "apps/builder/src/builder/panels/properties/generic/GenericFieldRenderer.order.test.tsx",
+      "apps/builder/src/builder/panels/properties/generic/GenericFieldRenderer.test.tsx",
+      "apps/builder/src/builder/panels/properties/generic/fieldValueSource.ts",
+      "apps/builder/src/builder/panels/styles/StylesPanel.components.tsx",
+      "apps/builder/src/builder/panels/styles/catalog/CatalogStyleClipboardShortcuts.tsx",
+      "apps/builder/src/builder/workspace/canvas/catalog/CatalogCanvas.tsx",
+      "apps/builder/src/builder/workspace/canvas/catalog/CatalogTextEditor.tsx",
+      "apps/builder/src/builder/workspace/canvas/viewport/useViewportControl.ts",
+      "apps/builder/src/i18n/I18nProvider.tsx",
+      "apps/builder/src/i18n/useI18n.ts",
+      "packages/shared/src/components/Table.components.tsx",
+      "apps/builder/src/builder/panels/datatable/editors/tableAsyncReload.test.tsx",
+      "apps/builder/src/builder/panels/datatable/editors/tableAsyncRequest.test.tsx",
+      "apps/builder/src/i18n/I18nContext.ts",
+      "packages/shared/src/components/tableAsyncRequest.ts",
+      "apps/builder/src/builder/panels/properties/hooks/useVisibleVariableNames.ts",
+      "docs/CHANGELOG.md"
+    ],
+    "updatedAt": "2026-11-02T07:12:41.246810+00:00",
+    "commit": "98002e311a5c72e811a39474cbcfe088ca5c6ab6",
+    "remote": "origin/main independently verified by git ls-remote"
+  },
+  "dateValuePrecisionFix": {
+    "task": "날짜 편집의 시간대/초/소수초 보존",
+    "phase": "committed_pushed",
+    "scope": "ISO 날짜 편집 adapter · 네 Builder 입력 경로 · RAC local datetime 파싱 오류",
+    "head": "20388ea2e38f8163ddd5e48c5049352ed8bdd7bc",
+    "evidenceDirectory": ".agent/runs/2026-11-02-date-value-precision-fix",
+    "updatedAt": "2026-11-02T08:52:29.849Z",
+    "validation": {
+      "shared": "14 files / 384 PASS",
+      "builder": "11 files / 96 PASS",
+      "typecheck": "6/6 PASS",
+      "live": "current localhost:5173; headed Playwright 12 checkpoints PASS; console/pageerror 0; save/reload all owners; ko-KR Second DatePicker rerender",
+      "registration": "2 files / 6 PASS",
+      "build": "PASS; Builder initial gzip 1399940 <= 1400000, Preview 322301 <= 325000",
+      "gates": "guard, owned format check, agent-catalog, scoped diff check PASS; preexisting DataGrid.test.tsx and state-management.md formatting unchanged"
+    },
+    "isolation": "/private/tmp/composition-date-precision-20261102 at 98002e311 + owned changes only; own lockfile offline install; upload build; existing engine artifact",
+    "snapshot": ".agent/runs/2026-11-02-date-value-precision-fix/verified-snapshot.json",
+    "evidence": "docs/adr/completed/292-variable-editing-two-shapes-date-type-common-field-types.md#2026-11-02-날짜-정밀도-후속-검증",
+    "unverified": [
+      "Safari/mobile native pickers",
+      "entire date family pixel parity"
+    ],
+    "commit": "d87e99c9be9208b6d87e238a16ced14db2293a7a",
+    "remote": "origin/main",
+    "remoteVerification": "git ls-remote origin refs/heads/main exact match",
+    "committedFiles": 24,
+    "localDetailedEvidence": "docs/adr/evidence/292-date-value-precision.md (ignored; not committed)"
+  },
+  "buttonOutlineBorderAudit": {
+    "task": "Button fillStyle outline borderWidth 레퍼런스 대조",
+    "phase": "review_complete",
+    "scope": "점검만; 제품 코드 수정 없음",
+    "result": "설치 S2 1.8.1 outline 2px / catalog XS-XL border.width.thin 1px; fillStyle별 두께 분기 누락",
+    "exceptions": "S2 premium/genai borderWidth 0; 일반 fill 0",
+    "validation": "설치 S2 소스 및 Adobe upstream, catalog 정의, 생성 CSS, theme token 대조",
+    "unverified": [
+      "현재 사용자 문서 브라우저 실측",
+      "Canvas/Preview 픽셀 비교"
+    ]
+  },
+  "buttonOutlineBorderFix": {
+    "task": "Button fillStyle별 borderWidth S2 정합성 수리",
+    "phase": "committed_pushed",
+    "scope": "catalog border/padding tree · typed definition · DOM zero border 처리 · 생성 CSS · 인접 회귀",
+    "evidenceDirectory": ".agent/runs/2026-11-02-button-outline",
+    "validation": {
+      "unit": "4 files / 91 PASS; RED outline=1px 4 variants FAIL; restore GREEN 7 PASS",
+      "typecheck": "6/6 PASS",
+      "live": "headed Chrome localhost:5173: 21조건 Canvas/Preview border·width·height 일치; reload 21조건 PASS; console/pageerror 0",
+      "gates": "guard / owned code+CHANGELOG format / registration 6 / agent-catalog / diff check PASS; css-tokens.md 기존 표 공백 1건 format warning (HEAD 동일, 보존)"
+    },
+    "unverified": [
+      "touch device 별도 브라우저 검증",
+      "Properties 패널 클릭 조작"
+    ],
+    "commit": "20388ea2e38f8163ddd5e48c5049352ed8bdd7bc",
+    "updatedAt": "2026-11-02T07:58:55.093351+00:00",
+    "remote": "origin/main",
+    "remoteVerification": "git ls-remote origin refs/heads/main exact match",
+    "committedFiles": 8
+  },
+  "adr295ThemeDiagnosis": {
+    "task": "ADR295 600요소 테마 전환 69.8ms 초과 원인 확인",
+    "phase": "review_complete",
+    "scope": "제품 코드 수정 없는 production 측정 및 코드 대조",
+    "evidenceDirectory": ".agent/runs/2026-11-02-adr295-theme-diagnosis",
+    "head": "20388ea2e38f8163ddd5e48c5049352ed8bdd7bc",
+    "findings": [
+      "계측 없는 sync 중앙값59.45ms / 첫rAF62.95ms: 25ms 초과",
+      "기존 root.execute32.9ms + theme install1.1ms + 새root22.0ms",
+      "12회 동일 count: flatten2 / computeLayout2 / rewrap2 / 전체601 record plan"
+    ],
+    "unverified": "수리 효과, 최종 paint, Preview/Publish 전체 완료, ADR295 증가분",
+    "status": "existing_perf_followup_confirmed_no_product_changes",
+    "reviewLog": "docs/adr/reviews/295.md Round8",
+    "validation": {
+      "productionBuild": "PASS; snapshot dirty24",
+      "baseline": "headed visible DPR1 CPU1x 12 alternating; sync59.45ms firstRaf62.95ms; pageerror0",
+      "counts": "12회 동일 호출 수; flatten2/computeLayout2/rewrap2",
+      "schema": "PASS",
+      "guard": "PASS",
+      "diffCheck": "PASS",
+      "format": "FAIL reviews/295.md; 검사만 수행, 기존 리뷰 본문 보존"
+    }
+  },
+  "adr299Review": {
+    "task": "ADR-299 설계 리뷰",
+    "phase": "repair_review_complete",
+    "scope": "기존 round 1 HIGH h1/h2/h3의 문서 수리 검증만; 제품 코드 및 ADR 본문/상태 변경 없음",
+    "head": "d87e99c9be9208b6d87e238a16ced14db2293a7a",
+    "evidenceDirectory": ".agent/runs/2026-11-02-adr299-review",
+    "updatedAt": "2026-11-02T09:11:46.915758+00:00",
+    "result": "기존 HIGH h1/h2/h3 설계 수리 확인; 잔여 HIGH 0 pending 0; G3 원복 RED oracle 설명 LOW deferred 1",
+    "review": "docs/adr/reviews/299.md round 2",
+    "validation": "canonical run 의미 보존 4사례 PASS; schema/guard PASS; 기존 리뷰 본문 보존 및 ADR 본문/breakdown/README 무변경 확인; review format FAIL; 구현/browser/parity/IME/bundle/perf UNVERIFIED"
+  },
+  "adr295ThemeFix": {
+    "task": "ADR295 테마 전환 중복 전체 처리 수리",
+    "phase": "committed_pushed",
+    "evidenceDirectory": ".agent/runs/2026-11-02-adr295-theme-fix",
+    "scope": "transaction consumer에서 신규 theme root 1회 생성; 실패 시 graph 원복 후 engine 복구; 인접/live/perf 검증",
+    "status": "complete_pushed",
+    "head": "73b5996f432c5561239d21fba7629684d28d53c1",
+    "result": "중복 처리 2→1; 600요소 production firstRaf 중앙값22.9ms, sync17.2ms",
+    "checks": "77 Vitest / 41 node / typecheck6/6 / registration6 / guard / agent-catalog / schema / diff / scoped format PASS; before A3 RED, after+dev A0; live5steps PASS; dark/reload paint diff0",
+    "limits": "firstRaf max34.6ms; strict25ms/allpaint unverified; custom typography input39.714 vsDOM38 pre-existing before/after; full preflight existing formatFAIL",
+    "reviewLog": "docs/adr/reviews/295.md Round9",
+    "commit": "85363daa67dd38f164bf68dcbfaef72b1bb28a3e",
+    "push": "git push origin main 성공; git ls-remote origin refs/heads/main 독립 SHA 일치 확인",
+    "commitChecks": "typecheck 6/6 PASS; Vitest77 + node41 PASS; 검증 production artifact와 runtime4파일 token 일치",
+    "localReviewPreservation": "reviews/292·293 및 공유 reviews/295 Round7~9는 다른 세션의 미커밋 Round7 의존 기록과 함께 로컬에 보존; commit 미포함"
   }
 }
