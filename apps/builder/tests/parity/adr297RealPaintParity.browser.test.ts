@@ -40,6 +40,7 @@ import { CatalogWorkspace } from "@/builder/catalogRuntime/workspace";
 const OWNERS: readonly {
   readonly type: string;
   readonly props?: Record<string, unknown>;
+  readonly visual?: Record<string, string | number>;
 }[] = [
   { type: "ToggleButton" },
   { type: "ToggleButton", props: { isSelected: true } },
@@ -82,6 +83,16 @@ const OWNERS: readonly {
   { type: "Button", props: { variant: "genai", fillStyle: "outline" } },
   { type: "Button", props: { variant: "genai", isDisabled: true } },
   { type: "Button", props: { variant: "premium" } },
+  {
+    type: "Button",
+    props: { variant: "genai" },
+    visual: { borderColor: "#ff0000", borderWidth: 4, radius: 0 },
+  },
+  {
+    type: "Button",
+    props: { variant: "premium" },
+    visual: { borderColor: "#ff0000", borderWidth: 4, radius: 8 },
+  },
 ];
 
 let host: HTMLDivElement;
@@ -180,8 +191,8 @@ it("Canvas node data == DOM computed paint per record on the real node tree (the
   const newId = allocator();
   const owners: { label: string; id: NodeId }[] = [];
   const missing: string[] = [];
-  for (const { type, props = {} } of OWNERS) {
-    const label = `${type}${Object.keys(props).length ? JSON.stringify(props) : ""}`;
+  for (const { type, props = {}, visual = {} } of OWNERS) {
+    const label = `${type}${Object.keys(props).length ? JSON.stringify(props) : ""}${Object.keys(visual).length ? JSON.stringify(visual) : ""}`;
     const id =
       `project:node:o-${label.replace(/[^A-Za-z0-9]/g, "-")}` as NodeId;
     try {
@@ -200,7 +211,12 @@ it("Canvas node data == DOM computed paint per record on the real node tree (the
                   { kind: "set", value: v },
                 ]),
               ),
-              visual: {},
+              visual: Object.fromEntries(
+                Object.entries(visual).map(([key, value]) => [
+                  key,
+                  { kind: "set", value },
+                ]),
+              ),
               sizing: {},
               descendantOverrides: [],
             } as NodeEntry,
@@ -297,10 +313,9 @@ it("Canvas node data == DOM computed paint per record on the real node tree (the
     if (data.text?.content)
       pairs.push(["fg", skiaBytes(data.text.color), cssBytes(computed.color)]);
     // ADR-297 후속 ⑥: the gradient over the background (S2 premium · genai Button) — its stop colors,
-    //   the Canvas gradient child against the DOM `background-image`.
-    const gradient = data.children?.find(
-      (child) => child.box?.fill?.type === "linear-gradient",
-    )?.box?.fill as { colors: Float32Array[] } | undefined;
+    //   the Canvas box background against the DOM `background-image`.
+    const gradient =
+      data.box?.fill?.type === "linear-gradient" ? data.box.fill : undefined;
     const domImage = computed.backgroundImage;
     if (gradient || (domImage && domImage !== "none"))
       pairs.push([
@@ -326,6 +341,7 @@ it("Canvas node data == DOM computed paint per record on the real node tree (the
         .join("\n"),
   );
   expect(owners.length).toBeGreaterThan(30);
+  expect(missing).toEqual([]);
   expect(compared).toBeGreaterThan(200);
   await commands.writeFile(
     "../../.agent/runs/adr297-real-paint.json",

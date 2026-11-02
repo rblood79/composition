@@ -628,6 +628,8 @@ function paintBoxFill(
   layer: FillStyle | undefined,
 ): void {
   const box = node.box!;
+  // Each background layer owns its alpha; a shader must not inherit the preceding color's alpha.
+  paint.setAlphaf(1);
   const shader = layer ? applyFill(ck, paint, layer) : null;
   if (!shader && layer?.type !== "color") paint.setColor(box.fillColor);
 

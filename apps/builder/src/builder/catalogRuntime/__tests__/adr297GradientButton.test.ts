@@ -243,7 +243,7 @@ describe("ADR-297 후속 ⑥ — premium · genai gradient = S2", () => {
     expect(parsePaintGradientCss("url(a.png)")).toBeUndefined();
   });
 
-  it("Canvas: a record gradient lies over the fill as a child box (the fill stays)", () => {
+  it("Canvas: a record gradient lies over the fill in the box background", () => {
     const rect = { x: 0, y: 0, width: 100, height: 32 };
     const base: SkiaNodeData = {
       type: "box",
@@ -262,9 +262,12 @@ describe("ADR-297 후속 ⑥ — premium · genai gradient = S2", () => {
     expect(Array.from(data.box!.fillColor)).toEqual(
       Array.from(base.box!.fillColor),
     );
-    const layer = data.children![0]!;
-    expect(layer.box!.borderRadius).toBe(16);
-    const fill = layer.box!.fill as {
+    expect(data.children ?? []).toEqual([]);
+    expect(data.box!.borderRadius).toBe(16);
+    expect(data.box!.fillUnderlays).toEqual([
+      { type: "color", rgba: Array.from(base.box!.fillColor) },
+    ]);
+    const fill = data.box!.fill as {
       type: string;
       start: number[];
       end: number[];

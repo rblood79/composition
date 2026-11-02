@@ -4,6 +4,8 @@
 
 Implemented — 2026-11-02
 
+> **구현 판독 H4 수리 (2026-11-02)** — gradient를 box 배경층으로 옮겨 authored border 아래에서 그린다. 반투명 배경층의 alpha도 층마다 독립 적용한다. CanvasKit 테두리 RED 6 → PASS 6 · 인접 회귀 25 PASS · Chromium 562칸 불일치 0 · 실제 Builder genai/premium Compare Mode PASS (콘솔 0). [review round 5](../reviews/297.md)에서 H4 fixed. 이 수리는 G2 frame p95·최종 bundle의 미확인 상태를 변경하지 않는다.
+
 - 승격 근거: Phase 0 ~ 4 닫힘 · G5 live (Chrome MCP 5177, `### Live Exercise`) · 사용자 「커밋하고 다음 단계 진행해」 (2026-11-02). 후속 (트리 계약 밖, LOW) 은 breakdown §6.4 「3 닫힘 판정」 의 ② ~ ⑥.
 
 Accepted — 2026-11-01

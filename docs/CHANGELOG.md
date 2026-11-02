@@ -29,6 +29,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 더블클릭 글자 편집 상자의 파란 테두리가 확대 (예: 500%) 에서 selection box (화면 1px) 보다 굵게 (2.5px) 보이던 것 — 이제 어느 확대에서도 화면 1px. 원인: Chrome 이 `outline-width` 를 transform 전에 최소 1 device pixel 로 올린다 (0.2px → DPR 2 에서 0.5px, scale(5) 뒤 2.5px). 테두리를 반올림하지 않는 `box-shadow` spread 로 그린다 (`CatalogTextEditor.tsx`).
 
+## [그라데이션 버튼의 사용자 테두리 보존 — ADR-297 리뷰 수리] - 2026-11-02
+
+### Fixed
+
+- genai·premium Button에 지정한 테두리가 Canvas에서 그라데이션에 가려지지 않는다. 그라데이션을 box 배경층으로 옮겨 테두리·inset shadow·콘텐츠 아래에서 그린다.
+- 여러 배경층을 합성할 때 이전 단색의 투명도가 다음 그라데이션에 중복 적용되지 않도록 각 층의 alpha를 독립 적용한다.
+
+### Tests
+
+- CanvasKit 실제 렌더 명령으로 두 variant의 기본·hover·pressed 테두리와 둥근 모서리·콘텐츠, 반투명 배경층 합성을 검사한다. Chromium Canvas·Preview 비교에도 authored 테두리 사례를 추가했다.
+
 ## [토큰 scrub 미리보기 복원 — ADR-298 리뷰 수리] - 2026-11-02
 
 ### Fixed

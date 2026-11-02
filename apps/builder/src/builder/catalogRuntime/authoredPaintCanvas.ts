@@ -46,7 +46,7 @@ export function applyCatalogAuthoredPaint(
   theme: "light" | "dark" = "light",
 ): SkiaNodeData {
   // ADR-297 후속 ⑥: a rule gradient (`paintGradientCss` — S2 premium · genai, or `none`) lies over the
-  //   background as CSS `background-image` over `background-color` does: a child box, not the fill.
+  //   background as CSS `background-image` over `background-color` does, below borders and content.
   const image = input.visual.backgroundImage;
   const gradient =
     typeof image === "string" ? parsePaintGradientCss(image) : undefined;
@@ -65,22 +65,26 @@ function withoutKey<T extends object>(value: T, key: string): T {
   return rest as T;
 }
 
-/** The gradient over the box's fill, in its rounded box (first internal child — under a pending circle). */
+/** Background layers share the box geometry and paint before its border, inset shadow and content. */
 function withGradientLayer(
   data: SkiaNodeData,
   gradient: PaintLinearGradient,
   rect: { width: number; height: number },
 ): SkiaNodeData {
   const line = cssCornerGradientLine(rect.width, rect.height);
-  const layer: SkiaNodeData = {
-    type: "box",
-    x: 0,
-    y: 0,
-    width: rect.width,
-    height: rect.height,
-    visible: true,
+  const box = data.box ?? {
+    fillColor: Float32Array.of(0, 0, 0, 0),
+    borderRadius: 0,
+  };
+  const [r, g, b, a] = box.fillColor;
+  return {
+    ...data,
     box: {
-      fillColor: Float32Array.of(0, 0, 0, 0),
+      ...box,
+      fillUnderlays: [
+        ...(box.fillUnderlays ?? []),
+        box.fill ?? { type: "color", rgba: [r, g, b, a] },
+      ],
       fill: {
         type: "linear-gradient",
         start: line.start,
@@ -88,10 +92,8 @@ function withGradientLayer(
         colors: gradient.stops.map(([color]) => catalogCssColorRgba(color)),
         positions: gradient.stops.map(([, percent]) => percent / 100),
       },
-      borderRadius: data.box?.borderRadius ?? 0,
     },
   };
-  return { ...data, children: [layer, ...(data.children ?? [])] };
 }
 
 function authoredPaint(
