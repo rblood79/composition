@@ -1,0 +1,1 @@
+export{i as initSpatialIndex}from"./spatialIndex-DBTVwZ85.js";
