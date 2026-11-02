@@ -234,6 +234,13 @@
 @import "./generated/Toolbar.css"; /* ADR-059 Phase 4.5a — Spec 자동 생성 */
 @import "./Tree.css"; /* Tier 3 — 수동 유지 (재귀 nesting, :has() 선택자) */
 @import "./generated/Tree.css"; /* ADR-297 Phase 3g: Tree · TreeItem 상태 블록 (rule 에 생성 sheet 가 없다) */
+/* ADR-300: S2 SideNav family (catalog rules) */
+@import "./generated/SideNavPanel.css";
+@import "./generated/SideNav.css";
+@import "./generated/SideNavItem.css";
+@import "./generated/SideNavItemLink.css";
+@import "./generated/SideNavSection.css";
+@import "./generated/SideNavHeader.css";
 
 /* Data Display */
 @import "./Table.css"; /* Tier 3 — 수동 유지 (가상 스크롤, column resizer) */

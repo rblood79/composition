@@ -15863,6 +15863,349 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // ADR-300 — S2 SideNav family (`@react-spectrum/s2` 1.8.1 `SideNav.tsx` · `SideNavPanel.tsx` — breakdown §3).
+  //   DOM = RAC `NavigationTree*` · `Link` · `Button`, Canvas = the same node tree. A collapsed panel is S2's
+  //   icon rail: its width is `--collapsedWidth` 42 and its rows show their icon only — the panel's
+  //   `isCollapsed` reaches its descendants as the `isCollapsed` condition (DOM `[data-side-panel-collapsed]`
+  //   ancestor — S2 `SideNav.tsx:642`; Canvas `presence.ts` `catalogSideNavCollapsed`).
+  SideNavPanel: {
+    partStateStyles: {
+      // S2 `treeContent` · `expandButton` · `SideNavHeader`: `display: none` in a collapsed panel.
+      "& .react-aria-SideNavItem .react-aria-Text%": {
+        display: { isCollapsed: "none" },
+      },
+      '& .react-aria-SideNavItem .react-aria-Button[slot="chevron"]%': {
+        display: { isCollapsed: "none" },
+      },
+      "& .react-aria-SideNavHeader%": {
+        display: { isCollapsed: "none" },
+      },
+      // S2 `treeCellGrid` `paddingEnd: { default: 4, isCollapsed: 0 }`.
+      "& .react-aria-SideNavItem > [role=gridcell]%": {
+        paddingInlineEnd: { isCollapsed: "0px" },
+      },
+    },
+    defaultVariant: "default",
+    defaultSize: "M",
+    variants: {
+      default: {
+        paint: {
+          backgroundColor: { default: "{color.transparent}" },
+          color: { default: "{color.neutral}" },
+        },
+      },
+    },
+    sizes: {
+      M: {
+        height: 0,
+        fontSize: "{typography.text-sm}",
+        borderRadius: "{radius.none}",
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      // S2 `--collapsedWidth` 42 — the DOM binding and the Canvas both read this value
+      //   (`catalogSideNavPanelCollapsedWidth`): it beats an authored width as S2's inline style does.
+      stateStyles: { width: { isCollapsed: "42px" } },
+      // S2 `sideNavPanelStyle`: a column — the nav fills it, the collapse button stays below.
+      containerStyles: {
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "0px",
+        overflow: "hidden",
+      },
+      composition: {
+        delegation: [],
+        rootSelectors: {
+          // S2 `transition: width 200ms` (none with reduced motion) — a DOM interaction.
+          "&": { styles: { transition: "width 200ms" } },
+        },
+        staticSelectors: {
+          // S2 panel: the nav grows, its 160 minimum is unset inside a panel (`isInSideNavPanel`).
+          "> .react-aria-SideNav": {
+            "flex-grow": "1",
+            "flex-shrink": "1",
+            "min-width": "0px",
+          },
+          // S2 expand-button row: `margin: 4` (top · bottom · start).
+          '> .react-aria-Button[slot="collapse"]': {
+            margin: "4px",
+            "align-self": "flex-start",
+            "flex-shrink": "0",
+          },
+        },
+      },
+    },
+  },
+  SideNav: {
+    partStateStyles: {
+      // S2 `tree` focus ring (`outlineOffset: -2`).
+      "&%": {
+        outline: { isFocusVisible: "2px solid var(--focus-ring)" },
+        outlineOffset: { isFocusVisible: "-2px" },
+      },
+    },
+    defaultVariant: "default",
+    defaultSize: "M",
+    variants: {
+      default: {
+        paint: {
+          backgroundColor: { default: "{color.transparent}" },
+          color: { default: "{color.neutral-subdued}" },
+        },
+      },
+    },
+    sizes: {
+      // S2 rows `marginTop: space(6)` (the first 0) — the Canvas column gap · the DOM row margin.
+      M: { height: 0, borderRadius: "{radius.none}" },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      // S2 `sideNavWrapper` + `tree`: `minWidth: 160` (unset inside a panel), `overflowY: auto`,
+      //   `--indent` 16.
+      containerStyles: {
+        display: "flex",
+        flexDirection: "column",
+        minWidth: "160px",
+        minHeight: "0px",
+        overflow: "auto",
+        gap: "6px",
+        "--indent": "16px",
+      },
+      composition: {
+        delegation: [],
+        rootSelectors: {
+          "&": { styles: { "user-select": "none", outline: "none" } },
+        },
+        staticSelectors: {
+          // RAC draws every row as a sibling (`role=row`): S2 `marginTop: space(6)`, the first 0.
+          ".react-aria-SideNavItem:not(:first-child)": { "margin-top": "6px" },
+          // S2 `SideNavSection`: `marginTop: 24` from the second on.
+          ".react-aria-SideNavSection:not(:first-child)": { "margin-top": "24px" },
+        },
+      },
+    },
+  },
+  SideNavItem: {
+    defaultVariant: "default",
+    defaultSize: "M",
+    variants: {
+      default: {
+        // S2 `treeCellGrid` color: `neutral-subdued`, the current row (and a closed current ancestor)
+        //   `neutral` bold, disabled `gray-400`. The current-route bar (S2 `indicator`): 2 × 18,
+        //   `gray-400` hovered, `gray-800` current — `currentIndicator` below.
+        paint: {
+          backgroundColor: { default: "{color.transparent}" },
+          color: {
+            default: "{color.neutral-subdued}",
+            isCurrent: "{color.neutral}",
+            isDisabled: "{color.border-hover}",
+          },
+        },
+      },
+    },
+    sizes: {
+      // S2 `treeRow`: `minHeight: 32` · `borderRadius: sm` · `font: ui`; `--indent` 16 per level.
+      M: {
+        height: 0,
+        minHeight: scaled(32),
+        fontSize: "{typography.text-sm}",
+        borderRadius: "{radius.sm}",
+        indentPerLevel: 16,
+      },
+    },
+    // S2 `indicator`: shown hovered (`gray-400`) and current (`gray-800`).
+    partStateStyles: {
+      "&%::before": {
+        display: { isHovered: "block", isCurrent: "block" },
+        background: {
+          isHovered: "var(--border-hover)",
+          isCurrent: "var(--fg)",
+        },
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      // S2 `treeCellGrid` bold current row · `treeRowFocusRing` (2, offset −2).
+      stateStyles: {
+        fontWeight: { isCurrent: "700" },
+        outline: { isFocusVisible: "2px solid var(--focus-ring)" },
+        outlineOffset: { isFocusVisible: "-2px" },
+      },
+      // The item is a column on the Canvas — its row (SideNavItemContent) then its child items (RAC
+      //   draws them as the next rows, the Tree's way).
+      containerStyles: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "6px",
+      },
+      composition: {
+        delegation: [],
+        rootSelectors: {
+          // S2 `treeRow`: the DOM row is RAC's `role=row` (a flat sibling of every other row).
+          "&": {
+            styles: {
+              position: "relative",
+              display: "flex",
+              "min-height": "32px",
+              width: "100%",
+              "box-sizing": "border-box",
+              "border-radius": "var(--catalog-token-radius-sm)",
+              "font-size": "var(--catalog-token-text-sm)",
+              color: "var(--fg-muted)",
+              outline: "none",
+              cursor: "default",
+            },
+          },
+          // S2 `indicator` — the current-route bar: 2 × 18 at `(level − 1) × indent + 4`, centered.
+          "&::before": {
+            styles: {
+              content: '""',
+              position: "absolute",
+              display: "none",
+              width: "2px",
+              height: "18px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              "inset-inline-start":
+                "calc((var(--tree-item-level, 1) - 1) * 16px + 4px)",
+              "border-radius": "9999px",
+            },
+          },
+          // The row content (RAC `NavigationTreeItemContent` has no element — its gridcell): S2
+          //   `treeCellGrid` — 12 + level indent before, 4 after, items centered.
+          "& > [role=gridcell]": {
+            styles: {
+              display: "flex",
+              "align-items": "center",
+              width: "100%",
+              "min-height": "100%",
+              "box-sizing": "border-box",
+              "padding-inline-start":
+                "calc(12px + (var(--tree-item-level, 1) - 1) * 16px)",
+              "padding-inline-end": "4px",
+            },
+          },
+        },
+      },
+    },
+  },
+  SideNavItemContent: {
+    defaultVariant: "default",
+    defaultSize: "M",
+    variants: { default: { paint: {} } },
+    sizes: { M: { height: 0 } },
+    structure: {
+      archetype: "container",
+      element: "div",
+      skipCSSGeneration: true,
+      // The Canvas row (the DOM's gridcell — `SideNavItem` rule): S2 `treeCellGrid` as a flex line —
+      //   `paddingStart` 12 + level indent (`catalogSideNavItemIndent`), `paddingEnd` 4.
+      containerStyles: {
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        minHeight: "32px",
+        paddingLeft: "12px",
+        paddingRight: "4px",
+      },
+      composition: {
+        delegation: [],
+        staticSelectors: {
+          // S2 `treeIcon`: `marginEnd: text-to-visual` (0 collapsed — the gap goes with the hidden text).
+          "> .react-aria-Icon": { "flex-shrink": "0", "margin-inline-end": "8px" },
+          // S2 `treeContent`: the text takes the rest (`1fr`), `minWidth: 0`.
+          "> .react-aria-Text": { "flex-grow": "1", "min-width": "0px" },
+          "> .react-aria-SideNavItemLink": { "flex-grow": "1", "min-width": "0px" },
+          // S2 `expandButton`: 32 × 32.
+          '> .react-aria-Button[slot="chevron"]': {
+            width: "32px",
+            height: "32px",
+            "flex-shrink": "0",
+          },
+        },
+      },
+    },
+  },
+  SideNavItemLink: {
+    defaultVariant: "default",
+    defaultSize: "M",
+    variants: { default: { paint: {} } },
+    sizes: { M: { height: 0 } },
+    structure: {
+      archetype: "container",
+      element: "a",
+      stateStyles: { cursor: { isDisabled: "default" } },
+      // S2 `treeRowLink`: `icon content badge` in a row, `textDecoration: none`, `color: inherit`.
+      containerStyles: {
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        minWidth: "0px",
+      },
+      composition: {
+        delegation: [],
+        rootSelectors: {
+          "&": {
+            styles: {
+              "text-decoration": "none",
+              color: "inherit",
+              outline: "none",
+              cursor: "pointer",
+            },
+          },
+        },
+        staticSelectors: {
+          "> .react-aria-Icon": { "flex-shrink": "0", "margin-inline-end": "8px" },
+          "> .react-aria-Text": { "flex-grow": "1", "min-width": "0px" },
+        },
+      },
+    },
+  },
+  SideNavSection: {
+    defaultVariant: "default",
+    defaultSize: "M",
+    variants: { default: { paint: {} } },
+    sizes: { M: { height: 0 } },
+    structure: {
+      archetype: "container",
+      element: "div",
+      containerStyles: { display: "flex", flexDirection: "column", gap: "6px" },
+    },
+  },
+  SideNavHeader: {
+    defaultVariant: "default",
+    defaultSize: "M",
+    variants: {
+      default: {
+        // S2 `SideNavHeader`: `gray-600` (our `neutral-subdued`).
+        paint: { color: { default: "{color.neutral-subdued}" } },
+      },
+    },
+    sizes: {
+      // S2: `font: ui-sm` · `fontWeight: medium` · `height: 16` · `marginBottom: 8` (−6 the column gap).
+      M: { height: scaled(16), fontSize: "{typography.text-xs}", fontWeight: 500 },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      containerStyles: {
+        display: "flex",
+        alignItems: "center",
+        paddingLeft: "12px",
+        marginBottom: "2px",
+      },
+      composition: {
+        delegation: [],
+        rootSelectors: {
+          "&": { styles: { "margin-bottom": "8px", position: "relative" } },
+        },
+      },
+    },
+  },
 };
 
 // ADR-295 Phase 3c-3: the size blocks' relative forms (`ofHeight` · `em`) → numbers in the installed maps.

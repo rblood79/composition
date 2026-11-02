@@ -152,6 +152,15 @@ import { toolbarBinding } from "./Toolbar.binding";
 import { tooltipBinding } from "./Tooltip.binding";
 import { treeBinding } from "./Tree.binding";
 import { treeItemBinding } from "./TreeItem.binding";
+import {
+  sideNavBinding,
+  sideNavHeaderBinding,
+  sideNavItemBinding,
+  sideNavItemContentBinding,
+  sideNavItemLinkBinding,
+  sideNavPanelBinding,
+  sideNavSectionBinding,
+} from "./SideNav.binding";
 
 export * from "./Avatar.binding";
 export * from "./AvatarGroup.binding";
@@ -280,6 +289,7 @@ export * from "./Text.binding";
 export * from "./TextField.binding";
 export * from "./Tree.binding";
 export * from "./TreeItem.binding";
+export * from "./SideNav.binding";
 export * from "./TimeField.binding";
 export * from "./Toast.binding";
 export * from "./ToggleButton.binding";
@@ -507,6 +517,14 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // family ⑤ Tree·Table (internal source — composition wrapper + useCollectionData, 재귀/2D)
   Tree: treeBinding,
   TreeItem: treeItemBinding,
+  // ADR-300: S2 SideNav · SideNavPanel on RAC NavigationTree (`SideNav.binding.ts`).
+  SideNavPanel: sideNavPanelBinding,
+  SideNav: sideNavBinding,
+  SideNavItem: sideNavItemBinding,
+  SideNavItemContent: sideNavItemContentBinding,
+  SideNavItemLink: sideNavItemLinkBinding,
+  SideNavSection: sideNavSectionBinding,
+  SideNavHeader: sideNavHeaderBinding,
   Table: tableBinding,
   // ADR-912 catalog cutover (Table 자식 트리 Skia 대칭, 2026-06-25): Table 가족의 자식 노드
   //   5종(Column/Cell=text leaf, TableHeader/TableBody/Row=container shell). Canvas 는 rule box+text.

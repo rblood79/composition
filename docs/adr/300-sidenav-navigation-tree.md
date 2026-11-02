@@ -2,7 +2,11 @@
 
 ## Status
 
-Proposed — 2026-11-02
+Accepted — 2026-11-02 (사용자 `/execute-adr 300` · [reviews/300.md](reviews/300.md) round 2 HIGH 0 · pending 0)
+
+> **Phase 1 닫힘 (2026-11-02)**: G1 — 7 type (`SideNav.binding.ts` · entry · traits · nesting · rule 7) · origin 3 (`component-sidenavpanel` · `-sidenav` · `-sidenavitem`, 팔레트 밖 — Phase 4) · contract 54 · Decision 3 다섯 층 (① 조건 키 `isCollapsed` · `isCurrent` ② `:is([data-side-panel-collapsed], [data-side-panel-collapsed] *)` ③ `catalogSideNavDerived` → `_sideNavCollapsed` · `_sideNavCurrent` · `_sideNavLevel` → paint 조건 ④ `catalogSideNavHidden` → presence · 엔진 `display: none` ⑤ `catalogSideNavDependents` → derived · presence dependents). D2 확장 0 (`d2S2Alignment` PASS, 원복 RED — S2 에 없는 키 FAIL) · G1 단위 9 (원복 RED — 상속 제거 FAIL). 사용자 결정 4 = 권고. 상세: breakdown §8.
+
+> **Phase 0 닫힘 (2026-11-02, main `b0d1e77e4`)**: G0 — 등록 지점 (Tree 선례 production 15 지점 · 7 type 추정 60 ~ 80 파일) · Decision 3 다섯 층 현재 상태 (① 조건 키 없음 → 새로 · ② CSS 조상 선택자 기구 있음 — `inPopover` 선례 · ③ 조상 context 는 `_inGroup` 파생 선례, ADR-281 Provider 값과 분리 · ④ 숨김 = presence → `display: none` 엔진 입력 · ⑤ Panel 변경 dependents 없음 → 새로) · 설치 RAC 기준 예제 DOM (펼침 · 빈 펼침 키 두 arm) · 번들 기준선 Builder 1,406,043 (여유 3,957) · Preview 322,341 (여유 2,659). 299 코드가 main 에 들어가 worktree 없이 같은 checkout (R4 조건 성립). 상세: breakdown §8.
 
 - 사용자 요청: `/create-adr` (2026-11-02) — 같은 대화에서 「NavigationTree(RAC) <-> SideNav(RSC) 에 대응하는 컴퍼넌트인가?」 → 「SideNavPanel 껍데이 부분 "Panel" 그냥 컨테이너 역활 아닌가?」 → 「대안방안은?」 → 「react-spectrum 컴퍼넌트를 사용하는건가?」 → **「A안으로 진행해」** → `/create-adr`.
 - 방향을 정한 사용자 원문 (2026-11-02): 「A안으로 진행해」 — A안 = S2 `SideNavPanel` 표면 (`isCollapsed` · `defaultCollapsed` · `onCollapsedChange`) 을 그대로 catalog 에 추가하고, 접힘 모양 (아이콘 줄) 은 SideNav rule 에 둔다.
@@ -109,11 +113,11 @@ Proposed — 2026-11-02
 
 ### 사용자 결정 5건 (execute-adr 가 그 Phase 에 닿을 때 묻는다)
 
-1. **`selectedRoute` 의 출처** (Phase 2) — (a) S2 그대로 작성 값만, (b) 작성 값이 비면 **현재 page 의 route** (Canvas = 그리는 page 의 `route`, Preview = session `currentPath`, Publish = location). 권고 (b) — 이름은 S2 그대로이고 빌더 기본값만 composition 동작 (`d2Provenance` 에 출처 기록).
-2. **행 펼침 view transition** (Phase 2) — S2 는 React `ViewTransition` 으로 행 펼침 · 패널 펼침을 애니메이션한다 (`SideNav.tsx:66-93`). 권고: Panel 폭 전환 200 ms (CSS transition) 는 포함, 행 단위 view transition 은 **범위 밖으로 확정** (composition Tree 에도 없다 · Canvas 대응 없음 · reduced motion 에서 S2 도 끈다).
+1. **`selectedRoute` 의 출처** (Phase 2) — **답 (2026-11-02): (b) 현재 page route** — (a) S2 그대로 작성 값만, (b) 작성 값이 비면 **현재 page 의 route** (Canvas = 그리는 page 의 `route`, Preview = session `currentPath`, Publish = location). 권고 (b) — 이름은 S2 그대로이고 빌더 기본값만 composition 동작 (`d2Provenance` 에 출처 기록).
+2. **행 펼침 view transition** (Phase 2) — **답 (2026-11-02, 사용자 원문)**: 「행펼침 · 패널펼침이 canvas 영역에서는 필요없다 이미 Tree, Tabs, disclosure 등 canvas 영역에서는 애니메이션을 보여주지는 않는다. 프러퍼티에서 열림 닫힘으로 보여준다 다른 컴퍼넌트도, compare mode 의 css 영역과 preview 에서 애니메이션되는 실제 구동되는 화면을 보여주는것」 — Canvas 는 정적 (Properties 의 열림 · 닫힘), DOM (Compare Mode CSS 쪽 · Preview · Publish) 은 S2 의 패널 폭 · 행 펼침 애니메이션을 실제로 돈다 — S2 는 React `ViewTransition` 으로 행 펼침 · 패널 펼침을 애니메이션한다 (`SideNav.tsx:66-93`). 권고: Panel 폭 전환 200 ms (CSS transition) 는 포함, 행 단위 view transition 은 **범위 밖으로 확정** (composition Tree 에도 없다 · Canvas 대응 없음 · reduced motion 에서 S2 도 끈다).
 3. **팔레트 노출 단위** (Phase 4) — (a) `SideNavPanel` (안에 SideNav) 하나, (b) `SideNav` 와 `SideNavPanel` 둘. 권고 (b) — S2 도 SideNav 단독을 허용한다 (패널 밖 `minWidth: 160`, `SideNav.tsx:128-131`).
-4. **행의 actions · actionmenu 자리** (Phase 1) — S2 행 grid 에 `actions` · `actionmenu` 칸이 있다 (`SideNav.tsx:265-267` · `:505-506`). composition 에 ActionMenu type 은 없다. 권고: 행 내용은 자유 내용 (`free`) 이라 Button · ButtonGroup 은 넣을 수 있고, grid 칸은 rule 에 둔다 — ActionMenu type 신설은 이 ADR 밖.
-5. **번들 초과 시** (Phase 2) — (a) A′ lazy 분리 (권고), (b) ADR-201 상한 재승인.
+4. **행의 actions · actionmenu 자리** (Phase 1) — **답 (2026-11-02): 권고안 「자유 내용 + grid 칸」** — S2 행 grid 에 `actions` · `actionmenu` 칸이 있다 (`SideNav.tsx:265-267` · `:505-506`). composition 에 ActionMenu type 은 없다. 권고: 행 내용은 자유 내용 (`free`) 이라 Button · ButtonGroup 은 넣을 수 있고, grid 칸은 rule 에 둔다 — ActionMenu type 신설은 이 ADR 밖.
+5. **번들 초과 시** (Phase 2) — **답 (2026-11-02): (a) lazy 분리** — (a) A′ lazy 분리 (권고), (b) ADR-201 상한 재승인.
 
 ## Risks
 

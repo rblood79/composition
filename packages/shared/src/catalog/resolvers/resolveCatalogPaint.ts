@@ -92,6 +92,9 @@ export function resolveCatalogPaint({
     // ADR-297 3h #7 — S2 disabled is a color (`Button.tsx` `isDisabled: 'disabled'`), not opacity; the
     //   record's `isDisabled` (own · inherited — `presence.ts`) is the DOM's `data-disabled`.
     isDisabled: props.isDisabled === true,
+    // ADR-300: an S2 SideNav row's current mark · its panel's collapse (`catalogSideNavDerived`).
+    isCurrent: props._sideNavCurrent === true,
+    isCollapsed: props._sideNavCollapsed === true,
     ...(typeof props.fillStyle === "string"
       ? { fillStyle: props.fillStyle }
       : {}),

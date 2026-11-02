@@ -32,6 +32,13 @@ import {
 } from "../document/collectionItems";
 import { CATALOG_TOGGLE_GROUP_OF } from "../document/sizePropagation";
 import { catalogAncestorInherited } from "./inheritedProps";
+import {
+  catalogSideNavDependents,
+  catalogSideNavDerived,
+  catalogSideNavHidden,
+  catalogSideNavPanelOf,
+  catalogSideNavOf,
+} from "./sideNav";
 import { CATALOG_INHERITED_RECEIVERS } from "./providerContexts";
 import { RAC_SLOT_PROVIDERS } from "../generated/racSlotProviders";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
@@ -871,6 +878,8 @@ export function catalogHiddenAtRest(
   if (hint !== undefined) return !hint;
   const field = catalogSearchFieldOfClear(node, get, typeOf);
   if (field) return !field.props.value;
+  // ADR-300: a closed item's child items · a collapsed panel's row text · chevrons · headers.
+  if (catalogSideNavHidden(node, get, typeOf)) return true;
   if (type === "TreeItem" && parentType === "TreeItem")
     return !catalogTreeItemExpanded(parent, get, typeOf);
   // ADR-256 Phase 5h: an item without child items hides its chevron button (`Tree.css`
@@ -974,6 +983,14 @@ export function catalogPresenceScope(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
+  // ADR-300: a panel's collapse · a nav's expanded keys decide its parts' presence.
+  if (typeOf(node) === "SideNavPanel" || typeOf(node) === "SideNav")
+    return node;
+  if (typeOf(node) === "SideNavItem" || typeOf(node) === "SideNavSection")
+    return (
+      catalogSideNavOf(node, get, typeOf) ??
+      catalogSideNavPanelOf(node, get, typeOf)
+    );
   if (typeOf(node) === "DisclosureGroup") return node;
   // A Table's selection column follows its `selectionStyle` (ADR-257 Phase 3).
   if (typeOf(node) === "Table") return node;
@@ -1008,6 +1025,8 @@ export function catalogPresenceDependents(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
+  if (typeOf(scope) === "SideNavPanel" || typeOf(scope) === "SideNav")
+    return catalogSideNavDependents(scope, get, typeOf);
   if (typeOf(scope) === "Table")
     return catalogTableSelectionParts(scope, get, typeOf);
   const valueType = PROGRESS_VALUES[typeOf(scope)];
@@ -2023,7 +2042,10 @@ export function catalogDerivedProps(
   // (S2 Button is a pill; a field's own button keeps its size's corner — the Button rule's
   //  `field-button` blocks, `catalogFieldButtonSize`.)
   const fieldButton = catalogFieldButtonSize(node, get, typeOf);
-  return fieldButton ? { ...stuck, fieldButton } : stuck;
+  const buttoned = fieldButton ? { ...stuck, fieldButton } : stuck;
+  // (ADR-300: a SideNav part's collapse · current · level — `catalogSideNavDerived`.)
+  const sideNav = catalogSideNavDerived(node, get, typeOf);
+  return sideNav ? { ...buttoned, ...sideNav } : buttoned;
 }
 
 /**
@@ -2572,6 +2594,8 @@ export function catalogDerivedPropsDependents(
     ...catalogTableSelectAllCheckboxes(owner, get, typeOf),
     // (ADR-257: its Table's header row and Rows lay out on the Columns' tracks.)
     ...catalogTableTrackDependents(owner, get, typeOf),
+    // (ADR-300 Decision 3 ⑤: a panel's · nav's · item's change re-derives the parts below.)
+    ...catalogSideNavDependents(owner, get, typeOf),
     // (A Column's name Group keeps the sort indicator's box while it sorts — G5 example 11.)
     ...(typeOf(owner) === "Column"
       ? [catalogColumnNameGroup(owner, get, typeOf)].filter(

@@ -176,6 +176,8 @@ export const HTML_INTERACTIVE_HOST_TYPES: ReadonlySet<string> = new Set([
   "Button",
   "ToggleButton",
   "Link",
+  // ADR-300: an S2 SideNavItemLink is RAC `Link` (`<a>`).
+  "SideNavItemLink",
   // ADR-256 Phase 3: Checkbox 의 누르는 자리는 RAC `CheckboxButton` — `<label>` 안의 숨은 checkbox 가 그
   //   label 의 control 이다. 다른 interactive · labelable 요소를 그 안에 두지 않는다 (루트 CheckboxField 는
   //   `div` 라 host 가 아니다 — Description · FieldError · 자유 내용을 받는다).
@@ -252,6 +254,9 @@ export const HTML_INTERACTIVE_TYPES: ReadonlySet<string> = new Set([
   "Tab",
   "Disclosure",
   "Tree",
+  // ADR-300: RAC NavigationTree (`role=treegrid`) and its link.
+  "SideNav",
+  "SideNavItemLink",
   "Table",
   "Calendar",
   "RangeCalendar",

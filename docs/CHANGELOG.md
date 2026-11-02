@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [SideNav 가족 — ADR-300 Phase 0 · 1 (문서 · catalog · contract 54)] - 2026-11-02
+
+### Changed
+
+- **문서 contract 53 → 54** — S2 SideNav 가족 7 type (`SideNavPanel` · `SideNav` · `SideNavItem` · `SideNavItemContent` · `SideNavItemLink` · `SideNavSection` · `SideNavHeader`) 과 origin 3 을 등록했다. 53 문서는 거부 (변환 없음, 개발 단계 정책). 샘플 프로젝트 파일 3 은 번호만 올림. 팔레트 노출 · Preview · Canvas 그리기는 다음 Phase.
+  - 접힌 패널 (S2 아이콘 줄) 의 상태가 자손 rule 에 닿는 길: 조건 `isCollapsed` · `isCurrent` (생성 CSS 는 S2 와 같은 `[data-side-panel-collapsed]` 조상 선택자) · 파생 값 · 숨김 · 증분 dependents — `packages/shared/src/catalog/runtime/sideNav.ts`.
+  - 위치: [docs/adr/300-sidenav-navigation-tree.md](adr/300-sidenav-navigation-tree.md)
+
 ## [글자 범위 서식 — ADR-299 Implemented] - 2026-11-02
 
 ### Changed

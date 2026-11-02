@@ -363,6 +363,7 @@ function sizeVisual(
 const ITEM_KEY_TYPES: ReadonlySet<string> = new Set([
   ...componentTypeSet("staticCollectionItem"),
   "TreeItem",
+  "SideNavItem",
 ]);
 const SELECTION_KEYS: Readonly<Record<string, ValueType>> = {
   selectedKeys: "string[]",
@@ -384,6 +385,8 @@ const COLLECTION_KEY_ACCEPTS: Readonly<
     expandedKeys: "string[]",
     defaultExpandedKeys: "string[]",
   },
+  // ADR-300: RAC NavigationTree has no selection (its `selectedRoute` is a binding prop).
+  SideNav: { expandedKeys: "string[]", defaultExpandedKeys: "string[]" },
 };
 
 function definitionId(type: string): LibraryDefinitionId {

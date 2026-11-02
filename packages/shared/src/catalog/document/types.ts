@@ -143,9 +143,11 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * A 51 document is refused.
  * 53 — ADR-299: a text node's `children` may be range-formatted text (`RichText` — runs with the
  * node visual's type keys as marks). A 52 document is refused.
+ * 54 — ADR-300: the S2 SideNav family (`SideNavPanel` · `SideNav` · `SideNavItem` · `SideNavItemContent`
+ * · `SideNavItemLink` · `SideNavSection` · `SideNavHeader`) and its origins. A 53 document is refused.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 53 as const;
+export const LIBRARY_CONTRACT_VERSION = 54 as const;
 
 export type EntryKind =
   | "project"

@@ -160,7 +160,7 @@ function run(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 53,
+    libraryContractVersion: 54,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -567,6 +567,8 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
     // + ContextualHelp · FieldLabel (ADR-259 Phase 3 — S2 contextual help, a field's label row).
     // − IconButton (ADR-276 — merged into the Button origin, 2026-10-20).
     // − TableView (ADR-277 — the table is one type, Table, 2026-10-21).
-    expect(types.length).toBe(152);
+    // + SideNavPanel · SideNav · SideNavItem · SideNavItemContent · SideNavItemLink · SideNavSection ·
+    //   SideNavHeader (ADR-300 — the S2 SideNav family on RAC NavigationTree).
+    expect(types.length).toBe(159);
   }, 120_000);
 });

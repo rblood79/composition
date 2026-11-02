@@ -1058,6 +1058,36 @@ const FAMILY_5_ENTRIES: ComponentCatalogEntry[] = [
   //   (header/row/cell)는 Table projected tree(appendTableRowProjection → TableRow/TableCell.
   //   spec.render.shapes)가 렌더, 컨테이너 shell 은 buildCatalogShapes(rule fill {color.base} +
   //   border {color.border}). 사용자 결정 "행 단위 셀 노드" (RowsGroup→Row[i]→Cell[i][j]).
+  // ADR-300: S2 SideNav family on RAC NavigationTree — the panel and the nav are placeable, their
+  //   parts are put in by their owners' templates.
+  primitiveEntry("SideNavPanel", "tree-table", FAMILY_5_CUTOVER, {
+    category: "navigation",
+    label: "side nav panel",
+    icon: "PanelLeft",
+    placeable: false,
+  }),
+  primitiveEntry("SideNav", "tree-table", FAMILY_5_CUTOVER, {
+    category: "navigation",
+    label: "side nav",
+    icon: "ListTree",
+    placeable: false,
+  }),
+  ...(
+    [
+      ["SideNavItem", "side nav item"],
+      ["SideNavItemContent", "side nav item content"],
+      ["SideNavItemLink", "side nav item link"],
+      ["SideNavSection", "side nav section"],
+      ["SideNavHeader", "side nav header"],
+    ] as const
+  ).map(([type, label]) =>
+    primitiveEntry(type, "tree-table", FAMILY_5_CUTOVER, {
+      category: "navigation",
+      label,
+      icon: "ListTree",
+      placeable: false,
+    }),
+  ),
   primitiveEntry("Table", "tree-table", FAMILY_5_CUTOVER, {
     category: "collections",
     label: "table",
@@ -1507,6 +1537,12 @@ export const NESTED_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   //   put in by the author from the header's insert list (owners: Calendar · RangeCalendar).
   "CalendarMonthPicker",
   "CalendarYearPicker",
+  // ADR-300 — the SideNav family's origins (`component-sidenavpanel` · `-sidenav` · `-sidenavitem`):
+  //   a panel's nav and a nav's items are their instances. Palette exposure is Phase 4 (user
+  //   decision 3) — `PALETTE_ORDER`.
+  "SideNavPanel",
+  "SideNav",
+  "SideNavItem",
 ];
 
 const NESTED_REUSABLE_ORIGIN_TYPE_SET: ReadonlySet<string> = new Set(

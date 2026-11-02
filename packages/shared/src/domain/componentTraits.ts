@@ -348,6 +348,27 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
     families: ["emptyStateCollection"],
     children: ["TreeItem"],
   },
+  // ADR-300: S2 SideNav = RAC NavigationTree — its items and sections are its collection; an item's
+  //   row is its SideNavItemContent, its child items follow (the Tree's way).
+  SideNav: {
+    container: "collection",
+    children: ["SideNavItem", "SideNavSection"],
+  },
+  SideNavSection: {
+    container: "collection",
+    owners: ["SideNav"],
+    children: ["SideNavHeader", "SideNavItem"],
+  },
+  SideNavItem: {
+    container: "collection",
+    owners: ["SideNav", "SideNavSection", "SideNavItem"],
+    children: ["SideNavItem", "SideNavItemContent"],
+  },
+  // (RAC `NavigationTreeItemContent` — free content: the icon · link · text · chevron Button.)
+  SideNavItemContent: { owners: ["SideNavItem"] },
+  // (RAC `Link` taking the row's `LinkContext` — inside the row content.)
+  SideNavItemLink: { owners: ["SideNavItemContent"] },
+  SideNavHeader: { owners: ["SideNavSection"] },
   // ADR-256 Phase 10: S2 CardView is a RAC GridList whose items are its Cards
   //   (`@react-spectrum/s2/src/CardView.tsx`).
   CardView: { container: "collection", children: ["Card"] },

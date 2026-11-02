@@ -24,6 +24,11 @@ export const CONDITIONS = [
   // ADR-297 Phase 3c — 그룹 안의 마지막이 아닌 항목 (S2 `isInGroup` 의 구분선 — DisclosureGroup). Canvas 도 노드
   //   트리에서 안다 (`catalogDisclosureBorders`).
   "inGroup",
+  // ADR-300 — S2 SideNav: the row is the current route (RAC `data-current`, or a closed current
+  //   ancestor — S2 `isDescendantSelected`), and the nearest SideNavPanel is collapsed (S2
+  //   `[data-side-panel-collapsed]` ancestor). Canvas: `presence.ts` `catalogSideNavState`.
+  "isCurrent",
+  "isCollapsed",
 ] as const;
 export type Condition = (typeof CONDITIONS)[number];
 
@@ -205,6 +210,8 @@ const FLAG_SELECTORS: Readonly<Record<Condition | DomCondition, string>> = {
   isAutofilled:
     ":is(:-webkit-autofill, :-webkit-autofill:hover, :-webkit-autofill:focus)",
   inGroup: "[data-in-group]:not(:last-child)",
+  isCurrent: ":is([data-current], [data-current-ancestor]:not([data-expanded]))",
+  isCollapsed: ":is([data-side-panel-collapsed], [data-side-panel-collapsed] *)",
   isDialogTrigger: "[data-dialog-trigger]",
   isCatalogNode: "[data-catalog-id]",
   isLink: "[href]",
