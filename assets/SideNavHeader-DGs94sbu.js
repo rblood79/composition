@@ -1,0 +1,59 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog SideNavHeader — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-SideNavHeader {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: flex;
+  align-items: center;
+
+  /* Default variant */
+  background: undefined;
+  color: var(--fg-muted);
+  border: none;
+
+  /* Default size */
+  height: calc(var(--catalog-token-size-unit) * 16 / 1);
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: ;
+  font-weight: 500;
+}
+
+.react-aria-SideNavHeader:where([data-variant="default"]) {
+  color: var(--fg-muted);
+}
+
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-SideNavHeader {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-SideNavHeader {
+    position: relative;
+  }
+
+  .react-aria-SideNavHeader .react-aria-Text {
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+  }
+
+
+} /* @layer components */`;export{e as default};

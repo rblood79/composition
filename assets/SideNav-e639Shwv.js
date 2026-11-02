@@ -1,0 +1,95 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog SideNav — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-SideNav {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  gap: 6px;
+  min-height: 0px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+
+  /* Default variant */
+  background: transparent;
+  color: var(--fg-muted);
+  border: none;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: ;
+  border-radius: var(--catalog-token-radius-none);
+}
+
+.react-aria-SideNav:where([data-variant="default"]) {
+  background: transparent;
+  color: var(--fg-muted);
+}
+
+.react-aria-SideNav.react-aria-SideNav:where([data-focus-visible]) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+::view-transition-group(.side-nav-item), ::view-transition-group(.side-nav-header) {
+  animation-duration: 200ms;
+  animation-timing-function: cubic-bezier(0.45, 0, 0.4, 1);
+}
+
+::view-transition-old(.side-nav-item), ::view-transition-new(.side-nav-item), ::view-transition-old(.side-nav-header), ::view-transition-new(.side-nav-header) {
+  width: 100%;
+  height: 100%;
+}
+
+:root:active-view-transition-type(side-panel-expand, side-nav-item-collapse, side-nav-item-expand)::view-transition-old(root) {
+  animation: none;
+  opacity: 0;
+}
+
+:root:active-view-transition-type(side-panel-expand, side-nav-item-collapse, side-nav-item-expand)::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+:root:active-view-transition-type(side-panel-expand)::view-transition-new(.side-nav-header) {
+  animation-duration: 100ms;
+  animation-delay: 100ms;
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-SideNav {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-SideNav .react-aria-SideNavItem:not(:first-child) {
+    margin-top: 6px;
+  }
+
+  .react-aria-SideNav .react-aria-SideNavSection:not(:first-child) {
+    margin-top: 24px;
+  }
+
+
+  .react-aria-SideNav {
+    user-select: none;
+    outline: none;
+    gap: 0;
+  }
+
+
+} /* @layer components */`;export{e as default};

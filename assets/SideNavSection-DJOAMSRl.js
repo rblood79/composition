@@ -1,0 +1,48 @@
+var e=`/* ============================================================
+ * AUTO-GENERATED from catalog SideNavSection — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-SideNavSection {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  gap: 6px;
+  display: flex;
+  flex-direction: column;
+
+  /* Default variant */
+  background: undefined;
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: ;
+  border-radius: ;
+}
+
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-SideNavSection {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-SideNavSection {
+    gap: 0;
+  }
+
+
+} /* @layer components */`;export{e as default};
