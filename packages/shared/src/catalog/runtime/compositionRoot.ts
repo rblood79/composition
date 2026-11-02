@@ -680,6 +680,11 @@ const flowInnerDisplay = (display: string | undefined): boolean =>
   display === "list-item";
 /** Environment of one composition root (a breakpoint switch builds a new root). */
 export interface CatalogRootOptions {
+  /** Coordinate an environment change with this transaction, before consumers are published. */
+  consumeStep?: (
+    step: Parameters<CatalogStepConsumer>[0],
+    consume: CatalogStepConsumer,
+  ) => ReturnType<CatalogStepConsumer>;
   breakpoint?: BreakpointName;
   /** Product layout: pages as frames on the page container grid (ADR-232). */
   pageFrames?: boolean;
@@ -1633,6 +1638,7 @@ interface TagRowsCollapse {
 }
 
 export class CatalogCompositionRoot {
+  private readonly stepConsumer: CatalogRootOptions["consumeStep"];
   private readonly layout: PersistentLayoutTree;
   /** Active breakpoint (desktop-first cascade); a switch builds a new root (cold path). */
   readonly breakpoint: BreakpointName;
@@ -1745,6 +1751,7 @@ export class CatalogCompositionRoot {
     private readonly locale?: string,
     options: CatalogRootOptions = {},
   ) {
+    this.stepConsumer = options.consumeStep;
     this.breakpoint = options.breakpoint ?? "desktop";
     this.pageFrames = options.pageFrames === true;
     this.screenWidth = options.screenWidth;
@@ -2496,7 +2503,12 @@ export class CatalogCompositionRoot {
    * runtime reverts the graph and publishes nothing. On success, subscribers are notified only
    * after the runtime has published the step.
    */
-  private readonly consume: CatalogStepConsumer = (step) => {
+  private readonly consume: CatalogStepConsumer = (step) =>
+    this.stepConsumer
+      ? this.stepConsumer(step, this.consumeCurrent)
+      : this.consumeCurrent(step);
+
+  private readonly consumeCurrent: CatalogStepConsumer = (step) => {
     if (step.result.revision !== this.currentMetrics.revision + 1)
       throw new Error("REVISION_GAP");
     const plan = this.plan(step);
@@ -2513,6 +2525,11 @@ export class CatalogCompositionRoot {
     }
     return () => this.deliver(plan, notices);
   };
+  /** Restore this root's engine inputs after an aborted environment/root replacement. */
+  restoreLayout(): void {
+    this.layout.reset();
+    this.buildLayout();
+  }
   /** Undo a partial apply: maps from the journal, then the layout tree from the restored maps. */
   private restore(cause: unknown): void {
     const log = this.undoLog!;

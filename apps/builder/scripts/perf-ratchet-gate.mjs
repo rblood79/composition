@@ -604,6 +604,8 @@ export function harnessArgsFrom(options) {
   if (options.pageColumns != null)
     args.push("--page-columns", String(options.pageColumns));
   if (options.callCounts) args.push("--call-counts");
+  if (options.durationMs != null && options.durationMs !== 3000)
+    args.push("--duration-ms", String(options.durationMs));
   if ((options.dpr ?? 1) !== 1) args.push("--dpr", String(options.dpr));
   if (options.zoom != null) args.push("--zoom", String(options.zoom));
   if (options.screen != null)

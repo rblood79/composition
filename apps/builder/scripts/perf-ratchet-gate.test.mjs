@@ -18,6 +18,26 @@ import {
 } from "./perf-ratchet-gate.mjs";
 import { overASeeds, revisionProblems } from "./perf-ratchet-run.mjs";
 
+test("theme-switch ratchet retains the duration that defines its fixed switch count", async () => {
+  const { parseArgs } = await import("./perf-baseline.mjs");
+  const options = parseArgs([
+    "--lane",
+    "frame",
+    "--seed-count",
+    "600",
+    "--zoom",
+    "1",
+    "--fixed-inputs",
+    "--duration-ms",
+    "1800",
+    "--classes",
+    "theme-switch",
+  ]);
+  const rerun = parseArgs(harnessArgsFrom(options));
+  assert.equal(rerun.durationMs, options.durationMs);
+  assert.deepEqual(rerun.classes, ["theme-switch"]);
+});
+
 const ratchet = () => ({
   band: 1.03,
   minSlack: 2,

@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { lightColors, resolveToken } from "@composition/rendering";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
@@ -13,6 +13,8 @@ import type {
 import {
   createTheme,
   insertNodes,
+  setActiveTheme,
+  setFields,
   setThemeToken,
   updateTheme,
 } from "../../../../../../packages/shared/src/catalog/commands";
@@ -28,6 +30,9 @@ import {
   catalogThemesView,
 } from "../theme";
 import { CatalogWorkspace } from "../workspace";
+import type { CatalogTextMeasure } from "../compositionRoot";
+import { composeOver } from "../../../../../../packages/shared/src/catalog/commands/compose";
+import { CatalogStepAbortedError, CatalogSubscriberError } from "../controller";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 /**
@@ -45,21 +50,27 @@ const read = (ref: string, mode: "light" | "dark") =>
 
 afterEach(() => installThemeMaps(null));
 
-async function open() {
+async function open(textMeasure?: CatalogTextMeasure) {
+  const library = await buildCodeCatalogLibrary();
+  const document = newCatalogProjectDocument({
+    projectId: "project:project:theme" as EntryId<"project">,
+    name: "Theme",
+  });
+  const storage = new CatalogStorage(
+    indexedDB,
+    `adr248-phase4e-theme-${Math.random()}`,
+  );
+  await storage.create(document, library);
+  const engine = await nodeLayoutEngine();
   const workspace = new CatalogWorkspace(
-    new CatalogGraph(
-      newCatalogProjectDocument({
-        projectId: "project:project:theme" as EntryId<"project">,
-        name: "Theme",
-      }),
-      await buildCodeCatalogLibrary(),
-    ),
-    new CatalogStorage(indexedDB, `adr248-phase4e-theme-${Math.random()}`),
+    new CatalogGraph(document, library),
+    storage,
     {
-      engine: await nodeLayoutEngine(),
+      engine,
       viewport: { width: 1000, height: 800 },
       autosaveSchedule: () => {},
       theme: catalogThemeState,
+      textMeasure,
     },
   );
   const button: NodeEntry = {
@@ -89,6 +100,9 @@ async function open() {
   const fill = fillOf(BUTTON);
   // The accent variant's fill is built from `{color.accent}` (`lib:token:color_accent_light`).
   return {
+    engine,
+    storage,
+    library,
     workspace,
     fill,
     primaryFill: fillOf(PRIMARY),
@@ -104,7 +118,169 @@ const theme = (preset: Partial<ThemeEntry["preset"]> = {}): ThemeEntry => ({
   preset: { ...CATALOG_DEFAULT_THEME_PRESET, ...preset },
 });
 
+function prepareThemeSwitch(
+  workspace: CatalogWorkspace,
+  preset: Partial<ThemeEntry["preset"]>,
+) {
+  workspace.execute(
+    createTheme({
+      theme: { ...theme(), id: "project:theme:baseline" as EntryId<"theme"> },
+      activate: true,
+    }),
+  );
+  workspace.execute(createTheme({ theme: theme(preset) }));
+}
+
 describe("ADR-248 Phase 4e-4d-4 Themes", () => {
+  it("reuses unchanged text metrics across themes and invalidates them on font refresh", async () => {
+    const measure = vi.fn<CatalogTextMeasure>(() => ({
+      width: 60,
+      height: 20,
+    }));
+    const { workspace } = await open(measure);
+    const textId = "project:node:measured-text" as NodeId;
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          {
+            kind: "node",
+            id: textId,
+            definitionId: "lib:definition:text",
+            children: [],
+            props: { children: { kind: "set", value: "Same text" } },
+            visual: {},
+            sizing: {},
+            descendantOverrides: [],
+          },
+        ],
+        rootIds: [textId],
+        newId: workspace.newId,
+      }),
+    );
+    prepareThemeSwitch(workspace, { tint: "red" });
+    expect(measure.mock.calls.length).toBeGreaterThan(0);
+    measure.mockClear();
+    workspace.execute(setActiveTheme({ id: THEME }));
+    expect(measure).not.toHaveBeenCalled();
+    workspace.refreshFonts();
+    expect(measure.mock.calls.length).toBeGreaterThan(0);
+  });
+
+  it("a compound theme and node edit is consumed together and undone together", async () => {
+    const { workspace } = await open();
+    prepareThemeSwitch(workspace, { tint: "red", radius: "xl" });
+    const target = workspace.positionOfRecord(
+      workspace.root.recordsOfSource(BUTTON)[0],
+    )!.target;
+    workspace.execute((reader) =>
+      composeOver(reader, "Theme and width", [
+        setActiveTheme({ id: THEME }),
+        setFields({
+          targets: [target],
+          sizing: { width: { kind: "set", value: 240 } },
+        }),
+      ]),
+    );
+    const record = () =>
+      workspace.root.domInputs.get(workspace.root.recordsOfSource(BUTTON)[0])!;
+    expect(record().sizing.width).toBe(240);
+    expect(record().visual.fill).toBe(read("{color.accent}", "light"));
+    workspace.undo();
+    expect(record().sizing.width).not.toBe(240);
+    workspace.redo();
+    expect(record().sizing.width).toBe(240);
+  });
+
+  it("switch/undo/redo consume the new theme once, before publication, and persist it", async () => {
+    const { workspace, engine, storage, library, fill } = await open();
+    prepareThemeSwitch(workspace, { tint: "red", radius: "xl" });
+    workspace.runtime.clearHistory();
+    await workspace.runtime.save();
+    const compute = vi.spyOn(engine, "computeLayout");
+    const steps: unknown[] = [];
+    workspace.runtime.subscribeSteps(() => steps.push(fill()));
+    const roots = vi.fn();
+    workspace.subscribeRoot(roots);
+    const before = fill();
+    for (const action of [
+      () => workspace.execute(setActiveTheme({ id: THEME })),
+      () => workspace.undo(),
+      () => workspace.redo(),
+    ]) {
+      compute.mockClear();
+      action();
+      expect(compute).toHaveBeenCalledTimes(1);
+      expect(steps.at(-1)).toBe(fill());
+      expect(fill()).toBe(read("{color.accent}", "light"));
+    }
+    expect(fill()).not.toBe(before);
+    expect(roots).toHaveBeenCalledTimes(3);
+    expect(workspace.runtime.historyDepth).toEqual({ undo: 1, redo: 0 });
+    await workspace.runtime.save();
+    const loaded = await storage.load(
+      workspace.runtime.graph.projectId,
+      library,
+    );
+    expect(loaded.entries[loaded.projectId]).toMatchObject({
+      activeThemeId: THEME,
+    });
+  });
+
+  it("a failed themed build restores graph, root, tokens, history, save queue and geometry", async () => {
+    const { workspace, engine, fill, storage, library } = await open();
+    prepareThemeSwitch(workspace, { darkMode: "dark", tint: "red" });
+    await workspace.runtime.save();
+    const graph = workspace.runtime.graph;
+    const before = graph.exportDocument();
+    const root = workspace.root;
+    const geometry = root.getGeometry(root.canvasInputs.keys());
+    const color = fill();
+    const history = workspace.runtime.historyDepth;
+    const roots = vi.fn();
+    const steps = vi.fn();
+    workspace.subscribeRoot(roots);
+    workspace.runtime.subscribeSteps(steps);
+    vi.spyOn(engine, "computeLayout").mockImplementationOnce(() => {
+      throw new Error("THEME_LAYOUT_FAILED");
+    });
+    expect(() => workspace.execute(setActiveTheme({ id: THEME }))).toThrow(
+      CatalogStepAbortedError,
+    );
+    expect(graph.exportDocument()).toEqual(before);
+    expect(workspace.root).toBe(root);
+    expect(fill()).toBe(color);
+    expect(read("{color.accent}", "light")).toBe(color);
+    expect(root.getGeometry(root.canvasInputs.keys())).toEqual(geometry);
+    expect(workspace.runtime.pendingCount).toBe(0);
+    expect(workspace.runtime.historyDepth).toEqual(history);
+    expect(roots).not.toHaveBeenCalled();
+    expect(steps).not.toHaveBeenCalled();
+    await workspace.runtime.save();
+    expect(await storage.load(graph.projectId, library)).toEqual(before);
+    // A retry must not keep the failed theme key or the old root's revision.
+    workspace.execute(setActiveTheme({ id: THEME }));
+    expect(workspace.root.colorMode).toBe("dark");
+  });
+
+  it("a throwing root subscriber leaves the themed step committed and calls every subscriber", async () => {
+    const { workspace, fill } = await open();
+    prepareThemeSwitch(workspace, { tint: "red" });
+    const revision = workspace.runtime.graph.revision;
+    const after = vi.fn();
+    workspace.subscribeRoot(() => {
+      throw new Error("ROOT_LISTENER_FAILED");
+    });
+    workspace.subscribeRoot(after);
+    expect(() => workspace.execute(setActiveTheme({ id: THEME }))).toThrow(
+      CatalogSubscriberError,
+    );
+    expect(after).toHaveBeenCalledOnce();
+    expect(workspace.runtime.graph.revision).toBe(revision + 1);
+    expect(fill()).toBe(read("{color.accent}", "light"));
+    expect(fill()).not.toBeUndefined();
+  });
+
   it("a library token keeps the theme token it was read from", async () => {
     const library = await buildCodeCatalogLibrary();
     const token = [...library.tokens.values()].find(

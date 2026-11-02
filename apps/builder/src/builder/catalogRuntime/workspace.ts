@@ -37,7 +37,11 @@ import {
   catalogRowTemplateIdentity,
 } from "./compositionRoot";
 import { catalogCollectionId } from "./dataBinding";
-import { CatalogRuntime, type CatalogExternalEffect } from "./controller";
+import {
+  CatalogRuntime,
+  type CatalogExternalEffect,
+  type CatalogStepConsumer,
+} from "./controller";
 import {
   CatalogPreviewChannel,
   type CatalogPreviewChannelOptions,
@@ -80,6 +84,7 @@ import type { SlotChromeContext } from "./slotChrome";
 import type { CatalogStorage } from "./storage";
 import type { CatalogComponentsViewId } from "./originViewNode";
 import type { CatalogThemeState } from "./theme";
+import { createCatalogTextMeasureCache } from "./textMeasureCache";
 
 export interface CatalogWorkspaceOptions {
   engine: LayoutEngineAPI;
@@ -181,6 +186,9 @@ export class CatalogWorkspace {
   readonly history: CatalogHistoryStore;
   private preview: CatalogPreviewChannel | undefined;
   private themeKey: string | undefined;
+  private themeState: CatalogThemeState | undefined;
+  private readonly textMetrics:
+    ReturnType<typeof createCatalogTextMeasureCache> | undefined;
   /** `columns: "auto"`: the monitor width the page grid's column count derives from (ADR-274). */
   private screenWidth: number | undefined;
   private colorMode: "light" | "dark" | undefined;
@@ -192,6 +200,9 @@ export class CatalogWorkspace {
     storage: CatalogStorage,
     private readonly options: CatalogWorkspaceOptions,
   ) {
+    this.textMetrics = options.textMeasure
+      ? createCatalogTextMeasureCache(options.textMeasure)
+      : undefined;
     this.runtime = new CatalogRuntime(graph, storage);
     this.screenWidth = options.root?.screenWidth;
     this.devicePixelRatio = options.root?.devicePixelRatio;
@@ -232,11 +243,12 @@ export class CatalogWorkspace {
       options.viewportOf?.(breakpoint) ?? options.viewport,
       undefined,
       options.slotChrome,
-      options.textMeasure,
+      this.textMetrics?.measure,
       options.locale,
       {
         pageFrames: true,
         ...options.root,
+        consumeStep: this.consumeStep,
         // A new root derives its own tier's columns from the same monitor width (ADR-274 F5 —
         //   one layout per breakpoint switch, no carried-over count to correct next frame).
         ...(this.screenWidth ? { screenWidth: this.screenWidth } : {}),
@@ -255,11 +267,64 @@ export class CatalogWorkspace {
       docCounters.themeStateComputed += 1;
     const state = this.options.theme?.(this.runtime.graph);
     if (!state || state.key === this.themeKey) return false;
-    this.themeKey = state.key;
-    this.colorMode = state.colorMode;
     state.install();
+    this.themeKey = state.key;
+    this.themeState = state;
+    this.colorMode = state.colorMode;
     return true;
   }
+  /** A changed theme consumes the step once, by building its new root with the new tokens. */
+  private readonly consumeStep = (
+    step: Parameters<CatalogStepConsumer>[0],
+    consume: CatalogStepConsumer,
+  ): ReturnType<CatalogStepConsumer> => {
+    if (!touchesTheme(step.result, this.projectId)) return consume(step);
+    const state = this.options.theme?.(this.runtime.graph);
+    if (!state || state.key === this.themeKey) return consume(step);
+    const previousRoot = this.currentRoot;
+    const previousTheme = this.themeState;
+    const previousColorMode = this.colorMode;
+    let engineChanged = false;
+    step.onRollback(() => {
+      this.currentRoot = previousRoot;
+      this.themeState = previousTheme;
+      this.themeKey = previousTheme?.key;
+      this.colorMode = previousColorMode;
+      previousTheme?.install();
+      if (isComponentsView(this.definitionView))
+        setCatalogComponentsView(
+          this.runtime.graph,
+          this.definitionView,
+          previousColorMode,
+        );
+      if (engineChanged) previousRoot.restoreLayout();
+    });
+    state.install();
+    this.colorMode = state.colorMode;
+    if (isComponentsView(this.definitionView))
+      setCatalogComponentsView(
+        this.runtime.graph,
+        this.definitionView,
+        this.colorMode,
+      );
+    engineChanged = true;
+    this.options.engine.clear();
+    const root = this.createRoot(previousRoot.breakpoint);
+    this.currentRoot = root;
+    this.themeState = state;
+    this.themeKey = state.key;
+    if (process.env.NODE_ENV === "development") docCounters.rootReplaced += 1;
+    return () => {
+      const errors: unknown[] = [];
+      for (const listener of [...this.rootListeners])
+        try {
+          listener();
+        } catch (error) {
+          errors.push(error);
+        }
+      return errors;
+    };
+  };
   /**
    * Re-read the theme outside a step (the OS appearance changed under a `system` theme): a
    * changed theme builds a new root, as after a step.
@@ -502,6 +567,7 @@ export class CatalogWorkspace {
    * `syncCustomFontsWithSkia` + relayout).
    */
   refreshFonts(): void {
+    this.textMetrics?.clear();
     this.replaceRoot(this.currentRoot.breakpoint);
   }
   /**

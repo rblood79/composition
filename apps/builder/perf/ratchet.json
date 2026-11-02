@@ -1,8 +1,8 @@
 {
   "version": 1,
   "recorderSha256": "ea9cf64582c7c1fcba32bd7c3157973850bfd358081d7f4cdb4a98f122f57c60",
-  "generatedAt": "2026-10-21",
-  "head": "16ad74fb69fa9cb0d146521c55f4238bf117c5bf",
+  "generatedAt": "2026-11-02",
+  "head": "d87e99c9be9208b6d87e238a16ced14db2293a7a",
   "band": 1.05,
   "minSlack": 2,
   "runs": {
@@ -188,6 +188,22 @@
         "0.1",
         "--classes",
         "zoom,pan,page-jump,edit"
+      ]
+    },
+    "600@zoom1": {
+      "classes": ["theme-switch"],
+      "args": [
+        "--lane",
+        "frame",
+        "--seed-count",
+        "600",
+        "--fixed-inputs",
+        "--duration-ms",
+        "1800",
+        "--zoom",
+        "1",
+        "--classes",
+        "theme-switch"
       ]
     }
   },
@@ -6351,6 +6367,28 @@
           "domMutations.childList": 0,
           "reactRenderMeasures": 15,
           "render.overlayChromeBuilt": 15
+        }
+      }
+    },
+    "600@zoom1": {
+      "theme-switch": {
+        "A": {
+          "perfLabels.render.text.fontCollection": 1000,
+          "perfLabels.render.text.paragraph.build": 1000,
+          "perfLabels.render.text.paragraph.layout": 1000,
+          "themeSwitch.computeLayout": 12,
+          "themeSwitch.flatten": 24,
+          "themeSwitch.loadInitial": 12,
+          "themeSwitch.plan": 0,
+          "themeSwitch.switches": 12
+        },
+        "B": {
+          "cdp.LayoutCount": 22,
+          "cdp.RecalcStyleCount": 0,
+          "domMutations.attributes": 32,
+          "domMutations.characterData": 32,
+          "domMutations.childList": 0,
+          "reactRenderMeasures": 0
         }
       }
     }

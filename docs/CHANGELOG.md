@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [테마 전환 중복 처리 제거 — ADR-295 Phase 4 성능 후속] - 2026-11-02
+
+### Performance
+
+- **테마 전환의 문서 전체 처리를 2회에서 1회로 축소**: 새 토큰으로 root를 transaction consumer에서 만들고, 같은 글자·폰트·줄바꿈·폭의 측정 결과는 workspace 안에서 재사용한다. 캐시는 2,048개로 제한하며 폰트 갱신 때 비운다.
+  - **Why**: 활성 테마 ID 변경을 project 구조 변경으로 처리한 뒤 같은 명령에서 root를 다시 생성하고 텍스트를 재측정했다.
+  - 600요소 production 합성 fixture, headed Chromium·DPR1·CPU1x, 전후 3쌍 교대: 동기 실행 중앙값 `62.3~63.35 → 16.45~17.4ms`, 첫 rAF까지 중앙값 `66.05~66.9 → 22.75~22.95ms`. 최종 paint 완료나 모든 전환의 25ms 이내를 증명하는 수치는 아니다.
+  - 위치: `apps/builder/src/builder/catalogRuntime/workspace.ts`, `textMeasureCache.ts`, `packages/shared/src/catalog/runtime/{controller,compositionRoot}.ts`
+
+### Fixed
+
+- 새 테마 root 생성 실패 시 graph·토큰·이전 root·geometry를 함께 원복하며 history·저장 대기열·구독자에는 실패한 전환을 발행하지 않는다. root 구독자 오류는 커밋 뒤 수집하고 다른 구독자도 계속 호출한다.
+
+### Tests
+
+- 전환·Undo/Redo·복합 편집·IndexedDB 저장·원복·폰트 캐시 무효화 회귀와 `theme-switch` ratchet 호출 수 게이트를 추가했다.
+
 ## [Button outline 두께 정합성 — S2 borderWidth] - 2026-11-02
 
 ### Fixed

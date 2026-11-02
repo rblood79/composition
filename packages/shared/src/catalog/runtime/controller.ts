@@ -133,6 +133,10 @@ export interface CatalogStepContext {
   /** Entries whose resolved values may differ (before and after the step). */
   readonly invalidatedIds: readonly string[];
 }
+/** A consumer can restore external resources after the graph itself has been reverted. */
+export interface CatalogStepPreparation extends CatalogStepContext {
+  onRollback(restore: () => void): void;
+}
 /**
  * Takes a step after the graph holds it and before anything is published (pending save,
  * history, runtime subscribers). Throwing aborts the step: the graph returns to the previous
@@ -140,7 +144,7 @@ export interface CatalogStepContext {
  * once the step is published; it returns the errors its subscribers threw.
  */
 export type CatalogStepConsumer = (
-  step: CatalogStepContext,
+  step: CatalogStepPreparation,
 ) => (() => readonly unknown[]) | void;
 
 /** Phase 2 only: an isolated command/history/storage harness, never a Builder singleton. */
@@ -604,11 +608,29 @@ export class CatalogRuntime {
       docCounters.stepInvalidated += invalidatedIds.length;
     }
     let deliver: (() => readonly unknown[]) | void;
+    const rollback: (() => void)[] = [];
     try {
-      deliver = consumer?.({ result, invalidatedIds });
+      deliver = consumer?.({
+        result,
+        invalidatedIds,
+        onRollback: (restore) => rollback.push(restore),
+      });
     } catch (cause) {
       session.graph.revertCommit(result.revision);
-      throw new CatalogStepAbortedError(label, session.graph.revision, cause);
+      const errors = [cause];
+      for (const restore of rollback.reverse())
+        try {
+          restore();
+        } catch (error) {
+          errors.push(error);
+        }
+      throw new CatalogStepAbortedError(
+        label,
+        session.graph.revision,
+        errors.length === 1
+          ? cause
+          : new AggregateError(errors, "CATALOG_ROLLBACK_FAILED", { cause }),
+      );
     }
     // (A replica's step is the editor's to save.)
     if (mode !== "sync") {

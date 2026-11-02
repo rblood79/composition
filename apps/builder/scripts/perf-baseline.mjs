@@ -2639,6 +2639,76 @@ export const FRAME_CLASSES = {
       },
       { ms, fixedInputs: ctx.fixedInputs },
     ),
+  "theme-switch": (page, ctx, ms) =>
+    page.evaluate(
+      async ({ ms, fixedInputs }) => {
+        const { workspace, commands } = window.__COMPOSITION_CATALOG__;
+        const theme = (name, preset) => ({
+          kind: "theme",
+          id: workspace.newId("theme"),
+          name,
+          tokenIds: [],
+          preset: {
+            tint: "blue",
+            neutral: "gray",
+            radius: "md",
+            darkMode: "light",
+            ...preset,
+          },
+        });
+        const a = theme("Perf A", {});
+        const b = theme("Perf B", { tint: "red", radius: "lg" });
+        workspace.execute(commands.createTheme({ theme: a, activate: true }));
+        workspace.execute(commands.createTheme({ theme: b }));
+        const counts = {
+          switches: 0,
+          flatten: 0,
+          plan: 0,
+          loadInitial: 0,
+          computeLayout: 0,
+        };
+        const restores = [];
+        let active = false;
+        const wrap = (prototype, key) => {
+          const original = prototype[key];
+          if (typeof original !== "function")
+            throw new Error(`theme-switch missing ${key}`);
+          prototype[key] = function (...args) {
+            if (active) counts[key]++;
+            return original.apply(this, args);
+          };
+          restores.push(() => {
+            prototype[key] = original;
+          });
+        };
+        for (const key of ["flatten", "plan", "loadInitial"])
+          wrap(Object.getPrototypeOf(workspace.root), key);
+        wrap(Object.getPrototypeOf(workspace.root.layout), "computeLayout");
+        const start = performance.now();
+        let i = 0;
+        try {
+          while (
+            fixedInputs
+              ? i < Math.ceil(ms / 150)
+              : performance.now() - start < ms
+          ) {
+            active = true;
+            workspace.execute(
+              commands.setActiveTheme({ id: i++ % 2 ? a.id : b.id }),
+            );
+            active = false;
+            counts.switches++;
+            await new Promise((r) =>
+              requestAnimationFrame(() => requestAnimationFrame(r)),
+            );
+          }
+        } finally {
+          for (const restore of restores.reverse()) restore();
+        }
+        return counts;
+      },
+      { ms, fixedInputs: ctx.fixedInputs },
+    ),
   // ADR-274 G3 불리 케이스: Settings 의 페이지 gap 편집 (80 ↔ 160 — 한 step 마다 page grid 재배치)
   "grid-gap-edit": (page, ctx, ms) =>
     page.evaluate(
@@ -3260,7 +3330,7 @@ async function runFrameLane(page, cdp, seed, options) {
       profile: options.profile,
       instrumentation: options.instrumentation,
     });
-    await driver(
+    const actionCounts = await driver(
       page,
       {
         ...seed,
@@ -3327,6 +3397,7 @@ async function runFrameLane(page, cdp, seed, options) {
       after.metrics,
       coverage,
     );
+    if (cls === "theme-switch") results[cls].counts.themeSwitch = actionCounts;
     if (warmAfter) {
       const { ms, ...warmCounts } = warmAfter;
       results[cls].warmAfterMs = ms;
