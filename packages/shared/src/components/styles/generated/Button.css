@@ -25,6 +25,7 @@
   flex-direction: row;
   align-items: center;
   justify-content: center;
+  vertical-align: middle;
 
   /* Default variant */
   background: var(--fg);

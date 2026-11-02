@@ -360,6 +360,17 @@ const BUTTON_ROOT_BOX = {
 } as const;
 
 /**
+ * Button's root box: an inline Button centres on its line (baseline + half the parent's x-height) —
+ * the generated sheet and the engine's line box read this one value (2026-11-02: it lived only in
+ * the manual Button.css, so the Canvas set Buttons on the baseline and a Badge beside one sat
+ * 0.75px off). ToggleButton keeps the baseline (its sheet never declared `middle`).
+ */
+const BUTTON_INLINE_ROOT_BOX = {
+  ...BUTTON_ROOT_BOX,
+  verticalAlign: "middle",
+} as const;
+
+/**
  * ADR-297 Phase 3h — Button 칠 = 설치 S2 `Button.tsx` (사용자 결정 2: 확정 8 건 S2 대로 · 저장소에 없는 S2 토큰은
  * 가장 가까운 기존 토큰). 트리 순서 = S2 키 순서 (fill → outline → disabled → static).
  * - #5 pressed = hover 의 단 (`baseColor` 의 `:pressed` = `:hovered` 와 같은 다음 단 · accent `accent-1000`).
@@ -1794,7 +1805,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   gap 은 size 별(sizes[size].gap 4~12px)이라 여기 두지 않음.
     //   justifyContent (ADR-253): 생성 sheet 는 내용을 가운데에 둔다 (`structure.containerStyles`) —
     //   내용보다 넓은 Button (field 의 증감 버튼 · minWidth 가 남는 아이콘 Button) 의 Canvas 자식도 같다.
-    containerStyles: BUTTON_ROOT_BOX,
+    containerStyles: BUTTON_INLINE_ROOT_BOX,
     variants: BUTTON_VARIANTS,
     // fontWeight 500 (사용자 결정 2026-09-29 — 버튼 500 · 링크 400): 생성 CSS 는 sizes.fontWeight 만
     //   `font-weight` 로 내보내고 (variant.textWeight 는 Canvas 전용 채널), Canvas 는 textWeight 미선언 시
@@ -1882,7 +1893,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "button",
       element: "button",
-      containerStyles: BUTTON_ROOT_BOX,
+      containerStyles: BUTTON_INLINE_ROOT_BOX,
       stateStyles: {
         ...FIELD_BUTTON_CORNER_STATE,
         ...FOCUS_RING_STATE,

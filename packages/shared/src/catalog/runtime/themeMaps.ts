@@ -54,8 +54,24 @@ export function installedBaseFontFamily(): string | undefined {
   return baseFontFamily;
 }
 
+/**
+ * The installed theme's base font size and line height (the DOM root's — every box inherits them
+ * unless it declares its own), else the code defaults (ADR-056 `DEFAULT_BASE_TYPOGRAPHY`).
+ */
+let baseText: { fontSize: number; lineHeight: number } = {
+  fontSize: DEFAULT_BASE_TYPOGRAPHY.fontSize,
+  lineHeight: DEFAULT_BASE_TYPOGRAPHY.lineHeight,
+};
+export function installedBaseText(): { fontSize: number; lineHeight: number } {
+  return baseText;
+}
+
 /** Install a resolved theme into the specs maps, or the code catalog's values for `null`. */
 export function installThemeMaps(snapshot: ResolvedThemeSnapshot | null): void {
+  baseText = {
+    fontSize: snapshot?.base.fontSize ?? DEFAULT_BASE_TYPOGRAPHY.fontSize,
+    lineHeight: snapshot?.base.lineHeight ?? DEFAULT_BASE_TYPOGRAPHY.lineHeight,
+  };
   const family = snapshot?.base.fontFamily;
   baseFontFamily =
     family && family !== DEFAULT_BASE_TYPOGRAPHY.fontFamily

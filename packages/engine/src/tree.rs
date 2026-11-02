@@ -286,6 +286,9 @@ pub struct NodeStyle {
     /// strut 은 컨테이너 폰트의 A + half-leading 이다 — 엔진은 폰트 메트릭이 없어 이 값이 없으면
     /// 종전대로 lh/2 로 근사한다. `line_height` 와 짝으로만 의미가 있다.
     pub strut_baseline: Option<f32>,
+    /// 컨테이너 글꼴의 x-height (px — TS 측정 공급 채널, 2026-11-02). `vertical-align: middle` 은
+    /// margin box 중심을 부모 baseline 위 x-height/2 에 둔다 (CSS 2.1 §10.8.1). 없으면 0.
+    pub strut_x_height: Option<f32>,
 }
 
 /// `NodeStyle` 선언 필드 수 — ADR-156 R7/G6 정적 가드 앵커.
@@ -294,7 +297,7 @@ pub struct NodeStyle {
 /// ADR-923 P2 +3 · ADR-204 +1 · ADR-224 +1) 를 코드로 고정한다. 이 값을
 /// 바꾸면(= 필드 추가/삭제) `nodestyle_field_contract_guard` 의 전수 구조분해가
 /// 먼저 컴파일 RED 이므로, 교차표 갱신 없이 필드만 늘리는 silent drift 가 차단된다.
-pub const NODESTYLE_FIELD_COUNT: usize = 57;
+pub const NODESTYLE_FIELD_COUNT: usize = 58;
 
 /// 「선언 O · 송신 O · 소비 X」 필드 (camelCase = serde 계약명).
 ///
@@ -377,6 +380,7 @@ pub const NODESTYLE_FIELD_NAMES: [&str; NODESTYLE_FIELD_COUNT] = [
     "lineHeight",
     "leafBaseline",
     "strutBaseline",
+    "strutXHeight",
 ];
 
 /// `BatchNodeInput` 의 serde 계약명.
@@ -4430,6 +4434,8 @@ impl LayoutTree {
         let strut_line_height = style.line_height.unwrap_or(-1.0);
         // 2026-09-26: strut ascent (TS 가 컨테이너 폰트로 잰 A + half-leading) — 없으면 lh/2 근사.
         let strut_ascent = style.strut_baseline.unwrap_or(-1.0);
+        // 2026-11-02: 컨테이너 x-height — middle 의 중심 (baseline 위 x-height/2). 없으면 0.
+        let strut_x_height = style.strut_x_height.unwrap_or(-1.0);
         let out = block::block_layout_with_strut(
             &data,
             child_avail_w,
@@ -4439,6 +4445,7 @@ impl LayoutTree {
             0.0,
             strut_line_height,
             strut_ascent,
+            strut_x_height,
         );
         let meta_off = children.len() * 4;
         // 탈출한 top margin — block.rs 는 첫 자식을 여전히 y=escaped_top 에 배치하고 이 값을
@@ -8103,6 +8110,7 @@ mod tests {
             line_height: _,
             leaf_baseline: _,
             strut_baseline: _,
+            strut_x_height: _,
         } = NodeStyle::default();
 
         // (2) 산술 계약 — 소비 + 미소비 = 선언. breakdown §1-3 "49 = 소비 40 + 미소비 9"
@@ -8117,7 +8125,8 @@ mod tests {
         //     "54 = 소비 54 + 미소비 0".
         //     2026-09-26: strut_baseline (컨테이너 strut ascent) +1 — 소비처는 solve_block →
         //     block_layout_with_strut → "57 = 소비 57 + 미소비 0".
-        const CONSUMED_COUNT: usize = 57;
+        //     2026-11-02: strut_x_height (컨테이너 x-height, middle) +1 → "58 = 소비 58 + 미소비 0".
+        const CONSUMED_COUNT: usize = 58;
         assert_eq!(
             CONSUMED_COUNT + UNCONSUMED_NODESTYLE_FIELDS.len(),
             NODESTYLE_FIELD_COUNT,

@@ -168,6 +168,8 @@ const BOX_LAYOUT_KEYS: ReadonlySet<string> = new Set<LayoutField>([
   "gridTemplateAreas",
   "maxWidth",
   "maxHeight",
+  // CSS `vertical-align` of an inline-level root (Button `middle`): the engine's line box reads it.
+  "verticalAlign",
 ]);
 
 /**

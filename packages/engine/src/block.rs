@@ -158,6 +158,7 @@ pub fn block_layout(
         prev_sibling_margin_bottom,
         AUTO,
         AUTO,
+        AUTO,
     )
 }
 
@@ -166,6 +167,8 @@ pub fn block_layout(
 /// `strut_line_height` = 컨테이너의 line-height px (AUTO=-1 → strut 없음). 각 line box 에
 /// ascent = descent = lh/2 의 zero-width baseline 참여자로 들어간다 (`line_metrics` doc —
 /// Chrome 실측 strut-short/tall). wasm export 는 기존 `block_layout` 시그니처를 유지한다.
+/// `strut_x_height` = 컨테이너 글꼴의 x-height px (AUTO=-1 → 0) — `vertical-align: middle` 이
+/// margin box 중심을 baseline 위 x-height/2 에 둔다 (CSS 2.1 §10.8.1, 2026-11-02).
 pub fn block_layout_with_strut(
     data: &[f32],
     available_width: f32,
@@ -175,6 +178,7 @@ pub fn block_layout_with_strut(
     prev_sibling_margin_bottom: f32,
     strut_line_height: f32,
     strut_ascent: f32,
+    strut_x_height: f32,
 ) -> Box<[f32]> {
     let _ = available_height; // reserved for future use
     let child_count = data.len() / FIELD_COUNT;
@@ -281,7 +285,7 @@ pub fn block_layout_with_strut(
 
             // Line wrap check
             if current_x + total_width > line_limit && current_x > 0.0 {
-                let m = flush_line_box(&line_items, current_y, &mut out, strut_line_height, strut_ascent);
+                let m = flush_line_box(&line_items, current_y, &mut out, strut_line_height, strut_ascent, strut_x_height);
                 last_line_baseline = current_y + m.baseline;
                 current_y += m.height;
                 current_x = 0.0;
@@ -318,7 +322,7 @@ pub fn block_layout_with_strut(
         } else if display == DISPLAY_EMPTY_BLOCK {
             // Empty block: self-collapse top/bottom margins
             if !line_items.is_empty() {
-                let m = flush_line_box(&line_items, current_y, &mut out, strut_line_height, strut_ascent);
+                let m = flush_line_box(&line_items, current_y, &mut out, strut_line_height, strut_ascent, strut_x_height);
                 last_line_baseline = current_y + m.baseline;
                 current_y += m.height;
                 current_x = 0.0;
@@ -350,7 +354,7 @@ pub fn block_layout_with_strut(
         } else {
             // Block: vertical stacking + margin collapse
             if !line_items.is_empty() {
-                let m = flush_line_box(&line_items, current_y, &mut out, strut_line_height, strut_ascent);
+                let m = flush_line_box(&line_items, current_y, &mut out, strut_line_height, strut_ascent, strut_x_height);
                 last_line_baseline = current_y + m.baseline;
                 current_y += m.height;
                 current_x = 0.0;
@@ -395,7 +399,7 @@ pub fn block_layout_with_strut(
 
     // Flush remaining line box
     if !line_items.is_empty() {
-        let m = flush_line_box(&line_items, current_y, &mut out, strut_line_height, strut_ascent);
+        let m = flush_line_box(&line_items, current_y, &mut out, strut_line_height, strut_ascent, strut_x_height);
         last_line_baseline = current_y + m.baseline;
         current_y += m.height; // r8h2 — 마지막 line box 높이를 in-flow bottom 에 반영 (Chrome strut-last-line)
     }
@@ -440,15 +444,20 @@ pub fn block_layout_with_strut(
 /// - **vertical-align: bottom 초과분은 line 을 위로 늘려 baseline 을 아래로 민다**
 ///   (§10.8.1 — Chrome 실측 valign-bottom: ib20(baseline)+ib40(bottom) → baseline 40,
 ///   ib20 y=20). top 초과분은 아래로 늘어 baseline 불변. **middle 은 line 중앙이
-///   아니라 baseline 에 margin box 중심 고정** (§10.8 baseline + x-height/2 — fontSize 0
-///   채널이라 x-height 0, 실폰트 보정은 S4/Phase 5. Chrome 실측 r8 valign-middle-tall:
+///   아니라 baseline 에 margin box 중심 고정** (§10.8 baseline + x-height/2 — x-height 는
+///   컨테이너 글꼴의 TS 측정 `strutXHeight`, 없으면 0. Chrome 실측 r8 valign-middle-tall:
 ///   ib20+ib60(middle) → baseline 30, ib20 y=10 — line 중앙설이면 y 0).
 struct LineMetrics {
     height: f32,
     baseline: f32,
 }
 
-fn line_metrics(items: &[LineItem], strut_line_height: f32, strut_ascent: f32) -> LineMetrics {
+fn line_metrics(
+    items: &[LineItem],
+    strut_line_height: f32,
+    strut_ascent: f32,
+    half_x_height: f32,
+) -> LineMetrics {
     if items.is_empty() {
         return LineMetrics { height: 0.0, baseline: 0.0 };
     }
@@ -472,10 +481,10 @@ fn line_metrics(items: &[LineItem], strut_line_height: f32, strut_ascent: f32) -
             VALIGN_TOP => max_top = max_top.max(mbox),
             VALIGN_BOTTOM => max_bottom = max_bottom.max(mbox),
             VALIGN_MIDDLE => {
-                // r8h1 — middle 은 baseline 참여: margin box 중심을 baseline(+x-height/2=0)
-                // 에 고정하므로 asc/desc 를 절반씩 민다 (line 중앙 배치 아님 — Chrome 실측).
-                asc = asc.max(mbox / 2.0);
-                desc = desc.max(mbox / 2.0);
+                // r8h1 — middle 은 baseline 참여: margin box 중심을 baseline 위 x-height/2 에
+                // 고정하므로 asc/desc 를 그만큼 민다 (line 중앙 배치 아님 — Chrome 실측).
+                asc = asc.max(mbox / 2.0 + half_x_height);
+                desc = desc.max(mbox / 2.0 - half_x_height);
             }
             _ => {
                 asc = asc.max(item.margin_top + item.baseline);
@@ -499,16 +508,18 @@ fn flush_line_box(
     out: &mut [f32],
     strut_line_height: f32,
     strut_ascent: f32,
+    strut_x_height: f32,
 ) -> LineMetrics {
-    let m = line_metrics(items, strut_line_height, strut_ascent);
+    let half_x_height = strut_x_height.max(0.0) / 2.0;
+    let m = line_metrics(items, strut_line_height, strut_ascent, half_x_height);
     for item in items {
         let final_y = match item.vertical_align {
             VALIGN_TOP => start_y + item.margin_top,
             VALIGN_BOTTOM => start_y + m.height - item.height - item.margin_bottom,
             VALIGN_MIDDLE => {
-                // r8h1 — margin box 중심 = baseline (x-height 0 채널).
+                // r8h1 — margin box 중심 = baseline − x-height/2 (부모 글꼴, 2026-11-02).
                 let mbox = item.height + item.margin_top + item.margin_bottom;
-                start_y + m.baseline - mbox / 2.0 + item.margin_top
+                start_y + m.baseline - half_x_height - mbox / 2.0 + item.margin_top
             }
             _ => {
                 // baseline (default)
@@ -613,7 +624,7 @@ mod tests {
     #[test]
     fn adr923_p3_last_line_strut_in_flow_bottom() {
         let data = make_inline_block(60.0, 20.0, VALIGN_BASELINE);
-        let out = block_layout_with_strut(&data, 300.0, 600.0, false, false, 0.0, 40.0, AUTO);
+        let out = block_layout_with_strut(&data, 300.0, 600.0, false, false, 0.0, 40.0, AUTO, AUTO);
         // strut asc=desc=20 · item asc 16/desc 4 → H 40, baseline 20.
         assert_eq!(out[1], 4.0, "item y = baseline 20 - 16");
         assert_eq!(out[OUT_FIELDS + 3], 40.0, "in-flow bottom = 마지막 line box 포함 40");
@@ -625,11 +636,29 @@ mod tests {
     #[test]
     fn strut_ascent_supplied_splits_line_height_by_font() {
         let data = make_inline_block(60.0, 20.0, VALIGN_BASELINE); // baseline 16
-        let out = block_layout_with_strut(&data, 300.0, 600.0, false, false, 0.0, 24.0, 17.5);
+        let out = block_layout_with_strut(&data, 300.0, 600.0, false, false, 0.0, 24.0, 17.5, AUTO);
         assert_eq!(out[1], 1.5, "item y = strut ascent 17.5 - 16");
         assert_eq!(out[OUT_FIELDS + 3], 24.0, "line = 17.5 + 6.5");
-        let approx = block_layout_with_strut(&data, 300.0, 600.0, false, false, 0.0, 24.0, AUTO);
+        let approx = block_layout_with_strut(&data, 300.0, 600.0, false, false, 0.0, 24.0, AUTO, AUTO);
         assert_eq!(approx[OUT_FIELDS + 3], 28.0, "근사 (asc 16 · desc 12) 는 28");
+    }
+
+    /// 2026-11-02 — middle 은 baseline 위 x-height/2 에 중심. Chrome 156 (16px Pretendard 부모 ·
+    /// line-height 24): Button 32 (middle) + Badge 24 (baseline 16) → Button y 0 · Badge y 4.25 ·
+    /// line 32. x-height 0 이면 Badge 가 Button 과 같은 y 1.5 로 올라간다.
+    #[test]
+    fn valign_middle_centres_half_x_height_above_baseline() {
+        let mut data = Vec::new();
+        data.extend(make_inline_block(76.0, 32.0, VALIGN_MIDDLE));
+        let mut badge = make_inline_block(56.0, 24.0, VALIGN_BASELINE);
+        badge[17] = 16.0;
+        data.extend(badge);
+        let out = block_layout_with_strut(&data, 300.0, 600.0, false, false, 0.0, 24.0, 17.5, 8.5);
+        assert_eq!(out[1], 0.0, "Button y = baseline 20.25 − 4.25 − 16");
+        assert_eq!(out[OUT_FIELDS + 1], 4.25, "Badge y = baseline 20.25 − 16");
+        assert_eq!(out[2 * OUT_FIELDS + 3], 32.0, "line = 20.25 + 11.75");
+        let flat = block_layout_with_strut(&data, 300.0, 600.0, false, false, 0.0, 24.0, 17.5, AUTO);
+        assert_eq!(flat[OUT_FIELDS + 1], 1.5, "x-height 0 이면 Badge y 1.5");
     }
 
     /// baseline 센티널(<0) = 원천 없음 → bottom margin edge(child_h+m_bottom) 폴백 (§10.8.1).

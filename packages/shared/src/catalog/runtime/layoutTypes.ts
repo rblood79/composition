@@ -195,6 +195,10 @@ export interface EngineStyle {
   lineHeight?: number;
   /** 텍스트 leaf 첫 줄 baseline (content-box 상단 기준 px — 측정 공급 채널) */
   leafBaseline?: number;
+  /** flow 컨테이너 strut 의 baseline (줄 상자 상단 기준 px — 반올림 ascent + half-leading) */
+  strutBaseline?: number;
+  /** flow 컨테이너 글꼴의 x-height (px) — `vertical-align: middle` 이 baseline + 절반에 중심을 둔다 */
+  strutXHeight?: number;
 }
 
 /** Opaque handle to a layout node. (구 EngineNodeHandle — 자체 엔진 handle 과 동일 규약) */

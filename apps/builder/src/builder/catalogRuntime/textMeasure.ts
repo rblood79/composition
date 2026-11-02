@@ -1,5 +1,5 @@
 import { fontFamily } from "@composition/rendering";
-import type { EmbindEnumEntity } from "canvaskit-wasm";
+import type { EmbindEnumEntity, Typeface } from "canvaskit-wasm";
 import { DEFAULT_FONT_FEATURES } from "../workspace/canvas/layout/engines/cssResolver";
 import {
   calculateMaxContentWidth,
@@ -18,6 +18,10 @@ import {
   collapsesSegmentBreaks,
   transformSegmentBreaks,
 } from "../workspace/canvas/utils/textWhiteSpace";
+import {
+  cssFontFamilyList,
+  measureFontBox,
+} from "../workspace/canvas/utils/textMeasure";
 
 type Font = Parameters<CatalogTextMeasure>[1];
 
@@ -138,6 +142,62 @@ export const catalogTextMeasure: CatalogTextMeasure = (raw, font, maxWidth) => {
     ? { width, exactWidth: width, minWidth, height }
     : { width: maxWidth, height };
 };
+
+/**
+ * The font box a CSS line box is built from — ascent · descent (Chrome rounds each to whole px)
+ * and the x-height (`vertical-align: middle`) — for `leafBaseline` · the strut · `middle`.
+ * Read from the CanvasKit typeface the Canvas paints with (the same Pretendard file the Preview
+ * loads): Canvas 2D `fontBoundingBox*` reads the builder document's font, which may still be
+ * loading when the root is built (a fallback font's 11.5 baseline instead of 12 — live 2026-11-02).
+ * Before CanvasKit, the Canvas 2D metrics.
+ */
+catalogTextMeasure.fontBox = (font) =>
+  canvasKitFontBox(font) ??
+  measureFontBox(
+    cssFontFamilyList(catalogFontFamilies(font.fontFamily)),
+    font.fontSize,
+    font.fontWeight,
+  );
+
+type FontBox = { ascent: number; descent: number; xHeight: number };
+/** Per typeface (a reloaded font is a new object) and size. */
+const fontBoxCache = new WeakMap<Typeface, Map<number, FontBox>>();
+
+function canvasKitFontBox(font: Font): FontBox | undefined {
+  if (!isCanvasKitInitialized() || !skiaFontManager.hasFont("Pretendard"))
+    return undefined;
+  const typeface =
+    catalogFontFamilies(font.fontFamily)
+      .map((family) =>
+        skiaFontManager.getTypeface(skiaFontManager.resolveFamily(family)),
+      )
+      .find((face) => face !== undefined) ??
+    skiaFontManager.getTypeface("Pretendard");
+  if (!typeface) return undefined;
+  let sizes = fontBoxCache.get(typeface);
+  if (!sizes) fontBoxCache.set(typeface, (sizes = new Map()));
+  const cached = sizes.get(font.fontSize);
+  if (cached) return cached;
+  const ck = getCanvasKit();
+  // Glyph bounds come back in whole px (16px "x" → 9, Chrome's x-height 8.48): read the outline at
+  // 1000px and scale.
+  const face = new ck.Font(typeface, X_HEIGHT_PROBE_SIZE);
+  try {
+    const metrics = face.getMetrics();
+    const bounds = face.getGlyphBounds(face.getGlyphIDs("x"));
+    const scale = font.fontSize / X_HEIGHT_PROBE_SIZE;
+    const box = {
+      ascent: -metrics.ascent * scale,
+      descent: metrics.descent * scale,
+      xHeight: -bounds[1]! * scale,
+    };
+    sizes.set(font.fontSize, box);
+    return box;
+  } finally {
+    face.delete();
+  }
+}
+const X_HEIGHT_PROBE_SIZE = 1000;
 
 /** One block of text with no hard breaks (the measure before white-space was read). */
 const measureOneBlock = (

@@ -485,7 +485,34 @@ export function measureFontMetrics(
 }
 
 /** The DOM font's ascent / descent (`fontBoundingBox*` — what a CSS line box is built from). */
-const _fontBoxCache = new Map<string, { ascent: number; descent: number }>();
+const _fontBoxCache = new Map<
+  string,
+  { ascent: number; descent: number; xHeight: number }
+>();
+
+const GENERIC_FAMILIES = new Set([
+  "serif",
+  "sans-serif",
+  "monospace",
+  "cursive",
+  "fantasy",
+  "system-ui",
+  "ui-sans-serif",
+  "ui-serif",
+  "ui-monospace",
+  "-apple-system",
+]);
+
+/** A CSS `font-family` list of the families (named families quoted, generic keywords bare). */
+export function cssFontFamilyList(families: readonly string[]): string {
+  const list = families
+    .map((family) => family.trim().replace(/^["']|["']$/g, ""))
+    .filter(Boolean)
+    .map((family) =>
+      GENERIC_FAMILIES.has(family) ? family : `"${family.replace(/"/g, "")}"`,
+    );
+  return list.length > 0 ? list.join(", ") : "sans-serif";
+}
 
 /**
  * The font's ascent and descent as the DOM line box uses them (Canvas 2D `fontBoundingBox*` of the
@@ -495,7 +522,7 @@ export function measureFontBox(
   fontFamily: string,
   fontSize: number,
   fontWeight: string | number = 400,
-): { ascent: number; descent: number } | undefined {
+): { ascent: number; descent: number; xHeight: number } | undefined {
   const cacheKey = `${fontFamily}:${fontSize}:${fontWeight}`;
   const cached = _fontBoxCache.get(cacheKey);
   if (cached) return cached;
@@ -509,9 +536,12 @@ export function measureFontBox(
       typeof metrics.fontBoundingBoxDescent !== "number"
     )
       return undefined;
+    // x-height: the "x" glyph's ink top — what CSS `vertical-align: middle` centres on (half of it
+    // above the baseline). Pretendard's x is flat-topped, so the ink is the font's x-height.
     const box = {
       ascent: metrics.fontBoundingBoxAscent,
       descent: metrics.fontBoundingBoxDescent,
+      xHeight: metrics.actualBoundingBoxAscent,
     };
     if (_fontsReady) {
       if (_fontBoxCache.size >= MAX_FONT_METRICS_CACHE_SIZE)

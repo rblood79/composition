@@ -734,6 +734,8 @@ export function emitContainerStyles(c: ContainerStylesSchema): string[] {
     lines.push(`  grid-template-rows: ${c.gridTemplateRows};`);
   // ADR-089: position — 자식 absolute 배치 기준 형성. SliderTrack position:relative 리프팅.
   if (c.position) lines.push(`  position: ${c.position};`);
+  // An inline-level root's place on its line (Button `middle`) — the engine reads the same value.
+  if (c.verticalAlign) lines.push(`  vertical-align: ${c.verticalAlign};`);
 
   return lines;
 }

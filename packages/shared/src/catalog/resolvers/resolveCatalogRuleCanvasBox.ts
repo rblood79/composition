@@ -47,6 +47,8 @@ export const CATALOG_CANVAS_BOX_KEYS = [
   "gridTemplateColumns",
   "gridTemplateRows",
   "position",
+  // `vertical-align` of an inline-level root (Button `middle` — the engine's line box).
+  "verticalAlign",
   // Generated `border: 1px solid` the layout must reserve (Calendar/RangeCalendar border-box).
   "borderWidth",
   "height",

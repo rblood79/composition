@@ -113,6 +113,8 @@ export interface ContainerStylesSchema {
   //   SliderTrack 이 자식 SliderThumb 의 `position: absolute + left: ${percent}%` 배치 기준을
   //   형성하기 위해 `position: "relative"` 필요. implicitStyles.ts 하드코딩을 Spec SSOT 로 리프팅.
   position?: "static" | "relative" | "absolute" | "fixed" | "sticky";
+  /** CSS `vertical-align` of an inline-level root (its place on the parent's line box). */
+  verticalAlign?: "baseline" | "top" | "middle" | "bottom";
 
   // 컨테이너 제약 — CSS 값 (SSOT 대상 아님)
   width?: string;

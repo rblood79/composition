@@ -12,6 +12,7 @@ import {
   catalogInheritedReceivers,
 } from "./inheritedProps";
 import { catalogWaterfallLayout } from "./waterfall";
+import { installedBaseText } from "./themeMaps";
 import {
   catalogIsAuthoredAbsolute,
   catalogIsAuthoredPlaced,
@@ -642,7 +643,41 @@ export interface CatalogTextMeasure {
     font: CatalogTextFont,
     maxWidth?: number,
   ): { width: number; height: number; minWidth?: number; exactWidth?: number };
+  /**
+   * The font's CSS box (the DOM's `fontBoundingBox*` ascent · descent and its x-height) — what a
+   * CSS line box is built from: a text's baseline (`leafBaseline`), a block's strut
+   * (`strutBaseline`) and `vertical-align: middle` (`strutXHeight`). Absent = the engine's
+   * fallbacks (an atomic inline's baseline at its bottom edge).
+   */
+  fontBox?(font: CatalogTextFont): CatalogFontBox | undefined;
 }
+/** A font's CSS box metrics (`CatalogTextMeasure.fontBox`). */
+export interface CatalogFontBox {
+  ascent: number;
+  descent: number;
+  xHeight?: number;
+}
+/**
+ * The baseline of a CSS line box of `lineHeight` px (Chrome: the rounded ascent and descent, the
+ * leading split in half — 16px Pretendard in 24 → 15 + (24 − 19) / 2 = 17.5). Without a line
+ * height (`normal`) the box is the font's own ascent + descent.
+ */
+export function catalogCssLineBaseline(
+  box: CatalogFontBox,
+  lineHeight: number | undefined,
+): number {
+  const ascent = Math.round(box.ascent);
+  const descent = Math.round(box.descent);
+  const line = lineHeight && lineHeight > 0 ? lineHeight : ascent + descent;
+  return ascent + (line - ascent - descent) / 2;
+}
+/** Inner display `flow` — a box whose inline-level children sit on line boxes (CSS 2.1 §9.4.2). */
+const flowInnerDisplay = (display: string | undefined): boolean =>
+  display === undefined ||
+  display === "block" ||
+  display === "flow-root" ||
+  display === "inline-block" ||
+  display === "list-item";
 /** Environment of one composition root (a breakpoint switch builds a new root). */
 export interface CatalogRootOptions {
   breakpoint?: BreakpointName;
@@ -832,6 +867,83 @@ function textLeaf(
   };
 }
 
+/** A box's font size · weight as the DOM has them (its own declaration, else inherited). */
+interface CatalogInheritedFont {
+  fontSize?: number;
+  fontWeight?: number;
+}
+const INHERITED_FONT_KEYS = ["fontSize", "fontWeight"] as const;
+/**
+ * CSS `font-size` · `font-weight` are inherited: a box's value is its own declaration, else its
+ * nearest declaring ancestor's. `declared` is what the DOM writes on a record (an authored value,
+ * a generated sheet's size value — not a rule default no stylesheet writes, as a frame's 16).
+ */
+function domFont(
+  node: CatalogConsumerNode,
+  get: (id: string) => CatalogConsumerNode | undefined,
+  declared: (record: CatalogConsumerNode) => CatalogInheritedFont,
+): CatalogInheritedFont | undefined {
+  const out: CatalogInheritedFont = {};
+  let missing: readonly (typeof INHERITED_FONT_KEYS)[number][] =
+    INHERITED_FONT_KEYS;
+  for (
+    let cursor: CatalogConsumerNode | undefined = node;
+    cursor && missing.length;
+    cursor = get(cursor.parentId)
+  ) {
+    const own = declared(cursor);
+    missing = missing.filter((key) => {
+      if (own[key] === undefined) return true;
+      out[key] = own[key];
+      return false;
+    });
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
+/**
+ * A flow box's strut: its DOM font (`domFont` — own or inherited size and weight, else the root's —
+ * `installedBaseText`) at its line height (own, inherited, else the root's) — px line height, its
+ * baseline and x-height.
+ */
+function catalogStrut(
+  node: CatalogConsumerNode,
+  measure: CatalogTextMeasure,
+  inheritedLineHeight: number | undefined,
+  domFontOf: CatalogInheritedFont | undefined,
+):
+  | { lineHeight: number; strutBaseline: number; strutXHeight?: number }
+  | undefined {
+  const base = installedBaseText();
+  const fontSize = domFontOf?.fontSize ?? base.fontSize;
+  const ratio =
+    Number(node.visual.lineHeight) > 0
+      ? Number(node.visual.lineHeight)
+      : (inheritedLineHeight ?? base.lineHeight);
+  const typography = catalogTextTypography(node);
+  const font: CatalogTextFont = {
+    fontSize,
+    fontWeight: domFontOf?.fontWeight ?? 400,
+    lineHeight: ratio,
+    ...(typography.fontFamily !== undefined
+      ? { fontFamily: typography.fontFamily }
+      : {}),
+    ...(typography.fontStyle !== undefined
+      ? { fontStyle: typography.fontStyle }
+      : {}),
+  };
+  const box = measure.fontBox?.(font);
+  if (!box) return undefined;
+  const lineHeight = fontSize * ratio;
+  return {
+    lineHeight,
+    strutBaseline: catalogCssLineBaseline(box, lineHeight),
+    ...(box.xHeight !== undefined && box.xHeight > 0
+      ? { strutXHeight: box.xHeight }
+      : {}),
+  };
+}
+
 /**
  * CSS `line-height` inheritance: a node without its own line height uses the nearest ancestor's
  * (the unitless ratio, as the DOM inherits it — a Select value span reads its trigger button's).
@@ -848,8 +960,9 @@ function inheritedLineHeight(
 }
 
 /**
- * Text leaves whose inherited line height is `node`'s: the descendants without their own line
- * height, down to (not past) the next declaring node. Re-planned when `node` changes.
+ * Boxes whose inherited line height is `node`'s: the descendants without their own line height,
+ * down to (not past) the next declaring node — text leaves (their line box) and containers (their
+ * strut, `catalogStrut`). Re-planned when `node` changes.
  */
 function lineHeightInheritors(
   node: CatalogConsumerNode,
@@ -859,8 +972,8 @@ function lineHeightInheritors(
   const visit = (id: string) => {
     const child = get(id);
     if (!child || Number(child.visual.lineHeight) > 0) return;
-    if (child.children.length === 0) out.push(child);
-    else for (const next of child.children) visit(next);
+    out.push(child);
+    for (const next of child.children) visit(next);
   };
   for (const id of node.children) visit(id);
   return out;
@@ -1013,6 +1126,7 @@ function styleOf(
   segmentText?: CatalogDateSegments,
   labelSuffix = "",
   inheritedLineHeight?: number,
+  strutFont?: CatalogInheritedFont,
 ): Record<string, unknown> {
   if (!catalogParticipatesInLayout(node)) return { display: "none" };
   const box = catalogBoxModel(node);
@@ -1114,6 +1228,45 @@ function styleOf(
           contentHeight:
             Number(node.visual.fontSize) * Number(node.visual.lineHeight),
         }
+      : undefined;
+  // A text leaf's first-line baseline (content-box top): the engine aligns an inline-level box on
+  // its line by it (CSS 2.1 §10.8.1) — without it the box sits on its bottom edge (a Badge beside a
+  // Button 3px low). A centered text (`align-items: center` · a px height) is offset like the DOM.
+  const fontBox =
+    contentText && leaf && measure?.fontBox
+      ? measure.fontBox(leaf.font)
+      : undefined;
+  const leafBaseline =
+    contentText && leaf && fontBox
+      ? (() => {
+          const lineHeight =
+            leaf.font.lineHeight > 0
+              ? leaf.font.fontSize * leaf.font.lineHeight
+              : undefined;
+          const contentHeight = Number(contentText.contentHeight);
+          const offset =
+            typeof box.height === "number" && box.alignItems === "center"
+              ? Math.max(
+                  0,
+                  (box.height -
+                    Number(box.padding?.top ?? 0) -
+                    Number(box.padding?.bottom ?? 0) -
+                    2 * Number(box.borderWidth ?? 0) -
+                    contentHeight) /
+                    2,
+                )
+              : 0;
+          return catalogCssLineBaseline(fontBox, lineHeight) + offset;
+        })()
+      : undefined;
+  // A flow box's strut (CSS 2.1 §10.8): every line box holds a zero-width inline box of the box's
+  // font at its inherited line height — a line of short inline boxes is that tall, and
+  // `vertical-align: middle` centres on its baseline + half its x-height.
+  const strut =
+    measure?.fontBox &&
+    node.children.length > 0 &&
+    flowInnerDisplay(typeof box.display === "string" ? box.display : undefined)
+      ? catalogStrut(node, measure, inheritedLineHeight, strutFont)
       : undefined;
   const out: Record<string, unknown> = {
     display: box.display,
@@ -1221,6 +1374,8 @@ function styleOf(
       ? { aspectRatio: catalogAspectRatio(node.visual.aspectRatio) }
       : {}),
     ...(contentText ?? emptyLine ?? {}),
+    ...(leafBaseline !== undefined ? { leafBaseline } : {}),
+    ...(strut ?? {}),
     ...(glyph !== undefined
       ? { contentMinWidth: glyph, contentMaxWidth: glyph, contentHeight: glyph }
       : {}),
@@ -2816,6 +2971,34 @@ export class CatalogCompositionRoot {
     }
     return parts;
   }
+  /**
+   * The font size · weight the DOM writes on a record: the whole visual for a rule without a sheet
+   * (`domBinding` writes it inline), else an authored value or a generated sheet's size value.
+   */
+  private declaredFont(record: CatalogConsumerNode): CatalogInheritedFont {
+    const rule = resolveComponentRule(this.typeOf(record));
+    const structure = rule?.structure;
+    const inline = !!rule && !structure;
+    const sheetSizes =
+      structure && !structure.skipCSSGeneration
+        ? Object.values(rule!.sizes ?? {})
+        : [];
+    let authored: Record<string, unknown> | undefined;
+    const out: CatalogInheritedFont = {};
+    for (const key of INHERITED_FONT_KEYS) {
+      const value = Number(record.visual[key]);
+      if (!(value > 0)) continue;
+      if (
+        inline ||
+        sheetSizes.some(
+          (size) => (size as Record<string, unknown>)[key] !== undefined,
+        ) ||
+        (authored ??= catalogAuthoredVisual(this, record))[key] !== undefined
+      )
+        out[key] = value;
+    }
+    return out;
+  }
   private styleFor(
     record: CatalogConsumerNode,
     get: (id: string) => CatalogConsumerNode | undefined = (id) =>
@@ -2833,6 +3016,9 @@ export class CatalogCompositionRoot {
       this.segmentText(record, get),
       catalogLabelSuffix(record, get, this.typeOf),
       inheritedLineHeight(record, get),
+      record.children.length > 0
+        ? domFont(record, get, (each) => this.declaredFont(each))
+        : undefined,
     );
     const thumb = record.hidden
       ? undefined
@@ -4786,6 +4972,17 @@ export class CatalogCompositionRoot {
         this.records.get(update.id)?.visual.lineHeight !==
           update.record.visual.lineHeight
           ? lineHeightInheritors(update.record, get)
+          : []),
+        // A strut's font is the box's DOM font — inherited (`domFont`): its descendant boxes.
+        ...(update.record.children.length > 0 &&
+        INHERITED_FONT_KEYS.some(
+          (key) =>
+            this.records.get(update.id)?.visual[key] !==
+            update.record.visual[key],
+        )
+          ? textInheritors(update.record, get).filter(
+              (record) => record.children.length > 0,
+            )
           : []),
         ...(update.record.children.length > 0 &&
         textKeysChanged(this.records.get(update.id), update.record)

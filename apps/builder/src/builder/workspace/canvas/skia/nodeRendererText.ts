@@ -27,7 +27,11 @@ import {
   needsFallback,
   measureWithCanvas2D,
 } from "../utils/canvas2dSegmentCache";
-import { measureFontBox, type TextMeasureStyle } from "../utils/textMeasure";
+import {
+  cssFontFamilyList,
+  measureFontBox,
+  type TextMeasureStyle,
+} from "../utils/textMeasure";
 import { registerSkiaCacheDestroy, SkiaDisposable } from "./disposable";
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import { buildPath } from "./buildPath";
@@ -902,26 +906,4 @@ function drawDecorationLine(
   effect?.delete();
 }
 
-const GENERIC_FAMILIES = new Set([
-  "serif",
-  "sans-serif",
-  "monospace",
-  "cursive",
-  "fantasy",
-  "system-ui",
-  "ui-sans-serif",
-  "ui-serif",
-  "ui-monospace",
-  "-apple-system",
-]);
 
-/** A CSS `font-family` list for Canvas 2D `font` — names quoted, generic keywords bare. */
-function cssFontFamilyList(families: readonly string[]): string {
-  const list = families
-    .map((family) => family.trim().replace(/^["']|["']$/g, ""))
-    .filter(Boolean)
-    .map((family) =>
-      GENERIC_FAMILIES.has(family) ? family : `"${family.replace(/"/g, "")}"`,
-    );
-  return list.length > 0 ? list.join(", ") : "sans-serif";
-}

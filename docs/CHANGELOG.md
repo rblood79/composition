@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas 한 줄에 놓인 inline 상자의 세로 자리 — Preview 와 같은 baseline · strut · middle] - 2026-11-02
+
+### Fixed
+
+- **block 안 같은 줄의 Button 옆 Badge 가 Canvas 에서만 3.75px 아래에 놓이던 것** (Compare Mode: CSS y 24.24 · Canvas 28 → 24.25). **Why**: 엔진은 inline 상자를 글자 baseline 으로 줄에 맞추는 입력 (`leafBaseline` · 컨테이너 strut `lineHeight` · `strutBaseline`) 을 받지만, 그 값을 넣던 옛 TS 레이아웃 파이프라인 (`fullTreeLayout`, 2026-09-26) 이 2026-10-05 삭제될 때 catalog `styleOf` 로 옮겨지지 않았다 — baseline 이 없는 상자는 바닥으로 정렬된다 (CSS 2.1 §10.8.1 폴백). `styleOf` (`compositionRoot.ts`) 가 글자 leaf 의 첫 줄 baseline 과 flow 컨테이너의 strut 을 다시 싣는다. strut 의 글자 크기 · 굵기는 CSS 처럼 상속한다 — DOM 이 그 상자에 쓰는 값 (저작 값 · 생성 시트의 크기 값) 이 없으면 가장 가까운 조상의 것 (`domFont` — frame 의 rule 기본 16 은 DOM 에 쓰이지 않아 상속을 끊지 않는다). 글꼴 값은 Canvas 가 그리는 CanvasKit Pretendard 에서 읽는다 (`catalogTextMeasure.fontBox`) — builder 문서의 Canvas 2D 는 글꼴 로딩 전 대체 글꼴 값을 줘 0.5px 가 남았다.
+- **Button 의 `vertical-align: middle` 이 Canvas 에 없던 것** — 수동 `Button.css` 에만 있어 엔진은 Button 을 baseline 으로 놓았다. Button rule 의 root 상자 (`containerStyles.verticalAlign`) 로 옮겨 생성 CSS 와 엔진이 같은 값을 읽는다. 엔진의 `middle` 은 x-height 를 0 으로 두었다 — 부모 글꼴의 x-height 입력 (`strutXHeight`, Rust `NodeStyle` 58 필드) 으로 margin box 중심을 baseline 위 x-height/2 에 둔다 (`block.rs` `line_metrics`).
+
 ## [Canvas 글자 세로 자리 · 글자 편집 상자 테두리 — Preview 와 같은 줄 상자] - 2026-11-02
 
 ### Fixed
