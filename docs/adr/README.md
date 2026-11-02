@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-11-03 ADR-300 Phase 3 닫힘 (G3 · G4)** — Canvas 가 SideNav 가족을 Preview 와 같은 모양으로 그린다 (행 배치 · 들여쓰기 · 현재 막대 · 행 글자 형 · 펼침 chevron · 접힌 rail 42, 값은 DOM 이 쓰는 같은 rule 선언). 사용자 결정 1 의 Canvas 쪽 = 그려지는 page 의 route. G3 harness 12/12 (fixture 8 + 작성 색 + 증분 arm 3, 장면 패치 = 새 bind) · 원복 RED 10/10 · 결함 2 수리 (chevron glyph 행 색). Builder 1,410,880 → ADR-201 상한 1,414,000 재승인 (사용자 사전 승인). 열림 · 합계 변화 없음.
+
 > **2026-11-02 ADR-300 Phase 2 닫힘 (G2 · G4)** — Preview DOM: 설치 RAC `NavigationTree` 부품으로 SideNav · SideNavPanel 을 그린다 (`sideNav.components.tsx` — lazy chunk, 사용자 결정 5: eager 배선이 Builder 1,411,819 로 상한 초과 → 분리 뒤 1,409,737). 결정 1 = 세션 경로가 `selectedRoute` 기본값 · 결정 2 = DOM 이 S2 동작 (Panel 폭 200 ms · 행 · 머리 view transition). G2 구조 대조 3 arm · 키보드 · 접기/펴기 live PASS. 배포 workflow 에 ADR-201 절대 상한 단계 추가 (G4 a). Builder 여유 263 B. 열림 · 합계 변화 없음.
 
 > **2026-11-02 ADR-300 Phase 1 닫힘 (G1)** — 문서 · catalog: SideNav 7 type (binding 한 파일 `SideNav.binding.ts` · entry · traits · nesting · rule 7 · 생성 CSS 6) · origin 3 (`component-sidenavpanel` · `-sidenav` · `-sidenavitem` — 팔레트 밖, Phase 4 사용자 결정 3) · contract 54 · Decision 3 다섯 층 (조건 키 `isCollapsed` · `isCurrent` → `:is([data-side-panel-collapsed], [data-side-panel-collapsed] *)` · `catalogSideNavDerived` · `catalogSideNavHidden` · `catalogSideNavDependents`). 사용자 결정 4 = 권고 (자유 내용 + grid 칸). D2 확장 0 (`d2S2Alignment` PASS · 원복 RED) · G1 단위 9 (원복 RED). 열림 · 합계 변화 없음.

@@ -27,6 +27,7 @@
   padding: 0px 0px;
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-sm--line-height);
   min-height: calc(var(--catalog-token-size-unit) * 32 / 1);
 }
 

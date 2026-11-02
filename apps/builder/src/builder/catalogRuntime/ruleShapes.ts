@@ -38,6 +38,7 @@ import {
   catalogToastIcon,
 } from "../../../../../packages/shared/src/catalog/document/toastChrome";
 import { catalogBoxModel } from "../../../../../packages/shared/src/catalog/runtime/boxModel";
+import { catalogSideNavIndicator } from "../../../../../packages/shared/src/catalog/runtime/sideNav";
 import { catalogToggleIndicatorMetrics } from "../../../../../packages/shared/src/catalog/document/rulePartRules";
 import {
   CHILD_PROP_MERGE_TYPES,
@@ -176,6 +177,7 @@ export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
     ...linkOutShapes(input),
     ...inlineAlertIconShapes(input),
     ...catalogToastChromeShapes(input),
+    ...sideNavIndicatorShapes(input),
   ];
   const quiet = catalogQuietStyles(input.rule, input.node.props, input.state);
   if (!quiet) return invalidBorder(input, shapes);
@@ -326,6 +328,29 @@ function inlineAlertIconShapes(input: CatalogRuleShapeInput): Shape[] {
       fontSize: icon.size,
       fill: color,
       strokeWidth: 2,
+    } as Shape,
+  ];
+}
+
+/**
+ * ADR-300 — S2 SideNav's current-route bar on a current Canvas row (its SideNavItemContent): the
+ * SideNavItem rule's `::before` (`catalogSideNavIndicator`), centred on the row, fully rounded.
+ */
+function sideNavIndicatorShapes(
+  input: Pick<CatalogRuleShapeInput, "type" | "node" | "rect" | "theme">,
+): Shape[] {
+  if (input.type !== "SideNavItemContent") return [];
+  const bar = catalogSideNavIndicator(input.node);
+  if (!bar) return [];
+  return [
+    {
+      type: "roundRect",
+      x: bar.x,
+      y: (input.rect.height - bar.height) / 2,
+      width: bar.width,
+      height: bar.height,
+      radius: bar.width / 2,
+      fill: cssVarColor(bar.color, input.theme ?? "light") as string,
     } as Shape,
   ];
 }

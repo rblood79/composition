@@ -19,6 +19,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RichText의 첫 줄 baseline은 측정한 첫 줄에서만 계산하고, 폭 변경 후 줄바꿈 측정의 baseline도 엔진 입력에 전달한다. 뒤쪽 줄의 큰 글자가 첫 줄 정렬을 바꾸지 않는다.
 - Canvas 장식선 두께를 Chrome의 device pixel 내림 처리와 맞췄다. G2는 실제 Preview의 transform 확대 방식과 절대 오차 0.5px 기준을 사용하며, 첫 편집 진입 시간을 production 빌드에서 기록했다.
 
+## [SideNav 가족 — ADR-300 Phase 3 (Canvas)] - 2026-11-03
+
+### Added
+
+- **SideNav · SideNavPanel 을 Canvas 에서도 Preview 와 같은 모양으로 그린다** — 행 높이 · 들여쓰기 · 아이콘 간격, 현재 경로 행은 굵게 + 왼쪽 막대 (`selectedRoute` 를 비우면 그 page 의 경로), 펼친 항목의 chevron 은 아래로, 접은 패널은 아이콘 줄 (폭 42 — 글자 · 머리 · 하위 숨김). 행 글자는 행의 크기 · 굵기 · 색을 따르고 (글자에 색을 직접 주면 색만 그 값).
+  - 위치: [docs/adr/300-sidenav-navigation-tree.md](adr/300-sidenav-navigation-tree.md)
+
+### Fixed
+
+- Preview 에서 SideNav 펼침 chevron 이 행 색이 아니라 기본 글자색 (또는 흰색) 으로 그려지던 것 — S2 처럼 행 색을 따른다.
+
+### Changed
+
+- 첫 화면 번들 상한 (ADR-201) Builder 1,410,000 → 1,414,000 B 재승인 (만료 2026-11-25 그대로) — SideNav Canvas 그리기는 첫 화면 동기 경로라 lazy 로 뺄 수 없다 (Builder 1,410,880).
+
 ## [SideNav 가족 — ADR-300 Phase 2 (Preview DOM)] - 2026-11-02
 
 ### Added

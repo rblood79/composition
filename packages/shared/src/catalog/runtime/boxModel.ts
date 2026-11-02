@@ -284,22 +284,32 @@ export function catalogTextMetrics(
 ): CatalogTextMetrics {
   const inheritsSlot =
     node.visual.fontSize === undefined && parent?.bindingId === "slot";
+  // (An owner-derived type — a SideNav row's Text, ADR-300 — over its own.)
   const fontSize = Number(
-    (inheritsSlot ? parent.visual.fontSize : node.visual.fontSize) ?? 16,
+    (inheritsSlot
+      ? parent.visual.fontSize
+      : (node.derivedProps?.fontSize ?? node.visual.fontSize)) ?? 16,
   );
   if (!Number.isFinite(fontSize) || fontSize <= 0)
     throw new Error(`CATALOG_TEXT_FONT_SIZE_UNSUPPORTED:${node.id}`);
   const lineHeight = inheritsSlot
     ? (parent.visual.lineHeight ?? parent.inheritedText?.lineHeight)
-    : (node.visual.lineHeight ?? node.inheritedText?.lineHeight);
+    : (node.derivedProps?.lineHeight ??
+      node.visual.lineHeight ??
+      node.inheritedText?.lineHeight);
   return {
     ...catalogTextTypography(node),
     fontSize,
     ...(lineHeight !== undefined ? { lineHeight: Number(lineHeight) } : {}),
     ...(node.derivedProps?._isLast === true
       ? { fontWeight: catalogCurrentTextWeight("Breadcrumb") ?? 600 }
-      : node.visual.fontWeight !== undefined
-        ? { fontWeight: Number(node.visual.fontWeight) }
+      : (node.derivedProps?.fontWeight ?? node.visual.fontWeight) !== undefined
+        ? {
+            // (An owner-derived weight — a current SideNav row's Text, ADR-300.)
+            fontWeight: Number(
+              node.derivedProps?.fontWeight ?? node.visual.fontWeight,
+            ),
+          }
         : {}),
     // The current Link's `[data-current] { color: var(--breadcrumb-accent) }` (= `--accent`); a
     // Tab/Tag label's item color (`color: inherit` — the root derives it from the item's paint).

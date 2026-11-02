@@ -1,3 +1,5 @@
+import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
+import { evaluateConditionTree } from "../rule/conditionTree";
 import { resolveStaticItemKey } from "../slotRoles";
 import type { CatalogConsumerNode } from "./compositionRoot";
 
@@ -125,13 +127,22 @@ export function catalogSideNavChildItems(
     );
 }
 
-/** The route a nav marks — its `selectedRoute` (the page route default comes with Phase 2). */
+/**
+ * The route a nav marks — its `selectedRoute`, else the shown page's route (user decision 1: the
+ * Preview's path — `CatalogCurrentRouteContext`; the Canvas's, the page the nav is drawn on).
+ */
 export function catalogSideNavRoute(
   nav: CatalogConsumerNode,
+  shownRoute?: CatalogSideNavShownRoute,
 ): string | undefined {
   const route = nav.props.selectedRoute;
-  return typeof route === "string" && route ? route : undefined;
+  return typeof route === "string" && route ? route : shownRoute?.(nav);
 }
+
+/** The route of the page a record is drawn on (the composition root's page). */
+export type CatalogSideNavShownRoute = (
+  node: CatalogConsumerNode,
+) => string | undefined;
 
 /** RAC `isCurrent` · `isCurrentAncestor` of an item for a route. */
 export function catalogSideNavItemCurrent(
@@ -237,33 +248,219 @@ export function catalogSideNavDerived(
   node: CatalogConsumerNode,
   get: Lookup,
   typeOf: TypeOf,
-): Record<string, boolean | number> | undefined {
+  shownRoute?: CatalogSideNavShownRoute,
+): Record<string, boolean | number | string> | undefined {
   const panel = catalogSideNavPanelOf(node, get, typeOf);
   const collapsed = !!panel && catalogSideNavPanelCollapsed(panel);
   const type = typeOf(node);
-  const out: Record<string, boolean | number> = {};
+  const out: Record<string, boolean | number | string> = {};
   if (collapsed) out._sideNavCollapsed = true;
-  if (type === ITEM) {
-    const nav = catalogSideNavOf(node, get, typeOf);
+  const marked = (item: CatalogConsumerNode) => {
+    const nav = catalogSideNavOf(item, get, typeOf);
     const { isCurrent, isCurrentAncestor } = catalogSideNavItemCurrent(
-      node,
+      item,
       get,
       typeOf,
-      nav && catalogSideNavRoute(nav),
+      nav && catalogSideNavRoute(nav, shownRoute),
     );
-    if (
+    return (
       isCurrent ||
-      (isCurrentAncestor && !catalogSideNavItemExpanded(node, get, typeOf))
-    )
-      out._sideNavCurrent = true;
+      (isCurrentAncestor && !catalogSideNavItemExpanded(item, get, typeOf))
+    );
+  };
+  if (type === ITEM) {
+    if (marked(node)) out._sideNavCurrent = true;
     out._sideNavLevel = catalogSideNavItemLevel(node, get, typeOf);
   }
+  // (Its row on the Canvas — the current-route bar is drawn on it, `catalogSideNavIndicator`.)
   if (type === "SideNavItemContent") {
     const item = get(node.parentId);
-    if (item && typeOf(item) === ITEM)
+    if (item && typeOf(item) === ITEM) {
       out._sideNavLevel = catalogSideNavItemLevel(item, get, typeOf);
+      if (marked(item)) out._sideNavCurrent = true;
+    }
   }
+  // (An open item's chevron turns 90° — the DOM's `rotate(90deg)`; the Canvas draws the turned
+  //  glyph, as the Disclosure's.)
+  const chevronOf = catalogSideNavChevronGlyphItem(node, get, typeOf);
+  if (
+    chevronOf &&
+    node.props.iconName === "chevron-right" &&
+    catalogSideNavItemExpanded(chevronOf, get, typeOf)
+  )
+    out.iconName = "chevron-down";
   return Object.keys(out).length ? out : undefined;
+}
+
+/** The S2 SideNav rules the Canvas reads (`structure` · state trees). */
+const RULES = COMPONENT_RULES_TABLE as unknown as Record<
+  string,
+  | {
+      structure?: {
+        containerStyles?: Record<string, unknown>;
+        stateStyles?: Record<string, unknown>;
+      };
+    }
+  | undefined
+>;
+const px = (value: unknown): number => Number.parseFloat(String(value)) || 0;
+
+/**
+ * The Canvas layout a SideNav part takes from its place (the DOM's inline style · selectors): a
+ * collapsed panel's width (the panel rule's `isCollapsed` width beats an authored one, as S2's inline
+ * `--collapsedWidth`), a row's start padding at its level (`12 + (level − 1) × --indent` — S2
+ * `treeCellGrid`) and its collapsed end, and a collapsed row icon's end margin (S2 `isCollapsed: 0`).
+ */
+export function catalogSideNavPartLayout(
+  node: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
+): Record<string, string | number> | undefined {
+  const type = typeOf(node);
+  if (type === "SideNavPanel")
+    return catalogSideNavPanelCollapsed(node)
+      ? {
+          width: String(
+            evaluateConditionTree(
+              RULES.SideNavPanel?.structure?.stateStyles?.width as never,
+              { isCollapsed: true },
+            ),
+          ),
+        }
+      : undefined;
+  if (type === "SideNavItemContent") {
+    const item = get(node.parentId);
+    if (!item || typeOf(item) !== ITEM) return undefined;
+    const row = RULES.SideNavItemContent?.structure;
+    const indent = px(RULES.SideNav?.structure?.containerStyles?.["--indent"]);
+    const level = catalogSideNavItemLevel(item, get, typeOf);
+    return {
+      paddingLeft: `${px(row?.containerStyles?.paddingLeft) + (level - 1) * indent}px`,
+      // (The end too: the rule's box keys reach the engine as one horizontal padding.)
+      paddingRight: catalogSideNavCollapsed(node, get, typeOf)
+        ? collapsedPart("& .react-aria-SideNavItem%", "paddingInlineEnd")
+        : String(row?.containerStyles?.paddingRight),
+    };
+  }
+  // S2 `SideNavSection` `marginTop: 24` from the second on (the SideNav rule's `:not(:first-child)`
+  //  margin) — on the Canvas over the nav's column gap, which the DOM turns off.
+  if (type === "SideNavSection") {
+    const parent = get(node.parentId);
+    if (!parent || parent.children[0] === node.id) return undefined;
+    const nav = RULES.SideNav as
+      | {
+          structure?: {
+            containerStyles?: Record<string, unknown>;
+            composition?: {
+              staticSelectors?: Record<string, Record<string, string>>;
+            };
+          };
+        }
+      | undefined;
+    const margin =
+      nav?.structure?.composition?.staticSelectors?.[
+        ".react-aria-SideNavSection:not(:first-child)"
+      ]?.["margin-top"];
+    const gap =
+      typeOf(parent) === "SideNav"
+        ? px(nav?.structure?.containerStyles?.gap)
+        : 0;
+    return { marginTop: `${px(margin) - gap}px` };
+  }
+  // The row's nodes (S2 `treeIcon` · `treeContent` · `expandButton`): the DOM row's declarations
+  //  (`SideNavItem` rule — RAC's gridcell is `display: contents`), the Canvas row being the content.
+  const rowPart = (selector: string) =>
+    rowItemOf(node, get, typeOf) && engineStyle(ROW_PARTS[selector]);
+  if (type === "Button" && node.props.slot === "chevron")
+    return rowPart(CHEVRON) || undefined;
+  if (type === "Icon" && !catalogSideNavChevronGlyphItem(node, get, typeOf)) {
+    const placed = rowPart("& > [role=gridcell] > .react-aria-Icon");
+    if (!placed) return undefined;
+    return catalogSideNavCollapsed(node, get, typeOf)
+      ? {
+          ...placed,
+          marginRight: collapsedPart(
+            "& .react-aria-SideNavItem .react-aria-Icon%",
+            "marginInlineEnd",
+          ),
+        }
+      : placed;
+  }
+  if (type === "SideNavItemLink")
+    return (
+      rowPart("& > [role=gridcell] > .react-aria-SideNavItemLink") || undefined
+    );
+  if (type === "Text")
+    return rowPart("& > [role=gridcell] > .react-aria-Text") || undefined;
+  return undefined;
+}
+
+const CHEVRON = '& > [role=gridcell] > .react-aria-Button[slot="chevron"]';
+/** A collapsed panel's value for a part (the SideNavPanel rule's `partStateStyles` — the DOM's too). */
+function collapsedPart(selector: string, key: string): string {
+  const states = (
+    COMPONENT_RULES_TABLE.SideNavPanel as unknown as {
+      partStateStyles: Record<string, Record<string, unknown>>;
+    }
+  ).partStateStyles[selector]?.[key];
+  return String(evaluateConditionTree(states as never, { isCollapsed: true }));
+}
+/** The SideNavItem rule's row-part declarations (its DOM `rootSelectors`). */
+const ROW_PARTS = (
+  COMPONENT_RULES_TABLE.SideNavItem as unknown as {
+    structure: {
+      composition: {
+        rootSelectors: Record<string, { styles: Record<string, string> }>;
+      };
+    };
+  }
+).structure.composition.rootSelectors;
+/** CSS declarations as engine layout keys (a row part's box — `margin-inline-end` is ltr's right). */
+function engineStyle(
+  block: { styles: Record<string, string> } | undefined,
+): Record<string, string | number> | undefined {
+  if (!block) return undefined;
+  const out: Record<string, string | number> = {};
+  for (const [key, value] of Object.entries(block.styles)) {
+    const name =
+      key === "margin-inline-end"
+        ? "marginRight"
+        : key.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
+    // (The engine's flex factors are numbers, lengths strings — `styleOf`'s contract.)
+    if (ENGINE_KEYS.has(name))
+      out[name] = name.startsWith("flex") ? Number(value) : value;
+  }
+  // (`all: unset` — the button's own box: no padding · border of the Button rule.)
+  if (block.styles.all === "unset")
+    Object.assign(out, {
+      minWidth: "0px",
+      minHeight: "0px",
+      paddingTop: "0px",
+      paddingRight: "0px",
+      paddingBottom: "0px",
+      paddingLeft: "0px",
+    });
+  return out;
+}
+const ENGINE_KEYS = new Set([
+  "display",
+  "alignItems",
+  "justifyContent",
+  "width",
+  "height",
+  "minWidth",
+  "flexGrow",
+  "flexShrink",
+  "marginRight",
+]);
+
+/** A current row's weight (the SideNavItem rule's `isCurrent` weight — S2 bold). */
+export function catalogSideNavCurrentWeight(): number | undefined {
+  const weight = evaluateConditionTree(
+    RULES.SideNavItem?.structure?.stateStyles?.fontWeight as never,
+    { isCurrent: true },
+  );
+  return weight === undefined ? undefined : Number(weight);
 }
 
 /**
@@ -335,4 +532,41 @@ export function catalogSideNavDependents(
   };
   visit(scope);
   return out;
+}
+
+/**
+ * S2 `indicator` — the current-route bar of a Canvas row (its SideNavItemContent, derived
+ * `_sideNavCurrent` · `_sideNavLevel`): the SideNavItem rule's `::before` box (its width · height ·
+ * start `(level − 1) × --indent + N`) in its `isCurrent` color, centred on the row. Undefined when the
+ * row is not current (the hovered bar is a DOM interaction).
+ */
+export function catalogSideNavIndicator(
+  row: Pick<CatalogConsumerNode, "derivedProps">,
+): { x: number; width: number; height: number; color: string } | undefined {
+  const derived = row.derivedProps;
+  if (derived?._sideNavCurrent !== true) return undefined;
+  const rule = COMPONENT_RULES_TABLE.SideNavItem as unknown as {
+    structure: {
+      composition: {
+        rootSelectors: Record<string, { styles: Record<string, string> }>;
+      };
+    };
+    partStateStyles: Record<string, Record<string, unknown>>;
+  };
+  const box = rule.structure.composition.rootSelectors["&::before"]!.styles;
+  const color = evaluateConditionTree(
+    rule.partStateStyles["&%::before"]!.background as never,
+    { isCurrent: true },
+  );
+  const start = /\+\s*(\d+(?:\.\d+)?)px\)$/.exec(
+    box["inset-inline-start"] ?? "",
+  );
+  const indent = px(RULES.SideNav?.structure?.containerStyles?.["--indent"]);
+  const level = Number(derived._sideNavLevel ?? 1);
+  return {
+    x: (level - 1) * indent + px(start?.[1]),
+    width: px(box.width),
+    height: px(box.height),
+    color: String(color),
+  };
 }

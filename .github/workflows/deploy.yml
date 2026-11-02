@@ -90,7 +90,7 @@ jobs:
       # 필요해 여기서 돌리지 않는다).
       - name: Initial bundle ceiling (ADR-201)
         env:
-          BUILDER_CEILING: "1410000"
+          BUILDER_CEILING: "1414000"
           PREVIEW_CEILING: "325000"
         run: |
           node apps/builder/scripts/adr209-bundle-closure.mjs --repo . --dist apps/builder/dist --entry index.html --label builder --out /tmp/bundle-builder.json

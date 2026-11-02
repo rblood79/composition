@@ -1,5 +1,6 @@
 import type { CanvasSceneNode } from "../workspace/canvas/scene/canvasSceneNodeTypes";
 import { catalogDisclosureBorders } from "../../../../../packages/shared/src/catalog/runtime/disclosureBorders";
+import { catalogSideNavChevronItem } from "../../../../../packages/shared/src/catalog/runtime/sideNav";
 import {
   getIconData,
   getSkiaPrimitiveMode,
@@ -469,7 +470,9 @@ const glyph: Binding = (node, rect) => {
 function canvasTextRuns(
   node: CatalogConsumerNode,
   textTransform: string | undefined,
-): Pick<NonNullable<SkiaNodeData["text"]>, "runs" | "ancestorDecoration"> | undefined {
+):
+  | Pick<NonNullable<SkiaNodeData["text"]>, "runs" | "ancestorDecoration">
+  | undefined {
   if (typeof node.derivedProps?.children === "string") return undefined;
   const styles = catalogTextRunStyles(
     node.textRuns,
@@ -487,7 +490,9 @@ function canvasTextRuns(
     runs: styles.map((style) => ({
       start: style.start,
       end: style.end,
-      ...(style.fontWeight !== undefined ? { fontWeight: style.fontWeight } : {}),
+      ...(style.fontWeight !== undefined
+        ? { fontWeight: style.fontWeight }
+        : {}),
       ...(style.fontStyle === "italic"
         ? { fontStyle: 1 }
         : style.fontStyle === "oblique"
@@ -1171,7 +1176,15 @@ function paintedNodeData(
           root,
           node,
           OWNER_DRAWN_PART_OWNERS[root.typeOf(node)]
-              ? ownerDrawnPartNodeData(root, node, rect)
+            ? ownerDrawnPartNodeData(root, node, rect)
+            : // (ADR-300: a SideNav row's chevron button is the `SideNavItem` rule's `all: unset`
+              //  box — no Button paint; its glyph draws itself.)
+              catalogSideNavChevronItem(
+                  node,
+                  (id) => root.canvasInputs.get(id),
+                  root.typeOf,
+                )
+              ? container(node, rect)
               : binding &&
                   // (ADR-259 Phase 2: a prefix box Group draws the Input rule's box — not a Group's.)
                   !catalogFieldBox(
@@ -1195,6 +1208,26 @@ function paintedNodeData(
   );
 }
 
+/**
+ * A record's Canvas paint as the scene draws it (`paintedNodeData` — its binding or its rule), for
+ * the G3 harnesses that hold it against the Preview DOM (ADR-300).
+ */
+export function catalogCanvasNodeData(
+  root: CatalogCompositionRoot,
+  id: string,
+): SkiaNodeData {
+  const node = root.canvasInputs.get(id);
+  const rect = root.getGeometry([id]).get(id);
+  if (!node || !rect) throw new Error(`CATALOG_CANVAS_LAYOUT_REQUIRED:${id}`);
+  const bindingId = bindingKey(node);
+  return paintedNodeData(
+    root,
+    node,
+    rect,
+    bindingId ? bindings[bindingId] : undefined,
+    root.canvasInputs.get(node.parentId),
+  );
+}
 
 /**
  * S2 Disclosure: its top · bottom border as the box's side strokes (`catalogDisclosureBorders` —

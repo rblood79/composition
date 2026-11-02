@@ -26,6 +26,7 @@
   padding: 0px 0px;
   font-size: var(--catalog-token-text-xs);
   border-radius: ;
+  line-height: var(--catalog-token-text-xs--line-height);
   font-weight: 500;
 }
 

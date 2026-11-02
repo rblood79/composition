@@ -38,6 +38,7 @@ import {
   catalogSideNavHidden,
   catalogSideNavPanelOf,
   catalogSideNavOf,
+  type CatalogSideNavShownRoute,
 } from "./sideNav";
 import { CATALOG_INHERITED_RECEIVERS } from "./providerContexts";
 import { RAC_SLOT_PROVIDERS } from "../generated/racSlotProviders";
@@ -1911,6 +1912,8 @@ export function catalogDerivedProps(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
   locale?: string,
+  // (ADR-300 user decision 1: the shown page's route — a SideNav without `selectedRoute` marks it.)
+  shownRoute?: CatalogSideNavShownRoute,
 ): Readonly<Record<string, string | number | boolean>> | undefined {
   const control = ownDerivedProps(node, get, typeOf, locale);
   // The box of a quiet field shows its own quiet state (`fieldBoxOfQuietField`); a box the field's
@@ -2044,7 +2047,7 @@ export function catalogDerivedProps(
   const fieldButton = catalogFieldButtonSize(node, get, typeOf);
   const buttoned = fieldButton ? { ...stuck, fieldButton } : stuck;
   // (ADR-300: a SideNav part's collapse · current · level — `catalogSideNavDerived`.)
-  const sideNav = catalogSideNavDerived(node, get, typeOf);
+  const sideNav = catalogSideNavDerived(node, get, typeOf, shownRoute);
   return sideNav ? { ...buttoned, ...sideNav } : buttoned;
 }
 

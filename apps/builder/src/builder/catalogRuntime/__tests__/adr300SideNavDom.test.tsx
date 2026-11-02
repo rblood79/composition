@@ -274,9 +274,11 @@ describe("ADR-300 G2 — the SideNav DOM is the installed RAC's", () => {
     )!;
     expect(chevron.className).toBe("react-aria-Button");
     expect(chevron.getAttribute("style") ?? "").not.toMatch(/padding|border-radius/);
+    // (Its glyph is S2's `currentColor` — the row's through the button; the Icon sheet's own `--fg`
+    //  would win over an inherited color, so the glyph inherits inline — Phase 3 G3.)
     expect(
       chevron.querySelector<HTMLElement>(".react-aria-Icon")!.style.color,
-    ).toBe("");
+    ).toBe("inherit");
   });
 
   it("the collapse button collapses and expands the panel (the content after the width)", async () => {

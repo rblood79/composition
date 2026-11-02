@@ -15910,7 +15910,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       archetype: "container",
       element: "div",
       // S2 `--collapsedWidth` 42 — the DOM binding and the Canvas both read this value
-      //   (`catalogSideNavPanelCollapsedWidth`): it beats an authored width as S2's inline style does.
+      //   (`catalogSideNavPartLayout`): it beats an authored width as S2's inline style does.
       stateStyles: { width: { isCollapsed: "42px" } },
       // S2 `sideNavPanelStyle`: a column — the nav fills it, the collapse button stays below.
       containerStyles: {
@@ -16056,6 +16056,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         minHeight: scaled(32),
         fontSize: "{typography.text-sm}",
+        lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.sm}",
         indentPerLevel: 16,
       },
@@ -16182,7 +16183,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       element: "div",
       skipCSSGeneration: true,
       // The Canvas row (the DOM's gridcell — `SideNavItem` rule): S2 `treeCellGrid` as a flex line —
-      //   `paddingStart` 12 + level indent (`catalogSideNavItemIndent`), `paddingEnd` 4.
+      //   `paddingStart` 12 + level indent, `paddingEnd` 4 — collapsed, the SideNavPanel rule's 0
+      //   (`catalogSideNavPartLayout` reads both).
       containerStyles: {
         display: "flex",
         flexDirection: "row",
@@ -16265,6 +16267,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       M: {
         height: scaled(16),
         fontSize: "{typography.text-xs}",
+        lineHeight: "{typography.text-xs--line-height}",
         fontWeight: 500,
       },
     },

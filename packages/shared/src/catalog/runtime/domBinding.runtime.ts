@@ -3815,9 +3815,7 @@ export function renderNode(
       // (A calendar nav Button's chevron takes the Button's `--fg` — ADR-256 Phase 9.)
       catalogCalendarNavButtonGlyph(node, domGet, domType) ||
       // (A Tag's remove X takes the Tag's color through its button — `TagGroup.css`.)
-      catalogItemRemoveGlyphItem(node, domGet, domType) ||
-      // (A SideNav row's chevron glyph takes the row's — the `SideNavItem` rule's button.)
-      catalogSideNavChevronGlyphItem(node, domGet, domType))
+      catalogItemRemoveGlyphItem(node, domGet, domType))
       ? {
           ...node,
           visual: withTokenRefs(
@@ -3829,10 +3827,14 @@ export function renderNode(
       : undefined;
   const toggleColored =
     node.bindingId === "icon" &&
-    !catalogHasAuthoredColor(root, node) &&
-    (catalogToggleButtonGlyphOwner(node, domGet, domType) ||
-      // (ADR-300 — a SideNav row's icon is S2's `currentColor`: the row's, current included.)
-      catalogSideNavRowItemOf(node, domGet, domType))
+    // (ADR-300 — a SideNav row's chevron glyph is S2's `currentColor`, the row's: always — the
+    //  Button's part rule colors an icon in it, which reads as a write. The Icon sheet's own `--fg`
+    //  would win over the button's inherit.)
+    (catalogSideNavChevronGlyphItem(node, domGet, domType) ||
+      (!catalogHasAuthoredColor(root, node) &&
+        (catalogToggleButtonGlyphOwner(node, domGet, domType) ||
+          // (A SideNav row's icon: the row's color, current included.)
+          catalogSideNavRowItemOf(node, domGet, domType))))
       ? withInheritedIconColor(node)
       : undefined;
   const rendered = helpOwner

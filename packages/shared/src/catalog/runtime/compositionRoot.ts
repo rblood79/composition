@@ -213,6 +213,13 @@ import {
   catalogTreeItemLayout,
   catalogTreeChevrons,
 } from "./presence";
+import {
+  catalogSideNavChevronGlyphItem,
+  catalogSideNavCurrentWeight,
+  catalogSideNavPartLayout,
+  catalogSideNavRowItemOf,
+  catalogSideNavTextOwner,
+} from "./sideNav";
 import { catalogChildOrder } from "./calendarModel";
 import {
   catalogRecordVariables,
@@ -386,6 +393,29 @@ const ownsTextDefault = (node: CatalogConsumerNode, key: string): boolean =>
   // (A button is an atomic inline-level box: an ancestor's text-decoration stops at it.)
   ((node.bindingId === "button" || node.bindingId === "togglebutton") &&
     key === "textDecoration");
+/**
+ * ADR-300 — the type a SideNav row's · header's Text takes from its owner (the record `derivedProps`
+ * the text measure and the Canvas paint read): the owner's size and line height, its weight — a
+ * current row's the SideNavItem rule's `isCurrent` weight. Keys the Text writes are left out.
+ */
+function sideNavText(
+  authored: Readonly<Record<string, unknown>>,
+  owner: CatalogConsumerNode,
+  current: boolean,
+): Record<string, number> {
+  const out: Record<string, number> = {};
+  const weight = current
+    ? catalogSideNavCurrentWeight()
+    : owner.visual.fontWeight;
+  for (const [key, value] of [
+    ["fontSize", owner.visual.fontSize],
+    ["lineHeight", owner.visual.lineHeight],
+    ["fontWeight", weight],
+  ] as const)
+    if (authored[key] === undefined && Number(value) > 0)
+      out[key] = Number(value);
+  return out;
+}
 function inheritedTextOf(
   node: CatalogConsumerNode,
   get: (id: string) => CatalogConsumerNode | undefined,
@@ -859,8 +889,14 @@ function textLeaf(
     ? applyTextTransform(own + suffix, typography.textTransform)
     : own;
   if (!text) return undefined;
-  const fontSize = Number(node.visual.fontSize);
-  const lineHeight = Number(node.visual.lineHeight ?? inheritedLineHeight ?? 0);
+  // (An owner-derived type — a SideNav row's Text, ADR-300 — over its own.)
+  const fontSize = Number(node.derivedProps?.fontSize ?? node.visual.fontSize);
+  const lineHeight = Number(
+    node.derivedProps?.lineHeight ??
+      node.visual.lineHeight ??
+      inheritedLineHeight ??
+      0,
+  );
   const runs = catalogTextRunStyles(
     node.textRuns,
     typography.textTransform,
@@ -885,7 +921,10 @@ function textLeaf(
     node.derivedProps?._isLast === true;
   // S2 Link `isStandalone` — the rule's standalone weight (its containerVariants, the value the
   // paint reads too); an authored weight (≠ the rule's 400) wins, as the DOM inline style wins.
-  const visualWeight = Number(node.visual.fontWeight ?? 400);
+  // (An owner-derived weight — a current SideNav row's Text, ADR-300 — over its own.)
+  const visualWeight = Number(
+    node.derivedProps?.fontWeight ?? node.visual.fontWeight ?? 400,
+  );
   const standaloneWeight =
     typeName === "Link" && node.props.isStandalone === true
       ? Number(
@@ -2366,7 +2405,11 @@ export class CatalogCompositionRoot {
     const rich = isRichText(authored.children);
     if (!props) {
       if (rich)
-        return withTextRuns({ ...rest, props: authored, templateProps: authored });
+        return withTextRuns({
+          ...rest,
+          props: authored,
+          templateProps: authored,
+        });
       return templateProps ? { ...rest, props: authored } : record;
     }
     const out = {
@@ -2857,10 +2900,18 @@ export class CatalogCompositionRoot {
     record: CatalogConsumerNode,
     get: (id: string) => CatalogConsumerNode | undefined,
   ): Readonly<Record<string, string | number | boolean>> | undefined {
+    const shownRoute = (node: CatalogConsumerNode) =>
+      this.pageRouteOf(node, get);
     const derived = this.withTableDrag(
       record,
       get,
-      catalogDerivedProps(record, get, this.typeOf, this.environmentLocale),
+      catalogDerivedProps(
+        record,
+        get,
+        this.typeOf,
+        this.environmentLocale,
+        shownRoute,
+      ),
     );
     // A Select's value shows its placeholder (the Canvas draws no selection): the Select sheet's
     // `[data-placeholder]` paint, unless the value authors its own color. The DOM leaves its color
@@ -2902,12 +2953,47 @@ export class CatalogCompositionRoot {
       get,
       this.typeOf,
     );
+    // (ADR-300: a SideNav row's Text · icon · chevron glyph and a header's Text take their row's ·
+    //  header's color — S2 `currentColor`; the DOM's `color: inherit`.)
+    //  (The chevron glyph always — the Button's part rule colors an icon in it, which reads as a
+    //  write; a TreeItem's chevron glyph is the same.)
+    const sideNavOwner =
+      catalogSideNavChevronGlyphItem(record, get, this.typeOf) ??
+      (catalogHasAuthoredColor(this, record)
+        ? undefined
+        : this.typeOf(record) === "Icon"
+          ? catalogSideNavRowItemOf(record, get, this.typeOf)
+          : this.typeOf(record) === "Text"
+            ? catalogSideNavTextOwner(record, get, this.typeOf)
+            : undefined);
+    // (A Text that writes its own color still takes its owner's type — the DOM inherits the size ·
+    //  weight · line height whatever the inline color.)
+    const typeOwner =
+      !sideNavOwner && this.typeOf(record) === "Text"
+        ? catalogSideNavTextOwner(record, get, this.typeOf)
+        : undefined;
+    if (typeOwner)
+      return {
+        ...derived,
+        ...sideNavText(
+          catalogAuthoredVisual(this, record),
+          typeOwner,
+          catalogDerivedProps(
+            typeOwner,
+            get,
+            this.typeOf,
+            this.environmentLocale,
+            shownRoute,
+          )?._sideNavCurrent === true,
+        ),
+      };
     const glyphItem =
       (toggleGlyphOwner && !catalogHasAuthoredColor(this, record)
         ? toggleGlyphOwner
         : undefined) ??
       catalogItemRemoveGlyphItem(record, get, this.typeOf) ??
-      catalogTreeChevronGlyphItem(record, get, this.typeOf);
+      catalogTreeChevronGlyphItem(record, get, this.typeOf) ??
+      sideNavOwner;
     const item = glyphItem ?? get(record.parentId);
     if (
       !item?.ruleId ||
@@ -2927,6 +3013,7 @@ export class CatalogCompositionRoot {
       get,
       this.typeOf,
       this.environmentLocale,
+      shownRoute,
     );
     const color = catalogRuleTextColor({
       node: itemDerived
@@ -2939,7 +3026,41 @@ export class CatalogCompositionRoot {
       // The item color in this root's color mode (its tokens differ in dark).
       theme: this.colorMode,
     });
-    return color === undefined ? derived : { ...derived, color };
+    // (A SideNav row's · header's Text takes its owner's type — S2 `font: ui` / `ui-sm`, the current
+    //  row bold: the DOM's `inherit`; a value the Text writes stays its own.)
+    const type =
+      sideNavOwner && this.typeOf(record) === "Text"
+        ? sideNavText(
+            catalogAuthoredVisual(this, record),
+            item,
+            itemDerived?._sideNavCurrent === true,
+          )
+        : undefined;
+    return color === undefined && !type
+      ? derived
+      : { ...derived, ...(color === undefined ? {} : { color }), ...type };
+  }
+  /**
+   * The route of the page a record is drawn on (ADR-300 user decision 1 — the Canvas's "shown
+   * path"): its page root's page. Undefined off a page (a component's definition view).
+   */
+  private pageRouteOf(
+    node: CatalogConsumerNode,
+    get: (id: string) => CatalogConsumerNode | undefined,
+  ): string | undefined {
+    let top = node;
+    const seen = new Set<string>();
+    for (
+      let cursor = get(node.parentId);
+      cursor && !seen.has(cursor.id);
+      cursor = get(cursor.parentId)
+    ) {
+      seen.add(cursor.id);
+      top = cursor;
+    }
+    const pageId = this.rootPage.get(top.sourceId as NodeId);
+    const page = pageId ? this.runtime.graph.getEntry(pageId) : undefined;
+    return page?.kind === "page" ? page.route : undefined;
   }
   /**
    * ADR-295 후속 — S2 / RAC Table draw a drag column first whenever the table drags
@@ -3164,7 +3285,9 @@ export class CatalogCompositionRoot {
     const chevron = record.hidden
       ? undefined
       : (catalogTreeChevronLayout(record, get, this.typeOf) ??
-        catalogTreeItemLayout(record, get, this.typeOf));
+        catalogTreeItemLayout(record, get, this.typeOf) ??
+        // (ADR-300: a SideNav row's level indent · a collapsed panel's width.)
+        catalogSideNavPartLayout(record, get, this.typeOf));
     const separator = record.hidden
       ? undefined
       : this.crumbSeparator(record, get);
