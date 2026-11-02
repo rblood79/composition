@@ -12,6 +12,7 @@ import {
   isRichText,
   richTextPlain,
   RICH_TEXT_HOST_TYPES,
+  TEXT_RUN_MARK_KEYS,
   type TextRunMarkKey,
 } from "../../../../../../../packages/shared/src/catalog/document/textRuns";
 import type {
@@ -31,14 +32,16 @@ import {
 
 /**
  * ADR-299 Decision 4 — the editor's input chunk (ProseMirror), loaded when an edit starts: the
- * initial bundle carries none of it (G1). Until it arrives the field is the plain textarea.
+ * initial bundle carries none of it (G1). Selection warms the chunk; while it loads, rich
+ * text keeps its marks in a read-only projection instead of a lossy plain textarea.
  */
 let editorLoaded = false;
+let editorPromise: Promise<typeof import("./textEditor/EditorField")> | undefined;
 const loadEditorField = () =>
-  import("./textEditor/EditorField").then((module) => {
+  (editorPromise ??= import("./textEditor/EditorField").then((module) => {
     editorLoaded = true;
     return module;
-  });
+  }));
 const EditorField = lazy(loadEditorField);
 import type { CatalogSelectionItem } from "../../../catalogRuntime/session";
 import { catalogTextBinding } from "../../../catalogRuntime/textBinding";
@@ -74,6 +77,19 @@ export function CatalogTextEditor({
     workspace.session.subscribe,
     () => workspace.session.getSnapshot().textEditing,
   );
+  const selection = useSyncExternalStore(
+    workspace.session.subscribe,
+    () => workspace.session.getSnapshot().selection,
+  );
+  useEffect(() => {
+    if (
+      selection.some((item) =>
+        catalogTextKey(workspace.root.domInputs.get(item.identity)),
+      )
+    ) {
+      void loadEditorField();
+    }
+  }, [selection, workspace]);
   if (!editing) return null;
   return (
     <TextField
@@ -130,6 +146,7 @@ function TextField({
     };
   });
   const fieldRef = useRef<HTMLTextAreaElement>(null);
+  const pendingRichRef = useRef<HTMLDivElement>(null);
   const committed = useRef(false);
   /** The fallback textarea's selection once keys went there (the editor opens with it). */
   const typedSelection = useRef<{ from: number; to: number } | undefined>(
@@ -284,10 +301,10 @@ function TextField({
     [],
   );
   useLayoutEffect(() => {
-    const field = fieldRef.current;
+    const field = fieldRef.current ?? pendingRichRef.current;
     if (!field) return;
     field.focus({ preventScroll: true });
-    field.select();
+    fieldRef.current?.select();
     // The field hugs the text from the first paint (its width is read from the DOM).
     measure(field, isUnwrapped(placeRef.current()?.text));
   }, []);
@@ -302,13 +319,15 @@ function TextField({
   const fontSize =
     text?.fontSize ??
     (Number(visual.fontSize) > 0 ? Number(visual.fontSize) : 16);
+  // Skia carries the node's resolved line height in px. CSS must retain its ratio:
+  // a px value would be inherited unchanged by every larger/smaller run in the PM editor.
   const lineHeight = text
     ? text.lineHeight !== undefined
-      ? `${text.lineHeight}px`
+      ? text.lineHeight / fontSize
       : "normal"
     : typeof visual.lineHeight === "number"
       ? visual.lineHeight > 4
-        ? `${visual.lineHeight}px`
+        ? visual.lineHeight / fontSize
         : visual.lineHeight
       : typeof visual.lineHeight === "string"
         ? visual.lineHeight
@@ -403,6 +422,14 @@ function TextField({
       (typeof visual.color === "string" ? visual.color : undefined),
     textAlign,
   };
+  const graph = workspace.runtime.graph;
+  const markCss = (key: TextRunMarkKey, value: unknown) =>
+    markCssOf(key, value, (id) => {
+      const token = graph.getToken(id as TokenUse["tokenId"]);
+      return token
+        ? catalogTokenValue(token, workspace.root.colorMode)
+        : undefined;
+    });
   const textarea = (
     <textarea
       ref={fieldRef}
@@ -439,23 +466,65 @@ function TextField({
       }}
     />
   );
-  const graph = workspace.runtime.graph;
+  // A textarea cannot represent runs: showing one causes a cold-start typography flash,
+  // and typing into it would replace the entire rich value with a string before PM mounts.
+  const fallback = start.rich && isRichText(draft.current) ? (
+    <div
+      ref={pendingRichRef}
+      className="catalog-text-editor"
+      data-testid="catalog-text-editor"
+      {...{ [TEXT_EDIT_SCOPE_ATTR]: "" }}
+      role="textbox"
+      aria-label="텍스트 편집기 준비 중"
+      aria-multiline="true"
+      aria-busy="true"
+      aria-readonly="true"
+      data-shortcut-local="undo redo"
+      tabIndex={0}
+      style={style}
+      onBlur={() => {
+        if (!editorLoaded) commit();
+      }}
+      onPointerDown={(event) => event.stopPropagation()}
+      onKeyDown={(event) => {
+        // This read-only loading surface still owns editing keys (Delete must not delete
+        // the selected Canvas node through a global shortcut).
+        event.stopPropagation();
+        if (
+          event.key === "Escape" ||
+          (event.key === "Enter" && (event.metaKey || event.ctrlKey))
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          commit();
+        }
+      }}
+    >
+      {draft.current.runs.map((run, index) => (
+        <span
+          key={index}
+          data-text-run={index}
+          style={Object.fromEntries(
+            TEXT_RUN_MARK_KEYS.flatMap((key) => {
+              const css = markCss(key, run.marks?.[key]);
+              return css === undefined ? [] : [[key, css]];
+            }),
+          )}
+        >
+          {run.text}
+        </span>
+      ))}
+    </div>
+  ) : textarea;
   return (
-    <Suspense fallback={textarea}>
+    <Suspense fallback={fallback}>
       <EditorField
         identity={item.identity}
         initial={draft.current}
         selection={typedSelection.current}
         rich={start.rich}
         nodeValues={nodeValuesOf(visual, start.record?.inheritedText)}
-        markCss={(key, value) =>
-          markCssOf(key, value, (id) => {
-            const token = graph.getToken(id as TokenUse["tokenId"]);
-            return token
-              ? catalogTokenValue(token, workspace.root.colorMode)
-              : undefined;
-          })
-        }
+        markCss={markCss}
         className="catalog-text-editor"
         style={{ ...style, overflow: "hidden", cursor: "text" }}
         onChange={(value, element) => {

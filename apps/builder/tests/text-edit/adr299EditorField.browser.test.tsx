@@ -77,7 +77,7 @@ async function mount(
     top: 40,
     width: 400,
     minHeight: 24,
-    font: "16px/24px sans-serif",
+    font: "16px/1.5 sans-serif",
     whiteSpace: "pre-wrap",
   };
   mounted.root = createRoot(host);
@@ -96,7 +96,9 @@ async function mount(
           fontSize: 16,
         },
         markCss: (_key, value) =>
-          typeof value === "number" ? String(value) : String(value),
+          _key === "fontSize" && typeof value === "number"
+            ? `${value}px`
+            : String(value),
         className: "catalog-text-editor",
         style,
         onChange: (value) => mounted.values.push(value),
@@ -126,11 +128,25 @@ async function selectRange(m: Mounted, from: number, to: number) {
   const editable = m.editable();
   editable.focus();
   const point = (offset: number): [Node, number] => {
-    const walker = document.createTreeWalker(editable, NodeFilter.SHOW_TEXT);
+    const walker = document.createTreeWalker(
+      editable,
+      NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+    );
     let left = offset;
     let node = walker.nextNode();
     let lastNode: Node | null = null;
     while (node) {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        if (node.nodeName === "BR") {
+          if (left === 0) {
+            const parent = node.parentNode!;
+            return [parent, Array.from(parent.childNodes).indexOf(node as ChildNode)];
+          }
+          left--;
+        }
+        node = walker.nextNode();
+        continue;
+      }
       const length = node.textContent!.length;
       if (left <= length) return [node, left];
       left -= length;
@@ -296,6 +312,24 @@ describe(`ADR-299 G4 — EditorField (${browser})`, () => {
     } finally {
       outside.remove();
     }
+  });
+
+  it("Enter lines with different sizes grow independently without overlapping", async () => {
+    const m = await mount("text");
+    await userEvent.keyboard("first{Enter}BIG{Enter}small");
+    await selectRange(m, 6, 9);
+    getTextEditorHandle()!.apply("fontSize", 64);
+    await selectRange(m, 10, 15);
+    getTextEditorHandle()!.apply("fontSize", 24);
+    await settle();
+    const spans = m.editable().querySelectorAll<HTMLElement>("[data-run-mark=fontSize]");
+    expect(spans.length).toBe(2);
+    const big = spans[0]!.getBoundingClientRect();
+    const small = spans[1]!.getBoundingClientRect();
+    expect(small.top).toBeGreaterThanOrEqual(big.bottom);
+    expect(parseFloat(getComputedStyle(spans[0]!).lineHeight)).toBe(96);
+    expect(parseFloat(getComputedStyle(spans[1]!).lineHeight)).toBe(36);
+    expect(m.commits).toBe(0);
   });
 
   it("a plain field (a bound text) takes no marks", async () => {

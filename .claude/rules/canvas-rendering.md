@@ -30,6 +30,8 @@ paths:
 
 - RichText baseline은 해당 폭에서 측정한 첫 줄 metrics가 소유하고 rewrap 뒤 엔진 입력도 같이 갱신한다. **Why (2026-11-02, ADR-299)**: 모든 run의 baseline 최댓값을 쓰면 둘째 줄만 48px인 글자가 첫 줄 16px의 baseline을 53으로 올렸다. 실제 DOM baseline은 17이며, 넓힘→재줄바꿈에서도 같은 값으로 복귀해야 한다.
 
+- Canvas의 해석된 px 줄 높이를 편집기 CSS에 옮길 때 글자 크기로 나눈 단위 없는 비율로 복원한다. **Why (2026-11-03, ADR-299)**: 고정 px를 PM span이 상속하면 Enter 뒤 64px·24px 구간에도 같은 줄 높이가 적용되어 Chromium·WebKit에서 약 10px 겹쳤다.
+
 ## 1. Skia 단일 렌더러 (ADR-900)
 
 - grid 안내선·셀 교환은 `hidden` 또는 `display: none`인 자식을 배치 항목에서 제외한다. **Why (2026-10-31):** Side 라벨의 CheckboxGroup·RadioGroup·SearchField에서 숨긴 Description·FieldError의 0 높이 상자를 포함해 실제 1행을 3행으로 계산하고 선택 영역 아래에 선 두 개를 그렸다.

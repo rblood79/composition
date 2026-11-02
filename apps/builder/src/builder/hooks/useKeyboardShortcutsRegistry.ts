@@ -188,7 +188,9 @@ function isInputElement(target: EventTarget | null): boolean {
   return (
     target.tagName === "INPUT" ||
     target.tagName === "TEXTAREA" ||
-    target.isContentEditable
+    target.isContentEditable ||
+    // Custom/read-only textboxes own text keys too, including events from their run spans.
+    target.closest('[role="textbox"]') !== null
   );
 }
 

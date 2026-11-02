@@ -53,6 +53,8 @@ paths:
 
 - 텍스트 편집 범위의 focus 이탈은 editor DOM뿐 아니라 Typography와 portal을 포함해 감시한다. **Why (2026-11-02, ADR-299)**: editor에만 붙은 focusout은 패널 input→Tab 범위 이탈을 놓쳐 Chromium·WebKit에서 커밋 0회였다. document capture와 1회 커밋 guard로 처리한다.
 
+- RichText 편집기의 로딩 화면은 원본 runs와 동일한 mark/token 해석을 사용하며 plain 입력을 받지 않는다. **Why (2026-11-03)**: 새로고침·Dashboard 재진입 첫 편집의 textarea fallback은 64px·24px 서식을 제거해 표시했고, 로드 전에 입력하면 runs를 문자열로 덮어썼다. 대기 중 키는 Canvas 전역 단축키로 전파하지 않는다. 전역 capture 단축키도 `role="textbox"`와 내부 run을 입력 대상으로 판별해야 한다.
+
 - **Styles scrub 미리보기 (ADR-298)**: `TokenUse`는 활성 테마 값으로 해석한 뒤 `previewRecord`에 전달한다. 취소·원점 복귀·capture 해제는 대기 RAF와 보유 preview를 끝내며 문서/History를 쓰지 않는다. **Why (2026-11-02)**: primitive 전용 변환기가 원래 토큰을 버려 Padding M(12px)에서 자유값 16px 드래그를 취소한 뒤에도 consumer가 16에 남았다.
 
 - **히스토리 의도는 필수**: `applyCatalogTransaction` 은 `history: { kind: "record", label }` 또는 `{ kind: "skip", reason }` 없이는 `HISTORY_INTENT_REQUIRED` 로 거부한다. skip 사유는 `project-create` · `load` · `fixture` · `sync` 넷뿐 — 사용자 편집은 늘 기록된다 (ADR-185 의 「조용한 생략 금지」 가 타입 · 검증으로 옮겨 왔다).
@@ -134,7 +136,7 @@ paths:
 
 ## 7. Styles · Properties 패널 입력
 
-- **글자 편집 상자 = ProseMirror 입력 층 (ADR-299)**: 편집 진입 때 `textEditor/EditorField` chunk 를 lazy 로 열고 (로드 전엔 textarea), 매 입력은 `fromDoc` (정규형 run) → `previewRecord` (문서 쓰기 0), 커밋은 지금처럼 `setFields` 한 명령. 편집 범위 = 편집 상자 + Typography 절 (`[data-section-id="typography"]`) + 팝오버 — 그 안의 press · focus 는 편집을 끝내지 않고, 패널은 `textEditorHandle` (선택 구간 marks 읽기 · PM transaction 쓰기) 로만 편집기에 닿는다. 편집 밖 패널 쓰기는 노드 값 + run 의 그 축 지우기 (사용자 결정 3, `catalogStylesHost` `styleCommandOf`). Properties 의 글자 칸은 plain 을 보이고 거기서 쓰면 run 이 사라진다 (Decision 6). **Why (2026-11-02 live)**: Properties 가 작성 값을 그대로 읽어 `[object Object]` 를 보였다.
+- **글자 편집 상자 = ProseMirror 입력 층 (ADR-299)**: 텍스트 선택 때 `textEditor/EditorField` chunk 를 미리 준비하고 편집 진입 때 lazy 로 연다 (로드 전 plain은 textarea, RichText는 서식을 보존한 read-only 화면), 매 입력은 `fromDoc` (정규형 run) → `previewRecord` (문서 쓰기 0), 커밋은 지금처럼 `setFields` 한 명령. 편집 범위 = 편집 상자 + Typography 절 (`[data-section-id="typography"]`) + 팝오버 — 그 안의 press · focus 는 편집을 끝내지 않고, 패널은 `textEditorHandle` (선택 구간 marks 읽기 · PM transaction 쓰기) 로만 편집기에 닿는다. 편집 밖 패널 쓰기는 노드 값 + run 의 그 축 지우기 (사용자 결정 3, `catalogStylesHost` `styleCommandOf`). Properties 의 글자 칸은 plain 을 보이고 거기서 쓰면 run 이 사라진다 (Decision 6). **Why (2026-11-02 live)**: Properties 가 작성 값을 그대로 읽어 `[object Object]` 를 보였다.
 
 - 구조 편집으로 template 부품이 owned node가 된 field의 Content 패널은 실제 부품 값을 읽고,
   부모의 의미 속성 편집·Reset과 부품 쓰기를 한 명령으로 적용한다. **Why (2026-10-14)**:

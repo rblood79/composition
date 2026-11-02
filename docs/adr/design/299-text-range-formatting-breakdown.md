@@ -220,3 +220,18 @@ Phase 1 · 2 는 입력이 없어도 fixture 문서 (seed 로 run 값을 직접 
 - production 사용자 흐름: 팔레트 Text 삽입·저장·reload → 첫 편집 → 입력·굵게 → Typography 안 focus 유지 → Tab 범위 밖 → 편집 종료, revision +1·페이지 오류 0. 최종 코드·검증 요약은 reviews/299.md 다음 round와 로컬 실행 기록에 남긴다.
 
 미변경 잔여: §6.4 편집 중 장식선 `none` 표시 한계는 이번 MEDIUM 3건 범위 밖이며 여전히 deferred다. G0 native IME·기존 ratchet 전체 재측정은 이번에 반복하지 않았다.
+
+### 6.6 Enter 줄별 글자 크기 편집 겹침 수리 (2026-11-03)
+
+- 원인: `CatalogTextEditor`가 Canvas에서 받은 노드 줄 높이 px를 CSS에 그대로 썼다. PM 구간 span은 그 고정 길이를 상속하여 64px·24px 글자에도 같은 높이가 적용됐다. px를 노드 글자 크기로 나눠 catalog의 단위 없는 비율로 복원했다.
+- 수정 전 RED: 실제 Enter로 만든 세 줄의 64px/24px 구간이 Chromium에서 약 10px, WebKit에서 약 10.04px 겹쳤다. 수정 뒤 편집기 Chromium/WebKit 26 PASS·인접 unit 13 PASS·typecheck 6/6 PASS.
+- headed Chrome dev5174·visible·DPR1·CPU throttle 없음: 팔레트 Text → Enter 세 줄 → Typography에서 16px/64px/24px 적용 → 편집 중 겹침 없음(문서 lineHeight 1.25: 20px/80px/30px) → Escape 커밋 → Canvas/Preview 높이 130 일치 → 저장/reload 구간 동일·페이지 오류 0. 근거 `.agent/runs/2026-11-02-text-editor-line-height/live.json`. preflight는 자체·동시 작업의 format 경고로 FAIL, 자동 포맷은 하지 않았다.
+
+
+### 6.7 첫 편집의 서식 로딩 전환 수리 (2026-11-03)
+
+- 원인: cold module의 Suspense fallback이 RichText를 `plainOf` textarea로 표시했다. 데이터 로드 지연이 아니라 입력기 chunk 준비 전 표현 손실이며, 이때 입력하면 marks도 문자열로 대체된다.
+- 수정: 텍스트 선택 시 동일 Promise로 chunk를 준비한다 (동기 import로 바꾸지 않음). 대기 화면은 RichText runs와 편집기의 동일 mark/token 해석을 사용하며 read-only/aria-busy로 표시한다. 입력은 PM 준비 후 시작하고, 대기 중 Escape 종료·Backspace 전역 삭제 방지를 보장한다. Plain text의 textarea 입력·selection 인계는 유지한다.
+- RED: lazy chunk를 보류한 단위 회귀에서 `DIV` 기대에 기존 `TEXTAREA` 반환. GREEN: 해당 회귀와 인접 외부 종료·저장·전역 단축키 테스트 26개, 기존 Chromium·WebKit 편집 테스트 26개 통과.
+- Live Exercise: headed Chrome, CPU throttle 없음, 격리 프로젝트에 UI로 16/64/24px 세 줄을 작성·저장. 새로고침 및 Dashboard에서 프로젝트 클릭 재진입 후 실제 Canvas 더블클릭, chunk 응답 보류 동안과 PM mount 이후 크기 유지·원본 불변 확인. console error 0. 전역 capture 단축키가 read-only textbox를 입력 영역으로 인식하도록 수정한 뒤 대기 중 Backspace로 노드가 삭제되지 않음도 재검증했다. 증거: `.agent/runs/2026-11-03-text-editor-cold-start/`.
+- 한계: 로딩 대기 자체가 없어지는 보장은 아니다. 대기 중 RichText는 읽기 전용이고 chunk가 준비되면 편집할 수 있다.

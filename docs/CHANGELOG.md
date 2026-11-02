@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [첫 텍스트 편집 서식 유지 — ADR-299] - 2026-11-03
+
+### Fixed
+
+- 새로고침·Dashboard 재진입 후 첫 텍스트 더블클릭에서 줄바꿈만 표시되다가 구간 서식이 뒤늦게 적용되는 현상을 수정했다. 텍스트 선택 시 편집기 chunk를 준비하고, 로딩 중 RichText는 원본 서식을 표시하는 읽기 전용 화면을 사용한다. 준비 전 plain 입력으로 구간 서식이 사라지는 경로와 Backspace의 Canvas 삭제 전파도 차단했다.
+
+## [줄별 글자 크기 편집 겹침 수리 — ADR-299] - 2026-11-03
+
+### Fixed
+
+- Enter로 나눈 줄에 서로 다른 글자 크기를 적용할 때 편집 중 글자가 겹치던 문제를 수정했다. Canvas의 px 줄 높이를 편집기 CSS로 옮길 때 원래 비율로 복원해 각 run의 글자 크기에 따라 줄 높이가 계산되도록 했다. Chromium·WebKit에서 16px·64px·24px 다중 줄 회귀를 확인했다.
+
 ## [글자 범위 서식 수리 — ADR-299 구현 판독 3건] - 2026-11-02
 
 ### Fixed

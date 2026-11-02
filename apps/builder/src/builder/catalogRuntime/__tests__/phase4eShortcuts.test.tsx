@@ -441,7 +441,11 @@ describe("ADR-248 Phase 4e-5 shortcuts", () => {
             data-canvas-container="true"
             tabIndex={-1}
             data-testid="canvas"
-          />
+          >
+            <div role="textbox" aria-readonly="true" tabIndex={0} data-testid="pending-text">
+              <span data-testid="pending-run">Formatted text</span>
+            </div>
+          </div>
           <input data-testid="field" />
         </>
       );
@@ -452,6 +456,13 @@ describe("ADR-248 Phase 4e-5 shortcuts", () => {
     act(() => canvas.focus());
     fireEvent.focusIn(canvas);
     fireEvent.keyDown(canvas, { key: "Backspace", code: "Backspace" });
+    expect(children("list")).toEqual([id("a"), id("c")]);
+
+    const pending = view.getByTestId("pending-text");
+    act(() => pending.focus());
+    fireEvent.focusIn(pending);
+    workspace.selectRecords([record("a")]);
+    fireEvent.keyDown(view.getByTestId("pending-run"), { key: "Backspace", code: "Backspace" });
     expect(children("list")).toEqual([id("a"), id("c")]);
 
     const field = view.getByTestId("field");

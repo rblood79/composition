@@ -7,6 +7,7 @@ import type {
   EntryId,
   EntryKind,
   NodeId,
+  RichText,
 } from "../../../../../../../../packages/shared/src/catalog/document/types";
 import { insertNodes } from "../../../../../../../../packages/shared/src/catalog/commands";
 import { CatalogTextEditor } from "../CatalogTextEditor";
@@ -48,7 +49,7 @@ const allocator = () => {
     `project:${kind}:t${++next}` as EntryId<K>;
 };
 
-async function open() {
+async function open(value: string | RichText = "Hello") {
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
       newCatalogProjectDocument({ projectId: PROJECT, name: "Text" }),
@@ -70,7 +71,7 @@ async function open() {
           id: HEADING,
           definitionId: "lib:definition:heading",
           children: [],
-          props: { children: { kind: "set", value: "Hello" } },
+          props: { children: { kind: "set", value } },
           visual: {},
           sizing: {},
           descendantOverrides: [],
@@ -95,6 +96,36 @@ async function open() {
 }
 
 describe("CatalogTextEditor — 외부 종료 · 프레임 구독", () => {
+  it("첫 chunk 대기 중에도 줄별 서식을 표시하고 종료 시 원본을 보존한다", async () => {
+    const value: RichText = {
+      kind: "text",
+      runs: [
+        { text: "first\n" },
+        { text: "BIG", marks: { fontSize: 64, fontWeight: 700 } },
+        { text: "\nsmall", marks: { fontSize: 24, fontStyle: "italic" } },
+      ],
+    };
+    const { workspace, record, field, text } = await open(value);
+    const revision = workspace.runtime.graph.revision;
+    act(() => workspace.session.startTextEdit(workspace.itemOfRecord(record)!));
+    const pending = field()!;
+    expect(pending.tagName).toBe("DIV");
+    expect(pending.getAttribute("aria-busy")).toBe("true");
+    expect(pending.getAttribute("aria-readonly")).toBe("true");
+    expect(pending.textContent).toBe("first\nBIG\nsmall");
+    expect(pending.querySelector<HTMLElement>('[data-text-run="1"]')?.style.fontSize).toBe("64px");
+    expect(pending.querySelector<HTMLElement>('[data-text-run="2"]')?.style.fontSize).toBe("24px");
+    const globalKey = vi.fn();
+    document.addEventListener("keydown", globalKey);
+    fireEvent.keyDown(pending, { key: "Backspace" });
+    document.removeEventListener("keydown", globalKey);
+    expect(globalKey).not.toHaveBeenCalled();
+    fireEvent.keyDown(pending, { key: "Escape" });
+    expect(field()).toBeNull();
+    expect(text()).toEqual({ kind: "set", value });
+    expect(workspace.runtime.graph.revision).toBe(revision);
+  });
+
   it("편집이 밖에서 끝나면 입력한 글을 한 단계로 저장한다", async () => {
     const { workspace, record, field, text } = await open();
     act(() => workspace.session.startTextEdit(workspace.itemOfRecord(record)!));
@@ -169,7 +200,7 @@ describe("CatalogTextEditor — 글자 상자 배치", () => {
       expect(style.textAlign).toBe("center");
       expect(style.fontSize).toBe("14px");
       expect(style.fontWeight).toBe("700");
-      expect(style.lineHeight).toBe("18px");
+      expect(Number(style.lineHeight)).toBeCloseTo(18 / 14);
     } finally {
       unregisterSkiaNode(item.identity);
     }
