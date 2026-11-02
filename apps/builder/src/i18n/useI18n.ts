@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useContext } from "react";
-import { I18nContext } from "./I18nProvider";
+import { I18nContext } from "./I18nContext";
 import { semanticLabelKeys, translateKey } from "./labels";
 import type { I18nContextValue } from "./types";
 

@@ -365,7 +365,7 @@ export function CatalogCanvas({
       { zoomToSelection: () => target() !== undefined },
     );
   }, [workspace, viewState]);
-  useKeyboardShortcutsRegistry(zoomShortcuts, [zoomShortcuts], {
+  useKeyboardShortcutsRegistry(zoomShortcuts, {
     activeScope: canvasActiveScope,
   });
 

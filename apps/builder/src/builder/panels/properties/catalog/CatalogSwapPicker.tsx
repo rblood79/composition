@@ -1,7 +1,6 @@
 import {
   memo,
   useEffect,
-  useMemo,
   useState,
   type CSSProperties,
   type ReactNode,
@@ -75,12 +74,14 @@ export const CatalogComponentPicker = memo(function CatalogComponentPicker({
   popoverStyle?: CSSProperties;
 }) {
   const { t } = useI18n();
-  const candidates = useMemo<CatalogSwapCandidate[]>(
-    () => (open ? readCandidates() : []),
-    // (Read when it opens: the list is the project's components and the palette's.)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [open],
-  );
+  const [snapshot, setSnapshot] = useState(() => ({
+    open,
+    candidates: open ? readCandidates() : [],
+  }));
+  if (snapshot.open !== open) {
+    setSnapshot({ open, candidates: open ? readCandidates() : [] });
+  }
+  const candidates = snapshot.candidates;
   const { contains } = useFilter({ sensitivity: "base" });
   return (
     <DialogTrigger isOpen={open} onOpenChange={onOpenChange}>

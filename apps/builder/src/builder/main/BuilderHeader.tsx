@@ -174,7 +174,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
       }),
     [handleOpenProject],
   );
-  useKeyboardShortcutsRegistry(headerShortcuts, [headerShortcuts]);
+  useKeyboardShortcutsRegistry(headerShortcuts);
 
   const handleImportFileChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {

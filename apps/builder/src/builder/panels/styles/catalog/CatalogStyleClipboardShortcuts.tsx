@@ -32,6 +32,6 @@ export function CatalogStyleClipboardShortcuts() {
       }),
     [handleCopy, handlePaste],
   );
-  useKeyboardShortcutsRegistry(shortcuts, [shortcuts], { activeScope });
+  useKeyboardShortcutsRegistry(shortcuts, { activeScope });
   return null;
 }

@@ -60,7 +60,7 @@ export const CatalogPropertyClipboardActions = memo(
         }),
       [handleCopy, handlePaste],
     );
-    useKeyboardShortcutsRegistry(shortcuts, [shortcuts], { activeScope });
+    useKeyboardShortcutsRegistry(shortcuts, { activeScope });
 
     return null;
   },

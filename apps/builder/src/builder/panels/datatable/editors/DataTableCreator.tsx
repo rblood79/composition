@@ -320,8 +320,7 @@ export function DataTableCreator({
           console.error("파일 읽기 실패:", error);
         });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [tableName],
+    [tableName, localize],
   );
 
   const handleFileSelect = useCallback(

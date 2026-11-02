@@ -311,7 +311,7 @@ export function CommandPalette({
       }),
     [handleOpenChange],
   );
-  useKeyboardShortcutsRegistry(paletteShortcuts, [paletteShortcuts], {
+  useKeyboardShortcutsRegistry(paletteShortcuts, {
     capture: true,
   });
 

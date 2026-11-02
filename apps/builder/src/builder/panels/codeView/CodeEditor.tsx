@@ -8,7 +8,7 @@
  * panel's actions as code — the panel computes their code, the editor writes the lines that
  * differ); a refusal shows in the line as a diagnostic (checked 300 ms after typing stops).
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   autocompletion,
   closeBrackets,
@@ -188,11 +188,12 @@ export function codeEditorLineChanges(
 }
 
 function vocabularySource(
-  vocabulary: CodeEditorVocabulary,
+  readVocabulary: () => CodeEditorVocabulary,
   snippets: () => readonly CodeEditorSnippet[],
   insert: (view: EditorView, id: string) => Promise<boolean>,
 ) {
   return (context: CompletionContext): CompletionResult | null => {
+    const vocabulary = readVocabulary();
     const tag = context.matchBefore(/<[A-Za-z]*$/);
     if (tag)
       return {
@@ -267,27 +268,29 @@ function keepHistoryLocal(host: HTMLElement, state: EditorState) {
 
 export default function CodeEditor(props: CodeEditorProps) {
   const host = useRef<HTMLDivElement>(null);
+  const [initial] = useState(props);
+  const [configuration] = useState(() => new Compartment());
   const editor = useRef<{ view: EditorView; reset(length: number): void }>(
     null,
   );
   const latest = useRef(props);
-  useEffect(() => {
+  useLayoutEffect(() => {
     latest.current = props;
   });
 
   useEffect(() => {
     const parent = host.current;
     if (!parent) return;
-    let changes = props.draft
+    let changes = initial.draft
       ? ChangeSet.of(
-          props.draft.changes.map((change) => ({
+          initial.draft.changes.map((change) => ({
             from: change.fromA,
             to: change.toA,
             insert: change.insert,
           })),
-          props.code.length,
+          initial.code.length,
         )
-      : ChangeSet.empty(props.code.length);
+      : ChangeSet.empty(initial.code.length);
     const typed = new Compartment();
     const insertSnippet = async (target: EditorView, id: string) => {
       const text = target.state.doc.toString();
@@ -305,7 +308,7 @@ export default function CodeEditor(props: CodeEditorProps) {
     const view = new EditorView({
       parent,
       state: EditorState.create({
-        doc: props.draft?.text ?? props.code,
+        doc: initial.draft?.text ?? initial.code,
         extensions: [
           lineNumbers(),
           highlightActiveLineGutter(),
@@ -318,16 +321,11 @@ export default function CodeEditor(props: CodeEditorProps) {
           highlightActiveLine(),
           highlightSelectionMatches(),
           syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-          ...(props.language === "css"
-            ? []
-            : [javascript({ jsx: true, typescript: true })]),
-          ...(props.readOnly
-            ? [EditorState.readOnly.of(true), EditorView.editable.of(false)]
-            : []),
+          configuration.of([]),
           autocompletion({
             override: [
               vocabularySource(
-                props.vocabulary,
+                () => latest.current.vocabulary,
                 () => latest.current.snippets ?? [],
                 insertSnippet,
               ),
@@ -371,7 +369,6 @@ export default function CodeEditor(props: CodeEditorProps) {
               },
             },
           ]),
-          EditorView.contentAttributes.of({ "aria-label": props.label }),
           EditorView.updateListener.of((update) => {
             keepHistoryLocal(parent, update.state);
             if (!update.docChanged) return;
@@ -411,9 +408,20 @@ export default function CodeEditor(props: CodeEditorProps) {
       editor.current = null;
       view.destroy();
     };
-    // (The editor is made once — a new baseline is written in by the effect below.)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [configuration, initial]);
+
+  useEffect(() => {
+    editor.current?.view.dispatch({
+      effects: configuration.reconfigure([
+        ...(props.language === "css"
+          ? []
+          : [javascript({ jsx: true, typescript: true })]),
+        EditorState.readOnly.of(!!props.readOnly),
+        EditorView.editable.of(!props.readOnly),
+        EditorView.contentAttributes.of({ "aria-label": props.label }),
+      ]),
+    });
+  }, [configuration, props.language, props.readOnly, props.label]);
 
   // A new baseline (the document changed while nothing was typed): the lines that differ are
   // written in place — scroll and cursor stay — and the edit is counted from it again.

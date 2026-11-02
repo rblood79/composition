@@ -16,14 +16,14 @@
  *   { key: 'c', modifier: 'cmdShift', handler: handleCopy },
  *   { key: 'v', modifier: 'cmdShift', handler: handlePaste },
  *   { key: 'z', modifier: 'cmd', handler: handleUndo, allowInInput: true, priority: 100 },
- * ], [], { capture: true });
+ * ], { capture: true });
  * ```
  *
  * @since Phase 0+1 구현 (2025-12-28)
  * @updated Phase 4 - 스코프 지원 추가 (2025-12-28)
  */
 
-import { useEffect } from "react";
+import { useLayoutEffect, useRef } from "react";
 import {
   SHORTCUT_DEFINITIONS,
   type ShortcutId,
@@ -329,12 +329,10 @@ function matchesShortcut(
  * 키보드 단축키 등록 hook
  *
  * @param shortcuts - 등록할 단축키 배열
- * @param deps - 추가 의존성 배열 (선택사항)
  * @param options - Registry 옵션 (capture, target 등)
  */
 export function useKeyboardShortcutsRegistry(
   shortcuts: KeyboardShortcut[],
-  deps: React.DependencyList = [],
   options: RegistryOptions = {},
 ): void {
   const {
@@ -344,7 +342,31 @@ export function useKeyboardShortcutsRegistry(
     activeScope,
   } = options;
 
-  useEffect(() => {
+  const latest = useRef(shortcuts);
+  useLayoutEffect(() => {
+    latest.current = shortcuts;
+  });
+  // 함수는 최신 commit에서 읽고, 등록 메타데이터가 바뀔 때만 재게시한다.
+  const registrationKey = JSON.stringify(
+    shortcuts.map(({ handler: _handler, canRun, ...metadata }) => ({
+      ...metadata,
+      hasCanRun: !!canRun,
+    })),
+  );
+  useLayoutEffect(() => {
+    const entries = JSON.parse(registrationKey) as (Omit<
+      KeyboardShortcut,
+      "handler" | "canRun"
+    > & { hasCanRun: boolean })[];
+    const shortcuts = entries.map(
+      ({ hasCanRun, ...entry }, index): KeyboardShortcut => ({
+        ...entry,
+        handler: (context) => latest.current[index]?.handler(context),
+        ...(hasCanRun
+          ? { canRun: () => latest.current[index]?.canRun?.() ?? false }
+          : {}),
+      }),
+    );
     const handleKeyEvent = (event: KeyboardEvent) => {
       const isInput = isInputElement(event.target);
 
@@ -418,8 +440,7 @@ export function useKeyboardShortcutsRegistry(
       );
       for (const unregister of unregisters) unregister();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [capture, target, eventType, activeScope, ...deps]);
+  }, [capture, target, eventType, activeScope, registrationKey]);
 }
 
 /**

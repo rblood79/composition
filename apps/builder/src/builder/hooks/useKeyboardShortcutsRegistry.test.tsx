@@ -54,9 +54,7 @@ describe("useKeyboardShortcutsRegistry — command registry 게시", () => {
       selectAll: vi.fn(),
     });
 
-    const view = renderHook(() =>
-      useKeyboardShortcutsRegistry(shortcuts, [shortcuts]),
-    );
+    const view = renderHook(() => useKeyboardShortcutsRegistry(shortcuts));
 
     const entry = resolveCommand("duplicate");
     expect(entry).toBeDefined();
@@ -71,7 +69,7 @@ describe("useKeyboardShortcutsRegistry — command registry 게시", () => {
   it("게시된 handler 가 등록된 핸들러 그대로다", () => {
     const duplicate = vi.fn();
     const shortcuts = bindHandlersToDefinitions(["duplicate"], { duplicate });
-    renderHook(() => useKeyboardShortcutsRegistry(shortcuts, [shortcuts]));
+    renderHook(() => useKeyboardShortcutsRegistry(shortcuts));
 
     resolveCommand("duplicate")?.handler();
     expect(duplicate).toHaveBeenCalledTimes(1);
@@ -85,7 +83,7 @@ describe("useKeyboardShortcutsRegistry — command registry 게시", () => {
       { zoomToSelection: vi.fn(), zoomIn: vi.fn() },
       { zoomToSelection: canRun },
     );
-    renderHook(() => useKeyboardShortcutsRegistry(shortcuts, [shortcuts]));
+    renderHook(() => useKeyboardShortcutsRegistry(shortcuts));
 
     expect(resolveCommand("zoomToSelection")?.canRun?.()).toBe(false);
     hasTarget = true;
@@ -104,7 +102,7 @@ describe("useKeyboardShortcutsRegistry — command registry 게시", () => {
         scope: "panel:properties",
       },
     ];
-    renderHook(() => useKeyboardShortcutsRegistry(shortcuts, [shortcuts]));
+    renderHook(() => useKeyboardShortcutsRegistry(shortcuts));
 
     expect(getCommandRegistrySnapshot().size).toBe(0);
   });
@@ -114,7 +112,7 @@ describe("useKeyboardShortcutsRegistry — command registry 게시", () => {
       duplicate: vi.fn(),
     });
     renderHook(() =>
-      useKeyboardShortcutsRegistry(shortcuts, [shortcuts], {
+      useKeyboardShortcutsRegistry(shortcuts, {
         eventType: "keyup",
       }),
     );
@@ -122,7 +120,7 @@ describe("useKeyboardShortcutsRegistry — command registry 게시", () => {
     expect(getCommandRegistrySnapshot().size).toBe(0);
   });
 
-  it("deps 재실행 시 해제→재등록으로 stale 핸들러가 남지 않는다", () => {
+  it("handler만 바뀌면 재등록 없이 최신 핸들러를 실행한다", () => {
     const stale = vi.fn();
     const fresh = vi.fn();
     const build = (handler: () => void) =>
@@ -131,12 +129,14 @@ describe("useKeyboardShortcutsRegistry — command registry 게시", () => {
     const view = renderHook(
       ({ handler }: { handler: () => void }) => {
         const shortcuts = build(handler);
-        useKeyboardShortcutsRegistry(shortcuts, [handler]);
+        useKeyboardShortcutsRegistry(shortcuts);
       },
       { initialProps: { handler: stale } },
     );
 
+    const snapshot = getCommandRegistrySnapshot();
     view.rerender({ handler: fresh });
+    expect(getCommandRegistrySnapshot()).toBe(snapshot);
 
     expect(getCommandRegistrySnapshot().get("duplicate")).toHaveLength(1);
     resolveCommand("duplicate")?.handler();
@@ -148,7 +148,7 @@ describe("useKeyboardShortcutsRegistry — command registry 게시", () => {
     const duplicate = vi.fn();
     const shortcuts = bindHandlersToDefinitions(["duplicate"], { duplicate });
     renderHook(() =>
-      useKeyboardShortcutsRegistry(shortcuts, [shortcuts], {
+      useKeyboardShortcutsRegistry(shortcuts, {
         activeScope: "canvas-focused",
       }),
     );
@@ -174,7 +174,7 @@ describe("useKeyboardShortcutsRegistry — command registry 게시", () => {
       selectAll,
     });
     renderHook(() =>
-      useKeyboardShortcutsRegistry(shortcuts, [shortcuts], { capture: true }),
+      useKeyboardShortcutsRegistry(shortcuts, { capture: true }),
     );
 
     const input = document.createElement("input");
@@ -211,7 +211,7 @@ describe("useKeyboardShortcutsRegistry — command registry 게시", () => {
     const duplicate = vi.fn();
     const shortcuts = bindHandlersToDefinitions(["duplicate"], { duplicate });
     renderHook(() =>
-      useKeyboardShortcutsRegistry(shortcuts, [shortcuts], {
+      useKeyboardShortcutsRegistry(shortcuts, {
         activeScope: "panel:events",
       }),
     );

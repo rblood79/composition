@@ -48,7 +48,8 @@ vi.mock("../../../layout/panelWorkspaceVisibility", () => ({
 }));
 
 import type { ReactNode } from "react";
-import { I18nProvider } from "@/i18n";
+import { I18nProvider, useI18n } from "@/i18n";
+import { globalToast } from "../../../stores/toast";
 import { DataTableCreator } from "./DataTableCreator";
 import { useDataPanelStatusStore } from "../stores/dataPanelStatusStore";
 import { useAiComposerDraftStore } from "../../ai/aiComposerDraft";
@@ -306,4 +307,38 @@ describe("DataTableCreator — 연결 모드 (ADR-013)", () => {
     expect(queryByRole("note")).toBeNull();
     expect(createButton(container).textContent).toBe("Create");
   });
+});
+
+function LocaleSwitch() {
+  const { setLocale } = useI18n();
+  return <button onClick={() => setLocale("ko-KR")}>한국어</button>;
+}
+
+it("keeps the current locale for file errors without changing the table name", async () => {
+  const error = vi.spyOn(globalToast, "error");
+  const view = render(
+    wrap(
+      <>
+        <LocaleSwitch />
+        <DataTableCreator
+          projectId="p"
+          initialMethod="file"
+          onClose={() => {}}
+        />
+      </>,
+    ),
+  );
+  fireEvent.change(view.getByLabelText("Table Name"), {
+    target: { value: "kept" },
+  });
+  fireEvent.click(view.getByText("한국어"));
+  const file = new File(["invalid"], "bad.json", { type: "application/json" });
+  Object.defineProperty(file, "text", { value: async () => "invalid" });
+  fireEvent.change(view.container.querySelector('input[type="file"]')!, {
+    target: { files: [file] },
+  });
+  await vi.waitFor(() =>
+    expect(error).toHaveBeenCalledWith("파일에서 행을 읽지 못했습니다."),
+  );
+  error.mockRestore();
 });

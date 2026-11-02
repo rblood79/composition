@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Hook 억제 원인 수리 — 편집기 설정·Table 요청·단축키 구독] - 2026-11-02
+
+### Fixed
+
+- Code View의 자동완성 후보·접근성 이름·편집 설정을 최신 입력과 동기화하면서 입력 내용과 Undo 기록을 유지한다.
+- 비동기 Table은 서비스·매핑·요청 인자가 바뀌면 다시 조회하며, 취소되거나 교체된 요청의 늦은 응답은 적용하지 않는다. 무한 스크롤 요청에도 사용자 인자를 전달한다.
+- 테이블 생성기의 파일 오류 안내는 언어 변경 후 현재 언어로 표시한다.
+
+### Changed
+
+- 단축키 Hook은 별도 의존성 배열 없이 최신 commit의 handler를 실행하고, 등록 메타데이터 변경 시에만 재등록한다.
+- 변수 이름 공급 Hook을 필수 계약으로 만들고, picker의 열기 시점 목록은 명시적인 snapshot으로 보관한다. I18n Context를 컴포넌트 모듈에서 분리하고 불필요한 억제 주석을 제거한다.
+
 ## [Canvas 한 줄에 놓인 inline 상자의 세로 자리 — Preview 와 같은 baseline · strut · middle] - 2026-11-02
 
 ### Fixed

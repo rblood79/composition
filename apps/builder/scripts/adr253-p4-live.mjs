@@ -171,7 +171,6 @@ const run = (body, args = []) =>
     async ([path, source, args]) => {
       const ws = window.__COMPOSITION_CATALOG__.workspace;
       const api = await import(/* @vite-ignore */ path);
-      // eslint-disable-next-line no-new-func
       return new Function("ws", "api", "args", source)(ws, api, args);
     },
     [commands, body, args],

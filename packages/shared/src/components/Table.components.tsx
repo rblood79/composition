@@ -11,6 +11,7 @@ import {
 } from "@tanstack/react-table";
 
 import { useTableVirtualRows } from "./tableVirtualRows";
+import { useTableAsyncRequest } from "./tableAsyncRequest";
 
 import React from "react";
 
@@ -54,7 +55,6 @@ import { Button } from "./list";
 
 import { Skeleton } from "./Skeleton";
 import {
-  ApiFetcher,
   buildTableRowIdResolver,
   ColumnDefinition,
   DataMapping,
@@ -561,7 +561,6 @@ export default React.memo(function Table<T extends { id: string | number }>(
   const [flatRows, setFlatRows] = React.useState<T[]>([]);
   const [cursor, setCursor] = React.useState<string | undefined>(undefined);
   const [hasNext, setHasNext] = React.useState(true);
-  const [loading, setLoading] = React.useState(false);
 
   // ---------- Static 클라이언트 사이드 페이지네이션 상태 ----------
   const [clientPageIndex, setClientPageIndex] = React.useState(0);
@@ -596,13 +595,14 @@ export default React.memo(function Table<T extends { id: string | number }>(
   }
 
   // ---------- API 데이터 자동 감지 ----------
+  const sourceRows = mode === "pagination" ? pageRows : flatRows;
   if (
     isAsync &&
     columns.length === 0 &&
-    pageRows.length > 0 &&
+    sourceRows.length > 0 &&
     detectedColumns.length === 0
   ) {
-    setDetectedColumns(detectColumnsFromData(pageRows));
+    setDetectedColumns(detectColumnsFromData(sourceRows));
   }
   const notifiedColumns = React.useRef<ColumnDefinition<T>[]>([]);
   React.useEffect(() => {
@@ -615,308 +615,41 @@ export default React.memo(function Table<T extends { id: string | number }>(
     onColumnsDetected?.(detectedColumns);
   }, [detectedColumns, onColumnsDetected]);
 
-  // ---------- API 어댑터 (더미 배열 응답 기반) ----------
-  const isFetchingRef = React.useRef(false);
-
+  const { requestPage, loading, sourceKey } = useTableAsyncRequest<T>({
+    enabled: isAsync,
+    service:
+      apiUrlKey && apiUrlKey !== "CUSTOM" ? apiConfig?.[apiUrlKey] : undefined,
+    customUrl: apiUrlKey === "CUSTOM" ? customApiUrl : undefined,
+    path: apiUrlKey ? endpointPath : undefined,
+    params: apiParams,
+    mapping: dataMapping,
+    pageSize: currentItemsPerPage,
+    mode,
+    sort: sorting[0]
+      ? { sortBy: sorting[0].id, desc: sorting[0].desc }
+      : undefined,
+    mapResponse: processApiResponse,
+  });
   const fetchPage = React.useCallback(
-    async (nextIndex: number, pageSize?: number) => {
-      if (!isAsync || !apiUrlKey || !endpointPath) {
-        console.log("❌ fetchPage 중단:", { isAsync, apiUrlKey, endpointPath });
-        return { items: [] as T[], total: 0 };
-      }
-
-      console.log("🚀 fetchPage 시작:", {
-        apiUrlKey,
-        endpointPath,
-        nextIndex,
-        pageSize,
-        availableKeys: apiConfig ? Object.keys(apiConfig) : [],
-      });
-
-      // 중복 호출 방지
-      if (isFetchingRef.current) {
-        console.log("⏸️ Fetch already in progress, skipping...");
-        return { items: [] as T[], total: 0 };
-      }
-
-      // Custom URL을 사용하는 경우와 일반 API 서비스를 사용하는 경우 구분
-      const isCustomUrl = apiUrlKey === "CUSTOM";
-
-      const service =
-        !isCustomUrl && apiConfig
-          ? (apiConfig[apiUrlKey] as ApiFetcher<T>)
-          : null;
-
-      if (!isCustomUrl && !service) {
-        console.error("❌ API 서비스를 찾을 수 없음:", {
-          apiUrlKey,
-          availableKeys: apiConfig ? Object.keys(apiConfig) : [],
-        });
-        return { items: [] as T[], total: 0 };
-      }
-
-      if (isCustomUrl && !customApiUrl) {
-        console.error("❌ Custom URL이 설정되지 않음");
-        return { items: [] as T[], total: 0 };
-      }
-
-      isFetchingRef.current = true;
-      setLoading(true);
-
-      try {
-        const sort = sorting[0]
-          ? { sortBy: sorting[0].id, desc: sorting[0].desc }
-          : undefined;
-        const limit = pageSize ?? currentItemsPerPage; // itemsPerPage 대신 currentItemsPerPage 사용
-
-        // 두 모드 모두 page/limit 방식 사용
-        // apiParams를 먼저 spread하고, page와 limit으로 오버라이드
-        const params = {
-          ...(apiParams || {}), // API 파라미터 먼저 (기본값)
-          ...sort,
-          page: nextIndex + 1, // nextIndex는 0부터 시작하므로 +1 (오버라이드)
-          limit, // (오버라이드)
-        };
-
-        console.log("🔍 API 호출 파라미터:", params, "nextIndex:", nextIndex);
-
-        let response: T[] | Record<string, unknown>;
-
-        if (isCustomUrl && customApiUrl) {
-          // Custom URL 직접 fetch
-          const fullUrl = `${customApiUrl}${endpointPath}`;
-          const queryParams = new URLSearchParams(
-            Object.entries(params).reduce(
-              (acc, [key, value]) => {
-                acc[key] = String(value);
-                return acc;
-              },
-              {} as Record<string, string>,
-            ),
-          ).toString();
-          const urlWithParams = queryParams
-            ? `${fullUrl}?${queryParams}`
-            : fullUrl;
-
-          console.log("🌐 Custom API 호출:", urlWithParams);
-          const res = await fetch(urlWithParams);
-
-          if (!res.ok) {
-            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-          }
-
-          response = await res.json();
-        } else if (service) {
-          response = await service(endpointPath, params);
-        } else {
-          throw new Error("API 서비스가 설정되지 않음");
-        }
-
-        console.log("📦 API 응답:", {
-          responseType: Array.isArray(response) ? "Array" : typeof response,
-          responseLength: Array.isArray(response) ? response.length : "N/A",
-          dataMapping,
-        });
-
-        // 데이터 매핑 적용
-        const { items, total } = processApiResponse(response, dataMapping);
-
-        console.log("📊 processApiResponse 결과:", {
-          itemsLength: items.length,
-          total,
-          firstItem: items[0],
-        });
-
-        // 컬럼이 제공되지 않았고 데이터가 있으면 자동 감지
-        if (columns.length === 0 && items.length > 0) {
-          const detected = detectColumnsFromData(items);
-          setDetectedColumns(detected);
-          console.log("🔍 자동 감지된 컬럼:", detected);
-
-          // 부모 컴포넌트에 자동 감지된 컬럼 전달
-          if (onColumnsDetected) {
-            onColumnsDetected(detected);
-          }
-        } else {
-          console.log("⚠️ 자동 감지 조건 미충족:", {
-            columnsLength: columns.length,
-            itemsLength: items.length,
-          });
-        }
-
-        // API 응답에서 메타데이터 확인 (Pagination용)
-        const meta = (response as unknown as Record<string, unknown>).__meta as
-          | { totalItems?: number; currentPage?: number; itemsPerPage?: number }
-          | undefined;
-        let actualTotal = total;
-
-        if (meta && typeof meta.totalItems === "number") {
-          // API에서 제공하는 정확한 정보 사용
-          actualTotal = meta.totalItems;
-          console.log("🔍 API 메타데이터 사용 (Pagination):", {
-            totalItems: meta.totalItems,
-            currentPage: meta.currentPage,
-            itemsPerPage: meta.itemsPerPage,
-          });
-        }
-
-        return { items, total: actualTotal };
-      } finally {
-        setLoading(false);
-        isFetchingRef.current = false;
-      }
-    },
-    [
-      isAsync,
-      apiUrlKey,
-      customApiUrl,
-      endpointPath,
-      currentItemsPerPage, // itemsPerPage 대신 currentItemsPerPage
-      sorting,
-      processApiResponse,
-      dataMapping,
-      apiParams,
-      apiConfig,
-      columns.length,
-      detectColumnsFromData,
-      setDetectedColumns,
-      onColumnsDetected,
-    ],
+    (index: number, size?: number) => requestPage(index + 1, size),
+    [requestPage],
   );
-
   const fetchMore = React.useCallback(
-    async (nextCursor?: string) => {
-      if (!isAsync || !apiUrlKey || !endpointPath) {
-        return {
-          items: [] as T[],
-          nextCursor: undefined as string | undefined,
-        };
-      }
-
-      // 중복 호출 방지
-      if (isFetchingRef.current) {
-        console.log("⏸️ Fetch already in progress, skipping...");
-        return {
-          items: [] as T[],
-          nextCursor: undefined as string | undefined,
-        };
-      }
-
-      // Custom URL을 사용하는 경우와 일반 API 서비스를 사용하는 경우 구분
-      const isCustomUrl = apiUrlKey === "CUSTOM";
-
-      const service =
-        !isCustomUrl && apiConfig
-          ? (apiConfig[apiUrlKey] as ApiFetcher<T>)
-          : null;
-
-      isFetchingRef.current = true;
-      setLoading(true);
-
-      try {
-        const page = nextCursor ? parseInt(nextCursor, 10) : 1;
-        const sort = sorting[0]
-          ? { sortBy: sorting[0].id, desc: sorting[0].desc }
-          : undefined;
-
-        const params = {
-          page,
-          limit: currentItemsPerPage, // itemsPerPage 대신 currentItemsPerPage
-          ...sort,
-        };
-
-        let response: T[] | Record<string, unknown>;
-
-        if (isCustomUrl && customApiUrl) {
-          // Custom URL 직접 fetch
-          const fullUrl = `${customApiUrl}${endpointPath}`;
-          const queryParams = new URLSearchParams(
-            Object.entries(params).reduce(
-              (acc, [key, value]) => {
-                acc[key] = String(value);
-                return acc;
-              },
-              {} as Record<string, string>,
-            ),
-          ).toString();
-          const urlWithParams = queryParams
-            ? `${fullUrl}?${queryParams}`
-            : fullUrl;
-
-          console.log("🌐 Custom API 호출 (fetchMore):", urlWithParams);
-          const res = await fetch(urlWithParams);
-
-          if (!res.ok) {
-            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-          }
-
-          response = await res.json();
-        } else if (service) {
-          response = await service(endpointPath, params);
-        } else {
-          throw new Error("API 서비스가 설정되지 않음");
-        }
-
-        console.log("📦 API 응답 (fetchMore):", {
-          responseType: Array.isArray(response) ? "Array" : typeof response,
-          responseLength: Array.isArray(response) ? response.length : "N/A",
-          dataMapping,
-        });
-
-        // 데이터 매핑 적용
-        const { items } = processApiResponse(response, dataMapping);
-
-        console.log("📊 processApiResponse 결과 (fetchMore):", {
-          itemsLength: items.length,
-          firstItem: items[0],
-        });
-
-        // 컬럼이 제공되지 않았고 데이터가 있으면 자동 감지
-        if (columns.length === 0 && items.length > 0) {
-          const detected = detectColumnsFromData(items);
-          setDetectedColumns(detected);
-          console.log("🔍 자동 감지된 컬럼 (fetchMore):", detected);
-
-          // 부모 컴포넌트에 자동 감지된 컬럼 전달
-          if (onColumnsDetected) {
-            onColumnsDetected(detected);
-          }
-        } else {
-          console.log("⚠️ 자동 감지 조건 미충족 (fetchMore):", {
-            columnsLength: columns.length,
-            itemsLength: items.length,
-          });
-        }
-
-        if (!items || items.length === 0) {
-          return { items: [], nextCursor: undefined };
-        }
-        const next =
-          items.length === currentItemsPerPage ? String(page + 1) : undefined; // itemsPerPage 대신 currentItemsPerPage
-        return { items, nextCursor: next };
-      } finally {
-        setLoading(false);
-        isFetchingRef.current = false;
-      }
+    async (cursor = "1") => {
+      const page = Number(cursor);
+      const result = await requestPage(page);
+      if (!result) return undefined;
+      return {
+        items: result.items,
+        nextCursor:
+          result.items.length === currentItemsPerPage
+            ? String(page + 1)
+            : undefined,
+      };
     },
-    [
-      isAsync,
-      apiUrlKey,
-      customApiUrl,
-      endpointPath,
-      currentItemsPerPage, // itemsPerPage 대신 currentItemsPerPage
-      sorting,
-      processApiResponse,
-      dataMapping,
-      apiConfig,
-      columns.length,
-      detectColumnsFromData,
-      setDetectedColumns,
-      onColumnsDetected,
-    ],
+    [requestPage, currentItemsPerPage],
   );
 
-  // ---------- 초기/리로드 ----------
   const containerRef = React.useRef<HTMLDivElement>(null);
   const [scrollElement, setScrollElement] =
     React.useState<HTMLDivElement | null>(null);
@@ -927,132 +660,60 @@ export default React.memo(function Table<T extends { id: string | number }>(
     },
     [],
   );
-  const initialLoadRef = React.useRef(false);
-  const prevModeRef = React.useRef<PaginationMode>(mode);
-  const prevApiConfigRef = React.useRef({
-    apiUrlKey,
-    customApiUrl,
-    endpointPath,
-    isAsync,
-  });
-  const prevStaticDataRef = React.useRef(effectiveStaticData);
+  const [previousSource, setPreviousSource] = React.useState(sourceKey);
+  const [previousStaticData, setPreviousStaticData] =
+    React.useState(effectiveStaticData);
+  if (previousSource !== sourceKey) {
+    setPreviousSource(sourceKey);
+    setPageRows([]);
+    setFlatRows([]);
+    setPageIndex(0);
+    setPageCount(null);
+    setCursor(undefined);
+    setHasNext(true);
+    setDetectedColumns([]);
+  }
+  if (previousStaticData !== effectiveStaticData) {
+    setPreviousStaticData(effectiveStaticData);
+    setDetectedColumns([]);
+  }
 
-  // Static 데이터 변경 감지 - 데이터 소스가 변경되면 detectedColumns 초기화
   React.useEffect(() => {
-    if (prevStaticDataRef.current !== effectiveStaticData) {
-      prevStaticDataRef.current = effectiveStaticData;
-      setDetectedColumns([]);
-      console.log("🔄 Static 데이터 변경 감지 - 자동 감지 컬럼 초기화");
-    }
-  }, [effectiveStaticData]);
-
-  React.useEffect(() => {
-    // 모드 변경 또는 API 설정 변경 감지
-    const modeChanged = prevModeRef.current !== mode;
-    const apiConfigChanged =
-      prevApiConfigRef.current.apiUrlKey !== apiUrlKey ||
-      prevApiConfigRef.current.customApiUrl !== customApiUrl ||
-      prevApiConfigRef.current.endpointPath !== endpointPath ||
-      prevApiConfigRef.current.isAsync !== isAsync;
-
-    if (modeChanged || apiConfigChanged) {
-      // 상태 초기화
-      initialLoadRef.current = false;
-      prevModeRef.current = mode;
-      prevApiConfigRef.current = {
-        apiUrlKey,
-        customApiUrl,
-        endpointPath,
-        isAsync,
-      };
-
-      // 기존 데이터 초기화
-      setPageRows([]);
-      setFlatRows([]);
-      setPageIndex(0);
-      setPageCount(null);
-      setCursor(undefined);
-      setHasNext(true);
-
-      // 자동 감지된 컬럼도 초기화 (데이터 소스 변경 시 새로 감지)
-      setDetectedColumns([]);
-      console.log("🔄 데이터 소스 변경 감지 - 자동 감지 컬럼 초기화");
-    }
-
-    // isAsync가 false면 API 호출하지 않음
-    if (!isAsync) {
-      console.log("⏭️ isAsync=false, API 호출 건너뛰기");
-      return;
-    }
-
-    // API 설정이 완전하지 않으면 API 호출하지 않음
-    if (!apiUrlKey || !endpointPath || endpointPath.trim().length === 0) {
-      console.log("⏭️ API 설정 불완전, API 호출 건너뛰기:", {
-        apiUrlKey,
-        endpointPath,
-      });
-      return;
-    }
-
-    // 초기 로드 중복 방지 (React Strict Mode 대응)
-    if (initialLoadRef.current) {
-      console.log(
-        "⏸️ Initial load already in progress, skipping duplicate effect",
-      );
-      return;
-    }
-
-    initialLoadRef.current = true;
-
-    if (mode === "pagination") {
-      (async () => {
-        const { items, total } = await fetchPage(0);
-        setPageRows(items);
-        setPageIndex(0);
-        setPageCount(
-          Math.max(1, Math.ceil((total || 0) / currentItemsPerPage)),
-        );
-        initialLoadRef.current = false;
-      })();
-    } else {
-      (async () => {
-        setFlatRows([]);
-        setCursor(undefined);
-        setHasNext(true);
-        const { items, nextCursor } = await fetchMore("1");
-        setFlatRows(items);
-        setCursor(nextCursor);
-        setHasNext(Boolean(nextCursor));
-
-        // 초기 화면이 안 찼으면 한 번 더 (약간의 지연 후)
-        if (containerRef.current && nextCursor) {
-          setTimeout(() => {
-            if (!containerRef.current) return;
-            const el = containerRef.current;
-            if (el.scrollHeight <= el.clientHeight + 10) {
-              console.log("📥 Loading more to fill viewport: page 2");
-              fetchMore(nextCursor).then((r) => {
-                setFlatRows((prev) => [...prev, ...r.items]);
-                setCursor(r.nextCursor);
-                setHasNext(Boolean(r.nextCursor));
-              });
-            }
-          }, 100);
+    let cancelled = false;
+    let fillTimer: ReturnType<typeof setTimeout> | undefined;
+    if (isAsync)
+      void (async () => {
+        if (mode === "pagination") {
+          const result = await fetchPage(0);
+          if (cancelled || !result) return;
+          setPageRows(result.items);
+          setPageCount(
+            Math.max(1, Math.ceil(result.total / currentItemsPerPage)),
+          );
+        } else {
+          const result = await fetchMore();
+          if (cancelled || !result) return;
+          setFlatRows(result.items);
+          setCursor(result.nextCursor);
+          setHasNext(Boolean(result.nextCursor));
+          if (result.nextCursor)
+            fillTimer = setTimeout(async () => {
+              const el = containerRef.current;
+              if (cancelled || !el || el.scrollHeight > el.clientHeight + 10)
+                return;
+              const next = await fetchMore(result.nextCursor);
+              if (cancelled || !next) return;
+              setFlatRows((previous) => [...previous, ...next.items]);
+              setCursor(next.nextCursor);
+              setHasNext(Boolean(next.nextCursor));
+            }, 100);
         }
-        initialLoadRef.current = false;
       })();
-    }
-    // fetchPage와 fetchMore는 의도적으로 의존성에서 제외 (초기 로드만 실행, 리렌더링 시 재실행 방지)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    isAsync,
-    mode,
-    currentItemsPerPage,
-    apiUrlKey,
-    customApiUrl,
-    endpointPath,
-    enableAsyncLoading,
-  ]);
+    return () => {
+      cancelled = true;
+      clearTimeout(fillTimer);
+    };
+  }, [isAsync, mode, currentItemsPerPage, fetchPage, fetchMore]);
 
   // ---------- 데이터 결정 ----------
   const data: T[] = React.useMemo(() => {
@@ -1164,7 +825,9 @@ export default React.memo(function Table<T extends { id: string | number }>(
         console.log("📥 Scroll triggered load");
         void (async () => {
           const next = cursor ?? "1";
-          const { items, nextCursor } = await fetchMore(next);
+          const result = await fetchMore(next);
+          if (!result) return;
+          const { items, nextCursor } = result;
           setFlatRows((prev) => [...prev, ...items]);
           setCursor(nextCursor);
           setHasNext(Boolean(nextCursor));
@@ -1552,10 +1215,9 @@ export default React.memo(function Table<T extends { id: string | number }>(
                 <div className="react-aria-PageNavigation">
                   <Button
                     onClick={async () => {
-                      const { items, total } = await fetchPage(
-                        0,
-                        currentItemsPerPage,
-                      );
+                      const result = await fetchPage(0, currentItemsPerPage);
+                      if (!result) return;
+                      const { items, total } = result;
                       setPageRows(items);
                       setPageIndex(0);
                       setPageCount(
@@ -1576,10 +1238,9 @@ export default React.memo(function Table<T extends { id: string | number }>(
                   <Button
                     onClick={async () => {
                       const next = Math.max(0, pageIndex - 1);
-                      const { items } = await fetchPage(
-                        next,
-                        currentItemsPerPage,
-                      );
+                      const result = await fetchPage(next, currentItemsPerPage);
+                      if (!result) return;
+                      const { items } = result;
                       setPageRows(items);
                       setPageIndex(next);
                     }}
@@ -1617,10 +1278,12 @@ export default React.memo(function Table<T extends { id: string | number }>(
                             key={i}
                             onClick={async () => {
                               const targetPage = i - 1;
-                              const { items } = await fetchPage(
+                              const result = await fetchPage(
                                 targetPage,
                                 currentItemsPerPage,
                               );
+                              if (!result) return;
+                              const { items } = result;
                               setPageRows(items);
                               setPageIndex(targetPage);
                             }}
@@ -1644,10 +1307,9 @@ export default React.memo(function Table<T extends { id: string | number }>(
                         (pageCount ?? 1) - 1,
                         pageIndex + 1,
                       );
-                      const { items } = await fetchPage(
-                        next,
-                        currentItemsPerPage,
-                      );
+                      const result = await fetchPage(next, currentItemsPerPage);
+                      if (!result) return;
+                      const { items } = result;
                       setPageRows(items);
                       setPageIndex(next);
                     }}
@@ -1664,10 +1326,9 @@ export default React.memo(function Table<T extends { id: string | number }>(
                   <Button
                     onClick={async () => {
                       const next = (pageCount ?? 1) - 1;
-                      const { items } = await fetchPage(
-                        next,
-                        currentItemsPerPage,
-                      );
+                      const result = await fetchPage(next, currentItemsPerPage);
+                      if (!result) return;
+                      const { items } = result;
                       setPageRows(items);
                       setPageIndex(next);
                     }}
@@ -1709,10 +1370,12 @@ export default React.memo(function Table<T extends { id: string | number }>(
                           1,
                           Math.min(pageCount, Number(e.currentTarget.value)),
                         );
-                        const { items } = await fetchPage(
+                        const result = await fetchPage(
                           targetPage - 1,
                           currentItemsPerPage,
                         );
+                        if (!result) return;
+                        const { items } = result;
                         setPageRows(items);
                         setPageIndex(targetPage - 1);
                       }
@@ -1726,10 +1389,12 @@ export default React.memo(function Table<T extends { id: string | number }>(
                         1,
                         Math.min(pageCount, pageIndex + 1),
                       );
-                      const { items } = await fetchPage(
+                      const result = await fetchPage(
                         targetPage - 1,
                         currentItemsPerPage,
                       );
+                      if (!result) return;
+                      const { items } = result;
                       setPageRows(items);
                       setPageIndex(targetPage - 1);
                     }}
@@ -1749,7 +1414,9 @@ export default React.memo(function Table<T extends { id: string | number }>(
                     onChange={async (key) => {
                       const newPageSize = Number(key);
                       setCurrentItemsPerPage(newPageSize); // 내부 상태 업데이트
-                      const { items, total } = await fetchPage(0, newPageSize);
+                      const result = await fetchPage(0, newPageSize);
+                      if (!result) return;
+                      const { items, total } = result;
                       setPageRows(items);
                       setPageIndex(0);
                       setPageCount(

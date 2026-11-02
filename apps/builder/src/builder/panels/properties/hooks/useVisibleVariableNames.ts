@@ -1,6 +1,7 @@
 /**
  * ADR-214 Phase 3 — Properties 문자열 입력의 `{{` 자동완성 후보. ADR-248 4e-7: 출처는 필드 값 출처
- * (`FieldValueSource.useVariableNames`) 가 정하고, 없으면 프로젝트 변수 이름 (data store) 만 — 옛 canonical
+ * (`FieldValueSource.useVariableNames`) 가 정한다. 로컬 후보가 없는 provider 는 프로젝트 변수 이름
+ * (data store) 을 공급한다 — 옛 canonical
  * 문서의 페이지 · 요소 변수는 `useVisibleVariableNames.legacy.ts`.
  *
  * 참조 안정 (같은 내용이면 같은 배열) — `PropertyInput` memo 비교가 stateNames 참조를 본다.

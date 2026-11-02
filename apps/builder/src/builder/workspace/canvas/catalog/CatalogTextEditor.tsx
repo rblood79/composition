@@ -250,7 +250,6 @@ function TextField({
     field.select();
     // The field hugs the text from the first paint (its width is read from the DOM).
     measure(field, isUnwrapped(placeRef.current()?.text));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!start.record || !start.key || !placement) return null;

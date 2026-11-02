@@ -115,12 +115,7 @@ export const CatalogTargetPicker = memo(function CatalogTargetPicker({
 }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
-  const options = useMemo<CatalogTargetOption[]>(
-    () => (open ? readOptions() : []),
-    // (Read when it opens: the page's places now.)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [open],
-  );
+  const [options, setOptions] = useState<CatalogTargetOption[]>([]);
   const labels = useMemo(() => catalogTargetLabels(options), [options]);
   const byKey = useMemo(
     () => new Map(options.map((option) => [option.key, option])),
@@ -129,6 +124,7 @@ export const CatalogTargetPicker = memo(function CatalogTargetPicker({
   const { contains } = useFilter({ sensitivity: "base" });
   const virtualized = options.length > TARGET_PICKER_VIRTUALIZE_AT;
   const changeOpen = (next: boolean) => {
+    if (next && !open) setOptions(readOptions());
     setOpen(next);
     if (!next) onHover(undefined);
   };

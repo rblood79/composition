@@ -5,14 +5,7 @@
  * Uses @react-aria/i18n for locale-aware components
  */
 
-import React, {
-  createContext,
-  use,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { use, useCallback, useEffect, useMemo, useState } from "react";
 import {
   I18nProvider as AriaI18nProvider,
   useLocale,
@@ -24,11 +17,7 @@ import type { LocaleMessages } from "./messages/shared";
 import { getLocaleConfig, getStoredLocale, setStoredLocale } from "./locales";
 import { formatNumber, formatCurrency } from "@composition/shared/utils";
 
-/**
- * I18n Context
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export const I18nContext = createContext<I18nContextValue | null>(null);
+import { I18nContext } from "./I18nContext";
 
 /**
  * I18n Provider Props

@@ -538,23 +538,20 @@ export function useViewportControl(
   }, [controller, viewportSession]);
 
   // 스페이스바 팬 모드 (cursor만 변경)
-  useKeyboardShortcutsRegistry(
-    [
-      {
-        key: "Space",
-        code: "Space",
-        modifier: "none",
-        preventDefault: false,
-        disabled: !containerEl,
-        handler: () => {
-          if (gestureSession.spacePressed) return;
-          gestureSession.setSpacePressed(true);
-          applyPanCursor("grab");
-        },
+  useKeyboardShortcutsRegistry([
+    {
+      key: "Space",
+      code: "Space",
+      modifier: "none",
+      preventDefault: false,
+      disabled: !containerEl,
+      handler: () => {
+        if (gestureSession.spacePressed) return;
+        gestureSession.setSpacePressed(true);
+        applyPanCursor("grab");
       },
-    ],
-    [containerEl, gestureSession, applyPanCursor],
-  );
+    },
+  ]);
 
   useKeyboardShortcutsRegistry(
     [
@@ -572,7 +569,6 @@ export function useViewportControl(
         },
       },
     ],
-    [containerEl, gestureSession, applyPanCursor],
     { eventType: "keyup" },
   );
 

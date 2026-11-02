@@ -77,3 +77,77 @@ describe("CodeEditor — a new baseline while nothing is typed", () => {
     expect(host.hasAttribute("data-shortcut-local")).toBe(false);
   });
 });
+
+describe("CodeEditor — committed configuration changes", () => {
+  it("keeps the editor and undo history while label and readOnly change", async () => {
+    const editor = setup("a");
+    const { EditorView } = await import("@codemirror/view");
+    const { undo } = await import("@codemirror/commands");
+    const cm = EditorView.findFromDOM(editor.content())!;
+    act(() => cm.dispatch({ changes: { from: 1, insert: "b" } }));
+    editor.view.rerender(
+      <CodeEditor {...editor.props("a")} label="코드" readOnly />,
+    );
+    expect(EditorView.findFromDOM(editor.content())).toBe(cm);
+    expect(editor.text()).toBe("ab");
+    expect(editor.content().getAttribute("aria-label")).toBe("코드");
+    expect(editor.content().getAttribute("contenteditable")).toBe("false");
+    editor.view.rerender(<CodeEditor {...editor.props("a")} />);
+    act(() => {
+      undo(cm);
+    });
+    expect(editor.text()).toBe("a");
+  });
+
+  it("uses the new row fields for completion without remounting", async () => {
+    const { waitFor } = await import("@testing-library/react");
+    const { EditorView } = await import("@codemirror/view");
+    const { startCompletion, closeCompletion, currentCompletions } =
+      await import("@codemirror/autocomplete");
+    const rects = Object.getOwnPropertyDescriptor(
+      Range.prototype,
+      "getClientRects",
+    );
+    const bounds = Object.getOwnPropertyDescriptor(
+      Range.prototype,
+      "getBoundingClientRect",
+    );
+    Object.defineProperty(Range.prototype, "getClientRects", {
+      configurable: true,
+      value: () => [],
+    });
+    Object.defineProperty(Range.prototype, "getBoundingClientRect", {
+      configurable: true,
+      value: () => new DOMRect(),
+    });
+    const editor = setup("item.");
+    const cm = EditorView.findFromDOM(editor.content())!;
+    act(() => {
+      cm.dispatch({ selection: { anchor: 5 } });
+      startCompletion(cm);
+    });
+    await waitFor(() => expect(currentCompletions(cm.state)).toEqual([]));
+    editor.view.rerender(
+      <CodeEditor
+        {...editor.props("item.")}
+        vocabulary={{ ...vocabulary, fields: ["renamed"] }}
+      />,
+    );
+    act(() => {
+      closeCompletion(cm);
+      startCompletion(cm);
+    });
+    await waitFor(() =>
+      expect(currentCompletions(cm.state).map((item) => item.label)).toContain(
+        "renamed",
+      ),
+    );
+    expect(EditorView.findFromDOM(editor.content())).toBe(cm);
+    editor.view.unmount();
+    if (rects) Object.defineProperty(Range.prototype, "getClientRects", rects);
+    else Reflect.deleteProperty(Range.prototype, "getClientRects");
+    if (bounds)
+      Object.defineProperty(Range.prototype, "getBoundingClientRect", bounds);
+    else Reflect.deleteProperty(Range.prototype, "getBoundingClientRect");
+  });
+});

@@ -198,7 +198,6 @@ const APPS = {
 async function runOps(page, app, ids) {
   return page.evaluate(
     async ({ installSrc, ids, OPS, GAP_MS, WARMUP }) => {
-      // eslint-disable-next-line no-new-func
       const d = new Function(`return (${installSrc})()`)();
       const frames = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
       const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

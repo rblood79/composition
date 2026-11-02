@@ -215,8 +215,11 @@ function CodeViewContent() {
       ? catalogCodeViewFileBaseline(project, graph.commandReader, path, data)
       : undefined) ?? live;
   const draft = path ? drafts.get(path) : undefined;
-  const reasonText = (line: CatalogCodeViewRejection) =>
-    `${messages[line.reason].reason}${line.detail ? ` (${line.detail})` : ""} — ${messages[line.reason].alternative}`;
+  const reasonText = useCallback(
+    (line: CatalogCodeViewRejection) =>
+      `${messages[line.reason].reason}${line.detail ? ` (${line.detail})` : ""} — ${messages[line.reason].alternative}`,
+    [messages],
+  );
   const result = baseline;
   /** A page file's session (the snippets read one page). */
   const pageSession = useMemo((): CatalogCodeViewSession | undefined => {
@@ -293,8 +296,7 @@ function CodeViewContent() {
         },
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, snippets, tables, workspace],
+    [data, snippets, tables, workspace, graph, t],
   );
   const check = useCallback(
     (text: string, changes: readonly CodeViewChange[]) => {
@@ -318,8 +320,7 @@ function CodeViewContent() {
         .rejected.filter((line) => line.path === path || line.path === "")
         .map((line) => ({ line: line.line, message: reasonText(line) }));
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, graph, workspace, messages],
+    [data, graph, workspace, reasonText],
   );
 
   if (!baseline || !path || !file)

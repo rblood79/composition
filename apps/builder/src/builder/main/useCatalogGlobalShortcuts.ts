@@ -187,7 +187,7 @@ export function useCatalogGlobalShortcuts(
       })),
     ];
   }, [workspace, onError, activeScope]);
-  useKeyboardShortcutsRegistry(shortcuts, [shortcuts, activeScope], {
+  useKeyboardShortcutsRegistry(shortcuts, {
     capture: true,
     target: "document",
     activeScope,

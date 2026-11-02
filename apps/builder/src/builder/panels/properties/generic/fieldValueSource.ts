@@ -1,7 +1,6 @@
 import { createContext, useContext } from "react";
 import type { FieldOrigin } from "@composition/shared";
 import type { OwnerField } from "../hooks/useOwnerCollectionColumns";
-import { useProjectVariableNames } from "../hooks/useVisibleVariableNames";
 
 /**
  * Where the generic field renderer reads a field's shown value. Each function is a hook (it
@@ -25,8 +24,8 @@ export interface FieldValueSource {
   ): string;
   /** The fields of the collection that owns the element (`{field}` templates) — a hook; absent = none. */
   useOwnerFields?(elementId: string | undefined): OwnerField[] | null;
-  /** The variable names visible at the element (`{{` autocompletion) — a hook; absent = the project variables only. */
-  useVariableNames?(elementId: string | undefined): readonly string[];
+  /** The variable names visible at the element (`{{` autocompletion) — a required hook; providers without local names use useProjectVariableNames. */
+  useVariableNames(elementId: string | undefined): readonly string[];
   /** The name of the variable a `!var.<id>[.path]` reference reads — a hook; absent = the id. */
   useVariableName?(ref: string): string | undefined;
 }
@@ -78,11 +77,7 @@ export function useFieldVariableNames(
   elementId: string | undefined,
 ): readonly string[] {
   const source = useFieldValueSource();
-  // A source's hook set does not change while it is provided (one provider per panel).
-  return source.useVariableNames
-    ? source.useVariableNames(elementId)
-    : // eslint-disable-next-line react-hooks/rules-of-hooks -- fixed per provider
-      useProjectVariableNames();
+  return source.useVariableNames(elementId);
 }
 
 const VARIABLE_ID = (ref: string) =>

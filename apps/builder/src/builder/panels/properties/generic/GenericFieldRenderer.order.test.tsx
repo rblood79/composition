@@ -1,3 +1,4 @@
+import { useProjectVariableNames } from "../hooks/useVisibleVariableNames";
 import { cleanup, render } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -22,6 +23,7 @@ import { GenericFieldRenderer } from "./GenericFieldRenderer";
  * and the chips' Disabled · Required order differed.
  */
 const SOURCE: FieldValueSource = {
+  useVariableNames: useProjectVariableNames,
   useValue: (_id, _origin, _key, baseValue) => baseValue,
   useValuesSnapshot: (_id, _origin, _keys, baseValues) =>
     JSON.stringify(baseValues),

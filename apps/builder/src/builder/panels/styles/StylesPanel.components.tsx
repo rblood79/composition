@@ -251,7 +251,7 @@ export function StylesTabShortcuts() {
     [toggleFocusMode, toggleStyleSections],
   );
 
-  useKeyboardShortcutsRegistry(shortcuts, [shortcuts], { activeScope });
+  useKeyboardShortcutsRegistry(shortcuts, { activeScope });
   return null;
 }
 const { copy: CopyIcon, paste: PasteIcon } = ACTION_ICONS;

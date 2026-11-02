@@ -7,7 +7,7 @@
 import { cleanup, fireEvent, render, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
-import { I18nContext } from "../../../i18n/I18nProvider";
+import { I18nContext } from "../../../i18n/I18nContext";
 import type { I18nContextValue } from "../../../i18n/types";
 
 import { PropertySelect } from "./PropertySelect";

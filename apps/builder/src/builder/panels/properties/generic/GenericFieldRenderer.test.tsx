@@ -1,3 +1,4 @@
+import { useProjectVariableNames } from "../hooks/useVisibleVariableNames";
 import { fireEvent } from "@testing-library/react";
 import { resolveTestEditContract as resolveEditContract } from "../../../catalogRuntime/__tests__/support/editContractFixture";
 /**
@@ -17,6 +18,7 @@ import { type ResolvedField } from "@composition/shared";
 // 공급한다 (ADR-248 4e-9 C: 옛 store source 대신 아래 stub source, 나머지 host 는 catalog).
 const ownerColumnsMock = vi.fn<() => string[] | null>(() => null);
 const STUB_FIELD_VALUE_SOURCE: FieldValueSource = {
+  useVariableNames: useProjectVariableNames,
   useValue: (_id, _origin, _key, baseValue) => baseValue,
   useValuesSnapshot: (_id, _origin, _keys, baseValues) =>
     JSON.stringify(baseValues),
