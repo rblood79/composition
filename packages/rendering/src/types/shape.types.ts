@@ -374,6 +374,11 @@ export interface GradientShape {
   gradient: {
     type: "linear" | "radial" | "conic";
     angle?: number; // linear/conic gradient 각도 (0-360)
+    /**
+     * CSS 모서리 방향 (`linear-gradient(to bottom right, …)`) — 각도 · 길이가 상자 비율로 정해진다 (ADR-297 후속 ⑥).
+     * 있으면 `angle` 대신.
+     */
+    to?: "bottom right";
     stops: Array<{
       offset: number; // 0-1
       color: ColorValue;

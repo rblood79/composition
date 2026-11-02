@@ -4,7 +4,12 @@ import type {
   ComponentRuleVariant,
 } from "../../types/catalog-style.types";
 import type { ConditionSet } from "../rule/conditionTree";
-import { evaluatePaint, type ComponentRulePaint } from "../rule/rulePaintTree";
+import {
+  evaluatePaint,
+  evaluatePaintImage,
+  type ComponentRulePaint,
+  type PaintLinearGradient,
+} from "../rule/rulePaintTree";
 
 export type CatalogInteractionState = "default" | "hover" | "pressed";
 
@@ -33,6 +38,11 @@ export function catalogFillStyleKey(
 
 export interface ResolvedCatalogPaint {
   backgroundColor?: string;
+  /**
+   * 바탕색 위 그라데이션 (ADR-297 후속 ⑥ — S2 premium · genai Button). 작성한 바탕 (`style.backgroundColor`) 이 있으면
+   * 없다 — DOM 도 작성 바탕이 class 그림을 끈다 (`domBinding.runtime.ts` `authoredStyle`).
+   */
+  backgroundImage?: PaintLinearGradient;
   color?: string;
   borderColor?: string;
   /** Catalog 고유 opacity 배율. canonical `_fillBgAlpha`는 renderer adapter가 별도로 곱한다. */
@@ -138,8 +148,11 @@ export function resolveCatalogPaint({
       catalogAlpha !== 0) ||
     !!catalogBorderColor;
 
+  const backgroundImage =
+    isShowAll || style?.backgroundColor != null ? undefined : state.image;
   return {
     backgroundColor,
+    ...(backgroundImage ? { backgroundImage } : {}),
     color,
     borderColor,
     // (a static paint at the rule's S2 overlay opacity — a value-fill track 0.17, its fill 0.94)
@@ -154,6 +167,7 @@ export function resolveCatalogPaint({
 
 interface StatePaint {
   background: string | undefined;
+  image?: PaintLinearGradient;
   color: string | undefined;
   border: string | undefined;
 }
@@ -170,6 +184,7 @@ function treeStatePaint(
 ): StatePaint {
   return {
     background: evaluatePaint(paint.backgroundColor, conditions),
+    image: evaluatePaintImage(paint.backgroundImage, conditions),
     color: evaluatePaint(paint.color, conditions),
     border: evaluatePaint(paint.borderColor, conditions),
   };

@@ -13,6 +13,7 @@
  * TokenRef(`{color.X}`)는 string 그대로 — runtime resolveCanonicalToken/resolveToken 이 변환.
  */
 import type { ComponentRulesTable } from "../../types/catalog-style.types";
+import type { PaintImage } from "../rule/rulePaintTree";
 import {
   centerPadding,
   defineRuleLengthForms,
@@ -371,7 +372,7 @@ const BUTTON_ROOT_BOX = {
  * - #9 static (variant 바깥): `transparent-overlay-N` = static 색 (white · black) 의 α — S2 `spectrum-theme`
  *   (`lch(from --s2-container-bg …) / α`). primary 800 → hover 900 · secondary 100 → 200 · outline hover 100 ·
  *   disabled 바탕 100 · 글자 400 · outline 테두리 primary 800 → 900 · secondary 300 → 400. primary 글자 `auto` =
- *   바탕 반대색. accent · negative 는 S2 static 가지가 없어 평소 칠 그대로, premium · genai 는 100 고정 + 흰 글자.
+ *   바탕 반대색. accent · negative 는 S2 static 가지가 없어 평소 칠 그대로, premium · genai 는 `gradientButtonPaint`.
  */
 const S2_OVERLAY_ALPHA = {
   100: 0.11,
@@ -385,7 +386,8 @@ type StaticTone = "white" | "black";
 const overlay = (tone: StaticTone, step: keyof typeof S2_OVERLAY_ALPHA) =>
   `rgba(${tone === "white" ? "255, 255, 255" : "0, 0, 0"}, ${S2_OVERLAY_ALPHA[step]})`;
 const opaque = (tone: StaticTone) => (tone === "white" ? "#ffffff" : "#000000");
-const opposite = (tone: StaticTone) => (tone === "white" ? "#000000" : "#ffffff");
+const opposite = (tone: StaticTone) =>
+  tone === "white" ? "#000000" : "#ffffff";
 const TRANSPARENT = "{color.transparent}";
 const OUTLINE_HOVER_FILL = "{color.neutral-subtle}";
 
@@ -401,25 +403,16 @@ interface ButtonPaintSpec {
    * `layer-1` 이라 테두리로 경계를 지킨다 (확정 8 건 밖 — 그대로).
    */
   readonly fillBorder?: readonly [string, string];
-  /** S2 static 가지 — primary · secondary 의 overlay 단, flat = premium · genai, none = 가지 없음. */
-  readonly static: "primary" | "secondary" | "flat" | "none";
+  /** S2 static 가지 — primary · secondary 의 overlay 단, none = 가지 없음 (premium · genai 는 `gradientButtonPaint`). */
+  readonly static: "primary" | "secondary" | "none";
 }
 
 function buttonStaticPaint(spec: ButtonPaintSpec, tone: StaticTone) {
   const ov = (step: keyof typeof S2_OVERLAY_ALPHA) => overlay(tone, step);
   const [rest, hover] =
-    spec.static === "primary"
-      ? [ov(800), ov(900)]
-      : spec.static === "secondary"
-        ? [ov(100), ov(200)]
-        : [ov(100), ov(100)];
+    spec.static === "primary" ? [ov(800), ov(900)] : [ov(100), ov(200)];
   const [borderRest, borderHover] =
-    spec.static === "primary"
-      ? [ov(800), ov(900)]
-      : spec.static === "secondary"
-        ? [ov(300), ov(400)]
-        : [TRANSPARENT, TRANSPARENT];
-  const outlineFill = spec.static === "flat" ? ov(100) : TRANSPARENT;
+    spec.static === "primary" ? [ov(800), ov(900)] : [ov(300), ov(400)];
   return {
     backgroundColor: {
       default: rest,
@@ -428,21 +421,16 @@ function buttonStaticPaint(spec: ButtonPaintSpec, tone: StaticTone) {
       isDisabled: ov(100),
       fillStyle: {
         outline: {
-          default: outlineFill,
+          default: TRANSPARENT,
           isHovered: ov(100),
           isPressed: ov(100),
-          isDisabled: outlineFill,
+          isDisabled: TRANSPARENT,
         },
       },
     },
     color: {
-      default:
-        spec.static === "primary"
-          ? opposite(tone)
-          : spec.static === "flat"
-            ? "#ffffff"
-            : opaque(tone),
-      fillStyle: { outline: spec.static === "flat" ? "#ffffff" : opaque(tone) },
+      default: spec.static === "primary" ? opposite(tone) : opaque(tone),
+      fillStyle: { outline: opaque(tone) },
       isDisabled: overlay(tone, 400),
     },
     borderColor: {
@@ -452,7 +440,7 @@ function buttonStaticPaint(spec: ButtonPaintSpec, tone: StaticTone) {
           default: borderRest,
           isHovered: borderHover,
           isPressed: borderHover,
-          isDisabled: spec.static === "flat" ? TRANSPARENT : ov(300),
+          isDisabled: ov(300),
         },
       },
     },
@@ -526,6 +514,74 @@ function buttonPaint(spec: ButtonPaintSpec) {
   };
 }
 
+/**
+ * ADR-297 후속 ⑥ — premium · genai 의 그라데이션 = 설치 S2 `Button.tsx` `gradient` (`linearGradient('to bottom right', …)`,
+ * 정지점 색은 `dist/private/Button.css` 의 `--g0..2` light 값 — `colorScheme: 'light'` 로 테마와 무관하게 고정). 휴지 = 900 단,
+ * hover · pressed · focus = 1000 단.
+ */
+const S2_GRADIENT = {
+  premium: {
+    rest: ["#b539c8", "#7155fa", "#3b63fb"], // fuchsia · indigo · blue 900
+    hover: ["#9c28af", "#6338ee", "#274dea"], // 1000
+    stops: [0, 66, 100],
+  },
+  genai: {
+    rest: ["#d73220", "#d92361", "#7155fa"], // red · magenta · indigo 900
+    hover: ["#b72818", "#ba1650", "#6338ee"], // 1000
+    stops: [0, 33, 100],
+  },
+} as const;
+
+/**
+ * S2 premium · genai Button (`Button.tsx`): 바탕 `gray-100` (fill · outline 같음, fill disabled 만 `disabled`) 위에
+ * 그라데이션 (disabled 면 없음), 테두리 폭 0 (= 투명 — 그라데이션이 border box 를 덮는다), 글자 흰색 (disabled 는 disabled
+ * 글자). static: 바탕 `transparent-overlay-100` (그라데이션은 그대로 위), disabled 글자 `transparent-overlay-400`.
+ */
+function gradientButtonPaint(
+  spec: (typeof S2_GRADIENT)[keyof typeof S2_GRADIENT],
+) {
+  const gradient = (colors: readonly string[]): PaintImage => [
+    {
+      to: "bottom right",
+      stops: colors.map((color, i) => [color, spec.stops[i]!] as const),
+    },
+  ];
+  const hover = gradient(spec.hover);
+  const staticTone = (tone: StaticTone) => ({
+    background: overlay(tone, 100),
+    color: { default: "#ffffff", isDisabled: overlay(tone, 400) },
+  });
+  return {
+    paint: {
+      backgroundColor: {
+        default: OUTLINE_HOVER_FILL,
+        isDisabled: "{color.disabled}",
+        fillStyle: { outline: OUTLINE_HOVER_FILL },
+        staticColor: {
+          black: staticTone("black").background,
+          white: staticTone("white").background,
+        },
+      },
+      backgroundImage: {
+        default: gradient(spec.rest),
+        isHovered: hover,
+        isPressed: hover,
+        isFocusVisible: hover,
+        isDisabled: null,
+      },
+      color: {
+        default: "{color.white}",
+        isDisabled: "{color.neutral-subdued}",
+        staticColor: {
+          black: staticTone("black").color,
+          white: staticTone("white").color,
+        },
+      },
+      borderColor: TRANSPARENT,
+    },
+  };
+}
+
 /** S2 Button — disabled 는 색 (`buttonPaint`) 이지 opacity 가 아니다 (ADR-297 3h #7). */
 const BUTTON_DISABLED_STATE = {
   cursor: { isDisabled: "not-allowed" },
@@ -565,20 +621,8 @@ const BUTTON_VARIANTS = {
     outlineBorder: ["{color.border-hover}", "{color.border-hover}"],
     static: "none",
   }),
-  premium: buttonPaint({
-    fill: ["{color.purple}", "{color.purple-hover}"],
-    text: "{color.white}",
-    outlineText: "{color.purple}",
-    outlineBorder: ["{color.border-hover}", "{color.border-hover}"],
-    static: "flat",
-  }),
-  genai: buttonPaint({
-    fill: ["{color.purple}", "{color.purple-hover}"],
-    text: "{color.white}",
-    outlineText: "{color.purple}",
-    outlineBorder: ["{color.border-hover}", "{color.border-hover}"],
-    static: "flat",
-  }),
+  premium: gradientButtonPaint(S2_GRADIENT.premium),
+  genai: gradientButtonPaint(S2_GRADIENT.genai),
 };
 
 export const COMPONENT_RULES_TABLE: ComponentRulesTable = {

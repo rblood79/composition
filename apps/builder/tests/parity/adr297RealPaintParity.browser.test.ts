@@ -80,6 +80,8 @@ const OWNERS: readonly {
   { type: "Button", props: { variant: "genai" } },
   { type: "Button", props: { variant: "genai", staticColor: "white" } },
   { type: "Button", props: { variant: "genai", fillStyle: "outline" } },
+  { type: "Button", props: { variant: "genai", isDisabled: true } },
+  { type: "Button", props: { variant: "premium" } },
 ];
 
 let host: HTMLDivElement;
@@ -132,9 +134,14 @@ function skiaBytes(color: Float32Array | undefined): string {
   const [r, g, b, a] = [...color].map((v) => Math.round(v * 255));
   return `${r},${g},${b},${a}`;
 }
-const near = (a: string, b: string) => {
+const near = (a: string, b: string): boolean => {
   if (a === b) return true;
   if (a === "none" || b === "none") return false;
+  // (a gradient's stop list — every stop near)
+  if (a.includes(" ") || b.includes(" ")) {
+    const [x, y] = [a.split(" "), b.split(" ")];
+    return x.length === y.length && x.every((stop, i) => near(stop, y[i]!));
+  }
   const x = a.split(",").map(Number);
   const y = b.split(",").map(Number);
   return x.every((v, i) => Math.abs(v - y[i]!) <= 2);
@@ -144,7 +151,7 @@ interface Row {
   owner: string;
   type: string;
   id: string;
-  channel: "bg" | "bd" | "fg";
+  channel: "bg" | "bd" | "fg" | "img";
   canvas: string;
   dom: string;
 }
@@ -289,6 +296,20 @@ it("Canvas node data == DOM computed paint per record on the real node tree (the
     }
     if (data.text?.content)
       pairs.push(["fg", skiaBytes(data.text.color), cssBytes(computed.color)]);
+    // ADR-297 후속 ⑥: the gradient over the background (S2 premium · genai Button) — its stop colors,
+    //   the Canvas gradient child against the DOM `background-image`.
+    const gradient = data.children?.find(
+      (child) => child.box?.fill?.type === "linear-gradient",
+    )?.box?.fill as { colors: Float32Array[] } | undefined;
+    const domImage = computed.backgroundImage;
+    if (gradient || (domImage && domImage !== "none"))
+      pairs.push([
+        "img",
+        gradient ? gradient.colors.map(skiaBytes).join(" ") : "none",
+        domImage === "none"
+          ? "none"
+          : (domImage.match(/rgba?\([^)]*\)/g) ?? []).map(cssBytes).join(" "),
+      ]);
     for (const [channel, c, d] of pairs) {
       compared += 1;
       if (!near(c, d))
@@ -310,11 +331,12 @@ it("Canvas node data == DOM computed paint per record on the real node tree (the
     "../../.agent/runs/adr297-real-paint.json",
     `${JSON.stringify({ owners: owners.map((o) => o.label), missing, compared, noDom, noCanvas, byType, rows }, null, 1)}\n`,
   );
-  // ADR-297 후속 (2026-11-02): every record paints the same on both consumers but the genai Button's
-  //   gradient (S2 `gradient` — a background image the rule tree's color leaves cannot state yet).
+  // ADR-297 후속 ② ~ ⑥ (2026-11-02): every record paints the same on both consumers — the genai Button's
+  //   gradient included (⑥ — the rule tree's `backgroundImage`).
   expect(
-    rows
-      .filter((row) => !(row.type === "Button" && row.owner.includes("genai")))
-      .map((row) => `${row.owner} ${row.type} ${row.channel} ${row.canvas} / ${row.dom}`),
+    rows.map(
+      (row) => `${row.owner} ${row.type} ${row.channel} ${row.canvas} / ${row.dom}`,
+    ),
   ).toEqual([]);
+  expect(rows.length).toBe(0);
 });

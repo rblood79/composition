@@ -331,6 +331,9 @@ export function catalogRulePaint(
     interactionState: interaction(state),
     fillStyleValues: rule.fillStyleValues,
   });
+  // (Authored fill layers are the box's background — the DOM's inline fill also turns the class gradient
+  //  off, `authoredStyle` — so the rule's gradient does not paint over them.)
+  if (node.fills?.length) delete paint.backgroundImage;
   return { props, style, variant, size, paint, theme };
 }
 

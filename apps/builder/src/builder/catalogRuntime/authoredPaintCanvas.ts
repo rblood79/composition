@@ -14,6 +14,11 @@ import {
   hasCatalogAuthoredPaint,
 } from "./authoredStyle";
 import type { CatalogConsumerNode } from "./compositionRoot";
+import {
+  cssCornerGradientLine,
+  parsePaintGradientCss,
+  type PaintLinearGradient,
+} from "@composition/shared";
 
 /**
  * ADR-248 Phase 4a-3: the Canvas half of the authored paint (`authoredStyle` is the CSS record both
@@ -35,12 +40,66 @@ export function catalogCssColorRgba(value: string): Float32Array {
  * are taken from its result.
  */
 export function applyCatalogAuthoredPaint(
-  node: Pick<CatalogConsumerNode, "id" | "visual" | "fills">,
+  input: Pick<CatalogConsumerNode, "id" | "visual" | "fills">,
   data: SkiaNodeData,
   rect: { x: number; y: number; width: number; height: number },
   theme: "light" | "dark" = "light",
 ): SkiaNodeData {
-  if (!hasCatalogAuthoredPaint(node)) return data;
+  // ADR-297 후속 ⑥: a rule gradient (`paintGradientCss` — S2 premium · genai, or `none`) lies over the
+  //   background as CSS `background-image` over `background-color` does: a child box, not the fill.
+  const image = input.visual.backgroundImage;
+  const gradient =
+    typeof image === "string" ? parsePaintGradientCss(image) : undefined;
+  const node =
+    gradient || image === "none"
+      ? { ...input, visual: withoutKey(input.visual, "backgroundImage") }
+      : input;
+  const painted = hasCatalogAuthoredPaint(node)
+    ? authoredPaint(node, data, rect, theme)
+    : data;
+  return gradient ? withGradientLayer(painted, gradient, rect) : painted;
+}
+
+function withoutKey<T extends object>(value: T, key: string): T {
+  const { [key]: _drop, ...rest } = value as Record<string, unknown>;
+  return rest as T;
+}
+
+/** The gradient over the box's fill, in its rounded box (first internal child — under a pending circle). */
+function withGradientLayer(
+  data: SkiaNodeData,
+  gradient: PaintLinearGradient,
+  rect: { width: number; height: number },
+): SkiaNodeData {
+  const line = cssCornerGradientLine(rect.width, rect.height);
+  const layer: SkiaNodeData = {
+    type: "box",
+    x: 0,
+    y: 0,
+    width: rect.width,
+    height: rect.height,
+    visible: true,
+    box: {
+      fillColor: Float32Array.of(0, 0, 0, 0),
+      fill: {
+        type: "linear-gradient",
+        start: line.start,
+        end: line.end,
+        colors: gradient.stops.map(([color]) => catalogCssColorRgba(color)),
+        positions: gradient.stops.map(([, percent]) => percent / 100),
+      },
+      borderRadius: data.box?.borderRadius ?? 0,
+    },
+  };
+  return { ...data, children: [layer, ...(data.children ?? [])] };
+}
+
+function authoredPaint(
+  node: Pick<CatalogConsumerNode, "id" | "visual" | "fills">,
+  data: SkiaNodeData,
+  rect: { x: number; y: number; width: number; height: number },
+  theme: "light" | "dark",
+): SkiaNodeData {
   const visual = node.visual;
   const style: Record<string, string | number> = {
     ...catalogAuthoredPaintCss(node),

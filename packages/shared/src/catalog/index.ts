@@ -28,9 +28,14 @@ export {
   type ConditionalValue,
 } from "./rule/conditionTree";
 export {
+  cssCornerGradientLine,
   evaluatePaint,
+  evaluatePaintImage,
+  paintGradientCss,
+  parsePaintGradientCss,
   paintAt,
   type ComponentRulePaint,
+  type PaintLinearGradient,
   type PaintTree,
   type PaintValue,
 } from "./rule/rulePaintTree";

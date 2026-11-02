@@ -269,7 +269,8 @@ describe("catalog 토큰 존재 — 참조하는 모든 토큰이 theme/tokens �
       .filter(
         (m): m is RegExpExecArray => !!m && m[1]! in SEMANTIC_PALETTE_MAP,
       );
-    expect(hues.length).toBeGreaterThanOrEqual(14);
+    // (13 — ADR-297 후속 ⑥: premium · genai Button 은 S2 그라데이션이라 `{color.purple-hover}` 를 읽지 않는다.)
+    expect(hues.length).toBeGreaterThanOrEqual(13);
     const mix = (hex: string, pct: number) =>
       `#${[1, 3, 5]
         .map((i) =>

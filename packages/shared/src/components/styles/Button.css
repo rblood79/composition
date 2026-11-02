@@ -69,30 +69,7 @@
     }
 
     &[data-variant="genai"] {
-      --button-color: linear-gradient(
-        135deg,
-        var(--color-purple-600, #7c3aed),
-        var(--color-info-600, #2563eb)
-      );
       --button-text: var(--color-white);
-      --button-border: var(--color-purple-600, #7c3aed);
-      background: linear-gradient(
-        135deg,
-        var(--color-purple-600, #7c3aed),
-        var(--color-info-600, #2563eb)
-      );
-      color: var(--color-white);
-    }
-
-    /* ===== S2 Fill Style ===== */
-    /* outline 변형의 --button-color(transparent) / --button-text / --button-border 는
-       catalog(componentRulesTable Button.variants[*].paint 의 fillStyle.outline 글자/테두리 +
-       fill.outline.base)에서 generated/Button.css 로 emit 된다(D3 SSOT, 2026-06-27). Skia
-       resolveButtonChildColor 도 같은 outlineText 를 상속 → CSS↔Skia 대칭. 여기는 catalog 로
-       표현 불가한 genai gradient 배경 무력화만 남긴다(--button-color: transparent 는 .button-base
-       의 background 만 끄고, genai 가 직접 건 background: linear-gradient(0-2-0)는 못 이김). */
-    &[data-variant="genai"][data-fill-style="outline"] {
-      background: transparent;
     }
 
     /* ===== Static Color (RSP S2 staticColor — 유색/이미지 배경 위 고정 흑백 스킴) =====
@@ -102,8 +79,7 @@
        per-variant(0-3-0)를 로드 순서와 무관하게 이긴다 (publish 앱은 generated 가 수동 CSS
        뒤에 로드되어 동률이 지는 것을 실측, 2026-08-20).
        Skia 대칭: buildCatalogShapes static 블록(opaque-bg 데이터 분기) + resolveButtonChildColor.
-       알려진 한계: genai 의 직접 background gradient 는 static fill 로 대체되지 않음
-       (재지정 시 hover ramp 소실 trade-off, 2026-08-20). */
+       premium · genai 그라데이션은 catalog 칠 트리의 backgroundImage (생성 Button.css — ADR-297 후속 ⑥). */
     &[data-static-color="black"][data-static-color]:not(
         [data-fill-style="outline"]
       ) {

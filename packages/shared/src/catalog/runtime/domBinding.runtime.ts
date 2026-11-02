@@ -1,4 +1,4 @@
-import { paintAt } from "../rule/rulePaintTree";
+import { paintAt, ruleHasPaintImage } from "../rule/rulePaintTree";
 import {
   catalogIsAuthoredAbsolute,
   catalogIsAuthoredPlaced,
@@ -3044,6 +3044,15 @@ function authoredStyle(
       style,
       catalogAuthoredDomStyle({ visual: {}, fills: node.fills }),
     );
+  // ADR-297 후속 ⑥: an authored background is the box's background — the rule's gradient (class
+  //   `background-image`, S2 premium · genai Button) does not paint over it. The Canvas drops it the same
+  //   way (`resolveCatalogPaint` · `catalogRulePaint`).
+  if (
+    style.backgroundImage === undefined &&
+    (style.backgroundColor !== undefined || style.background !== undefined) &&
+    ruleHasPaintImage(rule?.variants)
+  )
+    style.backgroundImage = "none";
   // An authored absolute box's position · insets came with its authored layout (ADR-275).
   if (!catalogIsAuthoredPlaced(node)) containingBlock(root, node, style);
   return style;
@@ -3670,6 +3679,21 @@ export function renderNode(
       const fillAuthored =
         authored.fill !== undefined || authored.backgroundColor !== undefined;
       if (!fillAuthored && !node.fills?.length) delete bound.backgroundColor;
+      // ADR-297 후속 ⑥: the variant's gradient (the definition's `backgroundImage` — S2 premium · genai)
+      //   is the sheet's too, by state; an authored background turns it off (the Canvas the same —
+      //   `catalogPaintedVisual`), authored fill layers paint their own.
+      if (
+        authored.backgroundImage === undefined &&
+        typeof node.visual.backgroundImage === "string"
+      ) {
+        const layers = node.fills?.length
+          ? catalogAuthoredDomStyle({ visual: {}, fills: node.fills })
+          : undefined;
+        if (layers?.backgroundImage !== undefined)
+          bound.backgroundImage = layers.backgroundImage;
+        else if (fillAuthored || layers) bound.backgroundImage = "none";
+        else delete bound.backgroundImage;
+      }
       if (authored.borderColor === undefined) delete bound.borderColor;
       if (authored.color === undefined) delete bound.color;
     } else if (fieldDisabled && node.props.isDisabled !== true)

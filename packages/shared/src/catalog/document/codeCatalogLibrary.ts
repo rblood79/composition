@@ -22,7 +22,11 @@ import {
 } from "./ruleDefinition";
 export { PROP_KIND_VALUE_TYPE } from "./ruleDefinition";
 import { compileRulePartRules } from "./rulePartRules";
-import { paintAt } from "../rule/rulePaintTree";
+import {
+  evaluatePaintImage,
+  paintAt,
+  paintGradientCss,
+} from "../rule/rulePaintTree";
 import {
   evaluateConditionTree,
   type ConditionSet,
@@ -331,6 +335,16 @@ function buttonDefinition(
         evaluateConditionTree(paint.borderColor, conditions),
         `${variant}:${key}:border`,
       ),
+      // ADR-297 후속 ⑥: the gradient over the background (S2 premium · genai) — the Canvas paints it
+      //   over the fill (`authoredPaintCanvas.ts`); the DOM leaves it to the sheet (`background-image`).
+      ...(paint.backgroundImage === undefined
+        ? {}
+        : {
+            backgroundImage: ((gradient) =>
+              gradient ? paintGradientCss(gradient) : "none")(
+              evaluatePaintImage(paint.backgroundImage, conditions),
+            ),
+          }),
     });
     variants[variant] = at({ variant, fillStyle: "fill" }, "rest");
     for (const fillStyle of ["fill", outline] as const)

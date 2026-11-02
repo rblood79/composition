@@ -8,6 +8,7 @@
 import { cssDashPattern } from "./nodeRendererShapes";
 import type { Shape, ColorValue } from "@composition/rendering";
 import { getIconData, snapBorderWidth } from "@composition/rendering";
+import { cssCornerGradientLine } from "@composition/shared";
 import type {
   SkiaNodeData,
   SkiaPresentationFillTarget,
@@ -1066,7 +1067,18 @@ export function specShapesToSkia(
         const positions = shape.gradient.stops.map((s) => s.offset);
 
         let fill: FillStyle;
-        if (shape.gradient.type === "linear") {
+        if (shape.gradient.type === "linear" && shape.gradient.to) {
+          // (CSS `to bottom right` — the line the DOM draws: perpendicular to the other diagonal, ADR-297 후속 ⑥)
+          const line = cssCornerGradientLine(w, h);
+          fill = {
+            type: "linear-gradient",
+            start: line.start,
+            end: line.end,
+            colors,
+            positions,
+            ...(shape.premul ? { premul: true } : {}),
+          };
+        } else if (shape.gradient.type === "linear") {
           const angle = ((shape.gradient.angle ?? 0) * Math.PI) / 180;
           fill = {
             type: "linear-gradient",

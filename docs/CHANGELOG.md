@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-297 후속 ⑥ — premium · genai Button 그라데이션을 S2 대로, Canvas 와 Preview 가 같이] - 2026-11-02
+
+### Fixed
+
+- **genai Button 이 Canvas 에서는 보라 단색, Preview 에서는 다른 2 색 그라데이션이던 것** — 이제 두 화면 모두 S2 의 3 색 그라데이션 (빨강 → 자홍 → 남색, hover · pressed 에서 한 단 진하게, disabled 는 회색 바탕에 그림 없음) 을 그린다. **premium 도 S2 대로** 보라 단색에서 자홍 → 남색 → 파랑 그라데이션으로 바뀌었다 (S2 에서 같은 요소 · 같은 규칙). outline 은 fill 과 같은 모양, 테두리 없음, static 색에서도 그라데이션이 남는다 (S2 와 같다).
+- 이 Button 에 Fill 을 직접 주면 그 색이 바탕이 되고 그라데이션은 그리지 않는다 (두 화면 같음).
+  - **Why**: 칠 조건 트리 (ADR-297) 의 leaf 가 색만 받아 그라데이션을 담을 수 없었다 — Canvas 는 트리의 단색, Preview 는 수동 `Button.css` 의 손으로 적은 2 색이었다. 트리에 그림 칠 축 (`paint.backgroundImage`, 값 = S2 `linearGradient` 와 같은 모양) 을 더해 생성 CSS 는 `background-image` 로, Canvas 는 바탕 위 그라데이션 상자로 같은 트리를 읽는다. 정지점 색은 설치 S2 의 빌드 CSS 값 (light 고정 — S2 `colorScheme: 'light'`).
+  - 위치: `packages/shared/src/catalog/rule/rulePaintTree.ts` · `generated/componentRulesTable.ts` (`gradientButtonPaint`) · `packages/rendering/scripts/generate-css.ts` · `document/codeCatalogLibrary.ts` · `apps/builder/src/builder/catalogRuntime/authoredPaintCanvas.ts` · `canvasBinding.ts` · `runtime/domBinding.runtime.ts` · 수동 `Button.css` 블록 삭제 · 테스트 `adr297GradientButton.test.ts` · 하니스 `adr297RealPaintParity` (550 비교 · 불일치 0)
+
 ## [Design 패널 숫자 칸 — ↑ 로 값을 올린 뒤 Tab 을 치면 단계 목록의 항목이 저장되던 것] - 2026-11-02
 
 ### Fixed

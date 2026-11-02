@@ -135,9 +135,10 @@ describe("Style Panel catalog color values", () => {
     const appearance = hookOf(useAppearanceValues, "button-1");
     const typography = hookOf(useTypographyValues, "button-1");
 
+    // (ADR-297 후속 ⑥: S2 premium = gray-100 under its gradient · white text — the gradient is the
+    //  background image, not the Fill color)
     expect(appearance.result.current).toMatchObject({
-      backgroundColor: darkColors.purple,
-      borderColor: darkColors.purple,
+      backgroundColor: darkColors["neutral-subtle"],
     });
     expect(typography.result.current?.color).toBe(darkColors.white);
   });

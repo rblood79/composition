@@ -16,7 +16,13 @@
 
 import { parseBorderWidth, parsePxValue } from "../primitives";
 import { fontFamily } from "../primitives/typography";
-import type { BorderStyleValue, Shape, SizeSpec, TokenRef } from "../types";
+import type {
+  BorderStyleValue,
+  ColorValue,
+  Shape,
+  SizeSpec,
+  TokenRef,
+} from "../types";
 import type { CatalogResolvedPaint } from "./catalogPaint";
 import {
   resolveSpecFontSize,
@@ -329,6 +335,25 @@ export function buildCatalogShapes(
       // staticTrackWash: value-fill track 의 static bg 25% (위 §2-F 분기 주석 참조).
       fillAlpha: presentationOpacityMultiplier * fillBgAlpha,
     });
+    // ADR-297 후속 ⑥: the variant's gradient over the background color (S2 premium · genai Button — CSS
+    //   `background-image` over `background-color`, covering the border box).
+    if (paint.backgroundImage)
+      shapes.push({
+        type: "gradient",
+        x: 0,
+        y: 0,
+        width: "auto",
+        height: "auto",
+        radius: borderRadius,
+        gradient: {
+          type: "linear",
+          to: paint.backgroundImage.to,
+          stops: paint.backgroundImage.stops.map(([color, percent]) => ({
+            offset: percent / 100,
+            color: color as ColorValue,
+          })),
+        },
+      });
     // border-style 은 보편 D3 속성(CSS border-style 동형). 3경로 공통 우선순위:
     //   사용자 style.borderStyle → catalog visual.borderStyle → (미지정 시)
     //   specShapeConverter 가 "solid" fallback(style 키 생략 → solid).

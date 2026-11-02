@@ -35,7 +35,11 @@ import type { ComponentRuleStateStyles } from "../../shared/src/types/catalog-st
 import { CATALOG_FIELD_LABEL_PART_ALIASES } from "../../shared/src/catalog/document/contextualHelp";
 import { CATALOG_CONTEXTUAL_HELP_FIELDS } from "../../shared/src/domain/componentTraits";
 import { createThemeDefinition } from "../../shared/src/theme/themesCollection";
-import { paintAt } from "../../shared/src/catalog/rule/rulePaintTree";
+import {
+  paintAt,
+  paintGradientCss,
+  type PaintImage,
+} from "../../shared/src/catalog/rule/rulePaintTree";
 import {
   compileConditionTree,
   isConditionNode,
@@ -222,6 +226,49 @@ export function variantPaintCssFor(
         line: `${block.property}: ${value};`,
       });
     }
+  }
+  return [...groupedCss(blocks), ...variantImageCssFor(rule, root, only)];
+}
+
+/**
+ * ADR-297 후속 ⑥ — the variants' gradient (`paint.backgroundImage`, S2 `Button.tsx` `gradient`) as
+ * `background-image` over the background color. Its blocks come after the paint blocks: the color is the
+ * `background` shorthand, which resets the image — at the same specificity (`:where()`) the later block wins.
+ * The image covers the border box (`background-origin`), as the Canvas paints its rounded box.
+ */
+function variantImageCssFor(
+  rule: ReturnType<typeof getComponentRulesTable>[string],
+  root: string,
+  only: ReadonlySet<string> | undefined,
+): string[] {
+  if (only) return [];
+  const variant: Record<string, ConditionalValue<PaintImage | null>> = {};
+  for (const [name, v] of Object.entries(rule.variants))
+    if (v.paint.backgroundImage !== undefined)
+      variant[name] = v.paint.backgroundImage;
+  if (Object.keys(variant).length === 0) return [];
+  const blocks: CssBlock[] = [];
+  for (const block of compileConditionTree(
+    { variant } as ConditionalValue<PaintImage | null>,
+    root,
+    "background-image",
+  )) {
+    const value =
+      block.value === null
+        ? "none"
+        : paintGradientCss(block.value[0], (color) =>
+            color.startsWith("{") ? tokenToCSSVar(color as TokenRef) : color,
+          );
+    blocks.push({
+      selector: block.selector,
+      ...(block.media ? { media: block.media } : {}),
+      line: `background-image: ${value};`,
+    });
+    blocks.push({
+      selector: block.selector,
+      ...(block.media ? { media: block.media } : {}),
+      line: "background-origin: border-box;",
+    });
   }
   return groupedCss(blocks);
 }

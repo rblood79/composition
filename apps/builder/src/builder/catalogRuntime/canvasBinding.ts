@@ -1020,6 +1020,28 @@ function dropZoneContentData(
  * One node's Canvas data: its binding (or rule executor), the authored paint overlay
  * (`authoredStyle.ts`) and the resolved opacity — the same for the initial bind and a delta update.
  */
+/**
+ * ADR-297 후속 ⑥ — an authored background (fill · fill layers) is the box's background: the variant's
+ * gradient (the definition's `backgroundImage` — S2 premium · genai) does not paint over it, as the
+ * DOM writes `background-image: none` over the sheet (`domBinding.runtime.ts`). An authored image stays.
+ */
+function withoutCoveredGradient(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): CatalogConsumerNode {
+  if (typeof node.visual.backgroundImage !== "string") return node;
+  const authored = catalogAuthoredVisual(root, node, true);
+  if (
+    authored.backgroundImage !== undefined ||
+    (authored.fill === undefined &&
+      authored.backgroundColor === undefined &&
+      !node.fills?.length)
+  )
+    return node;
+  const { backgroundImage: _covered, ...visual } = node.visual;
+  return { ...node, visual } as CatalogConsumerNode;
+}
+
 function paintedNodeData(
   root: CatalogCompositionRoot,
   input: CatalogConsumerNode,
@@ -1038,11 +1060,14 @@ function paintedNodeData(
       } as CatalogConsumerNode)
     : input;
   // (ADR-259 Phase 2: a NumberField's stepper in its prefix box lays its border down.)
-  const node = catalogVisualWithBackground(
-    catalogFieldBoxStepperNode(
-      restored,
-      (id) => root.canvasInputs.get(id),
-      root.typeOf,
+  const node = withoutCoveredGradient(
+    root,
+    catalogVisualWithBackground(
+      catalogFieldBoxStepperNode(
+        restored,
+        (id) => root.canvasInputs.get(id),
+        root.typeOf,
+      ),
     ),
   );
   return withOverflowClip(

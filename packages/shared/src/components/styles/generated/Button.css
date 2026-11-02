@@ -301,15 +301,7 @@
 }
 
 .react-aria-Button:where([data-variant="premium"]) {
-  background: var(--hue-purple);
-}
-
-.react-aria-Button:where([data-variant="premium"][data-hovered]) {
-  background: var(--purple-hover, color-mix(in srgb, var(--hue-purple) 85%, black));
-}
-
-.react-aria-Button:where([data-variant="premium"][data-pressed]) {
-  background: var(--purple-hover, color-mix(in srgb, var(--hue-purple) 85%, black));
+  background: var(--bg-muted);
 }
 
 .react-aria-Button:where([data-variant="premium"][data-disabled]) {
@@ -317,50 +309,10 @@
 }
 
 .react-aria-Button:where([data-variant="premium"][data-fill-style="outline"]) {
-  background: transparent;
-}
-
-.react-aria-Button:where([data-variant="premium"][data-fill-style="outline"][data-hovered]) {
   background: var(--bg-muted);
-}
-
-.react-aria-Button:where([data-variant="premium"][data-fill-style="outline"][data-pressed]) {
-  background: var(--bg-muted);
-}
-
-.react-aria-Button:where([data-variant="premium"][data-fill-style="outline"][data-disabled]) {
-  background: transparent;
 }
 
 .react-aria-Button:where([data-variant="premium"][data-static-color="black"]) {
-  background: rgba(0, 0, 0, 0.11);
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-hovered]) {
-  background: rgba(0, 0, 0, 0.11);
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-pressed]) {
-  background: rgba(0, 0, 0, 0.11);
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-disabled]) {
-  background: rgba(0, 0, 0, 0.11);
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-fill-style="outline"]) {
-  background: rgba(0, 0, 0, 0.11);
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-fill-style="outline"][data-hovered]) {
-  background: rgba(0, 0, 0, 0.11);
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-fill-style="outline"][data-pressed]) {
-  background: rgba(0, 0, 0, 0.11);
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-fill-style="outline"][data-disabled]) {
   background: rgba(0, 0, 0, 0.11);
 }
 
@@ -368,44 +320,8 @@
   background: rgba(255, 255, 255, 0.11);
 }
 
-.react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-hovered]) {
-  background: rgba(255, 255, 255, 0.11);
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-pressed]) {
-  background: rgba(255, 255, 255, 0.11);
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-disabled]) {
-  background: rgba(255, 255, 255, 0.11);
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-fill-style="outline"]) {
-  background: rgba(255, 255, 255, 0.11);
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-fill-style="outline"][data-hovered]) {
-  background: rgba(255, 255, 255, 0.11);
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-fill-style="outline"][data-pressed]) {
-  background: rgba(255, 255, 255, 0.11);
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-fill-style="outline"][data-disabled]) {
-  background: rgba(255, 255, 255, 0.11);
-}
-
 .react-aria-Button:where([data-variant="genai"]) {
-  background: var(--hue-purple);
-}
-
-.react-aria-Button:where([data-variant="genai"][data-hovered]) {
-  background: var(--purple-hover, color-mix(in srgb, var(--hue-purple) 85%, black));
-}
-
-.react-aria-Button:where([data-variant="genai"][data-pressed]) {
-  background: var(--purple-hover, color-mix(in srgb, var(--hue-purple) 85%, black));
+  background: var(--bg-muted);
 }
 
 .react-aria-Button:where([data-variant="genai"][data-disabled]) {
@@ -413,82 +329,14 @@
 }
 
 .react-aria-Button:where([data-variant="genai"][data-fill-style="outline"]) {
-  background: transparent;
-}
-
-.react-aria-Button:where([data-variant="genai"][data-fill-style="outline"][data-hovered]) {
   background: var(--bg-muted);
-}
-
-.react-aria-Button:where([data-variant="genai"][data-fill-style="outline"][data-pressed]) {
-  background: var(--bg-muted);
-}
-
-.react-aria-Button:where([data-variant="genai"][data-fill-style="outline"][data-disabled]) {
-  background: transparent;
 }
 
 .react-aria-Button:where([data-variant="genai"][data-static-color="black"]) {
   background: rgba(0, 0, 0, 0.11);
 }
 
-.react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-hovered]) {
-  background: rgba(0, 0, 0, 0.11);
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-pressed]) {
-  background: rgba(0, 0, 0, 0.11);
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-disabled]) {
-  background: rgba(0, 0, 0, 0.11);
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-fill-style="outline"]) {
-  background: rgba(0, 0, 0, 0.11);
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-fill-style="outline"][data-hovered]) {
-  background: rgba(0, 0, 0, 0.11);
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-fill-style="outline"][data-pressed]) {
-  background: rgba(0, 0, 0, 0.11);
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-fill-style="outline"][data-disabled]) {
-  background: rgba(0, 0, 0, 0.11);
-}
-
 .react-aria-Button:where([data-variant="genai"][data-static-color="white"]) {
-  background: rgba(255, 255, 255, 0.11);
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-hovered]) {
-  background: rgba(255, 255, 255, 0.11);
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-pressed]) {
-  background: rgba(255, 255, 255, 0.11);
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-disabled]) {
-  background: rgba(255, 255, 255, 0.11);
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-fill-style="outline"]) {
-  background: rgba(255, 255, 255, 0.11);
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-fill-style="outline"][data-hovered]) {
-  background: rgba(255, 255, 255, 0.11);
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-fill-style="outline"][data-pressed]) {
-  background: rgba(255, 255, 255, 0.11);
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-fill-style="outline"][data-disabled]) {
   background: rgba(255, 255, 255, 0.11);
 }
 
@@ -612,19 +460,7 @@
   color: var(--fg-muted);
 }
 
-.react-aria-Button:where([data-variant="premium"][data-fill-style="outline"]) {
-  color: var(--hue-purple);
-}
-
-.react-aria-Button:where([data-variant="premium"][data-fill-style="outline"][data-disabled]) {
-  color: var(--fg-muted);
-}
-
 .react-aria-Button:where([data-variant="premium"][data-static-color="black"]) {
-  color: #ffffff;
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-fill-style="outline"]) {
   color: #ffffff;
 }
 
@@ -633,10 +469,6 @@
 }
 
 .react-aria-Button:where([data-variant="premium"][data-static-color="white"]) {
-  color: #ffffff;
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-fill-style="outline"]) {
   color: #ffffff;
 }
 
@@ -652,19 +484,7 @@
   color: var(--fg-muted);
 }
 
-.react-aria-Button:where([data-variant="genai"][data-fill-style="outline"]) {
-  color: var(--hue-purple);
-}
-
-.react-aria-Button:where([data-variant="genai"][data-fill-style="outline"][data-disabled]) {
-  color: var(--fg-muted);
-}
-
 .react-aria-Button:where([data-variant="genai"][data-static-color="black"]) {
-  color: #ffffff;
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-fill-style="outline"]) {
   color: #ffffff;
 }
 
@@ -673,10 +493,6 @@
 }
 
 .react-aria-Button:where([data-variant="genai"][data-static-color="white"]) {
-  color: #ffffff;
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-fill-style="outline"]) {
   color: #ffffff;
 }
 
@@ -893,147 +709,61 @@
 }
 
 .react-aria-Button:where([data-variant="premium"]) {
-  border-color: var(--hue-purple);
-}
-
-.react-aria-Button:where([data-variant="premium"][data-hovered]) {
-  border-color: var(--purple-hover, color-mix(in srgb, var(--hue-purple) 85%, black));
-}
-
-.react-aria-Button:where([data-variant="premium"][data-pressed]) {
-  border-color: var(--purple-hover, color-mix(in srgb, var(--hue-purple) 85%, black));
-}
-
-.react-aria-Button:where([data-variant="premium"][data-disabled]) {
-  border-color: var(--bg-disabled);
-}
-
-.react-aria-Button:where([data-variant="premium"][data-fill-style="outline"]) {
-  border-color: var(--border-hover);
-}
-
-.react-aria-Button:where([data-variant="premium"][data-fill-style="outline"][data-hovered]) {
-  border-color: var(--border-hover);
-}
-
-.react-aria-Button:where([data-variant="premium"][data-fill-style="outline"][data-pressed]) {
-  border-color: var(--border-hover);
-}
-
-.react-aria-Button:where([data-variant="premium"][data-fill-style="outline"][data-disabled]) {
-  border-color: var(--border-disabled);
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="black"]) {
-  border-color: transparent;
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-fill-style="outline"]) {
-  border-color: transparent;
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-fill-style="outline"][data-hovered]) {
-  border-color: transparent;
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-fill-style="outline"][data-pressed]) {
-  border-color: transparent;
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="black"][data-fill-style="outline"][data-disabled]) {
-  border-color: transparent;
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="white"]) {
-  border-color: transparent;
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-fill-style="outline"]) {
-  border-color: transparent;
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-fill-style="outline"][data-hovered]) {
-  border-color: transparent;
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-fill-style="outline"][data-pressed]) {
-  border-color: transparent;
-}
-
-.react-aria-Button:where([data-variant="premium"][data-static-color="white"][data-fill-style="outline"][data-disabled]) {
   border-color: transparent;
 }
 
 .react-aria-Button:where([data-variant="genai"]) {
-  border-color: var(--hue-purple);
+  border-color: transparent;
+}
+
+.react-aria-Button:where([data-variant="premium"]) {
+  background-image: linear-gradient(to bottom right, #b539c8 0%, #7155fa 66%, #3b63fb 100%);
+  background-origin: border-box;
+}
+
+.react-aria-Button:where([data-variant="premium"][data-hovered]) {
+  background-image: linear-gradient(to bottom right, #9c28af 0%, #6338ee 66%, #274dea 100%);
+  background-origin: border-box;
+}
+
+.react-aria-Button:where([data-variant="premium"][data-pressed]) {
+  background-image: linear-gradient(to bottom right, #9c28af 0%, #6338ee 66%, #274dea 100%);
+  background-origin: border-box;
+}
+
+.react-aria-Button:where([data-variant="premium"][data-focus-visible]) {
+  background-image: linear-gradient(to bottom right, #9c28af 0%, #6338ee 66%, #274dea 100%);
+  background-origin: border-box;
+}
+
+.react-aria-Button:where([data-variant="premium"][data-disabled]) {
+  background-image: none;
+  background-origin: border-box;
+}
+
+.react-aria-Button:where([data-variant="genai"]) {
+  background-image: linear-gradient(to bottom right, #d73220 0%, #d92361 33%, #7155fa 100%);
+  background-origin: border-box;
 }
 
 .react-aria-Button:where([data-variant="genai"][data-hovered]) {
-  border-color: var(--purple-hover, color-mix(in srgb, var(--hue-purple) 85%, black));
+  background-image: linear-gradient(to bottom right, #b72818 0%, #ba1650 33%, #6338ee 100%);
+  background-origin: border-box;
 }
 
 .react-aria-Button:where([data-variant="genai"][data-pressed]) {
-  border-color: var(--purple-hover, color-mix(in srgb, var(--hue-purple) 85%, black));
+  background-image: linear-gradient(to bottom right, #b72818 0%, #ba1650 33%, #6338ee 100%);
+  background-origin: border-box;
+}
+
+.react-aria-Button:where([data-variant="genai"][data-focus-visible]) {
+  background-image: linear-gradient(to bottom right, #b72818 0%, #ba1650 33%, #6338ee 100%);
+  background-origin: border-box;
 }
 
 .react-aria-Button:where([data-variant="genai"][data-disabled]) {
-  border-color: var(--bg-disabled);
-}
-
-.react-aria-Button:where([data-variant="genai"][data-fill-style="outline"]) {
-  border-color: var(--border-hover);
-}
-
-.react-aria-Button:where([data-variant="genai"][data-fill-style="outline"][data-hovered]) {
-  border-color: var(--border-hover);
-}
-
-.react-aria-Button:where([data-variant="genai"][data-fill-style="outline"][data-pressed]) {
-  border-color: var(--border-hover);
-}
-
-.react-aria-Button:where([data-variant="genai"][data-fill-style="outline"][data-disabled]) {
-  border-color: var(--border-disabled);
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="black"]) {
-  border-color: transparent;
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-fill-style="outline"]) {
-  border-color: transparent;
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-fill-style="outline"][data-hovered]) {
-  border-color: transparent;
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-fill-style="outline"][data-pressed]) {
-  border-color: transparent;
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="black"][data-fill-style="outline"][data-disabled]) {
-  border-color: transparent;
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="white"]) {
-  border-color: transparent;
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-fill-style="outline"]) {
-  border-color: transparent;
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-fill-style="outline"][data-hovered]) {
-  border-color: transparent;
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-fill-style="outline"][data-pressed]) {
-  border-color: transparent;
-}
-
-.react-aria-Button:where([data-variant="genai"][data-static-color="white"][data-fill-style="outline"][data-disabled]) {
-  border-color: transparent;
+  background-image: none;
+  background-origin: border-box;
 }
 
 .react-aria-Button[data-icon-only] {
