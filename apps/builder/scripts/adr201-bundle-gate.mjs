@@ -25,9 +25,9 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 
-export const APPROVED = true; // 2026-10-18 사용자 재승인 (실측에 맞춰 낮춤 · 연장, 09-26 값 대체) — ADR-201 §initial 번들 상한 재승인 절
-export const BUILDER_CEILING = 1_390_000;
-export const PREVIEW_CEILING = 320_000;
+export const APPROVED = true; // 2026-11-02 사용자 재승인 (ADR-298 「상한 재승인」, 10-18 값 1,390,000 / 320,000 대체) — ADR-201 §initial 번들 상한 재승인 절
+export const BUILDER_CEILING = 1_400_000;
+export const PREVIEW_CEILING = 325_000;
 export const CEILING_EXPIRES = "2026-11-25";
 export const BUILDER_DELTA_LIMIT = 4_096;
 export const PREVIEW_DELTA_LIMIT = 3_584;

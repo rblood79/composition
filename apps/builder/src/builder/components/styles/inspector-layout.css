@@ -550,8 +550,24 @@
         align-self: end;
       }
 
-      /* 슬라이더 행 (c12) + 프리셋 메뉴 (28 열) */
-      .style-border-width,
+      /* Width | Color (ADR-298 Phase 5 시안) — 빈 28 액션 칸 */
+      .style-border-width {
+        display: grid;
+        grid-template-columns: var(--inspector-row-columns);
+        grid-template-rows: auto;
+        gap: var(--spacing-sm);
+        grid-template-areas: "border-width border-color icon";
+
+        > * {
+          min-width: 0;
+        }
+
+        .border-width {
+          grid-area: border-width;
+        }
+      }
+
+      /* Radius 값 + ▾ (2열) + 코너 펼침 (28 열) */
       .style-border-radius {
         display: grid;
         grid-template-columns: var(--inspector-row-columns);
@@ -563,26 +579,21 @@
           min-width: 0;
         }
 
-        .border-width,
         .border-radius {
           grid-area: slider;
         }
       }
 
-      /* ADR-219 — 변 세그먼트 「전체 · 좌 · 우 · 상 · 하」 (Width 아래, 전폭 2열 + 빈 아이콘 열) */
-      .style-border-sides {
-        display: grid;
-        grid-template-columns: var(--inspector-row-columns);
-        grid-template-rows: auto;
-        gap: var(--spacing-sm);
-        grid-template-areas: "sides sides .";
+      /* ADR-219 — 변 세그먼트 「전체 · 좌 · 우 · 상 · 하」 (Style 옆 — ADR-298 Phase 5 시안) */
+      .border-sides {
+        grid-area: border-sides;
 
-        > * {
+        /* 반폭 칸에 5 버튼 — 칸 폭에서 나눈다 (Position 모드 seg 와 같은 어법). 버튼당 ~17px 로
+           desktop 24px hit target 아래 — 시안 배치 (사용자 결정 2026-11-02) 와의 trade-off */
+        .react-aria-ToggleButtonGroup .react-aria-ToggleButton {
+          flex: 1 1 0;
           min-width: 0;
-        }
-
-        .border-sides {
-          grid-area: sides;
+          padding-inline: 0;
         }
 
         /* 미지원 style 의 비균일 문서 — 「Skia 근사」 (10 mono caps, legend 우측) */
@@ -624,13 +635,13 @@
         }
       }
 
-      /* Style seg | Color 「■ 000000」 */
+      /* Style seg | Sides seg (ADR-298 Phase 5 시안) */
       .style-border {
         display: grid;
         grid-template-columns: var(--inspector-row-columns);
         grid-template-rows: auto;
         gap: var(--spacing-sm);
-        grid-template-areas: "border-style border-color .";
+        grid-template-areas: "border-style border-sides .";
 
         > * {
           min-width: 0;

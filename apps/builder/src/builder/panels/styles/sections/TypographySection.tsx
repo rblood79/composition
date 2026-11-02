@@ -163,7 +163,8 @@ const TypographySectionContent = memo(function TypographySectionContent() {
     <>
       {/* 1행: 글꼴 (이름이 곧 라벨) | 색 swatch 28 */}
       <FontFamilyPicker
-        value={styleValues.fontFamily}
+        value={styleValues.fontFamilyAuthored}
+        inheritedFamily={styleValues.fontFamily}
         onChange={(value) => updateStyle("fontFamily", value)}
       />
       <PropertyColor
@@ -203,6 +204,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         className="line-height"
         unitSuffix
         value={styleValues.lineHeight}
+        autoValue={styleValues.lineHeightAuto}
         units={["auto", "px"]}
         onChange={(value) => updateStyleImmediate("lineHeight", value)}
         onDrag={(value) => updateStylePreview("lineHeight", value)}

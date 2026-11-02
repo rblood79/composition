@@ -762,7 +762,7 @@ const catalog: TranslationKeys = {
   },
   fonts: {
     deleteFace: "{family} {face} 삭제",
-    defaultValue: "기본",
+    defaultValue: "테마",
     searchLabel: "폰트 검색",
     searchPlaceholder: "폰트 검색…",
     sectionDefault: "기본 폰트",
@@ -2978,6 +2978,7 @@ const semanticLabels: Record<string, string> = {
   "styles.appearance.overflow": "오버플로",
   "styles.appearance.shadowLayerActions": "그림자 레이어 작업",
   "styles.appearance.removeShadowLayer": "레이어 제거",
+  "styles.appearance.removeShadow": "그림자 제거",
   "styles.appearance.insetShadowLayer": "안쪽 그림자로",
   "styles.appearance.outerShadowLayer": "바깥 그림자로",
   "styles.appearance.opacity": "불투명도",

@@ -44,7 +44,7 @@ export interface PreviewElement {
   type: string;
   props: ElementProps;
   /**
-   * canonical `fills` payload — DOM 소비자는 `adaptElementStyle`(`utils/fillAdapter`)
+   * canonical `fills` payload — DOM 소비자는 `adaptStyleWithFills`(`utils/fillAdapter`)
    * 로 `props.style` 배경에 반영한다.
    *
    * `Fill` 구체 타입 대신 `unknown[]` 인 것은 `Element.fills`(element.types.ts)와

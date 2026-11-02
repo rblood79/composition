@@ -169,6 +169,14 @@ const EffectSectionContent = memo(function EffectSectionContent() {
     layerIndex: number,
   ): void => {
     if (!boxShadowModel) return;
+    // ADR-298 Phase 5: 토큰 행은 토큰 하나 — 제거는 그림자 전체, inset 은 모든 레이어 (preset 의 inset 판과 같은 값).
+    if (shadowToken) {
+      const tokenValue = getShadowToken(shadowToken, "light") ?? "";
+      commitBoxShadowTopology(
+        action === "remove" ? "" : applyShadowInset(tokenValue),
+      );
+      return;
+    }
     if (action === "remove") {
       const removed = removeBoxShadowPresentationLayer(
         boxShadowModel,
@@ -280,17 +288,10 @@ const EffectSectionContent = memo(function EffectSectionContent() {
         <fieldset className="properties-aria effect-group style-shadow">
           <legend className="fieldset-legend">
             {localize("Box Shadows")}
-            {shadowToken && (
-              <span
-                className="property-unit-input__token"
-                data-token={styleValues.boxShadow.trim()}
-              >
-                {SHADOW_PRESET_LABEL[shadowToken]}
-              </span>
-            )}
           </legend>
           <div className="effect-group__list">
-            {shadowLayers.map((_, index) => (
+            {/* 토큰이면 칩 + 요약 한 줄 (시안 Style 탭 — ADR-298 Phase 5), 리터럴이면 레이어마다 한 행 */}
+            {(shadowToken ? shadowLayers.slice(0, 1) : shadowLayers).map((_, index) => (
               <BoxShadowLayerRow
                 // 행은 index 로 안정 (커밋마다 remount 되면 열린 팝오버가 닫힌다) — 편집기만 key
                 key={`${selectedId ?? "none"}:${index}`}
@@ -298,6 +299,9 @@ const EffectSectionContent = memo(function EffectSectionContent() {
                 layerIndex={index}
                 editorKey={editorKey}
                 onAction={handleLayerAction}
+                token={
+                  shadowToken ? SHADOW_PRESET_LABEL[shadowToken] : undefined
+                }
                 editor={{
                   onPreview: handleBoxShadowModelPreview,
                   onCommit: handleBoxShadowModelCommit,
@@ -374,8 +378,8 @@ const EffectAddMenu = memo(function EffectAddMenu() {
     const presetKey = SHADOW_PRESET_KEYS.find((key) => key === action);
     if (!presetKey) return;
     // ADR-298 D7: preset = `{shadow.*}` 토큰 참조 — 값은 렌더 쪽이 활성 테마 · 색 모드에서 읽는다.
-    //   목록에 inset 레이어가 있었으면 inset 판은 토큰이 없어 light 정규형 리터럴로 (ADR-166 후속 —
-    //   읽는 쪽 `normalizeShadowForTheme` / `shadowLiteralToCssVar` 가 theme 으로 되돌린다).
+    //   목록에 inset 레이어가 있었으면 inset 판은 토큰이 없어 light 리터럴로 — 색 모드를 따르지 않는다
+    //   (읽는 쪽 역매핑도 inset 판은 건너뛴다: `shadowNormalize.ts` §적용 범위).
     const insetActive = boxShadowModel?.layers.some((l) => l.inset) ?? false;
     if (insetActive) {
       const cssValue = getShadowToken(presetKey, "light");

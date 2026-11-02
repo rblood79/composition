@@ -1,7 +1,7 @@
 # 토큰 모델 A — 노드 값의 토큰 참조 저장 · Design 패널 토큰 먼저 입력기 (2026-11-01 상세 분석)
 
 > 읽기 전용 조사. 제품 코드 변경 0. 사용자 요청 (2026-11-01) = 「295는 착수 완료 되었으니 범위 밖 후속 작업으로 다시 상세하게 분석해」 — ADR-295 (D3 토큰 **값** 을 S2 로, Implemented 2026-10-31) 의 Decision 7 · breakdown §6.12 가 「다음 ADR」 로 남긴 **토큰 모델 A** (패널 입력기가 노드에 px · hex 리터럴 대신 토큰 참조를 저장하는 방식, 시안 `docs/design/styles-token-model/`) 를 295 이후 코드 (main `dd7a12602`) 기준으로 다시 잰다.
-> 조사는 병렬 Explore 에이전트 2 (패널 위젯 · 노드 저장/렌더 경로) 가 했고, 아래 인용 라인은 메인 세션이 직접 열어 확인했다. live 로 재현하지 않은 판정은 「추정」 으로 표시했다. 후속: ADR-298 (`docs/adr/298-node-token-reference-panel-token-first.md`).
+> 조사는 병렬 Explore 에이전트 2 (패널 위젯 · 노드 저장/렌더 경로) 가 했고, 아래 인용 라인은 메인 세션이 직접 열어 확인했다. live 로 재현하지 않은 판정은 「추정」 으로 표시했다. 후속: ADR-298 (`docs/adr/completed/298-node-token-reference-panel-token-first.md`).
 
 ## 0. 한 줄 결론
 

@@ -485,7 +485,8 @@
       }
 
       &:not(:has(.control-label)) .icon-picker-value,
-      &:not(:has(.control-label)) .font-picker-value,
+      &:not(:has(.control-label)):not(:has(.font-picker-theme-chip))
+        .font-picker-value,
       &:not(:has(.control-label)) .slot-fill-value {
         padding-inline-start: var(--spacing);
       }
@@ -606,7 +607,8 @@
 
     /* ADR-298 D4 칩 모드 — 값이 테마 토큰이면 단계 칩 (XS · S · M · L · XL / none · thin · thick) 뒤에
        활성 테마의 해석값. 칩은 표시 전용 — 단계는 ▾ 메뉴에서 고르고, 숫자를 치면 리터럴이 된다. */
-    .property-unit-input__token {
+    .property-unit-input__token,
+    .font-picker-theme-chip {
       flex: none;
       padding-inline: var(--spacing-xs);
       border-radius: var(--radius-sm);

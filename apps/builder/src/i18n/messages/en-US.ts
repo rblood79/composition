@@ -765,7 +765,7 @@ const catalog: TranslationKeys = {
   },
   fonts: {
     deleteFace: "Delete {family} {face}",
-    defaultValue: "Default",
+    defaultValue: "Theme",
     searchLabel: "Search fonts",
     searchPlaceholder: "Search fonts…",
     sectionDefault: "Built-in",
@@ -2985,6 +2985,7 @@ const semanticLabels: Record<string, string> = {
   "styles.appearance.overflow": "Overflow",
   "styles.appearance.shadowLayerActions": "Shadow layer actions",
   "styles.appearance.removeShadowLayer": "Remove layer",
+  "styles.appearance.removeShadow": "Remove shadow",
   "styles.appearance.insetShadowLayer": "Make inset",
   "styles.appearance.outerShadowLayer": "Make outer",
   "styles.appearance.opacity": "Opacity",

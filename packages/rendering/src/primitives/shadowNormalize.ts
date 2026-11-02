@@ -9,7 +9,12 @@
  * 리터럴이면 theme 정보가 소실되므로, dark 캔버스에서 고른 그림자도 light 값으로 고정되고
  * light 에서 고른 뒤 dark 로 바꿔도 따라오지 않는다.
  *
- * 저장 형식을 `var(--shadow-md)` 로 바꾸는 안은 기각했다 — CSS var 치환은 계산값 시점이라
+ * **ADR-298 뒤 (2026-11-02)**: 패널 preset 은 `{shadow.*}` 토큰 참조 (`TokenUse`) 를 저장해 이 역매핑을
+ * 거치지 않는다. 역매핑은 298 전에 저장된 리터럴과 손으로 친 preset 리터럴을 위해 읽는 쪽에 남긴다
+ * (삭제하면 그 문서의 그림자가 dark 에서 light 로 굳는다 — 마이그레이션 코드는 두지 않는다).
+ * 옛 DOM 짝 `adaptElementStyle` (호출 0) 은 삭제 — DOM 은 `catalogAuthoredDomStyle` 이 부른다.
+ *
+ * (2026-07 당시) 저장 형식을 `var(--shadow-md)` 로 바꾸는 안은 기각했다 — CSS var 치환은 계산값 시점이라
  * `inset var(--shadow-md)` 가 **3레이어 중 첫 레이어에만** inset 을 걸고, dirty/reset baseline
  * (`resolveAppearanceSpecPreset` 이 리터럴을 낸다)과도 어긋나며, 이미 저장된 프로젝트는
  * 구제되지 않는다. 대신 **저장은 리터럴 그대로 두고 읽는 쪽에서 프리셋으로 되돌린다**:

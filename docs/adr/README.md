@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-11-02 ADR-298 Implemented** — Phase 5 닫힘 (사용자 결정 2: 번들 「상한 재승인」 · 시안 차이 「4건 모두 298 에서」). 본문을 `completed/` 로 옮기고 열림 · 순서 표에서 뺐다 (열림 1 = 245 Proposed). 번들 — 298 몫 Builder +4,577 · Preview +64 (Phase 0 ~ 4) · Phase 5 +326 · −1,375 (호출 0 인 옛 DOM 그림자 경로 삭제), HEAD + Phase 5 = 1,397,096 · 321,847 → ADR-201 상한 1,400,000 · 325,000 재승인 (만료 11-25). 패널 입력 프레임 p95 = idle 바닥 + 0.5 ms 안 · 누락 0 (production harness, 대조 arm 47.3). 그림자 역매핑은 읽는 쪽에 유지 (298 전 리터럴 몫). 시안 4 수리 (Border `Width | Color` · `Style | Sides` · Line Height 「auto」 + 짝 px · Font 「Theme」 칩 · 그림자 토큰 한 줄). live 41/41 · 콘솔 0. 범위 밖 기존 결함 1 (preset 칸 ↑ 후 Tab 이 목록 항목을 고름 — 착수 전도 같음).
+
 > **2026-11-02 ADR-297 Implemented** — Phase 0 ~ 4 닫힘 (G5 live Chrome MCP 5177 · `### Live Exercise`). 본문을 `completed/` 로 옮기고 열림 · 순서 표에서 뺐다 (열림 2 = 245 Proposed · 298 Accepted — 표의 열림 수는 298 추가 때 빠져 있던 것을 같이 맞춤). G5 중 찾은 Tag 지우기 버튼 높이 · Preview 에서 Button 작성 색이 사라지던 297 회귀를 같이 수리 (`54f7e8ecc`). 후속 (트리 계약 밖, LOW) 은 breakdown §6.4 ② ~ ⑥.
 
 > **2026-11-02 ADR-297 Phase 4 G5 · G6** — live (Chrome MCP 5177): Button accent 휴지 · hover · pressed · disabled / quiet ToggleButton 선택 · hover / TextField invalid + hover / 강조 Tag 선택 / 강조 Checkbox 선택을 Canvas node data 와 Preview computed style 로 대조 — 6 경우 PASS · 콘솔 0, Styles 패널 Fill 도 같음 (패널은 휴지 상태로 트리를 읽는다). 규칙 문서 3 (`ssot-hierarchy.md` D3 · `canvas-rendering.md` §2.5.5 · `style-ssot.md` §3). Implemented 는 사용자 확인 뒤.
@@ -608,11 +610,6 @@
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
 
-#### [298](298-node-token-reference-panel-token-first.md) — 노드 값의 토큰 참조 저장 — Design 패널이 px · hex 리터럴 대신 테마 토큰을 먼저 쓰게 (토큰 모델 A)
-
-- **상태**: Accepted — 2026-11-01 (`/execute-adr 298` + reviews round 2 pending 0). **Phase 0 ~ 4 닫힘** · 사용자 결정 7 = 선행 `/fix` · 3 = 토큰 칸 · 6 = 묶는다 · 2 = 넣는다 (fills 색 · inset). 다음 Phase 5 (번들 · 패널 입력 프레임 · 그림자 역매핑 삭제 판단 · 시안 대조 · Implemented). 남은 질문 0.
-- **규모**: Phase 0 (인벤토리 freeze · RED 3 · 추정 2 live 판정 · 295 G2 하니스 재실행) → 1 토큰 층 (테마 무관 라이브러리 토큰 표 + 별칭 · 검증 표 · DOM 변수 변환 축 확장 · `sameRecord` 출처 — 화면 변화 0) → 2 패널 (`cssPx` · `catalogStyleView` · preset 파생 · `PropertyUnitInput` 칩 모드 · 코드 보기 왕복) → 3 색 · Position 스키마 (사용자 결정 2) → 4 Canvas 스냅 · scrub → 5 live · 문서. 추정 ~30 파일 (테스트 제외). 문서 스키마: fills 색 · layout inset 만. breakdown: [design/298](design/298-node-token-reference-breakdown.md)
-
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
 - **상태**: Proposed — 2026-09-27 (선택 경로 — Phase 0 no-go 면 기각 Deprecated · 보류 Proposed 유지가 정상 종결. 개정 2026-10-05 — ADR-248 뒤 코드 인용 갱신, 결정 무변경)
@@ -642,14 +639,13 @@
 
 | 순위 | ADR                                                                                            | 착수 준비도                                                                                                                                                                               | 차단 · 선행                                                                                                                                                                                                                |
 | :--: | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|  1   | [298](298-node-token-reference-panel-token-first.md)                                           | Accepted 2026-11-01 — **Phase 0 ~ 4 닫힘** (토큰 층 · 패널 · 색 · Position · Canvas 스냅 · scrub) → 다음 Phase 5 (live · 번들 · 문서 · Implemented)                                                                      | 선행 295 · 293 · 296 Implemented 충족 · 사용자 결정 질문 0 (7 · 3 · 6 · 2 답함) · 297 과 `resolver.ts` 겹침 (297 paint 분기 · 298 `tokenValue`) — 297 Phase 3 뒤 착수 권고 |
 |  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상)                                                                                                         | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)                                                                                                                             |
 |  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                                                                                                                                   | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                                                                                                                                                     |
 |  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                                                                                                                        | 각 항목의 재개 조건 발생 시                                                                                                                                                                                                |
 
 ---
 
-## 완료 ADR (317)
+## 완료 ADR (318)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -975,6 +971,7 @@
 | [295](completed/295-d3-token-values-s2-style-macro-scale.md) | D3 값 정렬 — 사용자 컴포넌트의 치수 값 (radius · 글자 단계 · 행간 식 · control 높이 · 아이콘 단 · 여백 · 간격 · 막대) 을 설치된 S2 style macro 에 맞춤 (TokenRef 이름 · 패널 라벨은 유지) · 값의 형 (고정 · scale 배율 · 글자 상대 · 높이 상대) · 터치 기기 두 벌 (scale 1.25 · 글자 기준 17, Preview 「터치 크기로 미리보기」) · 생성 CSS 치수 변수 `--catalog-token-*` · 빌더 chrome 은 고정 시트 (`builder-catalog-vars` · `builder-catalog-pins`) · 「S2 대조 대기」 45 → 0 · 게이트 d3S2Alignment · 분류 목록 · Decision 9 (a) ~ (d) · G2 두 arm 263/263 · G5 번들 Builder +6,165 · Preview +3,489 B gz (허용치 재승인) · 사용자 확인 2026-10-31 | Implemented | 2026-10-31 |
 | [296](completed/296-code-view-project-file-tree-projection.md) | 코드 보기 투영 수리 + 프로젝트 가상 파일 트리 — page 결함 E1 ~ E13 수리 · `App.tsx` (routes · layout · toast · theme) · `pages/<P>.tsx` · `.css` (노드 class · typed field 하나 = 선언 하나 · `@media` = breakpoint · token = `var(--catalog-token-*)`) · `theme.css` · `data/` · `api/` · `state/project.ts` · `components/<Name>.tsx` · `.css` (원본 명령 · instance `overrides` = instance 명령만 · slot 채움 = children) · Library 읽기 전용 + unlock · `index.html` · `site.config.ts` (ADR-286 D8 해당 문장 Superseded) · 여러 파일 한 Apply = history 1 · G3 Canvas 해석 3 breakpoint 동일 · G4 쓰기 경계 · G5 Builder +216 B gz · Preview 0 · G6 빈 프로젝트 코드만 live · 사용자 확인 2026-11-01 | Implemented | 2026-11-01 |
 | [297](completed/297-rule-state-condition-tree-single-priority.md) | catalog rule 상태 표현을 조건 트리 하나로 — variant 칠과 상태 (hover · pressed · selected · emphasized · quiet · fillStyle · staticColor · disabled) 를 `paint` 조건 트리 하나로, Canvas evaluator 와 생성 CSS compiler 가 같은 트리를 읽는다 (키 순서 = 우선순위 = cascade). 표 전수 190 variant · `button-base` · static · 수동 selected · focus CSS 흡수 · S2 확정 8 건 · 옛 칠 형식 삭제 · 묶음 컨테이너 칠 게이트 | Implemented 2026-11-02 |
+| [298](completed/298-node-token-reference-panel-token-first.md) | 노드 값의 토큰 참조 저장 — Design 패널이 px · hex 대신 테마 토큰을 먼저 (토큰 모델 A): 테마 무관 라이브러리 토큰 표 (`lib:token:<ref>`) · 패널 preset = `TokenUse` · 칩 + 활성 테마 값 · fill 색 · inset · gap longhand 토큰 · DOM 변수 · Canvas 간격 스냅 · 입력 scrub · 시안 4 (Border 두 줄 · auto 행간 · Theme 서체 · 그림자 한 줄) | Implemented 2026-11-02 |
 
 **Phase 0 baseline 문서** (ADR 아님 — 게이트 기준선): [035](completed/035-phase-0-baseline.md) · [037](completed/037-phase-0-baseline.md) · [039](completed/039-phase-0-baseline.md) · [040](completed/040-phase-0-baseline.md)
 

@@ -72,11 +72,17 @@ interface FontFamilyPickerProps {
   /** 현재 fontFamily. 빈 문자열 = 상속(기본값) */
   value: string;
   onChange: (value: string) => void;
+  /**
+   * ADR-298 Phase 5 (시안 Text 탭): 작성값이 없을 때 실제로 쓰이는 서체 — 테마 base 서체
+   * (`installedBaseFontFamily`) 또는 rule 값. 트리거가 「테마」 칩 + 그 이름을 보인다.
+   */
+  inheritedFamily?: string;
 }
 
 export const FontFamilyPicker = memo(function FontFamilyPicker({
   value,
   onChange,
+  inheritedFamily,
 }: FontFamilyPickerProps) {
   const { t } = useI18n();
   const [isPickerOpen, setPickerOpen] = useState(false);
@@ -160,11 +166,20 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
             aria-label="Font Family"
           >
             {/* 이름을 그 폰트로 그린다 — 고르기 전에 생김새가 보이는 것이 피커의 값 */}
+            {!value && (
+              <span className="font-picker-theme-chip">
+                {t("fonts.defaultValue")}
+              </span>
+            )}
             <span
               className="font-picker-value"
-              style={value ? { fontFamily: value } : undefined}
+              style={
+                value || inheritedFamily
+                  ? { fontFamily: value || inheritedFamily }
+                  : undefined
+              }
             >
-              {value || t("fonts.defaultValue")}
+              {value || inheritedFamily || t("fonts.defaultValue")}
             </span>
             <span aria-hidden="true" className="select-chevron">
               <ChevronDown size={iconProps.size} />
@@ -206,7 +221,14 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
                     className="react-aria-ListBoxItem font-picker-item"
                     textValue={t("fonts.defaultValue")}
                   >
-                    {t("fonts.defaultValue")}
+                    <span className="font-picker-theme-chip">
+                      {t("fonts.defaultValue")}
+                    </span>
+                    {inheritedFamily && (
+                      <span style={{ fontFamily: inheritedFamily }}>
+                        {inheritedFamily}
+                      </span>
+                    )}
                   </ListBoxItem>
                   {visibleBuiltins.map((family) => (
                     <ListBoxItem

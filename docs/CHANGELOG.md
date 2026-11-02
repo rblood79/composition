@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-298 Implemented — Design 패널 시안 맞춤 (Border 두 줄 · auto 행간 · Theme 서체 · 그림자 한 줄) · 번들 상한 재승인] - 2026-11-02
+
+### Changed
+
+- **Style 탭 Border 가 `Width | Color` · `Style | Sides` 두 줄이 됐다 (ADR-298 Phase 5 — 토큰 모델 A 시안)** — 전에는 Width · Style | Color · Sides 세 줄. Sides 5 버튼은 반 칸 폭을 나눠 쓴다.
+  - **Text 탭 Line Height** 가 비어 있고 Font Size 가 단계 (본문 · 제목) 이면 「auto」 칩 옆에 그 단계의 짝 행간 px 를 보인다 (예: 제목 M = auto 26). 전에는 「auto」 글자만.
+  - **Text 탭 Font** 에 서체를 고르지 않았으면 「Theme」 칩 + 실제로 쓰이는 서체 이름이 보인다 — 테마의 기본 서체를 따르는 상태. 목록 맨 위 「Theme」 을 고르면 고른 서체를 지우고 테마 서체로 돌아간다.
+  - **Box Shadow** 를 단계 (S · M · L) 로 골랐으면 칩 + 요약 한 줄 (「S 0 2 8 · 8%」) 로 보인다. − 는 그림자 전체를 지우고, inset 토글은 모든 레이어에 걸린다. 레이어를 고치면 전처럼 레이어마다 한 행.
+  - **Why**: 토큰 모델 A 시안 3 장 (`docs/design/styles-token-model/`) 과 대조해 남은 차이 4 건 — 사용자 결정 「4건 모두 298 에서」.
+  - 위치: `panels/styles/sections/BorderSection.tsx` · `TypographySection.tsx` · `EffectSection.tsx` · `components/BoxShadowLayerRow.tsx` · `hooks/useTypographyValues.ts` · `panels/fonts/FontFamilyPicker.tsx` · `components/property/PropertyUnitInput.*` · `components/styles/{inspector-layout,form-controls}.css`
+- **ADR-201 initial 번들 상한 재승인 — Builder ≤ 1,400,000 · Preview ≤ 325,000 B gzip (만료 2026-11-25 유지)** — 사용자 결정 「상한 재승인」. ADR-298 몫 Builder +4,577 · Preview +64 (Phase 0 ~ 4) · Phase 5 +326 · −1,375. 착수 시점 여유가 871 B 뿐이었고 같은 구간 ADR-297 몫 (+3,064 · +3,076) 과 합쳐 옛 상한 (1,390,000 · 320,000) 을 넘었다. `apps/builder/scripts/adr201-bundle-gate.mjs` 상수 · CLAUDE.md 표.
+
+### Removed
+
+- **옛 DOM 그림자 · fill 변환 진입점 `adaptElementStyle` (호출 0)** — DOM 은 `catalogAuthoredDomStyle` 이 그림자 preset 리터럴을 변수로 바꾼다 (ADR-298 결정 7). Preview initial 번들 −1,375 B. 읽는 쪽 그림자 역매핑 (Canvas · DOM) 은 298 전에 저장된 리터럴 때문에 유지한다.
+
+### Verified
+
+- ADR-298 G5 — 패널 입력 프레임 p95 (production harness · 3 회): scrub · ↑ · preset 메뉴 모두 idle 바닥 + 0.5 ms 안 · 프레임 누락 0 (대조 arm 47.3 ms). live (5178 Playwright · 저장 인증 세션) 41/41 · 콘솔 0 — 메뉴로 Border · Radius · Shadow · Gap · Font Size → 테마 radius · dark · 터치 보기 · Code · 새로고침 · 시안 4.
+- 문서: `docs/adr/completed/298-node-token-reference-panel-token-first.md` (Implemented) · breakdown §6.5 · ADR-201 재승인 절
+
 ## [ADR-297 후속 — Canvas 와 Preview 가 다르게 칠하던 8 컴포넌트 (GridList · Table 머리글 · Checkbox · Radio · Tree · Image · Toolbar 구분선 · Tabs · Pagination)] - 2026-11-02
 
 ### Fixed

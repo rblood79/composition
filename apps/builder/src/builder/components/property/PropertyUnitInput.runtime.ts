@@ -69,6 +69,11 @@ export interface PropertyUnitInputProps {
    * units (Position — a `%` inset stays reachable). Without it presets replace the unit menu.
    */
   presetUnits?: boolean;
+  /**
+   * ADR-298 Phase 5 — what an `auto` value resolves to (px number text): the field shows an 「auto」
+   * chip with it (Line Height 「AUTO 26」 — the font-size token's paired line height).
+   */
+  autoValue?: string;
 }
 
 export const DEFAULT_UNITS = ["px", "%", "rem", "em", "vh", "vw", "reset"];

@@ -14,6 +14,8 @@ import { isTokenValue } from "../../../components/property/PropertyUnitInput.run
 
 export interface TypographyStyleValues {
   fontFamily: string;
+  /** ADR-298 Phase 5: 작성된 fontFamily (없으면 "" — 테마 base 서체를 따른다, 「테마」 칩). */
+  fontFamilyAuthored: string;
   fontSize: string;
   fontWeight: string;
   /**
@@ -24,6 +26,8 @@ export interface TypographyStyleValues {
   fontWeightBase: string;
   fontStyle: string;
   lineHeight: string;
+  /** ADR-298 Phase 5: `auto` 행간의 짝 값 (px 숫자 글자 — 「AUTO 26」, 시안 Text 탭). */
+  lineHeightAuto?: string;
   letterSpacing: string;
   color: string;
   textAlign: string;
@@ -89,6 +93,10 @@ export function useTypographyValues(
       DEFAULT_FONT_FAMILY,
     );
     const fontFamily = extractFirstFontFamily(rawFamily);
+    const fontFamilyAuthored =
+      typeof s.fontFamily === "string" && s.fontFamily.trim() !== ""
+        ? extractFirstFontFamily(s.fontFamily)
+        : "";
 
     const hasInlineFontSize =
       s.fontSize !== undefined && s.fontSize !== null && s.fontSize !== "";
@@ -124,6 +132,10 @@ export function useTypographyValues(
             numToPx(e.lineHeight) ?? numToPx(preset.lineHeight),
             "normal",
           );
+    const autoPx = lineHeight === "auto" ? numToPx(e.lineHeight) : undefined;
+    const lineHeightAuto = autoPx
+      ? String(Math.round(parseFloat(autoPx) * 100) / 100)
+      : undefined;
     const letterSpacing = firstDefined(
       s.letterSpacing,
       numToPx(e.letterSpacing) ?? numToPx(preset.letterSpacing),
@@ -145,11 +157,13 @@ export function useTypographyValues(
     const overflow = firstDefined(s.overflow, text(e.overflow), "visible");
     return {
       fontFamily,
+      fontFamilyAuthored,
       fontSize,
       fontWeight,
       fontWeightBase,
       fontStyle: firstDefined(s.fontStyle, text(e.fontStyle), "normal"),
       lineHeight,
+      lineHeightAuto,
       letterSpacing,
       color: colorValues.color.concrete,
       textAlign: firstDefined(s.textAlign, text(e.textAlign), "left"),

@@ -96,6 +96,7 @@ export const PropertyUnitInputControl = memo(
     sizeControl,
     afterControl,
     presetUnits = false,
+    autoValue,
   }: PropertyUnitInputProps) {
     const i18n = useOptionalI18n();
     const displayLabel =
@@ -134,6 +135,9 @@ export const PropertyUnitInputControl = memo(
     // ADR-298 D4: a token value (`var(--spacing-md)`) — chip + the active value, not a keyword.
     const valueIsToken = isTokenValue(value);
     const tokenChip = tokenChipLabel(value, presets);
+    // ADR-298 Phase 5: `auto` with a resolved value — 「auto」 chip + that value (Line Height).
+    const autoChip =
+      !tokenChip && autoValue !== undefined && value.trim() === "auto";
     const isKeyword = parsed.numericValue === null && !valueIsToken;
     const [inputValue, setInputValue] = useState(() =>
       getInputDisplayValue(value, parsed, isPreservedEmptyValue, presets),
@@ -825,6 +829,14 @@ export const PropertyUnitInputControl = memo(
                   {tokenChip}
                 </span>
               )}
+              {autoChip && (
+                <span
+                  className="property-unit-input__token"
+                  data-keyword="auto"
+                >
+                  auto
+                </span>
+              )}
               <Input
                 ref={inputElementRef}
                 className="react-aria-Input"
@@ -862,7 +874,9 @@ export const PropertyUnitInputControl = memo(
                     ? sizeControl.computed == null
                       ? "—"
                       : String(Math.round(sizeControl.computed))
-                    : showKeywordAsPlaceholder && inputValue.trim() !== ""
+                    : autoChip && !isInputFocused
+                      ? autoValue
+                      : showKeywordAsPlaceholder && inputValue.trim() !== ""
                       ? inputValue
                       : emptyInherits
                         ? "—"
@@ -1060,6 +1074,8 @@ export const PropertyUnitInputControl = memo(
       prevProps.suffixLabel === nextProps.suffixLabel &&
       prevProps.sizeControl === nextProps.sizeControl &&
       prevProps.unitSuffix === nextProps.unitSuffix &&
+      prevProps.presetUnits === nextProps.presetUnits &&
+      prevProps.autoValue === nextProps.autoValue &&
       prevProps.afterControl === nextProps.afterControl &&
       prevProps.preserveEmptyValueOnUnitChange ===
         nextProps.preserveEmptyValueOnUnitChange &&

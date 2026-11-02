@@ -300,6 +300,7 @@ export const semanticLabelKeys: Record<string, string> = {
   "Inset shadow": "styles.appearance.insetShadow",
   "Shadow layer actions": "styles.appearance.shadowLayerActions",
   "Remove shadow layer": "styles.appearance.removeShadowLayer",
+  "Remove shadow": "styles.appearance.removeShadow",
   "Inset shadow layer": "styles.appearance.insetShadowLayer",
   "Outer shadow layer": "styles.appearance.outerShadowLayer",
   Overflow: "styles.appearance.overflow",

@@ -1,6 +1,6 @@
 # ADR-298 Design Breakdown — 노드 값의 토큰 참조 저장 · Design 패널 토큰 먼저 (토큰 모델 A)
 
-> 본문: [298-node-token-reference-panel-token-first.md](../298-node-token-reference-panel-token-first.md) · 분석 (정본 인벤토리): [TOKEN_MODEL_A_NODE_TOKEN_REFERENCE_2026-11](../../explanation/research/TOKEN_MODEL_A_NODE_TOKEN_REFERENCE_2026-11.md) · 시안: `docs/design/styles-token-model/` (gitignore 로컬, 2026-11-01 295 값으로 갱신). 기준 main `dd7a12602` (2026-11-01).
+> 본문: [298-node-token-reference-panel-token-first.md](../completed/298-node-token-reference-panel-token-first.md) · 분석 (정본 인벤토리): [TOKEN_MODEL_A_NODE_TOKEN_REFERENCE_2026-11](../../explanation/research/TOKEN_MODEL_A_NODE_TOKEN_REFERENCE_2026-11.md) · 시안: `docs/design/styles-token-model/` (gitignore 로컬, 2026-11-01 295 값으로 갱신). 기준 main `dd7a12602` (2026-11-01).
 
 ## 1. 분리 4 질문 lock-in (adr-writing.md §Fork)
 
@@ -166,4 +166,18 @@ Phase 1 과 2 는 커밋을 나눈다 — Phase 1 은 「동작 변경 0」 (rev
 | 원복 RED          | `scratchpad/revert298p4.sh` 15 arm 전부 RED (Canvas 스냅 끔 · 리터럴 commit · 배지 라벨 · scrub 단계 없음 · ⌥ 무시 · 놓을 때 commit 없음 · 스케일 밖 끔 · 비움 끔 · Position preset 없음 · Unit 묶음 없음 · unit 키 무시 · 스케일 밖 걸음 · 0 단계 없음 · 단계+단위에서 px 강제 · 단계마다 commit). 처음 arm 14 는 GREEN — `%` 칸의 Enter 는 `resolveTypedUnit` 이 단위를 지켜 안 걸렸고, ↑ (`stepValue` 가 `inputUnit` 사용) 로 반증해 RED                                                           |
 | live G5           | 5178 Playwright · 실제 마우스 — 13/13 · 콘솔 0 (ADR 본문 Live Exercise)                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | 회귀              | builder components · panels · catalogRuntime · workspace/canvas 5,325 통과 · 실패 2 = catalogHistoryLabels (기존) · phase4eG5LeafScope 5k 형제 시간 초과 (부하 평균 15, 단독 9/9 통과) · type-check builder 0                                                                                                                                                                                                                                                                                         |
-| 남은 것 (Phase 5) | 번들 ADR-201 상한 · 패널 입력 프레임 p95 · 그림자 역매핑 삭제 판단 · 시안 3장 대조 · Implemented                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 남은 것           | 없음 — Phase 5 에서 닫음 (§6.5) |
+
+### 6.5 Phase 5 (2026-11-02 — G5 번들 · p95 · 시안 · live 닫힘 → Implemented, 사용자 결정 「상한 재승인」 · 「4건 모두 298 에서」)
+
+| 항목 | 결과 |
+| --- | --- |
+| 번들 | `adr209-bundle-closure.mjs` (별도 worktree `.cache/adr298-bundle` · frozen lockfile) — 298 Phase 0 ~ 4 Builder +4,577 · Preview +64 (커밋마다 부모 대비), Phase 5 +326 · −1,375. HEAD `1eac34feb` + Phase 5 = 1,397,096 · 321,847 → ADR-201 상한 1,400,000 · 325,000 재승인 (만료 11-25) · `adr201-bundle-gate.mjs` 상수 · self-test PASS |
+| p95 | production harness 빌드 (`pnpm perf:build-dist`) · headless · 3 회 — idle 17.4 ~ 17.6 · scrub 17.5 ~ 17.6 · ↑×30 17.9 ~ 18.0 · preset ×10 17.5 ~ 17.7 ms · long task 0 · 누락 0 · 대조 arm 47.3. rAF 콜백 인자 시각은 headless 에서 예정 프레임 시각이라 대조 arm 이 반응하지 않았다 → `performance.now()` |
+| 그림자 역매핑 | 읽는 쪽 역매핑 유지 (298 전 리터럴 · 손 입력 preset 리터럴 몫, 마이그레이션 코드 없음) · `adaptElementStyle` · `adaptStyleShadow` 삭제 (호출 0 — Preview initial −1,375) · EffectSection inset 주석 정정 |
+| 시안 대조 | 차이 4 수리 — ① Border `Width \| Color` · `Style \| Sides` (Sides 버튼 폭 나눔 ~17 px — 24 px hit target trade-off) ② Line Height 「auto」 칩 + 짝 px (`autoValue`) ③ Font 「Theme」 칩 (`inheritedFamily` — 작성값 없음 = 테마 base 서체) ④ Box Shadow 토큰 = 칩 + 「0 2 8 · 8%」 한 줄 |
+| 테스트 | `adr298Phase5Panel.test.tsx` 4 · Phase 2 테스트 기대값 2 갱신 · `fillAdapter.test.ts` 15 (adaptElementStyle 절 삭제 · fill 2 는 `adaptStyleWithFills`) |
+| 원복 RED | `scratchpad/revert298p5.sh` 6 arm 중 5 RED — CSS 배치 arm 은 jsdom 이 grid 를 계산하지 않아 GREEN (live 행 위치 대조가 맡음) |
+| live | 5178 Playwright — 41/41 · 콘솔 0 (메뉴 5 · 테마 radius · dark · 터치 보기 · Code · 새로고침 · 시안 4) · 패널 스크린샷 Style · Layout · Text |
+| 회귀 | builder panels · components · adr298 · i18n 1,531 통과 · 실패 2 = labelKeyCatalog (contextMenu 29 vs 26) · catalogHistoryLabels — 둘 다 착수 전부터 · rendering shadow 25 · shared utils · catalog runtime 138 · type-check 0 |
+| 범위 밖 | 기존 결함 (착수 전 `dd7a12602` 도 같음): preset 칸에서 ↑ 후 Tab 이 닫힌 목록의 포커스 항목을 고른다 (↑×30 Tab = Reset → 값 삭제) |

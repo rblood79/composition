@@ -37,10 +37,21 @@ interface BoxShadowLayerRowProps {
     BoxShadowEditorProps,
     "onCancel" | "onCommit" | "onPreview" | "livePreview"
   >;
+  /**
+   * ADR-298 Phase 5 (시안 Style 탭) — 값이 `{shadow.*}` 토큰이면 그 단계 칩 (S · M · L). 행은 토큰
+   * 하나를 뜻하고 요약은 첫 레이어 「x y blur · 알파%」 — 편집하면 리터럴 레이어가 된다.
+   */
+  readonly token?: string;
 }
 
 function describeLayer(layer: BoxShadowPresentationLayer): string {
   return [layer.offsetX, layer.offsetY, layer.blur, layer.spread].join(" · ");
+}
+
+/** 토큰 행 요약 — 「0 2 8 · 8%」 (시안: 위치 · 흐림 뒤 알파). */
+function describeTokenLayer(layer: BoxShadowPresentationLayer): string {
+  const alpha = parseRacColorOrBlack(layer.color).getChannelValue("alpha");
+  return `${[layer.offsetX, layer.offsetY, layer.blur].join(" ")} · ${Math.round(alpha * 100)}%`;
 }
 
 export const BoxShadowLayerRow = memo(function BoxShadowLayerRow({
@@ -49,6 +60,7 @@ export const BoxShadowLayerRow = memo(function BoxShadowLayerRow({
   editorKey,
   onAction,
   editor,
+  token,
 }: BoxShadowLayerRowProps) {
   const localize = useSemanticLabel();
   const layer = value.layers[layerIndex];
@@ -62,9 +74,14 @@ export const BoxShadowLayerRow = memo(function BoxShadowLayerRow({
             className="effect-layer-row__trigger"
             aria-label={localize("Edit shadow layer")}
           >
-            <ColorSwatch color={parseRacColorOrBlack(layer.color)} />
+            {token && (
+              <span className="property-unit-input__token" data-token={token}>
+                {token}
+              </span>
+            )}
+            {!token && <ColorSwatch color={parseRacColorOrBlack(layer.color)} />}
             <span className="effect-layer-row__value">
-              {describeLayer(layer)}
+              {token ? describeTokenLayer(layer) : describeLayer(layer)}
             </span>
           </AriaButton>
           <Popover
@@ -87,7 +104,9 @@ export const BoxShadowLayerRow = memo(function BoxShadowLayerRow({
         <AriaButton
           className="effect-layer-row__action effect-layer-row__remove"
           onPress={() => onAction("remove", layerIndex)}
-          aria-label={localize("Remove shadow layer")}
+          aria-label={
+            token ? localize("Remove shadow") : localize("Remove shadow layer")
+          }
         >
           <Minus
             size={iconProps.size}

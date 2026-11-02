@@ -1,12 +1,13 @@
 /**
  * BorderSection — Style 탭 Border 절
  *
- *   「Width  [thin] 1     ▾」
- *   Style  [— - - ···]       Color [■ 000000]
- *   Sides  [전체 · 좌 · 우 · 상 · 하]
+ *   Width [thin 1 ▾]      Color [■ 000000]
+ *   Style [— - - ···]     Sides [전체 · 좌 · 우 · 상 · 하]
  *   「Radius  8         ▾」   [코너 펼침 ⊡]  → 코너 2×2 (토글 on 또는 비균일)
  *
- * 순서는 2026-09-15 사용자 판정 (Width → Style/Color → Sides → Radius). 종전 Appearance 절
+ * 배치는 토큰 모델 A 시안 (`docs/design/styles-token-model/Style.dc.html`, ADR-298 Phase 5 — 사용자
+ * 결정 2026-11-02 「4건 모두 298 에서」) — Width | Color · Style | Sides 두 줄 (종전 2026-09-15 판정
+ * Width → Style/Color → Sides 세 줄). 종전 Appearance 절
  * (Background + Border + Opacity + Shadow 한 절) 을 Fill · Border · Effect 셋으로 나눴다
  * (panel-ui 02, 2026-09-14). Width 는 토큰 칸 (none · thin · thick ▾ + 숫자 직접 입력 — 사용자
  * 결정 3, ADR-298 2026-11-01; 종전 슬라이더 + ⋮ 메뉴) · Radius 는 Gap 과 같은 「값 + ▾ 토큰
@@ -212,6 +213,8 @@ const BorderSectionContent = memo(function BorderSectionContent() {
 
   return (
     <>
+      {/* 시안 (styles-token-model Style, ADR-298 Phase 5 — 사용자 결정 11-02): Width | Color 한 줄,
+          Style | Sides 한 줄 */}
       <div className="style-border-width">
         <PropertyUnitInput
           label="Width"
@@ -225,6 +228,17 @@ const BorderSectionContent = memo(function BorderSectionContent() {
           max={INPUT_MAX}
           onChange={(value) => updateStyleImmediate("borderWidth", value)}
           onDrag={(value) => updateStylePreview("borderWidth", value)}
+        />
+        <PropertyColor
+          label="Color"
+          className="border-color"
+          showValue
+          value={styleValues.borderColor}
+          onChange={handleBorderColorCommit}
+          onPreview={handleBorderColorPreview}
+          livePreview
+          onPresentationCancel={() => host.cancelPreview?.()}
+          placeholder="#000000"
         />
         <div className="fieldset-actions actions-icon" />
       </div>
@@ -256,20 +270,6 @@ const BorderSectionContent = memo(function BorderSectionContent() {
             ))}
           </ToggleButtonGroup>
         </fieldset>
-        <PropertyColor
-          label="Color"
-          className="border-color"
-          showValue
-          value={styleValues.borderColor}
-          onChange={handleBorderColorCommit}
-          onPreview={handleBorderColorPreview}
-          livePreview
-          onPresentationCancel={() => host.cancelPreview?.()}
-          placeholder="#000000"
-        />
-      </div>
-
-      <div className="style-border-sides">
         <fieldset className="properties-aria border-sides">
           <legend className="fieldset-legend">
             {localize("Sides")}

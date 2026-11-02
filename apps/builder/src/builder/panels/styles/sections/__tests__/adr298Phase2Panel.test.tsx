@@ -104,7 +104,7 @@ describe("ADR-298 Phase 2 — Border", () => {
 });
 
 describe("ADR-298 Phase 2 — Effect", () => {
-  it("a shadow preset is the `{shadow.*}` token — its layers show, the legend carries the step", async () => {
+  it("a shadow preset is the `{shadow.*}` token — one row carries the step (Phase 5 시안)", async () => {
     const { fixture, view } = await renderWith(EffectSection);
     await act(async () => {
       fireEvent.click(view.getByRole("button", { name: "Add effect" }));
@@ -113,9 +113,10 @@ describe("ADR-298 Phase 2 — Effect", () => {
       fireEvent.click(await view.findByRole("menuitem", { name: "Box Shadows · M" }));
     });
     expect(visualOf(fixture, "box").boxShadow).toEqual(tokenSet("lib:token:shadow_md"));
-    const legend = view.container.querySelector(".style-shadow > legend")!;
-    expect(legend.querySelector(".property-unit-input__token")?.textContent).toBe("M");
-    expect(view.container.querySelectorAll(".style-shadow .effect-group__list > *").length).toBeGreaterThan(0);
+    // Phase 5 (시안): the step chip sits in the token's one row (was the legend)
+    const rows = view.container.querySelectorAll(".style-shadow .effect-layer-row");
+    expect(rows.length).toBe(1);
+    expect(rows[0]!.querySelector(".property-unit-input__token")?.textContent).toBe("M");
   });
 
   it("Blur is a unit input (감사 C4) — typing commits the filter", async () => {
@@ -158,8 +159,10 @@ describe("ADR-298 Phase 2 — Text", () => {
       tokenSet("lib:token:typography_text-heading-md"),
     );
     expect(size.querySelector(".property-unit-input__token")?.textContent).toBe("H M");
+    // Phase 5 (시안 「AUTO 26」): an 「auto」 chip and the step's paired line height
     const line = field(view.container, "line-height");
-    expect(within(line).getByRole("combobox").getAttribute("placeholder")).toBe("auto");
+    expect(line.querySelector('[data-keyword="auto"]')?.textContent).toBe("auto");
+    expect(within(line).getByRole("combobox").getAttribute("placeholder")).toBe("26");
   });
 });
 
