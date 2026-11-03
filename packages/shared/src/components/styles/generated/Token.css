@@ -1,0 +1,36 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog Token — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: text
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Token {
+  /* Base styles — archetype: text */
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  width: fit-content;
+  display: inline-block;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: 0;
+  line-height: var(--catalog-token-text-sm--line-height);
+  font-weight: 600;
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-Token {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */

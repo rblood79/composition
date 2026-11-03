@@ -108,6 +108,8 @@ const CONTROL_GROUP = "lib:definition:type-Group";
  */
 const OPEN_BODY_ORIGINS: ReadonlySet<string> = new Set([
   "Dialog",
+  "PreviewTrigger",
+  "Sheet",
   "Popover",
   "Tooltip",
   "ContextualHelp",
@@ -120,6 +122,8 @@ const OPEN_BODY_ORIGINS: ReadonlySet<string> = new Set([
  */
 const ORIGIN_ONLY_CARDS: ReadonlySet<string> = new Set([
   "Dialog",
+  "PreviewTrigger",
+  "Sheet",
   "Popover",
   "ContextualHelp",
   "CardView",
@@ -216,6 +220,7 @@ const CLOSED_OVERLAY_TYPES: ReadonlySet<string> = new Set([
   "lib:definition:type-Modal",
   "lib:definition:type-Popover",
   "lib:definition:type-Tooltip",
+  "lib:definition:type-SheetOverlay",
 ]);
 const COLOR_FAMILIES = ["accent", "neutral", "negative", "border"];
 const COLOR_SURFACES = [
@@ -1197,7 +1202,9 @@ export function catalogComponentsPageEntries(
     const bodyLine = overlayId
       ? frame(base("origin", "body-line"), "Body line", [sampleId], {
           flexDirection:
-            origin.name === "Dialog" || origin.name === "Popover"
+            origin.name === "Dialog" ||
+            origin.name === "Popover" ||
+            origin.name === "Sheet"
               ? "column"
               : "row",
           ...(fullBody ? { width: "100%" } : {}),

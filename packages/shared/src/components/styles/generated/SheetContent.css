@@ -1,0 +1,38 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog SheetContent — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-SheetContent {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  overflow: auto;
+  outline: none;
+  display: flex;
+  flex-direction: column;
+
+  /* Default size */
+  height: auto;
+  padding: 24px 24px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-sm--line-height);
+  gap: 16px;
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-SheetContent {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */

@@ -129,11 +129,14 @@ export const INPUT_VALUE: CatalogStateProp = {
 export const CATALOG_OPEN_TRIGGER_TYPES: ReadonlySet<string> = new Set([
   "MenuTrigger",
   "DialogTrigger",
+  "PreviewTrigger",
+  "SheetTrigger",
   "TooltipTrigger",
   "ContextualHelp",
 ]);
 export const CATALOG_OPEN_BODY_TYPES: ReadonlySet<string> = new Set([
   "Modal",
+  "SheetOverlay",
   "Popover",
   "Tooltip",
 ]);

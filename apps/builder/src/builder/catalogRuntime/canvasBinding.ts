@@ -932,9 +932,12 @@ function ruleShapeInput(
       ? "leading_icon"
       : undefined);
   return {
-    node: node.derivedProps
-      ? { ...node, props: { ...node.props, ...node.derivedProps } }
-      : node,
+    node:
+      node.bindingId === "tokeninput"
+        ? { ...node, children: [] }
+        : node.derivedProps
+          ? { ...node, props: { ...node.props, ...node.derivedProps } }
+          : node,
     ...(segments ? { paintProps: segments } : {}),
     rect,
     rule,

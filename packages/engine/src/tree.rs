@@ -1688,6 +1688,11 @@ impl LayoutTree {
         };
         if let Some(n) = self.get_mut(handle) {
             n.layout = NodeLayout { x: 0.0, y: 0.0, width: 0.0, height: 0.0, baseline: BASELINE_NONE };
+            // 표시 중 계산한 반환값은 zero layout과 한 쌍이 아니다. 재표시 때 clean 자손을
+            // skip하면 부모 크기만 복원되고 내부 좌표는 모두 0에 남는다.
+            n.last_solved = None;
+            n.last_avail = None;
+            n.last_definite_h = None;
             n.dirty = false;
             n.subtree_dirty = false;
         }
@@ -8032,6 +8037,41 @@ fn resolve_flex_basis(value: Option<&str>, main_ctx: &CssValueContext) -> Option
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn display_none_reopen_restores_descendant_layouts() {
+        for display in ["block", "flex", "grid"] {
+            let mut tree = LayoutTree::new();
+            let json = format!(r#"[
+                {{"style":{{"display":"block","width":"100px","height":"18px"}},"children":[]}},
+                {{"style":{{"display":"block","width":"80px","height":"32px"}},"children":[]}},
+                {{"style":{{"display":"flex","flexDirection":"column","paddingTop":"24px","paddingLeft":"24px","rowGap":"16px"}},"children":[0,1]}},
+                {{"style":{{"display":"{display}","width":"360px"}},"children":[2]}},
+                {{"style":{{"display":"block","width":"1200px","height":"900px"}},"children":[3]}}
+            ]"#);
+            let handles = tree.build_tree_batch(&json).unwrap();
+            let visible_style = tree.get(handles[3]).unwrap().style.clone();
+            tree.compute_layout(handles[4], 1200.0, 900.0);
+            let initial: Vec<_> = handles.iter().map(|&h| tree.get_layout(h)).collect();
+            assert!(initial[1].y > initial[0].y);
+            for _ in 0..3 {
+                let mut hidden_style = visible_style.clone();
+                hidden_style.display = Some("none".into());
+                tree.update_style(handles[3], hidden_style);
+                tree.compute_layout(handles[4], 1200.0, 900.0);
+                assert_eq!(tree.get_layout(handles[0]).height, 0.0);
+                tree.update_style(handles[3], visible_style.clone());
+                tree.compute_layout(handles[4], 1200.0, 900.0);
+                for (i, &h) in handles.iter().enumerate() {
+                    let actual = tree.get_layout(h);
+                    let expected = initial[i];
+                    assert_eq!((actual.x, actual.y, actual.width, actual.height),
+                        (expected.x, expected.y, expected.width, expected.height),
+                        "{display}: descendant {i} after reopen");
+                }
+            }
+        }
+    }
 
     /// ADR-156 R7/G6 — `NodeStyle` 정적 필드 계약 가드.
     ///

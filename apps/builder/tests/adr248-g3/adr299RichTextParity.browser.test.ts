@@ -95,15 +95,15 @@ const BASELINE_FIXTURES: Fixture[] = [
   {
     key: "large-second-hard-line",
     text: "first\nBIG",
-    marks: [[6, 9, {fontSize: 48, color: RED}]],
-    textVisual: {fontSize: set(16), whiteSpace: set("pre-wrap")},
+    marks: [[6, 9, { fontSize: 48, color: RED }]],
+    textVisual: { fontSize: set(16), whiteSpace: set("pre-wrap") },
   },
   {
     key: "large-second-soft-line",
     text: "first BIG",
     width: 90,
-    marks: [[6, 9, {fontSize: 48, color: RED}]],
-    textVisual: {fontSize: set(16)},
+    marks: [[6, 9, { fontSize: 48, color: RED }]],
+    textVisual: { fontSize: set(16) },
   },
 ];
 const FIXTURES: Fixture[] = [
@@ -148,7 +148,10 @@ const FIXTURES: Fixture[] = [
     text: "Hello brave world",
     textVisual: { textDecoration: set("underline") },
     marks: [
-      [...at("Hello brave world", "brave"), { textDecoration: "none", color: RED }],
+      [
+        ...at("Hello brave world", "brave"),
+        { textDecoration: "none", color: RED },
+      ],
     ],
   },
   {
@@ -215,7 +218,7 @@ function documentFor(fixture: Fixture, rich: boolean): CatalogDocument {
   return {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 54,
+    libraryContractVersion: 55,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -312,7 +315,10 @@ function inkOf(data: ImageData): Ink {
           data.data[i + 2]!,
           data.data[i + 3]!,
         ];
-        if (a >= 128 && (r + g + b < 3 * 160 || (r > 150 && g < 110 && b < 110))) {
+        if (
+          a >= 128 &&
+          (r + g + b < 3 * 160 || (r > 150 && g < 110 && b < 110))
+        ) {
           underRed = y;
           break;
         }
@@ -413,12 +419,15 @@ async function measureArm(fixture: Fixture, rich: boolean) {
     `[data-catalog-id="${CSS.escape(textId)}"]`,
   )!;
   const marker = document.createElement("span");
-  marker.style.cssText = "display:inline-block;width:0;height:0;padding:0;vertical-align:baseline";
+  marker.style.cssText =
+    "display:inline-block;width:0;height:0;padding:0;vertical-align:baseline";
   element.prepend(marker);
   const box = element.getBoundingClientRect();
   const domBaseline = marker.getBoundingClientRect().top - box.top;
   marker.remove();
-  const engineBaseline = JSON.parse(root.getAppliedLayoutInput(textId)!).leafBaseline;
+  const engineBaseline = JSON.parse(
+    root.getAppliedLayoutInput(textId)!,
+  ).leafBaseline;
 
   const frameElement = host.querySelector<HTMLElement>(
     `[data-catalog-id="${CSS.escape(rootInput.id)}"]`,
@@ -441,16 +450,21 @@ async function measureArm(fixture: Fixture, rich: boolean) {
     base64: true,
     save: false,
   });
-  const domInk = inkOf(
-    await pngData(shot),
-  );
+  const domInk = inkOf(await pngData(shot));
   reactRoot.unmount();
   host.remove();
   const widthBaselines: number[] = [];
   if (fixture.key === "large-second-soft-line") {
     for (const width of [520, 90]) {
-      root.execute(setFields({targets: [{kind: "node", id: "project:node:text"}], sizing: {width: set(width)}}));
-      widthBaselines.push(JSON.parse(root.getAppliedLayoutInput(textId)!).leafBaseline);
+      root.execute(
+        setFields({
+          targets: [{ kind: "node", id: "project:node:text" }],
+          sizing: { width: set(width) },
+        }),
+      );
+      widthBaselines.push(
+        JSON.parse(root.getAppliedLayoutInput(textId)!).leafBaseline,
+      );
     }
   }
   return {
@@ -534,29 +548,53 @@ describe("ADR-299 G2 — range-formatted text, Canvas raster ↔ Preview DOM (50
   });
 
   it("first-line baseline ignores larger runs after hard and soft breaks", () => {
-    const font = {fontSize: 16, fontWeight: 400, lineHeight: 1.5, whiteSpace: "pre-wrap"};
+    const font = {
+      fontSize: 16,
+      fontWeight: 400,
+      lineHeight: 1.5,
+      whiteSpace: "pre-wrap",
+    };
     const hard = catalogTextMeasure("first\nBIG", font, undefined, [
-      {start: 0, end: 6}, {start: 6, end: 9, fontSize: 48},
+      { start: 0, end: 6 },
+      { start: 6, end: 9, fontSize: 48 },
     ]);
-    const soft = catalogTextMeasure("first BIG", {...font, whiteSpace: "normal"}, 90, [
-      {start: 0, end: 6}, {start: 6, end: 9, fontSize: 48},
-    ]);
+    const soft = catalogTextMeasure(
+      "first BIG",
+      { ...font, whiteSpace: "normal" },
+      90,
+      [
+        { start: 0, end: 6 },
+        { start: 6, end: 9, fontSize: 48 },
+      ],
+    );
     expect(hard.firstBaseline).toBe(17);
     expect(soft.firstBaseline).toBe(17);
-    expect(catalogTextMeasure("first BIG", font, undefined, [
-      {start: 0, end: 6}, {start: 6, end: 9, fontSize: 48},
-    ]).firstBaseline).toBe(53);
+    expect(
+      catalogTextMeasure("first BIG", font, undefined, [
+        { start: 0, end: 6 },
+        { start: 6, end: 9, fontSize: 48 },
+      ]).firstBaseline,
+    ).toBe(53);
   });
 
   it("a zero-height first line keeps its own baseline, not the next line's", () => {
     // fontSize 0 first line (height 0): the 48 px run on line 2 must not become the first baseline.
-    const font = {fontSize: 0, fontWeight: 400, lineHeight: 1.5, whiteSpace: "pre-wrap"};
-    expect(catalogTextMeasure("BIG", font, undefined, [
-      {start: 0, end: 3, fontSize: 48},
-    ]).firstBaseline).toBeGreaterThan(0);
-    expect(catalogTextMeasure("a\nBIG", font, undefined, [
-      {start: 2, end: 5, fontSize: 48},
-    ]).firstBaseline).toBeUndefined();
+    const font = {
+      fontSize: 0,
+      fontWeight: 400,
+      lineHeight: 1.5,
+      whiteSpace: "pre-wrap",
+    };
+    expect(
+      catalogTextMeasure("BIG", font, undefined, [
+        { start: 0, end: 3, fontSize: 48 },
+      ]).firstBaseline,
+    ).toBeGreaterThan(0);
+    expect(
+      catalogTextMeasure("a\nBIG", font, undefined, [
+        { start: 2, end: 5, fontSize: 48 },
+      ]).firstBaseline,
+    ).toBeUndefined();
   });
 
   for (const fixture of BASELINE_FIXTURES)
@@ -565,7 +603,8 @@ describe("ADR-299 G2 — range-formatted text, Canvas raster ↔ Preview DOM (50
       report[fixture.key] = result;
       expect(result.engineBaseline).toBe(result.domBaseline);
       expect(result.engine.height).toBe(result.dom.height);
-      if (fixture.key === "large-second-soft-line") expect(result.widthBaselines).toEqual([53, 17]);
+      if (fixture.key === "large-second-soft-line")
+        expect(result.widthBaselines).toEqual([53, 17]);
     });
 
   for (const fixture of FIXTURES)
@@ -604,7 +643,10 @@ describe("ADR-299 G2 — range-formatted text, Canvas raster ↔ Preview DOM (50
       if (redDiff !== undefined)
         expect(redDiff).toBeLessThanOrEqual(0.5 * SCALE);
       // A decoration line under the red run on one side only shows as its lowest ink.
-      if (rich.canvasInk.underRed !== undefined && rich.domInk.underRed !== undefined)
+      if (
+        rich.canvasInk.underRed !== undefined &&
+        rich.domInk.underRed !== undefined
+      )
         expect(
           Math.abs(rich.canvasInk.underRed - rich.domInk.underRed),
         ).toBeLessThanOrEqual(0.5 * SCALE);

@@ -203,6 +203,16 @@ export const POPOVER_PROPS_SCHEMA = overlayOriginSchema(
   ["size", ...OVERLAY_POSITION_KEYS],
   { size: ["S", "M", "L"] },
 );
+/** Sheet 원본은 trigger · overlay · content의 속성을 한 인스턴스에서 편집한다. */
+export const SHEET_PROPS_SCHEMA: PropsSchema = {
+  ...overlayOriginSchema(
+    "SheetTrigger",
+    "SheetOverlay",
+    ["position", "swipeDirection", "snapPoints", "preventDismissal"],
+    {},
+  ),
+  ...getPrimitiveBinding("Sheet")?.props.accepts,
+};
 export const TOOLTIP_PROPS_SCHEMA = overlayOriginSchema(
   "TooltipTrigger",
   "Tooltip",
@@ -235,6 +245,7 @@ export const REUSABLE_PROPS_SCHEMAS: Readonly<Record<string, PropsSchema>> = {
   "component-illustratedmessage": ILLUSTRATED_MESSAGE_PROPS_SCHEMA,
   "component-avatargroup": AVATAR_GROUP_PROPS_SCHEMA,
   "component-popover": POPOVER_PROPS_SCHEMA,
+  "component-sheet": SHEET_PROPS_SCHEMA,
   "component-tooltip": TOOLTIP_PROPS_SCHEMA,
   "component-menu": MENU_PROPS_SCHEMA,
 };

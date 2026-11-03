@@ -525,6 +525,23 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
 const FAMILY_2_CUTOVER: CutoverState = "catalog";
 
 const FAMILY_2_ENTRIES: ComponentCatalogEntry[] = [
+  primitiveEntry("TokenField", "fields", FAMILY_2_CUTOVER, {
+    category: "forms",
+    label: "token field",
+    icon: "Tags",
+  }),
+  primitiveEntry("TokenInput", "fields", FAMILY_2_CUTOVER, {
+    category: "forms",
+    label: "token input",
+    icon: "Tags",
+    placeable: false,
+  }),
+  primitiveEntry("Token", "fields", FAMILY_2_CUTOVER, {
+    category: "forms",
+    label: "token",
+    icon: "Tag",
+    placeable: false,
+  }),
   primitiveEntry("TextField", "fields", FAMILY_2_CUTOVER, {
     category: "forms",
     label: "text field",
@@ -1108,6 +1125,41 @@ const FAMILY_5_ENTRIES: ComponentCatalogEntry[] = [
 const FAMILY_6_CUTOVER: CutoverState = "catalog";
 
 const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
+  primitiveEntry("Sheet", "overlays", FAMILY_6_CUTOVER, {
+    category: "overlays",
+    label: "sheet",
+    icon: "PanelBottom",
+  }),
+  primitiveEntry("SheetTrigger", "overlays", FAMILY_6_CUTOVER, {
+    category: "overlays",
+    label: "sheettrigger",
+    icon: "PanelBottom",
+    placeable: false,
+  }),
+  primitiveEntry("SheetOverlay", "overlays", FAMILY_6_CUTOVER, {
+    category: "overlays",
+    label: "sheetoverlay",
+    icon: "PanelBottom",
+    placeable: false,
+  }),
+  primitiveEntry("SheetBackdrop", "overlays", FAMILY_6_CUTOVER, {
+    category: "overlays",
+    label: "sheetbackdrop",
+    icon: "PanelBottom",
+    placeable: false,
+  }),
+  primitiveEntry("SheetContent", "overlays", FAMILY_6_CUTOVER, {
+    category: "overlays",
+    label: "sheetcontent",
+    icon: "PanelBottom",
+    placeable: false,
+  }),
+
+  primitiveEntry("PreviewTrigger", "overlays", FAMILY_6_CUTOVER, {
+    category: "overlays",
+    label: "preview trigger",
+    icon: "Eye",
+  }),
   primitiveEntry("DialogTrigger", "overlays", FAMILY_6_CUTOVER, {
     category: "overlays",
     label: "dialog trigger",
@@ -1445,6 +1497,7 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "ButtonGroup",
   "Menu",
   // forms
+  "TokenField",
   "TextField",
   "TextArea",
   "NumberField",
@@ -1482,6 +1535,8 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "TimeField",
   "RangeCalendar",
   // overlays
+  "Sheet",
+  "PreviewTrigger",
   "Dialog",
   "Modal",
   "Popover",

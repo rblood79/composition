@@ -1,3 +1,16 @@
+import {
+  tokenFieldBinding,
+  tokenInputBinding,
+  tokenBinding,
+} from "./TokenField.binding";
+import {
+  sheetBinding,
+  sheetTriggerBinding,
+  sheetOverlayBinding,
+  sheetBackdropBinding,
+  sheetContentBinding,
+} from "./Sheet.binding";
+import { previewTriggerBinding } from "./PreviewTrigger.binding";
 /**
  * ADR-142 — leaf RAC primitive `PrimitiveBinding` barrel + type 조회.
  * family cutover(Phase 6) 진행 시 약 35개 binding 이 여기 누적된다.
@@ -303,6 +316,15 @@ export * from "./Tooltip.binding";
  * generic 렌더러가 "이 type 이 catalog primitive 인가" 를 판정하는 단일 진입점.
  */
 const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
+  PreviewTrigger: previewTriggerBinding,
+  TokenField: tokenFieldBinding,
+  TokenInput: tokenInputBinding,
+  Token: tokenBinding,
+  Sheet: sheetBinding,
+  SheetTrigger: sheetTriggerBinding,
+  SheetOverlay: sheetOverlayBinding,
+  SheetBackdrop: sheetBackdropBinding,
+  SheetContent: sheetContentBinding,
   // family ① primitives/actions
   Badge: badgeBinding,
   Breadcrumbs: breadcrumbsBinding,

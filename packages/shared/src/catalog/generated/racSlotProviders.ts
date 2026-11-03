@@ -210,6 +210,20 @@ export const RAC_SLOT_PROVIDERS: Readonly<
       slots: ["description", "errorMessage"],
     },
   },
+  SheetContent: {
+    Button: {
+      slots: ["close"],
+      hasDefault: true,
+    },
+    Heading: {
+      slots: ["title"],
+      hasDefault: true,
+    },
+    Text: {
+      slots: ["description"],
+      hasDefault: true,
+    },
+  },
   SwitchField: {
     Text: {
       slots: ["description", "errorMessage"],
@@ -243,6 +257,11 @@ export const RAC_SLOT_PROVIDERS: Readonly<
     Text: {
       slots: ["title", "description"],
       hasDefault: true,
+    },
+  },
+  TokenField: {
+    Text: {
+      slots: ["description"],
     },
   },
   TreeItem: {

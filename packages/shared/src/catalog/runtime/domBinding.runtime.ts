@@ -1817,6 +1817,7 @@ export const CATALOG_DOM_OVERLAY_BINDINGS: ReadonlySet<string> = new Set([
   "tooltip",
   "popover",
   "modal",
+  "sheetoverlay",
 ]);
 
 /**
@@ -2416,11 +2417,20 @@ function ruleDom(
       : textChildren === undefined
         ? []
         : // (ADR-299 — a Link's range-formatted text: a span per run.)
-          (catalogTextRunsContent(node.textRuns, node.visual.textDecoration) ?? [
-            String(textChildren),
-          ])),
+          (catalogTextRunsContent(
+            node.textRuns,
+            node.visual.textDecoration,
+          ) ?? [String(textChildren)])),
     ...(linkOut ? [catalogLinkOutGlyphElement(node, type)] : []),
   ];
+  if (lower === "sheet" && node.derivedProps?._sheetHandle === true)
+    content.unshift(
+      createElement("div", {
+        key: "sheet-handle",
+        className: "sheet-handle",
+        "aria-hidden": true,
+      }),
+    );
   // ADR-295 후속: a draggable Table's header row · Row — S2's drag column first.
   if (
     (lower === "tableheader" || lower === "row") &&

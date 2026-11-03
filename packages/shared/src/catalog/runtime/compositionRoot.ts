@@ -1,3 +1,4 @@
+import { catalogTokenSegments } from "../document/tokenFieldValue";
 import {
   isRichText,
   resolvedTextRuns,
@@ -671,7 +672,12 @@ const requiredTextBindings = new Set(["button", "label"]);
  * Field value sub-parts whose width is the field's (flex / `width: 100%` in the owner's box), not
  * their text: the placeholder or value sets only the line box height.
  */
-const heightOnlyTextTypes = new Set(["Input", "SelectValue", "TextArea"]);
+const heightOnlyTextTypes = new Set([
+  "Input",
+  "SelectValue",
+  "TextArea",
+  "TokenInput",
+]);
 /** Icon-font glyph bindings (Skia `icon_font`). */
 const glyphBindings = new Set(["icon", "illustration"]);
 
@@ -875,7 +881,8 @@ function textLeaf(
       runs?: readonly CatalogTextRunFont[];
     }
   | undefined {
-  if (node.children.length > 0) return undefined;
+  if (node.children.length > 0 && node.bindingId !== "tokeninput")
+    return undefined;
   const own = resolveTextSourceText(
     typeName,
     // (ADR-256 Phase 9: a text RAC writes — a calendar's heading, a calendar picker's value — is the
@@ -1644,7 +1651,23 @@ function withHidden(
  * text, `textRuns` = the runs it draws (text with its templates resolved, marks with their tokens).
  */
 function withTextRuns(record: CatalogConsumerNode): CatalogConsumerNode {
-  const children = record.props.children;
+  const children =
+    record.bindingId === "tokeninput" &&
+    typeof record.props.children === "string"
+      ? {
+          kind: "text" as const,
+          runs: catalogTokenSegments(record.props.children).map((segment) => ({
+            text: segment.text,
+            ...(segment.type === "token"
+              ? {
+                  marks: {
+                    fontWeight: COMPONENT_RULES_TABLE.Token.sizes.M.fontWeight,
+                  },
+                }
+              : {}),
+          })),
+        }
+      : record.props.children;
   if (!isRichText(children)) return record;
   return {
     ...record,
@@ -2402,7 +2425,8 @@ export class CatalogCompositionRoot {
     // ADR-299 — range-formatted text: consumers read the plain text in `props.children` (every
     // `String(children)` reader stays as it is) and the drawn runs in `textRuns`; the written runs
     // stay in `templateProps` (the text editor's).
-    const rich = isRichText(authored.children);
+    const rich =
+      isRichText(authored.children) || record.bindingId === "tokeninput";
     if (!props) {
       if (rich)
         return withTextRuns({

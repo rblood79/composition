@@ -307,7 +307,7 @@ function documentFor(fixture: Fixture): CatalogDocument {
   return {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 54,
+    libraryContractVersion: 55,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -416,15 +416,22 @@ function canvasPaint(root: CatalogCompositionRoot, id: string) {
   // biome-ignore lint/suspicious/noExplicitAny: SkiaNodeData read for the harness
   const data = catalogCanvasNodeData(root, id) as any;
   const record = root.canvasInputs.get(id)!;
-  let bar: { x: number; y: number; width: number; height: number; color: string } | undefined;
+  let bar:
+    | { x: number; y: number; width: number; height: number; color: string }
+    | undefined;
   if (root.typeOf(record) === "SideNavItem") {
     const content = record.children.find(
-      (child) => root.typeOf(root.canvasInputs.get(child)!) === "SideNavItemContent",
+      (child) =>
+        root.typeOf(root.canvasInputs.get(child)!) === "SideNavItemContent",
     );
     // biome-ignore lint/suspicious/noExplicitAny: SkiaNodeData read for the harness
-    const row = content ? (catalogCanvasNodeData(root, content) as any) : undefined;
+    const row = content
+      ? (catalogCanvasNodeData(root, content) as any)
+      : undefined;
     // biome-ignore lint/suspicious/noExplicitAny: SkiaNodeData read for the harness
-    const shape = (row?.children ?? []).find((child: any) => child.width <= 3 && child.height >= 10);
+    const shape = (row?.children ?? []).find(
+      (child: any) => child.width <= 3 && child.height >= 10,
+    );
     if (shape)
       bar = {
         x: shape.x,
@@ -442,7 +449,8 @@ function canvasPaint(root: CatalogCompositionRoot, id: string) {
     turned: JSON.stringify(data.iconPath?.paths) === CHEVRON_DOWN,
     bar,
     // (Its box fill — none at rest reads as transparent.)
-    fill: data.box?.fillColor?.[3] > 0 ? floatRgba(data.box.fillColor) : "0,0,0,0",
+    fill:
+      data.box?.fillColor?.[3] > 0 ? floatRgba(data.box.fillColor) : "0,0,0,0",
   };
 }
 
@@ -508,7 +516,9 @@ async function compare(fixture: Fixture) {
         [...root.canvasInputs.keys()].map((id) => [
           id,
           JSON.stringify(getSkiaNode(id), (_, value) =>
-            ArrayBuffer.isView(value) ? Array.from(value as Float32Array) : value,
+            ArrayBuffer.isView(value)
+              ? Array.from(value as Float32Array)
+              : value,
           ),
         ]),
       );
@@ -527,11 +537,20 @@ async function compare(fixture: Fixture) {
       rows.push({
         sceneSample: sample[0].split(":").pop(),
         diff: [...keys]
-          .filter((key) => JSON.stringify(a?.[key]) !== JSON.stringify(b?.[key]))
-          .map((key) => [key, JSON.stringify(a?.[key])?.slice(0, 200), JSON.stringify(b?.[key])?.slice(0, 200)]),
+          .filter(
+            (key) => JSON.stringify(a?.[key]) !== JSON.stringify(b?.[key]),
+          )
+          .map((key) => [
+            key,
+            JSON.stringify(a?.[key])?.slice(0, 200),
+            JSON.stringify(b?.[key])?.slice(0, 200),
+          ]),
       });
     }
-    if (JSON.stringify(commands) !== JSON.stringify(Array.from(fresh.stream.commands)))
+    if (
+      JSON.stringify(commands) !==
+      JSON.stringify(Array.from(fresh.stream.commands))
+    )
       sceneDifferences.push("(commands)");
     fresh.dispose();
     scene.dispose();
@@ -679,17 +698,27 @@ async function compare(fixture: Fixture) {
       const canvasIcon = {
         color: drawn ? paint.color : "none",
         ...(glyph
-          ? { visible: !hiddenOnCanvas(id) && paint.visible, turned: paint.turned }
+          ? {
+              visible: !hiddenOnCanvas(id) && paint.visible,
+              turned: paint.turned,
+            }
           : {}),
       };
       // (S2 `currentColor`: a drawn chevron glyph is its row's color — the DOM row's computed one,
       //  independent of the composition's own reading.)
       const row = element.closest(".react-aria-SideNavItem");
-      if (glyph?.visible && row && rgba(getComputedStyle(row).color) !== domIcon.color)
+      if (
+        glyph?.visible &&
+        row &&
+        rgba(getComputedStyle(row).color) !== domIcon.color
+      )
         differences.push({
           name,
           type,
-          rowColor: { row: rgba(getComputedStyle(row).color), glyph: domIcon.color },
+          rowColor: {
+            row: rgba(getComputedStyle(row).color),
+            glyph: domIcon.color,
+          },
         });
       if (JSON.stringify(domIcon) !== JSON.stringify(canvasIcon))
         differences.push({

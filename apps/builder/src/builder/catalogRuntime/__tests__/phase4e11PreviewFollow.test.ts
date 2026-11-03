@@ -113,7 +113,7 @@ async function openStandalone(definitionId: string) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 54,
+    libraryContractVersion: 55,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -337,29 +337,32 @@ describe("Slider size reaches the track", () => {
   it.each([
     ["S", 4, 24],
     ["L", 4, 40],
-  ])("Slider %s track is %d tall in a %d row in both consumers", async (size, height, row) => {
-    const workspace = await openOwner("Slider", { size });
-    const root = workspace.root;
-    const track = [...root.layoutInputs.values()].find(
-      (record) => record.bindingId === "slidertrack",
-    )!;
-    expect(track.props.size).toBe(size);
-    expect(root.getGeometry([track.id]).get(track.id)!.height).toBe(height);
-    expect(height + 2 * Number.parseFloat(String(track.layout.marginTop))).toBe(
-      row,
-    );
-    expect(track.layout.marginBottom).toBe(track.layout.marginTop);
-    const group = [...root.domInputs.values()].find(
-      (record) => record.sourceId === "project:node:owner",
-    )!;
-    const html = renderToStaticMarkup(renderCatalogDom(root, group.id));
-    expect(html).toMatch(
-      new RegExp(
-        `class="react-aria-SliderTrack"[^>]*data-size="${size}"|data-size="${size}"[^>]*class="react-aria-SliderTrack"`,
-      ),
-    );
-    workspace.dispose();
-  });
+  ])(
+    "Slider %s track is %d tall in a %d row in both consumers",
+    async (size, height, row) => {
+      const workspace = await openOwner("Slider", { size });
+      const root = workspace.root;
+      const track = [...root.layoutInputs.values()].find(
+        (record) => record.bindingId === "slidertrack",
+      )!;
+      expect(track.props.size).toBe(size);
+      expect(root.getGeometry([track.id]).get(track.id)!.height).toBe(height);
+      expect(
+        height + 2 * Number.parseFloat(String(track.layout.marginTop)),
+      ).toBe(row);
+      expect(track.layout.marginBottom).toBe(track.layout.marginTop);
+      const group = [...root.domInputs.values()].find(
+        (record) => record.sourceId === "project:node:owner",
+      )!;
+      const html = renderToStaticMarkup(renderCatalogDom(root, group.id));
+      expect(html).toMatch(
+        new RegExp(
+          `class="react-aria-SliderTrack"[^>]*data-size="${size}"|data-size="${size}"[^>]*class="react-aria-SliderTrack"`,
+        ),
+      );
+      workspace.dispose();
+    },
+  );
 });
 
 /**
@@ -376,7 +379,9 @@ describe("NumberField group — per-size height", () => {
       blockOf(css, ".react-aria-NumberField .react-aria-Button"),
     ).toContain("width: var(--nf-btn-size);");
     // (ADR-295 Phase 3: the S2 control height token — the same one the Input's min-height reads.)
-    expect(css).toContain("--nf-btn-size: var(--catalog-token-size-height-XL);");
+    expect(css).toContain(
+      "--nf-btn-size: var(--catalog-token-size-height-XL);",
+    );
   });
 
   // (ADR-295 Phase 3: the S2 control heights.)

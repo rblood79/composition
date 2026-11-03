@@ -177,6 +177,12 @@
 
 /* Text Input Components — skipCSSGeneration, 수동 CSS */
 @import "./generated/TextField.css";
+@import "./generated/TokenField.css";
+@import "./generated/TokenInput.css";
+@import "./generated/Token.css";
+@import "./generated/Sheet.css";
+@import "./generated/SheetBackdrop.css";
+@import "./generated/SheetContent.css";
 /* TextArea.css 는 생성하지 않는다 (2026-08-21) — canonical `TextArea` 는 DOM 에서 RAC
    `TextField` 컨테이너로 렌더되므로(`binding.source.component = "TextField"`)
    `.react-aria-TextArea` 컨테이너 selector 가 구조적으로 미매칭이었다. 시각은 바로 위

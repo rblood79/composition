@@ -53,6 +53,9 @@ paths:
 
 ## 3. 핵심 규칙
 
+- 작성된 상태가 자식의 존재 여부를 결정하면 소유자 값 해석과 증분 의존성 갱신을 함께 연결한다. **Why (2026-11-03)**: Sheet의 `defaultOpen=true`가 Preview에서는 열렸지만 Canvas는 overlay를 항상 숨겼다. Sheet의 열림 우선순위와 trigger → overlay 재판정을 함께 연결해야 편집·Undo·재로딩이 같은 결과를 낸다.
+- 소유자 속성으로 자식 장식을 그릴 때도 derived props와 의존성 전파를 함께 선언한다. **Why (2026-11-03)**: SheetOverlay의 `preventDismissal`과 `swipeDirection`을 자식 Sheet에 전달하여 Canvas·CSS handle 표시와 방향을 맞추고, 속성 편집·Undo에 따른 갱신을 검증했다.
+
 - 텍스트 편집 범위의 focus 이탈은 editor DOM뿐 아니라 Typography와 portal을 포함해 감시한다. **Why (2026-11-02, ADR-299)**: editor에만 붙은 focusout은 패널 input→Tab 범위 이탈을 놓쳐 Chromium·WebKit에서 커밋 0회였다. document capture와 1회 커밋 guard로 처리한다.
 
 - RichText 편집기의 로딩 화면은 원본 runs와 동일한 mark/token 해석을 사용하며 plain 입력을 받지 않는다. **Why (2026-11-03)**: 새로고침·Dashboard 재진입 첫 편집의 textarea fallback은 64px·24px 서식을 제거해 표시했고, 로드 전에 입력하면 runs를 문자열로 덮어썼다. 대기 중 키는 Canvas 전역 단축키로 전파하지 않는다. 전역 capture 단축키도 `role="textbox"`와 내부 run을 입력 대상으로 판별해야 한다.

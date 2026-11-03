@@ -38,6 +38,10 @@ import {
   catalogToastIcon,
 } from "../../../../../packages/shared/src/catalog/document/toastChrome";
 import { catalogBoxModel } from "../../../../../packages/shared/src/catalog/runtime/boxModel";
+import {
+  SHEET_HANDLE,
+  catalogSheetHandleRect,
+} from "../../../../../packages/shared/src/catalog/document/sheetChrome";
 import { catalogSideNavIndicator } from "../../../../../packages/shared/src/catalog/runtime/sideNav";
 import { catalogToggleIndicatorMetrics } from "../../../../../packages/shared/src/catalog/document/rulePartRules";
 import {
@@ -76,6 +80,7 @@ const BOX_SIZE_TYPES: ReadonlySet<string> = new Set([
   "TextField",
   "TextArea",
   "Input",
+  "TokenInput",
   "Select",
   "ComboBox",
   "SearchField",
@@ -177,6 +182,7 @@ export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
     ...linkOutShapes(input),
     ...inlineAlertIconShapes(input),
     ...catalogToastChromeShapes(input),
+    ...catalogSheetHandleShapes(input),
     ...sideNavIndicatorShapes(input),
   ];
   const quiet = catalogQuietStyles(input.rule, input.node.props, input.state);
@@ -332,10 +338,27 @@ function inlineAlertIconShapes(input: CatalogRuleShapeInput): Shape[] {
   ];
 }
 
-/**
- * ADR-300 — S2 SideNav's current-route bar on a current Canvas row (its SideNavItemContent): the
- * SideNavItem rule's `::before` (`catalogSideNavIndicator`), centred on the row, fully rounded.
- */
+/** RAC 예제의 장식 handle: DOM .sheet-handle과 같은 위치·크기·색. */
+export function catalogSheetHandleShapes(
+  input: Pick<CatalogRuleShapeInput, "type" | "node" | "rect" | "theme">,
+): Shape[] {
+  if (input.type !== "Sheet" || input.node.derivedProps?._sheetHandle !== true)
+    return [];
+  return [
+    {
+      type: "roundRect",
+      ...catalogSheetHandleRect(
+        String(input.node.derivedProps._sheetSwipeDirection ?? "bottom"),
+        input.rect.width,
+        input.rect.height,
+      ),
+      radius: SHEET_HANDLE.radius,
+      fill: cssVarColor(SHEET_HANDLE.color, input.theme ?? "light") as string,
+    } as Shape,
+  ];
+}
+
+/** ADR-300: S2 SideNav의 현재 경로 표시 막대. */
 function sideNavIndicatorShapes(
   input: Pick<CatalogRuleShapeInput, "type" | "node" | "rect" | "theme">,
 ): Shape[] {

@@ -17,6 +17,8 @@
 import {
   AlertTriangle,
   Bell,
+  Eye,
+  PanelBottom,
   Keyboard,
   AppWindow,
   AppWindowMac,
@@ -73,6 +75,7 @@ import {
   Star,
   TableProperties,
   Tag,
+  Tags,
   Text,
   ToggleLeft,
   ToggleRight,
@@ -130,6 +133,8 @@ export const ICON_MAP: Record<
 > = {
   AlertTriangle,
   Bell,
+  Eye,
+  PanelBottom,
   Keyboard,
   AppWindow,
   AppWindowMac,
@@ -186,6 +191,7 @@ export const ICON_MAP: Record<
   Star,
   TableProperties,
   Tag,
+  Tags,
   Text,
   ToggleLeft,
   ToggleRight,
@@ -274,6 +280,7 @@ const PALETTE_ORDER: ReadonlyArray<{
   //   그대로 굳은 결손이지 의도적 비노출이 아니다(sub-part/leaf 미포함 규칙과 무관: TextArea 는
   //   placeable top-level field). TextField 바로 뒤 = field 패밀리 자연 순서.
   { type: "TextArea", source: "catalog" },
+  { type: "TokenField", source: "catalog" },
   { type: "NumberField", source: "catalog" },
   { type: "SearchField", source: "catalog" },
   // ADR-256 Phase 6g: RAC Autocomplete (SearchField + ListBox) — after its text field.
@@ -316,7 +323,9 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "TimeField", source: "catalog" },
   { type: "RangeCalendar", source: "catalog" },
   { type: "Dialog", source: "catalog" },
+  { type: "Sheet", source: "catalog" },
   { type: "Popover", source: "catalog" },
+  { type: "PreviewTrigger", source: "catalog" },
   // ADR-259 Phase 3 (사용자 결정 2): S2 ContextualHelp — the overlay group, after Popover.
   { type: "ContextualHelp", source: "catalog" },
   { type: "Tooltip", source: "catalog" },

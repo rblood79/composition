@@ -1,0 +1,61 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog TokenInput — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: text
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-TokenInput {
+  /* Base styles — archetype: text */
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  width: 100%;
+  min-height: 36px;
+  display: block;
+
+  /* Default variant */
+  background: var(--bg-overlay);
+  color: var(--fg);
+  border: 1px solid var(--border);
+
+  /* Default size */
+  height: auto;
+  padding: 8px 12px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: 8px;
+  line-height: var(--catalog-token-text-sm--line-height);
+  border-width: 1px;
+}
+
+.react-aria-TokenInput:where([data-variant="default"]) {
+  background: var(--bg-overlay);
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+.react-aria-TokenInput.react-aria-TokenInput:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-TokenInput.react-aria-TokenInput:where([data-disabled]) {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-TokenInput {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */

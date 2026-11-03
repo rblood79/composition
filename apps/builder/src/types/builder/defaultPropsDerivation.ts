@@ -128,6 +128,9 @@ export const CATALOG_DERIVED_DEFAULT_TYPES: ReadonlySet<string> = new Set([
  *   값 byte-identical (conflict 0, random 합성 0). Icon 만 제외 (위 사유).
  */
 export const ENTRY_DERIVED_DEFAULT_TYPES: ReadonlySet<string> = new Set([
+  "PreviewTrigger",
+  "TokenField",
+  "Sheet",
   "Button",
   "Badge",
   "Link",

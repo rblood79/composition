@@ -25,6 +25,7 @@ type TypeOf = (node: CatalogConsumerNode) => string;
  * each item's value as the picker's frame; the Canvas reads the picker record (its focused value).
  */
 const COMPOSITION_VALUE_KEYS: Readonly<Record<string, readonly string[]>> = {
+  TokenInput: ["tokenText"],
   CalendarMonthPicker: ["formatted"],
   CalendarYearPicker: ["formatted"],
   // A calendar cell template's day text (RAC `CalendarCell` render props `formattedDate` — the

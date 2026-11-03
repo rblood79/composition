@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [RAC TokenField · PreviewTrigger · Sheet 추가] - 2026-11-03
+
+### Fixed
+
+- Sheet의 누락된 handle을 Canvas와 CSS에 추가했다. Prevent Dismissal 비활성 시 표시하고 활성 시 숨기며, Swipe Direction에 따른 배치와 치수·색을 공용 정의로 맞췄다. 속성 변경과 Undo도 자식 Sheet에 전파한다.
+- Sheet Open을 활성→비활성→활성으로 바꿀 때 자식이 한 지점에 겹치는 문제를 수정했다. Rust 엔진이 `display:none` 서브트리 좌표를 0으로 만들 때 이전 solve 캐시도 무효화하여 재표시 때 자손 레이아웃을 다시 계산한다.
+- Sheet 인스턴스의 Property에 Position·Swipe Direction·Snap Points·Prevent Dismissal·Overscroll Padding을 연결했다. Open·Initially Open 변경과 Undo/Redo 시 Canvas 본문의 표시를 재계산하며, 명시적 Open=false가 Initially Open=true보다 우선한다. Library의 원본 본문 견본은 유지한다.
+
+### Added
+
+- Components 패널과 Library에 TokenField, PreviewTrigger, Sheet 원본을 추가했다. PreviewTrigger는 hover·focus·long press로 Popover를 열며, Sheet는 열기 버튼·본문 slot·닫기 버튼과 방향·snap point·닫기 방지 속성을 제공한다.
+- TokenField는 일반 텍스트 안의 공백으로 확정한 `@멘션`·`#태그`를 토큰으로 편집한다. 문서에는 문자열을 저장하고 RAC 입력과 Canvas 텍스트 구간은 같은 tokenizer를 사용한다.
+
+### Changed
+
+- 원본 구조 추가에 따라 Library 계약 버전을 55로 올렸다. 기존 개발 문서의 자동 변환은 제공하지 않는다.
+
 ## [Packages 데이터 계약·중복 구현·반복 계산 개선] - 2026-11-03
 
 ### Fixed

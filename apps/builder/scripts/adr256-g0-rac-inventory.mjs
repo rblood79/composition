@@ -41,6 +41,14 @@ if (!globalThis.ResizeObserver) {
   dom.window.ResizeObserver = globalThis.ResizeObserver;
 }
 
+if (!globalThis.IntersectionObserver) {
+  globalThis.IntersectionObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+  dom.window.IntersectionObserver = globalThis.IntersectionObserver;
+}
 const R = req("react");
 const { createRoot } = req("react-dom/client");
 const C = req("react-aria-components");
@@ -175,6 +183,15 @@ const {
   TimeField,
   DatePicker,
   DateRangePicker,
+  PreviewTrigger,
+  SheetTrigger,
+  SheetOverlay,
+  SheetBackdrop,
+  Sheet,
+  SheetContent,
+  TokenField,
+  TokenInput,
+  Token,
   DialogTrigger,
   Dialog,
   Disclosure,
@@ -714,6 +731,48 @@ const FIXTURES = {
           Row,
           { id: "r", className: rp("Row") },
           e(Cell, { className: rp("Cell") }, "A", P("Table>TableBody>Row")),
+        ),
+      ),
+    ),
+  TokenField: () =>
+    e(
+      TokenField,
+      {
+        "aria-label": "Tokens",
+        defaultValue: new (req(
+          "react-stately/useTokenFieldState",
+        ).TokenFieldValue)([{ type: "token", text: "sample" }]),
+        className: rp("TokenField"),
+      },
+      P("TokenField"),
+      e(TokenInput, { className: rp("TokenInput") }, (segment) =>
+        e(Token, { className: rp("Token") }, segment.text),
+      ),
+    ),
+  PreviewTrigger: () =>
+    e(
+      PreviewTrigger,
+      { defaultOpen: true },
+      e(Button, null, "Preview", P("PreviewTrigger>Button")),
+      e(Popover, null, P("PreviewTrigger>Popover")),
+    ),
+  Sheet: () =>
+    e(
+      SheetTrigger,
+      { defaultOpen: true },
+      e(Button, null, "Open", P("SheetTrigger>Button")),
+      e(
+        SheetOverlay,
+        { className: rp("SheetOverlay") },
+        e(SheetBackdrop, { className: rp("SheetBackdrop") }),
+        e(
+          Sheet,
+          { className: rp("Sheet") },
+          e(
+            SheetContent,
+            { "aria-label": "Sheet", className: rp("SheetContent") },
+            P("SheetTrigger>SheetOverlay>Sheet>SheetContent"),
+          ),
         ),
       ),
     ),

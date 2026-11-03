@@ -1873,6 +1873,78 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "visual": {},
     "stateRules": {},
     "templateRootId": "lib:template:component-sidenavpanel--collapsed"
+  },
+  {
+    "id": "lib:definition:origin-component-previewtrigger",
+    "name": "PreviewTrigger",
+    "mode": "composite",
+    "accepts": {
+      "size": "string",
+      "placement": "string",
+      "offset": "number",
+      "crossOffset": "number",
+      "shouldFlip": "boolean",
+      "containerPadding": "number",
+      "delay": "number",
+      "closeDelay": "number",
+      "isDisabled": "boolean"
+    },
+    "defaults": {
+      "size": "M",
+      "placement": "bottom",
+      "offset": 8,
+      "crossOffset": 0,
+      "shouldFlip": true,
+      "containerPadding": 12,
+      "delay": 600,
+      "closeDelay": 200,
+      "isDisabled": false
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-previewtrigger"
+  },
+  {
+    "id": "lib:definition:origin-component-sheet",
+    "name": "Sheet",
+    "mode": "composite",
+    "accepts": {
+      "position": "string",
+      "swipeDirection": "string",
+      "snapPoints": "string[]",
+      "preventDismissal": "boolean",
+      "overscrollPadding": "boolean"
+    },
+    "defaults": {
+      "position": "bottom",
+      "swipeDirection": "bottom",
+      "snapPoints": [],
+      "preventDismissal": false,
+      "overscrollPadding": false
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-sheet"
+  },
+  {
+    "id": "lib:definition:origin-component-tokenfield",
+    "name": "TokenField",
+    "mode": "composite",
+    "accepts": {
+      "label": "string",
+      "description": "string",
+      "value": "string",
+      "placeholder": "string"
+    },
+    "defaults": {
+      "label": "Message",
+      "description": "",
+      "value": "Hello @person ",
+      "placeholder": "Enter text, @mentions, or #tags"
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-tokenfield"
   }
 ];
 
@@ -3179,8 +3251,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-pagination__4",
       "lib:template:component-pagination__5"
     ],
-    "props": {
-    },
+    "props": {},
     "visual": {},
     "layout": {
       "flexDirection": "row",
@@ -7238,8 +7309,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-colorswatchpicker__5",
       "lib:template:component-colorswatchpicker__6"
     ],
-    "props": {
-    },
+    "props": {},
     "visual": {
       "gap": 4
     },
@@ -8723,5 +8793,264 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {},
     "visual": {},
     "displayState": "collapsed"
+  },
+  {
+    "id": "lib:template:component-previewtrigger",
+    "definitionId": "lib:definition:type-PreviewTrigger",
+    "children": [
+      "lib:template:component-previewtrigger__trigger",
+      "lib:template:component-previewtrigger__overlay"
+    ],
+    "props": {
+      "delay": "{delay}",
+      "closeDelay": "{closeDelay}",
+      "isDisabled": "{isDisabled}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-previewtrigger__trigger",
+    "definitionId": "lib:definition:origin-component-button",
+    "children": [],
+    "props": {
+      "label": "Preview"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-previewtrigger__overlay",
+    "definitionId": "lib:definition:type-Popover",
+    "children": [
+      "lib:template:component-previewtrigger__arrow",
+      "lib:template:component-previewtrigger__content-region"
+    ],
+    "props": {
+      "size": "{size}",
+      "placement": "{placement}",
+      "offset": "{offset}",
+      "crossOffset": "{crossOffset}",
+      "shouldFlip": "{shouldFlip}",
+      "containerPadding": "{containerPadding}"
+    },
+    "visual": {
+      "width": "240px"
+    }
+  },
+  {
+    "id": "lib:template:component-previewtrigger__content-region",
+    "definitionId": "lib:definition:type-frame",
+    "slot": {
+      "name": "content",
+      "required": false
+    },
+    "children": [
+      "lib:template:component-previewtrigger__1",
+      "lib:template:component-previewtrigger__2"
+    ],
+    "props": {},
+    "visual": {},
+    "layout": {
+      "display": "flex",
+      "flexDirection": "column",
+      "rowGap": "12px",
+      "columnGap": "0"
+    }
+  },
+  {
+    "id": "lib:template:component-previewtrigger__arrow",
+    "definitionId": "lib:definition:type-OverlayArrow",
+    "children": [],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-previewtrigger__1",
+    "definitionId": "lib:definition:origin-component-heading",
+    "children": [],
+    "props": {
+      "children": "Preview",
+      "size": "S"
+    },
+    "visual": {},
+    "layout": {
+      "display": "block"
+    }
+  },
+  {
+    "id": "lib:template:component-previewtrigger__2",
+    "definitionId": "lib:definition:origin-component-description",
+    "children": [],
+    "props": {
+      "children": "Interactive preview content.",
+      "size": "M"
+    },
+    "visual": {},
+    "layout": {
+      "display": "block"
+    }
+  },
+  {
+    "id": "lib:template:component-sheet",
+    "definitionId": "lib:definition:type-SheetTrigger",
+    "children": [
+      "lib:template:component-sheet__trigger",
+      "lib:template:component-sheet__overlay"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-sheet__trigger",
+    "definitionId": "lib:definition:origin-component-button",
+    "children": [],
+    "props": {
+      "label": "Open Sheet"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-sheet__overlay",
+    "definitionId": "lib:definition:type-SheetOverlay",
+    "children": [
+      "lib:template:component-sheet__backdrop",
+      "lib:template:component-sheet__sheet"
+    ],
+    "props": {
+      "position": "{position}",
+      "swipeDirection": "{swipeDirection}",
+      "snapPoints": "{snapPoints}",
+      "preventDismissal": "{preventDismissal}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-sheet__backdrop",
+    "definitionId": "lib:definition:type-SheetBackdrop",
+    "children": [],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-sheet__sheet",
+    "definitionId": "lib:definition:type-Sheet",
+    "children": [
+      "lib:template:component-sheet__content"
+    ],
+    "props": {
+      "overscrollPadding": "{overscrollPadding}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-sheet__content",
+    "definitionId": "lib:definition:type-SheetContent",
+    "children": [
+      "lib:template:component-sheet__title",
+      "lib:template:component-sheet__body",
+      "lib:template:component-sheet__close"
+    ],
+    "props": {
+      "aria-label": "Sheet"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-sheet__title",
+    "definitionId": "lib:definition:origin-component-heading",
+    "children": [],
+    "props": {
+      "children": "Sheet",
+      "slot": "title",
+      "size": "S"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-sheet__body",
+    "definitionId": "lib:definition:type-frame",
+    "children": [
+      "lib:template:component-sheet__description"
+    ],
+    "props": {},
+    "visual": {},
+    "slot": {
+      "name": "content",
+      "required": false
+    },
+    "layout": {
+      "display": "flex",
+      "flexDirection": "column"
+    }
+  },
+  {
+    "id": "lib:template:component-sheet__description",
+    "definitionId": "lib:definition:origin-component-description",
+    "children": [],
+    "props": {
+      "children": "Sheet content goes here."
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-sheet__close",
+    "definitionId": "lib:definition:origin-component-button",
+    "children": [],
+    "props": {
+      "label": "Close",
+      "slot": "close",
+      "variant": "secondary"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-tokenfield",
+    "definitionId": "lib:definition:type-TokenField",
+    "children": [
+      "lib:template:component-tokenfield__label",
+      "lib:template:component-tokenfield__input",
+      "lib:template:component-tokenfield__description"
+    ],
+    "props": { "value": "{value}" },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-tokenfield__label",
+    "definitionId": "lib:definition:origin-component-label",
+    "children": [],
+    "props": {
+      "children": "{label}"
+    },
+    "visual": {},
+    "presentWhen": "nonEmptyText"
+  },
+  {
+    "id": "lib:template:component-tokenfield__input",
+    "definitionId": "lib:definition:type-TokenInput",
+    "children": [
+      "lib:template:component-tokenfield__token"
+    ],
+    "props": {
+      "children": "{value}",
+      "placeholder": "{placeholder}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-tokenfield__token",
+    "definitionId": "lib:definition:type-Token",
+    "children": [],
+    "props": { "children": "{tokenText}" },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-tokenfield__description",
+    "definitionId": "lib:definition:origin-component-description",
+    "children": [],
+    "props": {
+      "children": "{description}",
+      "slot": "description"
+    },
+    "visual": {},
+    "presentWhen": "nonEmptyText"
   }
 ];

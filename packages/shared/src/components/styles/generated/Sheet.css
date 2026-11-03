@@ -1,0 +1,113 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog Sheet — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Sheet {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  width: 360px;
+  max-width: 100%;
+  max-height: 90%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  /* Default variant */
+  background: var(--bg-overlay);
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: 16px;
+  line-height: var(--catalog-token-text-sm--line-height);
+}
+
+.react-aria-Sheet:where([data-variant="default"]) {
+  background: var(--bg-overlay);
+  color: var(--fg);
+}
+
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-Sheet {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-Sheet > .sheet-handle {
+    position: absolute;
+    z-index: 2;
+    border-radius: 6px;
+    background: var(--border);
+    pointer-events: none;
+  }
+
+  .react-aria-Sheet[data-swipe-direction='bottom'] > .sheet-handle {
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 6px;
+  }
+
+  .react-aria-Sheet[data-swipe-direction='vertical'] > .sheet-handle {
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 6px;
+  }
+
+  .react-aria-Sheet[data-swipe-direction='top'] > .sheet-handle {
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 6px;
+  }
+
+  .react-aria-Sheet[data-swipe-direction='left'] > .sheet-handle {
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 80px;
+  }
+
+  .react-aria-Sheet[data-swipe-direction='horizontal'] > .sheet-handle {
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 80px;
+  }
+
+  .react-aria-Sheet[data-swipe-direction='right'] > .sheet-handle {
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 80px;
+  }
+
+  .react-aria-Sheet[data-has-descendants] > .sheet-handle {
+    opacity: 0;
+  }
+
+
+} /* @layer components */

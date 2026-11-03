@@ -1,3 +1,4 @@
+import { CatalogTokenField, CatalogTokenInput } from "./tokenField.components";
 import { isPropVar } from "../document/valueType";
 import { getIconData, resolveTextSourceText } from "@composition/rendering";
 import {
@@ -873,7 +874,9 @@ function sideNavItemEntry(
     attributes: {
       "data-catalog-id": item.id,
       "data-size": str(item.props.size ?? rule?.defaultSize ?? "M"),
-      "data-variant": str(item.props.variant ?? rule?.defaultVariant ?? "default"),
+      "data-variant": str(
+        item.props.variant ?? rule?.defaultVariant ?? "default",
+      ),
     },
     style: input.styleOf?.(item.id),
     textValue: str(item.props.textValue),
@@ -1675,6 +1678,44 @@ const groupDisclosures = (
   );
 
 const DELEGATED: Record<string, DelegatedDomBinding> = {
+  tokenfield: {
+    render: (input) =>
+      createElement(CatalogTokenField, {
+        ...marker(input),
+        ...chrome(input, "TokenField"),
+        style: input.style,
+        value: str(input.node.props.value),
+        isDisabled: bool(input.node.props.isDisabled),
+        isReadOnly: bool(input.node.props.isReadOnly),
+        autoFocus: bool(input.node.props.autoFocus),
+        allowsNewlines: bool(input.node.props.allowsNewlines),
+        "aria-label": opt(input.node.props["aria-label"]),
+        onChange: (value: string) =>
+          input.setRuntimeProps?.(input.node.id, { value }),
+        children: renderAll(input),
+      }),
+  },
+  tokeninput: {
+    ownsChild: () => true,
+    render: (input) =>
+      createElement(CatalogTokenInput, {
+        ...marker(input),
+        ...chrome(input, "TokenInput"),
+        style: input.style,
+        "data-placeholder": str(input.node.props.placeholder),
+        renderToken: (text: string) =>
+          catalogStateFrame(
+            text,
+            input.node.id,
+            { tokenText: text },
+            createElement(
+              Fragment,
+              null,
+              ...input.node.children.map(input.renderChild),
+            ),
+          ),
+      }),
+  },
   // ADR-256 Phase 5e-2: Tabs draws its node tree — the reference `Tabs > (… TabList …) + TabPanels >
   // TabPanel`, with free content anywhere (a frame around the TabList, buttons beside it). Each part
   // renders itself in RAC's Tabs context (`tablist` · `tabpanels` · `tabpanel`).
@@ -2160,17 +2201,19 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         createElement("div", { ...attributes, style: input.style }),
         ({ CatalogSideNavPanel }) =>
           createElement(CatalogSideNavPanel, {
-        attributes,
-        style: input.style,
-        label: opt(input.node.props["aria-label"]),
-        isCollapsed: runtimeState(input, "isCollapsed") === true,
-        ...(input.setRuntimeProps
-          ? {
-              setCollapsed: (next: boolean) =>
-                input.setRuntimeProps!(input.node.id, { isCollapsed: next }),
-            }
-          : {}),
-        children: renderAll(input),
+            attributes,
+            style: input.style,
+            label: opt(input.node.props["aria-label"]),
+            isCollapsed: runtimeState(input, "isCollapsed") === true,
+            ...(input.setRuntimeProps
+              ? {
+                  setCollapsed: (next: boolean) =>
+                    input.setRuntimeProps!(input.node.id, {
+                      isCollapsed: next,
+                    }),
+                }
+              : {}),
+            children: renderAll(input),
           }),
       );
     },
@@ -2204,19 +2247,25 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         createElement("div", { ...attributes, style: input.style }),
         ({ CatalogSideNav }) =>
           createElement(CatalogSideNav, {
-        attributes,
-        style: input.style,
-        label: str(props["aria-label"] || "Navigation"),
-        selectedRoute: opt(props.selectedRoute),
-        expandedKeys: treeKeys(runtimeState(input, "expandedKeys")),
-        ...(input.setRuntimeProps
-          ? {
-              setExpandedKeys: (keys: string[]) =>
-                input.setRuntimeProps!(input.node.id, { expandedKeys: keys }),
-            }
-          : {}),
-        collapsedByDocument: catalogSideNavCollapsed(input.node, get, typeOf),
-        entries: sideNavEntries(input, children(input)),
+            attributes,
+            style: input.style,
+            label: str(props["aria-label"] || "Navigation"),
+            selectedRoute: opt(props.selectedRoute),
+            expandedKeys: treeKeys(runtimeState(input, "expandedKeys")),
+            ...(input.setRuntimeProps
+              ? {
+                  setExpandedKeys: (keys: string[]) =>
+                    input.setRuntimeProps!(input.node.id, {
+                      expandedKeys: keys,
+                    }),
+                }
+              : {}),
+            collapsedByDocument: catalogSideNavCollapsed(
+              input.node,
+              get,
+              typeOf,
+            ),
+            entries: sideNavEntries(input, children(input)),
           }),
       );
     },

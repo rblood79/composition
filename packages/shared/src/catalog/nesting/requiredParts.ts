@@ -15,6 +15,8 @@ export const RAC_REQUIRED_PARTS: Readonly<
 > = {
   Select: [["Button"], ["ListBox"]],
   ComboBox: [["Input"], ["ListBox"]],
+  TokenField: [["TokenInput"]],
+  TokenInput: [["Token"]],
   TextField: [["Input"]],
   TextArea: [["Input"]],
   NumberField: [["Input"]],
@@ -44,6 +46,10 @@ export const RAC_REQUIRED_PARTS: Readonly<
   Checkbox: [["CheckboxButton"]],
   Switch: [["SwitchButton"]],
   Radio: [["RadioButton"]],
+  SheetTrigger: [["Button"], ["SheetOverlay"]],
+  SheetOverlay: [["Sheet"]],
+  Sheet: [["SheetContent"]],
+  PreviewTrigger: [["Button", "Link"], ["Popover"]],
   DialogTrigger: [["Button"], ["Dialog", "Popover", "Modal"]],
   TooltipTrigger: [["Button"], ["Tooltip"]],
   // ADR-256 후속 4: RAC MenuTrigger — its Button and its Popover (the Menu inside).

@@ -123,7 +123,7 @@ async function scene(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 54,
+    libraryContractVersion: 55,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -248,9 +248,10 @@ describe("strut font — inherited like CSS font-size", () => {
     const { inputOf, recordOf } = await scene(true, nested());
     expect(inputOf(recordOf(id("inner"))!)).toMatchObject({
       lineHeight: 36,
-      strutBaseline:
-        Math.floor(Math.round(24 * 0.952) +
-        (36 - Math.round(24 * 0.952) - Math.round(24 * 0.241)) / 2),
+      strutBaseline: Math.floor(
+        Math.round(24 * 0.952) +
+          (36 - Math.round(24 * 0.952) - Math.round(24 * 0.241)) / 2,
+      ),
       strutXHeight: 24 * 0.53,
     });
   });
@@ -269,9 +270,24 @@ describe("strut font — inherited like CSS font-size", () => {
 
 describe("ADR299 first line review", () => {
   it("a larger second line does not change first-line baseline", async () => {
-    const text = node("text", "Text", {children: {kind: "set", value: {kind: "text", runs: [{text: "first\n"}, {text: "second", marks: {fontSize: 48}}]}}});
-    text.visual = {fontSize: {kind: "set", value: 16}, lineHeight: {kind: "set", value: 1.5}, whiteSpace: {kind: "set", value: "pre-wrap"}};
-    const s = await scene(true, {nodes: [text], parts: []});
+    const text = node("text", "Text", {
+      children: {
+        kind: "set",
+        value: {
+          kind: "text",
+          runs: [
+            { text: "first\n" },
+            { text: "second", marks: { fontSize: 48 } },
+          ],
+        },
+      },
+    });
+    text.visual = {
+      fontSize: { kind: "set", value: 16 },
+      lineHeight: { kind: "set", value: 1.5 },
+      whiteSpace: { kind: "set", value: "pre-wrap" },
+    };
+    const s = await scene(true, { nodes: [text], parts: [] });
     const record = s.recordOf(text.id)!;
     const input = s.inputOf(record);
     expect(input.leafBaseline).toBe(17);

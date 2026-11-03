@@ -11,6 +11,7 @@ import {
 import { catalogToastIcon } from "../document/toastChrome";
 import { catalogButtonPending } from "../document/buttonPending";
 import { NumberFormatter } from "@internationalized/number";
+import { isRTL } from "@react-aria/i18n";
 import { catalogNumberFormatOptions } from "../document/numberFormatValue";
 import {
   catalogTableRowTracks,
@@ -93,6 +94,8 @@ export type CatalogTypeOf = (node: CatalogConsumerNode) => string;
 /** Children a trigger component keeps in its closed overlay (popover / dialog / listbox). */
 const TRIGGER_OVERLAY_CHILDREN: Readonly<Record<string, ReadonlySet<string>>> =
   {
+    SheetTrigger: new Set(["SheetOverlay"]),
+    PreviewTrigger: new Set(["Popover"]),
     DialogTrigger: new Set(["Dialog", "Modal", "Popover"]),
     // ADR-255: RAC TooltipTrigger — the Tooltip shows on the trigger's hover / focus.
     TooltipTrigger: new Set(["Tooltip"]),
@@ -118,6 +121,8 @@ const TRIGGER_OVERLAY_CHILDREN: Readonly<Record<string, ReadonlySet<string>>> =
  */
 const OPEN_BODY_TRIGGERS: ReadonlySet<string> = new Set([
   "DialogTrigger",
+  "PreviewTrigger",
+  "SheetTrigger",
   "TooltipTrigger",
   "ContextualHelp",
   "MenuTrigger",
@@ -802,6 +807,7 @@ export function catalogCollectionHasItems(
 }
 
 const REPEAT_TEMPLATE_BINDINGS: ReadonlySet<string> = new Set([
+  "token",
   "calendarcell",
   "calendarheadercell",
   "datesegment",
@@ -859,6 +865,16 @@ export function catalogHiddenAtRest(
   // (A closed overlay keeps its trigger owner through a layout frame — RAC's `PopoverContext`
   // reaches it there, `catalogPartParent`.)
   const partParent = catalogPartParent(node, get, typeOf);
+  // Sheet의 작성된 열림 값은 Canvas에서도 보인다. Library의 open 견본은 유지한다.
+  if (type === "SheetOverlay") {
+    const owner =
+      partParent && typeOf(partParent) === "SheetTrigger" ? partParent : node;
+    return (
+      node.displayState !== "open" &&
+      !(owner !== node && originBodyOpen?.(owner) === true) &&
+      !catalogStateValue(owner, "isOpen", get, typeOf)
+    );
+  }
   // (ADR-278: shown `open` — the Components page draws an overlay origin's body beside its
   // trigger — the overlay is not the closed one. ADR-279 후속: so is a project component's own
   // body on its Local page card — `originBodyOpen`, the body triggers only.)
@@ -2048,7 +2064,27 @@ export function catalogDerivedProps(
   const buttoned = fieldButton ? { ...stuck, fieldButton } : stuck;
   // (ADR-300: a SideNav part's collapse · current · level — `catalogSideNavDerived`.)
   const sideNav = catalogSideNavDerived(node, get, typeOf, shownRoute);
-  return sideNav ? { ...buttoned, ...sideNav } : buttoned;
+  const withSideNav = sideNav ? { ...buttoned, ...sideNav } : buttoned;
+  if (typeOf(node) === "Sheet") {
+    const overlay = catalogPartParent(node, get, typeOf);
+    if (overlay && typeOf(overlay) === "SheetOverlay") {
+      let direction = String(
+        overlay.props.swipeDirection || overlay.props.position || "bottom",
+      );
+      if (direction === "start" || direction === "end") {
+        const rtl = isRTL(locale ?? "en-US");
+        direction = (direction === "start") !== rtl ? "left" : "right";
+      }
+      // RAC의 center 위치는 기본적으로 수직 양방향 swipe다.
+      if (direction === "center") direction = "vertical";
+      return {
+        ...withSideNav,
+        _sheetHandle: overlay.props.preventDismissal !== true,
+        _sheetSwipeDirection: direction,
+      };
+    }
+  }
+  return withSideNav;
 }
 
 /**
@@ -2587,6 +2623,11 @@ export function catalogDerivedPropsDependents(
   // An item's label Text takes the item's color (`catalogItemLabels`): it follows the item's own
   // values and every item whose selection this record decides.
   const items = [
+    ...(typeOf(owner) === "SheetOverlay"
+      ? partChildrenOf(owner, get, typeOf).filter(
+          (child) => typeOf(child) === "Sheet",
+        )
+      : []),
     ...derivedDependents(owner, get, typeOf),
     ...fieldSubparts(owner, get, typeOf),
     // (A Button's children follow its `isPending` — `_pendingHidden`, `buttonPending.ts`.)
@@ -3252,7 +3293,7 @@ function catalogRadioGroupValue(
 /**
  * A state owner's resting value of a key on the Canvas (no interaction): the record's props, its
  * display state (a Components page state cell · a state origin) and the values derived for it.
- * hover · pressed · focus-visible exist only as a display state; an overlay is never open.
+ * hover · pressed · focus-visible exist only as a display state; Sheet also reads authored open props.
  */
 export function catalogStateValue(
   owner: CatalogConsumerNode,
@@ -3339,6 +3380,8 @@ export function catalogStateValue(
     case "isFocusVisible":
       return state === "focusVisible";
     case "isOpen":
+      if (typeOf(owner) === "SheetTrigger" || typeOf(owner) === "SheetOverlay")
+        return Boolean(props.isOpen ?? props.defaultOpen ?? state === "open");
       return false;
     case "isCurrent":
       return (
@@ -3518,13 +3561,19 @@ export function catalogStateDependents(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
+  // Trigger의 prop만 바뀌어도 overlay의 hidden과 레이아웃을 증분 갱신한다.
+  const out: CatalogConsumerNode[] =
+    typeOf(node) === "SheetTrigger"
+      ? partChildrenOf(node, get, typeOf).filter(
+          (child) => typeOf(child) === "SheetOverlay",
+        )
+      : [];
   // (A group whose items take its state — a TagGroup's `allowsRemoving` — gives no keys of its own.)
   if (
     !catalogStateKeysOf(typeOf(node)).length &&
     !ITEM_STATE_GROUPS.has(typeOf(node))
   )
-    return [];
-  const out: CatalogConsumerNode[] = [];
+    return out;
   const visit = (record: CatalogConsumerNode) => {
     for (const child of childrenOf(record, get)) {
       if (child.showWhen) out.push(child);

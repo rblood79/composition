@@ -14,6 +14,7 @@
  */
 import type { ComponentRulesTable } from "../../types/catalog-style.types";
 import type { PaintImage } from "../rule/rulePaintTree";
+import { SHEET_HANDLE_SELECTORS } from "../document/sheetChrome";
 import {
   centerPadding,
   defineRuleLengthForms,
@@ -5017,6 +5018,154 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   // ADR-256 G5: RAC DialogTrigger has no element — `display: contents` (MenuTrigger 의 주석).
+  PreviewTrigger: {
+    defaultSize: "M",
+    variants: {},
+    sizes: {
+      M: {
+        height: 0,
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.none}",
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      skipCSSGeneration: true,
+      containerStyles: {
+        display: "contents",
+      },
+    },
+  },
+  SheetOverlay: {
+    defaultSize: "M",
+    variants: {},
+    sizes: {
+      M: {
+        height: 0,
+        fontSize: "{typography.text-sm}",
+        lineHeight: "{typography.text-sm--line-height}",
+        borderRadius: "{radius.none}",
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      containerStyles: {
+        display: "flex",
+        flexDirection: "column",
+      },
+      skipCSSGeneration: true,
+    },
+  },
+  SheetBackdrop: {
+    defaultSize: "M",
+    variants: {},
+    sizes: {
+      M: {
+        height: 0,
+        fontSize: "{typography.text-sm}",
+        lineHeight: "{typography.text-sm--line-height}",
+        borderRadius: "{radius.none}",
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      containerStyles: {
+        display: "flex",
+        flexDirection: "column",
+      },
+      composition: {
+        rootSelectors: { "&": { background: "var(--overlay-backdrop)" } },
+        delegation: [],
+      },
+    },
+  },
+  Sheet: {
+    defaultSize: "M",
+    variants: {
+      default: {
+        paint: {
+          backgroundColor: {
+            default: "{color.layer-1}",
+          },
+          color: {
+            default: "{color.neutral}",
+          },
+        },
+      },
+    },
+    sizes: {
+      M: {
+        height: 0,
+        fontSize: "{typography.text-sm}",
+        lineHeight: "{typography.text-sm--line-height}",
+        borderRadius: 16,
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      composition: {
+        rootSelectors: SHEET_HANDLE_SELECTORS,
+        delegation: [],
+      },
+      containerStyles: {
+        display: "flex",
+        flexDirection: "column",
+        width: "360px",
+        maxWidth: "100%",
+        maxHeight: "90%",
+        overflow: "hidden",
+      },
+    },
+    defaultVariant: "default",
+  },
+  SheetContent: {
+    defaultSize: "M",
+    variants: {},
+    sizes: {
+      M: {
+        height: 0,
+        fontSize: "{typography.text-sm}",
+        lineHeight: "{typography.text-sm--line-height}",
+        borderRadius: "{radius.none}",
+        paddingX: 24,
+        paddingY: 24,
+        gap: 16,
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      containerStyles: {
+        display: "flex",
+        flexDirection: "column",
+        overflow: "auto",
+        outline: "none",
+      },
+    },
+  },
+  SheetTrigger: {
+    defaultSize: "M",
+    variants: {},
+    sizes: {
+      M: {
+        height: 0,
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.none}",
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      skipCSSGeneration: true,
+      containerStyles: {
+        display: "contents",
+      },
+    },
+  },
   DialogTrigger: {
     defaultSize: "M",
     variants: {},
@@ -14269,6 +14418,104 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
         // Label 은 Label 원본의 instance 다 (ADR-253) — 글자 크기 · 굵기는 Label rule 이 field 의
         //   size 로 정한다. 이 rule 은 부품의 모양을 선언하지 않는다.
+      },
+    },
+  },
+  TokenField: {
+    defaultSize: "M",
+    variants: {},
+    sizes: {
+      M: {
+        height: 0,
+        fontSize: "{typography.text-sm}",
+        lineHeight: "{typography.text-sm--line-height}",
+        borderRadius: 0,
+        gap: 6,
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      containerStyles: {
+        display: "flex",
+        flexDirection: "column",
+        width: "100%",
+      },
+    },
+  },
+  TokenInput: {
+    defaultSize: "M",
+    defaultVariant: "default",
+    variants: {
+      default: {
+        paint: {
+          backgroundColor: {
+            default: "{color.layer-1}",
+          },
+          color: {
+            default: "{color.neutral}",
+          },
+          borderColor: {
+            default: "{color.border}",
+          },
+        },
+      },
+    },
+    sizes: {
+      M: {
+        height: 0,
+        fontSize: "{typography.text-sm}",
+        lineHeight: "{typography.text-sm--line-height}",
+        borderRadius: 8,
+        paddingX: 12,
+        paddingY: 8,
+        borderWidth: 1,
+      },
+    },
+    structure: {
+      archetype: "text",
+      element: "div",
+      containerStyles: {
+        display: "block",
+        width: "100%",
+        minHeight: "36px",
+        whiteSpace: "pre-wrap",
+        overflowWrap: "anywhere",
+      },
+      stateStyles: { ...FOCUS_RING_STATE, ...DISABLED_STATE },
+      composition: {
+        delegation: [],
+        rootSelectors: {
+          "&:empty::before": {
+            content: "attr(data-placeholder)",
+            opacity: "0.5",
+          },
+          "& .react-aria-Token[data-selected]": {
+            "text-decoration": "underline",
+          },
+        },
+      },
+    },
+  },
+  Token: {
+    defaultSize: "M",
+    variants: {},
+    sizes: {
+      M: {
+        height: 0,
+        fontSize: "{typography.text-sm}",
+        lineHeight: "{typography.text-sm--line-height}",
+        fontWeight: 600,
+        borderRadius: 0,
+      },
+    },
+    structure: {
+      archetype: "text",
+      element: "span",
+      containerStyles: {
+        display: "inline-block",
+        width: "fit-content",
+        whiteSpace: "nowrap",
       },
     },
   },

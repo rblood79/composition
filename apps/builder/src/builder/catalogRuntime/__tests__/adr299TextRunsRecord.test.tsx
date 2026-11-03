@@ -80,7 +80,7 @@ async function scene(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 54,
+    libraryContractVersion: 55,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -212,7 +212,14 @@ describe("ADR-299 Phase 2 consumers", () => {
       { start: 3, end: 5, tag: "b" },
     ]);
     expect(
-      alignTextRuns("abcd", [{ start: 0, end: 2, tag: "a" }, { start: 2, end: 4, tag: "b" }], "a\u200Bb\u200Bc\u200Bd"),
+      alignTextRuns(
+        "abcd",
+        [
+          { start: 0, end: 2, tag: "a" },
+          { start: 2, end: 4, tag: "b" },
+        ],
+        "a\u200Bb\u200Bc\u200Bd",
+      ),
     ).toEqual([
       { start: 0, end: 4, tag: "a" },
       { start: 4, end: 7, tag: "b" },
@@ -221,7 +228,10 @@ describe("ADR-299 Phase 2 consumers", () => {
 
   it("the DOM writes a span per run (marks only) and moves the node's decoration onto them", async () => {
     const value = applyTextRunMarks(
-      applyTextRunMarks("Hello world", 6, 11, { fontWeight: 700, color: "#ff0000" }) as RichText,
+      applyTextRunMarks("Hello world", 6, 11, {
+        fontWeight: 700,
+        color: "#ff0000",
+      }) as RichText,
       0,
       5,
       { textDecoration: "none" },
@@ -231,14 +241,20 @@ describe("ADR-299 Phase 2 consumers", () => {
     });
     const host = document.createElement("div");
     const reactRoot = createRoot(host);
-    await act(async () => reactRoot.render(renderCatalogDom(root, record().id)));
+    await act(async () =>
+      reactRoot.render(renderCatalogDom(root, record().id)),
+    );
     const element = host.querySelector<HTMLElement>(
       `[data-catalog-id="${record().id}"]`,
     )!;
     expect(element.textContent).toBe("Hello world");
     expect(element.style.textDecoration).toBe("");
     const spans = [...element.querySelectorAll<HTMLElement>("[data-text-run]")];
-    expect(spans.map((span) => span.textContent)).toEqual(["Hello", " ", "world"]);
+    expect(spans.map((span) => span.textContent)).toEqual([
+      "Hello",
+      " ",
+      "world",
+    ]);
     expect(spans.map((span) => span.style.textDecoration)).toEqual([
       "none",
       "underline",
@@ -343,7 +359,10 @@ describe("ADR-299 사용자 결정 3 — the panel writing a range-formatted tex
     expect(node.props.children).toEqual(
       set({
         kind: "text",
-        runs: [{ text: "Hello " }, { text: "world", marks: { color: "#ff0000" } }],
+        runs: [
+          { text: "Hello " },
+          { text: "world", marks: { color: "#ff0000" } },
+        ],
       }),
     );
     expect(workspace.runtime.historyDepth.undo).toBe(depth + 1);

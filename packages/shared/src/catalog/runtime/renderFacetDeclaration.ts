@@ -67,6 +67,16 @@ export interface RenderFacetDelegation {
  * insertion order 를 유지하므로, 파생 set 이 byte-identical 하려면 순서 동일 필요).
  */
 export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
+  {
+    key: "tokenfield",
+    kind: "delegating-internal",
+    reason: "문자열을 RAC TokenFieldValue로 변환하고 실행 값을 전달한다.",
+  },
+  {
+    key: "tokeninput",
+    kind: "delegating-internal",
+    reason: "RAC TokenInput이 토큰 구간마다 작성된 Token 모양을 사용한다.",
+  },
   // ── delegating-internal (34) — binding.source.kind==="internal" self-compose ──
   {
     key: "tabs",
