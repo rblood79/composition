@@ -31,7 +31,6 @@
     &:where(:not([data-catalog-id])) {
       outline: none;
     }
-    max-width: 250px;
     display: flex;
     flex-direction: column;
     isolation: isolate;
@@ -212,17 +211,14 @@
 
   /* ========== Size Variants ========== */
   .react-aria-Popover[data-size="S"] {
-    max-width: 200px;
     font-size: var(--text-sm);
   }
 
   .react-aria-Popover[data-size="M"] {
-    max-width: 250px;
     font-size: var(--text-base);
   }
 
   .react-aria-Popover[data-size="L"] {
-    max-width: 320px;
     font-size: var(--text-lg);
   }
 

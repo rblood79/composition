@@ -1,3 +1,12 @@
+import {
+  catalogOverlayArrowLayout,
+  catalogOverlayDescriptor,
+  catalogOverlayPlacement,
+  sameOverlayPlacement,
+  catalogOverlayLayout,
+  type OverlayPlacement,
+} from "./overlayLayout";
+import { catalogSheetPartLayout, catalogSheetViewport } from "./sheetLayout";
 import { catalogTokenSegments } from "../document/tokenFieldValue";
 import {
   isRichText,
@@ -1881,6 +1890,12 @@ export class CatalogCompositionRoot {
   private readonly tagRows = new Map<string, TagRowsCollapse>();
   /** The TagList records (`settleTagRows` reads these, not every record — `trackTagList`). */
   private readonly tagLists = new Map<string, true>();
+  private readonly overlayIds = new Map<string, true>();
+  private readonly overlayPlacements = new Map<string, OverlayPlacement>();
+  private readonly overlayPlacementInputs = new Map<
+    string,
+    readonly unknown[]
+  >();
   /** Wrapped text-leaf content heights from the last `rewrap` (absent = one line). */
   private readonly wrapHeights = new Map<string, number>();
   private readonly wrapBaselines = new Map<string, number>();
@@ -2168,6 +2183,10 @@ export class CatalogCompositionRoot {
   }
   /** Scoped, computed engine results for independent consumer verification. */
   /** Rects relative to each record's parent record (a wrapper part's offset folded in). */
+  getOverlayPlacement(id: string): OverlayPlacement | undefined {
+    return this.overlayPlacements.get(id);
+  }
+
   getGeometry(ids: Iterable<string>): ReadonlyMap<string, LayoutResult> {
     const list = [...ids];
     const rects = this.layout.getLayoutsForIds(list);
@@ -2926,7 +2945,7 @@ export class CatalogCompositionRoot {
   ): Readonly<Record<string, string | number | boolean>> | undefined {
     const shownRoute = (node: CatalogConsumerNode) =>
       this.pageRouteOf(node, get);
-    const derived = this.withTableDrag(
+    const baseDerived = this.withTableDrag(
       record,
       get,
       catalogDerivedProps(
@@ -2937,6 +2956,23 @@ export class CatalogCompositionRoot {
         shownRoute,
       ),
     );
+    const overlay = catalogOverlayDescriptor(record, get, this.typeOf);
+    const portal =
+      overlay &&
+      !isComponentsView(this.definitionView) &&
+      !(overlay.owner && this.originBodyOpen(overlay.owner));
+    const overlayDerived = portal
+      ? { ...baseDerived, _overlayPortal: true, _overlayModal: overlay.modal }
+      : baseDerived;
+    const derived = catalogSheetViewport(
+      record,
+      get,
+      this.typeOf,
+      this.originBodyOpen,
+      isComponentsView(this.definitionView),
+    )
+      ? { ...overlayDerived, _sheetViewport: true }
+      : overlayDerived;
     // A Select's value shows its placeholder (the Canvas draws no selection): the Select sheet's
     // `[data-placeholder]` paint, unless the value authors its own color. The DOM leaves its color
     // to that sheet (`domBinding.tsx`), so the derived color is the Canvas's.
@@ -3332,6 +3368,17 @@ export class CatalogCompositionRoot {
       ...frame,
       ...thumb,
       ...chevron,
+      ...catalogSheetPartLayout(
+        record,
+        get,
+        this.typeOf,
+        this.environmentLocale ?? "en-US",
+      ),
+      ...catalogOverlayLayout(record, this.overlayPlacements.get(record.id)),
+      ...catalogOverlayArrowLayout(
+        record,
+        this.overlayPlacements.get(record.parentId),
+      ),
       ...(slotInset !== undefined ? { paddingLeft: `${slotInset}px` } : {}),
       ...(record.hidden ? {} : this.fieldBoxLayout(record, get)),
       ...(!record.hidden &&
@@ -3638,6 +3685,19 @@ export class CatalogCompositionRoot {
     old: CatalogConsumerNode | undefined,
     next: CatalogConsumerNode | undefined,
   ): void {
+    const isOverlay =
+      next?.derivedProps?._overlayPortal === true && !next.hidden;
+    if (isOverlay !== this.overlayIds.has(id)) {
+      this.keep(this.overlayIds, id);
+      if (isOverlay) this.overlayIds.set(id, true);
+      else {
+        this.overlayIds.delete(id);
+        this.keep(this.overlayPlacements, id);
+        this.overlayPlacements.delete(id);
+        this.keep(this.overlayPlacementInputs, id);
+        this.overlayPlacementInputs.delete(id);
+      }
+    }
     if (
       old &&
       next &&
@@ -3651,6 +3711,156 @@ export class CatalogCompositionRoot {
     if (isList) this.tagLists.set(id, true);
     else this.tagLists.delete(id);
   }
+  /** 열린 portal을 viewport와 trigger의 최종 엔진 좌표에 배치한다. */
+  private settleOverlays(): string[] {
+    const get = (id: string) => this.records.get(id);
+    const changed = new Set<string>();
+    const ids = new Set<string>();
+    const open = [...this.overlayIds.keys()].flatMap((id) => {
+      const node = get(id);
+      if (!node) return [];
+      for (
+        let cursor: CatalogConsumerNode | undefined = node;
+        cursor;
+        cursor = get(cursor.parentId)
+      ) {
+        if (cursor.hidden || cursor.derivedProps?._pendingHidden === true)
+          return [];
+      }
+      const descriptor = catalogOverlayDescriptor(node, get, this.typeOf);
+      if (!descriptor) return [];
+      ids.add(id);
+      if (descriptor.anchor) ids.add(descriptor.anchor.id);
+      for (
+        let cursor = descriptor.anchor && get(descriptor.anchor.parentId);
+        cursor && cursor.parentId !== "catalog:root";
+        cursor = get(cursor.parentId)
+      ) {
+        if (ids.has(cursor.id)) break;
+        ids.add(cursor.id);
+        if (
+          cursor.derivedProps?._overlayPortal ||
+          cursor.layout.position === "fixed"
+        )
+          break;
+      }
+      return [{ node, descriptor }];
+    });
+    if (!open.length) return [];
+    // 패스의 좌표를 한 번 읽고 변경을 반영한다. layout/rewrap 뒤에는 새 snapshot을 읽는다.
+    for (let pass = 0; pass < 2; pass++) {
+      const geometry = this.getGeometry(ids);
+      const origins = new Map<string, { x: number; y: number }>();
+      const absolute = (id: string) => {
+        const box = geometry.get(id);
+        if (!box) return;
+        const path: string[] = [];
+        let x = 0,
+          y = 0;
+        const node = get(id);
+        for (
+          let cursor = node && get(node.parentId);
+          cursor && cursor.parentId !== "catalog:root";
+          cursor = get(cursor.parentId)
+        ) {
+          const cached = origins.get(cursor.id);
+          if (cached) {
+            x = cached.x;
+            y = cached.y;
+            break;
+          }
+          path.push(cursor.id);
+          if (
+            cursor.derivedProps?._overlayPortal ||
+            cursor.layout.position === "fixed"
+          )
+            break;
+          const parent = get(cursor.parentId);
+          if (!parent || parent.parentId === "catalog:root") break;
+        }
+        for (const item of path.reverse()) {
+          const rect = geometry.get(item);
+          x += rect?.x ?? 0;
+          y += rect?.y ?? 0;
+          origins.set(item, { x, y });
+        }
+        return { ...box, x: box.x + x, y: box.y + y };
+      };
+      let updated = false;
+      for (const { node, descriptor } of open) {
+        const rect = geometry.get(node.id);
+        if (!rect) continue;
+        const anchor = descriptor.anchor && absolute(descriptor.anchor.id);
+        const input = [
+          node.props,
+          descriptor.owner?.props,
+          descriptor.owner?.id,
+          descriptor.modal,
+          descriptor.arrowSize,
+          this.typeOf(descriptor.owner ?? node),
+          anchor?.x,
+          anchor?.y,
+          anchor?.width,
+          anchor?.height,
+          rect.width,
+          rect.height,
+          this.viewport.width,
+          this.viewport.height,
+          this.environmentLocale,
+        ];
+        const priorInput = this.overlayPlacementInputs.get(node.id);
+        if (
+          priorInput &&
+          input.every((value, index) => Object.is(value, priorInput[index]))
+        )
+          continue;
+        this.keep(this.overlayPlacementInputs, node.id);
+        this.overlayPlacementInputs.set(node.id, input);
+        const placement = catalogOverlayPlacement(
+          node,
+          descriptor,
+          anchor,
+          rect,
+          this.viewport,
+          this.environmentLocale ?? "en-US",
+        );
+        const ownerType = descriptor.owner && this.typeOf(descriptor.owner);
+        if (anchor && (ownerType === "Select" || ownerType === "ComboBox")) {
+          const width = descriptor.owner!.props.menuWidth;
+          if (
+            typeof width === "number" &&
+            width > 0 &&
+            !(
+              ownerType === "Select" && descriptor.owner!.props.isQuiet === true
+            )
+          ) {
+            placement.width = width;
+            if (ownerType === "Select") placement.minWidth = anchor.width;
+          } else if (ownerType === "ComboBox") placement.width = anchor.width;
+          else placement.minWidth = anchor.width;
+        }
+        const previous = this.overlayPlacements.get(node.id);
+        if (sameOverlayPlacement(previous, placement)) continue;
+        this.keep(this.overlayPlacements, node.id);
+        this.overlayPlacements.set(node.id, placement);
+        this.layout.updateNodeStyle(node.id, this.styleFor(node));
+        for (const id of node.children) {
+          const child = get(id);
+          if (child?.bindingId === "overlayarrow") {
+            this.layout.updateNodeStyle(id, this.styleFor(child));
+            changed.add(id);
+          }
+        }
+        changed.add(node.id);
+        updated = true;
+      }
+      if (!updated) break;
+      this.layout.computeLayout(this.viewport.width, this.viewport.height);
+      this.rewrap(this.rewrapScope([...changed]));
+    }
+    return [...changed];
+  }
+
   /**
    * TagGroup `maxRows` on the Canvas (the DOM's `useTagMaxRows`): with every tag laid out, the
    * tags past the group's `maxRows` rows leave the flow and a "Show all (N)" box follows the rest.
@@ -4117,6 +4327,7 @@ export class CatalogCompositionRoot {
     this.layout.computeLayout(this.viewport.width, this.viewport.height);
     this.rewrap(this.records.keys());
     this.settleTagRows();
+    this.settleOverlays();
   }
 
   /**
@@ -4300,6 +4511,7 @@ export class CatalogCompositionRoot {
     this.layout.updateNodeStyle(id, this.styleFor(shown));
     this.layout.computeLayout(this.viewport.width, this.viewport.height);
     this.rewrap(this.rewrapScope([id]));
+    this.settleOverlays();
     const errors: unknown[] = [];
     // (A resized TagGroup can collapse or open its tags: they and the list repaint too.)
     for (const changed of this.settleTagRows())
@@ -5880,7 +6092,7 @@ export class CatalogCompositionRoot {
       this.layoutTouched = true;
       this.layout.computeLayout(this.viewport.width, this.viewport.height);
       this.rewrap(this.rewrapScope(updated, parentRects));
-      for (const id of this.settleTagRows()) {
+      for (const id of [...this.settleTagRows(), ...this.settleOverlays()]) {
         const record = this.records.get(id);
         if (record) notices.push({ id, record });
       }

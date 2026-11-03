@@ -30,6 +30,11 @@ export const modalBinding: PrimitiveBinding = {
        * 하지 않는 현행 동작을 그대로 보존한다.
        */
       isOpen: { kind: "boolean", label: "Open", section: "state" },
+      defaultOpen: {
+        kind: "boolean",
+        label: "Initially Open",
+        section: "state",
+      },
       // ADR-256 Phase 8b: an outside press closes the overlay (RAC `ModalOverlayProps` — the
       // reference `<Modal isDismissable>`; a Dialog in it has no such prop of its own).
       isDismissable: {

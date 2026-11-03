@@ -21,11 +21,7 @@ import {
   resolveToken,
   hexStringToNumber,
 } from "@composition/rendering";
-import {
-  getSkImage,
-  imageNaturalSizeOf,
-  loadSkImage,
-} from "./imageCache";
+import { getSkImage, imageNaturalSizeOf, loadSkImage } from "./imageCache";
 import { measureWrappedTextHeight } from "../utils/textMeasure";
 import {
   DEFAULT_FONT_FAMILY,
@@ -34,6 +30,9 @@ import {
 import { getLabelLineHeight } from "@composition/rendering";
 import { hexToColor4fChannels } from "./themeWatcher";
 import {
+  colorIntToFloat32,
+  cssColorToAlpha,
+  cssColorToHex,
   parseTextDecoration,
   parseDecorationColor,
 } from "../styleConversion/styleConverter";
@@ -95,6 +94,17 @@ function colorValueToFloat32(
   const resolved = resolveColor(value, theme);
   if (resolved === "transparent" || resolved === undefined || resolved === null)
     return TRANSPARENT;
+  // Theme tokens can carry CSS rgb()/rgba() colors as well as hex. Preserve their alpha
+  // through the same parser used for authored Canvas paint.
+  if (
+    typeof resolved === "string" &&
+    !resolved.startsWith("#") &&
+    !resolved.startsWith("0x")
+  )
+    return colorIntToFloat32(
+      cssColorToHex(resolved),
+      alpha * cssColorToAlpha(resolved),
+    );
   let hex: number;
   // `#RRGGBBAA` 의 알파는 숫자 채널로 못 넘어온다 (`hexStringToNumber` 가 잘라낸다)
   // — DOM 은 그 알파를 그대로 반영하므로 여기서 합성 alpha 에 곱하지 않으면 같은

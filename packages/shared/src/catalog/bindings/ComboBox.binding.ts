@@ -1,3 +1,4 @@
+import { OVERLAY_OPEN_PROPS } from "./overlayOpenProps";
 /**
  * ADR-142 family ④(collections) — ComboBox primitive 의 `PrimitiveBinding`.
  *
@@ -16,6 +17,7 @@ export const comboBoxBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      ...OVERLAY_OPEN_PROPS,
       dataBinding: {
         kind: "binding",
         label: "Data source",

@@ -2016,6 +2016,64 @@ function containerVariantPartRules(
  * Part rules of rule `parentType` in declaration order (later wins, as in the stylesheet).
  * `choicesOf(childType, prop)` gives a child's declared choices for a `:not([attr])` complement.
  */
+/** Portal의 externalStyles도 같은 catalog tree의 자식·손자 part 규칙으로 소비한다. */
+function overlayExternalPartRules(parentType: string): CompiledPartRule[] {
+  const table = COMPONENT_RULES_TABLE as Record<string, ComponentRule>;
+  const source = ["MenuTrigger", "SubmenuTrigger"].includes(parentType)
+    ? "Menu"
+    : parentType;
+  const blocks = (table[source]?.structure?.composition?.externalStyles ??
+    []) as Array<{
+    selector: string;
+    styles: Record<string, string>;
+    nested?: Array<{ selector: string; styles: Record<string, string> }>;
+  }>;
+  const out: CompiledPartRule[] = [];
+  const compile = (
+    childType: string,
+    styles: Record<string, string>,
+    via?: string,
+  ) => {
+    const result = compileDeclarations(childType, styles, {}, undefined);
+    for (const [css, field] of [
+      ["background", "backgroundColor"],
+      ["box-shadow", "boxShadow"],
+      ["border-radius", "radius"],
+    ] as const) {
+      const value = styles[css];
+      if (value) {
+        const ref = cssVarToTokenRef(value);
+        if (css !== "border-radius" || ref || lengthPx(value) !== undefined)
+          result.visual[field] =
+            ref ?? (css === "border-radius" ? lengthPx(value)! : value);
+      }
+    }
+    for (const [css, field] of [
+      ["max-width", "maxWidth"],
+      ["max-height", "maxHeight"],
+    ] as const)
+      if (styles[css] === "none" || styles[css] === "unset")
+        result.layout[field] = "none";
+    if (Object.keys(result.visual).length || Object.keys(result.layout).length)
+      out.push({ childType, ...(via ? { via } : {}), ...result });
+  };
+  for (const block of blocks) {
+    if (
+      !block.selector.includes(
+        `.react-aria-Popover[data-trigger="${parentType}"]`,
+      )
+    )
+      continue;
+    compile("Popover", block.styles as Record<string, string>);
+    for (const nested of block.nested ?? []) {
+      const match = /^(?:> )?\.react-aria-(\w+)$/.exec(nested.selector);
+      if (match)
+        compile(match[1], nested.styles as Record<string, string>, "Popover");
+    }
+  }
+  return out;
+}
+
 export function compileRulePartRules(
   parentType: string,
   choicesOf: (childType: string, prop: string) => readonly string[] | undefined,
@@ -2108,6 +2166,7 @@ export function compileRulePartRules(
     }
   }
   const out: CompiledPartRule[] = [
+    ...overlayExternalPartRules(parentType),
     ...ownerVariablePartRules(parentType),
     ...tokenRuleBasePartRules(parentType),
     ...sliderThumbPartRules(parentType),

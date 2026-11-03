@@ -5060,7 +5060,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   SheetBackdrop: {
     defaultSize: "M",
-    variants: {},
+    variants: {
+      default: {
+        paint: { backgroundColor: { default: "{color.overlay-backdrop}" } },
+      },
+    },
+    defaultVariant: "default",
     sizes: {
       M: {
         height: 0,
@@ -5075,10 +5080,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "flex",
         flexDirection: "column",
-      },
-      composition: {
-        rootSelectors: { "&": { background: "var(--overlay-backdrop)" } },
-        delegation: [],
       },
     },
   },
@@ -10004,6 +10005,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   Popover.spec.ts 삭제 대비 generated Popover.css(padding: NNpx NNpx / gap: NNpx) diff-0 유지.
       //   값은 (구) PopoverSpec.sizes 와 동일 (paddingX==paddingY, gap sm:8/md:12/lg:16).
       S: {
+        maxWidth: 200,
         paddingX: 12,
         paddingY: 12,
         gap: 8,
@@ -10012,6 +10014,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
       },
       M: {
+        maxWidth: 250,
         paddingX: 16,
         paddingY: 16,
         gap: 12,
@@ -10020,6 +10023,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
       },
       L: {
+        maxWidth: 320,
         paddingX: 20,
         paddingY: 20,
         gap: 16,

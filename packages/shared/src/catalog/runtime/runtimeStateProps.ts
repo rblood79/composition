@@ -143,25 +143,32 @@ export const CATALOG_OPEN_BODY_TYPES: ReadonlySet<string> = new Set([
 /** The pickers whose RAC component owns their Popover's open state (`isOpen` on the picker). */
 const CATALOG_OPEN_PICKER_TYPES: ReadonlySet<string> = new Set([
   "Select",
+  "ComboBox",
   "DatePicker",
   "DateRangePicker",
 ]);
 /** Triggers whose overlay's open state RAC does not let anyone control (no `isOpen` prop). */
 const CATALOG_UNCONTROLLED_OPEN_TYPES: ReadonlySet<string> = new Set([
-  "ComboBox",
   "SubmenuTrigger",
 ]);
 
 /**
  * The record that owns an overlay body's open state: its nearest trigger · picker ancestor (a
  * Modal in a DialogTrigger, a Popover in a MenuTrigger · Select), `null` when RAC lets no one
- * control it (a ComboBox's, a submenu's), `undefined` when the body stands alone.
+ * control it (a submenu's), `undefined` when the body stands alone.
  */
 export function catalogOpenOwnerOf(
   root: CatalogCompositionRoot,
   bodyId: string,
   typeOf: (node: CatalogConsumerNode) => string,
 ): string | null | undefined {
+  const body = root.domInputs.get(bodyId);
+  // 본문에 직접 작성한 Open은 RAC에서도 trigger context보다 우선한다.
+  if (
+    body &&
+    (body.props.isOpen !== undefined || body.props.defaultOpen !== undefined)
+  )
+    return undefined;
   for (
     let cursor = root.domInputs.get(root.domInputs.get(bodyId)?.parentId ?? "");
     cursor;

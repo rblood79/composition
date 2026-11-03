@@ -83,6 +83,14 @@ const BUTTON_VOCABULARY = [
   /transition:\s*background 0\.15s ease/,
 ];
 
+describe("Sheet backdrop CSS", () => {
+  it("emits the catalog backdrop color for the viewport-covering RAC backdrop", () => {
+    expect(cssFor("SheetBackdrop")).toMatch(
+      /\.react-aria-SheetBackdrop\s*\{[^}]*background:\s*var\(--overlay-backdrop\);/,
+    );
+  });
+});
+
 describe("ADR-223 archetype 미지정 base = 중립 상자", () => {
   it("Toolbar · Disclosure root 블록에 버튼 어법 · justify-content:center 가 없다", () => {
     for (const name of ["Toolbar", "Disclosure"]) {
@@ -112,9 +120,7 @@ describe("ADR-223 archetype 미지정 base = 중립 상자", () => {
       /\.react-aria-Card:where\(\[data-disabled\]\) \{[^}]*cursor: not-allowed;/,
     );
     // (text-decoration: S2 Card — a link Card's `<a>` keeps its text undecorated, 2026-10-09.)
-    expect(after).toMatch(
-      /\.react-aria-Card \{\s*text-decoration: none;\s*\}/,
-    );
+    expect(after).toMatch(/\.react-aria-Card \{\s*text-decoration: none;\s*\}/);
     expect(css).not.toMatch(/user-select:\s*none/);
     expect(css).not.toMatch(/transition:\s*background 0\.15s ease/);
   });

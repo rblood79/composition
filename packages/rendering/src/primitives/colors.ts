@@ -62,6 +62,7 @@ export const lightColors: ColorTokens = {
   ...resolveChartPaletteColors(),
 
   // --- Surface / Layer ---
+  "overlay-backdrop": "rgba(0, 0, 0, 0.5)",
   base: "#ffffff",
   raised: TAILWIND_PALETTE.gray[50], // --bg-raised = --color-gray-50 (popover/dropdown/collection 컨테이너)
   "layer-1": TAILWIND_PALETTE.zinc[50], // neutral-50
@@ -116,6 +117,7 @@ export const darkColors: ColorTokens = {
   ...resolveChartPaletteColors(),
 
   // --- Surface / Layer ---
+  "overlay-backdrop": "rgba(0, 0, 0, 0.5)",
   base: TAILWIND_PALETTE.neutral[900], // neutral-900
   raised: "#202023", // custom zinc-850 (Tailwind 에 없는 단계 — shared-tokens.css 유지) // --bg-raised = --color-zinc-850 (popover/dropdown/collection 컨테이너)
   "layer-1": TAILWIND_PALETTE.neutral[800], // neutral-800

@@ -16,6 +16,8 @@ paths:
 
 # 레이아웃 엔진 규칙
 
+- flex item 재배치의 used 크기는 백분율 min/max의 새 containing block이 아니다. 원래 부모 문맥에서 해소한 제약을 임시 적용하고 저작 값을 복원한다. 미해소 %를 px로 치환한 반환도 content 슬롯으로 되돌릴 때 padding을 제외한다. **Why (2026-11-03)**: Open Sheet의 `max-height:90%`가 두 번 적용되고 SheetContent의 padding이 중복되어 Preview와 높이가 달랐다.
+
 - 숨김 처리로 서브트리 layout을 0으로 덮어쓸 때는 기존 solve 결과와 available 키도 함께 무효화한다. **Why (2026-11-03)**: Sheet Open의 활성→비활성→활성에서 clean 자손이 이전 `last_solved`로 skip되어 제목·본문·닫기 버튼의 좌표가 0에 남았다. 숨긴 서브트리는 clean 상태를 유지하되 재표시 첫 solve는 다시 실행해야 한다.
 
 > 아키텍처/WASM 경계: [layout-engine.md](../skills/composition-patterns/reference/layout-engine.md) · **엔진 CSS 정합 실측 기록 23절 전문**: [layout-css-parity-ledger.md](../skills/composition-patterns/reference/layout-css-parity-ledger.md)
@@ -202,3 +204,8 @@ paths:
 ## paths 관리
 
 `paths` 는 production 레이아웃 경로만 — 패널 `builder/layout` · `styles/layout` 은 매칭하지 않는다 (매칭하면 패널 작업에 본 규칙 전량이 실린다). 새 레이아웃 파이프라인 경로가 생기면 frontmatter 에 등재.
+
+- fixed 배치는 viewport 단계에서 수행하고 부모 기준 임시 배치로 최종 제약 캐시를 덮어쓰지 않는다. 크기 재사용은 subtree/environment 세대와 containing block 제약이 같을 때만 허용하고, 부모 이동에 따른 좌표 환산은 현재 값을 사용한다.
+  **Why (2026-11-04):** Select 50개 Open의 무관한 형제 편집에서 부모/viewport 이중 배치와 min-width 재solve가 반복됐다. 실제 WASM fixture 중앙값 17.57ms → 1.05ms; auto/%/inset·viewport·DPR·숨김 전환은 fresh layout과 대조했다.
+- `zero_subtree_layout`은 최종 fixed 크기 캐시도 무효화한다. intrinsic 측정 결과와 실제 자손 좌표를 보유한 최종 배치 캐시의 수명은 다르다.
+  **Why (2026-11-04):** 부모 display:none → block에서 fixed 자손의 세대는 그대로인데 내부 좌표가 0으로 초기화돼, 크기 캐시만 재사용하면 자손이 0 좌표에 남았다. 부모 숨김 후 fresh layout 대조가 원복 RED를 확인했다.

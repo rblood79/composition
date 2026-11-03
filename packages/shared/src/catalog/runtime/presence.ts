@@ -1,4 +1,11 @@
 import {
+  OVERLAY_OPEN_OWNERS,
+  OVERLAY_BODY_TYPES,
+  catalogAuthoredOpen,
+  catalogOverlayOpen,
+  catalogOverlayOwner,
+} from "./overlayState";
+import {
   catalogColorControlDerivedProps,
   catalogColorControlParts,
 } from "./colorControlParts";
@@ -91,28 +98,6 @@ export type CatalogRecordLookup = (
 ) => CatalogConsumerNode | undefined;
 export type CatalogTypeOf = (node: CatalogConsumerNode) => string;
 
-/** Children a trigger component keeps in its closed overlay (popover / dialog / listbox). */
-const TRIGGER_OVERLAY_CHILDREN: Readonly<Record<string, ReadonlySet<string>>> =
-  {
-    SheetTrigger: new Set(["SheetOverlay"]),
-    PreviewTrigger: new Set(["Popover"]),
-    DialogTrigger: new Set(["Dialog", "Modal", "Popover"]),
-    // ADR-255: RAC TooltipTrigger — the Tooltip shows on the trigger's hover / focus.
-    TooltipTrigger: new Set(["Tooltip"]),
-    // ADR-259 Phase 3: S2 ContextualHelp (RAC DialogTrigger) — the help shows in its Popover.
-    ContextualHelp: new Set(["Popover"]),
-    // ADR-256 Phase 6c · 6d · 6e: a picker's list · calendar is in its Popover (a ListBox · Calendar
-    // outside it shows — RAC draws it in the picker's context; items sit only in a ListBox).
-    DatePicker: new Set(["Popover"]),
-    DateRangePicker: new Set(["Popover"]),
-    Select: new Set(["Popover"]),
-    ComboBox: new Set(["Popover"]),
-    // ADR-256 후속 4: RAC MenuTrigger — the Menu lives in the closed Popover; the Button shows.
-    // (A Menu node is RAC's open list wherever it stands — an Autocomplete's shows its items.)
-    MenuTrigger: new Set(["Popover"]),
-    // ADR-256 Phase 5g: the submenu lives in the trigger item's closed Popover.
-    SubmenuTrigger: new Set(["Popover"]),
-  };
 /**
  * The triggers whose overlay is the component's own body (ADR-278 `OPEN_BODY_ORIGINS` — Dialog ·
  * Popover · Tooltip · ContextualHelp · Menu): a project component's origin opens it on the Local
@@ -828,9 +813,11 @@ export function catalogHiddenAtRest(
   )
     return true;
   if (catalogAbsentByValue(node)) return true;
-  // ADR-256 Phase 8a: RAC places an overlay's arrow from its trigger (`data-placement`) — the Canvas
-  // draws no open overlay, so the arrow has no box there.
-  if (node.bindingId === "overlayarrow") return true;
+  // 닫힌 overlay의 화살표만 숨긴다. 열린 portal에서는 부모 배치가 좌표를 제공한다.
+  if (node.bindingId === "overlayarrow") {
+    const parent = get(node.parentId);
+    return !parent || !catalogOverlayOpen(parent, get, typeOf);
+  }
   // ADR-256 Phase 9 (Decision 13): a calendar grid's cell · weekday cell and a date input's segment
   // are the templates RAC draws per date · weekday · segment — the Canvas grid and date input draw
   // them from the model, the template node has no box of its own.
@@ -865,29 +852,21 @@ export function catalogHiddenAtRest(
   // (A closed overlay keeps its trigger owner through a layout frame — RAC's `PopoverContext`
   // reaches it there, `catalogPartParent`.)
   const partParent = catalogPartParent(node, get, typeOf);
-  // Sheet의 작성된 열림 값은 Canvas에서도 보인다. Library의 open 견본은 유지한다.
-  if (type === "SheetOverlay") {
-    const owner =
-      partParent && typeOf(partParent) === "SheetTrigger" ? partParent : node;
-    return (
-      node.displayState !== "open" &&
-      !(owner !== node && originBodyOpen?.(owner) === true) &&
-      !catalogStateValue(owner, "isOpen", get, typeOf)
+  if (
+    OVERLAY_BODY_TYPES.has(type) ||
+    (type === "Dialog" && parentType === "DialogTrigger")
+  ) {
+    const owner = catalogOverlayOwner(node, get, typeOf);
+    const originOpen =
+      owner &&
+      OPEN_BODY_TRIGGERS.has(typeOf(owner)) &&
+      originBodyOpen?.(owner) === true;
+    return !(
+      node.displayState === "open" ||
+      originOpen ||
+      catalogOverlayOpen(node, get, typeOf)
     );
   }
-  // (ADR-278: shown `open` — the Components page draws an overlay origin's body beside its
-  // trigger — the overlay is not the closed one. ADR-279 후속: so is a project component's own
-  // body on its Local page card — `originBodyOpen`, the body triggers only.)
-  if (
-    partParent &&
-    TRIGGER_OVERLAY_CHILDREN[typeOf(partParent)]?.has(type) &&
-    node.displayState !== "open" &&
-    !(
-      OPEN_BODY_TRIGGERS.has(typeOf(partParent)) &&
-      originBodyOpen?.(partParent) === true
-    )
-  )
-    return true;
   // (A hint part keeps its field through a layout frame — `catalogPartParent`.)
   const hintField = partParent;
   const hint =
@@ -3380,8 +3359,11 @@ export function catalogStateValue(
     case "isFocusVisible":
       return state === "focusVisible";
     case "isOpen":
-      if (typeOf(owner) === "SheetTrigger" || typeOf(owner) === "SheetOverlay")
-        return Boolean(props.isOpen ?? props.defaultOpen ?? state === "open");
+      if (
+        OVERLAY_OPEN_OWNERS.has(typeOf(owner)) ||
+        OVERLAY_BODY_TYPES.has(typeOf(owner))
+      )
+        return catalogAuthoredOpen(owner);
       return false;
     case "isCurrent":
       return (
@@ -3562,12 +3544,19 @@ export function catalogStateDependents(
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
   // Trigger의 prop만 바뀌어도 overlay의 hidden과 레이아웃을 증분 갱신한다.
-  const out: CatalogConsumerNode[] =
-    typeOf(node) === "SheetTrigger"
-      ? partChildrenOf(node, get, typeOf).filter(
-          (child) => typeOf(child) === "SheetOverlay",
-        )
-      : [];
+  const out: CatalogConsumerNode[] = OVERLAY_OPEN_OWNERS.has(typeOf(node))
+    ? partChildrenOf(node, get, typeOf).filter(
+        (child) =>
+          OVERLAY_BODY_TYPES.has(typeOf(child)) || typeOf(child) === "Dialog",
+      )
+    : [];
+  const bodies = OVERLAY_BODY_TYPES.has(typeOf(node)) ? [node] : [...out];
+  for (const body of bodies)
+    out.push(
+      ...childrenOf(body, get).filter(
+        (child) => child.bindingId === "overlayarrow",
+      ),
+    );
   // (A group whose items take its state — a TagGroup's `allowsRemoving` — gives no keys of its own.)
   if (
     !catalogStateKeysOf(typeOf(node)).length &&

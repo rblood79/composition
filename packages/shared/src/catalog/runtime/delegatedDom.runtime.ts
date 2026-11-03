@@ -625,7 +625,7 @@ const inAutocomplete = (input: DelegatedDomInput) => {
 const openState = (input: DelegatedDomInput): Record<string, unknown> =>
   input.setRuntimeProps
     ? controlled(input, IS_OPEN, runtimeState(input, "isOpen") === true)
-    : {};
+    : { defaultOpen: input.node.props.isOpen ?? input.node.props.defaultOpen };
 
 /** The element's key: one key while controlled; else (a static render) the start state re-keys. */
 const stateKey = (input: DelegatedDomInput, uncontrolledKey: string) =>
@@ -2406,6 +2406,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     CatalogComboBox,
     "ComboBox",
     (props) => ({
+      isOpen: props.isOpen,
+      defaultOpen: props.defaultOpen,
       allowsCustomValue: bool(props.allowsCustomValue),
       menuTrigger: opt(props.menuTrigger),
       "aria-label": str(props.label).trim()
@@ -2423,6 +2425,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     (input) =>
       input.setRuntimeProps
         ? {
+            ...openState(input),
             onSelectionText: (patch: Record<string, unknown>) =>
               input.setRuntimeProps!(input.node.id, patch),
             ...controlled(
@@ -3761,6 +3764,8 @@ export function catalogStateSourceValue(
   )
     return props[prop];
   switch (prop) {
+    case "isOpen":
+      return props.isOpen ?? props.defaultOpen ?? node.displayState === "open";
     case "selectedKey":
       return type === "Tabs"
         ? str(tabsModel(root, node).selectedKey)

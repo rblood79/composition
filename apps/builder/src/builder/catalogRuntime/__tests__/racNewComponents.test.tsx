@@ -20,9 +20,14 @@ import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 import { editContractFixture } from "./support/editContractFixture";
 import { catalogSheetHandleShapes } from "../ruleShapes";
+import { CatalogCanvasScene } from "../canvasScene";
 
 const BODY = "project:node:home-body" as NodeId;
-async function fixture(type: string, props: Record<string, unknown> = {}) {
+async function fixture(
+  type: string,
+  props: Record<string, unknown> = {},
+  viewport = { width: 1200, height: 900 },
+) {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
@@ -35,7 +40,7 @@ async function fixture(type: string, props: Record<string, unknown> = {}) {
     new CatalogStorage(indexedDB, `rac-additions-${Math.random()}`),
     {
       engine: await nodeLayoutEngine(),
-      viewport: { width: 1200, height: 900 },
+      viewport,
       autosaveSchedule: () => {},
     },
   );
@@ -57,6 +62,100 @@ async function fixture(type: string, props: Record<string, unknown> = {}) {
 }
 
 describe("RAC TokenField / PreviewTrigger / Sheet registration", () => {
+  it.each(["bottom", "top", "left", "right", "center"])(
+    "places the open Sheet at the viewport %s with a full backdrop",
+    async (position) => {
+      const { workspace } = await fixture("Sheet", { isOpen: true, position });
+      const root = workspace.root;
+      const of = (type: string) =>
+        [...root.canvasInputs.values()].find((r) => root.typeOf(r) === type)!;
+      const scene = new CatalogCanvasScene(root);
+      try {
+        scene.sync();
+        const body = scene.stream.boundsMap.get(root.recordsOfSource(BODY)[0])!;
+        const overlay = of("SheetOverlay");
+        const sheet = scene.stream.boundsMap.get(of("Sheet").id)!;
+        const backdrop = scene.stream.boundsMap.get(of("SheetBackdrop").id)!;
+        expect(getSkiaNode(overlay.id)?.isFixed).toBe(true);
+        expect(
+          Array.from(getSkiaNode(of("SheetBackdrop").id)!.box!.fillColor!),
+        ).toEqual([0, 0, 0, 0.5]);
+        expect(backdrop).toMatchObject({
+          x: body.x,
+          y: body.y,
+          width: 1200,
+          height: 900,
+        });
+        expect(sheet.x - body.x).toBe(
+          position === "left"
+            ? 0
+            : position === "right"
+              ? 1200 - sheet.width
+              : (1200 - sheet.width) / 2,
+        );
+        expect(sheet.y - body.y).toBe(
+          position === "top"
+            ? 0
+            : position === "bottom"
+              ? 900 - sheet.height
+              : (900 - sheet.height) / 2,
+        );
+        expect(sheet.width).toBe(360);
+        // 텍스트 측정 fixture의 내용 64 + padding 48. 재배치에서 padding을 중복 더하지 않는다.
+        expect(sheet.height).toBe(112);
+        expect(
+          scene.stream.boundsMap.get(of("SheetContent").id)!.height,
+        ).toBeCloseTo(sheet.height, 3);
+        expect(scene.stream.hitBoundsMap.get(of("Sheet").id)).toBeDefined();
+      } finally {
+        scene.dispose();
+      }
+    },
+  );
+
+  it("keeps the open Sheet within a narrow viewport and updates the bound scene through Open and undo", async () => {
+    const { workspace, id } = await fixture(
+      "Sheet",
+      { isOpen: true },
+      { width: 320, height: 600 },
+    );
+    const scene = new CatalogCanvasScene(workspace.root);
+    const sheetId = [...workspace.root.canvasInputs.values()].find(
+      (node) => workspace.root.typeOf(node) === "Sheet",
+    )!.id;
+    const bounds = () => {
+      scene.sync();
+      return scene.stream.boundsMap.get(sheetId);
+    };
+    try {
+      const initial = { ...bounds()! };
+      expect(initial.width).toBe(320);
+      for (let cycle = 0; cycle < 2; cycle++) {
+        workspace.execute(
+          setFields({
+            targets: [{ kind: "node", id }],
+            props: { isOpen: { kind: "set", value: false } },
+          }),
+        );
+        bounds();
+        expect(bounds()?.height ?? 0).toBe(0);
+        workspace.undo();
+        expect(bounds()).toEqual(initial);
+      }
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id }],
+          props: { position: { kind: "set", value: "top" } },
+        }),
+      );
+      expect(bounds()!.y).toBeLessThan(initial.y);
+      workspace.undo();
+      expect(bounds()).toEqual(initial);
+    } finally {
+      scene.dispose();
+    }
+  });
+
   it("Sheet handle follows Prevent Dismissal and swipe direction through edit and undo", async () => {
     const { workspace, id } = await fixture("Sheet");
     const sheet = () =>

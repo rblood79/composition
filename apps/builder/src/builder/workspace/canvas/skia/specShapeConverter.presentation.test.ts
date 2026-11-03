@@ -5,6 +5,30 @@ import { getSkiaPrimitive, type Shape } from "@composition/rendering";
 import { specShapesToSkia } from "./specShapeConverter";
 
 describe("specShapesToSkia presentation fill materialization", () => {
+  it("preserves CSS color channels and multiplies token alpha by fill alpha once", () => {
+    const node = specShapesToSkia(
+      [
+        {
+          type: "rect",
+          id: "bg",
+          x: 0,
+          y: 0,
+          width: "auto",
+          height: "auto",
+          fill: "rgba(12, 34, 56, 0.5)",
+          fillAlpha: 0.4,
+        },
+      ],
+      "light",
+      100,
+      40,
+    );
+    const color = node.box!.fillColor!;
+    [12 / 255, 34 / 255, 56 / 255, 0.2].forEach((value, index) =>
+      expect(color[index]).toBeCloseTo(value, 6),
+    );
+  });
+
   it("materializes standalone text color as a root-owned paint slot", () => {
     const node = specShapesToSkia(
       [

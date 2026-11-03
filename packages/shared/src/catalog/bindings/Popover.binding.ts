@@ -1,3 +1,4 @@
+import { OVERLAY_OPEN_PROPS } from "./overlayOpenProps";
 /**
  * ADR-142 family ⑥(overlays) — Popover primitive 의 `PrimitiveBinding`.
  *
@@ -24,6 +25,7 @@ export const popoverBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      ...OVERLAY_OPEN_PROPS,
       size: {
         kind: "size",
         label: "Size",

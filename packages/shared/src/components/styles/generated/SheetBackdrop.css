@@ -16,6 +16,11 @@
   display: flex;
   flex-direction: column;
 
+  /* Default variant */
+  background: var(--overlay-backdrop);
+  color: var(--fg);
+  border: none;
+
   /* Default size */
   height: auto;
   padding: 0px 0px;
@@ -24,8 +29,9 @@
   line-height: var(--catalog-token-text-sm--line-height);
 }
 
-
-/* ── Tier 2: Composite Delegation ── */
+.react-aria-SheetBackdrop:where([data-variant="default"]) {
+  background: var(--overlay-backdrop);
+}
 
 
 @media (forced-colors: active) {

@@ -207,6 +207,7 @@ const COLOR_TOKEN_TO_CSS: Record<string, string> = {
   base: "var(--bg)",
   raised: "var(--bg-raised)",
   "layer-1": "var(--bg-overlay)",
+  "overlay-backdrop": "var(--overlay-backdrop)",
   "layer-2": "var(--bg-inset)",
   // 토큰 ↔ 변수 1:1 (ADR-293) — 팔레트 변수 (`--color-*`) 를 가리키는 토큰은 고정 상수 white · black 뿐.
   //   여러 토큰이 한 변수를 쓰면 한 토큰의 테마 델타가 다른 토큰 (· Tone 단계) 을 덮는다.

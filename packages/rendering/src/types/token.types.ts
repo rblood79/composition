@@ -113,6 +113,7 @@ export interface ColorTokens {
   "notice-strong": string;
 
   // --- Surface / Layer ---
+  "overlay-backdrop": string;
   base: string;
   /** raised surface (popover/dropdown/collection 컨테이너, ADR-071) → CSS --bg-raised. */
   raised: string;

@@ -1467,6 +1467,12 @@ describe("ADR-248 4e library origin view", () => {
       expect(id, `${origin}: no ${type}`).toBeDefined();
       return id!;
     };
+    // 원본 편집의 Sheet 본문은 열린 견본이며 페이지 전체를 가리는 portal이 아니다.
+    const sheetOverlay = overlayOf("sheet", "SheetOverlay");
+    expect(inputOf(sheetOverlay).derivedProps?._sheetViewport).toBeUndefined();
+    expect(workspace.root.getLayoutInput(sheetOverlay)!.position).not.toBe(
+      "fixed",
+    );
     for (const [origin, type] of [
       ["dialog", "Modal"],
       ["popover", "Popover"],

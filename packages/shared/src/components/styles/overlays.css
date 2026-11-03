@@ -10,7 +10,7 @@
     align-items: center;
     justify-content: center;
     height: var(--visual-viewport-height);
-    background: rgba(0 0 0 / 0.5);
+    background: var(--overlay-backdrop);
     z-index: 100;
 
     &[data-entering] {

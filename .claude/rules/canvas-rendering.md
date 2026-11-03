@@ -14,6 +14,8 @@ paths:
 
 # Canvas 렌더링 규칙
 
+- catalog 색상 토큰은 hex뿐 아니라 CSS `rgba()`도 전달한다. shape 변환은 기존 공용 색상 파서로 채널과 alpha를 보존하고 fillAlpha는 한 번만 곱한다. **Why (2026-11-03)**: SheetBackdrop의 검정 50% 토큰이 Canvas에서 불투명 검정으로 그려졌다.
+
 > **SSOT 체인 연계**: Skia 렌더는 [ssot-hierarchy.md](ssot-hierarchy.md) **D3(시각 스타일)의 direct consumer**. CSS/DOM consumer와 **대등(symmetric)** — 한쪽이 다른 쪽 기준 아님. 대칭 = "시각 결과의 동일성" (구현 방법 자유). catalog/spec 이 D1(DOM) 침범 금지.
 >
 > **2026-07-08**: D3 SSOT 는 [ADR-142](../../docs/adr/completed/142-starter-spec-component-system-cutover.md)(Implemented) 로 catalog(`COMPONENT_RULES_TABLE`) + theme/tokens 로 전환됨. 본 문서의 "Spec" 이라는 낱말은 옛 이름이다 — 컴포넌트당 spec 파일과 `packages/specs` 는 ADR-248 (2026-10-04) 에서 삭제됐고 Frame/Group/Slot 도 catalog 경로다 (ADR-036 은 Superseded by ADR-142).
@@ -254,3 +256,6 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 
 - [Canvas 렌더링 구현 상세](../skills/composition-patterns/reference/canvas-details.md)
 - [SPEC_CSS_BOUNDARY.md](../../docs/legacy/SPEC_CSS_BOUNDARY.md)
+
+- Canvas의 상속 가시성 판정은 bind/update 한 번 안에서 공유하되 다음 갱신으로 캐시를 넘기지 않는다. 부모 숨김·재부모화의 자손 갱신과 fixed/portal 구조는 유지한다.
+  **Why (2026-11-04):** 626 records·깊이 20 fixture의 중복 가시성 검사 6,978회가 갱신 단위 memo로 620회가 됐다. 닫힌 portal을 구조에서 제거하면 재오픈·warmup의 span 경계가 깨질 수 있다.

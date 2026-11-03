@@ -1,3 +1,4 @@
+import { OVERLAY_OPEN_PROPS } from "./overlayOpenProps";
 /**
  * ADR-142 family ⑥(overlays) — Tooltip primitive 의 `PrimitiveBinding`.
  *
@@ -16,6 +17,7 @@ export const tooltipBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      ...OVERLAY_OPEN_PROPS,
       // design-data 감사 (2026-08-20): D3 rules table 에 variants 4종
       //   (neutral/info/positive/negative) + generated CSS `[data-variant]` 4규칙이
       //   이미 있고 shared Tooltip 도 `data-variant` 를 emit 하는데, accepts 선언만

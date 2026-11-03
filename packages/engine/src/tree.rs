@@ -578,6 +578,13 @@ struct TreeNode {
     /// `subtree_gen` 과 viewport 환경 세대의 최신값이다 — 형제 · 다른 서브트리 편집은 HIT 를
     /// 깨지 않되, vw/vh 기준이 바뀌면 다시 잰다 (ADR-188 `2N`).
     intrinsic_content_w: Option<(u64, f32, f32)>,
+    /// fixed auto 폭: 무관한 문서 mutation은 측정 결과를 무효화하지 않는다.
+    /// (subtree/environment 세대, containing block 폭, fit border-box 폭).
+    fixed_fit: Option<(u64, f32, f32)>,
+    /// viewport 배치가 확정한 border-box 크기. 위치 환산은 매번 현재 부모/흐름 좌표로 한다.
+    fixed_size: Option<(u64, f32, f32, f32, f32)>,
+    /// fixed가 없는 가지를 생략하기 위한 구조 요약. mutation 경로의 subtree_gen을 공유한다.
+    fixed_subtree: Option<(u64, usize)>,
     /// ADR-268 — 이 노드 서브트리 (자신 포함) 의 마지막 mutation 세대. mutation 진입점
     /// (`propagate_dirty` · `remove_node` · 재부모화 · `alloc_handle`) 만 쓴다 — 측정 pass 의
     /// `mark_subtree_dirty` 는 쓰지 않는다 (쓰면 측정마다 조상 캐시가 MISS).
@@ -656,6 +663,8 @@ pub struct LayoutTree {
     intrinsic_size_constraint_count: usize,
     /// `position: fixed` 노드 수 (ADR-275 Phase 7). 0 인 일반 문서는 viewport 배치 순회를 건너뛴다.
     fixed_count: usize,
+    /// 가상 intrinsic 측정 중의 결과는 실제 배치 캐시에 저장하지 않는다.
+    measure_depth: usize,
     /// strict 입력 모드 — 켜면 `build_tree_batch` 가 미지 키를 오류로 낸다.
     ///
     /// 기본 false: production 은 미지 키를 조용히 버린다 (레이아웃 전체 실패보다 낫다).
@@ -858,6 +867,9 @@ impl LayoutTree {
             self_collapsing: false,
             intrinsic_w: None,
             intrinsic_content_w: None,
+            fixed_fit: None,
+            fixed_size: None,
+            fixed_subtree: None,
             subtree_gen: 0,
             last_avail: None,
             last_solved: None,
@@ -1065,6 +1077,8 @@ impl LayoutTree {
     pub fn set_definite_zero_height(&mut self, enabled: bool) {
         if self.definite_zero_height != enabled {
             self.definite_zero_height = enabled;
+            self.mutation_gen += 1;
+            self.viewport_gen = self.mutation_gen;
             self.last_compute = None;
         }
     }
@@ -1152,6 +1166,9 @@ impl LayoutTree {
                 self_collapsing: false,
                 intrinsic_w: None,
                 intrinsic_content_w: None,
+                fixed_fit: None,
+                fixed_size: None,
+                fixed_subtree: None,
                 subtree_gen: 0,
                 last_avail: None,
                 last_solved: None,
@@ -1260,6 +1277,8 @@ impl LayoutTree {
                 node.style.min_height = original.min_height;
                 node.style.max_height = original.max_height;
                 node.intrinsic_w = None;
+                node.fixed_fit = None;
+                node.fixed_size = None;
             }
         }
     }
@@ -1693,6 +1712,7 @@ impl LayoutTree {
             n.last_solved = None;
             n.last_avail = None;
             n.last_definite_h = None;
+            n.fixed_size = None;
             n.dirty = false;
             n.subtree_dirty = false;
         }
@@ -1821,7 +1841,9 @@ impl LayoutTree {
         if let Some(sink) = self.trace.as_mut() {
             sink.enter_measure();
         }
+        self.measure_depth += 1;
         let result = f(self);
+        self.measure_depth -= 1;
         self.restore_subtree(&snap);
         if let Some(sink) = self.trace.as_mut() {
             sink.exit_measure();
@@ -2770,8 +2792,8 @@ impl LayoutTree {
     ///   SliderFill 을 frame 으로 감싸면 positioned ancestor 2단). `position: static` 을 명시한
     ///   부모에 한해 조상 체인을 탄다 (catalog 가 부품을 감싼 layout frame 에만 싣는다 —
     ///   `catalogStaticPartFrame`). 위치 미지정 부모는 종전대로 직계 부모 (노드 `placement` 좌표).
-    /// - **`fixed`**: 여기선 absolute 처럼 부모 기준으로 놓고, `compute_layout` 끝의
-    ///   `place_fixed_boxes` 가 page viewport 기준으로 다시 놓는다 (ADR-275 Phase 7, 2026-10-20).
+    /// - **`fixed`**: 부모 기준 임시 배치는 생략하고 `compute_layout` 끝의
+    ///   `place_fixed_boxes` 에서 page viewport 기준으로 한 번 배치한다.
     ///   sticky 는 in-flow 배치 + `sticky_constraints` (ADR-267).
     /// 부모가 leaf 의 used 크기를 정한 뒤 (block stretch · flex/grid stretch) 그 크기가 absolute
     /// 자식을 놓을 때 쓴 containing block 과 다르면, 자식을 used 크기로 다시 놓는다 (CSS 2 §10.1 —
@@ -2899,6 +2921,14 @@ impl LayoutTree {
         }
 
         for &c in abs_children {
+            // fixed는 viewport 단계에서만 배치한다. 부모 기준 임시 solve는 최종 캐시를
+            // 덮어쓰며, in-flow의 크기에도 기여하지 않는다.
+            if cb_borders && self.get(c).is_some_and(|n| style_is_fixed(&n.style)) { continue; }
+            let fixed_gen = (!cb_borders && self.measure_depth == 0)
+                .then(|| self.get(c).map(|n| n.subtree_gen.max(self.viewport_gen))).flatten();
+            let cached_size = fixed_gen.and_then(|gen| self.get(c)?.fixed_size
+                .filter(|&(g, w, h, _, _)| g == gen && w == cb_w && h == cb_h)
+                .map(|(_, _, _, w, h)| (w, h)));
             // 자식 solve — available = containing block (%/auto 해석 기준).
             //
             // **auto 폭 컨테이너는 shrink-to-fit** (CSS 2.1 §10.3.7 — left · right 가 동시에 지정되지 않으면
@@ -2907,12 +2937,20 @@ impl LayoutTree {
             //   컨테이너는 텍스트 자식까지 가용 폭으로 퍼져 absolute Disclosure · frame 이 페이지 폭 1920 이
             //   됐다 (Chrome: 내용 폭 168 — 사용자 신고 2026-09-24). fit 확정 뒤 그 폭으로 다시 solve 한다
             //   (`solve_block_child` 의 atomic inline shrink-to-fit 과 같은 순서 · 재-solve 전 dirty 필수).
-            let (mut w, mut h) = match self.absolute_shrink_to_fit_width(c, cb_w) {
-                Some(fit_border_box) => {
-                    self.mark_subtree_dirty(c);
-                    self.solve_node(c, fit_border_box, cb_h)
+            let (mut w, mut h) = if let Some(size) = cached_size {
+                size
+            } else {
+                match self.absolute_shrink_to_fit_width(c, cb_w) {
+                    Some(fit_border_box) => {
+                        // 측정은 with_measure_pass가 복원한다. fixed의 같은 최종 제약은
+                        // solve_node의 dirty/available 게이트로 clean 본문을 재사용한다.
+                        if cb_borders || self.get(c).is_none_or(|n| n.last_avail != Some((fit_border_box, cb_h))) {
+                            self.mark_subtree_dirty(c);
+                        }
+                        self.solve_node(c, fit_border_box, cb_h)
+                    }
+                    None => self.solve_node(c, cb_w, cb_h),
                 }
-                None => self.solve_node(c, cb_w, cb_h),
             };
 
             let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
@@ -2962,7 +3000,9 @@ impl LayoutTree {
             // (`w_box`/`h_box`) 로 이미 적혀 있으므로 그 값을 읽는다 — 스칼라 없이 auto 인 축은
             // layout == 반환값이라 무변경. 종전 "leaf 반환은 이미 border-box" 가정은 absolute Button
             // 높이를 20 (Chrome 30) 으로 냈다 (ADR-224 §6.1 live).
-            if child_is_container {
+            if cached_size.is_some() {
+                // 최종 크기는 이미 border-box다. padding/border를 다시 더하지 않는다.
+            } else if child_is_container {
                 if !has_w {
                     w += axis_pad_border(&cstyle, &ctx_x, true);
                 }
@@ -3067,6 +3107,7 @@ impl LayoutTree {
                 n.layout = NodeLayout { x: x - shift.0, y: y - shift.1, width: nw, height: nh, baseline };
                 n.dirty = false;
                 n.subtree_dirty = false;
+                if let Some(gen) = fixed_gen { n.fixed_size = Some((gen, cb_w, cb_h, nw, nh)); }
             }
             // 늘어난 상자는 자기 absolute 자식의 containing block 이기도 하다 (CSS 2 §10.1 — used size
             //   뒤). 위 재-solve 가 놓았지만, 위치 미지정 자손 체인 (static 부모) 까지 다시 놓는다.
@@ -3092,6 +3133,20 @@ impl LayoutTree {
         }
     }
 
+    /// 같은 서브트리 세대의 요약은 재사용한다. 처음/구조 변경 때만 하위 요약을 모은다.
+    fn fixed_subtree_count(&mut self, handle: usize) -> usize {
+        let Some(node) = self.get(handle) else { return 0 };
+        let gen = node.subtree_gen;
+        if let Some((cached_gen, count)) = node.fixed_subtree {
+            if gen == cached_gen { return count; }
+        }
+        let mut count = usize::from(style_is_fixed(&node.style));
+        let children = node.children.clone();
+        for child in children { count += self.fixed_subtree_count(child); }
+        if let Some(node) = self.get_mut(handle) { node.fixed_subtree = Some((gen, count)); }
+        count
+    }
+
     /// ADR-275 Phase 7 (사용자 결정 6, 2026-10-20) — `position: fixed` 상자를 viewport 기준으로 다시
     /// 놓는다. viewport = page root (compute root 의 직계 자식 — catalog 의 `catalog:root` 아래 page
     /// body. 직계 부모가 compute root 면 그 root) 의 border-box 원점 + `set_viewport` 크기 (없으면 page
@@ -3100,7 +3155,7 @@ impl LayoutTree {
     /// (`place_absolutes_in` shift). 정상 배치가 끝난 뒤 돈다 — 위치가 page 안 조상 좌표의 합이라서.
     /// 미지원: transform · filter 조상 (CSS 는 그 조상을 containing block 으로 삼는다 — 저작 입력 없음).
     fn place_fixed_boxes(&mut self, root: usize) {
-        let tops = self.get(root).map(|n| n.children.clone()).unwrap_or_default();
+        self.fixed_subtree_count(root);
         // (node, page root, node 의 border-box 원점의 page root 안 위치)
         let mut stack: Vec<(usize, usize, f32, f32)> = vec![(root, root, 0.0, 0.0)];
         while let Some((node, page, off_x, off_y)) = stack.pop() {
@@ -3126,7 +3181,8 @@ impl LayoutTree {
             }
             for &c in children.iter().rev() {
                 let Some(cn) = self.get(c) else { continue };
-                if node == root && tops.contains(&c) {
+                if cn.fixed_subtree.is_some_and(|(_, count)| count == 0) { continue; }
+                if node == root {
                     stack.push((c, c, 0.0, 0.0));
                 } else {
                     stack.push((c, page, off_x + cn.layout.x, off_y + cn.layout.y));
@@ -3215,6 +3271,14 @@ impl LayoutTree {
         if left_set && right_set && parse_abs_self_align(cstyle.justify_self.as_deref()).is_none() {
             return None;
         }
+        let cache_gen = if style_is_fixed(&cstyle) && self.measure_depth == 0 {
+            let node = self.get(c)?;
+            let gen = node.subtree_gen.max(self.viewport_gen);
+            if let Some((cached_gen, cached_cb, fit)) = node.fixed_fit {
+                if gen == cached_gen && cb_w == cached_cb { return Some(fit); }
+            }
+            Some(gen)
+        } else { None };
         let ctx = self.ctx_for(cb_w);
         let (min_w, max_w) = self.measure_intrinsic_width(c)?;
         let pbh = axis_pad_border(&cstyle, &ctx, true);
@@ -3226,7 +3290,11 @@ impl LayoutTree {
         let insets = inset(left_set, cstyle.inset_left.as_deref()) + inset(right_set, cstyle.inset_right.as_deref());
         let avail_content = (cb_w - insets - margins - pbh).max(0.0);
         let fit = max_w.min(min_w.max(avail_content));
-        Some(fit + pbh)
+        let fit = fit + pbh;
+        if let Some(gen) = cache_gen {
+            if let Some(node) = self.get_mut(c) { node.fixed_fit = Some((gen, cb_w, fit)); }
+        }
+        Some(fit)
     }
 
     /// flex 컨테이너 solve — 자식 재귀 → `flex.rs` 배치 → 컨테이너 크기 도출.
@@ -3834,7 +3902,8 @@ impl LayoutTree {
                         !t.is_empty() && !t.eq_ignore_ascii_case("auto")
                     })
                     .unwrap_or(false);
-                let keyword_main = size_is_intrinsic_keyword(main_raw);
+                // 키워드뿐 아니라 미해소 %도 intake에서는 content-box였다.
+                let intrinsic_main = overridden && resolve_dimension_opt(main_raw, &main_ctx).is_none();
                 let saved_main = if is_row {
                     cstyle.width.clone()
                 } else {
@@ -3851,6 +3920,30 @@ impl LayoutTree {
                     }
                 }
 
+                // 재배치의 available은 item의 used 크기다. % min/max의 containing
+                // block은 여전히 부모이므로 이 호출 동안 원래 문맥에서 해소한다.
+                let (saved_min, saved_max) = if is_row {
+                    (cstyle.min_width.clone(), cstyle.max_width.clone())
+                } else {
+                    (cstyle.min_height.clone(), cstyle.max_height.clone())
+                };
+                let resolve_constraint = |value: &Option<String>| {
+                    if value.as_deref().is_some_and(|v| v.contains('%')) {
+                        resolve_dimension_opt(value.as_deref(), &main_ctx)
+                            .map(|v| format!("{v}px"))
+                    } else {
+                        value.clone()
+                    }
+                };
+                if let Some(n) = self.get_mut(c) {
+                    if is_row {
+                        n.style.min_width = resolve_constraint(&saved_min);
+                        n.style.max_width = resolve_constraint(&saved_max);
+                    } else {
+                        n.style.min_height = resolve_constraint(&saved_min);
+                        n.style.max_height = resolve_constraint(&saved_max);
+                    }
+                }
                 self.mark_subtree_dirty(c);
                 // cross available 은 1차 solve 와 동일 규칙 (자식별 — 위 child_solve_cross).
                 let (cs_w, cs_h) = child_solves[i];
@@ -3860,6 +3953,15 @@ impl LayoutTree {
                     self.solve_node_definite(c, cs_w, used_main, definite_for_resolve)
                 };
 
+                if let Some(n) = self.get_mut(c) {
+                    if is_row {
+                        n.style.min_width = saved_min;
+                        n.style.max_width = saved_max;
+                    } else {
+                        n.style.min_height = saved_min;
+                        n.style.max_height = saved_max;
+                    }
+                }
                 if overridden {
                     if let Some(n) = self.get_mut(c) {
                         if is_row {
@@ -3878,7 +3980,7 @@ impl LayoutTree {
                     let d_off = i * flex::FLEX_FIELD_COUNT;
                     let (new_cm, new_cc) = if is_row { (re_w, re_h) } else { (re_h, re_w) };
                     // 키워드 main 은 px 로 덮여 border-box 로 돌아온다 → content 슬롯은 content-box.
-                    let new_cm = if keyword_main {
+                    let new_cm = if intrinsic_main {
                         (new_cm - data[d_off + 7]).max(0.0)
                     } else {
                         new_cm
@@ -9559,6 +9661,26 @@ mod tests {
         assert_eq!(t.get_layout(h[0]).y, 75.0, "space-around 단일 → center 폴백");
     }
 
+    #[test]
+    fn flex_resolve_keeps_percentage_max_height_relative_to_parent() {
+        for (content_height, expected) in [(112, 160.0), (1000, 810.0)] {
+            let input = format!(r#"[
+                {{"style":{{"height":"{content_height}px","flexShrink":0}},"children":[]}},
+                {{"style":{{"display":"flex","flexDirection":"column","height":"100%","overflowY":"auto","paddingTop":"24px","paddingBottom":"24px"}},"children":[0]}},
+                {{"style":{{"display":"flex","flexDirection":"column","width":"360px","maxHeight":"90%","flexShrink":0,"overflowY":"hidden"}},"children":[1]}},
+                {{"style":{{"display":"flex","flexDirection":"column","width":"1200px","height":"900px","alignItems":"center","justifyContent":"flex-end"}},"children":[2]}}
+            ]"#);
+            let (mut tree, handles) = solve(&input, 3, 1200.0, 900.0);
+            for _ in 0..2 {
+                assert_eq!(tree.get_layout(handles[2]).height, expected);
+                assert_eq!(tree.get_layout(handles[1]).height, expected);
+                assert_eq!(tree.get(handles[2]).unwrap().style.max_height.as_deref(), Some("90%"));
+                tree.mark_subtree_dirty(handles[3]);
+                tree.compute_layout(handles[3], 1200.0, 900.0);
+            }
+        }
+    }
+
     /// F5: `flex row h200` 의 stretch item 은 cross 가 definite — 손자 `h50%` = 100 (종전 0).
     #[test]
     fn adr206_stretched_flex_item_cross_is_definite_for_percent_child() {
@@ -12177,6 +12299,120 @@ mod tests {
         style.position = None;
         tree.update_style(h[0], style);
         assert_eq!(tree.fixed_count, 2);
+    }
+
+    #[test]
+    fn fixed_overlay_clean_body_survives_unrelated_edit() {
+        let mut tree = LayoutTree::new();
+        tree.set_viewport(800.0, 600.0);
+        let h = tree.build_tree_batch(r#"[
+          {"style":{"width":"120px","height":"30px"},"children":[]},
+          {"style":{"display":"block","position":"fixed","insetLeft":"10px","insetTop":"20px","paddingLeft":"3px","paddingRight":"3px"},"children":[0]},
+          {"style":{"width":"50px","height":"30px"},"children":[]},
+          {"style":{"display":"block","width":"800px","height":"600px"},"children":[1,2]},
+          {"style":{"display":"block","width":"800px","height":"600px"},"children":[3]}
+        ]"#).unwrap();
+        tree.compute_layout(h[4], 800.0, 600.0);
+        let before = tree.get_layout(h[1]);
+        for width in [60, 70, 80] {
+            let mut style = tree.get(h[2]).unwrap().style.clone();
+            style.width = Some(format!("{width}px"));
+            tree.update_style(h[2], style);
+            tree.reset_counters();
+            tree.compute_layout(h[4], 800.0, 600.0);
+            assert_eq!(tree.counters()[1], 0, "clean fixed intrinsic measurement must be reused");
+            let after = tree.get_layout(h[1]);
+            assert_eq!((after.x, after.y, after.width, after.height), (before.x, before.y, before.width, before.height));
+        }
+        let mut style = tree.get(h[0]).unwrap().style.clone();
+        style.width = Some("200px".into());
+        tree.update_style(h[0], style);
+        tree.compute_layout(h[4], 800.0, 600.0);
+        assert_eq!(tree.get_layout(h[1]).width, 206.0);
+    }
+
+    #[test]
+    fn fixed_overlay_incremental_matches_fresh_layout() {
+        use serde_json::{json, Value};
+        let variants = [
+            json!({}),
+            json!({"minWidth":"160px","maxWidth":"220px"}),
+            json!({"insetRight":"10%","insetLeft":"auto"}),
+            json!({"insetLeft":"10%","insetRight":"10%"}),
+            json!({"insetLeft":"10%","insetRight":"10%","justifySelf":"center"}),
+            json!({"insetTop":"auto","insetLeft":"auto"}),
+            json!({"width":"50%","paddingLeft":"10%"}),
+            json!({"minWidth":"min-content","maxHeight":"50%"}),
+        ];
+        for variant in variants {
+            for child_width in ["120px", "50vw", "100%"] {
+                let mut inputs = json!([
+                    {"style":{"width":child_width,"height":"30px"},"children":[]},
+                    {"style":{"display":"block","position":"fixed","insetLeft":"10px","insetTop":"20px","paddingLeft":"3px","paddingRight":"3px","borderLeft":"1px"},"children":[0]},
+                    {"style":{"width":"50px","height":"30px"},"children":[]},
+                    {"style":{"display":"block","width":"800px","height":"600px","paddingLeft":"12px"},"children":[2,1]},
+                    {"style":{"display":"block","width":"800px","height":"600px"},"children":[3]}
+                ]);
+                for (key, value) in variant.as_object().unwrap() { inputs[1]["style"][key] = value.clone(); }
+                let mut tree = LayoutTree::new();
+                tree.set_viewport(800.0, 600.0);
+                let h = tree.build_tree_batch(&inputs.to_string()).unwrap();
+                tree.compute_layout(h[4], 800.0, 600.0);
+                for (index, key, value, viewport, dpr) in [
+                    (2, "width", "70px", (800.0, 600.0), 1.0),
+                    (0, "height", "60px", (800.0, 600.0), 1.0),
+                    (1, "insetTop", "55px", (800.0, 600.0), 1.0),
+                    (2, "width", "90px", (500.0, 400.0), 2.0),
+                    (1, "display", "none", (500.0, 400.0), 2.0),
+                    (1, "display", "block", (800.0, 600.0), 1.0),
+                    (3, "display", "none", (800.0, 600.0), 1.0),
+                    (3, "display", "block", (800.0, 600.0), 1.0),
+                ] {
+                    inputs[index]["style"][key] = Value::String(value.into());
+                    tree.update_style(h[index], serde_json::from_value(inputs[index]["style"].clone()).unwrap());
+                    tree.set_viewport(viewport.0, viewport.1);
+                    tree.set_device_pixel_ratio(Some(dpr));
+                    tree.set_definite_zero_height(key == "height");
+                    tree.compute_layout(h[4], 800.0, 600.0);
+                    let mut fresh = LayoutTree::new();
+                    fresh.set_viewport(viewport.0, viewport.1);
+                    fresh.set_device_pixel_ratio(Some(dpr));
+                    fresh.set_definite_zero_height(key == "height");
+                    let f = fresh.build_tree_batch(&inputs.to_string()).unwrap();
+                    fresh.compute_layout(f[4], 800.0, 600.0);
+                    for index in 0..h.len() {
+                        let actual = tree.get_layout(h[index]); let expected = fresh.get_layout(f[index]);
+                        assert_eq!((actual.x, actual.y, actual.width, actual.height), (expected.x, expected.y, expected.width, expected.height), "variant={variant}, child={child_width}, step={key}:{value}, node={index}");
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn fixed_overlay_summary_tracks_reparent_position_remove_and_handle_reuse() {
+        let mut tree = LayoutTree::new();
+        let fixed = tree.create_node(NodeStyle { position: Some("fixed".into()), ..Default::default() });
+        let a = tree.create_node(NodeStyle::default());
+        let b = tree.create_node(NodeStyle::default());
+        let root = tree.create_node(NodeStyle::default());
+        tree.set_children(a, vec![fixed]); tree.set_children(root, vec![a,b]);
+        assert_eq!(tree.fixed_subtree_count(root), 1);
+        let clean_summary = tree.get(b).unwrap().fixed_subtree;
+        tree.update_style(fixed, NodeStyle { position: Some("fixed".into()), width: Some("20px".into()), ..Default::default() });
+        assert_eq!(tree.fixed_subtree_count(root), 1);
+        assert_eq!(tree.get(b).unwrap().fixed_subtree, clean_summary);
+        tree.set_children(a, vec![]); tree.set_children(b, vec![fixed]);
+        assert_eq!(tree.fixed_subtree_count(a), 0);
+        assert_eq!(tree.fixed_subtree_count(root), 1);
+        tree.update_style(fixed, NodeStyle::default());
+        assert_eq!(tree.fixed_subtree_count(root), 0);
+        tree.update_style(fixed, NodeStyle { position: Some("fixed".into()), ..Default::default() });
+        assert_eq!(tree.fixed_subtree_count(root), 1);
+        tree.set_children(b, vec![]); tree.remove_node(fixed);
+        assert_eq!(tree.fixed_subtree_count(root), 0);
+        let reused = tree.create_node(NodeStyle::default()); assert_eq!(reused, fixed);
+        tree.set_children(b, vec![reused]); assert_eq!(tree.fixed_subtree_count(root), 0);
     }
 
     /// ADR-275 F10 — `fit-content` 는 auto 가 아니라 양쪽 inset 이 늘이지 않는다 · margin auto 가 가운데.

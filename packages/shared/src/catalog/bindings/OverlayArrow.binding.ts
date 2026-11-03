@@ -10,7 +10,7 @@ import type { PrimitiveBinding } from "../types";
  * D1: RAC's `OverlayArrow` as is (its place is the overlay's).
  * D2: no props of its own.
  * D3: the overlay's sheet (`.react-aria-OverlayArrow svg` — fill · stroke · turn). No rule of its
- *     own; the Canvas draws no open overlay, so it has no box there.
+ *     own; Canvas는 열린 부모 portal의 placement와 trigger 중심으로 화살표를 배치한다.
  */
 export const overlayArrowBinding: PrimitiveBinding = {
   source: { kind: "internal", renderer: "overlayarrow" },

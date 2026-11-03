@@ -111,6 +111,21 @@ function SelectionText({
   return null;
 }
 
+/** RAC에는 isOpen prop이 없어 공식 ComboBoxState의 open/close로 작성 상태를 연결한다. */
+function ComboBoxOpen({ value }: { value: boolean | undefined }): null {
+  const state = useContext(ComboBoxStateContext);
+  const applied = useRef<boolean | undefined>(undefined);
+  useEffect(() => {
+    if (!state || value === undefined || applied.current === value) return;
+    // 비동기 collection이 도착하면 동일한 Open 요청을 적용한다.
+    if (value && state.selectionManager.collection.size === 0) return;
+    applied.current = value;
+    if (value) state.open(null, "manual");
+    else state.close();
+  }, [state, value]);
+  return null;
+}
+
 /**
  * RAC `ComboBox` whose selection and input text are both the record's runtime state (ADR-280): the
  * reference's "Fully controlled" example — `onSelectionChange` sets the input text with the key
@@ -125,8 +140,12 @@ function SelectionText({
 export function CatalogComboBox({
   onSelectionText,
   children,
+  isOpen,
+  defaultOpen,
   ...props
 }: ComboBoxProps<object> & {
+  isOpen?: boolean;
+  defaultOpen?: boolean;
   onSelectionText?: SelectionTextWrite;
   children?: ReactNode;
 }): ReactElement {
@@ -134,7 +153,12 @@ export function CatalogComboBox({
   const seenRef = useRef<Seen | null>(null);
   const [quietText, setQuietText] = useState<string | null>(null);
   if (!onSelectionText)
-    return <AriaComboBox {...props}>{children}</AriaComboBox>;
+    return (
+      <AriaComboBox {...props}>
+        {children}
+        <ComboBoxOpen value={isOpen ?? defaultOpen} />
+      </AriaComboBox>
+    );
   return (
     <AriaComboBox
       {...props}
@@ -164,6 +188,7 @@ export function CatalogComboBox({
       }}
     >
       {children}
+      <ComboBoxOpen value={isOpen ?? defaultOpen} />
       <SelectionText
         stateRef={stateRef}
         seenRef={seenRef}

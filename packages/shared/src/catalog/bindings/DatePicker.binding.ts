@@ -1,3 +1,4 @@
+import { OVERLAY_OPEN_PROPS } from "./overlayOpenProps";
 /**
  * ADR-142 family ⑦(date) — DatePicker primitive 의 `PrimitiveBinding`.
  *
@@ -23,6 +24,7 @@ export const datePickerBinding: PrimitiveBinding = {
   skiaPrimitive: "datefield_trigger",
   props: {
     accepts: {
+      ...OVERLAY_OPEN_PROPS,
       label: { kind: "string", label: "Label", section: "content" },
       description: {
         kind: "string",

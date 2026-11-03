@@ -11,6 +11,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Overlay Canvas 증분 계산 최적화] - 2026-11-04
+
+### Fixed
+
+- fixed overlay의 부모 기준 임시 배치를 제거하고 viewport 단계에서 배치한다. fixed가 없는 서브트리는 순회를 생략하며, 본문·제약이 같은 intrinsic 측정과 최종 크기를 재사용한다.
+- 열린 overlay의 body·anchor·조상 좌표를 패스당 한 번 조회하고, 실제 배치 입력이 바뀐 항목만 위치를 계산한다. 닫기·제거·실패한 transaction은 캐시도 함께 정리·복원한다.
+- 일반 노드는 overlay owner 조상 탐색을 생략하고, Canvas bind/update 안에서 조상 가시성 판정을 공유한다. Adobe RAC 패키지와 공개 API는 변경하지 않는다.
+
+### Tests
+
+- fixed 증분 결과와 fresh layout 비교(auto/%/inset/viewport/DPR/숨김), 재부모화·삭제·handle 재사용, geometry batch·조상 이동·rollback·재오픈 회귀 검사.
+
+## [Overlay Open 속성 Canvas·Preview 동기화] - 2026-11-03
+
+### Fixed
+
+- Dialog/Modal, Menu, Popover, Tooltip, Select, ComboBox, DatePicker, DateRangePicker, ContextualHelp, PreviewTrigger의 Open 상태를 Canvas의 표시·viewport 배치에 연결했다. 닫기와 Undo도 본문에 전파한다.
+- Select·ComboBox·날짜 선택기·Popover·Tooltip에 누락된 Open/Initially Open 속성을 등록했다. ComboBox는 RAC의 공식 state context를 통해 초기 컬렉션 로드 후 열림을 적용한다.
+- Modal은 공용 overlay backdrop과 viewport 중앙 배치를 사용한다. 다른 팝업은 trigger 위치·방향·경계 반전·화살표 간격을 반영한다.
+- 닫힌 overlay의 자손을 Canvas 페인트에서 제외하고, 숨겨진 portal도 page-level 소속을 유지한다. 종료 시 이전 command span이 남아 idle warmup 순회가 되감기던 지연을 수정했다.
+- portal 전용 Menu·선택기·달력 스타일을 catalog part 규칙에서도 소비한다. Popover 크기 제한을 catalog로 통합하고 shared wrapper가 작성된 Size를 사용하도록 수정했다.
+
+### Tests
+
+- 컴포넌트별 Open/Initially Open·닫기·Undo, Modal 배경, 화살표, viewport 반전·폭 제약의 회귀 검사 및 실제 Builder Compare 검증.
+
+## [Sheet Open Canvas·Preview 배치 정합 · 공용 반투명 배경] - 2026-11-03
+
+### Fixed
+
+- **Sheet를 열 때 전체 배경의 검정 반투명 처리 누락**:
+  - **Why:** SheetBackdrop의 배경 선언이 `rootSelectors`의 `styles` 밖에 있어 CSS 생성기가 무시했다.
+  - catalog 선언을 수정하고 CSS를 재생성하여 공용 `--overlay-backdrop` 토큰을 적용한다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`
+- Canvas의 Open Sheet도 페이지 viewport에서 방향별로 정렬하고, 전체 영역에 동일한 검정 50% backdrop을 그린다. Library·Local 원본 본문 편집은 기존 inline 배치를 유지한다.
+- Canvas 색상 변환에서 `rgba()` 토큰의 RGB·alpha를 보존한다. flex 재배치에서 백분율 min/max를 원래 부모 기준으로 해석하고, 미해소 백분율 크기의 padding을 중복 계산하지 않아 Sheet 본문 높이가 Preview와 일치한다.
+
+### Changed
+
+- ModalOverlay도 SheetBackdrop과 동일한 `--overlay-backdrop` 토큰을 사용한다. 배경색의 중복 리터럴을 제거하여 토큰 변경 시 두 컴포넌트에 함께 반영하며, 기본 검정 50%는 유지한다.
+  - 위치: `packages/shared/src/components/styles/overlays.css`
+
+### Tests
+
+- 실제 catalog rule에서 생성한 SheetBackdrop CSS에 배경색이 포함되는지 회귀 검사한다.
+- 방향별 viewport 배치·좁은 화면·Open 반복 전환·Undo·반투명 색상과 Rust flex 제약의 회귀를 검사한다.
+
 ## [RAC TokenField · PreviewTrigger · Sheet 추가] - 2026-11-03
 
 ### Fixed

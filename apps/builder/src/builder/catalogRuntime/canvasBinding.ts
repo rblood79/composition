@@ -1,3 +1,4 @@
+import { specShapesToSkia } from "../workspace/canvas/skia/specShapeConverter";
 import type { CanvasSceneNode } from "../workspace/canvas/scene/canvasSceneNodeTypes";
 import { catalogDisclosureBorders } from "../../../../../packages/shared/src/catalog/runtime/disclosureBorders";
 import { catalogSideNavChevronItem } from "../../../../../packages/shared/src/catalog/runtime/sideNav";
@@ -120,7 +121,7 @@ import {
 
 /** What places a record among its siblings' draw order (`sortChildElementsByZIndex`). */
 const paintLayerOf = (node: CatalogConsumerNode) =>
-  `${node.visual.zIndex ?? ""}|${node.layout.position === "sticky" || node.layout.position === "fixed" ? node.layout.position : ""}`;
+  `${node.visual.zIndex ?? ""}|${node.derivedProps?._overlayPortal || node.derivedProps?._sheetViewport ? "fixed" : node.layout.position === "sticky" || node.layout.position === "fixed" ? node.layout.position : ""}`;
 
 /** ADR-266 Phase 0: the counter a page grid translate rejection adds to. */
 const PAGE_GRID_TRANSLATE_NULL = {
@@ -373,7 +374,19 @@ function withOpacity(
 
 /** A node not shown at rest (`presence.ts`): the command stream skips it and its subtree. */
 function hiddenNode(node: CatalogConsumerNode, rect: Rect): SkiaNodeData {
-  return { type: "container", elementId: node.id, ...rect, visible: false };
+  return {
+    type: "container",
+    elementId: node.id,
+    ...rect,
+    visible: false,
+    // 숨겨져도 portal의 page-level 소속은 유지한다. 종료 시 inline으로 바뀌면
+    // 증분 splice가 이전 portal span을 남겨 idle warmup이 같은 구간을 되짚는다.
+    ...(node.layout.position === "fixed" ||
+    node.derivedProps?._overlayPortal === true ||
+    node.derivedProps?._sheetViewport === true
+      ? { isFixed: true }
+      : {}),
+  };
 }
 
 function containerWithAuthoredPaint(
@@ -575,8 +588,7 @@ const bindings: Readonly<Record<string, Binding>> = {
   colorswatchpickeritem: containerWithAuthoredPaint,
   // ADR-256 Phase 5e: the Tab's bar (its fill is the Tab part rule's).
   selectionindicator: containerWithAuthoredPaint,
-  // ADR-256 Phase 8a: an overlay's arrow — hidden on the Canvas (RAC places it from the trigger;
-  // the Canvas draws no open overlay).
+  // 열린 overlay 화살표는 withSticky에서 부모의 최종 placement로 그린다.
   overlayarrow: containerWithAuthoredPaint,
   // ADR-256 Phase 8c: a Disclosure's panel (its box = the content div — the Disclosure's part rule).
   disclosurepanel: containerWithAuthoredPaint,
@@ -1215,13 +1227,33 @@ function paintedNodeData(
 function catalogCanvasHidden(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
+  memo = new Map<string, boolean>(),
 ): boolean {
-  return (
-    node.hidden ||
-    node.derivedProps?._pendingHidden === true ||
-    catalogRowSampleHidden(root, node) ||
-    root.tagRowCollapsed(node.id)
-  );
+  const path: string[] = [];
+  let hidden = false;
+  for (
+    let cursor: CatalogConsumerNode | undefined = node;
+    cursor;
+    cursor = root.canvasInputs.get(cursor.parentId)
+  ) {
+    const cached = memo.get(cursor.id);
+    if (cached !== undefined) {
+      hidden = cached;
+      break;
+    }
+    path.push(cursor.id);
+    if (
+      cursor.hidden ||
+      cursor.derivedProps?._pendingHidden === true ||
+      catalogRowSampleHidden(root, cursor) ||
+      root.tagRowCollapsed(cursor.id)
+    ) {
+      hidden = true;
+      break;
+    }
+  }
+  for (const id of path) memo.set(id, hidden);
+  return hidden;
 }
 
 /**
@@ -1237,12 +1269,7 @@ export function catalogCanvasNodeData(
   const node = root.canvasInputs.get(id);
   const rect = root.getGeometry([id]).get(id);
   if (!node || !rect) throw new Error(`CATALOG_CANVAS_LAYOUT_REQUIRED:${id}`);
-  for (
-    let cursor: CatalogConsumerNode | undefined = node;
-    cursor;
-    cursor = root.canvasInputs.get(cursor.parentId)
-  )
-    if (catalogCanvasHidden(root, cursor)) return hiddenNode(node, rect);
+  if (catalogCanvasHidden(root, node)) return hiddenNode(node, rect);
   const bindingId = bindingKey(node);
   return paintedNodeData(
     root,
@@ -1530,6 +1557,8 @@ function bindInColorMode(
     register(id, data);
     ownImages(id, urls);
   };
+  // 한 번의 bind/update 동안만 조상 판정을 공유한다. 다음 갱신은 새 상태를 읽는다.
+  const hiddenMemo = new Map<string, boolean>();
   const unpainted: Array<{ id: string; reason: string }> = [];
   const resolvedBindingIds = new Set<string>();
   const tree: CatalogOverflowTree = {
@@ -1655,8 +1684,79 @@ function bindInColorMode(
   const withSticky = (node: CatalogConsumerNode, given: SkiaNodeData) => {
     // ADR-275 Phase 7: a fixed box is drawn in its page's viewport (`renderCommands` — out of its
     // ancestors' clips and scrolls).
-    const data =
-      node.layout.position === "fixed" ? { ...given, isFixed: true } : given;
+    let data =
+      node.layout.position === "fixed" ||
+      node.derivedProps?._overlayPortal === true ||
+      node.derivedProps?._sheetViewport === true
+        ? { ...given, isFixed: true }
+        : given;
+    if (node.derivedProps?._overlayModal === true) {
+      const place = root.getOverlayPlacement(node.id);
+      if (place) {
+        const backdrop = specShapesToSkia(
+          [
+            {
+              type: "rect",
+              id: "bg",
+              x: 0,
+              y: 0,
+              width: "auto",
+              height: "auto",
+              fill: "{color.overlay-backdrop}",
+            },
+          ],
+          colorMode,
+          root.viewport.width,
+          root.viewport.height,
+        );
+        data = {
+          ...data,
+          type: "container",
+          box: undefined,
+          effects: undefined,
+          children: [
+            { ...backdrop, x: -place.x, y: -place.y },
+            { ...given, x: 0, y: 0, elementId: undefined },
+          ],
+        };
+      }
+    }
+    if (node.bindingId === "overlayarrow") {
+      const parent = root.canvasInputs.get(node.parentId);
+      const place = root.getOverlayPlacement(node.parentId);
+      if (parent && place?.arrow) {
+        const size = place.arrow.size;
+        const half = size / 2;
+        const d =
+          place.placement === "bottom"
+            ? `M0 ${size} L${half} ${half} L${size} ${size}`
+            : place.placement === "left"
+              ? `M0 0 L${half} ${half} L0 ${size}`
+              : place.placement === "right"
+                ? `M${size} 0 L${half} ${half} L${size} ${size}`
+                : `M0 0 L${half} ${half} L${size} 0`;
+        const tooltip = parent.bindingId === "tooltip";
+        const paint = specShapesToSkia(
+          [
+            {
+              type: "path",
+              id: "arrow",
+              x: 0,
+              y: 0,
+              width: size,
+              height: size,
+              d,
+              fill: tooltip ? "{color.accent}" : "{color.raised}",
+              ...(tooltip ? {} : { stroke: "{color.border}", strokeWidth: 2 }),
+            },
+          ],
+          colorMode,
+          size,
+          size,
+        );
+        data = { ...data, children: [paint] };
+      }
+    }
     const sticky = stickyOf.get(node.id);
     if (!sticky) return data;
     // A stuck header paints over the items under it (the rule's `z-index` — the DOM's positioned
@@ -1705,7 +1805,7 @@ function bindInColorMode(
       } as CanvasSceneNode);
       layoutMap.set(node.id, { ...rect, elementId: node.id });
       registerOwned(node.id, () =>
-        catalogCanvasHidden(root, node)
+        catalogCanvasHidden(root, node, hiddenMemo)
           ? hiddenScrollBox(node, rect)
           : bindingId === "slot" && context.slotMode === "page"
             ? container(node, rect)
@@ -2059,7 +2159,7 @@ function bindInColorMode(
       registerOwned(
         id,
         () =>
-          catalogCanvasHidden(root, node)
+          catalogCanvasHidden(root, node, hiddenMemo)
             ? hiddenScrollBox(node, rect)
             : withSticky(
                 node,
@@ -2085,6 +2185,7 @@ function bindInColorMode(
      * cannot be placed (the caller binds again).
      */
     const movePageRoots = (): string[] | null => {
+      hiddenMemo.clear();
       const dev = process.env.NODE_ENV === "development";
       // ADR-266 Phase 0: why the page grid binds again instead of placing roots.
       const nullBecause = (reason: keyof typeof renderCounters): null => {
@@ -2140,6 +2241,7 @@ function bindInColorMode(
       return moves.map(([id]) => id);
     };
     const update = (): CatalogCanvasUpdate => {
+      hiddenMemo.clear();
       let geometryQueries = 0;
       const rebind = (id: string, reason: string): CatalogCanvasUpdate => ({
         status: "rebind-required",

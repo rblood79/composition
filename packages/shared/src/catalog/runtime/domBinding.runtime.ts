@@ -1,3 +1,5 @@
+import { catalogS2OverlayPlacement } from "./overlayLayout";
+export { catalogS2OverlayPlacement } from "./overlayLayout";
 import { catalogTextRunsContent } from "./textRunsDom";
 import { paintAt, ruleHasPaintImage } from "../rule/rulePaintTree";
 import {
@@ -2110,17 +2112,6 @@ const S2_OVERLAY_POSITION_OWNERS: ReadonlySet<string> = new Set([
   "MenuTrigger",
 ]);
 
-export function catalogS2OverlayPlacement(
-  props: Readonly<Record<string, unknown>>,
-): string {
-  const direction =
-    typeof props.direction === "string" ? props.direction : "bottom";
-  const align = props.align === "end" ? "end" : "start";
-  if (["left", "right", "start", "end"].includes(direction))
-    return `${direction} ${align === "end" ? "bottom" : "top"}`;
-  return `${direction === "top" ? "top" : "bottom"} ${align}`;
-}
-
 /**
  * S2 1.8.0 `menuWidth` (px): a Picker's Popover takes it as its width (not when quiet — the trigger
  * width stays its minimum; the Popover sheet's size cap gives way, S2's Popover stops only at the
@@ -2322,7 +2313,15 @@ function ruleDom(
     placementOwner &&
     placementOwnerType &&
     s2MenuWidthStyle(placementOwnerType, placementOwner.props);
-  if (menuWidth) style = { ...menuWidth, ...style };
+  if (menuWidth) {
+    style = { ...menuWidth, ...style };
+    if (
+      menuWidth.maxWidth &&
+      node.authoredLayout?.maxWidth === undefined &&
+      catalogAuthoredVisual(root, node).maxWidth === undefined
+    )
+      style.maxWidth = menuWidth.maxWidth;
+  }
   // A Dialog is named by its title (RAC `Heading slot="title"` → `aria-labelledby`, ADR-254); one
   // without a title (and without the author's name) keeps the fallback name. RAC drops the title
   // link whenever an `aria-label` is given (`useDialog`), so the fallback is decided here. In a
@@ -2337,7 +2336,11 @@ function ruleDom(
     rest["aria-label"] = "Dialog";
   // ADR-256 Phase 8a: an overlay's arrow is its `OverlayArrow` child node — the shared overlay
   // draws none of its own.
-  if (lower === "popover" || lower === "tooltip") rest.hideArrow = true;
+  if (lower === "popover" || lower === "tooltip") {
+    rest.hideArrow = true;
+    // shared wrapper는 size prop으로 data-size를 쓰므로 catalog 값을 함께 전달한다.
+    rest.size = node.props.size;
+  }
   // ADR-259 Phase 3: S2 names a ContextualHelp's Popover by its `slot="title"` Heading (without
   // one RAC names it by the trigger).
   if (lower === "contextualhelp")
