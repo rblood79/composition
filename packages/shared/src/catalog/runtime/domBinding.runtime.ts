@@ -1209,15 +1209,39 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       }),
     }),
   // ADR-256 Phase 8a: RAC `OverlayArrow` with the reference starter's svg (its overlay's size —
-  // `_arrowSize`); RAC places it from the trigger and the overlay's sheet turns and paints the svg.
+  // `_arrowSize`); RAC places it from the trigger and the overlay's sheet turns the svg. Its paint
+  // is its overlay's surface (`catalogOverlayArrowPaint` — the Canvas reads the same values).
   overlayarrow: (node, style) => {
     const size = Number(node.derivedProps?._arrowSize ?? 12);
+    const color = (value: unknown) =>
+      typeof value !== "string"
+        ? undefined
+        : value.startsWith("{")
+          ? tokenToCSSVar(value as TokenRef)
+          : value;
+    const fill = color(node.derivedProps?._arrowFill);
+    const stroke = color(node.derivedProps?._arrowStroke);
     return createElement(
       RAC.OverlayArrow as ElementType,
       { key: node.id, "data-catalog-id": node.id, style },
       createElement(
         "svg",
-        { width: size, height: size, viewBox: `0 0 ${size} ${size}` },
+        {
+          width: size,
+          height: size,
+          viewBox: `0 0 ${size} ${size}`,
+          ...(fill
+            ? {
+                style: {
+                  fill,
+                  stroke: stroke ?? "none",
+                  ...(stroke
+                    ? { strokeWidth: node.derivedProps?._arrowStrokeWidth }
+                    : {}),
+                },
+              }
+            : {}),
+        },
         createElement("path", {
           d: `M0 0 L${size / 2} ${size / 2} L${size} 0`,
         }),

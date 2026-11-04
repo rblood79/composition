@@ -1296,21 +1296,24 @@ const OVERLAY_ARROW_PATH: Readonly<
 const overlayArrowTop = (size: number, half: number) =>
   `M0 0 L${half} ${half} L${size} 0`;
 
-/** An open overlay's arrow, drawn at its parent overlay's final placement. */
+/**
+ * An open overlay's arrow, drawn at its parent overlay's final placement in its overlay's surface
+ * paint (`catalogOverlayArrowPaint` — the DOM svg reads the same derived values).
+ */
 function withOverlayArrow(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
   data: SkiaNodeData,
 ): SkiaNodeData {
-  const parent = root.canvasInputs.get(node.parentId);
   const place = root.getOverlayPlacement(node.parentId);
-  if (!parent || !place?.arrow) return data;
+  const fill = node.derivedProps?._arrowFill;
+  if (!place?.arrow || typeof fill !== "string") return data;
+  const stroke = node.derivedProps?._arrowStroke;
   const size = place.arrow.size;
   const d = (OVERLAY_ARROW_PATH[place.placement] ?? overlayArrowTop)(
     size,
     size / 2,
   );
-  const tooltip = parent.bindingId === "tooltip";
   const paint = specShapesToSkia(
     [
       {
@@ -1321,8 +1324,13 @@ function withOverlayArrow(
         width: size,
         height: size,
         d,
-        fill: tooltip ? "{color.accent}" : "{color.raised}",
-        ...(tooltip ? {} : { stroke: "{color.border}", strokeWidth: 2 }),
+        fill,
+        ...(typeof stroke === "string"
+          ? {
+              stroke,
+              strokeWidth: Number(node.derivedProps?._arrowStrokeWidth),
+            }
+          : {}),
       },
     ],
     colorMode,

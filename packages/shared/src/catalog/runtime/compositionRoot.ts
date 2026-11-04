@@ -108,6 +108,7 @@ import {
 } from "./libraryVisual";
 import {
   catalogContainerVariantPaint,
+  catalogOverlayArrowPaint,
   catalogRuleTextColor,
 } from "./rulePaint";
 import { resolveComponentRule } from "../resolvers/resolveComponentRule";
@@ -219,6 +220,7 @@ import {
   CATALOG_COLUMN_SORT_INDICATOR_WIDTH,
   catalogSliderFillLayout,
   catalogSliderThumbs,
+  catalogPartParent,
   catalogStaticPartFrame,
   catalogTreeChevronLayout,
   catalogTreeItemLayout,
@@ -3081,6 +3083,34 @@ export class CatalogCompositionRoot {
     ) {
       const color = catalogSelectPlaceholderColor(this.colorMode);
       if (color) return { ...derived, color };
+    }
+    // An open overlay's arrow paints its overlay's surface (`catalogOverlayArrowPaint`): both
+    // consumers read the same values — the overlay's variant included.
+    if (record.bindingId === "overlayarrow") {
+      const overlay = catalogPartParent(record, get, this.typeOf);
+      const rule =
+        overlay?.ruleId && this.runtime.graph.library.rules.get(overlay.ruleId);
+      if (!overlay || !rule) return derived;
+      const overlayDerived = catalogDerivedProps(
+        overlay,
+        get,
+        this.typeOf,
+        this.environmentLocale,
+        shownRoute,
+      );
+      return {
+        ...derived,
+        ...catalogOverlayArrowPaint({
+          node: overlayDerived
+            ? { ...overlay, props: { ...overlay.props, ...overlayDerived } }
+            : overlay,
+          rule,
+          type: overlay.ruleId!,
+          authoredVisual: catalogAuthoredVisual(this, overlay),
+          state: catalogNodeState(overlay.displayState, this.state),
+          theme: this.colorMode,
+        }),
+      };
     }
     // S2 InlineAlert `fillStyle: boldFill` — its title · content texts go white (black on notice),
     // unless the text authors its own color (the DOM's inline style wins over the sheet's).

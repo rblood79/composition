@@ -337,6 +337,34 @@ export function catalogRulePaint(
   return { props, style, variant, size, paint, theme };
 }
 
+/** The stroke an overlay arrow draws its overlay's border with (the svg path's outer half shows). */
+export const CATALOG_OVERLAY_ARROW_STROKE_WIDTH = 2;
+
+/**
+ * An open overlay's arrow (RAC `OverlayArrow`) is its overlay's surface — the reference starter's
+ * `fill: var(--overlay-background); stroke: var(--border-color)`: the overlay's resolved fill, and
+ * its border (when it draws one) as the stroke. Values stay as the paint gives them (a TokenRef or
+ * a literal) — the DOM writes a token's variable, the Canvas resolves it in its color mode.
+ */
+export function catalogOverlayArrowPaint(
+  input: Omit<CatalogRuleShapeInput, "rect">,
+): Readonly<Record<string, string | number>> {
+  const { paint } = catalogRulePaint(input);
+  const visible = (color: string | undefined) =>
+    color !== undefined && color !== "{color.transparent}" ? color : undefined;
+  const fill = visible(paint.backgroundColor);
+  const stroke = visible(paint.borderColor);
+  return {
+    ...(fill ? { _arrowFill: fill } : {}),
+    ...(stroke
+      ? {
+          _arrowStroke: stroke,
+          _arrowStrokeWidth: CATALOG_OVERLAY_ARROW_STROKE_WIDTH,
+        }
+      : {}),
+  };
+}
+
 /**
  * The text color a label inside a rule-backed item inherits (`MANUAL_ITEM_LABEL_COLORS` — the
  * DOM `.react-aria-Text { color: inherit }` under the item): the item's resolved paint color for

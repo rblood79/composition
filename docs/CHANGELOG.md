@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [overlay 화살표 = 본체 칠 — Canvas · Preview] - 2026-11-04
+
+### Fixed
+
+- **화살표 색이 본체와 같다**
+  열린 Tooltip · Popover 의 화살표가 고정색 (Tooltip `--accent` 파랑 · Popover `--bg-raised`) 대신 본체의 rule 칠을 따른다 — Tooltip neutral 회색 · informative 연파랑 · negative 연빨강, Popover 바탕 `layer-2` + 테두리 `border` (2px stroke). RAC starter 의 `fill: var(--overlay-background); stroke: var(--border-color)` 와 같은 관계다. **Why**: catalog 에 화살표 칠이 없어 DOM 은 수동 시트의 고정색, Canvas 는 그 값을 복사한 리터럴을 썼다 — 둘은 같았지만 본체와 달랐고 variant 를 몰랐다. 두 consumer 가 한 값 (`catalogOverlayArrowPaint` → 화살표 record 의 `_arrowFill` · `_arrowStroke` · `_arrowStrokeWidth`) 을 읽는다 — DOM 은 svg inline (토큰은 CSS 변수), Canvas 는 같은 토큰을 색 모드로 푼다. 작성한 본체 색도 따라간다.
+- 수동 `Tooltip.css` · `Popover.css` 의 화살표 규칙은 Builder chrome (`ActionTooltip` · shared `Popover` · `Tooltip`) 몫으로 남는다 — catalog 노드는 inline 이 이긴다. 수동 시트의 variant 블록 (primary · secondary · tertiary · error · filled) 은 catalog variant 이름과 달라 catalog 노드에는 닿지 않는다.
+- 위치: `packages/shared/src/catalog/runtime/rulePaint.ts`, `compositionRoot.ts` (`derivedOf`), `domBinding.runtime.ts` (`overlayarrow`), `apps/builder/src/builder/catalogRuntime/canvasBinding.ts` (`withOverlayArrow`).
+
+### Tests
+
+- `overlayArrowPaint.test.tsx` — Tooltip neutral · informative · negative, Popover 파생 값 · Canvas path 칠 = 본체 칠 · DOM svg `fill:var(--bg-muted)` · Popover `stroke:var(--border)` 2px. 구현 전 6/6 RED.
+- Live (5175): Canvas Tooltip informative 화살표 연파랑 = 본체, Popover 화살표 바탕 + 테두리. Preview Tooltip svg computed `fill` rgb(219,234,254) = 본체 `background-color`. 콘솔 · runtime 오류 0.
+
 ## [press 효과를 S2 `pressScale` 로 교체 — Preview · Publish] - 2026-11-04
 
 ### Changed
