@@ -7,6 +7,7 @@ import {
   type OverlayPlacement,
 } from "./overlayLayout";
 import { catalogSheetPartLayout, catalogSheetViewport } from "./sheetLayout";
+import { catalogCollectionId, dataCollectionIdOf } from "./dataBinding";
 import { catalogTokenSegments } from "../document/tokenFieldValue";
 import {
   isRichText,
@@ -2040,12 +2041,16 @@ export class CatalogCompositionRoot {
   }
   /** The site language the records were last resolved with (a change redraws every root). */
   private resolvedSiteLocale: string | undefined | null = null;
-  /** Collection references can be chained; collect the dependent collections before their owners. */
+  /**
+   * The binding owners that show one of these collections — directly, or through a collection whose
+   * reference field (ADR-284) reads it, transitively.
+   */
   private collectionBindingSources(ids: readonly string[]): Set<string> {
     const collections = new Set(
       ids.filter((id) => id.startsWith("data:collection:")),
     );
-    if (!collections.size) return new Set();
+    const sources = new Set<string>();
+    if (!collections.size) return sources;
     const graph = this.runtime.graph;
     const project = graph.getEntry(graph.projectId);
     const readers = new Map<string, string[]>();
@@ -2057,9 +2062,7 @@ export class CatalogCompositionRoot {
       for (const field of entry.schema) {
         const ref = field.reference?.collectionId;
         if (!ref) continue;
-        const target = ref.startsWith("data:collection:")
-          ? ref
-          : `data:collection:${ref}`;
+        const target = catalogCollectionId(dataCollectionIdOf(ref));
         const list = readers.get(target) ?? [];
         list.push(id);
         readers.set(target, list);
@@ -2072,13 +2075,21 @@ export class CatalogCompositionRoot {
           collections.add(id);
           queue.push(id);
         }
-    return new Set([...collections].flatMap((id) => [...graph.bindingsOf(id)]));
+    for (const id of collections)
+      for (const source of graph.bindingsOf(id)) sources.add(source);
+    return sources;
   }
-  private dataReaderRoots(ids: readonly string[]): Set<NodeId> {
-    const roots = new Set<NodeId>();
+  /**
+   * The binding owners that read these data ids: a collection's lists (and its reference readers'),
+   * the lists reading a shared view (directly, or through a view derived from it — ADR-284), and,
+   * for a project variable, every binding whose key or view reads a variable.
+   */
+  private dataReaderSources(ids: readonly string[]): Set<string> {
     const sources = this.collectionBindingSources(ids);
-    const variables = ids.some((id) => id.startsWith("data:variable:"));
-    if (variables)
+    for (const id of ids)
+      if (this.runtime.graph.getEntry(id)?.kind === "view")
+        for (const source of this.viewReaders(id)) sources.add(source);
+    if (ids.some((id) => id.startsWith("data:variable:")))
       for (const sourceId of this.sourceInstances.keys()) {
         const entry = this.runtime.graph.getEntry(sourceId);
         const binding = entry?.kind === "node" ? entry.binding : undefined;
@@ -2088,12 +2099,16 @@ export class CatalogCompositionRoot {
         )
           sources.add(sourceId);
       }
-    for (const source of sources)
+    return sources;
+  }
+  private dataReaderRoots(ids: readonly string[]): Set<NodeId> {
+    const roots = new Set<NodeId>();
+    for (const source of this.dataReaderSources(ids))
       for (const record of this.sourceInstances.get(source) ?? []) {
         const root = this.recordRoots.get(record);
         if (root) roots.add(root);
       }
-    if (variables)
+    if (ids.some((id) => id.startsWith("data:variable:")))
       for (const id of this.stateReaders()) {
         const root = this.recordRoots.get(id);
         if (root) roots.add(root);
@@ -2382,6 +2397,41 @@ export class CatalogCompositionRoot {
     return this.deliver(plan, notices);
   }
 
+  /** The candidates no other candidate contains (their subtrees are disjoint). */
+  private outermostRegions(candidates: ReadonlySet<string>): string[] {
+    return [...candidates].filter((id) => {
+      for (
+        let parent = this.records.get(id)?.parentId;
+        parent;
+        parent = this.records.get(parent)?.parentId
+      )
+        if (candidates.has(parent)) return false;
+      return true;
+    });
+  }
+  /**
+   * Re-resolve disjoint region subtrees of one root: `before` = their current record ids, `next` =
+   * their resolved records, `lookup` = the next record, else the current one.
+   */
+  private resolveRegions(
+    rootId: NodeId,
+    regions: readonly string[],
+    onVisit: () => void,
+  ) {
+    const before = new Set<string>();
+    const next = new Map<string, CatalogConsumerNode>();
+    const collect = (id: string) => {
+      before.add(id);
+      for (const child of this.records.get(id)?.children ?? []) collect(child);
+    };
+    for (const id of regions) {
+      collect(id);
+      for (const [key, record] of this.flatten(rootId, id, onVisit))
+        next.set(key, record);
+    }
+    const lookup = (key: string) => next.get(key) ?? this.records.get(key);
+    return { before, next, lookup };
+  }
   /** Reuse the structural resolver's region contract for data-driven owner subtrees. */
   private planBindingOwners(
     sources: ReadonlySet<string>,
@@ -2397,19 +2447,10 @@ export class CatalogCompositionRoot {
           region = this.records.get(region.parentId);
         if (region) candidates.add(region.id);
       }
-    const regions = [...candidates].filter((id) => {
-      for (
-        let parent = this.records.get(id)?.parentId;
-        parent;
-        parent = this.records.get(parent)?.parentId
-      )
-        if (candidates.has(parent)) return false;
-      return true;
-    });
     let resolverVisits = 0;
     let visits = 0;
     const grouped = new Map<NodeId, string[]>();
-    for (const id of regions) {
+    for (const id of this.outermostRegions(candidates)) {
       const rootId = this.recordRoots.get(id)!;
       const list = grouped.get(rootId) ?? [];
       list.push(id);
@@ -2417,24 +2458,11 @@ export class CatalogCompositionRoot {
     }
     const roots: ConsumePlan["roots"][number][] = [];
     for (const [rootId, ids] of grouped) {
-      const previous = new Set<string>();
-      const collect = (id: string) => {
-        if (previous.has(id)) return;
-        previous.add(id);
-        for (const child of this.records.get(id)?.children ?? [])
-          collect(child);
-      };
-      const next = new Map<string, CatalogConsumerNode>();
-      for (const id of ids) {
-        collect(id);
-        for (const [key, record] of this.flatten(
-          rootId,
-          id,
-          () => resolverVisits++,
-        ))
-          next.set(key, record);
-      }
-      const lookup = (key: string) => next.get(key) ?? this.records.get(key);
+      const { before, next, lookup } = this.resolveRegions(
+        rootId,
+        ids,
+        () => resolverVisits++,
+      );
       visits += next.size;
       const updates = [...next]
         .map(([id, record]) => this.planRecord(id, record, rootId, lookup))
@@ -2449,7 +2477,7 @@ export class CatalogCompositionRoot {
       roots.push({
         rootId,
         updates,
-        removed: [...previous].filter((id) => !next.has(id)),
+        removed: [...before].filter((id) => !next.has(id)),
       });
     }
     return {
@@ -5835,11 +5863,10 @@ export class CatalogCompositionRoot {
           (op.entry.kind === "collection" || op.entry.kind === "view"),
       )
     ) {
-      const sources = this.collectionBindingSources([...result.changedIds]);
-      for (const id of result.changedIds)
-        if (this.runtime.graph.getEntry(id)?.kind === "view")
-          for (const source of this.viewReaders(id)) sources.add(source);
-      return this.planBindingOwners(sources, result);
+      return this.planBindingOwners(
+        this.dataReaderSources([...result.changedIds]),
+        result,
+      );
     }
     const ownedStructure = this.planOwnedRemovalOrOrder(result);
     if (ownedStructure) return ownedStructure;
@@ -5949,8 +5976,9 @@ export class CatalogCompositionRoot {
       }
     // ADR-286 R8: data definitions are document entries — their step redraws what reads them
     // (no store subscription after the fact): a collection's schema · rows → the lists bound to it
-    // (and to a collection whose reference field reads it); a project variable → every `{{ }}`
-    // reader and every binding whose key or view reads a variable.
+    // (and to a collection whose reference field reads it); a shared view (ADR-284) → the lists
+    // reading it, whose binding did not change; a project variable → every `{{ }}` reader and every
+    // binding whose key or view reads a variable.
     for (const root of this.dataReaderRoots([
       ...result.changedIds,
       ...result.removedIds,
@@ -5964,16 +5992,6 @@ export class CatalogCompositionRoot {
       this.siteLocale() !== this.resolvedSiteLocale
     )
       for (const root of currentRoots) affectedRoots.add(root);
-    // ADR-284: a shared view changed — the lists reading it (directly, or through a view derived
-    // from it) show other rows; their binding did not change, so nothing else names them.
-    for (const id of result.changedIds) {
-      if (this.runtime.graph.getEntry(id)?.kind !== "view") continue;
-      for (const nodeId of this.viewReaders(id))
-        for (const record of this.sourceInstances.get(nodeId) ?? []) {
-          const root = this.recordRoots.get(record);
-          if (root && currentRoots.has(root)) affectedRoots.add(root);
-        }
-    }
     let visits = 0;
     let resolverVisits = 0;
     const roots: ConsumePlan["roots"][number][] = [];
@@ -6003,33 +6021,13 @@ export class CatalogCompositionRoot {
         for (const sourceId of result.impact.affectedParents)
           for (const id of this.sourceInstances.get(sourceId) ?? [])
             if (this.recordRoots.get(id) === rootId) candidates.add(id);
-      const regions = [...candidates].filter((id) => {
-        for (
-          let parent = this.records.get(id)?.parentId;
-          parent;
-          parent = this.records.get(parent)?.parentId
-        )
-          if (candidates.has(parent)) return false;
-        return true;
-      });
+      const regions = this.outermostRegions(candidates);
       if (regions.length) {
-        const before = new Set<string>();
-        const next = new Map<string, CatalogConsumerNode>();
-        const collect = (id: string) => {
-          before.add(id);
-          for (const child of this.records.get(id)?.children ?? [])
-            collect(child);
-        };
-        for (const id of regions) {
-          collect(id);
-          for (const [key, record] of this.flatten(
-            rootId,
-            id,
-            () => resolverVisits++,
-          ))
-            next.set(key, record);
-        }
-        const lookup = (key: string) => next.get(key) ?? this.records.get(key);
+        const { before, next, lookup } = this.resolveRegions(
+          rootId,
+          regions,
+          () => resolverVisits++,
+        );
         // ADR-257: a structure change inside a Table (a column added · removed · moved, the
         // selection checkbox placed in a Column) re-derives its header row's and Rows' tracks
         // outside the changed region.
