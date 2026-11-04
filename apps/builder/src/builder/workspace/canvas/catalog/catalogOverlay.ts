@@ -47,6 +47,9 @@ export interface CatalogOverlayInputs {
   session: () => CatalogSessionState;
   /** Scene-coordinate boxes of the drawn records (the bound stream's `boundsMap`). */
   bounds: () => ReadonlyMap<string, BoundingBox>;
+  /** 열린 overlay owner는 본체의 최종 scene 경계로 선택·측정한다. */
+  selectionBounds?: (identity: string) => BoundingBox | undefined;
+  selectionHitBounds?: (identity: string) => BoundingBox | undefined;
   /** Builder-only page frames; never part of document paint or Preview/Publish. */
   pageBorders?: () => {
     roots: readonly string[];
@@ -149,7 +152,7 @@ export interface CatalogOverlayInputs {
 /** The box around every selected record (one selection: its own box). */
 export function catalogSelectionBox(
   state: Pick<CatalogSessionState, "selection">,
-  bounds: ReadonlyMap<string, BoundingBox>,
+  bounds: Pick<ReadonlyMap<string, BoundingBox>, "get">,
 ): BoundingBox | null {
   return calculateCombinedBounds(
     state.selection.flatMap((item) => {
@@ -179,7 +182,7 @@ export function catalogAiEffectBounds(
 
 export function catalogMeasureGuides(
   state: Pick<CatalogSessionState, "selection" | "hover">,
-  bounds: ReadonlyMap<string, BoundingBox>,
+  bounds: Pick<ReadonlyMap<string, BoundingBox>, "get">,
   measuring: boolean,
 ) {
   const hovered = state.hover?.identity;
@@ -236,6 +239,9 @@ export function catalogOverlayNode(
     renderSkia: (canvas) => {
       const state = inputs.session();
       const bounds = inputs.bounds();
+      const selectionBounds = inputs.selectionBounds
+        ? { get: inputs.selectionBounds }
+        : bounds;
       const zoom = inputs.zoom();
       const selected = new Set(state.selection.map((item) => item.identity));
       const hoverId = state.hover?.identity;
@@ -338,7 +344,9 @@ export function catalogOverlayNode(
         // The hovered record's page decides the cut (its leaves are on the same page).
         withOccluders(ck, canvas, occludersOf(hoverId), () => {
           // The visible part (a page body is in neither map's clip: its own box).
-          const hovered = hit?.get(hoverId) ?? bounds.get(hoverId);
+          const hovered = inputs.selectionHitBounds
+            ? inputs.selectionHitBounds(hoverId)
+            : (hit?.get(hoverId) ?? bounds.get(hoverId));
           if (hovered)
             renderHoverHighlight(
               ck,
@@ -388,7 +396,7 @@ export function catalogOverlayNode(
       const dashed = inputs.dashedSelection?.();
       for (const item of state.selection) {
         if (moving.has(item.identity)) continue;
-        const box = bounds.get(item.identity);
+        const box = selectionBounds.get(item.identity);
         if (box)
           renderSelectionBox(
             ck,
@@ -465,7 +473,7 @@ export function catalogOverlayNode(
       if (state.textEditing) return;
       // A multi-selection also shows the box around it all, with its size (the handles only
       // mark it: a resize takes one element).
-      const box = catalogSelectionBox(state, bounds);
+      const box = catalogSelectionBox(state, selectionBounds);
       if (box && state.selection.length > 1)
         renderSelectionBox(ck, canvas, box, zoom);
       if (box) {
@@ -481,7 +489,7 @@ export function catalogOverlayNode(
         }
       const measure = catalogMeasureGuides(
         state,
-        bounds,
+        selectionBounds,
         inputs.measuring?.() ?? false,
       );
       if (measure.length)

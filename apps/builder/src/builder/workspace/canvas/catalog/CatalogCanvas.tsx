@@ -580,11 +580,15 @@ export function CatalogCanvas({
       if (preview?.ghost) ghosts.push(preview.ghost);
       return ghosts.length
         ? calculateCombinedBounds(ghosts)
-        : catalogSelectionBox(state, scene.stream.boundsMap);
+        : catalogSelectionBox(state, {
+            get: (id) => scene.selectionBounds(id),
+          });
     };
     const overlay = catalogOverlayNode(ck, {
       session: workspace.session.getSnapshot,
       bounds: () => scene.stream.boundsMap,
+      selectionBounds: (id) => scene.selectionBounds(id),
+      selectionHitBounds: (id) => scene.selectionHitBounds(id),
       pageBorders: () => ({
         roots: scene.pageRootIds,
         color: pageBorderColor,
@@ -629,6 +633,7 @@ export function CatalogCanvas({
           : null;
       },
       hoverLeaves: (identity) => {
+        if (scene.selectionTarget(identity) !== identity) return [];
         // A page body is an empty area (canvas-interaction §8.6): no guides.
         const records = workspace.root.canvasInputs;
         if (records.get(identity)?.parentId === "catalog:root") return [];
@@ -784,6 +789,7 @@ export function CatalogCanvas({
       },
       graph: workspace.runtime.graph,
       bounds: (id) => scene.stream.boundsMap.get(id),
+      selectionTarget: (id) => scene.selectionTarget(id),
       pick: (x, y) => picking.pick(x, y),
       selection: () => workspace.session.getSnapshot().selection,
       itemOfRecord: (record) => workspace.itemOfRecord(record),
@@ -1115,7 +1121,7 @@ export function CatalogCanvas({
     });
     const disconnectBounds = viewState.connectBounds((identity) => {
       syncScene();
-      return scene.stream.boundsMap.get(identity);
+      return scene.selectionBounds(identity);
     });
     // Live harness handle: scene boxes and the camera (screen ↔ scene) — dev, or a G5 harness build.
     if (

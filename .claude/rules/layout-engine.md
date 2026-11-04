@@ -16,6 +16,8 @@ paths:
 
 # 레이아웃 엔진 규칙
 
+- `display: contents`의 보고용 경계에 `position: fixed` 자식의 중간 상자를 합치지 않는다. fixed 좌표의 기준 변경은 최종 viewport 배치가 담당한다. **Why (2026-11-04)**: padding 24×56 안의 100×32 트리거가 fixed overlay를 열면 0,0의 124×88 선택 경계로 변했다. 중첩 contents·fixed 위치 변경에서도 트리거 경계와 viewport 좌표가 각각 유지되어야 한다.
+
 - flex item 재배치의 used 크기는 백분율 min/max의 새 containing block이 아니다. 원래 부모 문맥에서 해소한 제약을 임시 적용하고 저작 값을 복원한다. 미해소 %를 px로 치환한 반환도 content 슬롯으로 되돌릴 때 padding을 제외한다. **Why (2026-11-03)**: Open Sheet의 `max-height:90%`가 두 번 적용되고 SheetContent의 padding이 중복되어 Preview와 높이가 달랐다.
 
 - 숨김 처리로 서브트리 layout을 0으로 덮어쓸 때는 기존 solve 결과와 available 키도 함께 무효화한다. **Why (2026-11-03)**: Sheet Open의 활성→비활성→활성에서 clean 자손이 이전 `last_solved`로 skip되어 제목·본문·닫기 버튼의 좌표가 0에 남았다. 숨긴 서브트리는 clean 상태를 유지하되 재표시 첫 solve는 다시 실행해야 한다.

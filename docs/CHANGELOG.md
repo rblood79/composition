@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Open overlay 선택 영역 정합 — Canvas] - 2026-11-04
+
+### Fixed
+
+- **열린 본체 기준의 선택 표시**
+  Sheet·Dialog·Popover·Tooltip·Menu·Select·ComboBox·DatePicker·DateRangePicker·ContextualHelp·PreviewTrigger를 Open하면 선택 테두리·hover·치수·눈금자·측정·선택 확대가 본체의 최종 경계를 사용한다. 닫으면 트리거/필드 경계로 돌아간다.
+- **선택 대상과 편집 대상의 일치**
+  속성 패널의 인스턴스 선택은 유지하고 resize는 표시 본체의 override에 기록한다. 열린 본체를 끌어서 배경 트리거를 이동시키는 것을 방지한다.
+- **contents 경계의 fixed 자식 제외**
+  최종 viewport 배치 전의 fixed 상자를 contents 보고용 경계에 합치지 않아 트리거 위치·크기가 왜곡되지 않는다. RAC 라이브러리는 수정하지 않는다.
+- 위치: `apps/builder/src/builder/catalogRuntime/canvasSelectionGeometry.ts`, `canvasScene.ts`, `canvasGesture.ts`, `apps/builder/src/builder/workspace/canvas/catalog/CatalogCanvas.tsx`, `catalogOverlay.ts`, `packages/engine/src/tree.rs`.
+
+### Tests
+
+- 11종 Open/Close/Undo·본체 선택, Sheet·Dialog·Popover resize/취소/Undo, 다중 페이지 이동, 일반 노드의 자손 탐색 없음, 중첩 contents/fixed 좌표의 증분 회귀 검사.
+
 ## [Overlay Canvas 증분 계산 최적화] - 2026-11-04
 
 ### Fixed

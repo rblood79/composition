@@ -2701,7 +2701,9 @@ impl LayoutTree {
             let Some(kn) = self.get(k) else { continue };
             let rect = if style_is_contents(&kn.style) {
                 self.settle_contents(k)
-            } else if kn.style.display.as_deref() == Some("none") {
+            } else if kn.style.display.as_deref() == Some("none") || style_is_fixed(&kn.style) {
+                // fixed의 최종 배치는 뒤의 viewport 단계가 소유한다. 초기/이전 상자를
+                // contents 보고용 경계에 합치거나 여기서 부모 좌표로 재기준화하지 않는다.
                 None
             } else {
                 let l = kn.layout;
@@ -14696,6 +14698,27 @@ mod tests {
     }
 
     // ── display: contents (CSS-DISPLAY-3 §2.5 — ADR-256 Phase 6g) ──
+
+    #[test]
+    fn contents_fixed_overlay_does_not_pollute_reporting_box() {
+        let mut tree = LayoutTree::new();
+        let h = tree.build_tree_batch(r#"[
+            {"style":{"width":"100px","height":"32px"},"children":[]},
+            {"style":{"position":"fixed","insetLeft":"40px","insetTop":"350px","width":"310px","height":"144px"},"children":[]},
+            {"style":{"display":"contents"},"children":[1]},
+            {"style":{"display":"contents"},"children":[0,2]},
+            {"style":{"display":"flex","flexDirection":"column","paddingLeft":"24px","paddingTop":"56px","width":"390px","height":"844px"},"children":[3]},
+            {"style":{"display":"block"},"children":[4]}
+        ]"#).unwrap();
+        tree.set_viewport(390.0, 844.0);
+        for top in [350, 400, 350] {
+            tree.update_style(h[1], serde_json::from_str(&format!(r#"{{"position":"fixed","insetLeft":"40px","insetTop":"{top}px","width":"310px","height":"144px"}}"#)).unwrap());
+            tree.compute_layout(h[5], 390.0, 844.0);
+            assert_eq!(abs_rect(&tree, h[3]), (24.0, 56.0, 100.0, 32.0));
+            assert_eq!(abs_rect(&tree, h[0]), (24.0, 56.0, 100.0, 32.0));
+            assert_eq!(abs_rect(&tree, h[1]), (40.0, top as f32, 310.0, 144.0));
+        }
+    }
 
     /// `h` 의 페이지 좌표 — 소비자처럼 노드 트리를 따라 부모 좌표를 더한다.
     fn abs_rect(tree: &LayoutTree, h: usize) -> (f32, f32, f32, f32) {

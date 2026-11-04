@@ -29,6 +29,7 @@ import {
   type CatalogScrollOffsets,
 } from "./canvasBinding";
 import type { CatalogCompositionRoot } from "./compositionRoot";
+import { catalogSelectionSurface } from "./canvasSelectionGeometry";
 
 export type CatalogCanvasSceneSync =
   | { readonly kind: "unchanged" }
@@ -137,6 +138,15 @@ export class CatalogCanvasScene {
 
   get stream() {
     return this.binding.stream;
+  }
+  selectionTarget(identity: string): string {
+    return catalogSelectionSurface(this.root, identity);
+  }
+  selectionBounds(identity: string): BoundingBox | undefined {
+    return this.stream.boundsMap.get(this.selectionTarget(identity));
+  }
+  selectionHitBounds(identity: string): BoundingBox | undefined {
+    return this.stream.hitBoundsMap.get(this.selectionTarget(identity));
   }
   get pageRootIds(): readonly string[] {
     return this.rootIds;

@@ -152,6 +152,8 @@ export interface CatalogGestureHost {
   /** Topmost drawn record under a scene point. */
   pick(x: number, y: number): string | undefined;
   selection(): readonly CatalogSelectionItem[];
+  /** 선택 표시는 owner를 유지하되 resize는 표시 중인 overlay 본체를 수정한다. */
+  selectionTarget?(identity: string): string;
   /** The edit target of a drawn record (ADR-261 — drops write to it, not to its source node). */
   itemOfRecord(id: string): CatalogSelectionItem | undefined;
   /** The entered container (its direct children are the marquee's level). */
@@ -511,6 +513,18 @@ export class CatalogCanvasGestures {
     leader: string,
     options: { copy?: boolean } = {},
   ): boolean {
+    // portal 표시를 잡아 흐름 안의 트리거를 재배치하지 않는다. 본체의 명시적
+    // 선택/배치는 기존 하위 요소 편집 계약을 따른다. 혼합 선택도 잘못 이동하지 않는다.
+    if (
+      this.host
+        .selection()
+        .some(
+          (item) =>
+            (this.host.selectionTarget?.(item.identity) ?? item.identity) !==
+            item.identity,
+        )
+    )
+      return false;
     const records = this.host.records;
     const leaderRecord = records.get(leader);
     const startBox = this.host.bounds(leader);
@@ -1448,8 +1462,15 @@ export class CatalogCanvasGestures {
   private singleElement(): CatalogSelectionItem | undefined {
     const selection = this.host.selection();
     if (selection.length !== 1) return undefined;
-    const record = this.host.records.get(selection[0].identity);
-    return record && record.parentId !== PAGE_GRID ? selection[0] : undefined;
+    const identity =
+      this.host.selectionTarget?.(selection[0].identity) ??
+      selection[0].identity;
+    const item =
+      identity === selection[0].identity
+        ? selection[0]
+        : this.host.itemOfRecord(identity);
+    const record = this.host.records.get(identity);
+    return record && record.parentId !== PAGE_GRID ? item : undefined;
   }
 
   private commandOf(
