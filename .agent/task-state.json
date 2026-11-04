@@ -35,26 +35,31 @@
     ],
     "evidenceDirectory": ".agent/runs/2026-10-21-canvas-performance-check"
   },
-  "goal": "",
-  "phase": "adr299_proposed",
+  "goal": "ADR-300 SideNav 가족 실행 (/execute-adr 300) — Phase 0 → 4",
+  "phase": "adr300_simplify_pushed",
   "next": [
-    "[x] Canvas letterSpacing: Skia 앞뒤 반씩 → CSS 뒤에만",
-    "[x] Canvas 밑줄 두께 = CSS",
-    "[x] Badge 글자 굵기 Canvas = CSS 600",
-    "[x] live Compare Mode 확인 · CHANGELOG",
-    "[x] 커밋 6da24bf6c · push 완료",
-    "[x] Badge 상자 세로 원인 확인: Canvas y28 / CSS y24.25 — leafBaseline 미공급(바닥 정렬) 3px + Button vertical-align:middle 미전달 0.75px",
-    "[x] 1. styleOf 가 leafBaseline · strut (lineHeight · strutBaseline · strutXHeight) 공급 — fontBox = CanvasKit",
-    "[x] 2. 엔진 middle x-height (Rust 58 필드 · wasm) · Button verticalAlign catalog 이관 (ToggleButton 제외)",
-    "[x] live Compare Mode 5175: Badge CSS 24.242 / Canvas 24.25 · CHANGELOG",
-    "[ ] 커밋은 사용자 요청 때 — pathspec",
-    "[x] ADR-299 범위 서식 Proposed 작성 (본문 · breakdown · README) — 리뷰 · 착수 · 커밋은 사용자 요청 때",
-    "[x] ADR-299 리뷰 round 1 HIGH 3 반영 (본문 · breakdown · README · reviews outcome fixed) — 수리 검증 · 커밋은 사용자 요청 때",
-    "[x] ADR-299 리뷰 닫힘 (round 2 HIGH 0) · 커밋 73b5996f4 · push 완료 — 착수는 /execute-adr 299 요청 때"
+    "[x] 리뷰 닫힘 확인 (reviews/300 round 2 HIGH 0 · pending 0) → Accepted",
+    "[x] Phase 0: 다섯 층 상태 · 기준 DOM 두 arm · 번들 B 1,406,043 / P 322,341 (여유 3,957 · 2,659) · 문서 3곳 (CHANGELOG 면제 — 동작 변경 0)",
+    "[x] Phase 1: 7 type · origin 3 · rule 7 · 생성 CSS 6 · contract 54 · 다섯 층 (sideNav.ts) · G1 9 + d2 RED · 문서 4곳 — 결정 4 = 권고",
+    "[x] Phase 0 · 1 커밋 c7c88e9c4 push (pathspec · 섞인 2 파일은 contract hunk 만)",
+    "[x] Phase 2 구현: sideNav.components.tsx (lazy chunk · sideNav.lazy.ts) · delegated sidenavpanel/sidenav · 부품 3 · route context · rule DOM 보정 · view transition CSS · deploy.yml 상한 단계",
+    "[x] Phase 2 검증: G2 단위 8 (원복 RED 2) · live 5175 Compare Mode (키보드 ↓←→ · 링크 없는 부모 Enter 펼침 · 링크 Enter 이동 · 접기 42/펴기 순서 · view transition 3종 · 콘솔 0) · 번들 B 1,409,679 / P 323,814 PASS (Builder 여유 321)",
+    "[ ] 보고: Publish 전용 layer 밖 `* { margin: 0 }` (apps/publish/src/styles/index.css:23) 가 생성 sheet margin 을 이김 — 범위 밖 기존 결함",
+    "[x] Phase 2 판독 1 (MEDIUM 1 행 gap → 수리 · 가설 lazy 경계 → 수리, 원복 RED 각 1) · 문서 4곳 · 번들 B 1,409,737 / P 323,815 PASS — 커밋 51967baba push",
+    "[x] Phase 3 — Canvas G3 harness 12/12 · 원복 RED 10/10 · 결함 2 수리 · 판독 1 (HIGH 1 수리 · MEDIUM 반증 GREEN) · live 5175 · 번들 1,410,880 → 상한 1,414,000 재승인 · 문서 4곳",
+    "[x] Phase 3 커밋 10cdaae1a push ( — pathspec: 내 파일만, 299 breakdown · CatalogTextEditor 등 다른 세션 파일 제외, 생성 CSS 2 포함)",
+    "[x] Phase 4 결정 3 = (b) SideNav · SideNavPanel 둘 (사용자 11-03)",
+    "[x] Phase 4 팔레트 · Interactions (collapse concept · SideNav expansion) · Library 상태 견본 3 · 패널 nav 항목 소유 + code view · 접기 버튼 S2 quiet · Aria Label — unit · G3 12/12 · RED 7/7 · type-check PASS",
+    "[x] Phase 4 G4 번들 측정",
+    "[x] Phase 4 G5 live 5175 (팔레트 · Layers · Design · Preview 이동 · 접기 · 키보드 · Undo/Redo · 새로고침 · code view · Library 카드)",
+    "[x] 판독 1회 → Implemented · completed/ 이동 · README · CHANGELOG",
+    "[x] 커밋/push d0606e758 (main)",
+    "[ ] (사용자 판단 대기) 레퍼런스 SideNavPanelApp 같은 「header + 패널 + 내용」 시작 template — ADR-300 범위 밖",
+    "[x] /simplify (d0606e758) — quietIconSquareRules 공용 · ITEMS_ON_ANOTHER_CARD → 걷기가 카드 원본 아래로 안 내려감 (카드 줄 31 dump 동일) · holdsList · NAMES 삭제 · 테스트 helper 3 — type-check PASS · G3 12/12 · builder unit 실패 16 = 기존 목록 · 커밋 e44758261 push"
   ],
   "guard": "다른 세션 dirty 변경 보존 (pathspec 커밋) · 사용자 5173 서버 건드리지 않음 (live 는 5174+) · 마이그레이션 코드 0 · 커밋/push 는 사용자 요청 때만",
   "stop": "type-check 실패 커밋 금지",
-  "updatedAt": "2026-11-02T09:18:39.562066+00:00",
+  "updatedAt": "2026-11-04T06:57:35.131222+00:00",
   "componentEmptyDoubleClick": {
     "task": "Body 선택 후 컴포넌트 빈 영역 더블클릭 선택 수리",
     "phase": "verified",
@@ -1852,5 +1857,735 @@
     "push": "git push origin main 성공; git ls-remote origin refs/heads/main 독립 SHA 일치 확인",
     "commitChecks": "typecheck 6/6 PASS; Vitest77 + node41 PASS; 검증 production artifact와 runtime4파일 token 일치",
     "localReviewPreservation": "reviews/292·293 및 공유 reviews/295 Round7~9는 다른 세션의 미커밋 Round7 의존 기록과 함께 로컬에 보존; commit 미포함"
+  },
+  "adr299": {
+    "goal": "ADR-299 글자 범위 서식 실행 (/execute-adr 299) — Phase 0 → 4",
+    "phase": "adr299_phase4_pending_commit",
+    "next": [
+      "[x] 리뷰 닫힘 확인 (reviews/299 round 2 HIGH 0 · pending 0) → Accepted",
+      "[x] Phase 0: G0 (a) IME PASS (chromium 7 · webkit 7 · 대조 arm RED) · 기준선 B 1,400,437 / P 322,300 · PM 5 · 인벤토리 41 → record 에 plain + run 별도 필드",
+      "[x] Phase 1: RichText · textRuns · validation · contract 53 · record plain+textRuns · G3 14 + record 3 · 원복 RED 2 · Δ B +1,464 / P +40 · 문서 4곳",
+      "[x] Phase 2: Canvas · DOM · 측정 run · G2 8/8 · 원복 RED 4 · Δ B +1,946 / P +1 · F18 정정 (조상 장식선 = 글자 요소 inline) · 문서 4곳",
+      "[x] Phase 3: PM 편집기 lazy · 편집 범위 · handle · Mixed · 결정 3 · 코드 보기 span · G4 16 · RED 2 · G1 (PM chunk initial 밖, Δ B +1,961)",
+      "[~] Phase 4: live 11행 (결함 2 수리: ⌘Z 옛 run · Properties [object Object]) · 문서 4곳 · 규칙 2 — 남은 것: 커밋 요청 → G5 ratchet · native 한글 IME 사용자 확인 → Implemented · git mv completed",
+      "[ ] 커밋은 사용자 요청 때 — pathspec",
+      "[x] 사용자 보고 수리 (11-02): Typography 초기화 · 노드 값으로 되돌림 뒤 span>span 잔존 → 초기화가 구간 축도 지움 · 노드와 같은 값은 mark 제거 · 첫 편집 첫 글자 유실 (대체 textarea caret) — 원복 RED 3 · live 「ADR299 reset」 PASS"
+    ],
+    "note": "코드 커밋 b0d1e77e4 반영 · 남은 것: native 한글 IME 사용자 확인 → Implemented · git mv completed"
+  },
+  "adr299ImplementationReview": {
+    "task": "ADR-299 설계 대비 구현 완료 검토",
+    "phase": "review_complete",
+    "result": "MEDIUM 3 pending; 설계대로 완료 승인 불가",
+    "scope": "제품 코드/ADR 상태 무변경; 공유 ADR300 변경 보존",
+    "validation": "기존 48 PASS; scope exit browser 2 RED; baseline engine-input 1 RED",
+    "evidenceDirectory": ".agent/runs/2026-11-02-adr299-implementation-review",
+    "reviewLog": "docs/adr/reviews/299.md round 3",
+    "reviewChecks": "schema PASS 192/192; diff check PASS; review format FAIL (검사만, 자동 포맷 없음)"
+  },
+  "adr299Fix": {
+    "task": "ADR299 MEDIUM 3 근본 수정",
+    "phase": "committed_pushed",
+    "result": "3 fixed pending 0",
+    "validation": "unit31/editor24/G2baseline12/typecheck6 PASS; production Tab commit1/error0/firstEdit326.4ms; registration/agent-catalog/guard/diff PASS; preflight formatFAIL",
+    "evidenceDirectory": ".agent/runs/2026-11-02-adr299-fix",
+    "reviewLog": "docs/adr/reviews/299.md round 4",
+    "limits": "full ratchet/native IME not repeated; existing editor decoration LOW deferred",
+    "commit": "b8fb26ad5a0aa56fc0753304fd67f8576573ffad",
+    "remote": "origin/main",
+    "remoteVerification": "git ls-remote SHA exact match",
+    "commitChecks": "typecheck6 PASS; owned14 paths; existing format FAIL disclosed"
+  },
+  "textEditorLineHeight": {
+    "task": "Enter 줄별 글자 크기 편집 겹침 수리",
+    "phase": "verified_local_uncommitted",
+    "evidenceDirectory": ".agent/runs/2026-11-02-text-editor-line-height",
+    "result": "CSS line-height ratio restored; browser26/unit13/typecheck6 PASS; live Canvas/Preview height130 & reload same; pageerror0",
+    "limitations": "preflight formatFAIL; 자동 포맷 없음; commit/push 미수행",
+    "status": "committed_pushed",
+    "commit": "43fe1e325f01eed7ddf0828262c7fd2bc4b5a9b4",
+    "remote": "origin/main",
+    "remoteShaVerified": true
+  },
+  "textEditorColdStart": {
+    "status": "committed_pushed",
+    "request": "새로고침 및 Dashboard 재진입 첫 편집에서 서식 지연",
+    "run": ".agent/runs/2026-11-03-text-editor-cold-start",
+    "finding": "lazy EditorField fallback textarea flattens RichText until chunk resolves",
+    "fix": "selection prewarm; rich styled read-only fallback; pending key isolation",
+    "tests": {
+      "unit": 26,
+      "browser": 26,
+      "typecheck": "6/6 PASS",
+      "guard": "PASS",
+      "diffCheck": "PASS",
+      "preflight": "FAIL formatting warnings; no formatting applied"
+    },
+    "limitations": [
+      "RichText stays read-only until editor chunk is ready"
+    ],
+    "live": {
+      "reload": "PASS",
+      "dashboardReentry": "PASS",
+      "pendingBackspace": "PASS",
+      "runsPreserved": true,
+      "errors": 0
+    },
+    "rootCause": "lazy textarea fallback flattened RichText; readonly fallback requires global capture shortcuts to recognize role textbox",
+    "commit": "43fe1e325f01eed7ddf0828262c7fd2bc4b5a9b4",
+    "remote": "origin/main",
+    "remoteShaVerified": true
+  },
+  "packagesSimplifyReview": {
+    "task": "packages 감사에서 확인한 6개 문제와 3개 정리 후보 개선",
+    "phase": "committed_pushed_verified",
+    "status": "complete",
+    "scope": "확인된 6개 문제와 3개 정리 후보 26개 파일 커밋 및 origin/main push 완료",
+    "unverified": "wall-clock 성능·전체 브라우저 조합·Rust 엔진은 변경 범위 밖. 차트/큐 수치는 연산 횟수이며 응답시간 수치가 아님.",
+    "findings": [
+      "MEDIUM: view cache excludes transitive reference rows; nested target change returns stale rows",
+      "MEDIUM: reference resolver duplicates snapshot selection and loses mock fallback/status semantics",
+      "MEDIUM: DOM TagGroup items adapter inherits Canvas 100-row projection cap",
+      "MEDIUM: repeated text filters in ListBox/GridList/TagGroup exclude numeric zero",
+      "MEDIUM: idle upload readiness pumps rescan whole queue N times (100:10000, 200:40000)",
+      "LOW: chart groupOthers recalculates all-series ranking scores per sort comparison"
+    ],
+    "validation": {
+      "sharedTests": "53 files / 532 tests PASS",
+      "chartTests": "28 files / 473 tests PASS",
+      "uploadTests": "4 files / 72 tests PASS",
+      "uploadSizeGate": "1 test PASS; core+tus 5880/6144 B gzip; IIFE 8108/10240 B gzip",
+      "preflight": "PASS: guard, formatting check, typecheck 6/6, registration, agent catalog",
+      "live": "PASS: Builder SideNav collapse/expand and reduced motion; Canvas/Preview TagGroup/Chart smoke; DOM 150 rows and row-149 filter; 0/false in 3 components; stable subscription and cleanup; toast reduced motion; page errors 0"
+    },
+    "evidenceDirectory": ".agent/runs/2026-11-03-packages-simplify-review",
+    "improvements": {
+      "referenceCache": "transitive rows/schema/missing dependencies tracked from evaluator",
+      "referenceSnapshot": "canonical fallback/loading/error/empty semantics",
+      "domDataRange": "full rows by default, explicit display limit only",
+      "collectionFilters": "one pure filter, stable default fields, zero/false searchable",
+      "uploadQueue": "incremental active count and ready waiting set; idle 200-file full scans 40000 to 0",
+      "chartRanking": "1000 categories x 8 series reads 133808 to 16000",
+      "geometry": "shared boundsOfPoints with existing bboxOf alias",
+      "motion": "shared usePrefersReducedMotion; stable subscribe and SSR snapshot",
+      "resolver": "unconditional DBGR/DBGN logs removed"
+    },
+    "commit": "c826549b4b68d40a340518dd58141e845412aef0",
+    "remote": "origin/main",
+    "remoteShaVerified": true
+  },
+  "mcpStartupFix": {
+    "task": "5개 MCP 시작 실패 복구",
+    "phase": "verified",
+    "cause": "PATH references removed nvm v24.15.0; installed default v24.22.1",
+    "scope": "user-local node/npm/npx launchers; actual MCP initialize/tools/list validation",
+    "evidenceDirectory": ".agent/runs/2026-11-03-mcp-startup-fix",
+    "changes": [
+      "~/.local/bin/node",
+      "~/.local/bin/npm",
+      "~/.local/bin/npx"
+    ],
+    "status": "complete",
+    "validation": {
+      "rea": {
+        "initializeSeconds": 1.124,
+        "toolsCount": 207,
+        "status": "PASS",
+        "readonlyCall": "PASS"
+      },
+      "design-data": {
+        "initializeSeconds": 1.073,
+        "toolsCount": 7,
+        "status": "PASS",
+        "readonlyCall": "PASS"
+      },
+      "obsidian": {
+        "initializeSeconds": 1.069,
+        "toolsCount": 12,
+        "status": "PASS",
+        "readonlyCall": "PASS"
+      },
+      "creative_production_mcp": {
+        "initializeSeconds": 0.317,
+        "toolsCount": 1,
+        "status": "PASS",
+        "readonlyCall": "not_exercised"
+      },
+      "openai-api-key-local-confirmation": {
+        "initializeSeconds": 0.221,
+        "toolsCount": 3,
+        "status": "PASS",
+        "readonlyCall": "not_exercised"
+      }
+    },
+    "guard": "PASS",
+    "limitations": "현재 대화에 로드된 MCP 목록은 재시작 전까지 갱신되지 않음; 별도 프로세스로 실제 설정의 initialize/tools/list 검증",
+    "updatedAt": "2026-11-02T23:14:17.725987+00:00"
+  },
+  "racComponentInventory": {
+    "task": "RAC 누락 점검 후 TokenField, PreviewTrigger, Sheet 추가",
+    "phase": "implemented_and_verified",
+    "scope": "Components 패널, Library 원본, RAC DOM 및 Canvas 계약, 회귀 테스트",
+    "evidenceDirectory": ".agent/runs/2026-11-03-rac-component-inventory",
+    "findings": [
+      "ColorPicker는 색 공유 조합이며 ColorSwatchPicker는 견본 선택. 기존 ColorPicker shell은 이번 범위에서 변경하지 않음.",
+      "Virtualizer는 shared ListBox/Table에 TanStack 구현이 있으나 catalog collection 자동 연결은 아님."
+    ],
+    "verification": {
+      "typecheck": "PASS: 6 packages",
+      "focusedTests": "PASS: 신규 6, census 1, palette 5, RAC slot 5",
+      "registration": "PASS",
+      "agentCatalog": "PASS",
+      "guard": "PASS",
+      "live": "PASS: 세 컴포넌트 패널 삽입, TokenField 토큰 입력, Preview hover/focus/Escape, Sheet 열기/Close/Escape/포커스 복귀, Library 원본 표시 및 새 Sheet 카드 세로 배치",
+      "preflight": "공용 task-state.json의 기존 포맷 문제로 중단; 제품 파일 범위 포맷 별도 확인"
+    },
+    "limitations": [
+      "픽셀 단위 전체 parity 및 터치 swipe/long press는 미실행",
+      "Library 계약 55: 이전 개발 문서 자동 변환 없음"
+    ],
+    "updatedAt": "2026-11-03T04:55:59.295644+00:00",
+    "propertyAudit": {
+      "status": "fixed_and_verified",
+      "updatedAt": "2026-11-03T04:16:00.416243+00:00",
+      "changes": [
+        "Sheet 재사용 원본 편집 스키마: overlay 4개와 Sheet overscrollPadding을 trigger 상태와 병합",
+        "Canvas Sheet open 판정: 명시적 isOpen 우선, defaultOpen fallback; trigger 변경 의존성으로 hidden/레이아웃 증분 갱신",
+        "Library open 견본 및 다른 overlay 정책 보존"
+      ],
+      "verification": {
+        "red": "신규 회귀 2건 수정 전 실패 확인",
+        "tests": "15 PASS (racNewComponents 8 + adr255OverlayTrigger 7)",
+        "typecheck": "6 packages PASS",
+        "format": "변경 범위 PASS",
+        "live": "실제 Property 5개 전달; Prevent Dismissal Escape 제어; Open false/true 양쪽 표시; 전체 props reload 복원; Canvas 본문 실화면 확인",
+        "preflight": "guard PASS; 기존 공용 task-state.json 포맷 문제로 전체 중단"
+      },
+      "limits": [
+        "Canvas는 편집용 본문 표시이며 RAC viewport 고정 위치·snap/gesture 시각 재현을 이번에 추가하지 않음",
+        "터치 swipe 직접 조작 및 pixelmatch 미실행"
+      ],
+      "evidenceProject": "59c28c45-d0ac-4a79-85f8-fd82bb86234c"
+    },
+    "sheetReopen": {
+      "status": "fixed_and_verified",
+      "updatedAt": "2026-11-03T04:27:07.669582+00:00",
+      "cause": "zero_subtree_layout이 layout은 0으로 만들지만 last_solved/last_avail/last_definite_h를 남겨 재표시 때 clean 자손 skip. 제목·본문·버튼 좌표가 0에 잔류.",
+      "fix": "Rust zero_subtree_layout에서 solve 캐시 무효화. clean 플래그는 유지하여 숨김 중 반복 solve를 방지. WASM 재빌드 완료.",
+      "verification": {
+        "red": "Rust 단독 block 재표시: descendant 0 (0,0,0,0) != (24,24,100,18); 브라우저 Sheet title/content/close 좌표 0 재현",
+        "rust": "단위 505 + 통합 40 + doc 1 PASS",
+        "vitest": "racNewComponents 9 PASS",
+        "typecheck": "6 packages PASS",
+        "live": "Open off/on 3회 모든 Sheet 자손 geometry가 최초 표시와 정확히 일치; 화면 겹침 없음",
+        "format": "변경 파일 PASS; 전체 preflight 기존 공용 task-state.json 포맷 미해결"
+      },
+      "evidence": "output/playwright/rac-additions/sheet-reopen-fixed.png",
+      "note": "열려 있던 Builder는 새 WASM 로딩을 위해 새로고침 필요"
+    },
+    "sheetHandle": {
+      "status": "fixed_and_verified",
+      "updatedAt": "2026-11-03T04:44:02.101800+00:00",
+      "cause": "RAC 예제의 sheet-handle 장식 노드가 DOM과 Canvas 구현 모두에 없었음",
+      "changes": [
+        "공용 sheetChrome 정의로 치수·색·방향 배치 공유",
+        "SheetOverlay의 preventDismissal·swipeDirection을 Sheet derived props로 전달하고 의존성 등록",
+        "DOM handle 및 Canvas roundRect 추가"
+      ],
+      "verification": {
+        "tests": "racNewComponents 10 PASS; preventDismissal·direction 편집 및 Undo 회귀 포함",
+        "typecheck": "6 packages PASS",
+        "format": "변경 파일 범위 PASS; git diff --check PASS",
+        "live": "Compare Canvas/CSS: preventDismissal=false handle 표시, true 숨김; true Escape·바깥 클릭 차단, false 닫힘; right 방향 전환 확인",
+        "geometry": "bottom 80x6, top inset 12; right 6x80, left inset 12",
+        "preflight": "guard PASS; 공용 .agent/task-state.json 기존 포맷 문제로 중단"
+      },
+      "evidence": [
+        "output/playwright/rac-additions/sheet-handle-canvas.png",
+        "output/playwright/rac-additions/sheet-handle-css.png",
+        "output/playwright/rac-additions/sheet-handle-hidden-canvas.png"
+      ],
+      "limits": [
+        "터치 swipe 직접 조작 및 전체 pixelmatch 미실행",
+        "Canvas는 편집용 본문 표시; RAC viewport 위치·snap/gesture 시각 전체 재현은 기존 제한 유지"
+      ]
+    },
+    "commitPush": {
+      "sha": "bbca53c78460eb1140ab2ba52af896316c33f194",
+      "remote": "origin/main",
+      "remoteVerified": true,
+      "updatedAt": "2026-11-03T04:55:59.295644+00:00",
+      "files": 73,
+      "liveRecheck": "PASS: Compare handle DOM 0→1→0, Canvas false→true→false; Playwright; 이번 재확인에서 새 콘솔 오류 없음",
+      "excluded": [
+        ".agent/task-state.json"
+      ]
+    }
+  },
+  "sheetBackdropAudit": {
+    "status": "implemented_verified_uncommitted",
+    "finding": "SheetBackdrop rootSelectors background nested under styles; CSS regenerated",
+    "evidenceDirectory": ".agent/runs/2026-11-03-sheet-backdrop",
+    "verification": {
+      "red": "new backdrop regression fails before source fix",
+      "tests": "CSS 26 + RAC 10 + registration 6 PASS",
+      "typecheck": "6 packages PASS",
+      "format": "owned files PASS",
+      "guard": "PASS",
+      "agentCatalog": "PASS",
+      "diffCheck": "PASS",
+      "preflight": "FAIL: pre-existing shared .agent/task-state.json formatting"
+    },
+    "live": "6 checks PASS; Compare and standalone Preview cover entire viewport with rgba(0,0,0,0.5); Close/Escape/outside click/focus; page errors 0",
+    "limitations": [
+      "Touch swipe and custom snapPoints not exercised",
+      "Full pixel equality not asserted: see canvasOpenParity measurements"
+    ],
+    "modalComparison": {
+      "status": "verified_read_only",
+      "color": "both rgba(0, 0, 0, 0.5), element opacity 1, viewport 1920x1080",
+      "source": "installed RAC 1.22.1 sourcemaps: SheetOverlay reuses ModalOverlay; Sheet reuses Modal; background paint supplied by app CSS",
+      "difference": "Modal literal vs Sheet token; entry/exit animation differs",
+      "evidence": ".agent/runs/2026-11-03-sheet-backdrop/modal-comparison.json"
+    },
+    "sharedToken": {
+      "status": "implemented_verified_uncommitted",
+      "change": "ModalOverlay uses --overlay-backdrop like SheetBackdrop",
+      "tests": "Modal adjacent 5 PASS; owned CSS/docs format PASS; diff check PASS",
+      "live": "Both default rgba(0,0,0,0.5), override rgba(12,34,56,0.3), restore PASS; Modal Close PASS; Sheet nested fixture Close not asserted due pointer interception; page errors 0",
+      "preflight": "blocked by pre-existing shared task-state format; guard PASS",
+      "typecheck": "not repeated: CSS/docs only; previous TS validation remains applicable",
+      "evidence": ".agent/runs/2026-11-03-sheet-backdrop/shared-token-live.json"
+    },
+    "commitPush": {
+      "status": "committed-push-blocked",
+      "commit": "223f2564d725858ba082608ded1872c680c6fbd6",
+      "push": "rejected by automatic approval policy: approval required but AskForApproval is Never",
+      "remoteMain": "bbca53c78460eb1140ab2ba52af896316c33f194",
+      "remoteMatches": false,
+      "files": 39
+    },
+    "propertyOpenAudit": {
+      "status": "canvas_preview_discrepancy_confirmed",
+      "input": "Property Open=true via real Builder UI",
+      "canvas": "Sheet 0,32 360x146; backdrop 0,32 1920x0 with no fill",
+      "preview": "Sheet 780,934 360x146; backdrop 0,0 1920x1080 rgba(0,0,0,0.5)",
+      "scope": "Prior fix is DOM backdrop restoration and shared CSS token; Canvas placement/backdrop remains unresolved",
+      "evidence": ".agent/runs/2026-11-03-sheet-backdrop/property-open-audit.json",
+      "resolution": "Implemented by canvasOpenParity; original discrepancy retained above as baseline"
+    },
+    "canvasOpenParity": {
+      "status": "implemented_verified_uncommitted",
+      "implementation": [
+        "Viewport fixed SheetOverlay with RAC resting position alignment; Library and Local origin editing remain inline",
+        "Shared catalog overlay-backdrop paint, rgba alpha preservation",
+        "Flex re-solve preserves parent-relative percentage constraints and content-box padding"
+      ],
+      "verification": {
+        "builderTests": "33 PASS across final scoped runs",
+        "cssTests": "6 PASS",
+        "rust": "547 PASS including doctest",
+        "live": "5 positions, Open off/on and full viewport backdrop match; console errors 0",
+        "pixels": "threshold 0.1: 1720 / 1016064 (0.1693%); background samples both [127,127,127,255]",
+        "typecheck": "6 packages PASS",
+        "format": "owned files PASS; global preflight blocked by pre-existing shared task-state formatting",
+        "registration": "6 PASS",
+        "agentCatalog": "PASS"
+      },
+      "evidence": ".agent/runs/2026-11-03-sheet-backdrop/canvas-live-final.json",
+      "screenshots": ".output/playwright/sheet-backdrop/{canvas,preview,diff}-open-final.png",
+      "limitations": [
+        "Touch swipe and custom snapPoints not exercised",
+        "Text and viewport edge raster differences remain; no claim of full pixel equality",
+        "Earlier commit request remains blocked by approval policy; new changes are uncommitted"
+      ]
+    }
+  },
+  "overlayOpenParity": {
+    "status": "complete",
+    "scope": "Existing overlay Open properties and Canvas/Preview parity",
+    "evidenceDirectory": ".agent/runs/2026-11-03-overlay-open",
+    "verification": {
+      "focusedTests": "112 PASS in 10 files",
+      "typecheck": "6 packages PASS",
+      "registration": "6 PASS",
+      "agentCatalog": "PASS",
+      "live": "10 component families: Open, close, reopen PASS; reload retains Open; console errors 0",
+      "backdrop": "Canvas and Preview samples both [127,127,127,255]",
+      "preflight": "guard PASS; format blocked only by pre-existing shared .agent/task-state.json formatting"
+    },
+    "rootCauses": [
+      "Canvas unconditionally hid overlays except Sheet",
+      "Missing Open bindings on pickers and overlay bodies",
+      "ComboBox RAC state requires public context bridge after collection readiness",
+      "Portal external styles and arrow state missing from Canvas",
+      "Hidden portal lost fixed layer identity, leaving stale command spans for idle warmup"
+    ],
+    "limitations": [
+      "Menu Preview uses pressed trigger transform: measured vertical delta 1px; other geometry differences <=0.25px",
+      "Nested SubmenuTrigger has no independent RAC Open prop; remains parent-menu controlled",
+      "Custom content, all placement/locale combinations and touch interaction not exhaustively exercised"
+    ],
+    "git": {
+      "status": "committed-push-blocked",
+      "commit": "223f2564d725858ba082608ded1872c680c6fbd6",
+      "push": "rejected by automatic approval policy: approval required but AskForApproval is Never",
+      "remoteMain": "bbca53c78460eb1140ab2ba52af896316c33f194",
+      "remoteMatches": false,
+      "files": 39
+    }
+  },
+  "overlayPerformanceReview": {
+    "status": "review-complete",
+    "scope": "Read-only performance audit of Sheet/overlay Open changes",
+    "evidenceDirectory": ".agent/runs/2026-11-03-overlay-perf",
+    "sourceChanges": false,
+    "browser": {
+      "environment": "headed Chrome 156, Vite dev, 1600x1000, synthetic 620-record document, 12 measured samples per case",
+      "widthSyncMedianClosedMs": 1.0,
+      "widthSyncMedianOpenMs": 1.1,
+      "fillSyncMedianClosedMs": 0.5,
+      "fillSyncMedianOpenMs": 0.5,
+      "errors": []
+    },
+    "findings": [
+      "No material single-overlay slowdown in the measured browser case; paint-only edits do not settle overlays",
+      "Open 50 synthetic Selects: unrelated edit sync median 17.86ms; settlement itself 0.31ms / 150 single-ID geometry queries",
+      "Overlay descriptor walks ancestors before rejecting ordinary node types",
+      "Canvas hidden checks repeat ancestor traversal: 626 records, depth 20, 6978 checks"
+    ],
+    "limits": [
+      "Closed/open comparison is feature cost, not a same-behavior before/after regression proof",
+      "Synthetic scale data is not production workload distribution",
+      "First RAF is not final paint completion; no production performance gate run"
+    ]
+  },
+  "overlayOptimizationPlan": {
+    "status": "plan-complete-implementation-not-started",
+    "updatedAt": "2026-11-04T02:53:21.864819+09:00",
+    "scope": "overlay 성능 비용 3영역 외부 리서치 비교 및 실행 계획",
+    "artifact": ".agent/runs/2026-11-04-overlay-optimization-plan/plan.md",
+    "sourceChanges": false,
+    "baselineEvidence": ".agent/runs/2026-11-03-overlay-perf/",
+    "recommendations": [
+      "fixed 서브트리 가지치기 및 제약 기반 측정·solve 재사용",
+      "active overlay geometry 일괄 조회와 입력 비교",
+      "overlay 타입 조기 판정 및 Canvas update 범위 가시성 memo"
+    ],
+    "sequence": [
+      "P0 paired baseline 및 trace",
+      "P1 조상 탐색 제거",
+      "P2 geometry batch 및 입력 비교",
+      "P3 fixed layout 최적화",
+      "P4 production parity 및 성능 검증"
+    ],
+    "limits": [
+      "이번 턴 성능 재측정 없음",
+      "17.86ms 중 엔진 세부 비용 기여는 trace 필요",
+      "전체 geometry 변경 목록 없이 무관함을 단정하는 selective skip은 도입하지 않음"
+    ]
+  },
+  "overlayOptimizationImplementation": {
+    "status": "complete",
+    "scope": "자체 engine/catalog/Canvas 최적화. Adobe 패키지 수정 금지",
+    "evidenceDirectory": ".agent/runs/2026-11-04-overlay-optimization",
+    "adobePackagesModified": false,
+    "implemented": [
+      "fixed viewport 단일 배치·서브트리 가지치기·크기 재사용",
+      "overlay geometry batch 및 rollback 가능한 입력 캐시",
+      "타입 조기 판정 및 Canvas 갱신 단위 가시성 memo"
+    ],
+    "regressionsRepaired": [
+      "fixed anchor의 부모 좌표 환산",
+      "숨긴 조상 재표시 시 fixed 최종 크기 캐시 무효화"
+    ],
+    "baselineIssue": "열린 Sheet 방향 연속 변경 중 Preview가 닫힘: 변경 전 production에서도 재현",
+    "verification": {
+      "rust": 550,
+      "vitest": 98,
+      "typecheck": "6 packages PASS",
+      "preflight": "PASS",
+      "productionOverlayFamilies": 10,
+      "sheetPositions": 5,
+      "browserErrors": 0
+    },
+    "report": ".agent/runs/2026-11-04-overlay-optimization/report.md",
+    "productionWidthSyncMs": {
+      "oneOpen": [
+        1.1,
+        0.8
+      ],
+      "fiftyOpen": [
+        10.7,
+        1.3
+      ]
+    },
+    "commitPush": false,
+    "git": {
+      "status": "committed-push-blocked",
+      "commit": "223f2564d725858ba082608ded1872c680c6fbd6",
+      "push": "rejected by automatic approval policy: approval required but AskForApproval is Never",
+      "remoteMain": "bbca53c78460eb1140ab2ba52af896316c33f194",
+      "remoteMatches": false,
+      "files": 39
+    }
+  },
+  "canvasScaleAnalysis": {
+    "status": "analysis-and-research-complete",
+    "scope": "대량 페이지·복합 컴포넌트 Canvas 비용 분석과 외부 리서치 비교; 제품 코드 변경 없음",
+    "evidenceDirectory": ".agent/runs/2026-11-04-canvas-scale-analysis",
+    "baselineCommit": "223f2564d",
+    "updatedAt": "2026-11-04T04:07:32.508967+09:00",
+    "sourceChanges": false,
+    "report": ".agent/runs/2026-11-04-canvas-scale-analysis/report.md",
+    "probes": "4 PASS; operation counts; no browser FPS claim",
+    "next": "P0 기준선 후 P1→P2→P3 순 구현 권고; 이번 요청은 분석·계획까지"
+  },
+  "canvasScaleImplementation": {
+    "status": "committed_pushed",
+    "phase": "remote_verified",
+    "scope": "P0→P1→P2→P3; P4/P5 measured improvements, per-phase validation; Adobe packages unchanged",
+    "evidenceDirectory": ".agent/runs/2026-11-04-canvas-scale-implementation",
+    "updatedAt": "2026-11-03T23:10:06.978283+00:00",
+    "p1": {
+      "status": "PASS",
+      "tests": 27,
+      "scale": "300 non-overlapping pages: clip 44850 -> 0",
+      "typecheck": "6 packages PASS",
+      "live": "30 pages/7332 records pan zoom select edit page-switch drag, errors 0; overlap/edge/far/Compare verified",
+      "pixels": "nonzero screenshot residuals, no full pixel equality claim"
+    },
+    "p2": {
+      "status": "PASS",
+      "tests": 59,
+      "red": "3 regressions fail against HEAD canvasBinding via test-only loader",
+      "typecheck": "6 packages PASS",
+      "live": "10 pages 2228 total: filter 331 -> page switch 289 -> all 2228; reload, errors 0"
+    },
+    "p3": {
+      "status": "PASS",
+      "tests": 51,
+      "red": "7 fail against HEAD compositionRoot",
+      "typecheck": "6 packages PASS",
+      "live": "1014 records: 37 resolver / 13 layout visits, Canvas + Preview rows Undo/Redo reload, errors 0"
+    },
+    "p4": {
+      "status": "PASS",
+      "scope": "Drag presentation reuses bindings; command build remains linear, complex effects/offset spatial path retained pending attribution",
+      "tests": 32,
+      "typecheck": "6 packages PASS",
+      "live": "30 pages 7332 records, drag longtasks 2 -> 0 single paired run, max gap 86.9 -> 42.6ms. Pointer cancel: 0 subscriptions, drop one command, Undo and full-rebuild oracle PASS; browser errors 0"
+    },
+    "p5": {
+      "status": "PASS",
+      "scope": "Budgeted candidate preparation only; resource/cache policy unchanged",
+      "tests": 49,
+      "red": "zero budget before 30000 candidate reads, after 0",
+      "typecheck": "6 packages PASS",
+      "live": "Production 30 pages, zoom 0.1-1 and far page jump, browser errors 0. Idle capped at 1.6ms: maxima 5.6/5.0 -> 1.6/3.6ms; native calls not preemptible"
+    },
+    "integration": {
+      "tests": "22 files 217 PASS; expanded drag oracle 10 PASS",
+      "typecheck": "6 packages PASS",
+      "preflight": "PASS, registration 6 PASS, skills gate no relevant changes",
+      "browserErrors": 0
+    },
+    "report": ".agent/runs/2026-11-04-canvas-scale-implementation/report.md",
+    "deferred": [
+      "Effect paint-bounds / drag offset spatial path: needs effect-focused trace and residual oracle",
+      "Image/text cache policy and shared-root lazy materialization: no policy change without workload evidence"
+    ],
+    "adobePackagesModified": false,
+    "commitPush": {
+      "sha": "0e50dd29b21641a9be6ae98d0ec32847b6de16a6",
+      "remote": "origin/main",
+      "remoteVerified": true,
+      "updatedAt": "2026-11-04T07:08:13.236757+00:00",
+      "files": 33,
+      "verification": {
+        "tests": "13 files 132 PASS",
+        "registration": "6 PASS",
+        "typecheck": "6 packages PASS",
+        "agentCatalog": "PASS",
+        "live": "Current source: page filter, page switch, reload, pointer drag, cancel, drop and Undo PASS; errors 0",
+        "preflight": "guard PASS; format blocked by shared task-state.json and pre-existing press formatting in componentRulesTable.ts; other scoped files PASS; git diff --check PASS"
+      },
+      "excluded": [
+        ".agent/task-state.json",
+        ".agent/overlay-guidance.md"
+      ]
+    }
+  },
+  "sheetDialogBackdropCheck": {
+    "status": "analysis-complete",
+    "date": "2026-11-04",
+    "scope": "Read-only source and live Preview comparison, no product/document edits",
+    "findings": [
+      "Backdrop equal black 50%, opacity 1, no blur; sampled RGB 127 equal",
+      "Dialog backdrop fade 200/150ms; SheetBackdrop no animation",
+      "Current Sheet inline #ccc and no shadow; Dialog #fafafa and Modal shadow.lg"
+    ],
+    "unverified": "Canvas Open property new pixel capture; Sheet inline color authoring history",
+    "evidenceDirectory": ".agent/runs/2026-11-04-sheet-dialog-backdrop-check"
+  },
+  "sheetDialogEffects": {
+    "task": "Sheet의 배경 fade와 그림자를 Dialog와 통일",
+    "phase": "remote_verified",
+    "scope": "자체 overlay CSS와 catalog 그림자; Adobe RAC 직접 수정 금지",
+    "evidenceDirectory": ".agent/runs/2026-11-04-sheet-dialog-effects",
+    "verification": {
+      "uniqueFiles": 11,
+      "uniqueTests": 176,
+      "logs": [
+        "final-tests.log",
+        "renderer-tests.log"
+      ],
+      "typecheck": "PASS",
+      "preflight": "PASS",
+      "transparentShadowRevert": "RED: 외곽 alpha 0으로 실패; 복원 후 PASS"
+    },
+    "status": "committed_pushed",
+    "live": {
+      "method": "Chrome CUA",
+      "project": "0745b36d-2537-4418-a7f5-3498ee3aa25a",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "scenariosPassed": 6,
+      "errors": 0,
+      "canvas": "Open 완료 상태; 시간에 따른 애니메이션은 기존 Dialog와 같이 재생하지 않음",
+      "preview": "Sheet/Modal fade 진입 200ms, 퇴장 150ms; reduced motion 없음",
+      "pixelComparison": [
+        {
+          "kind": "sheet",
+          "shadowRegion": {
+            "x": 908,
+            "y": 926,
+            "w": 480,
+            "h": 211,
+            "pixels": 19380,
+            "differencePixels": 19,
+            "threshold": 0.1
+          },
+          "backdropCanvas": [
+            127,
+            127,
+            127,
+            255
+          ],
+          "backdropPreview": [
+            127,
+            127,
+            127,
+            255
+          ]
+        },
+        {
+          "kind": "dialog",
+          "shadowRegion": {
+            "x": 908,
+            "y": 475,
+            "w": 480,
+            "h": 279,
+            "pixels": 47784,
+            "differencePixels": 0,
+            "threshold": 0.1
+          },
+          "backdropCanvas": [
+            127,
+            127,
+            127,
+            255
+          ],
+          "backdropPreview": [
+            127,
+            127,
+            127,
+            255
+          ]
+        }
+      ]
+    },
+    "restoration": "검증용 Sheet isOpen override 제거, Dialog 기존 isOpen=false 복원, reduced-motion emulation 해제",
+    "limitations": [
+      "Canvas는 Dialog와 동일하게 Open 완료 상태를 표시; fade 프레임 재생은 Preview",
+      "live theme은 light; dark 토큰은 인접 단위검사로 확인",
+      "Sheet 그림자 영역 픽셀 차이 19/19380; 전체 화면 픽셀 동일성을 주장하지 않음"
+    ],
+    "commitPush": {
+      "sha": "0e50dd29b21641a9be6ae98d0ec32847b6de16a6",
+      "remote": "origin/main",
+      "remoteVerified": true,
+      "updatedAt": "2026-11-04T07:08:13.236757+00:00",
+      "files": 33,
+      "verification": {
+        "tests": "13 files 132 PASS",
+        "registration": "6 PASS",
+        "typecheck": "6 packages PASS",
+        "agentCatalog": "PASS",
+        "live": "Current source: page filter, page switch, reload, pointer drag, cancel, drop and Undo PASS; errors 0",
+        "preflight": "guard PASS; format blocked by shared task-state.json and pre-existing press formatting in componentRulesTable.ts; other scoped files PASS; git diff --check PASS"
+      },
+      "excluded": [
+        ".agent/task-state.json",
+        ".agent/overlay-guidance.md"
+      ]
+    }
+  },
+  "overlaySelectionCheck": {
+    "task": "Open overlay의 Canvas 선택 영역 조사",
+    "phase": "analysis_complete",
+    "scope": "분석 및 재현; 제품 코드 변경 없음",
+    "evidenceDirectory": ".agent/runs/2026-11-04-overlay-selection-check",
+    "result": "Open overlay 선택 영역 오류 재현; 제품 코드 수정 없음",
+    "liveTypes": [
+      "Sheet",
+      "Dialog",
+      "Popover",
+      "Menu",
+      "PreviewTrigger"
+    ],
+    "diagnosticTypes": 11,
+    "report": ".agent/runs/2026-11-04-overlay-selection-check/report.md"
+  },
+  "overlaySelectionFix": {
+    "task": "Open overlay Canvas 선택 영역 수정",
+    "phase": "committed_push_blocked",
+    "scope": "레이아웃 경계와 Builder 선택 표시; RAC 수정 금지",
+    "evidenceDirectory": ".agent/runs/2026-11-04-overlay-selection-fix",
+    "result": "선택 영역 수정 10파일 커밋 완료; 다른 변경 보존. 원격 push는 승인 정책으로 차단됨.",
+    "tests": {
+      "vitest": 135,
+      "rust": 551
+    },
+    "typecheck": "PASS",
+    "liveCanvas": [
+      "Dialog",
+      "Sheet",
+      "Popover",
+      "Menu",
+      "PreviewTrigger"
+    ],
+    "preflight": "BLOCKED_BY_OTHER_DIRTY_FILES_FORMAT",
+    "report": ".agent/runs/2026-11-04-overlay-selection-fix/report.md",
+    "commit": "35e4464aea212cf3f6ca77af2aa90cee798a3355",
+    "push": "BLOCKED: approval required by policy, but AskForApproval is set to Never"
+  },
+  "s2PressScale": {
+    "task": "press 효과를 S2 pressScale 로 교체 (방법 + 범위) — 사용자 요청 11-04",
+    "phase": "committed_pushed f418484a2",
+    "next": [
+      "[x] Phase 1: PRESS 상수 · Button(chevron·drag·trigger 제외) · ToggleButton · Disclosure 예외 삭제 · @property · runtime + CatalogPreviewView 설치 · chrome pins",
+      "[x] Phase 2: Checkbox · Radio · Switch(scale 1.2 1 대체) · CalendarCell(CalendarCommon scale 0.9 이관) · SliderThumb(isDragging · !important) · ToggleButtonGroup span",
+      "[x] Phase 3: MenuItem · ListBoxItem(inPopover) · Tag(+지우기, 수동 0.96·0.9 끔) · Card/quiet CardPreview · SideNavItem(+link) · Toast close",
+      "[x] 테스트: pressScaleS2 11/11 · builderCatalogVars 7/7 · toggleButtonSpanDisplay 갱신 · 변이 RED 2 · type-check shared/rendering/publish/builder PASS · validate:sync PASS",
+      "[x] live 5174 Preview: Button·Toggle·group span·Checkbox·Radio·Switch·Slider·Calendar 셀·nav·NumberField·Select trigger/항목·SideNav 행/링크·링크 Card·quiet preview S2 식 일치 · Disclosure/group 상자/div Card 불변 · 콘솔 오류 0",
+      "[ ] live 미확인: MenuItem (단독 Menu 가 Preview 에 안 그려짐) · Tag 실제 press (Preview Tag 가 span — 속성 강제로 CSS·측정만) · Toast 닫기 (libraryOnly)",
+      "[ ] 번들 게이트 실측 안 함 (추가 gzip 추정 ~708 B)",
+      "[x] 커밋 f418484a2 push — pathspec 커밋 (다른 세션 dirty: componentRulesTable.ts · CHANGELOG · generated Sheet.css 공유)"
+    ],
+    "decisions": "will-change S2 그대로 · ListBoxItem Popover 안만 · 빌더 chrome 옛 값 pins 고정 · ToggleButtonGroup = SegmentedControl span"
   }
 }
