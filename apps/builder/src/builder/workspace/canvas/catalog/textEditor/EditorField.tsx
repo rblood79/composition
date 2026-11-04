@@ -121,7 +121,10 @@ function sameAsNode(value: unknown, node: unknown): boolean {
   if (value === undefined || node === undefined || node === null) return false;
   const text = (item: unknown) =>
     typeof item === "string" || typeof item === "number"
-      ? String(item).trim().toLowerCase().replace(/^(#[0-9a-f]{6})ff$/, "$1")
+      ? String(item)
+          .trim()
+          .toLowerCase()
+          .replace(/^(#[0-9a-f]{6})ff$/, "$1")
       : JSON.stringify(item);
   return text(value) === text(node);
 }
@@ -264,57 +267,51 @@ export default function EditorField(props: EditorFieldProps) {
     });
     // (PM's own editable inside the field — React keeps the field's class · style, PM its editable's.)
     view = new EditorView(element, {
-        state,
-        attributes: {
-          spellcheck: "false",
-          class: "catalog-text-editor-input",
-          style:
-            "outline: none; white-space: inherit; min-height: 100%; caret-color: currentColor",
-        },
-        // Pasted text only (and this editor's own marks — `parseDOM` reads `data-run-mark` spans).
-        transformPastedHTML: (html) => html,
-        clipboardTextSerializer: (slice) => {
-          let text = "";
-          slice.content.forEach((node) => {
-            text += node.isText ? node.text! : "\n";
-          });
-          return text;
-        },
-        dispatchTransaction(tr: Transaction) {
-          const before = view.state;
-          const next = before.apply(tr);
-          view.updateState(next);
-          if (tr.docChanged) {
-            if (!tr.getMeta("text-edit-history")) {
-              const now = Date.now();
-              const last = undo.at(-1);
-              // (Typing in one burst is one undo step.)
-              if (!last || now - last.at > 500 || view.composing)
-                undo.push({
-                  doc: before.doc,
-                  from: before.selection.from,
-                  to: before.selection.to,
-                  at: now,
-                });
-              else last.at = now;
-              redo.length = 0;
-            }
-            latest.current.onChange(valueOf(next.doc), element);
+      state,
+      attributes: {
+        spellcheck: "false",
+        class: "catalog-text-editor-input",
+        style:
+          "outline: none; white-space: inherit; min-height: 100%; caret-color: currentColor",
+      },
+      // Pasted text only (and this editor's own marks — `parseDOM` reads `data-run-mark` spans).
+      transformPastedHTML: (html) => html,
+      clipboardTextSerializer: (slice) => plainOfDoc(slice.content),
+      dispatchTransaction(tr: Transaction) {
+        const before = view.state;
+        const next = before.apply(tr);
+        view.updateState(next);
+        if (tr.docChanged) {
+          if (!tr.getMeta("text-edit-history")) {
+            const now = Date.now();
+            const last = undo.at(-1);
+            // (Typing in one burst is one undo step.)
+            if (!last || now - last.at > 500 || view.composing)
+              undo.push({
+                doc: before.doc,
+                from: before.selection.from,
+                to: before.selection.to,
+                at: now,
+              });
+            else last.at = now;
+            redo.length = 0;
           }
-          notifyTextEditorChange();
+          latest.current.onChange(valueOf(next.doc), element);
+        }
+        notifyTextEditorChange();
+      },
+      handleDOMEvents: {
+        focus: (current) => {
+          if (HELD.getState(current.state))
+            current.dispatch(current.state.tr.setMeta(HELD, false));
+          return false;
         },
-        handleDOMEvents: {
-          focus: (current) => {
-            if (HELD.getState(current.state))
-              current.dispatch(current.state.tr.setMeta(HELD, false));
-            return false;
-          },
-          blur: (current) => {
-            current.dispatch(current.state.tr.setMeta(HELD, true));
-            return false;
-          },
+        blur: (current) => {
+          current.dispatch(current.state.tr.setMeta(HELD, true));
+          return false;
         },
-      });
+      },
+    });
     // Opening selects the whole text (the textarea's `select()`) — or, when keys went to the
     // fallback textarea first, keeps its caret (the next key must not replace what was typed).
     const size = view.state.doc.content.size;
@@ -332,23 +329,36 @@ export default function EditorField(props: EditorFieldProps) {
       ),
     );
     view.focus();
+    let kept:
+      | {
+          state: EditorState;
+          markCss: MarkCss;
+          out: Partial<Record<TextRunMarkKey, unknown>>;
+        }
+      | undefined;
     setTextEditorHandle({
       identity,
       rich,
       // (Values as the panel shows them — a token as its value, a size in px; `mixed` kept.)
+      // Kept per editor state (and theme): every PM transaction re-renders the panel, which asks
+      // twice a render — the same object keeps its memo.
       marks: () => {
-        const value = fromDoc(view.state.doc);
-        const [from, to] = rangeOf(view.state);
+        const { state } = view;
+        const { markCss } = latest.current;
+        if (kept?.state === state && kept.markCss === markCss) return kept.out;
+        const [from, to] = rangeOf(state);
         const raw: Partial<Record<TextRunMarkKey, unknown>> = {};
         if (from === to) {
-          for (const mark of view.state.storedMarks ??
-            view.state.selection.$from.marks())
+          for (const mark of state.storedMarks ?? state.selection.$from.marks())
             raw[mark.type.name as TextRunMarkKey] = mark.attrs.value;
-        } else Object.assign(raw, textRunMarksIn(value, from, to));
+        } else Object.assign(raw, textRunMarksIn(fromDoc(state.doc), from, to));
         const out: Partial<Record<TextRunMarkKey, unknown>> = {};
-        for (const [key, item] of Object.entries(raw) as [TextRunMarkKey, unknown][])
-          out[key] =
-            item === "mixed" ? item : (latest.current.markCss(key, item) ?? item);
+        for (const [key, item] of Object.entries(raw) as [
+          TextRunMarkKey,
+          unknown,
+        ][])
+          out[key] = item === "mixed" ? item : (markCss(key, item) ?? item);
+        kept = { state, markCss, out };
         return out;
       },
       apply: (key, value) => {

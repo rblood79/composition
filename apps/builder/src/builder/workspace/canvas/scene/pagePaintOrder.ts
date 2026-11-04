@@ -9,7 +9,7 @@
  * "보이는데 클릭이 다른 페이지로 가는" 비대칭이 생긴다 (catalog Canvas, 2026-10-04):
  *  1. 페인트: `CatalogCanvasScene` 의 `activeRoot` → 페이지 root 순서 (배열 뒤 = 위에 그려짐)
  *  2. 히트: `pickTopmostRecord` 가 스트림 순서 (subtree 시작 위치) 로 고르므로 1 을 따른다
- *  3. 콘텐츠성 오버레이 chrome: `catalogOccludingPages` — 뒤에 그려지는 페이지 상자를 잘라 낸다
+ *  3. 콘텐츠성 오버레이 chrome: `createCatalogPageChrome().occludersOf` — 뒤에 그려지는 페이지 상자를 잘라 낸다
  *  4. 페이지 헤더 DOM 층 (ADR-221): PageHeaderLayer 렌더 순서 = 헤더끼리 z-order,
  *     위 페이지 body ∪ 헤더 에 가려지는 구간은 clip-path 로 잘라 히트도 막는다
  *     (usePageHeaderPlacement — clip 밖은 pointer 대상 아님)

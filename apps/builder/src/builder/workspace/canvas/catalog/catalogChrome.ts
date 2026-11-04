@@ -86,13 +86,16 @@ export function catalogSlotMarks(
   return marks;
 }
 
+/** The most scene px a zero-height slot band takes — what a spatial query must cover. */
+export const SLOT_BAND_MAX = 48;
+
 /**
  * The drawn height of a slot mark (scene units). A slot that has a box is hatched at that box; only
  * one of no height gets a band the author can see and pick — 48 screen px, and never more than 48
  * scene px, so zooming out shrinks it with the content instead of growing it over its neighbours.
  */
 export function catalogSlotBand(height: number, zoom: number): number {
-  return height > 0 ? height : Math.min(48, 48 / zoom);
+  return height > 0 ? height : Math.min(SLOT_BAND_MAX, SLOT_BAND_MAX / zoom);
 }
 
 /** The leaf records under a record (its own id when it has no children). */
@@ -108,35 +111,4 @@ export function catalogLeafRecords(
   };
   visit(id);
   return leaves;
-}
-
-/**
- * The boxes of the pages painted after a record's own page (canvas-interaction §8.5, 2026-08-12):
- * content chrome of the record (slot hatch, row remainder, binding badge, hover outline) is cut
- * there — the ancestor clip (`hitBoundsMap`) knows nothing about other pages, and the overlay pass
- * draws over the whole scene. `paintRoots` is the scene's page root order (active page last).
- */
-export function catalogOccludingPages(
-  identity: string,
-  parentOf: (id: string) => string | undefined,
-  paintRoots: readonly string[],
-  boundsOf: (id: string) => BoundingBox | undefined,
-): BoundingBox[] {
-  // A page frame already has its paint-order identity; only descendants need ancestry reads.
-  let at = paintRoots.indexOf(identity);
-  if (at < 0) {
-    let pageRoot = identity;
-    for (
-      let parent = parentOf(pageRoot);
-      parent && parent !== "catalog:root";
-      parent = parentOf(pageRoot)
-    )
-      pageRoot = parent;
-    at = paintRoots.indexOf(pageRoot);
-  }
-  if (at < 0) return [];
-  return paintRoots.slice(at + 1).flatMap((id) => {
-    const box = boundsOf(id);
-    return box ? [box] : [];
-  });
 }

@@ -234,7 +234,7 @@ export interface RenderCounters {
   warmPassRebuilt: number;
   warmCandidatesLinear: number;
   /**
-   * Overlay chrome (slot marks · row remainders · page occluders) built from the records — once
+   * Overlay chrome (slot marks · row remainders · page index) built from the records — once
    * per scene change, not per camera-only frame (`catalogOverlayChrome.ts`, 2026-10-21).
    */
   overlayChromeBuilt: number;

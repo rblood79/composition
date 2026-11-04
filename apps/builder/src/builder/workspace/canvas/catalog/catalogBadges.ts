@@ -10,7 +10,11 @@ import type {
   BindingBadgeInfo,
   BindingBadgeTarget,
 } from "../skia/overlayTypes";
-import { intersectBoxes, type BoundingBox } from "../selection/types";
+import {
+  intersectBoxes,
+  pointInBox,
+  type BoundingBox,
+} from "../selection/types";
 
 export interface CatalogBadgeData {
   collections: ReadonlyMap<string, DataTable>;
@@ -128,12 +132,6 @@ export function catalogBadgeAt(
 ): DataBadgeBounds | undefined {
   let found: DataBadgeBounds | undefined;
   for (const badge of badges.values())
-    if (
-      point.x >= badge.x &&
-      point.x <= badge.x + badge.width &&
-      point.y >= badge.y &&
-      point.y <= badge.y + badge.height
-    )
-      found = badge;
+    if (pointInBox(point, badge)) found = badge;
   return found;
 }

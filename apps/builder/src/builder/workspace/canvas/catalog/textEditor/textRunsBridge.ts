@@ -11,11 +11,13 @@
 import {
   Schema,
   type Mark,
+  type Fragment,
   type MarkSpec,
   type Node as PMNode,
 } from "prosemirror-model";
 import {
   normalizeRichText,
+  richTextRuns,
   TEXT_RUN_MARK_KEYS,
   type TextRunMarkKey,
 } from "../../../../../../../../packages/shared/src/catalog/document/textRuns";
@@ -105,10 +107,8 @@ function marksOf(schema: Schema, marks: TextRunMarks | undefined): Mark[] {
 
 /** The written text (a string or runs) as the editor's document. */
 export function toDoc(schema: Schema, value: string | RichText): PMNode {
-  const runs: readonly TextRun[] =
-    typeof value === "string" ? (value ? [{ text: value }] : []) : value.runs;
   const inline: PMNode[] = [];
-  for (const run of runs) {
+  for (const run of richTextRuns(value)) {
     const marks = marksOf(schema, run.marks);
     run.text.split("\n").forEach((line, index) => {
       if (index > 0)
@@ -132,8 +132,11 @@ export function fromDoc(doc: PMNode): string | RichText {
   return normalizeRichText({ kind: "text", runs });
 }
 
-/** The editor's plain text (`\n` for a hard break) — what the bound / plain fields commit. */
-export function plainOfDoc(doc: PMNode): string {
+/**
+ * The editor's plain text (`\n` for a hard break) — what the bound / plain fields commit and
+ * what a copy puts on the clipboard (a document or a copied slice's content).
+ */
+export function plainOfDoc(doc: PMNode | Fragment): string {
   let text = "";
   doc.forEach((node) => {
     text += node.isText ? node.text! : "\n";

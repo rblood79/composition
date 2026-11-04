@@ -36,7 +36,8 @@ import {
  * text keeps its marks in a read-only projection instead of a lossy plain textarea.
  */
 let editorLoaded = false;
-let editorPromise: Promise<typeof import("./textEditor/EditorField")> | undefined;
+let editorPromise:
+  Promise<typeof import("./textEditor/EditorField")> | undefined;
 const loadEditorField = () =>
   (editorPromise ??= import("./textEditor/EditorField").then((module) => {
     editorLoaded = true;
@@ -128,21 +129,24 @@ function TextField({
           key
           ? catalogPropertyTextTarget(workspace.runtime.graph, item.target, key)
           : undefined;
+    // ADR-299 — whether the edit may write runs: a text node's own `children` (a bound or a
+    // parent prop's text stays a string).
+    const rich =
+      key === "children" &&
+      !binding &&
+      !bound &&
+      !!record &&
+      RICH_TEXT_HOST_TYPES.has(workspace.root.typeOf(record));
+    // (A bound text shows the prop's value: the position draws it as resolved.)
+    const text = key && record ? catalogTextOf(record, key) : "";
     return {
       record,
       key,
       bound,
-      // (A bound text shows the prop's value: the position draws it as resolved.)
-      text: key && record ? catalogTextOf(record, key) : "",
-      // ADR-299 — the written value (runs of a range-formatted text) and whether the edit may
-      // write runs: a text node's own `children` (a bound or a parent prop's text stays a string).
-      value: key && record ? catalogTextValueOf(record, key) : "",
-      rich:
-        key === "children" &&
-        !binding &&
-        !bound &&
-        !!record &&
-        RICH_TEXT_HOST_TYPES.has(workspace.root.typeOf(record)),
+      text,
+      rich,
+      // The value the edit starts from — the written runs of a range-formatted text, else the text.
+      written: rich && key && record ? catalogTextValueOf(record, key) : text,
     };
   });
   const fieldRef = useRef<HTMLTextAreaElement>(null);
@@ -153,9 +157,7 @@ function TextField({
     undefined,
   );
   /** The typed text — still readable when the field unmounts (the edit ended elsewhere). */
-  const draft = useRef<string | RichText>(
-    start.rich ? start.value : start.text,
-  );
+  const draft = useRef<string | RichText>(start.written);
   // The field sits on the record's text box — the content box Skia draws the text in (a Button's
   // label inside its padding, one line high), not the whole element (user 2026-10-20). Without a
   // Skia text node (not drawn yet) the element box stands in.
@@ -229,13 +231,15 @@ function TextField({
    */
   const preview = (value: string | RichText) => {
     if (!start.key) return;
-    const before = start.rich ? start.value : start.text;
-    const changed = !sameTextValue(value, before);
+    const changed = !sameTextValue(value, start.written);
     // A typed line break in a nowrap / normal text would be collapsed by the layout (and the
     // commit lifts `white-space` for it): the preview lifts it the same way, so a Button grows to
     // its second line while typing (user 2026-10-20).
     const lifted = changed
-      ? committedWhiteSpace(start.record?.visual.whiteSpace, plainOf(value))
+      ? committedWhiteSpace(
+          start.record?.visual.whiteSpace,
+          richTextPlain(value),
+        )
       : null;
     workspace.root.previewRecord(
       item.identity,
@@ -262,13 +266,13 @@ function TextField({
             start.key,
             start.bound,
             start.text,
-            plainOf(draft.current),
+            richTextPlain(draft.current),
             start.record?.visual.whiteSpace,
           )
         : catalogTextCommand(
             item,
             start.key,
-            start.rich ? start.value : start.text,
+            start.written,
             draft.current,
             start.record?.visual.whiteSpace,
           ));
@@ -415,7 +419,9 @@ function TextField({
     // 맞춰」) — the field is the same text, so it looks the same while it is typed.
     ...(text ? skiaTextCss(text.source) : {}),
     ...(typeof visual.textTransform === "string"
-      ? { textTransform: visual.textTransform as CSSProperties["textTransform"] }
+      ? {
+          textTransform: visual.textTransform as CSSProperties["textTransform"],
+        }
       : {}),
     color:
       text?.color ??
@@ -436,7 +442,7 @@ function TextField({
       className="catalog-text-editor"
       data-testid="catalog-text-editor"
       {...{ [TEXT_EDIT_SCOPE_ATTR]: "" }}
-      defaultValue={plainOf(draft.current)}
+      defaultValue={richTextPlain(draft.current)}
       rows={1}
       style={style}
       spellCheck={false}
@@ -468,54 +474,56 @@ function TextField({
   );
   // A textarea cannot represent runs: showing one causes a cold-start typography flash,
   // and typing into it would replace the entire rich value with a string before PM mounts.
-  const fallback = start.rich && isRichText(draft.current) ? (
-    <div
-      ref={pendingRichRef}
-      className="catalog-text-editor"
-      data-testid="catalog-text-editor"
-      {...{ [TEXT_EDIT_SCOPE_ATTR]: "" }}
-      role="textbox"
-      aria-label="텍스트 편집기 준비 중"
-      aria-multiline="true"
-      aria-busy="true"
-      aria-readonly="true"
-      data-shortcut-local="undo redo"
-      tabIndex={0}
-      style={style}
-      onBlur={() => {
-        if (!editorLoaded) commit();
-      }}
-      onPointerDown={(event) => event.stopPropagation()}
-      onKeyDown={(event) => {
-        // This read-only loading surface still owns editing keys (Delete must not delete
-        // the selected Canvas node through a global shortcut).
-        event.stopPropagation();
-        if (
-          event.key === "Escape" ||
-          (event.key === "Enter" && (event.metaKey || event.ctrlKey))
-        ) {
-          event.preventDefault();
+  const fallback =
+    start.rich && isRichText(draft.current) ? (
+      <div
+        ref={pendingRichRef}
+        className="catalog-text-editor"
+        data-testid="catalog-text-editor"
+        {...{ [TEXT_EDIT_SCOPE_ATTR]: "" }}
+        role="textbox"
+        aria-label="텍스트 편집기 준비 중"
+        aria-multiline="true"
+        aria-busy="true"
+        aria-readonly="true"
+        data-shortcut-local="undo redo"
+        tabIndex={0}
+        style={style}
+        onBlur={() => {
+          if (!editorLoaded) commit();
+        }}
+        onPointerDown={(event) => event.stopPropagation()}
+        onKeyDown={(event) => {
+          // This read-only loading surface still owns editing keys (Delete must not delete
+          // the selected Canvas node through a global shortcut).
           event.stopPropagation();
-          commit();
-        }
-      }}
-    >
-      {draft.current.runs.map((run, index) => (
-        <span
-          key={index}
-          data-text-run={index}
-          style={Object.fromEntries(
-            TEXT_RUN_MARK_KEYS.flatMap((key) => {
-              const css = markCss(key, run.marks?.[key]);
-              return css === undefined ? [] : [[key, css]];
-            }),
-          )}
-        >
-          {run.text}
-        </span>
-      ))}
-    </div>
-  ) : textarea;
+          if (
+            event.key === "Escape" ||
+            (event.key === "Enter" && (event.metaKey || event.ctrlKey))
+          ) {
+            event.preventDefault();
+            commit();
+          }
+        }}
+      >
+        {draft.current.runs.map((run, index) => (
+          <span
+            key={index}
+            data-text-run={index}
+            style={Object.fromEntries(
+              TEXT_RUN_MARK_KEYS.flatMap((key) => {
+                const css = markCss(key, run.marks?.[key]);
+                return css === undefined ? [] : [[key, css]];
+              }),
+            )}
+          >
+            {run.text}
+          </span>
+        ))}
+      </div>
+    ) : (
+      textarea
+    );
   return (
     <Suspense fallback={fallback}>
       <EditorField
@@ -538,9 +546,6 @@ function TextField({
     </Suspense>
   );
 }
-
-const plainOf = (value: string | RichText): string =>
-  typeof value === "string" ? value : richTextPlain(value);
 
 /** The written values are the same (runs compared as data). */
 function sameTextValue(a: string | RichText, b: string | RichText): boolean {

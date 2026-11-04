@@ -106,7 +106,7 @@ export interface CatalogOverlayInputs {
     onTop?: boolean;
   }[];
   /**
-   * The page boxes painted over a record's page (`catalogOccludingPages`): content chrome of the
+   * The page boxes painted over a record's page (`createCatalogPageChrome`): content chrome of the
    * record — slot hatch, row remainder, hover outlines — is cut there (canvas-interaction §8.5).
    * Pointing marks (selection box, handles) are not.
    */
@@ -261,8 +261,9 @@ export function catalogOverlayNode(
         renderFlashes(ck, canvas, now, ai.flashAnimations, targets);
         if (ai.flashAnimations.size) ai.cleanupExpiredFlashes(now);
       }
+      // Queried within the painted area — the frame's viewport unless a caller narrows it.
       const occludersOf = (identity: string | undefined, area?: BoundingBox) =>
-        identity ? inputs.occluders?.(identity, area) : undefined;
+        identity ? inputs.occluders?.(identity, area ?? viewport) : undefined;
       // A grid's cell lines sit under its elements (사용자 2026-10-16 「가이드 라인이 요소 위에」):
       // the pages above it and its children's visible boxes are cut out.
       const gridOccludersOf = (grid: string | undefined) => {
@@ -300,11 +301,11 @@ export function catalogOverlayNode(
           );
       }
       for (const slot of inputs.slots?.() ?? []) {
-        const band = catalogSlotBand(slot.box.height, zoom);
-        const painted = expandChromeBox(
-          { ...slot.box, height: band },
-          2 / zoom,
-        );
+        const bandBox = {
+          ...slot.box,
+          height: catalogSlotBand(slot.box.height, zoom),
+        };
+        const painted = expandChromeBox(bandBox, 2 / zoom);
         if (viewport && !chromeIntersects(painted, viewport)) continue;
         withOccluders(
           ck,
@@ -314,7 +315,7 @@ export function catalogOverlayNode(
             renderSlotHatchPattern(
               ck,
               canvas,
-              { ...slot.box, height: band },
+              bandBox,
               zoom,
               slot.role,
               slot.empty,
@@ -356,9 +357,10 @@ export function catalogOverlayNode(
         }
       const roleOf = (id: string) => inputs.roleOf?.(id) ?? null;
       const hit = inputs.hitBounds?.();
+      // The hovered record's page decides the cut (its leaves are on the same page).
+      const hoverOccluders = occludersOf(hoverId);
       if (hoverId && !selected.has(hoverId))
-        // The hovered record's page decides the cut (its leaves are on the same page).
-        withOccluders(ck, canvas, occludersOf(hoverId), () => {
+        withOccluders(ck, canvas, hoverOccluders, () => {
           // The visible part (a page body is in neither map's clip: its own box).
           const hovered = inputs.selectionHitBounds
             ? inputs.selectionHitBounds(hoverId)
@@ -385,7 +387,7 @@ export function catalogOverlayNode(
           ? catalogOverflowContent(state.hover.identity, tree, bounds)
           : null;
       if (overflowing)
-        withOccluders(ck, canvas, occludersOf(state.hover?.identity), () =>
+        withOccluders(ck, canvas, hoverOccluders, () =>
           renderOverflowContent(ck, canvas, overflowing, zoom),
         );
       // A grid selected or hovered, or a selected item's grid (Figma): its cells, solid (Figma draws no dashed cell — 사용자 2026-10-16) — a drag

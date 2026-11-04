@@ -1,4 +1,8 @@
-import { createChromeSpatialIndex } from "./catalogChromeSpatial";
+import { SLOT_BAND_MAX } from "./catalogChrome";
+import {
+  createCatalogPageChrome,
+  createChromeSpatialIndex,
+} from "./catalogChromeSpatial";
 import type { BoundingBox } from "../selection/types";
 import type { EditingSemanticsRole } from "../../../utils/editingSemanticsRole";
 
@@ -24,18 +28,20 @@ export interface CatalogOverlayChromeBuilders {
   slots(): readonly CatalogOverlaySlotMark[];
   /** Bound collections' "+N more" areas (`catalogRowRemainders` placed on the scene's boxes). */
   remainders(): readonly CatalogOverlayRemainder[];
-  /** Page boxes painted over a record's page (`catalogOccludingPages`). */
-  occluders?(identity: string): readonly BoundingBox[];
+  /** The scene's page index — page borders and the pages painted over a record's page. */
+  pages(): CatalogPageChrome;
 }
+
+type CatalogPageChrome = ReturnType<typeof createCatalogPageChrome>;
 
 export interface CatalogOverlayChromeCache {
   slots(area?: BoundingBox): readonly CatalogOverlaySlotMark[];
   remainders(): readonly CatalogOverlayRemainder[];
-  occludersOf(identity: string): readonly BoundingBox[];
+  pages(): CatalogPageChrome;
 }
 
 /**
- * Overlay chrome read from the drawn scene — slot marks, row remainders, page occluders — kept
+ * Overlay chrome read from the drawn scene — slot marks, row remainders, the page index — kept
  * until the scene changes. The builders walk every record (and `graph.getEntry` per record) and
  * read the scene's boxes, which only a scene change moves (a step, a preview, rows, a page grid,
  * another root): `sceneVersion` is the Canvas's scene version (`cellsVersion`), not the overlay's
@@ -55,7 +61,7 @@ export function createOverlayChromeCache(
   let slotQuery:
     | ReturnType<typeof createChromeSpatialIndex<CatalogOverlaySlotMark>>
     | undefined;
-  const occluders = new Map<string, readonly BoundingBox[]>();
+  let pages: CatalogPageChrome | undefined;
   const follow = () => {
     const next = sceneVersion();
     if (next === version) return;
@@ -63,7 +69,7 @@ export function createOverlayChromeCache(
     slots = undefined;
     slotQuery = undefined;
     remainders = undefined;
-    occluders.clear();
+    pages = undefined;
   };
   return {
     slots(area) {
@@ -72,7 +78,7 @@ export function createOverlayChromeCache(
       if (!area) return slots;
       slotQuery ??= createChromeSpatialIndex(slots, (slot) => ({
         ...slot.box,
-        height: slot.box.height || 48,
+        height: slot.box.height || SLOT_BAND_MAX,
       }));
       return slotQuery(area);
     },
@@ -80,14 +86,9 @@ export function createOverlayChromeCache(
       follow();
       return (remainders ??= build.remainders());
     },
-    occludersOf(identity) {
+    pages() {
       follow();
-      let boxes = occluders.get(identity);
-      if (!boxes) {
-        boxes = build.occluders?.(identity) ?? [];
-        occluders.set(identity, boxes);
-      }
-      return boxes;
+      return (pages ??= build.pages());
     },
   };
 }

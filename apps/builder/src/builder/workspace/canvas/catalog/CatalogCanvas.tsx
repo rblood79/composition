@@ -76,7 +76,11 @@ import { RulerOverlay } from "../../components/RulerOverlay";
 import { CatalogGuideRulerLabel } from "./CatalogGuideRulerLabel";
 import { CatalogSelectionRuler } from "./CatalogSelectionRuler";
 import { catalogRulerOrigin } from "./catalogRulerOrigin";
-import { calculateCombinedBounds, type BoundingBox } from "../selection/types";
+import {
+  calculateCombinedBounds,
+  pointInBox,
+  type BoundingBox,
+} from "../selection/types";
 import { WorkspaceStatusIndicator } from "../../components/WorkspaceStatusIndicator";
 import { CanvasScrollbar } from "../../scrollbar";
 import { publishCanvasFramePresentation } from "../canvasFramePresentation";
@@ -470,32 +474,26 @@ export function CatalogCanvas({
               ]
             : [];
         }),
-    });
-    const sceneViewport = (): BoundingBox => {
-      const zoom = Math.max(viewportState.zoom, 0.001);
-      const { width, height } = useViewportSyncStore.getState().containerSize;
-      return {
-        x: -viewportState.x / zoom,
-        y: -viewportState.y / zoom,
-        width: width / zoom,
-        height: height / zoom,
-      };
-    };
-    let pageChromeVersion = -1;
-    let pageChrome: ReturnType<typeof createCatalogPageChrome>;
-    const pageChromeNow = () => {
-      if (pageChromeVersion !== cellsVersion) {
-        pageChromeVersion = cellsVersion;
-        pageChrome = createCatalogPageChrome(
+      pages: () =>
+        createCatalogPageChrome(
           scene.pageRootIds,
           (id) => sceneRoot.canvasInputs.get(id)?.parentId,
           (id) => scene.stream.boundsMap.get(id),
-        );
-      }
-      return pageChrome;
+        ),
+    });
+    const zoomNow = () => Math.max(viewportState.zoom, 0.001);
+    const sceneViewport = (): BoundingBox => {
+      const { width, height } = useViewportSyncStore.getState().containerSize;
+      return buildViewportSceneRect(
+        viewportState.x,
+        viewportState.y,
+        zoomNow(),
+        width,
+        height,
+      );
     };
-    const occludersOf = (identity: string, area = sceneViewport()) =>
-      pageChromeNow().occludersOf(identity, area);
+    // The viewport plus the 2-screen-px stroke margin chrome may reach past a box.
+    const chromeArea = () => expandChromeBox(sceneViewport(), 2 / zoomNow());
     // The drag placement of the scene-box chrome (`catalogDragPlacement`), one per drawn drag
     // presentation: the slot marks, remainders and badges of a frame share its chains.
     let dragPlacementKey = "";
@@ -608,16 +606,11 @@ export function CatalogCanvas({
       selectionHitBounds: (id) => scene.selectionHitBounds(id),
       viewport: sceneViewport,
       pageBorders: () => ({
-        roots: pageChromeNow().rootsWithin(
-          expandChromeBox(
-            sceneViewport(),
-            2 / Math.max(viewportState.zoom, 0.001),
-          ),
-        ),
+        roots: chrome.pages().rootsWithin(chromeArea()),
         color: pageBorderColor,
       }),
       recordsOf: (sourceId) => workspace.root.recordsOfSource(sourceId),
-      zoom: () => Math.max(viewportState.zoom, 0.001),
+      zoom: zoomNow,
       fontMgr,
       gesture: () => gestures.preview(),
       gridCells: overlayGridCells,
@@ -633,24 +626,19 @@ export function CatalogCanvas({
         sceneRoot.canvasInputs.get(identity)?.children ?? [],
       guides: (overlayCanvas) => guidesRef.current?.paint(ck, overlayCanvas),
       // (During a drag the scene-box chrome moves with its records — the renderer translates them.)
-      slots: () =>
-        catalogDraggedChrome(
-          chrome.slots(
-            dragPlacement()
-              ? undefined
-              : expandChromeBox(
-                  sceneViewport(),
-                  2 / Math.max(viewportState.zoom, 0.001),
-                ),
-          ),
+      slots: () => {
+        const placementOf = dragPlacement();
+        return catalogDraggedChrome(
+          chrome.slots(placementOf ? undefined : chromeArea()),
           (mark) => mark.identity,
-          dragPlacement(),
+          placementOf,
           (mark, at) => ({
             ...mark,
             box: shiftedBox(mark.box, at),
             onTop: at.onTop,
           }),
-        ),
+        );
+      },
       hitBounds: () => scene.stream.hitBoundsMap,
       roleOf: (identity) => {
         const target = workspace.itemOfRecord(identity)?.target;
@@ -723,22 +711,18 @@ export function CatalogCanvas({
               : badge;
             // (A dragged badge is drawn with its record over every page.)
             if (at?.onTop || !badge.recordId) return [drawn];
-            return occludersOf(badge.recordId, {
+            // (The occluders are queried at the badge's anchor point: any hit covers it.)
+            return chrome.pages().occludersOf(badge.recordId, {
               ...drawn.bounds,
               width: 0,
               height: 0,
-            }).some(
-              (rect) =>
-                drawn.bounds.x >= rect.x &&
-                drawn.bounds.y >= rect.y &&
-                drawn.bounds.x <= rect.x + rect.width &&
-                drawn.bounds.y <= rect.y + rect.height,
-            )
+            }).length
               ? []
               : [drawn];
           });
       },
-      occluders: (identity, area) => occludersOf(identity, area),
+      occluders: (identity, area = sceneViewport()) =>
+        chrome.pages().occludersOf(identity, area),
       badgeHits,
       overflow: () => overflowTree,
       ai: () => useAIVisualFeedbackStore.getState(),
@@ -1009,7 +993,7 @@ export function CatalogCanvas({
         drawnDragRevision = dragRevision;
         renderer.invalidateContent();
       }
-      const zoom = Math.max(viewportState.zoom, 0.001);
+      const zoom = zoomNow();
       const camera = { zoom, panX: viewportState.x, panY: viewportState.y };
       // DOM overlays (page headers) place themselves from the camera this frame draws.
       publishCanvasFramePresentation(
@@ -1224,7 +1208,7 @@ export function CatalogCanvas({
       const frame = workspace.root.pageFrameRects().get(pageId);
       if (!frame) return;
       const { width, height } = containerEl.getBoundingClientRect();
-      const zoom = Math.max(viewportState.zoom, 0.001);
+      const zoom = zoomNow();
       animatePanTo(
         width / 2 - (frame.x + frame.width / 2) * zoom,
         height / 2 - (frame.y + frame.height / 2) * zoom,
@@ -1248,7 +1232,7 @@ export function CatalogCanvas({
     // Pointer picking (scene coordinates from the camera). Pan owns its pointer (viewport bridge).
     const scenePoint = (event: { clientX: number; clientY: number }) => {
       const rect = canvas.getBoundingClientRect();
-      const zoom = Math.max(viewportState.zoom, 0.001);
+      const zoom = zoomNow();
       return {
         x: (event.clientX - rect.left - viewportState.x) / zoom,
         y: (event.clientY - rect.top - viewportState.y) / zoom,
@@ -1271,7 +1255,6 @@ export function CatalogCanvas({
       if (lastPoint && !gestureSession.shouldSuppressElementHover())
         picking.hover(lastPoint.x, lastPoint.y);
     };
-    const zoomNow = () => Math.max(viewportState.zoom, 0.001);
     // Manual guides (ADR-181): ruler drags, guide moves and deletes, painted in the overlay.
     const guides = bindCatalogGuides({
       workspace,
@@ -1309,19 +1292,14 @@ export function CatalogCanvas({
           "catalog:root",
       );
       if (elements.length < 2) return undefined;
-      let left = Infinity;
-      let top = Infinity;
-      let right = -Infinity;
-      let bottom = -Infinity;
+      const boxes: BoundingBox[] = [];
       for (const item of elements) {
         const box = viewState.boundsOf(item.identity);
         if (!box) return undefined;
-        left = Math.min(left, box.x);
-        top = Math.min(top, box.y);
-        right = Math.max(right, box.x + box.width);
-        bottom = Math.max(bottom, box.y + box.height);
+        boxes.push(box);
       }
-      return px >= left && px <= right && py >= top && py <= bottom
+      const union = calculateCombinedBounds(boxes);
+      return union && pointInBox({ x: px, y: py }, union)
         ? elements[0]!.identity
         : undefined;
     };
