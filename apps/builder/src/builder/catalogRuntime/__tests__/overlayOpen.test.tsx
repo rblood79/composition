@@ -98,7 +98,12 @@ it("열린 Sheet는 Dialog의 Modal과 같은 그림자를 본체에만 그린�
         (node) => node.ruleId === "SheetBackdrop",
       );
       if (backdrop) expect(getSkiaNode(backdrop.id)?.effects).toBeUndefined();
-      else expect(data.children![0].effects).toBeUndefined();
+      else {
+        expect(data.children![0].effects).toBeUndefined();
+        // (The Modal's scrim is the S2 underlay — #00000070, as the Sheet's.)
+        const scrim = data.children![0].children?.[0] ?? data.children![0];
+        expect(Array.from(scrim.box!.fillColor!)[3]).toBeCloseTo(112 / 255, 5);
+      }
     } finally {
       scene.dispose();
     }

@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Modal · Sheet 배경 = S2 값 — overlay-backdrop 토큰] - 2026-11-04
+
+### Fixed
+
+- **Modal · Sheet 배경이 S2 와 같은 농도**
+  열린 Modal · Dialog · Sheet 뒤 배경 (`{color.overlay-backdrop}`) 이 검정 50 % 에서 S2 1.8.1 Modal underlay `transparent-black-500` 인 `#00000070` (검정 112/255 ≈ 44 %) 로 바뀐다 — 색 모드 무관 한 값. **Why**: 토큰 값이 S2 설치본 (`@react-spectrum/s2` `Modal.css`) 과 달랐다 (ADR-295 「값 정본 = S2 설치본」). Canvas (Modal 배경 · SheetBackdrop rule) 와 Preview · Publish (테마 snapshot 이 싣는 `--overlay-backdrop`) 가 같은 토큰을 읽어 함께 바뀐다.
+- Builder chrome 의 대화상자 (`CommandPalette` 등) 는 `preview-system.css` 의 기본값 (50 %) 그대로다 — chrome 은 S2 값 대상이 아니다.
+- 위치: `packages/rendering/src/primitives/colors.ts` (light · dark).
+
+### Tests
+
+- `racNewComponents.test.tsx` (Sheet 배경 5 위치) · `overlayOpen.test.tsx` (Modal 배경) 이 alpha 112/255 를 단언 — 변경 전 6 RED.
+- Live (5175): Canvas Modal 배경 표시 확인 · Preview `.react-aria-ModalOverlay` computed `rgba(0, 0, 0, 0.44)`, Builder chrome `--overlay-backdrop` 0.5 유지. 콘솔 · runtime 오류 0.
+
 ## [overlay 화살표 = 본체 칠 — Canvas · Preview] - 2026-11-04
 
 ### Fixed

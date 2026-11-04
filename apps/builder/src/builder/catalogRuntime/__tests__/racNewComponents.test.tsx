@@ -77,9 +77,12 @@ describe("RAC TokenField / PreviewTrigger / Sheet registration", () => {
         const sheet = scene.stream.boundsMap.get(of("Sheet").id)!;
         const backdrop = scene.stream.boundsMap.get(of("SheetBackdrop").id)!;
         expect(getSkiaNode(overlay.id)?.isFixed).toBe(true);
-        expect(
-          Array.from(getSkiaNode(of("SheetBackdrop").id)!.box!.fillColor!),
-        ).toEqual([0, 0, 0, 0.5]);
+        // S2 1.8.1 Modal underlay `transparent-black-500` = #00000070 (112/255).
+        const scrim = Array.from(
+          getSkiaNode(of("SheetBackdrop").id)!.box!.fillColor!,
+        );
+        expect(scrim.slice(0, 3)).toEqual([0, 0, 0]);
+        expect(scrim[3]).toBeCloseTo(112 / 255, 5);
         expect(backdrop).toMatchObject({
           x: body.x,
           y: body.y,
