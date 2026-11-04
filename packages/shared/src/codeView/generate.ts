@@ -26,6 +26,10 @@ import { getPrimitiveBinding } from "../catalog/bindings";
 import { parseDateValue, type DateValueKind } from "../state/dateValue";
 import { definitionTypeName } from "../catalog/commands/context";
 import {
+  getReusableEntries,
+  PALETTE_REUSABLE_ORIGIN_TYPES,
+} from "../catalog/componentCatalog";
+import {
   codeViewNodeClasses,
   codeViewNodeHasStyle,
   codeViewPageNodes,
@@ -2710,7 +2714,9 @@ class Generator {
             : []),
         ];
         // (`property:<key>` — a component event's When — is a quoted key.)
-        const name = /^[A-Za-z_$][\w$]*$/.test(trigger) ? trigger : literal(trigger);
+        const name = /^[A-Za-z_$][\w$]*$/.test(trigger)
+          ? trigger
+          : literal(trigger);
         fields.push(`${name}: rules({${parts.join(", ")}})`);
       }
       if (fields.length)
@@ -2726,6 +2732,26 @@ class Generator {
     return codeViewProjectNames(this.doc.input.reader as never).components.get(
       node.definitionId,
     );
+  }
+
+  /**
+   * ADR-296 follow-up (2026-11-05) — a palette origin's instance is written by its palette type
+   * (`<Popover>` — the name `catalogPaletteDefinitionId` reads back to the same origin), not by its
+   * template root's RAC type (`<DialogTrigger>` — read back as a bare DialogTrigger node). Undefined
+   * = the two agree (Button · Card …) or not a palette origin.
+   */
+  private originTag(node: NodeEntry, type: string): string | undefined {
+    const prefix = "lib:definition:origin-";
+    if (!node.definitionId.startsWith(prefix)) return undefined;
+    const reusableId = node.definitionId.slice(prefix.length);
+    const entry = getReusableEntries().find(
+      (item) => item.reusableId === reusableId,
+    );
+    return entry &&
+      entry.type !== type &&
+      PALETTE_REUSABLE_ORIGIN_TYPES.includes(entry.type)
+      ? entry.type
+      : undefined;
   }
 
   private bodyIsElement(body: NodeEntry): boolean {
@@ -2786,11 +2812,13 @@ class Generator {
       type = type === "frame" ? "div" : type;
     // ADR-296 Phase 5 — an instance of a user component is its component (`<Picker …/>`).
     const component = as ? undefined : this.componentTag(node);
+    const origin = as || component ? undefined : this.originTag(node, type);
     if (as) this.import(CODE_VIEW_HELPERS_MODULE, as);
     else if (component) {
       const line = `import {${component}} from './components/${component}';`;
       if (!this.dataImports.includes(line)) this.dataImports.push(line);
-    } else if (type !== "div") this.import("react-aria-components", type);
+    } else if (origin) this.import("react-aria-components", origin);
+    else if (type !== "div") this.import("react-aria-components", type);
     const attributes: { part: CodeWriter; target: CodeViewAnchorTarget }[] = [];
     const attribute = (
       name: string,
@@ -3014,7 +3042,7 @@ class Generator {
     if (off) out.write("{false && ");
     else if (visible && !as) out.write(`{${visible.name} && `);
     if (as) type = as;
-    const tag = component ?? type;
+    const tag = component ?? origin ?? type;
     out.write(`<${tag}`);
     for (const { part, target } of attributes) {
       out.write(" ");

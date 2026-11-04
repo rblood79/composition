@@ -32,7 +32,7 @@ export default function Home() {
       <SearchField label="common_name" value={search} onChange={setSearch} />
       <Checkbox isSelected={favorite} onChange={setFavorite}>isFavorite</Checkbox>
       <TagGroup label="cycle" selectedKeys={cycles} onSelectionChange={setCycles}>
-        <Slot name="tag-list">
+        <Slot name="Tags">
           <Tag id="Perennial" overrides={{
             'icon': {hidden: true},
             'text': {children: 'Perennial'},
@@ -47,7 +47,7 @@ export default function Home() {
         </Slot>
       </TagGroup>
       <TagGroup label="sunlight" selectedKeys={sunlight} onSelectionChange={setSunlight}>
-        <Slot name="tag-list">
+        <Slot name="Tags">
           <Tag id="full sun" overrides={{
             'icon': {hidden: true},
             'text': {children: 'full sun'},
@@ -62,7 +62,7 @@ export default function Home() {
         </Slot>
       </TagGroup>
       <TagGroup label="watering" selectedKeys={watering} onSelectionChange={setWatering}>
-        <Slot name="tag-list">
+        <Slot name="Tags">
           <Tag id="Frequent" overrides={{
             'icon': {hidden: true},
             'text': {children: 'Frequent'},

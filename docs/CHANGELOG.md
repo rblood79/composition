@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [코드 보기 — Library 오버레이 instance 는 팔레트 이름 · slot 은 선언 이름] - 2026-11-05
+
+### Fixed
+
+- **`<DialogTrigger>` 로 나오던 Popover · Dialog · Tooltip · Menu · Sheet instance 가 `<Popover>` · `<Dialog>` … 로 나온다**
+  팔레트 원본의 instance 는 template 루트의 RAC type 이 아니라 **놓은 팔레트 type** 으로 쓴다 (`generate.ts` `originTag` — `getReusableEntries` 의 reusableId 역조회, `PALETTE_REUSABLE_ORIGIN_TYPES` 한정). **Why**: 코드의 `<Popover>` 는 `catalogPaletteDefinitionId` 가 같은 원본으로 읽지만 `<DialogTrigger>` 는 빈 DialogTrigger 노드로 읽혀 왕복이 깨졌고, RAC 로 읽으면 열리지도 않는 코드였다 (사용자 보고 — RAC 레퍼런스와 나란히 비교). Button · Card 처럼 두 이름이 같은 원본은 그대로.
+- **`<Slot name>` 은 template 이 선언한 slot 이름**
+  `<Slot name="frame">` (자리 노드의 class) 이 `<Slot name="content">` (Popover · Dialog · Tooltip 의 `slot.name`) 로. Card 는 `Preview` · `Content` · `Footer`, TagGroup 은 `Tags` — 선언 이름 그대로 (`files/overrides.ts` `codeViewSlotKey`). 역방향 (`codeViewAddressOf`) 은 선언 이름을 먼저, 없으면 class 로 찾는다 — 옛 코드의 class 이름도 그대로 읽힌다. `overrides` 키 · CSS 경로 선택자 (`.picker .save-button`) 는 class 경로 그대로.
+- 펼친 모양 (`DialogTrigger > Button + Popover > …` 를 page 코드에) 은 ADR-301 (Proposed) 에서 따로 설계한다.
+
+### Tests
+
+- `adr296LibraryOverlay.test.tsx` 7 (Popover 태그 · import · slot 이름 · 5 가족 태그 · 왕복 strict 0 변경 + slot 글자 편집 · 자식 추가 · 새 `<Popover />` 입력 = 원본 instance 한 step) — 변경 전 7 RED. `adr296Component` Card slot 기대값 · golden `plants.tsx.txt` (`tag-list` → `Tags`) 갱신.
+- live (5176 worktree): 새 프로젝트 → 팔레트 popover → Code 패널 `pages/Home.tsx` 에 `<Popover>` · `<Slot name="content">` · `import {Description, Heading, Popover} from 'react-aria-components'`.
+
 ## [Modal 배경 = Modal rule 값 — Canvas · Preview 가 같은 값을 읽는다] - 2026-11-04
 
 ### Changed

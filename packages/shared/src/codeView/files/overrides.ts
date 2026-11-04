@@ -28,6 +28,8 @@ interface TreeNode {
   readonly definitionId: string;
   readonly children: readonly string[];
   readonly descendantOverrides?: NodeEntry["descendantOverrides"];
+  /** The slot this node declares (an instance's `<Slot name>` is this name). */
+  readonly slot?: { readonly name: string };
 }
 function treeNode(reader: Reader, id: string): TreeNode | undefined {
   const entry = reader.getEntry(id);
@@ -122,7 +124,28 @@ export function codeViewAddressKey(
   return name ? [...segments, name].join("/") : undefined;
 }
 
-/** `codeViewAddressKey`'s inverse for an instance (undefined = no such position). */
+/**
+ * ADR-296 follow-up (2026-11-05) — a slot position's key for `<Slot name>`: the address key with
+ * the declared slot name as its last segment (`content` — the Popover origin's content frame,
+ * whose class would be `frame`). A position that declares no slot keeps its class.
+ */
+export function codeViewSlotKey(
+  reader: Reader,
+  address: InstanceAddress,
+): string | undefined {
+  const key = codeViewAddressKey(reader, address);
+  const target = address.templatePath.at(-1);
+  const slot = target ? treeNode(reader, target)?.slot?.name : undefined;
+  if (!key || !slot) return key;
+  const segments = key.split("/");
+  segments[segments.length - 1] = slot;
+  return segments.join("/");
+}
+
+/**
+ * `codeViewAddressKey`'s · `codeViewSlotKey`'s inverse for an instance (undefined = no such
+ * position). The last segment names a declared slot first, else a node's class.
+ */
 export function codeViewAddressOf(
   reader: Reader,
   instanceId: string,
@@ -133,7 +156,10 @@ export function codeViewAddressOf(
   // A position the instance already writes (its own patch's address — the exact one).
   const own = reader.getEntry(instanceId) as NodeEntry | undefined;
   for (const override of own?.kind === "node" ? own.descendantOverrides : [])
-    if (codeViewAddressKey(reader, override.address) === key)
+    if (
+      codeViewAddressKey(reader, override.address) === key ||
+      codeViewSlotKey(reader, override.address) === key
+    )
       return override.address;
   const segments = key.split("/");
   const instances: string[] = [instanceId];
@@ -153,7 +179,11 @@ export function codeViewAddressOf(
     level = codeViewTemplateRoot(reader, definitionOf(reader, id) ?? "");
   }
   if (!level) return undefined;
-  const target = find(level, segments.at(-1)!);
+  const last = segments.at(-1)!;
+  const target =
+    [...codeViewTreeClasses(reader, [level]).keys()].find(
+      (id) => treeNode(reader, id)?.slot?.name === last,
+    ) ?? find(level, last);
   if (!target) return undefined;
   // The path from the template's root to the target.
   const path = (id: string, trail: string[]): string[] | undefined => {
@@ -224,7 +254,7 @@ export function codeViewSlotFills(
   const out: CodeViewSlotFill[] = [];
   for (const override of node.descendantOverrides ?? []) {
     if (override.kind !== "fillSlot") continue;
-    const key = codeViewAddressKey(reader, override.address);
+    const key = codeViewSlotKey(reader, override.address);
     if (!key) continue;
     out.push({
       address: override.address,

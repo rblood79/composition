@@ -547,7 +547,8 @@ describe("ADR-296 Phase 5 — component files and instances", () => {
     const card = h.add("Card");
     const s = session(h);
     const page = code(s, HOME);
-    expect(page).toContain('<Slot name="content">');
+    // (The position's declared slot name — `Content`, not its class `content`.)
+    expect(page).toContain('<Slot name="Content">');
     // Strict: pasted over itself — nothing.
     const revision = h.graph().revision;
     expect(
@@ -570,8 +571,8 @@ describe("ADR-296 Phase 5 — component files and instances", () => {
         text
           .replace(">Card Title</Text>", ">Hello</Text>")
           .replace(
-            '<Slot name="content">\n',
-            '<Slot name="content">\n          <Text>Added</Text>\n',
+            '<Slot name="Content">\n',
+            '<Slot name="Content">\n          <Text>Added</Text>\n',
           ),
     });
     expect(result.rejected).toEqual([]);
@@ -623,7 +624,11 @@ describe("ADR-296 Phase 5 — component files and instances", () => {
     const frame = h.add("frame", {}, BODY, "settings");
     const toggle = h.add("Switch", {}, frame, "dark-switch");
     h.run(
-      createComponent({ id: frame, name: "Settings", newId: h.workspace.newId }),
+      createComponent({
+        id: frame,
+        name: "Settings",
+        newId: h.workspace.newId,
+      }),
     );
     const A = h.node(BODY).children[0]! as NodeId;
     h.variable("picked", "boolean", false);
@@ -668,15 +673,19 @@ describe("ADR-296 Phase 5 — component files and instances", () => {
     const frame = h.add("frame", {}, BODY, "box");
     h.add("Card", {}, frame);
     const text = h.add("Text", { children: "Plain" }, frame);
-    h.run(createComponent({ id: frame, name: "Box", newId: h.workspace.newId }));
+    h.run(
+      createComponent({ id: frame, name: "Box", newId: h.workspace.newId }),
+    );
     const s = session(h);
     const file = code(s, "src/components/Box.tsx");
     // The template Text's class in the component file …
-    const shown = /<Text className="([\w-]+)">Plain<\/Text>|<Text>Plain<\/Text>/.exec(file);
+    const shown =
+      /<Text className="([\w-]+)">Plain<\/Text>|<Text>Plain<\/Text>/.exec(file);
     expect(shown).not.toBeNull();
     // (The Card's slot contents take `text` · `text-2` — the template Text is `text-3` in both
     // the component file's table and the page's overrides keys.)
-    const key = shown![1] ?? codeViewTreeClasses(h.graph() as never, [frame]).get(text);
+    const key =
+      shown![1] ?? codeViewTreeClasses(h.graph() as never, [frame]).get(text);
     expect(key).toBe("text-3");
     // … is the key the page's overrides use for it.
     const result = apply(h, s, {
@@ -689,8 +698,11 @@ describe("ADR-296 Phase 5 — component files and instances", () => {
     expect(result.rejected).toEqual([]);
     const J = h.node(BODY).children[0]!;
     expect(
-      (node(h, J).descendantOverrides[0] as unknown as { address: { templatePath: string[] } })
-        .address.templatePath.at(-1),
+      (
+        node(h, J).descendantOverrides[0] as unknown as {
+          address: { templatePath: string[] };
+        }
+      ).address.templatePath.at(-1),
     ).toBe(text);
   });
 
@@ -700,7 +712,9 @@ describe("ADR-296 Phase 5 — component files and instances", () => {
     const frame = h.add("frame", {}, BODY, "box");
     h.add("Card", {}, frame);
     h.add("Text", { children: "Plain" }, frame);
-    h.run(createComponent({ id: frame, name: "Box", newId: h.workspace.newId }));
+    h.run(
+      createComponent({ id: frame, name: "Box", newId: h.workspace.newId }),
+    );
     const A = h.node(BODY).children[0]! as NodeId;
     // (The Card's first slot-fill Text — class `text` — by its owned path.)
     const target = [...codeViewTreeClasses(h.graph() as never, [frame])].find(
@@ -781,7 +795,10 @@ describe("ADR-296 Phase 5 — component files and instances", () => {
         {
           trigger: "onPress",
           actions: [
-            { opcode: "callEndpoint", endpointId: "data:endpoint:saveOrder" } as never,
+            {
+              opcode: "callEndpoint",
+              endpointId: "data:endpoint:saveOrder",
+            } as never,
           ],
         },
       ],
@@ -805,7 +822,9 @@ describe("ADR-296 Phase 5 — component files and instances", () => {
     const outer = h.add("frame", {}, BODY, "outer");
     const inner = h.add("frame", {}, outer, "inner");
     h.add("Button", { label: "Pick" }, inner);
-    h.run(createComponent({ id: inner, name: "Inner", newId: h.workspace.newId }));
+    h.run(
+      createComponent({ id: inner, name: "Inner", newId: h.workspace.newId }),
+    );
     const definitions = () =>
       (h.graph().getEntry(h.graph().projectId) as ProjectEntry).definitionIds;
     const innerDefinition = definitions().at(-1)! as EntryId<"definition">;
@@ -818,7 +837,9 @@ describe("ADR-296 Phase 5 — component files and instances", () => {
       }),
     );
     const innerInstance = h.node(outer).children[0]! as NodeId;
-    h.run(createComponent({ id: outer, name: "Outer", newId: h.workspace.newId }));
+    h.run(
+      createComponent({ id: outer, name: "Outer", newId: h.workspace.newId }),
+    );
     const O = h.node(BODY).children[0]! as NodeId;
     h.variable("picked", "string", "");
     h.rules(
@@ -840,7 +861,9 @@ describe("ADR-296 Phase 5 — component files and instances", () => {
     );
     const s = session(h);
     const page = code(s, HOME);
-    expect(page).toMatch(/'property:propselect': rules\(\{own: \[\(value\) => \{/);
+    expect(page).toMatch(
+      /'property:propselect': rules\(\{own: \[\(value\) => \{/,
+    );
     const revision = h.graph().revision;
     expect(
       catalogCodeViewProjectApply(h.workspace, s, [
