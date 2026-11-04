@@ -127,16 +127,16 @@ import {
 import { ViewportControlBridge } from "../viewport";
 import { animatePanTo, cancelPanAnimation } from "../viewport/animatePan";
 import { getViewportController } from "../viewport/ViewportController";
+import {
+  createCatalogPageChrome,
+  expandChromeBox,
+} from "./catalogChromeSpatial";
 import { viewportState } from "../viewport/viewportState";
 import { hitTestPoint } from "../wasm-bindings/spatialIndex";
 import { CatalogActionBar } from "./CatalogActionBar";
 import { catalogBadgeAt, createCatalogBadges } from "./catalogBadges";
 import { CatalogCanvasViewState } from "./catalogCanvasViewState";
-import {
-  catalogLeafRecords,
-  catalogOccludingPages,
-  catalogSlotMarks,
-} from "./catalogChrome";
+import { catalogLeafRecords, catalogSlotMarks } from "./catalogChrome";
 import { CatalogDefinitionBar } from "./CatalogDefinitionBar";
 import { bindCatalogGuides, type CatalogGuideBinding } from "./catalogGuides";
 import { catalogMenuView } from "./catalogMenuView";
@@ -470,16 +470,32 @@ export function CatalogCanvas({
               ]
             : [];
         }),
-      occluders: (identity) =>
-        catalogOccludingPages(
-          identity,
-          (id) => workspace.root.canvasInputs.get(id)?.parentId,
-          scene.pageRootIds,
-          (id) => scene.stream.boundsMap.get(id),
-        ),
     });
-    /** Page boxes painted over a record's page (content chrome is cut there — §8.5). */
-    const occludersOf = (identity: string) => chrome.occludersOf(identity);
+    const sceneViewport = (): BoundingBox => {
+      const zoom = Math.max(viewportState.zoom, 0.001);
+      const { width, height } = useViewportSyncStore.getState().containerSize;
+      return {
+        x: -viewportState.x / zoom,
+        y: -viewportState.y / zoom,
+        width: width / zoom,
+        height: height / zoom,
+      };
+    };
+    let pageChromeVersion = -1;
+    let pageChrome: ReturnType<typeof createCatalogPageChrome>;
+    const pageChromeNow = () => {
+      if (pageChromeVersion !== cellsVersion) {
+        pageChromeVersion = cellsVersion;
+        pageChrome = createCatalogPageChrome(
+          scene.pageRootIds,
+          (id) => sceneRoot.canvasInputs.get(id)?.parentId,
+          (id) => scene.stream.boundsMap.get(id),
+        );
+      }
+      return pageChrome;
+    };
+    const occludersOf = (identity: string, area = sceneViewport()) =>
+      pageChromeNow().occludersOf(identity, area);
     // The drag placement of the scene-box chrome (`catalogDragPlacement`), one per drawn drag
     // presentation: the slot marks, remainders and badges of a frame share its chains.
     let dragPlacementKey = "";
@@ -505,6 +521,7 @@ export function CatalogCanvas({
       return dragPlacementOf;
     };
     const badges = createCatalogBadges({
+      sceneVersion: () => cellsVersion,
       data: () => useDataStore.getState(),
       bindingsOf: (ref) => workspace.runtime.graph.bindingsOf(ref),
       // (A context is a document node's records, or one template position's record identity.)
@@ -589,8 +606,14 @@ export function CatalogCanvas({
       bounds: () => scene.stream.boundsMap,
       selectionBounds: (id) => scene.selectionBounds(id),
       selectionHitBounds: (id) => scene.selectionHitBounds(id),
+      viewport: sceneViewport,
       pageBorders: () => ({
-        roots: scene.pageRootIds,
+        roots: pageChromeNow().rootsWithin(
+          expandChromeBox(
+            sceneViewport(),
+            2 / Math.max(viewportState.zoom, 0.001),
+          ),
+        ),
         color: pageBorderColor,
       }),
       recordsOf: (sourceId) => workspace.root.recordsOfSource(sourceId),
@@ -612,7 +635,14 @@ export function CatalogCanvas({
       // (During a drag the scene-box chrome moves with its records — the renderer translates them.)
       slots: () =>
         catalogDraggedChrome(
-          chrome.slots(),
+          chrome.slots(
+            dragPlacement()
+              ? undefined
+              : expandChromeBox(
+                  sceneViewport(),
+                  2 / Math.max(viewportState.zoom, 0.001),
+                ),
+          ),
           (mark) => mark.identity,
           dragPlacement(),
           (mark, at) => ({
@@ -693,7 +723,11 @@ export function CatalogCanvas({
               : badge;
             // (A dragged badge is drawn with its record over every page.)
             if (at?.onTop || !badge.recordId) return [drawn];
-            return occludersOf(badge.recordId).some(
+            return occludersOf(badge.recordId, {
+              ...drawn.bounds,
+              width: 0,
+              height: 0,
+            }).some(
               (rect) =>
                 drawn.bounds.x >= rect.x &&
                 drawn.bounds.y >= rect.y &&
@@ -704,7 +738,7 @@ export function CatalogCanvas({
               : [drawn];
           });
       },
-      occluders: (identity) => occludersOf(identity),
+      occluders: (identity, area) => occludersOf(identity, area),
       badgeHits,
       overflow: () => overflowTree,
       ai: () => useAIVisualFeedbackStore.getState(),
@@ -923,7 +957,7 @@ export function CatalogCanvas({
       if (!sceneStale) return;
       sceneStale = false;
       try {
-        // A drag's top layer rejects a splice: loaded images wait for its end (which binds again).
+        // A drag's top layer rejects a splice: loaded images wait until its end restores normal ordering.
         const synced = scene.sync({ holdImages: dragRecords !== undefined });
         if (synced.kind !== "unchanged") {
           // ADR-263 Phase 3: a patch redraws only the area it changed (a rebind draws in full).
@@ -1490,7 +1524,7 @@ export function CatalogCanvas({
         setDragVisualOffset(dragRecords, view.dx, view.dy, true, alpha);
         // The dragged subtree moves to the stream's top layer (drawn over everything, unclipped).
         try {
-          scene.refresh();
+          scene.refreshPresentation({ holdImages: true });
         } catch (error) {
           callbacks.current.onError?.(error);
         }
@@ -1505,7 +1539,7 @@ export function CatalogCanvas({
       setDragSiblingOffsets(null);
       setDragVisualOffset(null, 0, 0, true);
       try {
-        scene.refresh();
+        scene.refreshPresentation();
       } catch (error) {
         callbacks.current.onError?.(error);
       }

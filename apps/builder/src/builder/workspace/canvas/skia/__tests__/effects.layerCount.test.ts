@@ -38,6 +38,11 @@ describe("effectOpensLayer — saveLayer 개방 predicate", () => {
   it("outer drop-shadow → true", () => {
     expect(effectOpensLayer(outerShadow)).toBe(true);
   });
+  it("CSS box-shadow는 투명도와 무관한 상자 렌더를 사용하고 filter만 layer를 연다", () => {
+    const boxShadow = { ...outerShadow, source: "box-shadow" } as EffectStyle;
+    expect(effectOpensLayer(boxShadow)).toBe(false);
+    expect(countEffectLayers([boxShadow, outerShadow, opacity])).toBe(2);
+  });
   it("비-shadow effect(opacity/blur 등) → true", () => {
     expect(effectOpensLayer(opacity)).toBe(true);
   });

@@ -44,6 +44,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 11종 Open/Close/Undo·본체 선택, Sheet·Dialog·Popover resize/취소/Undo, 다중 페이지 이동, 일반 노드의 자손 탐색 없음, 중첩 contents/fixed 좌표의 증분 회귀 검사.
 
+## [Sheet·Dialog 배경 fade와 그림자 정합] - 2026-11-04
+
+### Fixed
+
+- SheetBackdrop과 ModalOverlay가 같은 200ms 진입·150ms 퇴장 fade를 공유한다. Sheet의 슬라이드 종료가 늦어도 사라진 배경이 다시 나타나지 않으며, 동작 줄이기 설정에서는 배경 애니메이션을 생략한다.
+- Sheet 본체의 그림자를 Dialog를 감싸는 Modal과 같은 `{shadow.lg}`로 정의하고 CSS를 재생성했다.
+- Canvas 효과 변환에서 catalog 기본 그림자를 누락하던 경로를 수정했다. 테마별 값을 사용하고, 직접 지정한 그림자와 `none`이 우선한다. React Aria 라이브러리는 수정하지 않는다.
+- CSS box-shadow는 상자 외곽에서 그리도록 filter drop-shadow와 분리했다. 투명한 Modal에서도 그림자가 표시되고, 그림자가 내부로 번지거나 여러 층이 서로의 그림자를 다시 만드는 현상을 방지한다.
+- 위치: `packages/shared/src/components/styles/overlays.css`, `packages/shared/src/catalog/generated/componentRulesTable.ts`, `apps/builder/src/builder/catalogRuntime/authoredPaintCanvas.ts`.
+
+### Tests
+
+- 열린 Sheet·Modal 본체의 3층 그림자 일치, backdrop 그림자 없음, light/dark와 저작 override 우선순위 회귀 검사.
+- 실제 CanvasKit의 투명 상자 내부·외곽 픽셀, 효과 layer 수와 명령 스트림 회귀 검사. Builder Compare에서 두 컴포넌트의 Open 상태를 Canvas·Preview로 비교하고 Preview fade 프레임을 측정했다.
+
+## [대량 페이지 Canvas 처리 범위 최적화] - 2026-11-04
+
+### Fixed
+
+- 페이지 테두리·slot·badge의 화면 밖 그리기를 줄이고, 실제 겹치는 상위 페이지만 chrome 가림 후보로 조회한다. scene/data가 같은 badge 대상은 재사용한다.
+- Compare의 현재 페이지 필터를 geometry 조회·Skia 등록·구독에도 적용한다. 열린 portal과 숨김 자손은 해당 페이지의 소유 관계 안에서 유지한다.
+- 자체 공용 runtime의 데이터 갱신을 바인딩 owner 서브트리로 제한한다. 동일 record를 보존하며 mock/API 행, 공유 view와 연쇄 참조, Undo/Redo, transaction 실패 복구를 함께 처리한다.
+- 드래그 시작·종료의 명령 순서 변경은 기존 노드·구독·picture를 유지한다. 구조 변경 등의 기존 전체 재구성 경로는 유지한다.
+- idle picture 준비의 후보 수집·거리 계산·선택·정렬도 시간 예산을 확인하며 나누어 실행한다. scene revision과 카메라가 바뀌면 이전 준비를 취소한다. Adobe RAC 패키지는 변경하지 않는다.
+
+### Tests
+
+- 300페이지 가림 후보, 50페이지 필터, 무관한 형제 5,000개 데이터 갱신, 30,000개 idle 후보의 작업량 회귀 검사와 전체 재구성 oracle 비교.
+- production Builder에서 페이지 전환·겹침·Compare·Open, 행 갱신·Undo/Redo·재로드, 포인터 drag·cancel·drop 확인. 30페이지/7,332 record의 전후 측정은 개별 실행 근거이며 모든 장치의 FPS 향상을 보장하지 않는다.
+
 ## [Overlay Canvas 증분 계산 최적화] - 2026-11-04
 
 ### Fixed

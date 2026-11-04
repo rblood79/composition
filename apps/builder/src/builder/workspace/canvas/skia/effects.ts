@@ -15,14 +15,18 @@ import { acquireScopedPaint } from "./paints";
 /**
  * 이 이펙트가 beginRenderEffects 에서 saveLayer 를 여는가(=endRenderEffects 가 restore 해야 하는가).
  *
- * inset(inner) drop-shadow 는 콘텐츠 실루엣 기반 MakeDropShadow 로 그릴 수 없어 saveLayer 를 열지
- * 않는다 — box RRect 지오메트리를 아는 renderBox(nodeRendererBorders.renderInnerBoxShadows)가
- * 직접 그린다. opener(beginRenderEffects)와 counter(countEffectLayers)가 이 단일 predicate 를
+ * CSS box-shadow와 inset(inner)은 내용 alpha와 무관한 box RRect로 renderBox가 직접 그린다.
+ * filter drop-shadow만 콘텐츠 실루엣 기반 MakeDropShadow와 saveLayer를 사용한다.
+ * opener(beginRenderEffects)와 counter(countEffectLayers)가 이 단일 predicate 를
  * 공유해야 restore 횟수가 어긋나지 않는다(어긋나면 over-restore → canvas save 스택 붕괴 →
  * 이후 요소 transform/clip 오염).
  */
 export function effectOpensLayer(effect: EffectStyle): boolean {
-  if (effect.type === "drop-shadow" && effect.inner) return false;
+  if (
+    effect.type === "drop-shadow" &&
+    (effect.inner || effect.source === "box-shadow")
+  )
+    return false;
   return true;
 }
 
@@ -55,7 +59,7 @@ export function beginRenderEffects(
 
   try {
     for (const effect of effects) {
-      // inset(inner) drop-shadow 는 saveLayer 를 열지 않는다(renderBox 가 지오메트리로 그림).
+      // box-shadow와 inset은 saveLayer를 열지 않는다(renderBox가 지오메트리로 그림).
       //   countEffectLayers 와 동일 predicate 공유 → restore 횟수 정합(over-restore 방지).
       if (!effectOpensLayer(effect)) continue;
       switch (effect.type) {
@@ -109,7 +113,7 @@ export function beginRenderEffects(
         }
 
         case "drop-shadow": {
-          // outer drop-shadow 만 도달한다(inner 는 loop 상단 effectOpensLayer 에서 skip →
+          // filter outer drop-shadow만 도달한다(box-shadow/inner는 effectOpensLayer에서 skip →
           //   renderBox 가 지오메트리로 그림). MakeDropShadow 는 saveLayer 에 캡처된 콘텐츠
           //   실루엣에서 casting 하므로 inner edge 를 표현 못 한다(I-CR1: MakeDropShadowOnly 는
           //   소스를 제거해 콘텐츠가 사라짐).

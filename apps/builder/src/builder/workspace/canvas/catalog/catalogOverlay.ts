@@ -25,6 +25,7 @@ import {
   type DataBadgeBounds,
 } from "../skia/bindingBadgeRenderer";
 import type { BindingBadgeTarget } from "../skia/overlayTypes";
+import { chromeIntersects, expandChromeBox } from "./catalogChromeSpatial";
 import { catalogSlotBand } from "./catalogChrome";
 import {
   renderCollectionRemainderMarker,
@@ -50,6 +51,8 @@ export interface CatalogOverlayInputs {
   /** 열린 overlay owner는 본체의 최종 scene 경계로 선택·측정한다. */
   selectionBounds?: (identity: string) => BoundingBox | undefined;
   selectionHitBounds?: (identity: string) => BoundingBox | undefined;
+  /** Scene viewport; chrome strokes may extend beyond their owning record. */
+  viewport?: () => BoundingBox;
   /** Builder-only page frames; never part of document paint or Preview/Publish. */
   pageBorders?: () => {
     roots: readonly string[];
@@ -107,7 +110,7 @@ export interface CatalogOverlayInputs {
    * record — slot hatch, row remainder, hover outlines — is cut there (canvas-interaction §8.5).
    * Pointing marks (selection box, handles) are not.
    */
-  occluders?: (identity: string) => readonly BoundingBox[];
+  occluders?: (identity: string, area?: BoundingBox) => readonly BoundingBox[];
   /**
    * Data binding badges (ADR-212 Phase 6) and the map their drawn scene rects go to (the press
    * that opens the table editor reads it).
@@ -243,6 +246,7 @@ export function catalogOverlayNode(
         ? { get: inputs.selectionBounds }
         : bounds;
       const zoom = inputs.zoom();
+      const viewport = inputs.viewport?.();
       const selected = new Set(state.selection.map((item) => item.identity));
       const hoverId = state.hover?.identity;
       const ai = inputs.ai?.();
@@ -257,8 +261,8 @@ export function catalogOverlayNode(
         renderFlashes(ck, canvas, now, ai.flashAnimations, targets);
         if (ai.flashAnimations.size) ai.cleanupExpiredFlashes(now);
       }
-      const occludersOf = (identity: string | undefined) =>
-        identity ? inputs.occluders?.(identity) : undefined;
+      const occludersOf = (identity: string | undefined, area?: BoundingBox) =>
+        identity ? inputs.occluders?.(identity, area) : undefined;
       // A grid's cell lines sit under its elements (사용자 2026-10-16 「가이드 라인이 요소 위에」):
       // the pages above it and its children's visible boxes are cut out.
       const gridOccludersOf = (grid: string | undefined) => {
@@ -283,28 +287,38 @@ export function catalogOverlayNode(
         if (id === hoverId || selected.has(id)) continue;
         const box = bounds.get(id);
         if (box && pageBorderPaint)
-          withOccluders(ck, canvas, occludersOf(id), () => {
-            canvas.drawRect(
-              ck.XYWHRect(box.x, box.y, box.width, box.height),
-              pageBorderPaint,
-            );
-          });
+          withOccluders(
+            ck,
+            canvas,
+            occludersOf(id, expandChromeBox(box, 2 / zoom)),
+            () => {
+              canvas.drawRect(
+                ck.XYWHRect(box.x, box.y, box.width, box.height),
+                pageBorderPaint,
+              );
+            },
+          );
       }
       for (const slot of inputs.slots?.() ?? []) {
         const band = catalogSlotBand(slot.box.height, zoom);
+        const painted = expandChromeBox(
+          { ...slot.box, height: band },
+          2 / zoom,
+        );
+        if (viewport && !chromeIntersects(painted, viewport)) continue;
         withOccluders(
           ck,
           canvas,
-          slot.onTop ? undefined : occludersOf(slot.identity),
+          slot.onTop ? undefined : occludersOf(slot.identity, painted),
           () =>
-          renderSlotHatchPattern(
-            ck,
-            canvas,
-            { ...slot.box, height: band },
-            zoom,
-            slot.role,
-            slot.empty,
-          ),
+            renderSlotHatchPattern(
+              ck,
+              canvas,
+              { ...slot.box, height: band },
+              zoom,
+              slot.role,
+              slot.empty,
+            ),
         );
       }
       for (const remainder of inputs.remainders?.() ?? [])
@@ -313,14 +327,15 @@ export function catalogOverlayNode(
           canvas,
           remainder.onTop ? undefined : occludersOf(remainder.ownerId),
           () =>
-          renderCollectionRemainderMarker(
-            ck,
-            canvas,
-            remainder.box,
-            remainder.hiddenRows,
-            zoom,
-            inputs.fontMgr(),
-          ),
+            renderCollectionRemainderMarker(
+              ck,
+              canvas,
+              remainder.box,
+              remainder.hiddenRows,
+              zoom,
+              inputs.fontMgr(),
+              viewport,
+            ),
         );
       inputs.badgeHits?.clear();
       for (const badge of inputs.badges?.() ?? [])
@@ -331,6 +346,7 @@ export function catalogOverlayNode(
           zoom,
           inputs.fontMgr(),
           inputs.badgeHits,
+          viewport,
         );
       inputs.guides?.(canvas);
       if (state.editingContext)

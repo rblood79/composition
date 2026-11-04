@@ -20,6 +20,10 @@ import {
 } from "./selectionRenderer";
 import { getBindingBadgeColor } from "./semanticOverlayColors";
 import type { BindingBadgeTarget } from "./overlayTypes";
+import {
+  chromeIntersects,
+  expandChromeBox,
+} from "../catalog/catalogChromeSpatial";
 import type { BoundingBox } from "../selection/types";
 
 const BADGE_FONT_SIZE = 11; // 화면 px
@@ -113,6 +117,7 @@ export function renderBindingBadge(
   zoom: number,
   fontMgr: FontMgr | undefined,
   boundsMapOut?: Map<string, DataBadgeBounds>,
+  viewport?: BoundingBox,
 ): void {
   if (!fontMgr) return;
   const font = acquireOverlayFont(
@@ -131,6 +136,23 @@ export function renderBindingBadge(
   const contentWidth = BADGE_ICON_SIZE + BADGE_ICON_GAP + textWidth;
   const badgeWidth = contentWidth + BADGE_PADDING_X * 2;
   const badgeHeight = BADGE_FONT_SIZE + BADGE_PADDING_Y * 2;
+
+  if (
+    viewport &&
+    !chromeIntersects(
+      expandChromeBox(
+        {
+          x: target.bounds.x,
+          y: target.bounds.y,
+          width: badgeWidth / zoom,
+          height: badgeHeight / zoom,
+        },
+        1 / zoom,
+      ),
+      viewport,
+    )
+  )
+    return;
 
   const scope = new SkiaDisposable();
   try {

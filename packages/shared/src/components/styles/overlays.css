@@ -12,13 +12,24 @@
     height: var(--visual-viewport-height);
     background: var(--overlay-backdrop);
     z-index: 100;
+  }
 
+  .react-aria-ModalOverlay,
+  .react-aria-SheetBackdrop {
     &[data-entering] {
-      animation: modal-fade 200ms;
+      animation: modal-fade 200ms both;
     }
 
     &[data-exiting] {
-      animation: modal-fade 150ms reverse ease-in;
+      /* Sheet의 scroll 종료가 fade보다 늦어도 배경이 다시 나타나지 않는다. */
+      animation: modal-fade 150ms reverse ease-in both;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      &[data-entering],
+      &[data-exiting] {
+        animation: none;
+      }
     }
   }
 

@@ -75,6 +75,37 @@ const cases = [
   ["PreviewTrigger", "Popover"],
 ] as const;
 
+it("열린 Sheet는 Dialog의 Modal과 같은 그림자를 본체에만 그린다", async () => {
+  const shadows = [];
+  for (const [type, surfaceType] of [
+    ["Sheet", "Sheet"],
+    ["Dialog", "Modal"],
+  ]) {
+    const { workspace } = await fixture(type, { isOpen: true });
+    const scene = new CatalogCanvasScene(workspace.root);
+    try {
+      const surface = [...workspace.root.canvasInputs.values()].find(
+        (node) => node.ruleId === surfaceType,
+      )!;
+      const data = getSkiaNode(surface.id)!;
+      const body = surfaceType === "Modal" ? data.children![1] : data;
+      const effects = body.effects?.filter(
+        (effect) => effect.type === "drop-shadow",
+      );
+      expect(effects).toHaveLength(3);
+      shadows.push(effects);
+      const backdrop = [...workspace.root.canvasInputs.values()].find(
+        (node) => node.ruleId === "SheetBackdrop",
+      );
+      if (backdrop) expect(getSkiaNode(backdrop.id)?.effects).toBeUndefined();
+      else expect(data.children![0].effects).toBeUndefined();
+    } finally {
+      scene.dispose();
+    }
+  }
+  expect(shadows[0]).toEqual(shadows[1]);
+});
+
 describe("overlay authored Open parity", () => {
   it.each(cases)(
     "%s exposes Open and updates its %s portal through off/on/undo",

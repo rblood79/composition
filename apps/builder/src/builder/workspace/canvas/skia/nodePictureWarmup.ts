@@ -16,7 +16,8 @@
  *   - 남은 자리가 0 이면 후보를 모으지 않는다. 있으면 기록할 수 있는 후보만 남겨 (`isNodePictureWarmable`)
  *     가까운 k 개 (k = 남은 자리) 만 정렬하고 나머지는 뒤에 둔다 (기록이 `false` 면 보충).
  *   - 차례 키에 카메라 칸 (`warmupCameraKey`) 을 넣는다 — 같은 stream 이어도 먼 페이지로 옮기면 새 주변부터.
- * - 한 번에 idle 남은 시간만큼 (`timeRemaining() > 1 ms`) — 프레임을 막지 않는다.
+ * - 후보 수집·거리 계산·선택·정렬·기록 모두 idle 남은 시간 (`timeRemaining() > 1 ms`)을 확인한다.
+ *   JS 준비는 128개 작업마다 중단한다. 공간 질의와 단일 picture native 호출 자체는 선점하지 못한다.
  * - 하니스 `--fixed-inputs` 는 idle 시각이 카운트를 흔들지 않게 `manual` 로 두고 창 밖에서 `flush` 한다.
  */
 import type { CanvasKit, FontMgr } from "canvaskit-wasm";
@@ -46,6 +47,8 @@ const WARMUP_MIN_ZOOM = 0.1;
 const WARMUP_REACH = 2;
 /** 카메라 칸 = 후보 사각형 ÷ 이 수 — 중심이 칸을 넘으면 차례를 다시 세운다 (최소 줌 화면이 사각형 안에 남는다). */
 const WARMUP_CAMERA_CELLS = 4;
+/** JS preparation checks the idle deadline between bounded batches (native calls remain atomic). */
+const PREPARE_BATCH = 128;
 
 interface WarmupSource {
   ck: CanvasKit;
@@ -61,6 +64,7 @@ interface WarmupPass {
   revision: number;
   cameraKey: string;
   ids: string[];
+  prepare: Generator<void, string[]> | null;
   cursor: number;
 }
 
@@ -119,13 +123,26 @@ export function warmNodePictures(more: () => boolean): boolean {
       stream: input.stream,
       revision: input.stream.presentationRevision,
       cameraKey: input.cameraKey,
-      ids: warmupOrder(input),
+      ids: [],
+      prepare: warmupOrder(input),
       cursor: 0,
     };
     if (process.env.NODE_ENV === "development")
       renderCounters.warmPassRebuilt += 1;
   }
   const current = pass;
+  while (current.prepare) {
+    if (!hasNodePictureWarmRoom()) {
+      current.prepare = null;
+      return true;
+    }
+    if (!more()) return false;
+    const next = current.prepare.next();
+    if (next.done) {
+      current.ids = next.value;
+      current.prepare = null;
+    }
+  }
   while (current.cursor < current.ids.length) {
     if (!hasNodePictureWarmRoom()) {
       current.cursor = current.ids.length;
@@ -180,6 +197,7 @@ function isPassDone(stream: RenderCommandStream, cameraKey: string): boolean {
     pass.stream === stream &&
     pass.revision === stream.presentationRevision &&
     pass.cameraKey === cameraKey &&
+    pass.prepare === null &&
     pass.cursor >= pass.ids.length
   );
 }
@@ -215,29 +233,29 @@ export function warmupCameraKey(viewport: WarmupRect, zoom: number): string {
  * 이번 차례의 순서 — 기록할 수 있는 후보 중 화면 가운데에서 가까운 k 개 (k = 남은 자리) 가 앞에 정렬되고,
  * 나머지는 정렬 없이 뒤에 남는다 (기록이 `false` 면 이어서 보충).
  */
-function warmupOrder(input: WarmupSource): string[] {
+function* warmupOrder(input: WarmupSource): Generator<void, string[]> {
   const room = getNodePictureWarmRoom();
   if (room <= 0) return [];
   const { stream, viewport } = input;
-  const bounded = collectBoundedCandidates(
+  const bounded = yield* collectBoundedCandidates(
     stream,
     warmupRect(viewport, cameraZoom),
     input.rootIds,
     room,
-  )?.filter((id) => isNodePictureWarmable(stream, id));
+  );
   // 사각형이 남은 자리를 다 못 채우면 stream 전체로 보충한다 — 줌아웃은 page grid 를 다시 배치해 (auto
   // columns) 지금 배치에서 먼 페이지를 화면에 데려온다. 자리가 있는 동안의 ADR-266 보장 (처음 줌아웃 프레임은
   // 재생만) 은 전체 순회가 지킨다 (`app-pages` 줌: 사각형만이면 줌 프레임 기록 0 → 380).
   const ids =
     bounded && bounded.length >= room
       ? bounded
-      : collectLinearCandidates(stream).filter((id) =>
-          isNodePictureWarmable(stream, id),
-        );
+      : yield* collectLinearCandidates(stream);
   const cx = viewport.x + viewport.width / 2;
   const cy = viewport.y + viewport.height / 2;
   const distance = new Map<string, number>();
+  let scanned = 0;
   for (const id of ids) {
+    if (++scanned % PREPARE_BATCH === 0) yield;
     const box = stream.boundsMap.get(id);
     distance.set(
       id,
@@ -247,7 +265,7 @@ function warmupOrder(input: WarmupSource): string[] {
     );
   }
   const k = Math.min(room, ids.length);
-  selectNearest(ids, distance, k);
+  yield* selectNearest(ids, distance, k);
   if (process.env.NODE_ENV === "development")
     renderCounters.warmCandidatesSorted += k;
   return ids;
@@ -258,12 +276,12 @@ function warmupOrder(input: WarmupSource): string[] {
  * self span 이 있고 안 보이는 조상이 없는 요소. 인덱스가 없거나 롤백 플래그면 null (전체 순회로). 질의 결과가
  * 남은 자리보다 적어도 null — 어차피 전체 순회로 보충하므로 선별을 두 번 하지 않는다.
  */
-function collectBoundedCandidates(
+function* collectBoundedCandidates(
   stream: RenderCommandStream,
   rect: WarmupRect,
   rootIds: readonly string[],
   room: number,
-): string[] | null {
+): Generator<void, string[] | null> {
   if (process.env.NODE_ENV === "development" && renderDebug.warmupBoundedOff)
     return null;
   if (!WASM_FLAGS.SPATIAL_INDEX || !spatialIndex.getSpatialIndex()) return null;
@@ -290,13 +308,20 @@ function collectBoundedCandidates(
   };
   const seen = new Set<string>();
   const ids: string[] = [];
+  let scanned = 0;
   for (const list of [rootIds, hits]) {
     for (const id of list) {
+      if (++scanned % PREPARE_BATCH === 0) yield;
       if (seen.has(id)) continue;
       seen.add(id);
       if (process.env.NODE_ENV === "development")
         renderCounters.warmCandidatesScanned += 1;
-      if (stream.selfSpans.has(id) && !isHidden(id)) ids.push(id);
+      if (
+        stream.selfSpans.has(id) &&
+        !isHidden(id) &&
+        isNodePictureWarmable(stream, id)
+      )
+        ids.push(id);
     }
   }
   return ids;
@@ -306,12 +331,16 @@ function collectBoundedCandidates(
  * picture 를 가진 (self span 이 있는) 보이는 요소 — stream 순서. 안 보이는 서브트리는 그 subtree 끝으로
  * 건너뛴다 (프레임도 그 안을 기록하지 않는다).
  */
-function collectLinearCandidates(stream: RenderCommandStream): string[] {
+function* collectLinearCandidates(
+  stream: RenderCommandStream,
+): Generator<void, string[]> {
   if (process.env.NODE_ENV === "development")
     renderCounters.warmCandidatesLinear += 1;
   const at = createCommandReader(stream.commands);
   const ids: string[] = [];
+  let scanned = 0;
   for (let index = 0; index < stream.commands.length; index += 1) {
+    if (++scanned % PREPARE_BATCH === 0) yield;
     const command = at(index);
     if (command?.type !== CMD_ELEMENT_BEGIN || !command.elementId) continue;
     if (process.env.NODE_ENV === "development")
@@ -321,17 +350,21 @@ function collectLinearCandidates(stream: RenderCommandStream): string[] {
       if (end !== undefined) index = end - 1;
       continue;
     }
-    if (stream.selfSpans.has(command.elementId)) ids.push(command.elementId);
+    if (
+      stream.selfSpans.has(command.elementId) &&
+      isNodePictureWarmable(stream, command.elementId)
+    )
+      ids.push(command.elementId);
   }
   return ids;
 }
 
 /** 가까운 k 개를 앞으로 모아 (quickselect) 그 k 개만 정렬한다 — 나머지는 버리지 않고 뒤에 둔다. */
-function selectNearest(
+function* selectNearest(
   ids: string[],
   distance: ReadonlyMap<string, number>,
   k: number,
-): void {
+): Generator<void> {
   if (k <= 0) return;
   const d = (i: number) => distance.get(ids[i])!;
   const swap = (a: number, b: number) => {
@@ -339,6 +372,7 @@ function selectNearest(
     ids[a] = ids[b];
     ids[b] = t;
   };
+  let work = 0;
   let lo = 0;
   let hi = ids.length - 1;
   while (k < ids.length && lo < hi) {
@@ -346,16 +380,41 @@ function selectNearest(
     let i = lo;
     let j = hi;
     while (i <= j) {
-      while (d(i) < pivot) i += 1;
-      while (d(j) > pivot) j -= 1;
+      while (d(i) < pivot) {
+        i += 1;
+        if (++work % PREPARE_BATCH === 0) yield;
+      }
+      while (d(j) > pivot) {
+        j -= 1;
+        if (++work % PREPARE_BATCH === 0) yield;
+      }
       if (i <= j) swap(i++, j--);
+      if (++work % PREPARE_BATCH === 0) yield;
     }
     if (k - 1 <= j) hi = j;
     else if (k - 1 >= i) lo = i;
     else break;
   }
-  const head = ids.slice(0, k).sort((a, b) => distance.get(a)! - distance.get(b)!);
-  for (let i = 0; i < k; i += 1) ids[i] = head[i];
+  // Stable bottom-up merge of only the nearest k. Native Array.sort would run outside the
+  // budget for its entire call; each merge batch can yield without changing priority/ties.
+  const scratch = new Array<string>(k);
+  for (let width = 1; width < k; width *= 2) {
+    for (let left = 0; left < k; left += width * 2) {
+      const mid = Math.min(left + width, k),
+        end = Math.min(left + width * 2, k);
+      let a = left,
+        b = mid;
+      for (let out = left; out < end; out++) {
+        scratch[out] =
+          a < mid && (b >= end || d(a) <= d(b)) ? ids[a++] : ids[b++];
+        if (++work % PREPARE_BATCH === 0) yield;
+      }
+    }
+    for (let i = 0; i < k; i++) {
+      ids[i] = scratch[i];
+      if (++work % PREPARE_BATCH === 0) yield;
+    }
+  }
 }
 
 // 캔버스 teardown — 붙잡은 stream · CanvasKit 을 놓는다

@@ -5173,6 +5173,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         delegation: [],
       },
       containerStyles: {
+        // Sheet 본체가 Dialog의 Modal과 같은 elevation을 소유한다.
+        boxShadow: "{shadow.lg}",
         display: "flex",
         flexDirection: "column",
         width: "360px",

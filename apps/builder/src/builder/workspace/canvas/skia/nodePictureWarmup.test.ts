@@ -56,7 +56,10 @@ vi.mock("../wasm-bindings/spatialIndex", () => ({
   },
 }));
 
-import type { RenderCommandStream } from "./renderCommands";
+import {
+  isNodePictureWarmable,
+  type RenderCommandStream,
+} from "./renderCommands";
 import {
   flushNodePictureWarmup,
   requestNodePictureWarmup,
@@ -204,13 +207,62 @@ describe("ADR-266 idle 미리 기록 — 나눠서 · 한 번만", () => {
     requestNodePictureWarmup(CK, stream, VIEWPORT, () => FONT_MGR);
     let budget = 2;
     expect(warmNodePictures(() => budget-- > 0)).toBe(false);
-    expect(warmed).toHaveLength(2);
+    // Preparation now consumes the same idle budget as recording.
+    expect(warmed).toHaveLength(1);
     expect(warmNodePictures(() => true)).toBe(true);
     expect(warmed).toHaveLength(5);
     warmed.length = 0;
     requestNodePictureWarmup(CK, stream, VIEWPORT, () => FONT_MGR);
     flushNodePictureWarmup();
     expect(warmed).toEqual([]);
+  });
+
+  it("예산 0이면 30k 후보도 조회하지 않고, 다음 slice는 전체 준비를 한 번에 수행하지 않는다", () => {
+    const stream = streamOf(
+      Array.from({ length: 30000 }, (_, i) => ({
+        id: `large-${i}`,
+        x: 45 + ((i * 7919) % 30000),
+      })),
+    );
+    requestNodePictureWarmup(CK, stream, VIEWPORT, () => FONT_MGR);
+    const warmable = vi.mocked(isNodePictureWarmable);
+    warmable.mockClear();
+    expect(warmNodePictures(() => false)).toBe(false);
+    expect(warmable.mock.calls.length).toBe(0);
+    expect(index.queries).toBe(0);
+    let budget = 1;
+    expect(warmNodePictures(() => budget-- > 0)).toBe(false);
+    expect(warmable.mock.calls.length).toBeGreaterThan(0);
+    expect(warmable.mock.calls.length).toBeLessThanOrEqual(128);
+    expect(warmed).toEqual([]);
+    let done = false,
+      slices = 0;
+    while (!done && slices++ < 10000) {
+      budget = 8;
+      const before = warmable.mock.calls.length;
+      done = warmNodePictures(() => budget-- > 0);
+      expect(warmable.mock.calls.length - before).toBeLessThanOrEqual(8 * 128);
+    }
+    expect(done).toBe(true);
+    expect(warmed).toHaveLength(30000);
+    const nearest = warmed
+      .slice(0, MAX_WARM_NODE_PICTURES)
+      .map((id) => stream.boundsMap.get(id)!.x);
+    expect(nearest).toEqual([...nearest].sort((a, b) => a - b));
+    expect(nearest.at(-1)).toBe(45 + MAX_WARM_NODE_PICTURES - 1);
+  });
+
+  it("준비 도중 scene revision 교체는 이전 후보를 버리고 새 장면만 기록한다", () => {
+    const stream = streamOf(
+      Array.from({ length: 5000 }, (_, i) => ({ id: `old-${i}`, x: i })),
+    );
+    requestNodePictureWarmup(CK, stream, VIEWPORT, () => FONT_MGR);
+    let budget = 1;
+    expect(warmNodePictures(() => budget-- > 0)).toBe(false);
+    Object.assign(stream, streamOf([{ id: "new", x: 45 }], 1));
+    requestNodePictureWarmup(CK, stream, VIEWPORT, () => FONT_MGR);
+    flushNodePictureWarmup();
+    expect(warmed).toEqual(["new"]);
   });
 
   it("revision 이 바뀌면 (편집) 차례를 다시 만든다", () => {
@@ -441,7 +493,14 @@ describe("ADR-272 Phase 2 — 후보 bounded · k 제한 · 카메라 칸", () =
           id: "hidden",
           x: 50,
           visible: false,
-          children: [{ id: "wrap", x: 50, self: false, children: [{ id: "deep", x: 50 }] }],
+          children: [
+            {
+              id: "wrap",
+              x: 50,
+              self: false,
+              children: [{ id: "deep", x: 50 }],
+            },
+          ],
         },
         { id: "shown", x: 60 },
       ]),
@@ -469,7 +528,7 @@ describe("ADR-272 Phase 2 — 후보 bounded · k 제한 · 카메라 칸", () =
     requestNodePictureWarmup(
       CK,
       stream,
-      ({ x: 30, y: 0, width: 100, height: 100 }) as DOMRect,
+      { x: 30, y: 0, width: 100, height: 100 } as DOMRect,
       () => FONT_MGR,
     );
     flushNodePictureWarmup();
@@ -478,7 +537,7 @@ describe("ADR-272 Phase 2 — 후보 bounded · k 제한 · 카메라 칸", () =
     requestNodePictureWarmup(
       CK,
       stream,
-      ({ x: 0, y: 499_955, width: 100, height: 100 }) as DOMRect,
+      { x: 0, y: 499_955, width: 100, height: 100 } as DOMRect,
       () => FONT_MGR,
     );
     flushNodePictureWarmup();

@@ -2040,53 +2040,59 @@ export class CatalogCompositionRoot {
   }
   /** The site language the records were last resolved with (a change redraws every root). */
   private resolvedSiteLocale: string | undefined | null = null;
+  /** Collection references can be chained; collect the dependent collections before their owners. */
+  private collectionBindingSources(ids: readonly string[]): Set<string> {
+    const collections = new Set(
+      ids.filter((id) => id.startsWith("data:collection:")),
+    );
+    if (!collections.size) return new Set();
+    const graph = this.runtime.graph;
+    const project = graph.getEntry(graph.projectId);
+    const readers = new Map<string, string[]>();
+    for (const id of project?.kind === "project"
+      ? (project.collectionIds ?? [])
+      : []) {
+      const entry = graph.getEntry(id);
+      if (entry?.kind !== "collection") continue;
+      for (const field of entry.schema) {
+        const ref = field.reference?.collectionId;
+        if (!ref) continue;
+        const target = ref.startsWith("data:collection:")
+          ? ref
+          : `data:collection:${ref}`;
+        const list = readers.get(target) ?? [];
+        list.push(id);
+        readers.set(target, list);
+      }
+    }
+    const queue = [...collections];
+    for (let at = 0; at < queue.length; at++)
+      for (const id of readers.get(queue[at]) ?? [])
+        if (!collections.has(id)) {
+          collections.add(id);
+          queue.push(id);
+        }
+    return new Set([...collections].flatMap((id) => [...graph.bindingsOf(id)]));
+  }
   private dataReaderRoots(ids: readonly string[]): Set<NodeId> {
     const roots = new Set<NodeId>();
-    const collections = new Set<string>();
-    let variables = false;
-    for (const id of ids)
-      if (id.startsWith("data:collection:")) collections.add(id);
-      else if (id.startsWith("data:variable:")) variables = true;
-    if (!collections.size && !variables) return roots;
-    if (collections.size) {
-      // A reference field (ADR-284) reads another collection's rows by key.
-      const raw = new Set(
-        [...collections].map((id) => id.slice("data:collection:".length)),
-      );
-      const project = this.runtime.graph.getEntry(this.runtime.graph.projectId);
-      for (const id of project?.kind === "project"
-        ? (project.collectionIds ?? [])
-        : []) {
-        const entry = this.runtime.graph.getEntry(id);
+    const sources = this.collectionBindingSources(ids);
+    const variables = ids.some((id) => id.startsWith("data:variable:"));
+    if (variables)
+      for (const sourceId of this.sourceInstances.keys()) {
+        const entry = this.runtime.graph.getEntry(sourceId);
+        const binding = entry?.kind === "node" ? entry.binding : undefined;
         if (
-          entry?.kind === "collection" &&
-          entry.schema.some(
-            (field) =>
-              field.reference &&
-              (raw.has(field.reference.collectionId) ||
-                collections.has(field.reference.collectionId)),
-          )
-        )
-          collections.add(id);
-      }
-    }
-    for (const [sourceId, recordIds] of this.sourceInstances) {
-      const entry = this.runtime.graph.getEntry(sourceId);
-      const binding = entry?.kind === "node" ? entry.binding : undefined;
-      if (!binding) continue;
-      if (
-        !collections.has(binding.collectionId) &&
-        !(
-          variables &&
+          binding &&
           (binding.key !== undefined || binding.view || binding.viewId)
         )
-      )
-        continue;
-      for (const recordId of recordIds) {
-        const root = this.recordRoots.get(recordId);
+          sources.add(sourceId);
+      }
+    for (const source of sources)
+      for (const record of this.sourceInstances.get(source) ?? []) {
+        const root = this.recordRoots.get(record);
         if (root) roots.add(root);
       }
-    }
     if (variables)
       for (const id of this.stateReaders()) {
         const root = this.recordRoots.get(id);
@@ -2344,49 +2350,24 @@ export class CatalogCompositionRoot {
   }
 
   /**
-   * Data rows changed outside the document (the data store): re-resolve the page roots that show
+   * Data rows changed outside the document (the data store): re-resolve the binding owners that show
    * a binding to one of these collections (catalog `data:collection:` ids; absent = every bound
    * root). Journaled and delivered like a step; the document revision does not move. Returns the
    * subscriber errors.
    */
   refreshRows(collectionIds?: ReadonlySet<string>): unknown[] {
-    const affected = new Set<NodeId>();
-    for (const [sourceId, recordIds] of this.sourceInstances) {
-      const entry = this.runtime.graph.getEntry(sourceId);
-      if (entry?.kind !== "node" || !entry.binding) continue;
-      if (collectionIds && !collectionIds.has(entry.binding.collectionId))
-        continue;
-      for (const recordId of recordIds) {
-        const rootId = this.recordRoots.get(recordId);
-        if (rootId) affected.add(rootId);
-      }
-    }
-    if (!affected.size) return [];
-    let visits = 0;
-    const roots = [...affected].map((rootId) => {
-      const previous = this.rootMembers.get(rootId) ?? new Set<string>();
-      const next = this.flatten(rootId);
-      visits += next.size;
-      return {
-        rootId,
-        removed: [...previous].filter((id) => !next.has(id)),
-        updates: [...next].map(([id, record]) =>
-          this.planRecord(id, record, rootId, (key) => next.get(key)),
-        ),
-        members: new Set(next.keys()),
-      };
-    });
-    const plan: ConsumePlan = {
-      roots,
-      computeLayout: true,
-      metrics: {
-        ...this.emptyMetrics(this.currentMetrics.revision),
-        affectedRootIds: [...affected],
-        layoutInputVisits: visits,
-        resolverVisits: visits,
-        affectedInstanceCount: visits,
-      },
-    };
+    // The graph already indexes collection -> authored binding owners. Avoid walking every
+    // resolved source merely to discover the same owners on a large document.
+    const sources = collectionIds
+      ? this.collectionBindingSources([...collectionIds])
+      : new Set(
+          [...this.sourceInstances.keys()].filter((id) => {
+            const entry = this.runtime.graph.getEntry(id);
+            return entry?.kind === "node" && !!entry.binding;
+          }),
+        );
+    const plan = this.planBindingOwners(sources);
+    if (!plan.roots.length) return [];
     this.undoLog = [];
     this.layoutTouched = false;
     let notices: Notice[];
@@ -2399,6 +2380,94 @@ export class CatalogCompositionRoot {
       this.undoLog = undefined;
     }
     return this.deliver(plan, notices);
+  }
+
+  /** Reuse the structural resolver's region contract for data-driven owner subtrees. */
+  private planBindingOwners(
+    sources: ReadonlySet<string>,
+    result?: CatalogTransactionResult,
+  ): ConsumePlan {
+    const candidates = new Set<string>();
+    for (const source of sources)
+      for (const id of this.sourceInstances.get(source) ?? []) {
+        let region = this.records.get(id);
+        // Repeated rows are materialized by their collection owner. Keep that resolver context
+        // when a nested binding lives inside a row (the row key is not an authored position).
+        while (region?.id.includes(CATALOG_ROW_SEPARATOR))
+          region = this.records.get(region.parentId);
+        if (region) candidates.add(region.id);
+      }
+    const regions = [...candidates].filter((id) => {
+      for (
+        let parent = this.records.get(id)?.parentId;
+        parent;
+        parent = this.records.get(parent)?.parentId
+      )
+        if (candidates.has(parent)) return false;
+      return true;
+    });
+    let resolverVisits = 0;
+    let visits = 0;
+    const grouped = new Map<NodeId, string[]>();
+    for (const id of regions) {
+      const rootId = this.recordRoots.get(id)!;
+      const list = grouped.get(rootId) ?? [];
+      list.push(id);
+      grouped.set(rootId, list);
+    }
+    const roots: ConsumePlan["roots"][number][] = [];
+    for (const [rootId, ids] of grouped) {
+      const previous = new Set<string>();
+      const collect = (id: string) => {
+        if (previous.has(id)) return;
+        previous.add(id);
+        for (const child of this.records.get(id)?.children ?? [])
+          collect(child);
+      };
+      const next = new Map<string, CatalogConsumerNode>();
+      for (const id of ids) {
+        collect(id);
+        for (const [key, record] of this.flatten(
+          rootId,
+          id,
+          () => resolverVisits++,
+        ))
+          next.set(key, record);
+      }
+      const lookup = (key: string) => next.get(key) ?? this.records.get(key);
+      visits += next.size;
+      const updates = [...next]
+        .map(([id, record]) => this.planRecord(id, record, rootId, lookup))
+        .filter((plan) => {
+          const old = this.records.get(plan.id);
+          return (
+            !old ||
+            !sameRecord(old, plan.record) ||
+            this.layoutPlanChanged(plan)
+          );
+        });
+      roots.push({
+        rootId,
+        updates,
+        removed: [...previous].filter((id) => !next.has(id)),
+      });
+    }
+    return {
+      ...(result ? { result } : {}),
+      roots,
+      computeLayout: roots.some(
+        (root) => root.updates.length > 0 || root.removed.length > 0,
+      ),
+      metrics: {
+        ...this.emptyMetrics(result?.revision ?? this.currentMetrics.revision),
+        changedIds: [...(result?.changedIds ?? [])],
+        removedIds: [...(result?.removedIds ?? [])],
+        affectedRootIds: [...grouped.keys()],
+        layoutInputVisits: visits,
+        resolverVisits,
+        affectedInstanceCount: visits,
+      },
+    };
   }
 
   /**
@@ -5754,6 +5823,24 @@ export class CatalogCompositionRoot {
     )?.some((property) => property.key === op.key);
   }
   private plan({ result, invalidatedIds }: CatalogStepContext): ConsumePlan {
+    // Existing collection/view value edits keep document transaction + rollback semantics,
+    // while using the same owner-scoped resolution as runtime API rows. Mixed structural or
+    // variable edits retain the general dependency planner below.
+    if (
+      !isComponentsView(this.definitionView) &&
+      result.forward.length &&
+      result.forward.every(
+        (op) =>
+          op.kind === "put" &&
+          (op.entry.kind === "collection" || op.entry.kind === "view"),
+      )
+    ) {
+      const sources = this.collectionBindingSources([...result.changedIds]);
+      for (const id of result.changedIds)
+        if (this.runtime.graph.getEntry(id)?.kind === "view")
+          for (const source of this.viewReaders(id)) sources.add(source);
+      return this.planBindingOwners(sources, result);
+    }
     const ownedStructure = this.planOwnedRemovalOrOrder(result);
     if (ownedStructure) return ownedStructure;
     const valueOnly = result.forward.every(

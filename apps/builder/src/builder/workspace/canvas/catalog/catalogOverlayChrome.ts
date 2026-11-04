@@ -1,3 +1,4 @@
+import { createChromeSpatialIndex } from "./catalogChromeSpatial";
 import type { BoundingBox } from "../selection/types";
 import type { EditingSemanticsRole } from "../../../utils/editingSemanticsRole";
 
@@ -24,11 +25,11 @@ export interface CatalogOverlayChromeBuilders {
   /** Bound collections' "+N more" areas (`catalogRowRemainders` placed on the scene's boxes). */
   remainders(): readonly CatalogOverlayRemainder[];
   /** Page boxes painted over a record's page (`catalogOccludingPages`). */
-  occluders(identity: string): readonly BoundingBox[];
+  occluders?(identity: string): readonly BoundingBox[];
 }
 
 export interface CatalogOverlayChromeCache {
-  slots(): readonly CatalogOverlaySlotMark[];
+  slots(area?: BoundingBox): readonly CatalogOverlaySlotMark[];
   remainders(): readonly CatalogOverlayRemainder[];
   occludersOf(identity: string): readonly BoundingBox[];
 }
@@ -51,19 +52,29 @@ export function createOverlayChromeCache(
   let version = -1;
   let slots: readonly CatalogOverlaySlotMark[] | undefined;
   let remainders: readonly CatalogOverlayRemainder[] | undefined;
+  let slotQuery:
+    | ReturnType<typeof createChromeSpatialIndex<CatalogOverlaySlotMark>>
+    | undefined;
   const occluders = new Map<string, readonly BoundingBox[]>();
   const follow = () => {
     const next = sceneVersion();
     if (next === version) return;
     version = next;
     slots = undefined;
+    slotQuery = undefined;
     remainders = undefined;
     occluders.clear();
   };
   return {
-    slots() {
+    slots(area) {
       follow();
-      return (slots ??= build.slots());
+      slots ??= build.slots();
+      if (!area) return slots;
+      slotQuery ??= createChromeSpatialIndex(slots, (slot) => ({
+        ...slot.box,
+        height: slot.box.height || 48,
+      }));
+      return slotQuery(area);
     },
     remainders() {
       follow();
@@ -73,7 +84,7 @@ export function createOverlayChromeCache(
       follow();
       let boxes = occluders.get(identity);
       if (!boxes) {
-        boxes = build.occluders(identity);
+        boxes = build.occluders?.(identity) ?? [];
         occluders.set(identity, boxes);
       }
       return boxes;
@@ -148,7 +159,8 @@ export function catalogDragPlacement(
 export function catalogDraggedChrome<T>(
   items: readonly T[],
   identityOf: (item: T) => string | undefined,
-  placementOf: ((identity: string) => CatalogDragPlacement | undefined) | undefined,
+  placementOf:
+    ((identity: string) => CatalogDragPlacement | undefined) | undefined,
   move: (item: T, placement: CatalogDragPlacement) => T,
 ): readonly T[] {
   if (!placementOf) return items;

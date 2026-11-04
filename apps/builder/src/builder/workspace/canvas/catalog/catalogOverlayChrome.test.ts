@@ -42,6 +42,32 @@ describe("createOverlayChromeCache", () => {
     expect(occluders).toHaveBeenCalledTimes(2);
   });
 
+  it("화면 밖 slot을 제외하면서 높이 0인 slot의 표시 band는 보존한다", () => {
+    const cache = createOverlayChromeCache(() => 0, {
+      slots: () => [
+        {
+          box: { x: 0, y: -40, width: 100, height: 0 },
+          empty: true,
+          role: "instance",
+          identity: "zero",
+        },
+        {
+          box: { x: 500, y: 0, width: 100, height: 30 },
+          empty: true,
+          role: "instance",
+          identity: "far",
+        },
+      ],
+      remainders: () => [],
+    });
+    expect(
+      cache
+        .slots({ x: 0, y: 0, width: 100, height: 100 })
+        .map((mark) => mark.identity),
+    ).toEqual(["zero"]);
+    expect(cache.slots()).toHaveLength(2);
+  });
+
   it("scene 버전이 바뀌면 다시 만든다 (slot · 나머지 · 가림 전부)", () => {
     const { cache, slots, remainders, occluders, bump } = setup();
     cache.slots();
@@ -166,7 +192,10 @@ describe("catalogDragPlacement", () => {
         }),
       ),
     );
-    expect(moved[0]).toMatchObject({ box: { ...box, x: 15, y: 13 }, onTop: true });
+    expect(moved[0]).toMatchObject({
+      box: { ...box, x: 15, y: 13 },
+      onTop: true,
+    });
   });
 
   it("끌리지 않은 top layer root (fixed box) 도 조상 offset 을 받지 않고 onTop 이 아니다", () => {

@@ -1276,6 +1276,7 @@ function parseOneShadow(raw: string): DropShadowEffect | null {
 
   return {
     type: "drop-shadow",
+    source: "box-shadow",
     dx,
     dy,
     sigmaX: sigma,

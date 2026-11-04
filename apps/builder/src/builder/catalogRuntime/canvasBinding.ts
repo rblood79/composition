@@ -1497,6 +1497,9 @@ export function bindCatalogCanvas(
   );
   return {
     ...bound,
+    get stream() {
+      return bound.stream;
+    },
     update: () => withColorMode(root.colorMode, bound.update),
   };
 }
@@ -1518,6 +1521,34 @@ function bindInColorMode(
   pageShell?: { id: string; rect: Rect; fill: string },
   context: CatalogCanvasBindContext = {},
 ) {
+  const drawnRootIds = new Set(rootIds);
+  // A page filter is also an ownership boundary for geometry, Skia resources and subscriptions.
+  // Keep the full-document fast path allocation-free; portals/fixed nodes remain descendants.
+  const allRoots = root.pageRootRecords();
+  const boundInputs: ReadonlyMap<string, CatalogConsumerNode> =
+    allRoots.length === rootIds.length &&
+    allRoots.every((id) => drawnRootIds.has(id))
+      ? root.canvasInputs
+      : (() => {
+          const inputs = new Map<string, CatalogConsumerNode>();
+          const visit = (id: string) => {
+            if (inputs.has(id)) return;
+            const node = root.canvasInputs.get(id);
+            if (!node) throw new Error(`CATALOG_CANVAS_ROOT_REQUIRED:${id}`);
+            inputs.set(id, node);
+            node.children.forEach(visit);
+          };
+          rootIds.forEach(visit);
+          return inputs;
+        })();
+  const belongsToScene = (id: string): boolean => {
+    let cursor: string | undefined = id;
+    while (cursor) {
+      if (drawnRootIds.has(cursor)) return true;
+      cursor = root.canvasInputs.get(cursor)?.parentId;
+    }
+    return false;
+  };
   const sceneNodes = new Map<string, CanvasSceneNode>();
   const childrenMap = new Map<string, CanvasSceneNode[]>();
   const layoutMap = new Map<string, ComputedLayout>();
@@ -1771,9 +1802,9 @@ function bindInColorMode(
     };
   };
   try {
-    const geometry = root.getGeometry(root.canvasInputs.keys());
+    const geometry = root.getGeometry(boundInputs.keys());
     stickyOf = root.getStickyConstraints();
-    for (const node of root.canvasInputs.values()) {
+    for (const node of boundInputs.values()) {
       const bindingId = bindingKey(node);
       const binding = bindingId ? bindings[bindingId] : undefined;
       if (!bindingId || (!binding && !node.ruleId))
@@ -1822,6 +1853,7 @@ function bindInColorMode(
     }
     if (context.slotMode !== "page")
       for (const chrome of root.slotChromeInputs.values()) {
+        if (!boundInputs.has(chrome.slotId)) continue;
         const rect = root.getGeometry([chrome.id]).get(chrome.id);
         if (!rect) throw new Error(`SLOT_CHROME_LAYOUT_REQUIRED:${chrome.id}`);
         const children: string[] = [];
@@ -1940,6 +1972,7 @@ function bindInColorMode(
         );
       }
     for (const showAll of root.tagShowAllInputs.values()) {
+      if (!boundInputs.has(showAll.listId)) continue;
       const rect = root.getGeometry([showAll.id]).get(showAll.id);
       if (!rect) throw new Error(`TAG_SHOW_ALL_LAYOUT_REQUIRED:${showAll.id}`);
       sceneNodes.set(showAll.id, {
@@ -1955,7 +1988,7 @@ function bindInColorMode(
       registeredIds.add(showAll.id);
       childrenMap.set(showAll.id, []);
     }
-    for (const node of root.canvasInputs.values()) {
+    for (const node of boundInputs.values()) {
       const chrome = root.slotChromeInputs.get(node.id);
       const showAll = root.tagShowAllInputs.get(node.id);
       const childIds = [
@@ -1999,7 +2032,7 @@ function bindInColorMode(
         }),
       );
     }
-    const stream = buildRenderCommandStream(
+    let stream = buildRenderCommandStream(
       pageShell ? [pageShell.id] : [...rootIds],
       childrenMap,
       layoutMap,
@@ -2029,7 +2062,7 @@ function bindInColorMode(
     /** Children a scroll could not place (a sticky box): recorded again at the next update. */
     const scrollSeeds = new Set<string>();
     const unsubscribe = new Map<string, () => void>();
-    for (const node of root.canvasInputs.values()) {
+    for (const node of boundInputs.values()) {
       bound.set(node.id, node);
       boundLayoutInputs.set(node.id, root.getAppliedLayoutInput(node.id));
       boundParts.set(node.id, partInput(node.id));
@@ -2045,14 +2078,16 @@ function bindInColorMode(
      */
     const tagRowsState = () =>
       JSON.stringify(
-        [...root.tagShowAllInputs.values()].map((showAll) => [
-          showAll.id,
-          showAll.text,
-          root.getGeometry([showAll.id]).get(showAll.id),
-          root.canvasInputs
-            .get(showAll.listId)
-            ?.children.filter((id) => root.tagRowCollapsed(id)),
-        ]),
+        [...root.tagShowAllInputs.values()]
+          .filter((showAll) => belongsToScene(showAll.listId))
+          .map((showAll) => [
+            showAll.id,
+            showAll.text,
+            root.getGeometry([showAll.id]).get(showAll.id),
+            root.canvasInputs
+              .get(showAll.listId)
+              ?.children.filter((id) => root.tagRowCollapsed(id)),
+          ]),
       );
     const boundTagRows = tagRowsState();
     /**
@@ -2911,7 +2946,24 @@ function bindInColorMode(
       return seeded;
     };
     return {
-      stream,
+      get stream() {
+        return stream;
+      },
+      /** Drag top-layer changes only command order/clip context; retain nodes and subscriptions. */
+      refreshPresentation: () => {
+        stream = buildRenderCommandStream(
+          pageShell ? [pageShell.id] : [...rootIds],
+          childrenMap,
+          layoutMap,
+          {},
+          {
+            presentationRevision: stream.presentationRevision + 1,
+            baseCanonicalRevision: stream.baseCanonicalRevision,
+            presentationRevisionByRootKey: stream.presentationRevisionByRootKey,
+          },
+          { syncSpatialIndexSnapshot: true, publishBoundsSnapshot: true },
+        );
+      },
       bindingIds: [...resolvedBindingIds],
       unpainted,
       update,

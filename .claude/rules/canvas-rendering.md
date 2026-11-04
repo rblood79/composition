@@ -17,6 +17,7 @@ paths:
 - 열린 overlay owner의 선택·hover·측정·눈금자는 본체의 최종 scene 경계를 읽고, 문서 선택 identity와 분리한다. resize는 표시 본체의 override에 쓰며 portal 표시를 끌어 흐름의 트리거를 이동시키지 않는다. **Why (2026-11-04)**: DialogTrigger 선택 테두리 310×176이 화면 상단에 남고 Modal 본체만 중앙에 그려졌다. Sheet·Popover·Menu·PreviewTrigger도 같은 경계 소비 누락이었다. 전체 페이지 순회 대신 선택 owner의 조립 경로만 해석한다.
 
 - catalog 색상 토큰은 hex뿐 아니라 CSS `rgba()`도 전달한다. shape 변환은 기존 공용 색상 파서로 채널과 alpha를 보존하고 fillAlpha는 한 번만 곱한다. **Why (2026-11-03)**: SheetBackdrop의 검정 50% 토큰이 Canvas에서 불투명 검정으로 그려졌다.
+- catalog 기본 `boxShadow`도 Canvas 효과 변환에 전달하고 저작 값(`none` 포함)을 우선한다. CSS box-shadow는 border box 외곽에 그리며 filter drop-shadow와 구분한다. **Why (2026-11-04)**: Sheet·Modal의 기본 3층 그림자가 저작 paint 변환에서 누락됐다. 전달 후에도 투명한 Modal의 내용 alpha에서 그림자를 만들어 실제 화면에는 보이지 않았다. 공용 resolver와 상자 외곽 렌더로 수정하고 투명 내부·외곽 픽셀을 검사한다.
 
 > **SSOT 체인 연계**: Skia 렌더는 [ssot-hierarchy.md](ssot-hierarchy.md) **D3(시각 스타일)의 direct consumer**. CSS/DOM consumer와 **대등(symmetric)** — 한쪽이 다른 쪽 기준 아님. 대칭 = "시각 결과의 동일성" (구현 방법 자유). catalog/spec 이 D1(DOM) 침범 금지.
 >
@@ -253,6 +254,14 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 - Canvas 게이트/플래그의 유일 정의처는 `wasm-bindings/featureFlags.ts`. 파일 밖 boolean 게이트 상수 신설 금지 — `featureFlags.test.ts` 의 registry 계약이 기계 집행 (registry 밖 게이트 상수 0건 + 게이트별 코드 소비처 ≥1)
 - 소비자 0건이 된 게이트는 **삭제**한다 — 전환 계획·완료 사실은 ADR/CHANGELOG 가 기록. 의도적 보존은 `INTENT_PRESERVED` allowlist 에 사유와 함께 등재
 - **Why**: ADR-900 잔재 게이트 9개가 소비자 0건인 채 "토글할 수 있는 것" 으로 잘못 읽히며 수개월 잔존했고, 발견 수단이 수동 전수 스윕뿐이었다 (memory: `project-pixijs-removal-residue-gates-always-false`). 가드는 발견 시점을 커밋 시점으로 앞당긴다
+
+## 대량 페이지 작업 범위
+
+- chrome은 scene revision의 공간 인덱스로 화면 및 실제 paint 영역과 겹치는 페이지를 조회한다. 0-height slot band·고정 크기 글자·stroke 여유는 원래 상자 밖까지 포함한다. **Why (2026-11-04):** 비중첩 300페이지 테두리에 매 프레임 수행되던 불필요한 가림 clip 44,850회가 0회가 됐다.
+- page root 필터는 geometry·Skia 등록·구독에 같은 reachable 집합을 사용한다. portal·fixed·숨긴 자손은 소유 관계를 유지한다. **Why (2026-11-04):** 50페이지/7,050 record에서 한 페이지만 그리면서도 전체를 구독하던 비용이 해당 페이지 141개로 줄었다.
+- 데이터는 graph의 binding 인덱스에서 owner와 연쇄 참조 reader를 찾아 기존 region resolver로 갱신한다. 같은 record를 재사용하고 transaction rollback을 유지한다. **Why (2026-11-04):** API 행 한 셀 변경이 무관한 형제 5,000개까지 다시 해석했다. owner 범위 적용 후 layout 입력은 13개로 일정했다.
+- 드래그의 top-layer 변경은 기존 binding에서 명령을 다시 구성한다. 문서 구조·미지원 patch의 full rebind는 별도 판단한다. **Why (2026-11-04):** 30페이지 production에서 시작·끝 전체 rebind가 picture를 폐기했다. 재사용 후 단일 비교의 drag long task는 2회→0회였으며 command 생성 자체는 아직 선형이다.
+- idle 준비도 기록과 같은 예산을 확인한다. JS 수집·거리 계산·선택·정렬을 작은 묶음으로 중단하고 revision/camera 변경 시 취소한다. **Why (2026-11-04):** 기존 경로는 예산 0에서도 30,000개 후보를 조회했다. native 공간 질의·단일 Skia 호출까지 선점 가능하다고 간주하지 않는다.
 
 ## 상세 레퍼런스
 

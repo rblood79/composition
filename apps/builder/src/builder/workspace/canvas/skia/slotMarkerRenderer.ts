@@ -1,5 +1,9 @@
 import type { CanvasKit, Canvas, FontMgr } from "canvaskit-wasm";
 import type { EditingSemanticsRole } from "../../../utils/editingSemanticsRole";
+import {
+  chromeIntersects,
+  expandChromeBox,
+} from "../catalog/catalogChromeSpatial";
 import type { BoundingBox } from "../selection/types";
 import { SkiaDisposable } from "./disposable";
 import { HATCH_ALPHA, drawDiagonalHatch } from "./hatchPattern";
@@ -65,30 +69,43 @@ export function renderCollectionRemainderMarker(
   hiddenRows: number,
   zoom: number,
   fontMgr?: FontMgr,
+  viewport?: BoundingBox,
 ): void {
   if (bounds.width <= 0 || bounds.height <= 0) return;
-  // 사선 hatch + 테두리 (slot marker 동형, role=null → 중립 blue).
-  renderSlotHatchPattern(ck, canvas, bounds, zoom, null, true);
-  if (!fontMgr || hiddenRows <= 0) return;
-
   const label = `+${hiddenRows} more`;
+  const font =
+    fontMgr && hiddenRows > 0
+      ? acquireOverlayFont(
+          ck,
+          fontMgr,
+          ck.FontWeight.Medium,
+          REMAINDER_LABEL_FONT_SIZE,
+        )
+      : undefined;
+  const textWidth = font ? measureGlyphRunWidth(font, label) : 0;
+  const width = Math.max(bounds.width, textWidth / zoom);
+  const height = Math.max(
+    bounds.height,
+    (REMAINDER_LABEL_FONT_SIZE * 2) / zoom,
+  );
+  const painted = expandChromeBox(
+    {
+      x: bounds.x + (bounds.width - width) / 2,
+      y: bounds.y + (bounds.height - height) / 2,
+      width,
+      height,
+    },
+    2 / zoom,
+  );
+  if (viewport && !chromeIntersects(painted, viewport)) return;
+  renderSlotHatchPattern(ck, canvas, bounds, zoom, null, true);
+  if (!font) return;
   const scope = new SkiaDisposable();
   try {
-    // 캐시 소유 Font — scope.track 금지 (acquireOverlayFont 주석 참조).
-    const font = acquireOverlayFont(
-      ck,
-      fontMgr,
-      ck.FontWeight.Medium,
-      REMAINDER_LABEL_FONT_SIZE,
-    );
-    if (!font) return;
-
     const paint = acquireScopedPaint(scope, ck);
     paint.setAntiAlias(true);
     paint.setStyle(ck.PaintStyle.Fill);
     paint.setColor(getSemanticOverlayColor(ck, null, REMAINDER_LABEL_ALPHA));
-
-    const textWidth = measureGlyphRunWidth(font, label);
 
     // 나머지 영역 중앙에 줌 독립 고정 폰트로 배치 (scene 좌표 → invZoom 스케일 후 screen px).
     const invZoom = 1 / zoom;

@@ -421,7 +421,17 @@ function renderBoxShadows(
   canvas: Canvas,
   node: SkiaNodeData,
 ): void {
-  if (!node.box?.shadows?.length) return;
+  if (!node.box) return;
+  const effectShadows = node.effects?.filter(
+    (effect): effect is DropShadowEffect =>
+      effect.type === "drop-shadow" &&
+      effect.source === "box-shadow" &&
+      !effect.inner,
+  );
+  const shadows = effectShadows?.length
+    ? [...(node.box.shadows ?? []), ...effectShadows]
+    : node.box.shadows;
+  if (!shadows?.length) return;
 
   const br = node.box.borderRadius;
   // ADR-219 — 배열 반경은 4 코너 그대로 (종전엔 첫 값만 읽었다)
@@ -430,7 +440,21 @@ function renderBoxShadows(
     : null;
   const baseRadius = typeof br === "number" ? br : 0;
 
-  for (const shadow of node.box.shadows) {
+  // CSS outer shadow는 투명한 상자도 외곽에만 칠하고, 첫 선언을 가장 위에 쌓는다.
+  canvas.save();
+  canvas.clipRRect(
+    cornerRadii
+      ? rrectFromRadii(0, 0, node.width, node.height, cornerRadii)
+      : ck.RRectXY(
+          ck.LTRBRect(0, 0, node.width, node.height),
+          baseRadius,
+          baseRadius,
+        ),
+    ck.ClipOp.Difference,
+    true,
+  );
+  for (let index = shadows.length - 1; index >= 0; index--) {
+    const shadow = shadows[index];
     if (shadow.inner) continue; // outer shadow만 처리
 
     const spread = shadow.spread ?? 0;
@@ -495,6 +519,7 @@ function renderBoxShadows(
     blur?.delete();
     canvas.restore();
   }
+  canvas.restore();
 }
 
 /**

@@ -6,6 +6,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import type { Canvas, CanvasKit, Paint, Path } from "canvaskit-wasm";
 import { renderBox } from "./nodeRendererBorders";
 import type { SkiaNodeData } from "./nodeRendererTypes";
+import { buildSkiaEffects } from "../styleConversion/styleConverter";
 
 interface CanvasKitInitializer {
   (options: { locateFile: (file: string) => string }): Promise<CanvasKit>;
@@ -101,6 +102,35 @@ describe("nodeRendererBorders 실제 CanvasKit 통합", () => {
 
   beforeAll(async () => {
     ck = await loadCanvasKit();
+  });
+
+  it("투명한 Modal도 box-shadow가 바깥에 보이며 내부에는 칠하지 않는다", () => {
+    const surface = ck.MakeSurface(160, 140)!;
+    try {
+      const canvas = surface.getCanvas();
+      canvas.clear(ck.TRANSPARENT);
+      canvas.translate(30, 30);
+      const node = createNode();
+      node.box!.fillColor = Float32Array.of(0, 0, 0, 0);
+      node.box!.borderRadius = 16;
+      node.effects = buildSkiaEffects({
+        boxShadow: "0 8px 12px rgba(0,0,0,0.5)",
+      }).effects;
+      renderBox(ck, canvas, node);
+      const pixels = canvas.readPixels(0, 0, {
+        width: 160,
+        height: 140,
+        colorType: ck.ColorType.RGBA_8888,
+        alphaType: ck.AlphaType.Unpremul,
+        colorSpace: ck.ColorSpace.SRGB,
+      })!;
+      const alpha = (x: number, y: number) => pixels[(y * 160 + x) * 4 + 3];
+      expect(alpha(80, 114)).toBeGreaterThan(0);
+      expect(alpha(80, 70)).toBe(0);
+      expect(alpha(80, 108)).toBe(0);
+    } finally {
+      surface.delete();
+    }
   });
 
   it("inset/outset clip 경계와 양쪽 명암을 보존하고 Path를 해제한다", () => {

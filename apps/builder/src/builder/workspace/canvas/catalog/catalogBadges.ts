@@ -20,6 +20,8 @@ export interface CatalogBadgeData {
 
 export interface CatalogBadgeInputs {
   data: () => CatalogBadgeData;
+  /** Bounds and binding ownership revision; maps alone can mutate in place. */
+  sceneVersion?: () => number;
   /** Committed nodes bound to a collection reference (the graph's collection index). */
   bindingsOf: (collectionRef: string) => ReadonlySet<string>;
   /** The drawn records of a node. */
@@ -67,12 +69,33 @@ export function createCatalogBadges(inputs: CatalogBadgeInputs) {
     }
     return info;
   };
+  let targetsCache:
+    | {
+        version: number;
+        data: CatalogBadgeData;
+        bounds: ReadonlyMap<string, BoundingBox>;
+        visible: ReadonlyMap<string, BoundingBox>;
+        targets: BindingBadgeTarget[];
+      }
+    | undefined;
   return {
     targets(
       bounds: ReadonlyMap<string, BoundingBox>,
       visible: ReadonlyMap<string, BoundingBox>,
     ): BindingBadgeTarget[] {
       const data = inputs.data();
+      const version = inputs.sceneVersion?.();
+      const known = targetsCache;
+      if (
+        version !== undefined &&
+        known?.version === version &&
+        known.bounds === bounds &&
+        known.visible === visible &&
+        known.data.collections === data.collections &&
+        known.data.apiEndpoints === data.apiEndpoints &&
+        known.data.apiRuns === data.apiRuns
+      )
+        return known.targets;
       const out: BindingBadgeTarget[] = [];
       for (const table of data.collections.values()) {
         const nodes = inputs.bindingsOf(catalogCollectionId(table.id));
@@ -91,6 +114,8 @@ export function createCatalogBadges(inputs: CatalogBadgeInputs) {
               });
           }
       }
+      if (version !== undefined)
+        targetsCache = { version, data, bounds, visible, targets: out };
       return out;
     },
   };

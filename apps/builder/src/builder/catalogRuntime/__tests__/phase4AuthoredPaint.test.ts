@@ -106,6 +106,44 @@ describe("ADR-248 Phase 4a-3 authored paint", () => {
     expect(data.zIndex).toBe(3);
   });
 
+  it.each(["Sheet", "Modal"])(
+    "%s의 기본 그림자는 테마를 따르고 저작 none과 사용자 그림자가 우선한다",
+    (ruleId) => {
+      const shadows = ["light", "dark"].map((theme) => {
+        const data = applyCatalogAuthoredPaint(
+          frame({ ruleId }),
+          baseBox(),
+          rect,
+          theme as "light" | "dark",
+        );
+        const effects = data.effects!.filter(
+          (effect) => effect.type === "drop-shadow",
+        );
+        expect(effects).toHaveLength(3);
+        return effects;
+      });
+      expect(shadows[0]).not.toEqual(shadows[1]);
+      const none = applyCatalogAuthoredPaint(
+        frame({ ruleId, visual: { boxShadow: "none" } }),
+        baseBox(),
+        rect,
+      );
+      expect(none.effects).toBeUndefined();
+      const custom = applyCatalogAuthoredPaint(
+        frame({ ruleId, visual: { boxShadow: "0 2px 4px rgba(255,0,0,0.5)" } }),
+        baseBox(),
+        rect,
+      );
+      expect(custom.effects).toHaveLength(1);
+      expect(custom.effects![0]).toMatchObject({
+        type: "drop-shadow",
+        dx: 0,
+        dy: 2,
+        color: Float32Array.of(1, 0, 0, 0.5),
+      });
+    },
+  );
+
   it("draws per-side border widths as the DOM longhands", () => {
     const node = frame({
       visual: { borderColor: "#112233", borderTopWidth: 2 },

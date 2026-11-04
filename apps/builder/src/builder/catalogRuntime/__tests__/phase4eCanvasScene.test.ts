@@ -1,5 +1,5 @@
 import "fake-indexeddb/auto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
@@ -13,6 +13,7 @@ import {
   setFields,
   updatePage,
 } from "../../../../../../packages/shared/src/catalog/commands";
+import { setDragVisualOffset } from "../../workspace/canvas/skia/nodeRendererTree";
 import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
 import { createCatalogStylesHost } from "../../panels/styles/catalog/catalogStylesHost";
 import { pickTopmostRecord } from "../canvasPick";
@@ -69,6 +70,59 @@ async function open() {
 }
 
 describe("ADR-248 Phase 4e-2 Canvas scene", () => {
+  it.each([1, 500])(
+    "드래그 시작·취소는 %i개 노드의 geometry/구독/Skia 자원을 다시 만들지 않는다",
+    async (count) => {
+      const { workspace, scene } = await open();
+      try {
+        const entries = Array.from({ length: count }, (_, i) =>
+          text(`drag-${i}`, `Item ${i}`),
+        );
+        workspace.execute(
+          insertNodes({
+            parent: { kind: "node", id: BODY },
+            entries,
+            rootIds: entries.map((e) => e.id),
+            newId: allocator(),
+          }),
+        );
+        scene.sync();
+        const [id] = workspace.root.recordsOfSource(entries[0].id);
+        const data = getSkiaNode(id);
+        const document = workspace.runtime.graph.exportDocument();
+        const geometry = vi.spyOn(workspace.root, "getGeometry");
+        const subscribe = vi.spyOn(workspace.root, "subscribeCanvas");
+        const baseline = new Map(scene.stream.hitBoundsMap);
+        setDragVisualOffset(new Set([id]), 12, 16, true);
+        expect(scene.refreshPresentation({ holdImages: true }).kind).toBe(
+          "presented",
+        );
+        expect(scene.stream.topLayerElementIds.has(id)).toBe(true);
+        expect(getSkiaNode(id)).toBe(data);
+        const dragCommands = Array.from(scene.stream.commands);
+        setDragVisualOffset(null, 0, 0, true);
+        scene.refreshPresentation();
+        expect(scene.stream.topLayerElementIds.has(id)).toBe(false);
+        expect(getSkiaNode(id)).toBe(data);
+        expect(scene.stream.hitBoundsMap).toEqual(baseline);
+        expect(geometry).not.toHaveBeenCalled();
+        expect(subscribe).not.toHaveBeenCalled();
+        expect(workspace.runtime.graph.exportDocument()).toEqual(document);
+        const commands = Array.from(scene.stream.commands);
+        setDragVisualOffset(new Set([id]), 12, 16, true);
+        scene.rebuild();
+        expect(Array.from(scene.stream.commands)).toEqual(dragCommands);
+        setDragVisualOffset(null, 0, 0, true);
+        scene.rebuild();
+        expect(Array.from(scene.stream.commands)).toEqual(commands);
+      } finally {
+        setDragVisualOffset(null, 0, 0, true);
+        scene.dispose();
+        workspace.dispose();
+      }
+    },
+  );
+
   it.each([
     { direction: "column", property: "rowGap", axis: "y", extent: 20 },
     { direction: "row", property: "columnGap", axis: "x", extent: 40 },

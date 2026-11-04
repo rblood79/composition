@@ -33,6 +33,8 @@ import { catalogSelectionSurface } from "./canvasSelectionGeometry";
 
 export type CatalogCanvasSceneSync =
   | { readonly kind: "unchanged" }
+  /** Command ordering/clip context changed while node bindings remain. Full repaint. */
+  | { readonly kind: "presented" }
   | {
       readonly kind: "patched";
       readonly update: Extract<CatalogCanvasUpdate, { status: "patched" }>;
@@ -154,7 +156,7 @@ export class CatalogCanvasScene {
 
   /**
    * `holdImages`: loaded images wait (a drag in progress — its top layer rejects a splice, and the
-   * drag's end binds again, reading them).
+   * drag's end refreshes its presentation, then consumes them).
    */
   sync(options: { holdImages?: boolean } = {}): CatalogCanvasSceneSync {
     const dev = process.env.NODE_ENV === "development";
@@ -209,6 +211,17 @@ export class CatalogCanvasScene {
    */
   refresh(): CatalogCanvasSceneSync {
     return this.rebind("page-grid");
+  }
+
+  /** Rebuild drag ordering from kept scene data, then consume pending records/images normally. */
+  refreshPresentation(
+    options: { holdImages?: boolean } = {},
+  ): CatalogCanvasSceneSync {
+    if (!sameIds(this.drawnRoots(), this.rootIds))
+      return this.rebind("page-roots");
+    this.binding.refreshPresentation();
+    const update = this.sync(options);
+    return update.kind === "rebound" ? update : { kind: "presented" };
   }
 
   /**

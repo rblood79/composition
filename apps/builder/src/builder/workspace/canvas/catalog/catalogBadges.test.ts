@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type {
   ApiEndpoint,
   ApiRunRecord,
@@ -94,6 +94,30 @@ describe("catalog data binding badges", () => {
     });
     expect(store.badges.targets(bounds, bounds)[0].state).toBe("empty");
     expect(setup({}).badges.targets(bounds, bounds)).toEqual([]);
+  });
+
+  it("camera-only에서는 대상을 다시 열거하지 않고 scene·데이터 변경은 따른다", () => {
+    let version = 0;
+    let data = {
+      collections: new Map([["users", table("users", 2)]]),
+      apiEndpoints: new Map<string, ApiEndpoint>(),
+      apiRuns: new Map<string, ApiRunRecord>(),
+    };
+    const bindingsOf = vi.fn(() => new Set(["n1"]));
+    const badges = createCatalogBadges({
+      data: () => data,
+      sceneVersion: () => version,
+      bindingsOf,
+      recordsOf: () => ["r1"],
+    });
+    const first = badges.targets(bounds, bounds);
+    expect(badges.targets(bounds, bounds)).toBe(first);
+    expect(bindingsOf).toHaveBeenCalledTimes(1);
+    version++;
+    expect(badges.targets(bounds, bounds)).not.toBe(first);
+    data = { ...data, collections: new Map([["users", table("users", 0)]]) };
+    expect(badges.targets(bounds, bounds)[0].state).toBe("empty");
+    expect(bindingsOf).toHaveBeenCalledTimes(3);
   });
 
   it("hits the badge under a point", () => {

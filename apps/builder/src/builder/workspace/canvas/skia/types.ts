@@ -143,6 +143,8 @@ export interface BackgroundBlurEffect {
 
 export interface DropShadowEffect {
   type: "drop-shadow";
+  /** CSS box-shadow는 내용 alpha 대신 border box에서 그린다. 부재 시 filter shadow. */
+  source?: "box-shadow";
   dx: number;
   dy: number;
   sigmaX: number;

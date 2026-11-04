@@ -1,6 +1,7 @@
 import type { CanvasSceneNode } from "../workspace/canvas/scene/canvasSceneNodeTypes";
 import type { SkiaNodeData } from "../workspace/canvas/skia/nodeRendererTypes";
 import { buildBoxNodeData } from "../workspace/canvas/skia/buildBoxNodeData";
+import { resolveEffectiveBoxShadow } from "../workspace/canvas/layout/engines/implicitStyles";
 import {
   colorIntToFloat32,
   cssColorToAlpha,
@@ -40,20 +41,30 @@ export function catalogCssColorRgba(value: string): Float32Array {
  * are taken from its result.
  */
 export function applyCatalogAuthoredPaint(
-  input: Pick<CatalogConsumerNode, "id" | "visual" | "fills">,
+  input: Pick<CatalogConsumerNode, "id" | "visual" | "fills" | "ruleId">,
   data: SkiaNodeData,
   rect: { x: number; y: number; width: number; height: number },
   theme: "light" | "dark" = "light",
 ): SkiaNodeData {
+  // 생성 CSS와 같은 catalog elevation을 소비한다. 저작한 값(none 포함)이 우선한다.
+  // rule shape에는 그림자가 없고 authored paint만 변환하면 기본 elevation이 빠진다.
+  const shadow =
+    input.visual.boxShadow === undefined
+      ? resolveEffectiveBoxShadow(input.ruleId, undefined, theme)
+      : undefined;
+  const elevated =
+    shadow === undefined
+      ? input
+      : { ...input, visual: { ...input.visual, boxShadow: shadow } };
   // ADR-297 후속 ⑥: a rule gradient (`paintGradientCss` — S2 premium · genai, or `none`) lies over the
   //   background as CSS `background-image` over `background-color` does, below borders and content.
-  const image = input.visual.backgroundImage;
+  const image = elevated.visual.backgroundImage;
   const gradient =
     typeof image === "string" ? parsePaintGradientCss(image) : undefined;
   const node =
     gradient || image === "none"
-      ? { ...input, visual: withoutKey(input.visual, "backgroundImage") }
-      : input;
+      ? { ...elevated, visual: withoutKey(elevated.visual, "backgroundImage") }
+      : elevated;
   const painted = hasCatalogAuthoredPaint(node)
     ? authoredPaint(node, data, rect, theme)
     : data;

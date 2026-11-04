@@ -292,7 +292,7 @@ describe("ADR-270 Phase 1 — 이미지 완료 = 소유 요소 dirty seed", () =
     const { scene, record } = await open({ [A]: "a.png" });
     loaded.set("a.png", image(200, 100));
     scene.imageLoaded("a.png");
-    scene.refresh(); // a page switch or a drag's start/end binds again
+    scene.refreshPresentation(); // drag end consumes images without dropping node bindings
     expect(drawnImages(scene, record(A))).toEqual([loaded.get("a.png")]);
     expect(scene.sync().kind).toBe("unchanged");
   });
