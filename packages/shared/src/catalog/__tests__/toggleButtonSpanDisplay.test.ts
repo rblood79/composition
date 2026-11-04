@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
+import {
+  CATALOG_PRESS_TRANSITION,
+  catalogPressTransform,
+} from "../rule/pressScale";
 
 /**
  * ToggleButton group `> span` display:inherit 회귀 방지 (2026-06-27).
  *
  * **근본 원인**: group 안 ToggleButton 의 자식은 `ToggleButton.tsx` 가
- *   `<span>{children}</span>` 으로 감싼다(pressed micro-interaction `> span { scale:0.9 }` 소비).
+ *   `<span>{children}</span>` 으로 감싼다(pressed micro-interaction `> span` 의 S2 press 소비).
  *   그러나 그 span 에 display 가 지정되지 않으면 기본 `display:block` 이라, 아이콘+텍스트
  *   ToggleButton 의 자식(Icon div + Text span)이 **세로로 쌓여**(block flow) 렌더된다. Skia 는
  *   span 을 모르고 ToggleButton(flex)가 Icon/Text 를 **가로 배치**하므로 CSS↔Skia 비대칭이었다.
@@ -61,14 +65,17 @@ describe("ToggleButton group `> span` display:inherit 정합 계약", () => {
     expect(spanRule?.gap).toBeDefined();
   });
 
-  it("pressed micro-interaction(`scale:0.9`)은 보존 (display 추가가 기존 효과 제거하지 않음)", () => {
+  it("pressed micro-interaction 은 span 의 S2 press (SegmentedControl 안쪽 div) — 버튼 상자는 고정", () => {
     const selectors = collectToggleButtonStaticSelectors();
     expect(selectors[".react-aria-ToggleButton > span"]?.transition).toBe(
-      "scale 200ms",
+      CATALOG_PRESS_TRANSITION,
     );
     expect(
+      selectors[".react-aria-ToggleButton[data-pressed] > span"]?.transform,
+    ).toBe(catalogPressTransform());
+    expect(
       selectors[".react-aria-ToggleButton[data-pressed] > span"]?.scale,
-    ).toBe("0.9");
+    ).toBeUndefined();
     expect(selectors[".react-aria-ToggleButton[data-pressed]"]?.transform).toBe(
       "none",
     );

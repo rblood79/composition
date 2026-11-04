@@ -237,8 +237,12 @@
   outline-offset: var(--focus-ring-offset);
 }
 
+.react-aria-ToggleButton.react-aria-ToggleButton {
+  will-change: transform;
+}
+
 .react-aria-ToggleButton.react-aria-ToggleButton:where([data-pressed]) {
-  transform: scale(0.95);
+  transform: perspective(max(var(--catalog-press-height, 0px), calc(var(--catalog-press-width, 0px) / 3), 24px)) translate3d(0, 0, -2px);
 }
 
 .react-aria-ToggleButton.react-aria-ToggleButton:where([data-disabled]) {

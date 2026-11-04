@@ -16,6 +16,11 @@ import type { ComponentRulesTable } from "../../types/catalog-style.types";
 import type { PaintImage } from "../rule/rulePaintTree";
 import { SHEET_HANDLE_SELECTORS } from "../document/sheetChrome";
 import {
+  CATALOG_PRESS_TRANSITION,
+  CATALOG_PRESS_WILL_CHANGE,
+  catalogPressTransform,
+} from "../rule/pressScale";
+import {
   centerPadding,
   defineRuleLengthForms,
   em,
@@ -194,6 +199,15 @@ const DISABLED_STATE = {
 } as const;
 
 /**
+ * S2 press (`rule/pressScale.ts`) — 상태 트리 한 벌: 누르지 않을 때도 `will-change`, 누르면 perspective 축소.
+ */
+/** RAC `useSliderThumb` 의 inline `transform` (설치본 대조 — `pressScaleS2.test.ts`). */
+export const SLIDER_THUMB_RAC_TRANSFORM = "translate(-50%, -50%)";
+const PRESS_STATE = {
+  willChange: CATALOG_PRESS_WILL_CHANGE,
+  transform: { isPressed: catalogPressTransform() },
+} as const;
+/**
  * ADR-297 Phase 3g — toggle indicator 상자 (Checkbox `.checkbox`) 의 상태. 옛 수동 sheet 의 specificity 순서
  * (0-3-0 selected < invalid < disabled · 0-4-0 pressed · 0-5-0 selected·pressed < invalid·pressed) 를 트리 순서로.
  */
@@ -216,6 +230,8 @@ const RADIO_RING_STATE = {
   background: { default: "var(--bg)" },
   outline: { isFocusVisible: "2px solid var(--radio-color)" },
   outlineOffset: { isFocusVisible: "2px" },
+  // S2 `RadioGroup.tsx:350` — the circle presses (≤ 24px: `perspective(24px)`).
+  ...PRESS_STATE,
 } as const;
 /** Switch 의 track · thumb — 옛 수동 `Switch.css` 순서 (pressed 0-4-0 이 selected 0-3-0 을, selected·pressed 0-5-0 이 둘을 이긴다). */
 const SWITCH_TRACK_STATE = {
@@ -240,14 +256,26 @@ const SWITCH_THUMB_STATE = {
     isSelected: "var(--switch-thumb-color)",
     isPressed: "var(--bg-emphasis)",
   },
-  transformOrigin: { isSelected: "right center" },
-  scale: { isPressed: "1.2 1" },
+  // S2 `Switch.tsx:256` — the handle presses (2026-11-04; was the starter's `scale: 1.2 1` stretch). The
+  //   selected offset is the `translate` property (size selectors above), which composes outside `transform`
+  //   — S2's `translateX(…) perspective(…)`. The origin is the centre (the manual sheet's `left center` is the
+  //   stretch's).
+  transformOrigin: "center",
+  ...PRESS_STATE,
 } as const;
 /**
  * Calendar · RangeCalendar 의 날짜 셀 (RAC `CalendarCell` — rule 이 없는 RAC 부품) 의 선택 · focus. 옛 수동
  * `Calendar.css` · `RangeCalendar.css` · `CalendarCommon.css` 값 — 트리 블록 (0-3-0) 은 공통 시트 (hover · pressed ·
  * invalid, 0-3-0) 뒤 · 범위 시트 (`[data-selection-start]` …) 앞에 실린다.
  */
+/**
+ * S2 `Calendar.tsx:712` — the day cell presses (2026-11-04; was the manual `CalendarCommon.css` `scale: 0.9`).
+ * The cell is the pressed element, so the runtime measures it.
+ */
+const CALENDAR_CELL_PRESS = {
+  ...PRESS_STATE,
+  transition: CATALOG_PRESS_TRANSITION,
+} as const;
 const CALENDAR_CELL_STATE = {
   background: {
     isSelected: {
@@ -258,6 +286,7 @@ const CALENDAR_CELL_STATE = {
   color: { isSelected: "var(--fg-on-accent)" },
   outline: { isFocusVisible: "2px solid var(--accent)" },
   outlineOffset: { isFocusVisible: "2px" },
+  ...CALENDAR_CELL_PRESS,
 } as const;
 const RANGE_CALENDAR_CELL_STATE = {
   background: {
@@ -276,6 +305,7 @@ const RANGE_CALENDAR_CELL_STATE = {
       isSelectionEnd: "2px",
     },
   },
+  ...CALENDAR_CELL_PRESS,
 } as const;
 /**
  * RangeCalendar 의 기간 띠 (S2 `selectionBackgroundStyles` · `selectionBorderStyles` — td 의 `::before`, 옛 수동
@@ -341,6 +371,8 @@ const CHECKBOX_BOX_STATE = {
   outline: { isFocusVisible: "2px solid var(--focus-ring)" },
   outlineOffset: { isFocusVisible: "2px" },
   "--checkmark-color": { isInvalid: "var(--color-white)" },
+  // S2 `Checkbox.tsx:240` — the box presses (≤ 24px: `perspective(24px)`).
+  ...PRESS_STATE,
 } as const;
 
 /**
@@ -1888,6 +1920,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   Button: {
+    // S2 press (`rule/pressScale.ts`): S2 calls `pressScale` on Button · ActionButton · CloseButton · ClearButton
+    //   and the field buttons (Picker · ComboBox · DatePicker · NumberField) — not on the RAC Buttons it draws
+    //   bare: Disclosure's trigger (S2 `Disclosure.tsx:324`), TreeView's and SideNav's chevron
+    //   (`TreeView.tsx:797` · `SideNav.tsx:579`) and the drag handle (`dnd-utils.tsx:120`). Those slots are
+    //   excluded here, in one place.
+    partStateStyles: {
+      "&:not([slot='chevron'], [slot='drag'], [slot='trigger'])%": {
+        willChange: CATALOG_PRESS_WILL_CHANGE,
+        transform: { isPressed: catalogPressTransform() },
+      },
+    },
     defaultVariant: "primary",
     defaultSize: "M",
     // top-level containerStyles — Skia layout fallback(resolveContainerStylesFallback 경로 A,
@@ -1927,7 +1970,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingTop: BUTTON_PADDING_BLOCK,
         paddingBottom: BUTTON_PADDING_BLOCK,
         ...FOCUS_RING_STATE,
-        transform: { isPressed: "scale(0.95)" },
         ...BUTTON_DISABLED_STATE,
       },
       // ADR-297 Phase 3: paint = the variant trees (generated `:where` blocks) — the class stays for
@@ -2176,6 +2218,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   //   ToggleButton variant fill 구조 동형. layout(flex/gap/padding)은 factory props.style SSOT
   //   (ADR-907 Layer B) — sizes 의 paddingX/gap 은 DOM base fallback + Skia shell 메트릭.
   Card: {
+    // S2 quiet Card: 「Only the preview in quiet cards scales」 (`Card.tsx:510-514` · `:614`).
+    partStateStyles: {
+      "&% .react-aria-CardPreview": {
+        willChange: { variant: { quiet: CATALOG_PRESS_WILL_CHANGE } },
+        transform: { variant: { quiet: { isPressed: catalogPressTransform() } } },
+        transition: { variant: { quiet: CATALOG_PRESS_TRANSITION } },
+      },
+    },
     defaultVariant: "primary",
     defaultSize: "M",
     variants: {
@@ -2421,6 +2471,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         ...DISABLED_STATE,
         // (ADR-297 Phase 3b: the interactive pointer — was `rootSelectors["&"]`, after the state blocks)
         cursor: { default: "pointer", isDisabled: "not-allowed" },
+        // S2 `Card.tsx:464` — a pressable card (link · CardView item) presses; a quiet card's preview
+        //   presses instead (`partStateStyles`). A standalone `div` card has no press (S2 too).
+        willChange: {
+          default: CATALOG_PRESS_WILL_CHANGE,
+          variant: { quiet: "auto" },
+        },
+        transform: {
+          isPressed: { default: catalogPressTransform(), variant: { quiet: "none" } },
+        },
+        transition: CATALOG_PRESS_TRANSITION,
       },
     },
   },
@@ -5541,9 +5601,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           ".react-aria-Button[slot='trigger'][data-pressed]": {
             background: "var(--bg-muted)",
-            // 공통 Button의 pressed transform도 해제해 Disclosure 헤더 크기를 유지한다.
-            transform: "none",
-            scale: "none",
           },
           ".react-aria-Button[slot='trigger'][data-focus-visible]": {
             outline: "var(--focus-ring-width) solid var(--focus-ring)",
@@ -8292,6 +8349,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         ...DISABLED_STATE,
         // (ADR-297 Phase 3b: the option's resting cursor — was the manual `ListBox.css` root)
         cursor: { default: "pointer", isDisabled: "not-allowed" },
+        // S2 presses a picker's option (`Picker.tsx:783` · `ComboBox.tsx:467`) — not a standalone
+        //   ListBox's (S2 `ListBox.tsx` has no `pressScale`).
+        willChange: { inPopover: CATALOG_PRESS_WILL_CHANGE },
+        transform: { isPressed: { inPopover: catalogPressTransform() } },
+        transition: { inPopover: CATALOG_PRESS_TRANSITION },
       },
     },
   },
@@ -8495,6 +8557,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         background: { isHovered: "{color.layer-1}" },
         ...FOCUS_RING_STATE,
         ...DISABLED_STATE,
+        // S2 `Menu.tsx:844` — every menu item presses (`transition: 'transform'`, `Menu.tsx:307`).
+        ...PRESS_STATE,
+        transition: CATALOG_PRESS_TRANSITION,
         // ADR-297 Phase 3c — a link item (RAC's `<a>`) keeps the item's text look (was `rootSelectors["&[href]"]`)
         textDecoration: { isLink: "none" },
         color: { isLink: "inherit" },
@@ -11910,6 +11975,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   //   track/thumb metric 재생성 (ruleSizeToSizeSpec passthrough) + implicitStyles specSizeField rule
   //   fallback (columnGap/indicator.thumbSize). Slider.spec.ts:100-160 SSOT 1:1 미러.
   Slider: {
+    // S2 `Slider.tsx:493` · `RangeSlider.tsx:111/136` — the thumb presses while dragged (S2 passes
+    //   `isPressed: isDragging`) on top of its own `translate(-50%, -50%)` — RAC writes that inline
+    //   (`useSliderThumb` style), so the pressed value repeats it and wins with `!important`.
+    partStateStyles: {
+      "& .react-aria-SliderThumb%": {
+        willChange: CATALOG_PRESS_WILL_CHANGE,
+        transform: {
+          isDragging: `${catalogPressTransform(SLIDER_THUMB_RAC_TRANSFORM)} !important`,
+        },
+      },
+    },
     defaultSize: "M",
     variants: {},
     containerStyles: {
@@ -13986,6 +14062,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         "--tag-border": { isSelected: "var(--fg)" },
         outline: { isFocusVisible: "2px solid var(--accent)" },
         outlineOffset: { isFocusVisible: "2px" },
+        // S2 `TagGroup.tsx:599` — the tag presses (the shared manual sheet's `scale: 0.96` stays the
+        //   Builder widgets'; a catalog tag turns it off).
+        scale: { isPressed: "none" },
+        ...PRESS_STATE,
       },
       "& .react-aria-Tag% .tag-remove-btn": {
         color: { isSelected: "inherit" },
@@ -13993,6 +14073,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       "& .react-aria-Tag .tag-remove-btn%": {
         outline: { isFocusVisible: "2px solid var(--focus-ring)" },
         outlineOffset: { isFocusVisible: "-1px" },
+        // S2 ClearButton (`ClearButton.tsx:73`) — likewise for the manual `scale: 0.9`.
+        scale: { isPressed: "none" },
+        ...PRESS_STATE,
+        transition: `color 200ms, ${CATALOG_PRESS_TRANSITION}`,
       },
       "&[data-emphasized] .react-aria-Tag%": {
         "--tag-color": { isSelected: "var(--accent)" },
@@ -15053,8 +15137,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               background: "transparent",
               color: "inherit",
               outline: "none",
-              transition: "background-color 130ms ease-in-out",
+              transition: `background-color 130ms ease-in-out, ${CATALOG_PRESS_TRANSITION}`,
+              // S2 CloseButton (`CloseButton.tsx:122`) presses — on top of its centring translate.
+              "will-change": CATALOG_PRESS_WILL_CHANGE,
             },
+          },
+          "& > .toast-close-button[data-pressed]": {
+            styles: { transform: catalogPressTransform("translateY(-50%)") },
           },
           "& > .toast-close-button svg": {
             styles: { width: "12px", height: "12px" },
@@ -15268,7 +15357,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: BUTTON_ROOT_BOX,
       stateStyles: {
         ...FOCUS_RING_STATE,
-        transform: { isPressed: "scale(0.95)" },
+        // S2 `ToggleButton.tsx:101` `pressScale` (`rule/pressScale.ts`).
+        willChange: CATALOG_PRESS_WILL_CHANGE,
+        transform: { isPressed: catalogPressTransform() },
         ...DISABLED_STATE,
       },
       // ADR-297 Phase 3: paint = the variant trees (generated `:where` blocks) — the class stays for
@@ -15591,18 +15682,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
         },
-        // ── group-conditional pressed micro-interaction (reference react-aria-starter
-        //    ToggleButtonGroup.css:6-19 동형, 2026-06-22) ──
-        //   reference: 그룹 안 ToggleButton 은 pressed 시 버튼 box 는 축소 안 하고(scale:1, 단독
-        //   ToggleButton 의 scale:0.95 override) 내부 콘텐츠(`> span`)만 0.9 로 축소 + 200ms
-        //   transition. 버튼 box 축소를 막아야 -1px segmented 겹침이 흐트러지지 않는다(단일 bar 유지).
+        // ── group-conditional pressed micro-interaction (S2 SegmentedControl, 2026-11-04 — 전에는
+        //    react-aria-starter ToggleButtonGroup.css:6-19 의 span `scale: 0.9`) ──
+        //   그룹 안 ToggleButton 은 pressed 시 버튼 box 는 축소 안 하고 (단독 ToggleButton 의 press
+        //   transform 을 `none` 으로) 내부 콘텐츠 (`> span`) 만 S2 press (`rule/pressScale.ts`) 로 줄인다.
+        //   버튼 box 축소를 막아야 -1px segmented 겹침이 흐트러지지 않는다(단일 bar 유지).
         //   reference 의 pressed-scale 블록은 base(orientation-independent) 영역(css:6-29)에 위치 →
         //   orientation gate 없는 staticSelectors 가 vehicle(Toolbar 선례 11822). containerVariants
         //   는 항상 [data-orientation] gate 를 붙여(CSSGenerator) horizontal+vertical 중복 강제 →
         //   부적합(feedback-catalog-variant-toplevel-vs-nested-asymmetry).
-        //   transform vs scale 함정: 단독 ToggleButton 은 generated CSS 가 `transform: scale(0.95)`
-        //   (states.pressed.scale → CSSGenerator transform 속성 변환)라 reference 의 `scale:1` 로는
-        //   무력화 불가(서로 다른 합성 CSS 속성). 버튼 box 고정은 `transform: none` 으로 emit.
+        //   transform vs scale 함정: 단독 ToggleButton 의 press 는 `transform` 이라 `scale` 속성으로는
+        //   무력화 불가 (서로 다른 합성 CSS 속성). 버튼 box 고정은 `transform: none` 으로 emit.
         //   staticSelectors 는 nested 미지원(Record<string,Record<string,string>>) → 3 top-level key.
         //   marker div(display:contents): staticSelectors 는 `${root} ${selector}` descendant 형식
         //   이라 marker 를 자동 통과(direct-child `>` 함정 없음). `> span` 은 ToggleButton 기준 직접
@@ -15612,6 +15702,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   Skia 는 transient pressed flag 가 파이프라인에 없어(resting-state 전용 렌더) scope 밖 —
         //   CSS-only(feedback-no-dormant-foundation-ahead-of-flip).
         staticSelectors: {
+          // (S2 SegmentedControl: the button box stays put — no press, no `will-change` — and its inner
+          //   div presses, `SegmentedControl.tsx:269`. The span is measured by the press runtime
+          //   (`CATALOG_PRESS_PARTS`).)
+          ".react-aria-ToggleButton": {
+            "will-change": "auto",
+          },
           ".react-aria-ToggleButton[data-pressed]": {
             transform: "none",
           },
@@ -15626,10 +15722,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             "align-items": "center",
             "justify-content": "center",
             gap: "8px",
-            transition: "scale 200ms",
+            transition: CATALOG_PRESS_TRANSITION,
+            "will-change": CATALOG_PRESS_WILL_CHANGE,
           },
           ".react-aria-ToggleButton[data-pressed] > span": {
-            scale: "0.9",
+            transform: catalogPressTransform(),
           },
         },
       },
@@ -16314,6 +16411,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     // S2 `indicator`: shown hovered (`gray-400`) and current (`gray-800`).
     partStateStyles: {
+      // (S2 `isLinkPressed`: the row's link is pressed — the runtime measures the row.)
+      "&:has(.react-aria-SideNavItemLink%)": {
+        transform: { isPressed: catalogPressTransform() },
+      },
       "&%::before": {
         display: { isHovered: "block", isCurrent: "block" },
         background: {
@@ -16330,6 +16431,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontWeight: { isCurrent: "700" },
         outline: { isFocusVisible: "2px solid var(--focus-ring)" },
         outlineOffset: { isFocusVisible: "-2px" },
+        // S2 `SideNav.tsx:365` — the row presses, its link's press too (`partStateStyles`).
+        ...PRESS_STATE,
+        transition: CATALOG_PRESS_TRANSITION,
       },
       // The item is a column on the Canvas — its row (SideNavItemContent) then its child items (RAC
       //   draws them as the next rows, the Tree's way).

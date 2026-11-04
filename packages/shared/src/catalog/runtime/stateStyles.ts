@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import type { StateName } from "../document/types";
+import { CATALOG_PRESS_PROPERTY_CSS } from "../rule/pressScale";
 
 /** DOM state predicates, independent of component type. RAC owns its data attributes. */
 const STATES: Readonly<Record<StateName, string>> = {
@@ -99,6 +100,9 @@ export function catalogStateStylesheet(): string {
         }),
       )
       .join("\n") +
+    "\n" +
+    // S2 press size variables (`rule/pressScale.ts`) — registered once, outside any layer.
+    CATALOG_PRESS_PROPERTY_CSS +
     "\n"
   );
 }

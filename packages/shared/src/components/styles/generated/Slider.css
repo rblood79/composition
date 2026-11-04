@@ -86,6 +86,14 @@
   pointer-events: none;
 }
 
+.react-aria-Slider.react-aria-Slider .react-aria-SliderThumb {
+  will-change: transform;
+}
+
+.react-aria-Slider.react-aria-Slider .react-aria-SliderThumb:where([data-dragging]) {
+  transform: translate(-50%, -50%) perspective(max(var(--catalog-press-height, 0px), calc(var(--catalog-press-width, 0px) / 3), 24px)) translate3d(0, 0, -2px) !important;
+}
+
 /* ── Tier 2: Composite Delegation ── */
 
 .react-aria-Slider[data-label-position="side"] {

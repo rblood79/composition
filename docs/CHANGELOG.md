@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [press 효과를 S2 `pressScale` 로 교체 — Preview · Publish] - 2026-11-04
+
+### Changed
+
+- **줄이는 방법 = S2 원근 축소**
+  누르는 동안 `scale(0.95)` (크기에 비례 — 큰 카드일수록 많이 줄었다) 대신 S2 1.8.1 `pressScale` 의 `perspective(max(높이, 너비 / 3, 24px)) translate3d(0, 0, -2px)` 를 쓴다. 높이가 크기와 상관없이 약 2px 줄고, 누르지 않을 때도 `will-change: transform` 을 둔다. 식은 catalog (`rule/pressScale.ts`), 누른 요소의 크기만 Preview · Publish runtime 이 잰다 (`runtime/pressScale.runtime.ts` — 문서 하나에 MutationObserver 하나, 변수 2 개는 `@property` `inherits: false`).
+- **적용 범위 = S2 호출 위치**
+  새로 줄어드는 곳: Checkbox 상자 · Radio 고리 · Switch 손잡이 (옛 가로 늘이기 `scale: 1.2 1` 대체) · Slider thumb (끄는 동안) · Calendar 셀 (옛 수동 `scale: 0.9` 대체) · Menu 항목 · Select · ComboBox 목록 항목 (Popover 안만) · Tag · Tag 지우기 버튼 (옛 수동 0.96 · 0.9 는 catalog 노드에서 끔) · 링크 Card · CardView 항목 · quiet Card 의 preview · SideNav 행 (링크를 눌러도) · Toast 닫기 버튼. ToggleButtonGroup 은 S2 SegmentedControl 처럼 버튼 상자가 아니라 안쪽 내용이 줄어든다.
+  더는 줄지 않는 곳: S2 가 press 를 두지 않는 RAC Button — Tree · SideNav 펼침 chevron, 목록 drag 손잡이 (Disclosure trigger 는 전부터 제외).
+- 빌더 자체 위젯 (Builder chrome) 은 옛 press 를 유지한다 (`builder-catalog-pins.css`). Canvas 는 전처럼 pressed 상태를 그리지 않는다.
+- 위치: `packages/shared/src/catalog/rule/pressScale.ts`, `packages/shared/src/catalog/runtime/pressScale.runtime.ts`, `domView.components.tsx`, `generated/componentRulesTable.ts`, `rule/conditionTree.ts` (`isDragging`), `components/styles/CalendarCommon.css`.
+
+### Tests
+
+- `pressScaleS2.test.ts` — 설치된 S2 `pressScale.ts` · RAC `useSliderThumb` 와 식 대조, 측정 runtime (누름 · 놓음 · 부품 · 해제), 생성 CSS. 측정 쓰기 · 부품 목록 변이 RED 확인. `builderCatalogVars.static.test.ts` (chrome 고정).
+- Live (Preview, 5174): Button 73.6×32 → 69.3×30.1 · Checkbox 16 → 14.8 · Calendar 셀 30 → 28.1 · Slider thumb 20 → 18.5 · Switch 손잡이 `perspective(24px)` · Select 항목 · SideNav 행 · 링크 Card · quiet Card preview 가 S2 식대로, Disclosure trigger · ToggleButtonGroup 버튼 상자 · div Card 는 그대로.
+
 ## [Open overlay 선택 영역 정합 — Canvas] - 2026-11-04
 
 ### Fixed

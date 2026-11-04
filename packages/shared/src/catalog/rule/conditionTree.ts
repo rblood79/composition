@@ -53,6 +53,7 @@ export const DOM_CONDITIONS = [
   "isToday", // RAC CalendarCell 의 오늘 (`[data-today]`)
   "isSelectionStart", // RAC RangeCalendar 셀의 기간 시작 · 끝 (`[data-selection-start]` · `-end`)
   "isSelectionEnd",
+  "isDragging", // RAC SliderThumb 를 끄는 중 (`[data-dragging]` — S2 Slider 의 press)
 ] as const;
 export type DomCondition = (typeof DOM_CONDITIONS)[number];
 
@@ -219,6 +220,7 @@ const FLAG_SELECTORS: Readonly<Record<Condition | DomCondition, string>> = {
   isToday: "[data-today]",
   isSelectionStart: "[data-selection-start]",
   isSelectionEnd: "[data-selection-end]",
+  isDragging: "[data-dragging]",
 };
 const VALUE_ATTRIBUTES: Readonly<Record<ValueCondition, string>> = {
   variant: "data-variant",

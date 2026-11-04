@@ -53,6 +53,19 @@
   outline-offset: -2px;
 }
 
+.react-aria-SideNavItem.react-aria-SideNavItem {
+  will-change: transform;
+  transition: transform 150ms cubic-bezier(0.45, 0, 0.4, 1);
+}
+
+.react-aria-SideNavItem.react-aria-SideNavItem:where([data-pressed]) {
+  transform: perspective(max(var(--catalog-press-height, 0px), calc(var(--catalog-press-width, 0px) / 3), 24px)) translate3d(0, 0, -2px);
+}
+
+.react-aria-SideNavItem.react-aria-SideNavItem:has(.react-aria-SideNavItemLink:where([data-pressed])) {
+  transform: perspective(max(var(--catalog-press-height, 0px), calc(var(--catalog-press-width, 0px) / 3), 24px)) translate3d(0, 0, -2px);
+}
+
 .react-aria-SideNavItem.react-aria-SideNavItem:where([data-hovered])::before {
   display: block;
   background: var(--border-hover);

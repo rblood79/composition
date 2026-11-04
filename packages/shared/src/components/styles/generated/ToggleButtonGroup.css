@@ -227,6 +227,10 @@
 }
 
 
+  .react-aria-ToggleButtonGroup .react-aria-ToggleButton {
+    will-change: auto;
+  }
+
   .react-aria-ToggleButtonGroup .react-aria-ToggleButton[data-pressed] {
     transform: none;
   }
@@ -236,11 +240,12 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: scale 200ms;
+    transition: transform 150ms cubic-bezier(0.45, 0, 0.4, 1);
+    will-change: transform;
   }
 
   .react-aria-ToggleButtonGroup .react-aria-ToggleButton[data-pressed] > span {
-    scale: 0.9;
+    transform: perspective(max(var(--catalog-press-height, 0px), calc(var(--catalog-press-width, 0px) / 3), 24px)) translate3d(0, 0, -2px);
   }
 
 

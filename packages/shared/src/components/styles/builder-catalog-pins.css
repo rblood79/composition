@@ -434,4 +434,40 @@
   .react-aria-Tabs[data-size="L"]:not(:where(.publish-app *)) {
     font-size: 16px;
   }
+  /* generated/ToggleButton.css · ToggleButtonGroup.css — S2 press (`rule/pressScale.ts`, 2026-11-04). 빌더 위젯은
+     옛 press (단독 버튼 scale 0.95 · 그룹 안 글자 scale 0.9) 를 유지한다 — 크기 측정 runtime 도 빌더엔 없다.
+     (`will-change` 는 치수가 아니라 게이트 밖 — 빌더 위젯도 S2 처럼 받는다.) */
+  .react-aria-ToggleButton.react-aria-ToggleButton:where(
+      [data-pressed]
+    ):not(:where(.publish-app *)) {
+    transform: scale(0.95);
+  }
+  .react-aria-ToggleButtonGroup
+    .react-aria-ToggleButton
+    > span:not(:where(.publish-app *)) {
+    transition: scale 200ms;
+  }
+  .react-aria-ToggleButtonGroup
+    .react-aria-ToggleButton[data-pressed]
+    > span:not(:where(.publish-app *)) {
+    transform: none;
+    scale: 0.9;
+  }
+  /* generated/Card.css — S2 press (link · CardView 항목 · quiet 의 preview): 빌더 위젯 Card 는 press 없음. */
+  .react-aria-Card.react-aria-Card:where([data-pressed]):not(
+      :where(.publish-app *)
+    ) {
+    transform: none;
+  }
+  .react-aria-Card.react-aria-Card:where([data-variant="quiet"][data-pressed])
+    .react-aria-CardPreview:not(:where(.publish-app *)) {
+    transform: none;
+  }
+  /* generated/Slider.css — 끄는 동안의 S2 press: 빌더 위젯 thumb 는 RAC inline 자리 (`useSliderThumb`) 그대로. */
+  .react-aria-Slider.react-aria-Slider
+    .react-aria-SliderThumb:where([data-dragging]):not(
+      :where(.publish-app *)
+    ) {
+    transform: translate(-50%, -50%) !important;
+  }
 }

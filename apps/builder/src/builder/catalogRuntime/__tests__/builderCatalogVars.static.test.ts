@@ -158,7 +158,19 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
       //   the builder.)
       "margin-top": "0",
       "margin-bottom": "0",
+      // (S2 press, 2026-11-04 — `rule/pressScale.ts`: the builder's ToggleButtonGroup label keeps its old
+      //   `scale: 0.9` press, so the new `transform` is pinned to its initial value.)
+      transform: "none",
     };
+    // (…and that label's old `scale` transition stays with it — a pin, but not a dimension.)
+    // (…and the builder's Slider thumb keeps RAC's inline place while dragged — the value RAC writes.)
+    const BUILDER_RAC_INLINE: Record<string, string> = {
+      "generated/Slider.css › @layer components › .react-aria-Slider .react-aria-SliderThumb[data-dragging] | transform":
+        "translate(-50%, -50%)",
+    };
+    const BUILDER_KEPT_NON_DIMENSION = new Set([
+      "generated/ToggleButtonGroup.css › @layer components › .react-aria-ToggleButtonGroup .react-aria-ToggleButton > span | transition",
+    ]);
     // (Phase 3c-3: the Select trigger's new start padding — S2 Picker `edge-to-text` — is 0 in the builder, the
     //   value its own Select triggers take from the builder-system layer: `form-controls.css` `padding: 0`, a
     //   later layer than `components`.)
@@ -169,6 +181,9 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
     const unsized = (key: string) => key.replace(/ @\w+ \| /, " | ");
     expect(
       added.filter((key) => {
+        if (BUILDER_KEPT_NON_DIMENSION.has(key)) return false;
+        if (BUILDER_RAC_INLINE[key] !== undefined)
+          return after[key] !== BUILDER_RAC_INLINE[key];
         const prop = key.split(" | ")[1]!;
         if (prop.startsWith("--")) return !inertLocal.has(prop);
         const local = /^var\((--[\w-]+)\)$/.exec(after[key]!)?.[1];

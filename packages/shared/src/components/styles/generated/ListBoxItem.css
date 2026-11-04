@@ -149,6 +149,18 @@
   pointer-events: none;
 }
 
+.react-aria-ListBoxItem.react-aria-ListBoxItem:where(:is(.react-aria-Popover *)) {
+  will-change: transform;
+}
+
+.react-aria-ListBoxItem.react-aria-ListBoxItem:where([data-pressed]:is(.react-aria-Popover *)) {
+  transform: perspective(max(var(--catalog-press-height, 0px), calc(var(--catalog-press-width, 0px) / 3), 24px)) translate3d(0, 0, -2px);
+}
+
+.react-aria-ListBoxItem.react-aria-ListBoxItem:where(:is(.react-aria-Popover *)) {
+  transition: transform 150ms cubic-bezier(0.45, 0, 0.4, 1);
+}
+
 @media (forced-colors: active) {
   .react-aria-ListBoxItem {
     forced-color-adjust: auto;

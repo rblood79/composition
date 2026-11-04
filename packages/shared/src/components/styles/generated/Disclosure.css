@@ -158,8 +158,6 @@
 
   .react-aria-Disclosure .react-aria-Button[slot='trigger'][data-pressed] {
     background: var(--bg-muted);
-    transform: none;
-    scale: none;
   }
 
   .react-aria-Disclosure .react-aria-Button[slot='trigger'][data-focus-visible] {

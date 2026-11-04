@@ -30,6 +30,7 @@ import { renderCatalogDom, type CatalogDomRuntime } from "./domBinding";
 
 import { catalogToastPlacement, rootKey } from "./domView.runtime";
 import { CatalogCurrentRouteContext } from "./sideNavRoute";
+import { registerCatalogPressScale } from "./pressScale.runtime";
 
 /** The Preview router's `navigate`: a route moves the page, an `#anchor` scrolls to its element. */
 export function catalogPreviewNavigate(
@@ -53,6 +54,8 @@ export function CatalogPreviewView({
   runtime?: CatalogDomRuntime;
 }) {
   useSyncExternalStore(session.subscribe, session.getVersion);
+  // S2 press effect: the pressed element's size for the catalog's `perspective(…)` (Preview · Publish).
+  useEffect(() => registerCatalogPressScale(document), []);
   const root = session.root;
   const record = session.pageRecord;
   if (!root || !record)

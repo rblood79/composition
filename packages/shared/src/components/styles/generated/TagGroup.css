@@ -17,6 +17,15 @@
   outline-offset: 2px;
 }
 
+.react-aria-TagGroup.react-aria-TagGroup .react-aria-Tag:where([data-pressed]) {
+  scale: none;
+  transform: perspective(max(var(--catalog-press-height, 0px), calc(var(--catalog-press-width, 0px) / 3), 24px)) translate3d(0, 0, -2px);
+}
+
+.react-aria-TagGroup.react-aria-TagGroup .react-aria-Tag {
+  will-change: transform;
+}
+
 .react-aria-TagGroup.react-aria-TagGroup .react-aria-Tag:where([data-selected]) .tag-remove-btn {
   color: inherit;
 }
@@ -24,6 +33,16 @@
 .react-aria-TagGroup.react-aria-TagGroup .react-aria-Tag .tag-remove-btn:where([data-focus-visible]) {
   outline: 2px solid var(--focus-ring);
   outline-offset: -1px;
+}
+
+.react-aria-TagGroup.react-aria-TagGroup .react-aria-Tag .tag-remove-btn:where([data-pressed]) {
+  scale: none;
+  transform: perspective(max(var(--catalog-press-height, 0px), calc(var(--catalog-press-width, 0px) / 3), 24px)) translate3d(0, 0, -2px);
+}
+
+.react-aria-TagGroup.react-aria-TagGroup .react-aria-Tag .tag-remove-btn {
+  will-change: transform;
+  transition: color 200ms, transform 150ms cubic-bezier(0.45, 0, 0.4, 1);
 }
 
 .react-aria-TagGroup.react-aria-TagGroup[data-emphasized] .react-aria-Tag:where([data-selected]) {

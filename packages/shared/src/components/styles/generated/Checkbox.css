@@ -163,6 +163,14 @@
   --checkmark-color: var(--color-white);
 }
 
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton .checkbox {
+  will-change: transform;
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-pressed]) .checkbox {
+  transform: perspective(max(var(--catalog-press-height, 0px), calc(var(--catalog-press-width, 0px) / 3), 24px)) translate3d(0, 0, -2px);
+}
+
 .react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-selected]) .checkbox svg {
   stroke-dashoffset: 44;
 }

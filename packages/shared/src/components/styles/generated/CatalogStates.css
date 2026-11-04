@@ -335,3 +335,5 @@
 [data-catalog-disabled~="word-break"]:where(:is([data-disabled], :disabled)) { word-break: var(--catalog-disabled-word-break) !important; }
 [data-catalog-disabled~="overflow-wrap"]:where(:is([data-disabled], :disabled)) { overflow-wrap: var(--catalog-disabled-overflow-wrap) !important; }
 [data-catalog-disabled~="text-overflow"]:where(:is([data-disabled], :disabled)) { text-overflow: var(--catalog-disabled-text-overflow) !important; }
+@property --catalog-press-width { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --catalog-press-height { syntax: "<length>"; inherits: false; initial-value: 0px; }

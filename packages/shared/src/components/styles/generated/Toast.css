@@ -165,7 +165,12 @@
     background: transparent;
     color: inherit;
     outline: none;
-    transition: background-color 130ms ease-in-out;
+    transition: background-color 130ms ease-in-out, transform 150ms cubic-bezier(0.45, 0, 0.4, 1);
+    will-change: transform;
+  }
+
+  .react-aria-Toast > .toast-close-button[data-pressed] {
+    transform: translateY(-50%) perspective(max(var(--catalog-press-height, 0px), calc(var(--catalog-press-width, 0px) / 3), 24px)) translate3d(0, 0, -2px);
   }
 
   .react-aria-Toast > .toast-close-button svg {

@@ -108,12 +108,16 @@
 
 .react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-selected]) .indicator::before {
   background: var(--switch-thumb-color);
-  transform-origin: right center;
 }
 
 .react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-pressed]) .indicator::before {
   background: var(--bg-emphasis);
-  scale: 1.2 1;
+  transform: perspective(max(var(--catalog-press-height, 0px), calc(var(--catalog-press-width, 0px) / 3), 24px)) translate3d(0, 0, -2px);
+}
+
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton .indicator::before {
+  transform-origin: center;
+  will-change: transform;
 }
 
 /* ── Tier 2: Composite Delegation ── */
