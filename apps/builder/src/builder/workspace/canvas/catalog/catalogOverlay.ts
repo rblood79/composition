@@ -357,10 +357,13 @@ export function catalogOverlayNode(
         }
       const roleOf = (id: string) => inputs.roleOf?.(id) ?? null;
       const hit = inputs.hitBounds?.();
-      // The hovered record's page decides the cut (its leaves are on the same page).
-      const hoverOccluders = occludersOf(hoverId);
+      // The hovered record's page decides the cut (its leaves are on the same page) — asked once,
+      // and only by the hover chrome that draws.
+      let hoverCut: readonly BoundingBox[] | undefined | null = null;
+      const hoverOccluders = () =>
+        hoverCut === null ? (hoverCut = occludersOf(hoverId)) : hoverCut;
       if (hoverId && !selected.has(hoverId))
-        withOccluders(ck, canvas, hoverOccluders, () => {
+        withOccluders(ck, canvas, hoverOccluders(), () => {
           // The visible part (a page body is in neither map's clip: its own box).
           const hovered = inputs.selectionHitBounds
             ? inputs.selectionHitBounds(hoverId)
@@ -387,7 +390,7 @@ export function catalogOverlayNode(
           ? catalogOverflowContent(state.hover.identity, tree, bounds)
           : null;
       if (overflowing)
-        withOccluders(ck, canvas, hoverOccluders, () =>
+        withOccluders(ck, canvas, hoverOccluders(), () =>
           renderOverflowContent(ck, canvas, overflowing, zoom),
         );
       // A grid selected or hovered, or a selected item's grid (Figma): its cells, solid (Figma draws no dashed cell — 사용자 2026-10-16) — a drag

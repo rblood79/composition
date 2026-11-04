@@ -116,3 +116,5 @@ export function createCatalogPageChrome(
     },
   };
 }
+
+export type CatalogPageChrome = ReturnType<typeof createCatalogPageChrome>;

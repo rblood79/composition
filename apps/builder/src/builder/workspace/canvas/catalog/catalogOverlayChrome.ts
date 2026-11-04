@@ -1,7 +1,7 @@
 import { SLOT_BAND_MAX } from "./catalogChrome";
 import {
-  createCatalogPageChrome,
   createChromeSpatialIndex,
+  type CatalogPageChrome,
 } from "./catalogChromeSpatial";
 import type { BoundingBox } from "../selection/types";
 import type { EditingSemanticsRole } from "../../../utils/editingSemanticsRole";
@@ -31,8 +31,6 @@ export interface CatalogOverlayChromeBuilders {
   /** The scene's page index — page borders and the pages painted over a record's page. */
   pages(): CatalogPageChrome;
 }
-
-type CatalogPageChrome = ReturnType<typeof createCatalogPageChrome>;
 
 export interface CatalogOverlayChromeCache {
   slots(area?: BoundingBox): readonly CatalogOverlaySlotMark[];

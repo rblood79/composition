@@ -329,37 +329,47 @@ export default function EditorField(props: EditorFieldProps) {
       ),
     );
     view.focus();
-    let kept:
-      | {
-          state: EditorState;
-          markCss: MarkCss;
-          out: Partial<Record<TextRunMarkKey, unknown>>;
-        }
-      | undefined;
+    type MarkValues = Partial<Record<TextRunMarkKey, unknown>>;
+    /** The range's mark values (a function of the editor state alone — the document walk). */
+    let rawKept: { state: EditorState; raw: MarkValues } | undefined;
+    /** The last values handed out — returned again while they are equal. */
+    let out: Readonly<MarkValues> | undefined;
     setTextEditorHandle({
       identity,
       rich,
       // (Values as the panel shows them — a token as its value, a size in px; `mixed` kept.)
-      // Kept per editor state (and theme): every PM transaction re-renders the panel, which asks
-      // twice a render — the same object keeps its memo.
+      // Every PM transaction re-renders the panel, which asks twice a render: the range walk is
+      // kept per editor state, and equal values come back as the same object (the panel's memo
+      // holds). The token values are read on every call — a theme or token change shows at once.
       marks: () => {
         const { state } = view;
-        const { markCss } = latest.current;
-        if (kept?.state === state && kept.markCss === markCss) return kept.out;
-        const [from, to] = rangeOf(state);
-        const raw: Partial<Record<TextRunMarkKey, unknown>> = {};
-        if (from === to) {
-          for (const mark of state.storedMarks ?? state.selection.$from.marks())
-            raw[mark.type.name as TextRunMarkKey] = mark.attrs.value;
-        } else Object.assign(raw, textRunMarksIn(fromDoc(state.doc), from, to));
-        const out: Partial<Record<TextRunMarkKey, unknown>> = {};
-        for (const [key, item] of Object.entries(raw) as [
+        if (rawKept?.state !== state) {
+          const [from, to] = rangeOf(state);
+          const raw: MarkValues = {};
+          if (from === to) {
+            for (const mark of state.storedMarks ??
+              state.selection.$from.marks())
+              raw[mark.type.name as TextRunMarkKey] = mark.attrs.value;
+          } else
+            Object.assign(raw, textRunMarksIn(fromDoc(state.doc), from, to));
+          rawKept = { state, raw };
+        }
+        const next: MarkValues = {};
+        for (const [key, item] of Object.entries(rawKept.raw) as [
           TextRunMarkKey,
           unknown,
         ][])
-          out[key] = item === "mixed" ? item : (markCss(key, item) ?? item);
-        kept = { state, markCss, out };
-        return out;
+          next[key] =
+            item === "mixed"
+              ? item
+              : (latest.current.markCss(key, item) ?? item);
+        const keys = Object.keys(next) as TextRunMarkKey[];
+        const same =
+          out &&
+          Object.keys(out).length === keys.length &&
+          keys.every((key) => Object.is(out![key], next[key]));
+        if (!same) out = Object.freeze(next);
+        return out!;
       },
       apply: (key, value) => {
         if (!rich) return;

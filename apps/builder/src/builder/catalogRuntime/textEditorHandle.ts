@@ -37,7 +37,7 @@ export interface TextEditorHandle {
    * The selected range's marks: a value, `"mixed"` where the characters differ, absent where no
    * character has one (the node's value draws them).
    */
-  marks(): Partial<Record<TextRunMarkKey, unknown>>;
+  marks(): Readonly<Partial<Record<TextRunMarkKey, unknown>>>;
   /** Sets (`undefined` clears) one mark over the selected range — widened over template tokens. */
   apply(key: TextRunMarkKey, value: unknown): void;
 }
