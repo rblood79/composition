@@ -515,14 +515,9 @@ export class CatalogCanvasGestures {
   ): boolean {
     // portal 표시를 잡아 흐름 안의 트리거를 재배치하지 않는다. 본체의 명시적
     // 선택/배치는 기존 하위 요소 편집 계약을 따른다. 혼합 선택도 잘못 이동하지 않는다.
+    const selection = this.host.selection();
     if (
-      this.host
-        .selection()
-        .some(
-          (item) =>
-            (this.host.selectionTarget?.(item.identity) ?? item.identity) !==
-            item.identity,
-        )
+      selection.some((item) => this.surfaceOf(item.identity) !== item.identity)
     )
       return false;
     const records = this.host.records;
@@ -535,13 +530,11 @@ export class CatalogCanvasGestures {
       !isNodeSource(leaderRecord.sourceId)
     )
       return false;
-    const moving = this.host
-      .selection()
-      .filter(
-        (item) =>
-          item.target.kind === "node" &&
-          records.get(item.identity)?.parentId !== PAGE_GRID,
-      );
+    const moving = selection.filter(
+      (item) =>
+        item.target.kind === "node" &&
+        records.get(item.identity)?.parentId !== PAGE_GRID,
+    );
     if (!moving.some((item) => item.identity === leader)) return false;
     const authored = catalogIsAuthoredPlaced(leaderRecord);
     // A stylesheet-placed sub-part (out of flow by its rule, not authored — ADR-275) does not move.
@@ -1459,12 +1452,15 @@ export class CatalogCanvasGestures {
     }
   }
 
+  /** The record a selected identity edits (an open overlay owner's shown body — `selectionTarget`). */
+  private surfaceOf(identity: string): string {
+    return this.host.selectionTarget?.(identity) ?? identity;
+  }
+
   private singleElement(): CatalogSelectionItem | undefined {
     const selection = this.host.selection();
     if (selection.length !== 1) return undefined;
-    const identity =
-      this.host.selectionTarget?.(selection[0].identity) ??
-      selection[0].identity;
+    const identity = this.surfaceOf(selection[0].identity);
     const item =
       identity === selection[0].identity
         ? selection[0]

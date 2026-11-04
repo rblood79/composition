@@ -224,7 +224,7 @@ export const catalogTextMeasure: CatalogTextMeasure = (
       runs && sliceTextRuns(runs, lineStart, lineStart + line.length);
     lineStart += line.length + 1;
     const metrics = measureOneBlock(line || " ", font, lineWidth, lineRuns);
-    // (By position, not by height: a zero-height first line still owns the first baseline.)
+    // (The first line owns the first baseline, even at zero height.)
     if (index === 0) firstBaseline = metrics.firstBaseline;
     height += line ? metrics.height : (lineHeight ?? metrics.height);
     width = Math.max(width, metrics.width);

@@ -119,9 +119,18 @@ import {
   catalogButtonPendingIndicator,
 } from "../../../../../packages/shared/src/catalog/document/buttonPending";
 
+/** Whether a record is drawn in its page's viewport: authored fixed, an open overlay portal or a Sheet viewport. */
+function drawnInViewport(node: CatalogConsumerNode): boolean {
+  return (
+    node.layout.position === "fixed" ||
+    node.derivedProps?._overlayPortal === true ||
+    node.derivedProps?._sheetViewport === true
+  );
+}
+
 /** What places a record among its siblings' draw order (`sortChildElementsByZIndex`). */
 const paintLayerOf = (node: CatalogConsumerNode) =>
-  `${node.visual.zIndex ?? ""}|${node.derivedProps?._overlayPortal || node.derivedProps?._sheetViewport ? "fixed" : node.layout.position === "sticky" || node.layout.position === "fixed" ? node.layout.position : ""}`;
+  `${node.visual.zIndex ?? ""}|${drawnInViewport(node) ? "fixed" : node.layout.position === "sticky" ? "sticky" : ""}`;
 
 /** ADR-266 Phase 0: the counter a page grid translate rejection adds to. */
 const PAGE_GRID_TRANSLATE_NULL = {
@@ -381,11 +390,7 @@ function hiddenNode(node: CatalogConsumerNode, rect: Rect): SkiaNodeData {
     visible: false,
     // 숨겨져도 portal의 page-level 소속은 유지한다. 종료 시 inline으로 바뀌면
     // 증분 splice가 이전 portal span을 남겨 idle warmup이 같은 구간을 되짚는다.
-    ...(node.layout.position === "fixed" ||
-    node.derivedProps?._overlayPortal === true ||
-    node.derivedProps?._sheetViewport === true
-      ? { isFixed: true }
-      : {}),
+    ...(drawnInViewport(node) ? { isFixed: true } : {}),
   };
 }
 
@@ -943,13 +948,16 @@ function ruleShapeInput(
     )
       ? "leading_icon"
       : undefined);
+  // A TokenInput draws its own placeholder over its tag children: shown childless so its rule is
+  // not a shell (`_hasChildren`). It takes no derived props.
+  const shapeNode =
+    node.bindingId === "tokeninput"
+      ? { ...node, children: [] }
+      : node.derivedProps
+        ? { ...node, props: { ...node.props, ...node.derivedProps } }
+        : node;
   return {
-    node:
-      node.bindingId === "tokeninput"
-        ? { ...node, children: [] }
-        : node.derivedProps
-          ? { ...node, props: { ...node.props, ...node.derivedProps } }
-          : node,
+    node: shapeNode,
     ...(segments ? { paintProps: segments } : {}),
     rect,
     rule,
@@ -1221,6 +1229,107 @@ function paintedNodeData(
       ),
     ),
   );
+}
+
+/** The records under the drawn page roots (a page-filtered bind owns only these). */
+function subtreeInputs(
+  root: CatalogCompositionRoot,
+  rootIds: readonly string[],
+): ReadonlyMap<string, CatalogConsumerNode> {
+  const inputs = new Map<string, CatalogConsumerNode>();
+  const visit = (id: string) => {
+    if (inputs.has(id)) return;
+    const node = root.canvasInputs.get(id);
+    if (!node) throw new Error(`CATALOG_CANVAS_ROOT_REQUIRED:${id}`);
+    inputs.set(id, node);
+    node.children.forEach(visit);
+  };
+  rootIds.forEach(visit);
+  return inputs;
+}
+
+/** An open modal's backdrop: the viewport-sized scrim under the overlay, then the overlay itself. */
+function withModalBackdrop(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  data: SkiaNodeData,
+  given: SkiaNodeData,
+): SkiaNodeData {
+  const place = root.getOverlayPlacement(node.id);
+  if (!place) return data;
+  const backdrop = specShapesToSkia(
+    [
+      {
+        type: "rect",
+        id: "bg",
+        x: 0,
+        y: 0,
+        width: "auto",
+        height: "auto",
+        fill: "{color.overlay-backdrop}",
+      },
+    ],
+    colorMode,
+    root.viewport.width,
+    root.viewport.height,
+  );
+  return {
+    ...data,
+    type: "container",
+    box: undefined,
+    effects: undefined,
+    children: [
+      { ...backdrop, x: -place.x, y: -place.y },
+      { ...given, x: 0, y: 0, elementId: undefined },
+    ],
+  };
+}
+
+/** The chevron path of an overlay arrow pointing back at its trigger, by the overlay's final placement. */
+const OVERLAY_ARROW_PATH: Readonly<
+  Record<string, (size: number, half: number) => string>
+> = {
+  bottom: (size, half) => `M0 ${size} L${half} ${half} L${size} ${size}`,
+  left: (size, half) => `M0 0 L${half} ${half} L0 ${size}`,
+  right: (size, half) => `M${size} 0 L${half} ${half} L${size} ${size}`,
+};
+const overlayArrowTop = (size: number, half: number) =>
+  `M0 0 L${half} ${half} L${size} 0`;
+
+/** An open overlay's arrow, drawn at its parent overlay's final placement. */
+function withOverlayArrow(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  data: SkiaNodeData,
+): SkiaNodeData {
+  const parent = root.canvasInputs.get(node.parentId);
+  const place = root.getOverlayPlacement(node.parentId);
+  if (!parent || !place?.arrow) return data;
+  const size = place.arrow.size;
+  const d = (OVERLAY_ARROW_PATH[place.placement] ?? overlayArrowTop)(
+    size,
+    size / 2,
+  );
+  const tooltip = parent.bindingId === "tooltip";
+  const paint = specShapesToSkia(
+    [
+      {
+        type: "path",
+        id: "arrow",
+        x: 0,
+        y: 0,
+        width: size,
+        height: size,
+        d,
+        fill: tooltip ? "{color.accent}" : "{color.raised}",
+        ...(tooltip ? {} : { stroke: "{color.border}", strokeWidth: 2 }),
+      },
+    ],
+    colorMode,
+    size,
+    size,
+  );
+  return { ...data, children: [paint] };
 }
 
 /** Whether the scene draws a record as hidden (it and its subtree skipped). */
@@ -1495,13 +1604,11 @@ export function bindCatalogCanvas(
   const bound = withColorMode(root.colorMode, () =>
     bindInColorMode(root, rootIds, pageShell, context),
   );
-  return {
-    ...bound,
-    get stream() {
-      return bound.stream;
-    },
-    update: () => withColorMode(root.colorMode, bound.update),
-  };
+  // (Assigned in place: a spread would freeze the live `stream` getter into a value.)
+  const { update } = bound;
+  return Object.assign(bound, {
+    update: () => withColorMode(root.colorMode, update),
+  });
 }
 
 /** A scroll/auto box's scroll position (record id → px), kept by the owner across rebinds. */
@@ -1525,28 +1632,20 @@ function bindInColorMode(
   // A page filter is also an ownership boundary for geometry, Skia resources and subscriptions.
   // Keep the full-document fast path allocation-free; portals/fixed nodes remain descendants.
   const allRoots = root.pageRootRecords();
-  const boundInputs: ReadonlyMap<string, CatalogConsumerNode> =
+  const fullDocument =
     allRoots.length === rootIds.length &&
-    allRoots.every((id) => drawnRootIds.has(id))
-      ? root.canvasInputs
-      : (() => {
-          const inputs = new Map<string, CatalogConsumerNode>();
-          const visit = (id: string) => {
-            if (inputs.has(id)) return;
-            const node = root.canvasInputs.get(id);
-            if (!node) throw new Error(`CATALOG_CANVAS_ROOT_REQUIRED:${id}`);
-            inputs.set(id, node);
-            node.children.forEach(visit);
-          };
-          rootIds.forEach(visit);
-          return inputs;
-        })();
+    allRoots.every((id) => drawnRootIds.has(id));
+  const boundInputs = fullDocument
+    ? root.canvasInputs
+    : subtreeInputs(root, rootIds);
   const belongsToScene = (id: string): boolean => {
-    let cursor: string | undefined = id;
-    while (cursor) {
+    if (fullDocument) return true;
+    for (
+      let cursor: string | undefined = id;
+      cursor;
+      cursor = root.canvasInputs.get(cursor)?.parentId
+    )
       if (drawnRootIds.has(cursor)) return true;
-      cursor = root.canvasInputs.get(cursor)?.parentId;
-    }
     return false;
   };
   const sceneNodes = new Map<string, CanvasSceneNode>();
@@ -1715,79 +1814,15 @@ function bindInColorMode(
   const withSticky = (node: CatalogConsumerNode, given: SkiaNodeData) => {
     // ADR-275 Phase 7: a fixed box is drawn in its page's viewport (`renderCommands` — out of its
     // ancestors' clips and scrolls).
-    let data =
-      node.layout.position === "fixed" ||
-      node.derivedProps?._overlayPortal === true ||
-      node.derivedProps?._sheetViewport === true
-        ? { ...given, isFixed: true }
-        : given;
-    if (node.derivedProps?._overlayModal === true) {
-      const place = root.getOverlayPlacement(node.id);
-      if (place) {
-        const backdrop = specShapesToSkia(
-          [
-            {
-              type: "rect",
-              id: "bg",
-              x: 0,
-              y: 0,
-              width: "auto",
-              height: "auto",
-              fill: "{color.overlay-backdrop}",
-            },
-          ],
-          colorMode,
-          root.viewport.width,
-          root.viewport.height,
-        );
-        data = {
-          ...data,
-          type: "container",
-          box: undefined,
-          effects: undefined,
-          children: [
-            { ...backdrop, x: -place.x, y: -place.y },
-            { ...given, x: 0, y: 0, elementId: undefined },
-          ],
-        };
-      }
-    }
-    if (node.bindingId === "overlayarrow") {
-      const parent = root.canvasInputs.get(node.parentId);
-      const place = root.getOverlayPlacement(node.parentId);
-      if (parent && place?.arrow) {
-        const size = place.arrow.size;
-        const half = size / 2;
-        const d =
-          place.placement === "bottom"
-            ? `M0 ${size} L${half} ${half} L${size} ${size}`
-            : place.placement === "left"
-              ? `M0 0 L${half} ${half} L0 ${size}`
-              : place.placement === "right"
-                ? `M${size} 0 L${half} ${half} L${size} ${size}`
-                : `M0 0 L${half} ${half} L${size} 0`;
-        const tooltip = parent.bindingId === "tooltip";
-        const paint = specShapesToSkia(
-          [
-            {
-              type: "path",
-              id: "arrow",
-              x: 0,
-              y: 0,
-              width: size,
-              height: size,
-              d,
-              fill: tooltip ? "{color.accent}" : "{color.raised}",
-              ...(tooltip ? {} : { stroke: "{color.border}", strokeWidth: 2 }),
-            },
-          ],
-          colorMode,
-          size,
-          size,
-        );
-        data = { ...data, children: [paint] };
-      }
-    }
+    const fixed = drawnInViewport(node) ? { ...given, isFixed: true } : given;
+    const backed =
+      node.derivedProps?._overlayModal === true
+        ? withModalBackdrop(root, node, fixed, given)
+        : fixed;
+    const data =
+      node.bindingId === "overlayarrow"
+        ? withOverlayArrow(root, node, backed)
+        : backed;
     const sticky = stickyOf.get(node.id);
     if (!sticky) return data;
     // A stuck header paints over the items under it (the rule's `z-index` — the DOM's positioned
@@ -1851,6 +1886,8 @@ function bindInColorMode(
       );
       registeredIds.add(node.id);
     }
+    // (The bind is done with it: the binding's closure keeps the Map, so do not hold n entries.)
+    hiddenMemo.clear();
     if (context.slotMode !== "page")
       for (const chrome of root.slotChromeInputs.values()) {
         if (!boundInputs.has(chrome.slotId)) continue;
@@ -1971,7 +2008,9 @@ function bindInColorMode(
           children.map((id) => sceneNodes.get(id)!),
         );
       }
-    for (const showAll of root.tagShowAllInputs.values()) {
+    // (`tagShowAllInputs` builds a Map per read: read it once for the bind.)
+    const tagShowAll = root.tagShowAllInputs;
+    for (const showAll of tagShowAll.values()) {
       if (!boundInputs.has(showAll.listId)) continue;
       const rect = root.getGeometry([showAll.id]).get(showAll.id);
       if (!rect) throw new Error(`TAG_SHOW_ALL_LAYOUT_REQUIRED:${showAll.id}`);
@@ -1990,7 +2029,7 @@ function bindInColorMode(
     }
     for (const node of boundInputs.values()) {
       const chrome = root.slotChromeInputs.get(node.id);
-      const showAll = root.tagShowAllInputs.get(node.id);
+      const showAll = tagShowAll.get(node.id);
       const childIds = [
         ...(chrome && context.slotMode !== "page"
           ? [...node.children, chrome.id]
@@ -2032,16 +2071,23 @@ function bindInColorMode(
         }),
       );
     }
-    let stream = buildRenderCommandStream(
-      pageShell ? [pageShell.id] : [...rootIds],
-      childrenMap,
-      layoutMap,
-      {},
-      { presentationRevision: 0, baseCanonicalRevision: 0 },
-      // The subtree splice publishes bounds and upserts the spatial index, so the initial bind
-      // publishes its full snapshot too: both consumers read one scene state.
-      { syncSpatialIndexSnapshot: true, publishBoundsSnapshot: true },
-    );
+    const buildStream = (
+      revision: Parameters<typeof buildRenderCommandStream>[4],
+    ) =>
+      buildRenderCommandStream(
+        pageShell ? [pageShell.id] : [...rootIds],
+        childrenMap,
+        layoutMap,
+        {},
+        revision,
+        // The subtree splice publishes bounds and upserts the spatial index, so a full build
+        // publishes its full snapshot too: both consumers read one scene state.
+        { syncSpatialIndexSnapshot: true, publishBoundsSnapshot: true },
+      );
+    let stream = buildStream({
+      presentationRevision: 0,
+      baseCanonicalRevision: 0,
+    });
     const bound = new Map<string, CatalogConsumerNode>();
     const boundLayoutInputs = new Map<string, string | undefined>();
     const boundParts = new Map<string, string | undefined>();
@@ -2951,18 +2997,11 @@ function bindInColorMode(
       },
       /** Drag top-layer changes only command order/clip context; retain nodes and subscriptions. */
       refreshPresentation: () => {
-        stream = buildRenderCommandStream(
-          pageShell ? [pageShell.id] : [...rootIds],
-          childrenMap,
-          layoutMap,
-          {},
-          {
-            presentationRevision: stream.presentationRevision + 1,
-            baseCanonicalRevision: stream.baseCanonicalRevision,
-            presentationRevisionByRootKey: stream.presentationRevisionByRootKey,
-          },
-          { syncSpatialIndexSnapshot: true, publishBoundsSnapshot: true },
-        );
+        stream = buildStream({
+          presentationRevision: stream.presentationRevision + 1,
+          baseCanonicalRevision: stream.baseCanonicalRevision,
+          presentationRevisionByRootKey: stream.presentationRevisionByRootKey,
+        });
       },
       bindingIds: [...resolvedBindingIds],
       unpainted,

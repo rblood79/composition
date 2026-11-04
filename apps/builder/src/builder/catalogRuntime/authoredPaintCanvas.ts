@@ -52,19 +52,23 @@ export function applyCatalogAuthoredPaint(
     input.visual.boxShadow === undefined
       ? resolveEffectiveBoxShadow(input.ruleId, undefined, theme)
       : undefined;
-  const elevated =
-    shadow === undefined
-      ? input
-      : { ...input, visual: { ...input.visual, boxShadow: shadow } };
   // ADR-297 후속 ⑥: a rule gradient (`paintGradientCss` — S2 premium · genai, or `none`) lies over the
   //   background as CSS `background-image` over `background-color` does, below borders and content.
-  const image = elevated.visual.backgroundImage;
+  const image = input.visual.backgroundImage;
   const gradient =
     typeof image === "string" ? parsePaintGradientCss(image) : undefined;
+  const dropImage = gradient !== undefined || image === "none";
+  const visual = dropImage
+    ? withoutKey(input.visual, "backgroundImage")
+    : input.visual;
   const node =
-    gradient || image === "none"
-      ? { ...elevated, visual: withoutKey(elevated.visual, "backgroundImage") }
-      : elevated;
+    shadow === undefined && !dropImage
+      ? input
+      : {
+          ...input,
+          visual:
+            shadow === undefined ? visual : { ...visual, boxShadow: shadow },
+        };
   const painted = hasCatalogAuthoredPaint(node)
     ? authoredPaint(node, data, rect, theme)
     : data;

@@ -28,6 +28,7 @@ import {
   type CatalogPosition,
 } from "../../../../../packages/shared/src/catalog/resolution/positions";
 import { resolveCatalogRuleCanvasBox } from "../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
+import { OVERLAY_BODY_TYPES } from "../../../../../packages/shared/src/catalog/runtime/overlayState";
 import { catalogChildKind } from "../../../../../packages/shared/src/catalog/nesting/nestingRules";
 import { catalogBuiltinOrigins } from "./layouts";
 import type { CatalogComponentsViewId } from "./originViewNode";
@@ -102,7 +103,7 @@ const TYPE_BASE = "text-base";
 // (A field's control Group — ADR-256 Phase 6b: a field, not a collection.)
 const CONTROL_GROUP = "lib:definition:type-Group";
 /**
- * ADR-278: the overlay origins whose card draws the body (Modal · Popover · Tooltip) open beside
+ * ADR-278: the overlay origins whose card draws the body (Modal · Popover · Tooltip · Sheet) open beside
  * the trigger (user decision 2, 2026-10-21 — the Origin line, right of ◆). A picker's Popover
  * (a Select's list, a DatePicker's calendar) stays closed: its body is a part, not a slot.
  */
@@ -216,12 +217,10 @@ const sampleLayout = (values?: Readonly<Record<string, string>>) => {
   const { layout } = sampleFields(values);
   return layout ? { layout } : {};
 };
-const CLOSED_OVERLAY_TYPES: ReadonlySet<string> = new Set([
-  "lib:definition:type-Modal",
-  "lib:definition:type-Popover",
-  "lib:definition:type-Tooltip",
-  "lib:definition:type-SheetOverlay",
-]);
+/** The overlay bodies (`OVERLAY_BODY_TYPES`) by type definition id: closed unless their card opens them. */
+const CLOSED_OVERLAY_TYPES: ReadonlySet<string> = new Set(
+  [...OVERLAY_BODY_TYPES].map((type) => `lib:definition:type-${type}`),
+);
 const COLOR_FAMILIES = ["accent", "neutral", "negative", "border"];
 const COLOR_SURFACES = [
   "base",

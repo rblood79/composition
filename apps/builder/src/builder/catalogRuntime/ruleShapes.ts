@@ -358,7 +358,10 @@ export function catalogSheetHandleShapes(
   ];
 }
 
-/** ADR-300: S2 SideNav의 현재 경로 표시 막대. */
+/**
+ * ADR-300 — S2 SideNav's current-route bar on a current Canvas row (its SideNavItemContent): the
+ * SideNavItem rule's `::before` (`catalogSideNavIndicator`), centred on the row, fully rounded.
+ */
 function sideNavIndicatorShapes(
   input: Pick<CatalogRuleShapeInput, "type" | "node" | "rect" | "theme">,
 ): Shape[] {
