@@ -3060,9 +3060,17 @@ export class CatalogCompositionRoot {
       overlay &&
       !isComponentsView(this.definitionView) &&
       !(overlay.owner && this.originBodyOpen(overlay.owner));
-    const overlayDerived = portal
-      ? { ...baseDerived, _overlayPortal: true, _overlayModal: overlay.modal }
+    // An open modal's underlay is the Modal rule's (a Dialog opening its own modal included):
+    // the Canvas backdrop and the DOM `ModalOverlay` read it from here.
+    const underlay = overlay?.modal
+      ? this.runtime.graph.library.rules.get("Modal")?.underlay
+      : undefined;
+    const withUnderlay = underlay
+      ? { ...baseDerived, _modalUnderlay: underlay }
       : baseDerived;
+    const overlayDerived = portal
+      ? { ...withUnderlay, _overlayPortal: true, _overlayModal: overlay.modal }
+      : withUnderlay;
     const derived = catalogSheetViewport(
       record,
       get,

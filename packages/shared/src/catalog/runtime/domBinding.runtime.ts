@@ -2358,6 +2358,13 @@ function ruleDom(
     !inDialogTrigger(root, node)
   )
     rest["aria-label"] = "Dialog";
+  // An open modal's underlay is the Modal rule's (`_modalUnderlay` — the Canvas backdrop paints the
+  // same): the shared Modal · a Dialog opening its own modal put it on their `ModalOverlay`.
+  const underlay = node.derivedProps?._modalUnderlay;
+  if ((lower === "modal" || lower === "dialog") && typeof underlay === "string")
+    rest.underlay = underlay.startsWith("{")
+      ? tokenToCSSVar(underlay as TokenRef)
+      : underlay;
   // ADR-256 Phase 8a: an overlay's arrow is its `OverlayArrow` child node — the shared overlay
   // draws none of its own.
   if (lower === "popover" || lower === "tooltip") {

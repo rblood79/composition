@@ -487,6 +487,12 @@ export interface ComponentRule {
    */
   textDecoration?: string;
   /**
+   * The scrim a modal overlay paints under itself (S2 `Modal.tsx` `modalOverlayStyles.bg`) — a
+   * TokenRef. Only the Modal rule holds it; an open modal's record carries it (`_modalUnderlay`) and
+   * both consumers paint it: the Canvas backdrop (`withModalBackdrop`) and the DOM `ModalOverlay`.
+   */
+  underlay?: string;
+  /**
    * 컨테이너 base layout 스타일 (spec `composition.containerStyles` 의 catalog 대응).
    *
    * ADR-912 단계5 step4 (2026-06-17): self-render 컨테이너(TagGroup 등)의 display/flexDirection/

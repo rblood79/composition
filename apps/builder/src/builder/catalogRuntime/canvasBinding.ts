@@ -1248,7 +1248,10 @@ function subtreeInputs(
   return inputs;
 }
 
-/** An open modal's backdrop: the viewport-sized scrim under the overlay, then the overlay itself. */
+/**
+ * An open modal's backdrop: the viewport-sized scrim under the overlay (the Modal rule's underlay —
+ * `_modalUnderlay`, the DOM `ModalOverlay` paints the same), then the overlay itself.
+ */
 function withModalBackdrop(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
@@ -1256,7 +1259,8 @@ function withModalBackdrop(
   given: SkiaNodeData,
 ): SkiaNodeData {
   const place = root.getOverlayPlacement(node.id);
-  if (!place) return data;
+  const underlay = node.derivedProps?._modalUnderlay;
+  if (!place || typeof underlay !== "string") return data;
   const backdrop = specShapesToSkia(
     [
       {
@@ -1266,7 +1270,7 @@ function withModalBackdrop(
         y: 0,
         width: "auto",
         height: "auto",
-        fill: "{color.overlay-backdrop}",
+        fill: underlay,
       },
     ],
     colorMode,

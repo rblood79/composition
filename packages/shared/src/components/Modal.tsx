@@ -1,6 +1,7 @@
 import React from "react";
 import {
   Modal as RACModal,
+  ModalOverlay,
   ModalOverlayProps,
 } from "react-aria-components/Modal";
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
@@ -32,42 +33,38 @@ export interface ModalProps extends ModalOverlayProps {
    * @default true
    */
   restoreFocus?: boolean;
+  /**
+   * The scrim under the modal (a CSS color) — the catalog Modal rule's underlay, given by the
+   * catalog DOM binding. Absent = the overlay sheet's (`overlays.css`).
+   */
+  underlay?: string;
 }
 
 /**
- * Modal Component with Material Design 3 support
+ * Modal — RAC `ModalOverlay > Modal` (S2 `Modal.tsx` renders the overlay itself the same way: the
+ * overlay paints the underlay, the Modal is the box). A standalone RAC Modal makes the same
+ * overlay but takes no style for it, so the overlay is explicit here.
  *
- * 🚀 Phase 4: data-* 패턴 전환
- * - tailwind-variants 제거
- * - data-variant, data-size 속성 사용
- *
- * M3 Features:
- * - 5 variants: primary, secondary, tertiary, error, filled
- * - 3 sizes: sm, md, lg
- * - M3 color tokens for consistent theming
- *
- * Features:
- * - Focus trap: Prevents focus from leaving modal
- * - Auto focus: Automatically focuses first element
- * - Focus restoration: Returns focus to trigger element
- * - Keyboard navigation: Supports Tab, Shift+Tab, Escape
- * - ARIA attributes: Proper role and aria-modal
- *
- * @example
- * <Modal variant="primary" size="M" trapFocus autoFocus restoreFocus>
- *   <Dialog>
- *     <Heading>Modal Title</Heading>
- *     <p>Modal content</p>
- *     <Button>Close</Button>
- *   </Dialog>
- * </Modal>
+ * Features: focus trap · auto focus · focus restoration (`ContentFocusScope`), keyboard dismissal
+ * and ARIA from RAC.
  */
 export function Modal({
   size = "M",
   trapFocus = true,
   autoFocus = true,
   restoreFocus = true,
+  underlay,
   children,
+  // RAC `ModalOverlayProps` — the overlay's (RAC's standalone Modal splits the same set).
+  isDismissable,
+  isKeyboardDismissDisabled,
+  isOpen,
+  defaultOpen,
+  onOpenChange,
+  isEntering,
+  isExiting,
+  UNSTABLE_portalContainer,
+  shouldCloseOnInteractOutside,
   ...props
 }: ModalProps) {
   const modalClassName = composeRenderProps(props.className, (className) =>
@@ -75,17 +72,30 @@ export function Modal({
   );
 
   return (
-    <RACModal {...props} className={modalClassName} data-size={size}>
-      <ContentFocusScope
-        contain={trapFocus}
-        autoFocus={autoFocus}
-        restoreFocus={restoreFocus}
-      >
-        {/* (A Dialog in the Modal opens in it — it makes no overlay of its own, ADR-256 Phase 8b.) */}
-        <DialogTriggerScope.Provider value={false}>
-          {children as React.ReactNode}
-        </DialogTriggerScope.Provider>
-      </ContentFocusScope>
-    </RACModal>
+    <ModalOverlay
+      isDismissable={isDismissable}
+      isKeyboardDismissDisabled={isKeyboardDismissDisabled}
+      isOpen={isOpen}
+      defaultOpen={defaultOpen}
+      onOpenChange={onOpenChange}
+      isEntering={isEntering}
+      isExiting={isExiting}
+      UNSTABLE_portalContainer={UNSTABLE_portalContainer}
+      shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
+      style={underlay ? { backgroundColor: underlay } : undefined}
+    >
+      <RACModal {...props} className={modalClassName} data-size={size}>
+        <ContentFocusScope
+          contain={trapFocus}
+          autoFocus={autoFocus}
+          restoreFocus={restoreFocus}
+        >
+          {/* (A Dialog in the Modal opens in it — it makes no overlay of its own, ADR-256 Phase 8b.) */}
+          <DialogTriggerScope.Provider value={false}>
+            {children as React.ReactNode}
+          </DialogTriggerScope.Provider>
+        </ContentFocusScope>
+      </RACModal>
+    </ModalOverlay>
   );
 }

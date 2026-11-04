@@ -18,11 +18,17 @@ import type { ComponentSize } from "../types";
 export interface DialogExtendedProps extends DialogProps {
   size?: ComponentSize;
   isDismissable?: boolean;
+  /**
+   * The scrim under the modal this Dialog opens (a CSS color — the catalog Modal rule's underlay,
+   * given by the catalog DOM binding). Only read when it opens its own modal.
+   */
+  underlay?: string;
 }
 
 export function Dialog({
   size = "M",
   isDismissable,
+  underlay,
   ...props
 }: DialogExtendedProps) {
   const hasTrigger = useContext(DialogTriggerScope);
@@ -46,6 +52,7 @@ export function Dialog({
     <ModalOverlay
       className="react-aria-ModalOverlay"
       isDismissable={isDismissable}
+      style={underlay ? { backgroundColor: underlay } : undefined}
     >
       <Modal
         className="react-aria-Modal"

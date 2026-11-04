@@ -212,8 +212,8 @@
       inset 0 2px 4px 0 rgb(0 0 0 / 0.05)
     );
 
-    /* Overlay backgrounds */
-    --overlay-backdrop: rgba(0 0 0 / 0.5);
+    /* Overlay backgrounds — `--overlay-backdrop` 은 테마 색이라 resolver 가 싣는다 (ADR-293). Builder
+       chrome 대화상자는 이 변수를 읽지 않는다 (각자 class 의 배경). */
     --overlay-backdrop-light: rgba(255 255 255 / 0.8);
     --highlight-hover-overlay: rgba(255 255 255 / 0.1);
     --highlight-pressed-overlay: rgba(255 255 255 / 0.2);

@@ -2222,7 +2222,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     partStateStyles: {
       "&% .react-aria-CardPreview": {
         willChange: { variant: { quiet: CATALOG_PRESS_WILL_CHANGE } },
-        transform: { variant: { quiet: { isPressed: catalogPressTransform() } } },
+        transform: {
+          variant: { quiet: { isPressed: catalogPressTransform() } },
+        },
         transition: { variant: { quiet: CATALOG_PRESS_TRANSITION } },
       },
     },
@@ -2478,7 +2480,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           variant: { quiet: "auto" },
         },
         transform: {
-          isPressed: { default: catalogPressTransform(), variant: { quiet: "none" } },
+          isPressed: {
+            default: catalogPressTransform(),
+            variant: { quiet: "none" },
+          },
         },
         transition: CATALOG_PRESS_TRANSITION,
       },
@@ -9547,6 +9552,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Modal: {
     defaultVariant: "default",
     defaultSize: "M",
+    // S2 1.8.1 `Modal.tsx` `modalOverlayStyles.bg: transparent-black-500` — the scrim under an open
+    // modal (a Dialog that opens its own modal reads it too). Canvas backdrop · DOM `ModalOverlay`.
+    underlay: "{color.overlay-backdrop}",
     variants: {
       default: {
         paint: {

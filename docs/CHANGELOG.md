@@ -11,6 +11,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Modal 배경 = Modal rule 값 — Canvas · Preview 가 같은 값을 읽는다] - 2026-11-04
+
+### Changed
+
+- **열린 Modal 의 배경 (scrim) 을 Modal rule 이 소유**
+  catalog `Modal` rule 에 `underlay: "{color.overlay-backdrop}"` (S2 1.8.1 `Modal.tsx` `modalOverlayStyles.bg`) 를 두고, 열린 modal 의 record 가 그 값을 `_modalUnderlay` 로 싣는다. Canvas 배경 (`withModalBackdrop`) 과 Preview · Publish 의 `ModalOverlay` 가 같은 값을 칠한다. trigger 바로 아래의 Dialog 가 여는 modal 도 같은 값이다. **Why**: Canvas 는 토큰을 코드에 고정해 두고 DOM 은 수동 시트 (`overlays.css`) 에 맡겨, 두 consumer 가 rule 이 아닌 각자의 사본을 읽었다. 화면 값은 그대로 (`#00000070`).
+- shared `Modal` 은 S2 처럼 `ModalOverlay > Modal` 을 직접 그린다. RAC 단독 Modal 이 만드는 overlay 에는 style 을 줄 수 없어서다. DOM 구조와 닫기 동작은 같다 (`adr256DialogModal` 구조 대조 통과).
+- 위치: `componentRulesTable.ts` (Modal) · `catalog-style.types.ts` (`underlay`) · `compositionRoot.ts` · `canvasBinding.ts` · `domBinding.runtime.ts` · `components/Modal.tsx` · `components/Dialog.tsx`.
+
+### Fixed
+
+- **ADR-293 게이트 실패 해소**: `preview-system.css` 가 resolver 가 싣는 테마 색 `--overlay-backdrop` 을 50 % 로 또 선언하고 있었다 (`generatedCssVarsDeclared.static.test.ts` 실패). 선언을 지웠다. 바로 아래 항목에서 「Builder chrome 대화상자가 그 50 % 를 쓴다」고 적은 것은 틀렸다. chrome 대화상자 7개는 모두 자기 class 의 배경을 쓰고 이 변수를 읽지 않는다. 그래서 chrome 화면은 바뀌지 않는다.
+
+### Tests
+
+- `modalUnderlay.test.tsx` — Modal rule 값 · 열린 Modal record 의 `_modalUnderlay` · DOM `ModalOverlay` inline `var(--overlay-backdrop)` · trigger 아래 Dialog 의 overlay. 변경 전 3 RED.
+- `generatedCssVarsDeclared.static.test.ts` RED → GREEN.
+- Live (5175): Canvas 에서 열린 Dialog 뒤 배경이 그려졌다. Publish 문서의 `.react-aria-ModalOverlay` 는 inline `var(--overlay-backdrop)`, 계산값 `rgba(0, 0, 0, 0.44)`, 변수 값 `#00000070` (resolver).
+
+## [Toast 펼친 목록 배경 = overlay-backdrop 토큰 — Preview · Publish] - 2026-11-04
+
+### Fixed
+
+- **Toast 펼친 목록의 덮개가 Modal · Sheet 와 같은 농도**
+  Toast 목록을 펼쳤을 때 뒤 화면을 덮는 배경 (`.catalog-toast-backdrop`) 이 하드코딩 검정 50 % 에서 `var(--overlay-backdrop)` (S2 `#00000070`) 로 바뀐다. **Why**: 덮개가 토큰을 읽지 않고 자기 검정을 써서, 토큰을 S2 값으로 맞춘 뒤 Toast 만 진하게 남았다 — S2 는 Toast · Modal 이 같은 `transparent-black-500` 을 칠한다. Canvas 는 펼친 Toast 목록을 그리지 않는다.
+- 위치: `packages/shared/src/components/styles/Toast.css`.
+
+### Tests
+
+- `overlayBackdropToken.static.test.ts` — 토큰 = S2 값 (light · dark), Toast 덮개가 토큰을 읽는다. 변경 전 RED.
+- Live (5175 Preview): 문서의 `.catalog-toast-backdrop` 규칙이 `var(--overlay-backdrop)` 이고 계산값 `rgba(0, 0, 0, 0.44)` (같은 class 의 시험 요소로 측정 — 실제 펼친 목록은 열지 않았다).
+
 ## [Modal · Sheet 배경 = S2 값 — overlay-backdrop 토큰] - 2026-11-04
 
 ### Fixed
