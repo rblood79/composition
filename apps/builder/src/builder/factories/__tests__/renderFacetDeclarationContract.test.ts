@@ -41,7 +41,7 @@ import {
 // internal 18 → 23 (2026-06-24): Card 패밀리 5(card/cardpreview/cardheader/cardcontent/cardfooter)
 //   추가. ADR-912 Card cutover 시점부터 DELEGATING_INTERNAL 에 누락돼 있던 것을, Preview canonical
 //   경로에서 self-compose 자식 슬롯(CardPreview/Image/Header/Content/Footer)이 누락되어 Skia↔Preview
-//   비대칭이던 버그 정정으로 등록. disclosuregroup/nav 동형(childrenByParent 보강 필요).
+//   비대칭이던 버그 정정으로 등록. accordion/nav 동형(childrenByParent 보강 필요).
 // internal 23 → 24 (2026-06-25): tableview 추가. TableView binding.source.renderer 가 "div" 라
 //   DELEGATING_INTERNAL 매칭(source.renderer 기준)을 못 타 자식(Header/Body/Column/Row/Cell)이
 //   Preview 에 통째로 미렌더(Skia 는 자식 generic box 렌더 → 비대칭). renderer "div"→"tableview" +
@@ -149,7 +149,7 @@ describe("ADR-914 Phase 3-A — render facet declaration parity", () => {
     const { internal, rac } = deriveDelegatingLowerLookup();
     // internal key 는 이미 lowercase → 그대로.
     expect(internal.has("progressbar")).toBe(true);
-    expect(internal.has("disclosuregroup")).toBe(true);
+    expect(internal.has("accordion")).toBe(true);
     // rac key 는 PascalCase → lowercase 정규화 후 매칭.
     expect(rac.has("slider")).toBe(true);
     expect(rac.has("checkboxgroup")).toBe(true);

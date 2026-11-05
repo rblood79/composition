@@ -1,7 +1,7 @@
 // S2 Disclosure live (사용자 2026-10-10 「S2 처럼 기본 Disclosure 에 위아래 테두리를 넣고, isQuiet 로 없애게」):
 // real Builder (headed Chrome, Compare Mode). A Disclosure has a 1px top and bottom border and a
 // square trigger; Quiet removes the borders and rounds the trigger; Density changes the trigger
-// height (compact · regular · spacious); in the palette DisclosureGroup only the last item keeps
+// height (compact · regular · spacious); in the palette Accordion only the last item keeps
 // its bottom border — each step Canvas = Preview; no errors.
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/disclosure-s2-live.mjs <out>
@@ -308,7 +308,7 @@ for (const [size, height, padding] of [
   );
 }
 
-await addFromPalette("disclosure group");
+await addFromPalette("accordion");
 await page.waitForTimeout(1500);
 const grouped = (await read()).slice(1);
 const canvasBox = await page.locator("canvas").first().boundingBox();
@@ -318,7 +318,7 @@ await page.screenshot({
 });
 await page.screenshot({ path: `${OUT}/page.png` });
 record(
-  "DisclosureGroup: only the last item keeps its bottom border, Canvas = Preview",
+  "Accordion: only the last item keeps its bottom border, Canvas = Preview",
   grouped.length >= 2 &&
     grouped.every((d) => d.preview?.attrs[2] === "true" && same(d)) &&
     grouped.slice(0, -1).every((d) => d.canvas.strokes[2] === 0) &&

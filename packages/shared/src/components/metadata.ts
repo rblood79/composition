@@ -693,8 +693,8 @@ export const componentMetadata: ComponentMeta[] = [
     },
   },
   {
-    type: "DisclosureGroup",
-    label: "Disclosure Group",
+    type: "Accordion",
+    label: "Accordion",
     category: "Layout",
     icon: "📂",
     inspector: {

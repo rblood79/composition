@@ -71,7 +71,7 @@ export const racSuggestionFeatures: Readonly<
   Menu: feature("Menu", "selectionMode"),
   Tabs: feature("Tabs", "orientation"),
   Disclosure: feature("Disclosure", "isExpanded"),
-  DisclosureGroup: feature("DisclosureGroup", "allowsMultipleExpanded"),
+  Accordion: feature("DisclosureGroup", "allowsMultipleExpanded"),
   Calendar: feature("Calendar", "pageBehavior", "isReadOnly"),
   RangeCalendar: feature("RangeCalendar", "pageBehavior", "isReadOnly"),
   DateField: feature(

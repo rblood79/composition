@@ -140,7 +140,7 @@ const ORIGIN_ONLY_CARDS: ReadonlySet<string> = new Set([
   "Toolbar",
   "ToggleButtonGroup",
   "ButtonGroup",
-  "DisclosureGroup",
+  "Accordion",
   "Nav",
   "Card",
   "Tabs",
@@ -162,10 +162,10 @@ const NO_ITEMS_LINE: ReadonlySet<string> = new Set([
   "Nav",
   "CheckboxGroup",
   "RadioGroup",
-  // (User 2026-10-25 「pagination · DisclosureGroup · ToggleButtonGroup · toolbar · buttongroup -
+  // (User 2026-10-25 「pagination · Accordion · ToggleButtonGroup · toolbar · buttongroup -
   // item(text), item(instance) 자식들 모두 삭제」.)
   "Pagination",
-  "DisclosureGroup",
+  "Accordion",
   "ToggleButtonGroup",
   "Toolbar",
   "ButtonGroup",

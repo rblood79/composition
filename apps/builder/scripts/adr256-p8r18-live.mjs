@@ -1,5 +1,5 @@
 // ADR-256 Phase 8 판독 (Round 18) live — the four repairs in the real Builder (headed Chrome, Compare
-// Mode opens the Preview): L-1 · L-2 a Disclosure in a frame inside a DisclosureGroup follows the
+// Mode opens the Preview): L-1 · L-2 a Disclosure in a frame inside an Accordion follows the
 // group (H1) · L-3 a frame around the Heading keeps the trigger's box and the turned chevron (M1) ·
 // L-4 the trigger's authored isDisabled · text (M2) · L-5 a replaced Icon does not turn (M3) · L-6 no
 // errors · L-7 a Tree's replaced chevron Icon does not turn either.
@@ -184,12 +184,12 @@ const domExpanded = () =>
   preview((doc) => [...doc.querySelectorAll(".react-aria-Disclosure")].map((d) => d.hasAttribute("data-expanded")));
 const frameEntry = (ws) => ({ kind: "node", id: ws.newId("node"), definitionId: "lib:definition:type-frame", children: [], props: {}, visual: {}, sizing: {}, descendantOverrides: [] });
 
-// ── H1: DisclosureGroup, detached, Section 2 in a frame
+// ── H1: Accordion, detached, Section 2 in a frame
 await newProject(`adr256-p8r18-a-${Date.now()}`);
 await compareOn();
 await addFromPalette("Disclosure", /^Disclosure ?Group$/i);
 await page.waitForTimeout(1500);
-const group = await canvas("DisclosureGroup");
+const group = await canvas("Accordion");
 const rd = await exec((c, ws, id) => c.detachInstances({ ids: [id], newId: ws.newId }), group.sourceId);
 const s2 = await canvas("Disclosure", "Section 2");
 const rf = await exec(

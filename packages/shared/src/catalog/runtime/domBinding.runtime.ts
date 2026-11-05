@@ -3252,7 +3252,7 @@ export function catalogDomStateConditions(
 export const NO_CHILDREN: readonly string[] = [];
 
 /**
- * A component that renders from its children's values (a DisclosureGroup's expansion) renders
+ * A component that renders from its children's values (an Accordion's expansion) renders
  * again when a child's record or runtime props change.
  */
 export function useWatchedChildren(

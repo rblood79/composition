@@ -179,7 +179,7 @@ import { safeParseDateString } from "../../utils/core/dateUtils";
 import {
   allowsMultipleExpanded,
   resolveGroupExpandedDisclosureIds,
-} from "../../utils/disclosureGroupExpansion";
+} from "../../utils/accordionExpansion";
 
 import type { DefinitionId } from "../document/types";
 
@@ -217,7 +217,7 @@ import {
   CATALOG_LABEL_NODE_FIELDS,
   catalogAbsentByValue,
   catalogDisclosureExpanded,
-  catalogDisclosureGroupOf,
+  catalogAccordionOf,
   catalogFieldNecessityIndicator,
   catalogGroupDisclosures,
   catalogNumberFieldValue,
@@ -1667,7 +1667,7 @@ function groupToggleButtons(
   return { buttons: items, frames: containers };
 }
 
-/** A DisclosureGroup's Disclosures (any depth — RAC context) over the DOM inputs. */
+/** An Accordion's Disclosures (any depth — RAC context) over the DOM inputs. */
 const groupDisclosures = (
   group: CatalogConsumerNode,
   root: CatalogCompositionRoot,
@@ -3296,12 +3296,12 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   // ADR-256 Phase 8c: RAC Disclosure draws its node tree in order — the reference
   // `Heading > Button[slot=trigger] > (chevron + title)` + `DisclosurePanel` (the starter's; RAC's
   // contexts link the trigger and the panel). Its expansion: the declared state, the Preview's runtime
-  // value (ADR-250), or its DisclosureGroup's.
+  // value (ADR-250), or its Accordion's.
   disclosure: {
     render: (input) => {
       const props = input.node.props;
       // (RAC's group context reaches it through any element — Phase 8 판독 H1.)
-      const inGroup = !!catalogDisclosureGroupOf(
+      const inGroup = !!catalogAccordionOf(
         input.node,
         (id) => input.root.domInputs.get(id),
         (record) => catalogTypeName(input.root, record),
@@ -3360,7 +3360,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       );
     },
   },
-  disclosuregroup: {
+  accordion: {
     // Its expansion is its Disclosures' `isExpanded` (declared, or the Preview's runtime value) —
     // every Disclosure its RAC context reaches, at any depth (Phase 8 판독 H1).
     watchesChildren: (node, root) => {
@@ -3393,12 +3393,13 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       // static render shows the declared state.
       const setRuntime = input.setRuntimeProps;
       const multiple = allowsMultipleExpanded(props as Record<string, unknown>);
-      // ADR-256 Phase 8d: RAC DisclosureGroup around its children as they are (free content — G0 ②).
+      // S2 Accordion과 동일하게 RAC DisclosureGroup이 자식의 펼침 상태를 관리한다.
       return createElement(
         RacDisclosureGroup as ElementType,
         {
           ...marker(input),
           key: `${input.node.id}:${multiple}`,
+          className: "react-aria-Accordion",
           style: input.style,
           "data-variant": str(props.variant || "default"),
           "data-size": str(props.size || "M"),
@@ -3816,7 +3817,7 @@ export function catalogStateSourceValue(
               );
       return catalogCollectionSelectedKeys(root, node);
     case "expandedKeys":
-      if (type === "DisclosureGroup") {
+      if (type === "Accordion") {
         const { disclosures } = groupDisclosures(node, root);
         const expanded = resolveGroupExpandedDisclosureIds(
           props as Record<string, unknown>,

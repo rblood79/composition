@@ -3,7 +3,7 @@ import { evaluateConditionTree } from "../rule/conditionTree";
 
 /**
  * S2 1.8.0 Disclosure borders (2026-10-10): a 1px top and bottom border, none when quiet, and inside
- * a DisclosureGroup only the last item keeps its bottom border (S2 `isInGroup` · `:last-child`). The
+ * an Accordion only the last item keeps its bottom border (S2 `isInGroup` · `:last-child`). The
  * same declarations the generated sheet applies — the Disclosure rule's `composition.containerStyles`
  * (`border-top` · `border-bottom`) refined by its state tree (`structure.stateStyles` — quiet ·
  * `inGroup`, ADR-297 Phase 3c). The Canvas reads them for the engine's per-side border

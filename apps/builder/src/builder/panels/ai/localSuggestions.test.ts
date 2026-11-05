@@ -119,7 +119,7 @@ describe("RAC 주요 기능과 공통 편집을 함께 제공", () => {
     ["ListBox", "set selectionMode to multiple"],
     ["Table", "set selectionMode to multiple"],
     ["Disclosure", "set isExpanded to false"],
-    ["DisclosureGroup", "set allowsMultipleExpanded to false"],
+    ["Accordion", "set allowsMultipleExpanded to false"],
     ["TimeField", "set hourCycle to 12"],
     ["FileTrigger", "set allowsMultiple to true"],
   ])("%s의 주요 기능이 공통 variant/size에 밀리지 않는다", (type, request) => {

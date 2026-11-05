@@ -174,8 +174,8 @@ describe("Disclosure chevron (the trigger's Icon node)", () => {
     workspace.dispose();
   });
 
-  it("a DisclosureGroup's chevrons follow the group's expansion", async () => {
-    const { workspace, root, ofBinding } = await openPalette("DisclosureGroup");
+  it("an Accordion's chevrons follow the group's expansion", async () => {
+    const { workspace, root, ofBinding } = await openPalette("Accordion");
     const turned = () =>
       [0, 1].map(
         (index) =>

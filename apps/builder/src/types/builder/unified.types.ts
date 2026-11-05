@@ -948,8 +948,8 @@ export interface DisclosureElementProps extends BaseElementProps {
   isDisabled?: boolean;
 }
 
-// === DisclosureGroup Element Props ===
-export interface DisclosureGroupElementProps extends BaseElementProps {
+// === Accordion Element Props ===
+export interface AccordionElementProps extends BaseElementProps {
   children?: React.ReactNode;
   allowsMultipleExpanded?: boolean;
   isDisabled?: boolean;
@@ -1147,7 +1147,7 @@ export type ComponentElementProps =
   | MeterElementProps
   | FormElementProps
   | DisclosureElementProps
-  | DisclosureGroupElementProps
+  | AccordionElementProps
   | DropZoneElementProps
   | FileTriggerElementProps
   | SeparatorElementProps
@@ -1747,7 +1747,7 @@ export function createDefaultDisclosureProps(): DisclosureElementProps {
   };
 }
 
-export function createDefaultDisclosureGroupProps(): DisclosureGroupElementProps {
+export function createDefaultAccordionProps(): AccordionElementProps {
   return {
     // CSS base: display:flex; flex-direction:column; width:100%
     // ADR-171 Phase 4 (2026-07-29): display/flexDirection 미러 제거 — factory 인라인 동시 제거 (R7).
@@ -2243,7 +2243,7 @@ export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
   InlineAlert: createDefaultInlineAlertProps,
   Description: createDefaultDescriptionProps,
   Disclosure: createDefaultDisclosureProps,
-  DisclosureGroup: createDefaultDisclosureGroupProps,
+  Accordion: createDefaultAccordionProps,
   Dialog: createDefaultDialogProps,
   Form: createDefaultFormProps,
   Menu: createDefaultMenuProps,

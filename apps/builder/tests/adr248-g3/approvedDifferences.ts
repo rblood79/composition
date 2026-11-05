@@ -250,7 +250,7 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
   {
     id: "disclosure-chevron",
     class: "decided",
-    owners: ["Disclosure", "DisclosureGroup"],
+    owners: ["Disclosure", "Accordion"],
     // (ADR-256 Phase 8c: the header is the reference's Heading around the trigger Button.)
     nodes: ["Heading", "Disclosure"],
     axes: ["width", "height", "y"],
@@ -477,7 +477,7 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
   {
     id: "disclosure-content-padding",
     class: "oldDefect",
-    owners: ["Disclosure", "DisclosureGroup"],
+    owners: ["Disclosure", "Accordion"],
     // (ADR-256 Phase 8c: the content box is the reference's DisclosurePanel content div.)
     nodes: ["DisclosurePanel"],
     axes: ["height", "y", "width"],
@@ -859,7 +859,7 @@ export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
   {
     id: "disclosure-chevron-node",
     class: "decided",
-    owners: ["Disclosure", "DisclosureGroup"],
+    owners: ["Disclosure", "Accordion"],
     side: "new",
     nodes: ["Text", "Button", "Icon"],
     reason:

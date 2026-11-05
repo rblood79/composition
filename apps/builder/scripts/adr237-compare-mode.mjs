@@ -115,7 +115,7 @@ await openPanels(page, ["Properties"]);
 await place("cmp-cg", "component-checkboxgroup", 20);
 await place("cmp-rg", "component-radiogroup", 150);
 await place("cmp-tbg", "component-togglebuttongroup", 330);
-await place("cmp-dg", "component-disclosuregroup", 390, 40, "360px");
+await place("cmp-dg", "component-accordion", 390, 40, "360px");
 await place("cmp-bc", "component-breadcrumbs", 60, 400, "280px");
 await place("cmp-tabs", "component-tabs", 110, 400, "280px");
 const inserted = {};
@@ -278,7 +278,7 @@ record(
 );
 const newDg = kids.dg[0]?.id;
 record(
-  "DisclosureGroup 접힘 후보 — Preview 새 Disclosure 접힘 · Skia isExpanded false",
+  "Accordion 접힘 후보 — Preview 새 Disclosure 접힘 · Skia isExpanded false",
   dom.dg.find(([id]) => id === newDg)?.[1] === false &&
     skia.dgExpanded === false,
   { dom: dom.dg, skia: skia.dgExpanded },

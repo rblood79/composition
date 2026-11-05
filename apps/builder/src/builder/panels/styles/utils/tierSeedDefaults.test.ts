@@ -1,7 +1,7 @@
 /**
  * ADR-236 후속 — tablet · mobile override 를 켜는 순간의 seed 는 그 요소의 **실제 기본값** 이어야 한다
  * (켜기 = 현재 값 복사, 시각 변화 0). catalog 가 기본값을 주는 타입에서 CSS 초기값 (row · stretch ·
- * 0 · flex) 을 넣으면 켜는 순간 모양이 바뀐다 (live: DisclosureGroup · Card · FileUpload 가 가로로,
+ * 0 · flex) 을 넣으면 켜는 순간 모양이 바뀐다 (live: Accordion · Card · FileUpload 가 가로로,
  * Button padding 0).
  */
 import { describe, expect, it } from "vitest";
@@ -9,7 +9,7 @@ import { resolveTierSeedDefaults } from "./tierSeedDefaults";
 
 describe("resolveTierSeedDefaults — catalog 기본값", () => {
   it("catalog base 가 column 인 타입은 flexDirection column", () => {
-    for (const type of ["DisclosureGroup", "Card", "FileUpload"]) {
+    for (const type of ["Accordion", "Card", "FileUpload"]) {
       expect(resolveTierSeedDefaults(type, "md").flexDirection).toBe("column");
     }
   });

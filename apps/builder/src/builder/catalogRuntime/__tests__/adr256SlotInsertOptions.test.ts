@@ -242,7 +242,7 @@ describe("ADR-256 G1 — slot insert list = children kind", () => {
       ["buttongroup", "Button"],
       ["togglebuttongroup", "ToggleButton"],
       ["avatargroup", "Avatar"],
-      ["disclosuregroup", "Disclosure"],
+      ["accordion", "Disclosure"],
       ["nav", "Link"],
     ] as const) {
       const group = place(name);

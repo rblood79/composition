@@ -1,10 +1,10 @@
 /**
- * @fileoverview DisclosureGroup 의 "실제로 펼쳐지는 Disclosure" 판정 SSOT (2026-07-14).
+ * @fileoverview Accordion 의 "실제로 펼쳐지는 Disclosure" 판정 SSOT (2026-07-14).
  *
- * **문제**: DisclosureGroup 의 `allowsMultipleExpanded` 가 CSS/Skia 어느 쪽에도 제대로 반영되지
+ * **문제**: Accordion 의 `allowsMultipleExpanded` 가 CSS/Skia 어느 쪽에도 제대로 반영되지
  *   않았다. 두 경로가 서로 다른 진실을 봤기 때문이다:
  *
- *   - **DOM(RAC)**: `renderDisclosureGroup` 이 `defaultExpandedKeys` 를 넘기면, RAC 의
+ *   - **DOM(RAC)**: `renderAccordion` 이 `defaultExpandedKeys` 를 넘기면, RAC 의
  *     `useDisclosureGroupState` 가 **그룹 상태머신**으로 확장을 관리한다. 그 안에는
  *     "Ensure only one item is expanded if allowsMultipleExpanded is false" 로직이 있어
  *     (react-stately useDisclosureGroupState.mjs:24-30) 키가 2개 이상이면 **첫 번째만** 남긴다.
@@ -47,7 +47,7 @@ export function isDisclosureExpandedByIntent(
 /**
  * 그룹 제약을 적용한 **실제로 펼쳐지는** 자식 Disclosure id 집합.
  *
- * @param groupProps - DisclosureGroup 의 props (allowsMultipleExpanded 보유)
+ * @param groupProps - Accordion 의 props (allowsMultipleExpanded 보유)
  * @param children - 그룹의 직접 자식들 (Disclosure 아닌 것은 무시)
  * @returns 확장 상태인 Disclosure 의 id Set
  */
@@ -75,15 +75,15 @@ export function resolveGroupExpandedDisclosureIds(
  * 그룹에 속하지 않은 단독 Disclosure 는 자기 `isExpanded` 만 따른다(기존 동작 보존).
  *
  * @param disclosure - 판정 대상 Disclosure 노드
- * @param parent - 그 부모 노드 (DisclosureGroup 이 아니면 단독 취급)
- * @param groupChildren - 부모가 DisclosureGroup 일 때 그 자식 목록 (순서 유지 필수)
+ * @param parent - 그 부모 노드 (Accordion 이 아니면 단독 취급)
+ * @param groupChildren - 부모가 Accordion 일 때 그 자식 목록 (순서 유지 필수)
  */
 export function isDisclosureExpandedInContext(
   disclosure: DisclosureExpansionNode,
   parent: DisclosureExpansionNode | null | undefined,
   groupChildren: readonly DisclosureExpansionNode[] | undefined,
 ): boolean {
-  if (parent?.type !== "DisclosureGroup" || !groupChildren) {
+  if (parent?.type !== "Accordion" || !groupChildren) {
     return isDisclosureExpandedByIntent(disclosure.props);
   }
   return resolveGroupExpandedDisclosureIds(parent.props, groupChildren).has(

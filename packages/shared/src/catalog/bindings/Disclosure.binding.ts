@@ -8,7 +8,7 @@ import type { PrimitiveBinding } from "../types";
  *
  * **DOM = RAC Disclosure 의 노드 트리 (ADR-256 Phase 8c)**: delegatedDom `disclosure` 가 RAC
  *   `Disclosure` 를 그리고 자식 노드 — 레퍼런스 `Heading > Button[slot=trigger] > (chevron Icon + 제목 Text)`
- *   + `DisclosurePanel > 내용` — 를 순서대로 담는다. 펼침 (선언 값 · Preview 실행 값 · DisclosureGroup) 과
+ *   + `DisclosurePanel > 내용` — 를 순서대로 담는다. 펼침 (선언 값 · Preview 실행 값 · Accordion) 과
  *   showWhen state frame 을 넘기므로 delegating 등록이 필요하다.
  *
  * D1: RAC Disclosure · Heading · Button[trigger] · DisclosurePanel 그대로 (D1/ARIA 권위 보존).

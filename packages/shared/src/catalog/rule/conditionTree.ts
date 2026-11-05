@@ -21,7 +21,7 @@ export const CONDITIONS = [
   "isQuiet",
   "isInvalid",
   "touch",
-  // ADR-297 Phase 3c — 그룹 안의 마지막이 아닌 항목 (S2 `isInGroup` 의 구분선 — DisclosureGroup). Canvas 도 노드
+  // ADR-297 Phase 3c — 그룹 안의 마지막이 아닌 항목 (S2 `isInGroup` 의 구분선 — Accordion). Canvas 도 노드
   //   트리에서 안다 (`catalogDisclosureBorders`).
   "inGroup",
   // ADR-300 — S2 SideNav: the row is the current route (RAC `data-current`, or a closed current

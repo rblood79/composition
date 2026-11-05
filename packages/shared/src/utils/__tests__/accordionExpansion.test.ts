@@ -6,10 +6,10 @@ import {
   isDisclosureExpandedInContext,
   resolveGroupExpandedDisclosureIds,
   type DisclosureExpansionNode,
-} from "../disclosureGroupExpansion";
+} from "../accordionExpansion";
 
 /**
- * DisclosureGroup 확장 판정 SSOT 회귀 게이트 (2026-07-14).
+ * Accordion 확장 판정 SSOT 회귀 게이트 (2026-07-14).
  *
  * 버그: `allowsMultipleExpanded` 가 CSS/Skia 어느 쪽에도 반영되지 않았다.
  *   - DOM(RAC): 그룹 상태머신(useDisclosureGroupState)이 "allowsMultipleExpanded=false 면
@@ -30,7 +30,7 @@ const group = (
   props: Record<string, unknown> = {},
 ): DisclosureExpansionNode => ({
   id: "grp",
-  type: "DisclosureGroup",
+  type: "Accordion",
   props,
 });
 
@@ -121,7 +121,7 @@ describe("isDisclosureExpandedInContext", () => {
     ).toBe(false);
   });
 
-  it("부모가 DisclosureGroup 아니면 단독 취급", () => {
+  it("부모가 Accordion 아니면 단독 취급", () => {
     const parent: DisclosureExpansionNode = {
       id: "p",
       type: "Frame",

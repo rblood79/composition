@@ -1,12 +1,12 @@
 /* ============================================================
- * AUTO-GENERATED from catalog DisclosureGroup — DO NOT EDIT MANUALLY
+ * AUTO-GENERATED from catalog Accordion — DO NOT EDIT MANUALLY
  * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
  * Archetype: default
  * ============================================================ */
 
 @layer components {
 
-.react-aria-DisclosureGroup {
+.react-aria-Accordion {
   /* Base styles — archetype: default */
     display: flex;
     flex-direction: column;
@@ -23,34 +23,34 @@
   border-width: var(--border-width-none);
 }
 
-.react-aria-DisclosureGroup {
+.react-aria-Accordion {
   color: var(--fg);
 }
 
-.react-aria-DisclosureGroup[data-size="S"] {
+.react-aria-Accordion[data-size="S"] {
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-md);
   border-width: var(--border-width-none);
 }
 
-.react-aria-DisclosureGroup[data-size="M"] {
+.react-aria-Accordion[data-size="M"] {
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-md);
   border-width: var(--border-width-none);
 }
 
-.react-aria-DisclosureGroup[data-size="L"] {
+.react-aria-Accordion[data-size="L"] {
   font-size: var(--catalog-token-text-lg);
   border-radius: var(--catalog-token-radius-lg);
   border-width: var(--border-width-none);
 }
 
-.react-aria-DisclosureGroup.react-aria-DisclosureGroup:where([data-focus-visible]) {
+.react-aria-Accordion.react-aria-Accordion:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-DisclosureGroup.react-aria-DisclosureGroup:where([data-disabled]) {
+.react-aria-Accordion.react-aria-Accordion:where([data-disabled]) {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;
@@ -60,7 +60,7 @@
 
 
 @media (forced-colors: active) {
-  .react-aria-DisclosureGroup {
+  .react-aria-Accordion {
     forced-color-adjust: auto;
   }
 }

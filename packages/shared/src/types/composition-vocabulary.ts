@@ -15,7 +15,7 @@
  * - **제외**: pencil primitive 10종 (`rectangle` / `ellipse` / `line` / `polygon` / `path` /
  *   `text` / `note` / `prompt` / `context` / `icon_font`) — import/export adapter 경유만 등장
  *
- * 실측: 본 `ComponentTag` union 멤버 114 component + 구조 타입 3개 = 117 (Autocomplete 폐기 2026-06-09 / DateSegment+TimeSegment 폐기 2026-06-09 / Accordion 폐기 2026-06-10 — DisclosureGroup 중복 / MaskedFrame 폐기 2026-06-16 — dead orphan, factory 0건, ADR-912 step 4). 주의: `*.spec.ts` 파일 수와는 별개 — properties-only / child sub-part spec 은 union 비멤버. TimeSegment 는 vocab union 비멤버였던 undeclared alias (tagToElement 동시 청산).
+ * 실측: 본 `ComponentTag` union 멤버 114 component + 구조 타입 3개 = 117 (Autocomplete 폐기 2026-06-09 / DateSegment+TimeSegment 폐기 2026-06-09 / Accordion은 DisclosureGroup의 정식 catalog 명칭 (2026-11-05) / MaskedFrame 폐기 2026-06-16 — dead orphan, factory 0건, ADR-912 step 4). 주의: `*.spec.ts` 파일 수와는 별개 — properties-only / child sub-part spec 은 union 비멤버. TimeSegment 는 vocab union 비멤버였던 undeclared alias (tagToElement 동시 청산).
  */
 export type ComponentTag =
   // ── composition Component Tags (114개, 알파벳 순) ──
@@ -64,7 +64,7 @@ export type ComponentTag =
   | "Dialog"
   | "DialogTrigger"
   | "Disclosure"
-  | "DisclosureGroup"
+  | "Accordion"
   | "DropZone"
   | "Field"
   | "FieldError"

@@ -264,7 +264,7 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "Pagination", source: "catalog" },
   // 2026-10-21: Menu 는 Navigation 묶음 (layout) — buttons 의 ButtonGroup 뒤에 있었다.
   { type: "Menu", source: "catalog" },
-  { type: "DisclosureGroup", source: "catalog" },
+  { type: "Accordion", source: "catalog" },
   { type: "Disclosure", source: "catalog" },
   { type: "CardView", source: "catalog" },
   { type: "Slot", source: "catalog" },

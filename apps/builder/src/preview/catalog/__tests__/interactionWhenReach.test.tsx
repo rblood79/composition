@@ -628,8 +628,8 @@ const ROWS: Row[] = [
     act: (h, u) => press(u, q(h, "button[slot=trigger]")),
   },
   {
-    palette: "DisclosureGroup",
-    type: "DisclosureGroup",
+    palette: "Accordion",
+    type: "Accordion",
     event: "onExpandedChange",
     act: (h, u) => press(u, q(h, "button[slot=trigger]")),
   },
@@ -1076,9 +1076,9 @@ describe("RAC event audit — the added Do capabilities reach RAC", () => {
     h.view.unmount();
   });
 
-  it("DisclosureGroup collapseItem closes that Disclosure only", async () => {
-    // (A DisclosureGroup's expansion keys are its Disclosures' records — the runtime's own key.)
-    const h = await doRule("DisclosureGroup", "collapseItem", (harness) =>
+  it("Accordion collapseItem closes that Disclosure only", async () => {
+    // (An Accordion's expansion keys are its Disclosures' records — the runtime's own key.)
+    const h = await doRule("Accordion", "collapseItem", (harness) =>
       qa(harness, "[data-catalog-id]")
         .find((el) => el.querySelector(":scope > h3 button[slot=trigger]"))!
         .getAttribute("data-catalog-id")!,

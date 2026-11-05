@@ -317,8 +317,8 @@ describe("ADR-280 G2 — collections", () => {
     h.view.unmount();
   });
 
-  it("DisclosureGroup collapse closes every Disclosure", async () => {
-    const h = await pressRule("DisclosureGroup", "collapse");
+  it("Accordion collapse closes every Disclosure", async () => {
+    const h = await pressRule("Accordion", "collapse");
     h.press();
     expect(
       qa(h, ".react-aria-Disclosure").some((item) =>

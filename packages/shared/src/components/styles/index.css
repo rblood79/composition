@@ -164,7 +164,7 @@
 @import "./TagGroup.css";
 @import "./generated/TagGroup.css"; /* ADR-297 Phase 3g: Tag 선택 · focus 상태 블록 (rule 에 생성 sheet 가 없다) */
 @import "./generated/ToggleButtonGroup.css";
-@import "./generated/DisclosureGroup.css";
+@import "./generated/Accordion.css";
 
 /* Simple Compositions */
 @import "./generated/Disclosure.css";

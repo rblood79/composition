@@ -7,7 +7,7 @@ import type { ComponentRule } from "../../types/catalog-style.types";
  * ADR-297 Phase 3 닫힘 — 칠 트리 하나를 두 consumer 가 같이 읽는다. 생성 CSS (`CSSGenerator.ts` —
  * `compositionOwnsContainerBox`) 는 composition 이 상자를 가진 rule 의 variant 칠을 내지 않으므로 (자식이 칠한다),
  * 그 rule 의 트리에 보이는 바탕 · 테두리가 있으면 Canvas 만 그린다. 실제 노드 트리 대조
- * (`adr297RealPaintParity.browser.test.ts`) 에서 CheckboxGroup · RadioGroup · DisclosureGroup · Form · Pagination ·
+ * (`adr297RealPaintParity.browser.test.ts`) 에서 CheckboxGroup · RadioGroup · Accordion · Form · Pagination ·
  * Toolbar 의 바탕 · 테두리가 Canvas 에만 있었다.
  */
 const TRANSPARENT = new Set(["{color.transparent}", "transparent"]);

@@ -5478,7 +5478,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     variants: {},
     // 테두리 (S2 1.8.0 Disclosure, 2026-10-10 사용자 결정 「S2 처럼 기본 Disclosure 에 위아래 테두리」): 위 · 아래
     //   1px (`composition.containerStyles` 의 `border-top` · `border-bottom`, S2 `gray-200`), quiet 와
-    //   DisclosureGroup 안의 마지막이 아닌 항목의 아래는 없다 (`rootSelectors`). sizes 에 borderWidth 를 두지
+    //   Accordion 안의 마지막이 아닌 항목의 아래는 없다 (`rootSelectors`). sizes 에 borderWidth 를 두지
     //   않는다 — `[data-size]` 의 `border-width` 가 위아래 테두리를 덮는다. Canvas 는 같은 선언을
     //   `catalogDisclosureBorders` 로 읽어 레이아웃 (변별 border) 과 칠 (`strokeWidths`) 에 쓴다.
     //   루트 모서리는 없다 (S2 — 둥근 모서리면 위아래 선 양 끝이 휜다).
@@ -5535,9 +5535,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "border-top": "1px solid var(--border)",
           "border-bottom": "1px solid var(--border)",
         },
-        // S2 `isQuiet` 는 위아래 테두리를 없애고, DisclosureGroup 안에서는 마지막 항목만 아래 테두리를
-        //   남긴다 (S2 `isInGroup` · `:last-child`). `data-in-group` 은 DisclosureGroup 안의 Disclosure 에
-        //   DOM 이 붙인다 (RAC 그룹 context 가 닿는 깊이 — `catalogDisclosureGroupOf`).
+        // S2 `isQuiet` 는 위아래 테두리를 없애고, Accordion 안에서는 마지막 항목만 아래 테두리를
+        //   남긴다 (S2 `isInGroup` · `:last-child`). `data-in-group` 은 Accordion 안의 Disclosure 에
+        //   DOM 이 붙인다 (RAC 그룹 context 가 닿는 깊이 — `catalogAccordionOf`).
         rootSelectors: {},
         // S2 density · quiet (2026-10-10): trigger 높이 = S2 `minHeight` (size × density — S 18/24/32 ·
         //   M 24/32/40 · L 32/40/48) — `min-height` 와, 한 줄 내용 (S chevron 18 · M 줄 20 · L 줄 22.857)
@@ -5717,7 +5717,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
-  DisclosureGroup: {
+  Accordion: {
     defaultVariant: "default",
     defaultSize: "M",
     variants: {
@@ -5736,7 +5736,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
-    // 테두리 없음 (starter DisclosureGroup.css 정합 · Disclosure 2026-09-18 동형). sizes 에 borderWidth 가
+    // 테두리 없음 (starter Accordion.css 정합 · Disclosure 2026-09-18 동형). sizes 에 borderWidth 가
     //   없으면 Skia generic shell 이 기본 thin (1px) 로 variant border 색을 그렸고, 생성 CSS 는
     //   border-style 이 없어 DOM 은 `0px none` — Skia 에만 테두리가 보였다 (2026-09-24 Compare Mode 실측).
     sizes: {
@@ -5759,8 +5759,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
       },
     },
-    // ADR-912 후속 (2026-06-25): DisclosureGroup generated CSS 도 spec 삭제 후 virtual emit 제외 →
-    //   stale 고아. structure 추가로 catalog rule SSOT 파생 복원 (삭제된 DisclosureGroup.spec.ts
+    // ADR-912 후속 (2026-06-25): Accordion generated CSS 도 spec 삭제 후 virtual emit 제외 →
+    //   stale 고아. structure 추가로 catalog rule SSOT 파생 복원 (삭제된 Accordion.spec.ts
     //   composition.layout="flex-column" + containerStyles 그대로 이전 — flex column 컨테이너,
     //   border-radius/overflow:hidden. variant border 는 Skia render.shapes 전용이라 DOM CSS 미emit
     //   유지 = spec 시절 동작 보존, byte-diff 0 목표).

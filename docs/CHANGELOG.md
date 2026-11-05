@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Accordion 명칭 통일 — RAC DisclosureGroup 경계 유지] - 2026-11-05
+
+### Breaking Changes
+
+- **Catalog library contract 58**
+  DisclosureGroup의 catalog 식별자·원본·템플릿 주소를 Accordion으로 변경한다. 이전 contract의 개발 문서는 기존 정책대로 거부하며 자동 변환하지 않는다.
+
+### Changed
+
+- **사용자 컴포넌트 이름을 Accordion으로 통일**
+  팔레트·Library·Property·Interactions·Code View·CSS와 Canvas의 타입 판정을 Accordion으로 변경한다. S2와 동일하게 실제 DOM은 RAC DisclosureGroup을 사용하며, RAC props 타입과 상태 키 참조는 해당 라이브러리의 이름을 유지한다.
+  Code View도 `DisclosureGroup as Accordion`으로 가져와 실제 RAC export와 내부 이름을 연결한다.
+
 ## [작업 버튼 Property — Icon · Label 자식 바인딩 복구] - 2026-11-05
 
 ### Fixed

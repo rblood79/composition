@@ -52,7 +52,7 @@ export function resolveContainerStylesFallback(
  * scroll/clip 소비자들(당시 fullTreeLayout GAP4 maxScroll / collectionVirtualization /
  * useScrollWheelInteraction / buildSpecNodeData·buildBoxNodeData clip·scrollbar)이 그동안 raw
  * `props.style.overflow` 만 읽어, overflow 를 catalog `containerStyles` 에만 둔 컴포넌트
- * (ListBox/Menu/Select/Tree/ComboBox 의 auto · Card/DisclosureGroup/Meter/ProgressBar/NumberField/
+ * (ListBox/Menu/Select/Tree/ComboBox 의 auto · Card/Accordion/Meter/ProgressBar/NumberField/
  * FileTrigger 의 hidden)는 Skia 에서 스크롤/클립이 동작하지 않았다(사용자 보고 2026-07-22).
  * raw 우선(사용자/factory 편집), 없으면 catalog 기본값. ref instance 는 resolved type(componentName).
  *
@@ -64,7 +64,7 @@ const catalogOverflowByType = new Map<string, string | undefined>();
 /**
  * catalog rule 에서 **root element** 의 overflow 를 조회. root overflow 는 3 위치 중 하나에
  * 선언된다: top-level `containerStyles`(body/ListBox/Tree) · `structure.containerStyles`(Card 등)
- * · `structure.composition.containerStyles`(DisclosureGroup). staticSelectors(`.bar` 등)의
+ * · `structure.composition.containerStyles`(Accordion). staticSelectors(`.bar` 등)의
  * sub-part overflow 는 root clip 이 아니므로 제외한다(spec shapes 렌더가 별도 담당).
  */
 function catalogRootOverflow(lowerType: string): string | undefined {

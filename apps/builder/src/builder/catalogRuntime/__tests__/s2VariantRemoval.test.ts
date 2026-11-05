@@ -41,7 +41,7 @@ const REMOVED = [
   "CalendarGrid",
   "ListBox",
   "GridList",
-  "DisclosureGroup",
+  "Accordion",
   "Toolbar",
   "FileTrigger",
   "Skeleton",

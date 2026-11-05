@@ -66,7 +66,7 @@ const OWNERS: readonly {
   { type: "Group" },
   { type: "CheckboxGroup" },
   { type: "RadioGroup" },
-  { type: "DisclosureGroup" },
+  { type: "Accordion" },
   { type: "Form" },
   { type: "Image" },
   { type: "Pagination" },

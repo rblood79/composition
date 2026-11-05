@@ -23,7 +23,7 @@ const SHELL_ONLY_TYPES: ReadonlySet<string> = new Set([
   "Card",
   "Dialog",
   "Section",
-  "DisclosureGroup",
+  "Accordion",
   "ButtonGroup",
   "ActionButtonGroup",
   "CheckboxGroup",

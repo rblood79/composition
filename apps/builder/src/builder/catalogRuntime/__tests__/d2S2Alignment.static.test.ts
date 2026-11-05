@@ -36,7 +36,6 @@ const S2_ALIAS: Readonly<Record<string, string>> = {
   ListBoxItem: "PickerItem",
   ListBoxSection: "PickerSection",
   Separator: "Divider",
-  DisclosureGroup: "Accordion",
   // (The RAC Table takes S2 TableView's axes — isQuiet · density · selectionStyle · overflowMode.)
   Table: "TableView",
 };

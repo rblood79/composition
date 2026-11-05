@@ -2,7 +2,7 @@
 /**
  * S2 1.8.0 Disclosure `isQuiet` · `density` (2026-10-10 사용자 결정 「S2 처럼 기본 Disclosure 에 위아래
  * 테두리를 넣고, isQuiet 로 없애게」): a Disclosure has a 1px top and bottom border, none when quiet;
- * inside a DisclosureGroup only the last item keeps its bottom border (S2 `isInGroup` ·
+ * inside an Accordion only the last item keeps its bottom border (S2 `isInGroup` ·
  * `:last-child`). The trigger is square (rounded when quiet) and its height follows the density
  * (S2 `minHeight` — S 18 · 24 · 32, M 24 · 32 · 40, L 32 · 40 · 48: a `min-height` and the vertical
  * padding that centers one line in it). DOM: the root's `data-quiet` · `data-density` · `data-in-group` and the generated
@@ -203,10 +203,10 @@ describe("S2 Disclosure isQuiet · density", () => {
       }
   });
 
-  it("in a DisclosureGroup only the last item keeps its bottom border — also after an insert", async () => {
+  it("in an Accordion only the last item keeps its bottom border — also after an insert", async () => {
     const { library, insert, read } = await workspace();
     const group = "project:node:group" as NodeId;
-    insert(BODY, group, "lib:definition:type-DisclosureGroup");
+    insert(BODY, group, "lib:definition:type-Accordion");
     const disclosure = catalogPaletteDefinitionId(library, "Disclosure");
     const first = "project:node:first" as NodeId;
     const second = "project:node:second" as NodeId;

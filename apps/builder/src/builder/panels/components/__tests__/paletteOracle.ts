@@ -181,9 +181,9 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "Menu",
   },
   {
-    type: "DisclosureGroup",
+    type: "Accordion",
     category: "layout",
-    label: "disclosure group",
+    label: "accordion",
     icon: "ChevronDown",
   },
   {

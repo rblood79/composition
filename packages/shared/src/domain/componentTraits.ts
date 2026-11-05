@@ -420,7 +420,7 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   // ADR-256 Phase 5h: TreeItem 의 행 내용 (RAC TreeItemContent — 자유 내용: chevron Button · 글자 · 선택
   //   Checkbox). RAC 는 TreeItem 밖에서도 throw 하지 않지만 행 context 는 TreeItem 이 준다.
   TreeItemContent: { owners: ["TreeItem"] },
-  DisclosureGroup: {},
+  Accordion: {},
   Slider: {},
   // ADR-258 Phase 2: a ColorSlider's parts are RAC's Slider parts (its context gives them the
   //   channel's track · output).

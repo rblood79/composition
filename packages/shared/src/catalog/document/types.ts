@@ -146,9 +146,10 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 54 — ADR-300: the S2 SideNav family (`SideNavPanel` · `SideNav` · `SideNavItem` · `SideNavItemContent`
  * · `SideNavItemLink` · `SideNavSection` · `SideNavHeader`) and its origins. A 53 document is refused.
  * 55 — RAC TokenField · PreviewTrigger · Sheet families and reusable origins.
+ * 58 — DisclosureGroup의 catalog 식별자와 원본 주소를 Accordion으로 변경.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 56 as const;
+export const LIBRARY_CONTRACT_VERSION = 58 as const;
 
 export type EntryKind =
   | "project"

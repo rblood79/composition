@@ -4,7 +4,7 @@ import { act, type ReactElement } from "react";
 import {
   Button,
   Disclosure,
-  DisclosureGroup,
+  DisclosureGroup as RacDisclosureGroup,
   DisclosurePanel,
   Heading,
   Text,
@@ -25,17 +25,27 @@ import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+import { getPaletteItems } from "../../panels/components/paletteItems";
+import { catalogStateKeysOf } from "../../../../../../packages/shared/src/catalog/document/stateOwnerRefs";
+import { CAPABILITY_REGISTRY } from "../../../../../../packages/shared/src/interactions/capabilityRegistry";
+import { generateCodeView } from "../../../../../../packages/shared/src/codeView/generate";
+import { LIBRARY_CONTRACT_VERSION } from "../../../../../../packages/shared/src/catalog/document/types";
+import {
+  catalogCodeViewFileBaseline,
+  catalogCodeViewProjectApply,
+  catalogCodeViewProjectSession,
+} from "../codeViewApply";
 
 /**
- * ADR-256 Phase 8d (G2) — a DisclosureGroup takes free content (G0 ② — RAC `DisclosureGroup`
+ * ADR-256 Phase 8d (G2) — an Accordion takes free content (G0 ② — RAC `DisclosureGroup`
  * renders its children as they are; the reference example's are Disclosures) and draws RAC's
- * DisclosureGroup: its expansion (`allowsMultipleExpanded`) is RAC's across its Disclosures.
+ * Accordion: its expansion (`allowsMultipleExpanded`) is RAC's across its Disclosures.
  */
 const BODY = "project:node:home-body" as NodeId;
 const PLACED = "project:node:placed" as NodeId;
 
 async function place(
-  type: "disclosure" | "disclosuregroup",
+  type: "disclosure" | "accordion",
   props: Record<string, unknown> = {},
 ) {
   const workspace = new CatalogWorkspace(
@@ -188,26 +198,106 @@ const starter = (title: string, content: string) => (
   </Disclosure>
 );
 
-describe("ADR-256 Phase 8d — DisclosureGroup takes free content", () => {
+describe("ADR-256 Phase 8d — Accordion takes free content", () => {
+  it("RAC import 별칭을 유지하면서 Code View 편집이 Accordion 원본에 반영된다", async () => {
+    const { workspace, placed } = await place("accordion", {
+      allowsMultipleExpanded: false,
+    });
+    const graph = workspace.runtime.graph;
+    const session = catalogCodeViewProjectSession(graph);
+    const path = "src/pages/Home.tsx";
+    catalogCodeViewFileBaseline(session, graph, path);
+    const before = session.baselines.get(path)!.result.code;
+    expect(before).toContain("DisclosureGroup as Accordion");
+    const fromA = before.indexOf("allowsMultipleExpanded={false}");
+    expect(fromA).toBeGreaterThan(-1);
+    const start = fromA + "allowsMultipleExpanded={".length;
+    const edited = before.slice(0, start) + "true" + before.slice(start + 5);
+    const result = catalogCodeViewProjectApply(workspace, session, [
+      {
+        path,
+        edited,
+        changes: [{ fromA: start, toA: start + 5, insert: "true" }],
+      },
+    ]);
+    expect(result.rejected).toEqual([]);
+    expect(workspace.root.typeOf(placed())).toBe("Accordion");
+    expect(placed().props.allowsMultipleExpanded).toBe(true);
+    expect(graph.getEntry(PLACED)).toMatchObject({
+      definitionId: "lib:definition:origin-component-accordion",
+    });
+  });
+
+  it("Accordion 식별자가 팔레트·상태·Interactions·Code View·저장 재로드에 이어진다", async () => {
+    const { workspace, placed } = await place("accordion", {
+      allowsMultipleExpanded: false,
+    });
+    const palette = getPaletteItems();
+    expect(palette.find((item) => item.type === "Accordion")?.label).toBe(
+      "accordion",
+    );
+    expect(palette.some((item) => item.type === "DisclosureGroup")).toBe(false);
+    expect(catalogStateKeysOf("Accordion")).toContain("isDisabled");
+    expect(CAPABILITY_REGISTRY.Accordion.capabilities.collapse).toBeDefined();
+    expect(CAPABILITY_REGISTRY.DisclosureGroup).toBeUndefined();
+    expect(workspace.root.typeOf(placed())).toBe("Accordion");
+    const graph = workspace.runtime.graph;
+    const code = generateCodeView({
+      reader: graph,
+      pageId: "project:page:home" as EntryId<"page">,
+      collections: [],
+    });
+    expect(code.code).toContain("<Accordion");
+    expect(code.code).toMatch(
+      /import \{[^}]*DisclosureGroup as Accordion[^}]*\} from 'react-aria-components'/,
+    );
+    expect(code.code).not.toContain("<DisclosureGroup");
+    const document = graph.exportDocument();
+    expect(document.entries[PLACED]).toMatchObject({
+      definitionId: "lib:definition:origin-component-accordion",
+    });
+    const storage = new CatalogStorage(
+      indexedDB,
+      `accordion-roundtrip-${Math.random()}`,
+    );
+    await storage.create(document, graph.library);
+    const loaded = await storage.load(document.projectId, graph.library);
+    expect(loaded).toEqual(document);
+    expect(loaded.libraryContractVersion).toBe(LIBRARY_CONTRACT_VERSION);
+    expect(new CatalogGraph(loaded, graph.library).getEntry(PLACED)).toEqual(
+      document.entries[PLACED],
+    );
+    expect(
+      () =>
+        new CatalogGraph(
+          {
+            ...loaded,
+            libraryContractVersion: LIBRARY_CONTRACT_VERSION - 1,
+          } as typeof loaded,
+          graph.library,
+        ),
+    ).toThrow();
+  });
+
   it("its children kind is free (no unconverted-family row)", () => {
-    expect(catalogChildKind("DisclosureGroup")).toEqual({ kind: "free" });
+    expect(catalogChildKind("Accordion")).toEqual({ kind: "free" });
   });
 
   it("the DOM has the reference's structure (RAC DisclosureGroup around the Disclosures)", async () => {
-    const { workspace, placed } = await place("disclosuregroup");
+    const { workspace, placed } = await place("accordion");
     const host = await mount(renderCatalogDom(workspace.root, placed().id));
-    const ours = structure(host.querySelector(".react-aria-DisclosureGroup")!);
+    const ours = structure(host.querySelector(".react-aria-Accordion")!);
     await unmount?.();
     document.body.innerHTML = "";
     const reference = await mount(
       // (In a group, RAC's expansion is the group's — the origin's sections are both expanded.)
-      <DisclosureGroup
+      <RacDisclosureGroup
         allowsMultipleExpanded
         defaultExpandedKeys={["Section 1", "Section 2"]}
       >
         {starter("Section 1", "Content 1")}
         {starter("Section 2", "Content 2")}
-      </DisclosureGroup>,
+      </RacDisclosureGroup>,
     );
     expect(ours).toBe(
       structure(reference.querySelector(".react-aria-DisclosureGroup")!),
@@ -215,7 +305,7 @@ describe("ADR-256 Phase 8d — DisclosureGroup takes free content", () => {
   });
 
   it("a free child (a Text) stands in the group on both consumers", async () => {
-    const { workspace, placed, root, all } = await place("disclosuregroup");
+    const { workspace, placed, root, all } = await place("accordion");
     workspace.execute(
       insertNodes({
         parent: workspace.positionOfRecord(placed().id)!.target,
@@ -242,14 +332,14 @@ describe("ADR-256 Phase 8d — DisclosureGroup takes free content", () => {
     );
     const host = await mount(renderCatalogDom(workspace.root, placed().id));
     expect(
-      [...host.querySelector(".react-aria-DisclosureGroup")!.children].some(
+      [...host.querySelector(".react-aria-Accordion")!.children].some(
         (child) => child.textContent === "Note",
       ),
     ).toBe(true);
   });
 
   it("allowsMultipleExpanded false: expanding a section collapses the other (RAC)", async () => {
-    const { workspace, placed } = await place("disclosuregroup", {
+    const { workspace, placed } = await place("accordion", {
       allowsMultipleExpanded: false,
     });
     const host = await mount(renderCatalogDom(workspace.root, placed().id));

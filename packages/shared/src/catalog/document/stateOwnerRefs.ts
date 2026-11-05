@@ -21,6 +21,7 @@ const RAC_PART_OF_TYPE: Readonly<Record<string, string>> = {
   Radio: "RadioField",
   TextArea: "TextField",
   ActionButton: "Button",
+  Accordion: "DisclosureGroup",
 };
 
 /**

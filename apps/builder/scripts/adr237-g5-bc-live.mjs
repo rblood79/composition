@@ -34,7 +34,7 @@ mkdirSync(OUT_DIR, { recursive: true });
 const PAIRS = [
   ["component-breadcrumbs", "component-breadcrumbs"],
   ["component-cardview", "component-cardview"],
-  ["component-disclosuregroup", "component-disclosuregroup"],
+  ["component-accordion", "component-accordion"],
   ["component-disclosure", "component-disclosure"],
   ["component-gridlist", "component-gridlist"],
   [
@@ -131,17 +131,12 @@ async function authorHome(page) {
       ),
     ]);
     roots.push([
-      inst(
-        "g5-dg",
-        "component-disclosuregroup",
-        2,
-        at(40, 320, { width: "360px" }),
-      ),
+      inst("g5-dg", "component-accordion", 2, at(40, 320, { width: "360px" })),
     ]);
     roots.push([
       inst(
         "g5-dg-single",
-        "component-disclosuregroup",
+        "component-accordion",
         3,
         at(440, 320, { width: "360px" }),
         {

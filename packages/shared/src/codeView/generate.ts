@@ -828,7 +828,12 @@ class Generator {
 
   private import(from: string, name: string): void {
     const names = this.imports.get(from) ?? new Set<string>();
-    names.add(name);
+    // Accordion is the catalog name; RAC exports the primitive as DisclosureGroup.
+    names.add(
+      from === "react-aria-components" && name === "Accordion"
+        ? "DisclosureGroup as Accordion"
+        : name,
+    );
     this.imports.set(from, names);
   }
 

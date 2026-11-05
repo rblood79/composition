@@ -2,7 +2,7 @@
 // adr237-live-exercise.mjs — ADR-237 Phase 4 live (Skia layout · scene · store, Compare Mode · Preview 미개방).
 //   새 프로젝트 → ① seed 모양 (그룹 slot 9 · 변형 26 · Breadcrumbs 항목 instance · CardView ref) → ② 그룹 instance 9
 //   Slot "+" (instance 자기 자식 · 선택 값) → ③ RadioGroup 선택 후보 두 번: 둘째만 선택 (Skia reader) · undo 1 회 복원
-//   → ④ DisclosureGroup "+" 접힘 후보 → 닫힘 → 펼침 → 닫힘 (scene isExpanded · 본문 layout) → ⑤ Breadcrumbs instance
+//   → ④ Accordion "+" 접힘 후보 → 닫힘 → 펼침 → 닫힘 (scene isExpanded · 본문 layout) → ⑤ Breadcrumbs instance
 //   crumb 3 가로 배치 · Slot "+" 4 번째 → ⑥ reload 뒤 그대로 · page error 0.
 // 사용: node apps/builder/scripts/adr237-live-exercise.mjs [--base http://localhost:5173]
 import { resolve } from "node:path";
@@ -67,7 +67,7 @@ const seed = await storeRead(() => {
     "component-checkboxgroup",
     "component-radiogroup",
     "component-togglebuttongroup",
-    "component-disclosuregroup",
+    "component-accordion",
     "component-buttongroup",
     "component-pagination",
     "component-avatargroup",
@@ -177,7 +177,7 @@ const GROUPS = [
     (p) => p.isSelected === false && typeof p.value === "string",
   ],
   ["component-togglebuttongroup", 1, (p) => p.isSelected === true],
-  ["component-disclosuregroup", 0, (p) => p.isExpanded === false],
+  ["component-accordion", 0, (p) => p.isExpanded === false],
   ["component-buttongroup", 0, () => true],
   ["component-pagination", 0, () => true],
   ["component-avatargroup", 0, () => true],
@@ -267,8 +267,8 @@ record(
   afterUndo,
 );
 
-// ④ Disclosure 왕복 (DisclosureGroup instance 에 넣은 접힘 후보)
-const disc = (await ownChildren("live-disclosuregroup"))[0]?.id;
+// ④ Disclosure 왕복 (Accordion instance 에 넣은 접힘 후보)
+const disc = (await ownChildren("live-accordion"))[0]?.id;
 const discState = async () => {
   const props = await sceneProps(disc);
   const content = await rect(`${disc}/component-disclosure__2`);

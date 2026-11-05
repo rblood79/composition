@@ -188,7 +188,7 @@ export const CATALOG_S2_PROP_MIGRATIONS: Readonly<
       "Separator",
       "ListBox",
       "GridList",
-      "DisclosureGroup",
+      "Accordion",
       "Toolbar",
       "FileTrigger",
       "Skeleton",

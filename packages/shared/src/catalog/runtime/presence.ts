@@ -28,7 +28,7 @@ import {
   catalogTableSelectionParts,
   catalogTableTrackDependents,
 } from "./tableTracks";
-import { isDisclosureExpandedInContext } from "../../utils/disclosureGroupExpansion";
+import { isDisclosureExpandedInContext } from "../../utils/accordionExpansion";
 import { resolveStaticItemKey } from "../slotRoles";
 import { getNecessityIndicatorSuffix } from "../../components/FieldNecessityIndicator";
 import {
@@ -171,24 +171,24 @@ export function catalogDisclosureOfTriggerPart(
 }
 
 /**
- * The DisclosureGroup whose state a Disclosure follows: RAC's group context reaches every
+ * The Accordion whose state a Disclosure follows: RAC's group context reaches every
  * Disclosure below the group — through any element and a Disclosure's panel — up to a nested
  * group (ADR-256 Phase 8 판독 H1).
  */
-export function catalogDisclosureGroupOf(
+export function catalogAccordionOf(
   disclosure: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
   for (let cursor = get(disclosure.parentId); cursor;) {
-    if (typeOf(cursor) === "DisclosureGroup") return cursor;
+    if (typeOf(cursor) === "Accordion") return cursor;
     cursor = get(cursor.parentId);
   }
   return undefined;
 }
 
 /**
- * A DisclosureGroup's Disclosures in document order (those whose `catalogDisclosureGroupOf` is it)
+ * An Accordion's Disclosures in document order (those whose `catalogAccordionOf` is it)
  * and the containers they sit in — a change to either can move the group's expanded keys.
  */
 export function catalogGroupDisclosures(
@@ -201,7 +201,7 @@ export function catalogGroupDisclosures(
   const visit = (node: CatalogConsumerNode) => {
     for (const child of childrenOf(node, get)) {
       const type = typeOf(child);
-      if (type === "DisclosureGroup") continue;
+      if (type === "Accordion") continue;
       if (type === "Disclosure") disclosures.push(child);
       // (An empty frame too: a Disclosure put into it later joins the group — Round 19 LOW.)
       else if (catalogChildKind(type).kind !== "leaf") containers.push(child);
@@ -214,7 +214,7 @@ export function catalogGroupDisclosures(
 
 /**
  * Whether RAC shows a Disclosure's panel: its own `isExpanded` (absent = expanded), or inside a
- * DisclosureGroup the group's expanded keys (`isDisclosureExpandedInContext`, the DOM binding's).
+ * Accordion the group's expanded keys (`isDisclosureExpandedInContext`, the DOM binding's).
  */
 export function catalogDisclosureExpanded(
   disclosure: CatalogConsumerNode,
@@ -226,7 +226,7 @@ export function catalogDisclosureExpanded(
     type: typeOf(record),
     props: record.props as Record<string, unknown>,
   });
-  const group = catalogDisclosureGroupOf(disclosure, get, typeOf);
+  const group = catalogAccordionOf(disclosure, get, typeOf);
   return isDisclosureExpandedInContext(
     node(disclosure),
     group ? node(group) : null,
@@ -989,7 +989,7 @@ export function catalogPresenceScope(
       catalogSideNavOf(node, get, typeOf) ??
       catalogSideNavPanelOf(node, get, typeOf)
     );
-  if (typeOf(node) === "DisclosureGroup") return node;
+  if (typeOf(node) === "Accordion") return node;
   // A Table's selection column follows its `selectionStyle` (ADR-257 Phase 3).
   if (typeOf(node) === "Table") return node;
   // A ProgressBar's · Meter's value text follows its `showValueLabel` (ADR-256 Phase 7a).
@@ -1001,7 +1001,7 @@ export function catalogPresenceScope(
     if (owner && typeOf(owner) === "Breadcrumbs") return owner;
   }
   if (typeOf(node) === "Disclosure")
-    return catalogDisclosureGroupOf(node, get, typeOf) ?? node;
+    return catalogAccordionOf(node, get, typeOf) ?? node;
   let cursor: CatalogConsumerNode | undefined = node;
   for (let depth = 0; cursor && depth < 3; depth++) {
     const type = typeOf(cursor);
@@ -1046,7 +1046,7 @@ export function catalogPresenceDependents(
     return catalogBreadcrumbItems(scope, get, typeOf).flatMap((crumb) =>
       catalogStateDependents(crumb, get, typeOf),
     );
-  if (typeOf(scope) === "Disclosure" || typeOf(scope) === "DisclosureGroup")
+  if (typeOf(scope) === "Disclosure" || typeOf(scope) === "Accordion")
     return (
       typeOf(scope) === "Disclosure"
         ? [scope]
@@ -1989,9 +1989,9 @@ export function catalogDerivedProps(
     disabled || hostDisabled
       ? { ...inheritedMarked, isDisabled: true }
       : inheritedMarked;
-  // (S2 Disclosure `isInGroup`: inside a DisclosureGroup only the last child keeps its bottom
+  // (S2 Disclosure `isInGroup`: inside an Accordion only the last child keeps its bottom
   // border — `catalogDisclosureBorders`; the DOM's `data-in-group` and `:last-child`.)
-  const grouped = catalogDisclosureGroupPosition(node, get, typeOf);
+  const grouped = catalogAccordionPosition(node, get, typeOf);
   // (A standalone list's item: its flex shrink and the line under it — the ListBox rule's item
   // selectors, 2026-10-13.)
   const first = catalogListItemEdges(node, get, typeOf);
@@ -2161,16 +2161,16 @@ function catalogProgressStaticText(
 }
 
 /**
- * A Disclosure inside a DisclosureGroup (any depth — RAC's group context): `_inGroup` and whether
+ * A Disclosure inside an Accordion (any depth — RAC's group context): `_inGroup` and whether
  * it is its parent's last child (`_lastChild` — the sheet's `:last-child`). Undefined otherwise.
  */
-function catalogDisclosureGroupPosition(
+function catalogAccordionPosition(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): { _inGroup: true; _lastChild: boolean } | undefined {
   if (typeOf(node) !== "Disclosure") return undefined;
-  if (!catalogDisclosureGroupOf(node, get, typeOf)) return undefined;
+  if (!catalogAccordionOf(node, get, typeOf)) return undefined;
   const siblings = get(node.parentId)?.children ?? [];
   return { _inGroup: true, _lastChild: siblings.at(-1) === node.id };
 }
@@ -2694,11 +2694,11 @@ export function catalogDerivedPropsDependents(
     ...childrenOf(owner, get).filter(
       (child) => QUIET_OWNER_BOXES[typeOf(owner)] === typeOf(child),
     ),
-    // (Its grouped Disclosures: which one is its last child — `catalogDisclosureGroupPosition`.)
+    // (Its grouped Disclosures: which one is its last child — `catalogAccordionPosition`.)
     ...childrenOf(owner, get).filter(
       (child) =>
         typeOf(child) === "Disclosure" &&
-        !!catalogDisclosureGroupOf(child, get, typeOf),
+        !!catalogAccordionOf(child, get, typeOf),
     ),
     // (A list's · a section's items: which is the last — `catalogListItemEdges`.)
     ...(typeOf(owner) === "ListBox" || typeOf(owner) === "ListBoxSection"
@@ -2861,13 +2861,11 @@ function derivedDependents(
       .flatMap((popover) => childrenOf(popover, get))
       .filter((calendar) => CALENDAR_TYPES.has(typeOf(calendar)))
       .flatMap((calendar) => calendarModelParts(calendar, get, typeOf));
-  // A Disclosure's header turns its chevron with the expansion — inside a DisclosureGroup every
+  // A Disclosure's header turns its chevron with the expansion — inside an Accordion every
   // sibling's (the group's expanded keys).
-  if (type === "Disclosure" || type === "DisclosureGroup") {
+  if (type === "Disclosure" || type === "Accordion") {
     const group =
-      type === "DisclosureGroup"
-        ? owner
-        : catalogDisclosureGroupOf(owner, get, typeOf);
+      type === "Accordion" ? owner : catalogAccordionOf(owner, get, typeOf);
     const disclosures = group
       ? catalogGroupDisclosures(group, get, typeOf).disclosures
       : [owner];

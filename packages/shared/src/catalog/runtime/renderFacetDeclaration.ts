@@ -112,19 +112,19 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
     key: "disclosure",
     kind: "delegating-internal",
     reason:
-      "ADR-256 Phase 8c: RAC Disclosure 가 자식 노드 (Heading > Button[trigger] · DisclosurePanel) 를 순서대로 그리고 펼침 (선언 값 · Preview 실행 값 · DisclosureGroup) 을 넘긴다 — generic 경로는 펼침 · state frame 을 모른다.",
+      "ADR-256 Phase 8c: RAC Disclosure 가 자식 노드 (Heading > Button[trigger] · DisclosurePanel) 를 순서대로 그리고 펼침 (선언 값 · Preview 실행 값 · Accordion) 을 넘긴다 — generic 경로는 펼침 · state frame 을 모른다.",
   },
   {
-    key: "disclosuregroup",
+    key: "accordion",
     kind: "delegating-internal",
     reason:
-      "renderDisclosureGroup 이 childrenByParent 로 자식 Disclosure 들을 받아 DisclosureGroup 안에 재귀 렌더. INTERNAL 미등록 + generic 위임은 childrenByParent 보강 없어 빈 컨테이너로 렌더됨 → DELEGATING 등록으로 flatten 보강.",
+      "renderAccordion 이 childrenByParent 로 자식 Disclosure 들을 받아 Accordion 안에 재귀 렌더. INTERNAL 미등록 + generic 위임은 childrenByParent 보강 없어 빈 컨테이너로 렌더됨 → DELEGATING 등록으로 flatten 보강.",
   },
   {
     key: "nav",
     kind: "delegating-internal",
     reason:
-      "renderNav 가 childrenByParent 로 자식을 받아 <nav> 안에 재귀 렌더(fallback 없음). disclosuregroup 동형 — generic 위임은 childrenByParent 보강 없어 빈 nav.",
+      "renderNav 가 childrenByParent 로 자식을 받아 <nav> 안에 재귀 렌더(fallback 없음). accordion 동형 — generic 위임은 childrenByParent 보강 없어 빈 nav.",
   },
 
   {
@@ -203,7 +203,7 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
   //   childrenByParent 로 슬롯 자식을 self-compose. DELEGATING 미등록이라 canonical Preview 경로에서
   //   childrenByParent 보강(flattenNodeChildrenByParent)을 못 받아 renderCard 의 hasStructuralChildren
   //   =false → props(title/description) 경로로만 렌더, CardPreview/Image/CardFooter 누락 → Skia(자식
-  //   직접 렌더)와 비대칭이었음. disclosuregroup/nav 동형. binding renderer 도 "div"→고유 id 로 변경됨.
+  //   직접 렌더)와 비대칭이었음. accordion/nav 동형. binding renderer 도 "div"→고유 id 로 변경됨.
   {
     key: "card",
     kind: "delegating-internal",
@@ -231,7 +231,7 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
   },
   // ── ButtonGroup (2026-06-27) — renderButtonGroup 이 childrenByParent 로 자식 Button×2(factory
   //   자동 생성: Cancel outline / Save accent)를 <div role="group"> 안에 self-compose. binding renderer
-  //   가 "div"→"buttongroup" 로 변경됨. disclosuregroup/nav/tableview 동형. 미등록 시 generic
+  //   가 "div"→"buttongroup" 로 변경됨. accordion/nav/tableview 동형. 미등록 시 generic
   //   fall-through(rendererMap.ButtonGroup)로 빠지나 childrenByParent 보강을 못 받아 자식 Button 미렌더
   //   (Preview 빈 div, Skia 는 자식 직접 렌더 → 비대칭).
   {

@@ -8,7 +8,7 @@ import type { FixtureVisual as ComponentVisualRule } from "./fixtureVisual";
  * 회귀 방지 (2026-06-25): Disclosure 군 generated CSS 가 catalog rule SSOT(structure 메타)에서
  * 파생되는지 검증한다.
  *
- * **배경**: Disclosure / DisclosureGroup spec 삭제(4a703828c) 후, 두 rule 은 `structure` 메타가
+ * **배경**: Disclosure / Accordion spec 삭제(4a703828c) 후, 두 rule 은 `structure` 메타가
  * 없어 generate-css `buildVirtualSpecs` 의 virtual emit 대상에서 빠졌다. 그 결과 generated CSS 는
  * 삭제된 spec 의 **stale 고아 파일**로 방치되어 DOM(stale leaf CSS) ↔ Skia(rule shell) ↔
  * 레퍼런스(starter) 3경로가 발산했다 (헤더 굵기 400/600, 루트 leaf padding, 패널 padding 누락).
@@ -139,14 +139,14 @@ describe("Disclosure 군 catalog rule structure → generated CSS (3경로 SSOT)
     expect(css).toMatch(/var\(--spacing-(xs|sm|md|lg)\)/);
   });
 
-  it("DisclosureGroup rule 은 structure 메타를 보유한다 (SSOT 일관성)", () => {
-    const rule = getComponentRulesTable().DisclosureGroup;
+  it("Accordion rule 은 structure 메타를 보유한다 (SSOT 일관성)", () => {
+    const rule = getComponentRulesTable().Accordion;
     expect(rule.structure).toBeDefined();
     expect(rule.structure?.composition?.layout).toBe("flex-column");
   });
 
-  it("DisclosureGroup CSS: flex column + overflow hidden 컨테이너", () => {
-    const { spec } = virtualSpecFor("DisclosureGroup");
+  it("Accordion CSS: flex column + overflow hidden 컨테이너", () => {
+    const { spec } = virtualSpecFor("Accordion");
     const css = generateCSS(spec);
     expect(css).toMatch(/flex-direction:\s*column/);
     expect(css).toMatch(/overflow:\s*hidden/);

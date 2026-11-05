@@ -1,4 +1,4 @@
-// ADR-256 Phase 8d live — a DisclosureGroup takes free content and draws RAC's DisclosureGroup, in the
+// ADR-256 Phase 8d live — an Accordion takes free content and draws RAC's DisclosureGroup, in the
 // real Builder (headed Chrome, Compare Mode opens the Preview): L-1 a Text in the group stands on both
 // consumers · L-2 single expansion is RAC's · L-3 reopened · L-4 no errors.
 //
@@ -151,7 +151,7 @@ const groupProbe = () =>
   page.evaluate(() => {
     const ws = window.__COMPOSITION_CATALOG__.workspace;
     const root = ws.root;
-    const group = [...root.canvasInputs.values()].find((r) => root.typeOf(r) === "DisclosureGroup");
+    const group = [...root.canvasInputs.values()].find((r) => root.typeOf(r) === "Accordion");
     const kids = group.children.map((id) => root.canvasInputs.get(id));
     const g = root.getGeometry(kids.map((k) => k.id));
     return {
@@ -161,7 +161,7 @@ const groupProbe = () =>
   });
 const domGroup = () =>
   preview((doc) => {
-    const group = doc.querySelector(".react-aria-DisclosureGroup");
+    const group = doc.querySelector(".react-aria-Accordion");
     return group
       ? [...group.children].map((c) => [c.className, c.hasAttribute("data-expanded"), c.textContent.slice(0, 20)])
       : null;
@@ -201,7 +201,7 @@ const r1 = await exec(
 const g1b = await groupProbe();
 const d1 = await domGroup();
 record(
-  "L-1 a Text in the DisclosureGroup: accepted · Canvas box · Preview child",
+  "L-1 a Text in the Accordion: accepted · Canvas box · Preview child",
   r1.ok && g1b.kids.some((k) => k[0] === "Text" && k[1] === "Note" && k[2] > 0) && d1?.some((c) => c[2] === "Note"),
   { r1, canvas: g1b.kids, dom: d1 },
 );
@@ -215,7 +215,7 @@ const r2 = await exec(
 );
 await page.waitForTimeout(800);
 const d2a = await domGroup();
-await press(".react-aria-DisclosureGroup > .react-aria-Disclosure:nth-of-type(2) button[slot='trigger']");
+await press(".react-aria-Accordion > .react-aria-Disclosure:nth-of-type(2) button[slot='trigger']");
 const d2b = await domGroup();
 const open = (d) => (d ?? []).filter((c) => /Disclosure/.test(c[0])).map((c) => c[1]);
 record(

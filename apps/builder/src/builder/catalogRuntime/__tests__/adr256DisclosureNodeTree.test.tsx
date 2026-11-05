@@ -41,7 +41,7 @@ const BODY = "project:node:home-body" as NodeId;
 const PLACED = "project:node:placed" as NodeId;
 
 async function place(
-  type: "disclosure" | "disclosuregroup",
+  type: "disclosure" | "accordion",
   props: Record<string, unknown> = {},
 ) {
   const workspace = new CatalogWorkspace(
@@ -321,8 +321,8 @@ describe("ADR-256 Phase 8c — Disclosure draws its node tree", () => {
     );
   });
 
-  it("a DisclosureGroup's sections keep their own titles and contents", async () => {
-    const { all, kids } = await place("disclosuregroup");
+  it("an Accordion's sections keep their own titles and contents", async () => {
+    const { all, kids } = await place("accordion");
     expect(
       all("Button").map((button) => kids(button.id)[1]!.props.children),
     ).toEqual(["Section 1", "Section 2"]);

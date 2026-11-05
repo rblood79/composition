@@ -121,7 +121,7 @@ const HAND_REGISTRY: Readonly<Record<string, HandEntry>> = {
     capabilities: {},
     deferred: ["selectItem", "clearSelection"],
   },
-  DisclosureGroup: {
+  Accordion: {
     events: ["onExpandedChange"],
     capabilities: {},
     deferred: ["expand", "collapse"],

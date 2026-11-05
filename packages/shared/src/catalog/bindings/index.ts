@@ -67,7 +67,7 @@ import { dialogBinding } from "./Dialog.binding";
 import { dialogFooterBinding } from "./DialogFooter.binding";
 import { disclosureBinding } from "./Disclosure.binding";
 import { disclosurePanelBinding } from "./DisclosurePanel.binding";
-import { disclosureGroupBinding } from "./DisclosureGroup.binding";
+import { accordionBinding } from "./Accordion.binding";
 import { dropZoneBinding } from "./DropZone.binding";
 import { fieldBinding } from "./Field.binding";
 import { fieldErrorBinding } from "./FieldError.binding";
@@ -219,7 +219,7 @@ export * from "./Description.binding";
 export * from "./Dialog.binding";
 export * from "./DialogFooter.binding";
 export * from "./DisclosurePanel.binding";
-export * from "./DisclosureGroup.binding";
+export * from "./Accordion.binding";
 export * from "./DropZone.binding";
 export * from "./FieldError.binding";
 export * from "./FileTrigger.binding";
@@ -408,11 +408,9 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   //   "disclosure"). Canvas 는 빈 shell (variant 없음, hasVisibleBg=false). DOM=delegatedDom
   //   `disclosure` 위임(DELEGATING_INTERNAL_RENDERERS — RAC Disclosure 안에 자식 노드, 펼침 상태).
   Disclosure: disclosureBinding,
-  // ADR-912 Disclosure 군 일괄 cutover (2026-06-10): 디스클로저 그룹 컨테이너 (사용자 "Accordion"
-  //   통칭, Accordion type 은 중복으로 제거됨 2026-06-10). Canvas 는 box+border shell(rule
-  //   COMPONENT_RULES_TABLE.DisclosureGroup). DOM=delegatedDom `disclosuregroup` 위임 (RAC
-  //   DisclosureGroup 안에 자식 노드). allowsMultipleExpanded/variant/size 는 그 렌더러가 넘긴다.
-  DisclosureGroup: disclosureGroupBinding,
+  // S2와 같은 Accordion 이름을 사용한다. DOM은 RAC DisclosureGroup에 위임하고,
+  // Canvas와 생성 CSS는 COMPONENT_RULES_TABLE.Accordion을 소비한다.
+  Accordion: accordionBinding,
   // family ② fields
   TextField: textFieldBinding,
   // ADR-912 단계 5 선행-1: multi-line field RAC leaf (box+text generic, _hasChildren shell)

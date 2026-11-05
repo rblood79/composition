@@ -54,7 +54,7 @@ export const COMPLEX_COMPONENT_TAGS = new Set([
   // Navigation
   "Menu",
   "Disclosure",
-  "DisclosureGroup",
+  "Accordion",
   "Pagination",
   // Overlay
   "Dialog",

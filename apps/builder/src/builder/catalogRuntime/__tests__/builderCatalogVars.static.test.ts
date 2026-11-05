@@ -24,7 +24,21 @@ import {
   normalizedEntries,
   resolveBuilderGeneratedSheets,
 } from "../../../../scripts/adr295BuilderGeneratedSheets.mjs";
-import baseline from "./fixtures/adr295-builder-consumed-generated-baseline.json";
+import recordedBaseline from "./fixtures/adr295-builder-consumed-generated-baseline.json";
+
+// Accordion 리네임은 기준 치수를 바꾸지 않는다. 동결된 oracle의 파일명·선택자만 대응시킨다.
+const accordionName = (key: string) =>
+  key.replaceAll("DisclosureGroup", "Accordion");
+const baseline = {
+  ...recordedBaseline,
+  sheets: recordedBaseline.sheets.map(accordionName),
+  entries: Object.fromEntries(
+    Object.entries(recordedBaseline.entries).map(([key, value]) => [
+      accordionName(key),
+      value,
+    ]),
+  ),
+};
 
 const sheetsDir = BUILDER_COMPONENTS_CSS.replace(
   /builder-components\.css$/,

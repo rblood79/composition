@@ -8,7 +8,7 @@ export * from "./element.utils";
 export * from "./compositionExtensionFields";
 export * from "./core/dateUtils";
 export * from "./core/numberUtils";
-export * from "./disclosureGroupExpansion";
+export * from "./accordionExpansion";
 
 export * from "./font.utils";
 export * from "./fontRegistry";

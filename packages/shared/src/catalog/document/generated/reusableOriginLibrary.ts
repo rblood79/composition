@@ -492,14 +492,14 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "templateRootId": "lib:template:component-pagination"
   },
   {
-    "id": "lib:definition:origin-component-disclosuregroup",
-    "name": "DisclosureGroup",
+    "id": "lib:definition:origin-component-accordion",
+    "name": "Accordion",
     "mode": "composite",
     "accepts": {},
     "defaults": {},
     "visual": {},
     "stateRules": {},
-    "templateRootId": "lib:template:component-disclosuregroup"
+    "templateRootId": "lib:template:component-accordion"
   },
   {
     "id": "lib:definition:origin-component-disclosure",
@@ -3433,21 +3433,21 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "visual": {}
   },
   {
-    "id": "lib:template:component-disclosuregroup",
-    "definitionId": "lib:definition:type-DisclosureGroup",
+    "id": "lib:template:component-accordion",
+    "definitionId": "lib:definition:type-Accordion",
     "slot": {
       "name": "Sections",
       "required": false
     },
     "children": [
-      "lib:template:component-disclosuregroup__1",
-      "lib:template:component-disclosuregroup__2"
+      "lib:template:component-accordion__1",
+      "lib:template:component-accordion__2"
     ],
     "props": {},
     "visual": {}
   },
   {
-    "id": "lib:template:component-disclosuregroup__1",
+    "id": "lib:template:component-accordion__1",
     "definitionId": "lib:definition:origin-component-disclosure",
     "children": [],
     "props": {
@@ -3468,7 +3468,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ]
   },
   {
-    "id": "lib:template:component-disclosuregroup__2",
+    "id": "lib:template:component-accordion__2",
     "definitionId": "lib:definition:origin-component-disclosure",
     "children": [],
     "props": {

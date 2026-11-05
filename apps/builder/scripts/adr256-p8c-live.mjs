@@ -2,7 +2,7 @@
 // > (chevron + title)` + `DisclosurePanel`), in the real Builder (headed Chrome, Compare Mode opens the
 // Preview): L-1 Canvas tree · L-2 Preview DOM = RAC trigger in the sheet's box, glyph turned · L-3 Canvas
 // = Preview trigger geometry · L-4 Preview press collapses · L-5 size + title reach both · L-6 collapsed
-// in the document hides the Canvas panel · L-7 DisclosureGroup sections · L-8 reopened · L-9 no errors.
+// in the document hides the Canvas panel · L-7 Accordion sections · L-8 reopened · L-9 no errors.
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/adr256-p8c-live.mjs <out>
 import { chromium } from "playwright";
@@ -300,14 +300,14 @@ const c6 = (await canvasProbe())[0];
 record("L-6 isExpanded false → Canvas panel hidden · chevron-right", r6.ok && c6.panelHidden && c6.iconName === "chevron-right", { r6, panelHidden: c6.panelHidden, iconName: c6.iconName });
 errorsAt.push(["L-6", errors.length]);
 
-// L-7: a DisclosureGroup's sections keep their own titles and contents (both consumers).
+// L-7: an Accordion's sections keep their own titles and contents (both consumers).
 await page.evaluate(() => window.__COMPOSITION_CATALOG__.workspace.selectRecords([]));
 await addFromPalette("Disclosure", /^Disclosure ?Group$/i);
 await page.waitForTimeout(1500);
 const c7 = (await canvasProbe()).slice(1);
 const d7 = (await domProbe()).slice(1);
 record(
-  "L-7 DisclosureGroup: Section 1/2 · Content 1/2 on Canvas and Preview",
+  "L-7 Accordion: Section 1/2 · Content 1/2 on Canvas and Preview",
   c7.map((x) => x.title).join() === "Section 1,Section 2" && c7.map((x) => x.content).join() === "Content 1,Content 2" &&
     d7.map((x) => x.title).join() === "Section 1,Section 2",
   { canvas: c7.map((x) => [x.title, x.content]), dom: d7.map((x) => [x.title, x.content, x.expanded]) },

@@ -94,7 +94,7 @@ export const GROUP_ITEM_TYPES: Readonly<Record<string, readonly string[]>> = {
   CheckboxGroup: ["Checkbox"],
   RadioGroup: ["Radio"],
   ToggleButtonGroup: ["ToggleButton"],
-  DisclosureGroup: ["Disclosure"],
+  Accordion: ["Disclosure"],
   ButtonGroup: ["Button"],
   Pagination: ["Button"],
   AvatarGroup: ["Avatar"],
@@ -561,7 +561,7 @@ export const insertGroupItem =
     // owned node); the item goes there and its siblings are the wrapper's children.
     const wrapperType = GROUP_ITEMS_WRAPPER[groupType];
     // A group whose template root is its items' slot (ToggleButtonGroup "Buttons", ButtonGroup,
-    // AvatarGroup, Nav, DisclosureGroup): the item joins the slot's content, where the items the
+    // AvatarGroup, Nav, Accordion): the item joins the slot's content, where the items the
     // group starts with are (2026-10-14 — appended to the instance's own children it stood after
     // the slot and the Design panel's slot list did not show it).
     const slotRoot = inner ? inner.libraryRoot : rootTemplate;

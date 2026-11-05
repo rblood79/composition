@@ -72,7 +72,7 @@ export interface DispatchDeps {
   getRuntimeState?: (id: string, prop: string) => unknown;
   /**
    * Restrictions an enclosing RAC group passes the target (CheckboxGroup · RadioGroup ·
-   * ToggleButtonGroup · DisclosureGroup `isDisabled` · `isReadOnly`), and a collection's item keys
+   * ToggleButtonGroup · Accordion `isDisabled` · `isReadOnly`), and a collection's item keys
    * (all · disabled ones).
    */
   getConstraintContext?: (id: string) => {

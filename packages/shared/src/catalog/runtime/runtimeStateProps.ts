@@ -17,7 +17,7 @@ export function catalogRuntimeStateOf(
   record: CatalogConsumerNode,
   override: Readonly<Record<string, unknown>> | undefined,
   prop: string,
-  /** Other records' runtime props (a group reads its items' — a DisclosureGroup's). */
+  /** Other records' runtime props (a group reads its items' — an Accordion's). */
   runtimeOf?: (
     recordId: string,
   ) => Readonly<Record<string, unknown>> | undefined,

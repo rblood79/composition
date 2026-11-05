@@ -261,14 +261,14 @@ describe("ADR-250 Preview expansion is runtime state", () => {
     expect(builderProps(ids[0]!).isExpanded).toBe(true);
     view.unmount();
   });
-  it("a Disclosure in a DisclosureGroup: the click stays in the Preview, the group follows each Builder declaration", async () => {
-    const { view, workspace, flush } = await open(["DisclosureGroup"]);
+  it("a Disclosure in an Accordion: the click stays in the Preview, the group follows each Builder declaration", async () => {
+    const { view, workspace, flush } = await open(["Accordion"]);
     const expanded = () =>
       [...view.container.querySelectorAll(".react-aria-Disclosure")].map(
         (disclosure) => disclosure.hasAttribute("data-expanded"),
       );
     const first = workspace.root
-      .recordsOfSource("project:node:disclosuregroup" as NodeId)
+      .recordsOfSource("project:node:accordion" as NodeId)
       .flatMap((group) => workspace.root.domInputs.get(group)!.children)[0]!;
     const target = workspace.itemOfRecord(first)!.target;
     const declare = (isExpanded: boolean) => {

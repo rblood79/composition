@@ -301,7 +301,7 @@ export const COMPONENT_INTERACTION_SPECS = {
     ],
   },
   Disclosure: { concepts: [{ concept: expansionOne }] },
-  DisclosureGroup: {
+  Accordion: {
     concepts: [{ concept: expansionKeys, owner: "group" }],
   },
 
@@ -424,7 +424,7 @@ interface RacPropsOf {
   Breadcrumbs: BreadcrumbsProps<object>;
   Tabs: TabsProps;
   Disclosure: DisclosureProps;
-  DisclosureGroup: DisclosureGroupProps;
+  Accordion: DisclosureGroupProps;
   MenuTrigger: MenuTriggerProps;
   DialogTrigger: DialogTriggerProps;
   TooltipTrigger: TooltipTriggerComponentProps;

@@ -322,7 +322,7 @@ try {
       "Link",
       "Nav",
       "Pagination",
-      "DisclosureGroup",
+      "Accordion",
       "Disclosure",
       "CardView",
       "Button",
