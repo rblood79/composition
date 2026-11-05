@@ -1,6 +1,7 @@
 import {
   catalogPickerSelectionHidden,
   catalogPickerSelectionItem,
+  LISTBOX_PICKER_TYPES,
 } from "./pickerSelection";
 import {
   CatalogPickerValueContent,
@@ -2442,16 +2443,15 @@ function ruleDom(
   if (menuWidth) style = { ...menuWidth, ...style };
   // CSS min-width wins over max-width. A full-viewport picker trigger must not
   // force its menu beyond the space left by RAC's collision padding.
-  if (placementOwnerType === "Select" || placementOwnerType === "ComboBox") {
+  if (placementOwnerType && LISTBOX_PICKER_TYPES.has(placementOwnerType)) {
     const available = "var(--catalog-overlay-available-width)";
     const ownMax = style.maxWidth;
-    const minimum = style.minWidth ?? "var(--trigger-width)";
     style = {
       ...style,
-      minWidth: `min(${typeof minimum === "number" ? `${minimum}px` : minimum}, ${available})`,
+      minWidth: `min(${cssLength(style.minWidth ?? "var(--trigger-width)")}, ${available})`,
       maxWidth:
         ownMax && ownMax !== "none"
-          ? `min(${typeof ownMax === "number" ? `${ownMax}px` : ownMax}, ${available})`
+          ? `min(${cssLength(ownMax)}, ${available})`
           : available,
     };
   }

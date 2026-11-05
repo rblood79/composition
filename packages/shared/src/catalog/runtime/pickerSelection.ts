@@ -3,6 +3,12 @@ import type { CatalogConsumerNode } from "./compositionRoot";
 type Lookup = (id: string) => CatalogConsumerNode | undefined;
 type TypeOf = (node: CatalogConsumerNode) => string;
 
+/** The pickers whose Popover holds their ListBox and follows the trigger's width. */
+export const LISTBOX_PICKER_TYPES: ReadonlySet<string> = new Set([
+  "Select",
+  "ComboBox",
+]);
+
 /** 선택 부품의 소유자: Select/ComboBox의 Popover 또는 가장 가까운 Menu. */
 export function catalogPickerOfOption(
   node: CatalogConsumerNode,
@@ -29,8 +35,7 @@ export function catalogPickerOfOption(
       if (listSeen) return undefined;
       listSeen = true;
     }
-    if (["Select", "ComboBox"].includes(type))
-      return listSeen ? parent : undefined;
+    if (LISTBOX_PICKER_TYPES.has(type)) return listSeen ? parent : undefined;
     if (["Menu", "Dialog"].includes(type)) return undefined;
   }
   return undefined;
@@ -62,11 +67,10 @@ export function catalogPickerSelectionItem(
   get: Lookup,
   typeOf: TypeOf,
 ) {
-  if (
-    !["Checkbox", "Icon"].includes(typeOf(node)) ||
-    node.props.slot !== "selection"
-  )
-    return undefined;
+  // (the slot first — this runs for every record, and nearly all leave here)
+  if (node.props.slot !== "selection") return undefined;
+  const type = typeOf(node);
+  if (type !== "Checkbox" && type !== "Icon") return undefined;
   for (let parent = get(node.parentId); parent; parent = get(parent.parentId)) {
     if (["ListBoxItem", "MenuItem"].includes(typeOf(parent))) return parent;
     if (

@@ -78,6 +78,41 @@ async function fixture(
   return { workspace, library, id };
 }
 
+/** A child record of `parent` by its type. */
+const childOfType = (
+  workspace: CatalogWorkspace,
+  parent: { readonly children: readonly string[] },
+  type: string,
+) =>
+  parent.children
+    .map((id) => workspace.root.canvasInputs.get(id)!)
+    .find((node) => workspace.root.typeOf(node) === type)!;
+
+/** The Select's Preview DOM. */
+const renderSelect = (workspace: CatalogWorkspace) =>
+  render(
+    renderCatalogDom(
+      workspace.root,
+      [...workspace.root.domInputs.values()].find(
+        (node) => node.ruleId === "Select",
+      )!.id,
+    ),
+  );
+
+/** The Design panel's Selected edit on a picker's selection Checkbox. */
+const editSelected = (
+  workspace: CatalogWorkspace,
+  checkboxId: string,
+  selected: boolean,
+) =>
+  workspace.execute(() =>
+    composeCommands(
+      workspace.runtime.graph,
+      "Edit option selection",
+      catalogPickerSelectionCommands(workspace, checkboxId, selected),
+    ),
+  );
+
 afterEach(() => {
   cleanup();
   installThemeMaps(null);
@@ -380,32 +415,20 @@ it("Select 선택 모드 변경과 undo가 Checkbox 슬롯 배치를 갱신한�
     selectionMode: "multiple",
     isOpen: true,
   });
-  const items = () =>
+  const checkboxes = () =>
     [...workspace.root.canvasInputs.values()].filter(
-      (n) => n.ruleId === "ListBoxItem",
+      (n) => n.ruleId === "Checkbox" && n.props.slot === "selection",
     );
-  expect(items().every((n) => n.derivedProps?._pickerMultiple === true)).toBe(
-    true,
-  );
+  expect(checkboxes().every((n) => !n.hidden)).toBe(true);
   workspace.execute(
     setFields({
       targets: [{ kind: "node", id }],
       props: { selectionMode: { kind: "set", value: "single" } },
     }),
   );
-  expect(items().every((n) => n.derivedProps?._pickerMultiple === false)).toBe(
-    true,
-  );
-  const checkboxes = () =>
-    [...workspace.root.canvasInputs.values()].filter(
-      (n) => n.ruleId === "Checkbox" && n.props.slot === "selection",
-    );
   expect(checkboxes().every((n) => n.hidden)).toBe(true);
   workspace.undo();
   expect(checkboxes().every((n) => !n.hidden)).toBe(true);
-  expect(items().every((n) => n.derivedProps?._pickerMultiple === true)).toBe(
-    true,
-  );
   workspace.dispose();
 });
 
@@ -525,13 +548,7 @@ it("Checkbox Selected 편집은 Canvas 체크 선과 Preview를 갱신한다", a
     (n) => workspace.root.typeOf(n) === "CheckboxIndicator",
   )!;
   for (const selected of [true, false, true]) {
-    workspace.execute(() =>
-      composeCommands(
-        workspace.runtime.graph,
-        "Edit selection",
-        catalogPickerSelectionCommands(workspace, checkbox.id, selected),
-      ),
-    );
+    editSelected(workspace, checkbox.id, selected);
     expect(
       workspace.root.canvasInputs.get(checkbox.id)?.derivedProps?._isSelected,
     ).toBe(selected);
@@ -539,10 +556,7 @@ it("Checkbox Selected 편집은 Canvas 체크 선과 Preview를 갱신한다", a
     expect(data.children?.filter((n) => n.type === "line").length ?? 0).toBe(
       selected ? 2 : 0,
     );
-    const select = [...workspace.root.domInputs.values()].find(
-      (n) => n.ruleId === "Select",
-    )!;
-    const view = render(renderCatalogDom(workspace.root, select.id));
+    const view = renderSelect(workspace);
     await waitFor(() =>
       expect(
         document
@@ -587,13 +601,7 @@ it("Selected 필드의 단일 값과 chip 구독은 Checkbox가 아닌 옵션의
   );
   for (const selected of [true, false, true]) {
     act(() => {
-      workspace.execute(() =>
-        composeCommands(
-          workspace.runtime.graph,
-          "Select option",
-          catalogPickerSelectionCommands(workspace, checkbox.id, selected),
-        ),
-      );
+      editSelected(workspace, checkbox.id, selected);
     });
     await waitFor(() =>
       expect(view.container.textContent).toBe(
@@ -710,9 +718,7 @@ it.each(["Select", "Menu"])(
       const item = [...root.canvasInputs.values()].find((n) =>
         ["ListBoxItem", "MenuItem"].includes(root.typeOf(n)),
       )!;
-      const checkbox = item.children
-        .map((id) => root.canvasInputs.get(id)!)
-        .find((node) => root.typeOf(node) === "Checkbox")!;
+      const checkbox = childOfType(workspace, item, "Checkbox");
       const label = item.children
         .map((id) => root.canvasInputs.get(id)!)
         .find((n) => n.props.slot === "label")!;

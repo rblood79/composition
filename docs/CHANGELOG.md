@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas 내부 선택 — 빈 공간 더블클릭] - 2026-11-06
+
+### Fixed
+
+- Select·ComboBox의 ListBoxItem 등 자식이 있는 컨테이너는 빈 padding을 더블클릭해도 내부 편집 맥락으로 진입한다. 항목의 `{label}` 편집창이 잘못 열리지 않으며, 진입 후 자식 클릭·Text 더블클릭 편집·Escape 복귀를 유지한다.
+
 ## [Select 선택값 — 크기 상속] - 2026-11-06
 
 ### Fixed

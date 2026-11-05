@@ -1,6 +1,7 @@
 import {
   catalogPickerSelectionItem,
   catalogPickerOptions,
+  LISTBOX_PICKER_TYPES,
 } from "./pickerSelection";
 import { CatalogPickerSelectionSlot } from "./pickerSelection.components";
 import { CatalogTokenField, CatalogTokenInput } from "./tokenField.components";
@@ -337,8 +338,6 @@ function serverFiltered(
   };
 }
 
-const PICKER_TYPES: ReadonlySet<string> = new Set(["Select", "ComboBox"]);
-
 /** The record whose binding a collection shows: its own, or its picker's (through the Popover). */
 function boundOwnerOf(
   root: CatalogCompositionRoot,
@@ -350,7 +349,7 @@ function boundOwnerOf(
   if (!popover || catalogTypeName(root, popover) !== "Popover")
     return undefined;
   const picker = root.domInputs.get(popover.parentId);
-  return picker && PICKER_TYPES.has(catalogTypeName(root, picker))
+  return picker && LISTBOX_PICKER_TYPES.has(catalogTypeName(root, picker))
     ? picker
     : undefined;
 }

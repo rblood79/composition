@@ -2064,19 +2064,6 @@ export function catalogDerivedProps(
   const pickerOwner = catalogOverlayOwner(node, get, typeOf);
   const picker =
     pickerOwner && typeOf(pickerOwner) === "Select" ? pickerOwner : undefined;
-  const optionOwner = catalogPickerOfOption(node, get, typeOf);
-  // 작성한 selection mark가 있으면 기본 장식을 중복 생성하지 않는다.
-  const authoredOptionMark =
-    optionOwner &&
-    node.children.some((id) => {
-      const child = get(id);
-      return (
-        child?.showWhen &&
-        catalogStateConditions(child.showWhen).some(
-          (condition) => condition.key === "isSelected" && !condition.not,
-        )
-      );
-    });
   const selectionItem =
     typeOf(node) === "Icon"
       ? catalogPickerSelectionItem(node, get, typeOf)
@@ -2110,11 +2097,9 @@ export function catalogDerivedProps(
           ),
         }
       : {}),
-    ...(optionOwner
-      ? {
-          _pickerOption: !authoredOptionMark,
-          _pickerMultiple: optionOwner.props.selectionMode === "multiple",
-        }
+    // (a Select option's check is its own Icon part — the sheet's glyph gives way, `ruleDom`)
+    ...(catalogPickerOfOption(node, get, typeOf)
+      ? { _pickerOption: true }
       : {}),
   };
   // (ADR-300: a SideNav part's collapse · current · level — `catalogSideNavDerived`.)

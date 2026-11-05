@@ -5,6 +5,7 @@ import {
   type OverlayLookup,
   type OverlayTypeOf,
 } from "./overlayState";
+import { LISTBOX_PICKER_TYPES } from "./pickerSelection";
 
 type Box = { x: number; y: number; width: number; height: number };
 
@@ -170,7 +171,7 @@ export function catalogOverlayPlacement(
   let [side, align = "center"] = placement.split(" ");
   const target = anchor ?? { x: 0, y: 0, width: 0, height: 0 };
   const requestedPad = Number(p.containerPadding ?? 12);
-  const pad = ["Select", "ComboBox"].includes(ownerType)
+  const pad = LISTBOX_PICKER_TYPES.has(ownerType)
     ? catalogPickerOverlayPadding(
         requestedPad,
         target.width,
@@ -291,6 +292,9 @@ export function catalogOverlayLayout(
             ? Number.parseFloat(ownMax)
             : Infinity,
         );
+  const capped = (value: number) =>
+    `${Math.min(value, maxWidth ?? Infinity)}px`;
+  const minWidth = placement?.minWidth ?? placement?.width;
   return {
     position: "fixed",
     ...(maxWidth === undefined ? {} : { maxWidth: `${maxWidth}px` }),
@@ -301,14 +305,9 @@ export function catalogOverlayLayout(
           maxHeight: `${Math.min(placement.maxHeight, Number.parseFloat(String(node.layout.maxHeight ?? "")) || Infinity)}px`,
         }
       : {}),
-    ...(placement?.minWidth !== undefined
-      ? { minWidth: `${Math.min(placement.minWidth, maxWidth ?? Infinity)}px` }
-      : {}),
+    ...(minWidth !== undefined ? { minWidth: capped(minWidth) } : {}),
     ...(placement?.width !== undefined
-      ? {
-          width: `${Math.min(placement.width, maxWidth ?? Infinity)}px`,
-          minWidth: `${Math.min(placement.minWidth ?? placement.width, maxWidth ?? Infinity)}px`,
-        }
+      ? { width: capped(placement.width) }
       : {}),
   };
 }

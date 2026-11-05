@@ -72,43 +72,36 @@ const subscribeValue = (
     : readModel.subscribePropSource(target, key, notify);
 
 function useSourcedValues(
-  target: EditTarget | undefined,
+  identity: string | null | undefined,
   keys: readonly string[],
   baseValues: readonly unknown[],
-  identity: string | null | undefined,
 ): string {
-  const workspace = useCatalogWorkspace();
-  const { readModel } = workspace;
-  const sourceTarget = useCallback(
-    (key: string) => {
-      const owner =
-        identity && key === "isSelected"
-          ? catalogPickerSelectionOwner(workspace, identity)
-          : undefined;
-      return owner
-        ? (workspace.itemOfRecord(owner.id)?.target ?? target)
-        : target;
-    },
-    [identity, workspace, target],
-  );
+  const { readModel } = useCatalogWorkspace();
+  const target = useRecordTarget(identity);
+  // (Selected is the option's for a picker's selection Checkbox — `useRecordTarget`)
+  const selected = useRecordTarget(identity, "isSelected");
+  const targetOf = (key: string, own: EditTarget) =>
+    key === "isSelected" ? (selected ?? own) : own;
   const id = target ? targetKey(target) : "";
+  const selectedId = selected ? targetKey(selected) : "";
   const keysId = keys.join("|");
   const subscribe = useCallback(
     (notify: () => void) => {
       if (!target) return noSubscription();
       const unsubscribe = keys.map((key) =>
-        subscribeValue(readModel, sourceTarget(key)!, key, notify),
+        subscribeValue(readModel, targetOf(key, target), key, notify),
       );
       return () => unsubscribe.forEach((stop) => stop());
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by the target and keys
-    [readModel, id, keysId, sourceTarget],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by the targets and keys
+    [readModel, id, selectedId, keysId],
   );
   return useSyncExternalStore(subscribe, () =>
     JSON.stringify(
       keys.map((key, index) =>
         target
-          ? (readValue(readModel, sourceTarget(key)!, key) ?? baseValues[index])
+          ? (readValue(readModel, targetOf(key, target), key) ??
+            baseValues[index])
           : baseValues[index],
       ),
     ),
@@ -139,12 +132,7 @@ export const CATALOG_FIELD_VALUE_SOURCE: FieldValueSource = {
     );
   },
   useValuesSnapshot(elementId, _origin, keys, baseValues) {
-    return useSourcedValues(
-      useRecordTarget(elementId),
-      keys,
-      baseValues,
-      elementId,
-    );
+    return useSourcedValues(elementId, keys, baseValues);
   },
   /**
    * `{field}` templates: inside a bound collection's row template, the bound collection's fields

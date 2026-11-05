@@ -30,7 +30,7 @@ export function catalogPickerSelectionOwner(
   const root = workspace.root;
   const node = root.canvasInputs.get(recordId);
   if (!node || root.typeOf(node) !== "Checkbox") return undefined;
-  const get = (id: string) => root.canvasInputs.get(id);
+  const get = lookup(root);
   const item = catalogPickerSelectionItem(node, get, root.typeOf);
   return item && catalogPickerOfOption(item, get, root.typeOf)
     ? item

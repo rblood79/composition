@@ -9,6 +9,7 @@ import type {
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import {
+  catalogContextOf,
   resolveCatalogClickRecord,
   resolveCatalogContextEntry,
   resolveCatalogContextExit,
@@ -96,7 +97,9 @@ describe("a double click enters one level, then edits the text it cannot enter f
     const { records, hasText, card, content, title } = await placedCard();
     // In the Card (context = the Card node), the click target under the title is the Content; a
     // double click enters it (its record identity — one template id names it in every Card).
-    expect(resolveCatalogContextEntry(records, title.id, card.sourceId)).toEqual({
+    expect(
+      resolveCatalogContextEntry(records, title.id, card.sourceId),
+    ).toEqual({
       context: content.id,
       target: title.id,
     });
@@ -109,50 +112,85 @@ describe("a double click enters one level, then edits the text it cannot enter f
     ).toBe(title.id);
   });
 
-  it("a ListBox's item is a group: a double click enters it and selects the child under the pointer", async () => {
-    const LIST = "project:node:list" as NodeId;
-    const { workspace, records, hasText, bySource } = await placed(
-      "lib:definition:origin-component-listbox",
-      LIST,
-    );
-    const list = bySource("node:list");
-    // (A placed ListBox's items are its own nodes since 2026-10-14 — its first record child.)
-    const item = [...records.values()].find(
-      (record) => record.parentId === list.id,
-    )!;
-    const label = [...records.values()].find(
-      (record) =>
-        record.parentId === item.id && record.sourceId.endsWith("__label"),
-    )!;
-    // The item (an owned ListBoxItem instance) has a text of its own (`{label}`): before, the
-    // double click edited that text instead of entering it.
-    expect(item.sourceId.startsWith("project:node:")).toBe(true);
-    expect(hasText(item.id)).toBe(true);
-    // In the ListBox the click target is the item; a double click enters it, the label selected.
-    expect(resolveCatalogClickRecord(records, label.id, list.sourceId)).toBe(
-      item.id,
-    );
-    expect(resolveCatalogContextEntry(records, label.id, list.sourceId)).toEqual({
-      context: item.sourceId,
-      target: label.id,
-    });
-    // Inside the item a click selects its child; the next double click edits the label's text.
-    expect(resolveCatalogClickRecord(records, label.id, item.sourceId)).toBe(label.id);
-    expect(resolveCatalogContextEntry(records, label.id, item.sourceId)).toBeUndefined();
-    expect(
-      resolveCatalogTextEditRecord(records, label.id, label.id, hasText),
-    ).toBe(label.id);
-    // (An owned item is entered by its node id, as a Card.) The session takes it as its context and keeps it across a step; Escape
-    // climbs back to the ListBox with the item selected.
-    workspace.session.enterContext(item.sourceId);
-    workspace.session.reconcile();
-    expect(workspace.session.getSnapshot().editingContext).toBe(item.sourceId);
-    expect(resolveCatalogContextExit(records, label.id, item.sourceId)).toEqual({
-      select: item.id,
-      context: list.sourceId,
-    });
-    workspace.dispose();
-  });
+  it.each(["listbox", "select", "combobox"])(
+    "%s item: padding enters its context and label remains editable",
+    async (origin) => {
+      const LIST = "project:node:list" as NodeId;
+      const { workspace, records, hasText } = await placed(
+        `lib:definition:origin-component-${origin}`,
+        LIST,
+      );
+      const item = [...records.values()].find(
+        (record) => record.bindingId === "listboxitem",
+      )!;
+      const list = records.get(item.parentId)!;
+      const listContext = catalogContextOf(list)!;
+      const label = [...records.values()].find(
+        (record) =>
+          record.parentId === item.id && record.sourceId.endsWith("__label"),
+      )!;
+      // The item (an owned ListBoxItem instance) has a text of its own (`{label}`): before, the
+      // double click edited that text instead of entering it.
+      expect(item.sourceId.startsWith("project:node:")).toBe(true);
+      expect(hasText(item.id)).toBe(true);
+      // In the ListBox the click target is the item; a double click enters it, the label selected.
+      expect(resolveCatalogClickRecord(records, label.id, listContext)).toBe(
+        item.id,
+      );
+      expect(
+        resolveCatalogContextEntry(records, label.id, listContext),
+      ).toEqual({
+        context: item.sourceId,
+        target: label.id,
+      });
+      // Padding belongs to the item, not to its label. Enter without inventing a child hit.
+      expect(resolveCatalogContextEntry(records, item.id, listContext)).toEqual(
+        {
+          context: item.sourceId,
+          target: item.id,
+        },
+      );
+      expect(resolveCatalogClickRecord(records, item.id, item.sourceId)).toBe(
+        item.id,
+      );
+      expect(
+        resolveCatalogContextEntry(records, item.id, item.sourceId),
+      ).toEqual({
+        context: item.sourceId,
+        target: item.id,
+      });
+      expect(
+        resolveCatalogContextExit(records, item.id, item.sourceId),
+      ).toEqual({
+        select: item.id,
+        context: listContext,
+      });
+      // Inside the item a click selects its child; the next double click edits the label's text.
+      expect(resolveCatalogClickRecord(records, label.id, item.sourceId)).toBe(
+        label.id,
+      );
+      expect(
+        resolveCatalogContextEntry(records, label.id, item.sourceId),
+      ).toBeUndefined();
+      expect(
+        resolveCatalogTextEditRecord(records, label.id, label.id, hasText),
+      ).toBe(label.id);
+      // (An owned item is entered by its node id, as a Card.) The session takes it as its context and keeps it across a step; Escape
+      // climbs back to the ListBox with the item selected.
+      workspace.session.enterContext(item.sourceId);
+      workspace.session.reconcile();
+      expect(workspace.session.getSnapshot().editingContext).toBe(
+        item.sourceId,
+      );
+      expect(
+        resolveCatalogContextExit(records, label.id, item.sourceId),
+      ).toEqual({
+        select: item.id,
+        context: listContext,
+      });
+      workspace.dispose();
+    },
+  );
 
   it("an element with its own text is edited itself", async () => {
     const { records, hasText, title } = await placedCard();

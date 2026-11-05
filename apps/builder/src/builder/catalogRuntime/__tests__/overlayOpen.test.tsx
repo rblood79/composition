@@ -64,6 +64,24 @@ async function fixture(
   return { workspace, library, id };
 }
 
+/** An open picker's Popover: its box, its placement and its anchor's box. */
+function pickerOverlay(root: CatalogWorkspace["root"]) {
+  const pop = [...root.canvasInputs.values()].find(
+    (n) => n.ruleId === "Popover",
+  )!;
+  const descriptor = catalogOverlayDescriptor(
+    pop,
+    (id) => root.canvasInputs.get(id),
+    root.typeOf,
+  )!;
+  const boxes = root.getGeometry([pop.id, descriptor.anchor!.id]);
+  return {
+    box: boxes.get(pop.id)!,
+    place: root.getOverlayPlacement(pop.id)!,
+    anchor: boxes.get(descriptor.anchor!.id)!,
+  };
+}
+
 const cases = [
   ["Dialog", "Modal"],
   ["Popover", "Popover"],
@@ -407,20 +425,7 @@ describe("overlay viewport placement", () => {
             },
           }),
         );
-        const root = workspace.root;
-        const pop = [...root.canvasInputs.values()].find(
-          (n) => n.ruleId === "Popover",
-        )!;
-        const box = root.getGeometry([pop.id]).get(pop.id)!;
-        const place = root.getOverlayPlacement(pop.id)!;
-        const descriptor = catalogOverlayDescriptor(
-          pop,
-          (id) => root.canvasInputs.get(id),
-          root.typeOf,
-        )!;
-        const anchor = root
-          .getGeometry([descriptor.anchor!.id])
-          .get(descriptor.anchor!.id)!;
+        const { box, place, anchor } = pickerOverlay(workspace.root);
         expect(box.width).toBe(anchor.width);
         expect(place.x).toBe(padding);
         expect(place.x + box.width).toBe(390 - padding);
@@ -431,20 +436,10 @@ describe("overlay viewport placement", () => {
   it("uses the trigger width as a Select minimum and a ComboBox width", async () => {
     for (const type of ["Select", "ComboBox"]) {
       const { workspace } = await fixture(type, { isOpen: true });
-      const root = workspace.root;
-      const pop = [...root.canvasInputs.values()].find(
-        (n) => n.ruleId === "Popover",
-      )!;
-      const place = root.getOverlayPlacement(pop.id)!;
-      const descriptor = catalogOverlayDescriptor(
-        pop,
-        (id) => root.canvasInputs.get(id),
-        root.typeOf,
-      )!;
-      const width = root
-        .getGeometry([descriptor.anchor!.id])
-        .get(descriptor.anchor!.id)!.width;
-      expect(type === "Select" ? place.minWidth : place.width).toBe(width);
+      const { place, anchor } = pickerOverlay(workspace.root);
+      expect(type === "Select" ? place.minWidth : place.width).toBe(
+        anchor.width,
+      );
     }
   });
 });

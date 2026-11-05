@@ -23,7 +23,7 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
  * 2026-10-14 (사용자 「radioGroup, checkbox Group 선택영역의 빈공간에 더블클릭했을때 전체영역으로
  * label편집창으로 된다」): a double click on a field's · group's own area (not on a part) entered
  * nothing and edited its `label` — the text its Label part draws (`{label}`) — over the whole box.
- * It edits nothing there now; a double click on the Label part edits that part (its text writes the
+ * It enters the container there; a double click on the Label part edits that part (its text writes the
  * group's `label`), and an element that paints its own text (a Button) still edits it.
  */
 const OWNER = "project:node:owner" as NodeId;
@@ -70,6 +70,8 @@ async function open(origin: string) {
     catalogHasOwnText(library, records, id, catalogTextKey);
   /** The Canvas double click (no editing context, `picked` under the pointer): the text it edits. */
   const doubleClick = (picked: string) =>
+    top.bindingId !== "button" &&
+    top.bindingId !== "togglebutton" &&
     resolveCatalogContextEntry(records, picked, undefined)
       ? "enters"
       : resolveCatalogTextEditRecord(records, picked, top.id, hasText);
@@ -87,17 +89,14 @@ async function open(origin: string) {
 }
 
 describe("a double click on a field's own area does not edit the text its Label part draws", () => {
-  it.each([
-    "radiogroup",
-    "checkboxgroup",
-    "textfield",
-    "checkbox",
-    "select",
-  ])("%s: its own area edits nothing", async (origin) => {
-    const { top, doubleClick, label } = await open(origin);
-    expect(label, origin).toBeDefined();
-    expect(doubleClick(top.id), origin).toBeUndefined();
-  });
+  it.each(["radiogroup", "checkboxgroup", "textfield", "checkbox", "select"])(
+    "%s: its own area enters the container without editing its label",
+    async (origin) => {
+      const { top, doubleClick, label } = await open(origin);
+      expect(label, origin).toBeDefined();
+      expect(doubleClick(top.id), origin).toBe("enters");
+    },
+  );
 
   it("a Button edits its words — its Text{label} child (ADR-276)", async () => {
     const { top, doubleClick, text } = await open("button");

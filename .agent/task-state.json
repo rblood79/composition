@@ -2841,5 +2841,216 @@
       "remote": "origin/main",
       "remoteVerified": true
     }
+  },
+  "selectPopoverViewportFix": {
+    "phase": "trigger_width_parity_verified",
+    "status": "complete_local_with_baseline_gate_failures",
+    "scope": "Select/ComboBox 트리거 폭·좌우 정렬 보존을 위한 shared collision 여백 계산",
+    "evidenceDirectory": ".agent/runs/2026-11-05-select-popover-viewport",
+    "validation": {
+      "adjacent": "51 PASS",
+      "newDom": "4 PASS; full viewport 390px 트리거/가용폭/left0 확인",
+      "typecheck": "6 packages PASS",
+      "registration": "6 PASS",
+      "agentCatalog": "PASS",
+      "live": "CSS Preview DOM: --trigger-width390px / --catalog-overlay-available-width390px / left0px; Canvas는 실제 엔진으로 padding0/4/40 폭·양끝 일치 확인",
+      "baseline": "s2OverlayPosition 기존6 FAIL을 HEAD에서 동일 재현",
+      "preflight": "guard PASS; 기존 task-state 및 s2OverlayPosition fixture 포맷에서 중단; diff check PASS"
+    },
+    "limits": [
+      "최종 Canvas 전체 화면 비교는 사용 중인 DevTools·패널과 입력 충돌로 완료하지 않음; 실제 엔진 geometry 회귀 PASS",
+      "전체 픽셀 동일성 및 ComboBox 실제 브라우저 흐름 미검증"
+    ],
+    "commit": "요청 없음"
+  },
+  "selectSelectionPartsFix": {
+    "phase": "pushed",
+    "scope": "single Check Icon 실제 부품·mode별 Layers 필터·selection Checkbox Selected 옵션 명령 연결·single check 옵션 전체 세로 중앙 배치",
+    "validation": "선택 부품 기존54 PASS 이후 최종 Select21 PASS; typecheck6/변경 포맷 PASS; CSS Preview single 음수 margin 제거·multiple Checkbox 열 중앙 배치 관찰",
+    "limits": "전체 Canvas/DOM 픽셀 정합 미검증; Canvas 내부 Checkbox 표시 상자 중심 좌표 및 DOM 배치 값 PASS. 기본 preflight는 기존 포맷 경고2개로 중단. 인접 기존 실패2개는 HEAD에서도 재현",
+    "evidence": ".agent/runs/2026-11-05-select-selection-parts/result.md",
+    "commit": "8560fece5",
+    "push": "origin/main 8560fece5eb799058f7546850e3178779125e6a1 matches local HEAD"
+  },
+  "simplify8560fece5": {
+    "phase": "applied_uncommitted",
+    "scope": "/simplify — 8560fece5 정리 (11 파일, 커밋 요청 없음)",
+    "validation": "typecheck shared/builder PASS; builder 122 파일 + shared 8 파일; 실패 59 는 HEAD 판과 집합 동일 (새 실패 0)",
+    "limits": "live 미실행; CatalogPopover 측정이 열림 때로 바뀐 것만 동작 경로 변경"
+  },
+  "comboBoxSelectPatternAudit": {
+    "phase": "committed_pushed",
+    "scope": "Select single/multiple, ComboBox, Menu 선택 부품의 S2 첫 라벨 행 배치 및 미선택 공간 유지",
+    "finding": "catalogPickerOfOption에서 ComboBox 제외, selection Icon 숨김, Select와 ComboBox 기본 item layout 차이 확인",
+    "recommendation": "ComboBox 목록 선택 부품 계약을 Select single과 공유하되, 현 Select의 고정 선택 열과 전체 높이 중앙 배치를 그대로 복제하지 않고 S2 행/공간/size 규칙을 함께 검토",
+    "spectrumReference": {
+      "version": "@react-spectrum/s2 1.8.2 (installed package verified)",
+      "sources": [
+        "src/Picker.tsx:73,783-835",
+        "src/ComboBox.tsx:262-301,506-510",
+        "src/Menu.tsx:313-340"
+      ],
+      "shared": "Picker imports ComboBox listboxItem; single Picker and ComboBox use Menu checkmark styles and equal size mapping",
+      "details": "Checkmark visibility hidden preserves space; checkmark occupies first label row, description occupies second; ComboBox link/onAction items omit checkmark",
+      "publicDocs": [
+        "https://react-spectrum.adobe.com/ComboBox",
+        "https://react-spectrum.adobe.com/Picker"
+      ]
+    },
+    "sharedConsumerAudit": {
+      "s2Direct": "Menu checkmark/checkbox/label/description reused by Picker, ComboBox, TabsPicker; Picker reuses ComboBox listbox/listboxItem/header",
+      "s2Indirect": "ActionMenu and Breadcrumbs collapsed menu reuse Menu; Tabs collapsed picker uses TabsPicker",
+      "checkboxPrimitive": "ListView/TreeView/TableView/Card reuse Checkbox; SelectBoxGroup reuses Checkbox box/icon styles",
+      "differentLayout": "ListView listCheckbox spans two rows and centers (ListView.tsx:796-805); not the same alignment as Picker/ComboBox/Menu first label row",
+      "compositionGap": "MenuItem selection still pseudo glyphs single dot and multiple check; default MenuItem origin has no actual selection parts; ListBoxItem origin shared by Select/ComboBox/standalone ListBox",
+      "sources": [
+        "@react-spectrum/s2/src/Menu.tsx:280-340,903-923",
+        "@react-spectrum/s2/src/TabsPicker.tsx:22,348-380",
+        "@react-spectrum/s2/src/ListView.tsx:796-805",
+        "packages/shared/src/catalog/generated/componentRulesTable.ts:8611-8619"
+      ]
+    },
+    "status": "complete",
+    "evidenceDirectory": ".agent/runs/2026-11-05-selection-row",
+    "report": ".agent/runs/2026-11-05-selection-row/report.md",
+    "validation": {
+      "focused": "41 PASS",
+      "runtime": "7 PASS",
+      "expanded": "41 PASS; 5 FAIL reproduced on HEAD snapshot",
+      "registration": "6 PASS",
+      "typecheck": "6 packages PASS",
+      "red": "6 layout/parts failures + 1 ComboBox initial selection failure on HEAD",
+      "live": "Select single/multiple, ComboBox, Menu single/multiple: first-label-row centers/relative x, runtime selection, authored reload PASS; console errors 0",
+      "format": "source scope PASS; preflight blocked only by shared .agent/task-state.json formatting",
+      "agentCatalog": "PASS"
+    },
+    "libraryContractVersion": 60,
+    "limitations": [
+      "Full popover pixel parity not certified; checks cover relative selection/label geometry.",
+      "Dark/touch/RTL and full keyboard matrix not exercised."
+    ],
+    "commit": "46a4d7a8c34fe991cb4fb1008d12c97564ff93d6",
+    "remoteVerifiedSha": "46a4d7a8c34fe991cb4fb1008d12c97564ff93d6",
+    "commitEvidence": ".agent/runs/2026-11-06-selection-commit/validation.json"
+  },
+  "listBoxItemPaddingAudit": {
+    "phase": "committed_pushed",
+    "scope": "Select single/multiple 및 ComboBox 실제 선택 부품의 legacy 24px gutter 제거; fallback/generic ListBox 경계 보존",
+    "finding": "Preview padding-left24px from legacy Popover/ListBox descendant rule; Canvas12px; S2 uses padding0 plus grid edge12px. Label start current DOM44px vs Canvas/S2 32px. Previous row-relative check missed row-edge inset.",
+    "source": "packages/shared/src/catalog/generated/componentRulesTable.ts:8241-8245",
+    "evidenceDirectory": ".agent/runs/2026-11-06-listbox-padding-fix",
+    "recommendedFix": "remove legacy selection-gutter padding from actual selection-part rows; use size-derived edge once, shared by Canvas and DOM; assert row-to-mark and row-to-label offsets",
+    "status": "complete",
+    "report": ".agent/runs/2026-11-06-listbox-padding-fix/report.md",
+    "verification": {
+      "red": "12 browser cases fail with actual 24px",
+      "browser": "12 PASS: S/M/L/XL × 3 modes; default/icon/authored40/undo",
+      "unit": "38 PASS",
+      "registration": "6 PASS",
+      "typecheck": "6 packages PASS",
+      "live": "30 checks PASS, page/console errors0; Select/ComboBox/Menu selection and authored reload",
+      "format": "source PASS; preflight stops only at shared task-state formatting",
+      "agentCatalog": "PASS"
+    },
+    "commit": "46a4d7a8c34fe991cb4fb1008d12c97564ff93d6",
+    "remoteVerifiedSha": "46a4d7a8c34fe991cb4fb1008d12c97564ff93d6",
+    "commitEvidence": ".agent/runs/2026-11-06-selection-commit/validation.json"
+  },
+  "overlayCanvasPicking": {
+    "task": "Properties Open overlay Canvas 뒤 요소 선택 수리",
+    "phase": "selection_verified",
+    "status": "committed_and_pushed",
+    "findings": [
+      "Portal/Sheet를 일반 fixed와 구분해 page 마지막 paint/hit stream에 기록",
+      "Dialog 배경막 pointer 영역은 viewport; 선택/hover 테두리는 본체 유지"
+    ],
+    "validation": {
+      "overlay_and_adjacent": 92,
+      "renderer": 43,
+      "registration": "PASS",
+      "selection_and_console_checks": 47,
+      "passed": 47,
+      "families": 11,
+      "consoleErrors": 0,
+      "cpuThrottle": "not applied",
+      "preview": "Dialog/Select geometry and topmost PASS; Popover topmost PASS but DOM y44 vs Canvas y46 (2px), outside selection repair; baseline not verified",
+      "scope": "Canvas hover/click/deep click/close/undo; Dialog and Sheet backdrop",
+      "typecheck": "PASS",
+      "guard": "PASS",
+      "format_scoped": "PASS",
+      "agent_catalog": "PASS",
+      "skills_gate": "PASS (no skill change)",
+      "preflight": "Stopped only at shared .agent/task-state.json formatting"
+    },
+    "evidenceDirectory": ".agent/runs/2026-11-06-overlay-picking",
+    "commit": "9305c541a440dfeb8b56e09f1d97314f3681dfb1",
+    "remote": "origin/main",
+    "remoteShaVerified": "9305c541a440dfeb8b56e09f1d97314f3681dfb1"
+  },
+  "selectValueSize": {
+    "task": "Select CSS 선택값 size 상속 수리",
+    "phase": "verified",
+    "status": "committed_and_pushed",
+    "validation": {
+      "red": "6 of 8 browser cases failed: S/L/XL single and multiple selected label fixed at14px",
+      "browser": 20,
+      "unit": 38,
+      "live": {
+        "cases": 12,
+        "consoleErrors": 0,
+        "tool": "headed Chrome Playwright",
+        "cpuThrottle": "not applied",
+        "fonts": "Canvas/CSS S12 M14 L16 XL18; single 1, multiple 1 and2",
+        "result": "PASS"
+      },
+      "typecheck": "PASS",
+      "format_scoped": "PASS",
+      "guard": "PASS",
+      "agent_catalog": "PASS",
+      "preflight": "Stopped at shared .agent/task-state.json formatting only"
+    },
+    "evidenceDirectory": ".agent/runs/2026-11-06-select-value-size",
+    "ownership": "domBinding.runtime.ts only CatalogPickerValueTypography import and text binding wrapper; existing LISTBOX_PICKER_TYPES and ruleDom width simplifications belong to another session. Other listed files owned by this task.",
+    "commit": "d3aba8255d452f4e047b66848ebf8e3ab523fa0e",
+    "remoteShaVerified": "d3aba8255d452f4e047b66848ebf8e3ab523fa0e"
+  },
+  "pickerItemGap": {
+    "task": "Select popover ListBoxItem gap 편집 수리",
+    "phase": "axis_diagnosis",
+    "status": "user_axis_clarification_pending",
+    "findings": [
+      "사용자 화면은 한 행 ListBoxItem의 Gap X 0 / Gap Y 16; 가로 Checkbox-Text 간격은 columnGap",
+      "새 Builder UI Gap X20 저장·배치 변경 확인; Description을 켠 두 행 Gap Y16의 실제 행 간격16 확인",
+      "single/multiple/ComboBox S/M/L/XL columnGap 편집 기본 진단12 PASS"
+    ],
+    "limits": [
+      "Description 활성화 확장 진단에서 변경 전 Canvas/DOM y 불일치; gap delta 8PASS/4FAIL (single/ComboBox L/XL). 미해결 관찰이며 gap 전체 parity 통과로 판정하지 않음. 후속 더블클릭 수정과 무관한 진단 파일은 로컬 evidence에 보관."
+    ],
+    "evidenceDirectory": ".agent/runs/2026-11-06-picker-item-gap"
+  },
+  "pickerItemDoubleClick": {
+    "task": "ListBoxItem 빈 공간 더블클릭 내부 진입 수리",
+    "phase": "verified",
+    "status": "complete_local_uncommitted",
+    "validation": {
+      "adjacent": 27,
+      "liveChecks": 19,
+      "livePass": 19,
+      "consoleErrors": 0,
+      "typecheck": "6 packages PASS",
+      "format": "scoped PASS",
+      "guard": "PASS",
+      "agentCatalog": "PASS",
+      "preflight": "Stopped only at existing shared .agent/task-state.json format warning"
+    },
+    "evidenceDirectory": ".agent/runs/2026-11-06-picker-item-doubleclick",
+    "scope": [
+      "apps/builder/src/builder/catalogRuntime/canvasPick.ts",
+      "apps/builder/src/builder/catalogRuntime/__tests__/canvasTextEditTarget.test.ts",
+      "apps/builder/src/builder/catalogRuntime/__tests__/groupTextDoubleClick.test.ts",
+      "apps/builder/src/builder/catalogRuntime/__tests__/phase4eCanvasPick.test.ts",
+      ".claude/rules/canvas-interaction.md",
+      "docs/CHANGELOG.md"
+    ]
   }
 }

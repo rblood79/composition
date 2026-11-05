@@ -35,12 +35,12 @@ const ORIGINS = {
 } as const;
 type Owner = keyof typeof ORIGINS;
 
-/** A trigger at (400, 400), 50 × 30, a 200 × 120 menu, in a 1000 × 800 window. */
-function layout(
-  triggerSelector: string,
-  triggerWidth = 50,
-  viewportWidth = 1000,
-) {
+/**
+ * A trigger at (400, 400), 50 × 30, a 200 × 120 menu, in a 1000 × 800 window — or, with
+ * `fullWidth`, a trigger at x = 0 as wide as a `fullWidth` window.
+ */
+function layout(triggerSelector: string, fullWidth?: number) {
+  const viewportWidth = fullWidth ?? 1000;
   const rect = (x: number, y: number, width: number, height: number) =>
     ({
       x,
@@ -58,24 +58,21 @@ function layout(
       .spyOn(Element.prototype, "getBoundingClientRect")
       .mockImplementation(function (this: Element) {
         if (this.matches(triggerSelector))
-          return rect(
-            triggerWidth === viewportWidth ? 0 : 400,
-            400,
-            triggerWidth,
-            30,
-          );
+          return fullWidth === undefined
+            ? rect(400, 400, 50, 30)
+            : rect(0, 400, fullWidth, 30);
         if (this.classList.contains("react-aria-Popover"))
           return rect(0, 0, 200, 120);
         return rect(0, 0, viewportWidth, 800);
       }),
     // (RAC reads an element's size from `offsetWidth` · `offsetHeight` — transforms aside.)
     ...(["offsetWidth", "offsetHeight"] as const).map((key) =>
-      vi
-        .spyOn(HTMLElement.prototype, key, "get")
-        .mockImplementation(function (this: HTMLElement) {
-          const box = this.getBoundingClientRect();
-          return key === "offsetWidth" ? box.width : box.height;
-        }),
+      vi.spyOn(HTMLElement.prototype, key, "get").mockImplementation(function (
+        this: HTMLElement,
+      ) {
+        const box = this.getBoundingClientRect();
+        return key === "offsetWidth" ? box.width : box.height;
+      }),
     ),
     ...["clientWidth", "clientHeight"].map((key) =>
       vi
@@ -89,8 +86,7 @@ function layout(
 async function openMenu(
   owner: Owner,
   props: Record<string, unknown> = {},
-  triggerWidth = 50,
-  viewportWidth = 1000,
+  fullWidth?: number,
 ) {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
@@ -139,8 +135,7 @@ async function openMenu(
   };
   const restore = layout(
     owner === "ComboBox" ? ".react-aria-Group" : ".react-aria-Button",
-    triggerWidth,
-    viewportWidth,
+    fullWidth,
   );
   const host = document.body.appendChild(document.createElement("div"));
   const reactRoot = createRoot(host);
@@ -226,7 +221,7 @@ describe("S2 menuWidth", () => {
   it.each(["Select", "ComboBox"] as const)(
     "%s: a full viewport trigger retains its width and starts at x=0",
     async (owner) => {
-      const popover = await openMenu(owner, {}, 390, 390);
+      const popover = await openMenu(owner, {}, 390);
       expect(popover.style.left).toBe("0px");
       expect(
         popover.style.getPropertyValue("--catalog-overlay-available-width"),

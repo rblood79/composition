@@ -113,15 +113,18 @@ export function resolveCatalogClickRecord(
       if (record.parentId === PAGE_GRID) return record.id;
       if (parent?.parentId === PAGE_GRID)
         return isComponentsViewRoot(parent.sourceId) ? parent.id : record.id;
-    } else if (isContext(parent, editingContext)) return record.id;
+    } else if (
+      isContext(parent, editingContext) ||
+      isContext(record, editingContext)
+    )
+      return record.id;
   }
   return undefined;
 }
 
 /**
- * Double click: the container the click enters (the current target when the pick is deeper than
- * it) and the target inside it. `undefined` = nothing to enter (the pick is the target itself, or
- * the target is no container — `catalogContextOf`).
+ * Double click: enter the current container and select the child under the pointer. On its own
+ * padding, keep the container selected inside that context. A leaf has nothing to enter.
  */
 export function resolveCatalogContextEntry(
   records: CatalogPickRecords,
@@ -129,10 +132,12 @@ export function resolveCatalogContextEntry(
   editingContext: string | undefined,
 ): { context: string; target: string } | undefined {
   const current = resolveCatalogClickRecord(records, pickedId, editingContext);
-  if (!current || current === pickedId) return undefined;
+  if (!current) return undefined;
   const record = records.get(current)!;
   const context = catalogContextOf(record);
   if (record.parentId === PAGE_GRID || !context) return undefined;
+  if (current === pickedId)
+    return record.children?.length ? { context, target: current } : undefined;
   const target = resolveCatalogClickRecord(records, pickedId, context);
   return target ? { context, target } : undefined;
 }
@@ -272,15 +277,18 @@ export class CatalogCanvasPicking {
   ): { id: string; leaveContext: boolean } | undefined {
     if (deep) return this.target(x, y, true);
     const picked = this.pick(x, y);
-    const selected = new Set(
-      this.host.session.getSnapshot().selection.map((item) => item.identity),
-    );
+    const { selection, editingContext } = this.host.session.getSnapshot();
+    const selected = new Set(selection.map((item) => item.identity));
     for (
       let record = picked && this.host.records.get(picked);
       record;
       record = this.host.records.get(record.parentId)
     ) {
-      if (record.parentId !== PAGE_GRID && selected.has(record.id))
+      if (
+        record.parentId !== PAGE_GRID &&
+        !(editingContext && isContext(record, editingContext)) &&
+        selected.has(record.id)
+      )
         return { id: record.id, leaveContext: false };
     }
     return this.target(x, y, false);
@@ -324,8 +332,7 @@ export class CatalogCanvasPicking {
       session.getSnapshot().editingContext,
     );
     if (!entry) {
-      // Pointerdown may have kept a selected ancestor (including the page body). A double click
-      // on the target's own empty area still selects it, even when there is no child to enter.
+      // A leaf still becomes selected before the caller attempts inline text editing.
       this.click(x, y);
       return false;
     }

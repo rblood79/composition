@@ -188,6 +188,24 @@ describe("ADR-248 Phase 4e-3 Canvas picking", () => {
     );
   });
 
+  it("entering padding keeps the container selected without swallowing its children's next press", async () => {
+    const { workspace, picking, record, center, selected } = await open();
+    const [x, y] = center("frame");
+    // Below the inner frame: only the outer frame is under this point.
+    expect(picking.doubleClick(x, y + 140)).toBe(true);
+    expect(workspace.session.getSnapshot().editingContext).toBe(id("frame"));
+    expect(selected()).toEqual([record("frame")]);
+    const [lx, ly] = center("leaf");
+    expect(picking.targetKeepingSelection(lx, ly, false)?.id).toBe(
+      record("inner"),
+    );
+    picking.click(lx, ly);
+    expect(selected()).toEqual([record("inner")]);
+    picking.escape();
+    expect(selected()).toEqual([record("frame")]);
+    expect(workspace.session.getSnapshot().editingContext).toBeUndefined();
+  });
+
   it.each([
     "lib:definition:type-frame",
     "lib:definition:origin-component-card",
@@ -222,9 +240,13 @@ describe("ADR-248 Phase 4e-3 Canvas picking", () => {
       workspace.selectRecords([body]);
       // A selected body must not swallow presses on its children, including their empty areas.
       expect(picking.targetKeepingSelection(x, y, false)?.id).toBe(record);
-      expect(picking.doubleClick(x, y)).toBe(false);
+      const hasChildren =
+        workspace.root.domInputs.get(record)!.children.length > 0;
+      expect(picking.doubleClick(x, y)).toBe(hasChildren);
       expect(selected()).toEqual([record]);
-      expect(workspace.session.getSnapshot().editingContext).toBeUndefined();
+      expect(workspace.session.getSnapshot().editingContext).toBe(
+        hasChildren ? id("component") : undefined,
+      );
     },
   );
 
