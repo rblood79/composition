@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Select 선택값 — 크기 상속] - 2026-11-06
+
+### Fixed
+
+- Compare Mode·Preview에서 Select single과 multiple의 단일 선택값이 목록 Text의 M 크기 inline 스타일을 재사용하던 문제를 수정한다. 선택값 안의 Text는 SelectValue의 font family·size·weight·line-height를 상속하고, 목록에서의 Text 스타일은 유지한다. S/M/L/XL, 미선택·단일 선택·다중 요약, size 편집·Undo를 브라우저 회귀로 검증한다.
+
 ## [Canvas overlay — 표시·선택 순서 정합] - 2026-11-06
 
 ### Fixed

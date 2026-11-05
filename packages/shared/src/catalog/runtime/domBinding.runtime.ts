@@ -4,6 +4,7 @@ import {
 } from "./pickerSelection";
 import {
   CatalogPickerValueContent,
+  CatalogPickerValueTypography,
   CatalogPickerSelectionSlot,
 } from "./pickerSelection.components";
 import {
@@ -923,52 +924,59 @@ const bindings: Readonly<Record<string, DomBinding>> = {
   // a ListBoxItem's label slot names the option). A slot the context does not provide (or none
   // where it has no default) renders the plain span RAC would refuse, keeping the authored name.
   text: (node, style) =>
-    createElement(RacSlotScope, {
+    createElement(CatalogPickerValueTypography, {
       key: node.id,
-      context: "Text",
-      authored: node.props.slot,
-      render: (resolution) => {
-        const props = {
-          "data-catalog-id": node.id,
-          className: "react-aria-Text",
-          // (A DateRangePicker's dash — `presence.ts` `_decorative`, the reference's `aria-hidden`.)
-          ...(node.derivedProps?._decorative === true
-            ? { "aria-hidden": true }
-            : {}),
-          ...(typeof node.props.size === "string"
-            ? { "data-size": node.props.size }
-            : {}),
-          style,
-        };
-        const text =
-          catalogTextRunsContent(node.textRuns, node.visual.textDecoration) ??
-          String(node.props.children ?? "");
-        return detachedSlot(resolution)
-          ? createElement(
-              "span",
-              {
-                ...props,
-                ...(resolution.kind === "unconnected" && resolution.slot
-                  ? { slot: resolution.slot }
-                  : {}),
-                // (No Text provider above — RAC's Text writes its `slot` as is: a selected item's
-                // label in a SelectValue, which clears the context — G5 example 3.)
-                ...(resolution.kind === "none" &&
-                typeof node.props.slot === "string" &&
-                node.props.slot !== ""
-                  ? { slot: node.props.slot }
-                  : {}),
-              },
-              text,
-            )
-          : createElement(
-              Text,
-              { ...props, ...racSlotProps(resolution) } as Parameters<
-                typeof Text
-              >[0],
-              text,
-            );
-      },
+      style,
+      render: (style) =>
+        createElement(RacSlotScope, {
+          key: node.id,
+          context: "Text",
+          authored: node.props.slot,
+          render: (resolution) => {
+            const props = {
+              "data-catalog-id": node.id,
+              className: "react-aria-Text",
+              // (A DateRangePicker's dash — `presence.ts` `_decorative`, the reference's `aria-hidden`.)
+              ...(node.derivedProps?._decorative === true
+                ? { "aria-hidden": true }
+                : {}),
+              ...(typeof node.props.size === "string"
+                ? { "data-size": node.props.size }
+                : {}),
+              style,
+            };
+            const text =
+              catalogTextRunsContent(
+                node.textRuns,
+                node.visual.textDecoration,
+              ) ?? String(node.props.children ?? "");
+            return detachedSlot(resolution)
+              ? createElement(
+                  "span",
+                  {
+                    ...props,
+                    ...(resolution.kind === "unconnected" && resolution.slot
+                      ? { slot: resolution.slot }
+                      : {}),
+                    // (No Text provider above — RAC's Text writes its `slot` as is: a selected item's
+                    // label in a SelectValue, which clears the context — G5 example 3.)
+                    ...(resolution.kind === "none" &&
+                    typeof node.props.slot === "string" &&
+                    node.props.slot !== ""
+                      ? { slot: node.props.slot }
+                      : {}),
+                  },
+                  text,
+                )
+              : createElement(
+                  Text,
+                  { ...props, ...racSlotProps(resolution) } as Parameters<
+                    typeof Text
+                  >[0],
+                  text,
+                );
+          },
+        }),
     }),
   // (`slot`: a Dialog's title — RAC connects it as the dialog's name, ADR-254. A slot the Heading
   // context does not provide renders detached instead of throwing — ADR-256 Decision 4.)

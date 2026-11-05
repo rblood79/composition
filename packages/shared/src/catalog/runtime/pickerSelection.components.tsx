@@ -1,8 +1,35 @@
-import { createContext, useContext, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { useLocale } from "react-aria-components/I18nProvider";
 import { pickerSelectedCount } from "../../i18n/pickerSelectedCount";
 
 const InsidePickerValue = createContext(false);
+
+/** RAC가 재사용한 항목 Text는 목록 대신 현재 SelectValue의 typography를 따른다. */
+export function CatalogPickerValueTypography({
+  style,
+  render,
+}: {
+  style: CSSProperties | undefined;
+  render: (style: CSSProperties | undefined) => ReactNode;
+}) {
+  const insideValue = useContext(InsidePickerValue);
+  return render(
+    insideValue
+      ? {
+          ...style,
+          fontFamily: "inherit",
+          fontSize: "inherit",
+          fontWeight: "inherit",
+          lineHeight: "inherit",
+        }
+      : style,
+  );
+}
 
 export function CatalogPickerSelectionSlot({
   children,
