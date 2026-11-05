@@ -36,7 +36,7 @@ describe("S2 press — catalog 식 = 설치된 S2 pressScale", () => {
     const pkg = fs.realpathSync(
       require.resolve("@react-spectrum/s2/package.json"),
     );
-    expect(JSON.parse(fs.readFileSync(pkg, "utf8")).version).toBe("1.8.1");
+    expect(JSON.parse(fs.readFileSync(pkg, "utf8")).version).toBe("1.8.2");
     const source = fs.readFileSync(
       path.join(path.dirname(pkg), "src/pressScale.ts"),
       "utf8",

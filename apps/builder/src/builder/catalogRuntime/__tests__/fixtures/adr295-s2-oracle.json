@@ -18,7 +18,7 @@
         "calc(1.375rem * var(--s2-scale))"
       ]
     },
-    "s2Version": "1.8.1",
+    "s2Version": "1.8.2",
     "spacing": [
       0,
       2,

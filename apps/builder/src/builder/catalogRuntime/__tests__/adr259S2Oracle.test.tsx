@@ -384,7 +384,7 @@ describe("ADR-259 G0 — S2 / RAC oracle", () => {
   it("mounts the reference and matches the fixed oracle", async () => {
     const oracle = {
       source:
-        "@react-spectrum/s2 1.8.1 + installed react-aria-components (jsdom)",
+        "@react-spectrum/s2 1.8.2 + installed react-aria-components (jsdom)",
       contextualHelp: await contextualHelpOracle(),
       prefix: await prefixOracle(),
       itemLinks: await itemLinkOracle(),

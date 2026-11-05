@@ -35,31 +35,20 @@
     ],
     "evidenceDirectory": ".agent/runs/2026-10-21-canvas-performance-check"
   },
-  "goal": "ADR-300 SideNav 가족 실행 (/execute-adr 300) — Phase 0 → 4",
-  "phase": "adr300_simplify_pushed",
+  "goal": "코드 보기 Library 오버레이 instance 수리 (B) + ADR-301 설계 (A, Proposed)",
+  "phase": "adr301_review_r1_fixes_in_docs_uncommitted",
   "next": [
-    "[x] 리뷰 닫힘 확인 (reviews/300 round 2 HIGH 0 · pending 0) → Accepted",
-    "[x] Phase 0: 다섯 층 상태 · 기준 DOM 두 arm · 번들 B 1,406,043 / P 322,341 (여유 3,957 · 2,659) · 문서 3곳 (CHANGELOG 면제 — 동작 변경 0)",
-    "[x] Phase 1: 7 type · origin 3 · rule 7 · 생성 CSS 6 · contract 54 · 다섯 층 (sideNav.ts) · G1 9 + d2 RED · 문서 4곳 — 결정 4 = 권고",
-    "[x] Phase 0 · 1 커밋 c7c88e9c4 push (pathspec · 섞인 2 파일은 contract hunk 만)",
-    "[x] Phase 2 구현: sideNav.components.tsx (lazy chunk · sideNav.lazy.ts) · delegated sidenavpanel/sidenav · 부품 3 · route context · rule DOM 보정 · view transition CSS · deploy.yml 상한 단계",
-    "[x] Phase 2 검증: G2 단위 8 (원복 RED 2) · live 5175 Compare Mode (키보드 ↓←→ · 링크 없는 부모 Enter 펼침 · 링크 Enter 이동 · 접기 42/펴기 순서 · view transition 3종 · 콘솔 0) · 번들 B 1,409,679 / P 323,814 PASS (Builder 여유 321)",
-    "[ ] 보고: Publish 전용 layer 밖 `* { margin: 0 }` (apps/publish/src/styles/index.css:23) 가 생성 sheet margin 을 이김 — 범위 밖 기존 결함",
-    "[x] Phase 2 판독 1 (MEDIUM 1 행 gap → 수리 · 가설 lazy 경계 → 수리, 원복 RED 각 1) · 문서 4곳 · 번들 B 1,409,737 / P 323,815 PASS — 커밋 51967baba push",
-    "[x] Phase 3 — Canvas G3 harness 12/12 · 원복 RED 10/10 · 결함 2 수리 · 판독 1 (HIGH 1 수리 · MEDIUM 반증 GREEN) · live 5175 · 번들 1,410,880 → 상한 1,414,000 재승인 · 문서 4곳",
-    "[x] Phase 3 커밋 10cdaae1a push ( — pathspec: 내 파일만, 299 breakdown · CatalogTextEditor 등 다른 세션 파일 제외, 생성 CSS 2 포함)",
-    "[x] Phase 4 결정 3 = (b) SideNav · SideNavPanel 둘 (사용자 11-03)",
-    "[x] Phase 4 팔레트 · Interactions (collapse concept · SideNav expansion) · Library 상태 견본 3 · 패널 nav 항목 소유 + code view · 접기 버튼 S2 quiet · Aria Label — unit · G3 12/12 · RED 7/7 · type-check PASS",
-    "[x] Phase 4 G4 번들 측정",
-    "[x] Phase 4 G5 live 5175 (팔레트 · Layers · Design · Preview 이동 · 접기 · 키보드 · Undo/Redo · 새로고침 · code view · Library 카드)",
-    "[x] 판독 1회 → Implemented · completed/ 이동 · README · CHANGELOG",
-    "[x] 커밋/push d0606e758 (main)",
-    "[ ] (사용자 판단 대기) 레퍼런스 SideNavPanelApp 같은 「header + 패널 + 내용」 시작 template — ADR-300 범위 밖",
-    "[x] /simplify (d0606e758) — quietIconSquareRules 공용 · ITEMS_ON_ANOTHER_CARD → 걷기가 카드 원본 아래로 안 내려감 (카드 줄 31 dump 동일) · holdsList · NAMES 삭제 · 테스트 helper 3 — type-check PASS · G3 12/12 · builder unit 실패 16 = 기존 목록 · 커밋 e44758261 push"
+    "[x] B: generate.ts originTag (팔레트 type 태그) · overrides.ts codeViewSlotKey (선언 slot 이름) · 역방향 codeViewAddressOf 슬롯 이름 우선",
+    "[x] adr296LibraryOverlay.test.tsx 7 — RED 7 → GREEN 7 (HEAD worktree) · 회귀 builder codeView 31 파일 319 PASS · shared codeView 320 PASS · type-check shared · builder PASS (worktree)",
+    "[x] adr296Component Card slot 기대값 Content · golden plants.tsx.txt tag-list → Tags",
+    "[x] live 5176 (worktree 서버): 새 프로젝트 → popover → Code 패널 <Popover> · <Slot name=\"content\"> · RAC import",
+    "[x] ADR-301 범위 개정 (사용자 결정: trigger 조립형 6 가족만 펼침 · Library 파일 유지 · catalog CSS 제거 · 닫힌 본체 fold) — 문서 3 파일 미커밋",
+    "[x] 리뷰 round 1 수리 — h1 hiddenPositions 정규화 · h2 유효 값 층 쓰기 · m3 className = 자리 class (문서만, 미커밋)",
+    "[ ] 수리 검증 round (reviews/301.md h1 · h2 · m3 outcome 은 그때 갱신) → 문서 커밋 · /execute-adr 301 은 사용자 요청 때"
   ],
   "guard": "다른 세션 dirty 변경 보존 (pathspec 커밋) · 사용자 5173 서버 건드리지 않음 (live 는 5174+) · 마이그레이션 코드 0 · 커밋/push 는 사용자 요청 때만",
   "stop": "type-check 실패 커밋 금지",
-  "updatedAt": "2026-11-04T06:57:35.131222+00:00",
+  "updatedAt": "2026-11-05T04:13:50.981040+00:00",
   "componentEmptyDoubleClick": {
     "task": "Body 선택 후 컴포넌트 빈 영역 더블클릭 선택 수리",
     "phase": "verified",
@@ -2587,5 +2576,244 @@
       "[x] 커밋 f418484a2 push — pathspec 커밋 (다른 세션 dirty: componentRulesTable.ts · CHANGELOG · generated Sheet.css 공유)"
     ],
     "decisions": "will-change S2 그대로 · ListBoxItem Popover 안만 · 빌더 chrome 옛 값 pins 고정 · ToggleButtonGroup = SegmentedControl span"
+  },
+  "actionButtonFamily": {
+    "task": "ActionButton · ActionButtonGroup 구현",
+    "phase": "committed_pushed",
+    "scope": "Builder chrome · catalog · Events · Code 왕복 · Canvas/Preview",
+    "evidenceDirectory": ".agent/runs/2026-11-05-action-button-family",
+    "report": ".agent/runs/2026-11-05-action-button-family/report.md",
+    "verification": {
+      "vitestUnique": 42,
+      "preflight": "PASS",
+      "finalFormat": "PASS",
+      "finalTypecheck": "6 packages PASS",
+      "live": "palette/library, props, keyboard, Events, Code Apply/reload, publish toast, pending PASS",
+      "pixelmatch": {
+        "threshold": 0.1,
+        "different": 665,
+        "total": 33858
+      }
+    },
+    "limitations": [
+      "library contract 55 -> 56; existing version rejection policy unchanged",
+      "Light theme live; full dark/RTL matrix and bundle/perf gate unverified",
+      "Canvas/CSS glyph-edge pixel difference 1.964% in sampled group"
+    ],
+    "commitPush": {
+      "sha": "8586c64bdea191c4696b84ee4eb1335a57d59991",
+      "remote": "origin/main",
+      "remoteVerified": true
+    }
+  },
+  "actionButtonPropertyAudit": {
+    "phase": "committed_pushed",
+    "result": "ActionButton origin Property now edits bound label/icon instead of root children.",
+    "evidenceDirectory": ".agent/runs/2026-11-05-action-button-property-fix",
+    "verification": "RED 2 -> GREEN; 11 tests PASS; typecheck 6 packages PASS; preflight PASS; live edit/reset/Undo/reload PASS",
+    "productChanges": true,
+    "commitPush": {
+      "sha": "a64bd530d7863850146fe069bfc2ba977e0fa3c3",
+      "remote": "origin/main",
+      "remoteVerified": true
+    }
+  },
+  "menuActionButtonTrigger": {
+    "phase": "committed_pushed",
+    "scope": "Menu 기본 트리거 ActionButton 교체 및 필수 부품/overlay anchor 연결",
+    "contractVersion": 57,
+    "report": ".agent/runs/2026-11-05-menu-actionbutton-trigger/report.md",
+    "verification": {
+      "tests": "initial adjacent 92; builder 190; shared 65; final Menu 11 and overlayOpen 26 PASS",
+      "typecheck": "6 packages PASS",
+      "registration": "6 PASS",
+      "format": "owned files PASS",
+      "live": "palette, Layers, size, keyboard, focus, label/icon, reset/reload, open geometry PASS",
+      "preflight": "blocked by shared task-state and unrelated ADR README formatting"
+    },
+    "limitations": [
+      "Full pixel parity not claimed; closed trigger sampled pixelmatch 146/1815",
+      "Light desktop live only"
+    ],
+    "commitPush": {
+      "commit": "71922bd0f150beab4bbb0eef3a2b4f7a55b53d15",
+      "push": "blocked_by_execution_policy",
+      "remoteMain": "2f39ffc5df1af1b406067b0deceaf9c75875084b"
+    },
+    "commit": "71922bd0f150beab4bbb0eef3a2b4f7a55b53d15",
+    "remoteVerifiedSha": "71922bd0f150beab4bbb0eef3a2b4f7a55b53d15"
+  },
+  "reviewAdr301": {
+    "task": "ADR-301 설계 수리 검증",
+    "phase": "repair_review_recorded",
+    "scope": "round 1의 h1/h2/m3 설계 수리와 현재 코드 정적 대조",
+    "head": "a64bd530d",
+    "status": "design_review_complete_high_0_pending_0",
+    "findings": {
+      "HIGH": 0,
+      "MEDIUM": 0,
+      "pending": 0,
+      "fixed": [
+        "h1",
+        "h2",
+        "m3"
+      ],
+      "LOW_deferred": [
+        "l4 breakdown 경로표 요약 갱신"
+      ]
+    },
+    "unverified": "제품 구현, 실행 RED/GREEN, Builder/Preview live, G0~G5, 번들 및 생성 시간",
+    "reviewLog": "docs/adr/reviews/301.md",
+    "evidenceDirectory": ".agent/runs/2026-11-05-review-adr301"
+  },
+  "popoverS2": {
+    "phase": "completed-with-validation-limits",
+    "scope": "Popover S2 표면 및 Menu/Popover 내부 ListBox hover-focus 색상",
+    "evidenceDirectory": ".agent/runs/2026-11-05-popover-s2",
+    "checks": {
+      "typecheck": "6 packages PASS",
+      "adjacent": "187 tests PASS across latest scoped runs",
+      "registration": "6 tests PASS",
+      "format": "owned files PASS",
+      "live": "Popover S/M/L and six families geometry PASS; Menu/Select hover and keyboard focus PASS; ComboBox hover PASS"
+    },
+    "limitations": [
+      "Full preflight blocked by .agent/task-state.json and docs/adr/README.md formatting",
+      "Existing static contract failures: Sheet/TokenField/ActionButton literal and selector audit",
+      "Dark browser and ComboBox keyboard focus not verified",
+      "Popover static pixelmatch threshold 0.1: 465/19800 (2.35%), title text raster difference remains"
+    ],
+    "report": ".agent/runs/2026-11-05-popover-s2/report.md",
+    "commitPush": {
+      "commit": "71922bd0f150beab4bbb0eef3a2b4f7a55b53d15",
+      "push": "blocked_by_execution_policy",
+      "remoteMain": "2f39ffc5df1af1b406067b0deceaf9c75875084b"
+    }
+  },
+  "menuPressFocus": {
+    "status": "completed",
+    "scope": "Menu hover outline and physical press release; S2 keyboard focus and open background",
+    "run": ".agent/runs/2026-11-05-menu-press-focus",
+    "validation": "Menu live + Canvas/CSS open PASS; scoped 194 tests PASS; typecheck 6 packages PASS",
+    "limits": [
+      "preflight: existing task-state/ADR README formatting",
+      "existing chromeIsland panel frame test fails",
+      "ComboBox keyboard ring UNVERIFIED: ArrowDown closes popup"
+    ],
+    "commit": "71922bd0f150beab4bbb0eef3a2b4f7a55b53d15",
+    "commitPush": {
+      "commit": "71922bd0f150beab4bbb0eef3a2b4f7a55b53d15",
+      "push": "blocked_by_execution_policy",
+      "remoteMain": "2f39ffc5df1af1b406067b0deceaf9c75875084b"
+    },
+    "remoteVerifiedSha": "71922bd0f150beab4bbb0eef3a2b4f7a55b53d15",
+    "phase": "committed_pushed"
+  },
+  "selectPickerAudit": {
+    "status": "complete",
+    "scope": "Read-only Select vs S2 Picker visual/state audit",
+    "run": ".agent/runs/2026-11-05-select-picker-audit",
+    "findings": [
+      "wrong background role, resolved token not missing",
+      "Builder CSS leaks into publish Preview",
+      "Select remains pressed while open",
+      "quiet/disabled/invalid/list inset mismatches"
+    ],
+    "limits": "App dark/touch and whole pixel parity unverified",
+    "sourceChanges": false
+  },
+  "s2ComponentAudit": {
+    "task": "S2 1.8.1과 현재 Builder 컴포넌트 전수 대조",
+    "phase": "static_audit_complete",
+    "scope": "읽기 전용 조사, 로컬 근거 기록만 작성",
+    "status": "complete_with_validation_findings",
+    "evidenceDirectory": ".agent/runs/2026-11-05-s2-component-audit",
+    "validation": {
+      "d3": "73/73 PASS",
+      "d2": "3 PASS / 1 FAIL; 9 provenance drifts",
+      "palette": "2 PASS / 3 FAIL; 85 current vs 80 oracle"
+    },
+    "unverified": "실제 Builder/Preview 시각·키보드·터치·저장/로드 미검증",
+    "artifacts": [
+      ".agent/runs/2026-11-05-s2-component-audit/audit.json",
+      ".agent/runs/2026-11-05-s2-component-audit/component-comparison.tsv",
+      ".agent/runs/2026-11-05-s2-component-audit/validation.json"
+    ]
+  },
+  "selectPickerFix": {
+    "status": "complete_local_uncommitted_with_shared_gate_blockers",
+    "scope": "Select S2 Picker 의미 토큰(light/dark), 왼쪽 정렬, 눌림/Quiet/Disabled/Invalid 및 목록 정합",
+    "run": ".agent/runs/2026-11-05-select-picker-fix",
+    "validation": {
+      "tests": "인접 116 + Button pending 3 PASS; 마지막 Select/overlay 40 PASS",
+      "live": "Compare/Publish light/dark S/M/L/XL·Quiet·Disabled·Invalid, selected Cat left, release scale 복구, pageerror 0",
+      "pixelmatch": "닫힌 Select light/dark 각 38430 pixels, threshold 0.1 diff 0",
+      "typecheck": "6 packages PASS 후 동시 작업 계약 57→58 변경. 최종 전체 typecheck는 다른 fixture 57/58 불일치로 실패",
+      "preflight": "guard PASS, format에서 공유/기존 파일 6개 경고로 중단. 수정 소스 scope format PASS; registration 6 PASS, agent catalog PASS, skills PASS",
+      "red": "canvasBinding picker 경로 원복 시 신규 6개 중 배경2·invalid1 실패, 복원 후 PASS"
+    },
+    "limits": [
+      "touch/forced-colors 전체와 열린 목록 전 상태의 픽셀 동일성은 미인증"
+    ],
+    "commit": "not requested",
+    "commitPush": {
+      "commit": "71922bd0f150beab4bbb0eef3a2b4f7a55b53d15",
+      "push": "blocked_by_execution_policy",
+      "remoteMain": "2f39ffc5df1af1b406067b0deceaf9c75875084b"
+    }
+  },
+  "accordionRename": {
+    "task": "DisclosureGroup의 canonical 이름을 Accordion으로 변경, RAC 경계 보존",
+    "phase": "complete",
+    "status": "complete",
+    "evidenceDirectory": ".agent/runs/2026-11-05-accordion-rename",
+    "validation": "대상 회귀·typecheck·등록·실제 Builder PASS; 확장 테스트의 타 컴포넌트 실패는 validation.json 참조",
+    "contractVersion": 58,
+    "commitStatus": "커밋 및 origin/main push 완료; ls-remote SHA 일치 확인",
+    "commitEvidence": ".agent/runs/2026-11-05-accordion-rename/commit-validation.json",
+    "permissionRulesBackup": "/private/tmp/codex-default-rules-20261105-180127.backup",
+    "commit": "2f39ffc5df1af1b406067b0deceaf9c75875084b",
+    "remoteVerifiedSha": "2f39ffc5df1af1b406067b0deceaf9c75875084b"
+  },
+  "selectMultipleFix": {
+    "task": "Select S2 다중 선택 개수 및 목록 checkbox 정합",
+    "phase": "verified",
+    "status": "complete_local_uncommitted_with_shared_gate_blockers",
+    "evidenceDirectory": ".agent/runs/2026-11-05-select-multiple-fix",
+    "validation": [
+      "Select/Menu/overlay 57 PASS",
+      "count RED 2 FAIL / checkbox RED 2 FAIL -> GREEN",
+      "Publish light/dark 0->1->2->1->0 PASS, pageerrors 0",
+      "Compare checkbox 영역 light/dark 각각 4개 diff 0",
+      "typecheck 6 packages PASS",
+      "scoped format/diff and guard PASS"
+    ],
+    "limitations": [
+      "전체 preflight: 공유 dirty 22개 format 오류",
+      "builderCatalogVars 기존 ActionButton/ActionButtonGroup baseline 1 FAIL",
+      "전체 팝오버 focus 표시 상태 차이, selected Canvas/DOM 전체 픽셀 비교 미검증"
+    ],
+    "commitPush": {
+      "commit": "71922bd0f150beab4bbb0eef3a2b4f7a55b53d15",
+      "push": "blocked_by_execution_policy",
+      "remoteMain": "2f39ffc5df1af1b406067b0deceaf9c75875084b"
+    }
+  },
+  "pickerCommit": {
+    "phase": "committed_push_blocked",
+    "scope": "Select/Menu/Popover scoped 59 files",
+    "report": ".agent/runs/2026-11-05-picker-commit/validation.json",
+    "commit": "71922bd0f150beab4bbb0eef3a2b4f7a55b53d15",
+    "remoteMain": "2f39ffc5df1af1b406067b0deceaf9c75875084b",
+    "pushError": "approval required by policy, but AskForApproval is set to Never",
+    "index": "empty; unrelated dirty files preserved"
+  },
+  "menuCommitPush": {
+    "status": "complete",
+    "commit": "71922bd0f150beab4bbb0eef3a2b4f7a55b53d15",
+    "remoteVerifiedSha": "71922bd0f150beab4bbb0eef3a2b4f7a55b53d15",
+    "scope": "동시 세션이 생성한 Select/Menu/Popover 커밋의 Menu 포함 확인 후 origin/main push 완료",
+    "validation": "기존 커밋 검증 기록의 stagedTree와 HEAD tree 일치 확인; 추가 코드 변경 없음",
+    "checkedAt": "2026-11-05T09:08:01.526573+00:00"
   }
 }

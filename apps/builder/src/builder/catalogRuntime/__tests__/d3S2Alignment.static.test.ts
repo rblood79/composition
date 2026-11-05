@@ -79,7 +79,7 @@ describe("ADR-295 G4 (a) — 토큰 표 · 상수 = S2 설치본", () => {
   const t = oracle.tokens;
 
   it("설치본 버전", () => {
-    expect(t.s2Version).toBe("1.8.1");
+    expect(t.s2Version).toBe("1.8.2");
   });
 
   it("radius: sm · md (S2 default) · lg · xl · full", () => {
