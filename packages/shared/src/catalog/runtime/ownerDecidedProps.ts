@@ -2,7 +2,7 @@ import { CATALOG_EMPHASIS_FROM_GROUP } from "../document/s2PropAlignment";
 import {
   CATALOG_SIZE_PASS_THROUGH,
   CATALOG_SIZE_PROPAGATION,
-  CATALOG_TOGGLE_GROUP_OF,
+  CATALOG_SIZE_CONTEXT_OF,
 } from "../document/sizePropagation";
 import type {
   CatalogCompositionRoot,
@@ -24,7 +24,7 @@ import {
  *
  * - size: an owner whose `size` reaches the node (`CATALOG_SIZE_PROPAGATION` — a group's items, a
  *   field's parts, a ButtonGroup's buttons — the resolver's `applyOwnerSize` sets it over the node's).
- * - a toggle in its group (`CATALOG_TOGGLE_GROUP_OF`): its size and emphasis are the group's
+ * - a toggle in its group (`CATALOG_SIZE_CONTEXT_OF`): its size and emphasis are the group's
  *   (`CATALOG_EMPHASIS_FROM_GROUP` — S2 `CheckboxContext`), and a Checkbox's error message is too —
  *   S2 forces a grouped Checkbox's own invalid off (the group's help text). Its name and value stay
  *   its own: RAC's grouped item is `name: props.name || group's` and its value is its key in the
@@ -52,7 +52,7 @@ const PICKER_ITEM_PROPS = ["isSelected"];
  * (the Design panel reads this on every document step).
  */
 export const CATALOG_OWNER_DECIDED_TYPES: ReadonlySet<string> = new Set([
-  ...Object.keys(CATALOG_TOGGLE_GROUP_OF),
+  ...Object.keys(CATALOG_SIZE_CONTEXT_OF),
   ...Object.values(CATALOG_SIZE_PROPAGATION).flat(),
   "ListBox",
   "ListBoxItem",
@@ -80,7 +80,7 @@ export function catalogOwnerDecidedProps(
     for (const key of list) keys.add(key);
   };
 
-  const groupType = CATALOG_TOGGLE_GROUP_OF[type];
+  const groupType = CATALOG_SIZE_CONTEXT_OF[type];
   const group = groupType ? ancestor(groupType) : undefined;
   if (group)
     add(group, [
@@ -89,12 +89,13 @@ export function catalogOwnerDecidedProps(
         ? ["isEmphasized"]
         : []),
       ...(GROUP_ITEM_PROPS[type] ?? []),
+      ...(type === "ActionButton" ? ["isQuiet", "staticColor"] : []),
     ]);
   if (!keys.has("size")) {
     let sizeOwner = sizeOwnerOf(root, node);
     // (An owner that takes its size from its own owner — a TagGroup's TagList — is not where the
     // size is edited: the notice names the top one.)
-    for (let next = sizeOwner && sizeOwnerOf(root, sizeOwner); next; )
+    for (let next = sizeOwner && sizeOwnerOf(root, sizeOwner); next;)
       [sizeOwner, next] = [next, sizeOwnerOf(root, next)];
     if (sizeOwner) add(sizeOwner, ["size"]);
   }

@@ -25,6 +25,7 @@ const SHELL_ONLY_TYPES: ReadonlySet<string> = new Set([
   "Section",
   "DisclosureGroup",
   "ButtonGroup",
+  "ActionButtonGroup",
   "CheckboxGroup",
   "RadioGroup",
   "ToggleButtonGroup",
@@ -298,6 +299,14 @@ export function catalogRulePaint(
     derived?._fieldDisabled === true
   )
     props.isDisabled = true;
+  if (type === "ActionButton" && derived?._inActionGroup === true)
+    props._groupPosition = {
+      orientation: derived.orientation,
+      density: derived.density,
+      isFirst: derived._actionFirst,
+      isLast: derived._actionLast,
+      isOnly: derived._actionFirst && derived._actionLast,
+    };
   props.style = box
     ? { ...style, width: box.width, height: box.height }
     : style;

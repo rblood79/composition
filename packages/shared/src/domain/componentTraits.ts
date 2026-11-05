@@ -201,6 +201,7 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
 
   // ── 버튼 ──
   Button: { families: ["textHost", "buttonChildHost", "action"] },
+  ActionButton: { families: ["textHost", "buttonChildHost", "action"] },
   ToggleButton: { families: ["textHost", "buttonChildHost", "action"] },
   ButtonGroup: { families: ["action"] },
   ActionButtonGroup: { families: ["action"] },

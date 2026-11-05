@@ -284,7 +284,9 @@ export function catalogToggleButtonGlyphOwner(
 ): CatalogConsumerNode | undefined {
   if (node.bindingId !== "icon" && node.bindingId !== "text") return undefined;
   const parent = catalogPartParent(node, get, typeOf);
-  return parent && typeOf(parent) === "ToggleButton" ? parent : undefined;
+  return parent && ["ToggleButton", "ActionButton"].includes(typeOf(parent))
+    ? parent
+    : undefined;
 }
 
 /**
@@ -1953,7 +1955,10 @@ export function catalogDerivedProps(
     (!!checkboxItem &&
       catalogSelectionCheckboxDisabled(checkboxItem, get, typeOf)) ||
     (typeOf(node) === "Button" &&
-      catalogButtonGroupOf(node, get, typeOf)?.props.isDisabled === true);
+      catalogButtonGroupOf(node, get, typeOf)?.props.isDisabled === true) ||
+    (typeOf(node) === "ActionButton" &&
+      node.props.isDisabled !== false &&
+      catalogActionButtonGroupOf(node, get, typeOf)?.props.isDisabled === true);
   // (A select-all checkbox while some rows — not all — are selected: RAC's indeterminate dash.)
   const selectAll =
     checkboxItem && typeOf(checkboxItem) === "Column"
@@ -2210,6 +2215,32 @@ function catalogListItemEdges(
   };
 }
 
+/** ActionButton의 가장 가까운 그룹. 중간 Frame을 지나도 context는 유지된다. */
+export function catalogActionButtonGroupOf(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  for (let parent = get(node.parentId); parent; parent = get(parent.parentId))
+    if (typeOf(parent) === "ActionButtonGroup") return parent;
+  return undefined;
+}
+
+function actionGroupButtons(
+  group: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode[] {
+  return childrenOf(group, get).flatMap((child) =>
+    typeOf(child) === "ActionButtonGroup"
+      ? []
+      : [
+          ...(typeOf(child) === "ActionButton" ? [child] : []),
+          ...actionGroupButtons(child, get, typeOf),
+        ],
+  );
+}
+
 /** The nearest ButtonGroup above a Button (through any element — S2's `ButtonContext`). */
 export function catalogButtonGroupOf(
   node: CatalogConsumerNode,
@@ -2422,6 +2453,38 @@ function ownDerivedPropsBase(
         ? { iconName: "chevron-down" }
         : undefined;
   }
+  if (typeOf(node) === "ActionButton") {
+    const visible = childrenOf(node, get).filter((child) => !child.hidden);
+    const iconOnly =
+      visible.length > 0 &&
+      visible.every((child) => typeOf(child) === "Icon") &&
+      !node.props.children;
+    const derived: Record<string, string | boolean> = {
+      _actionIconOnly: iconOnly,
+    };
+    const group = catalogActionButtonGroupOf(node, get, typeOf);
+    if (!group) return derived;
+    derived._inActionGroup = true;
+    for (const key of [
+      "size",
+      "isQuiet",
+      "staticColor",
+      "density",
+      "orientation",
+    ])
+      if (
+        typeof group.props[key] === "string" ||
+        typeof group.props[key] === "boolean"
+      )
+        derived[key] = group.props[key] as string | boolean;
+    if (group.props.isJustified === true) derived._justified = true;
+    const siblings = childrenOf(get(node.parentId)!, get).filter(
+      (child) => !child.hidden,
+    );
+    derived._actionFirst = siblings[0]?.id === node.id;
+    derived._actionLast = siblings.at(-1)?.id === node.id;
+    return derived;
+  }
   // S2 ActionButtonGroup's `staticColor` is its buttons' (`ToggleButtonGroupStaticColorContext` —
   // a button's own non-`auto` value wins, `ToggleButton.tsx` `effectiveStaticColor`).
   if (typeOf(node) === "ToggleButton") {
@@ -2610,7 +2673,9 @@ export function catalogDerivedPropsDependents(
     ...derivedDependents(owner, get, typeOf),
     ...fieldSubparts(owner, get, typeOf),
     // (A Button's children follow its `isPending` — `_pendingHidden`, `buttonPending.ts`.)
-    ...(typeOf(owner) === "Button" ? childrenOf(owner, get) : []),
+    ...(["Button", "ActionButton"].includes(typeOf(owner))
+      ? childrenOf(owner, get)
+      : []),
     // (A Color control's gradient · thumb parts — ADR-258 Phase 2.)
     ...catalogColorControlParts(owner, get, typeOf),
     // (A Table's select-all checkboxes follow its selection mode and its rows — Phase 5i-2.)
@@ -2646,7 +2711,7 @@ export function catalogDerivedPropsDependents(
     ...items,
     ...[owner, ...items].flatMap((item) => [
       ...catalogItemLabels(item, get, typeOf),
-      ...(typeOf(item) === "ToggleButton"
+      ...(["ToggleButton", "ActionButton"].includes(typeOf(item))
         ? partChildrenOf(item, get, typeOf).filter(
             (glyph) =>
               catalogToggleButtonGlyphOwner(glyph, get, typeOf)?.id === item.id,
@@ -2727,6 +2792,11 @@ function derivedDependents(
   }
   if (type === "Tabs") return catalogTabsSelection(owner, get, typeOf).tabs;
   if (type === "ButtonGroup") return buttonGroupButtons(owner, get, typeOf);
+  if (type === "ActionButtonGroup")
+    return actionGroupButtons(owner, get, typeOf).flatMap((button) => [
+      button,
+      ...childrenOf(button, get),
+    ]);
   // (An InlineAlert's texts follow its bold fill — `catalogInlineAlertBoldText`.)
   if (type === "InlineAlert") {
     const texts: CatalogConsumerNode[] = [];

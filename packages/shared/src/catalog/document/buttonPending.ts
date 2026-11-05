@@ -36,7 +36,7 @@ export const CATALOG_BUTTON_PENDING_LABELS: Readonly<Record<string, string>> = {
 };
 
 /** Types whose `isPending` shows the pending circle (S2 Button · LinkButton take it). */
-const PENDING_TYPES: ReadonlySet<string> = new Set(["Button"]);
+const PENDING_TYPES: ReadonlySet<string> = new Set(["Button", "ActionButton"]);
 
 /** Whether a node of `type` with `props` is a pending button. */
 export function catalogButtonPending(

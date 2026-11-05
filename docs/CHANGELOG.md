@@ -11,6 +11,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [작업 버튼 — ActionButton · ActionButtonGroup] - 2026-11-05
+
+### Breaking Changes
+
+- **Catalog library contract 55 → 56**
+  원본 정의 두 개를 추가했다. 이전 library contract 문서는 기존 버전 검사 정책을 따른다.
+
+### Added
+
+- **Components · Library에 ActionButton과 ActionButtonGroup 추가**
+  RAC Button · Toolbar 동작에 catalog 시각 정본을 연결했다. XS–XL, quiet, staticColor, disabled, pending과 그룹의 방향·밀도·justified를 Property에서 편집하며 Canvas와 Preview가 같은 값을 소비한다. 그룹은 선택 상태 없이 방향키 탐색과 공통 속성 상속을 제공한다.
+- **Events · Code 왕복 연동**
+  ActionButton은 Button의 Press·포인터 이벤트를 제공한다. 그룹에는 가짜 Press·선택 이벤트를 추가하지 않는다. Code에서 속성·자식·Press 동작을 편집해 Apply하고 Undo할 수 있다. 위치: `packages/shared/src/interactions/componentInteractionSpecs.ts`, `packages/shared/src/codeView/generate.ts`.
+
+### Changed
+
+- **Builder 명령 버튼 공통화**
+  `components/ui/ActionButton.tsx`를 추가하고 ActionIconButton · 선택 작업 바 · 필터 공유 명령에 적용했다. 기존 토글은 ToggleButton 계약을 유지한다.
+- **등록·상태·렌더링 연결**
+  위치: `packages/shared/src/catalog/bindings/ActionButton*.binding.ts`, `document/generated/reusableOriginLibrary.ts`, `generated/componentRulesTable.ts`, `runtime/presence.ts`, `apps/builder/src/builder/catalogRuntime/canvasBinding.ts`.
+
+### Tests
+
+- ActionButton family 인접 회귀: 레이아웃·모서리·아이콘 전용·pending·disabled 상속, Events 실행, Code Apply·구조 편집·Undo.
+- 실제 Builder: 팔레트 삽입, Property XL·vertical·compact·quiet·disabled, Preview 방향키 이동, Events→Code 편집→Apply→새로고침 유지 확인.
+
 ## [코드 보기 — Library 오버레이 instance 는 팔레트 이름 · slot 은 선언 이름] - 2026-11-05
 
 ### Fixed

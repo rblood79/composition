@@ -94,6 +94,7 @@ const CONSUMER_OF_TYPE: Readonly<Record<string, RacSlotContextKey>> = {
   Description: "Text",
   Heading: "Heading",
   Button: "Button",
+  ActionButton: "Button",
   DateInput: "DateField",
   Checkbox: "Checkbox",
 };

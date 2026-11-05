@@ -108,6 +108,19 @@ const length = (value: unknown): CatalogLength | undefined =>
   typeof value === "number" || typeof value === "string" ? value : undefined;
 
 export function catalogBoxModel(node: CatalogConsumerNode): CatalogBoxModel {
+  // S2 icon-only ActionButton은 control 높이와 같은 정사각형이다.
+  if (node.derivedProps?._actionIconOnly === true)
+    node = {
+      ...node,
+      visual: {
+        ...node.visual,
+        width: node.visual.minHeight,
+        height: node.visual.minHeight,
+        paddingX: 0,
+        paddingY: 0,
+        gap: 0,
+      },
+    };
   const layout = node.layout;
   const paddingX = length(node.visual.paddingX ?? node.visual.padding);
   const paddingY = length(node.visual.paddingY ?? node.visual.padding);
@@ -127,7 +140,13 @@ export function catalogBoxModel(node: CatalogConsumerNode): CatalogBoxModel {
   if (layout.alignItems) model.alignItems = layout.alignItems;
   if (layout.justifyContent) model.justifyContent = layout.justifyContent;
   if (layout.flexWrap) model.flexWrap = layout.flexWrap;
-  const width = length(node.sizing.width ?? node.visual.width);
+  const actionVertical =
+    node.bindingId === "actionbutton" &&
+    node.derivedProps?._inActionGroup === true &&
+    node.derivedProps.orientation === "vertical";
+  const width = length(
+    node.sizing.width ?? (actionVertical ? "100%" : node.visual.width),
+  );
   const height = length(node.sizing.height ?? node.visual.height);
   const minWidth = length(node.sizing.minWidth ?? node.visual.minWidth);
   const minHeight = length(node.sizing.minHeight ?? node.visual.minHeight);

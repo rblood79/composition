@@ -11,6 +11,10 @@
 // 컴포넌트 CSS 61장을 두 번 실었다 (DevTools 취소선 짝 · preview CSS 34% 초과).
 
 // Form Components
+export { ActionButton } from "./ActionButton";
+export type { ActionButtonProps } from "./ActionButton";
+export { ActionButtonGroup } from "./ActionButtonGroup";
+export type { ActionButtonGroupProps } from "./ActionButtonGroup";
 export { Button } from "./Button";
 export { ToggleButton } from "./ToggleButton";
 export { ToggleButtonGroup } from "./ToggleButtonGroup";

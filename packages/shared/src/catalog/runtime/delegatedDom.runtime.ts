@@ -165,6 +165,7 @@ import { TabList, TabPanel, Tabs } from "../../components/Tabs";
 
 import { type TagRowsState } from "../../components/TagGroup";
 
+import { ActionButtonGroup } from "../../components/ActionButtonGroup";
 import { ToggleButton } from "../../components/ToggleButton";
 
 import { ToggleButtonGroup } from "../../components/ToggleButtonGroup";
@@ -3011,6 +3012,25 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         ...renderAll(input),
       );
     },
+  },
+  actionbuttongroup: {
+    render: (input) =>
+      createElement(
+        ActionButtonGroup,
+        {
+          ...marker(input),
+          "aria-label": input.node.props["aria-label"],
+          size: input.node.props.size,
+          orientation: input.node.props.orientation,
+          density: input.node.props.density,
+          isQuiet: input.node.props.isQuiet,
+          isJustified: input.node.props.isJustified,
+          staticColor: input.node.props.staticColor,
+          isDisabled: input.node.props.isDisabled,
+          style: input.style,
+        } as Parameters<typeof ActionButtonGroup>[0],
+        ...renderAll(input),
+      ),
   },
   buttongroup: {
     render: (input) => {

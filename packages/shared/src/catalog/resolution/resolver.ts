@@ -50,7 +50,7 @@ import {
   CATALOG_SIZE_PROPAGATION,
   CATALOG_OVERFLOW_MODE_OWNERS,
   CATALOG_SIZE_STEP,
-  CATALOG_TOGGLE_GROUP_OF,
+  CATALOG_SIZE_CONTEXT_OF,
 } from "../document/sizePropagation";
 import {
   CATALOG_BOOLEAN_VARIANTS,
@@ -1324,7 +1324,7 @@ export function resolveCatalogNode(
     const definition = lookupDefinition(definitionId);
     // (A toggle takes its group's size wherever it sits in the group — the nearest group of its
     // type, as its values do: straight in the group, not only in its items box — Codex Round 21.)
-    const groupType = CATALOG_TOGGLE_GROUP_OF[definition.name];
+    const groupType = CATALOG_SIZE_CONTEXT_OF[definition.name];
     if (groupType && definition.accepts.size === "string") {
       let cursor = structuralParent(parent);
       while (cursor && lookupDefinition(cursor.definitionId).name !== groupType)

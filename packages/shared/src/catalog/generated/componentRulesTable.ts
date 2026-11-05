@@ -765,6 +765,74 @@ const BUTTON_PADDING_BLOCK = (() => {
   return { default: sizes.M, size: sizes };
 })();
 
+const ACTION_CONTROL_SIZES = {
+  XS: {
+    paddingX: ofHeight(3, 8),
+    fontSize: "{typography.text-2xs}",
+    lineHeight: "{typography.text-2xs--line-height}",
+    fontWeight: 500,
+    borderRadius: "{radius.sm}",
+    borderWidth: "{border.width.thin}",
+    height: 0,
+    minHeight: "{size.height.XS}",
+    paddingY: 2,
+    gap: TEXT_TO_VISUAL,
+    iconSize: "{typography.text-2xs--line-height}",
+  },
+  S: {
+    paddingX: ofHeight(3, 8),
+    fontSize: "{typography.text-xs}",
+    lineHeight: "{typography.text-xs--line-height}",
+    fontWeight: 500,
+    borderRadius: 7,
+    borderWidth: "{border.width.thin}",
+    height: 0,
+    minHeight: "{size.height.S}",
+    paddingY: 3,
+    gap: TEXT_TO_VISUAL,
+    iconSize: "{typography.text-xs--line-height}",
+  },
+  M: {
+    paddingX: ofHeight(3, 8),
+    fontSize: "{typography.text-sm}",
+    lineHeight: "{typography.text-sm--line-height}",
+    fontWeight: 500,
+    borderRadius: 8,
+    borderWidth: "{border.width.thin}",
+    height: 0,
+    minHeight: "{size.height.M}",
+    paddingY: 6,
+    gap: TEXT_TO_VISUAL,
+    iconSize: "{typography.text-sm--line-height}",
+  },
+  L: {
+    paddingX: ofHeight(3, 8),
+    fontSize: "{typography.text-base}",
+    lineHeight: "{typography.text-base--line-height}",
+    fontWeight: 500,
+    borderRadius: 9,
+    borderWidth: "{border.width.thin}",
+    height: 0,
+    minHeight: "{size.height.L}",
+    paddingY: 9,
+    gap: TEXT_TO_VISUAL,
+    iconSize: "{typography.text-base--line-height}",
+  },
+  XL: {
+    paddingX: ofHeight(3, 8),
+    fontSize: "{typography.text-lg}",
+    lineHeight: "{typography.text-lg--line-height}",
+    fontWeight: 500,
+    borderRadius: 10,
+    borderWidth: "{border.width.thin}",
+    height: 0,
+    minHeight: "{size.height.XL}",
+    paddingY: 12,
+    gap: TEXT_TO_VISUAL,
+    iconSize: "{typography.text-lg--line-height}",
+  },
+} as const;
+
 export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   // ADR-256 Phase 6g — Autocomplete: RAC Autocomplete has no element (its children sit in its
   //   parent's flow). The Canvas lays it out as `display: contents` (engine CSS-DISPLAY-3 §2.5 —
@@ -15168,6 +15236,165 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  ActionButton: {
+    defaultVariant: "default",
+    defaultSize: "M",
+    containerStyles: { ...BUTTON_ROOT_BOX, position: "relative" },
+    variants: {
+      default: {
+        paint: {
+          backgroundColor: {
+            default: "{color.neutral-subtle}",
+            isHovered: "{color.neutral-hover}",
+            isPressed: "{color.neutral-hover}",
+            isQuiet: {
+              default: "{color.transparent}",
+              isHovered: "{color.neutral-hover}",
+              isPressed: "{color.neutral-hover}",
+            },
+            staticColor: {
+              black: {
+                default: "rgb(0 0 0 / 0.1)",
+                isHovered: "rgb(0 0 0 / 0.2)",
+                isPressed: "rgb(0 0 0 / 0.2)",
+                isQuiet: {
+                  default: "{color.transparent}",
+                  isHovered: "rgb(0 0 0 / 0.2)",
+                  isPressed: "rgb(0 0 0 / 0.2)",
+                },
+              },
+              white: {
+                default: "rgb(255 255 255 / 0.1)",
+                isHovered: "rgb(255 255 255 / 0.2)",
+                isPressed: "rgb(255 255 255 / 0.2)",
+                isQuiet: {
+                  default: "{color.transparent}",
+                  isHovered: "rgb(255 255 255 / 0.2)",
+                  isPressed: "rgb(255 255 255 / 0.2)",
+                },
+              },
+            },
+          },
+          color: {
+            default: "{color.neutral}",
+            isDisabled: "{color.neutral-subdued}",
+            staticColor: {
+              black: { default: "#000000", isDisabled: "rgb(0 0 0 / 0.4)" },
+              white: {
+                default: "#ffffff",
+                isDisabled: "rgb(255 255 255 / 0.4)",
+              },
+            },
+          },
+          borderColor: { default: "{color.transparent}" },
+        },
+      },
+    },
+    sizes: Object.fromEntries(
+      Object.entries(ACTION_CONTROL_SIZES).map(([size, rule]) => [
+        size,
+        { ...rule, borderWidth: 0, paddingY: rule.paddingY + 1 },
+      ]),
+    ),
+    structure: {
+      archetype: "button",
+      element: "button",
+      containerStyles: {
+        ...BUTTON_ROOT_BOX,
+        position: "relative",
+        borderStyle: "none",
+      },
+      stateStyles: {
+        ...FOCUS_RING_STATE,
+        willChange: CATALOG_PRESS_WILL_CHANGE,
+        transform: { isPressed: catalogPressTransform() },
+        cursor: { isDisabled: "default" },
+      },
+      composition: {
+        delegation: [],
+        rootSelectors: {
+          "&[data-in-group]": { styles: { "flex-shrink": "0" } },
+          "&[data-justified]": {
+            styles: { "flex-grow": "1", "flex-basis": "0" },
+          },
+          '&[data-in-group][data-orientation="vertical"]': {
+            styles: { width: "100%" },
+          },
+          '&[data-density="compact"]': { styles: { "border-radius": "0" } },
+          '&[data-density="compact"]:first-child': {
+            styles: { "border-start-start-radius": "var(--action-corner)" },
+          },
+          '&[data-density="compact"]:last-child': {
+            styles: { "border-end-end-radius": "var(--action-corner)" },
+          },
+          '&[data-density="compact"][data-orientation="horizontal"]:first-child':
+            { styles: { "border-end-start-radius": "var(--action-corner)" } },
+          '&[data-density="compact"][data-orientation="vertical"]:last-child': {
+            styles: { "border-end-start-radius": "var(--action-corner)" },
+          },
+          '&[data-density="compact"][data-orientation="horizontal"]:last-child':
+            { styles: { "border-start-end-radius": "var(--action-corner)" } },
+          '&[data-density="compact"][data-orientation="vertical"]:first-child':
+            { styles: { "border-start-end-radius": "var(--action-corner)" } },
+          ...Object.fromEntries(
+            Object.entries(FIELD_BUTTON_CORNERS).map(([size, corner]) => [
+              `&[data-size="${size}"]`,
+              { styles: { "--action-corner": corner } },
+            ]),
+          ),
+        },
+      },
+    },
+  },
+  ActionButtonGroup: {
+    defaultVariant: "default",
+    defaultSize: "M",
+    containerStyles: {
+      display: "flex",
+      alignItems: "center",
+      width: "fit-content",
+      height: "fit-content",
+    },
+    variants: {
+      default: {
+        paint: {
+          backgroundColor: { default: "{color.transparent}" },
+          color: { default: "{color.neutral}" },
+        },
+      },
+    },
+    sizes: Object.fromEntries(
+      Object.entries(ACTION_CONTROL_SIZES).map(([size, rule]) => [
+        size,
+        {
+          fontSize: rule.fontSize,
+          borderRadius: 0,
+          height: 0,
+          gap: size === "XS" || size === "S" ? 4 : 8,
+        },
+      ]),
+    ),
+    structure: {
+      archetype: "default",
+      element: "div",
+      containerStyles: {
+        display: "flex",
+        alignItems: "center",
+        width: "fit-content",
+        height: "fit-content",
+      },
+      composition: {
+        delegation: [],
+        containerVariants: {
+          orientation: {
+            horizontal: { styles: { "flex-direction": "row" } },
+            vertical: { styles: { "flex-direction": "column" } },
+          },
+          density: { compact: { styles: { gap: "2px" } } },
+        },
+      },
+    },
+  },
   ToggleButton: {
     defaultVariant: "default",
     defaultSize: "M",
@@ -15294,73 +15521,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     // iconSize = 그 크기 글자의 행간 (ADR-295 Phase 3c — S2 ActionButton 계열 아이콘 `size: '1lh'`, Button 과 같다).
-    sizes: {
-      XS: {
-        paddingX: ofHeight(3, 8),
-        fontSize: "{typography.text-2xs}",
-        lineHeight: "{typography.text-2xs--line-height}",
-        fontWeight: 500,
-        borderRadius: "{radius.sm}",
-        borderWidth: "{border.width.thin}",
-        height: 0,
-        minHeight: "{size.height.XS}",
-        paddingY: 2,
-        gap: TEXT_TO_VISUAL,
-        iconSize: "{typography.text-2xs--line-height}",
-      },
-      S: {
-        paddingX: ofHeight(3, 8),
-        fontSize: "{typography.text-xs}",
-        lineHeight: "{typography.text-xs--line-height}",
-        fontWeight: 500,
-        borderRadius: 7,
-        borderWidth: "{border.width.thin}",
-        height: 0,
-        minHeight: "{size.height.S}",
-        paddingY: 3,
-        gap: TEXT_TO_VISUAL,
-        iconSize: "{typography.text-xs--line-height}",
-      },
-      M: {
-        paddingX: ofHeight(3, 8),
-        fontSize: "{typography.text-sm}",
-        lineHeight: "{typography.text-sm--line-height}",
-        fontWeight: 500,
-        borderRadius: 8,
-        borderWidth: "{border.width.thin}",
-        height: 0,
-        minHeight: "{size.height.M}",
-        paddingY: 6,
-        gap: TEXT_TO_VISUAL,
-        iconSize: "{typography.text-sm--line-height}",
-      },
-      L: {
-        paddingX: ofHeight(3, 8),
-        fontSize: "{typography.text-base}",
-        lineHeight: "{typography.text-base--line-height}",
-        fontWeight: 500,
-        borderRadius: 9,
-        borderWidth: "{border.width.thin}",
-        height: 0,
-        minHeight: "{size.height.L}",
-        paddingY: 9,
-        gap: TEXT_TO_VISUAL,
-        iconSize: "{typography.text-base--line-height}",
-      },
-      XL: {
-        paddingX: ofHeight(3, 8),
-        fontSize: "{typography.text-lg}",
-        lineHeight: "{typography.text-lg--line-height}",
-        fontWeight: 500,
-        borderRadius: 10,
-        borderWidth: "{border.width.thin}",
-        height: 0,
-        minHeight: "{size.height.XL}",
-        paddingY: 12,
-        gap: TEXT_TO_VISUAL,
-        iconSize: "{typography.text-lg--line-height}",
-      },
-    },
+    sizes: ACTION_CONTROL_SIZES,
     structure: {
       archetype: "button",
       element: "button",

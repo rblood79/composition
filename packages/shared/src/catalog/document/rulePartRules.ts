@@ -1604,6 +1604,7 @@ const TYPE_CONTAINER_VARIANT_AXES: Readonly<
   Record<string, Readonly<Record<string, string>>>
 > = {
   IllustratedMessage: { orientation: "orientation" },
+  ActionButtonGroup: { orientation: "orientation", density: "density" },
   // ADR-258 Phase 2: a ColorSlider's grid · track box per orientation (RAC's `data-orientation`).
   ColorSlider: { orientation: "orientation" },
   // (S2 AvatarGroup: the avatar overlap is a quarter of the group size.)

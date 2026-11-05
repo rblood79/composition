@@ -49,7 +49,7 @@ import {
   CATALOG_OVERFLOW_MODE_OWNERS,
   CATALOG_SIZE_PASS_THROUGH,
   CATALOG_SIZE_PROPAGATION,
-  CATALOG_TOGGLE_GROUP_OF,
+  CATALOG_SIZE_CONTEXT_OF,
 } from "../document/sizePropagation";
 import {
   CATALOG_EMPHASIS_FROM_GROUP,
@@ -386,6 +386,8 @@ export const CATALOG_TEXT_STYLE_CONTAINERS: ReadonlySet<string> = new Set([
   "Slot",
   "ToggleButtonGroup",
   "ButtonGroup",
+  "ActionButtonGroup",
+  "ActionButton",
   // ADR-276: a Button · ToggleButton's words are its Text child — its typography reaches them.
   "Button",
   "ToggleButton",
@@ -402,7 +404,8 @@ const TOGGLE_OWN_TEXT_DEFAULTS: ReadonlySet<string> = new Set([
   "whiteSpace",
 ]);
 const ownsTextDefault = (node: CatalogConsumerNode, key: string): boolean =>
-  (node.bindingId === "togglebutton" && TOGGLE_OWN_TEXT_DEFAULTS.has(key)) ||
+  (["togglebutton", "actionbutton"].includes(node.bindingId ?? "") &&
+    TOGGLE_OWN_TEXT_DEFAULTS.has(key)) ||
   // (A button is an atomic inline-level box: an ancestor's text-decoration stops at it.)
   ((node.bindingId === "button" || node.bindingId === "togglebutton") &&
     key === "textDecoration");
@@ -1474,6 +1477,7 @@ function styleOf(
     // S2 ToggleButtonGroup `isJustified`: its buttons divide the group's width equally (the
     // derived `_justified` — the DOM sheet's `flex-grow: 1 · flex-basis: 0`). Authored flex
     // values win (`itemLayout` comes after).
+    ...(node.derivedProps?._inActionGroup === true ? { flexShrink: 0 } : {}),
     ...(node.derivedProps?._justified === true
       ? { flexGrow: 1, flexBasis: "0px" }
       : {}),
@@ -5306,8 +5310,8 @@ export class CatalogCompositionRoot {
           });
         const reached = sized ? through(record.children) : [];
         // (A toggle group's size reaches every toggle of its own — at any depth in the group.)
-        const itemType = Object.keys(CATALOG_TOGGLE_GROUP_OF).find(
-          (item) => CATALOG_TOGGLE_GROUP_OF[item] === this.typeOf(record),
+        const itemType = Object.keys(CATALOG_SIZE_CONTEXT_OF).find(
+          (item) => CATALOG_SIZE_CONTEXT_OF[item] === this.typeOf(record),
         );
         if (itemType)
           for (const item of catalogToggleGroupItems(
@@ -5322,7 +5326,7 @@ export class CatalogCompositionRoot {
           if (
             child &&
             (sized?.includes(this.typeOf(child)) ||
-              CATALOG_TOGGLE_GROUP_OF[this.typeOf(child)] ===
+              CATALOG_SIZE_CONTEXT_OF[this.typeOf(child)] ===
                 this.typeOf(record)) &&
             !queued.has(childId)
           ) {

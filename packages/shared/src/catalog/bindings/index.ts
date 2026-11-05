@@ -22,6 +22,8 @@ import { badgeBinding } from "./Badge.binding";
 import { bodyBinding } from "./Body.binding";
 import { breadcrumbsBinding } from "./Breadcrumbs.binding";
 import { breadcrumbBinding } from "./Breadcrumb.binding";
+import { actionButtonBinding } from "./ActionButton.binding";
+import { actionButtonGroupBinding } from "./ActionButtonGroup.binding";
 import { buttonBinding } from "./Button.binding";
 import { buttonGroupBinding } from "./ButtonGroup.binding";
 import { calendarBinding } from "./Calendar.binding";
@@ -333,6 +335,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   //   (replace, label+separator). DOM=부모 Breadcrumbs self-compose(독립 노드 0). DELEGATING 불요.
   Breadcrumb: breadcrumbBinding,
   Button: buttonBinding,
+  ActionButton: actionButtonBinding,
+  ActionButtonGroup: actionButtonGroupBinding,
   Icon: iconBinding,
   IllustratedMessage: illustratedMessageBinding,
   Illustration: illustrationBinding,

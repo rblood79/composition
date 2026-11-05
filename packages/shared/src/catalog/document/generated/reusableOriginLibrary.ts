@@ -8,6 +8,42 @@ import type { LibraryDefinition, LibraryTemplateNode } from "../types";
 
 export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
   {
+    "id": "lib:definition:origin-component-actionbutton",
+    "name": "ActionButton",
+    "mode": "composite",
+    "accepts": {
+      "label": "string",
+      "icon": "string",
+      "size": "string",
+      "staticColor": "string",
+      "type": "string",
+      "isQuiet": "boolean",
+      "isDisabled": "boolean",
+      "isPending": "boolean"
+    },
+    "defaults": {
+      "label": "Action",
+      "size": "M",
+      "staticColor": "auto",
+      "type": "button",
+      "isQuiet": false,
+      "isPending": false
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-actionbutton"
+  },
+  {
+    "id": "lib:definition:origin-component-actionbuttongroup",
+    "name": "ActionButtonGroup",
+    "mode": "composite",
+    "accepts": {},
+    "defaults": {},
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-actionbuttongroup"
+  },
+  {
     "id": "lib:definition:origin-component-listbox-item-default",
     "name": "ListBoxItem/Selected",
     "mode": "composite",
@@ -1949,6 +1985,85 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
 ];
 
 export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
+  {
+    "id": "lib:template:component-actionbutton",
+    "definitionId": "lib:definition:type-ActionButton",
+    "children": [
+      "lib:template:component-actionbutton__icon",
+      "lib:template:component-actionbutton__label"
+    ],
+    "props": {
+      "size": "M",
+      "staticColor": "auto",
+      "type": "button",
+      "isQuiet": false,
+      "isPending": false
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-actionbutton__icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "slot": "icon",
+      "iconName": "{icon}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-actionbutton__label",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "slot": "label",
+      "children": "{label}"
+    },
+    "visual": {},
+    "presentWhen": "nonEmptyText"
+  },
+  {
+    "id": "lib:template:component-actionbuttongroup",
+    "definitionId": "lib:definition:type-ActionButtonGroup",
+    "children": [
+      "lib:template:component-actionbuttongroup__1",
+      "lib:template:component-actionbuttongroup__2"
+    ],
+    "props": {
+      "size": "M",
+      "orientation": "horizontal",
+      "density": "regular",
+      "isQuiet": false,
+      "isJustified": false,
+      "staticColor": "auto",
+      "aria-label": "Actions"
+    },
+    "visual": {},
+    "slot": {
+      "name": "Actions",
+      "required": false
+    }
+  },
+  {
+    "id": "lib:template:component-actionbuttongroup__1",
+    "definitionId": "lib:definition:origin-component-actionbutton",
+    "children": [],
+    "props": {
+      "label": "Copy",
+      "icon": "copy"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-actionbuttongroup__2",
+    "definitionId": "lib:definition:origin-component-actionbutton",
+    "children": [],
+    "props": {
+      "label": "Edit",
+      "icon": "pencil"
+    },
+    "visual": {}
+  },
   {
     "id": "lib:template:component-listbox-item-default",
     "definitionId": "lib:definition:type-ListBoxItem",

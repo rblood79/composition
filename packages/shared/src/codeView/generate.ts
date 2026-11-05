@@ -2818,7 +2818,9 @@ class Generator {
       const line = `import {${component}} from './components/${component}';`;
       if (!this.dataImports.includes(line)) this.dataImports.push(line);
     } else if (origin) this.import("react-aria-components", origin);
-    else if (type !== "div") this.import("react-aria-components", type);
+    else if (type === "ActionButton" || type === "ActionButtonGroup") {
+      this.import("@composition/shared/components", type);
+    } else if (type !== "div") this.import("react-aria-components", type);
     const attributes: { part: CodeWriter; target: CodeViewAnchorTarget }[] = [];
     const attribute = (
       name: string,

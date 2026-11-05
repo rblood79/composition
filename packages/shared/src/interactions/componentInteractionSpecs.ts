@@ -155,6 +155,7 @@ export const COMPONENT_INTERACTION_SPECS = {
 
   // ── press · file inputs ──────────────────────────────────────────────
   Button: { concepts: [{ concept: press }, ...POINTER] },
+  ActionButton: { concepts: [{ concept: press }, ...POINTER] },
   Link: { concepts: [{ concept: press }, ...POINTER] },
   FileTrigger: { concepts: [{ concept: fileSelect }] },
   DropZone: { concepts: [{ concept: dragDrop }, { concept: hover }] },
@@ -386,6 +387,7 @@ type PageRootProps = Pick<ButtonProps, "isDisabled"> &
 
 interface RacPropsOf {
   Button: ButtonProps;
+  ActionButton: ButtonProps;
   Link: LinkProps;
   FileTrigger: FileTriggerProps;
   DropZone: DropZoneProps;

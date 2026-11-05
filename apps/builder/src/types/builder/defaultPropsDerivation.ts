@@ -132,6 +132,8 @@ export const ENTRY_DERIVED_DEFAULT_TYPES: ReadonlySet<string> = new Set([
   "TokenField",
   "Sheet",
   "Button",
+  "ActionButton",
+  "ActionButtonGroup",
   "Badge",
   "Link",
   "ToggleButton",

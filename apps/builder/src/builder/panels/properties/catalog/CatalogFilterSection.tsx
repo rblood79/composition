@@ -1,3 +1,4 @@
+import { ActionButton } from "../../../components/ui/ActionButton";
 /**
  * ADR-284 Phase 3 — the filter entries of the Design panel's Property tab (Decision 7 — 기능 이름
  * 하나 = 동작 하나, 진입점 양쪽):
@@ -1092,9 +1093,9 @@ function SharedView({ listId }: { listId: NodeId }) {
   if (!info.shareable) return null;
   if (!sharing)
     return (
-      <Button className="control-button" onPress={() => setSharing(true)}>
+      <ActionButton className="control-button" onPress={() => setSharing(true)}>
         {t("dataView.shareView")}
-      </Button>
+      </ActionButton>
     );
   return (
     <div className="data-view-add-form">

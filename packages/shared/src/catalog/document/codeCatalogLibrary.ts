@@ -922,7 +922,7 @@ function handOrRuleDefinition(type: string): LibraryDefinition {
     "light",
     new Map<LibraryTokenId, LibraryToken>(),
   );
-  return type === "ToggleButton"
+  return type === "ToggleButton" || type === "ActionButton"
     ? withButtonChildScale(definition)
     : definition;
 }
@@ -958,7 +958,7 @@ export async function buildCodeCatalogLibrary(
           ? selectValueDefinition(theme, tokens)
           : type === "Icon" || type === "Illustration"
             ? glyphDefinition(type, theme, tokens)
-            : type === "ToggleButton"
+            : type === "ToggleButton" || type === "ActionButton"
               ? withButtonChildScale(ruleTypeDefinition(type, theme, tokens))
               : ruleTypeDefinition(type, theme, tokens);
     });

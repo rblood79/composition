@@ -1,7 +1,4 @@
-import {
-  Button as RACButton,
-  type ButtonProps as RACButtonProps,
-} from "react-aria-components/Button";
+import { ActionButton, type ActionButtonProps } from "./ActionButton";
 import {
   ToggleButton as RACToggleButton,
   type ToggleButtonProps as RACToggleButtonProps,
@@ -14,47 +11,19 @@ import "./ActionIconButton.css";
 // ActionIconButton (press action)
 // ---------------------------------------------------------------------------
 
-export interface ActionIconButtonProps extends Omit<
-  RACButtonProps,
-  "className"
-> {
-  /** Plain tooltip text (no shortcut) */
-  tooltip?: string;
-  /** Shortcut ID — shows description + key combo in tooltip */
-  shortcutId?: ShortcutId;
-  /** Tooltip placement */
-  tooltipPlacement?: "top" | "bottom" | "left" | "right";
-  /** Additional CSS class */
-  className?: string;
-}
+export type ActionIconButtonProps = ActionButtonProps;
 
 export function ActionIconButton({
-  tooltip,
-  shortcutId,
-  tooltipPlacement = "bottom",
   className,
-  children,
   ...props
 }: ActionIconButtonProps) {
-  const button = (
-    <RACButton
+  return (
+    <ActionButton
       {...props}
       className={
         className ? `action-icon-button ${className}` : "action-icon-button"
       }
-    >
-      {children}
-    </RACButton>
-  );
-
-  return (
-    <ActionTooltipTrigger
-      tooltip={tooltip}
-      shortcutId={shortcutId}
-      tooltipPlacement={tooltipPlacement}
-    >
-      {button}
-    </ActionTooltipTrigger>
+    />
   );
 }
 

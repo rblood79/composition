@@ -148,7 +148,7 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 55 — RAC TokenField · PreviewTrigger · Sheet families and reusable origins.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 55 as const;
+export const LIBRARY_CONTRACT_VERSION = 56 as const;
 
 export type EntryKind =
   | "project"

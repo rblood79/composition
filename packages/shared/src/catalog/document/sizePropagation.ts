@@ -39,6 +39,7 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   Record<string, readonly string[]>
 > = {
   ToggleButtonGroup: ["ToggleButton"],
+  ActionButtonGroup: ["ActionButton"],
   // ADR-251: group → items wrapper (internal `size`, never edited) → item.
   RadioGroup: ["RadioItems", ...FIELD_PARTS],
   RadioItems: ["Radio"],
@@ -116,6 +117,12 @@ export const CATALOG_TOGGLE_GROUP_OF: Readonly<Record<string, string>> = {
   Checkbox: "CheckboxGroup",
   Radio: "RadioGroup",
   ToggleButton: "ToggleButtonGroup",
+};
+
+/** 선택 여부와 무관하게, 가장 가까운 그룹의 크기를 받는 control. */
+export const CATALOG_SIZE_CONTEXT_OF: Readonly<Record<string, string>> = {
+  ...CATALOG_TOGGLE_GROUP_OF,
+  ActionButton: "ActionButtonGroup",
 };
 
 /**

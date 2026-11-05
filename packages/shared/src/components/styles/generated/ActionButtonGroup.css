@@ -1,0 +1,84 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog ActionButtonGroup — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: default
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-ActionButtonGroup {
+  /* Base styles — archetype: default */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  width: fit-content;
+  height: fit-content;
+  display: flex;
+  align-items: center;
+
+  /* Default size */
+  font-size: var(--catalog-token-text-sm);
+  border-radius: 0;
+  gap: 8px;
+}
+
+.react-aria-ActionButtonGroup {
+  color: var(--fg);
+}
+
+.react-aria-ActionButtonGroup[data-size="XS"] {
+  font-size: var(--catalog-token-text-2xs);
+  border-radius: 0;
+  gap: 4px;
+}
+
+.react-aria-ActionButtonGroup[data-size="S"] {
+  font-size: var(--catalog-token-text-xs);
+  border-radius: 0;
+  gap: 4px;
+}
+
+.react-aria-ActionButtonGroup[data-size="M"] {
+  font-size: var(--catalog-token-text-sm);
+  border-radius: 0;
+  gap: 8px;
+}
+
+.react-aria-ActionButtonGroup[data-size="L"] {
+  font-size: var(--catalog-token-text-base);
+  border-radius: 0;
+  gap: 8px;
+}
+
+.react-aria-ActionButtonGroup[data-size="XL"] {
+  font-size: var(--catalog-token-text-lg);
+  border-radius: 0;
+  gap: 8px;
+}
+
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-ActionButtonGroup[data-orientation="horizontal"] {
+  flex-direction: row;
+}
+
+.react-aria-ActionButtonGroup[data-orientation="vertical"] {
+  flex-direction: column;
+}
+
+.react-aria-ActionButtonGroup[data-density="compact"] {
+  gap: 2px;
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-ActionButtonGroup {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */

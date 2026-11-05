@@ -20,6 +20,8 @@
    ComponentList.css 는 여기 없다 — builder 의 panels/components/ComponentList.tsx 가 직접 싣는다. */
 @import "./Skeleton.css";
 @import "./Button.css";
+@import "./generated/ActionButton.css";
+@import "./generated/ActionButtonGroup.css";
 @import "./generated/Slider.css";
 @import "./generated/ToggleButton.css";
 @import "./ToggleButton.css";

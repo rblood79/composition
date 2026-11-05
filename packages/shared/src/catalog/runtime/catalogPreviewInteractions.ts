@@ -38,7 +38,7 @@ import {
   catalogSelectValue,
   CATALOG_OPEN_BODY_TYPES,
 } from "./runtimeStateProps";
-import { catalogToggleGroupOf } from "./presence";
+import { catalogActionButtonGroupOf, catalogToggleGroupOf } from "./presence";
 import { catalogInteractionAppliesTo } from "../resolution/effectiveInteractions";
 import { catalogAncestorInherited } from "./inheritedProps";
 import {
@@ -627,11 +627,20 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         const root = options.root();
         const record = root?.domInputs.get(id);
         if (!root || !record) return {};
-        const group = catalogToggleGroupOf(
+        const toggleGroup = catalogToggleGroupOf(
           record,
           (recordId) => root.domInputs.get(recordId),
           (node) => catalogTypeName(root, node),
         );
+        const actionGroup =
+          catalogTypeName(root, record) === "ActionButton"
+            ? catalogActionButtonGroupOf(
+                record,
+                (id) => root.domInputs.get(id),
+                (node) => catalogTypeName(root, node),
+              )
+            : undefined;
+        const group = toggleGroup ?? actionGroup;
         const groupProps = group
           ? { ...group.props, ...this.overrideOf(group.id) }
           : undefined;
@@ -648,7 +657,12 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         const hostFlag = (flag: "isDisabled" | "isReadOnly") =>
           takes.includes(flag) && fromHosts[flag] === true;
         const inherited = {
-          isDisabled: groupProps?.isDisabled === true || hostFlag("isDisabled"),
+          isDisabled:
+            (groupProps?.isDisabled === true &&
+              (!actionGroup ||
+                (this.overrideOf(record.id)?.isDisabled ??
+                  record.props.isDisabled) !== false)) ||
+            hostFlag("isDisabled"),
           isReadOnly: groupProps?.isReadOnly === true || hostFlag("isReadOnly"),
         };
         return {

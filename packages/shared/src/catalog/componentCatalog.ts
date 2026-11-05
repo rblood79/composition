@@ -91,6 +91,16 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "button",
     icon: "MousePointer",
   }),
+  primitiveEntry("ActionButton", "primitives", FAMILY_1_CUTOVER, {
+    category: "buttons",
+    label: "action button",
+    icon: "MousePointer",
+  }),
+  primitiveEntry("ActionButtonGroup", "primitives", FAMILY_1_CUTOVER, {
+    category: "buttons",
+    label: "action button group",
+    icon: "GroupIcon",
+  }),
   primitiveEntry("ToggleButton", "primitives", FAMILY_1_CUTOVER, {
     category: "buttons",
     label: "toggle button",
@@ -1492,6 +1502,8 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "CardView",
   // buttons
   "Button",
+  "ActionButton",
+  "ActionButtonGroup",
   "ToggleButton",
   "ToggleButtonGroup",
   "ButtonGroup",

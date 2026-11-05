@@ -54,6 +54,7 @@ import {
 import { Heading, Label, Text } from "react-aria-components";
 import { TableLoadMoreItem } from "react-aria-components/Table";
 
+import { ActionButton } from "../../components/ActionButton";
 import { Button } from "../../components/Button";
 
 import { ContextualHelpButton } from "../../components/ContextualHelp";
@@ -585,6 +586,10 @@ export function catalogDomStyle(
   const isText = textBindings.has(node.bindingId ?? "");
   const style: CSSProperties = {
     boxSizing: "border-box",
+    ...(node.derivedProps?._inActionGroup === true ? { flexShrink: 0 } : {}),
+    ...(node.derivedProps?._justified === true
+      ? { flexGrow: 1, flexBasis: "0px" }
+      : {}),
     display: box.display,
     ...(box.flexDirection
       ? { flexDirection: box.flexDirection as CSSProperties["flexDirection"] }
@@ -1025,6 +1030,31 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       },
       String(node.props.children ?? ""),
     ),
+  actionbutton: (node, style, children) =>
+    createElement(RacSlotScope, {
+      key: node.id,
+      context: "Button",
+      authored: node.props.slot,
+      render: (resolution: RacSlotResolution) =>
+        createElement(
+          ActionButton,
+          {
+            "data-catalog-id": node.id,
+            "data-icon-only": node.derivedProps?._actionIconOnly || undefined,
+            size: node.props.size,
+            staticColor: node.props.staticColor,
+            isQuiet: node.props.isQuiet,
+            type: node.props.type,
+            isPending: node.props.isPending,
+            autoFocus: node.props.autoFocus,
+            isDisabled: buttonDisabled(node) || node.props.isDisabled,
+            ...racSlotProps(resolution),
+            style,
+          } as Parameters<typeof ActionButton>[0],
+          ...children,
+          typeof node.props.children === "string" ? node.props.children : null,
+        ),
+    }),
   button: (node, style, children) =>
     createElement(RacSlotScope, {
       key: node.id,
@@ -3636,9 +3666,10 @@ export function renderNode(
   // 후속), not the rule's pill and 1px: the same rest values the Canvas paints (`catalogDerivedRestVisual`). The record's pill went inline
   // and beat the sheet's `[data-field-button]` block — Select trigger · NumberField stepper ·
   // Pagination were pills in the Preview (2026-10-30 live).
-  const rest = node.derivedProps?.fieldButton
-    ? catalogDerivedRestVisual(root, node)
-    : undefined;
+  const rest =
+    node.derivedProps?.fieldButton || node.bindingId === "actionbutton"
+      ? catalogDerivedRestVisual(root, node)
+      : undefined;
   const stepper: CatalogConsumerNode = rest
     ? {
         ...fieldBox,
@@ -3767,7 +3798,11 @@ export function renderNode(
           (entry) => catalogTypeName(root, entry),
         )
       : undefined;
-  if (bound && node.bindingId === "button" && !helpOwner) {
+  if (
+    bound &&
+    (node.bindingId === "button" || node.bindingId === "actionbutton") &&
+    !helpOwner
+  ) {
     const partField = catalogPartField(root, node);
     const fieldDisabled =
       partField !== undefined &&
@@ -3816,6 +3851,14 @@ export function renderNode(
     } else if (fieldDisabled && node.props.isDisabled !== true)
       bound.opacity = 1;
   }
+  // Compact의 개별 코너는 생성 CSS가 담당한다. 기본 radius를 inline으로 덮지 않는다.
+  if (
+    bound &&
+    node.bindingId === "actionbutton" &&
+    node.derivedProps?.density === "compact" &&
+    catalogAuthoredVisual(root, node).borderRadius === undefined
+  )
+    delete bound.borderRadius;
   // A TreeItem's chevron button (ADR-256 Phase 5h) is the reference's plain RAC Button: `Tree.css`
   // gives its box (`all: unset` · 20px · the level indent), so only what the document wrote goes
   // inline — not the Button type's resolved box, which would override the sheet.

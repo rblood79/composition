@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { Menu, MenuItem, MenuTrigger } from "react-aria-components/Menu";
 import { Popover } from "react-aria-components/Popover";
-import { Button, Toolbar } from "@composition/shared/components";
+import { ActionButton, ActionButtonGroup } from "../../ui/ActionButton";
 import { useI18n } from "@/i18n";
 import { focusCanvasContainer } from "../../../hooks/useActiveScope";
 import type { ContextMenuItem } from "../contextMenu/types";
@@ -80,7 +80,7 @@ function ItemIcon({ item }: { item: ContextMenuItem }) {
   return <Icon size={ICON_SIZE} aria-hidden="true" />;
 }
 
-const ActionButton = memo(function ActionButton({
+const ActionBarItem = memo(function ActionBarItem({
   item,
 }: {
   item: ContextMenuItem;
@@ -88,8 +88,7 @@ const ActionButton = memo(function ActionButton({
   const label = useItemLabel(item);
   if (item.kind !== "action" && item.kind !== "toggle") return null;
   const button = (
-    <Button
-      variant="ghost"
+    <ActionButton
       size="S"
       className="contextual-action-bar-item"
       aria-label={label}
@@ -99,7 +98,7 @@ const ActionButton = memo(function ActionButton({
       }}
     >
       <ItemIcon item={item} />
-    </Button>
+    </ActionButton>
   );
   if (!item.shortcutId) return button;
   return (
@@ -130,8 +129,7 @@ function AlignPopover({
   );
   return (
     <MenuTrigger>
-      <Button
-        variant="ghost"
+      <ActionButton
         size="S"
         className="contextual-action-bar-item"
         data-context="multi"
@@ -140,7 +138,7 @@ function AlignPopover({
       >
         <ItemIcon item={item} />
         <ChevronDown size={12} aria-hidden="true" />
-      </Button>
+      </ActionButton>
       <Popover
         placement="top"
         offset={6}
@@ -179,15 +177,14 @@ const OptionsMenu = memo(function OptionsMenu({
   const PinIcon = pinned ? PinOff : Pin;
   return (
     <MenuTrigger>
-      <Button
-        variant="ghost"
+      <ActionButton
         size="S"
         className="contextual-action-bar-item"
         aria-label={t("actionBar.options")}
         preventFocusOnPress
       >
         <EllipsisVertical size={ICON_SIZE} aria-hidden="true" />
-      </Button>
+      </ActionButton>
       <Popover
         placement="top end"
         offset={6}
@@ -303,7 +300,7 @@ export function ActionBarView({
       >
         <GripVertical size={MENU_ICON_SIZE} />
       </span>
-      <Toolbar
+      <ActionButtonGroup
         aria-label={t("actionBar.ariaLabel")}
         className="contextual-action-bar-toolbar"
       >
@@ -311,7 +308,7 @@ export function ActionBarView({
           item.kind === "submenu" ? (
             <AlignPopover key={item.id} item={item} />
           ) : (
-            <ActionButton key={item.id} item={item} />
+            <ActionBarItem key={item.id} item={item} />
           ),
         )}
         {visibleModel && (
@@ -320,8 +317,7 @@ export function ActionBarView({
             aria-hidden="true"
           />
         )}
-        <Button
-          variant="ghost"
+        <ActionButton
           size="S"
           className="contextual-action-bar-item"
           aria-label={t("actionBar.more")}
@@ -329,9 +325,9 @@ export function ActionBarView({
           onPress={(event) => openOverflow(event.target)}
         >
           <MoreHorizontal size={ICON_SIZE} aria-hidden="true" />
-        </Button>
+        </ActionButton>
         <OptionsMenu pinned={placement.pinned} onAction={onOption} />
-      </Toolbar>
+      </ActionButtonGroup>
     </div>
   );
 }

@@ -90,7 +90,10 @@ export const RAC_PROVIDER_CHECK = [
 export const CATALOG_INHERITED_RECEIVERS: ReadonlyMap<
   string,
   readonly CatalogInheritedFlag[]
-> = new Map(RAC_PROVIDER_CHECK.map((row) => [row.type, row.props]));
+> = new Map([
+  ...RAC_PROVIDER_CHECK.map((row) => [row.type, row.props] as const),
+  ["ActionButton", ["isDisabled"]],
+]);
 
 /** The `Provider` values for the inherited flags in force (only the contexts that take one). */
 export function catalogProviderValues(

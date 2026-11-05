@@ -1045,6 +1045,15 @@ function ruleNodeData(
     rect,
     catalogRuleTextColor(input),
   );
+  if (catalogButtonPending(root.typeOf(node), node.props))
+    content.push(
+      ...pendingCircleData(
+        node,
+        rect,
+        rgba(catalogRuleTextColor(input) ?? "#000000"),
+      ),
+    );
+
   return {
     ...data,
     ...(content.length

@@ -20,6 +20,7 @@ const RAC_PART_OF_TYPE: Readonly<Record<string, string>> = {
   Switch: "SwitchField",
   Radio: "RadioField",
   TextArea: "TextField",
+  ActionButton: "Button",
 };
 
 /**
@@ -67,7 +68,11 @@ export function mapNodeRefIds<T extends CatalogNodeRef | { unset: true }>(
 ): T {
   const node = (id: string) =>
     (id.startsWith("project:node:") ? map(id as NodeId) : id) as never;
-  const steps = (value: InstanceAddress | { instances: readonly string[]; templatePath: readonly string[] }) => ({
+  const steps = (
+    value:
+      | InstanceAddress
+      | { instances: readonly string[]; templatePath: readonly string[] },
+  ) => ({
     instances: value.instances.map(node),
     templatePath: value.templatePath.map(node),
   });

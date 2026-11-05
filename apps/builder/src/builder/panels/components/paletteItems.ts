@@ -269,6 +269,8 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "CardView", source: "catalog" },
   { type: "Slot", source: "catalog" },
   { type: "Button", source: "catalog" },
+  { type: "ActionButton", source: "catalog" },
+  { type: "ActionButtonGroup", source: "catalog" },
   { type: "ToggleButton", source: "catalog" },
   { type: "ToggleButtonGroup", source: "catalog" },
   { type: "Toolbar", source: "catalog" },
