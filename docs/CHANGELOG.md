@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Picker 항목 — 중복 왼쪽 여백 제거] - 2026-11-06
+
+### Fixed
+
+- Select single/multiple과 ComboBox의 실제 선택 부품 행에 남아 있던 24px pseudo-check 여백을 제거한다. S/M/L/XL 바깥 여백은 catalog size 값 9/12/15/18px을 한 번만 적용하며, 아이콘은 저작 Layout을 따른다. Canvas/Preview 행 기준 체크·라벨 좌표와 사용자 padding 편집·Undo를 브라우저 회귀로 고정한다.
+
+## [목록 선택 표시 — S2 라벨 행 및 공간 유지] - 2026-11-05
+
+### Breaking Changes
+
+- **Catalog library contract 60**: MenuItem에 실제 선택 Icon/Checkbox 부품을 추가한다. 이전 계약의 개발 프로젝트는 기존 정책에 따라 거부한다.
+
+### Fixed
+
+- Select single·multiple, ComboBox, 선택 가능한 Menu의 선택 부품을 첫 번째 라벨 행에 배치하고 설명은 다음 행에 둔다. 미선택 single 체크는 공간을 유지하며 표시만 숨긴다. 앞선 Select의 전체 높이 중앙 배치 결정을 S2 라벨 행 계약으로 대체한다.
+- ComboBox의 선택 부품 제외를 제거하고 Menu의 점/문자 글리프를 실제 Check Icon·Checkbox로 교체한다. Canvas의 선택 표시 갱신과 Preview의 RAC 선택 상태가 같은 항목을 읽는다. ComboBox도 저장한 항목의 `Selected`를 초기 선택값으로 복원한다.
+
 ## [Select 선택 부품 — 모드별 Layers 및 Selected 편집 정합] - 2026-11-05
 
 ### Fixed

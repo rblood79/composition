@@ -74,6 +74,7 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   // ADR-295 Phase 3c-3c ③: S2 Menu `size` is its items' (S2 MenuItem has none — the Menu context): the
   //   item's control height · font, and its label · description text (the MenuItem rule's `sizeSelectors`).
   Menu: ["MenuItem"],
+  MenuItem: ["Checkbox"],
   // (A calendar has no size — 사용자 2026-10-13: its month blocks follow its width, its header is
   //   fixed — `CalendarCommon.css` · `manualBoxRules`.)
   // ADR-253: a field's parts (`FIELD_PARTS`).

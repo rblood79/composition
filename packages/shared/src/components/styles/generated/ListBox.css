@@ -198,8 +198,11 @@
   }
 
   .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem {
-    padding: calc((var(--spacing-2xl) - 1lh) / 2) var(--spacing-md) calc((var(--spacing-2xl) - 1lh) / 2) var(--spacing-xl);
     font-weight: 500;
+  }
+
+  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem:not([data-selection-mark]) {
+    padding: calc((var(--spacing-2xl) - 1lh) / 2) var(--spacing-md) calc((var(--spacing-2xl) - 1lh) / 2) var(--spacing-xl);
   }
 
   .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem[data-selected]:not([data-selection-mark])::before {
@@ -236,11 +239,11 @@
     color: inherit;
   }
 
-  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem [slot="icon"] {
+  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem:not([data-selection-mark]) [slot="icon"] {
     left: var(--spacing-xl);
   }
 
-  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem:has([slot="icon"]) {
+  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem:not([data-selection-mark]):has([slot="icon"]) {
     padding-left: calc(var(--spacing-xl) + var(--lb-icon-size, 16px) + 6px);
   }
 

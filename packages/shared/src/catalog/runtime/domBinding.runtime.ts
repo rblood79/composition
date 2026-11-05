@@ -1,4 +1,7 @@
-import { catalogPickerSelectionHidden } from "./pickerSelection";
+import {
+  catalogPickerSelectionHidden,
+  catalogPickerSelectionItem,
+} from "./pickerSelection";
 import {
   CatalogPickerValueContent,
   CatalogPickerSelectionSlot,
@@ -236,6 +239,7 @@ import { racSlotProps, type RacSlotResolution } from "./racSlot";
 import { RacSlotScope } from "./racSlotScope";
 
 import {
+  catalogValueGate,
   catalogStateChildren,
   type CatalogDomStateCondition,
 } from "./stateFrames";
@@ -2881,8 +2885,6 @@ function ruleDom(
           ]
         : content),
   );
-  if (lower === "icon" && node.props.slot === "selection")
-    return createElement(CatalogPickerSelectionSlot, { children: element });
   // Preview `hostOrphanRadio` / `hostOrphanCollectionItem`: RAC items need their host.
   if (lower === "radio" && collection !== "radiogroup")
     return createElement(
@@ -3007,10 +3009,17 @@ function hasSelectionMark(
   return node.children.some((id) => {
     const child = root.domInputs.get(id);
     return (
-      !!child?.showWhen &&
-      catalogStateConditions(child.showWhen).some(
-        (condition) => condition.key === "isSelected" && !condition.not,
-      )
+      !!child &&
+      !catalogPickerSelectionHidden(
+        child,
+        (id) => root.domInputs.get(id),
+        root.typeOf,
+      ) &&
+      (child.props.slot === "selection" ||
+        (!!child?.showWhen &&
+          catalogStateConditions(child.showWhen).some(
+            (condition) => condition.key === "isSelected" && !condition.not,
+          )))
     );
   });
 }
@@ -4055,6 +4064,29 @@ export function renderNode(
           ...(node.htmlId ? {} : { id: catalogFieldPrefixDomId(node) }),
         })
       : named;
+  const selectionItem =
+    node.bindingId === "icon"
+      ? catalogPickerSelectionItem(node, domGet, domType)
+      : undefined;
+  if (selectionItem)
+    return createElement(CatalogPickerSelectionSlot, {
+      children: catalogValueGate(
+        node.id,
+        { isSelected: selectionItem.id },
+        (read) =>
+          cloneElement(
+            element as ReactElement<{ slot?: string; style?: CSSProperties }>,
+            {
+              slot: "selection",
+              style: {
+                ...(element.props as { style?: CSSProperties }).style,
+                visibility:
+                  read("isSelected").value === true ? "visible" : "hidden",
+              },
+            },
+          ),
+      ),
+    });
   // A sortable Column's sort indicator follows its name Group (G5 example 11 — the reference's
   // `span.sort-indicator`, `catalogColumnSortNameGroup`).
   return catalogColumnSortNameGroup(node, domGet, domType)

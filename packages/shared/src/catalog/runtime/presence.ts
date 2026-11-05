@@ -539,7 +539,7 @@ function catalogSelectionCheckboxes(
 ): CatalogConsumerNode[] {
   if (
     !RAC_SLOT_PROVIDERS[typeOf(item)]?.Checkbox &&
-    typeOf(item) !== "ListBoxItem"
+    !["ListBoxItem", "MenuItem"].includes(typeOf(item))
   )
     return [];
   return partChildrenOf(item, get, typeOf)
@@ -2077,6 +2077,10 @@ export function catalogDerivedProps(
         )
       );
     });
+  const selectionItem =
+    typeOf(node) === "Icon"
+      ? catalogPickerSelectionItem(node, get, typeOf)
+      : undefined;
   const pickerPart =
     picker && ["Button", "SelectValue", "Icon"].includes(typeOf(node))
       ? {
@@ -2096,6 +2100,16 @@ export function catalogDerivedProps(
     ...stuck,
     ...(fieldButton ? { fieldButton } : {}),
     ...pickerPart,
+    ...(selectionItem
+      ? {
+          _selectionMarkHidden: !catalogStateValue(
+            selectionItem,
+            "isSelected",
+            get,
+            typeOf,
+          ),
+        }
+      : {}),
     ...(optionOwner
       ? {
           _pickerOption: !authoredOptionMark,
@@ -2793,6 +2807,10 @@ export function catalogDerivedPropsDependents(
       ...catalogSelectionIndicators(item, get, typeOf),
       // (its selection checkboxes — the item's selection and selectability, Phase 5f)
       ...catalogSelectionCheckboxes(item, get, typeOf),
+      ...partChildrenOf(item, get, typeOf).filter(
+        (child) =>
+          catalogPickerSelectionItem(child, get, typeOf)?.id === item.id,
+      ),
       // (its chevron glyph — the item's expansion turns it, Phase 5h)
       ...catalogTreeChevrons(item, get, typeOf).filter((glyph) =>
         catalogTreeChevronGlyphItem(glyph, get, typeOf),
@@ -3708,7 +3726,8 @@ export function catalogStateDependents(
     return out;
   const visit = (record: CatalogConsumerNode) => {
     for (const child of childrenOf(record, get)) {
-      if (child.showWhen) out.push(child);
+      if (child.showWhen || catalogPickerSelectionItem(child, get, typeOf))
+        out.push(child);
       visit(child);
     }
   };

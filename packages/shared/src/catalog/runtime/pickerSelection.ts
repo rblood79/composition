@@ -3,12 +3,24 @@ import type { CatalogConsumerNode } from "./compositionRoot";
 type Lookup = (id: string) => CatalogConsumerNode | undefined;
 type TypeOf = (node: CatalogConsumerNode) => string;
 
-/** Popover를 넘어가는 Select의 목록 상태. 중첩된 다른 collection의 항목은 제외한다. */
+/** 선택 부품의 소유자: Select/ComboBox의 Popover 또는 가장 가까운 Menu. */
 export function catalogPickerOfOption(
   node: CatalogConsumerNode,
   get: Lookup,
   typeOf: TypeOf,
 ) {
+  if (typeOf(node) === "MenuItem") {
+    for (
+      let parent = get(node.parentId);
+      parent;
+      parent = get(parent.parentId)
+    ) {
+      if (typeOf(parent) === "Menu") return parent;
+      if (!["MenuSection", "SubmenuTrigger"].includes(typeOf(parent)))
+        return undefined;
+    }
+    return undefined;
+  }
   if (typeOf(node) !== "ListBoxItem") return undefined;
   let listSeen = false;
   for (let parent = get(node.parentId); parent; parent = get(parent.parentId)) {
@@ -17,8 +29,9 @@ export function catalogPickerOfOption(
       if (listSeen) return undefined;
       listSeen = true;
     }
-    if (type === "Select") return listSeen ? parent : undefined;
-    if (["ComboBox", "Menu", "Dialog"].includes(type)) return undefined;
+    if (["Select", "ComboBox"].includes(type))
+      return listSeen ? parent : undefined;
+    if (["Menu", "Dialog"].includes(type)) return undefined;
   }
   return undefined;
 }
@@ -43,7 +56,7 @@ export function catalogPickerOptions(
   return items;
 }
 
-/** Select 옵션의 실제 selection 슬롯. RAC의 Checkbox context와는 별도인 표시 계약이다. */
+/** 목록 항목의 실제 selection 부품. 선택 동작은 RAC 항목이 소유한다. */
 export function catalogPickerSelectionItem(
   node: CatalogConsumerNode,
   get: Lookup,
@@ -55,7 +68,7 @@ export function catalogPickerSelectionItem(
   )
     return undefined;
   for (let parent = get(node.parentId); parent; parent = get(parent.parentId)) {
-    if (typeOf(parent) === "ListBoxItem") return parent;
+    if (["ListBoxItem", "MenuItem"].includes(typeOf(parent))) return parent;
     if (
       ["Checkbox", "ListBox", "GridListItem", "TreeItem", "Row"].includes(
         typeOf(parent),
@@ -74,7 +87,19 @@ export function catalogPickerSelectionHidden(
   const item = catalogPickerSelectionItem(node, get, typeOf);
   if (!item) return false;
   const picker = catalogPickerOfOption(item, get, typeOf);
-  return typeOf(node) === "Checkbox"
-    ? picker?.props.selectionMode !== "multiple"
-    : !picker || picker.props.selectionMode === "multiple";
+  if (!picker) return true;
+  const parent = get(item.parentId);
+  if (parent && typeOf(parent) === "SubmenuTrigger") return true;
+  const mode =
+    typeOf(picker) === "ComboBox"
+      ? "single"
+      : (picker.props.selectionMode ??
+        (typeOf(picker) === "Menu" ? "none" : "single"));
+  if (mode === "none") return true;
+  if (
+    typeOf(item) === "ListBoxItem" &&
+    (item.props.href || (typeOf(picker) === "ComboBox" && item.props.onAction))
+  )
+    return true;
+  return (typeOf(node) === "Checkbox") !== (mode === "multiple");
 }

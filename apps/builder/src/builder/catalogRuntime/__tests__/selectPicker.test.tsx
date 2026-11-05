@@ -1,3 +1,7 @@
+import { catalogRuntimeStateOf } from "../../../../../../packages/shared/src/catalog/runtime/runtimeStateProps";
+import { catalogPickerSelectionHidden } from "../../../../../../packages/shared/src/catalog/runtime/pickerSelection";
+import { REUSABLE_ORIGIN_TEMPLATES } from "../../../../../../packages/shared/src/catalog/document/generated/reusableOriginLibrary";
+import { selectionItemTemplates } from "../../../../../../packages/shared/src/catalog/document/selectionItemTemplates";
 import { WorkspaceContext } from "../react.runtime";
 import { CATALOG_FIELD_VALUE_SOURCE } from "../../panels/properties/catalog/catalogFieldValueSource";
 import { CatalogLayerTreeStore, type CatalogLayerNode } from "../layerTree";
@@ -16,7 +20,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { resolveToken } from "@composition/rendering";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
-import { setFields } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  setFields,
+  setWholeField,
+} from "../../../../../../packages/shared/src/catalog/commands";
 import type {
   EntryId,
   NodeId,
@@ -598,48 +605,92 @@ it("Selected 필드의 단일 값과 chip 구독은 Checkbox가 아닌 옵션의
   workspace.dispose();
 });
 
-it.each([undefined, 80])(
-  "single check Icon은 높이(%s)에서 선택 열 중앙에 배치하고 음수 margin을 더하지 않는다",
-  async (height) => {
-    const { workspace } = await fixture("Select", { isOpen: true });
+it.each(["Select", "ComboBox", "Menu"])(
+  "%s single: 체크 공간은 미선택에도 유지하고 설명 위 라벨 행에 정렬한다",
+  async (type) => {
+    const { workspace } = await fixture(type, {
+      isOpen: true,
+      ...(type === "ComboBox" ? {} : { selectionMode: "single" }),
+    });
     try {
-      const item = [...workspace.root.canvasInputs.values()].find(
-        (node) => node.ruleId === "ListBoxItem",
+      const root = workspace.root;
+      const item = [...root.canvasInputs.values()].find((n) =>
+        ["ListBoxItem", "MenuItem"].includes(root.typeOf(n)),
       )!;
+      const check = item.children
+        .map((id) => root.canvasInputs.get(id)!)
+        .find(
+          (n) => n.props.slot === "selection" && root.typeOf(n) === "Icon",
+        )!;
+      const label = item.children
+        .map((id) => root.canvasInputs.get(id)!)
+        .find((n) => n.props.slot === "label")!;
+      const labelTarget = workspace.itemOfRecord(label.id)!.target;
+      if (labelTarget.kind !== "descendant")
+        throw new Error("template label expected");
+      const descriptionTarget = {
+        ...labelTarget,
+        address: {
+          ...labelTarget.address,
+          templatePath: labelTarget.address.templatePath.map(
+            (id) => id.replace(/__label$/, "__description") as typeof id,
+          ),
+        },
+      };
       workspace.execute(
-        setFields({
-          targets: [workspace.itemOfRecord(item.id)!.target],
-          props: { isSelected: { kind: "set", value: true } },
-          ...(height === undefined
-            ? {}
-            : { visual: { height: { kind: "set", value: height } } }),
+        setWholeField({
+          targets: [descriptionTarget],
+          field: "enabled",
+          value: true,
         }),
       );
-      const check = item.children
-        .map((id) => workspace.root.canvasInputs.get(id)!)
-        .find(
-          (node) =>
-            node.props.slot === "selection" &&
-            workspace.root.typeOf(node) === "Icon",
-        )!;
-      const boxes = workspace.root.getGeometry([item.id, check.id]);
-      const itemBox = boxes.get(item.id)!;
-      const checkBox = boxes.get(check.id)!;
-      // The shared Popover CSS translates the glyph by half its own height.
-      expect(checkBox.y).toBeCloseTo(itemBox.height / 2);
-      expect(checkBox.x).toBeCloseTo(4 + (24 - checkBox.width) / 2);
-      if (height !== undefined) expect(itemBox.height).toBe(height);
-      const select = [...workspace.root.domInputs.values()].find(
-        (node) => node.ruleId === "Select",
-      )!;
-      const view = render(renderCatalogDom(workspace.root, select.id));
-      const mark = document.querySelector<HTMLElement>(
-        '[role="option"] .react-aria-Icon[data-icon="check"]',
+      workspace.execute(
+        setFields({
+          targets: [descriptionTarget],
+          props: { children: { kind: "set", value: "설명 두 번째 행" } },
+        }),
       );
-      expect(mark?.style.position).toBe("absolute");
-      expect(mark?.style.top).toBe("50%");
-      expect(mark?.style.left).toBe("8px");
-      expect(mark?.style.marginTop).toBe("");
+      const description = root.canvasInputs
+        .get(item.id)!
+        .children.map((id) => root.canvasInputs.get(id)!)
+        .find((n) => n.props.slot === "description")!;
+      const positions = [];
+      for (const selected of [false, true, false]) {
+        workspace.execute(
+          setFields({
+            targets: [workspace.itemOfRecord(item.id)!.target],
+            props: { isSelected: { kind: "set", value: selected } },
+          }),
+        );
+        const boxes = root.getGeometry([check.id, label.id, description.id]);
+        const mark = boxes.get(check.id)!;
+        const text = boxes.get(label.id)!;
+        expect(mark.width).toBeGreaterThan(0);
+        expect(mark.y + mark.height / 2).toBeCloseTo(text.y + text.height / 2);
+        expect(boxes.get(description.id)!.y).toBeGreaterThan(text.y);
+        expect(
+          root.canvasInputs.get(check.id)?.derivedProps?._selectionMarkHidden,
+        ).toBe(!selected);
+        positions.push([mark.x, mark.y, text.x, text.y]);
+      }
+      expect(positions[0]).toEqual(positions[1]);
+      expect(positions[1]).toEqual(positions[2]);
+      const host = [...root.domInputs.values()].find(
+        (n) => root.typeOf(n) === (type === "Menu" ? "MenuTrigger" : type),
+      )!;
+      const view = render(renderCatalogDom(root, host.id));
+      await waitFor(() =>
+        expect(
+          document.querySelector('[role="option"], [role="menuitemradio"]'),
+        ).not.toBeNull(),
+      );
+      const mark = document.querySelector<HTMLElement>(
+        '[slot="selection"][data-icon="check"]',
+      );
+      expect(mark).not.toBeNull();
+      expect(mark?.style.gridRowStart).toBe("1");
+      expect(mark?.style.position).not.toBe("absolute");
+      expect(mark?.style.visibility).toBe("hidden");
       view.unmount();
     } finally {
       workspace.dispose();
@@ -647,46 +698,160 @@ it.each([undefined, 80])(
   },
 );
 
-it("multiple Checkbox의 표시 상자는 24px 선택 열의 가운데에 배치된다", async () => {
-  const { workspace } = await fixture("Select", {
-    selectionMode: "multiple",
-    isOpen: true,
-  });
-  try {
-    const item = [...workspace.root.canvasInputs.values()].find(
-      (node) => node.ruleId === "ListBoxItem",
-    )!;
-    const checkbox = item.children
-      .map((id) => workspace.root.canvasInputs.get(id)!)
-      .find((node) => workspace.root.typeOf(node) === "Checkbox")!;
-    const button = checkbox.children
-      .map((id) => workspace.root.canvasInputs.get(id)!)
-      .find((node) => workspace.root.typeOf(node) === "CheckboxButton")!;
-    const indicator = button.children
-      .map((id) => workspace.root.canvasInputs.get(id)!)
-      .find((node) => workspace.root.typeOf(node) === "CheckboxIndicator")!;
-    const boxes = workspace.root.getGeometry([
-      checkbox.id,
-      button.id,
-      indicator.id,
-    ]);
-    const checkboxBox = boxes.get(checkbox.id)!;
-    const buttonBox = boxes.get(button.id)!;
-    const indicatorBox = boxes.get(indicator.id)!;
-    expect(checkboxBox.width).toBe(24);
-    expect(
-      checkboxBox.x + buttonBox.x + indicatorBox.x + indicatorBox.width / 2,
-    ).toBeCloseTo(4 + 24 / 2);
-    const select = [...workspace.root.domInputs.values()].find(
-      (node) => node.ruleId === "Select",
-    )!;
-    const view = render(renderCatalogDom(workspace.root, select.id));
-    const mark = document.querySelector<HTMLElement>(
-      '[role="option"] .react-aria-Checkbox[slot="selection"]',
+it.each(["Select", "Menu"])(
+  "%s multiple: Checkbox는 첫 라벨 행에 배치한다",
+  async (type) => {
+    const { workspace } = await fixture(type, {
+      selectionMode: "multiple",
+      isOpen: true,
+    });
+    try {
+      const root = workspace.root;
+      const item = [...root.canvasInputs.values()].find((n) =>
+        ["ListBoxItem", "MenuItem"].includes(root.typeOf(n)),
+      )!;
+      const checkbox = item.children
+        .map((id) => root.canvasInputs.get(id)!)
+        .find((node) => root.typeOf(node) === "Checkbox")!;
+      const label = item.children
+        .map((id) => root.canvasInputs.get(id)!)
+        .find((n) => n.props.slot === "label")!;
+      expect(checkbox.layout.gridRowEnd).toBe("auto");
+      const boxes = root.getGeometry([checkbox.id, label.id]);
+      const a = boxes.get(checkbox.id)!;
+      const b = boxes.get(label.id)!;
+      expect(a.y + a.height / 2).toBeCloseTo(b.y + b.height / 2);
+    } finally {
+      workspace.dispose();
+    }
+  },
+);
+
+it("일반 ListBox의 icon/label/description 배치는 보존한다", () => {
+  const templates = selectionItemTemplates(REUSABLE_ORIGIN_TEMPLATES);
+  for (const suffix of ["__icon", "__label", "__description", "__selection"]) {
+    const id = "lib:template:component-listbox-item-default" + suffix;
+    expect(templates.find((node) => node.id === id)).toEqual(
+      REUSABLE_ORIGIN_TEMPLATES.find((node) => node.id === id),
     );
-    expect(mark?.style.alignItems).toBe("center");
-    expect(mark?.style.width).toBe("24px");
+  }
+});
+
+it("Menu none/single/multiple과 undo는 선택 부품 표시를 갱신한다", async () => {
+  const { workspace } = await fixture("Menu", { isOpen: true });
+  try {
+    const root = workspace.root;
+    const menu = [...root.canvasInputs.values()].find(
+      (n) => root.typeOf(n) === "Menu",
+    )!;
+    const item = [...root.canvasInputs.values()].find(
+      (n) => root.typeOf(n) === "MenuItem",
+    )!;
+    const parts = item.children
+      .map((id) => root.canvasInputs.get(id)!)
+      .filter((n) => n.props.slot === "selection");
+    const visible = () =>
+      parts
+        .filter(
+          (part) =>
+            !catalogPickerSelectionHidden(
+              root.canvasInputs.get(part.id)!,
+              (id) => root.canvasInputs.get(id),
+              root.typeOf,
+            ),
+        )
+        .map((n) => root.typeOf(n));
+    expect(visible()).toEqual([]);
+    for (const mode of ["single", "multiple"]) {
+      workspace.execute(
+        setFields({
+          targets: [workspace.itemOfRecord(menu.id)!.target],
+          props: { selectionMode: { kind: "set", value: mode } },
+        }),
+      );
+      expect(visible()).toEqual([mode === "single" ? "Icon" : "Checkbox"]);
+    }
+    const checkbox = parts.find((n) => root.typeOf(n) === "Checkbox")!;
+    for (const selected of [true, false]) {
+      workspace.execute(
+        setFields({
+          targets: [workspace.itemOfRecord(item.id)!.target],
+          props: { isSelected: { kind: "set", value: selected } },
+        }),
+      );
+      expect(
+        root.canvasInputs.get(checkbox.id)?.derivedProps?._isSelected,
+      ).toBe(selected);
+    }
+    workspace.undo();
+    workspace.undo();
+    workspace.undo();
+    expect(visible()).toEqual(["Icon"]);
+    workspace.undo();
+    expect(visible()).toEqual([]);
+    const host = [...root.domInputs.values()].find(
+      (n) => root.typeOf(n) === "MenuTrigger",
+    )!;
+    const view = render(renderCatalogDom(root, host.id));
+    await waitFor(() =>
+      expect(document.querySelector('[role="menuitem"]')).not.toBeNull(),
+    );
+    expect(
+      document.querySelector('[role="menuitem"] [slot="selection"]'),
+    ).toBeNull();
     view.unmount();
+  } finally {
+    workspace.dispose();
+  }
+});
+
+it("ComboBox는 저장한 항목의 Selected로 초기 선택을 복원하고 runtime 해제를 우선한다", async () => {
+  const { workspace } = await fixture("ComboBox", { isOpen: true });
+  try {
+    const root = workspace.root;
+    const item = [...root.canvasInputs.values()].find(
+      (n) => root.typeOf(n) === "ListBoxItem",
+    )!;
+    workspace.execute(
+      setFields({
+        targets: [workspace.itemOfRecord(item.id)!.target],
+        props: { isSelected: { kind: "set", value: true } },
+      }),
+    );
+    const owner = [...root.domInputs.values()].find(
+      (n) => root.typeOf(n) === "ComboBox",
+    )!;
+    const key = resolveStaticItemKey(
+      item.props as Record<string, unknown>,
+      item.id,
+    );
+    expect(catalogRuntimeStateOf(root, owner, undefined, "selectedKey")).toBe(
+      key,
+    );
+    expect(
+      catalogRuntimeStateOf(root, owner, { selectedKey: null }, "selectedKey"),
+    ).toBeNull();
+    const view = render(renderCatalogDom(root, owner.id));
+    await waitFor(() =>
+      expect(
+        document.querySelector(
+          '[role="option"][aria-selected="true"] [slot="selection"]',
+        ),
+      ).not.toBeNull(),
+    );
+    expect(
+      document.querySelector<HTMLInputElement>('input[role="combobox"]')?.value,
+    ).toBe("Aardvark");
+    view.unmount();
+    workspace.undo();
+    expect(
+      catalogRuntimeStateOf(
+        root,
+        root.domInputs.get(owner.id)!,
+        undefined,
+        "selectedKey",
+      ),
+    ).toBeNull();
   } finally {
     workspace.dispose();
   }

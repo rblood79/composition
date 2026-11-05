@@ -8200,15 +8200,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
             },
           },
-          // A picker's list (Select · ComboBox — in a Popover): the reference `.dropdown-listbox` ·
-          //   `.dropdown-item` (`ListBox.css` — RAC Select · ComboBox examples). The list is the
-          //   popover's surface (no border; its padding 4 — not the items' margins), an item leaves 24 at its
-          //   start for the check (a 16 lucide check, 4 in, in the item's color — the
-          //   author's `showWhen: isSelected` node takes its place, `data-selection-mark`), weight
-          //   500; the focused item is the highlight pair, a pressed one the light wash; no hover
-          //   fill and no selected fill. The manual `ListBox.css` popover rules now stay with the
-          //   Builder's own pickers (`:not([data-catalog-id])`). DOM only — the Canvas draws no open
-          //   picker.
+          // Popover 목록의 실제 selection 부품은 item Layout이 배치한다. 옛 pseudo-check의
+          // 24px gutter는 실제 부품이 없는 항목에만 적용한다. 양쪽 renderer의 기본 바깥
+          // 여백은 ListBoxItem size rule의 edge-to-text가 소유한다.
           // ADR-295 후속 (사용자 결정 2026-10-31 「팝오버 안만 S2」): a picker's section header in a
           //   user component (`[data-catalog-id]` — the Builder's own pickers keep the block below,
           //   Decision 8) is S2 `listboxHeader` (`ComboBox.tsx` — Picker · ComboBox): minimum height
@@ -8219,7 +8213,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             nested: {
               // ADR-295 후속: S2 `listboxItem` — the item's minimum height is the picker size's control
               //   height, its label centred in it (`(height − line) / 2`; the item's own line from its
-              //   size block). The sides stay the reference's (the check glyph's room — the block below).
+              //   size block). Actual selection parts use the item's own size-based side padding.
               ".react-aria-ListBoxItem": {
                 "min-height": "var(--lb-control-h)",
                 "padding-top": "calc((var(--lb-control-h) - 1lh) / 2)",
@@ -8240,10 +8234,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           "&:is(.react-aria-Popover *)": {
             nested: {
-              ".react-aria-ListBoxItem": {
+              ".react-aria-ListBoxItem": { "font-weight": "500" },
+              ".react-aria-ListBoxItem:not([data-selection-mark])": {
                 padding:
                   "calc((var(--spacing-2xl) - 1lh) / 2) var(--spacing-md) calc((var(--spacing-2xl) - 1lh) / 2) var(--spacing-xl)",
-                "font-weight": "500",
               },
               ".react-aria-ListBoxItem[data-selected]:not([data-selection-mark])::before":
                 {
@@ -8278,13 +8272,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 color: "inherit",
               },
               // (The item's icon after the check's 24 — the sheet's general icon is 12 in.)
-              '.react-aria-ListBoxItem [slot="icon"]': {
-                left: "var(--spacing-xl)",
-              },
-              '.react-aria-ListBoxItem:has([slot="icon"])': {
-                "padding-left":
-                  "calc(var(--spacing-xl) + var(--lb-icon-size, 16px) + 6px)",
-              },
+              '.react-aria-ListBoxItem:not([data-selection-mark]) [slot="icon"]':
+                {
+                  left: "var(--spacing-xl)",
+                },
+              '.react-aria-ListBoxItem:not([data-selection-mark]):has([slot="icon"])':
+                {
+                  "padding-left":
+                    "calc(var(--spacing-xl) + var(--lb-icon-size, 16px) + 6px)",
+                },
               ".react-aria-Header": {
                 display: "block",
                 margin: "0",

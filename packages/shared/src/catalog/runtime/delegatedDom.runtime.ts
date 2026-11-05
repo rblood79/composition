@@ -2483,7 +2483,11 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               ),
             ),
           }
-        : {},
+        : controlled(
+            input,
+            SELECTED_KEY,
+            runtimeState(input, "selectedKey") ?? null,
+          ),
   ),
   // ADR-256 Phase 6e: the reference's tree — `DatePicker > Label + Group(DateInput + Button) +
   // Text[description] + FieldError + Popover > Calendar` (a DateRangePicker's pair of DateInputs and
@@ -3868,6 +3872,19 @@ export function catalogStateSourceValue(
     case "isOpen":
       return props.isOpen ?? props.defaultOpen ?? node.displayState === "open";
     case "selectedKey":
+      if (type === "ComboBox" && props.selectedKey === undefined) {
+        const selected = catalogPickerOptions(
+          node,
+          domGet(root),
+          root.typeOf,
+        ).find((item) => item.props.isSelected === true);
+        return selected
+          ? resolveStaticItemKey(
+              selected.props as Record<string, unknown>,
+              selected.id,
+            )
+          : null;
+      }
       return type === "Tabs"
         ? str(tabsModel(root, node).selectedKey)
         : (props.selectedKey ?? null);

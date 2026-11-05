@@ -1,3 +1,4 @@
+import { selectionItemTemplates } from "./selectionItemTemplates";
 import { LIBRARY_CONTRACT_VERSION } from "./types";
 import { addLibraryTokenScale } from "./libraryTokenScale";
 import { scalarFitsType } from "./valueType";
@@ -931,6 +932,7 @@ function handOrRuleDefinition(type: string): LibraryDefinition {
 export async function buildCodeCatalogLibrary(
   theme: "light" | "dark" = "light",
 ): Promise<CatalogLibrary> {
+  const templates = selectionItemTemplates(REUSABLE_ORIGIN_TEMPLATES);
   const tokens = new Map<LibraryTokenId, LibraryToken>();
   const textDefinitions = CODE_CATALOG_SUPPORTED_TYPES.map((type) =>
     textDefinition(type, theme, tokens),
@@ -998,7 +1000,7 @@ export async function buildCodeCatalogLibrary(
         contractVersion: LIBRARY_CONTRACT_VERSION,
         theme,
         definitions: sourceDefinitions,
-        templates: REUSABLE_ORIGIN_TEMPLATES,
+        templates,
         tokens: [...tokens.values()],
         bindingIds,
         execution,
@@ -1015,7 +1017,7 @@ export async function buildCodeCatalogLibrary(
     bindingIds,
     ...execution,
     definitions: sourceDefinitions,
-    templates: REUSABLE_ORIGIN_TEMPLATES,
+    templates,
     tokens: [...tokens.values()],
     rules,
   });

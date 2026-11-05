@@ -1417,6 +1417,7 @@ function catalogCanvasHidden(
     if (
       cursor.hidden ||
       cursor.derivedProps?._pendingHidden === true ||
+      cursor.derivedProps?._selectionMarkHidden === true ||
       catalogRowSampleHidden(root, cursor) ||
       root.tagRowCollapsed(cursor.id)
     ) {
