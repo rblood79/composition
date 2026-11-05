@@ -227,6 +227,52 @@ describe("Select의 S2 Picker 토큰과 상태", () => {
 });
 
 describe("Select S2 다중 선택", () => {
+  it.each(["S", "M", "L", "XL"])(
+    "%s: 실제 Checkbox 슬롯 오른쪽에 label을 배치한다",
+    async (size) => {
+      const { workspace } = await fixture("Select", {
+        selectionMode: "multiple",
+        isOpen: true,
+        size,
+      });
+      try {
+        const root = workspace.root;
+        const items = [...root.canvasInputs.values()].filter(
+          (n) => n.ruleId === "ListBoxItem",
+        );
+        for (const item of items) {
+          const children = item.children.map((id) => root.canvasInputs.get(id));
+          const label = children.find((n) => n?.props.slot === "label")!;
+          const checkbox = children.find(
+            (n) => n?.ruleId === "Checkbox" && n.props.slot === "selection",
+          )!;
+          expect(checkbox).toBeDefined();
+          const boxes = root.getGeometry([item.id, label.id, checkbox.id]);
+          const itemBox = boxes.get(item.id)!;
+          const labelBox = boxes.get(label.id)!;
+          const checkboxBox = boxes.get(checkbox.id)!;
+          expect(checkboxBox.width).toBeGreaterThan(0);
+          expect(
+            labelBox.x - checkboxBox.x - checkboxBox.width,
+          ).toBeGreaterThanOrEqual(4);
+          const shapes = catalogRuleShapes({
+            node: item,
+            type: "ListBoxItem",
+            rule: COMPONENT_RULES_TABLE.ListBoxItem,
+            rect: itemBox,
+            authoredVisual: {},
+          });
+          expect(
+            shapes.some(
+              (shape) => "id" in shape && shape.id === "picker-checkbox",
+            ),
+          ).toBe(false);
+        }
+      } finally {
+        workspace.dispose();
+      }
+    },
+  );
   it.each(["en-US", "ko-KR"])(
     "%s: 0→1→2→1→0 선택과 목록 checkbox를 양쪽 소비자가 읽는다",
     async (locale) => {
@@ -275,17 +321,22 @@ describe("Select S2 다중 선택", () => {
         );
         const options = [...document.querySelectorAll('[role="option"]')];
         expect(options).toHaveLength(4);
+        for (const option of options) {
+          expect(
+            option
+              .querySelector(".react-aria-Checkbox")
+              ?.hasAttribute("data-selected"),
+          ).toBe(option.getAttribute("aria-selected") === "true");
+        }
         expect(
           options.every(
             (option) =>
-              !!option.querySelector(
-                '[data-picker-option-indicator="checkbox"]',
-              ),
+              !!option.querySelector('.react-aria-Checkbox[slot="selection"]'),
           ),
         ).toBe(true);
         expect(
           view.container.querySelector(
-            ".react-aria-SelectValue [data-picker-option-indicator]",
+            ".react-aria-SelectValue .react-aria-Checkbox",
           ),
         ).toBeNull();
         for (const item of nodes().filter((n) => n.ruleId === "ListBoxItem")) {
@@ -300,13 +351,10 @@ describe("Select S2 다중 선택", () => {
             shapes.some(
               (shape) => "id" in shape && shape.id === "picker-checkbox",
             ),
-          ).toBe(true);
+          ).toBe(false);
           expect(
-            shapes.some(
-              (shape) =>
-                shape.type === "icon_font" && shape.iconName === "check",
-            ),
-          ).toBe(item.derivedProps?._isSelected === true);
+            document.querySelectorAll('[role="option"] input[type="checkbox"]'),
+          ).toHaveLength(0);
         }
         view.unmount();
       }
@@ -315,9 +363,10 @@ describe("Select S2 다중 선택", () => {
   );
 });
 
-it("Select 선택 모드 변경과 undo가 Canvas indicator를 갱신한다", async () => {
+it("Select 선택 모드 변경과 undo가 Checkbox 슬롯 배치를 갱신한다", async () => {
   const { workspace, id } = await fixture("Select", {
     selectionMode: "multiple",
+    isOpen: true,
   });
   const items = () =>
     [...workspace.root.canvasInputs.values()].filter(
@@ -335,44 +384,79 @@ it("Select 선택 모드 변경과 undo가 Canvas indicator를 갱신한다", as
   expect(items().every((n) => n.derivedProps?._pickerMultiple === false)).toBe(
     true,
   );
+  const checkboxes = () =>
+    [...workspace.root.canvasInputs.values()].filter(
+      (n) => n.ruleId === "Checkbox" && n.props.slot === "selection",
+    );
+  expect(checkboxes().every((n) => n.hidden)).toBe(true);
   workspace.undo();
+  expect(checkboxes().every((n) => !n.hidden)).toBe(true);
   expect(items().every((n) => n.derivedProps?._pickerMultiple === true)).toBe(
     true,
   );
   workspace.dispose();
 });
 
-it("선택된 disabled 옵션의 Canvas checkbox가 S2 disabled 토큰과 check를 쓴다", async () => {
-  const { workspace } = await fixture("Select", { selectionMode: "multiple" });
-  const item = [...workspace.root.canvasInputs.values()].find(
-    (n) => n.ruleId === "ListBoxItem",
-  )!;
-  for (const theme of ["light", "dark"] as const) {
-    const shapes = catalogRuleShapes({
-      node: {
-        ...item,
-        props: { ...item.props, isDisabled: true },
-        derivedProps: { ...item.derivedProps, _isSelected: true },
-      },
-      type: "ListBoxItem",
-      rule: COMPONENT_RULES_TABLE.ListBoxItem,
-      rect: { width: 180, height: 32 },
-      authoredVisual: {},
-      theme,
-    });
-    const box = shapes.find(
-      (shape) => "id" in shape && shape.id === "picker-checkbox",
+it("옵션의 선택과 disabled가 실제 Checkbox 슬롯으로 전달된다", async () => {
+  const { workspace } = await fixture("Select", {
+    selectionMode: "multiple",
+    isOpen: true,
+  });
+  try {
+    const root = workspace.root;
+    const item = [...root.canvasInputs.values()].find(
+      (n) => n.ruleId === "ListBoxItem",
+    )!;
+    workspace.execute(
+      setFields({
+        targets: [workspace.itemOfRecord(item.id)!.target],
+        props: {
+          isDisabled: { kind: "set", value: true },
+          isSelected: { kind: "set", value: true },
+        },
+      }),
     );
-    expect(box?.type).toBe("roundRect");
-    if (box?.type === "roundRect")
-      expect(resolveToken(box.fill as never, theme)).toBe(
-        theme === "light" ? "#c6c6c6" : "#444444",
-      );
-    expect(
-      shapes.some(
-        (shape) => shape.type === "icon_font" && shape.iconName === "check",
-      ),
-    ).toBe(true);
+    const checkbox = [...root.canvasInputs.values()].find(
+      (n) => n.parentId === item.id && n.ruleId === "Checkbox",
+    )!;
+    expect(checkbox.derivedProps?.isDisabled).toBe(true);
+    expect(checkbox.derivedProps?._isSelected).toBe(true);
+  } finally {
+    workspace.dispose();
   }
-  workspace.dispose();
+});
+
+it("옵션의 저작 Layout 변경과 undo가 실제 배치에 반영된다", async () => {
+  const { workspace } = await fixture("Select", {
+    selectionMode: "multiple",
+    isOpen: true,
+  });
+  try {
+    const root = workspace.root;
+    const item = [...root.canvasInputs.values()].find(
+      (n) => n.ruleId === "ListBoxItem",
+    )!;
+    const checkbox = item.children.find(
+      (id) => root.canvasInputs.get(id)?.ruleId === "Checkbox",
+    )!;
+    expect(item.layout.display).toBe("grid");
+    const original = root.getGeometry([checkbox]).get(checkbox)!;
+    workspace.execute(
+      setFields({
+        targets: [workspace.itemOfRecord(item.id)!.target],
+        layout: {
+          display: { kind: "set", value: "flex" },
+          flexDirection: { kind: "set", value: "row" },
+        },
+        visual: { paddingLeft: { kind: "set", value: 40 } },
+      }),
+    );
+    expect(root.canvasInputs.get(item.id)!.layout.display).toBe("flex");
+    expect(root.getGeometry([checkbox]).get(checkbox)!.x).toBe(40);
+    workspace.undo();
+    expect(root.canvasInputs.get(item.id)!.layout.display).toBe("grid");
+    expect(root.getGeometry([checkbox]).get(checkbox)).toEqual(original);
+  } finally {
+    workspace.dispose();
+  }
 });

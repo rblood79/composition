@@ -37,6 +37,8 @@ paths:
 
 - Canvas의 해석된 px 줄 높이를 편집기 CSS에 옮길 때 글자 크기로 나눈 단위 없는 비율로 복원한다. **Why (2026-11-03, ADR-299)**: 고정 px를 PM span이 상속하면 Enter 뒤 64px·24px 구간에도 같은 줄 높이가 적용되어 Chromium·WebKit에서 약 10px 겹쳤다.
 
+- collection의 선택 Checkbox는 실제 slot 자식으로 배치하고, 그 배치는 저작 template Layout에 기록한다. **Why (2026-11-05):** Select multiple의 직접 그린 checkbox가 Text와 겹쳤다. 런타임 grid/padding 보정은 Design Layout 값과 실제 배치를 갈라놓으므로 쓰지 않는다. ListBox option이 접근성·선택을 소유하고 slot은 별도 input 없이 상태를 표시한다.
+
 ## 1. Skia 단일 렌더러 (ADR-900)
 
 - grid 안내선·셀 교환은 `hidden` 또는 `display: none`인 자식을 배치 항목에서 제외한다. **Why (2026-10-31):** Side 라벨의 CheckboxGroup·RadioGroup·SearchField에서 숨긴 Description·FieldError의 0 높이 상자를 포함해 실제 1행을 3행으로 계산하고 선택 영역 아래에 선 두 개를 그렸다.

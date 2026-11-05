@@ -3,9 +3,17 @@ import { useLocale } from "react-aria-components/I18nProvider";
 import { tokenToCSSVar } from "@composition/rendering";
 import { pickerSelectedCount } from "../../i18n/pickerSelectedCount";
 import { Icon } from "../../components/Icon";
-import { pickerOptionMetrics, pickerOptionPaint } from "./pickerSelection";
+import { pickerOptionMetrics } from "./pickerSelection";
 
 const InsidePickerValue = createContext(false);
+
+export function CatalogPickerSelectionSlot({
+  children,
+}: {
+  children?: ReactNode;
+}) {
+  return useContext(InsidePickerValue) ? null : children;
+}
 
 /** RAC의 항목 나열 대신 S2의 기본 다중 선택 요약. 0/1개는 원래 슬롯 내용을 보존한다. */
 export function CatalogPickerValueContent({
@@ -34,23 +42,18 @@ export function CatalogPickerOptionIndicator({
   size,
   multiple,
   selected,
-  disabled,
-  active,
 }: {
   size: unknown;
   multiple: boolean;
   selected: boolean;
-  disabled: boolean;
-  active: boolean;
 }) {
   const insideValue = useContext(InsidePickerValue);
-  if (insideValue || (!multiple && !selected)) return null;
+  if (insideValue || multiple || !selected) return null;
   const metric = pickerOptionMetrics(size);
-  const paint = pickerOptionPaint(selected, disabled, active);
   return (
     <span
       aria-hidden="true"
-      data-picker-option-indicator={multiple ? "checkbox" : "check"}
+      data-picker-option-indicator="check"
       data-selected={selected || undefined}
       style={{
         position: "absolute",
@@ -64,13 +67,6 @@ export function CatalogPickerOptionIndicator({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        ...(multiple
-          ? {
-              border: `2px solid ${tokenToCSSVar(paint.border)}`,
-              borderRadius: metric.radius,
-              backgroundColor: tokenToCSSVar(paint.background),
-            }
-          : {}),
       }}
     >
       {selected && (
@@ -78,10 +74,10 @@ export function CatalogPickerOptionIndicator({
           iconName="check"
           aria-hidden="true"
           style={{
-            width: metric.box - (multiple ? 4 : 0),
-            height: metric.box - (multiple ? 4 : 0),
-            fontSize: metric.box - (multiple ? 4 : 0),
-            color: tokenToCSSVar(multiple ? paint.check : "{color.accent}"),
+            width: metric.box,
+            height: metric.box,
+            fontSize: metric.box,
+            color: tokenToCSSVar("{color.accent}"),
           }}
         />
       )}

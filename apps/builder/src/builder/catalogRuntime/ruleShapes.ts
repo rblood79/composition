@@ -1,7 +1,4 @@
-import {
-  pickerOptionMetrics,
-  pickerOptionPaint,
-} from "../../../../../packages/shared/src/catalog/runtime/pickerSelection";
+import { pickerOptionMetrics } from "../../../../../packages/shared/src/catalog/runtime/pickerSelection";
 import {
   PICKER_INVALID_ICON,
   PICKER_INVALID_WIDTH,
@@ -454,48 +451,19 @@ function pickerOptionShapes(input: CatalogRuleShapeInput): Shape[] {
   if (derived?._pickerOption !== true) return [];
   const multiple = derived._pickerMultiple === true;
   const selected = derived._isSelected === true;
-  if (!multiple && !selected) return [];
+  if (multiple || !selected) return [];
   const metric = pickerOptionMetrics(input.node.props.size);
-  const paint = pickerOptionPaint(
-    selected,
-    derived.isDisabled === true ||
-      input.node.props.isDisabled === true ||
-      input.state === "disabled",
-    input.state === "hover" || input.state === "pressed",
-  );
-  const y = (input.rect.height - metric.box) / 2;
-  const shapes: Shape[] = multiple
-    ? [
-        {
-          id: "picker-checkbox",
-          type: "roundRect",
-          x: metric.edge,
-          y,
-          width: metric.box,
-          height: metric.box,
-          radius: metric.radius,
-          fill: paint.background,
-        },
-        {
-          type: "border",
-          target: "picker-checkbox",
-          borderWidth: 2,
-          color: paint.border,
-          radius: metric.radius,
-        },
-      ]
-    : [];
-  if (selected)
-    shapes.push({
+  return [
+    {
       type: "icon_font",
       iconName: "check",
       x: metric.edge + metric.box / 2,
       y: input.rect.height / 2,
-      fontSize: metric.box - (multiple ? 4 : 0),
-      fill: multiple ? paint.check : "{color.accent}",
+      fontSize: metric.box,
+      fill: "{color.accent}",
       baseline: "middle",
-    });
-  return shapes;
+    },
+  ];
 }
 
 function pickerChromeShapes(

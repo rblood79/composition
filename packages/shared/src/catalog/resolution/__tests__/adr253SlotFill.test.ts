@@ -56,11 +56,11 @@ const all = (
   ...(test(from) ? [from] : []),
   ...from.children.flatMap((child) => all(child, test)),
 ];
-/** The texts shown below a node (an item root's own `{label}` row placeholder is not one). */
+/** 표시되는 텍스트만 센다. 바인딩 placeholder와 Checkbox의 빈 label은 제외한다. */
 const texts = (from: ResolvedCatalogNode) =>
   all(from, (item) => typeof item.props.children === "string")
     .map((item) => item.props.children as string)
-    .filter((text) => !text.includes("{"));
+    .filter((text) => text.length > 0 && !text.includes("{"));
 /** The validation code a build fails with. */
 const codeOf = (build: () => unknown): string | undefined => {
   try {
@@ -337,7 +337,7 @@ describe("ADR-253 Phase 4 — library validation of a slot fill", () => {
     extra: LibraryTemplateNode[] = [],
   ) =>
     buildCatalogLibrary({
-      contractVersion: 58,
+      contractVersion: 59,
       revision: "adr253-slot-fill",
       bindingIds: ["box", "text"],
       actionOpCodes: [],

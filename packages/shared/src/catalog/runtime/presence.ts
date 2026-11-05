@@ -1,4 +1,9 @@
-import { catalogPickerOfOption, catalogPickerOptions } from "./pickerSelection";
+import {
+  catalogPickerOfOption,
+  catalogPickerOptions,
+  catalogPickerSelectionItem,
+  catalogPickerSelectionHidden,
+} from "./pickerSelection";
 import {
   OVERLAY_OPEN_OWNERS,
   OVERLAY_BODY_TYPES,
@@ -483,6 +488,8 @@ export function catalogSelectionCheckboxItem(
 ): CatalogConsumerNode | undefined {
   if (typeOf(node) !== "Checkbox" || node.props.slot !== "selection")
     return undefined;
+  const pickerItem = catalogPickerSelectionItem(node, get, typeOf);
+  if (pickerItem) return pickerItem;
   for (let cursor = get(node.parentId); cursor; cursor = get(cursor.parentId)) {
     const provision = RAC_SLOT_PROVIDERS[typeOf(cursor)]?.Checkbox;
     if (!provision) continue;
@@ -514,7 +521,9 @@ function catalogSelectionCheckboxDisabled(
       catalogTableRows(table, get, typeOf).length === 0
     );
   }
-  const collection = catalogCollectionOfItem(item, get, typeOf);
+  const collection =
+    catalogPickerOfOption(item, get, typeOf) ??
+    catalogCollectionOfItem(item, get, typeOf);
   const mode = collection?.props.selectionMode;
   return typeof mode !== "string" || mode === "none";
 }
@@ -528,7 +537,11 @@ function catalogSelectionCheckboxes(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
-  if (!RAC_SLOT_PROVIDERS[typeOf(item)]?.Checkbox) return [];
+  if (
+    !RAC_SLOT_PROVIDERS[typeOf(item)]?.Checkbox &&
+    typeOf(item) !== "ListBoxItem"
+  )
+    return [];
   return partChildrenOf(item, get, typeOf)
     .flatMap((child) =>
       // (A Row's checkbox sits in its Cell — the reference's selection column.)
@@ -828,6 +841,7 @@ export function catalogHiddenAtRest(
     return true;
   if (catalogProgressValueHidden(node, get, typeOf)) return true;
   if (catalogStepperHidden(node, get, typeOf)) return true;
+  if (catalogPickerSelectionHidden(node, get, typeOf)) return true;
   if (catalogSkeletonIdle(node, typeOf)) return true;
   // ADR-257 Phase 3: a highlight-selection Table has no selection checkbox column (S2).
   if (catalogTableSelectionPartHidden(node, get, typeOf)) return true;
@@ -3152,7 +3166,10 @@ export function catalogItemSlotInset(
     owner = get(owner.parentId);
   if (!owner || typeOf(owner) !== "ListBox") return undefined;
   return childrenOf(node, get).some(
-    (child) => child.props.slot === "icon" && !child.hidden,
+    (child) =>
+      child.props.slot === "icon" &&
+      child.layout.position === "absolute" &&
+      !child.hidden,
   )
     ? 12 + 16 + 6
     : undefined;

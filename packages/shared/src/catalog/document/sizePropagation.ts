@@ -89,6 +89,7 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   ComboBox: [...WRAPPED_FIELD_PARTS, "ListBox"],
   // A ListBox's size is its items' (S2 picker list — the items are the list's control rows).
   ListBox: ["ListBoxItem"],
+  ListBoxItem: ["Checkbox"],
   // S2 ColorSwatchPicker `size` is its swatches' (`InternalColorSwatchContext`) — past the RAC item.
   ColorSwatchPicker: ["ColorSwatch"],
   DateField: DATE_FIELD_PARTS,

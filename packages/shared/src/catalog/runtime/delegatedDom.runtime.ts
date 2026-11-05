@@ -1,3 +1,5 @@
+import { catalogPickerSelectionItem } from "./pickerSelection";
+import { CatalogPickerSelectionSlot } from "./pickerSelection.components";
 import { CatalogTokenField, CatalogTokenInput } from "./tokenField.components";
 import { isPropVar } from "../document/valueType";
 import { getIconData, resolveTextSourceText } from "@composition/rendering";
@@ -236,7 +238,11 @@ import { racSlotProps } from "./racSlot";
 
 import { RacSlotScope } from "./racSlotScope";
 
-import { catalogStateChildren, catalogStateFrame } from "./stateFrames";
+import {
+  catalogStateChildren,
+  catalogStateFrame,
+  catalogValueGate,
+} from "./stateFrames";
 
 import {
   CalendarPickerList,
@@ -1350,31 +1356,62 @@ function toggleButton(
   return {
     // (The toggle's hover rules are drawn here — a rule added on the toggle renders it again.)
     watchesChildren: (node) => [node.parentId],
-    render: (input) =>
-      createElement(component, {
+    render: (input) => {
+      const content = (state: ToggleRenderProps) =>
+        catalogStateFrame(
+          input.node.id,
+          input.node.id,
+          state,
+          createElement(
+            ToggleIndicatorContext.Provider,
+            { value: { state, indicators } },
+            ...input.node.children.map((id) => {
+              const child = input.root.domInputs.get(id);
+              const indicator = child
+                ? indicators[catalogTypeName(input.root, child)]
+                : undefined;
+              return indicator ? indicator(id, state) : input.renderChild(id);
+            }),
+          ),
+        );
+      const parent = input.root.domInputs.get(input.node.parentId);
+      if (
+        parent &&
+        catalogPickerSelectionItem(
+          parent,
+          domGet(input.root),
+          input.root.typeOf,
+        )
+      )
+        return catalogValueGate(
+          input.node.id,
+          { isSelected: parent.id, isDisabled: parent.id },
+          (read) => {
+            const state = {
+              isSelected: read("isSelected").value === true,
+              isIndeterminate: false,
+            };
+            return createElement(
+              "span",
+              {
+                ...marker(input),
+                style: input.style,
+                className,
+                "data-selected": state.isSelected || undefined,
+                "data-disabled": read("isDisabled").value === true || undefined,
+              },
+              content(state),
+            );
+          },
+        );
+      return createElement(component, {
         ...marker(input),
         ...toggleHoverHandlers(input),
         style: input.style,
         className,
-        children: (state: ToggleRenderProps) =>
-          // (Its render props are the state frame of the `showWhen` nodes inside — Decision 7.)
-          catalogStateFrame(
-            input.node.id,
-            input.node.id,
-            state,
-            createElement(
-              ToggleIndicatorContext.Provider,
-              { value: { state, indicators } },
-              ...input.node.children.map((id) => {
-                const child = input.root.domInputs.get(id);
-                const indicator = child
-                  ? indicators[catalogTypeName(input.root, child)]
-                  : undefined;
-                return indicator ? indicator(id, state) : input.renderChild(id);
-              }),
-            ),
-          ),
-      }),
+        children: content,
+      });
+    },
   };
 }
 
@@ -2751,6 +2788,46 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       )
         return createElement(Fragment, { key: input.node.id });
       const props = input.node.props;
+      const pickerItem = catalogPickerSelectionItem(
+        input.node,
+        domGet(input.root),
+        input.root.typeOf,
+      );
+      // ListBox 옵션은 선택을 소유한다. 실제 Checkbox 노드의 시각 자식만
+      // 배치하고 중첩 input이나 독립적인 포커스 대상을 만들지 않는다.
+      if (pickerItem)
+        return createElement(CatalogPickerSelectionSlot, {
+          children: catalogValueGate(
+            input.node.id,
+            { isSelected: pickerItem.id, isDisabled: pickerItem.id },
+            (read) => {
+              const state = {
+                isSelected: read("isSelected").value === true,
+                isDisabled: read("isDisabled").value === true,
+                isIndeterminate: false,
+              };
+              return catalogStateFrame(
+                input.node.id,
+                input.node.id,
+                state,
+                createElement(
+                  "span",
+                  {
+                    ...marker(input),
+                    slot: "selection",
+                    "aria-hidden": true,
+                    className: "react-aria-Checkbox",
+                    "data-size": str(props.size) || "M",
+                    "data-selected": state.isSelected || undefined,
+                    "data-disabled": state.isDisabled || undefined,
+                    style: { ...input.style, pointerEvents: "none" },
+                  },
+                  ...renderAll(input),
+                ),
+              );
+            },
+          ),
+        });
       const inGroup = !!domToggleGroupOf(input.root, input.node);
       return createElement(RacSlotScope, {
         // A static render: RAC holds the selection and an authored change of the default starts the

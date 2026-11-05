@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Select — 선택 Checkbox 슬롯과 편집 가능한 옵션 Layout] - 2026-11-05
+
+### Breaking Changes
+
+- **Catalog library contract 59**
+  ListBoxItem 원본에 실제 `Checkbox[slot="selection"]` 자식을 추가한다. 기존 개발 문서는 저장 계약에 따라 거부하며 자동 변환하지 않는다.
+
+### Fixed
+
+- **다중 선택 Checkbox와 텍스트의 Canvas 겹침 수정**
+  Select 옵션이 체크박스를 직접 그리던 코드를 제거하고 실제 Checkbox·CheckboxButton·CheckboxIndicator 자식으로 배치한다. 옵션이 선택·disabled 상태를 소유하며 DOM에는 독립적인 입력·포커스 대상을 추가하지 않는다.
+  **Why:** 목록의 직접 그리기는 레이아웃에 공간을 차지하지 않아 Text와 겹쳤다.
+- **Layout 패널·Canvas·Preview의 배치 정본 통일**
+  Select 옵션의 grid와 슬롯별 위치를 원본 템플릿에 명시한다. 실행 시점의 강제 grid·padding 보정 없이 작성한 Layout을 소비하며, 일반 흐름으로 배치한 아이콘에는 절대 위치용 텍스트 inset을 적용하지 않는다.
+  위치: `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts`, `packages/shared/src/catalog/runtime/{pickerSelection,presence,delegatedDom.runtime}.ts`, `apps/builder/src/builder/catalogRuntime/ruleShapes.ts`.
+
 ## [Accordion 명칭 통일 — RAC DisclosureGroup 경계 유지] - 2026-11-05
 
 ### Breaking Changes

@@ -1,3 +1,4 @@
+import { catalogPickerSelectionHidden } from "./pickerSelection";
 import {
   CatalogPickerOptionIndicator,
   CatalogPickerValueContent,
@@ -2871,9 +2872,6 @@ function ruleDom(
                     size: node.props.size,
                     multiple: values.selectionMode === "multiple",
                     selected: values.isSelected === true,
-                    disabled: values.isDisabled === true,
-                    active:
-                      values.isHovered === true || values.isPressed === true,
                   }),
                   ...content,
                 ])(values)
@@ -3477,6 +3475,14 @@ export function renderNode(
 ): ReactElement | null {
   // ADR-256 Decision 7: an optional text part with nothing to say is not there.
   if (catalogAbsentByValue(node)) return null;
+  if (
+    catalogPickerSelectionHidden(
+      node,
+      (id) => root.domInputs.get(id),
+      root.typeOf,
+    )
+  )
+    return null;
   // (A TagGroup's error text while the group is not invalid — the Canvas's predicate, S2.)
   if (
     partParent &&

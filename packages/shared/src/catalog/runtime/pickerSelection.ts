@@ -57,25 +57,34 @@ export function pickerOptionMetrics(size: unknown) {
   return { box, radius: Number(indicator.boxRadius), edge };
 }
 
-export function pickerOptionPaint(
-  selected: boolean,
-  disabled: boolean,
-  active = false,
+/** Select 옵션의 실제 selection 슬롯. RAC의 Checkbox context와는 별도인 표시 계약이다. */
+export function catalogPickerSelectionItem(
+  node: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
 ) {
-  const neutral = active
-    ? "{color.picker-content-hover}"
-    : "{color.picker-content}";
-  return {
-    background: (selected
-      ? disabled
-        ? "{color.picker-content-disabled}"
-        : neutral
-      : "{color.picker-checkbox-base}") as TokenRef,
-    border: (selected
-      ? "{color.transparent}"
-      : disabled
-        ? "{color.picker-content-disabled}"
-        : neutral) as TokenRef,
-    check: "{color.picker-checkbox-base}" as TokenRef,
-  };
+  if (typeOf(node) !== "Checkbox" || node.props.slot !== "selection")
+    return undefined;
+  for (let parent = get(node.parentId); parent; parent = get(parent.parentId)) {
+    if (typeOf(parent) === "ListBoxItem") return parent;
+    if (
+      ["Checkbox", "ListBox", "GridListItem", "TreeItem", "Row"].includes(
+        typeOf(parent),
+      )
+    )
+      return undefined;
+  }
+  return undefined;
+}
+
+export function catalogPickerSelectionHidden(
+  node: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
+) {
+  const item = catalogPickerSelectionItem(node, get, typeOf);
+  return (
+    !!item &&
+    catalogPickerOfOption(item, get, typeOf)?.props.selectionMode !== "multiple"
+  );
 }

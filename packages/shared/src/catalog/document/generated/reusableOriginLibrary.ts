@@ -2068,6 +2068,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-listbox-item-default",
     "definitionId": "lib:definition:type-ListBoxItem",
     "children": [
+      "lib:template:component-listbox-item-default__selection",
       "lib:template:component-listbox-item-default__icon",
       "lib:template:component-listbox-item-default__label",
       "lib:template:component-listbox-item-default__description"
@@ -2078,6 +2079,13 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "visual": {},
     "displayState": "selected",
     "stateRules": {}
+  },
+  {
+    "id": "lib:template:component-listbox-item-default__selection",
+    "definitionId": "lib:definition:origin-component-checkbox",
+    "children": [],
+    "props": { "slot": "selection", "children": "" },
+    "visual": {}
   },
   {
     "id": "lib:template:component-listbox-item-default__icon",
@@ -4947,13 +4955,27 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-listbox-item-default",
     "children": [],
     "props": {},
-    "visual": {},
+    "visual": { "paddingLeft": 4, "gap": 4 },
+    "layout": {
+      "display": "grid",
+      "gridTemplateColumns": "minmax(24px, auto) auto minmax(0, 1fr)",
+      "alignItems": "center",
+      "rowGap": "0px"
+    },
     "descendantPatches": [
+      {
+        "templatePath": [
+          "lib:template:component-listbox-item-default",
+          "lib:template:component-listbox-item-default__selection"
+        ],
+        "layout": { "gridColumnStart": "1", "gridRowStart": "1", "gridRowEnd": "3", "alignSelf": "center" }
+      },
       {
         "templatePath": [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__icon"
         ],
+        "layout": { "position": "static", "marginTop": "0px", "gridColumnStart": "2", "gridRowStart": "1", "gridRowEnd": "3" },
         "enabled": false
       },
       {
@@ -4961,6 +4983,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__label"
         ],
+        "layout": { "gridColumnStart": "3", "gridRowStart": "1" },
         "props": {
           "children": "Aardvark"
         }
@@ -4970,6 +4993,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__description"
         ],
+        "layout": { "gridColumnStart": "3", "gridRowStart": "2" },
         "enabled": false
       }
     ]
@@ -4979,13 +5003,27 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-listbox-item-default",
     "children": [],
     "props": {},
-    "visual": {},
+    "visual": { "paddingLeft": 4, "gap": 4 },
+    "layout": {
+      "display": "grid",
+      "gridTemplateColumns": "minmax(24px, auto) auto minmax(0, 1fr)",
+      "alignItems": "center",
+      "rowGap": "0px"
+    },
     "descendantPatches": [
+      {
+        "templatePath": [
+          "lib:template:component-listbox-item-default",
+          "lib:template:component-listbox-item-default__selection"
+        ],
+        "layout": { "gridColumnStart": "1", "gridRowStart": "1", "gridRowEnd": "3", "alignSelf": "center" }
+      },
       {
         "templatePath": [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__icon"
         ],
+        "layout": { "position": "static", "marginTop": "0px", "gridColumnStart": "2", "gridRowStart": "1", "gridRowEnd": "3" },
         "enabled": false
       },
       {
@@ -4993,6 +5031,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__label"
         ],
+        "layout": { "gridColumnStart": "3", "gridRowStart": "1" },
         "props": {
           "children": "Cat"
         }
@@ -5002,6 +5041,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__description"
         ],
+        "layout": { "gridColumnStart": "3", "gridRowStart": "2" },
         "enabled": false
       }
     ]
@@ -5011,13 +5051,27 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-listbox-item-default",
     "children": [],
     "props": {},
-    "visual": {},
+    "visual": { "paddingLeft": 4, "gap": 4 },
+    "layout": {
+      "display": "grid",
+      "gridTemplateColumns": "minmax(24px, auto) auto minmax(0, 1fr)",
+      "alignItems": "center",
+      "rowGap": "0px"
+    },
     "descendantPatches": [
+      {
+        "templatePath": [
+          "lib:template:component-listbox-item-default",
+          "lib:template:component-listbox-item-default__selection"
+        ],
+        "layout": { "gridColumnStart": "1", "gridRowStart": "1", "gridRowEnd": "3", "alignSelf": "center" }
+      },
       {
         "templatePath": [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__icon"
         ],
+        "layout": { "position": "static", "marginTop": "0px", "gridColumnStart": "2", "gridRowStart": "1", "gridRowEnd": "3" },
         "enabled": false
       },
       {
@@ -5025,6 +5079,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__label"
         ],
+        "layout": { "gridColumnStart": "3", "gridRowStart": "1" },
         "props": {
           "children": "Dog"
         }
@@ -5034,6 +5089,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__description"
         ],
+        "layout": { "gridColumnStart": "3", "gridRowStart": "2" },
         "enabled": false
       }
     ]
@@ -5043,13 +5099,27 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-listbox-item-default",
     "children": [],
     "props": {},
-    "visual": {},
+    "visual": { "paddingLeft": 4, "gap": 4 },
+    "layout": {
+      "display": "grid",
+      "gridTemplateColumns": "minmax(24px, auto) auto minmax(0, 1fr)",
+      "alignItems": "center",
+      "rowGap": "0px"
+    },
     "descendantPatches": [
+      {
+        "templatePath": [
+          "lib:template:component-listbox-item-default",
+          "lib:template:component-listbox-item-default__selection"
+        ],
+        "layout": { "gridColumnStart": "1", "gridRowStart": "1", "gridRowEnd": "3", "alignSelf": "center" }
+      },
       {
         "templatePath": [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__icon"
         ],
+        "layout": { "position": "static", "marginTop": "0px", "gridColumnStart": "2", "gridRowStart": "1", "gridRowEnd": "3" },
         "enabled": false
       },
       {
@@ -5057,6 +5127,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__label"
         ],
+        "layout": { "gridColumnStart": "3", "gridRowStart": "1" },
         "props": {
           "children": "Kangaroo"
         }
@@ -5066,6 +5137,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__description"
         ],
+        "layout": { "gridColumnStart": "3", "gridRowStart": "2" },
         "enabled": false
       }
     ]

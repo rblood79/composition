@@ -149,9 +149,10 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 56 — ActionButton · ActionButtonGroup families and reusable origins.
  * 57 — Menu의 기본 트리거를 ActionButton 원본으로 교체 (Icon · Text 자식 주소 변경).
  * 58 — DisclosureGroup의 catalog 식별자와 원본 주소를 Accordion으로 변경.
+ * 59 — ListBoxItem selection Checkbox 슬롯과 Select 옵션의 저작 grid 배치.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 58 as const;
+export const LIBRARY_CONTRACT_VERSION = 59 as const;
 
 export type EntryKind =
   | "project"
