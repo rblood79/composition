@@ -241,9 +241,9 @@ export const TOOLTIP_PROPS_SCHEMA = overlayOriginSchema(
 );
 
 /**
- * ADR-256 후속 4 — the Menu origin (MenuTrigger > Button + Popover > Menu): the instance edits the
+ * ADR-256 후속 4 — the Menu origin (MenuTrigger > ActionButton + Popover > Menu): the instance edits the
  * trigger's props and the Menu's `size` · `selectionMode` (template bindings to the Menu node —
- * `size` also to the Button and the Popover).
+ * `size` also to the ActionButton and the Popover).
  */
 export const MENU_PROPS_SCHEMA = overlayOriginSchema(
   "MenuTrigger",

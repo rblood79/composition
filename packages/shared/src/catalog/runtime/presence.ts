@@ -1,3 +1,4 @@
+import { catalogPickerOfOption, catalogPickerOptions } from "./pickerSelection";
 import {
   OVERLAY_OPEN_OWNERS,
   OVERLAY_BODY_TYPES,
@@ -2045,7 +2046,48 @@ export function catalogDerivedProps(
   // (S2 Button is a pill; a field's own button keeps its size's corner — the Button rule's
   //  `field-button` blocks, `catalogFieldButtonSize`.)
   const fieldButton = catalogFieldButtonSize(node, get, typeOf);
-  const buttoned = fieldButton ? { ...stuck, fieldButton } : stuck;
+  const pickerOwner = catalogOverlayOwner(node, get, typeOf);
+  const picker =
+    pickerOwner && typeOf(pickerOwner) === "Select" ? pickerOwner : undefined;
+  const optionOwner = catalogPickerOfOption(node, get, typeOf);
+  // 작성한 selection mark가 있으면 기본 장식을 중복 생성하지 않는다.
+  const authoredOptionMark =
+    optionOwner &&
+    node.children.some((id) => {
+      const child = get(id);
+      return (
+        child?.showWhen &&
+        catalogStateConditions(child.showWhen).some(
+          (condition) => condition.key === "isSelected" && !condition.not,
+        )
+      );
+    });
+  const pickerPart =
+    picker && ["Button", "SelectValue", "Icon"].includes(typeOf(node))
+      ? {
+          ...(typeOf(node) === "Button" ? { _pickerTrigger: true } : {}),
+          ...(typeOf(node) === "SelectValue" ? { _pickerValue: true } : {}),
+          ...(typeOf(node) === "Icon" ? { _pickerIcon: true } : {}),
+          _pickerInvalid: picker.props.isInvalid === true,
+          _overlayOpen: catalogOverlayOpen(picker, get, typeOf),
+          isDisabled:
+            picker.props.isDisabled === true ||
+            node.props.isDisabled === true ||
+            stuck?.isDisabled === true,
+          isQuiet: picker.props.isQuiet === true,
+        }
+      : {};
+  const buttoned = {
+    ...stuck,
+    ...(fieldButton ? { fieldButton } : {}),
+    ...pickerPart,
+    ...(optionOwner && !authoredOptionMark
+      ? {
+          _pickerOption: true,
+          _pickerMultiple: optionOwner.props.selectionMode === "multiple",
+        }
+      : {}),
+  };
   // (ADR-300: a SideNav part's collapse · current · level — `catalogSideNavDerived`.)
   const sideNav = catalogSideNavDerived(node, get, typeOf, shownRoute);
   const withSideNav = sideNav ? { ...buttoned, ...sideNav } : buttoned;
@@ -2190,7 +2232,8 @@ function catalogListItemEdges(
 ):
   | {
       _itemShrink?: number;
-      _lastItem: boolean;
+      _lastItem?: boolean;
+      _inPopover?: true;
     }
   | undefined {
   const type = typeOf(node);
@@ -2206,7 +2249,7 @@ function catalogListItemEdges(
         : undefined;
   if (!list || typeOf(list) !== "ListBox") return undefined;
   for (let up = get(list.parentId); up; up = get(up.parentId))
-    if (typeOf(up) === "Popover") return undefined;
+    if (typeOf(up) === "Popover") return { _inPopover: true };
   const shrink = catalogListItemFlexShrink("ListBox", type);
   const shown = parent.children.filter((id) => get(id)?.hidden !== true);
   return {
@@ -2461,6 +2504,7 @@ function ownDerivedPropsBase(
       !node.props.children;
     const derived: Record<string, string | boolean> = {
       _actionIconOnly: iconOnly,
+      _overlayOpen: catalogOverlayOpen(node, get, typeOf),
     };
     const group = catalogActionButtonGroupOf(node, get, typeOf);
     if (!group) return derived;
@@ -2665,12 +2709,20 @@ export function catalogDerivedPropsDependents(
   // An item's label Text takes the item's color (`catalogItemLabels`): it follows the item's own
   // values and every item whose selection this record decides.
   const items = [
+    ...(OVERLAY_OPEN_OWNERS.has(typeOf(owner))
+      ? partChildrenOf(owner, get, typeOf).filter(
+          (child) => typeOf(child) === "ActionButton",
+        )
+      : []),
     ...(typeOf(owner) === "SheetOverlay"
       ? partChildrenOf(owner, get, typeOf).filter(
           (child) => typeOf(child) === "Sheet",
         )
       : []),
     ...derivedDependents(owner, get, typeOf),
+    ...(typeOf(owner) === "Select"
+      ? catalogPickerOptions(owner, get, typeOf)
+      : []),
     ...fieldSubparts(owner, get, typeOf),
     // (A Button's children follow its `isPending` — `_pendingHidden`, `buttonPending.ts`.)
     ...(["Button", "ActionButton"].includes(typeOf(owner))
@@ -2694,6 +2746,11 @@ export function catalogDerivedPropsDependents(
     ...childrenOf(owner, get).filter(
       (child) => QUIET_OWNER_BOXES[typeOf(owner)] === typeOf(child),
     ),
+    ...(typeOf(owner) === "Select"
+      ? childrenOf(owner, get)
+          .filter((child) => typeOf(child) === "Button")
+          .flatMap((button) => childrenOf(button, get))
+      : []),
     // (Its grouped Disclosures: which one is its last child — `catalogAccordionPosition`.)
     ...childrenOf(owner, get).filter(
       (child) =>

@@ -322,11 +322,7 @@ export function generateCSS<Props>(
     spec.containerStyles?.text ||
     spec.containerStyles?.border
   );
-  if (
-    !containerHasColors &&
-    spec.variants != null &&
-    !spec.skipVariantCss
-  ) {
+  if (!containerHasColors && spec.variants != null && !spec.skipVariantCss) {
     if (!compositionOwnsContainerBox(spec)) {
       if (_variantPaintCss) lines.push(..._variantPaintCss);
     } else if (_variantColorCss) lines.push(..._variantColorCss);
@@ -871,6 +867,10 @@ function generateSizeStyles(
   // border-width — ADR-071: containerStyles.border 존재 시 skip (border shorthand 이중 emit 방지)
   if (size.borderWidth !== undefined && !options?.skipBorderWidth) {
     lines.push(`  border-width: ${borderWidthToCSS(size.borderWidth)};`);
+  }
+
+  if (size.width !== undefined) {
+    lines.push(`  width: ${sizeLengthCss(size, "width")};`);
   }
 
   // min-width / min-height

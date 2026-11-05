@@ -18,7 +18,7 @@ export function catalogQuietStyles(
   props: Readonly<Record<string, unknown>>,
   state?: StateName,
 ): Readonly<Record<string, string>> | undefined {
-  if (props.isQuiet !== true) return undefined;
+  if (props.isQuiet !== true || props._pickerTrigger === true) return undefined;
   const active: Readonly<Record<string, boolean>> = {
     "data-quiet": true,
     "data-hovered": state === "hover" || state === "selectedHover",
@@ -139,9 +139,13 @@ export function catalogInvalidBorderColor(
   props: Readonly<Record<string, unknown>>,
 ): string | undefined {
   if (props.isQuiet === true) return undefined;
-  if (props.isInvalid !== true && props._fieldInvalid !== true) return undefined;
-  const color = evaluateConditionTree(rule?.structure?.stateStyles?.borderColor, {
-    isInvalid: true,
-  });
+  if (props.isInvalid !== true && props._fieldInvalid !== true)
+    return undefined;
+  const color = evaluateConditionTree(
+    rule?.structure?.stateStyles?.borderColor,
+    {
+      isInvalid: true,
+    },
+  );
   return color === undefined ? undefined : String(color);
 }

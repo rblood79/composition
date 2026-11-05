@@ -210,6 +210,8 @@ export interface ComponentRuleVariant {
  * 경로, ADR-907 Layer B)과는 별개 — 본 필드는 leaf 의 size 별 텍스트 inset base 다.
  */
 export interface ComponentRuleSize {
+  /** size별 고정 폭 (S2 Popover); 작성 width가 우선한다. */
+  width?: number;
   // SizeSpec 실데이터는 TokenRef(`{radius.md}`) / "auto" / 숫자 혼재 → number | string 수용.
   fontSize?: number | string;
   lineHeight?: number | string;

@@ -27,9 +27,10 @@
     /* box-shadow 는 catalog `Popover.structure.containerStyles.boxShadow` 정본 →
        generated/Popover.css 가 emit (2026-07-25). 같은 값을 여기 중복 선언하면
        Style Panel 이 읽는 catalog 와 실제 CSS 가 갈라질 수 있어 제거. */
-    /* ADR-297 Phase 3b: a catalog Popover's outline is the Popover rule's state tree (rest none · ring). */
+    /* Builder chrome의 내용 맞춤 폭은 사용자 문서의 S2 size 폭과 독립적이다. */
     &:where(:not([data-catalog-id])) {
       outline: none;
+      width: auto;
     }
     display: flex;
     flex-direction: column;
@@ -226,6 +227,66 @@
   @media (forced-colors: active) {
     .react-aria-Popover {
       forced-color-adjust: auto;
+    }
+  }
+
+  /* S2 Popover의 catalog 표면: RAC의 entering/exiting 수명은 유지한다. */
+  @keyframes catalog-popover-enter {
+    from {
+      opacity: 0;
+      translate: var(--popover-s2-x, 0) var(--popover-s2-y, 0);
+    }
+    to {
+      opacity: 1;
+      translate: 0 0;
+    }
+  }
+  @keyframes catalog-popover-exit {
+    from {
+      opacity: 1;
+      translate: 0 0;
+    }
+    to {
+      opacity: 0;
+      translate: var(--popover-s2-x, 0) var(--popover-s2-y, 0);
+    }
+  }
+  .react-aria-Popover[data-catalog-id] {
+    transition:
+      opacity 200ms,
+      translate 200ms;
+    &[data-entering] {
+      animation: catalog-popover-enter 200ms ease-out;
+    }
+    &[data-exiting] {
+      animation: catalog-popover-exit 200ms ease-in;
+      pointer-events: none;
+    }
+    &[data-placement="top"] {
+      --popover-s2-y: 4px;
+    }
+    &[data-placement="bottom"] {
+      --popover-s2-y: -4px;
+    }
+    &[data-placement="left"] {
+      --popover-s2-x: 4px;
+    }
+    &[data-placement="right"] {
+      --popover-s2-x: -4px;
+    }
+    &[data-trigger="SubmenuTrigger"] {
+      --popover-s2-x: 0;
+      --popover-s2-y: 0;
+    }
+    .react-aria-OverlayArrow svg {
+      fill: var(--popover-background);
+      stroke: var(--popover-outline);
+      stroke-width: 1px;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      animation: none !important;
+      transition: none !important;
+      translate: none;
     }
   }
 }

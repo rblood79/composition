@@ -202,11 +202,6 @@
     font-weight: 500;
   }
 
-  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem[data-selected] {
-    background: transparent;
-    color: var(--fg);
-  }
-
   .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem[data-selected]:not([data-selection-mark])::before {
     content: '';
     position: absolute;
@@ -226,19 +221,6 @@
     translate: 0 -50%;
     width: var(--spacing-lg);
     height: var(--spacing-lg);
-  }
-
-  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem[data-pressed] {
-    background: var(--bg-muted);
-  }
-
-  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem[data-focused] {
-    background: var(--accent);
-    color: var(--fg-on-accent);
-  }
-
-  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem[data-focus-visible] {
-    outline: none;
   }
 
   .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem [slot="label"] {

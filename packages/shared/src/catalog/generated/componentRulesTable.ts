@@ -14,6 +14,11 @@
  */
 import type { ComponentRulesTable } from "../../types/catalog-style.types";
 import type { PaintImage } from "../rule/rulePaintTree";
+import {
+  PICKER_BACKGROUND,
+  PICKER_CONTENT,
+  PICKER_INVALID_WIDTH,
+} from "../document/pickerTrigger";
 import { SHEET_HANDLE_SELECTORS } from "../document/sheetChrome";
 import {
   CATALOG_PRESS_TRANSITION,
@@ -30,6 +35,13 @@ import {
   scaledLengthRef,
   tokenToCSSVar,
 } from "@composition/rendering";
+
+// S2 Menu/Picker: hover로 이동한 focus와 키보드 focus의 공통 배경.
+const COLLECTION_ITEM_BACKGROUND = {
+  default: "{color.transparent}",
+  isFocused: "{color.collection-item-focus}",
+  isDisabled: "{color.transparent}",
+} as const;
 
 /**
  * ADR-259 Phase 2 — S2 `prefix` (TextField · TextArea · NumberField · ComboBox · ColorField): the
@@ -633,7 +645,7 @@ const BUTTON_DISABLED_STATE = {
   pointerEvents: { isDisabled: "none" },
 } as const;
 
-const BUTTON_VARIANTS = {
+const BUTTON_VARIANTS_BASE = {
   // (outline 글자 = S2 `baseColor('neutral')` — fill 밖 variant 색은 S2 outline 에 없다, #2)
   accent: buttonPaint({
     fill: ["{color.accent}", "{color.accent-hover}"],
@@ -669,6 +681,23 @@ const BUTTON_VARIANTS = {
   premium: gradientButtonPaint(S2_GRADIENT.premium),
   genai: gradientButtonPaint(S2_GRADIENT.genai),
 };
+
+const BUTTON_VARIANTS = Object.fromEntries(
+  Object.entries(BUTTON_VARIANTS_BASE).map(([name, variant]) => [
+    name,
+    {
+      ...variant,
+      paint: {
+        ...variant.paint,
+        backgroundColor: {
+          ...variant.paint.backgroundColor,
+          isPicker: PICKER_BACKGROUND,
+        },
+        color: { ...variant.paint.color, isPicker: PICKER_CONTENT },
+      },
+    },
+  ]),
+);
 
 /** S2 Button.tsx: fill 0 · outline 2; gradient/field buttons have no border. */
 function buttonBoxValue<T extends string | number>(fill: T, outline: T) {
@@ -2033,12 +2062,26 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: BUTTON_INLINE_ROOT_BOX,
       stateStyles: {
         ...FIELD_BUTTON_CORNER_STATE,
+        boxShadow: {
+          isPicker: {
+            default: "none",
+            isInvalid: `inset 0 0 0 ${PICKER_INVALID_WIDTH}px var(--negative)`,
+            isQuiet: {
+              default: "none",
+              isFocusVisible: `inset 0 -${PICKER_INVALID_WIDTH}px var(--accent)`,
+            },
+            isDisabled: "none",
+          },
+        },
         borderWidth: BUTTON_BORDER_WIDTH,
         "--catalog-button-border-width": BUTTON_BORDER_WIDTH,
         paddingTop: BUTTON_PADDING_BLOCK,
         paddingBottom: BUTTON_PADDING_BLOCK,
         ...FOCUS_RING_STATE,
         ...BUTTON_DISABLED_STATE,
+        outline: { isPicker: { isQuiet: "none" } },
+        paddingLeft: { isPicker: { isQuiet: "0" } },
+        paddingRight: { isPicker: { isQuiet: "0" } },
       },
       // ADR-297 Phase 3: paint = the variant trees (generated `:where` blocks) — the class stays for
       //   the Skia child-color gate and the Builder chrome ramp (`.button-base:not([data-catalog-id])`).
@@ -3986,10 +4029,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "max-height": "300px",
               overflow: "auto",
               "box-sizing": "border-box",
-              border: "var(--border-width-thin) solid var(--border)",
-              "border-radius": "var(--border-radius)",
-              background: "var(--bg-raised)",
-              "box-shadow": "var(--shadow-lg)",
               contain: "layout style",
             },
             nested: [
@@ -4616,6 +4655,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           {
             selector: '.react-aria-Popover[data-trigger="DatePicker"]',
             styles: {
+              width: "fit-content",
               "max-width": "unset",
             },
             nested: [
@@ -4859,6 +4899,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           {
             selector: '.react-aria-Popover[data-trigger="DateRangePicker"]',
             styles: {
+              width: "fit-content",
               "max-width": "unset",
             },
             nested: [
@@ -8204,10 +8245,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   "calc((var(--spacing-2xl) - 1lh) / 2) var(--spacing-md) calc((var(--spacing-2xl) - 1lh) / 2) var(--spacing-xl)",
                 "font-weight": "500",
               },
-              ".react-aria-ListBoxItem[data-selected]": {
-                background: "transparent",
-                color: "var(--fg)",
-              },
               ".react-aria-ListBoxItem[data-selected]:not([data-selection-mark])::before":
                 {
                   content: "''",
@@ -8229,16 +8266,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   width: "var(--spacing-lg)",
                   height: "var(--spacing-lg)",
                 },
-              ".react-aria-ListBoxItem[data-pressed]": {
-                background: "var(--bg-muted)",
-              },
-              ".react-aria-ListBoxItem[data-focused]": {
-                background: "var(--accent)",
-                color: "var(--fg-on-accent)",
-              },
-              ".react-aria-ListBoxItem[data-focus-visible]": {
-                outline: "none",
-              },
               '.react-aria-ListBoxItem [slot="label"]': {
                 "font-size": "inherit",
                 "line-height": "inherit",
@@ -8299,12 +8326,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             isSelected: {
               default: "{color.accent}",
             },
+            inPopover: COLLECTION_ITEM_BACKGROUND,
           },
           color: {
             default: "{color.neutral}",
             isSelected: {
               default: "{color.on-accent}",
             },
+            inPopover: "{color.neutral}",
           },
           borderColor: {
             isSelected: {
@@ -8415,11 +8444,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         position: "relative",
       },
       stateStyles: {
+        borderRadius: { inPopover: { size: FIELD_BUTTON_CORNERS } },
         // (ADR-297 Phase 3g: the option's keyboard ring sits inside it, a selected one's deeper — was the manual
         //   `ListBox.css`)
-        outline: { isFocusVisible: "2px solid var(--accent)" },
+        outline: {
+          default: "none",
+          isFocusVisible: "2px solid var(--accent)",
+        },
         outlineOffset: {
-          isFocusVisible: { default: "-2px", isSelected: "-4px" },
+          isFocusVisible: {
+            default: "-2px",
+            isSelected: "-4px",
+            inPopover: "2px",
+          },
         },
         ...DISABLED_STATE,
         // (ADR-297 Phase 3b: the option's resting cursor — was the manual `ListBox.css` root)
@@ -8516,11 +8553,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         ...FOCUS_RING_STATE,
         ...DISABLED_STATE,
       },
-      // ADR-239 Preview 확인 (2026-09-25 사용자 지시 "이중 테두리도 영향 범위 확인하고 고쳐") — 메뉴 popover 는
-      //   틀 없는 wrapper, 목록 틀 (배경 · 테두리 · 모서리 · 여백 = 위 containerStyles) 과 그림자는 Menu 한 겹이다.
-      //   종전: 일반 Popover 틀 (padding 16 · border · 배경) 안에 Menu 틀이 한 겹 더 (하위 메뉴 · 최상위 메뉴 모두).
-      //   `[data-size]` = composition Menu 가 싣는 표식 — builder 크롬 메뉴 (자기 className · data-size 없음) 는 대상 밖.
-      //   Canvas 는 닫힌 popover 를 그리지 않는다 (MenuTrigger 의 Popover — 열린 목록은 Autocomplete 안 Menu).
+      // S2 Menu는 Popover의 표면을 쓰고 목록은 8px inset만 갖는다.
+      // standalone Menu의 표면은 유지하고 portal 안에서만 부모가 표면을 소유한다.
       composition: {
         delegation: [],
         externalStyles: [
@@ -8529,14 +8563,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               '.react-aria-Popover[data-trigger="MenuTrigger"][data-size]',
             styles: {
               padding: "0",
-              border: "none",
-              background: "transparent",
-              "box-shadow": "none",
+              width: "fit-content",
+              "max-width": "320px",
             },
             nested: [
               {
                 selector: "> .react-aria-Menu",
-                styles: { "box-shadow": "var(--shadow-md)" },
+                styles: {
+                  background: "transparent",
+                  border: "none",
+                  "border-radius": "0",
+                  "box-shadow": "none",
+                  outline: "none",
+                  padding: "8px",
+                  gap: "0",
+                },
               },
             ],
           },
@@ -8545,14 +8586,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               '.react-aria-Popover[data-trigger="SubmenuTrigger"][data-size]',
             styles: {
               padding: "0",
-              border: "none",
-              background: "transparent",
-              "box-shadow": "none",
+              width: "fit-content",
+              "max-width": "320px",
             },
             nested: [
               {
                 selector: "> .react-aria-Menu",
-                styles: { "box-shadow": "var(--shadow-md)" },
+                styles: {
+                  background: "transparent",
+                  border: "none",
+                  "border-radius": "0",
+                  "box-shadow": "none",
+                  outline: "none",
+                  padding: "8px",
+                  gap: "0",
+                },
               },
             ],
           },
@@ -8571,7 +8619,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     defaultSize: "M",
-    variants: {},
+    defaultVariant: "default",
+    variants: {
+      default: {
+        paint: {
+          backgroundColor: COLLECTION_ITEM_BACKGROUND,
+        },
+      },
+    },
     // ADR-295 Phase 3c-3c ③: S2 `menuitem` = `control({ shape: 'default', icon: true })` — the control height as its
     //   minimum, the centring padding (`(height − line) / 2`), `edge-to-text` (height × 3/8) at both ends, an icon
     //   `text-to-visual` before its label; its size is its Menu's (`CATALOG_SIZE_PROPAGATION.Menu`).
@@ -8629,7 +8684,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         alignItems: "center",
       },
       stateStyles: {
-        background: { isHovered: "{color.layer-1}" },
+        // RAC MenuItem은 public variant 축이 없다. CSS는 같은 칠 트리를 클래스에 적용한다.
+        background: COLLECTION_ITEM_BACKGROUND,
+        outline: { default: "none" },
         ...FOCUS_RING_STATE,
         ...DISABLED_STATE,
         // S2 `Menu.tsx:844` — every menu item presses (`transition: 'transform'`, `Menu.tsx:307`).
@@ -10129,49 +10186,49 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       surface: {
         paint: {
           backgroundColor: {
-            default: "{color.layer-2}",
-            isHovered: "{color.layer-2}",
-            isPressed: "{color.layer-2}",
+            default: "{color.popover-background}",
+            isHovered: "{color.popover-background}",
+            isPressed: "{color.popover-background}",
           },
           color: {
             default: "{color.neutral}",
           },
           borderColor: {
-            default: "{color.border}",
+            default: "{color.transparent}",
           },
         },
       },
     },
-    // 모서리 16px — size 무관 (2026-10-30 사용자 「dialog · popover 의 border-radius: size 상관없이 16px」).
+    // S2 Popover.tsx: 고정 size 폭, 8px 기본 content inset, size 무관 10px 모서리.
     sizes: {
-      // ADR-912 단계5 step4 Popover 단건 (2026-06-16): paddingY/gap 보강 —
-      //   Popover.spec.ts 삭제 대비 generated Popover.css(padding: NNpx NNpx / gap: NNpx) diff-0 유지.
-      //   값은 (구) PopoverSpec.sizes 와 동일 (paddingX==paddingY, gap sm:8/md:12/lg:16).
       S: {
-        maxWidth: 200,
-        paddingX: 12,
-        paddingY: 12,
-        gap: 8,
+        width: 336,
+        paddingX: 8,
+        paddingY: 8,
+        gap: 0,
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.xl}",
+        borderRadius: "{radius.lg}",
+        borderWidth: 0,
         height: 0,
       },
       M: {
-        maxWidth: 250,
-        paddingX: 16,
-        paddingY: 16,
-        gap: 12,
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.xl}",
+        width: 416,
+        paddingX: 8,
+        paddingY: 8,
+        gap: 0,
+        fontSize: "{typography.text-sm}",
+        borderRadius: "{radius.lg}",
+        borderWidth: 0,
         height: 0,
       },
       L: {
-        maxWidth: 320,
-        paddingX: 20,
-        paddingY: 20,
-        gap: 16,
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.xl}",
+        width: 576,
+        paddingX: 8,
+        paddingY: 8,
+        gap: 0,
+        fontSize: "{typography.text-sm}",
+        borderRadius: "{radius.lg}",
+        borderWidth: 0,
         height: 0,
       },
     },
@@ -10188,13 +10245,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   0)를 은퇴시켜, 이 값이 DOM·Skia 양쪽의 유일한 그림자 소스가 됐다.
       containerStyles: {
         boxShadow: "{shadow.md}",
+        maxWidth: "100%",
+        outline: "1px solid var(--popover-outline)",
         // ADR-171 Phase 1 (2026-07-29): 수동 `Popover.css` 의 실효값 이관 (값 불변).
         display: "flex",
         flexDirection: "column",
       },
-      stateStyles: {
-        // (ADR-297 Phase 3b: `outline: none` at rest — was the manual `Popover.css` root, after the generated sheet)
-        focusRing: { default: "none", isFocusVisible: "{focus.ring.default}" },
+      composition: {
+        delegation: [],
+        rootSelectors: {
+          "&": { styles: { "max-width": "calc(100vw - 24px)" } },
+        },
       },
     },
   },
@@ -11593,8 +11654,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       archetype: "default",
       element: "div",
       stateStyles: {
-        ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
+        color: { isDisabled: "{color.picker-content-disabled}" },
       },
       composition: {
         layout: "flex-column",
@@ -11664,72 +11724,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
             },
           },
-          quiet: {
-            true: {
-              nested: [
-                {
-                  selector: ".react-aria-Button",
-                  styles: {
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "box-shadow": "none",
-                    "border-radius": "0",
-                    "border-bottom": "1px solid var(--border)",
-                  },
-                },
-                {
-                  selector:
-                    ".react-aria-Button[data-hovered]:not([data-pressed]):not([data-disabled])",
-                  styles: {
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "box-shadow": "none",
-                    "border-bottom-color": "var(--border-hover)",
-                  },
-                },
-                {
-                  selector:
-                    ".react-aria-Button[data-focus-visible]:not([data-disabled])",
-                  styles: {
-                    outline: "none",
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "box-shadow": "none",
-                    "border-bottom-color": "var(--accent-content)",
-                  },
-                },
-                {
-                  selector:
-                    ".react-aria-Button[data-focused]:not([data-disabled])",
-                  styles: {
-                    outline: "none",
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "box-shadow": "none",
-                    "border-bottom-color": "var(--accent-content)",
-                  },
-                },
-                {
-                  selector:
-                    ".react-aria-Button[data-pressed]:not([data-disabled])",
-                  styles: {
-                    outline: "none",
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "box-shadow": "none",
-                    "border-bottom-color": "var(--accent-content)",
-                  },
-                },
-                {
-                  selector: "&[data-invalid] .react-aria-Button",
-                  styles: {
-                    "border-color": "transparent",
-                    "border-bottom-color": "var(--negative)",
-                  },
-                },
-              ],
-            },
-          },
         },
         externalStyles: [
           {
@@ -11744,19 +11738,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           {
             selector: '.react-aria-Popover[data-trigger="Select"]',
             styles: {
+              width: "fit-content",
               "min-width": "var(--trigger-width)",
               "max-height": "300px",
               overflow: "auto",
-              border: "var(--border-width-thin) solid var(--border)",
-              "border-radius": "var(--border-radius)",
-              background: "var(--bg-raised)",
-              "box-shadow": "var(--shadow-lg)",
               contain: "layout style",
             },
             nested: [
               {
                 selector: ".react-aria-ListBox",
                 styles: {
+                  padding: "var(--spacing-sm)",
                   border: "none",
                   background: "transparent",
                   "max-height": "none",
@@ -11806,6 +11798,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
             },
             bridges: {
+              "text-align": "left",
               width: "100%",
               "min-width": "0",
               "padding-left": "var(--select-btn-pad-start)",
@@ -11842,6 +11835,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "font-weight": "400",
               flex: "1",
               display: "flex",
+              "text-align": "left",
+              "justify-content": "flex-start",
               "white-space": "nowrap",
               "text-overflow": "ellipsis",
               overflow: "hidden",
@@ -11849,8 +11844,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             states: {
               "[data-placeholder]": {
                 "font-style": "normal",
-                color: "var(--fg-muted)",
-                opacity: "0.6",
+                color: "inherit",
+                opacity: "1",
               },
             },
           },
@@ -11869,15 +11864,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
+        textAlign: "left",
         paint: {
           backgroundColor: {
             default: "{color.transparent}",
             isHovered: "{color.transparent}",
             isPressed: "{color.transparent}",
           },
-          color: {
-            default: "{color.neutral}",
-          },
+          color: PICKER_CONTENT,
         },
       },
     },
@@ -15246,30 +15240,36 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           backgroundColor: {
             default: "{color.neutral-subtle}",
             isHovered: "{color.neutral-hover}",
+            isExpanded: "{color.neutral-hover}",
             isPressed: "{color.neutral-hover}",
             isQuiet: {
               default: "{color.transparent}",
               isHovered: "{color.neutral-hover}",
+              isExpanded: "{color.neutral-hover}",
               isPressed: "{color.neutral-hover}",
             },
             staticColor: {
               black: {
                 default: "rgb(0 0 0 / 0.1)",
                 isHovered: "rgb(0 0 0 / 0.2)",
+                isExpanded: "rgb(0 0 0 / 0.2)",
                 isPressed: "rgb(0 0 0 / 0.2)",
                 isQuiet: {
                   default: "{color.transparent}",
                   isHovered: "rgb(0 0 0 / 0.2)",
+                  isExpanded: "rgb(0 0 0 / 0.2)",
                   isPressed: "rgb(0 0 0 / 0.2)",
                 },
               },
               white: {
                 default: "rgb(255 255 255 / 0.1)",
                 isHovered: "rgb(255 255 255 / 0.2)",
+                isExpanded: "rgb(255 255 255 / 0.2)",
                 isPressed: "rgb(255 255 255 / 0.2)",
                 isQuiet: {
                   default: "{color.transparent}",
                   isHovered: "rgb(255 255 255 / 0.2)",
+                  isExpanded: "rgb(255 255 255 / 0.2)",
                   isPressed: "rgb(255 255 255 / 0.2)",
                 },
               },

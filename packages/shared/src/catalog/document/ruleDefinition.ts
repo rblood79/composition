@@ -251,8 +251,14 @@ function withSizeLimit(
   box: { layout: Record<string, string>; visual: Record<string, Scalar> },
   size: ComponentRuleSize | undefined,
 ): { layout: Record<string, string>; visual: Record<string, Scalar> } {
-  if (typeof size?.maxWidth !== "number") return box;
-  return { ...box, layout: { ...box.layout, maxWidth: `${size.maxWidth}px` } };
+  const layout = { ...box.layout };
+  const visual =
+    typeof size?.width === "number"
+      ? { ...box.visual, width: size.width }
+      : box.visual;
+  if (typeof size?.maxWidth === "number")
+    layout.maxWidth = `${size.maxWidth}px`;
+  return { layout, visual };
 }
 
 /**
@@ -706,10 +712,9 @@ export function disabledStateRules(
   rule: Readonly<ComponentRule>,
   accepts: Readonly<Record<string, ValueType>>,
 ): ConditionalRule[] {
-  const raw = evaluateConditionTree(
-    rule.structure?.stateStyles?.opacity,
-    { isDisabled: true },
-  );
+  const raw = evaluateConditionTree(rule.structure?.stateStyles?.opacity, {
+    isDisabled: true,
+  });
   const opacity = typeof raw === "string" ? Number.parseFloat(raw) : raw;
   if (typeof opacity !== "number" || !Number.isFinite(opacity) || opacity >= 1)
     return [];

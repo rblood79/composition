@@ -16,6 +16,11 @@
   display: inline-flex;
   align-items: center;
 
+  /* Default variant */
+  background: transparent;
+  color: var(--fg);
+  border: none;
+
   /* Default size */
   height: auto;
   padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-menu-item-padding-x-M, calc(var(--catalog-token-size-height-M) * 3 / 8));
@@ -25,6 +30,18 @@
   border-width: var(--border-width-none);
   min-height: var(--catalog-token-size-height-M);
   gap: var(--catalog-token-menu-item-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+}
+
+.react-aria-MenuItem:where([data-variant="default"]) {
+  background: transparent;
+}
+
+.react-aria-MenuItem:where([data-variant="default"]:is([data-focused],[data-focus-within])) {
+  background: var(--collection-item-focus);
+}
+
+.react-aria-MenuItem:where([data-variant="default"][data-disabled]) {
+  background: transparent;
 }
 
 .react-aria-MenuItem[data-size="S"] {
@@ -71,24 +88,27 @@
   gap: var(--catalog-token-menu-item-gap-XL, calc(var(--catalog-token-text-lg) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
 }
 
-.react-aria-MenuItem.react-aria-MenuItem:where([data-hovered]) {
-  background: var(--bg-overlay);
+.react-aria-MenuItem.react-aria-MenuItem {
+  background: transparent;
+  outline: none;
+  will-change: transform;
+  transition: transform 150ms cubic-bezier(0.45, 0, 0.4, 1);
 }
 
-.react-aria-MenuItem.react-aria-MenuItem:where([data-focus-visible]) {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
+.react-aria-MenuItem.react-aria-MenuItem:where(:is([data-focused],[data-focus-within])) {
+  background: var(--collection-item-focus);
 }
 
 .react-aria-MenuItem.react-aria-MenuItem:where([data-disabled]) {
+  background: transparent;
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;
 }
 
-.react-aria-MenuItem.react-aria-MenuItem {
-  will-change: transform;
-  transition: transform 150ms cubic-bezier(0.45, 0, 0.4, 1);
+.react-aria-MenuItem.react-aria-MenuItem:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
 }
 
 .react-aria-MenuItem.react-aria-MenuItem:where([data-pressed]) {

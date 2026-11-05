@@ -23,6 +23,8 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 import { editContractFixture } from "./support/editContractFixture";
 import { CatalogCanvasScene } from "../canvasScene";
 
+import { catalogRuleNodeData } from "../ruleShapes";
+
 const BODY = "project:node:home-body" as NodeId;
 async function fixture(
   type: string,
@@ -109,6 +111,136 @@ it("열린 Sheet는 Dialog의 Modal과 같은 그림자를 본체에만 그린�
     }
   }
   expect(shadows[0]).toEqual(shadows[1]);
+});
+
+describe("S2 Popover 표면", () => {
+  it.each([
+    ["S", 336],
+    ["M", 416],
+    ["L", 576],
+  ] as const)(
+    "%s 폭과 10px 모서리·8px 여백을 Canvas에 반영한다",
+    async (size, width) => {
+      const { workspace } = await fixture("Popover", { isOpen: true, size });
+      const root = workspace.root;
+      const popover = [...root.canvasInputs.values()].find(
+        (n) => n.ruleId === "Popover",
+      )!;
+      const scene = new CatalogCanvasScene(root);
+      try {
+        expect(root.getGeometry([popover.id]).get(popover.id)!.width).toBe(
+          width,
+        );
+        expect(popover.visual).toMatchObject({ paddingX: 8, paddingY: 8 });
+        expect(getSkiaNode(popover.id)!.box).toMatchObject({
+          borderRadius: 10,
+          outlineWidth: 1,
+        });
+        expect(
+          getSkiaNode(popover.id)!.effects?.filter(
+            (e) => e.type === "drop-shadow",
+          ),
+        ).toHaveLength(3);
+        expect(getSkiaNode(popover.id)!.box!.outlineColor![3]).toBe(0);
+      } finally {
+        scene.dispose();
+        workspace.dispose();
+      }
+    },
+  );
+
+  it("좁은 viewport에서는 양쪽 12px을 남기고 폭을 줄인다", async () => {
+    const { workspace } = await fixture(
+      "Popover",
+      { isOpen: true, size: "L" },
+      { width: 390, height: 844 },
+    );
+    try {
+      const popover = [...workspace.root.canvasInputs.values()].find(
+        (n) => n.ruleId === "Popover",
+      )!;
+      expect(
+        workspace.root.getGeometry([popover.id]).get(popover.id)!.width,
+      ).toBe(366);
+    } finally {
+      workspace.dispose();
+    }
+  });
+
+  it("Menu는 Popover에만 표면·그림자를 그리고 목록 여백은 8px이다", async () => {
+    const { workspace } = await fixture("Menu", { isOpen: true });
+    const root = workspace.root;
+    const scene = new CatalogCanvasScene(root);
+    try {
+      const popover = [...root.canvasInputs.values()].find(
+        (n) => n.ruleId === "Popover",
+      )!;
+      const menu = [...root.canvasInputs.values()].find(
+        (n) => n.ruleId === "Menu",
+      )!;
+      expect(
+        root.getGeometry([popover.id]).get(popover.id)!.width,
+      ).toBeLessThan(320);
+      expect(getSkiaNode(popover.id)!.box!.borderRadius).toBe(10);
+      expect(
+        getSkiaNode(popover.id)!.effects?.filter(
+          (e) => e.type === "drop-shadow",
+        ),
+      ).toHaveLength(3);
+      expect(
+        getSkiaNode(menu.id)!.effects?.filter(
+          (e) => e.type === "drop-shadow",
+        ) ?? [],
+      ).toHaveLength(0);
+      expect(menu.visual).toMatchObject({ paddingX: 8, paddingY: 8 });
+    } finally {
+      scene.dispose();
+      workspace.dispose();
+    }
+  });
+});
+
+describe("Popover 목록의 S2 강조색", () => {
+  it.each(["Menu", "Select", "ComboBox"])(
+    "%s: hover와 focus는 같은 색이고 disabled는 강조하지 않는다",
+    async (type) => {
+      const { workspace } = await fixture(type, { isOpen: true });
+      const root = workspace.root;
+      try {
+        const node = [...root.canvasInputs.values()].find(
+          (n) => n.ruleId === (type === "Menu" ? "MenuItem" : "ListBoxItem"),
+        )!;
+        if (type !== "Menu") expect(node.derivedProps?._inPopover).toBe(true);
+        for (const [theme, channel] of [
+          ["light", 225],
+          ["dark", 50],
+        ] as const) {
+          for (const state of ["hover", "focusVisible", "disabled"] as const) {
+            const data = catalogRuleNodeData({
+              node: { ...node, props: { ...node.props, ...node.derivedProps } },
+              rule: root.runtime.graph.library.rules.get(node.ruleId!)!,
+              type: node.ruleId!,
+              rect: { width: 150, height: 32 },
+              authoredVisual: {},
+              state,
+              theme,
+            });
+            const color = Array.from(data.box?.fillColor ?? []);
+            if (state === "disabled") expect(color[3] ?? 0).toBe(0);
+            else
+              expect(color).toEqual([
+                expect.closeTo(channel / 255, 5),
+                expect.closeTo(channel / 255, 5),
+                expect.closeTo(channel / 255, 5),
+                1,
+              ]);
+          }
+        }
+      } finally {
+        workspace.dispose();
+      }
+    },
+  );
 });
 
 describe("overlay authored Open parity", () => {

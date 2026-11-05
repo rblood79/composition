@@ -57,15 +57,8 @@
   --icon-size: var(--catalog-token-select-icon-size-XL, var(--catalog-token-size-icon-XL));
 }
 
-.react-aria-Select.react-aria-Select:where([data-focus-visible]) {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
 .react-aria-Select.react-aria-Select:where([data-disabled]) {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
+  color: var(--fg-picker-disabled);
 }
 
 /* ── Tier 2: Composite Delegation ── */
@@ -96,6 +89,7 @@
 }
 
 .react-aria-Select .react-aria-Button {
+  text-align: left;
   width: 100%;
   min-width: 0;
   padding-left: var(--select-btn-pad-start);
@@ -128,6 +122,8 @@
   font-weight: 400;
   flex: 1;
   display: flex;
+  text-align: left;
+  justify-content: flex-start;
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
@@ -135,8 +131,8 @@
 
 .react-aria-Select .react-aria-SelectValue:where([data-placeholder]) {
   font-style: normal;
-  color: var(--fg-muted);
-  opacity: 0.6;
+  color: inherit;
+  opacity: 1;
 }
 
 .react-aria-Select .react-aria-SelectValue [slot="description"] {
@@ -148,17 +144,15 @@
 }
 
 .react-aria-Popover[data-trigger="Select"] {
+  width: fit-content;
   min-width: var(--trigger-width);
   max-height: 300px;
   overflow: auto;
-  border: var(--border-width-thin) solid var(--border);
-  border-radius: var(--border-radius);
-  background: var(--bg-raised);
-  box-shadow: var(--shadow-lg);
   contain: layout style;
 }
 
 .react-aria-Popover[data-trigger="Select"] .react-aria-ListBox {
+  padding: var(--spacing-sm);
   border: none;
   background: transparent;
   max-height: none;
@@ -194,50 +188,6 @@
 
 .react-aria-Select[data-label-align="end"] {
   --form-label-align: end;
-}
-
-.react-aria-Select[data-quiet="true"] .react-aria-Button {
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  border-radius: 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.react-aria-Select[data-quiet="true"] .react-aria-Button[data-hovered]:not([data-pressed]):not([data-disabled]) {
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  border-bottom-color: var(--border-hover);
-}
-
-.react-aria-Select[data-quiet="true"] .react-aria-Button[data-focus-visible]:not([data-disabled]) {
-  outline: none;
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  border-bottom-color: var(--accent-content);
-}
-
-.react-aria-Select[data-quiet="true"] .react-aria-Button[data-focused]:not([data-disabled]) {
-  outline: none;
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  border-bottom-color: var(--accent-content);
-}
-
-.react-aria-Select[data-quiet="true"] .react-aria-Button[data-pressed]:not([data-disabled]) {
-  outline: none;
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  border-bottom-color: var(--accent-content);
-}
-
-.react-aria-Select[data-quiet="true"][data-invalid] .react-aria-Button {
-  border-color: transparent;
-  border-bottom-color: var(--negative);
 }
 
 

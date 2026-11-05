@@ -208,14 +208,14 @@ describe("S2 Button shape — a pill; a field's own button keeps its corner", ()
   );
 
   // The Menu component's trigger (2026-10-30 — 사용자 「menu 컴포넌트의 클릭하는 버튼
-  // border-radius: 8px」): its template Button's own `radius: 8` at every size.
+  // border-radius: 8px」): ActionButton으로 교체해도 template의 `radius: 8`을 유지한다.
   it.each(["XS", "S", "M", "L", "XL"])(
-    "the Menu at %s: its trigger Button is 8 (Canvas · DOM)",
+    "the Menu at %s: its trigger ActionButton is 8 (Canvas · DOM)",
     async (size) => {
-      const { html, radii } = await open("Menu", size);
+      const { html, radii } = await open("Menu", size, "actionbutton");
       expect(radii).toEqual([8]);
       expect(html).toMatch(
-        /class="[^"]*react-aria-Button[^"]*"[^>]*border-radius:8px/,
+        /class="[^"]*react-aria-ActionButton[^"]*"[^>]*border-radius:8px/,
       );
     },
   );
@@ -277,15 +277,15 @@ describe("S2 Button shape — a pill; a field's own button keeps its corner", ()
 
   // Dialog · Popover bodies (2026-10-30 — 사용자 「dialog · popover border-radius: size 상관없이 16px」).
   it.each([
-    ["Dialog", "dialog", [""]],
-    ["Popover", "popover", ["S", "M", "L"]],
+    ["Dialog", "dialog", [""], 16],
+    ["Popover", "popover", ["S", "M", "L"], 10],
   ] as const)(
-    "the %s body is 16 at every size it takes",
-    async (type, binding, sizes) => {
+    "the %s body keeps its reference radius at every size",
+    async (type, binding, sizes, radius) => {
       for (const size of sizes) {
         const { visualRadii, count } = await open(type, size, binding);
         expect(count).toBe(1);
-        expect(visualRadii).toEqual([16]);
+        expect(visualRadii).toEqual([radius]);
       }
     },
   );

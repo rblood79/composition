@@ -1,3 +1,4 @@
+import { COMPONENT_RULES_TABLE } from "../../../../../packages/shared/src/catalog/generated/componentRulesTable";
 import { specShapesToSkia } from "../workspace/canvas/skia/specShapeConverter";
 import type { CanvasSceneNode } from "../workspace/canvas/scene/canvasSceneNodeTypes";
 import { catalogDisclosureBorders } from "../../../../../packages/shared/src/catalog/runtime/disclosureBorders";
@@ -1169,6 +1170,44 @@ function withoutCoveredGradient(
   return { ...node, visual } as CatalogConsumerNode;
 }
 
+/** Native Picker 부품도 DOM과 같은 상태 트리를 읽고 Button pending 계약을 유지한다. */
+function pickerNodeData(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  original: CatalogConsumerNode,
+  rect: Rect,
+): SkiaNodeData {
+  const type =
+    node.derivedProps?._pickerTrigger === true ? "Button" : "SelectValue";
+  const input: CatalogRuleShapeInput = {
+    node: { ...node, props: { ...node.props, ...node.derivedProps } },
+    rule: COMPONENT_RULES_TABLE[type],
+    type,
+    rect,
+    authoredVisual: catalogAuthoredVisual(root, original),
+    state: catalogNodeState(node.displayState, root.state),
+    theme: root.colorMode,
+  };
+  const data = catalogRuleNodeData(input);
+  return {
+    ...data,
+    ...(catalogButtonPending(type, node.props)
+      ? {
+          children: [
+            ...(data.children ?? []),
+            ...pendingCircleData(
+              node,
+              rect,
+              rgba(catalogRuleTextColor(input) ?? "#000000"),
+            ),
+          ],
+        }
+      : {}),
+    x: rect.x,
+    y: rect.y,
+  };
+}
+
 function paintedNodeData(
   root: CatalogCompositionRoot,
   input: CatalogConsumerNode,
@@ -1224,13 +1263,16 @@ function paintedNodeData(
                     (id) => root.canvasInputs.get(id),
                     root.typeOf,
                   )
-                ? binding(
-                    node,
-                    rect,
-                    parent,
-                    root.textWraps(node.id),
-                    root.labelSuffix(node.id),
-                  )
+                ? node.derivedProps?._pickerTrigger === true ||
+                  node.derivedProps?._pickerValue === true
+                  ? pickerNodeData(root, node, input, rect)
+                  : binding(
+                      node,
+                      rect,
+                      parent,
+                      root.textWraps(node.id),
+                      root.labelSuffix(node.id),
+                    )
                 : ruleNodeData(root, node, rect),
         ),
         rect,

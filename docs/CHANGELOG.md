@@ -24,6 +24,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   팔레트·Library·Property·Interactions·Code View·CSS와 Canvas의 타입 판정을 Accordion으로 변경한다. S2와 동일하게 실제 DOM은 RAC DisclosureGroup을 사용하며, RAC props 타입과 상태 키 참조는 해당 라이브러리의 이름을 유지한다.
   Code View도 `DisclosureGroup as Accordion`으로 가져와 실제 RAC export와 내부 이름을 연결한다.
 
+## [Select — S2 Picker 토큰·상태·정렬 정합] - 2026-11-05
+
+### Fixed
+
+- **Select의 light/dark 상태 색상과 Preview CSS 격리**
+  Picker 전용 의미 토큰으로 기본·hover·open·disabled 배경/글자를 정의한다. Builder 폼 CSS가 문서 Select를 덮지 않으며, Disabled는 전체 opacity 대신 전용 색상을 사용한다. Placeholder·선택값은 왼쪽 정렬하고 펼침 아이콘은 trigger 색상을 상속한다.
+- **Select 다중 선택의 S2 표시 계약**
+  0개는 placeholder, 1개는 선택 항목, 2개 이상은 locale에 따른 선택 개수를 표시해 항목 label의 `width: 100%`가 선택값 영역에 반복되던 문제를 수정한다. 다중 선택 목록은 모든 항목에 checkbox를 표시하고 단일 선택은 선택 항목에만 check를 표시한다. Canvas와 DOM은 같은 indicator 크기·색상 토큰을 사용하며 단일 선택값에는 목록 indicator를 복제하지 않는다.
+- **Picker 트리거와 목록 상태 정합**
+  실제 pointer 누름과 열린 상태를 분리해 클릭 해제 시 scale을 복구한다. Quiet의 기본 밑줄을 없애고 키보드 focus에서만 선을 표시한다. Invalid는 레이아웃을 바꾸지 않는 2px 표시와 경고 아이콘으로 표현한다. Select의 Popover 목록은 8px inset과 size별 모서리를 사용하며 기존 기본 폭·우측 여백은 유지한다.
+
+## [Menu hover·트리거 누름 상태 — S2 정합] - 2026-11-05
+
+### Fixed
+
+- **메뉴 항목 hover의 브라우저 기본 outline 제거**
+  MenuItem·ListBoxItem은 기본 outline을 끄고 키보드 focus에서만 표시한다. Popover 내부 ListBox의 focus 표시를 지우던 부모 규칙도 제거해 S2처럼 바깥쪽 2px offset을 사용한다. Publish 전역 focus 기본값과 Builder chrome의 offset이 catalog 상태 규칙을 덮지 않도록 우선순위·범위를 수정했다.
+- **메뉴가 열린 뒤 트리거 축소가 유지되는 문제 수정**
+  RAC의 open 상태와 실제 마우스 누름을 분리한다. Underlay가 나타나도 누름은 유지하고, 실제 pointerup·pointercancel·창 blur에서 해제하며 unmount 시 리스너를 정리한다. 열린 ActionButton은 Canvas·CSS 모두 hover 배경을 유지한다.
+
+## [Popover 표면 — Spectrum S2 스타일] - 2026-11-05
+
+### Changed
+
+- **Popover를 S2 크기·여백·표면으로 통일**
+  모서리 10px, 기본 여백 8px, S/M/L 폭 336/416/576px, layer-2 배경과 elevated 그림자를 사용한다. light/dark 전용 outline은 레이아웃 크기를 늘리지 않는다. Menu/Submenu는 Popover가 표면을 그리고 목록은 8px inset만 갖는다. Select/ComboBox의 중복 표면 스타일도 제거했다.
+- **Popover 전환을 200ms fade와 배치 방향의 4px 이동으로 변경**
+  Submenu는 이동 없이 fade하며 reduced-motion에서는 애니메이션을 끈다.
+- **메뉴·Popover 내부 목록의 hover와 키보드 focus 배경을 S2 강조색으로 통일**
+  light `#e1e1e1` / dark `#323232`를 공용 토큰으로 사용한다. disabled 항목은 강조하지 않고, Popover 밖의 독립 ListBox 선택 스타일은 유지한다.
+
+## [Menu 기본 트리거 — ActionButton 적용] - 2026-11-05
+
+### Breaking Changes
+
+- **Catalog library contract 56 → 57**
+  Menu 트리거 원본 교체로 Icon · Text의 템플릿 주소가 바뀐다. 이전 contract 문서는 기존 정책대로 거부하며 자동 변환하지 않는다.
+
+### Changed
+
+- **Menu의 기본 트리거를 Button에서 ActionButton으로 변경**
+  `Menu` 라벨, 부모 Size 상속, 기존 모서리 8px를 유지한다. MenuTrigger의 필수 부품 검사도 Button · ActionButton을 모두 인정한다. Canvas의 열린 Popover도 ActionButton을 배치 기준으로 찾는다.
+  위치: `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts`, `packages/shared/src/catalog/nesting/requiredParts.ts`.
+
 ## [작업 버튼 Property — Icon · Label 자식 바인딩 복구] - 2026-11-05
 
 ### Fixed

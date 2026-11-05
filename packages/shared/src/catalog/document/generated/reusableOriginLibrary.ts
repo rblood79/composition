@@ -3867,7 +3867,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-menu__trigger",
-    "definitionId": "lib:definition:origin-component-button",
+    "definitionId": "lib:definition:origin-component-actionbutton",
     "children": [],
     "props": {
       "label": "Menu",
@@ -6919,9 +6919,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "shouldFlip": "{shouldFlip}",
       "containerPadding": "{containerPadding}"
     },
-    "visual": {
-      "width": "240px"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-popover__content-region",

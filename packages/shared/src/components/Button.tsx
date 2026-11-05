@@ -1,4 +1,5 @@
-import { forwardRef, useEffect, useState } from "react";
+import { SelectStateContext } from "react-aria-components/Select";
+import { forwardRef, useContext, useEffect, useState } from "react";
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import {
   Button as RACButton,
@@ -14,6 +15,21 @@ import {
   CATALOG_BUTTON_PENDING_LABELS,
   catalogButtonPendingIndicator,
 } from "../catalog/document/buttonPending";
+
+import { PressResponder } from "react-aria/private/interactions/PressResponder";
+import { useOverlayTriggerPress } from "./useOverlayTriggerPress";
+
+const PickerTriggerButton = forwardRef<HTMLButtonElement, RACButtonProps>(
+  function PickerTriggerButton(props, ref) {
+    const press = useOverlayTriggerPress();
+    // RAC Select의 ButtonContext.isPressed=open을 덮고 실제 press는 usePress에 맡긴다.
+    return (
+      <PressResponder {...press}>
+        <RACButton {...props} {...{ isPressed: false }} ref={ref} />
+      </PressResponder>
+    );
+  },
+);
 
 /**
  * S2 `usePendingState` (`Button.tsx`): the pending circle shows a second after `isPending` turns on
@@ -72,6 +88,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       style,
       ...restProps
     } = props;
+    const select = useContext(SelectStateContext);
+    const picker =
+      select !== null ||
+      (restProps as Record<string, unknown>)["data-picker"] === "true";
+    const AriaButton = picker ? PickerTriggerButton : RACButton;
     const { focusProps, isFocusVisible } = useFocusRing();
     const quiet =
       (restProps as Record<string, unknown>)["data-quiet"] === "true";
@@ -85,11 +106,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       : undefined;
 
     return (
-      <RACButton
+      <AriaButton
         ref={ref}
         {...mergeProps(restProps, focusProps)}
         type={props.type}
         isDisabled={isLoading || props.isDisabled}
+        data-picker={picker ? "true" : undefined}
         data-variant={variant}
         data-fill-style={fillStyle}
         data-size={size}
@@ -100,9 +122,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className={composeRenderProps(className, (cls) => {
           // A quiet field's box (a quiet Select's trigger, `data-quiet`): the field sheet draws it
           // (no fill, an underline) — the filled `.button-base` paint (a later layer) stays off.
-          const base = quiet
-            ? "react-aria-Button"
-            : "react-aria-Button button-base";
+          const base =
+            quiet || picker
+              ? "react-aria-Button"
+              : "react-aria-Button button-base";
           return cls ? `${base} ${cls}` : base;
         })}
         style={pendingIndicator ? { position: "relative", ...style } : style}
@@ -155,7 +178,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ) : (
           children
         )}
-      </RACButton>
+      </AriaButton>
     );
   },
 );

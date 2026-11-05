@@ -191,6 +191,8 @@ export function resolveCatalogRuleCanvasBox(
       assign("columnGap", sizeRecord.columnGap);
   }
   if (!sizeRecord) return out;
+  if (sizeRecord.width !== undefined && !supplied("width"))
+    assign("width", resolveCatalogLayoutValue(sizeRecord.width));
   const has = (key: string): boolean => supplied(key) || out[key] !== undefined;
   // height 0 = content-fit (generated `height: auto`).
   if (

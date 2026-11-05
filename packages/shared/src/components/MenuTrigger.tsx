@@ -3,9 +3,13 @@ import {
   type MenuTriggerProps as RACMenuTriggerProps,
 } from "react-aria-components/Menu";
 import type { ReactNode } from "react";
+import { PressResponder } from "react-aria/private/interactions/PressResponder";
+import { useOverlayTriggerPress } from "./useOverlayTriggerPress";
 
-export interface MenuTriggerProps
-  extends Omit<RACMenuTriggerProps, "children"> {
+export interface MenuTriggerProps extends Omit<
+  RACMenuTriggerProps,
+  "children"
+> {
   children?: ReactNode;
   /** S2 — where the menu opens; its Popover reads it from this node (`catalogS2OverlayPlacement`). */
   direction?: "bottom" | "top" | "left" | "right" | "start" | "end";
@@ -29,6 +33,7 @@ export function MenuTrigger({
   direction: _direction,
   align: _align,
 }: MenuTriggerProps) {
+  const { isPressed, onPressStart } = useOverlayTriggerPress();
   return (
     <RACMenuTrigger
       isOpen={isOpen}
@@ -36,7 +41,9 @@ export function MenuTrigger({
       onOpenChange={onOpenChange}
       trigger={trigger}
     >
-      {children}
+      <PressResponder onPressStart={onPressStart} isPressed={isPressed}>
+        {children}
+      </PressResponder>
     </RACMenuTrigger>
   );
 }

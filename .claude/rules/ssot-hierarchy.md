@@ -46,6 +46,8 @@ composition 아키텍처는 **3개의 독립 domain**으로 구성된다. 각 do
 
 ### D3 (시각 스타일)
 
+- **Why (2026-11-05)**: Publish의 layer 밖 `:focus-visible` 기본값이 catalog의 `data-focus-visible` 분기를 덮어 마우스 Menu hover에도 2px outline을 그렸다. 앱 기본 focus 규칙은 컴포넌트 상태 규칙보다 낮은 우선순위에 둔다.
+
 > 일반 컴포넌트의 SSOT 는 catalog(`COMPONENT_RULES_TABLE`, `packages/shared/src/catalog/`) + theme/tokens root collection(ADR-110)이다. Frame/Group/Slot에도 같은 원칙을 적용한다.
 
 - **SSOT (일반 컴포넌트)**: catalog `COMPONENT_RULES_TABLE` (`packages/shared/src/catalog/generated/componentRulesTable.ts`) + theme/tokens root collection. `PrimitiveBinding`(leaf RAC primitive ~35개)이 코드 정의를 담당
@@ -148,3 +150,5 @@ D3 SSOT(catalog)가 어디까지 관여하는지의 판정:
 - ADR 현황: [docs/adr/README.md]
 - composition 패턴: [.claude/skills/composition-patterns/SKILL.md]
 - 대칭 검증 skill: [.claude/skills/cross-check/SKILL.md]
+
+- **Why (2026-11-05, Select 다중 선택)**: RAC SelectValue의 기본값은 선택 항목 자식을 나열하므로 목록 label의 `width: 100%`까지 복제되어 간격이 벌어졌다. D1 선택 상태는 RAC에 두고, D2 S2의 2개 이상 선택 개수 표시와 단일 check / 다중 checkbox 계약은 catalog binding에서 두 소비자가 공유한다.

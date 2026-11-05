@@ -71,24 +71,34 @@
 
 .react-aria-Popover[data-trigger="MenuTrigger"][data-size] {
   padding: 0;
-  border: none;
-  background: transparent;
-  box-shadow: none;
+  width: fit-content;
+  max-width: 320px;
 }
 
 .react-aria-Popover[data-trigger="MenuTrigger"][data-size] > .react-aria-Menu {
-  box-shadow: var(--shadow-md);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  outline: none;
+  padding: 8px;
+  gap: 0;
 }
 
 .react-aria-Popover[data-trigger="SubmenuTrigger"][data-size] {
   padding: 0;
-  border: none;
-  background: transparent;
-  box-shadow: none;
+  width: fit-content;
+  max-width: 320px;
 }
 
 .react-aria-Popover[data-trigger="SubmenuTrigger"][data-size] > .react-aria-Menu {
-  box-shadow: var(--shadow-md);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  outline: none;
+  padding: 8px;
+  gap: 0;
 }
 
 

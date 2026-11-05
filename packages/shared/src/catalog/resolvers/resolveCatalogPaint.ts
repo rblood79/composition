@@ -85,7 +85,12 @@ export function resolveCatalogPaint({
       : undefined;
   const conditions: ConditionSet = {
     isHovered: interactionState === "hover",
+    isExpanded: props._overlayOpen === true,
+    isPicker: props._pickerTrigger === true,
     isPressed: interactionState === "pressed",
+    isFocused: props._isFocused === true,
+    isFocusVisible: props._isFocusVisible === true,
+    inPopover: props._inPopover === true,
     isSelected,
     isEmphasized: props.isEmphasized === true,
     isQuiet: props.isQuiet === true,

@@ -1,3 +1,11 @@
+import {
+  CatalogPickerOptionIndicator,
+  CatalogPickerValueContent,
+} from "./pickerSelection.components";
+import {
+  PICKER_INVALID_ICON,
+  pickerInvalidGlyph,
+} from "../document/pickerTrigger";
 import { catalogS2OverlayPlacement } from "./overlayLayout";
 export { catalogS2OverlayPlacement } from "./overlayLayout";
 import { catalogTextRunsContent } from "./textRunsDom";
@@ -781,7 +789,11 @@ const glyph =
         ...style,
         // (An item's remove glyph takes the item color — `derivedOf`, ADR-256 Phase 5d.)
         color: cssColor(
-          (node.derivedProps?.color as string | undefined) ?? node.visual.color,
+          node.derivedProps?._pickerIcon === true &&
+            node.derivedProps.color !== undefined
+            ? "inherit"
+            : ((node.derivedProps?.color as string | undefined) ??
+                node.visual.color),
         ),
         // (ADR-295 Phase 3b: an S2 icon step is its device variable — the touch set reaches the glyph.)
         fontSize:
@@ -1064,12 +1076,55 @@ const bindings: Readonly<Record<string, DomBinding>> = {
     }),
   // RAC `SelectValue` inside a Select's trigger Button (ADR-253): RAC writes the selected item's
   // text, or the Select's placeholder.
-  selectvalue: (node, style) =>
-    createElement(RAC.SelectValue, {
+  selectvalue: (node, style) => {
+    const invalid = node.derivedProps?._pickerInvalid === true;
+    const glyph = pickerInvalidGlyph(node.props.size);
+    return createElement(RAC.SelectValue, {
       key: node.id,
       "data-catalog-id": node.id,
-      style,
-    } as Parameters<typeof RAC.SelectValue>[0]),
+      style: {
+        ...style,
+        ...(node.derivedProps?.color !== undefined ? { color: "inherit" } : {}),
+        ...(invalid ? { position: "relative" } : {}),
+      },
+      children: ({
+        defaultChildren,
+        selectedItems,
+      }: {
+        defaultChildren: ReactNode;
+        selectedItems: unknown[];
+      }) =>
+        createElement(
+          Fragment,
+          null,
+          createElement(
+            CatalogPickerValueContent,
+            { count: selectedItems.length },
+            defaultChildren,
+          ),
+          invalid
+            ? createElement(Icon, {
+                "aria-hidden": true,
+                "data-picker-invalid": "",
+                iconName: PICKER_INVALID_ICON,
+                style: {
+                  position: "absolute",
+                  right: 0,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  width: glyph.size,
+                  height: glyph.size,
+                  fontSize: glyph.size,
+                  color:
+                    node.derivedProps?.isDisabled === true
+                      ? "var(--fg-picker-disabled)"
+                      : "var(--negative)",
+                },
+              })
+            : null,
+        ),
+    } as Parameters<typeof RAC.SelectValue>[0]);
+  },
   icon: glyph("circle", 24),
   // The S2 IllustratedMessage's picture: its own class (the owner sheet places it) and its glyph
   // box (the Icon sheet's `.react-aria-Icon` height is the Icon scale's).
@@ -1827,6 +1882,12 @@ function buttonElement(
       //  a Button elsewhere is S2's pill.)
       ...(typeof node.derivedProps?.fieldButton === "string"
         ? { "data-field-button": node.derivedProps.fieldButton }
+        : {}),
+      ...(node.derivedProps?._pickerTrigger === true
+        ? {
+            "data-picker": "true",
+            "data-invalid": node.derivedProps._pickerInvalid || undefined,
+          }
         : {}),
       style: quietStyle(node, style),
     } as unknown as Parameters<typeof Button>[0],
@@ -2782,7 +2843,9 @@ function ruleDom(
         : {}),
       // ADR-256 Phase 6f: a picker item's author mark (the reference DropdownItem's Check) stands in
       // for the sheet's glyph (`ListBox.css`), as a MenuItem's does.
-      ...(lower === "listboxitem" && hasSelectionMark(root, node)
+      ...(lower === "listboxitem" &&
+      (node.derivedProps?._pickerOption === true ||
+        hasSelectionMark(root, node))
         ? { "data-selection-mark": "" }
         : {}),
       // A Tag's · GridListItem's text is its label Text's (the reference's plain children ·
@@ -2800,7 +2863,24 @@ function ruleDom(
     ...(STATE_FRAME_ITEMS.has(lower)
       ? [
           // (RAC takes a render function as an item's children.)
-          catalogStateChildren(node.id, () => content) as unknown as ReactNode,
+          (node.derivedProps?._pickerOption === true
+            ? (values: Readonly<Record<string, unknown>>) =>
+                catalogStateChildren(node.id, () => [
+                  createElement(CatalogPickerOptionIndicator, {
+                    key: "picker-indicator",
+                    size: node.props.size,
+                    multiple: values.selectionMode === "multiple",
+                    selected: values.isSelected === true,
+                    disabled: values.isDisabled === true,
+                    active:
+                      values.isHovered === true || values.isPressed === true,
+                  }),
+                  ...content,
+                ])(values)
+            : catalogStateChildren(
+                node.id,
+                () => content,
+              )) as unknown as ReactNode,
         ]
       : columnOperations
         ? [
@@ -3820,7 +3900,10 @@ export function renderNode(
     // A SearchField's sheet hides its clear button (its own child — G5 example 5) while the input
     // is empty (`[data-empty]`, RAC's run state): that Button's display stays the sheet's.
     if (partField?.bindingId === "searchfield") delete bound.display;
-    if (node.props.isDisabled !== true && !fieldDisabled) {
+    if (
+      node.derivedProps?._pickerTrigger === true ||
+      (node.props.isDisabled !== true && !fieldDisabled)
+    ) {
       // The rule's colors and their states are the generated sheet's (the variant's condition tree —
       // ADR-297); only a color the document wrote goes inline, over every state, as the Canvas
       // paints it (`resolveCatalogPaint` — the authored style wins over the tree). Not the

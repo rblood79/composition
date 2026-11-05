@@ -64,6 +64,17 @@ export const lightColors: ColorTokens = {
   // --- Surface / Layer ---
   // S2 1.8.1 Modal underlay `transparent-black-500` (설치본 `Modal.css` — 색 모드 무관 한 값).
   "overlay-backdrop": "#00000070",
+  // S2 Popover: light transparent-white-25 / dark gray-200.
+  "popover-outline": "#ffffff00",
+  "popover-background": "#ffffff",
+  // S2 Menu/Picker/ComboBox: baseColor('gray-100').isFocusVisible = gray-200.
+  "collection-item-focus": "#e1e1e1",
+  "picker-background": "#e9e9e9",
+  "picker-background-hover": "#e1e1e1",
+  "picker-content": "#292929",
+  "picker-content-hover": "#131313",
+  "picker-content-disabled": "#c6c6c6",
+  "picker-checkbox-base": "#ffffff",
   base: "#ffffff",
   raised: TAILWIND_PALETTE.gray[50], // --bg-raised = --color-gray-50 (popover/dropdown/collection 컨테이너)
   "layer-1": TAILWIND_PALETTE.zinc[50], // neutral-50
@@ -120,6 +131,15 @@ export const darkColors: ColorTokens = {
   // --- Surface / Layer ---
   // S2 1.8.1 Modal underlay `transparent-black-500` (설치본 `Modal.css` — 색 모드 무관 한 값).
   "overlay-backdrop": "#00000070",
+  "popover-outline": "#323232",
+  "popover-background": "#222222",
+  "collection-item-focus": "#323232",
+  "picker-background": "#2c2c2c",
+  "picker-background-hover": "#323232",
+  "picker-content": "#dbdbdb",
+  "picker-content-hover": "#f2f2f2",
+  "picker-content-disabled": "#444444",
+  "picker-checkbox-base": "#111111",
   base: TAILWIND_PALETTE.neutral[900], // neutral-900
   raised: "#202023", // custom zinc-850 (Tailwind 에 없는 단계 — shared-tokens.css 유지) // --bg-raised = --color-zinc-850 (popover/dropdown/collection 컨테이너)
   "layer-1": TAILWIND_PALETTE.neutral[800], // neutral-800

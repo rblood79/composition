@@ -1,4 +1,13 @@
 import {
+  pickerOptionMetrics,
+  pickerOptionPaint,
+} from "../../../../../packages/shared/src/catalog/runtime/pickerSelection";
+import {
+  PICKER_INVALID_ICON,
+  PICKER_INVALID_WIDTH,
+  pickerInvalidGlyph,
+} from "../../../../../packages/shared/src/catalog/document/pickerTrigger";
+import {
   buildCatalogShapes,
   composeCatalogShapes,
   cssVarToTokenRef,
@@ -37,6 +46,11 @@ import {
   CATALOG_TOAST_CLOSE_ICON,
   catalogToastIcon,
 } from "../../../../../packages/shared/src/catalog/document/toastChrome";
+import {
+  colorIntToFloat32,
+  cssColorToAlpha,
+  cssColorToHex,
+} from "../workspace/canvas/styleConversion/styleConverter";
 import { catalogBoxModel } from "../../../../../packages/shared/src/catalog/runtime/boxModel";
 import {
   SHEET_HANDLE,
@@ -47,6 +61,7 @@ import { catalogToggleIndicatorMetrics } from "../../../../../packages/shared/sr
 import {
   CHILD_PROP_MERGE_TYPES,
   catalogRuleTextColor,
+  catalogContainerOutline,
   catalogRulePaint,
   cssVarColor,
   type CatalogRuleShapeInput,
@@ -177,15 +192,22 @@ function invalidBorder(input: CatalogRuleShapeInput, shapes: Shape[]): Shape[] {
 
 /** Shapes for one rule-backed node (before conversion; exposed for shape-level checks). */
 export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
+  const base = ruleShapes(input);
   const shapes = [
-    ...ruleShapes(input),
+    ...base,
     ...linkOutShapes(input),
     ...inlineAlertIconShapes(input),
     ...catalogToastChromeShapes(input),
     ...catalogSheetHandleShapes(input),
+    ...pickerChromeShapes(input, base),
+    ...pickerOptionShapes(input),
     ...sideNavIndicatorShapes(input),
   ];
-  const quiet = catalogQuietStyles(input.rule, input.node.props, input.state);
+  const quiet = catalogQuietStyles(
+    input.rule,
+    { ...input.node.props, ...input.node.derivedProps },
+    input.state,
+  );
   if (!quiet) return invalidBorder(input, shapes);
   const border = /^(\d+(?:\.\d+)?)px solid (.+)$/.exec(
     quiet["border-bottom"] ?? "",
@@ -426,6 +448,115 @@ export function catalogToastChromeShapes(
   return shapes;
 }
 
+/** Picker의 invalid 장식과 Quiet 키보드 선은 레이아웃 border를 늘리지 않는다. */
+function pickerOptionShapes(input: CatalogRuleShapeInput): Shape[] {
+  const derived = input.node.derivedProps;
+  if (derived?._pickerOption !== true) return [];
+  const multiple = derived._pickerMultiple === true;
+  const selected = derived._isSelected === true;
+  if (!multiple && !selected) return [];
+  const metric = pickerOptionMetrics(input.node.props.size);
+  const paint = pickerOptionPaint(
+    selected,
+    derived.isDisabled === true ||
+      input.node.props.isDisabled === true ||
+      input.state === "disabled",
+    input.state === "hover" || input.state === "pressed",
+  );
+  const y = (input.rect.height - metric.box) / 2;
+  const shapes: Shape[] = multiple
+    ? [
+        {
+          id: "picker-checkbox",
+          type: "roundRect",
+          x: metric.edge,
+          y,
+          width: metric.box,
+          height: metric.box,
+          radius: metric.radius,
+          fill: paint.background,
+        },
+        {
+          type: "border",
+          target: "picker-checkbox",
+          borderWidth: 2,
+          color: paint.border,
+          radius: metric.radius,
+        },
+      ]
+    : [];
+  if (selected)
+    shapes.push({
+      type: "icon_font",
+      iconName: "check",
+      x: metric.edge + metric.box / 2,
+      y: input.rect.height / 2,
+      fontSize: metric.box - (multiple ? 4 : 0),
+      fill: multiple ? paint.check : "{color.accent}",
+      baseline: "middle",
+    });
+  return shapes;
+}
+
+function pickerChromeShapes(
+  input: CatalogRuleShapeInput,
+  base: Shape[],
+): Shape[] {
+  const props = { ...input.node.props, ...input.node.derivedProps };
+  const theme = input.theme ?? "light";
+  const invalid = props._pickerInvalid === true;
+  const disabled = props.isDisabled === true;
+  const color = resolveToken(
+    disabled ? "{color.picker-content-disabled}" : "{color.negative}",
+    theme,
+  ) as string;
+  if (props._pickerValue === true && invalid) {
+    const glyph = pickerInvalidGlyph(props.size);
+    return [
+      {
+        type: "icon_font",
+        iconName: PICKER_INVALID_ICON,
+        x: input.rect.width - glyph.size / 2,
+        y: input.rect.height / 2,
+        fontSize: glyph.size,
+        fill: color,
+        strokeWidth: 2,
+      } as Shape,
+    ];
+  }
+  if (props._pickerTrigger !== true || disabled) return [];
+  if (props.isQuiet === true)
+    return input.state === "focusVisible"
+      ? [
+          {
+            type: "line",
+            x1: 0,
+            x2: input.rect.width,
+            y1: input.rect.height - PICKER_INVALID_WIDTH / 2,
+            y2: input.rect.height - PICKER_INVALID_WIDTH / 2,
+            stroke: resolveToken("{color.accent}", theme) as string,
+            strokeWidth: PICKER_INVALID_WIDTH,
+          },
+        ]
+      : [];
+  if (!invalid) return [];
+  const background = base.find(
+    (shape) =>
+      shape.type === "roundRect" &&
+      shape.presentationRole === "background-fill",
+  );
+  if (!background || background.type !== "roundRect") return [];
+  return [
+    {
+      type: "border",
+      target: background.id,
+      radius: background.radius,
+      color,
+      borderWidth: PICKER_INVALID_WIDTH,
+    },
+  ];
+}
+
 /**
  * An Image's picture (`src`) over its placeholder fill, under its border — covering the box with the
  * box's corners (the DOM `img` — `object-fit: cover`, `domBinding.runtime.ts` `imageElementProps`).
@@ -543,6 +674,21 @@ export function catalogRuleNodeData(
     input.rect.height,
     input.node.id,
   );
+  // Catalog의 기본 outline도 CSS처럼 상자 밖에 그린다 (레이아웃 border와 분리).
+  const outline = catalogContainerOutline(input.rule);
+  if (data.box && outline) {
+    const color = String(
+      outline.color.startsWith("{")
+        ? resolveToken(outline.color as TokenRef, input.theme ?? "light")
+        : cssVarColor(outline.color, input.theme ?? "light"),
+    );
+    data.box.outlineWidth = outline.width;
+    data.box.outlineOffset = 0;
+    data.box.outlineColor = colorIntToFloat32(
+      cssColorToHex(color),
+      cssColorToAlpha(color),
+    );
+  }
   if ((tableText && !tableWraps) || badgeTruncates) ellipsize(data);
   if (tableText) alignTableText(data, input.node.visual.textAlign);
   return data;

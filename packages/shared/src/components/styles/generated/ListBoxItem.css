@@ -56,6 +56,19 @@
   border-color: transparent;
 }
 
+.react-aria-ListBoxItem:where([data-variant="default"]:is(.react-aria-Popover *)) {
+  background: transparent;
+  color: var(--fg);
+}
+
+.react-aria-ListBoxItem:where([data-variant="default"]:is(.react-aria-Popover *):is([data-focused],[data-focus-within])) {
+  background: var(--collection-item-focus);
+}
+
+.react-aria-ListBoxItem:where([data-variant="default"]:is(.react-aria-Popover *)[data-disabled]) {
+  background: transparent;
+}
+
 .react-aria-ListBoxItem[data-size="XS"] {
   height: auto;
   padding: calc((var(--catalog-token-size-height-XS) - var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-list-box-item-padding-x-XS, calc(var(--catalog-token-size-height-XS) * 3 / 8));
@@ -121,11 +134,33 @@
   --icon-size: 16px;
 }
 
-.react-aria-ListBoxItem.react-aria-ListBoxItem:where([data-focus-visible]) {
-  outline: 2px solid var(--accent);
+.react-aria-ListBoxItem.react-aria-ListBoxItem:where(:is(.react-aria-Popover *)[data-size="XS"]) {
+  border-radius: var(--catalog-token-radius-sm);
+}
+
+.react-aria-ListBoxItem.react-aria-ListBoxItem:where(:is(.react-aria-Popover *)[data-size="S"]) {
+  border-radius: 7px;
+}
+
+.react-aria-ListBoxItem.react-aria-ListBoxItem:where(:is(.react-aria-Popover *)[data-size="M"]) {
+  border-radius: 8px;
+}
+
+.react-aria-ListBoxItem.react-aria-ListBoxItem:where(:is(.react-aria-Popover *)[data-size="L"]) {
+  border-radius: 9px;
+}
+
+.react-aria-ListBoxItem.react-aria-ListBoxItem:where(:is(.react-aria-Popover *)[data-size="XL"]) {
+  border-radius: 10px;
+}
+
+.react-aria-ListBoxItem.react-aria-ListBoxItem {
+  outline: none;
+  cursor: pointer;
 }
 
 .react-aria-ListBoxItem.react-aria-ListBoxItem:where([data-focus-visible]) {
+  outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
 
@@ -133,32 +168,23 @@
   outline-offset: -4px;
 }
 
+.react-aria-ListBoxItem.react-aria-ListBoxItem:where([data-focus-visible]:is(.react-aria-Popover *)) {
+  outline-offset: 2px;
+}
+
 .react-aria-ListBoxItem.react-aria-ListBoxItem:where([data-disabled]) {
   opacity: 0.38;
-}
-
-.react-aria-ListBoxItem.react-aria-ListBoxItem {
-  cursor: pointer;
-}
-
-.react-aria-ListBoxItem.react-aria-ListBoxItem:where([data-disabled]) {
   cursor: not-allowed;
-}
-
-.react-aria-ListBoxItem.react-aria-ListBoxItem:where([data-disabled]) {
   pointer-events: none;
 }
 
 .react-aria-ListBoxItem.react-aria-ListBoxItem:where(:is(.react-aria-Popover *)) {
   will-change: transform;
+  transition: transform 150ms cubic-bezier(0.45, 0, 0.4, 1);
 }
 
 .react-aria-ListBoxItem.react-aria-ListBoxItem:where([data-pressed]:is(.react-aria-Popover *)) {
   transform: perspective(max(var(--catalog-press-height, 0px), calc(var(--catalog-press-width, 0px) / 3), 24px)) translate3d(0, 0, -2px);
-}
-
-.react-aria-ListBoxItem.react-aria-ListBoxItem:where(:is(.react-aria-Popover *)) {
-  transition: transform 150ms cubic-bezier(0.45, 0, 0.4, 1);
 }
 
 @media (forced-colors: active) {

@@ -1,3 +1,4 @@
+import { pickerInvalidGlyph } from "../document/pickerTrigger";
 import { CATALOG_AUTHORED_PAINT_KEYS } from "./authoredStyle";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import { catalogCurrentTextWeight } from "../resolvers/resolveCatalogRuleCanvasBox";
@@ -119,6 +120,25 @@ export function catalogBoxModel(node: CatalogConsumerNode): CatalogBoxModel {
         paddingX: 0,
         paddingY: 0,
         gap: 0,
+      },
+    };
+  if (
+    node.derivedProps?._pickerTrigger === true &&
+    node.derivedProps.isQuiet === true
+  )
+    node = {
+      ...node,
+      visual: { ...node.visual, paddingX: 0, paddingLeft: 0, paddingRight: 0 },
+    };
+  if (
+    node.derivedProps?._pickerValue === true &&
+    node.derivedProps._pickerInvalid === true
+  )
+    node = {
+      ...node,
+      visual: {
+        ...node.visual,
+        paddingRight: pickerInvalidGlyph(node.props.size).inset,
       },
     };
   const layout = node.layout;

@@ -114,6 +114,15 @@ export interface ColorTokens {
 
   // --- Surface / Layer ---
   "overlay-backdrop": string;
+  "popover-outline": string;
+  "popover-background": string;
+  "collection-item-focus": string;
+  "picker-background": string;
+  "picker-background-hover": string;
+  "picker-content": string;
+  "picker-content-hover": string;
+  "picker-content-disabled": string;
+  "picker-checkbox-base": string;
   base: string;
   /** raised surface (popover/dropdown/collection 컨테이너, ADR-071) → CSS --bg-raised. */
   raised: string;

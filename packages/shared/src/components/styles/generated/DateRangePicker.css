@@ -227,6 +227,7 @@
 }
 
 .react-aria-Popover[data-trigger="DateRangePicker"] {
+  width: fit-content;
   max-width: unset;
 }
 

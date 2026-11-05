@@ -12,6 +12,8 @@
 /** Canvas 가 그릴 수 있는 boolean 조건 (RAC render prop 이름 · ADR-295 `touch`). */
 export const CONDITIONS = [
   "isHovered",
+  "isExpanded",
+  "isPicker",
   "isPressed",
   "isFocusVisible",
   "isDisabled",
@@ -193,6 +195,8 @@ export function evaluateConditionTree<T>(
 /** compiler 의 조건 → 선택자 · 미디어 (breakdown §3 선택자 맵). */
 const FLAG_SELECTORS: Readonly<Record<Condition | DomCondition, string>> = {
   isHovered: "[data-hovered]",
+  isExpanded: '[aria-expanded="true"]',
+  isPicker: "[data-picker]",
   isPressed: "[data-pressed]",
   isFocusVisible: "[data-focus-visible]",
   isDisabled: "[data-disabled]",
@@ -211,8 +215,10 @@ const FLAG_SELECTORS: Readonly<Record<Condition | DomCondition, string>> = {
   isAutofilled:
     ":is(:-webkit-autofill, :-webkit-autofill:hover, :-webkit-autofill:focus)",
   inGroup: "[data-in-group]:not(:last-child)",
-  isCurrent: ":is([data-current], [data-current-ancestor]:not([data-expanded]))",
-  isCollapsed: ":is([data-side-panel-collapsed], [data-side-panel-collapsed] *)",
+  isCurrent:
+    ":is([data-current], [data-current-ancestor]:not([data-expanded]))",
+  isCollapsed:
+    ":is([data-side-panel-collapsed], [data-side-panel-collapsed] *)",
   isDialogTrigger: "[data-dialog-trigger]",
   isCatalogNode: "[data-catalog-id]",
   isLink: "[href]",

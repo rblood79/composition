@@ -82,7 +82,13 @@ describe("overlay arrow = its overlay's rule paint", () => {
       "{color.informative-subtle}",
       undefined,
     ],
-    ["Popover", "Popover", undefined, "{color.layer-2}", "{color.border}"],
+    [
+      "Popover",
+      "Popover",
+      undefined,
+      "{color.popover-background}",
+      "{color.popover-outline}",
+    ],
     ["Tooltip", "Tooltip", "negative", "{color.negative-subtle}", undefined],
   ])(
     "%s (%s variant %s): fill %s · stroke %s",
@@ -105,21 +111,17 @@ describe("overlay arrow = its overlay's rule paint", () => {
     } finally {
       scene.dispose();
     }
-    const html = renderToStaticMarkup(
-      renderCatalogDom(root, arrow.id),
-    );
+    const html = renderToStaticMarkup(renderCatalogDom(root, arrow.id));
     expect(html).toContain("fill:var(--bg-muted)");
     expect(html).toContain("stroke:none");
   });
 
   it("a Popover arrow strokes with the body's border in both consumers", async () => {
     const { root, arrow } = await openOverlay("Popover", "Popover");
-    expect(arrow.derivedProps?._arrowStrokeWidth).toBe(2);
-    const html = renderToStaticMarkup(
-      renderCatalogDom(root, arrow.id),
-    );
-    expect(html).toContain("fill:var(--bg-inset)");
-    expect(html).toContain("stroke:var(--border)");
-    expect(html).toContain("stroke-width:2");
+    expect(arrow.derivedProps?._arrowStrokeWidth).toBe(1);
+    const html = renderToStaticMarkup(renderCatalogDom(root, arrow.id));
+    expect(html).toContain("fill:var(--popover-background)");
+    expect(html).toContain("stroke:var(--popover-outline)");
+    expect(html).toContain("stroke-width:1");
   });
 });

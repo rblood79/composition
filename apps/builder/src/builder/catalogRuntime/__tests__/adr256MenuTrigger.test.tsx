@@ -2,23 +2,26 @@
 import "fake-indexeddb/auto";
 import { act, fireEvent, render, waitFor } from "@testing-library/react";
 import { createElement } from "react";
-import { Button } from "react-aria-components/Button";
+import { ActionButton } from "../../../../../../packages/shared/src/components/ActionButton";
 import { Text } from "react-aria-components/Text";
 import { Menu, MenuItem, MenuTrigger } from "react-aria-components/Menu";
 import { Popover } from "react-aria-components/Popover";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   insertNodes,
+  removeTargets,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
+import { catalogOverlayDescriptor } from "../../../../../../packages/shared/src/catalog/runtime/overlayLayout";
 import type {
   EntryId,
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { renderCatalogDom } from "../domBinding";
+import { catalogRuleNodeData } from "../ruleShapes";
 import { catalogItemInsertChoices } from "../itemInsert";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
@@ -124,24 +127,99 @@ function structure(element: Element): string {
   return walk(element);
 }
 
-describe("ADR-256 후속 4 — the palette Menu is MenuTrigger > Button + Popover > Menu", () => {
-  it("its origin is the reference tree; the Canvas shows the trigger Button, the menu rests in the closed Popover", async () => {
+describe("ADR-256 후속 4 — the palette Menu is MenuTrigger > ActionButton + Popover > Menu", () => {
+  it("its origin is the reference tree; the Canvas shows the trigger ActionButton, the menu rests in the closed Popover", async () => {
     const { root, of } = await placed();
     const trigger = of("MenuTrigger")[0]!;
     expect(trigger).toBeDefined();
     expect(
       trigger.children.map((id) => root.typeOf(root.canvasInputs.get(id)!)),
-    ).toEqual(["Button", "Popover"]);
+    ).toEqual(["ActionButton", "Popover"]);
     const popover = of("Popover")[0]!;
     const menu = of("Menu")[0]!;
     expect(menu.parentId).toBe(popover.id);
+    expect(
+      catalogOverlayDescriptor(
+        popover,
+        (id) => root.canvasInputs.get(id),
+        (node) => root.typeOf(node),
+      )?.anchor?.id,
+    ).toBe(of("ActionButton")[0]!.id);
     expect(of("MenuItem")).toHaveLength(3);
     expect(trigger.hidden ?? false).toBe(false);
-    expect(of("Button")[0]!.hidden ?? false).toBe(false);
+    expect(of("ActionButton")[0]!.hidden ?? false).toBe(false);
     expect(popover.hidden).toBe(true);
   });
 
-  it("Preview: the Button opens the Popover's Menu (RAC MenuTrigger) — the reference structure", async () => {
+  it("Menu 크기 편집은 ActionButton과 목록에 전달되고 트리거 삭제는 거부된다", async () => {
+    const { workspace, root, of } = await placed();
+    for (const size of ["S", "M", "L", "XL"]) {
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: ROOT }],
+          props: { size: set(size) },
+        }),
+      );
+      expect(of("ActionButton")[0]!.props.size).toBe(size);
+      expect(of("Menu")[0]!.props.size).toBe(size);
+    }
+    const action = of("ActionButton")[0]!;
+    const before = workspace.runtime.graph.exportDocument();
+    expect(() =>
+      workspace.execute(
+        removeTargets({
+          targets: [workspace.positionOfRecord(action.id)!.target],
+        }),
+      ),
+    ).toThrowError(
+      expect.objectContaining({ code: "REQUIRED_PART_NOT_REMOVABLE" }),
+    );
+    expect(workspace.runtime.graph.exportDocument()).toEqual(before);
+    expect(root.typeOf(action)).toBe("ActionButton");
+  });
+
+  it("열린 Menu의 트리거는 누름 상태를 유지하지 않는다", async () => {
+    const { mount } = await placed({ defaultOpen: true });
+    const view = mount();
+    await waitFor(() => expect(view.queryByRole("menu")).not.toBeNull());
+    const button = view.container.querySelector("button")!;
+    expect(button.getAttribute("aria-expanded")).toBe("true");
+    expect(button.hasAttribute("data-pressed")).toBe(false);
+  });
+
+  it("Open을 반복 변경하면 Canvas 트리거 배경만 hover 색으로 갱신된다", async () => {
+    const { workspace, root, of } = await placed();
+    const fill = (state: "default" | "hover") => {
+      const node = of("ActionButton")[0]!;
+      return Array.from(
+        catalogRuleNodeData({
+          node: { ...node, props: { ...node.props, ...node.derivedProps } },
+          rule: root.runtime.graph.library.rules.get(node.ruleId!)!,
+          type: "ActionButton",
+          rect: { width: 80, height: 32 },
+          authoredVisual: {},
+          state: state === "default" ? undefined : state,
+          theme: "light",
+        }).box!.fillColor!,
+      );
+    };
+    const resting = fill("default");
+    const hovering = fill("hover");
+    expect(resting).not.toEqual(hovering);
+    for (const isOpen of [true, false, true]) {
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: ROOT }],
+          props: { isOpen: set(isOpen) },
+        }),
+      );
+      expect(of("ActionButton")[0]!.derivedProps?._overlayOpen).toBe(isOpen);
+      expect(fill("default")).toEqual(isOpen ? hovering : resting);
+      expect(of("ActionButton")[0]!.displayState).not.toBe("pressed");
+    }
+  });
+
+  it("Preview: the ActionButton opens the Popover's Menu (RAC MenuTrigger) — the reference structure", async () => {
     const { mount } = await placed();
     const view = mount();
     const button = view.getByRole("button");
@@ -149,6 +227,7 @@ describe("ADR-256 후속 4 — the palette Menu is MenuTrigger > Button + Popove
     expect(view.queryByRole("menu")).toBeNull();
     fireEvent.click(button);
     await waitFor(() => expect(view.queryByRole("menu")).not.toBeNull());
+    expect(button.hasAttribute("data-pressed")).toBe(false);
     const menu = view.getByRole("menu");
     expect(
       menu.closest(".react-aria-Popover")?.getAttribute("data-trigger"),
@@ -162,7 +241,11 @@ describe("ADR-256 후속 4 — the palette Menu is MenuTrigger > Button + Popove
         MenuTrigger,
         null,
         // (ADR-276: a Button's words are its Text{label} child.)
-        createElement(Button, null, createElement(Text, { slot: "label" }, "Menu")),
+        createElement(
+          ActionButton,
+          null,
+          createElement(Text, { slot: "label" }, "Menu"),
+        ),
         createElement(
           Popover,
           null,
@@ -273,9 +356,9 @@ describe("ADR-256 후속 4 — a Menu in an Autocomplete is the open list (G0 ex
 });
 
 describe("ADR-256 후속 4 — an edit of the trigger reaches the Preview", () => {
-  it("the Button's label is the Button node's own (its `label` — ADR-276)", async () => {
+  it("the ActionButton's label is the ActionButton node's own (its `label` — ADR-276)", async () => {
     const { workspace, of, mount } = await placed();
-    const button = of("Button")[0]!;
+    const button = of("ActionButton")[0]!;
     workspace.execute(
       setFields({
         targets: [workspace.positionOfRecord(button.id)!.target],
@@ -287,11 +370,8 @@ describe("ADR-256 후속 4 — an edit of the trigger reaches the Preview", () =
   });
 });
 
-describe("ADR-256 후속 6 — a Menu's \"+\" (submenu · item fields · no item in an item)", () => {
-  const choicesAt = (
-    workspace: CatalogWorkspace,
-    recordId: string,
-  ) =>
+describe('ADR-256 후속 6 — a Menu\'s "+" (submenu · item fields · no item in an item)', () => {
+  const choicesAt = (workspace: CatalogWorkspace, recordId: string) =>
     catalogItemInsertChoices(
       {
         graph: workspace.runtime.graph,
@@ -332,7 +412,7 @@ describe("ADR-256 후속 6 — a Menu's \"+\" (submenu · item fields · no item
     expect(opened).toBe("Item 1");
   });
 
-  it("a MenuItem the \"+\" adds shows its label only — no `{shortcut}` · `{description}` placeholder", async () => {
+  it('a MenuItem the "+" adds shows its label only — no `{shortcut}` · `{description}` placeholder', async () => {
     const { workspace, of, mount } = await placed();
     const add = choicesAt(workspace, of("MenuTrigger")[0]!.id).find(
       (choice) => choice.type === "MenuItem",

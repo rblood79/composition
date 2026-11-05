@@ -1,4 +1,9 @@
-import { resolveToken, type TokenRef } from "@composition/rendering";
+import { evaluateConditionTree } from "../rule/conditionTree";
+import {
+  cssVarToTokenRef,
+  resolveToken,
+  type TokenRef,
+} from "@composition/rendering";
 import {
   resolveCatalogPaint,
   resolveCatalogVariantName,
@@ -223,24 +228,46 @@ export function catalogRulePaint(
     rule,
     node.props,
   );
+  // Popover 항목 모서리도 CSS와 같은 size 상태 트리에서 읽는다.
+  if (
+    node.derivedProps?._inPopover === true ||
+    node.props._inPopover === true
+  ) {
+    const radius = evaluateConditionTree(
+      rule.structure?.stateStyles?.borderRadius,
+      {
+        inPopover: true,
+        size: String(node.props.size ?? rule.defaultSize),
+      },
+    );
+    if (radius !== undefined)
+      style.borderRadius =
+        typeof radius === "number"
+          ? radius
+          : containerVariantLength(String(radius));
+  }
   // A rule without `structure` has no generated sheet: the DOM inlines the record's whole resolved
   //   visual (`domBinding.runtime.ts` `authoredStyle` `noSheet`) — a part rule's paint (a Table's header
   //   row and lines, the GridList box — `manualBoxRules`) included. The Canvas paints the same record
   //   paint over the tree (ADR-297 후속 ②: it painted only the authored layer, the tree's transparent
   //   under it).
-  const recordPaint = rule.structure
-    ? authoredVisual
-    : {
-        ...Object.fromEntries(
-          Object.keys(PAINT_STYLE_KEYS)
-            .filter(
-              (key) =>
-                node.visual[key as keyof typeof node.visual] !== undefined,
-            )
-            .map((key) => [key, node.visual[key as keyof typeof node.visual]]),
-        ),
-        ...authoredVisual,
-      };
+  const recordPaint =
+    rule.structure || node.derivedProps?._pickerValue === true
+      ? authoredVisual
+      : {
+          ...Object.fromEntries(
+            Object.keys(PAINT_STYLE_KEYS)
+              .filter(
+                (key) =>
+                  node.visual[key as keyof typeof node.visual] !== undefined,
+              )
+              .map((key) => [
+                key,
+                node.visual[key as keyof typeof node.visual],
+              ]),
+          ),
+          ...authoredVisual,
+        };
   for (const [key, value] of Object.entries(recordPaint)) {
     const styleKey = PAINT_STYLE_KEYS[key] ?? GEOMETRY_STYLE_KEYS[key];
     if (styleKey)
@@ -274,8 +301,18 @@ export function catalogRulePaint(
   }
   const props: Record<string, unknown> = {
     ...node.props,
+    ...(node.derivedProps?._pickerTrigger === true ||
+    node.derivedProps?._pickerValue === true
+      ? node.derivedProps
+      : {}),
+    _isFocusVisible: state === "focusVisible",
     ...input.paintProps,
   };
+  // RAC 메뉴/옵션은 pointer 이동도 focus로 표현한다. DOM에서 hover를 따로 칠하면
+  // 방향키로 이동한 뒤 포인터 아래 항목과 키보드 항목이 동시에 강조된다.
+  props._isFocused =
+    state === "focusVisible" ||
+    ((type === "MenuItem" || type === "ListBoxItem") && state === "hover");
   // RAC `data-selected`: the rule's selected paint (and the `_isSelected` data branch the
   // selection primitives read — the Tab indicator). A collection owner's selection
   // (`derivedProps._isSelected`, Tabs' selected key) decides for its items — an item instance of a
@@ -346,6 +383,18 @@ export function catalogRulePaint(
   return { props, style, variant, size, paint, theme };
 }
 
+/** 레이아웃을 차지하지 않는 catalog 기본 outline (CSS와 Canvas 공용). */
+export function catalogContainerOutline(rule: Readonly<ComponentRule>) {
+  const value = rule.structure?.containerStyles?.outline;
+  const match =
+    typeof value === "string"
+      ? /^(\d+(?:\.\d+)?)px solid (.+)$/.exec(value)
+      : null;
+  return match
+    ? { width: Number(match[1]), color: cssVarToTokenRef(match[2]) ?? match[2] }
+    : undefined;
+}
+
 /** The stroke an overlay arrow draws its overlay's border with (the svg path's outer half shows). */
 export const CATALOG_OVERLAY_ARROW_STROKE_WIDTH = 2;
 
@@ -362,13 +411,15 @@ export function catalogOverlayArrowPaint(
   const visible = (color: string | undefined) =>
     color !== undefined && color !== "{color.transparent}" ? color : undefined;
   const fill = visible(paint.backgroundColor);
-  const stroke = visible(paint.borderColor);
+  const outline = catalogContainerOutline(input.rule);
+  const stroke = outline?.color ?? visible(paint.borderColor);
   return {
     ...(fill ? { _arrowFill: fill } : {}),
     ...(stroke
       ? {
           _arrowStroke: stroke,
-          _arrowStrokeWidth: CATALOG_OVERLAY_ARROW_STROKE_WIDTH,
+          _arrowStrokeWidth:
+            outline?.width ?? CATALOG_OVERLAY_ARROW_STROKE_WIDTH,
         }
       : {}),
   };

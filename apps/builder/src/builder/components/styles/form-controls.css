@@ -4,7 +4,8 @@
      ADR-253 으로 그 sheet 는 trigger 를 배치만 한다 (Preview 의 trigger 는 Button 원본의 instance).
      `:where()` 특이도 0: 종전 (components layer) 처럼 이 layer 의 다른 규칙이 전부 이긴다.
      Builder 의 Select 는 `data-size` 가 없어 크기 변수가 비어 있었다 — padding 0 · 글자는 상속. */
-  :where(.react-aria-Select) :where(.react-aria-Button) {
+  :where(.react-aria-Select):where(:not([data-catalog-id], [data-catalog-id] *))
+    :where(.react-aria-Button) {
     width: 100%;
     /* (생성 sheet 가 Preview 의 trigger 에 주는 `min-width: 0` 은 받지 않는다.) */
     min-width: auto;
@@ -20,7 +21,7 @@
     line-height: inherit;
   }
 
-  :where(.react-aria-Select)
+  :where(.react-aria-Select):where(:not([data-catalog-id], [data-catalog-id] *))
     :where(
       .react-aria-Button[data-hovered]:not([data-pressed]):not([data-disabled])
     ) {
@@ -28,20 +29,25 @@
     background: var(--bg-overlay);
   }
 
-  :where(.react-aria-Select)
+  :where(.react-aria-Select):where(:not([data-catalog-id], [data-catalog-id] *))
     :where(.react-aria-Button[data-pressed]:not([data-disabled])) {
     background: var(--accent-subtle);
     outline: 2px solid var(--accent);
     outline-offset: -1px;
   }
 
-  :where(.react-aria-Select) :where(.react-aria-Button[data-focus-visible]) {
+  :where(.react-aria-Select):where(:not([data-catalog-id], [data-catalog-id] *))
+    :where(.react-aria-Button[data-focus-visible]) {
     outline: 2px solid var(--accent);
     outline-offset: -1px;
   }
 
-  :where(.react-aria-Select) :where(.react-aria-Button[data-disabled]),
-  :where(.react-aria-Select[data-disabled="true"]) :where(.react-aria-Button) {
+  :where(.react-aria-Select):where(:not([data-catalog-id], [data-catalog-id] *))
+    :where(.react-aria-Button[data-disabled]),
+  :where(.react-aria-Select[data-disabled="true"]):where(
+      :not([data-catalog-id], [data-catalog-id] *)
+    )
+    :where(.react-aria-Button) {
     background: color-mix(in srgb, var(--fg) 4%, transparent);
     border-color: color-mix(in srgb, var(--fg) 12%, transparent);
     color: color-mix(in srgb, var(--fg) 38%, transparent);
@@ -49,15 +55,18 @@
     opacity: 0.38;
   }
 
-  :where(.react-aria-Select) :where(.react-aria-SelectValue) {
+  :where(.react-aria-Select):where(:not([data-catalog-id], [data-catalog-id] *))
+    :where(.react-aria-SelectValue) {
     color: var(--fg);
   }
 
-  :where(.react-aria-Select) :where(.react-aria-SelectValue[data-placeholder]) {
+  :where(.react-aria-Select):where(:not([data-catalog-id], [data-catalog-id] *))
+    :where(.react-aria-SelectValue[data-placeholder]) {
     color: var(--fg-muted);
   }
 
-  :where(.react-aria-Select) :where(.select-chevron) {
+  :where(.react-aria-Select):where(:not([data-catalog-id], [data-catalog-id] *))
+    :where(.select-chevron) {
     display: flex;
     align-items: center;
     justify-content: center;

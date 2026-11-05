@@ -993,7 +993,12 @@ export function catalogSelectPlaceholderColor(
   )?.delegation?.find(
     (entry) => entry.childSelector === ".react-aria-SelectValue",
   )?.states?.["[data-placeholder]"];
-  if (typeof state?.color !== "string") return undefined;
+  if (
+    typeof state?.color !== "string" ||
+    state.color === "inherit" ||
+    state.color === "currentColor"
+  )
+    return undefined;
   const token = cssVarToTokenRef(state.color);
   const resolved = token ? resolveToken(token, mode) : state.color;
   if (typeof resolved !== "string" || !/^#[0-9a-f]{6}$/i.test(resolved))

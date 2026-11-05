@@ -52,8 +52,8 @@ export const RAC_REQUIRED_PARTS: Readonly<
   PreviewTrigger: [["Button", "Link"], ["Popover"]],
   DialogTrigger: [["Button"], ["Dialog", "Popover", "Modal"]],
   TooltipTrigger: [["Button"], ["Tooltip"]],
-  // ADR-256 후속 4: RAC MenuTrigger — its Button and its Popover (the Menu inside).
-  MenuTrigger: [["Button"], ["Popover"]],
+  // ActionButton도 RAC Button context를 소비하므로 Menu의 필수 트리거로 인정한다.
+  MenuTrigger: [["Button", "ActionButton"], ["Popover"]],
   Table: [["TableHeader"]],
 };
 

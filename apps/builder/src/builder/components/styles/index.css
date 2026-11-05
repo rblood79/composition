@@ -4,7 +4,8 @@
 @import "./form-controls.css";
 
 @layer builder-system {
-  [data-focus-visible] {
+  /* 사용자 문서의 focus 위치는 catalog가 소유한다 (Publish 번들에 함께 로드돼도 격리). */
+  [data-focus-visible]:where(:not([data-catalog-id], [data-catalog-id] *)) {
     outline-offset: -2px;
   }
 

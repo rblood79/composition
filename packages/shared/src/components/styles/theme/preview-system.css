@@ -145,6 +145,9 @@
     --link-pressed: var(--color-link-pressed, var(--tint-1300));
 
     /* Border */
+    --popover-outline: #ffffff00;
+    --popover-background: #ffffff;
+    --collection-item-focus: #e1e1e1;
     --border-pressed: var(--color-border-pressed, var(--color-neutral-500));
 
     --accent-negative: var(
@@ -264,6 +267,9 @@
     --link-pressed: var(--color-link-pressed, var(--tint-1300));
 
     /* Border (Dark) */
+    --popover-outline: #323232;
+    --popover-background: #222222;
+    --collection-item-focus: #323232;
     --border-pressed: var(--color-border-pressed, var(--color-neutral-500));
 
     --accent-negative: var(

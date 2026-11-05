@@ -11,6 +11,7 @@ export type OverlayPlacement = {
   x: number;
   y: number;
   maxHeight: number;
+  maxWidth?: number;
   width?: number;
   minWidth?: number;
   arrow?: { x: number; y: number; size: number };
@@ -33,6 +34,7 @@ export function sameOverlayPlacement(
     a.x === b.x &&
     a.y === b.y &&
     a.maxHeight === b.maxHeight &&
+    a.maxWidth === b.maxWidth &&
     a.width === b.width &&
     a.minWidth === b.minWidth &&
     a.placement === b.placement &&
@@ -73,7 +75,12 @@ export function catalogOverlayDescriptor(
         ["Popover", "Modal", "Tooltip", "SheetOverlay"].includes(typeOf(child))
       )
         continue;
-      if (typeOf(child) === wanted) return child;
+      // ActionButton도 RAC Button 트리거다. owner의 넓은 상자가 아닌 실제 버튼에 고정한다.
+      if (
+        typeOf(child) === wanted ||
+        (wanted === "Button" && typeOf(child) === "ActionButton")
+      )
+        return child;
       const nested = find(child);
       if (nested) return nested;
     }
@@ -237,7 +244,14 @@ export function catalogOverlayPlacement(
             ),
       }
     : undefined;
-  return { x, y, maxHeight, placement: side, ...(arrow ? { arrow } : {}) };
+  return {
+    x,
+    y,
+    maxHeight,
+    maxWidth: Math.max(0, viewport.width - pad * 2),
+    placement: side,
+    ...(arrow ? { arrow } : {}),
+  };
 }
 
 export function catalogOverlayLayout(
@@ -245,8 +259,19 @@ export function catalogOverlayLayout(
   placement?: OverlayPlacement,
 ): Record<string, unknown> | undefined {
   if (node.hidden || node.derivedProps?._overlayPortal !== true) return;
+  const ownMax = node.layout.maxWidth;
+  const maxWidth =
+    placement?.maxWidth === undefined
+      ? undefined
+      : Math.min(
+          placement.maxWidth,
+          typeof ownMax === "string" && /^\d+(?:\.\d+)?px$/.test(ownMax)
+            ? Number.parseFloat(ownMax)
+            : Infinity,
+        );
   return {
     position: "fixed",
+    ...(maxWidth === undefined ? {} : { maxWidth: `${maxWidth}px` }),
     insetLeft: `${placement?.x ?? 0}px`,
     insetTop: `${placement?.y ?? 0}px`,
     ...(placement

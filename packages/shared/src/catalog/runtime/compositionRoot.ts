@@ -3186,7 +3186,13 @@ export class CatalogCompositionRoot {
           )?._sideNavCurrent === true,
         ),
       };
+    const pickerPartOwner =
+      (derived?._pickerIcon === true || derived?._pickerValue === true) &&
+      !catalogHasAuthoredColor(this, record)
+        ? get(record.parentId)
+        : undefined;
     const glyphItem =
+      pickerPartOwner ??
       (toggleGlyphOwner && !catalogHasAuthoredColor(this, record)
         ? toggleGlyphOwner
         : undefined) ??
@@ -3195,7 +3201,8 @@ export class CatalogCompositionRoot {
       sideNavOwner;
     const item = glyphItem ?? get(record.parentId);
     if (
-      !item?.ruleId ||
+      !item ||
+      (!item.ruleId && !pickerPartOwner) ||
       // (The glyph's own resolved color is its button's paint, not an authored one: the sheet's
       // `color: inherit` wins over it.)
       (!glyphItem &&
@@ -3205,7 +3212,9 @@ export class CatalogCompositionRoot {
           catalogAuthoredVisual(this, record).color !== undefined))
     )
       return derived;
-    const rule = this.runtime.graph.library.rules.get(item.ruleId);
+    const rule = pickerPartOwner
+      ? COMPONENT_RULES_TABLE.Button
+      : this.runtime.graph.library.rules.get(item.ruleId!);
     if (!rule) return derived;
     const itemDerived = catalogDerivedProps(
       item,
@@ -3219,7 +3228,7 @@ export class CatalogCompositionRoot {
         ? { ...item, props: { ...item.props, ...itemDerived } }
         : item,
       rule,
-      type: item.ruleId,
+      type: pickerPartOwner ? "Button" : item.ruleId!,
       authoredVisual: catalogAuthoredVisual(this, item),
       state: catalogNodeState(item.displayState, this.state),
       // The item color in this root's color mode (its tokens differ in dark).

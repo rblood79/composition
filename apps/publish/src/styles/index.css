@@ -397,9 +397,13 @@ body {
    Focus & Accessibility
    ============================================ */
 
-:focus-visible {
-  outline: 2px solid #3b82f6;
-  outline-offset: 2px;
+/* 기본 focus 표시는 catalog의 RAC data-focus-visible 계약보다 우선하지 않는다.
+   브라우저는 마우스로 programmatic focus한 메뉴 항목도 :focus-visible로 볼 수 있다. */
+@layer components {
+  :where(:focus-visible) {
+    outline: 2px solid var(--focus-ring, #3b82f6);
+    outline-offset: 2px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

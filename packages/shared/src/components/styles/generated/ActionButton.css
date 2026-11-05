@@ -52,6 +52,10 @@
   background: var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black));
 }
 
+.react-aria-ActionButton:where([data-variant="default"][aria-expanded="true"]) {
+  background: var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black));
+}
+
 .react-aria-ActionButton:where([data-variant="default"][data-pressed]) {
   background: var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black));
 }
@@ -61,6 +65,10 @@
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-quiet][data-hovered]) {
+  background: var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black));
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-quiet][aria-expanded="true"]) {
   background: var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black));
 }
 
@@ -76,6 +84,10 @@
   background: rgb(0 0 0 / 0.2);
 }
 
+.react-aria-ActionButton:where([data-variant="default"][data-static-color="black"][aria-expanded="true"]) {
+  background: rgb(0 0 0 / 0.2);
+}
+
 .react-aria-ActionButton:where([data-variant="default"][data-static-color="black"][data-pressed]) {
   background: rgb(0 0 0 / 0.2);
 }
@@ -85,6 +97,10 @@
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-static-color="black"][data-quiet][data-hovered]) {
+  background: rgb(0 0 0 / 0.2);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-static-color="black"][data-quiet][aria-expanded="true"]) {
   background: rgb(0 0 0 / 0.2);
 }
 
@@ -100,6 +116,10 @@
   background: rgb(255 255 255 / 0.2);
 }
 
+.react-aria-ActionButton:where([data-variant="default"][data-static-color="white"][aria-expanded="true"]) {
+  background: rgb(255 255 255 / 0.2);
+}
+
 .react-aria-ActionButton:where([data-variant="default"][data-static-color="white"][data-pressed]) {
   background: rgb(255 255 255 / 0.2);
 }
@@ -109,6 +129,10 @@
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-static-color="white"][data-quiet][data-hovered]) {
+  background: rgb(255 255 255 / 0.2);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-static-color="white"][data-quiet][aria-expanded="true"]) {
   background: rgb(255 255 255 / 0.2);
 }
 

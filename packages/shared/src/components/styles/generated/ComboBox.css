@@ -145,10 +145,6 @@
   max-height: 300px;
   overflow: auto;
   box-sizing: border-box;
-  border: var(--border-width-thin) solid var(--border);
-  border-radius: var(--border-radius);
-  background: var(--bg-raised);
-  box-shadow: var(--shadow-lg);
   contain: layout style;
 }
 
