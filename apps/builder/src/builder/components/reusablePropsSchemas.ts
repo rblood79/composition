@@ -47,6 +47,22 @@ export const TOGGLEBUTTON_PROPS_SCHEMA: PropsSchema = {
   ...buttonRootAccepts("ToggleButton"),
 };
 
+/** ActionButton의 내용도 root children이 아닌 Icon{icon} · Text{label}에 바인딩한다. */
+export const ACTIONBUTTON_PROPS_SCHEMA: PropsSchema = {
+  label: {
+    kind: "string",
+    label: "Label",
+    default: "Action",
+    section: "content",
+  },
+  icon: {
+    kind: "icon",
+    label: "Icon",
+    section: "content",
+  },
+  ...buttonRootAccepts("ActionButton"),
+};
+
 /**
  * Card 편집 계약 — 신규 InspectorFieldKind 0 (기존 variant/size 재사용). `variant`/`size` ·
  * `href`/`target` 은 root props passthrough (S2 standalone Card 의 `href` — 링크 Card, 2026-10-09).
@@ -240,6 +256,7 @@ export const MENU_PROPS_SCHEMA = overlayOriginSchema(
 export const REUSABLE_PROPS_SCHEMAS: Readonly<Record<string, PropsSchema>> = {
   "component-button": BUTTON_PROPS_SCHEMA,
   "component-togglebutton": TOGGLEBUTTON_PROPS_SCHEMA,
+  "component-actionbutton": ACTIONBUTTON_PROPS_SCHEMA,
   "component-card": CARD_PROPS_SCHEMA,
   "component-inline-alert": INLINE_ALERT_PROPS_SCHEMA,
   "component-illustratedmessage": ILLUSTRATED_MESSAGE_PROPS_SCHEMA,

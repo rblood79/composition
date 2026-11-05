@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [작업 버튼 Property — Icon · Label 자식 바인딩 복구] - 2026-11-05
+
+### Fixed
+
+- **ActionButton Property의 Label · Icon을 원본의 자식 바인딩 키로 연결**
+  `reusablePropsSchemas.ts`에 ActionButton 원본 편집 스키마를 등록했다. Label은 `label` → Text의 `{label}`, Icon 선택기는 `icon` → Icon의 `{icon}`을 편집한다. **Why:** 원본 스키마가 없어 primitive 계약으로 fallback하면서 Icon이 누락되고 Label이 루트 `children`을 편집했다. 원본의 기본 Label `Action`과 인스턴스 override도 올바르게 읽는다.
+
+### Tests
+
+- `actionButtonProperties.test.tsx`: 단독·그룹 자식의 편집 계약, Label/Icon 자식 반영, 초기화, Undo, 빈 Label의 icon-only 상태. 수정 전 두 경우 RED, 수정 후 PASS.
+- 실제 Builder에서 팔레트 삽입 → Label 편집 → Icon 선택 → Canvas/Preview 자식 반영을 확인했다.
+
 ## [작업 버튼 — ActionButton · ActionButtonGroup] - 2026-11-05
 
 ### Breaking Changes
