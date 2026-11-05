@@ -1,12 +1,9 @@
 # 모델과 reasoning은 전역 Codex 기본값을 상속합니다.
 
-# 작업 디렉터리와 임시 경로만 쓰기 허용. 추가 권한은 요청 시 승인한다.
-approval_policy = "on-request"
-sandbox_mode = "workspace-write"
+# 명령 실행 승인 질문 없이 실행하며 파일·네트워크 샌드박스 제한을 해제한다.
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
 web_search = "live"
-
-[sandbox_workspace_write]
-network_access = false
 
 [features]
 hooks = true

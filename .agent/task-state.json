@@ -2815,5 +2815,31 @@
     "scope": "동시 세션이 생성한 Select/Menu/Popover 커밋의 Menu 포함 확인 후 origin/main push 완료",
     "validation": "기존 커밋 검증 기록의 stagedTree와 HEAD tree 일치 확인; 추가 코드 변경 없음",
     "checkedAt": "2026-11-05T09:08:01.526573+00:00"
+  },
+  "selectCheckboxOverlap": {
+    "phase": "verified",
+    "scope": "Select 실제 Checkbox selection 슬롯, 문서 Layout과 Canvas/Preview 일치 및 Layout 패널 편집",
+    "run": ".agent/runs/2026-11-05-select-checkbox-overlap",
+    "validation": {
+      "unit": "15 Select tests; 인접 포함 61 PASS",
+      "types": "6 packages PASS",
+      "registration": "6 PASS",
+      "live": "UI Grid->Row, padding 4->40; Canvas x40, Preview flex/padding40/x40; keyboard selection and reload PASS",
+      "pixels": "light/dark Checkbox 4개 각각 diff0; 전체 diff484/508 (166530px)",
+      "format": "scope PASS; preflight shared task-state format blocker",
+      "contract": "35 PASS",
+      "red": "실제 slot 원복: 4 FAIL, 복원 Select 15 PASS",
+      "agentCatalog": "PASS"
+    },
+    "limitations": [
+      "기존 palette storage roundtrip DisclosureGroup routing failure",
+      "전체 팝오버 픽셀 동일성은 미인증"
+    ],
+    "libraryContractVersion": 59,
+    "commit": {
+      "sha": "73fc516d241984d3b06c10e70511dcea57b5a04b",
+      "remote": "origin/main",
+      "remoteVerified": true
+    }
   }
 }
