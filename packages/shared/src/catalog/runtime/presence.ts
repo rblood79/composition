@@ -754,6 +754,7 @@ export function catalogAbsentByOwnerValue(
   typeOf: CatalogTypeOf,
 ): boolean {
   if (catalogAbsentByValue(node)) return true;
+  if (catalogPickerSelectionHidden(node, get, typeOf)) return true;
   const type = typeOf(node);
   if (type !== "Description" && type !== "FieldError") return false;
   const field = catalogPartParent(node, get, typeOf);
@@ -2095,9 +2096,9 @@ export function catalogDerivedProps(
     ...stuck,
     ...(fieldButton ? { fieldButton } : {}),
     ...pickerPart,
-    ...(optionOwner && !authoredOptionMark
+    ...(optionOwner
       ? {
-          _pickerOption: true,
+          _pickerOption: !authoredOptionMark,
           _pickerMultiple: optionOwner.props.selectionMode === "multiple",
         }
       : {}),

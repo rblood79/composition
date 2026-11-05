@@ -1,4 +1,3 @@
-import { pickerOptionMetrics } from "../../../../../packages/shared/src/catalog/runtime/pickerSelection";
 import {
   PICKER_INVALID_ICON,
   PICKER_INVALID_WIDTH,
@@ -197,7 +196,6 @@ export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
     ...catalogToastChromeShapes(input),
     ...catalogSheetHandleShapes(input),
     ...pickerChromeShapes(input, base),
-    ...pickerOptionShapes(input),
     ...sideNavIndicatorShapes(input),
   ];
   const quiet = catalogQuietStyles(
@@ -443,27 +441,6 @@ export function catalogToastChromeShapes(
     strokeWidth: 2,
   } as Shape);
   return shapes;
-}
-
-/** Picker의 invalid 장식과 Quiet 키보드 선은 레이아웃 border를 늘리지 않는다. */
-function pickerOptionShapes(input: CatalogRuleShapeInput): Shape[] {
-  const derived = input.node.derivedProps;
-  if (derived?._pickerOption !== true) return [];
-  const multiple = derived._pickerMultiple === true;
-  const selected = derived._isSelected === true;
-  if (multiple || !selected) return [];
-  const metric = pickerOptionMetrics(input.node.props.size);
-  return [
-    {
-      type: "icon_font",
-      iconName: "check",
-      x: metric.edge + metric.box / 2,
-      y: input.rect.height / 2,
-      fontSize: metric.box,
-      fill: "{color.accent}",
-      baseline: "middle",
-    },
-  ];
 }
 
 function pickerChromeShapes(

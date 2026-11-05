@@ -35,7 +35,7 @@ import { MenuTrigger } from "@composition/shared/components/MenuTrigger";
 
 import { Modal } from "@composition/shared/components/Modal";
 
-import { Popover } from "@composition/shared/components/Popover";
+import { CatalogPopover } from "./CatalogPopover";
 
 import { ProgressCircle } from "@composition/shared/components/ProgressCircle";
 
@@ -137,7 +137,7 @@ export const INTERNAL_RENDERERS: Readonly<
   contextualhelp: ContextualHelp,
   fieldlabel: FieldLabel,
   modal: Modal,
-  popover: Popover,
+  popover: CatalogPopover,
   tooltip: Tooltip,
   // ADR-255: the Tooltip origin's root.
   tooltiptrigger: TooltipTrigger,

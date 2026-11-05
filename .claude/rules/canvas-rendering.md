@@ -39,6 +39,10 @@ paths:
 
 - collection의 선택 Checkbox는 실제 slot 자식으로 배치하고, 그 배치는 저작 template Layout에 기록한다. **Why (2026-11-05):** Select multiple의 직접 그린 checkbox가 Text와 겹쳤다. 런타임 grid/padding 보정은 Design Layout 값과 실제 배치를 갈라놓으므로 쓰지 않는다. ListBox option이 접근성·선택을 소유하고 slot은 별도 input 없이 상태를 표시한다.
 
+- Picker Popover의 collision 여백은 트리거 폭을 보존할 수 있는 범위로 제한하고 위치·폭 상한에 함께 사용한다. **Why (2026-11-05):** 부모 padding 0에서 전체 폭 Select와 고정 여백 12px이 충돌해 메뉴가 넘쳤고, 최소 폭만 제한하면 트리거보다 24px 좁아졌다. DOM과 Canvas 모두 실효 여백으로 배치하고 트리거·viewport 크기 변경을 반영해야 한다.
+
+- Picker single의 check도 실제 Icon 부품으로 두고, 모드별 부품 제외를 Canvas·Preview·Layers에 같이 적용한다. selection Checkbox의 Selected 편집은 옵션의 선택 상태를 쓴다. **Why (2026-11-05):** 렌더러가 그린 single check는 Layers에 없고 숨긴 Checkbox만 남았다. Checkbox 자체에 Selected를 써도 ListBoxItem의 상태가 덮어 체크가 바뀌지 않았으며 Preview 초기값도 옵션을 읽지 않았다. single check의 Grid 행 중앙은 min-height로 늘어난 옵션 전체 중앙과 다르므로, 저작 Layout에서 옵션 전체 높이를 기준으로 배치한다. DOM의 기존 `translate: 0 -50%`에 `margin-top: -8px`를 더하면 위로 이중 보정되므로 음수 margin을 추가하지 않는다. 선택 열 24px 안의 16px Icon은 항목 padding 4px에 열 내부 여백 4px를 더한 left 8px로 맞춘다. multiple의 selection Checkbox도 슬롯 폭 24px와 내부 `alignItems: center`를 저작 Layout에 명시해 control이 왼쪽에 붙지 않게 한다.
+
 ## 1. Skia 단일 렌더러 (ADR-900)
 
 - grid 안내선·셀 교환은 `hidden` 또는 `display: none`인 자식을 배치 항목에서 제외한다. **Why (2026-10-31):** Side 라벨의 CheckboxGroup·RadioGroup·SearchField에서 숨긴 Description·FieldError의 0 높이 상자를 포함해 실제 1행을 3행으로 계산하고 선택 영역 아래에 선 두 개를 그렸다.

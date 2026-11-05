@@ -1,5 +1,3 @@
-import { resolveToken, type TokenRef } from "@composition/rendering";
-import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import type { CatalogConsumerNode } from "./compositionRoot";
 
 type Lookup = (id: string) => CatalogConsumerNode | undefined;
@@ -45,25 +43,16 @@ export function catalogPickerOptions(
   return items;
 }
 
-/** S2 PickerItem의 Checkbox controlSize(sm). 위치는 catalog 목록의 기존 indicator 열을 사용한다. */
-export function pickerOptionMetrics(size: unknown) {
-  const key = (
-    ["S", "M", "L", "XL"].includes(String(size)) ? String(size) : "M"
-  ) as "S" | "M" | "L" | "XL";
-  const rule = COMPONENT_RULES_TABLE.Checkbox.sizes[key];
-  const indicator = rule.indicator!;
-  const box = Number(resolveToken(indicator.boxSize as TokenRef));
-  const edge = Number(resolveToken("{spacing.xs}"));
-  return { box, radius: Number(indicator.boxRadius), edge };
-}
-
 /** Select 옵션의 실제 selection 슬롯. RAC의 Checkbox context와는 별도인 표시 계약이다. */
 export function catalogPickerSelectionItem(
   node: CatalogConsumerNode,
   get: Lookup,
   typeOf: TypeOf,
 ) {
-  if (typeOf(node) !== "Checkbox" || node.props.slot !== "selection")
+  if (
+    !["Checkbox", "Icon"].includes(typeOf(node)) ||
+    node.props.slot !== "selection"
+  )
     return undefined;
   for (let parent = get(node.parentId); parent; parent = get(parent.parentId)) {
     if (typeOf(parent) === "ListBoxItem") return parent;
@@ -83,8 +72,9 @@ export function catalogPickerSelectionHidden(
   typeOf: TypeOf,
 ) {
   const item = catalogPickerSelectionItem(node, get, typeOf);
-  return (
-    !!item &&
-    catalogPickerOfOption(item, get, typeOf)?.props.selectionMode !== "multiple"
-  );
+  if (!item) return false;
+  const picker = catalogPickerOfOption(item, get, typeOf);
+  return typeOf(node) === "Checkbox"
+    ? picker?.props.selectionMode !== "multiple"
+    : !picker || picker.props.selectionMode === "multiple";
 }

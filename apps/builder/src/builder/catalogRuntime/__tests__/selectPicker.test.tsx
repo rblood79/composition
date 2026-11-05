@@ -1,4 +1,9 @@
-import { render, cleanup, waitFor } from "@testing-library/react";
+import { WorkspaceContext } from "../react.runtime";
+import { CATALOG_FIELD_VALUE_SOURCE } from "../../panels/properties/catalog/catalogFieldValueSource";
+import { CatalogLayerTreeStore, type CatalogLayerNode } from "../layerTree";
+import { catalogPickerSelectionCommands } from "../singleSelection";
+import { composeCommands } from "../../../../../../packages/shared/src/catalog/commands";
+import { render, cleanup, waitFor, act } from "@testing-library/react";
 import { createElement } from "react";
 import { I18nProvider } from "react-aria-components/I18nProvider";
 import { resolveStaticItemKey } from "../../../../../../packages/shared/src/catalog/slotRoles";
@@ -456,6 +461,232 @@ it("옵션의 저작 Layout 변경과 undo가 실제 배치에 반영된다", as
     workspace.undo();
     expect(root.canvasInputs.get(item.id)!.layout.display).toBe("grid");
     expect(root.getGeometry([checkbox]).get(checkbox)).toEqual(original);
+  } finally {
+    workspace.dispose();
+  }
+});
+
+it("single/multiple의 Layers 부품과 undo가 표시 모드를 따른다", async () => {
+  const { workspace, id } = await fixture("Select", { isOpen: true });
+  const tree = new CatalogLayerTreeStore(
+    {
+      readModel: workspace.readModel,
+      graph: workspace.runtime.graph,
+      subscribeSteps: (listener) => workspace.runtime.subscribeSteps(listener),
+      absentByValue: (position) => workspace.rowAbsentByValue(position),
+    },
+    "project:page:home" as EntryId<"page">,
+  );
+  tree.connect();
+  tree.setExpanded(new Set(workspace.root.domInputs.keys()));
+  const parts = () => {
+    const all: CatalogLayerNode[] = [];
+    const visit = (rows: readonly CatalogLayerNode[]) => {
+      for (const row of rows) {
+        all.push(row);
+        visit(row.children ?? []);
+      }
+    };
+    visit(tree.getSnapshot());
+    return all
+      .filter((row) => row.typeName === "ListBoxItem")
+      .map((row) => row.children?.map((child) => child.typeName));
+  };
+  expect(parts()).toEqual(Array(4).fill(["Icon", "Text"]));
+  workspace.execute(
+    setFields({
+      targets: [{ kind: "node", id }],
+      props: { selectionMode: { kind: "set", value: "multiple" } },
+    }),
+  );
+  expect(parts()).toEqual(Array(4).fill(["Checkbox", "Text"]));
+  workspace.undo();
+  expect(parts()).toEqual(Array(4).fill(["Icon", "Text"]));
+  tree.dispose();
+  workspace.dispose();
+});
+
+it("Checkbox Selected 편집은 Canvas 체크 선과 Preview를 갱신한다", async () => {
+  const { workspace } = await fixture("Select", {
+    isOpen: true,
+    selectionMode: "multiple",
+  });
+  const checkbox = [...workspace.root.canvasInputs.values()].find(
+    (n) => n.ruleId === "Checkbox",
+  )!;
+  const indicator = [...workspace.root.canvasInputs.values()].find(
+    (n) => workspace.root.typeOf(n) === "CheckboxIndicator",
+  )!;
+  for (const selected of [true, false, true]) {
+    workspace.execute(() =>
+      composeCommands(
+        workspace.runtime.graph,
+        "Edit selection",
+        catalogPickerSelectionCommands(workspace, checkbox.id, selected),
+      ),
+    );
+    expect(
+      workspace.root.canvasInputs.get(checkbox.id)?.derivedProps?._isSelected,
+    ).toBe(selected);
+    const data = catalogCanvasNodeData(workspace.root, indicator.id);
+    expect(data.children?.filter((n) => n.type === "line").length ?? 0).toBe(
+      selected ? 2 : 0,
+    );
+    const select = [...workspace.root.domInputs.values()].find(
+      (n) => n.ruleId === "Select",
+    )!;
+    const view = render(renderCatalogDom(workspace.root, select.id));
+    await waitFor(() =>
+      expect(
+        document
+          .querySelector('[role="option"] .react-aria-CheckboxButton')
+          ?.hasAttribute("data-selected"),
+      ).toBe(selected),
+    );
+    view.unmount();
+  }
+  workspace.undo();
+  expect(
+    workspace.root.canvasInputs.get(checkbox.id)?.derivedProps?._isSelected,
+  ).toBe(false);
+  workspace.dispose();
+});
+
+it("Selected 필드의 단일 값과 chip 구독은 Checkbox가 아닌 옵션의 선택을 읽는다", async () => {
+  const { workspace } = await fixture("Select", { selectionMode: "multiple" });
+  const checkbox = [...workspace.root.canvasInputs.values()].find(
+    (node) => node.ruleId === "Checkbox",
+  )!;
+  function Probe() {
+    const value = CATALOG_FIELD_VALUE_SOURCE.useValue(
+      checkbox.id,
+      "semantic",
+      "isSelected",
+      false,
+    );
+    const snapshot = CATALOG_FIELD_VALUE_SOURCE.useValuesSnapshot(
+      checkbox.id,
+      "semantic",
+      ["isSelected", "isIndeterminate"],
+      [false, false],
+    );
+    return createElement("output", {}, `${value}:${snapshot}`);
+  }
+  const view = render(
+    createElement(WorkspaceContext.Provider, {
+      value: workspace,
+      children: createElement(Probe),
+    }),
+  );
+  for (const selected of [true, false, true]) {
+    act(() => {
+      workspace.execute(() =>
+        composeCommands(
+          workspace.runtime.graph,
+          "Select option",
+          catalogPickerSelectionCommands(workspace, checkbox.id, selected),
+        ),
+      );
+    });
+    await waitFor(() =>
+      expect(view.container.textContent).toBe(
+        `${selected}:[${selected},false]`,
+      ),
+    );
+  }
+  view.unmount();
+  workspace.dispose();
+});
+
+it.each([undefined, 80])(
+  "single check Icon은 높이(%s)에서 선택 열 중앙에 배치하고 음수 margin을 더하지 않는다",
+  async (height) => {
+    const { workspace } = await fixture("Select", { isOpen: true });
+    try {
+      const item = [...workspace.root.canvasInputs.values()].find(
+        (node) => node.ruleId === "ListBoxItem",
+      )!;
+      workspace.execute(
+        setFields({
+          targets: [workspace.itemOfRecord(item.id)!.target],
+          props: { isSelected: { kind: "set", value: true } },
+          ...(height === undefined
+            ? {}
+            : { visual: { height: { kind: "set", value: height } } }),
+        }),
+      );
+      const check = item.children
+        .map((id) => workspace.root.canvasInputs.get(id)!)
+        .find(
+          (node) =>
+            node.props.slot === "selection" &&
+            workspace.root.typeOf(node) === "Icon",
+        )!;
+      const boxes = workspace.root.getGeometry([item.id, check.id]);
+      const itemBox = boxes.get(item.id)!;
+      const checkBox = boxes.get(check.id)!;
+      // The shared Popover CSS translates the glyph by half its own height.
+      expect(checkBox.y).toBeCloseTo(itemBox.height / 2);
+      expect(checkBox.x).toBeCloseTo(4 + (24 - checkBox.width) / 2);
+      if (height !== undefined) expect(itemBox.height).toBe(height);
+      const select = [...workspace.root.domInputs.values()].find(
+        (node) => node.ruleId === "Select",
+      )!;
+      const view = render(renderCatalogDom(workspace.root, select.id));
+      const mark = document.querySelector<HTMLElement>(
+        '[role="option"] .react-aria-Icon[data-icon="check"]',
+      );
+      expect(mark?.style.position).toBe("absolute");
+      expect(mark?.style.top).toBe("50%");
+      expect(mark?.style.left).toBe("8px");
+      expect(mark?.style.marginTop).toBe("");
+      view.unmount();
+    } finally {
+      workspace.dispose();
+    }
+  },
+);
+
+it("multiple Checkbox의 표시 상자는 24px 선택 열의 가운데에 배치된다", async () => {
+  const { workspace } = await fixture("Select", {
+    selectionMode: "multiple",
+    isOpen: true,
+  });
+  try {
+    const item = [...workspace.root.canvasInputs.values()].find(
+      (node) => node.ruleId === "ListBoxItem",
+    )!;
+    const checkbox = item.children
+      .map((id) => workspace.root.canvasInputs.get(id)!)
+      .find((node) => workspace.root.typeOf(node) === "Checkbox")!;
+    const button = checkbox.children
+      .map((id) => workspace.root.canvasInputs.get(id)!)
+      .find((node) => workspace.root.typeOf(node) === "CheckboxButton")!;
+    const indicator = button.children
+      .map((id) => workspace.root.canvasInputs.get(id)!)
+      .find((node) => workspace.root.typeOf(node) === "CheckboxIndicator")!;
+    const boxes = workspace.root.getGeometry([
+      checkbox.id,
+      button.id,
+      indicator.id,
+    ]);
+    const checkboxBox = boxes.get(checkbox.id)!;
+    const buttonBox = boxes.get(button.id)!;
+    const indicatorBox = boxes.get(indicator.id)!;
+    expect(checkboxBox.width).toBe(24);
+    expect(
+      checkboxBox.x + buttonBox.x + indicatorBox.x + indicatorBox.width / 2,
+    ).toBeCloseTo(4 + 24 / 2);
+    const select = [...workspace.root.domInputs.values()].find(
+      (node) => node.ruleId === "Select",
+    )!;
+    const view = render(renderCatalogDom(workspace.root, select.id));
+    const mark = document.querySelector<HTMLElement>(
+      '[role="option"] .react-aria-Checkbox[slot="selection"]',
+    );
+    expect(mark?.style.alignItems).toBe("center");
+    expect(mark?.style.width).toBe("24px");
+    view.unmount();
   } finally {
     workspace.dispose();
   }

@@ -2069,6 +2069,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-ListBoxItem",
     "children": [
       "lib:template:component-listbox-item-default__selection",
+      "lib:template:component-listbox-item-default__check",
       "lib:template:component-listbox-item-default__icon",
       "lib:template:component-listbox-item-default__label",
       "lib:template:component-listbox-item-default__description"
@@ -2085,7 +2086,17 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-checkbox",
     "children": [],
     "props": { "slot": "selection", "children": "" },
-    "visual": {}
+    "layout": { "alignItems": "center", "justifySelf": "center" },
+    "visual": { "width": 24 }
+  },
+  {
+    "id": "lib:template:component-listbox-item-default__check",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": { "slot": "selection", "iconName": "check", "size": "S" },
+    "showWhen": { "all": ["isSelected"] },
+    "layout": { "position": "absolute", "insetLeft": "8px", "insetTop": "50%" },
+    "visual": { "width": 16, "height": 16, "color": "{color.accent}" }
   },
   {
     "id": "lib:template:component-listbox-item-default__icon",

@@ -3,6 +3,11 @@ import {
   type CatalogCommand,
 } from "../../../../../packages/shared/src/catalog/commands";
 import {
+  catalogPickerOfOption,
+  catalogPickerSelectionItem,
+} from "../../../../../packages/shared/src/catalog/runtime/pickerSelection";
+
+import {
   catalogCollectionSelectionMode,
   COLLECTION_ITEM_OWNERS,
   isCollectionItemOf,
@@ -17,6 +22,44 @@ import {
 import { resolveStaticItemKey } from "../../../../../packages/shared/src/catalog/slotRoles";
 import type { CatalogWorkspace } from "./workspace";
 
+/** A picker selection Checkbox edits the option that owns selection. */
+export function catalogPickerSelectionOwner(
+  workspace: CatalogWorkspace,
+  recordId: string,
+) {
+  const root = workspace.root;
+  const node = root.canvasInputs.get(recordId);
+  if (!node || root.typeOf(node) !== "Checkbox") return undefined;
+  const get = (id: string) => root.canvasInputs.get(id);
+  const item = catalogPickerSelectionItem(node, get, root.typeOf);
+  return item && catalogPickerOfOption(item, get, root.typeOf)
+    ? item
+    : undefined;
+}
+
+export function catalogPickerSelectionCommands(
+  workspace: CatalogWorkspace,
+  recordId: string,
+  value: unknown,
+): CatalogCommand[] {
+  const owner = catalogPickerSelectionOwner(workspace, recordId);
+  const target = owner && workspace.positionOfRecord(owner.id)?.target;
+  if (!owner || !target) return [];
+  return [
+    setFields({
+      targets: [target],
+      props: {
+        isSelected:
+          value === undefined
+            ? { kind: "remove" }
+            : { kind: "set", value: value === true },
+      },
+    }),
+    ...catalogSingleSelectionCommand(workspace, owner.id, {
+      isSelected: value,
+    }),
+  ];
+}
 /**
  * 2026-10-13 (사용자 「radioGroup, Tabs 등은 하나의 값만 선택되어야한다. 현재 radioGroup 프러퍼티에
  * value옵션이 있지만 동작하지않는다」): a collection or group that selects one value keeps one —

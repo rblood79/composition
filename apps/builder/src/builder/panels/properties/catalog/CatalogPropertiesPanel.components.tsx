@@ -40,6 +40,7 @@ import { catalogSettingsPage } from "../../../catalogRuntime/pageSettings";
 
 import {
   catalogRadioGroupValueOptions,
+  catalogPickerSelectionCommands,
   catalogSingleSelectionCommand,
   catalogTabsSelectedTab,
 } from "../../../catalogRuntime/singleSelection";
@@ -395,6 +396,27 @@ const CatalogFields = memo(function CatalogFields({
     (patch: Record<string, unknown>) => {
       const first = targets[0];
       if (!first) return;
+      if (
+        targets.length === 1 &&
+        Object.keys(patch).length === 1 &&
+        "isSelected" in patch
+      ) {
+        const selection = catalogPickerSelectionCommands(
+          workspace,
+          elementId,
+          patch.isSelected,
+        );
+        if (selection.length) {
+          run(() =>
+            composeCommands(
+              workspace.runtime.graph,
+              "Edit option selection",
+              selection,
+            ),
+          );
+          return;
+        }
+      }
       // (A Tabs' Selected Tab writes its Tab's Selected, not a key on the Tabs — below.)
       const { defaultSelectedKey: _tab, ...own } = patch;
       const written = contract.type === "Tabs" ? own : patch;

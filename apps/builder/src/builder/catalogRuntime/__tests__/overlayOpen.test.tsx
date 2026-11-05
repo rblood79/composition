@@ -388,6 +388,46 @@ describe("overlay viewport placement", () => {
     expect(noFlip.placement).toBe("bottom");
     expect(noFlip.maxHeight).toBe(0);
   });
+  it.each(["Select", "ComboBox"])(
+    "%s: viewport-wide menus match trigger edges with parent padding 0/4/40",
+    async (type) => {
+      for (const padding of [0, 4, 40]) {
+        const { workspace } = await fixture(
+          type,
+          { isOpen: true },
+          { width: 390, height: 844 },
+        );
+        workspace.execute(
+          setFields({
+            targets: [{ kind: "node", id: BODY }],
+            sizing: { width: { kind: "set", value: 390 } },
+            visual: {
+              paddingLeft: { kind: "set", value: padding },
+              paddingRight: { kind: "set", value: padding },
+            },
+          }),
+        );
+        const root = workspace.root;
+        const pop = [...root.canvasInputs.values()].find(
+          (n) => n.ruleId === "Popover",
+        )!;
+        const box = root.getGeometry([pop.id]).get(pop.id)!;
+        const place = root.getOverlayPlacement(pop.id)!;
+        const descriptor = catalogOverlayDescriptor(
+          pop,
+          (id) => root.canvasInputs.get(id),
+          root.typeOf,
+        )!;
+        const anchor = root
+          .getGeometry([descriptor.anchor!.id])
+          .get(descriptor.anchor!.id)!;
+        expect(box.width).toBe(anchor.width);
+        expect(place.x).toBe(padding);
+        expect(place.x + box.width).toBe(390 - padding);
+      }
+    },
+  );
+
   it("uses the trigger width as a Select minimum and a ComboBox width", async () => {
     for (const type of ["Select", "ComboBox"]) {
       const { workspace } = await fixture(type, { isOpen: true });

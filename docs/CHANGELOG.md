@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Select 선택 부품 — 모드별 Layers 및 Selected 편집 정합] - 2026-11-05
+
+### Fixed
+
+- **single은 실제 Check Icon + Text, multiple은 Checkbox + Text로 표시**
+  ListBoxItem 원본에 선택 상태를 읽는 Check Icon 부품을 추가하고, 모드에 맞지 않는 선택 부품은 Canvas·Preview·Layers에서 함께 제외한다. 렌더러가 따로 그리던 single 장식은 제거한다. Check Icon은 Grid 행이 아닌 옵션 전체 높이를 기준으로 배치하고 기존 CSS translate로 중앙 정렬한다. 음수 margin을 중복 적용해 위로 붙는 문제를 제거한다. 24px 선택 열 안의 16px check는 좌우 4px 여백으로 가로 중앙에 맞춘다. multiple Checkbox도 selection 슬롯 폭 24px와 내부 가운데 정렬을 명시해 표시 상자를 열 중앙에 배치한다. 기존 템플릿 주소는 보존한다.
+- **옵션 Checkbox의 Selected 편집이 실제 옵션 선택을 갱신**
+  필드가 ListBoxItem의 선택값을 읽고 명령으로 편집하도록 연결하며, Preview 초기값도 같은 옵션 선택값에서 계산한다. Canvas 체크 선·DOM 선택 표시·Undo가 함께 갱신된다.
+
+## [Picker Popover — viewport 경계 폭 제한] - 2026-11-05
+
+### Fixed
+
+- **부모 padding이 없을 때 Select Popover가 가로로 넘치는 문제 수정**
+  트리거 폭을 보존할 수 있는 만큼만 collision 여백을 사용한다. 부모 padding 0에서는 Select와 Popover가 같은 폭·양쪽 가장자리를 유지한다. Canvas와 CSS Preview는 같은 여백 계산을 사용하고, Preview는 트리거·viewport 리사이즈에도 갱신한다. ComboBox에도 같은 계약을 적용한다.
+  **Why:** 전체 폭 트리거와 고정 12px 경계 여백이 충돌했다. 최소 폭만 제한하면 메뉴가 24px 좁아지므로 폭 제한과 위치 보정이 같은 실효 여백을 사용해야 한다.
+
 ## [Select — 선택 Checkbox 슬롯과 편집 가능한 옵션 Layout] - 2026-11-05
 
 ### Breaking Changes

@@ -15,6 +15,7 @@ import {
 } from "../../../catalogRuntime/react";
 import { catalogRowTemplateOwner } from "../../../catalogRuntime/rowTemplate";
 import { targetKey } from "../../../catalogRuntime/session";
+import { catalogPickerSelectionOwner } from "../../../catalogRuntime/singleSelection";
 import { catalogVisibleVariableEntries } from "../../../catalogRuntime/stateVariables";
 import { useCollections } from "../../../stores/data";
 import type { FieldValueSource } from "../generic/fieldValueSource";
@@ -27,12 +28,17 @@ import {
 const noSubscription = () => () => {};
 
 /** The edit target of a drawn record (the panel's `elementId` is the record identity). */
-function useRecordTarget(identity: string | null | undefined) {
+function useRecordTarget(identity: string | null | undefined, key?: string) {
   const workspace = useCatalogWorkspace();
-  return useMemo(
-    () => (identity ? workspace.itemOfRecord(identity)?.target : undefined),
-    [identity, workspace],
-  );
+  return useMemo(() => {
+    const owner =
+      identity && key === "isSelected"
+        ? catalogPickerSelectionOwner(workspace, identity)
+        : undefined;
+    return identity
+      ? workspace.itemOfRecord(owner?.id ?? identity)?.target
+      : undefined;
+  }, [identity, workspace, key]);
 }
 
 /**
@@ -69,26 +75,40 @@ function useSourcedValues(
   target: EditTarget | undefined,
   keys: readonly string[],
   baseValues: readonly unknown[],
+  identity: string | null | undefined,
 ): string {
-  const { readModel } = useCatalogWorkspace();
+  const workspace = useCatalogWorkspace();
+  const { readModel } = workspace;
+  const sourceTarget = useCallback(
+    (key: string) => {
+      const owner =
+        identity && key === "isSelected"
+          ? catalogPickerSelectionOwner(workspace, identity)
+          : undefined;
+      return owner
+        ? (workspace.itemOfRecord(owner.id)?.target ?? target)
+        : target;
+    },
+    [identity, workspace, target],
+  );
   const id = target ? targetKey(target) : "";
   const keysId = keys.join("|");
   const subscribe = useCallback(
     (notify: () => void) => {
       if (!target) return noSubscription();
       const unsubscribe = keys.map((key) =>
-        subscribeValue(readModel, target, key, notify),
+        subscribeValue(readModel, sourceTarget(key)!, key, notify),
       );
       return () => unsubscribe.forEach((stop) => stop());
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by the target and keys
-    [readModel, id, keysId],
+    [readModel, id, keysId, sourceTarget],
   );
   return useSyncExternalStore(subscribe, () =>
     JSON.stringify(
       keys.map((key, index) =>
         target
-          ? (readValue(readModel, target, key) ?? baseValues[index])
+          ? (readValue(readModel, sourceTarget(key)!, key) ?? baseValues[index])
           : baseValues[index],
       ),
     ),
@@ -103,7 +123,7 @@ function useSourcedValues(
 export const CATALOG_FIELD_VALUE_SOURCE: FieldValueSource = {
   useValue(elementId, _origin: FieldOrigin, key, baseValue) {
     const { readModel } = useCatalogWorkspace();
-    const target = useRecordTarget(elementId);
+    const target = useRecordTarget(elementId, key);
     const id = target ? targetKey(target) : "";
     const subscribe = useCallback(
       (notify: () => void) =>
@@ -119,7 +139,12 @@ export const CATALOG_FIELD_VALUE_SOURCE: FieldValueSource = {
     );
   },
   useValuesSnapshot(elementId, _origin, keys, baseValues) {
-    return useSourcedValues(useRecordTarget(elementId), keys, baseValues);
+    return useSourcedValues(
+      useRecordTarget(elementId),
+      keys,
+      baseValues,
+      elementId,
+    );
   },
   /**
    * `{field}` templates: inside a bound collection's row template, the bound collection's fields

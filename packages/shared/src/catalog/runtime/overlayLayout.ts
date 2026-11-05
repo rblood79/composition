@@ -7,6 +7,20 @@ import {
 } from "./overlayState";
 
 type Box = { x: number; y: number; width: number; height: number };
+
+/** Preserve a picker's trigger width even when it fills the viewport. */
+export function catalogPickerOverlayPadding(
+  padding: number,
+  triggerWidth: number,
+  viewportWidth: number,
+  triggerX: number,
+): number {
+  return Math.min(
+    padding,
+    Math.max(0, triggerX),
+    Math.max(0, viewportWidth - triggerX - triggerWidth),
+  );
+}
 export type OverlayPlacement = {
   x: number;
   y: number;
@@ -155,7 +169,15 @@ export function catalogOverlayPlacement(
     .replace(/\bend\b/g, rtl ? "left" : "right");
   let [side, align = "center"] = placement.split(" ");
   const target = anchor ?? { x: 0, y: 0, width: 0, height: 0 };
-  const pad = Number(p.containerPadding ?? 12);
+  const requestedPad = Number(p.containerPadding ?? 12);
+  const pad = ["Select", "ComboBox"].includes(ownerType)
+    ? catalogPickerOverlayPadding(
+        requestedPad,
+        target.width,
+        viewport.width,
+        target.x,
+      )
+    : requestedPad;
   const offset =
     Number(p.offset ?? (ownerType === "TooltipTrigger" ? 0 : 8)) +
     (ownerType === "TooltipTrigger" ? 8 : (descriptor.arrowSize ?? 0) / 2);
@@ -280,13 +302,12 @@ export function catalogOverlayLayout(
         }
       : {}),
     ...(placement?.minWidth !== undefined
-      ? { minWidth: `${placement.minWidth}px` }
+      ? { minWidth: `${Math.min(placement.minWidth, maxWidth ?? Infinity)}px` }
       : {}),
     ...(placement?.width !== undefined
       ? {
-          width: `${placement.width}px`,
-          minWidth: `${placement.minWidth ?? placement.width}px`,
-          maxWidth: "none",
+          width: `${Math.min(placement.width, maxWidth ?? Infinity)}px`,
+          minWidth: `${Math.min(placement.minWidth ?? placement.width, maxWidth ?? Infinity)}px`,
         }
       : {}),
   };

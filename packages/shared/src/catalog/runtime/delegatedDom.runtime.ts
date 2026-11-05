@@ -1,4 +1,7 @@
-import { catalogPickerSelectionItem } from "./pickerSelection";
+import {
+  catalogPickerSelectionItem,
+  catalogPickerOptions,
+} from "./pickerSelection";
 import { CatalogPickerSelectionSlot } from "./pickerSelection.components";
 import { CatalogTokenField, CatalogTokenInput } from "./tokenField.components";
 import { isPropVar } from "../document/valueType";
@@ -3926,6 +3929,17 @@ export function catalogStateSourceValue(
     case "isSelected":
       return Boolean(props.isSelected);
     case "value": {
+      if (type === "Select" && props.value === undefined) {
+        const keys = catalogPickerOptions(node, domGet(root), root.typeOf)
+          .filter((item) => item.props.isSelected === true)
+          .map((item) =>
+            resolveStaticItemKey(
+              item.props as Record<string, unknown>,
+              item.id,
+            ),
+          );
+        return props.selectionMode === "multiple" ? keys : (keys[0] ?? null);
+      }
       if (type === "Slider") return catalogSliderRange(node).value;
       if (type === "CheckboxGroup")
         return catalogToggleGroupItems(

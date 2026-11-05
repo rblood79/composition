@@ -36,7 +36,11 @@ const ORIGINS = {
 type Owner = keyof typeof ORIGINS;
 
 /** A trigger at (400, 400), 50 × 30, a 200 × 120 menu, in a 1000 × 800 window. */
-function layout(triggerSelector: string) {
+function layout(
+  triggerSelector: string,
+  triggerWidth = 50,
+  viewportWidth = 1000,
+) {
   const rect = (x: number, y: number, width: number, height: number) =>
     ({
       x,
@@ -53,10 +57,16 @@ function layout(triggerSelector: string) {
     vi
       .spyOn(Element.prototype, "getBoundingClientRect")
       .mockImplementation(function (this: Element) {
-        if (this.matches(triggerSelector)) return rect(400, 400, 50, 30);
+        if (this.matches(triggerSelector))
+          return rect(
+            triggerWidth === viewportWidth ? 0 : 400,
+            400,
+            triggerWidth,
+            30,
+          );
         if (this.classList.contains("react-aria-Popover"))
           return rect(0, 0, 200, 120);
-        return rect(0, 0, 1000, 800);
+        return rect(0, 0, viewportWidth, 800);
       }),
     // (RAC reads an element's size from `offsetWidth` · `offsetHeight` — transforms aside.)
     ...(["offsetWidth", "offsetHeight"] as const).map((key) =>
@@ -70,13 +80,18 @@ function layout(triggerSelector: string) {
     ...["clientWidth", "clientHeight"].map((key) =>
       vi
         .spyOn(document.documentElement, key as "clientWidth", "get")
-        .mockReturnValue(key === "clientWidth" ? 1000 : 800),
+        .mockReturnValue(key === "clientWidth" ? viewportWidth : 800),
     ),
   ];
   return () => spies.forEach((spy) => spy.mockRestore());
 }
 
-async function openMenu(owner: Owner, props: Record<string, unknown> = {}) {
+async function openMenu(
+  owner: Owner,
+  props: Record<string, unknown> = {},
+  triggerWidth = 50,
+  viewportWidth = 1000,
+) {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
@@ -124,6 +139,8 @@ async function openMenu(owner: Owner, props: Record<string, unknown> = {}) {
   };
   const restore = layout(
     owner === "ComboBox" ? ".react-aria-Group" : ".react-aria-Button",
+    triggerWidth,
+    viewportWidth,
   );
   const host = document.body.appendChild(document.createElement("div"));
   const reactRoot = createRoot(host);
@@ -207,6 +224,31 @@ describe("S2 menu direction · align", () => {
 
 describe("S2 menuWidth", () => {
   it.each(["Select", "ComboBox"] as const)(
+    "%s: a full viewport trigger retains its width and starts at x=0",
+    async (owner) => {
+      const popover = await openMenu(owner, {}, 390, 390);
+      expect(popover.style.left).toBe("0px");
+      expect(
+        popover.style.getPropertyValue("--catalog-overlay-available-width"),
+      ).toBe("390px");
+      expect(popover.style.getPropertyValue("--trigger-width")).toBe("390px");
+    },
+  );
+
+  it.each(["Select", "ComboBox"] as const)(
+    "%s: DOM minimum cannot override the viewport collision width cap",
+    async (owner) => {
+      const popover = await openMenu(owner);
+      expect(popover.style.minWidth).toBe(
+        "min(var(--trigger-width), var(--catalog-overlay-available-width))",
+      );
+      expect(popover.style.maxWidth).toBe(
+        "var(--catalog-overlay-available-width)",
+      );
+    },
+  );
+
+  it.each(["Select", "ComboBox"] as const)(
     "%s: the Design panel offers Menu Width (unset — the trigger's width)",
     (owner) => {
       const accepts = getPrimitiveBinding(owner)!.props.accepts;
@@ -219,7 +261,9 @@ describe("S2 menuWidth", () => {
     const popover = await openMenu("Select", { menuWidth: 320 });
     expect(popover.style.width).toBe("320px");
     // (the Popover sheet's size cap — 250 at M — gives way: S2's stops only at the window)
-    expect(popover.style.maxWidth).toBe("none");
+    expect(popover.style.maxWidth).toBe(
+      "var(--catalog-overlay-available-width)",
+    );
     expect(popover.style.getPropertyValue("--trigger-width")).toBe("50px");
   });
 

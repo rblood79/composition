@@ -1,7 +1,7 @@
 import { catalogPickerSelectionHidden } from "./pickerSelection";
 import {
-  CatalogPickerOptionIndicator,
   CatalogPickerValueContent,
+  CatalogPickerSelectionSlot,
 } from "./pickerSelection.components";
 import {
   PICKER_INVALID_ICON,
@@ -2230,8 +2230,8 @@ const S2_OVERLAY_POSITION_OWNERS: ReadonlySet<string> = new Set([
 
 /**
  * S2 1.8.0 `menuWidth` (px): a Picker's Popover takes it as its width (not when quiet — the trigger
- * width stays its minimum; the Popover sheet's size cap gives way, S2's Popover stops only at the
- * window), a ComboBox's as `--trigger-width` (its width and minimum — its sheet has no cap).
+ * width stays its minimum), a ComboBox's as `--trigger-width` (its width and minimum).
+ * The viewport collision cap below constrains both the requested width and minimum.
  */
 function s2MenuWidthStyle(
   ownerType: string,
@@ -2240,9 +2240,7 @@ function s2MenuWidthStyle(
   const width = props.menuWidth;
   if (typeof width !== "number" || !(width > 0)) return undefined;
   if (ownerType === "Select")
-    return props.isQuiet === true
-      ? undefined
-      : { width: `${width}px`, maxWidth: "none" };
+    return props.isQuiet === true ? undefined : { width: `${width}px` };
   if (ownerType === "ComboBox")
     return { "--trigger-width": `${width}px` } as CSSProperties;
   return undefined;
@@ -2429,14 +2427,21 @@ function ruleDom(
     placementOwner &&
     placementOwnerType &&
     s2MenuWidthStyle(placementOwnerType, placementOwner.props);
-  if (menuWidth) {
-    style = { ...menuWidth, ...style };
-    if (
-      menuWidth.maxWidth &&
-      node.authoredLayout?.maxWidth === undefined &&
-      catalogAuthoredVisual(root, node).maxWidth === undefined
-    )
-      style.maxWidth = menuWidth.maxWidth;
+  if (menuWidth) style = { ...menuWidth, ...style };
+  // CSS min-width wins over max-width. A full-viewport picker trigger must not
+  // force its menu beyond the space left by RAC's collision padding.
+  if (placementOwnerType === "Select" || placementOwnerType === "ComboBox") {
+    const available = "var(--catalog-overlay-available-width)";
+    const ownMax = style.maxWidth;
+    const minimum = style.minWidth ?? "var(--trigger-width)";
+    style = {
+      ...style,
+      minWidth: `min(${typeof minimum === "number" ? `${minimum}px` : minimum}, ${available})`,
+      maxWidth:
+        ownMax && ownMax !== "none"
+          ? `min(${typeof ownMax === "number" ? `${ownMax}px` : ownMax}, ${available})`
+          : available,
+    };
   }
   // A Dialog is named by its title (RAC `Heading slot="title"` → `aria-labelledby`, ADR-254); one
   // without a title (and without the author's name) keeps the fallback name. RAC drops the title
@@ -2864,21 +2869,7 @@ function ruleDom(
     ...(STATE_FRAME_ITEMS.has(lower)
       ? [
           // (RAC takes a render function as an item's children.)
-          (node.derivedProps?._pickerOption === true
-            ? (values: Readonly<Record<string, unknown>>) =>
-                catalogStateChildren(node.id, () => [
-                  createElement(CatalogPickerOptionIndicator, {
-                    key: "picker-indicator",
-                    size: node.props.size,
-                    multiple: values.selectionMode === "multiple",
-                    selected: values.isSelected === true,
-                  }),
-                  ...content,
-                ])(values)
-            : catalogStateChildren(
-                node.id,
-                () => content,
-              )) as unknown as ReactNode,
+          catalogStateChildren(node.id, () => content) as unknown as ReactNode,
         ]
       : columnOperations
         ? [
@@ -2890,6 +2881,8 @@ function ruleDom(
           ]
         : content),
   );
+  if (lower === "icon" && node.props.slot === "selection")
+    return createElement(CatalogPickerSelectionSlot, { children: element });
   // Preview `hostOrphanRadio` / `hostOrphanCollectionItem`: RAC items need their host.
   if (lower === "radio" && collection !== "radiogroup")
     return createElement(
