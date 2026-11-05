@@ -14,6 +14,8 @@ paths:
 
 # Canvas 렌더링 규칙
 
+- Portal·Sheet는 일반 fixed와 구분해 페이지 마지막에 그리며 hit-test도 같은 stream 순서를 쓴다. 모달 배경막의 pointer 영역과 본체 선택 테두리는 분리한다. **Why (2026-11-06):** 열린 overlay 뒤에 Button을 추가하면 10개 계열에서 Button이 먼저 선택됐다. Dialog 배경막도 viewport 전체를 그리면서 본체 310×176만 hit에 등록해 뒤 요소로 클릭이 통과했다.
+
 - 열린 overlay owner의 선택·hover·측정·눈금자는 본체의 최종 scene 경계를 읽고, 문서 선택 identity와 분리한다. resize는 표시 본체의 override에 쓰며 portal 표시를 끌어 흐름의 트리거를 이동시키지 않는다. **Why (2026-11-04)**: DialogTrigger 선택 테두리 310×176이 화면 상단에 남고 Modal 본체만 중앙에 그려졌다. Sheet·Popover·Menu·PreviewTrigger도 같은 경계 소비 누락이었다. 전체 페이지 순회 대신 선택 owner의 조립 경로만 해석한다.
 
 - catalog 색상 토큰은 hex뿐 아니라 CSS `rgba()`도 전달한다. shape 변환은 기존 공용 색상 파서로 채널과 alpha를 보존하고 fillAlpha는 한 번만 곱한다. **Why (2026-11-03)**: SheetBackdrop의 검정 50% 토큰이 Canvas에서 불투명 검정으로 그려졌다.

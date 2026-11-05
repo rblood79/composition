@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas overlay — 표시·선택 순서 정합] - 2026-11-06
+
+### Fixed
+
+- Properties에서 Open으로 연 Dialog·Popover와 관련 picker·Menu·Tooltip·Sheet를 페이지의 일반 내용과 fixed 요소 뒤에 그린다. 그리기 순서와 hit-test 순서를 공유해 뒤쪽 요소가 overlay 본문의 클릭·hover를 가로채지 않게 한다.
+- Dialog 배경막의 클릭 영역을 표시된 viewport까지 포함하되 선택·hover 테두리는 본체에 유지한다. 닫기·Undo와 페이지 이동 후에도 본체와 배경막의 선택 영역을 함께 갱신한다.
+
 ## [Picker 항목 — 중복 왼쪽 여백 제거] - 2026-11-06
 
 ### Fixed

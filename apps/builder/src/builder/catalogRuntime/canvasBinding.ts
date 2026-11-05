@@ -120,18 +120,22 @@ import {
   catalogButtonPendingIndicator,
 } from "../../../../../packages/shared/src/catalog/document/buttonPending";
 
-/** Whether a record is drawn in its page's viewport: authored fixed, an open overlay portal or a Sheet viewport. */
-function drawnInViewport(node: CatalogConsumerNode): boolean {
+/** DOM portal과 Sheet viewport는 일반 fixed보다 나중에 그리는 페이지 overlay다. */
+function drawnAsOverlay(node: CatalogConsumerNode): boolean {
   return (
-    node.layout.position === "fixed" ||
     node.derivedProps?._overlayPortal === true ||
     node.derivedProps?._sheetViewport === true
   );
 }
 
+/** Whether a record is drawn in its page's viewport: authored fixed, an open overlay portal or a Sheet viewport. */
+function drawnInViewport(node: CatalogConsumerNode): boolean {
+  return node.layout.position === "fixed" || drawnAsOverlay(node);
+}
+
 /** What places a record among its siblings' draw order (`sortChildElementsByZIndex`). */
 const paintLayerOf = (node: CatalogConsumerNode) =>
-  `${node.visual.zIndex ?? ""}|${drawnInViewport(node) ? "fixed" : node.layout.position === "sticky" ? "sticky" : ""}`;
+  `${node.visual.zIndex ?? ""}|${drawnAsOverlay(node) ? "overlay" : drawnInViewport(node) ? "fixed" : node.layout.position === "sticky" ? "sticky" : ""}`;
 
 /** ADR-266 Phase 0: the counter a page grid translate rejection adds to. */
 const PAGE_GRID_TRANSLATE_NULL = {
@@ -392,6 +396,7 @@ function hiddenNode(node: CatalogConsumerNode, rect: Rect): SkiaNodeData {
     // 숨겨져도 portal의 page-level 소속은 유지한다. 종료 시 inline으로 바뀌면
     // 증분 splice가 이전 portal span을 남겨 idle warmup이 같은 구간을 되짚는다.
     ...(drawnInViewport(node) ? { isFixed: true } : {}),
+    ...(drawnAsOverlay(node) ? { isOverlay: true } : {}),
   };
 }
 
@@ -1333,6 +1338,12 @@ function withModalBackdrop(
     type: "container",
     box: undefined,
     effects: undefined,
+    pointerBounds: {
+      x: -place.x,
+      y: -place.y,
+      width: root.viewport.width,
+      height: root.viewport.height,
+    },
     children: [
       { ...backdrop, x: -place.x, y: -place.y },
       { ...given, x: 0, y: 0, elementId: undefined },
@@ -1878,7 +1889,9 @@ function bindInColorMode(
   const withSticky = (node: CatalogConsumerNode, given: SkiaNodeData) => {
     // ADR-275 Phase 7: a fixed box is drawn in its page's viewport (`renderCommands` — out of its
     // ancestors' clips and scrolls).
-    const fixed = drawnInViewport(node) ? { ...given, isFixed: true } : given;
+    const fixed = drawnInViewport(node)
+      ? { ...given, isFixed: true, isOverlay: drawnAsOverlay(node) }
+      : given;
     const backed =
       node.derivedProps?._overlayModal === true
         ? withModalBackdrop(root, node, fixed, given)

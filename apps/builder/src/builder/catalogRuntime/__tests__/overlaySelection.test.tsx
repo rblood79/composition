@@ -17,6 +17,7 @@ import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 import { CatalogCanvasScene } from "../canvasScene";
 
+import { CatalogCanvasPicking } from "../canvasPick";
 import { CatalogCanvasGestures } from "../canvasGesture";
 import { catalogSelectionSurface } from "../canvasSelectionGeometry";
 import { catalogNewPageCommand } from "../pageTree";
@@ -109,7 +110,7 @@ describe("열린 overlay의 선택 표시 경계", () => {
           scene.stream.boundsMap.get(surface.id),
         );
         expect(scene.selectionHitBounds(owner.id)).toEqual(
-          scene.stream.hitBoundsMap.get(surface.id),
+          scene.selectionBounds(owner.id),
         );
         expect(scene.selectionBounds(surface.id)).toEqual(
           scene.stream.boundsMap.get(surface.id),
@@ -269,8 +270,15 @@ it("다른 페이지의 열린 Dialog 경계는 해당 페이지 이동을 따�
     });
     expect(scene.selectionTarget(first)).not.toBe(scene.selectionTarget(other));
     const moved = { ...second };
+    const pointer = { x: 2100, y: 200, width: 1200, height: 900 };
+    expect(scene.stream.hitBoundsMap.get(scene.selectionTarget(other))).toEqual(
+      pointer,
+    );
     scene.rebuild();
     expect(scene.selectionBounds(other)).toEqual(moved);
+    expect(scene.stream.hitBoundsMap.get(scene.selectionTarget(other))).toEqual(
+      pointer,
+    );
   } finally {
     scene.dispose();
   }
@@ -290,3 +298,98 @@ it("표시 본체 아래의 컬렉션은 선택 경계 조회에서 순회하지
   for (const child of surface.children)
     expect(get).not.toHaveBeenCalledWith(child);
 });
+
+it.each(families)(
+  "%s 열린 본체는 뒤에 추가한 배경보다 먼저 선택된다",
+  async (type) => {
+    const { workspace, id } = await fixture(type, { isOpen: false });
+    const root = workspace.root;
+    const command = catalogPaletteInsertCommand(
+      {
+        graph: workspace.runtime.graph,
+        records: root.domInputs,
+        selection: () => [],
+        itemOfRecord: (id) => workspace.itemOfRecord(id),
+        pageContent: () => ({ kind: "node", id: BODY }),
+        newId: workspace.newId,
+      },
+      "Button",
+    )!;
+    const behind = workspace.execute(command).plan.selectAfter![0];
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: behind }],
+        sizing: {
+          width: { kind: "set", value: 1000 },
+          height: { kind: "set", value: 800 },
+        },
+      }),
+    );
+    const scene = new CatalogCanvasScene(root);
+    const picking = new CatalogCanvasPicking({
+      records: root.domInputs,
+      session: workspace.session,
+      get stream() {
+        return scene.stream;
+      },
+      query: () => scene.stream.hitBoundsMap.keys(),
+      selectRecords: (ids) => workspace.selectRecords(ids),
+      itemOf: (id) => workspace.itemOfRecord(id),
+    });
+    try {
+      const owner = root.recordsOfSource(id)[0];
+      const open = (value: boolean) => {
+        workspace.execute(
+          setFields({
+            targets: [{ kind: "node", id }],
+            props: { isOpen: { kind: "set", value } },
+          }),
+        );
+        scene.sync();
+      };
+      open(true);
+      const box = scene.selectionBounds(owner)!;
+      const x = box.x + box.width / 2,
+        y = box.y + box.height / 2;
+      const assertOverlay = () => {
+        const shown = scene.selectionBounds(owner)!;
+        const x = shown.x + shown.width / 2,
+          y = shown.y + shown.height / 2;
+        workspace.session.exitContext();
+        workspace.selectRecords([root.recordsOfSource(behind)[0]]);
+        expect(picking.targetKeepingSelection(x, y, false)?.id).toBe(owner);
+        expect(picking.click(x, y)).toBe(owner);
+        picking.hover(x, y);
+        expect(workspace.session.getSnapshot().hover?.identity).toBe(owner);
+        const picked = picking.pick(x, y)!;
+        expect(picking.target(x, y, true)?.id).toBe(picked);
+      };
+      assertOverlay();
+      if (type === "Dialog") {
+        expect(picking.click(100, 400)).toBe(owner);
+        expect(scene.selectionHitBounds(owner)).toEqual(
+          scene.selectionBounds(owner),
+        );
+      }
+      scene.rebuild();
+      assertOverlay();
+      open(false);
+      expect(picking.click(x, y)).not.toBe(owner);
+      workspace.undo();
+      scene.sync();
+      assertOverlay();
+      // 일반 fixed와 큰 z-index도 portal보다 아래에 남는다.
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: behind }],
+          layout: { position: { kind: "set", value: "fixed" } },
+          visual: { zIndex: { kind: "set", value: 9999 } },
+        }),
+      );
+      scene.sync();
+      assertOverlay();
+    } finally {
+      scene.dispose();
+    }
+  },
+);

@@ -979,6 +979,7 @@ interface FixedLayer {
   readonly pageAbsY: number;
   clip: ClipRect;
   readonly pending: Array<{ id: string; parentId: string }>;
+  readonly overlays: Array<{ id: string; parentId: string }>;
   parents?: Map<string, string>;
 }
 
@@ -1719,7 +1720,13 @@ function visitElement(
   boundsMap.set(elementId, elementBounds);
 
   // hitBoundsMap: 조상 clip rect 와 교차한 히트 영역. 전부 잘렸으면 미등재.
-  const hitBounds = intersectBounds(elementBounds, clipRect);
+  const pointer = skiaData.pointerBounds;
+  const hitBounds = intersectBounds(
+    pointer
+      ? { ...pointer, x: absX + pointer.x, y: absY + pointer.y }
+      : elementBounds,
+    clipRect,
+  );
   if (hitBounds) {
     hitBoundsMap.set(elementId, hitBounds);
   }
@@ -1829,6 +1836,7 @@ function visitElement(
           pageAbsY: absY,
           clip: null,
           pending: [],
+          overlays: [],
         }
       : childVisitOptions.fixedLayer;
     const loopOptions: VisitOptions =
@@ -1853,10 +1861,11 @@ function visitElement(
     if (isPageRoot && fixedLayer)
       fixedLayer.clip = cloneClipRect(childClipRect);
     /** Draw the fixed boxes met so far at this page's level (ADR-275 Phase 7). */
-    const flushFixed = () => {
+    const flushFixed = (overlays = false) => {
       const layer = fixedLayer!;
-      while (layer.pending.length) {
-        const { id, parentId } = layer.pending.shift()!;
+      const pending = overlays ? layer.overlays : layer.pending;
+      while (pending.length) {
+        const { id, parentId } = pending.shift()!;
         const at = offsetInPage(layer, parentId, childrenMap, layoutMap);
         visitElement(
           id,
@@ -1887,6 +1896,7 @@ function visitElement(
           isTopLayer,
         );
         if (subtreeSpans.has(id)) recorded.push(id);
+        if (overlays && layer.pending.length) flushFixed();
       }
     };
     for (const [childIndex, child] of sortedChildren.entries()) {
@@ -1894,7 +1904,10 @@ function visitElement(
       // box is in the stream's top layer, so the splice is refused and the page is recorded again.
       const childFixed = getSkiaNode(child.id)?.isFixed === true;
       if (childFixed && fixedLayer && !options.selfOnlyChildContexts) {
-        fixedLayer.pending.push({ id: child.id, parentId: elementId });
+        const pending = getSkiaNode(child.id)?.isOverlay
+          ? fixedLayer.overlays
+          : fixedLayer.pending;
+        pending.push({ id: child.id, parentId: elementId });
         if (isPageRoot) flushFixed();
         continue;
       }
@@ -1944,6 +1957,9 @@ function visitElement(
       if (subtreeSpans.has(child.id)) recorded.push(child.id);
       if (isPageRoot && fixedLayer?.pending.length) flushFixed();
     }
+    // Portal은 소유자의 문서 위치와 분리한다. 같은 순서로 hit span도 기록하므로
+    // 뒤쪽 형제와 일반 fixed 요소가 overlay의 pointer를 가로채지 않는다.
+    if (isPageRoot && fixedLayer?.overlays.length) flushFixed(true);
     // 자기 명령만 기록 (`selfOnlyChildContexts`) 이면 자식이 이 stream 에 없다 — 색인도 없다.
     if (recorded.length) childElementIds.set(elementId, recorded);
 

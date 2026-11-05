@@ -21,7 +21,10 @@ import {
   endNodePictureFullRecord,
 } from "../workspace/canvas/skia/nodePictureCache";
 import { requestNodePictureWarmup } from "../workspace/canvas/skia/nodePictureWarmup";
-import type { BoundingBox } from "../workspace/canvas/selection/types";
+import {
+  intersectBoxes,
+  type BoundingBox,
+} from "../workspace/canvas/selection/types";
 import type { SkiaRenderable } from "../workspace/canvas/skia/types";
 import {
   bindCatalogCanvas,
@@ -148,7 +151,11 @@ export class CatalogCanvasScene {
     return this.stream.boundsMap.get(this.selectionTarget(identity));
   }
   selectionHitBounds(identity: string): BoundingBox | undefined {
-    return this.stream.hitBoundsMap.get(this.selectionTarget(identity));
+    const target = this.selectionTarget(identity);
+    const bounds = this.stream.boundsMap.get(target);
+    const hit = this.stream.hitBoundsMap.get(target);
+    // 모달 배경막은 pointer를 받지만 hover 테두리는 본체의 보이는 영역이다.
+    return bounds && hit ? (intersectBoxes(bounds, hit) ?? undefined) : hit;
   }
   get pageRootIds(): readonly string[] {
     return this.rootIds;

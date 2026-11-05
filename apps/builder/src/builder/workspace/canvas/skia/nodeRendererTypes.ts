@@ -223,6 +223,10 @@ export interface SkiaNodeData {
   sticky?: StickyConstraints<string | null>;
   /** CSS position: fixed — top layer (no producer before ADR-267 Phase 2). */
   isFixed?: boolean;
+  /** Portal 본체·Sheet viewport: 페이지의 일반 내용과 fixed 요소 위에 그린다. */
+  isOverlay?: boolean;
+  /** 본체 밖에 함께 그리는 모달 배경막의 로컬 pointer 영역. 선택 테두리는 본체 크기를 쓴다. */
+  pointerBounds?: { x: number; y: number; width: number; height: number };
   children?: SkiaNodeData[];
 }
 
