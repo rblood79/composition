@@ -583,8 +583,8 @@ export function catalogCollectionItemKeys(
 }
 
 /** RAC keeps its first `defaultSelectedKeys`: a changed authored set builds the collection again. */
-const selectionKey = (base: string, keys: readonly string[]) =>
-  keys.length ? `${base}|selected:${keys.join(",")}` : base;
+const selectionKey = (base: string, keys: readonly string[] | "all") =>
+  keys.length ? `${base}|selected:${JSON.stringify(keys)}` : base;
 
 /**
  * ADR-280 Decision 4 — a node's RAC state in this render: the running Preview's runtime value
@@ -1883,10 +1883,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             }
           : {
               ...marker(input),
-              key: stateKey(
-                input,
-                selectionKey(marker(input).key, selected as string[]),
-              ),
+              key: stateKey(input, selectionKey(marker(input).key, selected)),
               style: input.style,
               "aria-label": str(props.label || "List"),
               // (No variant axis — S2 · RAC · v3 have none, 2026-10-12. The shared ListBox's own
@@ -1938,10 +1935,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         {
           ...(waterfall ? { as: GridList } : {}),
           ...marker(input),
-          key: stateKey(
-            input,
-            selectionKey(marker(input).key, selected as string[]),
-          ),
+          key: stateKey(input, selectionKey(marker(input).key, selected)),
           style: input.style,
           "aria-label": str(props.label || "Grid List"),
           variant: props.variant || "default",
@@ -2131,15 +2125,13 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       const props = input.node.props;
       const items = (list: CatalogConsumerNode[]) =>
         treeItemElements(input, list);
-      const treeSelected = runtimeState(input, "selectedKeys") as string[];
+      const treeSelected = runtimeState(input, "selectedKeys") as
+        string[] | "all";
       return createElement(
         Tree as ElementType,
         {
           ...marker(input),
-          key: stateKey(
-            input,
-            selectionKey(marker(input).key, treeSelected as string[]),
-          ),
+          key: stateKey(input, selectionKey(marker(input).key, treeSelected)),
           style: input.style,
           "aria-label": str(props["aria-label"] || props.label || "Tree"),
           selectionMode: props.selectionMode ?? "single",

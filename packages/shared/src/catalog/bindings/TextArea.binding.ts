@@ -38,6 +38,7 @@ export const textAreaBinding: PrimitiveBinding = {
   props: {
     accepts: {
       label: { kind: "string", label: "Label", section: "content" },
+      value: { kind: "string", label: "Value", section: "content" },
       description: {
         kind: "string",
         label: "Description",
@@ -100,7 +101,6 @@ export const textAreaBinding: PrimitiveBinding = {
       //       (`presence.ts` `CATALOG_LABEL_NODE_FIELDS`).
       //     입력 힌트 5종 → ADR-915 P1.5-b 가 TextField/SearchField 에만 채택했던 것.
       //       `delegatedDom.tsx` `textarea` 가 `inputHints` 로 RAC 에 전달한다.
-      //   `value` 는 여기 없다 — 표시 채널이 따로 필요해 별도 단계에서 다룬다.
       errorMessage: {
         kind: "string",
         label: "Error Message",

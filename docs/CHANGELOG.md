@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [입력 필드 값 편집 — TextArea·ColorField owner 연결] - 2026-11-07
+
+### Fixed
+
+- TextArea·ColorField의 Value 속성을 노출하고, 빈 값에서도 Canvas Input 편집이 실제 필드 owner의 `value`를 갱신하도록 연결한다. DOM과 Canvas가 동일한 가장 가까운 필드 owner를 해석하며, 자식에 독립적인 값 override를 남기지 않는다.
+- TextArea 값의 개행 편집은 필드 값으로 보존한다. 일반 텍스트의 개행 표시를 위한 `white-space` 자동 변경을 Input에 적용해 렌더가 실패하던 편집 경로를 수정한다.
+- TextArea Input의 기본 `pre-wrap`을 공용 부품 규칙에 기록하고 Canvas paint까지 전달해 저장한 개행을 여러 줄로 표시한다.
+
+## [Collection 전체 선택 — RAC sentinel 보존] - 2026-11-07
+
+### Fixed
+
+- Preview의 ListBox·GridList·Tree에서 전체 선택 값 `"all"`을 배열로 취급해 렌더가 중단되는 경로를 수정한다. RAC 선택 값의 형을 보존하고, 재마운트 key는 sentinel과 실제 항목 키 배열을 구분한다.
+
+## [Preview 글자 smoothing — Publish reset 정렬] - 2026-11-07
+
+### Fixed
+
+- Preview iframe에서 빠져 있던 `-webkit-font-smoothing: antialiased`를 실제 Publish와 동일하게 적용한다. macOS에서 같은 Label의 글자 획 농도가 달라지는 원인을 수정했으며, Canvas는 Skia 직접 렌더를 유지한다.
+- Preview reset과 실제 Publish stylesheet의 상속 결과를 Chromium 회귀 검사로 대조한다. 이 수정만으로 Canvas↔Preview의 남은 raster 차이가 모두 해결됐다고 판정하지 않는다.
+
 ## [Label baseline 측정과 Canvas 전달] - 2026-11-07
 
 ### Fixed

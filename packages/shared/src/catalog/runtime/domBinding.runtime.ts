@@ -3290,6 +3290,9 @@ function authoredStyle(
     const css =
       AUTHORED_CSS[key] ??
       textCss ??
+      (node.bindingId === "input" && key === "whiteSpace"
+        ? RULE_TEXT_BOX_CSS.whiteSpace
+        : undefined) ??
       (RULE_TEXT_BOX_BINDINGS.has(node.bindingId ?? "")
         ? RULE_TEXT_BOX_CSS[key]
         : undefined);

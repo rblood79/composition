@@ -26,9 +26,17 @@ const TEXT_KEYS = ["children", "label", "value"] as const;
  * component whose text lives in a child).
  */
 export function catalogTextKey(
-  record: Pick<CatalogConsumerNode, "props"> | undefined,
+  record:
+    | (Pick<CatalogConsumerNode, "props"> &
+        Partial<Pick<CatalogConsumerNode, "bindingId" | "derivedProps">>)
+    | undefined,
 ): string | undefined {
   if (!record) return undefined;
+  if (
+    record.bindingId === "input" &&
+    typeof record.derivedProps?.value === "string"
+  )
+    return "value";
   const props = record.props as Readonly<Record<string, unknown>>;
   return TEXT_KEYS.find((key) => typeof props[key] === "string");
 }
@@ -81,10 +89,13 @@ export function catalogTextCommand(
       : JSON.stringify(after) === JSON.stringify(before)
   )
     return undefined;
-  const lifted = committedWhiteSpace(
-    whiteSpace,
-    typeof after === "string" ? after : richTextPlain(after),
-  );
+  const lifted =
+    key === "value"
+      ? null
+      : committedWhiteSpace(
+          whiteSpace,
+          typeof after === "string" ? after : richTextPlain(after),
+        );
   return setFields({
     targets: [item.target],
     props: { [key]: { kind: "set", value: after } },
@@ -112,7 +123,10 @@ export function catalogBoundTextCommand(
   whiteSpace?: unknown,
 ): CatalogCommand | undefined {
   if (after === before) return undefined;
-  const lifted = committedWhiteSpace(whiteSpace, after);
+  // Form values preserve line breaks through their native input contract. They are
+  // not styled text: Input does not accept a whiteSpace visual override.
+  const lifted =
+    key === "value" ? null : committedWhiteSpace(whiteSpace, after);
   const ownText = readPropSource(graph, item.target, key).own !== undefined;
   const commands: CatalogCommand[] = [
     setFields({

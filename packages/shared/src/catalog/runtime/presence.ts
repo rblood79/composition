@@ -972,7 +972,7 @@ export function catalogIsFieldControlGroup(
  * The field that owns `node` as its Input: a SearchField's own child (ADR-256 G5 example 5 — no
  * control Group), a NumberField's in its control Group.
  */
-function catalogFieldOfInput(
+export function catalogFieldOfInput(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
@@ -2641,9 +2641,15 @@ function ownDerivedPropsBase(
     }
     if (valueField.props.type === "password")
       text = "•".repeat([...text].length);
+    // These editable field parts expose the owner's raw value, including the empty state.
+    // RAC still owns DOM input state; Canvas uses this channel to edit the owner prop.
+    const editableValue: Record<string, string> =
+      fieldType === "TextArea" || fieldType === "ColorField"
+        ? { value: String(valueField.props.value ?? "") }
+        : {};
     return text
-      ? { placeholder: text, _inputHasValue: true }
-      : { _inputHasValue: false };
+      ? { ...editableValue, placeholder: text, _inputHasValue: true }
+      : { ...editableValue, _inputHasValue: false };
   }
   // ADR-256 Phase 5h: an expanded item's chevron glyph turns (`Tree.css` `[data-expanded]
   // .react-aria-Button[slot=chevron] svg { rotate: 90deg }`) — the Canvas draws the turned glyph

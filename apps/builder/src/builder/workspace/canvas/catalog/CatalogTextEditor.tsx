@@ -138,7 +138,12 @@ function TextField({
       !!record &&
       RICH_TEXT_HOST_TYPES.has(workspace.root.typeOf(record));
     // (A bound text shows the prop's value: the position draws it as resolved.)
-    const text = key && record ? catalogTextOf(record, key) : "";
+    const text =
+      binding && key === "value"
+        ? catalogTextOf(binding.source, binding.prop)
+        : key && record
+          ? catalogTextOf(record, key)
+          : "";
     return {
       record,
       key,
@@ -235,12 +240,13 @@ function TextField({
     // A typed line break in a nowrap / normal text would be collapsed by the layout (and the
     // commit lifts `white-space` for it): the preview lifts it the same way, so a Button grows to
     // its second line while typing (user 2026-10-20).
-    const lifted = changed
-      ? committedWhiteSpace(
-          start.record?.visual.whiteSpace,
-          richTextPlain(value),
-        )
-      : null;
+    const lifted =
+      changed && start.key !== "value"
+        ? committedWhiteSpace(
+            start.record?.visual.whiteSpace,
+            richTextPlain(value),
+          )
+        : null;
     workspace.root.previewRecord(
       item.identity,
       changed

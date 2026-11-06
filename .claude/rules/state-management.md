@@ -12,6 +12,12 @@ paths:
 
 # 상태 관리 규칙
 
+- 필드 `value` 편집에는 일반 Text의 개행용 `white-space` 자동 승격을 적용하지 않는다. **Why (2026-11-07):** TextArea의 실제 Enter 입력이 Input에 지원되지 않는 `whiteSpace: pre-wrap`을 preview/commit하여 `CATALOG_CANVAS_VISUAL_UNSUPPORTED` 렌더 실패를 일으켰다. 값의 개행은 owner에 저장하고 필드의 표시 계약을 유지한다.
+
+- Input의 편집 값과 표시 값은 같은 가장 가까운 field owner를 해석한다. 빈 값도 편집 채널을 유지하고 쓰기는 owner prop의 기존 명령 경로를 사용한다. **Why (2026-11-07):** TextArea·ColorField Input이 owner 값을 placeholder로만 파생해 Canvas에서 value를 편집할 수 없었다. 자식 value override를 쓰면 RAC owner context와 저장 값이 갈라지므로 표시와 편집의 owner 탐색을 공유한다.
+
+- Collection의 RAC 선택 값은 키 배열과 `"all"` sentinel을 끝까지 구분하며, 재마운트 key도 값의 구조를 보존한다. **Why (2026-11-07):** Preview ListBox에서 Ctrl+A 뒤 `selectedKeys`를 배열로 단정해 `keys.join is not a function`으로 렌더가 중단됐다. 문자열 `"all"`과 항목 키 배열 `["all"]`, 쉼표를 포함한 항목 키도 같은 key로 합치지 않는다.
+
 > **2026-10-04 Publish 후속**: Preview/Publish 실행 세션·DOM·상태·테마의 공용 구현은 `packages/shared/src/catalog/runtime`이다. Publish는 검증한 catalog 파일에서 독립 세션을 만들고 Builder store를 import하지 않는다. Builder iframe 동기화는 origin/source를 검증하는 기존 postMessage 경계를 유지한다.
 
 > **2026-10-04 전면 개정**: ADR-248 Phase 4 (2026-10-03 main 병합) 로 Builder 의 문서 · 선택 · 히스토리 · 저장이 Zustand canonical store (`elements` / `elementsMap` / `childrenMap` · `_rebuildIndexes` · `runCanonicalMutation` · `historyActions` · `instanceActions`) 에서 **catalog runtime** (`apps/builder/src/builder/catalogRuntime/**` + `packages/shared/src/catalog/**`) 으로 옮겨졌고, 옛 store 와 그 규칙의 대상 파일은 `0b0eaea28` (Phase 4e-13-3) 에서 삭제됐다. 옛 규칙 본문은 git 이력에 있다.

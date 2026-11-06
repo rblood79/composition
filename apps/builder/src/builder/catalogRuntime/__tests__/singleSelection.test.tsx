@@ -37,7 +37,10 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 const BODY = "project:node:home-body" as NodeId;
 const OWNER = "project:node:owner" as NodeId;
 
-async function open(definition: string, ownerProps: Record<string, unknown> = {}) {
+async function open(
+  definition: string,
+  ownerProps: Record<string, unknown> = {},
+) {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
@@ -61,7 +64,8 @@ async function open(definition: string, ownerProps: Record<string, unknown> = {}
         {
           kind: "node",
           id: OWNER,
-          definitionId: `lib:definition:origin-component-${definition}` as DefinitionId,
+          definitionId:
+            `lib:definition:origin-component-${definition}` as DefinitionId,
           children: [],
           props: Object.fromEntries(
             Object.entries(ownerProps).map(([key, value]) => [
@@ -122,8 +126,13 @@ async function open(definition: string, ownerProps: Record<string, unknown> = {}
   return { workspace, root, of, edit, selected, chooseTab };
 }
 
-async function dom(root: Awaited<ReturnType<typeof open>>["root"], type: string) {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+async function dom(
+  root: Awaited<ReturnType<typeof open>>["root"],
+  type: string,
+) {
+  (
+    globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+  ).IS_REACT_ACT_ENVIRONMENT = true;
   (globalThis as { ResizeObserver?: unknown }).ResizeObserver ??= class {
     observe() {}
     unobserve() {}
@@ -131,10 +140,17 @@ async function dom(root: Awaited<ReturnType<typeof open>>["root"], type: string)
   };
   const host = document.body.appendChild(document.createElement("div"));
   const reactRoot = createRoot(host);
-  const record = [...root.domInputs.values()].find((r) => root.typeOf(r) === type)!;
+  const record = [...root.domInputs.values()].find(
+    (r) => root.typeOf(r) === type,
+  )!;
   await act(async () => reactRoot.render(renderCatalogDom(root, record.id)));
   return {
     host,
+    redraw: async () => {
+      await act(async () =>
+        reactRoot.render(renderCatalogDom(root, record.id)),
+      );
+    },
     close: async () => {
       await act(async () => reactRoot.unmount());
       host.remove();
@@ -145,7 +161,9 @@ async function dom(root: Awaited<ReturnType<typeof open>>["root"], type: string)
 describe("RadioGroup Value — its Radios' values, one Radio selected", () => {
   it("offers the Radios' values", async () => {
     const { root, of } = await open("radiogroup");
-    expect(catalogRadioGroupValueOptions(root, of("RadioGroup")[0]!.id)).toEqual([
+    expect(
+      catalogRadioGroupValueOptions(root, of("RadioGroup")[0]!.id),
+    ).toEqual([
       { value: "option1", label: "Option 1" },
       { value: "option2", label: "Option 2" },
     ]);
@@ -155,19 +173,29 @@ describe("RadioGroup Value — its Radios' values, one Radio selected", () => {
     const { root, of, edit, selected } = await open("radiogroup");
     edit(of("RadioGroup")[0]!.id, { value: "option2" });
     expect(selected("Radio")).toEqual([false, true]);
-    expect(of("Radio").map((r) => r.props.isSelected === true)).toEqual([false, true]);
+    expect(of("Radio").map((r) => r.props.isSelected === true)).toEqual([
+      false,
+      true,
+    ]);
     let view = await dom(root, "RadioGroup");
     expect(
-      [...view.host.querySelectorAll("input[type=radio]")].map((input) => (input as HTMLInputElement).checked),
+      [...view.host.querySelectorAll("input[type=radio]")].map(
+        (input) => (input as HTMLInputElement).checked,
+      ),
     ).toEqual([false, true]);
     await view.close();
     edit(of("Radio")[0]!.id, { isSelected: true });
     expect(selected("Radio")).toEqual([true, false]);
-    expect(of("Radio").map((r) => r.props.isSelected === true)).toEqual([true, false]);
+    expect(of("Radio").map((r) => r.props.isSelected === true)).toEqual([
+      true,
+      false,
+    ]);
     expect(of("RadioGroup")[0]!.props.value).toBe("option1");
     view = await dom(root, "RadioGroup");
     expect(
-      [...view.host.querySelectorAll("input[type=radio]")].map((input) => (input as HTMLInputElement).checked),
+      [...view.host.querySelectorAll("input[type=radio]")].map(
+        (input) => (input as HTMLInputElement).checked,
+      ),
     ).toEqual([true, false]);
     await view.close();
     // Unselecting the selected Radio clears the Value.
@@ -182,7 +210,10 @@ describe("one value — a Selected item takes the selection from the others", ()
     const { of, edit, selected } = await open("tabs");
     edit(of("Tab")[0]!.id, { isSelected: true });
     edit(of("Tab")[1]!.id, { isSelected: true });
-    expect(of("Tab").map((r) => r.props.isSelected === true)).toEqual([false, true]);
+    expect(of("Tab").map((r) => r.props.isSelected === true)).toEqual([
+      false,
+      true,
+    ]);
     expect(selected("Tab")).toEqual([false, true]);
   });
 
@@ -225,4 +256,36 @@ describe("one value — a Selected item takes the selection from the others", ()
     multiple.edit(multiple.of("ListBoxItem")[2]!.id, { isSelected: true });
     expect(multiple.selected("ListBoxItem")).toEqual([true, false, true]);
   });
+
+  it.each([
+    ["listbox", "ListBox", "ListBoxItem", "option"],
+    ["gridlist", "GridList", "GridListItem", "row"],
+  ])(
+    "%s refreshes authored selection with comma-containing item IDs",
+    async (definition, type, itemType, role) => {
+      const h = await open(definition, { selectionMode: "multiple" });
+      const items = h.of(itemType);
+      expect(items.length).toBeGreaterThanOrEqual(3);
+      h.edit(items[0]!.id, { id: "a,b", isSelected: true });
+      h.edit(items[1]!.id, { id: "a" });
+      h.edit(items[2]!.id, { id: "b" });
+      const view = await dom(h.root, type);
+      const selected = () =>
+        [...view.host.querySelectorAll(`[role="${role}"]`)].map(
+          (item) => item.getAttribute("aria-selected") === "true",
+        );
+      expect(selected().slice(0, 3)).toEqual([true, false, false]);
+      h.edit(items[0]!.id, { isSelected: false });
+      h.edit(items[1]!.id, { isSelected: true });
+      h.edit(items[2]!.id, { isSelected: true });
+      await view.redraw();
+      expect(selected().slice(0, 3)).toEqual([false, true, true]);
+      h.edit(items[0]!.id, { id: "all", isSelected: true });
+      h.edit(items[1]!.id, { isSelected: false });
+      h.edit(items[2]!.id, { isSelected: false });
+      await view.redraw();
+      expect(selected().slice(0, 3)).toEqual([true, false, false]);
+      await view.close();
+    },
+  );
 });

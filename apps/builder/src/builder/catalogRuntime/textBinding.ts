@@ -1,7 +1,9 @@
 import type {
   CatalogLibrary,
   LibraryTemplateId,
+  LibraryDefinitionId,
 } from "../../../../../packages/shared/src/catalog/document/types";
+import { catalogFieldOfInput } from "../../../../../packages/shared/src/catalog/runtime/presence";
 import type { CatalogConsumerNode } from "./compositionRoot";
 
 /** A template text that is one binding and nothing else: `{title}`. */
@@ -67,6 +69,24 @@ export function catalogTextBinding(
   let found: CatalogTextBinding | undefined;
   let current = record;
   let currentKey = key;
+  // A field's Input is controlled through RAC context, not a template `{value}` prop.
+  // Its Canvas value channel must write the same owner rather than a child override.
+  if (record.bindingId === "input" && key === "value") {
+    const owner = catalogFieldOfInput(
+      record,
+      (id) => records.get(id),
+      (node) =>
+        node.ruleId ??
+        library.definitions.get(node.definitionId as LibraryDefinitionId)
+          ?.name ??
+        "",
+    );
+    if (owner?.bindingId === "textarea" || owner?.bindingId === "colorfield") {
+      found = { source: owner, prop: "value" };
+      current = owner;
+      currentKey = "value";
+    }
+  }
   // (Bounded: each step moves to an ancestor.)
   for (let depth = 0; depth < 16; depth++) {
     const template = library.templates.get(

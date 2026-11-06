@@ -141,6 +141,9 @@ async function snapshot(source) {
         domWidth: el?.getBoundingClientRect().width,
         domHeight: el?.getBoundingClientRect().height,
         domLineHeight: el ? getComputedStyle(el).lineHeight : undefined,
+        fontSmoothing: el
+          ? getComputedStyle(el).getPropertyValue("-webkit-font-smoothing")
+          : undefined,
         fontWeight: {
           visual: n.visual.fontWeight,
           derived: n.derivedProps?.fontWeight,
@@ -445,7 +448,14 @@ try {
       await page.mouse.click(1100, 700);
       await page.keyboard.press("Escape");
       await page.keyboard.press("Escape");
-      await page.mouse.move(1100, 750);
+      // The page itself gets a blue hover outline. Keep the pointer in the
+      // canvas gutter so that both captures contain only resting page chrome.
+      await page.mouse.move(350, 900);
+      await page.waitForFunction(() => {
+        const state =
+          window.__COMPOSITION_CATALOG__.workspace.session.getSnapshot();
+        return state.selection.length === 0 && !state.hover;
+      });
       await pause();
       const clip = await page.evaluate((id) => {
         const frame = document.querySelector("#previewFrame");
@@ -467,7 +477,7 @@ try {
         clip,
       });
       await split.press("End");
-      await page.mouse.move(1100, 750);
+      await page.mouse.move(350, 900);
       await page.waitForTimeout(400);
       const dom = await page.screenshot({
         path: `${OUT}/${type}-label-preview.png`,
@@ -617,6 +627,7 @@ try {
             indicator: indicator?.textContent,
             lineHeight: style.lineHeight,
             fontWeight: style.fontWeight,
+            fontSmoothing: style.getPropertyValue("-webkit-font-smoothing"),
             display: style.display,
             indicatorWhiteSpace: indicator
               ? getComputedStyle(indicator).whiteSpace
@@ -630,6 +641,7 @@ try {
           actual.body === preview.body.domText &&
             actual.indicator === preview.indicator.domText &&
             actual.lineHeight === preview.body.domLineHeight &&
+            actual.fontSmoothing === preview.body.fontSmoothing &&
             actual.display === "inline" &&
             actual.indicatorWhiteSpace === "nowrap" &&
             Math.abs(actual.height - preview.body.domHeight) <= 0.75,

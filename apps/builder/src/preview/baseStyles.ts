@@ -26,6 +26,7 @@ export const PREVIEW_BASE_STYLES = `
     /* font-feature-settings: Pretendard cv 변형 — body 잔존 유지 필수 (한글 타이포 품질) */
     body {
       font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+      -webkit-font-smoothing: antialiased;
       color: var(--fg, #1a1a1a);
       background: var(--bg, #ffffff);
     }

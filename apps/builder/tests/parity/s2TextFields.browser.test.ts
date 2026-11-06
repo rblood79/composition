@@ -400,3 +400,79 @@ it.each(types)(
     }
   },
 );
+
+it.each([
+  ["TextArea", "first line\nsecond line", "replacement"],
+  ["ColorField", "#336699", "#112233"],
+])(
+  "%s authored value updates owner context and preserves native editing",
+  async (type, value, replacement) => {
+    const h = await fixture(type, "M");
+    try {
+      await h.render();
+      const input = () =>
+        h.host.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+          "input:not([type=hidden]),textarea",
+        )!;
+      expect(input().value).toBe("");
+      h.write(h.group().id, { value });
+      await h.render();
+      expect(input().value.toLowerCase()).toBe(value.toLowerCase());
+      expect(h.field().derivedProps?.value).toBe(value);
+      await act(async () => {
+        await userEvent.fill(input(), replacement);
+        await userEvent.tab();
+      });
+      expect(input().value.toLowerCase()).toBe(replacement.toLowerCase());
+      // Preview interactions stay in RAC runtime state, without authoring the child Input.
+      expect(h.field().props.value).toBeUndefined();
+      h.write(h.group().id, { value: "" });
+      await h.render();
+      expect(input().value).toBe("");
+      expect(h.field().derivedProps?.value).toBe("");
+    } finally {
+      await h.dispose();
+    }
+  },
+);
+
+it.each(["DateField", "TimeField", "DatePicker", "DateRangePicker"])(
+  "%s segment keyboard, readonly and validation state remain connected",
+  async (type) => {
+    const h = await fixture(type, "M");
+    try {
+      h.write(h.group().id, {
+        placeholderValue: type === "TimeField" ? "10:30" : "2026-11-07",
+        validationBehavior: "aria",
+      });
+      await h.render();
+      const segment = () =>
+        h.host.querySelector<HTMLElement>('[role="spinbutton"]')!;
+      expect(segment()).not.toBeNull();
+      await act(async () => {
+        await userEvent.click(segment());
+        await userEvent.keyboard("{ArrowUp}");
+      });
+      expect(segment().getAttribute("aria-valuenow")).not.toBeNull();
+      const value = segment().textContent;
+      h.write(h.group().id, { isReadOnly: true });
+      await h.render();
+      await act(async () => {
+        await userEvent.click(segment());
+        await userEvent.keyboard("{ArrowUp}");
+      });
+      expect(segment().textContent).toBe(value);
+      h.write(h.group().id, {
+        isReadOnly: false,
+        isInvalid: true,
+        errorMessage: "Check date or time",
+      });
+      await h.render();
+      expect(h.host.querySelector("[data-invalid]")).not.toBeNull();
+      expect(segment().getAttribute("aria-invalid")).toBe("true");
+      expect(h.host.textContent).toContain("Check date or time");
+    } finally {
+      await h.dispose();
+    }
+  },
+);

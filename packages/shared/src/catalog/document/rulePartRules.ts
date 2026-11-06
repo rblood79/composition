@@ -1253,7 +1253,7 @@ function textAreaPartRules(parentType: string): CompiledPartRule[] {
           // the shape builder's `verticalAlign: "top"` (2026-10-10 사용자 「textarea placeholder
           // 텍스트가 상단이 아니라 가운데」 — the old Skia projection gave it, the catalog path lost it).
           layout: { verticalAlign: "top" },
-          visual: { height },
+          visual: { height, whiteSpace: "pre-wrap" },
         },
         {
           childType: "Input",
@@ -1261,7 +1261,7 @@ function textAreaPartRules(parentType: string): CompiledPartRule[] {
           size,
           ...owner,
           layout: { verticalAlign: "top" },
-          visual: { height: inner },
+          visual: { height: inner, whiteSpace: "pre-wrap" },
         },
       ];
     }),

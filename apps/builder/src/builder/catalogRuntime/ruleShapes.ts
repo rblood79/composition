@@ -614,6 +614,13 @@ export function catalogRuleNodeData(
   const tableWraps = tableText && input.node.visual.whiteSpace === "normal";
   const badgeTruncates =
     input.type === "Badge" && input.node.visual.whiteSpace === "nowrap";
+  // TextArea's typed Input part shares the native textarea's wrapping contract.
+  // Preserve it before the generic box executor applies its single-line fallback.
+  if (input.type === "Input" && input.node.visual.whiteSpace !== undefined)
+    for (const shape of shapes)
+      if (shape.type === "text")
+        shape.whiteSpace = input.node.visual.whiteSpace as
+          "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line";
   if (
     input.singleLine ||
     input.type === "Tag" ||
