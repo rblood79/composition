@@ -65,6 +65,8 @@ export function hasCurrentPass(root, manifest, kind, explicitFiles) {
     .map(JSON.parse);
   const latest = entries.findLast((entry) => entry.kind === kind);
   if (latest?.status !== "pass" || !latest.snapshot) return false;
+  // live 는 증거 파일이 붙은 PASS 만 인정한다 — artifact 없는 옛 행은 재검증 대상.
+  if (kind === "live-exercise" && !latest.artifact) return false;
   // 호출자가 범위를 지정하지 않으면 증거의 명시 범위를 재검사한다.
   const files =
     explicitFiles ??

@@ -147,7 +147,7 @@ $( [ -n "$LIVE_LIST" ] && printf 'Live Exercise 근거 없음 (CLAUDE.md §완�
 3. Live Exercise — 다음 중 하나로 실제 builder 에서 무엇을 exercise 했는지 기록:
    - ADR 본문에 \`### Live Exercise\` 절 (시나리오 · 결과 · 날짜 · Chrome MCP / 사용자 confirm 구분)
    - docs/adr/evidence/NNN-*live*.md 파일
-   - run ledger: pnpm agent:run -- evidence live-exercise pass --detail "<무엇을 exercise 했는지>"
+   - run ledger: pnpm agent:run -- evidence live-exercise pass --detail "<무엇을 exercise 했는지>" --artifact <증거 파일>
 
 [참조]
 - .claude/rules/changelog.md §1 트리거 표 · .claude/rules/adr-writing.md §Status 전이 규칙

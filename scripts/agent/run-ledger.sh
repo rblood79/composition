@@ -120,6 +120,14 @@ case "$CMD" in
       exit 0
     fi
     need_jq
+    # live-exercise pass 는 관찰 증거 파일이 있어야 기록한다 — 문장만으로 PASS 를 남기지 못하게 한다.
+    # 관찰 자체가 안 됐으면 (hidden 탭 · 서버 · 도구 불가) pass 가 아니라 block 으로 적는다.
+    if [ "$KIND" = live-exercise ] && [ "$STATUS" = pass ]; then
+      [ -n "$ARTIFACT" ] || { echo "[agent:run] live-exercise pass 는 --artifact <증거 파일> 필수 (스크린샷 · console 덤프 · 상태 JSON · 하니스 출력). 관찰하지 못했으면 block 으로 기록" >&2; exit 2; }
+      AFILE="$ARTIFACT"
+      case "$AFILE" in /*) ;; *) [ -e "$D/$AFILE" ] && AFILE="$D/$AFILE" ;; esac   # 상대 경로는 run 폴더 먼저, 없으면 cwd
+      { [ -f "$AFILE" ] && [ -s "$AFILE" ]; } || { echo "[agent:run] artifact 가 없거나 비어 있음: $ARTIFACT" >&2; exit 2; }
+    fi
     SNAPSHOT=null
     case "$KIND" in
       cross-check|live-exercise)
@@ -216,6 +224,8 @@ agent run ledger (local-only, .agent/runs/):
                          [--target t] [--artifact p] [--skip-reason r] [--gate-added g] [--files a,b]
         kind 예: typecheck · vitest · cross-check · live-exercise · preflight · catalog-gate · hook-selftest · adr-sync
         cross-check/live-exercise는 최신 결과와 HEAD·파일 내용이 일치할 때만 재사용한다.
+        live-exercise pass 는 --artifact 필수 (비어 있지 않은 파일 — 상대 경로는 run 폴더 artifacts/ 기준).
+        관찰하지 못했으면 pass · fail 이 아니라 block 으로 기록한다.
         work verify --files를 쓰면 evidence에도 같은 --files를 지정한다. 옛 snapshot 없는 PASS는 재검증한다.
   pnpm agent:run -- phase <name> <started|verified|done|blocked>
   pnpm agent:run -- note uncertainty|risk "<text>"

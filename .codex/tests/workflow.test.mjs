@@ -110,6 +110,13 @@ function start(f) {
   ]);
   assert.equal(r.status, 0, r.stderr);
 }
+// live-exercise pass 는 증거 파일이 있어야 기록된다 — ignored 경로에 두어 snapshot 범위 밖.
+function proof(f) {
+  const file = path.join(f.dir, ".agent/live-proof.txt");
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, "observed\n");
+  return file;
+}
 function evidence(f, status, extra = []) {
   const r = f.run([
     "bash",
@@ -117,10 +124,35 @@ function evidence(f, status, extra = []) {
     "evidence",
     "live-exercise",
     status,
+    ...(status === "pass" ? ["--artifact", proof(f)] : []),
     ...extra,
   ]);
   assert.equal(r.status, 0, r.stderr);
 }
+test("증거 파일 없는 live-exercise pass는 기록되지 않는다", (t) => {
+  const f = fixture(t);
+  start(f);
+  const record = (extra) =>
+    f.run([
+      "bash",
+      "scripts/agent/run-ledger.sh",
+      "evidence",
+      "live-exercise",
+      "pass",
+      ...extra,
+    ]).status;
+  assert.equal(record([]), 2);
+  assert.equal(record(["--artifact", "missing.png"]), 2);
+  assert.notEqual(
+    f.run(["bash", "scripts/agent/run-ledger.sh", "has-live"]).status,
+    0,
+  );
+  assert.equal(record(["--artifact", proof(f)]), 0);
+  assert.equal(
+    f.run(["bash", "scripts/agent/run-ledger.sh", "has-live"]).status,
+    0,
+  );
+});
 test("최신 FAIL이 과거 PASS를 무효화한다", (t) => {
   const f = fixture(t);
   start(f);
@@ -207,6 +239,7 @@ test("work verify와 close도 최신 FAIL·변경된 소스의 PASS를 거부한
       "evidence",
       kind,
       "pass",
+      ...(kind === "live-exercise" ? ["--artifact", proof(f)] : []),
       "--files",
       file,
     ]);

@@ -43,13 +43,24 @@ pnpm -F @composition/builder exec vitest run <변경 모듈 옆 테스트>   # �
   - 렌더 · catalog · 스타일 패널 변경 → [cross-check](../cross-check/SKILL.md) — 영향 컴포넌트마다 Canvas ↔ Preview 를 같은 상태에서 비교 (family 는 컴포넌트마다 반복).
   - 사용자 흐름 · 상태 · 패널 · 저장 변경 → [evaluate](../evaluate/SKILL.md) — 요소는 팔레트 클릭 · Properties 편집으로 심고, 저장 변경은 새로고침 hydration 까지.
   - 둘 다 닿으면 둘 다. 각 skill 의 관찰 규칙 (foreground RAF · 스크린샷 · Compare Mode 함정) 을 그대로 따릅니다.
-- **Chrome MCP 를 쓸 수 없으면** headed Playwright 하니스 (`apps/builder/scripts/<주제>-live.mjs`, `BUILDER_URL`) 또는 사용자 confirm 으로 대체하고, 어느 수단이었는지 적습니다. 둘 다 불가능하면 미검증 범위를 명시하고 커밋 여부를 사용자에게 넘깁니다.
+- **Chrome MCP 를 쓸 수 없으면** headed Playwright 하니스 (`apps/builder/scripts/<주제>-live.mjs`, `BUILDER_URL`) 또는 사용자 confirm 으로 대체하고, 어느 수단이었는지 적습니다. 둘 다 불가능하면 BLOCKED 로 적고 미검증 범위를 명시해 커밋 여부를 사용자에게 넘깁니다.
+
+### 판정 — PASS · FAIL · BLOCKED
+
+- **PASS**: 관찰했고 기대와 같다. 관찰한 것 (스크린샷 · console 덤프 · 상태 JSON · 하니스 출력) 을 파일로 남깁니다.
+- **FAIL**: 관찰했고 기대와 다르다. 결함입니다.
+- **BLOCKED**: 관찰 자체가 성립하지 않았다 — hidden 탭의 RAF 정지 · Skia 픽셀을 읽지 못함 · 서버 · 인증 · 도구 불가.
+  결함이 아니고 통과도 아닙니다. FAIL 로 적으면 없는 결함을 고치게 되고, PASS 로 적으면 미검증이 완료로 남습니다.
+  막힌 이유와 풀 방법 (foreground 로 전환 · 스크린샷으로 대체 · 사용자 확인) 을 적고, 풀 수 있으면 풀어서 다시 관찰합니다.
 
 ## 4. 보고와 커밋
 
-`### Live Exercise` 절에 그대로 옮길 수 있는 형태로 적습니다 — 날짜 · 시나리오 · 결과 (PASS/FAIL 수) · 수단
+`### Live Exercise` 절에 그대로 옮길 수 있는 형태로 적습니다 — 날짜 · 시나리오 · 결과 (PASS/FAIL/BLOCKED 수) · 수단
 (Chrome MCP / Playwright / 사용자 confirm) · 콘솔 오류 수. "무엇을 실제로 exercise 했는지" 를 씁니다 (test 개수 나열 금지).
 
 - FAIL 이 있으면 커밋하지 않고 `/fix` 로 root cause 부터 — 증상 수정 금지.
+- BLOCKED 가 남으면 PASS 로 세지 않습니다. 미검증 범위를 적고 커밋 여부를 사용자에게 넘깁니다.
+- run 이 열려 있으면 ledger 에도 같은 판정을 남깁니다 — `pnpm agent:run -- evidence live-exercise pass --detail "<무엇을>" --artifact <증거 파일>`
+  (artifact 없는 pass 는 거부됩니다), 관찰하지 못했으면 `evidence live-exercise block --detail "<막힌 이유>"`.
 - PASS 면 커밋으로 진행합니다. ADR Implemented 승격 커밋이면 이 보고가 ADR 본문 `### Live Exercise` 절의 내용이 됩니다
   (`adr-status-sync-check.sh` 가 절 부재를 block).

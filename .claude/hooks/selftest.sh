@@ -211,6 +211,8 @@ LIVE_SEC=$'Implemented\n\n### Live Exercise\n\n- 2026-08-28 builder 5173 팔레�
 sync_docs() { printf '# README\n- 100\n' > "$REPO/docs/adr/README.md"; printf '# CHANGELOG\n- 100\n' > "$REPO/docs/CHANGELOG.md"; }
 reset_docs() { printf '# README\n' > "$REPO/docs/adr/README.md"; printf '# CHANGELOG\n' > "$REPO/docs/CHANGELOG.md"; }
 LEDGER="$ROOT_DIR/scripts/agent/run-ledger.sh"
+# live-exercise pass 는 증거 파일이 있어야 기록된다 (비어 있지 않은 실제 파일).
+PROOF="$TMP/live-proof.txt"; printf 'selftest live evidence\n' > "$PROOF"
 
 case_start "승격 + README/CHANGELOG 미갱신 + Live 없음 → block"
 adr_body Implemented; run_in_repo '{"hook_event_name":"Stop"}'; assert_block
@@ -225,7 +227,7 @@ adr_body Implemented; mkdir -p "$REPO/docs/adr/evidence"; : > "$REPO/docs/adr/ev
 run_in_repo '{"hook_event_name":"Stop"}'; assert_allow; rm -rf "$REPO/docs/adr/evidence"
 case_start "승격 + 동시 갱신 + run ledger live-exercise pass → 통과"
 AGENT_RUNS_DIR="$RUNS" bash "$LEDGER" start --understood-as "selftest run" >/dev/null 2>&1
-AGENT_RUNS_DIR="$RUNS" bash "$LEDGER" evidence live-exercise pass --detail "selftest" >/dev/null 2>&1
+AGENT_RUNS_DIR="$RUNS" bash "$LEDGER" evidence live-exercise pass --detail "selftest" --artifact "$PROOF" >/dev/null 2>&1
 run_in_repo '{"hook_event_name":"Stop"}'; assert_allow
 case_start "  (통과 시) ledger 에 adr-sync pass 기록"
 if grep -q '"kind":"adr-sync","status":"pass"' "$RUNS/$(cat "$RUNS/current")/evidence.jsonl"; then pass; else fail "adr-sync pass 미기록"; fi
@@ -253,8 +255,19 @@ RID=$(cat "$RUNS2/current")
 if jq -e '.understoodAs == "ADR-999 P1 을 auto 로 실행" and .adr == "999" and .contractRef.path == ".agent/task-state.json"' "$RUNS2/$RID/run.json" >/dev/null 2>&1; then pass; else fail "run.json 필드 불일치"; fi
 case_start "has-live (기록 없음) → exit 1"
 led has-live; if [ "$RC" -ne 0 ]; then pass; else fail "rc=0"; fi
-case_start "evidence live-exercise pass → has-live exit 0"
+case_start "live-exercise pass 에 --artifact 없음 → exit 2 · 미기록"
+led evidence live-exercise pass --detail "팔레트 12건"; R1=$RC; led has-live
+if [ "$R1" -eq 2 ] && [ "$RC" -ne 0 ] && ! grep -q '"kind":"live-exercise"' "$RUNS2/$RID/evidence.jsonl"; then pass; else fail "rc=$R1 has-live=$RC"; fi
+case_start "live-exercise pass 의 artifact 파일 없음 → exit 2"
+led evidence live-exercise pass --detail "팔레트 12건" --artifact "artifacts/x.png"; if [ "$RC" -eq 2 ]; then pass; else fail "rc=$RC"; fi
+case_start "live-exercise pass 의 artifact 가 빈 파일 → exit 2"
+: > "$RUNS2/$RID/artifacts/x.png"; led evidence live-exercise pass --detail "팔레트 12건" --artifact "artifacts/x.png"; if [ "$RC" -eq 2 ]; then pass; else fail "rc=$RC"; fi
+case_start "evidence live-exercise pass + artifact (run 폴더 상대 경로) → has-live exit 0"
+printf 'png' > "$RUNS2/$RID/artifacts/x.png"
 led evidence live-exercise pass --detail "팔레트 12건" --artifact "artifacts/x.png"; led has-live; if [ "$RC" -eq 0 ]; then pass; else fail "rc=$RC"; fi
+case_start "live-exercise fail · block 은 artifact 없이 기록"
+led evidence live-exercise block --detail "hidden 탭 — 관찰 못 함"; R1=$RC; led evidence live-exercise pass --detail "재관찰" --artifact "artifacts/x.png"
+if [ "$R1" -eq 0 ] && [ "$RC" -eq 0 ]; then pass; else fail "block rc=$R1 pass rc=$RC"; fi
 case_start "evidence 잘못된 status → exit 2"
 led evidence typecheck maybe; if [ "$RC" -eq 2 ]; then pass; else fail "rc=$RC"; fi
 case_start "status 에 evidence 집계"
@@ -263,6 +276,12 @@ case_start "report 에 live-exercise pass 1건"
 led report; assert_contains "live-exercise pass: 1건"
 case_start "close → current 제거 + endedAt"
 led close "done"; if [ ! -f "$RUNS2/current" ] && jq -e '.endedAt != null and .result == "done"' "$RUNS2/$RID/run.json" >/dev/null 2>&1; then pass; else fail "close 미반영"; fi
+case_start "artifact 없는 옛 live-exercise pass 행 → has-live exit 1 (재검증)"
+RUNS5="$TMP/runs5"; mkdir -p "$RUNS5"
+AGENT_RUNS_DIR="$RUNS5" bash "$LEDGER" start --understood-as "legacy pass" >/dev/null 2>&1
+AGENT_RUNS_DIR="$RUNS5" bash "$LEDGER" evidence live-exercise pass --detail "x" --artifact "$PROOF" >/dev/null 2>&1
+L5="$RUNS5/$(cat "$RUNS5/current")/evidence.jsonl"; jq -c '.artifact = null' "$L5" > "$L5.tmp" && mv "$L5.tmp" "$L5"
+AGENT_RUNS_DIR="$RUNS5" bash "$LEDGER" has-live >/dev/null 2>&1; if [ "$?" -ne 0 ]; then pass; else fail "artifact 없는 pass 를 받음"; fi
 
 # ---------- work.sh (scripts/agent) — scope 기반 verify · close 게이트 ----------
 printf '\n== work.sh (pnpm agent:work) ==\n'
@@ -285,7 +304,7 @@ case_start "close (block 미해결) → 거부 exit 3"
 wk close "x"; if [ "$RC" -eq 3 ] && printf '%s' "$OUT" | grep -q 'close 거부'; then pass; else fail "rc=$RC"; fi
 case_start "evidence cross-check pass + live-exercise pass → verify 통과 exit 0"
 AGENT_RUNS_DIR="$RUNS3" bash "$LEDGER" evidence cross-check pass --detail selftest --files apps/builder/src/builder/factories/x.ts,apps/builder/src/builder/workspace/canvas/skia/y.ts >/dev/null 2>&1
-AGENT_RUNS_DIR="$RUNS3" bash "$LEDGER" evidence live-exercise pass --detail selftest --files apps/builder/src/builder/factories/x.ts,apps/builder/src/builder/workspace/canvas/skia/y.ts >/dev/null 2>&1
+AGENT_RUNS_DIR="$RUNS3" bash "$LEDGER" evidence live-exercise pass --detail selftest --artifact "$PROOF" --files apps/builder/src/builder/factories/x.ts,apps/builder/src/builder/workspace/canvas/skia/y.ts >/dev/null 2>&1
 wk verify --skip-exec --files apps/builder/src/builder/factories/x.ts,apps/builder/src/builder/workspace/canvas/skia/y.ts; if [ "$RC" -eq 0 ]; then pass; else fail "rc=$RC"; fi
 case_start "--no-live → 사람 단계 skip"
 wk verify --skip-exec --no-live --files apps/builder/src/builder/factories/x.ts; if [ "$RC" -eq 0 ] && printf '%s' "$OUT" | grep -q 'live-exercise  skip   --no-live'; then pass; else fail "rc=$RC"; fi

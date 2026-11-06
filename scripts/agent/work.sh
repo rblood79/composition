@@ -257,7 +257,7 @@ do_verify() {
 
   # 7. cross-check / 8. live exercise — 사람 단계
   human_step cross-check "$( [ -n "$RENDER_HIT" ] && echo 1 || echo 0 )" "/cross-check 실행 후 'pnpm agent:run -- evidence cross-check pass --detail \"<컴포넌트·결과>\"'"
-  human_step live-exercise "$( [ -n "$LIVE_HIT" ] && echo 1 || echo 0 )" "실제 builder 에서 exercise 후 'pnpm agent:run -- evidence live-exercise pass --detail \"<무엇을>\"' (CLAUDE.md §완료 기준)"
+  human_step live-exercise "$( [ -n "$LIVE_HIT" ] && echo 1 || echo 0 )" "실제 builder 에서 exercise 후 'pnpm agent:run -- evidence live-exercise pass --detail \"<무엇을>\" --artifact <증거 파일>' (CLAUDE.md §완료 기준 · 관찰 못 했으면 block)"
 
   echo
   echo "== verify == pass $PASS_N · fail $FAIL_N · skip $SKIP_N · block $BLOCK_N"
