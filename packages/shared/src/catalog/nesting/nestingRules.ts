@@ -175,6 +175,7 @@ export const DOM_LEAF_TYPES: ReadonlySet<string> = new Set([
 export const HTML_INTERACTIVE_HOST_TYPES: ReadonlySet<string> = new Set([
   "Button",
   "ToggleButton",
+  "SegmentedControlItem",
   "Link",
   // ADR-300: an S2 SideNavItemLink is RAC `Link` (`<a>`).
   "SideNavItemLink",
@@ -210,7 +211,9 @@ export const NO_SELF_NESTING_TYPES: ReadonlySet<string> = new Set([
 export const HTML_INTERACTIVE_TYPES: ReadonlySet<string> = new Set([
   "Button",
   "ToggleButton",
+  "SegmentedControlItem",
   "ToggleButtonGroup",
+  "SegmentedControl",
   "Link",
   "Checkbox",
   "CheckboxButton",
@@ -221,6 +224,7 @@ export const HTML_INTERACTIVE_TYPES: ReadonlySet<string> = new Set([
   "Switch",
   "SwitchButton",
   "Slider",
+  "RangeSlider",
   "SliderThumb",
   "ColorThumb",
   "TextField",
@@ -298,6 +302,7 @@ export const HTML_PHRASING_CHILD_TYPES: ReadonlySet<string> = new Set([
   "Skeleton",
   "Button",
   "ToggleButton",
+  "SegmentedControlItem",
   "Checkbox",
   "Radio",
   "Switch",

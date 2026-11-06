@@ -584,6 +584,8 @@ export interface CompositionSpec {
    * emit: `.react-aria-{SpecName} {selector} { ...styles }`
    */
   staticSelectors?: Record<string, Record<string, string>>;
+  /** Explicit paint ownership for composite layouts that retain variant background/border. */
+  rootPaint?: "variant";
 
   /**
    * CSS 전용 per-size nested child selectors (ADR-059 v2 Phase 4-infra2 0-D.9)

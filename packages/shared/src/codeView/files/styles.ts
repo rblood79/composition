@@ -153,6 +153,8 @@ export const CODE_VIEW_LAYOUT_CSS: Readonly<Record<LayoutField, string>> = {
   marginBottom: "margin-bottom",
   marginLeft: "margin-left",
   verticalAlign: "vertical-align",
+  contain: "contain",
+  containIntrinsicWidth: "contain-intrinsic-width",
   gridTemplateColumns: "grid-template-columns",
   gridTemplateRows: "grid-template-rows",
   gridTemplateAreas: "grid-template-areas",

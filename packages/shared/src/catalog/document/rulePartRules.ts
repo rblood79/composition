@@ -452,6 +452,8 @@ function spacing(value: string): number[] | undefined {
 }
 
 const LAYOUT_KEYWORDS: Readonly<Record<string, LayoutField>> = {
+  contain: "contain",
+  "contain-intrinsic-width": "containIntrinsicWidth",
   display: "display",
   "flex-direction": "flexDirection",
   "align-items": "alignItems",
@@ -545,6 +547,8 @@ function compileDeclarations(
     if (value === undefined || value === "unset" || value === "inherit")
       continue;
     if (LAYOUT_KEYWORDS[key]) {
+      if (key === "contain" && value !== "inline-size" && value !== "none")
+        continue;
       if (key === "display" && !DISPLAY_VALUES.has(value)) continue;
       layout[LAYOUT_KEYWORDS[key]] = value;
     } else if (key === "flex") {
@@ -831,7 +835,10 @@ function sliderThumbPartRules(parentType: string): CompiledPartRule[] {
   const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
     parentType
   ];
-  if (rule?.structure?.archetype !== "slider" || parentType !== "Slider")
+  if (
+    rule?.structure?.archetype !== "slider" ||
+    !["Slider", "RangeSlider"].includes(parentType)
+  )
     return [];
   return Object.entries(rule.sizes ?? {}).flatMap(([size, values]) => {
     const indicator = (values as { indicator?: { thumbSize?: number } })
@@ -2126,6 +2133,18 @@ function overlayExternalPartRules(parentType: string): CompiledPartRule[] {
   return out;
 }
 
+function selectBoxPartRules(parentType: string): CompiledPartRule[] {
+  if (parentType !== "SelectBoxGroup") return [];
+  const variants = containerVariantsOf(COMPONENT_RULES_TABLE.SelectBox);
+  return Object.entries(variants?.orientation ?? {}).map(
+    ([orientation, block]) => ({
+      childType: "SelectBox",
+      ownerProps: { orientation },
+      ...compileDeclarations("SelectBox", block.styles ?? {}, {}, undefined),
+    }),
+  );
+}
+
 export function compileRulePartRules(
   parentType: string,
   choicesOf: (childType: string, prop: string) => readonly string[] | undefined,
@@ -2229,6 +2248,62 @@ export function compileRulePartRules(
     ...toggleIndicatorPartRules(parentType),
     ...fieldValuePartRules(parentType),
     ...textAreaPartRules(parentType),
+    ...selectBoxPartRules(parentType),
+    ...(parentType === "LabeledValue"
+      ? Object.entries(COMPONENT_RULES_TABLE.LabeledValue.sizes).flatMap(
+          ([size, values]): CompiledPartRule[] => [
+            {
+              childType: "Text",
+              size,
+              layout: {},
+              visual: {
+                ...(values.fontSize !== undefined
+                  ? { fontSize: values.fontSize }
+                  : {}),
+                ...(values.lineHeight !== undefined &&
+                values.fontSize !== undefined
+                  ? {
+                      lineHeight:
+                        Number(resolveToken(values.lineHeight as TokenRef)) /
+                        Number(resolveToken(values.fontSize as TokenRef)),
+                    }
+                  : {}),
+              },
+            },
+            {
+              childType: "Text",
+              childProps: { slot: "value" },
+              size,
+              layout: {
+                contain: "inline-size",
+                containIntrinsicWidth: `${{ S: 192, M: 208, L: 224, XL: 240 }[size] ?? 208}px`,
+              },
+              visual: {
+                minWidth: COMPONENT_RULES_TABLE.Input.sizes[size].height ?? 0,
+              },
+            },
+            {
+              childType: "Text",
+              childProps: { slot: "label" },
+              ownerProps: { labelPosition: "top" },
+              size,
+              layout: { contain: "inline-size" },
+              visual: {
+                paddingBottom:
+                  COMPONENT_RULES_TABLE.TextField.sizes[size].gap ?? 0,
+              },
+            },
+            {
+              childType: "Text",
+              childProps: { slot: "label" },
+              ownerProps: { labelAlign: "end" },
+              size,
+              layout: {},
+              visual: { textAlign: "right" },
+            },
+          ],
+        )
+      : []),
     ...itemsWrapperPartRules(parentType),
     ...manualParts,
   ];

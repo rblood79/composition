@@ -257,6 +257,17 @@ export const REUSABLE_PROPS_SCHEMAS: Readonly<Record<string, PropsSchema>> = {
   "component-button": BUTTON_PROPS_SCHEMA,
   "component-togglebutton": TOGGLEBUTTON_PROPS_SCHEMA,
   "component-actionbutton": ACTIONBUTTON_PROPS_SCHEMA,
+  "component-linkbutton": {
+    label: {
+      kind: "string",
+      label: "Label",
+      section: "content",
+      default: "Link button",
+    },
+    icon: { kind: "icon", label: "Icon", section: "content" },
+    ...buttonRootAccepts("LinkButton"),
+  },
+  "component-labeledvalue": getPrimitiveBinding("LabeledValue")!.props.accepts,
   "component-card": CARD_PROPS_SCHEMA,
   "component-inline-alert": INLINE_ALERT_PROPS_SCHEMA,
   "component-illustratedmessage": ILLUSTRATED_MESSAGE_PROPS_SCHEMA,

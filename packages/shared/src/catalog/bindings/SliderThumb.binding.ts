@@ -14,6 +14,7 @@ export const sliderThumbBinding: PrimitiveBinding = {
   source: { kind: "internal", renderer: "sliderthumb" },
   props: {
     accepts: {
+      index: { kind: "number", label: "Index", section: "content", min: 0 },
       size: {
         kind: "size",
         label: "Size",

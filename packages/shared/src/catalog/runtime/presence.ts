@@ -1,3 +1,12 @@
+import { catalogSelectBoxDescriptionHidden } from "./selectBoxPresence";
+import {
+  catalogSegmentOwner,
+  catalogSegmentSelected,
+  catalogSegmentKey,
+  catalogSegmentItems,
+} from "./segmentedSelection";
+import { formatLabeledValue } from "../document/labeledValue";
+import { catalogRangeValue } from "./rangeSliderValue";
 import { necessityLabel } from "./necessityLabels";
 import {
   catalogPickerOfOption,
@@ -853,6 +862,9 @@ export function catalogHiddenAtRest(
   typeOf: CatalogTypeOf,
   originBodyOpen?: CatalogOriginBodyOpen,
 ): boolean {
+  if (typeOf(node) === "ActionBar" && (node.props.selectedItemCount ?? 0) === 0)
+    return true;
+  if (catalogSelectBoxDescriptionHidden(node, get, typeOf)) return true;
   // A glyph whose icon name has no path data (an origin's unfilled `{icon}` placeholder): the DOM
   // `Icon` renders nothing for it (as the old Skia icon shape drew nothing), so no box either.
   if (
@@ -1271,7 +1283,9 @@ function catalogSliderOfTrackPart(
   const track = catalogPartParent(node, get, typeOf);
   if (!track || typeOf(track) !== "SliderTrack") return undefined;
   const slider = catalogPartParent(track, get, typeOf);
-  return slider && typeOf(slider) === "Slider" ? slider : undefined;
+  return slider && ["Slider", "RangeSlider"].includes(typeOf(slider))
+    ? slider
+    : undefined;
 }
 
 /**
@@ -1289,16 +1303,28 @@ export function catalogSliderFillLayout(
   const track = catalogPartParent(node, get, typeOf);
   const slider = track ? catalogPartParent(track, get, typeOf) : undefined;
   if (!track || !slider || typeOf(track) !== "SliderTrack") return undefined;
-  if (typeOf(slider) !== "Slider") return undefined;
+  if (!["Slider", "RangeSlider"].includes(typeOf(slider))) return undefined;
   const { min, max, value } = catalogSliderRange(slider);
   const ratio = (at: number): number =>
     max > min ? Math.min(1, Math.max(0, (at - min) / (max - min))) : 0;
   // S2 `fillOffset` — the fill runs between the offset and the value (RAC `SliderFill` clamps
   // the offset to the range; absent = the minimum).
+  const range =
+    typeOf(slider) === "RangeSlider"
+      ? catalogRangeValue(
+          slider.props.value,
+          min,
+          max,
+          Number(slider.props.step ?? 1),
+        )
+      : undefined;
   const raw = Number(slider.props.fillOffset);
-  const offset = Number.isFinite(raw) ? Math.min(Math.max(raw, min), max) : min;
-  const start = Math.min(ratio(offset), ratio(value));
-  const end = Math.max(ratio(offset), ratio(value));
+  const offset =
+    range?.start ??
+    (Number.isFinite(raw) ? Math.min(Math.max(raw, min), max) : min);
+  const upper = range?.end ?? value;
+  const start = Math.min(ratio(offset), ratio(upper));
+  const end = Math.max(ratio(offset), ratio(upper));
   // (RAC `SliderFill` sets no `top` — the fill keeps its static position, the top of the box it
   // sits in; G5 example 12: in a frame the track's top is not the frame's.)
   return {
@@ -1327,8 +1353,25 @@ export function catalogSliderThumbLayout(
   const number = (value: unknown, fallback: number) =>
     typeof value === "number" && Number.isFinite(value) ? value : fallback;
   const { min, max, value } = catalogSliderRange(slider);
+  const index = Number(
+    node.props.index ??
+      node.props._thumbIndex ??
+      partChildrenOf(track, get, typeOf)
+        .filter((child) => typeOf(child) === "SliderThumb")
+        .findIndex((child) => child.id === node.id),
+  );
+  const range =
+    typeOf(slider) === "RangeSlider"
+      ? catalogRangeValue(
+          slider.props.value,
+          min,
+          max,
+          Number(slider.props.step ?? 1),
+        )
+      : undefined;
+  const position = range ? (index === 1 ? range.end : range.start) : value;
   const ratio =
-    max > min ? Math.min(1, Math.max(0, (value - min) / (max - min))) : 0;
+    max > min ? Math.min(1, Math.max(0, (position - min) / (max - min))) : 0;
   const size = number(node.visual.height ?? node.visual.width, 18);
   // S2 `thumbStyle: precise` — a narrow bar (width 6, size + 2 tall — S2 Slider.tsx thumb).
   const precise = slider.props.thumbStyle === "precise";
@@ -2519,6 +2562,31 @@ function ownDerivedPropsBase(
   typeOf: CatalogTypeOf,
   locale?: string,
 ): Readonly<Record<string, string | number | boolean>> | undefined {
+  if (node.bindingId === "text" && node.props.slot === "value") {
+    const owner = catalogPartParent(node, get, typeOf);
+    if (
+      owner &&
+      typeOf(owner) === "LabeledValue" &&
+      (node.props.children === "{formattedValue}" ||
+        node.valueTemplate?.props?.children === "{formattedValue}")
+    )
+      return {
+        children: formatLabeledValue(
+          owner.props.value,
+          locale,
+          owner.props.formatOptions,
+        ),
+      };
+  }
+  if (typeOf(node) === "SelectBox") {
+    const group = get(node.parentId);
+    if (group && typeOf(group) === "SelectBoxGroup")
+      return {
+        orientation: String(group.props.orientation || "vertical"),
+        isDisabled:
+          node.props.isDisabled === true || group.props.isDisabled === true,
+      };
+  }
   const labelPart = catalogFieldLabelPart(node, get, typeOf);
   if (labelPart) {
     const { role, label, field, mode, required, include } = labelPart;
@@ -2585,7 +2653,7 @@ function ownDerivedPropsBase(
     const owner = catalogPartParent(node, get, typeOf);
     if (
       owner &&
-      typeOf(owner) === "Slider" &&
+      ["Slider", "RangeSlider"].includes(typeOf(owner)) &&
       owner.props.trackStyle === "thick"
     )
       return { trackStyle: "thick" };
@@ -2594,6 +2662,33 @@ function ownDerivedPropsBase(
   // `data-emphasized` · the SliderFill's `data-variant`). `fillOffset` rides to the fill (RAC
   // SliderFill `offset`), `thumbStyle: precise` to the thumb (its layout).
   const slider = catalogSliderOfTrackPart(node, get, typeOf);
+  if (
+    slider &&
+    typeOf(slider) === "RangeSlider" &&
+    typeOf(node) === "SliderThumb"
+  ) {
+    const track = catalogPartParent(node, get, typeOf);
+    const index = Number(
+      node.props.index ??
+        node.props._thumbIndex ??
+        (track
+          ? partChildrenOf(track, get, typeOf)
+              .filter((child) => typeOf(child) === "SliderThumb")
+              .findIndex((child) => child.id === node.id)
+          : 0),
+    );
+    return {
+      name: String(
+        (index === 1 ? slider.props.endName : slider.props.startName) ?? "",
+      ),
+      form: String(slider.props.form ?? ""),
+      thumbLabel: index === 1 ? "Maximum" : "Minimum",
+      ...(slider.props.isEmphasized ? { variant: "emphasized" } : {}),
+      ...(slider.props.thumbStyle === "precise"
+        ? { thumbStyle: "precise" }
+        : {}),
+    };
+  }
   if (slider) {
     const derived: Record<string, string | number | boolean> = {};
     if (slider.props.isEmphasized === true) derived.variant = "emphasized";
@@ -2719,6 +2814,13 @@ function ownDerivedPropsBase(
   if (catalogTabsOfTab(node, get, typeOf)?.props.orientation === "vertical")
     return { orientation: "vertical" };
   // (its SelectionIndicator node — ADR-256 Phase 5e: `catalogSelectionIndicatorLayout`)
+  if (node.bindingId === "segmentedcontrolitem") {
+    const group = catalogSegmentOwner(node, get);
+    return {
+      _isSelected: catalogStateValue(node, "isSelected", get, typeOf),
+      ...(group?.props.isJustified ? { _justified: true } : {}),
+    };
+  }
   if (typeOf(node) === "SelectionIndicator") {
     const tab = catalogPartParent(node, get, typeOf);
     if (
@@ -3035,6 +3137,14 @@ function derivedDependents(
       typeOf,
     ).items;
   const type = typeOf(owner);
+  if (type === "ActionBar") {
+    const descendants = (record: CatalogConsumerNode): CatalogConsumerNode[] =>
+      childrenOf(record, get).flatMap((child) => [
+        child,
+        ...descendants(child),
+      ]);
+    return descendants(owner);
+  }
   const track = PROGRESS_TRACKS[type];
   if (track) {
     const tracks = childrenOf(owner, get).filter(
@@ -3057,6 +3167,11 @@ function derivedDependents(
         ]
       : [...tracks, ...texts];
   }
+  if (type === "SegmentedControl")
+    return catalogSegmentItems(owner, get).flatMap((item) => [
+      item,
+      ...childrenOf(item, get),
+    ]);
   if (type === "Tabs") return catalogTabsSelection(owner, get, typeOf).tabs;
   if (type === "ButtonGroup") return buttonGroupButtons(owner, get, typeOf);
   if (type === "ActionButtonGroup")
@@ -3210,7 +3325,7 @@ export function catalogSliderThumbs(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
-  if (typeOf(slider) !== "Slider") return [];
+  if (!["Slider", "RangeSlider"].includes(typeOf(slider))) return [];
   // (and its fill — ADR-256 Phase 7c: RAC's SliderFill follows the same values)
   // (The track itself follows the Slider's `trackStyle` — the derived thick bar.)
   return partChildrenOf(slider, get, typeOf)
@@ -3714,6 +3829,13 @@ export function catalogStateValue(
     return true;
   switch (key) {
     case "isSelected": {
+      if (owner.bindingId === "segmentedcontrolitem") {
+        const segmented = catalogSegmentOwner(owner, get);
+        return (
+          !!segmented &&
+          catalogSegmentSelected(segmented, get) === catalogSegmentKey(owner)
+        );
+      }
       // (Computed here, not read from the derived values — a condition is judged before they are.)
       // A collection's item is selected by its collection (Tabs' key — the paint's `_isSelected`),
       // over a display state its origin carried (a detached Tab keeps the Selected origin's).

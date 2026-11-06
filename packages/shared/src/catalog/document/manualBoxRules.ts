@@ -1,3 +1,7 @@
+import {
+  SEGMENTED_INDICATOR_BOX,
+  SEGMENTED_INDICATOR_VISUAL,
+} from "../rule/segmentedControl";
 /**
  * ADR-248 Phase 3 — root boxes whose DOM geometry is declared outside the rule's generated CSS:
  * a manual stylesheet or the DOM renderer's inline style. The typed definition reads these facts
@@ -943,6 +947,15 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
       },
       "SwitchButton",
     ),
+  }),
+  SegmentedControlItem: () => ({
+    parts: [
+      {
+        childType: "SelectionIndicator",
+        layout: SEGMENTED_INDICATOR_BOX,
+        visual: SEGMENTED_INDICATOR_VISUAL,
+      },
+    ],
   }),
   // ADR-256 Phase 5e: the Tab's SelectionIndicator node is `TabsIndicator.css` `.react-aria-Tab
   // .react-aria-SelectionIndicator` — an accent 3px bar along the bottom, out of the Tab's flow. It

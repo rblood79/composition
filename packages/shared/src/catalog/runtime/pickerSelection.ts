@@ -16,6 +16,10 @@ export function catalogPickerOfOption(
   get: Lookup,
   typeOf: TypeOf,
 ) {
+  if (typeOf(node) === "SelectBox") {
+    const group = get(node.parentId);
+    return group && typeOf(group) === "SelectBoxGroup" ? group : undefined;
+  }
   if (typeOf(node) === "MenuItem") {
     for (
       let parent = get(node.parentId);
@@ -90,7 +94,8 @@ export function catalogPickerSelectionItem(
   const type = typeOf(node);
   if (type !== "Checkbox" && type !== "Icon") return undefined;
   for (let parent = get(node.parentId); parent; parent = get(parent.parentId)) {
-    if (["ListBoxItem", "MenuItem"].includes(typeOf(parent))) return parent;
+    if (["ListBoxItem", "MenuItem", "SelectBox"].includes(typeOf(parent)))
+      return parent;
     if (
       ["Checkbox", "ListBox", "GridListItem", "TreeItem", "Row"].includes(
         typeOf(parent),
@@ -110,6 +115,11 @@ export function catalogPickerSelectionHidden(
   if (!item) return false;
   const picker = catalogPickerOfOption(item, get, typeOf);
   if (!picker) return true;
+  if (
+    typeOf(item) === "SelectBox" &&
+    (item.props.isDisabled === true || picker.props.isDisabled === true)
+  )
+    return true;
   const parent = get(item.parentId);
   if (parent && typeOf(parent) === "SubmenuTrigger") return true;
   const mode =

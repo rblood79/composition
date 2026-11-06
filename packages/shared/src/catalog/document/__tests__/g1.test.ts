@@ -409,6 +409,18 @@ describe("ADR-248 G1 isolated catalog graph", () => {
         ),
       "UNSUPPORTED_LIBRARY_CONTRACT",
     );
+    // S2 독립 원본/구조화 값 계약 62: 바로 이전 계약도 자동 변환하지 않는다.
+    failureCode(
+      () =>
+        new CatalogGraph(
+          {
+            ...document,
+            libraryContractVersion: 61,
+          } as unknown as CatalogDocument,
+          library,
+        ),
+      "UNSUPPORTED_LIBRARY_CONTRACT",
+    );
     // ADR-258 사용자 결정 1: a contract 40 document (Color controls without their thumb · track
     // nodes) is refused, never converted.
     failureCode(
@@ -439,7 +451,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
     failureCode(
       () =>
         buildCatalogLibrary({
-          contractVersion: 61,
+          contractVersion: 62,
           revision: "bad",
           definitions: [
             {
@@ -463,7 +475,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
     failureCode(
       () =>
         buildCatalogLibrary({
-          contractVersion: 61,
+          contractVersion: 62,
           revision: "bad",
           definitions: [],
           templates: [],
@@ -1444,7 +1456,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
     failureCode(
       () =>
         buildCatalogLibrary({
-          contractVersion: 61,
+          contractVersion: 62,
           revision: "cycle",
           bindingIds: [],
           actionOpCodes: [],
@@ -1509,7 +1521,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
   it("applies compatible immutable library revision changes without project snapshots", () => {
     const { document, library } = createG1Fixture();
     const updated = buildCatalogLibrary({
-      contractVersion: 61,
+      contractVersion: 62,
       revision: "g1-fixture-v2",
       definitions: [...library.definitions.values()],
       templates: [...library.templates.values()],
@@ -1787,7 +1799,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
   it("fans out one Tree and Slider definition override to both instances", () => {
     const { document, library } = createG1Fixture();
     const extended = buildCatalogLibrary({
-      contractVersion: 61,
+      contractVersion: 62,
       revision: "g1-tree-slider",
       definitions: [
         ...library.definitions.values(),

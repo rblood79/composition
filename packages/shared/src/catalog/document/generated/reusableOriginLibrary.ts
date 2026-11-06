@@ -1,3 +1,5 @@
+import { SELECTION_COMPOSITE_DEFINITIONS, SELECTION_COMPOSITE_TEMPLATES } from "../selectionCompositesOrigins";
+import { RANGE_SEGMENT_DEFINITIONS, RANGE_SEGMENT_TEMPLATES } from "../rangeSegmentsOrigins";
 // ADR-248 Phase 3 — typed reusable origin library (code-catalog source of truth).
 // Converted once from the Builder origin seed (catalogOrigins.ts + template ensurers) by
 // apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts
@@ -7,32 +9,11 @@
 import type { LibraryDefinition, LibraryTemplateNode } from "../types";
 
 export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
-  {
-    "id": "lib:definition:origin-component-actionbutton",
-    "name": "ActionButton",
-    "mode": "composite",
-    "accepts": {
-      "label": "string",
-      "icon": "string",
-      "size": "string",
-      "staticColor": "string",
-      "type": "string",
-      "isQuiet": "boolean",
-      "isDisabled": "boolean",
-      "isPending": "boolean"
-    },
-    "defaults": {
-      "label": "Action",
-      "size": "M",
-      "staticColor": "auto",
-      "type": "button",
-      "isQuiet": false,
-      "isPending": false
-    },
-    "visual": {},
-    "stateRules": {},
-    "templateRootId": "lib:template:component-actionbutton"
-  },
+  ...SELECTION_COMPOSITE_DEFINITIONS,
+
+
+
+
   {
     "id": "lib:definition:origin-component-actionbuttongroup",
     "name": "ActionButtonGroup",
@@ -835,25 +816,7 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "stateRules": {},
     "templateRootId": "lib:template:component-colorfield"
   },
-  {
-    "id": "lib:definition:origin-component-checkbox",
-    "name": "Checkbox",
-    "mode": "composite",
-    "accepts": {
-      "slot": "slot",
-      "children": "string",
-      "description": "string",
-      "errorMessage": "string"
-    },
-    "defaults": {
-      "children": "Checkbox",
-      "description": "",
-      "errorMessage": ""
-    },
-    "visual": {},
-    "stateRules": {},
-    "templateRootId": "lib:template:component-checkbox"
-  },
+
   {
     "id": "lib:definition:origin-component-checkbox--unselected",
     "name": "Checkbox/Unselected",
@@ -1983,47 +1946,83 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "visual": {},
     "stateRules": {},
     "templateRootId": "lib:template:component-tokenfield"
-  }
+  },
+{
+  "id": "lib:definition:origin-component-linkbutton",
+  "name": "LinkButton",
+  "mode": "composite",
+  "accepts": {
+    "label": "string",
+    "icon": "string",
+    "variant": "string",
+    "size": "string",
+    "fillStyle": "string",
+    "staticColor": "string",
+    "isDisabled": "boolean",
+    "href": "string",
+    "target": "string",
+    "rel": "string"
+  },
+  "defaults": {
+    "label": "Link button",
+    "variant": "primary",
+    "size": "M",
+    "fillStyle": "fill",
+    "staticColor": "auto",
+    "isDisabled": false,
+    "href": "#"
+  },
+  "visual": {},
+  "stateRules": {},
+  "templateRootId": "lib:template:component-linkbutton"
+},
+{
+  "id": "lib:definition:origin-component-labeledvalue",
+  "name": "LabeledValue",
+  "mode": "composite",
+  "accepts": {
+    "label": "string",
+    "value": "labeledValue",
+    "formatOptions": "labeledFormat",
+    "size": "string",
+    "labelPosition": "string",
+    "labelAlign": "string"
+  },
+  "defaults": {
+    "label": "Label",
+    "value": "Value",
+    "size": "M",
+    "labelPosition": "top",
+    "labelAlign": "start"
+  },
+  "visual": {},
+  "stateRules": {},
+  "templateRootId": "lib:template:component-labeledvalue"
+},
+  ...RANGE_SEGMENT_DEFINITIONS
 ];
 
 export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
-  {
-    "id": "lib:template:component-actionbutton",
-    "definitionId": "lib:definition:type-ActionButton",
-    "children": [
-      "lib:template:component-actionbutton__icon",
-      "lib:template:component-actionbutton__label"
-    ],
-    "props": {
-      "size": "M",
-      "staticColor": "auto",
-      "type": "button",
-      "isQuiet": false,
-      "isPending": false
-    },
-    "visual": {}
-  },
-  {
-    "id": "lib:template:component-actionbutton__icon",
-    "definitionId": "lib:definition:type-Icon",
-    "children": [],
-    "props": {
-      "slot": "icon",
-      "iconName": "{icon}"
-    },
-    "visual": {}
-  },
-  {
-    "id": "lib:template:component-actionbutton__label",
-    "definitionId": "lib:definition:text",
-    "children": [],
-    "props": {
-      "slot": "label",
-      "children": "{label}"
-    },
-    "visual": {},
-    "presentWhen": "nonEmptyText"
-  },
+  ...SELECTION_COMPOSITE_TEMPLATES,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   {
     "id": "lib:template:component-actionbuttongroup",
     "definitionId": "lib:definition:type-ActionButtonGroup",
@@ -4563,74 +4562,12 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     },
     "visual": {}
   },
-  {
-    "id": "lib:template:component-checkbox",
-    "definitionId": "lib:definition:type-Checkbox",
-    "children": [
-      "lib:template:component-checkbox__button",
-      "lib:template:component-checkbox__description",
-      "lib:template:component-checkbox__error"
-    ],
-    "props": {
-      "children": "Checkbox",
-      "name": "",
-      "value": "",
-      "isSelected": false,
-      "isDisabled": false,
-      "isIndeterminate": false,
-      "isInvalid": false,
-      "isReadOnly": false,
-      "isRequired": false
-    },
-    "visual": {},
-    "displayState": "selected"
-  },
-  {
-    "id": "lib:template:component-checkbox__button",
-    "definitionId": "lib:definition:type-CheckboxButton",
-    "children": [
-      "lib:template:component-checkbox__indicator",
-      "lib:template:component-checkbox__1"
-    ],
-    "props": {},
-    "visual": {}
-  },
-  {
-    "id": "lib:template:component-checkbox__indicator",
-    "definitionId": "lib:definition:type-CheckboxIndicator",
-    "children": [],
-    "props": {},
-    "visual": {}
-  },
-  {
-    "id": "lib:template:component-checkbox__1",
-    "definitionId": "lib:definition:type-Label",
-    "children": [],
-    "props": {
-      "children": "{children}"
-    },
-    "presentWhen": "nonEmptyText",
-    "visual": {}
-  },
-  {
-    "id": "lib:template:component-checkbox__description",
-    "definitionId": "lib:definition:origin-component-description",
-    "children": [],
-    "props": {
-      "children": "{description}"
-    },
-    "presentWhen": "nonEmptyText",
-    "visual": {}
-  },
-  {
-    "id": "lib:template:component-checkbox__error",
-    "definitionId": "lib:definition:origin-component-fielderror",
-    "children": [],
-    "props": {
-      "children": "{errorMessage}"
-    },
-    "visual": {}
-  },
+
+
+
+
+
+
   {
     "id": "lib:template:component-checkbox--unselected",
     "definitionId": "lib:definition:origin-component-checkbox",
@@ -9954,5 +9891,80 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "slot": "necessity-space"
     },
     "visual": {}
+  },
+{
+  "id": "lib:template:component-linkbutton",
+  "definitionId": "lib:definition:type-LinkButton",
+  "children": [
+    "lib:template:component-linkbutton__icon",
+    "lib:template:component-linkbutton__label"
+  ],
+  "props": {
+    "variant": "primary",
+    "size": "M",
+    "fillStyle": "fill",
+    "staticColor": "auto",
+    "isDisabled": false,
+    "href": "#"
+  },
+  "visual": {}
+},
+{
+  "id": "lib:template:component-linkbutton__icon",
+  "definitionId": "lib:definition:type-Icon",
+  "children": [],
+  "props": {
+    "slot": "icon",
+    "iconName": "{icon}"
+  },
+  "visual": {}
+},
+{
+  "id": "lib:template:component-linkbutton__label",
+  "definitionId": "lib:definition:text",
+  "children": [],
+  "props": {
+    "slot": "label",
+    "children": "{label}"
+  },
+  "presentWhen": "nonEmptyText",
+  "visual": {
+    "width": "fit-content"
   }
+},
+{
+  "id": "lib:template:component-labeledvalue",
+  "definitionId": "lib:definition:type-LabeledValue",
+  "children": [
+    "lib:template:component-labeledvalue__label",
+    "lib:template:component-labeledvalue__value"
+  ],
+  "props": {
+    "size": "M",
+    "labelPosition": "top",
+    "labelAlign": "start"
+  },
+  "visual": {}
+},
+{
+  "id": "lib:template:component-labeledvalue__label",
+  "definitionId": "lib:definition:text",
+  "children": [],
+  "props": {
+    "slot": "label",
+    "children": "{label}"
+  },
+  "visual": {}
+},
+{
+  "id": "lib:template:component-labeledvalue__value",
+  "definitionId": "lib:definition:text",
+  "children": [],
+  "props": {
+    "slot": "value",
+    "children": "{formattedValue}"
+  },
+  "visual": {}
+},
+  ...RANGE_SEGMENT_TEMPLATES
 ];

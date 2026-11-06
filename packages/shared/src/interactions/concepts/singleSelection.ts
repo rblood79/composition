@@ -182,3 +182,12 @@ export const selectionAsValue = {
     },
   },
 } as const satisfies InteractionConcept;
+
+/** S2 SegmentedControl: one key, never an empty toggle group. */
+export const singleSelectionSegment = {
+  ...singleSelectionPicker,
+  racDoc: "ToggleButtonGroup.md — Single selection (S2 selectedKey adapter)",
+  racType: "ToggleButtonGroupProps",
+  conditions: ["isDisabled"],
+  capabilities: { selectItem: singleSelectionPicker.capabilities.selectItem },
+} as const satisfies InteractionConcept;

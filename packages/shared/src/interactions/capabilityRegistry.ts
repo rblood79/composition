@@ -42,7 +42,14 @@ export interface CapabilityParam {
    * ADR-287 — `choice` (one of the prop's catalog choices — `deriveOptions`, read where the panel
    * shows them) · `icon` (an icon name).
    */
-  kind: "itemKey" | "value" | "text" | "number" | "choice" | "icon";
+  kind:
+    | "itemKey"
+    | "value"
+    | "text"
+    | "number"
+    | "number-range"
+    | "choice"
+    | "icon";
   /** 입력 레이블의 카탈로그 키 (`labelKey` 와 같은 이유로 문구가 아니다) */
   labelKey: string;
 }

@@ -1,3 +1,5 @@
+import { bindTemplateValue } from "../document/templateBindingValue";
+import { catalogLabeledValueFits } from "../document/labeledValue";
 import { isRichText } from "../document/textRuns";
 import { catalogPartConditionProps } from "../document/derivedVariantProps";
 import type {
@@ -603,22 +605,6 @@ type LibraryPatchScope = {
 const sameIds = (left: readonly string[], right: readonly string[]): boolean =>
   left.length === right.length &&
   left.every((id, index) => id === right[index]);
-const TEMPLATE_BINDING = /\{([a-zA-Z][a-zA-Z0-9_-]*)\}/g;
-const WHOLE_TEMPLATE_BINDING = /^\{([a-zA-Z][a-zA-Z0-9_-]*)\}$/;
-/**
- * `{key}` template binding in a composite template prop (ADR-148 `templateBinding.ts` contract):
- * a whole-value reference keeps the bound value's type, an embedded one is replaced by its string.
- * A key without a bound value keeps its placeholder (row-data bindings fill it later).
- */
-function bindTemplateValue(value: PropValue, bindings: Props): PropValue {
-  if (typeof value !== "string" || !value.includes("{")) return value;
-  const whole = WHOLE_TEMPLATE_BINDING.exec(value);
-  if (whole)
-    return Object.hasOwn(bindings, whole[1]) ? bindings[whole[1]] : value;
-  return value.replace(TEMPLATE_BINDING, (placeholder, key: string) =>
-    Object.hasOwn(bindings, key) ? String(bindings[key]) : placeholder,
-  );
-}
 const same = (left: InstanceAddress, right: InstanceAddress): boolean =>
   left.instances.length === right.instances.length &&
   left.templatePath.length === right.templatePath.length &&
@@ -878,6 +864,8 @@ export function resolveCatalogNode(
     if (typeof value !== "object" || !("kind" in value)) return value;
     // (ADR-284 Phase 6 — a value condition resolves with the record's variables, as `{{ }}`.)
     if (value.kind === "when" || value.kind === "var") return value;
+    // Persisted LabeledValue dates are values, not token references.
+    if (catalogLabeledValueFits(value)) return value;
     // ADR-299 — a run's marks resolve like a visual's values (a token → its value in the color mode,
     // its ref noted on the marks object for the DOM's variable — ADR-298 D5).
     if (value.kind === "text") return resolvedRichText(value);

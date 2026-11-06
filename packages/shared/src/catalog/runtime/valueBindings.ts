@@ -1,3 +1,5 @@
+import { catalogSelectionCountText } from "../document/selectionCountValue";
+import { catalogRangeValue } from "./rangeSliderValue";
 import { NumberFormatter } from "@internationalized/number";
 import { catalogNumberFormatOptions } from "../document/numberFormatValue";
 import { colorSliderText } from "./colorControlGradient";
@@ -25,6 +27,7 @@ type TypeOf = (node: CatalogConsumerNode) => string;
  * each item's value as the picker's frame; the Canvas reads the picker record (its focused value).
  */
 const COMPOSITION_VALUE_KEYS: Readonly<Record<string, readonly string[]>> = {
+  ActionBar: ["selectedCountText"],
   Label: ["fieldLabel", "necessityLabel"],
   TokenInput: ["tokenText"],
   CalendarMonthPicker: ["formatted"],
@@ -108,6 +111,8 @@ export function catalogRenderValue(
   locale?: string,
 ): string | number | undefined {
   const props = owner.props;
+  if (key === "selectedCountText")
+    return catalogSelectionCountText(props.selectedItemCount, locale);
   if (key === "fieldLabel") return String(props.children ?? "");
   if (key === "necessityLabel")
     return typeof owner.derivedProps?._necessityText === "string"
@@ -206,7 +211,7 @@ export function catalogBoundValues(
  * The owner is the nearest Slider · ColorSlider ancestor (a Label: its parent only).
  */
 const RAC_TEXT_OWNERS: Readonly<Record<string, readonly string[]>> = {
-  SliderOutput: ["Slider", "ColorSlider"],
+  SliderOutput: ["Slider", "RangeSlider", "ColorSlider"],
   Label: ["ColorSlider"],
 };
 const RAC_TEXT_OWNER_TYPES = new Set(Object.values(RAC_TEXT_OWNERS).flat());
@@ -236,6 +241,19 @@ function racOwnText(
     return { owner, text: partType === "Label" ? text.label : text.output };
   }
   const { min, max, value } = catalogSliderRange(owner);
+  if (typeOf(owner) === "RangeSlider") {
+    const range = catalogRangeValue(
+      owner.props.value,
+      min,
+      max,
+      Number(owner.props.step ?? 1),
+    );
+    const formatter = new NumberFormatter(
+      lang,
+      catalogNumberFormatOptions(owner.props.formatOptions),
+    );
+    return { owner, text: formatter.formatRange(range.start, range.end) };
+  }
   // RAC `Slider`: `useNumberFormatter(formatOptions)` → the thumb's value label.
   return {
     owner,

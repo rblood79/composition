@@ -33,6 +33,7 @@ import { CHART_REFERENCE_FALLBACK_TOKEN } from "../chart/marks/referenceLine";
 import { deriveAutoDelegationVariables } from "../runtime/deriveAutoDelegationVariables";
 // ADR-912 Δ7: layout token table 단일 source — generator-private layout 매핑 상수를 대체.
 import { layoutTokenToCssLines, type LayoutToken } from "./layoutTokens";
+import { catalogCompositionUsesVariantPaint } from "../../../shared/src/catalog/rule/compositionPaint";
 
 // ─── variant 휴지 칠 한 줄 ────────────────────────────────────────────────────
 
@@ -323,7 +324,12 @@ export function generateCSS<Props>(
     spec.containerStyles?.border
   );
   if (!containerHasColors && spec.variants != null && !spec.skipVariantCss) {
-    if (!compositionOwnsContainerBox(spec)) {
+    if (
+      catalogCompositionUsesVariantPaint(
+        spec.composition,
+        compositionOwnsContainerBox(spec),
+      )
+    ) {
       if (_variantPaintCss) lines.push(..._variantPaintCss);
     } else if (_variantColorCss) lines.push(..._variantColorCss);
   }
@@ -586,7 +592,10 @@ function generateBaseStyles<Props>(spec: ComponentSpec<Props>): string[] {
   if (
     !baseContainerHasColors &&
     defaultVariant &&
-    !compositionOwnsContainerBox(spec)
+    catalogCompositionUsesVariantPaint(
+      spec.composition,
+      compositionOwnsContainerBox(spec),
+    )
   ) {
     // default variant 휴지 칠 — Composite 컨테이너는 자식이 관리하므로 skip
     lines.push("");

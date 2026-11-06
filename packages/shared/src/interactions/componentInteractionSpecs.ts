@@ -1,3 +1,7 @@
+import {
+  actionBarSelection,
+  type S2ActionBarSelectionProps,
+} from "./concepts/actionBarSelection";
 /**
  * @fileoverview ADR-280 Phase 1 — the registry's only hand input: which RAC concepts each catalog
  * type has, who owns them, and which capabilities the Preview does not deliver yet.
@@ -97,6 +101,7 @@ import {
   selectionAsValue,
   singleSelectionPicker,
   singleSelectionTabs,
+  singleSelectionSegment,
   singleSelectionValue,
 } from "./concepts/singleSelection";
 import { sort } from "./concepts/sort";
@@ -109,7 +114,11 @@ import {
   valueStrings,
   valueText,
 } from "./concepts/value";
-import { valueCommitColor, valueCommitNumber } from "./concepts/valueCommit";
+import {
+  valueCommitColor,
+  valueCommitNumber,
+  valueCommitRange,
+} from "./concepts/valueCommit";
 import type { ComponentInteractionSpec } from "./concepts/types";
 
 /** The pointer side events every pressable control has (hidden — ADR B decides the panel). */
@@ -156,6 +165,7 @@ export const COMPONENT_INTERACTION_SPECS = {
   // ── press · file inputs ──────────────────────────────────────────────
   Button: { concepts: [{ concept: press }, ...POINTER] },
   ActionButton: { concepts: [{ concept: press }, ...POINTER] },
+  LinkButton: { concepts: [{ concept: press }, ...POINTER] },
   Link: { concepts: [{ concept: press }, ...POINTER] },
   FileTrigger: { concepts: [{ concept: fileSelect }] },
   DropZone: { concepts: [{ concept: dragDrop }, { concept: hover }] },
@@ -216,6 +226,11 @@ export const COMPONENT_INTERACTION_SPECS = {
 
   // ── sliders · color controls ─────────────────────────────────────────
   Slider: { concepts: [{ concept: valueCommitNumber }] },
+  RangeSlider: { concepts: [{ concept: valueCommitRange }] },
+  SegmentedControl: {
+    concepts: [{ concept: singleSelectionSegment, owner: "group" }],
+  },
+  SegmentedControlItem: { concepts: [{ concept: press }, ...POINTER] },
   ColorArea: { concepts: [{ concept: valueCommitColor }] },
   ColorSlider: { concepts: [{ concept: valueCommitColor }] },
   ColorWheel: { concepts: [{ concept: valueCommitColor }] },
@@ -238,6 +253,11 @@ export const COMPONENT_INTERACTION_SPECS = {
   Autocomplete: { concepts: [{ concept: inputValue }] },
 
   // ── collections ──────────────────────────────────────────────────────
+  ActionBar: { concepts: [{ concept: actionBarSelection }] },
+  SelectBoxGroup: {
+    concepts: [{ concept: multiSelection }, { concept: focus }],
+  },
+  SelectBox: { concepts: ITEM_KEYBOARD },
   ListBox: {
     concepts: [
       { concept: multiSelection },
@@ -386,9 +406,13 @@ type PageRootProps = Pick<ButtonProps, "isDisabled"> &
   };
 
 interface RacPropsOf {
+  ActionBar: S2ActionBarSelectionProps;
+  SelectBoxGroup: ListBoxProps<object>;
+  SelectBox: ListBoxItemProps;
   Button: ButtonProps;
   ActionButton: ButtonProps;
   Link: LinkProps;
+  LinkButton: LinkProps;
   FileTrigger: FileTriggerProps;
   DropZone: DropZoneProps;
   Checkbox: CheckboxProps;
@@ -403,6 +427,9 @@ interface RacPropsOf {
   NumberField: NumberFieldProps;
   ColorField: ColorFieldProps;
   Slider: SliderProps;
+  RangeSlider: SliderProps;
+  SegmentedControl: TabsProps;
+  SegmentedControlItem: ToggleButtonProps;
   ColorArea: ColorAreaProps;
   ColorSlider: ColorSliderProps;
   ColorWheel: ColorWheelProps;

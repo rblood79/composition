@@ -218,17 +218,19 @@ function textDefinition(
 function buttonDefinition(
   theme: "light" | "dark",
   tokens: Map<LibraryTokenId, LibraryToken>,
+  type: "Button" | "LinkButton" = "Button",
 ): LibraryDefinition {
   const registration = componentCatalog.find(
-    (entry) => entry.type === "Button" && entry.kind === "primitive",
+    (entry) => entry.type === type && entry.kind === "primitive",
   );
   if (
     registration?.kind !== "primitive" ||
-    registration.binding.source.kind !== "rac" ||
-    registration.binding.source.component !== "Button"
+    (type === "Button" &&
+      (registration.binding.source.kind !== "rac" ||
+        registration.binding.source.component !== "Button"))
   )
     throw new Error("CODE_CATALOG_BUTTON_BINDING_UNSUPPORTED");
-  const rule = COMPONENT_RULES_TABLE.Button;
+  const rule = COMPONENT_RULES_TABLE[type];
   const accepts: Record<string, ValueType> = {};
   for (const [key, contract] of Object.entries(
     registration.binding.props.accepts,
@@ -449,10 +451,11 @@ function buttonDefinition(
     if (typeof value === "string") defaults[key] = value;
   }
   return {
-    id: "lib:definition:type-Button",
-    name: "Button",
+    id: `lib:definition:type-${type}`,
+    name: type,
     mode: "primitive",
-    bindingId: "button",
+    bindingId: type.toLowerCase(),
+    ...(type === "LinkButton" ? { ruleId: type } : {}),
     accepts,
     defaults,
     propChoices: {
@@ -902,8 +905,12 @@ export function catalogTypeDefinition(type: string): LibraryDefinition {
   return withRuleBox(handOrRuleDefinition(type));
 }
 function handOrRuleDefinition(type: string): LibraryDefinition {
-  if (type === "Button")
-    return buttonDefinition("light", new Map<LibraryTokenId, LibraryToken>());
+  if (type === "Button" || type === "LinkButton")
+    return buttonDefinition(
+      "light",
+      new Map<LibraryTokenId, LibraryToken>(),
+      type,
+    );
   if (type === "Icon" || type === "Illustration")
     return glyphDefinition(
       type,
@@ -959,8 +966,8 @@ export async function buildCodeCatalogLibrary(
     .sort()
     .map((id) => {
       const type = id.slice("lib:definition:type-".length);
-      return type === "Button"
-        ? buttonDefinition(theme, tokens)
+      return type === "Button" || type === "LinkButton"
+        ? buttonDefinition(theme, tokens, type)
         : type === "SelectValue"
           ? selectValueDefinition(theme, tokens)
           : type === "Icon" || type === "Illustration"

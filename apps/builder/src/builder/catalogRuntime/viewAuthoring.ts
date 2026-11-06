@@ -174,6 +174,7 @@ const SHAPE_OF: Partial<Record<ValueTypeId, CatalogFilterShape>> = {
   strings: "keys",
   boolean: "check",
   number: "number",
+  numberRange: "range",
   date: "date",
   dateRange: "range",
 };
@@ -344,12 +345,14 @@ export function catalogViewFields(
 ): CatalogFilterField[] {
   const schema = viewRunSchema(table?.schema);
   const references = viewRunReferences(collections as never);
-  const out: CatalogFilterField[] = schema.map(({ id, key, type, formula }) => ({
-    id,
-    key,
-    ...(type ? { type } : {}),
-    ...(formula ? { formula } : {}),
-  }));
+  const out: CatalogFilterField[] = schema.map(
+    ({ id, key, type, formula }) => ({
+      id,
+      key,
+      ...(type ? { type } : {}),
+      ...(formula ? { formula } : {}),
+    }),
+  );
   for (const field of schema) {
     const target = field.reference && references(field.reference.collectionId);
     for (const step of target?.schema ?? []) {

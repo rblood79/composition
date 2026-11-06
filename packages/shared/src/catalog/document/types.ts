@@ -1,4 +1,5 @@
 import type { ComponentRule } from "../../types/catalog-style.types";
+import type { CatalogNumberRange } from "./numberRangeValue";
 /** ADR-248 Phase 1. This module has no Builder or persistence dependency. */
 export const CATALOG_FORMAT = "composition-catalog" as const;
 export const CATALOG_SCHEMA_VERSION = 1 as const;
@@ -152,9 +153,10 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 59 — ListBoxItem selection Checkbox 슬롯과 Select 옵션의 저작 grid 배치.
  * 60 — S2 선택 부품 공유와 라벨 행 배치 (Select/ComboBox/Menu).
  * 61 — 필드 Label의 편집 가능한 본문 Text·필수 Icon/Text 자식.
+ * 62 — S2 누락 컴포넌트 원본과 범위·선택 수·표시 값의 구조화된 값 계약.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 61 as const;
+export const LIBRARY_CONTRACT_VERSION = 62 as const;
 
 export type EntryKind =
   | "project"
@@ -285,6 +287,9 @@ export interface RichText {
   readonly runs: readonly TextRun[];
 }
 export type AuthoredValue =
+  | NumberRangeValue
+  | import("./labeledValue").LabeledValue
+  | import("./labeledValue").LabeledFormat
   | Scalar
   | TokenUse
   | StructuredValue
@@ -299,6 +304,8 @@ export type AuthoredValue =
  * context). The three are different values in storage and validation.
  */
 export type ValueType =
+  | "labeledValue"
+  | "labeledFormat"
   | "string"
   | "number"
   | "boolean"
@@ -312,14 +319,20 @@ export type ValueType =
   | "calendarDuration"
   // ADR-258 — a Color control's color string in RAC's `parseColor` syntax (`isRacColorString`).
   | "racColor"
+  | "selectionCount"
+  | "numberRange"
   // S2 · RAC `formatOptions` — `catalogNumberFormatFits` (사용자 결정 2026-10-12).
   | "numberFormat";
+export type NumberRangeValue = CatalogNumberRange;
 /** Resolved prop value: a scalar, a structured value, a calendar duration or a number format. */
 export type PropValue =
+  | import("./labeledValue").LabeledValue
+  | import("./labeledValue").LabeledFormat
   | Scalar
   | StructuredValue
   | CalendarDuration
   | NumberFormatValue
+  | NumberRangeValue
   | PropWhen
   | PropVar
   | RichText;
@@ -404,6 +417,8 @@ export type VisualField =
   | "borderLeftWidth";
 /** Box layout declarations consumed by the Rust layout input and the isolated RAC DOM style. */
 export type LayoutField =
+  | "contain"
+  | "containIntrinsicWidth"
   | "display"
   | "flexDirection"
   | "alignItems"
@@ -1473,7 +1488,7 @@ export type InteractionAction =
       opcode: "capability";
       target: CatalogCapabilityTarget;
       capabilityId: string;
-      value?: Scalar | readonly Scalar[];
+      value?: Scalar | readonly Scalar[] | NumberRangeValue;
     };
 export interface AssetEntry {
   kind: "asset";

@@ -19,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Input 글자 굵기를 `sizes.fontWeight` 400 으로 명시해 Canvas 의 500 폴백과 DOM 400 의 폭 차이를 없앤다.
 - 날짜 조각의 폭 측정에 실제 서체를 쓰고, 조각 글자를 locale 서체 요청에 포함한다.
 
+## [S2 독립 컴포넌트 보강 — 4단계] - 2026-11-07
+
+### Breaking Changes
+
+- 라이브러리 계약을 62로 올린다. 새 원본과 구조화된 값 계약을 사용하며, 기존 계약의 개발 문서는 자동 변환하지 않는다.
+
+### Added
+
+- S2 1.8.2의 독립 누락 항목 ActionBar·LinkButton·LabeledValue·RangeSlider·SegmentedControl·SelectBoxGroup과 실제 항목 자식을 catalog·팔레트·Property·Interactions·Code 생성 경로에 연결한다.
+- 범위 값은 `{start, end}`, 선택 수는 숫자 또는 `"all"`로 보존하며 전용 편집·검증 경로를 제공한다. LinkButton은 Button의 시각 정본을 공유하고, 생성 코드는 실행 가능한 공용 컴포넌트를 참조한다.
+- 새 컴포넌트와 항목의 생성 CSS를 Preview/Publish 및 Builder 번들에 함께 포함한다.
+- LabeledValue의 intrinsic 폭과 SelectBox의 variant paint를 공통 Layout·시각 계약으로 연결하고, 접힌 Code의 기본 자식 구성도 catalog 원본을 공유한다.
+
 ## [입력 필드 값 편집 — TextArea·ColorField owner 연결] - 2026-11-07
 
 ### Fixed

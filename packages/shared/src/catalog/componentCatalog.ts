@@ -91,6 +91,11 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "button",
     icon: "MousePointer",
   }),
+  primitiveEntry("LinkButton", "primitives", FAMILY_1_CUTOVER, {
+    category: "buttons",
+    label: "link button",
+    icon: "Link",
+  }),
   primitiveEntry("ActionButton", "primitives", FAMILY_1_CUTOVER, {
     category: "buttons",
     label: "action button",
@@ -321,6 +326,16 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "illustration",
     icon: "ImageIcon",
     placeable: false,
+  }),
+  primitiveEntry("ActionBar", "primitives", FAMILY_1_CUTOVER, {
+    category: "buttons",
+    label: "action bar",
+    icon: "PanelBottom",
+  }),
+  primitiveEntry("LabeledValue", "primitives", FAMILY_1_CUTOVER, {
+    category: "content",
+    label: "labeled value",
+    icon: "Text",
   }),
   primitiveEntry("StatusLight", "primitives", FAMILY_1_CUTOVER, {
     category: "content",
@@ -647,6 +662,24 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
   }),
   // ADR-259 Phase 3: a field's label row (S2 FieldLabel — Label + ContextualHelp). The field's
   //   "Contextual Help" command makes it; palette 비노출 sub-part.
+  primitiveEntry("RangeSlider", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "range slider",
+    icon: "SlidersHorizontal",
+    placeable: false,
+  }),
+  primitiveEntry("SegmentedControl", "selection", FAMILY_3_CUTOVER, {
+    category: "buttons",
+    label: "segmented control",
+    icon: "GroupIcon",
+    placeable: false,
+  }),
+  primitiveEntry("SegmentedControlItem", "selection", FAMILY_3_CUTOVER, {
+    category: "buttons",
+    label: "segmented control item",
+    icon: "MousePointer",
+    placeable: false,
+  }),
   primitiveEntry("FieldLabel", "selection", FAMILY_3_CUTOVER, {
     category: "forms",
     label: "field label",
@@ -820,6 +853,17 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
 const FAMILY_4_CUTOVER: CutoverState = "catalog";
 
 const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
+  primitiveEntry("SelectBoxGroup", "collections", FAMILY_4_CUTOVER, {
+    category: "collections",
+    label: "select box group",
+    icon: "LayoutGrid",
+  }),
+  primitiveEntry("SelectBox", "collections", FAMILY_4_CUTOVER, {
+    category: "collections",
+    label: "select box",
+    icon: "Square",
+    placeable: false,
+  }),
   // ListBox — Skia generic 발효(skiaLegacy 미설정): shell 은 buildCatalogShapes, data row 는
   //   row projection(canvasSceneNode) 별도 경로. ADR-912 선행 collection proof.
   primitiveEntry("ListBox", "collections", FAMILY_4_CUTOVER, {
@@ -1480,11 +1524,14 @@ const REUSABLE_ENTRIES: ComponentCatalogEntry[] = [
  * 자연히 일치해 그 origin 을 그대로 재사용한다.
  */
 export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
+  "ActionBar",
+  "SelectBoxGroup",
   // content
   "Badge",
   "ProgressBar",
   "Avatar",
   "AvatarGroup",
+  "LabeledValue",
   "StatusLight",
   "ProgressCircle",
   // 295 후속 C9 — S2 Toast (InlineAlert 뒤에 놓인다 — `PALETTE_ORDER`).
@@ -1500,6 +1547,7 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "CardView",
   // buttons
   "Button",
+  "LinkButton",
   "ActionButton",
   "ActionButtonGroup",
   "ToggleButton",
@@ -1525,6 +1573,8 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "ComboBox",
   "Switch",
   "Slider",
+  "RangeSlider",
+  "SegmentedControl",
   "Meter",
   "DropZone",
   "FileTrigger",
@@ -1570,6 +1620,7 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
  * 팔레트 원본 앞에 그린다.
  */
 export const BASE_PART_ORIGIN_TYPES: readonly string[] = [
+  "SelectBox",
   "Label",
   "Input",
   "DateInput",

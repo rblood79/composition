@@ -1,3 +1,13 @@
+import { labeledValueBinding } from "./LabeledValue.binding";
+import { actionBarBinding } from "./ActionBar.binding";
+import { selectBoxGroupBinding } from "./SelectBoxGroup.binding";
+import { selectBoxBinding } from "./SelectBox.binding";
+import { rangeSliderBinding } from "./RangeSlider.binding";
+import {
+  segmentedControlBinding,
+  segmentedControlItemBinding,
+} from "./SegmentedControl.binding";
+import { linkButtonBinding } from "./LinkButton.binding";
 import {
   tokenFieldBinding,
   tokenInputBinding,
@@ -335,6 +345,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   //   (replace, label+separator). DOM=부모 Breadcrumbs self-compose(독립 노드 0). DELEGATING 불요.
   Breadcrumb: breadcrumbBinding,
   Button: buttonBinding,
+  LinkButton: linkButtonBinding,
+  LabeledValue: labeledValueBinding,
   ActionButton: actionButtonBinding,
   ActionButtonGroup: actionButtonGroupBinding,
   Icon: iconBinding,
@@ -492,7 +504,13 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   SwitchIndicator: switchIndicatorBinding,
   // ADR-256 Phase 5h: a TreeItem's row content (RAC TreeItemContent — no element of its own).
   TreeItemContent: treeItemContentBinding,
+  ActionBar: actionBarBinding,
+  SelectBoxGroup: selectBoxGroupBinding,
+  SelectBox: selectBoxBinding,
   Slider: sliderBinding,
+  RangeSlider: rangeSliderBinding,
+  SegmentedControl: segmentedControlBinding,
+  SegmentedControlItem: segmentedControlItemBinding,
   // ADR-256 Phase 7c: a Slider's parts are RAC's — SliderTrack (its bar) > SliderFill + SliderThumb.
   SliderTrack: sliderTrackBinding,
   SliderFill: sliderFillBinding,

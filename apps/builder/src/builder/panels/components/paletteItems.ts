@@ -236,7 +236,10 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "Skeleton", source: "catalog" },
   { type: "Avatar", source: "catalog" },
   { type: "AvatarGroup", source: "catalog" },
+  { type: "LabeledValue", source: "catalog" },
   { type: "StatusLight", source: "catalog" },
+  { type: "ActionBar", source: "catalog" },
+  { type: "SelectBoxGroup", source: "catalog" },
   { type: "InlineAlert", source: "catalog" },
   // 295 후속 C9 (사용자 「Toast 컴포넌트가 컴포넌트 패널에 없다」): S2 Toast 한 장 — InlineAlert 뒤 (content).
   // 2026-11-01 (user — RAC · S2 have no Toast element on a page, only the app's toast shape):
@@ -269,6 +272,7 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "CardView", source: "catalog" },
   { type: "Slot", source: "catalog" },
   { type: "Button", source: "catalog" },
+  { type: "LinkButton", source: "catalog" },
   { type: "ActionButton", source: "catalog" },
   { type: "ActionButtonGroup", source: "catalog" },
   { type: "ToggleButton", source: "catalog" },
@@ -305,6 +309,8 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "ComboBox", source: "catalog" },
   { type: "Switch", source: "catalog" },
   { type: "Slider", source: "catalog" },
+  { type: "RangeSlider", source: "catalog" },
+  { type: "SegmentedControl", source: "catalog" },
   { type: "DropZone", source: "catalog" },
   { type: "FileTrigger", source: "catalog" },
   // ADR-201 (2026-09-17): 대용량 파일 업로드 compound — DropZone/FileTrigger 뒤.

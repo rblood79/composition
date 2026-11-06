@@ -2822,8 +2822,32 @@ class Generator {
     else if (component) {
       const line = `import {${component}} from './components/${component}';`;
       if (!this.dataImports.includes(line)) this.dataImports.push(line);
-    } else if (origin) this.import("react-aria-components", origin);
-    else if (type === "ActionButton" || type === "ActionButtonGroup") {
+    } else if (origin)
+      this.import(
+        [
+          "LinkButton",
+          "LabeledValue",
+          "RangeSlider",
+          "SliderThumb",
+          "SegmentedControl",
+          "SegmentedControlItem",
+        ].includes(origin)
+          ? "@composition/shared/components"
+          : "react-aria-components",
+        origin,
+      );
+    else if (
+      [
+        "ActionButton",
+        "ActionButtonGroup",
+        "LinkButton",
+        "LabeledValue",
+        "RangeSlider",
+        "SliderThumb",
+        "SegmentedControl",
+        "SegmentedControlItem",
+      ].includes(type)
+    ) {
       this.import("@composition/shared/components", type);
     } else if (type !== "div") this.import("react-aria-components", type);
     const attributes: { part: CodeWriter; target: CodeViewAnchorTarget }[] = [];

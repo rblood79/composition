@@ -56,6 +56,7 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   //   `manualBoxRules` Switch).
   Switch: ["Description", "FieldError"],
   Slider: ["SliderTrack", "Label", "ContextualHelp"],
+  RangeSlider: ["SliderTrack", "Label", "ContextualHelp"],
   // TagGroup → TagList (the chip wrapper) → Tag: the chips take the group size. (ADR-256 Phase 5d:
   //   its hint parts — the reference's `Text[description]` · `Text[errorMessage]`.)
   TagGroup: ["TagList", ...FIELD_PARTS],

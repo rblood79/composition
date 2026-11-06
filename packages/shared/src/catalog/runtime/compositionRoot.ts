@@ -1,4 +1,7 @@
+import { catalogInlineSizeContainment } from "./inlineSizeContainment";
 import { catalogPartConditionProps } from "../document/derivedVariantProps";
+import { catalogActionBarForeground } from "./actionBarForeground";
+import { catalogTokenValue } from "../document/themedToken";
 import {
   catalogOverlayArrowLayout,
   catalogOverlayDescriptor,
@@ -399,6 +402,8 @@ export const CATALOG_TEXT_STYLE_CONTAINERS: ReadonlySet<string> = new Set([
   "Group",
   "Slot",
   "ToggleButtonGroup",
+  "SegmentedControl",
+  "SegmentedControlItem",
   "ButtonGroup",
   "ActionButtonGroup",
   "ActionButton",
@@ -1641,6 +1646,8 @@ function styleOf(
         }
       : {}),
   };
+  // Inline-size containment replaces the content contribution, never the used width.
+  Object.assign(out, catalogInlineSizeContainment(node.layout));
   // CSS `min-height: auto` of a flex item is min(content, specified height): a measured leaf with
   // a declared px height keeps that height in a column that overflows (the engine's column floor
   // takes the content-box value and adds padding/border).
@@ -3173,7 +3180,7 @@ export class CatalogCompositionRoot {
   ): Readonly<Record<string, string | number | boolean>> | undefined {
     const shownRoute = (node: CatalogConsumerNode) =>
       this.pageRouteOf(node, get);
-    const baseDerived = this.withTableDrag(
+    const controlDerived = this.withTableDrag(
       record,
       get,
       catalogDerivedProps(
@@ -3184,6 +3191,31 @@ export class CatalogCompositionRoot {
         shownRoute,
       ),
     );
+    const actionBarForegroundOf = (node: CatalogConsumerNode) =>
+      catalogActionBarForeground(
+        node,
+        get,
+        this.typeOf,
+        (owner, ref, field) => {
+          const authored = catalogHasExplicitVisual(this, owner, field)
+            ? owner.visual[field]
+            : undefined;
+          if (authored !== undefined) return authored;
+          const token = [...this.runtime.graph.library.tokens.values()].find(
+            (token) => token.ref === ref,
+          );
+          return token
+            ? catalogTokenValue(
+                this.runtime.graph.getToken(token.id) ?? token,
+                this.colorMode,
+              )
+            : undefined;
+        },
+      );
+    const actionBarForeground = actionBarForegroundOf(record);
+    const baseDerived = actionBarForeground?.staticColor
+      ? { ...controlDerived, staticColor: actionBarForeground.staticColor }
+      : controlDerived;
     const labelPart = catalogFieldLabelPart(record, get, this.typeOf);
     if (labelPart) {
       const values: Record<string, string | number | boolean> = {
@@ -3311,6 +3343,11 @@ export class CatalogCompositionRoot {
     const toastText = catalogToastText(record, get, this.typeOf);
     if (toastText && catalogAuthoredVisual(this, record).color === undefined)
       return { ...derived, color: toastText };
+    if (
+      actionBarForeground?.color &&
+      catalogAuthoredVisual(this, record).color === undefined
+    )
+      return { ...derived, color: actionBarForeground.color };
     // A static ProgressBar · Meter's label (S2 `FieldLabel staticColor` — `catalogProgressStaticText`):
     // the static color, unless the label authors its own color (the DOM's inline style wins over
     // the sheet's). A rule-backed value text paints it from its own rule (`resolveCatalogPaint`).
@@ -3417,13 +3454,17 @@ export class CatalogCompositionRoot {
         ? COMPONENT_RULES_TABLE.Button
         : this.runtime.graph.library.rules.get(item.ruleId!);
     if (!rule) return derived;
-    const itemDerived = catalogDerivedProps(
+    const ownItemDerived = catalogDerivedProps(
       item,
       get,
       this.typeOf,
       this.environmentLocale,
       shownRoute,
     );
+    const itemActionBar = actionBarForegroundOf(item);
+    const itemDerived = itemActionBar?.staticColor
+      ? { ...ownItemDerived, staticColor: itemActionBar.staticColor }
+      : ownItemDerived;
     const color = catalogRuleTextColor({
       node: itemDerived
         ? {

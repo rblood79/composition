@@ -1,5 +1,11 @@
+import { catalogCompositionUsesVariantPaint } from "../rule/compositionPaint";
+import {
+  catalogLabeledValueFits,
+  catalogLabeledFormatFits,
+} from "./labeledValue";
 import { isRacColorString } from "./colorValue";
 import { catalogNumberFormatFits } from "./numberFormatValue";
+import { catalogNumberRangeFits } from "./numberRangeValue";
 import { catalogCalendarDurationFits, scalarFitsType } from "./valueType";
 import {
   resolveToken,
@@ -74,13 +80,20 @@ export const PROP_KIND_VALUE_TYPE: Readonly<
   "calendar-duration": "calendarDuration",
   "rac-color": "racColor",
   "number-format": "numberFormat",
+  "labeled-value": "labeledValue",
+  "labeled-format": "labeledFormat",
+  "selection-count": "selectionCount",
+  "number-range": "numberRange",
 };
 
 /** A registered prop default that fits its typed slot (structured kinds: an array of that shape). */
 function propDefaultMatches(value: unknown, type: ValueType): boolean {
+  if (type === "labeledValue") return catalogLabeledValueFits(value);
+  if (type === "labeledFormat") return catalogLabeledFormatFits(value);
   if (type === "slot") return scalarFitsType(value, type);
   if (type === "calendarDuration") return catalogCalendarDurationFits(value);
   if (type === "numberFormat") return catalogNumberFormatFits(value);
+  if (type === "numberRange") return catalogNumberRangeFits(value);
   if (type === "racColor") return isRacColorString(value);
   if (type === "string[]")
     return (
@@ -158,6 +171,8 @@ const CIRCLE_LEAF_RULES: ReadonlySet<string> = new Set([
 ]);
 
 const BOX_LAYOUT_KEYS: ReadonlySet<string> = new Set<LayoutField>([
+  "contain",
+  "containIntrinsicWidth",
   "display",
   "flexDirection",
   "alignItems",
@@ -273,6 +288,7 @@ export function ruleRootBox(type: string, rule: ComponentRule): RootBox {
         layout?: LayoutToken;
         containerStyles?: Record<string, string>;
         containerVariants?: unknown;
+        rootPaint?: "variant";
       }
     | undefined;
   const { layout, visual } = typedCanvasBox(
@@ -294,7 +310,7 @@ export function ruleRootBox(type: string, rule: ComponentRule): RootBox {
   );
   const variantBorder =
     !colorContainer &&
-    !ownsContainerBox &&
+    catalogCompositionUsesVariantPaint(composition, ownsContainerBox) &&
     structure?.archetype !== "toggle-indicator" &&
     !!paintAt(defaultVariant?.paint.borderColor);
   const variantColor = paintAt(defaultVariant?.paint.borderColor);

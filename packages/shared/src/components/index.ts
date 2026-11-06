@@ -1,3 +1,12 @@
+export { RangeSlider, SliderThumb, type RangeSliderProps } from "./RangeSlider";
+export {
+  SegmentedControl,
+  SegmentedControlItem,
+  type SegmentedControlProps,
+  type SegmentedControlItemProps,
+} from "./SegmentedControl";
+export { LinkButton, type LinkButtonProps } from "./LinkButton";
+export { LabeledValue, type LabeledValueProps } from "./LabeledValue";
 /**
  * Shared Components Index
  *
@@ -121,3 +130,8 @@ export { Modal } from "./Modal";
 export { Popover } from "./Popover";
 export { Tooltip } from "./Tooltip";
 export { TooltipTrigger } from "react-aria-components/Tooltip";
+
+export { ActionBar } from "./ActionBar";
+export type { ActionBarProps } from "./ActionBar";
+export { SelectBoxGroup, SelectBox } from "./SelectBoxGroup";
+export type { SelectBoxGroupProps, SelectBoxProps } from "./SelectBoxGroup";

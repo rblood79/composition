@@ -22,6 +22,9 @@ const RAC_PART_OF_TYPE: Readonly<Record<string, string>> = {
   TextArea: "TextField",
   ActionButton: "Button",
   Accordion: "DisclosureGroup",
+  RangeSlider: "Slider",
+  SegmentedControl: "ToggleButtonGroup",
+  SegmentedControlItem: "ToggleButton",
 };
 
 /**

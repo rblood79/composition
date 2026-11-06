@@ -17,6 +17,7 @@ export type ValueTypeId =
   | "boolean"
   | "string"
   | "number"
+  | "numberRange"
   | "key"
   | "keys"
   | "strings"

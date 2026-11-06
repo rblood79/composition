@@ -1,0 +1,99 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog SegmentedControlItem — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: button
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-SegmentedControlItem {
+  /* Base styles — archetype: button */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    box-sizing: border-box;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  width: fit-content;
+  height: fit-content;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+
+  /* Default variant */
+  background: transparent;
+  color: var(--fg-muted);
+  border: none;
+
+  /* Default size */
+  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * 0px) / 2) var(--catalog-token-segmented-control-item-padding-x-M, calc(var(--catalog-token-size-height-M) * 3 / 8));
+  font-size: var(--catalog-token-text-sm);
+  border-radius: 8px;
+  line-height: var(--catalog-token-text-sm--line-height);
+  font-weight: 500;
+  border-width: 0px;
+  min-height: var(--catalog-token-size-height-M);
+  gap: var(--catalog-token-segmented-control-item-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+  --icon-size: var(--catalog-token-segmented-control-item-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
+}
+
+.react-aria-SegmentedControlItem:where([data-variant="default"]) {
+  background: transparent;
+  color: var(--fg-muted);
+}
+
+.react-aria-SegmentedControlItem:where([data-variant="default"][data-selected]) {
+  color: var(--fg);
+}
+
+.react-aria-SegmentedControlItem:where([data-variant="default"][data-disabled]) {
+  color: var(--bg-disabled);
+}
+
+.react-aria-SegmentedControlItem[data-icon-only] {
+  padding: 0;
+  aspect-ratio: 1;
+}
+
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-SegmentedControlItem {
+    forced-color-adjust: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .react-aria-SegmentedControlItem {
+    transition-duration: 0s !important;
+  }
+}
+
+  .react-aria-SegmentedControlItem .react-aria-Text {
+    position: relative;
+    z-index: 1;
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+  }
+
+  .react-aria-SegmentedControlItem .react-aria-SelectionIndicator {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bg);
+    border: 2px solid var(--fg);
+    border-radius: 10px;
+  }
+
+
+} /* @layer components */

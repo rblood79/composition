@@ -201,11 +201,18 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
 
   // ── 버튼 ──
   Button: { families: ["textHost", "buttonChildHost", "action"] },
+  LabeledValue: { families: ["textHost"] },
+  LinkButton: { families: ["textHost", "buttonChildHost", "action"] },
   ActionButton: { families: ["textHost", "buttonChildHost", "action"] },
   ToggleButton: { families: ["textHost", "buttonChildHost", "action"] },
   ButtonGroup: { families: ["action"] },
   ActionButtonGroup: { families: ["action"] },
   ToggleButtonGroup: { families: ["disablingGroup"] },
+  SegmentedControl: { families: ["disablingGroup"] },
+  SegmentedControlItem: {
+    owners: ["SegmentedControl"],
+    families: ["textHost", "buttonChildHost", "action"],
+  },
 
   // ── 이미지 ──
   Image: { families: ["image"] },
@@ -269,6 +276,16 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
 
   // ── 컬렉션 ──
   // ADR-238 Phase 2 — section 층 (RAC `ListBoxSection` · `MenuSection` · `GridListSection` + `Header`).
+  ActionBar: { families: ["action"] },
+  SelectBoxGroup: {
+    container: "collection",
+    families: ["itemSlotCollection", "disablingGroup"],
+    children: ["SelectBox"],
+  },
+  SelectBox: {
+    families: ["selectionItem", "staticCollectionItem"],
+    owners: ["SelectBoxGroup"],
+  },
   ListBox: {
     container: "collection",
     families: ["itemSlotCollection", "disablingGroup", "emptyStateCollection"],
@@ -398,7 +415,7 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   ColorSwatchPickerItem: { owners: ["ColorSwatchPicker"] },
   Tab: { families: ["staticCollectionItem"], owners: ["TabList"] },
   // ADR-256 Phase 5e: the selected item's mark — inside a selection item (RAC throws outside one).
-  SelectionIndicator: { owners: ["Tab"] },
+  SelectionIndicator: { owners: ["Tab", "SegmentedControlItem"] },
   // ADR-251: 항목은 묶음 (RadioItems · CheckboxItems) 안에 — 그룹의 직계는 Label · 묶음 (TagGroup >
   //   TagList 동형). 그룹 DOM 은 묶음의 자식만 항목으로 모은다.
   RadioGroup: { families: ["disablingGroup"] },
@@ -422,10 +439,11 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   TreeItemContent: { owners: ["TreeItem"] },
   Accordion: {},
   Slider: {},
+  RangeSlider: {},
   // ADR-258 Phase 2: a ColorSlider's parts are RAC's Slider parts (its context gives them the
   //   channel's track · output).
-  SliderOutput: { owners: ["Slider", "ColorSlider"] },
-  SliderTrack: { owners: ["Slider", "ColorSlider"] },
+  SliderOutput: { owners: ["Slider", "RangeSlider", "ColorSlider"] },
+  SliderTrack: { owners: ["Slider", "RangeSlider", "ColorSlider"] },
   SliderThumb: { owners: ["SliderTrack"] },
   // ADR-256 Phase 7c: RAC's SliderFill — in the track (RAC throws outside a Slider's state).
   SliderFill: { owners: ["SliderTrack"] },

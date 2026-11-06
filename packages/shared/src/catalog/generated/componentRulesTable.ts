@@ -1,3 +1,12 @@
+import {
+  SEGMENTED_GROUP_CONTAINER,
+  SEGMENTED_ITEM_CONTAINER,
+} from "../rule/segmentedControl";
+import {
+  ACTION_BAR_RULE,
+  SELECT_BOX_GROUP_RULE,
+  SELECT_BOX_RULE,
+} from "../rule/selectionComposites";
 /**
  * SSOT (직접 편집 정본) — theme rule base D3 시각 SSOT (ADR-912 ②-6-A).
  *
@@ -1070,6 +1079,9 @@ const ACTION_BUTTON_SIZES = Object.fromEntries(
 );
 
 export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
+  ActionBar: ACTION_BAR_RULE,
+  SelectBoxGroup: SELECT_BOX_GROUP_RULE,
+  SelectBox: SELECT_BOX_RULE,
   // ADR-256 Phase 6g — Autocomplete: RAC Autocomplete has no element (its children sit in its
   //   parent's flow). The Canvas lays it out as `display: contents` (engine CSS-DISPLAY-3 §2.5 —
   //   its children are its parent's items; its own box is their union, for selection only).
@@ -16498,6 +16510,167 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "font-weight": "inherit",
               "line-height": "inherit",
             },
+          },
+        },
+      },
+    },
+  },
+};
+
+// S2 LabeledValue uses field() grid and field label typography.
+COMPONENT_RULES_TABLE.LabeledValue = {
+  ...COMPONENT_RULES_TABLE.TextField,
+  sizes: Object.fromEntries(
+    Object.entries(COMPONENT_RULES_TABLE.TextField.sizes)
+      .filter(([size]) => size !== "XS")
+      .map(([size, values]) => [
+        size,
+        {
+          fontSize: values.fontSize,
+          lineHeight: COMPONENT_RULES_TABLE.Label.sizes[size].lineHeight,
+          gap: 0,
+          height: 0,
+        },
+      ]),
+  ),
+  structure: {
+    archetype: "container",
+    element: "div",
+    containerStyles: {
+      display: "grid",
+      gridTemplateColumns: "1fr",
+      alignItems: "baseline",
+      height: "fit-content",
+    },
+    composition: {
+      delegation: [],
+      containerVariants: {
+        "label-position": {
+          side: {
+            styles: {
+              "grid-template-columns": "auto 1fr",
+              "column-gap": "12px",
+            },
+          },
+          top: { styles: { "grid-template-columns": "1fr" } },
+        },
+      },
+    },
+  },
+};
+
+// LinkButton uses the same editable Button visual contract, rendered as a RAC Link.
+// Preserve every shared Button selector when resetting the native anchor decoration.
+const linkButtonSelectors =
+  COMPONENT_RULES_TABLE.Button.structure?.composition?.rootSelectors;
+const sharedButtonSelectors =
+  linkButtonSelectors && typeof linkButtonSelectors === "object"
+    ? Object.fromEntries(Object.entries(linkButtonSelectors))
+    : {};
+const sharedButtonRoot = sharedButtonSelectors["&"];
+const sharedButtonRootBlock =
+  sharedButtonRoot && typeof sharedButtonRoot === "object"
+    ? Object.fromEntries(Object.entries(sharedButtonRoot))
+    : {};
+const sharedButtonRootStyles = sharedButtonRootBlock.styles;
+const sharedButtonStyleBlock =
+  sharedButtonRootStyles && typeof sharedButtonRootStyles === "object"
+    ? Object.fromEntries(Object.entries(sharedButtonRootStyles))
+    : {};
+COMPONENT_RULES_TABLE.LinkButton = {
+  ...COMPONENT_RULES_TABLE.Button,
+  structure: {
+    ...COMPONENT_RULES_TABLE.Button.structure!,
+    element: "a",
+    composition: {
+      ...COMPONENT_RULES_TABLE.Button.structure?.composition,
+      rootSelectors: {
+        ...sharedButtonSelectors,
+        "&": {
+          ...sharedButtonRootBlock,
+          styles: { ...sharedButtonStyleBlock, "text-decoration": "none" },
+        },
+      },
+    },
+  },
+};
+
+// S2 RangeSlider shares all Slider visual axes; only its two-thumb state differs.
+COMPONENT_RULES_TABLE.RangeSlider = { ...COMPONENT_RULES_TABLE.Slider };
+COMPONENT_RULES_TABLE.SegmentedControl = {
+  defaultSize: "M",
+  defaultVariant: "default",
+  containerStyles: SEGMENTED_GROUP_CONTAINER,
+  variants: {
+    default: {
+      paint: { backgroundColor: { default: "{color.neutral-surface}" } },
+    },
+  },
+  sizes: {
+    M: {
+      fontSize: "{typography.text-sm}",
+      lineHeight: "{typography.text-sm--line-height}",
+      gap: 4,
+    },
+  },
+  structure: {
+    archetype: "container",
+    element: "div",
+    containerStyles: SEGMENTED_GROUP_CONTAINER,
+    composition: {
+      delegation: [],
+      rootSelectors: {
+        "&[data-justified] > .react-aria-SegmentedControlItem": {
+          styles: { "flex-grow": 1, "flex-basis": 0 },
+        },
+      },
+    },
+  },
+};
+COMPONENT_RULES_TABLE.SegmentedControlItem = {
+  defaultSize: "M",
+  defaultVariant: "default",
+  containerStyles: SEGMENTED_ITEM_CONTAINER,
+  variants: {
+    default: {
+      paint: {
+        backgroundColor: { default: "{color.transparent}" },
+        color: {
+          default: "{color.neutral-subdued}",
+          isSelected: "{color.neutral}",
+          isDisabled: "{color.disabled}",
+        },
+      },
+    },
+  },
+  sizes: {
+    M: { ...COMPONENT_RULES_TABLE.ActionButton.sizes.M, borderWidth: 0 },
+  },
+  structure: {
+    archetype: "button",
+    element: "button",
+    containerStyles: SEGMENTED_ITEM_CONTAINER,
+    composition: {
+      delegation: [],
+      rootSelectors: {
+        "& .react-aria-Text": {
+          styles: {
+            position: "relative",
+            "z-index": 1,
+            "font-size": "inherit",
+            "line-height": "inherit",
+            color: "inherit",
+          },
+        },
+        "& .react-aria-SelectionIndicator": {
+          styles: {
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            background: "var(--bg)",
+            border: "2px solid var(--fg)",
+            "border-radius": "10px",
           },
         },
       },

@@ -1,0 +1,1936 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog LinkButton — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: button
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-LinkButton {
+  /* Base styles — archetype: button */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    box-sizing: border-box;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  width: fit-content;
+  height: fit-content;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+
+  /* Default variant */
+  background: var(--neutral-fill);
+  color: var(--on-neutral);
+  border-color: var(--neutral-fill);
+
+  /* Default size */
+  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-link-button-padding-x-M, calc(var(--catalog-token-size-height-M) * 1 / 2));
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-full);
+  line-height: var(--catalog-token-text-sm--line-height);
+  font-weight: 500;
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-M);
+  gap: var(--catalog-token-link-button-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+  --icon-size: var(--catalog-token-link-button-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
+  --icon-gap: var(--catalog-token-link-button-icon-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+}
+
+.react-aria-LinkButton:where([data-variant="accent"]) {
+  background: var(--accent-fill);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-hovered]) {
+  background: var(--accent-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-pressed]) {
+  background: var(--accent-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-focus-visible]) {
+  background: var(--accent-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-disabled]) {
+  background: var(--bg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-fill-style="outline"]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-fill-style="outline"][data-hovered]) {
+  background: var(--neutral-surface);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-fill-style="outline"][data-pressed]) {
+  background: var(--neutral-surface);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-fill-style="outline"][data-focus-visible]) {
+  background: var(--neutral-surface);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-fill-style="outline"][data-disabled]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="black"]) {
+  background: var(--accent-fill);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="black"][data-hovered]) {
+  background: var(--accent-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="black"][data-pressed]) {
+  background: var(--accent-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="black"][data-focus-visible]) {
+  background: var(--accent-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="black"][data-disabled]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="black"][data-fill-style="outline"]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="black"][data-fill-style="outline"][data-hovered]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="black"][data-fill-style="outline"][data-pressed]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="black"][data-fill-style="outline"][data-focus-visible]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="black"][data-fill-style="outline"][data-disabled]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="white"]) {
+  background: var(--accent-fill);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="white"][data-hovered]) {
+  background: var(--accent-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="white"][data-pressed]) {
+  background: var(--accent-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="white"][data-focus-visible]) {
+  background: var(--accent-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="white"][data-disabled]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="white"][data-fill-style="outline"]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="white"][data-fill-style="outline"][data-hovered]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="white"][data-fill-style="outline"][data-pressed]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="white"][data-fill-style="outline"][data-focus-visible]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="white"][data-fill-style="outline"][data-disabled]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-picker]) {
+  background: var(--bg-picker);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-picker][data-hovered]) {
+  background: var(--bg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-picker][data-focus-visible]) {
+  background: var(--bg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-picker][data-pressed]) {
+  background: var(--bg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-picker][aria-expanded="true"]) {
+  background: var(--bg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-picker][data-disabled]) {
+  background: var(--bg-picker);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-picker][data-quiet]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-search-field-part]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="primary"]) {
+  background: var(--neutral-fill);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-hovered]) {
+  background: var(--neutral-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-pressed]) {
+  background: var(--neutral-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-focus-visible]) {
+  background: var(--neutral-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-disabled]) {
+  background: var(--bg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-fill-style="outline"]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-fill-style="outline"][data-hovered]) {
+  background: var(--neutral-surface);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-fill-style="outline"][data-pressed]) {
+  background: var(--neutral-surface);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-fill-style="outline"][data-focus-visible]) {
+  background: var(--neutral-surface);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-fill-style="outline"][data-disabled]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="black"]) {
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="black"][data-hovered]) {
+  background: rgba(0, 0, 0, 0.94);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="black"][data-pressed]) {
+  background: rgba(0, 0, 0, 0.94);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="black"][data-focus-visible]) {
+  background: rgba(0, 0, 0, 0.94);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="black"][data-disabled]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="black"][data-fill-style="outline"]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="black"][data-fill-style="outline"][data-hovered]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="black"][data-fill-style="outline"][data-pressed]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="black"][data-fill-style="outline"][data-focus-visible]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="black"][data-fill-style="outline"][data-disabled]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="white"]) {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="white"][data-hovered]) {
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="white"][data-pressed]) {
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="white"][data-focus-visible]) {
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="white"][data-disabled]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="white"][data-fill-style="outline"]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="white"][data-fill-style="outline"][data-hovered]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="white"][data-fill-style="outline"][data-pressed]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="white"][data-fill-style="outline"][data-focus-visible]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="white"][data-fill-style="outline"][data-disabled]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-picker]) {
+  background: var(--bg-picker);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-picker][data-hovered]) {
+  background: var(--bg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-picker][data-focus-visible]) {
+  background: var(--bg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-picker][data-pressed]) {
+  background: var(--bg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-picker][aria-expanded="true"]) {
+  background: var(--bg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-picker][data-disabled]) {
+  background: var(--bg-picker);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-picker][data-quiet]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-search-field-part]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"]) {
+  background: var(--neutral-surface);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-hovered]) {
+  background: var(--neutral-surface-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-pressed]) {
+  background: var(--neutral-surface-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-focus-visible]) {
+  background: var(--neutral-surface-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-disabled]) {
+  background: var(--bg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-fill-style="outline"]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-fill-style="outline"][data-hovered]) {
+  background: var(--neutral-surface);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-fill-style="outline"][data-pressed]) {
+  background: var(--neutral-surface);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-fill-style="outline"][data-focus-visible]) {
+  background: var(--neutral-surface);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-fill-style="outline"][data-disabled]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="black"]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="black"][data-hovered]) {
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="black"][data-pressed]) {
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="black"][data-focus-visible]) {
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="black"][data-disabled]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="black"][data-fill-style="outline"]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="black"][data-fill-style="outline"][data-hovered]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="black"][data-fill-style="outline"][data-pressed]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="black"][data-fill-style="outline"][data-focus-visible]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="black"][data-fill-style="outline"][data-disabled]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="white"]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="white"][data-hovered]) {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="white"][data-pressed]) {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="white"][data-focus-visible]) {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="white"][data-disabled]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="white"][data-fill-style="outline"]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="white"][data-fill-style="outline"][data-hovered]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="white"][data-fill-style="outline"][data-pressed]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="white"][data-fill-style="outline"][data-focus-visible]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="white"][data-fill-style="outline"][data-disabled]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-picker]) {
+  background: var(--bg-picker);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-picker][data-hovered]) {
+  background: var(--bg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-picker][data-focus-visible]) {
+  background: var(--bg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-picker][data-pressed]) {
+  background: var(--bg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-picker][aria-expanded="true"]) {
+  background: var(--bg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-picker][data-disabled]) {
+  background: var(--bg-picker);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-picker][data-quiet]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-search-field-part]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="negative"]) {
+  background: var(--negative-fill);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-hovered]) {
+  background: var(--negative-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-pressed]) {
+  background: var(--negative-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-focus-visible]) {
+  background: var(--negative-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-disabled]) {
+  background: var(--bg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-fill-style="outline"]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-fill-style="outline"][data-hovered]) {
+  background: var(--neutral-surface);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-fill-style="outline"][data-pressed]) {
+  background: var(--neutral-surface);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-fill-style="outline"][data-focus-visible]) {
+  background: var(--neutral-surface);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-fill-style="outline"][data-disabled]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="black"]) {
+  background: var(--negative-fill);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="black"][data-hovered]) {
+  background: var(--negative-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="black"][data-pressed]) {
+  background: var(--negative-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="black"][data-focus-visible]) {
+  background: var(--negative-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="black"][data-disabled]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="black"][data-fill-style="outline"]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="black"][data-fill-style="outline"][data-hovered]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="black"][data-fill-style="outline"][data-pressed]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="black"][data-fill-style="outline"][data-focus-visible]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="black"][data-fill-style="outline"][data-disabled]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="white"]) {
+  background: var(--negative-fill);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="white"][data-hovered]) {
+  background: var(--negative-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="white"][data-pressed]) {
+  background: var(--negative-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="white"][data-focus-visible]) {
+  background: var(--negative-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="white"][data-disabled]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="white"][data-fill-style="outline"]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="white"][data-fill-style="outline"][data-hovered]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="white"][data-fill-style="outline"][data-pressed]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="white"][data-fill-style="outline"][data-focus-visible]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="white"][data-fill-style="outline"][data-disabled]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-picker]) {
+  background: var(--bg-picker);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-picker][data-hovered]) {
+  background: var(--bg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-picker][data-focus-visible]) {
+  background: var(--bg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-picker][data-pressed]) {
+  background: var(--bg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-picker][aria-expanded="true"]) {
+  background: var(--bg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-picker][data-disabled]) {
+  background: var(--bg-picker);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-picker][data-quiet]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-search-field-part]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="premium"]) {
+  background: var(--neutral-surface);
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-disabled]) {
+  background: var(--bg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-fill-style="outline"]) {
+  background: var(--neutral-surface);
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-static-color="black"]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-static-color="white"]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-picker]) {
+  background: var(--bg-picker);
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-picker][data-hovered]) {
+  background: var(--bg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-picker][data-focus-visible]) {
+  background: var(--bg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-picker][data-pressed]) {
+  background: var(--bg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-picker][aria-expanded="true"]) {
+  background: var(--bg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-picker][data-disabled]) {
+  background: var(--bg-picker);
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-picker][data-quiet]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-search-field-part]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="genai"]) {
+  background: var(--neutral-surface);
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-disabled]) {
+  background: var(--bg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-fill-style="outline"]) {
+  background: var(--neutral-surface);
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-static-color="black"]) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-static-color="white"]) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-picker]) {
+  background: var(--bg-picker);
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-picker][data-hovered]) {
+  background: var(--bg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-picker][data-focus-visible]) {
+  background: var(--bg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-picker][data-pressed]) {
+  background: var(--bg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-picker][aria-expanded="true"]) {
+  background: var(--bg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-picker][data-disabled]) {
+  background: var(--bg-picker);
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-picker][data-quiet]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-search-field-part]) {
+  background: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="accent"]) {
+  color: var(--fg-on-accent);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-hovered]) {
+  color: var(--fg-on-accent);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-pressed]) {
+  color: var(--fg-on-accent);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-focus-visible]) {
+  color: var(--fg-on-accent);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-disabled]) {
+  color: var(--fg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-fill-style="outline"]) {
+  color: var(--neutral-content);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-fill-style="outline"][data-hovered]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-fill-style="outline"][data-pressed]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-fill-style="outline"][data-focus-visible]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-fill-style="outline"][data-disabled]) {
+  color: var(--fg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="black"]) {
+  color: var(--fg-on-accent);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="black"][data-fill-style="outline"]) {
+  color: #000000;
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="black"][data-disabled]) {
+  color: rgba(0, 0, 0, 0.21);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="white"]) {
+  color: var(--fg-on-accent);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="white"][data-fill-style="outline"]) {
+  color: #ffffff;
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="white"][data-disabled]) {
+  color: rgba(255, 255, 255, 0.21);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-picker]) {
+  color: var(--fg-picker);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-picker][data-hovered]) {
+  color: var(--fg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-picker][data-focus-visible]) {
+  color: var(--fg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-picker][data-pressed]) {
+  color: var(--fg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-picker][data-disabled]) {
+  color: var(--fg-picker-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-search-field-part]) {
+  color: var(--neutral-content);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-search-field-part][data-disabled]) {
+  color: var(--fg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"]) {
+  color: var(--on-neutral);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-hovered]) {
+  color: var(--on-neutral);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-pressed]) {
+  color: var(--on-neutral);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-focus-visible]) {
+  color: var(--on-neutral);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-disabled]) {
+  color: var(--fg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-fill-style="outline"]) {
+  color: var(--neutral-content);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-fill-style="outline"][data-hovered]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-fill-style="outline"][data-pressed]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-fill-style="outline"][data-focus-visible]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-fill-style="outline"][data-disabled]) {
+  color: var(--fg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="black"]) {
+  color: #ffffff;
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="black"][data-fill-style="outline"]) {
+  color: #000000;
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="black"][data-disabled]) {
+  color: rgba(0, 0, 0, 0.21);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="white"]) {
+  color: #000000;
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="white"][data-fill-style="outline"]) {
+  color: #ffffff;
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="white"][data-disabled]) {
+  color: rgba(255, 255, 255, 0.21);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-picker]) {
+  color: var(--fg-picker);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-picker][data-hovered]) {
+  color: var(--fg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-picker][data-focus-visible]) {
+  color: var(--fg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-picker][data-pressed]) {
+  color: var(--fg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-picker][data-disabled]) {
+  color: var(--fg-picker-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-search-field-part]) {
+  color: var(--neutral-content);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-search-field-part][data-disabled]) {
+  color: var(--fg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"]) {
+  color: var(--neutral-content);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-hovered]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-pressed]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-focus-visible]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-disabled]) {
+  color: var(--fg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-fill-style="outline"]) {
+  color: var(--neutral-content);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-fill-style="outline"][data-hovered]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-fill-style="outline"][data-pressed]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-fill-style="outline"][data-focus-visible]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-fill-style="outline"][data-disabled]) {
+  color: var(--fg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="black"]) {
+  color: #000000;
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="black"][data-fill-style="outline"]) {
+  color: #000000;
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="black"][data-disabled]) {
+  color: rgba(0, 0, 0, 0.21);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="white"]) {
+  color: #ffffff;
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="white"][data-fill-style="outline"]) {
+  color: #ffffff;
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="white"][data-disabled]) {
+  color: rgba(255, 255, 255, 0.21);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-picker]) {
+  color: var(--fg-picker);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-picker][data-hovered]) {
+  color: var(--fg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-picker][data-focus-visible]) {
+  color: var(--fg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-picker][data-pressed]) {
+  color: var(--fg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-picker][data-disabled]) {
+  color: var(--fg-picker-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-search-field-part]) {
+  color: var(--neutral-content);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-search-field-part][data-disabled]) {
+  color: var(--fg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"]) {
+  color: var(--fg-on-negative);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-hovered]) {
+  color: var(--fg-on-negative);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-pressed]) {
+  color: var(--fg-on-negative);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-focus-visible]) {
+  color: var(--fg-on-negative);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-disabled]) {
+  color: var(--fg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-fill-style="outline"]) {
+  color: var(--neutral-content);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-fill-style="outline"][data-hovered]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-fill-style="outline"][data-pressed]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-fill-style="outline"][data-focus-visible]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-fill-style="outline"][data-disabled]) {
+  color: var(--fg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="black"]) {
+  color: var(--fg-on-negative);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="black"][data-fill-style="outline"]) {
+  color: #000000;
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="black"][data-disabled]) {
+  color: rgba(0, 0, 0, 0.21);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="white"]) {
+  color: var(--fg-on-negative);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="white"][data-fill-style="outline"]) {
+  color: #ffffff;
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="white"][data-disabled]) {
+  color: rgba(255, 255, 255, 0.21);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-picker]) {
+  color: var(--fg-picker);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-picker][data-hovered]) {
+  color: var(--fg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-picker][data-focus-visible]) {
+  color: var(--fg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-picker][data-pressed]) {
+  color: var(--fg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-picker][data-disabled]) {
+  color: var(--fg-picker-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-search-field-part]) {
+  color: var(--neutral-content);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-search-field-part][data-disabled]) {
+  color: var(--fg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="premium"]) {
+  color: var(--color-white);
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-disabled]) {
+  color: var(--fg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-static-color="black"]) {
+  color: #ffffff;
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-static-color="black"][data-disabled]) {
+  color: rgba(0, 0, 0, 0.21);
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-static-color="white"]) {
+  color: #ffffff;
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-static-color="white"][data-disabled]) {
+  color: rgba(255, 255, 255, 0.21);
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-picker]) {
+  color: var(--fg-picker);
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-picker][data-hovered]) {
+  color: var(--fg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-picker][data-focus-visible]) {
+  color: var(--fg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-picker][data-pressed]) {
+  color: var(--fg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-picker][data-disabled]) {
+  color: var(--fg-picker-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-search-field-part]) {
+  color: var(--neutral-content);
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-search-field-part][data-disabled]) {
+  color: var(--fg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="genai"]) {
+  color: var(--color-white);
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-disabled]) {
+  color: var(--fg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-static-color="black"]) {
+  color: #ffffff;
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-static-color="black"][data-disabled]) {
+  color: rgba(0, 0, 0, 0.21);
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-static-color="white"]) {
+  color: #ffffff;
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-static-color="white"][data-disabled]) {
+  color: rgba(255, 255, 255, 0.21);
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-picker]) {
+  color: var(--fg-picker);
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-picker][data-hovered]) {
+  color: var(--fg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-picker][data-focus-visible]) {
+  color: var(--fg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-picker][data-pressed]) {
+  color: var(--fg-picker-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-picker][data-disabled]) {
+  color: var(--fg-picker-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-search-field-part]) {
+  color: var(--neutral-content);
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-search-field-part][data-disabled]) {
+  color: var(--fg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"]) {
+  border-color: var(--accent-fill);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-hovered]) {
+  border-color: var(--accent-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-pressed]) {
+  border-color: var(--accent-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-focus-visible]) {
+  border-color: var(--accent-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-disabled]) {
+  border-color: var(--bg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-fill-style="outline"]) {
+  border-color: currentColor;
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-fill-style="outline"][data-hovered]) {
+  border-color: currentColor;
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-fill-style="outline"][data-pressed]) {
+  border-color: currentColor;
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-fill-style="outline"][data-focus-visible]) {
+  border-color: currentColor;
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-fill-style="outline"][data-disabled]) {
+  border-color: var(--border-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="black"]) {
+  border-color: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="black"][data-fill-style="outline"]) {
+  border-color: currentColor;
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="black"][data-fill-style="outline"][data-hovered]) {
+  border-color: currentColor;
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="black"][data-fill-style="outline"][data-pressed]) {
+  border-color: currentColor;
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="black"][data-fill-style="outline"][data-focus-visible]) {
+  border-color: currentColor;
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="black"][data-fill-style="outline"][data-disabled]) {
+  border-color: rgba(0, 0, 0, 0.17);
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="white"]) {
+  border-color: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="white"][data-fill-style="outline"]) {
+  border-color: currentColor;
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="white"][data-fill-style="outline"][data-hovered]) {
+  border-color: currentColor;
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="white"][data-fill-style="outline"][data-pressed]) {
+  border-color: currentColor;
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="white"][data-fill-style="outline"][data-focus-visible]) {
+  border-color: currentColor;
+}
+
+.react-aria-LinkButton:where([data-variant="accent"][data-static-color="white"][data-fill-style="outline"][data-disabled]) {
+  border-color: rgba(255, 255, 255, 0.17);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"]) {
+  border-color: var(--neutral-fill);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-hovered]) {
+  border-color: var(--neutral-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-pressed]) {
+  border-color: var(--neutral-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-focus-visible]) {
+  border-color: var(--neutral-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-disabled]) {
+  border-color: var(--bg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-fill-style="outline"]) {
+  border-color: var(--neutral-fill);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-fill-style="outline"][data-hovered]) {
+  border-color: var(--neutral-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-fill-style="outline"][data-pressed]) {
+  border-color: var(--neutral-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-fill-style="outline"][data-focus-visible]) {
+  border-color: var(--neutral-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-fill-style="outline"][data-disabled]) {
+  border-color: var(--border-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="black"]) {
+  border-color: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="black"][data-fill-style="outline"]) {
+  border-color: rgba(0, 0, 0, 0.85);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="black"][data-fill-style="outline"][data-hovered]) {
+  border-color: rgba(0, 0, 0, 0.94);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="black"][data-fill-style="outline"][data-pressed]) {
+  border-color: rgba(0, 0, 0, 0.94);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="black"][data-fill-style="outline"][data-focus-visible]) {
+  border-color: rgba(0, 0, 0, 0.94);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="black"][data-fill-style="outline"][data-disabled]) {
+  border-color: rgba(0, 0, 0, 0.17);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="white"]) {
+  border-color: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="white"][data-fill-style="outline"]) {
+  border-color: rgba(255, 255, 255, 0.85);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="white"][data-fill-style="outline"][data-hovered]) {
+  border-color: rgba(255, 255, 255, 0.94);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="white"][data-fill-style="outline"][data-pressed]) {
+  border-color: rgba(255, 255, 255, 0.94);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="white"][data-fill-style="outline"][data-focus-visible]) {
+  border-color: rgba(255, 255, 255, 0.94);
+}
+
+.react-aria-LinkButton:where([data-variant="primary"][data-static-color="white"][data-fill-style="outline"][data-disabled]) {
+  border-color: rgba(255, 255, 255, 0.17);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"]) {
+  border-color: var(--neutral-outline);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-hovered]) {
+  border-color: var(--neutral-outline-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-pressed]) {
+  border-color: var(--neutral-outline-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-focus-visible]) {
+  border-color: var(--neutral-outline-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-disabled]) {
+  border-color: var(--bg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-fill-style="outline"]) {
+  border-color: var(--neutral-outline);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-fill-style="outline"][data-hovered]) {
+  border-color: var(--neutral-outline-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-fill-style="outline"][data-pressed]) {
+  border-color: var(--neutral-outline-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-fill-style="outline"][data-focus-visible]) {
+  border-color: var(--neutral-outline-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-fill-style="outline"][data-disabled]) {
+  border-color: var(--border-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="black"]) {
+  border-color: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="black"][data-fill-style="outline"]) {
+  border-color: rgba(0, 0, 0, 0.17);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="black"][data-fill-style="outline"][data-hovered]) {
+  border-color: rgba(0, 0, 0, 0.21);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="black"][data-fill-style="outline"][data-pressed]) {
+  border-color: rgba(0, 0, 0, 0.21);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="black"][data-fill-style="outline"][data-focus-visible]) {
+  border-color: rgba(0, 0, 0, 0.21);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="black"][data-fill-style="outline"][data-disabled]) {
+  border-color: rgba(0, 0, 0, 0.17);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="white"]) {
+  border-color: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="white"][data-fill-style="outline"]) {
+  border-color: rgba(255, 255, 255, 0.17);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="white"][data-fill-style="outline"][data-hovered]) {
+  border-color: rgba(255, 255, 255, 0.21);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="white"][data-fill-style="outline"][data-pressed]) {
+  border-color: rgba(255, 255, 255, 0.21);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="white"][data-fill-style="outline"][data-focus-visible]) {
+  border-color: rgba(255, 255, 255, 0.21);
+}
+
+.react-aria-LinkButton:where([data-variant="secondary"][data-static-color="white"][data-fill-style="outline"][data-disabled]) {
+  border-color: rgba(255, 255, 255, 0.17);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"]) {
+  border-color: var(--negative-fill);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-hovered]) {
+  border-color: var(--negative-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-pressed]) {
+  border-color: var(--negative-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-focus-visible]) {
+  border-color: var(--negative-fill-hover);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-disabled]) {
+  border-color: var(--bg-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-fill-style="outline"]) {
+  border-color: currentColor;
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-fill-style="outline"][data-hovered]) {
+  border-color: currentColor;
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-fill-style="outline"][data-pressed]) {
+  border-color: currentColor;
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-fill-style="outline"][data-focus-visible]) {
+  border-color: currentColor;
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-fill-style="outline"][data-disabled]) {
+  border-color: var(--border-disabled);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="black"]) {
+  border-color: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="black"][data-fill-style="outline"]) {
+  border-color: currentColor;
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="black"][data-fill-style="outline"][data-hovered]) {
+  border-color: currentColor;
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="black"][data-fill-style="outline"][data-pressed]) {
+  border-color: currentColor;
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="black"][data-fill-style="outline"][data-focus-visible]) {
+  border-color: currentColor;
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="black"][data-fill-style="outline"][data-disabled]) {
+  border-color: rgba(0, 0, 0, 0.17);
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="white"]) {
+  border-color: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="white"][data-fill-style="outline"]) {
+  border-color: currentColor;
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="white"][data-fill-style="outline"][data-hovered]) {
+  border-color: currentColor;
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="white"][data-fill-style="outline"][data-pressed]) {
+  border-color: currentColor;
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="white"][data-fill-style="outline"][data-focus-visible]) {
+  border-color: currentColor;
+}
+
+.react-aria-LinkButton:where([data-variant="negative"][data-static-color="white"][data-fill-style="outline"][data-disabled]) {
+  border-color: rgba(255, 255, 255, 0.17);
+}
+
+.react-aria-LinkButton:where([data-variant="premium"]) {
+  border-color: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="genai"]) {
+  border-color: transparent;
+}
+
+.react-aria-LinkButton:where([data-variant="premium"]) {
+  background-image: linear-gradient(to bottom right, #b539c8 0%, #7155fa 66%, #3b63fb 100%);
+  background-origin: border-box;
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-hovered]) {
+  background-image: linear-gradient(to bottom right, #9c28af 0%, #6338ee 66%, #274dea 100%);
+  background-origin: border-box;
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-pressed]) {
+  background-image: linear-gradient(to bottom right, #9c28af 0%, #6338ee 66%, #274dea 100%);
+  background-origin: border-box;
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-focus-visible]) {
+  background-image: linear-gradient(to bottom right, #9c28af 0%, #6338ee 66%, #274dea 100%);
+  background-origin: border-box;
+}
+
+.react-aria-LinkButton:where([data-variant="premium"][data-disabled]) {
+  background-image: none;
+  background-origin: border-box;
+}
+
+.react-aria-LinkButton:where([data-variant="genai"]) {
+  background-image: linear-gradient(to bottom right, #d73220 0%, #d92361 33%, #7155fa 100%);
+  background-origin: border-box;
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-hovered]) {
+  background-image: linear-gradient(to bottom right, #b72818 0%, #ba1650 33%, #6338ee 100%);
+  background-origin: border-box;
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-pressed]) {
+  background-image: linear-gradient(to bottom right, #b72818 0%, #ba1650 33%, #6338ee 100%);
+  background-origin: border-box;
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-focus-visible]) {
+  background-image: linear-gradient(to bottom right, #b72818 0%, #ba1650 33%, #6338ee 100%);
+  background-origin: border-box;
+}
+
+.react-aria-LinkButton:where([data-variant="genai"][data-disabled]) {
+  background-image: none;
+  background-origin: border-box;
+}
+
+.react-aria-LinkButton[data-icon-only] {
+  padding: 0;
+  aspect-ratio: 1;
+}
+
+.react-aria-LinkButton[data-size="XS"] {
+  padding: calc((var(--catalog-token-size-height-XS) - var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-link-button-padding-x-XS, calc(var(--catalog-token-size-height-XS) * 1 / 2));
+  font-size: var(--catalog-token-text-2xs);
+  border-radius: var(--catalog-token-radius-full);
+  line-height: var(--catalog-token-text-2xs--line-height);
+  font-weight: 500;
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-XS);
+  gap: var(--catalog-token-link-button-gap-XS, calc(var(--catalog-token-text-2xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+  --icon-size: var(--catalog-token-link-button-icon-size-XS, calc(var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height)));
+  --icon-gap: var(--catalog-token-link-button-icon-gap-XS, calc(var(--catalog-token-text-2xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+}
+
+.react-aria-LinkButton[data-size="S"] {
+  padding: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-link-button-padding-x-S, calc(var(--catalog-token-size-height-S) * 1 / 2));
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-full);
+  line-height: var(--catalog-token-text-xs--line-height);
+  font-weight: 500;
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-S);
+  gap: var(--catalog-token-link-button-gap-S, calc(var(--catalog-token-text-xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+  --icon-size: var(--catalog-token-link-button-icon-size-S, calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)));
+  --icon-gap: var(--catalog-token-link-button-icon-gap-S, calc(var(--catalog-token-text-xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+}
+
+.react-aria-LinkButton[data-size="M"] {
+  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-link-button-padding-x-M, calc(var(--catalog-token-size-height-M) * 1 / 2));
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-full);
+  line-height: var(--catalog-token-text-sm--line-height);
+  font-weight: 500;
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-M);
+  gap: var(--catalog-token-link-button-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+  --icon-size: var(--catalog-token-link-button-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
+  --icon-gap: var(--catalog-token-link-button-icon-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+}
+
+.react-aria-LinkButton[data-size="L"] {
+  padding: calc((var(--catalog-token-size-height-L) - var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-link-button-padding-x-L, calc(var(--catalog-token-size-height-L) * 1 / 2));
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-full);
+  line-height: var(--catalog-token-text-base--line-height);
+  font-weight: 500;
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-L);
+  gap: var(--catalog-token-link-button-gap-L, calc(var(--catalog-token-text-base) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+  --icon-size: var(--catalog-token-link-button-icon-size-L, calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)));
+  --icon-gap: var(--catalog-token-link-button-icon-gap-L, calc(var(--catalog-token-text-base) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+}
+
+.react-aria-LinkButton[data-size="XL"] {
+  padding: calc((var(--catalog-token-size-height-XL) - var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-link-button-padding-x-XL, calc(var(--catalog-token-size-height-XL) * 1 / 2));
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-full);
+  line-height: var(--catalog-token-text-lg--line-height);
+  font-weight: 500;
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-XL);
+  gap: var(--catalog-token-link-button-gap-XL, calc(var(--catalog-token-text-lg) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+  --icon-size: var(--catalog-token-link-button-icon-size-XL, calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)));
+  --icon-gap: var(--catalog-token-link-button-icon-gap-XL, calc(var(--catalog-token-text-lg) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-field-button="XS"]) {
+  border-radius: var(--catalog-token-radius-sm);
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-field-button="S"]) {
+  border-radius: 7px;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-field-button="M"]) {
+  border-radius: 8px;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-field-button="L"]) {
+  border-radius: 9px;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-field-button="XL"]) {
+  border-radius: 10px;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton {
+  border-width: 0px;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-fill-style="outline"]) {
+  border-width: 2px;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-variant="premium"]) {
+  border-width: 0px;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-variant="genai"]) {
+  border-width: 0px;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-field-button="XS"]) {
+  border-width: 0px;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-field-button="S"]) {
+  border-width: 0px;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-field-button="M"]) {
+  border-width: 0px;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-field-button="L"]) {
+  border-width: 0px;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-field-button="XL"]) {
+  border-width: 0px;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-picker]) {
+  box-shadow: none;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-picker][data-invalid]) {
+  box-shadow: inset 0 0 0 2px var(--negative);
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-picker][data-quiet]) {
+  box-shadow: none;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-picker][data-quiet][data-focus-visible]) {
+  box-shadow: inset 0 -2px var(--accent);
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-picker][data-disabled]) {
+  box-shadow: none;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton {
+  --catalog-button-border-width: 0px;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-fill-style="outline"]) {
+  --catalog-button-border-width: 2px;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-variant="premium"]) {
+  --catalog-button-border-width: 0px;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-variant="genai"]) {
+  --catalog-button-border-width: 0px;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-field-button="XS"]) {
+  --catalog-button-border-width: 0px;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-field-button="S"]) {
+  --catalog-button-border-width: 0px;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-field-button="M"]) {
+  --catalog-button-border-width: 0px;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-field-button="L"]) {
+  --catalog-button-border-width: 0px;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-field-button="XL"]) {
+  --catalog-button-border-width: 0px;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton {
+  padding-top: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--catalog-button-border-width)) / 2);
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-size="XS"]) {
+  padding-top: calc((var(--catalog-token-size-height-XS) - var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height) - 2 * var(--catalog-button-border-width)) / 2);
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-size="S"]) {
+  padding-top: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--catalog-button-border-width)) / 2);
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-size="M"]) {
+  padding-top: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--catalog-button-border-width)) / 2);
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-size="L"]) {
+  padding-top: calc((var(--catalog-token-size-height-L) - var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height) - 2 * var(--catalog-button-border-width)) / 2);
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-size="XL"]) {
+  padding-top: calc((var(--catalog-token-size-height-XL) - var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height) - 2 * var(--catalog-button-border-width)) / 2);
+}
+
+.react-aria-LinkButton.react-aria-LinkButton {
+  padding-bottom: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--catalog-button-border-width)) / 2);
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-size="XS"]) {
+  padding-bottom: calc((var(--catalog-token-size-height-XS) - var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height) - 2 * var(--catalog-button-border-width)) / 2);
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-size="S"]) {
+  padding-bottom: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--catalog-button-border-width)) / 2);
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-size="M"]) {
+  padding-bottom: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--catalog-button-border-width)) / 2);
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-size="L"]) {
+  padding-bottom: calc((var(--catalog-token-size-height-L) - var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height) - 2 * var(--catalog-button-border-width)) / 2);
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-size="XL"]) {
+  padding-bottom: calc((var(--catalog-token-size-height-XL) - var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height) - 2 * var(--catalog-button-border-width)) / 2);
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-focus-visible]) {
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-disabled]) {
+  cursor: not-allowed;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-disabled]) {
+  pointer-events: none;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-picker][data-quiet]) {
+  outline: none;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-search-field-part][data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-search-field-part]) {
+  outline-offset: -4px;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-picker][data-quiet]) {
+  padding-left: 0;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:where([data-picker][data-quiet]) {
+  padding-right: 0;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:not([slot='chevron'], [slot='drag'], [slot='trigger']) {
+  will-change: transform;
+}
+
+.react-aria-LinkButton.react-aria-LinkButton:not([slot='chevron'], [slot='drag'], [slot='trigger']):where([data-pressed]) {
+  transform: perspective(max(var(--catalog-press-height, 0px), calc(var(--catalog-press-width, 0px) / 3), 24px)) translate3d(0, 0, -2px);
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-LinkButton {
+    forced-color-adjust: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .react-aria-LinkButton {
+    transition-duration: 0s !important;
+  }
+}
+
+  .react-aria-LinkButton {
+    text-decoration: none;
+  }
+
+
+} /* @layer components */

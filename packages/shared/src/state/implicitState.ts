@@ -32,6 +32,7 @@ export interface ImplicitStateSource {
 const VARIABLE_TYPE_OF: Partial<Record<ValueTypeId, VariableDefType>> = {
   boolean: "boolean",
   number: "number",
+  numberRange: "object",
   string: "string",
   key: "string",
   keys: "array",

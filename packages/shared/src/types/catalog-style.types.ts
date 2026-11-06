@@ -615,6 +615,8 @@ export interface ComponentRuleStructure {
  * top-level rule.containerStyles` 순으로 합성 (Δ2 precedence).
  */
 export interface ComponentRuleComposition {
+  /** Root layout may be composite while background/border remain owned by the variant tree. */
+  rootPaint?: "variant";
   /** root layout token. `CATALOG_LAYOUT_STYLES[layout]` 로 base container style 파생 (Δ2 최저 우선순위). */
   layout?: ComponentRuleLayoutToken;
   /** root flex gap (예: "var(--spacing-xs)"). */

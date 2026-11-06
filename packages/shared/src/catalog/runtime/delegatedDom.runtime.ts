@@ -1,3 +1,18 @@
+import { catalogSelectBoxText } from "./selectBoxText";
+import { CatalogActionBar } from "./selectionComposites.components";
+import { catalogSelectionCountText } from "../document/selectionCountValue";
+import { ListBoxItem as AriaSelectBoxItem } from "react-aria-components/ListBox";
+import {
+  SegmentedControlItem as AriaSegmentButton,
+  SegmentedControl as AriaSegmentGroup,
+} from "../../components/SegmentedControl";
+import { RangeSlider as CatalogRangeSlider } from "../../components/RangeSlider";
+import {
+  catalogSegmentItems,
+  catalogSegmentKey,
+  catalogSegmentSelected,
+} from "./segmentedSelection";
+import { catalogRangeValue } from "./rangeSliderValue";
 import {
   catalogPickerSelectionItem,
   catalogPickerOptions,
@@ -1828,6 +1843,98 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   taglist: {
     render: (input) => createElement(TagListRun, { input }),
   },
+  actionbar: {
+    render: (input) => {
+      const count =
+        input.runtimeProps?.(input.node.id)?.selectedItemCount ??
+        input.node.props.selectedItemCount ??
+        0;
+      if (count === 0) return createElement(Fragment, { key: input.node.id });
+      const clear = () => {
+        input.handlersOf?.(input.node.id)?.onClearSelection?.();
+      };
+      return catalogStateFrame(
+        input.node.id,
+        input.node.id,
+        {
+          selectedCountText: catalogSelectionCountText(
+            count,
+            input.root.environmentLocale,
+          ),
+        },
+        createElement(
+          CatalogActionBar,
+          {
+            ...marker(input),
+            className: "react-aria-ActionBar",
+            "data-size": "M",
+            "data-variant": "default",
+            "data-emphasized":
+              input.node.props.isEmphasized === true || undefined,
+            style: input.style,
+            clear,
+          },
+          ...renderAll(input),
+        ),
+      );
+    },
+  },
+  selectboxgroup: {
+    render: (input) => {
+      const props = input.node.props;
+      const items = children(input).filter(
+        (child) => catalogTypeName(input.root, child) === "SelectBox",
+      );
+      const selected = runtimeState(input, "selectedKeys") as string[] | "all";
+      return createElement(
+        AriaListBox as ElementType,
+        {
+          ...marker(input),
+          key: stateKey(input, selectionKey(input.node.id, selected)),
+          className: "react-aria-SelectBoxGroup",
+          "data-size": "M",
+          "data-orientation": props.orientation || "vertical",
+          "data-selection-mode": props.selectionMode || "single",
+          style: input.style,
+          "aria-label": props["aria-label"] || "Options",
+          layout: "grid",
+          orientation: props.orientation || "vertical",
+          selectionMode: props.selectionMode || "single",
+          disallowEmptySelection: bool(props.disallowEmptySelection),
+          disabledKeys: items
+            .filter((child) => props.isDisabled || child.props.isDisabled)
+            .map((child) =>
+              resolveStaticItemKey(
+                child.props as Record<string, unknown>,
+                child.id,
+              ),
+            ),
+          ...controlled(input, SELECTED_KEYS, selected, catalogSelectionValue),
+        },
+        ...renderAll(input, items),
+      );
+    },
+  },
+  selectbox: {
+    render: (input) =>
+      createElement(AriaSelectBoxItem as ElementType, {
+        ...marker(input),
+        id: resolveStaticItemKey(
+          input.node.props as Record<string, unknown>,
+          input.node.id,
+        ),
+        className: "react-aria-SelectBox",
+        "data-variant": "default",
+        "data-size": "M",
+        "data-orientation": input.node.derivedProps?.orientation || "vertical",
+        style: input.style,
+        textValue: catalogSelectBoxText(input.node, (id) =>
+          input.root.domInputs.get(id),
+        ),
+        isDisabled: input.node.props.isDisabled,
+        children: catalogStateChildren(input.node.id, () => renderAll(input)),
+      }),
+  },
   listbox: {
     ownsChild: (child, _parent, root) =>
       !["ListBoxItem", "ListBoxSection"].includes(
@@ -2597,6 +2704,53 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       );
     },
   },
+  rangeslider: {
+    render: (input) => {
+      const props = input.node.props;
+      const { min, max } = catalogSliderRange(input.node);
+      const range = catalogRangeValue(
+        runtimeState(input, "value"),
+        min,
+        max,
+        Number(props.step ?? 1),
+      );
+      const value = range;
+      return withI18n(
+        createElement(CatalogRangeSlider as ElementType, {
+          ...marker(input),
+          // (A static render's value is RAC's run state — `defaultValue`; a document edit of the
+          // value starts it again. A running Preview's is controlled — ADR-280.)
+          key: stateKey(input, `${input.node.id}:${value}`),
+          style: input.style,
+          className: "react-aria-Slider react-aria-RangeSlider",
+          startName: props.startName,
+          endName: props.endName,
+          form: props.form,
+          size: props.size,
+          labelPosition: props.labelPosition,
+          labelAlign: props.labelAlign,
+          trackStyle: props.trackStyle,
+          thumbStyle: props.thumbStyle,
+          isEmphasized: props.isEmphasized,
+          "data-size": str(props.size) || "M",
+          "data-label-position": str(props.labelPosition) || "top",
+          // (S2 start · end — start is the sheet's default, so only end is an attribute.)
+          "data-label-align": props.labelAlign === "end" ? "end" : undefined,
+          "data-emphasized": bool(props.isEmphasized) || undefined,
+          ...controlled(input, VALUE, value),
+          minValue: min,
+          maxValue: max,
+          step: num(props.step) ?? 1,
+          formatOptions: catalogNumberFormatOptions(props.formatOptions),
+          isDisabled: bool(props.isDisabled),
+          // (No visible label: RAC needs a name — the type's own.)
+          "aria-label": str(props.label).trim() ? undefined : "Range Slider",
+          children: catalogStateChildren(input.node.id, () => renderAll(input)),
+        }),
+        props.locale,
+      );
+    },
+  },
   // ADR-256 Phase 7a: the ProgressBar is RAC's, its children in order — the reference `Label` +
   // value text (`{valueText}`) + track > fill (`width: {percentage}%`), and anything the author put
   // in. Its render props are the state frame the bound parts read (Decision 12 — `stateFrames.tsx`).
@@ -3028,6 +3182,39 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   // ADR-256 Phase 3: a ToggleButtonGroup draws its children in order (its ToggleButtons and anything
   // the author put in) — the shared group gives its buttons the S2 contexts (indicator · emphasized ·
   // quiet · static color).
+  segmentedcontrol: {
+    watchesChildren: (node, root) =>
+      catalogSegmentItems(node, domGet(root)).map((item) => item.id),
+    render: (input) => {
+      const props = input.node.props;
+      const selected = runtimeState(input, "selectedKey");
+      return createElement(AriaSegmentGroup as ElementType, {
+        ...marker(input),
+        style: input.style,
+        className: "react-aria-SegmentedControl",
+        key: stateKey(input, `${input.node.id}:${selected}`),
+        orientation: "horizontal",
+        selectionMode: "single",
+        disallowEmptySelection: true,
+        "aria-label": props["aria-label"] || "View",
+        isDisabled: bool(props.isDisabled),
+        "data-justified": bool(props.isJustified) || undefined,
+        ...controlled(input, SELECTED_KEY, selected),
+        children: renderAll(input),
+      });
+    },
+  },
+  segmentedcontrolitem: {
+    render: (input) =>
+      createElement(AriaSegmentButton as ElementType, {
+        ...marker(input),
+        id: catalogSegmentKey(input.node),
+        style: input.style,
+        className: "react-aria-SegmentedControlItem",
+        isDisabled: bool(input.node.props.isDisabled),
+        children: catalogStateChildren(input.node.id, () => renderAll(input)),
+      }),
+  },
   togglebuttongroup: {
     // Its selection is its ToggleButtons' `isSelected` — through the frames the author put
     // between (they stay in the group's RAC context — ADR-256 후속 18).
@@ -3077,7 +3264,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           density: input.node.props.density,
           isQuiet: input.node.props.isQuiet,
           isJustified: input.node.props.isJustified,
-          staticColor: input.node.props.staticColor,
+          staticColor:
+            input.node.derivedProps?.staticColor ??
+            input.node.props.staticColor,
           isDisabled: input.node.props.isDisabled,
           style: input.style,
         } as Parameters<typeof ActionButtonGroup>[0],
@@ -3840,6 +4029,8 @@ export function catalogStateSourceValue(
     case "isOpen":
       return props.isOpen ?? props.defaultOpen ?? node.displayState === "open";
     case "selectedKey":
+      if (type === "SegmentedControl")
+        return catalogSegmentSelected(node, domGet(root));
       if (type === "ComboBox" && props.selectedKey === undefined) {
         const selected = catalogComboBoxSelectedOption(
           node,
@@ -3926,6 +4117,15 @@ export function catalogStateSourceValue(
         return props.selectionMode === "multiple" ? keys : (keys[0] ?? null);
       }
       if (type === "Slider") return catalogSliderRange(node).value;
+      if (type === "RangeSlider") {
+        const { min, max } = catalogSliderRange(node);
+        return catalogRangeValue(
+          props.value,
+          min,
+          max,
+          Number(props.step ?? 1),
+        );
+      }
       if (type === "CheckboxGroup")
         return catalogToggleGroupItems(
           node,

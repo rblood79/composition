@@ -42,7 +42,10 @@ export interface CatalogStateSource {
    * a reader at this resolution path: the record drawing the variable's owner there. Absent = the
    * owner's id (no runtime value — its default).
    */
-  elementKey?(ownerId: string, instancePath: readonly string[]): string | undefined;
+  elementKey?(
+    ownerId: string,
+    instancePath: readonly string[],
+  ): string | undefined;
 }
 
 /** One variable a record sees, with the scope its value lives in. */
@@ -96,6 +99,13 @@ function documentDefault(variable: {
 function variableType(
   type: ValueType | "object" | "array" | "date",
 ): VariableDefType {
+  if (
+    type === "numberRange" ||
+    type === "labeledValue" ||
+    type === "labeledFormat"
+  )
+    return "object";
+  if (type === "selectionCount") return "number";
   if (type === "object" || type === "array" || type === "date") return type;
   return type === "string[]" || type === "items"
     ? "array"
@@ -199,7 +209,8 @@ export function catalogStateEnv(
 ): CatalogStateEnv {
   const valueOf = (entry: CatalogVisibleState) => {
     const derived = entry.derived?.() ?? derive?.(entry);
-    if (derived) return derived.value ?? defaultOf(entry.type, entry.defaultValue);
+    if (derived)
+      return derived.value ?? defaultOf(entry.type, entry.defaultValue);
     return (
       read?.(entry.id, entry.scope) ?? defaultOf(entry.type, entry.defaultValue)
     );
@@ -239,13 +250,16 @@ export function catalogStateProps<T extends Record<string, unknown>>(
   );
   if (!templates && !conditions) return undefined;
   const scope = env();
-  const props = templates ? resolveStateTemplateProps(authored, scope) : authored;
+  const props = templates
+    ? resolveStateTemplateProps(authored, scope)
+    : authored;
   if (!conditions) return props;
   // (ADR-284 Phase 6 — a value condition's prop is the condition's verdict.)
   const out: Record<string, unknown> = { ...props };
   for (const [key, value] of Object.entries(authored))
     if (isPropWhen(value)) out[key] = catalogPropWhenValue(value, scope);
-    else if (isPropVar(value)) out[key] = catalogPropVarValue(key, value, scope);
+    else if (isPropVar(value))
+      out[key] = catalogPropVarValue(key, value, scope);
   return out as T;
 }
 
@@ -284,9 +298,7 @@ export function catalogPropWhenValue(
   when: PropWhen,
   env: Pick<CatalogStateEnv, "byId">,
 ): boolean {
-  const read = (
-    ref: string,
-  ): { value: unknown; type?: string } | undefined => {
+  const read = (ref: string): { value: unknown; type?: string } | undefined => {
     const [id, ...path] = ref.slice("!var.".length).split(".");
     const found = id ? env.byId(id) : undefined;
     if (!found) return undefined;
@@ -318,12 +330,12 @@ export function catalogPropWhenValue(
     subject.type === "date"
       ? "date"
       : typeof cell === "number"
-      ? "number"
-      : typeof cell === "boolean"
-        ? "boolean"
-        : Array.isArray(cell) || cell instanceof Set
-          ? "list"
-          : "text";
+        ? "number"
+        : typeof cell === "boolean"
+          ? "boolean"
+          : Array.isArray(cell) || cell instanceof Set
+            ? "list"
+            : "text";
   return viewCompare(when.op, cell, value, { kind });
 }
 
@@ -347,9 +359,10 @@ export function catalogBindingKey(
     source?.params?.bind(source),
   );
   const runtime = source?.read !== undefined;
-  const whole = /^\{\{\s*([A-Za-z_$][\w$]*)((?:\.[A-Za-z_$][\w$]*)*)\s*\}\}$/.exec(
-    key.trim(),
-  );
+  const whole =
+    /^\{\{\s*([A-Za-z_$][\w$]*)((?:\.[A-Za-z_$][\w$]*)*)\s*\}\}$/.exec(
+      key.trim(),
+    );
   if (whole) {
     let value = env.get(whole[1]!);
     for (const segment of (whole[2] ?? "").split(".").filter(Boolean))
@@ -487,7 +500,8 @@ export function catalogVariableValue(
 export function catalogStateNames(authored: Record<string, unknown>): string[] {
   const names = collectPropsStateRefs(authored);
   for (const value of Object.values(authored))
-    if (isPropVar(value)) names.push(value.ref.slice("!var.".length).split(".")[0]!);
+    if (isPropVar(value))
+      names.push(value.ref.slice("!var.".length).split(".")[0]!);
     else if (isPropWhen(value))
       for (const ref of [value.subject, value.value])
         if (typeof ref === "string" && ref.startsWith("!var."))

@@ -1,6 +1,12 @@
+import {
+  catalogLabeledValueFits,
+  catalogLabeledFormatFits,
+} from "./labeledValue";
+import { catalogSelectionCountFits } from "./selectionCountValue";
 import { isRichText } from "./textRuns";
 import { isRacColorString } from "./colorValue";
 import { catalogNumberFormatFits } from "./numberFormatValue";
+import { catalogNumberRangeFits } from "./numberRangeValue";
 import type { CalendarDuration, PropVar, PropWhen, ValueType } from "./types";
 
 /**
@@ -12,7 +18,11 @@ export function scalarFitsType(
   value: unknown,
   type: ValueType | string | undefined,
 ): boolean {
+  if (type === "selectionCount") return catalogSelectionCountFits(value);
+  if (type === "labeledValue") return catalogLabeledValueFits(value);
+  if (type === "labeledFormat") return catalogLabeledFormatFits(value);
   if (type === "slot") return typeof value === "string" || value === false;
+  if (type === "numberRange") return false;
   if (type === "columnSize") return catalogColumnSizeFits(value, false);
   if (type === "columnStaticSize") return catalogColumnSizeFits(value, true);
   if (type === "calendarDuration" || type === "numberFormat") return false;
@@ -29,10 +39,13 @@ export function scalarFitsType(
 export function catalogPropValueFits(value: unknown, type: string): boolean {
   // (ADR-284 Phase 6 — a variable's value fits any prop: it is read when the record resolves.)
   if (isPropVar(value)) return true;
+  if (type === "labeledValue") return catalogLabeledValueFits(value);
+  if (type === "labeledFormat") return catalogLabeledFormatFits(value);
   // (ADR-299 — range-formatted text is a string prop's value; where it may stand is the graph's.)
   if (isRichText(value)) return type === "string";
   if (type === "calendarDuration") return catalogCalendarDurationFits(value);
   if (type === "numberFormat") return catalogNumberFormatFits(value);
+  if (type === "numberRange") return catalogNumberRangeFits(value);
   if (type === "slot") return scalarFitsType(value, type);
   if (type === "string[]")
     return (

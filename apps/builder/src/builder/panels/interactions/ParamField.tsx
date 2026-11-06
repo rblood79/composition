@@ -13,6 +13,7 @@ import { memo } from "react";
 import type { CapabilityParam } from "@composition/shared";
 
 import { PropertyInput } from "../../components/property/PropertyInput";
+import { NumberRangeField } from "../properties/generic/NumberRangeField";
 import { useI18n } from "@/i18n";
 
 interface ParamFieldProps {
@@ -28,6 +29,14 @@ export const ParamField = memo(function ParamField({
 }: ParamFieldProps) {
   const { t } = useI18n();
   const isNumber = param.kind === "number";
+  if (param.kind === "number-range")
+    return (
+      <NumberRangeField
+        label={t(param.labelKey)}
+        value={value}
+        onChange={onChange}
+      />
+    );
 
   return (
     <PropertyInput

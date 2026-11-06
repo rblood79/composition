@@ -15,6 +15,8 @@ import { useFocusRing } from "@react-aria/focus";
 import { mergeProps } from "@react-aria/utils";
 import type { ComponentSizeSubset } from "../types";
 import { Skeleton } from "./Skeleton";
+import { useContext } from "react";
+import { SelectBoxSelectionContext } from "./SelectBoxSelectionContext";
 
 export interface CheckboxProps extends Omit<AriaCheckboxProps, "children"> {
   children?: React.ReactNode;
@@ -52,6 +54,43 @@ export function MyCheckbox(props: CheckboxProps) {
     ...restProps
   } = props;
   const { focusProps, isFocusVisible } = useFocusRing();
+  const selectBox = useContext(SelectBoxSelectionContext);
+
+  if (selectBox && restProps.slot === "selection") {
+    return (
+      <div
+        slot="selection"
+        aria-hidden="true"
+        className="react-aria-Checkbox"
+        data-size={size}
+        data-selected={selectBox.isSelected || undefined}
+        data-disabled={selectBox.isDisabled || undefined}
+        style={
+          typeof restProps.style === "function"
+            ? restProps.style({
+                ...selectBox,
+                isIndeterminate: false,
+                isReadOnly: restProps.isReadOnly === true,
+                isRequired: restProps.isRequired === true,
+                isInvalid: restProps.isInvalid === true,
+                isPressed: false,
+                isHovered: false,
+                isFocused: false,
+                isFocusVisible: false,
+                defaultStyle: {},
+              })
+            : restProps.style
+        }
+      >
+        {children ?? (
+          <CheckboxIndicatorBox
+            isSelected={selectBox.isSelected}
+            isIndeterminate={false}
+          />
+        )}
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

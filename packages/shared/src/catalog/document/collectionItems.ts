@@ -10,6 +10,7 @@ export const COLLECTION_ITEM_OWNERS: Readonly<
     { readonly owners: readonly string[]; readonly through: readonly string[] }
   >
 > = {
+  SelectBox: { owners: ["SelectBoxGroup"], through: [] },
   Tab: { owners: ["Tabs"], through: ["TabList"] },
   Tag: { owners: ["TagGroup"], through: ["TagList"] },
   ListBoxItem: { owners: ["ListBox"], through: ["ListBoxSection"] },
@@ -73,7 +74,9 @@ export function catalogCollectionSelectionMode(
 ): string {
   const mode = props.selectionMode;
   if (typeof mode === "string" && mode) return mode;
-  return collectionType === "Tree" ? "single" : "none";
+  return collectionType === "Tree" || collectionType === "SelectBoxGroup"
+    ? "single"
+    : "none";
 }
 
 /**

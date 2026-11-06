@@ -1,3 +1,7 @@
+import {
+  catalogLabeledValueFits,
+  catalogLabeledFormatFits,
+} from "./labeledValue";
 import { isNormalRichText, isTextRunMarkKey } from "./textRuns";
 import {
   CATALOG_FORMAT,
@@ -33,6 +37,7 @@ import { CATALOG_DERIVED_VARIANT_PROPS } from "./derivedVariantProps";
 import { catalogCalendarDurationFits } from "./valueType";
 import { isDateValueText } from "../../state/dateValue";
 import { catalogNumberFormatFits } from "./numberFormatValue";
+import { catalogNumberRangeFits } from "./numberRangeValue";
 import type { ComputedSchemaField } from "../../collections/formula/compute";
 import { formulaRuntimeSync } from "../../collections/formula/engine";
 
@@ -243,6 +248,8 @@ const layoutValueChoices: Readonly<
   marginBottom: (value) => value === "auto" || cssLength(value, true),
   marginLeft: (value) => value === "auto" || cssLength(value, true),
   verticalAlign: keyword("baseline", "top", "middle", "bottom"),
+  contain: keyword("none", "inline-size"),
+  containIntrinsicWidth: (value) => /^(?:0|\d+(?:\.\d+)?px)$/.test(value),
   gridTemplateColumns: gridTracks,
   gridTemplateRows: gridTracks,
   gridTemplateAreas: (value) => /^("[\w. ]+"\s*)+$/.test(value.trim()),
@@ -283,6 +290,10 @@ const valueTypes = new Set<ValueType>([
   "calendarDuration",
   "racColor",
   "numberFormat",
+  "selectionCount",
+  "numberRange",
+  "labeledValue",
+  "labeledFormat",
 ]);
 /** State variables hold scalars only. */
 const scalarValueTypes = new Set<ValueType>(["string", "number", "boolean"]);
@@ -710,8 +721,17 @@ function authoredValue(
   if (typeof value !== "object" || value === null) return scalar(value, at);
   // ADR-256 Phase 9 · S2 formatOptions: a prop's typed object — a calendar duration or a number
   // format (the accepts check is the graph's).
+  if (
+    allowStructured &&
+    (catalogLabeledValueFits(value) || catalogLabeledFormatFits(value))
+  )
+    return;
   if (allowStructured && !("kind" in value)) {
-    if (!catalogCalendarDurationFits(value) && !catalogNumberFormatFits(value))
+    if (
+      !catalogCalendarDurationFits(value) &&
+      !catalogNumberFormatFits(value) &&
+      !catalogNumberRangeFits(value)
+    )
       invalid("INVALID_OBJECT_VALUE", at);
     return;
   }
@@ -2311,7 +2331,8 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
               action.value.forEach((value, index) =>
                 scalar(value, `${at}.value[${index}]`),
               );
-            else scalar(action.value, `${at}.value`);
+            else if (!catalogNumberRangeFits(action.value))
+              scalar(action.value, `${at}.value`);
           }
         } else invalid("UNKNOWN_ACTION_OPCODE", `${at}.opcode`);
       };

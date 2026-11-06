@@ -57,3 +57,17 @@ export const valueCommitColor = {
     },
   },
 } as const satisfies InteractionConcept;
+
+/** S2 RangeSlider adapts the RAC Slider's two values to its RangeValue payload. */
+export const valueCommitRange = {
+  ...valueCommitNumber,
+  racDoc: "Slider.md — Multiple thumbs (S2 RangeSlider RangeValue adapter)",
+  state: { ...valueCommitNumber.state, valueType: "numberRange" },
+  capabilities: {
+    setValue: {
+      labelKey: "capabilities.setValue",
+      value: "!param",
+      param: { kind: "number-range", labelKey: "capabilities.paramValue" },
+    },
+  },
+} as const satisfies InteractionConcept;

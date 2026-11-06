@@ -1,0 +1,62 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog ActionBar — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-ActionBar {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  box-shadow: var(--shadow-md);
+  width: 100%;
+  height: fit-content;
+  max-width: 960px;
+  display: flex;
+  align-items: center;
+
+  /* Default variant */
+  background: var(--bg-inset);
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  padding: 12px 8px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-lg);
+  line-height: var(--catalog-token-text-sm--line-height);
+  gap: 16px;
+}
+
+.react-aria-ActionBar:where([data-variant="default"]) {
+  background: var(--bg-inset);
+  color: var(--fg);
+}
+
+.react-aria-ActionBar:where([data-variant="default"][data-emphasized]) {
+  background: var(--fg);
+  color: var(--on-neutral);
+}
+
+.react-aria-ActionBar.react-aria-ActionBar:where([data-emphasized]) {
+  --neutral-content: var(--on-neutral);
+  --neutral-content-hover: var(--on-neutral);
+  --disabled-content: color-mix(in srgb, var(--on-neutral) 21%, transparent);
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-ActionBar {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */

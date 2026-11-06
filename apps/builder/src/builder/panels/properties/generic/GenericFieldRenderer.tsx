@@ -1,3 +1,5 @@
+import { LabeledValueField } from "./LabeledValueField";
+import { SelectionCountField } from "./SelectionCountField";
 /**
  * ADR-912 단계 2 — generic field renderer (HC#1/#2).
  *
@@ -41,6 +43,7 @@ import {
 import { PropertyFieldset } from "../../../components/property/PropertyFieldset";
 import { isRacColorString } from "../../../../../../../packages/shared/src/catalog/document/colorValue";
 import { NumberFormatField } from "./NumberFormatField";
+import { NumberRangeField } from "./NumberRangeField";
 import { catalogColumnTrack } from "../../../../../../../packages/shared/src/catalog/runtime/tableTracks";
 import { PropertyNumberInput } from "../../../components/property/PropertyNumberInput";
 import { PropertyPlacementPicker } from "../../../components/property/PropertyPlacementPicker";
@@ -1012,9 +1015,31 @@ const GenericField = memo(function GenericField({
       );
 
     // S2 · RAC formatOptions — style + its keys, one object write (rows of its own).
+    case "labeled-value":
+    case "labeled-format":
+      return (
+        <LabeledValueField
+          label={field.label}
+          value={value}
+          format={field.kind === "labeled-format"}
+          onChange={update}
+        />
+      );
     case "number-format":
       return (
         <NumberFormatField field={field} value={value} onChange={update} />
+      );
+    case "selection-count":
+      return (
+        <SelectionCountField
+          label={field.label}
+          value={value}
+          onChange={update}
+        />
+      );
+    case "number-range":
+      return (
+        <NumberRangeField label={field.label} value={value} onChange={update} />
       );
 
     // ADR-256 Phase 9 — a count + Days · Weeks · Months, one object write.

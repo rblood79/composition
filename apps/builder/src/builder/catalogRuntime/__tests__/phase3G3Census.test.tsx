@@ -160,7 +160,7 @@ function run(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 61,
+    libraryContractVersion: 62,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -571,6 +571,7 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
     //   SideNavHeader (ADR-300 — the S2 SideNav family on RAC NavigationTree).
     // + TokenField family (3), PreviewTrigger (1), Sheet family (5).
     // + ActionButton · ActionButtonGroup.
-    expect(types.length).toBe(170);
+    // + S2 독립 6종 및 SegmentedControlItem · SelectBox (8).
+    expect(types.length).toBe(178);
   }, 120_000);
 });

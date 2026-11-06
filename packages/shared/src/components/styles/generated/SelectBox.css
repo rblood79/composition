@@ -1,0 +1,137 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog SelectBox — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-SelectBox {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+
+  /* Default variant */
+  background: var(--bg-inset);
+  color: var(--fg);
+  border: 2px solid transparent;
+
+  /* Default size */
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-lg);
+  line-height: var(--catalog-token-text-sm--line-height);
+  font-weight: 400;
+  border-width: 2px;
+  gap: 8px;
+}
+
+.react-aria-SelectBox:where([data-variant="default"]) {
+  background: var(--bg-inset);
+}
+
+.react-aria-SelectBox:where([data-variant="default"][data-disabled]) {
+  background: var(--bg-disabled);
+}
+
+.react-aria-SelectBox:where([data-variant="default"]) {
+  color: var(--fg);
+}
+
+.react-aria-SelectBox:where([data-variant="default"][data-disabled]) {
+  color: var(--bg-disabled);
+}
+
+.react-aria-SelectBox:where([data-variant="default"]) {
+  border-color: transparent;
+}
+
+.react-aria-SelectBox:where([data-variant="default"][data-selected]) {
+  border-color: var(--fg);
+}
+
+.react-aria-SelectBox:where([data-variant="default"][data-disabled]) {
+  border-color: transparent;
+}
+
+.react-aria-SelectBox.react-aria-SelectBox {
+  box-shadow: var(--shadow-sm);
+}
+
+.react-aria-SelectBox.react-aria-SelectBox:where([data-hovered]) {
+  box-shadow: var(--shadow-md);
+}
+
+.react-aria-SelectBox.react-aria-SelectBox:where([data-selected]) {
+  box-shadow: var(--shadow-md);
+}
+
+.react-aria-SelectBox.react-aria-SelectBox:where([data-disabled]) {
+  box-shadow: none;
+}
+
+.react-aria-SelectBox.react-aria-SelectBox:where([data-focus-visible]) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-SelectBox[data-orientation="vertical"] {
+  width: 170px;
+  height: 170px;
+  min-width: 144px;
+  min-height: 144px;
+  max-width: 170px;
+  max-height: 170px;
+  padding: 24px;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.react-aria-SelectBox[data-orientation="horizontal"] {
+  width: 368px;
+  height: auto;
+  min-width: 188px;
+  min-height: 80px;
+  max-width: 480px;
+  max-height: 240px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+  padding-left: 32px;
+  padding-right: 24px;
+  flex-direction: row;
+  gap: 10px;
+  justify-content: flex-start;
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-SelectBox {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-SelectBox[data-orientation="vertical"] [slot="description"] {
+    display: none;
+  }
+
+  .react-aria-SelectBox[data-orientation="horizontal"] [slot="label"] {
+    text-align: start;
+    font-weight: 700;
+  }
+
+  .react-aria-SelectBox[data-disabled] [slot="selection"] {
+    display: none;
+  }
+
+
+} /* @layer components */

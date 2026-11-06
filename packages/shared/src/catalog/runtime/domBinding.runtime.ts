@@ -1,3 +1,7 @@
+import { SliderThumb as CatalogSliderThumb } from "../../components/RangeSlider";
+import { catalogSelectBoxDescriptionHidden } from "./selectBoxPresence";
+import { LinkButton } from "../../components/LinkButton";
+import { LabeledValue } from "../../components/LabeledValue";
 import {
   catalogPickerSelectionHidden,
   catalogPickerSelectionItem,
@@ -419,6 +423,8 @@ function cssColor(value: unknown, alpha = 1): string | undefined {
 
 /** Layout fields the box model does not carry, as the Rust input reads them. */
 const NODE_ITEM_LAYOUT_KEYS = [
+  "contain",
+  "containIntrinsicWidth",
   "flexGrow",
   "flexShrink",
   "flexBasis",
@@ -1109,7 +1115,8 @@ const bindings: Readonly<Record<string, DomBinding>> = {
             "data-catalog-id": node.id,
             "data-icon-only": node.derivedProps?._actionIconOnly || undefined,
             size: node.props.size,
-            staticColor: node.props.staticColor,
+            staticColor:
+              node.derivedProps?.staticColor ?? node.props.staticColor,
             isQuiet: node.props.isQuiet,
             type: node.props.type,
             isPending: node.props.isPending,
@@ -1122,6 +1129,42 @@ const bindings: Readonly<Record<string, DomBinding>> = {
           typeof node.props.children === "string" ? node.props.children : null,
         ),
     }),
+  labeledvalue: (node, style, children) =>
+    createElement(
+      LabeledValue,
+      {
+        key: node.id,
+        "data-catalog-id": node.id,
+        size: node.props.size,
+        labelPosition: node.props.labelPosition,
+        labelAlign: node.props.labelAlign,
+        style,
+      } as Parameters<typeof LabeledValue>[0],
+      ...children,
+    ),
+  linkbutton: (node, style, children) =>
+    createElement(
+      LinkButton,
+      {
+        key: node.id,
+        "data-catalog-id": node.id,
+        variant: node.props.variant,
+        size: node.props.size,
+        fillStyle: node.props.fillStyle,
+        staticColor: node.props.staticColor,
+        "data-size": node.props.size,
+        "data-variant": node.props.variant,
+        "data-fill-style": node.props.fillStyle,
+        "data-static-color": node.props.staticColor,
+        href: node.props.href as string | undefined,
+        target: node.props.target as string | undefined,
+        rel: node.props.rel as string | undefined,
+        isDisabled: node.props.isDisabled === true,
+        style,
+      } as Parameters<typeof LinkButton>[0],
+      ...children,
+      typeof node.props.children === "string" ? node.props.children : null,
+    ),
   button: (node, style, children) =>
     createElement(RacSlotScope, {
       key: node.id,
@@ -1472,11 +1515,23 @@ const bindings: Readonly<Record<string, DomBinding>> = {
     // S2 `thumbStyle: precise` — a narrow bar (width 6, size + 2 tall; the Canvas layout's values).
     const size = Number(node.visual.height ?? node.visual.width ?? 18);
     const precise = node.derivedProps?.thumbStyle === "precise";
-    return createElement(RAC.SliderThumb as ElementType, {
+    return createElement(CatalogSliderThumb as ElementType, {
       key: node.id,
       "data-catalog-id": node.id,
       ...(precise ? { "data-thumb-style": "precise" } : {}),
-      index: Number(node.props._thumbIndex ?? 0),
+      index: Number(node.props.index ?? node.props._thumbIndex ?? 0),
+      name:
+        typeof node.derivedProps?.name === "string"
+          ? node.derivedProps.name
+          : undefined,
+      form:
+        typeof node.derivedProps?.form === "string"
+          ? node.derivedProps.form
+          : undefined,
+      "aria-label":
+        typeof node.derivedProps?.thumbLabel === "string"
+          ? node.derivedProps.thumbLabel
+          : undefined,
       // (ADR-295 후속: S2 `size()` numbers — the device formula of the desktop px.)
       style: precise
         ? {
@@ -2401,7 +2456,11 @@ function ruleDom(
       ? { paddingRight: cssLength(catalogBoxModel(node).padding?.right ?? 0) }
       : {}),
   };
-  const racProps = binding ? toRacProps({ props: node.props }, binding) : {};
+  const bindingProps =
+    type === "ActionButton" && node.derivedProps?.staticColor
+      ? { ...node.props, staticColor: node.derivedProps.staticColor }
+      : node.props;
+  const racProps = binding ? toRacProps({ props: bindingProps }, binding) : {};
   const { children: textChildren, ...rest } = racProps;
   const lower = type.toLowerCase();
   // ADR-280 Decision 3 · 4 (Phase 0 probe P1) — an overlay's open state is its trigger's: a
@@ -3141,6 +3200,7 @@ const ORPHAN_ITEM_HOST: Readonly<Record<string, string>> = {
   listboxsection: "ListBox",
   gridlistsection: "GridList",
   menusection: "Menu",
+  selectbox: "SelectBoxGroup",
   listboxitem: "ListBox",
   gridlistitem: "GridList",
   menuitem: "Menu",
@@ -3153,6 +3213,7 @@ const ORPHAN_ITEM_HOST: Readonly<Record<string, string>> = {
 const COLLECTION_ONLY_RENDERERS: Readonly<Record<string, string>> = {
   tab: "tabs",
   tag: "taggroup",
+  selectbox: "selectboxgroup",
   listboxitem: "listbox",
   gridlistitem: "gridlist",
   breadcrumb: "breadcrumbs",
@@ -3624,6 +3685,14 @@ export function renderNode(
     catalogTableSelectionPartHidden(
       node,
       (recordId) => root.domInputs.get(recordId),
+      (entry) => catalogTypeName(root, entry),
+    )
+  )
+    return null;
+  if (
+    catalogSelectBoxDescriptionHidden(
+      node,
+      (id) => root.domInputs.get(id),
       (entry) => catalogTypeName(root, entry),
     )
   )
@@ -4366,7 +4435,10 @@ function withHtmlId(
     type === "Label" &&
     (() => {
       const owner = catalogDomPartParent(root, node);
-      return owner !== undefined && catalogTypeName(root, owner) === "Slider";
+      return (
+        owner !== undefined &&
+        ["Slider", "RangeSlider"].includes(catalogTypeName(root, owner))
+      );
     })();
   // (A Card in a CardView is the view's RAC GridListItem: its `id` is the item key the view's
   // selection names — `cardview` — so the author's HTML id would unselect it. A Card the view

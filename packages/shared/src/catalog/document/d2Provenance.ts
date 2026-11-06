@@ -59,6 +59,7 @@ export const CATALOG_D2_PROVENANCE: Readonly<
   Record<string, Readonly<Record<string, CatalogD2Source>>>
 > = {
   // ADR-281 Decision 3 — v3 Provider's cascade (S2's Provider dropped it; RAC Provider carries it).
+  SelectBox: { isSelected: "composition" },
   body: { isDisabled: "v3", isReadOnly: "v3", isRequired: "v3" },
   Avatar: { initials: "composition", isDisabled: "v3" },
   AvatarGroup: { isDisabled: "composition" },
@@ -101,6 +102,8 @@ export const CATALOG_D2_PROVENANCE: Readonly<
   ProgressBar: { showValueLabel: "v3" },
   SearchField: { isQuiet: "v3" },
   Slider: { showValueLabel: "v3" },
+  // Authored Text/Icon children expose their content on the S2 item instance.
+  SegmentedControlItem: { label: "composition", icon: "composition" },
   StatusLight: { isDisabled: "v3" },
   // (The RAC Table takes S2's table axes — `d2S2Alignment` reads it against S2's table type; the
   // height axes are composition's. ADR-277: the table is one type.)

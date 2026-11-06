@@ -897,11 +897,13 @@ export const CatalogEventRow = memo(function CatalogEventRow({
                 <ValueField
                   label={t(capabilityDef.param.labelKey)}
                   kind={
-                    capabilityDef.param.kind === "number"
-                      ? "number"
-                      : capabilityDef.param.kind === "icon"
-                        ? "icon"
-                        : "text"
+                    capabilityDef.param.kind === "number-range"
+                      ? "number-range"
+                      : capabilityDef.param.kind === "number"
+                        ? "number"
+                        : capabilityDef.param.kind === "icon"
+                          ? "icon"
+                          : "text"
                   }
                   choices={
                     capabilityDef.param.kind === "choice"

@@ -23,6 +23,7 @@ import { parseRuleValueRef } from "@composition/shared";
 import { PropertyFieldset } from "../../components/property/PropertyFieldset";
 import { PropertyIconPicker } from "../../components/property/PropertyIconPicker";
 import { PropertyInput } from "../../components/property/PropertyInput";
+import { NumberRangeField } from "../properties/generic/NumberRangeField";
 import { PropertySelect } from "../../components/property/PropertySelect";
 import { SearchField } from "../../components/ui/SearchField";
 import { useI18n } from "@/i18n";
@@ -47,7 +48,7 @@ const GROUP_LABEL = {
 interface ValueFieldProps {
   label: string;
   /** The literal's input kind (ADR-287 — `icon`: an icon name from the icon picker). */
-  kind: "text" | "number" | "boolean" | "icon";
+  kind: "text" | "number" | "number-range" | "boolean" | "icon";
   /** ADR-287 — a `choice` slot's values (the catalog's): the literal is one of them. */
   choices?: readonly { value: string; label: string }[];
   value: unknown;
@@ -206,7 +207,15 @@ export const ValueField = memo(function ValueField({
           className="react-aria-Button interactions-value-pick"
           aria-label={`${label}: ${t("interactions.valueClear")}`}
           onPress={() =>
-            onChange(kind === "number" ? 0 : kind === "boolean" ? false : "")
+            onChange(
+              kind === "number-range"
+                ? { start: 0, end: 100 }
+                : kind === "number"
+                  ? 0
+                  : kind === "boolean"
+                    ? false
+                    : "",
+            )
           }
         >
           <X aria-hidden="true" size={14} />
@@ -225,6 +234,13 @@ export const ValueField = memo(function ValueField({
         translateOptions={false}
         afterControl={<div className="interactions-value-after">{picker}</div>}
       />
+    );
+  if (kind === "number-range")
+    return (
+      <div>
+        <NumberRangeField label={label} value={value} onChange={onChange} />
+        {picker}
+      </div>
     );
   if (kind === "icon")
     return (

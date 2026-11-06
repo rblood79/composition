@@ -140,6 +140,8 @@ export type InspectorFieldKind =
   | "string"
   | "string-array"
   | "number"
+  | "selection-count"
+  | "number-range"
   | "icon"
   | "variant"
   | "size"
@@ -154,7 +156,9 @@ export type InspectorFieldKind =
   // ADR-258 — a Color control's color value: what RAC's `parseColor` accepts (`racColor`).
   | "rac-color"
   // S2 · RAC `formatOptions` — Intl number format options as one object (`numberFormat`).
-  | "number-format";
+  | "number-format"
+  | "labeled-value"
+  | "labeled-format";
 
 /**
  * `kind:"items-manager"` 의 개별 항목 인라인 편집 스키마.

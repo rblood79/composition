@@ -1,0 +1,54 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog SegmentedControl — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-SegmentedControl {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  border-radius: 8px;
+  gap: 4px;
+  width: fit-content;
+  height: fit-content;
+  display: flex;
+
+  /* Default variant */
+  background: var(--neutral-surface);
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  line-height: var(--catalog-token-text-sm--line-height);
+}
+
+.react-aria-SegmentedControl:where([data-variant="default"]) {
+  background: var(--neutral-surface);
+}
+
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-SegmentedControl {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-SegmentedControl[data-justified] > .react-aria-SegmentedControlItem {
+    flex-grow: 1;
+    flex-basis: 0;
+  }
+
+
+} /* @layer components */
