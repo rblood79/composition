@@ -1,5 +1,10 @@
 import type { DefinitionId, TokenId, VisualField } from "../document/types";
 import { catalogTokenValue } from "../document/themedToken";
+import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
+import {
+  catalogLocaleLineHeight,
+  catalogTypographyLocale,
+} from "./localeTypography";
 import type {
   CatalogCompositionRoot,
   CatalogConsumerNode,
@@ -52,6 +57,21 @@ export function catalogLibraryVisual(
         )
       )
         apply(rule.visual);
+  const typographyRule = COMPONENT_RULES_TABLE[root.typeOf(node)];
+  if (typographyRule?.localeTypography) {
+    const lineHeight = catalogLocaleLineHeight(
+      typographyRule,
+      node.props.size,
+      catalogTypographyLocale(
+        node,
+        (id) => root.domInputs.get(id),
+        root.typeOf,
+        root.environmentLocale,
+      ),
+      catalogHasExplicitVisual(root, node, "lineHeight"),
+    );
+    if (lineHeight !== undefined) values.lineHeight = lineHeight;
+  }
   return values;
 }
 

@@ -77,6 +77,7 @@ import {
   catalogLinkOutPaddingRight,
 } from "../document/itemLinks";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
+import { inlineTextContent } from "./inlineText";
 import type { ComponentRule } from "../../types/catalog-style.types";
 import { tableBinding } from "../bindings/Table.binding";
 import { componentOriginOf } from "../document/componentOrigin";
@@ -105,8 +106,13 @@ import {
   catalogNodeState,
   catalogSameResolvedTokenRefs,
   catalogFillTokenRefs,
+  copyResolvedTokenRefs,
   resolveCatalogNode,
 } from "../resolution/resolver";
+import {
+  catalogLocaleLineHeight,
+  catalogTypographyLocale,
+} from "./localeTypography";
 import {
   catalogAuthoredVisual,
   catalogHasAuthoredColor,
@@ -718,6 +724,15 @@ const glyphBindings = new Set(["icon", "illustration"]);
  * `maxWidth`: the wrapped `height` at that content width.
  */
 export interface CatalogTextMeasure {
+  /** Native CSS line-box metrics, when available; independent of the glyph paint backend. */
+  lineMetrics?(
+    font: CatalogTextFont,
+  ): { height: number; baseline: number } | undefined;
+  inline?(
+    text: string,
+    font: CatalogTextFont,
+    runs?: readonly CatalogTextRunFont[],
+  ): import("./engineTypes").InlineTextShape;
   (
     text: string,
     font: CatalogTextFont,
@@ -767,9 +782,9 @@ export interface CatalogFontBox {
   xHeight?: number;
 }
 /**
- * The baseline of a CSS line box of `lineHeight` px (Chrome: the rounded ascent and descent, the
- * leading split in half — 16px Pretendard in 24 → 15 + (24 − 19) / 2 = 17.5). Without a line
- * height (`normal`) the box is the font's own ascent + descent.
+ * Legacy font-box baseline estimate for consumers without native line metrics. Platforms can
+ * retain fractional CSS baselines; `catalogInlineLineMetrics` prefers those measured values.
+ * Without a line height (`normal`) this box uses the font's own ascent + descent.
  */
 export function catalogCssLineBaseline(
   box: CatalogFontBox,
@@ -778,9 +793,32 @@ export function catalogCssLineBaseline(
   const ascent = Math.round(box.ascent);
   const descent = Math.round(box.descent);
   const line = lineHeight && lineHeight > 0 ? lineHeight : ascent + descent;
-  // Blink places the first baseline on the lower whole CSS-pixel boundary when
-  // half-leading is fractional (16px/24px Pretendard: DOM marker baseline 17).
+  // Preserve the legacy integer-baseline contract only when native metrics are unavailable.
   return Math.floor(ascent + (line - ascent - descent) / 2);
+}
+
+/** Inline metrics come from the font or measurer; legacy measurers use a bottom-edge baseline. */
+export function catalogInlineLineMetrics(
+  measure: CatalogTextMeasure,
+  text: string,
+  font: CatalogTextFont,
+): { height: number; baseline: number } {
+  const native = measure.lineMetrics?.(font);
+  if (native) return native;
+  const box = measure.fontBox?.(font);
+  const measured = box ? undefined : measure(text, font);
+  const height =
+    font.lineHeight > 0
+      ? font.fontSize * font.lineHeight
+      : box
+        ? Math.round(box.ascent) + Math.round(box.descent)
+        : measured!.height;
+  return {
+    height,
+    baseline: box
+      ? catalogCssLineBaseline(box, height)
+      : (measured!.firstBaseline ?? height),
+  };
 }
 /** Inner display `flow` — a box whose inline-level children sit on line boxes (CSS 2.1 §9.4.2). */
 const flowInnerDisplay = (display: string | undefined): boolean =>
@@ -1078,10 +1116,10 @@ function catalogStrut(
   };
   const box = measure.fontBox?.(font);
   if (!box) return undefined;
-  const lineHeight = fontSize * ratio;
+  const line = catalogInlineLineMetrics(measure, "x", font);
   return {
-    lineHeight,
-    strutBaseline: catalogCssLineBaseline(box, lineHeight),
+    lineHeight: line.height,
+    strutBaseline: line.baseline,
     ...(box.xHeight !== undefined && box.xHeight > 0
       ? { strutXHeight: box.xHeight }
       : {}),
@@ -1280,6 +1318,44 @@ function styleOf(
   const leaf = measure
     ? textLeaf(node, typeName, labelSuffix, inheritedLineHeight)
     : undefined;
+  const inlineText =
+    leaf && box.display === "inline" && measure
+      ? (measure.inline?.(leaf.text, leaf.font, leaf.runs) ??
+        (() => {
+          // Non-CanvasKit consumers supply unwrapped text metrics through the same font seam.
+          // This only shapes advances; the Rust kernel still decides every line break.
+          const text = inlineTextContent(leaf.text, leaf.font.whiteSpace);
+          const font = leaf.font;
+          const { height, baseline } = catalogInlineLineMetrics(
+            measure,
+            text,
+            font,
+          );
+          const advance = (end: number) => {
+            const value = measure(text.slice(0, end), font);
+            return value.exactWidth ?? value.width;
+          };
+          return {
+            text,
+            clusters: [
+              ...new Intl.Segmenter(font.locale, {
+                granularity: "grapheme",
+              }).segment(text),
+            ].map(({ index, segment }) => ({
+              start: index,
+              end: index + segment.length,
+              width: advance(index + segment.length) - advance(index),
+              height,
+              baseline,
+            })),
+            nowrap: leaf.singleLine,
+            breakAll: font.wordBreak === "break-all",
+            keepAll: font.wordBreak === "keep-all",
+            preserveSpaces:
+              font.whiteSpace === "pre" || font.whiteSpace === "pre-wrap",
+          };
+        })())
+      : undefined;
   // The calendar table's own box (the model's day columns × week rows — `calendarModel.ts`) at the
   // month's own width; laid out at another (a calendar given a width, or a narrower parent), its
   // height is re-measured at the laid-out width (`rewrap` → `wrappedHeight`).
@@ -1386,10 +1462,6 @@ function styleOf(
   const leafBaseline =
     contentText && leaf && fontBox
       ? (() => {
-          const lineHeight =
-            leaf.font.lineHeight > 0
-              ? leaf.font.fontSize * leaf.font.lineHeight
-              : undefined;
           const contentHeight = Number(contentText.contentHeight);
           const offset =
             typeof box.height === "number" && box.alignItems === "center"
@@ -1408,7 +1480,7 @@ function styleOf(
           const baseline =
             wrappedBaseline ??
             measuredBaseline ??
-            catalogCssLineBaseline(fontBox, lineHeight);
+            catalogInlineLineMetrics(measure!, leaf.text, leaf.font).baseline;
           return baseline + offset;
         })()
       : undefined;
@@ -1423,6 +1495,7 @@ function styleOf(
       : undefined;
   const out: Record<string, unknown> = {
     display: box.display,
+    ...(inlineText ? { inlineText } : {}),
     ...(box.flexDirection ? { flexDirection: box.flexDirection } : {}),
     ...(box.alignItems ? { alignItems: box.alignItems } : {}),
     ...(box.justifyContent ? { justifyContent: box.justifyContent } : {}),
@@ -2534,6 +2607,29 @@ export class CatalogCompositionRoot {
     get: (id: string) => CatalogConsumerNode | undefined,
     pageId: EntryId<"page"> | undefined,
   ): CatalogConsumerNode {
+    const typographyRule = COMPONENT_RULES_TABLE[this.typeOf(record)];
+    if (typographyRule?.localeTypography) {
+      const localeLine = catalogLocaleLineHeight(
+        typographyRule,
+        record.props.size,
+        catalogTypographyLocale(
+          record,
+          get,
+          this.typeOf,
+          this.environmentLocale,
+        ),
+        catalogHasExplicitVisual(this, record, "lineHeight"),
+      );
+      if (localeLine !== undefined && record.visual.lineHeight !== localeLine) {
+        const visual = { ...record.visual, lineHeight: localeLine };
+        copyResolvedTokenRefs(
+          visual,
+          record.visual,
+          Object.keys(record.visual).filter((key) => key !== "lineHeight"),
+        );
+        record = { ...record, visual };
+      }
+    }
     const { templateProps, ...rest } = record;
     const authored = templateProps ?? record.props;
     const graph = this.runtime.graph;

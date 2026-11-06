@@ -14,6 +14,12 @@ paths:
 
 # Canvas 렌더링 규칙
 
+- inline fragment의 baseline과 폭은 엔진 출력에서 paint까지 보존한다. CSS line-box 메트릭은 같은 typography의 실제 측정값을 캐시하며, 메트릭 없는 측정기의 firstBaseline을 임의 비율로 덮지 않는다. **Why (2026-11-07):** CJK 14px/21px Label의 DOM baseline은 16.5px인데 정수 추정은 17px이었다. 실제 측정 전달로 TextField 픽셀 차이가 2475→1254로 줄었다. 화면은 Skia 직접 렌더를 유지하며 전체 raster gate는 아직 FAIL이다.
+
+- Design의 typography 표시와 px 줄 높이 쓰기는 renderer와 같은 `derivedProps` 우선순위를 사용한다. **Why (2026-11-06):** Label 본문의 실제 14px/21px 대신 자기 Text 기본값 16px/20px를 읽었고, 28px 입력을 16px로 나누면 실제 줄 높이가 24.5px가 된다. 13개 필드의 자식 편집·Undo/Redo·Reset으로 고정한다.
+
+- FontMgr용 내부 family alias는 Paragraph 등록에만 사용한다. Typeface 저장소의 font box는 등록된 family와 weight/style로 조회한다. **Why (2026-11-06):** CJK 내부 해시를 저장소 key로 조회해 로드된 face를 찾지 못했고, 14px 한글 서체의 ascent 16.842 대신 Pretendard의 12.25를 사용했다. 서로 다른 내부 이름과 굵기를 가진 실제 폰트의 ascent/descent로 회귀 검사한다.
+
 - `currentColor` 테두리는 색상 파서 전에 해당 노드의 최종 글자색으로 해석한다. **Why (2026-11-06):** Button의 native Canvas binding이 `negative + outline + static white`의 `currentColor`를 문맥 없는 파서에 넘겨 검정으로 그렸고, DOM은 흰 테두리를 표시했다. 순수 paint resolver뿐 아니라 실제 bound Skia node의 stroke 색까지 회귀 검사한다.
 
 - CSS normal 서체 폭을 Canvas의 variable font 축에도 명시한다. **Why (2026-11-06):** S2 Adobe Clean Spectrum VF는 fvar wdth 기본값62.5이고 CSS normal은100이다. wght만 넘기면 16px 문자열 폭이 DOM212.56px·Canvas153.85px로 갈렸다. 기본 서체의 측정·페인트가 같은 wdth100을 사용해야 한다.

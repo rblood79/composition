@@ -110,6 +110,8 @@ export interface SkiaNodeData {
     letterSpacing?: number;
     wordSpacing?: number;
     lineHeight?: number;
+    /** Baseline from the engine's inline fragment, relative to this text line box. */
+    baseline?: number;
     decoration?: number;
     paddingLeft: number;
     paddingTop: number;

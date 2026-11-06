@@ -14,6 +14,7 @@ import type {
 import type { LayoutEngineAPI } from "../../workspace/canvas/wasm-bindings/layoutBridge";
 import {
   CatalogCompositionRoot,
+  catalogInlineLineMetrics,
   type CatalogConsumerNode,
   type CatalogTextMeasure,
 } from "../compositionRoot";
@@ -110,6 +111,7 @@ async function scene(
       }),
     ],
   },
+  textMeasure?: CatalogTextMeasure,
 ) {
   const library = await buildCodeCatalogLibrary();
   const projectId = "project:project:line-box" as const;
@@ -163,10 +165,11 @@ async function scene(
     { width: 1440, height: 900 },
     undefined,
     undefined,
-    withFontBox
-      ? measure
-      : (((text: string, font: { fontSize: number; lineHeight: number }) =>
-          measure(text, font as never)) as CatalogTextMeasure),
+    textMeasure ??
+      (withFontBox
+        ? measure
+        : (((text: string, font: { fontSize: number; lineHeight: number }) =>
+            measure(text, font as never)) as CatalogTextMeasure)),
   );
   const typeOf = (record: CatalogConsumerNode) =>
     record.ruleId ??
@@ -188,6 +191,49 @@ async function scene(
 }
 
 describe("inline line box inputs — baseline · strut · middle", () => {
+  it("normal line height uses measured metrics, including a zero baseline", () => {
+    const source: CatalogTextMeasure = () => ({
+      width: 10,
+      height: 25.5,
+      firstBaseline: 0,
+    });
+    expect(
+      catalogInlineLineMetrics(source, "x", {
+        fontSize: 14,
+        fontWeight: 400,
+        lineHeight: 0,
+      }),
+    ).toEqual({ height: 25.5, baseline: 0 });
+  });
+
+  it.each([9.25, undefined])(
+    "inline fallback preserves measured baseline %s, or the legacy bottom edge",
+    async (firstBaseline) => {
+      const text = {
+        ...node("inline-text", "Label", {
+          children: { kind: "set" as const, value: "Label" },
+        }),
+      };
+      const source: CatalogTextMeasure = () => ({
+        width: 40,
+        height: 24,
+        ...(firstBaseline !== undefined ? { firstBaseline } : {}),
+      });
+      const { recordOf, inputOf } = await scene(
+        false,
+        { nodes: [text], parts: [] },
+        source,
+      );
+      const input = inputOf(recordOf(text.id)!);
+      const inline = input.inlineText as {
+        clusters: { baseline: number; height: number }[];
+      };
+      expect(inline.clusters.length).toBeGreaterThan(0);
+      for (const cluster of inline.clusters)
+        expect(cluster.baseline).toBe(firstBaseline ?? cluster.height);
+    },
+  );
+
   it("a Badge's text sends its first-line baseline (rounded ascent + half the leading)", async () => {
     const { ofType, inputOf } = await scene(true);
     const [badge] = ofType("Badge");

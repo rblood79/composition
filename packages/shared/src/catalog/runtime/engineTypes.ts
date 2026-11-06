@@ -9,6 +9,33 @@ export interface LayoutResult {
    * optional: 엔진 경유가 아닌 mock/합성 LayoutResult 는 생략 가능.
    */
   baseline?: number;
+  /** Rust inline flow fragments in this text child's local coordinates; UTF-16 source ranges. */
+  inlineFragments?: readonly InlineFragment[];
+}
+
+export interface InlineFragment {
+  start: number;
+  end: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  baseline: number;
+}
+
+export interface InlineTextShape {
+  text: string;
+  clusters: readonly {
+    start: number;
+    end: number;
+    width: number;
+    height: number;
+    baseline: number;
+  }[];
+  nowrap: boolean;
+  breakAll: boolean;
+  keepAll: boolean;
+  preserveSpaces: boolean;
 }
 
 /** A rect in a sticky box's scroll container's border-box coordinates (unscrolled). */

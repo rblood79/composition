@@ -11,12 +11,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Label baseline 측정과 Canvas 전달] - 2026-11-07
+
+### Fixed
+
+- Label의 inline baseline을 서체별 고정 offset이나 줄 높이 비율로 추정하지 않고, 같은 typography의 실제 CSS 줄 상자를 화면 밖에서 측정한다. 결과를 서체 세대·굵기·크기·스타일·줄 높이·locale·DPR별로 캐시하며, 화면 콘텐츠는 계속 Skia가 직접 그린다.
+- Rust가 확정한 fragment baseline과 실제 폭을 Canvas paint에 전달한다. 이 경로는 종전의 일반 텍스트용 ±1px 보정 제한과 100,000px 폭 입력에 의존하지 않는다. native 메트릭을 제공하지 않는 측정기는 자신의 첫 baseline을 우선하고, 그마저 없으면 기존 하단 기준 계약을 사용한다.
+- TextField의 같은 조건 비교에서 차이 픽셀이 2,475에서 1,254로 줄었으나 기존 전체 Label 픽셀 검사는 여전히 실패한다. S2 기본 시각의 전체 완료나 모든 환경의 픽셀 일치를 선언하지 않는다.
+
+## [여러 줄 Label — Rust inline fragment 배치] - 2026-11-06
+
+### Fixed
+
+- **여러 줄 본문 마지막 줄에 필수 표시 배치**
+  - 위치: `packages/engine/src/inline.rs`, catalog Label rule, Builder `canvasBinding.ts`.
+  - 실제 Text·NBSP·Icon 자식의 identity를 유지하고 Rust가 자식 경계에 걸친 줄바꿈과 fragment를 배치한다. DOM은 같은 inline 기본값을 읽으며 Canvas는 확정된 fragment만 그린다.
+  - grid intrinsic 측정에서 fragment를 보존하고 inline solve의 dirty 플래그를 해제하여 이후 필수 표시·본문 편집이 조상까지 전파되게 했다. Canvas의 기존 rule-text 중앙 정렬이 줄 조각을 다시 늘리던 문제도 수정했다.
+- **텍스트 측정 언어와 편집 상자 보존**
+  - Canvas 2D 측정·줄바꿈 캐시·paint baseline에 locale을 전달하고 CSS generic fallback을 보존했다. 언어 전환 시 하위 segment cache가 이전 언어의 폭을 재사용하던 결함도 수정했다. 실제 자식의 편집 상자는 전체 텍스트·줄바꿈 폭을 유지하며 paint 조각의 100,000px 비줄바꿈 측정 폭을 읽지 않는다.
+  - 배치·편집 통과와 별개로 실제 glyph raster 불일치는 남아 있다. 전체 S2 기본 시각 또는 Publish 완료를 주장하지 않는다.
+
 ## [헤더 저장 상태 아이콘] - 2026-11-06
 
 ### Changed
 
 - 헤더의 저장 상태를 글자에서 구름 아이콘과 우측 상단 dot으로 바꿨다. 저장됨은 dot이 없고, 저장 대기·저장 중은 500ms가 지나도 끝나지 않을 때만 dot을 보이며, 실패는 빨강, 다른 탭 충돌·저장 불가 형식은 주황으로 표시한다. 저장이 멈춘 세 상태는 아이콘도 `CloudOff`로 바뀐다.
 - 상태 설명은 tooltip과 `aria-label`로, 스크린리더 안내는 버튼 밖 live region으로 옮겼다. 누를 수 없는 상태도 tooltip이 뜨도록 disabled를 쓰지 않으며, 실패 상태만 눌러서 다시 시도한다.
+
+## [CJK Label 줄 높이와 실제 서체 메트릭] - 2026-11-06
+
+### Fixed
+
+- 공용 Label의 한국어·일본어·중국어 기본 줄 높이를 S2 1.8.2의 단위 없는 `1.5`로 정렬했다. M 크기의 한국어 Label은 18px에서 21px로 바뀌며 Canvas·Preview·Publish의 catalog runtime이 같은 값을 읽는다. Label·자식·Library의 명시 스타일과 Theme의 줄 높이 토큰이 우선하고, Reset·Undo/Redo·언어 변경을 반영한다.
+- Theme snapshot에 `explicitTypography`를 보존해 seed와 같은 명시 값도 locale 기본값보다 우선한다. Typeface 저장소를 내부 FontMgr 별칭으로 조회해 다른 서체의 ascent/descent를 쓰던 경로를 등록 family·굵기 조회로 수정했다.
+- Design의 자식 Text typography 표시와 줄 높이 px 환산도 부모가 전달한 실효값을 사용한다. 실제 14px/21px인 Label 본문에 16px/20px를 표시하고, 28px 편집을 24.5px로 적용할 수 있던 경로를 수정했다.
+- 13개 필드의 S/M/L/XL 기본값, 사용자·Library·Theme 편집과 복원을 검증했다. 여러 줄 마지막 줄의 필수 표시 배치와 글리프 raster 차이는 여전히 미완료이며 전체 S2 시각 정렬 완료로 판정하지 않는다.
+
+## [필수 표시 문구의 줄바꿈과 편집 기본값] - 2026-11-06
+
+### Fixed
+
+- 좁은 입력 필드에서 필수/선택 문구가 여러 줄로 갈라지던 문제를 수정했다. 공용 Label의 `necessity-label` 자식에 S2의 `white-space: nowrap`과 축소 방지를 선언하고, typed part rule이 같은 값을 Canvas와 DOM에 전달한다. 사용자의 명시적인 줄바꿈·폭 편집이 우선하며 Reset하면 기본값으로 복원된다.
+- 13개 필드의 실제 Builder 자식 편집 검증 하니스와 좁은 폭 회귀를 추가했다. 본문 마지막 줄에 표시를 붙이는 inline 배치와 CJK 기본 줄 높이 차이는 여전히 미완료다. 이 변경을 전체 S2 시각 정렬 완료로 판정하지 않는다.
 
 ## [폰트 선택창 공용화 — Theme에서 등록·관리] - 2026-11-06
 

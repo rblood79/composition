@@ -2538,7 +2538,7 @@ function ownDerivedPropsBase(
       _fieldLabelRequired: required,
       _fieldLabelAria: text,
       ...(role === "label-content" ? { children: body } : {}),
-      ...(role === "necessity-space" ? { _decorative: true } : {}),
+      // S2 leaves NBSP in the accessible label, separating the necessity text.
       ...(role === "necessity-label" &&
       (ownText === "{necessityLabel}" ||
         node.valueTemplate?.props?.children === "{necessityLabel}")

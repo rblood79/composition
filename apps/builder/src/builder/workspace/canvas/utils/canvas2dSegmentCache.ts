@@ -19,6 +19,7 @@
  */
 
 import type { TextMeasureStyle } from "./textMeasure";
+import { applyCanvasTextLocale } from "./canvasTextLocale";
 import {
   applyFontVariantCaps,
   normalizeFontVariantCaps,
@@ -124,15 +125,15 @@ const FORWARD_STICKY = new Set([
  * upstream 은 표 전체 (약 70 코드포인트) 를 쓰지만 통화·부호만으로 builder
  * 텍스트 범위를 덮는다.
  */
-const NUMERIC_PREFIX = /^[$+\\\u00A2\u00A3\u00A4\u00A5\u20AC\u20A9\u20B9\u20BD\u2212\u00B1]$/u;
+const NUMERIC_PREFIX =
+  /^[$+\\\u00A2\u00A3\u00A4\u00A5\u20AC\u20A9\u20B9\u20BD\u2212\u00B1]$/u;
 
 /**
  * 라틴 trailing 구두점 — 선행 단어에 병합
  *
  * UAX #14 PO (postfix) 클래스 `% ‰ °` 와 말줄임 `…` 포함 (§B4-2).
  */
-const LATIN_TRAILING_PUNCT =
-  /^[.,;:!?)\]'"}\u2019\u201D%\u2030\u00B0\u2026]$/u;
+const LATIN_TRAILING_PUNCT = /^[.,;:!?)\]'"}\u2019\u201D%\u2030\u00B0\u2026]$/u;
 
 /**
  * ASCII 기호 run — `-` 제외 (하이픈 뒤 break 는 브라우저도 허용)
@@ -376,7 +377,9 @@ let graphemeSegmenter: Intl.Segmenter | null = null;
 
 function segmentGraphemes(text: string): string[] {
   if (!graphemeSegmenter) {
-    graphemeSegmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+    graphemeSegmenter = new Intl.Segmenter(undefined, {
+      granularity: "grapheme",
+    });
   }
   const out: string[] = [];
   for (const seg of graphemeSegmenter.segment(text)) out.push(seg.segment);
@@ -443,9 +446,7 @@ function emojiWidthFix(text: string, fontString: string): number {
 }
 
 let sharedCtx:
-  | CanvasRenderingContext2D
-  | OffscreenCanvasRenderingContext2D
-  | null = null;
+  CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null = null;
 
 let fontsReady = false;
 
@@ -494,8 +495,7 @@ if (typeof document !== "undefined" && document.fonts) {
 }
 
 function getCtx():
-  | CanvasRenderingContext2D
-  | OffscreenCanvasRenderingContext2D {
+  CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D {
   if (!sharedCtx) {
     if (typeof OffscreenCanvas !== "undefined") {
       sharedCtx = new OffscreenCanvas(1, 1).getContext("2d")!;
@@ -505,6 +505,7 @@ function getCtx():
       throw new Error("Canvas 2D not available");
     }
   }
+  applyCanvasTextLocale(sharedCtx, activeLocale);
   return sharedCtx;
 }
 
@@ -535,6 +536,7 @@ function supportsCanvasLetterSpacing(): boolean {
  * `fontVariantCaps` 폭 == DOM `font-variant` 폭 (all-small-caps "Bye 12345 가나" 76.05 / 76.06).
  */
 let activeFontVariantCaps = "normal";
+let activeLocale: string | undefined;
 
 /** 공유 ctx 에 letter-spacing · font-variant-caps 를 세팅한다 — 값이 남아 다음 측정을 오염시키지 않게 항상 명시. */
 function applyLetterSpacing(
@@ -617,6 +619,7 @@ export function buildFontKey(style: TextMeasureStyle): string {
     style.fontStyle ?? 0,
     style.fontVariant ?? "",
     style.fontStretch ?? "",
+    style.locale ?? "",
     // letter-spacing 은 세그먼트 폭을 바꾼다 — 키에 없으면 spacing 다른 결과가 섞인다.
     style.letterSpacing ?? 0,
   ].join("\0");
@@ -915,11 +918,14 @@ export function measureWithCanvas2D(
   }
 
   const prevCaps = activeFontVariantCaps;
+  const previousLocale = activeLocale;
+  activeLocale = style.locale;
   activeFontVariantCaps = normalizeFontVariantCaps(style.fontVariant);
   try {
     return measureWithCanvas2DInner(text, style, maxWidth);
   } finally {
     activeFontVariantCaps = prevCaps;
+    activeLocale = previousLocale;
   }
 }
 

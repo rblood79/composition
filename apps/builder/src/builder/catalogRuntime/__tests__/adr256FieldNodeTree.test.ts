@@ -54,6 +54,14 @@ const BODY = "project:node:home-body" as NodeId;
 const FIELD = "project:node:field" as NodeId;
 const set = <T>(value: T) => ({ kind: "set" as const, value });
 
+// The editable field Label is composed from a real Text child.
+const composedLabel = (value: string) =>
+  createElement(
+    Label,
+    null,
+    createElement("span", { slot: "label-content" }, value),
+  );
+
 async function open(type: string, props: Record<string, string | boolean>) {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
@@ -158,7 +166,7 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
       createElement(
         TextField,
         null,
-        createElement(Label, null, "Name"),
+        composedLabel("Name"),
         createElement(Input),
         createElement(Text, { slot: "description" }, "Your full name"),
         createElement(FieldError),
@@ -186,7 +194,7 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
           minValue: field().props.minValue as number | undefined,
           isDisabled: false,
         },
-        createElement(Label, null, "Width"),
+        composedLabel("Width"),
         createElement(
           Group,
           null,
@@ -215,7 +223,7 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
       createElement(
         Select,
         { placeholder: "Choose an option..." },
-        createElement(Label, null, "Animal"),
+        composedLabel("Animal"),
         createElement(
           Button,
           null,
@@ -271,7 +279,7 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
       createElement(
         ComboBox,
         null,
-        createElement(Label, null, "Animal"),
+        composedLabel("Animal"),
         createElement(
           Group,
           null,
@@ -345,7 +353,7 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
         createElement(
           (type === "datepicker" ? DatePicker : DateRangePicker) as never,
           null,
-          createElement(Label, null, label),
+          composedLabel(label),
           type === "datepicker"
             ? createElement(Group, null, input(), button)
             : createElement(

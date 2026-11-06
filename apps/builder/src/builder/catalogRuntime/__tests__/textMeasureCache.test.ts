@@ -28,6 +28,7 @@ describe("catalog text metrics across theme roots", () => {
       { wordBreak: "break-all" },
       { overflowWrap: "anywhere" },
       { whiteSpace: "pre" },
+      { locale: "ko-KR" },
     ];
     for (const input of variants) measure("same", { ...font, ...input });
     measure("changed", font);
@@ -39,12 +40,21 @@ describe("catalog text metrics across theme roots", () => {
     let size = 10;
     const source: CatalogTextMeasure = () => ({ width: size, height: size });
     source.fontBox = () => ({ ascent: size, descent: 2 });
+    source.lineMetrics = () => ({ height: size + 2, baseline: size });
     const cache = createCatalogTextMeasureCache(source);
     expect(cache.measure("x", font).width).toBe(10);
+    expect(cache.measure.lineMetrics?.(font)).toEqual({
+      height: 12,
+      baseline: 10,
+    });
     size = 20;
     cache.clear();
     expect(cache.measure("x", font).width).toBe(20);
     expect(cache.measure.fontBox?.(font)).toEqual({ ascent: 20, descent: 2 });
+    expect(cache.measure.lineMetrics?.(font)).toEqual({
+      height: 22,
+      baseline: 20,
+    });
   });
 
   it("bounds retained entries and remeasures an evicted input", () => {
@@ -54,5 +64,29 @@ describe("catalog text metrics across theme roots", () => {
     const calls = source.mock.calls.length;
     measure("0", font);
     expect(source).toHaveBeenCalledTimes(calls + 1);
+  });
+
+  it("separates inline shaping by locale and invalidates it when fonts reload", () => {
+    let width = 10;
+    const source: CatalogTextMeasure = () => ({ width, height: 21 });
+    source.inline = vi.fn(() => ({
+      text: "한",
+      clusters: [{ start: 0, end: 1, width, height: 21, baseline: 16 }],
+      nowrap: false,
+      breakAll: false,
+      keepAll: false,
+      preserveSpaces: false,
+    }));
+    const cache = createCatalogTextMeasureCache(source);
+    const ko = { ...font, locale: "ko-KR" };
+    expect(cache.measure.inline!("한", ko).clusters[0].width).toBe(10);
+    cache.measure.inline!("한", { ...ko });
+    expect(source.inline).toHaveBeenCalledTimes(1);
+    cache.measure.inline!("한", { ...font, locale: "ja-JP" });
+    expect(source.inline).toHaveBeenCalledTimes(2);
+    width = 20;
+    cache.clear();
+    expect(cache.measure.inline!("한", ko).clusters[0].width).toBe(20);
+    expect(source.inline).toHaveBeenCalledTimes(3);
   });
 });

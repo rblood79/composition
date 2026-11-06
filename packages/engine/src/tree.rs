@@ -185,6 +185,8 @@ fn shrink_to_fit_settled(
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NodeStyle {
+    /// Shaped glyph clusters; the inline kernel owns line breaks and placement.
+    pub inline_text: Option<crate::inline::InlineText>,
     // Display & position
     pub display: Option<String>,
     pub position: Option<String>,
@@ -297,7 +299,7 @@ pub struct NodeStyle {
 /// ADR-923 P2 +3 · ADR-204 +1 · ADR-224 +1) 를 코드로 고정한다. 이 값을
 /// 바꾸면(= 필드 추가/삭제) `nodestyle_field_contract_guard` 의 전수 구조분해가
 /// 먼저 컴파일 RED 이므로, 교차표 갱신 없이 필드만 늘리는 silent drift 가 차단된다.
-pub const NODESTYLE_FIELD_COUNT: usize = 58;
+pub const NODESTYLE_FIELD_COUNT: usize = 59;
 
 /// 「선언 O · 송신 O · 소비 X」 필드 (camelCase = serde 계약명).
 ///
@@ -381,6 +383,7 @@ pub const NODESTYLE_FIELD_NAMES: [&str; NODESTYLE_FIELD_COUNT] = [
     "leafBaseline",
     "strutBaseline",
     "strutXHeight",
+    "inlineText",
 ];
 
 /// `BatchNodeInput` 의 serde 계약명.
@@ -517,6 +520,7 @@ type SubtreeSnap = (
     Option<(f32, f32)>,
     Option<(f32, f32)>,
     Option<f32>,
+    Vec<crate::inline::InlineFragment>,
 );
 
 /// 트리 노드 (style + 자식 handle + 계산 결과).
@@ -525,6 +529,7 @@ struct TreeNode {
     style: NodeStyle,
     children: Vec<usize>,
     layout: NodeLayout,
+    inline_fragments: Vec<crate::inline::InlineFragment>,
     /// 이 노드 자신의 style/children 변경 여부. 다음 compute_layout 에서
     /// (조상 dirty 전파와 결합해) 재계산 대상 판정에 사용.
     dirty: bool,
@@ -859,6 +864,7 @@ impl LayoutTree {
             style,
             children: Vec::new(),
             layout: NodeLayout::ZERO,
+            inline_fragments: Vec::new(),
             dirty: true,
             subtree_dirty: false,
             parent: None,
@@ -1158,6 +1164,7 @@ impl LayoutTree {
                 style: input.style,
                 children: child_handles.clone(),
                 layout: NodeLayout::ZERO,
+            inline_fragments: Vec::new(),
                 dirty: true,
                 subtree_dirty: !child_handles.is_empty(),
                 parent: None,
@@ -1709,6 +1716,7 @@ impl LayoutTree {
             n.layout = NodeLayout { x: 0.0, y: 0.0, width: 0.0, height: 0.0, baseline: BASELINE_NONE };
             // 표시 중 계산한 반환값은 zero layout과 한 쌍이 아니다. 재표시 때 clean 자손을
             // skip하면 부모 크기만 복원되고 내부 좌표는 모두 0에 남는다.
+            n.inline_fragments.clear();
             n.last_solved = None;
             n.last_avail = None;
             n.last_definite_h = None;
@@ -1809,6 +1817,7 @@ impl LayoutTree {
             node.last_avail,
             node.last_solved,
             node.last_definite_h,
+            node.inline_fragments.clone(),
         ));
         for c in node.children.clone() {
             self.snapshot_subtree(c, &mut *out);
@@ -1821,8 +1830,10 @@ impl LayoutTree {
     /// 그 값이 남으면 skip 게이트의 키가 측정값으로 오염된다 (복구 대상은
     /// layout·dirty·available 3종이 한 묶음).
     fn restore_subtree(&mut self, snap: &[SubtreeSnap]) {
-        for &(h, dirty, subtree_dirty, layout, last_avail, last_solved, last_definite_h) in snap {
+        for (h, dirty, subtree_dirty, layout, last_avail, last_solved, last_definite_h, fragments) in snap {
+            let (h, dirty, subtree_dirty, layout, last_avail, last_solved, last_definite_h) = (*h, *dirty, *subtree_dirty, *layout, *last_avail, *last_solved, *last_definite_h);
             if let Some(node) = self.get_mut(h) {
+                node.inline_fragments = fragments.clone();
                 node.dirty = dirty;
                 node.subtree_dirty = subtree_dirty;
                 node.layout = layout;
@@ -2165,6 +2176,7 @@ impl LayoutTree {
         // 이 solve 가 쓰는 available 을 기록 — 위 게이트의 두 번째 키. 첫 borrow 가
         // 끝난 지점에서 한 번만 쓴다 (재-borrow 추가 없이).
         if let Some(n) = self.get_mut(handle) {
+            n.inline_fragments.clear();
             n.last_avail = Some((avail_w, avail_h));
             n.last_definite_h = definite_h_in;
         }
@@ -4368,6 +4380,135 @@ impl LayoutTree {
     /// 처리한다. 단위 3-a 는 부모-자식 margin collapse 를 미전파(`can_collapse_*=false`,
     /// BFC 격리 가정) — 부모로의 collapse 전파는 tree.rs 레벨 metadata 배선이 필요한
     /// 별도 단위. 여기서는 컨테이너 내부 물리 stacking 만 검증한다.
+    fn has_inline_text_flow(&self, children: &[usize]) -> bool {
+        !children.is_empty()
+            && children.iter().all(|&c| {
+                self.get(c)
+                    .map(|n| {
+                        let d = crate::display::parse_display(n.style.display.as_deref());
+                        d.outer == crate::display::OuterDisplay::Inline
+                            && (d.inner != crate::display::InnerDisplay::Flow
+                                || n.style.inline_text.is_some())
+                    })
+                    .unwrap_or(false)
+            })
+            && children.iter().any(|&c| {
+                self.get(c)
+                    .map(|n| n.style.inline_text.is_some())
+                    .unwrap_or(false)
+            })
+    }
+
+    fn solve_inline(
+        &mut self,
+        handle: usize,
+        children: &[usize],
+        explicit_w: f32,
+        explicit_h: f32,
+        avail_w: f32,
+        avail_h: f32,
+    ) -> (f32, f32) {
+        use crate::inline::{self, InlineItem};
+        let style = self.get(handle).unwrap().style.clone();
+        let ctx = self.ctx_for(avail_w);
+        let pb_w = axis_pad_border(&style, &ctx, true);
+        let pb_h = axis_pad_border(&style, &ctx, false);
+        let off_x = pad_border_start(&style, &ctx, true);
+        let off_y = pad_border_start(&style, &ctx, false);
+        let available = if explicit_w > 0.0 {
+            spec_to_content(explicit_w, pb_w)
+        } else if intrinsic_mode(avail_w) == Some(IntrinsicMode::Min) {
+            0.0
+        } else if avail_w < 0.0 {
+            f32::INFINITY
+        } else {
+            auto_content_avail_w(&style, &ctx, avail_w, pb_w)
+        };
+        let mut items = Vec::new();
+        for &child in children {
+            let (width, height) = self.solve_node(child, available, avail_h);
+            let node = self.get(child).unwrap();
+            items.push(InlineItem {
+                text: node.style.inline_text.clone(),
+                width,
+                height,
+                baseline: node.layout.resolved_baseline(),
+                middle: node.style.vertical_align.as_deref() == Some("middle"),
+            });
+        }
+        let result = inline::layout(
+            &items,
+            available,
+            style.line_height.unwrap_or(0.0),
+            style.strut_baseline.unwrap_or(0.0),
+            style.strut_x_height.unwrap_or(0.0),
+        );
+        for (index, &child) in children.iter().enumerate() {
+            let fragments = &result.fragments[index];
+            let node = self.get_mut(child).unwrap();
+            if fragments.is_empty() {
+                node.layout = NodeLayout::ZERO;
+                node.inline_fragments.clear();
+                continue;
+            }
+            let x = fragments.iter().map(|f| f.x).fold(f32::INFINITY, f32::min);
+            let y = fragments.iter().map(|f| f.y).fold(f32::INFINITY, f32::min);
+            let right = fragments.iter().map(|f| f.x + f.width).fold(0.0, f32::max);
+            let bottom = fragments.iter().map(|f| f.y + f.height).fold(0.0, f32::max);
+            node.layout = NodeLayout {
+                x: x + off_x,
+                y: y + off_y,
+                width: right - x,
+                height: bottom - y,
+                baseline: fragments[0].y - y + fragments[0].baseline,
+            };
+            node.inline_fragments = if items[index].text.is_some() {
+                fragments
+                    .iter()
+                    .map(|fragment| {
+                        let mut f = fragment.clone();
+                        f.x -= x;
+                        f.y -= y;
+                        f
+                    })
+                    .collect()
+            } else {
+                Vec::new()
+            };
+        }
+        let width = if explicit_w > 0.0 {
+            explicit_w
+        } else {
+            result.width
+        };
+        let height = if explicit_h > 0.0 {
+            explicit_h
+        } else {
+            result.height
+        };
+        self.get_mut(handle).unwrap().layout = NodeLayout {
+            x: 0.0,
+            y: 0.0,
+            width: if explicit_w > 0.0 {
+                width
+            } else {
+                width + pb_w
+            },
+            height: if explicit_h > 0.0 {
+                height
+            } else {
+                height + pb_h
+            },
+            baseline: off_y + result.baseline,
+        };
+        // Like the block/flex/grid solvers, a completed inline solve must clear both flags.
+        // Otherwise the next edit stops dirty propagation here and a clean grandparent skips it.
+        let node = self.get_mut(handle).unwrap();
+        node.dirty = false;
+        node.subtree_dirty = false;
+        (width, height)
+    }
+
     fn solve_block(
         &mut self,
         handle: usize,
@@ -4377,6 +4518,9 @@ impl LayoutTree {
         avail_w: f32,
         avail_h: f32,
     ) -> (f32, f32) {
+        if self.has_inline_text_flow(children) {
+            return self.solve_inline(handle, children, explicit_w, explicit_h, avail_w, avail_h);
+        }
         let parent_ctx = self.ctx_for(avail_w);
         let style = self.get(handle).map(|n| n.style.clone()).unwrap_or_default();
         // 컨테이너 자신의 pad_border (% 는 부모 available 기준 — CSS containing block).
@@ -6038,6 +6182,18 @@ impl LayoutTree {
             out.extend_from_slice(&[l.x, l.y, l.width, l.height, l.resolved_baseline()]);
         }
         out
+    }
+
+    pub fn inline_fragments(&self, handle: usize) -> &[crate::inline::InlineFragment] {
+        self.get(handle).map(|n| n.inline_fragments.as_slice()).unwrap_or(&[])
+    }
+
+    pub fn inline_fragments_json(&self, handles: &[usize]) -> String {
+        let data: Vec<_> = handles.iter().filter_map(|&h| {
+            let fragments = self.inline_fragments(h);
+            if fragments.is_empty() { None } else { Some((h, fragments)) }
+        }).collect();
+        serde_json::to_string(&data).expect("inline fragments")
     }
 
     /// 단일 노드 레이아웃 조회 (진단/테스트용).
@@ -8255,6 +8411,7 @@ mod tests {
             leaf_baseline: _,
             strut_baseline: _,
             strut_x_height: _,
+            inline_text: _,
         } = NodeStyle::default();
 
         // (2) 산술 계약 — 소비 + 미소비 = 선언. breakdown §1-3 "49 = 소비 40 + 미소비 9"
@@ -8270,7 +8427,8 @@ mod tests {
         //     2026-09-26: strut_baseline (컨테이너 strut ascent) +1 — 소비처는 solve_block →
         //     block_layout_with_strut → "57 = 소비 57 + 미소비 0".
         //     2026-11-02: strut_x_height (컨테이너 x-height, middle) +1 → "58 = 소비 58 + 미소비 0".
-        const CONSUMED_COUNT: usize = 58;
+        //     2026-11-06: inline_text (glyph clusters) +1 — solve_inline → "59 = 소비 59 + 미소비 0".
+        const CONSUMED_COUNT: usize = 59;
         assert_eq!(
             CONSUMED_COUNT + UNCONSUMED_NODESTYLE_FIELDS.len(),
             NODESTYLE_FIELD_COUNT,
@@ -14983,5 +15141,81 @@ mod tests {
                 vec![(0.0, 120.0), (120.0, 90.0), (210.0, 90.0)]
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod inline_flow_tests {
+    use super::*;
+    fn text(value: &str) -> NodeStyle {
+        let mut offset = 0;
+        NodeStyle {
+            display: Some("inline".into()),
+            width: Some("fit-content".into()),
+            inline_text: Some(crate::inline::InlineText {
+                text: value.into(),
+                clusters: value
+                    .chars()
+                    .map(|c| {
+                        let start = offset;
+                        offset += c.len_utf16();
+                        crate::inline::TextCluster {
+                            start,
+                            end: offset,
+                            width: 7.0,
+                            height: 18.0,
+                            baseline: 14.0,
+                        }
+                    })
+                    .collect(),
+                ..Default::default()
+            }),
+            ..Default::default()
+        }
+    }
+    #[test]
+    fn inline_fragments_survive_grid_measurement_and_visibility_updates() {
+        let mut tree = LayoutTree::new();
+        let body = tree.create_node(text("Field title"));
+        let space = tree.create_node(NodeStyle {
+            display: Some("none".into()),
+            ..text("\u{a0}")
+        });
+        let icon_style = NodeStyle {
+            display: Some("inline-flex".into()),
+            width: Some("8px".into()),
+            height: Some("8px".into()),
+            ..Default::default()
+        };
+        let icon = tree.create_node(NodeStyle {
+            display: Some("none".into()),
+            ..icon_style.clone()
+        });
+        let label = tree.create_node(NodeStyle {
+            display: Some("inline".into()),
+            width: Some("fit-content".into()),
+            ..Default::default()
+        });
+        tree.set_children(label, vec![body, space, icon]);
+        let root = tree.create_node(NodeStyle {
+            display: Some("grid".into()),
+            width: Some("208px".into()),
+            grid_template_columns: Some(vec!["1fr".into()]),
+            ..Default::default()
+        });
+        tree.set_children(root, vec![label]);
+        let page = tree.create_node(NodeStyle {
+            display: Some("block".into()),
+            width: Some("1000px".into()),
+            ..Default::default()
+        });
+        tree.set_children(page, vec![root]);
+        tree.compute_layout(page, 1000.0, 800.0);
+        tree.update_style(space, text("\u{a0}"));
+        tree.update_style(icon, icon_style);
+        tree.compute_layout(page, 1000.0, 800.0);
+        assert_eq!(tree.get_layout(icon).width, 8.0);
+        assert_eq!(tree.inline_fragments(body).last().unwrap().end, 11);
+        assert_eq!(tree.get_layout(label).height, 18.0);
     }
 }

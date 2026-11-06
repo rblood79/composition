@@ -123,6 +123,7 @@
 pub mod block;
 pub mod cascade;
 pub mod display;
+pub mod inline;
 pub mod flex;
 pub mod grid;
 pub mod spatial_index;

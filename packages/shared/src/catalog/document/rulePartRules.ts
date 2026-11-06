@@ -461,6 +461,7 @@ const LAYOUT_KEYWORDS: Readonly<Record<string, LayoutField>> = {
   "justify-self": "justifySelf",
 };
 const DISPLAY_VALUES = new Set([
+  "inline",
   "block",
   "flex",
   "inline-flex",
@@ -681,6 +682,23 @@ function compileDeclarations(
         const px = lengthPx(value.split(/\s+/)[0]);
         if (px !== undefined) visual.borderWidth = px;
       }
+    } else if (
+      key === "vertical-align" &&
+      ["baseline", "middle", "top", "bottom"].includes(value)
+    ) {
+      layout.verticalAlign = value;
+    } else if (key === "white-space") {
+      if (
+        [
+          "normal",
+          "nowrap",
+          "pre",
+          "pre-wrap",
+          "pre-line",
+          "break-spaces",
+        ].includes(value)
+      )
+        visual.whiteSpace = value;
     } else if (key === "font-size") {
       const px = lengthPx(value);
       if (px !== undefined) {

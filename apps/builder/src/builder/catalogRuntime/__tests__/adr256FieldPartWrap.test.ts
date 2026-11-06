@@ -113,7 +113,11 @@ const control = (html: string) => ({
   groups: (html.match(/role="group"/g) ?? []).length,
   buttons: (html.match(/<button/g) ?? []).length,
   label: (html.match(/<label/g) ?? []).length,
-  necessity: html.includes("necessity-indicator") || html.includes("*"),
+  necessity:
+    html.includes('slot="necessity-icon"') ||
+    html.includes('slot="necessity-label"') ||
+    html.includes("necessity-indicator") ||
+    html.includes("*"),
 });
 
 describe("ADR-256 Phase 2 review — a field's parts inside a layout frame", () => {
@@ -154,7 +158,7 @@ describe("ADR-256 Phase 2 review — a field's parts inside a layout frame", () 
           newId: workspace.newId,
         }),
       );
-      expect(control(html())).toEqual(before.dom);
+      expect(control(html()), html()).toEqual(before.dom);
       const after = derived();
       for (const [id, values] of Object.entries(before.canvas))
         if (id !== WRAP) expect(after[id], id).toEqual(values);

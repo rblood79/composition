@@ -468,6 +468,8 @@ export interface ComponentRule {
   defaultSize?: string;
   variants: Record<string, ComponentRuleVariant>;
   sizes: Record<string, ComponentRuleSize>;
+  /** Locale별 텍스트 기본값. 저작·Library·Theme의 명시 값이 우선한다. 키는 BCP 47 언어다. */
+  localeTypography?: Readonly<Record<string, { lineHeight: number }>>;
   /**
    * density 별 spacing override — size 축과 직교. 정의된 컴포넌트만 density 에 반응한다
    * (미정의 시 density prop 은 무시되어 기존 동작 유지).

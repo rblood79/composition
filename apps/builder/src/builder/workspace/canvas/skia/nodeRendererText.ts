@@ -248,14 +248,17 @@ export function renderText(
   // The painted baseline at the CSS line box's (`resolveCssBaselineCorrection`): SkParagraph rounds
   // it to whole px, Chrome rounds the font's ascent · descent instead.
   const cssBaselineShift = (paragraph: Paragraph): number => {
-    const lineHeight = node.text!.lineHeight;
-    if (!lineHeight) return 0;
     const baseline = paragraph.getLineMetrics()[0]?.baseline;
     if (baseline === undefined) return 0;
+    if (node.text!.baseline !== undefined)
+      return node.text!.baseline - Math.round(baseline);
+    const lineHeight = node.text!.lineHeight;
+    if (!lineHeight) return 0;
     const font = measureFontBox(
       cssFontFamilyList(node.text!.fontFamilies),
       node.text!.fontSize,
       node.text!.fontWeight ?? 400,
+      node.text!.locale,
     );
     if (!font) return 0;
     return resolveCssBaselineCorrection({
@@ -463,6 +466,7 @@ export function renderText(
       cssFontFamilyList(text.fontFamilies),
       text.fontSize,
       text.fontWeight ?? 400,
+      text.locale,
     );
     const lines = paragraph.getLineMetrics();
     if (lines.length === 0) return;
@@ -669,6 +673,7 @@ export function renderText(
       // Canvas 2D가 결정한 줄바꿈을 \n으로 삽입하여 CanvasKit 렌더링에 강제.
       // 측정(Canvas 2D)과 렌더링(CanvasKit)의 줄바꿈 일치를 구조적으로 보장.
       const c2dStyle: TextMeasureStyle = {
+        locale: node.text.locale,
         fontSize: node.text.fontSize,
         fontFamily: node.text.fontFamilies.join(", "),
         fontWeight: node.text.fontWeight,
@@ -991,7 +996,7 @@ function drawRunDecorations(
       color: Float32Array,
     ) => {
       if (!decoration || end <= start) return;
-      const font = measureFontBox(families, fontSize, fontWeight);
+      const font = measureFontBox(families, fontSize, fontWeight, text.locale);
       paint.setColor(color);
       for (const box of paragraph.getRectsForRange(
         start,

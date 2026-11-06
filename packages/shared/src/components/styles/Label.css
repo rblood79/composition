@@ -12,20 +12,14 @@
  *   CSS specificity로 base.css의 var(--label-font-size) 상속 패턴을 파괴
  *   → 부모 주입 font-size 무시됨 (CSSGenerator 구조적 미지원).
  *
- * G3 residual debt (spec 미연결, 추후 별도 ADR 대상):
- *   - variant 4종 색상 (accent/neutral/purple/negative): LabelSpec.variants 없음
- *   - font-weight: 600, white-space: nowrap, background/border 초기화
- *   - .necessity-indicator CSS: DOM slot 구조 전용
- *
- * D3 대칭:
- *   - Skia 경로: LabelSpec.render.shapes → resolveSpecFontSize(spec.sizes.fontSize) 소비 (SSOT 준수)
- *   - CSS 경로: base.css --label-font-size 변수 → 부모 generated/수동 CSS 주입 (간접 SSOT 소비)
+ * 필드 Label은 catalog의 실제 Text/NBSP/Icon 자식을 inline 흐름으로 배치한다.
+ * 크기 CSS 변수 상속은 유지하고, typed part 기본값과 authored override는 DOM binding이 전달한다.
+ * Canvas는 같은 catalog 값과 Rust가 계산한 line/fragment를 소비한다.
  */
 
 @layer components {
   .react-aria-Label {
-    display: inline-flex;
-    align-items: center;
+    display: inline;
     box-sizing: border-box;
     width: fit-content;
     height: fit-content;
@@ -57,7 +51,9 @@
   /* ===== State ===== */
 
   /* (RAC `Label` is not focusable — D1: this never reaches a catalog label; Builder widgets only) */
-  .react-aria-Label:where(:not([data-catalog-id], [data-catalog-id] *))[data-focus-visible] {
+  .react-aria-Label:where(
+      :not([data-catalog-id], [data-catalog-id] *)
+    )[data-focus-visible] {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }

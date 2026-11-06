@@ -205,12 +205,22 @@ impl LayoutEngine {
         self.tree.get_layouts_batch(handles).into_boxed_slice()
     }
 
+    #[wasm_bindgen(js_name = getInlineFragmentsBatch)]
+    pub fn get_inline_fragments_batch(&self, handles: &[usize]) -> String {
+        self.tree.inline_fragments_json(handles)
+    }
+
     /// 단일 노드 레이아웃 JSON(`{"x":..,"y":..,"width":..,"height":..,"baseline":..}`).
     ///
     /// baseline 은 경계 계약값 (ADR-923 Phase 2 — 원천 없으면 height 폴백).
     #[wasm_bindgen(js_name = getLayout)]
     pub fn get_layout(&self, handle: usize) -> String {
         let l = self.tree.get_layout(handle);
+        let fragments = self.tree.inline_fragments(handle);
+        if !fragments.is_empty() {
+            return serde_json::json!({"x":l.x,"y":l.y,"width":l.width,"height":l.height,
+                "baseline":l.resolved_baseline(),"inlineFragments":fragments}).to_string();
+        }
         format!(
             r#"{{"x":{},"y":{},"width":{},"height":{},"baseline":{}}}"#,
             l.x,

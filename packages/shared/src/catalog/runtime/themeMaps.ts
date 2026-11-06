@@ -66,6 +66,14 @@ export function installedBaseText(): { fontSize: number; lineHeight: number } {
   return baseText;
 }
 
+let explicitTypography: Readonly<Record<string, number | string>> = {};
+/** Theme의 명시 typography 값. Seed와 같은 값도 명시 값으로 취급한다. */
+export function installedTypographyOverride(
+  key: string,
+): number | string | undefined {
+  return explicitTypography[key];
+}
+
 // Canvas의 상태 outline도 DOM에 내보낸 focus 변수와 같은 값을 읽는다.
 let focusVars: ResolvedThemeSnapshot["cssVars"] = [];
 export function installedFocusRingCss(
@@ -85,6 +93,7 @@ export function installedFocusRingCss(
 
 /** Install a resolved theme into the specs maps, or the code catalog's values for `null`. */
 export function installThemeMaps(snapshot: ResolvedThemeSnapshot | null): void {
+  explicitTypography = snapshot?.explicitTypography ?? {};
   focusVars =
     snapshot?.cssVars.filter((entry) =>
       entry.name.startsWith("--focus-ring"),

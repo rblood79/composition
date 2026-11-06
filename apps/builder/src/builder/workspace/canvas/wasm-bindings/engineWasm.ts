@@ -41,6 +41,7 @@ export interface RawEngineLayout {
   setViewport(width: number, height: number): void;
   computeLayout(root: number, availW: number, availH: number): void;
   getLayoutsBatch(handles: Uint32Array): Float32Array;
+  getInlineFragmentsBatch(handles: Uint32Array): string;
   getLayout(handle: number): string;
   /** ADR-267 — sticky constraints JSON (`null` = none). */
   getStickyConstraints(handle: number): string;

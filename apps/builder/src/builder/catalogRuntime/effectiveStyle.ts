@@ -20,12 +20,17 @@ import { catalogStyleView } from "./styleFields";
 export function catalogEffectiveStyle(
   record: CatalogConsumerNode,
 ): Record<string, string | number> {
+  // Label 본문 등은 부모가 해석한 typography를 derivedProps로 받는다. 자기 Text
+  // 기본값을 보여주면 렌더링(14/21)과 패널(16/20), px 편집의 기준이 달라진다.
+  const visual = { ...record.visual };
+  for (const key of ["fontSize", "fontWeight", "lineHeight"] as const) {
+    const value = record.derivedProps?.[key];
+    if (typeof value === "number") visual[key] = value;
+  }
   const fontSize =
-    typeof record.visual.fontSize === "number"
-      ? record.visual.fontSize
-      : undefined;
+    typeof visual.fontSize === "number" ? visual.fontSize : undefined;
   const style = catalogStyleView(
-    { visual: record.visual, layout: record.layout, sizing: record.sizing },
+    { visual, layout: record.layout, sizing: record.sizing },
     { fontSize },
   );
   const box = catalogBoxModel(record);

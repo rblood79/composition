@@ -639,11 +639,6 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   ProgressBarValue: () => ({ omit: ["lineHeight"] }),
   MeterValue: () => ({ omit: ["lineHeight"] }),
   SelectValue: () => ({ omit: ["height"] }),
-  // `Label.css` (generated CSS disabled): a fit-content inline box that does not stretch.
-  Label: () => ({
-    layout: { display: "inline-flex", alignItems: "center" },
-    visual: { width: "fit-content", height: "fit-content" },
-  }),
   // ADR-256 Phase 6b — a range picker's control Group paints the box (`DateRangePicker` rule
   // delegation `.react-aria-Group`: `background: var(--bg-inset)` · `border: … var(--border)` ·
   // `border-radius: var(--drp-group-radius)` = the size's radius, read from the same

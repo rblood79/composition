@@ -44,8 +44,7 @@ import {
   panelFillLayers,
   panelResolvedFillLayers,
 } from "../../../catalogRuntime/panelTokens";
-import {
-} from "../../../catalogRuntime/authoredStyle";
+import {} from "../../../catalogRuntime/authoredStyle";
 import { catalogBoxModel } from "../../../catalogRuntime/boxModel";
 import { catalogPageDropCommand } from "../../../catalogRuntime/canvasPage";
 import type { CatalogRecordPreview } from "../../../catalogRuntime/compositionRoot";
@@ -147,7 +146,8 @@ function useOwnFieldsOf(workspace: CatalogWorkspace, id: string | null) {
 
 /** A node's own `children` write as its value (`{ kind: "set", value }` → value). */
 function ownChildrenValue(own: { props?: Record<string, unknown> }): unknown {
-  const write = own.props?.children as { kind?: string; value?: unknown } | undefined;
+  const write = own.props?.children as
+    { kind?: string; value?: unknown } | undefined;
   return write?.kind === "set" ? write.value : undefined;
 }
 
@@ -318,9 +318,8 @@ function effectiveOf(workspace: CatalogWorkspace, id: string | null) {
 
 /** The drawn font size of a record (a px line height is a ratio to it). */
 function fontSizeOf(workspace: CatalogWorkspace, identity: string | undefined) {
-  const size = identity
-    ? workspace.root.domInputs.get(identity)?.visual.fontSize
-    : undefined;
+  const record = identity ? workspace.root.domInputs.get(identity) : undefined;
+  const size = record?.derivedProps?.fontSize ?? record?.visual.fontSize;
   return typeof size === "number" ? size : undefined;
 }
 
@@ -734,8 +733,7 @@ export function createCatalogStylesHost(
           type: contract.type || undefined,
           size: typeof props.size === "string" ? props.size : undefined,
           sizing: Object.keys(fill).length ? fill : undefined,
-          fills:
-            panelFillItems(own?.fills) ?? panelFillItems(master?.fills),
+          fills: panelFillItems(own?.fills) ?? panelFillItems(master?.fills),
           props,
         };
       }, [
@@ -829,7 +827,8 @@ export function createCatalogStylesHost(
           fontSize > 0
         ) {
           const line = snapshotOf(item).style.lineHeight;
-          const lineUse = typeof line === "string" ? panelTokenUse(line) : undefined;
+          const lineUse =
+            typeof line === "string" ? panelTokenUse(line) : undefined;
           const lineToken =
             lineUse && workspace.runtime.graph.getToken(lineUse.tokenId);
           let linePx =
@@ -840,8 +839,11 @@ export function createCatalogStylesHost(
             fontWrite.value &&
             "tokenId" in fontWrite.value
           ) {
-            const ref = workspace.runtime.graph.getToken(fontWrite.value.tokenId)?.ref;
-            const name = ref && /^\{typography\.(text-[a-z0-9-]+)\}$/.exec(ref)?.[1];
+            const ref = workspace.runtime.graph.getToken(
+              fontWrite.value.tokenId,
+            )?.ref;
+            const name =
+              ref && /^\{typography\.(text-[a-z0-9-]+)\}$/.exec(ref)?.[1];
             if (name)
               linePx = readThemeTokenValue(
                 `{typography.${name === "text-md" ? "text-base" : name}--line-height}`,
@@ -1290,7 +1292,9 @@ export function createCatalogStylesHost(
             );
           // ADR-299 — the reset of a section's axes takes the runs' values of those axes too (a
           // text whose runs then carry nothing is a plain string again).
-          const children = ownChildrenValue(workspace.readModel.ownFields(target));
+          const children = ownChildrenValue(
+            workspace.readModel.ownFields(target),
+          );
           const axes = textRunAxesOf(children).filter((key) =>
             properties.includes(key),
           );

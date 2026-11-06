@@ -26,7 +26,7 @@ TimeField, DatePicker, DateRangePicker, CheckboxGroup, RadioGroup, Select, Combo
 - 표시 앞의 NBSP도 실제 Text 자식이다. 본문 RichText의 문자열·범위를 변경하지 않으며 표시가 없으면 간격 자식도 숨긴다.
 - 본문·표시의 Typography는 Label 원본을 읽는다. 명시적인 Text/Icon 스타일은 기본값과 같은 값이어도 우선한다.
 - Icon 경로·viewBox는 설치 S2 1.8.2 Asterisk다. S/M은 M 경로(8), L/XL은 각각의 경로(10)를 사용한다.
-- Label catalog에 자식 기본색과 baseline margin을 선언하고 typed part rule로 해석한다. Label은 기존 CSS 생성을 생략하므로 DOM binding도 해당 part layout을 전달한다.
+- Label catalog에 자식 기본색과 inline display·baseline을 선언하고 typed part rule로 해석한다. Label은 기존 CSS 생성을 생략하므로 DOM binding도 해당 part layout을 전달한다.
 - locale 문구 34개는 설치 S2 문자열을 복사했다(Apache-2.0). 언어·script/region을 해석하고 지원하지 않는 언어는 영어로 복원한다.
 - Select·CheckboxGroup은 required도 접근성 이름에 포함한다. 일반 필드는 required 중복 안내를 숨기고 optional은 읽는다.
 - catalog의 문자열 suffix와 React span 자동 주입은 제거했다. 작성한 표시 자식을 삭제하면 새 표시를 자동 생성하지 않는다.
@@ -58,12 +58,18 @@ TimeField, DatePicker, DateRangePicker, CheckboxGroup, RadioGroup, Select, Combo
 브라우저 검사는 production catalog DOM, 공유 CSS, Rust WASM 및 IndexedDB를 사용한다.
 Canvas text metrics·Icon 경로/크기·일부 위치와 S2 실제 SVG/DOM geometry를 검사했다.
 
+2026-11-06 후속 검증에서 13개 필드의 실제 Builder 자식 편집·Reset·Undo/Redo·저장 재로드를
+확인했다. 좁은 폭에서 표시 문구 자체가 줄바꿈하던 문제는 공용 Label의 nowrap 규칙으로 수정했다.
+후속 보완에서 CJK 기본 줄 높이를 S2의 단위 없는 1.5로 정렬하고 명시 스타일·Theme 토큰 우선순위를
+검증했다. 이후 Rust inline fragment로 마지막 줄 배치를 구현하고 13개 필드의 S/M/L/XL ×
+icon/label 104개를 실제 S2와 대조했다. 실제 glyph raster 차이는 아직 미완료다.
+근거·완료 조건은 [여러 줄 Label 검증](./label-multiline-verification.md)에 기록한다.
+
 아직 완료하지 않은 범위:
 
-- 직접 Builder의 팔레트→Layers→Property→저장 재열기 흐름(브라우저 연결 host 불가, native 전용 창 생성 시간초과).
-- 여러 줄 Label의 마지막 줄에 표시를 붙이는 동작과 전체 화면 pixelmatch.
+- glyph raster 차이와 전체 화면 pixelmatch. 마지막 줄 배치는 구현·geometry 대조까지 통과했다.
 - 터치 입력 크기·전체 locale·전체 필드의 S2 시각 전수 대조.
 - Code View JSX 전체 편집 왕복(이번 검증은 자식 override의 페이지 CSS 보존).
-- Publish 실제 실행과 복합 배치 통합 검증.
+- 전체 상태·테마의 Publish와 복합 배치 통합 검증. Label 조립 13개는 별도 Publish 앱에서 Preview와 대조했다.
 
 이 항목을 의도적 시각 차이로 분류하지 않는다. 위 게이트를 완료하기 전에는 전체 필수 표시 컴포넌트 완료로 판정하지 않는다.

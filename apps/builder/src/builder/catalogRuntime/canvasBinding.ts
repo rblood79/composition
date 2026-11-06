@@ -50,7 +50,15 @@ import {
   unregisterSkiaNode,
 } from "../workspace/canvas/skia/useSkiaNode";
 import type { SkiaNodeData } from "../workspace/canvas/skia/nodeRendererTypes";
-import type { StickyConstraints } from "../../../../../packages/shared/src/catalog/runtime/engineTypes";
+import type {
+  StickyConstraints,
+  LayoutResult,
+} from "../../../../../packages/shared/src/catalog/runtime/engineTypes";
+import { inlineTextContent } from "../../../../../packages/shared/src/catalog/runtime/inlineText";
+import {
+  alignTextRuns,
+  sliceTextRuns,
+} from "../workspace/canvas/utils/textRunAlign";
 import { catalogNodeState } from "../../../../../packages/shared/src/catalog/resolution/resolver";
 import type { CatalogConsumerNode, CatalogTagShowAll } from "./compositionRoot";
 import { catalogTextRunStyles } from "../../../../../packages/shared/src/catalog/runtime/textRunStyles";
@@ -156,7 +164,44 @@ const PAGE_GRID_TRANSLATE_NULL = {
  * A binding id without an entry here, or a visual key a binding cannot paint or lay out,
  * fails explicitly — never a silent default.
  */
-type Rect = { x: number; y: number; width: number; height: number };
+type Rect = LayoutResult;
+
+/** One editable text node owns a union box; its paint children consume Rust's line fragments. */
+function inlineTextPaint(data: SkiaNodeData, rect: Rect): SkiaNodeData {
+  if (!rect.inlineFragments || !data.text) return data;
+  const text = data.text;
+  const content = inlineTextContent(text.content, text.whiteSpace);
+  const runs = text.runs && alignTextRuns(text.content, text.runs, content);
+  return {
+    ...data,
+    type: "box",
+    // Preserve the source text box for the editor. Only the text children paint glyphs.
+    text,
+    children: rect.inlineFragments.map((fragment, index) => ({
+      type: "text",
+      elementId: `${data.elementId}:inline:${index}`,
+      x: fragment.x,
+      y: fragment.y,
+      width: fragment.width,
+      height: fragment.height,
+      visible: data.visible,
+      text: {
+        ...text,
+        // The engine has already placed this line; generic rule-text centering must not resize it.
+        autoCenter: false,
+        content: content.slice(fragment.start, fragment.end),
+        ...(runs
+          ? { runs: sliceTextRuns(runs, fragment.start, fragment.end) }
+          : {}),
+        whiteSpace: "pre",
+        baseline: fragment.baseline,
+        maxWidth: fragment.width,
+        paddingLeft: 0,
+        paddingTop: 0,
+      },
+    })),
+  };
+}
 type Binding = (
   node: CatalogConsumerNode,
   rect: Rect,
@@ -656,82 +701,85 @@ const bindings: Readonly<Record<string, Binding>> = {
         !catalogBindingKeepsOneLine(node))
         ? "normal"
         : "nowrap";
-    return {
-      ...box(node, rect),
-      type: "text",
-      text: {
-        // (A text RAC writes — a calendar's heading, a calendar picker's value — is the record's
-        // derived `children`, ADR-256 Phase 9.)
-        content: applyTextTransform(
-          `${String(textOf(node) ?? "")}${textOf(node) ? suffix : ""}`,
-          metrics.textTransform,
-        ),
-        fontFamilies: catalogFontFamilies(metrics.fontFamily),
-        locale: metrics.locale,
-        fontSize,
-        ...(metrics.fontStyle === "italic"
-          ? { fontStyle: 1 }
-          : metrics.fontStyle === "oblique"
-            ? { fontStyle: 2 }
+    return inlineTextPaint(
+      {
+        ...box(node, rect),
+        type: "text",
+        text: {
+          // (A text RAC writes — a calendar's heading, a calendar picker's value — is the record's
+          // derived `children`, ADR-256 Phase 9.)
+          content: applyTextTransform(
+            `${String(textOf(node) ?? "")}${textOf(node) ? suffix : ""}`,
+            metrics.textTransform,
+          ),
+          fontFamilies: catalogFontFamilies(metrics.fontFamily),
+          locale: metrics.locale,
+          fontSize,
+          ...(metrics.fontStyle === "italic"
+            ? { fontStyle: 1 }
+            : metrics.fontStyle === "oblique"
+              ? { fontStyle: 2 }
+              : {}),
+          ...(metrics.letterSpacing !== undefined
+            ? { letterSpacing: metrics.letterSpacing }
             : {}),
-        ...(metrics.letterSpacing !== undefined
-          ? { letterSpacing: metrics.letterSpacing }
-          : {}),
-        ...(metrics.textAlign === "center" || metrics.textAlign === "right"
-          ? { align: metrics.textAlign }
-          : metrics.textAlign === "end"
-            ? { align: "right" as const }
+          ...(metrics.textAlign === "center" || metrics.textAlign === "right"
+            ? { align: metrics.textAlign }
+            : metrics.textAlign === "end"
+              ? { align: "right" as const }
+              : {}),
+          // ADR-299 — a range-formatted text's runs carry the decoration (its own moves onto them;
+          //  an ancestor's stays under every run).
+          ...(canvasTextRuns(node, metrics.textTransform) ??
+            (metrics.textDecoration !== undefined
+              ? { decoration: parseTextDecoration(metrics.textDecoration) }
+              : {})),
+          ...(metrics.wordBreak === "break-all" ||
+          metrics.wordBreak === "keep-all"
+            ? { wordBreak: metrics.wordBreak }
             : {}),
-        // ADR-299 — a range-formatted text's runs carry the decoration (its own moves onto them;
-        //  an ancestor's stays under every run).
-        ...(canvasTextRuns(node, metrics.textTransform) ??
-          (metrics.textDecoration !== undefined
-            ? { decoration: parseTextDecoration(metrics.textDecoration) }
-            : {})),
-        ...(metrics.wordBreak === "break-all" ||
-        metrics.wordBreak === "keep-all"
-          ? { wordBreak: metrics.wordBreak }
-          : {}),
-        // CSS `word-break: break-word` (legacy) breaks a long word as `overflow-wrap` does; an
-        // authored `overflow-wrap` wins over it.
-        ...(metrics.overflowWrap === "break-word" ||
-        metrics.overflowWrap === "anywhere"
-          ? { overflowWrap: metrics.overflowWrap }
-          : metrics.overflowWrap === undefined &&
-              metrics.wordBreak === "break-word"
-            ? { overflowWrap: "break-word" as const }
+          // CSS `word-break: break-word` (legacy) breaks a long word as `overflow-wrap` does; an
+          // authored `overflow-wrap` wins over it.
+          ...(metrics.overflowWrap === "break-word" ||
+          metrics.overflowWrap === "anywhere"
+            ? { overflowWrap: metrics.overflowWrap }
+            : metrics.overflowWrap === undefined &&
+                metrics.wordBreak === "break-word"
+              ? { overflowWrap: "break-word" as const }
+              : {}),
+          // `text-overflow: ellipsis` shows on a box that clips its one line (CSS: overflow other
+          // than visible + nowrap); the paragraph paints the ellipsis at the box width.
+          ...(metrics.textOverflow === "ellipsis"
+            ? {
+                textOverflow: "ellipsis" as const,
+                clipText: catalogOverflowClips(node.visual.overflow),
+              }
             : {}),
-        // `text-overflow: ellipsis` shows on a box that clips its one line (CSS: overflow other
-        // than visible + nowrap); the paragraph paints the ellipsis at the box width.
-        ...(metrics.textOverflow === "ellipsis"
-          ? {
-              textOverflow: "ellipsis" as const,
-              clipText: catalogOverflowClips(node.visual.overflow),
-            }
-          : {}),
-        ...(metrics.fontWeight !== undefined
-          ? { fontWeight: metrics.fontWeight }
-          : {}),
-        ...(metrics.lineHeight !== undefined
-          ? { lineHeight: fontSize * metrics.lineHeight }
-          : {}),
-        color: rgba(metrics.color),
-        // The text sits inside the box model's padding sides (and the border) — the sides the
-        // layout (`styleOf`) and the DOM use. **Why (2026-10-14)**: inset 0 over the whole box drew a
-        // padded Text's glyphs at the box edge while the Preview's sat `padding-left` in (the Button
-        // label spill's sibling pattern).
-        paddingLeft: inset.left,
-        paddingTop: inset.top,
-        maxWidth: Math.max(0, rect.width - inset.left - inset.right),
-        // The layout's wrap decision: a leaf it kept on one line paints unwrapped; an authored
-        // non-normal white-space (nowrap / pre …) is painted as declared.
-        whiteSpace:
-          metrics.whiteSpace === undefined || metrics.whiteSpace === "normal"
-            ? layoutWhiteSpace
-            : (metrics.whiteSpace as
-                "nowrap" | "pre" | "pre-wrap" | "pre-line"),
+          ...(metrics.fontWeight !== undefined
+            ? { fontWeight: metrics.fontWeight }
+            : {}),
+          ...(metrics.lineHeight !== undefined
+            ? { lineHeight: fontSize * metrics.lineHeight }
+            : {}),
+          color: rgba(metrics.color),
+          // The text sits inside the box model's padding sides (and the border) — the sides the
+          // layout (`styleOf`) and the DOM use. **Why (2026-10-14)**: inset 0 over the whole box drew a
+          // padded Text's glyphs at the box edge while the Preview's sat `padding-left` in (the Button
+          // label spill's sibling pattern).
+          paddingLeft: inset.left,
+          paddingTop: inset.top,
+          maxWidth: Math.max(0, rect.width - inset.left - inset.right),
+          // The layout's wrap decision: a leaf it kept on one line paints unwrapped; an authored
+          // non-normal white-space (nowrap / pre …) is painted as declared.
+          whiteSpace:
+            metrics.whiteSpace === undefined || metrics.whiteSpace === "normal"
+              ? layoutWhiteSpace
+              : (metrics.whiteSpace as
+                  "nowrap" | "pre" | "pre-wrap" | "pre-line"),
+        },
       },
-    };
+      rect,
+    );
   },
   button: (node, rect, parent) => {
     // ADR-276: a Button's words are its Text child (`Button > Icon{icon} + Text{label}`, the
@@ -1676,7 +1724,9 @@ const sameRect = (left: Rect | undefined, right: Rect | undefined) =>
   left.x === right.x &&
   left.y === right.y &&
   left.width === right.width &&
-  left.height === right.height;
+  left.height === right.height &&
+  JSON.stringify(left.inlineFragments) ===
+    JSON.stringify(right.inlineFragments);
 
 /**
  * Projection from resolved catalog inputs to existing CanvasKit commands. The initial bind walks

@@ -193,6 +193,7 @@ const layoutValueChoices: Readonly<
     "block",
     "flex",
     "inline-flex",
+    "inline",
     "grid",
     "inline-block",
     // ADR-256 Phase 6g: no box of its own (RAC Autocomplete — engine CSS-DISPLAY-3 §2.5).

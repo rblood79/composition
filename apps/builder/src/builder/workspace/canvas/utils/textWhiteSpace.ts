@@ -51,7 +51,10 @@ export function collapseTextWhiteSpace(
       .replace(/[ \t]+/g, " ")
       .replace(/ ?\n ?/g, "\n");
   }
-  return transformSegmentBreaks(content)
-    .replace(/[ \t]+/g, " ")
-    .trim();
+  return (
+    transformSegmentBreaks(content)
+      .replace(/[ \t]+/g, " ")
+      // CSS collapses ASCII spaces; NBSP is glue in an inline stream, including at span edges.
+      .replace(/^ +| +$/g, "")
+  );
 }

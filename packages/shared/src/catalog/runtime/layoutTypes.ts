@@ -186,6 +186,8 @@ export interface EngineStyle {
   contentMinHeight?: number;
   /** ADR-224: CSS height와 분리한 leaf 콘텐츠 높이 (content-box). */
   contentHeight?: number;
+  /** Shaped glyph advances only; Rust owns the inline line/fragment layout. */
+  inlineText?: import("./engineTypes").InlineTextShape;
 
   // Baseline 계약 입력 3종 (ADR-923 Phase 2 — wasm 경계).
   // 엔진 NodeStyle.vertical_align/line_height/leaf_baseline 대응.

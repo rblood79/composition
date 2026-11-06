@@ -99,6 +99,8 @@ export interface ResolvedThemeSnapshot {
   colors: { light: Record<string, string>; dark: Record<string, string> };
   typography: Record<string, number | string>;
   radius: Record<string, number>;
+  /** Seed와 같은 명시 값도 locale 기본값보다 우선하도록 provenance를 보존한다. */
+  explicitTypography: Readonly<Record<string, number | string>>;
   /** ADR-227 Phase 3 — border 폭 (px): `{border.width.none|thin|thick}` 의 값. Skia 맵 · DOM `--border-width-*`. */
   border: Record<string, number>;
   shadows: { light: Record<string, string>; dark: Record<string, string> };
@@ -550,6 +552,7 @@ export function resolveThemeSnapshot(
     colors: { light, dark },
     typography,
     radius,
+    explicitTypography,
     border,
     shadows: { light: lightShadow, dark: darkShadow },
     base,

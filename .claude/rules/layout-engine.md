@@ -155,7 +155,7 @@ paths:
 | flex wrap 다중 라인                                  | `flexSweep` (WRAPS × LINE_COUNTS) — 격자는 nowrap 고정                                                                                          |
 | 정렬 속성 (`justify-*`/`align-*`)                    | `flexSweep` + `crossAxisOverflow` + `gridAlignContent` — 격자는 부모 컨텍스트 신호로만 사용                                                     |
 | 중첩 2단 이상                                        | 격자 3 은 1단 전파만 — 조합 폭발. 1단 정합이면 귀납 가정                                                                                        |
-| `writing-mode` / `direction` / `float` / inline flow | 엔진 미지원 표면 (`NodeStyle` 부재)                                                                                                             |
+| `writing-mode` / `direction` / `float` / inline flow | 일반 IFC는 미지원. 직계 inline text와 atomic inline 조립은 `inline.rs`·`s2InlineLabel.browser.test.ts`로 검증                                   |
 | grid `auto-flow: column` 의 행 extent                | ADR-206 Phase 2 (2026-09-07) 로 해소 — 암묵 행이 flow 와 무관하게 선다 (`shrinkToFitInline` 구 `[잔존]` 단언 → 20). 격자는 여전히 row-flow 고정 |
 | `gap` / `padding` / `border` 조합                    | 기본 축 밖 — 격자는 0 리셋 고정 (`gridTrackContribution`/`gridMinmaxTracks` 가 부분 커버)                                                       |
 | 내용 leaf 의 `height:auto`                           | **오라클 쪽 사각** — engine leg 에 높이 스칼라 채널이 없다 (아래)                                                                               |
@@ -211,3 +211,16 @@ paths:
   **Why (2026-11-04):** Select 50개 Open의 무관한 형제 편집에서 부모/viewport 이중 배치와 min-width 재solve가 반복됐다. 실제 WASM fixture 중앙값 17.57ms → 1.05ms; auto/%/inset·viewport·DPR·숨김 전환은 fresh layout과 대조했다.
 - `zero_subtree_layout`은 최종 fixed 크기 캐시도 무효화한다. intrinsic 측정 결과와 실제 자손 좌표를 보유한 최종 배치 캐시의 수명은 다르다.
   **Why (2026-11-04):** 부모 display:none → block에서 fixed 자손의 세대는 그대로인데 내부 좌표가 0으로 초기화돼, 크기 캐시만 재사용하면 자손이 0 좌표에 남았다. 부모 숨김 후 fresh layout 대조가 원복 RED를 확인했다.
+
+## 실제 inline 자식의 측정과 배치 (2026-11-06)
+
+`styleOf`는 `display:inline` 텍스트 leaf의 glyph cluster(UTF-16 범위·advance·높이·baseline)를
+`NodeStyle.inlineText`로 전달한다. TS의 `.inline` provider는 글꼴만 측정하고 줄을 배치하지 않는다.
+Rust `inline.rs`는 UAX14와 NBSP glue를 자식 경계에 걸쳐 처리하며 line/fragment를 결정한다.
+현재 지원 경계는 직계 pure inline text와 atomic inline 자식만 있는 flow다. 중첩 inline 컨테이너,
+block 혼합, 전체 bidi/vertical writing 지원으로 확대하지 않는다.
+
+`getLayoutsBatch`의 5-float stride는 유지하고 `getInlineFragmentsBatch`가 sparse fragment를 전달한다.
+Canvas의 원본 Text는 편집용 union box를 보존하고 paint 자식만 fragment별로 그린다. fragment를
+기존 rule-text 중앙 정렬로 다시 늘리지 않는다. grid intrinsic 측정 snapshot에도 fragment를 보존하고,
+inline solve 완료 때 dirty 플래그를 해제하여 다음 편집이 조상까지 전파되게 한다.

@@ -1,4 +1,6 @@
 import { fontFamily, spectrumFontVariations } from "@composition/rendering";
+import { inlineTextContent } from "../../../../../packages/shared/src/catalog/runtime/inlineText";
+import { measureCssLineBox } from "../workspace/canvas/utils/cssLineBoxMetrics";
 import type { EmbindEnumEntity, Typeface } from "canvaskit-wasm";
 import { DEFAULT_FONT_FEATURES } from "../workspace/canvas/layout/engines/cssResolver";
 import {
@@ -14,7 +16,7 @@ import {
 } from "../workspace/canvas/skia/initCanvasKit";
 import {
   catalogRunFont,
-  catalogCssLineBaseline,
+  catalogInlineLineMetrics,
   type CatalogTextMeasure,
   type CatalogTextRunFont,
 } from "./compositionRoot";
@@ -33,6 +35,12 @@ import {
 } from "../workspace/canvas/utils/textMeasure";
 
 type Font = Parameters<CatalogTextMeasure>[1];
+// Canvas2D accepts CSS generic families; Skia's registered-family list must not replace them.
+const cssTextFamily = (font: Font) =>
+  cssFontFamilyList((font.fontFamily ?? fontFamily.sans).split(","));
+type Cluster = ReturnType<
+  NonNullable<CatalogTextMeasure["inline"]>
+>["clusters"][number];
 
 /**
  * The Canvas paint's own paragraph (`nodeRendererText`: shared font collection, Pretendard with
@@ -44,6 +52,7 @@ function paragraphMetrics(
   font: Font,
   maxWidth?: number,
   runs?: readonly CatalogTextRunFont[],
+  collectInline = false,
 ):
   | {
       max: number;
@@ -51,6 +60,7 @@ function paragraphMetrics(
       lines: number;
       height: number;
       firstBaseline?: number;
+      clusters?: Cluster[];
     }
   | undefined {
   if (!isCanvasKitInitialized() || !skiaFontManager.hasFont("Pretendard"))
@@ -140,6 +150,34 @@ function paragraphMetrics(
   paragraph.layout(100000);
   const max = paragraph.getMaxIntrinsicWidth();
   const min = paragraph.getMinIntrinsicWidth();
+  const clusters: Cluster[] | undefined = collectInline ? [] : undefined;
+  if (clusters) {
+    for (let at = 0; at < text.length;) {
+      const info = paragraph.getGlyphInfoAt(at);
+      const end =
+        info?.graphemeClusterTextRange.end ??
+        at + (text.codePointAt(at)! > 0xffff ? 2 : 1);
+      const run = runs?.find((run) => run.start <= at && run.end > at);
+      const ownFont = run ? catalogRunFont(font, run) : font;
+      const { height, baseline } = catalogInlineLineMetrics(
+        catalogTextMeasure,
+        text.slice(at, end),
+        ownFont,
+      );
+      clusters.push({
+        start: at,
+        end,
+        width: info
+          ? Math.abs(
+              info.graphemeLayoutBounds[2] - info.graphemeLayoutBounds[0],
+            )
+          : 0,
+        height,
+        baseline,
+      });
+      at = Math.max(at + 1, end);
+    }
+  }
   // CSS `white-space: normal` breaks only at break opportunities: a word wider than the box
   // overflows on its own line (the paragraph would split it), so wrap at no less than min-content
   // — unless the text may break inside a word (`overflow-wrap` / `word-break`), as the paragraph
@@ -150,17 +188,14 @@ function paragraphMetrics(
     );
   const lineMetrics = paragraph.getLineMetrics();
   const firstLine = lineMetrics[0];
-  let firstBaseline: number | undefined;
+  let firstBaseline = catalogTextMeasure.fontBox?.(font)
+    ? undefined
+    : firstLine?.baseline;
   if (runs?.length && firstLine) {
     const baselineOf = (value: Font) => {
       const box = catalogTextMeasure.fontBox?.(value);
       return box
-        ? catalogCssLineBaseline(
-            box,
-            value.lineHeight > 0
-              ? value.fontSize * value.lineHeight
-              : undefined,
-          )
+        ? catalogInlineLineMetrics(catalogTextMeasure, text, value).baseline
         : undefined;
     };
     firstBaseline = baselineOf(font);
@@ -178,6 +213,7 @@ function paragraphMetrics(
     lines: lineMetrics.length,
     height: paragraph.getHeight(),
     ...(firstBaseline !== undefined ? { firstBaseline } : {}),
+    ...(clusters ? { clusters } : {}),
   };
   paragraph.delete();
   builder.delete();
@@ -248,9 +284,16 @@ export const catalogTextMeasure: CatalogTextMeasure = (
 catalogTextMeasure.fontBox = (font) =>
   canvasKitFontBox(font) ??
   measureFontBox(
-    cssFontFamilyList(catalogFontFamilies(font.fontFamily)),
+    cssTextFamily(font),
     font.fontSize,
     font.fontWeight,
+    font.locale,
+  );
+
+catalogTextMeasure.lineMetrics = (font) =>
+  measureCssLineBox(
+    { ...font, fontFamily: cssTextFamily(font) },
+    isCanvasKitInitialized() ? skiaFontManager.getFontCollection() : undefined,
   );
 
 type FontBox = { ascent: number; descent: number; xHeight: number };
@@ -262,8 +305,14 @@ function canvasKitFontBox(font: Font): FontBox | undefined {
     return undefined;
   const typeface =
     catalogFontFamilies(font.fontFamily)
-      .map((family) =>
-        skiaFontManager.getTypeface(skiaFontManager.resolveFamily(family)),
+      .map(
+        (family) =>
+          // FontMgr의 내부 alias는 Paragraph 등록용이다. Typeface 저장소는 사용자 family로 찾는다.
+          skiaFontManager.getTypeface(
+            family,
+            String(font.fontWeight ?? 400),
+            font.fontStyle ?? "normal",
+          ) ?? skiaFontManager.getTypeface(family),
       )
       .find((face) => face !== undefined) ??
     skiaFontManager.getTypeface("Pretendard");
@@ -332,33 +381,43 @@ const measureOneBlock = (
     const width = calculateMaxContentWidth(
       text,
       font.fontSize,
-      fontFamily.sans,
+      cssTextFamily(font),
       font.fontWeight,
+      font.locale,
     );
     const oneLine = measureTextWithWhiteSpace(
       text,
       font.fontSize,
-      fontFamily.sans,
+      cssTextFamily(font),
       font.fontWeight,
       "nowrap",
       width,
       undefined,
       undefined,
       lineHeight,
+      font.letterSpacing,
+      font.locale,
     );
     return {
       width,
       exactWidth: measureTextWidth(
         text,
         font.fontSize,
-        fontFamily.sans,
+        cssTextFamily(font),
         font.fontWeight,
+        {
+          locale: font.locale,
+          letterSpacing: font.letterSpacing,
+          fontStyle: font.fontStyle,
+        },
       ),
       minWidth: calculateMinContentWidth(
         text,
         font.fontSize,
-        fontFamily.sans,
+        cssTextFamily(font),
         font.fontWeight,
+        font.wordBreak ?? "normal",
+        font.locale,
       ),
       height: oneLine.height,
     };
@@ -366,7 +425,7 @@ const measureOneBlock = (
   const wrapped = measureTextWithWhiteSpace(
     text,
     font.fontSize,
-    fontFamily.sans,
+    cssTextFamily(font),
     font.fontWeight,
     "normal",
     maxWidth,
@@ -374,6 +433,64 @@ const measureOneBlock = (
     font.overflowWrap ??
       (font.wordBreak === "break-word" ? "break-word" : undefined),
     lineHeight,
+    font.letterSpacing,
+    font.locale,
   );
   return { width: maxWidth, height: wrapped.height };
+};
+
+/** Shape one unwrapped stream. Rust consumes advances and Unicode text, not pre-positioned lines. */
+catalogTextMeasure.inline = (raw, font, runs) => {
+  const ws = font.whiteSpace ?? "normal";
+  const text = inlineTextContent(raw, ws);
+  const normalizedRuns = runs && alignTextRuns(raw, runs, text);
+  const shaped = paragraphMetrics(text, font, undefined, normalizedRuns, true);
+  const { height, baseline } = catalogInlineLineMetrics(
+    catalogTextMeasure,
+    text,
+    font,
+  );
+  const clusters =
+    shaped?.clusters ??
+    [
+      ...new Intl.Segmenter(font.locale, { granularity: "grapheme" }).segment(
+        text,
+      ),
+    ].map(({ index, segment }) => ({
+      start: index,
+      end: index + segment.length,
+      width:
+        measureTextWidth(
+          text.slice(0, index + segment.length),
+          font.fontSize,
+          cssTextFamily(font),
+          font.fontWeight,
+          {
+            locale: font.locale,
+            letterSpacing: font.letterSpacing,
+            fontStyle: font.fontStyle,
+          },
+        ) -
+        measureTextWidth(
+          text.slice(0, index),
+          font.fontSize,
+          cssTextFamily(font),
+          font.fontWeight,
+          {
+            locale: font.locale,
+            letterSpacing: font.letterSpacing,
+            fontStyle: font.fontStyle,
+          },
+        ),
+      height,
+      baseline,
+    }));
+  return {
+    text,
+    clusters,
+    nowrap: ws === "nowrap" || ws === "pre",
+    breakAll: font.wordBreak === "break-all",
+    keepAll: font.wordBreak === "keep-all",
+    preserveSpaces: ws === "pre" || ws === "pre-wrap",
+  };
 };

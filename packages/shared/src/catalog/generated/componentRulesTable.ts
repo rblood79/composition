@@ -7832,6 +7832,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Label: {
     defaultVariant: "default",
     defaultSize: "M",
+    // S2 1.8.2 controlFont: CJK는 크기와 관계없이 단위 없는 1.5.
+    localeTypography: {
+      ja: { lineHeight: 1.5 },
+      ko: { lineHeight: 1.5 },
+      zh: { lineHeight: 1.5 },
+    },
     variants: {
       default: {
         paint: {
@@ -7907,79 +7913,43 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
       },
     },
-    // Label 의 display 정본 (ADR-236 후속, 2026-09-26). DOM 은 수동 `Label.css` (skipCSSGeneration —
-    //   base.css 의 --label-font-size 상속) 의 inline-flex · align-items center · width fit-content 를
-    //   쓰는데 catalog 에 display 가 없어 Canvas 는 기본 block 이었다. flex · grid 부모 안에서는
-    //   blockify 로 차이가 없고, block 부모 (인라인 display block 인 Slider · Meter · ProgressBar 등)
-    //   에서만 Canvas Label 이 한 줄을 차지해 DOM (값과 한 줄) 과 갈렸다. `structure` 가 있으면 생성기가
-    //   CSS 를 만들므로 `skipCSSGeneration` 으로 막는다 — DOM 은 계속 수동 `Label.css`.
-    //   height fit-content (사용자 결정 2026-09-29 — 손 CSS 에만 있던 값을 선언으로): grid · flex
-    //   부모 (ProgressBar · Meter · Slider) 가 Label 을 행 높이로 늘리지 않는다.
+    // S2 Field의 Label은 실제 inline Text/NBSP/Icon 자식으로 조립된다.
+    // Label.css의 크기 변수 상속은 유지하며, typed part layout은 DOM과 Rust에 함께 전달한다.
     structure: {
       archetype: "simple",
       element: "label",
       skipCSSGeneration: true,
-      // 실제 Icon 자식의 기본 baseline. 양쪽 renderer는 같은 typed part margin을 읽는다.
+      // 실제 자식의 inline display와 Icon baseline을 양쪽 renderer가 함께 읽는다.
       composition: {
         staticSelectors: {
           '.react-aria-Text[slot="label-content"]': {
+            display: "inline",
             width: "fit-content",
             color: "{color.neutral-subdued}",
           },
           '.react-aria-Text[slot="necessity-label"]': {
+            display: "inline",
             width: "fit-content",
+            "white-space": "nowrap",
+            "flex-shrink": "0",
             color: "{color.neutral-subdued}",
           },
           '.react-aria-Text[slot="necessity-space"]': {
+            display: "inline",
             width: "fit-content",
             "flex-shrink": "0",
             color: "{color.neutral-subdued}",
           },
           '.react-aria-Icon[slot="necessity-icon"]': {
+            display: "inline-flex",
+            "vertical-align": "baseline",
             color: "{color.neutral-subdued}",
-          },
-        },
-        containerVariants: {
-          size: {
-            S: {
-              nested: [
-                {
-                  selector: '.react-aria-Icon[slot="necessity-icon"]',
-                  styles: { "margin-top": "0" },
-                },
-              ],
-            },
-            M: {
-              nested: [
-                {
-                  selector: '.react-aria-Icon[slot="necessity-icon"]',
-                  styles: { "margin-top": "2px" },
-                },
-              ],
-            },
-            L: {
-              nested: [
-                {
-                  selector: '.react-aria-Icon[slot="necessity-icon"]',
-                  styles: { "margin-top": "2px" },
-                },
-              ],
-            },
-            XL: {
-              nested: [
-                {
-                  selector: '.react-aria-Icon[slot="necessity-icon"]',
-                  styles: { "margin-top": "2px" },
-                },
-              ],
-            },
           },
         },
       },
 
       containerStyles: {
-        display: "inline-flex",
-        alignItems: "center",
+        display: "inline",
         width: "fit-content",
         height: "fit-content",
       },

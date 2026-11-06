@@ -232,7 +232,15 @@ export class EngineLayout {
     if (!this.engine)
       throw new Error("EngineLayout: WASM engine not initialized");
     const flat = this.engine.getLayoutsBatch(new Uint32Array(handles));
-    return flatToLayoutMap(handles, flat);
+    const layouts = flatToLayoutMap(handles, flat);
+    const inline = JSON.parse(
+      this.engine.getInlineFragmentsBatch(new Uint32Array(handles)),
+    ) as [number, NonNullable<LayoutResult["inlineFragments"]>][];
+    for (const [handle, fragments] of inline) {
+      const result = layouts.get(handle);
+      if (result) result.inlineFragments = fragments;
+    }
+    return layouts;
   }
 
   /** ADR-267 — a sticky node's constraints after `computeLayout` (null: not sticky, or no inset). */

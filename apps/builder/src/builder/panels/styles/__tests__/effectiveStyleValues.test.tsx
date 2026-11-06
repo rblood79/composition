@@ -9,6 +9,8 @@ import { useLayoutValues } from "../hooks/useLayoutValues";
 import { useTypographyValues } from "../hooks/useTypographyValues";
 import { useStyleActions } from "../hooks/useStyleActions";
 import { useFlexDirectionKeys } from "../hooks/useLayoutAuxiliary";
+import { setSiteSettings } from "../../../../../../../packages/shared/src/catalog/commands";
+import { catalogTextMetrics } from "../../../catalogRuntime/boxModel";
 
 /**
  * Design 패널의 표시 값 = 선택 record 의 실효값 (2026-10-09 — Codex 판독 MEDIUM 4).
@@ -136,6 +138,54 @@ describe("Layout 탭 — 루트가 받지 않는 size 값", () => {
 });
 
 describe("Text 탭 — 부모 size 전파", () => {
+  it.each([
+    "TextField",
+    "TextArea",
+    "SearchField",
+    "NumberField",
+    "ColorField",
+    "DateField",
+    "TimeField",
+    "DatePicker",
+    "DateRangePicker",
+    "Select",
+    "ComboBox",
+    "CheckboxGroup",
+    "RadioGroup",
+  ])(
+    "%s Label 본문은 실제 14px/21px를 표시하고 px 편집·복원을 같은 크기로 환산한다",
+    async (type) => {
+      const local = await openStylesFixture([{ id: "field", type }]);
+      local.workspace.execute(setSiteSettings({ patch: { lang: "ko-KR" } }));
+      const id = local.descendantRecord("field", "Text");
+      local.workspace.selectRecords([id]);
+      const view = renderHook(() => useTypographyValues(id), {
+        wrapper: local.wrapper,
+      });
+      expect(view.result.current?.fontSize).toBe("14px");
+      expect(view.result.current?.lineHeight).toBe("21px");
+      const metrics = () => {
+        const node = local.workspace.root.domInputs.get(id)!;
+        return catalogTextMetrics(node, undefined);
+      };
+      act(() => local.host.updateStyle("lineHeight", "28px"));
+      expect(metrics().lineHeight).toBe(2);
+      expect(view.result.current?.lineHeight).toBe("28px");
+      act(() => local.workspace.undo());
+      expect(view.result.current?.lineHeight).toBe("21px");
+      act(() => local.workspace.redo());
+      expect(view.result.current?.lineHeight).toBe("28px");
+      act(() => local.host.resetStyles(["lineHeight"]));
+      expect(view.result.current?.lineHeight).toBe("21px");
+      act(() => local.host.updateStyle("fontSize", "20px"));
+      act(() => local.host.updateStyle("lineHeight", "28px"));
+      expect(metrics().fontSize).toBe(20);
+      expect(metrics().lineHeight).toBe(1.4);
+      expect(view.result.current?.lineHeight).toBe("28px");
+      view.unmount();
+    },
+  );
+
   // (ADR-295 Phase 3: the line is the S2 formula — 18 → 22, 14 → 18.)
   it("size xl Checkbox 의 Label 은 18px · 줄 높이 22px (record 의 비율 1.222 × 18)", () => {
     const values = typographyOf(fixture.descendantRecord("cbxl", "Label"));

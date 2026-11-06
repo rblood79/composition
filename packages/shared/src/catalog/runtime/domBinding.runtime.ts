@@ -3909,7 +3909,9 @@ export function renderNode(
   // ADR-295 Phase 3c-3b: a part rule's length margin (a field button's overlap) — its device formula.
   if (bound) catalogDeviceLayoutCss(bound, node.layout);
   if (bound && node.derivedProps?._fieldLabelRole)
-    Object.assign(bound, catalogLayoutCss(catalogAuthoredLayout(root, node)));
+    // Label skips stylesheet generation. Its typed part defaults (including inline/flex
+    // baseline participation) must reach DOM as well as authored edits, just as Canvas reads them.
+    Object.assign(bound, catalogLayoutCss(node.layout));
   // Hint states belong to their catalog sheet; a resolved resting color inline would
   // override disabled. Explicitly authored text colors still win.
   if (

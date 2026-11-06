@@ -43,6 +43,7 @@ export function measureTextWidth(
   fontFamily: string = specFontFamily.sans,
   fontWeight: number | string = 400,
   extra?: {
+    locale?: string;
     letterSpacing?: number;
     wordSpacing?: number;
     fontStyle?: number | string;
@@ -325,10 +326,11 @@ export function measureTextWithWhiteSpace(
    * 해소는 호출부의 `resolveTextRenderStyle` 이 하고 여기는 운반만 한다.
    */
   letterSpacing?: number,
+  locale?: string,
 ): { width: number; height: number } {
   // CSS line-height: normal 근사값 (fontBoundingBox 기반)
   // lineHeightOverride가 있으면 spec/config 기반 lineHeight 우선 사용
-  const fm = measureFontMetrics(fontFamily, fontSize, fontWeight);
+  const fm = measureFontMetrics(fontFamily, fontSize, fontWeight, locale);
   const lineHeight = lineHeightOverride ?? fm.lineHeight;
 
   // ADR-008: word-break/overflow-wrap 타입 캐스팅
@@ -340,6 +342,7 @@ export function measureTextWithWhiteSpace(
       // 줄바꿈 없이 한 줄
       const width = measureTextWidth(text, fontSize, fontFamily, fontWeight, {
         letterSpacing,
+        locale,
       });
       return { width, height: lineHeight };
     }
@@ -350,6 +353,7 @@ export function measureTextWithWhiteSpace(
       for (const line of lines) {
         const w = measureTextWidth(line, fontSize, fontFamily, fontWeight, {
           letterSpacing,
+          locale,
         });
         if (w > maxLineWidth) maxLineWidth = w;
       }
@@ -372,6 +376,10 @@ export function measureTextWithWhiteSpace(
           wb,
           ow,
           letterSpacing,
+          whiteSpace,
+          undefined,
+          undefined,
+          locale,
         ),
       };
     }
@@ -389,6 +397,10 @@ export function measureTextWithWhiteSpace(
           wb,
           ow,
           letterSpacing,
+          whiteSpace,
+          undefined,
+          undefined,
+          locale,
         ),
       };
     }
@@ -418,6 +430,7 @@ export function calculateMinContentWidth(
   fontWeight: number | string = 400,
   /** `keep-all` 이면 CJK 연속도 한 단위 (Chrome 과 같이). 생략은 normal. */
   wordBreak: string = "normal",
+  locale?: string,
 ): number {
   if (!text) return 0;
 
@@ -433,6 +446,7 @@ export function calculateMinContentWidth(
       fontSize,
       fontFamily,
       fontWeight,
+      { locale },
     );
     if (width > maxWordWidth) {
       maxWordWidth = width;
@@ -458,8 +472,11 @@ export function calculateMaxContentWidth(
   fontSize: number = 14,
   fontFamily: string = specFontFamily.sans,
   fontWeight: number | string = 400,
+  locale?: string,
 ): number {
   if (!text) return 0;
 
-  return Math.ceil(measureTextWidth(text, fontSize, fontFamily, fontWeight));
+  return Math.ceil(
+    measureTextWidth(text, fontSize, fontFamily, fontWeight, { locale }),
+  );
 }

@@ -20,6 +20,12 @@ describe("transformSegmentBreaks", () => {
 });
 
 describe("collapseTextWhiteSpace", () => {
+  it("NBSP는 span의 앞뒤에서도 접거나 제거하지 않는다", () => {
+    expect(collapseTextWhiteSpace("\u00a0", "normal")).toBe("\u00a0");
+    expect(collapseTextWhiteSpace("\u00a0필수\u00a0", "nowrap")).toBe(
+      "\u00a0필수\u00a0",
+    );
+  });
   it("normal · nowrap: segment break 접고 공백 run 1개, 줄 앞뒤 공백 제거", () => {
     const src = "  첫째 줄\n둘째   줄\n\n셋째 줄  ";
     expect(collapseTextWhiteSpace(src, "normal")).toBe(

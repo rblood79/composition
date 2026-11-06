@@ -6,6 +6,7 @@ import { catalogCodeView } from "@/builder/catalogRuntime/codeView";
 import { catalogTextMetrics } from "../../../../packages/shared/src/catalog/runtime/boxModel";
 import { act, createElement } from "react";
 import { SearchField as SpectrumSearchField } from "@react-spectrum/s2/SearchField";
+import { I18nProvider } from "react-aria/I18nProvider";
 import { createRoot } from "react-dom/client";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { userEvent } from "vitest/browser";
@@ -16,6 +17,7 @@ import {
   removeTargets,
   setLibraryDefault,
   setFields,
+  setSiteSettings,
 } from "../../../../packages/shared/src/catalog/commands";
 import { CatalogGraph } from "../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -34,11 +36,15 @@ import { catalogPaletteDefinitionId } from "@/builder/catalogRuntime/paletteInse
 import { newCatalogProjectDocument } from "@/builder/catalogRuntime/project";
 import { CatalogStorage } from "@/builder/catalogRuntime/storage";
 import { CatalogWorkspace } from "@/builder/catalogRuntime/workspace";
-import { catalogAuthoredVisual } from "@/builder/catalogRuntime/libraryVisual";
+import {
+  catalogAuthoredVisual,
+  catalogHasExplicitVisual,
+} from "@/builder/catalogRuntime/libraryVisual";
 import { catalogFieldPrefixCommand } from "@/builder/catalogRuntime/fieldPrefixCommand";
 import { nodePosition } from "../../../../packages/shared/src/catalog/resolution/positions";
 import { catalogRuleShapes } from "@/builder/catalogRuntime/ruleShapes";
 import { catalogCanvasNodeData } from "@/builder/catalogRuntime/canvasBinding";
+import { catalogTextMeasure } from "@/builder/catalogRuntime/textMeasure";
 import { getIconData } from "@composition/rendering";
 import {
   catalogRulePaint,
@@ -72,6 +78,7 @@ async function fixture(
   size: string,
   mode: "light" | "dark" = "light",
   locale?: string,
+  actualMetrics = false,
 ) {
   const owner = type;
   const storage = new CatalogStorage(indexedDB, `field-text-${Math.random()}`);
@@ -89,11 +96,13 @@ async function fixture(
       engine: createLayoutEngine(),
       viewport: { width: 1000, height: 800 },
       autosaveSchedule: () => {},
-      textMeasure: (text, font) => ({
-        width: (text.length * font.fontSize) / 2,
-        minWidth: (text.length * font.fontSize) / 2,
-        height: font.fontSize * font.lineHeight,
-      }),
+      textMeasure: actualMetrics
+        ? catalogTextMeasure
+        : (text, font) => ({
+            width: (text.length * font.fontSize) / 2,
+            minWidth: (text.length * font.fontSize) / 2,
+            height: font.fontSize * font.lineHeight,
+          }),
     },
   );
   workspace.execute(
@@ -168,6 +177,21 @@ const types = [
   "SearchField",
   "NumberField",
   "ColorField",
+  "ComboBox",
+];
+const necessityFieldTypes = [
+  "TextField",
+  "TextArea",
+  "NumberField",
+  "SearchField",
+  "ColorField",
+  "DateField",
+  "TimeField",
+  "DatePicker",
+  "DateRangePicker",
+  "CheckboxGroup",
+  "RadioGroup",
+  "Select",
   "ComboBox",
 ];
 // Installed S2 1.8.2 Field.tsx: gray-600, neutral-subdued, negative, disabled-content.
@@ -1479,82 +1503,71 @@ it.each(["S", "M", "L", "XL"] as const)(
   },
 );
 
-it.each([
-  "TextField",
-  "TextArea",
-  "NumberField",
-  "SearchField",
-  "ColorField",
-  "DateField",
-  "TimeField",
-  "DatePicker",
-  "DateRangePicker",
-  "CheckboxGroup",
-  "RadioGroup",
-  "Select",
-  "ComboBox",
-])("%s: actual Label parts follow state and empty labels", async (type) => {
-  const h = await fixture(type, "M");
-  try {
-    const parts = [...h.root.domInputs.values()].filter((n) =>
-      [
-        "label-content",
-        "necessity-icon",
-        "necessity-label",
-        "necessity-space",
-      ].includes(String(n.props.slot)),
-    );
-    expect(parts).toHaveLength(4);
-    const label = h.root.domInputs.get(parts[0].parentId)!;
-    expect(label.children).toHaveLength(4);
-    for (const necessityIndicator of ["icon", "label"]) {
-      for (const isRequired of [false, true, false]) {
-        await act(async () =>
-          h.write(h.group().id, {
-            label: "Field title",
-            necessityIndicator,
-            isRequired,
-          }),
-        );
-        await h.render();
-        const visible = (role: string) => {
-          const part = parts.find((n) => n.props.slot === role)!;
-          const expected =
-            role === "label-content" ||
-            (role === "necessity-icon"
-              ? necessityIndicator === "icon" && isRequired
-              : role === "necessity-label"
-                ? necessityIndicator === "label"
-                : necessityIndicator === "label" || isRequired);
-          expect(h.root.layoutInputs.get(part.id)?.hidden === true).toBe(
-            !expected,
+it.each(necessityFieldTypes)(
+  "%s: actual Label parts follow state and empty labels",
+  async (type) => {
+    const h = await fixture(type, "M");
+    try {
+      const parts = [...h.root.domInputs.values()].filter((n) =>
+        [
+          "label-content",
+          "necessity-icon",
+          "necessity-label",
+          "necessity-space",
+        ].includes(String(n.props.slot)),
+      );
+      expect(parts).toHaveLength(4);
+      const label = h.root.domInputs.get(parts[0].parentId)!;
+      expect(label.children).toHaveLength(4);
+      for (const necessityIndicator of ["icon", "label"]) {
+        for (const isRequired of [false, true, false]) {
+          await act(async () =>
+            h.write(h.group().id, {
+              label: "Field title",
+              necessityIndicator,
+              isRequired,
+            }),
           );
+          await h.render();
+          const visible = (role: string) => {
+            const part = parts.find((n) => n.props.slot === role)!;
+            const expected =
+              role === "label-content" ||
+              (role === "necessity-icon"
+                ? necessityIndicator === "icon" && isRequired
+                : role === "necessity-label"
+                  ? necessityIndicator === "label"
+                  : necessityIndicator === "label" || isRequired);
+            expect(h.root.layoutInputs.get(part.id)?.hidden === true).toBe(
+              !expected,
+            );
+            expect(
+              h.host.querySelector(`[data-catalog-id="${part.id}"]`) !== null,
+            ).toBe(expected);
+          };
+          for (const part of parts) visible(String(part.props.slot));
+          const body = h.host.querySelector(
+            `[data-catalog-id="${parts[0].id}"]`,
+          )!;
+          expect(body.textContent!.trim()).toBe("Field title");
+          await act(async () => h.write(h.group().id, { label: "" }));
+          await h.render();
           expect(
-            h.host.querySelector(`[data-catalog-id="${part.id}"]`) !== null,
-          ).toBe(expected);
-        };
-        for (const part of parts) visible(String(part.props.slot));
-        const body = h.host.querySelector(
-          `[data-catalog-id="${parts[0].id}"]`,
-        )!;
-        expect(body.textContent!.trim()).toBe("Field title");
-        await act(async () => h.write(h.group().id, { label: "" }));
-        await h.render();
-        expect(
-          h.host.querySelector(`[data-catalog-id="${label.id}"]`),
-        ).toBeNull();
-        expect(h.root.layoutInputs.get(label.id)?.hidden).toBe(true);
+            h.host.querySelector(`[data-catalog-id="${label.id}"]`),
+          ).toBeNull();
+          expect(h.root.layoutInputs.get(label.id)?.hidden).toBe(true);
+        }
       }
+    } finally {
+      await h.dispose();
     }
-  } finally {
-    await h.dispose();
-  }
-});
+  },
+);
 
 it.each(["S", "M", "L", "XL"] as const)(
   "SearchField %s: composed necessity matches S2 label geometry",
   async (size) => {
-    const h = await fixture("SearchField", size);
+    const h = await fixture("SearchField", size, "light", undefined, true);
     const host = document.body.appendChild(document.createElement("div"));
     host.style.setProperty("--s2-scale", "1");
     host.style.setProperty("--s2-font-size-base", "14");
@@ -1586,7 +1599,7 @@ it.each(["S", "M", "L", "XL"] as const)(
           rules: library.definitions.get("lib:definition:type-Label")
             ?.partRules,
         }),
-      ).toBe(size === "S" ? "0px" : "2px");
+      ).toBeUndefined(); // Inline baseline replaces the former flex centring margin.
       expect(icon.getAttribute("viewBox")).toBe(
         refIcon.getAttribute("viewBox"),
       );
@@ -1628,6 +1641,289 @@ it.each(["S", "M", "L", "XL"] as const)(
     } finally {
       await act(async () => oracle.unmount());
       host.remove();
+      await h.dispose();
+    }
+  },
+);
+
+it.each(necessityFieldTypes)(
+  "%s: CJK Label line height matches S2 at every size",
+  async (type) => {
+    const h = await fixture(type, "M", "light", "ko-KR");
+    const host = document.body.appendChild(document.createElement("div"));
+    host.lang = "ko-KR";
+    host.style.setProperty("--s2-scale", "1");
+    host.style.setProperty("--s2-font-size-base", "14");
+    const oracle = createRoot(host);
+    try {
+      for (const size of ["S", "M", "L", "XL"] as const) {
+        await act(async () => {
+          h.write(h.group().id, { label: "이름", isRequired: true, size });
+          oracle.render(
+            createElement(I18nProvider, {
+              locale: "ko-KR",
+              children: createElement(SpectrumSearchField, {
+                label: "이름",
+                size,
+                isRequired: true,
+              }),
+            }),
+          );
+        });
+        await h.render();
+        const label = [...h.root.domInputs.values()].find(
+          (n) => h.root.typeOf(n) === "Label",
+        )!;
+        const body = [...h.root.domInputs.values()].find(
+          (n) => n.props.slot === "label-content",
+        )!;
+        const expected = getComputedStyle(
+          host.querySelector("label")!,
+        ).lineHeight;
+        expect(
+          getComputedStyle(h.host.querySelector(".react-aria-Label")!)
+            .lineHeight,
+        ).toBe(expected);
+        expect(
+          getComputedStyle(h.host.querySelector('[slot="label-content"]')!)
+            .lineHeight,
+        ).toBe(expected);
+        expect(label.visual.lineHeight).toBe(1.5);
+        expect(body.derivedProps?.lineHeight).toBe(1.5);
+        const canvas = canvasText(h, "Label", "light");
+        expect(canvas.lineHeight! * canvas.fontSize).toBeCloseTo(
+          Number.parseFloat(expected),
+          5,
+        );
+        expect(
+          (
+            catalogCanvasNodeData(h.root, body.id).text ??
+            catalogCanvasNodeData(h.root, body.id).children?.[0]?.text
+          )?.lineHeight,
+        ).toBeCloseTo(Number.parseFloat(expected), 5);
+      }
+    } finally {
+      await act(async () => oracle.unmount());
+      host.remove();
+      await h.dispose();
+    }
+  },
+);
+
+it("SearchField: CJK Label explicit styles and Library defaults survive Reset and Undo/Redo", async () => {
+  const h = await fixture("SearchField", "M", "light", "ko-KR");
+  try {
+    const label = () =>
+      [...h.root.domInputs.values()].find((n) => h.root.typeOf(n) === "Label")!;
+    const body = () =>
+      [...h.root.domInputs.values()].find(
+        (n) => n.props.slot === "label-content",
+      )!;
+    const write = (id: string, value?: number) =>
+      h.workspace.execute(
+        setFields({
+          targets: [h.workspace.positionOfRecord(id)!.target],
+          visual: {
+            lineHeight:
+              value === undefined ? { kind: "remove" } : { kind: "set", value },
+          },
+        }),
+      );
+    const check = async (ratio: number, partRatio = ratio) => {
+      await h.render();
+      expect(label().visual.lineHeight).toBeCloseTo(ratio, 6);
+      expect(
+        body().derivedProps?.lineHeight ?? body().visual.lineHeight,
+      ).toBeCloseTo(partRatio, 6);
+      expect(
+        Number.parseFloat(
+          getComputedStyle(h.host.querySelector('[slot="label-content"]')!)
+            .lineHeight,
+        ),
+      ).toBeCloseTo(14 * partRatio, 3);
+    };
+    await check(1.5);
+    expect(catalogAuthoredVisual(h.root, label()).lineHeight).toBeUndefined();
+    await act(async () => write(label().id, 18 / 14));
+    await check(18 / 14);
+    expect(catalogHasExplicitVisual(h.root, label(), "lineHeight")).toBe(true);
+    await act(async () => h.workspace.undo());
+    await check(1.5);
+    await act(async () => h.workspace.redo());
+    await check(18 / 14);
+    await act(async () => write(label().id));
+    await check(1.5);
+    await act(async () => write(body().id, 2));
+    await check(1.5, 2);
+    await act(async () => write(body().id));
+    await check(1.5);
+    for (const custom of [true, false]) {
+      await act(async () =>
+        h.workspace.execute(
+          setLibraryDefault({
+            definitionId: "lib:definition:origin-component-label",
+            scope: "visual",
+            key: "lineHeight",
+            write: custom ? { kind: "set", value: 2 } : { kind: "remove" },
+            newId: h.workspace.newId,
+          }),
+        ),
+      );
+      await check(custom ? 2 : 1.5);
+    }
+  } finally {
+    await h.dispose();
+  }
+});
+
+it.each(["ja-JP", "zh-CN", "zh-Hant-TW", "en-US"])(
+  "SearchField: %s Label locale follows site changes and Undo",
+  async (locale) => {
+    const h = await fixture("SearchField", "M", "light", "en-US");
+    try {
+      const label = () =>
+        [...h.root.domInputs.values()].find(
+          (n) => h.root.typeOf(n) === "Label",
+        )!;
+      await act(async () =>
+        h.workspace.execute(setSiteSettings({ patch: { lang: locale } })),
+      );
+      await h.render();
+      expect(label().visual.lineHeight).toBeCloseTo(
+        locale === "en-US" ? 18 / 14 : 1.5,
+        6,
+      );
+      await act(async () => h.workspace.undo());
+      await h.render();
+      expect(label().visual.lineHeight).toBeCloseTo(18 / 14, 6);
+      await act(async () => h.workspace.redo());
+      await h.render();
+      expect(label().visual.lineHeight).toBeCloseTo(
+        locale === "en-US" ? 18 / 14 : 1.5,
+        6,
+      );
+    } finally {
+      await h.dispose();
+    }
+  },
+);
+
+it.each([18, 28])(
+  "SearchField: explicit Theme line height %ipx wins over the CJK default",
+  async (line) => {
+    const definition = createThemeDefinition(
+      "label-line",
+      "Label line",
+      undefined,
+      {
+        "typography.text-sm--line-height": {
+          type: "number",
+          value: line,
+          source: "spec-token",
+        },
+      },
+    );
+    const snapshot = resolveThemeSnapshot(definition, {
+      baseTypographySeed: DEFAULT_BASE_TYPOGRAPHY,
+    });
+    installThemeMaps(snapshot);
+    applyCatalogPreviewTheme({
+      key: "label-line",
+      colorMode: "light",
+      install() {},
+      snapshot: () => snapshot,
+    });
+    const h = await fixture("SearchField", "M", "light", "ko-KR");
+    try {
+      await h.render();
+      const label = [...h.root.domInputs.values()].find(
+        (n) => h.root.typeOf(n) === "Label",
+      )!;
+      expect(label.visual.lineHeight).toBeCloseTo(line / 14, 6);
+      expect(
+        Number.parseFloat(
+          getComputedStyle(h.host.querySelector('[slot="label-content"]')!)
+            .lineHeight,
+        ),
+      ).toBeCloseTo(line, 3);
+    } finally {
+      await h.dispose();
+      installThemeMaps(null);
+    }
+  },
+);
+
+it.each(necessityFieldTypes)(
+  "%s: necessity text stays unbroken and explicit wrapping can be reset",
+  async (type) => {
+    const h = await fixture(type, "M");
+    const part = () =>
+      [...h.root.domInputs.values()].find(
+        (n) => n.props.slot === "necessity-label",
+      )!;
+    const target = () => h.workspace.positionOfRecord(part().id)!.target;
+    try {
+      await act(async () => {
+        h.write(h.group().id, {
+          label: "A longer field title to wrap",
+          isRequired: true,
+          necessityIndicator: "label",
+        });
+        h.write(part().id, { children: "This field is required" });
+        h.workspace.execute(
+          setFields({
+            targets: [h.workspace.positionOfRecord(h.group().id)!.target],
+            visual: { width: { kind: "set", value: 160 } },
+          }),
+        );
+      });
+      await h.render();
+      const element = () =>
+        h.host.querySelector(`[data-catalog-id="${part().id}"]`)!;
+      expect(getComputedStyle(element()).whiteSpace).toBe("nowrap");
+      expect(h.root.getLayoutInput(part().id)!.flexShrink).toBe(0);
+      expect(part().visual.whiteSpace).toBe("nowrap");
+      const range = document.createRange();
+      range.selectNodeContents(element());
+      expect(range.getClientRects()).toHaveLength(1);
+      await act(async () =>
+        h.workspace.execute(
+          setFields({
+            targets: [target()],
+            visual: {
+              whiteSpace: { kind: "set", value: "normal" },
+            },
+          }),
+        ),
+      );
+      // Inline text wraps at its containing field; width on an inline span is ignored by CSS.
+      await act(async () =>
+        h.workspace.execute(
+          setFields({
+            targets: [h.workspace.positionOfRecord(h.group().id)!.target],
+            visual: { width: { kind: "set", value: 48 } },
+          }),
+        ),
+      );
+      await h.render();
+      expect(getComputedStyle(element()).whiteSpace).toBe("normal");
+      range.selectNodeContents(element());
+      expect(range.getClientRects().length).toBeGreaterThan(1);
+      await act(async () =>
+        h.workspace.execute(
+          setFields({
+            targets: [target()],
+            visual: {
+              width: { kind: "remove" },
+              whiteSpace: { kind: "remove" },
+            },
+          }),
+        ),
+      );
+      await h.render();
+      expect(getComputedStyle(element()).whiteSpace).toBe("nowrap");
+      expect(part().visual.whiteSpace).toBe("nowrap");
+    } finally {
       await h.dispose();
     }
   },

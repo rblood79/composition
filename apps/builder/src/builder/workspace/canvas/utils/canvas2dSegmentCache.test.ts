@@ -27,6 +27,7 @@ const mockMeasureText = vi.fn((text: string) => {
 });
 const mockCtx = {
   font: "",
+  lang: "inherit",
   letterSpacing: "0px",
   measureText: mockMeasureText,
 };
@@ -266,6 +267,30 @@ describe("tokenize", () => {
 // ============================================
 
 describe("buildFontKey", () => {
+  it("separates locale-dependent glyph widths and resets the shared context language", () => {
+    clearSegmentCaches();
+    const original = mockMeasureText.getMockImplementation()!;
+    mockMeasureText.mockImplementation((text) => ({
+      width: text.length * (mockCtx.lang === "ko-KR" ? 12 : 8),
+    }));
+    try {
+      const font = { fontFamily: "Locale font", fontSize: 14 };
+      expect(
+        measureWithCanvas2D("ab", { ...font, locale: "ja-JP" }, 1000).width,
+      ).toBe(16);
+      expect(
+        measureWithCanvas2D("ab", { ...font, locale: "ko-KR" }, 1000).width,
+      ).toBe(24);
+      expect(
+        measureWithCanvas2D("ab", { ...font, locale: "ja-JP" }, 1000).width,
+      ).toBe(16);
+      getOrMeasureWidth("ab", "default-locale", "400 14px Locale font");
+      expect(mockCtx.lang).toBe("inherit");
+    } finally {
+      mockMeasureText.mockImplementation(original);
+      clearSegmentCaches();
+    }
+  });
   it("기본 스타일로 키 생성", () => {
     const key = buildFontKey({
       fontSize: 16,
@@ -300,10 +325,18 @@ describe("buildFontKey", () => {
 describe("buildFontString", () => {
   it("small-caps 는 shorthand 접두어로 (다른 caps 값은 ctx.fontVariantCaps 가 맡는다)", () => {
     expect(
-      buildFontString({ fontSize: 16, fontFamily: "Arial", fontVariant: "small-caps" }),
+      buildFontString({
+        fontSize: 16,
+        fontFamily: "Arial",
+        fontVariant: "small-caps",
+      }),
     ).toBe("small-caps 400 16px Arial");
     expect(
-      buildFontString({ fontSize: 16, fontFamily: "Arial", fontVariant: "all-small-caps" }),
+      buildFontString({
+        fontSize: 16,
+        fontFamily: "Arial",
+        fontVariant: "all-small-caps",
+      }),
     ).toBe("400 16px Arial");
   });
 
@@ -400,10 +433,18 @@ describe("needsFallback", () => {
 
   it("whiteSpace: pre-wrap · pre-line 은 fallback 불필요 — 조각은 normal 규칙으로 접는다 (2026-09-20)", () => {
     expect(
-      needsFallback({ fontSize: 16, fontFamily: "Arial", whiteSpace: "pre-wrap" }),
+      needsFallback({
+        fontSize: 16,
+        fontFamily: "Arial",
+        whiteSpace: "pre-wrap",
+      }),
     ).toBe(false);
     expect(
-      needsFallback({ fontSize: 16, fontFamily: "Arial", whiteSpace: "pre-line" }),
+      needsFallback({
+        fontSize: 16,
+        fontFamily: "Arial",
+        whiteSpace: "pre-line",
+      }),
     ).toBe(false);
     expect(
       needsFallback({ fontSize: 16, fontFamily: "Arial", whiteSpace: "pre" }),
@@ -545,7 +586,6 @@ describe("getOrMeasureWidth", () => {
   });
 });
 
-
 // ============================================
 // Chrome 오라클 16 케이스 — Tier 3 preprocessing + computeLines
 //
@@ -622,10 +662,8 @@ describe("Tier 3 — Chrome 오라클 케이스 고정", () => {
 
   it("F2. URL 은 공백 없는 한 단위", () => {
     expect(
-      simulate(
-        "go https://example.com/path/to",
-        "go https://example.com/",
-      ).lines,
+      simulate("go https://example.com/path/to", "go https://example.com/")
+        .lines,
     ).toEqual(["go", "https://example.com/path/to"]);
   });
 
@@ -716,7 +754,6 @@ describe("Tier 3 — Chrome 오라클 케이스 고정", () => {
   });
 });
 
-
 // ============================================
 // letterSpacing — Canvas 2D 측정 (§B4-7)
 // ============================================
@@ -731,20 +768,33 @@ describe("letterSpacing", () => {
 
   it("buildFontKey 가 letterSpacing 을 키에 넣는다 (캐시 오염 방지)", () => {
     const a = buildFontKey({ fontSize: 16, fontFamily: "Arial" });
-    const b = buildFontKey({ fontSize: 16, fontFamily: "Arial", letterSpacing: 2 });
+    const b = buildFontKey({
+      fontSize: 16,
+      fontFamily: "Arial",
+      letterSpacing: 2,
+    });
     expect(a).not.toBe(b);
   });
 
   it("ctx.letterSpacing 을 지원하면 letterSpacing 은 fallback 이 아니다", () => {
-    expect(needsFallback({ fontSize: 16, fontFamily: "Arial", letterSpacing: 2 })).toBe(false);
+    expect(
+      needsFallback({ fontSize: 16, fontFamily: "Arial", letterSpacing: 2 }),
+    ).toBe(false);
   });
 
   it("wordSpacing 은 여전히 fallback (upstream 도 미지원)", () => {
-    expect(needsFallback({ fontSize: 16, fontFamily: "Arial", wordSpacing: 2 })).toBe(true);
+    expect(
+      needsFallback({ fontSize: 16, fontFamily: "Arial", wordSpacing: 2 }),
+    ).toBe(true);
   });
 
   it("getOrMeasureWidth 가 ctx.letterSpacing 을 적용한다 — 마지막 글자 뒤 간격 포함", () => {
-    const w = getOrMeasureWidth("abc", "Arial\x00400\x002", "400 16px Arial", 2);
+    const w = getOrMeasureWidth(
+      "abc",
+      "Arial\x00400\x002",
+      "400 16px Arial",
+      2,
+    );
     // base 3×8 = 24, spacing 2 × grapheme 3 = 6 (trailing 포함)
     expect(w).toBe(30);
     expect(mockCtx.letterSpacing).toBe("2px");
@@ -760,7 +810,12 @@ describe("letterSpacing", () => {
 
   it("측정 후 ctx.letterSpacing 이 남지 않는다 (다음 측정 오염 방지)", () => {
     getOrMeasureWidth("abc", "Arial\x00400\x002", "400 16px Arial", 2);
-    const w = getOrMeasureWidth("abc", "Arial\x00400\x000", "400 16px Arial", 0);
+    const w = getOrMeasureWidth(
+      "abc",
+      "Arial\x00400\x000",
+      "400 16px Arial",
+      0,
+    );
     expect(w).toBe(24);
   });
 
@@ -812,7 +867,9 @@ describe("이모지 canvas 폭 보정", () => {
     expect(countEmojiGraphemes("❤️")).toBe(1);
     expect(countEmojiGraphemes("\u{1F44D}\u{1F3FD}")).toBe(1);
     expect(countEmojiGraphemes("\u{1F1F0}\u{1F1F7}")).toBe(1);
-    expect(countEmojiGraphemes("\u{1F468}\u200D\u{1F469}\u200D\u{1F467}")).toBe(1);
+    expect(countEmojiGraphemes("\u{1F468}\u200D\u{1F469}\u200D\u{1F467}")).toBe(
+      1,
+    );
     expect(countEmojiGraphemes("Hi \u{1F600} ok \u{1F600}")).toBe(2);
   });
 
@@ -826,7 +883,13 @@ describe("이모지 canvas 폭 보정", () => {
   it("차이가 0.5 미만이면 보정 0 (headless DPR 1 · 24px 이상)", () => {
     mockDomEmojiWidth = 16;
     expect(getEmojiCorrection("400 24px Arial")).toBe(0);
-    expect(getOrMeasureWidth("\u{1F600}", "Arial\x00400\x000\x0024", "400 24px Arial")).toBe(16);
+    expect(
+      getOrMeasureWidth(
+        "\u{1F600}",
+        "Arial\x00400\x000\x0024",
+        "400 24px Arial",
+      ),
+    ).toBe(16);
   });
 
   it("getOrMeasureWidth — 이모지 토큰은 개수 × 보정 차감, ASCII 는 그대로, 캐시에 반영값 저장", () => {
@@ -858,10 +921,9 @@ describe("이모지 canvas 폭 보정", () => {
       { text: "World", breakable: true },
     ]);
     // 국기 (RI 쌍) 와 ZWJ 시퀀스는 한 토큰
-    expect(tokenize("\u{1F1F0}\u{1F1F7}\u{1F468}\u200D\u{1F469}").map((t) => t.text)).toEqual([
-      "\u{1F1F0}\u{1F1F7}",
-      "\u{1F468}\u200D\u{1F469}",
-    ]);
+    expect(
+      tokenize("\u{1F1F0}\u{1F1F7}\u{1F468}\u200D\u{1F469}").map((t) => t.text),
+    ).toEqual(["\u{1F1F0}\u{1F1F7}", "\u{1F468}\u200D\u{1F469}"]);
     // 좁은 폭에서 이모지가 자기 줄을 갖는다 — 종전엔 `Hi ` 뒤에 부착돼 넘쳤다
     const style = { fontSize: 16, fontFamily: "Arial", lineHeight: 20 };
     const r = measureWithCanvas2D("Hi \u{1F600} ok", style, 20);

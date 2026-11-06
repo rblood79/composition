@@ -26,6 +26,7 @@ export interface TextMeasureResult {
 
 /** 텍스트 스타일 옵션 */
 export interface TextMeasureStyle {
+  locale?: string;
   fontSize: number;
   fontFamily: string;
   fontWeight?: number | string;
@@ -73,6 +74,7 @@ import {
 } from "./textWhiteSpace";
 import { setSpecWrappedTextHeightMeasurer } from "@composition/rendering";
 import { applyFontVariantCaps } from "./smallCapsSynthesis";
+import { applyCanvasTextLocale as applyMeasureLocale } from "./canvasTextLocale";
 
 // ============================================
 // Canvas 2D Implementation
@@ -133,6 +135,7 @@ export class Canvas2DTextMeasurer implements TextMeasurer {
     if (!ctx) {
       return text.length * (style.fontSize * 0.5);
     }
+    applyMeasureLocale(ctx, style.locale);
     ctx.font = buildFontString(style);
     applyFontVariantCaps(ctx, style.fontVariant);
     const shaperHandlesSpacing = applyMeasureLetterSpacing(
@@ -162,6 +165,7 @@ export class Canvas2DTextMeasurer implements TextMeasurer {
       style.fontFamily,
       style.fontSize,
       style.fontWeight ?? 400,
+      style.locale,
     );
     const lineHeight = style.lineHeight ?? fm.lineHeight;
     if (!text || maxWidth <= 0) {
@@ -204,6 +208,7 @@ export class Canvas2DTextMeasurer implements TextMeasurer {
     //   pre · pre-wrap 은 그 함수가 그대로 돌려준다.
     text = collapseTextWhiteSpace(text, ws);
 
+    applyMeasureLocale(ctx, style.locale);
     ctx.font = buildFontString(style);
     applyFontVariantCaps(ctx, style.fontVariant);
 
@@ -349,7 +354,6 @@ export interface FontMetrics {
   lineHeight: number;
 }
 
-
 /**
  * 폰트 메트릭 캐시
  *
@@ -413,9 +417,10 @@ export function measureFontMetrics(
   fontFamily: string,
   fontSize: number,
   fontWeight: string | number = 400,
+  locale?: string,
 ): FontMetrics {
   // 캐시 키 생성
-  const cacheKey = `${fontFamily}:${fontSize}:${fontWeight}`;
+  const cacheKey = `${fontFamily}:${fontSize}:${fontWeight}:${locale ?? ""}`;
 
   const cached = _fontMetricsCache.get(cacheKey);
   if (cached) return cached;
@@ -424,6 +429,7 @@ export function measureFontMetrics(
   const ctx = getMeasureCtx();
   if (ctx) {
     try {
+      applyMeasureLocale(ctx, locale);
       ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
       const metrics = ctx.measureText(METRIC_SAMPLE_TEXT);
 
@@ -522,13 +528,15 @@ export function measureFontBox(
   fontFamily: string,
   fontSize: number,
   fontWeight: string | number = 400,
+  locale?: string,
 ): { ascent: number; descent: number; xHeight: number } | undefined {
-  const cacheKey = `${fontFamily}:${fontSize}:${fontWeight}`;
+  const cacheKey = `${fontFamily}:${fontSize}:${fontWeight}:${locale ?? ""}`;
   const cached = _fontBoxCache.get(cacheKey);
   if (cached) return cached;
   const ctx = getMeasureCtx();
   if (!ctx) return undefined;
   try {
+    applyMeasureLocale(ctx, locale);
     ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
     const metrics = ctx.measureText("x");
     if (
@@ -624,6 +632,7 @@ export function measureWrappedTextHeight(
   wordSpacing?: number,
   /** font-variant-caps (small-caps 등) — 합성 폭이 줄 수를 바꾼다 (smallCapsSynthesis.ts). */
   fontVariant?: string,
+  locale?: string,
 ): number {
   const result = getTextMeasurer().measureWrapped(
     text,
@@ -638,6 +647,7 @@ export function measureWrappedTextHeight(
       whiteSpace,
       wordSpacing,
       fontVariant,
+      locale,
     },
     maxWidth,
   );

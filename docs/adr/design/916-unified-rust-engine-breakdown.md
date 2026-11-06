@@ -632,3 +632,18 @@ Phase 0-B (⏸️ 이연) ──────────────────
 
 - **Phase 0 종료** (2026-07-03): 0-A seam 만 land, 0-B 는 2-B 로 이연.
 - **Phase 1 부분 마감** (2026-07-04): self-impl 알고리즘(1-A/B/C) + 1-D 하네스·golden land. **배선(WASM 트리 batch) + 1-E Taffy 제거는 미착수** — 배선이 트리 오케스트레이션(2-B) 선행 요구 → Phase 2 로 이연. grid gap 승계 버그는 JS+Rust 동시 수정 완료. 다음 진입점 = **Phase 2 (G5 scope confirm 필수, HIGH — 별도 사용자 승인)**.
+
+## 현행 입력 계약 보완 — inline glyph clusters (2026-11-06)
+
+S2 1.8.2의 편집 가능한 여러 줄 Label 조립을 위해 NodeStyle 입력을 58→59개로 확장했다.
+기존 필드의 소비 경로는 유지하며 미소비 필드는 0개다.
+
+| 입력         | 소비                                          | 출력·검증                                                           |
+| ------------ | --------------------------------------------- | ------------------------------------------------------------------- |
+| 기존 58개    | 기존 block/flex/grid/leaf solver              | 기존 계약 유지                                                      |
+| `inlineText` | `tree.rs::solve_inline` → `inline.rs::layout` | UTF-16 source fragment, UAX14/NBSP 줄바꿈, grid 측정·증분 갱신 회귀 |
+
+TS는 glyph advance/height/baseline만 공급한다. 줄 결정·fragment 배치는 Rust가 수행한다.
+`getLayoutsBatch`의 5-float ABI는 유지하고 sparse `getInlineFragmentsBatch`를 추가했다.
+현재 직계 inline text와 atomic inline 조립만 지원하며 일반 중첩 IFC 지원을 의미하지 않는다.
+기능·기본 시각의 완료 판정은 [Label 검증 기록](../../explanation/research/s2-182/label-multiline-verification.md)을 따른다.
