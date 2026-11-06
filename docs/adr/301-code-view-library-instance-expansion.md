@@ -4,7 +4,7 @@
 
 Proposed — 2026-11-05
 
-> 설계 수리 검증 (2026-11-05, codex): [round 2](reviews/301.md) — h1 · h2 · m3 설계상 fixed, HIGH 0 · MEDIUM 0 · pending 0. breakdown 경로표의 이전 요약은 LOW deferred. 구현·live·성능 gate는 UNVERIFIED이며 Proposed를 유지한다.
+> 설계 수리 검증 (2026-11-05, codex): [round 2](reviews/301.md) — h1 · h2 · m3 설계상 fixed, HIGH 0 · MEDIUM 0 · pending 0. breakdown 경로표의 이전 요약 (LOW l4) 은 2026-11-06 정정 — 리뷰 루프 종결 (pending 0). 구현·live·성능 gate는 UNVERIFIED이며 Proposed를 유지한다.
 
 - 사용자 요청: `/create-adr` (2026-11-05) — 같은 대화에서 Popover 의 RAC 레퍼런스 코드 (`<DialogTrigger><Button …/><Popover><div style={{display:'flex', …}}><Switch>…</Switch></div></Popover></DialogTrigger>`) 와 코드 패널 출력 (`<DialogTrigger><Slot name="frame"><Heading …/><Description …/></Slot></DialogTrigger>`) 을 나란히 보인 뒤 → 「B. 접은 모양 유지 + 결함 2개만 수리로 진행하고, /create-adr A. 레퍼런스처럼 펼치기. 는 병렬로 설계해」.
 - 방향을 정한 사용자 원칙: 「code view 로 했을 때 그 (레퍼런스) 형태가 그대로 나와야겠지」 (2026-10-26, 메모리 `project-code-view-is-rac-reference-code`) · 코드 편집은 닫힌 어휘 전체 양방향 (2026-10-27, ADR-285) · 「불가 → 스크립트 escape」 금지 (`project-builder-purpose-labor-cost-consistency`).
