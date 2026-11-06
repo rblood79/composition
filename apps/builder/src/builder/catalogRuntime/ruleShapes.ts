@@ -47,7 +47,10 @@ import {
   cssColorToAlpha,
   cssColorToHex,
 } from "../workspace/canvas/styleConversion/styleConverter";
-import { catalogBoxModel } from "../../../../../packages/shared/src/catalog/runtime/boxModel";
+import {
+  catalogBoxModel,
+  catalogTextTypography,
+} from "../../../../../packages/shared/src/catalog/runtime/boxModel";
 import {
   SHEET_HANDLE,
   catalogSheetHandleRect,
@@ -136,10 +139,18 @@ function resolveSize(
  * values under the authored style.
  */
 function ruleShapeContext(input: CatalogRuleShapeInput) {
-  const { props, style, variant, size, paint, theme } = catalogRulePaint(
-    input,
-    input.rect,
-  );
+  const painted = catalogRulePaint(input, input.rect);
+  const { style, variant, size, paint, theme } = painted;
+  // Text drawn from a rule inherits the document font like any DOM box: the node's, its ancestors',
+  // the locale's or the theme's. A variant's own family (Code · Kbd) stays.
+  const family = catalogTextTypography(input.node).fontFamily;
+  const authored = painted.props.style as Record<string, unknown> | undefined;
+  const props =
+    family !== undefined &&
+    variant?.fontFamily === undefined &&
+    authored?.fontFamily === undefined
+      ? { ...painted.props, style: { ...authored, fontFamily: family } }
+      : painted.props;
   // ADR-295 Phase 3c-2b: a toggle's indicator carries size-map tokens · the Switch track's font ratio
   //   — the primitive draws the px under the installed maps (`catalogToggleIndicatorMetrics`).
   const indicator =

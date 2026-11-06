@@ -459,6 +459,11 @@ export function CatalogBuilderCore() {
               node.props.value,
               node.props.label,
               node.props.placeholder,
+              // RAC writes a date input's segments: its text lives in no prop.
+              workspace.root
+                .dateSegmentPaint(node.id)
+                ?.runs.map((run) => run.text)
+                .join(""),
             ]
               .filter((value) => typeof value === "string")
               .join("");

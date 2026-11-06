@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas placeholder 글꼴 — 문서 서체 상속] - 2026-11-07
+
+### Fixed
+
+- Input·Select·날짜 조각처럼 rule 이 그리는 글자가 Canvas 에서 코드 기본 서체로 고정되던 문제를 고친다. 이제 Theme 서체와 locale 서체를 DOM 처럼 상속하며, 한글 placeholder 가 Canvas 에서 ☒ 로 나오지 않는다.
+- Input 글자 굵기를 `sizes.fontWeight` 400 으로 명시해 Canvas 의 500 폴백과 DOM 400 의 폭 차이를 없앤다.
+- 날짜 조각의 폭 측정에 실제 서체를 쓰고, 조각 글자를 locale 서체 요청에 포함한다.
+
 ## [입력 필드 값 편집 — TextArea·ColorField owner 연결] - 2026-11-07
 
 ### Fixed

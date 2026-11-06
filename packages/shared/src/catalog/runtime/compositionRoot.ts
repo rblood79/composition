@@ -1185,7 +1185,12 @@ function segmentFont(
   node: CatalogConsumerNode,
   segmentText: CatalogDateSegments,
 ) {
+  const typography = catalogTextTypography(node);
   return {
+    ...(typography.fontFamily !== undefined
+      ? { fontFamily: typography.fontFamily }
+      : {}),
+    ...(typography.locale !== undefined ? { locale: typography.locale } : {}),
     fontSize: Number(node.visual.fontSize),
     fontWeight: Number(node.visual.fontWeight ?? 400),
     lineHeight: segmentText.lineHeight ?? 0,

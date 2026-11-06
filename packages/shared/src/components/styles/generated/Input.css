@@ -28,6 +28,7 @@
   font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
   line-height: var(--catalog-token-text-sm--line-height);
+  font-weight: 400;
   border-width: var(--border-width-thick);
   min-height: var(--catalog-token-size-height-M);
 }
@@ -242,6 +243,7 @@
   font-size: var(--catalog-token-text-2xs);
   border-radius: var(--catalog-token-radius-xs);
   line-height: var(--catalog-token-text-2xs--line-height);
+  font-weight: 400;
   border-width: var(--border-width-thick);
   min-height: var(--catalog-token-size-height-XS);
 }
@@ -252,6 +254,7 @@
   font-size: var(--catalog-token-text-xs);
   border-radius: 7px;
   line-height: var(--catalog-token-text-xs--line-height);
+  font-weight: 400;
   border-width: var(--border-width-thick);
   min-height: var(--catalog-token-size-height-S);
 }
@@ -262,6 +265,7 @@
   font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
   line-height: var(--catalog-token-text-sm--line-height);
+  font-weight: 400;
   border-width: var(--border-width-thick);
   min-height: var(--catalog-token-size-height-M);
 }
@@ -272,6 +276,7 @@
   font-size: var(--catalog-token-text-base);
   border-radius: 9px;
   line-height: var(--catalog-token-text-base--line-height);
+  font-weight: 400;
   border-width: var(--border-width-thick);
   min-height: var(--catalog-token-size-height-L);
 }
@@ -282,6 +287,7 @@
   font-size: var(--catalog-token-text-lg);
   border-radius: 10px;
   line-height: var(--catalog-token-text-lg--line-height);
+  font-weight: 400;
   border-width: var(--border-width-thick);
   min-height: var(--catalog-token-size-height-XL);
 }
