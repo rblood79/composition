@@ -1,4 +1,4 @@
-import { catalogBoxModel } from "./boxModel";
+import { catalogBoxModel, catalogTextTypography } from "./boxModel";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import { catalogStyleView } from "./styleFields";
 
@@ -29,6 +29,9 @@ export function catalogEffectiveStyle(
     { fontSize },
   );
   const box = catalogBoxModel(record);
+  // Font Family 선택창도 renderer와 같은 부모·locale·테마 서체를 표시한다.
+  const family = catalogTextTypography(record).fontFamily;
+  if (family !== undefined) style.fontFamily = family;
   const px = (value: number | string) =>
     typeof value === "number" ? `${value}px` : value;
   style.display = box.display;

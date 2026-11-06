@@ -1,4 +1,21 @@
 @layer builder-system {
+  .properties-aria.font-family,
+  .font-picker-value {
+    min-inline-size: 0;
+  }
+
+  .font-picker-trigger > .font-picker-theme-chip,
+  .font-picker-trigger > .select-chevron {
+    flex-shrink: 0;
+  }
+
+  .font-picker-item > span {
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   /* 팝오버 껍데기는 다른 패널 드롭다운과 같은 `.react-aria-Popover` 를 쓰고,
      내용 배치(검색 / 목록 높이 / 관리 진입 줄)만 여기서 정한다. */
   /* 233 = 색 · 아이콘 팝오버와 같은 폭 (종전 내용 폭 179) — 안쪽 pad 8 (panel-ui 20) */

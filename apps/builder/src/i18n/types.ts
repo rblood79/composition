@@ -579,6 +579,7 @@ export interface TranslationKeys {
   };
   fonts: {
     deleteFace: string;
+    systemDefaultValue: string;
     defaultValue: string;
     searchLabel: string;
     searchPlaceholder: string;

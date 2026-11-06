@@ -1,27 +1,7 @@
 /**
- * FontFamilyPicker - Font Family 선택 + 폰트 관리 진입점
- *
- * Typography 섹션의 Font Family 필드. 생김새는 다른 select 필드와 같지만 내용은
- * 팝오버라 **목록 안에 관리 진입점**을 둘 수 있다.
- *
- * ## Why 여기에 관리 진입점이 있나 (Figma / Pen 실측, 2026-08-24)
- *
- * - **Figma**: 파일 우측 패널에는 피커만 있고, 업로드는 Admin → Resources → Fonts.
- *   인스펙터에 폰트 관리 UI 가 없다.
- * - **Pen**: 피커 안에 검색 + "All Fonts / Custom Fonts" 필터 + `Add`/`Manage`
- *   버튼이 있고, 그 버튼이 문서 스코프 "Custom Fonts" **모달**을 연다.
- *
- * 두 앱 다 **선택(고빈도)은 피커 안 / 관리(저빈도)는 다른 표면**이고, 관리 표면이
- * 인스펙터 레일을 상주로 차지하는 도킹 패널인 경우는 없다. composition 은 종전에
- * 두 축 다 어긋나 있었다 — 진입점이 속성 그리드의 별도 아이콘 칸, 대상이
- * Styles/Properties 와 자리를 다투는 도킹 패널이라 "고르다가 없으면 패널 열고 →
- * 올리고 → 스타일 패널로 돌아오는" 왕복이 생겼다.
- *
- * ## 채택하지 않은 것 — "전체 / 내 폰트" 필터
- *
- * Pen 의 필터는 빌트인 폰트가 많아서 성립한다. 여기 빌트인은 2개(Pretendard,
- * Inter)라 토글이 2개와 N개를 가르는 컨트롤이 된다. 같은 구분은 목록의 그룹
- * 헤더("기본" / "내 폰트")로 컨트롤 없이 읽힌다.
+ * Theme·Design이 공유하는 폰트 선택창.
+ * 등록·관리 진입점은 Theme에만 두고 Design은 선택과 테마 상속만 제공한다.
+ * 기본·사용자 폰트 목록은 같은 레지스트리를 읽으며 등록만으로 선택값을 바꾸지 않는다.
  */
 
 import {
@@ -46,11 +26,16 @@ import { ChevronDown, Settings2 } from "lucide-react";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useControlPopoverMetrics } from "../../components/property/useControlPopoverMetrics";
-import { DEFAULT_FONT_OPTIONS } from "../../fonts/customFonts";
+import {
+  DEFAULT_BASE_TYPOGRAPHY,
+  DEFAULT_FONT_FAMILY,
+  DEFAULT_FONT_OPTIONS,
+  extractFirstFontFamily,
+} from "../../fonts/customFonts";
 import { useFontRegistry } from "./useFontRegistry";
 import type { FontManagerDialogProps } from "./FontManagerDialog";
 import "./FontFamilyPicker.css";
-import { useI18n } from "@/i18n";
+import { useI18n, useSemanticLabel } from "@/i18n";
 
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
@@ -64,12 +49,12 @@ const RESET_KEY = "reset";
  */
 const SEARCH_MIN_FAMILIES = 7;
 
-const BUILTIN_FAMILIES = DEFAULT_FONT_OPTIONS.filter(
-  (option) => option.value !== RESET_KEY,
-).map((option) => option.value);
-
 interface FontFamilyPickerProps {
-  /** 현재 fontFamily. 빈 문자열 = 상속(기본값) */
+  /** Theme처럼 위쪽 필드명이 필요한 곳의 legend. Design은 서체 이름만 표시한다. */
+  label?: string;
+  /** Theme은 기본 서체 편집·관리, element는 개별 서체 선택·테마 상속. */
+  scope?: "theme" | "element";
+  /** 현재 fontFamily. element의 빈 문자열은 테마 상속. */
   value: string;
   onChange: (value: string) => void;
   /**
@@ -83,8 +68,27 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
   value,
   onChange,
   inheritedFamily,
+  scope = "element",
+  label,
 }: FontFamilyPickerProps) {
   const { t } = useI18n();
+  const localize = useSemanticLabel();
+  const defaultValue =
+    scope === "theme" ? DEFAULT_BASE_TYPOGRAPHY.fontFamily : "";
+  const defaultFamily =
+    scope === "theme" ? DEFAULT_FONT_FAMILY : inheritedFamily;
+  const defaultLabel = t(
+    scope === "theme" ? "fonts.systemDefaultValue" : "fonts.defaultValue",
+  );
+  const defaultFamilyLabel =
+    DEFAULT_FONT_OPTIONS.find((option) => option.value === defaultFamily)
+      ?.label ?? defaultFamily;
+  const isDefault = value === "" || value === defaultValue;
+  const selectedValue = isDefault ? RESET_KEY : value;
+  const displayFamily = isDefault
+    ? defaultFamilyLabel
+    : (DEFAULT_FONT_OPTIONS.find((option) => option.value === value)?.label ??
+      extractFirstFontFamily(value));
   const [isPickerOpen, setPickerOpen] = useState(false);
   const [isManagerOpen, setManagerOpen] = useState(false);
   // ADR-242 — 폰트 관리 대화상자는 처음 열 때 chunk 를 받는다 (저빈도 · Styles 패널이 정적으로 끌던
@@ -99,27 +103,49 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
     widthMode: "min-width",
   });
 
-  const customFamilies = useMemo(
-    () => Array.from(familyGroups.keys()),
-    [familyGroups],
-  );
-
+  const options = useMemo(() => {
+    const currentFamily = value ? extractFirstFontFamily(value) : "";
+    // 기존 fallback 체인은 표시만 짧게 하고, 다시 선택하기 전까지 저장값을 유지한다.
+    const withCurrentValue = (option: { value: string; label: string }) =>
+      !isDefault && option.value === currentFamily
+        ? { ...option, value }
+        : option;
+    const builtins = DEFAULT_FONT_OPTIONS.filter(
+      (option) => option.value !== RESET_KEY,
+    ).map(withCurrentValue);
+    const customs = Array.from(familyGroups.keys())
+      .filter(
+        (family) =>
+          !builtins.some(
+            (option) => extractFirstFontFamily(option.value) === family,
+          ),
+      )
+      .map((family) => withCurrentValue({ value: family, label: family }));
+    if (
+      !isDefault &&
+      ![...builtins, ...customs].some((option) => option.value === value)
+    )
+      builtins.push({ value, label: currentFamily });
+    return { builtins, customs };
+  }, [familyGroups, value, isDefault]);
   const showSearch =
-    BUILTIN_FAMILIES.length + customFamilies.length >= SEARCH_MIN_FAMILIES;
-
+    options.builtins.length + options.customs.length >= SEARCH_MIN_FAMILIES;
   const filter = useCallback(
-    (families: string[]) => {
+    (items: { value: string; label: string }[]) => {
       const needle = query.trim().toLowerCase();
-      if (!needle) return families;
-      return families.filter((family) => family.toLowerCase().includes(needle));
+      return needle
+        ? items.filter((item) => item.label.toLowerCase().includes(needle))
+        : items;
     },
     [query],
   );
-
-  const visibleBuiltins = useMemo(() => filter(BUILTIN_FAMILIES), [filter]);
+  const visibleBuiltins = useMemo(
+    () => filter(options.builtins),
+    [filter, options],
+  );
   const visibleCustoms = useMemo(
-    () => filter(customFamilies),
-    [filter, customFamilies],
+    () => filter(options.customs),
+    [filter, options],
   );
 
   const handleOpenChange = useCallback((open: boolean) => {
@@ -132,11 +158,11 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
       if (keys === "all") return;
       const selected = Array.from(keys)[0];
       if (selected == null) return;
-      onChange(selected === RESET_KEY ? "" : String(selected));
+      onChange(selected === RESET_KEY ? defaultValue : String(selected));
       setPickerOpen(false);
       setQuery("");
     },
-    [onChange],
+    [onChange, defaultValue],
   );
 
   const handleOpenManager = useCallback(() => {
@@ -158,6 +184,7 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
   return (
     // 글꼴 이름이 곧 라벨 — legend·아이콘 없이 28 상자 (panel-ui 03, 2026-09-14). 접근 이름은 유지.
     <fieldset className="properties-aria font-family" aria-label="Font Family">
+      {label && <legend className="fieldset-legend">{localize(label)}</legend>}
       <div className="react-aria-control react-aria-Group" ref={anchorRef}>
         <DialogTrigger isOpen={isPickerOpen} onOpenChange={handleOpenChange}>
           <Button
@@ -166,20 +193,19 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
             aria-label="Font Family"
           >
             {/* 이름을 그 폰트로 그린다 — 고르기 전에 생김새가 보이는 것이 피커의 값 */}
-            {!value && (
-              <span className="font-picker-theme-chip">
-                {t("fonts.defaultValue")}
-              </span>
+            {isDefault && (
+              <span className="font-picker-theme-chip">{defaultLabel}</span>
             )}
             <span
               className="font-picker-value"
+              title={isDefault ? defaultFamily : value}
               style={
-                value || inheritedFamily
-                  ? { fontFamily: value || inheritedFamily }
+                displayFamily
+                  ? { fontFamily: isDefault ? defaultFamily : value }
                   : undefined
               }
             >
-              {value || inheritedFamily || t("fonts.defaultValue")}
+              {displayFamily || defaultLabel}
             </span>
             <span aria-hidden="true" className="select-chevron">
               <ChevronDown size={iconProps.size} />
@@ -209,7 +235,7 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
                 aria-label="Font Family"
                 selectionMode="single"
                 disallowEmptySelection
-                selectedKeys={[value === "" ? RESET_KEY : value]}
+                selectedKeys={[selectedValue]}
                 onSelectionChange={handleSelectionChange}
               >
                 <ListBoxSection className="font-picker-section">
@@ -219,25 +245,27 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
                   <ListBoxItem
                     id={RESET_KEY}
                     className="react-aria-ListBoxItem font-picker-item"
-                    textValue={t("fonts.defaultValue")}
+                    textValue={defaultLabel}
                   >
                     <span className="font-picker-theme-chip">
-                      {t("fonts.defaultValue")}
+                      {defaultLabel}
                     </span>
-                    {inheritedFamily && (
-                      <span style={{ fontFamily: inheritedFamily }}>
-                        {inheritedFamily}
+                    {defaultFamily && (
+                      <span style={{ fontFamily: defaultFamily }}>
+                        {defaultFamilyLabel}
                       </span>
                     )}
                   </ListBoxItem>
-                  {visibleBuiltins.map((family) => (
+                  {visibleBuiltins.map((option) => (
                     <ListBoxItem
-                      key={family}
-                      id={family}
+                      key={option.value}
+                      id={option.value}
                       className="react-aria-ListBoxItem font-picker-item"
-                      textValue={family}
+                      textValue={option.label}
                     >
-                      <span style={{ fontFamily: family }}>{family}</span>
+                      <span style={{ fontFamily: option.value }}>
+                        {option.label}
+                      </span>
                     </ListBoxItem>
                   ))}
                 </ListBoxSection>
@@ -247,37 +275,41 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
                     <Header className="font-picker-section-header">
                       {t("fonts.sectionMine")}
                     </Header>
-                    {visibleCustoms.map((family) => (
+                    {visibleCustoms.map((option) => (
                       <ListBoxItem
-                        key={family}
-                        id={family}
+                        key={option.value}
+                        id={option.value}
                         className="react-aria-ListBoxItem font-picker-item"
-                        textValue={family}
+                        textValue={option.label}
                       >
-                        <span style={{ fontFamily: family }}>{family}</span>
+                        <span style={{ fontFamily: option.value }}>
+                          {option.label}
+                        </span>
                       </ListBoxItem>
                     ))}
                   </ListBoxSection>
                 )}
               </ListBox>
 
-              <div className="font-picker-footer">
-                <Button
-                  className="font-picker-manage"
-                  onPress={handleOpenManager}
-                >
-                  <ManageIcon size={iconProps.size} aria-hidden="true" />
-                  {faceCount === 0
-                    ? t("fonts.addFonts")
-                    : t("fonts.manageFonts")}
-                </Button>
-              </div>
+              {scope === "theme" && (
+                <div className="font-picker-footer">
+                  <Button
+                    className="font-picker-manage"
+                    onPress={handleOpenManager}
+                  >
+                    <ManageIcon size={iconProps.size} aria-hidden="true" />
+                    {faceCount === 0
+                      ? t("fonts.addFonts")
+                      : t("fonts.manageFonts")}
+                  </Button>
+                </div>
+              )}
             </Dialog>
           </Popover>
         </DialogTrigger>
       </div>
 
-      {ManagerDialog && (
+      {scope === "theme" && ManagerDialog && (
         <ManagerDialog isOpen={isManagerOpen} onOpenChange={setManagerOpen} />
       )}
     </fieldset>

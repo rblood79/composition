@@ -762,6 +762,7 @@ const catalog: TranslationKeys = {
   },
   fonts: {
     deleteFace: "{family} {face} 삭제",
+    systemDefaultValue: "기본값",
     defaultValue: "테마",
     searchLabel: "폰트 검색",
     searchPlaceholder: "폰트 검색…",

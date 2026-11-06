@@ -401,6 +401,10 @@ export function resolveThemeSnapshot(
         warnings.push(`${tokenKey} 미지원 카테고리 — 무시`);
     }
   }
+  // 공통 기본 서체와 명시한 sans 토큰을 두 renderer·기기에서 같은 값으로 읽는다.
+  const sans = String(explicitTypography.sans ?? base.fontFamily);
+  typography.sans = sans;
+  both("--font-sans", sans);
   // typography DOM 변수 — 전 키를 싣는다 (ADR-295: seed 가 S2 값이라 `shared-tokens.css` 의 chrome 값과
   //   다르다. 델타만 실으면 Preview · Publish 가 chrome 값을 읽어 Skia 와 갈린다). 크기가 바뀌면 line-height
   //   비율도 같이 다시 낸다.
@@ -425,7 +429,7 @@ export function resolveThemeSnapshot(
     },
     touch: {
       ...S2_DEVICE.touch,
-      typography: touchTypography(explicitTypography),
+      typography: touchTypography({ ...explicitTypography, sans }),
       controlHeight: s2ControlHeights(S2_DEVICE.touch.scale),
     },
   } satisfies Record<S2Device, ResolvedDeviceTokens>;

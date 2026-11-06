@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [폰트 선택창 공용화 — Theme에서 등록·관리] - 2026-11-06
+
+### Fixed
+
+- **Theme·Design 폰트 목록 불일치**:
+  - **Why:** Theme은 고정 목록, Design은 사용자 레지스트리를 사용하는 별도 선택창이라 등록한 폰트를 Theme에서 고를 수 없었다.
+  - 두 패널이 `FontFamilyPicker`와 기본·사용자 폰트 목록을 공유한다. 폰트 추가·관리 진입점은 Theme에만 두고, 등록만으로 기본 서체나 개별 선택을 바꾸지 않는다.
+  - Theme의 Font legend를 유지하고 긴 폰트명은 한 줄 말줄임으로 표시한다. 트리거의 전체 서체 값은 tooltip에서 확인할 수 있다.
+  - Theme의 기본값은 공통 기본 서체로, Design의 기본값은 테마 상속으로 복원한다. 기존 fallback 체인과 목록에 없는 현재 서체도 표시하며 열기만으로 저장값을 바꾸지 않는다.
+  - 기본 sans seed가 Theme의 `base-font-family` 선택을 가리던 원인도 수정해 desktop·touch 및 DOM·Canvas가 같은 서체를 읽는다. 명시한 sans 토큰 재정의는 우선한다.
+  - Design의 상속 서체 표시도 renderer의 `catalogTextTypography`를 읽는다. Theme에서 서체를 바꿔도 선택창에 이전 기본 서체가 표시되던 문제를 수정한다.
+  - 위치: `apps/builder/src/builder/panels/fonts/FontFamilyPicker.tsx`, `panels/themes/ThemesPanel.tsx`, `fonts/customFonts.ts`.
+
 ## [Canvas 내부 선택 — 빈 공간 더블클릭] - 2026-11-06
 
 ### Fixed

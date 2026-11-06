@@ -336,9 +336,30 @@ export function normalizeFontWeight(raw: string): string {
 
 export const DEFAULT_FONT_OPTIONS = [
   { value: "reset", label: "Reset" },
+  {
+    value: DEFAULT_FONT_FAMILY,
+    label:
+      String(DEFAULT_FONT_FAMILY) === "adobe-clean-spectrum-vf"
+        ? "Adobe Clean Spectrum"
+        : DEFAULT_FONT_FAMILY,
+  },
   { value: "Pretendard", label: "Pretendard" },
   { value: "Inter", label: "Inter" },
-];
+  {
+    value:
+      "-apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, sans-serif",
+    label: "System Sans",
+  },
+  {
+    value:
+      "'SF Mono', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+    label: "Monospace",
+  },
+].filter(
+  (option, index, options) =>
+    options.findIndex((candidate) => candidate.value === option.value) ===
+    index,
+);
 
 // ============================================
 // Font Weight 정보

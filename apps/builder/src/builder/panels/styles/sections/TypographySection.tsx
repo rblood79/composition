@@ -120,7 +120,9 @@ const TypographySectionContent = memo(function TypographySectionContent() {
   const styleValues = useMemo(() => {
     if (!nodeValues) return nodeValues;
     const range = editor?.marks();
-    const read = (key: "fontWeight" | "fontStyle" | "textDecoration" | "color" | "fontSize") =>
+    const read = (
+      key: "fontWeight" | "fontStyle" | "textDecoration" | "color" | "fontSize",
+    ) =>
       range
         ? range[key] === undefined
           ? nodeValues[key]
@@ -143,7 +145,9 @@ const TypographySectionContent = memo(function TypographySectionContent() {
     (key: string, value: string): boolean => {
       if (!editor || !isTextRunMarkKey(key)) return false;
       const write = catalogStyleWritesOf({ [key]: value }).visual?.[
-        key as keyof NonNullable<ReturnType<typeof catalogStyleWritesOf>["visual"]>
+        key as keyof NonNullable<
+          ReturnType<typeof catalogStyleWritesOf>["visual"]
+        >
       ] as { kind: string; value?: unknown } | undefined;
       editor.apply(key, write?.kind === "set" ? write.value : undefined);
       return true;
@@ -227,7 +231,9 @@ const TypographySectionContent = memo(function TypographySectionContent() {
       {/* 1행: 글꼴 (이름이 곧 라벨) | 색 swatch 28 */}
       <FontFamilyPicker
         value={styleValues.fontFamilyAuthored}
-        inheritedFamily={styleValues.fontFamily}
+        inheritedFamily={
+          styleValues.fontFamilyAuthored ? undefined : styleValues.fontFamily
+        }
         onChange={(value) => updateStyle("fontFamily", value)}
       />
       <PropertyColor

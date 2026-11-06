@@ -26,7 +26,7 @@ import { ThemeListSection } from "./ThemeListSection";
 import { ThemeTokensSection } from "./ThemeTokensSection";
 import { useI18n } from "../../../i18n";
 import { useThemesHost } from "./themesHost";
-import { DEFAULT_BASE_TYPOGRAPHY } from "../../fonts/customFonts";
+import { FontFamilyPicker } from "../fonts/FontFamilyPicker";
 import "./ThemesPanel.css";
 
 // ============================================================================
@@ -184,28 +184,6 @@ const RADIUS_OPTIONS = [
   { value: "xl", label: "Extra Large" },
 ];
 
-// ADR-056: Typography 프리셋 (ADR-107 R4 drift 방지 — DEFAULT 체인은 상수 참조)
-const FONT_FAMILY_OPTIONS = [
-  {
-    value: DEFAULT_BASE_TYPOGRAPHY.fontFamily,
-    label: "Pretendard (Default)",
-  },
-  {
-    value:
-      "-apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, sans-serif",
-    label: "System Sans",
-  },
-  {
-    value: "'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif",
-    label: "Inter",
-  },
-  {
-    value:
-      "'SF Mono', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-    label: "Monospace",
-  },
-];
-
 const BASE_FONT_SIZE_OPTIONS = [
   { value: "14", label: "14px (Small)" },
   { value: "16", label: "16px (Default)" },
@@ -353,11 +331,11 @@ function ThemesContent() {
         </PropertySection>
 
         <PropertySection title="Typography" id="theme-typography">
-          <PropertySelect
+          <FontFamilyPicker
             label="Font"
+            scope="theme"
             value={baseTypography.fontFamily}
             onChange={handleFontFamilyChange}
-            options={FONT_FAMILY_OPTIONS}
           />
           <PropertySelect
             label="Size"

@@ -9,9 +9,7 @@ import type {
   NodeEntry,
   NodeId,
 } from "../../../../../../../../packages/shared/src/catalog/document/types";
-import {
-  insertNodes,
-} from "../../../../../../../../packages/shared/src/catalog/commands";
+import { insertNodes } from "../../../../../../../../packages/shared/src/catalog/commands";
 import { definitionTypeName } from "../../../../../../../../packages/shared/src/catalog/commands/context";
 import type { FillItem } from "../../../../../types/builder/fill.types";
 import { catalogComponentCommands } from "../../../../catalogRuntime/componentActions";
@@ -20,6 +18,7 @@ import { newCatalogProjectDocument } from "../../../../catalogRuntime/project";
 import { CatalogWorkspaceProvider } from "../../../../catalogRuntime/react";
 import { CatalogStorage } from "../../../../catalogRuntime/storage";
 import { CatalogWorkspace } from "../../../../catalogRuntime/workspace";
+import type { CatalogWorkspaceOptions } from "../../../../catalogRuntime/workspace";
 import { nodeLayoutEngine } from "../../../../catalogRuntime/__tests__/support/nodeLayoutEngine";
 import { useToastStore } from "../../../../stores/toast";
 import { createCatalogStylesHost } from "../../catalog/catalogStylesHost";
@@ -96,7 +95,7 @@ function definitionOf(
 
 export async function openStylesFixture(
   nodes: StylesFixtureNode[],
-  options: { select?: string } = {},
+  options: { select?: string; theme?: CatalogWorkspaceOptions["theme"] } = {},
 ): Promise<StylesFixture> {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
@@ -112,6 +111,7 @@ export async function openStylesFixture(
       engine: await nodeLayoutEngine(),
       viewport: { width: 1000, height: 800 },
       autosaveSchedule: () => {},
+      theme: options.theme,
     },
   );
   const entries: NodeEntry[] = nodes.map((node) => ({
@@ -153,7 +153,9 @@ export async function openStylesFixture(
     }
   };
   const descendantRecord = (id: string, type: string) => {
-    const queue = [...(workspace.root.domInputs.get(recordOf(id))?.children ?? [])];
+    const queue = [
+      ...(workspace.root.domInputs.get(recordOf(id))?.children ?? []),
+    ];
     while (queue.length) {
       const record = queue.shift()!;
       if (typeOf(record) === type) return record;
@@ -164,8 +166,7 @@ export async function openStylesFixture(
   const select = (...ids: string[]) =>
     workspace.selectRecords(ids.map(recordOf));
   for (const node of nodes) {
-    if (!node.style && !node.fills && !node.props && !node.responsive)
-      continue;
+    if (!node.style && !node.fills && !node.props && !node.responsive) continue;
     select(node.id);
     // A refused write (an error toast) would leave the test reading defaults silently.
     const toasts = () =>

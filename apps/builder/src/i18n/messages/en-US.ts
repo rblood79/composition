@@ -765,6 +765,7 @@ const catalog: TranslationKeys = {
   },
   fonts: {
     deleteFace: "Delete {family} {face}",
+    systemDefaultValue: "Default",
     defaultValue: "Theme",
     searchLabel: "Search fonts",
     searchPlaceholder: "Search fonts…",
