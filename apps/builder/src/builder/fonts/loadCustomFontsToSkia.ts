@@ -29,7 +29,7 @@ const PROTECTED_FAMILIES = new Set([
   "Pretendard",
   "Inter",
   ...SPECTRUM_FONT_FACES.map((face) => face.family),
-  ...["ko", "ja", "zh", "zh-HK", "zh-CN"].map(
+  ...["ja", "zh", "zh-HK", "zh-CN"].map(
     (locale) => spectrumLocaleFont(locale)!.family,
   ),
 ]);

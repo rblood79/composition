@@ -8,7 +8,7 @@
 
 import type { TypographyTokens } from "../types/token.types";
 import {
-  SPECTRUM_SANS_STACK,
+  DEFAULT_SANS_STACK,
   SPECTRUM_SERIF_STACK,
   SPECTRUM_CODE_STACK,
 } from "./spectrumFonts";
@@ -82,7 +82,7 @@ export const typography: TypographyTokens = s2TypographyTokens();
  * 폰트 패밀리
  */
 export const fontFamily = {
-  sans: SPECTRUM_SANS_STACK,
+  sans: DEFAULT_SANS_STACK,
   serif: SPECTRUM_SERIF_STACK,
   mono: SPECTRUM_CODE_STACK,
 };

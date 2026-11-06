@@ -74,16 +74,16 @@ it("공통 기본 서체·사용자 sans·복원을 Canvas와 DOM 변수에 같�
     expect(varOf(defaultSnapshot, "--font-sans")).toBe(
       "var(--catalog-default-font-family)",
     );
-    expect(varOf(baseOverride, "--font-sans")).toBe("Inter");
+    expect(varOf(baseOverride, "--font-sans")).toBe("Inter, Pretendard");
     installThemeMaps(baseOverride);
     expect(catalogTextTypography({ visual: {} }).fontFamily).toBe("Inter");
-    expect(varOf(sansOverride, "--font-sans")).toBe("monospace");
+    expect(varOf(sansOverride, "--font-sans")).toBe("Pretendard, monospace");
     installThemeMaps(sansOverride);
     expect(catalogTextTypography({ visual: {} }).fontFamily).toBe("monospace");
     installThemeMaps(defaultSnapshot);
     expect(
       catalogFontFamilies(catalogTextTypography({ visual: {} }).fontFamily)[0],
-    ).toBe("adobe-clean-spectrum-vf");
+    ).toBe("Pretendard");
   } finally {
     installThemeMaps(null);
   }

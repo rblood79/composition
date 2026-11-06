@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [기본 서체 Pretendard — Canvas·DOM 대체 서체 통일] - 2026-11-07
+
+### Changed
+
+- Theme 기본 서체를 Adobe Clean Spectrum 에서 Pretendard 로 바꾼다. Canvas 는 OS 글꼴을 쓸 수 없어 한글이 있는 서체가 기본이어야 한다. Adobe Clean Spectrum 은 서체 목록에서 계속 고를 수 있고, 일본어·중국어의 언어별 기본 서체는 유지한다.
+- 고른 서체에 없는 글자는 Canvas 와 CSS 모두 Pretendard 로 대체한다. Inter 같은 영문 전용 서체에 한글을 써도 두 화면이 같고, OS 에 따라 달라지지 않는다.
+
+### Fixed
+
+- Publish 가 Pretendard 를 불러오도록 연결한다. 쓰는 굵기의 글꼴 파일만 내려받는다.
+
 ## [Canvas placeholder 글꼴 — 문서 서체 상속] - 2026-11-07
 
 ### Fixed

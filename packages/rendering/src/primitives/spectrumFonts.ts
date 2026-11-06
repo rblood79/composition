@@ -1,5 +1,15 @@
-/** S2 1.8.2 font-faces.css의 기본 sans. DOM과 Canvas가 같은 face를 읽는다. */
 import { SPECTRUM_LOCALE_FONT_CSS } from "./spectrumLocaleFonts";
+
+/**
+ * The document's default sans. Canvas text can only use registered fonts, so the default must
+ * carry Korean itself: S2's Adobe Clean has no Hangul, and the DOM's system fallback has no Canvas
+ * equivalent.
+ */
+export const DEFAULT_SANS_FAMILY = "Pretendard";
+export const DEFAULT_SANS_STACK =
+  "Pretendard, ui-sans-serif, system-ui, sans-serif";
+
+/** S2 1.8.2 font-faces.css의 sans — 선택 가능한 서체. DOM과 Canvas가 같은 face를 읽는다. */
 export const SPECTRUM_SANS_FAMILY = "adobe-clean-spectrum-vf";
 export const SPECTRUM_SANS_STACK =
   "adobe-clean-spectrum-vf, adobe-clean-variable, adobe-clean, ui-sans-serif, system-ui, sans-serif";
@@ -81,7 +91,7 @@ export const SPECTRUM_FONT_FACES: readonly SpectrumFontFace[] = [
 ];
 
 export const SPECTRUM_SANS_FONT_CSS = `
-:root { --catalog-default-font-family: ${SPECTRUM_SANS_STACK}; }
+:root { --catalog-default-font-family: ${DEFAULT_SANS_STACK}; }
 ${SPECTRUM_LOCALE_FONT_CSS}
 ${SPECTRUM_FONT_FACES.map(
   (face) => `@font-face {

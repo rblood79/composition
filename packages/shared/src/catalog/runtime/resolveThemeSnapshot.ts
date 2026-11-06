@@ -41,7 +41,11 @@ import {
   typography as typographySeed,
   type S2Device,
 } from "@composition/rendering";
-import { DEFAULT_BASE_TYPOGRAPHY, type BaseTypography } from "./fontDefaults";
+import {
+  catalogCssFontFamily,
+  DEFAULT_BASE_TYPOGRAPHY,
+  type BaseTypography,
+} from "./fontDefaults";
 import { hexToOklch } from "./oklchToHex";
 import {
   resolveNeutralColorTokens,
@@ -430,7 +434,7 @@ export function resolveThemeSnapshot(
     "--font-sans",
     sans === DEFAULT_BASE_TYPOGRAPHY.fontFamily
       ? "var(--catalog-default-font-family)"
-      : sans,
+      : catalogCssFontFamily(sans),
   );
   for (const [key, value] of Object.entries(typography)) {
     if (typeof value !== "number") continue;

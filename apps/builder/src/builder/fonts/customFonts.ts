@@ -309,6 +309,7 @@ export {
 };
 export type { FontFaceAsset, FontRegistryV2 };
 
+import { SPECTRUM_SANS_FAMILY } from "@composition/rendering";
 import { DEFAULT_FONT_FAMILY } from "../../../../../packages/shared/src/catalog/runtime/fontDefaults";
 export {
   CANVAS_FONT_FALLBACK_FAMILIES,
@@ -336,14 +337,8 @@ export function normalizeFontWeight(raw: string): string {
 
 export const DEFAULT_FONT_OPTIONS = [
   { value: "reset", label: "Reset" },
-  {
-    value: DEFAULT_FONT_FAMILY,
-    label:
-      String(DEFAULT_FONT_FAMILY) === "adobe-clean-spectrum-vf"
-        ? "Adobe Clean Spectrum"
-        : DEFAULT_FONT_FAMILY,
-  },
-  { value: "Pretendard", label: "Pretendard" },
+  { value: DEFAULT_FONT_FAMILY, label: DEFAULT_FONT_FAMILY },
+  { value: SPECTRUM_SANS_FAMILY, label: "Adobe Clean Spectrum" },
   { value: "Inter", label: "Inter" },
   {
     value:

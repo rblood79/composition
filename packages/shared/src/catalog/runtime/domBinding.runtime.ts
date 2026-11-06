@@ -17,7 +17,7 @@ import {
   pickerInvalidGlyph,
 } from "../document/pickerTrigger";
 import { catalogS2OverlayPlacement } from "./overlayLayout";
-import { DEFAULT_BASE_TYPOGRAPHY } from "./fontDefaults";
+import { catalogCssFontFamily, DEFAULT_BASE_TYPOGRAPHY } from "./fontDefaults";
 export { catalogS2OverlayPlacement } from "./overlayLayout";
 import { catalogTextRunsContent } from "./textRunsDom";
 import { paintAt, ruleHasPaintImage } from "../rule/rulePaintTree";
@@ -3346,7 +3346,13 @@ function authoredStyle(
       TYPOGRAPHY_KEYS.has(key) &&
       carriesText &&
       CATALOG_INHERITED_TEXT_KEYS.some((inherited) => inherited === key)
-        ? (value: unknown) => ({ [key]: value }) as CSSProperties
+        ? (value: unknown) =>
+            ({
+              [key]:
+                key === "fontFamily"
+                  ? catalogCssFontFamily(String(value))
+                  : value,
+            }) as CSSProperties
         : undefined;
     const css =
       AUTHORED_CSS[key] ??
@@ -4353,7 +4359,12 @@ export function catalogDomStateStyles(
       const declared = css
         ? css(value)
         : TYPOGRAPHY_KEYS.has(key)
-          ? { [key]: value }
+          ? {
+              [key]:
+                key === "fontFamily"
+                  ? catalogCssFontFamily(String(value))
+                  : value,
+            }
           : key === "aspectRatio"
             ? { aspectRatio: String(value) }
             : key === "iconSize"

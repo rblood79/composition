@@ -34,6 +34,7 @@ import { createPublishedSession } from "./catalogSession";
 import { PageNav } from "./components/PageNav";
 import { usePublishStrings } from "./i18n";
 import { PublishErrorBoundary } from "./PublishErrorBoundary";
+import "pretendard/dist/web/static/pretendard.css";
 import "./styles/index.css";
 
 const GOOGLE_FONTS_CSS_ID = "composition-publish-google-fonts";

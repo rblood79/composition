@@ -134,6 +134,8 @@ export {
   getSpacingToken,
   normalizeBreadcrumbRspSizeKey,
   typography,
+  DEFAULT_SANS_FAMILY,
+  DEFAULT_SANS_STACK,
   SPECTRUM_SANS_FAMILY,
   SPECTRUM_SANS_STACK,
   SPECTRUM_SANS_FONT,

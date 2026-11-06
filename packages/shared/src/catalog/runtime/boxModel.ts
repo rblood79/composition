@@ -3,7 +3,7 @@ import { CATALOG_AUTHORED_PAINT_KEYS } from "./authoredStyle";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import { catalogCurrentTextWeight } from "../resolvers/resolveCatalogRuleCanvasBox";
 import { installedBaseFontFamily } from "./themeMaps";
-import { DEFAULT_FONT_FAMILY } from "./fontDefaults";
+import { DEFAULT_FONT_FAMILY, GENERIC_FONT_FAMILIES } from "./fontDefaults";
 
 /**
  * ADR-248 — one box model per resolved catalog node. The Rust layout input (`compositionRoot`)
@@ -279,17 +279,6 @@ export function catalogTextTypography(
   return typography;
 }
 
-const GENERIC_FAMILIES = new Set([
-  "serif",
-  "sans-serif",
-  "monospace",
-  "cursive",
-  "fantasy",
-  "system-ui",
-  "ui-sans-serif",
-  "ui-serif",
-  "ui-monospace",
-]);
 /**
  * A CSS font-family list as Canvas paragraph families: named families in order, then the
  * catalog default (the Canvas cannot resolve a generic family; the DOM default is the same).
@@ -298,7 +287,7 @@ export function catalogFontFamilies(fontFamily: string | undefined): string[] {
   const named = (fontFamily ?? "")
     .split(",")
     .map((family) => family.trim().replace(/^["']|["']$/g, ""))
-    .filter((family) => family && !GENERIC_FAMILIES.has(family.toLowerCase()));
+    .filter((family) => family && !GENERIC_FONT_FAMILIES.has(family.toLowerCase()));
   return named.includes(DEFAULT_FONT_FAMILY)
     ? named
     : [...named, DEFAULT_FONT_FAMILY];

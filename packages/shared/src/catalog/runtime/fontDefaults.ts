@@ -1,17 +1,50 @@
 /** 기본 폰트 패밀리 — body 상속, 스타일 패널 폴백 등에서 참조 */
 import {
-  SPECTRUM_SANS_FAMILY,
-  SPECTRUM_SANS_STACK,
+  DEFAULT_SANS_FAMILY,
+  DEFAULT_SANS_STACK,
   spectrumLocaleFont,
 } from "@composition/rendering";
 
-export const DEFAULT_FONT_FAMILY = SPECTRUM_SANS_FAMILY;
-/** 명시한 사용자 서체는 유지하고 S2 기본 sans만 locale별 기본값으로 바꾼다. */
+export const DEFAULT_FONT_FAMILY = DEFAULT_SANS_FAMILY;
+
+/** Families a Canvas paragraph cannot name: the browser resolves them, CanvasKit does not. */
+export const GENERIC_FONT_FAMILIES: ReadonlySet<string> = new Set([
+  "serif",
+  "sans-serif",
+  "monospace",
+  "cursive",
+  "fantasy",
+  "system-ui",
+  "ui-sans-serif",
+  "ui-serif",
+  "ui-monospace",
+]);
+
+const fontFamilyName = (family: string) =>
+  family.trim().replace(/^["']|["']$/g, "");
+
+/**
+ * A chosen CSS font-family list with the default family ahead of its generics. A glyph the chosen
+ * font lacks then takes the same face in the DOM as in the Canvas (`catalogFontFamilies`), rather
+ * than an OS font the Canvas cannot read.
+ */
+export function catalogCssFontFamily(family: string): string {
+  const parts = family.split(",").map((part) => part.trim());
+  if (parts.some((part) => fontFamilyName(part) === DEFAULT_FONT_FAMILY))
+    return family;
+  const generic = parts.findIndex((part) =>
+    GENERIC_FONT_FAMILIES.has(fontFamilyName(part).toLowerCase()),
+  );
+  parts.splice(generic < 0 ? parts.length : generic, 0, DEFAULT_FONT_FAMILY);
+  return parts.join(", ");
+}
+
+/** 명시한 사용자 서체는 유지하고 기본 sans만 locale별 기본값으로 바꾼다. */
 export function catalogLocaleFontFamily(
   family: string,
   locale: string | undefined,
 ): string {
-  return family === SPECTRUM_SANS_STACK
+  return family === DEFAULT_SANS_STACK
     ? (spectrumLocaleFont(locale)?.stack ?? family)
     : family;
 }
@@ -48,7 +81,7 @@ export type BaseTypography = {
  * 정본 위치: packages/shared/src/catalog/runtime/fontDefaults.ts
  */
 export const DEFAULT_BASE_TYPOGRAPHY: BaseTypography = {
-  fontFamily: SPECTRUM_SANS_STACK,
+  fontFamily: DEFAULT_SANS_STACK,
   fontSize: 16,
   lineHeight: 1.5,
 };

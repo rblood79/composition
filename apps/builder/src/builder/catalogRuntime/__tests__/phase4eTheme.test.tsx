@@ -64,12 +64,12 @@ it("사이트 locale의 CJK 기본 서체·조판 언어와 명시 서체·Undo�
       props: { children: { kind: "set", value: "한글 글꼴" } },
     }),
   );
-  workspace.execute(setSiteSettings({ patch: { lang: "ko-KR" } }));
+  workspace.execute(setSiteSettings({ patch: { lang: "ja-JP" } }));
   expect(
     measure.mock.calls.some(
       ([, font]) =>
-        font.locale === "ko-KR" &&
-        font.fontFamily?.startsWith("adobe-clean-han-korean"),
+        font.locale === "ja-JP" &&
+        font.fontFamily?.startsWith("adobe-clean-han-japanese"),
     ),
   ).toBe(true);
   workspace.execute(
@@ -87,8 +87,8 @@ it("사이트 locale의 CJK 기본 서체·조판 언어와 명시 서체·Undo�
     measure.mock.calls.some(
       ([text, font]) =>
         text === "한글 글꼴" &&
-        font.locale === "ko-KR" &&
-        font.fontFamily?.startsWith("adobe-clean-han-korean"),
+        font.locale === "ja-JP" &&
+        font.fontFamily?.startsWith("adobe-clean-han-japanese"),
     ),
   ).toBe(true);
   workspace.undo();

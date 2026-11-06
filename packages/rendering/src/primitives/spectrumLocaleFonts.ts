@@ -1,16 +1,10 @@
-/** S2 1.8.2 Fonts.tsx + spectrum-theme.ts의 locale별 기본 서체. */
+/** S2 1.8.2 Fonts.tsx + spectrum-theme.ts의 locale별 기본 서체. 한국어는 기본 서체(Pretendard)가 맡는다. */
 const CJK = {
   ja: {
     family: "adobe-clean-han-japanese",
     kit: "pyb4hbv",
     stack:
       "adobe-clean-han-japanese, 'Hiragino Kaku Gothic ProN', 'ヒラギノ角ゴ ProN W3', Osaka, YuGothic, 'Yu Gothic', 'メイリオ', Meiryo, 'ＭＳ Ｐゴシック', 'MS PGothic', sans-serif",
-  },
-  ko: {
-    family: "adobe-clean-han-korean",
-    kit: "pux4zom",
-    stack:
-      "adobe-clean-han-korean, source-han-korean, 'Malgun Gothic', 'Apple Gothic', sans-serif",
   },
   zh: {
     family: "adobe-clean-han-traditional",
@@ -43,8 +37,7 @@ export function spectrumLocaleFont(locale: string | undefined) {
   try {
     const value = new Intl.Locale(locale);
     const tag = value.baseName;
-    if (value.language === "ja" || value.language === "ko")
-      return CJK[value.language];
+    if (value.language === "ja") return CJK.ja;
     if (value.language !== "zh") return undefined;
     if (value.region === "HK") return CJK["zh-HK"];
     if (
@@ -63,7 +56,6 @@ export function spectrumLocaleFont(locale: string | undefined) {
 export const SPECTRUM_LOCALE_FONT_CSS = (
   [
     ["ja", CJK.ja],
-    ["ko", CJK.ko],
     ["zh", CJK.zh],
     ["zh-Hant", CJK["zh-Hant"]],
     ["zh-HK", CJK["zh-HK"]],

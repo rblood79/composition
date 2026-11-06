@@ -374,6 +374,9 @@ importers:
       '@react-aria/i18n':
         specifier: 'catalog:'
         version: 3.13.1(react-dom@19.3.0(patch_hash=57eb26d122c46c8e56dbed622fb76f4613705ecb1b05adb3e7b2885bf41ee10f)(react@19.3.0))(react@19.3.0)
+      pretendard:
+        specifier: ^1.3.9
+        version: 1.3.9
       react:
         specifier: 'catalog:'
         version: 19.3.0

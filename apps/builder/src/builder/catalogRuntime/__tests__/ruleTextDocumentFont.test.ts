@@ -23,7 +23,7 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
  */
 const BODY = "project:node:home-body" as NodeId;
 const NODE = "project:node:subject" as NodeId;
-const KOREAN = "adobe-clean-han-korean";
+const LOCALE_FONT = "adobe-clean-han-japanese";
 
 async function place(type: string) {
   const fonts: { text: string; font: CatalogTextFont }[] = [];
@@ -51,7 +51,7 @@ async function place(type: string) {
       engine: await nodeLayoutEngine(),
       viewport: { width: 1920, height: 1080 },
       autosaveSchedule: () => {},
-      locale: "ko-KR",
+      locale: "ja-JP",
       textMeasure: measure,
     },
   );
@@ -100,7 +100,7 @@ describe("rule text follows the document font", () => {
   it("an Input draws its placeholder in the locale font at the DOM's weight", async () => {
     const { textOf } = await place("TextField");
     const text = textOf("Input")!;
-    expect(text.fontFamily).toContain(KOREAN);
+    expect(text.fontFamily).toContain(LOCALE_FONT);
     expect(text.fontWeight).toBe(400);
   });
 
@@ -118,8 +118,8 @@ describe("rule text follows the document font", () => {
     const measured = fonts.filter(({ text }) => texts.has(text));
     expect(measured.length).toBeGreaterThan(0);
     for (const { font } of measured) {
-      expect(font.fontFamily).toContain(KOREAN);
-      expect(font.locale).toBe("ko-KR");
+      expect(font.fontFamily).toContain(LOCALE_FONT);
+      expect(font.locale).toBe("ja-JP");
     }
   });
 });

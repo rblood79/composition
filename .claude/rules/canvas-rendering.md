@@ -24,6 +24,7 @@ paths:
 
 - `currentColor` 테두리는 색상 파서 전에 해당 노드의 최종 글자색으로 해석한다. **Why (2026-11-06):** Button의 native Canvas binding이 `negative + outline + static white`의 `currentColor`를 문맥 없는 파서에 넘겨 검정으로 그렸고, DOM은 흰 테두리를 표시했다. 순수 paint resolver뿐 아니라 실제 bound Skia node의 stroke 색까지 회귀 검사한다.
 
+- Canvas는 OS 글꼴을 읽지 못한다. 글리프가 없는 글자는 `fontFamilies` 목록의 다음 등록 서체로만 대체되므로, 문서 기본 서체 (Pretendard) 를 `catalogFontFamilies` 와 `catalogCssFontFamily` 양쪽 목록 끝에 둔다. **Why (2026-11-07):** 영문 전용 서체의 한글이 DOM은 시스템 글꼴, Canvas는 ☒ 로 갈렸다. `enableFontFallback` 은 등록 서체를 자동 탐색하지 않는다 (CanvasKit 실측).
 - CSS normal 서체 폭을 Canvas의 variable font 축에도 명시한다. **Why (2026-11-06):** S2 Adobe Clean Spectrum VF는 fvar wdth 기본값62.5이고 CSS normal은100이다. wght만 넘기면 16px 문자열 폭이 DOM212.56px·Canvas153.85px로 갈렸다. 기본 서체의 측정·페인트가 같은 wdth100을 사용해야 한다.
 - CJK의 동일 face·subset과 사이트 locale을 측정·페인트에 함께 전달한다. **Why (2026-11-06):** 같은 한국어 font bytes라도 DOM `lang=ko-KR`의 OpenType `locl`이 Canvas에서 빠지면 공백 advance가 달라졌다. 새 글자 subset은 같은 variant를 교체하고 FontCollection·측정 캐시를 함께 갱신한다.
 
