@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [헤더 저장 상태 아이콘] - 2026-11-06
+
+### Changed
+
+- 헤더의 저장 상태를 글자에서 구름 아이콘과 우측 상단 dot으로 바꿨다. 저장됨은 dot이 없고, 저장 대기·저장 중은 500ms가 지나도 끝나지 않을 때만 dot을 보이며, 실패는 빨강, 다른 탭 충돌·저장 불가 형식은 주황으로 표시한다. 저장이 멈춘 세 상태는 아이콘도 `CloudOff`로 바뀐다.
+- 상태 설명은 tooltip과 `aria-label`로, 스크린리더 안내는 버튼 밖 live region으로 옮겼다. 누를 수 없는 상태도 tooltip이 뜨도록 disabled를 쓰지 않으며, 실패 상태만 눌러서 다시 시도한다.
+
 ## [폰트 선택창 공용화 — Theme에서 등록·관리] - 2026-11-06
 
 ### Fixed

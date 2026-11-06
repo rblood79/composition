@@ -1,0 +1,47 @@
+/* `.action-icon-button` 이 layer 밖이라 같은 층에 두고, 상태 색이 hover 색을 이기도록 두 class 로 묶는다. */
+.action-icon-button.catalog-save-status {
+  --save-status-color: var(--accent);
+
+  position: relative;
+
+  &:not([data-save-state="failed"]) {
+    cursor: default;
+  }
+
+  &[data-save-state="failed"] {
+    --save-status-color: var(--negative);
+
+    color: var(--negative);
+  }
+
+  &[data-save-state="conflict"],
+  &[data-save-state="unsupported"] {
+    --save-status-color: var(--notice);
+
+    color: var(--notice);
+  }
+}
+
+.catalog-save-status-dot {
+  position: absolute;
+  inset-block-start: 5px;
+  inset-inline-end: 5px;
+  inline-size: 7px;
+  block-size: 7px;
+  border-radius: 50%;
+  background: var(--save-status-color);
+  box-shadow: 0 0 0 1.5px var(--chrome-surface);
+}
+
+/* 저장이 도는 동안의 dot 은 늦게 켠다 — 편집마다 지나가는 짧은 저장에는 나타나지 않는다.
+   unsaved → saving 은 같은 animation 이라 지연이 다시 시작되지 않고, 저장이 끝나면 요소가 사라진다. */
+.catalog-save-status[data-save-state="unsaved"] .catalog-save-status-dot,
+.catalog-save-status[data-save-state="saving"] .catalog-save-status-dot {
+  animation: catalog-save-status-dot-in 120ms linear 500ms backwards;
+}
+
+@keyframes catalog-save-status-dot-in {
+  from {
+    opacity: 0;
+  }
+}

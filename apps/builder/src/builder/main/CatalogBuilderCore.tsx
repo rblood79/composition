@@ -112,6 +112,7 @@ import {
 } from "../workspace/canvasBreakpoints";
 import { BuilderHeader } from "./BuilderHeader";
 import { BuilderViewport } from "./BuilderViewport";
+import { SaveStatusButton } from "./SaveStatusButton";
 import { reloadIfStaleDeploy } from "./staleDeployRecovery";
 import {
   catalogViewportActions,
@@ -852,27 +853,12 @@ export function CatalogBuilderCore() {
 
 /** Save status of the open project; `failed` retries on press. */
 function CatalogSaveStatusIndicator() {
-  const { t } = useI18n();
   const workspace = useCatalogWorkspace();
   const status = useCatalogSaveStatus();
-  const label = {
-    saved: t("catalogProject.saveSaved"),
-    unsaved: t("catalogProject.saveUnsaved"),
-    saving: t("catalogProject.saveSaving"),
-    failed: t("catalogProject.saveFailed"),
-    conflict: t("catalogProject.saveConflict"),
-    unsupported: t("catalogProject.saveUnsupported"),
-  }[status.state];
   return (
-    <button
-      type="button"
-      className="catalog-save-status"
-      data-save-state={status.state}
-      aria-live="polite"
-      disabled={status.state !== "failed"}
-      onClick={() => void workspace.autosave.retry()}
-    >
-      {label}
-    </button>
+    <SaveStatusButton
+      state={status.state}
+      onRetry={() => void workspace.autosave.retry()}
+    />
   );
 }
