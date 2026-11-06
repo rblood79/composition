@@ -28,6 +28,7 @@ Canvas(Skia)와 Preview(DOM/CSS)는 catalog + theme/tokens의 대등한 소비�
   (generated CSS 는 build-time 주입). dist 는 없습니다 — `@composition/rendering` · `@composition/shared` 는 소스 직접 export.
 - 현재 dev 서버·탭과 사용 가능한 브라우저 도구를 사용합니다. 렌더 측정은 foreground나
   활성 RAF 환경에서 수행합니다. 고정 포트·과거 store 조작 예제를 가정하지 않습니다.
+  Chrome MCP 의 `screenshot` · `zoom` 은 `save_to_disk: true` 를 붙여 찍습니다 (비교한 화면이 파일로 남습니다).
 - 같은 fixture·viewport·theme·상태에서 Canvas와 Preview를 비교하고 필요하면 패널 값도 대조합니다.
   판정표의 한 행은 양쪽을 **같은 production 상태**에서 잰 값이어야 합니다 — 상태가 다른 두 값을
   설명문으로 제외하면 검증이 빕니다.

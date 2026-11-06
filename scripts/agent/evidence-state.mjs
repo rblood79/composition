@@ -55,6 +55,69 @@ export function snapshot(root, manifest, explicitFiles) {
   };
 }
 
+const READS = "evidence-reads.jsonl";
+const jsonl = (file) =>
+  fs.existsSync(file)
+    ? fs.readFileSync(file, "utf8").split("\n").filter(Boolean).map(JSON.parse)
+    : [];
+
+// 증거 파일이 run 폴더 artifacts/ 안의 실제 파일이면 run 기준 상대 경로, 아니면 null.
+function artifactPath(runDir, file) {
+  const base = path.join(runDir, "artifacts");
+  if (!fs.existsSync(base) || !fs.existsSync(file)) return null;
+  const real = fs.realpathSync(file);
+  if (!real.startsWith(`${fs.realpathSync(base)}${path.sep}`)) return null;
+  return fs.statSync(real).isFile()
+    ? path.relative(fs.realpathSync(runDir), real)
+    : null;
+}
+
+// Read hook 이 호출한다 — artifacts/ 안 파일을 읽은 사실과 그때의 내용 지문을 남긴다.
+export function recordRead(runDir, file, session) {
+  const rel = artifactPath(runDir, file);
+  if (!rel) return false;
+  fs.appendFileSync(
+    path.join(runDir, READS),
+    `${JSON.stringify({
+      ts: new Date().toISOString(),
+      path: rel,
+      sha: digest(fs.readFileSync(file)),
+      session: session || null,
+    })}\n`,
+  );
+  return true;
+}
+
+// live-exercise pass 의 증거 검사 — 위치 · 내용 · 재사용 · (요구되면) Read 기록.
+export function checkArtifact(runDir, file, requireRead) {
+  const rel = artifactPath(runDir, file);
+  if (!rel)
+    throw new Error(
+      `artifact 는 run 폴더 artifacts/ 안의 파일이어야 한다: ${file} (${path.join(runDir, "artifacts")} 로 저장)`,
+    );
+  const content = fs.readFileSync(file);
+  if (content.length === 0) throw new Error(`artifact 가 비어 있음: ${rel}`);
+  const sha = digest(content);
+  const reused = jsonl(path.join(runDir, "evidence.jsonl")).some(
+    (entry) =>
+      entry.kind === "live-exercise" &&
+      entry.status === "pass" &&
+      entry.artifactSha === sha,
+  );
+  if (reused)
+    throw new Error(
+      `같은 증거 파일은 pass 한 번에만 쓴다: ${rel} — 다시 관찰해 새 파일로 남긴다`,
+    );
+  const read = jsonl(path.join(runDir, READS)).some(
+    (entry) => entry.path === rel && entry.sha === sha,
+  );
+  if (requireRead && !read)
+    throw new Error(
+      `이 증거 파일을 Read 한 기록이 없다: ${rel} — Read 도구로 연 뒤 다시 기록한다 (Read 뒤 파일이 바뀌었으면 다시 Read)`,
+    );
+  return { path: rel, sha, read: read ? true : null };
+}
+
 export function hasCurrentPass(root, manifest, kind, explicitFiles) {
   const ledger = path.join(path.dirname(manifest), "evidence.jsonl");
   if (!fs.existsSync(ledger)) return false;
@@ -65,8 +128,9 @@ export function hasCurrentPass(root, manifest, kind, explicitFiles) {
     .map(JSON.parse);
   const latest = entries.findLast((entry) => entry.kind === kind);
   if (latest?.status !== "pass" || !latest.snapshot) return false;
-  // live 는 증거 파일이 붙은 PASS 만 인정한다 — artifact 없는 옛 행은 재검증 대상.
-  if (kind === "live-exercise" && !latest.artifact) return false;
+  // live 는 증거 파일이 붙은 PASS 만 인정한다 — artifact · 지문 없는 옛 행은 재검증 대상.
+  if (kind === "live-exercise" && !(latest.artifact && latest.artifactSha))
+    return false;
   // 호출자가 범위를 지정하지 않으면 증거의 명시 범위를 재검사한다.
   const files =
     explicitFiles ??
@@ -99,6 +163,9 @@ if (
       )
         ? 0
         : 1;
+    else if (command === "artifact-check")
+      console.log(JSON.stringify(checkArtifact(root, manifest, arg === "1")));
+    else if (command === "record-read") recordRead(root, manifest, arg);
     else throw new Error(`알 수 없는 evidence 명령: ${command}`);
   } catch (error) {
     console.error(`[agent:evidence] ${error.message}`);

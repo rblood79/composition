@@ -34,7 +34,8 @@ argument-hint: [검증 대상 기능 + 완료 기준 (한 줄씩)]
 
 - Canvas·시각 결과는 foreground 또는 활성 RAF가 확인된 환경에서 측정합니다.
   hidden 탭의 stale overlay를 시각 근거로 사용하지 않습니다. Skia 캔버스 픽셀은 페이지 안에서
-  읽을 수 없으므로 스크린샷을 찍어 분석합니다. Compare Mode 에서 한쪽 전체 픽셀이 필요하면 손잡이를
+  읽을 수 없으므로 스크린샷을 찍어 분석합니다. Chrome MCP 의 `screenshot` · `zoom` 은 `save_to_disk: true` 를
+  붙여 찍습니다 (파일로 남아 증거로 쓸 수 있습니다 — 빼면 hook 이 넣지만 auto mode 에서는 한 번 반려됩니다). Compare Mode 에서 한쪽 전체 픽셀이 필요하면 손잡이를
   끝으로 옮깁니다 (경계 위치가 보이는 영역을 정합니다).
 - 상태 변경은 Inspector·Canvas·Preview 반영과 Undo/Redo를 관련 범위에서 확인합니다.
 - 컴포넌트 자식·slot·조건부 표시가 바뀌면 [RAC 조립 계약](../composition-patterns/rules/domain-rac-composition.md)의

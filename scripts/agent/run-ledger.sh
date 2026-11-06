@@ -121,12 +121,18 @@ case "$CMD" in
     fi
     need_jq
     # live-exercise pass 는 관찰 증거 파일이 있어야 기록한다 — 문장만으로 PASS 를 남기지 못하게 한다.
+    # 증거 = run 폴더 artifacts/ 안의 비어 있지 않은 파일 (스크린샷 · console 덤프 · 상태 JSON · 하니스 출력),
+    # 같은 내용은 pass 한 번에만 쓴다. Claude 세션 (CLAUDECODE=1) 은 그 파일을 Read 한 기록까지 요구한다
+    # (.claude/hooks/track-evidence-read.sh 가 남긴다 — Codex · 터미널에는 Read hook 이 없어 요구하지 않는다).
     # 관찰 자체가 안 됐으면 (hidden 탭 · 서버 · 도구 불가) pass 가 아니라 block 으로 적는다.
+    ASHA=""; AREAD=null
     if [ "$KIND" = live-exercise ] && [ "$STATUS" = pass ]; then
-      [ -n "$ARTIFACT" ] || { echo "[agent:run] live-exercise pass 는 --artifact <증거 파일> 필수 (스크린샷 · console 덤프 · 상태 JSON · 하니스 출력). 관찰하지 못했으면 block 으로 기록" >&2; exit 2; }
+      [ -n "$ARTIFACT" ] || { echo "[agent:run] live-exercise pass 는 --artifact <증거 파일> 필수 (run 폴더 artifacts/ 안의 스크린샷 · console 덤프 · 상태 JSON · 하니스 출력). 관찰하지 못했으면 block 으로 기록" >&2; exit 2; }
       AFILE="$ARTIFACT"
-      case "$AFILE" in /*) ;; *) [ -e "$D/$AFILE" ] && AFILE="$D/$AFILE" ;; esac   # 상대 경로는 run 폴더 먼저, 없으면 cwd
-      { [ -f "$AFILE" ] && [ -s "$AFILE" ]; } || { echo "[agent:run] artifact 가 없거나 비어 있음: $ARTIFACT" >&2; exit 2; }
+      case "$AFILE" in /*) ;; *) [ -e "$D/$AFILE" ] && AFILE="$D/$AFILE" ;; esac   # 상대 경로는 run 폴더 기준
+      NEED_READ=0; [ "${CLAUDECODE:-}" = 1 ] && NEED_READ=1
+      ACHK=$(node "$ROOT_DIR/scripts/agent/evidence-state.mjs" artifact-check "$D" "$AFILE" "$NEED_READ") || exit 2   # 사유는 stderr
+      ARTIFACT=$(printf '%s' "$ACHK" | jq -r '.path'); ASHA=$(printf '%s' "$ACHK" | jq -r '.sha'); AREAD=$(printf '%s' "$ACHK" | jq -c '.read')
     fi
     SNAPSHOT=null
     case "$KIND" in
@@ -138,7 +144,7 @@ case "$CMD" in
       --arg ts "$(now_iso)" --arg host "$(host_name)" --arg src "${AGENT_EVIDENCE_SOURCE:-cli}" \
       --arg kind "$KIND" --arg status "$STATUS" --arg detail "$DETAIL" --arg cmd "$ECMD" \
       --arg cwd "$(pwd)" --arg exit "$EXIT" --arg target "$TARGET" --arg artifact "$ARTIFACT" \
-      --arg skip "$SKIP" --arg gate "$GATE" \
+      --arg skip "$SKIP" --arg gate "$GATE" --arg asha "$ASHA" --argjson aread "$AREAD" \
       --argjson snapshot "$SNAPSHOT" \
       '{ts: $ts, host: $host, source: $src, kind: $kind, status: $status,
         detail: (if $detail == "" then null else $detail end),
@@ -146,6 +152,7 @@ case "$CMD" in
         exit: (if $exit == "" then null else ($exit | tonumber) end),
         target: (if $target == "" then null else $target end),
         artifact: (if $artifact == "" then null else $artifact end),
+        artifactSha: (if $asha == "" then null else $asha end), artifactRead: $aread,
         skipReason: (if $skip == "" then null else $skip end),
         gateAdded: (if $gate == "" then null else $gate end), snapshot: $snapshot}' >> "$D/evidence.jsonl"
     ;;
@@ -224,8 +231,9 @@ agent run ledger (local-only, .agent/runs/):
                          [--target t] [--artifact p] [--skip-reason r] [--gate-added g] [--files a,b]
         kind 예: typecheck · vitest · cross-check · live-exercise · preflight · catalog-gate · hook-selftest · adr-sync
         cross-check/live-exercise는 최신 결과와 HEAD·파일 내용이 일치할 때만 재사용한다.
-        live-exercise pass 는 --artifact 필수 (비어 있지 않은 파일 — 상대 경로는 run 폴더 artifacts/ 기준).
-        관찰하지 못했으면 pass · fail 이 아니라 block 으로 기록한다.
+        live-exercise pass 는 --artifact 필수 — run 폴더 artifacts/ 안의 비어 있지 않은 파일
+        (예: --artifact artifacts/toast.png). 같은 내용은 pass 한 번에만 쓰고, Claude 세션은 그 파일을
+        Read 한 뒤에 기록한다. 관찰하지 못했으면 pass · fail 이 아니라 block 으로 기록한다.
         work verify --files를 쓰면 evidence에도 같은 --files를 지정한다. 옛 snapshot 없는 PASS는 재검증한다.
   pnpm agent:run -- phase <name> <started|verified|done|blocked>
   pnpm agent:run -- note uncertainty|risk "<text>"

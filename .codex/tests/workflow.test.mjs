@@ -25,6 +25,8 @@ function fixture(t) {
     ...process.env,
     AGENT_RUNS_DIR: path.join(dir, ".agent/runs"),
     TMPDIR: dir,
+    // Claude 세션 표지를 지운다 — 켜져 있으면 ledger 가 증거 파일의 Read 기록까지 요구한다.
+    CLAUDECODE: "",
   };
   const run = (args, extra = {}) =>
     spawnSync(args[0], args.slice(1), {
@@ -110,11 +112,19 @@ function start(f) {
   ]);
   assert.equal(r.status, 0, r.stderr);
 }
-// live-exercise pass 는 증거 파일이 있어야 기록된다 — ignored 경로에 두어 snapshot 범위 밖.
+// live-exercise pass 의 증거는 run 폴더 artifacts/ 안의 파일이고, 같은 내용은 한 번만 쓴다.
+let proofCount = 0;
+function runDir(f) {
+  const id = fs.readFileSync(
+    path.join(f.env.AGENT_RUNS_DIR, "current"),
+    "utf8",
+  );
+  return path.join(f.env.AGENT_RUNS_DIR, id);
+}
 function proof(f) {
-  const file = path.join(f.dir, ".agent/live-proof.txt");
+  const file = path.join(runDir(f), `artifacts/proof-${++proofCount}.txt`);
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, "observed\n");
+  fs.writeFileSync(file, `observed ${proofCount}\n`);
   return file;
 }
 function evidence(f, status, extra = []) {
@@ -147,11 +157,60 @@ test("증거 파일 없는 live-exercise pass는 기록되지 않는다", (t) =>
     f.run(["bash", "scripts/agent/run-ledger.sh", "has-live"]).status,
     0,
   );
-  assert.equal(record(["--artifact", proof(f)]), 0);
+  const outside = path.join(f.dir, ".agent/outside.txt");
+  fs.writeFileSync(outside, "observed elsewhere\n");
+  assert.equal(record(["--artifact", outside]), 2);
+  const file = proof(f);
+  assert.equal(record(["--artifact", file]), 0);
   assert.equal(
     f.run(["bash", "scripts/agent/run-ledger.sh", "has-live"]).status,
     0,
   );
+  assert.equal(record(["--artifact", file]), 2);
+});
+test("Claude 세션은 Read 기록이 있는 증거 파일만 받는다", (t) => {
+  const f = fixture(t);
+  start(f);
+  const claude = { env: { ...f.env, CLAUDECODE: "1" } };
+  const file = proof(f);
+  const record = () =>
+    f.run(
+      [
+        "bash",
+        "scripts/agent/run-ledger.sh",
+        "evidence",
+        "live-exercise",
+        "pass",
+        "--artifact",
+        file,
+      ],
+      claude,
+    );
+  const read = () =>
+    f.run([
+      "node",
+      "scripts/agent/evidence-state.mjs",
+      "record-read",
+      runDir(f),
+      file,
+      "session-1",
+    ]);
+  const refused = record();
+  assert.equal(refused.status, 2);
+  assert.match(refused.stderr, /Read/);
+  assert.equal(read().status, 0);
+  fs.writeFileSync(file, "changed after read\n");
+  assert.equal(record().status, 2);
+  assert.equal(read().status, 0);
+  assert.equal(record().status, 0, record.stderr);
+  const entry = fs
+    .readFileSync(path.join(runDir(f), "evidence.jsonl"), "utf8")
+    .trim()
+    .split("\n")
+    .map(JSON.parse)
+    .at(-1);
+  assert.equal(entry.artifactRead, true);
+  assert.match(entry.artifact, /^artifacts\/proof-\d+\.txt$/);
 });
 test("최신 FAIL이 과거 PASS를 무효화한다", (t) => {
   const f = fixture(t);

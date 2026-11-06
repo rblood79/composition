@@ -60,7 +60,17 @@ pnpm -F @composition/builder exec vitest run <변경 모듈 옆 테스트>   # �
 
 - FAIL 이 있으면 커밋하지 않고 `/fix` 로 root cause 부터 — 증상 수정 금지.
 - BLOCKED 가 남으면 PASS 로 세지 않습니다. 미검증 범위를 적고 커밋 여부를 사용자에게 넘깁니다.
-- run 이 열려 있으면 ledger 에도 같은 판정을 남깁니다 — `pnpm agent:run -- evidence live-exercise pass --detail "<무엇을>" --artifact <증거 파일>`
-  (artifact 없는 pass 는 거부됩니다), 관찰하지 못했으면 `evidence live-exercise block --detail "<막힌 이유>"`.
+- run 이 열려 있으면 ledger 에도 같은 판정을 남깁니다. 순서는 셋입니다:
+  1. 관찰한 것을 run 폴더 `artifacts/` 에 파일로 저장합니다 (`.agent/runs/<현재 run>/artifacts/` — 스크린샷 ·
+     console 덤프 · 상태 JSON · 하니스 출력 중 아무거나). Chrome MCP 의 `screenshot` · `zoom` 은 `save_to_disk: true` 를
+     붙여 찍습니다 — 임시 폴더에 저장되고 경로가 돌아오니 그 파일을 `artifacts/` 로 복사합니다. 옵션을 빼면
+     `chrome-screenshot-save.sh` 가 넣어 주지만 auto mode 에서는 그 호출이 한 번 반려되고 같은 입력으로 다시
+     불러야 합니다. `scale` 을 주면 저장 파일도 그만큼 작아지니 증거용은 `scale` 없이 찍습니다.
+  2. 그 파일을 Read 로 엽니다 — `track-evidence-read.sh` 가 읽은 사실을 run 에 남깁니다.
+  3. `pnpm agent:run -- evidence live-exercise pass --detail "<무엇을>" --artifact artifacts/<파일>`.
+
+  artifact 가 없거나 · `artifacts/` 밖이거나 · Read 하지 않았거나 · Read 뒤 바뀌었거나 · 이미 다른 pass 에 쓴
+  파일이면 기록이 거부됩니다. 관찰하지 못했으면 `evidence live-exercise block --detail "<막힌 이유>"`.
+
 - PASS 면 커밋으로 진행합니다. ADR Implemented 승격 커밋이면 이 보고가 ADR 본문 `### Live Exercise` 절의 내용이 됩니다
   (`adr-status-sync-check.sh` 가 절 부재를 block).

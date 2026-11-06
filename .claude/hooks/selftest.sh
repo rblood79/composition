@@ -211,8 +211,14 @@ LIVE_SEC=$'Implemented\n\n### Live Exercise\n\n- 2026-08-28 builder 5173 팔레�
 sync_docs() { printf '# README\n- 100\n' > "$REPO/docs/adr/README.md"; printf '# CHANGELOG\n- 100\n' > "$REPO/docs/CHANGELOG.md"; }
 reset_docs() { printf '# README\n' > "$REPO/docs/adr/README.md"; printf '# CHANGELOG\n' > "$REPO/docs/CHANGELOG.md"; }
 LEDGER="$ROOT_DIR/scripts/agent/run-ledger.sh"
-# live-exercise pass 는 증거 파일이 있어야 기록된다 (비어 있지 않은 실제 파일).
-PROOF="$TMP/live-proof.txt"; printf 'selftest live evidence\n' > "$PROOF"
+# live-exercise pass 의 증거는 run 폴더 artifacts/ 안의 비어 있지 않은 파일이어야 한다.
+# Claude 세션 (CLAUDECODE=1) 은 그 파일을 Read 한 기록까지 요구한다 — 기본은 꺼 두고 해당 케이스에서만 켠다.
+unset CLAUDECODE
+PROOF_N=0
+proof_in() {  # proof_in <runs-dir> → 매번 내용이 다른 증거 파일을 만들고 run 기준 상대 경로를 PROOF 에
+  local d="$1/$(cat "$1/current")"; PROOF_N=$((PROOF_N + 1)); mkdir -p "$d/artifacts"
+  printf 'selftest live evidence %s\n' "$PROOF_N" > "$d/artifacts/proof-$PROOF_N.txt"; PROOF="artifacts/proof-$PROOF_N.txt"
+}
 
 case_start "승격 + README/CHANGELOG 미갱신 + Live 없음 → block"
 adr_body Implemented; run_in_repo '{"hook_event_name":"Stop"}'; assert_block
@@ -227,7 +233,7 @@ adr_body Implemented; mkdir -p "$REPO/docs/adr/evidence"; : > "$REPO/docs/adr/ev
 run_in_repo '{"hook_event_name":"Stop"}'; assert_allow; rm -rf "$REPO/docs/adr/evidence"
 case_start "승격 + 동시 갱신 + run ledger live-exercise pass → 통과"
 AGENT_RUNS_DIR="$RUNS" bash "$LEDGER" start --understood-as "selftest run" >/dev/null 2>&1
-AGENT_RUNS_DIR="$RUNS" bash "$LEDGER" evidence live-exercise pass --detail "selftest" --artifact "$PROOF" >/dev/null 2>&1
+proof_in "$RUNS"; AGENT_RUNS_DIR="$RUNS" bash "$LEDGER" evidence live-exercise pass --detail "selftest" --artifact "$PROOF" >/dev/null 2>&1
 run_in_repo '{"hook_event_name":"Stop"}'; assert_allow
 case_start "  (통과 시) ledger 에 adr-sync pass 기록"
 if grep -q '"kind":"adr-sync","status":"pass"' "$RUNS/$(cat "$RUNS/current")/evidence.jsonl"; then pass; else fail "adr-sync pass 미기록"; fi
@@ -262,11 +268,34 @@ case_start "live-exercise pass 의 artifact 파일 없음 → exit 2"
 led evidence live-exercise pass --detail "팔레트 12건" --artifact "artifacts/x.png"; if [ "$RC" -eq 2 ]; then pass; else fail "rc=$RC"; fi
 case_start "live-exercise pass 의 artifact 가 빈 파일 → exit 2"
 : > "$RUNS2/$RID/artifacts/x.png"; led evidence live-exercise pass --detail "팔레트 12건" --artifact "artifacts/x.png"; if [ "$RC" -eq 2 ]; then pass; else fail "rc=$RC"; fi
-case_start "evidence live-exercise pass + artifact (run 폴더 상대 경로) → has-live exit 0"
-printf 'png' > "$RUNS2/$RID/artifacts/x.png"
-led evidence live-exercise pass --detail "팔레트 12건" --artifact "artifacts/x.png"; led has-live; if [ "$RC" -eq 0 ]; then pass; else fail "rc=$RC"; fi
-case_start "live-exercise fail · block 은 artifact 없이 기록"
-led evidence live-exercise block --detail "hidden 탭 — 관찰 못 함"; R1=$RC; led evidence live-exercise pass --detail "재관찰" --artifact "artifacts/x.png"
+case_start "artifact 가 run 폴더 artifacts/ 밖 → exit 2"
+printf 'outside' > "$TMP/outside.png"; led evidence live-exercise pass --detail "팔레트 12건" --artifact "$TMP/outside.png"; if [ "$RC" -eq 2 ]; then pass; else fail "rc=$RC"; fi
+case_start "Claude 세션 + Read 기록 없는 artifact → exit 2"
+printf 'png-1' > "$RUNS2/$RID/artifacts/x.png"
+OUT=$(CLAUDECODE=1 AGENT_RUNS_DIR="$RUNS2" bash "$LEDGER" evidence live-exercise pass --detail "팔레트 12건" --artifact "artifacts/x.png" 2>&1); RC=$?
+if [ "$RC" -eq 2 ] && printf '%s' "$OUT" | grep -q 'Read'; then pass; else fail "rc=$RC out=$OUT"; fi
+case_start "track-evidence-read.sh: artifacts/ 밖 파일 Read → 기록 안 함"
+run_hook track-evidence-read.sh "{\"tool_name\":\"Read\",\"tool_input\":{\"file_path\":\"$TMP/outside.png\"},\"session_id\":\"s1\"}" AGENT_RUNS_DIR="$RUNS2"
+if [ "$RC" -eq 0 ] && [ ! -s "$RUNS2/$RID/evidence-reads.jsonl" ]; then pass; else fail "rc=$RC 기록됨"; fi
+case_start "track-evidence-read.sh: artifacts/ 안 파일 Read → 경로·sha 기록"
+run_hook track-evidence-read.sh "{\"tool_name\":\"Read\",\"tool_input\":{\"file_path\":\"$RUNS2/$RID/artifacts/x.png\"},\"session_id\":\"s1\"}" AGENT_RUNS_DIR="$RUNS2"
+if [ "$RC" -eq 0 ] && jq -e 'select(.path == "artifacts/x.png" and (.sha | length) == 64 and .session == "s1")' "$RUNS2/$RID/evidence-reads.jsonl" >/dev/null 2>&1; then pass; else fail "rc=$RC 미기록"; fi
+case_start "Read 뒤 파일이 바뀌면 → exit 2 (다시 Read)"
+printf 'png-2' > "$RUNS2/$RID/artifacts/x.png"
+OUT=$(CLAUDECODE=1 AGENT_RUNS_DIR="$RUNS2" bash "$LEDGER" evidence live-exercise pass --detail "팔레트 12건" --artifact "artifacts/x.png" 2>&1); RC=$?
+if [ "$RC" -eq 2 ]; then pass; else fail "rc=$RC"; fi
+case_start "Claude 세션 + Read 한 artifact → pass 기록 · has-live exit 0"
+run_hook track-evidence-read.sh "{\"tool_name\":\"Read\",\"tool_input\":{\"file_path\":\"$RUNS2/$RID/artifacts/x.png\"},\"session_id\":\"s1\"}" AGENT_RUNS_DIR="$RUNS2"
+OUT=$(CLAUDECODE=1 AGENT_RUNS_DIR="$RUNS2" bash "$LEDGER" evidence live-exercise pass --detail "팔레트 12건" --artifact "artifacts/x.png" 2>&1); R1=$?; led has-live
+if [ "$R1" -eq 0 ] && [ "$RC" -eq 0 ] && jq -e 'select(.kind == "live-exercise" and .status == "pass" and .artifact == "artifacts/x.png" and .artifactRead == true and (.artifactSha | length) == 64)' "$RUNS2/$RID/evidence.jsonl" >/dev/null 2>&1; then pass; else fail "pass rc=$R1 has-live=$RC out=$OUT"; fi
+case_start "같은 증거 파일로 두 번째 pass → exit 2 (다시 관찰)"
+OUT=$(CLAUDECODE=1 AGENT_RUNS_DIR="$RUNS2" bash "$LEDGER" evidence live-exercise pass --detail "재사용" --artifact "artifacts/x.png" 2>&1); RC=$?
+if [ "$RC" -eq 2 ]; then pass; else fail "rc=$RC"; fi
+case_start "Claude 세션 밖 (Codex · 터미널) 은 Read 기록 없이 artifacts/ 안 파일로 pass"
+proof_in "$RUNS2"; led evidence live-exercise pass --detail "터미널 기록" --artifact "$PROOF"
+if [ "$RC" -eq 0 ] && jq -e 'select(.detail == "터미널 기록" and .artifactRead == null)' "$RUNS2/$RID/evidence.jsonl" >/dev/null 2>&1; then pass; else fail "rc=$RC"; fi
+case_start "live-exercise block 은 artifact 없이 기록"
+led evidence live-exercise block --detail "hidden 탭 — 관찰 못 함"; R1=$RC; proof_in "$RUNS2"; led evidence live-exercise pass --detail "재관찰" --artifact "$PROOF"
 if [ "$R1" -eq 0 ] && [ "$RC" -eq 0 ]; then pass; else fail "block rc=$R1 pass rc=$RC"; fi
 case_start "evidence 잘못된 status → exit 2"
 led evidence typecheck maybe; if [ "$RC" -eq 2 ]; then pass; else fail "rc=$RC"; fi
@@ -279,7 +308,7 @@ led close "done"; if [ ! -f "$RUNS2/current" ] && jq -e '.endedAt != null and .r
 case_start "artifact 없는 옛 live-exercise pass 행 → has-live exit 1 (재검증)"
 RUNS5="$TMP/runs5"; mkdir -p "$RUNS5"
 AGENT_RUNS_DIR="$RUNS5" bash "$LEDGER" start --understood-as "legacy pass" >/dev/null 2>&1
-AGENT_RUNS_DIR="$RUNS5" bash "$LEDGER" evidence live-exercise pass --detail "x" --artifact "$PROOF" >/dev/null 2>&1
+proof_in "$RUNS5"; AGENT_RUNS_DIR="$RUNS5" bash "$LEDGER" evidence live-exercise pass --detail "x" --artifact "$PROOF" >/dev/null 2>&1
 L5="$RUNS5/$(cat "$RUNS5/current")/evidence.jsonl"; jq -c '.artifact = null' "$L5" > "$L5.tmp" && mv "$L5.tmp" "$L5"
 AGENT_RUNS_DIR="$RUNS5" bash "$LEDGER" has-live >/dev/null 2>&1; if [ "$?" -ne 0 ]; then pass; else fail "artifact 없는 pass 를 받음"; fi
 
@@ -304,7 +333,7 @@ case_start "close (block 미해결) → 거부 exit 3"
 wk close "x"; if [ "$RC" -eq 3 ] && printf '%s' "$OUT" | grep -q 'close 거부'; then pass; else fail "rc=$RC"; fi
 case_start "evidence cross-check pass + live-exercise pass → verify 통과 exit 0"
 AGENT_RUNS_DIR="$RUNS3" bash "$LEDGER" evidence cross-check pass --detail selftest --files apps/builder/src/builder/factories/x.ts,apps/builder/src/builder/workspace/canvas/skia/y.ts >/dev/null 2>&1
-AGENT_RUNS_DIR="$RUNS3" bash "$LEDGER" evidence live-exercise pass --detail selftest --artifact "$PROOF" --files apps/builder/src/builder/factories/x.ts,apps/builder/src/builder/workspace/canvas/skia/y.ts >/dev/null 2>&1
+proof_in "$RUNS3"; AGENT_RUNS_DIR="$RUNS3" bash "$LEDGER" evidence live-exercise pass --detail selftest --artifact "$PROOF" --files apps/builder/src/builder/factories/x.ts,apps/builder/src/builder/workspace/canvas/skia/y.ts >/dev/null 2>&1
 wk verify --skip-exec --files apps/builder/src/builder/factories/x.ts,apps/builder/src/builder/workspace/canvas/skia/y.ts; if [ "$RC" -eq 0 ]; then pass; else fail "rc=$RC"; fi
 case_start "--no-live → 사람 단계 skip"
 wk verify --skip-exec --no-live --files apps/builder/src/builder/factories/x.ts; if [ "$RC" -eq 0 ] && printf '%s' "$OUT" | grep -q 'live-exercise  skip   --no-live'; then pass; else fail "rc=$RC"; fi
@@ -333,6 +362,25 @@ if printf '%s' "$OUT" | grep -q 'live-exercise$'; then pass; else fail "open blo
 case_start "--json → 5 키 객체"
 dsh --json; if [ "$RC" -eq 0 ] && [ "$(printf '%s' "$OUT" | jq 'keys | length' 2>/dev/null)" = 5 ] && [ "$(printf '%s' "$OUT" | jq '.catalogDrift.warn')" = 2 ]; then pass; else fail "rc=$RC"; fi
 AGENT_RUNS_DIR="$RUNS4" bash "$LEDGER" close >/dev/null 2>&1
+
+# ---------- chrome-screenshot-save.sh (PreToolUse) ----------
+printf '\n== chrome-screenshot-save.sh ==\n'
+SHOT='{"tool_name":"mcp__claude-in-chrome__computer","tool_input":{"action":"screenshot","tabId":7,"scale":0.5}}'
+case_start "screenshot → updatedInput 에 save_to_disk true (다른 입력 보존)"
+run_hook chrome-screenshot-save.sh "$SHOT"
+if printf '%s' "$OUT" | jq -e '.hookSpecificOutput.hookEventName == "PreToolUse" and .hookSpecificOutput.updatedInput == {"action":"screenshot","tabId":7,"scale":0.5,"save_to_disk":true}' >/dev/null 2>&1; then pass; else fail "rc=$RC out=$OUT"; fi
+case_start "zoom → save_to_disk true"
+run_hook chrome-screenshot-save.sh '{"tool_name":"mcp__claude-in-chrome__computer","tool_input":{"action":"zoom","tabId":7,"region":[0,0,10,10]}}'
+if printf '%s' "$OUT" | jq -e '.hookSpecificOutput.updatedInput.save_to_disk == true and .hookSpecificOutput.updatedInput.region == [0,0,10,10]' >/dev/null 2>&1; then pass; else fail "rc=$RC out=$OUT"; fi
+case_start "left_click → 입력을 건드리지 않음 (빈 출력)"
+run_hook chrome-screenshot-save.sh '{"tool_name":"mcp__claude-in-chrome__computer","tool_input":{"action":"left_click","tabId":7,"coordinate":[1,2]}}'; assert_allow
+case_start "이미 save_to_disk true → 빈 출력"
+run_hook chrome-screenshot-save.sh '{"tool_name":"mcp__claude-in-chrome__computer","tool_input":{"action":"screenshot","tabId":7,"save_to_disk":true}}'; assert_allow
+case_start "browser_batch → 그 안의 screenshot · zoom 항목만 바꿈"
+run_hook chrome-screenshot-save.sh '{"tool_name":"mcp__claude-in-chrome__browser_batch","tool_input":{"actions":[{"name":"navigate","input":{"url":"http://localhost:5174","tabId":7}},{"name":"computer","input":{"action":"left_click","tabId":7,"coordinate":[1,2]}},{"name":"computer","input":{"action":"screenshot","tabId":7}}]}}'
+if printf '%s' "$OUT" | jq -e '.hookSpecificOutput.updatedInput.actions as $a | ($a | length) == 3 and ($a[0].input | has("save_to_disk") | not) and ($a[1].input | has("save_to_disk") | not) and $a[2].input.save_to_disk == true' >/dev/null 2>&1; then pass; else fail "rc=$RC out=$OUT"; fi
+case_start "browser_batch 에 screenshot 없음 → 빈 출력"
+run_hook chrome-screenshot-save.sh '{"tool_name":"mcp__claude-in-chrome__browser_batch","tool_input":{"actions":[{"name":"navigate","input":{"url":"http://localhost:5174","tabId":7}}]}}'; assert_allow
 
 # ---------- auto-format.sh (PostToolUse) ----------
 printf '\n== auto-format.sh ==\n'

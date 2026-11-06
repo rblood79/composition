@@ -34,8 +34,9 @@ typecheck·registration·catalog·engine(cargo test) 검사만 실행합니다.
 
 ADR의 여러 Phase를 진행하거나 인수인계 근거가 필요하면
 `pnpm run agent:run -- start --understood-as "<범위>"`로 run을 열고,
-실측을 `pnpm run agent:run -- evidence live-exercise pass --detail "<시나리오·결과>" --artifact <증거 파일>`
-형식으로 기록합니다. `report`와 `close`는 기록된 근거를 사용합니다.
+실측을 `pnpm run agent:run -- evidence live-exercise pass --detail "<시나리오·결과>" --artifact artifacts/<증거 파일>`
+형식으로 기록합니다. 증거 파일은 run 폴더 `artifacts/` 안에 두고, 같은 파일은 pass 한 번에만 씁니다
+(Claude 세션은 그 파일을 Read 한 기록까지 요구합니다 — Codex 는 해당 없음). `report`와 `close`는 기록된 근거를 사용합니다.
 단순 편집에 별도 run을 만들 필요는 없습니다.
 
 현재 인수인계는 `.agent/task-state.json`, 월별 보관은 `.agent/archives/`,
