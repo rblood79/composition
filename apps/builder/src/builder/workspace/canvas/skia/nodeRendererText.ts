@@ -6,6 +6,7 @@ import type {
   Paint,
   EmbindEnumEntity,
 } from "canvaskit-wasm";
+import { spectrumFontVariations } from "@composition/rendering";
 import {
   resolveFontVariantFeatures,
   resolveFontStretchWidth,
@@ -234,7 +235,10 @@ export function renderText(
   // sizes), as the layout measure does (`catalogTextMeasure` — the same runs, the same paragraph).
   const richRuns = node.text.runs?.length ? node.text.runs : undefined;
   const richText =
-    richRuns && wordBreak === "break-all" && layoutMaxWidth < 100000 && !isEllipsis
+    richRuns &&
+    wordBreak === "break-all" &&
+    layoutMaxWidth < 100000 &&
+    !isEllipsis
       ? Array.from(processedText).join("\u200B")
       : processedText;
   const alignedRuns = richRuns
@@ -462,8 +466,7 @@ export function renderText(
     );
     const lines = paragraph.getLineMetrics();
     if (lines.length === 0) return;
-    const color =
-      text.decorationColor ?? text.presentationColor ?? text.color;
+    const color = text.decorationColor ?? text.presentationColor ?? text.color;
     const style = text.decorationStyle ?? "solid";
     const dpr =
       typeof globalThis.devicePixelRatio === "number"
@@ -626,6 +629,7 @@ export function renderText(
     const paraStyle = new ck.ParagraphStyle({
       textStyle: {
         fontFamilies: resolvedFamilies,
+        locale: node.text!.locale,
         fontSize: node.text.fontSize,
         fontStyle: { weight: fontWeight, slant: fontSlant, width: fontWidth },
         color: node.text.color,
@@ -758,6 +762,7 @@ export function renderText(
     const runTextStyle = (fontSize: number, run?: SkiaTextRun) =>
       new ck.TextStyle({
         fontFamilies: resolvedFamilies,
+        locale: node.text!.locale,
         fontSize,
         fontStyle: {
           weight:
@@ -779,9 +784,12 @@ export function renderText(
         ...(fontFeatureTags.length > 0
           ? { fontFeatures: fontFeatureTags }
           : {}),
-        fontVariations: [
-          { axis: "wght", value: run?.fontWeight ?? node.text!.fontWeight ?? 400 },
-        ],
+        fontVariations: spectrumFontVariations(
+          resolvedFamilies,
+          run?.fontWeight ?? node.text!.fontWeight ?? 400,
+          [50, 62.5, 75, 87.5, 100, 112.5, 125, 150, 200][fontWidthIndex - 1] ??
+            100,
+        ),
       });
     builder.pushStyle(runTextStyle(node.text.fontSize));
     if (alignedRuns) {
@@ -805,7 +813,9 @@ export function renderText(
       let at = 0;
       for (const run of alignedRuns) {
         if (run.start > at) addPart(renderableText.slice(at, run.start));
-        builder.pushStyle(runTextStyle(run.fontSize ?? node.text.fontSize, run));
+        builder.pushStyle(
+          runTextStyle(run.fontSize ?? node.text.fontSize, run),
+        );
         addPart(renderableText.slice(run.start, run.end), run);
         builder.pop();
         at = run.end;
@@ -1092,5 +1102,3 @@ function drawDecorationLine(
   paint.setPathEffect(null);
   effect?.delete();
 }
-
-

@@ -22,6 +22,14 @@
   --icon-size: var(--catalog-token-combo-box-icon-size-M, var(--catalog-token-size-icon-M));
 }
 
+.react-aria-ComboBox {
+  color: var(--fg-muted);
+}
+
+.react-aria-ComboBox:where([data-disabled]) {
+  color: var(--fg-disabled);
+}
+
 .react-aria-ComboBox[data-size="XS"] {
   font-size: var(--catalog-token-text-2xs);
   border-radius: var(--catalog-token-radius-xs);
@@ -57,15 +65,13 @@
   --icon-size: var(--catalog-token-combo-box-icon-size-XL, var(--catalog-token-size-icon-XL));
 }
 
-.react-aria-ComboBox.react-aria-ComboBox:where([data-focus-visible]) {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
+.react-aria-ComboBox.react-aria-ComboBox {
+  color: var(--fg-muted);
 }
 
 .react-aria-ComboBox.react-aria-ComboBox:where([data-disabled]) {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
+  color: var(--fg-disabled);
+  cursor: default;
 }
 
 /* ── Tier 2: Composite Delegation ── */
@@ -195,7 +201,7 @@
 
 
   .react-aria-ComboBox :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
-    color: var(--fg-muted);
+    color: var(--field-placeholder);
     flex-shrink: 0;
   }
 

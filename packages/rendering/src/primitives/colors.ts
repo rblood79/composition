@@ -28,6 +28,17 @@ const LIGHT_STATE = resolveSemanticStateColors("light");
 const DARK_STATE = resolveSemanticStateColors("dark");
 
 export const lightColors: ColorTokens = {
+  // S2 1.8.2 Button fill: light 900/1000, dark 700/600.
+  "selection-accent": "#3b63fb",
+  "selection-accent-hover": "#274dea",
+  "selection-negative": "#d73220",
+  "selection-negative-hover": "#b72818",
+  "accent-fill": "#3b63fb",
+  "focus-ring": "#4b75ff",
+  "accent-fill-hover": "#274dea",
+  "negative-fill": "#d73220",
+  "negative-fill-hover": "#b72818",
+
   // --- Status + Named hue 의 hover · pressed — DOM color-mix 와 같은 식 (손 값이 아래에서 이긴다) ---
   ...LIGHT_STATE,
   // --- Accent (기존 primary → --highlight-background) ---
@@ -41,15 +52,27 @@ export const lightColors: ColorTokens = {
   "accent-content-hover": TAILWIND_PALETTE.blue[800],
 
   // --- Neutral ---
+  // S2 1.8.2: 내용 · 진한 바탕 · 옅은 바탕 · 테두리 역할은 독립적으로 편집한다.
+  "neutral-content": "#292929",
+  "neutral-content-hover": "#131313",
+  "neutral-fill": "#292929",
+  "neutral-surface": "#e9e9e9",
+  "neutral-surface-hover": "#e1e1e1",
+  "neutral-outline": "#dadada",
+  "neutral-outline-hover": "#c6c6c6",
+  "on-neutral": "#ffffff",
+
   neutral: TAILWIND_PALETTE.neutral[900], // neutral-900 (기존 on-surface)
-  // S2 neutral-subdued (label · 보조 텍스트 — 본문과 구분) light #505050 에 가장 가까운 단계 (사용자 결정 2026-09-29, 종전 700)
-  "neutral-subdued": TAILWIND_PALETTE.neutral[600], // neutral-600
+  // S2 1.8.2 neutral-subdued-content-color-default (FieldLabel).
+  "neutral-subdued": "#505050",
+  // S2 1.8.2 Field input placeholder and prefix (gray-600).
+  "field-placeholder": "#717171",
   "neutral-subtle": TAILWIND_PALETTE.neutral[200], // neutral-200 (기존 surface-container-highest)
   "neutral-hover": TAILWIND_PALETTE.neutral[300], // Tone 단계 (neutralToSkiaColors LIGHT_MAP)
   "neutral-pressed": TAILWIND_PALETTE.neutral[400],
   // 진한 바탕 neutral 의 hover · pressed — S2 한 단 (ADR-293 결정 4)
-  "neutral-fill-hover": TAILWIND_PALETTE.neutral[950],
-  "neutral-fill-pressed": TAILWIND_PALETTE.neutral[950],
+  "neutral-fill-hover": "#131313",
+  "neutral-fill-pressed": "#131313",
 
   // --- Negative hover/pressed — status 와 같은 검정 85 · 75 % 혼합 (ADR-293 결정 2, 종전 손값 #cb3a3a · #b33333) ---
   "negative-hover": LIGHT_STATE["negative-hover"]!,
@@ -77,15 +100,16 @@ export const lightColors: ColorTokens = {
   "picker-checkbox-base": "#ffffff",
   base: "#ffffff",
   raised: TAILWIND_PALETTE.gray[50], // --bg-raised = --color-gray-50 (popover/dropdown/collection 컨테이너)
-  "layer-1": TAILWIND_PALETTE.zinc[50], // neutral-50
-  "layer-2": TAILWIND_PALETTE.zinc[50], // neutral-50
+  "layer-1": "#f8f8f8", // S2 1.8.2 background-layer-1-color
+  "layer-2": "#ffffff", // S2 background-layer-2-color
   elevated: "#ffffff",
-  disabled: TAILWIND_PALETTE.neutral[200], // neutral-200
+  disabled: "#e9e9e9", // S2 disabled-background-color
+  "disabled-content": "#c6c6c6", // S2 disabled-content-color
 
   // --- Border ---
   border: TAILWIND_PALETTE.neutral[300], // neutral-300
   "border-hover": TAILWIND_PALETTE.neutral[400], // neutral-400
-  "border-disabled": TAILWIND_PALETTE.neutral[100], // neutral-100
+  "border-disabled": "#dadada", // S2 disabled-border-color
 
   // --- Special ---
   transparent: "transparent",
@@ -98,6 +122,17 @@ export const lightColors: ColorTokens = {
  * 시맨틱 토큰 dark mode fallback 값 기준
  */
 export const darkColors: ColorTokens = {
+  // S2 1.8.2 Button fill: light 900/1000, dark 700/600.
+  "selection-accent": "#5681ff",
+  "selection-accent-hover": "#6995fe",
+  "selection-negative": "#fc432e",
+  "selection-negative-hover": "#ff6756",
+  "accent-fill": "#345bf8",
+  "focus-ring": "#4069fd",
+  "accent-fill-hover": "#2549e5",
+  "negative-fill": "#cd2e1d",
+  "negative-fill-hover": "#b12617",
+
   // --- Status + Named hue 의 hover · pressed — DOM color-mix 와 같은 식 (손 값이 아래에서 이긴다) ---
   ...DARK_STATE,
   // --- Accent ---
@@ -110,13 +145,24 @@ export const darkColors: ColorTokens = {
   "accent-content-hover": TAILWIND_PALETTE.blue[300],
 
   // --- Neutral ---
+  // S2 1.8.2: 내용 · 진한 바탕 · 옅은 바탕 · 테두리 역할은 독립적으로 편집한다.
+  "neutral-content": "#dbdbdb",
+  "neutral-content-hover": "#f2f2f2",
+  "neutral-fill": "#dbdbdb",
+  "neutral-surface": "#2c2c2c",
+  "neutral-surface-hover": "#323232",
+  "neutral-outline": "#393939",
+  "neutral-outline-hover": "#444444",
+  "on-neutral": "#111111",
+
   neutral: TAILWIND_PALETTE.neutral[100], // neutral-100 (dark mode에서 밝은 텍스트)
-  "neutral-subdued": TAILWIND_PALETTE.neutral[400], // neutral-400
+  "neutral-subdued": "#afafaf",
+  "field-placeholder": "#8a8a8a",
   "neutral-subtle": TAILWIND_PALETTE.neutral[700], // neutral-700
   "neutral-hover": TAILWIND_PALETTE.neutral[600], // Tone 단계 (neutralToSkiaColors DARK_MAP)
   "neutral-pressed": TAILWIND_PALETTE.neutral[500],
-  "neutral-fill-hover": TAILWIND_PALETTE.neutral[50],
-  "neutral-fill-pressed": TAILWIND_PALETTE.neutral[50],
+  "neutral-fill-hover": "#f2f2f2",
+  "neutral-fill-pressed": "#f2f2f2",
 
   // --- Negative hover/pressed — 검정 85 · 75 % 혼합 (ADR-293 결정 2) ---
   "negative-hover": DARK_STATE["negative-hover"]!,
@@ -140,17 +186,18 @@ export const darkColors: ColorTokens = {
   "picker-content-hover": "#f2f2f2",
   "picker-content-disabled": "#444444",
   "picker-checkbox-base": "#111111",
-  base: TAILWIND_PALETTE.neutral[900], // neutral-900
+  base: "#111111", // S2 background-base-color
   raised: "#202023", // custom zinc-850 (Tailwind 에 없는 단계 — shared-tokens.css 유지) // --bg-raised = --color-zinc-850 (popover/dropdown/collection 컨테이너)
-  "layer-1": TAILWIND_PALETTE.neutral[800], // neutral-800
-  "layer-2": TAILWIND_PALETTE.neutral[800], // neutral-800
-  elevated: TAILWIND_PALETTE.neutral[800],
-  disabled: TAILWIND_PALETTE.neutral[700], // neutral-700
+  "layer-1": "#1b1b1b", // S2 background-layer-1-color
+  "layer-2": "#222222", // S2 background-layer-2-color
+  elevated: "#222222", // S2 background-elevated-color
+  disabled: "#2c2c2c", // S2 disabled-background-color
+  "disabled-content": "#444444", // S2 disabled-content-color
 
   // --- Border ---
   border: TAILWIND_PALETTE.neutral[700], // neutral-700
   "border-hover": TAILWIND_PALETTE.neutral[500], // neutral-500
-  "border-disabled": TAILWIND_PALETTE.neutral[800], // neutral-800
+  "border-disabled": "#393939", // S2 disabled-border-color
 
   // --- Special ---
   transparent: "transparent",

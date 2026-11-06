@@ -297,7 +297,7 @@ describe("S2 toast — view transitions · the expanded list takes over the scre
   it("reduced motion: the transition carries it; a sliver's name takes its index (a cross fade)", async () => {
     const matchMedia = window.matchMedia;
     window.matchMedia = ((query: string) => ({
-      matches: query === "(prefers-reduced-motion)",
+      matches: query === "(prefers-reduced-motion: reduce)",
       media: query,
       addEventListener: () => {},
       removeEventListener: () => {},

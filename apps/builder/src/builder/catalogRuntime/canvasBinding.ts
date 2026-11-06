@@ -263,7 +263,11 @@ function box(node: CatalogConsumerNode, rect: Rect): SkiaNodeData {
       borderRadius: radius,
       ...(node.visual.borderColor !== undefined
         ? {
-            strokeColor: rgba(node.visual.borderColor),
+            strokeColor: rgba(
+              node.visual.borderColor === "currentColor"
+                ? catalogTextMetrics(node, undefined).color
+                : node.visual.borderColor,
+            ),
             strokeWidth,
             strokeStyle: borderStyle as "solid" | "dashed" | "dotted",
           }
@@ -420,7 +424,11 @@ const glyph: Binding = (node, rect) => {
       node.props.iconName ??
       (node.bindingId === "illustration" ? "image" : "circle"),
   );
-  const data = getIconData(name);
+  const data = getIconData(
+    name,
+    "lucide",
+    String(node.derivedProps?._iconVariant ?? node.props.size ?? "M"),
+  );
   if (!data)
     throw new Error(`CATALOG_CANVAS_GLYPH_REQUIRED:${node.id}:${name}`);
   const size = catalogGlyphSize(node) ?? Math.min(rect.width, rect.height);
@@ -473,6 +481,8 @@ const glyph: Binding = (node, rect) => {
     iconPath: {
       paths: data.paths,
       circles: data.circles,
+      viewBoxSize: data.viewBoxSize,
+      filled: data.filled,
       cx,
       cy,
       size,
@@ -657,6 +667,7 @@ const bindings: Readonly<Record<string, Binding>> = {
           metrics.textTransform,
         ),
         fontFamilies: catalogFontFamilies(metrics.fontFamily),
+        locale: metrics.locale,
         fontSize,
         ...(metrics.fontStyle === "italic"
           ? { fontStyle: 1 }
@@ -751,7 +762,9 @@ const bindings: Readonly<Record<string, Binding>> = {
   calendarheading: (node, rect, parent, wraps) =>
     bindings.text(node, rect, parent, wraps),
   label: (node, rect, parent, wraps, suffix) =>
-    bindings.text(node, rect, parent, wraps, suffix),
+    node.derivedProps?._fieldComposed === true
+      ? container(node, rect)
+      : bindings.text(node, rect, parent, wraps, suffix),
   description: (node, rect, parent, wraps) =>
     bindings.text(node, rect, parent, wraps),
   paragraph: (node, rect, parent, wraps) =>

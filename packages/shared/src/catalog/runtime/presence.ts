@@ -1,6 +1,8 @@
+import { necessityLabel } from "./necessityLabels";
 import {
   catalogPickerOfOption,
   catalogPickerOptions,
+  catalogComboBoxSelectedOption,
   catalogPickerSelectionItem,
   catalogPickerSelectionHidden,
 } from "./pickerSelection";
@@ -18,12 +20,14 @@ import {
 import {
   getIconData,
   resolveToken,
+  resolveTextSourceText,
   S2_TOAST_EDGE,
   type TokenRef,
 } from "@composition/rendering";
 import { catalogToastIcon } from "../document/toastChrome";
 import { catalogButtonPending } from "../document/buttonPending";
 import { NumberFormatter } from "@internationalized/number";
+import { parseColor } from "react-stately";
 import { isRTL } from "@react-aria/i18n";
 import { catalogNumberFormatOptions } from "../document/numberFormatValue";
 import {
@@ -36,7 +40,6 @@ import {
 } from "./tableTracks";
 import { isDisclosureExpandedInContext } from "../../utils/accordionExpansion";
 import { resolveStaticItemKey } from "../slotRoles";
-import { getNecessityIndicatorSuffix } from "../../components/FieldNecessityIndicator";
 import {
   catalogItemStartsSelected,
   COLLECTION_ITEM_OWNERS,
@@ -288,8 +291,31 @@ export function catalogToggleButtonGlyphOwner(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
-  if (node.bindingId !== "icon" && node.bindingId !== "text") return undefined;
+  if (!["icon", "text", "label"].includes(node.bindingId ?? ""))
+    return undefined;
   const parent = catalogPartParent(node, get, typeOf);
+  if (
+    node.bindingId === "label" &&
+    parent &&
+    [
+      "CheckboxGroup",
+      "RadioGroup",
+      "TextField",
+      "TextArea",
+      "SearchField",
+      "NumberField",
+      "ColorField",
+      "ComboBox",
+    ].includes(typeOf(parent))
+  )
+    return parent;
+  if (
+    node.bindingId === "label" &&
+    parent &&
+    ["CheckboxButton", "RadioButton", "SwitchButton"].includes(typeOf(parent))
+  ) {
+    return catalogPartParent(parent, get, typeOf);
+  }
   return parent && ["ToggleButton", "ActionButton"].includes(typeOf(parent))
     ? parent
     : undefined;
@@ -732,9 +758,11 @@ export function catalogFieldHintShown(
       : undefined;
   if (!FIELD_HINT_OWNERS.has(fieldType)) return undefined;
   if (type === "Description")
-    return NODE_TREE_FIELDS.has(fieldType)
-      ? undefined
-      : !!String(field.props.description ?? "");
+    return field.props.isInvalid === true
+      ? false
+      : NODE_TREE_FIELDS.has(fieldType)
+        ? undefined
+        : !!String(field.props.description ?? "");
   if (type === "FieldError")
     return (
       field.props.isInvalid === true && !!String(field.props.errorMessage ?? "")
@@ -753,7 +781,11 @@ export function catalogAbsentByOwnerValue(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): boolean {
-  if (catalogAbsentByValue(node)) return true;
+  if (
+    catalogAbsentByValue(node) ||
+    catalogFieldLabelPartsHidden(node, get, typeOf)
+  )
+    return true;
   if (catalogPickerSelectionHidden(node, get, typeOf)) return true;
   const type = typeOf(node);
   if (type !== "Description" && type !== "FieldError") return false;
@@ -829,7 +861,11 @@ export function catalogHiddenAtRest(
     !getIconData(String(node.props.iconName))
   )
     return true;
-  if (catalogAbsentByValue(node)) return true;
+  if (
+    catalogAbsentByValue(node) ||
+    catalogFieldLabelPartsHidden(node, get, typeOf)
+  )
+    return true;
   // 닫힌 overlay의 화살표만 숨긴다. 열린 portal에서는 부모 배치가 좌표를 제공한다.
   if (node.bindingId === "overlayarrow") {
     const parent = get(node.parentId);
@@ -891,7 +927,7 @@ export function catalogHiddenAtRest(
     hintField && catalogFieldHintShown(type, hintField, typeOf(hintField));
   if (hint !== undefined) return !hint;
   const field = catalogSearchFieldOfClear(node, get, typeOf);
-  if (field) return !field.props.value;
+  if (field) return !field.props.value || field.props.isReadOnly === true;
   // ADR-300: a closed item's child items · a collapsed panel's row text · chevrons · headers.
   if (catalogSideNavHidden(node, get, typeOf)) return true;
   if (type === "TreeItem" && parentType === "TreeItem")
@@ -942,18 +978,25 @@ function catalogFieldOfInput(
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
   if (typeOf(node) !== "Input") return;
-  const parent = catalogPartParent(node, get, typeOf);
-  if (parent && typeOf(parent) === "SearchField") return parent;
-  if (!catalogIsFieldControlGroup(parent, get, typeOf)) return;
-  const field = catalogPartParent(parent!, get, typeOf);
-  return field && typeOf(field) === "NumberField" ? field : undefined;
+  const field = triggerOwner(node, get, typeOf);
+  return field && TEXT_INPUT_FIELDS.has(typeOf(field)) ? field : undefined;
 }
+
+const TEXT_INPUT_FIELDS = new Set([
+  "TextField",
+  "TextArea",
+  "SearchField",
+  "NumberField",
+  "ColorField",
+  "ComboBox",
+]);
 
 /**
  * SearchField's clear button (the Button instance among its own children — ADR-256 G5 example 5):
  * RAC marks the field `data-empty` while its value (`value`, the renderer's `defaultValue`) is
- * empty and the stylesheet hides the button (`[data-empty="true"] .react-aria-Button { display:
- * none }`). Returns the owning field for that node.
+ * empty. S2 also omits the button while read-only. The field's generated stylesheet consumes
+ * RAC's `data-empty` / `data-readonly` for live DOM state; Canvas uses the same authored states.
+ * Returns the owning field for that node.
  */
 function catalogSearchFieldOfClear(
   node: CatalogConsumerNode,
@@ -1889,6 +1932,29 @@ function fieldSubpartProps(
   locale?: string,
 ): Record<string, string | number | boolean> | undefined {
   const type = typeOf(node);
+  if (type === "Button" || type === "Icon") {
+    const parent = catalogPartParent(node, get, typeOf);
+    const field =
+      type === "Icon" && parent && typeOf(parent) === "Button"
+        ? catalogPartParent(parent, get, typeOf)
+        : undefined;
+    if (field && typeOf(field) === "SearchField")
+      return { _iconVariant: String(field.props.size ?? "M") };
+    if (parent && typeOf(parent) === "SearchField")
+      return {
+        _searchFieldPart: true,
+        isDisabled:
+          node.props.isDisabled === true || parent.props.isDisabled === true,
+      };
+  }
+  if (type === "Description" || type === "FieldError") {
+    const field = triggerOwner(node, get, typeOf);
+    if (field && FIELD_HINT_OWNERS.has(typeOf(field)))
+      return {
+        isDisabled:
+          node.props.isDisabled === true || field.props.isDisabled === true,
+      };
+  }
   if (type !== "DateInput") return undefined;
   const wrapper = catalogPartParent(node, get, typeOf);
   const owner = triggerOwner(node, get, typeOf);
@@ -1928,7 +1994,22 @@ export function catalogDerivedProps(
   // (ADR-300 user decision 1: the shown page's route — a SideNav without `selectedRoute` marks it.)
   shownRoute?: CatalogSideNavShownRoute,
 ): Readonly<Record<string, string | number | boolean>> | undefined {
-  const control = ownDerivedProps(node, get, typeOf, locale);
+  const ownControl = ownDerivedProps(node, get, typeOf, locale);
+  const toggleGroup = ["Radio", "Checkbox"].includes(typeOf(node))
+    ? catalogItemGroup(node, get, typeOf)
+    : undefined;
+  // RAC 그룹 context의 상태를 Canvas 소비자에도 전달한다. 이전 derived 값은
+  // 다시 읽지 않아 그룹 상태를 해제할 때 disabled/invalid가 남지 않게 한다.
+  const control = toggleGroup
+    ? {
+        ...ownControl,
+        isDisabled:
+          node.props.isDisabled === true ||
+          toggleGroup.props.isDisabled === true,
+        isInvalid:
+          node.props.isInvalid === true || toggleGroup.props.isInvalid === true,
+      }
+    : ownControl;
   // The box of a quiet field shows its own quiet state (`fieldBoxOfQuietField`); a box the field's
   // own rule styles names that field (`_quietOwner` — `catalogQuietStyles`).
   const quietField =
@@ -1949,10 +2030,20 @@ export function catalogDerivedProps(
         _fieldDisabled: quiet.props.isDisabled === true,
         _fieldInvalid: quiet.props.isInvalid === true,
       }
-    : invalidField?.props.isInvalid === true
-      ? { ...control, _fieldInvalid: true }
+    : invalidField
+      ? {
+          ...control,
+          isInvalid:
+            node.props.isInvalid === true ||
+            invalidField.props.isInvalid === true,
+          _fieldInvalid: invalidField.props.isInvalid === true,
+          _fieldDisabled: invalidField.props.isDisabled === true,
+        }
       : control;
-  const selected = catalogCollectionItemSelected(node, get, typeOf);
+  const selected =
+    typeOf(node) === "Radio" && catalogItemGroup(node, get, typeOf)
+      ? catalogStateValue(node, "isSelected", get, typeOf)
+      : catalogCollectionItemSelected(node, get, typeOf);
   // (S2 TagGroup `isEmphasized`: its selected Tags paint the accent pair — `rulePaint.ts`.)
   const emphasized =
     selected !== undefined && catalogTagOfEmphasizedGroup(node, get, typeOf);
@@ -2399,7 +2490,20 @@ function ownDerivedProps(
   typeOf: CatalogTypeOf,
   locale?: string,
 ): Readonly<Record<string, string | number | boolean>> | undefined {
-  const own = ownDerivedPropsBase(node, get, typeOf, locale);
+  const base = ownDerivedPropsBase(node, get, typeOf, locale);
+  const field = catalogComposedFieldLabel(node, get, typeOf)
+    ? catalogPartParent(node, get, typeOf)
+    : undefined;
+  const own = field
+    ? {
+        ...base,
+        _fieldComposed: true,
+        _necessityText: necessityLabel(
+          field.props.isRequired === true,
+          typeof field.props.locale === "string" ? field.props.locale : locale,
+        ),
+      }
+    : base;
   // S2 Button `isPending`: the button's children (its icon · text nodes) stay laid out but are not
   // shown (`buttonPending.ts` — the DOM wraps them in `visibility: hidden`, the Canvas registers
   // them unpainted).
@@ -2415,6 +2519,40 @@ function ownDerivedPropsBase(
   typeOf: CatalogTypeOf,
   locale?: string,
 ): Readonly<Record<string, string | number | boolean>> | undefined {
+  const labelPart = catalogFieldLabelPart(node, get, typeOf);
+  if (labelPart) {
+    const { role, label, field, mode, required, include } = labelPart;
+    const ownText = resolveTextSourceText("Text", node.props);
+    const text = necessityLabel(
+      required,
+      typeof field.props.locale === "string" ? field.props.locale : locale,
+    );
+    const body =
+      ownText === "{fieldLabel}" ||
+      node.valueTemplate?.props?.children === "{fieldLabel}"
+        ? String(label.props.children ?? "")
+        : ownText;
+    return {
+      _fieldLabelRole: String(role),
+      _fieldLabelInclude: include,
+      _fieldLabelRequired: required,
+      _fieldLabelAria: text,
+      ...(role === "label-content" ? { children: body } : {}),
+      ...(role === "necessity-space" ? { _decorative: true } : {}),
+      ...(role === "necessity-label" &&
+      (ownText === "{necessityLabel}" ||
+        node.valueTemplate?.props?.children === "{necessityLabel}")
+        ? { children: text }
+        : {}),
+      ...(role === "necessity-icon"
+        ? {
+            _iconVariant: String(
+              field.props.size === "S" ? "M" : (field.props.size ?? "M"),
+            ),
+          }
+        : {}),
+    };
+  }
   // ADR-256 Phase 8a: an overlay arrow's svg is its overlay's (the reference starter's — Tooltip 8,
   // Popover 12); the DOM binding draws it at that size.
   if (node.bindingId === "overlayarrow") {
@@ -2469,24 +2607,44 @@ function ownDerivedPropsBase(
       derived.thumbStyle = "precise";
     return Object.keys(derived).length ? derived : undefined;
   }
-  // A SearchField's · NumberField's `value` is its input's initial value (the renderer's
-  // `defaultValue`): the Canvas draws it in the Input's text, where the DOM input shows it over
-  // the placeholder.
+  // RAC owns the DOM value. Canvas reads the same resting text and distinguishes it from
+  // the placeholder, whose color is independent of hover/disabled input text.
   const valueField = catalogFieldOfInput(node, get, typeOf);
-  // (A NumberField's input shows RAC's text — snapped, in the locale's format.)
-  if (valueField && typeOf(valueField) === "NumberField") {
-    const text = catalogNumberFieldText(valueField, locale);
-    return text ? { placeholder: text } : undefined;
+  if (valueField) {
+    const fieldType = typeOf(valueField);
+    let text = String(
+      valueField.props.value ?? valueField.props.defaultValue ?? "",
+    );
+    if (fieldType === "NumberField")
+      text = catalogNumberFieldText(valueField, locale);
+    if (fieldType === "ColorField" && text) {
+      try {
+        text = parseColor(text).toString("hex");
+      } catch {
+        text = "";
+      }
+    }
+    if (fieldType === "ComboBox") {
+      const selected = catalogComboBoxSelectedOption(valueField, get, typeOf);
+      text = String(
+        valueField.props.inputValue ??
+          valueField.props.defaultInputValue ??
+          (selected
+            ? childrenOf(selected, get)
+                .filter((child) => child.props.slot === "label")
+                .map((child) => String(child.props.children ?? ""))
+                .join("") ||
+              selected.props.textValue ||
+              ""
+            : ""),
+      );
+    }
+    if (valueField.props.type === "password")
+      text = "•".repeat([...text].length);
+    return text
+      ? { placeholder: text, _inputHasValue: true }
+      : { _inputHasValue: false };
   }
-  const searchValue = valueField?.props.value;
-  // (A password SearchField's input masks it — S2 `type`: the same count of bullets.)
-  if (typeof searchValue === "string" && searchValue !== "")
-    return {
-      placeholder:
-        valueField?.props.type === "password"
-          ? "•".repeat([...searchValue].length)
-          : searchValue,
-    };
   // ADR-256 Phase 5h: an expanded item's chevron glyph turns (`Tree.css` `[data-expanded]
   // .react-aria-Button[slot=chevron] svg { rotate: 90deg }`) — the Canvas draws the turned glyph
   // (`chevron-right` 90° = `chevron-down`), as the item rule's `leading_icon` does.
@@ -2510,22 +2668,26 @@ function ownDerivedPropsBase(
         ? { iconName: "chevron-down" }
         : undefined;
   }
-  if (typeOf(node) === "ActionButton") {
+  if (typeOf(node) === "ActionButton" || typeOf(node) === "ToggleButton") {
     const visible = childrenOf(node, get).filter((child) => !child.hidden);
     const iconOnly =
       visible.length > 0 &&
       visible.every((child) => typeOf(child) === "Icon") &&
       !node.props.children;
     const derived: Record<string, string | boolean> = {
-      _actionIconOnly: iconOnly,
+      _actionIconOnly: typeOf(node) === "ActionButton" && iconOnly,
       _overlayOpen: catalogOverlayOpen(node, get, typeOf),
     };
-    const group = catalogActionButtonGroupOf(node, get, typeOf);
+    const group =
+      typeOf(node) === "ActionButton"
+        ? catalogActionButtonGroupOf(node, get, typeOf)
+        : catalogToggleGroupOf(node, get, typeOf);
     if (!group) return derived;
     derived._inActionGroup = true;
     for (const key of [
       "size",
       "isQuiet",
+      "isEmphasized",
       "staticColor",
       "density",
       "orientation",
@@ -2542,23 +2704,6 @@ function ownDerivedPropsBase(
     derived._actionFirst = siblings[0]?.id === node.id;
     derived._actionLast = siblings.at(-1)?.id === node.id;
     return derived;
-  }
-  // S2 ActionButtonGroup's `staticColor` is its buttons' (`ToggleButtonGroupStaticColorContext` —
-  // a button's own non-`auto` value wins, `ToggleButton.tsx` `effectiveStaticColor`).
-  if (typeOf(node) === "ToggleButton") {
-    const group = catalogToggleGroupOf(node, get, typeOf);
-    const own = node.props.staticColor;
-    const groupColor = group?.props.staticColor;
-    const derived: Record<string, string | boolean> = {};
-    if (
-      (own === undefined || own === "auto") &&
-      (groupColor === "white" || groupColor === "black")
-    )
-      derived.staticColor = groupColor;
-    // S2 ToggleButtonGroup `isJustified` (2026-10-10): each button grows equally
-    // (`flexGrow: 1 · flexBasis: 0` — `styleOf` turns this into the engine values).
-    if (group?.props.isJustified === true) derived._justified = true;
-    return Object.keys(derived).length ? derived : undefined;
   }
   // RAC Breadcrumbs draws its last crumb as the current one (no separator, current paint); the
   // crumb's label Text inherits the current Link's weight.
@@ -2720,9 +2865,29 @@ export function catalogDerivedPropsDependents(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
+  // Editing a selected option or its label also changes the ComboBox input text.
+  const comboInputs: CatalogConsumerNode[] = [];
+  if (["ListBoxItem", "Text"].includes(typeOf(owner))) {
+    for (
+      let parent = get(owner.parentId);
+      parent;
+      parent = get(parent.parentId)
+    ) {
+      if (typeOf(parent) === "ComboBox") {
+        comboInputs.push(
+          ...fieldSubparts(parent, get, typeOf).filter(
+            (child) => typeOf(child) === "Input",
+          ),
+        );
+        break;
+      }
+    }
+  }
   // An item's label Text takes the item's color (`catalogItemLabels`): it follows the item's own
   // values and every item whose selection this record decides.
   const items = [
+    ...comboInputs,
+    ...catalogFieldLabelPartsDependents(owner, get, typeOf),
     ...(OVERLAY_OPEN_OWNERS.has(typeOf(owner))
       ? partChildrenOf(owner, get, typeOf).filter(
           (child) => typeOf(child) === "ActionButton",
@@ -2780,8 +2945,21 @@ export function catalogDerivedPropsDependents(
   ];
   return [
     ...items,
+    ...partChildrenOf(owner, get, typeOf).filter(
+      (label) =>
+        catalogToggleButtonGlyphOwner(label, get, typeOf)?.id === owner.id,
+    ),
     ...[owner, ...items].flatMap((item) => [
       ...catalogItemLabels(item, get, typeOf),
+      ...(["Checkbox", "Radio", "Switch"].includes(typeOf(item))
+        ? partChildrenOf(item, get, typeOf).flatMap((button) =>
+            partChildrenOf(button, get, typeOf).filter(
+              (label) =>
+                catalogToggleButtonGlyphOwner(label, get, typeOf)?.id ===
+                item.id,
+            ),
+          )
+        : []),
       ...(["ToggleButton", "ActionButton"].includes(typeOf(item))
         ? partChildrenOf(item, get, typeOf).filter(
             (glyph) =>
@@ -2824,7 +3002,8 @@ function fieldSubparts(
 ): CatalogConsumerNode[] {
   return partChildrenOf(owner, get, typeOf)
     .flatMap((child) =>
-      typeOf(child) === "Group"
+      typeOf(child) === "Group" ||
+      (typeOf(owner) === "SearchField" && typeOf(child) === "Button")
         ? [child, ...partChildrenOf(child, get, typeOf)]
         : [child],
     )
@@ -2842,6 +3021,13 @@ function derivedDependents(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
+  if (typeOf(owner) === "RadioGroup" || typeOf(owner) === "CheckboxGroup")
+    return catalogToggleGroupItems(
+      owner,
+      typeOf(owner) === "RadioGroup" ? "Radio" : "Checkbox",
+      get,
+      typeOf,
+    ).items;
   const type = typeOf(owner);
   const track = PROGRESS_TRACKS[type];
   if (track) {
@@ -3079,29 +3265,103 @@ export function catalogFieldNecessityIndicator(
   return undefined;
 }
 
-/**
- * Text the DOM appends to a field's Label (`catalogFieldLabelNecessity`): the field's necessity
- * indicator for its `isRequired` (`getNecessityIndicatorSuffix`). Empty for any other node.
- */
-export function catalogLabelSuffix(
+/** 실제 작성된 필드 Label 자식. slot은 편집 가능한 부품의 역할을 지정한다. */
+export function catalogComposedFieldLabel(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
-): string {
-  if (typeOf(node) !== "Label") return "";
-  const field = catalogPartParent(node, get, typeOf);
+): boolean {
+  if (node.bindingId !== "label") return false;
+  const owner = catalogPartParent(node, get, typeOf);
+  return (
+    !!owner && CATALOG_LABEL_NODE_FIELDS[owner.bindingId ?? ""] === "necessity"
+  );
+}
+export function catalogFieldLabelPart(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+) {
+  const role = node.props.slot;
+  if (
+    ![
+      "label-content",
+      "necessity-icon",
+      "necessity-label",
+      "necessity-space",
+    ].includes(String(role))
+  )
+    return;
+  const label = get(node.parentId);
+  if (!label || typeOf(label) !== "Label") return;
+  const field = catalogPartParent(label, get, typeOf);
   if (
     !field ||
     CATALOG_LABEL_NODE_FIELDS[field.bindingId ?? ""] !== "necessity"
   )
-    return "";
-  return getNecessityIndicatorSuffix(
+    return;
+  const mode =
     catalogFieldNecessityIndicator(
       field,
-      (record) => get(record.parentId),
+      (entry) => get(entry.parentId),
       typeOf,
+    ) ?? "icon";
+  const required = field.props.isRequired === true;
+  const empty = String(label.props.children ?? "") === "";
+  const hidden =
+    empty ||
+    (role === "necessity-icon"
+      ? !required || mode !== "icon"
+      : role === "necessity-label"
+        ? mode !== "label"
+        : role === "necessity-space"
+          ? !(required || mode === "label") ||
+            !childrenOf(label, get).some(
+              (child) =>
+                child.props.slot ===
+                (mode === "label" ? "necessity-label" : "necessity-icon"),
+            )
+          : false);
+  return {
+    role,
+    label,
+    field,
+    required,
+    mode,
+    hidden,
+    include: ["Select", "CheckboxGroup"].includes(typeOf(field)),
+  };
+}
+export function catalogFieldLabelPartsHidden(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  return (
+    (catalogComposedFieldLabel(node, get, typeOf) &&
+      node.presentWhen === "nonEmptyText" &&
+      String(node.props.children ?? "") === "") ||
+    catalogFieldLabelPart(node, get, typeOf)?.hidden === true
+  );
+}
+export function catalogFieldLabelPartsDependents(
+  owner: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode[] {
+  const labels =
+    owner.bindingId === "label"
+      ? [owner]
+      : catalogLabelSuffixDependents(owner, get, typeOf);
+  return labels.flatMap((label) =>
+    childrenOf(label, get).filter((child) =>
+      [
+        "label-content",
+        "necessity-icon",
+        "necessity-label",
+        "necessity-space",
+      ].includes(String(child.props.slot)),
     ),
-    field.props.isRequired === true,
   );
 }
 

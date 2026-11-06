@@ -480,6 +480,8 @@ export interface IconFontShape {
   iconName: string;
   /** 아이콘 라이브러리 (기본: 'lucide') */
   iconFontFamily?: string;
+  /** 크기별 SVG optical variant. */
+  iconVariant?: string;
   /** 아이콘 중심 X 좌표 */
   x: number;
   /** 아이콘 중심 Y 좌표 */

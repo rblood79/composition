@@ -67,6 +67,7 @@ export interface CompiledPartRule {
 const SUBPART_TOKENS: Readonly<
   Record<string, Readonly<Record<string, readonly string[]>>>
 > = {
+  Label: { Icon: ['.react-aria-Icon[slot="necessity-icon"]'] },
   // ADR-253: the trigger is a Button instance (its own class token) holding the value and an Icon.
   Select: { SelectValue: [".react-aria-SelectValue"] },
   // ADR-253: the container holds an Input instance and a FieldButton instance (their own tokens).
@@ -141,6 +142,9 @@ export function catalogSubpartDomSelectors(
 const SUBPART_CHILD_PROPS: Readonly<
   Record<string, Readonly<Record<string, Readonly<Record<string, Scalar>>>>>
 > = {
+  Label: {
+    '.react-aria-Icon[slot="necessity-icon"]': { slot: "necessity-icon" },
+  },
   // ADR-256 Phase 8c: the Disclosure's trigger is the Button in RAC's `trigger` slot.
   Disclosure: { ".react-aria-Button[slot='trigger']": { slot: "trigger" } },
 };
@@ -150,6 +154,19 @@ const SUBPART_CHILD_PROPS: Readonly<
  */
 const GLYPH_TOKENS: Readonly<Record<string, { box: boolean }>> = {
   ".react-aria-Icon svg": { box: true },
+  ".react-aria-Button .react-aria-Icon svg": { box: true },
+};
+// A declared descendant can address a different instance of the same child type.
+// SearchField's direct Icon is the search glyph; its Button's Icon is the clear glyph.
+const WRAPPED_PART_TOKENS: Readonly<
+  Record<string, Readonly<Record<string, { childType: string; via: string }>>>
+> = {
+  SearchField: {
+    ".react-aria-Button .react-aria-Icon svg": {
+      childType: "Icon",
+      via: "Button",
+    },
+  },
 };
 /**
  * Typed children that stand for several owner-composed DOM parts (their box is the parts' union).
@@ -276,6 +293,8 @@ function childTypeOf(
   parentType: string,
   token: string,
 ): { childType: string; via?: string } | undefined {
+  const wrapped = WRAPPED_PART_TOKENS[parentType]?.[token];
+  if (wrapped) return wrapped;
   const own = SUBPART_TOKENS[parentType] ?? {};
   const reached = (childType: string) => {
     const via = wrapperOf(parentType, childType);
@@ -633,6 +652,12 @@ function compileDeclarations(
         visual.paddingBottom = b;
         visual.paddingLeft = l;
       }
+    } else if (key === "padding-inline-start" || key === "padding-inline-end") {
+      const px = lengthPx(value);
+      if (px !== undefined)
+        visual[
+          key === "padding-inline-start" ? "paddingLeft" : "paddingRight"
+        ] = /^\{length\.[^{}]+\}$/.test(value.trim()) ? value.trim() : px;
     } else if (/^padding-(top|right|bottom|left)$/.test(key)) {
       const px = lengthPx(value);
       // (ADR-295 Phase 3c-3: a side of a size token ± px — a field button's room — or × a / b — a Select
@@ -1608,8 +1633,11 @@ const CONTAINER_VARIANT_AXES: Readonly<Record<string, string>> = {
 const TYPE_CONTAINER_VARIANT_AXES: Readonly<
   Record<string, Readonly<Record<string, string>>>
 > = {
+  Label: { size: "size" },
   IllustratedMessage: { orientation: "orientation" },
+  SearchField: { empty: "isEmpty", readonly: "isReadOnly" },
   ActionButtonGroup: { orientation: "orientation", density: "density" },
+  ToggleButtonGroup: { orientation: "orientation", density: "density" },
   // ADR-258 Phase 2: a ColorSlider's grid · track box per orientation (RAC's `data-orientation`).
   ColorSlider: { orientation: "orientation" },
   // (S2 AvatarGroup: the avatar overlap is a quarter of the group size.)
@@ -2192,9 +2220,11 @@ export function compileRulePartRules(
     for (const part of selectorList(block.selector).map((selector) =>
       selector.replace(/^>\s*/, ""),
     )) {
-      const whole = Object.values(SUBPART_TOKENS[parentType] ?? {}).some(
-        (tokens) => tokens.includes(part),
-      );
+      const whole =
+        WRAPPED_PART_TOKENS[parentType]?.[part] ||
+        Object.values(SUBPART_TOKENS[parentType] ?? {}).some((tokens) =>
+          tokens.includes(part),
+        );
       const simple = whole
         ? { token: part, conditions: [] }
         : parseSimple(part);
@@ -2244,6 +2274,11 @@ export function compileRulePartRules(
           variables,
           areas,
         );
+        // Label은 sheet 생성을 생략하므로 작성된 자식의 기본 색도 typed part로 전달한다.
+        if (parentType === "Label" && block.declarations.color)
+          compiledBlock.visual.color =
+            cssVarToTokenRef(block.declarations.color) ??
+            block.declarations.color;
         compiledBlock.visual = withPartRadius(
           parentType,
           block.declarations,

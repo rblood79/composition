@@ -1,4 +1,4 @@
-import type { DefinitionId, TokenId } from "../document/types";
+import type { DefinitionId, TokenId, VisualField } from "../document/types";
 import { catalogTokenValue } from "../document/themedToken";
 import type {
   CatalogCompositionRoot,
@@ -124,13 +124,47 @@ export function catalogHasAuthoredColor(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
 ): boolean {
+  return catalogHasAuthoredVisual(root, node, "color");
+}
+
+/** 기본값과 같은 명시적 저작값도 부모 context보다 우선한다. */
+export function catalogHasAuthoredVisual(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  key: VisualField,
+): boolean {
   return (
-    catalogAuthoredVisual(root, node).color !== undefined ||
+    catalogAuthoredVisual(root, node)[key] !== undefined ||
+    catalogHasExplicitVisual(root, node, key)
+  );
+}
+
+/** Part defaults와 같은 값이라도 문서에 기록한 스타일은 runtime CSS보다 우선한다. */
+export function catalogHasExplicitVisual(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  key: VisualField,
+): boolean {
+  const graph = root.runtime.graph;
+  return (
+    graph.getDefinitionOverride(node.definitionId as DefinitionId)?.visual?.[
+      key
+    ]?.kind === "set" ||
     [node.sourceId, ...(node.collapsedSourceIds ?? [])].some((id) => {
-      const entry = root.runtime.graph.getEntry(id);
-      return entry?.kind === "node" && entry.visual.color?.kind === "set";
+      const entry = graph.getEntry(id);
+      const definitionId =
+        entry?.kind === "node"
+          ? entry.definitionId
+          : graph.library.templates.get(id as `lib:template:${string}`)
+              ?.definitionId;
+      return (
+        (entry?.kind === "node" && entry.visual[key]?.kind === "set") ||
+        (!!definitionId &&
+          graph.getDefinitionOverride(definitionId)?.visual?.[key]?.kind ===
+            "set")
+      );
     }) ||
-    templatePositionWrites(root, node)?.visual?.color?.kind === "set"
+    templatePositionWrites(root, node)?.visual?.[key]?.kind === "set"
   );
 }
 

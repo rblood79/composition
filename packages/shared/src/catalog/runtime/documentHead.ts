@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { resolveAssetUrl, subscribeAssetUrls } from "../../utils/assetRef";
 import type { EntryId } from "../document/types";
 import { siteHead, type CatalogPageHead } from "./siteMeta";
+import { observeSpectrumLocaleFonts } from "./spectrumLocaleFonts";
 
 /** One manifest icon (a PNG made from the site's app icon). */
 export interface CatalogManifestIcon {
@@ -224,11 +225,20 @@ function manifestWriter(doc: Document, startUrl: string) {
     url = undefined;
   };
   return {
-    write(head: CatalogPageHead | undefined, resolve: (url: string) => string | null) {
+    write(
+      head: CatalogPageHead | undefined,
+      resolve: (url: string) => string | null,
+    ) {
       const icon = head?.appIcon && resolve(head.appIcon);
       const next =
         head && icon
-          ? JSON.stringify([icon, head.appName, head.title, head.lang, head.themeColor])
+          ? JSON.stringify([
+              icon,
+              head.appName,
+              head.title,
+              head.lang,
+              head.themeColor,
+            ])
           : undefined;
       if (next === key) return;
       key = next;
@@ -239,14 +249,20 @@ function manifestWriter(doc: Document, startUrl: string) {
           if (own !== generation) return;
           drop();
           url = URL.createObjectURL(
-            new Blob([JSON.stringify(catalogWebManifest(head, startUrl, icons))], {
-              type: "application/manifest+json",
-            }),
+            new Blob(
+              [JSON.stringify(catalogWebManifest(head, startUrl, icons))],
+              {
+                type: "application/manifest+json",
+              },
+            ),
           );
           ownedElement(doc, "link", "rel", "manifest", url);
         },
         (error: unknown) => {
-          console.warn("[site] app icon could not be drawn for the manifest", error);
+          console.warn(
+            "[site] app icon could not be drawn for the manifest",
+            error,
+          );
         },
       );
     },
@@ -286,11 +302,15 @@ export function useCatalogDocumentHead(
       manifest?.write(head, resolveAssetUrl);
     };
     apply();
+    const stopFonts = observeSpectrumLocaleFonts(document, (error) =>
+      console.warn("[Catalog] S2 locale font load failed:", error),
+    );
     const unsubscribeSession = session?.subscribe(apply);
     const unsubscribeAssets = subscribeAssetUrls(apply);
     return () => {
       unsubscribeSession?.();
       unsubscribeAssets();
+      stopFonts();
       manifest?.dispose();
     };
   }, [session, title, locale, direction, manifestStartUrl]);

@@ -8,7 +8,7 @@ import { resolveCatalogPaint } from "../resolvers/resolveCatalogPaint";
 
 /**
  * ADR-297 Phase 3h — the confirmed differences (breakdown §6.1 #2 · #4 · #5 · #6 · #7 · #9 · #10 · #11) follow the
- * installed S2 1.8.1 source (user decision 2). The oracle is S2's style macro, not this repository's previous output:
+ * installed S2 1.8.2 source (user decision 2). The oracle is S2's style macro, not this repository's previous output:
  * `Button.tsx` (`backgroundColor` · `color` · `borderColor` key order — fill → outline → disabled → static),
  * `ActionButton.tsx` (quiet = rest only), `InlineAlert.tsx` (`subtleFill` border `transparent`), the state step
  * (`spectrum-theme.ts` `nextColorStop` — hover · pressed · focus are the next stop) and the overlay alphas
@@ -41,12 +41,12 @@ function paint(
 describe("ADR-297 3h — Button · ToggleButton · InlineAlert paint = S2", () => {
   it("#5 pressed is the hover stop and the fill border never rings", () => {
     expect(paint("Button", "accent", {}, "pressed")).toEqual({
-      background: "{color.accent-hover}",
+      background: "{color.accent-fill-hover}",
       color: "{color.on-accent}",
-      border: "{color.accent-hover}",
+      border: "{color.accent-fill-hover}",
     });
     expect(paint("Button", "negative", {}, "pressed").background).toBe(
-      "{color.negative-hover}",
+      "{color.negative-fill-hover}",
     );
     const primary = paint("Button", "primary", {}, "pressed");
     expect(primary.border).toBe(primary.background);
@@ -57,32 +57,32 @@ describe("ADR-297 3h — Button · ToggleButton · InlineAlert paint = S2", () =
       expect(
         paint("Button", "primary", { fillStyle: "outline" }, state),
       ).toEqual({
-        background: "{color.neutral-subtle}",
-        color: "{color.neutral}",
+        background: "{color.neutral-surface}",
+        color: "{color.neutral-content-hover}",
         border: "{color.neutral-fill-hover}",
       });
     expect(paint("Button", "primary", { fillStyle: "outline" })).toEqual({
       background: "{color.transparent}",
-      color: "{color.neutral}",
-      border: "{color.neutral}",
+      color: "{color.neutral-content}",
+      border: "{color.neutral-fill}",
     });
     expect(
       paint("Button", "secondary", { fillStyle: "outline" }, "hover").border,
-    ).toBe("{color.border-hover}");
+    ).toBe("{color.neutral-outline-hover}");
   });
 
   it("#7 disabled is a color, not opacity", () => {
     for (const variant of ["accent", "primary", "secondary", "negative"])
       expect(paint("Button", variant, { isDisabled: true }, "hover")).toEqual({
         background: "{color.disabled}",
-        color: "{color.neutral-subdued}",
+        color: "{color.disabled-content}",
         border: "{color.disabled}",
       });
     expect(
       paint("Button", "primary", { isDisabled: true, fillStyle: "outline" }),
     ).toEqual({
       background: "{color.transparent}",
-      color: "{color.neutral-subdued}",
+      color: "{color.disabled-content}",
       border: "{color.border-disabled}",
     });
     const states = COMPONENT_RULES_TABLE.Button!.structure?.stateStyles;
@@ -121,25 +121,26 @@ describe("ADR-297 3h — Button · ToggleButton · InlineAlert paint = S2", () =
       paint("Button", "primary", { staticColor: "white", isDisabled: true })
         .color,
     ).toBe("rgba(255, 255, 255, 0.21)");
-    // (S2 has no static branch for accent · negative — their own paint)
-    expect(paint("Button", "accent", { staticColor: "white" })).toEqual(
-      paint("Button", "accent", {}),
-    );
+    // S2 accent/negative의 enabled fill 색은 staticColor에서도 유지된다.
+    expect(paint("Button", "accent", { staticColor: "white" })).toEqual({
+      ...paint("Button", "accent", {}),
+      border: "{color.transparent}",
+    });
   });
 
   it("#6 · #10 quiet ToggleButton: rest only is transparent; selected is neutral", () => {
     expect(
       paint("ToggleButton", "default", { isQuiet: true }, "hover").background,
-    ).toBe("{color.neutral-hover}");
+    ).toBe("{color.neutral-surface-hover}");
     expect(
       paint("ToggleButton", "default", { isQuiet: true }, "pressed").background,
-    ).toBe("{color.neutral-pressed}");
+    ).toBe("{color.neutral-surface-hover}");
     expect(
       paint("ToggleButton", "default", { isQuiet: true, isSelected: true }),
     ).toEqual({
-      background: "{color.neutral}",
-      color: "{color.base}",
-      border: "{color.neutral}",
+      background: "{color.neutral-fill}",
+      color: "{color.on-neutral}",
+      border: "{color.transparent}",
     });
   });
 

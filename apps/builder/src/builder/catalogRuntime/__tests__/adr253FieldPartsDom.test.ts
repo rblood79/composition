@@ -358,6 +358,11 @@ const fieldGroupMarkup = (markup: string, container: string) => {
  * the `searchfield-container` element goes, its children stay.
  */
 function searchFieldGroupMarkup(markup: string): string {
+  // S2 기본 paint를 선택하는 catalog 상태 표식. glyph 내용은 S2 실물 브라우저 검사에서 대조한다.
+  markup = markup.replace(
+    /(<button [^>]*data-react-aria-pressable=true)/,
+    "$1 data-search-field-part=true",
+  );
   const open = "<div class=searchfield-container>";
   const start = markup.indexOf(open);
   if (start < 0) return markup;
@@ -758,7 +763,17 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
             type === "taggroup"
               ? ownedGroupItems
               : (text: string) => text;
-          expect(owned(glyphless(structure))).toBe(owned(glyphless(expected)));
+          // S2 HelpText parts now carry their own generated catalog sheet/state.
+          const hints = expected
+            .replaceAll(
+              "class=react-aria-Text id slot=description",
+              "class=react-aria-Description data-variant=default id slot=description",
+            )
+            .replaceAll(
+              "class=react-aria-FieldError data-rac= id slot=errorMessage",
+              "class=react-aria-FieldError data-rac= data-variant=default id slot=errorMessage",
+            );
+          expect(owned(glyphless(structure))).toBe(owned(glyphless(hints)));
           return;
         }
         // The hint the Preview left out before: the part node's element, described to the control.
@@ -798,7 +813,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           `<(?:label|span)[^>]*data-catalog-id="${label.id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"[^>]*>`,
         ).exec(rendered.html)?.[0];
         expect(tag).toBeDefined();
-        expect(tag).toMatch(/font-weight:\s*500/);
+        expect(tag).toMatch(/font-weight:\s*400/);
         expect(inlineFontPx(tag!)).toBe(Number(label.visual.fontSize));
       },
     );
@@ -815,7 +830,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(
         Number(label.visual.lineHeight) * Number(label.visual.fontSize),
       ).toBeCloseTo(20, 5);
-      expect(label.visual.fontWeight).toBe(500);
+      expect(label.visual.fontWeight).toBe(400);
     });
 
   /**
@@ -927,14 +942,14 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         write({ errorMessage: "Not valid" });
         expect(part("fielderror").hidden).toBeUndefined();
         expect(part("fielderror").props.children).toBe("Not valid");
-        // Each is sized by its own rule at the field's size (md = text-xs).
+        // S2 HelpText uses the same controlFont as the field (M = 14, L = 16).
         for (const binding of ["description", "fielderror"]) {
           expect(part(binding).props.size).toBe("M");
-          expect(part(binding).visual.fontSize).toBe(12);
+          expect(part(binding).visual.fontSize).toBe(14);
         }
         write({ size: "L" });
         for (const binding of ["description", "fielderror"])
-          expect(part(binding).visual.fontSize).toBe(14);
+          expect(part(binding).visual.fontSize).toBe(16);
         // The origins are the one place their style comes from; the part's own style stays on top.
         for (const [origin, binding] of [
           [DESCRIPTION_ORIGIN, "description"],
@@ -977,10 +992,16 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         expect(part("fielderror").hidden).toBe(true);
         // The DOM: the same nodes' elements, with the origin's color.
         write({ description: "Help text", isInvalid: true });
-        const html = renderToStaticMarkup(
-          renderCatalogDom(workspace.root, field.id),
-        );
         for (const binding of ["description", "fielderror"]) {
+          workspace.execute(
+            setFields({
+              targets: [workspace.positionOfRecord(field.id)!.target],
+              props: { isInvalid: set(binding === "fielderror") },
+            }),
+          );
+          const html = renderToStaticMarkup(
+            renderCatalogDom(workspace.root, field.id),
+          );
           const id = part(binding).id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
           expect(html).toMatch(
             new RegExp(
@@ -1028,11 +1049,11 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       // The Input rule sizes it at the field's size (no field rule declares an Input shape).
       expect(input().props.size).toBe("M");
       expect(input().visual).toMatchObject({
-        paddingY: 6,
+        paddingY: 5,
         paddingX: 12,
         fontSize: 14,
         radius: 8,
-        borderWidth: 1,
+        borderWidth: 2,
       });
       workspace.execute(
         setFields({
@@ -1042,7 +1063,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       );
       expect(input().props.size).toBe("L");
       expect(input().visual).toMatchObject({
-        paddingY: 9,
+        paddingY: 8,
         // (ADR-295 Phase 3c-3: S2 `edge-to-text` — the field height 40 × 3/8)
         paddingX: 15,
         fontSize: 16,
@@ -2057,71 +2078,77 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         width: rect(field.id).width,
         height: 32,
       });
-      // (ADR-295 Phase 3c-3b: S2 SearchField — the glyph at `pill` 16 inside the border, `1lh` 18 square,
-      //   the text after it + text-to-visual 6 = 40; the end is the clear button's place, the height 32.)
+      // (ADR-295 Phase 3c-3b: S2 SearchField — the glyph at `pill - 2/14em` inside the border, `1lh` 18 square,
+      //   the text after it + text-to-visual 6 = 38 padding; 빈 값에서는 clear가 없어 입력 끝 여백도 0이다.)
       expect(input.visual).toMatchObject({
         radius: 9999,
-        paddingLeft: 40,
-        paddingRight: 32,
+        paddingLeft: 38,
+        paddingRight: 0,
       });
       // (Its text starts after that padding, clear of the glyph — as the DOM `padding-left` does.)
       expect(inputTextBand(workspace, input.id)).toEqual({
-        x: 40,
-        paddingRight: 32,
+        x: 38,
+        paddingRight: 0,
       });
       expect(rect(glyph.id)).toMatchObject({
-        x: 17,
+        x: 16,
         y: group.y + 7,
         width: 18,
         height: 18,
       });
       expect(glyph.visual).toMatchObject({ iconSize: 18, zIndex: 1 });
-      // An empty field shows no clear button (RAC `data-empty`); with a value it is a 16px
-      // circle 8px inside the Input's end.
+      // An empty field shows no clear button (RAC `data-empty`); with a value its 32×28 hit area sits 2px inside the Input border.
       expect(layoutRecord(clear.id).hidden).toBe(true);
-      expect(input.derivedProps).toBeUndefined();
+      expect(input.derivedProps).toMatchObject({ _inputHasValue: false });
       workspace.execute(
         setFields({
           targets: [{ kind: "node", id: FIELD }],
           props: { value: set("abc"), placeholder: set("Find") },
         }),
       );
+      expect(parts()[1]!.visual.paddingRight).toBe(32);
       // The Canvas draws the value in the Input's text (the DOM input shows it over the
       // placeholder); emptied, the placeholder is back.
-      expect(parts()[1]!.derivedProps).toEqual({ placeholder: "abc" });
+      expect(parts()[1]!.derivedProps).toMatchObject({
+        placeholder: "abc",
+        _inputHasValue: true,
+      });
       workspace.execute(
         setFields({
           targets: [{ kind: "node", id: FIELD }],
           props: { value: set("") },
         }),
       );
-      expect(parts()[1]!.derivedProps).toBeUndefined();
+      expect(parts()[1]!.visual.paddingRight).toBe(0);
+      expect(parts()[1]!.derivedProps).toMatchObject({ _inputHasValue: false });
       workspace.execute(
         setFields({
           targets: [{ kind: "node", id: FIELD }],
           props: { value: set("abc") },
         }),
       );
-      expect(parts()[1]!.derivedProps).toEqual({ placeholder: "abc" });
+      expect(parts()[1]!.derivedProps).toMatchObject({
+        placeholder: "abc",
+        _inputHasValue: true,
+      });
       const shown = parts()[2]!;
       expect(layoutRecord(shown.id).hidden).not.toBe(true);
       // (3c-3b: its centre at the S2 clear button's — height / 2 = 16 inside the border.)
       expect(rect(shown.id)).toMatchObject({
-        x: group.width - 25,
-        y: group.y + 8,
-        width: 16,
-        height: 16,
+        x: group.width - 34,
+        y: group.y + 2,
+        width: 32,
+        height: 28,
       });
       expect(shown.visual).toMatchObject({
-        fill: "var(--fg-muted)",
         radius: 9999,
         borderWidth: 0,
       });
       expect(
         shown.children
           .map((id) => records.get(id)!)
-          .find((child) => !child.hidden)!.visual.iconSize,
-      ).toBe(12);
+          .find((child) => !child.hidden)!.visual.fontSize,
+      ).toBe(8);
       expect(parts()[1]!.props.placeholder).toBe("Find");
       // DOM: the field's own children after its Label are those nodes' elements (no container —
       // the reference); the Input is the searchbox RAC wires (its `type` is RAC's), the Button the
@@ -2142,8 +2169,8 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       );
       const clearElement = container.querySelector("button")!;
       expect(clearElement.getAttribute("aria-label")).toBeTruthy();
-      expect(clearElement.getAttribute("style")).toMatch(
-        /background-color:\s*var\(--fg-muted\)/,
+      expect(clearElement.getAttribute("style")).not.toMatch(
+        /background-color:/,
       );
       // The field's sheet hides the clear button while the input is empty (`[data-empty]`, RAC's
       // run state): an inline display would keep it shown.
@@ -2175,14 +2202,15 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         }),
       );
       expect(parts()[1]!.props.size).toBe("XL");
-      // (3c-3b: pill 24 + the glyph 22 + text-to-visual 18 × 6/14; the end the height 48.)
+      // (3c-3b: pill 24 + the glyph 22 + (text-to-visual - search margin) 18 × 4/14; the end the height 48.)
       expect(parts()[1]!.visual.paddingLeft).toBeCloseTo(
-        24 + 22 + (18 * 6) / 14,
+        24 + 22 + (18 * 4) / 14,
         10,
       );
       expect(parts()[1]!.visual.paddingRight).toBe(48);
-      expect(rect(parts()[0]!.id)).toMatchObject({ x: 25, width: 22 });
-      expect(rect(parts()[2]!.id)).toMatchObject({ width: 24, height: 24 });
+      expect(rect(parts()[0]!.id).x).toBeCloseTo(26 - (18 * 2) / 14, 4);
+      expect(rect(parts()[0]!.id).width).toBe(22);
+      expect(rect(parts()[2]!.id)).toMatchObject({ width: 48, height: 44 });
       // The Input origin and the Button origin reach them (the Button's own shape stays).
       workspace.execute(
         setLibraryDefault({
@@ -2206,7 +2234,6 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(parts()[1]!.visual.borderColor).toBe("#0000ff");
       expect(parts()[2]!.visual).toMatchObject({
         color: "#00aa00",
-        fill: "var(--fg-muted)",
       });
       const graph = workspace.runtime.graph;
       const dom = workspace.root.domInputs;
@@ -2331,10 +2358,16 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           isInvalid: true,
           errorMessage: "Not valid",
         }))!;
-        const html = renderToStaticMarkup(
-          renderCatalogDom(workspace.root, field.id),
-        );
         for (const binding of ["description", "fielderror"]) {
+          workspace.execute(
+            setFields({
+              targets: [workspace.positionOfRecord(field.id)!.target],
+              props: { isInvalid: set(binding === "fielderror") },
+            }),
+          );
+          const html = renderToStaticMarkup(
+            renderCatalogDom(workspace.root, field.id),
+          );
           const part = workspace.root.canvasInputs
             .get(field.id)!
             .children.map((id) => workspace.root.canvasInputs.get(id)!)
@@ -2451,10 +2484,26 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
               props: { isInvalid: set(true) },
             }),
           );
+          const inputBox = [
+            "textfield",
+            "textarea",
+            "searchfield",
+            "numberfield",
+            "colorfield",
+            "combobox",
+          ].includes(type);
           expect(colors()).toEqual(
-            boxes().map(() => cssVarColor("var(--negative)", "light")),
+            boxes().map(() =>
+              inputBox
+                ? "{color.selection-negative}"
+                : cssVarColor("var(--negative)", "light"),
+            ),
           );
-          expect(colors("hover")).toEqual(colors());
+          expect(colors("hover")).toEqual(
+            inputBox
+              ? boxes().map(() => "{color.selection-negative-hover}")
+              : colors(),
+          );
           workspace.execute(
             setFields({
               targets: [{ kind: "node", id: FIELD }],

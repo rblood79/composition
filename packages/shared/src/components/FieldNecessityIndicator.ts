@@ -35,6 +35,7 @@ export function getNecessityIndicatorSuffix(
 export function renderNecessityIndicator(
   necessityIndicator?: NecessityIndicator,
   isRequired?: boolean,
+  includeInAccessibilityName = false,
 ): ReactNode {
   if (!necessityIndicator || necessityIndicator === "icon") {
     if (!isRequired) return null;
@@ -42,7 +43,9 @@ export function renderNecessityIndicator(
       "span",
       {
         className: "necessity-indicator icon",
-        "aria-hidden": true,
+        "aria-hidden": !includeInAccessibilityName,
+        "aria-label": includeInAccessibilityName ? "(required)" : undefined,
+        role: includeInAccessibilityName ? "img" : undefined,
       },
       "*",
     );
@@ -53,7 +56,8 @@ export function renderNecessityIndicator(
     "span",
     {
       className: "necessity-indicator label",
-      "aria-hidden": isRequired ? "true" : undefined,
+      "aria-hidden":
+        !includeInAccessibilityName && isRequired ? "true" : undefined,
     },
     text,
   );

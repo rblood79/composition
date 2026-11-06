@@ -15,9 +15,24 @@ import {
 } from "@composition/shared";
 import { skiaFontManager } from "../workspace/canvas/skia/fontManager";
 import { builtinSkiaFonts } from "../../canvasWarmup/canvasAssetUrls";
+import { DEFAULT_FONT_FAMILY } from "./customFonts";
+import {
+  SPECTRUM_FONT_FACES,
+  spectrumFontFacesFor,
+  spectrumLocaleFont,
+} from "@composition/rendering";
+import { loadSpectrumLocaleFont } from "../../../../../packages/shared/src/catalog/runtime/spectrumLocaleFonts";
 
 /** 빌트인 폰트 — unloadFont 대상에서 제외 */
-const PROTECTED_FAMILIES = new Set(["Pretendard", "Inter"]);
+const PROTECTED_FAMILIES = new Set([
+  DEFAULT_FONT_FAMILY,
+  "Pretendard",
+  "Inter",
+  ...SPECTRUM_FONT_FACES.map((face) => face.family),
+  ...["ko", "ja", "zh", "zh-HK", "zh-CN"].map(
+    (locale) => spectrumLocaleFont(locale)!.family,
+  ),
+]);
 
 /**
  * Canvas 2D 측정 경로(USE_CANVAS2D_MEASURE)를 위해 document.fonts에도 폰트를 등록한다.
@@ -35,7 +50,9 @@ async function registerFontInBrowser(
 ): Promise<void> {
   if (typeof document === "undefined" || !document.fonts) return;
   // weight/style 포함한 특정 face가 이미 로드되어 있으면 스킵
-  const checkStr = `${weight ?? 400} ${style === "italic" ? "italic " : ""}12px "${family}"`;
+  // FontFace descriptor는 범위를 받지만 FontFaceSet.check의 CSS shorthand는 단일 굵기만 받는다.
+  const checkWeight = weight?.includes(" ") ? "400" : (weight ?? "400");
+  const checkStr = `${style === "italic" ? "italic " : ""}${checkWeight} 12px "${family}"`;
   if (document.fonts.check(checkStr)) return;
   try {
     const descriptors: FontFaceDescriptors = {};
@@ -92,6 +109,95 @@ export async function loadBuiltinFontsToSkia(): Promise<void> {
       }
     }
   }
+}
+
+const pendingSpectrumFaces = new Map<string, Promise<void>>();
+const localeFaceVersions = new Map<string, string>();
+
+/** 갱신된 CJK subset은 기존 variant를 교체하며 영속 캐시에는 쓰지 않는다. */
+export async function loadSpectrumLocaleFontsToSkia(
+  locale: string,
+  requests: readonly { text: string; weight: number }[],
+): Promise<number> {
+  let count = 0;
+  for (const request of requests) {
+    const face = await loadSpectrumLocaleFont(
+      document,
+      locale,
+      request.text,
+      request.weight,
+    );
+    if (!face) continue;
+    const key = `${face.family}:${face.weight}:${face.style}`;
+    if (
+      localeFaceVersions.get(key) === face.version &&
+      skiaFontManager.hasFont(face.family, face.weight, face.style)
+    )
+      continue;
+    skiaFontManager.loadFontFromBuffer(
+      face.family,
+      face.data,
+      face.weight,
+      face.style,
+      { replace: true, persist: false },
+    );
+    localeFaceVersions.set(key, face.version);
+    count += 1;
+  }
+  if (count) skiaFontManager.warmFontMgr();
+  return count;
+}
+
+/** 문서에서 실제로 쓰는 S2 face만 로드한다. normal이 있어도 italic은 별도 face다. */
+export async function loadSpectrumFontsToSkia(
+  requests: readonly {
+    family: string;
+    weight?: number;
+    style?: string;
+  }[],
+): Promise<number> {
+  const faces = new Map(
+    requests.flatMap((request) =>
+      spectrumFontFacesFor(request.family, request.weight, request.style).map(
+        (face) => [face.url, face] as const,
+      ),
+    ),
+  );
+  const loaded = await Promise.all(
+    [...faces.values()].map(async (face) => {
+      if (skiaFontManager.hasFont(face.family, face.keyWeight, face.style))
+        return 0;
+      const pending = pendingSpectrumFaces.get(face.url);
+      if (pending) {
+        await pending;
+        return 0;
+      }
+      const load = (async () => {
+        await skiaFontManager.loadFont(
+          face.family,
+          face.url,
+          face.keyWeight,
+          face.style,
+        );
+        await registerFontInBrowser(
+          face.family,
+          face.browserUrl,
+          face.weight,
+          face.style,
+        );
+      })();
+      pendingSpectrumFaces.set(face.url, load);
+      try {
+        await load;
+        return 1;
+      } finally {
+        pendingSpectrumFaces.delete(face.url);
+      }
+    }),
+  );
+  const count = loaded.reduce<number>((sum, value) => sum + value, 0);
+  if (count) skiaFontManager.warmFontMgr();
+  return count;
 }
 
 /**

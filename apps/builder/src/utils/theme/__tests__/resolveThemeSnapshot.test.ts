@@ -26,6 +26,11 @@ import {
   touchThemeSnapshot,
 } from "../resolveThemeSnapshot";
 import { catalogThemeVarsCss } from "../../../../../../packages/shared/src/catalog/runtime/themeVarsCss";
+import { installThemeMaps } from "../../../../../../packages/shared/src/catalog/runtime/themeMaps";
+import {
+  catalogFontFamilies,
+  catalogTextTypography,
+} from "../../../../../../packages/shared/src/catalog/runtime/boxModel";
 import { RADIUS_BASE_PX, resolveRadiusTokens } from "../radiusScaleToSkia";
 import {
   createAccentColorTokens,
@@ -44,6 +49,45 @@ const varOf = (s: ReturnType<typeof resolve>, name: string, dark = false) =>
   s.cssVars.find((v) => v.name === name && v.isDark === dark)?.value;
 const touchVarOf = (s: ReturnType<typeof resolve>, name: string) =>
   s.touchCssVars.find((v) => v.name === name)?.value;
+
+it("공통 기본 서체·사용자 sans·복원을 Canvas와 DOM 변수에 같이 적용한다", () => {
+  const defaultSnapshot = resolve(theme());
+  const baseOverride = resolve(
+    theme({
+      "typography.base-font-family": {
+        type: "string",
+        value: "Inter",
+        source: "spec-token",
+      },
+    }),
+  );
+  const sansOverride = resolve(
+    theme({
+      "typography.sans": {
+        type: "string",
+        value: "monospace",
+        source: "spec-token",
+      },
+    }),
+  );
+  try {
+    expect(varOf(defaultSnapshot, "--font-sans")).toBe(
+      "var(--catalog-default-font-family)",
+    );
+    expect(varOf(baseOverride, "--font-sans")).toBe("Inter");
+    installThemeMaps(baseOverride);
+    expect(catalogTextTypography({ visual: {} }).fontFamily).toBe("Inter");
+    expect(varOf(sansOverride, "--font-sans")).toBe("monospace");
+    installThemeMaps(sansOverride);
+    expect(catalogTextTypography({ visual: {} }).fontFamily).toBe("monospace");
+    installThemeMaps(defaultSnapshot);
+    expect(
+      catalogFontFamilies(catalogTextTypography({ visual: {} }).fontFamily)[0],
+    ).toBe("adobe-clean-spectrum-vf");
+  } finally {
+    installThemeMaps(null);
+  }
+});
 
 describe("resolveThemeSnapshot — seed (preset 파생) 는 종전 setter 결과와 같다", () => {
   it("blue · neutral · md → accent 5 = createAccentColorTokens(blue) · radius md 배율 1 · --tint var(--blue) · neutral 11 단계", () => {
@@ -159,7 +203,9 @@ describe("resolveThemeSnapshot — 명시 델타 (축별 비기본값 · reset �
     expect(s.colors.light["neutral-fill-hover"]).toBe(
       mixWithBlackSrgb("#112233", 85),
     );
-    expect(varOf(s, "--neutral-fill-hover")).toBe(mixWithBlackSrgb("#112233", 85));
+    expect(varOf(s, "--neutral-fill-hover")).toBe(
+      mixWithBlackSrgb("#112233", 85),
+    );
     expect(s.colors.light["neutral-hover"]).toBe(
       resolve(theme({})).colors.light["neutral-hover"],
     );

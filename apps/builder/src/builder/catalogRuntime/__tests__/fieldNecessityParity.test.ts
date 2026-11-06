@@ -12,7 +12,6 @@ import type {
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
-import { catalogLabelSuffix } from "../../../../../../packages/shared/src/catalog/runtime/presence";
 import { renderCatalogDom } from "../domBinding";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
@@ -104,16 +103,31 @@ async function place(
   const label = fieldRecord.children
     .map((id) => root.canvasInputs.get(id)!)
     .find((child) => root.typeOf(child) === "Label")!;
-  const canvas = catalogLabelSuffix(
-    label,
-    (id) => root.canvasInputs.get(id),
-    root.typeOf,
-  ).trim();
-  const html = renderToStaticMarkup(
+  const marker = label.children
+    .map((id) => root.canvasInputs.get(id)!)
+    .find(
+      (node) =>
+        ["necessity-icon", "necessity-label"].includes(
+          String(node.props.slot),
+        ) && root.layoutInputs.get(node.id)?.hidden !== true,
+    );
+  const canvas = marker
+    ? marker.bindingId === "icon"
+      ? "*"
+      : String(marker.derivedProps?.children ?? marker.props.children ?? "")
+    : "";
+  const host = document.createElement("div");
+  host.innerHTML = renderToStaticMarkup(
     renderCatalogDom(root, root.recordsOfSource(form ? FORM : FIELD)[0]!),
   );
-  const dom =
-    /class="necessity-indicator[^"]*"[^>]*>([^<]*)</.exec(html)?.[1] ?? "";
+  const element =
+    marker && host.querySelector(`[data-catalog-id="${marker.id}"]`);
+  const dom = element
+    ? element.querySelector("svg")
+      ? "*"
+      : (element.textContent ?? "")
+    : "";
+  workspace.dispose();
   return { canvas, dom };
 }
 

@@ -58,6 +58,8 @@ import {
   CHILD_PROP_MERGE_TYPES,
   catalogRuleTextColor,
   catalogContainerOutline,
+  catalogStateOutline,
+  catalogToggleContentColor,
   catalogRulePaint,
   cssVarColor,
   type CatalogRuleShapeInput,
@@ -152,6 +154,7 @@ function ruleShapeContext(input: CatalogRuleShapeInput) {
     style: {
       ...resolveSize(size as Record<string, unknown>, theme),
       ...style,
+      indicatorColor: catalogToggleContentColor(input),
     } as Record<string, unknown>,
     theme,
   };
@@ -164,10 +167,18 @@ function ruleShapeContext(input: CatalogRuleShapeInput) {
  * still wins.
  */
 function invalidBorder(input: CatalogRuleShapeInput, shapes: Shape[]): Shape[] {
-  const color = catalogInvalidBorderColor(input.rule, input.node.props);
+  const color = catalogInvalidBorderColor(
+    input.rule,
+    { ...input.node.props, ...input.node.derivedProps },
+    input.state,
+  );
   if (!color) return shapes;
   const state = input.state ? input.node.stateVisual?.[input.state] : undefined;
-  if (state?.borderColor !== undefined) return shapes;
+  if (
+    state?.borderColor !== undefined ||
+    input.authoredVisual.borderColor !== undefined
+  )
+    return shapes;
   const backgrounds = new Set(
     shapes
       .filter(
@@ -620,7 +631,16 @@ export function catalogRuleNodeData(
     input.node.id,
   );
   // Catalog의 기본 outline도 CSS처럼 상자 밖에 그린다 (레이아웃 border와 분리).
-  const outline = catalogContainerOutline(input.rule);
+  const stateOutline =
+    input.type === "ActionButton" ||
+    input.type === "ToggleButton" ||
+    input.node.derivedProps?._searchFieldPart === true ||
+    input.rule.structure?.archetype === "input-base" ||
+    (input.rule.structure?.archetype === "toggle-indicator" &&
+      !input.childPrimitive)
+      ? catalogStateOutline(input)
+      : undefined;
+  const outline = stateOutline ?? catalogContainerOutline(input.rule);
   if (data.box && outline) {
     const color = String(
       outline.color.startsWith("{")
@@ -628,7 +648,7 @@ export function catalogRuleNodeData(
         : cssVarColor(outline.color, input.theme ?? "light"),
     );
     data.box.outlineWidth = outline.width;
-    data.box.outlineOffset = 0;
+    data.box.outlineOffset = stateOutline?.offset ?? 0;
     data.box.outlineColor = colorIntToFloat32(
       cssColorToHex(color),
       cssColorToAlpha(color),

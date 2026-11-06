@@ -3,6 +3,7 @@ import { CATALOG_AUTHORED_PAINT_KEYS } from "./authoredStyle";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import { catalogCurrentTextWeight } from "../resolvers/resolveCatalogRuleCanvasBox";
 import { installedBaseFontFamily } from "./themeMaps";
+import { DEFAULT_FONT_FAMILY } from "./fontDefaults";
 
 /**
  * ADR-248 — one box model per resolved catalog node. The Rust layout input (`compositionRoot`)
@@ -22,7 +23,7 @@ export function catalogGlyphSize(
 ): number | undefined {
   const authored = node.visual.fontSize;
   if (typeof authored === "number" && authored > 0) return authored;
-  const scale = node.visual.iconSize;
+  const scale = node.derivedProps?.iconSize ?? node.visual.iconSize;
   return typeof scale === "number" ? scale : undefined;
 }
 export interface CatalogBoxModel {
@@ -141,6 +142,22 @@ export function catalogBoxModel(node: CatalogConsumerNode): CatalogBoxModel {
         paddingRight: pickerInvalidGlyph(node.props.size).inset,
       },
     };
+  if (
+    node.derivedProps?._fieldPartWidth !== undefined ||
+    node.derivedProps?._fieldPartHeight !== undefined
+  )
+    node = {
+      ...node,
+      visual: {
+        ...node.visual,
+        ...(node.derivedProps._fieldPartWidth !== undefined
+          ? { width: node.derivedProps._fieldPartWidth }
+          : {}),
+        ...(node.derivedProps._fieldPartHeight !== undefined
+          ? { height: node.derivedProps._fieldPartHeight }
+          : {}),
+      },
+    };
   const layout = node.layout;
   const paddingX = length(node.visual.paddingX ?? node.visual.padding);
   const paddingY = length(node.visual.paddingY ?? node.visual.padding);
@@ -161,7 +178,6 @@ export function catalogBoxModel(node: CatalogConsumerNode): CatalogBoxModel {
   if (layout.justifyContent) model.justifyContent = layout.justifyContent;
   if (layout.flexWrap) model.flexWrap = layout.flexWrap;
   const actionVertical =
-    node.bindingId === "actionbutton" &&
     node.derivedProps?._inActionGroup === true &&
     node.derivedProps.orientation === "vertical";
   const width = length(
@@ -214,6 +230,7 @@ export function catalogBoxModel(node: CatalogConsumerNode): CatalogBoxModel {
  * consumer's default. The Canvas paragraph, the layout measure and the DOM style read this.
  */
 export interface CatalogTextTypography {
+  locale?: string;
   fontFamily?: string;
   fontStyle?: string;
   letterSpacing?: number;
@@ -235,6 +252,8 @@ export function catalogTextTypography(
   };
   const letterSpacing = read("letterSpacing");
   const typography: CatalogTextTypography = {};
+  if (typeof node.inheritedText?.fontLocale === "string")
+    typography.locale = node.inheritedText.fontLocale;
   for (const key of [
     "fontFamily",
     "fontStyle",
@@ -273,14 +292,16 @@ const GENERIC_FAMILIES = new Set([
 ]);
 /**
  * A CSS font-family list as Canvas paragraph families: named families in order, then the
- * default Pretendard (the Canvas cannot resolve a generic family; the DOM default is the same).
+ * catalog default (the Canvas cannot resolve a generic family; the DOM default is the same).
  */
 export function catalogFontFamilies(fontFamily: string | undefined): string[] {
   const named = (fontFamily ?? "")
     .split(",")
     .map((family) => family.trim().replace(/^["']|["']$/g, ""))
     .filter((family) => family && !GENERIC_FAMILIES.has(family.toLowerCase()));
-  return named.includes("Pretendard") ? named : [...named, "Pretendard"];
+  return named.includes(DEFAULT_FONT_FAMILY)
+    ? named
+    : [...named, DEFAULT_FONT_FAMILY];
 }
 
 /**

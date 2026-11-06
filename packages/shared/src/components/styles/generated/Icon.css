@@ -42,6 +42,14 @@
   background: transparent;
 }
 
+.react-aria-Icon:where([data-variant="default"][data-search-field-part]) {
+  color: var(--neutral-content);
+}
+
+.react-aria-Icon:where([data-variant="default"][data-search-field-part][data-disabled]) {
+  color: var(--fg-disabled);
+}
+
 .react-aria-Icon[data-size="XS"] {
   height: 14px;
   padding: 0px 0px;

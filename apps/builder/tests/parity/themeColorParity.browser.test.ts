@@ -54,14 +54,14 @@ const CATALOG_COLOR_KEYS = [
 const canvas = document.createElement("canvas");
 canvas.width = canvas.height = 1;
 const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
-/** 계산된 CSS 색 (rgb · oklch · color(srgb …)) → `#rrggbb` (sRGB 8 bit, 불투명 위). */
+/** 계산된 CSS 색 → `#rrggbbaa`. 반투명 overlay도 alpha까지 비교한다. */
 function toHex(color: string): string {
   ctx.clearRect(0, 0, 1, 1);
   ctx.fillStyle = "#000000";
   ctx.fillStyle = color;
   ctx.fillRect(0, 0, 1, 1);
-  const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
-  return `#${[r, g, b].map((v) => v!.toString(16).padStart(2, "0")).join("")}`;
+  const rgba = ctx.getImageData(0, 0, 1, 1).data;
+  return `#${Array.from(rgba, (v) => v.toString(16).padStart(2, "0")).join("")}`;
 }
 
 const probe = document.createElement("div");
@@ -106,7 +106,7 @@ function diverged(
   const out: string[] = [];
   for (const key of keys) {
     const skia = snapshot.colors[mode][key];
-    if (!skia || !/^#[0-9a-f]{6}$/i.test(skia)) {
+    if (!skia || !/^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(skia)) {
       out.push(`${key}: Skia 값 ${skia}`);
       continue;
     }
@@ -114,7 +114,7 @@ function diverged(
     const slot = /^var\((--[a-z0-9-]+)/i.exec(mapped)?.[1];
     const viaTable = domColor(mapped);
     const viaSlot = slot ? domColor(`var(${slot})`) : viaTable;
-    const want = skia.toLowerCase();
+    const want = skia.toLowerCase() + (skia.length === 7 ? "ff" : "");
     if (viaTable !== want || viaSlot !== want)
       out.push(
         `${key}: Skia ${want} · DOM ${viaTable}${viaSlot !== viaTable ? ` · 폴백 없는 ${slot} ${viaSlot}` : ""}`,

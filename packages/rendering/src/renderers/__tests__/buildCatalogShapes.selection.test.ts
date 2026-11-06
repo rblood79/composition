@@ -215,7 +215,7 @@ describe("skiaPrimitive 'radio' — Radio indicator (rule 미러 절대값)", ()
   for (const [name, size] of Object.entries(sizes)) {
     const outerRadius = size.indicator!.boxSize! / 2;
     for (const variant of variants) {
-      it(`${variant}/${name}/미선택 — ring(반지름 ${outerRadius}, fillAlpha 0) + border, dot 없음`, () => {
+      it(`${variant}/${name}/미선택 — ring(반지름 ${outerRadius}, opaque fill) + border, dot 없음`, () => {
         const shapes = draw.radio({
           props: { variant, isSelected: false, _hasChildren: true },
           size,
@@ -227,7 +227,7 @@ describe("skiaPrimitive 'radio' — Radio indicator (rule 미러 절대값)", ()
           { type: "circle" }
         >;
         expect(ring.radius).toBe(outerRadius);
-        expect((ring as { fillAlpha?: number }).fillAlpha).toBe(0);
+        expect((ring as { fillAlpha?: number }).fillAlpha).toBeUndefined();
         // 미선택: ring + border = 2 shape (dot 없음)
         expect(shapes).toHaveLength(2);
         const border = shapes.find((s) => s.type === "border");
@@ -256,7 +256,7 @@ describe("skiaPrimitive 'radio' — Radio indicator (rule 미러 절대값)", ()
         expect(center.x).toBe(outerRadius);
         expect(center.y).toBe(outerRadius);
         expect(center.radius).toBe(size.indicator!.dotSize! / 2);
-        expect(center.fill).toBe("{color.white}");
+        expect(center.fill).toBe(RADIO_VISUALS[variant].fill?.default.selected);
       });
     }
   }
@@ -286,7 +286,7 @@ const switchVisual = (variant: "default" | "emphasized"): ComponentVisualRule =>
   ({
     fill: {
       default: {
-        base: "{color.transparent}" as TokenRef,
+        base: "{color.base}" as TokenRef,
         hover: "{color.transparent}" as TokenRef,
         pressed: "{color.transparent}" as TokenRef,
         selected:
@@ -312,7 +312,7 @@ describe("skiaPrimitive 'switch_toggle' — Switch indicator (rule 미러 절대
           props: { variant, isSelected: false, _hasChildren: true },
           size,
           visual: switchVisual(variant),
-          style: undefined,
+          style: { indicatorColor: "{color.neutral-fill}" },
         });
         const track = shapes.find((s) => s.id === "track") as Extract<
           Shape,
@@ -321,7 +321,7 @@ describe("skiaPrimitive 'switch_toggle' — Switch indicator (rule 미러 절대
         expect(track.width).toBe(ind.trackWidth);
         expect(track.height).toBe(ind.trackHeight);
         // 미선택 track = accent-subtle (전 variant 공통)
-        expect(track.fill).toBe("{color.accent-subtle}");
+        expect(track.fill).toBe("{color.base}");
         // 미선택 → border 존재
         expect(shapes.find((s) => s.type === "border")).toBeTruthy();
         const thumb = shapes.find((s) => s.id === "thumb") as Extract<
@@ -330,7 +330,7 @@ describe("skiaPrimitive 'switch_toggle' — Switch indicator (rule 미러 절대
         >;
         // 미선택 thumb x = thumbOffset + thumbSize/2
         expect(thumb.x).toBe(ind.thumbOffset! + ind.thumbSize! / 2);
-        expect(thumb.fill).toBe("{color.neutral-subtle}");
+        expect(thumb.fill).toBe("{color.neutral-fill}");
       });
 
       it(`${variant}/${name}/선택 — track selected색 + border 없음 + thumb 우측 white`, () => {
@@ -338,7 +338,7 @@ describe("skiaPrimitive 'switch_toggle' — Switch indicator (rule 미러 절대
           props: { variant, isSelected: true, _hasChildren: true },
           size,
           visual: switchVisual(variant),
-          style: undefined,
+          style: { indicatorColor: "{color.base}" },
         });
         const track = shapes.find((s) => s.id === "track") as Extract<
           Shape,
@@ -360,7 +360,7 @@ describe("skiaPrimitive 'switch_toggle' — Switch indicator (rule 미러 절대
             ind.thumbOffset! +
             ind.thumbSize! / 2,
         );
-        expect(thumb.fill).toBe("{color.white}");
+        expect(thumb.fill).toBe("{color.base}");
       });
     }
   }

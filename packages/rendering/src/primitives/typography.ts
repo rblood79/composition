@@ -7,6 +7,11 @@
  */
 
 import type { TypographyTokens } from "../types/token.types";
+import {
+  SPECTRUM_SANS_STACK,
+  SPECTRUM_SERIF_STACK,
+  SPECTRUM_CODE_STACK,
+} from "./spectrumFonts";
 
 /**
  * ADR-295 — 글자 크기 · 행간은 S2 1.8.1 style macro 의 식이다 (`@react-spectrum/s2/style/spectrum-theme.ts`):
@@ -17,7 +22,10 @@ import type { TypographyTokens } from "../types/token.types";
 export const S2_FONT_SIZE_BASE = 14;
 export const S2_FONT_RATIO = 1.125;
 
-export function s2FontSize(step: number, base: number = S2_FONT_SIZE_BASE): number {
+export function s2FontSize(
+  step: number,
+  base: number = S2_FONT_SIZE_BASE,
+): number {
   return Math.round(base * S2_FONT_RATIO ** step);
 }
 
@@ -53,13 +61,14 @@ export const TYPOGRAPHY_STEPS = {
 } as const;
 
 /** 글자 · 행간 맵 — `base` 를 바꾸면 같은 단계 표로 다른 벌 (touch 17 — ADR-295 Phase 2). */
-export function s2TypographyTokens(base: number = S2_FONT_SIZE_BASE): TypographyTokens {
+export function s2TypographyTokens(
+  base: number = S2_FONT_SIZE_BASE,
+): TypographyTokens {
   const out: Record<string, number> = {};
   for (const [key, step] of Object.entries(TYPOGRAPHY_STEPS)) {
     const fontSize = s2FontSize(step, base);
     out[key] = fontSize;
-    if (key !== "text-md")
-      out[`${key}--line-height`] = s2LineHeight(fontSize);
+    if (key !== "text-md") out[`${key}--line-height`] = s2LineHeight(fontSize);
   }
   return out as unknown as TypographyTokens;
 }
@@ -73,8 +82,9 @@ export const typography: TypographyTokens = s2TypographyTokens();
  * 폰트 패밀리
  */
 export const fontFamily = {
-  sans: "Pretendard, Inter, system-ui, -apple-system, sans-serif",
-  mono: "JetBrains Mono, Consolas, monospace",
+  sans: SPECTRUM_SANS_STACK,
+  serif: SPECTRUM_SERIF_STACK,
+  mono: SPECTRUM_CODE_STACK,
 };
 
 /**

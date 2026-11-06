@@ -33,7 +33,6 @@ const REMOVED: ReadonlyArray<readonly [string, string, unknown]> = [
   ["ColorSwatchPicker", "density", "compact"],
   ["ColorSwatchPicker", "rounding", "full"],
   ["ColorPicker", "defaultValue", "#ff0000"],
-  ["ToggleButtonGroup", "isQuiet", true],
   ["GridListItem", "children", "Old"],
   ["Tag", "children", "Old"],
   // (2026-10-14 「한쪽만 반영되는 칸 고쳐」 · 「지금은 제거」: the DOM re-tinted the Card's subtree, the
@@ -129,7 +128,6 @@ describe("props no consumer read are not registered", () => {
       "CardView",
       "ColorSwatchPicker",
       "ColorPicker",
-      "ToggleButtonGroup",
       "Card",
     ]) {
       const { library, workspace } = await open(type);

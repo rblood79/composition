@@ -87,12 +87,14 @@ export function resolveCatalogPaint({
     isHovered: interactionState === "hover",
     isExpanded: props._overlayOpen === true,
     isPicker: props._pickerTrigger === true,
+    isSearchFieldPart: props._searchFieldPart === true,
     isPressed: interactionState === "pressed",
     isFocused: props._isFocused === true,
     isFocusVisible: props._isFocusVisible === true,
     inPopover: props._inPopover === true,
     isSelected,
     isEmphasized: props.isEmphasized === true,
+    isInvalid: props.isInvalid === true,
     isQuiet: props.isQuiet === true,
     // ADR-297 3h #7 — S2 disabled is a color (`Button.tsx` `isDisabled: 'disabled'`), not opacity; the
     //   record's `isDisabled` (own · inherited — `presence.ts`) is the DOM's `data-disabled`.
@@ -138,9 +140,12 @@ export function resolveCatalogPaint({
 
   // catalog 이 준 테두리 (variant 트리 · static 가지) — 사용자 인라인 border 는 아래 borderColor 에만.
   const catalogBorderColor = isShowAll ? undefined : state.border;
-  const borderColor = isShowAll
+  const borderValue = isShowAll
     ? undefined
     : ((style?.borderColor as string | undefined) ?? catalogBorderColor);
+
+  // CSS currentColor는 상태/사용자 스타일을 적용한 최종 글자색을 따른다.
+  const borderColor = borderValue === "currentColor" ? color : borderValue;
 
   const hasVisibleBoxPaint =
     style?.backgroundColor != null ||

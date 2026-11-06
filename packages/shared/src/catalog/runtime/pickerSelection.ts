@@ -1,4 +1,5 @@
 import type { CatalogConsumerNode } from "./compositionRoot";
+import { resolveStaticItemKey } from "../slotRoles";
 
 type Lookup = (id: string) => CatalogConsumerNode | undefined;
 type TypeOf = (node: CatalogConsumerNode) => string;
@@ -59,6 +60,23 @@ export function catalogPickerOptions(
   };
   visit(owner);
   return items;
+}
+
+/** The initial ComboBox selection is shared by RAC and its Canvas input text. */
+export function catalogComboBoxSelectedOption(
+  owner: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
+) {
+  const key = owner.props.selectedKey;
+  return catalogPickerOptions(owner, get, typeOf).find((item) =>
+    key === undefined
+      ? item.props.isSelected === true
+      : key != null &&
+        String(
+          resolveStaticItemKey(item.props as Record<string, unknown>, item.id),
+        ) === String(key),
+  );
 }
 
 /** 목록 항목의 실제 selection 부품. 선택 동작은 RAC 항목이 소유한다. */

@@ -1,4 +1,5 @@
 import { isRichText } from "../document/textRuns";
+import { catalogPartConditionProps } from "../document/derivedVariantProps";
 import type {
   AuthoredValue,
   RichText,
@@ -1208,7 +1209,10 @@ export function resolveCatalogNode(
             (viaType !== undefined && rule.child.via === viaType)) &&
           matches(rule.child.props, props) &&
           (!via || matches(rule.child.viaProps, owner.props)) &&
-          matches(rule.when, ownerProps) &&
+          matches(
+            rule.when,
+            catalogPartConditionProps(ownerDefinition.name, ownerProps),
+          ) &&
           (rule.state === undefined ||
             rule.state === (ruleOwner.state ?? state))
         ) {
@@ -1484,11 +1488,7 @@ export function resolveCatalogNode(
     if (group.props.isEmphasized === true) props.isEmphasized = true;
     else delete props.isEmphasized;
   };
-  /**
-   * A group's state that turns its toggles on (`CATALOG_GROUP_TURNS_ON`, 2026-10-14): a
-   * ToggleButtonGroup's Emphasized · Disabled reach its buttons — the toggle's own value stays
-   * when the group's is off (the DOM's `own || group`).
-   */
+  /** 그룹의 상태 상속: S2 ToggleButton은 명시적인 false도 자식 값보다 우선한다. */
   const applyGroupTurnsOn = (
     definitionId: DefinitionId,
     props: Props,
@@ -1501,7 +1501,11 @@ export function resolveCatalogNode(
       group = structuralParent(group.parent);
     if (!group) return;
     for (const key of entry.keys)
-      if (group.props[key] === true) props[key] = true;
+      if (
+        group.props[key] === true ||
+        (entry.overridesFalse && group.props[key] === false)
+      )
+        props[key] = group.props[key];
   };
   /**
    * S2 CardView context (`CATALOG_VARIANT_FROM_OWNER`, 2026-10-10): CardView 의 `variant` 를

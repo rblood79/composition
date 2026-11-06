@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ToggleButton as RACToggleButton } from "react-aria-components/ToggleButton";
+import { ToggleButton } from "./ToggleButton";
 import { ToggleButtonGroup as RACToggleButtonGroup } from "react-aria-components/ToggleButtonGroup";
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import type { ToggleButtonGroupProps } from "react-aria-components/ToggleButtonGroup";
@@ -7,15 +7,14 @@ import type {
   DataBinding,
   ColumnMapping,
   DataBindingValue,
-  ComponentSizeSubset,
+  ComponentSize,
   StaticColor,
 } from "../types";
 import { useCollectionData } from "../hooks";
 import {
-  ToggleButtonGroupEmphasizedContext,
+  ToggleButtonGroupVisualContext,
   ToggleButtonGroupIndicatorContext,
   ToggleButtonGroupMembershipContext,
-  ToggleButtonGroupStaticColorContext,
 } from "./ToggleButtonGroupContext";
 // CSS: styles/generated/ToggleButtonGroup.css + styles/ToggleButtonGroup.css (staticColor × indicator 조합
 // 전용 수동 — ToggleButton.css 동형). 기본(segmented) 모드는 자식 ToggleButton 의 수동 CSS 가 담당한다.
@@ -38,10 +37,10 @@ export interface ToggleButtonGroupExtendedProps extends ToggleButtonGroupProps {
    * Size for child ToggleButton buttons
    * @default 'M'
    */
-  size?: ComponentSizeSubset;
+  size?: ComponentSize;
   /**
    * S2 density — Spectrum ActionGroup 규칙: 폰트·아이콘 크기는 그대로 두고 간격만 바꾸며,
-   * `compact` 에서는 버튼이 **연결**된다(양끝만 radius + `-1px` 겹침 = 단일 bar).
+   * `compact` 에서는 버튼 간격이 2px이고 양끝 모서리만 둥글다.
    * `regular` 는 버튼이 분리되고 그 사이에 gap 이 생긴다.
    * 시각 규칙은 generated CSS 의 `[data-density]` 가 담당한다 (catalog SSOT).
    * @default 'regular'
@@ -50,7 +49,7 @@ export interface ToggleButtonGroupExtendedProps extends ToggleButtonGroupProps {
   /**
    * 유색/이미지 배경 위 고정 흑백 스킴 (RSP S2). 그룹 자신의 시각(배경 transparent)은
    * 바뀌지 않고 **자식 ToggleButton 으로 상속**된다 — RSP S2 ActionButtonGroup 정의 동형.
-   * 자식이 자기 `staticColor` 를 `auto` 가 아닌 값으로 지정하면 자식 값이 우선.
+   * 그룹에 지정된 값이 자식 값보다 우선한다.
    * @default 'auto'
    */
   staticColor?: StaticColor;
@@ -66,11 +65,11 @@ export interface ToggleButtonGroupExtendedProps extends ToggleButtonGroupProps {
 
 export function ToggleButtonGroup({
   indicator = false,
-  isEmphasized = false,
-  isQuiet = false,
-  size = "M",
+  isEmphasized,
+  isQuiet,
+  size,
   density = "regular",
-  staticColor = "auto",
+  staticColor,
   isJustified = false,
   dataBinding,
   columnMapping,
@@ -119,34 +118,43 @@ export function ToggleButtonGroup({
       data-indicator={indicator ? "true" : "false"}
       data-emphasized={isEmphasized || undefined}
       data-quiet={isQuiet || undefined}
-      data-size={size}
+      data-size={size ?? "M"}
       data-density={density}
-      data-static-color={staticColor}
+      data-static-color={staticColor ?? "auto"}
       data-justified={isJustified || undefined}
       className={toggleButtonGroupClassName}
       isDisabled={isDisabled || props.isDisabled}
     >
       <ToggleButtonGroupMembershipContext.Provider value={true}>
-        <ToggleButtonGroupEmphasizedContext.Provider value={isEmphasized}>
+        <ToggleButtonGroupVisualContext.Provider
+          value={{
+            size,
+            isEmphasized,
+            isQuiet,
+            isDisabled: isDisabled || props.isDisabled,
+            staticColor,
+            density,
+            orientation: props.orientation ?? "horizontal",
+            isJustified,
+          }}
+        >
           <ToggleButtonGroupIndicatorContext.Provider value={indicator}>
-            <ToggleButtonGroupStaticColorContext.Provider value={staticColor}>
-              {content}
-            </ToggleButtonGroupStaticColorContext.Provider>
+            {content}
           </ToggleButtonGroupIndicatorContext.Provider>
-        </ToggleButtonGroupEmphasizedContext.Provider>
+        </ToggleButtonGroupVisualContext.Provider>
       </ToggleButtonGroupMembershipContext.Provider>
     </RACToggleButtonGroup>
   );
 
   const loadingContent = (
-    <RACToggleButton className="react-aria-ToggleButton button-base">
+    <ToggleButton className="react-aria-ToggleButton button-base">
       {t("loading")}
-    </RACToggleButton>
+    </ToggleButton>
   );
   const errorContent = (
-    <RACToggleButton className="react-aria-ToggleButton button-base">
+    <ToggleButton className="react-aria-ToggleButton button-base">
       {t("error")}
-    </RACToggleButton>
+    </ToggleButton>
   );
 
   if (hasDataBinding && columnMapping) {
@@ -168,14 +176,14 @@ export function ToggleButtonGroup({
       }));
       return shell(
         buttonItems.map((item) => (
-          <RACToggleButton
+          <ToggleButton
             key={item.id}
             id={item.id}
             isDisabled={item.isDisabled}
             className="react-aria-ToggleButton button-base"
           >
             {item.label}
-          </RACToggleButton>
+          </ToggleButton>
         )),
       );
     }

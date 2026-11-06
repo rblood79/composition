@@ -22,7 +22,7 @@
   position: relative;
 
   /* Default variant */
-  color: var(--fg);
+  color: var(--neutral-content);
   border: none;
 
   /* Default size */
@@ -34,11 +34,43 @@
 }
 
 .react-aria-Switch:where([data-variant="default"]) {
-  color: var(--fg);
+  color: var(--neutral-content);
+}
+
+.react-aria-Switch:where([data-variant="default"][data-hovered]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-Switch:where([data-variant="default"][data-focus-visible]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-Switch:where([data-variant="default"][data-pressed]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-Switch:where([data-variant="default"][data-disabled]) {
+  color: var(--fg-disabled);
 }
 
 .react-aria-Switch:where([data-variant="emphasized"]) {
-  color: var(--fg);
+  color: var(--neutral-content);
+}
+
+.react-aria-Switch:where([data-variant="emphasized"][data-hovered]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-Switch:where([data-variant="emphasized"][data-focus-visible]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-Switch:where([data-variant="emphasized"][data-pressed]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-Switch:where([data-variant="emphasized"][data-disabled]) {
+  color: var(--fg-disabled);
 }
 
 .react-aria-Switch[data-size="S"] {
@@ -73,51 +105,115 @@
   gap: var(--catalog-token-switch-gap-XL, calc(var(--catalog-token-text-lg) * 10 / 14));
 }
 
-.react-aria-Switch.react-aria-Switch:where([data-focus-visible]) {
+.react-aria-Switch.react-aria-Switch:where([data-disabled]) {
+  cursor: not-allowed;
+}
+
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton {
+  color: var(--neutral-content);
+}
+
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-hovered]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-focus-visible]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-pressed]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-disabled]) {
+  color: var(--fg-disabled);
+}
+
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton .indicator {
+  border-color: var(--neutral-fill);
+  background: var(--bg);
+}
+
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-hovered]) .indicator {
+  border-color: var(--neutral-fill-hover);
+}
+
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-focus-visible]) .indicator {
+  border-color: var(--neutral-fill-hover);
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-Switch.react-aria-Switch:where([data-disabled]) {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-pressed]) .indicator {
+  border-color: var(--neutral-fill-hover);
+}
+
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-disabled]) .indicator {
+  border-color: var(--fg-disabled);
 }
 
 .react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-selected]) .indicator {
-  border-color: var(--switch-color);
-  background: var(--switch-color);
+  border-color: transparent;
+  background: var(--neutral-fill);
 }
 
-.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-pressed]) .indicator {
-  border-color: var(--border-hover);
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-selected][data-hovered]) .indicator {
+  background: var(--neutral-fill-hover);
 }
 
-.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-pressed][data-selected]) .indicator {
-  border-color: color-mix(in srgb, var(--switch-color) 75%, black);
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-selected][data-focus-visible]) .indicator {
+  background: var(--neutral-fill-hover);
 }
 
 .react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-selected][data-pressed]) .indicator {
-  background: color-mix(in srgb, var(--switch-color) 75%, black);
+  background: var(--neutral-fill-hover);
 }
 
-.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-focus-visible]) .indicator {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-selected][data-emphasized]) .indicator {
+  background: var(--selection-accent);
 }
 
-.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-selected]) .indicator::before {
-  background: var(--switch-thumb-color);
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-selected][data-emphasized][data-hovered]) .indicator {
+  background: var(--selection-accent-hover);
 }
 
-.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-pressed]) .indicator::before {
-  background: var(--bg-emphasis);
-  transform: perspective(max(var(--catalog-press-height, 0px), calc(var(--catalog-press-width, 0px) / 3), 24px)) translate3d(0, 0, -2px);
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-selected][data-emphasized][data-focus-visible]) .indicator {
+  background: var(--selection-accent-hover);
+}
+
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-selected][data-emphasized][data-pressed]) .indicator {
+  background: var(--selection-accent-hover);
+}
+
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-selected][data-disabled]) .indicator {
+  background: var(--fg-disabled);
 }
 
 .react-aria-Switch.react-aria-Switch .react-aria-SwitchButton .indicator::before {
+  background: var(--neutral-fill);
   transform-origin: center;
   will-change: transform;
+}
+
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-hovered]) .indicator::before {
+  background: var(--neutral-fill-hover);
+}
+
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-focus-visible]) .indicator::before {
+  background: var(--neutral-fill-hover);
+}
+
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-pressed]) .indicator::before {
+  background: var(--neutral-fill-hover);
+  transform: perspective(max(var(--catalog-press-height, 0px), calc(var(--catalog-press-width, 0px) / 3), 24px)) translate3d(0, 0, -2px);
+}
+
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-disabled]) .indicator::before {
+  background: var(--fg-disabled);
+}
+
+.react-aria-Switch.react-aria-Switch .react-aria-SwitchButton:where([data-selected]) .indicator::before {
+  background: var(--bg);
 }
 
 /* ── Tier 2: Composite Delegation ── */
@@ -155,11 +251,6 @@
     display: inline-flex;
     align-items: center;
     gap: var(--sw-button-gap);
-  }
-
-  .react-aria-Switch .react-aria-SwitchButton[data-focus-visible] {
-    outline: var(--focus-ring-width) solid var(--focus-ring);
-    outline-offset: var(--focus-ring-offset);
   }
 
 

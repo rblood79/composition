@@ -37,18 +37,21 @@ export const CATALOG_EMPHASIS_FROM_GROUP: Readonly<Record<string, string>> = {
   Radio: "RadioGroup",
 };
 
-/**
- * A group's boolean state that turns its toggles on (2026-10-14 — 전에는 DOM 만 받았다): S2
- * ToggleButtonGroup 의 `isEmphasized` (shared `ToggleButton` `isEmphasized || groupEmphasized`) 와
- * RAC ToggleButtonGroup 의 `isDisabled` (그룹 state 가 모든 버튼을 끈다) — 그룹이 켜면 버튼도
- * 켜지고, 그룹이 안 켰으면 버튼 자기 값이다. resolver `applyGroupTurnsOn`.
- */
+/** RAC 그룹 disabled는 자식의 false로 해제하지 않는다. 시각 prop은 presence에서 상속한다. */
 export const CATALOG_GROUP_TURNS_ON: Readonly<
-  Record<string, { readonly group: string; readonly keys: readonly string[] }>
+  Record<
+    string,
+    {
+      readonly group: string;
+      readonly keys: readonly string[];
+      readonly overridesFalse?: boolean;
+    }
+  >
 > = {
   ToggleButton: {
     group: "ToggleButtonGroup",
-    keys: ["isEmphasized", "isDisabled"],
+    keys: ["isDisabled"],
+    overridesFalse: true,
   },
   // S2 ListView `isQuiet` is its items' (the item rule's `quiet` variant — `CATALOG_BOOLEAN_VARIANTS`):
   //   전에는 어느 쪽도 항목에 닿지 않았다 (shared GridList 의 데이터 행 경로만 읽었다).
@@ -104,7 +107,7 @@ const visibleMonthsOf: PropValueMigration = (value) =>
  *
  * - CardView `density` · `selectionStyle` (S2 — no density sheet, no selection style; `layout` was
  *   dropped too until 2026-10-26, when `waterfall` came in — `runtime/waterfall.ts`), ColorSwatchPicker `density` · `rounding` (S2 — never passed to the
- *   swatches), ToggleButtonGroup `isQuiet` (S2 — no context to the buttons, no sheet).
+ *   swatches).
  * - ColorPicker `defaultValue` (its children hold their own values — the picker is a box).
  * - GridListItem · Tag `children`: the item's text is its Text node's (`itemTextChildren`).
  * - Card `accentColor` (composition 확장 — S2 Card 에 없음, 2026-10-14 「한쪽만 반영되는 칸 고쳐」 ·
@@ -115,7 +118,6 @@ const UNUSED_PROPS = {
   CardView: { density: dropOf, selectionStyle: dropOf },
   ColorSwatchPicker: { density: dropOf, rounding: dropOf },
   ColorPicker: { defaultValue: dropOf },
-  ToggleButtonGroup: { isQuiet: dropOf },
   GridListItem: { children: dropOf },
   Tag: { children: dropOf },
   Card: { accentColor: dropOf },
@@ -203,7 +205,6 @@ export const CATALOG_S2_PROP_MIGRATIONS: Readonly<
   // (ColorSwatchPicker · ColorPicker: their `variant` too — 조사 §4.2 F, above.)
   ColorSwatchPicker: { variant: dropOf, ...UNUSED_PROPS.ColorSwatchPicker },
   ColorPicker: { variant: dropOf, ...UNUSED_PROPS.ColorPicker },
-  ToggleButtonGroup: UNUSED_PROPS.ToggleButtonGroup,
   GridListItem: UNUSED_PROPS.GridListItem,
   Tag: UNUSED_PROPS.Tag,
   Card: UNUSED_PROPS.Card,

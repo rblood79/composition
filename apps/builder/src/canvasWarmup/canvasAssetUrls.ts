@@ -4,6 +4,7 @@
  * 항목이 된다. 로더 모듈을 미리 받기 chunk 가 import 하지 않도록 (정적 가드) URL 만 여기에 둔다.
  */
 import canvaskitWasmUrl from "canvaskit-wasm/bin/canvaskit.wasm?url";
+import { SPECTRUM_SANS_FONT } from "@composition/rendering";
 
 /** CanvasKit wasm — 빌드 산출물 `assets/canvaskit-<hash>.wasm` (ADR-244 D). */
 export const CANVASKIT_WASM_URL: string = canvaskitWasmUrl;
@@ -34,6 +35,7 @@ export function builtinSkiaFonts(): ReadonlyArray<{
   browserUrl?: string;
 }> {
   return [
+    SPECTRUM_SANS_FONT,
     {
       family: "Pretendard",
       url: fontUrl("fonts/PretendardVariable.ttf"),

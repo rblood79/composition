@@ -28,8 +28,8 @@
   position: relative;
 
   /* Default variant */
-  background: var(--bg-muted);
-  color: var(--fg);
+  background: var(--neutral-surface);
+  color: var(--neutral-content);
   border: 0px solid transparent;
 
   /* Default size */
@@ -45,19 +45,29 @@
 }
 
 .react-aria-ActionButton:where([data-variant="default"]) {
-  background: var(--bg-muted);
+  background: var(--neutral-surface);
+  color: var(--neutral-content);
+  border-color: transparent;
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-hovered]) {
-  background: var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black));
+  background: var(--neutral-surface-hover);
+  color: var(--neutral-content-hover);
 }
 
 .react-aria-ActionButton:where([data-variant="default"][aria-expanded="true"]) {
-  background: var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black));
+  background: var(--neutral-surface-hover);
+  color: var(--neutral-content-hover);
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-pressed]) {
-  background: var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black));
+  background: var(--neutral-surface-hover);
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-focus-visible]) {
+  background: var(--neutral-surface-hover);
+  color: var(--neutral-content-hover);
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-quiet]) {
@@ -65,31 +75,91 @@
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-quiet][data-hovered]) {
-  background: var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black));
+  background: var(--neutral-surface-hover);
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-quiet][aria-expanded="true"]) {
-  background: var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black));
+  background: var(--neutral-surface-hover);
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-quiet][data-pressed]) {
-  background: var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black));
+  background: var(--neutral-surface-hover);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-quiet][data-focus-visible]) {
+  background: var(--neutral-surface-hover);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-selected]) {
+  background: var(--neutral-fill);
+  color: var(--on-neutral);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-selected][data-hovered]) {
+  background: var(--neutral-fill-hover);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-selected][aria-expanded="true"]) {
+  background: var(--neutral-fill-hover);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-selected][data-pressed]) {
+  background: var(--neutral-fill-hover);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-selected][data-focus-visible]) {
+  background: var(--neutral-fill-hover);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-selected][data-emphasized]) {
+  background: var(--accent-fill);
+  color: var(--fg-on-accent);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-selected][data-emphasized][data-hovered]) {
+  background: var(--accent-fill-hover);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-selected][data-emphasized][aria-expanded="true"]) {
+  background: var(--accent-fill-hover);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-selected][data-emphasized][data-pressed]) {
+  background: var(--accent-fill-hover);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-selected][data-emphasized][data-focus-visible]) {
+  background: var(--accent-fill-hover);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-disabled]) {
+  background: var(--neutral-surface);
+  color: var(--fg-disabled);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-disabled][data-quiet]) {
+  background: transparent;
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-static-color="black"]) {
-  background: rgb(0 0 0 / 0.1);
+  background: rgb(0 0 0 / 0.11);
+  color: #000000;
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-static-color="black"][data-hovered]) {
-  background: rgb(0 0 0 / 0.2);
+  background: rgb(0 0 0 / 0.14);
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-static-color="black"][aria-expanded="true"]) {
-  background: rgb(0 0 0 / 0.2);
+  background: rgb(0 0 0 / 0.14);
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-static-color="black"][data-pressed]) {
-  background: rgb(0 0 0 / 0.2);
+  background: rgb(0 0 0 / 0.14);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-static-color="black"][data-focus-visible]) {
+  background: rgb(0 0 0 / 0.14);
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-static-color="black"][data-quiet]) {
@@ -97,31 +167,70 @@
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-static-color="black"][data-quiet][data-hovered]) {
-  background: rgb(0 0 0 / 0.2);
+  background: rgb(0 0 0 / 0.14);
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-static-color="black"][data-quiet][aria-expanded="true"]) {
-  background: rgb(0 0 0 / 0.2);
+  background: rgb(0 0 0 / 0.14);
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-static-color="black"][data-quiet][data-pressed]) {
-  background: rgb(0 0 0 / 0.2);
+  background: rgb(0 0 0 / 0.14);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-static-color="black"][data-quiet][data-focus-visible]) {
+  background: rgb(0 0 0 / 0.14);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-static-color="black"][data-selected]) {
+  background: rgb(0 0 0 / 0.85);
+  color: #ffffff;
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-static-color="black"][data-selected][data-hovered]) {
+  background: rgb(0 0 0 / 0.94);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-static-color="black"][data-selected][aria-expanded="true"]) {
+  background: rgb(0 0 0 / 0.94);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-static-color="black"][data-selected][data-pressed]) {
+  background: rgb(0 0 0 / 0.94);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-static-color="black"][data-selected][data-focus-visible]) {
+  background: rgb(0 0 0 / 0.94);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-static-color="black"][data-disabled]) {
+  background: rgb(0 0 0 / 0.11);
+  color: rgb(0 0 0 / 0.21);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-static-color="black"][data-disabled][data-quiet]) {
+  background: transparent;
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-static-color="white"]) {
-  background: rgb(255 255 255 / 0.1);
+  background: rgb(255 255 255 / 0.11);
+  color: #ffffff;
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-static-color="white"][data-hovered]) {
-  background: rgb(255 255 255 / 0.2);
+  background: rgb(255 255 255 / 0.14);
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-static-color="white"][aria-expanded="true"]) {
-  background: rgb(255 255 255 / 0.2);
+  background: rgb(255 255 255 / 0.14);
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-static-color="white"][data-pressed]) {
-  background: rgb(255 255 255 / 0.2);
+  background: rgb(255 255 255 / 0.14);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-static-color="white"][data-focus-visible]) {
+  background: rgb(255 255 255 / 0.14);
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-static-color="white"][data-quiet]) {
@@ -129,43 +238,49 @@
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-static-color="white"][data-quiet][data-hovered]) {
-  background: rgb(255 255 255 / 0.2);
+  background: rgb(255 255 255 / 0.14);
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-static-color="white"][data-quiet][aria-expanded="true"]) {
-  background: rgb(255 255 255 / 0.2);
+  background: rgb(255 255 255 / 0.14);
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-static-color="white"][data-quiet][data-pressed]) {
-  background: rgb(255 255 255 / 0.2);
+  background: rgb(255 255 255 / 0.14);
 }
 
-.react-aria-ActionButton:where([data-variant="default"]) {
-  color: var(--fg);
+.react-aria-ActionButton:where([data-variant="default"][data-static-color="white"][data-quiet][data-focus-visible]) {
+  background: rgb(255 255 255 / 0.14);
 }
 
-.react-aria-ActionButton:where([data-variant="default"][data-disabled]) {
-  color: var(--fg-muted);
-}
-
-.react-aria-ActionButton:where([data-variant="default"][data-static-color="black"]) {
+.react-aria-ActionButton:where([data-variant="default"][data-static-color="white"][data-selected]) {
+  background: rgb(255 255 255 / 0.85);
   color: #000000;
 }
 
-.react-aria-ActionButton:where([data-variant="default"][data-static-color="black"][data-disabled]) {
-  color: rgb(0 0 0 / 0.4);
+.react-aria-ActionButton:where([data-variant="default"][data-static-color="white"][data-selected][data-hovered]) {
+  background: rgb(255 255 255 / 0.94);
 }
 
-.react-aria-ActionButton:where([data-variant="default"][data-static-color="white"]) {
-  color: #ffffff;
+.react-aria-ActionButton:where([data-variant="default"][data-static-color="white"][data-selected][aria-expanded="true"]) {
+  background: rgb(255 255 255 / 0.94);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-static-color="white"][data-selected][data-pressed]) {
+  background: rgb(255 255 255 / 0.94);
+}
+
+.react-aria-ActionButton:where([data-variant="default"][data-static-color="white"][data-selected][data-focus-visible]) {
+  background: rgb(255 255 255 / 0.94);
 }
 
 .react-aria-ActionButton:where([data-variant="default"][data-static-color="white"][data-disabled]) {
-  color: rgb(255 255 255 / 0.4);
+  background: rgb(255 255 255 / 0.11);
+  color: rgb(255 255 255 / 0.21);
 }
 
-.react-aria-ActionButton:where([data-variant="default"]) {
-  border-color: transparent;
+.react-aria-ActionButton:where([data-variant="default"][data-static-color="white"][data-disabled][data-quiet]) {
+  background: transparent;
 }
 
 .react-aria-ActionButton[data-icon-only] {
@@ -176,7 +291,7 @@
 .react-aria-ActionButton[data-size="XS"] {
   padding: calc((var(--catalog-token-size-height-XS) - var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height) - 2 * 0px) / 2) var(--catalog-token-action-button-padding-x-XS, calc(var(--catalog-token-size-height-XS) * 3 / 8));
   font-size: var(--catalog-token-text-2xs);
-  border-radius: var(--catalog-token-radius-sm);
+  border-radius: 6px;
   line-height: var(--catalog-token-text-2xs--line-height);
   font-weight: 500;
   border-width: 0px;
@@ -236,6 +351,14 @@
 .react-aria-ActionButton.react-aria-ActionButton:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-ActionButton.react-aria-ActionButton:where([data-focus-visible][data-static-color="black"]) {
+  outline: var(--focus-ring-width) solid #000000;
+}
+
+.react-aria-ActionButton.react-aria-ActionButton:where([data-focus-visible][data-static-color="white"]) {
+  outline: var(--focus-ring-width) solid #ffffff;
 }
 
 .react-aria-ActionButton.react-aria-ActionButton {
@@ -307,7 +430,7 @@
   }
 
   .react-aria-ActionButton[data-size="XS"] {
-    --action-corner: var(--catalog-token-radius-sm);
+    --action-corner: 6px;
   }
 
   .react-aria-ActionButton[data-size="S"] {

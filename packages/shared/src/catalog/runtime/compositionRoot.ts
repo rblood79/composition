@@ -1,3 +1,4 @@
+import { catalogPartConditionProps } from "../document/derivedVariantProps";
 import {
   catalogOverlayArrowLayout,
   catalogOverlayDescriptor,
@@ -31,7 +32,11 @@ import {
   catalogInheritedReceivers,
 } from "./inheritedProps";
 import { catalogWaterfallLayout } from "./waterfall";
-import { installedBaseText } from "./themeMaps";
+import { installedBaseText, installedBaseFontFamily } from "./themeMaps";
+import {
+  DEFAULT_BASE_TYPOGRAPHY,
+  catalogLocaleFontFamily,
+} from "./fontDefaults";
 import {
   catalogIsAuthoredAbsolute,
   catalogIsAuthoredPlaced,
@@ -105,7 +110,10 @@ import {
 import {
   catalogAuthoredVisual,
   catalogHasAuthoredColor,
+  catalogHasAuthoredVisual,
+  catalogHasExplicitVisual,
 } from "./libraryVisual";
+import { catalogPickerMenuWidth } from "./pickerMenuWidth";
 import {
   catalogContainerVariantPaint,
   catalogOverlayArrowPaint,
@@ -211,7 +219,7 @@ import {
   catalogBreadcrumbSeparator,
   catalogItemLabels,
   catalogItemSlotInset,
-  catalogLabelSuffix,
+  catalogFieldLabelPart,
   catalogLabelSuffixDependents,
   catalogSliderThumbLayout,
   catalogProgressFillLayout,
@@ -435,8 +443,10 @@ function sideNavText(
 function inheritedTextOf(
   node: CatalogConsumerNode,
   get: (id: string) => CatalogConsumerNode | undefined,
+  locale?: string,
 ): Record<string, string | number | boolean> | undefined {
   const out: Record<string, string | number | boolean> = {};
+  if (locale) out.fontLocale = locale;
   let missing = CATALOG_INHERITED_TEXT_KEYS.filter(
     (key) => node.visual[key] === undefined && !ownsTextDefault(node, key),
   );
@@ -455,6 +465,12 @@ function inheritedTextOf(
       out[key] = value;
       return false;
     });
+  if (out.fontFamily === undefined && node.visual.fontFamily === undefined) {
+    const family =
+      installedBaseFontFamily() ?? DEFAULT_BASE_TYPOGRAPHY.fontFamily;
+    const localized = catalogLocaleFontFamily(family, locale);
+    if (localized !== family) out.fontFamily = localized;
+  }
   return Object.keys(out).length ? out : undefined;
 }
 /** Descendants whose inherited text reads `node` (re-planned when its text keys change). */
@@ -864,6 +880,7 @@ export function catalogPagePlacement(
 }
 /** Font inputs of one text measure (the typography the Canvas paragraph and the DOM share). */
 export interface CatalogTextFont {
+  locale?: string;
   fontSize: number;
   fontWeight: number;
   lineHeight: number;
@@ -896,6 +913,7 @@ function textLeaf(
       runs?: readonly CatalogTextRunFont[];
     }
   | undefined {
+  if (node.derivedProps?._fieldComposed === true) return undefined;
   if (node.children.length > 0 && node.bindingId !== "tokeninput")
     return undefined;
   const own = resolveTextSourceText(
@@ -966,6 +984,7 @@ function textLeaf(
           ? standaloneWeight
           : visualWeight,
       lineHeight: lineHeight > 0 ? lineHeight : 0,
+      ...(typography.locale ? { locale: typography.locale } : {}),
       ...(typography.fontFamily !== undefined
         ? { fontFamily: typography.fontFamily }
         : {}),
@@ -1046,6 +1065,7 @@ function catalogStrut(
       : (inheritedLineHeight ?? base.lineHeight);
   const typography = catalogTextTypography(node);
   const font: CatalogTextFont = {
+    ...(typography.locale ? { locale: typography.locale } : {}),
     fontSize,
     fontWeight: domFontOf?.fontWeight ?? 400,
     lineHeight: ratio,
@@ -2042,7 +2062,7 @@ export class CatalogCompositionRoot {
     return project?.kind === "project" ? project.site?.lang : undefined;
   }
   /** What RAC reads when a node sets no locale: the site's language, else the environment's. */
-  private get environmentLocale(): string | undefined {
+  get environmentLocale(): string | undefined {
     return this.siteLocale() ?? this.locale;
   }
   /** The site language the records were last resolved with (a change redraws every root). */
@@ -3026,7 +3046,11 @@ export class CatalogCompositionRoot {
       if (derivedProps) output.set(id, { ...record, derivedProps });
     }
     for (const [id, record] of output) {
-      const inheritedText = inheritedTextOf(record, get);
+      const inheritedText = inheritedTextOf(
+        record,
+        get,
+        this.environmentLocale,
+      );
       if (inheritedText) output.set(id, { ...record, inheritedText });
     }
     for (const [id, record] of output) {
@@ -3059,6 +3083,59 @@ export class CatalogCompositionRoot {
         shownRoute,
       ),
     );
+    const labelPart = catalogFieldLabelPart(record, get, this.typeOf);
+    if (labelPart) {
+      const values: Record<string, string | number | boolean> = {
+        ...baseDerived,
+      };
+      const label = labelPart.label;
+      if (labelPart.role !== "necessity-icon") {
+        for (const key of ["fontSize", "fontWeight", "lineHeight"] as const)
+          if (
+            !catalogHasExplicitVisual(this, record, key) &&
+            typeof label.visual[key] === "number"
+          )
+            values[key] = label.visual[key] as number;
+      } else {
+        const size = catalogHasExplicitVisual(this, record, "fontSize")
+          ? Number(record.visual.fontSize)
+          : catalogHasExplicitVisual(this, record, "iconSize")
+            ? Number(record.visual.iconSize)
+            : ["L", "XL"].includes(String(labelPart.field.props.size))
+              ? 10
+              : 8;
+        if (
+          !catalogHasExplicitVisual(this, record, "fontSize") &&
+          !catalogHasExplicitVisual(this, record, "iconSize")
+        )
+          values.iconSize = size;
+        if (!catalogHasExplicitVisual(this, record, "width"))
+          values._fieldPartWidth = size;
+        if (!catalogHasExplicitVisual(this, record, "height"))
+          values._fieldPartHeight = size;
+      }
+      if (!catalogHasExplicitVisual(this, record, "color")) {
+        if (catalogHasExplicitVisual(this, label, "color")) {
+          if (typeof label.visual.color === "string")
+            values.color = label.visual.color;
+        } else if (labelPart.field.props.isDisabled === true) {
+          const rule = COMPONENT_RULES_TABLE.Label;
+          const color =
+            rule &&
+            catalogRuleTextColor({
+              node: { ...label, props: { ...label.props, isDisabled: true } },
+              rule,
+              type: "Label",
+              authoredVisual: {},
+              state: "disabled",
+              theme: this.colorMode,
+            });
+          if (color !== undefined) values.color = color;
+        } else if (typeof record.visual.color === "string")
+          values.color = record.visual.color;
+      }
+      return values;
+    }
     const overlay = catalogOverlayDescriptor(record, get, this.typeOf);
     const portal =
       overlay &&
@@ -3186,12 +3263,33 @@ export class CatalogCompositionRoot {
           )?._sideNavCurrent === true,
         ),
       };
+    if (
+      derived?._searchFieldPart === true &&
+      this.typeOf(record) === "Icon" &&
+      !catalogHasAuthoredColor(this, record)
+    ) {
+      const color = catalogRuleTextColor({
+        node: { ...record, derivedProps: derived },
+        rule: COMPONENT_RULES_TABLE.Icon,
+        type: "Icon",
+        authoredVisual: {},
+        theme: this.colorMode,
+      });
+      return color === undefined ? derived : { ...derived, color };
+    }
     const pickerPartOwner =
       (derived?._pickerIcon === true || derived?._pickerValue === true) &&
       !catalogHasAuthoredColor(this, record)
         ? get(record.parentId)
         : undefined;
+    // 명시적인 currentColor 상속은 부모 part rule의 정지 색보다 우선한다.
+    // 색상을 직접 편집하면 이 경로에서 빠져 자신의 저작값을 유지한다.
+    const inheritedColorOwner =
+      this.typeOf(record) === "Icon" && record.visual.color === "inherit"
+        ? get(record.parentId)
+        : undefined;
     const glyphItem =
+      inheritedColorOwner ??
       pickerPartOwner ??
       (toggleGlyphOwner && !catalogHasAuthoredColor(this, record)
         ? toggleGlyphOwner
@@ -3202,7 +3300,7 @@ export class CatalogCompositionRoot {
     const item = glyphItem ?? get(record.parentId);
     if (
       !item ||
-      (!item.ruleId && !pickerPartOwner) ||
+      (!item.ruleId && !pickerPartOwner && !inheritedColorOwner) ||
       // (The glyph's own resolved color is its button's paint, not an authored one: the sheet's
       // `color: inherit` wins over it.)
       (!glyphItem &&
@@ -3212,9 +3310,11 @@ export class CatalogCompositionRoot {
           catalogAuthoredVisual(this, record).color !== undefined))
     )
       return derived;
-    const rule = pickerPartOwner
-      ? COMPONENT_RULES_TABLE.Button
-      : this.runtime.graph.library.rules.get(item.ruleId!);
+    const rule = inheritedColorOwner
+      ? COMPONENT_RULES_TABLE[this.typeOf(item)]
+      : pickerPartOwner
+        ? COMPONENT_RULES_TABLE.Button
+        : this.runtime.graph.library.rules.get(item.ruleId!);
     if (!rule) return derived;
     const itemDerived = catalogDerivedProps(
       item,
@@ -3225,10 +3325,18 @@ export class CatalogCompositionRoot {
     );
     const color = catalogRuleTextColor({
       node: itemDerived
-        ? { ...item, props: { ...item.props, ...itemDerived } }
+        ? {
+            ...item,
+            props: { ...item.props, ...itemDerived },
+            derivedProps: itemDerived,
+          }
         : item,
       rule,
-      type: pickerPartOwner ? "Button" : item.ruleId!,
+      type: inheritedColorOwner
+        ? this.typeOf(item)
+        : pickerPartOwner
+          ? "Button"
+          : item.ruleId!,
       authoredVisual: catalogAuthoredVisual(this, item),
       state: catalogNodeState(item.displayState, this.state),
       // The item color in this root's color mode (its tokens differ in dark).
@@ -3419,15 +3527,18 @@ export class CatalogCompositionRoot {
         ?.composition?.staticSelectors as
         Record<string, Record<string, string>> | undefined;
       const span = selectors?.[".react-aria-ToggleButton > span"];
+      const box = catalogBoxModel(record);
+      const gap =
+        typeof box.gap === "number" ? `${box.gap}px` : (box.gap ?? "0px");
       parts.push({
         id: `${record.id}::part:content`,
         wraps: [...record.children],
         style: {
-          display: catalogBoxModel(record).display,
+          display: box.display,
           alignItems: span?.["align-items"] ?? "center",
           justifyContent: span?.["justify-content"] ?? "center",
-          rowGap: span?.gap ?? "0px",
-          columnGap: span?.gap ?? "0px",
+          rowGap: span?.gap === "inherit" ? gap : (span?.gap ?? "0px"),
+          columnGap: span?.gap === "inherit" ? gap : (span?.gap ?? "0px"),
         },
       });
     }
@@ -3476,7 +3587,7 @@ export class CatalogCompositionRoot {
       this.typeOf(record),
       this.wrapHeights.get(record.id),
       this.segmentText(record, get),
-      catalogLabelSuffix(record, get, this.typeOf),
+      "",
       inheritedLineHeight(record, get),
       record.children.length > 0
         ? domFont(record, get, (each) => this.declaredFont(each))
@@ -3581,12 +3692,9 @@ export class CatalogCompositionRoot {
     );
     return separator.gap + separator.iconSize;
   }
-  /** Text the DOM appends to this Label (field necessity indicator), for the Canvas paint. */
-  labelSuffix(id: string): string {
-    const record = this.records.get(id);
-    return record
-      ? catalogLabelSuffix(record, (key) => this.records.get(key), this.typeOf)
-      : "";
+  /** Catalog Label은 실제 Text/Icon 자식이 내용을 소유한다. */
+  labelSuffix(_id: string): string {
+    return "";
   }
   /** Whether the layout wrapped this text leaf onto more than one line (last `rewrap`). */
   textWraps(id: string): boolean {
@@ -3941,6 +4049,8 @@ export class CatalogCompositionRoot {
         const anchor = descriptor.anchor && absolute(descriptor.anchor.id);
         const input = [
           node.props,
+          node.visual,
+          node.sizing,
           descriptor.owner?.props,
           descriptor.owner?.id,
           descriptor.modal,
@@ -3974,18 +4084,23 @@ export class CatalogCompositionRoot {
         );
         const ownerType = descriptor.owner && this.typeOf(descriptor.owner);
         if (anchor && (ownerType === "Select" || ownerType === "ComboBox")) {
-          const width = descriptor.owner!.props.menuWidth;
+          const menu = catalogPickerMenuWidth(
+            ownerType,
+            descriptor.owner!.props,
+            anchor.width,
+          );
           if (
-            typeof width === "number" &&
-            width > 0 &&
-            !(
-              ownerType === "Select" && descriptor.owner!.props.isQuiet === true
-            )
-          ) {
-            placement.width = width;
-            if (ownerType === "Select") placement.minWidth = anchor.width;
-          } else if (ownerType === "ComboBox") placement.width = anchor.width;
-          else placement.minWidth = anchor.width;
+            node.sizing.width == null &&
+            !catalogHasAuthoredVisual(this, node, "width")
+          )
+            placement.width = menu.width;
+          const ownMinimum =
+            node.sizing.minWidth ??
+            (catalogHasAuthoredVisual(this, node, "minWidth")
+              ? node.visual.minWidth
+              : undefined);
+          placement.minWidth =
+            typeof ownMinimum === "number" ? ownMinimum : menu.minWidth;
         }
         const previous = this.overlayPlacements.get(node.id);
         if (sameOverlayPlacement(previous, placement)) continue;
@@ -4160,7 +4275,7 @@ export class CatalogCompositionRoot {
       const leaf = textLeaf(
         record,
         this.typeOf(record),
-        catalogLabelSuffix(record, (key) => this.records.get(key), this.typeOf),
+        "",
         inheritedLineHeight(record, (key) => this.records.get(key)),
       );
       // A leaf that no longer wraps (now single-line, emptied …) drops its old wrapped height.
@@ -4989,9 +5104,20 @@ export class CatalogCompositionRoot {
         ? (definition.partRules ?? [])
         : [];
     if (!rules.length) return [];
+    const beforeConditions = catalogPartConditionProps(
+      this.typeOf(before),
+      before.props,
+    );
+    const afterConditions = catalogPartConditionProps(
+      this.typeOf(after),
+      after.props,
+    );
     const changed = new Set(
-      [...Object.keys(before.props), ...Object.keys(after.props)].filter(
-        (key) => !Object.is(before.props[key], after.props[key]),
+      [
+        ...Object.keys(beforeConditions),
+        ...Object.keys(afterConditions),
+      ].filter(
+        (key) => !Object.is(beforeConditions[key], afterConditions[key]),
       ),
     );
     const live = rules.filter(
@@ -5559,7 +5685,11 @@ export class CatalogCompositionRoot {
       )
         continue;
       const { inheritedText: _previous, ...record } = update.record;
-      const inheritedText = inheritedTextOf(record, get);
+      const inheritedText = inheritedTextOf(
+        record,
+        get,
+        this.environmentLocale,
+      );
       const next = this.planRecord(
         update.id,
         {
@@ -5692,7 +5822,11 @@ export class CatalogCompositionRoot {
           this.originBodyOpen,
         );
         const derivedProps = this.derivedOf(current, get);
-        const inheritedText = inheritedTextOf(current, get);
+        const inheritedText = inheritedTextOf(
+          current,
+          get,
+          this.environmentLocale,
+        );
         const fillLayout =
           catalogFillLayout(current, get, this.typeOf) ??
           catalogSelectionIndicatorLayout({ ...current, derivedProps });

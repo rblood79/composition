@@ -135,6 +135,7 @@ const iconFont: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
     {
       type: "icon_font",
       iconName: (props.iconName as string) ?? "circle",
+      iconVariant: props.size as string | undefined,
       x: effectiveSize / 2,
       y: effectiveSize / 2,
       fontSize: effectiveSize,
@@ -1043,12 +1044,10 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({
   return shapes;
 };
 
-
 /**
  * `checkbox` — 체크박스 indicator: box(roundRect, size.indicator.boxSize) + border +
  * checkmark(2 line)/indeterminate(1 line, isChecked·isSelected 시). label 은 자식 Label
- * Element 가 담당하므로 여기서 안 그린다(정본 — indicator 만). isChecked 시 bg/border
- * variant별 CHECKBOX_CHECKED_COLORS 로 전환. (Checkbox primitive)
+ * Element 가 담당하므로 여기서 안 그린다. 색상은 공통 catalog 상태 트리에서 읽는다.
  */
 const checkbox: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
   const boxSize = size.indicator?.boxSize ?? 20;
@@ -1059,20 +1058,9 @@ const checkbox: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
   const borderRadius = size.indicator?.boxRadius ?? 4;
   const borderWidth = parseBorderWidth(style?.borderWidth, 2);
 
-  // checked 시각 = 보편 상태축: bg=fill.default.selected, border=selectedBorder.
-  // 미선택: bg=fill.default.base, border=visual.border (이전 CHECKBOX_*_COLORS 상수 흡수).
-  // fallback("{color.border}")은 variant 누락 방어 — 정상 spec 에선 도달 안 함(타입 만족).
-  // invalid = `Checkbox.css` `[data-invalid] .checkbox`: 테두리 negative, 선택 · indeterminate 면
-  //   바탕도 negative (indeterminate 는 rulePaint 가 선택 칠로 넘긴다 — isChecked). 체크는 흰색 그대로.
-  const isInvalid = props.isInvalid === true;
-  const negative = "{color.negative}" as TokenRef;
-  const bgColor =
-    isInvalid && isChecked
-      ? negative
-      : (paint.backgroundColor ?? ("{color.base}" as TokenRef));
-  const borderColor = isInvalid
-    ? negative
-    : (paint.borderColor ?? ("{color.border}" as TokenRef));
+  // selected/indeterminate·invalid·disabled 우선순위는 catalog paint가 결정한다.
+  const bgColor = paint.backgroundColor ?? ("{color.base}" as TokenRef);
+  const borderColor = paint.borderColor ?? ("{color.border}" as TokenRef);
 
   const shapes: Shape[] = [
     {
@@ -1109,7 +1097,7 @@ const checkbox: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
     y1: borderWidth + y1 * glyph,
     x2: borderWidth + x2 * glyph,
     y2: borderWidth + y2 * glyph,
-    stroke: "{color.white}" as TokenRef,
+    stroke: (style?.indicatorColor as TokenRef) ?? ("{color.base}" as TokenRef),
     strokeWidth: 4 * glyph,
     strokeCap: "round",
   });
@@ -1121,9 +1109,9 @@ const checkbox: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
 };
 
 /**
- * `radio` — 라디오 indicator. 미선택: outer ring(circle, fillAlpha 0) + border. 선택: Radio.css
+ * `radio` — 라디오 indicator. 미선택: base 바탕 + border. 선택: Radio.css
  * `[data-selected] .indicator` 와 같은 모양 — 선택 테두리 색 (visual.selectedBorder = `--radio-color`)
- * 의 두꺼운 링 (5/6/7/8px) 안쪽이 `.indicator` 바탕 흰색으로 남는다. 흰 가운데 지름 = rule
+ * 의 두꺼운 링 안쪽이 `.indicator`의 base 바탕색으로 남는다. 가운데 지름 = rule
  * `size.indicator.dotSize` (= boxSize − 2 × 선택 테두리). label 은 자식 Label Element 담당.
  * (Radio primitive)
  *
@@ -1155,11 +1143,11 @@ const radio: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
         x: outerRadius,
         y: outerRadius,
         radius: inner / 2,
-        fill: "{color.white}" as TokenRef,
+        fill: paint.backgroundColor ?? ("{color.base}" as TokenRef),
       },
     ];
 
-  // ring 배경은 투명(fillAlpha 0) — 색은 시각상 무의미하나 legacy parity 위해 fill base 사용.
+  // 미선택 링의 바탕도 DOM과 동일한 catalog paint를 소비한다.
   const ringFill = paint.backgroundColor ?? ("{color.base}" as TokenRef);
 
   const shapes: Shape[] = [
@@ -1170,7 +1158,6 @@ const radio: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
       y: outerRadius,
       radius: outerRadius,
       fill: ringFill,
-      fillAlpha: 0,
     },
     {
       type: "border",
@@ -1186,26 +1173,17 @@ const radio: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
 
 /**
  * `switch_toggle` — 스위치 indicator: track(roundRect) + border(비선택) + thumb(circle,
- * thumbX=isChecked? 우:좌). label 은 자식 Label Element 담당. track 색은 isChecked 시
- * 보편 상태축(visual.fill.default.selected), 비선택 시 accent-subtle(전 variant 공통). (Switch primitive)
+ * thumbX=isChecked? 우:좌). label 은 자식 Label Element 담당.
+ * track과 thumb 색은 공통 catalog 상태 트리에서 해석한 paint/style을 소비한다.
  */
-const switchToggle: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
+const switchToggle: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
   const trackWidth = size.indicator?.trackWidth ?? 36;
   const trackHeight = size.indicator?.trackHeight ?? 20;
   const thumbSize = size.indicator?.thumbSize ?? 16;
   const thumbOffset = size.indicator?.thumbOffset ?? 2;
 
   const isChecked = props.isSelected === true;
-  // selected track = visual.fill.default.selected (이전 SWITCH_SELECTED_TRACK_COLORS 흡수).
-  // 미선택 track 색(accent-subtle)은 모든 variant 공통이라 잔존(variant 차이 없음).
-  // root resolver가 선택 상태를 해소한 뒤 주입한다. Switch의 미선택 catalog root는
-  // transparent지만 indicator track은 고정 accent-subtle이므로, 상태를 다시 읽지 않고
-  // 주입 paint 값만 indicator 표현으로 변환한다.
-  const trackColor =
-    paint.backgroundColor == null ||
-    paint.backgroundColor === "{color.transparent}"
-      ? ("{color.accent-subtle}" as TokenRef)
-      : paint.backgroundColor;
+  const trackColor = paint.backgroundColor ?? ("{color.base}" as TokenRef);
 
   // ADR-295 Phase 3c-2b: S2 grows the selected thumb (track height − 6 vs − 8) and sits it 3 from the
   //   end (4 from the start unselected) — `thumbSizeSelected` · `thumbOffsetSelected`.
@@ -1246,9 +1224,7 @@ const switchToggle: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
     x: thumbX + thumb / 2,
     y: trackHeight / 2,
     radius: thumb / 2,
-    fill: isChecked
-      ? ("{color.white}" as TokenRef)
-      : ("{color.neutral-subtle}" as TokenRef),
+    fill: (style?.indicatorColor as TokenRef) ?? ("{color.base}" as TokenRef),
   });
 
   return shapes;

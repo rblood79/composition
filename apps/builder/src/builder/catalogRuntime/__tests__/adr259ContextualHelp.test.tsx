@@ -21,7 +21,6 @@ import type {
 import { nodePosition } from "../../../../../../packages/shared/src/catalog/resolution/positions";
 import { canNest } from "../../../../../../packages/shared/src/catalog/nesting/nestingRules";
 import { CATALOG_CONTEXTUAL_HELP_FIELDS } from "../../../../../../packages/shared/src/domain/componentTraits";
-import { catalogLabelSuffix } from "../../../../../../packages/shared/src/catalog/runtime/presence";
 import {
   catalogContextualHelp,
   catalogContextualHelpCommand,
@@ -340,7 +339,9 @@ describe("ADR-259 Phase 3 — contextual help", () => {
       "variant",
     );
     setHelp("help");
-    const glyph = () => recordsOf("Icon")[0]!.props.iconName;
+    const glyph = () =>
+      recordsOf("Icon").find((node) => node.props.slot !== "necessity-icon")!
+        .props.iconName;
     expect(glyph()).toBe("circle-question-mark");
     setHelp("info");
     expect(state().kind).toBe("info");
@@ -515,14 +516,11 @@ describe("ADR-259 Phase 3 — contextual help", () => {
     expect(root.typeOf(root.canvasInputs.get(label.parentId!)!)).toBe(
       "FieldLabel",
     );
-    expect(
-      catalogLabelSuffix(
-        label,
-        (id) => root.canvasInputs.get(id),
-        (r) => root.typeOf(r),
-      ),
-      "Canvas suffix",
-    ).not.toBe("");
+    const marker = label.children
+      .map((id) => root.canvasInputs.get(id)!)
+      .find((node) => node.props.slot === "necessity-icon");
+    expect(marker, "작성된 필수 Icon").toBeDefined();
+    expect(root.layoutInputs.get(marker!.id)?.hidden).not.toBe(true);
     const { host, done } = await render();
     const labelEl = host.querySelector(".react-aria-Label")!;
     expect(labelEl.children.length, "DOM necessity mark").toBeGreaterThan(0);

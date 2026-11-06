@@ -21,7 +21,7 @@
   justify-content: center;
 
   /* Default variant */
-  color: var(--fg);
+  color: var(--neutral-content);
   border: none;
 
   /* Default size */
@@ -33,11 +33,43 @@
 }
 
 .react-aria-Checkbox:where([data-variant="default"]) {
-  color: var(--fg);
+  color: var(--neutral-content);
+}
+
+.react-aria-Checkbox:where([data-variant="default"][data-hovered]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-Checkbox:where([data-variant="default"][data-focus-visible]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-Checkbox:where([data-variant="default"][data-pressed]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-Checkbox:where([data-variant="default"][data-disabled]) {
+  color: var(--fg-disabled);
 }
 
 .react-aria-Checkbox:where([data-variant="emphasized"]) {
-  color: var(--fg);
+  color: var(--neutral-content);
+}
+
+.react-aria-Checkbox:where([data-variant="emphasized"][data-hovered]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-Checkbox:where([data-variant="emphasized"][data-focus-visible]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-Checkbox:where([data-variant="emphasized"][data-pressed]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-Checkbox:where([data-variant="emphasized"][data-disabled]) {
+  color: var(--fg-disabled);
 }
 
 .react-aria-Checkbox[data-size="S"] {
@@ -72,47 +104,72 @@
   gap: var(--catalog-token-checkbox-gap-XL, calc(var(--catalog-token-text-lg) * 10 / 14));
 }
 
-.react-aria-Checkbox.react-aria-Checkbox:where([data-focus-visible]) {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
 .react-aria-Checkbox.react-aria-Checkbox:where([data-disabled]) {
-  opacity: 0.38;
   cursor: not-allowed;
-  pointer-events: none;
 }
 
-.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-selected]) .checkbox {
-  border-color: var(--selected-color);
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton {
+  color: var(--neutral-content);
 }
 
-.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-indeterminate]) .checkbox {
-  border-color: var(--selected-color);
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-hovered]) {
+  color: var(--neutral-content-hover);
 }
 
-.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-invalid]) .checkbox {
-  border-color: var(--negative);
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-focus-visible]) {
+  color: var(--neutral-content-hover);
 }
 
-.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-disabled]) .checkbox {
-  border-color: var(--border-disabled);
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-pressed]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-disabled]) {
+  color: var(--fg-disabled);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton .checkbox {
+  border-color: var(--neutral-fill);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-hovered]) .checkbox {
+  border-color: var(--neutral-fill-hover);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-focus-visible]) .checkbox {
+  border-color: var(--neutral-fill-hover);
 }
 
 .react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-pressed]) .checkbox {
-  border-color: var(--border-pressed);
+  border-color: var(--neutral-fill-hover);
 }
 
-.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-pressed][data-selected]) .checkbox {
-  border-color: color-mix(in srgb, var(--selected-color) 75%, black);
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-invalid]) .checkbox {
+  border-color: var(--selection-negative);
 }
 
-.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-pressed][data-indeterminate]) .checkbox {
-  border-color: color-mix(in srgb, var(--selected-color) 75%, black);
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-invalid][data-hovered]) .checkbox {
+  border-color: var(--selection-negative-hover);
 }
 
-.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-pressed][data-invalid]) .checkbox {
-  border-color: color-mix(in srgb, var(--negative) 75%, black);
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-invalid][data-focus-visible]) .checkbox {
+  border-color: var(--selection-negative-hover);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-invalid][data-pressed]) .checkbox {
+  border-color: var(--selection-negative-hover);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-disabled]) .checkbox {
+  border-color: var(--fg-disabled);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-selected]) .checkbox {
+  border-color: transparent;
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-indeterminate]) .checkbox {
+  border-color: transparent;
 }
 
 .react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton .checkbox {
@@ -120,47 +177,119 @@
 }
 
 .react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-selected]) .checkbox {
-  background: var(--selected-color);
+  background: var(--neutral-fill);
 }
 
-.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-selected][data-invalid]) .checkbox {
-  background: var(--negative);
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-selected][data-hovered]) .checkbox {
+  background: var(--neutral-fill-hover);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-selected][data-focus-visible]) .checkbox {
+  background: var(--neutral-fill-hover);
 }
 
 .react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-selected][data-pressed]) .checkbox {
-  background: color-mix(in srgb, var(--selected-color) 75%, black);
+  background: var(--neutral-fill-hover);
 }
 
-.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-selected][data-pressed][data-invalid]) .checkbox {
-  background: color-mix(in srgb, var(--negative) 75%, black);
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-selected][data-emphasized]) .checkbox {
+  background: var(--selection-accent);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-selected][data-emphasized][data-hovered]) .checkbox {
+  background: var(--selection-accent-hover);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-selected][data-emphasized][data-focus-visible]) .checkbox {
+  background: var(--selection-accent-hover);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-selected][data-emphasized][data-pressed]) .checkbox {
+  background: var(--selection-accent-hover);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-selected][data-invalid]) .checkbox {
+  background: var(--selection-negative);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-selected][data-invalid][data-hovered]) .checkbox {
+  background: var(--selection-negative-hover);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-selected][data-invalid][data-focus-visible]) .checkbox {
+  background: var(--selection-negative-hover);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-selected][data-invalid][data-pressed]) .checkbox {
+  background: var(--selection-negative-hover);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-selected][data-disabled]) .checkbox {
+  background: var(--fg-disabled);
 }
 
 .react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-indeterminate]) .checkbox {
-  background: var(--selected-color);
+  background: var(--neutral-fill);
 }
 
-.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-indeterminate][data-invalid]) .checkbox {
-  background: var(--negative);
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-indeterminate][data-hovered]) .checkbox {
+  background: var(--neutral-fill-hover);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-indeterminate][data-focus-visible]) .checkbox {
+  background: var(--neutral-fill-hover);
 }
 
 .react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-indeterminate][data-pressed]) .checkbox {
-  background: color-mix(in srgb, var(--selected-color) 75%, black);
+  background: var(--neutral-fill-hover);
 }
 
-.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-indeterminate][data-pressed][data-invalid]) .checkbox {
-  background: color-mix(in srgb, var(--negative) 75%, black);
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-indeterminate][data-emphasized]) .checkbox {
+  background: var(--selection-accent);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-indeterminate][data-emphasized][data-hovered]) .checkbox {
+  background: var(--selection-accent-hover);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-indeterminate][data-emphasized][data-focus-visible]) .checkbox {
+  background: var(--selection-accent-hover);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-indeterminate][data-emphasized][data-pressed]) .checkbox {
+  background: var(--selection-accent-hover);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-indeterminate][data-invalid]) .checkbox {
+  background: var(--selection-negative);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-indeterminate][data-invalid][data-hovered]) .checkbox {
+  background: var(--selection-negative-hover);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-indeterminate][data-invalid][data-focus-visible]) .checkbox {
+  background: var(--selection-negative-hover);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-indeterminate][data-invalid][data-pressed]) .checkbox {
+  background: var(--selection-negative-hover);
+}
+
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-indeterminate][data-disabled]) .checkbox {
+  background: var(--fg-disabled);
 }
 
 .react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-focus-visible]) .checkbox {
-  outline: 2px solid var(--focus-ring);
+  outline: var(--focus-ring-width) solid var(--focus-ring);
 }
 
 .react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-focus-visible]) .checkbox {
-  outline-offset: 2px;
+  outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton:where([data-invalid]) .checkbox {
-  --checkmark-color: var(--color-white);
+.react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton .checkbox {
+  --checkmark-color: var(--bg);
 }
 
 .react-aria-Checkbox.react-aria-Checkbox .react-aria-CheckboxButton .checkbox {
@@ -226,11 +355,6 @@
     display: inline-flex;
     align-items: center;
     gap: var(--cb-button-gap);
-  }
-
-  .react-aria-Checkbox .react-aria-CheckboxButton[data-focus-visible] {
-    outline: var(--focus-ring-width) solid var(--focus-ring);
-    outline-offset: var(--focus-ring-offset);
   }
 
 

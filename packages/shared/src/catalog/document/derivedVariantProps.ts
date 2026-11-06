@@ -9,4 +9,17 @@
  */
 export const CATALOG_DERIVED_VARIANT_PROPS: ReadonlySet<string> = new Set([
   "fieldButton",
+  "isEmpty",
 ]);
+
+/** 저장하지 않는 RAC 상태를 part rule 조건과 증분 invalidation에서 동일하게 읽는다. */
+export function catalogPartConditionProps<
+  T extends Readonly<Record<string, unknown>>,
+>(type: string, props: T): T & { isEmpty?: boolean } {
+  return type === "SearchField"
+    ? {
+        ...props,
+        isEmpty: String(props.value ?? props.defaultValue ?? "") === "",
+      }
+    : props;
+}

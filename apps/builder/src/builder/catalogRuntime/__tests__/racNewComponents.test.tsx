@@ -343,6 +343,27 @@ describe("RAC TokenField / PreviewTrigger / Sheet registration", () => {
     },
   );
 
+  it("TokenField의 라벨·설명·placeholder 확장은 자식과 DOM에 전달된다", async () => {
+    const { workspace } = await fixture("TokenField", {
+      value: "",
+      label: "Recipients",
+      description: "Enter a person",
+      placeholder: "@name",
+    });
+    const records = [...workspace.root.domInputs.values()];
+    const of = (type: string) =>
+      records.find((n) => workspace.root.typeOf(n) === type)!;
+    expect(of("Label").props.children).toBe("Recipients");
+    expect(of("Description").props.children).toBe("Enter a person");
+    expect(of("TokenInput").props.placeholder).toBe("@name");
+    const html = renderToStaticMarkup(
+      renderCatalogDom(workspace.root, of("TokenField").id),
+    );
+    expect(html).toContain("Recipients");
+    expect(html).toContain("Enter a person");
+    expect(html).toContain('data-placeholder="@name"');
+  });
+
   it("TokenField preserves text and produces the same token runs for DOM and Canvas", async () => {
     const value = "안녕 @사용자 #태그 ";
     const { workspace } = await fixture("TokenField", { value });

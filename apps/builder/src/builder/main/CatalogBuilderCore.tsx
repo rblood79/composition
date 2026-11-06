@@ -66,8 +66,13 @@ import { PropertySelectionContext } from "../components/property/propertySelecti
 import {
   loadAllCustomFontsToSkia,
   loadBuiltinFontsToSkia,
+  loadSpectrumFontsToSkia,
+  loadSpectrumLocaleFontsToSkia,
   syncCustomFontsWithSkia,
 } from "../fonts/loadCustomFontsToSkia";
+import { catalogTextTypography } from "../catalogRuntime/boxModel";
+import { DEFAULT_BASE_TYPOGRAPHY } from "../fonts/customFonts";
+import { spectrumLocaleFont } from "@composition/rendering";
 import { useBuilderChromeTheme } from "../hooks/useBuilderChromeTheme";
 import { PanelWorkspace } from "../layout/PanelWorkspace";
 import { useExecutionPolicyScheduler } from "../panels/datatable/hooks/useExecutionPolicyScheduler";
@@ -413,8 +418,103 @@ export function CatalogBuilderCore() {
       workspace && subscribeSystemColorScheme(() => workspace.refreshTheme()),
     [workspace],
   );
-  // A custom font uploaded or removed mid-session reaches the Canvas at once (the old SkiaCanvas's
-  // `composition:custom-fonts-updated` → `syncCustomFontsWithSkia` + relayout).
+  // S2의 추가 face는 실제 사용 시 받고, 도착한 뒤 측정 캐시와 Canvas를 함께 갱신한다.
+  useEffect(() => {
+    if (!workspace) return;
+    let cancelled = false;
+    const sync = () => {
+      const requests = [...workspace.root.canvasInputs.values()]
+        .filter((node) => !node.hidden)
+        .flatMap((node) => {
+          const text = catalogTextTypography(node);
+          const base = {
+            family: text.fontFamily ?? DEFAULT_BASE_TYPOGRAPHY.fontFamily,
+            weight: Number(
+              node.visual.fontWeight ?? node.inheritedText?.fontWeight ?? 400,
+            ),
+            style: text.fontStyle ?? "normal",
+          };
+          return [
+            base,
+            ...(node.textRuns ?? []).map((run) => ({
+              family: base.family,
+              weight: Number(run.marks?.fontWeight ?? base.weight),
+              style: String(run.marks?.fontStyle ?? base.style),
+            })),
+          ];
+        });
+      const locale = workspace.root.environmentLocale ?? navigator.language;
+      const localeFamily = spectrumLocaleFont(locale)?.family;
+      const localeTexts = new Map<number, string>();
+      if (localeFamily)
+        for (const node of workspace.root.canvasInputs.values()) {
+          if (node.hidden) continue;
+          const text = catalogTextTypography(node);
+          if (!text.fontFamily?.includes(localeFamily)) continue;
+          const content =
+            node.textRuns?.map((run) => run.text).join("") ??
+            [
+              node.props.children,
+              node.props.value,
+              node.props.label,
+              node.props.placeholder,
+            ]
+              .filter((value) => typeof value === "string")
+              .join("");
+          if (!content) continue;
+          const weight = Number(
+            node.visual.fontWeight ?? node.inheritedText?.fontWeight ?? 400,
+          );
+          localeTexts.set(weight, (localeTexts.get(weight) ?? "") + content);
+          for (const run of node.textRuns ?? []) {
+            const runWeight = Number(run.marks?.fontWeight ?? weight);
+            localeTexts.set(
+              runWeight,
+              (localeTexts.get(runWeight) ?? "") + run.text,
+            );
+          }
+        }
+      void Promise.all([
+        loadSpectrumFontsToSkia(requests),
+        loadSpectrumLocaleFontsToSkia(
+          locale,
+          [...localeTexts].map(([weight, text]) => ({ weight, text })),
+        ),
+      ])
+        .then((counts) => {
+          const count = counts.reduce((a, b) => a + b, 0);
+          if (!cancelled && count) {
+            workspace.refreshFonts();
+            window.dispatchEvent(new CustomEvent("composition:fonts-ready"));
+          }
+        })
+        .catch((error) =>
+          console.warn("[CatalogBuilder] S2 font sync failed:", error),
+        );
+    };
+    sync();
+    const stops = [
+      workspace.subscribeRoot(sync),
+      workspace.runtime.subscribeSteps((step) => {
+        if (
+          step.result.forward.some((op) => {
+            if (op.kind === "patchNodeLayout" || op.kind === "patchNodeSizing")
+              return false;
+            if (op.kind === "patchNodeVisual")
+              return ["fontFamily", "fontWeight", "fontStyle"].includes(op.key);
+            return true;
+          })
+        )
+          sync();
+      }),
+    ];
+    return () => {
+      cancelled = true;
+      stops.forEach((stop) => stop());
+    };
+  }, [workspace]);
+
+  // A custom font uploaded or removed mid-session reaches the Canvas at once.
   useEffect(() => {
     if (!workspace) return;
     let cancelled = false;

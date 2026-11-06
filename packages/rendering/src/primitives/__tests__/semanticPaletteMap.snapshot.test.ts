@@ -1,7 +1,7 @@
 /**
- * ADR-193 Phase 1 — colors.ts 스냅샷 게이트 (G1 light 불변 / dark 값 이관 무변경).
+ * ADR-193에서 시작한 colors.ts 전체 키 스냅샷 게이트.
  *
- * 착수 시점 (2026-08-27, commit 4105e21e8 기준) 의 `lightColors` / `darkColors` 전 키 hex 를 고정한다.
+ * 초기 값(2026-08-27, commit 4105e21e8)에 이후 승인된 역할·S2 기본값 변경을 반영한다.
  * status/named hue 가 `semanticPaletteMap.ts` 표에서 파생되도록 바뀐 뒤에도 값이 하나도 움직이지 않았음을
  * 기계로 판정 — 표를 잘못 옮기면 여기서 RED. 신규 4 키 (gray / green-named +subtle) 는 §0-3 결손 보완으로
  * 착수 시점 CSS 매핑 (neutral-500/200, green-600/100) 과 같은 단계를 light 에 두고 dark 는 기존 규칙을 따른다.
@@ -19,6 +19,16 @@ import {
 } from "../semanticPaletteMap";
 
 const LIGHT_SNAPSHOT = {
+  "selection-accent": "#3b63fb",
+  "selection-accent-hover": "#274dea",
+  "selection-negative": "#d73220",
+  "selection-negative-hover": "#b72818",
+  "accent-fill": "#3b63fb",
+  "focus-ring": "#4b75ff",
+  "accent-fill-hover": "#274dea",
+  "negative-fill": "#d73220",
+  "negative-fill-hover": "#b72818",
+
   accent: "#155dfc",
   "accent-hover": "#1f54c8",
   "accent-pressed": "#1447e6",
@@ -26,14 +36,23 @@ const LIGHT_SNAPSHOT = {
   "accent-subtle": "#dbeafe",
   "accent-content": "#1447e6",
   "accent-content-hover": "#193cb8",
+  "neutral-content": "#292929",
+  "neutral-content-hover": "#131313",
+  "neutral-fill": "#292929",
+  "neutral-surface": "#e9e9e9",
+  "neutral-surface-hover": "#e1e1e1",
+  "neutral-outline": "#dadada",
+  "neutral-outline-hover": "#c6c6c6",
+  "on-neutral": "#ffffff",
   neutral: "#171717",
-  "neutral-subdued": "#525252",
+  "neutral-subdued": "#505050",
+  "field-placeholder": "#717171",
   "neutral-subtle": "#e5e5e5",
   // ADR-293 (2026-10-30): Tone 단계 (neutralToSkiaColors) · 진한 바탕 한 단 (결정 4) — 종전 #c3c3c3 · #a8a8a8
   "neutral-hover": "#d4d4d4",
   "neutral-pressed": "#a1a1a1",
-  "neutral-fill-hover": "#0a0a0a",
-  "neutral-fill-pressed": "#0a0a0a",
+  "neutral-fill-hover": "#131313",
+  "neutral-fill-pressed": "#131313",
   negative: "#fb2c36",
   "on-negative": "#ffffff",
   "negative-subtle": "#ffe2e2",
@@ -43,15 +62,27 @@ const LIGHT_SNAPSHOT = {
   "positive-subtle": "#dcfce7",
   notice: "#f54900",
   "notice-subtle": "#ffedd4",
+  // 기존 overlay/picker 역할과 S2 1.8.2 공통 surface 계약을 함께 고정한다.
+  "overlay-backdrop": "#00000070",
+  "popover-outline": "#ffffff00",
+  "popover-background": "#ffffff",
+  "collection-item-focus": "#e1e1e1",
+  "picker-background": "#e9e9e9",
+  "picker-background-hover": "#e1e1e1",
+  "picker-content": "#292929",
+  "picker-content-hover": "#131313",
+  "picker-content-disabled": "#c6c6c6",
+  "picker-checkbox-base": "#ffffff",
   base: "#ffffff",
   raised: "#f9fafb",
-  "layer-1": "#fafafa",
-  "layer-2": "#fafafa",
+  "layer-1": "#f8f8f8",
+  "layer-2": "#ffffff",
   elevated: "#ffffff",
-  disabled: "#e5e5e5",
+  disabled: "#e9e9e9",
+  "disabled-content": "#c6c6c6",
   border: "#d4d4d4",
   "border-hover": "#a1a1a1",
-  "border-disabled": "#f5f5f5",
+  "border-disabled": "#dadada",
   transparent: "transparent",
   white: "#ffffff",
   black: "#000000",
@@ -113,6 +144,16 @@ const LIGHT_SNAPSHOT = {
 } as const;
 
 const DARK_SNAPSHOT = {
+  "selection-accent": "#5681ff",
+  "selection-accent-hover": "#6995fe",
+  "selection-negative": "#fc432e",
+  "selection-negative-hover": "#ff6756",
+  "accent-fill": "#345bf8",
+  "focus-ring": "#4069fd",
+  "accent-fill-hover": "#2549e5",
+  "negative-fill": "#cd2e1d",
+  "negative-fill-hover": "#b12617",
+
   accent: "#2b7fff",
   "accent-hover": "#3270d1",
   "accent-pressed": "#51a2ff",
@@ -120,13 +161,22 @@ const DARK_SNAPSHOT = {
   "accent-subtle": "#1c398e",
   "accent-content": "#51a2ff",
   "accent-content-hover": "#8ec5ff",
+  "neutral-content": "#dbdbdb",
+  "neutral-content-hover": "#f2f2f2",
+  "neutral-fill": "#dbdbdb",
+  "neutral-surface": "#2c2c2c",
+  "neutral-surface-hover": "#323232",
+  "neutral-outline": "#393939",
+  "neutral-outline-hover": "#444444",
+  "on-neutral": "#111111",
   neutral: "#f5f5f5",
-  "neutral-subdued": "#a1a1a1",
+  "neutral-subdued": "#afafaf",
+  "field-placeholder": "#8a8a8a",
   "neutral-subtle": "#404040",
   "neutral-hover": "#525252",
   "neutral-pressed": "#737373",
-  "neutral-fill-hover": "#fafafa",
-  "neutral-fill-pressed": "#fafafa",
+  "neutral-fill-hover": "#f2f2f2",
+  "neutral-fill-pressed": "#f2f2f2",
   negative: "#ff6467",
   "on-negative": "#ffffff",
   "negative-subtle": "#82181a",
@@ -136,15 +186,27 @@ const DARK_SNAPSHOT = {
   "positive-subtle": "#0d542b",
   notice: "#ff6900",
   "notice-subtle": "#7e2a0c",
-  base: "#171717",
+  // 기존 overlay/picker 역할과 S2 1.8.2 공통 surface 계약을 함께 고정한다.
+  "overlay-backdrop": "#00000070",
+  "popover-outline": "#323232",
+  "popover-background": "#222222",
+  "collection-item-focus": "#323232",
+  "picker-background": "#2c2c2c",
+  "picker-background-hover": "#323232",
+  "picker-content": "#dbdbdb",
+  "picker-content-hover": "#f2f2f2",
+  "picker-content-disabled": "#444444",
+  "picker-checkbox-base": "#111111",
+  base: "#111111",
   raised: "#202023",
-  "layer-1": "#262626",
-  "layer-2": "#262626",
-  elevated: "#262626",
-  disabled: "#404040",
+  "layer-1": "#1b1b1b",
+  "layer-2": "#222222",
+  elevated: "#222222",
+  disabled: "#2c2c2c",
+  "disabled-content": "#444444",
   border: "#404040",
   "border-hover": "#737373",
-  "border-disabled": "#262626",
+  "border-disabled": "#393939",
   transparent: "transparent",
   white: "#ffffff",
   black: "#000000",
@@ -206,7 +268,7 @@ const DARK_SNAPSHOT = {
 } as const;
 
 describe("ADR-193 semanticPaletteMap — colors.ts 스냅샷", () => {
-  it("lightColors 전 키가 착수 시점 값과 같다 (G1 light 불변)", () => {
+  it("lightColors 전 키가 현재 의미 색상 계약과 같다", () => {
     // (2026-10-28: the only keys added since are the derived hover · pressed of the table's base
     //  tokens — `resolveSemanticStateColors`; every snapshot key keeps its value, hand pairs win.
     //  2026-10-30 ADR-293: negative hover · pressed 손값 삭제 → 같은 혼합 (결정 2), neutral hover ·
@@ -218,7 +280,7 @@ describe("ADR-193 semanticPaletteMap — colors.ts 스냅샷", () => {
     });
   });
 
-  it("darkColors 전 키가 착수 시점 값과 같다 (표 이관 무변경)", () => {
+  it("darkColors 전 키가 현재 의미 색상 계약과 같다", () => {
     expect(darkColors).toEqual({
       ...resolveSemanticStateColors("dark"),
       ...DARK_SNAPSHOT,

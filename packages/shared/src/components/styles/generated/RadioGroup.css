@@ -25,7 +25,11 @@
 }
 
 .react-aria-RadioGroup {
-  color: var(--fg);
+  color: var(--fg-muted);
+}
+
+.react-aria-RadioGroup:where([data-disabled]) {
+  color: var(--fg-disabled);
 }
 
 .react-aria-RadioGroup[data-size="S"] {
@@ -52,15 +56,13 @@
   gap: 20px;
 }
 
-.react-aria-RadioGroup.react-aria-RadioGroup:where([data-focus-visible]) {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
+.react-aria-RadioGroup.react-aria-RadioGroup {
+  color: var(--fg-muted);
 }
 
 .react-aria-RadioGroup.react-aria-RadioGroup:where([data-disabled]) {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
+  color: var(--fg-disabled);
+  cursor: default;
 }
 
 /* ── Tier 2: Composite Delegation ── */

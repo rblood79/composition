@@ -99,6 +99,7 @@ export interface SkiaNodeData {
   text?: {
     content: string;
     fontFamilies: string[];
+    locale?: string;
     fontSize: number;
     fontWeight?: number;
     fontStyle?: number;
@@ -199,6 +200,8 @@ export interface SkiaNodeData {
   partialBorder?: PartialBorderData;
   iconPath?: {
     paths: string[];
+    viewBoxSize?: number;
+    filled?: boolean;
     circles?: Array<{ cx: number; cy: number; r: number }>;
     cx: number;
     cy: number;

@@ -377,7 +377,6 @@ export const DEFERRED_REFERENCE_PROPS: Readonly<Record<string, string>> = {
   "TimeField.validationBehavior": EDITOR_HIDDEN,
   "ToggleButton.excludeFromTabOrder": NOT_IN_ACCEPTS,
   "ToggleButton.preventFocusOnPress": NOT_IN_ACCEPTS,
-  "ToggleButtonGroup.isQuiet": NOT_IN_ACCEPTS,
   "Tooltip.arrowBoundaryOffset": NOT_IN_ACCEPTS,
   "Tooltip.containerPadding": NOT_IN_ACCEPTS,
   "Tooltip.crossOffset": NOT_IN_ACCEPTS,

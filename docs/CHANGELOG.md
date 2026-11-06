@@ -24,6 +24,159 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Design의 상속 서체 표시도 renderer의 `catalogTextTypography`를 읽는다. Theme에서 서체를 바꿔도 선택창에 이전 기본 서체가 표시되던 문제를 수정한다.
   - 위치: `apps/builder/src/builder/panels/fonts/FontFamilyPicker.tsx`, `panels/themes/ThemesPanel.tsx`, `fonts/customFonts.ts`.
 
+## [S2 필수 표시 — Label의 실제 Text·Icon 자식] - 2026-11-06
+
+### Breaking Changes
+
+- **Library 계약 61**: 13개 입력·선택 필드의 Label에 본문 Text·간격 Text·필수 Icon·필수/선택 Text를 작성 자식으로 추가한다. 계약 60 이하 개발 문서는 거부하며 자동 마이그레이션은 제공하지 않는다.
+
+### Changed
+
+- catalog의 문자열 접미사·React span 주입을 제거한다. 필드 상태, Form 상속, locale에 따라 실제 자식의 내용과 존재를 갱신한다. 표시 자식을 삭제해도 대신 그린 표시를 주입하지 않는다.
+- 본문은 Label의 타이포그래피를 상속하고 필수 표시는 편집 가능한 S2 Asterisk Icon을 사용한다. 기본색·disabled 색·크기·baseline 여백은 공통 catalog에서 읽으며 명시적 자식 스타일이 우선한다.
+- 표시 앞 간격은 별도 Text 자식으로 유지해 본문 RichText 편집과 분리한다. Label 안의 Icon은 phrasing element인 span으로 렌더한다.
+- 설치 S2 1.8.2의 34개 locale 문구를 사용한다. 필수 표시의 접근성 이름 정책과 사용자 텍스트 편집을 유지한다.
+- 실제 브라우저에서 상태·테마·크기·색·편집·Undo/Redo·저장 재로드·Form 상속·한국어 및 Code View CSS 보존을 검사했다. 직접 Builder 검증은 연결/네이티브 시간초과로 미완료이며, 전체 픽셀·여러 줄 라벨·Publish 완료를 주장하지 않는다.
+
+## [S2 필수 표시 기반 — 편집 가능한 Asterisk 아이콘] - 2026-11-06
+
+### Added
+
+- S2 1.8.2 Asterisk의 M/L/XL filled SVG 경로와 원래 viewBox를 공통 Icon 데이터에 추가한다. S는 S2 Field처럼 M 경로를 사용한다.
+- Icon 검색에서 `s2-asterisk`, `s2-search`, `s2-cross`를 고를 수 있다. 기존 Lucide 아이콘과 별도 이름으로 제공한다.
+- 실제 S2 렌더와 네 크기의 경로·viewBox를 비교하고, 공통 Icon의 색·크기 편집과 Undo/Redo·저장 재로드를 검증했다. Label 자동 필수 표시의 자식 조립은 아직 미완료다.
+
+## [S2 필수 표시 — 접근성 이름 정책] - 2026-11-06
+
+### Fixed
+
+- S2 1.8.2 Picker·CheckboxGroup에 맞춰 Select·CheckboxGroup의 필수 표시를 접근성 이름에 포함한다. 일반 입력은 required 중복 안내를 숨기며 optional 문구는 유지한다.
+- 실제 RAC 브라우저에서 icon/label과 required 전환의 접근성 이름을 검사한다. 필수 표시의 편집 가능한 Text/Icon 자식 전환은 소비자 감사 단계이며 아직 구현되지 않았다.
+
+## [S2 SearchField — 지우기 상태와 입력 끝 여백] - 2026-11-06
+
+### Fixed
+
+- 빈 값·읽기 전용에서 지우기 버튼이 차지하던 입력 끝 여백을 제거한다. catalog의 상태별 부품 규칙을 Canvas와 DOM이 함께 소비하며, Preview의 직접 입력·지우기에도 즉시 반영한다.
+- 기본값과 같은 명시적 여백 편집과 Input 원본의 Library 편집을 유지한다. 상태 전환·Undo/Redo·저장 재로드·복원 및 설치된 S2 1.8.2의 S/M/L/XL 입력 끝 간격을 브라우저 회귀로 검사한다.
+
+## [S2 SearchField — 검색·지우기 아이콘 기본 시각] - 2026-11-06
+
+### Fixed
+
+- SearchField의 검색 아이콘과 크기별 Cross 경로를 S2 1.8.2와 맞추고, 공통 Icon 데이터의 viewBox·fill 정보를 DOM과 Skia가 함께 소비한다. 지우기 버튼은 투명 배경과 S/M/L/XL 입력 높이에 맞는 버튼 영역, 중립색·disabled 색·안쪽 focus outline을 사용한다.
+- 편집 가능한 Icon·Button 자식 구조를 유지하며 색·크기·아이콘 변경, Undo/Redo, 저장 재로드, 기본값 복원을 검사했다. 사용자 glyph 크기가 flex 레이아웃에서 축소되는 문제도 수정했다.
+- Chromium에서 설치된 S2의 경로·크기·위치·색을 대조하고 실제 CanvasKit fill/stroke 픽셀을 검증했다. 직접 Builder 편집은 Chrome 제어 경합으로 미완료이며, Publish·전체 픽셀·touch·RTL은 미검증이다. 빈 값/읽기 전용일 때 입력 오른쪽 여백과 필수 표시 정렬은 남은 항목이다.
+
+## [S2 SearchField — 읽기 전용 지우기 버튼] - 2026-11-06
+
+### Fixed
+
+- S2 1.8.2의 표시 조건에 따라 읽기 전용 SearchField의 지우기 버튼을 Canvas와 DOM에서 숨긴다. 값이 있어도 숨기며, 읽기 전용 해제·Reset 시 다시 표시한다. disabled와 read-only의 의미는 구분한다.
+- Chromium에서 light/dark·S/M/L/XL, 빈 값·일반 값·공백, disabled 조합과 Undo/Redo·저장 재로드·Reset을 확인했다. RAC의 Tab 순서·Escape 지우기·버튼 클릭 후 입력 포커스 유지도 검사했다.
+- 직접 Builder 검증은 브라우저 연결 불가와 Chrome 조작 경합으로 미완료다. 지우기 버튼의 크기·색·아이콘 및 필수 표시의 S2 기본 시각 차이는 별도 미해결 항목으로 남는다.
+
+## [S2 입력 필드 — placeholder·label·도움말 기본값] - 2026-11-06
+
+### Fixed
+
+- S2 1.8.2 Field의 placeholder·prefix에 gray-600 역할 토큰을 적용하고, Canvas도 실제 입력값과 placeholder의 색상을 구분한다. 사용자 입력 글자색 편집과 복원은 DOM·Canvas에 동일하게 반영한다.
+- 편집 가능한 공통 Label 원본의 기본 굵기를 400으로, Description·FieldError의 크기를 입력 글자와 같은 S/M/L/XL 12/14/16/18px로 정렬한다. 오류색과 disabled 우선순위도 공통 catalog에서 읽는다.
+- invalid에서는 도움말 대신 오류를 표시한다. DOM은 RAC 검증 context를 소비하며 기본 validation 메시지 동작을 유지한다.
+- ComboBox 선택 항목·라벨 편집이 Canvas 입력값에도 갱신되며, Selected 해제 시 정적 DOM의 이전 선택 문구도 지워진다. 실행 중 Preview의 제어 상태는 유지한다.
+- Chromium에서 상태·테마·크기, 스타일 편집·Undo/Redo·저장 재로드·Reset을 검사했다. 직접 Builder 검증은 브라우저 연결 불가와 네이티브 Chrome 사용자 조작 경합으로 미완료이며 전체 픽셀·Publish 정합성을 완료로 판정하지 않는다.
+
+## [S2 입력 필드 — 공통 상태·테두리·focus] - 2026-11-06
+
+### Fixed
+
+- 공통 Input의 바탕·글자·테두리와 hover·pressed·invalid·disabled·focus 우선순위를 S2 1.8.2 FieldGroup 기준으로 정렬한다. 2px 테두리와 조정된 세로 padding으로 컨트롤 높이를 보존한다.
+- TextField·TextArea·SearchField·NumberField·ColorField·ComboBox의 중복 disabled opacity를 제거하고 label·입력 부품에 상태를 전달한다. Canvas도 입력 focus ring을 공통 catalog outline으로 소비하며 사용자의 테두리·바탕색 편집이 기본 상태색보다 우선한다.
+- Chromium에서 여섯 필드의 light/dark·S/M/L/XL 상태 조합과 스타일 편집/복원을 검증했다. TextField·TextArea·SearchField는 실제 키보드 입력·focus·Read Only 적용/해제도 확인했다. 직접 Builder에서는 TextField 상태 표시·재로드를 확인했으며, 활성 탭 변경으로 나머지 직접 편집 검증은 미완료다. 전체 픽셀·Publish 일치는 아직 판정하지 않았다.
+
+## [S2 선택 그룹 — 상태 상속과 label 기본색] - 2026-11-06
+
+### Fixed
+
+- CheckboxGroup의 disabled·invalid 변경과 해제가 자식 Checkbox의 Canvas 파생 상태에도 반영된다. 자식의 개별 disabled·선택 편집은 유지한다.
+  - **Why:** RAC context에만 전달되던 그룹 상태가 Canvas에서 누락됐다. 위치: `packages/shared/src/catalog/runtime/presence.ts`.
+- CheckboxGroup·RadioGroup의 중복 disabled opacity를 제거하고 label에 S2 1.8.2의 기본 neutral-subdued·disabled 색상을 적용한다. 기본 neutral 테마도 정확한 light/dark subdued 값을 보존하며 명시된 사용자 색상이 우선한다.
+- 이전 RadioGroup 수정의 직접 재검증을 완료했다. 두 그룹의 상태 편집·Undo/Redo·저장 재로드·상태 Reset, Canvas/Compare 표현과 CheckboxGroup의 키보드 다중 선택·Read Only 적용/해제를 확인했다. 전체 픽셀·Publish·입력 기기별 검증은 남아 있다.
+
+## [S2 Checkbox·Radio·Switch — 상태 색상과 선택 편집] - 2026-11-06
+
+### Fixed
+
+- **선택 컨트롤 상태 색상·focus 정렬**: S2 1.8.2의 light/dark 기본·hover·pressed·focus·강조·invalid·disabled 색상과 우선순위를 공통 catalog 상태 트리에서 CSS와 Canvas에 전달한다. label·glyph·thumb의 색상 상속과 indicator focus도 같은 경로를 따른다.
+  - **Why:** DOM 상태 트리와 Canvas의 하드코딩된 색상·전체 opacity가 서로 달랐다. 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`, `packages/rendering/src/renderers/skiaPrimitives.ts`.
+- **Switch Selected 편집 즉시 반영**: Builder Property 변경 시 static DOM의 초기 선택값도 갱신한다.
+  - **Why:** 비제어 RAC 초기값은 동일한 key에서 다시 읽히지 않았다. 위치: `packages/shared/src/catalog/runtime/delegatedDom.runtime.ts`.
+- **RadioGroup 상태 전달**: 그룹 value·invalid·disabled 변경이 Radio의 Canvas 파생 상태도 갱신한다.
+  - **Why:** RAC context에만 전달되던 상태가 Canvas에서 누락됐다. 위치: `packages/shared/src/catalog/runtime/presence.ts`. Chromium 회귀 검사는 통과했으며 이 후속 수정의 직접 Builder 재검증은 미완료다.
+- Chromium에서 상태 색상 512개 조합, 키보드 선택, 테마·focus 변경/복원을 검사했다. 실제 Builder에서 상태 편집, Checkbox·Switch Undo/Redo·재로드, Switch Reset 후 재로드와 Radio 방향키 선택을 확인했다. 전체 픽셀·Publish·입력 기기별 검증은 남아 있다.
+
+## [S2 버튼 그룹 — 상속·배치·focus 정합성] - 2026-11-06
+
+### Fixed
+
+- ActionButtonGroup·ToggleButtonGroup의 크기별 일반 간격(XS/S 4px, M/L/XL 8px), compact 2px, 세로 배치·양끝 모서리를 공통 catalog 규칙으로 정렬한다. XS 버튼 모서리는 S2 1.8.2의 6px로 맞춘다.
+- ToggleButtonGroup의 Quiet 편집·저장 경로를 복구하고 그룹의 staticColor·강조·disabled 명시값이 자식에 전달되는 우선순위를 S2로 맞춘다. 기본 그룹은 버튼 전체에 눌림 효과를 적용한다.
+- 두 버튼의 static focus ring과 light/dark 기본 focus 색상을 맞추며, Canvas도 사용자 지정 focus 색상·두께·간격을 소비한다. 기존 focus 편집값의 우선순위를 보존한다.
+- Builder에서 XL·세로·compact·Quiet 편집과 Canvas/Preview 표현을 확인했다. Chromium에서 크기·방향·밀도 40개 조합과 단일/다중 선택의 방향키·Space 동작을 검증했다. 후속 직접 검증에서 ToggleButtonGroup 크기 Undo/Redo, 저장 재로드, Reset 후 재로드를 확인했다. Preview의 기본·static black focus 및 방향키·Space 선택도 확인했다. Canvas focus 직접 재현과 Publish는 미검증이다.
+
+## [S2 ActionButton·ToggleButton — 상태 색상과 초기 선택값] - 2026-11-06
+
+### Fixed
+
+- ActionButton과 ToggleButton의 배경·글자색을 공통 catalog 상태 트리로 정렬한다. S2 1.8.2의 light/dark, hover·pressed·focus·열림, quiet·selected·emphasized·disabled와 static white/black 투명도를 반영한다.
+- ToggleButton의 추가 테두리와 disabled 전체 opacity를 제거하고 제어 높이를 보존한다. 원본의 강제 selected 표시 상태를 제거해 기본 삽입과 Reset은 미선택으로 시작한다.
+- 실제 Builder에서 두 버튼의 속성 편집·저장/재로드·Reset, ActionButton Undo/Redo, ToggleButton의 Preview 클릭·Space 선택 전환과 Canvas/Compare 표현을 확인했다.
+
+## [S2 accent·negative Button — 상태 색상과 Canvas 테두리] - 2026-11-06
+
+### Fixed
+
+- Button accent·negative의 fill 기본·hover·pressed·focus 색상을 S2 1.8.2 light/dark 역할값으로 정렬하고 테마 편집·복원 경로에 연결한다. outline은 최종 글자색을 테두리에 사용하며 static white/black의 상태·disabled 표현도 공통 catalog에서 제공한다.
+- Canvas의 native binding에서도 `currentColor`를 최종 글자색으로 해석한다. 실제 Builder 비교에서 발견한 static white outline의 검정 테두리를 수정하고 Skia 노드 회귀 검사를 추가했다.
+- Theme 색상 직접 편집·Undo/Redo·재로드·Reset과 Canvas/Compare 반영을 확인했다.
+
+## [S2 neutral 역할 — Button 상태 색상] - 2026-11-06
+
+### Fixed
+
+- neutral 내용·진한 배경·옅은 배경·테두리·반전 글자색을 독립 역할로 제공한다. 기본 neutral은 S2 1.8.2 역할값을 사용하며 기존 neutral·neutral-subtle·border 테마 변경은 새 역할에도 연결한다. 새 역할을 명시하면 그 값이 우선한다.
+- Button primary·secondary의 fill/outline 기본·hover·pressed·focus 색상을 정렬한다. outline 글자의 상태 변화와 키보드 focus 색상도 공통 catalog 상태 트리에서 CSS·Canvas에 반영한다. primary의 반전 글자색은 페이지 바탕색과 분리한다.
+- Builder Theme 패널에서 neutral-content 편집·Undo/Redo·재로드·Reset과 Canvas/Compare 반영을 확인했다.
+
+## [S2 disabled 색상 — Button과 기본 서체 표시] - 2026-11-06
+
+### Fixed
+
+- disabled 배경과 글자색을 별도 역할로 정의하고 S2 1.8.2 light/dark 기본값을 적용한다. Button의 fill·outline·premium·genai disabled 글자는 공통 `disabled-content`를 사용하며 사용자 스타일 변경은 유지한다.
+- Theme 패널의 기본 서체 이름을 실제 기본값인 Adobe Clean Spectrum으로 표시한다. Builder에서 Button Disabled 편집·복원·Undo/Redo·재로드와 Canvas/Compare 표현을 확인했다.
+
+## [S2 공통 바탕색 — 기본 테마와 복원] - 2026-11-06
+
+### Fixed
+
+- 기본 neutral 테마의 base·layer-1·layer-2·elevated·disabled 테두리를 S2 1.8.2의 light/dark 역할값으로 정렬한다. 사용자 tone과 명시 색상 변경은 기존 테마 경로로 반영한다.
+- 기본 바탕색은 테마 설치 전 값을 보존해 Undo·Reset이 직전에 설치한 사용자 색상을 재사용하지 않도록 한다. 실제 Builder 색상 편집·Undo/Redo·재로드·Reset과 Canvas/Compare 화면을 확인했다.
+
+## [S2 공통 서체 — 기본값과 Canvas 조판] - 2026-11-06
+
+### Changed
+
+- 기본 sans·serif·code·italic을 S2 1.8.2 Adobe Clean Spectrum / Source Code Pro로 정렬하고 Builder·Preview·Publish의 폰트 로딩과 기본 서체 전달을 연결한다. 기본 서체는 S2와 같은 Adobe CDN 자원을 사용하며, 기존 문서의 명시된 서체는 유지한다. 추가 face는 Canvas에서 사용할 때 로딩한다.
+- Canvas의 글자 측정과 페인트에 CSS normal의 `wdth=100`을 적용하고 테마 기본 서체·사용자 sans 변경을 DOM `--font-sans`와 함께 전달한다.
+- 한국어·일본어·중국어 locale의 S2 기본 서체와 Typekit 동적 subset을 DOM·Canvas에서 공유한다. 텍스트가 추가되면 같은 face의 subset을 교체하고, 사이트 언어를 Canvas 측정·페인트의 OpenType 조판에도 전달한다. 명시한 사용자 서체와 Undo 복원은 같은 catalog 경로를 따른다.
+
+## [S2 메뉴 폭 — 기본값과 사용자 스타일 우선순위] - 2026-11-06
+
+### Fixed
+
+- Select의 `menuWidth`가 기본 `fit-content`에 가려지지 않도록 수정하고 quiet 메뉴의 트리거 폭 − 24px·최소 192px을 반영한다. Select·ComboBox Popover의 사용자 폭 편집·복원·Undo/Redo는 Canvas와 DOM에 동일하게 적용한다.
+- ComboBox 등 필드 Group의 저작 스타일을 DOM 제어 상자에 전달한다. Menu ActionButton 측정 fixture와 Toast reduced-motion mock, D2 확장 prop 출처도 현재 계약에 맞춘다.
+
 ## [Canvas 내부 선택 — 빈 공간 더블클릭] - 2026-11-06
 
 ### Fixed

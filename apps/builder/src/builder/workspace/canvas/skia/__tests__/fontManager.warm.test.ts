@@ -72,6 +72,23 @@ describe("SkiaFontManager.warmFontMgr", () => {
     expect(fromDataMock).not.toHaveBeenCalled();
   });
 
+  it("동일 family·굵기의 새 subset은 기존 버퍼를 교체하고 manager를 다시 만든다", () => {
+    const fm = new SkiaFontManager();
+    const initial = new ArrayBuffer(8);
+    const updated = new ArrayBuffer(16);
+    fm.loadFontFromBuffer("CJK", initial, "400", "normal", { persist: false });
+    fm.warmFontMgr();
+    fm.loadFontFromBuffer("CJK", updated, "400", "normal", {
+      replace: true,
+      persist: false,
+    });
+    fm.warmFontMgr();
+    expect(fromDataMock).toHaveBeenCalledTimes(2);
+    expect(fromDataMock.mock.calls[1]).toEqual([updated]);
+    expect(fm.getFamilies()).toEqual(["CJK"]);
+    fm.dispose();
+  });
+
   it("폰트 추가로 dirty 재세팅 시 warmFontMgr() 가 다시 재구축한다", () => {
     const fm = new SkiaFontManager();
     fm.loadFontFromBuffer("FontA", new ArrayBuffer(8));

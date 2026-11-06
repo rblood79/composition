@@ -47,6 +47,11 @@ export const toggleButtonGroupBinding: PrimitiveBinding = {
           { value: "vertical", label: "Vertical" },
         ],
       },
+      isQuiet: {
+        kind: "boolean",
+        label: "Quiet",
+        section: "appearance",
+      },
       isEmphasized: {
         kind: "boolean",
         label: "Emphasized",

@@ -69,6 +69,17 @@ export interface TokenCategories {
 export interface ColorTokens {
   // --- Accent (기존 primary) ---
   accent: string;
+  /** S2 Button의 fill 역할 (일반 내용·상태 토큰과 독립 편집). */
+  "selection-accent": string;
+  "selection-accent-hover": string;
+  "selection-negative": string;
+  "selection-negative-hover": string;
+  "accent-fill": string;
+  "focus-ring": string;
+  "accent-fill-hover": string;
+  "negative-fill": string;
+  "negative-fill-hover": string;
+
   "accent-hover": string;
   "accent-pressed": string;
   "on-accent": string;
@@ -79,11 +90,22 @@ export interface ColorTokens {
 
   // --- Neutral (기존 on-surface + secondary) ---
   neutral: string;
+  /** S2 neutral 역할: 내용과 바탕의 기본값이 같아도 편집은 독립적이다. */
+  "neutral-content": string;
+  "neutral-content-hover": string;
+  "neutral-fill": string;
+  "neutral-surface": string;
+  "neutral-surface-hover": string;
+  "neutral-outline": string;
+  "neutral-outline-hover": string;
+  "on-neutral": string;
+
   "neutral-subdued": string;
+  "field-placeholder": string;
   "neutral-subtle": string;
   "neutral-hover": string;
   "neutral-pressed": string;
-  /** 진한 바탕 `neutral` (Button primary) 의 hover · pressed — S2 한 단 (ADR-293 결정 4) */
+  /** 진한 바탕 `neutral-fill` (Button primary) 의 hover · pressed — S2 한 단 (ADR-293 결정 4) */
   "neutral-fill-hover": string;
   "neutral-fill-pressed": string;
 
@@ -130,6 +152,7 @@ export interface ColorTokens {
   "layer-2": string;
   elevated: string;
   disabled: string;
+  "disabled-content": string;
 
   // --- Border ---
   border: string;

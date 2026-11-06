@@ -587,7 +587,7 @@ describe("ADR-259 Phase 2 — field prefix", () => {
               borderWidth: "0px",
               corners: ["0px", "0px", "0px", "0px"],
               // (the box's 32 less its borders — ADR-295 Phase 3, the S2 control height)
-              height: "30px",
+              height: "28px",
             });
         if (oracle.focusFromPrefixMouse !== undefined) {
           (document.activeElement as HTMLElement | null)?.blur?.();
@@ -697,8 +697,8 @@ describe("ADR-259 Phase 2 — field prefix", () => {
           // The invalid border (the Input rule's `&[data-invalid]` — `--negative`), with or
           // without a prefix.
           const [r, g] = paintOf(root, group.id).stroke ?? [0, 0];
-          expect(r).toBeGreaterThan(0.9);
-          expect(g).toBeLessThan(0.3);
+          expect(r).toBeCloseTo(215 / 255, 3);
+          expect(g).toBeCloseTo(50 / 255, 3);
         }
         const groupBox = root.getGeometry([group.id]).get(group.id)!;
         if (process.env.ADR259_DUMP)
@@ -728,9 +728,9 @@ describe("ADR-259 Phase 2 — field prefix", () => {
               radius: "0",
             });
             const stepperBox = root.getGeometry([stepper.id]).get(stepper.id)!;
-            expect(stepperBox.height).toBe(groupBox.height - 2);
+            expect(stepperBox.height).toBe(groupBox.height - 4);
             if (index === 1)
-              expect(stepperBox.x + stepperBox.width).toBe(groupBox.width - 1);
+              expect(stepperBox.x + stepperBox.width).toBe(groupBox.width - 2);
           }
         if (type === "ComboBox") {
           // Its button keeps its place over the Input's end room, inside the box.
@@ -738,11 +738,11 @@ describe("ADR-259 Phase 2 — field prefix", () => {
           const buttonBox = root.getGeometry([button.id]).get(button.id)!;
           expect(button.parentId).toBe(group.id);
           expect(buttonBox.x + buttonBox.width).toBeLessThan(
-            groupBox.width - 1,
+            groupBox.width - 2,
           );
         } else if (type !== "NumberField")
           // The Input fills the row to the box's border (a ColorField's keeps no maximum there).
-          expect(inputBox.x + inputBox.width).toBe(groupBox.width - 1);
+          expect(inputBox.x + inputBox.width).toBe(groupBox.width - 2);
       });
     }
 
@@ -810,7 +810,7 @@ describe("ADR-259 Phase 2 — field prefix", () => {
       );
     edit({ isInvalid: true });
     expect(group().derivedProps?._fieldInvalid).toBe(true);
-    expect(paintOf(root, group().id).stroke?.[0]).toBeGreaterThan(0.9);
+    expect(paintOf(root, group().id).stroke?.[0]).toBeCloseTo(215 / 255, 3);
     edit({ isInvalid: false, isQuiet: true });
     expect(group().derivedProps?.isQuiet).toBe(true);
     expect(paintOf(root, group().id)).toMatchObject({

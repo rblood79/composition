@@ -1,4 +1,4 @@
-import { fontFamily } from "@composition/rendering";
+import { fontFamily, spectrumFontVariations } from "@composition/rendering";
 import type { EmbindEnumEntity, Typeface } from "canvaskit-wasm";
 import { DEFAULT_FONT_FEATURES } from "../workspace/canvas/layout/engines/cssResolver";
 import {
@@ -73,6 +73,7 @@ function paragraphMetrics(
   const textStyle = {
     fontFamilies: families,
     fontSize: font.fontSize,
+    locale: font.locale,
     fontStyle: { weight, slant },
     fontFeatures: DEFAULT_FONT_FEATURES,
     ...(font.letterSpacing ? { letterSpacing: font.letterSpacing } : {}),
@@ -100,7 +101,7 @@ function paragraphMetrics(
   builder.pushStyle(
     new ck.TextStyle({
       ...textStyle,
-      fontVariations: [{ axis: "wght", value: font.fontWeight }],
+      fontVariations: spectrumFontVariations(families, font.fontWeight),
     }),
   );
   if (runs?.length) {
@@ -126,7 +127,7 @@ function paragraphMetrics(
                   ? ck.FontSlant.Oblique
                   : ck.FontSlant.Upright,
           },
-          fontVariations: [{ axis: "wght", value: runFont.fontWeight }],
+          fontVariations: spectrumFontVariations(families, runFont.fontWeight),
         }),
       );
       builder.addText(text.slice(run.start, run.end));

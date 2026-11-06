@@ -18,6 +18,9 @@ export const PICKER_CONTENT = {
   isDisabled: "{color.picker-content-disabled}",
 } as const;
 export const PICKER_INVALID_WIDTH = 2;
+// S2 1.8.2 Picker.tsx: quiet 메뉴는 트리거보다 24px 작고 최소 192px이다.
+export const PICKER_QUIET_MENU_MIN_WIDTH = 192;
+export const PICKER_QUIET_MENU_INSET = 24;
 export const PICKER_INVALID_ICON = "triangle-alert";
 export function pickerInvalidGlyph(size: unknown) {
   const key = ["XS", "S", "M", "L", "XL"].includes(String(size))

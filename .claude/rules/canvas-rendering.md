@@ -14,6 +14,13 @@ paths:
 
 # Canvas 렌더링 규칙
 
+- `currentColor` 테두리는 색상 파서 전에 해당 노드의 최종 글자색으로 해석한다. **Why (2026-11-06):** Button의 native Canvas binding이 `negative + outline + static white`의 `currentColor`를 문맥 없는 파서에 넘겨 검정으로 그렸고, DOM은 흰 테두리를 표시했다. 순수 paint resolver뿐 아니라 실제 bound Skia node의 stroke 색까지 회귀 검사한다.
+
+- CSS normal 서체 폭을 Canvas의 variable font 축에도 명시한다. **Why (2026-11-06):** S2 Adobe Clean Spectrum VF는 fvar wdth 기본값62.5이고 CSS normal은100이다. wght만 넘기면 16px 문자열 폭이 DOM212.56px·Canvas153.85px로 갈렸다. 기본 서체의 측정·페인트가 같은 wdth100을 사용해야 한다.
+- CJK의 동일 face·subset과 사이트 locale을 측정·페인트에 함께 전달한다. **Why (2026-11-06):** 같은 한국어 font bytes라도 DOM `lang=ko-KR`의 OpenType `locl`이 Canvas에서 빠지면 공백 advance가 달라졌다. 새 글자 subset은 같은 variant를 교체하고 FontCollection·측정 캐시를 함께 갱신한다.
+
+- Picker 메뉴의 기본 폭은 owner context에서 계산하고 Popover의 명시적 저작 폭을 우선한다. Group의 저작 스타일도 DOM 제어 상자에 전달한다. **Why (2026-11-06):** Select의 기본 `fit-content`가 `menuWidth=320`을 덮고, Canvas는 Popover의 340px 편집을 320px로 되돌렸으며 ComboBox Group의 240px 폭은 DOM에서 600px로 늘어났다. Chromium의 기본·quiet·편집·복원·Undo/Redo 폭으로 고정한다.
+
 - RAC SelectValue가 목록 Text를 재사용하면 선택값 context에서 typography를 상속하고 목록 context의 inline 크기를 그대로 가져오지 않는다. **Why (2026-11-06):** single·multiple의 단일 선택값이 S/L/XL에서도 14px에 고정됐지만, Text를 재사용하지 않는 다중 요약은 정상적으로 12/16/18px을 따랐다. size 편집과 Undo는 미선택·단일 값·요약 각각 검증한다.
 
 - Portal·Sheet는 일반 fixed와 구분해 페이지 마지막에 그리며 hit-test도 같은 stream 순서를 쓴다. 모달 배경막의 pointer 영역과 본체 선택 테두리는 분리한다. **Why (2026-11-06):** 열린 overlay 뒤에 Button을 추가하면 10개 계열에서 Button이 먼저 선택됐다. Dialog 배경막도 viewport 전체를 그리면서 본체 310×176만 hit에 등록해 뒤 요소로 클릭이 통과했다.

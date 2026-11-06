@@ -24,6 +24,14 @@ function makeTextNode(): SkiaNodeData {
 }
 
 describe("Skia retained text paragraph identity", () => {
+  it("동일한 서체에서도 locale 변경은 기존 조판을 재사용하지 않는다", () => {
+    const node = makeTextNode();
+    node.text!.locale = "en-US";
+    const before = getTextParagraphCacheKey(node);
+    node.text!.locale = "ko-KR";
+    expect(getTextParagraphCacheKey(node)).not.toBe(before);
+  });
+
   it("changes only the paragraph key when fixed Text metrics change", () => {
     const node = makeTextNode();
     const baseKey = getTextParagraphCacheKey(node);

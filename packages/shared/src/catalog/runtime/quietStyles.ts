@@ -137,6 +137,7 @@ const QUIET_OWNER_BOX_TOKENS: Readonly<Record<string, string>> = {
 export function catalogInvalidBorderColor(
   rule: Readonly<ComponentRule> | undefined,
   props: Readonly<Record<string, unknown>>,
+  state?: StateName,
 ): string | undefined {
   if (props.isQuiet === true) return undefined;
   if (props.isInvalid !== true && props._fieldInvalid !== true)
@@ -145,6 +146,10 @@ export function catalogInvalidBorderColor(
     rule?.structure?.stateStyles?.borderColor,
     {
       isInvalid: true,
+      isDisabled: props.isDisabled === true || props._fieldDisabled === true,
+      isHovered: state === "hover",
+      isPressed: state === "pressed",
+      isFocused: state === "focusVisible",
     },
   );
   return color === undefined ? undefined : String(color);

@@ -99,6 +99,7 @@ export { isValidTokenRef } from "./types";
 export {
   getIconData,
   LUCIDE_ICON_NAMES,
+  ICON_NAMES,
   LUCIDE_ALIASES,
 } from "./icons/lucideIcons";
 export type { LucideIconData } from "./icons/lucideIcons";
@@ -133,6 +134,18 @@ export {
   getSpacingToken,
   normalizeBreadcrumbRspSizeKey,
   typography,
+  SPECTRUM_SANS_FAMILY,
+  SPECTRUM_SANS_STACK,
+  SPECTRUM_SANS_FONT,
+  SPECTRUM_SANS_FONT_CSS,
+  spectrumFontVariations,
+  SPECTRUM_SERIF_FAMILY,
+  SPECTRUM_SERIF_STACK,
+  SPECTRUM_CODE_FAMILY,
+  SPECTRUM_CODE_STACK,
+  SPECTRUM_FONT_FACES,
+  spectrumFontFacesFor,
+  spectrumLocaleFont,
   fontFamily,
   fontWeight,
   lineHeight,

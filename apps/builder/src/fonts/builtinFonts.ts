@@ -1,3 +1,5 @@
+import { SPECTRUM_SANS_FONT_CSS } from "@composition/rendering";
+
 const BUILTIN_FONT_STYLE_ID = "composition-builtin-fonts";
 
 export function resolveFontUrl(path: string): string {
@@ -11,6 +13,7 @@ function buildBuiltinFontCss(): string {
   const interUrl = resolveFontUrl("fonts/InterVariable.woff2");
 
   return `
+    ${SPECTRUM_SANS_FONT_CSS}
     @font-face {
       font-family: "Pretendard";
       src: url("${pretendardUrl}") format("woff2");

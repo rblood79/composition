@@ -6,30 +6,7 @@ import {
   catalogPressTransform,
 } from "../rule/pressScale";
 
-/**
- * ToggleButton group `> span` display:inherit 회귀 방지 (2026-06-27).
- *
- * **근본 원인**: group 안 ToggleButton 의 자식은 `ToggleButton.tsx` 가
- *   `<span>{children}</span>` 으로 감싼다(pressed micro-interaction `> span` 의 S2 press 소비).
- *   그러나 그 span 에 display 가 지정되지 않으면 기본 `display:block` 이라, 아이콘+텍스트
- *   ToggleButton 의 자식(Icon div + Text span)이 **세로로 쌓여**(block flow) 렌더된다. Skia 는
- *   span 을 모르고 ToggleButton(flex)가 Icon/Text 를 **가로 배치**하므로 CSS↔Skia 비대칭이었다.
- *
- * **수정**: COMPONENT_RULES_TABLE.ToggleButtonGroup.containerVariants...staticSelectors 의
- *   `.react-aria-ToggleButton > span` 에 `display:inherit`(부모 ToggleButton 의 flex/inline-flex
- *   상속) + flex 정렬(align-items/justify-content/gap) 을 추가 → span 이 flex 가 되어 Icon/Text
- *   가로 배치 → Skia 와 정합.
- *
- * **계약**: ToggleButtonGroup rule 의 `> span` staticSelector 는 display:inherit 와
- *   가로 flex 정렬 키를 보유해야 한다. (스칼라 selector 키는 generate-css 가 그대로 emit →
- *   ToggleButtonGroup.css 의 group-scoped `> span` 규칙으로 반영.)
- */
-
-/**
- * ToggleButtonGroup rule 의 staticSelectors 를 반환한다.
- *   경로: COMPONENT_RULES_TABLE.ToggleButtonGroup.structure.composition.staticSelectors
- *   (group-scoped pressed micro-interaction + `> span` 정합 규칙이 위치하는 곳).
- */
+/** 그룹 콘텐츠의 가로 정렬과 custom indicator에 한정된 내부 press를 검증한다. */
 function collectToggleButtonStaticSelectors(): Record<
   string,
   Record<string, string>
@@ -65,19 +42,18 @@ describe("ToggleButton group `> span` display:inherit 정합 계약", () => {
     expect(spanRule?.gap).toBeDefined();
   });
 
-  it("pressed micro-interaction 은 span 의 S2 press (SegmentedControl 안쪽 div) — 버튼 상자는 고정", () => {
+  it("custom indicator만 내부 콘텐츠를 누르고 기본 그룹은 버튼 전체를 누른다", () => {
     const selectors = collectToggleButtonStaticSelectors();
     expect(selectors[".react-aria-ToggleButton > span"]?.transition).toBe(
       CATALOG_PRESS_TRANSITION,
     );
-    expect(
-      selectors[".react-aria-ToggleButton[data-pressed] > span"]?.transform,
-    ).toBe(catalogPressTransform());
-    expect(
-      selectors[".react-aria-ToggleButton[data-pressed] > span"]?.scale,
-    ).toBeUndefined();
-    expect(selectors[".react-aria-ToggleButton[data-pressed]"]?.transform).toBe(
-      "none",
+    const pressed =
+      '&[data-indicator="true"] .react-aria-ToggleButton[data-pressed]';
+    expect(selectors[`${pressed} > span`]?.transform).toBe(
+      catalogPressTransform(),
     );
+    expect(selectors[`${pressed} > span`]?.scale).toBeUndefined();
+    expect(selectors[pressed]?.transform).toBe("none");
+    expect(selectors[".react-aria-ToggleButton[data-pressed]"]).toBeUndefined();
   });
 });

@@ -13,6 +13,7 @@ import {
   pickerInvalidGlyph,
 } from "../document/pickerTrigger";
 import { catalogS2OverlayPlacement } from "./overlayLayout";
+import { DEFAULT_BASE_TYPOGRAPHY } from "./fontDefaults";
 export { catalogS2OverlayPlacement } from "./overlayLayout";
 import { catalogTextRunsContent } from "./textRunsDom";
 import { paintAt, ruleHasPaintImage } from "../rule/rulePaintTree";
@@ -47,6 +48,7 @@ import {
   cloneElement,
   createContext,
   createElement,
+  useContext,
   Fragment,
   isValidElement,
   useRef,
@@ -170,7 +172,6 @@ import {
   catalogLoadMoreItem,
   catalogLoadingEmptyState,
   catalogDomPartParent,
-  catalogFieldLabelNecessity,
   catalogOwnerDrawnPart,
   catalogPartField,
   catalogToggleIndicatorElement,
@@ -192,7 +193,11 @@ import {
   catalogAuthoredVisual,
   catalogDerivedRestVisual,
   catalogHasAuthoredColor,
+  catalogHasAuthoredVisual,
+  catalogHasExplicitVisual,
 } from "./libraryVisual";
+import { catalogFieldLabelPartsHidden } from "./presence";
+import { catalogPickerMenuWidth } from "./pickerMenuWidth";
 import { catalogLayoutTokenCss, catalogNodeTokenCss } from "./nodeTokenCss";
 import {
   catalogDeviceControlCss,
@@ -711,7 +716,7 @@ export function catalogDomStyle(
       marginBottom: 0,
       marginLeft: 0,
       ...placed,
-      fontFamily: metrics.fontFamily ?? "Pretendard, sans-serif",
+      fontFamily: metrics.fontFamily ?? DEFAULT_BASE_TYPOGRAPHY.fontFamily,
       fontSize: metrics.fontSize,
       whiteSpace: (metrics.whiteSpace ??
         (CATALOG_NOWRAP_TEXT_BINDINGS.has(node.bindingId ?? "")
@@ -791,6 +796,24 @@ const glyph =
       // (Its glyph name: a sheet turns the chevron only — the Disclosure trigger's, Phase 8 판독 M3.)
       "data-icon": String(node.props.iconName ?? fallbackName),
       iconName: String(node.props.iconName ?? fallbackName),
+      elementType:
+        node.derivedProps?._fieldLabelRole === "necessity-icon"
+          ? "span"
+          : "div",
+      ...(typeof node.props.slot === "string" ? { slot: node.props.slot } : {}),
+      ...(node.derivedProps?._fieldLabelRole === "necessity-icon"
+        ? {
+            "aria-hidden": node.derivedProps._fieldLabelInclude !== true,
+            "aria-label":
+              node.derivedProps._fieldLabelInclude === true
+                ? String(node.derivedProps._fieldLabelAria)
+                : undefined,
+            role:
+              node.derivedProps._fieldLabelInclude === true ? "img" : undefined,
+          }
+        : {}),
+      size: (node.derivedProps?._iconVariant ?? node.props.size) as
+        "S" | "M" | "L" | "XL" | undefined,
       strokeWidth: Number(node.props.strokeWidth ?? 2),
       style: {
         ...style,
@@ -804,6 +827,7 @@ const glyph =
         ),
         // (ADR-295 Phase 3b: an S2 icon step is its device variable — the touch set reaches the glyph.)
         fontSize:
+          (node.derivedProps?.iconSize as number | undefined) ??
           catalogDeviceGlyphSize(node.visual) ??
           catalogGlyphSize(node) ??
           fallbackSize,
@@ -811,11 +835,13 @@ const glyph =
         // not override XS/XL or a field-owned glyph; explicit authored boxes still win.
         width:
           style.width ??
+          (node.derivedProps?.iconSize as number | undefined) ??
           catalogDeviceGlyphSize(node.visual) ??
           catalogGlyphSize(node) ??
           fallbackSize,
         height:
           style.height ??
+          (node.derivedProps?.iconSize as number | undefined) ??
           catalogDeviceGlyphSize(node.visual) ??
           catalogGlyphSize(node) ??
           fallbackSize,
@@ -937,6 +963,15 @@ const bindings: Readonly<Record<string, DomBinding>> = {
             const props = {
               "data-catalog-id": node.id,
               className: "react-aria-Text",
+              ...(node.derivedProps?._fieldLabelRole === "necessity-label"
+                ? {
+                    "aria-hidden":
+                      node.derivedProps._fieldLabelInclude !== true &&
+                      node.derivedProps._fieldLabelRequired === true
+                        ? true
+                        : undefined,
+                  }
+                : {}),
               // (A DateRangePicker's dash — `presence.ts` `_decorative`, the reference's `aria-hidden`.)
               ...(node.derivedProps?._decorative === true
                 ? { "aria-hidden": true }
@@ -950,7 +985,8 @@ const bindings: Readonly<Record<string, DomBinding>> = {
               catalogTextRunsContent(
                 node.textRuns,
                 node.visual.textDecoration,
-              ) ?? String(node.props.children ?? "");
+              ) ??
+              String(node.derivedProps?.children ?? node.props.children ?? "");
             return detachedSlot(resolution)
               ? createElement(
                   "span",
@@ -1017,7 +1053,9 @@ const bindings: Readonly<Record<string, DomBinding>> = {
         typeof Label
       >[0],
       // (A ColorSlider's Label without its own text shows the channel's name — RAC's, ADR-258.)
-      ...(catalogRacOwnsText(node) ? [] : [String(node.props.children ?? "")]),
+      ...(catalogRacOwnsText(node) || node.derivedProps?._fieldComposed === true
+        ? []
+        : [String(node.props.children ?? "")]),
       ...children,
     ),
   description: (node, style) =>
@@ -1027,9 +1065,12 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       authored: node.props.slot ?? "description",
       render: (resolution) =>
         createElement(
-          Text,
+          CatalogFieldDescription,
           {
             "data-catalog-id": node.id,
+            "data-disabled": node.derivedProps?.isDisabled || undefined,
+            className: "react-aria-Description",
+            "data-variant": "default",
             ...racSlotProps(resolution),
             style,
           } as Parameters<typeof Text>[0],
@@ -1260,7 +1301,9 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       RAC.SliderOutput as ElementType,
       // (Its type size is the Slider sheet's — `.react-aria-Slider[data-size] .react-aria-SliderOutput`.)
       { key: node.id, "data-catalog-id": node.id, style },
-      ...(catalogRacOwnsText(node) ? [] : [String(node.props.children ?? "")]),
+      ...(catalogRacOwnsText(node) || node.derivedProps?._fieldComposed === true
+        ? []
+        : [String(node.props.children ?? "")]),
     ),
   slidertrack: (node, style, children) =>
     createElement(RAC.SliderTrack as ElementType, {
@@ -1654,6 +1697,7 @@ function nodeTreeControlGroup(
               paddingRight: style.paddingRight,
               paddingBottom: style.paddingBottom,
               paddingLeft: style.paddingLeft,
+              ...authoredStyle(root, node),
             };
           })(),
           ...(disabled
@@ -1670,7 +1714,7 @@ function nodeTreeControlGroup(
                 onTouchEnd: forwardFocus,
               }),
         }
-      : {}),
+      : { style: authoredStyle(root, node) }),
     children: catalogStateChildren(node.id, () =>
       content ? [content] : children,
     ),
@@ -1691,12 +1735,22 @@ const toggleTextBinding: DomBinding = (node, style, children) =>
     ...children,
   );
 
+// S2 HelpText shows description only while valid, including RAC client validation.
+function CatalogFieldDescription(props: Parameters<typeof Text>[0]) {
+  const validation = useContext(RAC.FieldErrorContext);
+  return validation?.isInvalid ? null : createElement(Text, props);
+}
+
 const fieldErrorBinding: DomBinding = (node, style) =>
   createElement(
     RAC.FieldError,
-    { key: node.id, "data-catalog-id": node.id, style } as Parameters<
-      typeof RAC.FieldError
-    >[0],
+    {
+      key: node.id,
+      "data-catalog-id": node.id,
+      "data-disabled": node.derivedProps?.isDisabled || undefined,
+      "data-variant": "default",
+      style,
+    } as Parameters<typeof RAC.FieldError>[0],
     String(node.props.children ?? "") || undefined,
   );
 
@@ -1790,6 +1844,7 @@ function fieldInputBinding(
         ? text("type")
         : {}),
     ...text("placeholder"),
+    "data-authored-color": style.color !== undefined || undefined,
     style: quietStyle(node, style),
   });
 }
@@ -1896,6 +1951,9 @@ function buttonElement(
       //  a Button elsewhere is S2's pill.)
       ...(typeof node.derivedProps?.fieldButton === "string"
         ? { "data-field-button": node.derivedProps.fieldButton }
+        : {}),
+      ...(node.derivedProps?._searchFieldPart === true
+        ? { "data-search-field-part": "true" }
         : {}),
       ...(node.derivedProps?._pickerTrigger === true
         ? {
@@ -2444,11 +2502,27 @@ function ruleDom(
   // CSS min-width wins over max-width. A full-viewport picker trigger must not
   // force its menu beyond the space left by RAC's collision padding.
   if (placementOwnerType && LISTBOX_PICKER_TYPES.has(placementOwnerType)) {
+    const defaults = catalogPickerMenuWidth(
+      placementOwnerType,
+      placementOwner!.props,
+      "var(--trigger-width)",
+    );
+    if (
+      placementOwnerType === "Select" &&
+      placementOwner!.props.isQuiet === true
+    )
+      style = { width: cssLength(defaults.width), ...style };
+    const authoredWidth = node.sizing.width ?? node.visual.width;
+    if (
+      catalogHasAuthoredVisual(root, node, "width") &&
+      (typeof authoredWidth === "number" || typeof authoredWidth === "string")
+    )
+      style.width = cssLength(authoredWidth);
     const available = "var(--catalog-overlay-available-width)";
     const ownMax = style.maxWidth;
     style = {
       ...style,
-      minWidth: `min(${cssLength(style.minWidth ?? "var(--trigger-width)")}, ${available})`,
+      minWidth: `min(${cssLength(style.minWidth ?? defaults.minWidth)}, ${available})`,
       maxWidth:
         ownMax && ownMax !== "none"
           ? `min(${cssLength(ownMax)}, ${available})`
@@ -3261,6 +3335,24 @@ function authoredStyle(
     style.backgroundImage = "none";
   // An authored absolute box's position · insets came with its authored layout (ADR-275).
   if (!catalogIsAuthoredPlaced(node)) containingBlock(root, node, style);
+  if (node.derivedProps?._fieldLabelRole) {
+    for (const key of [
+      "fontSize",
+      "fontWeight",
+      "lineHeight",
+      "color",
+    ] as const) {
+      const value = node.derivedProps[key];
+      if (value !== undefined)
+        Object.assign(style, {
+          [key]: key === "color" ? cssColor(String(value)) : value,
+        });
+    }
+    if (node.derivedProps._fieldPartWidth !== undefined)
+      style.width = Number(node.derivedProps._fieldPartWidth);
+    if (node.derivedProps._fieldPartHeight !== undefined)
+      style.height = Number(node.derivedProps._fieldPartHeight);
+  }
   return style;
 }
 
@@ -3484,7 +3576,15 @@ export function renderNode(
   styleOverride: CSSProperties | undefined,
 ): ReactElement | null {
   // ADR-256 Decision 7: an optional text part with nothing to say is not there.
-  if (catalogAbsentByValue(node)) return null;
+  if (
+    catalogAbsentByValue(node) ||
+    catalogFieldLabelPartsHidden(
+      node,
+      (id) => root.domInputs.get(id),
+      root.typeOf,
+    )
+  )
+    return null;
   if (
     catalogPickerSelectionHidden(
       node,
@@ -3588,11 +3688,6 @@ export function renderNode(
   const pickerSpinner = catalogPickerSpinner(pickerType, partParent?.props);
   if (pickerSpinner)
     children.splice(Math.max(children.length - 1, 0), 0, pickerSpinner);
-  if (node.bindingId === "label") {
-    const necessity = catalogFieldLabelNecessity(root, node);
-    if (isValidElement(necessity))
-      children.push(cloneElement(necessity, { key: "necessity" }));
-  }
   const delegated = CATALOG_DELEGATED_DOM[node.bindingId ?? ""];
   if (delegated && !bindings[node.bindingId ?? ""])
     return withHtmlId(
@@ -3673,12 +3768,23 @@ export function renderNode(
     field &&
     CATALOG_INPUT_NODE_FIELDS.has(field.bindingId ?? "") &&
     node.ruleId === "Input"
-  )
+  ) {
+    const inputStyle = { ...authoredStyle(root, node), ...styleOverride };
+    // RAC의 입력값은 문서를 다시 resolve하지 않고도 변한다. 상태별 기본 여백은
+    // 같은 catalog에서 생성한 CSS가 담당하고, 명시적 스타일만 inline으로 유지한다.
+    if (field.bindingId === "searchfield") {
+      if (
+        styleOverride?.paddingRight !== undefined ||
+        catalogHasExplicitVisual(root, node, "paddingRight")
+      )
+        inputStyle.paddingRight ??= node.visual
+          .paddingRight as CSSProperties["paddingRight"];
+      else delete inputStyle.paddingRight;
+    }
     return fieldInputBinding(
       node,
       {
-        ...authoredStyle(root, node),
-        ...styleOverride,
+        ...inputStyle,
         // ADR-259 Phase 2: in a prefix box the Group draws the box — the Input lays its own down
         // (`CATALOG_FIELD_BOX_INPUT_STYLE`, the Rust input reads the same).
         ...(catalogFieldBoxOfInput(
@@ -3697,6 +3803,7 @@ export function renderNode(
       },
       field,
     );
+  }
   // A date field's DateInput node is a RAC DateInput inside the field's context (ADR-253).
   if (
     field &&
@@ -3801,6 +3908,16 @@ export function renderNode(
   if (bound) catalogDeviceControlCss(bound, node.visual);
   // ADR-295 Phase 3c-3b: a part rule's length margin (a field button's overlap) — its device formula.
   if (bound) catalogDeviceLayoutCss(bound, node.layout);
+  if (bound && node.derivedProps?._fieldLabelRole)
+    Object.assign(bound, catalogLayoutCss(catalogAuthoredLayout(root, node)));
+  // Hint states belong to their catalog sheet; a resolved resting color inline would
+  // override disabled. Explicitly authored text colors still win.
+  if (
+    bound &&
+    ["description", "fielderror"].includes(node.bindingId ?? "") &&
+    !catalogHasAuthoredColor(root, node)
+  )
+    delete bound.color;
   // A Select's value takes its trigger Button's text color and the field sheet's placeholder
   // paint (`[data-placeholder]`): its color goes inline only when the document wrote it.
   // A Disclosure's title Text takes its trigger's color the same way (`… > .react-aria-Text
@@ -3836,7 +3953,7 @@ export function renderNode(
   // when the user toggled it in the Preview, so the selected label vanished (2026-10-30).
   if (
     bound &&
-    node.bindingId === "text" &&
+    (node.bindingId === "text" || node.bindingId === "label") &&
     !catalogHasAuthoredColor(root, node) &&
     catalogToggleButtonGlyphOwner(
       node,
@@ -3914,10 +4031,11 @@ export function renderNode(
     )
       bound.borderWidth = 0;
     // A SearchField's sheet hides its clear button (its own child — G5 example 5) while the input
-    // is empty (`[data-empty]`, RAC's run state): that Button's display stays the sheet's.
+    // is empty or read-only (RAC's run state): that Button's display stays the sheet's.
     if (partField?.bindingId === "searchfield") delete bound.display;
     if (
       node.derivedProps?._pickerTrigger === true ||
+      node.derivedProps?._searchFieldPart === true ||
       (node.props.isDisabled !== true && !fieldDisabled)
     ) {
       // The rule's colors and their states are the generated sheet's (the variant's condition tree —

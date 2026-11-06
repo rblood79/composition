@@ -34,9 +34,9 @@ export const IconPreview = memo(function IconPreview({
     <svg
       width={size}
       height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
+      viewBox={`0 0 ${data.viewBoxSize ?? 24} ${data.viewBoxSize ?? 24}`}
+      fill={data.filled ? color : "none"}
+      stroke={data.filled ? "none" : color}
       strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"

@@ -706,14 +706,15 @@ function withRuleParts(
     return choices?.map(String);
   };
   return definitions.map((definition) => {
-    if (definition.mode === "composite" || !definition.ruleId)
-      return definition;
+    const ruleId =
+      definition.ruleId ?? (definition.name === "Label" ? "Label" : undefined);
+    if (definition.mode === "composite" || !ruleId) return definition;
     const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
-      definition.ruleId
+      ruleId
     ];
     const sized = !!definition.propChoices?.size;
     const partRules: PartRule[] = compileRulePartRules(
-      definition.ruleId,
+      ruleId,
       choicesOf,
     ).flatMap((part): PartRule[] => {
       const child = typeId(part.childType);
@@ -732,7 +733,7 @@ function withRuleParts(
       const ownerProps = Object.fromEntries(
         Object.entries(part.ownerProps ?? {}).map(([prop, value]) => [
           prop,
-          ownerAccepts[prop] === "boolean" &&
+          (ownerAccepts[prop] === "boolean" || prop === "isEmpty") &&
           (value === "true" || value === "false")
             ? value === "true"
             : value,
@@ -740,7 +741,11 @@ function withRuleParts(
       );
       if (
         Object.entries(ownerProps).some(
-          ([prop, value]) => !scalarFitsType(value, ownerAccepts[prop]),
+          ([prop, value]) =>
+            !scalarFitsType(
+              value,
+              prop === "isEmpty" ? "boolean" : ownerAccepts[prop],
+            ),
         )
       )
         return [];

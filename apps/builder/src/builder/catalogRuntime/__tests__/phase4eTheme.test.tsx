@@ -16,6 +16,7 @@ import {
   setActiveTheme,
   setFields,
   setThemeToken,
+  setSiteSettings,
   updateTheme,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { renderHook } from "@testing-library/react";
@@ -49,6 +50,50 @@ const read = (ref: string, mode: "light" | "dark") =>
   resolveToken(ref as `{color.${string}}`, mode) as string;
 
 afterEach(() => installThemeMaps(null));
+
+it("사이트 locale의 CJK 기본 서체·조판 언어와 명시 서체·Undo를 측정에 전달한다", async () => {
+  const measure = vi.fn<CatalogTextMeasure>((_text, font) => ({
+    width: 80,
+    height: font.fontSize * 1.5,
+    minWidth: 80,
+  }));
+  const { workspace } = await open(measure);
+  workspace.execute(
+    setFields({
+      targets: [{ kind: "node", id: BUTTON }],
+      props: { children: { kind: "set", value: "한글 글꼴" } },
+    }),
+  );
+  workspace.execute(setSiteSettings({ patch: { lang: "ko-KR" } }));
+  expect(
+    measure.mock.calls.some(
+      ([, font]) =>
+        font.locale === "ko-KR" &&
+        font.fontFamily?.startsWith("adobe-clean-han-korean"),
+    ),
+  ).toBe(true);
+  workspace.execute(
+    setFields({
+      targets: [{ kind: "node", id: BUTTON }],
+      visual: { fontFamily: { kind: "set", value: "Inter" } },
+    }),
+  );
+  expect(measure.mock.calls.at(-1)?.[1].fontFamily).toBe("Inter");
+  measure.mockClear();
+  workspace.undo();
+  // Undo에서 이미 측정한 기본 서체의 캐시를 재사용하므로 재측정도 함께 확인한다.
+  workspace.refreshFonts();
+  expect(
+    measure.mock.calls.some(
+      ([text, font]) =>
+        text === "한글 글꼴" &&
+        font.locale === "ko-KR" &&
+        font.fontFamily?.startsWith("adobe-clean-han-korean"),
+    ),
+  ).toBe(true);
+  workspace.undo();
+  expect(workspace.root.siteLocale()).toBeUndefined();
+});
 
 async function open(textMeasure?: CatalogTextMeasure) {
   const library = await buildCodeCatalogLibrary();

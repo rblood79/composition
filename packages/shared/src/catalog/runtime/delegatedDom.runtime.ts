@@ -1,6 +1,7 @@
 import {
   catalogPickerSelectionItem,
   catalogPickerOptions,
+  catalogComboBoxSelectedOption,
   LISTBOX_PICKER_TYPES,
 } from "./pickerSelection";
 import { CatalogPickerSelectionSlot } from "./pickerSelection.components";
@@ -152,11 +153,6 @@ import { ColorSwatchPicker } from "../../components/ColorSwatchPicker";
 import { DataField } from "../../components/Field";
 
 import {
-  renderNecessityIndicator,
-  type NecessityIndicator,
-} from "../../components/FieldNecessityIndicator";
-
-import {
   FILE_UPLOAD_INPUT_CHILD_TYPES,
   FileUpload,
 } from "../../components/FileUpload";
@@ -224,7 +220,6 @@ import {
   catalogAbsentByValue,
   catalogDisclosureExpanded,
   catalogAccordionOf,
-  catalogFieldNecessityIndicator,
   catalogGroupDisclosures,
   catalogNumberFieldValue,
   catalogPartParent,
@@ -1028,27 +1023,6 @@ export function catalogFieldLabelNode(
   );
 }
 
-/** The necessity indicator a field appends to its Label node (`catalogFieldNecessityIndicator`). */
-export function catalogFieldLabelNecessity(
-  root: CatalogCompositionRoot,
-  label: CatalogConsumerNode,
-): ReactNode {
-  const field = catalogDomPartParent(root, label);
-  if (
-    !field ||
-    CATALOG_LABEL_NODE_FIELDS[field.bindingId ?? ""] !== "necessity"
-  )
-    return null;
-  return renderNecessityIndicator(
-    catalogFieldNecessityIndicator(
-      field,
-      (record) => root.domInputs.get(record.parentId),
-      (record) => catalogTypeName(root, record),
-    ) as NecessityIndicator | undefined,
-    bool(field.props.isRequired),
-  );
-}
-
 /**
  * The hint part nodes (`Description` · `FieldError`) of a field that draws them from its nodes
  * (`FIELD_HINT_OWNERS`): instances of the part origins, each drawn by its own binding inside the
@@ -1406,8 +1380,10 @@ function toggleButton(
             );
           },
         );
+      const owner = catalogDomPartParent(input.root, input.node);
       return createElement(component, {
         ...marker(input),
+        "data-emphasized": owner?.props.isEmphasized === true || undefined,
         ...toggleHoverHandlers(input),
         style: input.style,
         className,
@@ -2704,6 +2680,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       const props = input.node.props;
       return createElement(AriaSwitchField as ElementType, {
         ...marker(input),
+        key: stateKey(input, `${input.node.id}:${bool(props.isSelected)}`),
         style: input.style,
         className: "react-aria-Switch",
         "data-size": str(props.size) || "M",
@@ -3082,15 +3059,15 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           selectionMode: props.selectionMode,
           disallowEmptySelection: bool(props.disallowEmptySelection),
           indicator: bool(props.indicator),
-          isEmphasized: bool(props.isEmphasized),
+          isEmphasized: props.isEmphasized,
+          isQuiet: props.isQuiet,
           // S2 isJustified (2026-10-10): the sheet's `[data-justified]` grows each button.
           isJustified: bool(props.isJustified),
           staticColor: props.staticColor || "auto",
           size: props.size || "M",
           density: props.density || "regular",
           ...controlled(input, SELECTED_KEYS, selected, catalogSelectionValue),
-          // (Only when disabled — RAC writes `aria-disabled` for any boolean.)
-          isDisabled: bool(props.isDisabled) || undefined,
+          isDisabled: props.isDisabled,
         },
         ...renderAll(input),
       );
@@ -3872,11 +3849,11 @@ export function catalogStateSourceValue(
       return props.isOpen ?? props.defaultOpen ?? node.displayState === "open";
     case "selectedKey":
       if (type === "ComboBox" && props.selectedKey === undefined) {
-        const selected = catalogPickerOptions(
+        const selected = catalogComboBoxSelectedOption(
           node,
           domGet(root),
           root.typeOf,
-        ).find((item) => item.props.isSelected === true);
+        );
         return selected
           ? resolveStaticItemKey(
               selected.props as Record<string, unknown>,

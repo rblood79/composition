@@ -4,7 +4,6 @@ export {
   catalogOwnerDrawnPart,
   CATALOG_LABEL_NODE_FIELDS,
   catalogFieldLabelNode,
-  catalogFieldLabelNecessity,
   catalogFieldHintNodes,
   CATALOG_INPUT_NODE_FIELDS,
   CATALOG_WRAPPED_CONTROL_FIELDS,

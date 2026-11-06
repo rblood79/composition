@@ -22,6 +22,14 @@
   --icon-size: 26px;
 }
 
+.react-aria-ColorField {
+  color: var(--fg-muted);
+}
+
+.react-aria-ColorField:where([data-disabled]) {
+  color: var(--fg-disabled);
+}
+
 .react-aria-ColorField[data-size="XS"] {
   font-size: var(--catalog-token-text-2xs);
   border-radius: var(--catalog-token-radius-sm);
@@ -57,15 +65,13 @@
   --icon-size: 36px;
 }
 
-.react-aria-ColorField.react-aria-ColorField:where([data-focus-visible]) {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
+.react-aria-ColorField.react-aria-ColorField {
+  color: var(--fg-muted);
 }
 
 .react-aria-ColorField.react-aria-ColorField:where([data-disabled]) {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
+  color: var(--fg-disabled);
+  cursor: default;
 }
 
 /* ── Tier 2: Composite Delegation ── */
@@ -110,7 +116,7 @@
 
 
   .react-aria-ColorField :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
-    color: var(--fg-muted);
+    color: var(--field-placeholder);
     flex-shrink: 0;
   }
 

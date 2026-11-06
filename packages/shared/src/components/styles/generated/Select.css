@@ -144,7 +144,7 @@
 }
 
 .react-aria-Popover[data-trigger="Select"] {
-  width: fit-content;
+  width: var(--trigger-width);
   min-width: var(--trigger-width);
   max-height: 300px;
   overflow: auto;

@@ -134,7 +134,9 @@ async function openMenu(
     disconnect() {}
   };
   const restore = layout(
-    owner === "ComboBox" ? ".react-aria-Group" : ".react-aria-Button",
+    owner === "ComboBox"
+      ? ".react-aria-Group"
+      : ".react-aria-Button, .react-aria-ActionButton",
     fullWidth,
   );
   const host = document.body.appendChild(document.createElement("div"));
@@ -262,9 +264,12 @@ describe("S2 menuWidth", () => {
     expect(popover.style.getPropertyValue("--trigger-width")).toBe("50px");
   });
 
-  it("Select: a quiet Select keeps the trigger's width (S2)", async () => {
+  it("Select: quiet 메뉴는 menuWidth를 무시하고 트리거 폭에서 24px을 뺀다 (최소 192px)", async () => {
     const popover = await openMenu("Select", { menuWidth: 320, isQuiet: true });
-    expect(popover.style.width).toBe("");
+    expect(popover.style.width).toBe("calc(var(--trigger-width) - 24px)");
+    expect(popover.style.minWidth).toBe(
+      "min(192px, var(--catalog-overlay-available-width))",
+    );
   });
 
   it("ComboBox: menuWidth is the menu's trigger width (its width and minimum)", async () => {

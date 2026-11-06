@@ -241,7 +241,7 @@ describe("toggle indicator node", () => {
         workspace.execute(
           setFields({
             targets: [{ kind: "node", id: "project:node:owner" as NodeId }],
-            props: { variant: { kind: "set", value: "emphasized" } },
+            props: { isEmphasized: { kind: "set", value: true } },
           }),
         );
         canvas.update();
@@ -320,7 +320,7 @@ describe("toggle indicator node", () => {
     expect(invalid.fill).toBe(valid.fill);
     const selected = set({ isSelected: true });
     expect(selected.fill).toBe(invalid.stroke);
-    expect(selected.stroke).toBe(invalid.stroke);
+    expect(selected.stroke).toBeUndefined(); // S2 selected box border is transparent.
     const indeterminate = set({ isSelected: false, isIndeterminate: true });
     expect(indeterminate.fill).toBe(invalid.stroke);
     const restored = set({ isInvalid: false, isIndeterminate: false });

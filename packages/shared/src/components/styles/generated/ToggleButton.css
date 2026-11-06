@@ -27,34 +27,46 @@
   justify-content: center;
 
   /* Default variant */
-  background: var(--bg-muted);
-  color: var(--fg);
-  border-color: transparent;
+  background: var(--neutral-surface);
+  color: var(--neutral-content);
+  border: 0px solid transparent;
 
   /* Default size */
-  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-toggle-button-padding-x-M, calc(var(--catalog-token-size-height-M) * 3 / 8));
+  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * 0px) / 2) var(--catalog-token-toggle-button-padding-x-M, calc(var(--catalog-token-size-height-M) * 3 / 8));
   font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
   line-height: var(--catalog-token-text-sm--line-height);
   font-weight: 500;
-  border-width: var(--border-width-thin);
+  border-width: 0px;
   min-height: var(--catalog-token-size-height-M);
   gap: var(--catalog-token-toggle-button-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-toggle-button-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
 }
 
 .react-aria-ToggleButton:where([data-variant="default"]) {
-  background: var(--bg-muted);
-  color: var(--fg);
+  background: var(--neutral-surface);
+  color: var(--neutral-content);
   border-color: transparent;
 }
 
 .react-aria-ToggleButton:where([data-variant="default"][data-hovered]) {
-  background: var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black));
+  background: var(--neutral-surface-hover);
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][aria-expanded="true"]) {
+  background: var(--neutral-surface-hover);
+  color: var(--neutral-content-hover);
 }
 
 .react-aria-ToggleButton:where([data-variant="default"][data-pressed]) {
-  background: var(--neutral-pressed, color-mix(in srgb, var(--bg-muted) 75%, black));
+  background: var(--neutral-surface-hover);
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-focus-visible]) {
+  background: var(--neutral-surface-hover);
+  color: var(--neutral-content-hover);
 }
 
 .react-aria-ToggleButton:where([data-variant="default"][data-quiet]) {
@@ -62,109 +74,212 @@
 }
 
 .react-aria-ToggleButton:where([data-variant="default"][data-quiet][data-hovered]) {
-  background: var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black));
+  background: var(--neutral-surface-hover);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-quiet][aria-expanded="true"]) {
+  background: var(--neutral-surface-hover);
 }
 
 .react-aria-ToggleButton:where([data-variant="default"][data-quiet][data-pressed]) {
-  background: var(--neutral-pressed, color-mix(in srgb, var(--bg-muted) 75%, black));
+  background: var(--neutral-surface-hover);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-quiet][data-focus-visible]) {
+  background: var(--neutral-surface-hover);
 }
 
 .react-aria-ToggleButton:where([data-variant="default"][data-selected]) {
-  background: var(--fg);
-  color: var(--bg);
-  border-color: var(--fg);
+  background: var(--neutral-fill);
+  color: var(--on-neutral);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-selected][data-hovered]) {
+  background: var(--neutral-fill-hover);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-selected][aria-expanded="true"]) {
+  background: var(--neutral-fill-hover);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-selected][data-pressed]) {
+  background: var(--neutral-fill-hover);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-selected][data-focus-visible]) {
+  background: var(--neutral-fill-hover);
 }
 
 .react-aria-ToggleButton:where([data-variant="default"][data-selected][data-emphasized]) {
-  background: var(--accent);
+  background: var(--accent-fill);
   color: var(--fg-on-accent);
-  border-color: var(--accent);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-selected][data-emphasized][data-hovered]) {
+  background: var(--accent-fill-hover);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-selected][data-emphasized][aria-expanded="true"]) {
+  background: var(--accent-fill-hover);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-selected][data-emphasized][data-pressed]) {
+  background: var(--accent-fill-hover);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-selected][data-emphasized][data-focus-visible]) {
+  background: var(--accent-fill-hover);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-disabled]) {
+  background: var(--neutral-surface);
+  color: var(--fg-disabled);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-disabled][data-quiet]) {
+  background: transparent;
 }
 
 .react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"]) {
-  background: #000000;
-  color: #ffffff;
-  border-color: #000000;
+  background: rgb(0 0 0 / 0.11);
+  color: #000000;
 }
 
 .react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"][data-hovered]) {
-  background: #000000;
-  color: #ffffff;
+  background: rgb(0 0 0 / 0.14);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"][aria-expanded="true"]) {
+  background: rgb(0 0 0 / 0.14);
 }
 
 .react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"][data-pressed]) {
-  background: #000000;
-  color: #ffffff;
+  background: rgb(0 0 0 / 0.14);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"][data-focus-visible]) {
+  background: rgb(0 0 0 / 0.14);
 }
 
 .react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"][data-quiet]) {
   background: transparent;
-  color: #000000;
 }
 
 .react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"][data-quiet][data-hovered]) {
-  background: #000000;
-  color: #ffffff;
+  background: rgb(0 0 0 / 0.14);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"][data-quiet][aria-expanded="true"]) {
+  background: rgb(0 0 0 / 0.14);
 }
 
 .react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"][data-quiet][data-pressed]) {
-  background: #000000;
-  color: #ffffff;
+  background: rgb(0 0 0 / 0.14);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"][data-quiet][data-focus-visible]) {
+  background: rgb(0 0 0 / 0.14);
 }
 
 .react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"][data-selected]) {
-  background: #000000;
+  background: rgb(0 0 0 / 0.85);
   color: #ffffff;
-  border-color: #000000;
 }
 
-.react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"][data-selected][data-emphasized]) {
-  background: #000000;
-  color: #ffffff;
-  border-color: #000000;
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"][data-selected][data-hovered]) {
+  background: rgb(0 0 0 / 0.94);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"][data-selected][aria-expanded="true"]) {
+  background: rgb(0 0 0 / 0.94);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"][data-selected][data-pressed]) {
+  background: rgb(0 0 0 / 0.94);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"][data-selected][data-focus-visible]) {
+  background: rgb(0 0 0 / 0.94);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"][data-disabled]) {
+  background: rgb(0 0 0 / 0.11);
+  color: rgb(0 0 0 / 0.21);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="black"][data-disabled][data-quiet]) {
+  background: transparent;
 }
 
 .react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"]) {
-  background: #ffffff;
-  color: #000000;
-  border-color: #ffffff;
+  background: rgb(255 255 255 / 0.11);
+  color: #ffffff;
 }
 
 .react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"][data-hovered]) {
-  background: #ffffff;
-  color: #000000;
+  background: rgb(255 255 255 / 0.14);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"][aria-expanded="true"]) {
+  background: rgb(255 255 255 / 0.14);
 }
 
 .react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"][data-pressed]) {
-  background: #ffffff;
-  color: #000000;
+  background: rgb(255 255 255 / 0.14);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"][data-focus-visible]) {
+  background: rgb(255 255 255 / 0.14);
 }
 
 .react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"][data-quiet]) {
   background: transparent;
-  color: #ffffff;
 }
 
 .react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"][data-quiet][data-hovered]) {
-  background: #ffffff;
-  color: #000000;
+  background: rgb(255 255 255 / 0.14);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"][data-quiet][aria-expanded="true"]) {
+  background: rgb(255 255 255 / 0.14);
 }
 
 .react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"][data-quiet][data-pressed]) {
-  background: #ffffff;
-  color: #000000;
+  background: rgb(255 255 255 / 0.14);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"][data-quiet][data-focus-visible]) {
+  background: rgb(255 255 255 / 0.14);
 }
 
 .react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"][data-selected]) {
-  background: #ffffff;
+  background: rgb(255 255 255 / 0.85);
   color: #000000;
-  border-color: #ffffff;
 }
 
-.react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"][data-selected][data-emphasized]) {
-  background: #ffffff;
-  color: #000000;
-  border-color: #ffffff;
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"][data-selected][data-hovered]) {
+  background: rgb(255 255 255 / 0.94);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"][data-selected][aria-expanded="true"]) {
+  background: rgb(255 255 255 / 0.94);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"][data-selected][data-pressed]) {
+  background: rgb(255 255 255 / 0.94);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"][data-selected][data-focus-visible]) {
+  background: rgb(255 255 255 / 0.94);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"][data-disabled]) {
+  background: rgb(255 255 255 / 0.11);
+  color: rgb(255 255 255 / 0.21);
+}
+
+.react-aria-ToggleButton:where([data-variant="default"][data-static-color="white"][data-disabled][data-quiet]) {
+  background: transparent;
 }
 
 .react-aria-ToggleButton[data-icon-only] {
@@ -173,60 +288,60 @@
 }
 
 .react-aria-ToggleButton[data-size="XS"] {
-  padding: calc((var(--catalog-token-size-height-XS) - var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-toggle-button-padding-x-XS, calc(var(--catalog-token-size-height-XS) * 3 / 8));
+  padding: calc((var(--catalog-token-size-height-XS) - var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height) - 2 * 0px) / 2) var(--catalog-token-toggle-button-padding-x-XS, calc(var(--catalog-token-size-height-XS) * 3 / 8));
   font-size: var(--catalog-token-text-2xs);
-  border-radius: var(--catalog-token-radius-sm);
+  border-radius: 6px;
   line-height: var(--catalog-token-text-2xs--line-height);
   font-weight: 500;
-  border-width: var(--border-width-thin);
+  border-width: 0px;
   min-height: var(--catalog-token-size-height-XS);
   gap: var(--catalog-token-toggle-button-gap-XS, calc(var(--catalog-token-text-2xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-toggle-button-icon-size-XS, calc(var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height)));
 }
 
 .react-aria-ToggleButton[data-size="S"] {
-  padding: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-toggle-button-padding-x-S, calc(var(--catalog-token-size-height-S) * 3 / 8));
+  padding: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * 0px) / 2) var(--catalog-token-toggle-button-padding-x-S, calc(var(--catalog-token-size-height-S) * 3 / 8));
   font-size: var(--catalog-token-text-xs);
   border-radius: 7px;
   line-height: var(--catalog-token-text-xs--line-height);
   font-weight: 500;
-  border-width: var(--border-width-thin);
+  border-width: 0px;
   min-height: var(--catalog-token-size-height-S);
   gap: var(--catalog-token-toggle-button-gap-S, calc(var(--catalog-token-text-xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-toggle-button-icon-size-S, calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)));
 }
 
 .react-aria-ToggleButton[data-size="M"] {
-  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-toggle-button-padding-x-M, calc(var(--catalog-token-size-height-M) * 3 / 8));
+  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * 0px) / 2) var(--catalog-token-toggle-button-padding-x-M, calc(var(--catalog-token-size-height-M) * 3 / 8));
   font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
   line-height: var(--catalog-token-text-sm--line-height);
   font-weight: 500;
-  border-width: var(--border-width-thin);
+  border-width: 0px;
   min-height: var(--catalog-token-size-height-M);
   gap: var(--catalog-token-toggle-button-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-toggle-button-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
 }
 
 .react-aria-ToggleButton[data-size="L"] {
-  padding: calc((var(--catalog-token-size-height-L) - var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-toggle-button-padding-x-L, calc(var(--catalog-token-size-height-L) * 3 / 8));
+  padding: calc((var(--catalog-token-size-height-L) - var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height) - 2 * 0px) / 2) var(--catalog-token-toggle-button-padding-x-L, calc(var(--catalog-token-size-height-L) * 3 / 8));
   font-size: var(--catalog-token-text-base);
   border-radius: 9px;
   line-height: var(--catalog-token-text-base--line-height);
   font-weight: 500;
-  border-width: var(--border-width-thin);
+  border-width: 0px;
   min-height: var(--catalog-token-size-height-L);
   gap: var(--catalog-token-toggle-button-gap-L, calc(var(--catalog-token-text-base) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-toggle-button-icon-size-L, calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)));
 }
 
 .react-aria-ToggleButton[data-size="XL"] {
-  padding: calc((var(--catalog-token-size-height-XL) - var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height) - 2 * var(--border-width-thin)) / 2) var(--catalog-token-toggle-button-padding-x-XL, calc(var(--catalog-token-size-height-XL) * 3 / 8));
+  padding: calc((var(--catalog-token-size-height-XL) - var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height) - 2 * 0px) / 2) var(--catalog-token-toggle-button-padding-x-XL, calc(var(--catalog-token-size-height-XL) * 3 / 8));
   font-size: var(--catalog-token-text-lg);
   border-radius: 10px;
   line-height: var(--catalog-token-text-lg--line-height);
   font-weight: 500;
-  border-width: var(--border-width-thin);
+  border-width: 0px;
   min-height: var(--catalog-token-size-height-XL);
   gap: var(--catalog-token-toggle-button-gap-XL, calc(var(--catalog-token-text-lg) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-toggle-button-icon-size-XL, calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)));
@@ -235,6 +350,14 @@
 .react-aria-ToggleButton.react-aria-ToggleButton:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-ToggleButton.react-aria-ToggleButton:where([data-focus-visible][data-static-color="black"]) {
+  outline: var(--focus-ring-width) solid #000000;
+}
+
+.react-aria-ToggleButton.react-aria-ToggleButton:where([data-focus-visible][data-static-color="white"]) {
+  outline: var(--focus-ring-width) solid #ffffff;
 }
 
 .react-aria-ToggleButton.react-aria-ToggleButton {
@@ -246,10 +369,12 @@
 }
 
 .react-aria-ToggleButton.react-aria-ToggleButton:where([data-disabled]) {
-  opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;
 }
+
+/* ── Tier 2: Composite Delegation ── */
+
 
 @media (forced-colors: active) {
   .react-aria-ToggleButton {
@@ -262,5 +387,67 @@
     transition-duration: 0s !important;
   }
 }
+
+  .react-aria-ToggleButton[data-in-group] {
+    flex-shrink: 0;
+  }
+
+  .react-aria-ToggleButton[data-justified] {
+    flex-grow: 1;
+    flex-basis: 0;
+  }
+
+  .react-aria-ToggleButton[data-in-group][data-orientation="vertical"] {
+    width: 100%;
+  }
+
+  .react-aria-ToggleButton[data-density="compact"] {
+    border-radius: 0;
+  }
+
+  .react-aria-ToggleButton[data-density="compact"]:first-child {
+    border-start-start-radius: var(--action-corner);
+  }
+
+  .react-aria-ToggleButton[data-density="compact"]:last-child {
+    border-end-end-radius: var(--action-corner);
+  }
+
+  .react-aria-ToggleButton[data-density="compact"][data-orientation="horizontal"]:first-child {
+    border-end-start-radius: var(--action-corner);
+  }
+
+  .react-aria-ToggleButton[data-density="compact"][data-orientation="vertical"]:last-child {
+    border-end-start-radius: var(--action-corner);
+  }
+
+  .react-aria-ToggleButton[data-density="compact"][data-orientation="horizontal"]:last-child {
+    border-start-end-radius: var(--action-corner);
+  }
+
+  .react-aria-ToggleButton[data-density="compact"][data-orientation="vertical"]:first-child {
+    border-start-end-radius: var(--action-corner);
+  }
+
+  .react-aria-ToggleButton[data-size="XS"] {
+    --action-corner: 6px;
+  }
+
+  .react-aria-ToggleButton[data-size="S"] {
+    --action-corner: 7px;
+  }
+
+  .react-aria-ToggleButton[data-size="M"] {
+    --action-corner: 8px;
+  }
+
+  .react-aria-ToggleButton[data-size="L"] {
+    --action-corner: 9px;
+  }
+
+  .react-aria-ToggleButton[data-size="XL"] {
+    --action-corner: 10px;
+  }
+
 
 } /* @layer components */

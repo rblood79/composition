@@ -1,9 +1,9 @@
 import { createContext, forwardRef } from "react";
 import { Toolbar, type ToolbarProps } from "react-aria-components/Toolbar";
-import type { ComponentSizeSubset, StaticColor } from "../types";
+import type { ComponentSize, StaticColor } from "../types";
 
 export interface ActionButtonGroupProps extends ToolbarProps {
-  size?: ComponentSizeSubset;
+  size?: ComponentSize;
   density?: "regular" | "compact";
   isQuiet?: boolean;
   isJustified?: boolean;
@@ -20,7 +20,7 @@ export const ActionButtonGroup = forwardRef<
   ActionButtonGroupProps
 >(function ActionButtonGroup(
   {
-    size,
+    size = "M",
     density = "regular",
     isQuiet,
     isJustified,

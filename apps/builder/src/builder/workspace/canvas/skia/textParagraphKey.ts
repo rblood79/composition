@@ -40,6 +40,7 @@ export function getTextParagraphCacheKey(
     processedText,
     layoutMaxWidth,
     node.text.fontFamilies.join("|"),
+    node.text.locale ?? "",
     node.text.fontSize,
     node.text.fontWeight ?? 400,
     node.text.fontStyle ?? 0,

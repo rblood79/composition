@@ -55,6 +55,21 @@ export {
 
 // Typography
 export {
+  SPECTRUM_SANS_FAMILY,
+  SPECTRUM_SANS_STACK,
+  SPECTRUM_SANS_FONT,
+  SPECTRUM_SANS_FONT_CSS,
+  spectrumFontVariations,
+  SPECTRUM_SERIF_FAMILY,
+  SPECTRUM_SERIF_STACK,
+  SPECTRUM_CODE_FAMILY,
+  SPECTRUM_CODE_STACK,
+  SPECTRUM_FONT_FACES,
+  spectrumFontFacesFor,
+} from "./spectrumFonts";
+export type { SpectrumFontFace } from "./spectrumFonts";
+export { spectrumLocaleFont } from "./spectrumLocaleFonts";
+export {
   typography,
   fontFamily,
   fontWeight,

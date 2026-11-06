@@ -21,7 +21,7 @@
   justify-content: center;
 
   /* Default variant */
-  color: var(--fg);
+  color: var(--neutral-content);
   border: none;
 
   /* Default size */
@@ -33,11 +33,43 @@
 }
 
 .react-aria-Radio:where([data-variant="default"]) {
-  color: var(--fg);
+  color: var(--neutral-content);
+}
+
+.react-aria-Radio:where([data-variant="default"][data-hovered]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-Radio:where([data-variant="default"][data-focus-visible]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-Radio:where([data-variant="default"][data-pressed]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-Radio:where([data-variant="default"][data-disabled]) {
+  color: var(--fg-disabled);
 }
 
 .react-aria-Radio:where([data-variant="emphasized"]) {
-  color: var(--fg);
+  color: var(--neutral-content);
+}
+
+.react-aria-Radio:where([data-variant="emphasized"][data-hovered]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-Radio:where([data-variant="emphasized"][data-focus-visible]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-Radio:where([data-variant="emphasized"][data-pressed]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-Radio:where([data-variant="emphasized"][data-disabled]) {
+  color: var(--fg-disabled);
 }
 
 .react-aria-Radio[data-size="S"] {
@@ -72,50 +104,85 @@
   gap: var(--catalog-token-radio-gap-XL, calc(var(--catalog-token-text-lg) * 10 / 14));
 }
 
-.react-aria-Radio.react-aria-Radio:where([data-focus-visible]) {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
 .react-aria-Radio.react-aria-Radio:where([data-disabled]) {
-  opacity: 0.38;
   cursor: not-allowed;
-  pointer-events: none;
 }
 
-.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-selected]) .indicator {
-  border-color: var(--radio-color);
+.react-aria-Radio.react-aria-Radio .react-aria-RadioButton {
+  color: var(--neutral-content);
 }
 
-.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-invalid]) .indicator {
-  border-color: var(--negative);
+.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-hovered]) {
+  color: var(--neutral-content-hover);
 }
 
-.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-disabled]) .indicator {
-  border-color: var(--border-disabled);
+.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-focus-visible]) {
+  color: var(--neutral-content-hover);
 }
 
-.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-disabled][data-invalid][data-selected]) .indicator {
-  border-color: var(--negative);
+.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-pressed]) {
+  color: var(--neutral-content-hover);
 }
 
-.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-pressed]) .indicator {
-  border-color: var(--border-hover);
-  transform: perspective(max(var(--catalog-press-height, 0px), calc(var(--catalog-press-width, 0px) / 3), 24px)) translate3d(0, 0, -2px);
-}
-
-.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-pressed][data-selected]) .indicator {
-  border-color: color-mix(in srgb, var(--radio-color) 75%, black);
+.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-disabled]) {
+  color: var(--fg-disabled);
 }
 
 .react-aria-Radio.react-aria-Radio .react-aria-RadioButton .indicator {
+  border-color: var(--neutral-fill);
   background: var(--bg);
   will-change: transform;
 }
 
+.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-hovered]) .indicator {
+  border-color: var(--neutral-fill-hover);
+}
+
 .react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-focus-visible]) .indicator {
-  outline: 2px solid var(--radio-color);
-  outline-offset: 2px;
+  border-color: var(--neutral-fill-hover);
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-pressed]) .indicator {
+  border-color: var(--neutral-fill-hover);
+  transform: perspective(max(var(--catalog-press-height, 0px), calc(var(--catalog-press-width, 0px) / 3), 24px)) translate3d(0, 0, -2px);
+}
+
+.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-selected][data-emphasized]) .indicator {
+  border-color: var(--selection-accent);
+}
+
+.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-selected][data-emphasized][data-hovered]) .indicator {
+  border-color: var(--selection-accent-hover);
+}
+
+.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-selected][data-emphasized][data-focus-visible]) .indicator {
+  border-color: var(--selection-accent-hover);
+}
+
+.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-selected][data-emphasized][data-pressed]) .indicator {
+  border-color: var(--selection-accent-hover);
+}
+
+.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-invalid]) .indicator {
+  border-color: var(--selection-negative);
+}
+
+.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-invalid][data-hovered]) .indicator {
+  border-color: var(--selection-negative-hover);
+}
+
+.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-invalid][data-focus-visible]) .indicator {
+  border-color: var(--selection-negative-hover);
+}
+
+.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-invalid][data-pressed]) .indicator {
+  border-color: var(--selection-negative-hover);
+}
+
+.react-aria-Radio.react-aria-Radio .react-aria-RadioButton:where([data-disabled]) .indicator {
+  border-color: var(--fg-disabled);
 }
 
 /* ── Tier 2: Composite Delegation ── */
@@ -153,11 +220,6 @@
     display: inline-flex;
     align-items: center;
     gap: var(--radio-button-gap);
-  }
-
-  .react-aria-Radio .react-aria-RadioButton[data-focus-visible] {
-    outline: var(--focus-ring-width) solid var(--focus-ring);
-    outline-offset: var(--focus-ring-offset);
   }
 
 

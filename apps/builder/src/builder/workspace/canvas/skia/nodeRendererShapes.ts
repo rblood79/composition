@@ -327,11 +327,13 @@ export function renderIconPath(
   if (!node.iconPath) return;
   const { paths, circles, cx, cy, size, strokeColor, strokeWidth } =
     node.iconPath;
-  const scale = size / 24;
+  const scale = size / (node.iconPath.viewBoxSize ?? 24);
 
   const paint = acquirePooledPaint(ck);
   paint.setAntiAlias(true);
-  paint.setStyle(ck.PaintStyle.Stroke);
+  paint.setStyle(
+    node.iconPath.filled ? ck.PaintStyle.Fill : ck.PaintStyle.Stroke,
+  );
   paint.setStrokeWidth(strokeWidth);
   paint.setStrokeCap(ck.StrokeCap.Round);
   paint.setStrokeJoin(ck.StrokeJoin.Round);

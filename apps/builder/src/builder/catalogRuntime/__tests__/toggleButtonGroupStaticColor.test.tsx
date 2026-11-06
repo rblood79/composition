@@ -20,12 +20,7 @@ import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
-/**
- * 2026-10-09 (사용자 「canvas 에 반영되게 수정해」): S2 ActionButtonGroup 의 `staticColor` 는 그룹
- * 자신의 칠이 아니라 자식 ToggleButton 에게 가는 값이다 — DOM 은 `ToggleButtonGroupStaticColorContext`
- * 로 자식의 `data-static-color` 를 정하고 (자식이 `auto` 가 아닌 값을 쓰면 자식 값), Canvas 도 같은
- * 값을 자식의 파생 값 (`derivedProps.staticColor`) 으로 받아 칠한다.
- */
+/** S2 1.8.2: 그룹에 지정한 staticColor가 자식의 값보다 우선한다. */
 const BODY = "project:node:home-body" as NodeId;
 const GROUP = "project:node:group" as NodeId;
 const set = <T,>(value: T) => ({ kind: "set" as const, value });
@@ -106,31 +101,28 @@ describe("ToggleButtonGroup staticColor — Canvas", () => {
       ).toEqual([color, color]);
       const fromGroup = paint();
       expect(fromGroup).not.toEqual(before);
-      // The same paint as the buttons' own `staticColor` (the DOM's `data-static-color` either way).
       edit(of("ToggleButtonGroup")[0]!.id, { staticColor: "auto" });
-      for (const button of of("ToggleButton"))
-        edit(button.id, { staticColor: color });
-      expect(paint()).toEqual(fromGroup);
+      expect(paint()).toEqual(before);
     },
   );
 
-  it("a ToggleButton's own non-auto staticColor wins over the group's (the DOM's `effectiveStaticColor`)", async () => {
+  it("the group's explicit staticColor wins over a child's value", async () => {
     const { of, edit } = await open();
     const [first] = of("ToggleButton");
     edit(first!.id, { staticColor: "black" });
     edit(of("ToggleButtonGroup")[0]!.id, { staticColor: "white" });
     expect(
       of("ToggleButton").map((button) => button.derivedProps?.staticColor),
-    ).toEqual([undefined, "white"]);
+    ).toEqual(["white", "white"]);
   });
 
-  it("back to auto: no derived value", async () => {
+  it("back to auto: group auto overrides child static color", async () => {
     const { of, edit } = await open();
     const group = of("ToggleButtonGroup")[0]!.id;
     edit(group, { staticColor: "white" });
     edit(group, { staticColor: "auto" });
     expect(
       of("ToggleButton").map((button) => button.derivedProps?.staticColor),
-    ).toEqual([undefined, undefined]);
+    ).toEqual(["auto", "auto"]);
   });
 });

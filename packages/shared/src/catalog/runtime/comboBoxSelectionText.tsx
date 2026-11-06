@@ -152,9 +152,14 @@ export function CatalogComboBox({
   const stateRef = useRef<ComboBoxState1 | null>(null);
   const seenRef = useRef<Seen | null>(null);
   const [quietText, setQuietText] = useState<string | null>(null);
+  // The Builder's static view reads the newly authored initial selection, including
+  // clearing an option's Selected flag. Live Preview keeps its controlled state below.
   if (!onSelectionText)
     return (
-      <AriaComboBox {...props}>
+      <AriaComboBox
+        key={JSON.stringify(props.defaultSelectedKey ?? null)}
+        {...props}
+      >
         {children}
         <ComboBoxOpen value={isOpen ?? defaultOpen} />
       </AriaComboBox>

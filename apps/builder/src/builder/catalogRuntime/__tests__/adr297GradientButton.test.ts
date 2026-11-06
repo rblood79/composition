@@ -101,13 +101,13 @@ describe("ADR-297 후속 ⑥ — premium · genai gradient = S2", () => {
 
   it("Canvas: gray-100 under it, no border, white text; disabled · static · outline as S2", () => {
     expect(paint("genai")).toMatchObject({
-      backgroundColor: "{color.neutral-subtle}",
+      backgroundColor: "{color.neutral-surface}",
       color: "{color.white}",
       borderColor: "{color.transparent}",
     });
     // (S2 outline premium · genai = the fill look — gray-100, white, border 0, the gradient)
     expect(paint("genai", { fillStyle: "outline" })).toMatchObject({
-      backgroundColor: "{color.neutral-subtle}",
+      backgroundColor: "{color.neutral-surface}",
       color: "{color.white}",
       borderColor: "{color.transparent}",
     });
@@ -116,12 +116,12 @@ describe("ADR-297 후속 ⑥ — premium · genai gradient = S2", () => {
     );
     expect(paint("premium", { isDisabled: true })).toMatchObject({
       backgroundColor: "{color.disabled}",
-      color: "{color.neutral-subdued}",
+      color: "{color.disabled-content}",
     });
     expect(
       paint("premium", { isDisabled: true, fillStyle: "outline" })
         .backgroundColor,
-    ).toBe("{color.neutral-subtle}");
+    ).toBe("{color.neutral-surface}");
     // (static: transparent-overlay-100 under the gradient, which stays; disabled text overlay-400)
     const statics = paint("genai", { staticColor: "white" });
     expect(statics.backgroundColor).toBe("rgba(255, 255, 255, 0.11)");

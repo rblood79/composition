@@ -31,7 +31,12 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 const OWNER = "project:node:owner" as NodeId;
 
-async function open(type: string, size: string, bindingId = "button") {
+async function open(
+  type: string,
+  size: string,
+  bindingId = "button",
+  props: Record<string, string> = {},
+) {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
@@ -58,7 +63,11 @@ async function open(type: string, size: string, bindingId = "button") {
           definitionId: catalogPaletteDefinitionId(library, type),
           children: [],
           // (No size: a component that takes none — the Dialog.)
-          props: size ? { size: { kind: "set", value: size } } : {},
+          props: Object.fromEntries(
+            Object.entries({ ...(size ? { size } : {}), ...props }).map(
+              ([key, value]) => [key, { kind: "set", value }],
+            ),
+          ),
           visual: {},
           sizing: {},
           descendantOverrides: [],
@@ -98,10 +107,24 @@ async function open(type: string, size: string, bindingId = "button") {
     };
     return node.box?.strokeColor ? (node.box.strokeWidth ?? 0) : 0;
   });
+  const strokeColors = buttons.map((button) => {
+    const node = getSkiaNode(button.id) as unknown as {
+      box?: { strokeColor?: readonly number[] };
+    };
+    return node.box?.strokeColor ? Array.from(node.box.strokeColor) : null;
+  });
   canvas.dispose();
   // (The document value — a closed overlay body has no Canvas node.)
   const visualRadii = buttons.map((button) => button.visual.radius ?? null);
-  return { html, radii, visualRadii, borders, count: buttons.length };
+  return {
+    html,
+    radii,
+    visualRadii,
+    borders,
+    strokeColors,
+    visualBorders: buttons.map((button) => button.visual.borderWidth),
+    count: buttons.length,
+  };
 }
 
 /**
@@ -144,6 +167,20 @@ const FIELD_BUTTON_RADII_BEFORE: ReadonlyArray<[string, string, unknown[]]> = [
 ];
 
 describe("S2 Button shape — a pill; a field's own button keeps its corner", () => {
+  it.each(["accent", "negative"])(
+    "%s outline static white: 실제 Canvas stroke가 layout의 2px와 글자색을 따른다",
+    async (variant) => {
+      const result = await open("Button", "M", "button", {
+        variant,
+        fillStyle: "outline",
+        staticColor: "white",
+      });
+      expect(result.visualBorders).toEqual([2]);
+      expect(result.borders).toEqual([2]);
+      expect(result.strokeColors).toEqual([[1, 1, 1, 1]]);
+    },
+  );
+
   it.each(["S", "M", "L", "XL"])(
     "a Button at %s is a pill (Canvas 9999 · no data-field-button)",
     async (size) => {

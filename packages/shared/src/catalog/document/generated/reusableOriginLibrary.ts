@@ -1357,10 +1357,12 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "name": "Label",
     "mode": "composite",
     "accepts": {
-      "children": "string"
+      "children": "string",
+      "size": "string"
     },
     "defaults": {
-      "children": "Label"
+      "children": "Label",
+      "size": "M"
     },
     "visual": {},
     "stateRules": {},
@@ -2085,18 +2087,42 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-listbox-item-default__selection",
     "definitionId": "lib:definition:origin-component-checkbox",
     "children": [],
-    "props": { "slot": "selection", "children": "" },
-    "layout": { "alignItems": "center", "justifySelf": "center" },
-    "visual": { "width": 24 }
+    "props": {
+      "slot": "selection",
+      "children": ""
+    },
+    "layout": {
+      "alignItems": "center",
+      "justifySelf": "center"
+    },
+    "visual": {
+      "width": 24
+    }
   },
   {
     "id": "lib:template:component-listbox-item-default__check",
     "definitionId": "lib:definition:type-Icon",
     "children": [],
-    "props": { "slot": "selection", "iconName": "check", "size": "S" },
-    "showWhen": { "all": ["isSelected"] },
-    "layout": { "position": "absolute", "insetLeft": "8px", "insetTop": "50%" },
-    "visual": { "width": 16, "height": 16, "color": "{color.accent}" }
+    "props": {
+      "slot": "selection",
+      "iconName": "check",
+      "size": "S"
+    },
+    "showWhen": {
+      "all": [
+        "isSelected"
+      ]
+    },
+    "layout": {
+      "position": "absolute",
+      "insetLeft": "8px",
+      "insetTop": "50%"
+    },
+    "visual": {
+      "width": 16,
+      "height": 16,
+      "color": "{color.accent}"
+    }
   },
   {
     "id": "lib:template:component-listbox-item-default__icon",
@@ -3726,8 +3752,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "isSelected": false,
       "isDisabled": false
     },
-    "visual": {},
-    "displayState": "selected"
+    "visual": {}
   },
   {
     "id": "lib:template:component-togglebutton__icon",
@@ -4090,9 +4115,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-textfield__1",
     "definitionId": "lib:definition:origin-component-label",
-    "children": [],
+    "children": [
+      "lib:template:component-textfield__1__label-content",
+      "lib:template:component-textfield__1__necessity-space",
+      "lib:template:component-textfield__1__necessity-icon",
+      "lib:template:component-textfield__1__necessity-label"
+    ],
     "props": {
-      "children": "{label}"
+      "children": "{label}",
+      "size": "{size}"
     },
     "presentWhen": "nonEmptyText",
     "visual": {}
@@ -4153,9 +4184,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-textarea__1",
     "definitionId": "lib:definition:origin-component-label",
-    "children": [],
+    "children": [
+      "lib:template:component-textarea__1__label-content",
+      "lib:template:component-textarea__1__necessity-space",
+      "lib:template:component-textarea__1__necessity-icon",
+      "lib:template:component-textarea__1__necessity-label"
+    ],
     "props": {
-      "children": "{label}"
+      "children": "{label}",
+      "size": "{size}"
     },
     "presentWhen": "nonEmptyText",
     "visual": {}
@@ -4215,9 +4252,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-numberfield__1",
     "definitionId": "lib:definition:origin-component-label",
-    "children": [],
+    "children": [
+      "lib:template:component-numberfield__1__label-content",
+      "lib:template:component-numberfield__1__necessity-space",
+      "lib:template:component-numberfield__1__necessity-icon",
+      "lib:template:component-numberfield__1__necessity-label"
+    ],
     "props": {
-      "children": "{label}"
+      "children": "{label}",
+      "size": "{size}"
     },
     "presentWhen": "nonEmptyText",
     "visual": {}
@@ -4376,9 +4419,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-searchfield__1",
     "definitionId": "lib:definition:origin-component-label",
-    "children": [],
+    "children": [
+      "lib:template:component-searchfield__1__label-content",
+      "lib:template:component-searchfield__1__necessity-space",
+      "lib:template:component-searchfield__1__necessity-icon",
+      "lib:template:component-searchfield__1__necessity-label"
+    ],
     "props": {
-      "children": "{label}"
+      "children": "{label}",
+      "size": "{size}"
     },
     "presentWhen": "nonEmptyText",
     "visual": {}
@@ -4388,10 +4437,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-Icon",
     "children": [],
     "props": {
-      "iconName": "search"
+      "iconName": "s2-search"
     },
     "visual": {
-      "color": "var(--fg-muted)",
       "zIndex": 1
     }
   },
@@ -4417,7 +4465,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "label": ""
     },
     "visual": {
-      "fill": "var(--fg-muted)",
       "borderWidth": 0,
       "radius": 9999,
       "paddingX": 0,
@@ -4430,10 +4477,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-Icon",
     "children": [],
     "props": {
-      "iconName": "x"
+      "iconName": "s2-cross"
     },
     "visual": {
-      "iconSize": 12
+      "color": "inherit"
     }
   },
   {
@@ -4475,9 +4522,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-colorfield__1",
     "definitionId": "lib:definition:origin-component-label",
-    "children": [],
+    "children": [
+      "lib:template:component-colorfield__1__label-content",
+      "lib:template:component-colorfield__1__necessity-space",
+      "lib:template:component-colorfield__1__necessity-icon",
+      "lib:template:component-colorfield__1__necessity-label"
+    ],
     "props": {
-      "children": "{label}"
+      "children": "{label}",
+      "size": "{size}"
     },
     "presentWhen": "nonEmptyText",
     "visual": {}
@@ -4642,9 +4695,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-checkboxgroup__1",
     "definitionId": "lib:definition:origin-component-label",
-    "children": [],
+    "children": [
+      "lib:template:component-checkboxgroup__1__label-content",
+      "lib:template:component-checkboxgroup__1__necessity-space",
+      "lib:template:component-checkboxgroup__1__necessity-icon",
+      "lib:template:component-checkboxgroup__1__necessity-label"
+    ],
     "props": {
-      "children": "{label}"
+      "children": "{label}",
+      "size": "{size}"
     },
     "presentWhen": "nonEmptyText",
     "visual": {}
@@ -4756,9 +4815,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-radiogroup__1",
     "definitionId": "lib:definition:origin-component-label",
-    "children": [],
+    "children": [
+      "lib:template:component-radiogroup__1__label-content",
+      "lib:template:component-radiogroup__1__necessity-space",
+      "lib:template:component-radiogroup__1__necessity-icon",
+      "lib:template:component-radiogroup__1__necessity-label"
+    ],
     "props": {
-      "children": "{label}"
+      "children": "{label}",
+      "size": "{size}"
     },
     "presentWhen": "nonEmptyText",
     "visual": {}
@@ -4870,9 +4935,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-select__1",
     "definitionId": "lib:definition:origin-component-label",
-    "children": [],
+    "children": [
+      "lib:template:component-select__1__label-content",
+      "lib:template:component-select__1__necessity-space",
+      "lib:template:component-select__1__necessity-icon",
+      "lib:template:component-select__1__necessity-label"
+    ],
     "props": {
-      "children": "{label}"
+      "children": "{label}",
+      "size": "{size}"
     },
     "presentWhen": "nonEmptyText",
     "visual": {}
@@ -4966,7 +5037,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-listbox-item-default",
     "children": [],
     "props": {},
-    "visual": { "paddingLeft": 4, "gap": 4 },
+    "visual": {
+      "paddingLeft": 4,
+      "gap": 4
+    },
     "layout": {
       "display": "grid",
       "gridTemplateColumns": "minmax(24px, auto) auto minmax(0, 1fr)",
@@ -4979,14 +5053,25 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__selection"
         ],
-        "layout": { "gridColumnStart": "1", "gridRowStart": "1", "gridRowEnd": "3", "alignSelf": "center" }
+        "layout": {
+          "gridColumnStart": "1",
+          "gridRowStart": "1",
+          "gridRowEnd": "3",
+          "alignSelf": "center"
+        }
       },
       {
         "templatePath": [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__icon"
         ],
-        "layout": { "position": "static", "marginTop": "0px", "gridColumnStart": "2", "gridRowStart": "1", "gridRowEnd": "3" },
+        "layout": {
+          "position": "static",
+          "marginTop": "0px",
+          "gridColumnStart": "2",
+          "gridRowStart": "1",
+          "gridRowEnd": "3"
+        },
         "enabled": false
       },
       {
@@ -4994,7 +5079,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__label"
         ],
-        "layout": { "gridColumnStart": "3", "gridRowStart": "1" },
+        "layout": {
+          "gridColumnStart": "3",
+          "gridRowStart": "1"
+        },
         "props": {
           "children": "Aardvark"
         }
@@ -5004,7 +5092,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__description"
         ],
-        "layout": { "gridColumnStart": "3", "gridRowStart": "2" },
+        "layout": {
+          "gridColumnStart": "3",
+          "gridRowStart": "2"
+        },
         "enabled": false
       }
     ]
@@ -5014,7 +5105,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-listbox-item-default",
     "children": [],
     "props": {},
-    "visual": { "paddingLeft": 4, "gap": 4 },
+    "visual": {
+      "paddingLeft": 4,
+      "gap": 4
+    },
     "layout": {
       "display": "grid",
       "gridTemplateColumns": "minmax(24px, auto) auto minmax(0, 1fr)",
@@ -5027,14 +5121,25 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__selection"
         ],
-        "layout": { "gridColumnStart": "1", "gridRowStart": "1", "gridRowEnd": "3", "alignSelf": "center" }
+        "layout": {
+          "gridColumnStart": "1",
+          "gridRowStart": "1",
+          "gridRowEnd": "3",
+          "alignSelf": "center"
+        }
       },
       {
         "templatePath": [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__icon"
         ],
-        "layout": { "position": "static", "marginTop": "0px", "gridColumnStart": "2", "gridRowStart": "1", "gridRowEnd": "3" },
+        "layout": {
+          "position": "static",
+          "marginTop": "0px",
+          "gridColumnStart": "2",
+          "gridRowStart": "1",
+          "gridRowEnd": "3"
+        },
         "enabled": false
       },
       {
@@ -5042,7 +5147,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__label"
         ],
-        "layout": { "gridColumnStart": "3", "gridRowStart": "1" },
+        "layout": {
+          "gridColumnStart": "3",
+          "gridRowStart": "1"
+        },
         "props": {
           "children": "Cat"
         }
@@ -5052,7 +5160,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__description"
         ],
-        "layout": { "gridColumnStart": "3", "gridRowStart": "2" },
+        "layout": {
+          "gridColumnStart": "3",
+          "gridRowStart": "2"
+        },
         "enabled": false
       }
     ]
@@ -5062,7 +5173,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-listbox-item-default",
     "children": [],
     "props": {},
-    "visual": { "paddingLeft": 4, "gap": 4 },
+    "visual": {
+      "paddingLeft": 4,
+      "gap": 4
+    },
     "layout": {
       "display": "grid",
       "gridTemplateColumns": "minmax(24px, auto) auto minmax(0, 1fr)",
@@ -5075,14 +5189,25 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__selection"
         ],
-        "layout": { "gridColumnStart": "1", "gridRowStart": "1", "gridRowEnd": "3", "alignSelf": "center" }
+        "layout": {
+          "gridColumnStart": "1",
+          "gridRowStart": "1",
+          "gridRowEnd": "3",
+          "alignSelf": "center"
+        }
       },
       {
         "templatePath": [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__icon"
         ],
-        "layout": { "position": "static", "marginTop": "0px", "gridColumnStart": "2", "gridRowStart": "1", "gridRowEnd": "3" },
+        "layout": {
+          "position": "static",
+          "marginTop": "0px",
+          "gridColumnStart": "2",
+          "gridRowStart": "1",
+          "gridRowEnd": "3"
+        },
         "enabled": false
       },
       {
@@ -5090,7 +5215,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__label"
         ],
-        "layout": { "gridColumnStart": "3", "gridRowStart": "1" },
+        "layout": {
+          "gridColumnStart": "3",
+          "gridRowStart": "1"
+        },
         "props": {
           "children": "Dog"
         }
@@ -5100,7 +5228,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__description"
         ],
-        "layout": { "gridColumnStart": "3", "gridRowStart": "2" },
+        "layout": {
+          "gridColumnStart": "3",
+          "gridRowStart": "2"
+        },
         "enabled": false
       }
     ]
@@ -5110,7 +5241,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-listbox-item-default",
     "children": [],
     "props": {},
-    "visual": { "paddingLeft": 4, "gap": 4 },
+    "visual": {
+      "paddingLeft": 4,
+      "gap": 4
+    },
     "layout": {
       "display": "grid",
       "gridTemplateColumns": "minmax(24px, auto) auto minmax(0, 1fr)",
@@ -5123,14 +5257,25 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__selection"
         ],
-        "layout": { "gridColumnStart": "1", "gridRowStart": "1", "gridRowEnd": "3", "alignSelf": "center" }
+        "layout": {
+          "gridColumnStart": "1",
+          "gridRowStart": "1",
+          "gridRowEnd": "3",
+          "alignSelf": "center"
+        }
       },
       {
         "templatePath": [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__icon"
         ],
-        "layout": { "position": "static", "marginTop": "0px", "gridColumnStart": "2", "gridRowStart": "1", "gridRowEnd": "3" },
+        "layout": {
+          "position": "static",
+          "marginTop": "0px",
+          "gridColumnStart": "2",
+          "gridRowStart": "1",
+          "gridRowEnd": "3"
+        },
         "enabled": false
       },
       {
@@ -5138,7 +5283,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__label"
         ],
-        "layout": { "gridColumnStart": "3", "gridRowStart": "1" },
+        "layout": {
+          "gridColumnStart": "3",
+          "gridRowStart": "1"
+        },
         "props": {
           "children": "Kangaroo"
         }
@@ -5148,7 +5296,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
           "lib:template:component-listbox-item-default",
           "lib:template:component-listbox-item-default__description"
         ],
-        "layout": { "gridColumnStart": "3", "gridRowStart": "2" },
+        "layout": {
+          "gridColumnStart": "3",
+          "gridRowStart": "2"
+        },
         "enabled": false
       }
     ]
@@ -5179,9 +5330,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-combobox__1",
     "definitionId": "lib:definition:origin-component-label",
-    "children": [],
+    "children": [
+      "lib:template:component-combobox__1__label-content",
+      "lib:template:component-combobox__1__necessity-space",
+      "lib:template:component-combobox__1__necessity-icon",
+      "lib:template:component-combobox__1__necessity-label"
+    ],
     "props": {
-      "children": "{label}"
+      "children": "{label}",
+      "size": "{size}"
     },
     "presentWhen": "nonEmptyText",
     "visual": {}
@@ -6370,9 +6527,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-datepicker__1",
     "definitionId": "lib:definition:origin-component-label",
-    "children": [],
+    "children": [
+      "lib:template:component-datepicker__1__label-content",
+      "lib:template:component-datepicker__1__necessity-space",
+      "lib:template:component-datepicker__1__necessity-icon",
+      "lib:template:component-datepicker__1__necessity-label"
+    ],
     "props": {
-      "children": "{label}"
+      "children": "{label}",
+      "size": "{size}"
     },
     "presentWhen": "nonEmptyText",
     "visual": {}
@@ -6467,9 +6630,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-daterangepicker__1",
     "definitionId": "lib:definition:origin-component-label",
-    "children": [],
+    "children": [
+      "lib:template:component-daterangepicker__1__label-content",
+      "lib:template:component-daterangepicker__1__necessity-space",
+      "lib:template:component-daterangepicker__1__necessity-icon",
+      "lib:template:component-daterangepicker__1__necessity-label"
+    ],
     "props": {
-      "children": "{label}"
+      "children": "{label}",
+      "size": "{size}"
     },
     "presentWhen": "nonEmptyText",
     "visual": {}
@@ -6597,9 +6766,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-datefield__1",
     "definitionId": "lib:definition:origin-component-label",
-    "children": [],
+    "children": [
+      "lib:template:component-datefield__1__label-content",
+      "lib:template:component-datefield__1__necessity-space",
+      "lib:template:component-datefield__1__necessity-icon",
+      "lib:template:component-datefield__1__necessity-label"
+    ],
     "props": {
-      "children": "{label}"
+      "children": "{label}",
+      "size": "{size}"
     },
     "presentWhen": "nonEmptyText",
     "visual": {}
@@ -6655,9 +6830,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-timefield__1",
     "definitionId": "lib:definition:origin-component-label",
-    "children": [],
+    "children": [
+      "lib:template:component-timefield__1__label-content",
+      "lib:template:component-timefield__1__necessity-space",
+      "lib:template:component-timefield__1__necessity-icon",
+      "lib:template:component-timefield__1__necessity-label"
+    ],
     "props": {
-      "children": "{label}"
+      "children": "{label}",
+      "size": "{size}"
     },
     "presentWhen": "nonEmptyText",
     "visual": {}
@@ -7244,7 +7425,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-Label",
     "children": [],
     "props": {
-      "children": "{children}"
+      "children": "{children}",
+      "size": "{size}"
     },
     "visual": {}
   },
@@ -9206,7 +9388,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-tokenfield__input",
       "lib:template:component-tokenfield__description"
     ],
-    "props": { "value": "{value}" },
+    "props": {
+      "value": "{value}"
+    },
     "visual": {}
   },
   {
@@ -9235,7 +9419,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-tokenfield__token",
     "definitionId": "lib:definition:type-Token",
     "children": [],
-    "props": { "children": "{tokenText}" },
+    "props": {
+      "children": "{tokenText}"
+    },
     "visual": {}
   },
   {
@@ -9248,5 +9434,525 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     },
     "visual": {},
     "presentWhen": "nonEmptyText"
+  },
+  {
+    "id": "lib:template:component-colorfield__1__label-content",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{fieldLabel}",
+      "slot": "label-content"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-colorfield__1__necessity-icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "s2-asterisk",
+      "slot": "necessity-icon"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-colorfield__1__necessity-label",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{necessityLabel}",
+      "slot": "necessity-label"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-numberfield__1__label-content",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{fieldLabel}",
+      "slot": "label-content"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-numberfield__1__necessity-icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "s2-asterisk",
+      "slot": "necessity-icon"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-numberfield__1__necessity-label",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{necessityLabel}",
+      "slot": "necessity-label"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-radiogroup__1__label-content",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{fieldLabel}",
+      "slot": "label-content"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-radiogroup__1__necessity-icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "s2-asterisk",
+      "slot": "necessity-icon"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-radiogroup__1__necessity-label",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{necessityLabel}",
+      "slot": "necessity-label"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-datefield__1__label-content",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{fieldLabel}",
+      "slot": "label-content"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-datefield__1__necessity-icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "s2-asterisk",
+      "slot": "necessity-icon"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-datefield__1__necessity-label",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{necessityLabel}",
+      "slot": "necessity-label"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-combobox__1__label-content",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{fieldLabel}",
+      "slot": "label-content"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-combobox__1__necessity-icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "s2-asterisk",
+      "slot": "necessity-icon"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-combobox__1__necessity-label",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{necessityLabel}",
+      "slot": "necessity-label"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-timefield__1__label-content",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{fieldLabel}",
+      "slot": "label-content"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-timefield__1__necessity-icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "s2-asterisk",
+      "slot": "necessity-icon"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-timefield__1__necessity-label",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{necessityLabel}",
+      "slot": "necessity-label"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-searchfield__1__label-content",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{fieldLabel}",
+      "slot": "label-content"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-searchfield__1__necessity-icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "s2-asterisk",
+      "slot": "necessity-icon"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-searchfield__1__necessity-label",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{necessityLabel}",
+      "slot": "necessity-label"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-select__1__label-content",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{fieldLabel}",
+      "slot": "label-content"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-select__1__necessity-icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "s2-asterisk",
+      "slot": "necessity-icon"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-select__1__necessity-label",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{necessityLabel}",
+      "slot": "necessity-label"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-checkboxgroup__1__label-content",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{fieldLabel}",
+      "slot": "label-content"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-checkboxgroup__1__necessity-icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "s2-asterisk",
+      "slot": "necessity-icon"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-checkboxgroup__1__necessity-label",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{necessityLabel}",
+      "slot": "necessity-label"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-daterangepicker__1__label-content",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{fieldLabel}",
+      "slot": "label-content"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-daterangepicker__1__necessity-icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "s2-asterisk",
+      "slot": "necessity-icon"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-daterangepicker__1__necessity-label",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{necessityLabel}",
+      "slot": "necessity-label"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-datepicker__1__label-content",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{fieldLabel}",
+      "slot": "label-content"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-datepicker__1__necessity-icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "s2-asterisk",
+      "slot": "necessity-icon"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-datepicker__1__necessity-label",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{necessityLabel}",
+      "slot": "necessity-label"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-textarea__1__label-content",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{fieldLabel}",
+      "slot": "label-content"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-textarea__1__necessity-icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "s2-asterisk",
+      "slot": "necessity-icon"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-textarea__1__necessity-label",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{necessityLabel}",
+      "slot": "necessity-label"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-textfield__1__label-content",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{fieldLabel}",
+      "slot": "label-content"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-textfield__1__necessity-icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "s2-asterisk",
+      "slot": "necessity-icon"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-textfield__1__necessity-label",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{necessityLabel}",
+      "slot": "necessity-label"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-textfield__1__necessity-space",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": " ",
+      "slot": "necessity-space"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-textarea__1__necessity-space",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": " ",
+      "slot": "necessity-space"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-numberfield__1__necessity-space",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": " ",
+      "slot": "necessity-space"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-searchfield__1__necessity-space",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": " ",
+      "slot": "necessity-space"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-colorfield__1__necessity-space",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": " ",
+      "slot": "necessity-space"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-checkboxgroup__1__necessity-space",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": " ",
+      "slot": "necessity-space"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-radiogroup__1__necessity-space",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": " ",
+      "slot": "necessity-space"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-select__1__necessity-space",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": " ",
+      "slot": "necessity-space"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-combobox__1__necessity-space",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": " ",
+      "slot": "necessity-space"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-datepicker__1__necessity-space",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": " ",
+      "slot": "necessity-space"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-daterangepicker__1__necessity-space",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": " ",
+      "slot": "necessity-space"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-datefield__1__necessity-space",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": " ",
+      "slot": "necessity-space"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-timefield__1__necessity-space",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": " ",
+      "slot": "necessity-space"
+    },
+    "visual": {}
   }
 ];

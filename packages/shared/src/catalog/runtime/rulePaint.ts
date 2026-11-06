@@ -1,3 +1,4 @@
+import { installedFocusRingCss } from "./themeMaps";
 import { evaluateConditionTree } from "../rule/conditionTree";
 import {
   cssVarToTokenRef,
@@ -301,7 +302,8 @@ export function catalogRulePaint(
   }
   const props: Record<string, unknown> = {
     ...node.props,
-    ...(node.derivedProps?._pickerTrigger === true ||
+    ...(node.derivedProps?._searchFieldPart === true ||
+    node.derivedProps?._pickerTrigger === true ||
     node.derivedProps?._pickerValue === true
       ? node.derivedProps
       : {}),
@@ -336,7 +338,7 @@ export function catalogRulePaint(
     derived?._fieldDisabled === true
   )
     props.isDisabled = true;
-  if (type === "ActionButton" && derived?._inActionGroup === true)
+  if (derived?._inActionGroup === true)
     props._groupPosition = {
       orientation: derived.orientation,
       density: derived.density,
@@ -380,6 +382,16 @@ export function catalogRulePaint(
   // (Authored fill layers are the box's background — the DOM's inline fill also turns the class gradient
   //  off, `authoredStyle` — so the rule's gradient does not paint over them.)
   if (node.fills?.length) delete paint.backgroundImage;
+  const selectors = rule.structure?.composition?.rootSelectors as
+    Record<string, { styles?: Record<string, string> }> | undefined;
+  const placeholderColor = selectors?.["&::placeholder"]?.styles?.color;
+  if (
+    placeholderColor &&
+    (node.derivedProps?._inputHasValue ?? props._inputHasValue) !== true &&
+    style.color === undefined
+  ) {
+    paint.color = cssVarToTokenRef(placeholderColor) ?? placeholderColor;
+  }
   return { props, style, variant, size, paint, theme };
 }
 
@@ -393,6 +405,68 @@ export function catalogContainerOutline(rule: Readonly<ComponentRule>) {
   return match
     ? { width: Number(match[1]), color: cssVarToTokenRef(match[2]) ?? match[2] }
     : undefined;
+}
+
+/** Toggle 부품의 내용색도 생성 CSS와 같은 상태 트리에서 읽는다. */
+export function catalogToggleContentColor(input: CatalogRuleShapeInput) {
+  const selector =
+    input.type === "Checkbox"
+      ? "& .react-aria-CheckboxButton% .checkbox"
+      : input.type === "Switch"
+        ? "& .react-aria-SwitchButton% .indicator::before"
+        : undefined;
+  if (!selector) return undefined;
+  const { props } = catalogRulePaint(input);
+  const styles = input.rule.partStateStyles?.[selector];
+  return evaluateConditionTree(
+    styles?.[input.type === "Checkbox" ? "--checkmark-color" : "background"],
+    {
+      isSelected: props.isSelected === true,
+      isDisabled: props.isDisabled === true,
+      isHovered: input.state === "hover" || input.state === "selectedHover",
+      isPressed: input.state === "pressed" || input.state === "selectedPressed",
+      isFocusVisible: input.state === "focusVisible",
+    },
+  );
+}
+
+/** 상태 트리의 outline을 Canvas도 같은 조건과 설치된 focus 변수로 해석한다. */
+export function catalogStateOutline(input: CatalogRuleShapeInput) {
+  const conditions = {
+    isFocusVisible: input.state === "focusVisible",
+    isSearchFieldPart: input.node.derivedProps?._searchFieldPart === true,
+    staticColor: String(
+      input.node.derivedProps?.staticColor ??
+        input.node.props.staticColor ??
+        "auto",
+    ),
+  };
+  const part = input.type === "Checkbox" ? ".checkbox" : ".indicator";
+  const styles =
+    input.rule.structure?.archetype === "toggle-indicator"
+      ? input.rule.partStateStyles?.[
+          `& .react-aria-${input.type}Button% ${part}`
+        ]
+      : input.rule.structure?.stateStyles;
+  const resolveFocus = (value: unknown) =>
+    String(value ?? "").replace(
+      /var\((--focus-ring(?:-width|-offset)?)\)/g,
+      (_match, name: string) =>
+        installedFocusRingCss(name, input.theme ?? "light"),
+    );
+  const value = resolveFocus(
+    evaluateConditionTree(styles?.outline, conditions),
+  );
+  const match = /^(\d+(?:\.\d+)?)px solid (.+)$/.exec(value);
+  if (!match) return undefined;
+  return {
+    width: Number(match[1]),
+    offset: parseFloat(
+      resolveFocus(evaluateConditionTree(styles?.outlineOffset, conditions)) ||
+        "0",
+    ),
+    color: cssVarToTokenRef(match[2]) ?? match[2],
+  };
 }
 
 /** The stroke an overlay arrow draws its overlay's border with (the svg path's outer half shows). */

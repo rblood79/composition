@@ -1,4 +1,5 @@
 import type { AssetRef } from "@composition/shared";
+import { SPECTRUM_SANS_FONT_CSS } from "../../../packages/shared/src/catalog/runtime/fontDefaults";
 import {
   buildRegistryFontFaceCss,
   setAssetUrlResolver,
@@ -38,6 +39,12 @@ import "./styles/index.css";
 const GOOGLE_FONTS_CSS_ID = "composition-publish-google-fonts";
 
 function injectGoogleFontsCss() {
+  if (!document.getElementById("composition-spectrum-fonts")) {
+    const style = document.createElement("style");
+    style.id = "composition-spectrum-fonts";
+    style.textContent = SPECTRUM_SANS_FONT_CSS;
+    document.head.appendChild(style);
+  }
   if (document.getElementById(GOOGLE_FONTS_CSS_ID)) return;
 
   const families = [

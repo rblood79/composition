@@ -157,8 +157,14 @@ export function resolveColor(
  * 시맨틱 CSS 변수명(--highlight-background 등)으로 변환.
  */
 const COLOR_TOKEN_TO_CSS: Record<string, string> = {
+  "field-placeholder": "var(--field-placeholder)",
   // --- Accent ---
   accent: "var(--accent)",
+  "accent-fill": "var(--accent-fill)",
+  "accent-fill-hover": "var(--accent-fill-hover)",
+  "negative-fill": "var(--negative-fill)",
+  "negative-fill-hover": "var(--negative-fill-hover)",
+
   "accent-hover":
     "var(--accent-hover, color-mix(in srgb, var(--accent) 85%, black))",
   "accent-pressed":
@@ -170,13 +176,22 @@ const COLOR_TOKEN_TO_CSS: Record<string, string> = {
 
   // --- Neutral ---
   neutral: "var(--fg)",
+  "neutral-content": "var(--neutral-content)",
+  "neutral-content-hover": "var(--neutral-content-hover)",
+  "neutral-fill": "var(--neutral-fill)",
+  "neutral-surface": "var(--neutral-surface)",
+  "neutral-surface-hover": "var(--neutral-surface-hover)",
+  "neutral-outline": "var(--neutral-outline)",
+  "neutral-outline-hover": "var(--neutral-outline-hover)",
+  "on-neutral": "var(--on-neutral)",
+
   "neutral-subdued": "var(--fg-muted)",
   "neutral-subtle": "var(--bg-muted)",
   "neutral-hover":
     "var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black))",
   "neutral-pressed":
     "var(--neutral-pressed, color-mix(in srgb, var(--bg-muted) 75%, black))",
-  // 진한 바탕 `{color.neutral}` (Button primary) 의 hover · pressed — `neutral-hover` 는 밝은 바탕
+  // 진한 바탕 `{color.neutral-fill}` (Button primary) 의 hover · pressed — `neutral-hover` 는 밝은 바탕
   // (`neutral-subtle`) 의 다음 단이다. S2 `baseColor('neutral')` 의 한 단 이동 (ADR-293 결정 4).
   "neutral-fill-hover": "var(--neutral-fill-hover)",
   "neutral-fill-pressed": "var(--neutral-fill-pressed)",
@@ -222,6 +237,7 @@ const COLOR_TOKEN_TO_CSS: Record<string, string> = {
   //   여러 토큰이 한 변수를 쓰면 한 토큰의 테마 델타가 다른 토큰 (· Tone 단계) 을 덮는다.
   elevated: "var(--bg-elevated)",
   disabled: "var(--bg-disabled)",
+  "disabled-content": "var(--fg-disabled)",
 
   // --- Border ---
   border: "var(--border)",

@@ -1,7 +1,7 @@
 import { forwardRef, useContext } from "react";
 import { Button, type ButtonProps } from "react-aria-components/Button";
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
-import type { ComponentSizeSubset, StaticColor } from "../types";
+import type { ComponentSize, StaticColor } from "../types";
 import { ActionButtonGroupContext } from "./ActionButtonGroup";
 import { usePendingState } from "./Button";
 import { ProgressCircle } from "./ProgressCircle";
@@ -11,7 +11,7 @@ import {
 } from "../catalog/document/buttonPending";
 
 export interface ActionButtonProps extends ButtonProps {
-  size?: ComponentSizeSubset;
+  size?: ComponentSize;
   staticColor?: StaticColor;
   isQuiet?: boolean;
 }

@@ -17,9 +17,13 @@ import {
   LUCIDE_ALIASES,
   LUCIDE_ICON_NAMES,
 } from "./lucideIconData.generated";
+import { spectrumIconData, SPECTRUM_ICON_NAMES } from "./spectrumIcons";
 
 /** Lucide 아이콘 데이터: SVG path `d` 속성 배열 (24x24 viewBox 기준) */
 export interface LucideIconData {
+  /** 생략하면 Lucide의 24px viewBox와 stroke를 사용한다. */
+  viewBoxSize?: number;
+  filled?: boolean;
   /** SVG path d 속성 배열 (다중 경로 지원) */
   paths: string[];
   /** circle 요소 (cx, cy, r) — search 등 아이콘용 */
@@ -31,6 +35,12 @@ export interface LucideIconData {
  */
 export { LUCIDE_ICON_NAMES, LUCIDE_ALIASES };
 
+/** 편집기 검색에서 제공하는 Lucide 및 S2 공통 glyph. */
+export const ICON_NAMES: readonly string[] = [
+  ...LUCIDE_ICON_NAMES,
+  ...SPECTRUM_ICON_NAMES,
+];
+
 /**
  * 아이콘 경로 데이터 조회
  *
@@ -41,8 +51,11 @@ export { LUCIDE_ICON_NAMES, LUCIDE_ALIASES };
 export function getIconData(
   name: string,
   family: string = "lucide",
+  size: string = "M",
 ): LucideIconData | null {
   if (family !== "lucide") return null;
+  const spectrum = spectrumIconData(name, size);
+  if (spectrum) return spectrum;
 
   // 직접 이름 조회
   const direct = LUCIDE_ICON_DATA[name];

@@ -5,15 +5,13 @@ import {
 } from "react-aria-components/ToggleButton";
 import { SelectionIndicator } from "react-aria-components/SelectionIndicator";
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
-import type { ComponentSizeSubset, StaticColor } from "../types";
+import type { ComponentSize, StaticColor } from "../types";
 import {
-  useToggleButtonGroupEmphasized,
+  useToggleButtonGroupVisual,
   useToggleButtonGroupIndicator,
   useToggleButtonGroupMembership,
-  useToggleButtonGroupStaticColor,
 } from "./ToggleButtonGroupContext";
-// CSS: styles/generated/ToggleButton.css + styles/ToggleButton.css (staticColor 전용 수동 — catalog 토큰으로
-// 표현 불가한 고정 흑백, Button.tsx 동형). 앱별 번들이 싣는다 (styles/index.css · builder-components.css).
+// 기본 시각은 catalog 생성 CSS, Builder chrome의 변수는 수동 CSS가 담당한다.
 
 export interface ToggleButtonExtendedProps extends ToggleButtonProps {
   /**
@@ -30,7 +28,7 @@ export interface ToggleButtonExtendedProps extends ToggleButtonProps {
    * Size of the toggle button
    * @default 'M'
    */
-  size?: ComponentSizeSubset;
+  size?: ComponentSize;
   /**
    * Fixed black/white scheme for placement over colored or image backgrounds (RSP S2).
    * @default 'auto'
@@ -53,22 +51,23 @@ export function ToggleButton({
   ...props
 }: ToggleButtonExtendedProps) {
   const showIndicator = useToggleButtonGroupIndicator();
-  const groupEmphasized = useToggleButtonGroupEmphasized();
+  const group = useToggleButtonGroupVisual();
   const isGroupMember = useToggleButtonGroupMembership();
-  const groupStaticColor = useToggleButtonGroupStaticColor();
-  const effectiveEmphasized = isEmphasized || groupEmphasized;
-  // 그룹 상속 (RSP S2 ActionButtonGroup): 자식 명시값이 우선, `auto` 일 때만 그룹 값.
-  //   Skia 는 buildSpecNodeData.resolveToggleGroupContext 가 같은 우선순위로 주입한다.
-  const effectiveStaticColor =
-    staticColor !== "auto" ? staticColor : groupStaticColor;
+  const effectiveEmphasized = group?.isEmphasized ?? isEmphasized;
+  const effectiveStaticColor = group?.staticColor ?? staticColor;
 
   return (
     <RACToggleButton
       {...props}
+      isDisabled={group?.isDisabled ?? props.isDisabled}
       data-variant="default"
       data-emphasized={effectiveEmphasized || undefined}
-      data-quiet={isQuiet || undefined}
-      data-size={size}
+      data-quiet={(group?.isQuiet ?? isQuiet) || undefined}
+      data-size={group?.size ?? size}
+      data-in-group={isGroupMember || undefined}
+      data-density={group?.density}
+      data-orientation={group?.orientation}
+      data-justified={group?.isJustified || undefined}
       data-static-color={effectiveStaticColor}
       className={composeRenderProps(props.className, (cls) => {
         const base = showIndicator
@@ -83,14 +82,7 @@ export function ToggleButton({
           data-selected
         />
       )}
-      {/* span wrapper 는 group 안에서만 렌더한다. group pressed micro-interaction(버튼 box 는
-          scale 고정, 내부 콘텐츠만 0.9 축소)은 generated ToggleButtonGroup.css 의
-          `.react-aria-ToggleButtonGroup .react-aria-ToggleButton[data-pressed] > span` selector
-          가 매칭하는데, 이 selector 는 group 하위로 한정된다. standalone(group 밖) ToggleButton 의
-          generated CSS 에는 `> span` 규칙이 없어(reference starter 의 flex/svg 규칙 미emit) span 이
-          소비처 없는 dead wrapper 였다 → group 멤버십(isGroupMember) 일 때만 래핑.
-          SelectionIndicator(showIndicator)는 span 밖(절대 위치 자식) — span 은 시각 콘텐츠만 감쌈.
-          빌더 경로의 children 은 string/element 만 들어와 render-prop 미사용. */}
+      {/* 그룹 콘텐츠는 indicator 모드와 같은 레이아웃을 공유한다. */}
       {isGroupMember ? (
         <span>{children as ReactNode}</span>
       ) : (

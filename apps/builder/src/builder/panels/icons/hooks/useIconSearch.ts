@@ -5,19 +5,19 @@
  */
 
 import { useMemo, useState, useDeferredValue } from "react";
-import { LUCIDE_ICON_NAMES } from "@composition/rendering";
+import { ICON_NAMES } from "@composition/rendering";
 
 export function useIconSearch() {
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
 
   const filteredIcons = useMemo(() => {
-    if (!deferredQuery.trim()) return LUCIDE_ICON_NAMES;
+    if (!deferredQuery.trim()) return ICON_NAMES;
 
     const lower = deferredQuery.toLowerCase();
     const words = lower.split(/\s+/).filter((w) => w.length > 0);
 
-    return LUCIDE_ICON_NAMES.filter((name) => {
+    return ICON_NAMES.filter((name) => {
       const lowerName = name.toLowerCase();
       return words.every((word) => lowerName.includes(word));
     });

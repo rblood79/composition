@@ -25,6 +25,7 @@ type TypeOf = (node: CatalogConsumerNode) => string;
  * each item's value as the picker's frame; the Canvas reads the picker record (its focused value).
  */
 const COMPOSITION_VALUE_KEYS: Readonly<Record<string, readonly string[]>> = {
+  Label: ["fieldLabel", "necessityLabel"],
   TokenInput: ["tokenText"],
   CalendarMonthPicker: ["formatted"],
   CalendarYearPicker: ["formatted"],
@@ -107,6 +108,11 @@ export function catalogRenderValue(
   locale?: string,
 ): string | number | undefined {
   const props = owner.props;
+  if (key === "fieldLabel") return String(props.children ?? "");
+  if (key === "necessityLabel")
+    return typeof owner.derivedProps?._necessityText === "string"
+      ? owner.derivedProps._necessityText
+      : undefined;
   // (A calendar picker's focused month · year — its record's derived text, `presence.ts`.)
   if (key === "formatted") {
     const text = owner.derivedProps?._formatted;

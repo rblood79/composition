@@ -75,7 +75,12 @@ export const CATALOG_D2_PROVENANCE: Readonly<
   RangeCalendar: { visibleDuration: "rac", weeksInMonth: "rac" },
   ColorField: { isQuiet: "v3" },
   ColorSwatchPicker: { layout: "rac", isDisabled: "composition" },
-  ComboBox: { isQuiet: "v3" },
+  // RAC ComboBoxState.open/close에 연결하는 저작 상태. RAC ComboBox props에는 없다.
+  ComboBox: {
+    isQuiet: "v3",
+    isOpen: "composition",
+    defaultOpen: "composition",
+  },
   DateField: { isQuiet: "v3" },
   DatePicker: { isQuiet: "v3" },
   // (A field part's disabled state — carried from its field.)
@@ -92,6 +97,7 @@ export const CATALOG_D2_PROVENANCE: Readonly<
   Link: { isDisabled: "rac" },
   Meter: { showValueLabel: "v3" },
   NumberField: { isQuiet: "v3" },
+  Popover: { defaultOpen: "rac" },
   ProgressBar: { showValueLabel: "v3" },
   SearchField: { isQuiet: "v3" },
   Slider: { showValueLabel: "v3" },
@@ -104,7 +110,14 @@ export const CATALOG_D2_PROVENANCE: Readonly<
   TextArea: { isQuiet: "v3", rows: "composition" },
   TextField: { isQuiet: "v3" },
   TimeField: { isQuiet: "v3" },
-  Tooltip: { variant: "v3" },
+  // 라벨·설명·placeholder는 origin 자식의 template prop으로 전달한다.
+  TokenField: {
+    label: "composition",
+    description: "composition",
+    placeholder: "composition",
+  },
+  TokenInput: { placeholder: "composition" },
+  Tooltip: { variant: "v3", isOpen: "rac", defaultOpen: "rac" },
   // (S2 fixes a tooltip's offset at arrow + 4 — composition keeps RAC's prop on the trigger.)
   TooltipTrigger: { offset: "rac" },
   Tree: { isEmphasized: "composition" },

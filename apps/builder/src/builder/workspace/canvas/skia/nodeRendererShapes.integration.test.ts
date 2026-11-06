@@ -193,6 +193,48 @@ describe("nodeRendererShapes 실제 CanvasKit 통합", () => {
     expect(recorder.circles).toEqual([[12, 12, 3]]);
   });
 
+  it("filled 아이콘의 viewBox를 정규화하고 기존 stroke 렌더링을 보존한다", () => {
+    const surface = ck.MakeSurface(24, 24)!;
+    const canvas = surface.getCanvas();
+    const node = createNode();
+    node.iconPath = {
+      paths: ["M2 2H6V6H2Z"],
+      viewBoxSize: 8,
+      filled: true,
+      cx: 12,
+      cy: 12,
+      size: 24,
+      strokeColor: Float32Array.of(1, 0, 0, 1),
+      strokeWidth: 1,
+    };
+    const pixel = (x: number, y: number) =>
+      Array.from(
+        canvas.readPixels(x, y, {
+          width: 1,
+          height: 1,
+          colorType: ck.ColorType.RGBA_8888,
+          alphaType: ck.AlphaType.Unpremul,
+          colorSpace: ck.ColorSpace.SRGB,
+        }) as Uint8Array,
+      );
+    try {
+      canvas.clear(ck.TRANSPARENT);
+      renderIconPath(ck, canvas, node);
+      surface.flush();
+      expect(pixel(12, 12)).toEqual([255, 0, 0, 255]);
+      expect(pixel(7, 7)).toEqual([255, 0, 0, 255]);
+      expect(pixel(3, 3)).toEqual([0, 0, 0, 0]);
+      node.iconPath.filled = false;
+      canvas.clear(ck.TRANSPARENT);
+      renderIconPath(ck, canvas, node);
+      surface.flush();
+      expect(pixel(12, 12)).toEqual([0, 0, 0, 0]);
+      expect(pixel(6, 12)).toEqual([255, 0, 0, 255]);
+    } finally {
+      surface.delete();
+    }
+  });
+
   // ADR-211 P4 — 같은 `d` 는 wasm 파싱 1회 · Path 공유 (그리기 뒤 delete 하지 않는다) ·
   //   fillRule 이 다르면 다른 Path.
   it("renderPath 는 같은 SVG d 를 한 번만 파싱해 재사용한다", () => {

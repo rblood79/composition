@@ -66,15 +66,36 @@ export function installedBaseText(): { fontSize: number; lineHeight: number } {
   return baseText;
 }
 
+// Canvas의 상태 outline도 DOM에 내보낸 focus 변수와 같은 값을 읽는다.
+let focusVars: ResolvedThemeSnapshot["cssVars"] = [];
+export function installedFocusRingCss(
+  name: string,
+  mode: "light" | "dark",
+): string {
+  const authored = focusVars.find(
+    (entry) => entry.name === name && entry.isDark === (mode === "dark"),
+  );
+  if (authored) return authored.value;
+  if (name === "--focus-ring")
+    return mode === "dark"
+      ? darkColors["focus-ring"]
+      : lightColors["focus-ring"];
+  return "2px";
+}
+
 /** Install a resolved theme into the specs maps, or the code catalog's values for `null`. */
 export function installThemeMaps(snapshot: ResolvedThemeSnapshot | null): void {
+  focusVars =
+    snapshot?.cssVars.filter((entry) =>
+      entry.name.startsWith("--focus-ring"),
+    ) ?? [];
   baseText = {
     fontSize: snapshot?.base.fontSize ?? DEFAULT_BASE_TYPOGRAPHY.fontSize,
     lineHeight: snapshot?.base.lineHeight ?? DEFAULT_BASE_TYPOGRAPHY.lineHeight,
   };
-  const family = snapshot?.base.fontFamily;
+  const family = snapshot?.typography.sans ?? snapshot?.base.fontFamily;
   baseFontFamily =
-    family && family !== DEFAULT_BASE_TYPOGRAPHY.fontFamily
+    typeof family === "string" && family !== DEFAULT_BASE_TYPOGRAPHY.fontFamily
       ? family
       : undefined;
   replace("lightColors", snapshot?.colors.light);

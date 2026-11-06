@@ -10,6 +10,7 @@ import type { CatalogCompositionRoot } from "./compositionRoot";
 import type { CatalogThemeState } from "./theme";
 
 import { catalogThemeVarsCss } from "./themeVarsCss";
+import { DEFAULT_BASE_TYPOGRAPHY } from "./fontDefaults";
 
 /** The theme as the DOM reads it: CSS variables (light + dark blocks), color mode, base type. */
 export function applyCatalogPreviewTheme(state: CatalogThemeState): void {
@@ -25,7 +26,10 @@ export function applyCatalogPreviewTheme(state: CatalogThemeState): void {
   style.textContent = catalogThemeVarsCss(snapshot);
   document.documentElement.setAttribute("data-theme", state.colorMode);
   for (const element of [document.documentElement, document.body]) {
-    element.style.fontFamily = snapshot.base.fontFamily;
+    element.style.fontFamily =
+      snapshot.base.fontFamily === DEFAULT_BASE_TYPOGRAPHY.fontFamily
+        ? "var(--catalog-default-font-family)"
+        : snapshot.base.fontFamily;
     element.style.fontSize = `${snapshot.base.fontSize}px`;
     element.style.lineHeight = String(snapshot.base.lineHeight);
   }

@@ -34,6 +34,7 @@ describe("requestCanvasWarmup", () => {
     const deps = start.mock.calls[0][0];
     expect(deps.wasmUrls[0]).toMatch(/canvaskit.*\.wasm/);
     expect(deps.fonts.map((f: { family: string }) => f.family)).toEqual([
+      "adobe-clean-spectrum-vf",
       "Pretendard",
       "Inter",
     ]);

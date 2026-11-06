@@ -110,9 +110,10 @@ export class SkiaFontManager {
     buffer: ArrayBuffer,
     weight?: string,
     style?: string,
+    options: { replace?: boolean; persist?: boolean } = {},
   ): void {
     const key = makeKey(family, weight, style);
-    if (this.typefaces.has(key)) return;
+    if (this.typefaces.has(key) && !options.replace) return;
 
     const ck = getCanvasKit();
     const typeface = ck.Typeface.MakeFreeTypeFaceFromData(buffer);
@@ -120,13 +121,15 @@ export class SkiaFontManager {
       throw new Error(`Typeface 생성 실패: ${family}`);
     }
 
+    this.typefaces.get(key)?.delete();
     this.typefaces.set(key, typeface);
     this.buffers.set(key, buffer);
     this.extractAndMapName(family, typeface);
     this.dirty = true;
 
     // IndexedDB 캐싱 (fire-and-forget)
-    this.saveToCache(key, buffer).catch(() => {});
+    if (options.persist !== false)
+      this.saveToCache(key, buffer).catch(() => {});
   }
 
   /** family 이름으로 시작하는 모든 복합키를 반환 */

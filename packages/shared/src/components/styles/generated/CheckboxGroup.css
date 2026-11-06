@@ -25,7 +25,11 @@
 }
 
 .react-aria-CheckboxGroup {
-  color: var(--fg);
+  color: var(--fg-muted);
+}
+
+.react-aria-CheckboxGroup:where([data-disabled]) {
+  color: var(--fg-disabled);
 }
 
 .react-aria-CheckboxGroup[data-size="S"] {
@@ -52,15 +56,13 @@
   gap: 20px;
 }
 
-.react-aria-CheckboxGroup.react-aria-CheckboxGroup:where([data-focus-visible]) {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
+.react-aria-CheckboxGroup.react-aria-CheckboxGroup {
+  color: var(--fg-muted);
 }
 
 .react-aria-CheckboxGroup.react-aria-CheckboxGroup:where([data-disabled]) {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
+  color: var(--fg-disabled);
+  cursor: default;
 }
 
 /* ── Tier 2: Composite Delegation ── */

@@ -41,7 +41,7 @@ import {
   typography as typographySeed,
   type S2Device,
 } from "@composition/rendering";
-import type { BaseTypography } from "./fontDefaults";
+import { DEFAULT_BASE_TYPOGRAPHY, type BaseTypography } from "./fontDefaults";
 import { hexToOklch } from "./oklchToHex";
 import {
   resolveNeutralColorTokens,
@@ -76,12 +76,12 @@ export interface ResolvedDeviceTokens {
 
 /**
  * 바탕 토큰 → 그 바탕의 hover · pressed 토큰 (이름이 `<x>-hover` 가 아닌 것만). `neutral-hover` 는
- * 밝은 바탕 `neutral-subtle` 의 다음 단이고, 진한 바탕 `neutral` 의 것은 `neutral-fill-*` 다 (ADR-293 결정 4).
+ * 밝은 바탕 `neutral-subtle` 의 다음 단이고, 진한 바탕 `neutral-fill` 의 것은 `neutral-fill-*` 다.
  * 명시 델타 뒤 파생이 엉뚱한 바탕에서 혼합하면 그 값이 DOM 에도 실린다.
  */
 const DERIVED_STATE_KEYS: Readonly<Record<string, readonly [string, string]>> =
   {
-    neutral: ["neutral-fill-hover", "neutral-fill-pressed"],
+    "neutral-fill": ["neutral-fill-hover", "neutral-fill-pressed"],
     "neutral-subtle": ["neutral-hover", "neutral-pressed"],
   };
 
@@ -148,7 +148,7 @@ const SEED_DARK_SHADOWS: Readonly<Record<string, string>> = {
 
 const NEUTRAL_STEPS = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
 
-/** focus 축 — DOM 만 (ADR-150: 캔버스는 focus ring 을 그리지 않는다). */
+/** focus 축 — DOM 변수와 ActionButton·ToggleButton Canvas outline이 함께 읽는다. */
 const FOCUS_TOKEN_TO_VAR: Readonly<
   Record<string, { name: string; px: boolean }>
 > = {
@@ -262,16 +262,26 @@ export function resolveThemeSnapshot(
   });
   const withAccent = (mode: "light" | "dark"): Record<string, string> => {
     const seed = seedColors(mode);
+    const accent = createAccentColorTokens(c, h, mode, {
+      surfaces: { ...seed, ...explicitColors },
+      startL,
+      startHex,
+      subtle: explicitColors["accent-subtle"],
+      content: explicitColors["accent-content"],
+      warnings,
+    });
     return {
       ...seed,
-      ...createAccentColorTokens(c, h, mode, {
-        surfaces: { ...seed, ...explicitColors },
-        startL,
-        startHex,
-        subtle: explicitColors["accent-subtle"],
-        content: explicitColors["accent-content"],
-        warnings,
-      }),
+      ...accent,
+      // 미편집 blue 기본값은 S2 단계값. 사용자 tint/색상은 기존 탐색 결과를 연결한다.
+      ...((preset.tint || "blue") !== "blue" || accentHex
+        ? {
+            "selection-accent": accent["accent-content"],
+            "selection-accent-hover": accent["accent-content-hover"],
+            "accent-fill": accent.accent,
+            "accent-fill-hover": accent["accent-hover"],
+          }
+        : {}),
     };
   };
   const light = withAccent("light");
@@ -401,13 +411,25 @@ export function resolveThemeSnapshot(
         warnings.push(`${tokenKey} 미지원 카테고리 — 무시`);
     }
   }
-  // 공통 기본 서체와 명시한 sans 토큰을 두 renderer·기기에서 같은 값으로 읽는다.
-  const sans = String(explicitTypography.sans ?? base.fontFamily);
-  typography.sans = sans;
-  both("--font-sans", sans);
+  // 기존 focus 편집값은 S2 기본 색 역할보다 우선한다. CSS 별칭 emit 순서와 무관하게 유지한다.
+  const focusColor = delta["focus.ring-color"]?.value;
+  if (typeof focusColor === "string") {
+    light["focus-ring"] = focusColor;
+    dark["focus-ring"] = focusColor;
+  }
   // typography DOM 변수 — 전 키를 싣는다 (ADR-295: seed 가 S2 값이라 `shared-tokens.css` 의 chrome 값과
   //   다르다. 델타만 실으면 Preview · Publish 가 chrome 값을 읽어 Skia 와 갈린다). 크기가 바뀌면 line-height
   //   비율도 같이 다시 낸다.
+  // sans seed가 base-font-family 편집을 가리지 않게 한다. 명시한 sans 토큰은 우선한다.
+  const sans = String(explicitTypography.sans ?? base.fontFamily);
+  typography.sans = sans;
+  both("--catalog-default-font-family", DEFAULT_BASE_TYPOGRAPHY.fontFamily);
+  both(
+    "--font-sans",
+    sans === DEFAULT_BASE_TYPOGRAPHY.fontFamily
+      ? "var(--catalog-default-font-family)"
+      : sans,
+  );
   for (const [key, value] of Object.entries(typography)) {
     if (typeof value !== "number") continue;
     both(
@@ -466,13 +488,35 @@ export function resolveThemeSnapshot(
     }
   }
 
+  // 기존 색상 델타는 분리된 역할에도 적용한다. 새 역할을 명시하면 그 값이 우선한다.
+  // 기본값은 연결하지 않아 내용·바탕·테두리를 각각 편집하고 복원할 수 있다.
+  const legacyColorRoles: Record<string, readonly string[]> = {
+    neutral: ["neutral-content", "neutral-fill"],
+    "neutral-subtle": ["neutral-surface"],
+    border: ["neutral-outline"],
+    "accent-hover": ["accent-fill-hover"],
+    "accent-content": ["selection-accent"],
+    "accent-content-hover": ["selection-accent-hover"],
+    negative: ["negative-fill", "selection-negative"],
+    "negative-hover": ["negative-fill-hover", "selection-negative-hover"],
+  };
+  for (const [legacy, roles] of Object.entries(legacyColorRoles)) {
+    if (!explicitColorKeys.has(legacy)) continue;
+    for (const role of roles) {
+      if (explicitColorKeys.has(role)) continue;
+      light[role] = light[legacy]!;
+      dark[role] = dark[legacy]!;
+      explicitColorKeys.add(role);
+    }
+  }
+
   // ── 파생 키: 명시가 없으면 base 에서 (양 leg 같은 식) ──
   //   accent 계열은 createAccentColorTokens 가 이미 채웠다. 그 밖의 `<x>` 가 명시되고 `<x>-hover/-pressed`
   //   가 명시되지 않았으면 Skia 맵은 seed 파생값 그대로 (DOM 은 color-mix 가 base 변수를 따라간다)
   //   — 두 leg 가 갈리지 않게 Skia 도 base 로부터 mix 한다.
   for (const key of explicitColorKeys) {
     // 명시 `accent-content` 의 hover 는 accent 탐색이 그 값에서 이미 풀었다 (dark 는 밝히는 방향)
-    if (key === "accent-content") continue;
+    if (key === "accent-content" || key === "neutral") continue;
     const [hoverKey, pressedKey] = DERIVED_STATE_KEYS[key] ?? [
       `${key}-hover`,
       `${key}-pressed`,

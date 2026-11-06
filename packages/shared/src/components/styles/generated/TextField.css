@@ -23,6 +23,14 @@
   gap: var(--catalog-token-text-field-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
 }
 
+.react-aria-TextField {
+  color: var(--fg-muted);
+}
+
+.react-aria-TextField:where([data-disabled]) {
+  color: var(--fg-disabled);
+}
+
 .react-aria-TextField[data-size="XS"] {
   font-size: var(--catalog-token-text-2xs);
   border-radius: var(--catalog-token-radius-sm);
@@ -53,15 +61,13 @@
   gap: var(--catalog-token-text-field-gap-XL, calc(var(--catalog-token-size-height-XL) * 1 / 2 + calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * -1 / 2));
 }
 
-.react-aria-TextField.react-aria-TextField:where([data-focus-visible]) {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
+.react-aria-TextField.react-aria-TextField {
+  color: var(--fg-muted);
 }
 
 .react-aria-TextField.react-aria-TextField:where([data-disabled]) {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
+  color: var(--fg-disabled);
+  cursor: default;
 }
 
 /* ── Tier 2: Composite Delegation ── */
@@ -127,7 +133,7 @@
 
 
   .react-aria-TextField :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
-    color: var(--fg-muted);
+    color: var(--field-placeholder);
     flex-shrink: 0;
   }
 

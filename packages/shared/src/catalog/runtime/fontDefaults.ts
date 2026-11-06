@@ -1,5 +1,21 @@
 /** 기본 폰트 패밀리 — body 상속, 스타일 패널 폴백 등에서 참조 */
-export const DEFAULT_FONT_FAMILY = "Pretendard";
+import {
+  SPECTRUM_SANS_FAMILY,
+  SPECTRUM_SANS_STACK,
+  spectrumLocaleFont,
+} from "@composition/rendering";
+
+export const DEFAULT_FONT_FAMILY = SPECTRUM_SANS_FAMILY;
+/** 명시한 사용자 서체는 유지하고 S2 기본 sans만 locale별 기본값으로 바꾼다. */
+export function catalogLocaleFontFamily(
+  family: string,
+  locale: string | undefined,
+): string {
+  return family === SPECTRUM_SANS_STACK
+    ? (spectrumLocaleFont(locale)?.stack ?? family)
+    : family;
+}
+export { SPECTRUM_SANS_FONT_CSS } from "@composition/rendering";
 
 /**
  * CanvasKit fontFamilies 말미 공통 fallback 체인.
@@ -32,8 +48,7 @@ export type BaseTypography = {
  * 정본 위치: packages/shared/src/catalog/runtime/fontDefaults.ts
  */
 export const DEFAULT_BASE_TYPOGRAPHY: BaseTypography = {
-  fontFamily:
-    "Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', sans-serif",
+  fontFamily: SPECTRUM_SANS_STACK,
   fontSize: 16,
   lineHeight: 1.5,
 };

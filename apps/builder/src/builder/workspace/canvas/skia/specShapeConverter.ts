@@ -563,6 +563,7 @@ export function specShapesToSkia(
         const iconData = getIconData(
           shape.iconName,
           shape.iconFontFamily ?? "lucide",
+          shape.iconVariant,
         );
         if (!iconData) break;
 
@@ -602,6 +603,8 @@ export function specShapesToSkia(
           iconPath: {
             paths: iconData.paths,
             circles: iconData.circles,
+            viewBoxSize: iconData.viewBoxSize,
+            filled: iconData.filled,
             cx,
             cy,
             size,

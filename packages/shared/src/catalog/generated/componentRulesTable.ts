@@ -46,7 +46,7 @@ const COLLECTION_ITEM_BACKGROUND = {
 /**
  * ADR-259 Phase 2 — S2 `prefix` (TextField · TextArea · NumberField · ComboBox · ColorField): the
  * Text · Icon node in the field's control Group's `prefix` slot. S2 `FieldGroup` (`Field.tsx:291-311`):
- * `gray-600` (our `neutral-subdued`), no shrink, `text-to-visual` before the input (6/14 of the
+ * `gray-600` (field-placeholder), no shrink, `text-to-visual` before the input (6/14 of the
  * text — 4 · 5 · 6 · 7 · 8 px at XS … XL), the input's text size. One block per field rule — the
  * generated sheet and the Canvas part rules (through the Group) read it.
  */
@@ -54,7 +54,10 @@ const PREFIX =
   ':is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"])';
 const PREFIX_TEXT = '.react-aria-Text[slot="prefix"]';
 const FIELD_PREFIX_STATIC = {
-  [PREFIX]: { color: "var(--fg-muted)", "flex-shrink": "0" },
+  [PREFIX]: {
+    color: "var(--field-placeholder)",
+    "flex-shrink": "0",
+  },
   [PREFIX_TEXT]: { width: "auto" },
 } as const;
 const prefixSize = (text: string, gap: number) => ({
@@ -219,59 +222,103 @@ const PRESS_STATE = {
   willChange: CATALOG_PRESS_WILL_CHANGE,
   transform: { isPressed: catalogPressTransform() },
 } as const;
-/**
- * ADR-297 Phase 3g — toggle indicator 상자 (Checkbox `.checkbox`) 의 상태. 옛 수동 sheet 의 specificity 순서
- * (0-3-0 selected < invalid < disabled · 0-4-0 pressed · 0-5-0 selected·pressed < invalid·pressed) 를 트리 순서로.
- */
-/** Radio 의 고리 (`.indicator`) — 옛 수동 `Radio.css` 순서 (0-3-0 selected < invalid < disabled · 0-4-0 pressed < invalid·selected · 0-5-0 selected·pressed). */
+// S2 1.8.2 Checkbox.box / Radio.circle / Switch.track. 같은 트리를 variant와 부품 CSS가 읽는다.
+const toggleActive = (base: string, active: string) => ({
+  default: `{color.${base}}`,
+  isHovered: `{color.${active}}`,
+  isFocusVisible: `{color.${active}}`,
+  isPressed: `{color.${active}}`,
+});
+const TOGGLE_NEUTRAL = toggleActive("neutral-fill", "neutral-fill-hover");
+const TOGGLE_ACCENT = toggleActive(
+  "selection-accent",
+  "selection-accent-hover",
+);
+const TOGGLE_NEGATIVE = toggleActive(
+  "selection-negative",
+  "selection-negative-hover",
+);
+const TOGGLE_LABEL = {
+  ...toggleActive("neutral-content", "neutral-content-hover"),
+  isDisabled: "{color.disabled-content}",
+} as const;
+// S2 1.8.2 FieldGroup: focus border and keyboard ring are separate.
+const FIELD_INPUT_CONTENT = {
+  default: "{color.neutral-content}",
+  isHovered: "{color.neutral-content-hover}",
+  isPressed: "{color.neutral-content-hover}",
+  isFocusVisible: "{color.neutral-content-hover}",
+  isDisabled: "{color.disabled-content}",
+} as const;
+// S2 SearchField icons inherit the field's resting color, even while hovered/pressed.
+const SEARCH_FIELD_CONTENT = {
+  default: "{color.neutral-content}",
+  isDisabled: "{color.disabled-content}",
+} as const;
+const FIELD_INPUT_BORDER_STATES = {
+  isHovered: "{color.neutral-outline-hover}",
+  isPressed: "{color.neutral-outline-hover}",
+  isInvalid: {
+    default: "{color.selection-negative}",
+    isHovered: "{color.selection-negative-hover}",
+    isPressed: "{color.selection-negative-hover}",
+  },
+  isFocused: {
+    default: "{color.neutral-content-hover}",
+    isInvalid: "{color.selection-negative-hover}",
+  },
+  isFocusWithin: {
+    default: "{color.neutral-content-hover}",
+    isInvalid: "{color.selection-negative-hover}",
+  },
+  isDisabled: "{color.disabled-content}",
+} as const;
+
+const FIELD_INPUT_BORDER = {
+  default: "{color.neutral-outline}",
+  ...FIELD_INPUT_BORDER_STATES,
+} as const;
+const TOGGLE_GROUP_LABEL = {
+  default: "{color.neutral-subdued}",
+  isDisabled: "{color.disabled-content}",
+} as const;
+const CONTROL_FOCUS = {
+  outline: {
+    isFocusVisible: "var(--focus-ring-width) solid var(--focus-ring)",
+  },
+  outlineOffset: { isFocusVisible: "var(--focus-ring-offset)" },
+} as const;
+const TOGGLE_SELECTED_FILL = {
+  ...TOGGLE_NEUTRAL,
+  isEmphasized: TOGGLE_ACCENT,
+  isDisabled: "{color.disabled-content}",
+} as const;
 const RADIO_RING_STATE = {
   borderColor: {
-    isSelected: "var(--radio-color)",
-    isInvalid: "var(--negative)",
-    isDisabled: {
-      default: "var(--border-disabled)",
-      isInvalid: { isSelected: "var(--negative)" },
-    },
-    isPressed: {
-      default: "var(--border-hover)",
-      isSelected: "color-mix(in srgb, var(--radio-color) 75%, black)",
-    },
+    ...TOGGLE_NEUTRAL,
+    isSelected: { isEmphasized: TOGGLE_ACCENT },
+    isInvalid: TOGGLE_NEGATIVE,
+    isDisabled: "{color.disabled-content}",
   },
-  // (The ring's inside is S2 `gray-25` at rest — the variant tree's `default`, the Canvas ring's; off the root
-  //  since ADR-297 후속 ②. The manual sheet's `--color-white` was light-mode only.)
-  background: { default: "var(--bg)" },
-  outline: { isFocusVisible: "2px solid var(--radio-color)" },
-  outlineOffset: { isFocusVisible: "2px" },
-  // S2 `RadioGroup.tsx:350` — the circle presses (≤ 24px: `perspective(24px)`).
+  background: "{color.base}",
+  ...CONTROL_FOCUS,
   ...PRESS_STATE,
 } as const;
-/** Switch 의 track · thumb — 옛 수동 `Switch.css` 순서 (pressed 0-4-0 이 selected 0-3-0 을, selected·pressed 0-5-0 이 둘을 이긴다). */
 const SWITCH_TRACK_STATE = {
   borderColor: {
-    isSelected: "var(--switch-color)",
-    isPressed: {
-      default: "var(--border-hover)",
-      isSelected: "color-mix(in srgb, var(--switch-color) 75%, black)",
-    },
+    ...TOGGLE_NEUTRAL,
+    isDisabled: "{color.disabled-content}",
+    isSelected: "{color.transparent}",
   },
-  background: {
-    isSelected: {
-      default: "var(--switch-color)",
-      isPressed: "color-mix(in srgb, var(--switch-color) 75%, black)",
-    },
-  },
-  outline: { isFocusVisible: "2px solid var(--focus-ring)" },
-  outlineOffset: { isFocusVisible: "2px" },
+  background: { default: "{color.base}", isSelected: TOGGLE_SELECTED_FILL },
+  ...CONTROL_FOCUS,
 } as const;
 const SWITCH_THUMB_STATE = {
   background: {
-    isSelected: "var(--switch-thumb-color)",
-    isPressed: "var(--bg-emphasis)",
+    ...TOGGLE_NEUTRAL,
+    isDisabled: "{color.disabled-content}",
+    isSelected: "{color.base}",
   },
-  // S2 `Switch.tsx:256` — the handle presses (2026-11-04; was the starter's `scale: 1.2 1` stretch). The
-  //   selected offset is the `translate` property (size selectors above), which composes outside `transform`
-  //   — S2's `translateX(…) perspective(…)`. The origin is the centre (the manual sheet's `left center` is the
-  //   stretch's).
   transformOrigin: "center",
   ...PRESS_STATE,
 } as const;
@@ -353,37 +400,26 @@ const RANGE_BAND_END = {
   borderEndEndRadius: { isSelected: "var(--radius-full)" },
 } as const;
 const CHECKBOX_SELECTED_FILL = {
-  default: "var(--selected-color)",
-  isInvalid: "var(--negative)",
-  isPressed: {
-    default: "color-mix(in srgb, var(--selected-color) 75%, black)",
-    isInvalid: "color-mix(in srgb, var(--negative) 75%, black)",
-  },
+  ...TOGGLE_NEUTRAL,
+  isEmphasized: TOGGLE_ACCENT,
+  isInvalid: TOGGLE_NEGATIVE,
+  isDisabled: "{color.disabled-content}",
 } as const;
 const CHECKBOX_BOX_STATE = {
   borderColor: {
-    isSelected: "var(--selected-color)",
-    isIndeterminate: "var(--selected-color)",
-    isInvalid: "var(--negative)",
-    isDisabled: "var(--border-disabled)",
-    isPressed: {
-      default: "var(--border-pressed)",
-      isSelected: "color-mix(in srgb, var(--selected-color) 75%, black)",
-      isIndeterminate: "color-mix(in srgb, var(--selected-color) 75%, black)",
-      isInvalid: "color-mix(in srgb, var(--negative) 75%, black)",
-    },
+    ...TOGGLE_NEUTRAL,
+    isInvalid: TOGGLE_NEGATIVE,
+    isDisabled: "{color.disabled-content}",
+    isSelected: "{color.transparent}",
+    isIndeterminate: "{color.transparent}",
   },
-  // (The rest box is S2 `box` `gray-25` — the variant tree's `default`, the Canvas box's; ADR-297 후속 ②
-  //  moved it off the Checkbox root, which painted it behind the whole control in the Preview only.)
   background: {
-    default: "var(--bg)",
+    default: "{color.base}",
     isSelected: CHECKBOX_SELECTED_FILL,
     isIndeterminate: CHECKBOX_SELECTED_FILL,
   },
-  outline: { isFocusVisible: "2px solid var(--focus-ring)" },
-  outlineOffset: { isFocusVisible: "2px" },
-  "--checkmark-color": { isInvalid: "var(--color-white)" },
-  // S2 `Checkbox.tsx:240` — the box presses (≤ 24px: `perspective(24px)`).
+  ...CONTROL_FOCUS,
+  "--checkmark-color": "{color.base}",
   ...PRESS_STATE,
 } as const;
 
@@ -418,18 +454,18 @@ const BUTTON_INLINE_ROOT_BOX = {
 
 /**
  * ADR-297 Phase 3h — Button 칠 = 설치 S2 `Button.tsx` (사용자 결정 2: 확정 8 건 S2 대로 · 저장소에 없는 S2 토큰은
- * 가장 가까운 기존 토큰). 트리 순서 = S2 키 순서 (fill → outline → disabled → static).
+ * 역할별 토큰으로 정렬). 트리 순서 = S2 키 순서 (fill → outline → disabled → static).
  * - #5 pressed = hover 의 단 (`baseColor` 의 `:pressed` = `:hovered` 와 같은 다음 단 · accent `accent-1000`).
  *   S2 fill 은 테두리 폭 0 — 테두리 색은 바탕과 같은 값이라 pressed 에 테두리 링이 생기지 않는다.
- * - #2 outline: 휴지 투명 · hover · pressed `gray-100` (`neutral-subtle`). 테두리 primary `baseColor('gray-800')`
- *   (`neutral` → `neutral-fill-hover`) · secondary `baseColor('gray-300')` (`border` → `border-hover`); S2 에 outline
+ * - #2 outline: 휴지 투명 · hover · pressed `gray-100` (`neutral-surface`). 테두리 primary `baseColor('gray-800')`
+ *   (`neutral-fill` → `neutral-fill-hover`) · secondary `baseColor('gray-300')` (`neutral-outline` → `neutral-outline-hover`); S2 에 outline
  *   테두리가 없는 variant 는 그대로.
- * - #7 disabled: S2 `disabled` 색 — 바탕 `{color.disabled}` · 글자는 disabled 글자 토큰이 없어 `neutral-subdued` ·
+ * - #7 disabled: S2 `disabled` 색 — 바탕 `{color.disabled}` · 글자는 `{color.disabled-content}` ·
  *   outline 테두리 `border-disabled`. opacity 없음 (`BUTTON_DISABLED_STATE`).
  * - #9 static (variant 바깥): `transparent-overlay-N` = static 색 (white · black) 의 α — S2 `spectrum-theme`
  *   (`lch(from --s2-container-bg …) / α`). primary 800 → hover 900 · secondary 100 → 200 · outline hover 100 ·
  *   disabled 바탕 100 · 글자 400 · outline 테두리 primary 800 → 900 · secondary 300 → 400. primary 글자 `auto` =
- *   바탕 반대색. accent · negative 는 S2 static 가지가 없어 평소 칠 그대로, premium · genai 는 `gradientButtonPaint`.
+ *   바탕 반대색. accent · negative fill 기본색은 유지하고 outline·disabled 공통 static 가지를 적용한다. premium · genai 는 `gradientButtonPaint`.
  */
 const S2_OVERLAY_ALPHA = {
   100: 0.11,
@@ -446,47 +482,63 @@ const opaque = (tone: StaticTone) => (tone === "white" ? "#ffffff" : "#000000");
 const opposite = (tone: StaticTone) =>
   tone === "white" ? "#000000" : "#ffffff";
 const TRANSPARENT = "{color.transparent}";
-const OUTLINE_HOVER_FILL = "{color.neutral-subtle}";
+const OUTLINE_HOVER_FILL = "{color.neutral-surface}";
 
 interface ButtonPaintSpec {
   /** fill 바탕 — 휴지 · hover (pressed 도 같은 단). */
   readonly fill: readonly [string, string];
   readonly text: string;
+  readonly textHover?: string;
   readonly outlineText: string;
   /** outline 테두리 — 휴지 · hover/pressed. */
   readonly outlineBorder: readonly [string, string];
   /**
    * fill 테두리 색 (없으면 바탕과 같은 값). S2 fill 폭은 0이고, 저작 borderWidth가 있으면 이 색을 쓴다.
-   * secondary 는 `layer-1` 바탕에 대응하는 기존 border 색을 유지한다.
+   * secondary 는 S2 gray-300 테두리 역할을 사용한다.
    */
   readonly fillBorder?: readonly [string, string];
-  /** S2 static 가지 — primary · secondary 의 overlay 단, none = 가지 없음 (premium · genai 는 `gradientButtonPaint`). */
-  readonly static: "primary" | "secondary" | "none";
+  /** S2 static 가지 — primary · secondary 의 overlay 단, colored = accent · negative (premium · genai 는 `gradientButtonPaint`). */
+  readonly static: "primary" | "secondary" | "colored";
 }
 
 function buttonStaticPaint(spec: ButtonPaintSpec, tone: StaticTone) {
   const ov = (step: keyof typeof S2_OVERLAY_ALPHA) => overlay(tone, step);
   const [rest, hover] =
-    spec.static === "primary" ? [ov(800), ov(900)] : [ov(100), ov(200)];
+    spec.static === "primary"
+      ? [ov(800), ov(900)]
+      : spec.static === "colored"
+        ? spec.fill
+        : [ov(100), ov(200)];
   const [borderRest, borderHover] =
-    spec.static === "primary" ? [ov(800), ov(900)] : [ov(300), ov(400)];
+    spec.static === "primary"
+      ? [ov(800), ov(900)]
+      : spec.static === "colored"
+        ? ["currentColor", "currentColor"]
+        : [ov(300), ov(400)];
   return {
     backgroundColor: {
       default: rest,
       isHovered: hover,
       isPressed: hover,
+      isFocusVisible: hover,
       isDisabled: ov(100),
       fillStyle: {
         outline: {
           default: TRANSPARENT,
           isHovered: ov(100),
           isPressed: ov(100),
+          isFocusVisible: ov(100),
           isDisabled: TRANSPARENT,
         },
       },
     },
     color: {
-      default: spec.static === "primary" ? opposite(tone) : opaque(tone),
+      default:
+        spec.static === "primary"
+          ? opposite(tone)
+          : spec.static === "colored"
+            ? spec.text
+            : opaque(tone),
       fillStyle: { outline: opaque(tone) },
       isDisabled: overlay(tone, 400),
     },
@@ -497,6 +549,7 @@ function buttonStaticPaint(spec: ButtonPaintSpec, tone: StaticTone) {
           default: borderRest,
           isHovered: borderHover,
           isPressed: borderHover,
+          isFocusVisible: borderHover,
           isDisabled: ov(300),
         },
       },
@@ -508,34 +561,30 @@ function buttonPaint(spec: ButtonPaintSpec) {
   const [rest, hover] = spec.fill;
   const [outlineRest, outlineHover] = spec.outlineBorder;
   const [borderRest, borderHover] = spec.fillBorder ?? spec.fill;
-  const statics =
-    spec.static === "none"
-      ? undefined
-      : {
-          white: buttonStaticPaint(spec, "white"),
-          black: buttonStaticPaint(spec, "black"),
-        };
-  const branch = (key: "backgroundColor" | "color" | "borderColor") =>
-    statics
-      ? {
-          staticColor: {
-            black: statics.black[key],
-            white: statics.white[key],
-          },
-        }
-      : {};
+  const statics = {
+    white: buttonStaticPaint(spec, "white"),
+    black: buttonStaticPaint(spec, "black"),
+  };
+  const branch = (key: "backgroundColor" | "color" | "borderColor") => ({
+    staticColor: {
+      black: statics.black[key],
+      white: statics.white[key],
+    },
+  });
   return {
     paint: {
       backgroundColor: {
         default: rest,
         isHovered: hover,
         isPressed: hover,
+        isFocusVisible: hover,
         isDisabled: "{color.disabled}",
         fillStyle: {
           outline: {
             default: TRANSPARENT,
             isHovered: OUTLINE_HOVER_FILL,
             isPressed: OUTLINE_HOVER_FILL,
+            isFocusVisible: OUTLINE_HOVER_FILL,
             isDisabled: TRANSPARENT,
           },
         },
@@ -543,11 +592,17 @@ function buttonPaint(spec: ButtonPaintSpec) {
       },
       color: {
         default: spec.text,
-        isDisabled: "{color.neutral-subdued}",
+        isHovered: spec.textHover ?? spec.text,
+        isPressed: spec.textHover ?? spec.text,
+        isFocusVisible: spec.textHover ?? spec.text,
+        isDisabled: "{color.disabled-content}",
         fillStyle: {
           outline: {
             default: spec.outlineText,
-            isDisabled: "{color.neutral-subdued}",
+            isHovered: "{color.neutral-content-hover}",
+            isPressed: "{color.neutral-content-hover}",
+            isFocusVisible: "{color.neutral-content-hover}",
+            isDisabled: "{color.disabled-content}",
           },
         },
         ...branch("color"),
@@ -556,12 +611,14 @@ function buttonPaint(spec: ButtonPaintSpec) {
         default: borderRest,
         isHovered: borderHover,
         isPressed: borderHover,
+        isFocusVisible: borderHover,
         isDisabled: "{color.disabled}",
         fillStyle: {
           outline: {
             default: outlineRest,
             isHovered: outlineHover,
             isPressed: outlineHover,
+            isFocusVisible: outlineHover,
             isDisabled: "{color.border-disabled}",
           },
         },
@@ -628,7 +685,7 @@ function gradientButtonPaint(
       },
       color: {
         default: "{color.white}",
-        isDisabled: "{color.neutral-subdued}",
+        isDisabled: "{color.disabled-content}",
         staticColor: {
           black: staticTone("black").color,
           white: staticTone("white").color,
@@ -648,35 +705,36 @@ const BUTTON_DISABLED_STATE = {
 const BUTTON_VARIANTS_BASE = {
   // (outline 글자 = S2 `baseColor('neutral')` — fill 밖 variant 색은 S2 outline 에 없다, #2)
   accent: buttonPaint({
-    fill: ["{color.accent}", "{color.accent-hover}"],
+    fill: ["{color.accent-fill}", "{color.accent-fill-hover}"],
     text: "{color.on-accent}",
-    outlineText: "{color.neutral}",
-    outlineBorder: ["{color.border-hover}", "{color.border-hover}"],
-    static: "none",
+    outlineText: "{color.neutral-content}",
+    outlineBorder: ["currentColor", "currentColor"],
+    static: "colored",
   }),
   // 진한 바탕의 한 단 — `neutral-hover` 는 밝은 바탕 (neutral-subtle) 의 다음 단이라 흰 글자가
   // 사라진다 (ADR-293 결정 4, S2 `baseColor('neutral')`)
   primary: buttonPaint({
-    fill: ["{color.neutral}", "{color.neutral-fill-hover}"],
-    text: "{color.base}",
-    outlineText: "{color.neutral}",
-    outlineBorder: ["{color.neutral}", "{color.neutral-fill-hover}"],
+    fill: ["{color.neutral-fill}", "{color.neutral-fill-hover}"],
+    text: "{color.on-neutral}",
+    outlineText: "{color.neutral-content}",
+    outlineBorder: ["{color.neutral-fill}", "{color.neutral-fill-hover}"],
     static: "primary",
   }),
   secondary: buttonPaint({
-    fill: ["{color.layer-1}", "{color.neutral-subtle}"],
-    fillBorder: ["{color.border}", "{color.border}"],
-    text: "{color.neutral}",
-    outlineText: "{color.neutral}",
-    outlineBorder: ["{color.border}", "{color.border-hover}"],
+    fill: ["{color.neutral-surface}", "{color.neutral-surface-hover}"],
+    fillBorder: ["{color.neutral-outline}", "{color.neutral-outline-hover}"],
+    text: "{color.neutral-content}",
+    textHover: "{color.neutral-content-hover}",
+    outlineText: "{color.neutral-content}",
+    outlineBorder: ["{color.neutral-outline}", "{color.neutral-outline-hover}"],
     static: "secondary",
   }),
   negative: buttonPaint({
-    fill: ["{color.negative}", "{color.negative-hover}"],
+    fill: ["{color.negative-fill}", "{color.negative-fill-hover}"],
     text: "{color.on-negative}",
-    outlineText: "{color.neutral}",
-    outlineBorder: ["{color.border-hover}", "{color.border-hover}"],
-    static: "none",
+    outlineText: "{color.neutral-content}",
+    outlineBorder: ["currentColor", "currentColor"],
+    static: "colored",
   }),
   premium: gradientButtonPaint(S2_GRADIENT.premium),
   genai: gradientButtonPaint(S2_GRADIENT.genai),
@@ -692,8 +750,13 @@ const BUTTON_VARIANTS = Object.fromEntries(
         backgroundColor: {
           ...variant.paint.backgroundColor,
           isPicker: PICKER_BACKGROUND,
+          isSearchFieldPart: "{color.transparent}",
         },
-        color: { ...variant.paint.color, isPicker: PICKER_CONTENT },
+        color: {
+          ...variant.paint.color,
+          isPicker: PICKER_CONTENT,
+          isSearchFieldPart: SEARCH_FIELD_CONTENT,
+        },
       },
     },
   ]),
@@ -861,6 +924,150 @@ const ACTION_CONTROL_SIZES = {
     iconSize: "{typography.text-lg--line-height}",
   },
 } as const;
+
+// S2 1.8.2 ActionButton.btnStyles: ActionButton과 ToggleButton은 같은 칠 계약이다.
+const actionActive = (rest: string, active: string) => ({
+  default: rest,
+  isHovered: active,
+  isExpanded: active,
+  isPressed: active,
+  isFocusVisible: active,
+});
+const actionRest = (color: string) => ({
+  default: color,
+  isQuiet: "{color.transparent}",
+});
+const actionStaticBackground = (channels: string) => {
+  const rest = `rgb(${channels} / 0.11)`;
+  return {
+    ...actionActive(rest, `rgb(${channels} / 0.14)`),
+    isQuiet: actionActive("{color.transparent}", `rgb(${channels} / 0.14)`),
+    isSelected: actionActive(
+      `rgb(${channels} / 0.85)`,
+      `rgb(${channels} / 0.94)`,
+    ),
+    isDisabled: actionRest(rest),
+  };
+};
+const ACTION_BUTTON_PAINT = {
+  backgroundColor: {
+    ...actionActive("{color.neutral-surface}", "{color.neutral-surface-hover}"),
+    isQuiet: actionActive(
+      "{color.transparent}",
+      "{color.neutral-surface-hover}",
+    ),
+    isSelected: {
+      ...actionActive("{color.neutral-fill}", "{color.neutral-fill-hover}"),
+      isEmphasized: actionActive(
+        "{color.accent-fill}",
+        "{color.accent-fill-hover}",
+      ),
+    },
+    isDisabled: actionRest("{color.neutral-surface}"),
+    staticColor: {
+      black: actionStaticBackground("0 0 0"),
+      white: actionStaticBackground("255 255 255"),
+    },
+  },
+  color: {
+    ...actionActive("{color.neutral-content}", "{color.neutral-content-hover}"),
+    isSelected: {
+      default: "{color.on-neutral}",
+      isEmphasized: "{color.on-accent}",
+    },
+    isDisabled: "{color.disabled-content}",
+    staticColor: {
+      black: {
+        default: "#000000",
+        isSelected: "#ffffff",
+        isDisabled: "rgb(0 0 0 / 0.21)",
+      },
+      white: {
+        default: "#ffffff",
+        isSelected: "#000000",
+        isDisabled: "rgb(255 255 255 / 0.21)",
+      },
+    },
+  },
+  borderColor: { default: "{color.transparent}" },
+};
+// S2 1.8.2 ActionButton과 ToggleButton의 그룹 레이아웃 정본.
+const ACTION_FOCUS_RING_STATE = {
+  outline: {
+    isFocusVisible: {
+      default: "var(--focus-ring-width) solid var(--focus-ring)",
+      staticColor: {
+        black: "var(--focus-ring-width) solid #000000",
+        white: "var(--focus-ring-width) solid #ffffff",
+      },
+    },
+  },
+  outlineOffset: { isFocusVisible: "var(--focus-ring-offset)" },
+};
+const ACTION_GROUP_BUTTON_COMPOSITION = {
+  delegation: [],
+  rootSelectors: {
+    "&[data-in-group]": { styles: { "flex-shrink": "0" } },
+    "&[data-justified]": {
+      styles: { "flex-grow": "1", "flex-basis": "0" },
+    },
+    '&[data-in-group][data-orientation="vertical"]': {
+      styles: { width: "100%" },
+    },
+    '&[data-density="compact"]': { styles: { "border-radius": "0" } },
+    '&[data-density="compact"]:first-child': {
+      styles: { "border-start-start-radius": "var(--action-corner)" },
+    },
+    '&[data-density="compact"]:last-child': {
+      styles: { "border-end-end-radius": "var(--action-corner)" },
+    },
+    '&[data-density="compact"][data-orientation="horizontal"]:first-child': {
+      styles: { "border-end-start-radius": "var(--action-corner)" },
+    },
+    '&[data-density="compact"][data-orientation="vertical"]:last-child': {
+      styles: { "border-end-start-radius": "var(--action-corner)" },
+    },
+    '&[data-density="compact"][data-orientation="horizontal"]:last-child': {
+      styles: { "border-start-end-radius": "var(--action-corner)" },
+    },
+    '&[data-density="compact"][data-orientation="vertical"]:first-child': {
+      styles: { "border-start-end-radius": "var(--action-corner)" },
+    },
+    ...Object.fromEntries(
+      Object.entries({ ...FIELD_BUTTON_CORNERS, XS: "6px" }).map(
+        ([size, corner]) => [
+          `&[data-size="${size}"]`,
+          { styles: { "--action-corner": corner } },
+        ],
+      ),
+    ),
+  },
+};
+
+const ACTION_GROUP_SIZES = Object.fromEntries(
+  Object.entries(ACTION_CONTROL_SIZES).map(([size, rule]) => [
+    size,
+    {
+      fontSize: rule.fontSize,
+      borderRadius: 0,
+      height: 0,
+      gap: size === "XS" || size === "S" ? 4 : 8,
+    },
+  ]),
+);
+
+// S2는 border:none. 종전 1px border 공간은 padding에 포함해 높이를 보존한다.
+const ACTION_BUTTON_SIZES = Object.fromEntries(
+  Object.entries(ACTION_CONTROL_SIZES).map(([size, rule]) => [
+    size,
+    {
+      ...rule,
+      borderRadius: size === "XS" ? 6 : rule.borderRadius,
+      borderWidth: 0,
+      paddingY: rule.paddingY + 1,
+    },
+  ]),
+);
 
 export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   // ADR-256 Phase 6g — Autocomplete: RAC Autocomplete has no element (its children sit in its
@@ -2079,7 +2286,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingBottom: BUTTON_PADDING_BLOCK,
         ...FOCUS_RING_STATE,
         ...BUTTON_DISABLED_STATE,
-        outline: { isPicker: { isQuiet: "none" } },
+        outline: {
+          isPicker: { isQuiet: "none" },
+          isSearchFieldPart: {
+            isFocusVisible: "var(--focus-ring-width) solid var(--focus-ring)",
+          },
+        },
+        outlineOffset: { isSearchFieldPart: "-4px" },
         paddingLeft: { isPicker: { isQuiet: "0" } },
         paddingRight: { isPicker: { isQuiet: "0" } },
       },
@@ -2832,6 +3045,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   selected < invalid < disabled < pressed < selected·pressed < invalid·pressed). RAC 는 상태를 CheckboxButton
     //   (`label`) 에 싣는다. 선택 색은 root 의 `--selected-color` (emphasized 가 정한다 — 수동 sheet).
     partStateStyles: {
+      "& .react-aria-CheckboxButton%": { color: TOGGLE_LABEL },
       "& .react-aria-CheckboxButton% .checkbox": CHECKBOX_BOX_STATE,
       "& .react-aria-CheckboxButton% .checkbox svg": {
         strokeDashoffset: { isSelected: 44, isIndeterminate: 44 },
@@ -2853,50 +3067,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     variants: {
       default: {
         paint: {
-          backgroundColor: {
-            default: "{color.base}",
-            isSelected: {
-              default: "{color.neutral}",
-            },
-          },
-          color: {
-            default: "{color.neutral}",
-            isSelected: {
-              default: null,
-            },
-          },
-          borderColor: {
-            default: "{color.border}",
-            isSelected: {
-              default: "{color.neutral}",
-            },
-          },
+          backgroundColor: CHECKBOX_BOX_STATE.background,
+          borderColor: CHECKBOX_BOX_STATE.borderColor,
+          color: TOGGLE_LABEL,
         },
-
         textWeight: 400,
       },
       emphasized: {
         paint: {
-          backgroundColor: {
-            default: "{color.base}",
-            isSelected: {
-              default: "{color.accent}",
-            },
-          },
-          color: {
-            default: "{color.neutral}",
-            isSelected: {
-              default: null,
-            },
-          },
-          borderColor: {
-            default: "{color.border}",
-            isSelected: {
-              default: "{color.accent}",
-            },
-          },
+          backgroundColor: CHECKBOX_BOX_STATE.background,
+          borderColor: CHECKBOX_BOX_STATE.borderColor,
+          color: TOGGLE_LABEL,
         },
-
         textWeight: 400,
       },
     },
@@ -2975,8 +3157,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         justifyContent: "center",
       },
       stateStyles: {
-        ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
+        cursor: { isDisabled: "not-allowed" },
       },
       composition: {
         staticSelectors: {
@@ -2984,10 +3165,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             display: "inline-flex",
             "align-items": "center",
             gap: "var(--cb-button-gap)",
-          },
-          ".react-aria-CheckboxButton[data-focus-visible]": {
-            outline: "var(--focus-ring-width) solid var(--focus-ring)",
-            "outline-offset": "var(--focus-ring-offset)",
           },
         },
         rootSelectors: CHECKBOX_INDICATOR_SELECTORS,
@@ -3016,9 +3193,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             isHovered: "{color.transparent}",
             isPressed: "{color.transparent}",
           },
-          color: {
-            default: "{color.neutral}",
-          },
+          color: TOGGLE_GROUP_LABEL,
         },
       },
     },
@@ -3075,9 +3250,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "flex",
       },
+      // S2는 그룹 전체를 흐리게 하지 않는다. 상태 색상은 각 부품이 소비한다.
       stateStyles: {
-        ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
+        color: TOGGLE_GROUP_LABEL,
+        cursor: { isDisabled: "default" },
       },
       composition: {
         layout: "flex-column",
@@ -3313,7 +3489,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   ColorField: {
     defaultSize: "M",
-    variants: {},
+    defaultVariant: "default",
+    variants: { default: { paint: { color: TOGGLE_GROUP_LABEL } } },
     // gap = S2 `--field-gap` (높이 − 행간) / 2 · fontSize = S2 field 글자 (XS 2xs … XL lg — ADR-295 Phase 3c-3b
     //   ③ 까지 한 단 위였다, 3c-3c 에서 S2 로).
     sizes: {
@@ -3376,8 +3553,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       element: "div",
       containerStyles: undefined,
       stateStyles: {
-        ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
+        color: TOGGLE_GROUP_LABEL,
+        cursor: { isDisabled: "default" },
       },
       composition: {
         // ADR-259 Phase 2: the S2 prefix in the control Group (`FIELD_PREFIX_*`).
@@ -3871,7 +4048,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   ComboBox: {
     defaultSize: "M",
-    variants: {},
+    defaultVariant: "default",
+    variants: { default: { paint: { color: TOGGLE_GROUP_LABEL } } },
     // ADR-912 단계5 step4 (2026-06-17): ComboBoxSpec.spec 삭제 대비 — generate-css virtual emit 이
     //   base/size block 의 `gap: Npx` 를 byte-identical 재현하려면 gap 필수(Select 동형). paddingY 는
     //   미보충(padding 은 composition.delegation .combobox-container --combo-container-padding 가 담당).
@@ -3936,8 +4114,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       archetype: "default",
       element: "div",
       stateStyles: {
-        ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
+        color: TOGGLE_GROUP_LABEL,
+        cursor: { isDisabled: "default" },
       },
       composition: {
         // ADR-259 Phase 2: the S2 prefix in the control Group (`FIELD_PREFIX_*`).
@@ -5131,6 +5309,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           color: {
             default: "{color.neutral-subdued}",
+            isDisabled: "{color.disabled-content}",
           },
         },
 
@@ -5142,12 +5321,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      // lineHeight 보강: catalog generic 의 getLabelLineHeight(fontSize) fallback 과 동일 typography
-      //   토큰을 명시 → drift 0 (sm/md: text-xs=12 → text-xs--line-height=16, lg: text-sm=14 →
-      //   text-sm--line-height=20). 실측 2026-06-04 (typography.ts:89-90 FONT_SIZE_TO_LINE_HEIGHT).
-      // ADR-253: the part's own size steps (xs · xl added) — the field's size reaches it
-      //   (`CATALOG_SIZE_PROPAGATION`); no field rule declares its font. md = text-xs, the
-      //   reference's hint size (one step under the field's text).
+      // S2 HelpText uses controlFont: the same text size as its input.
       XS: {
         fontSize: "{typography.text-2xs}",
         lineHeight: "{typography.text-2xs--line-height}",
@@ -5161,20 +5335,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
       },
       M: {
-        fontSize: "{typography.text-xs}",
-        lineHeight: "{typography.text-xs--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      L: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      XL: {
+      L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
+        borderRadius: "{radius.none}",
+        height: 0,
+      },
+      XL: {
+        fontSize: "{typography.text-lg}",
+        lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
@@ -6038,30 +6212,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             isPressed: "{color.transparent}",
           },
           color: {
-            default: "{color.negative}",
+            default: "{color.selection-negative}",
+            isDisabled: "{color.disabled-content}",
           },
         },
 
-        // ADR-912 위험군 해소 (선행-6 field/form FieldError catalog 등록, 2026-06-04):
-        //   spec render.shapes 기본 fontWeight=400(FieldError.spec.ts:106-111, fwRaw 미지정 시 400)
-        //   → variant.textWeight=400 명시. 누락 시 catalog 가 default weight(500) 로 drift.
-        //   FieldError 는 보조 에러 텍스트라 normal weight 400 이 정본(Description 동형).
         textWeight: 400,
       },
     },
     sizes: {
-      // ADR-912 선행-6 (2026-06-04): height 를 0 으로 정본화 (spec sizes 14/16/20 → 0).
-      //   buildCatalogShapes 의 isInlineText=(size.height===0 && !hasOpaqueBg) 게이트가 height>0 이면
-      //   box 텍스트(baseline middle/align center)로 그려 spec render.shapes(baseline top/align left)와
-      //   drift. Description/Label 과 동일하게 height:0 → isInlineText=true(top/left) 정렬 정합.
-      //   measure(부모 height 분기 utils.ts:2298-2308)는 childStyle.height/lineHeight 를 읽고 rule
-      //   height 미참조 → height:0 변경은 측정 무영향(spec render.shapes 도 size.height 미사용).
-      // lineHeight 보강: catalog generic 의 getLabelLineHeight(fontSize) fallback 과 동일 typography
-      //   토큰을 명시 → drift 0 (sm/md: text-xs=12 → text-xs--line-height=16, lg: text-sm=14 →
-      //   text-sm--line-height=20). 실측 2026-06-04 (typography.ts:89-90 FONT_SIZE_TO_LINE_HEIGHT).
-      // ADR-253: the part's own size steps (xs · xl added) — the field's size reaches it
-      //   (`CATALOG_SIZE_PROPAGATION`); no field rule declares its font. md = text-xs, the
-      //   reference's hint size (one step under the field's text).
+      // S2 HelpText uses controlFont: the same text size as its input.
       XS: {
         fontSize: "{typography.text-2xs}",
         lineHeight: "{typography.text-2xs--line-height}",
@@ -6075,20 +6235,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
       },
       M: {
-        fontSize: "{typography.text-xs}",
-        lineHeight: "{typography.text-xs--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      L: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      XL: {
+      L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
+        borderRadius: "{radius.none}",
+        height: 0,
+      },
+      XL: {
+        fontSize: "{typography.text-lg}",
+        lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
@@ -6847,6 +7007,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           color: {
             default: "{color.neutral}",
+            isSearchFieldPart: SEARCH_FIELD_CONTENT,
           },
         },
       },
@@ -7400,49 +7561,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     variants: {
       default: {
         paint: {
-          backgroundColor: {
-            default: "{color.layer-2}",
-            isHovered: "{color.layer-1}",
-            isPressed: "{color.layer-1}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-          borderColor: {
-            default: "{color.border}",
-            isHovered: "{color.border-hover}",
-          },
+          backgroundColor: "{color.base}",
+          color: FIELD_INPUT_CONTENT,
+          borderColor: FIELD_INPUT_BORDER,
         },
       },
       accent: {
         paint: {
-          backgroundColor: {
-            default: "{color.layer-2}",
-            isHovered: "{color.layer-1}",
-            isPressed: "{color.layer-1}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
+          backgroundColor: "{color.base}",
+          color: FIELD_INPUT_CONTENT,
           borderColor: {
+            ...FIELD_INPUT_BORDER,
             default: "{color.accent-content}",
-            isHovered: "{color.accent-content-hover}",
           },
         },
       },
       negative: {
         paint: {
-          backgroundColor: {
-            default: "{color.layer-2}",
-            isHovered: "{color.layer-1}",
-            isPressed: "{color.layer-1}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
+          backgroundColor: "{color.base}",
+          color: FIELD_INPUT_CONTENT,
           borderColor: {
-            default: "{color.negative}",
-            isHovered: "{color.negative-hover}",
+            ...FIELD_INPUT_BORDER,
+            default: "{color.selection-negative}",
           },
         },
       },
@@ -7452,57 +7592,57 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   rules declare none). Its height is its content — line height + paddingY×2 + border×2 —
       //   so the same block sizes the `<textarea>` of a TextArea, whose height is its `rows`.
       //   ADR-295 Phase 3: paddingY makes the one-line box the S2 control height on desktop (M 18 +
-      //   6×2 + 2 = 32 — S2 line-height formula), and `minHeight` is that height token — the touch set
+      //   5×2 + 4 = 32 — S2 line-height formula), and `minHeight` is that height token — the touch set
       //   (× 1.25) raises it in the Preview · Publish DOM (the text box is centred by `<input>`).
       XS: {
         fontSize: "{typography.text-2xs}",
         lineHeight: "{typography.text-2xs--line-height}",
         borderRadius: "{radius.xs}",
-        borderWidth: "{border.width.thin}",
+        borderWidth: "{border.width.thick}",
         height: 0,
         minHeight: "{size.height.XS}",
         paddingX: ofHeight(3, 8),
-        paddingY: 2,
+        paddingY: 1,
       },
       S: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: 7,
-        borderWidth: "{border.width.thin}",
+        borderWidth: "{border.width.thick}",
         height: 0,
         minHeight: "{size.height.S}",
         paddingX: ofHeight(3, 8),
-        paddingY: 3,
+        paddingY: 2,
       },
       M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: 8,
-        borderWidth: "{border.width.thin}",
+        borderWidth: "{border.width.thick}",
         height: 0,
         minHeight: "{size.height.M}",
         paddingX: ofHeight(3, 8),
-        paddingY: 6,
+        paddingY: 5,
       },
       L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: 9,
-        borderWidth: "{border.width.thin}",
+        borderWidth: "{border.width.thick}",
         height: 0,
         minHeight: "{size.height.L}",
         paddingX: ofHeight(3, 8),
-        paddingY: 9,
+        paddingY: 8,
       },
       XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: 10,
-        borderWidth: "{border.width.thin}",
+        borderWidth: "{border.width.thick}",
         height: 0,
         minHeight: "{size.height.XL}",
         paddingX: ofHeight(3, 8),
-        paddingY: 12,
+        paddingY: 11,
       },
     },
     // ADR-253 Phase 3: the generated sheet of the field input — `.react-aria-Input` and the
@@ -7518,46 +7658,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         width: "100%",
       },
       stateStyles: {
-        ...FOCUS_RING_STATE,
-        opacity: { isDisabled: 1 },
-        cursor: { isDisabled: "not-allowed" },
-        pointerEvents: { isDisabled: "none" },
-        // ADR-297 Phase 3c — the box's own states (was `rootSelectors` `&[data-*]`). Order = priority: hover,
-        //   invalid, then focus (invalid wins inside it), quiet last. (3h — S2 `field`: invalid beats hover; the
-        //   old sheet let hover win by specificity, 0-4-0 over 0-2-0. 사용자 결정 2 · breakdown §6.1 #6.)
+        ...CONTROL_FOCUS,
+        cursor: { default: "text", isDisabled: "default" },
+        color: FIELD_INPUT_CONTENT,
         background: { isQuiet: "transparent" },
-        borderColor: {
-          isHovered: "var(--border-hover)",
-          isInvalid: "var(--negative)",
-          isFocused: {
-            default: "var(--accent-content)",
-            isInvalid: "var(--negative)",
-          },
-          isQuiet: "transparent",
-        },
+        borderColor: { ...FIELD_INPUT_BORDER_STATES, isQuiet: "transparent" },
         boxShadow: { isQuiet: "none" },
         borderRadius: { isQuiet: "0" },
-        borderBottom: { isQuiet: "1px solid var(--border)" },
-        borderBottomColor: {
-          isQuiet: {
-            isHovered: "var(--border-hover)",
-            isInvalid: "var(--negative)",
-            isFocused: {
-              default: "var(--accent-content)",
-              isInvalid: "var(--negative)",
-            },
-          },
-        },
-        outline: {
-          isFocused: "2px solid var(--accent-content)",
-          isQuiet: { isFocused: "none" },
-        },
-        // (after `outline` — the invalid focus recolors it; a quiet box's `outline: none` resets it)
-        outlineColor: {
-          isFocused: { isInvalid: "var(--negative)" },
-          isQuiet: { isFocused: "currentcolor" },
-        },
-        outlineOffset: { isFocused: "-1px" },
+        borderBottom: { isQuiet: "1px solid var(--neutral-outline)" },
+        borderBottomColor: { isQuiet: FIELD_INPUT_BORDER },
         // (the browser's autofill paint — kept to the field colors)
         WebkitTextFillColor: { isAutofilled: "var(--fg) !important" },
         WebkitBoxShadow: {
@@ -7568,6 +7677,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       composition: {
         delegation: [],
         rootSelectors: {
+          "&::placeholder": {
+            styles: {
+              color: "var(--field-placeholder)",
+              opacity: "1",
+            },
+          },
+          "&[data-authored-color]::placeholder": {
+            styles: { color: "inherit" },
+          },
           "&": {
             styles: {
               margin: "0",
@@ -7736,6 +7854,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           color: {
             default: "{color.neutral}",
+            isDisabled: "{color.disabled-content}",
             staticColor: {
               black: {
                 default: "#000000",
@@ -7751,9 +7870,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
 
-        // 굵기 500 (ADR-253 — react-aria.adobe.com 레퍼런스의 Label 기본값). 전 Label 의 정본:
-        //   field 계열의 Label 은 Label 원본의 instance 이고 부모 rule 은 굵기를 선언하지 않는다.
-        textWeight: 500,
+        // S2 1.8.2 fieldLabel uses controlFont (regular). Keep this on the editable
+        // Label origin so a Library edit propagates to every field consumer.
+        textWeight: 400,
       },
     },
     sizes: {
@@ -7800,6 +7919,64 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       archetype: "simple",
       element: "label",
       skipCSSGeneration: true,
+      // 실제 Icon 자식의 기본 baseline. 양쪽 renderer는 같은 typed part margin을 읽는다.
+      composition: {
+        staticSelectors: {
+          '.react-aria-Text[slot="label-content"]': {
+            width: "fit-content",
+            color: "{color.neutral-subdued}",
+          },
+          '.react-aria-Text[slot="necessity-label"]': {
+            width: "fit-content",
+            color: "{color.neutral-subdued}",
+          },
+          '.react-aria-Text[slot="necessity-space"]': {
+            width: "fit-content",
+            "flex-shrink": "0",
+            color: "{color.neutral-subdued}",
+          },
+          '.react-aria-Icon[slot="necessity-icon"]': {
+            color: "{color.neutral-subdued}",
+          },
+        },
+        containerVariants: {
+          size: {
+            S: {
+              nested: [
+                {
+                  selector: '.react-aria-Icon[slot="necessity-icon"]',
+                  styles: { "margin-top": "0" },
+                },
+              ],
+            },
+            M: {
+              nested: [
+                {
+                  selector: '.react-aria-Icon[slot="necessity-icon"]',
+                  styles: { "margin-top": "2px" },
+                },
+              ],
+            },
+            L: {
+              nested: [
+                {
+                  selector: '.react-aria-Icon[slot="necessity-icon"]',
+                  styles: { "margin-top": "2px" },
+                },
+              ],
+            },
+            XL: {
+              nested: [
+                {
+                  selector: '.react-aria-Icon[slot="necessity-icon"]',
+                  styles: { "margin-top": "2px" },
+                },
+              ],
+            },
+          },
+        },
+      },
+
       containerStyles: {
         display: "inline-flex",
         alignItems: "center",
@@ -9788,7 +9965,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   NumberField: {
     defaultSize: "M",
-    variants: {},
+    defaultVariant: "default",
+    variants: { default: { paint: { color: TOGGLE_GROUP_LABEL } } },
     sizes: {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
       //   재생성용 (NumberField.spec.sizes 미러). padding 은 composition.layout=flex-column root
@@ -9859,8 +10037,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "flex",
       },
       stateStyles: {
-        ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
+        color: TOGGLE_GROUP_LABEL,
+        cursor: { isDisabled: "default" },
       },
       composition: {
         // ADR-259 Phase 2: the S2 prefix in the control Group (`FIELD_PREFIX_*`).
@@ -10809,6 +10987,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Radio: {
     // ADR-297 Phase 3g — the ring's states (옛 수동 `Radio.css`); 선택 고리 두께는 위 size 선택자.
     partStateStyles: {
+      "& .react-aria-RadioButton%": { color: TOGGLE_LABEL },
       "& .react-aria-RadioButton% .indicator": RADIO_RING_STATE,
     },
     defaultVariant: "default",
@@ -10816,54 +10995,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // ADR-912 단계 5 step 2: replace-primitive measurement generic 전환 — variant.textWeight=400
     //   (Radio.spec label fontWeight 미emit → 측정 fallback 400 정합). [[Checkbox 참조]]
     variants: {
-      // S2 1.8.0 강조 축 (2026-10-10): 기본 선택 고리는 중립 (S2 gray-800), emphasized 가
-      //   accent — 옛 accent · neutral · negative 변형은 S2 에 없어 삭제 (로드 시 1회 전환).
       default: {
         paint: {
-          backgroundColor: {
-            default: "{color.base}",
-            isSelected: {
-              default: "{color.neutral}",
-            },
-          },
-          color: {
-            default: "{color.neutral}",
-            isSelected: {
-              default: null,
-            },
-          },
-          borderColor: {
-            default: "{color.border-hover}",
-            isSelected: {
-              default: "{color.neutral}",
-            },
-          },
+          backgroundColor: RADIO_RING_STATE.background,
+          borderColor: RADIO_RING_STATE.borderColor,
+          color: TOGGLE_LABEL,
         },
-
         textWeight: 400,
       },
       emphasized: {
         paint: {
-          backgroundColor: {
-            default: "{color.base}",
-            isSelected: {
-              default: "{color.accent}",
-            },
-          },
-          color: {
-            default: "{color.neutral}",
-            isSelected: {
-              default: null,
-            },
-          },
-          borderColor: {
-            default: "{color.border-hover}",
-            isSelected: {
-              default: "{color.accent}",
-            },
-          },
+          backgroundColor: RADIO_RING_STATE.background,
+          borderColor: RADIO_RING_STATE.borderColor,
+          color: TOGGLE_LABEL,
         },
-
         textWeight: 400,
       },
     },
@@ -10926,8 +11071,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         justifyContent: "center",
       },
       stateStyles: {
-        ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
+        cursor: { isDisabled: "not-allowed" },
       },
       composition: {
         staticSelectors: {
@@ -10935,10 +11079,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             display: "inline-flex",
             "align-items": "center",
             gap: "var(--radio-button-gap)",
-          },
-          ".react-aria-RadioButton[data-focus-visible]": {
-            outline: "var(--focus-ring-width) solid var(--focus-ring)",
-            "outline-offset": "var(--focus-ring-offset)",
           },
         },
         rootSelectors: RADIO_INDICATOR_SELECTORS,
@@ -10967,9 +11107,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             isHovered: "{color.transparent}",
             isPressed: "{color.transparent}",
           },
-          color: {
-            default: "{color.neutral}",
-          },
+          color: TOGGLE_GROUP_LABEL,
         },
       },
     },
@@ -11023,9 +11161,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "flex",
       },
+      // S2는 그룹 전체를 흐리게 하지 않는다. 상태 색상은 각 부품이 소비한다.
       stateStyles: {
-        ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
+        color: TOGGLE_GROUP_LABEL,
+        cursor: { isDisabled: "default" },
       },
       composition: {
         layout: "flex-column",
@@ -11227,7 +11366,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   SearchField: {
     defaultSize: "M",
-    variants: {},
+    defaultVariant: "default",
+    variants: { default: { paint: { color: TOGGLE_GROUP_LABEL } } },
     // minWidth 없음 (ADR-295 Phase 3c-2): S2 TextField · SearchField 에는 min-width 가 없다 (2026-08-21 의 1.5 × · 3 ×
     //   높이는 Spectrum 1). 빌더 위젯은 builder-catalog-pins.css 가 295 전 하한을 유지한다.
     sizes: {
@@ -11297,8 +11437,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         alignItems: "center",
       },
       stateStyles: {
-        ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
+        color: TOGGLE_GROUP_LABEL,
+        cursor: { isDisabled: "default" },
       },
       composition: {
         layout: "grid",
@@ -11395,10 +11535,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             true: {
               nested: [
                 {
+                  selector: ".react-aria-Input",
+                  styles: { "padding-inline-end": "0" },
+                },
+                {
                   selector: ".react-aria-Button",
                   styles: {
                     display: "none",
                   },
+                },
+              ],
+            },
+          },
+          readonly: {
+            true: {
+              nested: [
+                {
+                  selector: ".react-aria-Input",
+                  styles: { "padding-inline-end": "0" },
+                },
+                {
+                  selector: ".react-aria-Button",
+                  styles: { display: "none" },
                 },
               ],
             },
@@ -11424,27 +11582,32 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               XS: {
                 "--sf-icon-size":
                   "{length.typography.text-2xs--line-height*1/1}",
-                "--sf-icon-inset": "{length.size.height.XS*1/2+1}",
+                "--sf-icon-inset":
+                  "{length.size.height.XS*1/2+typography.text-2xs*-2/14+2}",
               },
               S: {
                 "--sf-icon-size":
                   "{length.typography.text-xs--line-height*1/1}",
-                "--sf-icon-inset": "{length.size.height.S*1/2+1}",
+                "--sf-icon-inset":
+                  "{length.size.height.S*1/2+typography.text-xs*-2/14+2}",
               },
               M: {
                 "--sf-icon-size":
                   "{length.typography.text-sm--line-height*1/1}",
-                "--sf-icon-inset": "{length.size.height.M*1/2+1}",
+                "--sf-icon-inset":
+                  "{length.size.height.M*1/2+typography.text-sm*-2/14+2}",
               },
               L: {
                 "--sf-icon-size":
                   "{length.typography.text-base--line-height*1/1}",
-                "--sf-icon-inset": "{length.size.height.L*1/2+1}",
+                "--sf-icon-inset":
+                  "{length.size.height.L*1/2+typography.text-base*-2/14+2}",
               },
               XL: {
                 "--sf-icon-size":
                   "{length.typography.text-lg--line-height*1/1}",
-                "--sf-icon-inset": "{length.size.height.XL*1/2+1}",
+                "--sf-icon-inset":
+                  "{length.size.height.XL*1/2+typography.text-lg*-2/14+2}",
               },
             },
             bridges: {
@@ -11466,27 +11629,27 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             variables: {
               XS: {
                 "--sf-input-pad":
-                  "{length.size.height.XS*1/2+typography.text-2xs--line-height*1/1+typography.text-2xs*6/14~8/17}",
+                  "{length.size.height.XS*1/2+typography.text-2xs--line-height*1/1+typography.text-2xs*4/14~6/17}",
                 "--sf-input-pad-end": "{length.size.height.XS*1/1}",
               },
               S: {
                 "--sf-input-pad":
-                  "{length.size.height.S*1/2+typography.text-xs--line-height*1/1+typography.text-xs*6/14~8/17}",
+                  "{length.size.height.S*1/2+typography.text-xs--line-height*1/1+typography.text-xs*4/14~6/17}",
                 "--sf-input-pad-end": "{length.size.height.S*1/1}",
               },
               M: {
                 "--sf-input-pad":
-                  "{length.size.height.M*1/2+typography.text-sm--line-height*1/1+typography.text-sm*6/14~8/17}",
+                  "{length.size.height.M*1/2+typography.text-sm--line-height*1/1+typography.text-sm*4/14~6/17}",
                 "--sf-input-pad-end": "{length.size.height.M*1/1}",
               },
               L: {
                 "--sf-input-pad":
-                  "{length.size.height.L*1/2+typography.text-base--line-height*1/1+typography.text-base*6/14~8/17}",
+                  "{length.size.height.L*1/2+typography.text-base--line-height*1/1+typography.text-base*4/14~6/17}",
                 "--sf-input-pad-end": "{length.size.height.L*1/1}",
               },
               XL: {
                 "--sf-input-pad":
-                  "{length.size.height.XL*1/2+typography.text-lg--line-height*1/1+typography.text-lg*6/14~8/17}",
+                  "{length.size.height.XL*1/2+typography.text-lg--line-height*1/1+typography.text-lg*4/14~6/17}",
                 "--sf-input-pad-end": "{length.size.height.XL*1/1}",
               },
             },
@@ -11499,34 +11662,55 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           {
-            // The clear button: a small circle inside the Input's end.
+            childSelector: ".react-aria-Button .react-aria-Icon svg",
+            prefix: "sf-cross",
+            variables: {
+              XS: { "--sf-cross-size": "{length.size.height.XS*2/5}" },
+              S: { "--sf-cross-size": "{length.size.height.S*1/3}" },
+              M: { "--sf-cross-size": "{length.size.height.M*1/4}" },
+              L: { "--sf-cross-size": "{length.size.height.L*1/4}" },
+              XL: { "--sf-cross-size": "{length.size.height.XL*1/4}" },
+            },
+            bridges: {
+              width: "var(--sf-cross-size)",
+              height: "var(--sf-cross-size)",
+              "font-size": "var(--sf-cross-size)",
+            },
+          },
+          {
+            // S2 ClearButton: control-width hit area, inside the Input border.
             childSelector: ".react-aria-Button",
             prefix: "sf-btn",
             variables: {
               XS: {
-                "--sf-btn-size": "12px",
-                "--sf-btn-offset": "{length.size.height.XS*-1/2-7}",
+                "--sf-btn-size": "{length.size.height.XS*1/1}",
+                "--sf-btn-height": "{length.size.height.XS*1/1-4}",
+                "--sf-btn-offset": "{length.size.height.XS*-1/1-2}",
               },
               S: {
-                "--sf-btn-size": "14px",
-                "--sf-btn-offset": "{length.size.height.S*-1/2-8}",
+                "--sf-btn-size": "{length.size.height.S*1/1}",
+                "--sf-btn-height": "{length.size.height.S*1/1-4}",
+                "--sf-btn-offset": "{length.size.height.S*-1/1-2}",
               },
               M: {
-                "--sf-btn-size": "16px",
-                "--sf-btn-offset": "{length.size.height.M*-1/2-9}",
+                "--sf-btn-size": "{length.size.height.M*1/1}",
+                "--sf-btn-height": "{length.size.height.M*1/1-4}",
+                "--sf-btn-offset": "{length.size.height.M*-1/1-2}",
               },
               L: {
-                "--sf-btn-size": "20px",
-                "--sf-btn-offset": "{length.size.height.L*-1/2-11}",
+                "--sf-btn-size": "{length.size.height.L*1/1}",
+                "--sf-btn-height": "{length.size.height.L*1/1-4}",
+                "--sf-btn-offset": "{length.size.height.L*-1/1-2}",
               },
               XL: {
-                "--sf-btn-size": "24px",
-                "--sf-btn-offset": "{length.size.height.XL*-1/2-13}",
+                "--sf-btn-size": "{length.size.height.XL*1/1}",
+                "--sf-btn-height": "{length.size.height.XL*1/1-4}",
+                "--sf-btn-offset": "{length.size.height.XL*-1/1-2}",
               },
             },
             bridges: {
               width: "var(--sf-btn-size)",
-              height: "var(--sf-btn-size)",
+              height: "var(--sf-btn-height)",
               // ADR-295 Phase 3: a field button (S2 — not a Button) does not take the Button's S2
               //   min-height (`{size.height.<S>}`) — its square is this size (placement, as `height`).
               "min-height": "0",
@@ -11734,7 +11918,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           {
             selector: '.react-aria-Popover[data-trigger="Select"]',
             styles: {
-              width: "fit-content",
+              width: "var(--trigger-width)",
               "min-width": "var(--trigger-width)",
               "max-height": "300px",
               overflow: "auto",
@@ -12842,6 +13026,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Switch: {
     // ADR-297 Phase 3g — the track's and thumb's states (옛 수동 `Switch.css`); 선택 thumb 자리는 위 size 선택자.
     partStateStyles: {
+      "& .react-aria-SwitchButton%": { color: TOGGLE_LABEL },
       "& .react-aria-SwitchButton% .indicator": SWITCH_TRACK_STATE,
       "& .react-aria-SwitchButton% .indicator::before": SWITCH_THUMB_STATE,
     },
@@ -12852,52 +13037,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     variants: {
       default: {
         paint: {
-          backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
-            isSelected: {
-              default: "{color.neutral}",
-            },
-          },
-          color: {
-            default: "{color.neutral}",
-            isSelected: {
-              default: null,
-            },
-          },
-          borderColor: {
-            isSelected: {
-              default: null,
-            },
-          },
+          backgroundColor: SWITCH_TRACK_STATE.background,
+          borderColor: SWITCH_TRACK_STATE.borderColor,
+          color: TOGGLE_LABEL,
         },
-
         textWeight: 400,
       },
       emphasized: {
         paint: {
-          backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
-            isSelected: {
-              default: "{color.accent}",
-            },
-          },
-          color: {
-            default: "{color.neutral}",
-            isSelected: {
-              default: null,
-            },
-          },
-          borderColor: {
-            isSelected: {
-              default: null,
-            },
-          },
+          backgroundColor: SWITCH_TRACK_STATE.background,
+          borderColor: SWITCH_TRACK_STATE.borderColor,
+          color: TOGGLE_LABEL,
         },
-
         textWeight: 400,
       },
     },
@@ -12985,8 +13136,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         position: "relative",
       },
       stateStyles: {
-        ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
+        cursor: { isDisabled: "not-allowed" },
       },
       composition: {
         staticSelectors: {
@@ -12994,10 +13144,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             display: "inline-flex",
             "align-items": "center",
             gap: "var(--sw-button-gap)",
-          },
-          ".react-aria-SwitchButton[data-focus-visible]": {
-            outline: "var(--focus-ring-width) solid var(--focus-ring)",
-            "outline-offset": "var(--focus-ring-offset)",
           },
         },
         rootSelectors: SWITCH_INDICATOR_SELECTORS,
@@ -14439,7 +14585,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   TextArea: {
     defaultSize: "M",
-    variants: {},
+    defaultVariant: "default",
+    variants: { default: { paint: { color: TOGGLE_GROUP_LABEL } } },
     sizes: {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
       //   재생성용 (TextArea.spec.sizes 미러). padding 은 input-base archetype + composition
@@ -14508,8 +14655,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "flex",
       },
       stateStyles: {
-        ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
+        color: TOGGLE_GROUP_LABEL,
+        cursor: { isDisabled: "default" },
       },
       composition: {
         // ADR-259 Phase 2: the S2 prefix in the control Group (`FIELD_PREFIX_*`).
@@ -14677,7 +14824,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   TextField: {
     defaultSize: "M",
-    variants: {},
+    defaultVariant: "default",
+    variants: { default: { paint: { color: TOGGLE_GROUP_LABEL } } },
     // minWidth 없음 (ADR-295 Phase 3c-2): S2 TextField · SearchField 에는 min-width 가 없다 (2026-08-21 의 1.5 × · 3 ×
     //   높이는 Spectrum 1). 빌더 위젯은 builder-catalog-pins.css 가 295 전 하한을 유지한다.
     sizes: {
@@ -14744,8 +14892,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "flex",
       },
       stateStyles: {
-        ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
+        color: TOGGLE_GROUP_LABEL,
+        cursor: { isDisabled: "default" },
       },
       composition: {
         // ADR-259 Phase 2: the S2 prefix in the control Group (`FIELD_PREFIX_*`).
@@ -15230,68 +15378,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultVariant: "default",
     defaultSize: "M",
     containerStyles: { ...BUTTON_ROOT_BOX, position: "relative" },
-    variants: {
-      default: {
-        paint: {
-          backgroundColor: {
-            default: "{color.neutral-subtle}",
-            isHovered: "{color.neutral-hover}",
-            isExpanded: "{color.neutral-hover}",
-            isPressed: "{color.neutral-hover}",
-            isQuiet: {
-              default: "{color.transparent}",
-              isHovered: "{color.neutral-hover}",
-              isExpanded: "{color.neutral-hover}",
-              isPressed: "{color.neutral-hover}",
-            },
-            staticColor: {
-              black: {
-                default: "rgb(0 0 0 / 0.1)",
-                isHovered: "rgb(0 0 0 / 0.2)",
-                isExpanded: "rgb(0 0 0 / 0.2)",
-                isPressed: "rgb(0 0 0 / 0.2)",
-                isQuiet: {
-                  default: "{color.transparent}",
-                  isHovered: "rgb(0 0 0 / 0.2)",
-                  isExpanded: "rgb(0 0 0 / 0.2)",
-                  isPressed: "rgb(0 0 0 / 0.2)",
-                },
-              },
-              white: {
-                default: "rgb(255 255 255 / 0.1)",
-                isHovered: "rgb(255 255 255 / 0.2)",
-                isExpanded: "rgb(255 255 255 / 0.2)",
-                isPressed: "rgb(255 255 255 / 0.2)",
-                isQuiet: {
-                  default: "{color.transparent}",
-                  isHovered: "rgb(255 255 255 / 0.2)",
-                  isExpanded: "rgb(255 255 255 / 0.2)",
-                  isPressed: "rgb(255 255 255 / 0.2)",
-                },
-              },
-            },
-          },
-          color: {
-            default: "{color.neutral}",
-            isDisabled: "{color.neutral-subdued}",
-            staticColor: {
-              black: { default: "#000000", isDisabled: "rgb(0 0 0 / 0.4)" },
-              white: {
-                default: "#ffffff",
-                isDisabled: "rgb(255 255 255 / 0.4)",
-              },
-            },
-          },
-          borderColor: { default: "{color.transparent}" },
-        },
-      },
-    },
-    sizes: Object.fromEntries(
-      Object.entries(ACTION_CONTROL_SIZES).map(([size, rule]) => [
-        size,
-        { ...rule, borderWidth: 0, paddingY: rule.paddingY + 1 },
-      ]),
-    ),
+    variants: { default: { paint: ACTION_BUTTON_PAINT } },
+    sizes: ACTION_BUTTON_SIZES,
     structure: {
       archetype: "button",
       element: "button",
@@ -15301,45 +15389,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderStyle: "none",
       },
       stateStyles: {
-        ...FOCUS_RING_STATE,
+        ...ACTION_FOCUS_RING_STATE,
         willChange: CATALOG_PRESS_WILL_CHANGE,
         transform: { isPressed: catalogPressTransform() },
         cursor: { isDisabled: "default" },
       },
-      composition: {
-        delegation: [],
-        rootSelectors: {
-          "&[data-in-group]": { styles: { "flex-shrink": "0" } },
-          "&[data-justified]": {
-            styles: { "flex-grow": "1", "flex-basis": "0" },
-          },
-          '&[data-in-group][data-orientation="vertical"]': {
-            styles: { width: "100%" },
-          },
-          '&[data-density="compact"]': { styles: { "border-radius": "0" } },
-          '&[data-density="compact"]:first-child': {
-            styles: { "border-start-start-radius": "var(--action-corner)" },
-          },
-          '&[data-density="compact"]:last-child': {
-            styles: { "border-end-end-radius": "var(--action-corner)" },
-          },
-          '&[data-density="compact"][data-orientation="horizontal"]:first-child':
-            { styles: { "border-end-start-radius": "var(--action-corner)" } },
-          '&[data-density="compact"][data-orientation="vertical"]:last-child': {
-            styles: { "border-end-start-radius": "var(--action-corner)" },
-          },
-          '&[data-density="compact"][data-orientation="horizontal"]:last-child':
-            { styles: { "border-start-end-radius": "var(--action-corner)" } },
-          '&[data-density="compact"][data-orientation="vertical"]:first-child':
-            { styles: { "border-start-end-radius": "var(--action-corner)" } },
-          ...Object.fromEntries(
-            Object.entries(FIELD_BUTTON_CORNERS).map(([size, corner]) => [
-              `&[data-size="${size}"]`,
-              { styles: { "--action-corner": corner } },
-            ]),
-          ),
-        },
-      },
+      composition: ACTION_GROUP_BUTTON_COMPOSITION,
     },
   },
   ActionButtonGroup: {
@@ -15359,17 +15414,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
-    sizes: Object.fromEntries(
-      Object.entries(ACTION_CONTROL_SIZES).map(([size, rule]) => [
-        size,
-        {
-          fontSize: rule.fontSize,
-          borderRadius: 0,
-          height: 0,
-          gap: size === "XS" || size === "S" ? 4 : 8,
-        },
-      ]),
-    ),
+    sizes: ACTION_GROUP_SIZES,
     structure: {
       archetype: "default",
       element: "div",
@@ -15394,145 +15439,24 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   ToggleButton: {
     defaultVariant: "default",
     defaultSize: "M",
-    // top-level containerStyles — Button 과 같은 발산 이력 (종전 Skia `INLINE_BLOCK_TAGS`("togglebutton")
-    //   → block, 2026-06-27; 그 목록은 ADR-923 Phase 5 에서 삭제). display 는 DOM 과 같은 `inline-flex`
-    //   (ADR-923 Phase 5 — Button 과 같은 사유, Direction selector 는 Phase 4 부터 inner 기준). gap=sizes[size].
     containerStyles: BUTTON_ROOT_BOX,
-    variants: {
-      default: {
-        // quiet (2026-08-21): `isQuiet` D2 표면과 `data-quiet` emit 은 있었으나 시각
-        //   정의가 rules/CSS 어디에도 없어 켜도 아무 일이 없던 dead prop 이었다. Spectrum
-        //   quiet ActionButton 정의대로 "기본은 배경 없음, hover/pressed 에서만 표시".
-        //   selected 는 quiet 을 타지 않는다 — buildCatalogShapes 가 isSelected 를
-        //   fillStates 보다 우선 처리하므로 선택 표시가 유지된다 (Spectrum 정합).
-        //   border 는 이미 `{color.transparent}` 라 별도 quiet 채널이 필요 없다.
-        paint: {
-          backgroundColor: {
-            default: "{color.neutral-subtle}",
-            isHovered: "{color.neutral-hover}",
-            isPressed: "{color.neutral-pressed}",
-            // ADR-297 3h #10 — S2 `ActionButton.tsx`: quiet 은 휴지 바탕만 투명, hover · pressed 는 quiet 이 아닌
-            //   것과 같은 `baseColor('gray-100')` 의 다음 단 (`neutral-hover` · `neutral-pressed`).
-            isQuiet: {
-              default: "{color.transparent}",
-              isHovered: "{color.neutral-hover}",
-              isPressed: "{color.neutral-pressed}",
-            },
-            isSelected: {
-              default: "{color.neutral}",
-              isEmphasized: "{color.accent}",
-            },
-            staticColor: {
-              black: {
-                default: "#000000",
-                isHovered: "#000000",
-                isPressed: "#000000",
-                isQuiet: {
-                  default: "{color.transparent}",
-                  isHovered: "#000000",
-                  isPressed: "#000000",
-                },
-                isSelected: {
-                  default: "#000000",
-                  isEmphasized: "#000000",
-                },
-              },
-              white: {
-                default: "#ffffff",
-                isHovered: "#ffffff",
-                isPressed: "#ffffff",
-                isQuiet: {
-                  default: "{color.transparent}",
-                  isHovered: "#ffffff",
-                  isPressed: "#ffffff",
-                },
-                isSelected: {
-                  default: "#ffffff",
-                  isEmphasized: "#ffffff",
-                },
-              },
-            },
-          },
-          color: {
-            default: "{color.neutral}",
-            isSelected: {
-              default: "{color.base}",
-              isEmphasized: "{color.on-accent}",
-            },
-            staticColor: {
-              black: {
-                default: "#ffffff",
-                isHovered: "#ffffff",
-                isPressed: "#ffffff",
-                isQuiet: {
-                  default: "#000000",
-                  isHovered: "#ffffff",
-                  isPressed: "#ffffff",
-                },
-                isSelected: {
-                  default: "#ffffff",
-                  isEmphasized: "#ffffff",
-                },
-              },
-              white: {
-                default: "#000000",
-                isHovered: "#000000",
-                isPressed: "#000000",
-                isQuiet: {
-                  default: "#ffffff",
-                  isHovered: "#000000",
-                  isPressed: "#000000",
-                },
-                isSelected: {
-                  default: "#000000",
-                  isEmphasized: "#000000",
-                },
-              },
-            },
-          },
-          borderColor: {
-            default: "{color.transparent}",
-            isSelected: {
-              default: "{color.neutral}",
-              isEmphasized: "{color.accent}",
-            },
-            staticColor: {
-              black: {
-                default: "#000000",
-                isSelected: {
-                  default: "#000000",
-                  isEmphasized: "#000000",
-                },
-              },
-              white: {
-                default: "#ffffff",
-                isSelected: {
-                  default: "#ffffff",
-                  isEmphasized: "#ffffff",
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    // iconSize = 그 크기 글자의 행간 (ADR-295 Phase 3c — S2 ActionButton 계열 아이콘 `size: '1lh'`, Button 과 같다).
-    sizes: ACTION_CONTROL_SIZES,
+    variants: { default: { paint: ACTION_BUTTON_PAINT } },
+    sizes: ACTION_BUTTON_SIZES,
     structure: {
       archetype: "button",
       element: "button",
-      containerStyles: BUTTON_ROOT_BOX,
+      containerStyles: { ...BUTTON_ROOT_BOX, borderStyle: "none" },
       stateStyles: {
-        ...FOCUS_RING_STATE,
+        ...ACTION_FOCUS_RING_STATE,
         // S2 `ToggleButton.tsx:101` `pressScale` (`rule/pressScale.ts`).
         willChange: CATALOG_PRESS_WILL_CHANGE,
         transform: { isPressed: catalogPressTransform() },
-        ...DISABLED_STATE,
+        ...BUTTON_DISABLED_STATE,
       },
+      composition: ACTION_GROUP_BUTTON_COMPOSITION,
       // ADR-297 Phase 3: paint = the variant trees (generated `:where` blocks) — the class stays for
       //   the Skia child-color gate and the Builder chrome ramp (`.button-base:not([data-catalog-id])`).
       buttonBase: true,
-      defaultBorder: "color",
     },
   },
   ToggleButtonGroup: {
@@ -15549,22 +15473,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       alignItems: "center",
       width: "fit-content",
       height: "fit-content",
-    },
-    // density (2026-08-21) — Spectrum ActionGroup 규칙: "compact density retains the same
-    //   font and icon sizes, but has tighter spacing. The action buttons also become
-    //   connected." 즉 **연결 여부까지 density 의 성질**이다.
-    //   - regular(기본, Spectrum default): 버튼 분리 — gap 8 + 버튼별 균등 radius
-    //   - compact: 연결 — gap 0 + 양끝만 radius + `-1px` 겹침(structure.composition
-    //     .containerVariants.density.compact.nested 가 담당)
-    //   구 구현은 연결 규칙을 orientation 에 매달아 **항상 연결**이었다(= Spectrum 기준
-    //   compact 고정). 2026-08-21 사용자 결정으로 regular 를 기본으로 전환 — 기존 그룹의
-    //   시각이 분리 형태로 바뀐다.
-    //   Skia: gap 은 implicitStyles 가 `resolveCatalogDensityField` 로 주입하고, 코너는
-    //   `resolveSegmentedRadius` 가 `_groupPosition.density` 로 판정(regular → null = 균등).
-    defaultDensity: "regular",
-    densities: {
-      compact: { gap: 0 },
-      regular: { gap: 8 },
     },
     variants: {
       default: {
@@ -15615,34 +15523,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
-    // 그룹 상자는 모서리가 없다 (2026-10-30 사용자 「ToggleButtonGroup 에 border-radius 불필요 — ToggleButton 에」) — 모서리는 안의 ToggleButton (--btn-border-radius).
-    sizes: {
-      XS: {
-        fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      S: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      M: {
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      L: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      XL: {
-        fontSize: "{typography.text-xl}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-    },
+    sizes: ACTION_GROUP_SIZES,
     structure: {
       archetype: "default",
       element: "div",
@@ -15658,7 +15539,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         pointerEvents: { isDisabled: "none" },
       },
       composition: {
-        layout: "flex-row",
         containerStyles: {
           width: "fit-content",
         },
@@ -15688,26 +15568,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
         ],
-        // ── segmented control border-radius (reference react-aria-starter
-        //    ToggleButtonGroup.css:32-67 동형, 2026-06-22) ──
-        //   그룹 안 ToggleButton 은 양끝만 바깥쪽 코너가 둥글고(--btn-border-radius, size별),
-        //   중간은 0, 인접 버튼은 -1px margin 으로 border 겹침(double border 제거 = 단일 분할선).
-        //   Skia: buildCatalogShapes 가 props._groupPosition 으로 four-corner radius 산출(대칭).
-        //   nested(top-level 아님) 필수 — top-level containerVariants 는 Skia resolver 전용,
-        //   CSS emit 은 structure.composition.containerVariants 만 소비
-        //   (feedback-catalog-variant-toplevel-vs-nested-asymmetry).
-        //
-        // **density 축으로 이동 (2026-08-21)**: Spectrum ActionGroup 규정 — "compact density
-        //   retains the same font and icon sizes, but has tighter spacing. **The action buttons
-        //   also become connected** for non-quiet action groups." 즉 연결(segmented)은
-        //   orientation 의 성질이 아니라 **compact density 의 성질**이다. 구 구조는 이 규칙을
-        //   orientation 에 매달아 무조건 연결이었고, 그래서 Spectrum default 인 regular(분리)를
-        //   표현할 수 없었다. orientation 은 flex-direction 만 남기고, 연결 규칙은
-        //   density=compact 로 옮긴다. regular 에는 nested 가 없어 버튼이 자기 균등 radius
-        //   (ToggleButton sizes.borderRadius)를 유지하고 겹침도 사라진다 — gap 은 `densities`
-        //   가 공급(generate-css mergeDensityVariants 가 styles 만 얹고 nested 는 보존).
-        //   orientation 은 `&[data-orientation="…"]` compound 로 selector 안에서 결합한다
-        //   (containerVariants 는 attr gate 를 하나만 붙이므로 2축 조합의 유일한 표현).
         containerVariants: {
           orientation: {
             horizontal: {
@@ -15722,179 +15582,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
             },
           },
-          density: {
-            compact: {
-              // selector 가 `> * >` 로 marker div(display:contents) 를 경유하는 이유:
-              //   빌더 preview(renderCatalogDom)는 delegating 컴포넌트의 각 자식을
-              //   `<div style="display:contents">`(data-element-id marker, 보편 패턴) 로 감싼다.
-              //   따라서 ToggleButton 은 group 의 직접 자식이 아니라 marker div 의 자식이라
-              //   reference 의 `> .react-aria-ToggleButton` direct-child 결합이 깨진다.
-              //   `:first-child`/`:last-child` 는 marker div(`> *:first-child`) 위치로 판정
-              //   (각 marker 안 ToggleButton 은 유일 자식). display:contents 라 margin/radius 는
-              //   marker div 가 아닌 ToggleButton 자신에 적용해야 시각 반영(box 미생성).
-              //   reference 시각 규칙(양끝만 둥근 segmented bar)은 동일, selector 형태만 marker
-              //   구조 적응(2026-06-22, Skia 는 marker 없어 _groupPosition 으로 직접 판정).
-              //
-              // **직접-자식 형태도 함께 emit 한다 (2026-08-21)**: marker div 는 빌더 preview
-              //   (renderCatalogDom)의 구조이고, publish 앱은 ToggleButton 을 그룹의
-              //   **직접 자식**으로 렌더한다(registry 가 shared 컴포넌트를 그대로 씀). 그래서
-              //   marker 경유 selector 만 두면 publish 에서 매칭 0 → compact 인데 버튼이 각자
-              //   radius 6px 를 유지해 연결이 안 보인다(2026-08-21 라이브 실측, 구 orientation
-              //   gate 시절부터의 결함). 두 형태는 상호 배타라 동시 매칭되지 않는다 — marker 가
-              //   있으면 `> .btn:first-child` 가, 없으면 `> *:first-child > .btn` 이 안 걸린다.
-              nested: [
-                {
-                  selector:
-                    '&[data-orientation="horizontal"] > * > .react-aria-ToggleButton',
-                  styles: {
-                    "border-radius": "0",
-                    "margin-inline-start": "-1px",
-                  },
-                },
-                {
-                  selector:
-                    '&[data-orientation="horizontal"] > *:first-child > .react-aria-ToggleButton',
-                  styles: {
-                    "border-radius":
-                      "var(--btn-border-radius) 0 0 var(--btn-border-radius)",
-                    "margin-inline-start": "0",
-                  },
-                },
-                {
-                  selector:
-                    '&[data-orientation="horizontal"] > *:last-child > .react-aria-ToggleButton',
-                  styles: {
-                    "border-radius":
-                      "0 var(--btn-border-radius) var(--btn-border-radius) 0",
-                  },
-                },
-                // vertical — horizontal 동형 (margin 축과 radius 방향만 다름).
-                {
-                  selector:
-                    '&[data-orientation="vertical"] > * > .react-aria-ToggleButton',
-                  styles: {
-                    "border-radius": "0",
-                    "margin-block-start": "-1px",
-                  },
-                },
-                {
-                  selector:
-                    '&[data-orientation="vertical"] > *:first-child > .react-aria-ToggleButton',
-                  styles: {
-                    "border-radius":
-                      "var(--btn-border-radius) var(--btn-border-radius) 0 0",
-                    "margin-block-start": "0",
-                  },
-                },
-                {
-                  selector:
-                    '&[data-orientation="vertical"] > *:last-child > .react-aria-ToggleButton',
-                  styles: {
-                    "border-radius":
-                      "0 0 var(--btn-border-radius) var(--btn-border-radius)",
-                  },
-                },
-                // ── 직접-자식 형태 (publish 축) — 위 6규칙과 값 동일, marker 경유가 없을 뿐.
-                {
-                  selector:
-                    '&[data-orientation="horizontal"] > .react-aria-ToggleButton',
-                  styles: {
-                    "border-radius": "0",
-                    "margin-inline-start": "-1px",
-                  },
-                },
-                {
-                  selector:
-                    '&[data-orientation="horizontal"] > .react-aria-ToggleButton:first-child',
-                  styles: {
-                    "border-radius":
-                      "var(--btn-border-radius) 0 0 var(--btn-border-radius)",
-                    "margin-inline-start": "0",
-                  },
-                },
-                {
-                  selector:
-                    '&[data-orientation="horizontal"] > .react-aria-ToggleButton:last-child',
-                  styles: {
-                    "border-radius":
-                      "0 var(--btn-border-radius) var(--btn-border-radius) 0",
-                  },
-                },
-                {
-                  selector:
-                    '&[data-orientation="vertical"] > .react-aria-ToggleButton',
-                  styles: {
-                    "border-radius": "0",
-                    "margin-block-start": "-1px",
-                  },
-                },
-                {
-                  selector:
-                    '&[data-orientation="vertical"] > .react-aria-ToggleButton:first-child',
-                  styles: {
-                    "border-radius":
-                      "var(--btn-border-radius) var(--btn-border-radius) 0 0",
-                    "margin-block-start": "0",
-                  },
-                },
-                {
-                  selector:
-                    '&[data-orientation="vertical"] > .react-aria-ToggleButton:last-child',
-                  styles: {
-                    "border-radius":
-                      "0 0 var(--btn-border-radius) var(--btn-border-radius)",
-                  },
-                },
-              ],
-            },
-          },
+          density: { compact: { styles: { gap: "2px" } } },
         },
-        // ── group-conditional pressed micro-interaction (S2 SegmentedControl, 2026-11-04 — 전에는
-        //    react-aria-starter ToggleButtonGroup.css:6-19 의 span `scale: 0.9`) ──
-        //   그룹 안 ToggleButton 은 pressed 시 버튼 box 는 축소 안 하고 (단독 ToggleButton 의 press
-        //   transform 을 `none` 으로) 내부 콘텐츠 (`> span`) 만 S2 press (`rule/pressScale.ts`) 로 줄인다.
-        //   버튼 box 축소를 막아야 -1px segmented 겹침이 흐트러지지 않는다(단일 bar 유지).
-        //   reference 의 pressed-scale 블록은 base(orientation-independent) 영역(css:6-29)에 위치 →
-        //   orientation gate 없는 staticSelectors 가 vehicle(Toolbar 선례 11822). containerVariants
-        //   는 항상 [data-orientation] gate 를 붙여(CSSGenerator) horizontal+vertical 중복 강제 →
-        //   부적합(feedback-catalog-variant-toplevel-vs-nested-asymmetry).
-        //   transform vs scale 함정: 단독 ToggleButton 의 press 는 `transform` 이라 `scale` 속성으로는
-        //   무력화 불가 (서로 다른 합성 CSS 속성). 버튼 box 고정은 `transform: none` 으로 emit.
-        //   staticSelectors 는 nested 미지원(Record<string,Record<string,string>>) → 3 top-level key.
-        //   marker div(display:contents): staticSelectors 는 `${root} ${selector}` descendant 형식
-        //   이라 marker 를 자동 통과(direct-child `>` 함정 없음). `> span` 은 ToggleButton 기준 직접
-        //   자식이고 ToggleButton.tsx 가 group 멤버십(isGroupMember)일 때만 span 을 렌더하므로
-        //   group-scoped selector 와 1:1 매칭. standalone(group 밖)은 span 미렌더+소비 CSS 없음이라
-        //   양쪽 정합(span 조건부 렌더, 2026-06-27).
-        //   Skia 는 transient pressed flag 가 파이프라인에 없어(resting-state 전용 렌더) scope 밖 —
-        //   CSS-only(feedback-no-dormant-foundation-ahead-of-flip).
+        // S2 ToggleButtonGroup은 버튼 전체가 눌린다. 내부 press는 custom indicator만 사용한다.
         staticSelectors: {
-          // (S2 SegmentedControl: the button box stays put — no press, no `will-change` — and its inner
-          //   div presses, `SegmentedControl.tsx:269`. The span is measured by the press runtime
-          //   (`CATALOG_PRESS_PARTS`).)
-          ".react-aria-ToggleButton": {
+          '&[data-indicator="true"] .react-aria-ToggleButton': {
             "will-change": "auto",
           },
-          ".react-aria-ToggleButton[data-pressed]": {
+          '&[data-indicator="true"] .react-aria-ToggleButton[data-pressed]': {
             transform: "none",
           },
           ".react-aria-ToggleButton > span": {
-            // display:inherit → span 이 부모 ToggleButton 의 display(group=flex / standalone=
-            //   inline-flex)를 상속한다. 미지정 시 span 은 기본 display:block 이라 아이콘+텍스트
-            //   ToggleButton 의 자식(Icon div + Text span)이 세로로 쌓여(block flow) Skia(span 모름
-            //   → ToggleButton flex 가 Icon/Text 를 가로 배치)와 비대칭이었다. inherit 로 span 이
-            //   flex 가 되면 Icon/Text 가 가로 정렬돼 Skia 와 정합(2026-06-27). 텍스트-only 토글은
-            //   위치 불변(이미 단일 자식 중앙). align/gap 은 flex 비상속이라 부모 정렬값을 명시.
             display: "inherit",
             "align-items": "center",
             "justify-content": "center",
-            gap: "8px",
+            gap: "inherit",
             transition: CATALOG_PRESS_TRANSITION,
             "will-change": CATALOG_PRESS_WILL_CHANGE,
           },
-          ".react-aria-ToggleButton[data-pressed] > span": {
-            transform: catalogPressTransform(),
-          },
+          '&[data-indicator="true"] .react-aria-ToggleButton[data-pressed] > span':
+            {
+              transform: catalogPressTransform(),
+            },
         },
       },
       // button-base utility 착용 (usesButtonBaseUtility 소비) — 칠은 variant 트리 (ADR-297).

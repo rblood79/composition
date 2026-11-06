@@ -2,7 +2,7 @@
  * Icon Component — Lucide 아이콘 SVG 렌더링
  *
  * ADR-019: Preview/Publish용 React 컴포넌트
- * div 래핑: data-element-id, 스타일, 레이아웃 지원
+ * div 기본 래핑: data 속성·스타일·레이아웃 지원. Label 부품은 phrasing content인 span을 사용.
  */
 
 import { memo } from "react";
@@ -18,6 +18,7 @@ const ICON_SIZE_MAP: Record<string, number> = {
 
 export interface IconComponentProps {
   iconName?: string;
+  elementType?: "div" | "span";
   iconFontFamily?: string;
   size?: "XS" | "S" | "M" | "L" | "XL";
   strokeWidth?: number;
@@ -29,6 +30,7 @@ export interface IconComponentProps {
 
 export const Icon = memo(function Icon({
   iconName = "circle",
+  elementType: Element = "div",
   size = "M",
   strokeWidth = 2,
   style,
@@ -50,23 +52,29 @@ export const Icon = memo(function Icon({
     ICON_SIZE_MAP[size] ??
     24;
 
-  const data = getIconData(iconName);
+  const data = getIconData(iconName, "lucide", size);
   if (!data) return null;
 
-  // data-* 속성 + 사용자가 지정한 DOM id 만 전달.
+  // 이름이 필요한 glyph의 role/aria와 data-*·DOM id·slot을 wrapper에 전달.
   //   id 를 통과시키는 이유: 렌더러(preview `renderCatalogDom` / publish `ElementRenderer`)가
   //   `resolveAuthoredDomId` 로 customId → `id` 를 실어 보내는데, 여기서 걸러지면 Icon 만
   //   `#id` 선택자·앵커 대상이 못 된다 (다른 internal leaf 는 `{...rest}` 로 이미 통과).
   const dataProps: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(rest)) {
     // `slot` — 목록 항목 안 icon 자식의 역할 (ADR-234 Phase 3, `ListBox.css [slot="icon"]`).
-    if (key.startsWith("data-") || key === "id" || key === "slot") {
+    if (
+      key.startsWith("data-") ||
+      key.startsWith("aria-") ||
+      key === "role" ||
+      key === "id" ||
+      key === "slot"
+    ) {
       dataProps[key] = value;
     }
   }
 
   return (
-    <div
+    <Element
       style={style}
       className={`react-aria-Icon${className ? ` ${className}` : ""}`}
       {...dataProps}
@@ -77,13 +85,12 @@ export const Icon = memo(function Icon({
         aria-hidden="true"
         width={pxSize}
         height={pxSize}
-        // (A device-variable glyph sizes its svg inline — a container sheet's fixed svg px (the Tree
-        //   chevron · Calendar nav) would keep the desktop size on a touch device; the Canvas draws
-        //   the same step.)
-        style={pxSize === "1em" ? { width: "1em", height: "1em" } : undefined}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
+        // catalog가 결정한 glyph 크기는 고정된 part CSS나 flex 축소보다 우선한다.
+        // 사용자 크기와 device 변수 모두 Canvas와 같은 값으로 그린다.
+        style={{ width: pxSize, height: pxSize, flexShrink: 0 }}
+        viewBox={`0 0 ${data.viewBoxSize ?? 24} ${data.viewBoxSize ?? 24}`}
+        fill={data.filled ? "currentColor" : "none"}
+        stroke={data.filled ? "none" : "currentColor"}
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -97,6 +104,6 @@ export const Icon = memo(function Icon({
           ),
         )}
       </svg>
-    </div>
+    </Element>
   );
 });
