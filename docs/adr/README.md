@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-11-07 ADR-302 Proposed 추가** (사용자 `/create-adr` — 같은 날 Spectrum Hub 조사 [SPECTRUM_COVERAGE_GAP_2026-11](../explanation/research/SPECTRUM_COVERAGE_GAP_2026-11.md) §9.6 ~ §9.11 뒤. 사용자 원문 「accent 와 tone 으로 theme color token 이 결정되어야 한다」 · 「accent (초기값) · tone (초기값) 으로 Spectrum Hub 의 color token 들이 나와야 한다 — theme 에서 accent · tone 변경만으로 Spectrum Hub 의 규칙을 지키면서 다양한 theme color 를 쉽게 제공하기 위함」). 실측: 색 토큰 172 키 중 두 축을 따르는 것 38 · 고정 134 (status 33 · named hue 76 · 고정 hex 13 · 상수 12) · `accent` 는 50 preset 전부 light = dark 한 값 · Hub 대비 검사 (같은 식이 Spectrum 값은 전부 통과) 에서 `on-negative` 100/100 · status 글자 50/100 · selection dark 50/100 실패 · `pasteboard` 없음 · 비기본 Tone 4종 층 붕괴 40/40. 채택 **대안 C — 두 축 파이프라인**: primitive 사다리 (gray 13단 · hue 16단, light/dark, 기본 preset 은 design-data 3.8.2 표 · 다른 tint/Tone 은 같은 모양 생성) → S2 `createTheme` alias 표 → 역할 토큰, hover/pressed = 다음 단, `raised` 삭제 · `pasteboard` 신설, ADR-290 탐색 대체 (Superseded in part). 기각: 값만 교체 (A — 규칙 유지 불가) · S2 처럼 빌드 인라인 (B — 테마 축 소멸) · 생성식만 (D — 초기값 동일 불가) · 문서 alias 토큰 (E — 스키마 변경, 범위 밖). 스키마 · 명령 신설 0. 사용자 결정 8 (생성식 · status 비기본 Tone · raised · on-\* · override 모드 · chart · Tone 이름 · 번들 배치). 열림 3 (Proposed 3 — 302 · 301 · 245 보류), 완료 320, 합계 322.
+>
 > **2026-11-05 ADR-301 Proposed 추가 · 같은 날 범위 개정** (사용자 `/create-adr` — Popover 의 RAC 레퍼런스 코드와 코드 패널 출력을 비교 → 「B. 접은 모양 유지 + 결함 2개만 수리로 진행하고, /create-adr A. 레퍼런스처럼 펼치기. 는 병렬로 설계해」). B (slot 선언 이름 · 팔레트 type 태그 `<Popover>`) 는 296 범위 안 수리로 끝났다 (`2620043a8`), **301 은 B 위에**. 초안은 Library 원본 157 전부를 펼쳤으나, 레퍼런스의 사용 코드를 실측하니 trigger 조립형만 전개이고 Select 계열은 요소 하나였다 (전개는 `Select.tsx` 컴포넌트 파일 안쪽). 사용자 결정으로 **대안 E — trigger 조립형만 펼침** 채택: 루트가 overlay trigger 인 Popover · Dialog · Tooltip · Menu · Sheet · PreviewTrigger 6 가족만 template 트리로 쓰고, 중첩 instance 는 요소 하나 + `overrides`, 닫힌 본체는 Open 에 따라 편집기 fold, Library 파일 유지 · catalog CSS 는 Files 에서 제거. 문서 스키마 · 명령 신설 0. 사용자 결정 7. 열림 +1.
 >
 > **2026-11-03 ADR-300 Phase 4 닫힘 → Implemented** — 사용자 결정 3 = (b) 팔레트에 SideNavPanel · SideNav 둘 (Layout, Nav 뒤). Interactions = RAC/S2 표면 그대로 (SideNav 펼침 · SideNavPanel `onCollapsedChange` concept). Library 카드 상태 견본 (SideNavItem Current · Disabled · SideNavPanel Collapsed) · 놓은 패널의 nav 항목이 instance 소유 노드 (Layers · code view) · 접기 버튼 S2 quiet ActionButton · SideNav Aria Label. G3 harness 12/12 (접기 버튼 S2 외부 기준 추가) · 원복 RED 9/9 · G4 Builder 1,411,708 · Preview 323,910 PASS · G5 live (5175) PASS · 판독 HIGH 0. 본문을 `completed/` 로 옮겼다. 열림 1 (245 보류), 완료 320, 합계 321.
@@ -634,6 +636,11 @@
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
 
+#### [302](302-theme-color-two-axis-spectrum-ladders.md) — 테마 색 토큰을 accent · tone 두 축의 Spectrum 사다리에서 결정한다 — 초기값 = Spectrum 토큰 값, 축을 바꿔도 Hub 규칙 유지
+
+- **상태**: Proposed — 2026-11-07 (사용자 `/create-adr` — 같은 날 Hub 조사 §9.6 ~ §9.11 · 사용자 결정 「초기값 = Hub 값 · 축 변경만으로 규칙 유지」)
+- **규모**: primitive 사다리 표 (design-data gray 13 × 2 · hue 18 × 16 × 2, oracle fixture + 생성기) · 비기본 축 사다리 생성식 (oklch, 기준 사다리 L + 단별 목표 대비) · alias 표 172 키 (축 · 단 · 상태 쌍) · resolver 교체 (`semanticPaletteMap` 좌표 · `DEFAULT_SURFACE_KEYS` · `solveAccentRoles` · `mixHexWithBlack` · CSS `color-mix` 폴백 삭제) · `colors.ts` 를 파이프라인 출력으로 · `pasteboard` 신설 · `raised` 삭제 (rule 7) · `--tint-N` 변수 = snapshot · Themes 견본 · 피커 · 게이트 3 신설 (oracle 동일 · 두 축 정적 · 50 preset × 2 mode Hub 규칙) · parity · 번들 · live. 스키마 · 명령 신설 0. ADR-290 Superseded in part · 191 테마 경로만 분리. 사용자 결정 8. breakdown: [design/302](design/302-theme-color-two-axis-spectrum-ladders-breakdown.md)
+
 #### [301](301-code-view-library-instance-expansion.md) — 코드 보기의 trigger 조립형 Library instance 펼치기 — 접힌 `<Popover>` 대신 RAC 레퍼런스의 사용 코드 모양
 
 - **상태**: Proposed — 2026-11-05 (사용자 `/create-adr` A 안 · B 수리는 296 범위 안에서 메인 세션 진행 — 301 착수 조건)
@@ -666,12 +673,13 @@
 >
 > 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 2026-09-19 산정 대비 변경: 921 1위 → 사용자 판정 대기로 내림 (전제 소멸, 위 921 항목) · 910 / 911 행 제거 (Superseded by 248, `completed/` 이동) · 부분 완료 041 · 198 행 제거 (잔여 범위 소멸 — Superseded 표기) · 254 추가 (2026-10-07 Proposed · 리뷰 검토 중) · ADR-194 착수 프롬프트 제거 (Implemented 2026-09-08). 리뷰 파일 (`reviews/{NNN}.md`) 의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
 
-| 순위 | ADR                                                                                            | 착수 준비도                                                                       | 차단 · 선행                                                                                    |
-| :--: | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-|  1   | [301](301-code-view-library-instance-expansion.md)                                             | Proposed 2026-11-05 · 리뷰 전 (`/review-adr 301`) · 문서 스키마 · 명령 신설 0     | B 수리 (slot 선언 이름 · 팔레트 type 태그 `<Popover>` — 296 범위, `2620043a8`) 뒤 · 사용자 결정 7                |
-|  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상) | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
-|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                           | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                         |
-|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                | 각 항목의 재개 조건 발생 시                                                                    |
+| 순위 | ADR                                                                                            | 착수 준비도                                                                          | 차단 · 선행                                                                                          |
+| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+|  1   | [301](301-code-view-library-instance-expansion.md)                                             | Proposed 2026-11-05 · 리뷰 round 2 pending 0 (전제 확정) · 문서 스키마 · 명령 신설 0 | B 수리 (slot 선언 이름 · 팔레트 type 태그 `<Popover>` — 296 범위, `2620043a8`) 뒤 · 사용자 결정 7    |
+|  2   | [302](302-theme-color-two-axis-spectrum-ladders.md)                                            | Proposed 2026-11-07 · 리뷰 전 (`/review-adr 302`) · 문서 스키마 · 명령 신설 0        | 없음 (301 과 독립 — 색 resolver · seed · 게이트) · 사용자 결정 8 · Phase 1 전 외관 변화 (R1) confirm |
+|  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상)    | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)       |
+|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                              | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                               |
+|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                   | 각 항목의 재개 조건 발생 시                                                                          |
 
 ---
 
