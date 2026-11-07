@@ -906,6 +906,8 @@ const TABLE_CELL_CARRIED_TEXT = new Set([
 ]);
 const RULE_CARRIED_TEXT_KEYS: Readonly<Record<string, ReadonlySet<string>>> = {
   Input: new Set(["whiteSpace"]),
+  ProgressBarValue: new Set(["whiteSpace"]),
+  MeterValue: new Set(["whiteSpace"]),
   Cell: TABLE_CELL_CARRIED_TEXT,
   Column: TABLE_CELL_CARRIED_TEXT,
   // ADR-257 후속 — S2 Badge `overflowMode`: the rule painter reads them (`catalogRuleNodeData`).

@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Library Canvas 진입 오류 — Progress value white-space] - 2026-11-08
+
+### Fixed
+
+- ProgressBarValue · MeterValue의 `whiteSpace`를 Canvas 텍스트 shape와 DOM 값 요소에 전달한다. 줄바꿈 편집과 Undo에서도 두 소비자가 같은 값을 사용한다.
+  - **Why**: 공용 `.value` 규칙의 `nowrap`을 Canvas가 미지원 스타일로 거부해 Library scene 전체가 멈췄다. Library 전체 light·dark Canvas 바인딩을 회귀 검사한다.
+
 ## [Library 탭 진입 오류 — Typography token classification] - 2026-11-08
 
 ### Fixed

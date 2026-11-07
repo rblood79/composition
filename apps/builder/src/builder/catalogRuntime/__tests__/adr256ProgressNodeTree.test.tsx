@@ -19,6 +19,7 @@ import type {
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
+import type { SkiaNodeData } from "../../workspace/canvas/skia/nodeRendererTypes";
 import { bindCatalogCanvas } from "../canvasBinding";
 import { renderCatalogDom } from "../domBinding";
 import { newCatalogProjectDocument } from "../project";
@@ -37,6 +38,9 @@ const BODY = "project:node:home-body" as NodeId;
 const BAR = "project:node:bar" as NodeId;
 const set = <T,>(value: T) => ({ kind: "set" as const, value });
 const cleanups: Array<() => void> = [];
+const textOf = (data: SkiaNodeData | undefined): SkiaNodeData["text"] =>
+  data?.text ??
+  (data?.children ?? []).map(textOf).find((text) => text !== undefined);
 afterEach(() => {
   for (const cleanup of cleanups.splice(0).reverse()) cleanup();
 });
@@ -128,6 +132,39 @@ function structure(html: string): string {
   };
   return [...host.children].map(walk).join("\n");
 }
+
+it.each([
+  ["progressbar", "ProgressBarValue"],
+  ["meter", "MeterValue"],
+])(
+  "%s 값의 whiteSpace 편집·Undo가 Canvas와 DOM에 전달된다",
+  async (origin, type) => {
+    const { workspace, root, part, draw } = await open({ value: 50 }, origin);
+    const value = part(type)!;
+    const canvas = bindCatalogCanvas(root, root.pageRootRecords());
+    cleanups.push(() => canvas.dispose());
+    expect(textOf(getSkiaNode(value.id))?.whiteSpace).toBe("nowrap");
+    for (const whiteSpace of ["pre-wrap", "normal"] as const) {
+      workspace.execute(
+        setFields({
+          targets: [workspace.positionOfRecord(value.id)!.target],
+          visual: { whiteSpace: set(whiteSpace) },
+        }),
+      );
+      expect(canvas.update().status).toBe("patched");
+      expect(textOf(getSkiaNode(value.id))?.whiteSpace).toBe(whiteSpace);
+      expect(
+        (draw().querySelector(".value") as HTMLElement).style.whiteSpace,
+      ).toBe(whiteSpace);
+      workspace.undo();
+      expect(canvas.update().status).toBe("patched");
+      expect(textOf(getSkiaNode(value.id))?.whiteSpace).toBe("nowrap");
+      expect(
+        (draw().querySelector(".value") as HTMLElement).style.whiteSpace,
+      ).toBe("nowrap");
+    }
+  },
+);
 
 describe("ADR-256 Phase 7a — ProgressBar draws its node tree", () => {
   it("has the reference example's structure (Decision 11)", async () => {
@@ -256,8 +293,12 @@ describe("ADR-256 Phase 7a — ProgressBar draws its node tree", () => {
     expect(indeterminate.slice(0, indeterminate.indexOf("}"))).toMatch(
       /width: 100%;/,
     );
-    const keyframes = sheet.slice(sheet.indexOf("@keyframes ProgressBar-indeterminate"));
-    expect(keyframes.slice(0, keyframes.indexOf("\n}\n"))).not.toMatch(/transform/);
+    const keyframes = sheet.slice(
+      sheet.indexOf("@keyframes ProgressBar-indeterminate"),
+    );
+    expect(keyframes.slice(0, keyframes.indexOf("\n}\n"))).not.toMatch(
+      /transform/,
+    );
   });
 
   it("the fill paints the accent over the subtle track (Canvas) — the sheet's --fill-color (DOM); no variant axis", async () => {

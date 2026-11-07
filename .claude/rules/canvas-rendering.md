@@ -14,6 +14,8 @@ paths:
 
 # Canvas 렌더링 규칙
 
+- rule 텍스트 leaf가 part rule의 `whiteSpace`를 받으면 지원 판정과 실제 text shape 전달을 함께 연결한다. **Why (2026-11-08):** Library의 ProgressBarValue에 공용 `.value` 규칙의 `nowrap`이 해석됐지만 Canvas가 거부해 scene 전체가 멈췄다. ProgressBar·Meter의 텍스트 paint 및 DOM에 값을 전달하고 Library 전체 light·dark 바인딩과 편집·Undo로 검증한다.
+
 - DOM 콘텐츠 래퍼를 Canvas 레이아웃 part로 표현하면 최소 폭도 같은 catalog selector에서 읽는다. **Why (2026-11-08)** ToggleButtonGroup Justified의 버튼은 106px이었지만 Canvas 내부 Text는 308px로 남았다. 공용 truncate와 래퍼 최소 폭을 반영해 긴 Label을 가용 82px 안에 배치한다.
 
 - Preview 전역 reset의 font smoothing은 실제 Publish stylesheet와 같은 값을 상속한다. **Why (2026-11-07):** Preview만 `auto`, Publish는 `antialiased`여서 같은 400 굵기의 Label 획 농도가 갈렸다. Chromium 실측 회귀로 두 경로를 대조하며, 설정 정렬 뒤에도 남는 Canvas raster 실패는 별도로 유지한다.

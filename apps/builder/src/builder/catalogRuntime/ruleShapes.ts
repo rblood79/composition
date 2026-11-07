@@ -625,9 +625,9 @@ export function catalogRuleNodeData(
   const tableWraps = tableText && input.node.visual.whiteSpace === "normal";
   const badgeTruncates =
     input.type === "Badge" && input.node.visual.whiteSpace === "nowrap";
-  // TextArea's typed Input part shares the native textarea's wrapping contract.
-  // Preserve it before the generic box executor applies its single-line fallback.
-  if (input.type === "Input" && input.node.visual.whiteSpace !== undefined)
+  // Rule text leaves use the resolved wrapping contract too (including progress values
+  // and TextArea's Input). Preserve it before the layout's single-line fallback.
+  if (input.node.visual.whiteSpace !== undefined)
     for (const shape of shapes)
       if (shape.type === "text")
         shape.whiteSpace = input.node.visual.whiteSpace as

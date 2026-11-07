@@ -1637,7 +1637,19 @@ function progressPart(
 ): ReactElement {
   return createElement(
     tag,
-    { key: node.id, "data-catalog-id": node.id, className, style },
+    {
+      key: node.id,
+      "data-catalog-id": node.id,
+      className,
+      style: {
+        ...style,
+        ...(tag === "span" && node.visual.whiteSpace !== undefined
+          ? {
+              whiteSpace: node.visual.whiteSpace as CSSProperties["whiteSpace"],
+            }
+          : {}),
+      },
+    },
     ...(tag === "span" ? [String(node.props.children ?? "")] : children),
   );
 }
