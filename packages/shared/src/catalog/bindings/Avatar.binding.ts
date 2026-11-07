@@ -1,3 +1,4 @@
+import { AVATAR_SIZE_PRESETS } from "../document/avatarSizeValue";
 import type { PrimitiveBinding } from "../types";
 
 /**
@@ -53,10 +54,14 @@ export const avatarBinding: PrimitiveBinding = {
         section: "content",
       },
       size: {
-        kind: "size",
+        kind: "avatar-size",
         label: "Size",
         section: "appearance",
-        default: "M",
+        default: 24,
+        options: AVATAR_SIZE_PRESETS.map((value) => ({
+          value: String(value),
+          label: String(value),
+        })),
       },
       // design-data 감사 §2-F (2026-08-21): Avatar.tsx 는 isDisabled 소비(opacity 0.38
       //   인라인)를 기보유 — binding 노출만 결손이던 축. Skia 는 componentState generic.

@@ -64,7 +64,9 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   // S2 groups size their members (`AvatarGroup` · `ButtonGroup` `size` = the size of the avatars /
   // buttons inside).
   AvatarGroup: ["Avatar", "Text"],
-  ButtonGroup: ["Button"],
+  Accordion: ["Disclosure"],
+  CardView: ["Card"],
+  ButtonGroup: ["Button", "LinkButton"],
   // S2 Tabs `size` sizes its TabList (the list's tab row height) — RAC's TabList has none of its
   //   own; the DOM read the Tabs' value, now one resolved value for both consumers (2026-10-14).
   Tabs: ["TabList"],
@@ -194,7 +196,20 @@ export const CATALOG_SIZE_STEP: Readonly<
   //   avatar size — 24 `ui` 14 · 28 `ui-lg` 16 · 32 `ui-xl` 18 · 40 `ui-3xl` 22 (Text XL 20); 48 has
   //   no S2 size (Text XXL 24).
   AvatarGroup: {
-    Text: { XS: "S", S: "M", M: "L", L: "XL", XL: "XXL" },
+    Text: {
+      XS: "S",
+      S: "M",
+      M: "L",
+      L: "XL",
+      XL: "XXL",
+      16: "XS",
+      20: "XS",
+      24: "S",
+      28: "M",
+      32: "L",
+      36: "XL",
+      40: "XXL",
+    },
   },
   // S2 IllustratedMessage (`@react-spectrum/s2/src/IllustratedMessage.tsx`): the picture is M for
   //   S · M and L for L (96 · 96 · 160); the heading `title` · `title-xl` · `title-2xl` (16 · 20 ·

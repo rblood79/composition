@@ -1,3 +1,4 @@
+import { catalogSizeRuleValue } from "./avatarSizeValue";
 import { catalogCompositionUsesVariantPaint } from "../rule/compositionPaint";
 import {
   catalogLabeledValueFits,
@@ -72,6 +73,8 @@ export const PROP_KIND_VALUE_TYPE: Readonly<
   icon: "string",
   variant: "string",
   size: "string",
+  "avatar-size": "avatarSize",
+  "avatar-group-size": "avatarGroupSize",
   fillStyle: "string",
   "string-array": "string[]",
   "items-manager": "items",
@@ -90,7 +93,8 @@ export const PROP_KIND_VALUE_TYPE: Readonly<
 function propDefaultMatches(value: unknown, type: ValueType): boolean {
   if (type === "labeledValue") return catalogLabeledValueFits(value);
   if (type === "labeledFormat") return catalogLabeledFormatFits(value);
-  if (type === "slot") return scalarFitsType(value, type);
+  if (["slot", "avatarSize", "avatarGroupSize"].includes(type))
+    return scalarFitsType(value, type);
   if (type === "calendarDuration") return catalogCalendarDurationFits(value);
   if (type === "numberFormat") return catalogNumberFormatFits(value);
   if (type === "numberRange") return catalogNumberRangeFits(value);
@@ -560,11 +564,14 @@ export function ruleTypeDefinition(
     }
     if (type === "Avatar") layout.flexShrink = "0";
   }
-  if (choices.size) {
+  const sizeChoices = ["avatarSize", "avatarGroupSize"].includes(accepts.size)
+    ? Object.keys(rule.sizes)
+    : choices.size;
+  if (sizeChoices) {
     // Box values that vary by size (height · padding · gap) follow the size choice; the rest
     // stays on the definition.
     const boxes = Object.fromEntries(
-      choices.size.map((name) => [
+      sizeChoices.map((name) => [
         String(name),
         withSizeLimit(
           typedCanvasBox(resolveCatalogRuleCanvasBox(type, String(name))),
@@ -633,7 +640,12 @@ export function ruleTypeDefinition(
           for (const key of layoutVarying)
             if (entry.layout[key] !== undefined) own[key] = entry.layout[key];
           return Object.keys(own).length
-            ? [{ when: { size: name }, layout: own as LayoutValues }]
+            ? [
+                {
+                  when: { size: catalogSizeRuleValue(type, "size", name) },
+                  layout: own as LayoutValues,
+                },
+              ]
             : [];
         },
       );
@@ -669,6 +681,7 @@ export function ruleTypeDefinition(
       Object.entries(variant.when).every(
         ([prop, value]) =>
           accepts[prop] === "string" ||
+          accepts[prop] === "avatarGroupSize" ||
           CATALOG_DERIVED_VARIANT_PROPS.has(prop) ||
           accepts[prop] === "slot" ||
           (accepts[prop] === "boolean" &&
@@ -679,7 +692,9 @@ export function ruleTypeDefinition(
       when: Object.fromEntries(
         Object.entries(variant.when).map(([prop, value]) => [
           prop,
-          accepts[prop] === "boolean" ? value === "true" : value,
+          accepts[prop] === "boolean"
+            ? value === "true"
+            : catalogSizeRuleValue(type, prop, value),
         ]),
       ),
       ...(Object.keys(variant.layout).length

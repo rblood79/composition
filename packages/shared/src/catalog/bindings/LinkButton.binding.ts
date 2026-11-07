@@ -7,7 +7,12 @@ const {
   isPending: _isPending,
   ...buttonProps
 } = buttonBinding.props.accepts;
-const { children: _children, ...linkProps } = linkBinding.props.accepts;
+const {
+  children: _children,
+  isQuiet: _isQuiet,
+  isStandalone: _isStandalone,
+  ...linkProps
+} = linkBinding.props.accepts;
 
 /** S2 LinkButton: RAC navigation with the shared Button visual contract. */
 export const linkButtonBinding: PrimitiveBinding = {

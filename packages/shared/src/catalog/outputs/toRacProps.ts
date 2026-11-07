@@ -21,6 +21,8 @@ import type { PrimitiveBinding } from "../types";
 const DATA_ATTR_KINDS: ReadonlySet<string> = new Set([
   "variant",
   "size",
+  "avatar-size",
+  "avatar-group-size",
   "fillStyle",
 ]);
 
@@ -126,7 +128,7 @@ export function toRacProps<
       // visual-enum kind 또는 label-layout hint 키 → data-* 만 emit (raw prop 누출 차단)
       out[`data-${toDataAttrName(key)}`] = String(value);
     } else {
-      out[key] = value;
+      out[key] = key === "slot" && value === false ? null : value;
     }
   }
 

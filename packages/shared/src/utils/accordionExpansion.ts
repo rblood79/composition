@@ -20,7 +20,7 @@
  *   1. 확장 후보 = `isExpanded ?? true` 인 자식 Disclosure (composition binding default 는 true —
  *      RAC 자체 기본값 false 와 다르지만 composition 의 선택을 따른다).
  *   2. `allowsMultipleExpanded === false` 면 후보 중 **첫 번째만** 확장 (RAC 와 동일 — 순서 의존).
- *      composition binding default 는 true(다중 허용) → 명시 false 일 때만 축약.
+ *      S2 기본값은 false이며 명시 true일 때 다중 확장을 허용한다.
  */
 
 /** 확장 판정에 필요한 최소 노드 형태 (PreviewElement / CanvasLayoutNode / CanvasSceneNode 공통). */
@@ -30,11 +30,11 @@ export interface DisclosureExpansionNode {
   readonly props?: Record<string, unknown> | null;
 }
 
-/** 그룹 노드에서 allowsMultipleExpanded 를 읽는다. composition default = true(다중 허용). */
+/** 그룹 노드에서 allowsMultipleExpanded 를 읽는다. S2 기본값 = false(단일 확장). */
 export function allowsMultipleExpanded(
   groupProps: Record<string, unknown> | null | undefined,
 ): boolean {
-  return groupProps?.allowsMultipleExpanded !== false;
+  return groupProps?.allowsMultipleExpanded === true;
 }
 
 /** 개별 Disclosure 의 의도된 확장 여부. composition binding default = true(펼침). */

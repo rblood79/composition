@@ -111,6 +111,7 @@ import {
   catalogFillTokenRefs,
   copyResolvedTokenRefs,
   resolveCatalogNode,
+  CATALOG_PART_RULE_PASS_HOSTS,
 } from "../resolution/resolver";
 import {
   catalogLocaleLineHeight,
@@ -291,6 +292,8 @@ export interface CatalogRecordPreview {
 }
 
 export interface CatalogConsumerNode {
+  /** DOM-only resolved Slot prop. Authored role names stay in props for shared part logic. */
+  readonly domSlot?: Readonly<{ slot?: string | null }>;
   readonly id: string;
   readonly sourceId: string;
   readonly definitionId: string;
@@ -1323,6 +1326,18 @@ function styleOf(
 ): Record<string, unknown> {
   if (!catalogParticipatesInLayout(node)) return { display: "none" };
   const box = catalogBoxModel(node);
+  if (
+    typeName === "Avatar" &&
+    typeof node.props.size === "string" &&
+    node.props.size.endsWith("lh")
+  ) {
+    const lineHeight = Number(node.derivedProps?._avatarLineHeight);
+    for (const axis of ["width", "height"] as const) {
+      const value = box[axis];
+      if (typeof value === "string" && value.endsWith("lh"))
+        box[axis] = Number.parseFloat(value) * lineHeight;
+    }
+  }
   const px = (value: CatalogLength | undefined): string | undefined =>
     typeof value === "number" ? `${value}px` : value;
   const leaf = measure
@@ -3191,6 +3206,22 @@ export class CatalogCompositionRoot {
         shownRoute,
       ),
     );
+    if (
+      record.bindingId === "avatar" &&
+      typeof record.props.size === "string" &&
+      record.props.size.endsWith("lh")
+    ) {
+      const base = installedBaseText();
+      const font = domFont(record, get, (each) => this.declaredFont(each));
+      const ratio =
+        Number(record.visual.lineHeight) > 0
+          ? Number(record.visual.lineHeight)
+          : (inheritedLineHeight(record, get) ?? base.lineHeight);
+      return {
+        ...controlDerived,
+        _avatarLineHeight: (font?.fontSize ?? base.fontSize) * ratio,
+      };
+    }
     const actionBarForegroundOf = (node: CatalogConsumerNode) =>
       catalogActionBarForeground(
         node,
@@ -5287,7 +5318,18 @@ export class CatalogCompositionRoot {
         );
       });
     // Direct children, and the children of a `via` wrapper child (descendant rules).
-    const wrapped = after.children.flatMap((childId) => {
+    // The resolver passes these structural hosts when applying a via rule. Its invalidation
+    // reaches the same wrappers, including Disclosure > Heading > Button > Text/Icon.
+    const wrappers = after.children.flatMap((childId) => {
+      const child = this.records.get(childId);
+      return child &&
+        CATALOG_PART_RULE_PASS_HOSTS[this.typeOf(child)]?.has(
+          this.typeOf(after),
+        )
+        ? [childId, ...child.children]
+        : [childId];
+    });
+    const wrapped = wrappers.flatMap((childId) => {
       const child = this.records.get(childId);
       return child && live.some((rule) => rule.child.via === child.definitionId)
         ? targets(child.children, child.definitionId)
@@ -5928,7 +5970,8 @@ export class CatalogCompositionRoot {
             update.record.visual[key],
         )
           ? textInheritors(update.record, get).filter(
-              (record) => record.children.length > 0,
+              (record) =>
+                record.children.length > 0 || record.bindingId === "avatar",
             )
           : []),
         ...(update.record.children.length > 0 &&

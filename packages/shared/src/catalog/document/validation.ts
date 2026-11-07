@@ -1,3 +1,4 @@
+import { scalarFitsType } from "./valueType";
 import {
   catalogLabeledValueFits,
   catalogLabeledFormatFits,
@@ -285,6 +286,8 @@ const valueTypes = new Set<ValueType>([
   "string[]",
   "items",
   "slot",
+  "avatarSize",
+  "avatarGroupSize",
   "columnSize",
   "columnStaticSize",
   "calendarDuration",
@@ -1255,7 +1258,7 @@ function propCondition(
     if (!accepted || CATALOG_DERIVED_VARIANT_PROPS.has(prop)) continue;
     if (!accepted[prop])
       invalid("CONDITION_PROP_NOT_ACCEPTED", `${at}.${prop}`);
-    if (typeof item !== accepted[prop])
+    if (!scalarFitsType(item, String(accepted[prop])))
       invalid("CONDITION_PROP_TYPE", `${at}.${prop}`);
     const allowed = choices?.[prop];
     if (Array.isArray(allowed) && !allowed.includes(item))
@@ -2640,7 +2643,11 @@ export function validateLibraryDefinition(value: unknown): LibraryDefinition {
     );
     const accepted = object(item.accepts, "library.definition.accepts");
     for (const [prop, options] of Object.entries(rules)) {
-      if (accepted[prop] !== "string")
+      if (
+        !["string", "avatarSize", "avatarGroupSize"].includes(
+          String(accepted[prop]),
+        )
+      )
         invalid("INVALID_VISUAL_RULE_PROP", `library.definition.${prop}`);
       const choices = object(
         options,

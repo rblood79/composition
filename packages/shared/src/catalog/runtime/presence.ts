@@ -57,7 +57,10 @@ import {
   isItemCollection,
 } from "../document/collectionItems";
 import { CATALOG_TOGGLE_GROUP_OF } from "../document/sizePropagation";
-import { catalogAncestorInherited } from "./inheritedProps";
+import {
+  catalogAncestorInherited,
+  catalogInheritedFlag,
+} from "./inheritedProps";
 import {
   catalogSideNavDependents,
   catalogSideNavDerived,
@@ -2104,7 +2107,7 @@ export function catalogDerivedProps(
   const disabled =
     (!!checkboxItem &&
       catalogSelectionCheckboxDisabled(checkboxItem, get, typeOf)) ||
-    (typeOf(node) === "Button" &&
+    (["Button", "LinkButton"].includes(typeOf(node)) &&
       catalogButtonGroupOf(node, get, typeOf)?.props.isDisabled === true) ||
     (typeOf(node) === "ActionButton" &&
       node.props.isDisabled !== false &&
@@ -2453,7 +2456,7 @@ function buttonGroupButtons(
     typeOf(child) === "ButtonGroup"
       ? []
       : [
-          ...(typeOf(child) === "Button" ? [child] : []),
+          ...(["Button", "LinkButton"].includes(typeOf(child)) ? [child] : []),
           ...buttonGroupButtons(child, get, typeOf),
         ],
   );
@@ -2542,7 +2545,7 @@ function ownDerivedProps(
         ...base,
         _fieldComposed: true,
         _necessityText: necessityLabel(
-          field.props.isRequired === true,
+          catalogInheritedFlag(field, "isRequired", get, typeOf),
           typeof field.props.locale === "string" ? field.props.locale : locale,
         ),
       }
@@ -3427,7 +3430,7 @@ export function catalogFieldLabelPart(
       (entry) => get(entry.parentId),
       typeOf,
     ) ?? "icon";
-  const required = field.props.isRequired === true;
+  const required = catalogInheritedFlag(field, "isRequired", get, typeOf);
   const empty = String(label.props.children ?? "") === "";
   const hidden =
     empty ||
@@ -3883,6 +3886,7 @@ export function catalogStateValue(
     }
     case "isReadOnly":
     case "isRequired":
+      return catalogInheritedFlag(owner, key, get, typeOf);
     case "allowsRemoving":
     case "allowsSorting":
       return props[key] === true;

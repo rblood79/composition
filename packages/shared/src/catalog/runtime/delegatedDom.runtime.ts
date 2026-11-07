@@ -1,3 +1,4 @@
+import { CATALOG_COMPONENT_SLOT_CONTEXTS } from "../../components/catalogSlotContexts";
 import { catalogSelectBoxText } from "./selectBoxText";
 import { ActionBar } from "../../components/ActionBar";
 import {
@@ -71,7 +72,12 @@ import {
 } from "react";
 import { CatalogToastShapeContext } from "./toastShapeContext";
 
-import { DEFAULT_SLOT, TextContext } from "react-aria-components";
+import {
+  DEFAULT_SLOT,
+  TextContext,
+  ButtonContext,
+  LinkContext,
+} from "react-aria-components";
 
 import {
   Breadcrumb as AriaBreadcrumb,
@@ -251,7 +257,7 @@ import {
 } from "./presence";
 import { CATALOG_EMPTY_STATE_TYPE } from "../nesting/nestingRules";
 
-import { racSlotProps } from "./racSlot";
+import { catalogDomSlot, racSlotProps } from "./racSlot";
 
 import { RacSlotScope } from "./racSlotScope";
 
@@ -793,6 +799,7 @@ export const marker = (input: DelegatedDomInput) => {
     key:
       itemKey === input.node.id ? input.node.id : `${input.node.id}#${itemKey}`,
     "data-catalog-id": input.node.id,
+    slot: catalogDomSlot(input.node),
   };
 };
 
@@ -3312,6 +3319,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   buttongroup: {
     render: (input) => {
       const props = input.node.props;
+      const memberProps = {
+        size: props.size,
+        isDisabled: props.isDisabled === true,
+      };
       const justify: Record<string, string> = {
         start: "flex-start",
         center: "center",
@@ -3332,7 +3343,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           style: {
             display: "flex",
             flexDirection: props.orientation === "vertical" ? "column" : "row",
-            gap: gap[str(props.size || "M")] ?? 8,
+            rowGap: gap[str(props.size || "M")] ?? 8,
+            columnGap: gap[str(props.size || "M")] ?? 8,
             justifyContent: justify[str(props.align || "end")] ?? "flex-end",
             // This group has no generated class; consume the typed catalog root height.
             height:
@@ -3343,7 +3355,15 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             ...input.style,
           },
         },
-        ...renderAll(input),
+        createElement(
+          ButtonContext.Provider,
+          { value: memberProps },
+          createElement(
+            LinkContext.Provider,
+            { value: memberProps },
+            ...renderAll(input),
+          ),
+        ),
       );
     },
   },
@@ -3369,7 +3389,11 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             ...input.style,
           },
         },
-        ...renderAll(input),
+        createElement(
+          CATALOG_COMPONENT_SLOT_CONTEXTS.Avatar.Provider,
+          { value: { size: input.node.props.size, isOverBackground: true } },
+          ...renderAll(input),
+        ),
       ),
   },
   // S2 Card (ADR-256 Phase 10): the shared Card box around its child nodes in order — CardPreview ·

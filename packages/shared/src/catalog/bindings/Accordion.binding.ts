@@ -17,7 +17,7 @@ export const accordionBinding: PrimitiveBinding = {
         kind: "boolean",
         label: "Allow Multiple Expanded",
         section: "state",
-        default: true,
+        default: false,
       },
       size: {
         kind: "size",

@@ -1,3 +1,4 @@
+import { RAC_SLOT_PROP } from "../bindings/accessibilityProps";
 import { linkBinding } from "../bindings/Link.binding";
 import { CATALOG_INHERITED_PROP_CONTRACTS } from "../bindings/inheritedProps";
 import type { PropContract } from "../types";
@@ -98,6 +99,7 @@ export const RULE_TYPE_PROP_CONTRACTS: Readonly<
   // S2 `Image` `src` · `alt` (2026-10-24 — the picture it shows and its accessible text; the DOM
   //   `img` and the Canvas image shape read the same props).
   Image: {
+    slot: RAC_SLOT_PROP,
     src: { kind: "string", label: "Image URL", section: "content" },
     alt: { kind: "string", label: "Alt Text", section: "content" },
   },

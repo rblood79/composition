@@ -1,3 +1,4 @@
+import { AvatarSizeField } from "./AvatarSizeField";
 import { LabeledValueField } from "./LabeledValueField";
 import { SelectionCountField } from "./SelectionCountField";
 /**
@@ -1069,6 +1070,18 @@ const GenericField = memo(function GenericField({
         />
       );
     }
+
+    case "avatar-size":
+    case "avatar-group-size":
+      return (
+        <AvatarSizeField
+          label={field.label}
+          value={value ?? field.baseValue}
+          options={field.options ?? []}
+          isGroup={field.kind === "avatar-group-size"}
+          onChange={update}
+        />
+      );
 
     case "number": {
       const stored =

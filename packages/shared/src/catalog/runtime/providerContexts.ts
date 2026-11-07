@@ -93,6 +93,7 @@ export const CATALOG_INHERITED_RECEIVERS: ReadonlyMap<
 > = new Map([
   ...RAC_PROVIDER_CHECK.map((row) => [row.type, row.props] as const),
   ["ActionButton", ["isDisabled"]],
+  ["TextArea", ALL],
   ["LinkButton", ["isDisabled"]],
   ["RangeSlider", ["isDisabled"]],
   ["SelectBoxGroup", ["isDisabled"]],

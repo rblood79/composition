@@ -47,6 +47,12 @@
   --icon-size: 20px;
 }
 
+.react-aria-Disclosure[data-size="XL"] {
+  font-size: ;
+  border-radius: var(--catalog-token-radius-none);
+  --icon-size: 14px;
+}
+
 .react-aria-Disclosure.react-aria-Disclosure:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
@@ -96,14 +102,32 @@
   --disclosure-trigger-py-spacious: 12px;
 }
 
+.react-aria-Disclosure[data-size="XL"] {
+  --disclosure-trigger-px: 17px;
+  --disclosure-trigger-px-compact: 14px;
+  --disclosure-trigger-px-spacious: 20px;
+  --disclosure-trigger-h: 48px;
+  --disclosure-trigger-py: 12px;
+  --disclosure-trigger-h-compact: 40px;
+  --disclosure-trigger-py-compact: 8px;
+  --disclosure-trigger-h-spacious: 56px;
+  --disclosure-trigger-py-spacious: 16px;
+}
+
 .react-aria-Disclosure[data-density="compact"] .react-aria-Button[slot='trigger'] {
   min-height: var(--disclosure-trigger-h-compact);
+  padding-left: var(--disclosure-trigger-px-compact, var(--spacing-md));
+  padding-right: var(--disclosure-trigger-px-compact, var(--spacing-md));
+  gap: var(--disclosure-trigger-px-compact, var(--spacing-xs));
   padding-top: var(--disclosure-trigger-py-compact);
   padding-bottom: var(--disclosure-trigger-py-compact);
 }
 
 .react-aria-Disclosure[data-density="spacious"] .react-aria-Button[slot='trigger'] {
   min-height: var(--disclosure-trigger-h-spacious);
+  padding-left: var(--disclosure-trigger-px-spacious, var(--spacing-md));
+  padding-right: var(--disclosure-trigger-px-spacious, var(--spacing-md));
+  gap: var(--disclosure-trigger-px-spacious, var(--spacing-xs));
   padding-top: var(--disclosure-trigger-py-spacious);
   padding-bottom: var(--disclosure-trigger-py-spacious);
 }
@@ -137,9 +161,9 @@
     text-align: start;
     justify-content: flex-start;
     font-size: inherit;
-    gap: var(--spacing-xs);
+    gap: var(--disclosure-trigger-px, var(--spacing-xs));
     min-height: var(--disclosure-trigger-h);
-    padding: var(--disclosure-trigger-py) var(--spacing-md);
+    padding: var(--disclosure-trigger-py) var(--disclosure-trigger-px, var(--spacing-md));
     border-radius: 0;
     transition: all 200ms;
     outline: none;
@@ -187,6 +211,23 @@
     font-size: inherit;
     line-height: inherit;
     color: inherit;
+  }
+
+
+  .react-aria-Disclosure[data-size="XL"] .react-aria-Button[slot='trigger'] {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 24px;
+  }
+
+  .react-aria-Disclosure[data-size="XL"] .react-aria-DisclosurePanel > div {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+
+  .react-aria-Disclosure[data-size="XL"] .react-aria-Button[slot='trigger'] .react-aria-Icon svg {
+    width: 14px;
+    height: 14px;
   }
 
 

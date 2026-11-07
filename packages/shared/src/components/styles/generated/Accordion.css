@@ -45,6 +45,12 @@
   border-width: var(--border-width-none);
 }
 
+.react-aria-Accordion[data-size="XL"] {
+  font-size: ;
+  border-radius: var(--catalog-token-radius-lg);
+  border-width: var(--border-width-none);
+}
+
 .react-aria-Accordion.react-aria-Accordion:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);

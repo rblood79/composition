@@ -1,3 +1,4 @@
+import { catalogAvatarCssSize } from "../document/avatarSizeValue";
 import { bindTemplateValue } from "../document/templateBindingValue";
 import { catalogLabeledValueFits } from "../document/labeledValue";
 import { isRichText } from "../document/textRuns";
@@ -516,7 +517,9 @@ type Values = Record<string, Scalar>;
  * calendar's month · year picker (RAC renders no element — its Select's trigger is styled from the
  * calendar header's rules, 2026-10-13).
  */
-const PART_RULE_PASS_HOSTS: Readonly<Record<string, ReadonlySet<string>>> = {
+export const CATALOG_PART_RULE_PASS_HOSTS: Readonly<
+  Record<string, ReadonlySet<string>>
+> = {
   Heading: new Set(["Disclosure"]),
   CalendarMonthPicker: new Set(["CalendarHeader"]),
   CalendarYearPicker: new Set(["CalendarHeader"]),
@@ -1116,7 +1119,9 @@ export function resolveCatalogNode(
       context: ParentContext,
     ): ParentContext | undefined => {
       const owners =
-        PART_RULE_PASS_HOSTS[lookupDefinition(context.definitionId).name];
+        CATALOG_PART_RULE_PASS_HOSTS[
+          lookupDefinition(context.definitionId).name
+        ];
       if (!owners) return undefined;
       const above = pastFrames(structuralParent(context.parent));
       return above && owners.has(lookupDefinition(above.definitionId).name)
@@ -1341,16 +1346,17 @@ export function resolveCatalogNode(
     )
       owner = structuralParent(owner.parent);
     const ownerSize = owner?.props.size;
-    if (typeof ownerSize !== "string") return;
+    if (typeof ownerSize !== "string" && typeof ownerSize !== "number") return;
     const ownerName = lookupDefinition(owner!.definitionId).name;
     if (
       !CATALOG_SIZE_PROPAGATION[ownerName]?.includes(definition.name) ||
-      definition.accepts.size !== "string"
+      !["string", "avatarSize"].includes(definition.accepts.size)
     )
       return;
     // (A child whose rule names the owner's look one step apart — `CATALOG_SIZE_STEP`.)
     const size =
-      CATALOG_SIZE_STEP[ownerName]?.[definition.name]?.[ownerSize] ?? ownerSize;
+      CATALOG_SIZE_STEP[ownerName]?.[definition.name]?.[String(ownerSize)] ??
+      ownerSize;
     const choices =
       "propChoices" in definition ? definition.propChoices?.size : undefined;
     if (choices && !choices.map(String).includes(size)) return;
@@ -1543,9 +1549,14 @@ export function resolveCatalogNode(
       return;
     for (const [prop, choices] of Object.entries(definition.propVisualRules)) {
       const choice = props[prop];
-      if (typeof choice !== "string") continue;
-      const selected = choices[choice];
+      if (typeof choice !== "string" && typeof choice !== "number") continue;
+      const selected = choices[String(choice)];
       if (selected) applyValues(visual, selected);
+    }
+    if (definition.name === "Avatar") {
+      const diameter = catalogAvatarCssSize(props.size);
+      visual.width = diameter;
+      visual.height = diameter;
     }
   };
   const stateVisual = (

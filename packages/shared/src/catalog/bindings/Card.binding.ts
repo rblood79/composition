@@ -1,3 +1,4 @@
+import { linkBinding } from "./Link.binding";
 import type { PrimitiveBinding } from "../types";
 
 /**
@@ -58,15 +59,7 @@ export const cardBinding: PrimitiveBinding = {
       },
       // interactions / state
       href: { kind: "string", label: "Link", section: "content" },
-      target: {
-        kind: "enum",
-        label: "Target",
-        section: "content",
-        options: [
-          { value: "_self", label: "Self" },
-          { value: "_blank", label: "Blank" },
-        ],
-      },
+      target: linkBinding.props.accepts.target,
       isSelected: {
         kind: "boolean",
         label: "Selected",

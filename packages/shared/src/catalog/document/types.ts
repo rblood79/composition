@@ -304,6 +304,8 @@ export type AuthoredValue =
  * context). The three are different values in storage and validation.
  */
 export type ValueType =
+  | "avatarSize"
+  | "avatarGroupSize"
   | "labeledValue"
   | "labeledFormat"
   | "string"

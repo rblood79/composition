@@ -1,3 +1,4 @@
+import { PropertySelect } from "./PropertySelect";
 /**
  * PropertyPlacementPicker — 9-위치 피커 (Popover · Tooltip 의 `placement`).
  *
@@ -75,7 +76,7 @@ export const PropertyPlacementPicker = memo(function PropertyPlacementPicker({
           indicator
           selectionMode="single"
           disallowEmptySelection
-          selectedKeys={byValue.has(value) ? [value] : []}
+          selectedKeys={GRID.includes(value) ? [value] : []}
           onSelectionChange={handleChange}
         >
           {GRID.map((key, index) =>
@@ -101,6 +102,15 @@ export const PropertyPlacementPicker = memo(function PropertyPlacementPicker({
           {current ? localize(current) : "—"}
         </span>
       </div>
+      {options.some((option) => !GRID.includes(option.value)) && (
+        <PropertySelect
+          label={`${displayLabel} Value`}
+          value={value}
+          onChange={onChange}
+          options={[...options]}
+          translateOptions={false}
+        />
+      )}
     </fieldset>
   );
 });

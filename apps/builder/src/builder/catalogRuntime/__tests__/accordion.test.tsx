@@ -290,11 +290,8 @@ describe("ADR-256 Phase 8d — Accordion takes free content", () => {
     await unmount?.();
     document.body.innerHTML = "";
     const reference = await mount(
-      // (In a group, RAC's expansion is the group's — the origin's sections are both expanded.)
-      <RacDisclosureGroup
-        allowsMultipleExpanded
-        defaultExpandedKeys={["Section 1", "Section 2"]}
-      >
+      // The group defaults to a single expanded section, matching S2.
+      <RacDisclosureGroup defaultExpandedKeys={["Section 1"]}>
         {starter("Section 1", "Content 1")}
         {starter("Section 2", "Content 2")}
       </RacDisclosureGroup>,

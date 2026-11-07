@@ -1,3 +1,6 @@
+import { REUSABLE_ORIGIN_DEFINITIONS } from "../../../../../packages/shared/src/catalog/document/generated/reusableOriginLibrary";
+import { catalogHasSlotContract } from "../../../../../packages/shared/src/catalog/racSlotContract";
+import { RAC_SLOT_PROP } from "../../../../../packages/shared/src/catalog/bindings/accessibilityProps";
 import { deriveOptions } from "../../../../../packages/shared/src/catalog/outputs/editFields";
 import { readPropSource } from "../../../../../packages/shared/src/catalog/resolution/fieldSource";
 import {
@@ -69,15 +72,23 @@ export function catalogSemanticContracts(
   definitionId: DefinitionId,
   type: string,
 ): Readonly<Record<string, PropContract>> {
-  if (definitionId.startsWith(ORIGIN_PREFIX)) {
-    const schema =
-      REUSABLE_PROPS_SCHEMAS[definitionId.slice(ORIGIN_PREFIX.length)];
-    if (schema) return schema as Readonly<Record<string, PropContract>>;
-  }
+  const schema = definitionId.startsWith(ORIGIN_PREFIX)
+    ? REUSABLE_PROPS_SCHEMAS[definitionId.slice(ORIGIN_PREFIX.length)]
+    : undefined;
   const entry = getCatalogEntry(type);
-  return entry?.kind === "primitive"
-    ? (entry.binding.props.accepts ?? {})
-    : (RULE_TYPE_PROP_CONTRACTS[type] ?? {});
+  const accepts =
+    schema ??
+    (entry?.kind === "primitive"
+      ? (entry.binding.props.accepts ?? {})
+      : (RULE_TYPE_PROP_CONTRACTS[type] ?? {}));
+  // Trigger-root origins edit the actual controller's Slot on their public instance.
+  const originType =
+    REUSABLE_ORIGIN_DEFINITIONS.find(
+      (definition) => definition.id === definitionId,
+    )?.name ?? type;
+  return catalogHasSlotContract(originType) && !accepts.slot
+    ? { ...accepts, slot: RAC_SLOT_PROP }
+    : accepts;
 }
 
 /** The semantic prop keys a definition offers (no data binding) — a node about to be created. */
@@ -234,24 +245,27 @@ function catalogComponentPropertyFields(
       const structured =
         variable.valueType === "object" || variable.valueType === "array";
       const baseValue = structured ? undefined : variable.defaultValue;
-      return [{
-        key: property.key,
-        kind:
-          variable.valueType === "number" || variable.valueType === "boolean"
-            ? variable.valueType
-            : "string",
-        label: property.name,
-        section: "content",
-        origin: "semantic",
-        isOverridden: reading.own !== undefined,
-        baseValue: reading.inherited.value ?? baseValue,
-        currentValue: reading.value ?? baseValue,
-        // (A reference — `!var.<id>` — is picked in the Component section's 「값 출처」, not typed.)
-        ...(structured ||
-        (typeof reading.value === "string" && reading.value.startsWith("!var."))
-          ? { editorHidden: true }
-          : {}),
-      }];
+      return [
+        {
+          key: property.key,
+          kind:
+            variable.valueType === "number" || variable.valueType === "boolean"
+              ? variable.valueType
+              : "string",
+          label: property.name,
+          section: "content",
+          origin: "semantic",
+          isOverridden: reading.own !== undefined,
+          baseValue: reading.inherited.value ?? baseValue,
+          currentValue: reading.value ?? baseValue,
+          // (A reference — `!var.<id>` — is picked in the Component section's 「값 출처」, not typed.)
+          ...(structured ||
+          (typeof reading.value === "string" &&
+            reading.value.startsWith("!var."))
+            ? { editorHidden: true }
+            : {}),
+        },
+      ];
     }
     const [first] = property.targets;
     const origin = graph.getEntry(first.id);
@@ -261,20 +275,22 @@ function catalogComponentPropertyFields(
             .value
         : origin?.kind !== "node" || origin.enabled !== false;
     const isOverridden = reading.own !== undefined;
-    return [{
-      key: property.key,
-      kind: property.kind === "text" ? "string" : "boolean",
-      label: property.name,
-      section: "content",
-      origin: "semantic",
-      isOverridden,
-      // (A nested instance's value from its origin's template shows as its base.)
-      baseValue: reading.inherited.value ?? baseValue,
-      currentValue: reading.value ?? baseValue,
-      ...(property.targets.some((item) => reachable(item.id))
-        ? {}
-        : { editorHidden: true }),
-    }];
+    return [
+      {
+        key: property.key,
+        kind: property.kind === "text" ? "string" : "boolean",
+        label: property.name,
+        section: "content",
+        origin: "semantic",
+        isOverridden,
+        // (A nested instance's value from its origin's template shows as its base.)
+        baseValue: reading.inherited.value ?? baseValue,
+        currentValue: reading.value ?? baseValue,
+        ...(property.targets.some((item) => reachable(item.id))
+          ? {}
+          : { editorHidden: true }),
+      },
+    ];
   });
 }
 

@@ -13,12 +13,47 @@
     font-family: var(--font-sans);
 
   /* Default size */
-  font-size: var(--catalog-token-text-sm);
+  font-size: ;
   border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-AvatarGroup {
   color: var(--fg);
+}
+
+.react-aria-AvatarGroup[data-size="16"] {
+  font-size: ;
+  border-radius: var(--catalog-token-radius-full);
+}
+
+.react-aria-AvatarGroup[data-size="20"] {
+  font-size: ;
+  border-radius: var(--catalog-token-radius-full);
+}
+
+.react-aria-AvatarGroup[data-size="24"] {
+  font-size: ;
+  border-radius: var(--catalog-token-radius-full);
+}
+
+.react-aria-AvatarGroup[data-size="28"] {
+  font-size: ;
+  border-radius: var(--catalog-token-radius-full);
+}
+
+.react-aria-AvatarGroup[data-size="32"] {
+  font-size: ;
+  border-radius: var(--catalog-token-radius-full);
+}
+
+.react-aria-AvatarGroup[data-size="36"] {
+  font-size: ;
+  border-radius: var(--catalog-token-radius-full);
+}
+
+.react-aria-AvatarGroup[data-size="40"] {
+  font-size: ;
+  border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-AvatarGroup[data-size="XS"] {
@@ -51,6 +86,97 @@
 }
 
 /* ── Tier 2: Composite Delegation ── */
+
+.react-aria-AvatarGroup[data-size="16"] {
+  padding: 0 0 0 0.25rem;
+}
+
+.react-aria-AvatarGroup[data-size="16"] > .react-aria-Avatar {
+  margin-inline-start: -0.25rem;
+}
+
+.react-aria-AvatarGroup[data-size="16"] > .react-aria-Text {
+  font-size: 0.6875rem;
+  line-height: 0.875rem;
+}
+
+.react-aria-AvatarGroup[data-size="20"] {
+  padding: 0 0 0 0.3125rem;
+}
+
+.react-aria-AvatarGroup[data-size="20"] > .react-aria-Avatar {
+  margin-inline-start: -0.3125rem;
+}
+
+.react-aria-AvatarGroup[data-size="20"] > .react-aria-Text {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.react-aria-AvatarGroup[data-size="24"] {
+  padding: 0 0 0 0.375rem;
+}
+
+.react-aria-AvatarGroup[data-size="24"] > .react-aria-Avatar {
+  margin-inline-start: -0.375rem;
+}
+
+.react-aria-AvatarGroup[data-size="24"] > .react-aria-Text {
+  font-size: 0.875rem;
+  line-height: 1.125rem;
+}
+
+.react-aria-AvatarGroup[data-size="28"] {
+  padding: 0 0 0 0.4375rem;
+}
+
+.react-aria-AvatarGroup[data-size="28"] > .react-aria-Avatar {
+  margin-inline-start: -0.4375rem;
+}
+
+.react-aria-AvatarGroup[data-size="28"] > .react-aria-Text {
+  font-size: 1rem;
+  line-height: 1.25rem;
+}
+
+.react-aria-AvatarGroup[data-size="32"] {
+  padding: 0 0 0 0.5rem;
+}
+
+.react-aria-AvatarGroup[data-size="32"] > .react-aria-Avatar {
+  margin-inline-start: -0.5rem;
+}
+
+.react-aria-AvatarGroup[data-size="32"] > .react-aria-Text {
+  font-size: 1.125rem;
+  line-height: 1.375rem;
+}
+
+.react-aria-AvatarGroup[data-size="36"] {
+  padding: 0 0 0 0.5625rem;
+}
+
+.react-aria-AvatarGroup[data-size="36"] > .react-aria-Avatar {
+  margin-inline-start: -0.5625rem;
+}
+
+.react-aria-AvatarGroup[data-size="36"] > .react-aria-Text {
+  font-size: 1.25rem;
+  line-height: 1.5rem;
+}
+
+.react-aria-AvatarGroup[data-size="40"] {
+  padding: 0 0 0 0.625rem;
+}
+
+.react-aria-AvatarGroup[data-size="40"] > .react-aria-Avatar {
+  margin-inline-start: -0.625rem;
+}
+
+.react-aria-AvatarGroup[data-size="40"] > .react-aria-Text {
+  font-size: 1.375rem;
+  line-height: 1.625rem;
+}
 
 .react-aria-AvatarGroup[data-size="XS"] {
   padding: 0 0 0 6px;

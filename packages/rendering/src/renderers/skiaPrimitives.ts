@@ -2567,9 +2567,17 @@ const avatar: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
     },
   ];
   // S2 `isOverBackground`: a solid outline in the background color outside the circle — 1px, 2px
-  // over 64px (S2 `imageStyles` `isLarge`); the DOM's `outline` (`Avatar.tsx`). Drawn last, over
+  // at numeric size 64 (S2 `imageStyles` `isLarge`); `lh` uses one line's actual height.
+  // The DOM's `outline` (`Avatar.tsx`) is drawn last, over
   // the image or the initials it does not touch.
-  const outline = props.isOverBackground === true ? (diameter > 64 ? 2 : 1) : 0;
+  const sourceSize = props.size;
+  const large =
+    typeof sourceSize === "number"
+      ? sourceSize >= 64
+      : typeof sourceSize === "string" && sourceSize.endsWith("lh")
+        ? Number(props._avatarLineHeight) > 64
+        : diameter >= 64;
+  const outline = props.isOverBackground === true ? (large ? 2 : 1) : 0;
   const withOutline = (list: Shape[]): Shape[] =>
     outline
       ? [

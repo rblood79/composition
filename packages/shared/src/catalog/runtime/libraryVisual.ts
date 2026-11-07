@@ -1,3 +1,4 @@
+import { catalogAvatarCssSize } from "../document/avatarSizeValue";
 import type { DefinitionId, TokenId, VisualField } from "../document/types";
 import { catalogTokenValue } from "../document/themedToken";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
@@ -46,7 +47,8 @@ export function catalogLibraryVisual(
       definition.propVisualRules ?? {},
     )) {
       const choice = node.props[prop];
-      if (typeof choice === "string") apply(choices[choice]);
+      if (typeof choice === "string" || typeof choice === "number")
+        apply(choices[String(choice)]);
     }
   if (conditional && "conditionalRules" in definition)
     for (const rule of definition.conditionalRules ?? [])
@@ -57,6 +59,10 @@ export function catalogLibraryVisual(
         )
       )
         apply(rule.visual);
+  if (root.typeOf(node) === "Avatar") {
+    values.width = catalogAvatarCssSize(node.props.size);
+    values.height = catalogAvatarCssSize(node.props.size);
+  }
   const typographyRule = COMPONENT_RULES_TABLE[root.typeOf(node)];
   if (typographyRule?.localeTypography) {
     const lineHeight = catalogLocaleLineHeight(
@@ -188,6 +194,39 @@ export function catalogHasExplicitVisual(
   );
 }
 
+/** Explicit semantic writes retain precedence over a controller's Slot defaults. */
+export function catalogHasAuthoredProp(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  key: string,
+): boolean {
+  const graph = root.runtime.graph;
+  return (
+    graph.getDefinitionOverride(node.definitionId as DefinitionId)?.defaults[
+      key
+    ]?.kind === "set" ||
+    [node.sourceId, ...(node.collapsedSourceIds ?? [])].some((id) => {
+      const entry = graph.getEntry(id);
+      if (entry?.kind === "node" && entry.props[key]?.kind === "set")
+        return true;
+      const template = graph.library.templates.get(
+        id as `lib:template:${string}`,
+      );
+      // Origin root literals are palette defaults. An instance or Library override above
+      // is the authored write; a child template's explicit literal remains its own value.
+      const originDefault = [...graph.library.definitions.values()].some(
+        (definition) => definition.templateRootId === id,
+      );
+      const value = originDefault ? undefined : template?.props[key];
+      return (
+        value !== undefined &&
+        !(typeof value === "string" && /^\{[^{}]+\}$/.test(value))
+      );
+    }) ||
+    templatePositionWrites(root, node)?.props?.[key]?.kind === "set"
+  );
+}
+
 /**
  * ADR-276 — the own writes of a template position (a Button's `__icon` · `__label`): the patch the
  * nearest owning instance on the record's path holds at that position (`descendantOverrides`,
@@ -196,7 +235,12 @@ export function catalogHasExplicitVisual(
 function templatePositionWrites(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
-): { visual?: Record<string, { kind: string }> } | undefined {
+):
+  | {
+      visual?: Record<string, { kind: string }>;
+      props?: Record<string, { kind: string }>;
+    }
+  | undefined {
   if (!node.sourceId.startsWith("lib:template:")) return undefined;
   const owners = node.instancePath.filter((id) => !id.startsWith("lib:"));
   for (let index = owners.length - 1; index >= 0; index -= 1) {
@@ -214,7 +258,10 @@ function templatePositionWrites(
         item.address.instances.every((id, at) => id === tail[at]),
     );
     if (found && found.kind !== "replace")
-      return found as { visual?: Record<string, { kind: string }> };
+      return found as {
+        visual?: Record<string, { kind: string }>;
+        props?: Record<string, { kind: string }>;
+      };
   }
   return undefined;
 }

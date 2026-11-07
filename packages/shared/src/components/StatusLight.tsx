@@ -1,3 +1,4 @@
+import { useCatalogSlotProps } from "./catalogSlotContexts";
 /**
  * StatusLight Component — 상태 표시 dot + 라벨 (Spectrum 2 StatusLight).
  *
@@ -32,6 +33,8 @@ import {
 } from "@composition/rendering";
 
 export interface StatusLightProps {
+  slot?: string | null;
+  ref?: React.Ref<HTMLDivElement>;
   /** 상태 색 variant (rule table 의 20 variant) */
   variant?: string;
   /** 크기 */
@@ -61,15 +64,22 @@ const DOT_SIZE: Record<string, number> = { S: 8, M: 10, L: 12, XL: 14 };
  * 본 컴포넌트는 variant/size/children + style/className 만 소비한다.
  * dot 색은 theme rule(resolveComponentRule)의 variant fill base — 하드코딩 맵 아님(20 variant 대칭).
  */
-export function StatusLight({
-  variant = "neutral",
-  size = "M",
-  children,
-  isDisabled,
-  style,
-  className,
-  ...rest
-}: StatusLightProps): React.ReactElement {
+export function StatusLight(ownProps: StatusLightProps): React.ReactElement {
+  const [contextProps, ref] = useCatalogSlotProps<
+    StatusLightProps,
+    HTMLDivElement
+  >("StatusLight", ownProps, ownProps.ref);
+  const {
+    ref: _ownRef,
+    slot,
+    variant = "neutral",
+    size = "M",
+    children,
+    isDisabled,
+    style,
+    className,
+    ...rest
+  } = contextProps;
   const sizeKey = String(size).toUpperCase();
 
   // dot 색 = rule fill base (20 variant) → CSS. Skia escape 와 같은 source.
@@ -121,6 +131,8 @@ export function StatusLight({
   return (
     <div
       {...rest}
+      ref={ref}
+      slot={slot ?? undefined}
       style={{
         // The rule's `inline-flex` (`COMPONENT_RULES_TABLE.StatusLight` — the Canvas box fits its
         // dot and label; a block `flex` took the parent's width).

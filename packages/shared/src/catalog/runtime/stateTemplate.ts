@@ -105,7 +105,12 @@ function variableType(
     type === "labeledFormat"
   )
     return "object";
-  if (type === "selectionCount") return "number";
+  if (
+    type === "selectionCount" ||
+    type === "avatarSize" ||
+    type === "avatarGroupSize"
+  )
+    return "number";
   if (type === "object" || type === "array" || type === "date") return type;
   return type === "string[]" || type === "items"
     ? "array"

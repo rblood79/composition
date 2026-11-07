@@ -1,3 +1,4 @@
+import { catalogHasSlotContract } from "../racSlotContract";
 import { selectionItemTemplates } from "./selectionItemTemplates";
 import { LIBRARY_CONTRACT_VERSION } from "./types";
 import { addLibraryTokenScale } from "./libraryTokenScale";
@@ -41,6 +42,8 @@ import type {
   CatalogLibrary,
   LibraryDefinition,
   LibraryDefinitionId,
+  DefinitionId,
+  TemplateId,
   LibraryToken,
   LibraryTokenId,
   LayoutValues,
@@ -163,7 +166,14 @@ function textDefinition(
     throw new Error(`CODE_CATALOG_REGISTRATION_MISSING:${type}`);
   const props = registration.binding.props.accepts;
   // A Heading also takes its S2 `level` (the heading element — `<h1>`~`<h6>`, no visual).
-  const keys = type === "Heading" ? "children,level,size" : "children,size";
+  const keys = [
+    "children",
+    "size",
+    ...(type === "Heading" ? ["level"] : []),
+    ...(catalogHasSlotContract(type) ? ["slot"] : []),
+  ]
+    .sort()
+    .join(",");
   if (
     registration.binding.source.kind !== "internal" ||
     registration.binding.source.renderer !== type.toLowerCase() ||
@@ -641,15 +651,19 @@ const ITEM_SLOT_CHILD_TYPES: ReadonlySet<string> = new Set([
   "Checkbox",
 ]);
 
+function withSlotContract(input: LibraryDefinition): LibraryDefinition {
+  return ITEM_SLOT_CHILD_TYPES.has(input.name) ||
+    catalogHasSlotContract(input.name)
+    ? { ...input, accepts: { ...input.accepts, slot: "slot" as const } }
+    : input;
+}
+
 function withRuleBox(
   input: LibraryDefinition,
   theme: "light" | "dark" = "light",
   tokens: Map<LibraryTokenId, LibraryToken> = new Map(),
 ): LibraryDefinition {
-  const definition =
-    ITEM_SLOT_CHILD_TYPES.has(input.name) && input.mode !== "composite"
-      ? { ...input, accepts: { ...input.accepts, slot: "slot" as const } }
-      : input;
+  const definition = withSlotContract(input);
   const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
     definition.name
   ];
@@ -950,7 +964,7 @@ function handOrRuleDefinition(type: string): LibraryDefinition {
 export async function buildCodeCatalogLibrary(
   theme: "light" | "dark" = "light",
 ): Promise<CatalogLibrary> {
-  const templates = selectionItemTemplates(REUSABLE_ORIGIN_TEMPLATES);
+  let templates = selectionItemTemplates(REUSABLE_ORIGIN_TEMPLATES);
   const tokens = new Map<LibraryTokenId, LibraryToken>();
   const textDefinitions = CODE_CATALOG_SUPPORTED_TYPES.map((type) =>
     textDefinition(type, theme, tokens),
@@ -990,11 +1004,38 @@ export async function buildCodeCatalogLibrary(
       ...typeDefinitions.map((definition) =>
         withRuleBox(definition, theme, tokens),
       ),
-      ...REUSABLE_ORIGIN_DEFINITIONS,
+      ...REUSABLE_ORIGIN_DEFINITIONS.map(withSlotContract),
     ],
     theme,
     tokens,
   );
+  const definitionNames = new Map<DefinitionId, string>(
+    sourceDefinitions.map((d) => [d.id, d.name]),
+  );
+  const templateMap = new Map<TemplateId, (typeof templates)[number]>(
+    templates.map((template) => [template.id, template]),
+  );
+  for (const definition of REUSABLE_ORIGIN_DEFINITIONS) {
+    if (!catalogHasSlotContract(definition.name) || !definition.templateRootId)
+      continue;
+    const root = templateMap.get(definition.templateRootId);
+    if (!root || definitionNames.get(root.definitionId) === definition.name)
+      continue;
+    const pending = [...root.children];
+    while (pending.length) {
+      const template = templateMap.get(pending.shift()!);
+      if (!template) continue;
+      if (definitionNames.get(template.definitionId) === definition.name) {
+        templateMap.set(template.id, {
+          ...template,
+          props: { ...template.props, slot: "{slot}" },
+        });
+        break;
+      }
+      pending.push(...template.children);
+    }
+  }
+  templates = [...templateMap.values()];
   const bindingIds = [
     ...new Set(
       sourceDefinitions.flatMap((definition) =>

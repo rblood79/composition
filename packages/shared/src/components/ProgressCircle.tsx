@@ -1,3 +1,4 @@
+import { useCatalogSlotProps } from "./catalogSlotContexts";
 /**
  * ProgressCircle Component — 원형 진행률 (SVG circle track + value 비례 indicator).
  *
@@ -31,6 +32,8 @@ import { paintAt } from "../catalog/rule/rulePaintTree";
 import { ruleLengthCss, ruleSizeLengthRef } from "@composition/rendering";
 
 export interface ProgressCircleProps {
+  slot?: string | null;
+  ref?: React.Ref<HTMLDivElement>;
   /** 진행률 (minValue~maxValue 구간, 기본 0-100) */
   value?: number;
   /** 최소값 (기본 0) — ProgressBar 형제 대칭 (2026-08-21) */
@@ -96,22 +99,31 @@ const STROKE_WIDTH = 3;
  * value/size/isIndeterminate/isDisabled + style/className 만 소비한다. track 색은 theme rule,
  * indicator 색은 {color.accent}(Skia escape value_fill_arc 와 동일 source).
  */
-export function ProgressCircle({
-  value = 0,
-  minValue = 0,
-  maxValue = 100,
-  size = "M",
-  isIndeterminate,
-  isDisabled,
-  staticColor,
-  style,
-  className,
-  diameter: diameterProp,
-  strokeWidth: strokeWidthProp,
-  indicatorColor: indicatorColorProp,
-  trackColor: trackColorProp,
-  ...rest
-}: ProgressCircleProps): React.ReactElement {
+export function ProgressCircle(
+  ownProps: ProgressCircleProps,
+): React.ReactElement {
+  const [contextProps, ref] = useCatalogSlotProps<
+    ProgressCircleProps,
+    HTMLDivElement
+  >("ProgressCircle", ownProps, ownProps.ref);
+  const {
+    ref: _ownRef,
+    slot,
+    value = 0,
+    minValue = 0,
+    maxValue = 100,
+    size = "M",
+    isIndeterminate,
+    isDisabled,
+    staticColor,
+    style,
+    className,
+    diameter: diameterProp,
+    strokeWidth: strokeWidthProp,
+    indicatorColor: indicatorColorProp,
+    trackColor: trackColorProp,
+    ...rest
+  } = contextProps;
   const sizeKey = String(size).toUpperCase();
   const diameter = diameterProp ?? DIAMETER[sizeKey] ?? DIAMETER.M;
   // 상자 = rule 지름 (`scaled` — S2 `size()`, 터치 × 1.25) 의 기기 식. 원은 S2 처럼 상자 비율로 그린다 —
@@ -158,6 +170,8 @@ export function ProgressCircle({
   return (
     <div
       {...rest}
+      ref={ref}
+      slot={slot ?? undefined}
       role="progressbar"
       aria-valuemin={min}
       aria-valuemax={max}

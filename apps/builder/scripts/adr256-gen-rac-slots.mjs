@@ -8,16 +8,15 @@
 //   node apps/builder/scripts/adr256-gen-rac-slots.mjs <inv.json> [out.ts]
 import { readFileSync, writeFileSync } from "node:fs";
 
-/** Consumer contexts a catalog part reads its slot from (key = the table's context key). */
-const CONSUMERS = {
-  TextContext: "Text",
-  ButtonContext: "Button",
-  HeadingContext: "Heading",
-  CheckboxContext: "Checkbox",
-  DateFieldContext: "DateField",
-  LinkContext: "Link",
-  SliderContext: "Slider",
-};
+import { CATALOG_NATIVE_SLOT_CONTEXT_NAMES } from "../../../packages/shared/src/catalog/racSlotContract.ts";
+
+/** The same actual contexts used by the catalog consumers. */
+const CONSUMERS = Object.fromEntries(
+  Object.entries(CATALOG_NATIVE_SLOT_CONTEXT_NAMES).map(([key, context]) => [
+    context,
+    key,
+  ]),
+);
 /** Probe segment names that are not the RAC part's own name. */
 const SEGMENT_ALIAS = { Item: "ColorSwatchPickerItem" };
 

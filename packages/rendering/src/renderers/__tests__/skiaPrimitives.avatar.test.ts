@@ -65,6 +65,32 @@ function circleOf(shapes: Shape[]): CircleShape {
 }
 
 describe("skiaPrimitive 'avatar'", () => {
+  it.each([
+    [64, 24, 2],
+    [24, 180, 1],
+    ["2lh", 128, 1],
+    ["1lh", 65, 2],
+  ])(
+    "size %s outline uses its size API instead of authored diameter %s",
+    (size, diameter, outline) => {
+      const shapes = draw({
+        props: {
+          size,
+          isOverBackground: true,
+          _avatarLineHeight: size === "1lh" ? 65 : 64,
+          _containerWidth: diameter,
+          _containerHeight: diameter,
+        },
+        size: sizeMd,
+        visual,
+        style: undefined,
+      })!;
+      const circles = shapes.filter((shape) => shape.type === "circle");
+      expect(circles.find((shape) => shape.strokeWidth)?.strokeWidth).toBe(
+        outline,
+      );
+    },
+  );
   it("registry 에 replace 모드로 등록 (circle 이 전체 외형 → base box 무의미)", () => {
     expect(draw).toBeDefined();
     expect(getSkiaPrimitiveMode("avatar")).toBe("replace");

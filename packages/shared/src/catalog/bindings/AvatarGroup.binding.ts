@@ -1,3 +1,4 @@
+import { AVATAR_GROUP_SIZES } from "../document/avatarSizeValue";
 import type { PrimitiveBinding } from "../types";
 
 /**
@@ -31,10 +32,14 @@ export const avatarGroupBinding: PrimitiveBinding = {
   props: {
     accepts: {
       size: {
-        kind: "size",
+        kind: "avatar-group-size",
         label: "Size",
         section: "appearance",
-        default: "M",
+        default: 24,
+        options: AVATAR_GROUP_SIZES.map((value) => ({
+          value: String(value),
+          label: String(value),
+        })),
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },

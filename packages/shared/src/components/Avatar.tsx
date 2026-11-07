@@ -1,3 +1,8 @@
+import {
+  catalogAvatarCssSize,
+  type AvatarSize,
+} from "../catalog/document/avatarSizeValue";
+import { useCatalogSlotProps } from "./catalogSlotContexts";
 /**
  * Avatar Component — 사용자 아바타 circle bg + image | initials placeholder.
  *
@@ -18,7 +23,7 @@
  *   (legacy renderAvatar 의 `size*0.4` 와 다름 — spec typography token 이 정본).
  *
  * D1: composition `<div>` (circle bg + img|initials span, internal source, INTERNAL_RENDERERS 어댑터).
- * D2: src(image URL) + alt + initials(fallback) + size(xs/sm/md/lg/xl) + isDisabled.
+ * D2: src(image URL) + alt + initials(fallback) + size(number/lh/legacy name) + isDisabled.
  * D3: circle bg 색 = rule fill base / 이니셜 색 = rule text(theme rule SSOT). Skia escape ↔ DOM 대칭.
  */
 
@@ -29,6 +34,8 @@ import { paintAt } from "../catalog/rule/rulePaintTree";
 import { resolveAssetUrl } from "../utils/assetRef";
 
 export interface AvatarProps {
+  slot?: string | null;
+  ref?: React.Ref<HTMLDivElement>;
   /** 이미지 URL (있으면 img, 없으면 initials fallback) */
   src?: string;
   /** 대체 텍스트 (img alt, initials 미지정 시 첫 2글자 fallback) */
@@ -36,10 +43,10 @@ export interface AvatarProps {
   /** 이니셜 텍스트 (src 없을 때 표시) */
   initials?: string;
   /** 크기 */
-  size?: "XS" | "S" | "M" | "L" | "XL";
+  size?: AvatarSize;
   /** 비활성 */
   isDisabled?: boolean;
-  /** S2 `isOverBackground` — 배경색 외곽선 (1px, 64px 초과 2px) */
+  /** S2 `isOverBackground` — 배경색 외곽선 (1px, 숫자 크기 64 이상 2px) */
   isOverBackground?: boolean;
   /** 인라인 style override (cutover 경로의 toReactStyle 결과) */
   style?: React.CSSProperties;
@@ -76,19 +83,27 @@ const FONT_SIZE: Record<string, number> = {
  * 본 컴포넌트는 src/alt/initials/size/isDisabled/isOverBackground + style/className 만 소비한다.
  * circle bg/이니셜 색은 theme rule(resolveComponentRule)의 variant fill base / text.
  */
-export function Avatar({
-  src,
-  alt,
-  initials,
-  size = "M",
-  isDisabled,
-  isOverBackground,
-  style,
-  className,
-  ...rest
-}: AvatarProps): React.ReactElement {
+export function Avatar(ownProps: AvatarProps): React.ReactElement {
+  const [contextProps, ref] = useCatalogSlotProps<AvatarProps, HTMLDivElement>(
+    "Avatar",
+    ownProps,
+    ownProps.ref,
+  );
+  const {
+    ref: _ownRef,
+    slot,
+    src,
+    alt,
+    initials,
+    size = 24,
+    isDisabled,
+    isOverBackground,
+    style,
+    className,
+    ...rest
+  } = contextProps;
   const sizeKey = String(size).toUpperCase();
-  const diameter = DIAMETER[sizeKey] ?? 32;
+  const diameter = catalogAvatarCssSize(size);
   const fontSize = FONT_SIZE[sizeKey] ?? 14;
 
   // circle bg / 이니셜 색 = rule 칠 트리의 기본 배경 / 글자 (ADR-297). Skia escape 와 같은 source.
@@ -101,11 +116,15 @@ export function Avatar({
   const textColor = colorTokenToCss(paintAt(variant?.paint.color), "var(--fg)");
 
   const label = initials || alt?.slice(0, 2).toUpperCase() || "?";
-  // S2 `isOverBackground`: a solid outline in the background color — 2px over 64px (S2
+  // S2 `isOverBackground`: a solid outline in the background color — 2px at 64px (S2
   // `imageStyles` `isLarge`); the Canvas `avatar` primitive's ring.
-  const drawn = typeof style?.width === "number" ? style.width : diameter;
+  const numericSize = typeof size === "number" ? size : DIAMETER[sizeKey];
+  const isLineHeightSize = typeof size === "string" && size.endsWith("lh");
+  const outlineWidth = isLineHeightSize
+    ? "min(2px, max(1px, calc((((1lh / 64) - 1px) * 9999) + 1px)))"
+    : `${numericSize >= 64 ? 2 : 1}px`;
   const outline = isOverBackground
-    ? `${drawn > 64 ? 2 : 1}px solid var(--bg)`
+    ? `${outlineWidth} solid var(--bg)`
     : undefined;
 
   // ADR-235 — `asset:` 참조 해석 (준비 전이면 이니셜 표시)
@@ -113,6 +132,8 @@ export function Avatar({
   return (
     <div
       {...rest}
+      ref={ref}
+      slot={slot ?? undefined}
       style={{
         width: diameter,
         height: diameter,
@@ -123,7 +144,7 @@ export function Avatar({
         justifyContent: "center",
         backgroundColor: bgColor,
         color: textColor,
-        fontSize,
+        ...(!isLineHeightSize ? { fontSize } : {}),
         fontWeight: 500,
         flexShrink: 0,
         ...(outline ? { outline } : {}),
@@ -139,7 +160,15 @@ export function Avatar({
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
       ) : (
-        <span>{label}</span>
+        <span
+          style={
+            isLineHeightSize
+              ? { fontSize: style?.fontSize ?? fontSize }
+              : undefined
+          }
+        >
+          {label}
+        </span>
       )}
     </div>
   );

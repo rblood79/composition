@@ -145,6 +145,8 @@ export type InspectorFieldKind =
   | "icon"
   | "variant"
   | "size"
+  | "avatar-size"
+  | "avatar-group-size"
   | "fillStyle"
   | "binding"
   | "items-manager"

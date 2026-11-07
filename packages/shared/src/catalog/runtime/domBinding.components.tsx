@@ -2,6 +2,7 @@ import { useCatalogDomInput } from "./domBinding.runtime";
 
 import {
   createElement,
+  cloneElement,
   lazy,
   memo,
   Suspense,
@@ -12,6 +13,14 @@ import {
   type ElementType,
   type ReactElement,
 } from "react";
+
+import { catalogRacSlotConsumer, racSlotProps } from "./racSlot";
+import { RacSlotScope } from "./racSlotScope";
+import { catalogHasAuthoredProp } from "./libraryVisual";
+import { CATALOG_LOCAL_SLOT_CONTEXTS } from "../racSlotContract";
+import { mergeProps } from "react-aria/mergeProps";
+import { mergeRefs } from "react-aria/mergeRefs";
+import type { Ref } from "react";
 
 import * as RAC from "react-aria-components";
 import { COLLECTION_DRAG_DROP_EVENTS } from "../../interactions/concepts/collectionDragDrop";
@@ -408,6 +417,66 @@ export const CatalogDomNode = memo(function CatalogDomNode({
       ),
       runtime?.handlersOf(id),
     );
+  const drawWithSlot = (record: CatalogConsumerNode): ReactElement | null => {
+    const consumer = catalogRacSlotConsumer(catalogTypeName(root, record));
+    if (!consumer) return draw(record);
+    return createElement(RacSlotScope, {
+      context: consumer,
+      authored: record.props.slot,
+      render: (resolution, inherited) => {
+        const inheritedProps = Object.fromEntries(
+          Object.entries(inherited ?? {}).filter(
+            ([key]) =>
+              key !== "slot" &&
+              key !== "children" &&
+              key !== "ref" &&
+              key !== "style" &&
+              key !== "className" &&
+              !key.startsWith("on") &&
+              !catalogHasAuthoredProp(root, record, key) &&
+              !(key in (runtime?.overrideOf(id) ?? {})),
+          ),
+        );
+        const element = draw({
+          ...record,
+          domSlot: racSlotProps(resolution),
+          props: {
+            ...record.props,
+            ...inheritedProps,
+          } as CatalogConsumerNode["props"],
+        });
+        // Local DOM controllers consume their context here. Public local components read it
+        // before their own defaults, and native RAC components consume their real context.
+        if (
+          element &&
+          inherited &&
+          (CATALOG_LOCAL_SLOT_CONTEXTS as readonly string[]).includes(
+            consumer,
+          ) &&
+          !["Badge", "Avatar", "StatusLight", "ProgressCircle"].includes(
+            consumer,
+          )
+        ) {
+          const own = element.props as Record<string, unknown>;
+          return cloneElement(
+            element as ReactElement<Record<string, unknown>>,
+            {
+              ...mergeProps(inherited, own),
+              style: {
+                ...(inherited.style as CSSProperties),
+                ...(own.style as CSSProperties),
+              },
+              ref: mergeRefs(
+                inherited.ref as Ref<HTMLElement>,
+                own.ref as Ref<HTMLElement>,
+              ),
+            },
+          );
+        }
+        return element;
+      },
+    });
+  };
   // ADR-256 Decision 12: a node bound to its owner's value draws RAC's render props value (the
   // owner's frame); the record holds the record's value where no frame passes it.
   const template = shown.valueTemplate;
@@ -416,7 +485,7 @@ export const CatalogDomNode = memo(function CatalogDomNode({
         id,
         catalogDomValueOwners(root, shown, template),
         (read) =>
-          draw({
+          drawWithSlot({
             ...shown,
             ...catalogBoundValues(shown, template, (key) => {
               const frame = read(key);
@@ -433,7 +502,7 @@ export const CatalogDomNode = memo(function CatalogDomNode({
             }),
           }),
       )
-    : draw(shown);
+    : drawWithSlot(shown);
   // ADR-256 Decision 7: a node is there only in the states its `showWhen` names — its owners'
   // RAC state where they pass it down (`stateFrames.tsx`), else their records.
   const gated =

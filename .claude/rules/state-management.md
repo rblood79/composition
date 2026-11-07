@@ -13,6 +13,7 @@ paths:
 # 상태 관리 규칙
 
 - catalog의 Slot 제공자·소비자 및 상태 수신 등록은 실제 RAC context와 함께 갱신한다. **Why (2026-11-07):** SelectBox의 ListBoxItem Text와 ActionBar의 clear Button은 실제 context가 있어도 제공자 등록 누락으로 새 자식의 Slot 편집이 숨겨졌고, 새 타입의 disabled 수신 누락은 Canvas와 DOM의 활성 상태를 갈랐다 (`s2CompositionPatterns.test.tsx`).
+- 상속·Slot은 binding, 원본의 내부 controller, Property, 실제 context 소비를 함께 검증한다. **Why (2026-11-07)** TextArea 수신 별칭과 Form size 키가 빠져 상태·크기가 상속되지 않았고, 13개 Canvas Label은 상위 required를 계산하지 않았다. Image의 별도 속성 계약과 trigger-root 원본의 Slot 전달도 일반 primitive 등록만으로 연결되지 않았다. DOM Slot 해석은 작성된 역할값과 분리한다. 역할값을 덮으면 숨겨야 할 necessity-label이 Preview에 나타난다 (`existingComponentContracts.test.tsx`).
 
 - 필드 `value` 편집에는 일반 Text의 개행용 `white-space` 자동 승격을 적용하지 않는다. **Why (2026-11-07):** TextArea의 실제 Enter 입력이 Input에 지원되지 않는 `whiteSpace: pre-wrap`을 preview/commit하여 `CATALOG_CANVAS_VISUAL_UNSUPPORTED` 렌더 실패를 일으켰다. 값의 개행은 owner에 저장하고 필드의 표시 계약을 유지한다.
 
@@ -148,6 +149,10 @@ paths:
 - **`callEndpoint` 는 제출 전용 실행기 (ADR-281)**: `submitApiEndpoint` → `submitCollectionEndpoint` — 요청 공유 0 (조회의 `createCollectionEndpointExecutor` 는 endpoint id 로 진행 중 요청을 공유해 둘째 body 를 버린다), 성공 = `response.ok` (204 · 빈 본문 · 비 JSON 도 성공), 실패는 Preview runtime 이 `[interactions]` 경고 + toast. body 는 `!event.formData` (form 요소 `FormData`, 같은 name 여러 값은 배열) 또는 리터럴.
 
 ## 7. Styles · Properties 패널 입력
+
+- Avatar의 숫자·`lh` 크기는 별도 scalar 값 계약으로 검증하고, `lh` 기하는 실제 상속 font·line-height와 같은 갱신 의존성을 사용한다. **Why (2026-11-07)** 상위 fontSize 20→24 편집에서 leaf를 typography 의존성에서 제외하면 Canvas 지름은 60에 남고 Preview는 72로 변했다. 상속 font의 leaf 갱신과 숫자·문자열 저장 왕복을 인접 회귀 검사로 확인했다.
+
+- partRules의 `via` 적용과 변경 전파는 같은 `CATALOG_PART_RULE_PASS_HOSTS`를 읽는다. **Why (2026-11-07)** Disclosure XL의 resolver는 제목을 20px·700으로 해석했으나 Heading을 통과하는 Button 자식이 증분 갱신에서 빠져 Canvas는 14px·600에 남았다. 제목·아이콘의 재해석과 Undo/Redo를 회귀 검사로 확인했다.
 
 - **글자 편집 상자 = ProseMirror 입력 층 (ADR-299)**: 텍스트 선택 때 `textEditor/EditorField` chunk 를 미리 준비하고 편집 진입 때 lazy 로 연다 (로드 전 plain은 textarea, RichText는 서식을 보존한 read-only 화면), 매 입력은 `fromDoc` (정규형 run) → `previewRecord` (문서 쓰기 0), 커밋은 지금처럼 `setFields` 한 명령. 편집 범위 = 편집 상자 + Typography 절 (`[data-section-id="typography"]`) + 팝오버 — 그 안의 press · focus 는 편집을 끝내지 않고, 패널은 `textEditorHandle` (선택 구간 marks 읽기 · PM transaction 쓰기) 로만 편집기에 닿는다. 편집 밖 패널 쓰기는 노드 값 + run 의 그 축 지우기 (사용자 결정 3, `catalogStylesHost` `styleCommandOf`). Properties 의 글자 칸은 plain 을 보이고 거기서 쓰면 run 이 사라진다 (Decision 6). **Why (2026-11-02 live)**: Properties 가 작성 값을 그대로 읽어 `[object Object]` 를 보였다.
 

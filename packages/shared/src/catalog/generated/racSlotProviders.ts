@@ -5,7 +5,53 @@
 // the slot prop passes as is), or a cleared context (`cleared`: the part detaches its children).
 
 export type RacSlotContextKey =
-  "Text" | "Button" | "Heading" | "Checkbox" | "DateField" | "Link" | "Slider";
+  | "Text"
+  | "Heading"
+  | "Button"
+  | "DateField"
+  | "Checkbox"
+  | "ToggleButtonGroup"
+  | "ToggleButton"
+  | "ListBox"
+  | "Link"
+  | "Slider"
+  | "Keyboard"
+  | "Separator"
+  | "ProgressBar"
+  | "Meter"
+  | "Tabs"
+  | "Breadcrumbs"
+  | "NavigationTree"
+  | "Menu"
+  | "Disclosure"
+  | "GridList"
+  | "Toolbar"
+  | "TextField"
+  | "NumberField"
+  | "SearchField"
+  | "Autocomplete"
+  | "ColorField"
+  | "ColorArea"
+  | "ColorSlider"
+  | "ColorWheel"
+  | "ColorSwatch"
+  | "ColorSwatchPicker"
+  | "CheckboxGroup"
+  | "RadioGroup"
+  | "Select"
+  | "ComboBox"
+  | "Switch"
+  | "DropZone"
+  | "Table"
+  | "Tree"
+  | "TagGroup"
+  | "Calendar"
+  | "DatePicker"
+  | "DateRangePicker"
+  | "TimeField"
+  | "RangeCalendar"
+  | "Dialog"
+  | "Popover";
 
 export interface RacSlotProvision {
   readonly slots?: readonly string[];
@@ -20,13 +66,33 @@ export const RAC_SLOT_PROVIDERS: Readonly<
   Record<string, Readonly<Partial<Record<RacSlotContextKey, RacSlotProvision>>>>
 > = {
   Breadcrumb: {
+    Breadcrumbs: {
+      plain: true,
+    },
     Link: {
+      plain: true,
+    },
+  },
+  Button: {
+    Dialog: {
+      plain: true,
+    },
+    Menu: {
+      plain: true,
+    },
+    Popover: {
+      plain: true,
+    },
+    ProgressBar: {
       plain: true,
     },
   },
   Calendar: {
     Button: {
       slots: ["previous", "next"],
+    },
+    Calendar: {
+      plain: true,
     },
     Heading: {
       plain: true,
@@ -50,7 +116,36 @@ export const RAC_SLOT_PROVIDERS: Readonly<
       slots: ["description", "errorMessage"],
     },
   },
+  ColorPicker: {
+    ColorArea: {
+      plain: true,
+    },
+    ColorField: {
+      plain: true,
+    },
+    ColorSlider: {
+      plain: true,
+    },
+    ColorSwatch: {
+      plain: true,
+    },
+    ColorSwatchPicker: {
+      plain: true,
+    },
+    ColorWheel: {
+      plain: true,
+    },
+  },
   ColorSwatchPickerItem: {
+    ColorSwatch: {
+      plain: true,
+    },
+    ListBox: {
+      plain: true,
+    },
+    Separator: {
+      plain: true,
+    },
     Text: {
       slots: ["label", "description"],
       hasDefault: true,
@@ -63,6 +158,12 @@ export const RAC_SLOT_PROVIDERS: Readonly<
   },
   ComboBox: {
     Button: {
+      plain: true,
+    },
+    ListBox: {
+      plain: true,
+    },
+    Popover: {
       plain: true,
     },
     Text: {
@@ -78,7 +179,16 @@ export const RAC_SLOT_PROVIDERS: Readonly<
     Button: {
       plain: true,
     },
+    Calendar: {
+      plain: true,
+    },
     DateField: {
+      plain: true,
+    },
+    Dialog: {
+      plain: true,
+    },
+    Popover: {
       plain: true,
     },
     Text: {
@@ -92,6 +202,15 @@ export const RAC_SLOT_PROVIDERS: Readonly<
     DateField: {
       slots: ["start", "end"],
     },
+    Dialog: {
+      plain: true,
+    },
+    Popover: {
+      plain: true,
+    },
+    RangeCalendar: {
+      plain: true,
+    },
     Text: {
       slots: ["description", "errorMessage"],
     },
@@ -101,9 +220,15 @@ export const RAC_SLOT_PROVIDERS: Readonly<
       slots: ["close"],
       hasDefault: true,
     },
+    Dialog: {
+      plain: true,
+    },
     Heading: {
       slots: ["title"],
       hasDefault: true,
+    },
+    Popover: {
+      plain: true,
     },
     Text: {
       slots: ["description"],
@@ -140,13 +265,39 @@ export const RAC_SLOT_PROVIDERS: Readonly<
       hasDefault: true,
     },
   },
+  Header: {
+    ListBox: {
+      plain: true,
+    },
+    Separator: {
+      plain: true,
+    },
+  },
   ListBoxItem: {
+    ListBox: {
+      plain: true,
+    },
+    Separator: {
+      plain: true,
+    },
     Text: {
       slots: ["label", "description"],
       hasDefault: true,
     },
   },
   MenuItem: {
+    Keyboard: {
+      plain: true,
+    },
+    Menu: {
+      plain: true,
+    },
+    Popover: {
+      plain: true,
+    },
+    Separator: {
+      plain: true,
+    },
     Text: {
       slots: ["label", "description"],
       hasDefault: true,
@@ -160,8 +311,19 @@ export const RAC_SLOT_PROVIDERS: Readonly<
       slots: ["description", "errorMessage"],
     },
   },
+  OverlayArrow: {
+    Dialog: {
+      plain: true,
+    },
+  },
   Popover: {
     Button: {
+      cleared: true,
+    },
+    Menu: {
+      plain: true,
+    },
+    Popover: {
       cleared: true,
     },
     Text: {
@@ -183,6 +345,12 @@ export const RAC_SLOT_PROVIDERS: Readonly<
       slots: ["previous", "next"],
     },
     Heading: {
+      plain: true,
+    },
+    Popover: {
+      cleared: true,
+    },
+    RangeCalendar: {
       plain: true,
     },
     Text: {
@@ -211,6 +379,15 @@ export const RAC_SLOT_PROVIDERS: Readonly<
     Button: {
       plain: true,
     },
+    ListBox: {
+      plain: true,
+    },
+    Popover: {
+      plain: true,
+    },
+    Select: {
+      plain: true,
+    },
     Text: {
       slots: ["description", "errorMessage"],
     },
@@ -220,9 +397,15 @@ export const RAC_SLOT_PROVIDERS: Readonly<
       slots: ["close"],
       hasDefault: true,
     },
+    Dialog: {
+      plain: true,
+    },
     Heading: {
       slots: ["title"],
       hasDefault: true,
+    },
+    Popover: {
+      plain: true,
     },
     Text: {
       slots: ["description"],
@@ -232,6 +415,16 @@ export const RAC_SLOT_PROVIDERS: Readonly<
   SwitchField: {
     Text: {
       slots: ["description", "errorMessage"],
+    },
+  },
+  TabPanel: {
+    Tabs: {
+      cleared: true,
+    },
+  },
+  Tabs: {
+    Tabs: {
+      plain: true,
     },
   },
   Tag: {

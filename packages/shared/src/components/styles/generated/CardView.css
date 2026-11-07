@@ -76,6 +76,20 @@
   background: transparent;
 }
 
+.react-aria-CardView[data-size="XS"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-none);
+}
+
+.react-aria-CardView[data-size="XL"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-none);
+}
+
 .react-aria-CardView[data-size="S"] {
   height: auto;
   padding: 0px 0px;

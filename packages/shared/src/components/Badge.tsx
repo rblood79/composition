@@ -1,8 +1,14 @@
+import { useCatalogSlotProps } from "./catalogSlotContexts";
 import React from "react";
 import type { BadgeVariant, ComponentSize } from "../types";
 import { Skeleton } from "./Skeleton";
 
-export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
+export interface BadgeProps extends Omit<
+  React.HTMLAttributes<HTMLSpanElement>,
+  "slot"
+> {
+  slot?: string | null;
+  ref?: React.Ref<HTMLSpanElement>;
   /**
    * S2 variant
    * @default 'accent'
@@ -63,19 +69,27 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
  * <Badge variant="positive" fillStyle="subtle">Active</Badge>
  * <Badge variant="informative" isDot isPulsing />
  */
-export function Badge({
-  variant = "accent",
-  size = "S",
-  isDot = false,
-  isPulsing = false,
-  fillStyle,
-  isLoading = false,
-  isDisabled = false,
-  overflowMode = "wrap",
-  className,
-  children,
-  ...props
-}: BadgeProps) {
+export function Badge(ownProps: BadgeProps): React.ReactElement {
+  const [contextProps, ref] = useCatalogSlotProps<BadgeProps, HTMLSpanElement>(
+    "Badge",
+    ownProps,
+    ownProps.ref,
+  );
+  const {
+    ref: _ownRef,
+    slot,
+    variant = "accent",
+    size = "S",
+    isDot = false,
+    isPulsing = false,
+    fillStyle,
+    isLoading = false,
+    isDisabled = false,
+    overflowMode = "wrap",
+    className,
+    children,
+    ...props
+  } = contextProps;
   if (isLoading) {
     return (
       <Skeleton
@@ -90,6 +104,8 @@ export function Badge({
   return (
     <span
       {...props}
+      ref={ref}
+      slot={slot ?? undefined}
       className={
         className ? `react-aria-Badge ${className}` : "react-aria-Badge"
       }

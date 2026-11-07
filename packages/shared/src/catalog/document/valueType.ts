@@ -1,4 +1,8 @@
 import {
+  catalogAvatarSizeFits,
+  catalogAvatarGroupSizeFits,
+} from "./avatarSizeValue";
+import {
   catalogLabeledValueFits,
   catalogLabeledFormatFits,
 } from "./labeledValue";
@@ -18,6 +22,8 @@ export function scalarFitsType(
   value: unknown,
   type: ValueType | string | undefined,
 ): boolean {
+  if (type === "avatarSize") return catalogAvatarSizeFits(value);
+  if (type === "avatarGroupSize") return catalogAvatarGroupSizeFits(value);
   if (type === "selectionCount") return catalogSelectionCountFits(value);
   if (type === "labeledValue") return catalogLabeledValueFits(value);
   if (type === "labeledFormat") return catalogLabeledFormatFits(value);

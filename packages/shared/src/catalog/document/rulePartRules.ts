@@ -1,3 +1,4 @@
+import { catalogSizeRuleValue } from "./avatarSizeValue";
 /**
  * ADR-248 Phase 3 — typed part rules compiled from a rule's child-selector declarations
  * (`structure.composition.staticSelectors` and `delegation[].bridges`), the catalog source the
@@ -1335,7 +1336,14 @@ function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
   ];
   const trigger = (
     rule.structure?.composition as
-      { staticSelectors?: Record<string, Record<string, string>> } | undefined
+      | {
+          staticSelectors?: Record<string, Record<string, string>>;
+          sizeSelectors?: Record<
+            string,
+            Record<string, Record<string, string>>
+          >;
+        }
+      | undefined
   )?.staticSelectors?.[".react-aria-Button[slot='trigger']"];
   if (!trigger) return [];
   const button = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)
@@ -1346,8 +1354,14 @@ function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
   const buttonIcon = buttonSize?.iconSize;
   const px = (value: unknown) => {
     const resolved =
-      typeof value === "string" ? resolveToken(value as TokenRef) : value;
-    return typeof resolved === "number" ? resolved : undefined;
+      typeof value === "string" && value.startsWith("{")
+        ? resolveToken(value as TokenRef)
+        : value;
+    return typeof resolved === "number"
+      ? resolved
+      : typeof resolved === "string" && /^\d+(?:\.\d+)?px$/.test(resolved)
+        ? Number.parseFloat(resolved)
+        : undefined;
   };
   const buttonFont = px(buttonSize?.fontSize);
   const buttonLine = px(buttonSize?.lineHeight);
@@ -1356,11 +1370,26 @@ function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
   const titleWeight = Number(trigger["font-weight"]);
   const neutral = "{color.neutral}";
   return sizeNames(rule).flatMap((size): CompiledPartRule[] => {
-    const icon = buttonIcon ?? rule.sizes[size]?.iconSize;
+    const selectors = (
+      rule.structure?.composition as {
+        sizeSelectors?: Record<string, Record<string, Record<string, string>>>;
+      }
+    )?.sizeSelectors?.[size];
+    const sizeTrigger = {
+      ...trigger,
+      ...selectors?.[".react-aria-Button[slot='trigger']"],
+    };
+    const icon =
+      px(
+        selectors?.[".react-aria-Button[slot='trigger'] .react-aria-Icon svg"]
+          ?.width,
+      ) ??
+      buttonIcon ??
+      rule.sizes[size]?.iconSize;
     const fontSize =
-      trigger["font-size"] === "inherit"
+      sizeTrigger["font-size"] === "inherit"
         ? px(rule.sizes[size]?.fontSize)
-        : undefined;
+        : px(sizeTrigger["font-size"]);
     // ADR-295 Phase 3: the size's typography token keeps its ref (a token value in the library — the
     //   DOM writes its device variable, so the title follows the touch set as the inherited sheet font
     //   does; a px went inline and stayed desktop).
@@ -1373,13 +1402,21 @@ function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
         : fontSize;
     const font = {
       ...(fontValue !== undefined ? { fontSize: fontValue } : {}),
-      ...(lineHeight !== undefined ? { lineHeight } : {}),
+      ...(fontSize && px(sizeTrigger["line-height"]) !== undefined
+        ? { lineHeight: px(sizeTrigger["line-height"])! / fontSize }
+        : lineHeight !== undefined
+          ? { lineHeight }
+          : {}),
     };
     const sizeLine = px(rule.sizes[size]?.lineHeight);
+    const panelSize = px(rule.sizes[size]?.fontSize);
     const panelFont = {
-      ...(fontValue !== undefined ? { fontSize: fontValue } : {}),
-      ...(fontSize && sizeLine ? { lineHeight: sizeLine / fontSize } : {}),
+      ...(panelSize !== undefined
+        ? { fontSize: rule.sizes[size]?.fontSize }
+        : {}),
+      ...(panelSize && sizeLine ? { lineHeight: sizeLine / panelSize } : {}),
     };
+    const weight = Number(sizeTrigger["font-weight"] ?? titleWeight);
     // (ADR-295 Phase 3b: an S2 icon step stays its ref — `withRuleParts` makes it a token value.)
     return px(icon) !== undefined
       ? [
@@ -1411,7 +1448,7 @@ function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
             layout: {},
             visual: {
               ...font,
-              ...(titleWeight > 0 ? { fontWeight: titleWeight } : {}),
+              ...(weight > 0 ? { fontWeight: weight } : {}),
               color: neutral,
             },
           },
@@ -2050,7 +2087,7 @@ function containerVariantPartRules(
               ...(target.childProps ? { childProps: target.childProps } : {}),
               ...(size ? { size } : {}),
               ownerProps: {
-                [prop]: value,
+                [prop]: catalogSizeRuleValue(parentType, prop, value),
                 ...(align ? { [LABEL_ALIGN_AXIS.prop]: align } : {}),
               },
               layout: compiled.layout,

@@ -1,7 +1,10 @@
 import { createContext } from "react";
 import { CATALOG_INHERITANCE_HOSTS } from "../bindings/inheritedProps";
 import type { CatalogConsumerNode } from "./compositionRoot";
-import type { CatalogInheritedFlag } from "./providerContexts";
+import {
+  CATALOG_INHERITED_RECEIVERS,
+  type CatalogInheritedFlag,
+} from "./providerContexts";
 
 /**
  * ADR-281 Decision 3 — the values a page root (`body`) and a frame pass down: each prop from the
@@ -35,8 +38,7 @@ export function catalogHostInherited(
   for (const key of keys) {
     const value = props[key];
     if ((FLAGS as readonly string[]).includes(key)) {
-      if (typeof value === "boolean")
-        out[key as CatalogInheritedFlag] = value;
+      if (typeof value === "boolean") out[key as CatalogInheritedFlag] = value;
     } else if (key === "locale") {
       if (typeof value === "string" && value) out.locale = value;
     } else if (key === "colorScheme") {
@@ -74,8 +76,7 @@ export function catalogAncestorInherited(
     const own = catalogHostInherited(typeOf(parent), propsOf(parent));
     if (own)
       for (const [key, value] of Object.entries(own))
-        if (!(key in out))
-          (out as Record<string, unknown>)[key] = value;
+        if (!(key in out)) (out as Record<string, unknown>)[key] = value;
   }
   return out;
 }
@@ -128,6 +129,22 @@ export function catalogInheritedFlags(
     if (inherited[flag] === true && props[flag] !== true)
       (out ??= { ...props })[flag] = true;
   return out ?? props;
+}
+
+/** Effective flag shared by state predicates and authored field parts. */
+export function catalogInheritedFlag(
+  node: CatalogConsumerNode,
+  flag: CatalogInheritedFlag,
+  get: (id: string) => CatalogConsumerNode | undefined,
+  typeOf: (node: CatalogConsumerNode) => string,
+): boolean {
+  return (
+    catalogInheritedFlags(
+      node.props,
+      CATALOG_INHERITED_RECEIVERS.get(typeOf(node)),
+      catalogAncestorInherited(node, get, typeOf),
+    )[flag] === true
+  );
 }
 
 /** The DOM's running inherited values (each host's `Provider` merges its own on top). */

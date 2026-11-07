@@ -3083,7 +3083,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "src": "",
       "alt": "Avatar",
       "initials": "A",
-      "size": "M",
+      "size": 24,
       "isDisabled": false
     },
     "visual": {}
@@ -3102,7 +3102,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-avatargroup__label"
     ],
     "props": {
-      "size": "M"
+      "size": 24
     },
     "visual": {},
     "layout": {

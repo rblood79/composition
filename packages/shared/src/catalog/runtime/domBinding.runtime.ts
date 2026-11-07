@@ -246,7 +246,11 @@ import {
   FIELD_HINT_OWNERS,
 } from "./presence";
 
-import { racSlotProps, type RacSlotResolution } from "./racSlot";
+import {
+  catalogDomSlot,
+  racSlotProps,
+  type RacSlotResolution,
+} from "./racSlot";
 
 import { RacSlotScope } from "./racSlotScope";
 
@@ -2480,6 +2484,7 @@ function ruleDom(
       : node.props;
   const racProps = binding ? toRacProps({ props: bindingProps }, binding) : {};
   const { children: textChildren, ...rest } = racProps;
+  if (node.domSlot) rest.slot = catalogDomSlot(node);
   const lower = type.toLowerCase();
   // ADR-280 Decision 3 · 4 (Phase 0 probe P1) — an overlay's open state is its trigger's: a
   // running Preview controls the trigger's `isOpen` from the record's runtime value (a rule's
@@ -2775,6 +2780,7 @@ function ruleDom(
       return createElement("img", {
         key: node.id,
         "data-catalog-id": node.id,
+        slot: catalogDomSlot(node),
         className: "react-aria-Image",
         ...imageElementProps(node.props),
         ...dataAttrs,
@@ -2797,6 +2803,7 @@ function ruleDom(
       {
         key: node.id,
         "data-catalog-id": node.id,
+        slot: catalogDomSlot(node),
         className: `react-aria-${isBodyType(type) ? "Body" : type}`,
         ...dataAttrs,
         // The type's fixed ARIA (InlineAlert `role="alert"` — a plain box carries the D1 role).

@@ -15,11 +15,14 @@
 import { DEFAULT_SLOT } from "react-aria-components";
 import {
   RAC_SLOT_PROVIDERS,
-  type RacSlotContextKey,
   type RacSlotProvision,
 } from "../generated/racSlotProviders";
 
-export type CatalogSlotContextKey = RacSlotContextKey | "ActionBar";
+import {
+  CATALOG_RAC_SLOT_CONSUMERS,
+  type CatalogSlotContextKey,
+} from "../racSlotContract";
+export type { CatalogSlotContextKey } from "../racSlotContract";
 
 export type RacSlotResolution =
   /** No provider of the consumer context above: nothing to connect (the element as is, no slot). */
@@ -90,21 +93,19 @@ export function racSlotProps(resolution: RacSlotResolution): {
   }
 }
 
+/** Native DOM prop resolved separately from the authored Slot role used by part/presence logic. */
+export function catalogDomSlot(node: {
+  readonly props: Readonly<Record<string, unknown>>;
+  readonly domSlot?: Readonly<{ slot?: string | null }>;
+}): string | null | undefined {
+  if (node.domSlot) return node.domSlot.slot;
+  const authored = authoredSlot(node.props.slot);
+  return authored === false ? null : authored;
+}
+
 /** The consumer context a catalog type reads its slot from. */
-const CONSUMER_OF_TYPE: Readonly<Record<string, CatalogSlotContextKey>> = {
-  Text: "Text",
-  Description: "Text",
-  Heading: "Heading",
-  Button: "Button",
-  ActionButton: "Button",
-  DateInput: "DateField",
-  Checkbox: "Checkbox",
-  Link: "Link",
-  LinkButton: "Link",
-  Slider: "Slider",
-  RangeSlider: "Slider",
-  ActionBar: "ActionBar",
-};
+const CONSUMER_OF_TYPE: Readonly<Record<string, CatalogSlotContextKey>> =
+  CATALOG_RAC_SLOT_CONSUMERS;
 
 /** Catalog types whose children render where a RAC part (named in the table) provides. */
 const PROVIDER_ALIAS: Readonly<Record<string, string>> = {
@@ -123,6 +124,8 @@ const S2_SLOT_PROVIDERS: Readonly<
 > = {
   Card: { Text: { slots: ["title", "description"], hasDefault: true } },
   ActionBar: { Button: { slots: ["clear"], hasDefault: true } },
+  AvatarGroup: { Avatar: { plain: true } },
+  ButtonGroup: { Button: { plain: true }, Link: { plain: true } },
 };
 
 const RAC_PROVIDERS: Readonly<

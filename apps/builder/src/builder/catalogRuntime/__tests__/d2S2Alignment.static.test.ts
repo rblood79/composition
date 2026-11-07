@@ -232,8 +232,15 @@ describe("D2 — binding accepts vs the installed S2 types", () => {
         if (!row) stale.push(`${type}.${key}: no such binding`);
         else if (row.oracle?.keys.has(key))
           stale.push(`${type}.${key}: S2 declares it`);
-        else if (!row.accepts.some(([accepted]) => accepted === key))
-          stale.push(`${type}.${key}: the binding has no such visible key`);
+        else if (
+          !componentCatalog.some(
+            (entry) =>
+              entry.kind === "primitive" &&
+              entry.type === type &&
+              key in entry.binding.props.accepts,
+          )
+        )
+          stale.push(`${type}.${key}: the binding has no such key`);
       }
     }
     for (const type of CATALOG_D2_COMPOSITION_TYPES)

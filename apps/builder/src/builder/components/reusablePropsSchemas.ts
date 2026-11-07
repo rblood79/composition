@@ -84,6 +84,7 @@ export const CARD_PROPS_SCHEMA: PropsSchema = {
   },
   href: getPrimitiveBinding("Card")!.props.accepts!.href!,
   target: getPrimitiveBinding("Card")!.props.accepts!.target!,
+  isDisabled: getPrimitiveBinding("Card")!.props.accepts!.isDisabled!,
 };
 
 /**
@@ -191,6 +192,7 @@ function overlayOriginSchema(
     (getPrimitiveBinding(type)?.props.accepts ?? {}) as PropsSchema;
   const own = accepts(overlay);
   return {
+    ...(own.slot ? { slot: own.slot } : {}),
     ...Object.fromEntries(
       keys.map((key) => [
         key,

@@ -14,28 +14,25 @@ import * as RAC from "react-aria-components";
 import { ActionBarContext } from "../../components/ActionBarContext";
 import { resolveRacSlot, type RacSlotResolution } from "./racSlot";
 
-/** The RAC consumer contexts a catalog part reads its slot from (`racSlot.ts`). */
-const RAC_SLOT_CONTEXTS: Readonly<
-  Record<
-    | "Text"
-    | "Heading"
-    | "Button"
-    | "Checkbox"
-    | "Link"
-    | "Slider"
-    | "ActionBar",
-    Context<unknown>
-  >
+import {
+  CATALOG_NATIVE_SLOT_CONTEXT_NAMES,
+  type CatalogSlotContextKey,
+} from "../racSlotContract";
+import { CATALOG_COMPONENT_SLOT_CONTEXTS } from "../../components/catalogSlotContexts";
+
+/** Native contexts and the catalog controllers that implement S2-only elements. */
+export const RAC_SLOT_CONTEXTS: Readonly<
+  Record<CatalogSlotContextKey, Context<unknown>>
 > = {
-  Link: RAC.LinkContext as Context<unknown>,
-  Slider: RAC.SliderContext as Context<unknown>,
-  ActionBar: ActionBarContext as Context<unknown>,
-  Text: RAC.TextContext as Context<unknown>,
-  Heading: RAC.HeadingContext as Context<unknown>,
-  Button: RAC.ButtonContext as Context<unknown>,
-  // (A Checkbox is RAC `CheckboxField` — ADR-256 Phase 5f: a collection item's `selection`.)
-  Checkbox: RAC.CheckboxFieldContext as Context<unknown>,
-};
+  ...Object.fromEntries(
+    Object.entries(CATALOG_NATIVE_SLOT_CONTEXT_NAMES).map(([key, name]) => [
+      key,
+      (RAC as unknown as Record<string, Context<unknown>>)[name],
+    ]),
+  ),
+  ...CATALOG_COMPONENT_SLOT_CONTEXTS,
+  ActionBar: ActionBarContext,
+} as Readonly<Record<CatalogSlotContextKey, Context<unknown>>>;
 
 /**
  * ADR-256 Decision 4 — resolves a part's authored RAC slot against the live context it renders in
@@ -51,14 +48,29 @@ export function RacSlotScope({
 }: {
   context: keyof typeof RAC_SLOT_CONTEXTS;
   authored: unknown;
-  render: (resolution: RacSlotResolution) => ReactElement;
+  render: (
+    resolution: RacSlotResolution,
+    inherited?: Record<string, unknown> | null,
+  ) => ReactElement | null;
   slot?: string;
   [key: string]: unknown;
-}): ReactElement {
-  const element = render(
-    resolveRacSlot(useContext(RAC_SLOT_CONTEXTS[context]), slot ?? authored),
+}): ReactElement | null {
+  const value = useContext(RAC_SLOT_CONTEXTS[context]);
+  const resolution = resolveRacSlot(value, slot ?? authored);
+  const nativeSlot =
+    resolution.kind === "named" || resolution.kind === "plain"
+      ? resolution.slot
+      : resolution.kind === "default" || resolution.kind === "none"
+        ? undefined
+        : null;
+  const inherited = RAC.useSlottedContext(
+    RAC_SLOT_CONTEXTS[context] as Context<
+      RAC.ContextValue<Record<string, unknown>, HTMLElement>
+    >,
+    nativeSlot,
   );
-  return Object.keys(rest).length
+  const element = render(resolution, inherited);
+  return element && Object.keys(rest).length
     ? cloneElement(element, overScopeProps(element, rest))
     : element;
 }

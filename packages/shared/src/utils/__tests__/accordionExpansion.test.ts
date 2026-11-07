@@ -34,10 +34,10 @@ const group = (
   props,
 });
 
-describe("allowsMultipleExpanded — composition binding default = true", () => {
-  it("미지정이면 true (다중 허용) — RAC 자체 기본값(false)과 다른 composition 의 선택", () => {
-    expect(allowsMultipleExpanded(undefined)).toBe(true);
-    expect(allowsMultipleExpanded({})).toBe(true);
+describe("allowsMultipleExpanded — S2 default = false", () => {
+  it("미지정이면 false (S2 단일 확장)", () => {
+    expect(allowsMultipleExpanded(undefined)).toBe(false);
+    expect(allowsMultipleExpanded({})).toBe(false);
   });
 
   it("명시 false 일 때만 단일 확장", () => {
@@ -62,7 +62,10 @@ describe("isDisclosureExpandedByIntent — binding default = true(펼침)", () =
 
 describe("resolveGroupExpandedDisclosureIds", () => {
   it("allowsMultipleExpanded=true — 후보 전부 확장", () => {
-    const ids = resolveGroupExpandedDisclosureIds({}, [disc("a"), disc("b")]);
+    const ids = resolveGroupExpandedDisclosureIds(
+      { allowsMultipleExpanded: true },
+      [disc("a"), disc("b")],
+    );
     expect([...ids]).toEqual(["a", "b"]);
   });
 

@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Avatar 크기 API와 S2 잔여 선택지 정렬] - 2026-11-07
+
+### Fixed
+
+- Avatar의 기본 크기를 숫자 24로 정렬하고 S2 숫자 프리셋·임의 숫자·`lh` 값을 Property, Code, 저장 문서와 Canvas·Preview에 연결한다. 기존 이름 크기의 저장 값과 지름은 보존하며, `lh`는 상속 typography 변경에도 다시 계산한다. AvatarGroup은 7개 숫자 크기와 크기별 겹침·레이블 typography를 제공한다.
+- Accordion의 다중 확장 기본값을 false로 정렬하고 Accordion·Disclosure의 XL, CardView의 XS·XL을 자식 크기 상속과 기본 스타일에 연결한다. Disclosure XL은 S2 밀도별 높이와 제목 typography를 사용한다.
+- Card의 링크 Target에 Parent Frame·Top Frame을 추가하고 Popover의 22개 Placement를 Property에서 선택·저장·복원할 수 있게 한다.
+
+## [기존 컴포넌트 상속·Slot·Property 공통 계약 보완] - 2026-11-07
+
+### Fixed
+
+- TextArea의 상위 disabled·readOnly·required 수신과 13개 필드의 Canvas 필수 표시를 공통 상속 계산에 연결한다. Form의 크기는 버튼·입력·선택 계열의 기본값보다 먼저 적용하고, ToggleButton도 Form 강조를 받는다.
+- RAC·S2 Slot 소비 타입과 실제 context를 공용 계약에서 관리한다. 문서의 Slot 편집·명시 해제·Code 왕복을 연결하고, Menu·Dialog·Popover·Sheet 원본은 내부 controller에 값을 전달한다. Sheet의 Slot은 DOM 전달 속성으로 노출한다.
+- S2 전용 leaf와 그룹은 실제 Slot context를 소비하며 기본값·사용자 지정값·ref·이벤트를 병합한다. Card 원본에 Disabled를 노출하고 LinkButton에서 Link 전용 Quiet·Standalone을 제거한다.
+
 ## [신규 S2 컴포넌트 조립·상속 — 공통 RAC 패턴 정렬] - 2026-11-07
 
 ### Fixed

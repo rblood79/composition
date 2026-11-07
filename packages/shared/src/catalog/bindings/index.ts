@@ -1,3 +1,8 @@
+import {
+  catalogHasSlotContract,
+  CATALOG_DOM_SLOT_TYPES,
+} from "../racSlotContract";
+import { RAC_SLOT_PROP } from "./accessibilityProps";
 import { labeledValueBinding } from "./LabeledValue.binding";
 import { actionBarBinding } from "./ActionBar.binding";
 import { selectBoxGroupBinding } from "./SelectBoxGroup.binding";
@@ -621,10 +626,31 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   DateRangePicker: dateRangePickerBinding,
 };
 
+const SLOTTED_BINDINGS: Readonly<Record<string, PrimitiveBinding>> =
+  Object.fromEntries(
+    Object.entries(PRIMITIVE_BINDINGS).map(([type, binding]) => [
+      type,
+      catalogHasSlotContract(type) && !binding.props.accepts.slot
+        ? {
+            ...binding,
+            props: {
+              ...binding.props,
+              accepts: {
+                ...binding.props.accepts,
+                slot: CATALOG_DOM_SLOT_TYPES.has(type)
+                  ? { ...RAC_SLOT_PROP, editorHidden: false }
+                  : RAC_SLOT_PROP,
+              },
+            },
+          }
+        : binding,
+    ]),
+  );
+
 export function getPrimitiveBinding(
   type: string,
 ): PrimitiveBinding | undefined {
-  return PRIMITIVE_BINDINGS[type];
+  return SLOTTED_BINDINGS[type];
 }
 
 /** lowercase type → PascalCase binding key 역인덱스 (layout 은 `element.type.toLowerCase()` 를 쓴다). */

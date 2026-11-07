@@ -1,4 +1,8 @@
 import {
+  AVATAR_SIZE_PRESETS,
+  AVATAR_GROUP_SIZES,
+} from "../document/avatarSizeValue";
+import {
   SEGMENTED_GROUP_CONTAINER,
   SEGMENTED_ITEM_CONTAINER,
 } from "../rule/segmentedControl";
@@ -1106,7 +1110,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Avatar: {
     defaultVariant: "default",
-    defaultSize: "M",
+    defaultSize: "24",
     variants: {
       default: {
         paint: {
@@ -1122,6 +1126,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      ...Object.fromEntries(
+        AVATAR_SIZE_PRESETS.map((size) => [
+          String(size),
+          { height: size, borderRadius: "{radius.full}" },
+        ]),
+      ),
       XS: {
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.full}",
@@ -1166,7 +1176,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   AvatarGroup: {
     defaultVariant: "default",
-    defaultSize: "M",
+    defaultSize: "24",
     variants: {
       default: {
         paint: {
@@ -1183,6 +1193,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      ...Object.fromEntries(
+        AVATAR_GROUP_SIZES.map((size) => [
+          String(size),
+          { height: 0, borderRadius: "{radius.full}" },
+        ]),
+      ),
       XS: {
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.full}",
@@ -1224,6 +1240,27 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       composition: {
         containerVariants: {
           size: {
+            ...Object.fromEntries(
+              AVATAR_GROUP_SIZES.map((size, index) => [
+                String(size),
+                {
+                  styles: { padding: `0 0 0 ${size / 64}rem` },
+                  nested: [
+                    {
+                      selector: "> .react-aria-Avatar",
+                      styles: { "margin-inline-start": `${-size / 64}rem` },
+                    },
+                    {
+                      selector: "> .react-aria-Text",
+                      styles: {
+                        "font-size": `${[11, 12, 14, 16, 18, 20, 22][index] / 16}rem`,
+                        "line-height": `${[14, 16, 18, 20, 22, 24, 26][index] / 16}rem`,
+                      },
+                    },
+                  ],
+                },
+              ]),
+            ),
             XS: {
               styles: { padding: "0 0 0 6px" },
               nested: [
@@ -3027,6 +3064,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      XS: {
+        fontSize: "{typography.text-xs}",
+        borderRadius: "{radius.none}",
+        height: "auto",
+      },
+      XL: {
+        fontSize: "{typography.text-lg}",
+        borderRadius: "{radius.none}",
+        height: "auto",
+      },
       S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
@@ -5732,6 +5779,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         iconSize: 20,
       },
+      XL: {
+        borderRadius: "{radius.none}",
+        height: 0,
+        iconSize: 14,
+      },
     },
     // ADR-912 후속 (2026-06-25): Disclosure generated CSS 는 spec 삭제(4a703828c) 후 virtual emit
     //   대상에서 빠져(structure 부재) stale 고아 파일로 방치 → DOM(stale leaf CSS) ↔ Skia(rule shell)
@@ -5803,6 +5855,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 "--disclosure-trigger-py-spacious": "12px",
               },
             },
+            XL: {
+              styles: {
+                "--disclosure-trigger-px": "17px",
+                "--disclosure-trigger-px-compact": "14px",
+                "--disclosure-trigger-px-spacious": "20px",
+                "--disclosure-trigger-h": "48px",
+                "--disclosure-trigger-py": "12px",
+                "--disclosure-trigger-h-compact": "40px",
+                "--disclosure-trigger-py-compact": "8px",
+                "--disclosure-trigger-h-spacious": "56px",
+                "--disclosure-trigger-py-spacious": "16px",
+              },
+            },
           },
           density: {
             compact: {
@@ -5811,6 +5876,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   selector: ".react-aria-Button[slot='trigger']",
                   styles: {
                     "min-height": "var(--disclosure-trigger-h-compact)",
+                    "padding-left":
+                      "var(--disclosure-trigger-px-compact, var(--spacing-md))",
+                    "padding-right":
+                      "var(--disclosure-trigger-px-compact, var(--spacing-md))",
+                    gap: "var(--disclosure-trigger-px-compact, var(--spacing-xs))",
                     "padding-top": "var(--disclosure-trigger-py-compact)",
                     "padding-bottom": "var(--disclosure-trigger-py-compact)",
                   },
@@ -5823,6 +5893,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   selector: ".react-aria-Button[slot='trigger']",
                   styles: {
                     "min-height": "var(--disclosure-trigger-h-spacious)",
+                    "padding-left":
+                      "var(--disclosure-trigger-px-spacious, var(--spacing-md))",
+                    "padding-right":
+                      "var(--disclosure-trigger-px-spacious, var(--spacing-md))",
+                    gap: "var(--disclosure-trigger-px-spacious, var(--spacing-xs))",
                     "padding-top": "var(--disclosure-trigger-py-spacious)",
                     "padding-bottom": "var(--disclosure-trigger-py-spacious)",
                   },
@@ -5840,6 +5915,23 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   },
                 },
               ],
+            },
+          },
+        },
+        sizeSelectors: {
+          XL: {
+            ".react-aria-Button[slot='trigger']": {
+              "font-size": "20px",
+              "font-weight": "700",
+              "line-height": "24px",
+            },
+            ".react-aria-DisclosurePanel > div": {
+              "padding-left": "15px",
+              "padding-right": "15px",
+            },
+            ".react-aria-Button[slot='trigger'] .react-aria-Icon svg": {
+              width: "14px",
+              height: "14px",
             },
           },
         },
@@ -5879,10 +5971,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             //   대칭 근거: `Disclosure.sizes.fontSize` = `DisclosureHeader.sizes.fontSize`
             //   (둘 다 text-xs/text-sm/text-base) → inherit 값이 Skia 가 읽는 값과 일치.
             "font-size": "inherit",
-            gap: "var(--spacing-xs)",
+            gap: "var(--disclosure-trigger-px, var(--spacing-xs))",
             // 높이 = size · density 별 S2 trigger 높이 (`containerVariants` 의 변수).
             "min-height": "var(--disclosure-trigger-h)",
-            padding: "var(--disclosure-trigger-py) var(--spacing-md)",
+            padding:
+              "var(--disclosure-trigger-py) var(--disclosure-trigger-px, var(--spacing-md))",
             // S2: 모서리는 quiet 와 keyboard focus 에서만 둥글다.
             "border-radius": "0",
             transition: "all 200ms",
@@ -5981,6 +6074,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       L: {
         fontSize: "{typography.text-lg}",
+        borderRadius: "{radius.lg}",
+        borderWidth: "{border.width.none}",
+        height: 0,
+      },
+      XL: {
         borderRadius: "{radius.lg}",
         borderWidth: "{border.width.none}",
         height: 0,
