@@ -1927,6 +1927,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               autoFocus: props.autoFocus,
               escapeKeyBehavior: props.escapeKeyBehavior,
               layout: "grid",
+              // (S2 passes the group's orientation to the ListBox — grid keyboard navigation and the
+              //  `data-orientation` its column blocks key on.)
+              orientation: props.orientation || "vertical",
               selectionMode: props.selectionMode || "single",
               disallowEmptySelection: bool(props.disallowEmptySelection),
               disabledKeys: selectBoxDisabledKeys(

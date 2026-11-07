@@ -430,6 +430,31 @@ export function catalogToggleContentColor(input: CatalogRuleShapeInput) {
   );
 }
 
+/**
+ * The rule's state-tree `box-shadow` (`structure.stateStyles.boxShadow`) the generated sheet draws —
+ * the same conditions on the Canvas (S2 SelectBox: `emphasized` at rest, `elevated` hovered or
+ * selected, `none` disabled — 2026-11-08 사용자 「SelectBoxGroup 이 레퍼런스와 boxShadow 가 다르다」:
+ * the Canvas read only `containerStyles.boxShadow`, so a state-tree elevation never drew there).
+ * A picker trigger's tree (`isPicker`) stays with its own paint — no `isPicker` condition here.
+ */
+export function catalogStateBoxShadow(
+  input: Omit<CatalogRuleShapeInput, "rect">,
+): string | undefined {
+  const tree = input.rule.structure?.stateStyles?.boxShadow;
+  if (tree === undefined) return undefined;
+  const { props } = catalogRulePaint(input);
+  const value = evaluateConditionTree(tree, {
+    isSelected: props.isSelected === true,
+    isDisabled: props.isDisabled === true,
+    isQuiet: props.isQuiet === true,
+    isInvalid: props.isInvalid === true,
+    isHovered: input.state === "hover" || input.state === "selectedHover",
+    isPressed: input.state === "pressed" || input.state === "selectedPressed",
+    isFocusVisible: input.state === "focusVisible",
+  });
+  return value === undefined ? undefined : String(value);
+}
+
 /** 상태 트리의 outline을 Canvas도 같은 조건과 설치된 focus 변수로 해석한다. */
 export function catalogStateOutline(input: CatalogRuleShapeInput) {
   const conditions = {

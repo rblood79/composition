@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [SelectBoxGroup S2 grid · 상자 그림자] - 2026-11-08
+
+### Fixed
+
+- SelectBoxGroup 이 S2 처럼 같은 폭 열의 grid 로 상자를 가운데 정렬한다 (세로 144 ~ 170 · 가로 188 ~ 368, `auto-fit`). 종전에는 flex wrap 이었다. Group 의 orientation 이 ListBox 에 전달된다 (`data-orientation` · grid 키보드 이동).
+- Canvas 가 rule 의 상태별 그림자 (`stateStyles.boxShadow`) 를 그린다 — SelectBox 는 평소 emphasized, hover · 선택 elevated, 비활성 없음. 종전에는 Canvas 가 고정 그림자 (`containerStyles.boxShadow`) 만 읽어 SelectBox 그림자가 Canvas 에서 빠졌다.
+
 ## [SelectBox 그림 크기 48] - 2026-11-07
 
 ### Fixed

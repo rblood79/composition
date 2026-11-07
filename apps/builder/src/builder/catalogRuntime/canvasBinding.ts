@@ -76,9 +76,14 @@ import {
 import { catalogQuietStyles } from "../../../../../packages/shared/src/catalog/runtime/quietStyles";
 import {
   catalogRuleTextColor,
+  catalogStateBoxShadow,
   cssVarColor,
   type CatalogRuleShapeInput,
 } from "./rulePaint";
+import {
+  resolveCatalogShadowSource,
+  resolveEffectiveBoxShadow,
+} from "../workspace/canvas/layout/engines/implicitStyles";
 import {
   catalogAuthoredVisual,
   catalogDerivedConditionalVisual,
@@ -1309,7 +1314,7 @@ function paintedNodeData(
       root,
       node,
       applyCatalogAuthoredPaint(
-        node,
+        withStateBoxShadow(root, node, rect),
         withDisclosureBorders(
           root,
           node,
@@ -1347,6 +1352,36 @@ function paintedNodeData(
       ),
     ),
   );
+}
+
+/**
+ * The rule's state-tree elevation (`catalogStateBoxShadow` — the generated sheet's `box-shadow` for
+ * this node's state) as the record's shadow when the document wrote none, so the authored paint
+ * draws it as it draws a `containerStyles` one. A `none` matters only over such a container shadow.
+ */
+function withStateBoxShadow(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  rect: Rect,
+): CatalogConsumerNode {
+  if (node.visual.boxShadow !== undefined || !node.ruleId) return node;
+  const rule = root.runtime.graph.library.rules.get(node.ruleId);
+  if (rule?.structure?.stateStyles?.boxShadow === undefined) return node;
+  const value = catalogStateBoxShadow(ruleShapeInput(root, node, rect));
+  if (
+    value === undefined ||
+    (value === "none" &&
+      resolveEffectiveBoxShadow(node.ruleId, undefined, root.colorMode) ===
+        undefined)
+  )
+    return node;
+  return {
+    ...node,
+    visual: {
+      ...node.visual,
+      boxShadow: resolveCatalogShadowSource(value, root.colorMode),
+    },
+  } as CatalogConsumerNode;
 }
 
 /** The records under the drawn page roots (a page-filtered bind owns only these). */

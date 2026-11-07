@@ -12,9 +12,11 @@ const actionBarBox = {
   maxWidth: "960px",
   boxShadow: "{shadow.md}",
 };
+// S2 `SelectBoxGroup.tsx` `gridStyles`: a grid of equal columns, centred — `repeat(auto-fit,
+// minmax(min, min(width, 100%)))` per orientation (the columns below; `min(…, 100%)` is the track's
+// `max` when the group is narrower than one column, which the grid's own width already caps).
 const selectGroupBox = {
-  display: "flex",
-  flexWrap: "wrap",
+  display: "grid",
   justifyContent: "center",
   width: "100%",
   height: "fit-content",
@@ -81,6 +83,20 @@ export const SELECT_BOX_GROUP_RULE: ComponentRule = {
     containerStyles: selectGroupBox,
     composition: {
       delegation: [],
+      containerVariants: {
+        orientation: {
+          vertical: {
+            styles: {
+              "grid-template-columns": "repeat(auto-fit, minmax(144px, 170px))",
+            },
+          },
+          horizontal: {
+            styles: {
+              "grid-template-columns": "repeat(auto-fit, minmax(188px, 368px))",
+            },
+          },
+        },
+      },
       rootSelectors: {
         '&[data-selection-mode="single"] [slot="selection"]': {
           styles: { display: "none" },

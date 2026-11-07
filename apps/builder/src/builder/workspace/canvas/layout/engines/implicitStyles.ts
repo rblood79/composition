@@ -169,7 +169,15 @@ export function resolveEffectiveBoxShadow(
     catalogBoxShadowByType.set(key, source);
   }
   if (source == null) return undefined;
+  return resolveCatalogShadowSource(source, theme);
+}
+
+/** A catalog shadow value (`{shadow.md}` · a CSS literal) as the Skia shadow string of this theme. */
+export function resolveCatalogShadowSource(
+  source: string,
+  theme: "light" | "dark" = "light",
+): string {
   return source.startsWith("{shadow.")
     ? getShadowToken(source.slice(8, -1) as keyof ShadowTokens, theme)
-    : source;
+    : normalizeShadowForTheme(source, theme);
 }
