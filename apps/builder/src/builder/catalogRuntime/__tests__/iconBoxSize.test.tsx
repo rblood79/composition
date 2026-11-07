@@ -40,7 +40,7 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 const BODY = "project:node:home-body" as NodeId;
 const ICON = "project:node:icon" as NodeId;
 
-async function open() {
+async function open(type = "Icon") {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
@@ -64,7 +64,7 @@ async function open() {
         {
           kind: "node",
           id: ICON,
-          definitionId: catalogPaletteDefinitionId(library, "Icon"),
+          definitionId: catalogPaletteDefinitionId(library, type),
           children: [],
           props: {},
           visual: {},
@@ -295,5 +295,20 @@ describe("Icon — the Layout width · height sizes the glyph", () => {
     expect(scene.canvasGlyph()).toBe(20);
     scene.setBreakpoint("desktop");
     expect(scene.canvasGlyph()).toBe(64);
+  });
+
+  it("SelectBox's illustration Icon is S2's Illustration S — a 48 glyph in a 48 box", async () => {
+    // (S2 `SelectBoxGroup.tsx`: `IllustrationContext` size S — `illustrationStyles` S 48, `minSize: 48`.
+    //  The origin wrote the box only, so the glyph stayed the Icon's M step 18 — 2026-11-07 사용자 보고.)
+    const scene = await open("SelectBoxGroup");
+    expect(scene.icon().props.slot).toBe("illustration");
+    expect([scene.rect().width, scene.rect().height]).toEqual([48, 48]);
+    expect(scene.canvasGlyph()).toBe(48);
+    expect(scene.effective()).toMatchObject({
+      fontSize: "48px",
+      width: "48px",
+      height: "48px",
+    });
+    expect((await scene.domSvg()).svg).toBe("48");
   });
 });

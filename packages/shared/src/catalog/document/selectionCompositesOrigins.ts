@@ -291,9 +291,11 @@ export const SELECTION_COMPOSITE_TEMPLATES: readonly LibraryTemplateNode[] = [
       slot: "illustration",
       iconName: "{icon}",
     },
+    // S2 `IllustrationContext` size S (`illustrationStyles` 48, `minSize: 48`) — the glyph size, its
+    // box follows (`glyphSize.ts`). A box alone (width · height 48) left the glyph at the Icon's
+    // M step 18 (2026-11-07 사용자 보고).
     visual: {
-      width: 48,
-      height: 48,
+      fontSize: 48,
     },
   },
   {

@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [SelectBox 그림 크기 48] - 2026-11-07
+
+### Fixed
+
+- SelectBox 의 illustration Icon 이 S2 Illustration S 크기 (48) 로 그려진다. 원본이 상자 (Width · Height 48) 만 정해 그림은 Icon 기본 M (18) 에 머물렀다 — 원본의 그림 크기를 48 로 두고 상자는 그것을 따른다 (Canvas · Preview 공통).
+
 ## [Icon 크기 단일화 — Layout 크기 · Font Size · Size 숫자] - 2026-11-07
 
 ### Fixed
