@@ -1120,6 +1120,8 @@ const catalog: TranslationKeys = {
     stateOwnerPage: "Page",
     stateInstanceHint: "Separate value per instance",
     delegatedSubpartMessage: "Edited from the parent",
+    boundTextPartDescription:
+      "Text follows {parent}. Edit its content on the canvas and its style in this element's Style panel.",
     delegatedSubpartDescription:
       "{type} is drawn by {parent} — its own properties and styles never reach Preview or Publish. Edit the parent's properties instead.",
     selectElement: "Select an element",
@@ -3866,6 +3868,8 @@ const formattedMessages: Record<
     `Delete '${String(args?.name ?? "")}'. The ${String(args?.count ?? 0)} interaction(s) that set it are deleted too.`,
   "propertiesPanel.delegatedSubpartDescription": (args) =>
     `${String(args?.type ?? "")} is drawn by ${String(args?.parent ?? "")}. Its own properties and styles never reach Preview or Publish; edit the parent's properties instead.`,
+  "propertiesPanel.boundTextPartDescription": (args) =>
+    `Text follows ${String(args?.parent ?? "")}. Edit its content on the canvas and its style in this element's Style panel.`,
   "styles.delegatedSubpartDescription": (args) =>
     `${String(args?.type ?? "")} takes its style from the design rules of ${String(args?.parent ?? "")}. Values set here reach neither the canvas nor Preview.`,
   "styles.elementlessDescription": (args) =>

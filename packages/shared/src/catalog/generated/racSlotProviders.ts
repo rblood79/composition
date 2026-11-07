@@ -5,7 +5,7 @@
 // the slot prop passes as is), or a cleared context (`cleared`: the part detaches its children).
 
 export type RacSlotContextKey =
-  "Text" | "Button" | "Heading" | "Checkbox" | "DateField";
+  "Text" | "Button" | "Heading" | "Checkbox" | "DateField" | "Link" | "Slider";
 
 export interface RacSlotProvision {
   readonly slots?: readonly string[];
@@ -19,6 +19,11 @@ export const RAC_SLOT_PROVIDERS_VERSION = "1.22.1";
 export const RAC_SLOT_PROVIDERS: Readonly<
   Record<string, Readonly<Partial<Record<RacSlotContextKey, RacSlotProvision>>>>
 > = {
+  Breadcrumb: {
+    Link: {
+      plain: true,
+    },
+  },
   Calendar: {
     Button: {
       slots: ["previous", "next"],

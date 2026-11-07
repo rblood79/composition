@@ -7,6 +7,7 @@ export const RANGE_SEGMENT_DEFINITIONS: readonly LibraryDefinition[] = [
     name: "RangeSlider",
     mode: "composite",
     accepts: {
+      slot: "slot",
       label: "string",
       value: "numberRange",
     },

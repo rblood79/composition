@@ -1,6 +1,9 @@
 import { catalogSelectBoxText } from "./selectBoxText";
-import { CatalogActionBar } from "./selectionComposites.components";
-import { catalogSelectionCountText } from "../document/selectionCountValue";
+import { ActionBar } from "../../components/ActionBar";
+import {
+  catalogSelectionCountFits,
+  catalogSelectionCountText,
+} from "../document/selectionCountValue";
 import { ListBoxItem as AriaSelectBoxItem } from "react-aria-components/ListBox";
 import {
   SegmentedControlItem as AriaSegmentButton,
@@ -1845,10 +1848,11 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   },
   actionbar: {
     render: (input) => {
-      const count =
+      const rawCount =
         input.runtimeProps?.(input.node.id)?.selectedItemCount ??
         input.node.props.selectedItemCount ??
         0;
+      const count = catalogSelectionCountFits(rawCount) ? rawCount : 0;
       if (count === 0) return createElement(Fragment, { key: input.node.id });
       const clear = () => {
         input.handlersOf?.(input.node.id)?.onClearSelection?.();
@@ -1862,20 +1866,23 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             input.root.environmentLocale,
           ),
         },
-        createElement(
-          CatalogActionBar,
-          {
-            ...marker(input),
-            className: "react-aria-ActionBar",
-            "data-size": "M",
-            "data-variant": "default",
-            "data-emphasized":
-              input.node.props.isEmphasized === true || undefined,
-            style: input.style,
-            clear,
-          },
-          ...renderAll(input),
-        ),
+        createElement(RacSlotScope, {
+          context: "ActionBar",
+          authored: input.node.props.slot,
+          render: (resolution) =>
+            createElement(
+              ActionBar,
+              {
+                ...marker(input),
+                ...racSlotProps(resolution),
+                style: input.style,
+                selectedItemCount: count,
+                isEmphasized: input.node.props.isEmphasized === true,
+                onClearSelection: clear,
+              },
+              ...renderAll(input),
+            ),
+        }),
       );
     },
   },
@@ -2678,27 +2685,43 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       const { min, max } = catalogSliderRange(input.node);
       const value = runtimeState(input, "value");
       return withI18n(
-        createElement(AriaSlider as ElementType, {
-          ...marker(input),
-          // (A static render's value is RAC's run state — `defaultValue`; a document edit of the
-          // value starts it again. A running Preview's is controlled — ADR-280.)
-          key: stateKey(input, `${input.node.id}:${value}`),
-          style: input.style,
-          className: "react-aria-Slider",
-          "data-size": str(props.size) || "M",
-          "data-label-position": str(props.labelPosition) || "top",
-          // (S2 start · end — start is the sheet's default, so only end is an attribute.)
-          "data-label-align": props.labelAlign === "end" ? "end" : undefined,
-          "data-emphasized": bool(props.isEmphasized) || undefined,
-          ...controlled(input, VALUE, value),
-          minValue: min,
-          maxValue: max,
-          step: num(props.step) ?? 1,
-          formatOptions: catalogNumberFormatOptions(props.formatOptions),
-          isDisabled: bool(props.isDisabled),
-          // (No visible label: RAC needs a name — the type's own.)
-          "aria-label": str(props.label).trim() ? undefined : "Slider",
-          children: catalogStateChildren(input.node.id, () => renderAll(input)),
+        createElement(RacSlotScope, {
+          context: "Slider",
+          authored: props.slot,
+          render: (resolution) =>
+            createElement(AriaSlider as ElementType, {
+              ...marker(input),
+              ...racSlotProps(resolution),
+              // (A static render's value is RAC's run state — `defaultValue`; a document edit of the
+              // value starts it again. A running Preview's is controlled — ADR-280.)
+              key: stateKey(input, `${input.node.id}:${value}`),
+              style: input.style,
+              className: "react-aria-Slider",
+              "data-size": str(props.size) || "M",
+              "data-label-position": str(props.labelPosition) || "top",
+              // (S2 start · end — start is the sheet's default, so only end is an attribute.)
+              "data-label-align":
+                props.labelAlign === "end" ? "end" : undefined,
+              "data-emphasized": bool(props.isEmphasized) || undefined,
+              ...controlled(input, VALUE, value),
+              minValue: min,
+              maxValue: max,
+              step: num(props.step) ?? 1,
+              formatOptions: catalogNumberFormatOptions(props.formatOptions),
+              isDisabled: props.isDisabled === true ? true : undefined,
+              "aria-labelledby": props["aria-labelledby"],
+              "aria-describedby": props["aria-describedby"],
+              "aria-details": props["aria-details"],
+              // (No visible label: RAC needs a name — the type's own.)
+              "aria-label":
+                props["aria-label"] ??
+                (props["aria-labelledby"] || str(props.label).trim()
+                  ? undefined
+                  : "Slider"),
+              children: catalogStateChildren(input.node.id, () =>
+                renderAll(input),
+              ),
+            }),
         }),
         props.locale,
       );
@@ -2716,36 +2739,49 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       );
       const value = range;
       return withI18n(
-        createElement(CatalogRangeSlider as ElementType, {
-          ...marker(input),
-          // (A static render's value is RAC's run state — `defaultValue`; a document edit of the
-          // value starts it again. A running Preview's is controlled — ADR-280.)
-          key: stateKey(input, `${input.node.id}:${value}`),
-          style: input.style,
-          className: "react-aria-Slider react-aria-RangeSlider",
-          startName: props.startName,
-          endName: props.endName,
-          form: props.form,
-          size: props.size,
-          labelPosition: props.labelPosition,
-          labelAlign: props.labelAlign,
-          trackStyle: props.trackStyle,
-          thumbStyle: props.thumbStyle,
-          isEmphasized: props.isEmphasized,
-          "data-size": str(props.size) || "M",
-          "data-label-position": str(props.labelPosition) || "top",
-          // (S2 start · end — start is the sheet's default, so only end is an attribute.)
-          "data-label-align": props.labelAlign === "end" ? "end" : undefined,
-          "data-emphasized": bool(props.isEmphasized) || undefined,
-          ...controlled(input, VALUE, value),
-          minValue: min,
-          maxValue: max,
-          step: num(props.step) ?? 1,
-          formatOptions: catalogNumberFormatOptions(props.formatOptions),
-          isDisabled: bool(props.isDisabled),
-          // (No visible label: RAC needs a name — the type's own.)
-          "aria-label": str(props.label).trim() ? undefined : "Range Slider",
-          children: catalogStateChildren(input.node.id, () => renderAll(input)),
+        createElement(RacSlotScope, {
+          context: "Slider",
+          authored: props.slot,
+          render: (resolution) =>
+            createElement(CatalogRangeSlider as ElementType, {
+              ...marker(input),
+              ...racSlotProps(resolution),
+              // (A static render's value is RAC's run state — `defaultValue`; a document edit of the
+              // value starts it again. A running Preview's is controlled — ADR-280.)
+              key: stateKey(input, `${input.node.id}:${value}`),
+              style: input.style,
+              className: "react-aria-Slider react-aria-RangeSlider",
+              startName: props.startName,
+              endName: props.endName,
+              form: props.form,
+              size: props.size,
+              labelPosition: props.labelPosition,
+              labelAlign: props.labelAlign,
+              trackStyle: props.trackStyle,
+              thumbStyle: props.thumbStyle,
+              isEmphasized: props.isEmphasized,
+              "data-size": str(props.size) || "M",
+              "data-label-position": str(props.labelPosition) || "top",
+              // (S2 start · end — start is the sheet's default, so only end is an attribute.)
+              "data-label-align":
+                props.labelAlign === "end" ? "end" : undefined,
+              "data-emphasized": bool(props.isEmphasized) || undefined,
+              ...controlled(input, VALUE, value),
+              minValue: min,
+              maxValue: max,
+              step: num(props.step) ?? 1,
+              formatOptions: catalogNumberFormatOptions(props.formatOptions),
+              isDisabled: props.isDisabled === true ? true : undefined,
+              "aria-labelledby": props["aria-labelledby"],
+              "aria-describedby": props["aria-describedby"],
+              "aria-details": props["aria-details"],
+              // (No visible label: RAC needs a name — the type's own.)
+              "aria-label": props["aria-label"],
+              label: str(props.label),
+              children: catalogStateChildren(input.node.id, () =>
+                renderAll(input),
+              ),
+            }),
         }),
         props.locale,
       );

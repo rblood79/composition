@@ -1,6 +1,7 @@
 import { createContext, forwardRef, useContext } from "react";
 import {
   Slider,
+  SliderContext,
   SliderThumb as RacSliderThumb,
   SliderOutput,
   SliderTrack,
@@ -9,6 +10,7 @@ import {
   type SliderThumbProps,
 } from "react-aria-components/Slider";
 import { Label } from "react-aria-components/Label";
+import { useSlottedContext } from "react-aria-components";
 import { rangeSegmentsDefaultChildren } from "./rangeSegmentsDefaults";
 import { RANGE_SEGMENT_DEFINITIONS } from "../catalog/document/rangeSegmentsOrigins";
 import {
@@ -63,16 +65,19 @@ export const RangeSlider = forwardRef<HTMLDivElement, RangeSliderProps>(
     },
     ref,
   ) {
+    const slotProps = useSlottedContext(SliderContext, props.slot);
     const fallback =
       defaultValue ??
-      catalogRangeValue(
-        RANGE_SEGMENT_DEFINITIONS.find(
-          (definition) => definition.name === "RangeSlider",
-        )!.defaults.value,
-        props.minValue,
-        props.maxValue,
-        props.step,
-      );
+      (slotProps?.defaultValue === undefined
+        ? catalogRangeValue(
+            RANGE_SEGMENT_DEFINITIONS.find(
+              (definition) => definition.name === "RangeSlider",
+            )!.defaults.value,
+            props.minValue,
+            props.maxValue,
+            props.step,
+          )
+        : undefined);
     return (
       <RangeNames.Provider value={{ startName, endName, form }}>
         <Slider
@@ -87,8 +92,16 @@ export const RangeSlider = forwardRef<HTMLDivElement, RangeSliderProps>(
           data-emphasized={isEmphasized || undefined}
           data-track-style={trackStyle}
           data-thumb-style={thumbStyle}
+          aria-label={
+            props["aria-label"] ??
+            slotProps?.["aria-label"] ??
+            ((props["aria-labelledby"] ?? slotProps?.["aria-labelledby"]) ||
+            label !== ""
+              ? undefined
+              : "Range Slider")
+          }
           value={value ? [value.start, value.end] : undefined}
-          defaultValue={[fallback.start, fallback.end]}
+          defaultValue={fallback ? [fallback.start, fallback.end] : undefined}
           onChange={(value) => onChange?.(catalogRangeValueFromThumbs(value))}
           onChangeEnd={(value) =>
             onChangeEnd?.(catalogRangeValueFromThumbs(value))

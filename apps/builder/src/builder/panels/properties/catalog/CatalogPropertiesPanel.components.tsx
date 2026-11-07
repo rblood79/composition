@@ -93,6 +93,7 @@ import { CatalogPageSection } from "./CatalogPageSection";
 import { CatalogPropertyClipboardActions } from "./CatalogPropertyClipboardActions";
 
 import { CatalogRacSlotSection } from "./CatalogRacSlotSection";
+import { catalogSubpartOwnerType } from "../../../catalogRuntime/subpart";
 
 import {
   CatalogCardFieldsSection,
@@ -138,17 +139,35 @@ export function CatalogPropertiesBody({
         message={t("propertiesPanel.selectElement")}
       />
     );
-  if (subpartOwner)
+  if (subpartOwner) {
+    const styleOwner = root
+      ? catalogSubpartOwnerType(graph, root.domInputs, first.identity, "style")
+      : subpartOwner;
     return (
-      <EmptyState
-        icon={<Settings2 size={32} />}
-        message={t("propertiesPanel.delegatedSubpartMessage")}
-        description={t("propertiesPanel.delegatedSubpartDescription", {
-          type: contract.type,
-          parent: subpartOwner,
-        })}
-      />
+      <>
+        <EmptyState
+          icon={<Settings2 size={32} />}
+          message={t("propertiesPanel.delegatedSubpartMessage")}
+          description={t(
+            styleOwner
+              ? "propertiesPanel.delegatedSubpartDescription"
+              : "propertiesPanel.boundTextPartDescription",
+            {
+              type: contract.type,
+              parent: subpartOwner,
+            },
+          )}
+        />
+        {root && !styleOwner && catalogRacSlotConsumer(contract.type) && (
+          <CatalogRacSlotSection
+            identity={first.identity}
+            workspace={workspace}
+            root={root}
+          />
+        )}
+      </>
     );
+  }
   const settingsPage =
     first.target.kind === "node"
       ? catalogSettingsPage(graph, first.target.id)

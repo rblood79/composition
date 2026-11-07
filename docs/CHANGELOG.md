@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [신규 S2 컴포넌트 조립·상속 — 공통 RAC 패턴 정렬] - 2026-11-07
+
+### Fixed
+
+- SelectBox 내부 Text의 label·description과 ActionBar의 clear Button이 실제 부모 제공자를 공통 Slot 패널에서 선택하도록 연결한다. 부모 텍스트에 연결된 실제 Text 자식에도 Slot 편집을 제공하고, ActionButton의 Slot 해제 명령·Undo/Redo를 문서 계약에서 지원한다. Link·LinkButton, Slider·RangeSlider와 ActionBar의 부모 slot은 명시 해제·Code 왕복·실제 context 소비까지 연결한다.
+- LinkButton·RangeSlider·SelectBoxGroup/SelectBox의 상위 disabled와 RangeSlider·LabeledValue의 Form 배치를 공통 수신 계약에 등록한다. RangeSlider의 초기 범위와 SelectBoxGroup의 선택 모드는 부모 context를 반영한 뒤 기본값을 적용한다.
+- Link·LinkButton의 ARIA·탐색 속성과 LinkButton의 autoFocus를 Preview·Publish로 전달한다. hrefLang은 RAC의 native render 경로에서 보완하며 Code도 같은 공용 Link를 사용한다.
+- LabeledValue 공개 기본 Text가 catalog 크기·줄 높이를 상속하도록 기본 CSS를 생성한다. 직접 편집한 자식 typography가 우선한다.
+
 ## [기본 서체 Pretendard — Canvas·DOM 대체 서체 통일] - 2026-11-07
 
 ### Changed

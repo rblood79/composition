@@ -12,6 +12,8 @@ paths:
 
 # 상태 관리 규칙
 
+- catalog의 Slot 제공자·소비자 및 상태 수신 등록은 실제 RAC context와 함께 갱신한다. **Why (2026-11-07):** SelectBox의 ListBoxItem Text와 ActionBar의 clear Button은 실제 context가 있어도 제공자 등록 누락으로 새 자식의 Slot 편집이 숨겨졌고, 새 타입의 disabled 수신 누락은 Canvas와 DOM의 활성 상태를 갈랐다 (`s2CompositionPatterns.test.tsx`).
+
 - 필드 `value` 편집에는 일반 Text의 개행용 `white-space` 자동 승격을 적용하지 않는다. **Why (2026-11-07):** TextArea의 실제 Enter 입력이 Input에 지원되지 않는 `whiteSpace: pre-wrap`을 preview/commit하여 `CATALOG_CANVAS_VISUAL_UNSUPPORTED` 렌더 실패를 일으켰다. 값의 개행은 owner에 저장하고 필드의 표시 계약을 유지한다.
 
 - Input의 편집 값과 표시 값은 같은 가장 가까운 field owner를 해석한다. 빈 값도 편집 채널을 유지하고 쓰기는 owner prop의 기존 명령 경로를 사용한다. **Why (2026-11-07):** TextArea·ColorField Input이 owner 값을 placeholder로만 파생해 Canvas에서 value를 편집할 수 없었다. 자식 value override를 쓰면 RAC owner context와 저장 값이 갈라지므로 표시와 편집의 owner 탐색을 공유한다.

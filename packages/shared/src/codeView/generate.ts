@@ -2825,12 +2825,16 @@ class Generator {
     } else if (origin)
       this.import(
         [
+          "ActionButton",
+          "ActionButtonGroup",
+          "Link",
           "LinkButton",
           "LabeledValue",
           "RangeSlider",
           "SliderThumb",
           "SegmentedControl",
           "SegmentedControlItem",
+          "ActionBar",
         ].includes(origin)
           ? "@composition/shared/components"
           : "react-aria-components",
@@ -2840,12 +2844,14 @@ class Generator {
       [
         "ActionButton",
         "ActionButtonGroup",
+        "Link",
         "LinkButton",
         "LabeledValue",
         "RangeSlider",
         "SliderThumb",
         "SegmentedControl",
         "SegmentedControlItem",
+        "ActionBar",
       ].includes(type)
     ) {
       this.import("@composition/shared/components", type);
@@ -3256,6 +3262,7 @@ class Generator {
     row: string | undefined,
     prop = "",
   ): string | undefined {
+    if (prop === "slot" && value === false) return "{null}";
     if (isPropWhen(value)) return `{${this.propWhen(value)}}`;
     if (isPropVar(value)) {
       const [id, ...path] = value.ref.slice(5).split(".");

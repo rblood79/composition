@@ -16544,6 +16544,11 @@ COMPONENT_RULES_TABLE.LabeledValue = {
     },
     composition: {
       delegation: [],
+      rootSelectors: {
+        "& > .react-aria-Text": {
+          styles: { "font-size": "inherit", "line-height": "inherit" },
+        },
+      },
       containerVariants: {
         "label-position": {
           side: {

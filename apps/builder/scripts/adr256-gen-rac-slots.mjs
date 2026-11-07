@@ -15,6 +15,8 @@ const CONSUMERS = {
   HeadingContext: "Heading",
   CheckboxContext: "Checkbox",
   DateFieldContext: "DateField",
+  LinkContext: "Link",
+  SliderContext: "Slider",
 };
 /** Probe segment names that are not the RAC part's own name. */
 const SEGMENT_ALIAS = { Item: "ColorSwatchPickerItem" };
@@ -81,11 +83,9 @@ export function renderRacSlotProviders(inventory) {
 // the slot prop passes as is), or a cleared context (\`cleared\`: the part detaches its children).
 
 export type RacSlotContextKey =
-  | "Text"
-  | "Button"
-  | "Heading"
-  | "Checkbox"
-  | "DateField";
+${Object.values(CONSUMERS)
+  .map((key) => `  | ${JSON.stringify(key)}`)
+  .join("\n")};
 
 export interface RacSlotProvision {
   readonly slots?: readonly string[];

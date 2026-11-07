@@ -11,12 +11,25 @@ import {
   type ReactElement,
 } from "react";
 import * as RAC from "react-aria-components";
+import { ActionBarContext } from "../../components/ActionBarContext";
 import { resolveRacSlot, type RacSlotResolution } from "./racSlot";
 
 /** The RAC consumer contexts a catalog part reads its slot from (`racSlot.ts`). */
 const RAC_SLOT_CONTEXTS: Readonly<
-  Record<"Text" | "Heading" | "Button" | "Checkbox", Context<unknown>>
+  Record<
+    | "Text"
+    | "Heading"
+    | "Button"
+    | "Checkbox"
+    | "Link"
+    | "Slider"
+    | "ActionBar",
+    Context<unknown>
+  >
 > = {
+  Link: RAC.LinkContext as Context<unknown>,
+  Slider: RAC.SliderContext as Context<unknown>,
+  ActionBar: ActionBarContext as Context<unknown>,
   Text: RAC.TextContext as Context<unknown>,
   Heading: RAC.HeadingContext as Context<unknown>,
   Button: RAC.ButtonContext as Context<unknown>,
@@ -43,10 +56,7 @@ export function RacSlotScope({
   [key: string]: unknown;
 }): ReactElement {
   const element = render(
-    resolveRacSlot(
-      useContext(RAC_SLOT_CONTEXTS[context]),
-      slot ?? authored,
-    ),
+    resolveRacSlot(useContext(RAC_SLOT_CONTEXTS[context]), slot ?? authored),
   );
   return Object.keys(rest).length
     ? cloneElement(element, overScopeProps(element, rest))

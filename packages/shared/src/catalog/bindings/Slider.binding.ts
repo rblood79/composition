@@ -11,6 +11,7 @@
 
 import type { PrimitiveBinding } from "../types";
 import { FORMAT_OPTIONS_PROP } from "./numberFormatProps";
+import { ARIA_LABELING_PROPS, RAC_SLOT_PROP } from "./accessibilityProps";
 
 export const sliderBinding: PrimitiveBinding = {
   source: {
@@ -29,6 +30,8 @@ export const sliderBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      ...ARIA_LABELING_PROPS,
+      slot: RAC_SLOT_PROP,
       label: { kind: "string", label: "Label", section: "content" },
       size: {
         kind: "size",

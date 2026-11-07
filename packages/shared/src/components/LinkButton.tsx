@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
-import { Link, type LinkProps } from "react-aria-components/Link";
+import type { LinkProps } from "react-aria-components/Link";
+import { LinkPrimitive as Link } from "./LinkPrimitive";
 
 export interface LinkButtonProps extends LinkProps {
   variant?: "primary" | "secondary" | "negative" | "genai" | "premium";

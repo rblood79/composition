@@ -45,6 +45,7 @@ async function rail(name) {
   if ((await b.getAttribute("aria-pressed")) !== "true") await b.click();
 }
 async function read() {
+  await page.waitForFunction(() => window.__COMPOSITION_CATALOG__?.workspace);
   return page.evaluate(() => {
     const ws = window.__COMPOSITION_CATALOG__.workspace;
     return [...ws.root.canvasInputs.values()].map((n) => ({
@@ -70,13 +71,23 @@ async function select(id) {
   for (const ancestor of ancestors) {
     const row = layers().locator(`[role="row"][data-key="${ancestor}"]`);
     if (await row.count()) {
-      await row.press("ArrowRight");
-      await settle();
+      const expand = row.getByRole("button", { name: /^Expand / });
+      if (await expand.count()) {
+        await expand.first().click();
+        await settle();
+      }
     }
   }
   const row = layers().locator(`[role="row"][data-key="${id}"]`);
   await row.scrollIntoViewIfNeeded();
-  await row.press("Space");
+  await row.focus();
+  if ((await row.getAttribute("aria-selected")) !== "true") {
+    await row.press("Space");
+  }
+  await page.waitForFunction((id) => {
+    const row = document.querySelector(`[role="row"][data-key="${id}"]`);
+    return row?.getAttribute("aria-selected") === "true";
+  }, id);
   await rail("Design");
   await panel().getByRole("tab", { name: "Property", exact: true }).click();
   await settle();
@@ -160,6 +171,57 @@ try {
         !!owner && nodes.length > 3,
         nodes.map((n) => n.type),
       );
+      const slotPart = nodes.find((node) =>
+        type === "ActionBar"
+          ? node.type === "ActionButton" && node.props.slot === "clear"
+          : node.type === "Text" && node.props.slot === "label",
+      );
+      const provider = type === "ActionBar" ? "ActionBar" : "ListBoxItem";
+      await select(slotPart.id);
+      const slotField = panel().getByRole("group", {
+        name: `Slot of ${provider}`,
+        exact: true,
+      });
+      await slotField.getByRole("button").click();
+      const names = type === "ActionBar" ? ["clear"] : ["label", "description"];
+      check(
+        type,
+        "part Slot choices match the actual provider",
+        (
+          await Promise.all(
+            names.map((name) =>
+              page.getByRole("option", { name, exact: true }).isVisible(),
+            ),
+          )
+        ).every(Boolean),
+      );
+      await page
+        .getByRole("option", { name: "Detach (slot = null)", exact: true })
+        .click();
+      await settle();
+      const slotValue = async () =>
+        (await read()).find((node) => node.id === slotPart.id)?.props.slot;
+      check(
+        type,
+        "part Slot detach is authored",
+        (await slotValue()) === false,
+      );
+      await page.keyboard.press("Meta+z");
+      await settle();
+      check(
+        type,
+        "part Slot Undo restores its name",
+        (await slotValue()) === slotPart.props.slot,
+      );
+      await page.keyboard.press("Meta+Shift+z");
+      await settle();
+      check(
+        type,
+        "part Slot Redo restores detach",
+        (await slotValue()) === false,
+      );
+      await page.keyboard.press("Meta+z");
+      await settle();
       const child = nodes.find(
         (n) =>
           n.type === "Text" &&

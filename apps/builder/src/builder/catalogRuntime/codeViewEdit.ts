@@ -2311,6 +2311,7 @@ class Planner {
     if (!value) return true;
     if (value.kind === "string") return value.code.replace(/\\(.)/g, "$1");
     const text = value.code.trim();
+    if (attribute.name === "slot" && text === "null") return false;
     // ADR-296 — a token prop (`token('<name>')`): the token the code names.
     const token = /^token\(('(?:[^'\\]|\\.)*')\)$/.exec(text);
     if (token) {

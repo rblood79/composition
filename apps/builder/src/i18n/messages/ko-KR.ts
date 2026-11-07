@@ -1119,6 +1119,8 @@ const catalog: TranslationKeys = {
     stateOwnerPage: "페이지",
     stateInstanceHint: "인스턴스마다 별도 값",
     delegatedSubpartMessage: "부모에서 편집하는 요소입니다",
+    boundTextPartDescription:
+      "텍스트는 {parent}의 속성을 따릅니다. 내용은 캔버스에서, 스타일은 이 요소의 스타일 패널에서 편집할 수 있습니다.",
     delegatedSubpartDescription:
       "{type} 은 {parent} 가 그리는 부분이라 미리보기·퍼블리시에 이 요소의 속성·스타일이 실리지 않습니다. 부모의 속성 으로 편집하세요.",
     selectElement: "요소를 선택하세요",
@@ -3854,6 +3856,8 @@ const formattedMessages: Record<
     `'${String(args?.name ?? "")}' 을 삭제합니다. 이 상태를 바꾸는 인터랙션 ${String(args?.count ?? 0)} 개도 함께 삭제됩니다.`,
   "propertiesPanel.delegatedSubpartDescription": (args) =>
     `${String(args?.type ?? "")} 은 ${String(args?.parent ?? "")} 가 그리는 부분이라 미리보기·퍼블리시에 이 요소의 속성·스타일이 실리지 않습니다. 부모의 속성 으로 편집하세요.`,
+  "propertiesPanel.boundTextPartDescription": (args) =>
+    `텍스트는 ${String(args?.parent ?? "")}의 속성을 따릅니다. 내용은 캔버스에서, 스타일은 이 요소의 스타일 패널에서 편집할 수 있습니다.`,
   "styles.delegatedSubpartDescription": (args) =>
     `${String(args?.type ?? "")} 의 스타일은 ${String(args?.parent ?? "")} 의 디자인 규칙이 정합니다. 여기서 준 값은 캔버스·미리보기 어디에도 반영되지 않습니다.`,
   "styles.elementlessDescription": (args) =>

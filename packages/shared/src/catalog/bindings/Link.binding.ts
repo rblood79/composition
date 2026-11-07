@@ -13,6 +13,7 @@
  */
 
 import type { PrimitiveBinding } from "../types";
+import { ARIA_LABELING_PROPS, RAC_SLOT_PROP } from "./accessibilityProps";
 
 export const linkBinding: PrimitiveBinding = {
   source: {
@@ -51,6 +52,40 @@ export const linkBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      ...ARIA_LABELING_PROPS,
+      slot: RAC_SLOT_PROP,
+      "aria-current": {
+        kind: "enum",
+        label: "Current",
+        section: "state",
+        options: [
+          "page",
+          "step",
+          "location",
+          "date",
+          "time",
+          "true",
+          "false",
+        ].map((value) => ({ value, label: value })),
+      },
+      download: { kind: "string", label: "Download", section: "content" },
+      hrefLang: { kind: "string", label: "Link Language", section: "content" },
+      ping: { kind: "string", label: "Ping", section: "content" },
+      referrerPolicy: {
+        kind: "enum",
+        label: "Referrer Policy",
+        section: "content",
+        options: [
+          "no-referrer",
+          "no-referrer-when-downgrade",
+          "origin",
+          "origin-when-cross-origin",
+          "same-origin",
+          "strict-origin",
+          "strict-origin-when-cross-origin",
+          "unsafe-url",
+        ].map((value) => ({ value, label: value })),
+      },
       children: { kind: "string", label: "Label", section: "content" },
       // 시각 차원 → data-variant / data-size (theme 가 값 집합 + text 색 제공)
       variant: {

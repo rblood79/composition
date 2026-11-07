@@ -1,6 +1,7 @@
 import { SliderThumb as CatalogSliderThumb } from "../../components/RangeSlider";
 import { catalogSelectBoxDescriptionHidden } from "./selectBoxPresence";
 import { LinkButton } from "../../components/LinkButton";
+import { LinkPrimitive } from "../../components/LinkPrimitive";
 import { LabeledValue } from "../../components/LabeledValue";
 import {
   catalogPickerSelectionHidden,
@@ -1143,28 +1144,45 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       ...children,
     ),
   linkbutton: (node, style, children) =>
-    createElement(
-      LinkButton,
-      {
-        key: node.id,
-        "data-catalog-id": node.id,
-        variant: node.props.variant,
-        size: node.props.size,
-        fillStyle: node.props.fillStyle,
-        staticColor: node.props.staticColor,
-        "data-size": node.props.size,
-        "data-variant": node.props.variant,
-        "data-fill-style": node.props.fillStyle,
-        "data-static-color": node.props.staticColor,
-        href: node.props.href as string | undefined,
-        target: node.props.target as string | undefined,
-        rel: node.props.rel as string | undefined,
-        isDisabled: node.props.isDisabled === true,
-        style,
-      } as Parameters<typeof LinkButton>[0],
-      ...children,
-      typeof node.props.children === "string" ? node.props.children : null,
-    ),
+    createElement(RacSlotScope, {
+      key: node.id,
+      context: "Link",
+      authored: node.props.slot,
+      render: (resolution) =>
+        createElement(
+          LinkButton,
+          {
+            key: node.id,
+            "data-catalog-id": node.id,
+            variant: node.props.variant,
+            size: node.props.size,
+            fillStyle: node.props.fillStyle,
+            staticColor: node.props.staticColor,
+            "data-size": node.props.size,
+            "data-variant": node.props.variant,
+            "data-fill-style": node.props.fillStyle,
+            "data-static-color": node.props.staticColor,
+            href: node.props.href as string | undefined,
+            target: node.props.target as string | undefined,
+            rel: node.props.rel as string | undefined,
+            download: node.props.download,
+            hrefLang: node.props.hrefLang,
+            ping: node.props.ping,
+            referrerPolicy: node.props.referrerPolicy,
+            "aria-current": node.props["aria-current"],
+            "aria-label": node.props["aria-label"],
+            "aria-labelledby": node.props["aria-labelledby"],
+            "aria-describedby": node.props["aria-describedby"],
+            "aria-details": node.props["aria-details"],
+            ...(node.props.isDisabled === true ? { isDisabled: true } : {}),
+            autoFocus: node.props.autoFocus,
+            ...racSlotProps(resolution),
+            style,
+          } as Parameters<typeof LinkButton>[0],
+          ...children,
+          typeof node.props.children === "string" ? node.props.children : null,
+        ),
+    }),
   button: (node, style, children) =>
     createElement(RacSlotScope, {
       key: node.id,
@@ -2902,7 +2920,11 @@ function ruleDom(
     node.props.defaultWidth === undefined &&
     catalogTableSelectionColumn(node, domGet, domType);
   const element = createElement(
-    selectionColumn ? CatalogTableSelectionColumn : Component,
+    lower === "link"
+      ? LinkPrimitive
+      : selectionColumn
+        ? CatalogTableSelectionColumn
+        : Component,
     {
       key:
         widthKey !== undefined
@@ -3026,6 +3048,14 @@ function ruleDom(
           ]
         : content),
   );
+  if (lower === "link")
+    return createElement(RacSlotScope, {
+      key: node.id,
+      context: "Link",
+      authored: node.props.slot,
+      render: (resolution) =>
+        cloneElement(element, { slot: undefined, ...racSlotProps(resolution) }),
+    });
   // Preview `hostOrphanRadio` / `hostOrphanCollectionItem`: RAC items need their host.
   if (lower === "radio" && collection !== "radiogroup")
     return createElement(

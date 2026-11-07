@@ -823,6 +823,7 @@ export interface TranslationKeys {
     stateOwnerPage: string;
     stateInstanceHint: string;
     delegatedSubpartMessage: string;
+    boundTextPartDescription: string;
     delegatedSubpartDescription: string;
     selectElement: string;
     copyProperties: string;

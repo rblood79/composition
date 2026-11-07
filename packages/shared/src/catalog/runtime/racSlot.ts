@@ -19,6 +19,8 @@ import {
   type RacSlotProvision,
 } from "../generated/racSlotProviders";
 
+export type CatalogSlotContextKey = RacSlotContextKey | "ActionBar";
+
 export type RacSlotResolution =
   /** No provider of the consumer context above: nothing to connect (the element as is, no slot). */
   | { readonly kind: "none" }
@@ -89,7 +91,7 @@ export function racSlotProps(resolution: RacSlotResolution): {
 }
 
 /** The consumer context a catalog type reads its slot from. */
-const CONSUMER_OF_TYPE: Readonly<Record<string, RacSlotContextKey>> = {
+const CONSUMER_OF_TYPE: Readonly<Record<string, CatalogSlotContextKey>> = {
   Text: "Text",
   Description: "Text",
   Heading: "Heading",
@@ -97,26 +99,42 @@ const CONSUMER_OF_TYPE: Readonly<Record<string, RacSlotContextKey>> = {
   ActionButton: "Button",
   DateInput: "DateField",
   Checkbox: "Checkbox",
+  Link: "Link",
+  LinkButton: "Link",
+  Slider: "Slider",
+  RangeSlider: "Slider",
+  ActionBar: "ActionBar",
 };
 
 /** Catalog types whose children render where a RAC part (named in the table) provides. */
-const PROVIDER_ALIAS: Readonly<Record<string, string>> = {};
+const PROVIDER_ALIAS: Readonly<Record<string, string>> = {
+  SelectBox: "ListBoxItem",
+};
 
 /**
- * S2-only parts that provide a consumer context (`@react-spectrum/s2` 1.8.0 source — not installed,
- * so not in the generated RAC table): a Card gives its descendants S2's `TextContext` with the
- * default slot and `title` · `description` (`Card.tsx`; ADR-256 Phase 10 — the DOM's
- * `delegatedDom.tsx` `CARD_TEXT_SLOTS`).
+ * S2-only providers outside the RAC inventory. Card provides Text title/description slots,
+ * and the local ActionBar provides Button's default/clear slots (S2 1.8.2 composition).
  */
 const S2_SLOT_PROVIDERS: Readonly<
-  Record<string, Readonly<Partial<Record<RacSlotContextKey, RacSlotProvision>>>>
+  Record<
+    string,
+    Readonly<Partial<Record<CatalogSlotContextKey, RacSlotProvision>>>
+  >
 > = {
   Card: { Text: { slots: ["title", "description"], hasDefault: true } },
+  ActionBar: { Button: { slots: ["clear"], hasDefault: true } },
 };
+
+const RAC_PROVIDERS: Readonly<
+  Record<
+    string,
+    Readonly<Partial<Record<CatalogSlotContextKey, RacSlotProvision>>>
+  >
+> = RAC_SLOT_PROVIDERS;
 
 export function catalogRacSlotConsumer(
   type: string,
-): RacSlotContextKey | undefined {
+): CatalogSlotContextKey | undefined {
   return CONSUMER_OF_TYPE[type];
 }
 
@@ -139,7 +157,7 @@ export function catalogRacSlotProvider(
   for (const ancestor of ancestorTypes) {
     const provider = PROVIDER_ALIAS[ancestor] ?? ancestor;
     const provision =
-      RAC_SLOT_PROVIDERS[provider]?.[key] ?? S2_SLOT_PROVIDERS[provider]?.[key];
+      RAC_PROVIDERS[provider]?.[key] ?? S2_SLOT_PROVIDERS[provider]?.[key];
     if (!provision) continue;
     return provision.cleared ? undefined : { provider, provision };
   }

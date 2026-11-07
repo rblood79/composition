@@ -12,6 +12,7 @@ import {
   type ListBoxProps,
   type ListBoxItemProps,
 } from "react-aria-components/ListBox";
+import { ListBoxContext, useSlottedContext } from "react-aria-components";
 import { selectBoxChildrenText } from "../catalog/runtime/selectBoxText";
 import { SelectBoxSelectionContext } from "./SelectBoxSelectionContext";
 import { selectionCompositesDefaultChildren } from "./selectionCompositesDefaults";
@@ -57,12 +58,15 @@ export interface SelectBoxGroupProps<T> extends Omit<
 }
 export function SelectBoxGroup<T extends object>({
   orientation = "vertical",
-  selectionMode = "single",
+  selectionMode: ownSelectionMode,
   isDisabled = false,
   className,
   children,
   ...props
 }: SelectBoxGroupProps<T>) {
+  const slotProps = useSlottedContext(ListBoxContext, props.slot);
+  const selectionMode =
+    ownSelectionMode ?? slotProps?.selectionMode ?? "single";
   const content =
     children ??
     selectionCompositesDefaultChildren("SelectBoxGroup", defaultSlots);
@@ -77,10 +81,18 @@ export function SelectBoxGroup<T extends object>({
     <SelectBoxGroupContext.Provider value={{ orientation, isDisabled }}>
       <ListBox
         {...props}
-        aria-label={props["aria-label"] ?? "Options"}
+        aria-label={
+          props["aria-label"] ??
+          slotProps?.["aria-label"] ??
+          ((props["aria-labelledby"] ?? slotProps?.["aria-labelledby"])
+            ? undefined
+            : "Options")
+        }
         defaultSelectedKeys={
-          props.selectedKeys === undefined
-            ? (props.defaultSelectedKeys ?? authoredSelected)
+          (props.selectedKeys ?? slotProps?.selectedKeys) === undefined
+            ? (props.defaultSelectedKeys ??
+              slotProps?.defaultSelectedKeys ??
+              authoredSelected)
             : undefined
         }
         layout="grid"

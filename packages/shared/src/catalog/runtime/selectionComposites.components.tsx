@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode } from "react";
+import type { HTMLAttributes, ReactNode, Ref } from "react";
 import { ButtonContext } from "react-aria-components/Button";
 import { DEFAULT_SLOT } from "react-aria-components";
 import { FocusScope } from "react-aria/FocusScope";
@@ -7,6 +7,8 @@ import { FocusScope } from "react-aria/FocusScope";
 export function CatalogActionBar({
   children,
   clear,
+  ref,
+  onKeyDown,
   ...props
 }: HTMLAttributes<HTMLDivElement> & {
   "data-size"?: string;
@@ -14,6 +16,7 @@ export function CatalogActionBar({
   "data-emphasized"?: boolean;
   children?: ReactNode;
   clear: () => void;
+  ref?: Ref<HTMLDivElement>;
   className?: string;
   style?: React.CSSProperties;
 }) {
@@ -21,8 +24,10 @@ export function CatalogActionBar({
     <FocusScope restoreFocus>
       <div
         {...props}
+        ref={ref}
         onKeyDown={(event) => {
-          if (event.key === "Escape") {
+          onKeyDown?.(event);
+          if (!event.defaultPrevented && event.key === "Escape") {
             event.stopPropagation();
             clear();
           }

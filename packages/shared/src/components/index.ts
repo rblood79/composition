@@ -131,7 +131,7 @@ export { Popover } from "./Popover";
 export { Tooltip } from "./Tooltip";
 export { TooltipTrigger } from "react-aria-components/Tooltip";
 
-export { ActionBar } from "./ActionBar";
+export { ActionBar, ActionBarContext } from "./ActionBar";
 export type { ActionBarProps } from "./ActionBar";
 export { SelectBoxGroup, SelectBox } from "./SelectBoxGroup";
 export type { SelectBoxGroupProps, SelectBoxProps } from "./SelectBoxGroup";

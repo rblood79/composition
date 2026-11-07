@@ -43,5 +43,7 @@ export const CATALOG_FORM_FIELDS: ReadonlySet<string> = new Set([
   "RadioGroup",
   "Switch",
   "Slider",
+  "RangeSlider",
+  "LabeledValue",
   "TagGroup",
 ]);

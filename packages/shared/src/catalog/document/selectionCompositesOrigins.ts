@@ -6,6 +6,7 @@ export const SELECTION_COMPOSITE_DEFINITIONS: readonly LibraryDefinition[] = [
     name: "ActionBar",
     mode: "composite",
     accepts: {
+      slot: "slot",
       selectedItemCount: "selectionCount",
       isEmphasized: "boolean",
     },
@@ -63,6 +64,7 @@ export const SELECTION_COMPOSITE_DEFINITIONS: readonly LibraryDefinition[] = [
     name: "ActionButton",
     mode: "composite",
     accepts: {
+      slot: "slot",
       label: "string",
       icon: "string",
       size: "string",

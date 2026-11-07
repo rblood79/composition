@@ -93,6 +93,10 @@ export const CATALOG_INHERITED_RECEIVERS: ReadonlyMap<
 > = new Map([
   ...RAC_PROVIDER_CHECK.map((row) => [row.type, row.props] as const),
   ["ActionButton", ["isDisabled"]],
+  ["LinkButton", ["isDisabled"]],
+  ["RangeSlider", ["isDisabled"]],
+  ["SelectBoxGroup", ["isDisabled"]],
+  ["SelectBox", ["isDisabled"]],
 ]);
 
 /** The `Provider` values for the inherited flags in force (only the contexts that take one). */

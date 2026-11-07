@@ -76,4 +76,10 @@
 }
 
 
+  .react-aria-LabeledValue > .react-aria-Text {
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+
 } /* @layer components */
