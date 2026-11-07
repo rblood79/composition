@@ -1986,11 +1986,21 @@ function bindInColorMode(
     StickyConstraints<string | null>
   > = new Map();
   const withSticky = (node: CatalogConsumerNode, given: SkiaNodeData) => {
+    const textData =
+      given.text?.textOverflow === "ellipsis"
+        ? {
+            ...given,
+            text: {
+              ...given.text,
+              intrinsicWidth: root.textIntrinsicWidth(node.id),
+            },
+          }
+        : given;
     // ADR-275 Phase 7: a fixed box is drawn in its page's viewport (`renderCommands` — out of its
     // ancestors' clips and scrolls).
     const fixed = drawnInViewport(node)
-      ? { ...given, isFixed: true, isOverlay: drawnAsOverlay(node) }
-      : given;
+      ? { ...textData, isFixed: true, isOverlay: drawnAsOverlay(node) }
+      : textData;
     const backed =
       node.derivedProps?._overlayModal === true
         ? withModalBackdrop(root, node, fixed, given)

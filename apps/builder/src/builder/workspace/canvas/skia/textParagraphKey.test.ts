@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { SkiaNodeData } from "./nodeRendererTypes";
-import { getTextParagraphCacheKey } from "./textParagraphKey";
+import {
+  getTextParagraphCacheKey,
+  textNeedsEllipsis,
+} from "./textParagraphKey";
 
 function makeTextNode(): SkiaNodeData {
   return {
@@ -24,6 +27,23 @@ function makeTextNode(): SkiaNodeData {
 }
 
 describe("Skia retained text paragraph identity", () => {
+  it("측정 폭이 들어가는 줄은 f32 직렬화 후에도 줄이지 않고 실제 초과 시 캐시를 바꾼다", () => {
+    const node = makeTextNode();
+    Object.assign(node.text!, {
+      whiteSpace: "nowrap",
+      textOverflow: "ellipsis",
+      clipText: true,
+      intrinsicWidth: 26.14,
+      maxWidth: Math.fround(26.14),
+    });
+    const fitting = getTextParagraphCacheKey(node);
+    expect(textNeedsEllipsis(node)).toBe(false);
+    node.text!.maxWidth = 24;
+    expect(textNeedsEllipsis(node)).toBe(true);
+    expect(getTextParagraphCacheKey(node)).not.toBe(fitting);
+    delete node.text!.intrinsicWidth;
+    expect(textNeedsEllipsis(node)).toBe(true);
+  });
   it("동일한 서체에서도 locale 변경은 기존 조판을 재사용하지 않는다", () => {
     const node = makeTextNode();
     node.text!.locale = "en-US";

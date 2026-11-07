@@ -13,7 +13,6 @@
     font-family: var(--font-sans);
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  border-radius: 8px;
   gap: 4px;
   width: fit-content;
   height: fit-content;
@@ -26,6 +25,7 @@
 
   /* Default size */
   font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
   line-height: var(--catalog-token-text-sm--line-height);
 }
 

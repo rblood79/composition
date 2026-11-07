@@ -16713,6 +16713,7 @@ COMPONENT_RULES_TABLE.SegmentedControl = {
   },
   sizes: {
     M: {
+      borderRadius: "{radius.md}",
       fontSize: "{typography.text-sm}",
       lineHeight: "{typography.text-sm--line-height}",
       gap: 4,
@@ -16783,6 +16784,14 @@ COMPONENT_RULES_TABLE.SegmentedControlItem = {
     },
     composition: {
       delegation: [],
+      staticSelectors: {
+        ".react-aria-Text": {
+          "min-width": "0px",
+          "white-space": "nowrap",
+          "text-overflow": "ellipsis",
+          overflow: "hidden",
+        },
+      },
       rootSelectors: {
         "&": { styles: { "z-index": "1" } },
         "&[data-selected]": { styles: { "z-index": "0" } },

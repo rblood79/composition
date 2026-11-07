@@ -1,6 +1,19 @@
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import { collapseTextWhiteSpace } from "../utils/textWhiteSpace";
 
+/** A fitting line keeps its full glyphs, even when SkParagraph rounds its layout width down. */
+export function textNeedsEllipsis(node: Pick<SkiaNodeData, "text">): boolean {
+  const text = node.text;
+  return (
+    !!text &&
+    text.textOverflow === "ellipsis" &&
+    text.whiteSpace === "nowrap" &&
+    !!text.clipText &&
+    (text.intrinsicWidth === undefined ||
+      Math.fround(text.intrinsicWidth) > Math.fround(text.maxWidth))
+  );
+}
+
 /**
  * Retained paragraph identity. Presentation text metrics are deliberately part
  * of this key: mutating a fixed Text target must rebuild only its paragraph,
@@ -28,10 +41,7 @@ export function getTextParagraphCacheKey(
     ? node.text.lineHeight / node.text.fontSize
     : 0;
   const textIndent = node.text.textIndent ?? 0;
-  const isEllipsis =
-    node.text.textOverflow === "ellipsis" &&
-    whiteSpace === "nowrap" &&
-    !!node.text.clipText;
+  const isEllipsis = textNeedsEllipsis(node);
   const dc = node.text.decorationColor;
   const decorationColorKey = dc
     ? `${dc[0].toFixed(3)},${dc[1].toFixed(3)},${dc[2].toFixed(3)},${dc[3].toFixed(3)}`

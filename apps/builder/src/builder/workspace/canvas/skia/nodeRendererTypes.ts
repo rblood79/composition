@@ -117,6 +117,8 @@ export interface SkiaNodeData {
     paddingTop: number;
     paddingBottom?: number;
     maxWidth: number;
+    /** CSS-layout advance from the catalog's cached text measurement, before clipping. */
+    intrinsicWidth?: number;
     autoCenter?: boolean;
     verticalAlign?: "top" | "middle" | "bottom" | "baseline";
     whiteSpace?: "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line";

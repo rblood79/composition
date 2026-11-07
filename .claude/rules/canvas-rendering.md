@@ -47,6 +47,10 @@ paths:
 
 ## 0. 렌더링 버그 수정 원칙 (CLAUDE.md 에서 이관 2026-08-31)
 
+- 말줄임은 같은 서체·문자열의 레이아웃 측정 폭과 실제 가용 폭을 비교하고, 문단 캐시도 같은 판정을 사용한다. **Why (2026-11-08)** SegmentedControl Text의 기본 truncate가 빠져 있었고, 추가한 뒤에는 소수 폭에 꼭 맞는 Grid도 Skia 문단에서 잘렸다. 측정 캐시의 정확한 advance를 f32 레이아웃 폭과 같은 표현으로 비교해 긴 문장은 줄이고 들어가는 짧은 단어를 보존한다.
+
+- 컨테이너 기본 모서리는 CSS와 Canvas가 함께 읽는 크기 규칙에 둔다. 래퍼가 data 속성을 생성하면 해당 prop을 넘기고, 균등 flex의 basis는 Hug 콘텐츠 계산을 보존한다. **Why (2026-11-08)** SegmentedControl은 CSS 전용 모서리로 Canvas가 직각이었고, 래퍼가 `data-justified`를 지웠다. 엔진의 `0px` basis는 Hug 항목을 32px로 줄였다. 공용 크기 모서리·`isJustified` 전달·`0%` basis 후 실제 Hug 48.18px과 고정 폭 항목 218px이 양쪽에서 일치했다.
+
 2개 렌더링 타겟 (CSS/Skia)의 catalog 정의·origin template → CSS·DOM·Skia consumer → editor 경로를 함께 확인하고 `/cross-check`로 검증한다. 구조·상태 조립은 [RAC 조립 계약](../skills/composition-patterns/rules/domain-rac-composition.md)을 따른다. 동일 패턴은 관련 소비자를 검색하되 요청 범위만 수정한다.
 
 - 같은 루트 상자는 CSS `structure.containerStyles`와 Canvas `containerStyles` 정의를 공유하고 typed box 변환을 거친다. **Why:** Button·ToggleButton의 Canvas 복사본에서 `width: fit-content`가 빠져 flex column에서 342px로 늘어났으며, CSS는 각각 약 68px·115px를 유지했다. trigger와 popover처럼 서로 다른 상자는 합치지 않는다.

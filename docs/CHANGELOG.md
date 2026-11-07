@@ -55,6 +55,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Icon · Illustration 의 크기를 한 값으로 보인다: Text 탭 Font Size · Layout Width · Height · Property Size 행이 실제로 그려진 크기를 표시한다. Size 행의 리셋 버튼 자리는 px 숫자 입력 (28 × 28) 이다.
 - 마지막 편집이 이긴다: 숫자 입력 · Text Font Size 는 그 크기로 바꾸며 작성한 Width · Height 를 지우고, Size 단계 (XS–XL) 를 고르면 Font Size 와 Width · Height 를 지운다. Tablet · Mobile 에서의 편집은 그 화면 층에만 쓴다.
 
+## [SegmentedControl 긴 텍스트 줄임] - 2026-11-08
+
+### Fixed
+
+- S2의 Text truncate 기본값을 SegmentedControlItem의 공용 자식 규칙에 연결한다. 제한된 폭에서 Canvas·Preview 모두 말줄임하며, 작성한 텍스트 스타일과 Undo를 우선한다.
+- Canvas는 레이아웃의 캐시된 정확한 측정 폭으로 실제 넘침을 판정해 짧은 라벨의 잘못된 말줄임을 방지한다. 문단 캐시도 같은 판정을 사용한다.
+
 ## [SegmentedControl 모서리와 Justified 정합성] - 2026-11-08
 
 ### Fixed

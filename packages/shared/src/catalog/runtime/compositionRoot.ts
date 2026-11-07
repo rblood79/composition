@@ -1595,11 +1595,11 @@ function styleOf(
       ? { gridColumnStart: `span ${catalogCellSpan(node)}` }
       : {}),
     // S2 ToggleButtonGroup `isJustified`: its buttons divide the group's width equally (the
-    // derived `_justified` — the DOM sheet's `flex-grow: 1 · flex-basis: 0`). Authored flex
-    // values win (`itemLayout` comes after).
+    // derived `_justified`). A percentage zero preserves content sizing on an indefinite Hug
+    // axis and becomes zero on a fixed axis. Authored flex values win (`itemLayout` comes after).
     ...(node.derivedProps?._inActionGroup === true ? { flexShrink: 0 } : {}),
     ...(node.derivedProps?._justified === true
-      ? { flexGrow: 1, flexBasis: "0px" }
+      ? { flexGrow: 1, flexBasis: "0%" }
       : {}),
     // S2 Slider `trackStyle: thick` — the track bar's 16px (the DOM track inline reads the same
     // value, `CATALOG_SLIDER_THICK_TRACK`).
@@ -3911,6 +3911,25 @@ export class CatalogCompositionRoot {
   /** Whether the layout wrapped this text leaf onto more than one line (last `rewrap`). */
   textWraps(id: string): boolean {
     return this.wrapHeights.has(id);
+  }
+  /** The same cached, unwrapped advance the layout used, including authored run fonts. */
+  textIntrinsicWidth(id: string): number | undefined {
+    const record = this.records.get(id);
+    if (!record || !this.textMeasure) return undefined;
+    const leaf = textLeaf(
+      record,
+      this.typeOf(record),
+      "",
+      inheritedLineHeight(record, (key) => this.records.get(key)),
+    );
+    if (!leaf) return undefined;
+    const measured = this.textMeasure(
+      leaf.text,
+      leaf.font,
+      undefined,
+      leaf.runs,
+    );
+    return measured.exactWidth ?? measured.width;
   }
   /**
    * Whether the layout sized this text leaf to its one-line max-content (measured, width-driven,

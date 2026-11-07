@@ -4,7 +4,6 @@ export const SEGMENTED_GROUP_CONTAINER = {
   gap: "4px",
   width: "fit-content",
   height: "fit-content",
-  borderRadius: "8px",
 } as const;
 export const SEGMENTED_ITEM_CONTAINER = {
   display: "flex",

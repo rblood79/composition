@@ -187,6 +187,7 @@ export function catalogSubpartDomUnion(
  */
 const SUBPART_WRAPPERS: Readonly<Record<string, string>> = {
   Select: "Button",
+  SegmentedControlItem: "frame",
   // ADR-256 Phase 8c: a Disclosure's trigger Button sits in its header Heading.
   Disclosure: "Heading",
   // ADR-256 Phase 10: a Card's title · description Text nodes sit in its S2 Content.
@@ -704,6 +705,16 @@ function compileDeclarations(
         ].includes(value)
       )
         visual.whiteSpace = value;
+    } else if (
+      key === "text-overflow" &&
+      ["clip", "ellipsis"].includes(value)
+    ) {
+      visual.textOverflow = value;
+    } else if (
+      key === "overflow" &&
+      ["visible", "hidden", "clip", "auto", "scroll"].includes(value)
+    ) {
+      visual.overflow = value;
     } else if (key === "font-size") {
       const px = lengthPx(value);
       if (px !== undefined) {

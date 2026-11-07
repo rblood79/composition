@@ -43,7 +43,10 @@ import { renderCounters, renderScope } from "./renderCounters";
 import { drainPendingWasmDisposals } from "./deferredDisposal";
 import type { SkiaNodeData, SkiaTextRun } from "./nodeRendererTypes";
 import { alignTextRuns } from "../utils/textRunAlign";
-import { getTextParagraphCacheKey } from "./textParagraphKey";
+import {
+  getTextParagraphCacheKey,
+  textNeedsEllipsis,
+} from "./textParagraphKey";
 import {
   getRetainedParagraphCount,
   lastParagraphMissReason,
@@ -223,10 +226,7 @@ export function renderText(
     ? node.text.lineHeight / node.text.fontSize
     : 0;
   const textIndent = node.text.textIndent ?? 0;
-  const isEllipsis =
-    node.text.textOverflow === "ellipsis" &&
-    whiteSpace === "nowrap" &&
-    !!node.text.clipText;
+  const isEllipsis = textNeedsEllipsis(node);
 
   const key = getTextParagraphCacheKey(node, processedText);
 

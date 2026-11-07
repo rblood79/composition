@@ -19,6 +19,8 @@ import type {
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { catalogStateValue } from "../../../../../../packages/shared/src/catalog/runtime/presence";
 import { SEGMENTED_INDICATOR_BORDER } from "../../../../../../packages/shared/src/catalog/rule/segmentedControl";
+import { bindCatalogCanvas } from "../canvasBinding";
+import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
 import { renderCatalogDom } from "../domBinding";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
@@ -148,6 +150,184 @@ const selectedOf = (elements: Iterable<Element>, attribute = "aria-selected") =>
   [...elements].map((element) => element.getAttribute(attribute) === "true");
 
 describe("a collection item's Selected starts its collection's selection (Canvas = Preview)", () => {
+  it("SegmentedControl의 긴 Label은 기본 줄임을 사용하고 사용자 변경과 Undo를 반영한다", async () => {
+    const { workspace, root, items, of } = await open(
+      "segmentedcontrol",
+      "SegmentedControlItem",
+      { isJustified: true },
+    );
+    let dom: Awaited<ReturnType<typeof mount>> | undefined;
+    let canvas: ReturnType<typeof bindCatalogCanvas> | undefined;
+    try {
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: OWNER }],
+          sizing: { width: set(220) },
+        }),
+      );
+      const item = items()[0]!;
+      workspace.execute(
+        setFields({
+          targets: [workspace.positionOfRecord(item.id)!.target],
+          props: {
+            label: set(
+              "아주 긴 Label과 English text가 제한된 폭 안에서 잘립니다",
+            ),
+          },
+        }),
+      );
+      const label = () =>
+        of("Text").find(
+          (node) => root.canvasInputs.get(node.parentId)?.parentId === item.id,
+        )!;
+      expect(label().visual).toMatchObject({
+        minWidth: 0,
+        whiteSpace: "nowrap",
+        textOverflow: "ellipsis",
+        overflow: "hidden",
+      });
+      canvas = bindCatalogCanvas(root, root.pageRootRecords());
+      expect(getSkiaNode(label().id)?.text).toMatchObject({
+        whiteSpace: "nowrap",
+        textOverflow: "ellipsis",
+        clipText: true,
+      });
+      dom = await mount(root, "SegmentedControl");
+      const text = dom.host.querySelector<HTMLElement>(
+        `[data-catalog-id="${label().id}"]`,
+      )!;
+      expect(text.style.textOverflow).toBe("ellipsis");
+      await dom.close();
+      dom = undefined;
+      workspace.execute(
+        setFields({
+          targets: [workspace.positionOfRecord(label().id)!.target],
+          visual: { textOverflow: set("clip") },
+        }),
+      );
+      expect(label().visual.textOverflow).toBe("clip");
+      workspace.undo();
+      expect(label().visual.textOverflow).toBe("ellipsis");
+    } finally {
+      await dom?.close();
+      canvas?.dispose();
+      workspace.dispose();
+    }
+  });
+
+  it("SegmentedControl의 기본 모서리와 작성 모서리를 실제 Canvas 도형에 반영한다", async () => {
+    const { workspace, root, of } = await open(
+      "segmentedcontrol",
+      "SegmentedControlItem",
+    );
+    const group = () => of("SegmentedControl")[0]!;
+    const binding = bindCatalogCanvas(root, root.pageRootRecords());
+    const radiusOf = () => {
+      binding.update();
+      return getSkiaNode(group().id)?.box?.borderRadius;
+    };
+    try {
+      expect(radiusOf()).toBe(8);
+      for (const radius of [18, 0]) {
+        workspace.execute(
+          setFields({
+            targets: [{ kind: "node", id: OWNER }],
+            visual: { radius: set(radius) },
+          }),
+        );
+        expect(radiusOf()).toBe(radius);
+        workspace.undo();
+        expect(radiusOf()).toBe(8);
+      }
+    } finally {
+      binding.dispose();
+      workspace.dispose();
+    }
+  });
+
+  it.each(["horizontal", "vertical"])(
+    "SegmentedControl Justified는 %s 축의 항목을 균등 배치하고 Undo로 복원한다",
+    async (orientation) => {
+      const { workspace, root, items } = await open(
+        "segmentedcontrol",
+        "SegmentedControlItem",
+        { orientation },
+      );
+      const target = { kind: "node" as const, id: OWNER };
+      const axis = orientation === "horizontal" ? "width" : "height";
+      const lengths = () =>
+        items().map((node) => root.getGeometry([node.id]).get(node.id)![axis]);
+      try {
+        workspace.execute(
+          setFields({
+            targets: [target],
+            sizing: { width: set(440), height: set(180) },
+          }),
+        );
+        const initial = lengths();
+        workspace.execute(
+          setFields({ targets: [target], props: { isJustified: set(true) } }),
+        );
+        expect(items().map((node) => node.derivedProps?._justified)).toEqual([
+          true,
+          true,
+        ]);
+        expect(lengths()[0]).toBeCloseTo(lengths()[1], 3);
+        expect(lengths()[0]).toBeCloseTo(
+          ((axis === "width" ? 440 : 180) - 4) / 2,
+          3,
+        );
+        workspace.undo();
+        expect(lengths()).toEqual(initial);
+        workspace.redo();
+        expect(lengths()[0]).toBeCloseTo(lengths()[1], 3);
+      } finally {
+        workspace.dispose();
+      }
+    },
+  );
+
+  it("SegmentedControl Justified의 Hug 폭에서도 항목 폭을 균등하게 만든다", async () => {
+    const { workspace, root, items } = await open(
+      "segmentedcontrol",
+      "SegmentedControlItem",
+    );
+    const widths = () =>
+      items().map((node) => root.getGeometry([node.id]).get(node.id)!.width);
+    let dom: Awaited<ReturnType<typeof mount>> | undefined;
+    try {
+      workspace.execute(
+        setFields({
+          targets: [workspace.positionOfRecord(items()[0].id)!.target],
+          sizing: { width: set(40) },
+        }),
+      );
+      workspace.execute(
+        setFields({
+          targets: [workspace.positionOfRecord(items()[1].id)!.target],
+          sizing: { width: set(120) },
+        }),
+      );
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: OWNER }],
+          props: { isJustified: set(true) },
+        }),
+      );
+      expect(widths()[0]).toBeCloseTo(widths()[1], 3);
+      expect(widths()[0]).toBeCloseTo(80, 3);
+      dom = await mount(root, "SegmentedControl");
+      expect(
+        dom.host
+          .querySelector('[role="radiogroup"]')
+          ?.hasAttribute("data-justified"),
+      ).toBe(true);
+    } finally {
+      await dom?.close();
+      workspace.dispose();
+    }
+  });
+
   it("SegmentedControl의 CJK 기본 행간과 사용자 행간이 DOM에도 반영된다", async () => {
     const { workspace, root, items } = await open(
       "segmentedcontrol",

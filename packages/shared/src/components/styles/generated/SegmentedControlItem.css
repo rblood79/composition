@@ -101,6 +101,14 @@
   }
 }
 
+  .react-aria-SegmentedControlItem .react-aria-Text {
+    min-width: 0px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+
+
   .react-aria-SegmentedControlItem {
     z-index: 1;
   }

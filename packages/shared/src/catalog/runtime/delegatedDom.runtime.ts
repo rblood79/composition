@@ -3280,7 +3280,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               typeof props.isDisabled === "boolean"
                 ? props.isDisabled
                 : undefined,
-            "data-justified": bool(props.isJustified) || undefined,
+            isJustified: bool(props.isJustified),
             ...controlled(input, SELECTED_KEY, selected),
             children: renderAll(input),
           }),
