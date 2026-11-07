@@ -18,7 +18,7 @@ export const THEME_PALETTE_GROUPS: readonly {
   { label: "Accent", tokens: ["accent-subtle", "accent", "accent-content"] },
   {
     label: "Surface",
-    tokens: ["base", "raised", "layer-1", "layer-2", "elevated", "border"],
+    tokens: ["base", "pasteboard", "layer-1", "layer-2", "elevated", "border"],
   },
   {
     label: "Neutral",

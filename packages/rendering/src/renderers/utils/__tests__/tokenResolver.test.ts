@@ -37,17 +37,16 @@ describe("resolveColor — var(--xxx) 시맨틱 변수 역변환", () => {
     );
   });
 
-  it("{color.raised} Skia 색 해석 (ADR-071 토큰 — lightColors/darkColors 등재)", () => {
-    // 과거 Skia 색맵에 raised 미등재 → undefined → 투명 (collection/popover 컨테이너 배경 소실).
-    //   --bg-raised = gray-50(light) / zinc-850(dark) 로 등재해 catalog·projection 양쪽 배경 복원.
-    expect(resolveColor("{color.raised}", "light")).toBe("#f9fafb");
-    expect(resolveColor("{color.raised}", "dark")).toBe("#202023");
+  it("{color.pasteboard} Skia 색 해석 (ADR-302 — Spectrum gray-100 / dark gray-25)", () => {
+    expect(resolveColor("{color.pasteboard}", "light")).toBe("#e9e9e9");
+    expect(resolveColor("{color.pasteboard}", "dark")).toBe("#111111");
   });
 });
 
 describe("tokenResolver — surface elevation", () => {
-  it("{color.raised} maps to var(--bg-raised)", () => {
-    expect(tokenToCSSVar("{color.raised}")).toBe("var(--bg-raised)");
+  it("{color.pasteboard} maps to var(--bg-pasteboard) (ADR-302 — raised 삭제)", () => {
+    expect(tokenToCSSVar("{color.pasteboard}")).toBe("var(--bg-pasteboard)");
+    expect(tokenToCSSVar("{color.raised}")).not.toBe("var(--bg-raised)");
   });
 
   it("{color.base} maps to var(--bg) (baseline)", () => {

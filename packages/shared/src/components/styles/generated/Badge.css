@@ -61,17 +61,17 @@
 }
 
 .react-aria-Badge:where([data-variant="informative"]) {
-  background: var(--informative);
+  background: var(--informative-background);
   color: var(--color-white);
   border-color: transparent;
 }
 
 .react-aria-Badge:where([data-variant="informative"][data-hovered]) {
-  background: var(--informative);
+  background: var(--informative-background);
 }
 
 .react-aria-Badge:where([data-variant="informative"][data-pressed]) {
-  background: var(--informative);
+  background: var(--informative-background);
 }
 
 .react-aria-Badge:where([data-variant="informative"][data-fill-style="outline"]) {
@@ -111,17 +111,17 @@
 }
 
 .react-aria-Badge:where([data-variant="positive"]) {
-  background: var(--positive);
+  background: var(--positive-background);
   color: var(--color-white);
   border-color: transparent;
 }
 
 .react-aria-Badge:where([data-variant="positive"][data-hovered]) {
-  background: var(--positive);
+  background: var(--positive-background);
 }
 
 .react-aria-Badge:where([data-variant="positive"][data-pressed]) {
-  background: var(--positive);
+  background: var(--positive-background);
 }
 
 .react-aria-Badge:where([data-variant="positive"][data-fill-style="outline"]) {
@@ -136,17 +136,17 @@
 }
 
 .react-aria-Badge:where([data-variant="notice"]) {
-  background: var(--notice);
-  color: var(--color-white);
+  background: var(--notice-background);
+  color: var(--color-black);
   border-color: transparent;
 }
 
 .react-aria-Badge:where([data-variant="notice"][data-hovered]) {
-  background: var(--notice);
+  background: var(--notice-background);
 }
 
 .react-aria-Badge:where([data-variant="notice"][data-pressed]) {
-  background: var(--notice);
+  background: var(--notice-background);
 }
 
 .react-aria-Badge:where([data-variant="notice"][data-fill-style="outline"]) {
@@ -161,17 +161,17 @@
 }
 
 .react-aria-Badge:where([data-variant="negative"]) {
-  background: var(--negative);
+  background: var(--negative-background);
   color: var(--fg-on-negative);
   border-color: transparent;
 }
 
 .react-aria-Badge:where([data-variant="negative"][data-hovered]) {
-  background: var(--negative);
+  background: var(--negative-background);
 }
 
 .react-aria-Badge:where([data-variant="negative"][data-pressed]) {
-  background: var(--negative);
+  background: var(--negative-background);
 }
 
 .react-aria-Badge:where([data-variant="negative"][data-fill-style="outline"]) {
@@ -237,7 +237,7 @@
 
 .react-aria-Badge:where([data-variant="orange"]) {
   background: var(--hue-orange);
-  color: var(--color-white);
+  color: var(--color-black);
   border-color: transparent;
 }
 
@@ -537,7 +537,7 @@
 
 .react-aria-Badge:where([data-variant="celery"]) {
   background: var(--hue-celery);
-  color: var(--color-white);
+  color: var(--color-black);
   border-color: transparent;
 }
 

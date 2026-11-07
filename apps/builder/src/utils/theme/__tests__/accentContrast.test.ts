@@ -129,8 +129,11 @@ describe("ADR-290 — 대비 함수 (WCAG 2 참조쌍)", () => {
   });
 });
 
-describe("ADR-290 G1 — 프리셋 10 × Tone 5 × 모드 2", () => {
-  it.each(TINTS)("%s — 모든 Tone · 모드에서 역할 조건 통과", (tint) => {
+/** ADR-302 Phase 1 — 기본 tint (blue) 는 탐색이 아니라 Spectrum seed (G1 `adr302SpectrumOracle`). 탐색 경로는 비기본 tint 만 (Phase 2 가 사다리 생성으로 대체). */
+const SEARCHED_TINTS = TINTS.filter((tint) => tint !== "blue");
+
+describe("ADR-290 G1 — 프리셋 9 (blue 제외 — ADR-302) × Tone 5 × 모드 2", () => {
+  it.each(SEARCHED_TINTS)("%s — 모든 Tone · 모드에서 역할 조건 통과", (tint) => {
     const failures: string[] = [];
     for (const tone of TONES) {
       const s = snapshot(tint, tone);
@@ -143,7 +146,7 @@ describe("ADR-290 G1 — 프리셋 10 × Tone 5 × 모드 2", () => {
   });
 
   it("light 프리셋 accent (배경) hex 는 변경 전 공식 (L 55%) 그대로", () => {
-    for (const tint of TINTS) {
+    for (const tint of SEARCHED_TINTS) {
       const { c, h } = TINT_PRESETS[tint];
       expect(snapshot(tint).colors.light.accent).toBe(oklchToHex(0.55, c, h));
     }
@@ -172,12 +175,12 @@ describe("ADR-290 G1 — 프리셋 10 × Tone 5 × 모드 2", () => {
 describe("ADR-290 G1 — 명시 델타가 탐색의 바탕", () => {
   it("명시 color.base 를 바탕으로 accent 탐색 · 풀 수 없는 모드는 warning", () => {
     const tokens = colorTokens({ "color.base": "#e5e5e5" });
-    const s = snapshot("blue", "neutral", tokens);
+    const s = snapshot("indigo", "neutral", tokens);
     expect(s.colors.light.base).toBe("#e5e5e5");
     expect(violations(s.colors.light)).toEqual([]);
     // 기본 바탕 (흰색) 에서 정한 값은 #e5e5e5 위 글자 4.5 미달 — 탐색이 명시 바탕을 봤다
     expect(
-      contrastRatio(snapshot("blue").colors.light["accent-content"]!, "#e5e5e5"),
+      contrastRatio(snapshot("indigo").colors.light["accent-content"]!, "#e5e5e5"),
     ).toBeLessThan(4.5);
     // dark 는 밝은 base 와 어두운 layer 를 동시에 4.5 로 넘는 명도가 없다 → 글자 대비 우선 + warning
     expect(s.warnings.some((w) => w.startsWith("dark accent-content"))).toBe(
@@ -194,7 +197,7 @@ describe("ADR-290 G1 — 명시 델타가 탐색의 바탕", () => {
   });
 
   it("명시 color.accent-content 는 그 값 · hover 는 거기서 탐색 (dark 는 밝히는 방향)", () => {
-    const s = snapshot("blue", "neutral", colorTokens({ "color.accent-content": "#7aa2ff" }));
+    const s = snapshot("indigo", "neutral", colorTokens({ "color.accent-content": "#7aa2ff" }));
     expect(s.colors.dark["accent-content"]).toBe("#7aa2ff");
     expect(
       contrastRatio(

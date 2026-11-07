@@ -127,7 +127,7 @@
       max-height: inherit;
       box-sizing: border-box;
       overflow: auto;
-      background: var(--bg-raised);
+      background: var(--bg-inset);
     }
 
     .color-picker-content {

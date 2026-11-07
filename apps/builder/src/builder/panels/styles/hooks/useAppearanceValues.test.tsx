@@ -40,7 +40,7 @@ describe("useAppearanceValues — ADR-082 P3 spec fallback (backgroundColor/bord
     vi.spyOn(preset, "resolveAppearanceSpecPreset").mockReturnValue({
       borderRadius: 8,
       borderWidth: 1,
-      backgroundColor: "var(--bg-raised)",
+      backgroundColor: "var(--bg-inset)",
       borderColor: "var(--border)",
       borderStyle: "dashed",
       boxShadow: "var(--shadow-lg)",
@@ -52,7 +52,7 @@ describe("useAppearanceValues — ADR-082 P3 spec fallback (backgroundColor/bord
 
   it("spec preset supplies backgroundColor/borderColor/borderRadius/borderWidth when inline absent", async () => {
     const values = await appearanceOf(LISTBOXES, "el-spec-only");
-    expect(values?.backgroundColor).toBe(lightColors.raised);
+    expect(values?.backgroundColor).toBe(lightColors["layer-2"]);
     expect(values?.borderColor).toBe(lightColors.border);
     expect(values?.borderRadius).toBe("8px");
     // (The width is the drawn record's — the ListBox rule's hairline, 2026-10-13.)

@@ -13,7 +13,7 @@
     box-sizing: border-box;
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  background: var(--bg-raised);
+  background: var(--bg-inset);
   color: var(--fg);
   border: var(--border-width-thin) solid var(--border);
   border-radius: var(--catalog-token-radius-md);

@@ -1,3 +1,4 @@
+import { COLOR_ALIASES } from "@composition/rendering";
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
@@ -262,34 +263,40 @@ describe("catalog 토큰 존재 — 참조하는 모든 토큰이 theme/tokens �
     expect(undeclared).toEqual([]);
   });
 
-  it("Skia: named hue 의 hover · pressed 는 DOM 과 같은 식 (srgb 에서 검정과 85 · 75 %)", () => {
+  it("Skia: named hue · status 의 hover · pressed = alias 표의 한 단 (ADR-302 — 검정 혼합 아님). DOM 은 resolver cssVars 가 같은 값을 싣는다 (G4)", () => {
     installThemeMaps(null);
     const hues = [...REFS.keys()]
-      .map((ref) => /^\{color\.([a-z]+)-(hover|pressed)\}$/.exec(ref))
+      .map((ref) => /^\{color\.([a-z-]+?)-(hover|pressed)\}$/.exec(ref))
       .filter(
         (m): m is RegExpExecArray => !!m && m[1]! in SEMANTIC_PALETTE_MAP,
       );
-    // (13 — ADR-297 후속 ⑥: premium · genai Button 은 S2 그라데이션이라 `{color.purple-hover}` 를 읽지 않는다.)
     expect(hues.length).toBeGreaterThanOrEqual(13);
-    const mix = (hex: string, pct: number) =>
-      `#${[1, 3, 5]
-        .map((i) =>
-          Math.round(Number.parseInt(hex.slice(i, i + 2), 16) * (pct / 100))
-            .toString(16)
-            .padStart(2, "0"),
-        )
-        .join("")}`;
     const wrong: string[] = [];
-    for (const [ref, hue, state] of hues)
-      for (const mode of ["light", "dark"] as const) {
-        // (A status hue keeps its hand-tuned pair — `colors.ts` negative · accent · neutral.)
-        if (hue === "negative") continue;
-        const base = resolveToken(`{color.${hue}}` as TokenRef, mode) as string;
-        const want = mix(base, state === "hover" ? 85 : 75);
-        const got = resolveToken(ref as TokenRef, mode);
-        if (got !== want)
-          wrong.push(`${ref} (${mode}) ${String(got)} ≠ ${want}`);
+    for (const [ref, hue, state] of hues) {
+      const alias = COLOR_ALIASES[`${hue}-${state}`];
+      const base = COLOR_ALIASES[hue];
+      if (!alias || !base) {
+        wrong.push(`${ref}: alias 표에 없음`);
+        continue;
       }
+      for (const mode of ["light", "dark"] as const) {
+        const step = alias[mode];
+        const baseStep = base[mode];
+        // hover = pressed = 기본에서 한 단 (S2 nextColorStop · design-data content-hover)
+        if (
+          typeof step !== "number" ||
+          typeof baseStep !== "number" ||
+          Math.abs(step - baseStep) !== 100
+        )
+          if (hue !== "negative")
+            wrong.push(
+              `${ref} (${mode}) 단 ${String(step)} ≠ ${String(baseStep)} ± 100`,
+            );
+        const got = resolveToken(ref as TokenRef, mode) as string;
+        if (!/^#[0-9a-f]{6}$/.test(got))
+          wrong.push(`${ref} (${mode}) Skia 값 ${got}`);
+      }
+    }
     expect(wrong).toEqual([]);
   });
 });

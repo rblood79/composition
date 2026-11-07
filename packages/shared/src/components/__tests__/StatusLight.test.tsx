@@ -39,11 +39,11 @@ describe("StatusLight — DOM dot 색 = rule fill base (20 variant 대칭)", () 
     expect(dotBackgroundColor(html)).toBe("var(--hue-yellow)");
   });
 
-  it("표준 semantic variant(positive) → dot background-color = var(--positive) (ADR-193 semantic var)", () => {
+  it("표준 semantic variant(positive) → dot background-color = var(--positive-visual) (ADR-302 — S2 StatusLight fill = positive-visual-color)", () => {
     const html = renderToStaticMarkup(
       <StatusLight variant="positive">Available</StatusLight>,
     );
-    expect(dotBackgroundColor(html)).toBe("var(--positive)");
+    expect(dotBackgroundColor(html)).toBe("var(--positive-visual)");
   });
 
   it("default(neutral) variant → dot background-color = var(--fg-muted)", () => {
@@ -127,8 +127,10 @@ describe("StatusLight — cutover DOM 경로 (toRacProps propPassthrough)", () =
     expect(dotBackgroundColor(cutoverHtml("yellow"))).toBe("var(--hue-yellow)");
   });
 
-  it("cutover 경로에서 positive → var(--positive) (회색 고정 아님)", () => {
-    expect(dotBackgroundColor(cutoverHtml("positive"))).toBe("var(--positive)");
+  it("cutover 경로에서 positive → var(--positive-visual) (회색 고정 아님)", () => {
+    expect(dotBackgroundColor(cutoverHtml("positive"))).toBe(
+      "var(--positive-visual)",
+    );
     // neutral 회색과 다름을 명시 — 버그였다면 둘 다 var(--fg-muted) 였음
     expect(dotBackgroundColor(cutoverHtml("positive"))).not.toBe(
       "var(--fg-muted)",

@@ -72,12 +72,14 @@ describe("ADR-082 G1 — cssVarToTokenRef 역변환 parser", () => {
   });
 
   describe("color tokens — 단순 var(--xxx) 매핑만 역변환 지원", () => {
-    it("semantic 색상 역변환 (accent/neutral/base/raised/border 등)", () => {
+    it("semantic 색상 역변환 (accent/neutral/base/pasteboard/border 등)", () => {
       // COLOR_TOKEN_TO_CSS 에서 단순 var() 형식만 역변환 가능
       expect(cssVarToTokenRef("var(--accent)")).toBe("{color.accent}");
       expect(cssVarToTokenRef("var(--fg)")).toBe("{color.neutral}");
       expect(cssVarToTokenRef("var(--bg)")).toBe("{color.base}");
-      expect(cssVarToTokenRef("var(--bg-raised)")).toBe("{color.raised}");
+      expect(cssVarToTokenRef("var(--bg-pasteboard)")).toBe(
+        "{color.pasteboard}",
+      );
       expect(cssVarToTokenRef("var(--bg-overlay)")).toBe("{color.layer-1}");
       expect(cssVarToTokenRef("var(--bg-inset)")).toBe("{color.layer-2}");
       expect(cssVarToTokenRef("var(--border)")).toBe("{color.border}");

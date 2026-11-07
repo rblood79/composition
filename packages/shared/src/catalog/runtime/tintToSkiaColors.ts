@@ -126,9 +126,7 @@ export function resolveAccentLadder(
     [ls[1100], oklchToHex(ls[1100], c, h)],
     [ls[1200], oklchToHex(ls[1200], c, h)],
   ];
-  return [
-    ...new Set(steps.sort((a, b) => b[0] - a[0]).map(([, hex]) => hex)),
-  ];
+  return [...new Set(steps.sort((a, b) => b[0] - a[0]).map(([, hex]) => hex))];
 }
 
 // ============================================================================
@@ -145,7 +143,6 @@ export const ON_ACCENT = "#ffffff";
  */
 export const ACCENT_CONTENT_TEXT_BACKDROPS = [
   "base",
-  "raised",
   "layer-1",
   "layer-2",
   "elevated",
@@ -163,7 +160,7 @@ const PRESET_LIGHTNESS = 0.55;
 export interface AccentRoleOptions {
   /**
    * 테마 바탕 (Tone · 명시 델타가 반영된 색 맵) — 없으면 설치된 토큰 맵 (`lightColors` · `darkColors`).
-   * `base` · `raised` · `layer-1` · `layer-2` · `elevated` · `neutral-subtle` 만 읽는다.
+   * `base` · `layer-1` · `layer-2` · `elevated` · `neutral-subtle` 만 읽는다.
    */
   surfaces?: Readonly<Record<string, string>>;
   /** 시작 명도 — 사용자 hex 면 그 hex 의 명도 (ADR-290 결정 2). 기본 55%. */
@@ -204,8 +201,7 @@ function solveAccentRoles(
     >);
   const startL = options.startL ?? PRESET_LIGHTNESS;
   const subtle =
-    options.subtle ??
-    oklchToHex(mode === "light" ? 0.95 : 0.25, c * 0.3, h);
+    options.subtle ?? oklchToHex(mode === "light" ? 0.95 : 0.25, c * 0.3, h);
   const backdrop = (key: string) =>
     key === "accent-subtle" ? subtle : (surfaces[key] ?? "");
   const warn = (role: string) =>
@@ -228,12 +224,14 @@ function solveAccentRoles(
 
   // 바탕 위 역할 — 유도한 바탕 집합
   const contentConstraints = (text: number, graphic: number) => [
-    ...ACCENT_CONTENT_TEXT_BACKDROPS.map(
-      (key): ContrastConstraint => ({ against: backdrop(key), min: text }),
-    ),
-    ...ACCENT_CONTENT_GRAPHIC_BACKDROPS.map(
-      (key): ContrastConstraint => ({ against: backdrop(key), min: graphic }),
-    ),
+    ...ACCENT_CONTENT_TEXT_BACKDROPS.map((key): ContrastConstraint => ({
+      against: backdrop(key),
+      min: text,
+    })),
+    ...ACCENT_CONTENT_GRAPHIC_BACKDROPS.map((key): ContrastConstraint => ({
+      against: backdrop(key),
+      min: graphic,
+    })),
   ];
   let content: { hex: string; l: number };
   if (options.content) {
@@ -258,7 +256,10 @@ function solveAccentRoles(
   );
   const hoverText = Math.min(
     HOVER_CONTRAST_CAP,
-    Math.max(TEXT_CONTRAST + HOVER_CONTRAST_STEP, nearest + HOVER_CONTRAST_STEP),
+    Math.max(
+      TEXT_CONTRAST + HOVER_CONTRAST_STEP,
+      nearest + HOVER_CONTRAST_STEP,
+    ),
   );
   const hover = solveLightness({
     c,
@@ -342,4 +343,3 @@ export function resolveAccentColorTokens(
   const { h, c } = TINT_PRESETS[accentTint];
   return createAccentColorTokens(c, h, mode);
 }
-

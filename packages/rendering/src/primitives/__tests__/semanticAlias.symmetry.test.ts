@@ -65,34 +65,35 @@ function tokenVar(source: string, token: string): string {
   return m[1];
 }
 
-/** 생성 semantic CSS 의 `:root` / `[data-theme="dark"]` 블록 → { --var: --color-family-step } */
+/** 생성 semantic CSS 의 `:root` / `[data-theme="dark"]` 블록 → { --var: hex } (ADR-302 — 값은 seed hex) */
 function semanticDefinitions(theme: Theme): Record<string, string> {
   const [light, dark] = semanticCss.split('[data-theme="dark"]');
   expect(dark, "semantic-palette.css dark 블록").toBeDefined();
   const out: Record<string, string> = {};
   for (const m of (theme === "light" ? light : dark).matchAll(
-    /^\s+(--[a-z-]+):\s*var\((?:--[a-z-]+,\s*var\()?(--color-[a-z]+-\d+)\)\)?;$/gm,
+    /^\s+(--[a-z-]+):\s*(?:var\(--[a-z-]+,\s*)?(#[0-9a-f]{6})\)?;$/gm,
   )) {
     out[m[1]] = m[2];
   }
   return out;
 }
 
-/** CSS var → 테마별 최종 팔레트 hex. semantic var 는 생성 CSS 를 경유, `--color-*` 는 alias 해석. */
+/** CSS var → 테마별 최종 hex. semantic var 는 생성 CSS 의 seed hex, `--color-*` 는 팔레트 alias 해석. */
 function resolveCssVar(
   name: string,
   aliases: Record<string, Family>,
   theme: Theme,
 ): string {
-  const paletteVar = name.startsWith("--color-")
-    ? name
-    : semanticDefinitions(theme)[name];
-  if (!paletteVar)
-    throw new Error(
-      `${name} 은 semantic-palette.css 에 정의되지 않음 (${theme})`,
-    );
-  const m = /^--color-([a-z]+)-(\d+)$/.exec(paletteVar);
-  if (!m) throw new Error(`unsupported var ${paletteVar}`);
+  if (!name.startsWith("--color-")) {
+    const hex = semanticDefinitions(theme)[name];
+    if (!hex)
+      throw new Error(
+        `${name} 은 semantic-palette.css 에 정의되지 않음 (${theme})`,
+      );
+    return hex;
+  }
+  const m = /^--color-([a-z]+)-(\d+)$/.exec(name);
+  if (!m) throw new Error(`unsupported var ${name}`);
   const [, fam, step] = m;
   const family = (aliases[fam] ?? fam) as Family;
   return TAILWIND_PALETTE[family][Number(step) as Step];
@@ -169,12 +170,10 @@ describe("semantic 층 — Skia colors.ts ↔ CSS 체인 대칭 (ADR-193)", () =
     }
   });
 
-  it("실측 앵커 — negative 는 red-500 #fb2c36 / red-400 dark, notice 는 orange-600 #f54900 (amber 아님)", () => {
-    expect(lightColors.negative).toBe(TAILWIND_PALETTE.red[500]);
-    expect(darkColors.negative).toBe(TAILWIND_PALETTE.red[400]);
-    expect(lightColors.notice).toBe(TAILWIND_PALETTE.orange[600]);
-    expect(TAILWIND_PALETTE.red[500]).toBe("#fb2c36");
-    expect(TAILWIND_PALETTE.orange[600]).toBe("#f54900");
-    expect(resolveCssVar("--negative", aliases, "dark")).toBe("#ff6467");
+  it("실측 앵커 (ADR-302) — negative 는 Spectrum red-900 (#d73220 / dark #fc432e), notice 는 orange-900 (#c24e00)", () => {
+    expect(lightColors.negative).toBe("#d73220");
+    expect(darkColors.negative).toBe("#fc432e");
+    expect(lightColors.notice).toBe("#c24e00");
+    expect(resolveCssVar("--negative", aliases, "dark")).toBe("#fc432e");
   });
 });

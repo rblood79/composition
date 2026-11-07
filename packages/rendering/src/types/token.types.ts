@@ -7,6 +7,8 @@
  * @packageDocumentation
  */
 
+import type { SPECTRUM_LIGHT_COLORS } from "../primitives/generated/spectrumThemeColors";
+
 /**
  * 토큰 참조 문자열
  * 예: '{color.accent}', '{spacing.md}', '{radius.lg}'
@@ -58,168 +60,14 @@ export interface TokenCategories {
 }
 
 /**
- * 색상 토큰 (S2 체계, ADR-022)
+ * 색상 토큰 — 역할 이름 = ADR-302 alias 표 (`primitives/colorAliases.ts`) 의 키.
  *
- * React Spectrum S2의 역할 기반 네이밍 채택:
- * - accent/neutral/negative: 핵심 시맨틱
- * - informative/positive/notice: 상태 시맨틱
- * - base/layer-1/layer-2/elevated: 레이어 시스템
- * - -subtle: 연한 배경 변형 (S2 fillStyle=subtle)
+ * 키 목록은 생성 산출물 (`generated/spectrumThemeColors.ts`) 에서 유도한다 — 역할을 더하거나 빼는 곳은
+ * alias 표 한 곳이다 (손으로 interface 에 적지 않는다).
  */
-export interface ColorTokens {
-  // --- Accent (기존 primary) ---
-  accent: string;
-  /** S2 Button의 fill 역할 (일반 내용·상태 토큰과 독립 편집). */
-  "selection-accent": string;
-  "selection-accent-hover": string;
-  "selection-negative": string;
-  "selection-negative-hover": string;
-  "accent-fill": string;
-  "focus-ring": string;
-  "accent-fill-hover": string;
-  "negative-fill": string;
-  "negative-fill-hover": string;
+export type ColorTokenName = keyof typeof SPECTRUM_LIGHT_COLORS;
 
-  "accent-hover": string;
-  "accent-pressed": string;
-  "on-accent": string;
-  "accent-subtle": string;
-  /** 바탕 위 accent (글자 · 선 · 채움) — 배경 역할 `accent` 와 따로 목표 대비로 정한다 (ADR-290). */
-  "accent-content": string;
-  "accent-content-hover": string;
-
-  // --- Neutral (기존 on-surface + secondary) ---
-  neutral: string;
-  /** S2 neutral 역할: 내용과 바탕의 기본값이 같아도 편집은 독립적이다. */
-  "neutral-content": string;
-  "neutral-content-hover": string;
-  "neutral-fill": string;
-  "neutral-surface": string;
-  "neutral-surface-hover": string;
-  "neutral-outline": string;
-  "neutral-outline-hover": string;
-  "on-neutral": string;
-
-  "neutral-subdued": string;
-  "field-placeholder": string;
-  "neutral-subtle": string;
-  "neutral-hover": string;
-  "neutral-pressed": string;
-  /** 진한 바탕 `neutral-fill` (Button primary) 의 hover · pressed — S2 한 단 (ADR-293 결정 4) */
-  "neutral-fill-hover": string;
-  "neutral-fill-pressed": string;
-
-  // --- Negative (기존 error) ---
-  negative: string;
-  "negative-hover": string;
-  "negative-pressed": string;
-  "on-negative": string;
-  "negative-subtle": string;
-
-  // --- Informative ---
-  informative: string;
-  "informative-subtle": string;
-
-  // --- Positive ---
-  positive: string;
-  "positive-subtle": string;
-
-  // --- Notice ---
-  notice: string;
-  "notice-subtle": string;
-
-  // --- Status strong (subtle 배경 위 텍스트 — ADR-193 후속, light 900 / dark 200) ---
-  "negative-strong": string;
-  "positive-strong": string;
-  "informative-strong": string;
-  "notice-strong": string;
-
-  // --- Surface / Layer ---
-  "overlay-backdrop": string;
-  "popover-outline": string;
-  "popover-background": string;
-  "collection-item-focus": string;
-  "picker-background": string;
-  "picker-background-hover": string;
-  "picker-content": string;
-  "picker-content-hover": string;
-  "picker-content-disabled": string;
-  "picker-checkbox-base": string;
-  base: string;
-  /** raised surface (popover/dropdown/collection 컨테이너, ADR-071) → CSS --bg-raised. */
-  raised: string;
-  "layer-1": string;
-  "layer-2": string;
-  elevated: string;
-  disabled: string;
-  "disabled-content": string;
-
-  // --- Border ---
-  border: string;
-  "border-hover": string;
-  "border-disabled": string;
-
-  // --- Special ---
-  transparent: string;
-  white: string;
-  black: string;
-
-  // --- Named Colors (StatusLight, Badge 등) ---
-  purple: string;
-  "purple-subtle": string;
-  yellow: string;
-  "yellow-subtle": string;
-  red: string;
-  "red-subtle": string;
-  orange: string;
-  "orange-subtle": string;
-  blue: string;
-  "blue-subtle": string;
-  indigo: string;
-  "indigo-subtle": string;
-  cyan: string;
-  "cyan-subtle": string;
-  pink: string;
-  "pink-subtle": string;
-  fuchsia: string;
-  "fuchsia-subtle": string;
-  magenta: string;
-  "magenta-subtle": string;
-  celery: string;
-  "celery-subtle": string;
-  chartreuse: string;
-  "chartreuse-subtle": string;
-  // Spectrum 전용 hue (ADR-191 후속) — Tailwind 최근접 family 로 고정
-  turquoise: string;
-  "turquoise-subtle": string;
-  seafoam: string;
-  "seafoam-subtle": string;
-  cinnamon: string;
-  "cinnamon-subtle": string;
-  brown: string;
-  "brown-subtle": string;
-  silver: string;
-  "silver-subtle": string;
-  // Skia 결손 보완 (ADR-193) — catalog `{color.gray}` / tokenResolver `green-named` 는 있었으나 colors.ts 에 없었다
-  gray: string;
-  "gray-subtle": string;
-  "green-named": string;
-  "green-named-subtle": string;
-  // Chart 시리즈 팔레트 (chartPaletteMap.ts) — categorical 은 Spectrum 리터럴 (테마 공용),
-  // accent 는 `--tint` 명도 사다리 (tintToSkiaColors 가 런타임에 덮어쓴다)
-  "chart-categorical-1": string;
-  "chart-categorical-2": string;
-  "chart-categorical-3": string;
-  "chart-categorical-4": string;
-  "chart-categorical-5": string;
-  "chart-categorical-6": string;
-  "chart-categorical-7": string;
-  "chart-categorical-8": string;
-  "chart-accent-1": string;
-  "chart-accent-2": string;
-  "chart-accent-3": string;
-  "chart-accent-4": string;
-}
+export type ColorTokens = { [K in ColorTokenName]: string };
 
 /**
  * 간격 토큰

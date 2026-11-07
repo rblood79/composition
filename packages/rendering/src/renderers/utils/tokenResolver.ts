@@ -212,6 +212,15 @@ const COLOR_TOKEN_TO_CSS: Record<string, string> = {
   "positive-subtle": "var(--positive-subtle)",
   notice: "var(--notice)",
   "notice-subtle": "var(--notice-subtle)",
+  // 정적 면 (Badge · InlineAlert · Toast) · 점 · 막대 (StatusLight · Meter) — ADR-302 (S2 소비 지점 그대로)
+  "negative-background": "var(--negative-background)",
+  "informative-background": "var(--informative-background)",
+  "positive-background": "var(--positive-background)",
+  "notice-background": "var(--notice-background)",
+  "negative-visual": "var(--negative-visual)",
+  "informative-visual": "var(--informative-visual)",
+  "positive-visual": "var(--positive-visual)",
+  "notice-visual": "var(--notice-visual)",
   // subtle 배경 위 텍스트 — semantic-palette.css light 900 / dark 200 (ADR-193 후속)
   "negative-strong": "var(--negative-strong)",
   "positive-strong": "var(--positive-strong)",
@@ -220,7 +229,7 @@ const COLOR_TOKEN_TO_CSS: Record<string, string> = {
 
   // --- Surface / Layer ---
   base: "var(--bg)",
-  raised: "var(--bg-raised)",
+  pasteboard: "var(--bg-pasteboard)",
   "layer-1": "var(--bg-overlay)",
   "overlay-backdrop": "var(--overlay-backdrop)",
   "popover-outline": "var(--popover-outline)",

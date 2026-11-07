@@ -46,6 +46,8 @@
     "validate:palette": "tsx scripts/generate-palette.ts --check",
     "generate:icons": "node scripts/extract-lucide-icons.mjs",
     "generate:css": "tsx scripts/generate-css.ts",
-    "validate:sync": "tsx scripts/generate-css.ts --check"
+    "validate:sync": "tsx scripts/generate-css.ts --check",
+    "generate:theme-colors": "tsx scripts/generate-theme-colors.ts",
+    "validate:theme-colors": "tsx scripts/generate-theme-colors.ts --check"
   }
 }

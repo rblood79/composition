@@ -47,7 +47,8 @@
 
     .react-aria-OverlayArrow svg {
       display: block;
-      fill: var(--bg-raised);
+      /* ADR-302: raised 삭제 — catalog Popover 바탕 (popover-background) 과 같은 칠. Builder 자체 popover 는 --popover-background 가 없어 --bg-raised (builder-system) */
+      fill: var(--popover-background, var(--bg-raised));
       stroke: var(--border);
       /* ADR-913 slice 5 (2026-06-19): starter Popover.css:26 + Skia popover_arrow
          strokeWidth:2 정본 정렬. 기존 1px 는 composition manual CSS 단독 발산(DOM↔Skia 비대칭). */

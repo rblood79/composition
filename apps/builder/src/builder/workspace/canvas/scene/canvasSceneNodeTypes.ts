@@ -48,7 +48,7 @@ export interface CanvasSceneNode {
   reusable?: true;
   /**
    * data-bound collection projection 컨테이너(box 경로)가 catalog "shell variant" 배경
-   * (`{color.raised}` 등)을 그리도록 하는 마커 — catalog 컴포넌트 key("ListBox"/"GridList").
+   * (`{color.layer-2}` 등 — ADR-302 이전 `raised`)을 그리도록 하는 마커 — catalog 컴포넌트 key("ListBox"/"GridList").
    * box 경로(buildBoxNodeData)는 catalog shell lookup 을 안 하므로, scene 이 collection 임을
    * 아는 시점에 마커를 심어 render 단에서 theme-aware 로 배경을 복원한다(사용자 배경 없을 때만).
    * 투명 컨테이너에서 drop-shadow 가 자식 행 실루엣을 캡처하던 문제 봉쇄(box-shadow = border-box).

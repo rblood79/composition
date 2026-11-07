@@ -329,11 +329,11 @@ describe("ADR-256 후속 C — Tree · Table", () => {
     const header = all("TableHeader")[0]!;
     const column = all("Column")[0]!;
     const row = all("Row")[0]!;
-    expect(header.visual.fill).toBe("var(--bg-raised)");
+    expect(header.visual.fill).toBe("var(--bg-inset)");
     expect([column.visual.borderBottomWidth, column.visual.borderColor]).toEqual([1, "var(--border-hover)"]);
     expect([row.visual.borderBottomWidth, row.visual.borderColor, row.visual.borderTopWidth]).toEqual([1, "var(--border)", 0]);
     const dom = html();
-    expect(dom).toMatch(/class="react-aria-TableHeader"[^>]*style="[^"]*background-color:var\(--bg-raised\)/);
+    expect(dom).toMatch(/class="react-aria-TableHeader"[^>]*style="[^"]*background-color:var\(--bg-inset\)/);
     expect(dom).toMatch(/class="react-aria-Row"[^>]*style="[^"]*border-bottom-width:1px/);
     void root;
   });

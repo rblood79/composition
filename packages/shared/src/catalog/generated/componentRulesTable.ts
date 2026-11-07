@@ -1377,9 +1377,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       informative: {
         paint: {
           backgroundColor: {
-            default: "{color.informative}",
-            isHovered: "{color.informative}",
-            isPressed: "{color.informative}",
+            default: "{color.informative-background}",
+            isHovered: "{color.informative-background}",
+            isPressed: "{color.informative-background}",
             fillStyle: {
               outline: "{color.transparent}",
               subtle: "{color.informative-subtle}",
@@ -1429,9 +1429,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       positive: {
         paint: {
           backgroundColor: {
-            default: "{color.positive}",
-            isHovered: "{color.positive}",
-            isPressed: "{color.positive}",
+            default: "{color.positive-background}",
+            isHovered: "{color.positive-background}",
+            isPressed: "{color.positive-background}",
             fillStyle: {
               outline: "{color.transparent}",
               subtle: "{color.positive-subtle}",
@@ -1455,16 +1455,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       notice: {
         paint: {
           backgroundColor: {
-            default: "{color.notice}",
-            isHovered: "{color.notice}",
-            isPressed: "{color.notice}",
+            default: "{color.notice-background}",
+            isHovered: "{color.notice-background}",
+            isPressed: "{color.notice-background}",
             fillStyle: {
               outline: "{color.transparent}",
               subtle: "{color.notice-subtle}",
             },
           },
           color: {
-            default: "{color.white}",
+            default: "{color.black}",
             fillStyle: {
               outline: "{color.notice}",
               subtle: "{color.notice}",
@@ -1481,9 +1481,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       negative: {
         paint: {
           backgroundColor: {
-            default: "{color.negative}",
-            isHovered: "{color.negative}",
-            isPressed: "{color.negative}",
+            default: "{color.negative-background}",
+            isHovered: "{color.negative-background}",
+            isPressed: "{color.negative-background}",
             fillStyle: {
               outline: "{color.transparent}",
               subtle: "{color.negative-subtle}",
@@ -1568,7 +1568,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           color: {
-            default: "{color.white}",
+            default: "{color.black}",
             fillStyle: {
               outline: "{color.orange}",
               subtle: "{color.orange}",
@@ -1880,7 +1880,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           color: {
-            default: "{color.white}",
+            default: "{color.black}",
             fillStyle: {
               outline: "{color.celery}",
               subtle: "{color.celery}",
@@ -4039,7 +4039,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       composition: {
         delegation: [],
         containerStyles: {
-          border: "4px solid var(--bg-raised)",
+          border: "4px solid var(--bg-inset)",
           "box-shadow": "var(--shadow-sm)",
           width: scaledLengthRef(16),
           height: scaledLengthRef(16),
@@ -7017,7 +7017,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       element: "div",
       containerStyles: {
         position: "sticky",
-        background: "{color.raised}",
+        background: "{color.layer-2}",
         text: "{color.neutral-subdued}",
         // ADR-171 Phase 3 (2026-07-29): archetype base 가 생성 CSS 에만 emit 하던 값이라
         //   catalog 를 읽는 Skia 에는 안 갔다 (G2 잔존). 실효 DOM 값 그대로 이관 — 값 불변.
@@ -7451,9 +7451,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       informative: {
         paint: {
           backgroundColor: {
-            default: "{color.informative}",
-            isHovered: "{color.informative}",
-            isPressed: "{color.informative}",
+            default: "{color.informative-background}",
+            isHovered: "{color.informative-background}",
+            isPressed: "{color.informative-background}",
             fillStyle: {
               border: "{color.base}",
               subtleFill: "{color.informative-subtle}",
@@ -7478,9 +7478,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       positive: {
         paint: {
           backgroundColor: {
-            default: "{color.positive}",
-            isHovered: "{color.positive}",
-            isPressed: "{color.positive}",
+            default: "{color.positive-background}",
+            isHovered: "{color.positive-background}",
+            isPressed: "{color.positive-background}",
             fillStyle: {
               border: "{color.base}",
               subtleFill: "{color.positive-subtle}",
@@ -7505,9 +7505,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       notice: {
         paint: {
           backgroundColor: {
-            default: "{color.notice}",
-            isHovered: "{color.notice}",
-            isPressed: "{color.notice}",
+            default: "{color.notice-background}",
+            isHovered: "{color.notice-background}",
+            isPressed: "{color.notice-background}",
             fillStyle: {
               border: "{color.base}",
               subtleFill: "{color.notice-subtle}",
@@ -7532,9 +7532,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       negative: {
         paint: {
           backgroundColor: {
-            default: "{color.negative}",
-            isHovered: "{color.negative}",
-            isPressed: "{color.negative}",
+            default: "{color.negative-background}",
+            isHovered: "{color.negative-background}",
+            isPressed: "{color.negative-background}",
             fillStyle: {
               border: "{color.base}",
               subtleFill: "{color.negative-subtle}",
@@ -8255,7 +8255,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       default: {
         paint: {
           backgroundColor: {
-            default: "{color.raised}",
+            default: "{color.layer-2}",
             isHovered: "{color.layer-2}",
             isPressed: "{color.layer-1}",
           },
@@ -8339,7 +8339,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       archetype: "collection",
       element: "div",
       containerStyles: {
-        background: "{color.raised}",
+        background: "{color.layer-2}",
         text: "{color.neutral}",
         border: "{color.border}",
         borderWidth: "{border.width.hairline}",
@@ -8751,9 +8751,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       default: {
         paint: {
           backgroundColor: {
-            default: "{color.raised}",
-            isHovered: "{color.raised}",
-            isPressed: "{color.raised}",
+            default: "{color.layer-2}",
+            isHovered: "{color.layer-2}",
+            isPressed: "{color.layer-2}",
           },
           color: {
             default: "{color.neutral}",
@@ -8805,7 +8805,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       archetype: "collection",
       element: "div",
       containerStyles: {
-        background: "{color.raised}",
+        background: "{color.layer-2}",
         text: "{color.neutral}",
         border: "{color.border}",
         borderWidth: "{border.width.thin}",
@@ -9379,9 +9379,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       informative: {
         paint: {
           backgroundColor: {
-            default: "{color.informative}",
-            isHovered: "{color.informative}",
-            isPressed: "{color.informative}",
+            default: "{color.informative-visual}",
+            isHovered: "{color.informative-visual}",
+            isPressed: "{color.informative-visual}",
             staticColor: {
               black: {
                 default: "#000000",
@@ -9418,9 +9418,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       positive: {
         paint: {
           backgroundColor: {
-            default: "{color.positive}",
-            isHovered: "{color.positive}",
-            isPressed: "{color.positive}",
+            default: "{color.positive-visual}",
+            isHovered: "{color.positive-visual}",
+            isPressed: "{color.positive-visual}",
             staticColor: {
               black: {
                 default: "#000000",
@@ -9458,9 +9458,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       notice: {
         paint: {
           backgroundColor: {
-            default: "{color.notice}",
-            isHovered: "{color.notice}",
-            isPressed: "{color.notice}",
+            default: "{color.notice-visual}",
+            isHovered: "{color.notice-visual}",
+            isPressed: "{color.notice-visual}",
             staticColor: {
               black: {
                 default: "#000000",
@@ -9498,9 +9498,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       negative: {
         paint: {
           backgroundColor: {
-            default: "{color.negative}",
-            isHovered: "{color.negative}",
-            isPressed: "{color.negative}",
+            default: "{color.negative-visual}",
+            isHovered: "{color.negative-visual}",
+            isPressed: "{color.negative-visual}",
             staticColor: {
               black: {
                 default: "#000000",
@@ -12856,9 +12856,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       informative: {
         paint: {
           backgroundColor: {
-            default: "{color.informative}",
-            isHovered: "{color.informative}",
-            isPressed: "{color.informative}",
+            default: "{color.informative-visual}",
+            isHovered: "{color.informative-visual}",
+            isPressed: "{color.informative-visual}",
           },
           color: {
             default: "{color.neutral}",
@@ -12868,9 +12868,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       positive: {
         paint: {
           backgroundColor: {
-            default: "{color.positive}",
-            isHovered: "{color.positive}",
-            isPressed: "{color.positive}",
+            default: "{color.positive-visual}",
+            isHovered: "{color.positive-visual}",
+            isPressed: "{color.positive-visual}",
           },
           color: {
             default: "{color.neutral}",
@@ -12880,9 +12880,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       notice: {
         paint: {
           backgroundColor: {
-            default: "{color.notice}",
-            isHovered: "{color.notice}",
-            isPressed: "{color.notice}",
+            default: "{color.notice-visual}",
+            isHovered: "{color.notice-visual}",
+            isPressed: "{color.notice-visual}",
           },
           color: {
             default: "{color.neutral}",
@@ -12892,9 +12892,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       negative: {
         paint: {
           backgroundColor: {
-            default: "{color.negative}",
-            isHovered: "{color.negative}",
-            isPressed: "{color.negative}",
+            default: "{color.negative-visual}",
+            isHovered: "{color.negative-visual}",
+            isPressed: "{color.negative-visual}",
           },
           color: {
             default: "{color.neutral}",
@@ -13553,7 +13553,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         // ADR-297 후속 ②: no `alpha: 0` — the Table's header row paints the Table part rule's
-        //   `--bg-raised` (S2 TableView `tableHeader` gray-75, `manualBoxRules` Table) on both consumers.
+        //   `--bg-inset` (ADR-302 결정 3 — `raised` → layer-2; S2 TableView `tableHeader` gray-75 은 ADR-303) on both consumers.
       },
     },
     sizes: {
@@ -15303,9 +15303,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       info: {
         paint: {
           backgroundColor: {
-            default: "{color.informative}",
-            isHovered: "{color.informative}",
-            isPressed: "{color.informative}",
+            default: "{color.informative-background}",
+            isHovered: "{color.informative-background}",
+            isPressed: "{color.informative-background}",
           },
           color: {
             default: "{color.white}",
@@ -15318,9 +15318,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       positive: {
         paint: {
           backgroundColor: {
-            default: "{color.positive}",
-            isHovered: "{color.positive}",
-            isPressed: "{color.positive}",
+            default: "{color.positive-background}",
+            isHovered: "{color.positive-background}",
+            isPressed: "{color.positive-background}",
           },
           color: {
             default: "{color.white}",
@@ -15333,9 +15333,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       negative: {
         paint: {
           backgroundColor: {
-            default: "{color.negative}",
-            isHovered: "{color.negative}",
-            isPressed: "{color.negative}",
+            default: "{color.negative-background}",
+            isHovered: "{color.negative-background}",
+            isPressed: "{color.negative-background}",
           },
           color: {
             default: "{color.white}",

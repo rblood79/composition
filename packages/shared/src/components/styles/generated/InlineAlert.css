@@ -22,7 +22,7 @@
   align-items: flex-start;
 
   /* Default variant */
-  background: var(--informative);
+  background: var(--informative-background);
   color: var(--color-white);
   border: var(--border-width-thin) solid var(--informative);
 
@@ -60,17 +60,17 @@
 }
 
 .react-aria-InlineAlert:where([data-variant="informative"]) {
-  background: var(--informative);
+  background: var(--informative-background);
   color: var(--color-white);
   border-color: var(--informative);
 }
 
 .react-aria-InlineAlert:where([data-variant="informative"][data-hovered]) {
-  background: var(--informative);
+  background: var(--informative-background);
 }
 
 .react-aria-InlineAlert:where([data-variant="informative"][data-pressed]) {
-  background: var(--informative);
+  background: var(--informative-background);
 }
 
 .react-aria-InlineAlert:where([data-variant="informative"][data-fill-style="border"]) {
@@ -85,17 +85,17 @@
 }
 
 .react-aria-InlineAlert:where([data-variant="positive"]) {
-  background: var(--positive);
+  background: var(--positive-background);
   color: var(--color-white);
   border-color: var(--positive);
 }
 
 .react-aria-InlineAlert:where([data-variant="positive"][data-hovered]) {
-  background: var(--positive);
+  background: var(--positive-background);
 }
 
 .react-aria-InlineAlert:where([data-variant="positive"][data-pressed]) {
-  background: var(--positive);
+  background: var(--positive-background);
 }
 
 .react-aria-InlineAlert:where([data-variant="positive"][data-fill-style="border"]) {
@@ -110,17 +110,17 @@
 }
 
 .react-aria-InlineAlert:where([data-variant="notice"]) {
-  background: var(--notice);
+  background: var(--notice-background);
   color: var(--color-black);
   border-color: var(--notice);
 }
 
 .react-aria-InlineAlert:where([data-variant="notice"][data-hovered]) {
-  background: var(--notice);
+  background: var(--notice-background);
 }
 
 .react-aria-InlineAlert:where([data-variant="notice"][data-pressed]) {
-  background: var(--notice);
+  background: var(--notice-background);
 }
 
 .react-aria-InlineAlert:where([data-variant="notice"][data-fill-style="border"]) {
@@ -135,17 +135,17 @@
 }
 
 .react-aria-InlineAlert:where([data-variant="negative"]) {
-  background: var(--negative);
+  background: var(--negative-background);
   color: var(--color-white);
   border-color: var(--negative);
 }
 
 .react-aria-InlineAlert:where([data-variant="negative"][data-hovered]) {
-  background: var(--negative);
+  background: var(--negative-background);
 }
 
 .react-aria-InlineAlert:where([data-variant="negative"][data-pressed]) {
-  background: var(--negative);
+  background: var(--negative-background);
 }
 
 .react-aria-InlineAlert:where([data-variant="negative"][data-fill-style="border"]) {

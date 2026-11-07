@@ -15,6 +15,9 @@
  *   - aliases[key][light|dark] = { value, family, scaleIndex }   (alias 사슬 끝의 primitive 단)
  * deprecated (`lifecycle.deprecatedIn`) 토큰 · wireframe 모드 · 색이 아닌 합성 값 (drop-shadow) 은 뺀다.
  *
+ * 같은 실행이 `packages/rendering/src/primitives/generated/spectrumLadders.ts` (사다리 primitive — gray · hue,
+ * 투명 사다리 제외) 도 쓴다. rendering 의 `generate-theme-colors.ts` 가 그것과 alias 표로 기본 역할 값을 만든다.
+ *
  * 패키지 버전을 올릴 때는 apps/builder/package.json 의 고정 버전과 이 fixture 를 같은 커밋에서 고친다.
  */
 import { createRequire } from "node:module";
@@ -35,6 +38,10 @@ const pkgVersion = JSON.parse(
 const outFile = join(
   repoRoot,
   "packages/shared/src/catalog/__tests__/fixtures/adr302-spectrum-color-oracle.json",
+);
+const laddersFile = join(
+  repoRoot,
+  "packages/rendering/src/primitives/generated/spectrumLadders.ts",
 );
 const SCHEMES = ["light", "dark"];
 
@@ -213,25 +220,73 @@ function build() {
   };
 }
 
-const text = `${JSON.stringify(build(), null, 2)}\n`;
+const built = build();
+const text = `${JSON.stringify(built, null, 2)}\n`;
+
+/** 사다리 TS 모듈 — 색 모드가 있는 hex 사다리만 (transparent-* 는 rgba 라 테마 사다리가 아니다). */
+function laddersModule() {
+  const families = Object.keys(built.ladders).filter(
+    (f) => !f.startsWith("transparent"),
+  );
+  const body = families
+    .map((f) => {
+      const modes = SCHEMES.map(
+        (m) =>
+          `    ${m}: { ${Object.entries(built.ladders[f][m])
+            .map(([k, v]) => `${k}: "${v}"`)
+            .join(", ")} },`,
+      ).join("\n");
+      return `  ${/^[a-z]+$/.test(f) ? f : JSON.stringify(f)}: {\n${modes}\n  },`;
+    })
+    .join("\n");
+  return `/**
+ * ADR-302 — Spectrum 색 사다리 primitive (design-data \`color-palette\`, light · dark).
+ * 생성: apps/builder/scripts/adr302-spectrum-color-extract.mjs (@adobe/spectrum-design-data@${pkgVersion}) — 손 편집 금지.
+ */
+export type SpectrumLadderFamily =
+${families.map((f) => `  | "${f}"`).join("\n")};
+
+export const SPECTRUM_LADDERS: Readonly<
+  Record<
+    SpectrumLadderFamily,
+    Readonly<Record<"light" | "dark", Readonly<Record<number, string>>>>
+  >
+> = {
+${body}
+};
+`;
+}
+// 저장소 포맷 (prettier) 그대로 — --check 가 포맷 차이로 실패하지 않게
+const prettierModule = await import(require.resolve("prettier"));
+const prettier = prettierModule.default ?? prettierModule;
+const ladderText = await prettier.format(laddersModule(), {
+  ...(await prettier.resolveConfig(laddersFile)),
+  filepath: laddersFile,
+});
+
 if (process.argv.includes("--check")) {
   let current = "";
+  let currentLadders = "";
   try {
     current = readFileSync(outFile, "utf8");
+    currentLadders = readFileSync(laddersFile, "utf8");
   } catch {
-    current = "";
+    // 없으면 다르다
   }
-  if (current !== text) {
+  if (current !== text || currentLadders !== ladderText) {
     console.error(
-      `adr302 oracle fixture 가 설치된 @adobe/spectrum-design-data@${pkgVersion} 과 다르다 — 생성기를 다시 실행한다`,
+      `adr302 oracle fixture · spectrumLadders.ts 가 설치된 @adobe/spectrum-design-data@${pkgVersion} 과 다르다 — 생성기를 다시 실행한다`,
     );
     process.exit(1);
   }
   console.log(
-    `adr302 oracle fixture = @adobe/spectrum-design-data@${pkgVersion}`,
+    `adr302 oracle fixture · spectrumLadders.ts = @adobe/spectrum-design-data@${pkgVersion}`,
   );
 } else {
   mkdirSync(dirname(outFile), { recursive: true });
   writeFileSync(outFile, text);
-  console.log(`wrote ${outFile} (@adobe/spectrum-design-data@${pkgVersion})`);
+  writeFileSync(laddersFile, ladderText);
+  console.log(
+    `wrote ${outFile} · ${laddersFile} (@adobe/spectrum-design-data@${pkgVersion})`,
+  );
 }

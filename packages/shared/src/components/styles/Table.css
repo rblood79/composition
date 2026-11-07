@@ -225,7 +225,7 @@
   .react-aria-TableHeader {
     font-size: var(--text-base);
     color: var(--fg-muted);
-    background: var(--bg-raised);
+    background: var(--bg-inset);
 
     & tr:last-child .react-aria-Column {
       border-bottom: 1px solid var(--border-hover);
@@ -502,7 +502,7 @@
   }
 
   .react-aria-PageSizeSelect {
-    background-color: var(--bg-raised);
+    background-color: var(--bg-inset);
     color: var(--fg);
 
     /* (the shared data Table's pagination — Builder widgets; a catalog Table has none) */
@@ -575,7 +575,7 @@
   .react-aria-GoToPageInput {
     width: 48px;
     text-align: center;
-    background-color: var(--bg-raised);
+    background-color: var(--bg-inset);
     color: var(--fg);
 
     &:where(:not([data-catalog-id], [data-catalog-id] *)):focus {

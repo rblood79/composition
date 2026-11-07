@@ -21,7 +21,7 @@
   display: block;
 
   /* Default variant */
-  background: var(--informative);
+  background: var(--informative-visual);
   color: var(--fg);
   border: none;
 
@@ -32,16 +32,16 @@
 }
 
 .react-aria-MeterFill:where([data-variant="informative"]) {
-  background: var(--informative);
+  background: var(--informative-visual);
   color: var(--fg);
 }
 
 .react-aria-MeterFill:where([data-variant="informative"][data-hovered]) {
-  background: var(--informative);
+  background: var(--informative-visual);
 }
 
 .react-aria-MeterFill:where([data-variant="informative"][data-pressed]) {
-  background: var(--informative);
+  background: var(--informative-visual);
 }
 
 .react-aria-MeterFill:where([data-variant="informative"][data-static-color="black"]) {
@@ -75,16 +75,16 @@
 }
 
 .react-aria-MeterFill:where([data-variant="positive"]) {
-  background: var(--positive);
+  background: var(--positive-visual);
   color: var(--fg);
 }
 
 .react-aria-MeterFill:where([data-variant="positive"][data-hovered]) {
-  background: var(--positive);
+  background: var(--positive-visual);
 }
 
 .react-aria-MeterFill:where([data-variant="positive"][data-pressed]) {
-  background: var(--positive);
+  background: var(--positive-visual);
 }
 
 .react-aria-MeterFill:where([data-variant="positive"][data-static-color="black"]) {
@@ -118,16 +118,16 @@
 }
 
 .react-aria-MeterFill:where([data-variant="notice"]) {
-  background: var(--notice);
+  background: var(--notice-visual);
   color: var(--fg);
 }
 
 .react-aria-MeterFill:where([data-variant="notice"][data-hovered]) {
-  background: var(--notice);
+  background: var(--notice-visual);
 }
 
 .react-aria-MeterFill:where([data-variant="notice"][data-pressed]) {
-  background: var(--notice);
+  background: var(--notice-visual);
 }
 
 .react-aria-MeterFill:where([data-variant="notice"][data-static-color="black"]) {
@@ -161,16 +161,16 @@
 }
 
 .react-aria-MeterFill:where([data-variant="negative"]) {
-  background: var(--negative);
+  background: var(--negative-visual);
   color: var(--fg);
 }
 
 .react-aria-MeterFill:where([data-variant="negative"][data-hovered]) {
-  background: var(--negative);
+  background: var(--negative-visual);
 }
 
 .react-aria-MeterFill:where([data-variant="negative"][data-pressed]) {
-  background: var(--negative);
+  background: var(--negative-visual);
 }
 
 .react-aria-MeterFill:where([data-variant="negative"][data-static-color="black"]) {

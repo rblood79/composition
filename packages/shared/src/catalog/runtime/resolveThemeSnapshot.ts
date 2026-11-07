@@ -266,8 +266,12 @@ export function resolveThemeSnapshot(
     ...(mode === "dark" ? SEED_DARK_COLORS : SEED_LIGHT_COLORS),
     ...resolveNeutralColorTokens(neutral, mode),
   });
+  // ADR-302 Phase 1 — 기본 tint (blue · 사용자 hex 없음) 는 seed (alias 표 × Spectrum 사다리) 그대로다.
+  //   비기본 tint · 사용자 hex 의 사다리 생성은 Phase 2 — 그때까지 옛 탐색 경로.
+  const defaultAccent = (preset.tint || "blue") === "blue" && !accentHex;
   const withAccent = (mode: "light" | "dark"): Record<string, string> => {
     const seed = seedColors(mode);
+    if (defaultAccent) return seed;
     const accent = createAccentColorTokens(c, h, mode, {
       surfaces: { ...seed, ...explicitColors },
       startL,
@@ -279,15 +283,11 @@ export function resolveThemeSnapshot(
     return {
       ...seed,
       ...accent,
-      // 미편집 blue 기본값은 S2 단계값. 사용자 tint/색상은 기존 탐색 결과를 연결한다.
-      ...((preset.tint || "blue") !== "blue" || accentHex
-        ? {
-            "selection-accent": accent["accent-content"],
-            "selection-accent-hover": accent["accent-content-hover"],
-            "accent-fill": accent.accent,
-            "accent-fill-hover": accent["accent-hover"],
-          }
-        : {}),
+      // 사용자 tint/색상은 기존 탐색 결과를 연결한다 (Phase 2 가 사다리 생성으로 대체).
+      "selection-accent": accent["accent-content"],
+      "selection-accent-hover": accent["accent-content-hover"],
+      "accent-fill": accent.accent,
+      "accent-fill-hover": accent["accent-hover"],
     };
   };
   const light = withAccent("light");

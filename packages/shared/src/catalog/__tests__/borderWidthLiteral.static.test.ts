@@ -14,12 +14,12 @@ import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
  *   - `"border-bottom": "1px solid var(--border)"` 10 — Table/ListBox 행·섹션 구분선 (divider 축; Skia 도
  *     같은 리터럴 1 로 그린다 — 폭 토큰과 분리, 후속 판정).
  *   - 생성기 archetype 블록의 Slider thumb `border: 2px solid var(--bg)` — Skia thumb 도 리터럴 2 (대칭).
- *   - ColorThumb 의 고리 `border: 4px solid var(--bg-raised)` (ADR-258 — 사용자 결정 2 「지금 수동 CSS 값
+ *   - ColorThumb 의 고리 `border: 4px solid var(--bg-inset)` (ADR-258 — 사용자 결정 2 「지금 수동 CSS 값
  *     그대로」): 테마 테두리 축이 아니라 손잡이 고리다 (Slider thumb 와 같은 축). Canvas 도 같은 선언을 읽는다
  *     (`catalogColorThumbRing` → `color_thumb`).
  */
 const HANDLE_RINGS: ReadonlySet<string> = new Set([
-  "4px solid var(--bg-raised)",
+  "4px solid var(--bg-inset)",
 ]);
 const TABLE_PATH = resolve(__dirname, "../generated/componentRulesTable.ts");
 

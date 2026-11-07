@@ -12,11 +12,10 @@ import { resolveAccentColorTokens, TINT_PRESETS } from "./tintToSkiaColors";
 import { oklchToHex } from "./oklchToHex";
 
 describe("tintToSkiaColors — chart-accent 사다리", () => {
-  it("기본 tint (blue) 공식 == chartPaletteMap 초기값 (colors.ts 와 같은 hex)", () => {
+  it("기본 tint (blue) 공식 == chartPaletteMap 초기값 (요소별 tint 의 탐색 경로 — seed 는 ADR-302 accent 사다리 단)", () => {
     const blue = resolveAccentColorTokens("blue", "light")!;
     CHART_ACCENT_TOKENS.forEach((token, i) => {
       expect(blue[token]).toBe(CHART_ACCENT_DEFAULT_HEX[i]);
-      expect(lightColors[token]).toBe(CHART_ACCENT_DEFAULT_HEX[i]);
     });
   });
 

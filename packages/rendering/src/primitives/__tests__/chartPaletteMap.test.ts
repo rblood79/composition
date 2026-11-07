@@ -16,6 +16,8 @@ import {
   chartCategoricalCssVar,
 } from "../chartPaletteMap";
 import { darkColors, lightColors } from "../colors";
+import { COLOR_ALIASES } from "../colorAliases";
+import { SPECTRUM_LADDERS } from "../generated/spectrumLadders";
 import { tokenToCSSVar } from "../../renderers/utils/tokenResolver";
 import type { TokenRef } from "../../types/token.types";
 
@@ -42,14 +44,20 @@ describe("ADR-215 chartPaletteMap — 표 하나, consumer 셋", () => {
     ]);
   });
 
-  it("colors.ts 는 light/dark 모두 표의 값 (테마 공용)", () => {
+  it("colors.ts — categorical 은 표의 값 (테마 공용), accent 는 alias 표의 accent 사다리 단 (ADR-302 결정 6)", () => {
     CHART_CATEGORICAL_TOKENS.forEach((token, i) => {
       expect(lightColors[token]).toBe(CHART_CATEGORICAL_HEX[i]);
       expect(darkColors[token]).toBe(CHART_CATEGORICAL_HEX[i]);
     });
-    CHART_ACCENT_TOKENS.forEach((token, i) => {
-      expect(lightColors[token]).toBe(CHART_ACCENT_DEFAULT_HEX[i]);
-      expect(darkColors[token]).toBe(CHART_ACCENT_DEFAULT_HEX[i]);
+    CHART_ACCENT_TOKENS.forEach((token) => {
+      const entry = COLOR_ALIASES[token]!;
+      expect(entry.axis).toBe("accent");
+      expect(lightColors[token]).toBe(
+        SPECTRUM_LADDERS.blue.light[entry.light as number],
+      );
+      expect(darkColors[token]).toBe(
+        SPECTRUM_LADDERS.blue.dark[entry.dark as number],
+      );
     });
   });
 

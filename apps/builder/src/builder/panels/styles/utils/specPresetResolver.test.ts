@@ -158,12 +158,12 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
   describe("Non-composite containerStyles (ADR-071 스키마)", () => {
     it("ListBox.containerStyles → Appearance preset (borderRadius/borderWidth/colors)", () => {
       // ListBox rule (2026-10-13 — the RAC reference): { borderRadius: "{radius.xl}"=16 (ADR-295),
-      //   borderWidth: "{border.width.hairline}"=0.5, background: "{color.raised}",
+      //   borderWidth: "{border.width.hairline}"=0.5, background: "{color.layer-2}",
       //   border: "{color.border}" }
       const preset = resolveAppearanceSpecPreset("ListBox", undefined);
       expect(preset.borderRadius).toBe(16);
       expect(preset.borderWidth).toBe(0.5);
-      expect(preset.backgroundColor).toBe("var(--bg-raised)");
+      expect(preset.backgroundColor).toBe("var(--bg-inset)");
       expect(preset.borderColor).toBe("var(--border)");
     });
 
@@ -245,11 +245,11 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
 
     it("Menu.containerStyles → Appearance preset", () => {
       // MenuSpec.containerStyles = { borderRadius: "{radius.md}"=8 (ADR-295), borderWidth: 1,
-      //   background: "{color.raised}", border: "{color.border}" }
+      //   background: "{color.layer-2}", border: "{color.border}" }
       const preset = resolveAppearanceSpecPreset("Menu", undefined);
       expect(preset.borderRadius).toBe(8);
       expect(preset.borderWidth).toBe(1);
-      expect(preset.backgroundColor).toBe("var(--bg-raised)");
+      expect(preset.backgroundColor).toBe("var(--bg-inset)");
     });
   });
 
@@ -399,7 +399,7 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
       expect(resolveAppearanceSpecPreset("ListBox", undefined)).toMatchObject({
         borderRadius: 16,
         borderWidth: 0.5,
-        backgroundColor: "var(--bg-raised)",
+        backgroundColor: "var(--bg-inset)",
         borderColor: "var(--border)",
       });
       expect(resolveLayoutSpecPreset("ListBox", undefined)).toMatchObject({
@@ -416,7 +416,7 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
       expect(resolveAppearanceSpecPreset("Menu", undefined)).toMatchObject({
         borderRadius: 8,
         borderWidth: 1,
-        backgroundColor: "var(--bg-raised)",
+        backgroundColor: "var(--bg-inset)",
       });
       // ADR-256 후속 4: Menu 노드 = 목록 (top level = structure 와 같은 flex column) — trigger 는
       // MenuTrigger 의 Button 노드. 종전 (ADR-151 B7) 은 trigger 상자 inline-flex 였다.

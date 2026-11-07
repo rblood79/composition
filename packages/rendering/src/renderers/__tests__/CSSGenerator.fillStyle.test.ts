@@ -4,7 +4,6 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-
 const here = dirname(fileURLToPath(import.meta.url));
 
 describe("CSSGenerator fillStyle", () => {
@@ -57,7 +56,8 @@ describe("CSSGenerator fillStyle", () => {
       },
       {
         variant: "informative",
-        boldBackground: "var(--informative)",
+        // 정적 면 = design-data `informative-background-color-default` (ADR-302)
+        boldBackground: "var(--informative-background)",
         subtleBackground: "var(--informative-subtle)",
         boldText: "var(--color-white)",
         hue: "var(--informative)",
@@ -71,21 +71,24 @@ describe("CSSGenerator fillStyle", () => {
       },
       {
         variant: "positive",
-        boldBackground: "var(--positive)",
+        // 정적 면 = design-data `positive-background-color-default` (ADR-302)
+        boldBackground: "var(--positive-background)",
         subtleBackground: "var(--positive-subtle)",
         boldText: "var(--color-white)",
         hue: "var(--positive)",
       },
       {
         variant: "notice",
-        boldBackground: "var(--notice)",
+        // 정적 면 = design-data `notice-background-color-default` (ADR-302)
+        boldBackground: "var(--notice-background)",
         subtleBackground: "var(--notice-subtle)",
-        boldText: "var(--color-white)",
+        // S2 Badge.tsx:100 — notice 면 위 글자는 검정
+        boldText: "var(--color-black)",
         hue: "var(--notice)",
       },
       {
         variant: "negative",
-        boldBackground: "var(--negative)",
+        boldBackground: "var(--negative-background)",
         subtleBackground: "var(--negative-subtle)",
         boldText: "var(--fg-on-negative)",
         hue: "var(--negative)",

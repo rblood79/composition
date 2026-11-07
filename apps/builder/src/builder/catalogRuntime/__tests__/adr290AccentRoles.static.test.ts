@@ -118,7 +118,6 @@ function accentRefs(): Array<[string, string]> {
 
 const TRANSPARENT_SURFACES = [
   "base",
-  "raised",
   "layer-1",
   "layer-2",
   "elevated",

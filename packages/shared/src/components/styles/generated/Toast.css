@@ -24,7 +24,7 @@
   position: relative;
 
   /* Default variant */
-  background: var(--informative);
+  background: var(--informative-background);
   color: var(--color-white);
   border: var(--border-width-none) solid var(--informative);
 
@@ -55,45 +55,45 @@
 }
 
 .react-aria-Toast:where([data-variant="info"]) {
-  background: var(--informative);
+  background: var(--informative-background);
   color: var(--color-white);
   border-color: var(--informative);
 }
 
 .react-aria-Toast:where([data-variant="info"][data-hovered]) {
-  background: var(--informative);
+  background: var(--informative-background);
 }
 
 .react-aria-Toast:where([data-variant="info"][data-pressed]) {
-  background: var(--informative);
+  background: var(--informative-background);
 }
 
 .react-aria-Toast:where([data-variant="positive"]) {
-  background: var(--positive);
+  background: var(--positive-background);
   color: var(--color-white);
   border-color: var(--positive);
 }
 
 .react-aria-Toast:where([data-variant="positive"][data-hovered]) {
-  background: var(--positive);
+  background: var(--positive-background);
 }
 
 .react-aria-Toast:where([data-variant="positive"][data-pressed]) {
-  background: var(--positive);
+  background: var(--positive-background);
 }
 
 .react-aria-Toast:where([data-variant="negative"]) {
-  background: var(--negative);
+  background: var(--negative-background);
   color: var(--color-white);
   border-color: var(--negative);
 }
 
 .react-aria-Toast:where([data-variant="negative"][data-hovered]) {
-  background: var(--negative);
+  background: var(--negative-background);
 }
 
 .react-aria-Toast:where([data-variant="negative"][data-pressed]) {
-  background: var(--negative);
+  background: var(--negative-background);
 }
 
 .react-aria-Toast.react-aria-Toast:where([data-focus-visible]) {

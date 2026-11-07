@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [테마 기본 색 = Spectrum 토큰 값 — ADR-302 Phase 0 · 1] - 2026-11-08
+
+### Changed
+
+- **기본 테마 (tint blue · Tone neutral) 의 색 토큰 180 키가 Spectrum 토큰 데이터 값** (ADR-302 Phase 1):
+  - 본문 글자 `#171717` → `#292929` (gray-800) · 테두리 `#d4d4d4` → `#dadada` (gray-300) · status 글자 Tailwind 500 대 → Spectrum 900 (light 대비 3.0 ~ 3.8 → 4.5 이상) · accent `#3660f0` → `#3b63fb` (blue-900) 등 — light · dark 모두 alias 표 (역할 → 사다리 단) × 설치된 `@adobe/spectrum-design-data` 사다리.
+  - Badge · InlineAlert · Toast 의 status 면은 `{color.<status>-background}`, StatusLight · Meter 채움은 `{color.<status>-visual}` 로 (S2 소비 지점 그대로). Badge bold notice · orange · celery 글자는 검정 (S2).
+  - **Why**: 값의 출처가 S2 손 hex · Tailwind 표 · resolver 탐색 셋으로 갈려 있었고, 같은 대비 식에서 Spectrum 값은 통과하지만 composition 은 status 글자 · `on-negative` 가 떨어졌다. 비기본 tint · Tone 의 사다리 생성은 Phase 2.
+  - 위치: `packages/rendering/src/primitives/colorAliases.ts` (alias 표) · `generated/spectrumLadders.ts` · `generated/spectrumThemeColors.ts` (`pnpm -F @composition/rendering generate:theme-colors`) · `packages/shared/src/catalog/runtime/resolveThemeSnapshot.ts`
+
+### Added
+
+- **`{color.pasteboard}`** (light gray-100 · dark gray-25 — `--bg-pasteboard`) 와 status `-background` · `-visual` 8 키 (ADR-302 Phase 1).
+
+### Removed
+
+- **`{color.raised}`** (ADR-302 사용자 결정 3): rule 7 참조와 ColorThumb · Table 머리글 · Color 조작기 · Skeleton · ColorPicker · CollectionErrorState 의 `--bg-raised` 는 `layer-2` (`--bg-inset`) 로, Popover 화살표는 `--popover-background` 로. Builder chrome 의 `--bg-raised` 는 그대로.
+
+### Tests
+
+- **G1 `adr302SpectrumOracle.static.test.ts`** — 기본 preset 의 모든 역할 = design-data oracle (alias 대조 · resolver 출력 · 키 집합), 원복 RED 확인. oracle 생성기 `adr302-spectrum-color-extract.mjs --check` 가 fixture 와 사다리 모듈을 같이 대조.
+
 ## [Library Canvas 진입 오류 — Progress value white-space] - 2026-11-08
 
 ### Fixed

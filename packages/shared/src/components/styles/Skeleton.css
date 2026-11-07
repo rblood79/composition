@@ -12,7 +12,7 @@
 
   .react-aria-Skeleton,
   .react-aria-Skeleton-group {
-    --skeleton-bg: var(--bg-raised);
+    --skeleton-bg: var(--bg-inset);
     --skeleton-highlight: var(--accent-subtle);
     --skeleton-border-radius: var(--radius-sm);
     --skeleton-animation-duration: 1.5s;

@@ -9,7 +9,7 @@
     "dev:kill": "for port in ${DEV_PORTS:-5173}; do lsof -ti :$port 2>/dev/null | xargs kill -9 2>/dev/null; done; echo \"Dev servers killed: ${DEV_PORTS:-5173}\"",
     "build": "turbo run build",
     "build:all": "turbo run build:all",
-    "build:specs": "pnpm generate:palette && pnpm generate:css",
+    "build:specs": "pnpm -F @composition/rendering generate:theme-colors && pnpm generate:palette && pnpm generate:css",
     "dev:specs": "pnpm -F @composition/rendering exec tsc --noEmit --watch",
     "gate:catalog-errors": "node apps/builder/scripts/catalog-error-sweep.mjs",
     "docs:stale-symbols": "python3 -I scripts/check-stale-doc-symbols.py",

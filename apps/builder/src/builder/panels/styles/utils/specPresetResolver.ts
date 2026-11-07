@@ -34,7 +34,7 @@ export interface TransformSpecPreset {
 export interface AppearanceSpecPreset {
   borderRadius?: number;
   borderWidth?: number;
-  /** ADR-082: containerStyles / composition 에서 공급된 배경 색상 CSS 값 (예: "var(--bg-raised)") */
+  /** ADR-082: containerStyles / composition 에서 공급된 배경 색상 CSS 값 (예: "var(--bg-inset)") */
   backgroundColor?: string;
   /** ADR-082: containerStyles / composition 에서 공급된 테두리 색상 CSS 값 */
   borderColor?: string;

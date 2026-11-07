@@ -1,49 +1,14 @@
 /**
  * Neutral Preset → neutral 색상 토큰
  *
- * 기본 neutral은 S2 역할값, 사용자 tone은 Tailwind v4 5종 gray 팔레트에서 파생한다 (순수 — 토큰 맵 mutation
+ * 기본 neutral 은 seed (ADR-302 — Spectrum gray 사다리) 그대로, 사용자 tone 은 Tailwind v4 5종 gray 팔레트에서 파생한다 (Phase 2 대체) (순수 — 토큰 맵 mutation
  * 없음, 설치는 `themeMaps.ts` `installThemeMaps`).
  *
  * @see packages/rendering/src/primitives/generated/tailwindPalette.ts (ADR-191 — tailwindcss/theme.css 파생, 손 복사 금지)
  * @see ADR-021 Phase B
  */
 
-import {
-  TAILWIND_PALETTE,
-  lightColors,
-  darkColors,
-} from "@composition/rendering";
-
-// themeMaps가 공개 표를 갱신하기 전에 캡처한다. reset/Undo는 설치된 사용자 색을 기본값으로 읽지 않는다.
-const DEFAULT_SURFACE_KEYS = [
-  "base",
-  "layer-1",
-  "layer-2",
-  "elevated",
-  "border-disabled",
-  "disabled",
-  "disabled-content",
-  "neutral-content",
-  "neutral-subdued",
-  "field-placeholder",
-  "neutral-content-hover",
-  "neutral-fill",
-  "neutral-surface",
-  "neutral-surface-hover",
-  "neutral-outline",
-  "neutral-outline-hover",
-  "on-neutral",
-  "neutral-fill-hover",
-  "neutral-fill-pressed",
-] as const;
-const DEFAULT_SURFACES = {
-  light: Object.fromEntries(
-    DEFAULT_SURFACE_KEYS.map((key) => [key, lightColors[key]]),
-  ),
-  dark: Object.fromEntries(
-    DEFAULT_SURFACE_KEYS.map((key) => [key, darkColors[key]]),
-  ),
-};
+import { TAILWIND_PALETTE } from "@composition/rendering";
 
 // ============================================================================
 // Types
@@ -135,16 +100,13 @@ export function resolveNeutralColorTokens(
   preset: NeutralPreset,
   mode: "light" | "dark",
 ): Record<string, string> {
-  const colors = neutralColorTokens(
-    NEUTRAL_PALETTES[preset] ?? NEUTRAL_PALETTES.neutral,
+  // ADR-302 Phase 1 — 기본 Tone 은 seed (alias 표 × Spectrum gray 사다리) 그대로 (덮을 것 없음).
+  //   비기본 Tone 의 사다리 생성은 Phase 2 — 그때까지 Tailwind 팔레트 단 매핑.
+  if (preset === "neutral" || !(preset in NEUTRAL_PALETTES)) return {};
+  return neutralColorTokens(
+    NEUTRAL_PALETTES[preset],
     mode === "dark" ? DARK_MAP : LIGHT_MAP,
   );
-  // 기본 tone은 S2 역할값을 그대로 사용한다. 사용자 tone 선택은 기존 팔레트 파생을 따른다.
-  if (preset === "neutral" || !(preset in NEUTRAL_PALETTES)) {
-    const defaults = DEFAULT_SURFACES[mode];
-    for (const key of DEFAULT_SURFACE_KEYS) colors[key] = defaults[key];
-  }
-  return colors;
 }
 
 /** neutral 11 단계 hex (DOM `--color-neutral-N`). */

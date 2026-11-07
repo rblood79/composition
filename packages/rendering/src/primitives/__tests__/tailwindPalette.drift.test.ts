@@ -15,6 +15,7 @@ import {
   SEMANTIC_CSS_OUT,
 } from "../../../scripts/generate-palette";
 import { SEMANTIC_PALETTE_MAP } from "../semanticPaletteMap";
+import { darkColors, lightColors } from "../colors";
 import { cssColorToSrgbHex } from "../../../scripts/paletteGenerator";
 import { TAILWIND_PALETTE } from "../generated/tailwindPalette";
 
@@ -78,8 +79,8 @@ describe("ADR-193 semantic palette CSS drift", () => {
     expect(readFileSync(SEMANTIC_CSS_OUT, "utf-8")).toBe(semanticCss);
   });
 
-  it("팔레트 var 참조만 emit — hex 0 (ThemeStudio --color-neutral-N override 훅 보존, R2), 크기 ≤ 5KB (G4)", () => {
-    expect(semanticCss).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+  it("값은 ADR-302 seed (Spectrum hex) — Tailwind 팔레트 var 를 읽지 않는다, 크기 ≤ 5KB (G4)", () => {
+    expect(semanticCss).not.toMatch(/var\(--color-(?!invalid)[a-z]+-\d+\)/);
     expect(semanticCss).not.toMatch(/@theme|@apply|@utility/);
     expect(Buffer.byteLength(semanticCss, "utf-8")).toBeLessThanOrEqual(
       5 * 1024,
@@ -87,24 +88,20 @@ describe("ADR-193 semantic palette CSS drift", () => {
     for (const line of semanticCss.split("\n")) {
       if (!/^\s+--/.test(line)) continue;
       expect(line, line).toMatch(
-        /^\s+--[a-z-]+: var\((--color-invalid, var\()?--color-[a-z]+-\d+\)\)?;$/,
+        /^\s+--[a-z-]+: (var\(--color-invalid, )?#[0-9a-f]{6}\)?;$/,
       );
     }
   });
 
-  it('`:root` 와 `[data-theme="dark"]` 블록 각 1개 — 표의 모든 cssVar 가 양쪽에 있다', () => {
+  it('`:root` 와 `[data-theme="dark"]` 블록 각 1개 — 표의 모든 cssVar 가 seed 값으로 양쪽에 있다', () => {
     expect(semanticCss.match(/^\s+:root \{/gm)).toHaveLength(1);
     expect(semanticCss.match(/^\s+\[data-theme="dark"\] \{/gm)).toHaveLength(1);
     const [light, dark] = semanticCss.split('[data-theme="dark"]');
-    for (const entry of Object.values(SEMANTIC_PALETTE_MAP)) {
-      const [lf, ls] = entry.light;
-      const [df, ds] = entry.dark;
-      expect(light).toContain(
-        `${entry.cssVar}: ${entry.hook ? `var(${entry.hook}, var(--color-${lf}-${ls}))` : `var(--color-${lf}-${ls})`};`,
-      );
-      expect(dark).toContain(
-        `${entry.cssVar}: ${entry.hook ? `var(${entry.hook}, var(--color-${df}-${ds}))` : `var(--color-${df}-${ds})`};`,
-      );
+    for (const [token, entry] of Object.entries(SEMANTIC_PALETTE_MAP)) {
+      const wrap = (v: string) => (entry.hook ? `var(${entry.hook}, ${v})` : v);
+      const key = token as keyof typeof lightColors;
+      expect(light).toContain(`${entry.cssVar}: ${wrap(lightColors[key])};`);
+      expect(dark).toContain(`${entry.cssVar}: ${wrap(darkColors[key])};`);
     }
   });
 });

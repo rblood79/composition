@@ -202,6 +202,16 @@ export {
   resolveContainerSpacing,
 } from "./primitives";
 
+export {
+  COLOR_ALIASES,
+  STATUS_FAMILIES,
+  NAMED_HUE_FAMILIES,
+} from "./primitives";
+export type {
+  ColorAxis,
+  ColorAliasEntry,
+  ColorAliasStep,
+} from "./primitives";
 export type { ParsedShadow, ShadowPresetKey } from "./primitives";
 export type { TailwindPaletteFamily, TailwindPaletteStep } from "./primitives";
 export type {

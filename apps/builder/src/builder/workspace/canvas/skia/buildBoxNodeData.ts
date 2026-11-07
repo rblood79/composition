@@ -173,7 +173,7 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
         })();
 
   // data-bound collection projection 컨테이너(scene 이 collectionShellTag 마커)는 box 경로라
-  //   catalog "shell variant" 배경(ListBox `structure.containerStyles.background = {color.raised}`)을
+  //   catalog "shell variant" 배경(ListBox `structure.containerStyles.background = {color.layer-2}`)을
   //   건너뛴다 — catalog 경로(buildCatalogShapes)만 shell 을 그리기 때문. 사용자 배경이 없을 때
   //   (fillV2Color 없음 + fill.alpha 0) catalog 배경 토큰을 theme-aware 해석해 복원. 불투명해지면
   //   컨테이너 drop-shadow 실루엣 = border-box 로 자동 교정(투명 시 자식 행 실루엣 캡처 문제 봉쇄).

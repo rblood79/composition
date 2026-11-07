@@ -16,13 +16,13 @@ const VARIANT_PAINT_CSS = [
 describe("emitContainerStyles — ADR-071", () => {
   it("emits TokenRef colors via tokenToCSSVar", () => {
     const c: ContainerStylesSchema = {
-      background: "{color.raised}",
+      background: "{color.layer-2}",
       text: "{color.neutral}",
       border: "{color.border}",
       borderWidth: 1,
     };
     const lines = emitContainerStyles(c);
-    expect(lines).toContain("  background: var(--bg-raised);");
+    expect(lines).toContain("  background: var(--bg-inset);");
     expect(lines).toContain("  color: var(--fg);");
     expect(lines).toContain("  border: 1px solid var(--border);");
   });
@@ -132,22 +132,22 @@ describe("generateCSS — containerStyles S3 semantic (ADR-071)", () => {
     const spec: ComponentSpec<{ variant?: string }> = {
       ...baseSpec,
       containerStyles: {
-        background: "{color.raised}",
+        background: "{color.layer-2}",
         text: "{color.neutral}",
       },
     };
     const css = generateCSS(spec);
-    expect(css).toContain("background: var(--bg-raised);");
+    expect(css).toContain("background: var(--bg-inset);");
     expect(css).toContain("color: var(--fg);");
     // defaultVariant.background ({color.neutral} = var(--fg)) 가 `background:` 로
-    // 주입되어 있으면 안 됨 — background 는 raised 여야 함.
+    // 주입되어 있으면 안 됨 — background 는 layer-2 여야 함.
     expect(css).not.toMatch(/background:\s*var\(--fg\);/);
   });
 
   it("skips [data-variant=...] blocks when containerStyles present", () => {
     const spec: ComponentSpec<{ variant?: string }> = {
       ...baseSpec,
-      containerStyles: { background: "{color.raised}" },
+      containerStyles: { background: "{color.layer-2}" },
     };
     const css = generateCSS(spec, VARIANT_PAINT_CSS);
     expect(css).not.toContain('[data-variant="primary"]');

@@ -7,6 +7,7 @@
  * cssVars 한 벌 · 설치 1회 = themeVersion +1 · notifyLayoutChange 1 · THEME_VARS replace 1.
  */
 import type { ThemeDefinition } from "@composition/shared";
+import { darkColors, lightColors } from "@composition/rendering";
 import {
   createThemeDefinition,
   DEFAULT_THEME_PRESET,
@@ -90,15 +91,11 @@ it("공통 기본 서체·사용자 sans·복원을 Canvas와 DOM 변수에 같�
 });
 
 describe("resolveThemeSnapshot — seed (preset 파생) 는 종전 setter 결과와 같다", () => {
-  it("blue · neutral · md → accent 5 = createAccentColorTokens(blue) · radius md 배율 1 · --tint var(--blue) · neutral 11 단계", () => {
+  it("blue · neutral · md → 색 = seed (ADR-302 — alias 표 × Spectrum 사다리) · radius md 배율 1 · --tint var(--blue) · neutral 11 단계", () => {
     const s = resolve(theme());
-    const { c, h } = TINT_PRESETS.blue;
-    expect(s.colors.light.accent).toBe(
-      createAccentColorTokens(c, h, "light").accent,
-    );
-    expect(s.colors.dark["accent-hover"]).toBe(
-      createAccentColorTokens(c, h, "dark")["accent-hover"],
-    );
+    expect(s.colors.light.accent).toBe(lightColors.accent);
+    expect(s.colors.light.accent).toBe("#3b63fb");
+    expect(s.colors.dark["accent-hover"]).toBe(darkColors["accent-hover"]);
     expect(s.radius.md).toBe(8); // ADR-295 — S2 default
     expect(s.radius.xs).toBe(2);
     expect(varOf(s, "--tint")).toBe("var(--blue)");

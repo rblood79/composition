@@ -788,7 +788,7 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
     };
   },
   // ADR-256 후속 15: a node tree Table's paint — the data table's (`Table.css`): the header row on
-  // `--bg-raised`, a 1px `--border-hover` line under the header cells, a 1px `--border` line under
+  // `--bg-inset` (ADR-302 결정 3 — raised → layer-2), a 1px `--border-hover` line under the header cells, a 1px `--border` line under
   // each body row. Stated as the Table's part values, so both consumers read them (the parts have
   // no generated sheet — their resolved values go inline in the DOM). Every side's width is
   // stated: an inline `border-style: solid` alone would give the others the medium width.
@@ -797,7 +797,7 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
       {
         childType: "TableHeader",
         layout: {},
-        visual: { fill: "var(--bg-raised)" },
+        visual: { fill: "var(--bg-inset)" },
       },
       {
         childType: "Column",

@@ -2,7 +2,7 @@
    Preview · Publish 의 ColorWheel · ColorThumb 는 catalog rule 의 생성 CSS (generated/ColorWheel.css · ColorThumb.css) 가 정본이다. */
 @layer components {
   .react-aria-ColorThumb {
-    border: 4px solid var(--bg-raised);
+    border: 4px solid var(--bg-inset);
     box-shadow: var(--shadow-sm);
     width: 16px;
     height: 16px;

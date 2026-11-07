@@ -14,6 +14,17 @@ export {
   getColorTokens,
 } from "./colors";
 export { TAILWIND_PALETTE } from "./generated/tailwindPalette";
+// ADR-302 — 테마 색 역할 → (축, 사다리 단) alias 표
+export {
+  COLOR_ALIASES,
+  STATUS_FAMILIES,
+  NAMED_HUE_FAMILIES,
+} from "./colorAliases";
+export type {
+  ColorAxis,
+  ColorAliasEntry,
+  ColorAliasStep,
+} from "./colorAliases";
 // Semantic·named hue → 팔레트 단계 매핑 정본 (ADR-193)
 export {
   SEMANTIC_PALETTE_MAP,

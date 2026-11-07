@@ -13,7 +13,7 @@
   gap: var(--spacing-sm);
   padding: var(--spacing-md);
   border-radius: var(--radius-md);
-  background: var(--bg-raised);
+  background: var(--bg-inset);
   border: 1px solid var(--border);
   color: var(--fg-muted);
   min-height: 80px;
@@ -113,7 +113,7 @@
 
 /* 빈 상태 */
 .collection-empty {
-  background: var(--bg-raised);
+  background: var(--bg-inset);
   border-style: dashed;
 }
 

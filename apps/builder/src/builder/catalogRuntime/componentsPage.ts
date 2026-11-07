@@ -225,7 +225,7 @@ const CLOSED_OVERLAY_TYPES: ReadonlySet<string> = new Set(
 const COLOR_FAMILIES = ["accent", "neutral", "negative", "border"];
 const COLOR_SURFACES = [
   "base",
-  "raised",
+  "pasteboard",
   "layer-1",
   "layer-2",
   "elevated",
