@@ -225,6 +225,101 @@ const setProps = (
   })(reader).ops,
 ];
 
+// ── Collection keys of copies ─────────────────────────────────────────────
+
+/** Item and section types: a node's `id` is its RAC collection key. */
+const KEYED_TYPES: ReadonlySet<string> = new Set(
+  COLLECTION_FAMILIES.flatMap((row) =>
+    row.section ? [row.item, row.section] : [row.item],
+  ),
+);
+/** The nodes that hold a collection's items (the owner, or its list frame). */
+const KEY_HOST_TYPES: ReadonlySet<string> = new Set(
+  COLLECTION_FAMILIES.map((row) => row.list ?? row.owner),
+);
+
+function typeNameOr(
+  reader: CatalogReader,
+  definitionId: NodeEntry["definitionId"],
+): string {
+  try {
+    return definitionTypeName(reader, definitionId);
+  } catch {
+    return "";
+  }
+}
+
+const keyOf = (value: unknown): string | undefined =>
+  typeof value === "string" && value !== ""
+    ? value
+    : typeof value === "number"
+      ? String(value)
+      : undefined;
+
+/** The keys a collection's items and sections already have (their authored `id`s, at any depth). */
+function collectionKeys(draft: CommandDraft, host: NodeParent): Set<string> {
+  const keys = new Set<string>();
+  const { reader } = draft;
+  const visit = (rows: readonly CatalogPosition[]) => {
+    for (const row of rows) {
+      const type = typeNameOr(reader, row.definitionId);
+      if (KEY_HOST_TYPES.has(type)) continue;
+      if (KEYED_TYPES.has(type)) {
+        const key = keyOf(readTargetProp(reader, row.target, "id"));
+        if (key !== undefined) keys.add(key);
+      }
+      visit(positionRows(reader, row));
+    }
+  };
+  if (host.kind === "node")
+    visit(positionRows(reader, nodePosition(reader, host.id)));
+  else
+    for (const child of childPositions(draft, host)) {
+      const key = keyOf(readProp(reader, child, "id"));
+      if (key !== undefined) keys.add(key);
+    }
+  return keys;
+}
+
+/**
+ * 2026-11-08 (사용자 Preview 「Duplicate key "two" found in collection」): copies (duplicate · paste)
+ * placed under `parent` keep their items' keys (`id`) only where the collection they join has none
+ * of them — a key it already has takes a new one, since RAC throws on a repeated key for the whole
+ * collection. A copy outside a collection (a whole group pasted on the page) keeps its keys: its
+ * items form their own collection.
+ */
+export function catalogCopiesWithFreshKeys(
+  draft: CommandDraft,
+  parent: NodeParent,
+  entries: readonly NodeEntry[],
+  newId: NewId,
+): NodeEntry[] {
+  let host: NodeParent | undefined = parent;
+  while (host && !KEY_HOST_TYPES.has(positionType(draft, host))) {
+    if (!KEYED_TYPES.has(positionType(draft, host))) return [...entries];
+    host = parentOf(draft, host);
+  }
+  if (!host) return [...entries];
+  const taken = collectionKeys(draft, host);
+  return entries.map((entry) => {
+    // (A record's prop is its authored write — `{ kind: "set", value }`.)
+    const written = entry.props.id;
+    const key = written?.kind === "set" ? keyOf(written.value) : undefined;
+    if (
+      key === undefined ||
+      !taken.has(key) ||
+      !KEYED_TYPES.has(typeNameOr(draft.reader, entry.definitionId))
+    )
+      return entry;
+    const fresh = String(newId("node")).split(":").pop()!;
+    taken.add(fresh);
+    return {
+      ...entry,
+      props: { ...entry.props, id: { kind: "set", value: fresh } },
+    };
+  });
+}
+
 function place(
   draft: CommandDraft,
   parent: NodeParent,

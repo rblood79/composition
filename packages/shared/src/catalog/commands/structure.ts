@@ -63,6 +63,7 @@ import {
   pruneMovedPropertyTargets,
 } from "./properties";
 import {
+  catalogCopiesWithFreshKeys,
   dropTableColumnTemplateCells,
   tableAlignedIn,
   tableColumnCells,
@@ -1438,8 +1439,18 @@ export const duplicateNodes =
         () => input.newId("node"),
         relatedId(input.newId),
       );
-      clones.push({ clone, parent, index });
-      roots.push(clone.entries.find((entry) => entry.id === clone.rootId)!);
+      // (Beside its original: an item copy takes a new collection key — `catalogCopiesWithFreshKeys`.)
+      const keyed = {
+        ...clone,
+        entries: catalogCopiesWithFreshKeys(
+          draft,
+          parent,
+          clone.entries,
+          input.newId,
+        ),
+      };
+      clones.push({ clone: keyed, parent, index });
+      roots.push(keyed.entries.find((entry) => entry.id === keyed.rootId)!);
     }
     placeCopies(roots, input.placement);
     for (const { clone, parent, index } of clones) {
@@ -1599,6 +1610,12 @@ export const pasteNodes =
     );
     related = keepPlaceableRelated(reader, entries, related).map((entry) =>
       withTargetTokens(reader, clipboard.tokens ?? [], entry),
+    );
+    entries = catalogCopiesWithFreshKeys(
+      new CommandDraft(reader),
+      input.parent,
+      entries,
+      input.newId,
     );
     placeCopies(
       rootIds.map((id) => entries.find((entry) => entry.id === id)!),

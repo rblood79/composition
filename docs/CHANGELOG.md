@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [컬렉션 항목 복제 · 붙여넣기 key 중복 — Duplicate key] - 2026-11-08
+
+### Fixed
+
+- 컬렉션 항목 (SelectBox · Tab · Tag · ListBoxItem · GridListItem · MenuItem · Breadcrumb · TreeItem) 을 복제 · 붙여넣기 하면, 들어가는 컬렉션에 이미 있는 key (`id`) 는 새 key 를 받는다. 그룹 전체처럼 컬렉션 밖으로 복사한 항목은 key 를 그대로 둔다.
+  - **Why**: `duplicateNodes` · `pasteNodes` 가 `id` 를 그대로 복사해 같은 그룹에 key 가 겹쳤고, RAC 가 `Duplicate key "two" found in collection` 을 던져 Preview 전체가 멈췄다.
+  - 위치: `packages/shared/src/catalog/commands/collections.ts` `catalogCopiesWithFreshKeys`
+
 ## [SelectBoxGroup S2 grid · 상자 그림자] - 2026-11-08
 
 ### Fixed
@@ -34,6 +42,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Icon · Illustration 의 크기를 한 값으로 보인다: Text 탭 Font Size · Layout Width · Height · Property Size 행이 실제로 그려진 크기를 표시한다. Size 행의 리셋 버튼 자리는 px 숫자 입력 (28 × 28) 이다.
 - 마지막 편집이 이긴다: 숫자 입력 · Text Font Size 는 그 크기로 바꾸며 작성한 Width · Height 를 지우고, Size 단계 (XS–XL) 를 고르면 Font Size 와 Width · Height 를 지운다. Tablet · Mobile 에서의 편집은 그 화면 층에만 쓴다.
+
+## [SegmentedControl 모서리와 Justified 정합성] - 2026-11-08
+
+### Fixed
+
+- SegmentedControl의 기본 모서리를 공용 크기 규칙에서 읽어 Canvas와 Preview에 동일하게 적용한다. 사용자 모서리 편집과 기본값 복원을 지원한다.
+- Preview 래퍼에 isJustified를 전달하고, 그룹 항목의 flex basis가 Hug에서 콘텐츠 폭을 유지하도록 공통 레이아웃 입력을 정렬한다. 고정 폭·방향 변경과 Undo/Redo·저장 재로드도 같은 항목 배치를 사용한다.
 
 ## [SelectBoxGroup 방향 Property 번역 정렬] - 2026-11-07
 
