@@ -54,7 +54,7 @@ export const selectBoxGroupBinding: PrimitiveBinding = {
       },
       orientation: {
         kind: "enum",
-        label: "Content Orientation",
+        label: "Orientation",
         section: "appearance",
         default: "vertical",
         options: [

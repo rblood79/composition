@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [SelectBoxGroup 방향 Property 번역 정렬] - 2026-11-07
+
+### Fixed
+
+- SelectBoxGroup의 방향 표시명을 공용 Orientation 라벨에 연결해 Language 설정에 따라 영어 Orientation·한국어 방향으로 표시한다.
+
 ## [모든 컴포넌트의 RAC slot Property 정리] - 2026-11-07
 
 ### Fixed
