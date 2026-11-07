@@ -278,6 +278,9 @@ importers:
         specifier: 'catalog:'
         version: 5.0.16(@types/react@19.3.0)(immer@11.1.18)(react@19.3.0)(use-sync-external-store@1.6.0(react@19.3.0))
     devDependencies:
+      '@adobe/spectrum-design-data':
+        specifier: 3.9.1
+        version: 3.9.1
       '@composition/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -629,6 +632,9 @@ packages:
   '@adobe/json-formula@2.1.0':
     resolution: {integrity: sha512-LQzNnXd3L7bFNk3Na9N3ftmoMRKY1OLBxunS46qfewQ3AZjqia06vowkC6DpNP3v5zXJZ+ykds8f/8tekSiFwg==}
     engines: {node: '>=18.0.0'}
+
+  '@adobe/spectrum-design-data@3.9.1':
+    resolution: {integrity: sha512-b0upBjWnCyfwg6G8Uj7H6mnJTT4R8AHcwE3Tt/6bHJM11JqpNbkob0jqZyO0UlCsocjKKWgwuTmbke4OVJO3OQ==}
 
   '@alloc/quick-lru@5.2.0':
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
@@ -3484,6 +3490,8 @@ packages:
 snapshots:
 
   '@adobe/json-formula@2.1.0': {}
+
+  '@adobe/spectrum-design-data@3.9.1': {}
 
   '@alloc/quick-lru@5.2.0': {}
 

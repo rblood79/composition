@@ -60,6 +60,7 @@
     "zustand": "catalog:"
   },
   "devDependencies": {
+    "@adobe/spectrum-design-data": "3.9.1",
     "@composition/config": "workspace:*",
     "@react-aria/optimize-locales-plugin": "catalog:",
     "@react-aria/test-utils": "1.0.0-rc.1",
