@@ -4,6 +4,8 @@
 
 Proposed — 2026-11-07
 
+> 설계 리뷰 round 1 (2026-11-07, codex): [reviews/302.md](reviews/302.md) — HIGH 3 (h1 배경 층 게이트 · h2 dark on-neutral · h3 status 한 키) 전부 설계상 fixed, pending 0 — 리뷰 루프 종결. 구현 · live · 번들 gate 는 UNVERIFIED 이며 Proposed 를 유지한다.
+
 - 사용자 요청: `/create-adr` (2026-11-07) — 같은 대화의 Spectrum Hub 조사 ([SPECTRUM_COVERAGE_GAP_2026-11](../explanation/research/SPECTRUM_COVERAGE_GAP_2026-11.md) §9.6 ~ §9.11) 뒤.
 - 방향을 정한 사용자 원문 (2026-11-07, 같은 대화):
   - 「accent 와 tone 으로 theme color token 이 결정되어야 한다」.
