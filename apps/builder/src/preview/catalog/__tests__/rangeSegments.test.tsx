@@ -97,6 +97,62 @@ it("SegmentedControl selects the first enabled item, keyboard switches, and cann
   h.view.unmount();
 });
 
+it("SegmentedControl passes the slot, default selection, accessibility and RAC orientation through the real Preview", async () => {
+  const h = await openAdr280Preview(["SegmentedControl"]);
+  const id = h.ids[0]!;
+  const references = document.createElement("div");
+  references.innerHTML =
+    '<span id="heading">View mode</span><span id="description">Mode help</span><span id="details">Mode details</span>';
+  document.body.append(references);
+  h.declare(id, {
+    slot: "view",
+    orientation: "vertical",
+    defaultSelectedKey: "second",
+    "aria-labelledby": "heading",
+    "aria-describedby": "description",
+    "aria-details": "details",
+  });
+  const group = h.element(id)!;
+  // RAC's default plain context passes the name through; named tables use RacSlotScope.
+  expect(group.getAttribute("slot")).toBe("view");
+  expect(group.getAttribute("aria-orientation")).toBe("vertical");
+  for (const [key, value] of [
+    ["aria-labelledby", "heading"],
+    ["aria-describedby", "description"],
+    ["aria-details", "details"],
+  ])
+    expect(group.getAttribute(key), `${key}: ${group.outerHTML}`).toContain(
+      value,
+    );
+  const buttons = group.querySelectorAll("button");
+  const label = buttons[0].querySelector<HTMLElement>(".react-aria-Text")!;
+  expect(label.style.fontSize).toBe("inherit");
+  expect(label.style.fontWeight).toBe("inherit");
+  expect(label.style.lineHeight).toBe("inherit");
+  expect(buttons[1].getAttribute("aria-checked")).toBe("true");
+  expect(
+    buttons[0].querySelector(
+      ":scope > div:not(.react-aria-SelectionIndicator)",
+    ),
+  ).not.toBeNull();
+  const owner = [...h.workspace.root.canvasInputs.values()].find(
+    (n) => n.bindingId === "segmentedcontrol",
+  )!;
+  expect(owner.layout.flexDirection).toBe("column");
+  const labels = () =>
+    [...h.workspace.root.canvasInputs.values()].filter(
+      (n) =>
+        n.bindingId === "text" &&
+        ["List", "Grid"].includes(String(n.props.children)),
+    );
+  expect(labels().map((n) => n.derivedProps?.fontSize)).toEqual([14, 14]);
+  expect(new Set(labels().map((n) => n.derivedProps?.color)).size).toBe(2);
+  h.declare(id, { isDisabled: true });
+  expect(new Set(labels().map((n) => n.derivedProps?.color)).size).toBe(1);
+  h.view.unmount();
+  references.remove();
+});
+
 it("RangeSlider setValue capability writes both runtime values through the real dispatcher", async () => {
   const h = await openAdr280Preview(["RangeSlider", "Button"]);
   const [target, trigger] = h.ids;

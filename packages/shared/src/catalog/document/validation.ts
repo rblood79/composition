@@ -1,4 +1,4 @@
-import { scalarFitsType } from "./valueType";
+import { catalogPropValueFits, scalarFitsType } from "./valueType";
 import {
   catalogLabeledValueFits,
   catalogLabeledFormatFits,
@@ -294,6 +294,8 @@ const valueTypes = new Set<ValueType>([
   "racColor",
   "numberFormat",
   "selectionCount",
+  "selectionKeys",
+  "autoFocus",
   "numberRange",
   "labeledValue",
   "labeledFormat",
@@ -2095,6 +2097,14 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           break;
         }
       }
+      if (
+        item.valueType === "selectionKeys" ||
+        item.valueType === "autoFocus"
+      ) {
+        if (!catalogPropValueFits(item.defaultValue, item.valueType))
+          invalid("DEFAULT_VALUE_TYPE", "entry.defaultValue");
+        break;
+      }
       // (A structured variable starts empty — `""`, a rule's reference fills it — or with a JSON
       //   value of its type, 2026-10-29.)
       if (item.valueType === "object" || item.valueType === "array") {
@@ -2482,13 +2492,27 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
       );
       string(item.name, "entry.name");
       if (
-        !["string", "number", "boolean", "date", "object", "array"].includes(
-          item.valueType as string,
-        )
+        ![
+          "string",
+          "number",
+          "boolean",
+          "date",
+          "object",
+          "array",
+          "selectionKeys",
+          "autoFocus",
+        ].includes(item.valueType as string)
       )
         invalid("INVALID_VALUE_TYPE", "entry.valueType");
       if (item.defaultValue !== undefined)
         jsonValue(item.defaultValue, "entry.defaultValue");
+      if (
+        (item.valueType === "selectionKeys" ||
+          item.valueType === "autoFocus") &&
+        item.defaultValue !== undefined &&
+        !catalogPropValueFits(item.defaultValue, item.valueType)
+      )
+        invalid("DEFAULT_VALUE_TYPE", "entry.defaultValue");
       if (
         item.valueType === "date" &&
         item.defaultValue !== undefined &&

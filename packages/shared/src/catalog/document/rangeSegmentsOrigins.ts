@@ -146,9 +146,7 @@ export const RANGE_SEGMENT_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-segmentedcontrol__first",
       "lib:template:component-segmentedcontrol__second",
     ],
-    props: {
-      "aria-label": "View",
-    },
+    props: {},
     visual: {},
   },
   {
@@ -205,10 +203,20 @@ export const RANGE_SEGMENT_TEMPLATES: readonly LibraryTemplateNode[] = [
     definitionId: "lib:definition:type-SegmentedControlItem",
     children: [
       "lib:template:component-segmentedcontrol__first__indicator",
+      "lib:template:component-segmentedcontrolitem__content",
+    ],
+    props: {},
+    visual: {},
+  },
+  {
+    id: "lib:template:component-segmentedcontrolitem__content",
+    definitionId: "lib:definition:type-frame",
+    children: [
       "lib:template:component-segmentedcontrol__first__icon",
       "lib:template:component-segmentedcontrol__first__label",
     ],
     props: {},
-    visual: {},
+    layout: { display: "flex", alignItems: "center" },
+    visual: { minWidth: 0, gap: 6 },
   },
 ];

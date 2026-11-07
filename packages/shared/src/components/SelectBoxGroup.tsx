@@ -20,6 +20,7 @@ import { selectBoxVisibleChildren } from "./selectBoxVisibleChildren";
 import { Checkbox, CheckboxIndicatorBox } from "./Checkbox";
 import { Icon } from "./Icon";
 import { Text } from "react-aria-components/Text";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 
 function SelectionIndicator() {
   const state = useContext(SelectBoxSelectionContext);
@@ -54,7 +55,7 @@ export interface SelectBoxGroupProps<T> extends Omit<
   orientation?: "vertical" | "horizontal";
   selectionMode?: "single" | "multiple";
   isDisabled?: boolean;
-  children?: ReactNode;
+  children?: ListBoxProps<T>["children"];
 }
 export function SelectBoxGroup<T extends object>({
   orientation = "vertical",
@@ -70,10 +71,12 @@ export function SelectBoxGroup<T extends object>({
   const content =
     children ??
     selectionCompositesDefaultChildren("SelectBoxGroup", defaultSlots);
-  const authoredSelected = Children.toArray(content).flatMap((child) =>
-    isValidElement<{ id?: string; isSelected?: boolean }>(child) &&
+  const authoredSelected = (
+    typeof content === "function" ? [] : Children.toArray(content)
+  ).flatMap((child) =>
+    isValidElement<{ id?: string | number; isSelected?: boolean }>(child) &&
     child.props.isSelected &&
-    child.props.id
+    child.props.id !== undefined
       ? [child.props.id]
       : [],
   );
@@ -96,9 +99,11 @@ export function SelectBoxGroup<T extends object>({
             : undefined
         }
         layout="grid"
-        orientation={orientation}
         selectionMode={selectionMode}
-        className={`react-aria-SelectBoxGroup ${typeof className === "string" ? className : ""}`}
+        className={composeRenderProps(
+          className,
+          (name) => `react-aria-SelectBoxGroup${name ? ` ${name}` : ""}`,
+        )}
         data-size="M"
         data-selection-mode={selectionMode}
       >
@@ -142,7 +147,10 @@ export function SelectBox({
         )
       }
       isDisabled={isDisabled || group.isDisabled}
-      className={`react-aria-SelectBox ${typeof className === "string" ? className : ""}`}
+      className={composeRenderProps(
+        className,
+        (name) => `react-aria-SelectBox${name ? ` ${name}` : ""}`,
+      )}
       data-orientation={group.orientation}
       data-size="M"
       data-variant="default"

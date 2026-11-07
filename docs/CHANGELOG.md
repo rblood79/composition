@@ -36,6 +36,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Link·LinkButton의 ARIA·탐색 속성과 LinkButton의 autoFocus를 Preview·Publish로 전달한다. hrefLang은 RAC의 native render 경로에서 보완하며 Code도 같은 공용 Link를 사용한다.
 - LabeledValue 공개 기본 Text가 catalog 크기·줄 높이를 상속하도록 기본 CSS를 생성한다. 직접 편집한 자식 typography가 우선한다.
 
+## [SegmentedControl 그룹 상속 — RAC context 정합성] - 2026-11-07
+
+### Fixed
+
+- SegmentedControl의 자동 선택을 RAC가 해석한 그룹 상태에서 시작해 부모 slot의 초기·controlled 선택을 보존하고, 마운트 시 불필요한 변경 이벤트를 막는다. 접근성 이름과 방향도 부모 context를 먼저 확인하며, 함수형 children과 실제 항목·내용 Frame 조립을 유지한다.
+- body·Frame의 disabled가 SegmentedControl과 항목의 Canvas·Preview·Interactions에 함께 적용되도록 공통 수신 계약을 등록한다. Slot 패널의 공통 노출·연결·해제 규칙은 유지한다.
+
+## [ActionBar 자식 배치·icon-only 버튼 기하 정합성] - 2026-11-07
+
+### Fixed
+
+- ActionBar clear 버튼의 Canvas 폭이 Preview보다 작아 count가 약 8.16px 앞에 놓이던 문제를 수정한다. icon-only의 padding·정사각형 비율을 공통 상자 모델에 전달하고, 엔진이 intrinsic 폭에 최소 높이의 aspect ratio 전송을 반영한다. 실제 지정한 크기·padding은 유지하며, 확정된 폭으로 자식을 다시 배치한다.
+
+## [SelectBox 속성·공개 API 계약 보강] - 2026-11-07
+
+### Fixed
+
+- SelectBoxGroup의 선택·초기 선택·비활성 키, focus 정책, Escape 동작, ARIA 참조와 공통 RAC Slot 편집을 연결한다. `selectedKeys="all"`과 `autoFocus="first" | "last"`는 문서·상태 변수·Code에서 원래 타입을 유지한다.
+- Code에서 인접 변수의 기본값을 함께 편집할 때 기존 변수 ID와 컴포넌트 연결을 유지한다. native 선택·focus 타입은 페이지와 프로젝트 변수 파일의 생성·역편집에서도 보존한다.
+- SelectBox의 접근성 이름과 그룹·항목의 비활성 상태를 함께 반영한다. 공개 SelectBoxGroup의 동적 items·함수형 children·숫자 ID를 복구하고, Code View는 실제 존재하는 Composition 공개 컴포넌트를 import한다.
+
+## [SegmentedControl 선택 전환·입력 계약 보강] - 2026-11-07
+
+### Fixed
+
+- SegmentedControl의 선택 표시가 즉시 바뀌던 문제를 수정한다. catalog 정본에서 RAC 공유 요소의 위치·폭을 S2와 같은 200ms로 전환하고, 모션 감소 환경에서는 실제 indicator 자식의 전환을 끈다.
+- SegmentedControl의 orientation·초기 선택·ARIA 참조와 Item의 autoFocus를 노출하고, slot은 Button·Text와 같은 공통 RAC Slot 선택·연결·해제 경로로 처리한다. 누를 때 실제 내용 Frame만 S2의 크기 기반 비율로 줄이고, 선택 배경은 유지한다. Canvas·Preview 모두 같은 Frame과 텍스트 상속을 사용한다.
+
+### Breaking Changes
+
+- 라이브러리 계약을 63으로 올린다. SegmentedControlItem에 편집 가능한 내용 Frame이 추가되며, 이전 개발 문서는 자동 변환하지 않는다.
+
 ## [기본 서체 Pretendard — Canvas·DOM 대체 서체 통일] - 2026-11-07
 
 ### Changed

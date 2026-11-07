@@ -1700,6 +1700,7 @@ const TYPE_CONTAINER_VARIANT_AXES: Readonly<
   SearchField: { empty: "isEmpty", readonly: "isReadOnly" },
   ActionButtonGroup: { orientation: "orientation", density: "density" },
   ToggleButtonGroup: { orientation: "orientation", density: "density" },
+  SegmentedControl: { orientation: "orientation" },
   // ADR-258 Phase 2: a ColorSlider's grid · track box per orientation (RAC's `data-orientation`).
   ColorSlider: { orientation: "orientation" },
   // (S2 AvatarGroup: the avatar overlap is a quarter of the group size.)

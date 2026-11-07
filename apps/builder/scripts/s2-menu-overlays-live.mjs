@@ -114,7 +114,10 @@ async function capture(type) {
       );
       await page.mouse.down();
       await page.mouse.move(
-        surface === "canvas" ? 0 : container.x + container.width,
+        // Include the splitter handle offset at the clipped viewport edge.
+        surface === "canvas"
+          ? container.x - 64
+          : container.x + container.width + 64,
         container.y + 300,
         { steps: 8 },
       );

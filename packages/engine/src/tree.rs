@@ -2588,6 +2588,42 @@ impl LayoutTree {
                 self.solve_grid(handle, &children, explicit_w, explicit_h, avail_w, avail_h)
             }
         };
+        // A preferred ratio transfers a block-axis minimum to an intrinsic inline size.
+        // Keep definite widths authoritative and cap the transfer by max-width; min-width wins.
+        // Re-enter at the settled border-box width so centered children use the same box.
+        if explicit_w <= 0.0 {
+            if let (Some(ratio), Some(min_h)) = (own_aspect, own_min_h) {
+                let mut floor = min_h * ratio;
+                if let Some(max_w) = own_max_w {
+                    floor = floor.min(max_w);
+                }
+                if let Some(min_w) = own_min_w {
+                    floor = floor.max(min_w);
+                }
+                let own_pb = self
+                    .get(handle)
+                    .map(|n| axis_pad_border(&n.style, &ctx_w_own, true))
+                    .unwrap_or(0.0);
+                if floor > cw + own_pb && floor > 0.0 {
+                    for &child in &children {
+                        self.mark_subtree_dirty(child);
+                    }
+                    let (_, settled_h) = match display {
+                        ContainerDisplay::Flex => self.solve_flex(
+                            handle, &children, floor, explicit_h, avail_w, avail_h,
+                        ),
+                        ContainerDisplay::Block => self.solve_block(
+                            handle, &children, floor, explicit_h, avail_w, avail_h,
+                        ),
+                        ContainerDisplay::Grid => self.solve_grid(
+                            handle, &children, floor, explicit_h, avail_w, avail_h,
+                        ),
+                    };
+                    cw = floor - own_pb;
+                    ch = settled_h;
+                }
+            }
+        }
         // 키워드 폭 컨테이너의 보고는 auto 축과 같은 content-box (위 박스 계약). 자기 layout 은
         // solver 가 border-box 로 두고 부모가 다시 덮어쓴다 — 보고값만 바꾼다. clamp 가 바인딩했으면
         // `explicit_w` 가 그 뒤 값이라 "used = clamp 뒤 값" 계약과도 같다.
@@ -8827,6 +8863,40 @@ mod tests {
         col.compute_layout(h_col[2], 400.0, -1.0);
         assert_eq!(col.get_layout(h_col[0]).y, 160.0, "column-reverse: margin-top 은 main-end");
     }
+
+    #[test]
+    fn intrinsic_ratio_transfers_min_height_and_respects_explicit_limits() {
+        for display in ["flex", "block", "grid"] {
+            for (extra, width, height) in [
+                ("", 32.0, 32.0),
+                (r#", "minWidth":"0px""#, 32.0, 32.0),
+                (r#", "overflowX":"hidden", "overflowY":"hidden""#, 32.0, 32.0),
+                (r#", "maxWidth":"20px""#, 20.0, 32.0),
+                (r#", "width":"10px""#, 10.0, 32.0),
+                (r#", "height":"48px""#, 48.0, 48.0),
+                (r#", "paddingLeft":"5px", "paddingRight":"5px", "borderWidth":"1px""#, 32.0, 32.0),
+            ] {
+                let json = format!(r#"[
+                    {{"style":{{"width":"18px","height":"18px","flexShrink":0}},"children":[]}},
+                    {{"style":{{"display":"flex","width":"fit-content","height":"fit-content","minHeight":"32px","aspectRatio":1,"alignItems":"center","justifyContent":"center"}},"children":[0]}},
+                    {{"style":{{"display":"flex","width":"300px","alignItems":"center"}},"children":[1]}}
+                ]"#);
+                let mut value: serde_json::Value = serde_json::from_str(&json).unwrap();
+                value[1]["style"]["display"] = serde_json::json!(display);
+                let overrides: serde_json::Value = serde_json::from_str(&format!("{{{}}}", extra.trim_start_matches(", "))).unwrap();
+                value[1]["style"].as_object_mut().unwrap().extend(overrides.as_object().unwrap().clone());
+                let mut tree = LayoutTree::new();
+                let handles = tree.build_tree_batch(&value.to_string()).unwrap();
+                tree.compute_layout(handles[2], 300.0, -1.0);
+                let actual = tree.get_layout(handles[1]);
+                assert_eq!((actual.width, actual.height), (width, height), "{extra}");
+                if display == "flex" {
+                    assert_eq!(tree.get_layout(handles[0]).x, (width - 18.0) / 2.0, "centered child: {extra}");
+                }
+            }
+        }
+    }
+
 
     /// E15: aspect-ratio — 한 축 명시 + ratio 로 다른 축 파생.
     #[test]

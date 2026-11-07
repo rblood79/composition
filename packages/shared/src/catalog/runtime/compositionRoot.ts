@@ -1323,9 +1323,10 @@ function styleOf(
   inheritedLineHeight?: number,
   strutFont?: CatalogInheritedFont,
   wrappedBaseline?: number,
+  authoredVisual?: Readonly<Record<string, unknown>>,
 ): Record<string, unknown> {
   if (!catalogParticipatesInLayout(node)) return { display: "none" };
-  const box = catalogBoxModel(node);
+  const box = catalogBoxModel(node, authoredVisual);
   if (
     typeName === "Avatar" &&
     typeof node.props.size === "string" &&
@@ -1622,8 +1623,8 @@ function styleOf(
     // RAC `WaterfallLayout` · S2 CardView `layout="waterfall"`: the grid's row axis is masonry —
     // the engine stacks the items under the shortest column (`waterfall.ts`).
     ...(catalogWaterfallLayout(node) ? { gridTemplateRows: ["masonry"] } : {}),
-    ...(catalogAspectRatio(node.visual.aspectRatio) !== undefined
-      ? { aspectRatio: catalogAspectRatio(node.visual.aspectRatio) }
+    ...(catalogAspectRatio(box.aspectRatio) !== undefined
+      ? { aspectRatio: catalogAspectRatio(box.aspectRatio) }
       : {}),
     ...(contentText ?? emptyLine ?? {}),
     ...(leafBaseline !== undefined ? { leafBaseline } : {}),
@@ -3517,11 +3518,17 @@ export class CatalogCompositionRoot {
     });
     // (A SideNav row's · header's Text takes its owner's type — S2 `font: ui` / `ui-sm`, the current
     //  row bold: the DOM's `inherit`; a value the Text writes stays its own.)
+    const typographyOwner =
+      sideNavOwner ??
+      (toggleGlyphOwner &&
+      this.typeOf(toggleGlyphOwner) === "SegmentedControlItem"
+        ? toggleGlyphOwner
+        : undefined);
     const type =
-      sideNavOwner && this.typeOf(record) === "Text"
+      typographyOwner && this.typeOf(record) === "Text"
         ? sideNavText(
             catalogAuthoredVisual(this, record),
-            item,
+            typographyOwner,
             itemDerived?._sideNavCurrent === true,
           )
         : undefined;
@@ -3766,6 +3773,9 @@ export class CatalogCompositionRoot {
         ? domFont(record, get, (each) => this.declaredFont(each))
         : undefined,
       this.wrapBaselines.get(record.id),
+      record.derivedProps?._actionIconOnly === true
+        ? catalogAuthoredVisual(this, record)
+        : undefined,
     );
     const thumb = record.hidden
       ? undefined

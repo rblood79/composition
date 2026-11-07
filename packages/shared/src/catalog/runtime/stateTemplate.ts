@@ -111,6 +111,7 @@ function variableType(
     type === "avatarGroupSize"
   )
     return "number";
+  if (type === "selectionKeys" || type === "autoFocus") return type;
   if (type === "object" || type === "array" || type === "date") return type;
   return type === "string[]" || type === "items"
     ? "array"
@@ -132,11 +133,11 @@ function defaultOf(type: VariableDefType, value: unknown): unknown {
   if (value !== undefined) return value;
   return type === "number"
     ? 0
-    : type === "boolean"
+    : type === "boolean" || type === "autoFocus"
       ? false
       : type === "object"
         ? {}
-        : type === "array"
+        : type === "array" || type === "selectionKeys"
           ? []
           : "";
 }

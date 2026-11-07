@@ -30,6 +30,8 @@ const TYPES: { value: VariableType; label: string }[] = [
 ];
 
 const DEFAULTS: Record<VariableType, unknown> = {
+  selectionKeys: [],
+  autoFocus: false,
   string: "",
   number: 0,
   boolean: false,
@@ -52,9 +54,7 @@ export function VariableCreator({ projectId, onClose }: VariableCreatorProps) {
   );
   const createVariable = useDataStore((state) => state.createVariable);
   const variables = useVariables();
-  const openVariables = useDataTableEditorStore(
-    (state) => state.openVariables,
-  );
+  const openVariables = useDataTableEditorStore((state) => state.openVariables);
 
   const [name, setName] = useState("");
   const [type, setType] = useState<VariableType>("string");

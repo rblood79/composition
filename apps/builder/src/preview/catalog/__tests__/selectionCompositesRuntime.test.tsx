@@ -2,6 +2,10 @@ import { act, fireEvent, waitFor } from "@testing-library/react";
 import { expect, it } from "vitest";
 import { openAdr280Preview } from "./support/adr280Harness";
 import { setSiteSettings } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  catalogPropertiesPatchCommand,
+  catalogEditContract,
+} from "../../../builder/catalogRuntime/editContract";
 
 it("SelectBoxGroup owns its authored options and multiple selection", async () => {
   const h = await openAdr280Preview(["SelectBoxGroup"]);
@@ -53,6 +57,94 @@ it("SelectBoxGroup owns its authored options and multiple selection", async () =
       ),
     ).toBe(true),
   );
+  h.view.unmount();
+});
+
+it("SelectBoxGroup keys/all and disabled keys reach both document consumers", async () => {
+  const h = await openAdr280Preview(["SelectBoxGroup"]);
+  const id = h.ids[0]!;
+  h.declare(id, {
+    selectionMode: "multiple",
+    selectedKeys: ["two"],
+    disabledKeys: ["one"],
+    "aria-label": "Cards",
+    "aria-describedby": "help",
+    "aria-details": "details",
+  });
+  const options = () => [...h.element(id)!.querySelectorAll('[role="option"]')];
+  const cards = () =>
+    [...h.workspace.root.canvasInputs.values()].filter(
+      (node) => h.workspace.root.typeOf(node) === "SelectBox",
+    );
+  expect(
+    options().map((option) => option.getAttribute("aria-selected")),
+  ).toEqual(["false", "true"]);
+  expect(options()[0].getAttribute("aria-disabled")).toBe("true");
+  expect(cards().map((node) => node.derivedProps?._isSelected)).toEqual([
+    false,
+    true,
+  ]);
+  expect(cards()[0].derivedProps?.isDisabled).toBe(true);
+  expect(h.element(id)!.getAttribute("aria-describedby")).toBe("help");
+  expect(h.element(id)!.getAttribute("aria-details")).toBe("details");
+  const target = h.workspace.positionOfRecord(cards()[1].id)!.target;
+  const fields = catalogEditContract(
+    h.workspace.runtime.graph,
+    h.workspace.readModel,
+    target,
+  ).fields;
+  const command = catalogPropertiesPatchCommand(
+    h.workspace.runtime.graph,
+    [target],
+    { "aria-label": "Second card", textValue: "Second search value" },
+    (key) => fields.find((field) => field.key === key)?.currentValue,
+    new Set(),
+  );
+  act(() => h.workspace.execute(command!));
+  h.flush();
+  expect(options()[1].getAttribute("aria-label")).toBe("Second card");
+  h.declare(id, { selectedKeys: "all", disabledKeys: [] });
+  expect(
+    options().every(
+      (option) => option.getAttribute("aria-selected") === "true",
+    ),
+  ).toBe(true);
+  expect(cards().every((node) => node.derivedProps?._isSelected === true)).toBe(
+    true,
+  );
+  h.declare(id, { selectedKeys: [], defaultSelectedKeys: "all" });
+  expect(
+    options().every(
+      (option) => option.getAttribute("aria-selected") === "false",
+    ),
+  ).toBe(true);
+  h.view.unmount();
+});
+
+it("SelectBoxGroup default all and empty-selection/escape props are consumed", async () => {
+  const h = await openAdr280Preview(["SelectBoxGroup"]);
+  const id = h.ids[0]!;
+  h.declare(id, {
+    selectionMode: "multiple",
+    defaultSelectedKeys: "all",
+    disallowEmptySelection: true,
+    escapeKeyBehavior: "none",
+    autoFocus: "last",
+    slot: false,
+  });
+  const options = () => [...h.element(id)!.querySelectorAll('[role="option"]')];
+  expect(
+    options().every(
+      (option) => option.getAttribute("aria-selected") === "true",
+    ),
+  ).toBe(true);
+  expect(h.element(id)!.getAttribute("slot")).toBeNull();
+  act(() => fireEvent.keyDown(h.element(id)!, { key: "Escape" }));
+  expect(
+    options().every(
+      (option) => option.getAttribute("aria-selected") === "true",
+    ),
+  ).toBe(true);
   h.view.unmount();
 });
 

@@ -1,5 +1,9 @@
 import { catalogSelectBoxDescriptionHidden } from "./selectBoxPresence";
 import {
+  selectBoxKeySelected,
+  selectBoxDisabledKeys,
+} from "./selectBoxSelection";
+import {
   catalogSegmentOwner,
   catalogSegmentSelected,
   catalogSegmentKey,
@@ -328,7 +332,10 @@ export function catalogToggleButtonGlyphOwner(
   ) {
     return catalogPartParent(parent, get, typeOf);
   }
-  return parent && ["ToggleButton", "ActionButton"].includes(typeOf(parent))
+  return parent &&
+    ["ToggleButton", "ActionButton", "SegmentedControlItem"].includes(
+      typeOf(parent),
+    )
     ? parent
     : undefined;
 }
@@ -507,6 +514,12 @@ function catalogCollectionItemSelected(
   }
   const owner = catalogCollectionOfItem(node, get, typeOf);
   if (!owner) return undefined;
+  if (typeOf(node) === "SelectBox")
+    return selectBoxKeySelected(
+      owner.props,
+      resolveStaticItemKey(node.props as Record<string, unknown>, node.id),
+      node.props.isSelected === true,
+    );
   // An item's Selected (`isSelected`) starts RAC's selection while its collection selects — a
   // TagGroup's Tag, a CardView's Card (ADR-256 Phase 10) and every list's · tree's · table's · menu's
   // item (2026-10-13 — the DOM's `defaultSelectedKeys`, `catalogItemStartsSelected`).
@@ -2586,8 +2599,17 @@ function ownDerivedPropsBase(
     if (group && typeOf(group) === "SelectBoxGroup")
       return {
         orientation: String(group.props.orientation || "vertical"),
-        isDisabled:
-          node.props.isDisabled === true || group.props.isDisabled === true,
+        isDisabled: selectBoxDisabledKeys(group.props, [
+          {
+            key: resolveStaticItemKey(
+              node.props as Record<string, unknown>,
+              node.id,
+            ),
+            isDisabled: node.props.isDisabled === true,
+          },
+        ]).includes(
+          resolveStaticItemKey(node.props as Record<string, unknown>, node.id),
+        ),
       };
   }
   const labelPart = catalogFieldLabelPart(node, get, typeOf);
@@ -2821,6 +2843,8 @@ function ownDerivedPropsBase(
     const group = catalogSegmentOwner(node, get);
     return {
       _isSelected: catalogStateValue(node, "isSelected", get, typeOf),
+      isDisabled:
+        node.props.isDisabled === true || group?.props.isDisabled === true,
       ...(group?.props.isJustified ? { _justified: true } : {}),
     };
   }
@@ -3171,10 +3195,17 @@ function derivedDependents(
       : [...tracks, ...texts];
   }
   if (type === "SegmentedControl")
-    return catalogSegmentItems(owner, get).flatMap((item) => [
-      item,
-      ...childrenOf(item, get),
-    ]);
+    return [
+      ...new Map(
+        catalogSegmentItems(owner, get)
+          .flatMap((item) => [
+            item,
+            ...childrenOf(item, get),
+            ...partChildrenOf(item, get, typeOf),
+          ])
+          .map((part) => [part.id, part]),
+      ).values(),
+    ];
   if (type === "Tabs") return catalogTabsSelection(owner, get, typeOf).tabs;
   if (type === "ButtonGroup") return buttonGroupButtons(owner, get, typeOf);
   if (type === "ActionButtonGroup")

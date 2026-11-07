@@ -86,6 +86,8 @@ export const PROP_KIND_VALUE_TYPE: Readonly<
   "labeled-value": "labeledValue",
   "labeled-format": "labeledFormat",
   "selection-count": "selectionCount",
+  "selection-keys": "selectionKeys",
+  "auto-focus": "autoFocus",
   "number-range": "numberRange",
 };
 

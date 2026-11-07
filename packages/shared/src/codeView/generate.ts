@@ -921,6 +921,10 @@ class Generator {
       if (variable.selection) {
         this.import("react-aria-components", "type Selection");
         out.write("<Selection>(");
+      } else if (entry.valueType === "selectionKeys") {
+        out.write("<string[] | 'all'>(");
+      } else if (entry.valueType === "autoFocus") {
+        out.write("<boolean | 'first' | 'last'>(");
       } else if (this.isSortVariable(entry)) {
         this.import("react-aria-components", "type SortDescriptor");
         out.write("<SortDescriptor>(");
@@ -2282,6 +2286,11 @@ class Generator {
         // (A key list into a text variable: a single selection's key. A ComboBox · Tabs report
         // the key itself — RAC `onSelectionChange(key)` — not a Set.)
         if (
+          variable.entry.valueType === "selectionKeys" &&
+          action.value === "!event.keys"
+        )
+          next = `${next} === 'all' ? 'all' : [...${next}].map(String)`;
+        else if (
           !variable.selection &&
           typeof action.value === "string" &&
           /^!event\.keys$/.test(action.value)
@@ -2538,7 +2547,10 @@ class Generator {
       // (Same start: the control's own default is the variable's.)
       const declared = this.propValue(node, state.defaultProp ?? state.prop);
       const single =
-        !variable.selection && Array.isArray(declared) && declared.length === 1;
+        !variable.selection &&
+        variable.entry.valueType !== "selectionKeys" &&
+        Array.isArray(declared) &&
+        declared.length === 1;
       const start = single
         ? JSON.stringify(declared[0])
         : variable.selection
@@ -2835,6 +2847,8 @@ class Generator {
           "SegmentedControl",
           "SegmentedControlItem",
           "ActionBar",
+          "SelectBoxGroup",
+          "SelectBox",
         ].includes(origin)
           ? "@composition/shared/components"
           : "react-aria-components",
@@ -2852,6 +2866,8 @@ class Generator {
         "SegmentedControl",
         "SegmentedControlItem",
         "ActionBar",
+        "SelectBoxGroup",
+        "SelectBox",
       ].includes(type)
     ) {
       this.import("@composition/shared/components", type);
@@ -2916,7 +2932,9 @@ class Generator {
       // (A single selection's key in a text variable: `selectedKeys={[album]}`.)
       attribute(
         state.prop,
-        state.prop === "selectedKeys" && !variable.selection
+        state.prop === "selectedKeys" &&
+          !variable.selection &&
+          variable.entry.valueType !== "selectionKeys"
           ? `{[${variable.name}]}`
           : `{${variable.name}}`,
         "state",
@@ -2932,7 +2950,13 @@ class Generator {
             (rule) => rule.trigger === callback,
           )
         )
-          attribute(callback, `{${variable.setter}}`, "state");
+          attribute(
+            callback,
+            variable.entry.valueType === "selectionKeys"
+              ? `{(keys) => ${variable.setter}(keys === 'all' ? 'all' : [...keys].map(String))}`
+              : `{${variable.setter}}`,
+            "state",
+          );
       }
     for (const state of this.ruleStates.values())
       if (state.entry.ownerId === node.id) {
@@ -3273,7 +3297,9 @@ class Generator {
       // needs wrapping; changing the variable to a Set would discard repeated data values.
       const keyList =
         variable.selection ||
-        (!path.length && variable.entry.valueType === "array");
+        (!path.length &&
+          (variable.entry.valueType === "array" ||
+            variable.entry.valueType === "selectionKeys"));
       return /Keys$/.test(prop) && !keyList ? `{[${read}]}` : `{${read}}`;
     }
     if (typeof value === "string") {
@@ -3399,8 +3425,12 @@ class Generator {
     const body = new CodeWriter();
     for (let level = 0; level <= depth; level += 1) body.in();
     const context = { node, trigger, fields, args };
-    if (named)
-      body.line(`${named.setter}(${identifier(args[0] ?? "value", "value")});`);
+    if (named) {
+      const value = identifier(args[0] ?? "value", "value");
+      body.line(
+        `${named.setter}(${named.entry.valueType === "selectionKeys" ? `${value} === 'all' ? 'all' : [...${value}].map(String)` : value});`,
+      );
+    }
     for (const action of actions) this.writeAction(body, action, context);
     const params = fields
       ? "e"

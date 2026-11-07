@@ -16,6 +16,8 @@ paths:
 
 # 레이아웃 엔진 규칙
 
+- intrinsic 폭 컨테이너의 preferred aspect ratio는 최소 높이를 인라인 최소 기여로 전송한다. 확정 폭은 유지하고 max-width로 전송을 제한하며, 커진 used 폭에서 자식을 다시 배치한다. **Why (2026-11-07):** icon-only ActionButton의 1:1 비율·min-height32가 있어도 엔진은18×32를 반환해 ActionBar clear/count가 어긋났다. Chrome의 flex/block/grid21조건과 같은32×32, 명시 폭10·최대 폭20·높이48 및 padding/border 조건으로 고정한다.
+
 - `display: contents`의 보고용 경계에 `position: fixed` 자식의 중간 상자를 합치지 않는다. fixed 좌표의 기준 변경은 최종 viewport 배치가 담당한다. **Why (2026-11-04)**: padding 24×56 안의 100×32 트리거가 fixed overlay를 열면 0,0의 124×88 선택 경계로 변했다. 중첩 contents·fixed 위치 변경에서도 트리거 경계와 viewport 좌표가 각각 유지되어야 한다.
 
 - flex item 재배치의 used 크기는 백분율 min/max의 새 containing block이 아니다. 원래 부모 문맥에서 해소한 제약을 임시 적용하고 저작 값을 복원한다. 미해소 %를 px로 치환한 반환도 content 슬롯으로 되돌릴 때 padding을 제외한다. **Why (2026-11-03)**: Open Sheet의 `max-height:90%`가 두 번 적용되고 SheetContent의 padding이 중복되어 Preview와 높이가 달랐다.

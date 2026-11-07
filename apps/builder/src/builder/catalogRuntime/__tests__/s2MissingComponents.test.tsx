@@ -15,6 +15,79 @@ const TYPES = [
   "SelectBoxGroup",
 ] as const;
 
+it("SegmentedControl and Item expose the audited S2/RAC props and retain them in Code", async () => {
+  const h = await openAdr296();
+  try {
+    const group = h.add("SegmentedControl", {
+      slot: "view",
+      orientation: "vertical",
+      defaultSelectedKey: "second",
+      "aria-describedby": "help",
+    });
+    const item = h.add(
+      "SegmentedControlItem",
+      {
+        id: "extra",
+        slot: "option",
+        autoFocus: true,
+        "aria-label": "Extra mode",
+      },
+      group,
+    );
+    for (const [id, keys] of [
+      [
+        group,
+        [
+          "orientation",
+          "defaultSelectedKey",
+          "aria-label",
+          "aria-labelledby",
+          "aria-describedby",
+          "aria-details",
+        ],
+      ],
+      [
+        item,
+        [
+          "autoFocus",
+          "aria-label",
+          "aria-labelledby",
+          "aria-describedby",
+          "aria-details",
+        ],
+      ],
+    ] as const) {
+      const contract = catalogEditContract(h.graph(), h.workspace.readModel, {
+        kind: "node",
+        id,
+      });
+      expect(
+        contract.fields.find((field) => field.key === "slot")?.editorHidden,
+      ).toBe(true);
+      expect(
+        contract.fields
+          .filter((field) => !field.editorHidden)
+          .map((field) => field.key),
+      ).toEqual(expect.arrayContaining([...keys]));
+    }
+    expect(h.code()).toContain('orientation="vertical"');
+    expect(h.code()).toContain('slot="view"');
+    expect(h.code()).toContain('defaultSelectedKey="second"');
+    expect(h.code()).toContain('slot="option"');
+    expect(h.code()).toContain("autoFocus");
+    h.declare(group, { slot: false });
+    expect(h.code()).toContain("slot={null}");
+    const applied = h.apply(h.code().replace("Extra mode", "Edited mode"));
+    expect(applied.rejected).toEqual([]);
+    expect(applied.applied).toBe(true);
+    expect(h.graph().getEntry(group)).toMatchObject({
+      props: { slot: { kind: "set", value: false } },
+    });
+  } finally {
+    h.workspace.dispose();
+  }
+});
+
 it("both production CSS bundles load the new component and item sheets", () => {
   for (const bundle of ["index.css", "builder-components.css"]) {
     const css = readFileSync(

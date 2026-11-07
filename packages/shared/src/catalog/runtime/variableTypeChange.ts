@@ -9,16 +9,31 @@
  * has no default (`undefined` — the runtime reads the type's zero value).
  */
 import { isDateValueText } from "../../state/dateValue";
+import { catalogSelectionKeysFits } from "../document/selectionKeysValue";
+import { catalogAutoFocusFits } from "../document/autoFocusValue";
 
 export type VariableValueType =
-  "string" | "number" | "boolean" | "date" | "object" | "array";
+  | "string"
+  | "number"
+  | "boolean"
+  | "date"
+  | "object"
+  | "array"
+  | "selectionKeys"
+  | "autoFocus";
 
 /** Whose default: `state` = page · element (scalar contract), `project` = project variable. */
 export type VariableDefaultOwner = "state" | "project";
 
 function emptyFor(type: VariableValueType, owner: VariableDefaultOwner) {
   if (owner === "project") return undefined;
-  return type === "number" ? 0 : type === "boolean" ? false : "";
+  return type === "number"
+    ? 0
+    : type === "boolean" || type === "autoFocus"
+      ? false
+      : type === "selectionKeys"
+        ? []
+        : "";
 }
 
 /** The default a variable keeps after its type becomes `type` — kept when it fits, else empty. */
@@ -30,6 +45,10 @@ export function variableDefaultForType(
   const empty = emptyFor(type, owner);
   if (value === undefined || value === null) return empty;
   switch (type) {
+    case "selectionKeys":
+      return catalogSelectionKeysFits(value) ? value : empty;
+    case "autoFocus":
+      return catalogAutoFocusFits(value) ? value : empty;
     case "string":
       if (typeof value === "string") return value;
       if (typeof value === "number" || typeof value === "boolean")

@@ -40,6 +40,7 @@ import {
   generateProjectStateFile,
 } from "../../../../../packages/shared/src/codeView/files/definitions";
 import { parseDefinitionFile } from "../../../../../packages/shared/src/codeView/inverse/definitions";
+import { catalogPropValueFits } from "../../../../../packages/shared/src/catalog/document/valueType";
 import { structuredLiteralOf } from "../../../../../packages/shared/src/codeView/inverse";
 import { codeViewNormalized } from "../../../../../packages/shared/src/codeView/inverse/parse";
 
@@ -254,8 +255,22 @@ export function planCodeViewProjectState(input: {
     }
     const [, name, raw, notes = ""] = m;
     const typed = /^null as (unknown\[\]|object) \| null$/.exec(raw!.trim());
-    const value = typed ? { value: null } : structuredLiteralOf(raw!.trim());
-    if (!value) {
+    const native =
+      /^(.*) as (string\[\] \| 'all'|boolean \| 'first' \| 'last')$/.exec(
+        raw!.trim(),
+      );
+    const nativeType = native
+      ? native[2] === "string[] | 'all'"
+        ? "selectionKeys"
+        : "autoFocus"
+      : undefined;
+    const value = typed
+      ? { value: null }
+      : structuredLiteralOf(native?.[1] ?? raw!.trim());
+    if (
+      !value ||
+      (nativeType && !catalogPropValueFits(value.value, nativeType))
+    ) {
       reject(
         part.from + Math.max(0, edited.slice(part.from).indexOf(line)),
         "outsideVocabulary",
@@ -269,21 +284,23 @@ export function planCodeViewProjectState(input: {
       ? structuredLiteralOf(validation.slice(9))?.value
       : undefined;
     const v = value.value;
-    const valueType: ProjectVariableEntry["valueType"] = flags.includes("date")
-      ? "date"
-      : typed
-        ? typed[1] === "object"
-          ? "object"
-          : "array"
-        : Array.isArray(v)
-          ? "array"
-          : object(v)
+    const valueType: ProjectVariableEntry["valueType"] =
+      nativeType ??
+      (flags.includes("date")
+        ? "date"
+        : typed
+          ? typed[1] === "object"
             ? "object"
-            : typeof v === "number"
-              ? "number"
-              : typeof v === "boolean"
-                ? "boolean"
-                : "string";
+            : "array"
+          : Array.isArray(v)
+            ? "array"
+            : object(v)
+              ? "object"
+              : typeof v === "number"
+                ? "number"
+                : typeof v === "boolean"
+                  ? "boolean"
+                  : "string");
     reads.push({
       name: name!,
       entry: {
@@ -326,6 +343,15 @@ export function planCodeViewProjectState(input: {
           : read.name,
       ...read.entry,
     } as ProjectVariableEntry;
+    // Generated native defaults are explicit in TS; keep an untouched document's omission.
+    if (
+      before?.defaultValue === undefined &&
+      ((entry.valueType === "selectionKeys" &&
+        Array.isArray(entry.defaultValue) &&
+        entry.defaultValue.length === 0) ||
+        (entry.valueType === "autoFocus" && entry.defaultValue === false))
+    )
+      delete entry.defaultValue;
     const compare = (item: ProjectVariableEntry | undefined) =>
       item &&
       JSON.stringify({ ...item, name: "" }) ===

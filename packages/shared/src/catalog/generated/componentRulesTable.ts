@@ -5,6 +5,7 @@ import {
 import {
   SEGMENTED_GROUP_CONTAINER,
   SEGMENTED_ITEM_CONTAINER,
+  SEGMENTED_INDICATOR_MOTION,
 } from "../rule/segmentedControl";
 import {
   ACTION_BAR_RULE,
@@ -16727,6 +16728,12 @@ COMPONENT_RULES_TABLE.SegmentedControl = {
           styles: { "flex-grow": 1, "flex-basis": 0 },
         },
       },
+      containerVariants: {
+        orientation: {
+          horizontal: { styles: { "flex-direction": "row" } },
+          vertical: { styles: { "flex-direction": "column" } },
+        },
+      },
     },
   },
 };
@@ -16756,17 +16763,31 @@ COMPONENT_RULES_TABLE.SegmentedControlItem = {
     composition: {
       delegation: [],
       rootSelectors: {
+        "&": { styles: { "z-index": "1" } },
+        "&[data-selected]": { styles: { "z-index": "0" } },
+        "& > div:not(.react-aria-SelectionIndicator)": {
+          styles: {
+            "will-change": CATALOG_PRESS_WILL_CHANGE,
+            transition: CATALOG_PRESS_TRANSITION,
+          },
+          reducedMotion: { transition: "none" },
+        },
+        "&[data-pressed] > div:not(.react-aria-SelectionIndicator)": {
+          styles: { transform: catalogPressTransform() },
+        },
         "& .react-aria-Text": {
           styles: {
             position: "relative",
             "z-index": 1,
             "font-size": "inherit",
+            "font-weight": "inherit",
             "line-height": "inherit",
             color: "inherit",
           },
         },
         "& .react-aria-SelectionIndicator": {
           styles: {
+            ...SEGMENTED_INDICATOR_MOTION,
             position: "absolute",
             inset: 0,
             width: "100%",
@@ -16775,6 +16796,7 @@ COMPONENT_RULES_TABLE.SegmentedControlItem = {
             border: "2px solid var(--fg)",
             "border-radius": "10px",
           },
+          reducedMotion: { transition: "none" },
         },
       },
     },

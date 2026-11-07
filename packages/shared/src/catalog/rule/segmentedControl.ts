@@ -29,3 +29,11 @@ export const SEGMENTED_INDICATOR_VISUAL = {
   borderColor: "var(--fg)",
   radius: 10,
 } as const;
+
+// S2 SelectionIndicator: RAC supplies the shared-element translate and width snapshots.
+export const SEGMENTED_INDICATOR_MOTION = {
+  contain: "strict",
+  "transition-property": "translate, width",
+  "transition-duration": "200ms",
+  "transition-timing-function": "cubic-bezier(0, 0, 0.4, 1)",
+} as const;

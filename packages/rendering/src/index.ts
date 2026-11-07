@@ -263,6 +263,7 @@ export {
   SKIA_PRIMITIVES,
   composeCatalogShapes,
   ARCHETYPE_BASE_STYLES,
+  BUTTON_ICON_ONLY_STYLES,
 } from "./renderers";
 export type { SkiaPresentationMaterializationContext } from "./renderers";
 export type { S2Device } from "./primitives";

@@ -1,4 +1,5 @@
 import type { CatalogConsumerNode } from "./compositionRoot";
+import { selectBoxDisabledKeys } from "./selectBoxSelection";
 import { resolveStaticItemKey } from "../slotRoles";
 
 type Lookup = (id: string) => CatalogConsumerNode | undefined;
@@ -117,7 +118,17 @@ export function catalogPickerSelectionHidden(
   if (!picker) return true;
   if (
     typeOf(item) === "SelectBox" &&
-    (item.props.isDisabled === true || picker.props.isDisabled === true)
+    selectBoxDisabledKeys(picker.props, [
+      {
+        key: resolveStaticItemKey(
+          item.props as Record<string, unknown>,
+          item.id,
+        ),
+        isDisabled: item.props.isDisabled === true,
+      },
+    ]).includes(
+      resolveStaticItemKey(item.props as Record<string, unknown>, item.id),
+    )
   )
     return true;
   const parent = get(item.parentId);

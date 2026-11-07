@@ -141,6 +141,8 @@ export type InspectorFieldKind =
   | "string-array"
   | "number"
   | "selection-count"
+  | "selection-keys"
+  | "auto-focus"
   | "number-range"
   | "icon"
   | "variant"

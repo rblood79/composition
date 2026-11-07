@@ -13,6 +13,8 @@ const browser = await chromium.launch({ headless: false, channel: "chrome" });
 const context = await browser.newContext({
   storageState: auth,
   viewport: { width: 1800, height: 1100 },
+  reducedMotion:
+    process.env.REDUCED_MOTION === "1" ? "reduce" : "no-preference",
 });
 const page = await context.newPage();
 page.setDefaultTimeout(10000);
@@ -194,9 +196,129 @@ try {
           "first item selected",
           (await items.first().getAttribute("aria-checked")) === "true",
         );
+        const typography = await items.first().evaluate((button) =>
+          [button, ...button.querySelectorAll("div, .react-aria-Text")].map(
+            (element) => ({
+              cls: element.className,
+              style: element.getAttribute("style"),
+              font: getComputedStyle(element).fontSize,
+              family: getComputedStyle(element).fontFamily,
+              line: getComputedStyle(element).lineHeight,
+              width: element.getBoundingClientRect().width,
+            }),
+          ),
+        );
+        writeFileSync(
+          `${OUT}/typography.json`,
+          JSON.stringify(typography, null, 2),
+        );
+        check(
+          type,
+          "content Text inherits the item typography",
+          typography
+            .filter((part) => part.cls === "react-aria-Text")
+            .every(
+              (part) =>
+                part.font === typography[0].font &&
+                part.line === typography[0].line,
+            ),
+          typography,
+        );
+        const pressBox = () =>
+          items.first().evaluate((button) => {
+            const content = button.querySelector(
+              ":scope > div:not(.react-aria-SelectionIndicator)",
+            );
+            const indicator = button.querySelector(
+              ".react-aria-SelectionIndicator",
+            );
+            return {
+              content: content.getBoundingClientRect().width,
+              host: button.getBoundingClientRect().width,
+              indicator: indicator.getBoundingClientRect().width,
+              pressed: button.hasAttribute("data-pressed"),
+              transform: getComputedStyle(content).transform,
+              widthVar: getComputedStyle(content).getPropertyValue(
+                "--catalog-press-width",
+              ),
+            };
+          });
+        const resting = await pressBox();
+        await items.first().focus();
+        await page.keyboard.down("Space");
+        await page.waitForTimeout(250);
+        const pressed = await pressBox();
+        await page.keyboard.up("Space");
+        await settle();
+        const released = await pressBox();
+        check(
+          type,
+          "press scales only content and release restores it",
+          pressed.content < resting.content &&
+            Math.abs(pressed.host - resting.host) < 0.1 &&
+            Math.abs(pressed.indicator - resting.indicator) < 0.1 &&
+            Math.abs(released.content - resting.content) < 0.1,
+          { resting, pressed, released },
+        );
+        await frame.getByRole("radiogroup").evaluate((group) => {
+          const start = performance.now();
+          const probe = {
+            samples: [],
+            reduced: matchMedia("(prefers-reduced-motion: reduce)").matches,
+          };
+          window.__segmentedMotionProbe = probe;
+          const sample = () => {
+            const indicator = group.querySelector(
+              '[aria-checked="true"] .react-aria-SelectionIndicator',
+            );
+            if (indicator) {
+              const bounds = indicator.getBoundingClientRect();
+              const root = group.getBoundingClientRect();
+              const css = getComputedStyle(indicator);
+              probe.samples.push({
+                time: performance.now() - start,
+                x: bounds.x - root.x,
+                width: bounds.width,
+                connected: group.isConnected,
+                transition: css.transitionProperty,
+                duration: css.transitionDuration,
+                animations: indicator
+                  .getAnimations()
+                  .map((animation) => animation.transitionProperty),
+              });
+            }
+            if (performance.now() - start < 600) requestAnimationFrame(sample);
+          };
+          sample();
+        });
         await items.first().press("ArrowRight");
         await items.nth(1).press("Space");
         await settle();
+        const motion = await frame
+          .locator("body")
+          .evaluate(() => window.__segmentedMotionProbe);
+        const firstX = motion.samples[0].x,
+          lastX = motion.samples.at(-1).x;
+        const middleFrames = motion.samples.filter(
+          (sample) => sample.x > firstX + 0.5 && sample.x < lastX - 0.5,
+        );
+        const activeTranslate = motion.samples.some((sample) =>
+          sample.animations.includes("translate"),
+        );
+        check(
+          type,
+          motion.reduced
+            ? "reduced motion disables indicator transition"
+            : "indicator animates through intermediate positions",
+          motion.samples.every((sample) => sample.connected) &&
+            lastX > firstX &&
+            (motion.reduced
+              ? middleFrames.length === 0 &&
+                !activeTranslate &&
+                motion.samples.every((sample) => sample.transition === "none")
+              : middleFrames.length > 0 && activeTranslate),
+          motion,
+        );
         check(
           type,
           "keyboard selection changes",
@@ -209,6 +331,46 @@ try {
           (await items.nth(1).getAttribute("aria-checked")) === "true",
         );
         await select(owner.id);
+        check(
+          type,
+          "root slot uses shared section without a free text input",
+          (await panel()
+            .getByRole("group", { name: "Slot", exact: true })
+            .getByRole("textbox")
+            .count()) === 0,
+        );
+        const orientation = panel().getByRole("group", {
+          name: "Orientation",
+          exact: true,
+        });
+        await orientation
+          .getByRole("radio", { name: "Vertical", exact: true })
+          .click();
+        await settle();
+        const vertical = await frame
+          .getByRole("radiogroup")
+          .evaluate((group) => {
+            const buttons = group.querySelectorAll("button");
+            return {
+              orientation: group.getAttribute("aria-orientation"),
+              first: buttons[0].getBoundingClientRect().toJSON(),
+              second: buttons[1].getBoundingClientRect().toJSON(),
+            };
+          });
+        await items.first().focus();
+        await items.first().press("ArrowDown");
+        check(
+          type,
+          "vertical property changes geometry and keyboard axis",
+          vertical.orientation === "vertical" &&
+            vertical.second.y > vertical.first.y &&
+            (await items.nth(1).getAttribute("aria-checked")) === "true",
+          vertical,
+        );
+        await orientation
+          .getByRole("radio", { name: "Horizontal", exact: true })
+          .click();
+        await settle();
         const input = panel()
           .getByRole("group", {
             name: "Selected Key",
@@ -225,6 +387,14 @@ try {
         );
         const item = nodes.find((n) => n.type === "SegmentedControlItem");
         await select(item.id);
+        check(
+          type,
+          "item slot uses shared section without a free text input",
+          (await panel()
+            .getByRole("group", { name: "Slot", exact: true })
+            .getByRole("textbox")
+            .count()) === 0,
+        );
         const label = panel()
           .getByRole("group", {
             name: "Label",
@@ -268,6 +438,32 @@ try {
       await split.press("End");
       await settle();
       await page.screenshot({ path: `${OUT}/${type}-preview.png` });
+      if (type === "SegmentedControl") {
+        const boxes = await page.evaluate(() => {
+          const root = window.__COMPOSITION_CATALOG__.workspace.root;
+          const doc = document.querySelector("#previewFrame").contentDocument;
+          return [...root.canvasInputs.values()]
+            .filter((n) => root.typeOf(n) === "SegmentedControlItem")
+            .map((n) => ({
+              canvas: root.getGeometry([n.id]).get(n.id),
+              dom: doc
+                .querySelector(`[data-catalog-id="${n.id}"]`)
+                .getBoundingClientRect()
+                .toJSON(),
+            }));
+        });
+        check(
+          type,
+          "edited item Canvas and Preview sizes agree",
+          boxes.every(
+            (box) =>
+              Math.abs(box.canvas.width - box.dom.width) <= 1 &&
+              Math.abs(box.canvas.height - box.dom.height) <= 1,
+          ),
+          boxes,
+        );
+      }
+
       await page.waitForTimeout(1300);
       await page.reload();
       await page.waitForFunction(

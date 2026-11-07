@@ -55,6 +55,9 @@ function emitColorLine(
 
 // ─── Archetype별 base styles ────────────────────────────────────────────────
 
+/** Button archetype's icon-only geometry, consumed by CSS and catalog box projection. */
+export const BUTTON_ICON_ONLY_STYLES = { padding: 0, aspectRatio: 1 } as const;
+
 export const ARCHETYPE_BASE_STYLES: Record<ArchetypeId, string[]> = {
   simple: [
     `    display: inline-flex;`,
@@ -337,8 +340,8 @@ export function generateCSS<Props>(
   // icon-only 지원 (archetype: button에만)
   if (spec.archetype === "button") {
     lines.push(`.react-aria-${spec.name}[data-icon-only] {`);
-    lines.push("  padding: 0;");
-    lines.push("  aspect-ratio: 1;");
+    lines.push(`  padding: ${BUTTON_ICON_ONLY_STYLES.padding};`);
+    lines.push(`  aspect-ratio: ${BUTTON_ICON_ONLY_STYLES.aspectRatio};`);
     lines.push("}");
     lines.push("");
   }
@@ -1490,6 +1493,19 @@ function generateRootSelectorRules<Props>(
         lines.push(`  }`);
         lines.push("");
       }
+    }
+    const reducedStyles = entry.reducedMotion
+      ? rewriteAnimationNames(entry.reducedMotion, spec)
+      : null;
+    if (reducedStyles && Object.keys(reducedStyles).length > 0) {
+      lines.push("  @media (prefers-reduced-motion: reduce) {");
+      lines.push(`    ${fullSel} {`);
+      for (const [prop, value] of Object.entries(reducedStyles)) {
+        lines.push(`      ${prop}: ${value};`);
+      }
+      lines.push("    }");
+      lines.push("  }");
+      lines.push("");
     }
   }
 

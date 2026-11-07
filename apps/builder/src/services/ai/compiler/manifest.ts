@@ -1,4 +1,6 @@
 import { catalogSelectionCountFits } from "../../../../../../packages/shared/src/catalog/document/selectionCountValue";
+import { catalogSelectionKeysFits } from "../../../../../../packages/shared/src/catalog/document/selectionKeysValue";
+import { catalogAutoFocusFits } from "../../../../../../packages/shared/src/catalog/document/autoFocusValue";
 /** ADR-202: 실제 catalog/command descriptor를 받는 host 중립 manifest와 semantic 검증. */
 import { validateCommandArgs } from "./commandArgs";
 import { programContract, type BuilderCommandProgram } from "./contracts";
@@ -109,6 +111,10 @@ function validateFields(
       return `invalid-number-format:${name}`;
     if (field.kind === "selection-count" && !catalogSelectionCountFits(value))
       return `invalid-selection-count:${name}`;
+    if (field.kind === "selection-keys" && !catalogSelectionKeysFits(value))
+      return `invalid-selection-keys:${name}`;
+    if (field.kind === "auto-focus" && !catalogAutoFocusFits(value))
+      return `invalid-auto-focus:${name}`;
     if (field.kind === "number-range" && !catalogNumberRangeFits(value))
       return `invalid-number-range:${name}`;
     // 구조화 binding/items는 기존 데이터 dispatcher/에디터 계약을 써야 한다.
@@ -121,6 +127,8 @@ function validateFields(
         "number-format",
         "number-range",
         "selection-count",
+        "selection-keys",
+        "auto-focus",
         "css",
         "boolean",
         "number",

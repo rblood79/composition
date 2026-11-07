@@ -1,5 +1,9 @@
 import { CATALOG_COMPONENT_SLOT_CONTEXTS } from "../../components/catalogSlotContexts";
 import { catalogSelectBoxText } from "./selectBoxText";
+import {
+  selectBoxDeclaredSelection,
+  selectBoxDisabledKeys,
+} from "./selectBoxSelection";
 import { ActionBar } from "../../components/ActionBar";
 import {
   catalogSelectionCountFits,
@@ -1900,33 +1904,51 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         (child) => catalogTypeName(input.root, child) === "SelectBox",
       );
       const selected = runtimeState(input, "selectedKeys") as string[] | "all";
-      return createElement(
-        AriaListBox as ElementType,
-        {
-          ...marker(input),
-          key: stateKey(input, selectionKey(input.node.id, selected)),
-          className: "react-aria-SelectBoxGroup",
-          "data-size": "M",
-          "data-orientation": props.orientation || "vertical",
-          "data-selection-mode": props.selectionMode || "single",
-          style: input.style,
-          "aria-label": props["aria-label"] || "Options",
-          layout: "grid",
-          orientation: props.orientation || "vertical",
-          selectionMode: props.selectionMode || "single",
-          disallowEmptySelection: bool(props.disallowEmptySelection),
-          disabledKeys: items
-            .filter((child) => props.isDisabled || child.props.isDisabled)
-            .map((child) =>
-              resolveStaticItemKey(
-                child.props as Record<string, unknown>,
-                child.id,
+      return createElement(RacSlotScope, {
+        context: "ListBox",
+        authored: props.slot,
+        render: (resolution) =>
+          createElement(
+            AriaListBox as ElementType,
+            {
+              ...marker(input),
+              ...racSlotProps(resolution),
+              key: stateKey(input, selectionKey(input.node.id, selected)),
+              className: "react-aria-SelectBoxGroup",
+              "data-size": "M",
+              "data-selection-mode": props.selectionMode || "single",
+              style: input.style,
+              "aria-label":
+                props["aria-label"] ||
+                (props["aria-labelledby"] ? undefined : "Options"),
+              "aria-labelledby": props["aria-labelledby"],
+              "aria-describedby": props["aria-describedby"],
+              "aria-details": props["aria-details"],
+              autoFocus: props.autoFocus,
+              escapeKeyBehavior: props.escapeKeyBehavior,
+              layout: "grid",
+              selectionMode: props.selectionMode || "single",
+              disallowEmptySelection: bool(props.disallowEmptySelection),
+              disabledKeys: selectBoxDisabledKeys(
+                props,
+                items.map((child) => ({
+                  key: resolveStaticItemKey(
+                    child.props as Record<string, unknown>,
+                    child.id,
+                  ),
+                  isDisabled: child.props.isDisabled === true,
+                })),
               ),
-            ),
-          ...controlled(input, SELECTED_KEYS, selected, catalogSelectionValue),
-        },
-        ...renderAll(input, items),
-      );
+              ...controlled(
+                input,
+                SELECTED_KEYS,
+                selected,
+                catalogSelectionValue,
+              ),
+            },
+            ...renderAll(input, items),
+          ),
+      });
     },
   },
   selectbox: {
@@ -1945,6 +1967,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         textValue: catalogSelectBoxText(input.node, (id) =>
           input.root.domInputs.get(id),
         ),
+        "aria-label": input.node.props["aria-label"],
         isDisabled: input.node.props.isDisabled,
         children: catalogStateChildren(input.node.id, () => renderAll(input)),
       }),
@@ -3231,31 +3254,61 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     render: (input) => {
       const props = input.node.props;
       const selected = runtimeState(input, "selectedKey");
-      return createElement(AriaSegmentGroup as ElementType, {
-        ...marker(input),
-        style: input.style,
-        className: "react-aria-SegmentedControl",
-        key: stateKey(input, `${input.node.id}:${selected}`),
-        orientation: "horizontal",
-        selectionMode: "single",
-        disallowEmptySelection: true,
-        "aria-label": props["aria-label"] || "View",
-        isDisabled: bool(props.isDisabled),
-        "data-justified": bool(props.isJustified) || undefined,
-        ...controlled(input, SELECTED_KEY, selected),
-        children: renderAll(input),
+      return createElement(RacSlotScope, {
+        context: "ToggleButtonGroup",
+        authored: props.slot,
+        render: (resolution) =>
+          createElement(AriaSegmentGroup as ElementType, {
+            ...marker(input),
+            style: input.style,
+            className: "react-aria-SegmentedControl",
+            key: stateKey(input, `${input.node.id}:${selected}`),
+            orientation:
+              props.orientation === "vertical" ? "vertical" : "horizontal",
+            "data-orientation": props.orientation || "horizontal",
+            ...racSlotProps(resolution),
+            "aria-labelledby": props["aria-labelledby"],
+            "aria-describedby": props["aria-describedby"],
+            "aria-details": props["aria-details"],
+            selectionMode: "single",
+            disallowEmptySelection: true,
+            "aria-label": props["aria-label"],
+            isDisabled:
+              typeof props.isDisabled === "boolean"
+                ? props.isDisabled
+                : undefined,
+            "data-justified": bool(props.isJustified) || undefined,
+            ...controlled(input, SELECTED_KEY, selected),
+            children: renderAll(input),
+          }),
       });
     },
   },
   segmentedcontrolitem: {
     render: (input) =>
-      createElement(AriaSegmentButton as ElementType, {
-        ...marker(input),
-        id: catalogSegmentKey(input.node),
-        style: input.style,
-        className: "react-aria-SegmentedControlItem",
-        isDisabled: bool(input.node.props.isDisabled),
-        children: catalogStateChildren(input.node.id, () => renderAll(input)),
+      createElement(RacSlotScope, {
+        context: "ToggleButton",
+        authored: input.node.props.slot,
+        render: (resolution) =>
+          createElement(AriaSegmentButton as ElementType, {
+            ...marker(input),
+            id: catalogSegmentKey(input.node),
+            style: input.style,
+            className: "react-aria-SegmentedControlItem",
+            ...racSlotProps(resolution),
+            autoFocus: input.node.props.autoFocus,
+            "aria-label": input.node.props["aria-label"],
+            "aria-labelledby": input.node.props["aria-labelledby"],
+            "aria-describedby": input.node.props["aria-describedby"],
+            "aria-details": input.node.props["aria-details"],
+            isDisabled:
+              typeof input.node.props.isDisabled === "boolean"
+                ? input.node.props.isDisabled
+                : undefined,
+            children: catalogStateChildren(input.node.id, () =>
+              renderAll(input),
+            ),
+          }),
       }),
   },
   togglebuttongroup: {
@@ -4108,6 +4161,11 @@ export function catalogStateSourceValue(
         ? str(tabsModel(root, node).selectedKey)
         : (props.selectedKey ?? null);
     case "selectedKeys":
+      if (type === "SelectBoxGroup")
+        return selectBoxDeclaredSelection(
+          props,
+          catalogCollectionSelectedKeys(root, node),
+        );
       if (type === "ToggleButtonGroup")
         return groupToggleButtons(node, root)
           .buttons.filter((button) => button.props.isSelected === true)

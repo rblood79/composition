@@ -27,8 +27,7 @@ export function catalogPressTargets(host: Element): Element[] {
   const targets: Element[] = [host];
   for (const { host: hostSelector, part, relation } of CATALOG_PRESS_PARTS) {
     if (!host.matches(hostSelector)) continue;
-    if (relation === "descendant")
-      targets.push(...host.querySelectorAll(part));
+    if (relation === "descendant") targets.push(...host.querySelectorAll(part));
     else {
       const found = host.parentElement?.closest(part);
       if (found) targets.push(found);
@@ -40,9 +39,29 @@ export function catalogPressTargets(host: Element): Element[] {
 const isPressed = (element: Element) =>
   CATALOG_PRESS_STATE_ATTRIBUTES.some((name) => element.hasAttribute(name));
 
+const registrations = new WeakMap<
+  Document,
+  { users: number; observer: MutationObserver }
+>();
+
 /** 문서의 press 크기 변수를 관리한다. 반환 = 해제. */
 export function registerCatalogPressScale(doc: Document): () => void {
   if (typeof MutationObserver !== "function") return () => {};
+  let released = false;
+  const release = () => {
+    if (released) return;
+    released = true;
+    const registration = registrations.get(doc);
+    if (registration && --registration.users === 0) {
+      registration.observer.disconnect();
+      registrations.delete(doc);
+    }
+  };
+  const existing = registrations.get(doc);
+  if (existing) {
+    existing.users++;
+    return release;
+  }
   const observer = new MutationObserver((records) => {
     for (const record of records) {
       const host = record.target as Element;
@@ -71,5 +90,6 @@ export function registerCatalogPressScale(doc: Document): () => void {
     attributes: true,
     attributeFilter: [...CATALOG_PRESS_STATE_ATTRIBUTES],
   });
-  return () => observer.disconnect();
+  registrations.set(doc, { users: 1, observer });
+  return release;
 }

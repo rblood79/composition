@@ -31,9 +31,19 @@ export function rangeSegmentsDefaultChildren(
   function render(id: string, values: Props): ReactNode {
     const node = templates.get(id)!;
     for (const key of Object.keys(node.visual ?? {}))
-      if (key !== "width" && key !== "height")
+      if (
+        key !== "width" &&
+        key !== "height" &&
+        !(
+          node.definitionId === "lib:definition:type-frame" &&
+          (key === "minWidth" || key === "gap")
+        )
+      )
         throw new Error(`UNSUPPORTED_RANGE_SEGMENT_DEFAULT_VISUAL:${key}`);
-    if (Object.keys(node.layout ?? {}).length)
+    if (
+      Object.keys(node.layout ?? {}).length &&
+      node.definitionId !== "lib:definition:type-frame"
+    )
       throw new Error("UNSUPPORTED_RANGE_SEGMENT_DEFAULT_LAYOUT");
     if (
       node.showWhen &&
@@ -67,9 +77,11 @@ export function rangeSegmentsDefaultChildren(
     const name =
       node.definitionId === "lib:definition:origin-component-label"
         ? "Label"
-        : node.definitionId === "lib:definition:text"
-          ? "Text"
-          : node.definitionId.slice("lib:definition:type-".length);
+        : node.definitionId === "lib:definition:type-frame"
+          ? "frame"
+          : node.definitionId === "lib:definition:text"
+            ? "Text"
+            : node.definitionId.slice("lib:definition:type-".length);
     if (name === "Icon" && (!props.iconName || props.iconName === "{icon}"))
       return null;
     const component = components[name];
@@ -82,6 +94,11 @@ export function rangeSegmentsDefaultChildren(
       {
         ...props,
         style: {
+          ...node.layout,
+          ...(node.visual?.minWidth !== undefined
+            ? { minWidth: node.visual.minWidth }
+            : {}),
+          ...(node.visual?.gap !== undefined ? { gap: node.visual.gap } : {}),
           ...(node.visual?.width !== undefined
             ? { width: node.visual.width }
             : {}),

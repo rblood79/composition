@@ -1,6 +1,8 @@
 import { AvatarSizeField } from "./AvatarSizeField";
 import { LabeledValueField } from "./LabeledValueField";
 import { SelectionCountField } from "./SelectionCountField";
+import { SelectionKeysField } from "./SelectionKeysField";
+import { AutoFocusField } from "./AutoFocusField";
 /**
  * ADR-912 단계 2 — generic field renderer (HC#1/#2).
  *
@@ -1029,6 +1031,18 @@ const GenericField = memo(function GenericField({
     case "number-format":
       return (
         <NumberFormatField field={field} value={value} onChange={update} />
+      );
+    case "selection-keys":
+      return (
+        <SelectionKeysField
+          label={field.label}
+          value={value}
+          onChange={update}
+        />
+      );
+    case "auto-focus":
+      return (
+        <AutoFocusField label={field.label} value={value} onChange={update} />
       );
     case "selection-count":
       return (

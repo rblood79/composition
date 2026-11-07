@@ -135,7 +135,7 @@ export function catalogViewRootCollection(
   self?: CatalogEntry,
 ): DataCollectionId | undefined {
   const seen = new Set<string>();
-  for (let id: string | undefined = viewId; id; ) {
+  for (let id: string | undefined = viewId; id;) {
     if (seen.has(id)) return undefined;
     seen.add(id);
     const view: CatalogEntry | undefined = id === self?.id ? self : get(id);
@@ -720,10 +720,8 @@ export class CatalogGraph {
     if (compute) this.viewEntries.set(id, compute);
     else this.viewEntries.delete(id);
   }
-  private originDisplay: ReadonlyMap<
-    string,
-    Readonly<Record<string, string>>
-  > = new Map();
+  private originDisplay: ReadonlyMap<string, Readonly<Record<string, string>>> =
+    new Map();
   /**
    * ADR-282 — what the open derived page shows for an origin's template text no prop binds (the
    * Library card's item ◆: a MenuItem's `{label}` — its holder fills it — as its sample's
@@ -803,8 +801,8 @@ export class CatalogGraph {
         entry &&
         "children" in entry &&
         Array.isArray(entry.children) &&
-        (this.table.get(id) as { children?: unknown } | undefined)
-          ?.children !== entry.children
+        (this.table.get(id) as { children?: unknown } | undefined)?.children !==
+          entry.children
       )
         docCounters.commitChildrenCloned += entry.children.length;
       prepared.set(
@@ -1268,7 +1266,8 @@ export class CatalogGraph {
     // (The owners as the view reads them, for the copy of an unlocked origin — ADR-282 R7.)
     const ownerInView = new Map<string, string>();
     for (const entry of entries)
-      for (const child of ownedChildren(entry)) ownerInView.set(child, entry.id);
+      for (const child of ownedChildren(entry))
+        ownerInView.set(child, entry.id);
     if (entries.length !== entryIds.size)
       throw new CatalogValidationError("DUPLICATE_ID", "entries");
     for (const entry of entries) {
@@ -1401,7 +1400,10 @@ export class CatalogGraph {
             source?.kind !== "stateVariable" &&
             source?.kind !== "projectVariable"
           )
-            throw new CatalogValidationError("DANGLING_VARIABLE", ref.variableId);
+            throw new CatalogValidationError(
+              "DANGLING_VARIABLE",
+              ref.variableId,
+            );
           if (!variableVisibleFrom(source, nodeId, get, ownerOf))
             throw new CatalogValidationError("VARIABLE_NOT_VISIBLE", at);
           if (source.valueType !== input.valueType)
@@ -1543,7 +1545,10 @@ export class CatalogGraph {
       }
     }
     // ADR-284: a derived view's source is a shared view, never a cycle.
-    if (entry.kind === "view" && !catalogViewRootCollection(entry.id, get, entry))
+    if (
+      entry.kind === "view" &&
+      !catalogViewRootCollection(entry.id, get, entry)
+    )
       throw new CatalogValidationError("DANGLING_VIEW", entry.id);
     if (entry.kind === "definition" || entry.kind === "definitionOverride") {
       if (
@@ -1638,16 +1643,11 @@ export class CatalogGraph {
             "UNKNOWN_ACTION_OPCODE",
             action.opcode,
           );
-        if (
-          action.opcode === "navigate" &&
-          get(action.pageId)?.kind !== "page"
-        )
+        if (action.opcode === "navigate" && get(action.pageId)?.kind !== "page")
           throw new CatalogValidationError("DANGLING_PAGE", action.pageId);
         if (action.opcode === "capability") {
           validateCapabilityTarget(entry, action, get, library, ownerOf);
-          if (
-            !library.execution.capabilityIds.has(action.capabilityId)
-          )
+          if (!library.execution.capabilityIds.has(action.capabilityId))
             throw new CatalogValidationError(
               "UNKNOWN_CAPABILITY_ID",
               action.capabilityId,
@@ -1657,7 +1657,10 @@ export class CatalogGraph {
         if (action.opcode === "emit") {
           const definitionId = emitDefinitionOf(entry, get, ownerOf);
           if (!definitionId)
-            throw new CatalogValidationError("EMIT_OUTSIDE_COMPONENT", entry.id);
+            throw new CatalogValidationError(
+              "EMIT_OUTSIDE_COMPONENT",
+              entry.id,
+            );
           if (
             !componentEventPropertiesOf(get(definitionId)).some(
               (property) => property.key === action.propertyKey,
@@ -1698,11 +1701,15 @@ export class CatalogGraph {
             if (
               action.op === "set" &&
               !parseRuleValueRef(value) &&
-              (variable.valueType === "object" || variable.valueType === "array"
-                ? value !== ""
-                : variable.valueType === "date"
-                  ? !isDateValueText(value)
-                  : typeof value !== variable.valueType)
+              (variable.valueType === "selectionKeys" ||
+              variable.valueType === "autoFocus"
+                ? !catalogPropValueFits(value, variable.valueType)
+                : variable.valueType === "object" ||
+                    variable.valueType === "array"
+                  ? value !== ""
+                  : variable.valueType === "date"
+                    ? !isDateValueText(value)
+                    : typeof value !== variable.valueType)
             )
               throw new CatalogValidationError(
                 "STATE_VALUE_TYPE",
@@ -1711,7 +1718,9 @@ export class CatalogGraph {
             // (ADR-284 Phase 6 — a text variable toggles to a text value and back.)
             if (
               action.op === "toggle" &&
-              !(variable.valueType === "boolean" && action.value === undefined) &&
+              !(
+                variable.valueType === "boolean" && action.value === undefined
+              ) &&
               !(
                 variable.valueType === "string" &&
                 typeof action.value === "string"
@@ -1721,10 +1730,7 @@ export class CatalogGraph {
                 "STATE_OP_TYPE",
                 action.variableId,
               );
-            if (
-              action.op === "increment" &&
-              variable.valueType !== "number"
-            )
+            if (action.op === "increment" && variable.valueType !== "number")
               throw new CatalogValidationError(
                 "STATE_OP_TYPE",
                 action.variableId,
@@ -1812,7 +1818,10 @@ export class CatalogGraph {
         isRichText(write.value) &&
         (key !== "children" || !richTextHost)
       )
-        throw new CatalogValidationError("RICH_TEXT_NOT_ALLOWED", `${at}.${key}`);
+        throw new CatalogValidationError(
+          "RICH_TEXT_NOT_ALLOWED",
+          `${at}.${key}`,
+        );
       if (write.kind === "set" && !propValueMatches(write.value, type)) {
         // (One binding of the origin's prop of the same type — the library template rule.)
         const bound =
@@ -1840,10 +1849,7 @@ export class CatalogGraph {
       // (One binding of the origin's prop of the same type: the instance's value is checked there.)
       const bound =
         typeof raw === "string" ? WHOLE_TEMPLATE_BINDING.exec(raw) : null;
-      if (
-        bound &&
-        bindingAccepts?.()?.[bound[1]] === definition.accepts[key]
-      )
+      if (bound && bindingAccepts?.()?.[bound[1]] === definition.accepts[key])
         continue;
       // ADR-287 R7 — a whole text variable (「변수로 정하기」 on a choice prop): its value is known only at
       //   run time, which checks it (`withState` — outside the choices, the definition's value).

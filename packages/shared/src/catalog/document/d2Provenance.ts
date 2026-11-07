@@ -103,7 +103,13 @@ export const CATALOG_D2_PROVENANCE: Readonly<
   SearchField: { isQuiet: "v3" },
   Slider: { showValueLabel: "v3" },
   // Authored Text/Icon children expose their content on the S2 item instance.
-  SegmentedControlItem: { label: "composition", icon: "composition" },
+  SegmentedControl: { orientation: "rac" },
+  SegmentedControlItem: {
+    label: "composition",
+    icon: "composition",
+    slot: "rac",
+    autoFocus: "rac",
+  },
   StatusLight: { isDisabled: "v3" },
   // (The RAC Table takes S2's table axes — `d2S2Alignment` reads it against S2's table type; the
   // height axes are composition's. ADR-277: the table is one type.)

@@ -649,6 +649,9 @@ const ITEM_SLOT_CHILD_TYPES: ReadonlySet<string> = new Set([
   "ActionBar",
   // (ADR-256 Phase 5f: a collection item's selection checkbox — `Checkbox slot="selection"`.)
   "Checkbox",
+  "SegmentedControl",
+  "SegmentedControlItem",
+  "SelectBoxGroup",
 ]);
 
 function withSlotContract(input: LibraryDefinition): LibraryDefinition {

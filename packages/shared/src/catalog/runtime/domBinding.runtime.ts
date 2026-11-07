@@ -603,12 +603,13 @@ function catalogTableTrackStyle(
 export function catalogDomStyle(
   node: CatalogConsumerNode,
   parent?: CatalogConsumerNode,
+  authoredVisual?: Readonly<Record<string, unknown>>,
 ): CSSProperties {
   node = catalogVisualWithBackground(node);
   for (const key of Object.keys(node.visual))
     if (!CATALOG_BINDING_VISUAL_KEYS.has(key))
       throw new Error(`CATALOG_DOM_VISUAL_UNSUPPORTED:${node.id}:${key}`);
-  const box = catalogBoxModel(node);
+  const box = catalogBoxModel(node, authoredVisual);
   const visual = node.visual;
   const borderWidth = Number(box.borderWidth ?? 0);
   if (borderWidth > 0 && visual.borderColor === undefined)
@@ -632,6 +633,9 @@ export function catalogDomStyle(
       : {}),
     ...(box.width !== undefined ? { width: cssLength(box.width) } : {}),
     ...(box.height !== undefined ? { height: cssLength(box.height) } : {}),
+    ...(box.aspectRatio !== undefined
+      ? { aspectRatio: String(box.aspectRatio) }
+      : {}),
     ...(visual.opacity !== undefined
       ? { opacity: Number(visual.opacity) }
       : {}),
@@ -4004,6 +4008,9 @@ export function renderNode(
           node.bindingId === "button" || watchedParent?.id !== node.parentId
             ? parentInput
             : watchedParent,
+          node.derivedProps?._actionIconOnly === true
+            ? catalogAuthoredVisual(root, node)
+            : undefined,
         ),
         // (Only a stepper in a prefix box lays its border down here — `fieldBox` is a new record
         // then. An identity test on `stepper` caught every field button once the rest values above
@@ -4079,6 +4086,18 @@ export function renderNode(
     )
   )
     bound.color = "inherit";
+  if (bound && node.bindingId === "text") {
+    const owner = catalogToggleButtonGlyphOwner(
+      node,
+      (id) => root.domInputs.get(id),
+      (entry) => catalogTypeName(root, entry),
+    );
+    if (owner && catalogTypeName(root, owner) === "SegmentedControlItem") {
+      const authored = catalogAuthoredVisual(root, node);
+      for (const key of ["fontSize", "fontWeight", "lineHeight"] as const)
+        if (authored[key] === undefined) bound[key] = "inherit";
+    }
+  }
   // ADR-300 — a SideNav row's · header's Text takes its owner's type and color (S2 `treeCellGrid`:
   // `font: ui`, `neutral-subdued`, the current row `neutral` bold — the rules' `& .react-aria-Text`):
   // RAC marks the current row at run time (`data-current` — a navigation moves it), so the Text's

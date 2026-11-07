@@ -61,7 +61,10 @@ function deriveImplicitStateSources(): Readonly<
         use.owner === "trigger"
       )
         continue;
-      const variableType = VARIABLE_TYPE_OF[state.valueType];
+      const variableType =
+        type === "SelectBoxGroup" && state.valueType === "keys"
+          ? "selectionKeys"
+          : VARIABLE_TYPE_OF[state.valueType];
       if (!variableType) continue;
       if (sources.some((source) => source.prop === state.prop)) continue;
       sources.push(

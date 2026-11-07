@@ -15,11 +15,15 @@ paths:
 - catalog의 Slot 제공자·소비자 및 상태 수신 등록은 실제 RAC context와 함께 갱신한다. **Why (2026-11-07):** SelectBox의 ListBoxItem Text와 ActionBar의 clear Button은 실제 context가 있어도 제공자 등록 누락으로 새 자식의 Slot 편집이 숨겨졌고, 새 타입의 disabled 수신 누락은 Canvas와 DOM의 활성 상태를 갈랐다 (`s2CompositionPatterns.test.tsx`).
 - 상속·Slot은 binding, 원본의 내부 controller, Property, 실제 context 소비를 함께 검증한다. **Why (2026-11-07)** TextArea 수신 별칭과 Form size 키가 빠져 상태·크기가 상속되지 않았고, 13개 Canvas Label은 상위 required를 계산하지 않았다. Image의 별도 속성 계약과 trigger-root 원본의 Slot 전달도 일반 primitive 등록만으로 연결되지 않았다. DOM Slot 해석은 작성된 역할값과 분리한다. 역할값을 덮으면 숨겨야 할 necessity-label이 Preview에 나타난다 (`existingComponentContracts.test.tsx`).
 
+- RAC 선택 wrapper의 자동 선택은 부모 slot까지 합쳐진 실제 그룹 상태를 읽고 시작한다. **Why (2026-11-07):** SegmentedControl이 own prop만 확인해 slotted 초기 선택을 첫 항목으로 덮고 controlled context에는 마운트 변경 이벤트를 보냈다. context 병합 전 기본값으로 상속을 차단하지 않는다 (`segmentedControlInheritance.browser.test.ts`).
+
 - 필드 `value` 편집에는 일반 Text의 개행용 `white-space` 자동 승격을 적용하지 않는다. **Why (2026-11-07):** TextArea의 실제 Enter 입력이 Input에 지원되지 않는 `whiteSpace: pre-wrap`을 preview/commit하여 `CATALOG_CANVAS_VISUAL_UNSUPPORTED` 렌더 실패를 일으켰다. 값의 개행은 owner에 저장하고 필드의 표시 계약을 유지한다.
 
 - Input의 편집 값과 표시 값은 같은 가장 가까운 field owner를 해석한다. 빈 값도 편집 채널을 유지하고 쓰기는 owner prop의 기존 명령 경로를 사용한다. **Why (2026-11-07):** TextArea·ColorField Input이 owner 값을 placeholder로만 파생해 Canvas에서 value를 편집할 수 없었다. 자식 value override를 쓰면 RAC owner context와 저장 값이 갈라지므로 표시와 편집의 owner 탐색을 공유한다.
 
 - Collection의 RAC 선택 값은 키 배열과 `"all"` sentinel을 끝까지 구분하며, 재마운트 key도 값의 구조를 보존한다. **Why (2026-11-07):** Preview ListBox에서 Ctrl+A 뒤 `selectedKeys`를 배열로 단정해 `keys.join is not a function`으로 렌더가 중단됐다. 문자열 `"all"`과 항목 키 배열 `["all"]`, 쉼표를 포함한 항목 키도 같은 key로 합치지 않는다.
+
+- Code에서 인접 변수의 기본값을 함께 바꿀 때 기존 이름이 남은 선언은 기존 변수 ID에 반영한다. **Why (2026-11-07):** 한 편집 hunk에 포함된 두 번째 useState를 삭제·재생성하면 컴포넌트의 PropVar가 이전 ID를 가리켜 autoFocus 연결이 사라졌다. native union의 타입·기본값은 생성·역편집에서도 그대로 보존한다.
 
 > **2026-10-04 Publish 후속**: Preview/Publish 실행 세션·DOM·상태·테마의 공용 구현은 `packages/shared/src/catalog/runtime`이다. Publish는 검증한 catalog 파일에서 독립 세션을 만들고 Builder store를 import하지 않는다. Builder iframe 동기화는 origin/source를 검증하는 기존 postMessage 경계를 유지한다.
 

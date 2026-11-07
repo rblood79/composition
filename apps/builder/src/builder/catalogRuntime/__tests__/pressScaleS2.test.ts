@@ -130,6 +130,35 @@ describe("S2 press — 크기 측정 runtime", () => {
     expect(thumb.style.getPropertyValue(CATALOG_PRESS_HEIGHT_VAR)).toBe("18px");
   });
 
+  it("SegmentedControl measures its authored content and keeps a shared observer until the final owner releases", async () => {
+    const first = registerCatalogPressScale(document);
+    dispose = registerCatalogPressScale(document);
+    first();
+    first(); // cleanup is idempotent and cannot release the second owner.
+    const item = sized(document.createElement("button"), 150, 34);
+    item.className = "react-aria-SegmentedControlItem";
+    const indicator = sized(document.createElement("div"), 150, 34);
+    indicator.className = "react-aria-SelectionIndicator";
+    const content = sized(document.createElement("div"), 126, 18);
+    item.append(indicator, content);
+    document.body.append(item);
+    item.setAttribute("data-pressed", "true");
+    await flush();
+    expect(content.style.getPropertyValue(CATALOG_PRESS_WIDTH_VAR)).toBe(
+      "126px",
+    );
+    expect(content.style.getPropertyValue(CATALOG_PRESS_HEIGHT_VAR)).toBe(
+      "18px",
+    );
+    expect(indicator.style.getPropertyValue(CATALOG_PRESS_WIDTH_VAR)).toBe("");
+    dispose();
+    item.removeAttribute("data-pressed");
+    await flush();
+    expect(content.style.getPropertyValue(CATALOG_PRESS_WIDTH_VAR)).toBe(
+      "126px",
+    );
+  });
+
   it("(b3) ToggleButtonGroup 멤버를 누르면 안쪽 span 을 잰다 (S2 SegmentedControl 안쪽 div)", async () => {
     dispose = registerCatalogPressScale(document);
     const group = document.createElement("div");
@@ -214,7 +243,9 @@ describe("S2 press — 생성 CSS", () => {
     expect(sheet("Radio")).toContain(press);
     const switchCss = sheet("Switch");
     expect(switchCss).toContain(press);
-    expect(switchCss).not.toMatch(/scale: 1\.2 1|transform-origin: right center/);
+    expect(switchCss).not.toMatch(
+      /scale: 1\.2 1|transform-origin: right center/,
+    );
     for (const name of ["Calendar", "RangeCalendar"])
       expect(sheet(name)).toContain(
         `.react-aria-CalendarCell:where([data-pressed]) {\n  ${press}`,

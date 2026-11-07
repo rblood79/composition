@@ -28,6 +28,8 @@ export const VARIABLE_DEF_TYPES = [
   "date",
   "object",
   "array",
+  "selectionKeys",
+  "autoFocus",
 ] as const;
 
 export type VariableDefType = (typeof VARIABLE_DEF_TYPES)[number];

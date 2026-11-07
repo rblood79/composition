@@ -154,9 +154,10 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 60 — S2 선택 부품 공유와 라벨 행 배치 (Select/ComboBox/Menu).
  * 61 — 필드 Label의 편집 가능한 본문 Text·필수 Icon/Text 자식.
  * 62 — S2 누락 컴포넌트 원본과 범위·선택 수·표시 값의 구조화된 값 계약.
+ * 63 — SegmentedControlItem의 press 콘텐츠 Frame과 선택 키·focus native union 계약.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 62 as const;
+export const LIBRARY_CONTRACT_VERSION = 63 as const;
 
 export type EntryKind =
   | "project"
@@ -322,6 +323,8 @@ export type ValueType =
   // ADR-258 — a Color control's color string in RAC's `parseColor` syntax (`isRacColorString`).
   | "racColor"
   | "selectionCount"
+  | "selectionKeys"
+  | "autoFocus"
   | "numberRange"
   // S2 · RAC `formatOptions` — `catalogNumberFormatFits` (사용자 결정 2026-10-12).
   | "numberFormat";
@@ -1572,7 +1575,15 @@ export interface ProjectVariableEntry {
   kind: "projectVariable";
   id: ProjectVariableId;
   name: string;
-  valueType: "string" | "number" | "boolean" | "date" | "object" | "array";
+  valueType:
+    | "string"
+    | "number"
+    | "boolean"
+    | "date"
+    | "object"
+    | "array"
+    | "selectionKeys"
+    | "autoFocus";
   defaultValue?: unknown;
   persist: boolean;
   validation?: Readonly<Record<string, unknown>>;

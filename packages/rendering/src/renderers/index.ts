@@ -33,7 +33,7 @@ export {
 export type { RuleLengthForm } from "./utils/ruleLength";
 // ADR-248 Phase 3: archetype base CSS (root + child selectors) — the typed part-rule compiler
 //   reads the same declarations the generator emits.
-export { ARCHETYPE_BASE_STYLES } from "./CSSGenerator";
+export { ARCHETYPE_BASE_STYLES, BUTTON_ICON_ONLY_STYLES } from "./CSSGenerator";
 
 // ADR-912 Δ7: layout token table 단일 source (CSSGenerator + shared resolver 공용)
 export { LAYOUT_TOKEN_STYLES, layoutTokenToCssLines } from "./layoutTokens";

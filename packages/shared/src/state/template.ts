@@ -156,7 +156,10 @@ function defaultValueOf(def: {
     case "object":
       return {};
     case "array":
+    case "selectionKeys":
       return [];
+    case "autoFocus":
+      return false;
     default:
       return "";
   }

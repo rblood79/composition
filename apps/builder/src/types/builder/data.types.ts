@@ -336,7 +336,9 @@ export type VariableType =
   | "boolean"
   | "date"
   | "object"
-  | "array";
+  | "array"
+  | "selectionKeys"
+  | "autoFocus";
 
 /**
  * 변수 스코프

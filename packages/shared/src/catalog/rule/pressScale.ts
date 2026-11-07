@@ -73,6 +73,12 @@ export interface CatalogPressPart {
   readonly relation: "descendant" | "ancestor";
 }
 export const CATALOG_PRESS_PARTS: readonly CatalogPressPart[] = [
+  // SegmentedControl's authored content Frame scales; its sibling SelectionIndicator does not.
+  {
+    host: ".react-aria-SegmentedControlItem",
+    part: ":scope > div:not(.react-aria-SelectionIndicator)",
+    relation: "descendant",
+  },
   // S2 SegmentedControl 의 안쪽 div (`SegmentedControl.tsx:269`) — ToggleButtonGroup 멤버의 `> span`.
   {
     host: ".react-aria-ToggleButtonGroup .react-aria-ToggleButton",

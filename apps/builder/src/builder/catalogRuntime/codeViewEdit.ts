@@ -1,3 +1,4 @@
+import { catalogPropValueFits } from "../../../../../packages/shared/src/catalog/document/valueType";
 import {
   isTextRunMarkKey,
   normalizeRichText,
@@ -809,7 +810,8 @@ class Planner {
         id: (anchor.target as { variableId: string }).variableId,
       });
     }
-    // Deleted · replaced: an equal text, else in a hunk the same place · type · start (decision 5).
+    // Adjacent default edits can replace a later declaration's whole span. Identical text or an
+    // unchanged name keeps its variable; a rename still falls back to the same type/start in a hunk.
     const left = variableAnchors.filter(
       (item) =>
         !pairs.some(
@@ -827,8 +829,14 @@ class Planner {
       );
       const shape = (code: string) =>
         codeViewNormalized(code).replace(/^let\[[^\]]*\]/, "");
+      const oldName = Object.entries(this.baseline.symbols.variables).find(
+        ([, variableId]) => variableId === id,
+      )?.[0];
       const same =
         equal ??
+        statements.find(
+          (statement) => !used.has(statement) && statement.name === oldName,
+        ) ??
         (item.outcome.kind === "replaced"
           ? statements.find(
               (statement) =>
@@ -956,7 +964,7 @@ class Planner {
     if (statement.kind === "listSelection")
       return { valueType: "string[]", defaultValue: [] };
     const m =
-      /= useState(?:<(Selection|SortDescriptor|DateValue \| null|Time \| null)>)?\(([\s\S]*)\);$/.exec(
+      /= useState(?:<(Selection|SortDescriptor|DateValue \| null|Time \| null|string\[\] \| 'all'|boolean \| 'first' \| 'last')>)?\(([\s\S]*)\);$/.exec(
         statement.code,
       );
     if (!m) {
@@ -965,6 +973,16 @@ class Planner {
     }
     const [, type, raw = ""] = m;
     const text = raw.trim();
+    if (type === "string[] | 'all'" || type === "boolean | 'first' | 'last'") {
+      const valueType =
+        type === "string[] | 'all'" ? "selectionKeys" : "autoFocus";
+      const value = structuredLiteralOf(text);
+      if (!value || !catalogPropValueFits(value.value, valueType)) {
+        this.reject(statement.from, "outsideVocabulary");
+        return undefined;
+      }
+      return { valueType, defaultValue: value.value };
+    }
     // (A sort variable starts empty — 「정렬 따라가기」 makes it so.)
     if (type === "SortDescriptor")
       return text ? undefined : { valueType: "object", defaultValue: "" };

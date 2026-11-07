@@ -2,6 +2,7 @@ import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { expect, it } from "vitest";
 import { Button, Text } from "react-aria-components";
+import { ListBoxContext } from "react-aria-components/ListBox";
 import { ActionBar } from "@composition/shared/components/ActionBar";
 import { Checkbox } from "@composition/shared/components/Checkbox";
 import { ActionButton } from "@composition/shared/components/ActionButton";
@@ -29,6 +30,109 @@ async function mount(content: ReturnType<typeof createElement>) {
     },
   };
 }
+
+it("SelectBox public items preserve numeric keys, labels, callbacks and the content orientation boundary", async () => {
+  let selected: unknown;
+  const DynamicGroup = SelectBoxGroup<{ id: number; label: string }>;
+  const h = await mount(
+    createElement(DynamicGroup, {
+      items: [
+        { id: 0, label: "Zero" },
+        { id: 2, label: "Two" },
+      ],
+      "aria-label": "Numeric cards",
+      orientation: "horizontal",
+      defaultSelectedKeys: [0],
+      onSelectionChange: (keys) => {
+        selected = keys;
+      },
+      className: () => "custom-group",
+      children: (item) =>
+        createElement(
+          SelectBox,
+          {
+            id: item.id,
+            textValue: item.label,
+            "aria-label": `${item.label} card`,
+            className: () => "custom-card",
+          },
+          createElement(Text, { slot: "label" }, item.label),
+        ),
+    }),
+  );
+  try {
+    const group = h.host.querySelector('[role="listbox"]')!;
+    const options = [...group.querySelectorAll<HTMLElement>('[role="option"]')];
+    expect(group.classList.contains("custom-group")).toBe(true);
+    expect(group.getAttribute("data-orientation")).toBe("vertical");
+    expect(options.map((option) => option.getAttribute("aria-label"))).toEqual([
+      "Zero card",
+      "Two card",
+    ]);
+    expect(options[0].getAttribute("aria-selected")).toBe("true");
+    expect(options[0].dataset.orientation).toBe("horizontal");
+    expect(options[0].classList.contains("custom-card")).toBe(true);
+    await act(async () => options[1].click());
+    expect(selected instanceof Set).toBe(true);
+    expect([...(selected as Set<number>)]).toEqual([2]);
+  } finally {
+    await h.dispose();
+  }
+});
+
+it("SelectBox public all/disabled/slot context and Escape preserve native selection semantics", async () => {
+  const h = await mount(
+    createElement(
+      ListBoxContext.Provider,
+      { value: { slots: { cards: { "aria-label": "Provided cards" } } } },
+      createElement(SelectBoxGroup, {
+        slot: "cards",
+        selectionMode: "multiple",
+        defaultSelectedKeys: "all",
+        disabledKeys: ["two"],
+        escapeKeyBehavior: "none",
+        autoFocus: "last",
+      }),
+    ),
+  );
+  try {
+    const group = h.host.querySelector('[role="listbox"]')!;
+    const options = [...group.querySelectorAll<HTMLElement>('[role="option"]')];
+    expect(group.getAttribute("aria-label")).toBe("Provided cards");
+    expect(group.getAttribute("slot")).toBe("cards");
+    expect(options[1].getAttribute("aria-disabled")).toBe("true");
+    const before = options.map((option) =>
+      option.getAttribute("aria-selected"),
+    );
+    await act(async () =>
+      group.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+      ),
+    );
+    expect(
+      options.map((option) => option.getAttribute("aria-selected")),
+    ).toEqual(before);
+    await act(async () =>
+      h.root.render(
+        createElement(SelectBoxGroup, {
+          isDisabled: true,
+          selectionMode: "multiple",
+          selectedKeys: [],
+          defaultSelectedKeys: "all",
+        }),
+      ),
+    );
+    expect(
+      [...h.host.querySelectorAll('[role="option"]')].every(
+        (option) =>
+          option.getAttribute("aria-disabled") === "true" &&
+          option.getAttribute("aria-selected") === "false",
+      ),
+    ).toBe(true);
+  } finally {
+    await h.dispose();
+  }
+});
 
 it("ActionBar light and dark foreground keeps button state and explicit text color", async () => {
   const h = await mount(
@@ -284,6 +388,45 @@ it("public vertical SelectBox consumes authored dimensions and disabled paint wi
     expect(
       getComputedStyle(option.querySelector('[slot="selection"]')!).display,
     ).toBe("none");
+  } finally {
+    await h.dispose();
+  }
+});
+
+it("SelectBox slot defaults survive fallback and selection callbacks run once", async () => {
+  let calls = 0;
+  const h = await mount(
+    createElement(
+      ListBoxContext.Provider,
+      {
+        value: {
+          slots: {
+            cards: {
+              defaultSelectedKeys: ["two"],
+              onSelectionChange: () => {
+                calls += 1;
+              },
+            },
+          },
+        },
+      },
+      createElement(
+        SelectBoxGroup,
+        { slot: "cards" },
+        createElement(SelectBox, { id: "one", textValue: "One" }, "One"),
+        createElement(SelectBox, { id: "two", textValue: "Two" }, "Two"),
+      ),
+    ),
+  );
+  try {
+    const options = [
+      ...h.host.querySelectorAll<HTMLElement>('[role="option"]'),
+    ];
+    expect(
+      options.map((option) => option.getAttribute("aria-selected")),
+    ).toEqual(["false", "true"]);
+    await act(async () => options[0].click());
+    expect(calls).toBe(1);
   } finally {
     await h.dispose();
   }

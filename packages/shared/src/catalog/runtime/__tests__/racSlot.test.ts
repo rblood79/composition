@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_SLOT } from "react-aria-components";
 import {
+  catalogRacSlotConsumer,
   catalogRacSlotProvider,
   predictRacSlot,
   racSlotProps,
@@ -52,6 +53,20 @@ describe("resolveRacSlot — live context", () => {
 });
 
 describe("predictRacSlot — the generated provider table", () => {
+  it("segmented parts use their own RAC consumers rather than Button's slots", () => {
+    expect(catalogRacSlotConsumer("SegmentedControl")).toBe(
+      "ToggleButtonGroup",
+    );
+    expect(catalogRacSlotConsumer("SegmentedControlItem")).toBe("ToggleButton");
+    expect(catalogRacSlotConsumer("SelectBoxGroup")).toBe("ListBox");
+    // NumberField's increment/decrement Button slots do not apply to ToggleButton.
+    expect(
+      catalogRacSlotProvider("SegmentedControlItem", ["NumberField"]),
+    ).toBeUndefined();
+    expect(
+      predictRacSlot("SegmentedControlItem", ["SegmentedControl"], false),
+    ).toEqual({ kind: "detached" });
+  });
   it("finds the nearest provider of the part's consumer context", () => {
     expect(catalogRacSlotProvider("Text", ["ListBoxItem", "ListBox"])).toEqual({
       provider: "ListBoxItem",

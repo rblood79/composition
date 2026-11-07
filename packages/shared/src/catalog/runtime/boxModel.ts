@@ -1,3 +1,4 @@
+import { BUTTON_ICON_ONLY_STYLES } from "@composition/rendering";
 import { pickerInvalidGlyph } from "../document/pickerTrigger";
 import { CATALOG_AUTHORED_PAINT_KEYS } from "./authoredStyle";
 import type { CatalogConsumerNode } from "./compositionRoot";
@@ -36,6 +37,7 @@ export interface CatalogBoxModel {
   height?: CatalogLength;
   minWidth?: CatalogLength;
   minHeight?: CatalogLength;
+  aspectRatio?: CatalogLength;
   gap?: CatalogLength;
   padding?: {
     top: CatalogLength;
@@ -109,20 +111,31 @@ export const CATALOG_SELECTION_PART_PADDING_END = 8;
 const length = (value: unknown): CatalogLength | undefined =>
   typeof value === "number" || typeof value === "string" ? value : undefined;
 
-export function catalogBoxModel(node: CatalogConsumerNode): CatalogBoxModel {
-  // S2 icon-only ActionButton은 control 높이와 같은 정사각형이다.
-  if (node.derivedProps?._actionIconOnly === true)
+export function catalogBoxModel(
+  node: CatalogConsumerNode,
+  authoredVisual: Readonly<Record<string, unknown>> = {},
+): CatalogBoxModel {
+  // Mirror the archetype selector without turning fit-content or authored dimensions into fixed sizes.
+  if (node.derivedProps?._actionIconOnly === true) {
+    const side = (key: string, axis: string) => {
+      for (const candidate of [key, axis, "padding"])
+        if (authoredVisual[candidate] !== undefined)
+          return node.visual[candidate];
+      return BUTTON_ICON_ONLY_STYLES.padding;
+    };
     node = {
       ...node,
       visual: {
         ...node.visual,
-        width: node.visual.minHeight,
-        height: node.visual.minHeight,
-        paddingX: 0,
-        paddingY: 0,
-        gap: 0,
+        aspectRatio:
+          node.visual.aspectRatio ?? BUTTON_ICON_ONLY_STYLES.aspectRatio,
+        paddingTop: side("paddingTop", "paddingY"),
+        paddingRight: side("paddingRight", "paddingX"),
+        paddingBottom: side("paddingBottom", "paddingY"),
+        paddingLeft: side("paddingLeft", "paddingX"),
       },
     };
+  }
   if (
     node.derivedProps?._pickerTrigger === true &&
     node.derivedProps.isQuiet === true
@@ -190,6 +203,8 @@ export function catalogBoxModel(node: CatalogConsumerNode): CatalogBoxModel {
   const borderWidth = length(node.visual.borderWidth);
   if (width !== undefined) model.width = width;
   if (height !== undefined) model.height = height;
+  const aspectRatio = length(node.visual.aspectRatio);
+  if (aspectRatio !== undefined) model.aspectRatio = aspectRatio;
   if (minWidth !== undefined) model.minWidth = minWidth;
   if (minHeight !== undefined) model.minHeight = minHeight;
   if (gap !== undefined) model.gap = gap;
@@ -287,7 +302,9 @@ export function catalogFontFamilies(fontFamily: string | undefined): string[] {
   const named = (fontFamily ?? "")
     .split(",")
     .map((family) => family.trim().replace(/^["']|["']$/g, ""))
-    .filter((family) => family && !GENERIC_FONT_FAMILIES.has(family.toLowerCase()));
+    .filter(
+      (family) => family && !GENERIC_FONT_FAMILIES.has(family.toLowerCase()),
+    );
   return named.includes(DEFAULT_FONT_FAMILY)
     ? named
     : [...named, DEFAULT_FONT_FAMILY];

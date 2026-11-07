@@ -19,23 +19,21 @@
   height: fit-content;
   display: flex;
 
-  /* Default variant */
-  background: var(--neutral-surface);
-  color: var(--fg);
-  border: none;
-
   /* Default size */
-  padding: 0px 0px;
   font-size: var(--catalog-token-text-sm);
   line-height: var(--catalog-token-text-sm--line-height);
 }
 
-.react-aria-SegmentedControl:where([data-variant="default"]) {
-  background: var(--neutral-surface);
-}
-
 
 /* ── Tier 2: Composite Delegation ── */
+
+.react-aria-SegmentedControl[data-orientation="horizontal"] {
+  flex-direction: row;
+}
+
+.react-aria-SegmentedControl[data-orientation="vertical"] {
+  flex-direction: column;
+}
 
 
 @media (forced-colors: active) {

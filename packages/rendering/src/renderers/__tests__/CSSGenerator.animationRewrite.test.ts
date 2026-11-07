@@ -35,6 +35,26 @@ function makeSpec(
 }
 
 describe("animation-name auto-rewrite", () => {
+  it("emits reduced motion for the actual descendant selector without broadening its scope", () => {
+    const css = generateCSS(
+      makeSpec({
+        rootSelectors: {
+          "& .react-aria-SelectionIndicator": {
+            styles: { transition: "translate 200ms" },
+            reducedMotion: { transition: "none" },
+          },
+        },
+      }),
+    )!;
+    expect(css).toMatch(
+      /@media \(prefers-reduced-motion: reduce\) \{\s*\.react-aria-AnimTest \.react-aria-SelectionIndicator \{\s*transition: none;/,
+    );
+    expect(css).toContain("transition: translate 200ms;");
+    const legacy = generateCSS(
+      makeSpec({ rootSelectors: { "& .child": { styles: { color: "red" } } } }),
+    )!;
+    expect(legacy).not.toContain("prefers-reduced-motion");
+  });
   it("animations 선언 이름은 {specName}-{animName} 으로 prefix", () => {
     const css = generateCSS(
       makeSpec({

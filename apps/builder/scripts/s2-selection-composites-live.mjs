@@ -556,8 +556,12 @@ try {
         }, owner.id);
         check(
           type,
-          "part geometry measured for integration review",
-          true,
+          "child geometry agrees between Canvas and Preview",
+          parts.every((part) =>
+            ["x", "y", "width", "height"].every(
+              (axis) => Math.abs(part.canvas[axis] - part.dom[axis]) <= 1,
+            ),
+          ),
           parts,
         );
       }

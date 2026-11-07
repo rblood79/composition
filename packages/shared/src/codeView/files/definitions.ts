@@ -214,13 +214,21 @@ export function generateProjectStateFile(input: {
       entry.defaultValue === undefined || entry.defaultValue === ""
         ? entry.valueType === "string" || entry.valueType === "date"
           ? "''"
-          : "null"
+          : entry.valueType === "selectionKeys"
+            ? "[]"
+            : entry.valueType === "autoFocus"
+              ? "false"
+              : "null"
         : codeLiteral(entry.defaultValue);
     const typed =
       start === "null" &&
       (entry.valueType === "object" || entry.valueType === "array")
         ? `null as ${entry.valueType === "array" ? "unknown[]" : "object"} | null`
-        : start;
+        : entry.valueType === "selectionKeys"
+          ? `${start} as string[] | 'all'`
+          : entry.valueType === "autoFocus"
+            ? `${start} as boolean | 'first' | 'last'`
+            : start;
     out.anchorLine(
       `${name}: ${typed},${notes.length ? ` // ${notes.join(" · ")}` : ""}`,
       { kind: "variable", variableId: entry.id },

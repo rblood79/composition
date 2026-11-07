@@ -21,6 +21,8 @@
  * (Phase 0 evidence §2).
  */
 import type { VariableDef, VariableDefType } from "./variable.types";
+import { catalogSelectionKeysFits } from "../catalog/document/selectionKeysValue";
+import { catalogAutoFocusFits } from "../catalog/document/autoFocusValue";
 import { dateValueToText, isDateValueText } from "./dateValue";
 import type { VisibleVariable } from "./visibility";
 
@@ -128,6 +130,14 @@ export function coerceRuntimeValue(
   value: unknown,
 ): { ok: true; value: unknown } | { ok: false } {
   switch (type) {
+    case "selectionKeys": {
+      const keys = value instanceof Set ? [...value] : value;
+      return catalogSelectionKeysFits(keys)
+        ? { ok: true, value: keys }
+        : { ok: false };
+    }
+    case "autoFocus":
+      return catalogAutoFocusFits(value) ? { ok: true, value } : { ok: false };
     case "string":
       if (value === null || value === undefined) return { ok: true, value: "" };
       // (ADR-284 Phase 6 — a single selection's key: the photos sidebar's `[...keys][0]`.)
@@ -184,6 +194,10 @@ export function coerceRuntimeValue(
 function defaultFor(def: VariableDef): unknown {
   if (def.defaultValue !== undefined) return def.defaultValue;
   switch (def.type) {
+    case "selectionKeys":
+      return [];
+    case "autoFocus":
+      return false;
     case "string":
       return "";
     case "number":
@@ -371,7 +385,8 @@ export function createRuntimeState(
       if (!entry) return undefined;
       const resolved = ownerScope(entry, scope);
       // (ADR-294 — a derived variable is read where it sits, never stored.)
-      if (entry.derive) return entry.derive(resolved ?? scope ?? { kind: "project" });
+      if (entry.derive)
+        return entry.derive(resolved ?? scope ?? { kind: "project" });
       if (!resolved) return defaultFor(entry.def);
       const map = values.get(scopeKey(resolved));
       return map?.has(variableId) ? map.get(variableId) : defaultFor(entry.def);

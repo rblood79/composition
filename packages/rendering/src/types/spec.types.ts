@@ -624,6 +624,8 @@ export interface CompositionSpec {
     {
       styles?: Record<string, string>;
       nested?: Record<string, Record<string, string>>;
+      /** Same selector's motion override, including authored descendants. */
+      reducedMotion?: Record<string, string>;
     }
   >;
 
