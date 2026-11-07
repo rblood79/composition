@@ -1,5 +1,10 @@
-import { catalogBoxModel, catalogTextTypography } from "./boxModel";
+import {
+  catalogBoxModel,
+  catalogGlyphSize,
+  catalogTextTypography,
+} from "./boxModel";
 import type { CatalogConsumerNode } from "./compositionRoot";
+import { catalogIsGlyphRecord } from "./glyphSize";
 import { catalogStyleView } from "./styleFields";
 
 /**
@@ -27,6 +32,12 @@ export function catalogEffectiveStyle(
     const value = record.derivedProps?.[key];
     if (typeof value === "number") visual[key] = value;
   }
+  // A glyph leaf's one size (`glyphSize.ts`): its Font Size is the drawn square — the authored box,
+  // the authored font size or the size step — as its Width · Height are where none is authored.
+  const glyph = catalogIsGlyphRecord(record)
+    ? catalogGlyphSize(record)
+    : undefined;
+  if (glyph !== undefined) visual.fontSize = glyph;
   const fontSize =
     typeof visual.fontSize === "number" ? visual.fontSize : undefined;
   const style = catalogStyleView(
@@ -52,7 +63,11 @@ export function catalogEffectiveStyle(
     style.paddingLeft = px(box.padding.left);
   }
   for (const key of ["width", "height", "minWidth", "minHeight"] as const) {
-    const value = box[key];
+    const value =
+      box[key] ??
+      (glyph !== undefined && (key === "width" || key === "height")
+        ? glyph
+        : undefined);
     if (value !== undefined) style[key] = px(value);
   }
   if (box.borderWidth !== undefined) style.borderWidth = px(box.borderWidth);

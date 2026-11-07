@@ -22,10 +22,50 @@ export type CatalogLength = number | string;
 export function catalogGlyphSize(
   node: CatalogConsumerNode,
 ): number | undefined {
+  const box = catalogGlyphBoxSize(node);
+  if (box !== undefined) return box;
   const authored = node.visual.fontSize;
   if (typeof authored === "number" && authored > 0) return authored;
   const scale = node.derivedProps?.iconSize ?? node.visual.iconSize;
   return typeof scale === "number" ? scale : undefined;
+}
+
+/**
+ * 2026-11-07 (사용자 보고 「icon 은 Layout 탭의 width · height 로 변경되지 않는다」): a glyph whose
+ * box the author sized in px (`sizing.width` · `height` — the Layout tab's fixed size) fills that box:
+ * the smaller authored axis's content length (less padding and border — the box is border-box). It
+ * wins over an authored font size and the size scale, on every consumer (`catalogGlyphSize` — the
+ * layout input, the Canvas glyph; the DOM binding reads it before the device step). A percentage or
+ * fill axis is not a glyph size (the glyph is the box's content — it would size itself).
+ */
+export function catalogGlyphBoxSize(
+  node: CatalogConsumerNode,
+): number | undefined {
+  const width = node.sizing.width;
+  const height = node.sizing.height;
+  if (
+    !(typeof width === "number" && width > 0) &&
+    !(typeof height === "number" && height > 0)
+  )
+    return undefined;
+  const box = catalogBoxModel(node);
+  const px = (value: unknown) =>
+    typeof value === "number" ? value : Number.parseFloat(String(value)) || 0;
+  const border = px(box.borderWidth ?? 0) * 2;
+  const sides: number[] = [];
+  if (typeof width === "number" && width > 0)
+    sides.push(
+      width - px(box.padding?.left ?? 0) - px(box.padding?.right ?? 0) - border,
+    );
+  if (typeof height === "number" && height > 0)
+    sides.push(
+      height -
+        px(box.padding?.top ?? 0) -
+        px(box.padding?.bottom ?? 0) -
+        border,
+    );
+  const size = Math.min(...sides);
+  return size > 0 ? size : undefined;
 }
 export interface CatalogBoxModel {
   display: string;

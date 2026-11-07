@@ -1,0 +1,45 @@
+/**
+ * Icon · Illustration 의 Size 행 액션 칸 — 리셋 버튼 자리 (28 × 28) 의 px 숫자 입력 (2026-11-07 사용자
+ * 결정). 표면은 같은 패널의 입력 상자 (`.react-aria-Group` — muted · inset) 와 같다. 층은 `components` — 생성
+ * Input sheet 의 `height: auto` (같은 층, 특이도 낮음) 를 이긴다.
+ */
+@layer components {
+  .actions-glyph-size {
+    .react-aria-NumberField {
+      inline-size: var(--control-size);
+    }
+
+    .glyph-size-input {
+      box-sizing: border-box;
+      inline-size: var(--control-size);
+      block-size: var(--control-size);
+      height: var(--control-size);
+      /* 생성 Input sheet 의 `flex: 1 1 0%` 가 NumberField 의 column flex 안에서 높이를 줄인다 */
+      flex: none;
+      padding: 0;
+      border: 0;
+      border-radius: var(--radius-md);
+      background-color: var(--bg-muted);
+      box-shadow: var(--inset-shadow-sm);
+      color: var(--fg);
+      font-size: var(--text-xs);
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+
+      &[data-focused] {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: -2px;
+      }
+    }
+  }
+}
+
+/* 패널 입력의 표면 규칙 (`form-controls.css` — `.section .react-aria-Input` 의 투명 배경 · 시작 여백) 은
+   뒤 층 (`builder-system`) 이라 같은 층에서 더 구체적으로 되돌린다. */
+@layer builder-system {
+  .section .actions-glyph-size .glyph-size-input {
+    background-color: var(--bg-muted);
+    padding: 0;
+    text-align: center;
+  }
+}

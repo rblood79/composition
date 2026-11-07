@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Icon 크기 단일화 — Layout 크기 · Font Size · Size 숫자] - 2026-11-07
+
+### Fixed
+
+- Icon · Illustration 의 Layout Width · Height (px) 가 그림 크기를 정한다 — 그림이 상자 (작은 축, padding · border 제외) 를 채우고, 한 축만 넣으면 정사각 상자가 된다. 종전에는 상자만 커지고 그림은 Size 단계 크기에 머물렀다 (Canvas · Preview 공통).
+
+### Changed
+
+- Icon · Illustration 의 크기를 한 값으로 보인다: Text 탭 Font Size · Layout Width · Height · Property Size 행이 실제로 그려진 크기를 표시한다. Size 행의 리셋 버튼 자리는 px 숫자 입력 (28 × 28) 이다.
+- 마지막 편집이 이긴다: 숫자 입력 · Text Font Size 는 그 크기로 바꾸며 작성한 Width · Height 를 지우고, Size 단계 (XS–XL) 를 고르면 Font Size 와 Width · Height 를 지운다. Tablet · Mobile 에서의 편집은 그 화면 층에만 쓴다.
+
 ## [SelectBoxGroup 방향 Property 번역 정렬] - 2026-11-07
 
 ### Fixed

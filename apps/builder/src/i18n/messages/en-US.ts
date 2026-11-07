@@ -1082,6 +1082,7 @@ const catalog: TranslationKeys = {
     chipGroupShow: "Show",
     chipGroupFill: "Fill",
     sizeOutOfRange: "set in Styles",
+    glyphSize: "Icon size (px)",
     columnSizeNotApplied: "Not applied with this width (kept)",
     racColorInvalid:
       "Use #rrggbb · rgb(r, g, b) · hsl(h, s%, l%) · hsb(h, s%, b%)",

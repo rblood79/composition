@@ -1,4 +1,5 @@
 import { AvatarSizeField } from "./AvatarSizeField";
+import { GlyphSizeAction, useGlyphSize } from "./glyphSizeAction";
 import { LabeledValueField } from "./LabeledValueField";
 import { SelectionCountField } from "./SelectionCountField";
 import { SelectionKeysField } from "./SelectionKeysField";
@@ -855,6 +856,7 @@ const GenericField = memo(function GenericField({
   };
 
   const { t } = useI18n();
+  const glyphSize = useGlyphSize();
 
   if (isVariableFollow(value))
     return <VariableFollowField label={field.label} value={value} />;
@@ -918,13 +920,15 @@ const GenericField = memo(function GenericField({
           field.kind === "size" ? sizeSegOptions(options) : options;
         const currentLabel =
           options.find((o) => o.value === current)?.label ?? current;
+        // A glyph sized off its step (box · font size): no step is drawn — the action cell's number is.
+        const glyphCustom = field.kind === "size" && glyphSize?.custom === true;
         return (
           <PropertySegment
             label={field.label}
-            value={current}
+            value={glyphCustom ? "" : current}
             onChange={(v) => update(v)}
             outOfRangeHint={
-              field.kind === "size"
+              field.kind === "size" && !glyphCustom
                 ? `${currentLabel} · ${t("propertiesPanel.sizeOutOfRange")}`
                 : undefined
             }
@@ -1417,6 +1421,8 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
   );
   // ADR-214 Phase 3 — `{{` 자동완성 후보. 필드가 아니라 렌더러가 한 번 구독한다.
   const stateNames = useFieldVariableNames(elementId);
+  // A glyph's drawn px — its Size row's action cell (`glyphSizeAction.tsx`).
+  const glyphSize = useGlyphSize();
 
   const extraSections = Object.entries(sectionExtras ?? {}).filter(
     (entry): entry is [string, ReactNode] => entry[1] != null,
@@ -1509,12 +1515,16 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
               }
             />
           ))}
-          <FieldRowResetAction
-            row={row}
-            elementId={elementId}
-            onSemanticUpdate={onSemanticUpdate}
-            onStyleUpdate={onStyleUpdate}
-          />
+          {glyphSize && row.some((field) => field.kind === "size") ? (
+            <GlyphSizeAction source={glyphSize} />
+          ) : (
+            <FieldRowResetAction
+              row={row}
+              elementId={elementId}
+              onSemanticUpdate={onSemanticUpdate}
+              onStyleUpdate={onStyleUpdate}
+            />
+          )}
         </div>
       ),
     );

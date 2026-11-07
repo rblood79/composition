@@ -137,6 +137,7 @@ import {
 import {
   CATALOG_BINDING_VISUAL_KEYS,
   catalogBoxModel,
+  catalogGlyphBoxSize,
   catalogGlyphSize,
   catalogTextMetrics,
   type CatalogLength,
@@ -841,7 +842,9 @@ const glyph =
                 node.visual.color),
         ),
         // (ADR-295 Phase 3b: an S2 icon step is its device variable — the touch set reaches the glyph.)
+        // (An authored px box — the Layout tab's width · height — is the glyph: `catalogGlyphBoxSize`.)
         fontSize:
+          catalogGlyphBoxSize(node) ??
           (node.derivedProps?.iconSize as number | undefined) ??
           catalogDeviceGlyphSize(node.visual) ??
           catalogGlyphSize(node) ??
@@ -850,12 +853,14 @@ const glyph =
         // not override XS/XL or a field-owned glyph; explicit authored boxes still win.
         width:
           style.width ??
+          catalogGlyphBoxSize(node) ??
           (node.derivedProps?.iconSize as number | undefined) ??
           catalogDeviceGlyphSize(node.visual) ??
           catalogGlyphSize(node) ??
           fallbackSize,
         height:
           style.height ??
+          catalogGlyphBoxSize(node) ??
           (node.derivedProps?.iconSize as number | undefined) ??
           catalogDeviceGlyphSize(node.visual) ??
           catalogGlyphSize(node) ??
@@ -1254,11 +1259,15 @@ const bindings: Readonly<Record<string, DomBinding>> = {
   // box (the Icon sheet's `.react-aria-Icon` height is the Icon scale's).
   illustration: (node, style, children, context) => {
     // (ADR-295 후속: the S2 picture is `scaled(n)` — its box is the device formula.)
+    // (An authored px box is the picture — `catalogGlyphBoxSize`, the Icon's contract.)
     const size =
-      catalogDeviceGlyphSize(node.visual) ?? catalogGlyphSize(node) ?? 96;
+      catalogGlyphBoxSize(node) ??
+      catalogDeviceGlyphSize(node.visual) ??
+      catalogGlyphSize(node) ??
+      96;
     return glyph("image", 96, "react-aria-Illustration")(
       node,
-      { ...style, width: size, height: size },
+      { ...style, width: style.width ?? size, height: style.height ?? size },
       children,
       context,
     );

@@ -59,6 +59,18 @@ import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import { FieldValueSourceContext } from "../generic/fieldValueSource";
 
 import { GenericFieldRenderer } from "../generic/GenericFieldRenderer";
+import {
+  GlyphSizeContext,
+  type GlyphSizeSource,
+} from "../generic/glyphSizeAction";
+import {
+  CATALOG_GLYPH_TYPES,
+  catalogGlyphSizeCommand,
+  catalogGlyphSizeIsCustom,
+  catalogGlyphStepClearCommand,
+  catalogIsGlyphRecord,
+} from "../../../catalogRuntime/glyphSize";
+import { catalogGlyphSize } from "../../../catalogRuntime/boxModel";
 
 import { ItemsSourceContext } from "../generic/itemsSource";
 
@@ -436,7 +448,17 @@ const CatalogFields = memo(function CatalogFields({
         targets.length === 1
           ? catalogSingleSelectionCommand(workspace, elementId, patch)
           : [];
-      const all = [...(command ? [command] : []), ...keep];
+      // A glyph's Size step is drawn only without an authored font size or box (`glyphSize.ts`).
+      const glyphStep =
+        "size" in written && CATALOG_GLYPH_TYPES.has(contract.type ?? "")
+          ? [
+              catalogGlyphStepClearCommand({
+                targets,
+                breakpoint: workspace.session.getSnapshot().breakpoint,
+              }),
+            ]
+          : [];
+      const all = [...(command ? [command] : []), ...keep, ...glyphStep];
       if (!all.length) return;
       run(
         all.length > 1
@@ -470,6 +492,41 @@ const CatalogFields = memo(function CatalogFields({
     targets.length === 1 && targets[0]!.kind === "node"
       ? targets[0]!.id
       : undefined;
+  // A glyph's one size (`glyphSize.ts`) — re-read per step and root (the breakpoint's layer).
+  const isGlyph = CATALOG_GLYPH_TYPES.has(contract.type ?? "");
+  const subscribeLayout = useCallback(
+    (notify: () => void) => {
+      const offSteps = workspace.runtime.subscribeSteps(() => notify());
+      const offRoot = workspace.subscribeRoot(notify);
+      return () => {
+        offSteps();
+        offRoot();
+      };
+    },
+    [workspace],
+  );
+  const glyphKey = useSyncExternalStore(subscribeLayout, () => {
+    if (!isGlyph) return "";
+    const record = workspace.root.domInputs.get(elementId);
+    if (!record || !catalogIsGlyphRecord(record)) return "";
+    return `${catalogGlyphSize(record) ?? ""}|${catalogGlyphSizeIsCustom(record)}`;
+  });
+  const glyphSize = useMemo<GlyphSizeSource | null>(() => {
+    if (!glyphKey) return null;
+    const [px, custom] = glyphKey.split("|");
+    return {
+      value: px ? Number(px) : undefined,
+      custom: custom === "true",
+      commit: (next) =>
+        run(
+          catalogGlyphSizeCommand({
+            targets,
+            breakpoint: workspace.session.getSnapshot().breakpoint,
+            px: next,
+          }),
+        ),
+    };
+  }, [glyphKey, run, targets, workspace]);
   const isBound = useSyncExternalStore(subscribeSteps, () => {
     const node = filterNode
       ? workspace.runtime.graph.getEntry(filterNode)
@@ -510,7 +567,7 @@ const CatalogFields = memo(function CatalogFields({
     isRefInstance,
   });
   if (!extras.fields.length) return null;
-  return (
+  const renderer = (
     <GenericFieldRenderer
       fields={extras.fields}
       literalOptionFields={extras.literalOptionFields}
@@ -525,6 +582,13 @@ const CatalogFields = memo(function CatalogFields({
         isBound,
       )}
     />
+  );
+  return glyphSize ? (
+    <GlyphSizeContext.Provider value={glyphSize}>
+      {renderer}
+    </GlyphSizeContext.Provider>
+  ) : (
+    renderer
   );
 });
 

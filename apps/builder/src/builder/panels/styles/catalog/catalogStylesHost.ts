@@ -9,6 +9,10 @@ import {
   readThemeTokenValue,
 } from "../../../../../../../packages/shared/src/catalog/document/themedToken";
 import { catalogReadPositionConstraint } from "../../../catalogRuntime/positionConstraint";
+import {
+  catalogGlyphBoxClearCommand,
+  catalogIsGlyphRecord,
+} from "../../../catalogRuntime/glyphSize";
 import { catalogIsOutOfFlow } from "../../../../../../../packages/shared/src/catalog/runtime/positioning";
 import {
   catalogHasDisplayedLayout,
@@ -570,6 +574,24 @@ export function createCatalogStylesHost(
             label: "Edit style",
           } as Parameters<typeof setFields>[0]),
         );
+        // A glyph's Font Size is its one size (`glyphSize.ts`): the authored px box would win over
+        // it, so it goes — unless this write is the box itself.
+        if (
+          "fontSize" in fields &&
+          !("width" in fields) &&
+          !("height" in fields)
+        ) {
+          const glyphs = items.filter((item) =>
+            catalogIsGlyphRecord(workspace.root.domInputs.get(item.identity)),
+          );
+          if (glyphs.length)
+            commands.push(
+              catalogGlyphBoxClearCommand({
+                targets: glyphs.map((item) => item.target),
+                breakpoint,
+              }),
+            );
+        }
         // ADR-299 사용자 결정 3 — a range-formatted text written as a whole (not in the editor):
         // the node's value wins everywhere, so the runs' value of that axis goes (Figma's Mixed).
         const axes = Object.keys(fields).filter(isTextRunMarkKey);

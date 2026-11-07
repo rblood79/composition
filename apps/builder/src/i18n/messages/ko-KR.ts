@@ -1081,6 +1081,7 @@ const catalog: TranslationKeys = {
     chipGroupShow: "표시",
     chipGroupFill: "채움",
     sizeOutOfRange: "Styles 패널에서 변경",
+    glyphSize: "아이콘 크기 (px)",
     columnSizeNotApplied: "이 폭과 함께는 적용되지 않음 (저장됨)",
     racColorInvalid:
       "#rrggbb · rgb(r, g, b) · hsl(h, s%, l%) · hsb(h, s%, b%) 형식만 받습니다",

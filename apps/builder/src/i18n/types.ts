@@ -788,6 +788,7 @@ export interface TranslationKeys {
     chipGroupShow: string;
     chipGroupFill: string;
     sizeOutOfRange: string;
+    glyphSize: string;
     /** ADR-257 — a Column width bound a grid track cannot express (stored, not applied). */
     columnSizeNotApplied: string;
     racColorInvalid: string;
