@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Library 탭 진입 오류 — Typography token classification] - 2026-11-08
+
+### Fixed
+
+- Navigator → Components → Library의 Typography 샘플은 선언된 글자 크기 단계만 생성하고 현재 테마의 크기 값을 사용한다.
+  - **Why**: 테마 적용으로 추가된 `sans` 글꼴 문자열까지 글자 크기로 변환해 `STYLE_VALUE_UNSUPPORTED: fontSize = NaN` 오류가 발생했다. 첫 생성·재진입·baseline 조회 회귀를 추가했다.
+
 ## [ToggleButtonGroup Justified · 긴 Label] - 2026-11-08
 
 ### Fixed

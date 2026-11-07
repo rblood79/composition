@@ -3,6 +3,7 @@ import {
   resolveToken,
   spacing,
   typography,
+  TYPOGRAPHY_STEPS,
 } from "@composition/rendering";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import { originForksOf } from "../../../../../packages/shared/src/catalog/document/originFork";
@@ -938,18 +939,22 @@ export function catalogComponentsPageEntries(
     ]);
   }
   {
-    const sizes = Object.entries(typography)
-      .filter(([name]) => !name.includes("--"))
-      .sort((a, b) => Number(b[1]) - Number(a[1]));
+    // Installed themes also add non-size tokens such as `sans` to this map.
+    const sizes = Object.keys(TYPOGRAPHY_STEPS)
+      .map(
+        (name) =>
+          [name, typography[name as keyof typeof TYPOGRAPHY_STEPS]] as const,
+      )
+      .sort((a, b) => b[1] - a[1]);
     const lineHeights = typography as unknown as Record<string, number>;
-    const sample = ([name, size]: [string, unknown], mark: string) =>
+    const sample = ([name, size]: readonly [string, number], mark: string) =>
       captioned(
         "typography",
         name,
         text(
           themeSampleId("typography", name),
           "Aa 가나다 123",
-          { fontSize: Number(size) },
+          { fontSize: size },
           name,
         ),
         // `text-md` declares no line height of its own.

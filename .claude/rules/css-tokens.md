@@ -12,6 +12,8 @@ paths:
 
 # CSS 토큰 규칙 — S2 + React Aria Hybrid Naming (ADR-022)
 
+- Typography 크기 샘플은 `TYPOGRAPHY_STEPS`의 키로 열거하고 값은 설치된 `typography` 맵에서 읽는다. **Why (2026-11-08):** 테마 resolver가 같은 맵에 `sans` 글꼴 문자열도 설치하므로 행간 키만 제외하고 숫자로 변환하면 Library 첫 진입·baseline 생성에서 `fontSize = NaN` 예외가 발생한다 (`phase4eTheme.test.tsx` 원복 RED → 수정 PASS).
+
 - RAC 공유 선택 표시는 실제 indicator 자식에 `translate`·크기 전환을 선언하고, 모션 감소 규칙도 그 자식에 적용한다. **Why (2026-11-07):** SegmentedControl이 SharedElementTransition을 사용해도 indicator의 전환 시간이 0s여서 즉시 이동했다. 루트에만 적용한 reduced-motion은 자식 전환을 끄지 못한다.
 - 복합 버튼의 Text가 owner 글꼴을 상속할 때 DOM binding도 명시적 `inherit`를 유지하고, 저작한 값은 보존한다. **Why (2026-11-07):** SegmentedControl 내용 Frame의 Text에서 bound 값을 삭제만 하면 기본 Text 스타일이 16px/20px로 복귀해 owner의 14px/18px 및 Canvas와 항목 폭이 달라졌다.
 

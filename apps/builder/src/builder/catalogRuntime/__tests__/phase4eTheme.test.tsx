@@ -1,5 +1,10 @@
 import "fake-indexeddb/auto";
-import { lightColors, resolveToken } from "@composition/rendering";
+import {
+  lightColors,
+  resolveToken,
+  typography,
+  TYPOGRAPHY_STEPS,
+} from "@composition/rendering";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -31,6 +36,12 @@ import {
   catalogThemesView,
 } from "../theme";
 import { CatalogWorkspace } from "../workspace";
+import {
+  COMPONENTS_VIEW,
+  ORIGIN_VIEW_NODE,
+  componentPageNodeId,
+} from "../originView";
+import { catalogComponentPageBaseline } from "../componentsPage";
 import type { CatalogTextMeasure } from "../compositionRoot";
 import { composeOver } from "../../../../../../packages/shared/src/catalog/commands/compose";
 import { CatalogStepAbortedError, CatalogSubscriberError } from "../controller";
@@ -177,6 +188,46 @@ function prepareThemeSwitch(
 }
 
 describe("ADR-248 Phase 4e-4d-4 Themes", () => {
+  it("테마의 sans 토큰을 글자 크기로 변환하지 않고 Library를 생성·재개방한다", async () => {
+    const { workspace } = await open();
+    const graph = workspace.runtime.graph;
+    try {
+      createCatalogThemesHost(workspace).setActiveThemeBaseTypography({
+        fontFamily: "Noto Serif KR, serif",
+      });
+      expect(Reflect.get(typography, "sans")).toBe("Noto Serif KR, serif");
+      workspace.showDefinition(COMPONENTS_VIEW);
+      for (const [name, size] of Object.entries(typography).filter(([name]) =>
+        Object.hasOwn(TYPOGRAPHY_STEPS, name),
+      )) {
+        const id = componentPageNodeId(
+          `${ORIGIN_VIEW_NODE}/theme/typography/${name}/sample` as NodeId,
+        );
+        expect((graph.getEntry(id) as NodeEntry).visual.fontSize).toEqual({
+          kind: "set",
+          value: size,
+        });
+        expect(
+          catalogComponentPageBaseline(graph, id)?.visual.fontSize,
+        ).toEqual({
+          kind: "set",
+          value: size,
+        });
+      }
+      expect(
+        graph.getEntry(
+          componentPageNodeId(
+            `${ORIGIN_VIEW_NODE}/theme/typography/sans/sample` as NodeId,
+          ),
+        ),
+      ).toBeUndefined();
+      workspace.showDefinition(undefined);
+      workspace.showDefinition(COMPONENTS_VIEW);
+    } finally {
+      workspace.dispose();
+    }
+  });
+
   it("reuses unchanged text metrics across themes and invalidates them on font refresh", async () => {
     const measure = vi.fn<CatalogTextMeasure>(() => ({
       width: 60,
