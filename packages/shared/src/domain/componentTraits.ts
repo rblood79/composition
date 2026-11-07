@@ -211,7 +211,7 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   SegmentedControl: { families: ["disablingGroup"] },
   SegmentedControlItem: {
     owners: ["SegmentedControl"],
-    families: ["textHost", "buttonChildHost", "action"],
+    families: ["textHost", "buttonChildHost", "action", "staticCollectionItem"],
   },
 
   // ── 이미지 ──

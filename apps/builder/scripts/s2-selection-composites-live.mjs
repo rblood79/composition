@@ -182,46 +182,15 @@ try {
         name: `Slot of ${provider}`,
         exact: true,
       });
-      await slotField.getByRole("button").click();
-      const names = type === "ActionBar" ? ["clear"] : ["label", "description"];
       check(
         type,
-        "part Slot choices match the actual provider",
-        (
-          await Promise.all(
-            names.map((name) =>
-              page.getByRole("option", { name, exact: true }).isVisible(),
-            ),
-          )
-        ).every(Boolean),
+        "named part keeps its context role without a RAC slot editor",
+        (await slotField.count()) === 0 &&
+          (await panel().getByText("RAC slot", { exact: true }).count()) ===
+            0 &&
+          (await read()).find((node) => node.id === slotPart.id)?.props.slot ===
+            slotPart.props.slot,
       );
-      await page
-        .getByRole("option", { name: "Detach (slot = null)", exact: true })
-        .click();
-      await settle();
-      const slotValue = async () =>
-        (await read()).find((node) => node.id === slotPart.id)?.props.slot;
-      check(
-        type,
-        "part Slot detach is authored",
-        (await slotValue()) === false,
-      );
-      await page.keyboard.press("Meta+z");
-      await settle();
-      check(
-        type,
-        "part Slot Undo restores its name",
-        (await slotValue()) === slotPart.props.slot,
-      );
-      await page.keyboard.press("Meta+Shift+z");
-      await settle();
-      check(
-        type,
-        "part Slot Redo restores detach",
-        (await slotValue()) === false,
-      );
-      await page.keyboard.press("Meta+z");
-      await settle();
       const child = nodes.find(
         (n) =>
           n.type === "Text" &&

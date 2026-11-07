@@ -2,8 +2,11 @@ import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
+import { buildCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/library";
 import { definitionTypeName } from "../../../../../../packages/shared/src/catalog/commands/context";
 import type {
+  CatalogLibrary,
+  LibraryTemplateId,
   DefinitionId,
   EntryId,
   NodeEntry,
@@ -16,8 +19,20 @@ import {
 import type { CatalogConsumerNode } from "../compositionRoot";
 import { resolveStaticItemKey } from "../../../../../../packages/shared/src/catalog/slotRoles";
 import { catalogTabsSelection } from "../../../../../../packages/shared/src/catalog/runtime/presence";
+import {
+  GROUP_ITEM_TYPES,
+  GROUP_ITEMS_WRAPPER,
+} from "../../../../../../packages/shared/src/catalog/commands/collections";
 import { catalogItemInsertChoices } from "../itemInsert";
+import { catalogChildKind } from "../../../../../../packages/shared/src/catalog/nesting/nestingRules";
+import { getPaletteItems } from "../../panels/components/paletteItems";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
+import {
+  catalogSlotPosition,
+  catalogSlotCommands,
+  catalogSlotTarget,
+  catalogSlotInsertOptions,
+} from "../slots";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
@@ -32,8 +47,8 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 const BODY = "project:node:home-body" as NodeId;
 const HOST = "project:node:host" as NodeId;
 
-async function open(type: string) {
-  const library = await buildCodeCatalogLibrary();
+async function open(type: string, previousLibrary?: CatalogLibrary) {
+  const library = previousLibrary ?? (await buildCodeCatalogLibrary());
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
       newCatalogProjectDocument({
@@ -115,6 +130,196 @@ function add(workspace: CatalogWorkspace, host: string, itemType: string) {
 }
 
 describe("ADR-248 4e item insert ('+')", () => {
+  it("전체 팔레트의 항목형 원본은 루트 또는 목록 부품에 자식 Slot을 선언한다", async () => {
+    const library = await buildCodeCatalogLibrary();
+    const graph = new CatalogGraph(
+      newCatalogProjectDocument({
+        projectId: "project:project:item-slot-coverage",
+        name: "Slot coverage",
+      }),
+      library,
+    );
+    for (const item of getPaletteItems()) {
+      const definition = library.definitions.get(
+        catalogPaletteDefinitionId(library, item.componentType ?? item.type),
+      );
+      const root =
+        definition?.mode === "composite" && definition.templateRootId
+          ? library.templates.get(
+              definition.templateRootId as LibraryTemplateId,
+            )
+          : undefined;
+      if (
+        !root ||
+        catalogChildKind(definitionTypeName(graph, root.definitionId)).kind !==
+          "items"
+      )
+        continue;
+      expect(
+        root.slot ??
+          root.children
+            .map((id) => library.templates.get(id as LibraryTemplateId)?.slot)
+            .find(Boolean),
+        item.type,
+      ).toBeDefined();
+    }
+  });
+
+  it.each([
+    ...new Set([
+      ...Object.keys(GROUP_ITEM_TYPES),
+      "SelectBoxGroup",
+      "ActionButtonGroup",
+      "ActionBar",
+    ]),
+  ])("%s의 항목 Slot과 추가 명령은 같은 항목을 제공한다", async (type) => {
+    const workspace = await open(type);
+    try {
+      const graph = workspace.runtime.graph;
+      const hostType = GROUP_ITEMS_WRAPPER[type] ?? type;
+      const host = recordOf(workspace, hostType);
+      const target = workspace.positionOfRecord(host.id)!.target;
+      expect(
+        catalogSlotPosition(graph, target),
+        `${type} child Slot`,
+      ).toBeDefined();
+      const itemTypes =
+        type === "SelectBoxGroup" ? ["SelectBox"] : GROUP_ITEM_TYPES[type];
+      expect(
+        catalogSlotInsertOptions(graph, target).map((option) => option.type),
+      ).toEqual(itemTypes);
+      expect(choicesOf(workspace, type).map((choice) => choice.type)).toEqual(
+        itemTypes,
+      );
+      const before = childTypes(workspace, hostType);
+      add(workspace, type, itemTypes[0]);
+      expect(childTypes(workspace, hostType)).toEqual([
+        ...before,
+        itemTypes[0],
+      ]);
+      workspace.undo();
+      expect(childTypes(workspace, hostType)).toEqual(before);
+      workspace.redo();
+      expect(childTypes(workspace, hostType)).toEqual([
+        ...before,
+        itemTypes[0],
+      ]);
+      workspace.execute(
+        catalogSlotCommands.restore(
+          catalogSlotTarget(graph, target)!,
+          workspace.newId,
+        ),
+      );
+      expect(childTypes(workspace, hostType)).toEqual(before);
+    } finally {
+      workspace.dispose();
+    }
+  });
+
+  it.each([
+    [
+      "SegmentedControl",
+      "SegmentedControlItem",
+      "lib:template:component-segmentedcontrol",
+    ],
+    ["SelectBoxGroup", "SelectBox", "lib:template:component-selectboxgroup"],
+  ] as const)(
+    "%s는 기존 Slot 없는 문서의 편집값을 항목 추가 후에도 보존한다",
+    async (group, itemType, templateId) => {
+      const library = await buildCodeCatalogLibrary();
+      const templates = new Map(library.templates);
+      const { slot: _slot, ...previousTemplate } = templates.get(templateId)!;
+      templates.set(templateId, previousTemplate);
+      const previous = await open(
+        group,
+        buildCatalogLibrary({
+          contractVersion: library.contractVersion,
+          revision: `${library.revision}-before-items-slot`,
+          definitions: [...library.definitions.values()],
+          templates: [...templates.values()],
+          tokens: [...library.tokens.values()],
+          rules: Object.fromEntries(library.rules),
+          bindingIds: [...library.execution.bindingIds],
+          triggerIds: [...library.execution.triggerIds],
+          capabilityIds: [...library.execution.capabilityIds],
+          actionOpCodes: [...library.execution.actionOpCodes],
+        }),
+      );
+      let reloaded: CatalogWorkspace | undefined;
+      try {
+        const item = recordOf(previous, "Text");
+        previous.execute(
+          setFields({
+            targets: [previous.positionOfRecord(item.id)!.target],
+            props: { children: { kind: "set", value: "편집한 항목" } },
+          }),
+        );
+        reloaded = new CatalogWorkspace(
+          new CatalogGraph(previous.runtime.graph.exportDocument(), library),
+          new CatalogStorage(indexedDB, `segment-legacy-${Math.random()}`),
+          {
+            engine: await nodeLayoutEngine(),
+            viewport: { width: 1200, height: 800 },
+            autosaveSchedule: () => {},
+          },
+        );
+        expect(recordOf(reloaded, "Text").props.children).toBe("편집한 항목");
+        add(reloaded, group, itemType);
+        expect(childTypes(reloaded, group)).toHaveLength(3);
+        expect(recordOf(reloaded, "Text").props.children).toBe("편집한 항목");
+        reloaded.undo();
+        expect(childTypes(reloaded, group)).toHaveLength(2);
+        expect(recordOf(reloaded, "Text").props.children).toBe("편집한 항목");
+      } finally {
+        previous.dispose();
+        reloaded?.dispose();
+      }
+    },
+  );
+
+  it.each([
+    ["ToggleButtonGroup", "ToggleButton"],
+    ["SegmentedControl", "SegmentedControlItem"],
+  ])(
+    "%s는 항목 추가 Slot으로 %s를 삽입하고 복원한다",
+    async (group, itemType) => {
+      const workspace = await open(group);
+      try {
+        const graph = workspace.runtime.graph;
+        const position = workspace.positionOfRecord(
+          recordOf(workspace, group).id,
+        )!;
+        const slot = catalogSlotPosition(graph, position.target);
+        expect(slot).toBeDefined();
+        expect(
+          choicesOf(workspace, group).map((choice) => choice.type),
+        ).toEqual([itemType]);
+        expect(childTypes(workspace, group)).toEqual([itemType, itemType]);
+        add(workspace, group, itemType);
+        add(workspace, group, itemType);
+        expect(childTypes(workspace, group)).toEqual([
+          itemType,
+          itemType,
+          itemType,
+          itemType,
+        ]);
+        workspace.undo();
+        expect(childTypes(workspace, group)).toHaveLength(3);
+        workspace.redo();
+        expect(childTypes(workspace, group)).toHaveLength(4);
+        workspace.execute(
+          catalogSlotCommands.restore(
+            catalogSlotTarget(graph, position.target)!,
+            workspace.newId,
+          ),
+        );
+        expect(childTypes(workspace, group)).toEqual([itemType, itemType]);
+      } finally {
+        workspace.dispose();
+      }
+    },
+  );
+
   it("a ListBox adds an item (a new key) or a section", async () => {
     const workspace = await open("ListBox");
     expect(choicesOf(workspace, "ListBox").map((item) => item.type)).toEqual([

@@ -6,6 +6,7 @@ import {
   SEGMENTED_GROUP_CONTAINER,
   SEGMENTED_ITEM_CONTAINER,
   SEGMENTED_INDICATOR_MOTION,
+  SEGMENTED_INDICATOR_BORDER,
 } from "../rule/segmentedControl";
 import {
   ACTION_BAR_RULE,
@@ -16722,6 +16723,7 @@ COMPONENT_RULES_TABLE.SegmentedControl = {
     element: "div",
     containerStyles: SEGMENTED_GROUP_CONTAINER,
     composition: {
+      rootPaint: "variant",
       delegation: [],
       rootSelectors: {
         "&[data-justified] > .react-aria-SegmentedControlItem": {
@@ -16740,26 +16742,45 @@ COMPONENT_RULES_TABLE.SegmentedControl = {
 COMPONENT_RULES_TABLE.SegmentedControlItem = {
   defaultSize: "M",
   defaultVariant: "default",
+  localeTypography: COMPONENT_RULES_TABLE.Label.localeTypography,
   containerStyles: SEGMENTED_ITEM_CONTAINER,
+  partStateStyles: {
+    "&% .react-aria-SelectionIndicator": {
+      "border-color": SEGMENTED_INDICATOR_BORDER,
+    },
+  },
   variants: {
     default: {
       paint: {
         backgroundColor: { default: "{color.transparent}" },
         color: {
           default: "{color.neutral-subdued}",
-          isSelected: "{color.neutral}",
-          isDisabled: "{color.disabled}",
+          isSelected: "{color.neutral-content}",
+          isDisabled: "{color.disabled-content}",
         },
       },
     },
   },
   sizes: {
-    M: { ...COMPONENT_RULES_TABLE.ActionButton.sizes.M, borderWidth: 0 },
+    M: {
+      ...COMPONENT_RULES_TABLE.ActionButton.sizes.M,
+      minHeight: undefined,
+      height: scaled(32),
+      minWidth: "{size.height.M}",
+      paddingX: scaled((32 * 3) / 8),
+      paddingY: 0,
+      fontWeight: 400,
+      borderWidth: 0,
+    },
   },
   structure: {
     archetype: "button",
     element: "button",
     containerStyles: SEGMENTED_ITEM_CONTAINER,
+    stateStyles: {
+      ...ACTION_FOCUS_RING_STATE,
+      outline: { default: "none", ...ACTION_FOCUS_RING_STATE.outline },
+    },
     composition: {
       delegation: [],
       rootSelectors: {
@@ -16793,7 +16814,8 @@ COMPONENT_RULES_TABLE.SegmentedControlItem = {
             width: "100%",
             height: "100%",
             background: "var(--bg)",
-            border: "2px solid var(--fg)",
+            "border-width": "2px",
+            "border-style": "solid",
             "border-radius": "10px",
           },
           reducedMotion: { transition: "none" },

@@ -1,7 +1,4 @@
-import {
-  catalogHasSlotContract,
-  CATALOG_DOM_SLOT_TYPES,
-} from "../racSlotContract";
+import { catalogHasSlotContract } from "../racSlotContract";
 import { RAC_SLOT_PROP } from "./accessibilityProps";
 import { labeledValueBinding } from "./LabeledValue.binding";
 import { actionBarBinding } from "./ActionBar.binding";
@@ -637,9 +634,7 @@ const SLOTTED_BINDINGS: Readonly<Record<string, PrimitiveBinding>> =
               ...binding.props,
               accepts: {
                 ...binding.props.accepts,
-                slot: CATALOG_DOM_SLOT_TYPES.has(type)
-                  ? { ...RAC_SLOT_PROP, editorHidden: false }
-                  : RAC_SLOT_PROP,
+                slot: RAC_SLOT_PROP,
               },
             },
           }

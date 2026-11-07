@@ -140,10 +140,11 @@ try {
   await select(owner.id);
   check(
     type,
-    "Slot uses common context UI without a generic text input",
+    "Property omits RAC context slot controls",
     (await panel()
       .getByRole("textbox", { name: "Slot", exact: true })
-      .count()) === 0,
+      .count()) === 0 &&
+      (await panel().getByText("RAC slot", { exact: true }).count()) === 0,
   );
   await panel().getByRole("radio", { name: "Multiple", exact: true }).click();
   const keys = panel()

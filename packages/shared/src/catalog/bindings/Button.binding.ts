@@ -54,7 +54,7 @@ export const buttonBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      // ADR-256 Decision 4: edited by the RAC slot section (the provider's names · detach).
+      // The authored context role remains available to Code and composed defaults.
       slot: {
         kind: "string",
         label: "Slot",

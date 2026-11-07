@@ -333,10 +333,9 @@ try {
         await select(owner.id);
         check(
           type,
-          "root slot uses shared section without a free text input",
+          "root Property omits RAC context slot controls",
           (await panel()
             .getByRole("group", { name: "Slot", exact: true })
-            .getByRole("textbox")
             .count()) === 0,
         );
         const orientation = panel().getByRole("group", {
@@ -389,10 +388,9 @@ try {
         await select(item.id);
         check(
           type,
-          "item slot uses shared section without a free text input",
+          "item Property omits RAC context slot controls",
           (await panel()
             .getByRole("group", { name: "Slot", exact: true })
-            .getByRole("textbox")
             .count()) === 0,
         );
         const label = panel()

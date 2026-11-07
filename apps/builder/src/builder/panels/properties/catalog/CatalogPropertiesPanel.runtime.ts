@@ -54,7 +54,7 @@ export function useCatalogPropertiesSelection() {
   }, [contract.type, first, graph]);
   // A delegated sub-part (a field's Label · Input · FieldError …): its parent composes it, so its
   // own fields reach nothing — the owner notice instead (ADR-923, the old panel's).
-  // (One root read for the panel's parts — the RAC slot section takes it, ADR-246 count.)
+  // (One root read shared by the panel's parts — ADR-246 count.)
   const root = first && contract.type ? workspace.root : undefined;
   const subpartOwner = root
     ? catalogSubpartOwnerType(graph, root.domInputs, first.identity, "all")

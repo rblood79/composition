@@ -25,8 +25,6 @@ import {
   catalogOwnerDecidedProps,
 } from "../../../../../../../packages/shared/src/catalog/runtime/ownerDecidedProps";
 
-import { catalogRacSlotConsumer } from "../../../../../../../packages/shared/src/catalog/runtime/racSlot";
-
 import { useI18n } from "../../../../i18n";
 
 import {
@@ -92,7 +90,6 @@ import { CatalogPageSection } from "./CatalogPageSection";
 
 import { CatalogPropertyClipboardActions } from "./CatalogPropertyClipboardActions";
 
-import { CatalogRacSlotSection } from "./CatalogRacSlotSection";
 import { catalogSubpartOwnerType } from "../../../catalogRuntime/subpart";
 
 import {
@@ -144,28 +141,19 @@ export function CatalogPropertiesBody({
       ? catalogSubpartOwnerType(graph, root.domInputs, first.identity, "style")
       : subpartOwner;
     return (
-      <>
-        <EmptyState
-          icon={<Settings2 size={32} />}
-          message={t("propertiesPanel.delegatedSubpartMessage")}
-          description={t(
-            styleOwner
-              ? "propertiesPanel.delegatedSubpartDescription"
-              : "propertiesPanel.boundTextPartDescription",
-            {
-              type: contract.type,
-              parent: subpartOwner,
-            },
-          )}
-        />
-        {root && !styleOwner && catalogRacSlotConsumer(contract.type) && (
-          <CatalogRacSlotSection
-            identity={first.identity}
-            workspace={workspace}
-            root={root}
-          />
+      <EmptyState
+        icon={<Settings2 size={32} />}
+        message={t("propertiesPanel.delegatedSubpartMessage")}
+        description={t(
+          styleOwner
+            ? "propertiesPanel.delegatedSubpartDescription"
+            : "propertiesPanel.boundTextPartDescription",
+          {
+            type: contract.type,
+            parent: subpartOwner,
+          },
         )}
-      </>
+      />
     );
   }
   const settingsPage =
@@ -248,15 +236,6 @@ export function CatalogPropertiesBody({
           key={`roles:${first.identity}`}
           identity={first.identity}
         />
-        {/* Only a part that reads a RAC slot context mounts it (no hook cost per selection). */}
-        {catalogRacSlotConsumer(contract.type) && (
-          <CatalogRacSlotSection
-            key={`rac-slot:${first.identity}`}
-            identity={first.identity}
-            workspace={workspace}
-            root={root!}
-          />
-        )}
         {/* ADR-256 Decision 7: only a node under a part that gives state keys (or with a
             condition) mounts it (no hook cost per selection). */}
         {first.target.kind === "node" &&
@@ -296,7 +275,7 @@ const CatalogFields = memo(function CatalogFields({
 }: {
   elementId: string;
   targets: readonly EditTarget[];
-  /** The panel's root (no getter of its own per step — ADR-246 count, like the RAC slot section). */
+  /** The panel's shared root (no getter of its own per step — ADR-246 count). */
   root: ReturnType<typeof useCatalogWorkspace>["root"] | undefined;
 }) {
   const { t } = useI18n();

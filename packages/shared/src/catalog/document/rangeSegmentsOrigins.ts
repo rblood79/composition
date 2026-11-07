@@ -142,6 +142,7 @@ export const RANGE_SEGMENT_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     id: "lib:template:component-segmentedcontrol",
     definitionId: "lib:definition:type-SegmentedControl",
+    slot: { name: "Items", required: false },
     children: [
       "lib:template:component-segmentedcontrol__first",
       "lib:template:component-segmentedcontrol__second",

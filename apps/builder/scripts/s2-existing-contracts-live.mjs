@@ -303,36 +303,11 @@ try {
   });
   check(
     "Avatar",
-    "new consumer uses shared Slot editor",
-    await slotField.isVisible(),
-  );
-  await slotField.getByRole("button").click();
-  await page
-    .getByRole("option", { name: "Detach (slot = null)", exact: true })
-    .click();
-  await settle();
-  check(
-    "Avatar",
-    "Slot detach reaches document and Preview",
-    (await read()).find((n) => n.id === avatar.id)?.props.slot === false &&
-      (await page
-        .frameLocator("#previewFrame")
-        .locator(`[data-catalog-id="${avatar.id}"]`)
-        .getAttribute("slot")) === null,
-  );
-  await page.keyboard.press("Meta+z");
-  await settle();
-  check(
-    "Avatar",
-    "Slot Undo restores default",
-    (await read()).find((n) => n.id === avatar.id)?.props.slot !== false,
-  );
-  await page.keyboard.press("Meta+Shift+z");
-  await settle();
-  check(
-    "Avatar",
-    "Slot Redo restores detach",
-    (await read()).find((n) => n.id === avatar.id)?.props.slot === false,
+    "context inheritance is preserved without a RAC slot editor",
+    (await slotField.count()) === 0 &&
+      (await panel().getByText("RAC slot", { exact: true }).count()) === 0 &&
+      (await read()).find((n) => n.id === avatar.id)?.props.slot ===
+        avatar.props.slot,
   );
   await page.screenshot({ path: `${OUT}/avatar-slot.png` });
   await add("card");

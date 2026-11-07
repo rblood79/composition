@@ -5,6 +5,7 @@ import {
   removeTargets,
   setSlotDeclaration,
 } from "../../../../../packages/shared/src/catalog/commands";
+import { GROUP_ITEMS_WRAPPER } from "../../../../../packages/shared/src/catalog/commands/collections";
 import {
   stageOver,
   type CatalogCommand,
@@ -437,7 +438,13 @@ export function catalogSlotInsertOptions(
   // A group's slot (ButtonGroup · AvatarGroup · Nav …) takes its items, like a collection's: the
   // children judgment calls a group free content (its nesting stays open), but the list offers
   // what the group's "+" adds, not the ~70 Library origins (2026-10-22 user report).
-  const itemTypes = kind.kind === "items" ? kind.items : GROUP_ITEM_TYPES[type];
+  const wrapperGroup = Object.entries(GROUP_ITEMS_WRAPPER).find(
+    ([, wrapper]) => wrapper === type,
+  )?.[0];
+  const itemTypes =
+    kind.kind === "items"
+      ? kind.items
+      : (GROUP_ITEM_TYPES[type] ?? GROUP_ITEM_TYPES[wrapperGroup ?? ""]);
   if (itemTypes) {
     for (const itemType of itemTypes) {
       const origin = catalogTemplateItemDefinition(graph, target, itemType);

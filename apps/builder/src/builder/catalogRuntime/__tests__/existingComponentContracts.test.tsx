@@ -92,7 +92,7 @@ it.each(["Menu", "Dialog", "Popover", "Sheet"])(
   },
 );
 
-it("Sheet exposes its DOM Slot as an ordinary property", async () => {
+it("Sheet retains its DOM Slot contract without an ordinary Property editor", async () => {
   const h = await openAdr296();
   try {
     const id = h.add("Sheet");
@@ -102,7 +102,7 @@ it("Sheet exposes its DOM Slot as an ordinary property", async () => {
     });
     expect(
       contract.fields.find((field) => field.key === "slot")?.editorHidden,
-    ).toBe(false);
+    ).toBe(true);
   } finally {
     h.workspace.dispose();
   }

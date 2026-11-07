@@ -12,6 +12,7 @@ paths:
 
 # 상태 관리 규칙
 
+- 일반 Property에는 RAC context `slot` 선택·해제를 노출하지 않는다. 역할 이름·미지정·명시 해제의 문서·Code 계약과 자식 추가용 Slot은 보존한다. **Why (2026-11-07)** 모든 컴포넌트에 적용한 사용자 결정으로 공통 본문 두 경로의 RAC slot 선택창과 Sheet의 일반 필드를 숨긴다. 두 Slot 계약을 함께 지우면 Items 삽입이나 기존 역할 연결까지 사라진다 (`propertyRacSlotVisibility.test.tsx`).
 - catalog의 Slot 제공자·소비자 및 상태 수신 등록은 실제 RAC context와 함께 갱신한다. **Why (2026-11-07):** SelectBox의 ListBoxItem Text와 ActionBar의 clear Button은 실제 context가 있어도 제공자 등록 누락으로 새 자식의 Slot 편집이 숨겨졌고, 새 타입의 disabled 수신 누락은 Canvas와 DOM의 활성 상태를 갈랐다 (`s2CompositionPatterns.test.tsx`).
 - 상속·Slot은 binding, 원본의 내부 controller, Property, 실제 context 소비를 함께 검증한다. **Why (2026-11-07)** TextArea 수신 별칭과 Form size 키가 빠져 상태·크기가 상속되지 않았고, 13개 Canvas Label은 상위 required를 계산하지 않았다. Image의 별도 속성 계약과 trigger-root 원본의 Slot 전달도 일반 primitive 등록만으로 연결되지 않았다. DOM Slot 해석은 작성된 역할값과 분리한다. 역할값을 덮으면 숨겨야 할 necessity-label이 Preview에 나타난다 (`existingComponentContracts.test.tsx`).
 
@@ -153,6 +154,10 @@ paths:
 - **`callEndpoint` 는 제출 전용 실행기 (ADR-281)**: `submitApiEndpoint` → `submitCollectionEndpoint` — 요청 공유 0 (조회의 `createCollectionEndpointExecutor` 는 endpoint id 로 진행 중 요청을 공유해 둘째 body 를 버린다), 성공 = `response.ok` (204 · 빈 본문 · 비 JSON 도 성공), 실패는 Preview runtime 이 `[interactions]` 경고 + toast. body 는 `!event.formData` (form 요소 `FormData`, 같은 name 여러 값은 배열) 또는 리터럴.
 
 ## 7. Styles · Properties 패널 입력
+
+- 항목을 추가하는 원본은 자식 Slot 선언과 `GROUP_ITEM_TYPES` 또는 `COLLECTION_FAMILIES`를 함께 등록한다. 내부 묶음의 Slot 선택창은 `GROUP_ITEMS_WRAPPER`의 그룹 항목을 읽는다. **Why (2026-11-07)** SegmentedControl·SelectBoxGroup의 두 등록, Pagination·ColorSwatchPicker·ActionBar의 Slot 선언이 빠져 있었다. 전체 팔레트와 13개 그룹의 명령·Slot 계약을 대조했다.
+
+- RAC 항목의 `id`는 HTML ID와 별개로 보존하며, locale 기본 행간과 상태 부품의 시각은 공통 record 투영과 DOM 스타일에서 함께 소비한다. **Why (2026-11-07)** Slot 소유 SegmentedControlItem의 자동 HTML ID가 선택 key를 덮어 Preview에서 모두 미선택으로 보였다. CJK 행간은 CSS 기본값에 가려졌고 disabled 테두리는 증분 갱신에서 누락됐다. 초기 선택·사용자 편집·Undo와 설치 S2의 실제 출력을 대조했다.
 
 - Avatar의 숫자·`lh` 크기는 별도 scalar 값 계약으로 검증하고, `lh` 기하는 실제 상속 font·line-height와 같은 갱신 의존성을 사용한다. **Why (2026-11-07)** 상위 fontSize 20→24 편집에서 leaf를 typography 의존성에서 제외하면 Canvas 지름은 60에 남고 Preview는 72로 변했다. 상속 font의 leaf 갱신과 숫자·문자열 저장 왕복을 인접 회귀 검사로 확인했다.
 

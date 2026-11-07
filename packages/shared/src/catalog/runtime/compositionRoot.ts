@@ -80,6 +80,7 @@ import {
   catalogLinkOutPaddingRight,
 } from "../document/itemLinks";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
+import { SEGMENTED_INDICATOR_BORDER } from "../rule/segmentedControl";
 import { inlineTextContent } from "./inlineText";
 import type { ComponentRule } from "../../types/catalog-style.types";
 import { tableBinding } from "../bindings/Table.binding";
@@ -2625,6 +2626,33 @@ export class CatalogCompositionRoot {
     };
   }
 
+  private withSegmentedIndicatorBorder(
+    record: CatalogConsumerNode,
+    get: (id: string) => CatalogConsumerNode | undefined,
+  ): CatalogConsumerNode {
+    if (this.typeOf(record) === "SelectionIndicator") {
+      const owner = catalogPartParent(record, get, this.typeOf);
+      if (
+        owner &&
+        this.typeOf(owner) === "SegmentedControlItem" &&
+        !catalogHasExplicitVisual(this, record, "borderColor")
+      ) {
+        const borderColor =
+          catalogDerivedProps(owner, get, this.typeOf)?.isDisabled === true
+            ? SEGMENTED_INDICATOR_BORDER.isDisabled
+            : SEGMENTED_INDICATOR_BORDER.default;
+        const visual = { ...record.visual, borderColor };
+        copyResolvedTokenRefs(
+          visual,
+          record.visual,
+          Object.keys(record.visual).filter((key) => key !== "borderColor"),
+        );
+        record = { ...record, visual };
+      }
+    }
+    return record;
+  }
+
   /**
    * A record with its `{{ name }}` templates resolved against the variables it sees (its record
    * chain, its page, the project): `props` = values, `templateProps` = as written. The same
@@ -2635,6 +2663,7 @@ export class CatalogCompositionRoot {
     get: (id: string) => CatalogConsumerNode | undefined,
     pageId: EntryId<"page"> | undefined,
   ): CatalogConsumerNode {
+    record = this.withSegmentedIndicatorBorder(record, get);
     const typographyRule = COMPONENT_RULES_TABLE[this.typeOf(record)];
     if (typographyRule?.localeTypography) {
       const localeLine = catalogLocaleLineHeight(
@@ -6010,11 +6039,9 @@ export class CatalogCompositionRoot {
         // A dependent's presence follows the owner too (a value-conditioned part's final text —
         // Decision 7; an owner-hidden part — a NumberField's steppers under `hideStepper`): its
         // hidden is judged against the planned records, not only at its own edits.
-        const current = withHidden(
-          valued,
+        const current = this.withSegmentedIndicatorBorder(
+          withHidden(valued, get, this.typeOf, this.originBodyOpen),
           get,
-          this.typeOf,
-          this.originBodyOpen,
         );
         const derivedProps = this.derivedOf(current, get);
         const inheritedText = inheritedTextOf(

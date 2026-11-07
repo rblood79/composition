@@ -172,6 +172,7 @@ export const SELECTION_COMPOSITE_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     id: "lib:template:component-actionbar__actions",
     definitionId: "lib:definition:type-ActionButtonGroup",
+    slot: { name: "Actions", required: false },
     children: [
       "lib:template:component-actionbar__action1",
       "lib:template:component-actionbar__action2",
@@ -208,6 +209,7 @@ export const SELECTION_COMPOSITE_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     id: "lib:template:component-selectboxgroup",
     definitionId: "lib:definition:type-SelectBoxGroup",
+    slot: { name: "Items", required: false },
     children: [
       "lib:template:component-selectboxgroup__one",
       "lib:template:component-selectboxgroup__two",

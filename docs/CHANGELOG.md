@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [모든 컴포넌트의 RAC slot Property 정리] - 2026-11-07
+
+### Fixed
+
+- 공통 Property의 RAC slot 선택창을 일반 컴포넌트와 부모 텍스트에 연결된 자식에서 제거하고, Sheet의 일반 slot 필드도 숨긴다. 작성된 역할 이름·기본 context 상속·명시 해제·Code 왕복은 보존하며, Items·Actions 등 자식 추가용 Slot은 계속 제공한다.
+
+## [항목 Slot 전수 점검과 SegmentedControl S2 기본 시각 정렬] - 2026-11-07
+
+### Fixed
+
+- SelectBoxGroup의 Items, Pagination의 Buttons, ColorSwatchPicker의 Swatches, ActionBar 내부 액션 그룹의 Actions Slot을 선언한다. SelectBoxGroup의 컬렉션 추가와 ActionButtonGroup·ActionBar의 그룹 추가를 공통 명령에 연결하고, Checkbox·Radio·ActionBar의 내부 Slot 선택창도 같은 그룹 항목 목록을 사용한다.
+- SegmentedControlItem의 HTML ID와 RAC 선택 key를 분리해 Slot 소유 항목의 초기 선택 표시를 복구한다. S2 1.8.2의 루트 배경, 선택·disabled 색상과 테두리, 고정 control 높이, regular 글자, locale 행간과 focus-visible 표시를 공용 catalog에서 정렬한다. 사용자 행간·테두리 편집을 우선하며 그룹 disabled 변경과 Undo에도 갱신한다.
+
+## [SegmentedControl 항목 추가 Slot 복구] - 2026-11-07
+
+### Fixed
+
+- SegmentedControl에 Items Slot과 SegmentedControlItem 추가 계약을 등록한다. ToggleButtonGroup과 같은 Property의 Slot 선택창에서 항목을 추가하고, 공통 명령으로 Undo/Redo·기본 내용 복원·저장 재로드를 처리한다.
+
 ## [Avatar 크기 API와 S2 잔여 선택지 정렬] - 2026-11-07
 
 ### Fixed

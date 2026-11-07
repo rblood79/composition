@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import { catalogCompositionOwnsContainerBox } from "../resolvers/resolveCatalogRuleCanvasBox";
 import type { ComponentRule } from "../../types/catalog-style.types";
+import { catalogCompositionUsesVariantPaint } from "../rule/compositionPaint";
 
 /**
  * ADR-297 Phase 3 닫힘 — 칠 트리 하나를 두 consumer 가 같이 읽는다. 생성 CSS (`CSSGenerator.ts` —
@@ -25,7 +26,7 @@ describe("composition 이 상자를 가진 rule 의 variant 칠 트리", () => {
       | {
           composition?: Parameters<
             typeof catalogCompositionOwnsContainerBox
-          >[0];
+          >[0] & { rootPaint?: "variant" };
           containerStyles?: Record<string, unknown>;
         }
       | undefined;
@@ -33,6 +34,7 @@ describe("composition 이 상자를 가진 rule 의 variant 칠 트리", () => {
     // (a rule whose container declares its colors paints from them in both consumers — not this gate)
     return (
       catalogCompositionOwnsContainerBox(structure?.composition) &&
+      !catalogCompositionUsesVariantPaint(structure?.composition, true) &&
       !(container.background || container.text || container.border)
     );
   });

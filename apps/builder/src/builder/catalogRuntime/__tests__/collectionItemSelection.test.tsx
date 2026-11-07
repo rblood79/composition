@@ -6,6 +6,8 @@ import { describe, expect, it } from "vitest";
 import {
   insertNodes,
   setFields,
+  setHtmlId,
+  setSiteSettings,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -16,6 +18,7 @@ import type {
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { catalogStateValue } from "../../../../../../packages/shared/src/catalog/runtime/presence";
+import { SEGMENTED_INDICATOR_BORDER } from "../../../../../../packages/shared/src/catalog/rule/segmentedControl";
 import { renderCatalogDom } from "../domBinding";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
@@ -145,6 +148,114 @@ const selectedOf = (elements: Iterable<Element>, attribute = "aria-selected") =>
   [...elements].map((element) => element.getAttribute(attribute) === "true");
 
 describe("a collection item's Selected starts its collection's selection (Canvas = Preview)", () => {
+  it("SegmentedControl의 CJK 기본 행간과 사용자 행간이 DOM에도 반영된다", async () => {
+    const { workspace, root, items } = await open(
+      "segmentedcontrol",
+      "SegmentedControlItem",
+    );
+    let dom: Awaited<ReturnType<typeof mount>> | undefined;
+    try {
+      workspace.execute(setSiteSettings({ patch: { lang: "ko-KR" } }));
+      expect(items()[0].visual.lineHeight).toBe(1.5);
+      dom = await mount(root, "SegmentedControl");
+      expect(
+        (dom.host.querySelector('[role="radio"]') as HTMLElement).style
+          .lineHeight,
+      ).toBe("1.5");
+      await dom.close();
+      dom = undefined;
+      workspace.execute(
+        setFields({
+          targets: [workspace.positionOfRecord(items()[0].id)!.target],
+          visual: { lineHeight: set(2) },
+        }),
+      );
+      dom = await mount(root, "SegmentedControl");
+      expect(
+        (dom.host.querySelector('[role="radio"]') as HTMLElement).style
+          .lineHeight,
+      ).toBe("2");
+    } finally {
+      await dom?.close();
+      workspace.dispose();
+    }
+  });
+
+  it("SegmentedControl의 disabled 테두리와 사용자 편집은 같은 부품 정본을 따른다", async () => {
+    const { workspace, root, of } = await open(
+      "segmentedcontrol",
+      "SegmentedControlItem",
+    );
+    const indicator = () => of("SelectionIndicator")[0];
+    const group = { kind: "node" as const, id: OWNER };
+    try {
+      expect(indicator().visual.borderColor).toBe(
+        SEGMENTED_INDICATOR_BORDER.default,
+      );
+      workspace.execute(
+        setFields({ targets: [group], props: { isDisabled: set(true) } }),
+      );
+      expect(indicator().visual.borderColor).toBe(
+        SEGMENTED_INDICATOR_BORDER.isDisabled,
+      );
+      workspace.undo();
+      expect(indicator().visual.borderColor).toBe(
+        SEGMENTED_INDICATOR_BORDER.default,
+      );
+      workspace.execute(
+        setFields({
+          targets: [workspace.positionOfRecord(indicator().id)!.target],
+          visual: { borderColor: set("#123456") },
+        }),
+      );
+      workspace.execute(
+        setFields({ targets: [group], props: { isDisabled: set(true) } }),
+      );
+      expect(indicator().visual.borderColor).toBe("#123456");
+    } finally {
+      workspace.dispose();
+    }
+  });
+
+  it.each([{}, { defaultSelectedKey: "second" }])(
+    "SegmentedControl의 작성 HTML id는 RAC 선택 key를 바꾸지 않는다 (%j)",
+    async (props) => {
+      const { workspace, root, items, canvasSelected } = await open(
+        "segmentedcontrol",
+        "SegmentedControlItem",
+        props,
+      );
+      let dom: Awaited<ReturnType<typeof mount>> | undefined;
+      try {
+        for (const [index, item] of items().entries()) {
+          const target = workspace.positionOfRecord(item.id)!.target;
+          expect(target.kind).toBe("node");
+          if (target.kind === "node")
+            workspace.execute(
+              setHtmlId({ id: target.id, htmlId: `custom-segment-${index}` }),
+            );
+        }
+        const expected = props.defaultSelectedKey
+          ? [false, true]
+          : [true, false];
+        expect(canvasSelected()).toEqual(expected);
+        dom = await mount(root, "SegmentedControl");
+        expect(
+          selectedOf(
+            dom.host.querySelectorAll('[role="radio"]'),
+            "aria-checked",
+          ),
+        ).toEqual(expected);
+        expect(
+          dom.host.querySelectorAll(".react-aria-SelectionIndicator"),
+        ).toHaveLength(1);
+      } finally {
+        await dom?.close();
+        workspace.dispose();
+      }
+    },
+  );
+
   it.each([
     {
       definition: "listbox",

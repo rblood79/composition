@@ -3371,6 +3371,13 @@ function authoredStyle(
   const carriesText = CATALOG_TEXT_STYLE_CONTAINERS.has(
     catalogTypeName(root, node),
   );
+  const localeLineHeight = Number(node.visual.lineHeight);
+  if (
+    rule?.localeTypography &&
+    Number.isFinite(localeLineHeight) &&
+    localeLineHeight > 0
+  )
+    style.lineHeight = localeLineHeight;
   for (const [key, value] of Object.entries(
     noSheet ? node.visual : catalogAuthoredVisual(root, node),
   ).sort((a, b) => authoredRank(a) - authoredRank(b))) {

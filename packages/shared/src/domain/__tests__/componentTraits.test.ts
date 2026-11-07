@@ -206,6 +206,7 @@ describe("componentTraits — 파생 집합 == 옛 리터럴", () => {
         "GridListItem",
         "Breadcrumb",
         "MenuItem",
+        "SegmentedControlItem",
       ]),
     );
   });

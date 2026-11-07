@@ -4,7 +4,6 @@ import { expect, it } from "vitest";
 import { openAdr296 } from "../../../preview/catalog/__tests__/support/adr296Harness";
 import { openAdr280Preview } from "../../../preview/catalog/__tests__/support/adr280Harness";
 import { CatalogPreviewView } from "../../../preview/catalog/catalogPreviewApp";
-import { CatalogRacSlotSection } from "../../panels/properties/catalog/CatalogRacSlotSection";
 import {
   catalogEditContract,
   catalogSemanticPatchCommand,
@@ -71,10 +70,9 @@ it.each([
   ["SelectBoxGroup", "SelectBox", "Text", "ListBoxItem"],
   ["ActionBar", undefined, "ActionButton", "ActionBar"],
 ])(
-  "%s newly inserted children can choose named slots in Property",
+  "%s newly inserted children retain their named slot provider",
   async (parentType, itemType, type, provider) => {
     const h = await openAdr296();
-    let ui: ReturnType<typeof render> | undefined;
     try {
       const parent = h.add(parentType!);
       const owner = itemType ? h.add(itemType, {}, parent) : parent;
@@ -83,18 +81,10 @@ it.each([
         (node) =>
           node.sourceId === id && h.workspace.root.typeOf(node) === type,
       )!;
-      ui = render(
-        createElement(CatalogRacSlotSection, {
-          identity: record.id,
-          workspace: h.workspace,
-          root: h.workspace.root,
-        }),
-      );
-      expect(
-        ui.getByRole("group", { name: `Slot of ${provider}` }),
-      ).toBeTruthy();
+      expect(record).toBeTruthy();
+      const ancestors = itemType ? [itemType, parentType!] : [parentType!];
+      expect(catalogRacSlotProvider(type!, ancestors)?.provider).toBe(provider);
     } finally {
-      ui?.unmount();
       h.workspace.dispose();
     }
   },
@@ -250,7 +240,7 @@ it.each([
   ["ActionBar", "ActionButton", "clear"],
   ["SelectBoxGroup", "Text", "label"],
 ])(
-  "%s default child Slot detach supports the real panel command and Undo/Redo",
+  "%s default child Slot detach supports the semantic command and Undo/Redo",
   async (type, childType, slot) => {
     const h = await openAdr296();
     try {
@@ -280,7 +270,7 @@ it.each([
   },
 );
 
-it("a default bound SelectBox Text keeps its Slot editor in the full Property body", async () => {
+it("a default bound SelectBox Text keeps its role without a RAC slot editor in Property", async () => {
   const h = await openAdr296();
   let ui: ReturnType<typeof render> | undefined;
   try {
@@ -317,7 +307,9 @@ it("a default bound SelectBox Text keeps its Slot editor in the full Property bo
     ui = render(
       createElement(I18nProvider, { initialLocale: "en-US", children: body }),
     );
-    expect(ui.getByRole("group", { name: "Slot of ListBoxItem" })).toBeTruthy();
+    expect(ui.queryByRole("group", { name: "Slot of ListBoxItem" })).toBeNull();
+    expect(ui.queryByText("RAC slot")).toBeNull();
+    expect(root.domInputs.get(record.id)?.props.slot).toBe("label");
   } finally {
     ui?.unmount();
     h.workspace.dispose();

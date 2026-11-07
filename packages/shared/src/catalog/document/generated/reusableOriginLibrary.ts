@@ -3403,6 +3403,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-pagination",
     "definitionId": "lib:definition:type-Pagination",
+    "slot": { "name": "Buttons", "required": false },
     "children": [
       "lib:template:component-pagination__1",
       "lib:template:component-pagination__2",
@@ -7616,6 +7617,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-colorswatchpicker",
     "definitionId": "lib:definition:type-ColorSwatchPicker",
+    "slot": { "name": "Swatches", "required": false },
     "children": [
       "lib:template:component-colorswatchpicker__1",
       "lib:template:component-colorswatchpicker__2",

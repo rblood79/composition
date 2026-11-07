@@ -151,6 +151,7 @@ export const SegmentedControlItem = forwardRef<
       {...props}
       ref={ref}
       className={props.className ?? "react-aria-SegmentedControlItem"}
+      data-variant="default"
     >
       {props.children ??
         rangeSegmentsDefaultChildren(

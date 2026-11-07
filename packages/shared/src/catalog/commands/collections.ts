@@ -63,6 +63,7 @@ interface CollectionFamily {
 export const COLLECTION_FAMILIES: readonly CollectionFamily[] = [
   { owner: "Tabs", list: "TabList", item: "Tab", panels: true },
   { owner: "TagGroup", list: "TagList", item: "Tag" },
+  { owner: "SelectBoxGroup", list: null, item: "SelectBox" },
   {
     owner: "ListBox",
     list: null,
@@ -94,6 +95,9 @@ export const GROUP_ITEM_TYPES: Readonly<Record<string, readonly string[]>> = {
   CheckboxGroup: ["Checkbox"],
   RadioGroup: ["Radio"],
   ToggleButtonGroup: ["ToggleButton"],
+  SegmentedControl: ["SegmentedControlItem"],
+  ActionButtonGroup: ["ActionButton"],
+  ActionBar: ["ActionButton"],
   Accordion: ["Disclosure"],
   ButtonGroup: ["Button"],
   Pagination: ["Button"],
@@ -110,6 +114,7 @@ export const GROUP_ITEM_TYPES: Readonly<Record<string, readonly string[]>> = {
 export const GROUP_ITEMS_WRAPPER: Readonly<Record<string, string>> = {
   CheckboxGroup: "CheckboxItems",
   RadioGroup: "RadioItems",
+  ActionBar: "ActionButtonGroup",
 };
 
 // ── Positions ─────────────────────────────────────────────────────────────

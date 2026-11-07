@@ -67,6 +67,16 @@ const sizes = (
 ): IntentionalLiteral => ({ component, key, values, reason });
 
 export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
+  sizes(
+    "SegmentedControlItem",
+    "lineHeight",
+    {
+      "localeTypography.ja": 1.5,
+      "localeTypography.ko": 1.5,
+      "localeTypography.zh": 1.5,
+    },
+    "S2 1.8.2 controlFont의 CJK 행간은 크기·서체와 무관한 단위 없는 1.5 비율이다",
+  ),
   ...[
     "ColorField",
     "ComboBox",
@@ -528,10 +538,7 @@ describe("ADR-297 G3 — 상태 스타일 = 조건 트리 (3b)", () => {
       for (const [template, trees] of Object.entries(
         rule.partStateStyles ?? {},
       )) {
-        if (
-          template.split("&").length !== 2 ||
-          template.split("%").length > 2
-        )
+        if (template.split("&").length !== 2 || template.split("%").length > 2)
           badTemplates.push(`${type}: ${template}`);
         for (const tree of Object.values(trees))
           for (const key of conditionTreeKeys(tree)) keys.add(key);
@@ -565,8 +572,7 @@ describe("ADR-297 G3 (e) — & 자신의 상태 분기 = 상태 트리 (3c)", ()
     for (const [type, rule] of Object.entries(COMPONENT_RULES_TABLE)) {
       const selectors = (
         rule.structure?.composition as
-          | { rootSelectors?: Record<string, { styles?: object }> }
-          | undefined
+          { rootSelectors?: Record<string, { styles?: object }> } | undefined
       )?.rootSelectors;
       for (const [key, entry] of Object.entries(selectors ?? {})) {
         if (key === "&" || !key.startsWith("&")) continue;
