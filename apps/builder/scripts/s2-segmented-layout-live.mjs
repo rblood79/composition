@@ -88,7 +88,8 @@ async function sample() {
               .filter(
                 (node) =>
                   root.typeOf(node) === "Text" &&
-                  root.canvasInputs.get(node.parentId)?.parentId === n.id,
+                  (node.parentId === n.id ||
+                    root.canvasInputs.get(node.parentId)?.parentId === n.id),
               )
               .map((node) => {
                 const element = doc.querySelector(
@@ -160,6 +161,14 @@ function checkTruncation(name, value) {
     !short.needsEllipsis && short.scrollWidth <= short.clientWidth,
     short,
   );
+  if (type !== "SegmentedControl")
+    check(
+      `${name} preserves single-line button heights`,
+      value.items.every(
+        (item) => item.canvas.height === 32 && item.dom.height === 32,
+      ),
+      value,
+    );
 }
 async function screenshot(name) {
   await page.bringToFront();
@@ -285,7 +294,13 @@ try {
     await settle();
     value = await sample();
     checkTruncation("Long Korean and English label truncates", value);
+    checkWidths("Long label Justified", value);
     await screenshot("long-label");
+    await label.fill("아주긴한글레이블LongUnbreakableLabelThatMustTruncate");
+    await label.press("Tab");
+    await settle();
+    value = await sample();
+    checkTruncation("Unbreakable label truncates", value);
     await selectRecord(value.group.id);
     await panel().getByRole("tab", { name: "Layout", exact: true }).click();
     const narrow = panel().getByRole("combobox", {

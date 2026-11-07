@@ -14,6 +14,8 @@ paths:
 
 # Canvas 렌더링 규칙
 
+- DOM 콘텐츠 래퍼를 Canvas 레이아웃 part로 표현하면 최소 폭도 같은 catalog selector에서 읽는다. **Why (2026-11-08)** ToggleButtonGroup Justified의 버튼은 106px이었지만 Canvas 내부 Text는 308px로 남았다. 공용 truncate와 래퍼 최소 폭을 반영해 긴 Label을 가용 82px 안에 배치한다.
+
 - Preview 전역 reset의 font smoothing은 실제 Publish stylesheet와 같은 값을 상속한다. **Why (2026-11-07):** Preview만 `auto`, Publish는 `antialiased`여서 같은 400 굵기의 Label 획 농도가 갈렸다. Chromium 실측 회귀로 두 경로를 대조하며, 설정 정렬 뒤에도 남는 Canvas raster 실패는 별도로 유지한다.
 
 - inline fragment의 baseline과 폭은 엔진 출력에서 paint까지 보존한다. CSS line-box 메트릭은 같은 typography의 실제 측정값을 캐시하며, 메트릭 없는 측정기의 firstBaseline을 임의 비율로 덮지 않는다. **Why (2026-11-07):** CJK 14px/21px Label의 DOM baseline은 16.5px인데 정수 추정은 17px이었다. 실제 측정 전달로 TextField 픽셀 차이가 2475→1254로 줄었다. 화면은 Skia 직접 렌더를 유지하며 전체 raster gate는 아직 FAIL이다.

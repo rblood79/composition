@@ -3744,6 +3744,7 @@ export class CatalogCompositionRoot {
         wraps: [...record.children],
         style: {
           display: box.display,
+          minWidth: span?.["min-width"] ?? "auto",
           alignItems: span?.["align-items"] ?? "center",
           justifyContent: span?.["justify-content"] ?? "center",
           rowGap: span?.gap === "inherit" ? gap : (span?.gap ?? "0px"),

@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ToggleButtonGroup Justified · 긴 Label] - 2026-11-08
+
+### Fixed
+
+- ToggleButton · ActionButton의 Label에 S2 기본 한 줄 말줄임과 크기별 최소 폭을 적용한다. Justified에서 긴 Label이 여러 줄로 늘어나던 높이를 유지하며, ToggleButtonGroup 내부 콘텐츠 래퍼의 최소 폭도 Canvas · Preview가 같은 catalog 규칙으로 읽는다. 작성한 Text 스타일과 Undo를 보존한다.
+
 ## [SelectBox 구조 · 배치 · 글자 — S2 SelectBox] - 2026-11-08
 
 ### Changed

@@ -1021,6 +1021,15 @@ const ACTION_FOCUS_RING_STATE = {
 };
 const ACTION_GROUP_BUTTON_COMPOSITION = {
   delegation: [],
+  // S2 ActionButton / ToggleButton TextContext의 truncate 기본값.
+  staticSelectors: {
+    ".react-aria-Text": {
+      "min-width": "0px",
+      "white-space": "nowrap",
+      "text-overflow": "ellipsis",
+      overflow: "hidden",
+    },
+  },
   rootSelectors: {
     "&[data-in-group]": { styles: { "flex-shrink": "0" } },
     "&[data-justified]": {
@@ -1077,6 +1086,7 @@ const ACTION_BUTTON_SIZES = Object.fromEntries(
     size,
     {
       ...rule,
+      minWidth: rule.minHeight,
       borderRadius: size === "XS" ? 6 : rule.borderRadius,
       borderWidth: 0,
       paddingY: rule.paddingY + 1,
@@ -15681,6 +15691,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           ".react-aria-ToggleButton > span": {
             display: "inherit",
+            "min-width": "0px",
             "align-items": "center",
             "justify-content": "center",
             gap: "inherit",

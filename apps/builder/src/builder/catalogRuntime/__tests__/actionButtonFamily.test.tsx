@@ -98,6 +98,70 @@ async function open(type = "ActionButtonGroup") {
   return { workspace, root, of, write, box, group, paint, library, storage };
 }
 
+it.each(["ActionButtonGroup", "ToggleButtonGroup"])(
+  "%s: Justified는 긴 Label을 같은 폭 안에서 한 줄로 줄이고 작성 스타일을 보존한다",
+  async (type) => {
+    const h = await open(type);
+    const host = document.body.appendChild(document.createElement("div"));
+    const reactRoot = createRoot(host);
+    let canvas: ReturnType<typeof bindCatalogCanvas> | undefined;
+    try {
+      const itemType =
+        type === "ToggleButtonGroup" ? "ToggleButton" : "ActionButton";
+      const item = h.of(itemType)[0]!;
+      h.write(item.id, {
+        label: "아주긴한글레이블LongUnbreakableLabelThatMustTruncate",
+      });
+      h.write(h.group().id, { isJustified: true });
+      h.workspace.execute(
+        setFields({
+          targets: [h.workspace.positionOfRecord(h.group().id)!.target],
+          sizing: { width: { kind: "set", value: 220 } },
+        }),
+      );
+      const label = () =>
+        h.of("Text").find((node) => node.parentId === item.id)!;
+      expect(label().visual).toMatchObject({
+        minWidth: 0,
+        whiteSpace: "nowrap",
+        textOverflow: "ellipsis",
+        overflow: "hidden",
+      });
+      const boxes = h.of(itemType).map((node) => h.box(node.id));
+      expect(boxes.map((box) => box.width)).toEqual([106, 106]);
+      expect(boxes.map((box) => box.height)).toEqual([32, 32]);
+      expect(h.box(label().id).width).toBeLessThanOrEqual(82);
+      canvas = bindCatalogCanvas(h.root, h.root.pageRootRecords());
+      expect(getSkiaNode(label().id)?.text).toMatchObject({
+        whiteSpace: "nowrap",
+        textOverflow: "ellipsis",
+        clipText: true,
+      });
+      await act(async () =>
+        reactRoot.render(renderCatalogDom(h.root, h.group().id)),
+      );
+      const text = host.querySelector<HTMLElement>(
+        `[data-catalog-id="${label().id}"]`,
+      )!;
+      expect(text.style.textOverflow).toBe("ellipsis");
+      h.workspace.execute(
+        setFields({
+          targets: [h.workspace.positionOfRecord(label().id)!.target],
+          visual: { textOverflow: { kind: "set", value: "clip" } },
+        }),
+      );
+      expect(label().visual.textOverflow).toBe("clip");
+      h.workspace.undo();
+      expect(label().visual.textOverflow).toBe("ellipsis");
+    } finally {
+      canvas?.dispose();
+      await act(async () => reactRoot.unmount());
+      host.remove();
+      h.workspace.dispose();
+    }
+  },
+);
+
 describe("ActionButton family catalog consumers", () => {
   it("propagates group size and spacing on initial load, edits, Undo and reload", async () => {
     const h = await open();

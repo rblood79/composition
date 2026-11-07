@@ -38,6 +38,7 @@
   line-height: var(--catalog-token-text-sm--line-height);
   font-weight: 500;
   border-width: 0px;
+  min-width: var(--catalog-token-size-height-M);
   min-height: var(--catalog-token-size-height-M);
   gap: var(--catalog-token-toggle-button-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-toggle-button-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
@@ -294,6 +295,7 @@
   line-height: var(--catalog-token-text-2xs--line-height);
   font-weight: 500;
   border-width: 0px;
+  min-width: var(--catalog-token-size-height-XS);
   min-height: var(--catalog-token-size-height-XS);
   gap: var(--catalog-token-toggle-button-gap-XS, calc(var(--catalog-token-text-2xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-toggle-button-icon-size-XS, calc(var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height)));
@@ -306,6 +308,7 @@
   line-height: var(--catalog-token-text-xs--line-height);
   font-weight: 500;
   border-width: 0px;
+  min-width: var(--catalog-token-size-height-S);
   min-height: var(--catalog-token-size-height-S);
   gap: var(--catalog-token-toggle-button-gap-S, calc(var(--catalog-token-text-xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-toggle-button-icon-size-S, calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)));
@@ -318,6 +321,7 @@
   line-height: var(--catalog-token-text-sm--line-height);
   font-weight: 500;
   border-width: 0px;
+  min-width: var(--catalog-token-size-height-M);
   min-height: var(--catalog-token-size-height-M);
   gap: var(--catalog-token-toggle-button-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-toggle-button-icon-size-M, calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)));
@@ -330,6 +334,7 @@
   line-height: var(--catalog-token-text-base--line-height);
   font-weight: 500;
   border-width: 0px;
+  min-width: var(--catalog-token-size-height-L);
   min-height: var(--catalog-token-size-height-L);
   gap: var(--catalog-token-toggle-button-gap-L, calc(var(--catalog-token-text-base) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-toggle-button-icon-size-L, calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)));
@@ -342,6 +347,7 @@
   line-height: var(--catalog-token-text-lg--line-height);
   font-weight: 500;
   border-width: 0px;
+  min-width: var(--catalog-token-size-height-XL);
   min-height: var(--catalog-token-size-height-XL);
   gap: var(--catalog-token-toggle-button-gap-XL, calc(var(--catalog-token-text-lg) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
   --icon-size: var(--catalog-token-toggle-button-icon-size-XL, calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)));
@@ -387,6 +393,14 @@
     transition-duration: 0s !important;
   }
 }
+
+  .react-aria-ToggleButton .react-aria-Text {
+    min-width: 0px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+
 
   .react-aria-ToggleButton[data-in-group] {
     flex-shrink: 0;
