@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [SelectBox 구조 · 배치 · 글자 — S2 SelectBox] - 2026-11-08
+
+### Changed
+
+- SelectBox 원본이 S2 처럼 Checkbox · Icon · Text (label) · Text (description) 를 직접 담는다 — label · description 을 감싸던 frame 을 없앴다 (ListBoxItem 과 같은 구조).
+- 가로형 SelectBox 가 S2 grid 다 (`min-content 10px 1fr` · 행 `23 2 23`): 그림이 첫 열에서 두 행에 걸치고, label (굵게 · 시작 정렬) 과 description 이 마지막 열에서 각 행 가운데. 세로형 label 은 가운데, 가로형은 시작 정렬 — rule 의 방향 블록이 정하고 Canvas 는 SelectBoxGroup 의 part rule (`via: SelectBox`) 로 같은 값을 읽는다.
+  - 행 최소 23 = (48 − 2) / 2: S2 행은 `min-content` 이지만, 두 행에 걸친 48 그림의 높이를 Canvas 엔진이 행에 나누지 않아 브라우저가 내는 값을 적었다.
+
+### Fixed
+
+- SelectBox 의 label · description 글자가 S2 `font: ui` (14 / 18) 다. 종전에는 Text rule 기본값 16 / 20 이었다 (Canvas · Preview 공통 — Tab · Tag 와 같은 `itemLabelFontParts` · 생성 CSS `inherit`).
+
 ## [컬렉션 항목 복제 · 붙여넣기 key 중복 — Duplicate key] - 2026-11-08
 
 ### Fixed

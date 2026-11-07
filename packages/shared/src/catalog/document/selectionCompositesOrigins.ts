@@ -245,28 +245,17 @@ export const SELECTION_COMPOSITE_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     id: "lib:template:component-selectbox",
     definitionId: "lib:definition:type-SelectBox",
+    // S2 `SelectBox`: the illustration, label and description are the item's own children (its grid
+    // places them — the rule's orientation blocks), as a ListBoxItem's label and description are; no
+    // wrapper frame (2026-11-08 사용자 「frame 으로 wrap 할 필요가 없다」).
     children: [
       "lib:template:component-selectbox__selection",
       "lib:template:component-selectbox__icon",
-      "lib:template:component-selectbox__content",
-    ],
-    props: {},
-    visual: {},
-  },
-  {
-    id: "lib:template:component-selectbox__content",
-    definitionId: "lib:definition:type-frame",
-    children: [
       "lib:template:component-selectbox__label",
       "lib:template:component-selectbox__description",
     ],
     props: {},
     visual: {},
-    layout: {
-      display: "flex",
-      flexDirection: "column",
-      rowGap: "2px",
-    },
   },
   {
     id: "lib:template:component-selectbox__selection",
@@ -306,8 +295,8 @@ export const SELECTION_COMPOSITE_TEMPLATES: readonly LibraryTemplateNode[] = [
       slot: "label",
       children: "{label}",
     },
+    // (Its alignment is the rule's per orientation — S2 `labelText` center · horizontal start.)
     visual: {
-      textAlign: "center",
       whiteSpace: "nowrap",
     },
   },
@@ -319,9 +308,7 @@ export const SELECTION_COMPOSITE_TEMPLATES: readonly LibraryTemplateNode[] = [
       slot: "description",
       children: "{description}",
     },
-    visual: {
-      textAlign: "left",
-    },
+    visual: {},
   },
   {
     id: "lib:template:component-actionbutton",

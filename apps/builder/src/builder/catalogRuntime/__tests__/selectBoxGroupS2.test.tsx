@@ -141,6 +141,75 @@ describe("SelectBoxGroup — S2 grid and box elevation", () => {
     expect(await scene.domGroup()).toBe("horizontal");
   });
 
+  it("a box holds its selection, illustration, label and description — no wrapper frame", async () => {
+    const scene = await open();
+    const box = scene.ofType("SelectBox")[0];
+    const children = box.children.map((id) => {
+      const child = scene.workspace.root.canvasInputs.get(id)!;
+      return [scene.workspace.root.typeOf(child), child.props.slot];
+    });
+    expect(children).toEqual([
+      ["Checkbox", "selection"],
+      ["Icon", "illustration"],
+      ["Text", "label"],
+      ["Text", "description"],
+    ]);
+    // The label and description take the item's S2 `font: ui` (14 / 18), not the Text rule's 16 / 20.
+    expect(
+      scene.workspace.root.canvasInputs.get(box.children[2])!.visual.textAlign,
+    ).toBe("center");
+    for (const id of box.children.slice(2)) {
+      const text = scene.workspace.root.canvasInputs.get(id)!;
+      expect(text.visual.fontSize).toBe(14);
+      expect(Number(text.visual.lineHeight) * 14).toBeCloseTo(18);
+    }
+  });
+
+  it("horizontal: the S2 grid — illustration across the rows, label over description beside it", async () => {
+    const scene = await open();
+    scene.workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: GROUP }],
+        props: { orientation: { kind: "set", value: "horizontal" } },
+      }),
+    );
+    const box = scene.ofType("SelectBox")[0];
+    const part = (slot: string) => {
+      const id = box.children.find(
+        (child) =>
+          scene.workspace.root.canvasInputs.get(child)!.props.slot === slot,
+      )!;
+      return scene.rect(id);
+    };
+    const icon = part("illustration");
+    const label = part("label");
+    const description = part("description");
+    // (Parts are placed in the box.) Padding start 32 + border 2; the 10px gutter; the label's
+    // row, a 2px row, the description's.
+    expect(icon.x).toBe(34);
+    expect(label.x).toBe(icon.x + icon.width + 10);
+    expect(description.x).toBe(label.x);
+    // The label starts its column (S2 horizontal `textAlign: start`), not centred as in a card.
+    const textOf = (slot: string) =>
+      scene.workspace.root.canvasInputs.get(
+        box.children.find(
+          (child) =>
+            scene.workspace.root.canvasInputs.get(child)!.props.slot === slot,
+        )!,
+      )!;
+    expect(textOf("label").visual).toMatchObject({
+      textAlign: "start",
+      fontWeight: 700,
+    });
+    expect(textOf("description").visual.textAlign).toBe("start");
+    // The 48 illustration spans the rows (each 23 — the browser's share of it, the rows' floor):
+    // it starts at the content top; each text line is centred in its row.
+    expect(icon.y).toBe(18);
+    expect(scene.rect(box.id).height).toBe(18 + 48 + 18);
+    expect(label.y + label.height / 2).toBe(18 + 23 / 2);
+    expect(description.y + description.height / 2).toBe(18 + 23 + 2 + 23 / 2);
+  });
+
   it("the Canvas draws the state-tree elevation: elevated selected, emphasized at rest", async () => {
     const scene = await open();
     // (The origin's first box is selected — S2 `elevated` 0 4px; the second `emphasized` 0 2px.)

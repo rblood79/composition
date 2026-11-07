@@ -96,6 +96,10 @@
   justify-content: center;
 }
 
+.react-aria-SelectBox[data-orientation="vertical"] > [slot="label"] {
+  text-align: center;
+}
+
 .react-aria-SelectBox[data-orientation="horizontal"] {
   width: 368px;
   height: auto;
@@ -107,9 +111,34 @@
   padding-bottom: 16px;
   padding-left: 32px;
   padding-right: 24px;
-  flex-direction: row;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: min-content 10px minmax(0, 1fr);
+  grid-template-rows: minmax(23px, auto) 2px minmax(23px, auto);
+  gap: 0px;
   justify-content: flex-start;
+}
+
+.react-aria-SelectBox[data-orientation="horizontal"] > [slot="illustration"] {
+  grid-column: 1;
+  grid-row: 1 / 4;
+  align-self: center;
+  justify-self: center;
+}
+
+.react-aria-SelectBox[data-orientation="horizontal"] > [slot="label"] {
+  grid-column: 3;
+  grid-row: 1;
+  align-self: center;
+  justify-self: start;
+  text-align: start;
+  font-weight: 700;
+}
+
+.react-aria-SelectBox[data-orientation="horizontal"] > [slot="description"] {
+  grid-column: 3;
+  grid-row: 3;
+  align-self: center;
+  text-align: start;
 }
 
 
@@ -120,13 +149,13 @@
 }
 
 
-  .react-aria-SelectBox[data-orientation="vertical"] [slot="description"] {
-    display: none;
+  .react-aria-SelectBox > .react-aria-Text.react-aria-Text {
+    font-size: inherit;
+    line-height: inherit;
   }
 
-  .react-aria-SelectBox[data-orientation="horizontal"] [slot="label"] {
-    text-align: start;
-    font-weight: 700;
+  .react-aria-SelectBox[data-orientation="vertical"] [slot="description"] {
+    display: none;
   }
 
   .react-aria-SelectBox[data-disabled] [slot="selection"] {

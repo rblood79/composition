@@ -2173,15 +2173,53 @@ function overlayExternalPartRules(parentType: string): CompiledPartRule[] {
   return out;
 }
 
+/** A SelectBox's own children by RAC slot (S2 `IllustrationContext` · `TextContext` slots). */
+const SELECT_BOX_SLOT_TYPES: Readonly<Record<string, string>> = {
+  illustration: "Icon",
+  label: "Text",
+  description: "Text",
+};
+
+/**
+ * The SelectBox's orientation blocks — the group's `orientation` (S2 `SelectBoxContext`): the box
+ * itself, and through it (`via`) its slotted children's grid places (`nested` `> [slot="…"]`).
+ */
 function selectBoxPartRules(parentType: string): CompiledPartRule[] {
   if (parentType !== "SelectBoxGroup") return [];
   const variants = containerVariantsOf(COMPONENT_RULES_TABLE.SelectBox);
-  return Object.entries(variants?.orientation ?? {}).map(
-    ([orientation, block]) => ({
-      childType: "SelectBox",
-      ownerProps: { orientation },
-      ...compileDeclarations("SelectBox", block.styles ?? {}, {}, undefined),
-    }),
+  return Object.entries(variants?.orientation ?? {}).flatMap(
+    ([orientation, block]): CompiledPartRule[] => [
+      {
+        childType: "SelectBox",
+        ownerProps: { orientation },
+        ...compileDeclarations("SelectBox", block.styles ?? {}, {}, undefined),
+      },
+      ...(block.nested ?? []).flatMap((entry): CompiledPartRule[] => {
+        const slot = /^>\s*\[slot="([\w-]+)"\]$/.exec(
+          entry.selector.trim(),
+        )?.[1];
+        const childType = slot ? SELECT_BOX_SLOT_TYPES[slot] : undefined;
+        if (!slot || !childType) return [];
+        const compiled = compileDeclarations(
+          childType,
+          entry.styles ?? {},
+          {},
+          undefined,
+        );
+        const align = entry.styles?.["text-align"];
+        if (align && /^(left|center|right|start|end)$/.test(align))
+          compiled.visual.textAlign = align;
+        return [
+          {
+            childType,
+            via: "SelectBox",
+            childProps: { slot },
+            ownerProps: { orientation },
+            ...compiled,
+          },
+        ];
+      }),
+    ],
   );
 }
 

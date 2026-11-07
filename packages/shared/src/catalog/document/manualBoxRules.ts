@@ -948,6 +948,10 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
       "SwitchButton",
     ),
   }),
+  // S2 `SelectBox` sets the item's `font: ui` and its label · description inherit it (`TextContext`
+  // gives them no font) — the item's size font, not the Text rule's (2026-11-08 사용자 「label 의
+  // font-size 도 레퍼런스와 같이」). The DOM side is the rule's `> .react-aria-Text` inherit block.
+  SelectBox: () => ({ parts: itemLabelFontParts("SelectBox") }),
   SegmentedControlItem: () => ({
     parts: [
       {

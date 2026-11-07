@@ -166,7 +166,19 @@ export const SELECT_BOX_RULE: ComponentRule = {
               "flex-direction": "column",
               "justify-content": "center",
             },
+            nested: [
+              {
+                selector: '> [slot="label"]',
+                styles: { "text-align": "center" },
+              },
+            ],
           },
+          // S2 `selectBoxStyles` horizontal: a grid — the illustration in the first column across the
+          // rows, a 10px gutter, the label over the description (a 2px row between) in the last, each
+          // centred in its row (`labelText` · `descriptionText` `alignSelf: center`). S2's rows are
+          // `min-content 2 min-content`; the 48 illustration (`minSize: 48`) spanning them makes the
+          // browser give each text row (48 − 2) / 2 = 23 — written here as the rows' floor, which the
+          // Canvas engine does not derive from a spanning item.
           horizontal: {
             styles: {
               width: "368px",
@@ -179,19 +191,53 @@ export const SELECT_BOX_RULE: ComponentRule = {
               "padding-bottom": "16px",
               "padding-left": "32px",
               "padding-right": "24px",
-              "flex-direction": "row",
-              gap: "10px",
+              display: "grid",
+              "grid-template-columns": "min-content 10px minmax(0, 1fr)",
+              "grid-template-rows": "minmax(23px, auto) 2px minmax(23px, auto)",
+              gap: "0px",
               "justify-content": "flex-start",
             },
+            nested: [
+              {
+                selector: '> [slot="illustration"]',
+                styles: {
+                  "grid-column": "1",
+                  "grid-row": "1 / 4",
+                  "align-self": "center",
+                  "justify-self": "center",
+                },
+              },
+              {
+                selector: '> [slot="label"]',
+                styles: {
+                  "grid-column": "3",
+                  "grid-row": "1",
+                  "align-self": "center",
+                  "justify-self": "start",
+                  "text-align": "start",
+                  "font-weight": "700",
+                },
+              },
+              {
+                selector: '> [slot="description"]',
+                styles: {
+                  "grid-column": "3",
+                  "grid-row": "3",
+                  "align-self": "center",
+                  "text-align": "start",
+                },
+              },
+            ],
           },
         },
       },
       rootSelectors: {
+        // S2: the label and description inherit the item's `font: ui` (not the Text rule's size).
+        "& > .react-aria-Text.react-aria-Text": {
+          styles: { "font-size": "inherit", "line-height": "inherit" },
+        },
         '&[data-orientation="vertical"] [slot="description"]': {
           styles: { display: "none" },
-        },
-        '&[data-orientation="horizontal"] [slot="label"]': {
-          styles: { "text-align": "start", "font-weight": "700" },
         },
         '&[data-disabled] [slot="selection"]': { styles: { display: "none" } },
       },
