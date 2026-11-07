@@ -36,7 +36,7 @@
     "evidenceDirectory": ".agent/runs/2026-10-21-canvas-performance-check"
   },
   "goal": "코드 보기 Library 오버레이 instance 수리 (B) + ADR-301 설계 (A, Proposed)",
-  "phase": "adr301_review_r1_fixes_in_docs_uncommitted",
+  "phase": "adr301_review_closed_proposed_awaiting_execute_request",
   "next": [
     "[x] B: generate.ts originTag (팔레트 type 태그) · overrides.ts codeViewSlotKey (선언 slot 이름) · 역방향 codeViewAddressOf 슬롯 이름 우선",
     "[x] adr296LibraryOverlay.test.tsx 7 — RED 7 → GREEN 7 (HEAD worktree) · 회귀 builder codeView 31 파일 319 PASS · shared codeView 320 PASS · type-check shared · builder PASS (worktree)",
@@ -44,11 +44,14 @@
     "[x] live 5176 (worktree 서버): 새 프로젝트 → popover → Code 패널 <Popover> · <Slot name=\"content\"> · RAC import",
     "[x] ADR-301 범위 개정 (사용자 결정: trigger 조립형 6 가족만 펼침 · Library 파일 유지 · catalog CSS 제거 · 닫힌 본체 fold) — 문서 3 파일 미커밋",
     "[x] 리뷰 round 1 수리 — h1 hiddenPositions 정규화 · h2 유효 값 층 쓰기 · m3 className = 자리 class (문서만, 미커밋)",
-    "[ ] 수리 검증 round (reviews/301.md h1 · h2 · m3 outcome 은 그때 갱신) → 문서 커밋 · /execute-adr 301 은 사용자 요청 때"
+    "[x] 수리 검증 round 2 (codex, HIGH 0 · pending 0) — 문서는 415439fe1 에 포함 · LOW l4 (breakdown §2b 경로표 3행) 2026-11-06 정정 · reviews/301.md 종결 선언. /execute-adr 301 은 사용자 요청 때",
+    "[x] 헤더 저장 상태: 글자 → 아이콘 + 우측상단 dot (SaveStatusButton) — 미커밋, live 5174 확인",
+    "[x] placeholder CSS/Canvas: rule 글자 서체 상속 + Input fontWeight 400 + 날짜 조각 측정·서체 요청 (main 작업 트리 반영, 미커밋). 남은 것: 기본 한글 서체 입력칸 폭 +4% · Select 세로 +2px · 날짜 x 약 1px",
+    "[x] 기본 서체 Pretendard + Canvas/CSS 대체 서체 통일 + Publish 로드 (main 작업 트리 반영, 미커밋). live: 기본·Theme Inter·영문·Publish 탭"
   ],
   "guard": "다른 세션 dirty 변경 보존 (pathspec 커밋) · 사용자 5173 서버 건드리지 않음 (live 는 5174+) · 마이그레이션 코드 0 · 커밋/push 는 사용자 요청 때만",
   "stop": "type-check 실패 커밋 금지",
-  "updatedAt": "2026-11-05T04:13:50.981040+00:00",
+  "updatedAt": "2026-11-06T11:40:41.078917+00:00",
   "componentEmptyDoubleClick": {
     "task": "Body 선택 후 컴포넌트 빈 영역 더블클릭 선택 수리",
     "phase": "verified",
@@ -2643,29 +2646,6 @@
     "commit": "71922bd0f150beab4bbb0eef3a2b4f7a55b53d15",
     "remoteVerifiedSha": "71922bd0f150beab4bbb0eef3a2b4f7a55b53d15"
   },
-  "reviewAdr301": {
-    "task": "ADR-301 설계 수리 검증",
-    "phase": "repair_review_recorded",
-    "scope": "round 1의 h1/h2/m3 설계 수리와 현재 코드 정적 대조",
-    "head": "a64bd530d",
-    "status": "design_review_complete_high_0_pending_0",
-    "findings": {
-      "HIGH": 0,
-      "MEDIUM": 0,
-      "pending": 0,
-      "fixed": [
-        "h1",
-        "h2",
-        "m3"
-      ],
-      "LOW_deferred": [
-        "l4 breakdown 경로표 요약 갱신"
-      ]
-    },
-    "unverified": "제품 구현, 실행 RED/GREEN, Builder/Preview live, G0~G5, 번들 및 생성 시간",
-    "reviewLog": "docs/adr/reviews/301.md",
-    "evidenceDirectory": ".agent/runs/2026-11-05-review-adr301"
-  },
   "popoverS2": {
     "phase": "completed-with-validation-limits",
     "scope": "Popover S2 표면 및 Menu/Popover 내부 ListBox hover-focus 색상",
@@ -3052,5 +3032,1591 @@
       ".claude/rules/canvas-interaction.md",
       "docs/CHANGELOG.md"
     ]
+  },
+  "s2182Baseline": {
+    "phase": "static_baseline_and_acceptance_recorded",
+    "scope": "S2 1.8.2 컴포넌트별 차이표와 완료 조건; 제품 수정 없음",
+    "head": "87ef915082925eb3fa5a2f4d286e6481f3806059",
+    "evidenceDirectory": ".agent/runs/2026-11-06-s2-182-baseline",
+    "updatedAt": "2026-11-05T17:47:42.586187+00:00",
+    "status": "analysis_complete_with_explicit_unverified",
+    "report": ".agent/runs/2026-11-06-s2-182-baseline/report.txt",
+    "matrix": ".agent/runs/2026-11-06-s2-182-baseline/component-matrix.tsv",
+    "validation": {
+      "exports": 138,
+      "propRows": 3465,
+      "tests": "414 PASS / 8 FAIL (422 unique baseline tests)",
+      "diagnostic": "42 PASS / 3 FAIL; 4 fixture failures isolated",
+      "preflight": "guard PASS; shared task-state format stops; HEAD same format failure"
+    },
+    "limits": [
+      "전체 S2 기능/상태 기본 시각 실측 미완료",
+      "Builder/Preview/Publish 브라우저 및 persistence/Undo/Redo UNVERIFIED",
+      "제품 코드 및 테스트 원본 변경 없음"
+    ]
+  },
+  "s2182Implementation": {
+    "phase": "field_text_defaults",
+    "status": "in_progress",
+    "scope": "첨부의 전체 5단계; 첫 묶음 검사 기준 복구와 Select 폭 수리",
+    "evidenceDirectory": ".agent/runs/2026-11-06-s2-182-implementation",
+    "baselineHead": "87ef915082925eb3fa5a2f4d286e6481f3806059",
+    "head": "a437b0c0ea365ee142d17cefc9114507bc20bc5c",
+    "validation": {
+      "s2": {
+        "total": 433,
+        "passed": 433
+      },
+      "browser": {
+        "total": 17,
+        "passed": 17,
+        "scope": "picker width 5 and item inset 12; default/authored/reset/undo/redo"
+      },
+      "expanded": {
+        "total": 178,
+        "passed": 174,
+        "baselineFailures": 4
+      },
+      "typecheck": "6 packages PASS",
+      "registration": "6 PASS",
+      "agentCatalog": "PASS",
+      "preflight": "guard PASS; only shared task-state existing formatting stops",
+      "diffCheck": "PASS"
+    },
+    "live": {
+      "project": "S2 182 width verify",
+      "projectId": "2d5123d7-a612-4fe2-9e02-d2142eb2f901",
+      "tool": "CUA native Chrome",
+      "verified": [
+        "palette Select insertion",
+        "Menu Width 320 property edit",
+        "Open true",
+        "Quiet true",
+        "reload preserves menuWidth320 and Open true",
+        "Compare Preview displays quiet menu"
+      ],
+      "limits": [
+        "No full Canvas/DOM pixel comparison",
+        "Quiet was changed after reload; quiet persistence not separately certified",
+        "Console collection unavailable in native AX flow",
+        "Publish and full Code/persistence matrix pending"
+      ]
+    },
+    "remaining": [
+      "prefix aria-labelledby 4 baseline failures",
+      "common typography/font loading/colors/state contract",
+      "existing component defaults and options",
+      "missing component contracts",
+      "full per component and integration acceptance"
+    ],
+    "updatedAt": "2026-11-06T05:45:51.347707+00:00",
+    "foundation": {
+      "phase": "static_faces_and_cjk_implemented_live_pending",
+      "status": "in_progress",
+      "validation": {
+        "relatedUnit": "491 PASS",
+        "theme": "25 PASS including default/custom/reset",
+        "browser": "20 PASS; latest font rerun 3 PASS",
+        "typecheck": "6 packages PASS",
+        "publish": "14 PASS / 1 FAIL: old CRUD sample libraryContractVersion",
+        "preflight": "guard and own file format PASS; only existing shared task-state formatting stops"
+      },
+      "fontEvidence": {
+        "version": "S2 1.8.2",
+        "source": "src/font-faces.css + style/spectrum-theme.ts",
+        "browser": "same Adobe CDN WOFF2",
+        "canvas": "same face sfnt endpoint",
+        "fvar": {
+          "wdth": [
+            62.5,
+            62.5,
+            125
+          ],
+          "wght": [
+            100,
+            100,
+            900
+          ]
+        },
+        "beforeWidths400": {
+          "DOM": 212.5625,
+          "Canvas": 153.85000610351562
+        },
+        "after": "absolute width delta < 0.5px at weights400/500/700",
+        "revertRed": "3 FAIL with wdth override removed; production helper restored"
+      },
+      "live": {
+        "projectId": "2d5123d7-a612-4fe2-9e02-d2142eb2f901",
+        "verified": "Native Chrome Builder reload and Compare Preview menu rendering",
+        "limitations": "Actual computed font inspection/console/full Canvas pixel comparison not collected in native CUA"
+      },
+      "remaining": [
+        "ar/he locale coverage",
+        "CJK weight/style/RTL/device full matrix",
+        "Builder font edit/reset/save/reload/Undo/Redo and Preview/Publish full acceptance",
+        "Color/spacing/corner/border/shadow/icon and state contracts",
+        "Existing per-component and missing-component implementation",
+        "Full screenshot pixel parity and integration gates"
+      ],
+      "fontCoverage": {
+        "evidenceDirectory": ".agent/runs/2026-11-06-s2-182-font-coverage",
+        "report": ".agent/runs/2026-11-06-s2-182-font-coverage/report.txt",
+        "validation": {
+          "scope": "S2 1.8.2 공통 기반: sans/serif/code/italic 및 CJK 기본 서체·조판",
+          "status": "implemented_with_live_builder_unverified",
+          "reference": {
+            "version": "1.8.2",
+            "gitHead": "064154814f6de5cd96968947b982431f8e6ff605",
+            "sources": [
+              "font-faces.css",
+              "src/Fonts.tsx",
+              "style/spectrum-theme.ts"
+            ]
+          },
+          "tests": {
+            "relatedUnit": 490,
+            "paragraphRegression": 15,
+            "actualBrowser": 33,
+            "browserReportUnitOverlap": 4
+          },
+          "assertions": [
+            "6 static font faces / 11 weight-style cases: DOM and Canvas width delta <0.5px",
+            "5 CJK locales: initial text and added glyphs, same dynamic sfnt subset, delta <0.5px",
+            "Subset replacement keeps one latest variant; no persistent subset cache",
+            "Site locale, authored Inter and Undo restoration reach measurement",
+            "Locale changes invalidate retained paragraph identity",
+            "Variable face browser check uses one weight; registration preserves descriptor range"
+          ],
+          "typecheck": "6 packages PASS",
+          "registration": "6 PASS",
+          "agentCatalog": "PASS",
+          "preflight": "guard PASS; source format PASS; stops only at pre-existing shared .agent/task-state.json formatting",
+          "liveBuilder": "UNVERIFIED for current CJK/face changes: native Chrome getScreenshot/getAX calls repeatedly timed out; user document preserved",
+          "remaining": [
+            "ar/he locale coverage",
+            "CJK weight/style/RTL/device full matrix",
+            "Builder font edit/reset/save/reload/Undo/Redo and Preview/Publish full acceptance",
+            "Color/spacing/corner/border/shadow/icon and state contracts",
+            "Existing per-component and missing-component implementation",
+            "Full screenshot pixel parity and integration gates"
+          ],
+          "baselineFailures": [
+            "4 prefix aria-labelledby failures, previously reproduced on HEAD",
+            "Publish CRUD sample libraryContractVersion54 vs current60 (14 PASS /1 FAIL in previous batch)"
+          ],
+          "updatedAt": "2026-11-05T23:57:11.218138+00:00"
+        }
+      },
+      "surfaces": {
+        "status": "scoped_implementation_verified",
+        "evidenceDirectory": ".agent/runs/2026-11-06-s2-182-surfaces",
+        "unit": 121,
+        "browser": 117,
+        "liveProject": "54289d70-f0b8-4fe4-8a23-41c3c85e2bd9",
+        "live": [
+          "base edit",
+          "Undo/Redo",
+          "reload",
+          "Reset",
+          "dark Canvas and Compare CSS"
+        ],
+        "remaining": "content/fill role split and state palette; full component/Publish acceptance"
+      },
+      "disabled": {
+        "status": "scoped_implementation_verified",
+        "evidenceDirectory": ".agent/runs/2026-11-06-s2-182-disabled",
+        "unit": 216,
+        "browser": 141,
+        "typecheck": "6 packages PASS",
+        "registration": "6 PASS",
+        "agentCatalog": "PASS",
+        "liveProject": "54289d70-f0b8-4fe4-8a23-41c3c85e2bd9",
+        "live": [
+          "Button palette insertion",
+          "Disabled edit and Undo/Redo",
+          "reload preserves Button and Disabled",
+          "Reset isDisabled override and Undo",
+          "light/dark Canvas and Compare",
+          "Adobe Clean Spectrum default label"
+        ],
+        "remaining": [
+          "neutral content/fill role split",
+          "other state contracts and component coverage",
+          "Publish and full pixel/device acceptance"
+        ]
+      },
+      "neutral": {
+        "status": "scoped_implementation_verified",
+        "evidenceDirectory": ".agent/runs/2026-11-06-s2-182-neutral",
+        "unit": 228,
+        "browser": 173,
+        "typecheck": "6 packages PASS",
+        "registration": "6 PASS",
+        "agentCatalog": "PASS",
+        "liveProject": "54289d70-f0b8-4fe4-8a23-41c3c85e2bd9",
+        "live": [
+          "secondary Variant edit",
+          "neutral-content #ff8800 edit",
+          "Canvas and Compare color update",
+          "Undo/Redo",
+          "reload preserves theme override",
+          "Reset and light defaults"
+        ],
+        "remaining": [
+          "accent/negative Button defaults",
+          "other component role migration",
+          "selected/invalid and remaining states",
+          "keyboard/device and pixel/Publish acceptance"
+        ]
+      },
+      "colored": {
+        "status": "scoped_implementation_verified",
+        "evidenceDirectory": ".agent/runs/2026-11-06-s2-182-colored",
+        "report": ".agent/runs/2026-11-06-s2-182-colored/report.md",
+        "unit": 238,
+        "browser": 293,
+        "typecheck": "6 packages PASS",
+        "registration": "6 PASS",
+        "agentCatalog": "PASS",
+        "preflight": "guard/source format PASS; shared task-state format blocks combined gate",
+        "liveProject": "54289d70-f0b8-4fe4-8a23-41c3c85e2bd9",
+        "live": [
+          "Accent Variant edit",
+          "accent-fill #008866 edit",
+          "Canvas/Compare reflect override",
+          "Undo/Redo",
+          "reload preserves override",
+          "Reset",
+          "Negative fill and dark outline/static white",
+          "native currentColor black stroke fixed and visually verified"
+        ],
+        "regression": "actual bound Skia stroke: 2 FAIL before / 2 PASS after",
+        "remaining": [
+          "dynamic staticColor=auto context",
+          "other component role migration and selected/invalid",
+          "full keyboard/device/pixel and Publish acceptance"
+        ]
+      },
+      "actionToggle": {
+        "status": "scoped_implementation_verified",
+        "evidenceDirectory": ".agent/runs/2026-11-06-s2-182-action-toggle",
+        "unit": 167,
+        "browser": 456,
+        "typecheck": "6 packages PASS",
+        "registration": "6 PASS",
+        "agentCatalog": "PASS",
+        "baselineFailures": "componentRulesTable.static 3 failures reproduced with HEAD rule",
+        "preflight": "shared task-state formatting blocks; scoped source format PASS",
+        "live": [
+          "ActionButton static/disabled edit and Undo/Redo",
+          "ToggleButton selected/emphasized edit",
+          "Preview click and Space selection",
+          "both component edits survive reload",
+          "both components Reset",
+          "Canvas/Compare observed"
+        ],
+        "remaining": [
+          "group inheritance/selection/indicator/compact/keyboard",
+          "static auto and static focus ring",
+          "child composition/pending/device/forced colors",
+          "Code/Publish/pixel acceptance"
+        ]
+      },
+      "buttonGroups": {
+        "status": "implemented_scoped_live_verified",
+        "evidenceDirectory": ".agent/runs/2026-11-06-s2-182-button-groups",
+        "validation": {
+          "builder": 138,
+          "browser": 378,
+          "shared": 5,
+          "rendering": 5,
+          "typecheck": "6 packages PASS",
+          "registration": "6 PASS",
+          "agentCatalog": "PASS",
+          "preflight": "existing task-state and unusedPropRemoval formatting blocks"
+        },
+        "live": "ToggleButtonGroup XL/vertical/compact/quiet persistence; Size Undo/Redo; Reset and reload; Preview default/static black focus and Down/Space verified",
+        "unverified": [
+          "Canvas focus direct screen reproduction",
+          "ActionButtonGroup full direct edit coverage",
+          "Publish/touch/RTL/custom indicator full visual matrix"
+        ],
+        "next": "Checkbox/Radio/Switch indicator state alignment with installed S2 1.8.2",
+        "liveFollowupEvidence": ".agent/runs/2026-11-06-s2-182-groups-live"
+      },
+      "selectionIndicators": {
+        "status": "implemented_scoped_live_verified",
+        "evidenceDirectory": ".agent/runs/2026-11-06-s2-182-selection",
+        "report": ".agent/runs/2026-11-06-s2-182-selection/report.md",
+        "validation": {
+          "builderUnit": 199,
+          "shared": 77,
+          "rendering": 62,
+          "browser": 30,
+          "browserStateSamples": 512,
+          "typecheck": "6 packages PASS",
+          "registration": "6 PASS",
+          "agentCatalog": "PASS",
+          "preflight": "guard PASS; existing format differences in task-state, toggleIndicatorNode, unusedPropRemoval block full gate",
+          "scopedFormat": "PASS; toggleIndicatorNode format difference identical to HEAD"
+        },
+        "live": [
+          "Checkbox emphasized/invalid/disabled edits, Undo/Redo, reload, Reset",
+          "RadioGroup Value/Emphasized and Preview ArrowDown selection/focus",
+          "Switch Selected immediate Preview update, Space, Undo/Redo, reload, Reset and reload"
+        ],
+        "followupFix": "RadioGroup value/invalid/disabled to Canvas derived state, verified by Chromium matrix",
+        "unverified": [
+          "Full pixel/Publish/forced-colors/touch/RTL",
+          "Indicator style editing and component-wide feature acceptance"
+        ],
+        "next": "Input field state alignment; component-wide acceptance remains pending",
+        "liveFollowupEvidence": ".agent/runs/2026-11-06-s2-182-selection-groups/report.md"
+      },
+      "selectionGroups": {
+        "status": "implemented_scoped_live_verified",
+        "evidenceDirectory": ".agent/runs/2026-11-06-s2-182-selection-groups",
+        "report": ".agent/runs/2026-11-06-s2-182-selection-groups/report.md",
+        "validation": {
+          "builderUnit": 200,
+          "theme": 25,
+          "shared": 77,
+          "rendering": 62,
+          "browser": 49,
+          "typecheck": "6 packages PASS",
+          "registration": "6 PASS",
+          "agentCatalog": "PASS",
+          "scopedFormat": "PASS",
+          "scopedGuard": "PASS",
+          "diffCheck": "PASS",
+          "preflight": "BLOCKED at guard: unrelated .claude/settings.json dirty change; preserved"
+        },
+        "liveProject": "54289d70-f0b8-4fe4-8a23-41c3c85e2bd9",
+        "live": [
+          "RadioGroup final derived-state fix direct Canvas/Compare validation",
+          "RadioGroup disabled Undo/Redo, reload, group state Reset",
+          "CheckboxGroup palette/child Selected/group emphasized-invalid-disabled edit",
+          "CheckboxGroup disabled Undo/Redo, reload, state Reset then reload",
+          "Preview multiple selection via click/Space, Read Only on/off with selection verification"
+        ],
+        "unverified": [
+          "Full S2 label typography/description/error/required/layout and pixel acceptance",
+          "Reset contract for authored child selections; Code/Interactions/form submission/Publish",
+          "Forced colors/touch/RTL and composite layouts",
+          "Direct UI authored label color edit; automated Chromium edit/reset passed"
+        ],
+        "next": "Input field default/hover/focus/invalid/disabled/read-only alignment",
+        "updatedAt": "2026-11-06T05:02:11.485343+00:00"
+      },
+      "textFields": {
+        "status": "implemented_browser_verified_live_partial",
+        "evidenceDirectory": ".agent/runs/2026-11-06-s2-182-text-fields",
+        "report": ".agent/runs/2026-11-06-s2-182-text-fields/report.md",
+        "validation": {
+          "builderUnit": 479,
+          "baselineFailures": 20,
+          "newFailures": 0,
+          "shared": 44,
+          "rendering": 23,
+          "browser": 106,
+          "fieldBrowser": 57,
+          "typecheck": "6 packages PASS",
+          "registration": "6 PASS",
+          "agentCatalog": "PASS",
+          "scopedFormat": "PASS",
+          "scopedGuard": "PASS",
+          "diffCheck": "PASS",
+          "preflight": "guard PASS; existing task-state/toggleIndicatorNode/unusedPropRemoval formatting blocks"
+        },
+        "live": [
+          "TextField palette insertion, invalid and disabled Canvas states",
+          "HMR reload then reselect preserves invalid and disabled"
+        ],
+        "liveLimit": "Active Chrome tab changed to another user project during Undo/Redo; target/result not confirmed; stopped further UI actions",
+        "unverified": [
+          "All six fields direct Compare/edit/Undo/Redo/persistence/reset acceptance",
+          "Placeholder/prefix gray-600, label typography, help/error/required and full geometry",
+          "Full per-field features, Code/Interactions/Publish",
+          "DateInput/forced-colors/touch/RTL/pixelmatch"
+        ],
+        "next": "Finish direct field editing in stable dedicated tab; align remaining placeholder/label/help/error default visuals",
+        "updatedAt": "2026-11-06T05:22:07.141161+00:00"
+      },
+      "fieldText": {
+        "status": "implemented_automated_verified_live_blocked",
+        "evidenceDirectory": ".agent/runs/2026-11-06-s2-182-field-text",
+        "baseline": "installed S2 1.8.2 Field.tsx",
+        "implementation": [
+          "placeholder/prefix gray-600 role token and Canvas value distinction",
+          "editable Label regular400; HelpText S/M/L/XL 12/14/16/18",
+          "RAC invalid description/error exclusivity and disabled hint color",
+          "ComboBox selected option/label propagation and static DOM clearing"
+        ],
+        "validation": {
+          "browser": "191 PASS (85 field text + 57 field states + 49 selection states)",
+          "adjacent": "479 PASS / 20 existing FAIL / 1 SKIP; same failing names as prior verified baseline",
+          "comboAndLabel": "22 PASS",
+          "shared": "44 PASS",
+          "rendering": "25 PASS",
+          "typecheck": "6 packages PASS",
+          "preflight": "guard PASS; existing shared formatting in 3 files stops; scoped format PASS"
+        },
+        "live": {
+          "status": "BLOCKED",
+          "reason": "Browser access host unavailable; Native Chrome action rejected due to user app change; current URL changed from charts to Creating bluelines",
+          "actions": "no Builder editing or Undo keys sent in this phase"
+        },
+        "remaining": [
+          "dedicated Builder Canvas/Compare editing Reset Undo/Redo save/reload",
+          "required/optional necessity indicator and SearchField geometry",
+          "TextArea/ColorField value authoring surface re-audit (value write rejected; distinguish runtime Interactions support)",
+          "full pixel/touch/RTL/forced-colors/Publish verification"
+        ],
+        "report": ".agent/runs/2026-11-06-s2-182-field-text/report.md",
+        "next": "직접 Builder 검증 차단 해소 후 필수 표시와 SearchField geometry 대조"
+      },
+      "searchClear": {
+        "status": "implemented_automated_verified_live_blocked",
+        "evidenceDirectory": ".agent/runs/2026-11-06-s2-182-search-clear",
+        "report": ".agent/runs/2026-11-06-s2-182-search-clear/report.md",
+        "implementation": "SearchField clear hidden when empty or readonly; live RAC and authored Canvas states",
+        "validation": {
+          "browser": "152 PASS (95 field text including 10 new + 57 field states)",
+          "adjacent": "40 PASS",
+          "typecheck": "6 packages PASS",
+          "beforeChange": "9 new regressions fail before fix; 5 unrelated broad failures reproduced before change",
+          "buttonGroups": "42 PASS isolated; initial broad failure not reproduced",
+          "format": "scoped PASS",
+          "preflight": "guard PASS; existing 3 shared format failures"
+        },
+        "live": {
+          "status": "BLOCKED",
+          "reason": "browser host unavailable; native Chrome changed by user, super+n rejected; AX requery S2 TextField DevTools",
+          "artifact": ".agent/runs/2026-11-06-s2-182-search-clear/artifacts/live-blocked.txt"
+        },
+        "remaining": [
+          "SearchField clear size/color/icon/focus and search icon geometry",
+          "necessity editable common child composition and default visuals",
+          "direct Builder Compare/edit/reset/Undo/Redo/reload",
+          "Publish/touch/RTL/forced-colors/full pixel parity"
+        ],
+        "next": "SearchField clear/search icon editable origin and shared part visual alignment, then necessity parts",
+        "updatedAt": "2026-11-06T05:55:06.937367+00:00"
+      },
+      "searchVisual": {
+        "status": "implemented_scoped_verified_live_blocked",
+        "scope": "SearchField search and clear icon geometry paint editing parity",
+        "evidenceDirectory": ".agent/runs/2026-11-06-s2-182-search-visual",
+        "verified": [
+          "S2 1.8.2 exact glyph paths/viewBox/size/position/colors light/dark S/M/L/XL enabled/disabled/reset",
+          "217 unique browser cases; 66 focused unit cases",
+          "Icon/Button color and size edits, icon replacement, Undo/Redo, IndexedDB reload and reset",
+          "CanvasKit filled viewBox/stroke raster; scope format; registration and agent catalog"
+        ],
+        "blocked": [
+          "direct Builder: native Chrome user-change guard and AX timeout",
+          "full preflight: 3 shared dirty formatting failures"
+        ],
+        "unverified": [
+          "Publish/touch/RTL/forced-colors/full pixel parity"
+        ],
+        "next": "Clear absence input end padding state contract, then necessityIndicator editable shared parts; retry direct Builder when browser connection available",
+        "updatedAt": "2026-11-06T06:16:47.409059+00:00"
+      },
+      "searchSpacing": {
+        "status": "implemented_scoped_verified",
+        "scope": "SearchField clear absence end padding; necessity indicator audit",
+        "evidenceDirectory": ".agent/runs/2026-11-06-s2-182-search-spacing",
+        "updatedAt": "2026-11-06T06:37:46.561402+00:00",
+        "report": ".agent/runs/2026-11-06-s2-182-search-spacing/report.md",
+        "checks": {
+          "browser": "215 PASS",
+          "unit": "306 PASS; 25 existing failures reproduced in before tree; 2 SKIP",
+          "directBuilder": "add/value/Compare/readonly/padding/Undo/Redo PASS; reload/reset UNVERIFIED",
+          "preflight": "blocked by 3 pre-existing formatting files"
+        },
+        "next": "necessityIndicator real editable Text/Icon child contract, Form/locale/accessibility and migration"
+      },
+      "necessity": {
+        "status": "composition_implemented_scoped_verified_live_pending",
+        "scope": "editable necessity structure consumer audit and S2 accessibility contract",
+        "updatedAt": "2026-11-06T08:27:47.802095+00:00",
+        "evidenceDirectory": ".agent/runs/2026-11-06-s2-182-necessity-contract",
+        "report": ".agent/runs/2026-11-06-s2-182-necessity-contract/report.md",
+        "contract": "docs/explanation/research/s2-182/necessity-indicator-contract.md",
+        "checks": {
+          "browser": "119 PASS; actual accessible names verified",
+          "registration": "6 PASS",
+          "format": "scoped PASS; full preflight stopped by 3 existing files",
+          "directBuilder": "UNVERIFIED: browser host unavailable and native user interaction conflict"
+        },
+        "next": "전용 Builder 세션에서 Label 자식 편집·Compare·Reset·저장 재열기; 여러 줄 Label S2 배치 대조",
+        "asterisk": {
+          "report": ".agent/runs/2026-11-06-s2-182-necessity-parts/report.md",
+          "browser": "123 PASS incl 4 installed-S2 Asterisk oracles, style/history/save reload",
+          "unit": "2 PASS",
+          "typecheck": "PASS",
+          "directBuilder": "UNVERIFIED: browser access host unavailable",
+          "preflight": "3 existing formatting failures"
+        },
+        "composition": {
+          "status": "implemented_scoped_verified_live_pending",
+          "evidenceDirectory": ".agent/runs/2026-11-06-s2-182-necessity-compose",
+          "updatedAt": "2026-11-06T08:27:47.802095+00:00",
+          "report": ".agent/runs/2026-11-06-s2-182-necessity-compose/report.md",
+          "contractVersion": 61,
+          "validation": {
+            "browser": "252 PASS",
+            "builderUnit": "88 PASS",
+            "sharedUnit": "36 PASS",
+            "typecheck": "6 tasks PASS; baseline 0",
+            "preflight": "guard PASS; existing 3 format warnings block full gate",
+            "directBuilder": "UNVERIFIED: browser host unavailable and native dedicated-window action timed out",
+            "registration": "6 PASS"
+          },
+          "unverified": [
+            "direct Builder child editing and persistence acceptance",
+            "multiline Label S2 geometry",
+            "full pixel/touch/RTL/forced-colors",
+            "Code View JSX roundtrip",
+            "actual Publish"
+          ]
+        }
+      }
+    },
+    "delivery": {
+      "status": "committed_pushed",
+      "commit": "3ca03f661b5c9efdd8489818b9ce9d9bd9c4ca18",
+      "remote": "origin/main",
+      "remoteShaVerified": "3ca03f661b5c9efdd8489818b9ce9d9bd9c4ca18",
+      "files": 170,
+      "updatedAt": "2026-11-06T09:20:50.479835+00:00",
+      "authorization": "User confirmed existing S2 validation and requested immediate commit/push; no repeated gates"
+    }
+  },
+  "harnessAdoption": {
+    "task": "anthropics 저장소 조사에서 고른 개발 환경 패턴 적용 (사용자 승인 2026-11-06)",
+    "phase": "pushed",
+    "scope": ".claude/skills (verify·evaluate·cross-check) · scripts/agent · .claude/hooks/selftest.sh · CLAUDE.local.md — 제품 코드 변경 없음",
+    "next": [
+      "[x] 1단계 커밋 784d5d319 (artifact 필수 · BLOCKED · 졸업 규칙) — push 안 함",
+      "[x] 증거 게이트 2단계 (사용자 결정 11-06: 증거 = run 폴더 artifacts/ 안의 파일, 형식 무관) — artifacts/ 위치 · Read 기록 (Claude 세션) · 같은 내용 재사용 금지 · track-evidence-read.sh 등록",
+      "[x] 검증: hooks selftest 79/0 (새 케이스 수정 전 RED 7) · Codex workflow 21/0 · live: Read → evidence-reads.jsonl 기록 → artifact-check 통과 (probe 는 지움)",
+      "[x] 스크린샷 자동 저장 (사용자 지시 11-06 「save_to_disk: true 설정해」) — chrome-screenshot-save.sh (PreToolUse updatedInput) 등록 · selftest 85/0 (새 6 RED→GREEN) · live: 옵션 없이 찍으면 auto mode 가 한 번 반려 → 바뀐 입력으로 재호출 시 저장됨",
+      "[x] 커밋 ede54bb61 (증거 게이트 2단계 + 스크린샷 hook, 13 파일) · push origin main 87ef91508..ede54bb61 (2026-11-06)",
+      "[ ] 보류 (새 세션 권장): threat-model skill · 증상별 playbook · AI 패널 eval ADR — 메모리 reference-anthropics-org-repo-survey-2026-11"
+    ],
+    "guard": "다른 세션 dirty 변경 보존 · 커밋은 사용자 요청 때만",
+    "updatedAt": "2026-11-06T05:17:54.441089+00:00"
+  },
+  "themeFontPicker": {
+    "status": "committed_pushed",
+    "scope": "shared font selector; registration and management only from Theme; Design selection and theme inheritance",
+    "evidenceDirectory": ".agent/runs/2026-11-06-theme-font-picker",
+    "updatedAt": "2026-11-06T09:17:48.701437+00:00",
+    "report": ".agent/runs/2026-11-06-theme-font-picker/report.md",
+    "validation": {
+      "unit": 49,
+      "chromiumLayout": 2,
+      "registration": 6,
+      "typecheck": "6 tasks PASS",
+      "live": "Theme upload/select/reset/save reload; Design shared list/no management/style Undo Redo/inherit; Font legend verified",
+      "preflight": "guard PASS; stops at 3 pre-existing formatting files",
+      "broaderThemeTests": "10 PASS / 4 unrelated color FAIL; identical with original font options"
+    },
+    "remaining": [
+      "full pixelmatch/Publish/other browser coverage"
+    ],
+    "commitScope": "16 files; font picker and font-only hunks; unrelated S2 WIP excluded",
+    "commit": "2838a7c906054d742acdaaba708deaea9c3e8cdc",
+    "remote": "origin/main",
+    "remoteShaVerified": "2838a7c906054d742acdaaba708deaea9c3e8cdc",
+    "commitValidation": {
+      "unit": 48,
+      "chromium": 2,
+      "typecheck": "6 tasks PASS in isolated staged snapshot"
+    },
+    "approval": "User explicitly confirmed prior validation and requested immediate commit/push"
+  },
+  "s2182LabelClosure": {
+    "status": "functional_layout_verified_raster_deferred_to_integration",
+    "run": ".agent/runs/20261106-191452-s2-1-8-2-label-13-builder-canvas-preview",
+    "scope": "13개 필드 실제 Label 자식 편집과 여러 줄 S2 배치 검증",
+    "confirmed": [
+      "기존 61 계약과 실제 catalog 자식 구조 유지",
+      "순수 inline 미지원의 이전 한계는 후속 Rust inline fragment 구현으로 보완됨"
+    ],
+    "next": [
+      "입력·선택 및 목록·오버레이 병렬 작업",
+      "전체 통합 검증에서 Label raster13FAIL 원인 및 판정 재검증"
+    ],
+    "completionClaim": false,
+    "implementation": [
+      "공용 necessity-label의 nowrap·flex-shrink 0",
+      "typed part rule white-space 컴파일; 명시 사용자 편집 및 Reset 우선"
+    ],
+    "verified": {
+      "builderLive": "13 fields / 144 PASS / pageerror 0",
+      "browserRegression": "159 PASS; new 13 RED before fix",
+      "typecheck": "6 packages PASS",
+      "registration": "6 PASS",
+      "scopedFormat": "PASS",
+      "sharedStatic": "25 PASS / 5 FAIL; HEAD catalog replacement reproduces same 5",
+      "preflight": "guard PASS; local task-state formatting blocked"
+    },
+    "remaining": [
+      "13 Canvas/Preview glyph raster FAIL remain; latest TextField 1254/57728 pixels. No intended-difference classification or gate relaxation",
+      "Full theme/device/state combinations and general mixed/nested IFC remain outside this tested slice"
+    ],
+    "latestRun": ".agent/runs/20261107-resume-label-raster",
+    "rasterDeferredTo": "전체 통합 검증 (사용자 결정)",
+    "nextAuthorized": "Label raster와 독립적으로 2번 입력·선택 및 3번 목록·오버레이 구현·검증 진행"
+  },
+  "s2182CjkTypography": {
+    "status": "implemented_verified_inline_raster_pending",
+    "run": ".agent/runs/20261106-195814-s2-cjk-label-override-inline",
+    "implemented": [
+      "Label localeTypography ja/ko/zh lineHeight 1.5",
+      "명시 Label/자식/Library/Theme 줄 높이 우선; Theme explicitTypography provenance",
+      "Canvas font box는 등록 family와 weight/style로 Typeface 조회",
+      "Design 자식 Text 실효 typography 표시와 px→ratio 환산"
+    ],
+    "verified": {
+      "browser": "181 PASS",
+      "previewUnit": "18 PASS",
+      "typecheck": "6 packages PASS",
+      "registration": "6 PASS",
+      "builder": "13 fields / 222 PASS / console and pageerror 0",
+      "stylePanel": "13 fields Design14/21→28px→Undo/Redo→Reset; TextField edited/reset saved reload",
+      "s2Geometry": "26 rows / lineHeight 26 matched",
+      "raster": "100%, DPR2, threshold0.1: 241/6500 pixels differ; NOT PASS",
+      "styleRegression": "new13 PASS; full25 PASS/2 preexisting expectation failures",
+      "preflight": "guard PASS; local task-state formatting blocked"
+    },
+    "remaining": [
+      "마지막 줄 뒤 필수 표시 inline 흐름과 엔진 fragment 계약",
+      "glyph baseline/raster 차이: DOM marker baseline16.5 vs engine17 관찰; 원인 추가 검증 필요",
+      "전체 Publish/raster·다른 기기·locale 전수"
+    ],
+    "completionClaim": false
+  },
+  "s2182InlineFragments": {
+    "status": "functional_layout_verified_raster_deferred_to_integration",
+    "run": ".agent/runs/20261107-002834-dom-overlay-label-glyph-baseline",
+    "scope": "Label 자식 identity 보존 + Rust inline line/fragment layout + Canvas paint + editing",
+    "implemented": [
+      "UAX14 Rust inline kernel and fragment output",
+      "catalog/DOM inline defaults and Canvas fragment paints",
+      "NBSP whitespace and accessible-name separator preservation",
+      "Canvas paint autoCenter disabled for engine fragments; union text metadata retained for editable wrapping width",
+      "Canvas2D locale and CSS generic fallback preserved; shape cache invalidates on font reload",
+      "Nested page/grid inline dirty propagation and fragment snapshot restoration repaired",
+      "Canvas2D segment cache locale isolation and shared Canvas/OffscreenCanvas language setup; paint baseline/decorations carry locale",
+      "Native CSS line metrics cached offscreen; visible Canvas remains direct Skia paint",
+      "Measured firstBaseline preserved without 0.8 fallback; normal and short authored line-height retained",
+      "Engine fragment baseline and actual width reach Canvas paint without generic ±1px clamp"
+    ],
+    "verified": {
+      "rust": "554 PASS (513 lib + 41 golden/trace/tree/doc)",
+      "browser": "376 Chromium parity PASS + 17 DPR2 PASS (native metrics, same-family reload, cache, normal/short line-height and real paint)",
+      "unit": "31 adjacent unit PASS",
+      "types": "typecheck-last: 6 tasks PASS; baseline 0",
+      "registration": "6 PASS",
+      "builder": "13 full field editing flows verified; current final quick rerun: 131 PASS / 13 raster FAIL, console/pageerror 0",
+      "publish": "Actual separate Publish: 13 Label assemblies PASS",
+      "latestLive": "Latest live-inline-20-locale-publish: 131 PASS / 13 raster FAIL, console/pageerror 0; all 13 source editor and actual Publish flows pass",
+      "format": "Owned source/docs PASS; full preflight stopped only by shared task-state formatting",
+      "agentCatalog": "PASS; skills gate: no applicable change",
+      "nativeBaseline": "52/52 DOM/Canvas baseline samples match",
+      "latestRaster": "TextField 1254/57728 vs before 2475; intermediate 1194; threshold 0.1 and allowance 0.001 unchanged"
+    },
+    "remaining": [
+      "13 Canvas/Preview raster FAIL remain; latest TextField989/57728 with no-hover capture. Same old hover conditions smoothing1254->1045; thresholds unchanged.",
+      "Full theme/device/state combinations and general mixed/nested IFC remain outside this tested slice."
+    ],
+    "completionClaim": false,
+    "nextAuthorized": "Label raster와 독립적으로 2번 입력·선택 및 3번 목록·오버레이 구현·검증 진행",
+    "activeRun": ".agent/runs/20261107-resume-label-raster",
+    "currentScope": "Canvas Skia 유지; baseline 추정 발동과 배치/래스터 차이 분리; 임계값 완화·DOM overlay 금지",
+    "updatedAt": "2026-11-06T16:36:26.484700+00:00",
+    "previousRun": ".agent/runs/20261106-210056-s2-label-inline-fragment-canvas-preview",
+    "report": ".agent/runs/20261107-resume-label-raster/report.md",
+    "delivery": {
+      "commit": "db5351e4cfae228de992e0ca3fa3af27b463bacb",
+      "remote": "origin/main",
+      "remoteShaVerified": "db5351e4cfae228de992e0ca3fa3af27b463bacb",
+      "files": 57,
+      "updatedAt": "2026-11-06T16:21:13.831219+00:00",
+      "remaining": "13 raster FAIL retained; Label stage completionClaim remains false"
+    },
+    "phase": "preview_smoothing_verified_remaining_raster_recorded",
+    "resumedSession": "01a1ab31-f208-7bb2-a664-5d5497624b31",
+    "resume20261107": {
+      "phase": "verified_raster_pending",
+      "run": ".agent/runs/20261107-resume-label-raster",
+      "findings": [
+        "Actual Preview reset auto vs Publish antialiased: browser regression RED 1 then GREEN 1",
+        "TextField same old capture conditions raster1254 ->1045; no-hover capture989, thresholds unchanged",
+        "Hinting disabled in isolated page: same1254 pixels; no product hinting change",
+        "Old capture included page hover chrome; capture now waits for empty selection/hover"
+      ],
+      "verified": {
+        "browser": "18 adjacent +91 additional focused PASS",
+        "unit": "2 PASS",
+        "types": "6 tasks PASS",
+        "builderPublish": "13 fields /131 PASS /13 raster FAIL /console+pageerror0",
+        "registration": "6 PASS",
+        "agentCatalog": "FAIL0 WARN0",
+        "scopeFormat": "PASS",
+        "preflight": "guard PASS; shared task-state formatting blocks",
+        "broadParity": "2006 PASS/7 FAIL;5 match before;2 additional focused not reproduced"
+      },
+      "completionClaim": false,
+      "updatedAt": "2026-11-06T16:32:53.953322+00:00",
+      "status": "fix_verified_raster_pending_uncommitted",
+      "latestRaster": {
+        "field": "TextField",
+        "differing": 989,
+        "pixels": 57728,
+        "priorSameHoverAfterSmoothing": 1045,
+        "priorBaselineSameHover": 1254,
+        "note": "1045->989 is capture hover-state correction, not glyph renderer improvement"
+      },
+      "diagnostics": {
+        "actualDomFont": "one custom face matching Canvas registered family",
+        "glyphX": {
+          "samples": 62,
+          "maxCssPx": 0.00762939453125
+        },
+        "unverified": "Remaining raster cause not fully established; no intended-difference classification"
+      }
+    },
+    "rasterDeferredTo": "전체 통합 검증 (사용자 결정)",
+    "next": [
+      "입력·선택 및 목록·오버레이 병렬 작업",
+      "전체 통합 검증에서 Label raster13FAIL 원인 및 판정 재검증"
+    ]
+  },
+  "themePanelMock": {
+    "task": "Theme 패널 재설계 시안 (사용자 2026-11-06: 세밀한 토큰 편집은 컨셉에 맞지 않음)",
+    "phase": "canvas_replaced",
+    "decisions": [
+      "S2 = 빌더 기본값 Basic",
+      "Density 제외",
+      "기존 Assets · Styles 캔버스 시안 전부 교체"
+    ],
+    "artifact": "https://claude.ai/artifact/QtrFVWLxya3zg2w4biYj6c",
+    "previousVersion": "1793956384-cacb",
+    "updatedAt": "2026-11-06T13:37:39.961814+00:00"
+  },
+  "s2182ParallelStages23": {
+    "phase": "stages23_scoped_closure_integration_items_retained",
+    "status": "scoped_implementation_and_live_verified",
+    "run": ".agent/runs/20261107-parallel-fields",
+    "updatedAt": "2026-11-06T17:24:21.903478+00:00",
+    "agents": {
+      "input_fields": "TextArea/ColorField/Date/Time",
+      "selection_lists": "Select/ComboBox/ListBox",
+      "menus_overlays": "Menu/Popover/Dialog/Accordion"
+    },
+    "coordination": "공용파일·CHANGELOG·task-state·generated CSS·typecheck/preflight parent담당. Browser foreground 검증 순서 조율.",
+    "raster": "13FAIL을 전체 통합 검증으로 이관; 현재 단계의 선행 gate가 아님",
+    "pauseRequest": "현재 단계에서 춰 — 현재 단계에서 멈춤으로 해석",
+    "verified": {
+      "inputFields": "live9 18PASS/0FAIL/error0;unit26PASS/browser63PASS;TextArea newline owner+paint repaired",
+      "selection": "46adjacentPASS;actualSelectComboBoxListBox15checksPASS/error0",
+      "menusOverlays": "88adjacentPASS;actual4families30checksPASS/error0;unobscuredscreenshots reviewed",
+      "types": "final6tasksPASS",
+      "registration": "6PASS",
+      "agentCatalog": "PASS",
+      "ownedFormat": "PASS",
+      "diffCheck": "PASS",
+      "preflight": "guardPASS;shared task-state formatting only blocks"
+    },
+    "next": [
+      "이번 2·3번의 수리 및 검증 범위 완료",
+      "4번: S2 대조로 확정한 누락 컴포넌트 확인·구현",
+      "5번: Label raster 등 남은 항목 전체 통합 검증"
+    ],
+    "delivery": {
+      "status": "committed_pushed",
+      "commit": "03ead111a128b4e1c12a9419d84237947510bc8a",
+      "remote": "origin/main",
+      "remoteShaVerified": "03ead111a128b4e1c12a9419d84237947510bc8a",
+      "files": 24,
+      "updatedAt": "2026-11-06T17:25:54.999637+00:00"
+    },
+    "remaining": [
+      "Menu DOM automatic first-item focus vs Canvas rest: same-state fill comparison UNVERIFIED, retained for stage5",
+      "Date/Time full option/nativeform/picker matrix and actualBuilder exhaustive exercise retained for integration; browser4families limited checksPASS",
+      "Labelraster13FAIL and theme/device/state/IME/Publish full matrix retained for stage5",
+      "Stage4 missingcomponents remains separate and unstarted"
+    ]
+  },
+  "s2182Stage4": {
+    "status": "implementation_and_scoped_live_verified_with_visual_residual",
+    "run": ".agent/runs/20261107-stage4-components",
+    "installedS2": "1.8.2",
+    "confirmedMissingCandidates": [
+      "ActionBar",
+      "LinkButton",
+      "LabeledValue",
+      "RangeSlider",
+      "SegmentedControl",
+      "SelectBox",
+      "SelectBoxGroup"
+    ],
+    "scope": "독립S2컴포넌트와catalog/palette/property/interaction/code노출대조 후 구현",
+    "remaining": [
+      "Stage5 Label raster13 FAIL (user-deferred), unchanged thresholds",
+      "ActionBar clear width/count start and width about7.88px Canvas/DOM difference; live10 world-relative measurement recorded",
+      "Menu same-focus fill, all theme/device/state/IME/Publish/nativeform and exported Code pixel matrix remain integration scope",
+      "D3 SearchField XS glyph9.42857 vs10 also fails on HEAD baseline;72PASS/1FAIL"
+    ],
+    "updatedAt": "2026-11-06T18:44:38.134119+00:00",
+    "phase": "stage4_scope_closed_stage5_integration_pending",
+    "libraryContract": 62,
+    "verified": {
+      "exposureD2Census": "13 PASS, registration-delivery.log",
+      "schema": "18 PASS",
+      "contract": "30 PASS",
+      "latestTypes": "6 tasks PASS before final shared contract additions",
+      "baselineD3": "SearchField glyph XS same failure on HEAD; 72PASS/1FAIL",
+      "intrinsicContainment": "engine/Chromium 5 PASS: block,stretch,hug,longtext,side",
+      "rangeSegmentPublic": "Chromium 3 PASS including folded defaults and indicator bounds",
+      "types": "6 tasks PASS, typecheck-handoff.log",
+      "content": "unit8/engine+oracle6/live9 11 PASS; final underline/image verified",
+      "rangeSegment": "unit7/browser3/existingSlider16; actual Range5 + Segment10 PASS/error0",
+      "selection": "unit+Chromium12/paint3/live8 23 PASS/error0; Canvas+DOM foreground and same selection state confirmed",
+      "codeView": "320 PASS",
+      "preflight": "guard PASS; existing/shared formatting only 2 warnings block full PASS",
+      "diffCheck": "PASS",
+      "commitChecks": "typecheck6tasksPASS; adjacent6files30PASS; guardPASS; preflight existing/shared format2warnings"
+    },
+    "activeRepairs": [],
+    "delivery": {
+      "status": "committed_pushed",
+      "commit": "8ac17dc1270d9d15df9c2927713c863ce3af3c8e",
+      "remote": "origin/main",
+      "remoteShaVerified": "8ac17dc1270d9d15df9c2927713c863ce3af3c8e",
+      "files": 145,
+      "updatedAt": "2026-11-06T18:47:59.428886+00:00"
+    }
+  },
+  "segmentedControlMotion": {
+    "phase": "followup_props_press_slot_closed_stage5_started",
+    "status": "verified_uncommitted",
+    "run": ".agent/runs/20261107-segmented-motion",
+    "scope": "catalog contract63; public/Preview/Publish DOM selection/press; shared Slot UI; Canvas final authored typography/layout; no Canvas timeline engine",
+    "updatedAt": "2026-11-06T20:13:28.134900+00:00",
+    "cause": "RAC SharedElementTransition wired, but real indicator descendant had transition-duration0s; moving/shared scope itself was present",
+    "fix": "catalog translate/width200ms cubic-bezier(0,0,0.4,1); selected stacking; generator selector-level reducedMotion override",
+    "verified": {
+      "before": "Chromium regression RED:0s vs installed S2 0.2s",
+      "browser": "4 PASS incl real intermediate position/width and interrupted reversal",
+      "runtimeUnit": "13 PASS",
+      "generatorUnit": "11 PASS",
+      "registration": "6 PASS",
+      "types": "6tasksPASS/baseline0/types-final.log",
+      "liveNormal": "11 PASS/errors0;25 intermediate positions",
+      "liveReduced": "11 PASS/errors0;only2 endpoint positions/no active transitions",
+      "preflight": "guardPASS;sharedlocal .agent/task-state.json format warning only; owned product source formatting PASS",
+      "diffCheck": "PASS",
+      "slotUi": "2 PASS actual CatalogRacSlotSection existing/Unset/Detach; no textbox",
+      "runtimeFinal": "5files30PASS",
+      "contractFinal": "2files39PASS",
+      "browserFinal": "2files4PASS incl S2 actual mouse and keyboard press, native slots",
+      "liveFinal": "17PASS/errors0; typography14/18 and edited item geometry diff<=0.015px",
+      "codeInverse": "native page/project identity2PASS + adjacent4files16PASS + shared5files320PASS"
+    },
+    "slotPattern": "Generic slot text editor hidden; shared CatalogRacSlotSection with actual ToggleButtonGroup/ToggleButton consumers; live RacSlotScope connection/detach"
+  },
+  "spectrumStage5Integration": {
+    "phase": "menu_same_focus_background_closed",
+    "status": "in_progress",
+    "run": ".agent/runs/20261107-stage5-integration/actionbar-fix",
+    "scope": "Stage5 ActionBar geometry and Menu same-focus background closed; Label13raster and full integration matrix remain",
+    "updatedAt": "2026-11-07T00:28:11.422432+00:00",
+    "baseline": ".agent/runs/20261107-stage5-integration/actionbar-baseline/results.json",
+    "findings": "Menu same-focus fill12/12 exact RGBA light/dark; Builder10PASS/errors0; maxgeometryerror0.015625px; no product paint changes; focus ring/glyph/fullmatrix remain",
+    "followupSelectBox": "audit complete; public8PASS/live9PASS/errors0; Builder dynamic collection projection remains unsupported",
+    "verified": {
+      "builder": "12PASS/errors0 aftertypecheck",
+      "unit": "21PASS incl5sizes/authored64x48/padding/Undo",
+      "rust": "514unit+40integration+1doctestPASS;focused21conditionsPASS;implementation-only revertRED",
+      "chromiumMatrix": "21/21PASS",
+      "types": "6tasksPASS/baseline0",
+      "registration": "6PASS",
+      "catalog": "FAIL0/WARN0",
+      "preflight": "guardPASS;sharedstate+HEADboxModelfontformat2warnings",
+      "diffCheck": "PASS"
+    },
+    "menuFocus": {
+      "run": ".agent/runs/20261107-stage5-integration/menu-focus",
+      "browser": "2testsPASS;12same-statepaintpairs;2DOMselectionfocusSmoke",
+      "builder": "10PASS/errors0",
+      "scope": "background fill only; focus ring/glyph raster not verified",
+      "remaining": [
+        "Label13 raster",
+        "full integration matrix including Menu focus ring/glyph"
+      ],
+      "checks": {
+        "types": "6tasksPASS/baseline0",
+        "format": "owned2filesPASS",
+        "diff": "PASS",
+        "preflight": "blocked existing2formatwarnings"
+      }
+    }
+  },
+  "s2AddedComponentsInheritanceSlotAudit": {
+    "status": "confirmed_findings_repaired_broader_equivalence_pending",
+    "scope": [
+      "ActionBar",
+      "LinkButton",
+      "LabeledValue",
+      "RangeSlider",
+      "SegmentedControl",
+      "SegmentedControlItem",
+      "SelectBoxGroup",
+      "SelectBox"
+    ],
+    "findings": [
+      "disabled receiver mapping missing: DOM/Canvas divergence",
+      "Form RangeSlider/LabeledValue receiver mapping missing",
+      "SelectBoxGroup slotted selectionMode overridden",
+      "RangeSlider slotted defaultValue overridden",
+      "ActionBar/LinkButton/RangeSlider Slot authoring missing; LinkButton DOM slot dropped",
+      "inherited LinkButton navigation/ARIA and RangeSlider ARIA props missing; LinkButton autoFocus not forwarded",
+      "public LabeledValue default size does not reach default Text children"
+    ],
+    "validation": {
+      "existing_unit": "30 PASS",
+      "existing_chromium": "16 PASS",
+      "diagnostic": "28 cases: 16 FAIL / 12 PASS; repeated reproductions plus measurements, not 16 distinct bugs",
+      "code_slot_roundtrip": "3 PASS"
+    },
+    "productSourceChanged": false,
+    "evidenceDirectory": ".agent/runs/20261107-104850-6-s2-props-rac-slot-source/artifacts",
+    "unverified": [
+      "manual Builder Property/save/reload/undo",
+      "separate Publish tab",
+      "ActionBar scroll container equivalence",
+      "contextualHelp child composition equivalence"
+    ],
+    "updatedAt": "2026-11-07T04:26:28.416865+00:00",
+    "resolvedByFollowup": {
+      "SegmentedControl/Item": "RAC initial/controlled selection and body/Frame disabled inheritance verified",
+      "evidenceDirectory": ".agent/runs/20261107-120620-segmentedcontrol-rac-slot-context-aria-o/artifacts",
+      "confirmedPatternFixes": ".agent/runs/20261107-123750-5-selectbox-slot-disabled-form-rac-conte/artifacts/report.md"
+    }
+  },
+  "segmentedControlGroupInheritanceFix": {
+    "status": "verified_scoped_preflight_existing_format_blocked",
+    "scope": "SegmentedControl/Item only; ToggleButtonGroup composition pattern and common Slot UI preserved",
+    "changes": [
+      "RAC-resolved initial selection tracker",
+      "slotted aria name and orientation fallback",
+      "body/frame disabled receiver registration",
+      "render-function children preserved"
+    ],
+    "evidenceDirectory": ".agent/runs/20261107-120620-segmentedcontrol-rac-slot-context-aria-o/artifacts",
+    "updatedAt": "2026-11-07T03:15:19.179194+00:00",
+    "validation": {
+      "regression": "9 files /46 PASS",
+      "typecheck": "6 tasks PASS /Builder baseline 0",
+      "registration": "6 PASS",
+      "format": "scoped PASS",
+      "agentCatalog": "FAIL 0 /WARN 0",
+      "live": "17 PASS /errors 0",
+      "preflight": "BLOCKED existing shared task-state and unrelated boxModel formatting"
+    },
+    "unverified": [
+      "separate Publish tab",
+      "live Undo/Redo",
+      "full glyph pixelmatch"
+    ]
+  },
+  "newS2ExistingPatternAudit": {
+    "status": "confirmed_findings_repaired_broader_equivalence_pending",
+    "scope": [
+      "ActionBar",
+      "LinkButton",
+      "LabeledValue",
+      "RangeSlider",
+      "SelectBoxGroup",
+      "SelectBox"
+    ],
+    "referenceTypes": [
+      "Button",
+      "Link",
+      "Slider",
+      "TextField",
+      "ListBox",
+      "ListBoxItem",
+      "ActionButtonGroup"
+    ],
+    "newlyConfirmed": [
+      "SelectBox ListBoxItem Text provider alias missing; newly inserted Text Slot UI hidden",
+      "ActionBar clear Button provider missing; newly inserted ActionButton Slot UI hidden",
+      "LinkButton Preview autoFocus fails while Button/Link pass"
+    ],
+    "reconfirmed": [
+      "disabled receiver omissions",
+      "Form receiver omissions",
+      "RangeSlider context range override",
+      "SelectBoxGroup context mode override",
+      "public LabeledValue default Text size mismatch"
+    ],
+    "baselineCaveats": [
+      "Link/Slider/ListBox common slot missing too",
+      "Link navigation and Slider ARIA direct fields share existing baseline gaps",
+      "ListBox has no group isDisabled; SelectBoxGroup must translate S2 group disabled"
+    ],
+    "validation": {
+      "existing": "6 files /36 PASS",
+      "comparativeDiagnostics": "26 cases /15 FAIL /11 PASS; repeated cases not distinct bug count"
+    },
+    "productSourceChanged": false,
+    "evidenceDirectory": ".agent/runs/20261107-121810-segmentedcontrol-actionbar-linkbutton-la/artifacts",
+    "updatedAt": "2026-11-07T04:26:28.416865+00:00",
+    "resolvedByFollowup": {
+      "confirmedPatternFixes": ".agent/runs/20261107-123750-5-selectbox-slot-disabled-form-rac-conte/artifacts/report.md"
+    }
+  },
+  "newS2CompositionPatternFix": {
+    "status": "confirmed_pattern_fixes_complete",
+    "scope": [
+      "ActionBar",
+      "LinkButton",
+      "LabeledValue",
+      "RangeSlider",
+      "SelectBoxGroup",
+      "SelectBox"
+    ],
+    "evidenceDirectory": ".agent/runs/20261107-123750-5-selectbox-slot-disabled-form-rac-conte/artifacts",
+    "changes": [
+      "real Link/Slider/local ActionBar consumers and provider metadata",
+      "disabled/Form receivers",
+      "RAC context before defaults",
+      "navigation/ARIA forwarding including RAC native hrefLang render bridge",
+      "catalog-generated LabeledValue Text typography"
+    ],
+    "updatedAt": "2026-11-07T04:26:28.416865+00:00",
+    "report": ".agent/runs/20261107-123750-5-selectbox-slot-disabled-form-rac-conte/artifacts/report.md",
+    "validation": {
+      "adjacent": "144 PASS",
+      "sharedCodeSlot": "329 PASS",
+      "registration": "6 PASS",
+      "comparative": "26 PASS",
+      "typecheck": "6 tasks PASS, baseline 0",
+      "live": "49 PASS, errors 0",
+      "scopedFormat": "PASS",
+      "preflight": "BLOCKED: pre-existing task-state.json and boxModel.ts format warnings"
+    },
+    "additionalLiveFixes": [
+      "ActionButton primitive/origin accepts detached Slot with Undo/Redo",
+      "bound SelectBox Text exposes Slot editor in full Property body"
+    ],
+    "unverified": [
+      "separate Publish deployment/live",
+      "ActionBar scroll container and enter/exit",
+      "contextualHelp child assembly equivalence",
+      "Builder dynamic SelectBoxGroup items projection",
+      "routerOptions catalog authoring",
+      "full S2 visual state matrix; observed SelectBox shadow difference"
+    ],
+    "git": {
+      "commit": "ba85388dbec12d9259cd374e4711feb916dcff1b",
+      "remoteMain": "ba85388dbec12d9259cd374e4711feb916dcff1b",
+      "files": 38,
+      "verifiedAt": "2026-11-07T04:38:33.118435+00:00",
+      "report": ".agent/runs/20261107-133257-s2-slot-hunk-code-main-push/artifacts/report.md"
+    }
+  },
+  "existingComponentsContractAudit": {
+    "status": "audit_complete_confirmed_findings_open",
+    "updatedAt": "2026-11-07T06:50:39.673919+00:00",
+    "head": "ba85388dbec12d9259cd374e4711feb916dcff1b",
+    "scope": "all Components panel registrations and their default child composition",
+    "counts": {
+      "paletteRows": 91,
+      "ordinaryPanelRows": 89,
+      "ordinaryTypes": 83,
+      "allTypes": 85,
+      "partTypes": 161,
+      "partContractContexts": 271,
+      "propertyPairs": 2841,
+      "ordinaryUniquePropertyFields": 852,
+      "slotConsumerMissing": 54,
+      "slotCommandRejected": 53
+    },
+    "report": ".agent/runs/20261107-152021-components-rac-slot-property-interaction/artifacts/report.md",
+    "propertyMatrix": ".agent/runs/20261107-152021-components-rac-slot-property-interaction/artifacts/property-matrix.csv",
+    "confirmedFindings": [
+      "TextArea missing inherited disabled/readOnly/required receiver",
+      "body/frame required absent from Canvas necessity computation for 13 fields",
+      "Form size not inherited by 19 S2 Form consumers; ToggleButton emphasis not inherited",
+      "54 upstream Slot types lack common consumer registration; 53 reject detach authoring",
+      "Avatar default24/32 and numeric64/32 mismatch observed in Chromium",
+      "Accordion multiple expansion default differs from S2; missing size options",
+      "LinkButton Link-only isQuiet/isStandalone exposed by previous contract spread",
+      "Card disabled binding missing from palette root Property schema"
+    ],
+    "validation": {
+      "no-change": 69,
+      "accepted": 722,
+      "special-or-hidden": 61
+    },
+    "diagnostic": {
+      "cases": 50,
+      "pass": 3,
+      "fail": 47,
+      "note": "includes one inventory PASS; repeated cases across families are not distinct bug counts"
+    },
+    "existingGates": {
+      "inheritance": "16 PASS",
+      "D2Slot": "7 PASS / 2 FAIL, actual LinkButton drift and hidden slot provenance check",
+      "preflight": "blocked at existing format warnings for task-state.json and boxModel.ts"
+    },
+    "unverified": [
+      "all component DOM property effects",
+      "all keyboard/touch/theme/state combinations",
+      "full save/reload/Publish",
+      "domain prop gap candidates and programmatic callback equivalence"
+    ],
+    "implementationSourceChanged": false
+  },
+  "existingComponentsContractFix": {
+    "status": "common_contracts_verified",
+    "run": ".agent/runs/20261107-160601-slot-property-builder",
+    "scope": [
+      "confirmed inheritance",
+      "RAC/S2 slot authoring and actual consumers",
+      "confirmed Property omissions and drift"
+    ],
+    "updatedAt": "2026-11-07T07:54:03.139583+00:00",
+    "targetedTests": "Builder 112 + Shared 86 + Registration 6 + Property 1 PASS",
+    "typecheck": "PASS, baseline 0",
+    "slotContract": {
+      "contextConsumers": 68,
+      "newContextConsumers": 53,
+      "domPassthrough": [
+        "Sheet"
+      ]
+    },
+    "pending": [
+      "Avatar numeric size API/default diameter and AvatarGroup numeric sizes",
+      "Accordion default multi-expansion and Accordion/Disclosure XL, CardView XS/XL",
+      "other Property literal option gaps such as Card target and Popover placement require source/runtime completion"
+    ],
+    "propertyCommands": {
+      "total": 907,
+      "statuses": {
+        "no-change": 69,
+        "accepted": 722,
+        "special-or-hidden": 116
+      },
+      "rejected": 0,
+      "undoMismatch": 0
+    },
+    "live": {
+      "pass": 17,
+      "fail": 0,
+      "consoleErrors": 0,
+      "artifact": ".agent/runs/20261107-160601-slot-property-builder/artifacts/live-confirmed/results.json"
+    },
+    "preflight": "existing format warnings in .agent/task-state.json and packages/shared/src/catalog/runtime/boxModel.ts",
+    "report": ".agent/runs/20261107-160601-slot-property-builder/artifacts/report.md",
+    "unverified": [
+      "whole-component Publish and all input device/theme/state combinations",
+      "complete external controlled-context state/callback equivalence",
+      "full pixelmatch default visual parity"
+    ]
+  },
+  "remainingS2Contracts": {
+    "run": ".agent/runs/20261107-171828-s2-1-8-2-avatar-api-accordion-accordion-",
+    "status": "verified-scoped",
+    "scope": [
+      "Avatar numeric and lh size API with named-size compatibility",
+      "AvatarGroup numeric presets",
+      "Accordion default expansion and missing sizes",
+      "Card target and Popover placements"
+    ],
+    "updatedAt": "2026-11-07T09:18:33.880468+00:00",
+    "report": ".agent/runs/20261107-171828-s2-1-8-2-avatar-api-accordion-accordion-/report.md",
+    "validation": {
+      "builderVitest": 118,
+      "sharedVitest": 38,
+      "renderingVitest": 13,
+      "s2BrowserOracle": 20,
+      "livePass": 47,
+      "liveFail": 0,
+      "typecheck": "pass",
+      "registration": "pass",
+      "scopedFormat": "pass",
+      "preflight": "blocked by pre-existing formatting in task-state.json and boxModel.ts"
+    },
+    "remaining": [
+      "Publish dedicated browser exercise",
+      "Disclosure XL Spacious crop pixelmatch difference 233/59840 at threshold 0.1"
+    ],
+    "git": {
+      "commit": "792815efc396a84d73f177c65ecb6d8c02ba6ebd",
+      "remoteMain": "792815efc396a84d73f177c65ecb6d8c02ba6ebd",
+      "push": "verified",
+      "files": 64,
+      "updatedAt": "2026-11-07T09:42:12.059906+00:00"
+    }
+  },
+  "reviewAdr302": {
+    "status": "design_repair_verified_high_0_pending_0",
+    "updatedAt": "2026-11-07T10:20:19.541203+00:00",
+    "reviewLog": "docs/adr/reviews/302.md",
+    "round": 3,
+    "scope": "round 2 상태 계약 수리 및 S2 Button 명시 단 대비 검증",
+    "high": 0,
+    "pending": 0,
+    "unverified": "full oracle/rule pairs/status reclassification/generation/sweep/bundle/live"
+  },
+  "remainingWorkCommit": {
+    "status": "committed-pushed",
+    "run": ".agent/runs/20261107-184731-s2-spectrum-proposed-adr-push",
+    "scope": "미커밋 S2 변경과 Spectrum 조사 및 Proposed ADR-302 문서",
+    "codeFiles": 109,
+    "documentFiles": 5,
+    "updatedAt": "2026-11-07T09:53:01.107210+00:00",
+    "head": "56d4cc5d81614a45a1de4caaf8ffa29e37aceb97",
+    "remoteMain": "56d4cc5d81614a45a1de4caaf8ffa29e37aceb97",
+    "commits": [
+      "56d4cc5d8 docs: ADR-302 리뷰 완료 기록 동기화",
+      "642a949d7 docs: ADR-302 색상 역할과 대비 리뷰 반영",
+      "112168844 docs: Spectrum 색상 조사와 ADR-302 초안 등록",
+      "54730ef3e fix: S2 선택·모션·기하 잔여 계약 보완"
+    ],
+    "verification": {
+      "head": "56d4cc5d81614a45a1de4caaf8ffa29e37aceb97",
+      "remoteMain": "56d4cc5d81614a45a1de4caaf8ffa29e37aceb97",
+      "commits": [
+        "56d4cc5d8 docs: ADR-302 리뷰 완료 기록 동기화",
+        "642a949d7 docs: ADR-302 색상 역할과 대비 리뷰 반영",
+        "112168844 docs: Spectrum 색상 조사와 ADR-302 초안 등록",
+        "54730ef3e fix: S2 선택·모션·기하 잔여 계약 보완"
+      ],
+      "codeFiles": 109,
+      "documentFiles": 5,
+      "typecheck": "PASS 6 tasks baseline 0",
+      "browser": "20 PASS",
+      "rust": "514 unit +40 integration +1 doctest PASS",
+      "live": "SelectBox9+Segmented17+ActionBar16 PASS, errors0",
+      "unit": "Builder153 PASS +10 existing HEAD-identical failures; Shared74 and Rendering8 PASS",
+      "preflight": "local task-state.json formatting warning",
+      "documentStatus": "ADR-302 Proposed, review log pending 0",
+      "remainingWorktree": [
+        ".agent/task-state.json"
+      ]
+    }
+  },
+  "racSlotPropertyVisibility": {
+    "status": "reverted-wrong-scope",
+    "run": ".agent/runs/20261107-185630-segmentedcontrol-property-rac-slot-build",
+    "cause": "RAC Slot section hidden when provider absent and value unset; old textbox-count-only test passed with missing section",
+    "fix": "이전 RAC context Slot 노출 변경을 원복. 사용자 요청은 항목 추가용 자식 Slot.",
+    "regression": "5 previously failing unset cases +2 existing authored cases PASS, 48 adjacent contracts PASS",
+    "updatedAt": "2026-11-07T10:29:58.499024+00:00",
+    "live": {
+      "pass": 24,
+      "fail": 0,
+      "errors": 0
+    },
+    "report": ".agent/runs/20261107-185630-segmentedcontrol-property-rac-slot-build/report.md",
+    "typecheck": "PASS baseline 0",
+    "scopedFormat": "PASS",
+    "preflight": "local task-state formatting warning"
+  },
+  "segmentedControlItemsSlot": {
+    "status": "verified",
+    "run": ".agent/runs/20261107-191957-togglebuttongroup-segmentedcontrol-slot-",
+    "updatedAt": "2026-11-07T10:29:58.499199+00:00",
+    "cause": "ToggleButtonGroup과 달리 원본 root Slot과 GROUP_ITEM_TYPES가 모두 누락",
+    "fix": "Items Slot + SegmentedControlItem 등록, 기존 공통 패널과 명령 재사용",
+    "regression": "Slot 3 PASS (legacy edit preservation included); shared collections 5 PASS; S2MissingComponents 9 PASS; registration 6 PASS",
+    "live": "headed Playwright 18 PASS, console/page errors 0. Add twice, Undo/Redo, save/reload, restore and single selection.",
+    "legacy": "실제 이전 scratch는 새 브라우저 IndexedDB에 없어 PROJECT_NOT_FOUND. 구버전 Slot 없는 fixture 문서의 편집값 보존을 테스트로 검증.",
+    "typecheck": "PASS baseline 0",
+    "scopedFormat": "PASS",
+    "baselineFailures": [
+      "ListBox item text assertion fails identically on HEAD",
+      "preflight stops at shared local task-state formatting warning"
+    ],
+    "report": ".agent/runs/20261107-191957-togglebuttongroup-segmentedcontrol-slot-/report.md",
+    "git": {
+      "commit": "5745593c4b668d1d2ef7aec5847d2478b45c0bbe",
+      "remote": "origin/main",
+      "remoteVerified": true,
+      "verifiedAt": "2026-11-07T12:50:08.527371+00:00"
+    }
+  },
+  "itemSlotCoverageAudit": {
+    "status": "verified",
+    "run": ".agent/runs/20261107-193124-selectboxgroup-slot",
+    "scope": "90 palette items; authored child Slots and item insertion contracts",
+    "confirmedGaps": [
+      "SelectBoxGroup",
+      "Pagination",
+      "ColorSwatchPicker",
+      "ActionButtonGroup restricted choices",
+      "ActionBar actions group"
+    ],
+    "updatedAt": "2026-11-07T11:12:22.452769+00:00",
+    "fixes": [
+      "SelectBoxGroup Items + collection family",
+      "Pagination Buttons",
+      "ColorSwatchPicker Swatches",
+      "ActionButtonGroup ActionButton registry",
+      "ActionBar Actions + item wrapper routing",
+      "Checkbox/Radio wrapper picker item list"
+    ],
+    "regression": "Slot18 PASS; legacy authored Text retention included",
+    "live": "9 families, items-final60 + wrappers-final19 PASS, errors0",
+    "typecheck": "PASS baseline 0",
+    "registration": "6 PASS",
+    "preflight": "shared local task-state formatting warning",
+    "baseline": "23 existing failures reproduced on HEAD",
+    "report": ".agent/runs/20261107-193124-selectboxgroup-slot/artifacts/verification.md",
+    "git": {
+      "commit": "5745593c4b668d1d2ef7aec5847d2478b45c0bbe",
+      "remote": "origin/main",
+      "remoteVerified": true,
+      "verifiedAt": "2026-11-07T12:50:08.527371+00:00"
+    }
+  },
+  "segmentedControlReferenceAlignment": {
+    "status": "verified",
+    "run": ".agent/runs/20261107-193124-selectboxgroup-slot",
+    "updatedAt": "2026-11-07T11:11:23.625540+00:00",
+    "cause": [
+      "automatic HTML ID changed materialized item selection keys",
+      "orientation composition omitted root variant background CSS",
+      "wrong selected and disabled color roles, font weight and control height",
+      "locale line height omitted from delegated DOM style",
+      "disabled indicator border missing incremental update"
+    ],
+    "fix": "common static item key contract, rootPaint, S2 size/typography/token rules and shared indicator border projection",
+    "live": "segmented-final2 11 PASS, console/page errors0",
+    "fontComparison": "project Pretendard supplied to both implementations for geometry; native S2 font reference captured separately",
+    "unverified": [
+      "icon-only",
+      "touch",
+      "dark live",
+      "Publish live",
+      "full glyph pixel equality"
+    ],
+    "report": ".agent/runs/20261107-193124-selectboxgroup-slot/artifacts/verification.md",
+    "git": {
+      "commit": "5745593c4b668d1d2ef7aec5847d2478b45c0bbe",
+      "remote": "origin/main",
+      "remoteVerified": true,
+      "verifiedAt": "2026-11-07T12:50:08.527371+00:00"
+    }
+  },
+  "racContextSlotPropertyUi": {
+    "status": "verified",
+    "run": ".agent/runs/20261107-205126-property-rac-context-slot-ui-slot-runtim",
+    "updatedAt": "2026-11-07T12:02:26.874857+00:00",
+    "scope": "모든 컴포넌트 일반 Property RAC context slot 편집 제거. 자식 Slots와 runtime·Code 계약 보존.",
+    "fix": "공통 본문 두 mount 제거, Sheet hidden 계약 통일, 사용하지 않는 섹션 삭제",
+    "tests": "Property/common 74 PASS, adjacent 59 PASS plus 1 known ListBox baseline, shared RAC runtime9 PASS, registration6 PASS",
+    "typecheck": "PASS baseline 0",
+    "live": "9 families, stable rerun98 PASS, console/page errors0; first run97 behaviors PASS plus one createRoot warning, cause unconfirmed",
+    "preflight": "blocked by shared local task-state formatting warning; guard and owned format pass",
+    "report": ".agent/runs/20261107-205126-property-rac-context-slot-ui-slot-runtim/artifacts/verification.md",
+    "unverified": [
+      "Publish live",
+      "all palette entries individually in browser",
+      "dark/touch",
+      "other updated live harnesses syntax-check only"
+    ],
+    "git": {
+      "commit": "5745593c4b668d1d2ef7aec5847d2478b45c0bbe",
+      "remote": "origin/main",
+      "remoteVerified": true,
+      "verifiedAt": "2026-11-07T12:50:08.527371+00:00"
+    }
+  },
+  "selectBoxOrientationLabel": {
+    "status": "verified",
+    "run": "20261107-215916-selectboxgroup-content-orientation-orien",
+    "scope": "SelectBoxGroup orientation label uses shared Orientation i18n path",
+    "updatedAt": "2026-11-07T13:01:51.210394+00:00",
+    "fix": "binding label Orientation reuses chart.orientation semantic key",
+    "live": "English Orientation, Korean 방향, Korean 세로/가로 options; 5 PASS, errors0",
+    "tests": "29 PASS; existing translation catalog freeze count failure29 vs26, translation sources unchanged",
+    "typecheck": "PASS baseline0",
+    "preflight": "shared local task-state formatting warning; owned format PASS",
+    "git": {
+      "commit": "f1a90728715b82c3558477f57604afe3216f7b5d",
+      "remote": "origin/main",
+      "remoteVerified": true,
+      "verifiedAt": "2026-11-07T13:25:19.011353+00:00"
+    }
+  },
+  "segmentedControlLayoutParity": {
+    "status": "verified",
+    "run": "20261108-011701-segmentedcontrol-canvas-border-radius-ju",
+    "cause": [
+      "CSS-only group radius not consumed by Canvas shape",
+      "delegated group passed data-justified to wrapper which overwrote it with undefined isJustified",
+      "absolute zero flex basis collapses intrinsic Hug widths to min-width"
+    ],
+    "fix": [
+      "shared radius.md size token",
+      "isJustified forwarding to wrapper",
+      "engine percentage-zero flex basis; existing DOM basis preserved"
+    ],
+    "tests": "Builder38/shared3/registration6 PASS",
+    "live": "SegmentedControl14 PASS, ToggleButtonGroup8 PASS, ActionButtonGroup8 PASS; errors0 each",
+    "updatedAt": "2026-11-07T16:38:03.084647+00:00",
+    "typecheck": "PASS baseline0",
+    "preflight": "shared task-state formatting warning; owned format PASS",
+    "report": ".agent/runs/20261108-011701-segmentedcontrol-canvas-border-radius-ju/artifacts/verification.md",
+    "unverified": [
+      "dark/touch/Publish live",
+      "complete glyph pixel equality"
+    ],
+    "git": {
+      "commit": "15343dee9ee6ca48d26f944d4c0114c6109f9517",
+      "remote": "origin/main",
+      "remoteVerified": true,
+      "verifiedAt": "2026-11-07T17:08:50.591173+00:00"
+    }
+  },
+  "segmentedControlTextTruncation": {
+    "status": "verified",
+    "run": ".agent/runs/20261108-014120-s2-segmentedcontrol-text-canvas-preview-",
+    "updatedAt": "2026-11-07T16:59:46.277511+00:00",
+    "reference": "1.8.2",
+    "cause": [
+      "TextContext truncate default absent from catalog",
+      "fitting fractional width incorrectly enabled SkParagraph ellipsis"
+    ],
+    "fix": [
+      "shared static Text selector with typed frame child rule",
+      "cached exact layout advance passed to Canvas",
+      "same f32 overflow predicate for paint and retained paragraph key"
+    ],
+    "tests": "initial Builder43 PASS; renderer/fitting suite30 PASS; shared10 PASS; registration6 PASS",
+    "typecheck": "PASS baseline0",
+    "live": "22 PASS errors0. Long Korean/English truncates, Grid stays whole, narrow/Undo/Redo/save reload verified",
+    "preflight": "shared task-state formatting warning; owned format PASS",
+    "report": ".agent/runs/20261108-014120-s2-segmentedcontrol-text-canvas-preview-/artifacts/verification.md",
+    "git": {
+      "commit": "15343dee9ee6ca48d26f944d4c0114c6109f9517",
+      "remote": "origin/main",
+      "remoteVerified": true,
+      "verifiedAt": "2026-11-07T17:08:50.591173+00:00"
+    }
+  },
+  "toggleButtonGroupJustified": {
+    "status": "verified",
+    "run": "20261108-021359-togglebuttongroup-justified-label-canvas",
+    "scope": "long unequal labels under justified group; Canvas and Preview",
+    "updatedAt": "2026-11-07T17:19:13.470330+00:00",
+    "cause": "S2 truncate defaults and control minWidth absent; grouped content span minWidth missing from Canvas part",
+    "tests": "Builder41 PASS, shared22 PASS; existing density3 failures reproduced on HEAD; registration6 PASS",
+    "typecheck": "PASS baseline0",
+    "live": "Toggle24 PASS / Action24 PASS / Segmented26 PASS; console/page errors0",
+    "preflight": "shared local task-state formatting warning; owned format PASS",
+    "report": ".agent/runs/20261108-021359-togglebuttongroup-justified-label-canvas/artifacts/verification.md",
+    "unverified": [
+      "Publish live",
+      "dark/touch/all font-size combinations",
+      "full glyph raster equality"
+    ],
+    "git": {
+      "commit": "5cf91844fe527f1e53c268e620297d39d246784a",
+      "remote": "origin/main",
+      "remoteVerified": true,
+      "verifiedAt": "2026-11-07T17:20:12.953679+00:00"
+    }
+  },
+  "justifiedPropertyAudit": {
+    "status": "verified-source-audit",
+    "updatedAt": "2026-11-07T17:22:42.180535+00:00",
+    "reference": "installed @react-spectrum/s2 1.8.2 src and dist types; whole binding directory and reusable property schema",
+    "publicComponents": [
+      "ActionButtonGroup",
+      "ToggleButtonGroup",
+      "SegmentedControl"
+    ],
+    "catalogComponents": [
+      "ActionButtonGroup",
+      "ToggleButtonGroup",
+      "SegmentedControl"
+    ],
+    "missingCount": 0,
+    "notes": "ActionButton and ToggleButton consume group context. Public standalone props exclude internal ActionGroupItemStyleProps. Property renderer visibility and reusable schema fallback inspected.",
+    "validationScope": "source and metadata audit; browser not rerun because no source changed"
+  },
+  "reviewAdr303": {
+    "task": "ADR-303 설계 리뷰",
+    "phase": "repair_review_recorded",
+    "status": "design_review_complete_high_0_pending_0",
+    "scope": "Round 1 h1·h2·h3·m4의 문서 수리만 재대조; 신규 범위 구현 및 ADR 상태 변경 없음",
+    "findings": [
+      "h1 fixed (설계): Table base/quiet·그림자 없음, editPopover 분리",
+      "h2 fixed (설계): 공통 판정 결과를 노드별 DOM inline 변수로 전달",
+      "h3 fixed (설계): 등록 CSS 변수 매핑 및 --bg fallback",
+      "m4 fixed (설계): quiet CardPreview part에 상태 그림자 배정"
+    ],
+    "reviewLog": "docs/adr/reviews/303.md",
+    "validation": {
+      "schema": "PASS; Round 1·2 fixed4/pending0",
+      "guard": "PASS",
+      "format": "ADR·breakdown PASS; Round 2 writer 저장 후 reviews/303.md WARN (검사만 수행)",
+      "scope": "타 세션 dirty 보존. 문서 범위 검사; TS·제품 코드 변경 없음"
+    },
+    "unverified": [
+      "ADR-303 구현",
+      "테스트/typecheck/번들",
+      "Builder/Preview/Publish live 및 픽셀 parity"
+    ],
+    "nonBlockingNotes": [
+      "README.md:644의 Table layer-2/elevated 이전 요약 잔존; 리뷰 재개 사유 아님"
+    ]
+  },
+  "libraryTypographyNaN": {
+    "task": "Navigator Components Library fontSize NaN 수정",
+    "phase": "verified_static_live_blocked",
+    "status": "committed_pushed_live_unverified",
+    "scope": "Library typography 토큰 분류 및 인접 테스트·실제 Builder 검증",
+    "cause": "installThemeMaps가 typography 맵에 sans 문자열을 추가; Library가 Number(size)로 fontSize NaN 생성",
+    "fix": "TYPOGRAPHY_STEPS 크기 키만 열거; 설치된 테마 값 보존",
+    "validation": {
+      "regression": "기존 source에서 동일 STYLE_VALUE_UNSUPPORTED fontSize NaN RED; 수정 후 Library 첫 생성·재진입·모든 크기 및 baseline PASS",
+      "adjacent": "3파일 21 PASS / 5 FAIL; 수정 전 HEAD source에서도 동일 5 FAIL 확인 (accent 4, Pagination 행 1)",
+      "typecheck": "PASS baseline 0",
+      "scopedPreflight": "guard·소유 파일 format·registration 6·agent-catalog PASS; skills gate skip",
+      "live": "UNVERIFIED: browser access host unavailable; Chrome native getApp 2회 timeout"
+    },
+    "commit": "42de626eeeda49f7abf4f8793e6988765a39a22f",
+    "remoteVerifiedSha": "42de626eeeda49f7abf4f8793e6988765a39a22f"
+  }
+,
+  "libraryCanvasVisualUnsupported": {
+    "task": "Library Canvas ProgressBar whiteSpace unsupported 수정",
+    "phase": "verified_static_live_blocked",
+    "status": "committed_pushed_live_unverified",
+    "scope": "Canvas rule text style 전달 및 Library 전체 바인딩 회귀",
+    "cause": "ProgressBarValue/MeterValue의 part-rule whiteSpace가 Canvas 미지원 판정에 걸림; DOM 값 요소도 줄바꿈 저작값 누락",
+    "validation": {
+      "regression": "Library light/dark 동일 예외 RED 2 -> first/reopen whole-library Canvas GREEN 2; Progress/Meter DOM-Canvas edit/Undo PASS",
+      "adjacent": "4 files 28 PASS",
+      "typecheck": "PASS baseline 0",
+      "scopedPreflight": "guard/owned format/registration6/agent-catalog PASS; diff check PASS",
+      "live": "BLOCKED browser host unavailable/native Chrome timeout; pixels and browser console UNVERIFIED"
+    },
+    "report": ".agent/runs/20261108-library-canvas-whitespace/report.md",
+    "commit": "425bc4f0b38505b0a0bed01c1e3b33b2512374b3",
+    "remoteVerifiedSha": "425bc4f0b38505b0a0bed01c1e3b33b2512374b3"
   }
 }
