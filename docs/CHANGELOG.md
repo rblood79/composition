@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Badge 글자 대비 회귀 수리 — S2 Badge 칠로 정렬 (ADR-302 후속)] - 2026-11-08
+
+### Fixed
+
+- **Badge subtle · outline 글자가 색 면 위에서 4.5:1 을 못 맞추던 회귀** (codex round 4 h1): Spectrum 값으로 바뀐 뒤 hue 글자 × hue subtle 면 조합이 미달했다 (기본 테마 indigo subtle 6.57 → 4.15, dark turquoise 3.11).
+  - S2 `Badge.tsx` 그대로 — subtle · outline 글자 = `gray-1000` (light 검정 · dark 흰색, 새 tone 역할 `{color.gray-1000}` → `--gray-1000`), subtle 면 = 자기 family (gray · seafoam · brown · cinnamon · silver), silver bold 글자 흰색, hover · pressed 칠 없음 (S2 Badge 는 상태가 없다).
+  - 결과: Badge 32 조합 × light · dark 최소 대비 4.51, subtle · outline ≥ 7 — Canvas · Preview 같은 값 (live 5174). G3 부채 표 34 → 1 (InlineAlert neutral bold — S2 자신의 값).
+  - 생성 CSS 의 남은 `color-mix` 폴백 4 파일 (Code · DateInput · GridListItem · Kbd) 도 재생성으로 정리 — Phase 3 이 변환표를 고친 뒤 생성을 다시 돌리지 않았다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (Badge) · `packages/rendering/src/primitives/colorAliases.ts` · `packages/rendering/src/renderers/utils/tokenResolver.ts`
+
 ## [Preview 색도 Canvas 와 같은 사다리 — ADR-302 Phase 3 · Implemented] - 2026-11-08
 
 ### Changed

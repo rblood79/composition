@@ -199,6 +199,7 @@ describe("ADR-302 G2 — 두 축", () => {
           "neutral-fill-pressed",
           "picker-content",
           "picker-content-hover",
+          "gray-1000",
         ],
       },
       // named hue `gray` 의 면 — design-data `gray-background-color-default` (700 · 500) 와 그 다음 단 (3 이 잰다)

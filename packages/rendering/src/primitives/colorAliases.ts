@@ -230,6 +230,10 @@ export const COLOR_ALIASES: Readonly<Record<string, ColorAliasEntry>> = {
   "field-placeholder": tone(600, 600, {
     source: "S2 Field.tsx:347 placeholder gray-600",
   }),
+  /** 색 면 (`<hue>-subtle`) 위 글자 — S2 Badge subtle · outline 의 `gray-1000`. hue 글자는 subtle 면 위 4.5 를 못 맞춘다. */
+  "gray-1000": tone(1000, 1000, {
+    source: "S2 Badge.tsx:107 subtle · outline color gray-1000",
+  }),
   "disabled-content": tone(400, 400, { oracle: "disabled-content-color" }),
 
   // ── 진한 면 (tone) ──
@@ -324,7 +328,8 @@ export const COLOR_ALIASES: Readonly<Record<string, ColorAliasEntry>> = {
   /** 선택 표시 (Checkbox · Radio · Switch emphasized) — S2 는 `accent-900` 명시 (dark 도 900). 체크 표시는
    * 그래픽이라 흰색 3:1 (dark 3.51) 기준 — 글자 4.5 가 아니다. */
   "selection-accent": accent(900, 900, {
-    source: "S2 Checkbox · Radio · Switch emphasized backgroundColor accent-900",
+    source:
+      "S2 Checkbox · Radio · Switch emphasized backgroundColor accent-900",
   }),
   "selection-accent-hover": accent(1000, 1000, {
     source: "S2 accent-900:hovered (nextColorStop — 한 단)",

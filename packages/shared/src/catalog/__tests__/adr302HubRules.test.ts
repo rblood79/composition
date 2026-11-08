@@ -58,45 +58,12 @@ const ACTIVE_SURFACES = [
 ];
 
 /**
- * 기본 preset (Spectrum 값) 에서 이미 4.5 미만인 rule 쌍 — 생성식이 아니라 rule 의 역할 선택 문제 (ADR-302 Phase 2
- * 실측, 후속: S2 Badge subtle 글자 = gray-1000 · InlineAlert neutral bold 면). 모두 고정 축이거나 Spectrum 기본 단이다.
+ * 기본 preset (Spectrum 값) 에서 이미 4.5 미만인 rule 쌍 — 생성식이 아니라 rule 의 역할 선택 문제.
+ * InlineAlert neutral bold (S2 `neutral-subdued` 면 + 흰 글자 — S2 자신의 값, ADR-302 전에도 미달).
+ * Badge 의 subtle · hover · pressed · silver 쌍 33 은 S2 Badge 로 맞춰 닫았다 (codex round 4 h1 — subtle · outline
+ * 글자 `gray-1000` · 상태 가지 없음 · subtle 면 = 자기 family · silver bold 글자 흰색). 새 미달은 여기 넣지 않는다.
  */
-const DEFAULT_PRESET_PAIR_DEBT = [
-  "accent-content|accent-subtle",
-  "black|silver",
-  "black|silver-hover",
-  "black|silver-pressed",
-  "blue|blue-subtle",
-  "brown|orange-subtle",
-  "celery|celery-subtle",
-  "chartreuse|chartreuse-subtle",
-  "cinnamon|orange-subtle",
-  "cyan|cyan-subtle",
-  "fuchsia|fuchsia-subtle",
-  "gray|neutral-subtle",
-  "green-named|green-named-subtle",
-  "indigo|indigo-subtle",
-  "informative|informative-subtle",
-  "magenta|magenta-subtle",
-  "negative|negative-subtle",
-  "notice|notice-subtle",
-  "orange|orange-subtle",
-  "pink|pink-subtle",
-  "positive|positive-subtle",
-  "purple|purple-subtle",
-  "red|red-subtle",
-  "seafoam|neutral-subtle",
-  "silver|neutral-subtle",
-  "turquoise|turquoise-subtle",
-  "white|brown-hover",
-  "white|brown-pressed",
-  "white|cinnamon-hover",
-  "white|cinnamon-pressed",
-  "white|neutral-subdued",
-  "white|seafoam-hover",
-  "white|seafoam-pressed",
-  "yellow|yellow-subtle",
-];
+const DEFAULT_PRESET_PAIR_DEBT = ["white|neutral-subdued"];
 
 /**
  * 기본 preset (Spectrum 값) 이 이미 어기는 (b) · (d) 항목 — Spectrum design-data 자체의 값이다 (G1 이 이 값을 고정).

@@ -182,6 +182,7 @@ const COLOR_TOKEN_TO_CSS: Record<string, string> = {
   "neutral-outline": "var(--neutral-outline)",
   "neutral-outline-hover": "var(--neutral-outline-hover)",
   "on-neutral": "var(--on-neutral)",
+  "gray-1000": "var(--gray-1000)",
 
   "neutral-subdued": "var(--fg-muted)",
   "neutral-subtle": "var(--bg-muted)",

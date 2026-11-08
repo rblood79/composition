@@ -174,3 +174,9 @@ G0 가 채울 열: 지금 값 (before) · 바뀐 값 (after) · Δ · rule 참�
   - 면색 (상자 최빈색) 과 글자 핵심색이 전 행에서 Canvas = DOM, RGB 까지 같다.
   - 남은 pixelmatch 차이 0.2 ~ 5.6 % 는 글자 래스터 차이다. 기본 테마 (blue · neutral) 에서도 같은 크기 (ToggleButton 5.3 % · Badge 3.1 %) 라 테마와 무관하다.
   - page error 0.
+
+### 후속 — 2026-11-08 (codex round 4 h1)
+
+- Badge 글자 대비 회귀 15 쌍 (Spectrum 값 × 옛 hue 글자 · 상태 가지) — Badge rule 을 S2 `Badge.tsx` 로 정렬해 닫았다: subtle · outline 글자 `gray-1000` (tone 1000 역할 신설), 상태 가지 삭제, subtle 면 = 자기 family, silver bold 흰 글자. G3 부채 표 34 → 1. live 5174 Badge 64 조합 Canvas = DOM, 최소 대비 4.51. 상세 [reviews/302.md](../reviews/302.md) Round 4 h1 수리.
+- Phase 3 에서 빠진 `generate:css` 재생성 (변환표 폴백 삭제 뒤 생성 CSS 4 파일에 `color-mix` 폴백 잔존) 도 함께 정리.
+

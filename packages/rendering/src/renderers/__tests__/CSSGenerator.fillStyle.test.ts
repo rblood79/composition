@@ -99,10 +99,11 @@ describe("CSSGenerator fillStyle", () => {
       );
       expect(normalizedGeneratedCss).toContain(
         // (ADR-297 Phase 3: the subtle branch sets no border — the rest border (transparent) holds, as on Canvas)
-        `.react-aria-Badge:where([data-variant="${variant}"][data-fill-style="subtle"]) { background: ${subtleBackground}; color: ${hue}; }`,
+        // (S2 Badge.tsx:107 — subtle · outline 글자는 gray-1000, codex round 4 h1)
+        `.react-aria-Badge:where([data-variant="${variant}"][data-fill-style="subtle"]) { background: ${subtleBackground}; color: var(--gray-1000); }`,
       );
       expect(normalizedGeneratedCss).toContain(
-        `.react-aria-Badge:where([data-variant="${variant}"][data-fill-style="outline"]) { background: transparent; color: ${hue}; border-color: ${hue};`,
+        `.react-aria-Badge:where([data-variant="${variant}"][data-fill-style="outline"]) { background: transparent; color: var(--gray-1000); border-color: ${hue};`,
       );
     }
   });

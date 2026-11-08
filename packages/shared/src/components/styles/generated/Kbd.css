@@ -41,7 +41,7 @@
 }
 
 .react-aria-Kbd:where([data-variant="default"][data-pressed]) {
-  background: var(--neutral-pressed, color-mix(in srgb, var(--bg-muted) 75%, black));
+  background: var(--neutral-pressed);
 }
 
 .react-aria-Kbd[data-size="XS"] {

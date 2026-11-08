@@ -265,11 +265,15 @@ describe("catalog 토큰 존재 — 참조하는 모든 토큰이 theme/tokens �
 
   it("Skia: named hue · status 의 hover · pressed = alias 표의 한 단 (ADR-302 — 검정 혼합 아님). DOM 은 resolver cssVars 가 같은 값을 싣는다 (G4)", () => {
     installThemeMaps(null);
-    const hues = [...REFS.keys()]
-      .map((ref) => /^\{color\.([a-z-]+?)-(hover|pressed)\}$/.exec(ref))
-      .filter(
-        (m): m is RegExpExecArray => !!m && m[1]! in SEMANTIC_CSS_VARS,
-      );
+    // rule 참조만이 아니라 alias 표의 상태 역할 전부 — Badge 는 S2 처럼 상태 가지가 없어 (codex round 4 h1)
+    //   rule 이 읽는 named hue 상태 토큰이 줄었지만, 토큰 자체는 테마 표면에 남는다.
+    const hues = Object.keys(SEMANTIC_CSS_VARS)
+      .flatMap((hue) =>
+        (["hover", "pressed"] as const).map(
+          (state) => [`{color.${hue}-${state}}`, hue, state] as const,
+        ),
+      )
+      .filter(([, hue, state]) => `${hue}-${state}` in COLOR_ALIASES);
     expect(hues.length).toBeGreaterThanOrEqual(13);
     const wrong: string[] = [];
     for (const [ref, hue, state] of hues) {

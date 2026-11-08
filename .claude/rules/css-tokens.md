@@ -195,6 +195,7 @@ Spec TokenRef: {color.primary}, {color.secondary}, {color.tertiary},
 | `{color.focus-ring}`                                     | `--focus-ring`                                       | focus 표시 (design-data `focus-indicator-color`)                                           |
 | `{color.neutral}`                                        | `--fg`                                               | 기본 글자 (gray-800)                                                                       |
 | `{color.neutral-subdued}`                                | `--fg-muted`                                         | 보조 글자                                                                                  |
+| `{color.gray-1000}` | `--gray-1000` | 색 면 (`<hue>-subtle`) 위 글자 — S2 Badge subtle · outline (hue 글자는 subtle 면 위 4.5 미달) |
 | `{color.neutral-subtle}` · `neutral-hover` · `-pressed`  | `--bg-muted` · `--neutral-hover` · `--neutral-pressed` | **밝은 바탕** 중립 면과 그 상태 (다음 단)                                                |
 | `{color.neutral-fill}` · `-hover` · `-pressed`           | `--neutral-fill` · `--neutral-fill-hover` · `-pressed` | **진한 바탕** 중립 면 (Button primary) — S2 한 단 (ADR-293 결정 4)                       |
 | `{color.on-neutral}`                                     | `--on-neutral`                                       | 진한 중립 면 위 글자                                                                       |

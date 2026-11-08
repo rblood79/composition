@@ -1352,8 +1352,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.accent}",
-            isHovered: "{color.accent}",
-            isPressed: "{color.accent}",
             fillStyle: {
               outline: "{color.transparent}",
               subtle: "{color.accent-subtle}",
@@ -1362,8 +1360,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           color: {
             default: "{color.on-accent}",
             fillStyle: {
-              outline: "{color.accent-content}",
-              subtle: "{color.accent-content}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {
@@ -1378,8 +1376,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.informative-background}",
-            isHovered: "{color.informative-background}",
-            isPressed: "{color.informative-background}",
             fillStyle: {
               outline: "{color.transparent}",
               subtle: "{color.informative-subtle}",
@@ -1388,8 +1384,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           color: {
             default: "{color.white}",
             fillStyle: {
-              outline: "{color.informative}",
-              subtle: "{color.informative}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {
@@ -1404,8 +1400,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.neutral}",
-            isHovered: "{color.neutral}",
-            isPressed: "{color.neutral}",
             fillStyle: {
               outline: "{color.transparent}",
               subtle: "{color.neutral-subtle}",
@@ -1414,8 +1408,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           color: {
             default: "{color.base}",
             fillStyle: {
-              outline: "{color.neutral}",
-              subtle: "{color.neutral}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {
@@ -1430,8 +1424,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.positive-background}",
-            isHovered: "{color.positive-background}",
-            isPressed: "{color.positive-background}",
             fillStyle: {
               outline: "{color.transparent}",
               subtle: "{color.positive-subtle}",
@@ -1440,8 +1432,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           color: {
             default: "{color.white}",
             fillStyle: {
-              outline: "{color.positive}",
-              subtle: "{color.positive}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {
@@ -1456,8 +1448,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.notice-background}",
-            isHovered: "{color.notice-background}",
-            isPressed: "{color.notice-background}",
             fillStyle: {
               outline: "{color.transparent}",
               subtle: "{color.notice-subtle}",
@@ -1466,8 +1456,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           color: {
             default: "{color.black}",
             fillStyle: {
-              outline: "{color.notice}",
-              subtle: "{color.notice}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {
@@ -1482,8 +1472,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.negative-background}",
-            isHovered: "{color.negative-background}",
-            isPressed: "{color.negative-background}",
             fillStyle: {
               outline: "{color.transparent}",
               subtle: "{color.negative-subtle}",
@@ -1492,8 +1480,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           color: {
             default: "{color.on-negative}",
             fillStyle: {
-              outline: "{color.negative}",
-              subtle: "{color.negative}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {
@@ -1508,18 +1496,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.gray}",
-            isHovered: "{color.gray}",
-            isPressed: "{color.gray}",
             fillStyle: {
               outline: "{color.transparent}",
-              subtle: "{color.neutral-subtle}",
+              subtle: "{color.gray-subtle}",
             },
           },
           color: {
             default: "{color.white}",
             fillStyle: {
-              outline: "{color.gray}",
-              subtle: "{color.gray}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {
@@ -1534,8 +1520,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.red}",
-            isHovered: "{color.red}",
-            isPressed: "{color.red}",
             fillStyle: {
               outline: "{color.transparent}",
               subtle: "{color.red-subtle}",
@@ -1544,8 +1528,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           color: {
             default: "{color.white}",
             fillStyle: {
-              outline: "{color.red}",
-              subtle: "{color.red}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {
@@ -1560,8 +1544,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.orange}",
-            isHovered: "{color.orange}",
-            isPressed: "{color.orange}",
             fillStyle: {
               outline: "{color.transparent}",
               subtle: "{color.orange-subtle}",
@@ -1570,8 +1552,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           color: {
             default: "{color.black}",
             fillStyle: {
-              outline: "{color.orange}",
-              subtle: "{color.orange}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {
@@ -1586,8 +1568,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.yellow}",
-            isHovered: "{color.yellow}",
-            isPressed: "{color.yellow}",
             fillStyle: {
               outline: "{color.transparent}",
               subtle: "{color.yellow-subtle}",
@@ -1596,8 +1576,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           color: {
             default: "{color.black}",
             fillStyle: {
-              outline: "{color.yellow}",
-              subtle: "{color.yellow}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {
@@ -1612,8 +1592,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.green-named}",
-            isHovered: "{color.green-named}",
-            isPressed: "{color.green-named}",
             fillStyle: {
               outline: "{color.transparent}",
               subtle: "{color.green-named-subtle}",
@@ -1622,8 +1600,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           color: {
             default: "{color.white}",
             fillStyle: {
-              outline: "{color.green-named}",
-              subtle: "{color.green-named}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {
@@ -1638,8 +1616,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.blue}",
-            isHovered: "{color.blue}",
-            isPressed: "{color.blue}",
             fillStyle: {
               outline: "{color.transparent}",
               subtle: "{color.blue-subtle}",
@@ -1648,8 +1624,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           color: {
             default: "{color.white}",
             fillStyle: {
-              outline: "{color.blue}",
-              subtle: "{color.blue}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {
@@ -1664,8 +1640,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.purple}",
-            isHovered: "{color.purple}",
-            isPressed: "{color.purple}",
             fillStyle: {
               outline: "{color.transparent}",
               subtle: "{color.purple-subtle}",
@@ -1674,8 +1648,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           color: {
             default: "{color.white}",
             fillStyle: {
-              outline: "{color.purple}",
-              subtle: "{color.purple}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {
@@ -1690,8 +1664,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.indigo}",
-            isHovered: "{color.indigo}",
-            isPressed: "{color.indigo}",
             fillStyle: {
               outline: "{color.transparent}",
               subtle: "{color.indigo-subtle}",
@@ -1700,8 +1672,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           color: {
             default: "{color.white}",
             fillStyle: {
-              outline: "{color.indigo}",
-              subtle: "{color.indigo}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {
@@ -1716,8 +1688,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.cyan}",
-            isHovered: "{color.cyan}",
-            isPressed: "{color.cyan}",
             fillStyle: {
               outline: "{color.transparent}",
               subtle: "{color.cyan-subtle}",
@@ -1726,8 +1696,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           color: {
             default: "{color.white}",
             fillStyle: {
-              outline: "{color.cyan}",
-              subtle: "{color.cyan}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {
@@ -1742,8 +1712,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.pink}",
-            isHovered: "{color.pink}",
-            isPressed: "{color.pink}",
             fillStyle: {
               outline: "{color.transparent}",
               subtle: "{color.pink-subtle}",
@@ -1752,8 +1720,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           color: {
             default: "{color.white}",
             fillStyle: {
-              outline: "{color.pink}",
-              subtle: "{color.pink}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {
@@ -1768,8 +1736,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.turquoise}",
-            isHovered: "{color.turquoise}",
-            isPressed: "{color.turquoise}",
             fillStyle: {
               outline: "{color.transparent}",
               subtle: "{color.turquoise-subtle}",
@@ -1778,8 +1744,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           color: {
             default: "{color.white}",
             fillStyle: {
-              outline: "{color.turquoise}",
-              subtle: "{color.turquoise}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {
@@ -1794,8 +1760,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.fuchsia}",
-            isHovered: "{color.fuchsia}",
-            isPressed: "{color.fuchsia}",
             fillStyle: {
               outline: "{color.transparent}",
               subtle: "{color.fuchsia-subtle}",
@@ -1804,8 +1768,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           color: {
             default: "{color.white}",
             fillStyle: {
-              outline: "{color.fuchsia}",
-              subtle: "{color.fuchsia}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {
@@ -1820,8 +1784,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.magenta}",
-            isHovered: "{color.magenta}",
-            isPressed: "{color.magenta}",
             fillStyle: {
               outline: "{color.transparent}",
               subtle: "{color.magenta-subtle}",
@@ -1830,8 +1792,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           color: {
             default: "{color.white}",
             fillStyle: {
-              outline: "{color.magenta}",
-              subtle: "{color.magenta}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {
@@ -1846,8 +1808,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.chartreuse}",
-            isHovered: "{color.chartreuse-hover}",
-            isPressed: "{color.chartreuse-pressed}",
             fillStyle: {
               outline: "{color.transparent}",
               subtle: "{color.chartreuse-subtle}",
@@ -1856,8 +1816,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           color: {
             default: "{color.black}",
             fillStyle: {
-              outline: "{color.chartreuse}",
-              subtle: "{color.chartreuse}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {
@@ -1872,8 +1832,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.celery}",
-            isHovered: "{color.celery-hover}",
-            isPressed: "{color.celery-pressed}",
             fillStyle: {
               outline: "{color.transparent}",
               subtle: "{color.celery-subtle}",
@@ -1882,8 +1840,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           color: {
             default: "{color.black}",
             fillStyle: {
-              outline: "{color.celery}",
-              subtle: "{color.celery}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {
@@ -1898,18 +1856,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.seafoam}",
-            isHovered: "{color.seafoam-hover}",
-            isPressed: "{color.seafoam-pressed}",
             fillStyle: {
               outline: "{color.transparent}",
-              subtle: "{color.neutral-subtle}",
+              subtle: "{color.seafoam-subtle}",
             },
           },
           color: {
             default: "{color.white}",
             fillStyle: {
-              outline: "{color.seafoam}",
-              subtle: "{color.seafoam}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {
@@ -1924,18 +1880,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.brown}",
-            isHovered: "{color.brown-hover}",
-            isPressed: "{color.brown-pressed}",
             fillStyle: {
               outline: "{color.transparent}",
-              subtle: "{color.orange-subtle}",
+              subtle: "{color.brown-subtle}",
             },
           },
           color: {
             default: "{color.white}",
             fillStyle: {
-              outline: "{color.brown}",
-              subtle: "{color.brown}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {
@@ -1950,18 +1904,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.cinnamon}",
-            isHovered: "{color.cinnamon-hover}",
-            isPressed: "{color.cinnamon-pressed}",
             fillStyle: {
               outline: "{color.transparent}",
-              subtle: "{color.orange-subtle}",
+              subtle: "{color.cinnamon-subtle}",
             },
           },
           color: {
             default: "{color.white}",
             fillStyle: {
-              outline: "{color.cinnamon}",
-              subtle: "{color.cinnamon}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {
@@ -1976,18 +1928,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.silver}",
-            isHovered: "{color.silver-hover}",
-            isPressed: "{color.silver-pressed}",
             fillStyle: {
               outline: "{color.transparent}",
-              subtle: "{color.neutral-subtle}",
+              subtle: "{color.silver-subtle}",
             },
           },
           color: {
-            default: "{color.black}",
+            default: "{color.white}",
             fillStyle: {
-              outline: "{color.silver}",
-              subtle: "{color.silver}",
+              outline: "{color.gray-1000}",
+              subtle: "{color.gray-1000}",
             },
           },
           borderColor: {

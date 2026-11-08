@@ -62,7 +62,7 @@
 }
 
 .react-aria-GridListItem:where([data-variant="quiet"][data-pressed]) {
-  background: var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black));
+  background: var(--neutral-hover);
 }
 
 .react-aria-GridListItem:where([data-variant="quiet"][data-selected]) {

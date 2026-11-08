@@ -70,7 +70,7 @@
 
 .react-aria-DateInput:where([data-variant="negative"][data-hovered]) {
   background: var(--bg-inset);
-  border-color: var(--negative-hover, color-mix(in srgb, var(--negative) 85%, black));
+  border-color: var(--negative-hover);
 }
 
 .react-aria-DateInput:where([data-variant="negative"][data-pressed]) {
