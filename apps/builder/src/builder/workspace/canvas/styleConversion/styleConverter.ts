@@ -68,7 +68,6 @@ export interface CSSStyle {
   fontFamily?: string;
   fontStyle?: string; // P7.2: italic, oblique
   fontVariant?: string;
-  fontStretch?: string;
   textAlign?: string;
   lineHeight?: number | string; // P7.4: 줄 간격
   letterSpacing?: number | string; // P7.3: 자간

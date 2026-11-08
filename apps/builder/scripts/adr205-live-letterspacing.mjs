@@ -160,7 +160,6 @@ async function main() {
         fontWeight: t.fontWeight,
         fontStyle: t.fontStyle,
         fontVariant: t.fontVariant,
-        fontStretch: t.fontStretch,
         letterSpacing: t.letterSpacing,
         wordSpacing: t.wordSpacing,
         lineHeight: t.lineHeight,

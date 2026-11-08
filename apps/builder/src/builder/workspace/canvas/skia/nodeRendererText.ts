@@ -9,7 +9,6 @@ import type {
 import { cssFontVariations } from "@composition/rendering";
 import {
   resolveFontVariantFeatures,
-  resolveFontStretchWidth,
   DEFAULT_FONT_FEATURES,
 } from "../layout/engines/cssResolver";
 import {
@@ -599,23 +598,6 @@ export function renderText(
     const fontSlant =
       fontSlantMap[node.text.fontStyle ?? 0] ?? ck.FontSlant.Upright;
 
-    const fontStretchStr = node.text.fontStretch ?? "normal";
-    const fontWidthIndex = resolveFontStretchWidth(fontStretchStr);
-    const fontWidthEnumValues = ck.FontWidth;
-    const fontWidthEntries: [string, EmbindEnumEntity][] = [
-      ["UltraCondensed", fontWidthEnumValues.UltraCondensed],
-      ["ExtraCondensed", fontWidthEnumValues.ExtraCondensed],
-      ["Condensed", fontWidthEnumValues.Condensed],
-      ["SemiCondensed", fontWidthEnumValues.SemiCondensed],
-      ["Normal", fontWidthEnumValues.Normal],
-      ["SemiExpanded", fontWidthEnumValues.SemiExpanded],
-      ["Expanded", fontWidthEnumValues.Expanded],
-      ["ExtraExpanded", fontWidthEnumValues.ExtraExpanded],
-      ["UltraExpanded", fontWidthEnumValues.UltraExpanded],
-    ];
-    const fontWidth =
-      fontWidthEntries[fontWidthIndex - 1]?.[1] ?? fontWidthEnumValues.Normal;
-
     const fontVariantStr = node.text.fontVariant ?? "normal";
     const variantFeatures = resolveFontVariantFeatures(fontVariantStr);
     const fontFeatureTags = [...DEFAULT_FONT_FEATURES, ...variantFeatures];
@@ -635,7 +617,11 @@ export function renderText(
         fontFamilies: resolvedFamilies,
         locale: node.text!.locale,
         fontSize: node.text.fontSize,
-        fontStyle: { weight: fontWeight, slant: fontSlant, width: fontWidth },
+        fontStyle: {
+          weight: fontWeight,
+          slant: fontSlant,
+          width: ck.FontWidth.Normal,
+        },
         color: node.text.color,
         letterSpacing: node.text.letterSpacing ?? 0,
         wordSpacing: node.text.wordSpacing ?? 0,
@@ -679,7 +665,6 @@ export function renderText(
         fontWeight: node.text.fontWeight,
         fontStyle: node.text.fontStyle,
         fontVariant: node.text.fontVariant,
-        fontStretch: node.text.fontStretch,
         letterSpacing: node.text.letterSpacing,
         wordSpacing: node.text.wordSpacing,
         lineHeight: node.text.lineHeight,
@@ -778,7 +763,7 @@ export function renderText(
             run?.fontStyle !== undefined
               ? (fontSlantMap[run.fontStyle] ?? fontSlant)
               : fontSlant,
-          width: fontWidth,
+          width: ck.FontWidth.Normal,
         },
         color: run?.color ?? node.text!.color,
         letterSpacing: node.text!.letterSpacing ?? 0,
@@ -791,8 +776,7 @@ export function renderText(
           : {}),
         fontVariations: cssFontVariations(
           run?.fontWeight ?? node.text!.fontWeight ?? 400,
-          [50, 62.5, 75, 87.5, 100, 112.5, 125, 150, 200][fontWidthIndex - 1] ??
-            100,
+          100,
           fontSize,
         ),
       });

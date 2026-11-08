@@ -129,7 +129,6 @@ export interface SkiaNodeData {
     decorationColor?: Float32Array;
     textIndent?: number;
     fontVariant?: string;
-    fontStretch?: string;
     clipText?: boolean;
     /** G4: CSS text-shadow 목록 (shadow-first 2-pass 렌더링) */
     textShadows?: TextShadow[];

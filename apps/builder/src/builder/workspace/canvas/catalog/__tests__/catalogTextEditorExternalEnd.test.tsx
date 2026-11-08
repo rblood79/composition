@@ -303,7 +303,6 @@ describe("CatalogTextEditor — 글자 상자 배치", () => {
         overflowWrap: "anywhere",
         textIndent: 8,
         fontVariant: "small-caps",
-        fontStretch: "condensed",
         textShadows: [
           {
             offsetX: 1,
@@ -327,7 +326,6 @@ describe("CatalogTextEditor — 글자 상자 배치", () => {
       expect(style.overflowWrap).toBe("anywhere");
       expect(style.textIndent).toBe("8px");
       expect(style.fontVariant).toBe("small-caps");
-      expect(style.fontStretch).toBe("condensed");
       expect(field()!.getAttribute("style")).toContain(
         "text-shadow: 1px 2px 2.355px rgba(0, 0, 255, 0.5)",
       );

@@ -35,7 +35,6 @@ export interface TextMeasureStyle {
   letterSpacing?: number;
   wordSpacing?: number;
   fontStyle?: number | string; // 0|'normal'=upright, 1|'italic', 2|'oblique'
-  fontStretch?: string; // 'normal', 'condensed', 'expanded' 등
   fontVariant?: string; // 'normal', 'small-caps' 등
   // CSS 텍스트 래핑 에뮬레이션 (ADR-008)
   wordBreak?: "normal" | "break-all" | "keep-all";

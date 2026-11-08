@@ -618,7 +618,6 @@ export function buildFontKey(style: TextMeasureStyle): string {
     style.fontWeight ?? 400,
     style.fontStyle ?? 0,
     style.fontVariant ?? "",
-    style.fontStretch ?? "",
     style.locale ?? "",
     // letter-spacing 은 세그먼트 폭을 바꾼다 — 키에 없으면 spacing 다른 결과가 섞인다.
     style.letterSpacing ?? 0,

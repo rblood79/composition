@@ -619,8 +619,6 @@ function skiaTextCss(text: TextEditBox["source"]): CSSProperties {
   if (text.textIndent) css.textIndent = `${text.textIndent}px`;
   if (text.fontVariant && text.fontVariant !== "normal")
     css.fontVariant = text.fontVariant;
-  if (text.fontStretch && text.fontStretch !== "normal")
-    css.fontStretch = text.fontStretch;
   if (text.textShadows?.length) {
     // `sigma` = CSS blur radius / 2.355 (`types.ts` `TextShadow`).
     css.textShadow = text.textShadows

@@ -1,4 +1,3 @@
-import { FONT_STRETCH_KEYWORD_MAP } from "@composition/rendering";
 import { useThemeConfigStore } from "../../../../../stores/themeConfigStore";
 import { DEFAULT_BASE_TYPOGRAPHY } from "../../../../fonts/customFonts";
 import { CATALOG_FONT_FEATURES } from "../../../../../../../../packages/shared/src/catalog/runtime/fontDefaults";
@@ -19,7 +18,6 @@ const INHERITABLE_PROPERTIES = new Set([
   "fontWeight",
   "fontStyle",
   "fontVariant",
-  "fontStretch",
   "lineHeight",
   "letterSpacing",
   "wordSpacing",
@@ -154,49 +152,6 @@ export const DEFAULT_FONT_FEATURES: FontFeatureTag[] =
   CATALOG_FONT_FEATURES.map((feature) => ({ ...feature }));
 
 // ============================================
-// font-stretch → CanvasKit FontWidth 인덱스 매핑
-// ============================================
-// ADR-091 Phase 1: FONT_STRETCH_KEYWORD_MAP 은 `@composition/rendering` primitives/font 로 이관.
-
-const FONT_STRETCH_PERCENT_BREAKPOINTS: [number, number][] = [
-  [50, 1],
-  [62.5, 2],
-  [75, 3],
-  [87.5, 4],
-  [100, 5],
-  [112.5, 6],
-  [125, 7],
-  [150, 8],
-  [200, 9],
-];
-
-export function resolveFontStretchWidth(fontStretch: string): number {
-  const lower = fontStretch.toLowerCase().trim();
-
-  const keyword = FONT_STRETCH_KEYWORD_MAP[lower];
-  if (keyword !== undefined) return keyword;
-
-  if (lower.endsWith("%")) {
-    const pct = parseFloat(lower);
-    if (isNaN(pct)) return 5;
-
-    let closest = FONT_STRETCH_PERCENT_BREAKPOINTS[0];
-    let minDiff = Math.abs(pct - closest[0]);
-
-    for (const bp of FONT_STRETCH_PERCENT_BREAKPOINTS) {
-      const diff = Math.abs(pct - bp[0]);
-      if (diff < minDiff) {
-        minDiff = diff;
-        closest = bp;
-      }
-    }
-    return closest[1];
-  }
-
-  return 5;
-}
-
-// ============================================
 // 타입 정의
 // ============================================
 
@@ -213,7 +168,6 @@ export interface ComputedStyle {
   fontWeight: number | string;
   fontStyle: string;
   fontVariant: string;
-  fontStretch: string;
   lineHeight?: number;
   letterSpacing: number;
   wordSpacing: number;
@@ -245,7 +199,6 @@ const ROOT_COMPUTED_STYLE: ComputedStyle = {
   fontWeight: 400,
   fontStyle: "normal",
   fontVariant: "normal",
-  fontStretch: "normal",
   lineHeight: 1.5,
   letterSpacing: 0,
   wordSpacing: 0,

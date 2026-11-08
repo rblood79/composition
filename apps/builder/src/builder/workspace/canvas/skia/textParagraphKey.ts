@@ -55,7 +55,6 @@ export function getTextParagraphCacheKey(
     node.text.fontWeight ?? 400,
     node.text.fontStyle ?? 0,
     node.text.fontVariant ?? "normal",
-    node.text.fontStretch ?? "normal",
     node.text.letterSpacing ?? 0,
     node.text.wordSpacing ?? 0,
     heightMultiplier,

@@ -47,7 +47,6 @@ export function measureTextWidth(
     letterSpacing?: number;
     wordSpacing?: number;
     fontStyle?: number | string;
-    fontStretch?: string;
     fontVariant?: string;
     lineHeight?: number;
   },
