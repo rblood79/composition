@@ -42,10 +42,14 @@ export function resolveToken(
   const [, category, name] = match;
 
   switch (category) {
-    case "color":
+    case "color": {
+      // ADR-303: `{color.container}` is a derived reference — the record's resolver swaps in its
+      //   container's layer (`resolveCatalogPaint`); a reader with no container reads the base layer.
+      const key = name === "container" ? "base" : name;
       return theme === "dark"
-        ? darkColors[name as keyof typeof darkColors]
-        : lightColors[name as keyof typeof lightColors];
+        ? darkColors[key as keyof typeof darkColors]
+        : lightColors[key as keyof typeof lightColors];
+    }
     case "spacing":
       return spacing[name as keyof typeof spacing];
     case "typography":
@@ -237,6 +241,9 @@ const COLOR_TOKEN_TO_CSS: Record<string, string> = {
   "picker-content-disabled": "var(--fg-picker-disabled)",
   "picker-checkbox-base": "var(--bg-picker-checkbox)",
   "layer-2": "var(--bg-inset)",
+  // ADR-303 — the nearest container's layer: a container node writes `--container-bg` inline (its
+  //   layer's variable from this table — `domBinding.runtime.ts`), the root's is the base layer.
+  container: "var(--container-bg, var(--bg))",
   // 토큰 ↔ 변수 1:1 (ADR-293) — 팔레트 변수 (`--color-*`) 를 가리키는 토큰은 고정 상수 white · black 뿐.
   //   여러 토큰이 한 변수를 쓰면 한 토큰의 테마 델타가 다른 토큰 (· Tone 단계) 을 덮는다.
   elevated: "var(--bg-elevated)",

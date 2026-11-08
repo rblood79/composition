@@ -21,7 +21,7 @@
   justify-content: center;
 
   /* Default variant */
-  background: var(--bg-inset);
+  background: var(--bg-elevated);
   color: var(--fg);
   border: var(--border-width-thin) solid transparent;
 
@@ -35,82 +35,106 @@
 }
 
 .react-aria-Card:where([data-variant="primary"]) {
-  background: var(--bg-inset);
-  color: var(--fg);
-  border-color: transparent;
-}
-
-.react-aria-Card:where([data-variant="primary"][data-hovered]) {
-  background: var(--bg-overlay);
-}
-
-.react-aria-Card:where([data-variant="primary"][data-pressed]) {
-  background: var(--bg-muted);
+  background: var(--bg-elevated);
 }
 
 .react-aria-Card:where([data-variant="primary"][data-selected]) {
   background: var(--accent-subtle);
-  color: inherit;
-  border-color: var(--accent-content);
 }
 
 .react-aria-Card:where([data-variant="secondary"]) {
   background: var(--bg-overlay);
-  color: var(--fg);
-  border-color: transparent;
-}
-
-.react-aria-Card:where([data-variant="secondary"][data-hovered]) {
-  background: var(--bg-muted);
-}
-
-.react-aria-Card:where([data-variant="secondary"][data-pressed]) {
-  background: var(--bg-muted);
 }
 
 .react-aria-Card:where([data-variant="secondary"][data-selected]) {
   background: var(--accent-subtle);
-  color: inherit;
-  border-color: var(--accent-content);
 }
 
 .react-aria-Card:where([data-variant="tertiary"]) {
   background: transparent;
-  color: var(--fg);
-  border-color: var(--border);
-}
-
-.react-aria-Card:where([data-variant="tertiary"][data-hovered]) {
-  background: var(--bg-muted);
-}
-
-.react-aria-Card:where([data-variant="tertiary"][data-pressed]) {
-  background: var(--bg-muted);
 }
 
 .react-aria-Card:where([data-variant="tertiary"][data-selected]) {
   background: var(--accent-subtle);
-  color: inherit;
-  border-color: var(--accent-content);
 }
 
 .react-aria-Card:where([data-variant="quiet"]) {
   background: transparent;
-  color: var(--fg);
-  border-color: transparent;
-}
-
-.react-aria-Card:where([data-variant="quiet"][data-hovered]) {
-  background: var(--bg-muted);
-}
-
-.react-aria-Card:where([data-variant="quiet"][data-pressed]) {
-  background: var(--bg-muted);
 }
 
 .react-aria-Card:where([data-variant="quiet"][data-selected]) {
   background: var(--accent-subtle);
+}
+
+.react-aria-Card:where([data-variant="primary"]) {
+  color: var(--fg);
+}
+
+.react-aria-Card:where([data-variant="primary"][data-selected]) {
   color: inherit;
+}
+
+.react-aria-Card:where([data-variant="secondary"]) {
+  color: var(--fg);
+}
+
+.react-aria-Card:where([data-variant="secondary"][data-selected]) {
+  color: inherit;
+}
+
+.react-aria-Card:where([data-variant="tertiary"]) {
+  color: var(--fg);
+}
+
+.react-aria-Card:where([data-variant="tertiary"][data-selected]) {
+  color: inherit;
+}
+
+.react-aria-Card:where([data-variant="quiet"]) {
+  color: var(--fg);
+}
+
+.react-aria-Card:where([data-variant="quiet"][data-selected]) {
+  color: inherit;
+}
+
+.react-aria-Card:where([data-variant="primary"]) {
+  border-color: transparent;
+}
+
+.react-aria-Card:where([data-variant="primary"][data-selected]) {
+  border-color: var(--accent-content);
+}
+
+.react-aria-Card:where([data-variant="secondary"]) {
+  border-color: transparent;
+}
+
+.react-aria-Card:where([data-variant="secondary"][data-selected]) {
+  border-color: var(--accent-content);
+}
+
+.react-aria-Card:where([data-variant="tertiary"]) {
+  border-color: var(--neutral-surface);
+}
+
+.react-aria-Card:where([data-variant="tertiary"][data-hovered]) {
+  border-color: var(--neutral-surface-hover);
+}
+
+.react-aria-Card:where([data-variant="tertiary"][data-focus-visible]) {
+  border-color: var(--neutral-surface-hover);
+}
+
+.react-aria-Card:where([data-variant="tertiary"][data-selected]) {
+  border-color: var(--accent-content);
+}
+
+.react-aria-Card:where([data-variant="quiet"]) {
+  border-color: transparent;
+}
+
+.react-aria-Card:where([data-variant="quiet"][data-selected]) {
   border-color: var(--accent-content);
 }
 
@@ -203,6 +227,30 @@
   transition: transform 150ms cubic-bezier(0.45, 0, 0.4, 1);
 }
 
+.react-aria-Card.react-aria-Card {
+  box-shadow: var(--shadow-sm);
+}
+
+.react-aria-Card.react-aria-Card:where([data-hovered]) {
+  box-shadow: var(--shadow-md);
+}
+
+.react-aria-Card.react-aria-Card:where([data-focus-visible]) {
+  box-shadow: var(--shadow-md);
+}
+
+.react-aria-Card.react-aria-Card:where([data-selected]) {
+  box-shadow: var(--shadow-md);
+}
+
+.react-aria-Card.react-aria-Card:where([data-variant="tertiary"]) {
+  box-shadow: none;
+}
+
+.react-aria-Card.react-aria-Card:where([data-variant="quiet"]) {
+  box-shadow: none;
+}
+
 .react-aria-Card.react-aria-Card:where([data-variant="quiet"]) .react-aria-CardPreview {
   will-change: transform;
   transition: transform 150ms cubic-bezier(0.45, 0, 0.4, 1);
@@ -210,6 +258,18 @@
 
 .react-aria-Card.react-aria-Card:where([data-variant="quiet"][data-pressed]) .react-aria-CardPreview {
   transform: perspective(max(var(--catalog-press-height, 0px), calc(var(--catalog-press-width, 0px) / 3), 24px)) translate3d(0, 0, -2px);
+}
+
+.react-aria-Card.react-aria-Card:where([data-variant="quiet"][data-hovered]) .react-aria-CardPreview {
+  box-shadow: var(--shadow-md);
+}
+
+.react-aria-Card.react-aria-Card:where([data-variant="quiet"][data-focus-visible]) .react-aria-CardPreview {
+  box-shadow: var(--shadow-md);
+}
+
+.react-aria-Card.react-aria-Card:where([data-variant="quiet"][data-selected]) .react-aria-CardPreview {
+  box-shadow: var(--shadow-md);
 }
 
 /* ── Tier 2: Composite Delegation ── */

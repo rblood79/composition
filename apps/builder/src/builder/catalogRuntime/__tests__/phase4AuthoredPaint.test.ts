@@ -106,7 +106,8 @@ describe("ADR-248 Phase 4a-3 authored paint", () => {
     expect(data.zIndex).toBe(3);
   });
 
-  it.each(["Sheet", "Modal"])(
+  // ADR-303: Sheet · Modal 은 S2 대로 그림자가 없다 — rule 기본 그림자가 있는 떠 있는 요소 (Popover · Toast — S2 `elevated`).
+  it.each(["Popover", "Toast"])(
     "%s의 기본 그림자는 테마를 따르고 저작 none과 사용자 그림자가 우선한다",
     (ruleId) => {
       const shadows = ["light", "dark"].map((theme) => {

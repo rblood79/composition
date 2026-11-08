@@ -86,7 +86,8 @@ describe("overlay arrow = its overlay's rule paint", () => {
       "Popover",
       "Popover",
       undefined,
-      "{color.popover-background}",
+      // ADR-303: S2 `Popover.tsx:83` `--s2-container-bg: layer-2` (화살표 fill 도 같은 변수 `:165`).
+      "{color.layer-2}",
       "{color.popover-outline}",
     ],
     ["Tooltip", "Tooltip", "negative", "{color.negative-subtle}", undefined],
@@ -120,7 +121,7 @@ describe("overlay arrow = its overlay's rule paint", () => {
     const { root, arrow } = await openOverlay("Popover", "Popover");
     expect(arrow.derivedProps?._arrowStrokeWidth).toBe(1);
     const html = renderToStaticMarkup(renderCatalogDom(root, arrow.id));
-    expect(html).toContain("fill:var(--popover-background)");
+    expect(html).toContain("fill:var(--bg-inset)");
     expect(html).toContain("stroke:var(--popover-outline)");
     expect(html).toContain("stroke-width:1");
   });

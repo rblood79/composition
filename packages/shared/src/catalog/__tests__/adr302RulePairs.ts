@@ -84,6 +84,9 @@ function combos(
 
 const TOKEN = /^\{color\.([a-z0-9-]+)\}$/;
 
+/** ADR-303 — the layers a `{color.container}` face can be (pasteboard holds no components — Hub). */
+const CONTAINER_LAYERS = ["base", "layer-1", "layer-2", "elevated"];
+
 export function rulePaintPairs(): RulePair[] {
   const out = new Map<string, RulePair>();
   for (const [type, rule] of Object.entries(
@@ -110,13 +113,16 @@ export function rulePaintPairs(): RulePair[] {
           String(evaluateConditionTree(background as never, conditions) ?? ""),
         )?.[1];
         if (!fg || !bg || bg === "transparent") continue;
-        const key = `${fg}|${bg}`;
-        if (!out.has(key))
-          out.set(key, {
-            fg,
-            bg,
-            where: `${type}.${variant} ${JSON.stringify(conditions)}`,
-          });
+        // ADR-303: `{color.container}` is whichever layer holds it — the pair stands on each layer.
+        for (const face of bg === "container" ? CONTAINER_LAYERS : [bg]) {
+          const key = `${fg}|${face}`;
+          if (!out.has(key))
+            out.set(key, {
+              fg,
+              bg: face,
+              where: `${type}.${variant} ${JSON.stringify(conditions)}`,
+            });
+        }
       }
     }
   }

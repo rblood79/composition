@@ -209,6 +209,7 @@ import {
   catalogComposedParts,
   catalogDerivedProps,
   catalogDerivedPropsDependents,
+  catalogContainerDependents,
   type CatalogComposedPart,
   CATALOG_SLIDER_THICK_TRACK,
   catalogScaledPx,
@@ -6006,6 +6007,12 @@ export class CatalogCompositionRoot {
           ? [get(update.record.parentId)!]
           : []),
         ...catalogDerivedPropsDependents(update.record, get, this.typeOf),
+        // ADR-303 — the readers under a node whose container layer changed (`_containerLayer`).
+        ...catalogContainerDependents(
+          update.record,
+          this.records.get(update.id),
+          get,
+        ),
         // ADR-281 Decision 3 — a page root's · frame's descendants follow what it passes down.
         ...(catalogHostInheritedChanged(
           this.typeOf(update.record),

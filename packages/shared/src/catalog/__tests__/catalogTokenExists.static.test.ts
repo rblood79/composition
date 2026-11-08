@@ -220,7 +220,9 @@ describe("catalog 토큰 존재 — 참조하는 모든 토큰이 theme/tokens �
           ? rest.join(".").replace(/^width\./, "")
           : rest.join(".");
       for (const mode of ["light", "dark"] as const)
-        if (!(key in map(mode)))
+        // (ADR-303 `{color.container}` is no snapshot key — the record's container layer; the
+        //  resolver reads `base` when it has none, checked by the install pass below.)
+        if (ref !== "{color.container}" && !(key in map(mode)))
           missing.push(`${ref} (${mode}) ← ${where(ref)}`);
     }
     expect(missing).toEqual([]);

@@ -174,7 +174,10 @@ function backdropsOf(type: string, path: string[]): string[] {
   );
   return [
     ...new Set(
-      tokens.flatMap((t) => (t === "transparent" ? TRANSPARENT_SURFACES : [t])),
+      // (`container` — ADR-303: the nearest container's layer, one of the same surfaces)
+      tokens.flatMap((t) =>
+        t === "transparent" || t === "container" ? TRANSPARENT_SURFACES : [t],
+      ),
     ),
   ];
 }

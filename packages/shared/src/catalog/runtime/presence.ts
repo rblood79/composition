@@ -76,6 +76,11 @@ import {
 import { CATALOG_INHERITED_RECEIVERS } from "./providerContexts";
 import { RAC_SLOT_PROVIDERS } from "../generated/racSlotProviders";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
+import {
+  catalogContainerLayerAbove,
+  catalogContainerLayerOf,
+  catalogContainerReaders,
+} from "./containerLayer";
 import { MANUAL_ITEM_LABEL_COLORS } from "../document/manualBoxRules";
 import {
   catalogListItemFlexShrink,
@@ -2254,7 +2259,16 @@ export function catalogDerivedProps(
   };
   // (ADR-300: a SideNav part's collapse · current · level — `catalogSideNavDerived`.)
   const sideNav = catalogSideNavDerived(node, get, typeOf, shownRoute);
-  const withSideNav = sideNav ? { ...buttoned, ...sideNav } : buttoned;
+  const navigated = sideNav ? { ...buttoned, ...sideNav } : buttoned;
+  // (ADR-303: a rule that reads `{color.container}` paints its nearest container's layer — the DOM's
+  //  inherited `--container-bg`, `containerLayer.ts`.)
+  const withSideNav =
+    node.ruleId && catalogContainerReaders().has(node.ruleId)
+      ? {
+          ...navigated,
+          _containerLayer: catalogContainerLayerAbove(node, get),
+        }
+      : navigated;
   if (typeOf(node) === "Sheet") {
     const overlay = catalogPartParent(node, get, typeOf);
     if (overlay && typeOf(overlay) === "SheetOverlay") {
@@ -2986,6 +3000,35 @@ function ownDerivedPropsBase(
   for (const key of ["variant", "size", "staticColor"])
     if (typeof owner.props[key] === "string")
       out[key] = owner.props[key] as string;
+  return out;
+}
+
+/**
+ * ADR-303 — the `{color.container}` readers whose layer an owner decides: its descendants down to
+ * the next container (that one decides below itself). Only when the owner's own layer changed
+ * (`before` = the record it replaces — none for a new record): an edit that leaves it the same
+ * container (or still none) changes nothing below it, so a large frame's resize · style edit does
+ * not walk its subtree. (A move re-plans the moved subtree itself — G2 `move` rows.)
+ */
+export function catalogContainerDependents(
+  owner: CatalogConsumerNode,
+  before: CatalogConsumerNode | undefined,
+  get: CatalogRecordLookup,
+): CatalogConsumerNode[] {
+  if (
+    before &&
+    catalogContainerLayerOf(before) === catalogContainerLayerOf(owner)
+  )
+    return [];
+  const readers = catalogContainerReaders();
+  const out: CatalogConsumerNode[] = [];
+  const visit = (node: CatalogConsumerNode) => {
+    for (const child of childrenOf(node, get)) {
+      if (child.ruleId && readers.has(child.ruleId)) out.push(child);
+      if (!catalogContainerLayerOf(child)) visit(child);
+    }
+  };
+  visit(owner);
   return out;
 }
 

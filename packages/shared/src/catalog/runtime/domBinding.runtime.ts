@@ -205,6 +205,7 @@ import {
 import { catalogFieldLabelPartsHidden } from "./presence";
 import { catalogPickerMenuWidth } from "./pickerMenuWidth";
 import { catalogLayoutTokenCss, catalogNodeTokenCss } from "./nodeTokenCss";
+import { catalogContainerCss } from "./containerLayer";
 import {
   catalogDeviceControlCss,
   catalogDeviceLayoutCss,
@@ -600,6 +601,9 @@ function catalogTableTrackStyle(
     : { display: "grid", gridTemplateColumns: tracks };
 }
 
+/** ADR-303 — a layer token's own variable (`{color.layer-2}` → `var(--bg-inset)`). */
+const containerVar = (ref: string) => tokenToCSSVar(ref as TokenRef);
+
 /** Inline CSS from the shared box model plus resolved paint/text values. */
 export function catalogDomStyle(
   node: CatalogConsumerNode,
@@ -786,6 +790,8 @@ export function catalogDomStyle(
   }
   // ADR-298 D5: a value read from a theme token goes inline as the token's variable.
   catalogNodeTokenCss(style, visual);
+  // ADR-303: a layer-filled frame gives its children its layer (`--container-bg`).
+  catalogContainerCss(style as Record<string, unknown>, node, containerVar);
   return style;
 }
 
@@ -3472,6 +3478,9 @@ function authoredStyle(
     ruleHasPaintImage(rule?.variants)
   )
     style.backgroundImage = "none";
+  // ADR-303: a container gives its children its layer — they read `var(--container-bg, var(--bg))`
+  //   (`{color.container}`); the value is the layer token's own variable (no hand-written name).
+  catalogContainerCss(style as Record<string, unknown>, node, containerVar);
   // An authored absolute box's position · insets came with its authored layout (ADR-275).
   if (!catalogIsAuthoredPlaced(node)) containingBlock(root, node, style);
   if (node.derivedProps?._fieldLabelRole) {

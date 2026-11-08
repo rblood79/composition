@@ -20,7 +20,7 @@
   flex-direction: column;
 
   /* Default variant */
-  background: var(--bg-overlay);
+  background: var(--bg-inset);
   color: var(--fg);
   border: none;
 
@@ -33,16 +33,8 @@
 }
 
 .react-aria-Dialog:where([data-variant="default"]) {
-  background: var(--bg-overlay);
+  background: var(--bg-inset);
   color: var(--fg);
-}
-
-.react-aria-Dialog:where([data-variant="default"][data-hovered]) {
-  background: var(--bg-overlay);
-}
-
-.react-aria-Dialog:where([data-variant="default"][data-pressed]) {
-  background: var(--bg-overlay);
 }
 
 .react-aria-Dialog[data-size="XS"] {

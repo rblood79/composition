@@ -13,7 +13,7 @@
     font-family: var(--font-sans);
 
   /* Default variant */
-  background: var(--bg);
+  background: var(--container-bg, var(--bg));
   color: var(--fg);
   border: none;
 
@@ -26,16 +26,16 @@
 }
 
 .react-aria-Nav:where([data-variant="default"]) {
-  background: var(--bg);
+  background: var(--container-bg, var(--bg));
   color: var(--fg);
 }
 
 .react-aria-Nav:where([data-variant="default"][data-hovered]) {
-  background: var(--bg);
+  background: var(--container-bg, var(--bg));
 }
 
 .react-aria-Nav:where([data-variant="default"][data-pressed]) {
-  background: var(--bg);
+  background: var(--container-bg, var(--bg));
 }
 
 .react-aria-Nav[data-size="S"] {

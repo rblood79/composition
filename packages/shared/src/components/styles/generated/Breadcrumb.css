@@ -17,7 +17,7 @@
   align-items: center;
 
   /* Default variant */
-  background: var(--bg);
+  background: var(--container-bg, var(--bg));
   color: var(--fg-muted);
   border: none;
 
@@ -31,17 +31,17 @@
 }
 
 .react-aria-Breadcrumb:where([data-variant="default"]) {
-  background: var(--bg);
+  background: var(--container-bg, var(--bg));
   color: var(--fg-muted);
 }
 
 .react-aria-Breadcrumb:where([data-variant="default"][data-hovered]) {
-  background: var(--bg);
+  background: var(--container-bg, var(--bg));
   color: var(--fg);
 }
 
 .react-aria-Breadcrumb:where([data-variant="default"][data-pressed]) {
-  background: var(--bg);
+  background: var(--container-bg, var(--bg));
 }
 
 .react-aria-Breadcrumb[data-size="S"] {

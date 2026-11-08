@@ -444,6 +444,8 @@ export function catalogStateBoxShadow(
   if (tree === undefined) return undefined;
   const { props } = catalogRulePaint(input);
   const value = evaluateConditionTree(tree, {
+    // ADR-303: Card 의 tertiary · quiet 가지 (`variant: { tertiary: "none" }`) — DOM `[data-variant]`.
+    variant: resolveCatalogVariantName(input.rule, props),
     isSelected: props.isSelected === true,
     isDisabled: props.isDisabled === true,
     isQuiet: props.isQuiet === true,

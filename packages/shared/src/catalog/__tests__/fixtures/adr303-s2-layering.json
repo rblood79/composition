@@ -1,0 +1,1242 @@
+{
+  "s2Version": "1.8.2",
+  "files": {
+    "Popover.tsx": [
+      {
+        "symbol": "popover",
+        "line": 80,
+        "boundTo": [
+          {
+            "tag": "AriaPopover",
+            "line": 239
+          }
+        ],
+        "props": {
+          "--s2-container-bg": {
+            "type": "backgroundColor",
+            "value": {
+              "default": "layer-2",
+              "forcedColors": "Background"
+            }
+          },
+          "backgroundColor": "--s2-container-bg",
+          "filter": {
+            "isArrowShown": "elevated"
+          },
+          "boxShadow": {
+            "default": "elevated",
+            "isArrowShown": "none"
+          },
+          "outlineStyle": "solid",
+          "outlineWidth": 1,
+          "outlineColor": {
+            "default": "lightDark('transparent-white-25', 'gray-200')",
+            "forcedColors": "ButtonBorder"
+          }
+        }
+      },
+      {
+        "symbol": "arrow",
+        "line": 163,
+        "boundTo": [
+          {
+            "tag": "svg",
+            "line": 265
+          }
+        ],
+        "props": {
+          "fill": "--s2-container-bg"
+        }
+      },
+      {
+        "symbol": "innerDivStyle",
+        "line": 316,
+        "boundTo": [
+          {
+            "tag": "div",
+            "line": 349
+          }
+        ],
+        "props": {
+          "outlineStyle": "none"
+        }
+      }
+    ],
+    "Modal.tsx": [
+      {
+        "symbol": "modalOverlayStyles",
+        "line": 33,
+        "boundTo": [
+          {
+            "tag": "ModalOverlay",
+            "line": 91
+          }
+        ],
+        "props": {
+          "backgroundColor": "transparent-black-500"
+        }
+      },
+      {
+        "symbol": "inline@99",
+        "line": 99,
+        "boundTo": [
+          {
+            "tag": "RACModal",
+            "line": 95
+          }
+        ],
+        "props": {
+          "--s2-container-bg": {
+            "type": "backgroundColor",
+            "value": "layer-2"
+          },
+          "backgroundColor": "--s2-container-bg",
+          "outlineStyle": "solid",
+          "outlineWidth": 1,
+          "outlineColor": "transparent"
+        }
+      }
+    ],
+    "Dialog.tsx": [
+      {
+        "symbol": "dialogInner",
+        "line": 95,
+        "boundTo": [
+          {
+            "tag": "RACDialog",
+            "line": 121
+          }
+        ],
+        "props": {
+          "outlineStyle": "none"
+        }
+      }
+    ],
+    "Tooltip.tsx": [
+      {
+        "symbol": "tooltip",
+        "line": 80,
+        "boundTo": [
+          {
+            "tag": "AriaTooltip",
+            "line": 204
+          }
+        ],
+        "props": {
+          "borderWidth": {
+            "forcedColors": 1
+          },
+          "borderColor": {
+            "forcedColors": "transparent"
+          },
+          "backgroundColor": "neutral"
+        }
+      },
+      {
+        "symbol": "arrowStyles",
+        "line": 143,
+        "boundTo": [
+          {
+            "tag": "svg",
+            "line": 218
+          }
+        ],
+        "props": {
+          "fill": "gray-800"
+        }
+      }
+    ],
+    "Card.tsx": [
+      {
+        "symbol": "card",
+        "line": 88,
+        "boundTo": [
+          {
+            "tag": "Link",
+            "line": 469
+          },
+          {
+            "tag": "div",
+            "line": 492
+          },
+          {
+            "tag": "ElementType",
+            "line": 520
+          }
+        ],
+        "props": {
+          "--s2-container-bg": {
+            "type": "backgroundColor",
+            "value": {
+              "variant": {
+                "primary": "elevated",
+                "secondary": "layer-1"
+              },
+              "forcedColors": "ButtonFace"
+            }
+          },
+          "backgroundColor": {
+            "default": "--s2-container-bg",
+            "variant": {
+              "tertiary": "transparent",
+              "quiet": "transparent"
+            }
+          },
+          "boxShadow": {
+            "default": "emphasized",
+            "isHovered": "elevated",
+            "isFocusVisible": "elevated",
+            "isSelected": "elevated",
+            "forcedColors": "[0 0 0 1px var(--hcm-buttonborder, ButtonBorder)]",
+            "variant": {
+              "tertiary": {
+                "default": "`[0 0 0 2px ${color('gray-100')}]`",
+                "isHovered": "`[0 0 0 2px ${color('gray-200')}]`",
+                "isFocusVisible": "`[0 0 0 2px ${color('gray-200')}]`",
+                "isSelected": "none",
+                "forcedColors": "[0 0 0 2px var(--hcm-buttonborder, ButtonBorder)]"
+              },
+              "quiet": "none"
+            }
+          },
+          "outlineStyle": {
+            "default": "none",
+            "isFocusVisible": "solid",
+            "variant": {
+              "quiet": "none"
+            }
+          }
+        }
+      },
+      {
+        "symbol": "selectionIndicator",
+        "line": 226,
+        "boundTo": [
+          {
+            "tag": "div",
+            "line": 564
+          }
+        ],
+        "props": {
+          "borderWidth": 2,
+          "borderColor": "gray-1000",
+          "outlineColor": "lightDark('transparent-white-600', 'transparent-black-600')",
+          "outlineStyle": {
+            "default": "none",
+            "isStrokeInner": "solid"
+          },
+          "outlineWidth": 2
+        }
+      },
+      {
+        "symbol": "preview",
+        "line": 251,
+        "boundTo": [
+          {
+            "tag": "div",
+            "line": 609
+          }
+        ],
+        "props": {
+          "boxShadow": {
+            "isQuiet": {
+              "isHovered": "elevated",
+              "isFocusVisible": "elevated",
+              "isSelected": "elevated"
+            }
+          },
+          "outlineStyle": {
+            "default": "none",
+            "isQuiet": {
+              "isFocusVisible": "solid"
+            }
+          }
+        }
+      },
+      {
+        "symbol": "inline@580",
+        "line": 580,
+        "boundTo": [
+          {
+            "tag": "div",
+            "line": 579
+          }
+        ],
+        "props": {
+          "backgroundColor": "lightDark('transparent-white-600', 'transparent-black-600')",
+          "boxShadow": "emphasized"
+        }
+      },
+      {
+        "symbol": "inline@701",
+        "line": 701,
+        "boundTo": [
+          {
+            "tag": "div",
+            "line": 700
+          }
+        ],
+        "props": {
+          "backgroundColor": "gray-100"
+        }
+      },
+      {
+        "symbol": "inline@831",
+        "line": 831,
+        "boundTo": [
+          {
+            "tag": "Provider",
+            "line": 813
+          }
+        ],
+        "props": {
+          "outlineStyle": "solid",
+          "outlineWidth": {
+            "default": 2,
+            "size": {
+              "XS": 1
+            }
+          },
+          "outlineColor": "--s2-container-bg"
+        }
+      }
+    ],
+    "Toast.tsx": [
+      {
+        "symbol": "toastStyle",
+        "line": 257,
+        "boundTo": [
+          {
+            "tag": "div",
+            "line": 528
+          },
+          {
+            "tag": "Toast",
+            "line": 558
+          }
+        ],
+        "props": {
+          "outlineColor": {
+            "default": "focus-ring",
+            "isExpanded": "white"
+          },
+          "backgroundColor": {
+            "variant": {
+              "neutral": "neutral-subdued",
+              "info": "informative",
+              "positive": "positive",
+              "negative": "negative"
+            }
+          },
+          "boxShadow": {
+            "default": "elevated",
+            "isExpanded": "none"
+          }
+        }
+      },
+      {
+        "symbol": "inline@440",
+        "line": 440,
+        "boundTo": [
+          {
+            "tag": "div",
+            "line": 437
+          }
+        ],
+        "props": {
+          "backgroundColor": "transparent-black-500"
+        }
+      }
+    ],
+    "TableView.tsx": [
+      {
+        "symbol": "table",
+        "line": 251,
+        "boundTo": [
+          {
+            "tag": "RACTable",
+            "line": 548
+          },
+          {
+            "tag": "HTMLDivElement",
+            "line": 602
+          }
+        ],
+        "props": {
+          "backgroundColor": {
+            "default": "gray-25",
+            "isQuiet": "transparent",
+            "isDropTarget": "dropTargetBackground",
+            "forcedColors": "Background"
+          },
+          "borderColor": {
+            "default": "gray-300",
+            "isDropTarget": "blue-800",
+            "forcedColors": {
+              "default": "ButtonBorder",
+              "isDropTarget": "Highlight"
+            }
+          },
+          "borderWidth": {
+            "default": 1,
+            "isQuiet": 0
+          }
+        }
+      },
+      {
+        "symbol": "columnStyles",
+        "line": 713,
+        "boundTo": [
+          {
+            "tag": "RACColumn",
+            "line": 785
+          }
+        ],
+        "props": {
+          "outlineStyle": "none",
+          "borderColor": {
+            "default": "gray-300",
+            "forcedColors": "ButtonBorder"
+          }
+        }
+      },
+      {
+        "symbol": "resizableMenuButtonWrapper",
+        "line": 882,
+        "boundTo": [
+          {
+            "tag": "Button",
+            "line": 1066
+          }
+        ],
+        "props": {
+          "backgroundColor": "transparent"
+        }
+      },
+      {
+        "symbol": "resizerHandle",
+        "line": 925,
+        "boundTo": [
+          {
+            "tag": "div",
+            "line": 1135
+          }
+        ],
+        "props": {
+          "backgroundColor": {
+            "default": "gray-300",
+            "isFocusVisible": "lightDark('informative-900', 'informative-700')",
+            "isResizing": "lightDark('informative-900', 'informative-700')",
+            "forcedColors": {
+              "default": "Background",
+              "isFocusVisible": "Highlight",
+              "isResizing": "Highlight"
+            }
+          }
+        }
+      },
+      {
+        "symbol": "nubbin",
+        "line": 972,
+        "boundTo": [
+          {
+            "tag": "div",
+            "line": 1121
+          }
+        ],
+        "props": {
+          "fill": {
+            "default": "lightDark('informative-900', 'informative-700')",
+            "forcedColors": "Highlight"
+          }
+        }
+      },
+      {
+        "symbol": "tableHeader",
+        "line": 1138,
+        "boundTo": [
+          {
+            "tag": "RACTableHeader",
+            "line": 1218
+          }
+        ],
+        "props": {
+          "backgroundColor": {
+            "default": "gray-75",
+            "forcedColors": "transparent"
+          }
+        }
+      },
+      {
+        "symbol": "selectAllCheckboxColumn",
+        "line": 1158,
+        "boundTo": [
+          {
+            "tag": "RACColumn",
+            "line": 1223
+          },
+          {
+            "tag": "RACColumn",
+            "line": 1239
+          }
+        ],
+        "props": {
+          "outlineStyle": "none",
+          "borderColor": {
+            "default": "gray-300",
+            "forcedColors": "ButtonBorder"
+          },
+          "backgroundColor": {
+            "default": "gray-75",
+            "forcedColors": "transparent"
+          }
+        }
+      },
+      {
+        "symbol": "divider",
+        "line": 1313,
+        "boundTo": [
+          {
+            "tag": "div",
+            "line": 1427
+          }
+        ],
+        "props": {
+          "backgroundColor": "var(--borderColorGray)"
+        }
+      },
+      {
+        "symbol": "checkboxCellStyle",
+        "line": 1328,
+        "boundTo": [
+          {
+            "tag": "Cell",
+            "line": 2280
+          }
+        ],
+        "props": {
+          "backgroundColor": "--rowBackgroundColor"
+        }
+      },
+      {
+        "symbol": "dragCellStyle",
+        "line": 1342,
+        "boundTo": [
+          {
+            "tag": "RACCell",
+            "line": 2262
+          }
+        ],
+        "props": {
+          "backgroundColor": "--rowBackgroundColor"
+        }
+      },
+      {
+        "symbol": "cellContent",
+        "line": 1353,
+        "boundTo": [
+          {
+            "tag": "span",
+            "line": 1431
+          },
+          {
+            "tag": "span",
+            "line": 1781
+          }
+        ],
+        "props": {
+          "backgroundColor": {
+            "default": "transparent",
+            "isSticky": "--rowBackgroundColor"
+          }
+        }
+      },
+      {
+        "symbol": "expandButton",
+        "line": 1448,
+        "boundTo": [
+          {
+            "tag": "Button",
+            "line": 1488
+          }
+        ],
+        "props": {
+          "outlineStyle": "none",
+          "backgroundColor": "transparent"
+        }
+      },
+      {
+        "symbol": "editableCell",
+        "line": 1513,
+        "boundTo": [
+          {
+            "tag": "RACCell",
+            "line": 1612
+          }
+        ],
+        "props": {
+          "borderColor": {
+            "default": "gray-300",
+            "forcedColors": "ButtonBorder"
+          }
+        }
+      },
+      {
+        "symbol": "editPopover",
+        "line": 1554,
+        "boundTo": [
+          {
+            "tag": "RACPopover",
+            "line": 1788
+          }
+        ],
+        "props": {
+          "--s2-container-bg": {
+            "type": "backgroundColor",
+            "value": "layer-2"
+          },
+          "backgroundColor": "--s2-container-bg",
+          "boxShadow": "elevated",
+          "borderWidth": 1,
+          "borderColor": {
+            "default": "gray-200",
+            "forcedColors": "ButtonBorder"
+          },
+          "outlineStyle": "none"
+        }
+      },
+      {
+        "symbol": "row",
+        "line": 1962,
+        "boundTo": [
+          {
+            "tag": "RACRow",
+            "line": 2240
+          }
+        ],
+        "props": {
+          "backgroundColor": "--rowBackgroundColor",
+          "outlineStyle": "none",
+          "borderColor": {
+            "selectionStyle": {
+              "highlight": {
+                "default": "gray-300",
+                "isSelected": "transparent",
+                "isNextSelected": "transparent"
+              },
+              "checkbox": {
+                "default": "gray-300",
+                "forcedColors": "ButtonBorder"
+              }
+            }
+          }
+        }
+      },
+      {
+        "symbol": "rowBackgroundColor",
+        "kind": "const",
+        "line": 1909,
+        "boundTo": [],
+        "props": {
+          "value": {
+            "default": {
+              "default": "gray-25",
+              "isQuiet": "--s2-container-bg"
+            },
+            "forcedColors": {
+              "default": "Background"
+            },
+            "isHovered": "colorMix('gray-25', 'gray-900', 7)",
+            "isPressed": "colorMix('gray-25', 'gray-900', 10)",
+            "isSelected": {
+              "default": "selectedBackground",
+              "isFocusVisibleWithin": "selectedActiveBackground",
+              "isHovered": "selectedActiveBackground",
+              "isPressed": "selectedActiveBackground"
+            },
+            "selectionStyle": {
+              "highlight": {
+                "default": "gray-25",
+                "isQuiet": "--s2-container-bg",
+                "isHovered": "colorMix('gray-25', 'gray-900', 7)",
+                "isPressed": "colorMix('gray-25', 'gray-900', 10)",
+                "isSelected": {
+                  "default": "colorMix('gray-25', 'blue-900', 10)",
+                  "isHovered": "colorMix('gray-25', 'blue-900', 15)",
+                  "isPressed": "colorMix('gray-25', 'blue-900', 15)",
+                  "forcedColors": "Highlight"
+                }
+              }
+            },
+            "isInFooter": "gray-200",
+            ":is([role=\"grid\"][data-drop-target] *)": "rootRowDropStyles",
+            "isDropTarget": "rowDropStyles"
+          }
+        }
+      }
+    ],
+    "ActionBar.tsx": [
+      {
+        "symbol": "actionBarStyles",
+        "line": 44,
+        "boundTo": [
+          {
+            "tag": "div",
+            "line": 191
+          }
+        ],
+        "props": {
+          "--s2-container-bg": {
+            "type": "backgroundColor",
+            "value": {
+              "default": "elevated",
+              "isEmphasized": "neutral"
+            }
+          },
+          "backgroundColor": "--s2-container-bg",
+          "boxShadow": "elevated",
+          "outlineStyle": "solid",
+          "outlineWidth": 1,
+          "outlineColor": {
+            "default": "lightDark('transparent-white-25', 'gray-200')",
+            "isEmphasized": "transparent",
+            "forcedColors": "ButtonBorder"
+          }
+        }
+      }
+    ],
+    "Menu.tsx": [
+      {
+        "symbol": "menu",
+        "line": 171,
+        "boundTo": [
+          {
+            "tag": "AriaMenu",
+            "line": 602
+          }
+        ],
+        "props": {
+          "outlineStyle": "none"
+        }
+      },
+      {
+        "symbol": "menuitem",
+        "line": 244,
+        "boundTo": [
+          {
+            "tag": "AriaMenuItem",
+            "line": 839
+          }
+        ],
+        "props": {
+          "backgroundColor": {
+            "default": {
+              "default": "transparent",
+              "isFocused": {
+                "default": "baseColor('gray-100').isFocusVisible",
+                "forcedColors": "Highlight"
+              }
+            }
+          }
+        }
+      }
+    ],
+    "ListBox.tsx": [],
+    "Avatar.tsx": [
+      {
+        "symbol": "imageStyles",
+        "line": 62,
+        "boundTo": [
+          {
+            "tag": "Image",
+            "line": 123
+          }
+        ],
+        "props": {
+          "outlineStyle": {
+            "default": "none",
+            "isOverBackground": "solid"
+          },
+          "outlineColor": "--s2-container-bg",
+          "outlineWidth": {
+            "default": 1,
+            "isLarge": 2,
+            "isLH": "min(2px, max(1px, calc((((1lh / 64) - 1px) * 9999) + 1px)))"
+          }
+        }
+      }
+    ],
+    "TreeView.tsx": [
+      {
+        "symbol": "tree",
+        "line": 193,
+        "boundTo": [
+          {
+            "tag": "Tree",
+            "line": 281
+          }
+        ],
+        "props": {
+          "backgroundColor": {
+            "isDropTarget": {
+              "default": "dropTargetBackground",
+              "forcedColors": "Background"
+            }
+          }
+        }
+      },
+      {
+        "symbol": "treeRow",
+        "line": 320,
+        "boundTo": [
+          {
+            "tag": "TreeItem",
+            "line": 591
+          }
+        ],
+        "props": {
+          "outlineStyle": {
+            "default": "none",
+            "isDropTarget": "solid"
+          },
+          "outlineWidth": {
+            "isDropTarget": 2
+          },
+          "outlineColor": {
+            "isDropTarget": "blue-800",
+            "forcedColors": {
+              "isDropTarget": "Highlight"
+            }
+          }
+        }
+      },
+      {
+        "symbol": "treeRowBackground",
+        "line": 430,
+        "boundTo": [
+          {
+            "tag": "div",
+            "line": 639
+          }
+        ],
+        "props": {
+          "backgroundColor": {
+            "default": "--rowBackgroundColor",
+            "forcedColors": "Background",
+            "selectionStyle": {
+              "highlight": {
+                "default": "--rowBackgroundColor",
+                "isSelected": {
+                  "default": "colorMix('gray-25', 'blue-900', 10)",
+                  "isHovered": "colorMix('gray-25', 'blue-900', 15)",
+                  "isPressed": "colorMix('gray-25', 'blue-900', 15)",
+                  "isFocusVisible": "colorMix('gray-25', 'blue-900', 15)",
+                  "forcedColors": "Highlight"
+                }
+              }
+            },
+            ":is([role=\"treegrid\"][data-drop-target] *)": "rootRowDropStyles",
+            "isDropTarget": "rowDropStyles"
+          },
+          "borderColor": {
+            "default": "transparent",
+            "isSelected": "--borderColor"
+          }
+        }
+      },
+      {
+        "symbol": "treeRowFocusRing",
+        "line": 543,
+        "boundTo": [
+          {
+            "tag": "div",
+            "line": 651
+          }
+        ],
+        "props": {
+          "outlineWidth": {
+            "default": 2,
+            "forcedColors": "[3px]"
+          },
+          "outlineColor": {
+            "default": "focus-ring",
+            "forcedColors": "Highlight",
+            "selectionStyle": {
+              "highlight": {
+                "default": "focus-ring",
+                "forcedColors": "ButtonBorder"
+              }
+            }
+          }
+        }
+      },
+      {
+        "symbol": "expandButton",
+        "line": 753,
+        "boundTo": [
+          {
+            "tag": "Button",
+            "line": 797
+          }
+        ],
+        "props": {
+          "outlineStyle": "none",
+          "backgroundColor": "transparent"
+        }
+      },
+      {
+        "symbol": "rowBackgroundColor",
+        "kind": "const",
+        "line": 304,
+        "boundTo": [
+          {
+            "tag": "(ref)",
+            "line": 320
+          }
+        ],
+        "props": {
+          "value": {
+            "default": "--s2-container-bg",
+            "isFocusVisibleWithin": "colorMix('gray-25', 'gray-900', 7)",
+            "isHovered": "colorMix('gray-25', 'gray-900', 7)",
+            "isPressed": "colorMix('gray-25', 'gray-900', 7)",
+            "isSelected": {
+              "default": "colorMix('gray-25', 'gray-900', 7)",
+              "isFocusVisibleWithin": "colorMix('gray-25', 'gray-900', 10)",
+              "isHovered": "colorMix('gray-25', 'gray-900', 10)",
+              "isPressed": "colorMix('gray-25', 'gray-900', 10)"
+            },
+            "forcedColors": {
+              "default": "Background"
+            }
+          }
+        }
+      }
+    ],
+    "Badge.tsx": [
+      {
+        "symbol": "badge",
+        "line": 91,
+        "boundTo": [
+          {
+            "tag": "span",
+            "line": 242
+          }
+        ],
+        "props": {
+          "backgroundColor": {
+            "fillStyle": {
+              "bold": {
+                "variant": {
+                  "accent": "accent",
+                  "informative": "informative",
+                  "neutral": "neutral-subdued",
+                  "positive": "positive",
+                  "notice": "notice",
+                  "negative": "negative",
+                  "gray": "gray",
+                  "red": "red",
+                  "orange": "orange",
+                  "yellow": "yellow",
+                  "chartreuse": "chartreuse",
+                  "celery": "celery",
+                  "green": "green",
+                  "seafoam": "seafoam",
+                  "cyan": "cyan",
+                  "blue": "blue",
+                  "indigo": "indigo",
+                  "purple": "purple",
+                  "fuchsia": "fuchsia",
+                  "magenta": "magenta",
+                  "pink": "pink",
+                  "turquoise": "turquoise",
+                  "brown": "brown",
+                  "cinnamon": "cinnamon",
+                  "silver": "silver"
+                }
+              },
+              "subtle": {
+                "variant": {
+                  "accent": "accent-subtle",
+                  "informative": "informative-subtle",
+                  "neutral": "neutral-subtle",
+                  "positive": "positive-subtle",
+                  "notice": "notice-subtle",
+                  "negative": "negative-subtle",
+                  "gray": "gray-subtle",
+                  "red": "red-subtle",
+                  "orange": "orange-subtle",
+                  "yellow": "yellow-subtle",
+                  "chartreuse": "chartreuse-subtle",
+                  "celery": "celery-subtle",
+                  "green": "green-subtle",
+                  "seafoam": "seafoam-subtle",
+                  "cyan": "cyan-subtle",
+                  "blue": "blue-subtle",
+                  "indigo": "indigo-subtle",
+                  "purple": "purple-subtle",
+                  "fuchsia": "fuchsia-subtle",
+                  "magenta": "magenta-subtle",
+                  "pink": "pink-subtle",
+                  "turquoise": "turquoise-subtle",
+                  "brown": "brown-subtle",
+                  "cinnamon": "cinnamon-subtle",
+                  "silver": "silver-subtle"
+                }
+              },
+              "outline": "layer-2"
+            }
+          },
+          "borderWidth": 2,
+          "borderColor": {
+            "default": "transparent",
+            "fillStyle": {
+              "outline": {
+                "variant": {
+                  "accent": "lightDark('accent-800', 'accent-900')",
+                  "informative": "lightDark('informative-800', 'informative-900')",
+                  "neutral": "lightDark('gray-500', 'gray-600')",
+                  "positive": "lightDark('positive-800', 'positive-900')",
+                  "notice": "lightDark('notice-800', 'notice-900')",
+                  "negative": "lightDark('negative-800', 'negative-900')"
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "InlineAlert.tsx": [
+      {
+        "symbol": "inlineAlert",
+        "line": 60,
+        "boundTo": [
+          {
+            "tag": "div",
+            "line": 235
+          }
+        ],
+        "props": {
+          "borderWidth": 2,
+          "borderColor": {
+            "fillStyle": {
+              "border": {
+                "variant": {
+                  "informative": "informative-800",
+                  "positive": "positive-700",
+                  "notice": "notice-700",
+                  "negative": "negative-800",
+                  "neutral": "gray-700"
+                }
+              },
+              "subtleFill": "transparent",
+              "boldFill": "transparent"
+            }
+          },
+          "backgroundColor": {
+            "variant": {
+              "informative": {
+                "fillStyle": {
+                  "border": "gray-25",
+                  "subtleFill": "informative-subtle",
+                  "boldFill": "informative"
+                }
+              },
+              "positive": {
+                "fillStyle": {
+                  "border": "gray-25",
+                  "subtleFill": "positive-subtle",
+                  "boldFill": "positive"
+                }
+              },
+              "notice": {
+                "fillStyle": {
+                  "border": "gray-25",
+                  "subtleFill": "notice-subtle",
+                  "boldFill": "notice"
+                }
+              },
+              "negative": {
+                "fillStyle": {
+                  "border": "gray-25",
+                  "subtleFill": "negative-subtle",
+                  "boldFill": "negative"
+                }
+              },
+              "neutral": {
+                "fillStyle": {
+                  "border": "gray-25",
+                  "subtleFill": "neutral-subtle",
+                  "boldFill": "neutral-subdued"
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "TagGroup.tsx": [
+      {
+        "symbol": "tagStyles",
+        "line": 506,
+        "boundTo": [
+          {
+            "tag": "AriaTag",
+            "line": 595
+          }
+        ],
+        "props": {
+          "backgroundColor": {
+            "default": "gray-100",
+            "isHovered": {
+              "default": "gray-200"
+            },
+            "isFocusVisible": {
+              "default": "gray-200"
+            },
+            "isSelected": {
+              "default": "baseColor('neutral')",
+              "isEmphasized": {
+                "default": "lightDark('accent-900', 'accent-700')",
+                "isHovered": "lightDark('accent-1000', 'accent-600')",
+                "isPressed": "lightDark('accent-1000', 'accent-600')",
+                "isFocusVisible": "lightDark('accent-1000', 'accent-600')"
+              }
+            },
+            "isDisabled": "disabled",
+            "forcedColors": {
+              "default": "ButtonFace",
+              "isSelected": "Highlight"
+            }
+          }
+        }
+      },
+      {
+        "symbol": "inline@617",
+        "line": 617,
+        "boundTo": [
+          {
+            "tag": "div",
+            "line": 616
+          }
+        ],
+        "props": {
+          "backgroundColor": "transparent"
+        }
+      }
+    ],
+    "Divider.tsx": [
+      {
+        "symbol": "divider",
+        "line": 59,
+        "boundTo": [
+          {
+            "tag": "RACSeparator",
+            "line": 117
+          }
+        ],
+        "props": {
+          "backgroundColor": {
+            "default": "gray-200",
+            "size": {
+              "L": "gray-800"
+            },
+            "isStaticColor": {
+              "default": "transparent-overlay-200",
+              "size": {
+                "L": "transparent-overlay-800"
+              }
+            },
+            "forcedColors": "ButtonBorder"
+          }
+        }
+      }
+    ],
+    "Link.tsx": [
+      {
+        "symbol": "link",
+        "line": 68,
+        "boundTo": [
+          {
+            "tag": "RACLink",
+            "line": 143
+          }
+        ],
+        "props": {
+          "outlineColor": {
+            "default": "focus-ring",
+            "isStaticColor": "transparent-overlay-1000",
+            "forcedColors": "Highlight"
+          }
+        }
+      }
+    ],
+    "DropZone.tsx": [
+      {
+        "symbol": "dropzone",
+        "line": 75,
+        "boundTo": [
+          {
+            "tag": "RACDropZone",
+            "line": 141
+          }
+        ],
+        "props": {
+          "backgroundColor": {
+            "isDropTarget": "blue-200"
+          },
+          "borderWidth": 2,
+          "borderColor": {
+            "default": "gray-300",
+            "isDropTarget": "blue-800",
+            "isFocusVisible": "blue-800"
+          }
+        }
+      },
+      {
+        "symbol": "banner",
+        "line": 103,
+        "boundTo": [
+          {
+            "tag": "div",
+            "line": 155
+          }
+        ],
+        "props": {
+          "backgroundColor": "accent"
+        }
+      }
+    ],
+    "Provider.tsx": [
+      {
+        "symbol": "providerStyles",
+        "line": 88,
+        "boundTo": [
+          {
+            "tag": "Element",
+            "line": 124
+          }
+        ],
+        "props": {
+          "--s2-container-bg": {
+            "type": "backgroundColor",
+            "value": {
+              "background": {
+                "base": "base",
+                "layer-1": "layer-1",
+                "layer-2": "layer-2"
+              }
+            }
+          },
+          "backgroundColor": {
+            "background": {
+              "base": "--s2-container-bg",
+              "layer-1": "--s2-container-bg",
+              "layer-2": "--s2-container-bg"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

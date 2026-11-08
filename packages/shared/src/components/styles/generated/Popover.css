@@ -19,7 +19,7 @@
   flex-direction: column;
 
   /* Default variant */
-  background: var(--popover-background);
+  background: var(--bg-inset);
   color: var(--fg);
   border: 0px solid transparent;
 
@@ -33,45 +33,21 @@
 }
 
 .react-aria-Popover:where([data-variant="accent"]) {
-  background: var(--bg);
+  background: var(--bg-inset);
   color: var(--fg);
   border-color: var(--accent-content);
 }
 
-.react-aria-Popover:where([data-variant="accent"][data-hovered]) {
-  background: var(--bg);
-}
-
-.react-aria-Popover:where([data-variant="accent"][data-pressed]) {
-  background: var(--bg);
-}
-
 .react-aria-Popover:where([data-variant="neutral"]) {
-  background: var(--bg);
+  background: var(--bg-inset);
   color: var(--fg);
   border-color: var(--bg-muted);
 }
 
-.react-aria-Popover:where([data-variant="neutral"][data-hovered]) {
-  background: var(--bg);
-}
-
-.react-aria-Popover:where([data-variant="neutral"][data-pressed]) {
-  background: var(--bg);
-}
-
 .react-aria-Popover:where([data-variant="surface"]) {
-  background: var(--popover-background);
+  background: var(--bg-inset);
   color: var(--fg);
   border-color: transparent;
-}
-
-.react-aria-Popover:where([data-variant="surface"][data-hovered]) {
-  background: var(--popover-background);
-}
-
-.react-aria-Popover:where([data-variant="surface"][data-pressed]) {
-  background: var(--popover-background);
 }
 
 .react-aria-Popover[data-size="S"] {

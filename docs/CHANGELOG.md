@@ -11,6 +11,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [자식이 컨테이너 배경을 따른다 — ADR-303 Phase 2 · 3 · Implemented] - 2026-11-08
+
+### Changed
+
+- **Nav · Breadcrumb(s) · DropZone · Menu · ListBox 의 배경 = 가장 가까운 컨테이너의 층** (ADR-303 Phase 2, 사용자 결정 4 a):
+  - layer-1 Card · layer-1/2 Fill 의 Frame · Popover 안에 두면 그 바탕 층과 같은 면이 된다 (전에는 늘 `base` — dark 에서 `#111` 조각이 떠 보였다). 바깥에 두면 지금처럼 `base`.
+  - 컨테이너 = 작성한 칠의 맨 위 층이 층 토큰 (base · layer-1 · layer-2 · elevated · pasteboard) 이거나, 칠이 없고 rule 휴지 배경이 층 토큰인 노드. 임의 hex · 그라데이션 · 투명은 컨테이너가 아니다 (위 층을 그대로 물려준다).
+  - Group 배경 `base` → 투명 (RAC Group 은 칠하지 않는데 base 로 적혀 있어 안을 끊었다).
+  - **Why**: S2 는 자식이 `--s2-container-bg` 를 상속하는데 rule 은 `{color.base}` 고정이라, 층 배정 (Phase 1) 뒤에도 컨테이너 안 목록 · 탐색이 바탕과 다른 색이었다.
+  - 구현: 판정 함수 하나 `packages/shared/src/catalog/runtime/containerLayer.ts` — Canvas 는 파생 `_containerLayer` (`presence.ts` → `resolveCatalogPaint.ts`), DOM 은 컨테이너 노드 inline `--container-bg` (`domBinding.runtime.ts`) 를 생성 CSS `var(--container-bg, var(--bg))` 가 상속 (`tokenResolver.ts`). 층 편집은 그 노드의 층이 바뀐 step 에만 안의 reader 를 다시 계획한다 (`compositionRoot.ts`).
+  - 생성 CSS 6 (Breadcrumb · Breadcrumbs · DropZone · ListBox · Menu · Nav)
+
+### Performance
+
+- ADR-201 Preview initial JS 상한 325,000 → 327,000 B 재승인 (사용자, 만료 2026-11-25 — 302 가 여유를 썼다). 이 ADR 전체의 Δ: Preview +35 B · Builder +589 B.
+
+### Tests
+
+- `adr303ContainerParity.browser.test.ts` (G2) — 실제 노드 트리를 Canvas · DOM 로 그려 기대 층 hex 와 대조 (Frame 층 · 중첩 · hex 통과 · Card · 투명 Group · 층 편집 · 이동 × light · dark = 60). `containerLayer.test.ts` 6. 대비 · 토큰 게이트 (`adr302*` · `adr290AccentRoles` · `catalogTokenExists`) 는 `container` 를 층 4 로 펼쳐 검사.
+
+## [컨테이너 · 떠 있는 요소의 층 · 그림자를 S2 로 — ADR-303 Phase 0 · 1] - 2026-11-08
+
+### Changed
+
+- **Card · Popover · Modal · Sheet · Dialog · Tooltip · Table 의 배경 층과 그림자 = 설치 S2 1.8.2** (ADR-303 Phase 1, 사용자 결정 1a · 2a · 5a):
+  - Card — primary `elevated` · secondary `layer-1` 배경 고정, 그림자 `emphasized` → hover · focus · selected `elevated` (hover 를 배경 단 대신 그림자로). tertiary 는 테두리 `gray-100` → hover · focus `gray-200`, quiet 는 루트 그림자 없이 미리보기 (CardPreview) 에만 그림자.
+  - Modal · Sheet · Dialog — 배경 `layer-2` (light 흰색 · dark `#222`), 상시 `dragged` 그림자 삭제 (열린 Modal 은 바탕 막이 분리한다 — S2 Modal 과 같음).
+  - Tooltip 그림자 삭제 (S2 Tooltip 에 없음) · Popover accent · neutral 변형 배경 `base` → `layer-2` (dark `#111` → `#222`) · Table 배경의 hover · pressed 단 삭제 (행 상태는 Row 의 몫).
+  - Canvas 도 상태 그림자를 variant 조건까지 같이 읽는다 (`catalogStateBoxShadow`) — Builder 와 Preview 가 같은 값 (live 5174 light · dark).
+  - **Why**: 층 토큰 (ADR-302) 은 Spectrum 값이 됐지만 어느 컴포넌트가 어느 층 · 그림자를 쓰는지는 옛 값이었다 (Modal 의 끌기 그림자 · Card 그림자 없음 · Tooltip 그림자).
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` · `packages/shared/src/catalog/runtime/rulePaint.ts` · 생성 CSS 6 (Card · Dialog · Modal · Popover · Sheet · Tooltip)
+
+### Tests
+
+- `adr303S2Layering.static.test.ts` (G1 7) — oracle 은 설치 S2 소스에서 뽑은 `adr303-s2-layering.json` (생성기 `apps/builder/scripts/adr303-s2-layering-extract.mjs`, `--check`). ADR-166 의 「Tooltip < Popover < Modal 서열」 테스트는 S2 배정으로 바꿨다.
+
 ## [Badge 글자 대비 회귀 수리 — S2 Badge 칠로 정렬 (ADR-302 후속)] - 2026-11-08
 
 ### Fixed

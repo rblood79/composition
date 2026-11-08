@@ -13,7 +13,6 @@
     font-family: var(--font-sans);
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  box-shadow: var(--shadow-lg);
   width: 360px;
   max-width: 100%;
   max-height: 90%;
@@ -22,7 +21,7 @@
   flex-direction: column;
 
   /* Default variant */
-  background: var(--bg-overlay);
+  background: var(--bg-inset);
   color: var(--fg);
   border: none;
 
@@ -35,7 +34,7 @@
 }
 
 .react-aria-Sheet:where([data-variant="default"]) {
-  background: var(--bg-overlay);
+  background: var(--bg-inset);
   color: var(--fg);
 }
 

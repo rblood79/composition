@@ -2,14 +2,22 @@
 
 ## Status
 
-Proposed — 2026-11-08
+Implemented — 2026-11-08 (Accepted 같은 날 — `/execute-adr 303` + [reviews/303.md](../reviews/303.md) round 2 pending 0 · HIGH 전부 fixed. Phase 0 ~ 3 종결)
 
-> 설계 리뷰 round 1 · 2 (2026-11-08, codex): [reviews/303.md](reviews/303.md) — HIGH 3 (h1 Table 배정 근거 = 셀 편집 Popover · h2 Frame 의 층을 정적 CSS 로 전달 불가 · h3 미등록 CSS 변수 이름) · MEDIUM 1 (m4 quiet Card 그림자 대상 = CardPreview) 전부 설계상 fixed · round 2 수리 검증 HIGH 0 · pending 0 — 리뷰 루프 종결. 구현 · 번들 · live 는 UNVERIFIED 이며 Proposed 를 유지한다.
+> **Phase 3 닫힘 → Implemented (2026-11-08)** — G4 PASS: live 5174 (Chrome MCP) 기존 프로젝트 `adr303-live` 에서 layer-1 Frame · Card secondary 안 reader 가 바탕 층을 따르고 Canvas = Preview (dark `#1b1b1b` · light `#f8f8f8`, 바깥 base), Popover 안 Menu = layer-2 + dark 1px 테두리, Frame 층 편집이 새로고침 없이 반영 · Undo 복귀, 콘솔 오류 0. GridList 끌기 그림자는 결정 3 (b) 로 G4 에서 뺐다. 아래 `### Live Exercise`.
 
-- 사용자 요청: `/create-adr` (2026-11-08) — [ADR-302](completed/302-theme-color-two-axis-spectrum-ladders.md) 착수 전 대화 「overlay 계열들이나 menu 등 Layering system 을 체계적으로 가지게 되나 (Hub background-layers)」 → 「spectrum hub 개념 두 가지로 되나? 더 체크해라」 → Hub 지침 7 (background-layers · containers · drop-shadow · colors · grays · states · attention-hierarchy) 재대조 → 「302 에 합친다면 문제가 될 부분은?」 → 분리 권고 뒤 이 요청. 분리 (결정 지점 ①) 는 이 요청을 confirm 으로 본다 — 4 질문 lock-in 은 breakdown §1.
+> **Phase 2 닫힘 (2026-11-08)** — G2 · G3 PASS. 판정 함수 하나 `containerLayer.ts` (작성 칠의 맨 위 층 토큰 · 칠 없으면 rule 휴지 배경) 를 Canvas (`_containerLayer` 파생 → `resolveCatalogPaint`) 와 DOM (컨테이너 노드 inline `--container-bg` = 층 토큰의 등록 변수 → 생성 CSS `var(--container-bg, var(--bg))` 상속) 이 같이 읽는다. **결정 4 (a)** — reader 6 type · 참조 14 (Nav · Breadcrumb · Breadcrumbs · DropZone · Menu · ListBox), 칠하지 않는 base 자리 (Link · Separator) 는 그대로 · Group 배경 base → transparent (컨테이너로 판정돼 안을 끊었다). G2 parity 60/60 (Frame 층 · 중첩 · hex 통과 · rule 컨테이너 · 투명 Group · 층 편집 · 이동 × light · dark) · 원복 RED 2. 증분은 노드의 층이 바뀐 step 에만 자손 walk (첫 판의 매 편집 walk 가 `phase3DeltaScale` RED → 수리). G3 Preview initial JS +35 B · Builder +589 B (HEAD 대조, ADR-201 Preview 상한 327,000 재승인). 회귀 신규 0. 상세: breakdown §6.
+
+> **Phase 1 닫힘 (2026-11-08)** — G1 PASS. 배정 = S2: Popover 3 variant layer-2 · Modal · Sheet · Dialog layer-2 + 그림자 삭제 · Tooltip 그림자 삭제 · Card 배경 고정 + `stateStyles.boxShadow` (sm → hover · focus · selected md, tertiary · quiet none) + quiet CardPreview md · tertiary 테두리 `neutral-surface` (gray-100) → `neutral-surface-hover` · Table 배경 상태 삭제 · Canvas 상태 그림자에 `variant` 조건. `adr303S2Layering.static.test.ts` 7/7 · 원복 RED (Modal `{shadow.lg}`) · type-check · 회귀 신규 0 (로컬 G0 기준선 1 제외) · live 5174 light · dark Canvas = Preview PASS. 남긴 차이: tertiary 테두리 1px (S2 2px box-shadow) · CardPreview hover 그림자는 Canvas 상태 미리보기에 없음 (휴지 상태는 둘 다 없음). ADR-166 Superseded in part 표기. 상세: breakdown §6.
+
+> **Phase 0 닫힘 (2026-11-08)** — G0 PASS. S2 fixture 생성기 `adr303-s2-layering-extract.mjs` → `adr303-s2-layering.json` (설치 S2 1.8.2 · style 블록 51 · 바인딩 대상 포함 · `--check` PASS). **사용자 결정**: 1 (a) Card S2 그대로 · 2 (a) + 5 (a) Modal · Sheet · Dialog · Tooltip 그림자 제거 · 3 (b) 끌기 그림자 범위 밖 · 6 (b) Phase 2 착수 전 ADR-201 Preview 상한 재승인 · R1 외관 변화 진행. 결정 4 (재분류 범위) 는 Phase 2 착수 때. **실측 정정**: Popover 테두리는 이미 있다 (`71922bd0f`, 두 consumer) · 행 · 항목의 `isDragging` 가지 0 이고 S2 1.8.2 는 `dragged` 그림자를 쓰지 않는다 (결정 3 의 근거) · Tooltip 배경 `neutral-subtle` ≠ S2 `neutral` (이 ADR 밖) · TableHeader `gray-75` 는 대응 역할이 없다 (302 영역) · 302 전 → HEAD Preview initial JS +1,101 B 로 설계 여유 1,090 B 소진 (결정 6 의 근거). 상세: breakdown §6.
+
+> 설계 리뷰 round 1 · 2 (2026-11-08, codex): [reviews/303.md](../reviews/303.md) — HIGH 3 (h1 Table 배정 근거 = 셀 편집 Popover · h2 Frame 의 층을 정적 CSS 로 전달 불가 · h3 미등록 CSS 변수 이름) · MEDIUM 1 (m4 quiet Card 그림자 대상 = CardPreview) 전부 설계상 fixed · round 2 수리 검증 HIGH 0 · pending 0 — 리뷰 루프 종결. 구현 · 번들 · live 는 UNVERIFIED 이며 Proposed 를 유지한다.
+
+- 사용자 요청: `/create-adr` (2026-11-08) — [ADR-302](302-theme-color-two-axis-spectrum-ladders.md) 착수 전 대화 「overlay 계열들이나 menu 등 Layering system 을 체계적으로 가지게 되나 (Hub background-layers)」 → 「spectrum hub 개념 두 가지로 되나? 더 체크해라」 → Hub 지침 7 (background-layers · containers · drop-shadow · colors · grays · states · attention-hierarchy) 재대조 → 「302 에 합친다면 문제가 될 부분은?」 → 분리 권고 뒤 이 요청. 분리 (결정 지점 ①) 는 이 요청을 confirm 으로 본다 — 4 질문 lock-in 은 breakdown §1.
 - 방향을 정한 대조 결과 (2026-11-08, 설치 S2 1.8.2 · composition rule 실측 — Context 표): 302 는 층 **토큰** (pasteboard 신설 · raised 삭제 · elevated 값 · popover-outline alias) 을 만들지만, **어느 컴포넌트가 어느 층 · 그림자 · 테두리를 쓰는가** 와 **자식이 컨테이너 배경을 따르는 것** 은 범위 밖이다. 그 둘이 이 ADR 이다.
 - 사용자가 이미 답한 것: 302 와 합치지 않는다 (Preview 번들 여유 1,090 B · 성격이 다른 결정 · 확정된 302 전제 재개 · R1 confirm 범위 확대 — 302 대화 기록). 편집 · 탐색 맥락과 주목 위계 (attention hierarchy) 는 토큰으로 만들 수 없는 지침이라 범위 밖 (breakdown §5).
-- 선행 ADR 과의 관계 (응용 — 302 가 base): 302 의 층 토큰 값 · `raised` → `layer-2` 재분류 · `popover-outline` tone alias 를 **그대로 소비** 한다. [ADR-166](completed/166-shadow-token-theme-aware-ssot.md) 의 그림자 토큰 값 (`sm` · `md` · `lg` = Spectrum `emphasized` · `elevated` · `dragged`, dark ×3) 은 바꾸지 않고 **배정만** 한다. [ADR-297](completed/297-rule-state-condition-tree-single-priority.md) 의 조건 트리 (`paint`) 안에서 그림자 · 테두리 상태를 적는다. [ADR-223](completed/223-generated-css-default-archetype-neutralization.md) 의 「Canvas 가 읽지 않는 DOM 어법은 `rootSelectors`」 경계를 지킨다.
+- 선행 ADR 과의 관계 (응용 — 302 가 base): 302 의 층 토큰 값 · `raised` → `layer-2` 재분류 · `popover-outline` tone alias 를 **그대로 소비** 한다. [ADR-166](166-shadow-token-theme-aware-ssot.md) 의 그림자 토큰 값 (`sm` · `md` · `lg` = Spectrum `emphasized` · `elevated` · `dragged`, dark ×3) 은 바꾸지 않고 **배정만** 한다. [ADR-297](297-rule-state-condition-tree-single-priority.md) 의 조건 트리 (`paint`) 안에서 그림자 · 테두리 상태를 적는다. [ADR-223](223-generated-css-default-archetype-neutralization.md) 의 「Canvas 가 읽지 않는 DOM 어법은 `rootSelectors`」 경계를 지킨다.
 - 착수 조건: **302 Implemented 뒤** (G1 이 302 의 `pasteboard` · `layer-2` 재분류 · `popover-outline` alias 를 전제한다). 리뷰 · 착수는 사용자 요청 때 (`/review-adr 303` → `/execute-adr 303`).
 
 ## Context
@@ -99,7 +107,7 @@ HIGH 0 인 대안 (B) 이 있어 루프 종료. B 의 MEDIUM 2 (두 consumer 구
 
 **기각 사유**: A — 자식 `base` 고정 67 이 남아 layer-1 · elevated 위에서 흰 조각이 계속 보인다 (Hub 「배경 층으로 위계」 의 핵심이 빠짐). C — Canvas ≠ Preview, D3 대칭 위반. D — Page 스키마 신설과 기존 문서 기본값 결정이 필요하고 사용자 페이지는 탐색 맥락이 기본이라 지금 얻는 것이 없다 (편집 맥락은 Builder 자신의 chrome 이며 D3 밖).
 
-> 구현 상세: [303-container-layer-assignment-elevation-breakdown.md](design/303-container-layer-assignment-elevation-breakdown.md)
+> 구현 상세: [303-container-layer-assignment-elevation-breakdown.md](../design/303-container-layer-assignment-elevation-breakdown.md)
 
 ### 사용자 결정 6 건 (execute-adr 가 그 항목에 닿을 때 묻는다 — 4 결정 지점 밖)
 
@@ -134,7 +142,11 @@ HIGH 0 인 대안 (B) 이 있어 루프 종료. B 의 MEDIUM 2 (두 consumer 구
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+2026-11-08 · Chrome MCP · 별도 dev 서버 5174 (작업본, 사용자 5173 무관). 근거 `.agent/runs/2026-11-08-adr303-phase1/artifacts/live-5174.json` · `.agent/runs/2026-11-08-adr303-phase3/artifacts/live-5174.json` (로컬 전용).
+
+- **Phase 1 배정** (새 프로젝트 `adr303-live`): Card 4 variant light · dark Canvas = Preview 계산값 (primary `#fff`/`#222` + emphasized · secondary `#f8f8f8`/`#1b1b1b` · tertiary 테두리 `#e9e9e9`/`#2c2c2c` · quiet 그림자 없음) · hover 가지 (primary elevated · tertiary 그림자 없음 + 테두리 `#e1e1e1` · quiet → CardPreview elevated) · Popover 열기 light `#fff` + 투명 outline / dark `#222` + 1px `#323232` + elevated · Tooltip · Modal · Sheet · Dialog 그림자 none · 콘솔 0.
+- **Phase 3 상속** (같은 프로젝트를 다시 열어 — 기존 노드 외관 그대로): layer-1 Fill Frame 안 Nav · ListBox · DropZone 과 Card secondary 안 Nav 의 `_containerLayer` = layer-1, 바깥 Nav = base · Canvas 화면에서 reader 면 = 바탕 면 · Preview 계산값 dark `rgb(27,27,27)` / 바깥 `rgb(17,17,17)`, light `rgb(248,248,248)` / `rgb(255,255,255)` · 팔레트 Menu (MenuTrigger > Popover > Menu) 를 Preview 에서 열어 Popover `rgb(34,34,34)` + 1px `rgb(50,50,50)` · Menu `--container-bg` `#222222` (light `#ffffff`) · Builder 에서 Frame Fill layer-1 → layer-2 편집 → 안 reader 3 이 새로고침 없이 layer-2, Card 안은 layer-1 유지 → Undo 로 복귀 · Builder · Preview 콘솔 오류 0.
+- 범위 밖 관찰: 하니스가 디버그 훅 `canvas.setCamera` 에 맞지 않는 값을 넣어 `PageHeaderLayer` 가 던졌다 (제품 조작 경로 아님 · 뷰포트 영역) — 재로드 뒤 휠 스크롤로 진행.
 
 ## Consequences
 

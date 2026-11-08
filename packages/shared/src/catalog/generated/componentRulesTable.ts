@@ -2099,9 +2099,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       default: {
         paint: {
           backgroundColor: {
-            default: "{color.base}",
-            isHovered: "{color.base}",
-            isPressed: "{color.base}",
+            default: "{color.container}",
+            isHovered: "{color.container}",
+            isPressed: "{color.container}",
           },
           color: {
             default: "{color.neutral-subdued}",
@@ -2179,9 +2179,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       default: {
         paint: {
           backgroundColor: {
-            default: "{color.base}",
-            isHovered: "{color.base}",
-            isPressed: "{color.base}",
+            default: "{color.container}",
+            isHovered: "{color.container}",
+            isPressed: "{color.container}",
           },
           color: {
             default: "{color.neutral-subdued}",
@@ -2561,6 +2561,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           variant: { quiet: { isPressed: catalogPressTransform() } },
         },
         transition: { variant: { quiet: CATALOG_PRESS_TRANSITION } },
+        // ADR-303 (리뷰 m4): S2 `Card.tsx:251` `preview` 스타일 (CardPreview `:609`) — quiet 는 루트가
+        //   아니라 미리보기에 hover · focus · selected `elevated`.
+        boxShadow: {
+          variant: {
+            quiet: {
+              isHovered: "{shadow.md}",
+              isFocusVisible: "{shadow.md}",
+              isSelected: "{shadow.md}",
+            },
+          },
+        },
       },
     },
     defaultVariant: "primary",
@@ -2570,9 +2581,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       primary: {
         paint: {
           backgroundColor: {
-            default: "{color.layer-2}",
-            isHovered: "{color.layer-1}",
-            isPressed: "{color.neutral-subtle}",
+            // ADR-303 (사용자 결정 1 a): S2 `Card.tsx:94` primary `--s2-container-bg: elevated` 고정 —
+            //   hover · focus · selected 는 배경 단이 아니라 그림자 (`structure.stateStyles.boxShadow`).
+            default: "{color.elevated}",
             isSelected: {
               default: "{color.accent-subtle}",
             },
@@ -2595,9 +2606,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       secondary: {
         paint: {
           backgroundColor: {
+            // ADR-303: S2 `Card.tsx:94` secondary `layer-1` 고정 (그림자는 primary 와 같다).
             default: "{color.layer-1}",
-            isHovered: "{color.neutral-subtle}",
-            isPressed: "{color.neutral-subtle}",
             isSelected: {
               default: "{color.accent-subtle}",
             },
@@ -2620,9 +2630,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       tertiary: {
         paint: {
           backgroundColor: {
+            // ADR-303: S2 `Card.tsx:104` tertiary · quiet `transparent` 고정.
             default: "{color.transparent}",
-            isHovered: "{color.neutral-subtle}",
-            isPressed: "{color.neutral-subtle}",
             isSelected: {
               default: "{color.accent-subtle}",
             },
@@ -2634,7 +2643,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           borderColor: {
-            default: "{color.border}",
+            // ADR-303: S2 `Card.tsx:117` tertiary 테두리 `gray-100` → hover · focus `gray-200`
+            //   (= `neutral-surface` · `neutral-surface-hover`, 두 모드 같은 단). S2 는 box-shadow 2px,
+            //   여기는 레이아웃 테두리 1px (`border.width.thin`) — 두께 차이는 ADR-303 breakdown §6.
+            default: "{color.neutral-surface}",
+            isHovered: "{color.neutral-surface-hover}",
+            isFocusVisible: "{color.neutral-surface-hover}",
             isSelected: {
               default: "{color.accent-content}",
             },
@@ -2645,9 +2659,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       quiet: {
         paint: {
           backgroundColor: {
+            // ADR-303: S2 `Card.tsx:104` tertiary · quiet `transparent` 고정.
             default: "{color.transparent}",
-            isHovered: "{color.neutral-subtle}",
-            isPressed: "{color.neutral-subtle}",
             isSelected: {
               default: "{color.accent-subtle}",
             },
@@ -2821,6 +2834,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         transition: CATALOG_PRESS_TRANSITION,
+        // ADR-303 (사용자 결정 1 a): S2 `Card.tsx:111` — `emphasized` (= `{shadow.sm}`) → hover · focus ·
+        //   selected `elevated` (= `{shadow.md}`); tertiary 는 테두리 (paint), quiet 는 CardPreview 그림자.
+        boxShadow: {
+          default: "{shadow.sm}",
+          isHovered: "{shadow.md}",
+          isFocusVisible: "{shadow.md}",
+          isSelected: "{shadow.md}",
+          variant: { tertiary: "none", quiet: "none" },
+        },
       },
     },
   },
@@ -5458,7 +5480,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       default: {
         paint: {
           backgroundColor: {
-            default: "{color.layer-1}",
+            // ADR-303: S2 에 Sheet 가 없다 — 같은 계열 Modal (`Modal.tsx:145` layer-2 · 그림자 없음).
+            default: "{color.layer-2}",
           },
           color: {
             default: "{color.neutral}",
@@ -5483,7 +5506,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       containerStyles: {
         // Sheet 본체가 Dialog의 Modal과 같은 elevation을 소유한다.
-        boxShadow: "{shadow.lg}",
         display: "flex",
         flexDirection: "column",
         width: "360px",
@@ -5591,9 +5613,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       default: {
         paint: {
           backgroundColor: {
-            default: "{color.layer-1}",
-            isHovered: "{color.layer-1}",
-            isPressed: "{color.layer-1}",
+            // ADR-303: S2 Dialog 는 자기 배경이 없고 Modal · Popover 의 layer-2 위에 놓인다 — 같은 층.
+            default: "{color.layer-2}",
           },
           color: {
             default: "{color.neutral}",
@@ -6077,7 +6098,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       default: {
         paint: {
           backgroundColor: {
-            default: "{color.base}",
+            // ADR-303 (결정 4 a): S2 DropZone 은 휴지 배경이 없다 — 컨테이너 층을 따른다.
+            default: "{color.container}",
             isHovered: "{color.layer-2}",
           },
           color: {
@@ -6823,9 +6845,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       default: {
         paint: {
           backgroundColor: {
-            default: "{color.base}",
-            isHovered: "{color.base}",
-            isPressed: "{color.base}",
+            // ADR-303: RAC Group 은 배경을 칠하지 않는다 (DOM 투명 · Canvas 상자 없음 — 실측). `base` 로
+            //   두면 컨테이너 판정이 base 층 컨테이너로 읽어 안의 reader 가 바깥 층 대신 base 를 받는다.
+            default: "{color.transparent}",
           },
           color: {
             default: "{color.neutral}",
@@ -6835,9 +6857,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       accent: {
         paint: {
           backgroundColor: {
-            default: "{color.base}",
-            isHovered: "{color.base}",
-            isPressed: "{color.base}",
+            // ADR-303: RAC Group 은 배경을 칠하지 않는다 (DOM 투명 · Canvas 상자 없음 — 실측). `base` 로
+            //   두면 컨테이너 판정이 base 층 컨테이너로 읽어 안의 reader 가 바깥 층 대신 base 를 받는다.
+            default: "{color.transparent}",
           },
           color: {
             default: "{color.accent-content}",
@@ -8205,9 +8227,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       default: {
         paint: {
           backgroundColor: {
-            default: "{color.layer-2}",
-            isHovered: "{color.layer-2}",
-            isPressed: "{color.layer-1}",
+            // ADR-303 (결정 4 a): S2 Menu · ListBox 는 자기 배경이 없고 컨테이너 (`--s2-container-bg`)
+            //   를 따른다 — Popover 안이면 layer-2, Autocomplete · 카드 안이면 그 층.
+            default: "{color.container}",
           },
           color: {
             default: "{color.neutral}",
@@ -8289,7 +8311,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       archetype: "collection",
       element: "div",
       containerStyles: {
-        background: "{color.layer-2}",
+        background: "{color.container}",
         text: "{color.neutral}",
         border: "{color.border}",
         borderWidth: "{border.width.hairline}",
@@ -8701,9 +8723,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       default: {
         paint: {
           backgroundColor: {
-            default: "{color.layer-2}",
-            isHovered: "{color.layer-2}",
-            isPressed: "{color.layer-2}",
+            // ADR-303 (결정 4 a): S2 Menu · ListBox 는 자기 배경이 없고 컨테이너 (`--s2-container-bg`)
+            //   를 따른다 — Popover 안이면 layer-2, Autocomplete · 카드 안이면 그 층.
+            default: "{color.container}",
           },
           color: {
             default: "{color.neutral}",
@@ -8755,7 +8777,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       archetype: "collection",
       element: "div",
       containerStyles: {
-        background: "{color.layer-2}",
+        background: "{color.container}",
         text: "{color.neutral}",
         border: "{color.border}",
         borderWidth: "{border.width.thin}",
@@ -9904,9 +9926,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       default: {
         paint: {
           backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
+            // ADR-303: S2 `Modal.tsx:145` `--s2-container-bg: layer-2` (the box under the Dialog).
+            default: "{color.layer-2}",
           },
           color: {
             default: "{color.neutral}",
@@ -9932,19 +9953,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "overlay",
       element: "div",
-      // 2026-07-25 overlay elevation SSOT: **Modal 이 모달 elevation 을 소유**한다.
-      //   근거 = RAC starter `Modal.css` (`box-shadow: 0 8px 32px rgba(0 0 0 / .2)`) +
-      //   `Dialog.css` 그림자 부재 — Dialog 는 Modal 안이라 자체 elevation 이 불필요.
-      //   기존 `overlays.css` 선언은 `var(--drop-shadow-md)`(= drop-shadow() **filter 함수**)
-      //   를 box-shadow 에 쓴 타입 오용이라 계산값이 `none` 으로 죽어 있었다(live 실측).
-      //   ADR-166 Phase 2: 값 언어를 TokenRef 로 통일. 구 `0 8px 32px color-mix(--fg 20%)` 는
-      //   ① Skia 파서가 `color-mix(` 를 못 읽고 ② dark 에서 `--fg` 가 밝아져 그림자가 흰 후광이
-      //   됐다. `{shadow.lg}` = SP2 `dragged`. **elevation 서열 (Tooltip < Popover < Modal) 은
-      //   sm < md < lg 로 그대로 보존**되나, blur 32 는 Spectrum 이 발행하는 어느 값보다 넓어
-      //   대응이 없다 — Modal 그림자가 눈에 띄게 옅어진다(잉크 ×0.62, Gate G2 제시 대상).
-      containerStyles: {
-        boxShadow: "{shadow.lg}",
-      },
+      // ADR-303 (사용자 결정 2 a, 2026-11-08): S2 `Modal.tsx` 는 boxShadow 가 없다 — 열린 Modal 은
+      //   underlay (`overlay-backdrop`) 가 바탕과 분리한다 (Hub drop-shadow 「오버레이가 있으면 추가
+      //   그림자는 필요 없다」). ADR-166 의 `{shadow.lg}` (= dragged) 상시 그림자 · 서열 주석은 대체됐다.
       composition: {
         rootSelectors: {},
         delegation: [],
@@ -9964,9 +9975,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       default: {
         paint: {
           backgroundColor: {
-            default: "{color.base}",
-            isHovered: "{color.base}",
-            isPressed: "{color.base}",
+            default: "{color.container}",
+            isHovered: "{color.container}",
+            isPressed: "{color.container}",
           },
           color: {
             default: "{color.neutral}",
@@ -10377,9 +10388,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       accent: {
         paint: {
           backgroundColor: {
-            default: "{color.base}",
-            isHovered: "{color.base}",
-            isPressed: "{color.base}",
+            // ADR-303: S2 `Popover.tsx:83` `--s2-container-bg: layer-2` — every variant's surface.
+            default: "{color.layer-2}",
           },
           color: {
             default: "{color.neutral}",
@@ -10392,9 +10402,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       neutral: {
         paint: {
           backgroundColor: {
-            default: "{color.base}",
-            isHovered: "{color.base}",
-            isPressed: "{color.base}",
+            // ADR-303: S2 `Popover.tsx:83` `--s2-container-bg: layer-2` — every variant's surface.
+            default: "{color.layer-2}",
           },
           color: {
             default: "{color.neutral}",
@@ -10407,9 +10416,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       surface: {
         paint: {
           backgroundColor: {
-            default: "{color.popover-background}",
-            isHovered: "{color.popover-background}",
-            isPressed: "{color.popover-background}",
+            // ADR-303: S2 `Popover.tsx:83` `--s2-container-bg: layer-2` — every variant's surface.
+            default: "{color.layer-2}",
           },
           color: {
             default: "{color.neutral}",
@@ -13931,9 +13939,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       default: {
         paint: {
           backgroundColor: {
+            // ADR-303: S2 `TableView.tsx:251` `table` — `gray-25` (= base) · quiet transparent, 상태 없음
+            //   (행 hover · pressed 는 Row 의 몫). 테두리 1px `gray-300` = `{color.border}` 는 그대로.
             default: "{color.base}",
-            isHovered: "{color.layer-2}",
-            isPressed: "{color.layer-1}",
             isQuiet: "{color.transparent}",
           },
           color: {
@@ -15865,10 +15873,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "inline-flex",
         alignItems: "center",
-        // 2026-07-25: overlay elevation 정본 이관 (Popover 동형). Popover 보다 한 단계 약한
-        //   elevation. ADR-166 Phase 2: `{shadow.sm}` = SP2 `emphasized`. 구 값의 기하
-        //   (0 2px 8px)가 SP2 `emphasized` 최상위 레이어와 정확히 일치 — 출처 복귀(ADR §9-4).
-        boxShadow: "{shadow.sm}",
+        // ADR-303 (사용자 결정 5 a): S2 `Tooltip.tsx:80` 에 boxShadow 가 없다 — 그림자 없음.
       },
       stateStyles: {
         ...FOCUS_RING_STATE,

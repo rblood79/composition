@@ -1,6 +1,6 @@
 # ADR-303 Design Breakdown — 컨테이너 배경 층 배정 · 떠 있는 요소의 그림자 · 테두리 · `{color.container}` 상속
 
-> 본문: [303-container-layer-assignment-elevation.md](../303-container-layer-assignment-elevation.md). 구현 상세 (Phase · 파일 · 게이트 절차) 는 여기가 정본이다. 숫자는 2026-11-08 설계 시점 실측이며 Phase 0 이 다시 재서 freeze 한다.
+> 본문: [303-container-layer-assignment-elevation.md](../completed/303-container-layer-assignment-elevation.md). 구현 상세 (Phase · 파일 · 게이트 절차) 는 여기가 정본이다. 숫자는 2026-11-08 설계 시점 실측이며 Phase 0 이 다시 재서 freeze 한다.
 
 ## 1. 전제 lock-in (fork 4 질문 — adr-writing.md §ADR Fork)
 
@@ -96,3 +96,60 @@
 - **`emphasized-hover` 그림자** — Hub 에는 있으나 S2 1.8.2 `createTheme` 에 토큰이 없다 (hover 는 `elevated`). S2 가 추가하면 ADR-166 토큰 4번째로.
 - **ActionBar** — S2 `elevated` 배경 + 그림자 + outline. rule 이 없어 등록 (ADR-280 계열) 뒤 2a 에 추가.
 - **Hub 두 색 조합 (two-tone 100 + 900)** — 아이콘 · 일러스트 배경 규칙. `*-subtle` (200|300) 과 다른 개념, 아이콘 ADR 대상.
+
+## 6. 기록
+
+### Phase 0 — G0 실측 (2026-11-08, HEAD `08d0a04fd`)
+
+- **fixture**: `apps/builder/scripts/adr303-s2-layering-extract.mjs` → `packages/shared/src/catalog/__tests__/fixtures/adr303-s2-layering.json` (설치 S2 1.8.2 · 19 파일 · style 블록 51 · `--check` PASS). 각 블록은 심볼 · 줄 · **바인딩 대상** (`table` → `RACTable@548` · `editPopover` → `RACPopover@1788` · `preview` → `div@609` (CardPreview)) · 속성 (`--s2-container-bg` · `backgroundColor` · `boxShadow` · `filter` · `fill` · `outline*` · `border*`) — 리뷰 h1 의 「심볼 · 바인딩까지」 를 생성기가 한다.
+- **설계 표 정정 (실측)**:
+  1. **Popover 테두리는 이미 있다** — `containerStyles.outline: "1px solid var(--popover-outline)"` (`componentRulesTable.ts:10470`, `71922bd0f` 2026-11-05) 를 DOM 이 쓰고 Canvas 도 그린다 (`ruleShapes.ts:661` `catalogContainerOutline` → `cssVarColor`). Context 표의 「rule 참조 0」 은 설계 시점에도 낡은 사실. Popover 에서 남은 어긋남은 variant `accent` · `neutral` 의 배경 `{color.base}` (dark `#111111` ≠ S2 layer-2 `#222222`) 뿐.
+  2. **끌기 조건** — 「`isDragging` · `isDropTarget` 14」 는 `isDropTarget` 12 (DropZone 2 · GridList 3 · Table 5 · Tree 2) + Slider thumb `isDragging` 1 (주석 1 포함 14 줄). 행 · 항목의 `isDragging` 가지는 **0** — 값만 붙일 자리가 없다. 그리고 설치 S2 1.8.2 는 `dragged` 그림자를 **어디에도 쓰지 않는다** (`spectrum-theme.ts:1045` 정의뿐 · `DragPreview.tsx:80 ~ :115` = `gray-25` 배경 + 1px `blue-900` 테두리, 그림자 없음).
+  3. **Tooltip 배경** — rule `neutral` variant 는 `{color.neutral-subtle}` (light `#e9e9e9`) 이고 S2 는 `neutral` (반전 진회색). 그림자와 별개 어긋남이라 이 ADR 밖 (색 배정 후속).
+  4. **Table** — 테두리 1px `{color.border}` (= gray-300) 는 이미 있다. 남은 것: 배경 hover `layer-2` · pressed `layer-1` 삭제. TableHeader 배경 (S2 `gray-75`, light `#f3f3f3`) 은 **대응 역할이 없다** (snapshot 에 light gray-75 키 0) — 새 alias 가 필요해 302 영역 (토큰 추가).
+  5. **Card tertiary** — S2 2px `gray-100` → hover · focus `gray-200` 은 기존 역할 `neutral-surface` (100|100) · `neutral-surface-hover` (200|200) 와 두 모드 모두 같은 hex. `neutral-subtle` (dark 300) 은 아니다.
+- **diff (기본 preset blue · gray, before → after, light / dark)**:
+
+| 컴포넌트 · 자리         | before                                                                                 | after                                                                          |
+| ----------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Popover surface         | `popover-background` `#ffffff` / `#222222` · `shadow.md` · outline 1px                 | `layer-2` 같은 hex · 같음 · 같음                                               |
+| Popover accent · neutral | `base` `#ffffff` / `#111111`                                                          | `layer-2` `#ffffff` / `#222222`                                                |
+| Modal                   | `transparent` + `shadow.lg` (dragged)                                                  | `layer-2` `#ffffff` / `#222222` · 그림자 없음                                  |
+| Dialog (Modal 안)       | `layer-1` `#f8f8f8` / `#1b1b1b`                                                        | 컨테이너 (= Modal layer-2) `#ffffff` / `#222222` — Phase 2                     |
+| Sheet                   | `layer-1` `#f8f8f8` / `#1b1b1b` + `shadow.lg`                                          | `layer-2` `#ffffff` / `#222222` · 그림자 없음                                  |
+| Tooltip                 | `shadow.sm`                                                                            | 그림자 없음                                                                    |
+| Card primary            | `layer-2` → hover `layer-1` → pressed `neutral-subtle` · 그림자 없음                   | `elevated` `#ffffff` / `#222222` 고정 · `shadow.sm` → hover · focus · selected `shadow.md` |
+| Card secondary          | `layer-1` → hover · pressed `neutral-subtle`                                           | `layer-1` 고정 · 그림자 primary 와 같음                                        |
+| Card tertiary           | `transparent` → hover `neutral-subtle` · 1px `border` `#dadada` / `#393939`            | `transparent` 고정 · 2px `neutral-surface` `#e9e9e9` / `#2c2c2c` → hover · focus `neutral-surface-hover` `#e1e1e1` / `#323232` |
+| Card quiet              | `transparent` → hover `neutral-subtle` · 그림자 없음                                   | `transparent` 고정 · CardPreview 에 hover · focus · selected `shadow.md`       |
+| Table                   | `base` → hover `layer-2` (dark `#222222`) → pressed `layer-1` (`#f8f8f8` / `#1b1b1b`) | `base` 고정 `#ffffff` / `#111111` · 테두리 그대로                              |
+
+- **번들 (같은 기계 · 같은 명령 `adr209-bundle-closure.mjs`, initial JS gzip)**: 302 전 `0f2d6b66a` → HEAD `08d0a04fd` = Builder **+986 B** (1,510,551 → 1,511,537) · Preview **+1,101 B** (150,044 → 151,145). 이 구간에는 302 외 커밋 3 (`42de626ee` · `425bc4f0b` · `95733798f`) 이 같이 있다. 설계의 여유 (ADR-300 기록 기준 Builder 2,292 · Preview 1,090 B) 에서 빼면 **Builder 1,306 B · Preview −11 B** — Preview 여유는 이미 없다. 로컬 절대값은 ADR-300 기록과 다른 환경이라 (Builder 로컬 1,511,537 > 상한 1,414,000 · Preview 로컬 151,145 ≪ 325,000 — 302 G4 와 같은 현상) 절대 여유는 로컬에서 확정할 수 없고 Δ 만 쓴다. Phase 1 은 rule 값과 생성 CSS 만 바꾸므로 initial JS Δ ≈ 0 (rule 표는 initial 에 들어가므로 몇 바이트), Phase 2 (`containerLayerOf` · 파생 · resolver 분기 · inline 변수) 가 Preview initial 에 코드를 더한다.
+- **사용자 결정 (2026-11-08)**: 1 (a) Card S2 그대로 · 2 (a) + 5 (a) 그림자 제거 (Modal · Sheet · Dialog · Tooltip) · 3 (b) 끌기 그림자 범위 밖 (S2 1.8.2 근거 없음 — 위 정정 2) · 6 (b) Phase 2 착수 전 ADR-201 Preview 상한 재승인 · R1 진행. 결정 4 (`{color.container}` 재분류 범위) 는 Phase 2 착수 때 묻는다.
+
+### Phase 1 — 배정 (2026-11-08)
+
+- **rule** (`componentRulesTable.ts`): Popover 3 variant 배경 → `{color.layer-2}` (상태 가지 삭제 — S2 Popover 에 없음) · Modal 배경 `transparent` → `layer-2` · `containerStyles.boxShadow` 삭제 (underlay 유지) · Dialog `layer-1` → `layer-2` (Modal · Popover 의 층 — Phase 2 에서 `{color.container}` 후보) · Sheet `layer-1` → `layer-2` · 그림자 삭제 · Tooltip 그림자 삭제 · Card primary `layer-2` → `elevated` · 4 variant 배경 hover · pressed 삭제 (selected 는 유지 — 선택 표시는 이 ADR 밖) · `structure.stateStyles.boxShadow` (default sm · hover · focus · selected md · variant tertiary · quiet `none`) · `partStateStyles["&% .react-aria-CardPreview"].boxShadow` (quiet × hover · focus · selected md) · tertiary 테두리 `border` → `neutral-surface` · hover · focus `neutral-surface-hover` · Table 배경 hover · pressed 삭제.
+- **Canvas** (`rulePaint.ts` `catalogStateBoxShadow`): 상태 그림자 조건에 `variant` 를 넣었다 — 없으면 tertiary · quiet 의 `none` 가지가 Canvas 에서 안 맞는다 (DOM 은 `[data-variant]`).
+- **남긴 차이**: tertiary 테두리 두께 1px (S2 는 box-shadow 2px — 레이아웃 테두리를 variant 별로 바꾸는 길이 없다) · CardPreview 그림자는 DOM 만 (Canvas 의 hover 미리보기는 CardPreview 노드에 owner 상태를 싣지 않는다 — 휴지 상태는 둘 다 그림자 없음) · `popover-background` 키는 수동 `Popover.css` 소비가 남아 유지 (rule 참조 0).
+- **G1 PASS** — `adr303S2Layering.static.test.ts` 7/7 (fixture 바인딩 · Popover · Modal/Sheet/Dialog · Tooltip/Toast · Card 배경 · 그림자 트리 = S2 트리 매핑 · tertiary 테두리 · Table). 원복 RED: Modal 에 `{shadow.lg}` 를 되살리면 1 실패 (복원 `cmp` 일치). 재작성 2: `shadowTokenContract` (서열 → S2 배정) · `overlayArrowPaint` (화살표 fill = layer-2). type-check PASS.
+- **회귀** (HEAD `08d0a04fd` worktree 대조, unit): shared 신규 1 = `g0DescendantRoutes` (로컬 전용 G0 기준선 — clean checkout skip, 302 와 같은 항목) · rendering 0 · builder 신규 9 = 옛 그림자 배정 단언 4 파일 (`overlayOpen` Sheet · Modal 그림자 → 그림자 0 · `phase4AuthoredPaint` 대상 Sheet · Modal → Popover · Toast · `specPresetResolver` 서열 3 → S2 배정 1 · `resolveContainerStylesFallback` tooltip · modal → toast) 재작성 뒤 0. 같은 파일의 남은 실패 3 은 HEAD 에서도 실패.
+- **live** (5174, Chrome MCP, 새 프로젝트 `adr303-live`): Card 4 variant light · dark — Canvas = Preview 계산값 (primary `#fff`/`#222` + emphasized · secondary `#f8f8f8`/`#1b1b1b` · tertiary 테두리 `#e9e9e9`/`#2c2c2c` · quiet 없음) · hover 가지 (primary md · tertiary none + `#e1e1e1` · quiet → CardPreview md) · Popover 열기 light `#fff` + 투명 outline / dark `#222` + 1px `#323232` + elevated · Tooltip · Modal · Sheet · Dialog 생성 CSS 그림자 none · 콘솔 오류 0. 근거 `.agent/runs/2026-11-08-adr303-phase1/artifacts/live-5174.json`.
+
+### Phase 2 — 상속 `{color.container}` (2026-11-08)
+
+- **판정 함수 하나** — `packages/shared/src/catalog/runtime/containerLayer.ts` (신설): `catalogContainerLayerOf` (작성한 칠의 맨 위 켜진 층이 불투명 단색 층 토큰이면 그 층 · 칠이 없으면 rule 의 휴지 배경 (variant · `isQuiet`) 이 층 토큰이면 그 층 · 그 밖 (hex · 그라데이션 · 이미지 · 투명) 은 컨테이너 아님) · `catalogContainerLayerAbove` (가장 가까운 컨테이너 조상, 없으면 `base`) · `catalogContainerReaders` (rule 값에 토큰이 있는 type) · `catalogContainerCss` (컨테이너 노드의 inline `--container-bg` = 그 층 토큰의 등록 변수 — `tokenToCSSVar`, 손 이름 0).
+- **두 consumer** — Canvas: `presence.ts` 파생 `_containerLayer` (reader 만) → `resolveCatalogPaint` 가 `{color.container}` 를 `{color.<층>}` 으로 바꿔 평가. DOM: `domBinding.runtime.ts` 가 `catalogDomStyle` (Frame 경로) · `authoredStyle` 둘 다에서 `--container-bg` 를 쓰고, 자식은 생성 CSS 의 `var(--container-bg, var(--bg))` 를 상속으로 읽는다 (`tokenResolver.ts` `COLOR_TOKEN_TO_CSS.container`).
+- **증분** — 노드의 층이 바뀐 step 에만 그 아래 reader (다음 컨테이너까지) 를 다시 계획한다 (`catalogContainerDependents(owner, before, get)` — `compositionRoot.ts` 재계획 목록, `catalogHostInheritedChanged` 와 같은 모양). 처음 판은 모든 편집에 자손을 훑고 reader 목록을 rule 마다 `JSON.stringify` 로 만들어 `phase3DeltaScale` (leaf 편집 직렬화 ≤ 3) 이 160 으로 RED — 층 비교 조건 + 구조 walk 로 고쳐 3/3. 구조 이동은 옮긴 subtree 를 스스로 다시 계획한다 (walk 를 끈 변이에서도 G2 `move` 행 통과) — 부모 변경 조건은 근거가 없어 넣지 않았다.
+- **결정 4 (a) — reader 6 type · 참조 14**: 실제로 배경을 칠하는 base 자리만 — Nav · Breadcrumb · Breadcrumbs · DropZone (default) · Menu · ListBox (paint + `containerStyles.background`). 실측으로 뺀 것: Link (배경 none) · Separator (선 색 — base 는 죽은 값) 는 base 유지, Group 은 `transparent` 로 (RAC Group 은 칠하지 않는데 base 면 컨테이너로 판정돼 안의 reader 를 base 로 끊었다 — 단위 테스트가 잡음). Menu · ListBox 는 Popover 안에서 layer-2 (종전과 같은 hex), 밖 (페이지 · Autocomplete) 에서는 바탕 층.
+- **G2 PASS** — `adr303ContainerParity.browser.test.ts` (실제 노드 트리 · light · dark · Canvas `box.fillColor` = DOM computed = snapshot 기대 hex): Frame 층 (layer-1 · layer-2 · 중첩) · hex Frame 통과 · rule 컨테이너 (Card secondary) · 투명 Group 통과 · 층 편집 증분 (f1 layer-1 → layer-2) · 이동 증분 (hex Frame 을 body 로) = **60 / 60**, dark 세 층 hex 서로 다름. 원복 RED 2: 파생 끔 → insert 행 실패 · 의존 walk 끔 → edit 행 10 실패. 단위 `containerLayer.test.ts` 6/6.
+- **게이트 정비 (동작 변경 0)**: `adr302TwoAxis` · `catalogTokenExists` 는 `container` 를 snapshot 키 검사에서 뺌 (테마 토큰이 아니라 rule alias) · `adr302RulePairs` 는 container 배경을 층 4 로 펼쳐 대비 쌍 검사 · `adr290AccentRoles` 는 DropZone hover accent 의 바탕 `container` 를 층 4 로 · `specPresetResolver` ListBox · Menu 패널 기본 배경 = `var(--container-bg, var(--bg))` · `buildBoxNodeData.collectionShell` dark 기대 `#111111` (이 box 경로는 층을 모른다 — `collectionShellTag` producer 0, production 미도달).
+- **회귀** (HEAD `08d0a04fd` 대조, unit): 위 수리 뒤 신규 0 (shared 로컬 G0 기준선 1 제외). 같은 파일의 남은 실패 (specPresetResolver Button padding · Popover border · adr290 분류표) 는 HEAD 에서도 실패.
+- **G3 번들** (HEAD 대조, Phase 0 ~ 2 전체 dirty, initial JS gzip): Builder +589 B (1,511,537 → 1,512,126) · Preview **+35 B** (151,145 → 151,180) — ≤ +1 KB 통과, 재승인 상한 327,000 안. 측정은 의존 walk 조건 수정 전 판이다 (수정은 함수 하나의 조건 · `JSON.stringify` → 구조 walk, 수십 B 이내).
+- **남긴 비대칭 (기존)**: Separator Canvas `#dadada` · DOM `#e9e9e9` — HEAD 부터 있는 차이로 이 ADR 밖.
+
+### Phase 3 — live · 종결 (2026-11-08)
+
+- **G4 PASS** (5174 · Chrome MCP · 기존 프로젝트 `adr303-live` 재열기): dark · light 에서 layer-1 Frame · Card secondary 안 reader 가 바탕 층 (Canvas `_containerLayer` = Preview 계산값), Popover 안 Menu = layer-2 (+ dark 1px 테두리), Frame 층 편집 증분 · Undo, 콘솔 0. Card hover 그림자 · Modal 그림자 없음은 Phase 1 live 가 같은 서버에서 확인. GridList 끌기 그림자는 결정 3 (b) 로 G4 에서 뺐다.
+- **G2 설계 표와 다른 점**: Gates 표의 「Popover 안 Badge · Card 안 Tag · Frame 안 Separator」 는 설계 시점의 reader 후보였다. 결정 4 (a) 실측으로 reader 는 실제로 배경을 칠하는 6 type 이 됐고 (Badge · Tag 는 자기 색이 있어 `{color.base}` 자리가 아니고, Separator 는 선 색이라 뺐다), parity 는 그 6 중 Nav · Breadcrumbs · DropZone · ListBox 로 쟀다 — Menu 는 Canvas 가 닫힌 Popover 를 그리지 않아 live 의 Preview 계산값으로 확인.
+- 본문은 `completed/` 로 옮겼다 (Implemented).

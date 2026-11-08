@@ -17,7 +17,7 @@
   align-items: center;
 
   /* Default variant */
-  background: var(--bg);
+  background: var(--container-bg, var(--bg));
   color: var(--fg-muted);
   border: var(--border-width-thick) solid var(--border);
 
@@ -32,7 +32,7 @@
 }
 
 .react-aria-DropZone:where([data-variant="default"]) {
-  background: var(--bg);
+  background: var(--container-bg, var(--bg));
   color: var(--fg-muted);
   border-color: var(--border);
 }

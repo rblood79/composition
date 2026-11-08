@@ -158,12 +158,12 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
   describe("Non-composite containerStyles (ADR-071 스키마)", () => {
     it("ListBox.containerStyles → Appearance preset (borderRadius/borderWidth/colors)", () => {
       // ListBox rule (2026-10-13 — the RAC reference): { borderRadius: "{radius.xl}"=16 (ADR-295),
-      //   borderWidth: "{border.width.hairline}"=0.5, background: "{color.layer-2}",
+      //   borderWidth: "{border.width.hairline}"=0.5, background: "{color.container}" (ADR-303),
       //   border: "{color.border}" }
       const preset = resolveAppearanceSpecPreset("ListBox", undefined);
       expect(preset.borderRadius).toBe(16);
       expect(preset.borderWidth).toBe(0.5);
-      expect(preset.backgroundColor).toBe("var(--bg-inset)");
+      expect(preset.backgroundColor).toBe("var(--container-bg, var(--bg))");
       expect(preset.borderColor).toBe("var(--border)");
     });
 
@@ -213,23 +213,13 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
       expect(preset.boxShadow).not.toMatch(/^\{shadow\./);
     });
 
-    it("Tooltip.containerStyles → Appearance preset boxShadow (Popover 보다 약한 elevation)", () => {
-      const preset = resolveAppearanceSpecPreset("Tooltip", "M");
-      expect(preset.boxShadow).toBe(lightShadows.sm);
-    });
-
-    it("Modal.containerStyles → Appearance preset boxShadow (elevation 서열 최상단)", () => {
-      const preset = resolveAppearanceSpecPreset("Modal", "M");
-      expect(preset.boxShadow).toBe(lightShadows.lg);
-    });
-
-    // elevation 서열 (Tooltip < Popover < Modal) 이 sm < md < lg 로 보존되는지 —
-    //   값 언어가 바뀌어도 서열은 ADR-166 의 불변식이다.
-    it("overlay 3건의 elevation 서열이 sm < md < lg 로 보존된다", () => {
+    // ADR-303 (2026-11-08): S2 1.8.2 배정 — Tooltip · Modal 은 그림자가 없고 Popover 만 `elevated`.
+    //   ADR-166 의 「Tooltip < Popover < Modal 서열」 을 대체했다 (토큰 값은 그대로).
+    it("overlay 3건의 Appearance preset boxShadow = S2 배정 (Popover 만)", () => {
       const seq = (["Tooltip", "Popover", "Modal"] as const).map(
         (t) => resolveAppearanceSpecPreset(t, "md").boxShadow,
       );
-      expect(seq).toEqual([lightShadows.sm, lightShadows.md, lightShadows.lg]);
+      expect(seq).toEqual([undefined, lightShadows.md, undefined]);
     });
 
     // Popover 는 containerStyles 가 boxShadow만 보유하므로 variant 색상 emit이 살아 있다.
@@ -245,11 +235,11 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
 
     it("Menu.containerStyles → Appearance preset", () => {
       // MenuSpec.containerStyles = { borderRadius: "{radius.md}"=8 (ADR-295), borderWidth: 1,
-      //   background: "{color.layer-2}", border: "{color.border}" }
+      //   background: "{color.container}" (ADR-303), border: "{color.border}" }
       const preset = resolveAppearanceSpecPreset("Menu", undefined);
       expect(preset.borderRadius).toBe(8);
       expect(preset.borderWidth).toBe(1);
-      expect(preset.backgroundColor).toBe("var(--bg-inset)");
+      expect(preset.backgroundColor).toBe("var(--container-bg, var(--bg))");
     });
   });
 
@@ -399,7 +389,7 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
       expect(resolveAppearanceSpecPreset("ListBox", undefined)).toMatchObject({
         borderRadius: 16,
         borderWidth: 0.5,
-        backgroundColor: "var(--bg-inset)",
+        backgroundColor: "var(--container-bg, var(--bg))",
         borderColor: "var(--border)",
       });
       expect(resolveLayoutSpecPreset("ListBox", undefined)).toMatchObject({
@@ -416,7 +406,7 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
       expect(resolveAppearanceSpecPreset("Menu", undefined)).toMatchObject({
         borderRadius: 8,
         borderWidth: 1,
-        backgroundColor: "var(--bg-inset)",
+        backgroundColor: "var(--container-bg, var(--bg))",
       });
       // ADR-256 후속 4: Menu 노드 = 목록 (top level = structure 와 같은 flex column) — trigger 는
       // MenuTrigger 의 Button 노드. 종전 (ADR-151 B7) 은 trigger 상자 inline-flex 였다.

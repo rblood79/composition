@@ -53,6 +53,7 @@ export interface ResolvedCatalogPaint {
 }
 
 const TRANSPARENT_TOKEN = "{color.transparent}";
+const CONTAINER_TOKEN = "{color.container}";
 // "Show all" 글자 — 바탕 위 accent (ADR-290)
 const ACCENT_TOKEN = "{color.accent-content}";
 
@@ -106,12 +107,28 @@ export function resolveCatalogPaint({
       ? { fillStyle: props.fillStyle }
       : {}),
   };
-  const state = variant?.paint
+  const treeState = variant?.paint
     ? treeStatePaint(
         variant.paint,
         staticTone ? { ...conditions, staticColor: staticTone } : conditions,
       )
     : NO_STATE_PAINT;
+  // ADR-303: `{color.container}` = the nearest container's layer (`_containerLayer` — `presence.ts`),
+  //   the DOM's inherited `--container-bg`; a record without the derivation reads `base`.
+  const containerLayer = `{color.${String(props._containerLayer ?? "base")}}`;
+  const ofContainer = (value: string | undefined) =>
+    value === CONTAINER_TOKEN ? containerLayer : value;
+  const state =
+    treeState.background === CONTAINER_TOKEN ||
+    treeState.color === CONTAINER_TOKEN ||
+    treeState.border === CONTAINER_TOKEN
+      ? {
+          ...treeState,
+          background: ofContainer(treeState.background),
+          color: ofContainer(treeState.color),
+          border: ofContainer(treeState.border),
+        }
+      : treeState;
   // (the theme paint of the same state — the static overlay alpha and the track wash ask whether the
   //  static color sits on an opaque background)
   const themeBackground =

@@ -14,7 +14,9 @@ import type { ComputedLayout } from "../../layout/engines/LayoutEngine";
  * 수정: scene 이 collectionShellTag 로 식별한 컨테이너에 한해, 사용자 배경이 없을 때 catalog
  * 배경 토큰을 theme-aware 로 fill 에 복원. 불투명해지면 drop-shadow 실루엣 = border-box.
  *
- * 전제: `{color.layer-2}` = Skia lightColors "#ffffff" / darkColors "#222222" (ADR-302 — raised → layer-2).
+ * 전제 (ADR-303 Phase 2): shell 배경은 `{color.container}` — 이 box 경로는 컨테이너 층을 모르므로
+ * `base` (Skia light "#ffffff" / dark "#111111"). 2026-11-08 기준 `collectionShellTag` 를 채우는
+ * producer 는 없다 (선언 · 읽기만) — catalog 경로는 `_containerLayer` 로 조상 층을 따른다.
  */
 const layout: ComputedLayout = {
   x: 0,
@@ -53,15 +55,15 @@ function toHex(fc: Float32Array | undefined): string {
 }
 
 describe("buildBoxNodeData — collection shell 배경 복원 (ADR-071 raised)", () => {
-  it("collectionShellTag=ListBox + 사용자 배경 없음 → box.fillColor = --bg-inset (ADR-302 layer-2 — 흰색, 불투명)", () => {
+  it("collectionShellTag=ListBox + 사용자 배경 없음 → box.fillColor = base (ADR-303 container — 흰색, 불투명)", () => {
     const node = build({ collectionShellTag: "ListBox" });
     expect(toHex(node?.box?.fillColor)).toBe("#ffffff");
     expect(node?.box?.fillColor?.[3]).toBe(1); // 불투명 (drop-shadow 가 border-box 실루엣)
   });
 
-  it("dark theme → box.fillColor = --bg-inset (ADR-302 layer-2 dark #222222)", () => {
+  it("dark theme → box.fillColor = base (ADR-303 container — dark #111111)", () => {
     const node = build({ collectionShellTag: "ListBox" }, "dark");
-    expect(toHex(node?.box?.fillColor)).toBe("#222222");
+    expect(toHex(node?.box?.fillColor)).toBe("#111111");
     expect(node?.box?.fillColor?.[3]).toBe(1);
   });
 

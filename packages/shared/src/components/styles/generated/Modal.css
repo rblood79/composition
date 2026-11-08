@@ -11,11 +11,8 @@
     position: fixed;
     box-sizing: border-box;
 
-  /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  box-shadow: var(--shadow-lg);
-
   /* Default variant */
-  background: transparent;
+  background: var(--bg-inset);
   color: var(--fg);
   border: none;
 
@@ -28,16 +25,8 @@
 }
 
 .react-aria-Modal:where([data-variant="default"]) {
-  background: transparent;
+  background: var(--bg-inset);
   color: var(--fg);
-}
-
-.react-aria-Modal:where([data-variant="default"][data-hovered]) {
-  background: transparent;
-}
-
-.react-aria-Modal:where([data-variant="default"][data-pressed]) {
-  background: transparent;
 }
 
 .react-aria-Modal.react-aria-Modal:where([data-focus-visible]) {

@@ -75,9 +75,9 @@ describe("catalog boxShadow 값 언어 계약 (ADR-166)", () => {
     expect(missing).toEqual([]);
   });
 
-  it("overlay 3종의 elevation 서열이 sm < md < lg 로 고정", () => {
-    // Tooltip(가장 낮음) < Popover < Modal. 값 자체가 아니라 **서열**을 잠근다 —
-    //   스케일 재조정 시에도 순서가 뒤집히면 실패한다.
+  it("overlay 3종의 그림자 = S2 1.8.2 배정 (ADR-303 — Popover 만 elevated)", () => {
+    // ADR-303 이 ADR-166 의 서열 (Tooltip sm < Popover md < Modal lg) 을 대체했다: S2 `Tooltip.tsx` ·
+    //   `Modal.tsx` 에 boxShadow 가 없고 (Modal 은 underlay 가 분리), `Popover.tsx:97` 만 `elevated`.
     // containerStyles 는 rule 최상위 / `structure` 아래 / `structure.composition` 아래 3곳에
     //   나타난다 (`resolveEffectiveBoxShadow` 와 동일한 조회 순서).
     const shadowOf = (type: keyof typeof COMPONENT_RULES_TABLE) => {
@@ -99,7 +99,7 @@ describe("catalog boxShadow 값 언어 계약 (ADR-166)", () => {
       shadowOf("Tooltip"),
       shadowOf("Popover"),
       shadowOf("Modal"),
-    ]).toEqual(["{shadow.sm}", "{shadow.md}", "{shadow.lg}"]);
+    ]).toEqual([undefined, "{shadow.md}", undefined]);
   });
 
   it("Dialog 는 elevation 을 갖지 않는다 (소유자 = Modal)", () => {

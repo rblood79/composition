@@ -4,6 +4,8 @@
 
 Implemented — 2026-07-25 (Phase 0~5 완결 · G1~G4 전부 통과)
 
+> **Superseded in part by [ADR-303](303-container-layer-assignment-elevation.md) (2026-11-08)** — 그림자 **배정** 만: 「Tooltip < Popover < Modal 서열」 (Tooltip `sm` · Modal `lg`) 은 설치 S2 1.8.2 배정으로 바뀌었다 (Tooltip · Modal · Sheet 그림자 없음, Card `sm` → 상태 `md`). 그림자 토큰 값 3 (`sm` · `md` · `lg` = emphasized · elevated · dragged, dark ×3) 은 그대로다.
+
 이전: Accepted — 2026-07-25 (리뷰 round 1 승인 — 이슈 5건 전건 fixed, [reviews/166.md](../reviews/166.md))
 
 ### 진행 로그

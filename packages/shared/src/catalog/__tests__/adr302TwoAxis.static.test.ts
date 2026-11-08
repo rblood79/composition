@@ -58,7 +58,8 @@ describe("ADR-302 G2 — 두 축", () => {
       for (const line of readFileSync(file, "utf8").split("\n")) {
         if (isComment(line)) continue;
         for (const m of line.matchAll(/\{color\.([a-z0-9-]+)\}/g))
-          if (!COLOR_ALIASES[m[1]!]?.axis)
+          // (ADR-303 `{color.container}` is a derived reference — the record's container layer — not a role.)
+          if (m[1] !== "container" && !COLOR_ALIASES[m[1]!]?.axis)
             missing.add(`${m[1]} (${relative(REPO, file)})`);
       }
     expect([...missing]).toEqual([]);

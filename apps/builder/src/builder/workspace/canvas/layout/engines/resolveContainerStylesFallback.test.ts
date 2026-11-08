@@ -666,10 +666,10 @@ describe("resolveEffectiveBoxShadow — catalog containerStyles elevation 포괄
     expect(resolveEffectiveBoxShadow("popover", {}, "dark")).toBe(
       darkShadows.md,
     );
-    expect(resolveEffectiveBoxShadow("tooltip", {}, "light")).toBe(
-      lightShadows.sm,
-    );
-    expect(resolveEffectiveBoxShadow("modal", {}, "dark")).toBe(darkShadows.lg);
+    expect(resolveEffectiveBoxShadow("toast", {}, "dark")).toBe(darkShadows.md);
+    // ADR-303: S2 Tooltip · Modal 은 그림자가 없다.
+    expect(resolveEffectiveBoxShadow("tooltip", {}, "light")).toBeUndefined();
+    expect(resolveEffectiveBoxShadow("modal", {}, "dark")).toBeUndefined();
   });
 
   it("theme 기본값은 light", () => {
@@ -677,7 +677,7 @@ describe("resolveEffectiveBoxShadow — catalog containerStyles elevation 포괄
   });
 
   it("전개 결과가 Skia 파서 계약을 만족 — var( / color-mix( 미포함", () => {
-    for (const type of ["popover", "tooltip", "modal"]) {
+    for (const type of ["popover", "toast"]) {
       for (const theme of ["light", "dark"] as const) {
         const v = resolveEffectiveBoxShadow(type, {}, theme);
         expect(v, `${type}/${theme}`).toBeDefined();
@@ -694,12 +694,12 @@ describe("resolveEffectiveBoxShadow — catalog containerStyles elevation 포괄
   // 메모이즈가 **해석 결과가 아니라 원문**을 캐시하는지 — 결과를 캐시하면 최초 조회 theme 이
   //   고착돼 테마 전환이 무반응이 된다.
   it("메모이즈가 theme 을 고착시키지 않는다 (light 선조회 → dark 정상)", () => {
-    expect(resolveEffectiveBoxShadow("modal", {}, "light")).toBe(
-      lightShadows.lg,
+    expect(resolveEffectiveBoxShadow("toast", {}, "light")).toBe(
+      lightShadows.md,
     );
-    expect(resolveEffectiveBoxShadow("modal", {}, "dark")).toBe(darkShadows.lg);
-    expect(resolveEffectiveBoxShadow("modal", {}, "light")).toBe(
-      lightShadows.lg,
+    expect(resolveEffectiveBoxShadow("toast", {}, "dark")).toBe(darkShadows.md);
+    expect(resolveEffectiveBoxShadow("toast", {}, "light")).toBe(
+      lightShadows.md,
     );
   });
 
