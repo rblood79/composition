@@ -40,6 +40,20 @@ const baseline = {
   ),
 };
 
+// Components added after the 295 baseline was recorded — their sheets join the builder's.
+const COMPONENTS_ADDED_SINCE = [
+  "ActionButton",
+  "ActionButtonGroup",
+  "ActionBar",
+  "LinkButton",
+  "LabeledValue",
+  "RangeSlider",
+  "SegmentedControl",
+  "SegmentedControlItem",
+  "SelectBoxGroup",
+  "SelectBox",
+];
+
 const sheetsDir = BUILDER_COMPONENTS_CSS.replace(
   /builder-components\.css$/,
   "",
@@ -96,7 +110,15 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
       [THEME_CSS, BUILDER_CATALOG_VARS_CSS],
       [BUILDER_CATALOG_PINS_CSS],
     );
-    expect(now.sheets).toEqual(baseline.sheets);
+    // Every recorded sheet stays; the sheets added since are the components added since (8586c64bd ·
+    //   8ac17dc12 · bbca53c78 — no 295-before value to compare: their declarations go through the
+    //   `added` check below like any new declaration).
+    expect(baseline.sheets.filter((sheet) => !now.sheets.includes(sheet))).toEqual(
+      [],
+    );
+    expect(
+      now.sheets.filter((sheet) => !baseline.sheets.includes(sheet)),
+    ).toEqual(COMPONENTS_ADDED_SINCE.map((name) => `generated/${name}.css`));
     // 값은 계산값으로 비교한다 — S2 padding 식 (`calc(높이 − 글자 × 행간 − 테두리 × 2) / 2`) 과 행간 토큰
     //   비율이 빌더 값에서 295 전 px 와 같으면 같다 (ADR-295 Phase 3).
     //   (3c-3b: 크기별 실효 값 — 지역 변수를 크기 블록 값으로 풀고 단축형을 네 변으로 펼쳐, 이름을 바꾼 선언 · 변수도

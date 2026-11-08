@@ -73,7 +73,9 @@ async function place(origin: string) {
 
 describe("ADR-256 후속 7 — a display-state origin", () => {
   // (A Radio is placed only inside a RadioGroup — its nested instance stays an instance there.)
-  it.each(["checkbox", "switch", "togglebutton", "tree-item-default"])(
+  // (3ca03f661: the ToggleButton origin shows S2's default — unselected, no display state — so it
+  // is no longer a display-state origin; see the case after this one.)
+  it.each(["checkbox", "switch", "tree-item-default"])(
     "%s: detach succeeds and the owned root keeps the selection it showed",
     async (origin) => {
       const workspace = await place(origin);
@@ -94,6 +96,20 @@ describe("ADR-256 후속 7 — a display-state origin", () => {
       }
     },
   );
+
+  it("togglebutton (no display state — S2's default, 3ca03f661): detach keeps the unselected root", async () => {
+    const workspace = await place("togglebutton");
+    const root = workspace.root;
+    const record = () =>
+      [...root.canvasInputs.values()].find((r) => r.sourceId === PLACED)!;
+    expect(record().props.isSelected).toBe(false);
+    workspace.execute(
+      detachInstances({ ids: [PLACED], newId: workspace.newId }),
+    );
+    const entry = workspace.runtime.graph.getEntry(PLACED) as NodeEntry;
+    expect(entry.definitionId.startsWith("lib:definition:type-")).toBe(true);
+    expect(record().props.isSelected).toBe(false);
+  });
 
   it.each([
     ["checkboxgroup", "Checkbox", 'input[type="checkbox"]'],

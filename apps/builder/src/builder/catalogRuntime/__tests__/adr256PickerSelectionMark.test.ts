@@ -26,6 +26,11 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
  * Popover's `[data-selected]::before`) is the mark; an author's node shown while the item is
  * selected (`showWhen isSelected`) follows RAC's selection (the item's render props) and stands in
  * for the glyph (`data-selection-mark` — the two do not both show), as a MenuItem's (Phase 5g).
+ *
+ * 2026-11-05 (`8560fece5` · `46a4d7a8c`): the ListBoxItem origin carries the S2 check itself — an
+ * `Icon[slot=selection]` shown while `isSelected` (and the multiple mode's `Checkbox[slot=selection]`,
+ * `73fc516d2`). That part is the mark, so every option yields the sheet's glyph
+ * (`data-selection-mark`); the check is visible in the selected option only.
  */
 const BODY = "project:node:home-body" as NodeId;
 const FIELD = "project:node:field" as NodeId;
@@ -158,7 +163,7 @@ async function open(type: (typeof TYPES)[number]) {
 
 describe("ADR-256 Phase 6f — a picker's item shows its selection", () => {
   it.each(TYPES)(
-    "%s: without an author's mark the sheet's glyph is the mark — the selected item carries no `data-selection-mark`",
+    "%s: without an author's mark the origin's check (`Icon[slot=selection]`) is the mark — every option yields the glyph, the check is visible in the selected one",
     async (type) => {
       const picker = await open(type);
       const view = await picker.mounted();
@@ -168,8 +173,20 @@ describe("ADR-256 Phase 6f — a picker's item shows its selection", () => {
       const option = view.options()[1]!;
       expect(option.hasAttribute("data-selected")).toBe(true);
       expect(
-        view.options().some((o) => o.hasAttribute("data-selection-mark")),
-      ).toBe(false);
+        view.options().every((o) => o.hasAttribute("data-selection-mark")),
+      ).toBe(true);
+      // (The check keeps its column in every option — `46a4d7a8c` 미선택 공간 유지 — and is
+      // visible in the selected one only.)
+      const check = '.react-aria-Icon[data-icon="check"][slot="selection"]';
+      expect(
+        view
+          .options()
+          .map(
+            (o) => o.querySelector<HTMLElement>(check)?.style.visibility,
+          ),
+      ).toEqual(
+        view.options().map((_, index) => (index === 1 ? "visible" : "hidden")),
+      );
       await view.unmount();
     },
   );
@@ -186,10 +203,10 @@ describe("ADR-256 Phase 6f — a picker's item shows its selection", () => {
       expect(picker.root.typeOf(canvasMark)).toBe("Icon");
       const view = await picker.mounted();
       await view.press();
-      // The marked item yields the glyph; the others keep it.
+      // Every item yields the glyph (the origin's check part is each item's mark — see above).
       expect(
         view.options().map((o) => o.hasAttribute("data-selection-mark")),
-      ).toEqual([false, true, false, false]);
+      ).toEqual([true, true, true, true]);
       // Not selected yet: RAC's `isSelected` is false — no mark.
       expect(view.mark()).toBeNull();
       await view.choose(1);

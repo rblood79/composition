@@ -17,7 +17,12 @@ export const tokenFieldBinding: PrimitiveBinding = {
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
-      "aria-label": { kind: "string", label: "Aria Label", section: "content" },
+      "aria-label": {
+        kind: "string",
+        label: "Aria Label",
+        section: "content",
+        editorHidden: true,
+      },
     },
     toRacProps: "default",
   },

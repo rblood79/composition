@@ -76,8 +76,9 @@ async function open() {
       if (parent.id === menu) return true;
     return false;
   };
+  // (`71922bd0f` S2 Menu: the trigger is an ActionButton — `MenuTrigger > ActionButton + Popover > Menu`.)
   const button = [...root.domInputs.values()].find(
-    (record) => root.typeOf(record) === "Button" && under(record.id),
+    (record) => root.typeOf(record) === "ActionButton" && under(record.id),
   )!.id;
   const host = createCatalogStylesHost(workspace);
   render(
@@ -135,9 +136,9 @@ describe("an instance part's breakpoint and layout edits reach its record", () =
       borderStyle: "dashed",
       borderColor: "#ff0000",
     });
-    // (Desktop keeps the base value.)
+    // (Desktop keeps the base value — the S2 ActionButton has no border: 0, `71922bd0f`.)
     workspace.setBreakpoint("desktop");
-    expect(workspace.root.domInputs.get(button)!.visual.borderWidth).toBe(1);
+    expect(workspace.root.domInputs.get(button)!.visual.borderWidth).toBe(0);
   });
 
   it("Menu's Button: a margin (layout) reaches the record, at desktop and at tablet", async () => {

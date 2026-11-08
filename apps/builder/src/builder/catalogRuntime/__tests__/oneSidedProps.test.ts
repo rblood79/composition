@@ -29,10 +29,7 @@ const BODY = "project:node:home-body" as NodeId;
 const OWNER = "project:node:owner" as NodeId;
 const set = <T>(value: T) => ({ kind: "set" as const, value });
 
-async function open(
-  origin: string,
-  props: Record<string, string | boolean>,
-) {
+async function open(origin: string, props: Record<string, string | boolean>) {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
@@ -145,24 +142,55 @@ describe("a prop reaches the Canvas and the Preview alike", () => {
   });
 
   it("ToggleButtonGroup Emphasized · Disabled reach the Canvas buttons; the group is not dimmed twice", async () => {
+    // (8586c64bd, 2026-11-05: the group's S2 context values — `isEmphasized` · `size` · `isQuiet` …
+    //   — reach a button as derived props (`presence.ts`), not written into its own props; the
+    //   Canvas paint reads `{ ...props, ...derivedProps }` (`ruleShapes.ts`).)
+    const effective = (record: { props: object; derivedProps?: object }) =>
+      ({ ...record.props, ...record.derivedProps }) as Record<string, unknown>;
+    const buttonTags = (html: string) =>
+      tags(html, "react-aria-ToggleButton button-base");
     const emphasized = await open("togglebuttongroup", { isEmphasized: true });
-    for (const button of emphasized.canvas("ToggleButton"))
-      expect(button.props.isEmphasized).toBe(true);
+    const emphasizedButtons = emphasized.canvas("ToggleButton");
+    expect(emphasizedButtons.length).toBeGreaterThan(1);
+    for (const button of emphasizedButtons)
+      expect(effective(button).isEmphasized).toBe(true);
+    expect(buttonTags(emphasized.html()).length).toBe(emphasizedButtons.length);
+    for (const tag of buttonTags(emphasized.html()))
+      expect(tag).toContain('data-emphasized="true"');
     const disabled = await open("togglebuttongroup", {});
+    const restColor = disabled
+      .canvas("Text")
+      .map((text) => text.derivedProps?.color);
     disabled.edit({ isDisabled: true });
     const buttons = disabled.canvas("ToggleButton");
     expect(buttons.length).toBeGreaterThan(1);
+    // (3ca03f661, 2026-11-06: S2 paints a disabled ToggleButton with the disabled colours —
+    //   `--fg-disabled` words — instead of the old `opacity: 0.38`; nothing is dimmed now.)
     for (const button of buttons) {
-      expect(button.props.isDisabled).toBe(true);
-      expect(button.visual.opacity).toBe(0.38);
+      expect(effective(button).isDisabled).toBe(true);
+      expect(button.visual.opacity ?? 1).toBe(1);
     }
+    const disabledColor = disabled
+      .canvas("Text")
+      .map((text) => text.derivedProps?.color);
+    expect(disabledColor.length).toBe(buttons.length);
+    disabledColor.forEach((color, index) => {
+      expect(color).toBeDefined();
+      expect(color).not.toBe(restColor[index]);
+    });
+    expect(buttonTags(disabled.html()).length).toBe(buttons.length);
+    for (const tag of buttonTags(disabled.html()))
+      expect(tag).toContain('data-disabled="true"');
     expect(disabled.canvas("ToggleButtonGroup")[0]!.visual.opacity ?? 1).toBe(
       1,
     );
-    // (Off again: the buttons' own value.)
+    // (Off again: the buttons' own value · the rest words colour.)
     disabled.edit({ isDisabled: false });
     for (const button of disabled.canvas("ToggleButton"))
-      expect(button.props.isDisabled).toBe(false);
+      expect(effective(button).isDisabled).toBe(false);
+    expect(
+      disabled.canvas("Text").map((text) => text.derivedProps?.color),
+    ).toEqual(restColor);
   });
 
   it("GridList Quiet: its items paint the quiet variant on both sides", async () => {

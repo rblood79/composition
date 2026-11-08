@@ -374,7 +374,11 @@ it("standalone Icon keeps its glyph box in flex row and column", async () => {
   }
 });
 
-it("grouped mixed text wraps at its own box and unwraps after widening", async () => {
+// 5cf91844f (2026-11-08): a ToggleButton · ActionButton Text takes the S2 TextContext `truncate`
+//   default (one line · ellipsis · min-width 0) — a long grouped label no longer wraps into a
+//   taller button; it shrinks to its own box and clips. The test keeps what it protected: the
+//   label is sized by its own box inside the group, and widening (and Undo) re-lays it out.
+it("grouped mixed text truncates at its own box and grows back after widening", async () => {
   const { workspace, root, record, label } = await open(
     "ToggleButton",
     "M",
@@ -391,22 +395,31 @@ it("grouped mixed text wraps at its own box and unwraps after widening", async (
   );
   const canvas = bindCatalogCanvas(root, root.pageRootRecords());
   const part = label();
-  expect(root.textWraps(part.id)).toBe(true);
-  // (ADR-295 Phase 3: two S2 lines 18 + the centring padding 6 × 2 + border 2; one line = the S2
-  //   control height 32.)
-  expect(root.getGeometry([part.id]).get(part.id)!.height).toBe(36);
-  expect(root.getGeometry([button.id]).get(button.id)!.height).toBe(50);
-  expect(getSkiaNode(part.id)!.text?.whiteSpace).toBe("normal");
+  // (The measured words are 13 × 14 / 2 = 91; the box left for them is 110 − padding 12 × 2 −
+  //   icon 18 − gap 6 = 62.)
+  const full = 91;
+  const narrow = 110 - 12 * 2 - 18 - 6;
+  expect(root.textWraps(part.id)).toBe(false);
+  expect(root.getGeometry([part.id]).get(part.id)!.width).toBe(narrow);
+  // (ADR-295 Phase 3: one S2 line 18; the button stays the S2 control height 32.)
+  expect(root.getGeometry([part.id]).get(part.id)!.height).toBe(18);
+  expect(root.getGeometry([button.id]).get(button.id)!.height).toBe(32);
+  expect(getSkiaNode(part.id)!.text).toMatchObject({
+    whiteSpace: "nowrap",
+    textOverflow: "ellipsis",
+    clipText: true,
+  });
   workspace.execute(
     setFields({ targets: [target], visual: { width: set(300) } }),
   );
   canvas.update();
   expect(root.textWraps(part.id)).toBe(false);
+  expect(root.getGeometry([part.id]).get(part.id)!.width).toBe(full);
   expect(root.getGeometry([button.id]).get(button.id)!.height).toBe(32);
   workspace.undo();
   canvas.update();
-  expect(root.textWraps(part.id)).toBe(true);
-  expect(root.getGeometry([button.id]).get(button.id)!.height).toBe(50);
+  expect(root.getGeometry([part.id]).get(part.id)!.width).toBe(narrow);
+  expect(root.getGeometry([button.id]).get(button.id)!.height).toBe(32);
   canvas.dispose();
 });
 

@@ -2,7 +2,8 @@
 // 현 ComponentList 정적 배열(contentComp/layoutComp/buttonsComp/formsComp/collectionsComp/dateTimeComp/overlaysComp)이
 // 노출하는 palette 항목의 1:1 보존 스냅샷. getPaletteItems() 파생 결과가 이 oracle 과 같아야 회귀 0.
 // 순서 = palette UI 표시 순서(category 8 + 항목). 캡처: 2026-06-11 · 재캡처 2026-10-21 (Library 감사 —
-// Meter · Menu · Section · AvatarGroup category, CardView 아이콘, overlay 3종 → catalog).
+// Meter · Menu · Section · AvatarGroup category, CardView 아이콘, overlay 3종 → catalog) ·
+// 재캡처 2026-11-09 (S2 · RAC 신규 컴포넌트 11종 — bbca53c78 · 3ca03f661 · 8ac17dc12).
 //
 // ⚠️ 이 파일을 손으로 수정하지 말 것 — palette 표시가 의도적으로 바뀔 때만 재캡처.
 export interface PaletteOracleItem {
@@ -76,10 +77,28 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "Users",
   },
   {
+    type: "LabeledValue",
+    category: "content",
+    label: "labeled value",
+    icon: "Text",
+  },
+  {
     type: "StatusLight",
     category: "content",
     label: "status light",
     icon: "CircleDot",
+  },
+  {
+    type: "ActionBar",
+    category: "buttons",
+    label: "action bar",
+    icon: "PanelBottom",
+  },
+  {
+    type: "SelectBoxGroup",
+    category: "collections",
+    label: "select box group",
+    icon: "LayoutGrid",
   },
   {
     type: "InlineAlert",
@@ -212,6 +231,24 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "MousePointer",
   },
   {
+    type: "LinkButton",
+    category: "buttons",
+    label: "link button",
+    icon: "Link",
+  },
+  {
+    type: "ActionButton",
+    category: "buttons",
+    label: "action button",
+    icon: "MousePointer",
+  },
+  {
+    type: "ActionButtonGroup",
+    category: "buttons",
+    label: "action button group",
+    icon: "GroupIcon",
+  },
+  {
     type: "ToggleButton",
     category: "buttons",
     label: "toggle button",
@@ -246,6 +283,12 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     category: "forms",
     label: "text area",
     icon: "RectangleEllipsis",
+  },
+  {
+    type: "TokenField",
+    category: "forms",
+    label: "token field",
+    icon: "Tags",
   },
   {
     type: "NumberField",
@@ -342,6 +385,18 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     category: "forms",
     label: "slider",
     icon: "SlidersHorizontal",
+  },
+  {
+    type: "RangeSlider",
+    category: "forms",
+    label: "range slider",
+    icon: "SlidersHorizontal",
+  },
+  {
+    type: "SegmentedControl",
+    category: "buttons",
+    label: "segmented control",
+    icon: "GroupIcon",
   },
   {
     type: "DropZone",
@@ -482,10 +537,22 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "AppWindowMac",
   },
   {
+    type: "Sheet",
+    category: "overlays",
+    label: "sheet",
+    icon: "PanelBottom",
+  },
+  {
     type: "Popover",
     category: "overlays",
     label: "popover",
     icon: "AppWindowMac",
+  },
+  {
+    type: "PreviewTrigger",
+    category: "overlays",
+    label: "preview trigger",
+    icon: "Eye",
   },
   {
     type: "ContextualHelp",

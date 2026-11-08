@@ -78,7 +78,9 @@ import {
 //   위에 있었고 부품은 Table 과 같은 ruleDom 경로로 그렸다 (ADR-277 에서 type 자체를 Table 로 통합).
 // internal 32 → 31 (2026-10-11): ADR-256 Phase 10 — cardheader · cardcontent · cardfooter 제거,
 //   S2 Content · Footer (s2content · s2footer) 추가.
-const INVENTORY = { delegatingInternal: 31, delegatingRac: 16 } as const;
+// internal 31 → 33 (2026-11-03, bbca53c78): RAC TokenField 추가 — tokenfield (문자열 → RAC
+//   TokenFieldValue 변환) · tokeninput (토큰 구간마다 작성된 Token 모양) self-compose 위임.
+const INVENTORY = { delegatingInternal: 33, delegatingRac: 16 } as const;
 
 describe("ADR-914 Phase 3-A — render facet declaration parity", () => {
   it("parity A — 파생 internal set == domRegistry DELEGATING_INTERNAL (멤버 + 순서)", () => {

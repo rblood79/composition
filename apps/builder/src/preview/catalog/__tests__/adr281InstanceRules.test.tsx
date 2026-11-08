@@ -20,6 +20,7 @@ import {
 import { openAdr280Preview } from "./support/adr280Harness";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
+import { LIBRARY_CONTRACT_VERSION } from "../../../../../../packages/shared/src/catalog/document/types";
 
 /**
  * ADR-281 G3 — an origin's rule in its instances (Decision 4, user decision 2 — the patch field
@@ -233,7 +234,8 @@ describe("ADR-281 G3 — storage (contract 47)", () => {
     h.run(catalogInheritedRuleEnabledCommand({ ownerId: h.a }, rule!.id, false));
     const library = await buildCodeCatalogLibrary();
     const exported = h.graph.exportDocument();
-    expect(exported.libraryContractVersion).toBe(54);
+    // (The export stamps the current contract — each later contract bump re-broke a literal here.)
+    expect(exported.libraryContractVersion).toBe(LIBRARY_CONTRACT_VERSION);
     const reopened = new CatalogGraph(structuredClone(exported), library);
     expect(
       catalogInheritedInteractionsOf(reopened, { ownerId: h.a })[0]?.status,

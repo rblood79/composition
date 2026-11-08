@@ -53,9 +53,10 @@ describe("useLayoutValues", () => {
 
   // (ADR-295 Phase 3: the block padding is the S2 centring padding — M 6; Phase 3c-3: the inline padding is
   //   S2 `pill` — 32 / 2 = 16.)
-  it("falls back to the record's effective value (as px) when inline absent — Button md padding 6 / 16", async () => {
+  // (`20388ea2e`: S2 fill border 0 — the block padding is (32 − 18) / 2 = 7.)
+  it("falls back to the record's effective value (as px) when inline absent — Button md padding 7 / 16", async () => {
     const { result } = hookOf(fixture, useLayoutValues, "el-1");
-    expect(result.current?.paddingTop).toBe("6px");
+    expect(result.current?.paddingTop).toBe("7px");
     expect(result.current?.paddingRight).toBe("16px");
     expect(result.current?.justifyContent).toBe("center");
   });
@@ -146,10 +147,10 @@ describe("useLayoutValues — ADR-082 P1-2 padding/margin shorthand 4-way unifor
     expect(result.current?.paddingLeft).toBe("4px");
   });
 
-  it("4-way 비균일 (Button 6 / 16) → shorthand 는 '0px' 기본값 유지 (회귀 방지)", async () => {
+  it("4-way 비균일 (Button 7 / 16) → shorthand 는 '0px' 기본값 유지 (회귀 방지)", async () => {
     const { result } = hookOf(fixture, useLayoutValues, "el-nonuniform");
     expect(result.current?.padding).toBe("0px");
-    expect(result.current?.paddingTop).toBe("6px");
+    expect(result.current?.paddingTop).toBe("7px");
     expect(result.current?.paddingLeft).toBe("16px");
   });
 

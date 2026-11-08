@@ -373,7 +373,13 @@ describe("ADR-256 Phase 3 — Switch · Radio are *Field > *Button", () => {
         RadioGroup,
         // (ADR-256 후속 7: the group's value — none by default.)
         null,
-        createElement(Label, null, "Size"),
+        // (3ca03f661 · db5351e4c: a field's editable Label is composed from a real Text child —
+        // `Text slot="label-content"`, as adr256FieldNodeTree's `composedLabel`.)
+        createElement(
+          Label,
+          null,
+          createElement("span", { slot: "label-content" }, "Size"),
+        ),
         createElement(
           "div",
           { className: "radio-items" },

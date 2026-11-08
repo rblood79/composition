@@ -281,6 +281,19 @@ describe("ADR-250 Preview expansion is runtime state", () => {
       );
       flush();
     };
+    // (S2 Accordion defaults to single expansion since 792815efc — this row is about the group
+    // following each declaration, so the group declares multiple expansion first.)
+    const [group] = workspace.root.recordsOfSource(
+      "project:node:accordion" as NodeId,
+    );
+    workspace.execute(
+      setFields({
+        targets: [workspace.itemOfRecord(group!)!.target],
+        props: { allowsMultipleExpanded: { kind: "set", value: true } },
+        label: "Edit properties",
+      }),
+    );
+    flush();
     const historyBefore = workspace.history.getSnapshot().labels.length;
     expect(expanded()).toEqual([true, true]);
     act(() => {

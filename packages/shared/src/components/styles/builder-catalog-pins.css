@@ -447,7 +447,9 @@
     > span:not(:where(.publish-app *)) {
     transition: scale 200ms;
   }
-  .react-aria-ToggleButtonGroup
+  /* (2026-11-09: the generated inner-span press is the indicator group's — `&[data-indicator="true"]`
+     now compiles to the root qualifier; before, the descendant `&` matched nothing.) */
+  .react-aria-ToggleButtonGroup[data-indicator="true"]
     .react-aria-ToggleButton[data-pressed]
     > span:not(:where(.publish-app *)) {
     transform: none;

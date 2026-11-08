@@ -1370,7 +1370,13 @@ function generateStaticSelectorRules<Props>(
   for (const [selector, rawStyles] of Object.entries(staticSelectors)) {
     validateNestedSelectorKey(selector, spec.name, "staticSelectors");
     const styles = rewriteAnimationNames(rawStyles, spec);
-    lines.push(`  ${rootSel} ${selector} {`);
+    // A key starting with `&` qualifies the root itself (`&[data-indicator="true"] …`): a
+    // descendant `${rootSel} &…` is `:scope` at the top level and never matches (2026-11-09 — the
+    // ToggleButtonGroup indicator press rules reached nothing in Preview · Publish).
+    const full = selector.startsWith("&")
+      ? `${rootSel}${selector.slice(1)}`
+      : `${rootSel} ${selector}`;
+    lines.push(`  ${full} {`);
     for (const [prop, value] of Object.entries(styles)) {
       lines.push(`    ${prop}: ${value};`);
     }

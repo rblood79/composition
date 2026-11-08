@@ -3,15 +3,19 @@ import { expect, it } from "vitest";
 import { openAdr280Preview } from "./support/adr280Harness";
 import { openAdr296 } from "./support/adr296Harness";
 
-it("SegmentedControl Code View uses the executable public default composition", async () => {
+it("SegmentedControl Code View writes the executable public composition with its slot-owned items", async () => {
   const h = await openAdr296();
   try {
     h.add("SegmentedControl");
     const code = h.code();
+    // (5745593c4 — the origin root declares slot `Items`, so the placed instance owns its two
+    // items and Code View writes them as public SegmentedControlItem children.)
     expect(code).toContain(
-      "import {SegmentedControl} from '@composition/shared/components'",
+      "import {SegmentedControl, SegmentedControlItem} from '@composition/shared/components'",
     );
-    expect(code).toContain("<SegmentedControl />");
+    expect(code).toMatch(
+      /<SegmentedControl>\s*<SegmentedControlItem id="first" label="List" \/>\s*<SegmentedControlItem id="second" label="Grid" \/>\s*<\/SegmentedControl>/,
+    );
   } finally {
     h.workspace.dispose();
   }

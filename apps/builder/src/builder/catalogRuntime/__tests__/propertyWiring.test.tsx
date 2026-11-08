@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { resolveToken } from "@composition/rendering";
 import "fake-indexeddb/auto";
 import { act, type ElementType } from "react";
 import { createRoot } from "react-dom/client";
@@ -229,6 +230,26 @@ describe("ButtonGroup Disabled — its Buttons (S2: all the Buttons are disabled
       );
     expect(disabled().length).toBe(buttons().length);
     expect(disabled().every(Boolean)).toBe(true);
+    // (2026-11-09) The DOM's disabled paint is the sheet's `[data-disabled]` block: no rest paint
+    //   inline over it (RAC's context `isDisabled` is not an authored value); the Canvas label takes
+    //   the disabled Button's text color, not its rest color.
+    for (const button of dom.host.querySelectorAll("button"))
+      expect(button.getAttribute("style") ?? "").not.toMatch(
+        /background-color|(^|;)color:/,
+      );
+    const labelColors = () =>
+      buttons().flatMap((button) =>
+        button.children
+          .map((id) => root.canvasInputs.get(id)!)
+          .filter((child) => !child.hidden && root.typeOf(child) === "Text")
+          .map((child) => child.derivedProps?.color),
+      );
+    expect(labelColors().length).toBeGreaterThan(0);
+    expect(
+      labelColors().every(
+        (color) => color === resolveToken("{color.disabled-content}", "light"),
+      ),
+    ).toBe(true);
     await act(async () =>
       workspace.execute(
         setFields({
@@ -246,12 +267,17 @@ describe("ButtonGroup Disabled — its Buttons (S2: all the Buttons are disabled
     expect(canvas().some(Boolean)).toBe(false);
     expect(disabled().some(Boolean)).toBe(false);
     const enabledPaint = painted();
+    // (ADR-302 `ca2be22b3`: a secondary outline Button's S2 disabled border `disabled-border-color` is
+    //   gray-300 — the same value as its resting `baseColor('gray-300')` border, so only its text turns
+    //   disabled. The box must still change for a filled Button.)
+    const outline = buttons().map((button) => button.props.fillStyle === "outline");
+    expect(outline.some((isOutline) => !isOutline)).toBe(true);
     expect(
       enabledPaint.every(
         (paint, index) =>
           paint.opacity === undefined &&
           paint.fill !== "null" &&
-          paint.fill !== disabledPaint[index]!.fill,
+          (outline[index] || paint.fill !== disabledPaint[index]!.fill),
       ),
     ).toBe(true);
     await dom.close();

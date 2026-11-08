@@ -165,7 +165,9 @@ describe("ADR-256 G1 — slot insert list = children kind", () => {
     // header · body slots list nothing; the owner's Insert Column · Insert Row (`itemInsert`,
     // `ownerItemInsert.test.ts`) is their way in.
     expect(empty).toEqual(["table TableHeader", "table TableBody"]);
-  });
+    // (Inserts every listed choice of every palette type: ~4s alone — over the 5s default when the
+    // unit project runs in parallel.)
+  }, 20_000);
 
   // ADR-256 F4 — the slot on an origin's root (ListBox · Toolbar · Form …) fills from the instance.
   it("an instance fills its component's root slot from its own selection", async () => {

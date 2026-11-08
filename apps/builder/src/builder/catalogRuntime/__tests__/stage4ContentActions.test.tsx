@@ -7,6 +7,7 @@ import {
   formatLabeledValue,
   type LabeledValue as StoredLabeledValue,
 } from "../../../../../../packages/shared/src/catalog/document/labeledValue";
+import { setSiteSettings } from "../../../../../../packages/shared/src/catalog/commands/project";
 import { COMPONENT_RULES_TABLE } from "../../../../../../packages/shared/src/catalog/generated/componentRulesTable";
 import { LinkButton } from "../../../../../../packages/shared/src/components/LinkButton";
 import { LabeledValue } from "../../../../../../packages/shared/src/components/LabeledValue";
@@ -165,6 +166,9 @@ it("exported Code View components run outside a catalog runtime", async () => {
 
 it("structured values survive document commands and resolve into authored Text", async () => {
   const h = await openAdr296();
+  // The formatted Text follows the site's language (else the machine's — `Intl` with no locale);
+  // pin it so the expectation below does not read the test machine's locale.
+  h.workspace.execute(setSiteSettings({ patch: { lang: "en-US" } }));
   const id = h.add("LabeledValue");
   const samples: StoredLabeledValue[] = [
     1234,

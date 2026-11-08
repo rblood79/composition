@@ -128,11 +128,12 @@ describe("Layout 탭 — 루트가 받지 않는 size 값", () => {
 
   // (ADR-295 Phase 3: the block padding is the S2 centring padding — M (32 − 18 − 2) / 2 = 6.)
   // (ADR-295 Phase 3c-3: S2 `pill` padding 32 / 2 = 16 · `text-to-visual` gap 14 × 6 / 14 = 6.)
-  it("자기 rule 이 있는 Button 은 inline-flex · gap 6 · padding 6 / 16", () => {
+  // (`20388ea2e`: S2 fill 테두리 0 → 세로 padding (32 − 18) / 2 = 7.)
+  it("자기 rule 이 있는 Button 은 inline-flex · gap 6 · padding 7 / 16", () => {
     const values = layoutOf(fixture.recordOf("btn"));
     expect(values?.display).toBe("inline-flex");
     expect(values?.gap).toBe("6px");
-    expect(values?.paddingTop).toBe("6px");
+    expect(values?.paddingTop).toBe("7px");
     expect(values?.paddingLeft).toBe("16px");
   });
 });
@@ -198,8 +199,9 @@ describe("Text 탭 — 부모 size 전파", () => {
     const values = typographyOf(fixture.descendantRecord("cb", "Label"));
     expect(values?.fontSize).toBe("14px");
     expect(values?.lineHeight).toBe("18px");
-    expect(values?.fontWeight).toBe("500");
-    expect(values?.fontWeightBase).toBe("500");
+    // (`3ca03f661`: Label 원본 굵기 = S2 1.8.2 fieldLabel controlFont regular 400.)
+    expect(values?.fontWeight).toBe("400");
+    expect(values?.fontWeightBase).toBe("400");
   });
 });
 

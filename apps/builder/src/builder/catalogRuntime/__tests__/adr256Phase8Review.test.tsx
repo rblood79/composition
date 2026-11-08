@@ -199,7 +199,10 @@ describe("ADR-256 Phase 8 판독 H1 — a Disclosure below another element in a 
     all("Disclosure").find((record) => record.props.title === title)!.sourceId!;
 
   it("Canvas and DOM agree: the framed Disclosure is expanded, and the Preview trigger collapses it", async () => {
-    const { all, frame, mount, panels } = await open("accordion");
+    // (S2 Accordion defaults to single expansion since 792815efc — the group declares multiple.)
+    const { all, frame, mount, panels } = await open("accordion", {
+      allowsMultipleExpanded: true,
+    });
     frame(section(all, "Section 2"));
     expect(panels()).toEqual({ "Section 1": true, "Section 2": true });
     const host = await mount(true);
@@ -307,7 +310,10 @@ describe("ADR-256 Phase 8 판독 후속 — Round 18 범위 밖 · Round 19 LOW"
   });
 
   it("a Disclosure put into an empty frame of the group after the DOM mounted joins the group", async () => {
-    const { workspace, all, placed, mount } = await open("accordion");
+    // (S2 Accordion defaults to single expansion since 792815efc — the group declares multiple.)
+    const { workspace, all, placed, mount } = await open("accordion", {
+      allowsMultipleExpanded: true,
+    });
     const box = workspace.newId("node") as string;
     workspace.execute(
       insertNodes({

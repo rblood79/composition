@@ -3491,16 +3491,29 @@ export class CatalogCompositionRoot {
     const glyphItem =
       inheritedColorOwner ??
       pickerPartOwner ??
-      (toggleGlyphOwner && !catalogHasAuthoredColor(this, record)
+      (toggleGlyphOwner &&
+      // (A Button's label color its rule's part block gives is the Button's paint, not a write.)
+      !(this.typeOf(toggleGlyphOwner) === "Button"
+        ? catalogHasExplicitVisual(this, record, "color")
+        : catalogHasAuthoredColor(this, record))
         ? toggleGlyphOwner
         : undefined) ??
       catalogItemRemoveGlyphItem(record, get, this.typeOf) ??
       catalogTreeChevronGlyphItem(record, get, this.typeOf) ??
       sideNavOwner;
     const item = glyphItem ?? get(record.parentId);
+    // (A bound Button has no rule id: its glyph · label read the Button rule by type.)
+    const ruleByType =
+      !!item &&
+      !item.ruleId &&
+      !!toggleGlyphOwner &&
+      glyphItem === toggleGlyphOwner;
     if (
       !item ||
-      (!item.ruleId && !pickerPartOwner && !inheritedColorOwner) ||
+      (!item.ruleId &&
+        !pickerPartOwner &&
+        !inheritedColorOwner &&
+        !ruleByType) ||
       // (The glyph's own resolved color is its button's paint, not an authored one: the sheet's
       // `color: inherit` wins over it.)
       (!glyphItem &&
@@ -3510,7 +3523,8 @@ export class CatalogCompositionRoot {
           catalogAuthoredVisual(this, record).color !== undefined))
     )
       return derived;
-    const rule = inheritedColorOwner
+    const rule =
+      inheritedColorOwner || ruleByType
       ? COMPONENT_RULES_TABLE[this.typeOf(item)]
       : pickerPartOwner
         ? COMPONENT_RULES_TABLE.Button
@@ -3536,7 +3550,8 @@ export class CatalogCompositionRoot {
           }
         : item,
       rule,
-      type: inheritedColorOwner
+      type:
+        inheritedColorOwner || ruleByType
         ? this.typeOf(item)
         : pickerPartOwner
           ? "Button"

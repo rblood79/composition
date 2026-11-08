@@ -198,8 +198,13 @@ describe("field trigger buttons — no generic Button min-width", () => {
           if (cursor.bindingId === "popover") return true;
         return false;
       };
+      // (Not the Label's necessity marker — 3ca03f661 put an `Icon[slot=necessity-icon]` in every
+      // field Label; it is 0 wide unless the field is required.)
       const icons = [...root.layoutInputs.values()].filter(
-        (record) => record.bindingId === "icon" && !inPopover(record),
+        (record) =>
+          record.bindingId === "icon" &&
+          !inPopover(record) &&
+          root.canvasInputs.get(record.id)?.props.slot !== "necessity-icon",
       );
       expect(icons.length).toBeGreaterThan(0);
       for (const icon of icons) {

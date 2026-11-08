@@ -15,16 +15,22 @@ describe("orientationDrivenTags", () => {
     //   text; the Direction toggle writes it.)
     // (ADR-258 Phase 2: + ColorSlider — its rule's `orientation` blocks lay the track out across or
     //   along; the Direction toggle writes the S2 `orientation`.)
-    it("ORIENTATION_DRIVEN_TAGS = ColorSlider / IllustratedMessage / ToggleButtonGroup / Toolbar (소문자 정규화)", () => {
+    // (2026-11-05 `8586c64bd` + ActionButtonGroup · 2026-11-07 `8ac17dc12` + SegmentedControl ·
+    //   SelectBoxGroup — S2 `orientation` 을 받는 새 컴포넌트, rule 의 `orientation` 블록에서 유도.)
+    it("ORIENTATION_DRIVEN_TAGS = ActionButtonGroup / ColorSlider / IllustratedMessage / SegmentedControl / SelectBoxGroup / ToggleButtonGroup / Toolbar (소문자 정규화)", () => {
       expect([...ORIENTATION_DRIVEN_TAGS].sort()).toEqual([
+        "actionbuttongroup",
         "colorslider",
         "illustratedmessage",
+        "segmentedcontrol",
+        "selectboxgroup",
         "togglebuttongroup",
         "toolbar",
       ]);
     });
 
-    it("LABEL_POSITION_DRIVEN_TAGS = RadioGroup / CheckboxGroup / field 8종 / TagGroup / ComboBox·Select·DateRangePicker / Meter·ProgressBar·Slider", () => {
+    // (2026-11-07 `8ac17dc12`: + LabeledValue · RangeSlider — S2 `labelPosition`.)
+    it("LABEL_POSITION_DRIVEN_TAGS = RadioGroup / CheckboxGroup / field 8종 / TagGroup / ComboBox·Select·DateRangePicker / Meter·ProgressBar·Slider·RangeSlider / LabeledValue", () => {
       expect([...LABEL_POSITION_DRIVEN_TAGS].sort()).toEqual([
         "checkboxgroup",
         "colorfield",
@@ -32,10 +38,12 @@ describe("orientationDrivenTags", () => {
         "datefield",
         "datepicker",
         "daterangepicker",
+        "labeledvalue",
         "meter",
         "numberfield",
         "progressbar",
         "radiogroup",
+        "rangeslider",
         "searchfield",
         "select",
         "slider",

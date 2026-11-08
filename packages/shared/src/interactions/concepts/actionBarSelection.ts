@@ -20,7 +20,7 @@ export const actionBarSelection = {
     setValue: {
       labelKey: "capabilities.setValue",
       value: "!param",
-      param: { kind: "number", labelKey: "capabilityParams.value" },
+      param: { kind: "number", labelKey: "capabilities.paramValue" },
     },
     clearSelection: { labelKey: "capabilities.clearSelection", value: 0 },
   },

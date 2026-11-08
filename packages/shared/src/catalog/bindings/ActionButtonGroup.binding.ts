@@ -13,6 +13,7 @@ export const actionButtonGroupBinding: PrimitiveBinding = {
         kind: "string",
         label: "Aria Label",
         section: "content",
+        editorHidden: true,
         default: "Actions",
       },
       isQuiet: actionButtonBinding.props.accepts.isQuiet,

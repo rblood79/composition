@@ -51,6 +51,7 @@ export const selectBoxGroupBinding: PrimitiveBinding = {
         kind: "string",
         label: "Accessible Label",
         section: "content",
+        editorHidden: true,
       },
       orientation: {
         kind: "enum",

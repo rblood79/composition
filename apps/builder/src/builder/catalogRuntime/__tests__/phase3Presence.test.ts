@@ -17,13 +17,19 @@ import {
   CatalogCompositionRoot,
   type CatalogConsumerNode,
 } from "../compositionRoot";
-import { TAILWIND_PALETTE } from "@composition/rendering";
 import { catalogTextMetrics } from "../boxModel";
 import { catalogDateInputPaintProps, catalogRuleShapes } from "../ruleShapes";
 import { catalogNodeState } from "../../../../../../packages/shared/src/catalog/resolution/resolver";
 import { CatalogRuntime } from "../controller";
 import { CatalogStorage } from "../storage";
 import { racDateSegmentParts } from "../../../../../../packages/shared/src/catalog/document/dateSegments";
+
+/**
+ * The light text roles (ADR-302 `ca2be22b3`: Spectrum gray-800 · gray-700 — the Tailwind neutral 900 ·
+ * 600 before).
+ */
+const LIGHT_NEUTRAL = resolveToken("{color.neutral}", "light");
+const LIGHT_NEUTRAL_SUBDUED = resolveToken("{color.neutral-subdued}", "light");
 
 /** RAC's empty ko-KR date row (`연도. 월. 일.` placeholders around the locale's literals). */
 // (Each RAC segment is a flex item: its collapsible end spaces are not drawn — ADR-256 후속 8.)
@@ -222,7 +228,7 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     ]);
     expect(
       labels.map((id) => scene.root.canvasInputs.get(id)!.derivedProps?.color),
-    ).toEqual([TAILWIND_PALETTE.neutral[600], TAILWIND_PALETTE.neutral[900]]);
+    ).toEqual([LIGHT_NEUTRAL_SUBDUED, LIGHT_NEUTRAL]);
     expect(new Set(notified)).toEqual(
       new Set([
         ...tabInputs.map((tab) => tab.id),
@@ -276,8 +282,8 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     const colors = () =>
       ["one-label", "two-label"].map((name) => input(name).derivedProps?.color);
     expect(colors()).toEqual([
-      TAILWIND_PALETTE.neutral[900],
-      TAILWIND_PALETTE.neutral[600],
+      LIGHT_NEUTRAL,
+      LIGHT_NEUTRAL_SUBDUED,
     ]);
     // In dark mode the label reads the item color in that mode (not the light value — a
     // near-black selected tab on a dark surface).
@@ -314,8 +320,8 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       },
     ]);
     expect(colors()).toEqual([
-      TAILWIND_PALETTE.neutral[600],
-      TAILWIND_PALETTE.neutral[900],
+      LIGHT_NEUTRAL_SUBDUED,
+      LIGHT_NEUTRAL,
     ]);
     expect(notified).toContain(input("two-label").id);
     expect(new Map(scene.root.canvasInputs)).toEqual(scene.fresh());
@@ -457,8 +463,8 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       const name = `origin-component-${suffix}`;
       return open(`lib:definition:${name}` as DefinitionId, name);
     };
-    const neutral = TAILWIND_PALETTE.neutral[900];
-    const subdued = TAILWIND_PALETTE.neutral[600];
+    const neutral = LIGHT_NEUTRAL;
+    const subdued = LIGHT_NEUTRAL_SUBDUED;
     // Tab: rule text (neutral-subdued), `[data-hovered]` textHover, `[data-selected] { color: var(--fg) }`.
     expect(labelColors(await origin("tab-item-default"), "Tab")).toEqual([
       neutral,
@@ -654,7 +660,7 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       catalogTextMetrics(input(name), input(name.replace(/-label$/, ""))).color;
     // `.react-aria-Link .react-aria-Text { color: inherit }`: the Link's color — catalog
     // `Breadcrumb.colors.text` (neutral-subdued), the current crumb's `[data-current]` accent.
-    expect(color("home-label")).toBe(TAILWIND_PALETTE.neutral[600]);
+    expect(color("home-label")).toBe(LIGHT_NEUTRAL_SUBDUED);
     expect(color("page-label")).toBe("var(--accent)");
   });
 

@@ -181,13 +181,13 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
     // paddingX/paddingY 축 → 4-way normalization (20+ spec 이 sizes 경로에서 이 형식 사용).
     // normalization 없으면 Panel Layout 이 0 으로 표시됨.
     it("Button.sizes.M (paddingX/Y) → 4-way padding 축 정규화", () => {
-      // Button.sizes.M = { paddingX: 16, paddingY: 6 } (ADR-295 Phase 3 — the S2 centring padding; Phase
-      //   3c-3 — S2 `pill`, the height / 2)
+      // Button.sizes.M = { paddingX: 16, paddingY: 7 } (ADR-295 Phase 3 — the S2 centring padding; Phase
+      //   3c-3 — S2 `pill`, the height / 2; `20388ea2e` — S2 fill border 0, (32 − 18) / 2 = 7)
       const preset = resolveLayoutSpecPreset("Button", "M");
       expect(preset.paddingLeft).toBe(16);
       expect(preset.paddingRight).toBe(16);
-      expect(preset.paddingTop).toBe(6);
-      expect(preset.paddingBottom).toBe(6);
+      expect(preset.paddingTop).toBe(7);
+      expect(preset.paddingBottom).toBe(7);
     });
 
     it("Badge.sizes.M (paddingX/Y) → 4-way padding 축 정규화", () => {
@@ -230,7 +230,8 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
         ...preset,
       });
       expect(paint?.backgroundColor).toBe("{color.layer-2}");
-      expect(paint?.borderColor).toBe("{color.border}");
+      // (`71922bd0f` S2 Popover 표면: 테두리 없음 — elevated 그림자 · 모드 전용 outline 이 경계)
+      expect(paint?.borderColor).toBe("{color.transparent}");
     });
 
     it("Menu.containerStyles → Appearance preset", () => {

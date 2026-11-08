@@ -4069,13 +4069,18 @@ export function renderNode(
     // baseline participation) must reach DOM as well as authored edits, just as Canvas reads them.
     Object.assign(bound, catalogLayoutCss(node.layout));
   // Hint states belong to their catalog sheet; a resolved resting color inline would
-  // override disabled. Explicitly authored text colors still win.
+  // override disabled. Explicitly authored text colors still win, and so does an owner-derived
+  // one (2026-11-09: an InlineAlert boldFill description is white on both consumers — deleting it
+  // left the sheet's `--fg-muted` gray on the bold fill).
   if (
     bound &&
     ["description", "fielderror"].includes(node.bindingId ?? "") &&
     !catalogHasAuthoredColor(root, node)
-  )
-    delete bound.color;
+  ) {
+    if (typeof node.derivedProps?.color === "string")
+      bound.color = node.derivedProps.color;
+    else delete bound.color;
+  }
   // A Select's value takes its trigger Button's text color and the field sheet's placeholder
   // paint (`[data-placeholder]`): its color goes inline only when the document wrote it.
   // A Disclosure's title Text takes its trigger's color the same way (`… > .react-aria-Text
@@ -4109,15 +4114,22 @@ export function renderNode(
   // A ToggleButton's label Text (ADR-276 — the button owns it) takes the button's color, which the
   // sheet changes with RAC's runtime selection (`[data-selected]`): a resting color inline stayed
   // when the user toggled it in the Preview, so the selected label vanished (2026-10-30).
+  const glyphOwner = catalogToggleButtonGlyphOwner(
+    node,
+    (id) => root.domInputs.get(id),
+    (entry) => catalogTypeName(root, entry),
+  );
+  // (A Button's label color its rule's part block gives is the Button's paint, not a write — the
+  //  Canvas reads the same: `compositionRoot` `toggleGlyphOwner`.)
+  const glyphColorWritten = (entry: CatalogConsumerNode) =>
+    glyphOwner && catalogTypeName(root, glyphOwner) === "Button"
+      ? catalogHasExplicitVisual(root, entry, "color")
+      : catalogHasAuthoredColor(root, entry);
   if (
     bound &&
     (node.bindingId === "text" || node.bindingId === "label") &&
-    !catalogHasAuthoredColor(root, node) &&
-    catalogToggleButtonGlyphOwner(
-      node,
-      (id) => root.domInputs.get(id),
-      (entry) => catalogTypeName(root, entry),
-    )
+    glyphOwner &&
+    !glyphColorWritten(node)
   )
     bound.color = "inherit";
   if (bound && node.bindingId === "text") {
@@ -4168,9 +4180,11 @@ export function renderNode(
   // an inline rest color would keep every state at rest (ADR-253: a field's stepper and trigger
   // are Button instances).
   //
-  // A Button the document disables keeps its rest paint inline, as the Canvas draws it (the
-  // rule's disabled state is its opacity; the shared `.button-base` sheet would also repaint it).
-  // Inside a disabled field the field's root fades once: the Button does not fade again.
+  // A Button the document disables keeps its resolved paint inline. A Button RAC's context
+  // disables (a disabled field's own button) is not authored: its props here carry the context
+  // (`isDisabled`, ids, aria), so "authored" is read against the document record — otherwise the
+  // rule's disabled paint differs from the rest `visual` and the rest color went inline over the
+  // sheet's `[data-disabled]` paint (2026-11-09: a disabled Select drew #292929, the Canvas gray).
   // ADR-259 Phase 3: a ContextualHelp's trigger is RAC's plain Button (S2's quiet ActionButton,
   // detached from any Button context) — its box and quiet paint are the record's, inline.
   const helpOwner =
@@ -4187,17 +4201,12 @@ export function renderNode(
     !helpOwner
   ) {
     const partField = catalogPartField(root, node);
-    const fieldDisabled =
-      partField !== undefined &&
-      (partField.id !== partParent?.id ||
-        partField.bindingId === "select" ||
-        partField.bindingId === "searchfield") &&
-      partField.props.isDisabled === true;
+    const declared = root.domInputs.get(node.id) ?? node;
     // The sheet owns fill/outline and field borders; only an authored removal goes inline.
     // A derived fill border of 0 must not erase a quiet Select's CSS underline.
     if (
       Number(node.visual.borderWidth) === 0 &&
-      catalogAuthoredVisual(root, node, true).borderWidth !== undefined
+      catalogAuthoredVisual(root, declared, true).borderWidth !== undefined
     )
       bound.borderWidth = 0;
     // A SearchField's sheet hides its clear button (its own child — G5 example 5) while the input
@@ -4206,7 +4215,7 @@ export function renderNode(
     if (
       node.derivedProps?._pickerTrigger === true ||
       node.derivedProps?._searchFieldPart === true ||
-      (node.props.isDisabled !== true && !fieldDisabled)
+      declared.props.isDisabled !== true
     ) {
       // The rule's colors and their states are the generated sheet's (the variant's condition tree —
       // ADR-297); only a color the document wrote goes inline, over every state, as the Canvas
@@ -4214,7 +4223,7 @@ export function renderNode(
       // `.button-base` variables: that ramp skips catalog nodes since ADR-297 3e, so a fill written
       // as `--button-color` reached nothing (2026-11-02 — the Tag remove button drew the variant's
       // dark fill in the Preview, transparent on the Canvas). Fill layers are their own background.
-      const authored = catalogAuthoredVisual(root, node, true);
+      const authored = catalogAuthoredVisual(root, declared, true);
       const fillAuthored =
         authored.fill !== undefined || authored.backgroundColor !== undefined;
       if (!fillAuthored && !node.fills?.length) delete bound.backgroundColor;
@@ -4235,8 +4244,7 @@ export function renderNode(
       }
       if (authored.borderColor === undefined) delete bound.borderColor;
       if (authored.color === undefined) delete bound.color;
-    } else if (fieldDisabled && node.props.isDisabled !== true)
-      bound.opacity = 1;
+    }
   }
   // Compact의 개별 코너는 생성 CSS가 담당한다. 기본 radius를 inline으로 덮지 않는다.
   if (
@@ -4305,8 +4313,8 @@ export function renderNode(
     //  Button's part rule colors an icon in it, which reads as a write. The Icon sheet's own `--fg`
     //  would win over the button's inherit.)
     (catalogSideNavChevronGlyphItem(node, domGet, domType) ||
-      (!catalogHasAuthoredColor(root, node) &&
-        (catalogToggleButtonGlyphOwner(node, domGet, domType) ||
+      (!glyphColorWritten(node) &&
+        (glyphOwner ||
           // (A SideNav row's icon: the row's color, current included.)
           catalogSideNavRowItemOf(node, domGet, domType))))
       ? withInheritedIconColor(node)

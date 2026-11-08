@@ -236,8 +236,10 @@ describe("S2 Disclosure isQuiet · density", () => {
     expect(sheet).toMatch(
       /\.react-aria-Disclosure\[data-quiet="true"\] \.react-aria-Button\[slot='trigger'\] \{\s*border-radius: var\(--catalog-token-radius-md\);/,
     );
+    // (`792815efc`: the inline padding is the size's `--disclosure-trigger-px` — S2 XL's own — falling back
+    //   to `--spacing-md` for the sizes that do not set it.)
     expect(sheet).toMatch(
-      /\.react-aria-Disclosure \.react-aria-Button\[slot='trigger'\] \{[^}]*min-height: var\(--disclosure-trigger-h\);\s*padding: var\(--disclosure-trigger-py\) var\(--spacing-md\);\s*border-radius: 0;/,
+      /\.react-aria-Disclosure \.react-aria-Button\[slot='trigger'\] \{[^}]*min-height: var\(--disclosure-trigger-h\);\s*padding: var\(--disclosure-trigger-py\) var\(--disclosure-trigger-px, var\(--spacing-md\)\);\s*border-radius: 0;/,
     );
   });
 });

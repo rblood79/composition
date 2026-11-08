@@ -31,7 +31,12 @@ it("roundtrips every palette type through IDB, JSON and folder", async () => {
     .rows;
   const routed: Array<{ type: string; definitionId: DefinitionId }> = [];
   const unrouted: string[] = [];
-  for (const row of rows) {
+  // (2f39ffc5d: the DisclosureGroup identifier is Accordion — the frozen replay keeps the old name.)
+  const RENAMED: Record<string, { type: string; ref: string }> = {
+    DisclosureGroup: { type: "Accordion", ref: "component-accordion" },
+  };
+  for (const frozen of rows) {
+    const row = RENAMED[frozen.type] ?? frozen;
     const candidates = row.ref
       ? [`lib:definition:origin-${row.ref}`]
       : [

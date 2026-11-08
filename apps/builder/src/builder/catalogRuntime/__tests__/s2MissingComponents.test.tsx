@@ -40,7 +40,6 @@ it("SegmentedControl and Item expose the audited S2/RAC props and retain them in
         [
           "orientation",
           "defaultSelectedKey",
-          "aria-label",
           "aria-labelledby",
           "aria-describedby",
           "aria-details",
@@ -50,7 +49,6 @@ it("SegmentedControl and Item expose the audited S2/RAC props and retain them in
         item,
         [
           "autoFocus",
-          "aria-label",
           "aria-labelledby",
           "aria-describedby",
           "aria-details",
@@ -63,6 +61,12 @@ it("SegmentedControl and Item expose the audited S2/RAC props and retain them in
       });
       expect(
         contract.fields.find((field) => field.key === "slot")?.editorHidden,
+      ).toBe(true);
+      // (`aria-label` is edited in the Properties Accessibility section — every type's axis; a Content
+      //  field would show it twice, 2026-09-15 · `contractFieldDuplicates`. Code keeps it.)
+      expect(
+        contract.fields.find((field) => field.key === "aria-label")
+          ?.editorHidden,
       ).toBe(true);
       expect(
         contract.fields

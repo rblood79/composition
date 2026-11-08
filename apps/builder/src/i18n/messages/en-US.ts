@@ -478,6 +478,7 @@ const catalog: TranslationKeys = {
       updateRoute: "Update route",
       pageLayout: "Page layout",
       toastPlacement: "Toast placement",
+      toastShape: "Toast shape",
       addLayout: "Add layout",
       applyLayoutPreset: "Apply layout preset",
       layoutSlot: "Layout slot",
@@ -884,6 +885,9 @@ const catalog: TranslationKeys = {
         onReset: "On reset",
         onInvalid: "On invalid field",
       },
+      actionBarSelection: {
+        onClearSelection: "On selection clear",
+      },
     },
     triggerGroup: {
       press: "Press",
@@ -908,6 +912,7 @@ const catalog: TranslationKeys = {
       remove: "Removal",
       focusedDate: "Focused date",
       form: "Form",
+      actionBarSelection: "Selection",
       component: "Component",
     },
     actionNavigate: "Go to page",
@@ -1247,6 +1252,7 @@ const catalog: TranslationKeys = {
   canvas: {
     engineLoadFailed: "The layout engine failed to load.",
     reload: "Reload",
+    textEditorLoading: "Loading text editor",
   },
   aiTool: {
     createElement: "Create element",

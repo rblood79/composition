@@ -154,7 +154,8 @@ async function open(textMeasure?: CatalogTextMeasure) {
     return workspace.root.domInputs.get(record)?.visual.fill;
   };
   const fill = fillOf(BUTTON);
-  // The accent variant's fill is built from `{color.accent}` (`lib:token:color_accent_light`).
+  // The accent variant's fill is built from `{color.accent-fill}` (S2 accent Button fill — the
+  // `{color.accent}` role differs from it in dark mode, `3ca03f661`).
   return {
     engine,
     storage,
@@ -162,7 +163,7 @@ async function open(textMeasure?: CatalogTextMeasure) {
     workspace,
     fill,
     primaryFill: fillOf(PRIMARY),
-    fillRef: "{color.accent}",
+    fillRef: "{color.accent-fill}",
   };
 }
 
@@ -385,14 +386,17 @@ describe("ADR-248 Phase 4e-4d-4 Themes", () => {
     expect(token?.value).toBe(read("{color.accent}", "light"));
   });
 
-  it("no theme applies the default preset (the Preview's tint derivation, not the build literal)", async () => {
+  it("no theme applies the default preset (ADR-302: the Spectrum seed — the build literal)", async () => {
     const literal = read("{color.accent}", "light");
     const { workspace, fill, fillRef } = await open();
     expect(workspace.root.colorMode).toBe("light");
     expect(fill()).toBe(read(fillRef, "light"));
+    // ADR-302 (`ca2be22b3` · `067eaca9e`): the default preset (blue · neutral) installs the Spectrum
+    // ladder seed itself, so the applied accent is the build literal (Spectrum blue-800) — the old
+    // Tailwind tint derivation (#3660f0) is gone.
     const derived = read("{color.accent}", "light");
-    expect(derived).not.toBe(literal);
-    expect(derived).toBe("#3660f0");
+    expect(derived).toBe(literal);
+    expect(derived).toBe("#3b63fb");
     expect(catalogThemesView(workspace.runtime.graph)).toMatchObject({
       active: "catalog:theme:default",
       order: ["catalog:theme:default"],

@@ -57,6 +57,7 @@ import {
 } from "../skia/textDrawOrigin";
 import { viewportState } from "../viewport/viewportState";
 import { DEFAULT_FONT_FEATURES } from "../layout/engines/cssResolver";
+import { useOptionalI18n } from "../../../../i18n";
 
 export interface CatalogTextEditorProps {
   workspace: CatalogWorkspace;
@@ -107,6 +108,7 @@ function TextField({
   item,
   boundsOf,
 }: CatalogTextEditorProps & { item: CatalogSelectionItem }) {
+  const i18n = useOptionalI18n();
   const [start] = useState(() => {
     const record = workspace.root.domInputs.get(item.identity);
     const key = catalogTextKey(record);
@@ -488,7 +490,9 @@ function TextField({
         data-testid="catalog-text-editor"
         {...{ [TEXT_EDIT_SCOPE_ATTR]: "" }}
         role="textbox"
-        aria-label="텍스트 편집기 준비 중"
+        aria-label={
+          i18n ? i18n.t("canvas.textEditorLoading") : "Loading text editor"
+        }
         aria-multiline="true"
         aria-busy="true"
         aria-readonly="true"

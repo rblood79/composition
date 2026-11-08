@@ -13,8 +13,7 @@ import {
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { renderCatalogDom } from "../domBinding";
-import { catalogQuietOwnerPaint } from "../canvasBinding";
-import { cssVarColor } from "../../../../../../packages/shared/src/catalog/runtime/rulePaint";
+import { catalogCanvasNodeData, catalogQuietOwnerPaint } from "../canvasBinding";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
@@ -23,8 +22,10 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 /**
  * RSP `isQuiet` on a Select: its box is not an Input / DateInput part but its trigger Button, which
  * the Select rule styles when quiet (`quiet.true.nested`). The DOM root carries `data-quiet`
- * (before: never — the prop did not reach the Select), and the Canvas draws the same declarations
- * on the trigger: no fill or box border, square corners, an underline. A DateRangePicker takes no
+ * (before: never — the prop did not reach the Select), and the Canvas draws the quiet trigger with
+ * no fill or box border. `71922bd0f` (S2 Picker): the trigger is painted from the Button rule's
+ * picker tree (`pickerNodeData`), not `catalogQuietStyles` (`_pickerTrigger` is excluded there), and
+ * the quiet underline shows only on keyboard focus — none at rest. A DateRangePicker takes no
  * `isQuiet` (S2 has none — 2026-10-07).
  */
 const BODY = "project:node:home-body" as NodeId;
@@ -102,33 +103,28 @@ const rootQuiet = (html: string, className: string) =>
 
 describe("quiet Select · DateRangePicker", () => {
   it("Select: the root carries data-quiet and the Canvas trigger draws the quiet box", async () => {
-    const { box, html, setQuiet } = await place("select");
+    const { box, html, setQuiet, root } = await place("select");
     const paint = () =>
       catalogQuietOwnerPaint(box("Button"), { width: 200, height: 32 });
+    const trigger = () => catalogCanvasNodeData(root, box("Button").id).box!;
+    const alpha = () => Array.from(trigger().fillColor ?? [])[3];
     expect(paint()).toBeUndefined();
+    expect(alpha()).toBe(1);
     expect(html()).not.toMatch(/data-quiet/);
     setQuiet(true);
     expect(rootQuiet(html(), "react-aria-Select")).toBe(true);
     // The trigger leaves the filled Button paint (`.button-base`, a later layer than the field
     // sheet) off while quiet: the Select sheet's quiet box is what shows.
-    const trigger = /<button[^>]*>/.exec(html())![0];
-    expect(trigger).toContain('data-quiet="true"');
-    expect(trigger).not.toContain("button-base");
-    expect(paint()).toEqual({
-      visual: expect.objectContaining({
-        fill: "transparent",
-        borderWidth: 0,
-        radius: 0,
-      }),
-      underline: {
-        y: 31,
-        height: 1,
-        color: cssVarColor("var(--border)", "light"),
-      },
-    });
-    expect(paint()!.visual).not.toHaveProperty("borderColor");
+    const button = /<button[^>]*>/.exec(html())![0];
+    expect(button).toContain('data-quiet="true"');
+    expect(button).not.toContain("button-base");
+    // The Canvas trigger: no fill, no box border, no resting underline (no quiet owner paint).
+    expect(paint()).toBeUndefined();
+    expect(alpha()).toBe(0);
+    expect(trigger().strokeWidth ?? 0).toBe(0);
     setQuiet(false);
     expect(paint()).toBeUndefined();
+    expect(alpha()).toBe(1);
     expect(html()).not.toMatch(/data-quiet/);
   });
 

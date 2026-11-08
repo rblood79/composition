@@ -111,7 +111,8 @@ describe("RAC 주요 기능과 공통 편집을 함께 제공", () => {
   it.each([
     ["Button", "set isPending to true"],
     ["Checkbox", "set isIndeterminate to true"],
-    ["ToggleButton", "set isSelected to false"],
+    // 3ca03f661: ToggleButton 원본은 S2 기본 (선택 안 됨) · 792815efc: Accordion 기본 = S2 (false).
+    ["ToggleButton", "set isSelected to true"],
     ["Select", "set selectionMode to multiple"],
     ["ComboBox", "set allowsCustomValue to false"],
     ["NumberField", "set step to 5"],
@@ -119,7 +120,7 @@ describe("RAC 주요 기능과 공통 편집을 함께 제공", () => {
     ["ListBox", "set selectionMode to multiple"],
     ["Table", "set selectionMode to multiple"],
     ["Disclosure", "set isExpanded to false"],
-    ["Accordion", "set allowsMultipleExpanded to false"],
+    ["Accordion", "set allowsMultipleExpanded to true"],
     ["TimeField", "set hourCycle to 12"],
     ["FileTrigger", "set allowsMultiple to true"],
   ])("%s의 주요 기능이 공통 variant/size에 밀리지 않는다", (type, request) => {

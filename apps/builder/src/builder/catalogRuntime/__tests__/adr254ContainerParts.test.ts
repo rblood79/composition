@@ -225,8 +225,34 @@ const INLINE_ALERT_LINE_HEIGHT: Record<
   L: { heading: 22 / 18, description: 20 / 16 },
 };
 const MARGINS = ["marginTop", "marginRight", "marginBottom", "marginLeft"];
-/** A markup without inline style (the structure — the values are asserted on their own). */
-const structureOf = (markup: string) => markup.replace(/ style=[^>]*>/g, ">");
+/**
+ * ADR-302 (`ca2be22b3` · `067eaca9e`): the theme colors are the Spectrum ladders — the oracle's
+ * Tailwind neutral-900 · neutral-600 are gray-800 · gray-700 now (the same roles).
+ */
+const SPECTRUM_COLOR: Record<string, string> = {
+  "#171717": "#292929",
+  "#525252": "#505050",
+};
+const colorNow = (color: unknown) =>
+  typeof color === "string" ? (SPECTRUM_COLOR[color] ?? color) : color;
+/**
+ * The Description sizes outside a field (`9d68000e6`): its ladder moved up one step to the field
+ * help text (`3ca03f661`), so the Popover · Tooltip description keeps its 12px at size S (was M).
+ * The Dialog description is S2 `body` (16px) on purpose — the oracle's 14px was the old ladder.
+ */
+const DESCRIPTION_SIZE_NOW: Record<string, string> = {
+  popover: "S",
+  tooltip: "S",
+};
+const fontSizeNow = (type: string, binding: string, fontSize: unknown) =>
+  type === "dialog" && binding === "description" ? 16 : fontSize;
+/**
+ * A markup without inline style (the structure — the values are asserted on their own). The style
+ * ends at the next attribute (`normalize` sorts them, unquoted) — not at `>`: a style on the Dialog
+ * root (its `--container-bg`) would take the `tabindex` after it.
+ */
+const structureOf = (markup: string) =>
+  markup.replace(/ style=(?:(?! [\w-]+=)[^>])*/g, "");
 
 /**
  * ADR-254 Phase 2 (G0 · G2): what the conversion keeps and what it changes on purpose.
@@ -267,15 +293,15 @@ function expectSinceConversion(
     const part = now.records[pathNow(path)]!;
     expect(part.binding).toBe(was.binding);
     expect(part.text).toBe(was.text);
-    expect(part.visual.fontSize).toBe(was.visual.fontSize);
-    expect(part.visual.color).toBe(was.visual.color);
+    expect(part.visual.fontSize).toBe(
+      fontSizeNow(type, was.binding, was.visual.fontSize),
+    );
+    expect(part.visual.color).toBe(colorNow(was.visual.color));
     if (type === "inline-alert") {
       const heading = part.binding === "heading";
-      expect(part.size).toBe(
-        heading
-          ? alertSize
-          : ({ S: "M", M: "L", L: "XL" } as Record<string, string>)[alertSize],
-      );
+      // `9d68000e6`: the description is the alert's size (the one-step-up table is gone — the
+      //   Description ladder itself moved up, the font sizes stay 12/14/16).
+      expect(part.size).toBe(alertSize);
       expect(Number(part.visual.fontWeight)).toBe(heading ? 600 : 400);
       expect(part.visual.lineHeight).toBeCloseTo(
         INLINE_ALERT_LINE_HEIGHT[alertSize]![
@@ -297,7 +323,11 @@ function expectSinceConversion(
       });
       continue;
     }
-    expect(part.size).toBe(was.size);
+    expect(part.size).toBe(
+      part.binding === "description"
+        ? (DESCRIPTION_SIZE_NOW[type] ?? was.size)
+        : was.size,
+    );
     expect(part.slot).toBe(
       type === "dialog" && part.binding === "heading" ? "title" : was.slot,
     );
@@ -325,14 +355,15 @@ function expectSinceConversion(
           )
           // ADR-276: a Button's words are its Text{label} child (`span.react-aria-Text`).
           .replace(
-            "slot=close>Close</>",
-            "slot=close><span class=react-aria-Text data-size=M slot=label>Close</></>",
+            /(slot=close[^>]*)>Close<\/>/,
+            "$1><span class=react-aria-Text data-size=M slot=label>Close</></>",
           )
           // ADR-278: the description is the `content` slot's default content — the placed
           // instance's own node (2026-10-14), which carries its DOM id like any owned node.
+          // `3ca03f661`: a Description is S2 HelpText (`span.react-aria-Description`, its variant).
           .replace(
             "<span class=react-aria-Text slot=description>Dialog content goes here.</>",
-            "<span class=react-aria-Text id slot=description>Dialog content goes here.</>",
+            "<span class=react-aria-Description data-variant=default id slot=description>Dialog content goes here.</>",
           )
       : type === "inline-alert"
         ? // ADR-256 Phase 10: S2 `InlineAlert > Heading + Content` — the description sits in a
@@ -342,8 +373,9 @@ function expectSinceConversion(
           // dropped the binding's `role="alert"` · `aria-live`).
           structureOf(before.dom)
             .replace(
-              /(<span class=react-aria-Text slot=description>.*?<\/>)/,
-              "<div class=react-aria-Content data-size=M data-variant=default>$1</>",
+              /<span class=react-aria-Text slot=description>(.*?<\/>)/,
+              // (`3ca03f661`: the Description is S2 HelpText — `span.react-aria-Description`.)
+              "<div class=react-aria-Content data-size=M data-variant=default><span class=react-aria-Description data-variant=default slot=description>$1</>",
             )
             .replace(
               /^<div (class=react-aria-InlineAlert [^>]*) id>/,
@@ -381,7 +413,12 @@ function expectSinceConversion(
     expect(element, `${part.binding}: ${part.text}`).toBeDefined();
     expect(inlineFontPx(element!)).toBe(Number(part.visual.fontSize));
     expect(element).toContain(`font-weight:${Number(part.visual.fontWeight)}`);
-    expect(element).toContain(`color:${part.visual.color}`);
+    // `3ca03f661`: a Description's resting color is its sheet's (`.react-aria-Description` — its
+    //   disabled · invalid states would lose to an inline resting color); an authored color only
+    //   goes inline. The title still inlines its record's color.
+    if (part.binding === "description")
+      expect(element).not.toMatch(/[;=]color:/);
+    else expect(element).toContain(`color:${part.visual.color}`);
   }
 }
 

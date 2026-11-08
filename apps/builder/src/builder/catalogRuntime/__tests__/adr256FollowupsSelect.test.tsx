@@ -15,6 +15,7 @@ import {
   insertNodes,
   setHtmlId,
 } from "../../../../../../packages/shared/src/catalog/commands";
+import { pickerSelectedCount } from "../../../../../../packages/shared/src/i18n/pickerSelectedCount";
 import { renderCatalogDom } from "../domBinding";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
@@ -108,7 +109,7 @@ async function mounted(selectionMode?: string) {
 }
 
 describe("ADR-256 후속 3 — a Select's selectionMode reaches RAC", () => {
-  it("multiple: two options stay selected and the trigger lists both", async () => {
+  it("multiple: two options stay selected and the trigger shows S2's selected count", async () => {
     const view = await mounted("multiple");
     await view.press();
     await view.choose(0);
@@ -118,11 +119,11 @@ describe("ADR-256 후속 3 — a Select's selectionMode reaches RAC", () => {
       .options()
       .map((option) => option.hasAttribute("data-selected"));
     expect(selected.slice(0, 2)).toEqual([true, true]);
-    const labels = view
-      .options()
-      .slice(0, 2)
-      .map((option) => option.textContent ?? "");
-    for (const label of labels) expect(view.value()).toContain(label);
+    // 71922bd0f (S2 Picker): two or more selections show the count, not RAC's list of the items.
+    expect(view.value()).toBe(pickerSelectedCount(2));
+    expect(
+      view.valueElement()?.querySelector("[data-picker-selected-count]"),
+    ).not.toBeNull();
     await view.unmount();
   });
 

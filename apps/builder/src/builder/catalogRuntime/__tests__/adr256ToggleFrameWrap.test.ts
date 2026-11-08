@@ -201,7 +201,18 @@ describe("ADR-256 Phase 3 review m2 — a frame around a toggle's text", () => {
     const { html, wrap } = await open(
       [
         node("group", "CheckboxGroup", ["group-items", "group-label"]),
-        node("group-label", "Label", [], { children: "Toppings" }),
+        // (3ca03f661 · db5351e4c: a field's Label is composed from a real Text child —
+        // `Text slot="label-content"`; the Label's own text is the field label it reads.)
+        node("group-label", "Label", ["group-label-content"], {
+          children: "Toppings",
+        }),
+        {
+          ...node("group-label-content", "Text", [], {
+            slot: "label-content",
+            children: "Toppings",
+          }),
+          definitionId: "lib:definition:text",
+        } as NodeEntry,
         node("group-items", "CheckboxItems", ["box"]),
         ...toggle("Checkbox", "CheckboxButton", "CheckboxIndicator"),
       ],

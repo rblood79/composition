@@ -272,7 +272,9 @@ describe("ADR-248 G5 leaf edit scope on a large page", () => {
     expect(scene.stream.boundsMap).toEqual(fresh.stream.boundsMap);
     fresh.dispose();
     scene.dispose();
-  });
+    // (5k-sibling fixture + two fresh scene builds: ~4s alone — over the 5s default when the unit
+    // project runs in parallel. The assertions are counts, not time.)
+  }, 20_000);
   it("re-wraps and re-reads only the edited box among 300 absolutely placed leaves", async () => {
     const { measure, calls } = countingMeasure();
     const { engine, reads } = countingEngine(await nodeLayoutEngine());

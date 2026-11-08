@@ -337,10 +337,22 @@ export function catalogToggleButtonGlyphOwner(
   ) {
     return catalogPartParent(parent, get, typeOf);
   }
-  return parent &&
-    ["ToggleButton", "ActionButton", "SegmentedControlItem"].includes(
-      typeOf(parent),
-    )
+  if (!parent) return undefined;
+  // (A Button an owner disables — its ButtonGroup, its field — paints its Text · Icon with its state
+  //  paint, S2 content being `currentColor`: gray on both consumers, 2026-11-09. Buttons that are
+  //  another component's part (a Disclosure trigger, a Tag's remove, a Tree chevron) keep their
+  //  owner's glyph color.)
+  if (typeOf(parent) === "Button") {
+    // (A Select's trigger value · glyph are the picker parts' — `_pickerIcon` · `_pickerValue`.)
+    const field = catalogFieldButtonOwner(parent, get, typeOf);
+    return catalogButtonGroupOf(parent, get, typeOf) ||
+      (field && typeOf(field) !== "Select")
+      ? parent
+      : undefined;
+  }
+  return ["ToggleButton", "ActionButton", "SegmentedControlItem"].includes(
+    typeOf(parent),
+  )
     ? parent
     : undefined;
 }
@@ -2241,6 +2253,13 @@ export function catalogDerivedProps(
   const buttoned = {
     ...stuck,
     ...(fieldButton ? { fieldButton } : {}),
+    // (A disabled field disables its own buttons — RAC's field context; S2 paints them with the
+    //  disabled color, `NumberField` stepButton · Picker · ComboBox button. The Canvas paint reads
+    //  the same state the DOM gets from RAC's `data-disabled`.)
+    ...(fieldButton &&
+    catalogFieldButtonOwner(node, get, typeOf)?.props.isDisabled === true
+      ? { isDisabled: true }
+      : {}),
     ...pickerPart,
     ...(selectionItem
       ? {
@@ -2319,10 +2338,19 @@ export function catalogFieldButtonSize(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): string | undefined {
+  if (!catalogFieldButtonOwner(node, get, typeOf)) return undefined;
+  return typeof node.props.size === "string" ? node.props.size : "M";
+}
+
+/** The field a field button (`catalogFieldButtonSize`) belongs to. */
+function catalogFieldButtonOwner(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
   if (typeOf(node) !== "Button") return undefined;
   const owner = triggerOwner(node, get, typeOf);
-  if (!owner || !FIELD_BUTTON_OWNERS.has(typeOf(owner))) return undefined;
-  return typeof node.props.size === "string" ? node.props.size : "M";
+  return owner && FIELD_BUTTON_OWNERS.has(typeOf(owner)) ? owner : undefined;
 }
 
 /**
@@ -3136,7 +3164,7 @@ export function catalogDerivedPropsDependents(
             ),
           )
         : []),
-      ...(["ToggleButton", "ActionButton"].includes(typeOf(item))
+      ...(["ToggleButton", "ActionButton", "Button"].includes(typeOf(item))
         ? partChildrenOf(item, get, typeOf).filter(
             (glyph) =>
               catalogToggleButtonGlyphOwner(glyph, get, typeOf)?.id === item.id,

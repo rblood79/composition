@@ -244,6 +244,18 @@ async function collectionDrop(h: Harness, event: string) {
   });
 }
 
+/**
+ * The month's own selectable days other than today. The grid's last cells are the next month's
+ * days when the month ends mid-week (RAC `data-outside-month` — disabled, a click does nothing),
+ * and today is the focused date already (pressing it changes no focus) — so the rows stay
+ * independent of the date they run on.
+ */
+const dayCells = (h: Harness) =>
+  qa(
+    h,
+    "[role=gridcell] [role=button]:not([data-outside-month]):not([data-disabled]):not([data-today])",
+  );
+
 /** The owned node a record draws (`<path>::<node>` — an instance's own item). */
 const nodeOf = (element: Element | null | undefined) =>
   element!.getAttribute("data-catalog-id")!.split("::").at(-1) as NodeId;
@@ -268,6 +280,15 @@ const ROWS: Row[] = [
     event: "onPress",
     act: (h, u) => press(u, root(h)),
   },
+  // (8586c64bd · 8ac17dc12 — S2 ActionButton · LinkButton.)
+  ...(["ActionButton", "LinkButton"] as const).map(
+    (palette): Row => ({
+      palette,
+      type: palette,
+      event: "onPress",
+      act: (h, u) => press(u, root(h)),
+    }),
+  ),
   {
     palette: "ToggleButton",
     type: "ToggleButton",
@@ -366,6 +387,34 @@ const ROWS: Row[] = [
     event: "onSelectionChange",
     act: (h, u) => press(u, qa(h, "button").at(-1)),
   },
+  // (8ac17dc12 — S2 SegmentedControl · SelectBoxGroup: the first item starts selected, the last
+  // one changes the selection.)
+  {
+    palette: "SegmentedControl",
+    type: "SegmentedControl",
+    event: "onSelectionChange",
+    act: (h, u) => press(u, qa(h, "button").at(-1)),
+  },
+  {
+    palette: "SegmentedControl",
+    type: "SegmentedControlItem",
+    event: "onPress",
+    ownerNode: (h) => nodeOf(qa(h, "button").at(-1)),
+    act: (h, u) => press(u, qa(h, "button").at(-1)),
+  },
+  {
+    palette: "SelectBoxGroup",
+    type: "SelectBoxGroup",
+    event: "onSelectionChange",
+    act: (h, u) => press(u, qa(h, "[role=option]").at(-1)),
+  },
+  {
+    palette: "ActionBar",
+    type: "ActionBar",
+    event: "onClearSelection",
+    declare: { selectedItemCount: 2 },
+    act: (h, u) => press(u, q(h, '[slot="clear"]')),
+  },
   {
     palette: "RadioGroup",
     type: "RadioGroup",
@@ -414,7 +463,7 @@ const ROWS: Row[] = [
     },
   },
   // ── sliders · color controls (a thumb's arrow key — move start · move · end) ──
-  ...(["Slider", "ColorArea", "ColorSlider", "ColorWheel"] as const).flatMap(
+  ...(["Slider", "RangeSlider", "ColorArea", "ColorSlider", "ColorWheel"] as const).flatMap(
     (palette): Row[] =>
       (["onChange", "onChangeEnd"] as const).map((event) => ({
         palette,
@@ -680,20 +729,20 @@ const ROWS: Row[] = [
     palette: "Calendar",
     type: "Calendar",
     event: "onChange",
-    act: (h, u) => press(u, qa(h, "[role=gridcell] [role=button]").at(-1)),
+    act: (h, u) => press(u, dayCells(h).at(-1)),
   },
   {
     palette: "Calendar",
     type: "Calendar",
     event: "onFocusChange",
-    act: (h, u) => press(u, qa(h, "[role=gridcell] [role=button]").at(-1)),
+    act: (h, u) => press(u, dayCells(h).at(-1)),
   },
   {
     palette: "RangeCalendar",
     type: "RangeCalendar",
     event: "onChange",
     act: async (h, u) => {
-      const cells = qa(h, "[role=gridcell] [role=button]");
+      const cells = dayCells(h);
       await press(u, cells.at(-2));
       await press(u, cells.at(-1));
     },
@@ -702,7 +751,7 @@ const ROWS: Row[] = [
     palette: "RangeCalendar",
     type: "RangeCalendar",
     event: "onFocusChange",
-    act: (h, u) => press(u, qa(h, "[role=gridcell] [role=button]").at(-1)),
+    act: (h, u) => press(u, dayCells(h).at(-1)),
   },
   // ── form ──
   {
@@ -812,6 +861,11 @@ const POINTER_TARGET: Readonly<Record<string, string>> = {
   Button: "button",
   Link: "a",
   ToggleButton: "button",
+  ActionButton: "button",
+  LinkButton: "a",
+  // (Drawn inside its palette SegmentedControl — `HIDDEN_HOST` — the first item.)
+  SegmentedControlItem: "button",
+  SelectBoxGroup: "[role=option]",
   DropZone: "[data-catalog-id$='dropzone-0']",
   Checkbox: "input[type=checkbox]",
   Switch: "input[type=checkbox]",
@@ -848,7 +902,24 @@ async function pointerAct(h: Harness, u: User, type: string, event: string) {
  * Rows jsdom cannot run — the same RAC component rendered alone calls none either (probe, RAC
  * 1.22.1 + user-event): an `<a>`'s press ends without `onPressUp` in jsdom.
  */
-const JSDOM_UNOBSERVABLE: ReadonlySet<string> = new Set(["Link.onPressUp"]);
+const JSDOM_UNOBSERVABLE: ReadonlySet<string> = new Set([
+  "Link.onPressUp",
+  // (8ac17dc12 — LinkButton is the same RAC `Link` — an `<a>`.)
+  "LinkButton.onPressUp",
+]);
+
+/**
+ * Types that cannot stand alone on the page (`assertNestable` — an item needs its group): the
+ * hidden rows place the group's palette entry and own the rule on the first item.
+ */
+const HIDDEN_HOST: Readonly<
+  Record<string, { palette: string; ownerNode: (h: Harness) => NodeId }>
+> = {
+  SegmentedControlItem: {
+    palette: "SegmentedControl",
+    ownerNode: (h) => nodeOf(q(h, "button")),
+  },
+};
 
 /** The hidden events the toggle offers (every group but keyboard — Q3), one row each. */
 const HIDDEN_ROWS: Row[] = Object.entries(CAPABILITY_REGISTRY).flatMap(
@@ -860,9 +931,10 @@ const HIDDEN_ROWS: Row[] = Object.entries(CAPABILITY_REGISTRY).flatMap(
           .filter((event) => !JSDOM_UNOBSERVABLE.has(`${type}.${event}`))
           .map(
           (event): Row => ({
-            palette: type,
+            palette: HIDDEN_HOST[type]?.palette ?? type,
             type,
             event,
+            ownerNode: HIDDEN_HOST[type]?.ownerNode,
             act: (h, u) => pointerAct(h, u, type, event),
           }),
         ),
@@ -910,7 +982,7 @@ describe("RAC event audit — every offered When runs its rule in the Preview", 
     async (_name, row) => {
       vi.spyOn(console, "warn").mockImplementation(() => {});
       const h = await openAdr280Preview([row.palette]);
-      const owner = h.ids[0] as NodeId;
+      const owner = row.ownerNode ? row.ownerNode(h) : (h.ids[0] as NodeId);
       const message = `${row.type}.${row.event}`;
       h.rule(owner, row.event, { opcode: "toast", message });
       await row.act(h, userEvent.setup());
@@ -1078,11 +1150,20 @@ describe("RAC event audit — the added Do capabilities reach RAC", () => {
 
   it("Accordion collapseItem closes that Disclosure only", async () => {
     // (An Accordion's expansion keys are its Disclosures' records — the runtime's own key.)
-    const h = await doRule("Accordion", "collapseItem", (harness) =>
-      qa(harness, "[data-catalog-id]")
-        .find((el) => el.querySelector(":scope > h3 button[slot=trigger]"))!
-        .getAttribute("data-catalog-id")!,
+    // (S2 Accordion defaults to single expansion since 792815efc — both sections start open only
+    // when the group allows multiple, which is what 「that Disclosure only」 needs.)
+    const h = await doRule(
+      "Accordion",
+      "collapseItem",
+      (harness) =>
+        qa(harness, "[data-catalog-id]")
+          .find((el) => el.querySelector(":scope > h3 button[slot=trigger]"))!
+          .getAttribute("data-catalog-id")!,
+      { allowsMultipleExpanded: true },
     );
+    expect(
+      qa(h, "button[slot=trigger]").map((button) => button.getAttribute("aria-expanded")),
+    ).toEqual(["true", "true"]);
     await h.press();
     expect(
       qa(h, "button[slot=trigger]").map((button) => button.getAttribute("aria-expanded")),

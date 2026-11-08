@@ -1,4 +1,4 @@
-import { act, fireEvent } from "@testing-library/react";
+import { act, fireEvent, waitFor } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { NodeId } from "../../../../../../packages/shared/src/catalog/document/types";
 import { loadCatalogSideNav } from "../../../../../../packages/shared/src/catalog/runtime/sideNav.lazy";
@@ -30,7 +30,7 @@ async function pressRule(
   type: string,
   capabilityId: string,
   options: {
-    value?: string | number | readonly string[];
+    value?: string | number | readonly string[] | { start: number; end: number };
     declare?: Record<string, unknown>;
     pickValue?: (harness: Harness) => string;
   } = {},
@@ -404,6 +404,86 @@ describe("ADR-280 G2 — date · time", () => {
     const h = await pressRule("DatePicker", "open");
     h.press();
     expect(inDocument('[role="dialog"], [role="grid"]')).toBe(true);
+    h.view.unmount();
+  });
+});
+
+describe("ADR-280 G2 — S2 independent components (8ac17dc12)", () => {
+  it("RangeSlider setValue moves both thumbs", async () => {
+    const h = await pressRule("RangeSlider", "setValue", {
+      value: { start: 15, end: 85 },
+    });
+    const thumbs = () =>
+      qa(h, "input[type=range]").map(
+        (input) => (input as HTMLInputElement).value,
+      );
+    expect(thumbs()).not.toEqual(["15", "85"]);
+    h.press();
+    await waitFor(() => expect(thumbs()).toEqual(["15", "85"]));
+    expect(warnings()).toEqual([]);
+    h.view.unmount();
+  });
+
+  it("SegmentedControl selectItem checks that segment", async () => {
+    // (The palette SegmentedControl's items are `first` · `second`; the first starts selected.)
+    const h = await pressRule("SegmentedControl", "selectItem", {
+      value: "second",
+    });
+    const checked = () =>
+      qa(h, `[data-catalog-id$="::${h.target}"] button`).map((button) =>
+        button.getAttribute("aria-checked"),
+      );
+    expect(checked()).toEqual(["true", "false"]);
+    h.press();
+    await waitFor(() => expect(checked()).toEqual(["false", "true"]));
+    expect(warnings()).toEqual([]);
+    h.view.unmount();
+  });
+
+  it("SelectBoxGroup selectItem · clearSelection", async () => {
+    const h = await pressRule("SelectBoxGroup", "selectItem", {
+      declare: { selectionMode: "multiple" },
+      pickValue: (harness) =>
+        qa(harness, '[role="option"]').at(-1)!.getAttribute("data-key")!,
+    });
+    const selected = () =>
+      qa(h, '[role="option"]').map((option) =>
+        option.getAttribute("aria-selected"),
+      );
+    expect(selected().at(-1)).toBe("false");
+    h.press();
+    await waitFor(() => expect(selected().at(-1)).toBe("true"));
+    h.rule(h.ids[1] as NodeId, "onPress", {
+      opcode: "capability",
+      target: { nodeId: h.target },
+      capabilityId: "clearSelection",
+    } as Action);
+    h.press();
+    await waitFor(() =>
+      expect(selected().every((value) => value === "false")).toBe(true),
+    );
+    expect(warnings()).toEqual([]);
+    h.view.unmount();
+  });
+
+  it("ActionBar setValue · clearSelection", async () => {
+    const h = await pressRule("ActionBar", "setValue", {
+      value: 12,
+      declare: { selectedItemCount: 2 },
+    });
+    expect(h.element(h.target)!.textContent).toContain("2 selected");
+    h.press();
+    await waitFor(() =>
+      expect(h.element(h.target)!.textContent).toContain("12 selected"),
+    );
+    h.rule(h.ids[1] as NodeId, "onPress", {
+      opcode: "capability",
+      target: { nodeId: h.target },
+      capabilityId: "clearSelection",
+    } as Action);
+    h.press();
+    await waitFor(() => expect(h.element(h.target)).toBeNull());
+    expect(warnings()).toEqual([]);
     h.view.unmount();
   });
 });

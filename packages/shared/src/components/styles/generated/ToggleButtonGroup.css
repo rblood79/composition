@@ -172,11 +172,11 @@
 }
 
 
-  .react-aria-ToggleButtonGroup &[data-indicator="true"] .react-aria-ToggleButton {
+  .react-aria-ToggleButtonGroup[data-indicator="true"] .react-aria-ToggleButton {
     will-change: auto;
   }
 
-  .react-aria-ToggleButtonGroup &[data-indicator="true"] .react-aria-ToggleButton[data-pressed] {
+  .react-aria-ToggleButtonGroup[data-indicator="true"] .react-aria-ToggleButton[data-pressed] {
     transform: none;
   }
 
@@ -190,7 +190,7 @@
     will-change: transform;
   }
 
-  .react-aria-ToggleButtonGroup &[data-indicator="true"] .react-aria-ToggleButton[data-pressed] > span {
+  .react-aria-ToggleButtonGroup[data-indicator="true"] .react-aria-ToggleButton[data-pressed] > span {
     transform: perspective(max(var(--catalog-press-height, 0px), calc(var(--catalog-press-width, 0px) / 3), 24px)) translate3d(0, 0, -2px);
   }
 

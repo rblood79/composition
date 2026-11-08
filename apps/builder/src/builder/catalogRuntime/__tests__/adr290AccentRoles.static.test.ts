@@ -23,41 +23,25 @@ const ACCENT_REF =
  * `경로 → 토큰` — breakdown §5 역할 분류표 (2026-10-30). ADR-297 Phase 2 (2026-11-01): 경로는 variant 칠 조건 트리
  * (`paint.<속성>.<조건…>`) — 옛 `fill.default.hover` · `colors.outlineText` 경로를 기계로 옮겼고 rule · variant
  * 별 (토큰 · 역할) 묶음은 옛 표와 같다 (48 = 48).
+ *
+ * 2026-11-09 — 표에서 빠진 참조 (accent 두 역할 밖의 S2 토큰으로 옮겨 갔다):
+ * - Button accent · ToggleButton 선택 emphasized 의 채움 = `{color.accent-fill}` (`3ca03f661` S2 1.8.2 Button ·
+ *   ActionButton.btnStyles — ToggleButton 은 테두리 없음).
+ * - Checkbox · Radio · Switch emphasized 의 선택 = `{color.selection-accent}` (`3ca03f661` · `ca2be22b3` S2 accent-900).
+ * - Badge accent 의 hover · pressed 가지 삭제 · subtle · outline 글자 = `{color.gray-1000}` (`4f71aa245` S2 Badge).
+ * - Input accent 의 hover 테두리 = 공용 `FIELD_INPUT_BORDER` (`3ca03f661` S2 FieldGroup).
  */
 const CLASSIFICATION: Record<string, string> = {
   // 배경 역할 — 위에 on-accent 글자 · 아이콘
   "Badge.variants.accent.paint.backgroundColor.default": "accent",
-  "Badge.variants.accent.paint.backgroundColor.isHovered": "accent",
-  "Badge.variants.accent.paint.backgroundColor.isPressed": "accent",
-  "Button.variants.accent.paint.backgroundColor.default": "accent",
-  "Button.variants.accent.paint.backgroundColor.isHovered": "accent-hover",
-  // (ADR-297 3h #5: S2 pressed = the hover stop, and the fill border is the fill)
-  "Button.variants.accent.paint.backgroundColor.isPressed": "accent-hover",
-  "Button.variants.accent.paint.borderColor.default": "accent",
-  "Button.variants.accent.paint.borderColor.isHovered": "accent-hover",
-  "Button.variants.accent.paint.borderColor.isPressed": "accent-hover",
-  "Checkbox.variants.emphasized.paint.backgroundColor.isSelected.default":
-    "accent",
-  "Checkbox.variants.emphasized.paint.borderColor.isSelected.default": "accent",
   "ListBoxItem.variants.default.paint.backgroundColor.isSelected.default":
-    "accent",
-  "Radio.variants.emphasized.paint.backgroundColor.isSelected.default":
-    "accent",
-  "Radio.variants.emphasized.paint.borderColor.isSelected.default": "accent",
-  "Switch.variants.emphasized.paint.backgroundColor.isSelected.default":
     "accent",
   "Row.variants.default.paint.backgroundColor.isSelected.default": "accent",
   // (ADR-297 Phase 3d: the emphasized selection is the default tree's `isSelected.isEmphasized` branch)
   "Tag.variants.default.paint.backgroundColor.isSelected.isEmphasized":
     "accent",
   "Tag.variants.default.paint.borderColor.isSelected.isEmphasized": "accent",
-  "ToggleButton.variants.default.paint.backgroundColor.isSelected.isEmphasized":
-    "accent",
-  "ToggleButton.variants.default.paint.borderColor.isSelected.isEmphasized":
-    "accent",
   // 바탕 위 역할 — 글자 · 선 · track 위 채움
-  "Badge.variants.accent.paint.color.fillStyle.outline": "accent-content",
-  "Badge.variants.accent.paint.color.fillStyle.subtle": "accent-content",
   "Badge.variants.accent.paint.borderColor.fillStyle.outline": "accent-content",
   // (ADR-297 3h #2: an accent outline Button's text is S2 `baseColor('neutral')` — no accent-content)
   "Card.variants.primary.paint.borderColor.isSelected.default":
@@ -75,7 +59,6 @@ const CLASSIFICATION: Record<string, string> = {
   "DropZone.variants.default.paint.borderColor.isHovered": "accent-content",
   "Group.variants.accent.paint.color.default": "accent-content",
   "Input.variants.accent.paint.borderColor.default": "accent-content",
-  "Input.variants.accent.paint.borderColor.isHovered": "accent-content-hover",
   "Link.variants.primary.paint.color.default": "accent-content",
   "Link.variants.primary.paint.color.isHovered": "accent-content-hover",
   "Link.variants.secondary.paint.color.isHovered": "accent-content",

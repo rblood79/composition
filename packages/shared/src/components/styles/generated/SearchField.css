@@ -128,27 +128,27 @@
 }
 
 .react-aria-SearchField[data-size="XS"] {
-  --sf-input-pad: calc(var(--catalog-token-size-height-XS) * 1 / 2 + calc(var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height)) * 1 / 1 + var(--catalog-token-text-2xs) * (4 / 14 + (6 / 17 - 4 / 14) * var(--catalog-token-size-device-touch)));
+  --sf-input-pad: calc(var(--catalog-token-size-height-XS) * 1 / 2 + calc(var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height)) * 1 / 1 + var(--catalog-token-text-2xs) * (4 / 14 + (39 / 119 - 4 / 14) * var(--catalog-token-size-device-touch)));
   --sf-input-pad-end: calc(var(--catalog-token-size-height-XS) * 1 / 1);
 }
 
 .react-aria-SearchField[data-size="S"] {
-  --sf-input-pad: calc(var(--catalog-token-size-height-S) * 1 / 2 + calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)) * 1 / 1 + var(--catalog-token-text-xs) * (4 / 14 + (6 / 17 - 4 / 14) * var(--catalog-token-size-device-touch)));
+  --sf-input-pad: calc(var(--catalog-token-size-height-S) * 1 / 2 + calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)) * 1 / 1 + var(--catalog-token-text-xs) * (4 / 14 + (39 / 119 - 4 / 14) * var(--catalog-token-size-device-touch)));
   --sf-input-pad-end: calc(var(--catalog-token-size-height-S) * 1 / 1);
 }
 
 .react-aria-SearchField[data-size="M"] {
-  --sf-input-pad: calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * 1 / 1 + var(--catalog-token-text-sm) * (4 / 14 + (6 / 17 - 4 / 14) * var(--catalog-token-size-device-touch)));
+  --sf-input-pad: calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * 1 / 1 + var(--catalog-token-text-sm) * (4 / 14 + (39 / 119 - 4 / 14) * var(--catalog-token-size-device-touch)));
   --sf-input-pad-end: calc(var(--catalog-token-size-height-M) * 1 / 1);
 }
 
 .react-aria-SearchField[data-size="L"] {
-  --sf-input-pad: calc(var(--catalog-token-size-height-L) * 1 / 2 + calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)) * 1 / 1 + var(--catalog-token-text-base) * (4 / 14 + (6 / 17 - 4 / 14) * var(--catalog-token-size-device-touch)));
+  --sf-input-pad: calc(var(--catalog-token-size-height-L) * 1 / 2 + calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)) * 1 / 1 + var(--catalog-token-text-base) * (4 / 14 + (39 / 119 - 4 / 14) * var(--catalog-token-size-device-touch)));
   --sf-input-pad-end: calc(var(--catalog-token-size-height-L) * 1 / 1);
 }
 
 .react-aria-SearchField[data-size="XL"] {
-  --sf-input-pad: calc(var(--catalog-token-size-height-XL) * 1 / 2 + calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * 1 / 1 + var(--catalog-token-text-lg) * (4 / 14 + (6 / 17 - 4 / 14) * var(--catalog-token-size-device-touch)));
+  --sf-input-pad: calc(var(--catalog-token-size-height-XL) * 1 / 2 + calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * 1 / 1 + var(--catalog-token-text-lg) * (4 / 14 + (39 / 119 - 4 / 14) * var(--catalog-token-size-device-touch)));
   --sf-input-pad-end: calc(var(--catalog-token-size-height-XL) * 1 / 1);
 }
 

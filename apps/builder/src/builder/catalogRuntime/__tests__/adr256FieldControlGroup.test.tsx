@@ -115,9 +115,15 @@ describe("ADR-256 Phase 6b — a field's control box is a RAC Group node", () =>
       );
     });
     const disabled = fresh();
-    // (The disabled field fades once: its stepper drops its rest paint — the state differs.)
-    expect(disabled).not.toBe(enabled);
+    // (2026-11-09: the disabled stepper's paint is the sheet's `[data-disabled]` block — no paint
+    //  inline in either state, so the mounted element follows by its state attribute.)
+    expect(disabled).toBe(enabled);
     expect(styleIn(view.container)).toBe(disabled);
+    expect(
+      view.container
+        .querySelector(`[data-catalog-id="${CSS.escape(stepper)}"]`)!
+        .getAttribute("data-disabled"),
+    ).toBe("true");
   });
 
   it("a DateRangePicker's Group paints the box on the Canvas: the range picker binds, fill · border · the size's radius", async () => {

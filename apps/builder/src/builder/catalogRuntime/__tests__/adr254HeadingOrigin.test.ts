@@ -46,6 +46,8 @@ const PROPS_BEFORE = [
   "size",
   // S2 `level` (2026-10-09 — added after the origin).
   "level",
+  // RAC `slot` (2026-11-07 `792815efc` — the slot edit contract, editContract.ts catalogSemanticContracts).
+  "slot",
   "fontSize",
   "lineHeight",
   "color",
@@ -136,6 +138,12 @@ describe("ADR-254 Phase 1 — the Heading origin", () => {
       max: 6,
       min: 1,
       name: "level",
+      origin: "semantic",
+    } as never);
+    // (Plus RAC `slot`, 2026-11-07 `792815efc` — the slot edit contract, after `level`.)
+    props.splice(props.findIndex((prop) => prop.name === "level") + 1, 0, {
+      kind: "string",
+      name: "slot",
       origin: "semantic",
     } as never);
     // (Plus the grid tracks, 2026-10-15 — the Layout section edits Columns · Rows, after `columnGap`;

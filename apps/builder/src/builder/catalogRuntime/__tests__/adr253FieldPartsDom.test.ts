@@ -3,6 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
+import { resolveToken } from "@composition/rendering";
 import { describe, expect, it } from "vitest";
 import { renderCatalogDom } from "../domBinding";
 import { cssVarColor } from "../../../../../../packages/shared/src/catalog/runtime/rulePaint";
@@ -405,10 +406,17 @@ const comboBoxGroupMarkup = (markup: string, quiet: boolean) => {
  * root mark `data-selection-mode` (no sheet reads it; RAC's Select has none) is gone.
  */
 const selectNodeTreeMarkup = (markup: string) =>
-  markup.replace(
-    /(<div class=react-aria-Select[^>]*) data-selection-mode=single/,
-    "$1",
-  );
+  markup
+    .replace(
+      /(<div class=react-aria-Select[^>]*) data-selection-mode=single/,
+      "$1",
+    )
+    // (3ca03f661: the trigger Button marks itself a picker's — `data-picker`, the Button rule's
+    //  `isPicker` paint branch; attributes stay sorted.)
+    .replace(
+      /(<button [^>]*aria-haspopup=listbox[^>]*?)( data-(?:pressed|quiet|rac)=)/,
+      "$1 data-picker=true$2",
+    );
 /**
  * ADR-256 Phase 6e: a DatePicker · DateRangePicker draws its node tree in RAC's picker — the shared
  * component's root mark `data-necessity-indicator` (the Form's mark — no field sheet reads it; no
@@ -493,6 +501,52 @@ const sliderNodeTreeMarkup = (markup: string, name: string) => {
     : tree;
 };
 /**
+ * db5351e4c (2026-11-07, S2 Label inline layout — S2 `FieldLabel`): a field's Label holds its
+ * words and necessity mark as inline part nodes — `Text[slot=label-content]`, then (when shown)
+ * `Text[slot=necessity-space]` (the NBSP) and `Icon[slot=necessity-icon]` (S2 asterisk) or
+ * `Text[slot=necessity-label]` — where the shared Label wrote its text and a
+ * `span.necessity-indicator`. Applied to the fixture. The Text parts keep the template's own size
+ * mark (`M`); their font is the Label's (inline, from the field's size). A field that names its
+ * mark (S2 `includeNecessityIndicatorInAccessibilityName` — CheckboxGroup · Picker) gives the
+ * asterisk an `img` role labelled 「(required)」 and does not hide the label words. A Meter ·
+ * ProgressBar · TagGroup Label (no necessity) keeps its plain text.
+ */
+const NECESSITY_NAMED_TYPES = ["checkboxgroup", "select"];
+const PLAIN_LABEL_TYPES = ["meter", "progressbar", "taggroup"];
+const labelInlineMarkup = (markup: string, type: string) => {
+  if (PLAIN_LABEL_TYPES.includes(type)) return markup;
+  const named = NECESSITY_NAMED_TYPES.includes(type);
+  const text = (slot: string, content: string, hidden = false) =>
+    `<span ${hidden ? "aria-hidden=true " : ""}class=react-aria-Text data-size=M slot=${slot}>${content}</>`;
+  return markup.replace(
+    /(<(?:label class=react-aria-Label for id|span class=react-aria-Label id)>)([^<]*)(?:<span ((?:aria-hidden=true )?)class=necessity-indicator (icon|label)>([^<]*)<\/>)?<\/>/g,
+    (
+      _match,
+      open: string,
+      words: string,
+      hidden = "",
+      kind = "",
+      mark = "",
+    ) => {
+      const necessity = !kind
+        ? ""
+        : text("necessity-space", "\u00a0") +
+          (kind === "icon"
+            ? named
+              ? "<span aria-hidden=false aria-label=(required) class=react-aria-Icon data-icon=s2-asterisk role=img slot=necessity-icon></>"
+              : "<span aria-hidden=true class=react-aria-Icon data-icon=s2-asterisk slot=necessity-icon></>"
+            : text("necessity-label", mark, !named && hidden !== ""));
+      return `${open}${text("label-content", words)}${necessity}</>`;
+    },
+  );
+};
+/** The S2 asterisk's svg (its glyph is the Icon's `data-icon`; its size is the Canvas ↔ DOM check's). */
+const withoutNecessityGlyph = (markup: string) =>
+  markup.replace(
+    /(slot=necessity-icon>)<svg [^>]*>(?:<path [^>]*><\/>)*<\/>/g,
+    "$1",
+  );
+/**
  * A Select's hidden native select lists the items of its ListBox node (ADR-253 Phase 4 — before,
  * the Preview's Select had no options at all): they are asserted on their own.
  */
@@ -500,7 +554,11 @@ const ITEM_OPTION = /<option value=[^ >]+>([^<]*)<\/>/g;
 const withoutGlyphs = (structure: string) =>
   structure
     .replace(/<svg [^>]*>(?:<(?:path|circle) [^>]*><\/>)*<\/>/g, "")
-    .replace(/<div class=react-aria-Icon(?: data-icon=[\w-]+)?><\/>/g, "")
+    // (A field Button's Icon node carries the Button template's `slot=icon` — S2 IconContext.)
+    .replace(
+      /<div class=react-aria-Icon(?: data-icon=[\w-]+)?(?: slot=icon)?><\/>/g,
+      "",
+    )
     // (A SearchField's leading glyph: the component's own wrapper before, the Icon node now.)
     .replace(/<span aria-hidden=true class=search-icon><\/>/g, "")
     // (A Select's trigger glyph: the component's own chevron wrapper before, the Icon node now.)
@@ -764,7 +822,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
               ? ownedGroupItems
               : (text: string) => text;
           // S2 HelpText parts now carry their own generated catalog sheet/state.
-          const hints = expected
+          const hints = labelInlineMarkup(expected, type)
             .replaceAll(
               "class=react-aria-Text id slot=description",
               "class=react-aria-Description data-variant=default id slot=description",
@@ -773,7 +831,9 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
               "class=react-aria-FieldError data-rac= id slot=errorMessage",
               "class=react-aria-FieldError data-rac= data-variant=default id slot=errorMessage",
             );
-          expect(owned(glyphless(structure))).toBe(owned(glyphless(hints)));
+          expect(owned(glyphless(withoutNecessityGlyph(structure)))).toBe(
+            owned(glyphless(hints)),
+          );
           return;
         }
         // The hint the Preview left out before: the part node's element, described to the control.
@@ -1266,13 +1326,27 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(
         stepperElements().map((button) => button.hasAttribute("disabled")),
       ).toEqual([true, true]);
-      // A disabled field fades once, at its root (as the Canvas draws it): its steppers keep
-      // their rest paint and do not fade again.
+      // (2026-11-09) A disabled field's steppers are disabled buttons: S2 NumberField paints them
+      // with the disabled color. The DOM leaves the paint to the sheet's `[data-disabled]` block
+      // (no rest paint inline — RAC's context props are not authored); the Canvas reads the same
+      // state (`isDisabled` derived from the field) and the glyph takes its button's color.
       for (const button of stepperElements()) {
-        expect(button.getAttribute("style")).toMatch(
-          /background-color:\s*#fafafa/,
+        expect(button.getAttribute("data-disabled")).toBe("true");
+        expect(button.getAttribute("style") ?? "").not.toMatch(
+          /background-color|(^|;)color:|opacity/,
         );
-        expect(button.getAttribute("style")).toMatch(/opacity:\s*1(;|$)/);
+        expect(
+          button.querySelector(".react-aria-Icon")!.getAttribute("style"),
+        ).toMatch(/(^|;)color:\s*inherit/);
+      }
+      for (const stepper of parts().slice(1)) {
+        expect(stepper.derivedProps).toMatchObject({ isDisabled: true });
+        const glyph = stepper.children
+          .map((id) => records.get(id)!)
+          .find((child) => !child.hidden)!;
+        expect(glyph.derivedProps?.color).toBe(
+          resolveToken("{color.disabled-content}", "light"),
+        );
       }
       expect(parts().map((part) => part.visual.opacity)).toEqual([
         undefined,
@@ -1454,8 +1528,9 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       const style = buttonElement.getAttribute("style")!;
       expect(style).toMatch(/background-color:\s*var\(--accent-subtle\)/);
       expect(style).not.toMatch(/--button-color|border-color/);
-      // (The sheet gives every Button a border: the one the FieldButton removes is written out.)
-      expect(style).toMatch(/border-width:\s*0(;|$)/);
+      // (20388ea2e, 2026-11-02: the Button sheet's rest border is S2's — 0 for a fill Button, 2 only
+      //  for `outline` — so the FieldButton has no border to remove: nothing is written out.)
+      expect(style).not.toMatch(/border-width/);
       // (ADR-295 Phase 3c-3b: its overlap margin and the input's room are the S2 formula over the device
       //   variables — the touch set reaches them, as it reaches the generated sheet.)
       expect(style).toContain(
@@ -1599,7 +1674,9 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         paddingLeft: 12,
         paddingRight: 4,
         gap: 4,
-        borderWidth: 1,
+        // (20388ea2e, 2026-11-02: S2 field buttons have no border — S2 Picker `borderStyle: none`;
+        //  the Button rule's `fieldButton` branch is 0, so the edges below are the padding only.)
+        borderWidth: 0,
       });
       // (3c-3b: the start keeps its length ref — the DOM writes the height × 3/8 over the device variables.)
       expect(catalogResolvedTokenRef(trigger().visual, "paddingLeft")).toBe(
@@ -1608,13 +1685,13 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       const shownParts = () => parts().filter((part) => !part.hidden);
       const [value, glyph] = shownParts();
       expect(rect(glyph.id)).toMatchObject({
-        x: width - 1 - 4 - 18,
+        x: width - 4 - 18,
         width: 18,
         height: 18,
       });
       expect(rect(value.id)).toMatchObject({
-        x: 13,
-        width: width - 13 - 4 - 18 - 4 - 1,
+        x: 12,
+        width: width - 12 - 4 - 18 - 4,
       });
       expect(value.visual.fontSize).toBe(14);
       // (The value keeps its own weight: it does not take the trigger Button's 500.)
@@ -1640,7 +1717,10 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       const button = () => host().querySelector(".react-aria-Select > button")!;
       expect(button().getAttribute("data-catalog-id")).toBe(trigger().id);
       expect(button().getAttribute("aria-haspopup")).toBe("listbox");
-      expect(button().className).toContain("button-base");
+      // (71922bd0f, 2026-11-05: a picker's trigger is marked `data-picker` — the Button rule's
+      //  `isPicker` paint — and leaves the filled `.button-base` paint off, as a quiet one does.)
+      expect(button().className).not.toContain("button-base");
+      expect(button().getAttribute("data-picker")).toBe("true");
       expect(button().getAttribute("data-variant")).toBe("secondary");
       expect(
         [...button().children].map((child) =>
@@ -1650,8 +1730,11 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       const valueElement = button().querySelector(".react-aria-SelectValue")!;
       expect(valueElement.textContent).toBe("Pick one");
       expect(valueElement.hasAttribute("data-placeholder")).toBe(true);
-      // (Its color is the trigger's, the placeholder paint the field sheet's: nothing inline.)
-      expect(valueElement.getAttribute("style")).not.toMatch(/(^|;)\s*color:/);
+      // (Its color is the trigger's, the placeholder paint the field sheet's: no resting color is
+      //  pinned inline — 71922bd0f writes `color: inherit` so it follows the trigger's state paint.)
+      expect(valueElement.getAttribute("style")).not.toMatch(
+        /(^|;)\s*color:\s*(?!inherit(;|$))/,
+      );
       expect(valueElement.getAttribute("style")).toMatch(/font-weight:\s*400/);
       const style = button().getAttribute("style")!;
       expect(style).toMatch(/(^|;)width:\s*100%/);
@@ -1659,7 +1742,9 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(style).toMatch(/column-gap:\s*4px/);
       // (A Button's rest paint is its sheet's: hover, pressed and focus are the Button rule's.)
       expect(style).not.toMatch(/background-color|border-color|opacity/);
-      // A disabled field: RAC disables the trigger; the root fades once.
+      // A disabled field: RAC disables the trigger, and its paint is the sheet's
+      // `[data-picker][data-disabled]` (S2 Picker's disabled color) — no rest color inline over it
+      // (2026-11-09: RAC's context `isDisabled` read as an authored #292929, the Canvas gray).
       workspace.execute(
         setFields({
           targets: [{ kind: "node", id: FIELD }],
@@ -1667,7 +1752,12 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         }),
       );
       expect(button().hasAttribute("disabled")).toBe(true);
-      expect(button().getAttribute("style")).toMatch(/opacity:\s*1(;|$)/);
+      expect(button().getAttribute("style")).not.toMatch(
+        /background-color|(^|;)color:|opacity/,
+      );
+      const disabledContent = resolveToken("{color.disabled-content}", "light");
+      for (const part of shownParts())
+        expect(part.derivedProps?.color).toBe(disabledContent);
       workspace.execute(
         setFields({
           targets: [{ kind: "node", id: FIELD }],
@@ -2264,10 +2354,11 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(await style({})).not.toMatch(paint);
       expect(await style({ variant: "secondary" })).not.toMatch(paint);
       expect(await style({ fillStyle: "outline" })).not.toMatch(paint);
-      // (ADR-297 3h #7: the disabled paint is S2's disabled color — `{color.disabled}` light #e5e5e5)
-      expect(await style({ isDisabled: true })).toMatch(
-        /background-color:\s*#e5e5e5/,
-      );
+      // (ADR-297 3h #7: the disabled paint is S2's disabled color — `{color.disabled}`; 3ca03f661
+      //  set it to S2 `disabled-background-color` light #e9e9e9 · `disabled-content-color` #c6c6c6.)
+      const disabledStyle = await style({ isDisabled: true });
+      expect(disabledStyle).toMatch(/background-color:\s*#e9e9e9/);
+      expect(disabledStyle).toMatch(/(^|;)color:\s*#c6c6c6/);
       // An origin override is the document's: inline over the sheet.
       const { workspace, field } = (await render("button", {}))!;
       workspace.execute(

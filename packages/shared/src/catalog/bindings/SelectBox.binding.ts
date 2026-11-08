@@ -25,12 +25,19 @@ export const selectBoxBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      id: { kind: "string", label: "Item ID", section: "content" },
+      // (RAC's item key — not a second "ID" next to the Accessibility section's HTML id.)
+      id: {
+        kind: "string",
+        label: "Item ID",
+        section: "content",
+        editorHidden: true,
+      },
       textValue: { kind: "string", label: "Text Value", section: "content" },
       "aria-label": {
         kind: "string",
         label: "Accessible Label",
         section: "content",
+        editorHidden: true,
       },
       isSelected: ITEM_SELECTED_PROP_CONTRACT,
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },

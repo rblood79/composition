@@ -305,6 +305,7 @@ export interface TranslationKeys {
       updateRoute: string;
       pageLayout: string;
       toastPlacement: string;
+      toastShape: string;
       addLayout: string;
       applyLayoutPreset: string;
       layoutSlot: string;
@@ -1130,6 +1131,7 @@ export interface TranslationKeys {
   canvas: {
     engineLoadFailed: string;
     reload: string;
+    textEditorLoading: string;
   };
   aiTool: {
     createElement: string;

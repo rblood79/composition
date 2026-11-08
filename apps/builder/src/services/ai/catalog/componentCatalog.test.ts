@@ -85,7 +85,8 @@ describe("AI 카탈로그 커버리지", () => {
       getAiCatalogEntry("InlineAlert")
         ?.props.filter((p) => p.origin === "semantic")
         .map((p) => p.name),
-    ).toEqual(["title", "description", "variant", "fillStyle"]);
+      // 792815efc: RAC slot 을 읽는 원본은 `slot` 편집 계약을 같이 연다 (editContract.ts catalogSemanticContracts).
+    ).toEqual(["title", "description", "variant", "fillStyle", "slot"]);
   });
 
   it("카테고리 인덱스가 팔레트 노출 항목을 전부 담는다", () => {

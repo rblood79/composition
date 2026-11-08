@@ -135,8 +135,16 @@ describe("ADR-248 Phase 4c read model", () => {
     const [item1] = model.childRows(listRow);
     const itemRows: (readonly CatalogPosition[])[] = [];
     model.subscribeRows({ position: item1 }, (rows) => itemRows.push(rows));
-    expect(model.childRows(item1)).toHaveLength(3);
-    const label = model.childRows(item1)[1];
+    // The item's rows: its selection parts (Checkbox `73fc516d2` · check Icon `8560fece5`), icon,
+    // label, description.
+    const part = (name: string) =>
+      `lib:template:component-listbox-item-default__${name}` as TemplateId;
+    const partRow = (name: string) =>
+      model.childRows(item1).find((row) => row.sourceId === part(name))!;
+    expect(model.childRows(item1).map((row) => row.sourceId)).toEqual(
+      ["selection", "check", "icon", "label", "description"].map(part),
+    );
+    const label = partRow("label");
     run(
       setFields({
         targets: [label.target],
@@ -144,12 +152,11 @@ describe("ADR-248 Phase 4c read model", () => {
       }),
     );
     expect(itemRows).toEqual([]);
-    const description: EditTarget = model.childRows(item1)[2].target;
+    const description: EditTarget = partRow("description").target;
     run(removeTargets({ targets: [description] }));
-    expect(itemRows.at(-1)?.map((row) => row.sourceId)).toEqual([
-      "lib:template:component-listbox-item-default__icon" as TemplateId,
-      "lib:template:component-listbox-item-default__label" as TemplateId,
-    ]);
+    expect(itemRows.at(-1)?.map((row) => row.sourceId)).toEqual(
+      ["selection", "check", "icon", "label"].map(part),
+    );
   });
 
   it("prop sources recompute only for their own records and notify on change", async () => {

@@ -479,9 +479,10 @@ describe("ADR-256 Phase 9 — calendar header choice", () => {
           )!,
         )
         .endsWith("Picker");
-    // (ADR-295 Phase 3: the trigger's block padding is the Button's S2 centring padding — M 6; its
-    //   start inset stays the 8 the user set.)
-    const y = 6;
+    // (ADR-295 Phase 3: the trigger's block padding is the Button's S2 centring padding; its
+    //   start inset stays the 8 the user set. 20388ea2e: S2 Button has no border — the old 1px
+    //   border's space moved into the padding, M 6 → 7, the 32 height kept.)
+    const y = 7;
     expect(
       triggers()
         .filter(inPicker)

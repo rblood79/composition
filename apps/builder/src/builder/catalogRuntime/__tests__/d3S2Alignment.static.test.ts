@@ -609,21 +609,20 @@ describe("ADR-295 G4 (c) — 컴포넌트 값 = S2 computed", () => {
         );
         // SearchField: the glyph at `pill` (inner — its margin is from the outer edge), the text after the glyph
         //   (`1lh`) + text-to-visual, the clear button's square place (the field height) at the end.
+        // (`3ca03f661`: S2 1.8.2 `SearchField.tsx` — FieldGroup `paddingStart: 'pill'` inside its 2px border, the
+        //   icon `marginStart: '--iconMargin'` = `fontRelative(-2)`: the glyph at border 2 + pill − 2/14 em.)
         const icon = delegation("SearchField", "sf-icon")[size]!;
-        near(
-          px(icon["--sf-icon-inset"]!, device) - BORDER,
-          height(size, device) / 2,
-          `SearchField glyph ${at}`,
-        );
+        const fontPx = font(size, device);
+        const FIELD_GROUP_BORDER = 2;
+        const glyphPill =
+          px(icon["--sf-icon-inset"]!, device) -
+          FIELD_GROUP_BORDER +
+          (fontPx * 2) / 14;
+        near(glyphPill, height(size, device) / 2, `SearchField glyph ${at}`);
         const sfProbe = table.SearchField![size]?.[device]?.paddingInline;
         if (sfProbe !== undefined)
-          near(
-            px(icon["--sf-icon-inset"]!, device) - BORDER,
-            sfProbe,
-            `SearchField probe ${at}`,
-          );
+          near(glyphPill, sfProbe, `SearchField probe ${at}`);
         const input = delegation("SearchField", "sf-input")[size]!;
-        const fontPx = font(size, device);
         near(
           px(icon["--sf-icon-size"]!, device),
           s2LineHeight(fontPx),
@@ -631,7 +630,9 @@ describe("ADR-295 G4 (c) — 컴포넌트 값 = S2 computed", () => {
         );
         near(
           px(input["--sf-input-pad"]!, device),
-          height(size, device) / 2 +
+          // (the glyph's `fontRelative(-2)` start margin moves the text with it — `3ca03f661`)
+          height(size, device) / 2 -
+            (fontPx * 2) / 14 +
             s2LineHeight(fontPx) +
             fontPx * (device === "touch" ? 8 / 17 : 6 / 14),
           `SearchField text start ${at}`,

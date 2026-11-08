@@ -167,9 +167,12 @@ describe("ADR-256 Decision 7 — presentWhen: nonEmptyText", () => {
     for (const template of declared)
       if (
         template.id === "lib:template:component-button__label" ||
-        template.id === "lib:template:component-togglebutton__label"
+        template.id === "lib:template:component-togglebutton__label" ||
+        template.id === "lib:template:component-actionbutton__label" ||
+        template.id === "lib:template:component-linkbutton__label"
       )
         // ADR-276: a Button's words — no Text node while its `label` is empty (icon-only).
+        // (ActionButton · LinkButton the same — `8586c64bd` · `8ac17dc12`, S2's icon-only form.)
         expect(template.props.slot).toBe("label");
       else if (template.definitionId === "lib:definition:text")
         // ADR-256 Phase 5c: a ListBox · GridList · Menu item's description (`Text slot="description"`).

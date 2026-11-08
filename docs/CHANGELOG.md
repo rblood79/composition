@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [비활성 버튼 칠 · 굵은 InlineAlert 설명 · 정적 선택자 · 낡은 테스트 갱신] - 2026-11-09
+
+### Fixed
+
+- **disabled field 의 버튼이 Preview 에서 활성 색으로 그려졌다**: DOM pass 의 Button props 에는 RAC field context (`isDisabled` · id · aria) 가 합쳐져 있어, 규칙의 disabled 칠과 다른 휴지 `visual` 이 「작성값」 으로 읽혀 inline 에 실렸다 — disabled Select 는 Preview #292929 · Canvas 회색으로 갈렸다. 작성값 판정을 문서 record 로 하고, field 버튼은 field 의 `isDisabled` 를 파생해 Canvas 칠도 S2 disabled 색으로 맞췄다 (NumberField stepper · ComboBox · DatePicker 버튼 포함).
+- **비활성 ButtonGroup 의 버튼 글자가 휴지 색이었다**: Canvas 는 disabled 바탕 위에 흰 글자 (accent) 를, Preview 는 inline 휴지 칠로 활성처럼 그렸다. ButtonGroup · field 가 비활성화하는 Button 의 Text · Icon 은 그 Button 의 상태 칠을 따른다 (DOM `color: inherit`, Canvas 는 같은 조건 트리) — 두 쪽 모두 S2 `disabled-content`.
+- **InlineAlert `boldFill` 의 설명 글자가 Preview 에서 회색이었다**: 도움말 inline 색을 지우는 규칙이 파생 흰색까지 지웠다. 파생 색은 남긴다.
+- **ToggleButtonGroup 의 indicator 모드 press 규칙 3개가 Preview · Publish 에서 적용되지 않았다**: 생성기가 `staticSelectors` 의 `&…` 키를 자손 선택자 (`.root &[…]`) 로 냈다. `&` 는 root 자신으로 붙인다.
+- **SearchField 의 터치 글자 시작이 S2 보다 0.33 ~ 0.45px 컸다**: 글리프의 `fontRelative(-2)` 는 터치에서도 2/14em 이라 터치 계수 8/17 − 2/14 (= 39/119) 로 고쳤다 (데스크톱 값 그대로).
+- **Properties 의 Content 에 `aria-label` · 항목 `id` 가 Accessibility 절과 함께 두 번 보였다** (Link · Slider · RangeSlider · TokenField · SegmentedControl · SelectBox · SelectBoxGroup · ActionButtonGroup · SheetContent): `editorHidden` (accepts 는 유지 — Code · RAC 통과).
+- **ActionBar 「값 설정」 의 입력 라벨에 키 문자열이 보였다** (없는 `capabilityParams.value` → `capabilities.paramValue`) · 텍스트 편집기 로딩 화면의 aria-label 이 한국어 고정이었다 (`canvas.textEditorLoading`). 그 밖에 locale 에 빠진 키 3개 (`actionBarSelection` When 그룹 · `toastShape`) 를 채우고 ko 「기본값」 을 「기본」 으로 맞췄다.
+
+### Tests
+
+- 낡은 builder unit 테스트 갱신 — 실패 62 파일 · 313 건 → 5 파일 · 6 건. 남은 것: DatePicker necessity-label (LOW deferred) · Tree 선택 Checkbox 정적 렌더 remount (production 은 controlled 경로 — LOW) · `docs/how-to/samples` contract 54 (63 과 차이) · 빌더 chrome 치수 295 기준 대비 98 건 (pin 오류에 가려 있던 게이트) · shared 패키지 49 건 (HEAD 와 같음).
+- 원복 RED: DOM 작성값 판정 (Select · NumberField · ButtonGroup 3건) · field 버튼 파생 disabled (NumberField) · Button 글자 상태 칠 (NumberField · ButtonGroup) · InlineAlert 설명 흰색. live (Chrome, Publish): disabled Select · NumberField stepper · ButtonGroup 글자 rgb(198,198,198) · 바탕 rgb(233,233,233) — Canvas 와 같음, InlineAlert boldFill 설명 흰색, Undo 뒤 #292929 복귀, indicator 규칙 선택자 적용.
+
 ## [후속 4건: 풀리지 않은 slot 바인딩 · SelectBox When · 선택값 줄 높이 · Pagination 카드] - 2026-11-09
 
 ### Fixed

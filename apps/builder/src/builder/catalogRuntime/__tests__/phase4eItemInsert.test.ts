@@ -344,7 +344,11 @@ describe("ADR-248 4e item insert ('+')", () => {
     // The new item reads "Item <n>" (its description and icon parts hidden), not the bare
     // `{label}` · `{description}` · `{icon}` row placeholders.
     const added = workspace.root.domInputs.get(items[items.length - 1]!)!;
-    const parts = added.children.map((id) => workspace.root.domInputs.get(id)!);
+    // (The item's selection parts — `slot="selection"` Checkbox `73fc516d2` · check Icon
+    // `8560fece5` — are RAC's selection display, not the item's content parts.)
+    const parts = added.children
+      .map((id) => workspace.root.domInputs.get(id)!)
+      .filter((part) => part.props.slot !== "selection");
     expect(
       parts.map((part) => part.props.children ?? part.props.iconName),
     ).toEqual([`Item ${items.length}`]);

@@ -182,15 +182,17 @@ describe("Disclosure chevron (the trigger's Icon node)", () => {
           root.canvasInputs.get(triggerOf(root, ofBinding, index).chevron.id)!
             .derivedProps?.iconName === "chevron-down",
       );
-    const before = turned();
+    // (`792815efc`: S2 Accordion `allowsMultipleExpanded` defaults to false — one panel open, the first
+    //   Disclosure whose intent is expanded. Collapsing it hands the group's key to the next one.)
+    expect(turned()).toEqual([true, false]);
     const disclosures = ofBinding("disclosure");
     workspace.execute(
       setFields({
-        targets: [workspace.positionOfRecord(disclosures[1].id)!.target],
-        props: { isExpanded: { kind: "set", value: !before[1] } },
+        targets: [workspace.positionOfRecord(disclosures[0].id)!.target],
+        props: { isExpanded: { kind: "set", value: false } },
       }),
     );
-    expect(turned()[1]).toBe(!before[1]);
+    expect(turned()).toEqual([false, true]);
     workspace.dispose();
   });
 

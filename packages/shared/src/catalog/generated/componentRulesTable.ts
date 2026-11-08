@@ -11679,32 +11679,34 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           {
             // Room at both ends: the glyph and the clear button, each with its inset and a gap.
+            // (The text-to-visual gap less the glyph's `fontRelative(-2)` start margin — 2/14 em on both
+            //  device sets: touch 8/17 − 2/14 = 39/119, not 6/17. 2026-11-09.)
             childSelector: ".react-aria-Input",
             prefix: "sf-input",
             variables: {
               XS: {
                 "--sf-input-pad":
-                  "{length.size.height.XS*1/2+typography.text-2xs--line-height*1/1+typography.text-2xs*4/14~6/17}",
+                  "{length.size.height.XS*1/2+typography.text-2xs--line-height*1/1+typography.text-2xs*4/14~39/119}",
                 "--sf-input-pad-end": "{length.size.height.XS*1/1}",
               },
               S: {
                 "--sf-input-pad":
-                  "{length.size.height.S*1/2+typography.text-xs--line-height*1/1+typography.text-xs*4/14~6/17}",
+                  "{length.size.height.S*1/2+typography.text-xs--line-height*1/1+typography.text-xs*4/14~39/119}",
                 "--sf-input-pad-end": "{length.size.height.S*1/1}",
               },
               M: {
                 "--sf-input-pad":
-                  "{length.size.height.M*1/2+typography.text-sm--line-height*1/1+typography.text-sm*4/14~6/17}",
+                  "{length.size.height.M*1/2+typography.text-sm--line-height*1/1+typography.text-sm*4/14~39/119}",
                 "--sf-input-pad-end": "{length.size.height.M*1/1}",
               },
               L: {
                 "--sf-input-pad":
-                  "{length.size.height.L*1/2+typography.text-base--line-height*1/1+typography.text-base*4/14~6/17}",
+                  "{length.size.height.L*1/2+typography.text-base--line-height*1/1+typography.text-base*4/14~39/119}",
                 "--sf-input-pad-end": "{length.size.height.L*1/1}",
               },
               XL: {
                 "--sf-input-pad":
-                  "{length.size.height.XL*1/2+typography.text-lg--line-height*1/1+typography.text-lg*4/14~6/17}",
+                  "{length.size.height.XL*1/2+typography.text-lg--line-height*1/1+typography.text-lg*4/14~39/119}",
                 "--sf-input-pad-end": "{length.size.height.XL*1/1}",
               },
             },

@@ -476,6 +476,7 @@ const catalog: TranslationKeys = {
       updateRoute: "경로 갱신",
       pageLayout: "페이지 배치",
       toastPlacement: "토스트 위치",
+      toastShape: "토스트 모양",
       addLayout: "레이아웃 추가",
       applyLayoutPreset: "레이아웃 프리셋 적용",
       layoutSlot: "레이아웃 슬롯 변경",
@@ -762,7 +763,7 @@ const catalog: TranslationKeys = {
   },
   fonts: {
     deleteFace: "{family} {face} 삭제",
-    systemDefaultValue: "기본값",
+    systemDefaultValue: "기본",
     defaultValue: "테마",
     searchLabel: "폰트 검색",
     searchPlaceholder: "폰트 검색…",
@@ -882,6 +883,9 @@ const catalog: TranslationKeys = {
         onReset: "초기화할 때",
         onInvalid: "잘못된 필드가 있을 때",
       },
+      actionBarSelection: {
+        onClearSelection: "선택을 해제할 때",
+      },
     },
     triggerGroup: {
       press: "누르기",
@@ -906,6 +910,7 @@ const catalog: TranslationKeys = {
       remove: "제거",
       focusedDate: "포커스 날짜",
       form: "폼",
+      actionBarSelection: "선택",
       component: "컴포넌트",
     },
     actionNavigate: "페이지 이동",
@@ -1247,6 +1252,7 @@ const catalog: TranslationKeys = {
   canvas: {
     engineLoadFailed: "레이아웃 엔진 로드에 실패했습니다.",
     reload: "새로고침",
+    textEditorLoading: "텍스트 편집기 준비 중",
   },
   aiTool: {
     createElement: "요소 생성",

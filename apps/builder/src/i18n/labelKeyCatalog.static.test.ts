@@ -28,7 +28,8 @@ const FROZEN_KEY_COUNTS: Partial<
   Record<(typeof LABEL_NAMESPACES)[number], number>
 > = {
   // 2026-10-19 — moveToSlot ("Move to slot ▸", 옛 Target Slot 복원)
-  contextMenu: 26,
+  // 2026-10-31 — deleteGuide · deleteVerticalGuides · deleteHorizontalGuides (안내선 우클릭 삭제, 63ecb9b9e)
+  contextMenu: 29,
   command: 71,
   // ADR-252 — scopePanelStyles 제거 (scope panel:styles 가 Design 패널의 panel:properties 로)
   commandPalette: 25,

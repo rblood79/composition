@@ -124,9 +124,10 @@ describe("Style Panel catalog color values", () => {
     const appearance = hookOf(useAppearanceValues, "button-1");
     const typography = hookOf(useTypographyValues, "button-1");
 
+    // (`3ca03f661` S2 1.8.2: accent outline 테두리 = `currentColor` — outline 글자 `neutral-content`)
     expect(appearance.result.current).toMatchObject({
       backgroundColor: PICKER_TRANSPARENT,
-      borderColor: lightColors["border-hover"],
+      borderColor: lightColors["neutral-content"],
     });
     // outline 글자는 S2 `baseColor('neutral')` (ADR-297 3h #2 — S2 outline 에 variant 색 글자 없음)
     expect(typography.result.current?.color).toBe(lightColors.neutral);
@@ -140,9 +141,9 @@ describe("Style Panel catalog color values", () => {
     const typography = hookOf(useTypographyValues, "button-1");
 
     // (ADR-297 후속 ⑥: S2 premium = gray-100 under its gradient · white text — the gradient is the
-    //  background image, not the Fill color)
+    //  background image, not the Fill color; S2 gray-100 = `neutral-surface` — dark #2c2c2c, ADR-302)
     expect(appearance.result.current).toMatchObject({
-      backgroundColor: darkColors["neutral-subtle"],
+      backgroundColor: darkColors["neutral-surface"],
     });
     expect(typography.result.current?.color).toBe(darkColors.white);
   });
@@ -224,15 +225,16 @@ describe("Style Panel catalog color values", () => {
             borderColor: PICKER_TRANSPARENT,
             color: boldText,
           },
+          // (`4f71aa245` S2 Badge.tsx: subtle · outline 글자 = `gray-1000` — 대비 회귀 수리)
           {
             backgroundColor: subtleBackground,
             borderColor: PICKER_TRANSPARENT,
-            color: hue,
+            color: lightColors["gray-1000"],
           },
           {
             backgroundColor: PICKER_TRANSPARENT,
             borderColor: hue,
-            color: hue,
+            color: lightColors["gray-1000"],
           },
         ]);
       },
@@ -263,9 +265,10 @@ describe("Style Panel catalog color values", () => {
         }),
       ]);
 
+      // (`3ca03f661` S2 1.8.2 ActionButton.btnStyles: ToggleButton 테두리 없음 — 투명)
       expect(readColorValues("toggle-1")).toEqual({
         backgroundColor: lightColors.accent,
-        borderColor: lightColors.accent,
+        borderColor: PICKER_TRANSPARENT,
         color: lightColors["on-accent"],
       });
     });

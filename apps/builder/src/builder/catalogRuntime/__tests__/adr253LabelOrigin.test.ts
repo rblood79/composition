@@ -103,8 +103,13 @@ describe("ADR-253 Phase 2 — a TextField's Label is an instance of the Label or
     const { workspace, library } = await open();
     const origins = catalogBuiltinOrigins(library);
     const parts = origins.filter((origin) => origin.category === "parts");
-    expect(parts[0]).toMatchObject({ id: LABEL_ORIGIN, name: "Label" });
+    // 8ac17dc12 (2026-11-07) put SelectBox (the SelectBoxGroup item) before Label in
+    // `BASE_PART_ORIGIN_TYPES` — Label is a part card, not necessarily the first one.
+    const labelPart = parts.find((origin) => origin.id === LABEL_ORIGIN);
+    expect(labelPart).toMatchObject({ id: LABEL_ORIGIN, name: "Label" });
+    // The Parts section comes after every palette origin.
     expect(origins.indexOf(parts[0]!)).toBeGreaterThan(0);
+    expect(origins.slice(origins.indexOf(parts[0]!))).toEqual(parts);
     workspace.showDefinition(LABEL_ORIGIN);
     const sample = [...workspace.root.canvasInputs.values()].find(
       (record) => record.sourceId === originSampleId(LABEL_ORIGIN),

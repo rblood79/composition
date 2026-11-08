@@ -67,5 +67,10 @@ export const sheetBinding = sheetPart("Sheet", {
 });
 export const sheetBackdropBinding = sheetPart("SheetBackdrop", {});
 export const sheetContentBinding = sheetPart("SheetContent", {
-  "aria-label": { kind: "string", label: "Aria Label", section: "content" },
+  "aria-label": {
+    kind: "string",
+    label: "Aria Label",
+    section: "content",
+    editorHidden: true,
+  },
 });

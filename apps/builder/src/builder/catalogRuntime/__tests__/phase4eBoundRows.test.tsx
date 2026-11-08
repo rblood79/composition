@@ -125,6 +125,9 @@ function items(workspace: CatalogWorkspace, itemType = "ListBoxItem") {
       const collect = (childId: string) => {
         const child = records.get(childId);
         if (!child) return;
+        // The item's selection parts (`slot="selection"` — the selection Checkbox `73fc516d2` and
+        // the check Icon `8560fece5`) are not the row's label text.
+        if (child.props.slot === "selection") return;
         if (typeof child.props.children === "string" && child.id !== id)
           texts.push(child.props.children);
         child.children.forEach(collect);

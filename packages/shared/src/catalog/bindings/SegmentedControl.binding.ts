@@ -5,6 +5,7 @@ const ariaLabelingProps = {
     kind: "string",
     label: "Accessible Label",
     section: "content",
+    editorHidden: true,
   },
   "aria-labelledby": {
     kind: "string",
@@ -71,7 +72,9 @@ export const segmentedControlItemBinding: PrimitiveBinding = {
         editorHidden: true,
       },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
-      id: { kind: "string", label: "ID", section: "content" },
+      // (RAC's item key — kept apart from the HTML id; not a second "ID" field next to the
+      //  Accessibility section's, as no other item exposes its key.)
+      id: { kind: "string", label: "ID", section: "content", editorHidden: true },
       label: {
         kind: "string",
         label: "Label",

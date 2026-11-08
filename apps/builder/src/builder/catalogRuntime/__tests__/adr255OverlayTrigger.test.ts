@@ -249,6 +249,8 @@ describe("ADR-255 — Popover · Tooltip origins with their trigger", () => {
     expect(
       editContractFixture("Popover").fields.map((field) => field.key),
     ).toEqual([
+      // RAC `slot` (2026-11-07 `792815efc` — trigger-root origins edit the overlay's Slot).
+      "slot",
       "size",
       "placement",
       "offset",

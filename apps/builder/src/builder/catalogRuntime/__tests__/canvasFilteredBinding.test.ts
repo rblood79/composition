@@ -106,7 +106,20 @@ describe("Canvas page filter ownership", () => {
       const scene = new CatalogCanvasScene(root, (roots) => roots.slice(0, 1));
       try {
         const drawn = new Set(scene.stream.subtreeSpans.keys());
-        expect(drawn.size).toBe(141);
+        // Drawn = exactly the shown page's records (its body's subtree), whatever the page count —
+        // derived from the records, not a fixed count (the origins grow parts: e.g. the picker
+        // item's selection Checkbox · check Icon, `73fc516d2` · `8560fece5`).
+        const shown: string[] = [];
+        const walk = (id: string) => {
+          const record = root.canvasInputs.get(id);
+          if (!record) return;
+          shown.push(id);
+          record.children.forEach(walk);
+        };
+        walk(root.recordsOfSource(bodyId(0))[0]!);
+        expect(shown.length).toBeGreaterThan(12);
+        expect([...drawn].sort()).toEqual(shown.sort());
+        expect(drawn.size).toBe(root.canvasInputs.size / pages);
         expect(subscribe.mock.calls.map(([id]) => id).sort()).toEqual(
           [...drawn].sort(),
         );

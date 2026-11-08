@@ -66,11 +66,13 @@ describe("chrome island", () => {
     );
   });
 
-  it("workspace panel frame 은 floating 그림자만 다르고 표면/테두리는 같다", async () => {
+  // (`936803385` 2026-10-26: the frame's shadow is the island's own `--chrome-shadow` — no longer the
+  //   floating step; surface · radius · border were already the island's.)
+  it("workspace panel frame 은 표면/테두리/그림자가 chrome island 와 같다", async () => {
     const panels = await read("../layout/PanelWorkspace.css");
 
     expect(panels).toMatch(
-      /\.workspace-panel-frame\s*\{[\s\S]*?background: var\(--chrome-surface\);[\s\S]*?border-radius: var\(--chrome-radius\);[\s\S]*?border: var\(--chrome-border\);[\s\S]*?box-shadow: var\(--chrome-shadow-floating\);/,
+      /\.workspace-panel-frame\s*\{[\s\S]*?background: var\(--chrome-surface\);[\s\S]*?border-radius: var\(--chrome-radius\);[\s\S]*?border: var\(--chrome-border\);[\s\S]*?box-shadow: var\(--chrome-shadow\);/,
     );
     // 구 placed outline 은 테두리와 겹쳐 링 2겹이었다 — 부활 금지.
     expect(panels).not.toMatch(

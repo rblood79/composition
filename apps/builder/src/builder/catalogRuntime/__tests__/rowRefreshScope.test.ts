@@ -129,7 +129,19 @@ describe("data refresh owner scope", () => {
         runtime.set("c1", rows("Changed"));
         workspace.refreshRows(["c1"]);
         expect(root.metrics.resolverVisits).toBeLessThan(100);
-        expect(root.metrics.layoutInputVisits).toBe(13);
+        // The layout pass visits the bound list's own records only — not the body, not a sibling.
+        // (27 = list + 2 rows × (item · selection Checkbox 6 · check Icon · icon · label ·
+        // description) + empty state 4; the selection parts are `73fc516d2` · `8560fece5`.)
+        const owned: string[] = [];
+        const walk = (id: string) => {
+          const record = root.canvasInputs.get(id);
+          if (!record) return;
+          owned.push(id);
+          record.children.forEach(walk);
+        };
+        walk(root.recordsOfSource(LIST)[0]!);
+        expect(owned).toHaveLength(27);
+        expect(root.metrics.layoutInputVisits).toBe(owned.length);
         expect(
           [...root.canvasInputs].filter(
             ([id, record]) =>

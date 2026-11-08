@@ -233,9 +233,21 @@ describe("ADR-256 Phase 5c — ListBox items are the reference's (example 1)", (
     )!;
     const host = root.canvasInputs.get(after.parentId)!;
     expect(root.typeOf(host)).toBe("ListBoxItem");
-    expect(host.children.map((id) => root.typeOf(root.canvasInputs.get(id)!))).toEqual(
-      ["Icon", "Icon", "Text", "Text"],
-    );
+    // The inserted Icon first, then the item's own children: its selection parts (`slot="selection"`
+    // — Checkbox `73fc516d2`, check Icon `8560fece5`), icon, label, description.
+    expect(
+      host.children.map((id) => {
+        const child = root.canvasInputs.get(id)!;
+        return `${root.typeOf(child)}${child.props.slot ? `[${child.props.slot}]` : ""}`;
+      }),
+    ).toEqual([
+      "Icon",
+      "Checkbox[selection]",
+      "Icon[selection]",
+      "Icon[icon]",
+      "Text[label]",
+      "Text[description]",
+    ]);
     expect(html().match(/role="option"/g)).toHaveLength(3);
   });
 });
