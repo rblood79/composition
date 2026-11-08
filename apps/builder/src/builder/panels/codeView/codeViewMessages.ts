@@ -67,6 +67,12 @@ const KO: CodeViewMessages = {
     alternative:
       "되돌리세요. 컴포넌트 기본 모양은 그 요소의 CSS class 에, 값은 Design 패널에서 고칩니다.",
   },
+  readOnlyPosition: {
+    reason:
+      "Library 원본의 구조 (자리 밖 요소 · type 변경 · 자리 이동) 는 읽기 전용",
+    alternative:
+      "값 · 이벤트 · 숨김 · 채움 자리 안 요소는 그대로 고칠 수 있습니다. 구조를 바꾸려면 「Unlock」 으로 원본을 프로젝트 컴포넌트로 만든 뒤 그 파일에서 고치세요.",
+  },
 };
 
 const EN: CodeViewMessages = {
@@ -124,6 +130,12 @@ const EN: CodeViewMessages = {
       "read only (a component's base style · a spec token · a Design panel value)",
     alternative:
       "Undo it. Style the element through its CSS class, or edit the value in the Design panel.",
+  },
+  readOnlyPosition: {
+    reason:
+      "a Library origin's structure (an element outside its slot · a type change · a move) is read only",
+    alternative:
+      "Values, events, hiding and the elements inside its slot can be edited. To change its structure, Unlock the origin into a project component and edit that file.",
   },
 };
 

@@ -30,13 +30,24 @@ import {
   PALETTE_REUSABLE_ORIGIN_TYPES,
 } from "../catalog/componentCatalog";
 import {
+  catalogOverlayOpen,
+  OVERLAY_BODY_TYPES,
+} from "../catalog/runtime/overlayState";
+import type { CatalogConsumerNode } from "../catalog/runtime/compositionRoot";
+import {
+  codeViewTypeName,
   codeViewNodeClasses,
   codeViewNodeHasStyle,
   codeViewPageNodes,
 } from "./files/styles";
 import {
   codeViewAddressKey,
+  codeViewExpandedBoundKeys,
+  codeViewExpandedRoot,
+  codeViewPositionBindings,
+  codeViewPositionUnit,
   codeViewRuleKeys,
+  codeViewSameAddress,
   codeViewSlotFills,
   codeViewTreeClasses,
 } from "./files/overrides";
@@ -104,6 +115,21 @@ import type {
 } from "./types";
 
 const COLLECTION = "data:collection:";
+/** The S2 components the shared package carries (not in `react-aria-components`). */
+const CODE_VIEW_SHARED_COMPONENTS = new Set([
+  "ActionButton",
+  "ActionButtonGroup",
+  "Link",
+  "LinkButton",
+  "LabeledValue",
+  "RangeSlider",
+  "SliderThumb",
+  "SegmentedControl",
+  "SegmentedControlItem",
+  "ActionBar",
+  "SelectBoxGroup",
+  "SelectBox",
+]);
 const FIELD = "data:field:";
 /** The drops that bring items from elsewhere — their keys are read from the drag data. */
 /** Why a condition is not in a request (`viewQueryLimits` codes). */
@@ -451,6 +477,8 @@ class Generator {
   private readonly tokenNames: Record<string, string> = {};
   /** ADR-296 E5 — the rules at an instance position (`address`): not the instance element's own. */
   private readonly addressRules: InteractionEntry[] = [];
+  /** ADR-301 Decision 6 — an expanded overlay's body position → closed (its Open — Canvas's). */
+  private readonly bodies = new Map<string, boolean>();
   /** ADR-296 Phase 4 — each node's class (사용자 결정 6) and the nodes that have a style. */
   private nodeClasses = new Map<string, string>();
   private readonly styled = new Set<string>();
@@ -559,8 +587,25 @@ class Generator {
         if (field.id) map[field.key] = `${FIELD}${field.id}`;
       fields[`${COLLECTION}${collection.id}`] = map;
     }
+    const done = out.done();
+    // ADR-301 Decision 6 — each expanded overlay's body: its inside's range (the opening tag's
+    // line end → the closing tag's line start) and whether it is closed (folded by the editor).
+    const folds = done.anchors.flatMap((anchor) => {
+      const target = anchor.target;
+      if (target.kind !== "position") return [];
+      const closed = this.bodies.get(
+        codeViewPositionUnit(target.ownerId, target.key),
+      );
+      if (closed === undefined) return [];
+      const from = done.code.indexOf("\n", anchor.start);
+      const to = done.code.lastIndexOf("\n", anchor.end - 1);
+      return from >= 0 && to > from && to < anchor.end
+        ? [{ key: `${target.ownerId}\u0000${target.key}`, from, to, closed }]
+        : [];
+    });
     return {
-      ...out.done(),
+      ...done,
+      ...(folds.length ? { folds } : {}),
       symbols: {
         variables,
         fields,
@@ -2605,8 +2650,20 @@ class Generator {
    * ADR-296 Phase 5 · Decision 4 — an instance's `overrides`: per position (its inner path), the
    * position's props · `hidden` · per When `rules({inherited, own})` (undefined = none).
    */
-  private overridesCode(node: NodeEntry, depth: number): string | undefined {
+  private overridesCode(
+    node: NodeEntry,
+    depth: number,
+    /** ADR-301 Decision 2 — a nested instance position of an expanded instance: its insides only. */
+    prefix?: string,
+  ): string | undefined {
     const reader = this.doc.input.reader as never;
+    const keyOf = (address: InstanceAddress) => {
+      const key = codeViewAddressKey(reader, address);
+      if (!key || prefix === undefined) return key;
+      return key.startsWith(`${prefix}/`)
+        ? key.slice(prefix.length + 1)
+        : undefined;
+    };
     interface Position {
       address: InstanceAddress;
       patch?: DescendantPatchFields;
@@ -2615,7 +2672,7 @@ class Generator {
     const positions = new Map<string, Position>();
     for (const override of node.descendantOverrides) {
       if (override.kind === "replace") continue;
-      const key = codeViewAddressKey(reader, override.address);
+      const key = keyOf(override.address);
       if (key)
         positions.set(key, {
           address: override.address,
@@ -2625,7 +2682,7 @@ class Generator {
     }
     for (const rule of this.addressRules) {
       if (rule.ownerId !== node.id) continue;
-      const key = codeViewAddressKey(reader, rule.address!);
+      const key = keyOf(rule.address!);
       if (!key) continue;
       const position = positions.get(key) ?? {
         address: rule.address!,
@@ -2635,30 +2692,8 @@ class Generator {
       positions.set(key, position);
     }
     const pad = "  ".repeat(depth + 1);
-    const fn = (rule: InteractionEntry, indent: string) => {
-      // (The When's event arguments are the function's parameters — 판독 Phase 5 MEDIUM-1; a
-      // received component event gives its value — ADR-294, as on a page handler.)
-      const args = componentEventKeyOf(rule.trigger)
-        ? COMPONENT_EVENT_ARGS
-        : (eventArgNames(rule.trigger)[0] ?? []);
-      const fields = eventArgsAreFields(rule.trigger);
-      const body = new CodeWriter();
-      for (let index = 0; index < indent.length / 2 + 1; index += 1) body.in();
-      for (const action of rule.actions)
-        this.writeAction(body, action, {
-          node,
-          trigger: rule.trigger,
-          fields,
-          args,
-        });
-      const params = fields
-        ? "e"
-        : args.map((arg) => identifier(arg, "value")).join(", ");
-      const isAsync = rule.actions.some(
-        (action) => action.opcode === "callEndpoint",
-      );
-      return `${isAsync ? "async " : ""}(${params}) => {\n${body.done().code}${indent}}`;
-    };
+    const fn = (rule: InteractionEntry, indent: string) =>
+      this.ruleFunction(rule, node, indent);
     const entries: string[] = [];
     for (const [key, position] of positions) {
       const fields: string[] = [];
@@ -2743,6 +2778,38 @@ class Generator {
     return `{{\n${entries.join("\n")}\n${"  ".repeat(depth)}}}`;
   }
 
+  /**
+   * An instance position's rule as one arrow function (`(e) => {…}` — its Dos; the When's event
+   * arguments are its parameters — 판독 Phase 5 MEDIUM-1; a received component event gives its
+   * value — ADR-294, as on a page handler).
+   */
+  private ruleFunction(
+    rule: InteractionEntry,
+    node: NodeEntry,
+    indent: string,
+  ): string {
+    const args = componentEventKeyOf(rule.trigger)
+      ? COMPONENT_EVENT_ARGS
+      : (eventArgNames(rule.trigger)[0] ?? []);
+    const fields = eventArgsAreFields(rule.trigger);
+    const body = new CodeWriter();
+    for (let index = 0; index < indent.length / 2 + 1; index += 1) body.in();
+    for (const action of rule.actions)
+      this.writeAction(body, action, {
+        node,
+        trigger: rule.trigger,
+        fields,
+        args,
+      });
+    const params = fields
+      ? "e"
+      : args.map((arg) => identifier(arg, "value")).join(", ");
+    const isAsync = rule.actions.some(
+      (action) => action.opcode === "callEndpoint",
+    );
+    return `${isAsync ? "async " : ""}(${params}) => {\n${body.done().code}${indent}}`;
+  }
+
   /** ADR-296 Phase 5 — a user component's name for its instance (undefined = not an instance). */
   private componentTag(node: NodeEntry): string | undefined {
     if (node.definitionId.startsWith("lib:")) return undefined;
@@ -2757,7 +2824,10 @@ class Generator {
    * template root's RAC type (`<DialogTrigger>` — read back as a bare DialogTrigger node). Undefined
    * = the two agree (Button · Card …) or not a palette origin.
    */
-  private originTag(node: NodeEntry, type: string): string | undefined {
+  private originTag(
+    node: Pick<NodeEntry, "definitionId">,
+    type: string,
+  ): string | undefined {
     const prefix = "lib:definition:origin-";
     if (!node.definitionId.startsWith(prefix)) return undefined;
     const reusableId = node.definitionId.slice(prefix.length);
@@ -2769,6 +2839,229 @@ class Generator {
       PALETTE_REUSABLE_ORIGIN_TYPES.includes(entry.type)
       ? entry.type
       : undefined;
+  }
+
+  /** A tag's import (the shared S2 components' module · RAC; a `div` is none). */
+  private importType(type: string): void {
+    if (CODE_VIEW_SHARED_COMPONENTS.has(type))
+      this.import("@composition/shared/components", type);
+    else if (type !== "div") this.import("react-aria-components", type);
+  }
+
+  /**
+   * ADR-301 Decision 1 — the template root an instance is written as (its tree), when the code
+   * can say all it holds there: its patches · fills at positions, one rule per position's When —
+   * else (a swap · an origin rule turned off · a bound list · its own text or children) the element with its
+   * `overrides` (296 — the code stays a 1:1 projection).
+   */
+  private expandedRootOf(node: NodeEntry): string | undefined {
+    const reader = this.doc.input.reader as never;
+    const root = codeViewExpandedRoot(reader, node.definitionId);
+    // (Its own children — written before the positions, placed after them by the resolver: the
+    // tree cannot say them in place — 판독 HIGH-1.)
+    if (!root || node.binding || node.children.length) return undefined;
+    const bound = codeViewExpandedBoundKeys(reader, root);
+    const text = node.props.children;
+    if (text?.kind === "set" && !bound.has("children")) return undefined;
+    for (const override of node.descendantOverrides) {
+      if (override.kind === "replace") return undefined;
+      if (Object.keys(override.interactions ?? {}).length) return undefined;
+      if (override.address.instances[0] !== node.id) return undefined;
+      if (!codeViewAddressKey(reader, override.address)) return undefined;
+    }
+    const whens = new Set<string>();
+    for (const rule of this.addressRules) {
+      if (rule.ownerId !== node.id) continue;
+      const key = codeViewAddressKey(reader, rule.address!);
+      if (!key) return undefined;
+      const when = `${key}\u0000${rule.trigger}`;
+      if (whens.has(when)) return undefined;
+      whens.add(when);
+    }
+    return root;
+  }
+
+  /** ADR-301 — an expanded instance's template positions under its root element. */
+  private writePositions(
+    out: CodeWriter,
+    node: NodeEntry,
+    root: string,
+    row: string | undefined,
+  ): void {
+    const template = this.doc.input.reader.library.templates.get(root as never);
+    for (const child of template?.children ?? [])
+      this.writePosition(out, node, [root, child as string], row);
+  }
+
+  /**
+   * ADR-301 Decision 1 · 2 · 3 — a template position of an expanded instance: its element (the
+   * template node's type · a nested origin instance as one element), the instance's values there
+   * (사용자 결정 5 — what it wrote: its patch, its props the position reads), `{false && …}` when off
+   * (사용자 결정 3), its slot fill's nodes in place, its class (the key's last segment — the CSS
+   * path's) and anchors on the position (`{kind: "position"}`).
+   */
+  private writePosition(
+    out: CodeWriter,
+    node: NodeEntry,
+    path: readonly string[],
+    row: string | undefined,
+  ): void {
+    const reader = this.doc.input.reader as never;
+    const template = this.doc.input.reader.library.templates.get(
+      path.at(-1) as never,
+    );
+    if (!template) return;
+    const address = {
+      instances: [node.id],
+      templatePath: path,
+    } as unknown as InstanceAddress;
+    const key = codeViewAddressKey(reader, address);
+    if (!key) return;
+    const unit = codeViewPositionUnit(node.id, key);
+    const override = node.descendantOverrides.find(
+      (item) =>
+        item.kind !== "replace" && codeViewSameAddress(item.address, address),
+    );
+    const patch = override as DescendantPatchFields | undefined;
+    const nested = template.definitionId.startsWith("lib:definition:origin-");
+    let type = codeViewTypeName(reader, template.definitionId);
+    if (type === "frame") type = "div";
+    const tag = (nested ? this.originTag(template, type) : undefined) ?? type;
+    this.importType(tag);
+    const attributes: { part: CodeWriter; target: CodeViewAnchorTarget }[] = [];
+    const attribute = (
+      name: string,
+      value: string,
+      source: "prop" | "handler" | "metadata" | "overrides" = "prop",
+      extra: Partial<Extract<CodeViewAnchorTarget, { kind: "attribute" }>> = {},
+    ) =>
+      attributes.push({
+        part: new CodeWriter().write(`${name}=${value}`),
+        target: { kind: "attribute", nodeId: unit, name, source, ...extra },
+      });
+    // The instance's values here: its props the position reads, then its patch (the patch wins).
+    const values = new Map<string, AuthoredValue>();
+    for (const [prop, from] of codeViewPositionBindings(template)) {
+      const write = node.props[from];
+      if (write?.kind === "set") values.set(prop, write.value as AuthoredValue);
+    }
+    for (const [prop, write] of Object.entries(patch?.props ?? {}) as [
+      string,
+      { kind: string; value?: unknown },
+    ][])
+      if (write.kind === "set") values.set(prop, write.value as AuthoredValue);
+      else values.delete(prop);
+    let text: string | RichText | undefined;
+    for (const [prop, value] of values) {
+      if (
+        prop === "children" &&
+        (typeof value === "string" || isRichText(value))
+      ) {
+        text = value;
+        continue;
+      }
+      const code = this.propCode(value, row, prop);
+      if (code !== undefined) attribute(prop, code);
+    }
+    // Its own rules (one per When — `expandedRootOf`).
+    for (const rule of this.addressRules)
+      if (
+        rule.ownerId === node.id &&
+        codeViewSameAddress(rule.address, address) &&
+        !DRAG_EVENTS.has(rule.trigger)
+      )
+        attribute(
+          rule.trigger,
+          `{${this.ruleFunction(rule, node, "  ".repeat(out.depth))}}`,
+          "handler",
+          { interactionIds: [rule.id] },
+        );
+    // A nested origin instance's insides — its `overrides`, keys from it (Decision 2).
+    if (nested) {
+      const inner = this.overridesCode(node, out.depth, key);
+      if (inner) attribute("overrides", inner, "overrides");
+    }
+    attribute("className", `"${key.split("/").at(-1)!}"`, "metadata");
+    const fill = override?.kind === "fillSlot" ? override.childIds : undefined;
+    const off = (patch?.enabled ?? template.enabled ?? true) === false;
+    // ADR-301 Decision 6 — an overlay body directly under its trigger: closed unless open (the
+    // judgement Canvas uses — `catalogOverlayOpen`: the body's own value, else its trigger's; a
+    // variable's Open is decided when it runs — closed, 사용자 결정 6).
+    if (path.length === 2 && OVERLAY_BODY_TYPES.has(type)) {
+      const authored = (props: Record<string, unknown>) =>
+        Object.fromEntries(
+          ["isOpen", "defaultOpen"].flatMap((key) => {
+            const value = props[key];
+            return typeof value === "boolean" ? [[key, value]] : [];
+          }),
+        );
+      const setOf = (writes: Record<string, unknown> | undefined) =>
+        Object.fromEntries(
+          Object.entries(writes ?? {}).flatMap(([key, write]) =>
+            (write as { kind?: string })?.kind === "set"
+              ? [[key, (write as { value: unknown }).value]]
+              : [],
+          ),
+        );
+      const body = {
+        id: "body",
+        parentId: "trigger",
+        props: authored(setOf(patch?.props as never)),
+        displayState: patch?.displayState ?? template.displayState,
+      } as unknown as CatalogConsumerNode;
+      const trigger = {
+        id: "trigger",
+        parentId: "",
+        props: authored(setOf(node.props as never)),
+      } as unknown as CatalogConsumerNode;
+      const rootType = codeViewTypeName(
+        reader,
+        this.doc.input.reader.library.templates.get(path[0] as never)
+          ?.definitionId ?? "",
+      );
+      this.bodies.set(
+        unit,
+        !catalogOverlayOpen(
+          body,
+          (id) => (id === "trigger" ? trigger : undefined),
+          (item) => (item.id === "trigger" ? rootType : type),
+        ),
+      );
+    }
+    out.start();
+    const from = out.length;
+    if (off) out.write("{false && ");
+    out.write(`<${tag}`);
+    for (const { part, target } of attributes) {
+      out.write(" ");
+      const at = out.length;
+      out.append(part).anchor(at, target);
+    }
+    const kids = fill ?? (nested ? [] : (template.children as string[]));
+    if (!kids.length && text === undefined) out.write(" />");
+    else if (!kids.length) {
+      out.write(">");
+      const at = out.length;
+      out
+        .write(this.childrenCode(text!, row))
+        .anchor(at, { kind: "text", nodeId: unit });
+      out.write(`</${tag}>`);
+    } else {
+      out.write(">").end().in();
+      if (text !== undefined)
+        out.anchorLine(this.childrenCode(text, row), {
+          kind: "text",
+          nodeId: unit,
+        });
+      if (fill) for (const child of fill) this.writeNode(out, child, row);
+      else
+        for (const child of kids)
+          this.writePosition(out, node, [...path, child], row);
+      out.out().start().write(`</${tag}>`);
+    }
+    if (off) out.write("}");
+    out.anchor(from, { kind: "position", ownerId: node.id, key });
+    out.end();
   }
 
   private bodyIsElement(body: NodeEntry): boolean {
@@ -2829,49 +3122,19 @@ class Generator {
       type = type === "frame" ? "div" : type;
     // ADR-296 Phase 5 — an instance of a user component is its component (`<Picker …/>`).
     const component = as ? undefined : this.componentTag(node);
-    const origin = as || component ? undefined : this.originTag(node, type);
+    // ADR-301 — a trigger · structure Library instance is its template tree (its root's RAC type).
+    const expanded =
+      as || component ? undefined : this.expandedRootOf(node);
+    const bound = expanded
+      ? codeViewExpandedBoundKeys(this.doc.input.reader as never, expanded)
+      : undefined;
+    const origin =
+      as || component || expanded ? undefined : this.originTag(node, type);
     if (as) this.import(CODE_VIEW_HELPERS_MODULE, as);
     else if (component) {
       const line = `import {${component}} from './components/${component}';`;
       if (!this.dataImports.includes(line)) this.dataImports.push(line);
-    } else if (origin)
-      this.import(
-        [
-          "ActionButton",
-          "ActionButtonGroup",
-          "Link",
-          "LinkButton",
-          "LabeledValue",
-          "RangeSlider",
-          "SliderThumb",
-          "SegmentedControl",
-          "SegmentedControlItem",
-          "ActionBar",
-          "SelectBoxGroup",
-          "SelectBox",
-        ].includes(origin)
-          ? "@composition/shared/components"
-          : "react-aria-components",
-        origin,
-      );
-    else if (
-      [
-        "ActionButton",
-        "ActionButtonGroup",
-        "Link",
-        "LinkButton",
-        "LabeledValue",
-        "RangeSlider",
-        "SliderThumb",
-        "SegmentedControl",
-        "SegmentedControlItem",
-        "ActionBar",
-        "SelectBoxGroup",
-        "SelectBox",
-      ].includes(type)
-    ) {
-      this.import("@composition/shared/components", type);
-    } else if (type !== "div") this.import("react-aria-components", type);
+    } else this.importType(origin ?? type);
     const attributes: { part: CodeWriter; target: CodeViewAnchorTarget }[] = [];
     const attribute = (
       name: string,
@@ -2900,6 +3163,8 @@ class Generator {
       // (ADR-287 — a prop a rule's implicit state holds is that state: its start is this value.)
       if (this.ruleStates.has(`${node.id}\u0000${prop}`)) continue;
       const value = write.value as AuthoredValue;
+      // (ADR-301 — a prop its template's positions read is written at them, not on the root.)
+      if (bound?.has(prop)) continue;
       if (
         prop === "children" &&
         (typeof value === "string" || isRichText(value))
@@ -3029,7 +3294,9 @@ class Generator {
     const ref = this.refs.get(node.id);
     if (ref) attribute("ref", `{${ref}}`, "ref" as never);
     // ADR-296 Phase 5 — the instance's own share inside its component (`overrides`).
-    const overrides = this.overridesCode(node, out.depth);
+    const overrides = expanded
+      ? undefined
+      : this.overridesCode(node, out.depth);
     if (overrides) attribute("overrides", overrides, "overrides");
     // ADR-296 Phase 5 — the node's declarations no RAC prop holds (a component's slot · a layout's
     // regions · placeholder · its presence conditions): one closed literal.
@@ -3061,9 +3328,10 @@ class Generator {
     const binding = node.binding;
     // ADR-296 Phase 5 — an instance's slot fills: the template root's are its children, a deeper
     // position's are a `<Slot name="<path>">` (a bound list's rows are its binding's).
-    const fills = binding
-      ? []
-      : codeViewSlotFills(this.doc.input.reader as never, node);
+    const fills =
+      binding || expanded
+        ? []
+        : codeViewSlotFills(this.doc.input.reader as never, node);
     const children = [
       ...node.children,
       ...fills.filter((fill) => fill.root).flatMap((fill) => fill.childIds),
@@ -3165,11 +3433,23 @@ class Generator {
         );
         out.out().start().write(`</${tag}>`);
       }
-    } else if (!children.length && !slots.length && text === undefined && !head)
+    } else if (
+      !children.length &&
+      !slots.length &&
+      text === undefined &&
+      !head &&
+      !expanded
+    )
       out.write(" />");
     else {
       out.write(">");
-      if (text !== undefined && !children.length && !slots.length && !head)
+      if (
+        text !== undefined &&
+        !children.length &&
+        !slots.length &&
+        !head &&
+        !expanded
+      )
         text$(this.childrenCode(text, row));
       else {
         out.end().in();
@@ -3181,6 +3461,7 @@ class Generator {
           });
         for (const child of children) this.writeNode(out, child, row);
         writeSlots(out);
+        if (expanded) this.writePositions(out, node, expanded, row);
         out.out().start();
       }
       out.write(`</${tag}>`);

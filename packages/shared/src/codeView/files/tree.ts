@@ -20,8 +20,7 @@ import type {
 } from "../types";
 import { generateAppFile } from "./app";
 import { generateToastFile } from "./toast";
-import { definitionTypeName } from "../../catalog/commands/context";
-import { codeViewPageNodes, generatePageStyleFile } from "./styles";
+import { generatePageStyleFile } from "./styles";
 import { CODE_VIEW_THEME_PATH, generateThemeFile } from "./theme";
 import {
   CODE_VIEW_HTML_PATH,
@@ -63,10 +62,11 @@ export type CodeViewFileKind =
   | "html"
   /** ADR-296 Phase 6 (결정 2) — `site.config.ts` (search · redirects · access). */
   | "siteConfig"
-  /** ADR-296 Phase 4 — `src/theme.css` (themes · tokens). */
-  | "theme"
-  /** ADR-296 Phase 4 — a component type's catalog rule CSS (read only — the generated sheet). */
-  | "catalogStyle";
+  /**
+   * ADR-296 Phase 4 — `src/theme.css` (themes · tokens). (The catalog rule sheets are not project
+   * files — not listed, ADR-301 Decision 7.)
+   */
+  | "theme";
 
 export interface CodeViewFileEntry {
   readonly path: string;
@@ -77,16 +77,9 @@ export interface CodeViewFileEntry {
   readonly readOnly?: boolean;
 }
 
-/** The read-only catalog sheets' folder (the component types' generated CSS). */
-export const CODE_VIEW_CATALOG_STYLE_DIR = "node_modules/@composition/catalog";
-
 /** The files of the project, in the tree's order (App first, then pages). */
 export function codeViewFileTree(
   reader: Pick<CatalogReader, "projectId" | "getEntry">,
-  options: {
-    /** The component types whose catalog sheet exists (absent = none listed). */
-    readonly catalogStyles?: ReadonlySet<string>;
-  } = {},
 ): CodeViewFileEntry[] {
   const project = reader.getEntry(reader.projectId) as ProjectEntry;
   const names = codeViewProjectNames(reader);
@@ -161,26 +154,6 @@ export function codeViewFileTree(
       id: origin.id,
       readOnly: true,
     });
-  // ADR-296 Phase 4 — the catalog sheets of the component types the pages use (read only).
-  if (options.catalogStyles?.size) {
-    const types = new Set<string>();
-    for (const pageId of names.pages.keys())
-      for (const node of codeViewPageNodes(reader, pageId)) {
-        try {
-          const type = definitionTypeName(reader as never, node.definitionId);
-          if (options.catalogStyles.has(type)) types.add(type);
-        } catch {
-          // (a dangling definition has no sheet)
-        }
-      }
-    for (const type of [...types].sort())
-      files.push({
-        path: `${CODE_VIEW_CATALOG_STYLE_DIR}/${type}.css`,
-        kind: "catalogStyle",
-        id: type,
-        readOnly: true,
-      });
-  }
   return files;
 }
 
@@ -239,14 +212,6 @@ export function generateCodeViewFile(
     }
     case "theme":
       return generateThemeFile({ reader });
-    case "catalogStyle":
-      // (Its text is the generated sheet — the builder reads it; the code view does not generate it.)
-      return {
-        code: "",
-        slots: [],
-        anchors: [],
-        symbols: { variables: {}, fields: {} },
-      };
     default:
       throw new Error(`CODE_VIEW_FILE_KIND: ${file.kind as string}`);
   }

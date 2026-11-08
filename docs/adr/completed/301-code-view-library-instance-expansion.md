@@ -2,17 +2,25 @@
 
 ## Status
 
-Proposed — 2026-11-05
+Implemented — 2026-11-08 (Accepted 2026-11-08 — 사용자 `/execute-adr 301` + [reviews/301](../reviews/301.md) 최신 round pending 0 · HIGH fixed)
 
-> 설계 수리 검증 (2026-11-05, codex): [round 2](reviews/301.md) — h1 · h2 · m3 설계상 fixed, HIGH 0 · MEDIUM 0 · pending 0. breakdown 경로표의 이전 요약 (LOW l4) 은 2026-11-06 정정 — 리뷰 루프 종결 (pending 0). 구현·live·성능 gate는 UNVERIFIED이며 Proposed를 유지한다.
+> **Phase 0 ~ 4 닫힘 (2026-11-08, `/execute-adr 301`)** — 상세 기록: [breakdown §7](../design/301-code-view-library-instance-expansion-breakdown.md).
+>
+> - **Phase 0 (G0)**: B 수리 main 반영 (`2620043a8`) · 팔레트 68 (설계 때 62 → S2 6 추가) 순회 — 펼침 판정 그대로 6 trigger 가족. 사용자 결정 1 · 2 · 5 · 7 = 권고안. **결정 1 정정**: 질문에서 TagGroup · ActionBar 를 구조형으로 묶었으나 레퍼런스 사용 코드는 요소 하나 (RAC `<TagGroup label><Tag/>` · S2 `<ActionBar><ActionButton/>`) — template 사실 「루트의 직계 자식이 **모두** RAC 요소 slot 자리」 로 좁혀 **Tabs · Table · Card** 만 펼친다 (Card 는 CardView 안 instance — S2 `<Card><CardPreview>…<Content>…<Footer>`).
+> - **Phase 1 (G1)**: 생성 `writePositions` · `writePosition` (자리 = template 노드 · 중첩 원본은 요소 하나 + 그 안쪽 `overrides` · 작성 값만 · `{false &&}` · slot 채움 inline) · `position` anchor · 펼친 루트 `overrides` 없음 · 표현 못 하는 문서 (replace · 원본 규칙 off · 바운드 · 같은 When 규칙 둘) 는 접힌 모양으로 둔다. 역문법: 자리 unit (identity — owner 별 state) · 자리 visit · `readOnlyPosition`. G1 16/16 (레퍼런스 구조 동치 8 가족 + Card · 나머지 불변 · 팔레트 68 × 2 instance strict 왕복 · 컴포넌트 파일 안 펼친 instance) · 원복 RED 13/16.
+> - **Phase 2 (G2)**: `planPosition` — patch 가 있으면 patch · 바인딩 `{key}` 를 이 자리만 읽으면 instance prop · 그 밖 새 patch · 제거는 그 층을 푼다 · handler = 자리 규칙 · 중첩 `overrides` · `{false &&}` / 통째 삭제 = `enabled:false` + 재생성 대조의 그 요소만 건너뜀 (`hiddenPositions`) · 거절 + 패널의 Unlock 버튼. 사용자 결정 3 · 4 = 권고안. **296 결함 수리**: unlock 된 Library 원본의 Local 파일 편집이 className 대조로 전부 거절되던 것 (planner 가 `lib:` 정의를 못 읽어 class 표가 비었다 — `codeViewApply.ts` 가 생성기와 같은 `codeViewLibraryReader` 를 planner 에 준다). G2 18/18 · 원복 RED 4 (체인 · 바인딩 분기 · 삭제 정규화 · unlock reader).
+> - **Phase 3 (G3)**: 닫힌 본체 fold — `CodeViewResult.folds` (판정 = `catalogOverlayOpen`, 변수 Open 은 닫힘 — 사용자 결정 6 = 권고안) · `CodeEditor` 는 Open 이 바뀐 자리만 다시 적용 · Files 에서 catalog CSS 제거 (`catalogStyle` 파일 종류 삭제). G3 12/12 · 원복 RED 1.
+> - **Phase 4 (G4 · G5)**: 번들 (base `0d43803f6` worktree 대조, initial JS gz) Builder **+231 B** · Preview +1 B (entry 의 lazy chunk 파일 이름 hash — 코드 무변) · 생성 시간 (Menu 10 + Popover 10 + Dialog 10 page) 3.0 → 4.0 ms (×1.33 ≤ ×2). live 5174 16/16.
+
+> 설계 수리 검증 (2026-11-05, codex): [round 2](../reviews/301.md) — h1 · h2 · m3 설계상 fixed, HIGH 0 · MEDIUM 0 · pending 0. breakdown 경로표의 이전 요약 (LOW l4) 은 2026-11-06 정정 — 리뷰 루프 종결 (pending 0). 구현·live·성능 gate는 UNVERIFIED이며 Proposed를 유지한다.
 
 - 사용자 요청: `/create-adr` (2026-11-05) — 같은 대화에서 Popover 의 RAC 레퍼런스 코드 (`<DialogTrigger><Button …/><Popover><div style={{display:'flex', …}}><Switch>…</Switch></div></Popover></DialogTrigger>`) 와 코드 패널 출력 (`<DialogTrigger><Slot name="frame"><Heading …/><Description …/></Slot></DialogTrigger>`) 을 나란히 보인 뒤 → 「B. 접은 모양 유지 + 결함 2개만 수리로 진행하고, /create-adr A. 레퍼런스처럼 펼치기. 는 병렬로 설계해」.
 - 방향을 정한 사용자 원칙: 「code view 로 했을 때 그 (레퍼런스) 형태가 그대로 나와야겠지」 (2026-10-26, 메모리 `project-code-view-is-rac-reference-code`) · 코드 편집은 닫힌 어휘 전체 양방향 (2026-10-27, ADR-285) · 「불가 → 스크립트 escape」 금지 (`project-builder-purpose-labor-cost-consistency`).
 - 사용자가 이미 답한 것: **B 는 ADR-296 범위 안의 수리로 메인 세션이 진행한다** (slot 이름 = template 이 선언한 `slot.name` · 접힌 태그 = 놓은 **팔레트 type** `<Popover>` — `react-aria-components` import 그대로, `catalogPaletteDefinitionId` 가 같은 원본으로 읽는 이름. B 는 2026-11-05 메인 세션이 끝냈다 — 커밋 `2620043a8`, `generate.ts` `originTag` · `files/overrides.ts` `codeViewSlotKey`, `adr296LibraryOverlay.test.tsx` 7) — 이 ADR 은 **B 위에 얹힌다**. Library 원본은 읽기 전용 + 「unlock」 (ADR-282 · 296 사용자 결정 3) 을 그대로 둔다.
-- ADR 분리 4 질문 lock-in (adr-writing §fork): [breakdown §1](design/301-code-view-library-instance-expansion-breakdown.md) — 이 요청 자체가 「296 Decision 4 의 Library instance 부분을 새 ADR 로」 의 confirm 이다 (사용자 지시 「/create-adr A」). 재질문하지 않는다.
+- ADR 분리 4 질문 lock-in (adr-writing §fork): [breakdown §1](../design/301-code-view-library-instance-expansion-breakdown.md) — 이 요청 자체가 「296 Decision 4 의 Library instance 부분을 새 ADR 로」 의 confirm 이다 (사용자 지시 「/create-adr A」). 재질문하지 않는다.
 - **범위 개정 (2026-11-05, 사용자 결정 — 결정 지점 ④)**: 초안은 「레퍼런스는 Select 도 전개한다」 고 잘못 읽어 Library 원본 157 전부를 펼쳤다. 레퍼런스 실측 뒤 사용자 답: 범위 = 「조립형만 펼침」 · Files 목록 = 「Library 파일 유지」 (catalog CSS 만 목록에서 뺀다). 같은 대화의 사용자 지적이 이 개정을 낳았다 — 「하드코딩으로 select의 child option을 100개씩 넣지는 않는다. collection 으로 data sync 처리할것인데」 · 「레퍼런스에도 dynamic collection 으로 하지않나」. 닫힌 overlay 접기는 사용자 아이디어 (「미러코드에 접기기능이있으니 open토글 에따라 접어두는 방법」).
 - 범위 밖: **필드 래퍼 · 그 밖의 Library instance** — 지금 모양 (요소 하나 + `overrides`). **Local (project) 컴포넌트 instance** — 지금처럼 `<Name …/>` + `overrides={{…}}` (296 Decision 4 그대로, 원본 파일 `src/components/<Name>.tsx` 가 펼친 모양을 가진다). 컴포넌트 파일 안의 trigger 조립형 instance (template 안 template) 는 이 ADR 의 같은 규칙으로 펼친다.
-- 리뷰 · 착수는 사용자 요청 때 (`/review-adr 301` → `/execute-adr 301`).
+- 리뷰 · 착수는 사용자 요청 때 (`/review-adr 301` → `/execute-adr 301`). **사용자 결정 7 건 답 (2026-11-08)**: 1 = 같은 문법으로 펼침 (판정 정정 — Tabs · Table · Card, 위 Status) · 2 = `<OverlayArrow />` · 3 = `{false &&}` · 4 = 숨김으로 받기 · 5 = 작성한 값만 · 6 = 접기 · 7 = `<div className="frame">`.
 
 ## Context
 
@@ -102,7 +110,7 @@ HIGH 0 인 대안 (E) 이 있어 루프 종료. E 의 MEDIUM 은 Gates (G1 · G2
 
 **기각 사유**: A — 레퍼런스의 사용 코드는 필드 래퍼를 요소 하나로 쓴다 (초안의 「레퍼런스도 전개」 는 `Select.tsx` 컴포넌트 파일을 사용 코드로 잘못 읽었다) · 157 전수 표면. B — trigger 조립형에서 목표를 비운다 (B 수리는 이 ADR 의 선행으로 남는다). C — 10-27 「닫힌 어휘 전체 양방향」 위반, 거절 표만 커진다. D — prop 하나로 instance 가 Local 로 갈라져 패널과 결과가 다르고 282 의 명시적 unlock 과 충돌.
 
-> 구현 상세: [301-code-view-library-instance-expansion-breakdown.md](design/301-code-view-library-instance-expansion-breakdown.md)
+> 구현 상세: [301-code-view-library-instance-expansion-breakdown.md](../design/301-code-view-library-instance-expansion-breakdown.md)
 
 ### 사용자 결정 7 건 (execute-adr 가 그 항목에 닿을 때 묻는다 — 4 결정 지점 밖)
 
@@ -143,7 +151,12 @@ HIGH 0 인 대안 (E) 이 있어 루프 종료. E 의 MEDIUM 은 Gates (G1 · G2
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+2026-11-08 — 별도 dev 서버 5174 (사용자 5173 무접촉), headed Chrome Compare Mode, 새 프로젝트에 팔레트로 Popover 2 · Select 1. 스크립트 `.agent/runs/2026-11-08-adr301-phase4/live.mjs` → `artifacts/live-5174.json` · 스크린샷 3 (local 전용). **16/16 PASS**:
+
+- 코드 패널 (전체 메뉴 → Code): Popover 는 `<DialogTrigger><Button className="button" /><Popover className="popover"><OverlayArrow …/><div className="frame">…` · `<Slot>` 없음 · Select 는 `<Select><Slot name="list-box/Items">` 그대로 (요소 하나) · 닫힌 본체 2 개가 접힌 채 열림 · Files 에 catalog CSS 없음, `node_modules/@composition/library/Popover.tsx` · `Select.tsx` 유지.
+- 첫 Popover 를 편집기에서 ① Heading 글자 `Hello` ② trigger `<Button label="Settings" …>` ③ frame 에 `<Switch>Mute</Switch>` ④ Description 삭제 → Apply 1 번 (「Applied 4 change(s)」, History +1): 문서 = trigger 자리 patch `label` (instance prop 아님) · fill `[Switch, Heading]` · 둘째 Popover 무변화. Canvas 글자 record `Settings` / `Open Popover` · Preview 버튼 같은 둘 · Preview 에서 Settings 를 눌러 연 dialog 글자 `MuteHello` (Description 없음).
+- 편집기 포커스에서 ⌘Z 1 (History 4 → 3, patch 사라짐) · ⇧⌘Z 복원 · 새로고침 뒤 유지 · instance `isOpen` 켬 → 코드 `<DialogTrigger isOpen={true}>` 와 그 본체 fold 해제 (fold 2 → 1) · 콘솔 오류 0.
+- 커밋 전 `/verify` (2026-11-08, 판독 HIGH-1 수리 뒤 코드 · `catalogSheets.ts` 삭제 뒤): 같은 스크립트를 5174 에서 다시 실행 → **16/16 PASS** · 콘솔 오류 0 (`artifacts/verify/live-5174.json`).
 
 ## Consequences
 

@@ -15,6 +15,11 @@ import {
 } from "./interactions";
 import {
   codeViewAddressOf,
+  codeViewExpandedBoundKeys,
+  codeViewExpandedRoot,
+  codeViewPositionBindings,
+  codeViewPositionOf,
+  codeViewPositionUnit,
   codeViewTemplateRoot,
   codeViewRootSlot,
   codeViewRuleKeys,
@@ -24,6 +29,7 @@ import {
 import {
   parseCodeViewOverrides,
   type CodeViewOverrideEntry,
+  type CodeViewOverrideRules,
 } from "../../../../../packages/shared/src/codeView/inverse/overrides";
 import {
   codeViewNodeClasses,
@@ -77,6 +83,7 @@ import type {
   CatalogEntry,
   EntryId,
   AuthoredValue,
+  DescendantPatchFields,
   InstanceAddress,
   InteractionAction,
   NodeParent,
@@ -200,7 +207,13 @@ export type CatalogCodeViewReason =
    * ADR-296 Phase 4 · 5 — a read-only file or value (a catalog rule's sheet · a spec token · a value
    * only the Design panel holds · a Library origin) was edited.
    */
-  | "readOnlyFile";
+  | "readOnlyFile"
+  /**
+   * ADR-301 Decision 4 — a structure edit at a Library origin's template position (an element
+   * outside its slot · a type change · a move): the origin is read only — unlock it (detail = the
+   * origin's definition id).
+   */
+  | "readOnlyPosition";
 
 export interface CatalogCodeViewRejection {
   /** 1-based line of the edited code. */
@@ -483,6 +496,257 @@ class Planner {
   private readonly variables = new Map<string, string>();
   private readonly baseline: CodeViewResult;
   private readonly page: PageEntry;
+  /** ADR-301 — the instances the baseline wrote as their template tree (a `position` anchor's). */
+  private readonly baselineExpanded = new Set<string>();
+
+  /** ADR-301 — the Library origin of an expanded instance (the unlock snippet's target). */
+  private positionOrigin(ownerId: string): string {
+    return (this.reader.getEntry(ownerId) as NodeEntry | undefined)?.definitionId ?? ownerId;
+  }
+
+  /**
+   * ADR-301 Decision 4 — a template position's element edited, written where the value lives: a
+   * prop with a patch at the position → the patch; one its template binds to the instance's prop
+   * (`size: "{size}"`) that only this position reads → the instance's prop (a patch would hide it);
+   * else a new patch. `{false && …}` → `enabled`; a handler → the position's own rule; a nested
+   * instance's `overrides` → its insides (296's grammar). Instance commands only — the Design
+   * panel's for the same position.
+   */
+  private planPosition(
+    element: CodeViewElement,
+    position: { readonly ownerId: string; readonly key: string },
+  ): void {
+    const reader = this.reader;
+    const owner = reader.getEntry(position.ownerId) as NodeEntry | undefined;
+    const address = codeViewAddressOf(
+      reader as never,
+      position.ownerId,
+      position.key,
+      undefined,
+      true,
+    );
+    const template = address
+      ? reader.library.templates.get(address.templatePath.at(-1) as never)
+      : undefined;
+    const root = owner
+      ? codeViewExpandedRoot(reader as never, owner.definitionId)
+      : undefined;
+    if (!owner || !address || !template || !root) return;
+    const unit = codeViewPositionUnit(position.ownerId, position.key);
+    const target = {
+      kind: "descendant" as const,
+      ownerId: owner.id as NodeId,
+      address,
+    };
+    const from = element.from;
+    const patch = owner.descendantOverrides.find(
+      (item) =>
+        item.kind !== "replace" && codeViewSameAddress(item.address, address),
+    ) as DescendantPatchFields | undefined;
+    // `{false && …}` (사용자 결정 3 · 4).
+    const anchor = this.baseline.anchors.find(
+      (item) =>
+        item.target.kind === "position" &&
+        item.target.ownerId === position.ownerId &&
+        item.target.key === position.key,
+    );
+    const wasOff = !!anchor && /^\{false && /.test(this.code(anchor));
+    const nowOff = element.visibleState === "false";
+    if (element.visibleState !== undefined && !nowOff) {
+      this.reject(from, "notInCode", element.visibleState);
+      return;
+    }
+    if (wasOff !== nowOff)
+      this.step(
+        from,
+        setWholeField({
+          targets: [target],
+          field: "enabled",
+          value: nowOff ? false : template.enabled === false ? true : undefined,
+        }),
+      );
+    // The baseline's attributes · text at this position.
+    const was = new Map<string, string>();
+    let wasText: string | undefined;
+    for (const item of this.baseline.anchors)
+      if (item.target.kind === "attribute" && item.target.nodeId === unit)
+        was.set(item.target.name, this.code(item));
+      else if (item.target.kind === "text" && item.target.nodeId === unit)
+        wasText = this.code(item);
+    const now = new Map(element.attributes.map((item) => [item.name, item]));
+    const bindings = codeViewPositionBindings(template);
+    const readers = codeViewExpandedBoundKeys(reader as never, root);
+    const patchProps: Record<string, WriteValue<AuthoredValue>> = {};
+    const rootProps: Record<string, WriteValue<AuthoredValue>> = {};
+    /** One prop's write at the layer that makes its value (Decision 4). */
+    const write = (prop: string, value: AuthoredValue | undefined) => {
+      const key = bindings.get(prop);
+      const single = key !== undefined && readers.get(key) === 1;
+      const patched = !!patch?.props && prop in patch.props;
+      if (value === undefined) {
+        if (patched) patchProps[prop] = { kind: "remove" };
+        if (single && owner.props[key!]?.kind === "set")
+          rootProps[key!] = { kind: "remove" };
+        else if (!patched && key !== undefined)
+          patchProps[prop] = { kind: "remove" };
+        return;
+      }
+      if (!patched && single) rootProps[key!] = { kind: "set", value };
+      else patchProps[prop] = { kind: "set", value };
+    };
+    const handlers: string[] = [];
+    for (const name of new Set([...was.keys(), ...now.keys()])) {
+      if (name === "className" || name === "ref") continue;
+      if (/^on[A-Z]/.test(name) || name.startsWith("property:")) {
+        handlers.push(name);
+        continue;
+      }
+      if (name === "overrides") continue;
+      const edited = now.get(name);
+      const before = was.get(name);
+      if (
+        edited &&
+        before !== undefined &&
+        codeViewNormalized(this.input.edited.slice(edited.from, edited.to)) ===
+          codeViewNormalized(before)
+      )
+        continue;
+      if (!edited) write(name, undefined);
+      else {
+        const value = this.propValue(edited);
+        if (value !== undefined) write(name, value as AuthoredValue);
+      }
+    }
+    const text = element.text;
+    if (
+      (wasText ? codeViewNormalized(wasText) : undefined) !==
+      (text ? codeViewNormalized(text.code) : undefined)
+    ) {
+      if (!text) write("children", undefined);
+      else {
+        const value = this.childrenValue(text.code, text.from, element);
+        if (value !== undefined) write("children", value as AuthoredValue);
+      }
+    }
+    if (Object.keys(rootProps).length)
+      this.step(
+        from,
+        setFields({
+          targets: [{ kind: "node", id: owner.id as NodeId }],
+          props: rootProps,
+          label: "Code",
+        }),
+      );
+    if (Object.keys(patchProps).length)
+      this.step(
+        from,
+        setFields({ targets: [target], props: patchProps, label: "Code" }),
+      );
+    // Its own rules: a handler is the position's rule on that When (`expandedRootOf` — one each).
+    if (handlers.length) {
+      const rulesOf = (
+        codes: readonly { trigger: string; code: string; from: number }[],
+      ): CodeViewOverrideEntry | undefined => {
+        const rules: CodeViewOverrideRules[] = [];
+        for (const item of codes) {
+          const fn = /^[\w:$]+=\{([\s\S]*)\}$/.exec(item.code.trim())?.[1];
+          const parsed = fn
+            ? parseCodeViewOverrides(`{'x': {onX: rules({own: [${fn}]})}}`)
+            : undefined;
+          const own =
+            parsed && !("error" in parsed)
+              ? parsed.entries[0]?.rules[0]?.own[0]
+              : undefined;
+          if (!own) {
+            this.reject(item.from, "outsideVocabulary", item.trigger);
+            return undefined;
+          }
+          rules.push({
+            trigger: item.trigger,
+            from: item.from,
+            inherited: new Map(),
+            own: [{ ...own, from: item.from }],
+          });
+        }
+        return { key: position.key, from, props: new Map(), rules };
+      };
+      const before = rulesOf(
+        handlers
+          .filter((name) => was.has(name))
+          .map((name) => ({ trigger: name, code: was.get(name)!, from })),
+      );
+      const after = rulesOf(
+        handlers
+          .filter((name) => now.has(name))
+          .map((name) => {
+            const item = now.get(name)!;
+            return {
+              trigger: name,
+              code: this.input.edited.slice(item.from, item.to),
+              from: item.from,
+            };
+          }),
+      );
+      if (before && after)
+        this.planOverrideRules(owner, address, after, before, from);
+    }
+    // A nested origin instance's insides (Decision 2 — its `overrides`, keys from it).
+    if (
+      template.definitionId.startsWith("lib:definition:origin-") &&
+      (now.has("overrides") || was.has("overrides"))
+    )
+      this.planOverrides(element, owner, { unit, prefix: position.key });
+  }
+
+  /**
+   * ADR-301 Decision 4 (사용자 결정 4) — a template position's element deleted whole: the position
+   * hidden (`enabled: false` — the same patch as `{false && …}`), and the regenerated check skips
+   * that one element (`hiddenPositions` — R9).
+   */
+  private removedPosition(position: {
+    readonly ownerId: string;
+    readonly key: string;
+  }): void {
+    const address = codeViewAddressOf(
+      this.reader as never,
+      position.ownerId,
+      position.key,
+      undefined,
+      true,
+    );
+    if (!address) {
+      this.reject(0, "unknownReference", position.key);
+      return;
+    }
+    const anchor = this.baseline.anchors.find(
+      (item) =>
+        item.target.kind === "position" &&
+        item.target.ownerId === position.ownerId &&
+        item.target.key === position.key,
+    );
+    this.hiddenPositions.push({
+      ownerId: position.ownerId,
+      className: position.key.split("/").at(-1)!,
+    });
+    // (Already hidden — the code just leaves it out: nothing to write.)
+    if (anchor && /^\{false && /.test(this.code(anchor))) return;
+    this.step(
+      anchor?.start ?? 0,
+      setWholeField({
+        targets: [
+          {
+            kind: "descendant",
+            ownerId: position.ownerId as NodeId,
+            address,
+          },
+        ],
+        field: "enabled",
+        value: false,
+      }),
+    );
+  }
+  /** ADR-301 R9 — the positions the edit deleted whole (hidden): their regenerated `{false && …}`. */
+  readonly hiddenPositions: { ownerId: string; className: string }[] = [];
 
   constructor(
     private readonly input: PlanInput,
@@ -491,6 +755,9 @@ class Planner {
     private readonly reject: Reject,
   ) {
     this.baseline = input.session.baseline;
+    for (const anchor of this.baseline.anchors)
+      if (anchor.target.kind === "position")
+        this.baselineExpanded.add(anchor.target.ownerId);
     this.page = input.component
       ? codeViewComponentPage(input.component)
       : (input.reader.getEntry(input.session.pageId) as PageEntry);
@@ -1037,12 +1304,23 @@ class Planner {
     const { reader } = this;
     const baseline = this.baseline;
     // The baseline's elements: their units (the enclosing node anchor is the parent).
+    // (ADR-301 — an expanded instance's template positions are units too: `position` anchors.)
+    const unitOf = (target: CodeViewAnchor["target"]) =>
+      target.kind === "node"
+        ? target.nodeId
+        : target.kind === "position"
+          ? codeViewPositionUnit(target.ownerId, target.key)
+          : "";
     const nodeAnchors = baseline.anchors
       .map((anchor, index) => ({ anchor, outcome: this.outcomes[index]! }))
-      .filter((item) => item.anchor.target.kind === "node");
+      .filter(
+        (item) =>
+          item.anchor.target.kind === "node" ||
+          item.anchor.target.kind === "position",
+      );
     const units: CodeViewIdentityUnit[] = nodeAnchors.map(
       ({ anchor, outcome }) => {
-        const id = (anchor.target as { nodeId: string }).nodeId;
+        const id = unitOf(anchor.target);
         const parent = nodeAnchors
           .filter(
             (other) =>
@@ -1054,16 +1332,15 @@ class Planner {
         const node = reader.getEntry(id) as NodeEntry;
         return {
           id,
-          ...(parent
-            ? { parentId: (parent.anchor.target as { nodeId: string }).nodeId }
-            : {}),
+          ...(parent ? { parentId: unitOf(parent.anchor.target) } : {}),
           type:
             /^\{?[\w$]+ && <([\w$.]+)|^<([\w$.]+)/
               .exec(this.code(anchor))
               ?.slice(1)
               .find(Boolean) ?? "",
           code: this.code(anchor),
-          state: stateOf(reader, node),
+          // (A position is its owner's — two instances' same position never pair by text.)
+          state: node ? stateOf(reader, node) : JSON.stringify({ position: id }),
           outcome,
         };
       },
@@ -1077,12 +1354,20 @@ class Planner {
       this.reject(span.from, "ambiguousIdentity");
     for (const element of identity.added) this.added.add(element);
 
+    // ADR-301 — a template position taken out of the code (its element deleted whole).
+    for (const id of identity.removed) {
+      const position = codeViewPositionOf(id);
+      if (position) this.removedPosition(position);
+    }
+    const removedNodes = identity.removed.filter(
+      (id) => !codeViewPositionOf(id),
+    );
     // Removed elements (with what reads them — decision 3).
-    if (identity.removed.length)
+    if (removedNodes.length)
       this.step(
         0,
         removeTargets({
-          targets: identity.removed.map((id) => ({
+          targets: removedNodes.map((id) => ({
             kind: "node" as const,
             id: id as NodeId,
           })),
@@ -1201,10 +1486,61 @@ class Planner {
       ))
         fill(inner);
     };
+    /**
+     * ADR-301 — an expanded instance's position: its fill's children (a slot position) are placed
+     * and visited as a node's; its own positions are visited; nothing else is the code's to add.
+     */
+    const visitPosition = (
+      element: CodeViewElement,
+      position: { readonly ownerId: string; readonly key: string },
+    ) => {
+      this.planPosition(element, position);
+      const address = codeViewAddressOf(
+        reader as never,
+        position.ownerId,
+        position.key,
+        undefined,
+        true,
+      );
+      const target = address?.templatePath.at(-1);
+      const template = target
+        ? reader.library.templates.get(target as never)
+        : undefined;
+      if (!address || !template) {
+        this.reject(element.from, "unknownReference", position.key);
+        return;
+      }
+      const inner = element.children.filter(
+        (child) => !!codeViewPositionOf(ids.get(child) ?? ""),
+      );
+      for (const child of inner)
+        visitPosition(child, codeViewPositionOf(ids.get(child)!)!);
+      const rest = element.children.filter((child) => !inner.includes(child));
+      if (!rest.length) return;
+      if (!template.slot || inner.length) {
+        this.reject(
+          rest[0]!.from,
+          "readOnlyPosition",
+          this.positionOrigin(position.ownerId),
+        );
+        return;
+      }
+      placeChildren(
+        slotPlace(position.ownerId, address),
+        rest,
+        element.from,
+      );
+      visitChildren(rest);
+    };
     const visitChildren = (children: readonly CodeViewElement[]) => {
       for (const child of children) {
         const id = ids.get(child);
         if (!id) continue;
+        const position = codeViewPositionOf(id);
+        if (position) {
+          visitPosition(child, position);
+          continue;
+        }
         if (!this.added.has(child)) this.planAttributes(child, id);
         else {
           fill(child);
@@ -1223,6 +1559,24 @@ class Planner {
       // ADR-296 Phase 5 — an instance's children fill its template root's slot; a `<Slot
       // name="<path>">` fills that position (instance commands — descendant parents).
       const parent = reader.getEntry(parentId) as NodeEntry | undefined;
+      // ADR-301 — an expanded instance's children are its template's positions (no new element).
+      if (
+        parent?.kind === "node" &&
+        codeViewExpandedRoot(reader as never, parent.definitionId) &&
+        this.baselineExpanded.has(parentId)
+      ) {
+        for (const child of children) {
+          const position = codeViewPositionOf(ids.get(child) ?? "");
+          if (position?.ownerId === parentId) visitPosition(child, position);
+          else
+            this.reject(
+              child.from,
+              "readOnlyPosition",
+              this.positionOrigin(parentId),
+            );
+        }
+        return;
+      }
       const rootSlot =
         parent?.kind === "node"
           ? codeViewRootSlot(reader as never, parent)
@@ -1599,6 +1953,24 @@ class Planner {
     );
     return this.styled;
   }
+  /**
+   * ADR-301 — a new element typed by its palette name (`<Popover />`) whose origin the code writes
+   * as its template tree: the tree's root type (`DialogTrigger`); undefined = not such an origin.
+   */
+  expandedTypeOf(element: CodeViewElement): string | undefined {
+    if (!this.added.has(element)) return undefined;
+    const definitionId = catalogPaletteDefinitionId(
+      this.reader.library,
+      element.type,
+    );
+    const root = codeViewExpandedRoot(this.reader as never, definitionId);
+    const template = root
+      ? this.reader.library.templates.get(root as never)
+      : undefined;
+    return template
+      ? definitionTypeName(this.reader, template.definitionId as never)
+      : undefined;
+  }
   /** Each code element's node (kept · new). */
   elementIds(): ReadonlyMap<CodeViewElement, string> {
     return this.ids ?? new Map();
@@ -1615,14 +1987,19 @@ class Planner {
    * (`catalogInheritedRuleEnabledCommand`) · replaced (`catalogReplaceInheritedRuleCommand`), the
    * position's own rules (`setNodeInteractions` at the address). Never an origin command.
    */
-  private planOverrides(element: CodeViewElement, node: NodeEntry): void {
+  private planOverrides(
+    element: CodeViewElement,
+    node: NodeEntry,
+    /** ADR-301 Decision 2 — a nested instance position of an expanded `node`: its insides. */
+    nested?: { readonly unit: string; readonly prefix: string },
+  ): void {
     const attribute = element.attributes.find(
       (item) => item.name === "overrides",
     );
     const anchor = this.baseline.anchors.find(
       (item) =>
         item.target.kind === "attribute" &&
-        item.target.nodeId === node.id &&
+        item.target.nodeId === (nested?.unit ?? node.id) &&
         item.target.name === "overrides",
     );
     const valueOf = (code: string) =>
@@ -1655,7 +2032,7 @@ class Planner {
       const address = codeViewAddressOf(
         this.reader as never,
         node.id,
-        key,
+        nested ? `${nested.prefix}/${key}` : key,
         node.definitionId,
       );
       if (!address) {
@@ -2162,7 +2539,13 @@ class Planner {
   private planAttributes(element: CodeViewElement, id: string): void {
     const node = this.reader.getEntry(id) as NodeEntry;
     const type = definitionTypeName(this.reader, node.definitionId);
-    this.planOverrides(element, node);
+    // ADR-301 Decision 5 — an expanded instance's share is at its positions, not an `overrides`.
+    const overrides = element.attributes.find(
+      (item) => item.name === "overrides",
+    );
+    if (this.baselineExpanded.has(id) && overrides)
+      this.reject(overrides.from, "outsideVocabulary", "overrides");
+    else this.planOverrides(element, node);
     this.planDeclarations(element, node);
     const before = this.baseline.anchors.filter(
       (anchor) =>
@@ -3517,11 +3900,37 @@ function compareRegenerated(
     reject(edited.component?.from ?? 0, "outsideVocabulary");
   // Elements: the same tree, each written attribute · text as written (a new element may gain
   // its palette defaults).
+  /** The owner an edited element's children are positions of (an expanded instance · a position). */
+  const ownerOf = (parent: CodeViewElement | undefined) => {
+    const id = parent ? planner.elementIds().get(parent) : undefined;
+    return id ? (codeViewPositionOf(id)?.ownerId ?? id) : undefined;
+  };
   const compare = (
     a: readonly CodeViewElement[],
-    b: readonly CodeViewElement[],
+    given: readonly CodeViewElement[],
     parentFrom: number,
+    parent?: CodeViewElement,
   ) => {
+    // ADR-301 R9 — a position the edit deleted whole comes back hidden (`{false && …}`): only that
+    // element (its owner · class · hidden state) is not compared.
+    const owner = ownerOf(parent);
+    const hidden = planner.hiddenPositions.filter(
+      (item) => item.ownerId === owner,
+    );
+    const b = hidden.length
+      ? given.filter(
+          (element) =>
+            !(
+              element.visibleState === "false" &&
+              hidden.some(
+                (item) =>
+                  element.attributes.find((attr) => attr.name === "className")
+                    ?.value?.code === item.className,
+              ) &&
+              a.length < given.length
+            ),
+        )
+      : given;
     if (a.length !== b.length) {
       const extra = a[b.length] ?? a.at(-1);
       reject(extra?.from ?? parentFrom, "notInCode");
@@ -3531,7 +3940,8 @@ function compareRegenerated(
       const other = b[index]!;
       const fresh = planner.added.has(element);
       if (
-        element.type !== other.type ||
+        (element.type !== other.type &&
+          planner.expandedTypeOf(element) !== other.type) ||
         element.visibleState !== other.visibleState
       ) {
         reject(element.from, "notInCode");
@@ -3615,7 +4025,7 @@ function compareRegenerated(
             )
           : other.children;
       if (!(fresh && !element.children.length))
-        compare(element.children, gained, element.from);
+        compare(element.children, gained, element.from, element);
     });
   };
   compare(

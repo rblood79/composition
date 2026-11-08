@@ -47,8 +47,7 @@ export type CodeViewFile =
   | "src/pages/<Page>.tsx"
   | "src/pages/<Page>.css"
   | "public/<asset>"
-  | "node_modules/@composition/library/<Name>.tsx"
-  | "node_modules/@composition/catalog/<Type>.css";
+  | "node_modules/@composition/library/<Name>.tsx";
 
 export type CodeViewPhase = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 

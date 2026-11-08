@@ -541,14 +541,16 @@ describe("ADR-296 Phase 5 — component files and instances", () => {
     );
   });
 
-  it("slot contents — a Card's positions are `<Slot name>` (its children the position's fill: edit · add)", async () => {
+  // (ADR-301 — a Card is written as S2's use code: its slot positions are its elements.)
+  it("slot contents — a Card's positions are its elements `<Content className=\"content\">` (their children the position's fill: edit · add)", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const h = await openAdr296();
     const card = h.add("Card");
     const s = session(h);
     const page = code(s, HOME);
-    // (The position's declared slot name — `Content`, not its class `content`.)
-    expect(page).toContain('<Slot name="Content">');
+    // (The position's element by its class — the CSS path's `content`, ADR-301 사용자 결정 7.)
+    expect(page).toContain('<Content className="content">');
+    expect(page).not.toContain("<Slot");
     // Strict: pasted over itself — nothing.
     const revision = h.graph().revision;
     expect(
@@ -571,8 +573,8 @@ describe("ADR-296 Phase 5 — component files and instances", () => {
         text
           .replace(">Card Title</Text>", ">Hello</Text>")
           .replace(
-            '<Slot name="Content">\n',
-            '<Slot name="Content">\n          <Text>Added</Text>\n',
+            '<Content className="content">\n',
+            '<Content className="content">\n          <Text>Added</Text>\n',
           ),
     });
     expect(result.rejected).toEqual([]);

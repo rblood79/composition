@@ -62,7 +62,6 @@ import { Section } from "../../components/panel/Section";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import type { CodeEditorApi, CodeEditorVocabulary } from "./CodeEditor";
 import { codeViewMessages, codeViewSnippetLabels } from "./codeViewMessages";
-import { CATALOG_SHEET_TYPES, loadCatalogSheet } from "./catalogSheets";
 import { unlockOrigin } from "../../../../../../packages/shared/src/catalog/commands";
 import { runCatalogCommand } from "../../catalogRuntime/commandRunner";
 import "./CatalogCodeViewPanel.css";
@@ -136,7 +135,7 @@ function CodeViewContent() {
   const [newPath, setNewPath] = useState("");
   const files = useMemo(() => {
     void revision;
-    const tree = codeViewFileTree(graph, { catalogStyles: CATALOG_SHEET_TYPES });
+    const tree = codeViewFileTree(graph);
     const fresh = newPaths
       .filter((item) => !tree.some((file) => file.path === item))
       .map(
@@ -172,19 +171,6 @@ function CodeViewContent() {
     | null
   >(null);
   const [opened, setOpened] = useState(0);
-  // ADR-296 Phase 4 — a catalog sheet's text (read only, loaded when its file opens).
-  const [sheets, setSheets] = useState<ReadonlyMap<string, string>>(new Map());
-  const sheetType = file?.kind === "catalogStyle" ? file.id : undefined;
-  useEffect(() => {
-    if (!sheetType || sheets.has(sheetType)) return;
-    let live = true;
-    void loadCatalogSheet(sheetType)?.then((text) => {
-      if (live) setSheets((map) => new Map(map).set(sheetType, text));
-    });
-    return () => {
-      live = false;
-    };
-  }, [sheetType, sheets]);
   // The file's code now — the editor's baseline while nothing is typed.
   const live = useMemo((): CodeViewResult | undefined => {
     void revision;
@@ -197,28 +183,28 @@ function CodeViewContent() {
         anchors: [],
         symbols: { variables: {}, fields: {} },
       };
-    if (file.kind === "catalogStyle")
-      return {
-        code: sheets.get(file.id!) ?? "/* … */",
-        slots: [],
-        anchors: [],
-        symbols: { variables: {}, fields: {} },
-      };
     try {
       return generateCodeViewFile({ reader: graph as never, file, ...data });
     } catch {
       return undefined;
     }
-  }, [data, file, formulaEngine, graph, revision, sheets]);
+  }, [data, file, formulaEngine, graph, revision]);
   const baseline: CodeViewResult | undefined =
     (project && path
       ? catalogCodeViewFileBaseline(project, graph.commandReader, path, data)
       : undefined) ?? live;
   const draft = path ? drafts.get(path) : undefined;
   const reasonText = useCallback(
-    (line: CatalogCodeViewRejection) =>
-      `${messages[line.reason].reason}${line.detail ? ` (${line.detail})` : ""} — ${messages[line.reason].alternative}`,
-    [messages],
+    (line: CatalogCodeViewRejection) => {
+      // (ADR-301 — a Library position's refusal names its origin: its name, not its id.)
+      const detail =
+        line.reason === "readOnlyPosition" && line.detail
+          ? (graph.library.definitions.get(line.detail as never)?.name ??
+            line.detail)
+          : line.detail;
+      return `${messages[line.reason].reason}${detail ? ` (${detail})` : ""} — ${messages[line.reason].alternative}`;
+    },
+    [messages, graph],
   );
   const result = baseline;
   /** A page file's session (the snippets read one page). */
@@ -487,11 +473,14 @@ function CodeViewContent() {
               }
             >
               <CodeEditor
-                key={`${path}:${opened}${file.readOnly ? `:${sheets.has(file.id!)}` : ""}`}
+                key={`${path}:${opened}`}
                 code={file.readOnly ? (live?.code ?? "") : baseline.code}
                 {...(file.readOnly ? { readOnly: true } : {})}
                 language={/\.css$/.test(path) ? "css" : "tsx"}
                 {...(draft ? { draft } : {})}
+                {...(!file.readOnly && baseline.folds
+                  ? { folds: baseline.folds }
+                  : {})}
                 label={t("codeView.editorLabel")}
                 vocabulary={vocabulary}
                 check={check}
@@ -540,6 +529,36 @@ function CodeViewContent() {
                   </li>
                 ))}
               </ul>
+              {/* ADR-301 Decision 4 — a Library origin's structure: its unlock (296 결정 3). */}
+              {[
+                ...new Set(
+                  report.lines
+                    .filter(
+                      (line) =>
+                        line.reason === "readOnlyPosition" &&
+                        line.detail?.startsWith("lib:"),
+                    )
+                    .map((line) => line.detail!),
+                ),
+              ].map((definitionId) => (
+                <Button
+                  key={definitionId}
+                  className="control-button"
+                  onPress={() => {
+                    runCatalogCommand(
+                      workspace,
+                      unlockOrigin({
+                        definitionId: definitionId as never,
+                        newId: workspace.newId,
+                      }),
+                    );
+                    setReport(null);
+                  }}
+                >
+                  {t("codeView.unlock")}{" "}
+                  {graph.library.definitions.get(definitionId as never)?.name}
+                </Button>
+              ))}
             </div>
           ) : report?.kind === "applied" ? (
             <p className="code-view-report" role="status">

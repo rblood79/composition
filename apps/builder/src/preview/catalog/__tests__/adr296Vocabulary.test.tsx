@@ -164,6 +164,20 @@ const capabilityOf = (type: string, prop: string) =>
   )?.[0];
 
 const CASES: Record<string, Case> = {
+  '<DialogTrigger><Button className="button" /><Popover className="popover">… (a Library instance\'s positions)':
+    {
+      build: (h) => ({ dialog: h.add("Dialog") }),
+      shows: /<DialogTrigger>\n\s+<Button className="button" \/>\n\s+<Modal className="modal">/,
+      edit: (code) =>
+        code.replace(
+          '<Heading className="heading" />',
+          '<Heading className="heading">Sign up</Heading>',
+        ),
+      check: (h, made) =>
+        expect(
+          JSON.stringify(h.node(made.dialog as NodeId).descendantOverrides),
+        ).toContain('"children":{"kind":"set","value":"Sign up"}'),
+    },
   "<Name …/> · overrides={{'<path>': {prop, hidden, onX: rules({inherited, own})}}}":
     {
       build: (h) => {

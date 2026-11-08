@@ -14,11 +14,13 @@ import {
 } from "./support/adr296Harness";
 
 /**
- * ADR-296 follow-up (2026-11-05) — a Library overlay origin's instance (Popover · Dialog · Tooltip ·
- * Menu · Sheet) is written by the palette type it is placed as (`<Popover>` — the same name
- * `catalogPaletteDefinitionId` reads back), not by its template root's RAC type (`<DialogTrigger>`
- * — read back as a bare DialogTrigger node). Its slot position is named by the declared slot
- * (`<Slot name="content">`), not by the position node's class (`frame`).
+ * ADR-296 follow-up (2026-11-05) — a collapsed Library instance's slot position is named by the
+ * declared slot (`<Slot name="Tags">`), not by the position node's class (`tag-list`).
+ *
+ * ADR-301 (2026-11-08) supersedes the overlay half: a Popover · Dialog · Tooltip · Menu · Sheet
+ * instance is written as its template tree (`<DialogTrigger><Button/><Popover>…`) — its tag is its
+ * template root's RAC type, its slot fill is in place (`<div className="frame">`), and a new
+ * `<Popover />` typed in the page is still the Popover origin's instance.
  */
 afterEach(() => vi.restoreAllMocks());
 
@@ -56,35 +58,41 @@ const fills = (h: Adr296Harness, id: string) =>
   );
 
 describe("ADR-296 follow-up — a Library overlay instance in the page's code", () => {
-  it('a Popover is `<Popover>` (its palette type) with `<Slot name="content">` — not `<DialogTrigger>` · `frame`', async () => {
+  it('a Popover is its template tree — `<DialogTrigger>` · `<Popover>` · the frame in place, no `<Slot>`', async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const h = await openAdr296();
     h.add("Popover");
     const page = code(session(h), HOME);
-    expect(page).toContain("<Popover");
-    expect(page).not.toContain("<DialogTrigger");
-    expect(page).toContain('<Slot name="content">');
-    expect(page).not.toContain('<Slot name="frame"');
+    expect(page).toContain("<DialogTrigger>");
+    expect(page).toContain('<Popover className="popover">');
+    expect(page).toContain('<div className="frame">');
+    expect(page).not.toContain("<Slot");
     expect(page).toMatch(
-      /import \{[^}]*\bPopover\b[^}]*\} from 'react-aria-components'/,
+      /import \{[^}]*\bDialogTrigger\b[^}]*\} from 'react-aria-components'/,
     );
   });
 
   it.each([
-    ["Dialog", "content"],
-    ["Tooltip", "content"],
-    ["Menu", undefined],
-    ["Sheet", undefined],
-  ])("%s — its tag is the palette type", async (type, slot) => {
+    ["Dialog", "DialogTrigger"],
+    ["Tooltip", "TooltipTrigger"],
+    ["Menu", "MenuTrigger"],
+    ["Sheet", "SheetTrigger"],
+  ])("%s — its root is the template root's type (%s)", async (type, root) => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const h = await openAdr296();
     h.add(type);
     const page = code(session(h), HOME);
-    expect(page).toContain(`<${type}`);
-    expect(page).not.toMatch(
-      /<(DialogTrigger|TooltipTrigger|MenuTrigger|SheetTrigger)\b/,
-    );
-    if (slot) expect(page).toContain(`<Slot name="${slot}">`);
+    expect(page).toContain(`<${root}>`);
+    expect(page).not.toContain("<Slot");
+  });
+
+  it('a collapsed instance names its slot by the declared name (TagGroup `<Slot name="Tags">`)', async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const h = await openAdr296();
+    h.add("TagGroup");
+    const page = code(session(h), HOME);
+    expect(page).toContain('<Slot name="Tags">');
+    expect(page).not.toContain('<Slot name="tag-list"');
   });
 
   it("round trip — pasted over itself: nothing; a slot's text edit and an added child reach the fill", async () => {
@@ -110,8 +118,8 @@ describe("ADR-296 follow-up — a Library overlay instance in the page's code", 
         text
           .replace(">Popover Title</Heading>", ">Hello</Heading>")
           .replace(
-            '<Slot name="content">\n',
-            '<Slot name="content">\n          <Text>Added</Text>\n',
+            '<div className="frame">\n',
+            '<div className="frame">\n            <Text>Added</Text>\n',
           ),
     });
     expect(result.rejected).toEqual([]);
@@ -141,6 +149,7 @@ describe("ADR-296 follow-up — a Library overlay instance in the page's code", 
       .map((id) => node(h, id))
       .find((item) => item.definitionId.endsWith("origin-component-popover"));
     expect(added).toBeTruthy();
-    expect(code(session(h), HOME)).toContain('<Slot name="content">');
+    // (ADR-301 — the new instance is written as its template tree.)
+    expect(code(session(h), HOME)).toContain('<div className="frame">');
   });
 });

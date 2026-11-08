@@ -11,6 +11,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [코드 보기가 Popover · Dialog · Menu · Tabs 를 레퍼런스 모양으로 펼친다 — ADR-301 Phase 0 ~ 4 · Implemented] - 2026-11-08
+
+### Changed
+
+- **코드 패널이 trigger 조립형 · 구조형 Library instance 를 RAC 레퍼런스의 사용 코드 모양으로 쓴다** (ADR-301):
+  - Popover · Dialog · Tooltip · Menu · Sheet · PreviewTrigger 는 `<DialogTrigger><Button className="button" /><Popover className="popover"><OverlayArrow …/><div className="frame">…` — trigger 와 본체가 page 코드에 같이 있다. Tabs · Table · CardView 안 Card 는 `<Tabs><TabList>…` · `<Table><TableHeader>…` · `<Card><CardPreview>…<Content>…<Footer>`. Select · ComboBox · TagGroup · ActionBar 같은 필드 래퍼는 지금처럼 요소 하나.
+  - 안쪽 요소의 값은 instance 가 작성한 것만 쓴다 (Library 기본값은 `node_modules/@composition/library/<Name>.tsx` 에). 자리를 고치면 그 값을 만든 층에 쓴다 — 자리 patch, 그 자리만 읽는 instance prop (`size`), 없으면 새 patch. Design 패널의 같은 편집과 문서가 같다.
+  - `{false && <X/>}` 로 감싸거나 요소를 통째 지우면 그 자리를 숨긴다 (Library 원본의 자리는 없앨 수 없다). 자리 밖 요소 추가 · type 변경 · 자리 이동은 거절되고, 거절 보고의 「Unlock to edit <Name>」 이 원본을 프로젝트 컴포넌트로 만든다.
+  - 닫힌 overlay 의 본체는 편집기에서 접힌 채 열린다 — Properties 의 Open 을 켜면 펼쳐진다 (Canvas 와 같은 판정).
+  - **Why**: 사용자 원칙 「code view 로 했을 때 그 (레퍼런스) 형태가 그대로 나와야」 — 접힌 `<Popover>` + `<Slot name="content">` 는 trigger · 본체를 `node_modules` 안에 숨겼다.
+  - 위치: `packages/shared/src/codeView/generate.ts` (`expandedRootOf` · `writePosition`) · `files/overrides.ts` (`codeViewExpandedRoot` · `codeViewPositionUnit`) · `apps/builder/src/builder/catalogRuntime/codeViewEdit.ts` (`planPosition` · `removedPosition`) · `panels/codeView/CodeEditor.tsx` (`folds`)
+
+### Removed
+
+- 코드 패널 Files 목록의 `node_modules/@composition/catalog/<Type>.css` (편집할 수 없는 생성 시트 — 값은 Design 패널).
+
+### Fixed
+
+- **Unlock 한 Library 원본의 Local 파일을 코드로 고치면 어떤 편집이든 className 줄에서 거절됐다** (ADR-296 결함, 301 G2 에서 발견): 편집 해석이 원본 정의를 읽지 못해 노드 class 표가 비었다. 생성기와 같은 reader 를 쓴다 (`codeViewApply.ts`).
+
+### Tests
+
+- `adr301Expansion` 17 (레퍼런스 구조 동치 · 나머지 불변 · 팔레트 68 × 2 strict 왕복 · 컴포넌트 파일 · 자기 자식이 있는 instance) · `adr301Positions` 18 · `adr301Folds` 12 · 원복 RED 6 · live 5174 16/16 · 번들 Builder +231 B · Preview +1 B (hash).
+
 ## [선택한 quiet Card 의 미리보기 그림자가 Canvas 에도 — ADR-303 구현 판독 round 3 m1] - 2026-11-08
 
 ### Fixed

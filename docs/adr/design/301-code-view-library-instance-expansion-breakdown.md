@@ -1,6 +1,6 @@
 # ADR-301 Design Breakdown — 코드 보기의 trigger 조립형 Library instance 펼치기
 
-> 본문: [301-code-view-library-instance-expansion.md](../301-code-view-library-instance-expansion.md). 선행: ADR-296 (파일 트리 · anchor 표 · Apply · `overrides` 역문법 · Library 파일) · 285 (identity · 재생성 대조) · 282 (Library 읽기 전용 · `unlockOrigin`) · 278 (오버레이 본체 = slot). **착수 조건: B 수리 (slot 이름 = `slot.name` · 접힌 태그 = 팔레트 type `<Popover>` — RAC import) 가 main 에 있어야 한다 (2026-11-05 완료 · 커밋 `2620043a8`)** — 이 ADR 의 생성기 변경이 그 코드 위에 쌓인다.
+> 본문: [301-code-view-library-instance-expansion.md](../completed/301-code-view-library-instance-expansion.md). 선행: ADR-296 (파일 트리 · anchor 표 · Apply · `overrides` 역문법 · Library 파일) · 285 (identity · 재생성 대조) · 282 (Library 읽기 전용 · `unlockOrigin`) · 278 (오버레이 본체 = slot). **착수 조건: B 수리 (slot 이름 = `slot.name` · 접힌 태그 = 팔레트 type `<Popover>` — RAC import) 가 main 에 있어야 한다 (2026-11-05 완료 · 커밋 `2620043a8`)** — 이 ADR 의 생성기 변경이 그 코드 위에 쌓인다.
 
 ## 1. 전제 lock-in (fork 4 질문 — 사용자 confirm 2026-11-05 「/create-adr A」)
 
@@ -108,3 +108,40 @@
 
 - `isOpen` 이 변수에 묶인 자리를 `catalogOverlayOpen` 이 어떻게 읽는지 Phase 3 에서 확인한다 — 코드 보기 안에 둘째 판정을 두지 않는다.
 - 컴포넌트 파일 (`src/components/<Name>.tsx`) 안 펼친 instance 의 자리 키는 template 노드 기준 (`instances` 가 template id 로 시작) — `codeViewAddressKey` 가 그 체인을 받는지 Phase 0 에서 확인 (받지 않으면 함수 확장, 새 키 형식 금지).
+
+## 7. 기록 (실행 — 2026-11-08, `/execute-adr 301`)
+
+### Phase 0 (G0)
+
+- B 수리 main 반영 확인 (`2620043a8`). inventory 는 HEAD `0d43803f6` 의 팔레트 68 (설계 때 62 → S2 6 추가) 을 하나씩 놓아 순회 (`.agent/runs/2026-11-08-adr301-phase0/artifacts/inventory-head-0d43803f6.json` — template 트리 · 작성 prop · page 코드, local 전용). template 루트가 overlay trigger 인 원본은 그대로 6 (Popover · Dialog = DialogTrigger · Tooltip · Menu · Sheet · PreviewTrigger). §6 열린 질문: 컴포넌트 파일 안 instance 의 자리 키는 `codeViewAddressKey` 가 그대로 받는다 (새 키 형식 없음) · 변수 Open 은 `isOpen` 이 아니라 변수의 `source` 로 쓰여 문서 prop 이 비므로 판정이 닫힘.
+- 2a 의 바인딩 열 실측: Popover 의 overlay 자리 `size` · `placement` · `offset` · `crossOffset` · `shouldFlip` · `containerPadding` · `slot` (읽는 자리 1) · Menu `size` (ActionButton · Popover · Menu — 읽는 자리 3) · Sheet overlay `position` · `swipeDirection` · `snapPoints` · `preventDismissal` · Sheet `overscrollPadding`. 기본 꺼진 template 노드 0 (6 가족).
+- 사용자 결정 1 · 2 · 5 · 7 = 권고안. **결정 1 정정**: 질문에서 TagGroup · ActionBar 를 「레퍼런스는 `<TagGroup><Label/><TagList>`」 로 잘못 적었다 — 레퍼런스의 사용 코드는 RAC `TagGroup.md` §Content `<TagGroup label items>{item => <Tag/>}` · S2 `ActionBar.md` `<ActionBar><ActionButton/>…` (안쪽 Label · clear 버튼은 컴포넌트 파일). 판정을 「루트의 직계 자식이 **모두** RAC 요소 slot 자리 (frame · RadioItems · CheckboxItems 아님)」 로 좁혀 Tabs · Table · Card (CardView 안 instance) 만 펼친다 — 같은 template 사실이고 사용자 원칙 (레퍼런스 차이가 있는 가족만) 과 같다. TagGroup · ActionBar 의 `<Slot name="Tags">` · `<Slot name="Actions">` 는 296 모양 그대로.
+- 번들 · 생성 시간 기준선은 Phase 4 에서 base worktree (`0d43803f6`) 와 한 번에 대조 (같은 명령 · 같은 기계).
+
+### Phase 1 (G1) — 생성 · 자리 unit
+
+- `files/overrides.ts`: `codeViewExpandedRoot` (판정 한 곳 — 생성 · 역문법 · 패널이 같이) · `codeViewPositionUnit` / `codeViewPositionOf` (attribute · text anchor 의 `nodeId` 자리 참조) · `codeViewPositionBindings` · `codeViewExpandedBoundKeys` · `codeViewAddressOf(…, classOnly)` (자리 키의 역변환은 class 경로만).
+- `generate.ts`: `expandedRootOf` (판정 + 표현 가능 조건 — replace · 원본 규칙 off · 바운드 · 작성 글자 · **자기 자식** · 같은 자리 같은 When 규칙 둘이면 접힌 모양) · `writePositions` / `writePosition` · `importType` · `ruleFunction` (자리 handler 와 `overrides` 의 규칙 함수가 같은 모양). 루트에는 자리가 읽지 않는 instance prop 만.
+- 역문법: `planElements` 가 `position` anchor 를 unit 으로 (state = owner 포함 — 다른 instance 와 짝 안 됨) · 펼친 instance 의 자식은 자리만 (새 요소 → `readOnlyPosition`) · slot 자리의 자식은 `fillSlot` 자리에 배치 · 새 `<Popover />` 입력은 재생성본의 `<DialogTrigger>` 와 같은 원본이면 통과 (`expandedTypeOf`).
+- G1 16/16 (`adr301Expansion.test.tsx`), 원복 RED 13/16 (판정 끔). 기존 테스트 재작성 2 파일 — `adr296LibraryOverlay` (B 의 overlay 태그 단언 → 펼친 모양 · 접힌 instance 의 선언 slot 이름은 TagGroup 으로) · `adr296Component` Card slot (→ `<Content className="content">`). golden 5 · 296 golden 은 변화 없음 (해당 가족 없음 — plants 의 TagGroup 은 판정 정정으로 접힌 모양).
+
+### Phase 2 (G2) — 자리 쓰기
+
+- `planPosition` · `removedPosition` · `hiddenPositions` (재생성 대조는 owner · class · `{false &&` · 개수 감소가 모두 맞는 그 요소만 건너뜀) · 펼친 루트의 `overrides` → `outsideVocabulary` · 중첩 원본 자리의 `overrides` → `planOverrides(…, {unit, prefix})` · 거절 문구 KO/EN + 패널 거절 보고의 「Unlock to edit <Name>」 버튼 (`unlockOrigin` 한 명령). 사용자 결정 3 · 4 = 권고안.
+- **296 결함 수리 (같은 Phase — unlock 출구가 G2 조건)**: unlock 된 Library 원본의 Local 파일은 생성기가 `codeViewLibraryReader` 로 class 표를 읽고 planner 는 stage reader 로 읽어 (`lib:` 정의 미해석 → 빈 표) 노드 class 를 작성자 class 로 읽었다 — 그 파일의 어떤 편집도 className 대조로 거절 (Select · Popover · Card 재현, 301 무관). `codeViewApply.ts` 가 planner 에 같은 reader 를 준다.
+- G2 18/18 (`adr301Positions.test.tsx` — Heading 글자 · trigger label patch · 바인딩 단독 자리 → instance prop · root L + patch S → patch M · 제거 · Menu 다중 reader → 그 자리 patch · 패널 같은 편집과 문서 동일 · `{false &&}` · 통째 삭제 · 삭제 + 다른 편집 · 다른 숨김 유지 · handler 편집 · 제거 · 격리 · 거절 4 · unlock 뒤 Local 편집 · slot 추가). 원복 RED 4: 키에서 owner 제거 13 RED · 바인딩 분기 제거 1 · 삭제 정규화 제거 3 · unlock reader 원복 1. 어휘표 행 1 (`writePosition` → `planPosition`, `adr296Vocabulary` strict 포함 56/56).
+
+### Phase 3 (G3) — 접기 · Files
+
+- `CodeViewResult.folds` (본체 자리 = 루트 바로 아래 `Modal` · `Popover` · `Tooltip` · `SheetOverlay`, 판정 `catalogOverlayOpen` — 본체 자기 값 > trigger 값, 변수 Open 은 닫힘 = 사용자 결정 6 권고안) · `CodeEditor` `folds` prop (Open 이 바뀐 자리만 `foldEffect` / `unfoldEffect`, 초안이 있으면 적용 보류) · 패널이 baseline 의 folds 를 넘김.
+- Files: `catalogStyle` 파일 종류 · `codeViewFileTree` 의 `catalogStyles` 옵션 · 패널의 시트 lazy 로드 삭제 · `fieldCoverage` 파일 목록 정리 · `adr296Style` 단언을 「catalog CSS 0 · Library 파일 유지」 로. `panels/codeView/catalogSheets.ts` 는 참조 0 이 되어 사용자 승인 (2026-11-08) 뒤 삭제.
+- G3 12/12 (`adr301Folds.test.tsx` — 6 가족 본체 fold 하나 · Open on/off/defaultOpen · 본체 직접 Open · 변수 Open · 구조형 fold 없음 · 편집기 fold/unfold · 손으로 연 fold 유지). 원복 RED 1 (판정을 trigger 값만으로 → 본체 직접 Open 반례).
+
+### Phase 4 (G4 · G5)
+
+- 번들 (`.cache/adr301-bundle` — base `0d43803f6` · after = base + 301 diff, 두 worktree 각 `pnpm install --frozen-lockfile` · `pnpm -F @composition/builder build` · `adr209-bundle-closure.mjs`): Builder initial JS gz 1,512,523 → 1,512,754 (**+231 B ≤ +256**) · Preview 151,181 → 151,182 (+1 B — `preview-*.js` 안 lazy chunk 파일 이름 hash, 코드 무변). 절대값은 ADR-302 · 303 기록과 같은 로컬 환경 차이라 Δ 만 쓴다.
+- 생성 시간 (`adr301GenTime.bench.test.ts`, `ADR301_BENCH=1` — Menu 10 + Popover 10 + Dialog 10 page, median 9): base 3.13 · 2.93 ms (372 줄) → after 4.07 · 3.98 ms (542 줄) = ×1.33 (≤ ×2).
+- live 5174 16/16 — 본문 `### Live Exercise`.
+- 회귀 대조 (같은 명령, base worktree): builder unit (`src/preview` · `codeView` · `catalogRuntime`) base 297 실패 → after 299 — 차이 2 파일 (`adr256SlotInsertOptions` · `phase4eG5LeafScope`) 은 전체 부하의 5 s timeout, 단독 11/11 PASS. shared base 48 → after 49 — 차이 `g0DescendantRoutes` 1 은 로컬 전용 G0 기준선 파일이 base worktree 에 없어 skip 된 것 (ADR-303 기록과 같음). 301 신규 회귀 0.
+- 판독 (reviewer, phase 전체 1 회): HIGH 1 — instance 가 자기 `children` 을 가지면 펼친 뒤 그 page 전체 Apply 가 `readOnlyPosition` (재현 RED → `expandedRootOf` 에 자기 자식 조건 → GREEN). LOW deferred 3: fold 판정이 template 자체 `isOpen` 기본값을 읽지 않음 (표시만) · 채운 slot 아래 template 노드의 `{key}` 도 reader 수에 셈 (patch 쪽으로 기울 뿐 동작 정상) · bench 는 `runIf` 로 평소 skip.
+- 수리 검증 (같은 판독자, round 2): HIGH 0 — 판독 루프 닫힘 (`review-loop-closure.md` §1). LOW deferred 1 추가: 코드에서 그 instance 의 **마지막** 자기 자식을 지우면 재생성본이 펼친 모양이 되어 `notInCode` (문서 무손상 · Layers 삭제가 출구).

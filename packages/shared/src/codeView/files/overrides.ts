@@ -152,13 +152,15 @@ export function codeViewAddressOf(
   key: string,
   /** The instance's definition (a new instance — not in the document yet). */
   definitionId?: string,
+  /** ADR-301 — a `position` key: classes only (a declared slot name is `<Slot name>`'s). */
+  classOnly = false,
 ): InstanceAddress | undefined {
   // A position the instance already writes (its own patch's address — the exact one).
   const own = reader.getEntry(instanceId) as NodeEntry | undefined;
   for (const override of own?.kind === "node" ? own.descendantOverrides : [])
     if (
       codeViewAddressKey(reader, override.address) === key ||
-      codeViewSlotKey(reader, override.address) === key
+      (!classOnly && codeViewSlotKey(reader, override.address) === key)
     )
       return override.address;
   const segments = key.split("/");
@@ -181,9 +183,11 @@ export function codeViewAddressOf(
   if (!level) return undefined;
   const last = segments.at(-1)!;
   const target =
-    [...codeViewTreeClasses(reader, [level]).keys()].find(
-      (id) => treeNode(reader, id)?.slot?.name === last,
-    ) ?? find(level, last);
+    (classOnly
+      ? undefined
+      : [...codeViewTreeClasses(reader, [level]).keys()].find(
+          (id) => treeNode(reader, id)?.slot?.name === last,
+        )) ?? find(level, last);
   if (!target) return undefined;
   // The path from the template's root to the target.
   const path = (id: string, trail: string[]): string[] | undefined => {
@@ -318,4 +322,106 @@ export function codeViewSameAddress(
       b.templatePath as readonly string[],
     )
   );
+}
+
+/**
+ * ADR-301 Decision 1 · 사용자 결정 1 — the template roots whose instance the code writes as its
+ * template tree: an overlay trigger (the reference's `<DialogTrigger><Button/><Popover>…`) and a
+ * structure whose template root holds only RAC elements as slot positions (`<Tabs><TabList>…` —
+ * not a frame, not a group's item box).
+ */
+const EXPANDED_TRIGGER_TYPES = new Set([
+  "DialogTrigger",
+  "MenuTrigger",
+  "TooltipTrigger",
+  "SheetTrigger",
+  "PreviewTrigger",
+]);
+const NOT_AN_ELEMENT_POSITION = new Set(["frame", "RadioItems", "CheckboxItems"]);
+
+/**
+ * ADR-301 — the Library template root a Library origin instance is written as (its template tree
+ * in the page's code); undefined = written as one element (a field wrapper · an unlocked origin ·
+ * the rest).
+ */
+export function codeViewExpandedRoot(
+  reader: Reader,
+  definitionId: string,
+): string | undefined {
+  if (!definitionId.startsWith("lib:definition:origin-")) return undefined;
+  const root = reader.library.definitions.get(definitionId as never)
+    ?.templateRootId as string | undefined;
+  // (An unlocked origin draws its project copy — it is a Local component's.)
+  if (!root || codeViewTemplateRoot(reader, definitionId) !== root)
+    return undefined;
+  const template = treeNode(reader, root);
+  if (!template || template.slot) return undefined;
+  if (EXPANDED_TRIGGER_TYPES.has(typeOf(reader, template.definitionId)))
+    return root;
+  // (A structure: every child of the root is such a slot position — `Tabs > TabList + TabPanels`
+  // · `Table > TableHeader + TableBody` · `Card > CardPreview + Content + Footer`. A root with
+  // its own inner parts too — TagGroup's Label · ActionBar's clear button — is a field wrapper:
+  // the reference's use code is one element, its insides the component file's.)
+  return template.children.length > 0 &&
+    template.children.every((id) => {
+      const child = treeNode(reader, id);
+      return (
+        !!child?.slot &&
+        !child.definitionId.startsWith("lib:definition:origin-") &&
+        !NOT_AN_ELEMENT_POSITION.has(typeOf(reader, child.definitionId))
+      );
+    })
+    ? root
+    : undefined;
+}
+
+/**
+ * ADR-301 Decision 3 — a position of an expanded instance as an anchor's unit id (the `nodeId` of
+ * its attribute · text anchors): the owner and the position's key — no node has it.
+ */
+export const CODE_VIEW_POSITION_PREFIX = "position\u0000";
+export const codeViewPositionUnit = (ownerId: string, key: string) =>
+  `${CODE_VIEW_POSITION_PREFIX}${ownerId}\u0000${key}`;
+export function codeViewPositionOf(
+  unit: string,
+): { readonly ownerId: string; readonly key: string } | undefined {
+  if (!unit.startsWith(CODE_VIEW_POSITION_PREFIX)) return undefined;
+  const [ownerId, key] = unit.slice(CODE_VIEW_POSITION_PREFIX.length).split("\u0000");
+  return ownerId && key !== undefined ? { ownerId, key } : undefined;
+}
+
+/**
+ * ADR-301 Decision 1 · 사용자 결정 5 — the props of a template position that read the instance's
+ * own props (`size: "{size}"`): prop → the instance prop key.
+ */
+export function codeViewPositionBindings(
+  template: { readonly props?: Readonly<Record<string, unknown>> },
+): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const [prop, value] of Object.entries(template.props ?? {})) {
+    const m = typeof value === "string" ? /^\{([A-Za-z_$][\w$]*)\}$/.exec(value) : null;
+    if (m) out.set(prop, m[1]!);
+  }
+  return out;
+}
+
+/** ADR-301 — every instance prop key the expanded template's positions read (nested insides aside). */
+export function codeViewExpandedBoundKeys(
+  reader: Reader,
+  root: string,
+): Map<string, number> {
+  const counts = new Map<string, number>();
+  const walk = (id: string, top: boolean) => {
+    const node = reader.library.templates.get(id as never) as
+      | (TreeNode & { props?: Record<string, unknown> })
+      | undefined;
+    if (!node) return;
+    if (!top)
+      for (const key of codeViewPositionBindings(node).values())
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+    if (node.definitionId.startsWith("lib:definition:origin-") && !top) return;
+    for (const child of node.children) walk(child, false);
+  };
+  walk(root, true);
+  return counts;
 }

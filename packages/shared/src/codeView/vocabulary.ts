@@ -328,6 +328,14 @@ export const CODE_VIEW_VOCABULARY: readonly CodeViewVocabularyItem[] = [
     unit: "instance (component name) · its positions (descendant patch · inherited off / replace · own rules)",
   },
   {
+    // ADR-301 — a trigger · structure Library instance as its template tree: each position an
+    //   element by its class, the instance's values there, `{false && …}` when hidden.
+    form: '<DialogTrigger><Button className="button" /><Popover className="popover">… (a Library instance\'s positions)',
+    emit: "writePosition",
+    read: "planPosition",
+    unit: "an expanded Library instance's positions (descendant patch · the instance's bound prop · enabled · own rules)",
+  },
+  {
     form: "export function <Name>(props: <Name>Props) { … }",
     emit: "codeViewComponentPage",
     read: "planCodeViewPageEdit",

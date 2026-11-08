@@ -30,8 +30,11 @@ import { javascript } from "@codemirror/lang-javascript";
 import {
   bracketMatching,
   defaultHighlightStyle,
+  foldedRanges,
+  foldEffect,
   foldGutter,
   foldKeymap,
+  unfoldEffect,
   indentOnInput,
   syntaxHighlighting,
 } from "@codemirror/language";
@@ -100,6 +103,17 @@ export interface CodeEditorProps {
   /** The file's language (`css` — no JS highlighting). */
   readonly language?: "tsx" | "css";
   readonly vocabulary: CodeEditorVocabulary;
+  /**
+   * ADR-301 Decision 6 — the expanded overlays' bodies (baseline offsets): a closed one is folded
+   * when it first shows and whenever its Open turns off; it unfolds when its Open turns on. A fold
+   * the user changed stays while its Open does not change (the session's view state).
+   */
+  readonly folds?: readonly {
+    readonly key: string;
+    readonly from: number;
+    readonly to: number;
+    readonly closed: boolean;
+  }[];
   /** A dry run of the text (the panel's plan) — its refusals as line diagnostics. */
   readonly check?: (
     text: string,
@@ -440,6 +454,27 @@ export default function CodeEditor(props: CodeEditorProps) {
       });
     current.reset(props.code.length);
   }, [props.code]);
+
+  // ADR-301 Decision 6 — the bodies' folds follow their Open (only a changed one is applied).
+  const applied = useRef(new Map<string, boolean>());
+  useEffect(() => {
+    const view = editor.current?.view;
+    if (!view || !props.folds) return;
+    // (Offsets are the baseline's: a draft's text is not — applied when the editor shows it.)
+    if (view.state.doc.toString() !== props.code) return;
+    const effects = [];
+    for (const fold of props.folds) {
+      if (applied.current.get(fold.key) === fold.closed) continue;
+      applied.current.set(fold.key, fold.closed);
+      if (fold.closed)
+        effects.push(foldEffect.of({ from: fold.from, to: fold.to }));
+      else
+        foldedRanges(view.state).between(fold.from, fold.to, (from, to) => {
+          effects.push(unfoldEffect.of({ from, to }));
+        });
+    }
+    if (effects.length) view.dispatch({ effects });
+  }, [props.folds, props.code]);
 
   return <div ref={host} className="code-view-editor" />;
 }

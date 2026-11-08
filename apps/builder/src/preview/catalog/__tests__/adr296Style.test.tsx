@@ -506,33 +506,17 @@ describe("ADR-296 Phase 4 — page style · theme files", () => {
       [CSS]: (css) => `${css}\n.frame[data-hovered] {\n  color: red;\n}\n`,
     });
     expect(hover.rejected.map((line) => line.reason)).toContain("notInCode");
-    // A catalog sheet is read only.
-    const button = h.add("Button");
-    void button;
-    const tree = codeViewFileTree(h.graph(), {
-      catalogStyles: new Set(["Button"]),
-    });
-    const sheet = tree.find((file) => file.kind === "catalogStyle")!;
-    expect(sheet).toMatchObject({
-      path: "node_modules/@composition/catalog/Button.css",
-      readOnly: true,
-    });
-    s = session(h);
-    s.baselines.set(sheet.path, {
-      file: sheet,
-      result: {
-        code: ".x {}",
-        slots: [],
-        anchors: [],
-        symbols: { variables: {}, fields: {} },
-      },
-    });
-    const edited = catalogCodeViewProjectApply(h.workspace, s, [
-      { path: sheet.path, edited: ".x { color: red; }", changes: [] },
-    ]);
-    expect(edited.rejected.map((line) => line.reason)).toEqual([
-      "readOnlyFile",
-    ]);
+    // ADR-301 Decision 7 — the catalog rule sheets are not listed (not project code; the Design
+    // panel shows the values); the Library origin's file stays.
+    h.add("Button");
+    h.add("Popover");
+    const tree = codeViewFileTree(h.graph());
+    expect(
+      tree.filter((file) => file.path.startsWith("node_modules/@composition/catalog/")),
+    ).toEqual([]);
+    expect(
+      tree.some((file) => file.path === "node_modules/@composition/library/Popover.tsx"),
+    ).toBe(true);
   });
 
   it("G2 — the JSX moves two styled nodes and the CSS restyles one, in one Apply (classes are the baseline's)", async () => {

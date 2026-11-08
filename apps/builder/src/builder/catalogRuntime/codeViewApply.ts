@@ -351,7 +351,9 @@ export function catalogCodeViewProjectPlan(input: {
       } else {
         const origin = planCodeViewPageEdit(
           {
-            reader: stage,
+            // (An unlocked Library origin's file reads its definition as the generator does — the
+            // class table · styled nodes of its copy; its commands still run on the stage.)
+            reader: library ? codeViewLibraryReader(stage) : stage,
             session: {
               projectId: session.projectId,
               pageId: (file.id ?? definition.id) as EntryId<"page">,

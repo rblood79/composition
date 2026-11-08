@@ -135,6 +135,13 @@ export type CodeViewAnchorTarget =
         | "overrides";
       readonly interactionIds?: readonly string[];
     }
+  /**
+   * ADR-301 Decision 3 — a template position of an expanded Library instance (`<Popover
+   * className="popover">` inside `<DialogTrigger>`): its owner (the instance) and its key
+   * (`codeViewAddressKey`). Its attribute · text anchors carry the position as their `nodeId`
+   * (`codeViewPositionUnit`).
+   */
+  | { readonly kind: "position"; readonly ownerId: string; readonly key: string }
   /** An element's text (`children` — a literal or a template). */
   | { readonly kind: "text"; readonly nodeId: string }
   /** A row template (`{item => <ListBoxItem …>}`) — the binding's field map. */
@@ -196,6 +203,16 @@ export interface CodeViewResult {
   readonly slots: readonly CodeViewSlot[];
   /** ADR-285 — every document unit's span (a superset of the slots' units). */
   readonly anchors: readonly CodeViewAnchor[];
+  /**
+   * ADR-301 Decision 6 — each expanded overlay's body inside (`key` — its position), `closed` when
+   * its Open is off: the editor folds it (a view state — not the code, not the document).
+   */
+  readonly folds?: readonly {
+    readonly key: string;
+    readonly from: number;
+    readonly to: number;
+    readonly closed: boolean;
+  }[];
   /** The names the code gives document things — the inverse map reads an edit by them. */
   readonly symbols: CodeViewSymbols;
 }
