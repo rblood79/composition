@@ -144,9 +144,6 @@ export {
 
 export type { ShadowPresetKey } from "./shadowNormalize";
 
-// Font (CSS 표준 상수 — ADR-091 Phase 1)
-export { FONT_STRETCH_KEYWORD_MAP } from "./font";
-
 // HTML primitive defaults (ADR-096 Phase 2)
 export {
   HTML_PRIMITIVE_DEFAULT_WIDTHS,

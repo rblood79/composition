@@ -27,8 +27,7 @@
 //! - `cascade` — CSS Cascade Resolver 순수 헬퍼 (cssResolver.ts 자기완결 계층). Phase 2-A.
 //!   상속 규칙 테이블 + 초기값 맵 + cascade 키워드(inherit/initial/unset/revert) +
 //!   currentColor 토큰 치환 + font-variant→OpenType feature + 논리→물리 속성 변환.
-//!   미이식: getRootComputedStyle(store 의존 JS 잔류), resolveFontStretchWidth(spec
-//!   SSOT FONT_STRETCH_KEYWORD_MAP 의존 — 참조 계약 확정 후), resolveStyle 본체(조립 단위).
+//!   미이식: getRootComputedStyle(store 의존 JS 잔류), resolveStyle 본체(조립 단위).
 //!
 //! - `spatial_index` — 그리드 셀 기반 공간 인덱스 (hit-test / viewport culling / lasso
 //!   selection). ADR-916 SpatialIndex crate 분리(2026-07-05): 기존 `composition_wasm`

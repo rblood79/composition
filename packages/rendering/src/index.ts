@@ -185,7 +185,6 @@ export {
   matchShadowPreset,
   normalizeShadowForTheme,
   shadowLiteralToCssVar,
-  FONT_STRETCH_KEYWORD_MAP,
   HTML_PRIMITIVE_DEFAULT_WIDTHS,
   HTML_PRIMITIVE_DEFAULT_HEIGHTS,
   parsePxValue,

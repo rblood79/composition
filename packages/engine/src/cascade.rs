@@ -9,9 +9,8 @@
 //!
 //! - `getRootComputedStyle` / `ROOT_COMPUTED_STYLE` — `useThemeConfigStore.getState()`
 //!   store 의존. WASM 경계 밖 → JS 가 root computed style 을 계산해 넘긴다.
-//! - `resolveFontStretchWidth` — `@composition/specs` `FONT_STRETCH_KEYWORD_MAP`
-//!   (ADR-091 spec SSOT) 의존. Rust crate 의 spec 데이터 참조 계약이 아직 없어
-//!   이번 단위에서 제외(spec SSOT 이중화 회피). 후속 단위에서 참조 계약 확정 후 이식.
+//! - (`resolveFontStretchWidth` 는 이식 대상에서 빠졌다 — 2026-11-09 TS 쪽에서도 삭제. font-stretch 를
+//!   채우는 문서 경로가 없다.)
 //! - `resolveStyle` 본체 — 위 순수 헬퍼들이 이식된 뒤 조립하는 캐스케이드 진입점.
 //!   다음 단위.
 
