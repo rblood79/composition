@@ -35,23 +35,6 @@
     ],
     "evidenceDirectory": ".agent/runs/2026-10-21-canvas-performance-check"
   },
-  "goal": "코드 보기 Library 오버레이 instance 수리 (B) + ADR-301 설계 (A, Proposed)",
-  "phase": "adr301_review_closed_proposed_awaiting_execute_request",
-  "next": [
-    "[x] B: generate.ts originTag (팔레트 type 태그) · overrides.ts codeViewSlotKey (선언 slot 이름) · 역방향 codeViewAddressOf 슬롯 이름 우선",
-    "[x] adr296LibraryOverlay.test.tsx 7 — RED 7 → GREEN 7 (HEAD worktree) · 회귀 builder codeView 31 파일 319 PASS · shared codeView 320 PASS · type-check shared · builder PASS (worktree)",
-    "[x] adr296Component Card slot 기대값 Content · golden plants.tsx.txt tag-list → Tags",
-    "[x] live 5176 (worktree 서버): 새 프로젝트 → popover → Code 패널 <Popover> · <Slot name=\"content\"> · RAC import",
-    "[x] ADR-301 범위 개정 (사용자 결정: trigger 조립형 6 가족만 펼침 · Library 파일 유지 · catalog CSS 제거 · 닫힌 본체 fold) — 문서 3 파일 미커밋",
-    "[x] 리뷰 round 1 수리 — h1 hiddenPositions 정규화 · h2 유효 값 층 쓰기 · m3 className = 자리 class (문서만, 미커밋)",
-    "[x] 수리 검증 round 2 (codex, HIGH 0 · pending 0) — 문서는 415439fe1 에 포함 · LOW l4 (breakdown §2b 경로표 3행) 2026-11-06 정정 · reviews/301.md 종결 선언. /execute-adr 301 은 사용자 요청 때",
-    "[x] 헤더 저장 상태: 글자 → 아이콘 + 우측상단 dot (SaveStatusButton) — 미커밋, live 5174 확인",
-    "[x] placeholder CSS/Canvas: rule 글자 서체 상속 + Input fontWeight 400 + 날짜 조각 측정·서체 요청 (main 작업 트리 반영, 미커밋). 남은 것: 기본 한글 서체 입력칸 폭 +4% · Select 세로 +2px · 날짜 x 약 1px",
-    "[x] 기본 서체 Pretendard + Canvas/CSS 대체 서체 통일 + Publish 로드 (main 작업 트리 반영, 미커밋). live: 기본·Theme Inter·영문·Publish 탭"
-  ],
-  "guard": "다른 세션 dirty 변경 보존 (pathspec 커밋) · 사용자 5173 서버 건드리지 않음 (live 는 5174+) · 마이그레이션 코드 0 · 커밋/push 는 사용자 요청 때만",
-  "stop": "type-check 실패 커밋 금지",
-  "updatedAt": "2026-11-06T11:40:41.078917+00:00",
   "componentEmptyDoubleClick": {
     "task": "Body 선택 후 컴포넌트 빈 영역 더블클릭 선택 수리",
     "phase": "verified",
@@ -4600,8 +4583,7 @@
     },
     "commit": "42de626eeeda49f7abf4f8793e6988765a39a22f",
     "remoteVerifiedSha": "42de626eeeda49f7abf4f8793e6988765a39a22f"
-  }
-,
+  },
   "libraryCanvasVisualUnsupported": {
     "task": "Library Canvas ProgressBar whiteSpace unsupported 수정",
     "phase": "verified_static_live_blocked",
@@ -4618,5 +4600,115 @@
     "report": ".agent/runs/20261108-library-canvas-whitespace/report.md",
     "commit": "425bc4f0b38505b0a0bed01c1e3b33b2512374b3",
     "remoteVerifiedSha": "425bc4f0b38505b0a0bed01c1e3b33b2512374b3"
+  },
+  "reviewAdr302Implementation": {
+    "task": "ADR-302 구현 완료 검토",
+    "phase": "repair_verification_recorded",
+    "status": "repair_verified_high_0_pending_0_low_1_deferred",
+    "scope": "067eaca9e..4f71aa245; round 4 h1 수리 검증; 제품 코드/ADR Status 변경 없음",
+    "head": "067eaca9e",
+    "findings": [
+      "round 4 h1 fixed: Badge indigo/subtle 기본 light 대비 18.2062478:1",
+      "모든 preset Badge 대비 평가 70000개 >=4.5 (최소 4.501116)",
+      "생성 CSS color-mix 폴백 0건; source/generated sync PASS",
+      "l2 전체 번들 동일조건 Hard gate UNVERIFIED / LOW deferred"
+    ],
+    "validation": {
+      "focused": "shared90 + rendering2 PASS",
+      "browserParity": "Chromium117 PASS",
+      "probe": "70000 contrast evaluations >=4.5",
+      "generation": "validate:sync + validate:theme-colors PASS",
+      "live": "executor live evidence64 rows parsed; independent Builder UI rerun not performed"
+    },
+    "reviewLog": "docs/adr/reviews/302.md round 5",
+    "evidenceDirectory": ".agent/runs/2026-11-08-review-adr302-repair",
+    "updatedAt": "2026-11-08T05:07:52.535431+00:00",
+    "repairHead": "4f71aa245"
+  },
+  "reviewAdr303Implementation": {
+    "task": "ADR-303 구현 완료 검토",
+    "phase": "repair_verification_recorded",
+    "status": "repair_verified_high_0_medium_0_pending_0_low_1_deferred",
+    "head": "11a97a81c",
+    "scope": "HEAD 11a97a81c 이후 미커밋 canvasBinding/rulePaint 수리; 제품 코드·ADR Status 추가 변경 없음",
+    "findings": [
+      "round3 m1 fixed: quiet selected CardPreview 실제 DOM·Canvas 그림자3층 일치",
+      "owner 편집 증분16·상속60항목 PASS",
+      "명시 shadow none/custom 우선순위32항목 PASS",
+      "l2 최종 번들 gate LOW deferred / UNVERIFIED 유지"
+    ],
+    "validation": {
+      "focused": "shared18 + Builder8 PASS",
+      "browser": "new product tests2 PASS (16+60 comparisons); prior independent repro GREEN; authored override32 comparisons PASS",
+      "typecheck": "PASS via6/6 Turbo cache; baseline0",
+      "live": "executor light live report read; independent Builder UI rerun not performed; dark consumer parity PASS"
+    },
+    "reviewLog": "docs/adr/reviews/303.md round4",
+    "evidenceDirectory": ".agent/runs/2026-11-08-review-adr303-repair",
+    "updatedAt": "2026-11-08T07:11:00.716687+00:00"
+  },
+  "reviewAdr304": {
+    "task": "ADR-304 설계 검토",
+    "phase": "review_recorded",
+    "status": "high_2_medium_1_pending_3",
+    "head": "6d63f07af",
+    "scope": "Proposed ADR 본문·breakdown 설계 검토. 제품 코드·ADR Status 변경 없음",
+    "findings": [
+      "h1 fixed grid track survives collapse/hide",
+      "h2 slot-name signature collision blocks app-header application",
+      "m1 nested preset clears outer responsive grid item placement"
+    ],
+    "validation": {
+      "unitProbe": "2/2 PASS, confirms defect behavior; temporary product test removed",
+      "browser": "Chromium minimal grid fixture: 768 contentX200/sidebar42; 390 contentX200/sidebar0",
+      "guard": "PASS",
+      "format": "scoped review record check PASS",
+      "schema": "PASS",
+      "unverified": "actual ADR304 Builder/Preview, fillSlot/releaseLayout, bundle G0/G3, user decisions"
+    },
+    "reviewLog": "docs/adr/reviews/304.md round1",
+    "evidenceDirectory": ".agent/runs/2026-11-08-review-adr304",
+    "updatedAt": "2026-11-08T10:02:22.804908+00:00"
+  },
+  "reviewAdr304Round2": {
+    "task": "ADR-304 round 1 설계 수리 검증",
+    "phase": "repair_review_recorded",
+    "status": "design_repair_verified_high_0_medium_0_pending_0",
+    "head": "0d43803f6",
+    "scope": "h1/h2/m1 세 건 설계 수리만 검증. 제품 코드·ADR Status 변경 및 커밋 없음",
+    "validation": {
+      "probe": "3/3 PASS: WASM geometry, signature model, actual nested command with proposed ownership set",
+      "browser": "5/5 minimal fixture PASS, content x 200/42/200/42/0",
+      "guard": "PASS",
+      "format": "PASS scoped review record",
+      "schema": "PASS",
+      "unverified": "actual ADR304 Builder/Preview/Publish UI/state, fillSlot/releaseLayout, bundle G0/G3, user decisions"
+    },
+    "reviewLog": "docs/adr/reviews/304.md round2",
+    "evidenceDirectory": ".agent/runs/2026-11-08-review-adr304-round2",
+    "updatedAt": "2026-11-08T10:13:05.291298+00:00"
+  },
+  "reviewAdr301Implementation": {
+    "task": "ADR-301 구현 완료 검토",
+    "phase": "implementation_review_recorded",
+    "status": "high_0_medium_1_pending_1",
+    "head": "c3a484194",
+    "scope": "구현 커밋 Phase 0~4 판독. 제품 코드·ADR Status 변경 및 커밋 없음. reviews/304.md dirty 보존",
+    "findings": [
+      "m1: new <Popover size=\"L\" /> rejected as notInCode(size); <Popover /> succeeds; UI and project command reproduced"
+    ],
+    "validation": {
+      "focused": "ADR301 existing 47/47 PASS",
+      "probe": "new insertion controls + body hide verified; bound prop insertion RED; expansion-disabled control GREEN",
+      "live": "independent headed Playwright 5174 G5 16/16 PASS + m1 1 FAIL, graph revision unchanged on refusal, console errors0",
+      "typecheck": "SKIP (no dirty TS), not counted as independent PASS",
+      "guard": "PASS",
+      "format": "PASS scoped reviews/301.md",
+      "schema": "PASS",
+      "unverified": "independent G4 measurement and absolute ceiling, user confirm, broad CMS/golden/CSS/Publish"
+    },
+    "reviewLog": "docs/adr/reviews/301.md round3",
+    "evidenceDirectory": ".agent/runs/2026-11-08-review-adr301-implementation",
+    "updatedAt": "2026-11-08T11:37:42.139827+00:00"
   }
 }
