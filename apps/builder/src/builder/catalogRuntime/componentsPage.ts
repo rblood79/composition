@@ -141,6 +141,8 @@ const ORIGIN_ONLY_CARDS: ReadonlySet<string> = new Set([
   "Toolbar",
   "ToggleButtonGroup",
   "ButtonGroup",
+  // (A group of Buttons too — its Buttons slot (5745593c4) filled the card's Instance line.)
+  "Pagination",
   "Accordion",
   "Nav",
   "Card",

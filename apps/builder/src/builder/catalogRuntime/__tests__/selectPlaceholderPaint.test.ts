@@ -12,7 +12,6 @@ import {
   insertNodes,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
-import { cssVarToTokenRef, resolveToken } from "@composition/rendering";
 import { catalogTextMetrics } from "../../../../../../packages/shared/src/catalog/runtime/boxModel";
 import { renderToStaticMarkup } from "react-dom/server";
 import { renderCatalogDom } from "../domBinding";
@@ -22,6 +21,12 @@ import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 import { bindCatalogCanvas } from "../canvasBinding";
 import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
+
+/** The value's paragraph — the picker draws the value as its rule's box with a text child. */
+function valueText(id: string) {
+  const node = getSkiaNode(id)!;
+  return (node.text ?? node.children?.find((child) => child.text)?.text)!;
+}
 
 const BODY = "project:node:home-body" as NodeId;
 const FIELD = "project:node:field" as NodeId;
@@ -75,7 +80,8 @@ async function placeSelect(size = "M", labelPosition = "top") {
 /**
  * The Select's value shows its placeholder on the Canvas (the Canvas draws no selection — a
  * selection is the Preview's run state), so it paints in the Select rule's
- * `.react-aria-SelectValue[data-placeholder]` state, as the DOM does (`fg-muted` × 0.6). A color
+ * `.react-aria-SelectValue[data-placeholder]` state, as the DOM does (S2 Picker — `color: inherit`,
+ * `opacity: 1`: the trigger's text color since 71922bd0f). A color
  * the document writes on the value wins, as the DOM's inline color does over the sheet.
  */
 describe("Select placeholder paint", () => {
@@ -88,7 +94,7 @@ describe("Select placeholder paint", () => {
         const trigger = root.canvasInputs.get(value.parentId)!;
         const expected =
           Number(value.visual.fontSize) * Number(trigger.visual.lineHeight);
-        expect(getSkiaNode(value.id)!.text!.lineHeight).toBeCloseTo(
+        expect(valueText(value.id).lineHeight).toBeCloseTo(
           expected,
           4,
         );
@@ -100,12 +106,12 @@ describe("Select placeholder paint", () => {
           }),
         );
         canvas.update();
-        expect(getSkiaNode(value.id)!.text!.lineHeight).toBe(
+        expect(valueText(value.id).lineHeight).toBe(
           Number(value.visual.fontSize) * 2,
         );
         workspace.undo();
         canvas.update();
-        expect(getSkiaNode(value.id)!.text!.lineHeight).toBeCloseTo(
+        expect(valueText(value.id).lineHeight).toBeCloseTo(
           expected,
           4,
         );
@@ -118,12 +124,12 @@ describe("Select placeholder paint", () => {
           }),
         );
         canvas.update();
-        expect(getSkiaNode(value.id)!.text!.lineHeight).toBe(
+        expect(valueText(value.id).lineHeight).toBe(
           Number(value.visual.fontSize) * 2.5,
         );
         workspace.undo();
         canvas.update();
-        expect(getSkiaNode(value.id)!.text!.lineHeight).toBeCloseTo(
+        expect(valueText(value.id).lineHeight).toBeCloseTo(
           expected,
           4,
         );
@@ -134,8 +140,9 @@ describe("Select placeholder paint", () => {
     const { workspace, value } = await placeSelect();
     const node = () => workspace.root.canvasInputs.get(value.id)!;
     const parent = () => workspace.root.canvasInputs.get(node().parentId);
-    // `var(--fg-muted)` at opacity 0.6 (alpha 0x99), in the root's color mode.
-    const muted = `${resolveToken(cssVarToTokenRef("var(--fg-muted)")!, "light")}99`;
+    // The trigger's own text color (`color: inherit` · `opacity: 1`).
+    const muted = parent()!.visual.color;
+    expect(muted).toBeDefined();
     expect(catalogTextMetrics(node(), parent()).color).toBe(muted);
     // The DOM leaves the color to the sheet's `[data-placeholder]` (no inline color — a chosen
     // item takes the trigger's color there).
@@ -148,7 +155,8 @@ describe("Select placeholder paint", () => {
     const valueStyle =
       /class="react-aria-SelectValue"[^>]*style="([^"]*)"/.exec(html)?.[1] ??
       "";
-    expect(valueStyle).not.toMatch(/(^|;)\s*(color|opacity):/);
+    // (No painted color or opacity — `color: inherit` is the trigger's, as the sheet says.)
+    expect(valueStyle).not.toMatch(/(^|;)\s*(color:(?!inherit)|opacity:)/);
     // The placeholder text changes; the paint stays.
     workspace.execute(
       setFields({

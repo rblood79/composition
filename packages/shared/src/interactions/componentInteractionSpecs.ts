@@ -257,7 +257,13 @@ export const COMPONENT_INTERACTION_SPECS = {
   SelectBoxGroup: {
     concepts: [{ concept: multiSelection }, { concept: focus }],
   },
-  SelectBox: { concepts: ITEM_KEYBOARD },
+  // (No item `onAction`: S2 1.8.2 omits it — `SelectBoxGroupProps` `Omit<…, 'onAction'>`, none on
+  // `SelectBoxProps` — and RAC's toggle selection runs an item's action only while nothing is
+  // selected, so a SelectBoxGroup that starts with a selection never ran the rule. Why
+  // (2026-11-09): the panel offered When onAction that a click · Enter never fired.)
+  SelectBox: {
+    concepts: ITEM_KEYBOARD.filter(({ concept }) => concept !== itemAction),
+  },
   ListBox: {
     concepts: [
       { concept: multiSelection },

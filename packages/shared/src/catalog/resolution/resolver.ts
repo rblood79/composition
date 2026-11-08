@@ -279,6 +279,18 @@ export function catalogFillColorOf(value: unknown): string | undefined {
 
 /** Visuals whose line ratio `finishLineHeight` set — the ratio travels with the font size to an instance's root. */
 const LINE_FINISHED = new WeakSet<object>();
+/**
+ * The library's slot pass-through (`codeCatalogLibrary` binds an origin's inner node of the same
+ * type to `{slot}`) with no instance value is no slot — RAC reads an absent `slot` as its default
+ * one. Other unfilled placeholders stay authored (`{icon}` hides its glyph by it). Why
+ * (2026-11-09): the literal reached the DOM (`<div role=dialog slot="{slot}">`) and RAC's slotted
+ * contexts as a slot name.
+ */
+function withoutUnboundSlot(props: Props, bindings: Props): void {
+  if (props.slot === "{slot}" && !Object.hasOwn(bindings, "slot"))
+    delete props.slot;
+}
+
 const TYPOGRAPHY_FONT_REF = /^\{typography\.(text-[a-z0-9-]+)\}$/;
 
 /** The token ref of `values[key]` as resolved (`undefined` = a literal, an authored px, no record). */
@@ -1661,10 +1673,12 @@ export function resolveCatalogNode(
       props,
       ownedRow && sampleOwner ? withoutSampleContent(node.props) : node.props,
     );
-    if (ownedForkBindings)
+    if (ownedForkBindings) {
       for (const key of Object.keys(node.props))
         if (key in props)
           props[key] = bindTemplateValue(props[key], ownedForkBindings);
+      withoutUnboundSlot(props, ownedForkBindings);
+    }
     if (ownedRow) {
       // As on a row template position: only content props read the row (ADR-162 allowlist).
       for (const key of ROW_TEMPLATE_BINDABLE_PROP_KEYS)
@@ -2241,9 +2255,11 @@ export function resolveCatalogNode(
       );
     else applyValues(props, template.props);
     if (libraryPatch?.props) applyValues(props, libraryPatch.props);
-    if (bindings)
+    if (bindings) {
       for (const key of Object.keys(template.props))
         if (key in props) props[key] = bindTemplateValue(props[key], bindings);
+      withoutUnboundSlot(props, bindings);
+    }
     if (propertyWrite?.props) Object.assign(props, propertyWrite.props);
     // The origin this root belongs to (ADR-253): its project override is the origin's own style,
     // so every instance draws it — over the root's template values, under the instance's.

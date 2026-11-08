@@ -3,6 +3,7 @@ import "fake-indexeddb/auto";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, expect, it } from "vitest";
+import { CAPABILITY_REGISTRY } from "../../../../../../packages/shared/src/interactions/capabilityRegistry";
 import {
   insertNodes,
   setFields,
@@ -214,6 +215,15 @@ describe("SelectBoxGroup — S2 grid and box elevation", () => {
     const scene = await open();
     // (The origin's first box is selected — S2 `elevated` 0 4px; the second `emphasized` 0 2px.)
     expect(scene.shadowDy()).toEqual([4, 2]);
+  });
+});
+
+describe("SelectBox — S2 has no item onAction", () => {
+  // S2 1.8.2 `SelectBoxGroupProps` omits `onAction` and `SelectBoxProps` has none; RAC's toggle
+  // selection runs an item action only while nothing is selected (`useSelectableItem`), so the
+  // origin (first box selected) never ran a When onAction rule.
+  it("offers no When onAction on a SelectBox", () => {
+    expect(CAPABILITY_REGISTRY.SelectBox?.events ?? []).not.toContain("onAction");
   });
 });
 

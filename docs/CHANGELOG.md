@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [후속 4건: 풀리지 않은 slot 바인딩 · SelectBox When · 선택값 줄 높이 · Pagination 카드] - 2026-11-09
+
+### Fixed
+
+- **instance 에 slot 이 없으면 원본 안쪽 overlay 가 `slot="{slot}"` 을 글자 그대로 DOM 에 냈다** (11-07 `792815efc` — 같은 type 의 안쪽 노드에 `{slot}` 을 묶는 라이브러리 pass-through): Popover · Tooltip 원본의 본체 요소가 그 이름을 RAC slot context 에 넘겼다. 값 없는 `{slot}` 은 slot 없음으로 지운다 (`resolver.ts` `withoutUnboundSlot` — 다른 미충족 placeholder 는 그대로, `{icon}` 숨김 판정 유지).
+- **SelectBox 의 When onAction 이 패널에는 있는데 실행되지 않았다**: S2 1.8.2 는 SelectBox 에 `onAction` 이 없고 (`SelectBoxGroupProps` Omit), RAC toggle 선택은 선택이 비었을 때만 항목 action 을 낸다 — 첫 상자가 선택된 원본에서는 클릭 · Enter 가 선택만 바꿨다. SelectBox 의 When 목록에서 뺐다 (선택은 SelectBoxGroup `onSelectionChange`).
+- **Canvas 의 Select 선택값이 줄 높이 없이 그려졌다** (11-05 `71922bd0f` 이 값을 rule 상자 + 글자 자식으로 그린 뒤): 글자 자식이 서체 기본 줄 높이 (M ≈ 16.7) 를 써 DOM 18 과 달랐고, trigger · 선택값의 lineHeight 편집이 Canvas 에 닿지 않았다. `catalogTextMetrics` (작성값 → trigger 상속값) 를 글자 자식에 싣는다.
+- **Library 의 Pagination 카드에 Instance 줄이 생겼다** (`5745593c4` 의 Buttons slot): 같은 Button 묶음인 ButtonGroup · ToggleButtonGroup 처럼 원본만 그린다 (`ORIGIN_ONLY_CARDS`).
+
+### Tests
+
+- 원복 RED: `adr256OverlayArrow` (`slot={slot}`) · `selectBoxGroupS2` 「no item onAction」 (`['onAction']`) · `selectPlaceholderPaint` 10건 (`undefined`). `selectPlaceholderPaint` 는 값을 글자 자식에서 읽고, placeholder 색을 S2 Picker 의 `color: inherit` (trigger 색) 으로 고쳤다. live (Chrome): Publish 문서 `[slot="{slot}"]` 0 · Tooltip 요소 slot 없음, Canvas 선택값 글자 줄 높이 18 (DOM 과 같음), Interactions 패널 「SelectBox provides no triggers」.
+
 ## [Preview 회귀 3건: Text HTML id · picker 메뉴 방향 · field 밖 설명 글자 크기] - 2026-11-09
 
 ### Fixed

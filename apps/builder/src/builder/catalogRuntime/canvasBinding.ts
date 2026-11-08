@@ -1265,12 +1265,31 @@ function pickerNodeData(
     theme: root.colorMode,
   };
   const data = catalogRuleNodeData(input);
+  // The value's line height is the DOM's: its own, else its trigger's (`catalogTextMetrics` — the
+  // `.react-aria-SelectValue` inherits the Button's). The rule shape carries none, so the
+  // paragraph fell back to the font's natural height. Why (2026-11-09): since the picker draws
+  // the value from its rule (71922bd0f), a trigger · value lineHeight edit reached the DOM only.
+  const metrics =
+    type === "SelectValue"
+      ? catalogTextMetrics(original, root.canvasInputs.get(original.parentId))
+      : undefined;
+  const lineHeight =
+    metrics?.lineHeight !== undefined
+      ? metrics.fontSize * metrics.lineHeight
+      : undefined;
+  const children =
+    lineHeight === undefined
+      ? data.children
+      : data.children?.map((child) =>
+          child.text ? { ...child, text: { ...child.text, lineHeight } } : child,
+        );
   return {
     ...data,
+    ...(children ? { children } : {}),
     ...(catalogButtonPending(type, node.props)
       ? {
           children: [
-            ...(data.children ?? []),
+            ...(children ?? []),
             ...pendingCircleData(
               node,
               rect,
