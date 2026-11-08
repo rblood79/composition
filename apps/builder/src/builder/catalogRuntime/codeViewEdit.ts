@@ -16,6 +16,7 @@ import {
 import {
   codeViewAddressOf,
   codeViewExpandedBoundKeys,
+  codeViewExpandedBindingProps,
   codeViewExpandedRoot,
   codeViewPositionBindings,
   codeViewPositionOf,
@@ -1969,6 +1970,22 @@ class Planner {
       : undefined;
     return template
       ? definitionTypeName(this.reader, template.definitionId as never)
+      : undefined;
+  }
+  /**
+   * ADR-301 (판독 round 3 m1) — a new expanded element's props its positions read, each with the
+   * position props that hold it: the generator writes them there, not on the root.
+   */
+  expandedBindingsOf(
+    element: CodeViewElement,
+  ): Map<string, Set<string>> | undefined {
+    if (!this.expandedTypeOf(element)) return undefined;
+    const root = codeViewExpandedRoot(
+      this.reader as never,
+      catalogPaletteDefinitionId(this.reader.library, element.type),
+    );
+    return root
+      ? codeViewExpandedBindingProps(this.reader as never, root)
       : undefined;
   }
   /** Each code element's node (kept · new). */
@@ -3947,12 +3964,36 @@ function compareRegenerated(
         reject(element.from, "notInCode");
         return;
       }
+      // ADR-301 (판독 round 3 m1) — a new expanded instance: a prop its positions read is written
+      // at each of them (`<Popover size="L" />` → `<DialogTrigger><Popover size="L">`).
+      const bindings =
+        fresh && element.type !== other.type
+          ? planner.expandedBindingsOf(element)
+          : undefined;
       for (const attribute of element.attributes) {
         const twin = other.attributes.find(
           (item) => item.name === attribute.name,
         );
         // (A node's ref is derived from the Dos that call it — ADR-296 E3.)
         if (attribute.name === "ref") continue;
+        const readers = !twin ? bindings?.get(attribute.name) : undefined;
+        if (readers) {
+          // (The value alone — the position's prop may have another name; bare = `{true}`.)
+          const valueOf = (item: CodeViewAttribute, text: string) =>
+            item.value
+              ? codeViewNormalized(text.slice(item.value.from, item.value.to))
+              : "{true}";
+          const value = valueOf(attribute, edited.code);
+          const held = (position: CodeViewElement): boolean =>
+            position.attributes.some(
+              (item) =>
+                readers.has(item.name) &&
+                valueOf(item, regenerated.code) === value,
+            ) || position.children.some(held);
+          if (!other.children.some(held))
+            reject(attribute.from, "notInCode", attribute.name);
+          continue;
+        }
         if (attribute.name === "className") {
           const id = planner.elementIds().get(element);
           const written = authorClasses(

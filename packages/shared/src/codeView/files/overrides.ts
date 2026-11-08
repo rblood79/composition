@@ -405,6 +405,34 @@ export function codeViewPositionBindings(
   return out;
 }
 
+/**
+ * ADR-301 (판독 round 3 m1) — each instance prop key the expanded template's positions read, with
+ * the position props that read it (`size` → `{size}` on the overlay): where the generator writes a
+ * new instance's own value.
+ */
+export function codeViewExpandedBindingProps(
+  reader: Reader,
+  root: string,
+): Map<string, Set<string>> {
+  const out = new Map<string, Set<string>>();
+  const walk = (id: string, top: boolean) => {
+    const node = reader.library.templates.get(id as never) as
+      | (TreeNode & { props?: Record<string, unknown> })
+      | undefined;
+    if (!node) return;
+    if (!top)
+      for (const [prop, key] of codeViewPositionBindings(node)) {
+        const props = out.get(key) ?? new Set<string>();
+        props.add(prop);
+        out.set(key, props);
+      }
+    if (node.definitionId.startsWith("lib:definition:origin-") && !top) return;
+    for (const child of node.children) walk(child, false);
+  };
+  walk(root, true);
+  return out;
+}
+
 /** ADR-301 — every instance prop key the expanded template's positions read (nested insides aside). */
 export function codeViewExpandedBoundKeys(
   reader: Reader,

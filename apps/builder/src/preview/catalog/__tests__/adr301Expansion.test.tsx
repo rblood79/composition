@@ -286,3 +286,42 @@ describe("ADR-301 G1 — a component file's expanded instance (a template in a t
     expect(h.graph().revision).toBe(revision);
   });
 });
+
+describe("ADR-301 G1 — a new expanded instance written with its props (판독 round 3 m1)", () => {
+  async function insert(line: string) {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const h = await openAdr296();
+    h.add("Text", { children: "Before" });
+    const s = session(h);
+    const page = code(s);
+    const edited = page.replace(
+      "<Text>Before</Text>",
+      `<Text>Before</Text>\n      ${line}`,
+    );
+    expect(edited).not.toBe(page);
+    const result = catalogCodeViewProjectApply(h.workspace, s, [
+      {
+        path: HOME,
+        edited,
+        changes: [{ fromA: 0, toA: page.length, insert: edited }],
+      },
+    ]);
+    return { h, result };
+  }
+
+  it.each([
+    ['<Popover size="L" />', '<Popover size="L" className="popover">'],
+    ['<Popover size="L" isOpen={true} />', "<DialogTrigger isOpen={true}>"],
+  ])("%s — applied, the prop at the position that reads it", async (line, expected) => {
+    const { h, result } = await insert(line);
+    expect(result.rejected).toEqual([]);
+    const after = code(session(h));
+    expect(after).toContain(expected);
+    expect(after).toContain('<Popover size="L" className="popover">');
+  });
+
+  it("a value the positions do not hold is still refused", async () => {
+    const { result } = await insert('<Popover nope="x" />');
+    expect(result.rejected.length).toBeGreaterThan(0);
+  });
+});

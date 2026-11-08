@@ -157,6 +157,7 @@ HIGH 0 인 대안 (E) 이 있어 루프 종료. E 의 MEDIUM 은 Gates (G1 · G2
 - 첫 Popover 를 편집기에서 ① Heading 글자 `Hello` ② trigger `<Button label="Settings" …>` ③ frame 에 `<Switch>Mute</Switch>` ④ Description 삭제 → Apply 1 번 (「Applied 4 change(s)」, History +1): 문서 = trigger 자리 patch `label` (instance prop 아님) · fill `[Switch, Heading]` · 둘째 Popover 무변화. Canvas 글자 record `Settings` / `Open Popover` · Preview 버튼 같은 둘 · Preview 에서 Settings 를 눌러 연 dialog 글자 `MuteHello` (Description 없음).
 - 편집기 포커스에서 ⌘Z 1 (History 4 → 3, patch 사라짐) · ⇧⌘Z 복원 · 새로고침 뒤 유지 · instance `isOpen` 켬 → 코드 `<DialogTrigger isOpen={true}>` 와 그 본체 fold 해제 (fold 2 → 1) · 콘솔 오류 0.
 - 커밋 전 `/verify` (2026-11-08, 판독 HIGH-1 수리 뒤 코드 · `catalogSheets.ts` 삭제 뒤): 같은 스크립트를 5174 에서 다시 실행 → **16/16 PASS** · 콘솔 오류 0 (`artifacts/verify/live-5174.json`).
+- 구현 판독 round 3 m1 수리 뒤 (2026-11-08): 같은 흐름 + 리뷰어 재현 시나리오 (page 코드에 `<Popover size="L" />` 추가 → Apply) → **17/17 PASS** — 「Applied 1 change(s)」, 새 instance 가 `<DialogTrigger><Popover size="L" className="popover">` 로 접힌 채 생김, 콘솔 오류 0 (`artifacts/m1/`).
 
 ## Consequences
 

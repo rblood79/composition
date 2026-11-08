@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [코드에 새로 쓴 `<Popover size="L" />` 가 Apply 된다 — ADR-301 구현 판독 round 3 m1] - 2026-11-08
+
+### Fixed
+
+- **page 코드에 펼치는 Library 원본을 prop 과 함께 새로 쓰면 (`<Popover size="L" />`) Apply 전체가 `notInCode` (size) 로 거절됐다** (ADR-301 회귀): 생성기는 template 자리가 읽는 prop 을 안쪽 요소에 쓰는데 (`<DialogTrigger><Popover size="L">`), 대조는 바깥 root 끼리 비교했다. 새 펼친 요소의 그런 prop 은 그 값을 읽는 자리에서 찾는다 — root 에 남는 prop (`isOpen`) 은 그대로 root 끼리, 어느 자리도 갖지 않는 값은 계속 거절 (`codeViewEdit.ts` `expandedBindingsOf` · `files/overrides.ts` `codeViewExpandedBindingProps`).
+
+### Tests
+
+- `adr301Expansion` +3 (`size` 단독 · `size` + `isOpen` · 읽는 자리 없는 prop 거절) · 원복 RED 2 · live 5174 17/17 (리뷰어 재현 시나리오 `bound-prop-insertion` 포함, 콘솔 0).
+
 ## [코드 보기가 Popover · Dialog · Menu · Tabs 를 레퍼런스 모양으로 펼친다 — ADR-301 Phase 0 ~ 4 · Implemented] - 2026-11-08
 
 ### Changed
