@@ -186,7 +186,8 @@ fn shrink_to_fit_settled(
 #[serde(rename_all = "camelCase")]
 pub struct NodeStyle {
     /// Shaped glyph clusters; the inline kernel owns line breaks and placement.
-    pub inline_text: Option<crate::inline::InlineText>,
+    /// Shared (`Rc`) so the hot-path `NodeStyle` clones copy a pointer, not the text and clusters.
+    pub inline_text: Option<std::rc::Rc<crate::inline::InlineText>>,
     // Display & position
     pub display: Option<String>,
     pub position: Option<String>,
@@ -1829,11 +1830,10 @@ impl LayoutTree {
     /// `last_avail` 도 함께 되돌린다 — 측정 pass 는 센티넬 available 로 돌므로
     /// 그 값이 남으면 skip 게이트의 키가 측정값으로 오염된다 (복구 대상은
     /// layout·dirty·available 3종이 한 묶음).
-    fn restore_subtree(&mut self, snap: &[SubtreeSnap]) {
+    fn restore_subtree(&mut self, snap: Vec<SubtreeSnap>) {
         for (h, dirty, subtree_dirty, layout, last_avail, last_solved, last_definite_h, fragments) in snap {
-            let (h, dirty, subtree_dirty, layout, last_avail, last_solved, last_definite_h) = (*h, *dirty, *subtree_dirty, *layout, *last_avail, *last_solved, *last_definite_h);
             if let Some(node) = self.get_mut(h) {
-                node.inline_fragments = fragments.clone();
+                node.inline_fragments = fragments;
                 node.dirty = dirty;
                 node.subtree_dirty = subtree_dirty;
                 node.layout = layout;
@@ -1855,7 +1855,7 @@ impl LayoutTree {
         self.measure_depth += 1;
         let result = f(self);
         self.measure_depth -= 1;
-        self.restore_subtree(&snap);
+        self.restore_subtree(snap);
         if let Some(sink) = self.trace.as_mut() {
             sink.exit_measure();
         }
@@ -4404,18 +4404,8 @@ impl LayoutTree {
         (container_w, container_h)
     }
 
-    /// block 컨테이너 solve — 자식 재귀 → `block.rs`(`block_layout`) → 컨테이너 크기 도출.
-    ///
-    /// block 은 flex 와 달리 논리축 변환이 없다(항상 물리 vertical stacking). 자식을
-    /// 먼저 solve 해 content_w/h 를 확보하고, 21필드 flat f32(물리축)로 직렬화해
-    /// `block_layout` 에 넘긴다. auto width 자식은 컨테이너 폭으로 stretch(block.rs
-    /// 내부), 그 stretch 폭은 자식 solve 시점엔 모르므로 solve 는 content 만 산출하고
-    /// 최종 폭은 block.rs 가 결정 → 반영 후 bounding box 로 컨테이너 크기 도출.
-    ///
-    /// margin collapse/inline-block line box/BFC through-collapse 는 block.rs 내부가
-    /// 처리한다. 단위 3-a 는 부모-자식 margin collapse 를 미전파(`can_collapse_*=false`,
-    /// BFC 격리 가정) — 부모로의 collapse 전파는 tree.rs 레벨 metadata 배선이 필요한
-    /// 별도 단위. 여기서는 컨테이너 내부 물리 stacking 만 검증한다.
+    /// inline 흐름 판정 — 자식이 전부 inline-level 이고 그중 텍스트 leaf 가 하나 이상이면
+    /// `solve_inline` 이 줄을 나눈다 (직계 pure inline text + atomic inline 만).
     fn has_inline_text_flow(&self, children: &[usize]) -> bool {
         !children.is_empty()
             && children.iter().all(|&c| {
@@ -4596,6 +4586,18 @@ impl LayoutTree {
         (width, height)
     }
 
+    /// block 컨테이너 solve — 자식 재귀 → `block.rs`(`block_layout`) → 컨테이너 크기 도출.
+    ///
+    /// block 은 flex 와 달리 논리축 변환이 없다(항상 물리 vertical stacking). 자식을
+    /// 먼저 solve 해 content_w/h 를 확보하고, 21필드 flat f32(물리축)로 직렬화해
+    /// `block_layout` 에 넘긴다. auto width 자식은 컨테이너 폭으로 stretch(block.rs
+    /// 내부), 그 stretch 폭은 자식 solve 시점엔 모르므로 solve 는 content 만 산출하고
+    /// 최종 폭은 block.rs 가 결정 → 반영 후 bounding box 로 컨테이너 크기 도출.
+    ///
+    /// margin collapse/inline-block line box/BFC through-collapse 는 block.rs 내부가
+    /// 처리한다. 단위 3-a 는 부모-자식 margin collapse 를 미전파(`can_collapse_*=false`,
+    /// BFC 격리 가정) — 부모로의 collapse 전파는 tree.rs 레벨 metadata 배선이 필요한
+    /// 별도 단위. 여기서는 컨테이너 내부 물리 stacking 만 검증한다.
     fn solve_block(
         &mut self,
         handle: usize,
@@ -15273,7 +15275,7 @@ mod inline_flow_tests {
         NodeStyle {
             display: Some("inline".into()),
             width: Some("fit-content".into()),
-            inline_text: Some(crate::inline::InlineText {
+            inline_text: Some(std::rc::Rc::new(crate::inline::InlineText {
                 text: value.into(),
                 clusters: value
                     .chars()
@@ -15290,7 +15292,7 @@ mod inline_flow_tests {
                     })
                     .collect(),
                 ..Default::default()
-            }),
+            })),
             ..Default::default()
         }
     }

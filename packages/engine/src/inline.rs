@@ -1,7 +1,7 @@
 //! Inline text shaping belongs to the font measurer; line breaking and fragment placement
 //! belong to this kernel. Source ranges are UTF-16, matching the editor and CanvasKit.
 use serde::{Deserialize, Serialize};
-use unicode_linebreak::{linebreaks, BreakOpportunity};
+use unicode_linebreak::linebreaks;
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -40,7 +40,7 @@ pub struct InlineFragment {
 }
 
 pub struct InlineItem {
-    pub text: Option<InlineText>,
+    pub text: Option<std::rc::Rc<InlineText>>,
     pub width: f32,
     pub height: f32,
     pub baseline: f32,
@@ -131,8 +131,11 @@ pub fn layout(
             });
         }
     }
-    let opportunities: std::collections::HashMap<usize, BreakOpportunity> =
-        linebreaks(&text).collect();
+    // Byte offsets after which UAX14 allows a break; the loop only asks membership.
+    let mut opportunities = vec![false; text.len() + 1];
+    for (at, _) in linebreaks(&text) {
+        opportunities[at] = true;
+    }
     let mut out = InlineLayout {
         fragments: vec![Vec::new(); items.len()],
         width: 0.0,
@@ -173,7 +176,7 @@ pub fn layout(
             let same_span = end < units.len() && units[end].owner == unit.owner;
             let glued = same_span && unit.nowrap;
             let cjk_kept = same_span && unit.keep_all && unit.cjk && units[end].cjk;
-            if !glued && !cjk_kept && (opportunities.contains_key(&unit.end_byte) || unit.break_all)
+            if !glued && !cjk_kept && (opportunities[unit.end_byte] || unit.break_all)
             {
                 last_break = Some(end);
             }
@@ -233,7 +236,7 @@ mod tests {
     fn text(value: &str) -> InlineItem {
         let mut offset = 0;
         InlineItem {
-            text: Some(InlineText {
+            text: Some(std::rc::Rc::new(InlineText {
                 text: value.into(),
                 clusters: value
                     .chars()
@@ -250,7 +253,7 @@ mod tests {
                     })
                     .collect(),
                 ..Default::default()
-            }),
+            })),
             width: 0.0,
             height: 20.0,
             baseline: 15.0,
