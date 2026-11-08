@@ -21,6 +21,7 @@ import { Popover } from "react-aria-components/Popover";
 import { useI18n } from "@/i18n";
 import { CODE_CATALOG_SUPPORTED_TYPES } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type { EntryId } from "../../../../../../packages/shared/src/catalog/document/types";
+import type { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import type { CodeViewChange } from "../../../../../../packages/shared/src/codeView/inverse/identity";
 import type { CodeViewResult } from "../../../../../../packages/shared/src/codeView/types";
 import {
@@ -64,6 +65,7 @@ import type { CodeEditorApi, CodeEditorVocabulary } from "./CodeEditor";
 import { codeViewMessages, codeViewSnippetLabels } from "./codeViewMessages";
 import { unlockOrigin } from "../../../../../../packages/shared/src/catalog/commands";
 import { runCatalogCommand } from "../../catalogRuntime/commandRunner";
+import { isLibraryOrigin } from "../../catalogRuntime/originView";
 import "./CatalogCodeViewPanel.css";
 import "../../components/property/PropertyRowMenu.css";
 
@@ -116,6 +118,15 @@ function CodeViewContent() {
   );
   const revision = useCatalogRevision(workspace);
   const graph = workspace.runtime.graph;
+  /** ADR-282 `unlockOrigin` — one history step (296 결정 3 · 301 Decision 4). */
+  const unlock = (definitionId: string) =>
+    runCatalogCommand(
+      workspace,
+      unlockOrigin({
+        definitionId: definitionId as never,
+        newId: workspace.newId,
+      }),
+    );
   // ADR-286: the data definitions are the document's — the code reads one source.
   const tables = useMemo(() => {
     void revision;
@@ -138,16 +149,14 @@ function CodeViewContent() {
     const tree = codeViewFileTree(graph);
     const fresh = newPaths
       .filter((item) => !tree.some((file) => file.path === item))
-      .map(
-        (item): CodeViewFileEntry => ({
-          path: item,
-          kind: item.startsWith("src/components/")
-            ? "component"
-            : item.startsWith("src/data/")
-              ? "collection"
-              : "endpoint",
-        }),
-      );
+      .map((item): CodeViewFileEntry => ({
+        path: item,
+        kind: item.startsWith("src/components/")
+          ? "component"
+          : item.startsWith("src/data/")
+            ? "collection"
+            : "endpoint",
+      }));
     return [...tree, ...fresh];
   }, [revision, graph, newPaths]);
   const pagePath = files.find(
@@ -199,8 +208,7 @@ function CodeViewContent() {
       // (ADR-301 — a Library position's refusal names its origin: its name, not its id.)
       const detail =
         line.reason === "readOnlyPosition" && line.detail
-          ? (graph.library.definitions.get(line.detail as never)?.name ??
-            line.detail)
+          ? originName(graph, line.detail)
           : line.detail;
       return `${messages[line.reason].reason}${detail ? ` (${detail})` : ""} — ${messages[line.reason].alternative}`;
     },
@@ -536,7 +544,7 @@ function CodeViewContent() {
                     .filter(
                       (line) =>
                         line.reason === "readOnlyPosition" &&
-                        line.detail?.startsWith("lib:"),
+                        isLibraryOrigin(line.detail),
                     )
                     .map((line) => line.detail!),
                 ),
@@ -545,18 +553,11 @@ function CodeViewContent() {
                   key={definitionId}
                   className="control-button"
                   onPress={() => {
-                    runCatalogCommand(
-                      workspace,
-                      unlockOrigin({
-                        definitionId: definitionId as never,
-                        newId: workspace.newId,
-                      }),
-                    );
+                    unlock(definitionId);
                     setReport(null);
                   }}
                 >
-                  {t("codeView.unlock")}{" "}
-                  {graph.library.definitions.get(definitionId as never)?.name}
+                  {t("codeView.unlock")} {originName(graph, definitionId)}
                 </Button>
               ))}
             </div>
@@ -579,15 +580,7 @@ function CodeViewContent() {
               // ADR-296 Phase 5 (결정 3) — 「Unlock」: ADR-282 `unlockOrigin`, one history step.
               <Button
                 className="control-button"
-                onPress={() =>
-                  runCatalogCommand(
-                    workspace,
-                    unlockOrigin({
-                      definitionId: file.id as never,
-                      newId: workspace.newId,
-                    }),
-                  )
-                }
+                onPress={() => unlock(file.id!)}
               >
                 {t("codeView.unlock")}
               </Button>
@@ -676,6 +669,13 @@ class EditorBoundary extends Component<
 }
 
 /** The code with its 1:1 positions marked (the parts an edit maps back). */
+/** A Library definition's name (its id when it has none). */
+function originName(graph: CatalogGraph, definitionId: string): string {
+  return (
+    graph.library.definitions.get(definitionId as never)?.name ?? definitionId
+  );
+}
+
 function marked(result: CodeViewResult) {
   const parts: ReactNode[] = [];
   let at = 0;

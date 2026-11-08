@@ -1,4 +1,6 @@
 import { catalogPropValueFits } from "../../../../../packages/shared/src/catalog/document/valueType";
+import { descendantPatchOf } from "../../../../../packages/shared/src/catalog/document/types";
+import { isLibraryOrigin } from "../../../../../packages/shared/src/catalog/runtime/originViewNode";
 import {
   isTextRunMarkKey,
   normalizeRichText,
@@ -84,7 +86,6 @@ import type {
   CatalogEntry,
   EntryId,
   AuthoredValue,
-  DescendantPatchFields,
   InstanceAddress,
   InteractionAction,
   NodeParent,
@@ -205,7 +206,7 @@ export type CatalogCodeViewReason =
   /** ADR-296 E11 — the code names an endpoint by its URL and two endpoints share it. */
   | "ambiguousEndpoint"
   /**
-   * ADR-296 Phase 4 · 5 — a read-only file or value (a catalog rule's sheet · a spec token · a value
+   * ADR-296 Phase 4 · 5 — a read-only file or value (a spec token · a value
    * only the Design panel holds · a Library origin) was edited.
    */
   | "readOnlyFile"
@@ -458,6 +459,20 @@ export type Reject = (
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
 const capital = (name: string) => name.charAt(0).toUpperCase() + name.slice(1);
 
+/** ADR-301 — a template position's address and the template node at it. */
+type CodeViewPositionTemplate = {
+  readonly address: InstanceAddress;
+  readonly template: NonNullable<
+    ReturnType<CatalogReader["library"]["templates"]["get"]>
+  >;
+};
+/** ADR-301 — the baseline's anchors at one element unit. */
+type PositionBaseline = {
+  anchor?: CodeViewAnchor;
+  attributes: Map<string, CodeViewAnchor>;
+  text?: CodeViewAnchor;
+};
+
 class Planner {
   readonly steps: CatalogCommand[] = [];
   /** Where the last planned step's code starts (a refusal names that line). */
@@ -502,7 +517,10 @@ class Planner {
 
   /** ADR-301 — the Library origin of an expanded instance (the unlock snippet's target). */
   private positionOrigin(ownerId: string): string {
-    return (this.reader.getEntry(ownerId) as NodeEntry | undefined)?.definitionId ?? ownerId;
+    return (
+      (this.reader.getEntry(ownerId) as NodeEntry | undefined)?.definitionId ??
+      ownerId
+    );
   }
 
   /**
@@ -516,23 +534,14 @@ class Planner {
   private planPosition(
     element: CodeViewElement,
     position: { readonly ownerId: string; readonly key: string },
+    { address, template }: CodeViewPositionTemplate,
   ): void {
     const reader = this.reader;
     const owner = reader.getEntry(position.ownerId) as NodeEntry | undefined;
-    const address = codeViewAddressOf(
-      reader as never,
-      position.ownerId,
-      position.key,
-      undefined,
-      true,
-    );
-    const template = address
-      ? reader.library.templates.get(address.templatePath.at(-1) as never)
-      : undefined;
     const root = owner
       ? codeViewExpandedRoot(reader as never, owner.definitionId)
       : undefined;
-    if (!owner || !address || !template || !root) return;
+    if (!owner || !root) return;
     const unit = codeViewPositionUnit(position.ownerId, position.key);
     const target = {
       kind: "descendant" as const,
@@ -540,18 +549,13 @@ class Planner {
       address,
     };
     const from = element.from;
-    const patch = owner.descendantOverrides.find(
-      (item) =>
-        item.kind !== "replace" && codeViewSameAddress(item.address, address),
-    ) as DescendantPatchFields | undefined;
-    // `{false && …}` (사용자 결정 3 · 4).
-    const anchor = this.baseline.anchors.find(
-      (item) =>
-        item.target.kind === "position" &&
-        item.target.ownerId === position.ownerId &&
-        item.target.key === position.key,
+    const patch = descendantPatchOf(
+      owner.descendantOverrides.find((item) =>
+        codeViewSameAddress(item.address, address),
+      ),
     );
-    const wasOff = !!anchor && /^\{false && /.test(this.code(anchor));
+    // `{false && …}` (사용자 결정 3 · 4).
+    const wasOff = this.hiddenInBaseline(unit);
     const nowOff = element.visibleState === "false";
     if (element.visibleState !== undefined && !nowOff) {
       this.reject(from, "notInCode", element.visibleState);
@@ -567,22 +571,22 @@ class Planner {
         }),
       );
     // The baseline's attributes · text at this position.
+    const baselineCode = this.positionBaseline(unit);
     const was = new Map<string, string>();
-    let wasText: string | undefined;
-    for (const item of this.baseline.anchors)
-      if (item.target.kind === "attribute" && item.target.nodeId === unit)
-        was.set(item.target.name, this.code(item));
-      else if (item.target.kind === "text" && item.target.nodeId === unit)
-        wasText = this.code(item);
+    for (const [name, item] of baselineCode?.attributes ?? [])
+      was.set(name, this.code(item));
+    const wasText = baselineCode?.text && this.code(baselineCode.text);
     const now = new Map(element.attributes.map((item) => [item.name, item]));
     const bindings = codeViewPositionBindings(template);
-    const readers = codeViewExpandedBoundKeys(reader as never, root);
+    const readers = bindings.size
+      ? codeViewExpandedBoundKeys(reader as never, root)
+      : undefined;
     const patchProps: Record<string, WriteValue<AuthoredValue>> = {};
     const rootProps: Record<string, WriteValue<AuthoredValue>> = {};
     /** One prop's write at the layer that makes its value (Decision 4). */
     const write = (prop: string, value: AuthoredValue | undefined) => {
       const key = bindings.get(prop);
-      const single = key !== undefined && readers.get(key) === 1;
+      const single = key !== undefined && readers?.get(key) === 1;
       const patched = !!patch?.props && prop in patch.props;
       if (value === undefined) {
         if (patched) patchProps[prop] = { kind: "remove" };
@@ -693,7 +697,7 @@ class Planner {
     }
     // A nested origin instance's insides (Decision 2 — its `overrides`, keys from it).
     if (
-      template.definitionId.startsWith("lib:definition:origin-") &&
+      isLibraryOrigin(template.definitionId) &&
       (now.has("overrides") || was.has("overrides"))
     )
       this.planOverrides(element, owner, { unit, prefix: position.key });
@@ -719,20 +723,15 @@ class Planner {
       this.reject(0, "unknownReference", position.key);
       return;
     }
-    const anchor = this.baseline.anchors.find(
-      (item) =>
-        item.target.kind === "position" &&
-        item.target.ownerId === position.ownerId &&
-        item.target.key === position.key,
-    );
+    const unit = codeViewPositionUnit(position.ownerId, position.key);
     this.hiddenPositions.push({
       ownerId: position.ownerId,
       className: position.key.split("/").at(-1)!,
     });
     // (Already hidden — the code just leaves it out: nothing to write.)
-    if (anchor && /^\{false && /.test(this.code(anchor))) return;
+    if (this.hiddenInBaseline(unit)) return;
     this.step(
-      anchor?.start ?? 0,
+      this.positionBaseline(unit)?.anchor?.start ?? 0,
       setWholeField({
         targets: [
           {
@@ -745,6 +744,33 @@ class Planner {
         value: false,
       }),
     );
+  }
+  /** ADR-301 — the baseline's anchors by element unit (built on first use). */
+  private unitAnchors?: Map<string, PositionBaseline>;
+  private positionBaseline(unit: string): PositionBaseline | undefined {
+    if (!this.unitAnchors) {
+      const units = new Map<string, PositionBaseline>();
+      const at = (id: string) => {
+        let entry = units.get(id);
+        if (!entry) units.set(id, (entry = { attributes: new Map() }));
+        return entry;
+      };
+      for (const anchor of this.baseline.anchors) {
+        const target = anchor.target;
+        if (target.kind === "position")
+          at(codeViewPositionUnit(target.ownerId, target.key)).anchor = anchor;
+        else if (target.kind === "attribute")
+          at(target.nodeId).attributes.set(target.name, anchor);
+        else if (target.kind === "text") at(target.nodeId).text = anchor;
+      }
+      this.unitAnchors = units;
+    }
+    return this.unitAnchors.get(unit);
+  }
+  /** ADR-301 — the baseline wrote this position hidden (`{false && …}` — 사용자 결정 3 · 4). */
+  private hiddenInBaseline(unit: string): boolean {
+    const anchor = this.positionBaseline(unit)?.anchor;
+    return !!anchor && /^\{false && /.test(this.code(anchor));
   }
   /** ADR-301 R9 — the positions the edit deleted whole (hidden): their regenerated `{false && …}`. */
   readonly hiddenPositions: { ownerId: string; className: string }[] = [];
@@ -1341,7 +1367,9 @@ class Planner {
               .find(Boolean) ?? "",
           code: this.code(anchor),
           // (A position is its owner's — two instances' same position never pair by text.)
-          state: node ? stateOf(reader, node) : JSON.stringify({ position: id }),
+          state: node
+            ? stateOf(reader, node)
+            : JSON.stringify({ position: id }),
           outcome,
         };
       },
@@ -1356,13 +1384,12 @@ class Planner {
     for (const element of identity.added) this.added.add(element);
 
     // ADR-301 — a template position taken out of the code (its element deleted whole).
+    const removedNodes: string[] = [];
     for (const id of identity.removed) {
       const position = codeViewPositionOf(id);
       if (position) this.removedPosition(position);
+      else removedNodes.push(id);
     }
-    const removedNodes = identity.removed.filter(
-      (id) => !codeViewPositionOf(id),
-    );
     // Removed elements (with what reads them — decision 3).
     if (removedNodes.length)
       this.step(
@@ -1495,22 +1522,13 @@ class Planner {
       element: CodeViewElement,
       position: { readonly ownerId: string; readonly key: string },
     ) => {
-      this.planPosition(element, position);
-      const address = codeViewAddressOf(
-        reader as never,
-        position.ownerId,
-        position.key,
-        undefined,
-        true,
-      );
-      const target = address?.templatePath.at(-1);
-      const template = target
-        ? reader.library.templates.get(target as never)
-        : undefined;
-      if (!address || !template) {
+      const at = codeViewPositionTemplate(reader, position);
+      if (!at) {
         this.reject(element.from, "unknownReference", position.key);
         return;
       }
+      this.planPosition(element, position, at);
+      const { address, template } = at;
       const inner = element.children.filter(
         (child) => !!codeViewPositionOf(ids.get(child) ?? ""),
       );
@@ -1526,11 +1544,7 @@ class Planner {
         );
         return;
       }
-      placeChildren(
-        slotPlace(position.ownerId, address),
-        rest,
-        element.from,
-      );
+      placeChildren(slotPlace(position.ownerId, address), rest, element.from);
       visitChildren(rest);
     };
     const visitChildren = (children: readonly CodeViewElement[]) => {
@@ -1563,8 +1577,8 @@ class Planner {
       // ADR-301 — an expanded instance's children are its template's positions (no new element).
       if (
         parent?.kind === "node" &&
-        codeViewExpandedRoot(reader as never, parent.definitionId) &&
-        this.baselineExpanded.has(parentId)
+        this.baselineExpanded.has(parentId) &&
+        codeViewExpandedRoot(reader as never, parent.definitionId)
       ) {
         for (const child of children) {
           const position = codeViewPositionOf(ids.get(child) ?? "");
@@ -1959,12 +1973,7 @@ class Planner {
    * as its template tree: the tree's root type (`DialogTrigger`); undefined = not such an origin.
    */
   expandedTypeOf(element: CodeViewElement): string | undefined {
-    if (!this.added.has(element)) return undefined;
-    const definitionId = catalogPaletteDefinitionId(
-      this.reader.library,
-      element.type,
-    );
-    const root = codeViewExpandedRoot(this.reader as never, definitionId);
+    const root = this.expandedRootOf(element);
     const template = root
       ? this.reader.library.templates.get(root as never)
       : undefined;
@@ -1979,14 +1988,18 @@ class Planner {
   expandedBindingsOf(
     element: CodeViewElement,
   ): Map<string, Set<string>> | undefined {
-    if (!this.expandedTypeOf(element)) return undefined;
-    const root = codeViewExpandedRoot(
-      this.reader as never,
-      catalogPaletteDefinitionId(this.reader.library, element.type),
-    );
+    const root = this.expandedRootOf(element);
     return root
       ? codeViewExpandedBindingProps(this.reader as never, root)
       : undefined;
+  }
+  /** ADR-301 — a new element's expanded origin template root (undefined = not expanded). */
+  private expandedRootOf(element: CodeViewElement): string | undefined {
+    if (!this.added.has(element)) return undefined;
+    return codeViewExpandedRoot(
+      this.reader as never,
+      catalogPaletteDefinitionId(this.reader.library, element.type),
+    );
   }
   /** Each code element's node (kept · new). */
   elementIds(): ReadonlyMap<CodeViewElement, string> {
@@ -3790,6 +3803,24 @@ class Planner {
 }
 
 /** What a node holds that its code does not show — equal states are indistinguishable. */
+/** ADR-301 — a template position's address and template node (undefined = it names none). */
+function codeViewPositionTemplate(
+  reader: CatalogReader,
+  position: { readonly ownerId: string; readonly key: string },
+): CodeViewPositionTemplate | undefined {
+  const address = codeViewAddressOf(
+    reader as never,
+    position.ownerId,
+    position.key,
+    undefined,
+    true,
+  );
+  const template = address
+    ? reader.library.templates.get(address.templatePath.at(-1) as never)
+    : undefined;
+  return address && template ? { address, template } : undefined;
+}
+
 function stateOf(reader: CatalogReader, node: NodeEntry | undefined): string {
   if (!node) return "";
   const { visual, layout, sizing, responsive, descendantOverrides, name } =
@@ -3934,20 +3965,16 @@ function compareRegenerated(
     const hidden = planner.hiddenPositions.filter(
       (item) => item.ownerId === owner,
     );
-    const b = hidden.length
-      ? given.filter(
-          (element) =>
-            !(
-              element.visibleState === "false" &&
-              hidden.some(
-                (item) =>
-                  element.attributes.find((attr) => attr.name === "className")
-                    ?.value?.code === item.className,
-              ) &&
-              a.length < given.length
-            ),
-        )
-      : given;
+    const b =
+      hidden.length && a.length < given.length
+        ? given.filter((element) => {
+            if (element.visibleState !== "false") return true;
+            const className = element.attributes.find(
+              (attr) => attr.name === "className",
+            )?.value?.code;
+            return !hidden.some((item) => item.className === className);
+          })
+        : given;
     if (a.length !== b.length) {
       const extra = a[b.length] ?? a.at(-1);
       reject(extra?.from ?? parentFrom, "notInCode");

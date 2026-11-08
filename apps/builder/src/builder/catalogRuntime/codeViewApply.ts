@@ -335,9 +335,12 @@ export function catalogCodeViewProjectPlan(input: {
       // ADR-296 Phase 5 — the component's origin: its edits are origin commands (every instance).
       // (An unlocked Library origin: its copy, shown as a definition — 결정 3. A new file: a
       // definition the Apply makes — G2.)
+      // (An unlocked Library origin's file reads its definition as the generator does — the class
+      // table · styled nodes of its copy; its commands still run on the stage.)
       const library = !!file.id?.startsWith("lib:");
+      const reader = library ? codeViewLibraryReader(stage) : stage;
       const definition = file.id
-        ? (library ? codeViewLibraryReader(stage) : stage).getEntry(file.id)
+        ? reader.getEntry(file.id)
         : ({
             kind: "definition",
             id: `new:${fileName}`,
@@ -351,9 +354,7 @@ export function catalogCodeViewProjectPlan(input: {
       } else {
         const origin = planCodeViewPageEdit(
           {
-            // (An unlocked Library origin's file reads its definition as the generator does — the
-            // class table · styled nodes of its copy; its commands still run on the stage.)
-            reader: library ? codeViewLibraryReader(stage) : stage,
+            reader,
             session: {
               projectId: session.projectId,
               pageId: (file.id ?? definition.id) as EntryId<"page">,
