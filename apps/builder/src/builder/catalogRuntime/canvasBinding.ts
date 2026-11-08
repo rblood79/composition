@@ -75,6 +75,8 @@ import {
 } from "../../../../../packages/shared/src/catalog/runtime/fieldPrefix";
 import { catalogQuietStyles } from "../../../../../packages/shared/src/catalog/runtime/quietStyles";
 import {
+  catalogOwnerPartShadowTree,
+  catalogOwnerPartShadowTypes,
   catalogRuleTextColor,
   catalogStateBoxShadow,
   cssVarColor,
@@ -1368,8 +1370,15 @@ function withStateBoxShadow(
 ): CatalogConsumerNode {
   if (node.visual.boxShadow !== undefined || !node.ruleId) return node;
   const rule = root.runtime.graph.library.rules.get(node.ruleId);
-  if (rule?.structure?.stateStyles?.boxShadow === undefined) return node;
-  const value = catalogStateBoxShadow(ruleShapeInput(root, node, rect));
+  const part =
+    rule?.structure?.stateStyles?.boxShadow === undefined
+      ? ownerPartShadow(root, node)
+      : undefined;
+  if (rule?.structure?.stateStyles?.boxShadow === undefined && !part)
+    return node;
+  const value = part
+    ? catalogStateBoxShadow(ruleShapeInput(root, part.owner, rect), part.tree)
+    : catalogStateBoxShadow(ruleShapeInput(root, node, rect));
   if (
     value === undefined ||
     (value === "none" &&
@@ -1384,6 +1393,53 @@ function withStateBoxShadow(
       boxShadow: resolveCatalogShadowSource(value, root.colorMode),
     },
   } as CatalogConsumerNode;
+}
+
+/**
+ * ADR-303 (리뷰 round 3 m1) — the nearest ancestor whose rule gives `node` an owner-state shadow
+ * (`catalogOwnerPartShadowTree` — the DOM's descendant rule under that owner's state).
+ */
+function ownerPartShadow(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): { owner: CatalogConsumerNode; tree: unknown } | undefined {
+  const rules = root.runtime.graph.library.rules;
+  const type = root.typeOf(node);
+  if (!catalogOwnerPartShadowTypes(rules).has(type)) return undefined;
+  for (
+    let up = root.canvasInputs.get(node.parentId);
+    up;
+    up = root.canvasInputs.get(up.parentId)
+  ) {
+    const owner = up.ruleId ? rules.get(up.ruleId) : undefined;
+    const tree = owner && catalogOwnerPartShadowTree(owner, type);
+    if (tree !== undefined) return { owner: up, tree };
+  }
+  return undefined;
+}
+
+/** The parts under `owner` that take its state shadow (they repaint with it — their record is unchanged). */
+function ownerPartShadowParts(
+  root: CatalogCompositionRoot,
+  owner: CatalogConsumerNode,
+): string[] {
+  const rule = owner.ruleId
+    ? root.runtime.graph.library.rules.get(owner.ruleId)
+    : undefined;
+  if (!rule?.partStateStyles) return [];
+  const types = [
+    ...catalogOwnerPartShadowTypes(root.runtime.graph.library.rules),
+  ].filter((type) => catalogOwnerPartShadowTree(rule, type) !== undefined);
+  if (!types.length) return [];
+  const parts: string[] = [];
+  const visit = (id: string) => {
+    const child = root.canvasInputs.get(id);
+    if (!child) return;
+    if (types.includes(root.typeOf(child))) parts.push(child.id);
+    child.children.forEach(visit);
+  };
+  owner.children.forEach(visit);
+  return parts;
 }
 
 /** The records under the drawn page roots (a page-filtered bind owns only these). */
@@ -2526,6 +2582,10 @@ function bindInColorMode(
         const owner = input(id);
         const part = owner && ownerDrawnPart(root, owner);
         if (part) dirty.add(part.id);
+        // (ADR-303: a part's owner-state shadow — quiet Card's CardPreview)
+        if (owner)
+          for (const shadowed of ownerPartShadowParts(root, owner))
+            dirty.add(shadowed);
       }
       /** Changed engine results (parent-relative rects) against the bound layout map. */
       const changedRects = new Map<string, Rect>();

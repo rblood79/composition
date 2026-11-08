@@ -439,8 +439,8 @@ export function catalogToggleContentColor(input: CatalogRuleShapeInput) {
  */
 export function catalogStateBoxShadow(
   input: Omit<CatalogRuleShapeInput, "rect">,
+  tree: unknown = input.rule.structure?.stateStyles?.boxShadow,
 ): string | undefined {
-  const tree = input.rule.structure?.stateStyles?.boxShadow;
   if (tree === undefined) return undefined;
   const { props } = catalogRulePaint(input);
   const value = evaluateConditionTree(tree, {
@@ -455,6 +455,42 @@ export function catalogStateBoxShadow(
     isFocusVisible: input.state === "focusVisible",
   });
   return value === undefined ? undefined : String(value);
+}
+
+/**
+ * ADR-303 (리뷰 round 3 m1) — the state shadow an owner's rule gives a descendant part: the
+ * `partStateStyles["&% .react-aria-<Type>"].boxShadow` tree the generated sheet compiles to a
+ * descendant rule under the owner's state (S2 quiet Card's CardPreview, `Card.tsx:251`). The Canvas
+ * evaluates it at the owner's state (`catalogStateBoxShadow(ownerInput, tree)`).
+ */
+export function catalogOwnerPartShadowTree(
+  owner: Readonly<ComponentRule>,
+  partType: string,
+): unknown {
+  return owner.partStateStyles?.[`&% .react-aria-${partType}`]?.boxShadow;
+}
+
+const OWNER_PART_SHADOW = /^&% \.react-aria-(\w+)$/;
+const ownerPartShadowTypes = new WeakMap<object, ReadonlySet<string>>();
+/** The part types some rule gives an owner-state shadow (`catalogOwnerPartShadowTree`). */
+export function catalogOwnerPartShadowTypes(
+  rules: ReadonlyMap<string, Readonly<ComponentRule>>,
+): ReadonlySet<string> {
+  let types = ownerPartShadowTypes.get(rules);
+  if (!types) {
+    types = new Set(
+      [...rules.values()].flatMap((rule) =>
+        Object.entries(rule.partStateStyles ?? {}).flatMap(
+          ([selector, styles]) => {
+            const type = OWNER_PART_SHADOW.exec(selector)?.[1];
+            return type && styles.boxShadow !== undefined ? [type] : [];
+          },
+        ),
+      ),
+    );
+    ownerPartShadowTypes.set(rules, types);
+  }
+  return types;
 }
 
 /** 상태 트리의 outline을 Canvas도 같은 조건과 설치된 focus 변수로 해석한다. */

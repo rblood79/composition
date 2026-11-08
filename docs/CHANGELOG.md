@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [선택한 quiet Card 의 미리보기 그림자가 Canvas 에도 — ADR-303 구현 판독 round 3 m1] - 2026-11-08
+
+### Fixed
+
+- **quiet Card 를 선택 · hover 하면 CardPreview 그림자가 Preview 에만 보이고 Canvas 에는 없었다** (ADR-303 round 3 m1):
+  - **Why**: 그림자 값은 Card rule 의 `partStateStyles["&% .react-aria-CardPreview"]` (S2 quiet Card 는 루트가 아니라 미리보기에 `elevated`) 에 있고, 생성 CSS 만 그것을 자손 규칙으로 읽었다. Canvas 는 노드 자신의 상태 그림자만 읽었다.
+  - 수정: Canvas 가 같은 트리를 owner (Card) 의 variant · 선택 · 상태로 평가해 CardPreview 에 그리고, Card 를 편집하면 미리보기를 다시 그린다 (미리보기 record 는 그대로라 따로 연결). 작성한 그림자는 그대로 이긴다.
+  - 위치: `apps/builder/src/builder/catalogRuntime/canvasBinding.ts` (`ownerPartShadow` · `withStateBoxShadow`) · `packages/shared/src/catalog/runtime/rulePaint.ts` (`catalogOwnerPartShadowTree`)
+
+### Tests
+
+- `adr303PartShadowParity.browser.test.ts` — 실제 노드 트리를 Canvas · DOM 로 그려 그림자 층 수 대조 (primary 대조군 · quiet 선택 · 해제 · 재선택 · primary 전환 × light · dark = 16).
+
 ## [자식이 컨테이너 배경을 따른다 — ADR-303 Phase 2 · 3 · Implemented] - 2026-11-08
 
 ### Changed
