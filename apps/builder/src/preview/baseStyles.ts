@@ -6,7 +6,10 @@
  * 나온다 — production Preview 에는 없는 격차가 "DOM 컨트롤 content-box overflow" 로 3 라운드
  * 문서에 남았다. gate 는 반드시 `injectPreviewBaseStyles(document)` 로 같은 문자열을 싣는다.
  */
-import { DEFAULT_BASE_TYPOGRAPHY } from "../../../../packages/shared/src/catalog/runtime/fontDefaults";
+import {
+  CATALOG_FONT_FEATURE_SETTINGS,
+  DEFAULT_BASE_TYPOGRAPHY,
+} from "../../../../packages/shared/src/catalog/runtime/fontDefaults";
 
 export const PREVIEW_BASE_STYLES_ID = "canvas-base-styles";
 
@@ -23,9 +26,9 @@ export const PREVIEW_BASE_STYLES = `
       font-family: ${DEFAULT_BASE_TYPOGRAPHY.fontFamily};
     }
 
-    /* font-feature-settings: Pretendard cv 변형 — body 잔존 유지 필수 (한글 타이포 품질) */
+    /* 문서 서체 기능 — Canvas paragraph 와 같은 목록 (CATALOG_FONT_FEATURES) */
     body {
-      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+      font-feature-settings: ${CATALOG_FONT_FEATURE_SETTINGS};
       -webkit-font-smoothing: antialiased;
       color: var(--fg, #1a1a1a);
       background: var(--bg, #ffffff);

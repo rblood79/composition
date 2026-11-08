@@ -3,7 +3,7 @@ import wasmUrl from "canvaskit-wasm/bin/canvaskit.wasm?url";
 import { beforeAll, expect, it } from "vitest";
 import {
   SPECTRUM_SANS_FAMILY,
-  spectrumFontVariations,
+  cssFontVariations,
   SPECTRUM_FONT_FACES,
 } from "@composition/rendering";
 import { injectBuiltinFontStyle } from "@/fonts/builtinFonts";
@@ -72,7 +72,7 @@ it.each(cases)(
               ? ck.FontWeight.Medium
               : ck.FontWeight.Bold,
       },
-      fontVariations: spectrumFontVariations([face.family], weight),
+      fontVariations: cssFontVariations(weight, 100, 16),
     });
     const builder = ck.ParagraphBuilder.MakeFromFontCollection(
       new ck.ParagraphStyle({ textStyle }),

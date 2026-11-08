@@ -10,7 +10,11 @@ import type { CatalogCompositionRoot } from "./compositionRoot";
 import type { CatalogThemeState } from "./theme";
 
 import { catalogThemeVarsCss } from "./themeVarsCss";
-import { catalogCssFontFamily, DEFAULT_BASE_TYPOGRAPHY } from "./fontDefaults";
+import {
+  CATALOG_FONT_FEATURE_SETTINGS,
+  catalogCssFontFamily,
+  DEFAULT_BASE_TYPOGRAPHY,
+} from "./fontDefaults";
 
 /** The theme as the DOM reads it: CSS variables (light + dark blocks), color mode, base type. */
 export function applyCatalogPreviewTheme(state: CatalogThemeState): void {
@@ -32,6 +36,8 @@ export function applyCatalogPreviewTheme(state: CatalogThemeState): void {
         : catalogCssFontFamily(snapshot.base.fontFamily);
     element.style.fontSize = `${snapshot.base.fontSize}px`;
     element.style.lineHeight = String(snapshot.base.lineHeight);
+    // Canvas paragraphs shape with the same list (`DEFAULT_FONT_FEATURES`).
+    element.style.fontFeatureSettings = CATALOG_FONT_FEATURE_SETTINGS;
   }
   document.body.style.color = "var(--fg)";
   document.body.style.backgroundColor = "var(--bg)";

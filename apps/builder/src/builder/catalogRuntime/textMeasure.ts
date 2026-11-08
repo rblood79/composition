@@ -1,4 +1,4 @@
-import { fontFamily, spectrumFontVariations } from "@composition/rendering";
+import { cssFontVariations, fontFamily } from "@composition/rendering";
 import { inlineTextContent } from "../../../../../packages/shared/src/catalog/runtime/inlineText";
 import { measureCssLineBox } from "../workspace/canvas/utils/cssLineBoxMetrics";
 import type { EmbindEnumEntity, Typeface } from "canvaskit-wasm";
@@ -111,7 +111,7 @@ function paragraphMetrics(
   builder.pushStyle(
     new ck.TextStyle({
       ...textStyle,
-      fontVariations: spectrumFontVariations(families, font.fontWeight),
+      fontVariations: cssFontVariations(font.fontWeight, 100, font.fontSize),
     }),
   );
   if (runs?.length) {
@@ -137,7 +137,11 @@ function paragraphMetrics(
                   ? ck.FontSlant.Oblique
                   : ck.FontSlant.Upright,
           },
-          fontVariations: spectrumFontVariations(families, runFont.fontWeight),
+          fontVariations: cssFontVariations(
+            runFont.fontWeight,
+            100,
+            runFont.fontSize,
+          ),
         }),
       );
       builder.addText(text.slice(run.start, run.end));

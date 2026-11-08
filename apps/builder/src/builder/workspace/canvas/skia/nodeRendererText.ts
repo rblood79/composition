@@ -6,7 +6,7 @@ import type {
   Paint,
   EmbindEnumEntity,
 } from "canvaskit-wasm";
-import { spectrumFontVariations } from "@composition/rendering";
+import { cssFontVariations } from "@composition/rendering";
 import {
   resolveFontVariantFeatures,
   resolveFontStretchWidth,
@@ -789,11 +789,11 @@ export function renderText(
         ...(fontFeatureTags.length > 0
           ? { fontFeatures: fontFeatureTags }
           : {}),
-        fontVariations: spectrumFontVariations(
-          resolvedFamilies,
+        fontVariations: cssFontVariations(
           run?.fontWeight ?? node.text!.fontWeight ?? 400,
           [50, 62.5, 75, 87.5, 100, 112.5, 125, 150, 200][fontWidthIndex - 1] ??
             100,
+          fontSize,
         ),
       });
     builder.pushStyle(runTextStyle(node.text.fontSize));

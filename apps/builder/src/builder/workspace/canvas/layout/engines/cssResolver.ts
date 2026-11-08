@@ -1,6 +1,7 @@
 import { FONT_STRETCH_KEYWORD_MAP } from "@composition/rendering";
 import { useThemeConfigStore } from "../../../../../stores/themeConfigStore";
 import { DEFAULT_BASE_TYPOGRAPHY } from "../../../../fonts/customFonts";
+import { CATALOG_FONT_FEATURES } from "../../../../../../../../packages/shared/src/catalog/runtime/fontDefaults";
 
 // ============================================
 // 상속 가능 속성 목록
@@ -146,16 +147,11 @@ export function resolveFontVariantFeatures(
 }
 
 /**
- * CSS :root의 font-feature-settings와 동일한 기본 OpenType features.
- * App.css: --default-font-feature-settings: "cv02", "cv03", "cv04", "cv11"
- * CanvasKit은 브라우저처럼 CSS 상속을 하지 않으므로 명시적으로 전달해야 한다.
+ * 문서 OpenType 기능 (`CATALOG_FONT_FEATURES`) — Preview · Publish 문서 root 와 같은 목록.
+ * CanvasKit은 브라우저처럼 CSS 상속을 하지 않으므로 paragraph 마다 명시적으로 전달해야 한다.
  */
-export const DEFAULT_FONT_FEATURES: FontFeatureTag[] = [
-  { name: "cv02", value: 1 },
-  { name: "cv03", value: 1 },
-  { name: "cv04", value: 1 },
-  { name: "cv11", value: 1 },
-];
+export const DEFAULT_FONT_FEATURES: FontFeatureTag[] =
+  CATALOG_FONT_FEATURES.map((feature) => ({ ...feature }));
 
 // ============================================
 // font-stretch → CanvasKit FontWidth 인덱스 매핑

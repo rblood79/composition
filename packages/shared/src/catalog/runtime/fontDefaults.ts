@@ -65,6 +65,29 @@ export const CANVAS_FONT_FALLBACK_FAMILIES: readonly string[] = [
   "sans-serif",
 ];
 
+/**
+ * 문서가 글자를 만드는 OpenType 기능 — 서체와 무관한 한 목록 (Pretendard 의 cv02 · cv03 · cv04 ·
+ * cv11 = 한 층 a 등). Canvas paragraph (`DEFAULT_FONT_FEATURES`) 와 Preview · Publish 문서 root
+ * (`applyCatalogPreviewTheme`) · Builder Preview reset 이 이 값 하나를 읽는다.
+ *
+ * Why (2026-11-09): Canvas 와 `preview.html` reset 만 손으로 같은 값을 들고 Publish 에는 없어,
+ * 같은 글자의 폭이 Canvas 343.35 / Publish 341.80 으로 갈려 Label 줄 나눔이 달랐다.
+ */
+export const CATALOG_FONT_FEATURES: readonly {
+  readonly name: string;
+  readonly value: number;
+}[] = [
+  { name: "cv02", value: 1 },
+  { name: "cv03", value: 1 },
+  { name: "cv04", value: 1 },
+  { name: "cv11", value: 1 },
+];
+
+/** `CATALOG_FONT_FEATURES` 의 CSS `font-feature-settings` 값. */
+export const CATALOG_FONT_FEATURE_SETTINGS = CATALOG_FONT_FEATURES.map(
+  ({ name, value }) => `"${name}" ${value}`,
+).join(", ");
+
 /** Base Typography 타입 */
 export type BaseTypography = {
   fontFamily: string;

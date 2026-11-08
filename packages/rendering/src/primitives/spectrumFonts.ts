@@ -121,16 +121,24 @@ export function spectrumFontFacesFor(
   );
 }
 
-/** CSS normal=100%。Adobe face의 fvar 기본 wdth=62.5를 그대로 쓰면 Canvas만 좁아진다. */
-export function spectrumFontVariations(
-  families: readonly string[],
+/**
+ * CSS 가 가변 서체 축을 고르는 규칙 — 서체와 무관하다. 서체에 축이 있으면 `wght` = font-weight,
+ * `wdth` = font-stretch (normal 100), `opsz` = font-size (`font-optical-sizing: auto`). 서체에 없는 축은
+ * CanvasKit 이 무시한다. Canvas 측정 · 그리기가 이 값을 넘겨야 DOM 과 같은 글리프 폭이 된다.
+ *
+ * Why (2026-11-09): `wdth` 를 Adobe Clean 에만 넘기고 `opsz` 는 넘기지 않아, opsz 축이 있는 Inter 16px
+ * 문장이 Canvas 531.26 / DOM 525.86 이었다 (Adobe Clean fvar 기본 wdth 62.5 → Canvas 만 좁던 것도 같은 규칙).
+ */
+export function cssFontVariations(
   weight: number,
   width = 100,
+  fontSize?: number,
 ): { axis: string; value: number }[] {
   return [
     { axis: "wght", value: weight },
-    ...(families.includes(SPECTRUM_SANS_FAMILY)
-      ? [{ axis: "wdth", value: width }]
+    { axis: "wdth", value: width },
+    ...(fontSize !== undefined && fontSize > 0
+      ? [{ axis: "opsz", value: fontSize }]
       : []),
   ];
 }

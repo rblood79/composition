@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [글자 폭: Canvas 와 Preview 가 같은 서체 기능 · 가변 축으로 글자를 만든다] - 2026-11-09
+
+### Fixed
+
+- **긴 Label 의 줄 나눔이 Canvas 와 Preview 에서 갈렸다** (Pretendard 14px "…and the" Canvas 343.35 / Preview 341.80): Canvas paragraph 는 문서 서체 기능 (`cv02` · `cv03` · `cv04` · `cv11`) 을 늘 쓰는데, Preview 버튼이 여는 Publish 문서에는 그 값이 없었다 (`preview.html` reset 과 Canvas 상수에만 손 복사본). 목록 하나 (`CATALOG_FONT_FEATURES`, `fontDefaults.ts`) 를 Canvas · `applyCatalogPreviewTheme` (Preview · Publish 문서 root) · Preview reset 이 같이 읽는다.
+- **opsz 축이 있는 가변 서체가 Canvas 에서만 넓었다** (Inter 16px 문장 Canvas 531.26 / DOM 525.86 — 12 · 14px 는 일치): CSS 는 `font-optical-sizing: auto` 로 `opsz` = 글자 크기를 쓰는데 Canvas 는 넘기지 않았고, `wdth` 는 Adobe Clean 에만 넘기는 서체별 분기였다. `cssFontVariations` (옛 `spectrumFontVariations`) 가 서체와 무관하게 CSS 규칙대로 `wght` · `wdth` · `opsz` 를 넘기고 (없는 축은 CanvasKit 이 무시) 측정 · 그리기가 같이 쓴다.
+
+### Tests
+
+- `documentFontFeatures.browser.test.ts` (Publish stylesheet + 공용 theme 적용 → body 기능 = Canvas 목록) · `variableFontAxes.browser.test.ts` (내장 서체 전부 × 12 · 16 · 24 · 40px × 400 · 600 — Canvas paragraph 폭 = DOM, 0.1px) — 원복 RED: 기능 줄 제거 시 `[]`, `opsz` 제거 시 Inter 16 · 24 · 40px 6건. live: Publish Label 의 줄 나눔 · 아이콘 자리가 Canvas 와 같음 (343.35 · 91.51 · 95.02), Pretendard · Inter 12건 0.2px 이내.
+
 ## [컨테이너 층: portal 된 오버레이 · 상태 칠이 바뀐 컨테이너에서 Canvas 와 Preview 가 같은 층 — ADR-303 code-review 후속] - 2026-11-08
 
 ### Fixed

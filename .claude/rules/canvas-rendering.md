@@ -14,6 +14,8 @@ paths:
 
 # Canvas 렌더링 규칙
 
+- 글자 모양 입력 (OpenType 기능 · 가변 축) 은 서체 이름으로 가르지 않고 CSS 규칙 하나로 두 consumer 에 준다 — 기능은 `CATALOG_FONT_FEATURES` 를 Canvas paragraph 와 문서 root (`applyCatalogPreviewTheme`) 가 읽고, 축은 `cssFontVariations` (`wght` · `wdth` · `opsz` = 글자 크기) 를 측정 · 그리기가 쓴다. **Why (2026-11-09):** Publish 에 기능이 없어 Pretendard 14px 문장이 Canvas 343.35 / DOM 341.80 으로 Label 줄 나눔이 갈렸고, Canvas 가 `opsz` 를 빼 Inter 16px 이 531.26 / 525.86 이었다 (`wdth` 는 Adobe Clean 에만 넘기는 분기였다). 게이트 `documentFontFeatures` · `variableFontAxes` (내장 서체 전부).
+
 - rule 텍스트 leaf가 part rule의 `whiteSpace`를 받으면 지원 판정과 실제 text shape 전달을 함께 연결한다. **Why (2026-11-08):** Library의 ProgressBarValue에 공용 `.value` 규칙의 `nowrap`이 해석됐지만 Canvas가 거부해 scene 전체가 멈췄다. ProgressBar·Meter의 텍스트 paint 및 DOM에 값을 전달하고 Library 전체 light·dark 바인딩과 편집·Undo로 검증한다.
 
 - DOM 콘텐츠 래퍼를 Canvas 레이아웃 part로 표현하면 최소 폭도 같은 catalog selector에서 읽는다. **Why (2026-11-08)** ToggleButtonGroup Justified의 버튼은 106px이었지만 Canvas 내부 Text는 308px로 남았다. 공용 truncate와 래퍼 최소 폭을 반영해 긴 Label을 가용 82px 안에 배치한다.
