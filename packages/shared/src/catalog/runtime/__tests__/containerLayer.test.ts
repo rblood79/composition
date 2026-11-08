@@ -8,10 +8,12 @@ import { COMPONENT_RULES_TABLE } from "../../generated/componentRulesTable";
 import {
   CATALOG_CONTAINER_TOKEN,
   CATALOG_LAYER_ROLES,
+  catalogContainerCss,
   catalogContainerLayerAbove,
   catalogContainerLayerOf,
   catalogContainerReaders,
 } from "../containerLayer";
+import { catalogContainerDependents } from "../presence";
 import type { CatalogConsumerNode } from "../compositionRoot";
 
 const node = (
@@ -72,6 +74,32 @@ describe("ADR-303 — containerLayerOf (한 판정 함수)", () => {
     ).toBe("layer-2");
   });
 
+  it("휴지 배경은 칠과 같은 조건으로 — 선택 · emphasized · disabled · fillStyle 가지가 층을 바꾼다", () => {
+    // (선택된 Card 는 accent-subtle — 층이 아니다)
+    expect(
+      catalogContainerLayerOf(node("Card", { isSelected: true })),
+    ).toBeUndefined();
+    expect(
+      catalogContainerLayerOf(node("ActionBar", { isEmphasized: true })),
+    ).toBeUndefined();
+    expect(
+      catalogContainerLayerOf(node("SelectBox", { isDisabled: true })),
+    ).toBeUndefined();
+    // (border InlineAlert 는 base 를 칠한다)
+    expect(
+      catalogContainerLayerOf(
+        node("InlineAlert", { variant: "neutral", fillStyle: "border" }),
+      ),
+    ).toBe("base");
+    // (상속받은 disabled 도 칠의 조건 — record 파생 값)
+    expect(
+      catalogContainerLayerOf(
+        node("SelectBox", {}, { derivedProps: { isDisabled: true } }),
+      ),
+    ).toBeUndefined();
+    expect(catalogContainerLayerOf(node("ActionBar"))).toBe("layer-2");
+  });
+
   it("가장 가까운 컨테이너 조상 · 없으면 base", () => {
     const records = new Map<string, CatalogConsumerNode>([
       [
@@ -113,6 +141,73 @@ describe("ADR-303 — 재분류 자리 · DOM 변수", () => {
         ),
         type,
       ).not.toContain(CATALOG_CONTAINER_TOKEN);
+  });
+
+  it("portal 되는 오버레이 본체: 컨테이너가 아니면 위 층을 자기 변수로 싣는다 (DOM 상속이 portal 에서 끊긴다)", () => {
+    const hex = {
+      id: "h",
+      kind: "color",
+      color: "#ffe4e1ff",
+      enabled: true,
+      opacity: 1,
+      blendMode: "normal",
+    } as const;
+    const records = new Map<string, CatalogConsumerNode>([
+      ["body", node(undefined, {}, { id: "body", parentId: "" })],
+      [
+        "card",
+        node(
+          "Card",
+          { variant: "secondary" },
+          { id: "card", parentId: "body", children: ["trigger"] },
+        ),
+      ],
+      [
+        "trigger",
+        node(
+          "DialogTrigger",
+          {},
+          { id: "trigger", parentId: "card", children: ["pop"] },
+        ),
+      ],
+      [
+        "pop",
+        node(
+          "Popover",
+          {},
+          {
+            id: "pop",
+            parentId: "trigger",
+            fills: [hex] as never,
+            derivedProps: { _containerLayer: "layer-1" },
+          },
+        ),
+      ],
+    ]);
+    const get = (id: string) => records.get(id);
+    const pop = records.get("pop")!;
+    // (Canvas 의 reader 는 문서 부모 사슬 — Popover 를 건너 Card 층)
+    expect(catalogContainerLayerAbove({ parentId: "pop" }, get)).toBe(
+      "layer-1",
+    );
+    // (Preview 의 Popover 는 body 로 portal — 상속 대신 자기 변수가 Card 층이어야 같다)
+    const style: Record<string, unknown> = {};
+    catalogContainerCss(style, pop);
+    expect(style["--container-bg"]).toBe(
+      tokenToCSSVar("{color.layer-1}" as TokenRef),
+    );
+    // (칠이 없으면 Popover 자신이 컨테이너 — 자기 층)
+    const own: Record<string, unknown> = {};
+    catalogContainerCss(own, { ...pop, fills: [] } as never);
+    expect(own["--container-bg"]).toBe(
+      tokenToCSSVar("{color.layer-2}" as TokenRef),
+    );
+    // (Card 층이 바뀌면 그 아래 오버레이 본체도 다시 계획한다)
+    expect(
+      catalogContainerDependents(records.get("card")!, undefined, get).map(
+        (dependent) => dependent.id,
+      ),
+    ).toContain("pop");
   });
 
   it("`--container-bg` 값 = 층 토큰의 등록 변수 (손 이름 0 — `var(--layer-2)` 같은 미등록 변수 없음)", () => {

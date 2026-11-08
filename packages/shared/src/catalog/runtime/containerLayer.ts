@@ -14,10 +14,15 @@
 import { tokenToCSSVar, type TokenRef } from "@composition/rendering";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import { evaluatePaint } from "../rule/rulePaintTree";
+import {
+  catalogPaintConditions,
+  catalogPaintStaticTone,
+} from "../resolvers/paintConditions";
 import { resolveCatalogVariantName } from "../resolvers/resolveCatalogVariantName";
 import { catalogFillTokenRef } from "../resolution/resolver";
 import type { ComponentRule } from "../../types/catalog-style.types";
 import type { CatalogConsumerNode } from "./compositionRoot";
+import { OVERLAY_BODY_TYPES } from "./overlayState";
 
 export const CATALOG_LAYER_ROLES = [
   "base",
@@ -35,7 +40,8 @@ const LAYER_OF_REF: ReadonlyMap<string, CatalogLayerRole> = new Map(
   CATALOG_LAYER_ROLES.map((role) => [`{color.${role}}`, role]),
 );
 
-type ContainerNode = Pick<CatalogConsumerNode, "props" | "fills" | "ruleId">;
+type ContainerNode = Pick<CatalogConsumerNode, "props" | "fills" | "ruleId"> &
+  Partial<Pick<CatalogConsumerNode, "derivedProps">>;
 
 const RULES = COMPONENT_RULES_TABLE as Readonly<Record<string, ComponentRule>>;
 
@@ -58,11 +64,21 @@ export function catalogContainerLayerOf(
   }
   if (!node.ruleId || !catalogLayerRules().has(node.ruleId)) return undefined;
   const rule = RULES[node.ruleId];
-  const variantName = resolveCatalogVariantName(rule, node.props);
+  // (its resting paint — the same conditions as `resolveCatalogPaint`: a selected Card's
+  //  accent-subtle · an emphasized ActionBar's neutral is no layer)
+  const props = node.derivedProps
+    ? { ...node.props, ...node.derivedProps }
+    : node.props;
+  const variantName = resolveCatalogVariantName(rule, props);
   const tree = variantName
     ? rule.variants[variantName]?.paint?.backgroundColor
     : undefined;
-  const rest = evaluatePaint(tree, { isQuiet: node.props.isQuiet === true });
+  const conditions = catalogPaintConditions(props);
+  const tone = catalogPaintStaticTone(props);
+  const rest = evaluatePaint(
+    tree,
+    tone ? { ...conditions, staticColor: tone } : conditions,
+  );
   return rest === undefined ? undefined : LAYER_OF_REF.get(rest);
 }
 
@@ -118,12 +134,38 @@ export function catalogContainerReaders(): ReadonlySet<string> {
   return readers;
 }
 
-/** ADR-303 — the inline variable a container gives its children (its layer token's own variable). */
+/**
+ * The records the Canvas derives `_containerLayer` for: the `{color.container}` readers, and the
+ * overlay bodies — RAC portals them out of their document parent, so the DOM's inherited
+ * `--container-bg` cannot reach their insides: they carry the layer above them themselves.
+ */
+export function catalogDerivesContainerLayer(
+  node: Pick<CatalogConsumerNode, "ruleId">,
+): boolean {
+  return (
+    !!node.ruleId &&
+    (catalogContainerReaders().has(node.ruleId) ||
+      OVERLAY_BODY_TYPES.has(node.ruleId))
+  );
+}
+
+/**
+ * ADR-303 — the inline variable a container gives its children (its layer token's own variable);
+ * an overlay body that is no container gives the layer above it (`_containerLayer` — the Canvas's
+ * walk of its document parents), since its portal breaks the CSS inheritance.
+ */
 export function catalogContainerCss(
   style: Record<string, unknown>,
-  node: ContainerNode,
+  node: ContainerNode & Pick<CatalogConsumerNode, "derivedProps">,
 ): void {
-  const layer = catalogContainerLayerOf(node);
+  const above = node.derivedProps?._containerLayer;
+  const layer =
+    catalogContainerLayerOf(node) ??
+    (node.ruleId &&
+    OVERLAY_BODY_TYPES.has(node.ruleId) &&
+    typeof above === "string"
+      ? above
+      : undefined);
   if (layer)
     style["--container-bg"] = tokenToCSSVar(`{color.${layer}}` as TokenRef);
 }

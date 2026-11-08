@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [컨테이너 층: portal 된 오버레이 · 상태 칠이 바뀐 컨테이너에서 Canvas 와 Preview 가 같은 층 — ADR-303 code-review 후속] - 2026-11-08
+
+### Fixed
+
+- **컨테이너가 아닌 Popover · Modal · Tooltip · SheetOverlay 안의 reader (ListBox · Menu · Nav …) 가 Preview 에서 base 를 칠했다** (ADR-303): Canvas 는 문서 부모를 따라 위 층 (예: layer-1 frame) 을 읽는데, RAC 는 본체를 body 로 portal 해 DOM 의 `--container-bg` 상속이 끊겼다. 본체가 위 층을 `_containerLayer` 로 받아 자기 inline 변수로 싣는다 (`catalogDerivesContainerLayer` · `catalogContainerCss`).
+- **컨테이너 판정이 휴지 배경을 `isQuiet` 하나로만 평가했다**: 선택된 Card (accent-subtle) · emphasized ActionBar (neutral) · disabled SelectBox 를 층 컨테이너로, border InlineAlert (base) 를 컨테이너 아님으로 판정해 안쪽 reader 가 실제 칠과 다른 층을 따랐다. 칠과 같은 조건 집합 (`resolvers/paintConditions.ts` `catalogPaintConditions` — `resolveCatalogPaint` 와 공유) 으로 평가한다.
+
+### Tests
+
+- `containerLayer.test.ts` +2 (portal 본체 변수 · 의존 재계획, 상태 조건 5종) — 수정 전 RED 2 · `adr303ContainerParity` browser PASS · live (layer-1 frame 안 hex Popover 의 reader 배경 255 → 248 = layer-1, 선택된 Card 안 ListBox 층 elevated → base · 해제 시 복귀, 콘솔 0).
+
 ## [코드에 새로 쓴 `<Popover size="L" />` 가 Apply 된다 — ADR-301 구현 판독 round 3 m1] - 2026-11-08
 
 ### Fixed

@@ -6,6 +6,10 @@ import type {
 } from "../../types/catalog-style.types";
 import type { ConditionSet } from "../rule/conditionTree";
 import {
+  catalogPaintConditions,
+  catalogPaintStaticTone,
+} from "./paintConditions";
+import {
   evaluatePaint,
   evaluatePaintImage,
   type ComponentRulePaint,
@@ -96,39 +100,12 @@ export function resolveCatalogPaint({
   const fillKey = catalogFillStyleKey(props.fillStyle, fillStyleValues);
   const isOutline = fillKey === "outline";
   const isSubtle = fillKey === "subtle";
-  const isSelected = props.isSelected === true;
   const isShowAll = props._isShowAll === true;
   // ADR-297: the state-dependent paint is the variant's condition tree (`paint`) — key order is
   //   the priority. A variant without one paints no state colors. Phase 3: the static color scheme
   //   (`staticColor` black · white) is the tree's `staticColor` branch too — one evaluation.
-  const staticColor = props.staticColor;
-  const staticTone =
-    staticColor === "black" || staticColor === "white"
-      ? staticColor
-      : undefined;
-  const conditions: ConditionSet = {
-    isHovered: interactionState === "hover",
-    isExpanded: props._overlayOpen === true,
-    isPicker: props._pickerTrigger === true,
-    isSearchFieldPart: props._searchFieldPart === true,
-    isPressed: interactionState === "pressed",
-    isFocused: props._isFocused === true,
-    isFocusVisible: props._isFocusVisible === true,
-    inPopover: props._inPopover === true,
-    isSelected,
-    isEmphasized: props.isEmphasized === true,
-    isInvalid: props.isInvalid === true,
-    isQuiet: props.isQuiet === true,
-    // ADR-297 3h #7 — S2 disabled is a color (`Button.tsx` `isDisabled: 'disabled'`), not opacity; the
-    //   record's `isDisabled` (own · inherited — `presence.ts`) is the DOM's `data-disabled`.
-    isDisabled: props.isDisabled === true,
-    // ADR-300: an S2 SideNav row's current mark · its panel's collapse (`catalogSideNavDerived`).
-    isCurrent: props._sideNavCurrent === true,
-    isCollapsed: props._sideNavCollapsed === true,
-    ...(typeof props.fillStyle === "string"
-      ? { fillStyle: props.fillStyle }
-      : {}),
-  };
+  const staticTone = catalogPaintStaticTone(props);
+  const conditions = catalogPaintConditions(props, interactionState);
   const treeState = variant?.paint
     ? treeStatePaint(
         variant.paint,

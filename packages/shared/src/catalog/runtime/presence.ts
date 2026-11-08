@@ -79,7 +79,7 @@ import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import {
   catalogContainerLayerAbove,
   catalogContainerLayerOf,
-  catalogContainerReaders,
+  catalogDerivesContainerLayer,
 } from "./containerLayer";
 import { MANUAL_ITEM_LABEL_COLORS } from "../document/manualBoxRules";
 import {
@@ -2262,13 +2262,12 @@ export function catalogDerivedProps(
   const withSideNav = sideNav ? { ...buttoned, ...sideNav } : buttoned;
   // (ADR-303: a rule that reads `{color.container}` paints its nearest container's layer — the DOM's
   //  inherited `--container-bg`, `containerLayer.ts`.)
-  const withContainer =
-    node.ruleId && catalogContainerReaders().has(node.ruleId)
-      ? {
-          ...withSideNav,
-          _containerLayer: catalogContainerLayerAbove(node, get),
-        }
-      : withSideNav;
+  const withContainer = catalogDerivesContainerLayer(node)
+    ? {
+        ...withSideNav,
+        _containerLayer: catalogContainerLayerAbove(node, get),
+      }
+    : withSideNav;
   if (typeOf(node) === "Sheet") {
     const overlay = catalogPartParent(node, get, typeOf);
     if (overlay && typeOf(overlay) === "SheetOverlay") {
@@ -3020,11 +3019,10 @@ export function catalogContainerDependents(
     catalogContainerLayerOf(before) === catalogContainerLayerOf(owner)
   )
     return [];
-  const readers = catalogContainerReaders();
   const out: CatalogConsumerNode[] = [];
   const visit = (node: CatalogConsumerNode) => {
     for (const child of childrenOf(node, get)) {
-      if (child.ruleId && readers.has(child.ruleId)) out.push(child);
+      if (catalogDerivesContainerLayer(child)) out.push(child);
       if (!catalogContainerLayerOf(child)) visit(child);
     }
   };
