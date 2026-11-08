@@ -12,16 +12,18 @@
  * **테마 색은 여기서만 만든다 (ADR-293)**: 모든 델타 · 파생이 끝난 최종 `colors.light` / `colors.dark` 의
  * 모든 키를 함수 끝에서 `cssVars` (`color: true`) 로 싣는다 — 변수 이름은 생성 CSS 와 같은 표
  * (`colorTokenCssValue`) 에서. `preview-system.css` 는 이 변수들을 계산하지 않는다. 토큰 ↔ 변수는 1:1 이고
- * 팔레트 상수 `white` · `black` (`--color-white` · `--color-black`) 과 Tone 단계 `--color-neutral-N` 은
- * 테마 색으로 덮지 않는다.
+ * 팔레트 상수 `white` · `black` (`--color-white` · `--color-black`) 은 테마 색으로 덮지 않는다. 팔레트 변수
+ * (`--color-<family>-<step>`, ADR-191) 는 테마가 덮지 않는다 — 두 축의 사다리는 `--tint-N` · `--tone-N` 이다 (R7).
  *
  * 색 (ADR-302): preset 의 두 축 (accent = tint 또는 `color.accent` hex · tone = Tone) → 사다리 → alias 표 →
  * 역할 두 벌 → 명시 델타 덮기.
  *   - 기본 축 (tint blue · hex 없음 / Tone neutral) 은 seed (`colors.ts` — alias 표 × Spectrum 사다리) 그대로.
  *   - 비기본 축은 생성 사다리 (`ladderGenerate.ts` — lazy chunk, `themeLadders.ts` 로더). 로드 전이면 seed 와
  *     `THEME_LADDERS_PENDING` 경고 — 로드되면 세션이 테마를 다시 적용한다.
- *   - `color.accent` (hex) 는 **tint 대체** — hex 의 (c, h) 가 accent 축 입력이다. DOM 의 `--tint` 는 `--tint-N`
- *     사다리 · link · focus-ring 의 입력으로만 남는다.
+ *   - `color.accent` (hex) 는 **tint 대체** — hex 의 (c, h) 가 accent 축 입력이다.
+ *   - 두 축의 사다리 자체도 DOM 에 싣는다 — `--tint-<단>` (accent 16 단) · `--tone-<단>` (tone 13 단), 모드별 값
+ *     (Canvas 와 같은 사다리 — 옛 CSS oklch 상대색 · Tailwind Tone 단계는 없다). DOM 전용 색 (link · 강조
+ *     글자 · track …, `preview-system.css`) 이 이 변수를 읽는다.
  *   - 그 밖의 `color.<key>` 는 값 그대로 양 모드 맵에 (사용자 결정 5 — override 한 값). 그 `<x>-hover` ·
  *     `<x>-pressed` 는 사다리 값 그대로다 (혼합 파생 없음 — Decision 2).
  */
@@ -37,6 +39,7 @@ import {
   lightShadows,
   radius as radiusSeed,
   S2_DEVICE,
+  SPECTRUM_DEFAULT_LADDERS,
   s2ControlHeights,
   s2SizeTokens,
   s2TypographyTokens,
@@ -49,7 +52,7 @@ import {
   type BaseTypography,
 } from "./fontDefaults";
 import { hexToOklch } from "./oklchToHex";
-import { resolveNeutralSteps, type NeutralPreset } from "./neutralToSkiaColors";
+import type { NeutralPreset } from "./neutralToSkiaColors";
 import { resolveRadiusTokens } from "./radiusScaleToSkia";
 import {
   THEME_LADDERS_PENDING,
@@ -139,8 +142,6 @@ const SEED_DARK_SHADOWS: Readonly<Record<string, string>> = {
   ...(darkShadows as unknown as Record<string, string>),
 };
 
-const NEUTRAL_STEPS = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
-
 /** focus 축 — DOM 변수와 ActionButton·ToggleButton Canvas outline이 함께 읽는다. */
 const FOCUS_TOKEN_TO_VAR: Readonly<
   Record<string, { name: string; px: boolean }>
@@ -158,7 +159,6 @@ function tintOf(
 ): {
   c: number;
   h: number;
-  tintVar: string;
   /** 기본 accent 축 (tint blue · 유효한 hex 없음) — 사다리 = Spectrum blue 그대로. */
   isDefault: boolean;
 } {
@@ -166,7 +166,7 @@ function tintOf(
     const oklch = hexToOklch(accentHex);
     // 사용자 hex 는 (c, h) 만 — 명도는 사다리 모양을 따른다 (ADR-302 Decision 1)
     if (oklch)
-      return { c: oklch.c, h: oklch.h, tintVar: accentHex, isDefault: false };
+      return { c: oklch.c, h: oklch.h, isDefault: false };
     warnings.push(
       `color.accent "${accentHex}" 는 hex 가 아니라 tint 프리셋으로 대체`,
     );
@@ -175,7 +175,7 @@ function tintOf(
     preset.tint in TINT_PRESETS ? preset.tint : "blue"
   ) as TintPreset;
   const { c, h } = TINT_PRESETS[tint];
-  return { c, h, tintVar: `var(--${tint})`, isDefault: tint === "blue" };
+  return { c, h, isDefault: tint === "blue" };
 }
 
 /**
@@ -224,7 +224,7 @@ export function resolveThemeSnapshot(
   const accentDelta = delta["color.accent"];
   const accentHex =
     typeof accentDelta?.value === "string" ? accentDelta.value : undefined;
-  const { c, h, tintVar, isDefault } = tintOf(preset, accentHex, warnings);
+  const { c, h, isDefault } = tintOf(preset, accentHex, warnings);
   const neutral = (preset.neutral || "neutral") as NeutralPreset;
   // ADR-302 — 비기본 축은 생성 사다리 (lazy). 로드 전이면 seed 로 두고 알린다 (세션이 로드 뒤 다시 적용).
   const ladders = themeNeedsLadders(preset, accentHex)
@@ -272,11 +272,15 @@ export function resolveThemeSnapshot(
     put(name, value, false);
     put(name, value, true);
   };
-  // `--tint-N` 사다리 · link · focus-ring 의 입력 (DOM 전용 — 테마 색 토큰이 아니다)
-  both("--tint", tintVar);
-  const steps = resolveNeutralSteps(neutral);
-  for (const step of NEUTRAL_STEPS)
-    both(`--color-neutral-${step}`, steps[step]!);
+  // 두 축의 사다리 (ADR-302 Phase 3) — 생성 축은 생성 사다리, 기본 축 · 로드 전은 seed 사다리 (역할 값과 같은 출처)
+  const ladderOf = { accent: "--tint", tone: "--tone" } as const;
+  for (const axis of ["accent", "tone"] as const)
+    for (const mode of ["light", "dark"] as const) {
+      const ladder =
+        generated?.ladders[axis][mode] ?? SPECTRUM_DEFAULT_LADDERS[axis][mode];
+      for (const [step, hex] of Object.entries(ladder))
+        put(`${ladderOf[axis]}-${step}`, hex, mode === "dark", true);
+    }
   for (const [key, px] of Object.entries(radius)) {
     if (key === "none" || key === "full") continue;
     both(`--radius-${key}`, `${px}px`);

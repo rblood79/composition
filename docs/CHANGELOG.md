@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Preview 색도 Canvas 와 같은 사다리 — ADR-302 Phase 3 · Implemented] - 2026-11-08
+
+### Changed
+
+- **Preview · Publish 의 색 둘째 파생 삭제 — 테마 색은 resolver 값 하나** (ADR-302 Phase 3):
+  - hover · pressed 변수의 `color-mix(… 85% · 75%, black)` 폴백, Preview CSS 의 `--tint` oklch 상대색 사다리 · chart accent 식, resolver 의 `--tint` · `--color-neutral-N` (Tone 의 Tailwind 단) 덮기를 지웠다.
+  - 두 축 사다리를 DOM 변수 `--tint-100 ~ 1600` (accent) · `--tone-25 ~ 1000` (tone) 로 싣는다 — Canvas 역할 색과 같은 사다리, 비기본 tint · Tone 은 생성 사다리.
+  - DOM 전용 색 (`--link` · `--fg-base` · `--fg-disabled` · `--bg-emphasis` · `--border-pressed` …) 이 그 단을 읽는다 — Tailwind neutral 단에서 Spectrum gray 단으로 (예: `--fg-disabled` `#737373` → `#c6c6c6`, `--fg-base` `#171717` → `#292929`). `--color-neutral-N` 팔레트는 이제 테마와 무관하다 (ADR-191).
+  - **Why**: Canvas 는 alias 표 값, DOM 은 CSS 식으로 같은 이름의 색을 두 번 만들었다 (`--focus-ring` · `--link` · `--chart-accent-N`) — 하나가 바뀌어도 다른 쪽이 따라오지 않았다.
+  - 위치: `packages/shared/src/catalog/runtime/resolveThemeSnapshot.ts` · `packages/shared/src/components/styles/theme/preview-system.css` · `packages/rendering/src/renderers/utils/tokenResolver.ts` · `packages/rendering/scripts/generate-theme-colors.ts` (`SPECTRUM_DEFAULT_LADDERS`)
+- **Themes 패널 Tone 견본 · 미니 프리뷰** = 그 Tone 의 생성 사다리 (견본 500 단) — Tailwind 500 단 대신 역할 색과 같은 사다리.
+
+### Removed
+
+- `NEUTRAL_PALETTES` · `resolveNeutralSteps` · chart 의 `CHART_ACCENT_STEPS` · `CHART_ACCENT_DEFAULT_HEX` · `resolveChartPaletteColors` (사용처 0 — 값은 alias 표).
+
+### Tests
+
+- G2 `adr302TwoAxis` 조항 `2b` (DOM 둘째 파생 0) · `themeColorParity.browser` 가 `--tint-N` · `--tone-N` DOM 값 = snapshot 사다리를 50 preset × 2 mode 에서 대조 · `themeCssVarsCoverSkia` 사다리 변수 = 생성기 사다리. ADR-302 Implemented (G0 ~ G5 · live 6/6).
+
 ## [tint · Tone 을 바꿔도 Spectrum 대비 규칙 유지 — ADR-302 Phase 2] - 2026-11-08
 
 ### Changed

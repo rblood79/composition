@@ -1,6 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
-import { tokenToCSSVar, type TokenRef } from "@composition/rendering";
+import {
+  SPECTRUM_DEFAULT_LADDERS,
+  tokenToCSSVar,
+  type TokenRef,
+} from "@composition/rendering";
 
 import type { TokensSnapshot } from "../../types/catalog-style.types";
 import { createThemeDefinition } from "../../theme/themesCollection";
@@ -11,7 +15,14 @@ import {
   type ResolvedThemeSnapshot,
 } from "../runtime/resolveThemeSnapshot";
 import { TINT_PRESETS } from "../runtime/tintToSkiaColors";
-import { NEUTRAL_PALETTES } from "../runtime/neutralToSkiaColors";
+import { NEUTRAL_PRESETS } from "../runtime/neutralToSkiaColors";
+import { loadThemeLadders } from "../runtime/themeLadders";
+import { buildThemeColors, TONE_PRESET_HUES } from "../runtime/ladderGenerate";
+
+// ADR-302 — 비기본 tint · Tone 의 사다리는 lazy chunk
+beforeAll(async () => {
+  await loadThemeLadders();
+});
 
 /**
  * ADR-293 G1 (RED ②) — 토큰 생성은 resolver 한 곳이다. Skia 맵 (`colors.light` / `colors.dark`) 의
@@ -99,7 +110,7 @@ describe("ADR-293 G1 — resolver cssVars 가 Skia 색 맵 전체를 싣는다",
   });
 
   for (const tint of Object.keys(TINT_PRESETS))
-    for (const neutral of Object.keys(NEUTRAL_PALETTES))
+    for (const neutral of NEUTRAL_PRESETS)
       it(`${tint} × ${neutral}: 모든 색 키가 같은 값으로 cssVars 에 있다`, () => {
         const snapshot = snapshotOf(tint, neutral);
         const missing: string[] = [];
@@ -145,16 +156,41 @@ describe("ADR-293 G1 — resolver cssVars 가 Skia 색 맵 전체를 싣는다",
           if (got !== want)
             diverged.push(`${mode} ${k}: Skia ${want} · DOM ${got}`);
         }
-      // 팔레트 (Tone 단계 · 흰색 · 검정) 는 색 토큰 델타로 바뀌지 않는다
+      // 팔레트 상수 · 두 축 사다리 (`--tint-N` · `--tone-N`) 는 색 토큰 델타로 바뀌지 않는다
       if (snapshot.cssVars.some((v) => v.name.startsWith("--color-white") || v.name.startsWith("--color-black")))
         diverged.push("팔레트 상수 --color-white/black 을 테마 색으로 실음");
       const base = snapshotOf();
-      for (const step of [100, 200, 300])
-        if (
-          valueOf(snapshot, `--color-neutral-${step}`, false) !==
-          valueOf(base, `--color-neutral-${step}`, false)
-        )
-          diverged.push(`--color-neutral-${step} 가 델타로 바뀜`);
+      for (const name of ["--tint-900", "--tone-100", "--tone-800"])
+        if (valueOf(snapshot, name, false) !== valueOf(base, name, false))
+          diverged.push(`${name} 가 델타로 바뀜`);
       expect(diverged).toEqual([]);
     });
+
+  // ADR-302 Phase 3 (G4) — 두 축 사다리 변수 = snapshot 이 쓴 사다리 · 팔레트 변수 (`--color-*`, ADR-191) 는 테마가 덮지 않는다
+  it("--tint-N · --tone-N = 역할 색과 같은 사다리 (기본 · 생성) · --tint · --color-neutral-N 없음", () => {
+    const ladderVars = (s: ResolvedThemeSnapshot, prefix: string, isDark: boolean) =>
+      Object.fromEntries(
+        s.cssVars
+          .filter((v) => v.isDark === isDark && v.name.startsWith(`${prefix}-`))
+          .map((v) => [Number(v.name.slice(prefix.length + 1)), v.value]),
+      );
+    const base = snapshotOf();
+    for (const [mode, isDark] of [["light", false], ["dark", true]] as const) {
+      expect(ladderVars(base, "--tint", isDark)).toEqual(SPECTRUM_DEFAULT_LADDERS.accent[mode]);
+      expect(ladderVars(base, "--tone", isDark)).toEqual(SPECTRUM_DEFAULT_LADDERS.tone[mode]);
+      // 생성 축: 역할 색을 만든 사다리 그대로 (역할은 수리로 단 밖에 설 수 있지만 사다리 변수는 사다리다)
+      const red = snapshotOf("red", "slate");
+      const generated = buildThemeColors({
+        accent: TINT_PRESETS.red,
+        tone: TONE_PRESET_HUES.slate,
+      });
+      expect(ladderVars(red, "--tint", isDark)).toEqual(generated.ladders.accent[mode]);
+      expect(ladderVars(red, "--tone", isDark)).toEqual(generated.ladders.tone[mode]);
+      expect(red.colors[mode]).toEqual(generated[mode] && { ...red.colors[mode], ...generated[mode] });
+    }
+    for (const s of [base, snapshotOf("green", "stone")])
+      expect(
+        s.cssVars.filter((v) => v.name === "--tint" || v.name.startsWith("--color-neutral-")),
+      ).toEqual([]);
+  });
 });

@@ -155,7 +155,7 @@ export interface CatalogThemeState {
 
 /**
  * ADR-248 Phase 4e-4d-4: the project's theme for the Builder — the active theme (a project without
- * one: the default preset, as the Preview's CSS derives its `--tint` default) with the project and
+ * one: the default preset — the seed the Preview also falls back to) with the project and
  * theme tokens resolved into the specs token maps (Skia paint, rule executor and library token
  * reads), and its color mode (`system` read now) for the composition root.
  */

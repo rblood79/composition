@@ -3,7 +3,8 @@
  *
  *   1. catalog 소스의 모든 `{color.*}` 참조가 alias 표에 있고 축이 적혀 있다.
  *   2. 옛 파생 경로의 심볼 (`semanticPaletteMap` 좌표 · `DEFAULT_SURFACE_KEYS` · `solveAccentRoles` · `mixHexWithBlack`)
- *      이 소스에 없다. (CSS `color-mix` 폴백은 Phase 3 에서 삭제 — 그때 이 목록에 더한다.)
+ *      이 소스에 없다. DOM 의 둘째 파생도 없다 (Phase 3) — 색 토큰 변환표의 `color-mix` 폴백 · Preview CSS 의
+ *      `--tint` oklch 상대색 사다리 · resolver 의 `--tint` / `--color-neutral-N` (Tailwind Tone 단계) 덮기.
  *   3. hover = pressed, 그리고 기본에서 한 단 (사다리의 다음 단). 예외는 데이터로만: design-data 상태 alias 가
  *      oracle 인 역할 (G1 이 그 단을 잰다 — `accent-hover` dark 700) · S2 Button 명시 단인 `*-fill-hover/-pressed`.
  *   4. tone 축 단 범위 (Hub grays) — 배경 층 25 ~ 100 · 면 · 테두리 · disabled 100 ~ 400 · 글자 · 진한 면 600 ~ 1000.
@@ -75,6 +76,28 @@ describe("ADR-302 G2 — 두 축", () => {
             hits.push(`${relative(REPO, file)}:${i + 1}`);
         });
       }
+    expect(hits).toEqual([]);
+  });
+
+  it("2b. DOM 둘째 파생 0 — 변환표 color-mix 폴백 · CSS oklch(from var(--tint)) · --tint / --color-neutral-N 변수", () => {
+    const read = (path: string) =>
+      readFileSync(join(REPO, path), "utf8")
+        .split("\n")
+        .filter((line) => !isComment(line))
+        .join("\n");
+    const hits: string[] = [];
+    if (/color-mix\(/.test(read("packages/rendering/src/renderers/utils/tokenResolver.ts")))
+      hits.push("tokenResolver.ts color-mix");
+    const previewCss = readFileSync(
+      join(REPO, "packages/shared/src/components/styles/theme/preview-system.css"),
+      "utf8",
+    ).replace(/\/\*[\s\S]*?\*\//g, "");
+    if (/oklch\(\s*from\s+var\(--tint\)/.test(previewCss)) hits.push("preview-system.css --tint 상대색");
+    if (/--tint\s*:/.test(previewCss)) hits.push("preview-system.css --tint 선언");
+    if (/--(tint|tone)-\d+\s*:/.test(previewCss)) hits.push("preview-system.css 사다리 변수 선언 (resolver 값을 덮는다)");
+    const resolver = read("packages/shared/src/catalog/runtime/resolveThemeSnapshot.ts");
+    if (/(both|put)\(\s*["`]--tint["`]/.test(resolver)) hits.push("resolver --tint");
+    if (/--color-neutral-/.test(resolver)) hits.push("resolver --color-neutral-N");
     expect(hits).toEqual([]);
   });
 

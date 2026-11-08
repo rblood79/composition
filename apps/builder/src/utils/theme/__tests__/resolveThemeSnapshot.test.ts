@@ -94,20 +94,21 @@ it("공통 기본 서체·사용자 sans·복원을 Canvas와 DOM 변수에 같�
 });
 
 describe("resolveThemeSnapshot — seed (preset 파생) 는 종전 setter 결과와 같다", () => {
-  it("blue · neutral · md → 색 = seed (ADR-302 — alias 표 × Spectrum 사다리) · radius md 배율 1 · --tint var(--blue) · neutral 11 단계", () => {
+  it("blue · neutral · md → 색 = seed (ADR-302 — alias 표 × Spectrum 사다리) · radius md 배율 1 · 사다리 변수 --tint-N 16 · --tone-N 13 (ADR-302 Phase 3)", () => {
     const s = resolve(theme());
     expect(s.colors.light.accent).toBe(lightColors.accent);
     expect(s.colors.light.accent).toBe("#3b63fb");
     expect(s.colors.dark["accent-hover"]).toBe(darkColors["accent-hover"]);
     expect(s.radius.md).toBe(8); // ADR-295 — S2 default
     expect(s.radius.xs).toBe(2);
-    expect(varOf(s, "--tint")).toBe("var(--blue)");
+    expect(varOf(s, "--tint")).toBeUndefined();
+    expect(varOf(s, "--tint-900")).toBe(lightColors.accent);
     expect(varOf(s, "--radius-md")).toBe("8px");
-    expect(
-      s.cssVars.filter(
-        (v) => v.name.startsWith("--color-neutral-") && !v.isDark,
-      ),
-    ).toHaveLength(11);
+    const light = (prefix: string) =>
+      s.cssVars.filter((v) => v.name.startsWith(prefix) && !v.isDark);
+    expect(light("--tint-")).toHaveLength(16);
+    expect(light("--tone-")).toHaveLength(13);
+    expect(light("--color-neutral-")).toEqual([]);
     expect(s.base).toEqual(SEED);
     expect(s.warnings).toEqual([]);
   });
@@ -163,7 +164,7 @@ describe("resolveThemeSnapshot — seed (preset 파생) 는 종전 setter 결과
 });
 
 describe("resolveThemeSnapshot — 명시 델타 (축별 비기본값 · reset · 우선순위)", () => {
-  it("color.accent hex → tint 대체: hex 의 (c,h) 가 accent 축 — 생성 사다리의 alias 단 · DOM --tint 는 hex 자체 · chart 까지", () => {
+  it("color.accent hex → tint 대체: hex 의 (c,h) 가 accent 축 — 생성 사다리의 alias 단 · DOM --tint-N 은 그 사다리 · chart 까지", () => {
     const s = resolve(
       theme({
         "color.accent": {
@@ -189,7 +190,7 @@ describe("resolveThemeSnapshot — 명시 델타 (축별 비기본값 · reset �
     expect(s.colors.light["chart-accent-1"]).toBe(
       expected.ladders.accent.light[1200],
     );
-    expect(varOf(s, "--tint")).toBe("#c53631");
+    expect(varOf(s, "--tint-1200")).toBe(expected.ladders.accent.light[1200]);
     // 빨강 계열 (hue 가 hex 의 것)
     const px = parseInt(s.colors.light.accent.slice(1, 3), 16);
     expect(px).toBeGreaterThan(150);

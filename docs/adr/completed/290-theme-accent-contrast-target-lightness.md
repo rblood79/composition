@@ -4,6 +4,8 @@
 
 Implemented — 2026-10-30 (G5 — 사용자 「확인했다」, 5173 Builder). Accepted 같은 날 (리뷰 [reviews/290.md](../reviews/290.md) round 2 pending 0 · CRITICAL/HIGH 전부 fixed + 사용자 `/execute-adr 290`).
 
+> **Superseded in part by [ADR-302](302-theme-color-two-axis-spectrum-ladders.md) (2026-11-08)** — 역할 둘 (`accent` · `accent-content`) 과 그 이름 · rule 분류 (`adr290AccentRoles`) 는 그대로다. 명도 탐색 (`solveLightness` · `createAccentColorTokens`) 과 「사용자 hex 는 자기 명도에서 · 통과하면 hex 그대로」 는 없어졌다 — 단은 alias 표, 비기본 tint · hex 는 Spectrum 사다리 모양의 생성 사다리 (hex 는 색조만).
+
 - 사용자 결정 4건 (2026-10-30, 전부 권고안): 1 dark on-accent = 흰색 · 2 사용자 hex 는 자기 명도에서 · 3 대비 표시 넣지 않음 · 4 브랜드 Tone 범위 밖.
 
 > **Phase 0 (2026-10-30)**: accent 참조 48 곳 분류 (본문 43 은 hover · pressed 키 누락 — breakdown §5). RED a ~ d 는 계산으로 확인 (dark 배경 역할 3.29 ~ 3.93 · dark 바탕 위 · light green/turquoise 글자 · `#00A86B` 4.42). **RED e · f 는 [ADR-293](293-theme-color-single-source-resolver-to-dom.md) 이 이미 닫았다** — DOM accent-pressed 가 resolver 값을 읽고 (preview-system 50% 식 삭제) 색 변수가 forced-colors media 안에 있다. Decision 5 의 남은 몫은 새 변수 2 개의 forced-colors 시스템 색뿐. 본문이 적은 `--fg-on-accent-pressed` 토큰은 없다 (forced-colors 블록의 DOM 변수만).

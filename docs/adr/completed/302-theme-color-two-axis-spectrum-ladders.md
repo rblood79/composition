@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted — 2026-11-08 (근거: `/execute-adr 302` 호출 + [reviews/302.md](reviews/302.md) round 3 pending 0 · HIGH 0)
+Implemented — 2026-11-08 (Phase 0 ~ 3 · G0 ~ G5 PASS — live 1 회 [§Live Exercise](#live-exercise)). Accepted 같은 날 (근거: `/execute-adr 302` 호출 + [reviews/302.md](../reviews/302.md) round 3 pending 0 · HIGH 0)
+
+> **Phase 3 닫힘 · 종결 (2026-11-08)** — DOM 의 둘째 파생 삭제: 변환표 `color-mix` 폴백 · Preview CSS 의 `--tint` · oklch 상대색 사다리 · chart 식 · resolver 의 `--tint` / `--color-neutral-N` 덮기. 두 축 사다리를 DOM 변수 `--tint-N` (16) · `--tone-N` (13) 로 resolver 가 싣는다 (Canvas 와 같은 사다리 — 기본은 seed `SPECTRUM_DEFAULT_LADDERS`, 비기본은 생성). DOM 전용 색 (link · 본문 · disabled · track …) 은 그 단을 읽는다 — **실측 정정**: 설계는 `--tint-N` 만 적었고 `--color-neutral-N` 을 읽던 DOM 전용 색 7 은 Spectrum gray 단으로 옮겼다 (외관 변화, DOM 전용). Themes 패널 Tone 견본 · 미니 프리뷰 = 생성 사다리. resolver 역할인데 CSS 손 값이 남은 4 변수 (`--fg-disabled` · `--popover-*` · `--collection-item-focus`) 삭제 — Phase 1 부터 실패하던 `generatedCssVarsDeclared` 해소. G2 6/6 (조항 `2b` 신설 · 원복 RED) · G4 parity 117/117 (50 preset × 2 mode 전수 · 사다리 변수 DOM = snapshot) · 번들 Builder +140 B · Preview +224 B (HEAD `d55029105` 대조, 상한 +512 · +256) · `docs:stale-symbols` 0 · 회귀 신규 실패 0 (로컬 G0 기준선 1 제외). G5 live PASS. **G5 문구 정정**: 「accent dark hover 700 → 600」 은 기본 preset 단 — 생성 preset 은 수리가 단을 옮길 수 있다 (red × stone dark `accent-fill` 한 단 밝게). 남긴 것: 기본 preset 부채 40 (rule 데이터 — Badge subtle · named hue hover 위 흰 글자 · InlineAlert neutral, rule 수정 후속) · ADR-303 (층 배정) 착수 조건 충족. 상세: breakdown §6.
 
 > **Phase 2 닫힘 (2026-11-08)** — G2 PASS (`adr302TwoAxis.static.test.ts` 5/5 — catalog `{color.*}` 전부 alias 표 · 옛 심볼 0 · hover = pressed = 다음 단 · tone 단 범위 · 고정 hex 0) · G3 PASS (`adr302HubRules.test.ts` 5/5 — tint 10 × Tone 5 + hex 7 × 2 mode, rule paint 의 글자 × 면 95 쌍 · 층 순서 · light ≠ dark) · lazy 3/3. 비기본 tint · 사용자 hex · Tone 은 `ladderGenerate.ts` (lazy chunk — `themeLadders.ts` 로더, 로드 전 seed + `THEME_LADDERS_PENDING`, 로드 뒤 Builder · Preview · Publish 재적용) 가 기준 사다리 L · preset hue · Spectrum blue 사다리 모양의 chroma 로 만들고 수리 4 단계로 대비를 맞춘다. 삭제: `semanticPaletteMap.ts` (사용자 승인) · `solveAccentRoles` · `mixHexWithBlack` 파생 · Tone 의 Tailwind 단 매핑. **실측 정정** — 기본 preset (Spectrum 값, G1 고정) 에서 이미 미달인 40 항목 (rule 쌍 34 · light pasteboard 위 글자 5 · dark `selection-accent-hover` 체크 1) 은 「기본 preset 부채」 표와 같아야 하고 (늘거나 줄면 RED), 그 밖의 규칙은 전 preset 통과 — 설계의 「층 5 · 전 상태 4.5」 는 G1 과 충돌한다. 사용자 hex 는 색조만 쓰고 명도는 사다리 모양 (ADR-290 의 「통과하면 hex 그대로」 소멸). 원복 RED: 수리 제거 → G3 41 · 고정 hex → G2-5 · hover 단 변경 → G2-3. 회귀: 신규 실패 0 (HEAD worktree 대조 — 부하 timeout 5 단독 통과 · 로컬 G0 기준선 1). type-check PASS. live 1 회 (5174 — tint green + Tone slate 의 Canvas 토큰 맵 = 생성기 180 × 2 차이 0 · Preview `:root` 177 차이 0 · 새로고침 재적용 1차 FAIL → 구독 수정 → PASS · 기본값 복귀 seed 차이 0 · 콘솔 오류 0). 상세: breakdown §6.
 
@@ -10,16 +12,16 @@ Accepted — 2026-11-08 (근거: `/execute-adr 302` 호출 + [reviews/302.md](re
 
 > **Phase 0 닫힘 (2026-11-08)** — G0 PASS. oracle fixture `--check` = 설치된 `@adobe/spectrum-design-data` 3.9.1 · alias 표 초안 `colorAliases.ts` (Phase 0 183 키 → Phase 1 실측 정정 뒤 180) 의 design-data alias 대조 불일치 0 · 기본 preset before → after: Δ 122 · 같음 49 · 신설 11 · 삭제 1 · G1 RED (`adr302SpectrumOracle.static.test.ts` — 역할 × 모드 265 불일치). **사용자 결정 8 건 전부 (a)** (2026-11-08 — R1 외관 변화 진행 · 1 기준 사다리 명도 유지 · 2 status Spectrum 값 고정 + 검사 · 3 `raised` → `layer-2` · 4 흰색 고정 + hue 판정 · 5 override 한 값 · 6 chart-accent = accent 사다리 단 · 7 Tone 이름 유지 · 8 사다리 · 생성기 lazy chunk). G0 에서 정한 것: accent 정적 면의 hover · pressed 는 design-data `accent-background-color-hover` (light 1000 · **dark 700**) — S2 macro `nextColorStop` (dark 900) 이 아니라 사용자가 정한 비교 기준 (Spectrum 토큰 데이터) 을 따른다. 그 결과 Negative 의 「`accent-hover` 위 흰 글자 dark 3.51」 은 5.25 로 사라진다. 상세: breakdown §6.
 
-> 설계 리뷰 round 1 ~ 3 (2026-11-07, codex): [reviews/302.md](reviews/302.md) — round 1 HIGH 3 (h1 배경 층 게이트 · h2 dark on-neutral · h3 status 한 키) · round 2 HIGH 1 (G3 상태 대비 — pressed 누적 이동 · Spectrum 값 일치와 접근성 게이트 분리) 전부 설계상 fixed · round 3 수리 검증 HIGH 0 · pending 0 — 리뷰 루프 종결. 구현 · live · 번들 gate 는 UNVERIFIED 이며 Proposed 를 유지한다.
+> 설계 리뷰 round 1 ~ 3 (2026-11-07, codex): [reviews/302.md](../reviews/302.md) — round 1 HIGH 3 (h1 배경 층 게이트 · h2 dark on-neutral · h3 status 한 키) · round 2 HIGH 1 (G3 상태 대비 — pressed 누적 이동 · Spectrum 값 일치와 접근성 게이트 분리) 전부 설계상 fixed · round 3 수리 검증 HIGH 0 · pending 0 — 리뷰 루프 종결. 구현 · live · 번들 gate 는 UNVERIFIED 이며 Proposed 를 유지한다.
 
-- 사용자 요청: `/create-adr` (2026-11-07) — 같은 대화의 Spectrum Hub 조사 ([SPECTRUM_COVERAGE_GAP_2026-11](../explanation/research/SPECTRUM_COVERAGE_GAP_2026-11.md) §9.6 ~ §9.11) 뒤.
+- 사용자 요청: `/create-adr` (2026-11-07) — 같은 대화의 Spectrum Hub 조사 ([SPECTRUM_COVERAGE_GAP_2026-11](../../explanation/research/SPECTRUM_COVERAGE_GAP_2026-11.md) §9.6 ~ §9.11) 뒤.
 - 방향을 정한 사용자 원문 (2026-11-07, 같은 대화):
   - 「accent 와 tone 으로 theme color token 이 결정되어야 한다」.
   - 「accent (초기값) · tone (초기값) 으로 Spectrum Hub 의 color token 들이 나와야 한다. 이유 → theme 에서 accent · tone 변경만으로 Spectrum Hub 의 규칙을 지키면서 다양한 theme color 를 쉽게 제공하기 위함이다.」
   - 「실제 token 이 존재하는 것은 Spectrum Hub 와 composition 이다. composition 은 S2 를 참고해서 token 화를 한 것이다」 — 비교 · 대조 기준은 Spectrum 토큰 데이터 (design-data 3.8.2 = `@adobe/spectrum-tokens`), S2 style macro 는 그 소비 방식 (§9.8).
   - 「결론은 spectrum hub 의 color 개념 패턴은 그대로 적용이 된건가」 → 「패턴은 그대로, 값은 기본 preset 만 그대로」 로 답했고 이 ADR 이 그 답이다.
 - 사용자가 이미 답한 것: 기본 Tone 은 Spectrum gray 13단 (Tailwind neutral 은 기본값이 될 수 없다) · status · named hue 는 초기값에서 Spectrum 단 값 · 축을 바꾸면 Hub 대비 규칙을 지켜야 한다 · 테마 축 (tint · Tone · darkMode) 은 실행 시점 입력으로 유지한다 (§9.6 결정 보강 표).
-- 선행 ADR 과의 관계 (fork 아님 — 새 결정): [ADR-290](completed/290-theme-accent-contrast-target-lightness.md) 의 accent 탐색 (`solveAccentRoles`) 은 이 ADR 의 accent 사다리 생성으로 **대체** 된다 (290 은 Superseded in part). [ADR-295](completed/295-d3-token-values-s2-style-macro-scale.md) 의 「값은 S2 설치본, 이름은 저장소」 원칙과 oracle fixture 방식을 색에 확장한다. [ADR-191](completed/191-tailwind-theme-single-source-palette.md) 의 Tailwind 생성 팔레트는 **테마 경로에서만** 빠진다 (팔레트 CSS `--color-{family}-{step}` 자체는 유지). [ADR-227](completed/227-multi-theme-token-set-collection.md) 의 「테마별 light/dark 이중 세트 유보」 는 그대로 — 이 ADR 은 **생성값** 만 두 벌로 만들고 문서 override 스키마는 바꾸지 않는다.
+- 선행 ADR 과의 관계 (fork 아님 — 새 결정): [ADR-290](290-theme-accent-contrast-target-lightness.md) 의 accent 탐색 (`solveAccentRoles`) 은 이 ADR 의 accent 사다리 생성으로 **대체** 된다 (290 은 Superseded in part). [ADR-295](295-d3-token-values-s2-style-macro-scale.md) 의 「값은 S2 설치본, 이름은 저장소」 원칙과 oracle fixture 방식을 색에 확장한다. [ADR-191](191-tailwind-theme-single-source-palette.md) 의 Tailwind 생성 팔레트는 **테마 경로에서만** 빠진다 (팔레트 CSS `--color-{family}-{step}` 자체는 유지). [ADR-227](227-multi-theme-token-set-collection.md) 의 「테마별 light/dark 이중 세트 유보」 는 그대로 — 이 ADR 은 **생성값** 만 두 벌로 만들고 문서 override 스키마는 바꾸지 않는다.
 - 리뷰 · 착수는 사용자 요청 때 (`/review-adr 302` → `/execute-adr 302`).
 
 ## Context
@@ -104,7 +106,7 @@ HIGH 0 인 대안 (C) 이 있어 루프 종료. C 의 MEDIUM 3 (생성식 · 번
 
 **기각 사유**: A — 축 변경 시 규칙을 아무도 안 재고 accent 가 모드별 한 값으로 남는다 (둘째 조건 미달). B — 테마 축이 사라진다 (사용자 결정 위반). D — 초기값 동일 불가 (Hard 1 · G1 영구 FAIL). E — 저장 스키마 변경은 이 요청에 없다 (결정 지점 ④, 별도 요청 때 C 위에 얹을 수 있다 — `LibraryToken.ref` 가 이미 반쪽 모양).
 
-> 구현 상세: [302-theme-color-two-axis-spectrum-ladders-breakdown.md](design/302-theme-color-two-axis-spectrum-ladders-breakdown.md)
+> 구현 상세: [302-theme-color-two-axis-spectrum-ladders-breakdown.md](../design/302-theme-color-two-axis-spectrum-ladders-breakdown.md)
 
 ### 사용자 결정 8 건 (execute-adr 가 그 항목에 닿을 때 묻는다 — 4 결정 지점 밖)
 
@@ -145,7 +147,15 @@ HIGH 0 인 대안 (C) 이 있어 루프 종료. C 의 MEDIUM 3 (생성식 · 번
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+- **2026-11-08 · Phase 3 (종결) — PASS 6 / FAIL 0 / BLOCKED 0 · Chrome MCP · 5174 별도 dev 서버 (작업본) · 콘솔 오류 0**
+  1. Themes 패널 Tone 견본 = 그 Tone 의 생성 사다리 500 단 (Neutral `#8f8f8f` = Spectrum gray-500 · Slate `#8290a5` = `toneLadder`) · 미니 프리뷰 = gray 50 ~ 1000 단.
+  2. tint red + Tone stone + dark → Canvas 토큰 맵 = `buildThemeColors` 180 키 × 2 모드 차이 0 · 생성 실패 0 · dark `layer-1` ≠ `layer-2` · Button primary 밝은 면 + 어두운 글자.
+  3. 같은 테마 Preview (publish 탭): 테마 색 변수 177 + 사다리 변수 29 차이 0 · `--tint` 없음 · Button · Badge 계산색 = Canvas 값.
+  4. 새로고침 (비기본 테마로 열기) → 토큰 맵 = 생성값.
+  5. 정리: 넣은 Button · Badge 삭제 명령 · blue · neutral · light 로 되돌려 seed 차이 0.
+  6. 기존 프로젝트 (`icon-box-live`) 열기 + Preview: 렌더 정상 · DOM 전용 색 = 사다리 단 · hover 변수 = resolver 값 (`color-mix` 없음).
+- Phase 1 · 2 live: Badge negative Canvas `#d73220` = Preview · green + slate Canvas 맵 · Preview 변수 차이 0 · 새로고침 재적용 FAIL → 수정 → PASS (breakdown §6).
+- 근거: run ledger `20261108-124843-adr-302-phase-3-dom-color-mix-tint-n-ton` (`live-exercise pass`, `artifacts/live-5174.json`).
 
 ## Consequences
 

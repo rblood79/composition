@@ -4,7 +4,7 @@
 
 ## 1. 전제 lock-in (fork 4 질문 — adr-writing.md §ADR Fork)
 
-1. **base / 응용**: [ADR-302](../302-theme-color-two-axis-spectrum-ladders.md) 가 base (층 **토큰의 값** — pasteboard · layer-2 재분류 · elevated · popover-outline alias · 모드별 단), 이 ADR 이 응용 (그 토큰을 **어느 컴포넌트가 어느 자리에 쓰는가** + 자식이 컨테이너를 따르는 파생 참조). 302 가 선행이다.
+1. **base / 응용**: [ADR-302](../completed/302-theme-color-two-axis-spectrum-ladders.md) 가 base (층 **토큰의 값** — pasteboard · layer-2 재분류 · elevated · popover-outline alias · 모드별 단), 이 ADR 이 응용 (그 토큰을 **어느 컴포넌트가 어느 자리에 쓰는가** + 자식이 컨테이너를 따르는 파생 참조). 302 가 선행이다.
 2. **schema 직교성**: 302 는 resolver 출력 (snapshot 의 역할 → hex) 이고, 이 ADR 은 rule 값 (`backgroundColor` · `boxShadow` · `borderColor` 의 TokenRef) 과 파생 prop (`_containerLayer`) 이다. 저장 스키마는 둘 다 0 — 직교한다. `{color.container}` 는 snapshot 키가 아니라 rule 값 언어의 alias 라 302 의 172 키 표에 들어가지 않는다.
 3. **선행 ADR 전제 reverse 검증**: 302 본문 · breakdown 을 `Card` · `Modal` · `Popover` · `boxShadow` · `container` 로 grep — 배정 · 그림자 · 상속에 대한 결정이 없다 (302 는 「rule 참조 이름 무변경 + status 66 · raised 7 재분류」 만). 반대로 이 ADR 은 302 의 `layer-2` 값 · `popover-outline` alias 없이는 G1 fixture 를 쓸 수 없다. 의존 방향 302 → 303 이 맞고, 303 → 302 역방향 의존은 없다.
 4. **판독 전 전제**: 위 세 줄이 여기 있으므로 판독 (phase 당 1 + 수리 1) 은 본문 정합만 본다. 사용자 confirm = 2026-11-08 `/create-adr` 요청 (302 와 합치지 않는다는 답 뒤).

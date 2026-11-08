@@ -1,7 +1,8 @@
 /**
  * ADR-215 G1 — 팔레트 2 × 테마 2 × 시리즈 8: Preview `--chart-series-N` 해소값 == Skia 토큰 해소값.
  * `data-palette` 가 CSS 블록을 고르고, Skia 는 `resolveChartPalette` 로 같은 배열을 읽는다.
- * mono 는 `--chart-accent-N` (CSS `oklch(from var(--tint) …)`) ↔ colors.ts (`oklchToHex`, 기본 tint) — 채널 ±1.
+ * mono 는 `--chart-accent-N` — 테마 resolver 가 싣는 값 (ADR-302: accent 사다리 단, Preview 와 같은 설치 경로) ↔
+ * colors.ts (기본 preset seed) — 채널 ±1.
  */
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, it, vi } from "vitest";
@@ -16,6 +17,10 @@ import {
 } from "@composition/rendering";
 import { SKIA_PRIMITIVES } from "@composition/rendering/renderers";
 import { COMPONENT_RULES_TABLE } from "../../catalog/generated/componentRulesTable";
+import { applyCatalogPreviewTheme } from "../../catalog/runtime/domView.runtime";
+import { DEFAULT_BASE_TYPOGRAPHY } from "../../catalog/runtime/fontDefaults";
+import { resolveThemeSnapshot } from "../../catalog/runtime/resolveThemeSnapshot";
+import { createThemeDefinition } from "../../theme/themesCollection";
 import { Chart } from "../Chart";
 import "../styles/theme/preview-system.css";
 import "../styles/theme/shared-tokens.css";
@@ -29,8 +34,15 @@ let root: Root;
 afterEach(() => {
   root?.unmount();
   host?.remove();
+  document.getElementById("runtime-theme-vars")?.remove();
   document.documentElement.removeAttribute("data-theme");
 });
+
+/** Preview 와 같은 경로로 기본 테마 변수를 싣는다 — 테마 색 (`--chart-accent-N` 포함) 은 resolver 만 만든다. */
+const DEFAULT_SNAPSHOT = resolveThemeSnapshot(
+  createThemeDefinition("chart", "Chart"),
+  { baseTypographySeed: DEFAULT_BASE_TYPOGRAPHY },
+);
 
 function rgba(paint: string): number[] {
   const ctx = document.createElement("canvas").getContext("2d")!;
@@ -61,7 +73,12 @@ it("rule: palettes.* 길이 == series 길이 (순번 계약) · 기본 팔레트
 for (const theme of ["light", "dark"] as const)
   for (const palette of CHART_PALETTES as readonly ChartPalette[])
     it(`${palette} ${theme}: Skia 토큰 == Preview --chart-series-N (8 시리즈) · data-palette 속성`, async () => {
-      document.documentElement.setAttribute("data-theme", theme);
+      applyCatalogPreviewTheme({
+        key: "",
+        colorMode: theme,
+        install: () => {},
+        snapshot: () => DEFAULT_SNAPSHOT,
+      });
       const props = { ...createChartInitialProps("bar"), palette };
       const tokens = resolveChartPalette(rule.chart, palette);
       const shapes = SKIA_PRIMITIVES.chart_scene({

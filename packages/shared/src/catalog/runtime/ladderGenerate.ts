@@ -333,6 +333,29 @@ function repairRoles(
   }
 }
 
+/** tone 축 사다리 — 입력이 없으면 Spectrum gray 그대로. */
+function toneLadderOf(tone: LadderHue | undefined, mode: LadderMode): Ladder {
+  const gray = SPECTRUM_LADDERS.gray[mode];
+  if (!tone) return gray;
+  const refBg = gray[25]!;
+  const l = hexToOklch(refBg)!.l;
+  const bg = oklchToHexInGamut(l, tone.c * chromaShape(mode)(l), tone.h);
+  return generateLadder({ ref: gray, refBg, bg, c: tone.c, h: tone.h, mode });
+}
+
+/**
+ * Tone preset 의 사다리 — Themes 패널 견본이 읽는다 (역할 색과 같은 사다리, `buildThemeColors` 의 tone 축).
+ * `neutral` (기본) 은 Spectrum gray.
+ */
+export function toneLadder(preset: string, mode: LadderMode): Ladder {
+  return toneLadderOf(
+    preset === "neutral"
+      ? undefined
+      : TONE_PRESET_HUES[preset as keyof typeof TONE_PRESET_HUES],
+    mode,
+  );
+}
+
 /**
  * preset 의 두 축 → 역할 값 두 벌. 축 입력이 없으면 기준 사다리 그대로 (기본 preset 은 seed 와 같다 — G1).
  */
@@ -349,16 +372,9 @@ export function buildThemeColors(
     Record<string, string>
   >;
   for (const mode of ["light", "dark"] as const) {
-    const gray = SPECTRUM_LADDERS.gray[mode];
     const blue = SPECTRUM_LADDERS.blue[mode];
-    const refBg = gray[25]!;
-    let tone: Ladder = gray;
-    if (input.tone) {
-      const { c, h } = input.tone;
-      const l = hexToOklch(refBg)!.l;
-      const bg = oklchToHexInGamut(l, c * chromaShape(mode)(l), h);
-      tone = generateLadder({ ref: gray, refBg, bg, c, h, mode });
-    }
+    const refBg = SPECTRUM_LADDERS.gray[mode][25]!;
+    const tone = toneLadderOf(input.tone, mode);
     let accent: Ladder = blue;
     if (input.accent)
       accent = generateLadder({

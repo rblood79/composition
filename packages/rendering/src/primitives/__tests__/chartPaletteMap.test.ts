@@ -1,5 +1,5 @@
 /**
- * ADR-215 — Chart 팔레트 표 (categorical 리터럴 · accent 명도 사다리) 의 세 consumer 가 같은 표를 읽는지.
+ * ADR-215 — Chart 팔레트 표 (categorical 리터럴 · accent 사다리 단) 의 consumer 가 같은 표를 읽는지.
  * G3 정적 조건 일부: 토큰 12 가 colors.ts · tokenResolver 에 있고, 생성 CSS 가 표의 hex 를 그대로 낸다.
  */
 import { readFileSync } from "node:fs";
@@ -7,8 +7,6 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { renderChartPaletteCss } from "../../../scripts/paletteGenerator";
 import {
-  CHART_ACCENT_DEFAULT_HEX,
-  CHART_ACCENT_STEPS,
   CHART_ACCENT_TOKENS,
   CHART_CATEGORICAL_COUNT,
   CHART_CATEGORICAL_HEX,
@@ -82,10 +80,8 @@ describe("ADR-215 chartPaletteMap — 표 하나, consumer 셋", () => {
     });
   });
 
-  it("accent 사다리는 명도 오름차순 4단, 2단이 --accent 의 L 55%", () => {
-    const L = CHART_ACCENT_STEPS.map((s) => s.lightness);
-    expect(L).toEqual([...L].sort((a, b) => a - b));
-    expect(CHART_ACCENT_STEPS[1]).toEqual({ lightness: 0.55, chromaFactor: 1 });
-    expect(CHART_ACCENT_STEPS.every((s) => s.chromaFactor <= 1)).toBe(true);
+  it("accent 4 단은 짙은 → 옅은 순서 (alias 단 내림차순)", () => {
+    const steps = CHART_ACCENT_TOKENS.map((t) => COLOR_ALIASES[t]!.light as number);
+    expect(steps).toEqual([...steps].sort((a, b) => b - a));
   });
 });

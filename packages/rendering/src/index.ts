@@ -118,11 +118,8 @@ export {
   CHART_CATEGORICAL_HEX,
   CHART_CATEGORICAL_COUNT,
   CHART_CATEGORICAL_TOKENS,
-  CHART_ACCENT_STEPS,
   CHART_ACCENT_TOKENS,
-  CHART_ACCENT_DEFAULT_HEX,
   chartCategoricalCssVar,
-  resolveChartPaletteColors,
   darkColors,
   getColorToken,
   getColorTokens,
@@ -205,6 +202,7 @@ export {
   NAMED_HUE_FAMILIES,
   SEMANTIC_CSS_VARS,
   SPECTRUM_LADDERS,
+  SPECTRUM_DEFAULT_LADDERS,
 } from "./primitives";
 export type {
   ColorAxis,

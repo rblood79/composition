@@ -69,8 +69,8 @@ export function oklchToHex(l: number, c: number, h: number): string {
 
 // ─────────────────────────────────────────────
 // ADR-227 — 역변환 (hex → oklch). 사용자가 accent 를 hex 로 주면 tint 프리셋과 같은 (c, h) 로
-//   접어 두 leg 가 같은 파생 (L 55% accent · hover/pressed mix · subtle · chart) 을 쓴다.
-//   CSS 쪽은 `--tint: #hex` 를 `oklch(from var(--tint) L c h)` 가 같은 식으로 읽는다.
+//   접어 accent 축 사다리 생성 (ADR-302 `ladderGenerate.ts`) 의 입력으로 쓴다. DOM 은 그 사다리 값
+//   (`--tint-N` · 역할 변수) 을 resolver 에서 받는다 — CSS 쪽 식은 없다.
 // ─────────────────────────────────────────────
 
 function srgbToLinear(c: number): number {

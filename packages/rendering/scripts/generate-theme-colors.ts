@@ -47,6 +47,19 @@ export function aliasValue(entry: ColorAliasEntry, mode: Mode): string {
   return value;
 }
 
+function ladders(): string {
+  return (["accent", "tone"] as const)
+    .map((axis) => {
+      const family = SPECTRUM_LADDERS[DEFAULT_FAMILY[axis]];
+      const mode = (m: Mode) =>
+        `    ${m}: { ${Object.entries(family[m])
+          .map(([step, hex]) => `${step}: "${hex}"`)
+          .join(", ")} },`;
+      return `  ${axis}: {\n${mode("light")}\n${mode("dark")}\n  },`;
+    })
+    .join("\n");
+}
+
 function render(): string {
   const block = (mode: Mode) =>
     Object.entries(COLOR_ALIASES)
@@ -65,6 +78,14 @@ ${block("light")}
 
 export const SPECTRUM_DARK_COLORS = {
 ${block("dark")}
+} as const;
+
+/**
+ * 기본 preset 의 두 축 사다리 (accent = blue · tone = gray) — DOM \`--tint-N\` · \`--tone-N\` 의 seed. 다른 축의
+ * 사다리는 생성 chunk 가 만든다 (사용자 결정 8 — 전체 사다리 표는 initial 밖).
+ */
+export const SPECTRUM_DEFAULT_LADDERS = {
+${ladders()}
 } as const;
 `;
 }

@@ -28,17 +28,16 @@ export type {
 } from "./colorAliases";
 // ADR-302 — Spectrum 색 사다리 primitive (테마 생성 lazy chunk 만 값으로 import — 사용자 결정 8)
 export { SPECTRUM_LADDERS } from "./generated/spectrumLadders";
+// ADR-302 Phase 3 — 기본 preset 의 두 축 사다리 (DOM `--tint-N` · `--tone-N` seed, initial)
+export { SPECTRUM_DEFAULT_LADDERS } from "./generated/spectrumThemeColors";
 export type { SpectrumLadderFamily } from "./generated/spectrumLadders";
 // Chart 시리즈 팔레트 표 (categorical 리터럴 · accent 명도 사다리)
 export {
   CHART_CATEGORICAL_HEX,
   CHART_CATEGORICAL_COUNT,
   CHART_CATEGORICAL_TOKENS,
-  CHART_ACCENT_STEPS,
   CHART_ACCENT_TOKENS,
-  CHART_ACCENT_DEFAULT_HEX,
   chartCategoricalCssVar,
-  resolveChartPaletteColors,
 } from "./chartPaletteMap";
 export type {
   ChartCategoricalToken,

@@ -4,6 +4,8 @@
 
 Implemented — 2026-08-26 (Phase 0~~4 / G0~~G4 종결; Accepted 2026-08-26 review-adr round 1 승인 — MED 1·LOW 1 fixed, LOW 1 deferred 는 Phase 3 실측으로 흡수)
 
+> **테마 경로 분리 — [ADR-302](302-theme-color-two-axis-spectrum-ladders.md) (2026-11-08)**: 팔레트 (`--color-{family}-{step}` · `TAILWIND_PALETTE`) 는 그대로 팔레트다 — 테마 resolver 는 더 이상 `--color-neutral-N` 을 Tone 으로 덮지 않고, 테마 색 · 사다리는 Spectrum 사다리 (`--tint-N` · `--tone-N`) 에서 온다. Tailwind 값은 비기본 Tone 의 색조 입력 (500 단의 (c, h)) 으로만 쓰인다.
+
 ## Context
 
 ### Domain (SSOT 체인 — [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))

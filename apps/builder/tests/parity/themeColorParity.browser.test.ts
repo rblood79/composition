@@ -16,7 +16,8 @@ import { injectPreviewBaseStyles } from "@/preview/baseStyles";
 import { COMPONENT_RULES_TABLE } from "../../../../packages/shared/src/catalog/generated/componentRulesTable";
 import { applyCatalogPreviewTheme } from "../../../../packages/shared/src/catalog/runtime/domView.runtime";
 import { DEFAULT_BASE_TYPOGRAPHY } from "../../../../packages/shared/src/catalog/runtime/fontDefaults";
-import { NEUTRAL_PALETTES } from "../../../../packages/shared/src/catalog/runtime/neutralToSkiaColors";
+import { NEUTRAL_PRESETS } from "../../../../packages/shared/src/catalog/runtime/neutralToSkiaColors";
+import { loadThemeLadders } from "../../../../packages/shared/src/catalog/runtime/themeLadders";
 import {
   resolveThemeSnapshot,
   type ResolvedThemeSnapshot,
@@ -27,7 +28,9 @@ import { createThemeDefinition } from "../../../../packages/shared/src/theme/the
 import type { TokensSnapshot } from "../../../../packages/shared/src/types/catalog-style.types";
 
 const css = document.createElement("style");
-beforeAll(() => {
+beforeAll(async () => {
+  // ADR-302 — 비기본 tint · Tone 은 생성 사다리 (lazy chunk). 로드 전이면 seed 라 대조가 의미 없다.
+  await loadThemeLadders();
   css.textContent = bundleCss;
   document.head.append(css);
   injectPreviewBaseStyles(document);
@@ -129,10 +132,19 @@ describe("ADR-293 G3 — 테마 색 DOM 계산값 = Skia hex", () => {
   });
 
   for (const tint of Object.keys(TINT_PRESETS))
-    for (const neutral of Object.keys(NEUTRAL_PALETTES))
+    for (const neutral of NEUTRAL_PRESETS)
       for (const mode of ["light", "dark"] as const)
         it(`${tint} × ${neutral} × ${mode}`, () => {
-          expect(diverged(snapshotOf(tint, neutral), mode)).toEqual([]);
+          const snapshot = snapshotOf(tint, neutral);
+          expect(snapshot.warnings).toEqual([]);
+          expect(diverged(snapshot, mode)).toEqual([]);
+          // ADR-302 G4 — 두 축 사다리 변수의 DOM 계산값 = snapshot 사다리 (Preview CSS 가 덮지 않는다)
+          const ladderOff: string[] = [];
+          for (const v of snapshot.cssVars)
+            if (v.isDark === (mode === "dark") && /^--(tint|tone)-\d+$/.test(v.name))
+              if (domColor(`var(${v.name})`) !== `${v.value.toLowerCase()}ff`)
+                ladderOff.push(`${v.name}: ${v.value} · DOM ${domColor(`var(${v.name})`)}`);
+          expect(ladderOff).toEqual([]);
         });
 
   // 리뷰 round 1 H2 · round 2 — 델타 하나 (나머지 토큰은 그대로여야 한다)

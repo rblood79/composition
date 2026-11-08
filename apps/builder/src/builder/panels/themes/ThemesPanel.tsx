@@ -14,14 +14,17 @@ import { ColorSwatch } from "@composition/shared/components/ColorSwatch";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import type { TintPreset } from "../../../utils/theme/tintToSkiaColors";
 import { TINT_PRESETS } from "../../../utils/theme/tintToSkiaColors";
-import type { NeutralPreset } from "../../../utils/theme/neutralToSkiaColors";
-import { NEUTRAL_PALETTES } from "../../../utils/theme/neutralToSkiaColors";
+import {
+  NEUTRAL_PRESETS,
+  type NeutralPreset,
+} from "../../../utils/theme/neutralToSkiaColors";
 import { oklchToHex } from "../../../utils/theme/oklchToHex";
 import { PanelHeader } from "../../components/panel/PanelHeader";
 import { Section as PropertySection } from "../../components/panel/Section";
 import { PropertySelect } from "../../components/property/PropertySelect";
 import { PanelContents } from "../../components/panel/PanelContents";
 import { MiniThemePreview } from "./MiniThemePreview";
+import { useToneLadders } from "./useToneLadders";
 import { ThemeListSection } from "./ThemeListSection";
 import { ThemeTokensSection } from "./ThemeTokensSection";
 import { useI18n } from "../../../i18n";
@@ -109,23 +112,8 @@ const TintSwatch = memo(
 // NeutralGrid — 5색 Neutral 프리셋 스와치
 // ============================================================================
 
-/** Neutral 프리셋 표시 순서 */
-const NEUTRAL_ORDER: NeutralPreset[] = [
-  "slate",
-  "gray",
-  "zinc",
-  "neutral",
-  "stone",
-];
-
-/** 프리셋별 대표 hex (step 500 = 중간 밝기) */
-const NEUTRAL_HEX_MAP: Record<NeutralPreset, string> = {
-  slate: NEUTRAL_PALETTES.slate[500],
-  gray: NEUTRAL_PALETTES.gray[500],
-  zinc: NEUTRAL_PALETTES.zinc[500],
-  neutral: NEUTRAL_PALETTES.neutral[500],
-  stone: NEUTRAL_PALETTES.stone[500],
-};
+/** 견본 = 그 Tone 사다리의 500 단 (ADR-302 — 역할 색과 같은 생성 사다리). 로드 전은 투명. */
+const NEUTRAL_SWATCH_STEP = 500;
 
 /** Neutral 프리셋 라벨 */
 const NEUTRAL_LABELS: Record<NeutralPreset, string> = {
@@ -138,14 +126,21 @@ const NEUTRAL_LABELS: Record<NeutralPreset, string> = {
 
 interface NeutralSwatchProps {
   preset: NeutralPreset;
+  /** 그 Tone 사다리의 견본 단 — 생성 chunk 로드 전이면 없다. */
+  hex: string | undefined;
   selected: boolean;
   onSelect: (preset: NeutralPreset) => void;
 }
 
 const NeutralSwatch = memo(
-  function NeutralSwatch({ preset, selected, onSelect }: NeutralSwatchProps) {
+  function NeutralSwatch({
+    preset,
+    hex,
+    selected,
+    onSelect,
+  }: NeutralSwatchProps) {
     const handlePress = useCallback(() => onSelect(preset), [preset, onSelect]);
-    const color = parseColor(NEUTRAL_HEX_MAP[preset]);
+    const color = parseColor(hex ?? "#00000000");
 
     return (
       <Button
@@ -168,6 +163,7 @@ const NeutralSwatch = memo(
   },
   (prev, next) =>
     prev.preset === next.preset &&
+    prev.hex === next.hex &&
     prev.selected === next.selected &&
     prev.onSelect === next.onSelect,
 );
@@ -208,6 +204,7 @@ function ThemesContent() {
   const currentTint = preset.tint as TintPreset;
   const darkMode = preset.darkMode;
   const neutral = preset.neutral as NeutralPreset;
+  const toneLadders = useToneLadders();
   const radiusScale = preset.radiusScale;
   const baseTypography = host.useBaseTypography();
 
@@ -309,10 +306,11 @@ function ThemesContent() {
           <fieldset className="properties-aria">
             <legend className="fieldset-legend">Tone</legend>
             <div className="tint-grid">
-              {NEUTRAL_ORDER.map((preset) => (
+              {NEUTRAL_PRESETS.map((preset) => (
                 <NeutralSwatch
                   key={preset}
                   preset={preset}
+                  hex={toneLadders[preset]?.[NEUTRAL_SWATCH_STEP]}
                   selected={neutral === preset}
                   onSelect={handleNeutralSelect}
                 />

@@ -41,9 +41,8 @@ S2 + React Aria 혼합 패턴. 모든 컴포넌트 CSS에서 시맨틱 변수만
 ```
 --bg          앱 전체 배경 (가장 낮은 레벨)
               ※ Spec TokenRef: {color.base}
---bg-raised   패널 헤더, section-header, popover/dropdown 컨테이너
-              ※ Spec TokenRef: {color.raised}   — ADR-071에서 도입
-              ※ popover-class (Menu/ListBox/Popover) 컨테이너 배경 표준
+--bg-raised   Builder chrome 전용 (패널 헤더 · section-header) — 테마 토큰 `{color.raised}` 는 ADR-302 에서
+              삭제 (사용자 컴포넌트는 `{color.layer-2}` · Popover 는 `--popover-background`)
 --bg-overlay  section-content, 모달, 카드 (가장 밝은/높은 레벨)
               ※ Spec TokenRef: {color.layer-1}
 --bg-muted    중립 강조 배경 (swatch, hover row, 구분선 배경)
@@ -181,91 +180,70 @@ Spec TokenRef: {color.primary}, {color.secondary}, {color.tertiary},
 --success → --positive
 ```
 
-## S2 Spec TokenRef 체계 (ADR-022)
+## S2 Spec TokenRef 체계 (ADR-022 이름 · ADR-302 값)
 
-| S2 TokenRef                    | CSS 변수 매핑                       | 용도                                                                                              |
-| ------------------------------ | ----------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `{color.accent}`               | `--accent`                          | 주요 강조 배경                                                                                    |
-| `{color.accent-hover}`         | `--accent-hover` (resolver)         | accent hover — 검정 85% 혼합 (ADR-290 범위)                                                       |
-| `{color.accent-pressed}`       | `--accent-pressed` (resolver)       | accent pressed — 검정 75% 혼합                                                                    |
-| `{color.on-accent}`            | `--fg-on-accent`                    | accent 위 텍스트 — 두 모드 흰색 (ADR-290 결정 1)                                                  |
-| `{color.accent-subtle}`        | `--accent-subtle`                   | 연한 accent 배경                                                                                  |
-| `{color.accent-content}`       | `--accent-content` (resolver)       | **바탕 위** accent — 글자 · 선 · track 채움 (ADR-290). 위에 on-accent 를 얹는 면은 `accent`       |
-| `{color.accent-content-hover}` | `--accent-content-hover` (resolver) | 바탕 위 accent 의 hover — 바탕과 대비를 한 단 더 (light 어둡게 · dark 밝게)                       |
-| `{color.neutral}`              | `--fg`                              | 기본 텍스트                                                                                       |
-| `{color.neutral-subdued}`      | `--fg-muted`                        | 보조 텍스트                                                                                       |
-| `{color.neutral-subtle}`       | `--bg-muted`                        | 연한 중립 배경                                                                                    |
-| `{color.neutral-hover}`        | `--neutral-hover` (resolver)        | **밝은 바탕** `neutral-subtle` 의 hover — Tone 300 / dark 600                                     |
-| `{color.neutral-pressed}`      | `--neutral-pressed` (resolver)      | 밝은 바탕 pressed — Tone 400 / dark 500                                                           |
-| `{color.neutral-fill-hover}`   | `--neutral-fill-hover` (resolver)   | **진한 바탕** `neutral` (Button primary) 의 hover — S2 한 단 (Tone 950 / dark 50, ADR-293 결정 4) |
-| `{color.neutral-fill-pressed}` | `--neutral-fill-pressed` (resolver) | 진한 바탕 pressed — hover 와 같은 단 (S2)                                                         |
-| `{color.negative}`             | `--negative`                        | 에러/파괴적 행동                                                                                  |
-| `{color.negative-hover}`       | `--negative-hover` (resolver)       | negative hover — 검정 85% 혼합 (ADR-293 결정 2)                                                   |
-| `{color.negative-pressed}`     | `--negative-pressed` (resolver)     | negative pressed — 검정 75% 혼합                                                                  |
-| `{color.on-negative}`          | `--fg-on-negative`                  | negative 위 텍스트                                                                                |
-| `{color.negative-subtle}`      | `--negative-subtle`                 | 연한 에러 배경 (semantic-palette.css light red-100 / dark red-900)                                |
-| `{color.informative}`          | `--informative`                     | 정보 상태 (light blue-600 / dark blue-500)                                                        |
-| `{color.informative-subtle}`   | `--informative-subtle`              | 연한 정보 배경                                                                                    |
-| `{color.positive}`             | `--positive`                        | 성공 상태 (light green-600 / dark green-500)                                                      |
-| `{color.positive-subtle}`      | `--positive-subtle`                 | 연한 성공 배경                                                                                    |
-| `{color.notice}`               | `--notice`                          | 경고 상태 (light orange-600 / dark orange-500)                                                    |
-| `{color.notice-subtle}`        | `--notice-subtle`                   | 연한 경고 배경                                                                                    |
-| `{color.negative-strong}`      | `--negative-strong`                 | subtle 배경 위 텍스트 (light red-900 / dark red-200)                                              |
-| `{color.positive-strong}`      | `--positive-strong`                 | light green-900 / dark green-200                                                                  |
-| `{color.informative-strong}`   | `--informative-strong`              | light blue-900 / dark blue-200                                                                    |
-| `{color.notice-strong}`        | `--notice-strong`                   | light orange-900 / dark orange-200                                                                |
-| `{color.base}`                 | `--bg`                              | 앱 배경                                                                                           |
-| `{color.raised}`               | `--bg-raised`                       | popover/dropdown 컨테이너 (ADR-071)                                                               |
-| `{color.layer-1}`              | `--bg-overlay`                      | 오버레이/모달                                                                                     |
-| `{color.layer-2}`              | `--bg-inset`                        | 입력 필드/카드                                                                                    |
-| `{color.elevated}`             | `--bg-elevated`                     | 떠있는 요소                                                                                       |
-| `{color.disabled}`             | `--bg-disabled`                     | 비활성 배경                                                                                       |
-| `{color.border}`               | `--border`                          | 기본 테두리                                                                                       |
-| `{color.border-hover}`         | `--border-hover`                    | 테두리 hover                                                                                      |
-| `{color.border-disabled}`      | `--border-disabled`                 | 비활성 테두리                                                                                     |
-| `{color.transparent}`          | `transparent`                       | 투명                                                                                              |
-| `{color.white}`                | `--color-white`                     | 흰색                                                                                              |
-| `{color.black}`                | `--color-black`                     | 검정                                                                                              |
+이름 (TokenRef · CSS 변수) 은 ADR-022 그대로이고, **값은 alias 표 `packages/rendering/src/primitives/colorAliases.ts` 한 곳**이 정한다 — 역할마다 (축, light 단, dark 단). 축은 `accent` (tint · 사용자 hex) · `tone` (Tone) · status / named hue (Spectrum 고정 사다리) · `constant`. 단의 값은 Spectrum 사다리 (design-data — 기본 preset 은 표, 다른 tint · Tone 은 같은 모양으로 생성). 아래 표는 이름과 역할만 적는다 — 단은 alias 표를 본다.
+
+| S2 TokenRef                                              | CSS 변수                                             | 역할                                                                                       |
+| -------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `{color.accent}` · `-hover` · `-pressed`                 | `--accent` · `--accent-hover` · `--accent-pressed`   | on-accent 를 얹는 accent 면. hover · pressed = 사다리 다음 단 (design-data 상태 alias)     |
+| `{color.accent-fill}` · `-hover`                         | `--accent-fill` · `--accent-fill-hover`              | S2 Button accent 면 (light 900 / dark 700 · hover 1000 / 600)                              |
+| `{color.on-accent}`                                      | `--fg-on-accent`                                     | accent 위 글자 — 두 모드 흰색                                                              |
+| `{color.accent-subtle}`                                  | `--accent-subtle`                                    | 연한 accent 배경                                                                           |
+| `{color.accent-content}` · `-hover`                      | `--accent-content` · `--accent-content-hover`        | **바탕 위** accent — 글자 · 선 · track 채움 (ADR-290)                                      |
+| `{color.selection-accent}` · `-hover`                    | `--selection-accent` · `--selection-accent-hover`    | Checkbox · Radio · Switch 선택 면 (S2 `accent-900`, dark 도 900)                           |
+| `{color.focus-ring}`                                     | `--focus-ring`                                       | focus 표시 (design-data `focus-indicator-color`)                                           |
+| `{color.neutral}`                                        | `--fg`                                               | 기본 글자 (gray-800)                                                                       |
+| `{color.neutral-subdued}`                                | `--fg-muted`                                         | 보조 글자                                                                                  |
+| `{color.neutral-subtle}` · `neutral-hover` · `-pressed`  | `--bg-muted` · `--neutral-hover` · `--neutral-pressed` | **밝은 바탕** 중립 면과 그 상태 (다음 단)                                                |
+| `{color.neutral-fill}` · `-hover` · `-pressed`           | `--neutral-fill` · `--neutral-fill-hover` · `-pressed` | **진한 바탕** 중립 면 (Button primary) — S2 한 단 (ADR-293 결정 4)                       |
+| `{color.on-neutral}`                                     | `--on-neutral`                                       | 진한 중립 면 위 글자                                                                       |
+| `{color.negative}` · `-hover` · `-pressed`               | `--negative` · `--negative-hover` · `-pressed`       | 오류 · 파괴적 행동 글자                                                                    |
+| `{color.negative-fill}` · `-hover`                       | `--negative-fill` · `--negative-fill-hover`          | S2 Button negative 면                                                                      |
+| `{color.on-negative}`                                    | `--fg-on-negative`                                   | negative 면 위 글자                                                                        |
+| `{color.<status>}` · `-subtle` · `-strong`               | `--<status>` · `--<status>-subtle` · `-strong`       | status 4 (negative · informative · positive · notice) 의 글자 · 연한 면 · 진한 글자        |
+| `{color.<status>-background}` · `{color.<status>-visual}` | `--<status>-background` · `--<status>-visual`       | 정적 면 (Badge · InlineAlert · Toast) · 점 · 막대 (StatusLight · Meter) — S2 소비 지점     |
+| `{color.base}`                                           | `--bg`                                               | 앱 배경                                                                                    |
+| `{color.pasteboard}`                                     | `--bg-pasteboard`                                    | 문서 바깥 (light gray-100 · dark gray-25)                                                  |
+| `{color.layer-1}`                                        | `--bg-overlay`                                       | 오버레이 · 모달                                                                            |
+| `{color.layer-2}`                                        | `--bg-inset`                                         | 입력 필드 · 카드 (옛 `{color.raised}` 자리 — ADR-302 사용자 결정 3)                        |
+| `{color.elevated}`                                       | `--bg-elevated`                                      | 떠 있는 요소                                                                               |
+| `{color.disabled}`                                       | `--bg-disabled`                                      | 비활성 배경                                                                                |
+| `{color.border}` · `-hover` · `-disabled`                | `--border` · `--border-hover` · `--border-disabled`  | 테두리                                                                                     |
+| `{color.transparent}`                                    | `transparent`                                        | 투명                                                                                       |
+| `{color.white}` · `{color.black}`                        | `--color-white` · `--color-black`                    | 팔레트 상수 (테마가 덮지 않는다)                                                           |
 
 ### Named Color (글로벌 시맨틱 없는 색상)
 
-**ADR-193 (2026-08-27)**: status(`--negative/--informative/--positive/--notice` +`-subtle`) 와 named hue(`--hue-{token}` +`-subtle`) 의 light/dark 팔레트 단계는 `packages/rendering/src/primitives/semanticPaletteMap.ts` 표 하나가 정본이다 — Skia `colors.ts` 와 `theme/generated/semantic-palette.css` (`:root` / `[data-theme="dark"]`, `pnpm generate:palette`) 가 같은 표에서 파생. 매핑 표 (`tokenResolver.ts` 하나 — shared `colorTokenToCss.ts` 는 그것을 읽는다, ADR-293) 는 semantic var 이름만 고른다. `--indigo` 류 접두 없는 이름은 tint preset 이 점유하므로 named hue 는 `--hue-` 접두 필수. 게이트: `semanticAlias.symmetry.test.ts` (light+dark 전 토큰), `tailwindPalette.drift.test.ts` (생성 byte-diff 0 · hex 0 · ≤5KB).
+named hue (`--hue-{token}` + `-subtle`, hover · pressed 는 `--{token}-hover` · `--{token}-pressed`) 와 status 의 단은 alias 표가 정본이다 (ADR-302 — 옛 Tailwind 좌표 표는 삭제). 변수 목록은 `SEMANTIC_CSS_VARS` (alias 표가 만든다) 하나를 Skia seed · 생성 `semantic-palette.css` · 변환표 (`tokenResolver.ts` — shared `colorTokenToCss.ts` 는 그것을 읽는다, ADR-293) 가 같이 읽는다. `--indigo` 류 접두 없는 이름은 쓰지 않는다 (named hue 는 `--hue-` 접두). 게이트: `semanticAlias.symmetry.test.ts` (light+dark 전 토큰) · `tailwindPalette.drift.test.ts` (생성 byte-diff 0) · `adr302TwoAxis.static.test.ts` (G2 — 모든 `{color.*}` 가 alias 표, hover = pressed = 다음 단, 고정 hex 0).
 
-| TokenRef                 | CSS 변수 매핑                        | 용도                                                                                                                                              |
-| ------------------------ | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `{color.purple}`         | `--hue-purple`                       | 보라 테마 (light purple-600 / dark 500)                                                                                                           |
-| `{color.purple-hover}`   | `color-mix(--hue-purple 85%, black)` | purple hover — status·named hue 전 토큰의 `-hover`(85%)/`-pressed`(75%) 가 같은 규칙으로 루프 파생 (tokenResolver + colorTokenToCss, `7a0cef175`) |
-| `{color.purple-pressed}` | `color-mix(--hue-purple 75%, black)` | purple pressed                                                                                                                                    |
-| `{color.purple-subtle}`  | `--hue-purple-subtle`                | 연한 보라 (light 100 / dark 900)                                                                                                                  |
-| `{color.gray}`           | `--hue-gray`                         | neutral-500 / dark neutral-400 (Badge gray)                                                                                                       |
-| `{color.indigo}` 등 17종 | `--hue-{token}`                      | semanticPaletteMap 표 참조                                                                                                                        |
+## 테마 색은 resolver 한 곳 (ADR-293 · ADR-302)
 
-## 테마 색은 resolver 한 곳 (ADR-293, 2026-10-30)
+catalog 가 `{color.X}` 로 읽는 테마 색은 `resolveThemeSnapshot` (`packages/shared/src/catalog/runtime/`) 이 preset 의 두 축 (accent = tint 또는 `color.accent` hex · tone = Tone) 과 델타에서 만든다 — 사다리 → alias 표 → 역할 두 벌 → 명시 델타 덮기. 기본 preset (blue · neutral) 은 seed (`colors.ts` ← 생성 `spectrumThemeColors.ts`), 다른 축은 생성 사다리 (`ladderGenerate.ts` — lazy chunk, `themeLadders.ts` 로더: 로드 전에는 seed + `THEME_LADDERS_PENDING`, 로드 뒤 Builder · Preview · Publish 가 다시 적용). 최종 `colors.light` / `colors.dark` 가 Canvas (Skia 맵) 와 Preview · Publish DOM 변수 (`cssVars` `color: true` → `applyCatalogPreviewTheme` 의 `@media not (forced-colors: active)` 블록) 에 **같은 객체**로 간다. 변수 이름은 생성 CSS 와 같은 표 하나 (`@composition/rendering` `colorTokenCssValue`).
 
-catalog 가 `{color.X}` 로 읽는 테마 색은 `resolveThemeSnapshot` (`packages/shared/src/catalog/runtime/`) 이 accent + Tone + 델타에서 만든다 — 그 최종 `colors.light` / `colors.dark` 가 Canvas (Skia 맵) 와 Preview · Publish DOM 변수 (`cssVars` `color: true` → `applyCatalogPreviewTheme` 의 `@media not (forced-colors: active)` 블록) 에 **같은 객체**로 간다. 변수 이름은 생성 CSS 와 같은 표 하나 (`@composition/rendering` `colorTokenCssValue` — shared `colorTokenToCss` 는 그것을 읽는다).
-
-- `preview-system.css` 는 테마 색을 계산하지 않는다 — 위 표의 변수를 선언하면 `generatedCssVarsDeclared.static.test.ts` 가 막는다. 폴백 없음 (값이 빠지면 보이게).
-- 토큰 ↔ 변수 1:1 — 새 토큰에 기존 변수 (`--color-white` 등) 를 같이 쓰지 않는다. 팔레트 변수를 가리키는 토큰은 `white` · `black` 뿐 (`themeCssVarsCoverSkia.static.test.ts`).
-- 바탕의 hover · pressed 는 그 바탕의 다음 단: `neutral-subtle` → `neutral-hover/-pressed`, `neutral` → `neutral-fill-hover/-pressed`. 명시 델타 뒤 파생은 이 짝을 따른다 (`DERIVED_STATE_KEYS`).
-- 값 대조: `apps/builder/tests/parity/themeColorParity.browser.test.ts` (프리셋 10 × Tone 5 × 모드 2 + 델타 — DOM 계산값 = Skia hex).
+- `preview-system.css` 는 테마 색을 계산하지 않는다 — 위 표의 변수를 선언하면 `generatedCssVarsDeclared.static.test.ts` 가 막는다. **폴백 없음** — 변환표의 `var(--X-hover, color-mix(…))` 폴백은 ADR-302 Phase 3 에서 지웠다 (값이 빠지면 보이게, G2 `2b`).
+- 토큰 ↔ 변수 1:1 — 새 토큰에 기존 변수 (`--color-white` 등) 를 같이 쓰지 않는다. 팔레트 변수를 가리키는 토큰은 `white` · `black` 뿐 (`themeCssVarsCoverSkia.static.test.ts`). 팔레트 변수 (`--color-<family>-<step>`, ADR-191) 는 테마가 덮지 않는다.
+- hover · pressed 는 그 면의 다음 단 (alias 표 — `neutral-subtle` → `neutral-hover/-pressed`, `neutral` → `neutral-fill-hover/-pressed`). 명시 델타 `<x>` 의 `<x>-hover` 는 사다리 값 그대로다 (혼합 파생 없음 — 사용자 결정 5 「override 한 값」).
+- 대비: 생성 preset 은 전부 Hub 규칙을 지킨다 (G3 `adr302HubRules.test.ts` — 57 preset × 2 mode). 기본 preset (Spectrum 값) 에서 이미 미달인 항목은 「기본 preset 부채」 표와 같아야 한다.
+- 값 대조: `apps/builder/tests/parity/themeColorParity.browser.test.ts` (tint 10 × Tone 5 × 모드 2 + 델타 — DOM 계산값 = Skia hex, `--tint-N` · `--tone-N` = snapshot 사다리).
 - **Builder chrome 은 별도** (`builder-system.css`, `[data-context="builder"]`) — Builder 문서의 `:root` 에는 테마 색이 없다. `/` 랜딩 · Signin · Dashboard 는 `data-context="builder"`.
 
-## accent 는 역할 둘 — 목표 대비로 명도를 정한다 (ADR-290, 2026-10-30)
+## accent 는 역할 둘 (ADR-290 이름 · ADR-302 값)
 
-규칙 하나: **같은 상태에서 그 면 위에 on-accent 글자 · 아이콘을 얹으면 `{color.accent}`, surface 위에 바로 놓이는 글자 · 선 · 채움이면 `{color.accent-content}`.** dark 에서는 두 역할을 동시에 만족하는 명도가 없다 (흰 글자를 얹을 면은 어둡고, 어두운 바탕 위 글자는 밝아야 한다).
+규칙 하나: **같은 상태에서 그 면 위에 on-accent 글자 · 아이콘을 얹으면 `{color.accent}`, surface 위에 바로 놓이는 글자 · 선 · 채움이면 `{color.accent-content}`.** dark 에서는 두 역할을 동시에 만족하는 단이 없다 (흰 글자를 얹을 면은 어둡고, 어두운 바탕 위 글자는 밝아야 한다).
 
-- 명도는 resolver (`tintToSkiaColors.ts` `createAccentColorTokens` → `accentContrast.ts` `solveLightness`) 가 Tone · 명시 색 델타를 반영한 바탕에 대해 정한다 — `accent` 는 흰 글자 4.5 · base 3.0, `accent-content` 는 `ACCENT_CONTENT_TEXT_BACKDROPS` 4.5 · `_GRAPHIC_` 3.0. (chroma, hue) 는 프리셋 · 사용자 hex 그대로. 사용자 hex 는 자기 명도에서 시작해 통과하면 그대로.
-- 새 rule 이 accent 를 쓰면 `adr290AccentRoles.static.test.ts` 의 분류표에 넣는다 — 새 바탕 위에 `accent-content` 를 놓으면 그 바탕이 탐색 대상인지 같은 테스트가 본다 (아니면 RED → 바탕 집합에 더한다).
+- 단은 alias 표가 정하고 (Spectrum 소비 지점), 비기본 tint · 사용자 hex 는 생성 사다리의 같은 단 — 대비가 모자라면 생성기가 단을 옮긴다 (± 2 단, 그래도 안 되면 ± 2 단 안의 명도). 사용자 hex 는 색조 (c, h) 만 쓰고 명도는 사다리 모양을 따른다.
+- 새 rule 이 accent 를 쓰면 `adr290AccentRoles.static.test.ts` 의 분류표에 넣는다.
 - ❌ surface 위 글자 · 테두리 · focus 표시에 `var(--accent)` — `var(--accent-content)`. Builder chrome 과 같이 쓰는 sheet 는 `var(--accent-content, var(--accent))` (builder-system 에는 그 변수가 없다).
 
-## Tint 사다리 (preview-system.css — DOM 전용)
+## 두 축 사다리 변수 — `--tint-N` · `--tone-N` (ADR-302 Phase 3)
 
-`--tint` (resolver 가 싣는다) 에서 `--tint-100` ~ `--tint-1600` (oklch relative color) 을 만들고 link · focus-ring 이 읽는다. 프리셋 변수: `--red` … `--pink`. chart accent 사다리 (`--chart-accent-N`) 의 CSS 식은 snapshot 없이 CSS 만 싣는 chart 테스트용으로 남고 Preview 에서는 resolver 값이 이긴다.
+resolver 가 accent 사다리 16 단 (`--tint-100` ~ `--tint-1600`) 과 tone 사다리 13 단 (`--tone-25` ~ `--tone-1000`) 을 모드별 값으로 싣는다 — Canvas 역할 색과 같은 사다리. Spectrum dark 사다리는 명도가 뒤집혀 있어 같은 단이 두 모드에서 같은 역할이다. DOM 전용 색 (`preview-system.css` — `--link` = tint-1200 · `--fg-base` = tone-800 · `--fg-disabled` = tone-400 · `--bg-emphasis` = tone-300 …) 이 이 변수를 읽는다.
 
-## Hover/Pressed 파생
-
-테마 색의 hover · pressed 는 resolver 가 값으로 싣는다 (accent · status · named hue = 검정 85 · 75 % 혼합, neutral = Tone 단계). 변환표의 `var(--X-hover, color-mix(…))` 폴백은 snapshot 없는 문서용으로 남은 가지다. `.button-base` 의 `color-mix` 는 `--button-color-hover` 가 없을 때만.
-Skia 측 color-mix 처리: canvas-rendering.md의 color-mix 규칙 참조.
+- ❌ `preview-system.css` 에 `--tint` · `--tint-N` · `--tone-N` 선언 · `oklch(from var(--tint) …)` 상대색 — resolver 값을 덮거나 둘째 파생이 된다 (G2 `2b`).
+- ❌ 테마 경로에서 Tailwind 단 (`--color-neutral-N`) 읽기 — 팔레트 (ADR-191) 와 테마 사다리가 섞인다 (ADR-302 R7).
+- Themes 패널 Tone 견본 · 미니 프리뷰도 같은 생성 사다리 (`useToneLadders` → `toneLadder`).
+- Skia 측 color-mix 처리: canvas-rendering.md의 color-mix 규칙 참조. `.button-base` 의 `color-mix` 는 `--button-color-hover` 가 없을 때만 (테마 색 변환표가 아니다).
 
 ## Utility 클래스 (ADR-018)
 

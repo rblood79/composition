@@ -14071,7 +14071,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         "{color.chart-categorical-7}",
         "{color.chart-categorical-8}",
       ],
-      // ADR-215 — 대안 팔레트. mono = accent (`--tint`) 명도 사다리 4 + neutral 4 (단일 시리즈 ·
+      // ADR-215 — 대안 팔레트. mono = accent 사다리 단 4 (ADR-302) + neutral 4 (단일 시리즈 ·
       //   대시보드 단색 어법 — Pinterest `primary` / Apple tint 관행). 길이는 series 와 같다 (G3).
       palettes: {
         mono: [

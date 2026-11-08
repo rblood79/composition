@@ -165,10 +165,8 @@ const COLOR_TOKEN_TO_CSS: Record<string, string> = {
   "negative-fill": "var(--negative-fill)",
   "negative-fill-hover": "var(--negative-fill-hover)",
 
-  "accent-hover":
-    "var(--accent-hover, color-mix(in srgb, var(--accent) 85%, black))",
-  "accent-pressed":
-    "var(--accent-pressed, color-mix(in srgb, var(--accent) 75%, black))",
+  "accent-hover": "var(--accent-hover)",
+  "accent-pressed": "var(--accent-pressed)",
   "on-accent": "var(--fg-on-accent)",
   "accent-subtle": "var(--accent-subtle)",
   "accent-content": "var(--accent-content)",
@@ -187,10 +185,8 @@ const COLOR_TOKEN_TO_CSS: Record<string, string> = {
 
   "neutral-subdued": "var(--fg-muted)",
   "neutral-subtle": "var(--bg-muted)",
-  "neutral-hover":
-    "var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black))",
-  "neutral-pressed":
-    "var(--neutral-pressed, color-mix(in srgb, var(--bg-muted) 75%, black))",
+  "neutral-hover": "var(--neutral-hover)",
+  "neutral-pressed": "var(--neutral-pressed)",
   // 진한 바탕 `{color.neutral-fill}` (Button primary) 의 hover · pressed — `neutral-hover` 는 밝은 바탕
   // (`neutral-subtle`) 의 다음 단이다. S2 `baseColor('neutral')` 의 한 단 이동 (ADR-293 결정 4).
   "neutral-fill-hover": "var(--neutral-fill-hover)",
@@ -198,10 +194,8 @@ const COLOR_TOKEN_TO_CSS: Record<string, string> = {
 
   // --- Negative ---
   negative: "var(--negative)",
-  "negative-hover":
-    "var(--negative-hover, color-mix(in srgb, var(--negative) 85%, black))",
-  "negative-pressed":
-    "var(--negative-pressed, color-mix(in srgb, var(--negative) 75%, black))",
+  "negative-hover": "var(--negative-hover)",
+  "negative-pressed": "var(--negative-pressed)",
   "on-negative": "var(--fg-on-negative)",
   "negative-subtle": "var(--negative-subtle)",
 
@@ -320,20 +314,16 @@ const NAMED_COLOR_TO_CSS: Record<string, string> = {
 };
 
 /**
- * hover/pressed 파생 (ADR-193 후속, 2026-08-27): status·named hue 전 토큰에 `{color.X-hover}` / `{color.X-pressed}` 를
- * semantic var 기준 color-mix 로 제공한다. 이전에는 purple 만 손으로 있었고 나머지(chartreuse/celery/seafoam/brown/
- * cinnamon/silver …)는 `var(--chartreuse-hover)` 같은 미정의 var 로 emit 됐다. Skia 는 hover 를 소비하지 않으므로
- * (Preview D1) 표에는 넣지 않고 여기서만 파생. accent/neutral/negative 의 기존 손 항목이 우선.
+ * status · named hue 의 `{color.X-hover}` / `{color.X-pressed}` 변수 — 값은 resolver 가 alias 표의 다음 단으로
+ * 싣는다 (ADR-302 — Canvas 와 같은 값). 폴백 식 (옛 `color-mix(… 85% · 75%, black)`) 은 없다: 값이 빠지면
+ * 끊긴 채널이 보여야 한다 (ADR-293). accent/neutral/negative 의 손 항목이 우선.
  */
-for (const [token, entry] of Object.entries(SEMANTIC_CSS_VARS)) {
+for (const token of Object.keys(SEMANTIC_CSS_VARS)) {
   if (token.endsWith("-subtle")) continue;
   const target =
     token in COLOR_TOKEN_TO_CSS ? COLOR_TOKEN_TO_CSS : NAMED_COLOR_TO_CSS;
-  // ADR-227 — override 슬롯: 테마가 `--<token>-hover` 를 명시하면 그 값, 없으면 종전 color-mix 파생.
-  target[`${token}-hover`] ??=
-    `var(--${token}-hover, color-mix(in srgb, var(${entry.cssVar}) 85%, black))`;
-  target[`${token}-pressed`] ??=
-    `var(--${token}-pressed, color-mix(in srgb, var(${entry.cssVar}) 75%, black))`;
+  target[`${token}-hover`] ??= `var(--${token}-hover)`;
+  target[`${token}-pressed`] ??= `var(--${token}-pressed)`;
 }
 
 /**
