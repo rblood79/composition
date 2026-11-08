@@ -57,8 +57,17 @@ const TRANSPARENT_TOKEN = "{color.transparent}";
 // "Show all" 글자 — 바탕 위 accent (ADR-290)
 const ACCENT_TOKEN = "{color.accent-content}";
 
-/** `{color.container}` → the nearest container's layer (a record without `_containerLayer` reads `base`). */
+/**
+ * `{color.container}` → the nearest container's layer (a record without `_containerLayer` reads
+ * `base`); a paint that names no container comes back as it is.
+ */
 function withContainerLayer(paint: StatePaint, layer: unknown): StatePaint {
+  if (
+    paint.background !== CATALOG_CONTAINER_TOKEN &&
+    paint.color !== CATALOG_CONTAINER_TOKEN &&
+    paint.border !== CATALOG_CONTAINER_TOKEN
+  )
+    return paint;
   const ref = `{color.${String(layer ?? "base")}}`;
   const of = (value: string | undefined) =>
     value === CATALOG_CONTAINER_TOKEN ? ref : value;
@@ -128,12 +137,7 @@ export function resolveCatalogPaint({
     : NO_STATE_PAINT;
   // ADR-303: `{color.container}` = the nearest container's layer (`_containerLayer` — `presence.ts`),
   //   the DOM's inherited `--container-bg`; a record without the derivation reads `base`.
-  const state =
-    treeState.background === CATALOG_CONTAINER_TOKEN ||
-    treeState.color === CATALOG_CONTAINER_TOKEN ||
-    treeState.border === CATALOG_CONTAINER_TOKEN
-      ? withContainerLayer(treeState, props._containerLayer)
-      : treeState;
+  const state = withContainerLayer(treeState, props._containerLayer);
   // (the theme paint of the same state — the static overlay alpha and the track wash ask whether the
   //  static color sits on an opaque background)
   const themeBackground =

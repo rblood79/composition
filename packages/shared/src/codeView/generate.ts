@@ -21,6 +21,7 @@
  */
 import { isRichText } from "../catalog/document/textRuns";
 import type { RichText } from "../catalog/document/types";
+import { descendantPatchOf } from "../catalog/document/types";
 import { catalogActionsDeep } from "../catalog/document/interactionActions";
 import { getPrimitiveBinding } from "../catalog/bindings";
 import { parseDateValue, type DateValueKind } from "../state/dateValue";
@@ -599,9 +600,7 @@ class Generator {
       if (closed === undefined) return [];
       const from = done.code.indexOf("\n", anchor.start);
       const to = done.code.lastIndexOf("\n", anchor.end - 1);
-      return from >= 0 && to > from && to < anchor.end
-        ? [{ key, from, to, closed }]
-        : [];
+      return from >= 0 && to > from ? [{ key, from, to, closed }] : [];
     });
     return {
       ...done,
@@ -2692,8 +2691,6 @@ class Generator {
       positions.set(key, position);
     }
     const pad = "  ".repeat(depth + 1);
-    const fn = (rule: InteractionEntry, indent: string) =>
-      this.ruleFunction(rule, node, indent);
     const entries: string[] = [];
     for (const [key, position] of positions) {
       const fields: string[] = [];
@@ -2744,7 +2741,7 @@ class Generator {
           const own = position.own.find((rule) => rule.id === value);
           if (!own) continue;
           replacing.add(own.id);
-          list.push(`${name}: ${fn(own, `${pad}  `)}`);
+          list.push(`${name}: ${this.ruleFunction(own, node, `${pad}  `)}`);
         }
         inherited.set(origin.trigger, list);
       }
@@ -2752,7 +2749,7 @@ class Generator {
       for (const rule of position.own) {
         if (replacing.has(rule.id)) continue;
         const list = own.get(rule.trigger) ?? [];
-        list.push(fn(rule, `${pad}  `));
+        list.push(this.ruleFunction(rule, node, `${pad}  `));
         own.set(rule.trigger, list);
       }
       for (const trigger of new Set([...inherited.keys(), ...own.keys()])) {
@@ -2856,7 +2853,9 @@ class Generator {
    */
   private expandedRootOf(
     node: NodeEntry,
-  ): { readonly root: string; readonly bound: ReadonlyMap<string, number> } | undefined {
+  ):
+    | { readonly root: string; readonly bound: ReadonlyMap<string, number> }
+    | undefined {
     const reader = this.doc.input.reader as never;
     const root = codeViewExpandedRoot(reader, node.definitionId);
     // (Its own children — written before the positions, placed after them by the resolver: the
@@ -2891,8 +2890,10 @@ class Generator {
     row: string | undefined,
   ): void {
     const template = this.doc.input.reader.library.templates.get(root as never);
+    // (Every position's key is its class in the root's tree — one class table for all of them.)
+    const classes = codeViewTreeClasses(this.doc.input.reader as never, [root]);
     for (const child of template?.children ?? [])
-      this.writePosition(out, node, [root, child as string], row);
+      this.writePosition(out, node, [root, child as string], row, classes);
   }
 
   /**
@@ -2907,6 +2908,8 @@ class Generator {
     node: NodeEntry,
     path: readonly string[],
     row: string | undefined,
+    /** The class table of the root's tree (`path[0]`) — a position's key (`codeViewAddressKey`). */
+    classes: ReadonlyMap<string, string>,
   ): void {
     const reader = this.doc.input.reader as never;
     const template = this.doc.input.reader.library.templates.get(
@@ -2917,14 +2920,13 @@ class Generator {
       instances: [node.id],
       templatePath: path,
     } as unknown as InstanceAddress;
-    const key = codeViewAddressKey(reader, address);
+    const key = classes.get(path.at(-1)!);
     if (!key) return;
     const unit = codeViewPositionUnit(node.id, key);
-    const override = node.descendantOverrides.find(
-      (item) =>
-        item.kind !== "replace" && codeViewSameAddress(item.address, address),
+    const override = node.descendantOverrides.find((item) =>
+      codeViewSameAddress(item.address, address),
     );
-    const patch = override as DescendantPatchFields | undefined;
+    const patch = descendantPatchOf(override);
     const nested = isLibraryOrigin(template.definitionId);
     let type = codeViewTypeName(reader, template.definitionId);
     if (type === "frame") type = "div";
@@ -2945,13 +2947,10 @@ class Generator {
     const values = new Map<string, AuthoredValue>();
     for (const [prop, from] of codeViewPositionBindings(template)) {
       const write = node.props[from];
-      if (write?.kind === "set") values.set(prop, write.value as AuthoredValue);
+      if (write?.kind === "set") values.set(prop, write.value);
     }
-    for (const [prop, write] of Object.entries(patch?.props ?? {}) as [
-      string,
-      { kind: string; value?: unknown },
-    ][])
-      if (write.kind === "set") values.set(prop, write.value as AuthoredValue);
+    for (const [prop, write] of Object.entries(patch?.props ?? {}))
+      if (write.kind === "set") values.set(prop, write.value);
       else values.delete(prop);
     let text: string | RichText | undefined;
     for (const [prop, value] of values) {
@@ -2995,8 +2994,7 @@ class Generator {
         Object.fromEntries(
           ["isOpen", "defaultOpen"].flatMap((key) => {
             const write = writes?.[key] as
-              | { kind?: string; value?: unknown }
-              | undefined;
+              { kind?: string; value?: unknown } | undefined;
             return write?.kind === "set" && typeof write.value === "boolean"
               ? [[key, write.value]]
               : [];
@@ -3055,7 +3053,7 @@ class Generator {
       if (fill) for (const child of fill) this.writeNode(out, child, row);
       else
         for (const child of kids)
-          this.writePosition(out, node, [...path, child], row);
+          this.writePosition(out, node, [...path, child], row, classes);
       out.out().start().write(`</${tag}>`);
     }
     if (off) out.write("}");
@@ -3122,8 +3120,7 @@ class Generator {
     // ADR-296 Phase 5 — an instance of a user component is its component (`<Picker …/>`).
     const component = as ? undefined : this.componentTag(node);
     // ADR-301 — a trigger · structure Library instance is its template tree (its root's RAC type).
-    const expansion =
-      as || component ? undefined : this.expandedRootOf(node);
+    const expansion = as || component ? undefined : this.expandedRootOf(node);
     const expanded = expansion?.root;
     const bound = expansion?.bound;
     const origin =
@@ -3335,6 +3332,8 @@ class Generator {
       ...fills.filter((fill) => fill.root).flatMap((fill) => fill.childIds),
     ];
     const slots = fills.filter((fill) => !fill.root);
+    // (What makes the element a block — anything but its text inside.)
+    const block = !!(children.length || slots.length || head || expanded);
     if (slots.length) this.import(CODE_VIEW_HELPERS_MODULE, "Slot");
     const writeSlots = (writer: CodeWriter) => {
       for (const slot of slots) {
@@ -3431,24 +3430,10 @@ class Generator {
         );
         out.out().start().write(`</${tag}>`);
       }
-    } else if (
-      !children.length &&
-      !slots.length &&
-      text === undefined &&
-      !head &&
-      !expanded
-    )
-      out.write(" />");
+    } else if (!block && text === undefined) out.write(" />");
     else {
       out.write(">");
-      if (
-        text !== undefined &&
-        !children.length &&
-        !slots.length &&
-        !head &&
-        !expanded
-      )
-        text$(this.childrenCode(text, row));
+      if (!block) text$(this.childrenCode(text!, row));
       else {
         out.end().in();
         head?.(out);

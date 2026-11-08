@@ -13,8 +13,7 @@
  */
 import { tokenToCSSVar, type TokenRef } from "@composition/rendering";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
-import { evaluateConditionTree } from "../rule/conditionTree";
-import type { ConditionalValue } from "../rule/conditionTree";
+import { evaluatePaint } from "../rule/rulePaintTree";
 import { resolveCatalogVariantName } from "../resolvers/resolveCatalogVariantName";
 import { catalogFillTokenRef } from "../resolution/resolver";
 import type { ComponentRule } from "../../types/catalog-style.types";
@@ -38,9 +37,7 @@ const LAYER_OF_REF: ReadonlyMap<string, CatalogLayerRole> = new Map(
 
 type ContainerNode = Pick<CatalogConsumerNode, "props" | "fills" | "ruleId">;
 
-const RULES = COMPONENT_RULES_TABLE as unknown as Readonly<
-  Record<string, ComponentRule>
->;
+const RULES = COMPONENT_RULES_TABLE as Readonly<Record<string, ComponentRule>>;
 
 /**
  * The background layer a node gives its children, else undefined (not a container — its children
@@ -63,13 +60,10 @@ export function catalogContainerLayerOf(
   const rule = RULES[node.ruleId];
   const variantName = resolveCatalogVariantName(rule, node.props);
   const tree = variantName
-    ? (rule.variants[variantName]?.paint?.backgroundColor as
-        ConditionalValue<string> | undefined)
+    ? rule.variants[variantName]?.paint?.backgroundColor
     : undefined;
-  const rest = evaluateConditionTree(tree, {
-    isQuiet: node.props.isQuiet === true,
-  });
-  return typeof rest === "string" ? LAYER_OF_REF.get(rest) : undefined;
+  const rest = evaluatePaint(tree, { isQuiet: node.props.isQuiet === true });
+  return rest === undefined ? undefined : LAYER_OF_REF.get(rest);
 }
 
 /** The layer of the nearest container ancestor (`base` when none) — what `{color.container}` reads. */

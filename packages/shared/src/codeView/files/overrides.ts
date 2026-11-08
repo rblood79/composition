@@ -339,7 +339,11 @@ const EXPANDED_TRIGGER_TYPES = new Set([
   "SheetTrigger",
   "PreviewTrigger",
 ]);
-const NOT_AN_ELEMENT_POSITION = new Set(["frame", "RadioItems", "CheckboxItems"]);
+const NOT_AN_ELEMENT_POSITION = new Set([
+  "frame",
+  "RadioItems",
+  "CheckboxItems",
+]);
 
 /**
  * ADR-301 — the Library template root a Library origin instance is written as (its template tree
@@ -381,14 +385,16 @@ export function codeViewExpandedRoot(
  * ADR-301 Decision 3 — a position of an expanded instance as an anchor's unit id (the `nodeId` of
  * its attribute · text anchors): the owner and the position's key — no node has it.
  */
-export const CODE_VIEW_POSITION_PREFIX = "position\u0000";
+const CODE_VIEW_POSITION_PREFIX = "position\u0000";
 export const codeViewPositionUnit = (ownerId: string, key: string) =>
   `${CODE_VIEW_POSITION_PREFIX}${ownerId}\u0000${key}`;
 export function codeViewPositionOf(
   unit: string,
 ): { readonly ownerId: string; readonly key: string } | undefined {
   if (!unit.startsWith(CODE_VIEW_POSITION_PREFIX)) return undefined;
-  const [ownerId, key] = unit.slice(CODE_VIEW_POSITION_PREFIX.length).split("\u0000");
+  const [ownerId, key] = unit
+    .slice(CODE_VIEW_POSITION_PREFIX.length)
+    .split("\u0000");
   return ownerId && key !== undefined ? { ownerId, key } : undefined;
 }
 
@@ -396,12 +402,13 @@ export function codeViewPositionOf(
  * ADR-301 Decision 1 · 사용자 결정 5 — the props of a template position that read the instance's
  * own props (`size: "{size}"`): prop → the instance prop key.
  */
-export function codeViewPositionBindings(
-  template: { readonly props?: Readonly<Record<string, unknown>> },
-): Map<string, string> {
+export function codeViewPositionBindings(template: {
+  readonly props?: Readonly<Record<string, unknown>>;
+}): Map<string, string> {
   const out = new Map<string, string>();
   for (const [prop, value] of Object.entries(template.props ?? {})) {
-    const m = typeof value === "string" ? WHOLE_TEMPLATE_BINDING.exec(value) : null;
+    const m =
+      typeof value === "string" ? WHOLE_TEMPLATE_BINDING.exec(value) : null;
     if (m) out.set(prop, m[1]!);
   }
   return out;
@@ -410,18 +417,17 @@ export function codeViewPositionBindings(
 /** Each `(position prop, instance prop key)` the expanded template's positions bind (nested insides aside). */
 function expandedBindings(reader: Reader, root: string): [string, string][] {
   const out: [string, string][] = [];
-  const walk = (id: string, top: boolean) => {
-    const node = reader.library.templates.get(id as never) as
-      | (TreeNode & { props?: Record<string, unknown> })
-      | undefined;
+  const templateOf = (id: string) =>
+    reader.library.templates.get(id as never) as
+      (TreeNode & { props?: Record<string, unknown> }) | undefined;
+  const walk = (id: string) => {
+    const node = templateOf(id);
     if (!node) return;
-    if (!top) {
-      out.push(...codeViewPositionBindings(node));
-      if (isLibraryOrigin(node.definitionId)) return;
-    }
-    for (const child of node.children) walk(child, false);
+    out.push(...codeViewPositionBindings(node));
+    if (isLibraryOrigin(node.definitionId)) return;
+    for (const child of node.children) walk(child);
   };
-  walk(root, true);
+  for (const child of templateOf(root)?.children ?? []) walk(child);
   return out;
 }
 
