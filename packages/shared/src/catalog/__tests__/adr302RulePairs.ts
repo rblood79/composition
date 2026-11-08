@@ -7,6 +7,7 @@
  * 잰다) 은 뺀다.
  */
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
+import { CATALOG_LAYER_ROLES } from "../runtime/containerLayer";
 import {
   evaluateConditionTree,
   isConditionNode,
@@ -85,7 +86,7 @@ function combos(
 const TOKEN = /^\{color\.([a-z0-9-]+)\}$/;
 
 /** ADR-303 — the layers a `{color.container}` face can be (pasteboard holds no components — Hub). */
-const CONTAINER_LAYERS = ["base", "layer-1", "layer-2", "elevated"];
+const CONTAINER_LAYERS = CATALOG_LAYER_ROLES.filter((role) => role !== "pasteboard");
 
 export function rulePaintPairs(): RulePair[] {
   const out = new Map<string, RulePair>();

@@ -2259,16 +2259,16 @@ export function catalogDerivedProps(
   };
   // (ADR-300: a SideNav part's collapse · current · level — `catalogSideNavDerived`.)
   const sideNav = catalogSideNavDerived(node, get, typeOf, shownRoute);
-  const navigated = sideNav ? { ...buttoned, ...sideNav } : buttoned;
+  const withSideNav = sideNav ? { ...buttoned, ...sideNav } : buttoned;
   // (ADR-303: a rule that reads `{color.container}` paints its nearest container's layer — the DOM's
   //  inherited `--container-bg`, `containerLayer.ts`.)
-  const withSideNav =
+  const withContainer =
     node.ruleId && catalogContainerReaders().has(node.ruleId)
       ? {
-          ...navigated,
+          ...withSideNav,
           _containerLayer: catalogContainerLayerAbove(node, get),
         }
-      : navigated;
+      : withSideNav;
   if (typeOf(node) === "Sheet") {
     const overlay = catalogPartParent(node, get, typeOf);
     if (overlay && typeOf(overlay) === "SheetOverlay") {
@@ -2282,13 +2282,13 @@ export function catalogDerivedProps(
       // RAC의 center 위치는 기본적으로 수직 양방향 swipe다.
       if (direction === "center") direction = "vertical";
       return {
-        ...withSideNav,
+        ...withContainer,
         _sheetHandle: overlay.props.preventDismissal !== true,
         _sheetSwipeDirection: direction,
       };
     }
   }
-  return withSideNav;
+  return withContainer;
 }
 
 /**

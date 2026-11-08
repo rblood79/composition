@@ -1,3 +1,4 @@
+import { CATALOG_CONTAINER_TOKEN } from "../runtime/containerLayer";
 import type {
   CatalogFillStyleValues,
   ComponentRuleSize,
@@ -53,9 +54,21 @@ export interface ResolvedCatalogPaint {
 }
 
 const TRANSPARENT_TOKEN = "{color.transparent}";
-const CONTAINER_TOKEN = "{color.container}";
 // "Show all" 글자 — 바탕 위 accent (ADR-290)
 const ACCENT_TOKEN = "{color.accent-content}";
+
+/** `{color.container}` → the nearest container's layer (a record without `_containerLayer` reads `base`). */
+function withContainerLayer(paint: StatePaint, layer: unknown): StatePaint {
+  const ref = `{color.${String(layer ?? "base")}}`;
+  const of = (value: string | undefined) =>
+    value === CATALOG_CONTAINER_TOKEN ? ref : value;
+  return {
+    ...paint,
+    background: of(paint.background),
+    color: of(paint.color),
+    border: of(paint.border),
+  };
+}
 
 /**
  * Catalog variant와 authored semantic props에서 root symbolic paint를 선택한다.
@@ -115,19 +128,11 @@ export function resolveCatalogPaint({
     : NO_STATE_PAINT;
   // ADR-303: `{color.container}` = the nearest container's layer (`_containerLayer` — `presence.ts`),
   //   the DOM's inherited `--container-bg`; a record without the derivation reads `base`.
-  const containerLayer = `{color.${String(props._containerLayer ?? "base")}}`;
-  const ofContainer = (value: string | undefined) =>
-    value === CONTAINER_TOKEN ? containerLayer : value;
   const state =
-    treeState.background === CONTAINER_TOKEN ||
-    treeState.color === CONTAINER_TOKEN ||
-    treeState.border === CONTAINER_TOKEN
-      ? {
-          ...treeState,
-          background: ofContainer(treeState.background),
-          color: ofContainer(treeState.color),
-          border: ofContainer(treeState.border),
-        }
+    treeState.background === CATALOG_CONTAINER_TOKEN ||
+    treeState.color === CATALOG_CONTAINER_TOKEN ||
+    treeState.border === CATALOG_CONTAINER_TOKEN
+      ? withContainerLayer(treeState, props._containerLayer)
       : treeState;
   // (the theme paint of the same state — the static overlay alpha and the track wash ask whether the
   //  static color sits on an opaque background)

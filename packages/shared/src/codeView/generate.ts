@@ -33,6 +33,7 @@ import {
   catalogOverlayOpen,
   OVERLAY_BODY_TYPES,
 } from "../catalog/runtime/overlayState";
+import { isLibraryOrigin } from "../catalog/runtime/originViewNode";
 import type { CatalogConsumerNode } from "../catalog/runtime/compositionRoot";
 import {
   codeViewTypeName,
@@ -593,14 +594,13 @@ class Generator {
     const folds = done.anchors.flatMap((anchor) => {
       const target = anchor.target;
       if (target.kind !== "position") return [];
-      const closed = this.bodies.get(
-        codeViewPositionUnit(target.ownerId, target.key),
-      );
+      const key = codeViewPositionUnit(target.ownerId, target.key);
+      const closed = this.bodies.get(key);
       if (closed === undefined) return [];
       const from = done.code.indexOf("\n", anchor.start);
       const to = done.code.lastIndexOf("\n", anchor.end - 1);
       return from >= 0 && to > from && to < anchor.end
-        ? [{ key: `${target.ownerId}\u0000${target.key}`, from, to, closed }]
+        ? [{ key, from, to, closed }]
         : [];
     });
     return {
@@ -2854,7 +2854,9 @@ class Generator {
    * else (a swap · an origin rule turned off · a bound list · its own text or children) the element with its
    * `overrides` (296 — the code stays a 1:1 projection).
    */
-  private expandedRootOf(node: NodeEntry): string | undefined {
+  private expandedRootOf(
+    node: NodeEntry,
+  ): { readonly root: string; readonly bound: ReadonlyMap<string, number> } | undefined {
     const reader = this.doc.input.reader as never;
     const root = codeViewExpandedRoot(reader, node.definitionId);
     // (Its own children — written before the positions, placed after them by the resolver: the
@@ -2878,7 +2880,7 @@ class Generator {
       if (whens.has(when)) return undefined;
       whens.add(when);
     }
-    return root;
+    return { root, bound };
   }
 
   /** ADR-301 — an expanded instance's template positions under its root element. */
@@ -2923,7 +2925,7 @@ class Generator {
         item.kind !== "replace" && codeViewSameAddress(item.address, address),
     );
     const patch = override as DescendantPatchFields | undefined;
-    const nested = template.definitionId.startsWith("lib:definition:origin-");
+    const nested = isLibraryOrigin(template.definitionId);
     let type = codeViewTypeName(reader, template.definitionId);
     if (type === "frame") type = "div";
     const tag = (nested ? this.originTag(template, type) : undefined) ?? type;
@@ -2988,31 +2990,28 @@ class Generator {
     // judgement Canvas uses — `catalogOverlayOpen`: the body's own value, else its trigger's; a
     // variable's Open is decided when it runs — closed, 사용자 결정 6).
     if (path.length === 2 && OVERLAY_BODY_TYPES.has(type)) {
-      const authored = (props: Record<string, unknown>) =>
+      // (the boolean Open values a write list sets)
+      const openOf = (writes: Record<string, unknown> | undefined) =>
         Object.fromEntries(
           ["isOpen", "defaultOpen"].flatMap((key) => {
-            const value = props[key];
-            return typeof value === "boolean" ? [[key, value]] : [];
+            const write = writes?.[key] as
+              | { kind?: string; value?: unknown }
+              | undefined;
+            return write?.kind === "set" && typeof write.value === "boolean"
+              ? [[key, write.value]]
+              : [];
           }),
-        );
-      const setOf = (writes: Record<string, unknown> | undefined) =>
-        Object.fromEntries(
-          Object.entries(writes ?? {}).flatMap(([key, write]) =>
-            (write as { kind?: string })?.kind === "set"
-              ? [[key, (write as { value: unknown }).value]]
-              : [],
-          ),
         );
       const body = {
         id: "body",
         parentId: "trigger",
-        props: authored(setOf(patch?.props as never)),
+        props: openOf(patch?.props as never),
         displayState: patch?.displayState ?? template.displayState,
       } as unknown as CatalogConsumerNode;
       const trigger = {
         id: "trigger",
         parentId: "",
-        props: authored(setOf(node.props as never)),
+        props: openOf(node.props as never),
       } as unknown as CatalogConsumerNode;
       const rootType = codeViewTypeName(
         reader,
@@ -3123,11 +3122,10 @@ class Generator {
     // ADR-296 Phase 5 — an instance of a user component is its component (`<Picker …/>`).
     const component = as ? undefined : this.componentTag(node);
     // ADR-301 — a trigger · structure Library instance is its template tree (its root's RAC type).
-    const expanded =
+    const expansion =
       as || component ? undefined : this.expandedRootOf(node);
-    const bound = expanded
-      ? codeViewExpandedBoundKeys(this.doc.input.reader as never, expanded)
-      : undefined;
+    const expanded = expansion?.root;
+    const bound = expansion?.bound;
     const origin =
       as || component || expanded ? undefined : this.originTag(node, type);
     if (as) this.import(CODE_VIEW_HELPERS_MODULE, as);

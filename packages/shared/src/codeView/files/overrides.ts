@@ -17,6 +17,8 @@ import type {
   NodeEntry,
   ProjectEntry,
 } from "../../catalog/document/types";
+import { WHOLE_TEMPLATE_BINDING } from "../../catalog/document/templateBindingValue";
+import { isLibraryOrigin } from "../../catalog/runtime/originViewNode";
 import { codeViewKebab, codeViewTypeName } from "./styles";
 
 type Reader = Pick<CatalogReader, "projectId" | "getEntry" | "library">;
@@ -348,7 +350,7 @@ export function codeViewExpandedRoot(
   reader: Reader,
   definitionId: string,
 ): string | undefined {
-  if (!definitionId.startsWith("lib:definition:origin-")) return undefined;
+  if (!isLibraryOrigin(definitionId)) return undefined;
   const root = reader.library.definitions.get(definitionId as never)
     ?.templateRootId as string | undefined;
   // (An unlocked origin draws its project copy — it is a Local component's.)
@@ -367,7 +369,7 @@ export function codeViewExpandedRoot(
       const child = treeNode(reader, id);
       return (
         !!child?.slot &&
-        !child.definitionId.startsWith("lib:definition:origin-") &&
+        !isLibraryOrigin(child.definitionId) &&
         !NOT_AN_ELEMENT_POSITION.has(typeOf(reader, child.definitionId))
       );
     })
@@ -399,9 +401,27 @@ export function codeViewPositionBindings(
 ): Map<string, string> {
   const out = new Map<string, string>();
   for (const [prop, value] of Object.entries(template.props ?? {})) {
-    const m = typeof value === "string" ? /^\{([A-Za-z_$][\w$]*)\}$/.exec(value) : null;
+    const m = typeof value === "string" ? WHOLE_TEMPLATE_BINDING.exec(value) : null;
     if (m) out.set(prop, m[1]!);
   }
+  return out;
+}
+
+/** Each `(position prop, instance prop key)` the expanded template's positions bind (nested insides aside). */
+function expandedBindings(reader: Reader, root: string): [string, string][] {
+  const out: [string, string][] = [];
+  const walk = (id: string, top: boolean) => {
+    const node = reader.library.templates.get(id as never) as
+      | (TreeNode & { props?: Record<string, unknown> })
+      | undefined;
+    if (!node) return;
+    if (!top) {
+      out.push(...codeViewPositionBindings(node));
+      if (isLibraryOrigin(node.definitionId)) return;
+    }
+    for (const child of node.children) walk(child, false);
+  };
+  walk(root, true);
   return out;
 }
 
@@ -415,21 +435,8 @@ export function codeViewExpandedBindingProps(
   root: string,
 ): Map<string, Set<string>> {
   const out = new Map<string, Set<string>>();
-  const walk = (id: string, top: boolean) => {
-    const node = reader.library.templates.get(id as never) as
-      | (TreeNode & { props?: Record<string, unknown> })
-      | undefined;
-    if (!node) return;
-    if (!top)
-      for (const [prop, key] of codeViewPositionBindings(node)) {
-        const props = out.get(key) ?? new Set<string>();
-        props.add(prop);
-        out.set(key, props);
-      }
-    if (node.definitionId.startsWith("lib:definition:origin-") && !top) return;
-    for (const child of node.children) walk(child, false);
-  };
-  walk(root, true);
+  for (const [prop, key] of expandedBindings(reader, root))
+    out.set(key, (out.get(key) ?? new Set<string>()).add(prop));
   return out;
 }
 
@@ -439,17 +446,7 @@ export function codeViewExpandedBoundKeys(
   root: string,
 ): Map<string, number> {
   const counts = new Map<string, number>();
-  const walk = (id: string, top: boolean) => {
-    const node = reader.library.templates.get(id as never) as
-      | (TreeNode & { props?: Record<string, unknown> })
-      | undefined;
-    if (!node) return;
-    if (!top)
-      for (const key of codeViewPositionBindings(node).values())
-        counts.set(key, (counts.get(key) ?? 0) + 1);
-    if (node.definitionId.startsWith("lib:definition:origin-") && !top) return;
-    for (const child of node.children) walk(child, false);
-  };
-  walk(root, true);
+  for (const [, key] of expandedBindings(reader, root))
+    counts.set(key, (counts.get(key) ?? 0) + 1);
   return counts;
 }

@@ -11,6 +11,7 @@
  * `resolveCatalogPaint`, DOM 은 컨테이너 노드의 inline `--container-bg` (`domBinding.runtime.ts`) 를
  * 자식의 `var(--container-bg, var(--bg))` 가 CSS 상속으로 읽는다.
  */
+import { tokenToCSSVar, type TokenRef } from "@composition/rendering";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import { evaluateConditionTree } from "../rule/conditionTree";
 import type { ConditionalValue } from "../rule/conditionTree";
@@ -48,16 +49,18 @@ const RULES = COMPONENT_RULES_TABLE as unknown as Readonly<
 export function catalogContainerLayerOf(
   node: ContainerNode,
 ): CatalogLayerRole | undefined {
-  const fills = node.fills?.filter((layer) => layer.enabled !== false);
-  if (fills?.length) {
-    // (bottom → top — the last enabled layer is what shows)
-    const top = fills[fills.length - 1];
+  // (bottom → top — the last enabled layer is what shows)
+  const fills = node.fills ?? [];
+  let top: (typeof fills)[number] | undefined;
+  for (let index = fills.length - 1; index >= 0 && !top; index -= 1)
+    if (fills[index].enabled !== false) top = fills[index];
+  if (top) {
     if (top.kind !== "color" || top.opacity !== 1) return undefined;
     const ref = catalogFillTokenRef(top);
     return ref ? LAYER_OF_REF.get(ref) : undefined;
   }
-  const rule = node.ruleId ? RULES[node.ruleId] : undefined;
-  if (!rule) return undefined;
+  if (!node.ruleId || !catalogLayerRules().has(node.ruleId)) return undefined;
+  const rule = RULES[node.ruleId];
   const variantName = resolveCatalogVariantName(rule, node.props);
   const tree = variantName
     ? (rule.variants[variantName]?.paint?.backgroundColor as
@@ -81,11 +84,34 @@ export function catalogContainerLayerAbove(
   return "base";
 }
 
-const mentionsContainer = (value: unknown): boolean =>
-  value === CATALOG_CONTAINER_TOKEN ||
-  (typeof value === "object" &&
-    value !== null &&
-    Object.values(value).some(mentionsContainer));
+const mentions =
+  (match: (value: unknown) => boolean) =>
+  (value: unknown): boolean =>
+    match(value) ||
+    (typeof value === "object" &&
+      value !== null &&
+      Object.values(value).some(mentions(match)));
+const mentionsContainer = mentions(
+  (value) => value === CATALOG_CONTAINER_TOKEN,
+);
+const mentionsLayer = mentions(
+  (value) => typeof value === "string" && LAYER_OF_REF.has(value),
+);
+
+let layerRules: ReadonlySet<string> | undefined;
+/** Rules whose some variant's background tree names a layer token — the only rule-backed containers. */
+function catalogLayerRules(): ReadonlySet<string> {
+  layerRules ??= new Set(
+    Object.entries(RULES)
+      .filter(([, rule]) =>
+        Object.values(rule.variants ?? {}).some((variant) =>
+          mentionsLayer(variant?.paint?.backgroundColor),
+        ),
+      )
+      .map(([type]) => type),
+  );
+  return layerRules;
+}
 
 let readers: ReadonlySet<string> | undefined;
 /** Rules that read `{color.container}` — the records the Canvas derives `_containerLayer` for. */
@@ -102,8 +128,8 @@ export function catalogContainerReaders(): ReadonlySet<string> {
 export function catalogContainerCss(
   style: Record<string, unknown>,
   node: ContainerNode,
-  cssOf: (ref: string) => string,
 ): void {
   const layer = catalogContainerLayerOf(node);
-  if (layer) style["--container-bg"] = cssOf(`{color.${layer}}`);
+  if (layer)
+    style["--container-bg"] = tokenToCSSVar(`{color.${layer}}` as TokenRef);
 }

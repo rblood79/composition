@@ -1,5 +1,6 @@
 const TEMPLATE_BINDING = /\{([a-zA-Z][a-zA-Z0-9_-]*)\}/g;
-const WHOLE_TEMPLATE_BINDING = /^\{([a-zA-Z][a-zA-Z0-9_-]*)\}$/;
+/** A value that is one whole `{key}` reference (the key a template node binds). */
+export const WHOLE_TEMPLATE_BINDING = /^\{([a-zA-Z][a-zA-Z0-9_-]*)\}$/;
 
 /** Whole references retain their type; embedded references are strings; absent keys stay authored. */
 export function bindTemplateValue(
