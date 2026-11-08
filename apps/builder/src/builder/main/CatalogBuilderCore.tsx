@@ -37,6 +37,7 @@ import {
   catalogBuilderThemeState,
   subscribeSystemColorScheme,
 } from "../catalogRuntime/builderTheme";
+import { onThemeLaddersLoaded } from "../../../../../packages/shared/src/catalog/runtime/themeLadders";
 import { watchCatalogComponentEdits } from "../catalogRuntime/componentConfirm";
 import { catalogBoundRows } from "../catalogRuntime/dataBinding";
 import {
@@ -417,6 +418,12 @@ export function CatalogBuilderCore() {
   useEffect(
     () =>
       workspace && subscribeSystemColorScheme(() => workspace.refreshTheme()),
+    [workspace],
+  );
+  // ADR-302 — a non-default theme drawn before its ladder chunk loaded is the seed: apply it again.
+  useEffect(
+    () =>
+      workspace && onThemeLaddersLoaded(() => workspace.refreshTheme()),
     [workspace],
   );
   // S2의 추가 face는 실제 사용 시 받고, 도착한 뒤 측정 캐시와 Canvas를 함께 갱신한다.

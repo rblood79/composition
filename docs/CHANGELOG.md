@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [tint · Tone 을 바꿔도 Spectrum 대비 규칙 유지 — ADR-302 Phase 2] - 2026-11-08
+
+### Changed
+
+- **기본이 아닌 tint (10) · 사용자 accent hex · Tone (slate · gray · zinc · stone) 의 색 토큰을 Spectrum 사다리 모양으로 생성** (ADR-302 Phase 2):
+  - 단마다 기준 사다리 (accent = Spectrum blue 16 단 · Tone = gray 13 단) 의 명도를 쓰고 hue 는 preset, chroma 는 Spectrum blue 사다리의 단별 모양을 따른다 — Tone slate 의 밝은 층이 더는 푸르게 뜨지 않는다. 대비가 모자라면 단을 옮기고, 그래도 안 되면 ±2 단 안에서 명도를 찾는다.
+  - accent · Tone 은 따로 바뀐다 (tint blue + Tone slate 면 accent 는 Spectrum blue 그대로). hover · pressed 는 사다리의 다음 단.
+  - **사용자 hex 는 색조만 쓴다** — 명도는 사다리가 정한다 (ADR-290 의 「대비를 통과하면 hex 그대로」 는 없어짐).
+  - 생성기는 lazy chunk — 비기본 테마는 chunk 로드 뒤 Builder · Preview 가 테마를 다시 적용하고, Publish 는 첫 화면 전에 불러온다.
+  - **Why**: 옛 경로 (Tailwind 단 매핑 · 명도 탐색 · 검정 섞기) 는 tint · Tone 에 따라 status 글자 · 층 순서가 무너졌다 (비기본 Tone 4 종 층 붕괴 40/40).
+  - 위치: `packages/shared/src/catalog/runtime/ladderGenerate.ts` · `themeLadders.ts` · `resolveThemeSnapshot.ts` · `packages/rendering/src/primitives/colorAliases.ts` (`SEMANTIC_CSS_VARS`)
+
+### Removed
+
+- `semanticPaletteMap.ts` (Tailwind 좌표 표) · `solveAccentRoles` · `createAccentColorTokens` · `mixHexWithBlack` 파생 · Tone 의 Tailwind 단 매핑 (`LIGHT_MAP` · `DARK_MAP`).
+
+### Tests
+
+- **G2 `adr302TwoAxis.static.test.ts`** (catalog 색 참조 = alias 표 · 옛 심볼 0 · hover = pressed = 다음 단 · tone 단 범위 · 고정 hex 0) · **G3 `adr302HubRules.test.ts`** (57 preset × 2 mode 대비 · 층 순서 — 기본 preset 에서 Spectrum 값 자체가 미달인 40 항목은 부채 표로 고정) · `adr302ThemeLadders.test.ts` (lazy 로드 · 늦은 구독).
+
 ## [테마 기본 색 = Spectrum 토큰 값 — ADR-302 Phase 0 · 1] - 2026-11-08
 
 ### Changed

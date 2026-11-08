@@ -393,3 +393,30 @@ export const COLOR_ALIASES: Readonly<Record<string, ColorAliasEntry>> = {
   white: constant("#ffffff", "팔레트 상수"),
   black: constant("#000000", "팔레트 상수"),
 };
+
+/**
+ * DOM 변수 이름이 「semantic」 인 역할 — status (`--<status>` · `-subtle` · `-strong`) 와 named hue
+ * (`--hue-<hue>` · `-subtle`, `gray` 포함). 두 곳이 읽는다: 테마 없는 문서의 DOM 폴백 `semantic-palette.css`
+ * (`paletteGenerator.renderSemanticCss` — 값은 seed) 와 `tokenResolver` 의 `-hover` · `-pressed` 변수 표.
+ * (ADR-302 — 옛 `semanticPaletteMap.ts` 의 Tailwind 좌표 표를 대체. 이름만 남고 값은 alias 표 × 사다리.)
+ */
+export const SEMANTIC_CSS_VARS: Readonly<
+  Record<string, { cssVar: `--${string}`; hook?: `--${string}` }>
+> = (() => {
+  const out: Record<string, { cssVar: `--${string}`; hook?: `--${string}` }> =
+    {};
+  for (const status of Object.keys(STATUS_FAMILIES))
+    for (const suffix of ["", "-subtle", "-strong"])
+      out[`${status}${suffix}`] = {
+        cssVar: `--${status}${suffix}`,
+        ...(status === "negative" && suffix === ""
+          ? { hook: "--color-invalid" as const }
+          : {}),
+      };
+  for (const hue of [...Object.keys(NAMED_HUE_FAMILIES), "gray"]) {
+    const name = hue === "green-named" ? "green" : hue;
+    out[hue] = { cssVar: `--hue-${name}` };
+    out[`${hue}-subtle`] = { cssVar: `--hue-${name}-subtle` };
+  }
+  return out;
+})();

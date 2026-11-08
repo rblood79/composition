@@ -5,7 +5,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { darkColors, lightColors } from "@composition/rendering";
 
 import { useThemeConfigStore } from "../../../../stores/themeConfigStore";
-import { resolveAccentColorTokens } from "../../../../utils/theme/tintToSkiaColors";
+import { TINT_PRESETS } from "../../../../utils/theme/tintToSkiaColors";
+import { buildThemeColors } from "../../../../../../../packages/shared/src/catalog/runtime/ladderGenerate";
 import {
   openStylesFixture,
   type StylesFixture,
@@ -85,7 +86,10 @@ describe("Style Panel catalog color values", () => {
 
     // rerender 를 강제하지 않는다 — themeVersion 구독만으로 다시 그려져야 한다.
     act(() => {
-      Object.assign(lightColors, resolveAccentColorTokens("red", "light"));
+      Object.assign(
+        lightColors,
+        buildThemeColors({ accent: TINT_PRESETS.red }).light,
+      );
       const theme = useThemeConfigStore.getState();
       theme.applyResolvedTheme({
         tint: "red",

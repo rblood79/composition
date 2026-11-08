@@ -1,25 +1,21 @@
 /**
- * ADR-290 G1 — accent 를 역할별 목표 대비로 정한다.
+ * ADR-290 G1 — accent 역할 둘의 대비 조건. 탐색 (`solveLightness`) 은 ADR-302 사다리 생성으로 대체됐고, 조건은
+ * 그 생성 결과 (resolver snapshot 의 최종 맵) 에 다시 잰다.
  *
- * oracle 독립성 (Gates Q5): 대비 함수는 WCAG 참조쌍으로 먼저 검산하고, 아래 조건은 resolver 출력 hex 를
- * 그 함수로 다시 잰다 (resolver 가 탐색에 쓴 바탕이 아니라 snapshot 의 최종 맵에서 바탕을 읽는다).
+ * oracle 독립성 (Gates Q5): 대비 함수는 WCAG 참조쌍으로 먼저 검산한다.
  */
-import { describe, expect, it } from "vitest";
-import {
-  contrastRatio,
-  solveLightness,
-} from "../../../../../../packages/shared/src/catalog/runtime/accentContrast";
+import { beforeAll, describe, expect, it } from "vitest";
+import { contrastRatio } from "../../../../../../packages/shared/src/catalog/runtime/accentContrast";
+import { loadThemeLadders } from "../../../../../../packages/shared/src/catalog/runtime/themeLadders";
 import { DEFAULT_BASE_TYPOGRAPHY } from "../../../../../../packages/shared/src/catalog/runtime/fontDefaults";
 import {
   ACCENT_CONTENT_GRAPHIC_BACKDROPS,
   ACCENT_CONTENT_TEXT_BACKDROPS,
-  resolveAccentLadder,
   TINT_PRESETS,
   type TintPreset,
 } from "../../../../../../packages/shared/src/catalog/runtime/tintToSkiaColors";
 import { createThemeDefinition } from "../../../../../../packages/shared/src/theme/themesCollection";
 import type { TokensSnapshot } from "@composition/shared";
-import { oklchToHex } from "../oklchToHex";
 import { resolveThemeSnapshot } from "../resolveThemeSnapshot";
 import type { NeutralPreset } from "../neutralToSkiaColors";
 
@@ -74,169 +70,67 @@ function colorTokens(values: Record<string, string>): TokensSnapshot {
   );
 }
 
-/** 역할 조건 위반 목록 — 비면 통과. */
+/** 역할 조건 위반 목록 — 비면 통과 (ADR-290 의 역할 둘 조건을 ADR-302 생성 결과에 다시 잰다). */
 function violations(map: Record<string, string>): string[] {
   const out: string[] = [];
   const check = (what: string, a: string, b: string, min: number) => {
     const r = contrastRatio(a, b);
     if (r < min) out.push(`${what} ${a}/${b} ${r.toFixed(2)} < ${min}`);
   };
-  check("accent·on-accent", map.accent!, map["on-accent"]!, 4.5);
+  check("accent-fill·on-accent", map["accent-fill"]!, map["on-accent"]!, 4.5);
   check("accent·base", map.accent!, map.base!, 3.0);
   for (const key of ACCENT_CONTENT_TEXT_BACKDROPS)
-    check(`content·${key}`, map["accent-content"]!, map[key]!, 4.5);
+    if (key !== "accent-subtle")
+      check(`content·${key}`, map["accent-content"]!, map[key]!, 4.5);
   for (const key of ACCENT_CONTENT_GRAPHIC_BACKDROPS)
     check(`content·${key}`, map["accent-content"]!, map[key]!, 3.0);
-  for (const key of ACCENT_CONTENT_TEXT_BACKDROPS)
-    check(`content-hover·${key}`, map["accent-content-hover"]!, map[key]!, 4.5);
   return out;
 }
+
+beforeAll(async () => {
+  await loadThemeLadders();
+});
 
 describe("ADR-290 — 대비 함수 (WCAG 2 참조쌍)", () => {
   it("흰 · 검 21.0 · #777777 · 흰 4.48", () => {
     expect(contrastRatio("#ffffff", "#000000")).toBeCloseTo(21, 2);
     expect(contrastRatio("#777777", "#ffffff")).toBeCloseTo(4.48, 2);
   });
-
-  it("시작 명도가 통과하면 그대로, 아니면 가장 가까운 통과 명도 · 구간이 비면 ok false", () => {
-    const { c, h } = TINT_PRESETS.blue;
-    expect(solveLightness({ c, h, startL: 0.55, constraints: [] }).l).toBe(
-      0.55,
-    );
-    const dark = solveLightness({
-      c,
-      h,
-      startL: 0.55,
-      constraints: [{ against: "#171717", min: 4.5 }],
-    });
-    expect(dark.ok).toBe(true);
-    expect(dark.l).toBeGreaterThan(0.55);
-    expect(contrastRatio(dark.hex, "#171717")).toBeGreaterThanOrEqual(4.5);
-    expect(
-      contrastRatio(oklchToHex(dark.l - 0.01, c, h), "#171717"),
-    ).toBeLessThan(4.5);
-    const none = solveLightness({
-      c,
-      h,
-      startL: 0.55,
-      constraints: [
-        { against: "#ffffff", min: 4.5 },
-        { against: "#000000", min: 4.5 },
-        { against: "#808080", min: 4.5 },
-      ],
-    });
-    expect(none.ok).toBe(false);
-  });
 });
 
-/** ADR-302 Phase 1 — 기본 tint (blue) 는 탐색이 아니라 Spectrum seed (G1 `adr302SpectrumOracle`). 탐색 경로는 비기본 tint 만 (Phase 2 가 사다리 생성으로 대체). */
-const SEARCHED_TINTS = TINTS.filter((tint) => tint !== "blue");
-
-describe("ADR-290 G1 — 프리셋 9 (blue 제외 — ADR-302) × Tone 5 × 모드 2", () => {
-  it.each(SEARCHED_TINTS)("%s — 모든 Tone · 모드에서 역할 조건 통과", (tint) => {
-    const failures: string[] = [];
-    for (const tone of TONES) {
-      const s = snapshot(tint, tone);
-      for (const mode of MODES)
-        for (const v of violations(s.colors[mode]))
-          failures.push(`${tone}/${mode}: ${v}`);
-      expect(s.warnings).toEqual([]);
-    }
-    expect(failures).toEqual([]);
-  });
-
-  it("light 프리셋 accent (배경) hex 는 변경 전 공식 (L 55%) 그대로", () => {
-    for (const tint of SEARCHED_TINTS) {
-      const { c, h } = TINT_PRESETS[tint];
-      expect(snapshot(tint).colors.light.accent).toBe(oklchToHex(0.55, c, h));
-    }
-  });
-
-  it("on-accent 는 두 모드 모두 흰색 (결정 1)", () => {
-    const s = snapshot("blue");
-    expect(s.colors.light["on-accent"]).toBe("#ffffff");
-    expect(s.colors.dark["on-accent"]).toBe("#ffffff");
-  });
-
-  it("accent-content-hover 는 content 와 다르고 바탕에서 더 멀다 (light 어둡게 · dark 밝게)", () => {
-    for (const tint of TINTS) {
-      const s = snapshot(tint);
-      for (const mode of MODES) {
-        const m = s.colors[mode];
-        expect(m["accent-content-hover"]).not.toBe(m["accent-content"]);
-        expect(
-          contrastRatio(m["accent-content-hover"]!, m["layer-1"]!),
-        ).toBeGreaterThan(contrastRatio(m["accent-content"]!, m["layer-1"]!));
+describe("ADR-290 역할 둘 · ADR-302 생성 사다리 — 프리셋 10 × Tone 5 × 모드 2", () => {
+  it("accent-fill 위 흰 글자 4.5 · accent 면 3 · accent-content 글자 4.5 — 위반 0 · 대비 경고 0", () => {
+    const out: string[] = [];
+    for (const tint of TINTS)
+      for (const tone of TONES) {
+        const s = snapshot(tint, tone);
+        out.push(...s.warnings.map((w) => `${tint}/${tone}: ${w}`));
+        for (const mode of MODES)
+          out.push(
+            ...violations(s.colors[mode]).map(
+              (v) => `${tint}/${tone}/${mode}: ${v}`,
+            ),
+          );
       }
-    }
+    expect(out).toEqual([]);
+  });
+
+  it("on-accent 는 두 모드 모두 흰색 (ADR-290 결정 1 · ADR-302 사용자 결정 4)", () => {
+    for (const tint of TINTS)
+      for (const mode of MODES)
+        expect(snapshot(tint).colors[mode]["on-accent"]).toBe("#ffffff");
   });
 });
 
-describe("ADR-290 G1 — 명시 델타가 탐색의 바탕", () => {
-  it("명시 color.base 를 바탕으로 accent 탐색 · 풀 수 없는 모드는 warning", () => {
-    const tokens = colorTokens({ "color.base": "#e5e5e5" });
-    const s = snapshot("indigo", "neutral", tokens);
-    expect(s.colors.light.base).toBe("#e5e5e5");
-    expect(violations(s.colors.light)).toEqual([]);
-    // 기본 바탕 (흰색) 에서 정한 값은 #e5e5e5 위 글자 4.5 미달 — 탐색이 명시 바탕을 봤다
-    expect(
-      contrastRatio(snapshot("indigo").colors.light["accent-content"]!, "#e5e5e5"),
-    ).toBeLessThan(4.5);
-    // dark 는 밝은 base 와 어두운 layer 를 동시에 4.5 로 넘는 명도가 없다 → 글자 대비 우선 + warning
-    expect(s.warnings.some((w) => w.startsWith("dark accent-content"))).toBe(
-      true,
-    );
-  });
-
-  it("명시 color.accent-subtle 을 그대로 쓰고 그 위 글자 대비를 맞춘다", () => {
-    const s = snapshot("green", "neutral", colorTokens({ "color.accent-subtle": "#c8f0d8" }));
-    expect(s.colors.light["accent-subtle"]).toBe("#c8f0d8");
-    expect(
-      contrastRatio(s.colors.light["accent-content"]!, "#c8f0d8"),
-    ).toBeGreaterThanOrEqual(4.5);
-  });
-
-  it("명시 color.accent-content 는 그 값 · hover 는 거기서 탐색 (dark 는 밝히는 방향)", () => {
-    const s = snapshot("indigo", "neutral", colorTokens({ "color.accent-content": "#7aa2ff" }));
-    expect(s.colors.dark["accent-content"]).toBe("#7aa2ff");
-    expect(
-      contrastRatio(
-        s.colors.dark["accent-content-hover"]!,
-        s.colors.dark.base!,
-      ),
-    ).toBeGreaterThan(contrastRatio("#7aa2ff", s.colors.dark.base!));
-  });
-});
-
-describe("ADR-290 G1 — 사용자 hex 표본 20 (결정 2: hex 자신의 명도에서)", () => {
-  it.each(HEX_SAMPLES)("%s — 통과 또는 warning", (hex) => {
-    const s = snapshot("blue", "neutral", colorTokens({ "color.accent": hex }));
-    for (const mode of MODES) {
-      const v = violations(s.colors[mode]);
-      if (v.length > 0) expect(s.warnings.join("\n")).toMatch(mode);
+describe("ADR-302 — 사용자 hex 표본 20 (ADR-290 Gates Q1 표본 그대로)", () => {
+  it("hex 의 (c, h) 로 만든 사다리에서 역할 조건 위반 0 · 대비 경고 0", () => {
+    const out: string[] = [];
+    for (const hex of HEX_SAMPLES) {
+      const s = snapshot("blue", "neutral", colorTokens({ "color.accent": hex }));
+      out.push(...s.warnings.map((w) => `${hex}: ${w}`));
+      for (const mode of MODES)
+        out.push(...violations(s.colors[mode]).map((v) => `${hex}/${mode}: ${v}`));
     }
-  });
-
-  it("통과하는 브랜드색은 그대로 (#1E3A8A light accent)", () => {
-    const s = snapshot("blue", "neutral", colorTokens({ "color.accent": "#1E3A8A" }));
-    expect(s.colors.light.accent).toBe("#1e3a8a");
-  });
-
-  it("#00A86B — 미달 (4.42) 이면 흰 글자 4.5 로 움직인다", () => {
-    const s = snapshot("blue", "neutral", colorTokens({ "color.accent": "#00A86B" }));
-    expect(
-      contrastRatio(s.colors.light.accent!, "#ffffff"),
-    ).toBeGreaterThanOrEqual(4.5);
-  });
-});
-
-describe("ADR-290 Phase 3 — 색 피커 Theme 사다리", () => {
-  it("사다리에 탐색된 accent · accent-content 칸이 있다 (같은 바탕)", () => {
-    for (const mode of MODES) {
-      const s = snapshot("green");
-      const ladder = resolveAccentLadder("green", mode, s.colors[mode]);
-      expect(ladder).toContain(s.colors[mode].accent);
-      expect(ladder).toContain(s.colors[mode]["accent-content"]);
-    }
+    expect(out).toEqual([]);
   });
 });

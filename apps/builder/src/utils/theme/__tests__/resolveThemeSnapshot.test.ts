@@ -13,7 +13,7 @@ import {
   DEFAULT_THEME_PRESET,
 } from "@composition/shared";
 import { radius as radiusSeed } from "@composition/rendering";
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../builder/workspace/canvas/skia/useSkiaNode", () => ({
   notifyLayoutChange: vi.fn(),
@@ -33,11 +33,14 @@ import {
   catalogTextTypography,
 } from "../../../../../../packages/shared/src/catalog/runtime/boxModel";
 import { RADIUS_BASE_PX, resolveRadiusTokens } from "../radiusScaleToSkia";
-import {
-  createAccentColorTokens,
-  mixWithBlackSrgb,
-  TINT_PRESETS,
-} from "../tintToSkiaColors";
+import { TINT_PRESETS } from "../tintToSkiaColors";
+import { buildThemeColors } from "../../../../../../packages/shared/src/catalog/runtime/ladderGenerate";
+import { loadThemeLadders } from "../../../../../../packages/shared/src/catalog/runtime/themeLadders";
+
+// ADR-302 — 비기본 preset 의 사다리 생성은 lazy chunk. 이 파일의 비기본 축 단언은 로드 뒤 값이다.
+beforeAll(async () => {
+  await loadThemeLadders();
+});
 
 const SEED = DEFAULT_BASE_TYPOGRAPHY;
 const theme = (
@@ -160,7 +163,7 @@ describe("resolveThemeSnapshot — seed (preset 파생) 는 종전 setter 결과
 });
 
 describe("resolveThemeSnapshot — 명시 델타 (축별 비기본값 · reset · 우선순위)", () => {
-  it("color.accent hex → tint 대체: 두 leg 가 같은 (c,h) 파생 · DOM --tint 는 hex 자체 · chart 팔레트까지", () => {
+  it("color.accent hex → tint 대체: hex 의 (c,h) 가 accent 축 — 생성 사다리의 alias 단 · DOM --tint 는 hex 자체 · chart 까지", () => {
     const s = resolve(
       theme({
         "color.accent": {
@@ -171,17 +174,28 @@ describe("resolveThemeSnapshot — 명시 델타 (축별 비기본값 · reset �
       }),
     );
     const o = hexToOklch("#c53631")!;
-    const expected = createAccentColorTokens(o.c, o.h, "light");
-    expect(s.colors.light.accent).toBe(expected.accent);
-    expect(s.colors.light["accent-hover"]).toBe(expected["accent-hover"]);
-    expect(s.colors.light["chart-accent-1"]).toBe(expected["chart-accent-1"]);
+    const expected = buildThemeColors({ accent: { c: o.c, h: o.h } });
+    for (const mode of ["light", "dark"] as const)
+      for (const key of [
+        "accent",
+        "accent-hover",
+        "accent-fill",
+        "accent-content",
+        "selection-accent",
+        "chart-accent-1",
+      ])
+        expect(s.colors[mode][key]).toBe(expected[mode][key]);
+    // chart-accent-1 = accent 사다리 1200 단 (사용자 결정 6)
+    expect(s.colors.light["chart-accent-1"]).toBe(
+      expected.ladders.accent.light[1200],
+    );
     expect(varOf(s, "--tint")).toBe("#c53631");
-    // 빨강 계열로 접혔다 (L 55%)
+    // 빨강 계열 (hue 가 hex 의 것)
     const px = parseInt(s.colors.light.accent.slice(1, 3), 16);
     expect(px).toBeGreaterThan(150);
   });
 
-  it("color.<key> (neutral) 명시 → 양 모드 값 · DOM 의미 변수 (--fg) · 미명시 파생 neutral-fill-hover 는 base 에서 mix", () => {
+  it("color.<key> (neutral) 명시 → 양 모드 값 · DOM 의미 변수 (--fg) · 미명시 neutral-fill-hover 는 사다리 값 그대로 (ADR-302 — 혼합 파생 없음)", () => {
     const s = resolve(
       theme({
         "color.neutral": {
@@ -195,13 +209,13 @@ describe("resolveThemeSnapshot — 명시 델타 (축별 비기본값 · reset �
     expect(s.colors.dark.neutral).toBe("#112233");
     expect(varOf(s, "--fg")).toBe("#112233");
     expect(varOf(s, "--fg", true)).toBe("#112233");
-    // 진한 바탕 neutral 의 hover 는 neutral-fill-* — 밝은 바탕 (neutral-subtle) 의 neutral-hover 는 그대로
-    //   (ADR-293 결정 4: 종전엔 neutral 에서 neutral-hover 를 혼합해 ToggleButton hover 가 검정에 가까워졌다)
+    // override 는 한 값 (사용자 결정 5) — 상태 키는 사다리 (seed) 값 그대로, 85 % 검정 혼합 없음
+    const seed = resolve(theme({}));
     expect(s.colors.light["neutral-fill-hover"]).toBe(
-      mixWithBlackSrgb("#112233", 85),
+      seed.colors.light["neutral-fill-hover"],
     );
     expect(varOf(s, "--neutral-fill-hover")).toBe(
-      mixWithBlackSrgb("#112233", 85),
+      seed.colors.light["neutral-fill-hover"],
     );
     expect(s.colors.light["neutral-hover"]).toBe(
       resolve(theme({})).colors.light["neutral-hover"],
@@ -227,7 +241,7 @@ describe("resolveThemeSnapshot — 명시 델타 (축별 비기본값 · reset �
     );
     expect(s.colors.light["negative-hover"]).toBe("#aa0000");
     expect(s.colors.light["negative-pressed"]).toBe(
-      mixWithBlackSrgb("#ff0000", 75),
+      resolve(theme({})).colors.light["negative-pressed"],
     );
     expect(varOf(s, "--negative-hover")).toBe("#aa0000");
   });

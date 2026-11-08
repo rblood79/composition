@@ -14,7 +14,7 @@ import {
   PALETTE_TS_OUT,
   SEMANTIC_CSS_OUT,
 } from "../../../scripts/generate-palette";
-import { SEMANTIC_PALETTE_MAP } from "../semanticPaletteMap";
+import { SEMANTIC_CSS_VARS } from "../colorAliases";
 import { darkColors, lightColors } from "../colors";
 import { cssColorToSrgbHex } from "../../../scripts/paletteGenerator";
 import { TAILWIND_PALETTE } from "../generated/tailwindPalette";
@@ -97,7 +97,7 @@ describe("ADR-193 semantic palette CSS drift", () => {
     expect(semanticCss.match(/^\s+:root \{/gm)).toHaveLength(1);
     expect(semanticCss.match(/^\s+\[data-theme="dark"\] \{/gm)).toHaveLength(1);
     const [light, dark] = semanticCss.split('[data-theme="dark"]');
-    for (const [token, entry] of Object.entries(SEMANTIC_PALETTE_MAP)) {
+    for (const [token, entry] of Object.entries(SEMANTIC_CSS_VARS)) {
       const wrap = (v: string) => (entry.hook ? `var(${entry.hook}, ${v})` : v);
       const key = token as keyof typeof lightColors;
       expect(light).toContain(`${entry.cssVar}: ${wrap(lightColors[key])};`);

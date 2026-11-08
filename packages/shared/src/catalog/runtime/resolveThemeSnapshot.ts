@@ -15,13 +15,15 @@
  * 팔레트 상수 `white` · `black` (`--color-white` · `--color-black`) 과 Tone 단계 `--color-neutral-N` 은
  * 테마 색으로 덮지 않는다.
  *
- * 색 델타 규칙:
- *   - `color.accent` (hex) 는 **tint 대체** — hex 의 (c, h) 로 tint 프리셋과 같은 파생 (역할별 목표 대비
- *     accent · accent-content · hover 85%/pressed 75% black mix · subtle · chart) 을 만든다. 명도 탐색은
- *     hex 자신의 명도에서 시작해 통과하면 hex 그대로 (ADR-290). accent 탐색은 Tone 과 명시 색 델타가 반영된
- *     바탕을 입력으로 받는다. DOM 의 `--tint` 는 `--tint-N` 사다리 · link · focus-ring 의 입력으로만 남는다.
- *   - 그 밖의 `color.<key>` 는 값 그대로 양 모드 맵에. 명시된 `<x>` 의 미명시 `<x>-hover` / `<x>-pressed`
- *     는 base 에서 다시 혼합한다 (아래 파생 블록) — DOM 은 최종 맵을 받으므로 같은 값.
+ * 색 (ADR-302): preset 의 두 축 (accent = tint 또는 `color.accent` hex · tone = Tone) → 사다리 → alias 표 →
+ * 역할 두 벌 → 명시 델타 덮기.
+ *   - 기본 축 (tint blue · hex 없음 / Tone neutral) 은 seed (`colors.ts` — alias 표 × Spectrum 사다리) 그대로.
+ *   - 비기본 축은 생성 사다리 (`ladderGenerate.ts` — lazy chunk, `themeLadders.ts` 로더). 로드 전이면 seed 와
+ *     `THEME_LADDERS_PENDING` 경고 — 로드되면 세션이 테마를 다시 적용한다.
+ *   - `color.accent` (hex) 는 **tint 대체** — hex 의 (c, h) 가 accent 축 입력이다. DOM 의 `--tint` 는 `--tint-N`
+ *     사다리 · link · focus-ring 의 입력으로만 남는다.
+ *   - 그 밖의 `color.<key>` 는 값 그대로 양 모드 맵에 (사용자 결정 5 — override 한 값). 그 `<x>-hover` ·
+ *     `<x>-pressed` 는 사다리 값 그대로다 (혼합 파생 없음 — Decision 2).
  */
 import type { ThemeDefinition, TokensSnapshot } from "@composition/shared";
 import { BASE_TYPOGRAPHY_TOKEN_KEYS } from "@composition/shared";
@@ -47,18 +49,14 @@ import {
   type BaseTypography,
 } from "./fontDefaults";
 import { hexToOklch } from "./oklchToHex";
-import {
-  resolveNeutralColorTokens,
-  resolveNeutralSteps,
-  type NeutralPreset,
-} from "./neutralToSkiaColors";
+import { resolveNeutralSteps, type NeutralPreset } from "./neutralToSkiaColors";
 import { resolveRadiusTokens } from "./radiusScaleToSkia";
 import {
-  TINT_PRESETS,
-  createAccentColorTokens,
-  mixWithBlackSrgb,
-  type TintPreset,
-} from "./tintToSkiaColors";
+  THEME_LADDERS_PENDING,
+  themeLadderModule,
+  themeNeedsLadders,
+} from "./themeLadders";
+import { TINT_PRESETS, type TintPreset } from "./tintToSkiaColors";
 
 export interface ThemeCssVar {
   name: string;
@@ -77,17 +75,6 @@ export interface ResolvedDeviceTokens {
   /** S2 component-height 5단 × scale — Skia 맵 `size` 의 `height.<S>` (`{size.height.XS…XL}`, Phase 3). */
   controlHeight: Record<string, number>;
 }
-
-/**
- * 바탕 토큰 → 그 바탕의 hover · pressed 토큰 (이름이 `<x>-hover` 가 아닌 것만). `neutral-hover` 는
- * 밝은 바탕 `neutral-subtle` 의 다음 단이고, 진한 바탕 `neutral-fill` 의 것은 `neutral-fill-*` 다.
- * 명시 델타 뒤 파생이 엉뚱한 바탕에서 혼합하면 그 값이 DOM 에도 실린다.
- */
-const DERIVED_STATE_KEYS: Readonly<Record<string, readonly [string, string]>> =
-  {
-    "neutral-fill": ["neutral-fill-hover", "neutral-fill-pressed"],
-    "neutral-subtle": ["neutral-hover", "neutral-pressed"],
-  };
 
 /** 팔레트 상수 — 테마 색 변수로 싣지 않는다 (`--color-white` · `--color-black` 은 팔레트 CSS 소유). */
 const PALETTE_CONSTANT_COLOR_TOKENS: ReadonlySet<string> = new Set([
@@ -172,22 +159,14 @@ function tintOf(
   c: number;
   h: number;
   tintVar: string;
-  startL?: number;
-  startHex?: string;
+  /** 기본 accent 축 (tint blue · 유효한 hex 없음) — 사다리 = Spectrum blue 그대로. */
+  isDefault: boolean;
 } {
   if (accentHex) {
     const oklch = hexToOklch(accentHex);
-    // 사용자 hex 는 자기 명도에서 탐색을 시작한다 — 통과하면 브랜드색 그대로 (ADR-290 결정 2)
+    // 사용자 hex 는 (c, h) 만 — 명도는 사다리 모양을 따른다 (ADR-302 Decision 1)
     if (oklch)
-      return {
-        c: oklch.c,
-        h: oklch.h,
-        tintVar: accentHex,
-        startL: oklch.l,
-        startHex: /^#[0-9a-f]{6}$/i.test(accentHex.trim())
-          ? accentHex.trim().toLowerCase()
-          : undefined,
-      };
+      return { c: oklch.c, h: oklch.h, tintVar: accentHex, isDefault: false };
     warnings.push(
       `color.accent "${accentHex}" 는 hex 가 아니라 tint 프리셋으로 대체`,
     );
@@ -196,7 +175,7 @@ function tintOf(
     preset.tint in TINT_PRESETS ? preset.tint : "blue"
   ) as TintPreset;
   const { c, h } = TINT_PRESETS[tint];
-  return { c, h, tintVar: `var(--${tint})` };
+  return { c, h, tintVar: `var(--${tint})`, isDefault: tint === "blue" };
 }
 
 /**
@@ -245,53 +224,31 @@ export function resolveThemeSnapshot(
   const accentDelta = delta["color.accent"];
   const accentHex =
     typeof accentDelta?.value === "string" ? accentDelta.value : undefined;
-  const { c, h, tintVar, startL, startHex } = tintOf(
-    preset,
-    accentHex,
-    warnings,
-  );
+  const { c, h, tintVar, isDefault } = tintOf(preset, accentHex, warnings);
   const neutral = (preset.neutral || "neutral") as NeutralPreset;
-  // accent 는 실제 바탕을 알고 정한다 (ADR-290): Tone → 명시 색 델타 → accent 탐색. 명시 accent 계열
-  //   델타 (`accent-hover` …) 는 아래 델타 루프가 탐색 결과를 덮는다.
-  const explicitColors: Record<string, string> = {};
-  for (const [tokenKey, entry] of Object.entries(delta))
-    if (
-      tokenKey.startsWith("color.") &&
-      tokenKey !== "color.accent" &&
-      typeof entry.value === "string" &&
-      entry.value.trim() !== ""
-    )
-      explicitColors[tokenKey.slice(6)] = entry.value;
-  const seedColors = (mode: "light" | "dark"): Record<string, string> => ({
-    ...(mode === "dark" ? SEED_DARK_COLORS : SEED_LIGHT_COLORS),
-    ...resolveNeutralColorTokens(neutral, mode),
+  // ADR-302 — 비기본 축은 생성 사다리 (lazy). 로드 전이면 seed 로 두고 알린다 (세션이 로드 뒤 다시 적용).
+  const ladders = themeNeedsLadders(preset, accentHex)
+    ? themeLadderModule()
+    : undefined;
+  if (themeNeedsLadders(preset, accentHex) && !ladders)
+    warnings.push(THEME_LADDERS_PENDING);
+  const toneHues = ladders?.TONE_PRESET_HUES as
+    | Readonly<Record<string, { c: number; h: number }>>
+    | undefined;
+  const generated = ladders?.buildThemeColors({
+    accent: isDefault ? undefined : { c, h },
+    tone: toneHues?.[neutral],
   });
-  // ADR-302 Phase 1 — 기본 tint (blue · 사용자 hex 없음) 는 seed (alias 표 × Spectrum 사다리) 그대로다.
-  //   비기본 tint · 사용자 hex 의 사다리 생성은 Phase 2 — 그때까지 옛 탐색 경로.
-  const defaultAccent = (preset.tint || "blue") === "blue" && !accentHex;
-  const withAccent = (mode: "light" | "dark"): Record<string, string> => {
-    const seed = seedColors(mode);
-    if (defaultAccent) return seed;
-    const accent = createAccentColorTokens(c, h, mode, {
-      surfaces: { ...seed, ...explicitColors },
-      startL,
-      startHex,
-      subtle: explicitColors["accent-subtle"],
-      content: explicitColors["accent-content"],
-      warnings,
-    });
-    return {
-      ...seed,
-      ...accent,
-      // 사용자 tint/색상은 기존 탐색 결과를 연결한다 (Phase 2 가 사다리 생성으로 대체).
-      "selection-accent": accent["accent-content"],
-      "selection-accent-hover": accent["accent-content-hover"],
-      "accent-fill": accent.accent,
-      "accent-fill-hover": accent["accent-hover"],
-    };
+  for (const failure of generated?.failures ?? [])
+    warnings.push(`ADR-302 대비 미달: ${failure}`);
+  const light: Record<string, string> = {
+    ...SEED_LIGHT_COLORS,
+    ...generated?.light,
   };
-  const light = withAccent("light");
-  const dark = withAccent("dark");
+  const dark: Record<string, string> = {
+    ...SEED_DARK_COLORS,
+    ...generated?.dark,
+  };
   const typography: Record<string, number | string> = { ...SEED_TYPOGRAPHY };
   const radius: Record<string, number> = {
     ...SEED_RADIUS,
@@ -516,29 +473,7 @@ export function resolveThemeSnapshot(
     }
   }
 
-  // ── 파생 키: 명시가 없으면 base 에서 (양 leg 같은 식) ──
-  //   accent 계열은 createAccentColorTokens 가 이미 채웠다. 그 밖의 `<x>` 가 명시되고 `<x>-hover/-pressed`
-  //   가 명시되지 않았으면 Skia 맵은 seed 파생값 그대로 (DOM 은 color-mix 가 base 변수를 따라간다)
-  //   — 두 leg 가 갈리지 않게 Skia 도 base 로부터 mix 한다.
-  for (const key of explicitColorKeys) {
-    // 명시 `accent-content` 의 hover 는 accent 탐색이 그 값에서 이미 풀었다 (dark 는 밝히는 방향)
-    if (key === "accent-content" || key === "neutral") continue;
-    const [hoverKey, pressedKey] = DERIVED_STATE_KEYS[key] ?? [
-      `${key}-hover`,
-      `${key}-pressed`,
-    ];
-    for (const [derived, pct] of [
-      [hoverKey, 85],
-      [pressedKey, 75],
-    ] as const) {
-      if (explicitColorKeys.has(derived)) continue;
-      if (!(derived in SEED_LIGHT_COLORS)) continue;
-      light[derived] = mixHexWithBlack(light[key]!, pct) ?? light[derived]!;
-      dark[derived] = mixHexWithBlack(dark[key]!, pct) ?? dark[derived]!;
-    }
-  }
-
-  // ── 테마 색 전체 → DOM (ADR-293): 최종 맵에서, 파생 재계산 뒤에 ──
+  // ── 테마 색 전체 → DOM (ADR-293): 최종 맵에서 ──
   for (const [map, isDark] of [
     [light, false],
     [dark, true],
@@ -604,13 +539,6 @@ export function touchThemeSnapshot(
     typography: snapshot.device.touch.typography,
     size: s2SizeTokens(S2_DEVICE.touch.scale),
   };
-}
-
-/** hex6 만 mix (tintToSkiaColors 와 같은 식) — hex 가 아니면 null 로 두어 seed 파생값을 유지한다. */
-function mixHexWithBlack(hex: string, pct: number): string | null {
-  return /^#[0-9a-f]{6}$/i.test(hex.trim())
-    ? mixWithBlackSrgb(hex.trim(), pct)
-    : null;
 }
 
 export { BASE_TYPOGRAPHY_TOKEN_KEYS };

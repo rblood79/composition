@@ -115,9 +115,6 @@ export {
 export {
   lightColors,
   TAILWIND_PALETTE,
-  SEMANTIC_PALETTE_MAP,
-  resolveSemanticHex,
-  resolveSemanticColors,
   CHART_CATEGORICAL_HEX,
   CHART_CATEGORICAL_COUNT,
   CHART_CATEGORICAL_TOKENS,
@@ -206,19 +203,17 @@ export {
   COLOR_ALIASES,
   STATUS_FAMILIES,
   NAMED_HUE_FAMILIES,
+  SEMANTIC_CSS_VARS,
+  SPECTRUM_LADDERS,
 } from "./primitives";
 export type {
   ColorAxis,
   ColorAliasEntry,
   ColorAliasStep,
+  SpectrumLadderFamily,
 } from "./primitives";
 export type { ParsedShadow, ShadowPresetKey } from "./primitives";
 export type { TailwindPaletteFamily, TailwindPaletteStep } from "./primitives";
-export type {
-  SemanticPaletteToken,
-  SemanticPaletteEntry,
-  PaletteRef,
-} from "./primitives";
 export type {
   ContainerSpacing,
   ContainerSpacingDefaults,

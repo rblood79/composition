@@ -5,7 +5,7 @@ import { join, relative, resolve } from "node:path";
 
 import {
   resolveToken,
-  SEMANTIC_PALETTE_MAP,
+  SEMANTIC_CSS_VARS,
   tokenToCSSVar,
   type TokenRef,
 } from "@composition/rendering";
@@ -47,8 +47,8 @@ const TOKEN_CATEGORIES = new Set([
 
 /**
  * Skia 맵에 없어도 되는 토큰 — 없다 (2026-10-28 사용자 「레퍼런스대로 채워」). named hue 의 hover ·
- * pressed 는 DOM 이 `color-mix(in srgb, X 85% · 75%, black)` 로 파생하고, Skia 맵도 같은 식으로
- * 채운다 (`semanticPaletteMap.ts` `resolveSemanticStateColors`). 새 예외를 여기 더하지 않는다.
+ * pressed 는 alias 표가 사다리의 다음 단으로 두 consumer 에 같이 낸다 (`colorAliases.ts` — ADR-302).
+ * 새 예외를 여기 더하지 않는다.
  */
 const SKIA_HOVER_PRESSED_DOM_ONLY: ReadonlySet<string> = new Set<string>();
 
@@ -268,7 +268,7 @@ describe("catalog 토큰 존재 — 참조하는 모든 토큰이 theme/tokens �
     const hues = [...REFS.keys()]
       .map((ref) => /^\{color\.([a-z-]+?)-(hover|pressed)\}$/.exec(ref))
       .filter(
-        (m): m is RegExpExecArray => !!m && m[1]! in SEMANTIC_PALETTE_MAP,
+        (m): m is RegExpExecArray => !!m && m[1]! in SEMANTIC_CSS_VARS,
       );
     expect(hues.length).toBeGreaterThanOrEqual(13);
     const wrong: string[] = [];

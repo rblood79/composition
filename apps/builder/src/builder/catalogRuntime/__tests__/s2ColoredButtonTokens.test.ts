@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
-import { expect, it } from "vitest";
+import { beforeAll, expect, it } from "vitest";
 import {
   createThemeDefinition,
   DEFAULT_THEME_PRESET,
@@ -9,6 +9,12 @@ import {
 import { resolveThemeSnapshot } from "../../../../../../packages/shared/src/catalog/runtime/resolveThemeSnapshot";
 import { DEFAULT_BASE_TYPOGRAPHY } from "../../../../../../packages/shared/src/catalog/runtime/fontDefaults";
 import { installThemeMaps } from "../../../../../../packages/shared/src/catalog/runtime/themeMaps";
+import { loadThemeLadders } from "../../../../../../packages/shared/src/catalog/runtime/themeLadders";
+
+// ADR-302 — 비기본 tint · 사용자 hex 의 사다리 생성은 lazy chunk
+beforeAll(async () => {
+  await loadThemeLadders();
+});
 
 const require = createRequire(import.meta.url);
 const s2 = require(
@@ -56,17 +62,23 @@ it.each([
 });
 
 it.each(["red", "#008866"])(
-  "사용자 tint %s는 기존 accent 탐색값을 연결",
+  "사용자 tint %s: accent-fill 은 생성 accent 사다리의 S2 Button 단 (light 900 · dark 700, hover 1000 · 600) — ADR-302",
   (tint) => {
     const resolved = tint.startsWith("#")
       ? snapshot({ "color.accent": color(tint) })
       : snapshot({}, tint);
+    expect(resolved.warnings).toEqual([]);
     for (const mode of ["light", "dark"] as const) {
-      expect(resolved.colors[mode]["accent-fill"]).toBe(
-        resolved.colors[mode].accent,
+      // 같은 단을 가리키는 역할은 같은 값 — accent-content (900 · 900) 와 light accent-fill (900)
+      if (mode === "light")
+        expect(resolved.colors[mode]["accent-fill"]).toBe(
+          resolved.colors[mode]["accent-content"],
+        );
+      expect(resolved.colors[mode]["accent-fill"]).not.toBe(
+        snapshot().colors[mode]["accent-fill"],
       );
-      expect(resolved.colors[mode]["accent-fill-hover"]).toBe(
-        resolved.colors[mode]["accent-hover"],
+      expect(resolved.colors[mode]["accent-fill-hover"]).not.toBe(
+        resolved.colors[mode]["accent-fill"],
       );
     }
   },

@@ -15,6 +15,11 @@ import {
   resolveThemeSnapshot,
   type ResolvedThemeSnapshot,
 } from "./resolveThemeSnapshot";
+import {
+  loadThemeLadders,
+  themeLadderModule,
+  themeNeedsLadders,
+} from "./themeLadders";
 import { installThemeMaps } from "./themeMaps";
 import { DEFAULT_BASE_TYPOGRAPHY } from "./fontDefaults";
 
@@ -169,8 +174,24 @@ export function catalogThemeState(graph: CatalogGraph): CatalogThemeState {
       rootTokens,
       baseTypographySeed: DEFAULT_BASE_TYPOGRAPHY,
     }));
+  // ADR-302 — 비기본 preset 의 사다리는 lazy chunk. 로드 전 상태는 seed 로 그리고 key 에 「대기」 를 담아,
+  //   로드 뒤 세션 (`onThemeLaddersLoaded` 구독) 이 다시 읽으면 key 가 바뀌어 테마를 다시 적용한다.
+  // resolver 와 같은 우선순위 — 테마 델타가 root 를 덮는다
+  const accent = (definition.tokens["color.accent"] ?? rootTokens["color.accent"])
+    ?.value;
+  const laddersPending =
+    themeNeedsLadders(
+      definition.preset,
+      typeof accent === "string" ? accent : undefined,
+    ) && !themeLadderModule();
+  if (laddersPending) void loadThemeLadders();
   return {
-    key: JSON.stringify([definition, rootTokens, colorMode]),
+    key: JSON.stringify([
+      definition,
+      rootTokens,
+      colorMode,
+      laddersPending ? "ladders-pending" : "",
+    ]),
     colorMode: colorMode === "dark" ? "dark" : "light",
     install: () => installThemeMaps(snapshot()),
     snapshot,

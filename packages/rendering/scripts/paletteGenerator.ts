@@ -15,10 +15,7 @@
  * CLI 는 `generate-palette.ts`, drift 검증은 `tailwindPalette.drift.test.ts`.
  */
 
-import {
-  SEMANTIC_PALETTE_MAP,
-  type SemanticPaletteEntry,
-} from "../src/primitives/semanticPaletteMap";
+import { SEMANTIC_CSS_VARS } from "../src/primitives/colorAliases";
 import {
   CHART_CATEGORICAL_HEX,
   chartCategoricalCssVar,
@@ -202,13 +199,15 @@ export function renderPaletteTs(source: PaletteSource): string {
 }
 
 // ============================================================================
-// ADR-193 — semantic·named hue 단계 매핑 CSS (테마별 var 정의 층, 참조만)
+// ADR-193 · ADR-302 — semantic·named hue CSS (테마 없는 문서의 DOM 폴백 — seed 값)
 // ============================================================================
 
-/** ADR-302 — 표의 var 는 그대로, 값은 기본 preset 역할 색 (alias 표 × Spectrum 사다리 — Skia seed 와 같은 값). */
+type SemanticCssVar = (typeof SEMANTIC_CSS_VARS)[string];
+
+/** ADR-302 — 값은 기본 preset 역할 색 (alias 표 × Spectrum 사다리 — Skia seed 와 같은 값). */
 function semanticRef(
   token: string,
-  entry: SemanticPaletteEntry,
+  entry: SemanticCssVar,
   theme: "light" | "dark",
 ): string {
   const seed = (
@@ -222,12 +221,12 @@ function semanticRef(
 /**
  * `@layer shared-tokens { :root { --positive: #05834e; … } [data-theme="dark"] { … } }`
  *
- * - 변수 목록은 `semanticPaletteMap.ts` 표 (cssVar · hook), 값은 ADR-302 seed (`generated/spectrumThemeColors.ts`
+ * - 변수 목록은 `colorAliases.ts` `SEMANTIC_CSS_VARS` (cssVar · hook), 값은 ADR-302 seed (`generated/spectrumThemeColors.ts`
  *   — Skia `colors.ts` 와 같은 객체). 테마가 설치되면 resolver 의 `cssVars` 가 같은 변수를 덮는다 (ADR-293).
  * - `shared-tokens` 층: preview-system 의 손 정의보다 위, unlayered runtime `<style>` 보다 아래.
  */
 export function renderSemanticCss(
-  map: Record<string, SemanticPaletteEntry> = SEMANTIC_PALETTE_MAP,
+  map: Readonly<Record<string, SemanticCssVar>> = SEMANTIC_CSS_VARS,
 ): string {
   const block = (theme: "light" | "dark") => [
     ...Object.entries(map).map(
@@ -236,7 +235,7 @@ export function renderSemanticCss(
     ),
   ];
   return [
-    "/* GENERATED — 편집 금지. 원천: packages/rendering/src/primitives/semanticPaletteMap.ts (변수) ·",
+    "/* GENERATED — 편집 금지. 원천: packages/rendering/src/primitives/colorAliases.ts SEMANTIC_CSS_VARS (변수) ·",
     " * generated/spectrumThemeColors.ts (값 — ADR-302 alias 표 × Spectrum 사다리)",
     " * 재생성: pnpm generate:palette  (검증: pnpm validate:palette)",
     " * 테마가 없는 문서의 DOM 폴백 — Skia colors.ts 와 같은 값. 이 파일은 파생물이며 SSOT 가 아니다.",

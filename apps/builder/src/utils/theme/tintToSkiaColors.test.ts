@@ -1,40 +1,63 @@
 /**
- * ADR-215 — mono 팔레트 (accent 명도 사다리) 의 Skia 쪽 계산이 chartPaletteMap 표와 맞는지.
- * CSS `--chart-accent-N: oklch(from var(--tint) L calc(c × f) h)` 와 같은 (L, f) 를 쓰는 것이 대칭 조건이다.
+ * ADR-302 — accent 사다리 (생성) 와 chart-accent. chart-accent 1 ~ 4 는 accent 사다리의 단 (1200 · 900 · 700 ·
+ * 400, 사용자 결정 6) 이라 tint 를 바꾸면 그 hue 를 따라간다. 기본 tint (blue) 는 Spectrum blue 사다리 그대로.
  */
 import { describe, expect, it } from "vitest";
 import {
-  CHART_ACCENT_DEFAULT_HEX,
   CHART_ACCENT_TOKENS,
-  lightColors,
+  COLOR_ALIASES,
+  SPECTRUM_LADDERS,
 } from "@composition/rendering";
-import { resolveAccentColorTokens, TINT_PRESETS } from "./tintToSkiaColors";
-import { oklchToHex } from "./oklchToHex";
+import { TINT_PRESETS } from "./tintToSkiaColors";
+import { hexToOklch } from "./oklchToHex";
+import {
+  buildThemeColors,
+  generateLadder,
+} from "../../../../../packages/shared/src/catalog/runtime/ladderGenerate";
 
-describe("tintToSkiaColors — chart-accent 사다리", () => {
-  it("기본 tint (blue) 공식 == chartPaletteMap 초기값 (요소별 tint 의 탐색 경로 — seed 는 ADR-302 accent 사다리 단)", () => {
-    const blue = resolveAccentColorTokens("blue", "light")!;
-    CHART_ACCENT_TOKENS.forEach((token, i) => {
-      expect(blue[token]).toBe(CHART_ACCENT_DEFAULT_HEX[i]);
-    });
-  });
+const MODES = ["light", "dark"] as const;
 
-  it("2단 == accent 자체 (L 55%) · tint 를 바꾸면 4단이 전부 그 hue 를 따라간다", () => {
-    for (const tint of ["blue", "pink"] as const) {
-      const tokens = resolveAccentColorTokens(tint, "light")!;
-      expect(tokens["chart-accent-2"]).toBe(tokens.accent);
-      const { h, c } = TINT_PRESETS[tint];
-      expect(tokens["chart-accent-1"]).toBe(oklchToHex(0.4, c, h));
-      expect(tokens["chart-accent-4"]).toBe(oklchToHex(0.85, c * 0.5, h));
+describe("ADR-302 accent 사다리 — chart-accent", () => {
+  it("축 입력이 없으면 Spectrum blue 사다리 그대로 (기본 preset = seed)", () => {
+    const out = buildThemeColors({});
+    for (const mode of MODES) {
+      expect(out.ladders.accent[mode]).toBe(SPECTRUM_LADDERS.blue[mode]);
+      expect(out.failures).toEqual([]);
     }
-    expect(
-      resolveAccentColorTokens("pink", "light")!["chart-accent-1"],
-    ).not.toBe(resolveAccentColorTokens("blue", "light")!["chart-accent-1"]);
   });
 
-  it("light / dark 같은 값 (accent 가 테마 불변인 규칙과 같다)", () => {
-    const l = resolveAccentColorTokens("blue", "light")!;
-    const d = resolveAccentColorTokens("blue", "dark")!;
-    for (const token of CHART_ACCENT_TOKENS) expect(l[token]).toBe(d[token]);
+  it("chart-accent N = 생성 accent 사다리의 alias 단 · pink 는 blue 와 다르다", () => {
+    const pink = buildThemeColors({ accent: TINT_PRESETS.pink });
+    const blue = buildThemeColors({});
+    for (const mode of MODES)
+      for (const token of CHART_ACCENT_TOKENS) {
+        const step = COLOR_ALIASES[token]![mode] as number;
+        expect(pink[mode][token]).toBe(pink.ladders.accent[mode][step]);
+        expect(pink[mode][token]).not.toBe(blue[mode][token]);
+      }
+  });
+});
+
+describe("ADR-302 생성식 — 기준 사다리 모양 유지", () => {
+  it("단 순서대로 명도 방향이 기준과 같고 (light 감소 · dark 증가) hue 는 입력 hue", () => {
+    for (const mode of MODES) {
+      const gray = SPECTRUM_LADDERS.gray[mode];
+      const ladder = generateLadder({
+        ref: SPECTRUM_LADDERS.blue[mode],
+        refBg: gray[25]!,
+        bg: gray[25]!,
+        ...TINT_PRESETS.green,
+        mode,
+      });
+      const ls = Object.keys(ladder)
+        .map(Number)
+        .sort((a, b) => a - b)
+        .map((step) => hexToOklch(ladder[step]!)!.l);
+      for (let i = 1; i < ls.length; i++)
+        if (mode === "light") expect(ls[i]!).toBeLessThanOrEqual(ls[i - 1]!);
+        else expect(ls[i]!).toBeGreaterThanOrEqual(ls[i - 1]!);
+      const mid = hexToOklch(ladder[900]!)!;
+      expect(Math.abs(mid.h - TINT_PRESETS.green.h)).toBeLessThan(6);
+    }
   });
 });

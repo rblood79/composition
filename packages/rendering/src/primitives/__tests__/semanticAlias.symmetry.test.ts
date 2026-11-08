@@ -2,8 +2,8 @@
  * ADR-191 후속 → ADR-193 — semantic alias 층의 Skia ↔ CSS 대칭 게이트 (light + dark).
  *
  * 팔레트(`--color-{family}-{step}`)는 ADR-191 로 단일 원천이 됐고, 그 위의 semantic·named hue 층은 ADR-193 으로
- * `semanticPaletteMap.ts` 표 하나에서 두 소비자가 파생된다:
- *   - Skia: `colors.ts` `lightColors/darkColors` (`resolveSemanticColors`)
+ * 변수 이름은 `colorAliases.ts` `SEMANTIC_CSS_VARS`, 값은 alias 표 × 사다리 (ADR-302) 에서 두 소비자가 파생된다:
+ *   - Skia: `colors.ts` `lightColors/darkColors` (seed)
  *   - CSS : catalog `{color.X}` → `colorTokenToCss.ts` / `tokenResolver.ts` 가 semantic var (`--positive` / `--hue-indigo` …) 를 고르고
  *           → `theme/generated/semantic-palette.css` 가 `:root` / `[data-theme="dark"]` 에서 팔레트 var 로 정의
  *           → `shared-tokens.css` status family alias (`--color-error-N: var(--color-red-N)`) 는 `--negative-pressed` 등 잔여 경로
@@ -15,10 +15,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { TAILWIND_PALETTE } from "../generated/tailwindPalette";
 import { darkColors, lightColors } from "../colors";
-import {
-  SEMANTIC_PALETTE_MAP,
-  type SemanticPaletteToken,
-} from "../semanticPaletteMap";
+import { SEMANTIC_CSS_VARS } from "../colorAliases";
 
 const ROOT = resolve(__dirname, "../../../../..");
 const read = (rel: string) => readFileSync(resolve(ROOT, rel), "utf-8");
@@ -99,7 +96,7 @@ function resolveCssVar(
   return TAILWIND_PALETTE[family][Number(step) as Step];
 }
 
-const TOKENS = Object.keys(SEMANTIC_PALETTE_MAP) as SemanticPaletteToken[];
+const TOKENS = Object.keys(SEMANTIC_CSS_VARS);
 
 describe("semantic 층 — Skia colors.ts ↔ CSS 체인 대칭 (ADR-193)", () => {
   const aliases = statusFamilyAliases(sharedTokens);
@@ -126,7 +123,7 @@ describe("semantic 층 — Skia colors.ts ↔ CSS 체인 대칭 (ADR-193)", () =
 
   it("변환표가 표의 cssVar 를 그대로 고른다 (R5) — shared 는 표를 복제하지 않는다 (ADR-293)", () => {
     for (const token of TOKENS) {
-      const expected = SEMANTIC_PALETTE_MAP[token].cssVar;
+      const expected = SEMANTIC_CSS_VARS[token]!.cssVar;
       expect(tokenVar(specMap, token), `spec ${token}`).toBe(expected);
     }
     // shared `colorTokenToCss` 는 rendering 표 (`colorTokenCssValue`) 를 읽기만 한다
@@ -149,7 +146,7 @@ describe("semantic 층 — Skia colors.ts ↔ CSS 체인 대칭 (ADR-193)", () =
   it("dark 는 light 와 다른 단계를 고른다 — CSS 가 dark 에서 실제로 움직이는지 (Phase 0 결함의 역: FIXED 24 → 0)", () => {
     let moved = 0;
     for (const token of TOKENS) {
-      const v = SEMANTIC_PALETTE_MAP[token].cssVar;
+      const v = SEMANTIC_CSS_VARS[token]!.cssVar;
       if (
         resolveCssVar(v, aliases, "light") !== resolveCssVar(v, aliases, "dark")
       )

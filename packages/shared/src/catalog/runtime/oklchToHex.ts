@@ -121,3 +121,23 @@ export function hexToOklch(
   if (h < 0) h += 360;
   return { l: L, c, h };
 }
+
+/** ADR-302 — oklch 가 sRGB gamut 안인지 (채널 클립 없이 표현되는지). */
+export function oklchInSrgb(l: number, c: number, h: number): boolean {
+  const [L, a, b] = oklchToOklab(l, c, h);
+  const eps = 1e-6;
+  return oklabToLinearSrgb(L, a, b).every((v) => v >= -eps && v <= 1 + eps);
+}
+
+/** ADR-302 — hue 를 유지하고 chroma 만 줄여 gamut 안으로 맞춘 hex (Decision 1 생성식 1단계). */
+export function oklchToHexInGamut(l: number, c: number, h: number): string {
+  if (oklchInSrgb(l, c, h)) return oklchToHex(l, c, h);
+  let lo = 0;
+  let hi = c;
+  for (let i = 0; i < 20; i++) {
+    const mid = (lo + hi) / 2;
+    if (oklchInSrgb(l, mid, h)) lo = mid;
+    else hi = mid;
+  }
+  return oklchToHex(l, lo, h);
+}

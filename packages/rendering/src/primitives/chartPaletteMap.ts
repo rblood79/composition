@@ -1,7 +1,7 @@
 /**
  * Chart 시리즈 팔레트 표 — categorical (Spectrum) · mono (accent 명도 사다리).
  *
- * `semanticPaletteMap.ts` 와 달리 이 표는 Tailwind 단계 좌표가 아니다:
+ * semantic 색 (`colorAliases.ts` alias 표 × Spectrum 사다리 — ADR-302) 과 달리 이 표는 사다리 단 좌표가 아니다:
  * - categorical 은 Adobe Spectrum 데이터 시각화 팔레트 **리터럴 hex** — 가장 가까운 Tailwind
  *   단계로 옮기면 OKLab ΔE 0.02~0.05 만큼 채도가 올라가 Tailwind 무지개로 되돌아간다 (리서치
  *   `docs/explanation/research/CHART_PALETTE_RESEARCH_2026-09.md` §3). 라이트·다크 공용 1벌

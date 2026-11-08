@@ -10,7 +10,7 @@ import type { TokenRef } from "../../types/token.types";
 import type { ColorValue } from "../../types/shape.types";
 import type { ShadowTokenRef } from "../../types/token.types";
 import { lightColors, darkColors } from "../../primitives/colors";
-import { SEMANTIC_PALETTE_MAP } from "../../primitives/semanticPaletteMap";
+import { SEMANTIC_CSS_VARS } from "../../primitives/colorAliases";
 import { spacing } from "../../primitives/spacing";
 import { typography } from "../../primitives/typography";
 import { radius } from "../../primitives/radius";
@@ -265,7 +265,7 @@ const COLOR_TOKEN_TO_CSS: Record<string, string> = {
  */
 const NAMED_COLOR_TO_CSS: Record<string, string> = {
   // `--hue-{token}` / `--hue-{token}-subtle` 은 generated/semantic-palette.css 가 테마별 팔레트 단계로 정의 (ADR-193).
-  // 단계 정본은 primitives/semanticPaletteMap.ts (Skia colors.ts 와 같은 표). hover/pressed 는 CSS color-mix 파생 (Skia 미소비).
+  // 값은 테마 resolver (ADR-302 alias 표 × 사다리) · 테마 없는 문서는 semantic-palette.css (seed).
   purple: "var(--hue-purple)",
   "purple-subtle": "var(--hue-purple-subtle)",
   gray: "var(--hue-gray)",
@@ -325,7 +325,7 @@ const NAMED_COLOR_TO_CSS: Record<string, string> = {
  * cinnamon/silver …)는 `var(--chartreuse-hover)` 같은 미정의 var 로 emit 됐다. Skia 는 hover 를 소비하지 않으므로
  * (Preview D1) 표에는 넣지 않고 여기서만 파생. accent/neutral/negative 의 기존 손 항목이 우선.
  */
-for (const [token, entry] of Object.entries(SEMANTIC_PALETTE_MAP)) {
+for (const [token, entry] of Object.entries(SEMANTIC_CSS_VARS)) {
   if (token.endsWith("-subtle")) continue;
   const target =
     token in COLOR_TOKEN_TO_CSS ? COLOR_TOKEN_TO_CSS : NAMED_COLOR_TO_CSS;

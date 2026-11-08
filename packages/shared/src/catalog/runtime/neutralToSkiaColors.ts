@@ -1,8 +1,9 @@
 /**
  * Neutral Preset → neutral 색상 토큰
  *
- * 기본 neutral 은 seed (ADR-302 — Spectrum gray 사다리) 그대로, 사용자 tone 은 Tailwind v4 5종 gray 팔레트에서 파생한다 (Phase 2 대체) (순수 — 토큰 맵 mutation
- * 없음, 설치는 `themeMaps.ts` `installThemeMaps`).
+ * Tone 의 역할 색은 ADR-302 사다리 생성 (`ladderGenerate.ts` — Tone 이름 5 는 유지, 값은 Spectrum gray 사다리
+ * 모양을 각 이름의 (c, h) 로 옮긴 것) 이 만든다. 여기 남은 Tailwind 단계는 DOM `--color-neutral-N` 과 Themes
+ * 패널 견본뿐이다 (Phase 3 에서 생성 사다리로).
  *
  * @see packages/rendering/src/primitives/generated/tailwindPalette.ts (ADR-191 — tailwindcss/theme.css 파생, 손 복사 금지)
  * @see ADR-021 Phase B
@@ -29,101 +30,12 @@ export const NEUTRAL_PALETTES: Record<NeutralPreset, Record<number, string>> = {
 };
 
 // ============================================================================
-// S2 토큰 ↔ neutral step 매핑
+// neutral 단계 (DOM `--color-neutral-N` · Themes 패널 견본 — ADR-302 Phase 3 에서 생성 사다리로)
 // ============================================================================
-
-/** Light mode: S2 토큰 → palette step (또는 고정 hex) */
-const LIGHT_MAP: Record<string, number | string> = {
-  "neutral-content": 900,
-  "neutral-content-hover": 950,
-  "neutral-fill": 900,
-  "neutral-surface": 200,
-  "neutral-surface-hover": 300,
-  "neutral-outline": 300,
-  "neutral-outline-hover": 400,
-  "on-neutral": "#ffffff",
-
-  neutral: 900,
-  "neutral-subdued": 600, // S2 #505050 에 가장 가까운 단계 (2026-09-29, 종전 700)
-  "field-placeholder": 500,
-  "neutral-subtle": 200,
-  "neutral-hover": 300,
-  "neutral-pressed": 400,
-  // 진한 바탕 `neutral` (900) 의 hover · pressed — S2 `nextColorStop` 한 단 (ADR-293 결정 4)
-  "neutral-fill-hover": 950,
-  "neutral-fill-pressed": 950,
-  base: "#ffffff",
-  "layer-1": 50,
-  "layer-2": 50,
-  elevated: "#ffffff",
-  disabled: 200,
-  border: 300,
-  "border-hover": 400,
-  "border-disabled": 100,
-};
-
-/** Dark mode: S2 토큰 → palette step (또는 고정 hex) */
-const DARK_MAP: Record<string, number | string> = {
-  "neutral-content": 100,
-  "neutral-content-hover": 50,
-  "neutral-fill": 100,
-  "neutral-surface": 700,
-  "neutral-surface-hover": 600,
-  "neutral-outline": 700,
-  "neutral-outline-hover": 600,
-  "on-neutral": 900,
-
-  neutral: 100,
-  "neutral-subdued": 400,
-  "field-placeholder": 500,
-  "neutral-subtle": 700,
-  "neutral-hover": 600,
-  "neutral-pressed": 500,
-  "neutral-fill-hover": 50,
-  "neutral-fill-pressed": 50,
-  base: 900,
-  "layer-1": 800,
-  "layer-2": 800,
-  elevated: 800,
-  disabled: 700,
-  border: 700,
-  "border-hover": 500,
-  "border-disabled": 800,
-};
-
-// ============================================================================
-// neutral 토큰 파생
-// ============================================================================
-
-/** ADR-227 — 순수: neutral 프리셋 → 토큰 맵 (mutation 없음). `installThemeMaps` 가 쓴다. */
-export function resolveNeutralColorTokens(
-  preset: NeutralPreset,
-  mode: "light" | "dark",
-): Record<string, string> {
-  // ADR-302 Phase 1 — 기본 Tone 은 seed (alias 표 × Spectrum gray 사다리) 그대로 (덮을 것 없음).
-  //   비기본 Tone 의 사다리 생성은 Phase 2 — 그때까지 Tailwind 팔레트 단 매핑.
-  if (preset === "neutral" || !(preset in NEUTRAL_PALETTES)) return {};
-  return neutralColorTokens(
-    NEUTRAL_PALETTES[preset],
-    mode === "dark" ? DARK_MAP : LIGHT_MAP,
-  );
-}
 
 /** neutral 11 단계 hex (DOM `--color-neutral-N`). */
 export function resolveNeutralSteps(
   preset: NeutralPreset,
 ): Record<number, string> {
   return NEUTRAL_PALETTES[preset] ?? NEUTRAL_PALETTES.neutral;
-}
-
-function neutralColorTokens(
-  palette: Record<number, string>,
-  map: Record<string, number | string>,
-): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const [token, stepOrHex] of Object.entries(map)) {
-    out[token] =
-      typeof stepOrHex === "string" ? stepOrHex : palette[stepOrHex]!;
-  }
-  return out;
 }

@@ -1,4 +1,4 @@
-/* GENERATED — 편집 금지. 원천: packages/rendering/src/primitives/semanticPaletteMap.ts (변수) ·
+/* GENERATED — 편집 금지. 원천: packages/rendering/src/primitives/colorAliases.ts SEMANTIC_CSS_VARS (변수) ·
  * generated/spectrumThemeColors.ts (값 — ADR-302 alias 표 × Spectrum 사다리)
  * 재생성: pnpm generate:palette  (검증: pnpm validate:palette)
  * 테마가 없는 문서의 DOM 폴백 — Skia colors.ts 와 같은 값. 이 파일은 파생물이며 SSOT 가 아니다.
@@ -8,15 +8,15 @@
   :root {
     --negative: var(--color-invalid, #d73220);
     --negative-subtle: #ffebe8;
+    --negative-strong: #811b0e;
     --informative: #3b63fb;
     --informative-subtle: #e5f0fe;
+    --informative-strong: #1532ad;
     --positive: #05834e;
     --positive-subtle: #d7f7e1;
+    --positive-strong: #014c34;
     --notice: #c24e00;
     --notice-subtle: #ffeccf;
-    --negative-strong: #811b0e;
-    --positive-strong: #014c34;
-    --informative-strong: #1532ad;
     --notice-strong: #762900;
     --hue-purple: #9a47e2;
     --hue-purple-subtle: #f4ebfc;
@@ -52,24 +52,24 @@
     --hue-brown-subtle: #f7eee1;
     --hue-silver: #727272;
     --hue-silver-subtle: #efefef;
-    --hue-gray: #505050;
-    --hue-gray-subtle: #e9e9e9;
     --hue-green: #05834e;
     --hue-green-subtle: #d7f7e1;
+    --hue-gray: #505050;
+    --hue-gray-subtle: #e9e9e9;
   }
 
   [data-theme="dark"] {
     --negative: var(--color-invalid, #fc432e);
     --negative-subtle: #571107;
+    --negative-strong: #ffa79d;
     --informative: #5681ff;
     --informative-subtle: #0c2175;
+    --informative-strong: #98c0fc;
     --positive: #099d59;
     --positive-subtle: #003326;
+    --positive-strong: #39d786;
     --notice: #e06400;
     --notice-subtle: #501b00;
-    --negative-strong: #ffa79d;
-    --positive-strong: #39d786;
-    --informative-strong: #98c0fc;
     --notice-strong: #ffad2d;
     --hue-purple: #9d4ee4;
     --hue-purple-subtle: #40007a;
@@ -105,9 +105,9 @@
     --hue-brown-subtle: #3a280e;
     --hue-silver: #767676;
     --hue-silver-subtle: #2c2c2c;
-    --hue-gray: #6d6d6d;
-    --hue-gray-subtle: #393939;
     --hue-green: #068850;
     --hue-green-subtle: #003326;
+    --hue-gray: #6d6d6d;
+    --hue-gray-subtle: #393939;
   }
 }

@@ -2,7 +2,7 @@
  * Palette Generation Script (ADR-191)
  *
  * 설치된 `tailwindcss/theme.css` 에서 팔레트를 추출해 두 산출물을 쓰고 (ADR-191),
- * `semanticPaletteMap.ts` 표에서 테마별 semantic var 정의 CSS 를 쓴다 (ADR-193):
+ * `colorAliases.ts` `SEMANTIC_CSS_VARS` 와 seed 에서 테마별 semantic var 정의 CSS 를 쓴다 (ADR-193 · ADR-302):
  *   - packages/shared/src/components/styles/theme/generated/tailwind-palette.css
  *   - packages/rendering/src/primitives/generated/tailwindPalette.ts
  *   - packages/shared/src/components/styles/theme/generated/semantic-palette.css
@@ -39,7 +39,7 @@ export const PALETTE_TS_OUT = resolve(
   repoRoot,
   "packages/rendering/src/primitives/generated/tailwindPalette.ts",
 );
-/** ADR-193 — semantic·named hue 테마별 var 정의 (원천: semanticPaletteMap.ts) */
+/** ADR-193 · ADR-302 — semantic·named hue 테마별 var 정의 (원천: colorAliases.ts SEMANTIC_CSS_VARS × seed) */
 export const SEMANTIC_CSS_OUT = resolve(
   repoRoot,
   "packages/shared/src/components/styles/theme/generated/semantic-palette.css",

@@ -19,23 +19,16 @@ export {
   COLOR_ALIASES,
   STATUS_FAMILIES,
   NAMED_HUE_FAMILIES,
+  SEMANTIC_CSS_VARS,
 } from "./colorAliases";
 export type {
   ColorAxis,
   ColorAliasEntry,
   ColorAliasStep,
 } from "./colorAliases";
-// Semantic·named hue → 팔레트 단계 매핑 정본 (ADR-193)
-export {
-  SEMANTIC_PALETTE_MAP,
-  resolveSemanticHex,
-  resolveSemanticColors,
-} from "./semanticPaletteMap";
-export type {
-  SemanticPaletteToken,
-  SemanticPaletteEntry,
-  PaletteRef,
-} from "./semanticPaletteMap";
+// ADR-302 — Spectrum 색 사다리 primitive (테마 생성 lazy chunk 만 값으로 import — 사용자 결정 8)
+export { SPECTRUM_LADDERS } from "./generated/spectrumLadders";
+export type { SpectrumLadderFamily } from "./generated/spectrumLadders";
 // Chart 시리즈 팔레트 표 (categorical 리터럴 · accent 명도 사다리)
 export {
   CHART_CATEGORICAL_HEX,

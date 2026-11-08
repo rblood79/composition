@@ -31,6 +31,7 @@ import {
   type LoadedCatalogProject,
 } from "./catalogProject";
 import { createPublishedSession } from "./catalogSession";
+import { loadThemeLadders } from "../../../packages/shared/src/catalog/runtime/themeLadders";
 import { PageNav } from "./components/PageNav";
 import { usePublishStrings } from "./i18n";
 import { PublishErrorBoundary } from "./PublishErrorBoundary";
@@ -182,7 +183,11 @@ export function App() {
       const own = ++lifecycle.current.generation;
       let project: LoadedCatalogProject | undefined;
       try {
-        const library = await buildCodeCatalogLibrary();
+        // ADR-302 — the theme ladder chunk with the library: a non-default theme's first paint is its own colors.
+        const [library] = await Promise.all([
+          buildCodeCatalogLibrary(),
+          loadThemeLadders(),
+        ]);
         if (own !== lifecycle.current.generation) return;
         setLoading(true);
         setError(undefined);
