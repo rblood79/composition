@@ -4460,17 +4460,61 @@ impl LayoutTree {
         } else {
             auto_content_avail_w(&style, &ctx, avail_w, pb_w)
         };
+        // Children keep the caller's sentinel: an indefinite or min/max-content pass must reach
+        // atomic inlines as such, or their `%` sizes resolve against INFINITY or 0.
+        let child_avail = if explicit_w > 0.0 {
+            spec_to_content(explicit_w, pb_w)
+        } else {
+            auto_content_avail_w(&style, &ctx, avail_w, pb_w)
+        };
+        let child_ctx = self.ctx_for(child_avail);
         let mut items = Vec::new();
+        // Atomic inline margins (left, top) — the line places the margin box (CSS 2 §10.8).
+        let mut atom_margins = Vec::new();
         for &child in children {
-            let (width, height) = self.solve_node(child, available, avail_h);
+            let (width, height) = self.solve_node(child, child_avail, avail_h);
+            let pad_w = self.child_auto_inline_pad_border(child, child_avail);
+            let pad_h = self.child_auto_block_pad_border(child, child_avail, avail_h);
             let node = self.get(child).unwrap();
+            if node.style.inline_text.is_some() {
+                atom_margins.push((0.0, 0.0));
+                items.push(InlineItem {
+                    text: node.style.inline_text.clone(),
+                    width,
+                    height,
+                    baseline: node.layout.resolved_baseline(),
+                    middle: node.style.vertical_align.as_deref() == Some("middle"),
+                });
+                continue;
+            }
+            // solve_node returns content-box on auto axes (ledger §26); the line needs the margin box.
+            let (box_w, box_h) = (width + pad_w, height + pad_h);
+            let s = &node.style;
+            let ml = resolve_signed(s.margin_left.as_deref(), &child_ctx);
+            let mr = resolve_signed(s.margin_right.as_deref(), &child_ctx);
+            let mt = resolve_signed(s.margin_top.as_deref(), &child_ctx);
+            let mb = resolve_signed(s.margin_bottom.as_deref(), &child_ctx);
+            let baseline = if node.layout.baseline >= 0.0 {
+                node.layout.baseline
+            } else {
+                box_h
+            };
+            atom_margins.push((ml, mt));
             items.push(InlineItem {
-                text: node.style.inline_text.clone(),
-                width,
-                height,
-                baseline: node.layout.resolved_baseline(),
-                middle: node.style.vertical_align.as_deref() == Some("middle"),
+                text: None,
+                width: (box_w + ml + mr).max(0.0),
+                height: (box_h + mt + mb).max(0.0),
+                baseline: mt + baseline,
+                middle: s.vertical_align.as_deref() == Some("middle"),
             });
+            // Border-box size for the placement below; the fragment carries the margin box.
+            self.get_mut(child).unwrap().layout = NodeLayout {
+                x: 0.0,
+                y: 0.0,
+                width: box_w,
+                height: box_h,
+                baseline,
+            };
         }
         let result = inline::layout(
             &items,
@@ -4491,6 +4535,13 @@ impl LayoutTree {
             let y = fragments.iter().map(|f| f.y).fold(f32::INFINITY, f32::min);
             let right = fragments.iter().map(|f| f.x + f.width).fold(0.0, f32::max);
             let bottom = fragments.iter().map(|f| f.y + f.height).fold(0.0, f32::max);
+            if items[index].text.is_none() {
+                let (ml, mt) = atom_margins[index];
+                node.layout.x = x + ml + off_x;
+                node.layout.y = y + mt + off_y;
+                node.inline_fragments.clear();
+                continue;
+            }
             node.layout = NodeLayout {
                 x: x + off_x,
                 y: y + off_y,
@@ -15287,5 +15338,75 @@ mod inline_flow_tests {
         assert_eq!(tree.get_layout(icon).width, 8.0);
         assert_eq!(tree.inline_fragments(body).last().unwrap().end, 11);
         assert_eq!(tree.get_layout(label).height, 18.0);
+    }
+
+    fn page_with(tree: &mut LayoutTree, label: usize, wrapper: NodeStyle) -> (usize, usize) {
+        let wrap = tree.create_node(wrapper);
+        tree.set_children(wrap, vec![label]);
+        let page = tree.create_node(NodeStyle {
+            display: Some("block".into()),
+            width: Some("1000px".into()),
+            ..Default::default()
+        });
+        tree.set_children(page, vec![wrap]);
+        tree.compute_layout(page, 1000.0, 800.0);
+        (page, wrap)
+    }
+
+    #[test]
+    fn atomic_inline_occupies_its_margin_box_on_the_line() {
+        // Chrome: inline-flex with padding 4 around an 8px child is 16×16; margin-left 5 shifts it
+        // and the following text starts at 5 + 16.
+        let mut tree = LayoutTree::new();
+        let dot = tree.create_node(NodeStyle {
+            display: Some("block".into()),
+            width: Some("8px".into()),
+            height: Some("8px".into()),
+            ..Default::default()
+        });
+        let icon = tree.create_node(NodeStyle {
+            display: Some("inline-flex".into()),
+            padding_left: Some("4px".into()),
+            padding_right: Some("4px".into()),
+            padding_top: Some("4px".into()),
+            padding_bottom: Some("4px".into()),
+            margin_left: Some("5px".into()),
+            ..Default::default()
+        });
+        tree.set_children(icon, vec![dot]);
+        let body = tree.create_node(text("ab"));
+        let label = tree.create_node(NodeStyle {
+            display: Some("block".into()),
+            ..Default::default()
+        });
+        tree.set_children(label, vec![icon, body]);
+        page_with(&mut tree, label, NodeStyle { display: Some("block".into()), ..Default::default() });
+        let icon_box = tree.get_layout(icon);
+        assert_eq!((icon_box.x, icon_box.width, icon_box.height), (5.0, 16.0, 16.0));
+        assert_eq!(tree.get_layout(body).x, 21.0);
+        assert_eq!(tree.get_layout(dot).width, 8.0);
+    }
+
+    #[test]
+    fn percent_atomic_inline_keeps_the_intrinsic_sentinel() {
+        // Chrome: the 50% inline-flex contributes 0 to fit-content, so the label is the text (28)
+        // and the icon resolves against it (14). INFINITY as available made both 1000 / 500.
+        let mut tree = LayoutTree::new();
+        let icon = tree.create_node(NodeStyle {
+            display: Some("inline-flex".into()),
+            width: Some("50%".into()),
+            height: Some("8px".into()),
+            ..Default::default()
+        });
+        let body = tree.create_node(text("abcd"));
+        let label = tree.create_node(NodeStyle {
+            display: Some("block".into()),
+            width: Some("fit-content".into()),
+            ..Default::default()
+        });
+        tree.set_children(label, vec![body, icon]);
+        page_with(&mut tree, label, NodeStyle { display: Some("block".into()), ..Default::default() });
+        assert_eq!(tree.get_layout(label).width, 28.0);
+        assert_eq!(tree.get_layout(icon).width, 14.0);
     }
 }
