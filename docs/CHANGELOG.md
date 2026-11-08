@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Preview 회귀 3건: Text HTML id · picker 메뉴 방향 · field 밖 설명 글자 크기] - 2026-11-09
+
+### Fixed
+
+- **Text 에 작성한 HTML id · class · aria-label 이 Preview · Publish DOM 에서 빠졌다** (11-06 `d3aba8255` 회귀): Select 선택값 typography 를 위해 Text 바깥에 둔 wrapper 가 `style` 만 읽고 DOM pass 가 붙인 속성을 버렸다. wrapper 가 `RacSlotScope` 와 같은 `overScopeProps` 로 그린 요소에 넘긴다.
+- **Select · ComboBox · MenuTrigger 의 Direction · Align 이 Preview 에서 무시되어 메뉴가 늘 아래 · 시작으로 열렸다** (11-07 `792815efc` 회귀 — Canvas 는 정상): RAC slot context 값을 record 에 합칠 때 picker 의 PopoverContext `placement` 까지 들어가, Popover 가 「작성한 위치 없음」 을 알아보지 못했다. `placement` 는 합치지 않는다.
+- **field 밖 Description 이 한 단계 커졌다** (11-06 `3ca03f661` 이 field 도움말을 S2 `controlFont` 로 올린 부작용): Tooltip 12 → 14, IllustratedMessage 설명 S · M · L 14 · 16 · 16 (S2 12 · 14 · 14), InlineAlert 설명 14 · 16 · 18 (S2 `body-sm` 기준 12 · 14 · 16), Popover · PreviewTrigger · Sheet 본문 12 → 14. 원본 크기와 IllustratedMessage 표를 S2 값으로, InlineAlert 의 한 단계 올림 표를 지웠다. Dialog 본문은 S2 `body` 16 과 같아 그대로 둔다.
+
+### Tests
+
+- 원복 RED: `phase4Typography` (id `''` ≠ `greeting`) · `s2OverlayPosition` 4건 (`bottom` ≠ `top` · `right`) · `illustratedMessageNodeTree` 3건 · `adr254ContainerParts` Tooltip 글자 (14 ≠ 12). live (Chrome, Publish): Text `id="text_1"` 출력, Select Direction top · Align end → 메뉴 `data-placement="top"` 오른쪽 끝 정렬, Tooltip 12px · IllustratedMessage · InlineAlert 설명 14px — Canvas record 값과 같음.
+
 ## [글자 폭: Canvas 와 Preview 가 같은 서체 기능 · 가변 축으로 글자를 만든다] - 2026-11-09
 
 ### Fixed

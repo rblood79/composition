@@ -1,24 +1,35 @@
 import {
+  cloneElement,
   createContext,
+  isValidElement,
   useContext,
   type CSSProperties,
   type ReactNode,
 } from "react";
 import { useLocale } from "react-aria-components/I18nProvider";
 import { pickerSelectedCount } from "../../i18n/pickerSelectedCount";
+import { overScopeProps } from "./racSlotScope";
 
 const InsidePickerValue = createContext(false);
 
-/** RAC가 재사용한 항목 Text는 목록 대신 현재 SelectValue의 typography를 따른다. */
+/**
+ * RAC가 재사용한 항목 Text는 목록 대신 현재 SelectValue의 typography를 따른다.
+ *
+ * DOM pass 가 이 wrapper 에 붙이는 속성 (`withHtmlId` 의 id · className · aria-label, `withRuntime`
+ * 의 handler) 은 그린 요소로 넘긴다 — `RacSlotScope` 와 같은 `overScopeProps`. Why (2026-11-09):
+ * wrapper 가 `style` · `render` 만 읽어 Text 의 작성 HTML id 가 Preview · Publish DOM 에서 빠졌다.
+ */
 export function CatalogPickerValueTypography({
   style,
   render,
+  ...rest
 }: {
   style: CSSProperties | undefined;
   render: (style: CSSProperties | undefined) => ReactNode;
+  [key: string]: unknown;
 }) {
   const insideValue = useContext(InsidePickerValue);
-  return render(
+  const element = render(
     insideValue
       ? {
           ...style,
@@ -29,6 +40,9 @@ export function CatalogPickerValueTypography({
         }
       : style,
   );
+  return isValidElement(element) && Object.keys(rest).length
+    ? cloneElement(element, overScopeProps(element, rest))
+    : element;
 }
 
 export function CatalogPickerSelectionSlot({

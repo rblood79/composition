@@ -176,14 +176,13 @@ const CONTEXTUAL_HELP_SIZE_OWNERS = [
 
 /**
  * Owner type → child type → the child's size for each owner size, where the child's rule names
- * the same look one step apart (ADR-254): an InlineAlert's description is one step above its own
- * size (S/M/L → Description M/L/XL = 12/14/16px — the values the alert's rule declared). An
- * owner size missing here passes as is.
+ * the same look one step apart. An owner size missing here passes as is. (An InlineAlert's
+ * description — S2 `body-sm` 14 at M — reads the alert's size as is since the Description ladder
+ * became S2 `controlFont` 12/14/16 (2026-11-06); the old one-step map made it 14/16/18.)
  */
 export const CATALOG_SIZE_STEP: Readonly<
   Record<string, Readonly<Record<string, Readonly<Record<string, string>>>>>
 > = {
-  InlineAlert: { Description: { S: "M", M: "L", L: "XL" } },
   // ADR-259 Phase 3 — S2 `FieldLabel` (`Field.tsx:182`): a field's help button is S at the field's
   //   L · XL, XS below.
   ...Object.fromEntries(
@@ -217,7 +216,7 @@ export const CATALOG_SIZE_STEP: Readonly<
   IllustratedMessage: {
     Illustration: { S: "M", M: "M", L: "L" },
     Heading: { S: "M", M: "XL", L: "XXL" },
-    Description: { S: "M", M: "L", L: "L" },
+    Description: { S: "S", M: "M", L: "M" },
   },
 };
 

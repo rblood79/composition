@@ -432,6 +432,11 @@ export const CatalogDomNode = memo(function CatalogDomNode({
               key !== "ref" &&
               key !== "style" &&
               key !== "className" &&
+              // (A picker's · trigger's PopoverContext `placement` stays RAC's: the Popover binding
+              // reads the record's own value as "the author chose none" and then places it from
+              // the S2 owner's `direction` · `align` — Why (2026-11-09): merged here, Select ·
+              // ComboBox · MenuTrigger menus always opened `bottom start` in Preview.)
+              key !== "placement" &&
               !key.startsWith("on") &&
               !catalogHasAuthoredProp(root, record, key) &&
               !(key in (runtime?.overrideOf(id) ?? {})),

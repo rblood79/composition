@@ -7169,7 +7169,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "Popover content goes here.",
-      "size": "M"
+      "size": "S"
     },
     "visual": {},
     "layout": {
@@ -7351,7 +7351,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "Tooltip text",
-      "size": "M"
+      "size": "S"
     },
     "visual": {},
     "layout": {
@@ -9199,7 +9199,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "Interactive preview content.",
-      "size": "M"
+      "size": "S"
     },
     "visual": {},
     "layout": {
@@ -9304,7 +9304,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-description",
     "children": [],
     "props": {
-      "children": "Sheet content goes here."
+      "children": "Sheet content goes here.",
+      "size": "S"
     },
     "visual": {}
   },
