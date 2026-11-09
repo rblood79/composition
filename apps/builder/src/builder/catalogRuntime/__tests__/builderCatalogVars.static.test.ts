@@ -54,6 +54,15 @@ const COMPONENTS_ADDED_SINCE = [
   "SelectBox",
 ];
 
+// (2026-11-09) The 295-before blocks — a pin may keep a declaration whose whole block left the generated
+//   sheet (`resolveBuilderGeneratedSheets` `retiredBlocks`).
+const retiredBlocks = new Map(
+  Object.keys(baseline.entries).map((key) => {
+    const [rel, ...rest] = key.split(" | ")[0]!.split(" › ");
+    return [rest.join(" › "), rel!] as const;
+  }),
+);
+
 const sheetsDir = BUILDER_COMPONENTS_CSS.replace(
   /builder-components\.css$/,
   "",
@@ -109,13 +118,14 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
     const now = resolveBuilderGeneratedSheets(
       [THEME_CSS, BUILDER_CATALOG_VARS_CSS],
       [BUILDER_CATALOG_PINS_CSS],
+      retiredBlocks,
     );
     // Every recorded sheet stays; the sheets added since are the components added since (8586c64bd ·
     //   8ac17dc12 · bbca53c78 — no 295-before value to compare: their declarations go through the
     //   `added` check below like any new declaration).
-    expect(baseline.sheets.filter((sheet) => !now.sheets.includes(sheet))).toEqual(
-      [],
-    );
+    expect(
+      baseline.sheets.filter((sheet) => !now.sheets.includes(sheet)),
+    ).toEqual([]);
     expect(
       now.sheets.filter((sheet) => !baseline.sheets.includes(sheet)),
     ).toEqual(COMPONENTS_ADDED_SINCE.map((name) => `generated/${name}.css`));
@@ -159,8 +169,46 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
     const movedPaintVariable = (key: string) =>
       key.startsWith("generated/ToggleButton.css ›") &&
       / \| --button-/.test(key);
+    // (사용자 결정 2026-11-09: the focus outline's color is the builder token `--focus-ring` now — the width
+    //  stays 2px. The 295-before value was the old accent literal.)
+    const focusRingToken = (key: string, value: string) =>
+      / \| outline$/.test(key) &&
+      /^2px solid oklch\(/.test(value) &&
+      after[key] === "2px solid var(--focus-ring)";
+    // (2026-11-09: 295-before focus outlines the builder never painted, so dropping them changes nothing —
+    //  installed RAC 1.22.1 sets no `data-focus-visible` on these field roots (only Select · RadioGroup do),
+    //  and the Input outline's `var(--accent-content)` is undefined under the builder's `builder-system`
+    //  scope (an invalid declaration). Select · RadioGroup's group ring went with S2 — the focused
+    //  control carries the ring: a builder Select's keyboard focus draws the 2px `--focus-ring` on its
+    //  Group (live 2026-11-09), a Radio has its own `[data-focus-visible]` ring (`generated/Radio.css`).)
+    const NEVER_PAINTED_OR_INNER_RING = new Set([
+      ...[
+        "TextField",
+        "NumberField",
+        "SearchField",
+        "ComboBox",
+        "ColorField",
+        "CheckboxGroup",
+        "Select",
+        "RadioGroup",
+      ].flatMap((name) =>
+        ["outline", "outline-offset"].map(
+          (prop) =>
+            `generated/${name}.css › @layer components › .react-aria-${name}[data-focus-visible] | ${prop}`,
+        ),
+      ),
+      ...["outline", "outline-offset"].map(
+        (prop) =>
+          `generated/Input.css › @layer components › :is(.react-aria-Input,.react-aria-TextArea,.react-aria-FieldBox):is([data-focused],[data-focus-within]) | ${prop}`,
+      ),
+    ]);
     const changed = Object.entries(before)
       .filter(([key]) => !movedPaintVariable(key))
+      .filter(
+        ([key]) =>
+          !(NEVER_PAINTED_OR_INNER_RING.has(key) && after[key] === undefined),
+      )
+      .filter(([key, value]) => !focusRingToken(key, value))
       .filter(([key, value]) => after[key] !== value)
       .map(([key, value]) => `${key}: ${value} → ${after[key]}`);
     expect(changed).toEqual([]);
@@ -235,6 +283,7 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
     const { pins, entries } = resolveBuilderGeneratedSheets(
       [THEME_CSS, BUILDER_CATALOG_VARS_CSS],
       [BUILDER_CATALOG_PINS_CSS],
+      retiredBlocks,
     );
     expect(Object.keys(pins).length).toBeGreaterThan(0);
     // 생성 시트만으로 같은 값이면 고정이 낡았다 (S2 정렬이 되돌아갔거나 고정할 필요가 없어졌다).

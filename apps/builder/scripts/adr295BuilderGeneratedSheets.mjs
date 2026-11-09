@@ -109,8 +109,14 @@ const contextOf = (rule) => {
  * `pinFiles` (ADR-295 Phase 3c-2) = 생성 시트에서 사라진 선언을 빌더만 유지하는 시트. 각 선언은 같은 조건 ·
  * 선택자의 블록을 가진 생성 시트 하나의 entry 로 덮어쓴다 (빌더가 생성 시트 뒤에 싣는다). 그 블록이 없거나
  * 둘 이상이면 던진다 — 고정할 자리가 사라진 선언이다. `pins` = 덮어쓴 key → 생성 시트만의 값 (없으면 undefined).
+ * `retiredBlocks` (2026-11-09) = 295 전 기준에 있던 블록 (조건 · 선택자 → 시트). 생성 시트에서 블록째 사라진
+ * 295 전 선언도 빌더가 같은 선택자로 유지할 수 있다 — 기준에 없던 블록은 여전히 던진다.
  */
-export function resolveBuilderGeneratedSheets(rootFiles, pinFiles = []) {
+export function resolveBuilderGeneratedSheets(
+  rootFiles,
+  pinFiles = [],
+  retiredBlocks = new Map(),
+) {
   const rootVars = {};
   const seen = new Set();
   for (const file of rootFiles) collectRootVars(file, rootVars, seen);
@@ -155,7 +161,11 @@ export function resolveBuilderGeneratedSheets(rootFiles, pinFiles = []) {
         .replace(/\s+\)/g, ")")
         .replace(/:not\(:where\(\.publish-app \*\)\)/g, "");
       const at = `${contextOf(rule)} › ${selector}`;
-      const owners = [...(blocks.get(at) ?? [])];
+      const generated = [...(blocks.get(at) ?? [])];
+      const owners =
+        generated.length === 0 && retiredBlocks.has(at)
+          ? [retiredBlocks.get(at)]
+          : generated;
       if (owners.length !== 1)
         throw new Error(
           `ADR-295 builder pin without one generated block (${owners.length}): ${at} | ${d.prop}`,

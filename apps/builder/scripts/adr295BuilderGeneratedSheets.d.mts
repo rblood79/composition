@@ -5,6 +5,7 @@ export declare const BUILDER_CATALOG_PINS_CSS: string;
 export declare function resolveBuilderGeneratedSheets(
   rootFiles: string[],
   pinFiles?: string[],
+  retiredBlocks?: ReadonlyMap<string, string>,
 ): {
   sheets: string[];
   pins: Record<string, string | undefined>;
