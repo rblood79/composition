@@ -433,7 +433,19 @@ describe("ADR-256 Phase 4b — a stored state owner stays linked (breakdown §1-
   });
 
   it("ungrouping the owner (the node is released) is refused; ungrouping a wrapper is not", async () => {
-    const { workspace, canvas } = await open(tree(), "a");
+    // (An owner whose root takes a Text — a Button's parts are Icon · Text; a Disclosure root holds
+    //  only Heading · DisclosurePanel since 2026-11-09, so a wrapper's release there would be the
+    //  nesting rule's refusal, not the owner rule's.)
+    const { workspace, canvas } = await open(
+      [
+        node("a", "Button", ["mark"], { isDisabled: true }),
+        node("mark", "text", [], { children: "Off" }, {
+          all: ["isDisabled"],
+          from: { ancestor: { nodeId: id("a") } },
+        }),
+      ],
+      "a",
+    );
     workspace.root.execute(
       insertNodes({
         parent: { kind: "node", id: id("a") },

@@ -9,7 +9,7 @@ import {
   CATALOG_D2_COMPOSITION_TYPES,
   CATALOG_D2_PROVENANCE,
 } from "../../../../../../packages/shared/src/catalog/document/d2Provenance";
-import { CATALOG_FIELD_PART_TYPES } from "../../../../../../packages/shared/src/catalog/nesting/nestingRules";
+import { catalogChildKind } from "../../../../../../packages/shared/src/catalog/nesting/nestingRules";
 import type { PropContract } from "../../../../../../packages/shared/src/catalog/types";
 
 /**
@@ -250,20 +250,17 @@ describe("D2 — binding accepts vs the installed S2 types", () => {
     expect(stale).toEqual([]);
   });
 
-  // 2026-11-09: a field holds only its parts (`CATALOG_FIELD_PART_TYPES`) — the source is S2's API:
-  // none of these components takes `children` (content is prop-bound parts). S2 Picker · ComboBox
-  // take `children` as their items (a collection) — our tree holds those in the nested ListBox
-  // (Popover > ListBox, ADR-253 Phase 4), so the host itself still holds only parts. TokenField has
-  // no S2 export; the origin-template gate covers it.
-  it("every parts-only field host is an S2 component without a children prop", () => {
-    const withChildren: string[] = [];
-    const noOracle: string[] = [];
-    for (const host of Object.keys(CATALOG_FIELD_PART_TYPES)) {
-      const oracle = s2.get(S2_ALIAS[host] ?? host);
-      if (!oracle) noOracle.push(host);
-      else if (oracle.keys.has("children")) withChildren.push(host);
+  // 2026-11-09: a component S2 gives no `children` prop takes no free content here either — its
+  // content is prop-bound parts (a field's Label · Input …) or a prop (Badge · Link text). The
+  // parts hosts are derived from the origin templates (`CATALOG_PARTS_HOST_TYPES`); this reads the
+  // other direction: nothing S2 closes is left open. Types with no S2 export are not judged.
+  it("every S2 component without a children prop is a parts host or a leaf", () => {
+    const open: string[] = [];
+    for (const row of ROWS) {
+      const oracle = row.s2Name ? row.oracle : undefined;
+      if (!oracle || oracle.keys.has("children")) continue;
+      if (catalogChildKind(row.type).kind === "free") open.push(row.type);
     }
-    expect(noOracle).toEqual(["TokenField"]);
-    expect(withChildren.sort()).toEqual(["ComboBox", "Select"]);
+    expect(open.sort()).toEqual([]);
   });
 });

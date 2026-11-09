@@ -222,12 +222,14 @@ describe("ADR-301 G1 — strict round trip (the whole code pasted over itself)",
 });
 
 describe("ADR-301 G1 — an instance with its own children (판독 HIGH-1)", () => {
-  it("keeps its one element (`<Card>…<Text/></Card>`) — pasted over itself, nothing refused", async () => {
+  it("keeps its one element (`<Toolbar>…<Text/></Toolbar>`) — pasted over itself, nothing refused", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const h = await openAdr296();
-    const card = h.add("Card");
-    h.add("Text", { children: "Own" }, card as never);
-    expect(h.node(card).children).toHaveLength(1);
+    // (A Toolbar's root is its slot, so it holds own children; a Card root holds only its parts
+    //  since 2026-11-09 — its own content goes into the Content slot.)
+    const toolbar = h.add("Toolbar");
+    h.add("Text", { children: "Own" }, toolbar as never);
+    expect(h.node(toolbar).children).toHaveLength(1);
     const s = session(h);
     const page = code(s);
     expect(page).toContain("<Text>Own</Text>");

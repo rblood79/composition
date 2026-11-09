@@ -168,7 +168,9 @@ describe("nestingRules — 층 2 RAC 합성", () => {
     expect(canNest("Chart", "frame")).toBe(false);
     expect(canNest("Avatar", "Icon")).toBe(false);
     // 열린 컨테이너는 그대로 — Card · Dialog · Disclosure 는 자유 자식
-    expect(canNest("Card", "Button")).toBe(true);
+    // Card 루트는 부품 host (2026-11-09): Button 은 Content slot 으로.
+    expect(canNest("Card", "Button")).toBe(false);
+    expect(canNest("Content", "Button", ["Content", "Card"])).toBe(true);
     expect(canNest("Dialog", "TextField")).toBe(true);
     expect(
       canNest("DisclosureContent", "frame", [

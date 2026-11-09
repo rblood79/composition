@@ -300,7 +300,7 @@ describe("Codex Round 21 — an item put straight in its group takes the group's
 });
 
 describe("Codex Round 21 — the group's size change reaches an item in another container", () => {
-  it("a Checkbox in a Form inside the CheckboxGroup follows the group's size change", async () => {
+  it("a Checkbox in a frame inside the CheckboxGroup follows the group's size change", async () => {
     const { workspace, root, of, target } = await open("checkboxgroup");
     const node = (id: NodeId, definitionId: string) =>
       ({
@@ -317,7 +317,8 @@ describe("Codex Round 21 — the group's size change reaches an item in another 
     workspace.execute(
       insertNodes({
         parent: target(of("CheckboxGroup")[0]!.id),
-        entries: [node(formId, "lib:definition:type-Form")],
+        // (A layout frame — the group root takes its parts, its items and wrappers, 2026-11-09.)
+        entries: [node(formId, "lib:definition:type-frame")],
         rootIds: [formId],
         newId: workspace.newId,
       }),
@@ -325,7 +326,7 @@ describe("Codex Round 21 — the group's size change reaches an item in another 
     const childId = workspace.newId("node");
     workspace.execute(
       insertNodes({
-        parent: target(of("Form")[0]!.id),
+        parent: target(of("frame")[0]!.id),
         entries: [node(childId, "lib:definition:origin-component-checkbox")],
         rootIds: [childId],
         newId: workspace.newId,

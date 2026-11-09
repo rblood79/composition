@@ -98,7 +98,7 @@ async function open(props: Record<string, string | boolean> = {}) {
 }
 
 describe("Codex Round 20 H1 — a TagGroup drawn from its node tree", () => {
-  it("a free Text inside the TagGroup is accepted and rendered after the list", async () => {
+  it("a free Text at the TagGroup root is refused (2026-11-09 — parts only); inside a frame it renders after the list", async () => {
     const { workspace, of, target, dom } = await open();
     const text = {
       kind: "node",
@@ -110,11 +110,28 @@ describe("Codex Round 20 H1 — a TagGroup drawn from its node tree", () => {
       sizing: {},
       descendantOverrides: [],
     } as NodeEntry;
+    expect(() =>
+      workspace.execute(
+        insertNodes({
+          parent: target(of("TagGroup")[0]!.id),
+          entries: [text],
+          rootIds: [text.id],
+          newId: workspace.newId,
+        }),
+      ),
+    ).toThrow(expect.objectContaining({ code: "NESTING_NOT_ALLOWED" }));
+    const wrapper = {
+      ...text,
+      id: workspace.newId("node"),
+      definitionId: "lib:definition:type-frame",
+      children: [text.id],
+      props: {},
+    } as NodeEntry;
     workspace.execute(
       insertNodes({
         parent: target(of("TagGroup")[0]!.id),
-        entries: [text],
-        rootIds: [text.id],
+        entries: [wrapper, text],
+        rootIds: [wrapper.id],
         newId: workspace.newId,
       }),
     );

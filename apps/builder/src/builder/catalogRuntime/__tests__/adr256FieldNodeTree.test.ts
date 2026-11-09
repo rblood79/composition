@@ -70,7 +70,7 @@ const node = (
     sizing: {},
     descendantOverrides: [],
   }) as NodeEntry;
-// 2026-11-09 — a field holds only its parts (`CATALOG_FIELD_PART_TYPES`, asserted in the nesting
+// 2026-11-09 — a field holds only its parts (`catalogPartsHostTypes`, asserted in the nesting
 // tests); free content stands inside a layout frame, a parts wrapper.
 const WRAPPER = "project:node:free-wrapper" as NodeId;
 const wrapper = (child: NodeId): NodeEntry =>

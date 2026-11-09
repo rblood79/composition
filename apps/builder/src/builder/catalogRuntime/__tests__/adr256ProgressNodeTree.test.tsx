@@ -324,7 +324,7 @@ describe("ADR-256 Phase 7a — ProgressBar draws its node tree", () => {
       label: "Loading",
       value: 50,
     });
-    // (A ProgressBar holds only its parts — `CATALOG_FIELD_PART_TYPES`, asserted in the nesting
+    // (A ProgressBar holds only its parts — `catalogPartsHostTypes`, asserted in the nesting
     //  tests; free content stands inside a layout frame.)
     const text = "project:node:note" as NodeId;
     const wrapper = "project:node:note-wrapper" as NodeId;

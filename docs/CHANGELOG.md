@@ -22,6 +22,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - live: Layout 열 `84px 84px 28px` · 본문 넘침 0, Text · Style 탭 그룹 버튼 20px · 넘침 0, Sides 15px.
   - 위치: `builder-catalog-pins.css` · `builderCatalogVars.static.test.ts` · `inspector-layout.css`
 
+## [부품 host 를 원본 template 에서 파생 — Badge · TagGroup · Card · Tabs 도 자기 부품만] - 2026-11-09
+
+### Fixed
+
+- **Badge 안에 Button · TagGroup 안에 TextField 가 들어갔다** (사용자 보고 2차): 앞 엔트리의 「부품만」 규칙이 field 19종 손 표였다. 이제 표를 **원본 template 에서 파생**한다 — 합성 원본의 루트가 slot 이 아니고 부품을 가지면 그 type 은 직계 자식으로 자기 부품만 받는다 (field · Card · InlineAlert · Tabs · Toast · Disclosure · Checkbox · Switch · Radio · Button · ToggleButton · MenuTrigger · DialogTrigger · TagGroup · CheckboxGroup · RadioGroup · Autocomplete …). 자유 내용은 원본이 slot 으로 연 자리 (Card 의 Content · Dialog 의 content region · TagGroup 의 TagList · ToggleButtonGroup 의 루트 slot) 에만 — pen.dev 「content goes into slots only」 (ADR-261 사용자 결정 2) · ADR-278. 글자가 prop 인 Badge · StatusLight · Link 는 자식을 그릴 자리가 없어 leaf.
+  - Why: 손 표는 보고된 type 만 고치는 반복이었다. 원본 template = S2 anatomy 라 「무엇이 부품인가」 의 정본이 이미 있었다.
+  - 그대로인 것: 루트가 slot 인 원본 (Toolbar · Form · ButtonGroup · Nav …) 과 컬렉션 항목 (ListBoxItem · MenuItem · Tag · Tab · Column — S2 가 slot 내용을 자유롭게 받는다) 은 자유 내용. RAC 필수 부품의 대안 (MenuTrigger 의 Button · ActionButton) · 그룹 항목 (RadioGroup 의 Radio) · 감싸개 (FieldLabel · frame · Group) 는 선다. Design 패널 "+" 는 그룹의 항목 목록을 유지하고 그 밖의 부품 host 에서는 비어 있다.
+  - 게이트: S2 가 `children` 을 주지 않는 모든 컴포넌트는 부품 host 또는 leaf (`d2S2Alignment.static.test.ts`) · 파생 결과의 모양 (`partsHosts.static.test.ts`). Button 안 Button 은 그대로 HTML 의 이유로 안내한다.
+  - 위치: `nestingRules.ts` (`derivePartsHosts` · `catalogPartsHostTypes` · `PART_WRAPPER_TYPES`) · `domain/componentTraits.ts` (`GROUP_ITEM_TYPES` · `GROUP_ITEMS_WRAPPER` 이관) · `slots.ts`
+
 ## [field 는 자기 부품만 자식으로 받는다 — 팔레트 · 붙여넣기 · 넣기 목록] - 2026-11-09
 
 ### Fixed

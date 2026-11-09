@@ -90,32 +90,12 @@ export const COLLECTION_FAMILIES: readonly CollectionFamily[] = [
   { owner: "Tree", list: null, item: "TreeItem", recursive: true },
 ];
 
-/** Group containers and their item types (the old `GROUP_SLOT_HOSTS`). */
-export const GROUP_ITEM_TYPES: Readonly<Record<string, readonly string[]>> = {
-  CheckboxGroup: ["Checkbox"],
-  RadioGroup: ["Radio"],
-  ToggleButtonGroup: ["ToggleButton"],
-  SegmentedControl: ["SegmentedControlItem"],
-  ActionButtonGroup: ["ActionButton"],
-  ActionBar: ["ActionButton"],
-  Accordion: ["Disclosure"],
-  ButtonGroup: ["Button"],
-  Pagination: ["Button"],
-  AvatarGroup: ["Avatar"],
-  Nav: ["Link"],
-  // ADR-256 Phase 5b: the reference's items (each holds its ColorSwatch).
-  ColorSwatchPicker: ["ColorSwatchPickerItem"],
-};
+import {
+  GROUP_ITEM_TYPES,
+  GROUP_ITEMS_WRAPPER,
+} from "../../domain/componentTraits";
 
-/**
- * ADR-251 — groups whose items sit in an items wrapper node (TagGroup > TagList shape): the "+"
- * of the group (or the wrapper) adds the item inside the wrapper.
- */
-export const GROUP_ITEMS_WRAPPER: Readonly<Record<string, string>> = {
-  CheckboxGroup: "CheckboxItems",
-  RadioGroup: "RadioItems",
-  ActionBar: "ActionButtonGroup",
-};
+export { GROUP_ITEM_TYPES, GROUP_ITEMS_WRAPPER };
 
 // ── Positions ─────────────────────────────────────────────────────────────
 

@@ -37,10 +37,12 @@ describe("catalogChildKind — 부품이 받는 자식의 종류", () => {
   });
 
   it("전환된 family 는 RAC 의 종류다 (ADR-256 Phase 11 — 미전환 제한 표 삭제)", () => {
-    // Phase 11: Preview 가 자식을 순서대로 다 그리는 Toast · Pagination · ColorPicker 는 자유 내용,
+    // Phase 11: Preview 가 자식을 순서대로 다 그리는 Pagination · ColorPicker 는 자유 내용 (Toast 는
+    // 2026-11-09 부터 부품 host — 원본 Text + Button, 자유 내용 slot 없음),
     // ColorSwatchPicker · Table 은 RAC collection 의 항목 목록 (componentTraits).
-    for (const type of ["Toast", "Pagination", "ColorPicker"])
+    for (const type of ["Pagination", "ColorPicker"])
       expect(catalogChildKind(type), type).toEqual({ kind: "free" });
+    expect(catalogChildKind("Toast").kind).toBe("parts");
     expect(catalogChildKind("ColorSwatchPicker")).toEqual({
       kind: "items",
       items: ["ColorSwatchPickerItem"],
@@ -53,7 +55,7 @@ describe("catalogChildKind — 부품이 받는 자식의 종류", () => {
     // 「자유 내용」 은 RAC `<div>` 의 관찰이었고 TextField 안에 TextField 가 들어갔다).
     const textField = catalogChildKind("TextField");
     expect(textField.kind).toBe("parts");
-    // (The parts list itself is the origin template's — `fieldPartsMatchOrigins.static.test.ts`.)
+    // (The parts list itself is derived from the origin template — `partsHosts.static.test.ts`.)
     expect((textField as { parts: readonly string[] }).parts).toEqual(
       expect.arrayContaining(["Label", "Input", "FieldLabel", "frame", "Group"]),
     );
@@ -91,11 +93,13 @@ describe("중첩 판정 — children 종류를 읽는다", () => {
     expect(canNest("Toolbar", "Button")).toBe(true);
     expect(canNest("Dialog", "Heading")).toBe(true);
     expect(canNest("Popover", "Checkbox")).toBe(true);
+    expect(canNest("Content", "Button", ["Content", "Card"])).toBe(true);
   });
 
   it("자유 내용 · 항목 목록 판정 (ADR-256 Phase 11 — 제한 표 없이)", () => {
+    // Toast · Tabs · Card 루트는 부품 host (2026-11-09) — frame 은 감싸개라 선다, 자유 내용은 slot 으로.
     expect(canNest("Toast", "frame")).toBe(true);
-    expect(canNest("Toast", "Icon")).toBe(true);
+    expect(canNest("Toast", "Icon")).toBe(false);
     expect(canNest("Pagination", "Text")).toBe(true);
     expect(canNest("ColorPicker", "Text")).toBe(true);
     expect(canNest("ColorSwatchPicker", "Text")).toBe(false);
@@ -119,7 +123,7 @@ describe("중첩 판정 — children 종류를 읽는다", () => {
     expect(canNest("Group", "Icon", ["Group", "TextField"])).toBe(true);
     // 전환된 Tabs (ADR-256 Phase 5e-2) 도 — 레퍼런스: Tabs 안 자유 div, TabPanels 안 자유 내용.
     expect(canNest("Tabs", "frame")).toBe(true);
-    expect(canNest("Tabs", "Button")).toBe(true);
+    expect(canNest("Tabs", "Button")).toBe(false);
     expect(canNest("TabPanels", "frame", ["TabPanels", "Tabs"])).toBe(true);
   });
 });

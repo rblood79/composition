@@ -24,10 +24,16 @@
  */
 
 import {
+  GROUP_ITEM_TYPES,
   componentContractMap,
   componentTypeSet,
   containerTypeSet,
 } from "../../domain/componentTraits";
+import {
+  REUSABLE_ORIGIN_DEFINITIONS,
+  REUSABLE_ORIGIN_TEMPLATES,
+} from "../document/generated/reusableOriginLibrary";
+import { RAC_REQUIRED_PARTS } from "./requiredParts";
 
 export type NestingLayer = "pen-structure" | "rac-composition" | "html-content";
 
@@ -108,77 +114,121 @@ export const RAC_SUBPART_OWNER_TYPES: Readonly<
 //  order. ADR-277: the table is one type, Table.)
 
 /**
- * 부품만 받는 host — field 가족 (2026-11-09 사용자 보고 「TextField 선택 뒤 TextField 추가가 그 안에
- * 들어간다」). 소유자는 D2 의 S2 API 다: S2 TextField · NumberField · Picker · Slider · Meter … 는
- * `children` prop 이 없고 내용은 전부 prop 에 묶인 부품 (label · description · errorMessage ·
- * contextualHelp · prefix) 이다 — 자유 내용이 들어갈 자리가 없다. RAC 의 `<div>` 는 아무 자식이나 받지만
- * (그래서 ADR-256 Phase 2b · 6c ~ 6e 는 field 를 자유 내용으로 두었다), 그 자유는 RAC 가 부품을 조립하라고
- * 연 것이지 S2 field 가 임의 내용을 받는다는 뜻이 아니다. 직계 자식으로 허용되는 것 = 원본 template 루트의
- * 부품 (`reusableOriginLibrary` 의 root children — `fieldPartsMatchOrigins.static.test.ts` 가 대조)
- * + 부품 명령이 감싸는 행 · 상자 (`FIELD_PART_WRAPPER_TYPES`). Checkbox · Switch · Radio 는 S2 가
- * `children` (라벨) 을 받으므로 여기 없다. Calendar · RangeCalendar 는 달 묶음이 frame 이라 뺐다.
- */
-export const CATALOG_FIELD_PART_TYPES: Readonly<
-  Record<string, readonly string[]>
-> = {
-  TextField: ["Label", "Input", "Description", "FieldError"],
-  TextArea: ["Label", "Input", "Description", "FieldError"],
-  NumberField: ["Label", "Group", "Description", "FieldError"],
-  SearchField: [
-    "Label",
-    "Icon",
-    "Input",
-    "Button",
-    "Description",
-    "FieldError",
-  ],
-  ColorField: ["Label", "Input", "Description", "FieldError"],
-  DateField: ["Label", "DateInput", "Description", "FieldError"],
-  TimeField: ["Label", "DateInput", "Description", "FieldError"],
-  DatePicker: ["Label", "Group", "Description", "FieldError", "Popover"],
-  DateRangePicker: ["Label", "Group", "Description", "FieldError", "Popover"],
-  Select: ["Label", "Button", "Description", "FieldError", "Popover"],
-  ComboBox: ["Label", "Group", "Description", "FieldError", "Popover"],
-  Slider: ["Label", "SliderOutput", "SliderTrack"],
-  RangeSlider: ["Label", "SliderOutput", "SliderTrack"],
-  Meter: ["Label", "MeterValue", "MeterTrack"],
-  ProgressBar: ["Label", "ProgressBarValue", "ProgressBarTrack"],
-  ColorArea: ["ColorThumb"],
-  ColorSlider: ["Label", "SliderOutput", "SliderTrack"],
-  ColorWheel: ["ColorWheelTrack", "ColorThumb"],
-  TokenField: ["Label", "TokenInput", "Description"],
-};
-
-/**
- * field 루트 바로 아래에 설 수 있는 감싸개 — 부품 명령이 만드는 것만: 도움말의 라벨 행 `FieldLabel`
+ * 부품 host 루트 바로 아래에 설 수 있는 감싸개 — 부품 명령이 만드는 것만: 도움말의 라벨 행 `FieldLabel`
  * (ADR-259, `contextualHelpCommand.ts`) · 앞 글자의 control `Group` (S2 `FieldGroup`, `fieldPrefixCommand.ts`) ·
  * 부품을 묶는 `frame` (ADR-256 Phase 2 리뷰 — RAC context 는 래퍼를 건너 부품에 닿는다, `requiredParts.ts`).
  * `Slot` 은 넣지 않는다 — Slot 자리의 넣기 목록은 자유 내용이라 「부품만」 이 한 단계로 우회된다.
  */
-export const FIELD_PART_WRAPPER_TYPES: readonly string[] = [
-  "FieldLabel",
-  "frame",
-  "Group",
-];
+export const PART_WRAPPER_TYPES: readonly string[] = ["FieldLabel", "frame", "Group"];
 
-/** host → 직계 자식으로 받는 type 전부 (원본 부품 + 감싸개) — 모듈 상수에서 한 번 합친다. */
-const CATALOG_FIELD_CHILD_TYPES: Readonly<Record<string, readonly string[]>> =
-  Object.fromEntries(
-    Object.entries(CATALOG_FIELD_PART_TYPES).map(([host, parts]) => [
-      host,
-      [...parts, ...FIELD_PART_WRAPPER_TYPES],
+/** 팔레트 type 이 아닌 code-catalog 정의 id 의 type 이름 (template 자식이 쓰는 둘). */
+const CODE_CATALOG_DEFINITION_NAMES: Readonly<Record<string, string>> = {
+  "lib:definition:text": "Text",
+  "lib:definition:heading": "Heading",
+};
+
+/**
+ * 부품만 받는 host (2026-11-09 사용자 보고 「TextField 안에 TextField · Badge 안에 Button · TagGroup 안에
+ * TextField 가 들어간다」) — **원본 template 에서 파생**한다: 합성 원본의 루트가 slot 이 아니고 부품
+ * (template 자식) 을 가지면, 그 루트 type 은 직계 자식으로 자기 부품만 받는다. 자유 내용은 원본이 slot 으로
+ * 연 자리 (Card 의 Content · Dialog 의 content region · TagGroup 의 TagList · ToggleButtonGroup 의 루트 slot)
+ * 에만 들어간다 — pen.dev 「content goes into slots only」 (ADR-261 사용자 결정 2) · ADR-278. 루트 자체가
+ * slot 인 원본 (Toolbar · Form · ButtonGroup …) 과 부품 없는 루트 (Badge · Link — 글자는 prop, `DOM_LEAF_TYPES`)
+ * 는 여기 없다. 컬렉션 항목 (ListBoxItem · MenuItem · Tag · Tab …) 은 S2 가 slot 내용 (Text · Icon · Image …) 을
+ * 자유롭게 받으므로 뺀다 — 과잉 제약이 더 위험하다 (2026-09-08). RAC 가 요구하는 부품의 대안
+ * (`RAC_REQUIRED_PARTS` — MenuTrigger 의 Button · ActionButton) 과 그룹의 항목 (`GROUP_ITEM_TYPES` — 명령이
+ * 묶음 노드로 옮긴다) 도 받는다. 소유자는 D2 (S2 anatomy = 원본 template) 다.
+ */
+function derivePartsHosts(): Readonly<Record<string, readonly string[]>> {
+  const templates = new Map(
+    REUSABLE_ORIGIN_TEMPLATES.map((node) => [String(node.id), node]),
+  );
+  const originNames = new Map(
+    REUSABLE_ORIGIN_DEFINITIONS.map((definition) => [
+      String(definition.id),
+      definition.name.split("/")[0]!,
     ]),
   );
+  const typeOf = (definitionId: string): string | undefined =>
+    originNames.get(definitionId) ??
+    CODE_CATALOG_DEFINITION_NAMES[definitionId] ??
+    (definitionId.startsWith("lib:definition:type-")
+      ? definitionId.slice("lib:definition:type-".length)
+      : undefined);
+  // Collection items (ListBoxItem · Tag · Tab · Column …): S2 lets them hold slot content freely —
+  // unless the item's origin opens slots of its own (a Card in a CardView: its content goes there).
+  const items = new Set([
+    ...componentTypeSet("staticCollectionItem"),
+    ...componentTypeSet("selectionItem"),
+    ...Object.values(RAC_COLLECTION_CHILD_TYPES).flat(),
+  ]);
+  const opensSlot = (id: string): boolean => {
+    const node = templates.get(id);
+    return Boolean(
+      node &&
+        (node.slot || node.children.some((child) => opensSlot(String(child)))),
+    );
+  };
+  const hosts = new Map<string, Set<string>>();
+  for (const definition of REUSABLE_ORIGIN_DEFINITIONS) {
+    const root = definition.templateRootId
+      ? templates.get(String(definition.templateRootId))
+      : undefined;
+    // A root that is itself an instance of another origin (a variant — Button/Hover) adds nothing.
+    if (
+      !root ||
+      root.slot ||
+      !root.children.length ||
+      !String(root.definitionId).startsWith("lib:definition:type-")
+    )
+      continue;
+    const host = typeOf(String(root.definitionId))!;
+    if (
+      (items.has(host) && !opensSlot(String(root.id))) ||
+      RAC_COLLECTION_CHILD_TYPES[host] ||
+      PEN_LEAF_TYPES.has(host) ||
+      DOM_LEAF_TYPES.has(host)
+    )
+      continue;
+    const parts = hosts.get(host) ?? new Set<string>();
+    hosts.set(host, parts);
+    for (const childId of root.children) {
+      const type = typeOf(String(templates.get(String(childId))!.definitionId));
+      if (type) parts.add(type);
+    }
+  }
+  for (const [host, parts] of hosts) {
+    for (const alternatives of RAC_REQUIRED_PARTS[host] ?? [])
+      for (const type of alternatives) parts.add(type);
+    for (const type of GROUP_ITEM_TYPES[host] ?? []) parts.add(type);
+    for (const type of PART_WRAPPER_TYPES) parts.add(type);
+  }
+  return Object.fromEntries(
+    [...hosts].map(([host, parts]) => [host, [...parts]]),
+  );
+}
+
+let partsHosts: Readonly<Record<string, readonly string[]>> | undefined;
+
+/**
+ * host → 직계 자식으로 받는 type 전부 (원본 부품 · 필수 부품 대안 · 그룹 항목 · 감싸개). 첫 호출에 한 번
+ * 파생한다 (이 파일의 leaf 표가 선언된 뒤 — 모듈 init 에서 돌리면 TDZ).
+ */
+export function catalogPartsHostTypes(): Readonly<
+  Record<string, readonly string[]>
+> {
+  return (partsHosts ??= derivePartsHosts());
+}
 
 /** 부품 host 가 직계 자식으로 받는 type 전부. `undefined` = 부품 host 가 아니다. */
-export function catalogFieldParts(type: string): readonly string[] | undefined {
-  return CATALOG_FIELD_CHILD_TYPES[type];
+export function catalogHostParts(type: string): readonly string[] | undefined {
+  return catalogPartsHostTypes()[type];
 }
 
 /**
  * 부품이 받는 자식의 종류 (ADR-256 Decision 4) — 중첩 판정 · 넣기 목록 · slot 표시가 같이 읽는다.
- * `parts` (2026-11-09): 자기 부품만 — 팔레트 · 붙여넣기 · 넣기 목록은 아무것도 넣지 않고 (상위로 옮긴다),
- * 부품은 자기 명령 (prefix · 도움말 · 원본 template) 으로만 선다.
+ * `parts` (2026-11-09): 자기 부품만 (`catalogPartsHostTypes`) — 팔레트 · 붙여넣기 · 넣기 목록은 아무것도
+ * 넣지 않고 (상위로 옮긴다), 부품은 자기 명령 (prefix · 도움말 · 원본 template · 그룹 "+") 으로만 선다.
  */
 export type CatalogChildKind =
   | { readonly kind: "leaf" }
@@ -191,7 +241,7 @@ export function catalogChildKind(type: string): CatalogChildKind {
     return { kind: "leaf" };
   const items = RAC_COLLECTION_CHILD_TYPES[type];
   if (items) return { kind: "items", items };
-  const parts = catalogFieldParts(type);
+  const parts = catalogHostParts(type);
   return parts ? { kind: "parts", parts } : { kind: "free" };
 }
 
@@ -201,6 +251,11 @@ export function catalogChildKind(type: string): CatalogChildKind {
  * 도달하지 않는다.
  */
 export const DOM_LEAF_TYPES: ReadonlySet<string> = new Set([
+  // 2026-11-09: 글자 · 글리프가 prop 인 합성 (binding `children: string`) — 자식 노드를 그릴 자리가 없다
+  //   (사용자 보고 「Badge 안에 Button」).
+  "Badge",
+  "StatusLight",
+  "Link",
   "Image",
   "Avatar",
   "Chart",
@@ -248,7 +303,7 @@ export const HTML_INTERACTIVE_HOST_TYPES: ReadonlySet<string> = new Set([
   "SideNavItemLink",
   // ADR-256 Phase 3: Checkbox 의 누르는 자리는 RAC `CheckboxButton` — `<label>` 안의 숨은 checkbox 가 그
   //   label 의 control 이다. 다른 interactive · labelable 요소를 그 안에 두지 않는다 (루트 CheckboxField 는
-  //   `div` 라 host 가 아니다 — Description · FieldError · 자유 내용을 받는다).
+  //   `div` 라 host 가 아니다 — Description · FieldError 를 받는다).
   "CheckboxButton",
   "SwitchButton",
   "RadioButton",
@@ -442,21 +497,6 @@ export function resolveNestingViolation(
     }
   }
 
-  // 층 2 — RAC 합성 (d, 2026-11-09): field 는 자기 부품만 직계 자식으로 받는다 (S2 field 는 `children`
-  // 이 없다 — 내용은 prop 에 묶인 부품뿐). 팔레트 · 붙여넣기가 선택한 field 를 겨냥하면 상위로 옮겨진다.
-  if (parentType !== null && !isOpaque(parentType)) {
-    const parts = catalogFieldParts(parentType);
-    if (parts && !parts.includes(childType)) {
-      return {
-        layer: "rac-composition",
-        parentType,
-        childType,
-        reason: `${parentType} holds only its parts ${parts.join(" · ")} as direct children (S2 field — no children prop)`,
-        allowedChildren: parts,
-      };
-    }
-  }
-
   // 층 2 — RAC 합성 (b): 합성 부품은 소유자 안에서만 뜻이 있다.
   const owners = RAC_SUBPART_OWNER_TYPES[childType];
   if (owners) {
@@ -492,6 +532,22 @@ export function resolveNestingViolation(
         parentType: host,
         childType,
         reason: `${childType} is interactive content and cannot be a descendant of ${host} (<button>/<a>)`,
+      };
+    }
+  }
+
+  // 층 2 — RAC 합성 (d, 2026-11-09 — HTML interactive 뒤에: Button 안 Button 은 HTML 의 이유로 말한다): 부품 host (원본 루트가 slot 이 아닌 합성 — field · Card · Tabs · Toast …)
+  // 는 자기 부품만 직계 자식으로 받는다; 자유 내용은 그 원본의 slot 자리로. 팔레트 · 붙여넣기가 선택한
+  // host 를 겨냥하면 상위로 옮겨진다.
+  if (parentType !== null && !isOpaque(parentType)) {
+    const parts = catalogHostParts(parentType);
+    if (parts && !parts.includes(childType)) {
+      return {
+        layer: "rac-composition",
+        parentType,
+        childType,
+        reason: `${parentType} holds only its parts ${parts.join(" · ")} as direct children (its origin template — free content goes into its slots)`,
+        allowedChildren: parts,
       };
     }
   }

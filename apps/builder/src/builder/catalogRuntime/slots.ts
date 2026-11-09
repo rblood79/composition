@@ -397,9 +397,7 @@ export function catalogSlotInsertOptions(
   const type = positionTypeName(graph, target);
   if (!type) return [];
   const kind = catalogChildKind(type);
-  // A field holds only its parts (2026-11-09): they come from its own commands (prefix · contextual
-  // help · the origin template), never from this list.
-  if (kind.kind === "leaf" || kind.kind === "parts") return [];
+  if (kind.kind === "leaf") return [];
   const library = graph.library;
   const ofType = (itemType: string): CatalogSlotInsertOption | undefined => {
     const definitionId = catalogPaletteDefinitionId(library, itemType);
@@ -447,6 +445,10 @@ export function catalogSlotInsertOptions(
     kind.kind === "items"
       ? kind.items
       : (GROUP_ITEM_TYPES[type] ?? GROUP_ITEM_TYPES[wrapperGroup ?? ""]);
+  // A parts-only host (2026-11-09 — a field · Card · Tabs …: `catalogPartsHostTypes`) lists
+  // nothing of its own: its parts come from their commands (prefix · contextual help · the origin
+  // template), free content goes into its slots. A group still lists its items.
+  if (kind.kind === "parts" && !itemTypes) return [];
   if (itemTypes) {
     for (const itemType of itemTypes) {
       const origin = catalogTemplateItemDefinition(graph, target, itemType);
