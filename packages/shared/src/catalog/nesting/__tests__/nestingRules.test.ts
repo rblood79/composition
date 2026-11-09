@@ -286,3 +286,43 @@ describe("nestingRules — 소비처 헬퍼", () => {
     expect(attached[0]).toMatchObject({ parentType: "Link" });
   });
 });
+
+describe("nestingRules — 층 2 (d) field 는 자기 부품만 (2026-11-09)", () => {
+  it("TextField 안 TextField · NumberField · Text 는 거부되고 위반은 허용 부품을 든다", () => {
+    for (const child of ["TextField", "NumberField", "Text", "Icon", "Button"])
+      expect(
+        resolveNestingViolation({ parentType: "TextField", childType: child }),
+        child,
+      ).toMatchObject({
+        layer: "rac-composition",
+        parentType: "TextField",
+        childType: child,
+        allowedChildren: expect.arrayContaining(["Label", "Input", "Group"]),
+      });
+  });
+
+  it("field 의 부품과 부품 명령의 감싸개는 그대로 선다", () => {
+    expect(canNest("TextField", "Label")).toBe(true);
+    expect(canNest("TextField", "Input")).toBe(true);
+    expect(canNest("TextField", "FieldLabel")).toBe(true);
+    expect(canNest("TextField", "Group")).toBe(true);
+    expect(canNest("TextField", "frame")).toBe(true);
+    expect(canNest("NumberField", "Group")).toBe(true);
+    expect(canNest("Select", "Popover")).toBe(true);
+    expect(canNest("Select", "Button")).toBe(true);
+    expect(canNest("SearchField", "Icon")).toBe(true);
+    expect(canNest("Slider", "SliderTrack")).toBe(true);
+    // 부품 아래 (Group · Popover) 는 그 부품의 종류 — Group 은 자유 내용이라 앞 글자 Icon 이 선다.
+    expect(canNest("Group", "Icon", ["Group", "TextField"])).toBe(true);
+  });
+
+  it("가까운 허용 조상 — 선택한 TextField 를 겨냥한 TextField 는 그 부모로 옮겨진다", () => {
+    expect(
+      findClosestNestableAncestorIndex("TextField", ["TextField", "frame", "body"]),
+    ).toBe(1);
+    // Form 은 field 를 받는다 (RAC Form = 자유 내용) — 거기서 멈춘다.
+    expect(
+      findClosestNestableAncestorIndex("NumberField", ["TextField", "Form"]),
+    ).toBe(1);
+  });
+});

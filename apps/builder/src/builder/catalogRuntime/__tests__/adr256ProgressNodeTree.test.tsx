@@ -319,37 +319,62 @@ describe("ADR-256 Phase 7a — ProgressBar draws its node tree", () => {
     expect(Array.from(fill!)).not.toEqual(Array.from(track!));
   });
 
-  it("a free child the author puts in is drawn in its place", async () => {
+  it("free content is refused at the bar; inside a layout frame it is drawn in its place", async () => {
     const { workspace, root, bar, draw } = await open({
       label: "Loading",
       value: 50,
     });
     const text = "project:node:note" as NodeId;
+    const note = {
+      kind: "node",
+      id: text,
+      definitionId: "lib:definition:text",
+      children: [],
+      props: { children: set("of 4 files") },
+      visual: {},
+      sizing: {},
+      descendantOverrides: [],
+    } as NodeEntry;
+    // 2026-11-09: a ProgressBar holds only its parts (S2 — no children prop).
+    expect(() =>
+      workspace.execute(
+        insertNodes({
+          parent: { kind: "node", id: BAR },
+          entries: [note],
+          rootIds: [text],
+          newId: workspace.newId,
+        }),
+      ),
+    ).toThrow(expect.objectContaining({ code: "NESTING_NOT_ALLOWED" }));
+    const wrapper = "project:node:note-wrapper" as NodeId;
     workspace.execute(
       insertNodes({
         parent: { kind: "node", id: BAR },
         entries: [
           {
             kind: "node",
-            id: text,
-            definitionId: "lib:definition:text",
-            children: [],
-            props: { children: set("of 4 files") },
+            id: wrapper,
+            definitionId: "lib:definition:type-frame",
+            children: [text],
+            props: {},
             visual: {},
             sizing: {},
             descendantOverrides: [],
           } as NodeEntry,
+          note,
         ],
-        rootIds: [text],
+        rootIds: [wrapper],
         newId: workspace.newId,
       }),
     );
     expect(draw().textContent).toContain("of 4 files");
-    const note = [...root.domInputs.values()].find(
+    const noteRecord = [...root.domInputs.values()].find(
       (record) => record.sourceId === text,
     )!;
-    expect(note.parentId).toBe(bar().id);
-    expect(root.getGeometry([note.id]).get(note.id)!.width).toBeGreaterThan(0);
+    expect(root.domInputs.get(noteRecord.parentId)?.parentId).toBe(bar().id);
+    expect(
+      root.getGeometry([noteRecord.id]).get(noteRecord.id)!.width,
+    ).toBeGreaterThan(0);
   });
 });
 

@@ -53,6 +53,22 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 const BODY = "project:node:home-body" as NodeId;
 const FIELD = "project:node:field" as NodeId;
 const set = <T>(value: T) => ({ kind: "set" as const, value });
+/**
+ * 2026-11-09 — a field holds only its parts; free content stands inside a layout frame (a parts
+ * wrapper, `FIELD_PART_WRAPPER_TYPES`). The frame that holds the test's free node.
+ */
+const WRAPPER = "project:node:free-wrapper" as NodeId;
+const wrapper = (child: NodeId): NodeEntry =>
+  ({
+    kind: "node",
+    id: WRAPPER,
+    definitionId: "lib:definition:type-frame",
+    children: [child],
+    props: {},
+    visual: {},
+    sizing: {},
+    descendantOverrides: [],
+  }) as NodeEntry;
 
 // The editable field Label is composed from a real Text child.
 const composedLabel = (value: string) =>
@@ -431,30 +447,51 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
     "datepicker",
     "daterangepicker",
   ])(
-    "%s: a free child the author puts in is drawn in its place (Canvas and DOM)",
+    "%s: free content is refused at the field; inside a layout frame it is drawn in its place (Canvas and DOM)",
     async (type) => {
       const { workspace, field } = await open(type, { label: "Field" });
       workspace.execute(
         detachInstances({ ids: [FIELD], newId: workspace.newId }),
       );
       const icon = "project:node:free-icon" as NodeId;
+      const iconEntry = {
+        kind: "node",
+        id: icon,
+        definitionId: "lib:definition:type-Icon",
+        children: [],
+        props: { iconName: set("search") },
+        visual: {},
+        sizing: {},
+        descendantOverrides: [],
+      } as NodeEntry;
+      // 2026-11-09: a field holds only its parts (S2 — no children prop): a free Text put straight
+      // under the field is refused, and the field is unchanged. (An Icon is a SearchField part.)
+      const note = "project:node:free-note" as NodeId;
+      expect(() =>
+        workspace.execute(
+          insertNodes({
+            parent: { kind: "node", id: FIELD },
+            index: 1,
+            entries: [
+              {
+                ...iconEntry,
+                id: note,
+                definitionId: "lib:definition:text",
+                props: { children: set("note") },
+              } as NodeEntry,
+            ],
+            rootIds: [note],
+            newId: workspace.newId,
+          }),
+        ),
+      ).toThrow(expect.objectContaining({ code: "NESTING_NOT_ALLOWED" }));
+      // A layout frame is a parts wrapper (ADR-256 Phase 2 review): content inside it is drawn.
       workspace.execute(
         insertNodes({
           parent: { kind: "node", id: FIELD },
           index: 1,
-          entries: [
-            {
-              kind: "node",
-              id: icon,
-              definitionId: "lib:definition:type-Icon",
-              children: [],
-              props: { iconName: set("search") },
-              visual: {},
-              sizing: {},
-              descendantOverrides: [],
-            } as NodeEntry,
-          ],
-          rootIds: [icon],
+          entries: [wrapper(icon), iconEntry],
+          rootIds: [WRAPPER],
           newId: workspace.newId,
         }),
       );
@@ -483,7 +520,7 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
   );
 
   it.each(["select", "combobox"])(
-    "%s: a ListBox the author puts beside the Popover shows on both sides — RAC draws it in the picker's context (ADR-256 Phase 6c · 6d)",
+    "%s: a ListBox the author puts (in a frame) beside the Popover shows on both sides — RAC draws it in the picker's context (ADR-256 Phase 6c · 6d)",
     async (type) => {
       const { workspace, field } = await open(type, { label: "Field" });
       workspace.execute(
@@ -494,6 +531,7 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
         insertNodes({
           parent: { kind: "node", id: FIELD },
           entries: [
+            wrapper(list),
             {
               kind: "node",
               id: list,
@@ -505,7 +543,7 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
               descendantOverrides: [],
             } as NodeEntry,
           ],
-          rootIds: [list],
+          rootIds: [WRAPPER],
           newId: workspace.newId,
         }),
       );
@@ -536,7 +574,7 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
     ["datepicker", "calendar"],
     ["daterangepicker", "rangecalendar"],
   ])(
-    "%s: a %s the author puts beside the Popover shows on both sides, in the picker's state (ADR-256 Phase 6e)",
+    "%s: a %s the author puts (in a frame) beside the Popover shows on both sides, in the picker's state (ADR-256 Phase 6e)",
     async (type, calendarType) => {
       const { workspace, field } = await open(type, {
         label: "Field",
@@ -551,6 +589,7 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
         insertNodes({
           parent: { kind: "node", id: FIELD },
           entries: [
+            wrapper(calendar),
             {
               kind: "node",
               id: calendar,
@@ -563,7 +602,7 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
               descendantOverrides: [],
             } as NodeEntry,
           ],
-          rootIds: [calendar],
+          rootIds: [WRAPPER],
           newId: workspace.newId,
         }),
       );

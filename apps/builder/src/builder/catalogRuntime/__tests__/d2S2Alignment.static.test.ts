@@ -9,6 +9,7 @@ import {
   CATALOG_D2_COMPOSITION_TYPES,
   CATALOG_D2_PROVENANCE,
 } from "../../../../../../packages/shared/src/catalog/document/d2Provenance";
+import { CATALOG_FIELD_PART_TYPES } from "../../../../../../packages/shared/src/catalog/nesting/nestingRules";
 import type { PropContract } from "../../../../../../packages/shared/src/catalog/types";
 
 /**
@@ -247,5 +248,24 @@ describe("D2 — binding accepts vs the installed S2 types", () => {
       if (s2.has(S2_ALIAS[type] ?? type))
         stale.push(`${type}: S2 exports it — not a composition-only type`);
     expect(stale).toEqual([]);
+  });
+
+  // 2026-11-09: a field holds only its parts (`CATALOG_FIELD_PART_TYPES`) — the source is S2's API:
+  // none of these components takes `children` (content is prop-bound parts). A type S2 does not
+  // export (TokenField) is left to the origin-template gate. S2 Picker · ComboBox take `children`
+  // as their items (a collection) — our tree holds those in the nested ListBox (Popover > ListBox,
+  // ADR-253 Phase 4), so the host itself still holds only parts.
+  it("every parts-only field host is an S2 component without a children prop", () => {
+    const itemsInNestedListBox = new Set(["Select", "ComboBox"]);
+    const withChildren: string[] = [];
+    let checked = 0;
+    for (const host of Object.keys(CATALOG_FIELD_PART_TYPES)) {
+      const oracle = s2.get(S2_ALIAS[host] ?? host);
+      if (!oracle || itemsInNestedListBox.has(host)) continue;
+      checked += 1;
+      if (oracle.keys.has("children")) withChildren.push(host);
+    }
+    expect(checked).toBeGreaterThanOrEqual(15);
+    expect(withChildren).toEqual([]);
   });
 });

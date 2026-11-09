@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [field 는 자기 부품만 자식으로 받는다 — 팔레트 · 붙여넣기 · 넣기 목록] - 2026-11-09
+
+### Fixed
+
+- **TextField 를 선택하고 팔레트에서 TextField · NumberField 를 추가하면 선택한 필드 안에 들어갔다** (사용자 보고): 중첩 규칙이 field 가족을 「자유 내용」 으로 두어 (ADR-256 Phase 2b · 6c ~ 6e — RAC `<div>` 의 관찰) 어떤 자식도 받았고, Button 은 HTML 이 막아 형제로 갔을 뿐이었다. 이제 field (TextField · TextArea · NumberField · SearchField · ColorField · DateField · TimeField · DatePicker · DateRangePicker · Select · ComboBox · Slider · RangeSlider · Meter · ProgressBar · ColorArea · ColorSlider · ColorWheel · TokenField) 는 직계 자식으로 **자기 부품** (원본 template 루트의 부품 + FieldLabel · 레이아웃 래퍼 frame · Group) 만 받는다. 팔레트 · 붙여넣기 · AI 추가는 기존 「가까운 허용 조상으로 이동」 안내 그대로 상위 컨테이너에 넣고, Design 패널의 넣기 목록은 field 에서 비어 있다 (부품은 prefix · 도움말 명령으로).
+  - Why: 소유자는 D2 의 S2 API — S2 field 컴포넌트는 `children` prop 이 없고 내용은 prop 에 묶인 부품뿐 (게이트 `d2S2Alignment.static.test.ts`; Picker · ComboBox 의 `children` 은 항목이라 안쪽 ListBox 에). 부품 표는 원본 template 과 `fieldPartsMatchOrigins.static.test.ts` 가 대조한다. 2026-09-08 같은 보고 (「textField 내에 textField」) 의 수리 표가 ADR-256 Phase 11 에서 사라진 뒤 재발했다.
+  - AI 추가의 부모 탐색이 frame 으로 probe 하던 것을 실제 정의로 바꿨다 — field 는 frame (래퍼) 을 받지만 두 번째 field 는 받지 않아 probe 가 거부될 자리를 골랐다.
+  - ToggleButtonGroup ⊃ ToggleButton · frame ⊃ field · Form ⊃ field 는 그대로.
+  - **옮겨진 항목은 선택한 요소 바로 다음에 선다** (사용자 보고 2차): 전에는 상위 컨테이너의 맨 끝으로 갔다. 붙여넣기 메뉴의 「자기 다음」 과 같은 규칙 — 팔레트가 선택의 조상으로 올라갈 때마다 그 조상의 어느 자식 안에 선택이 있는지 기억해 그 다음 index 에 넣는다 (`paletteInsert.ts`).
+  - 위치: `nestingRules.ts` (`CATALOG_FIELD_PART_TYPES` · `catalogChildKind` `parts`) · `slots.ts` · `aiHost.ts` · `paletteInsert.ts`
+
 ## [날짜 필드 focus ring 은 상자에만 — S2 FieldGroup focusRing] - 2026-11-09
 
 ### Fixed

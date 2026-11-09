@@ -168,28 +168,36 @@ export function catalogPaletteInsertPlan(
     ...catalogCreationStyle(initialProps),
     descendantOverrides: [],
   };
-  const candidates: EditTarget[] = [];
+  // Each candidate past the selection is an ancestor; `after` is the ancestor's drawn child the
+  // selection sits in (or is), so a relocated insert lands right after it — not at the ancestor's
+  // end (user 2026-11-09: a TextField added beside the selected TextField goes right after it; the
+  // same rule as the paste menu's "after itself").
+  const candidates: { target: EditTarget; after?: string }[] = [];
   const [first] = host.selection();
   if (first) {
-    candidates.push(first.target);
+    candidates.push({ target: first.target });
+    let below = host.records.get(first.identity);
     for (
-      let record = host.records.get(
-        host.records.get(first.identity)?.parentId ?? "",
-      );
+      let record = host.records.get(below?.parentId ?? "");
       record;
-      record = host.records.get(record.parentId)
+      below = record, record = host.records.get(record.parentId)
     ) {
       const item = host.itemOfRecord(record.id);
       if (!item) break;
-      candidates.push(item.target);
+      candidates.push({ target: item.target, after: below?.id });
     }
   }
   const content = host.pageContent();
-  if (content) candidates.push(content);
+  if (content) candidates.push({ target: content });
   let refusal: unknown;
-  for (const target of candidates) {
+  for (const { target, after } of candidates) {
+    const siblings = after
+      ? host.records.get(host.records.get(after)?.parentId ?? "")?.children
+      : undefined;
+    const at = siblings ? siblings.indexOf(after!) : -1;
     const command = insertNodes({
       parent: parentOf(target),
+      ...(at >= 0 ? { index: at + 1 } : {}),
       entries: [entry],
       rootIds: [entry.id],
       newId: host.newId,

@@ -115,17 +115,83 @@ export const RAC_SUBPART_OWNER_TYPES: Readonly<
 //  collections (`componentTraits` items), Pagination · Toast · ColorPicker draw their children in
 //  order. ADR-277: the table is one type, Table.)
 
-/** 부품이 받는 자식의 종류 (ADR-256 Decision 4) — 중첩 판정 · 넣기 목록 · slot 표시가 같이 읽는다. */
+/**
+ * 부품만 받는 host — field 가족 (2026-11-09 사용자 보고 「TextField 선택 뒤 TextField 추가가 그 안에
+ * 들어간다」). 소유자는 D2 의 S2 API 다: S2 TextField · NumberField · Picker · Slider · Meter … 는
+ * `children` prop 이 없고 내용은 전부 prop 에 묶인 부품 (label · description · errorMessage ·
+ * contextualHelp · prefix) 이다 — 자유 내용이 들어갈 자리가 없다. RAC 의 `<div>` 는 아무 자식이나 받지만
+ * (그래서 ADR-256 Phase 2b · 6c ~ 6e 는 field 를 자유 내용으로 두었다), 그 자유는 RAC 가 부품을 조립하라고
+ * 연 것이지 S2 field 가 임의 내용을 받는다는 뜻이 아니다. 직계 자식으로 허용되는 것 = 원본 template 루트의
+ * 부품 (`reusableOriginLibrary` 의 root children — `fieldPartsMatchOrigins.static.test.ts` 가 대조)
+ * + 부품 명령이 감싸는 행 · 상자 (`FIELD_PART_WRAPPER_TYPES`). Checkbox · Switch · Radio 는 S2 가
+ * `children` (라벨) 을 받으므로 여기 없다. Calendar · RangeCalendar 는 달 묶음이 frame 이라 뺐다.
+ */
+export const CATALOG_FIELD_PART_TYPES: Readonly<
+  Record<string, readonly string[]>
+> = {
+  TextField: ["Label", "Input", "Description", "FieldError"],
+  TextArea: ["Label", "Input", "Description", "FieldError"],
+  NumberField: ["Label", "Group", "Description", "FieldError"],
+  SearchField: [
+    "Label",
+    "Icon",
+    "Input",
+    "Button",
+    "Description",
+    "FieldError",
+  ],
+  ColorField: ["Label", "Input", "Description", "FieldError"],
+  DateField: ["Label", "DateInput", "Description", "FieldError"],
+  TimeField: ["Label", "DateInput", "Description", "FieldError"],
+  DatePicker: ["Label", "Group", "Description", "FieldError", "Popover"],
+  DateRangePicker: ["Label", "Group", "Description", "FieldError", "Popover"],
+  Select: ["Label", "Button", "Description", "FieldError", "Popover"],
+  ComboBox: ["Label", "Group", "Description", "FieldError", "Popover"],
+  Slider: ["Label", "SliderOutput", "SliderTrack"],
+  RangeSlider: ["Label", "SliderOutput", "SliderTrack"],
+  Meter: ["Label", "MeterValue", "MeterTrack"],
+  ProgressBar: ["Label", "ProgressBarValue", "ProgressBarTrack"],
+  ColorArea: ["ColorThumb"],
+  ColorSlider: ["Label", "SliderOutput", "SliderTrack"],
+  ColorWheel: ["ColorWheelTrack", "ColorThumb"],
+  TokenField: ["Label", "TokenInput", "Description"],
+};
+
+/**
+ * field 루트 바로 아래에 설 수 있는 감싸개 — 도움말의 라벨 행 `FieldLabel` (ADR-259,
+ * `contextualHelpCommand.ts`) 과 레이아웃 래퍼 (`NESTING_PASSTHROUGH_TYPES` — 앞 글자의 control `Group`
+ * (S2 `FieldGroup`, `fieldPrefixCommand.ts`) · 부품을 묶는 frame (ADR-256 Phase 2 리뷰 — RAC context 는
+ * 래퍼를 건너 부품에 닿는다, `requiredParts.ts`)).
+ */
+export const FIELD_PART_WRAPPER_TYPES: readonly string[] = [
+  "FieldLabel",
+  ...NESTING_PASSTHROUGH_TYPES,
+];
+
+/** 부품 host 가 직계 자식으로 받는 type 전부 (원본 부품 + 감싸개). `undefined` = 부품 host 가 아니다. */
+export function catalogFieldParts(type: string): readonly string[] | undefined {
+  const parts = CATALOG_FIELD_PART_TYPES[type];
+  return parts && [...parts, ...FIELD_PART_WRAPPER_TYPES];
+}
+
+/**
+ * 부품이 받는 자식의 종류 (ADR-256 Decision 4) — 중첩 판정 · 넣기 목록 · slot 표시가 같이 읽는다.
+ * `parts` (2026-11-09): 자기 부품만 — 팔레트 · 붙여넣기 · 넣기 목록은 아무것도 넣지 않고 (상위로 옮긴다),
+ * 부품은 자기 명령 (prefix · 도움말 · 원본 template) 으로만 선다.
+ */
 export type CatalogChildKind =
   | { readonly kind: "leaf" }
   | { readonly kind: "items"; readonly items: readonly string[] }
+  | { readonly kind: "parts"; readonly parts: readonly string[] }
   | { readonly kind: "free" };
 
 export function catalogChildKind(type: string): CatalogChildKind {
   if (PEN_LEAF_TYPES.has(type) || DOM_LEAF_TYPES.has(type))
     return { kind: "leaf" };
   const items = RAC_COLLECTION_CHILD_TYPES[type];
-  return items ? { kind: "items", items } : { kind: "free" };
+  if (items) return { kind: "items", items };
+  const parts = catalogFieldParts(type);
+  return parts ? { kind: "parts", parts } : { kind: "free" };
 }
 
 /**
@@ -371,6 +437,21 @@ export function resolveNestingViolation(
         childType,
         reason: `${parentType} reads only ${allowed.join(" · ")} as direct children (RAC collection contract)`,
         allowedChildren: allowed,
+      };
+    }
+  }
+
+  // 층 2 — RAC 합성 (d, 2026-11-09): field 는 자기 부품만 직계 자식으로 받는다 (S2 field 는 `children`
+  // 이 없다 — 내용은 prop 에 묶인 부품뿐). 팔레트 · 붙여넣기가 선택한 field 를 겨냥하면 상위로 옮겨진다.
+  if (parentType !== null && !isOpaque(parentType)) {
+    const parts = catalogFieldParts(parentType);
+    if (parts && !parts.includes(childType)) {
+      return {
+        layer: "rac-composition",
+        parentType,
+        childType,
+        reason: `${parentType} holds only its parts ${parts.join(" · ")} as direct children (S2 field — no children prop)`,
+        allowedChildren: parts,
       };
     }
   }

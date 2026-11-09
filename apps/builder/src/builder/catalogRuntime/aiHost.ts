@@ -15,6 +15,7 @@ import {
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import { normalizeColorControlPatch } from "../../../../../packages/shared/src/catalog/document/colorValue";
 import type {
+  DefinitionId,
   EditTarget,
   NodeEntry,
   NodeId,
@@ -161,9 +162,14 @@ const parentOf = (target: EditTarget): NodeParent =>
     ? { kind: "node", id: target.id }
     : { kind: "descendant", ownerId: target.ownerId, address: target.address };
 
-/** Where a new element goes: the selection, the nearest ancestor that takes a Frame, the body. */
+/**
+ * Where a new element goes: the selection, the nearest ancestor that takes the new element's
+ * definition, the body. The probe carries the real definition (2026-11-09): a field takes a frame
+ * (a parts wrapper) but not a second field, so a frame probe would pick a place the insert refuses.
+ */
 function creationParent(
   workspace: CatalogWorkspace,
+  definitionId: DefinitionId = PROBE.definitionId,
 ): CatalogSelectionItem | undefined {
   const records = workspace.root.domInputs;
   const candidates: CatalogSelectionItem[] = [];
@@ -192,7 +198,7 @@ function creationParent(
     try {
       insertNodes({
         parent: parentOf(candidate.target),
-        entries: [PROBE],
+        entries: [{ ...PROBE, definitionId }],
         rootIds: [PROBE.id],
         newId: workspace.newId,
       })(workspace.runtime.graph);
@@ -535,9 +541,13 @@ export function createCatalogAiWriteHost(
   return {
     create(input) {
       try {
+        const definitionId = catalogPaletteDefinitionId(
+          graph.library,
+          input.type,
+        );
         const parent = input.parentId
           ? workspace.itemOfRecord(input.parentId)
-          : creationParent(workspace);
+          : creationParent(workspace, definitionId);
         if (!parent)
           return {
             ok: false,
@@ -545,10 +555,6 @@ export function createCatalogAiWriteHost(
               ? `PARENT_NOT_FOUND: ${input.parentId}`
               : "NO_PARENT",
           };
-        const definitionId = catalogPaletteDefinitionId(
-          graph.library,
-          input.type,
-        );
         const nodeId = workspace.newId("node") as NodeId;
         const entry: NodeEntry = {
           kind: "node",

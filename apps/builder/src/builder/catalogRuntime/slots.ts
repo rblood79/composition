@@ -397,7 +397,9 @@ export function catalogSlotInsertOptions(
   const type = positionTypeName(graph, target);
   if (!type) return [];
   const kind = catalogChildKind(type);
-  if (kind.kind === "leaf") return [];
+  // A field holds only its parts (2026-11-09): they come from its own commands (prefix · contextual
+  // help · the origin template), never from this list.
+  if (kind.kind === "leaf" || kind.kind === "parts") return [];
   const library = graph.library;
   const ofType = (itemType: string): CatalogSlotInsertOption | undefined => {
     const definitionId = catalogPaletteDefinitionId(library, itemType);

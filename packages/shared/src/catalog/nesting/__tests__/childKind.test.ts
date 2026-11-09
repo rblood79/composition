@@ -49,15 +49,29 @@ describe("catalogChildKind — 부품이 받는 자식의 종류", () => {
       kind: "items",
       items: ["TableHeader", "TableBody"],
     });
-    // 전환된 family (ADR-256 Phase 2b · 6c · 6d · 6e) 는 RAC 의 종류 — field 는 자유 내용.
-    expect(catalogChildKind("TextField")).toEqual({ kind: "free" });
+    // field 는 자기 부품만 (2026-11-09 — S2 field 는 `children` 이 없다; ADR-256 Phase 2b · 6c ~ 6e 의
+    // 「자유 내용」 은 RAC `<div>` 의 관찰이었고 TextField 안에 TextField 가 들어갔다).
+    expect(catalogChildKind("TextField")).toEqual({
+      kind: "parts",
+      parts: [
+        "Label",
+        "Input",
+        "Description",
+        "FieldError",
+        "FieldLabel",
+        "frame",
+        "group",
+        "Group",
+        "Slot",
+      ],
+    });
     for (const picker of [
       "Select",
       "ComboBox",
       "DatePicker",
       "DateRangePicker",
     ])
-      expect(catalogChildKind(picker), picker).toEqual({ kind: "free" });
+      expect(catalogChildKind(picker).kind, picker).toBe("parts");
     // 전환된 family (ADR-256 Phase 5h) — TreeItem 은 RAC 의 항목 (TreeItemContent · TreeItem),
     // 행 내용 TreeItemContent 는 자유 내용.
     expect(catalogChildKind("TreeItem")).toEqual({
@@ -94,13 +108,23 @@ describe("중첩 판정 — children 종류를 읽는다", () => {
     expect(canNest("ColorPicker", "Text")).toBe(true);
     expect(canNest("ColorSwatchPicker", "Text")).toBe(false);
     expect(canNest("Table", "Text")).toBe(false);
-    // 전환된 field (Phase 2b · 6c · 6d · 6e) 는 자유 자식을 받는다 (레퍼런스: field 안 아이콘).
+    // field 는 자기 부품만 받는다 (2026-11-09) — 레퍼런스의 「field 안 아이콘」 은 SearchField 의 부품이고,
+    // TextField 의 앞 글자는 control Group 안에 선다 (`fieldPrefixCommand`).
+    // 레이아웃 래퍼 (frame · Group) 는 부품을 묶는 감싸개라 선다 (ADR-256 Phase 2 리뷰 — RAC context 는
+    // 래퍼를 건넌다); 자유 내용 (Icon · Text · 다른 field) 은 아니다.
     expect(canNest("Select", "frame")).toBe(true);
     expect(canNest("ComboBox", "frame")).toBe(true);
     expect(canNest("DatePicker", "frame")).toBe(true);
-    expect(canNest("DateRangePicker", "Icon")).toBe(true);
+    expect(canNest("DateRangePicker", "Icon")).toBe(false);
     expect(canNest("TextField", "frame")).toBe(true);
-    expect(canNest("TextField", "Icon")).toBe(true);
+    expect(canNest("TextField", "Icon")).toBe(false);
+    expect(canNest("Select", "Text")).toBe(false);
+    expect(canNest("ComboBox", "TextField")).toBe(false);
+    expect(canNest("TextField", "TextField")).toBe(false);
+    expect(canNest("SearchField", "Icon")).toBe(true);
+    expect(canNest("TextField", "Group")).toBe(true);
+    expect(canNest("TextField", "FieldLabel")).toBe(true);
+    expect(canNest("Group", "Icon", ["Group", "TextField"])).toBe(true);
     // 전환된 Tabs (ADR-256 Phase 5e-2) 도 — 레퍼런스: Tabs 안 자유 div, TabPanels 안 자유 내용.
     expect(canNest("Tabs", "frame")).toBe(true);
     expect(canNest("Tabs", "Button")).toBe(true);

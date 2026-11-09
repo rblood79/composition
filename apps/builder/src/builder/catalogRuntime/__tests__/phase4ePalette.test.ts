@@ -92,6 +92,27 @@ describe("ADR-248 Phase 4e-4 Components palette", () => {
     expect(children(BODY)).toHaveLength(2);
   });
 
+  it("a selected field holds only its parts: the next TextField · NumberField go beside it (2026-11-09)", async () => {
+    const { workspace, add, children } = await open();
+    const frame = add("frame");
+    const field = add("TextField");
+    expect(children(frame)).toEqual([field]);
+    // The palette selects the new TextField; a TextField aimed at it is relocated to the frame.
+    const second = add("TextField");
+    expect(children(frame)).toEqual([field, second]);
+    expect(children(field)).toEqual([]);
+    // Relocated past the selection, it lands right after the selected field (not at the end).
+    workspace.session.select(workspace.itemsOfNode(field, 1));
+    const number = add("NumberField");
+    expect(children(frame)).toEqual([field, number, second]);
+    expect(children(field)).toEqual([]);
+    // A group still takes its items (ToggleButtonGroup ⊃ ToggleButton — free content, group "+").
+    workspace.session.select(workspace.itemsOfNode(frame, 1));
+    const group = add("ToggleButtonGroup");
+    const toggle = add("ToggleButton");
+    expect(children(group)).toContain(toggle);
+  });
+
   it("a new node starts with the type's creation props (the old palette's defaults)", async () => {
     const { workspace, add } = await open();
     const graph = workspace.runtime.graph;
