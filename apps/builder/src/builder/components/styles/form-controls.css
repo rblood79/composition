@@ -65,12 +65,10 @@
     color: var(--fg-muted);
   }
 
-  :where(.react-aria-Select):where(:not([data-catalog-id], [data-catalog-id] *))
-    :where(.select-chevron),
-  /* 팝오버 trigger (글꼴 · 아이콘 · 슬롯 넣기) 의 ▾ 도 Select 의 ▾ 상자 — 2026-11-10 사용자 지적:
-     글꼴 칸만 맨 아이콘 16 이라 다른 Select 와 달랐다 */
-  :where(.font-picker-trigger, .icon-picker-input-trigger, .slot-fill-trigger)
-    > :where(.select-chevron) {
+  /* ▾ 상자 — Select 와 팝오버 trigger (글꼴 · 아이콘 · 슬롯 넣기) 가 같은 `.select-chevron` 하나
+     (2026-11-10 사용자 지적: 글꼴 칸만 맨 아이콘 16 이라 다른 Select 와 달랐다). catalog DOM 은 제외 */
+  :where(.select-chevron):where(:not([data-catalog-id] *)) {
+    flex: none;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -154,20 +152,13 @@
       .react-aria-ComboBox {
         width: 100%;
         padding: 0;
-
-        .react-aria-Button {
-          span[aria-hidden] {
-            width: var(--text-xl);
-            height: var(--text-xl);
-            border-radius: var(--radius-sm);
-          }
-        }
       }
 
-      /* 팝오버 trigger 의 ▾ 상자 크기 — Select 의 ▾ (위) 와 같은 20 */
-      :is(.font-picker-trigger, .icon-picker-input-trigger, .slot-fill-trigger)
-        > .select-chevron {
-        flex: none;
+      /* ▾ 상자 크기 20 — Select · ComboBox 버튼과 팝오버 trigger 의 `.select-chevron` */
+      :is(.react-aria-Select, .react-aria-ComboBox)
+        .react-aria-Button
+        span[aria-hidden],
+      .select-chevron {
         width: var(--text-xl);
         height: var(--text-xl);
         border-radius: var(--radius-sm);

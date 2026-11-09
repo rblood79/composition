@@ -48,7 +48,8 @@ interface ColorPickerPanelProps {
    */
   livePreview?: boolean;
   onPresentationCancel?: (reason: "pointer-cancel" | "escape") => void;
-  onChange: (color: string) => void;
+  /** 드래그 중 미리보기 — 없으면 손을 놓을 때 (`onChangeEnd`) 만 알린다. */
+  onChange?: (color: string) => void;
   onChangeEnd: (color: string) => void;
 }
 
@@ -123,7 +124,7 @@ export const ColorPickerPanel = memo(function ColorPickerPanel({
       recordEditorPresentationRawInput();
       setLocalColor(color);
       setToken(undefined);
-      onChange(color.toString("hexa"));
+      onChange?.(color.toString("hexa"));
     },
     [onChange, reconcileAlpha],
   );

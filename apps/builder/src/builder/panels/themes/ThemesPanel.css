@@ -31,7 +31,8 @@
     box-shadow 0.15s;
 }
 
-.tint-swatch .react-aria-ColorSwatch {
+/* 견본과 사용자 accent 「+」 상자는 같은 20 자리 */
+.tint-swatch :is(.react-aria-ColorSwatch, .tint-swatch-add) {
   width: var(--text-xl);
   height: var(--text-xl);
   border-radius: var(--radius-sm);
@@ -63,10 +64,7 @@
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  width: var(--text-xl);
-  height: var(--text-xl);
   border: 1px dashed var(--border);
-  border-radius: var(--radius-sm);
   color: var(--fg-muted);
 }
 

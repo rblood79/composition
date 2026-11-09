@@ -16,8 +16,7 @@ import { useSemanticLabel } from "../../../../i18n";
 
 import {
   useThemeConfigDarkMode,
-  useThemeConfigNeutral,
-  useThemeConfigTint,
+  useThemeConfigVersion,
 } from "../../../../stores/themeConfigStore";
 
 import { tokenToCSSVar, type TokenRef } from "@composition/rendering";
@@ -164,14 +163,16 @@ export const ColorPickerPalettes = memo(function ColorPickerPalettes({
 }: ColorPickerPalettesProps) {
   const localize = useSemanticLabel();
   const documentColors = useDocumentColors();
-  const tint = useThemeConfigTint();
-  const neutral = useThemeConfigNeutral();
+  const themeVersion = useThemeConfigVersion();
   const darkMode = useThemeConfigDarkMode();
   const [documentOpen, setDocumentOpen] = useState(true);
   const [themeOpen, setThemeOpen] = useState(true);
 
-  // 토큰 값은 활성 테마 맵 (설치된 tint · neutral) 과 색 모드에서 읽는다 — 바뀌면 다시
+  // 토큰 값은 활성 테마 맵과 색 모드에서 읽는다 — 맵은 제자리에서 바뀌므로 설치 신호 `themeVersion` 으로
+  //   다시 읽는다. tint · Tone 만 보면 사용자 accent (`color.accent` hex — tint 그대로) 를 놓친다
+  //   (2026-11-10 사용자 보고: 피커를 닫고 다시 열어야 Theme 견본이 바뀌었다).
   const themeGroups = useMemo(() => {
+    void themeVersion;
     const mode = darkMode === "dark" ? "dark" : "light";
     return THEME_PALETTE_GROUPS.map((group) => ({
       label: group.label,
@@ -183,7 +184,7 @@ export const ColorPickerPalettes = memo(function ColorPickerPalettes({
         return css && hex ? [{ name, css, hex }] : [];
       }),
     }));
-  }, [tint, neutral, darkMode]);
+  }, [themeVersion, darkMode]);
   const current = hex8ToHex6(value);
 
   // 문서 색은 hex8 로 commit (alpha 보존), Theme 은 토큰 변수

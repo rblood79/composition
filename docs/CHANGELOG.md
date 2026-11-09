@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Theme 사용자 accent 피커 — Theme 견본 즉시 반영 · Document 팔레트] - 2026-11-10
+
+### Fixed
+
+- **Theme › Accent 「+」 피커에서 색을 고르면 피커 안 Theme 견본 (Accent · …) 이 바로 바뀐다** (사용자 보고 「팝업을 닫고 다시 열어야 반영」). Why: 팔레트의 Theme 견본 memo 가 tint · Tone · 색 모드만 보아, tint 를 바꾸지 않는 사용자 accent (`color.accent` hex) 를 놓쳤다. 이제 테마 설치 신호 `themeVersion` 으로 다시 읽는다.
+  - 테스트 `ColorPickerPalettes.theme.test.tsx` — 원복 RED (`vibrant blue` 그대로).
+  - Live (Chrome MCP 5173, 새 프로젝트): 피커를 연 채 초록 → 자주 — Accent 견본 3 · 행 끝 견본 · 테마 줄 `#C536F0` 즉시. 콘솔 오류 0.
+- **Theme 사용자 accent 피커도 Document 팔레트를 보인다**: Site 패널 색 칸처럼 피커를 Styles host 로 감싼다 — 앞 커밋의 「host 없음」 대체 경로 (`useStylesSelection` · 빈 문서 팔레트) 는 되돌렸다.
+  - 정리 (동작 변경 0): `color.accent` 판정을 shared `themeAccentHex` · `THEME_ACCENT_TOKEN` 하나로 (resolver · 테마 key · 패널 3), ▾ 상자 규칙을 `.select-chevron` 하나로 (Select · 팝오버 trigger), 견본 ✓ 한 벌.
+  - Live: ▾ 상자 4 (Theme Font 포함) 20 × 20 · 「+」 20 × 20 점선 · 프리셋 선택 → 사용자 색 삭제 (`blue · md`).
+  - 위치: `apps/builder/src/builder/panels/styles/components/ColorPickerPalettes.components.tsx` · `panels/themes/ThemesPanel.tsx` · `ThemeListSection.tsx` · `catalog/catalogThemesHost.ts` · `components/styles/form-controls.css` · `packages/shared/src/catalog/runtime/themeLadders.ts`
+
 ## [빌더 툴팁 · 색 팝오버의 화살표 제거] - 2026-11-10
 
 ### Changed

@@ -56,6 +56,7 @@ import type { NeutralPreset } from "./neutralToSkiaColors";
 import { resolveRadiusTokens } from "./radiusScaleToSkia";
 import {
   THEME_LADDERS_PENDING,
+  themeAccentHex,
   themeLadderModule,
   themeNeedsLadders,
 } from "./themeLadders";
@@ -220,9 +221,7 @@ export function resolveThemeSnapshot(
   };
 
   // ── seed ──
-  const accentDelta = delta["color.accent"];
-  const accentHex =
-    typeof accentDelta?.value === "string" ? accentDelta.value : undefined;
+  const accentHex = themeAccentHex(delta);
   const { c, h, isDefault } = tintOf(preset, accentHex, warnings);
   const neutral = (preset.neutral || "neutral") as NeutralPreset;
   // ADR-302 — 비기본 축은 생성 사다리 (lazy). 로드 전이면 seed 로 두고 알린다 (세션이 로드 뒤 다시 적용).

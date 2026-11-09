@@ -99,16 +99,11 @@ export const useThemeConfigStore = create<ThemeConfigState>()(
 // Selectors
 // ============================================================================
 
-export const useThemeConfigTint = () => useThemeConfigStore((s) => s.tint);
-
 export const useThemeConfigVersion = () =>
   useThemeConfigStore((s) => s.themeVersion);
 
 export const useThemeConfigDarkMode = () =>
   useThemeConfigStore((s) => s.darkMode);
-
-export const useThemeConfigNeutral = () =>
-  useThemeConfigStore((s) => s.neutral);
 
 export const useThemeConfigRadiusScale = () =>
   useThemeConfigStore((s) => s.radiusScale);

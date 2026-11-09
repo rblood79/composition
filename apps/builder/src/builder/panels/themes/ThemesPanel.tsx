@@ -35,7 +35,10 @@ import { FontFamilyPicker } from "../fonts/FontFamilyPicker";
 import { ColorPickerPanel } from "../styles/components/ColorPickerPanel";
 import { panelFillColorHex } from "../../catalogRuntime/panelTokens";
 import { ACTION_ICONS } from "../../config/actionIcons";
-import { useThemeConfigDarkMode } from "../../../stores/themeConfigStore";
+import { useThemeConfigStore } from "../../../stores/themeConfigStore";
+import { CatalogStylesHostProvider } from "../styles/catalog/CatalogStylesPanel";
+import { hex6ToHex8, tryParseRacColor } from "../styles/utils/colorUtils";
+import { themeAccentHex } from "../../../../../../packages/shared/src/catalog/runtime/themeLadders";
 import "./ThemesPanel.css";
 
 // ============================================================================
@@ -78,6 +81,18 @@ const TINT_LABELS: Record<TintPreset, string> = {
   pink: "Pink",
 };
 
+/** 선택된 견본의 ✓ — Tint · 사용자 accent · Neutral 견본이 같이 쓴다. */
+function SwatchCheck() {
+  return (
+    <Check
+      size={14}
+      strokeWidth={3}
+      color="#fff"
+      className="tint-swatch-check"
+    />
+  );
+}
+
 interface TintSwatchProps {
   tint: TintPreset;
   selected: boolean;
@@ -97,14 +112,7 @@ const TintSwatch = memo(
         onPress={handlePress}
       >
         <ColorSwatch color={color} />
-        {selected && (
-          <Check
-            size={14}
-            strokeWidth={3}
-            color="#fff"
-            className="tint-swatch-check"
-          />
-        )}
+        {selected && <SwatchCheck />}
       </Button>
     );
   },
@@ -125,7 +133,7 @@ const AddIcon = ACTION_ICONS.add;
  * 같은 `ColorPickerPanel`) 가 열리고 손을 놓을 때 한 번 저장한다. 프리셋을 고르면 사용자 색은 지워진다.
  * (2026-11-10 사용자 요청 — 모델은 이미 hex 를 받았지만 패널에 넣는 자리가 없었다.)
  */
-function CustomAccentSwatch({
+const CustomAccentSwatch = memo(function CustomAccentSwatch({
   hex,
   fallbackHex,
   onCommit,
@@ -136,17 +144,18 @@ function CustomAccentSwatch({
   fallbackHex: string;
   onCommit: (hex: string) => void;
 }) {
-  const mode = useThemeConfigDarkMode() === "dark" ? "dark" : "light";
   const commit = useCallback(
     (color: string) => {
       // 테마 색 토큰을 고르면 그 색의 지금 값 · alpha 는 accent 에 쓰지 않는다
-      const resolved = panelFillColorHex(color, mode);
-      if (/^#[0-9a-f]{6}/i.test(resolved))
-        onCommit(resolved.slice(0, 7).toUpperCase());
+      const mode =
+        useThemeConfigStore.getState().darkMode === "dark" ? "dark" : "light";
+      const parsed = tryParseRacColor(panelFillColorHex(color, mode));
+      if (parsed) onCommit(parsed.toString("hex"));
     },
-    [mode, onCommit],
+    [onCommit],
   );
   const label = hex ? `Custom accent ${hex}` : "Add custom accent color";
+  const pickerHex = hex ?? fallbackHex;
   return (
     <DialogTrigger>
       <Button
@@ -157,16 +166,14 @@ function CustomAccentSwatch({
         {hex ? (
           <>
             <ColorSwatch color={parseColor(hex)} />
-            <Check
-              size={14}
-              strokeWidth={3}
-              color="#fff"
-              className="tint-swatch-check"
-            />
+            <SwatchCheck />
           </>
         ) : (
           <span className="tint-swatch-add" aria-hidden="true">
-            <AddIcon size={iconProps.size} strokeWidth={iconProps.strokeWidth} />
+            <AddIcon
+              size={iconProps.size}
+              strokeWidth={iconProps.strokeWidth}
+            />
           </span>
         )}
       </Button>
@@ -175,17 +182,18 @@ function CustomAccentSwatch({
         className="property-color-popover"
         hideArrow
       >
-        <ColorPickerPanel
-          key={hex ?? fallbackHex}
-          value={`${hex ?? fallbackHex}FF`}
-          resetKey={hex ?? fallbackHex}
-          onChange={() => {}}
-          onChangeEnd={commit}
-        />
+        {/* 피커는 Styles host 를 읽는다 (문서 색 팔레트 · 입력 칸 선택 비교) — Site 패널의 색 칸과 같은 감싸기 */}
+        <CatalogStylesHostProvider>
+          <ColorPickerPanel
+            value={hex6ToHex8(pickerHex)}
+            resetKey={pickerHex}
+            onChangeEnd={commit}
+          />
+        </CatalogStylesHostProvider>
       </Popover>
     </DialogTrigger>
   );
-}
+});
 
 // ============================================================================
 // NeutralGrid — 5색 Neutral 프리셋 스와치
@@ -229,14 +237,7 @@ const NeutralSwatch = memo(
         onPress={handlePress}
       >
         <ColorSwatch color={color} />
-        {selected && (
-          <Check
-            size={14}
-            strokeWidth={3}
-            color="#fff"
-            className="tint-swatch-check"
-          />
-        )}
+        {selected && <SwatchCheck />}
       </Button>
     );
   },
@@ -306,11 +307,8 @@ function ThemesContent() {
   );
   // ADR-302 — 활성 테마의 `color.accent` hex 가 있으면 tint 대신 그 색이 accent 다
   const themes = host.useThemes();
-  const customAccentEntry = themes?.items[themes.active]?.tokens["color.accent"];
-  const customAccent =
-    typeof customAccentEntry?.value === "string"
-      ? customAccentEntry.value
-      : undefined;
+  const activeTokens = themes?.items[themes.active]?.tokens;
+  const customAccent = activeTokens ? themeAccentHex(activeTokens) : undefined;
   const handleCustomAccent = useCallback(
     (hex: string) => {
       host.setActiveThemeAccent({ hex });
@@ -400,7 +398,7 @@ function ThemesContent() {
             <div className="fieldset-actions">
               <CustomAccentSwatch
                 hex={customAccent}
-                fallbackHex={TINT_HEX_MAP[currentTint] ?? "#3B63E6"}
+                fallbackHex={TINT_HEX_MAP[currentTint]}
                 onCommit={handleCustomAccent}
               />
             </div>

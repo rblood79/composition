@@ -4,8 +4,7 @@
     min-inline-size: 0;
   }
 
-  .font-picker-trigger > .font-picker-theme-chip,
-  .font-picker-trigger > .select-chevron {
+  .font-picker-trigger > .font-picker-theme-chip {
     flex-shrink: 0;
   }
 
@@ -50,7 +49,4 @@
       outline-offset: -2px;
     }
   }
-
-  /* ADR-298 Phase 5 (시안 Text 탭) — 작성값이 없으면 「테마」 칩 + 실제로 쓰이는 서체 이름. 칩 생김새는
-     `form-controls.css` `.font-picker-theme-chip` (시작 여백은 기본 0 — 2026-11-10 사용자 지시). */
 }

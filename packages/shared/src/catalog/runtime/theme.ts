@@ -17,6 +17,7 @@ import {
 } from "./resolveThemeSnapshot";
 import {
   loadThemeLadders,
+  themeAccentHex,
   themeLadderModule,
   themeNeedsLadders,
 } from "./themeLadders";
@@ -177,13 +178,9 @@ export function catalogThemeState(graph: CatalogGraph): CatalogThemeState {
   // ADR-302 — 비기본 preset 의 사다리는 lazy chunk. 로드 전 상태는 seed 로 그리고 key 에 「대기」 를 담아,
   //   로드 뒤 세션 (`onThemeLaddersLoaded` 구독) 이 다시 읽으면 key 가 바뀌어 테마를 다시 적용한다.
   // resolver 와 같은 우선순위 — 테마 델타가 root 를 덮는다
-  const accent = (definition.tokens["color.accent"] ?? rootTokens["color.accent"])
-    ?.value;
+  const accentHex = themeAccentHex({ ...rootTokens, ...definition.tokens });
   const laddersPending =
-    themeNeedsLadders(
-      definition.preset,
-      typeof accent === "string" ? accent : undefined,
-    ) && !themeLadderModule();
+    themeNeedsLadders(definition.preset, accentHex) && !themeLadderModule();
   if (laddersPending) void loadThemeLadders();
   return {
     key: JSON.stringify([

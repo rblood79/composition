@@ -21,16 +21,19 @@ import { useThemesHost } from "./themesHost";
 import { Button } from "react-aria-components/Button";
 import { ToggleButton } from "react-aria-components/ToggleButton";
 import { DisabledReason } from "../../components/ui/DisabledReason";
+import {
+  THEME_ACCENT_TOKEN,
+  themeAccentHex,
+} from "../../../../../../packages/shared/src/catalog/runtime/themeLadders";
 
 function presetMeta(themes: ThemesCollection, id: string): string {
   const p = themes.items[id]?.preset;
   if (!p) return "";
   const tokens = themes.items[id]?.tokens ?? {};
   // 사용자 accent (`color.accent` hex) 는 tint 자리에 — 재정의 개수에서는 뺀다 (2026-11-10)
-  const custom = tokens["color.accent"]?.value;
-  const accent = typeof custom === "string" ? custom : p.tint;
+  const accent = themeAccentHex(tokens) ?? p.tint;
   const overrides = Object.keys(tokens).filter(
-    (key) => key !== "color.accent",
+    (key) => key !== THEME_ACCENT_TOKEN,
   ).length;
   return `${accent} · ${p.radiusScale}${overrides > 0 ? ` · +${overrides}` : ""}`;
 }

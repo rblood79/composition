@@ -51,6 +51,17 @@ export function onThemeLaddersLoaded(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
+/** 사용자 accent 색 토큰 — hex 문자열이면 tint preset 을 대신한다 (ADR-302). */
+export const THEME_ACCENT_TOKEN = "color.accent";
+
+/** 토큰 델타의 사용자 accent hex — 없거나 문자열이 아니면 `undefined`. */
+export function themeAccentHex(
+  tokens: Readonly<Record<string, { readonly value?: unknown } | undefined>>,
+): string | undefined {
+  const value = tokens[THEME_ACCENT_TOKEN]?.value;
+  return typeof value === "string" ? value : undefined;
+}
+
 /** 이 preset 이 생성 사다리를 쓰는가 — 기본 tint (blue · hex 없음) 와 기본 Tone (neutral) 이면 아니다. */
 export function themeNeedsLadders(
   preset: { tint?: string; neutral?: string },
