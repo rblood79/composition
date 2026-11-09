@@ -5912,10 +5912,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "padding-left": "15px",
               "padding-right": "15px",
             },
-            ".react-aria-Button[slot='trigger'] .react-aria-Icon svg": {
-              width: "14px",
-              height: "14px",
-            },
+            // (2026-11-09 사용자: the chevron stays the trigger's lucide Icon box at XL too — no S2
+            //   ui-icon 14px override; the Canvas drew a 18 glyph in that 14 box.)
           },
         },
         staticSelectors: {

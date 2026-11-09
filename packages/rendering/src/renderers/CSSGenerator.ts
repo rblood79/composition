@@ -842,8 +842,10 @@ function generateSizeStyles(
     );
   }
 
-  // font-size
-  lines.push(`  font-size: ${tokenToCSSVar(size.fontSize)};`);
+  // font-size — a size without one (Avatar · Meter fill …) declares none, not an empty `font-size: ;`
+  //   (2026-11-09 — `generate-css.ts` fills a missing field with "").
+  if (size.fontSize)
+    lines.push(`  font-size: ${tokenToCSSVar(size.fontSize)};`);
 
   // border-radius — ADR-071: containerStyles.borderRadius 존재 시 skip (이중 emit 방지)
   if (!options?.skipBorderRadius) {

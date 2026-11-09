@@ -27,7 +27,6 @@
 
   /* Default size */
   padding: 0px 0px;
-  font-size: ;
   border-radius: var(--catalog-token-radius-sm);
 }
 
@@ -205,25 +204,21 @@
 
 .react-aria-MeterFill[data-size="S"] {
   padding: 0px 0px;
-  font-size: ;
   border-radius: var(--catalog-token-radius-sm);
 }
 
 .react-aria-MeterFill[data-size="M"] {
   padding: 0px 0px;
-  font-size: ;
   border-radius: var(--catalog-token-radius-sm);
 }
 
 .react-aria-MeterFill[data-size="L"] {
   padding: 0px 0px;
-  font-size: ;
   border-radius: var(--catalog-token-radius-lg);
 }
 
 .react-aria-MeterFill[data-size="XL"] {
   padding: 0px 0px;
-  font-size: ;
   border-radius: var(--catalog-token-radius-lg);
 }
 

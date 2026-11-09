@@ -52,6 +52,11 @@ export interface CapabilityParam {
     | "icon";
   /** 입력 레이블의 카탈로그 키 (`labelKey` 와 같은 이유로 문구가 아니다) */
   labelKey: string;
+  /**
+   * (2026-11-09) A `choice` whose document value is a number — Avatar · AvatarGroup `size` (S2 pixel
+   * sizes): the panel picks the option's string, the run writes the number the prop's value type takes.
+   */
+  numericChoice?: true;
 }
 
 export interface CapabilityDef {

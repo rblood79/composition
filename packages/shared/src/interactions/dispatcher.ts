@@ -801,6 +801,13 @@ function executeInteractionAction(
     (value) => resolveEventValue(value, context, deps),
   );
   if (!resolved.ok) return resolved;
+  // (A numeric choice — Avatar size — is picked as the option's string; the prop takes the number.)
+  if (
+    def.param?.numericChoice &&
+    typeof resolved.value === "string" &&
+    /^\d+(?:\.\d+)?$/.test(resolved.value)
+  )
+    resolved.value = Number(resolved.value);
   const constraintContext = {
     props: receiver.props,
     current,

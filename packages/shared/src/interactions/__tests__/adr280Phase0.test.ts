@@ -110,3 +110,15 @@ describe("ADR-280 Phase 0 — RED 5: Form imperative capabilities always fail", 
       });
   });
 });
+
+// (2026-11-09) Avatar · AvatarGroup `size` is an S2 pixel number (`avatar-size` kind): its Do is a
+//   choice of the binding's presets — picked as the option's string, written as the number.
+describe("Avatar size Do (numeric choice)", () => {
+  it.each(["Avatar", "AvatarGroup"])("%s offers setSize and writes the number", (type) => {
+    const def = resolveCapabilities(type).setSize;
+    expect(def?.param).toMatchObject({ kind: "choice", numericChoice: true });
+    const { deps, updateElementProps } = depsFor(type, { size: 24 });
+    expect(executeInteractionRule(capability("setSize", "40"), deps).ok).toBe(true);
+    expect(updateElementProps).toHaveBeenCalledWith("target", { size: 40 });
+  });
+});

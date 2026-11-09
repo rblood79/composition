@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Disclosure XL chevron · Avatar 크기 Do · 빈 font-size 선언] - 2026-11-09
+
+### Fixed
+
+- **Disclosure XL 의 chevron 이 다른 크기보다 작았고 Canvas · Preview 가 달랐다**: XL 만 S2 ui-icon 표 값 14px 로 svg 를 덮어써, Preview 는 14 · Canvas 는 14 상자에 18 글리프였다. 사용자 결정 (「lucide 로 다른 사이즈와 동일하게」) 대로 덮어쓰기를 지워 XL 도 S · M · L 처럼 trigger 의 lucide Icon 18 을 쓴다 — Canvas · Publish 모두 18×18 (live).
+- **Interactions 에서 Avatar · AvatarGroup 의 「크기 정하기」 Do 가 사라졌다**: 크기 종류가 `avatar-size` · `avatar-group-size` 로 바뀐 뒤 Do 유도 표에 없었다. S2 크기 선택지 Do 로 다시 연결하고, 고른 값은 문서의 숫자 크기로 쓴다.
+- 생성 CSS 의 빈 `font-size: ;` 선언 44줄 (Avatar · AvatarGroup · MeterFill · ProgressBarFill · SideNav 계열 · SelectBoxGroup · Accordion · Disclosure) 을 내지 않는다 — 브라우저가 버리던 선언이라 화면 변화는 없다.
+
 ## [비활성 버튼 칠 · 굵은 InlineAlert 설명 · 정적 선택자 · 낡은 테스트 갱신] - 2026-11-09
 
 ### Fixed

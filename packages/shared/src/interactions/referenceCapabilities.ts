@@ -45,7 +45,11 @@ const PARAM_KIND: Partial<
   variant: "choice",
   size: "choice",
   fillStyle: "choice",
+  // (2026-11-09: Avatar · AvatarGroup S2 pixel sizes — a choice written as a number, `numericChoice`.)
+  "avatar-size": "choice",
+  "avatar-group-size": "choice",
 };
+const NUMERIC_CHOICE_KINDS = new Set(["avatar-size", "avatar-group-size"]);
 
 /**
  * `isSelected` of a collection item is its owner's selection (ADR-280 — the owner's controlled
@@ -132,7 +136,13 @@ export function capabilitiesOfProp(
       ...common,
       labelKey: labelKeyOf(id, "capabilities.setProp"),
       value: "!param",
-      param: { kind, labelKey: "capabilities.paramValue" },
+      param: {
+        kind,
+        labelKey: "capabilities.paramValue",
+        ...(NUMERIC_CHOICE_KINDS.has(contract.kind)
+          ? { numericChoice: true as const }
+          : {}),
+      },
     },
   };
 }

@@ -48,7 +48,6 @@
 }
 
 .react-aria-Disclosure[data-size="XL"] {
-  font-size: ;
   border-radius: var(--catalog-token-radius-none);
   --icon-size: 14px;
 }
@@ -223,11 +222,6 @@
   .react-aria-Disclosure[data-size="XL"] .react-aria-DisclosurePanel > div {
     padding-left: 15px;
     padding-right: 15px;
-  }
-
-  .react-aria-Disclosure[data-size="XL"] .react-aria-Button[slot='trigger'] .react-aria-Icon svg {
-    width: 14px;
-    height: 14px;
   }
 
 

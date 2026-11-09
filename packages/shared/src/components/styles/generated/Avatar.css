@@ -24,7 +24,6 @@
   /* Default size */
   height: 24px;
   padding: 0px 0px;
-  font-size: ;
   border-radius: var(--catalog-token-radius-full);
 }
 
@@ -44,98 +43,84 @@
 .react-aria-Avatar[data-size="16"] {
   height: 16px;
   padding: 0px 0px;
-  font-size: ;
   border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-Avatar[data-size="20"] {
   height: 20px;
   padding: 0px 0px;
-  font-size: ;
   border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-Avatar[data-size="24"] {
   height: 24px;
   padding: 0px 0px;
-  font-size: ;
   border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-Avatar[data-size="28"] {
   height: 28px;
   padding: 0px 0px;
-  font-size: ;
   border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-Avatar[data-size="32"] {
   height: 32px;
   padding: 0px 0px;
-  font-size: ;
   border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-Avatar[data-size="36"] {
   height: 36px;
   padding: 0px 0px;
-  font-size: ;
   border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-Avatar[data-size="40"] {
   height: 40px;
   padding: 0px 0px;
-  font-size: ;
   border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-Avatar[data-size="44"] {
   height: 44px;
   padding: 0px 0px;
-  font-size: ;
   border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-Avatar[data-size="48"] {
   height: 48px;
   padding: 0px 0px;
-  font-size: ;
   border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-Avatar[data-size="56"] {
   height: 56px;
   padding: 0px 0px;
-  font-size: ;
   border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-Avatar[data-size="64"] {
   height: 64px;
   padding: 0px 0px;
-  font-size: ;
   border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-Avatar[data-size="80"] {
   height: 80px;
   padding: 0px 0px;
-  font-size: ;
   border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-Avatar[data-size="96"] {
   height: 96px;
   padding: 0px 0px;
-  font-size: ;
   border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-Avatar[data-size="112"] {
   height: 112px;
   padding: 0px 0px;
-  font-size: ;
   border-radius: var(--catalog-token-radius-full);
 }
 

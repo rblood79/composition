@@ -46,7 +46,6 @@
 }
 
 .react-aria-Accordion[data-size="XL"] {
-  font-size: ;
   border-radius: var(--catalog-token-radius-lg);
   border-width: var(--border-width-none);
 }

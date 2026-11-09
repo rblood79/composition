@@ -13,7 +13,6 @@
     font-family: var(--font-sans);
 
   /* Default size */
-  font-size: ;
   border-radius: var(--catalog-token-radius-full);
 }
 
@@ -22,37 +21,30 @@
 }
 
 .react-aria-AvatarGroup[data-size="16"] {
-  font-size: ;
   border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-AvatarGroup[data-size="20"] {
-  font-size: ;
   border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-AvatarGroup[data-size="24"] {
-  font-size: ;
   border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-AvatarGroup[data-size="28"] {
-  font-size: ;
   border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-AvatarGroup[data-size="32"] {
-  font-size: ;
   border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-AvatarGroup[data-size="36"] {
-  font-size: ;
   border-radius: var(--catalog-token-radius-full);
 }
 
 .react-aria-AvatarGroup[data-size="40"] {
-  font-size: ;
   border-radius: var(--catalog-token-radius-full);
 }
 

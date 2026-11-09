@@ -16,9 +16,7 @@ import {
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
-import {
-  buildCodeCatalogLibrary,
-} from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
+import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
   CatalogLibrary,
   NodeEntry,
@@ -125,15 +123,15 @@ function glyphs(data: SkiaNodeData | undefined): SkiaNodeData[] {
 /** The trigger parts of the first Disclosure: its Heading, trigger Button, chevron Icon, title Text. */
 function triggerOf(
   root: Awaited<ReturnType<typeof openPalette>>["root"],
-  ofBinding: (binding: string) => ReturnType<
-    Awaited<ReturnType<typeof openPalette>>["ofBinding"]
-  >,
+  ofBinding: (
+    binding: string,
+  ) => ReturnType<Awaited<ReturnType<typeof openPalette>>["ofBinding"]>,
   index = 0,
 ) {
   const heading = ofBinding("heading")[index]!;
   const trigger = root.layoutInputs.get(heading.children[0]!)!;
-  const [chevron, title] = trigger.children.map(
-    (id) => root.layoutInputs.get(id)!,
+  const [chevron, title] = trigger.children.map((id) =>
+    root.layoutInputs.get(id)!,
   );
   return { heading, trigger, chevron, title };
 }
@@ -148,7 +146,9 @@ describe("Disclosure chevron (the trigger's Icon node)", () => {
     // (The trigger's text color — the title's: the DOM glyph is `currentColor`.)
     const hex = String(title.visual.color);
     expect(
-      [...glyph.iconPath!.strokeColor].slice(0, 3).map((c) => Math.round(c * 255)),
+      [...glyph.iconPath!.strokeColor]
+        .slice(0, 3)
+        .map((c) => Math.round(c * 255)),
     ).toEqual([1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16)));
     expect(glyphs(getSkiaNode(heading.id))).toHaveLength(0);
     expect(glyphs(getSkiaNode(trigger.id))).toHaveLength(0);
@@ -156,11 +156,55 @@ describe("Disclosure chevron (the trigger's Icon node)", () => {
     workspace.dispose();
   });
 
+  // (2026-11-09 사용자 「XL 아이콘 lucide 로 다른 사이즈와 동일하게」: the chevron is the trigger's lucide
+  //  Icon node at every size — its own 18px box; XL's S2 ui-icon override (svg 14px) is gone. Before, the
+  //  DOM drew XL at 14 and the Canvas a 18 glyph in a 14 box.)
+  it("the chevron is the same lucide Icon box at every size, XL included (Canvas and the generated sheet)", async () => {
+    const { workspace, root, ofBinding } = await openPalette("Disclosure");
+    const canvas = bindCatalogCanvas(root, root.pageRootRecords());
+    const painted: Record<string, unknown> = {};
+    for (const size of ["S", "M", "L", "XL"]) {
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: OWNER }],
+          props: { size: { kind: "set", value: size } },
+        }),
+      );
+      canvas.update();
+      const { chevron } = triggerOf(root, ofBinding);
+      painted[size] = [
+        glyphs(getSkiaNode(chevron.id))[0]?.iconPath?.size,
+        chevron.visual.width,
+        chevron.visual.height,
+      ];
+    }
+    expect(painted).toEqual({
+      S: [18, 18, 18],
+      M: [18, 18, 18],
+      L: [18, 18, 18],
+      XL: [18, 18, 18],
+    });
+    canvas.dispose();
+    workspace.dispose();
+    const { readFileSync } = await import("node:fs");
+    const { resolve } = await import("node:path");
+    const css = readFileSync(
+      resolve(
+        __dirname,
+        "../../../../../../packages/shared/src/components/styles/generated/Disclosure.css",
+      ),
+      "utf8",
+    );
+    expect(css).not.toMatch(/\.react-aria-Icon svg \{\s*width: \d/);
+  });
+
   it("the expansion turns the glyph (a delta update)", async () => {
     const { workspace, root, ofBinding } = await openPalette("Disclosure");
     const canvas = bindCatalogCanvas(root, root.pageRootRecords());
     const { chevron } = triggerOf(root, ofBinding);
-    const expanded = JSON.stringify(glyphs(getSkiaNode(chevron.id))[0].iconPath?.paths);
+    const expanded = JSON.stringify(
+      glyphs(getSkiaNode(chevron.id))[0].iconPath?.paths,
+    );
     workspace.execute(
       setFields({
         targets: [{ kind: "node", id: OWNER }],
@@ -168,7 +212,9 @@ describe("Disclosure chevron (the trigger's Icon node)", () => {
       }),
     );
     canvas.update();
-    const collapsed = JSON.stringify(glyphs(getSkiaNode(chevron.id))[0].iconPath?.paths);
+    const collapsed = JSON.stringify(
+      glyphs(getSkiaNode(chevron.id))[0].iconPath?.paths,
+    );
     expect(collapsed).not.toBe(expanded);
     canvas.dispose();
     workspace.dispose();
@@ -200,7 +246,9 @@ describe("Disclosure chevron (the trigger's Icon node)", () => {
     const { workspace, root, ofBinding } = await openPalette("Disclosure");
     const { trigger, chevron } = triggerOf(root, ofBinding);
     workspace.execute(
-      removeTargets({ targets: [workspace.positionOfRecord(chevron.id)!.target] }),
+      removeTargets({
+        targets: [workspace.positionOfRecord(chevron.id)!.target],
+      }),
     );
     expect(root.layoutInputs.get(trigger.id)!.children).toHaveLength(1);
     const html = renderToStaticMarkup(
