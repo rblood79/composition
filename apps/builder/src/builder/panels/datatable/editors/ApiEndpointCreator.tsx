@@ -16,6 +16,7 @@ import type { HttpMethod } from "../../../../types/builder/data.types";
 import { splitApiUrl, suggestApiName } from "../../../../utils/data/apiUrl";
 import { globalToast } from "../../../stores/toast";
 import { translateKey, useOptionalI18n } from "../../../../i18n";
+import { Input } from "react-aria-components/Input";
 import "./DataTableCreator.css";
 
 const METHODS: { value: HttpMethod; label: string }[] = [
@@ -106,7 +107,7 @@ export function ApiEndpointCreator({
           collapsible={false}
         >
           <PropertyFieldset legend={localize("apiName", "Name")}>
-            <input
+            <Input
               className="react-aria-Input"
               type="text"
               value={effectiveName}
@@ -133,7 +134,7 @@ export function ApiEndpointCreator({
               legend={localize("apiUrl", "URL")}
               className="api-creator-url"
             >
-              <input
+              <Input
                 className="react-aria-Input"
                 type="url"
                 autoFocus

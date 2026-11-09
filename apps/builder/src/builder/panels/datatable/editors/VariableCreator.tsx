@@ -18,6 +18,7 @@ import { Section } from "../../../components/panel/Section";
 import type { VariableType } from "../../../../types/builder/data.types";
 import { globalToast } from "../../../stores/toast";
 import { translateKey, useOptionalI18n } from "../../../../i18n";
+import { Input } from "react-aria-components/Input";
 import "./DataTableCreator.css";
 
 const TYPES: { value: VariableType; label: string }[] = [
@@ -106,7 +107,7 @@ export function VariableCreator({ projectId, onClose }: VariableCreatorProps) {
           collapsible={false}
         >
           <PropertyFieldset legend={localize("variableName", "Name")}>
-            <input
+            <Input
               className="react-aria-Input"
               type="text"
               autoFocus

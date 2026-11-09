@@ -30,6 +30,7 @@ import { ScrubInput } from "./ScrubInput";
 
 import "./ColorInputFields.css";
 import { useStylesHost, useStylesSelectedId } from "../stylesHost";
+import { Input } from "react-aria-components/Input";
 
 interface ColorInputFieldsProps {
   value: string; // "#RRGGBBAA" or hexa format
@@ -117,7 +118,7 @@ function TextField({
 
   return (
     <label className="color-input-text-field">
-      <input
+      <Input
         type="text"
         className="color-input-text-field__input"
         value={localValue}

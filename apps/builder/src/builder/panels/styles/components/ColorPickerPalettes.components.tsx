@@ -106,18 +106,17 @@ function PaletteHeader({
 }) {
   const Caret = open ? ChevronDown : ChevronRight;
   return (
-    <button
-      type="button"
+    <Button
       className="color-picker-palette__header"
       aria-expanded={open}
-      onClick={onToggle}
+      onPress={onToggle}
     >
       <Caret size={14} strokeWidth={2} aria-hidden="true" />
       <span className="color-picker-palette__title">{title}</span>
       {count !== undefined && (
         <span className="color-picker-palette__count">{count}</span>
       )}
-    </button>
+    </Button>
   );
 }
 

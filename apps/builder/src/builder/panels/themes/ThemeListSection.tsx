@@ -18,6 +18,9 @@ import { ActionIconButton } from "../../components/ui/ActionIconButton";
 import { PropertyInput } from "../../components/property/PropertyInput";
 import { Section as PropertySection } from "../../components/panel/Section";
 import { useThemesHost } from "./themesHost";
+import { Button } from "react-aria-components/Button";
+import { ToggleButton } from "react-aria-components/ToggleButton";
+import { DisabledReason } from "../../components/ui/DisabledReason";
 
 function presetMeta(themes: ThemesCollection, id: string): string {
   const p = themes.items[id]?.preset;
@@ -80,49 +83,46 @@ const ThemeRow = memo(function ThemeRow({
     >
       <div className="list-row">
         <div className="list-row__body">
-          <button
-            type="button"
+          <ToggleButton
             className="list-row__action theme-row-activate"
-            onClick={activate}
+            onPress={activate}
             aria-label={`${t("themes.activate")}: ${theme.name}`}
-            aria-pressed={isActive}
+            isSelected={isActive}
             data-selected={isActive || undefined}
           >
             {isActive ? <Check size={12} strokeWidth={3} /> : null}
-          </button>
+          </ToggleButton>
           <span className="list-row__label theme-row-name">{theme.name}</span>
           <span className="list-row__meta theme-row-meta">
             {presetMeta(themes, id)}
           </span>
         </div>
         <div className="list-row__actions">
-          <button
-            type="button"
+          <Button
             className="list-row__action theme-row-duplicate"
-            onClick={duplicate}
+            onPress={duplicate}
             aria-label={`${t("themes.duplicate")}: ${theme.name}`}
           >
             <ACTION_ICONS.duplicate size={12} />
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
             className="list-row__action theme-row-rename"
-            onClick={toggleEdit}
+            onPress={toggleEdit}
             aria-expanded={editing}
             aria-label={`${t("themes.rename")}: ${theme.name}`}
           >
             <Pencil size={12} />
-          </button>
-          <button
-            type="button"
-            className="list-row__action theme-row-remove"
-            onClick={remove}
-            disabled={isLast}
-            aria-label={`${t("themes.delete")}: ${theme.name}`}
-            title={isLast ? t("themes.deleteLast") : undefined}
-          >
-            <Minus size={12} />
-          </button>
+          </Button>
+          <DisabledReason reason={isLast ? t("themes.deleteLast") : undefined}>
+            <Button
+              className="list-row__action theme-row-remove"
+              onPress={remove}
+              isDisabled={isLast}
+              aria-label={`${t("themes.delete")}: ${theme.name}`}
+            >
+              <Minus size={12} />
+            </Button>
+          </DisabledReason>
         </div>
       </div>
       {editing && (

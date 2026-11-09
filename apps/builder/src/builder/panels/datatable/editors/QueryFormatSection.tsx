@@ -36,6 +36,7 @@ import { Section } from "../../../components/panel/Section";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { useDataStore } from "../../../stores/data";
 import type { ApiEndpoint } from "../../../../types/builder/data.types";
+import { Input } from "react-aria-components/Input";
 
 type DtFn = (
   key: string,
@@ -150,7 +151,7 @@ function CommitInput({
     // (Unmount only — `commit` reads refs.)
   }, []);
   return (
-    <input
+    <Input
       ref={ref}
       type="text"
       className="react-aria-Input"

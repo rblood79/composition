@@ -39,6 +39,7 @@ import { useDataStore } from "../../../stores/data";
 import { FieldGlyph } from "../utils/FieldGlyph";
 import { resolveFieldGlyph } from "../utils/fieldTypes";
 import { BUILDER_POPUP_LIST_CLASS } from "../../../styles/modules/builderPopupList";
+import { TextArea } from "react-aria-components/TextArea";
 
 export interface FieldValueInputProps {
   field: DataField;
@@ -160,7 +161,7 @@ export function FieldValueInput({
     );
   } else if (field.type === "number") {
     control = (
-      <input
+      <Input
         {...common}
         ref={controlRef}
         className="react-aria-Input"
@@ -188,7 +189,7 @@ export function FieldValueInput({
   } else if (field.type === "string" && field.format === "image") {
     control = (
       <>
-        <input
+        <Input
           {...common}
           ref={controlRef}
           className="react-aria-Input"
@@ -213,7 +214,7 @@ export function FieldValueInput({
     );
   } else if (field.type === "array" || field.type === "object") {
     control = (
-      <textarea
+      <TextArea
         {...common}
         ref={(el) => {
           growTextarea(el);
@@ -250,7 +251,7 @@ export function FieldValueInput({
   } else {
     // string (and its email · url formats) — a textarea that grows with the text (one line to start)
     control = (
-      <textarea
+      <TextArea
         {...common}
         ref={(el) => {
           growTextarea(el);

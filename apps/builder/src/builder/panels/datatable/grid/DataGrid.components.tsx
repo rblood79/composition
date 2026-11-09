@@ -3,12 +3,12 @@
  *
  * - D1: RAC `Table` (`role=grid`, `keyboardNavigationBehavior="tab"` — 격자 전체가 tab stop 1개,
  *   Arrow 로 셀 이동) + `Virtualizer`/`TableLayout` (행 높이 고정, `aria-rowcount/colcount` 는 RAC).
- * - 셀 편집은 자체 구현: 셀 포커스 → Enter / F2 / 타이핑 → `<input>` (짧은 값) 또는 Popover
+ * - 셀 편집은 자체 구현: 셀 포커스 → Enter / F2 / 타이핑 → `<Input>` (짧은 값) 또는 Popover
  *   (JSON · 날짜 · 긴 값, `resolveCellEditorKind`). 키 라우팅은 `resolveGridKey` 한 표 (R1) —
  *   편집 중엔 `state.setKeyboardNavigationDisabled(true)` 로 RAC 셀 이동을 끄고 input 이 키를 갖는다.
  * - 모든 쓰기는 `applyDataChange` (`set_cell` · `insert_rows` · `remove_rows` · `replace_rows` ·
  *   헤더 `+` 인라인 입력·붙여넣기의 `add_field`) — HC1. undo 는 152 History data entry.
- * - 새 필드: 헤더 행 끝의 `+` → 그 자리 인라인 `<input>` (Enter=생성 add_field string, Esc=취소,
+ * - 새 필드: 헤더 행 끝의 `+` → 그 자리 인라인 `<Input>` (Enter=생성 add_field string, Esc=취소,
  *   생성 후 입력 유지해 연속 추가). `+` 는 격자 열이 아니라 스크롤 컨테이너 위의 **슬롯**
  *   (`.datagrid-add-field-slot`) — 마지막 열 오른쪽에 붙되 열이 뷰포트를 넘치면 오른쪽 가장자리에
  *   고정된다 (Airtable 어법 + 좁은 스냅 패널에서도 항상 보이는 가시성). 격자의 aria-colcount 는
@@ -182,6 +182,7 @@ import {
   planGridPaste,
   type GridPastePlan,
 } from "./pasteGrid";
+import { Input } from "react-aria-components/Input";
 
 export function DataGrid({ table, virtualized = true }: DataGridProps) {
   const i18n = useOptionalI18n();
@@ -1248,7 +1249,7 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
             style={{ left: addSlotLeft }}
           >
             {addingField ? (
-              <input
+              <Input
                 key={addNonce}
                 className="datagrid-add-field-input"
                 autoFocus
@@ -1704,7 +1705,7 @@ function ColumnRenameInput({
     inputRef.current?.select();
   }, [state, columnKey]);
   return (
-    <input
+    <Input
       ref={inputRef}
       className="datagrid-column-rename-input"
       aria-label={label}
@@ -1953,7 +1954,7 @@ function InlineCellEditor({
       />
     );
   return (
-    <input
+    <Input
       ref={inputRef}
       data-grid-editor="inline"
       data-shortcut-local="undo redo"

@@ -42,6 +42,7 @@ import { ToolResultMessage } from "./components/ToolResultMessage";
 import { useAgentLoop } from "./hooks/useAgentLoop";
 import { useLocalSuggestions } from "./hooks/useLocalSuggestions";
 import type { LocalSuggestion } from "./localSuggestions";
+import { TextArea } from "react-aria-components/TextArea";
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
@@ -146,7 +147,8 @@ function ChatInput({ onSend, disabled = false, placeholder }: ChatInputProps) {
 
   return (
     <div className="ai-composer">
-      <textarea
+      <TextArea
+        className="ai-composer-input"
         ref={textareaRef}
         value={value}
         onChange={(e) => setValue(e.target.value)}

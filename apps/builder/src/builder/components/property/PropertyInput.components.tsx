@@ -15,6 +15,8 @@ import "./PropertyInput.css";
 
 import { PropertyInputProps, STATE_TRIGGER } from "./PropertyInput.runtime";
 import { usePropertySelection } from "./propertySelection";
+import { Input } from "react-aria-components/Input";
+import { TextArea } from "react-aria-components/TextArea";
 
 export const PropertyInputControl = memo(
   function PropertyInput({
@@ -276,7 +278,7 @@ export const PropertyInputControl = memo(
         }
       >
         {multiline ? (
-          <textarea
+          <TextArea
             ref={(el) => {
               inputRef.current = el;
             }}
@@ -295,7 +297,7 @@ export const PropertyInputControl = memo(
             disabled={disabled}
           />
         ) : (
-          <input
+          <Input
             ref={(el) => {
               inputRef.current = el;
             }}

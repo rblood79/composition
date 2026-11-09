@@ -29,6 +29,8 @@ import { useSectionCollapse } from "../../components/panel/useSectionCollapse";
 import "@composition/shared/components/styles/ComponentList.css";
 import { Badge } from "@composition/shared/components/Badge";
 import { ACTION_ICONS } from "../../config/actionIcons";
+import { Button } from "react-aria-components/Button";
+import { ActionTooltipTrigger } from "../../components/ui/ActionTooltip";
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
@@ -83,21 +85,24 @@ const ComponentItem = ({
   }, [component.type, onAdd, selectedElementId]);
 
   return (
-    <button
-      className="list-item"
-      onClick={handleClick}
-      title={
+    <ActionTooltipTrigger
+      tooltip={
         i18n && labelKey
           ? `${i18n.t("common.addElement")}: ${displayLabel}`
           : `Add ${component.label} element`
       }
     >
-      <div className="list-item-icon">
-        <component.icon strokeWidth={1.5} width={16} height={16} />
-      </div>
-      {isRecent && count > 0 && <Badge>{count}</Badge>}
-      <span className="list-item-name">{displayLabel}</span>
-    </button>
+      <Button
+        className="list-item"
+        onPress={handleClick}
+      >
+        <div className="list-item-icon">
+          <component.icon strokeWidth={1.5} width={16} height={16} />
+        </div>
+        {isRecent && count > 0 && <Badge>{count}</Badge>}
+        <span className="list-item-name">{displayLabel}</span>
+      </Button>
+    </ActionTooltipTrigger>
   );
 };
 
@@ -361,17 +366,17 @@ const ComponentList = memo(
                 </span>
               }
               actions={
-                <button
+                <Button
                   className="iconButton"
                   aria-label="Clear Recent History"
-                  onClick={clearRecentComponents}
+                  onPress={clearRecentComponents}
                 >
                   <DeleteIcon
                     color={iconProps.color}
                     strokeWidth={iconProps.strokeWidth}
                     size={iconProps.size}
                   />
-                </button>
+                </Button>
               }
               collapsible={false}
             >

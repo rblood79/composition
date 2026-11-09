@@ -25,6 +25,7 @@ import {
   showWhenViews,
   type ShowWhenConditionView,
 } from "./showWhenView";
+import { Button } from "react-aria-components/Button";
 
 const AddIcon = ACTION_ICONS.add;
 const MAX_CONDITIONS = 3;
@@ -130,16 +131,15 @@ export const CatalogShowWhenSection = memo(function CatalogShowWhenSection({
                 </span>
               </div>
               <div className="list-row__actions">
-                <button
-                  type="button"
+                <Button
                   className="list-row__action"
                   aria-label={`Remove condition ${index + 1}`}
-                  onClick={() =>
+                  onPress={() =>
                     write(view.conditions.filter((_, at) => at !== index))
                   }
                 >
                   <Minus size={12} />
-                </button>
+                </Button>
               </div>
             </div>
             <div className="list-row__fields">
@@ -202,11 +202,10 @@ export const CatalogShowWhenSection = memo(function CatalogShowWhenSection({
         );
       })}
       {view.conditions.length < MAX_CONDITIONS && keys.length > 0 && (
-        <button
-          type="button"
+        <Button
           className="control-button"
           data-variant="add"
-          onClick={() =>
+          onPress={() =>
             write([
               ...view.conditions,
               { key: keys[0]!, not: false, owner: NEAREST, linked: true },
@@ -215,7 +214,7 @@ export const CatalogShowWhenSection = memo(function CatalogShowWhenSection({
         >
           <AddIcon size={14} />
           <span>Add condition</span>
-        </button>
+        </Button>
       )}
     </PropertySection>
   );

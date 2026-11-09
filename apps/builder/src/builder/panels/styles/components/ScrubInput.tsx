@@ -15,6 +15,7 @@ import { memo, useState, useCallback, useRef, useEffect } from "react";
 
 import "./ScrubInput.css";
 import { useStylesHost, useStylesSelectedId } from "../stylesHost";
+import { Input } from "react-aria-components/Input";
 
 export interface ScrubInputProps {
   value: number;
@@ -274,7 +275,7 @@ export const ScrubInput = memo(function ScrubInput({
   if (editing) {
     return (
       <div className={`scrub-input ${className ?? ""}`}>
-        <input
+        <Input
           ref={inputRef}
           type="text"
           inputMode="numeric"

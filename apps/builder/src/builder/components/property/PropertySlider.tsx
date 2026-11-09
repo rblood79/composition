@@ -11,6 +11,7 @@ import {
   useOptionalI18n,
 } from "../../../i18n";
 import { iconProps } from "../../../utils/ui/uiConstants";
+import { Input } from "react-aria-components/Input";
 
 interface PropertySliderProps {
   label: string;
@@ -165,7 +166,7 @@ export function PropertySlider({
               )}
             </SliderTrack>
             {editable ? (
-              <input
+              <Input
                 className="slider-output slider-output--input"
                 type="text"
                 inputMode="decimal"

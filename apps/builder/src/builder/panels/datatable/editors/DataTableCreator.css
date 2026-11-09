@@ -272,14 +272,6 @@
    CSV / JSON — 드롭 존 120 + 파일 행 28
    ============================================ */
 
-.creator-file-input {
-  position: absolute;
-  inline-size: 1px;
-  block-size: 1px;
-  opacity: 0;
-  pointer-events: none;
-}
-
 .creator-dropzone {
   box-sizing: border-box;
   inline-size: 100%;
@@ -289,8 +281,8 @@
   border-radius: var(--radius-md);
 }
 
-.creator-dropzone:hover,
-.creator-dropzone[data-drag-over] {
+.creator-dropzone:has(.creator-dropzone__button[data-hovered]),
+.creator-dropzone[data-drop-target] {
   border-color: var(--accent);
 }
 
@@ -312,8 +304,8 @@
   cursor: pointer;
 }
 
-.creator-dropzone:hover .creator-dropzone__button,
-.creator-dropzone[data-drag-over] .creator-dropzone__button {
+.creator-dropzone__button[data-hovered],
+.creator-dropzone[data-drop-target] .creator-dropzone__button {
   color: var(--fg);
 }
 

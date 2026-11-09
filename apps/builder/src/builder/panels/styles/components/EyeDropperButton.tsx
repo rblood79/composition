@@ -1,3 +1,5 @@
+import { Button } from "react-aria-components/Button";
+import { ActionTooltipTrigger } from "../../../components/ui/ActionTooltip";
 /**
  * EyeDropperButton - 브라우저 EyeDropper API 버튼
  *
@@ -56,15 +58,15 @@ export const EyeDropperButton = memo(function EyeDropperButton({
   if (!isSupported) return null;
 
   return (
-    <button
-      type="button"
-      className="eye-dropper-btn"
-      onClick={handleClick}
-      aria-label="Pick color from screen"
-      title="Pick color from screen"
-      data-picking={picking || undefined}
-    >
-      <Pipette size={14} strokeWidth={2} />
-    </button>
+    <ActionTooltipTrigger tooltip="Pick color from screen">
+      <Button
+        className="eye-dropper-btn"
+        onPress={handleClick}
+        aria-label="Pick color from screen"
+        data-picking={picking || undefined}
+      >
+        <Pipette size={14} strokeWidth={2} />
+      </Button>
+    </ActionTooltipTrigger>
   );
 });

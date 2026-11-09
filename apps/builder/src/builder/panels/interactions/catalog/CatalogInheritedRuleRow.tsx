@@ -6,6 +6,7 @@ import { PropertySwitch } from "../../../components/property/PropertySwitch";
 import { useI18n } from "@/i18n";
 import { triggerLabel } from "../labels";
 import { ACTION_CHOICE_LABEL_KEYS } from "../labels";
+import { Button } from "react-aria-components/Button";
 
 interface CatalogInheritedRuleRowProps {
   rule: InteractionEntry;
@@ -59,9 +60,9 @@ export const CatalogInheritedRuleRow = memo(function CatalogInheritedRuleRow({
             isSelected={status === "on"}
             onChange={onEnabledChange}
           />
-          <button type="button" className="control-button" onClick={onReplace}>
+          <Button className="control-button" onPress={onReplace}>
             {t("interactions.inheritedReplace")}
-          </button>
+          </Button>
         </div>
       )}
     </div>

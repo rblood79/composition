@@ -13,6 +13,7 @@ import { Heading } from "react-aria-components/Heading";
 import { Popover } from "react-aria-components/Popover";
 import { useOptionalI18n } from "../../../../i18n";
 import { formatShortcut } from "../../../hooks/useKeyboardShortcutsRegistry";
+import { TextArea } from "react-aria-components/TextArea";
 import "./PopoverTextEditor.css";
 
 export interface PopoverTextEditorProps {
@@ -94,7 +95,7 @@ export function PopoverTextEditor({
             {title}
             {hint && <span className="datagrid-popover-hint">{hint}</span>}
           </Heading>
-          <textarea
+          <TextArea
             ref={textareaRef}
             autoFocus
             data-shortcut-local="undo redo"

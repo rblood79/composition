@@ -71,6 +71,8 @@ import { buildSaveApiAsTableOps } from "./saveApiAsTable";
 import { QueryFormatSection } from "./QueryFormatSection";
 import { recommendArrayPaths } from "../utils/responseSchema";
 import { listSecretNames, setSecret } from "../utils/secretVault";
+import { Input } from "react-aria-components/Input";
+import { Checkbox } from "@composition/shared/components/list";
 import "./ApiEndpointEditor.css";
 
 interface ApiEndpointEditorProps {
@@ -221,7 +223,7 @@ export function ApiEndpointEditor({
           aria-label={dt("apiMethod")}
           className="datatable-api-method"
         />
-        <input
+        <Input
           type="text"
           className="datatable-api-url"
           value={urlDraft}
@@ -500,7 +502,7 @@ function KeyValueEditor({
       {draft.map((row, index) => (
         <div className="datatable-kv-row" key={index}>
           <div className="react-aria-control react-aria-Group">
-            <input
+            <Input
               ref={index === draft.length - 1 ? lastKeyRef : undefined}
               type="text"
               className="react-aria-Input"
@@ -512,7 +514,7 @@ function KeyValueEditor({
             />
           </div>
           <div className="react-aria-control react-aria-Group">
-            <input
+            <Input
               type="text"
               className="react-aria-Input"
               aria-label={`${valuePlaceholder} ${index + 1}`}
@@ -778,7 +780,7 @@ function AuthTab({
           />
           <div className="datatable-api-secret-row">
             <PropertyFieldset legend={dt("apiAuthValue")}>
-              <input
+              <Input
                 type="password"
                 className="react-aria-Input"
                 aria-label={dt("apiAuthValue")}
@@ -1040,15 +1042,14 @@ function SchemaView({
           </li>
         ))}
       </ul>
-      <label className="datatable-api-attach">
-        <input
-          type="checkbox"
-          checked={attach}
-          disabled={tables.length === 0}
-          onChange={(e) => setAttach(e.target.checked)}
-        />
+      <Checkbox
+        className="datatable-api-attach"
+        isSelected={attach}
+        isDisabled={tables.length === 0}
+        onChange={setAttach}
+      >
         {dt("apiAttachExisting")}
-      </label>
+      </Checkbox>
       {attach && attachId ? (
         <PropertySelect
           label={dt("apiAttachTarget")}

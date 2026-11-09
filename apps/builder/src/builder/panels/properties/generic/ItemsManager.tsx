@@ -392,14 +392,14 @@ const SectionRow = memo(function SectionRow({
           )}
 
           <div className="editor-actions items-manager-section-actions">
-            <button
+            <AriaButton
               className="control-button"
               data-variant="add"
-              onClick={addItem}
+              onPress={addItem}
             >
               <AddIcon size={14} />
               Add {itemTypeName}
-            </button>
+            </AriaButton>
           </div>
         </div>
       )}
@@ -554,10 +554,10 @@ export const ItemsManager = memo(function ItemsManager({
       )}
 
       <div className="editor-actions">
-        <button
+        <AriaButton
           className="control-button"
           data-variant="add"
-          onClick={handleAdd}
+          onPress={handleAdd}
         >
           <AddIcon size={14} />
           {i18n?.t("itemsManager.addItem", {
@@ -566,26 +566,26 @@ export const ItemsManager = memo(function ItemsManager({
                 ? i18n.t("chart.row")
                 : field.itemTypeName,
           }) ?? `Add ${field.itemTypeName}`}
-        </button>
+        </AriaButton>
         {allowSections && (
-          <button
+          <AriaButton
             className="control-button"
             data-variant="add"
-            onClick={handleAddSection}
+            onPress={handleAddSection}
           >
             <FolderPlus size={14} />
             {i18n?.t("itemsManager.addSection") ?? "Add Section"}
-          </button>
+          </AriaButton>
         )}
         {allowSeparators && (
-          <button
+          <AriaButton
             className="control-button"
             data-variant="add"
-            onClick={handleAddSeparator}
+            onPress={handleAddSeparator}
           >
             <SeparatorHorizontal size={14} />
             Add Separator
-          </button>
+          </AriaButton>
         )}
       </div>
     </fieldset>

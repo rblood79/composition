@@ -12,6 +12,9 @@ import {
   nativeDateInputOf,
 } from "../../../../../../packages/shared/src/state/dateValueEditing";
 import { isDateValueText } from "../../../../../../packages/shared/src/state/dateValue";
+import { ToggleButton } from "react-aria-components/ToggleButton";
+import { ActionTooltipTrigger } from "../ui/ActionTooltip";
+import { Input } from "react-aria-components/Input";
 import "./DateValueInput.css";
 
 interface DateValueInputProps extends Omit<
@@ -68,8 +71,10 @@ export function DateValueInput({
         if (!event.currentTarget.contains(event.relatedTarget)) onBlur?.();
       }}
     >
-      <input
+      <Input
         {...props}
+        // 클래스가 없으면 RAC 기본 class (react-aria-Input) 가 붙어 빌더 위젯 Input 모양이 걸린다
+        className={props.className ?? "date-value-input__field"}
         ref={(element) => {
           input.current = element;
           if (typeof inputRef === "function") inputRef(element);
@@ -97,20 +102,21 @@ export function DateValueInput({
           {native.zone}
         </span>
       )}
-      <button
-        type="button"
-        className="date-value-input__mode"
-        aria-label={label}
-        title={label}
-        aria-pressed={iso}
-        onMouseDown={(event) => event.preventDefault()}
-        onClick={() => {
-          setIso(!iso);
-          input.current?.focus();
-        }}
-      >
-        {iso ? <Calendar size={12} aria-hidden="true" /> : "ISO"}
-      </button>
+      {/* 누르는 동안 focus 는 입력에 둔다 (preventFocusOnPress — 칸의 onBlur 가 편집을 끝내지 않게) */}
+      <ActionTooltipTrigger tooltip={label}>
+        <ToggleButton
+          className="date-value-input__mode"
+          aria-label={label}
+          isSelected={iso}
+          preventFocusOnPress
+          onChange={(next) => {
+            setIso(next);
+            input.current?.focus();
+          }}
+        >
+          {iso ? <Calendar size={12} aria-hidden="true" /> : "ISO"}
+        </ToggleButton>
+      </ActionTooltipTrigger>
     </span>
   );
 }

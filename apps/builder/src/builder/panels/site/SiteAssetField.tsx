@@ -1,5 +1,6 @@
-import { memo, useCallback, useRef } from "react";
+import { memo, useCallback } from "react";
 import { Button as RACButton } from "react-aria-components/Button";
+import { FileTrigger } from "react-aria-components/FileTrigger";
 import { useI18n } from "@/i18n";
 import type { CatalogAssetUrl } from "../../../../../../packages/shared/src/catalog/document/types";
 import { useResolvedAssetUrl } from "../../../lib/assets/useResolvedAssetUrl";
@@ -28,7 +29,6 @@ export const SiteAssetField = memo(function SiteAssetField({
   className?: string;
 }) {
   const { t } = useI18n();
-  const input = useRef<HTMLInputElement>(null);
   const preview = useResolvedAssetUrl(value);
   const choose = useCallback(
     (file: File | undefined) => {
@@ -57,16 +57,18 @@ export const SiteAssetField = memo(function SiteAssetField({
         <span className="site-asset-thumb" aria-hidden="true">
           {preview ? <img src={preview} alt="" /> : null}
         </span>
-        <RACButton
-          className="control-button site-asset-choose"
-          onPress={() => input.current?.click()}
+        <FileTrigger
+          acceptedFileTypes={["image/*"]}
+          onSelect={(files) => choose(files?.[0] ?? undefined)}
         >
-          <span>
-            {value
-              ? t("settings.siteImageReplace")
-              : t("settings.siteImageChoose")}
-          </span>
-        </RACButton>
+          <RACButton className="control-button site-asset-choose">
+            <span>
+              {value
+                ? t("settings.siteImageReplace")
+                : t("settings.siteImageChoose")}
+            </span>
+          </RACButton>
+        </FileTrigger>
         {value && (
           <RACButton
             className="control-button site-asset-remove"
@@ -76,16 +78,6 @@ export const SiteAssetField = memo(function SiteAssetField({
             <DeleteIcon aria-hidden="true" size={iconEditProps.size} />
           </RACButton>
         )}
-        <input
-          ref={input}
-          type="file"
-          accept="image/*"
-          hidden
-          onChange={(event) => {
-            choose(event.target.files?.[0]);
-            event.target.value = "";
-          }}
-        />
       </div>
     </fieldset>
   );

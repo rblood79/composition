@@ -16,6 +16,7 @@ import { iconProps } from "../../../utils/ui/uiConstants";
 import { togglePanelWorkspace } from "../../hooks/usePanelLayout";
 import type { PanelId } from "../../panels/core/types";
 import { ActionIconButton } from "../ui/ActionIconButton";
+import { Input } from "react-aria-components/Input";
 
 export interface PanelHeaderProps {
   /** 헤더 제목 */
@@ -95,7 +96,7 @@ export function PanelHeader({
         {/* 이름표를 span 으로 감싸는 이유: 익명 flex item 은 줄바꿈을 막을 수 없어
             좁은 패널에서 "작업 내역" 같은 두 어절 이름이 두 줄로 접혀 잘렸다. */}
         {onTitleCommit && renaming ? (
-          <input
+          <Input
             ref={renameInputRef}
             className="panel-title-text panel-title-input"
             aria-label={renameLabel}

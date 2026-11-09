@@ -37,6 +37,8 @@ import {
   useDataVariablesHost,
   type VariableIndexGroup,
 } from "../usage/dataVariablesHost";
+import { Button } from "react-aria-components/Button";
+import { DisabledReason } from "../../../components/ui/DisabledReason";
 
 const TYPE_OPTIONS = [
   "string",
@@ -278,11 +280,8 @@ export function VariableList({ group = "project" }: VariableListProps) {
           </div>
         </div>
         <div className="list-item-actions">
-          <button
-            type="button"
-            className="control-button"
-            disabled={conflict}
-            title={
+          <DisabledReason
+            reason={
               conflict
                 ? localize(
                     "variableMigrateConflict",
@@ -290,10 +289,15 @@ export function VariableList({ group = "project" }: VariableListProps) {
                   )
                 : undefined
             }
-            onClick={() => void migrateLegacyToPage(variable)}
           >
-            {localize("variableMigrateToPage", "Move to page")}
-          </button>
+            <Button
+              className="control-button"
+              isDisabled={conflict}
+              onPress={() => void migrateLegacyToPage(variable)}
+            >
+              {localize("variableMigrateToPage", "Move to page")}
+            </Button>
+          </DisabledReason>
         </div>
       </div>
     );

@@ -373,10 +373,9 @@ export const CatalogEventRow = memo(function CatalogEventRow({
     >
       {!nested && (
         <div className="interaction-rule-summary">
-          <button
-            type="button"
+          <Button
             className="interaction-rule-toggle"
-            onClick={() => {
+            onPress={() => {
               setDoIndex(0);
               onToggle();
             }}
@@ -388,15 +387,14 @@ export const CatalogEventRow = memo(function CatalogEventRow({
                 ? t("interactions.summaryMoreDos", { summary, count: more })
                 : summary}
             </span>
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
             className="interaction-rule-remove"
-            onClick={onRemove}
+            onPress={onRemove}
             aria-label={t("interactions.deleteEvent")}
           >
             <DeleteIcon size={14} />
-          </button>
+          </Button>
         </div>
       )}
       {!nested && refusal && (
@@ -436,11 +434,10 @@ export const CatalogEventRow = memo(function CatalogEventRow({
                 />
               )}
               <div className="fieldset-actions actions-remove-do">
-                <button
-                  type="button"
+                <Button
                   className="iconButton"
                   aria-label={t("interactions.removeDo")}
-                  onClick={() => {
+                  onPress={() => {
                     onChange({
                       ...rule,
                       actions: rule.actions.filter(
@@ -451,7 +448,7 @@ export const CatalogEventRow = memo(function CatalogEventRow({
                   }}
                 >
                   <DeleteIcon size={14} />
-                </button>
+                </Button>
               </div>
             </div>
           )}

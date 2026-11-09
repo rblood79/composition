@@ -31,6 +31,8 @@ import {
   themeTokenSeedValue,
   type ThemeTokenCategory,
 } from "./themeTokenEditor";
+import { Button } from "react-aria-components/Button";
+import { Input } from "react-aria-components/Input";
 
 const CATEGORY_LABEL_KEY: Record<ThemeTokenCategory, string> = {
   color: "themes.catColor",
@@ -73,7 +75,7 @@ const OverrideRow = memo(function OverrideRow({
       <div className="list-row">
         <div className="list-row__body">
           <span className="list-row__label theme-token-key">{tokenKey}</span>
-          <input
+          <Input
             type="text"
             className="list-row__input theme-token-value"
             defaultValue={formatThemeTokenValue(entry)}
@@ -85,14 +87,13 @@ const OverrideRow = memo(function OverrideRow({
           />
         </div>
         <div className="list-row__actions">
-          <button
-            type="button"
+          <Button
             className="list-row__action theme-token-reset"
-            onClick={reset}
+            onPress={reset}
             aria-label={`${t("themes.reset")}: ${tokenKey}`}
           >
             <Minus size={12} />
-          </button>
+          </Button>
         </div>
       </div>
     </div>

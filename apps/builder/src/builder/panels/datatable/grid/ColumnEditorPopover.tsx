@@ -78,6 +78,7 @@ import {
 import { coerceCellValue, formatCellValue } from "./cellValue";
 import { FieldValueInput } from "./FieldValueInput";
 import { resolveFieldDefault } from "./fieldDefault";
+import { TextArea } from "react-aria-components/TextArea";
 import "./ColumnEditorPopover.css";
 
 const DeleteIcon = ACTION_ICONS.delete;
@@ -316,7 +317,7 @@ function FormulaInput({
           </>
         }
       >
-        <textarea
+        <TextArea
           className="react-aria-TextArea datatable-field-formula-input"
           rows={2}
           spellCheck={false}

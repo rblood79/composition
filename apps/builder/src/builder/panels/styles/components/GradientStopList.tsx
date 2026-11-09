@@ -17,6 +17,8 @@ import { ScrubInput } from "./ScrubInput";
 
 import "./GradientStopList.css";
 import { ACTION_ICONS } from "../../../config/actionIcons";
+import { Button } from "react-aria-components/Button";
+import { ToggleButton } from "react-aria-components/ToggleButton";
 
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
@@ -54,14 +56,13 @@ export const GradientStopList = memo(function GradientStopList({
           onRemove={onStopRemove}
         />
       ))}
-      <button
-        type="button"
+      <Button
         className="gradient-stop-list__add-btn"
-        onClick={onStopAdd}
+        onPress={onStopAdd}
       >
         <AddIcon size={12} strokeWidth={2} />
         Add Stop
-      </button>
+      </Button>
     </div>
   );
 });
@@ -95,13 +96,10 @@ const StopRow = memo(function StopRow({
     onSelect(index);
   }, [index, onSelect]);
 
-  const handleRemove = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onRemove(index);
-    },
-    [index, onRemove],
-  );
+  // RAC Button 은 누름을 행 (onClick) 으로 올리지 않는다 — 옛 stopPropagation 이 하던 일
+  const handleRemove = useCallback(() => {
+    onRemove(index);
+  }, [index, onRemove]);
 
   return (
     <div
@@ -110,13 +108,12 @@ const StopRow = memo(function StopRow({
       onClick={handleClick}
     >
       {/* 스와치가 선택 버튼 — 행 onClick 은 마우스 편의, 키보드 경로는 이 버튼 */}
-      <button
-        type="button"
+      <ToggleButton
         className="gradient-stop-list__swatch"
         style={{ backgroundColor: stop.color.slice(0, 7) }}
         aria-label={`Select stop ${index + 1}`}
-        aria-pressed={isActive}
-        onClick={handleClick}
+        isSelected={isActive}
+        onPress={handleClick}
       />
       <div onClick={(e) => e.stopPropagation()}>
         <ScrubInput
@@ -130,11 +127,10 @@ const StopRow = memo(function StopRow({
         />
       </div>
       <span className="gradient-stop-list__spacer" />
-      <button
-        type="button"
+      <Button
         className="gradient-stop-list__delete"
-        disabled={!canDelete}
-        onClick={handleRemove}
+        isDisabled={!canDelete}
+        onPress={handleRemove}
         aria-label={`Remove stop ${index + 1}`}
       >
         <X
@@ -142,7 +138,7 @@ const StopRow = memo(function StopRow({
           strokeWidth={iconSmall.strokeWidth}
           color={iconSmall.color}
         />
-      </button>
+      </Button>
     </div>
   );
 });

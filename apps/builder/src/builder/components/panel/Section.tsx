@@ -29,6 +29,7 @@ import {
   translateKey,
   useOptionalI18n,
 } from "../../../i18n";
+import { Button } from "react-aria-components/Button";
 
 type LazyChildren = React.ReactNode | (() => React.ReactNode);
 
@@ -122,10 +123,9 @@ export const Section = memo(
           {/* 접힘 caret 은 제목 왼쪽 (▸ 접힘 / ▾ 펼침) — 접힌 절이 한 줄로 남아 목차가
               읽힌다 (panel-ui 01, 2026-09-14). 종전 우측 ∧ 는 접힘·펼침 무게가 같았다. */}
           {collapsible && (
-            <button
+            <Button
               className="iconButton section-caret"
-              type="button"
-              onClick={handleToggle}
+              onPress={handleToggle}
               aria-label={isExpanded ? collapseLabel : expandLabel}
               aria-expanded={isExpanded}
             >
@@ -138,7 +138,7 @@ export const Section = memo(
                   transition: "transform 0.2s ease",
                 }}
               />
-            </button>
+            </Button>
           )}
           <div className="section-title">
             {displayTitle}

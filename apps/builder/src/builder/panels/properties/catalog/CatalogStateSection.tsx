@@ -49,6 +49,7 @@ import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import { useStateSectionFocus } from "../state/stateSectionFocus";
 import { useSectionCollapse } from "../../../components/panel/useSectionCollapse";
+import { Input } from "react-aria-components/Input";
 import "../state/StateSection.css";
 
 const AddIcon = ACTION_ICONS.add;
@@ -136,7 +137,7 @@ function StateSourceField({
         }}
       >
         <PropertyFieldset legend={label} labelMode="hidden">
-          <input
+          <Input
             id={inputId}
             ref={inputRef}
             className="react-aria-Input"

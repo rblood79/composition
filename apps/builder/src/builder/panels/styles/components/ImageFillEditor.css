@@ -21,19 +21,18 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
     transition:
       border-color 0.15s,
       background-color 0.15s;
 
-    &[data-drag-over] {
+    &[data-drop-target],
+    &:has(.image-fill-editor__browse[data-hovered]) {
       border-color: var(--accent);
       background-color: color-mix(in srgb, var(--accent) 8%, transparent);
     }
 
     &[data-has-image] {
       border-style: solid;
-      cursor: default;
     }
   }
 
@@ -43,18 +42,28 @@
     display: block;
   }
 
-  .image-fill-editor__placeholder {
+  /* 비어 있을 때 상자 전체가 파일 선택 버튼 */
+  .image-fill-editor__browse {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 6px;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: none;
+    background: transparent;
     color: var(--fg-muted);
+    font: inherit;
     font-size: var(--text-xs);
+    cursor: pointer;
     user-select: none;
-  }
 
-  .image-fill-editor__file-input {
-    display: none;
+    &[data-focus-visible] {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: -2px;
+    }
   }
 
   .image-fill-editor__url-row {

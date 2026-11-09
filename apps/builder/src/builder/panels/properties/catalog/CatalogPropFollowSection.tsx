@@ -25,6 +25,7 @@ import { PropertyInput } from "../../../components/property/PropertyInput";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { runBuiltCatalogCommand } from "../../../catalogRuntime/commandRunner";
+import { Button } from "react-aria-components/Button";
 
 const AddIcon = ACTION_ICONS.add;
 /** The comparisons that take no value. */
@@ -119,14 +120,13 @@ export const CatalogPropFollowSection = memo(function CatalogPropFollowSection({
       title={t("dataView.follow_title")}
       actions={
         free.length ? (
-          <button
-            type="button"
+          <Button
             className="iconButton"
             aria-label={t("dataView.follow_add")}
-            onClick={add}
+            onPress={add}
           >
             <AddIcon size={16} />
-          </button>
+          </Button>
         ) : undefined
       }
     >
@@ -145,16 +145,15 @@ export const CatalogPropFollowSection = memo(function CatalogPropFollowSection({
                 <span className="list-row__label">{follow.prop}</span>
               </div>
               <div className="list-row__actions">
-                <button
-                  type="button"
+                <Button
                   className="list-row__action"
                   aria-label={t("dataView.follow_remove", {
                     prop: follow.prop,
                   })}
-                  onClick={() => write(follow.prop, undefined)}
+                  onPress={() => write(follow.prop, undefined)}
                 >
                   <Minus size={12} />
-                </button>
+                </Button>
               </div>
             </div>
             <div className="list-row__fields">

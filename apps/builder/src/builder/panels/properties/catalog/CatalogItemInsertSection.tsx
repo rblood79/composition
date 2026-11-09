@@ -6,6 +6,7 @@ import { useCatalogWorkspace } from "../../../catalogRuntime/react";
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
+import { Button } from "react-aria-components/Button";
 
 const AddIcon = ACTION_ICONS.add;
 
@@ -87,14 +88,13 @@ export const CatalogItemInsertSection = memo(function CatalogItemInsertSection({
               </span>
             </div>
             <div className="list-row__actions">
-              <button
+              <Button
                 aria-label={`Insert ${choice.type}`}
                 className="list-row__action frame-slot-insert"
-                onClick={() => run(choice.build())}
-                type="button"
+                onPress={() => run(choice.build())}
               >
                 <AddIcon aria-hidden="true" size={12} />
-              </button>
+              </Button>
             </div>
           </div>
         ))}

@@ -53,10 +53,10 @@ describe("GradientBar 핸들 — 키보드 대안", () => {
 });
 
 describe("div onClick → button", () => {
-  it("GradientStopList 스와치는 aria-pressed 버튼", () => {
+  it("GradientStopList 스와치는 눌림 상태 버튼 (RAC ToggleButton — aria-pressed 를 RAC 가 단다)", () => {
     const src = read("styles/components/GradientStopList.tsx");
     expect(src).toMatch(
-      /<button[\s\S]*?className="gradient-stop-list__swatch"[\s\S]*?aria-pressed=\{isActive\}/,
+      /<ToggleButton[\s\S]*?className="gradient-stop-list__swatch"[\s\S]*?isSelected=\{isActive\}/,
     );
   });
 

@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { Input } from "react-aria-components/Input";
 
 /**
  * A tree row's inline name field (Pages · Layouts): Enter or blur commits the typed name, Escape
@@ -16,7 +17,7 @@ export function InlineRenameInput({
 }) {
   const cancelRef = useRef(false);
   return (
-    <input
+    <Input
       className="page-title-rename-input"
       aria-label={label}
       defaultValue={defaultValue}

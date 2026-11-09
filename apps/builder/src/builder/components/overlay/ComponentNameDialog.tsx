@@ -14,6 +14,7 @@ import {
   subscribeComponentNameRequest,
   type ComponentNameRequest,
 } from "../../utils/componentNamePrompt";
+import { Input } from "react-aria-components/Input";
 import "./ConfirmDialog.css";
 import "./ComponentNameDialog.css";
 
@@ -61,7 +62,7 @@ function ComponentNameDialog({ request }: { request: ComponentNameRequest }) {
           >
             <label className="component-name-dialog-label">
               <span>{t("componentAction.componentName")}</span>
-              <input
+              <Input
                 ref={inputRef}
                 className="component-name-dialog-input"
                 data-text-editing="true"

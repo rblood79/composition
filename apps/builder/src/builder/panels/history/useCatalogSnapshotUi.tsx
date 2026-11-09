@@ -24,6 +24,7 @@ import {
   catalogSnapshotRestoredFrom,
   type CatalogSnapshotHost,
 } from "./catalogSnapshotHost";
+import { Input } from "react-aria-components/Input";
 
 const DeleteIcon = ACTION_ICONS.delete;
 const NO_SNAPSHOTS: readonly CatalogSnapshot[] = [];
@@ -211,7 +212,7 @@ export function useCatalogSnapshotUi(
                 onDoubleClick={() => beginRename(snapshot)}
               >
                 {renamingId === snapshot.id ? (
-                  <input
+                  <Input
                     className="history-snapshot-rename"
                     aria-label={t("common.rename")}
                     defaultValue={name}

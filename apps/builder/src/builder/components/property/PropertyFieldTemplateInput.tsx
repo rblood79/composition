@@ -16,6 +16,7 @@ import { PropertyFieldset } from "./PropertyFieldset";
 import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
 import "./PropertyFieldTemplateInput.css";
 import { useI18n } from "@/i18n";
+import { Input } from "react-aria-components/Input";
 
 interface PropertyFieldTemplateInputProps {
   label?: string;
@@ -96,7 +97,7 @@ export function PropertyFieldTemplateInput({
   return (
     <PropertyFieldset legend={label} icon={icon}>
       <div className="property-field-template-input">
-        <input
+        <Input
           ref={inputRef}
           className="react-aria-Input"
           type="text"

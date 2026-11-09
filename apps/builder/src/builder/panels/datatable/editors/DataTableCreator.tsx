@@ -58,6 +58,9 @@ import {
 import Papa from "papaparse";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "react-aria-components/Button";
+import { DropZone } from "react-aria-components/DropZone";
+import { FileTrigger } from "react-aria-components/FileTrigger";
+import { isFileDropItem } from "react-aria-components/useDrop";
 import { Radio, RadioGroup } from "react-aria-components/RadioGroup";
 import { translateKey, useOptionalI18n } from "../../../../i18n";
 import { Section } from "../../../components/panel/Section";
@@ -88,6 +91,9 @@ import {
   unmatchedColumnKeys,
   type QuickConnectPrecheck,
 } from "../utils/quickConnectPlan";
+import { ToggleButton } from "react-aria-components/ToggleButton";
+import { Input } from "react-aria-components/Input";
+import { TextArea } from "react-aria-components/TextArea";
 import "./DataTableCreator.css";
 
 // ============================================
@@ -255,7 +261,6 @@ export function DataTableCreator({
   const [fileRows, setFileRows] = useState<
     (ImportedRows & { fileName: string }) | null
   >(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   // ai
   const [aiDescription, setAiDescription] = useState("");
   // 처리 중 중복 실행 차단 (연속 클릭) — 저장 await 동안 버튼을 잠근다
@@ -298,7 +303,6 @@ export function DataTableCreator({
     return { ...source, schema };
   }, [method, pasteText, fileRows]);
 
-  const [fileDragOver, setFileDragOver] = useState(false);
 
   const readImportFile = useCallback(
     (file: File) => {
@@ -321,15 +325,6 @@ export function DataTableCreator({
         });
     },
     [tableName, localize],
-  );
-
-  const handleFileSelect = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (file) readImportFile(file);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    },
-    [readImportFile],
   );
 
   const canCreate = (() => {
@@ -515,7 +510,7 @@ export function DataTableCreator({
           collapsible={false}
         >
           <PropertyFieldset legend={localize("tableName", "Table Name")}>
-            <input
+            <Input
               className="react-aria-Input"
               type="text"
               value={tableName}
@@ -651,17 +646,19 @@ export function DataTableCreator({
                       {presets.length}
                     </span>
                   </div>
-                  <div className="list-group" role="list">
+                  <div
+                    className="list-group"
+                    role="group"
+                    aria-label={cat.name}
+                  >
                     {presets.map((preset) => (
-                      <button
+                      <ToggleButton
                         key={preset.id}
-                        type="button"
-                        role="listitem"
                         className={`list-item preset-card ${
                           selectedPreset?.id === preset.id ? "selected" : ""
                         }`}
-                        aria-pressed={selectedPreset?.id === preset.id}
-                        onClick={() => handlePresetSelect(preset)}
+                        isSelected={selectedPreset?.id === preset.id}
+                        onPress={() => handlePresetSelect(preset)}
                       >
                         <div className="list-item-icon">
                           {renderIcon(preset.icon, 16)}
@@ -673,7 +670,7 @@ export function DataTableCreator({
                         <div className="list-item-desc">
                           {tr(preset.descriptionKey)}
                         </div>
-                      </button>
+                      </ToggleButton>
                     ))}
                   </div>
                 </div>
@@ -692,7 +689,7 @@ export function DataTableCreator({
               legend={localize("pasteRows", "Paste rows")}
               className="creator-paste-field"
             >
-              <textarea
+              <TextArea
                 className="react-aria-TextArea"
                 value={pasteText}
                 onChange={(e) => setPasteText(e.target.value)}
@@ -721,45 +718,35 @@ export function DataTableCreator({
             title={localize("methodFile", "CSV / JSON")}
             collapsible={false}
           >
-            {/* 네이티브 file input 은 숨기고 드롭 존 120 (Image fill · Font Manager 와 같은
-                어법) 이 연다 — 빌더의 유일한 브라우저 기본 컨트롤이었다 (panel-ui 19) */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv,.json,text/csv,application/json"
-              onChange={handleFileSelect}
-              aria-label={localize("chooseFile", "Choose a CSV or JSON file")}
-              className="creator-file-input"
-              tabIndex={-1}
-            />
-            <div
+            {/* RAC DropZone (끌어 놓기) + FileTrigger (파일 선택 창) — 영역 전체가 여는 버튼, 120 점선
+                상자 (글꼴 업로드 · Image fill 과 같은 어법, panel-ui 19) */}
+            <DropZone
               className="creator-dropzone"
-              onDragOver={(event: React.DragEvent<HTMLDivElement>) => {
-                event.preventDefault();
-                setFileDragOver(true);
+              aria-label={localize("chooseFile", "Choose a CSV or JSON file")}
+              getDropOperation={() => "copy"}
+              onDrop={async (event) => {
+                const item = event.items.find(isFileDropItem);
+                if (item) readImportFile(await item.getFile());
               }}
-              onDragLeave={() => setFileDragOver(false)}
-              onDrop={(event: React.DragEvent<HTMLDivElement>) => {
-                event.preventDefault();
-                setFileDragOver(false);
-                const file = event.dataTransfer.files?.[0];
-                if (file) readImportFile(file);
-              }}
-              data-drag-over={fileDragOver || undefined}
             >
-              <Button
-                className="creator-dropzone__button"
-                onPress={() => fileInputRef.current?.click()}
+              <FileTrigger
+                acceptedFileTypes={[".csv", ".json", "text/csv", "application/json"]}
+                onSelect={(files) => {
+                  const file = files?.[0];
+                  if (file) readImportFile(file);
+                }}
               >
-                <FileUp size={20} />
-                <span>
-                  {localize(
-                    "dropFileHint",
-                    "Drop a CSV or JSON file, or click",
-                  )}
-                </span>
-              </Button>
-            </div>
+                <Button className="creator-dropzone__button">
+                  <FileUp size={20} />
+                  <span>
+                    {localize(
+                      "dropFileHint",
+                      "Drop a CSV or JSON file, or click",
+                    )}
+                  </span>
+                </Button>
+              </FileTrigger>
+            </DropZone>
             {fileRows ? (
               <div className="creator-file-row">
                 <span className="creator-file-row__name">
@@ -811,7 +798,7 @@ export function DataTableCreator({
               legend={localize("aiDescription", "Describe the table")}
               className="creator-paste-field"
             >
-              <textarea
+              <TextArea
                 className="react-aria-TextArea"
                 value={aiDescription}
                 onChange={(e) => setAiDescription(e.target.value)}
@@ -865,7 +852,7 @@ export function DataTableCreator({
             />
           </div>
           <PropertyFieldset legend={localize("seed", "Seed")}>
-            <input
+            <Input
               className="react-aria-Input"
               type="text"
               value={seed}

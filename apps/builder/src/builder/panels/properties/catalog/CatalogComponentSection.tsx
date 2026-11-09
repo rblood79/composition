@@ -642,14 +642,13 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
           )}
           <div className="react-aria-Group component-semantics-field-list">
             {rows.map((row) => (
-              <button
+              <RACButton
                 aria-label={t("propertiesPanel.resetOverride", {
                   label: row.label,
                 })}
                 className="component-semantics-field"
                 key={row.id}
-                onClick={() => reset(row)}
-                type="button"
+                onPress={() => reset(row)}
               >
                 <span className="component-semantics-field-dot" />
                 <span className="component-semantics-field-name">
@@ -658,7 +657,7 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
                 <span className="component-semantics-field-reset">
                   {t("propertiesPanel.reset")}
                 </span>
-              </button>
+              </RACButton>
             ))}
           </div>
         </fieldset>

@@ -71,6 +71,7 @@ import { PanelSelect, PanelSelectItem } from "../property/PanelSelect";
 import { PropertySelect } from "../property/PropertySelect";
 import { ActionIconButton } from "../ui/ActionIconButton";
 import { BUILDER_POPUP_LIST_CLASS } from "../../styles/modules/builderPopupList";
+import { Input } from "react-aria-components/Input";
 import "./VariableTable.css";
 
 export type VariableTableOwner = "project" | "page" | "element";
@@ -247,7 +248,7 @@ function CommitInput({
       />
     );
   return (
-    <input
+    <Input
       className="react-aria-Input"
       aria-label={label}
       aria-invalid={invalid || undefined}
@@ -421,7 +422,7 @@ function CellEditor({
       />
     );
   return (
-    <input
+    <Input
       ref={inputRef}
       className="variable-table__cell-input"
       data-cell-editor

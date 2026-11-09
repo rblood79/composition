@@ -1,0 +1,4 @@
+/* 이유 풍선 (title) 만 싣는 상자 — 배치에 끼지 않는다 */
+.disabled-reason {
+  display: contents;
+}

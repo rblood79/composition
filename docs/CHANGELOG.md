@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [패널의 native 버튼 · 입력 → RAC] - 2026-11-10
+
+### Changed
+
+- **빌더 패널의 native `<button>` · `<input>` · `<textarea>` 를 RAC 로 바꿨다** (패널 감사 4 — 50 파일 · 약 100 곳 → 허용 6 곳).
+  - 버튼 32 곳 → RAC `Button`. 눌림 상태가 있는 것 (Theme 활성 · Gradient 정지점 · Mesh 점 · Data 프리셋 카드 · 날짜 ISO 전환) 은 `ToggleButton` 이다.
+  - 입력 · 글 상자 약 45 곳 → RAC `Input` · `TextArea`. hover · focus 상태를 `data-*` 로 낸다. class 가 없던 입력 (AI 설정 · AI 입력창 · 날짜 입력) 에는 class 를 직접 줬다 — RAC 기본 class 가 붙으면 빌더 위젯 Input 모양이 걸린다.
+  - RAC `Button` 은 `title` 을 DOM 에 넘기지 않는다. 그래서 설명 풍선은 `ActionTooltipTrigger` 로 옮겼고 (컴포넌트 추가 · 스포이드 · 날짜 ISO), 비활성 버튼의 이유는 새 `DisabledReason` 이 맡는다 (마지막 테마 삭제 · 변수 이름 충돌).
+  - Data 프리셋 카드 묶음의 `role="list"` · `listitem` 을 `group` 으로 바꿨다 — 버튼에 listitem 을 달면 버튼 역할이 사라졌다.
+- **Image fill 미리보기 · Data CSV 드롭존 · Site 이미지 고르기가 RAC `DropZone` · `FileTrigger` 다**: 옛 Image fill 미리보기는 `div onClick` 이라 키보드로 열 수 없었다. 이제 비어 있으면 상자 전체가 파일 선택 버튼이다.
+- **Data API 「기존 표에 붙이기」 가 공용 `Checkbox` 다** (native checkbox).
+- **게이트 `nativeControls.static.test.ts`**: 빌더 JSX 의 native `button` · `input` · `textarea` · `select` 는 사유가 적힌 허용 목록만 둔다 — 패널 이동 손잡이 (useMove) · Canvas grid 손잡이 2 · Canvas 글자 편집기 · Canvas 페이지 제목 · 메뉴가 여는 file input 2. 원복하면 RED 다.
+- Live (Playwright 5174, 새 프로젝트): Section 접기 · 펼치기, Theme 복제 (1 → 2) · 활성 전환 (aria-pressed), Data 만들기의 프리셋 카드 (눌림 · group) · CSV 드롭존 버튼에 Enter → 파일 선택 창 → `people.csv` 2 × 2 미리보기, 표 이름 입력 focus, 컴포넌트 목록 「text」 hover 툴팁 「Add text element」 · 클릭으로 Text 추가. 콘솔 오류 0. Image fill 은 채움 종류 전환 단계가 하니스에서 막혀 단위 테스트로만 확인했다.
+- 위치: `apps/builder/src/builder/nativeControls.static.test.ts` · `components/ui/DisabledReason.tsx` · `panels/**` · `components/**`
+
 ## [글꼴 고르기 — 다른 검색 팝오버와 같은 SearchablePicker] - 2026-11-10
 
 ### Fixed

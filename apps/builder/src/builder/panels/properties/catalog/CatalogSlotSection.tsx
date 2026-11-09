@@ -391,11 +391,10 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
                       <span className="list-row__label">{item.label}</span>
                     </div>
                     <div className="list-row__actions">
-                      <button
-                        type="button"
+                      <RACButton
                         className="list-row__action"
                         aria-label={`Remove ${item.label}`}
-                        onClick={() =>
+                        onPress={() =>
                           setSuggested(
                             (slot.suggested ?? []).filter(
                               (id) => id !== item.id,
@@ -404,7 +403,7 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
                         }
                       >
                         <Minus size={12} />
-                      </button>
+                      </RACButton>
                     </div>
                   </div>
                 ))}

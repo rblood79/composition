@@ -22,6 +22,7 @@ import {
   GradientSubTypeSelector,
   type GradientSubType,
 } from "./GradientSubTypeSelector";
+import { ToggleButton } from "react-aria-components/ToggleButton";
 
 import "./MeshGradientEditor.css";
 
@@ -172,13 +173,12 @@ export const MeshGradientEditor = memo(function MeshGradientEditor({
         }}
       >
         {effectivePoints.map((point, index) => (
-          <button
+          <ToggleButton
             key={index}
-            type="button"
             className="mesh-gradient-editor__point"
             data-active={index === activePointIndex || undefined}
             style={{ backgroundColor: point.color.slice(0, 7) }}
-            onClick={() => setActivePointIndex(index)}
+            onPress={() => setActivePointIndex(index)}
             aria-label={`Point ${index + 1}`}
           />
         ))}

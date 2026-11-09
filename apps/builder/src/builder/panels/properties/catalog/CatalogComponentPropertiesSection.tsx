@@ -305,19 +305,18 @@ function CatalogPreferredComponents({
                 <span className="list-row__label">{label}</span>
               </div>
               <div className="list-row__actions">
-                <button
-                  type="button"
+                <RACButton
                   className="list-row__action"
                   aria-label={t(
                     "propertiesPanel.componentPropertyPreferredRemove",
                     { name: label },
                   )}
-                  onClick={() =>
+                  onPress={() =>
                     onChange(preferred.filter((item) => item !== id))
                   }
                 >
                   <Minus size={12} />
-                </button>
+                </RACButton>
               </div>
             </div>
           );

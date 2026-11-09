@@ -17,6 +17,7 @@ import {
 } from "../config/keyboardShortcuts";
 import { formatShortcut } from "../hooks/useKeyboardShortcutsRegistry";
 import { useI18n } from "../../i18n";
+import { Input } from "react-aria-components/Input";
 
 // ============================================
 // Constants
@@ -209,7 +210,7 @@ export const ZoomControls = memo(function ZoomControls({
   return (
     <div className={`zoom-controls ${className || ""}`}>
       <div ref={anchorRef} className="zoom-trigger-button">
-        <input
+        <Input
           className="zoom-input"
           ref={inputRef}
           defaultValue={initialValue.current}

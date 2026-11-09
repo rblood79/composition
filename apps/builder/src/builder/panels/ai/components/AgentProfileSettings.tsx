@@ -36,6 +36,7 @@ import {
   PanelSelect,
   PanelSelectItem,
 } from "../../../components/property/PanelSelect";
+import { Input } from "react-aria-components/Input";
 
 /** 프로파일 → 라벨 **키** (ADR-200 어법). */
 const PROFILE_LABEL_KEYS: Readonly<Record<AgentProfileId, string>> = {
@@ -134,7 +135,8 @@ export function AgentProfileSettings() {
 
             <label className="ai-profile-field">
               <span>endpoint</span>
-              <input
+              <Input
+                className="ai-profile-input"
                 type="text"
                 value={config.baseUrl}
                 placeholder="http://localhost:11434/v1…"
@@ -144,7 +146,8 @@ export function AgentProfileSettings() {
 
             <label className="ai-profile-field">
               <span>{t("ai.model")}</span>
-              <input
+              <Input
+                className="ai-profile-input"
                 type="text"
                 value={config.model}
                 placeholder={t("ai.modelPlaceholder")}
@@ -154,7 +157,8 @@ export function AgentProfileSettings() {
 
             <label className="ai-profile-field">
               <span>{t("ai.keyName")}</span>
-              <input
+              <Input
+                className="ai-profile-input"
                 type="text"
                 value={config.credentialRef ?? ""}
                 placeholder={t("ai.keyNamePlaceholder")}
@@ -167,7 +171,8 @@ export function AgentProfileSettings() {
             {config.credentialRef ? (
               <label className="ai-profile-field">
                 <span>{t("ai.keyValue")}</span>
-                <input
+                <Input
+                  className="ai-profile-input"
                   type="password"
                   autoComplete="off"
                   placeholder={t("ai.keyValuePlaceholder")}

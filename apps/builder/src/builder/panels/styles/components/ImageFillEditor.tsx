@@ -10,6 +10,10 @@
  */
 
 import { memo, useState, useCallback, useRef, useEffect } from "react";
+import { Button } from "react-aria-components/Button";
+import { DropZone } from "react-aria-components/DropZone";
+import { FileTrigger } from "react-aria-components/FileTrigger";
+import { isFileDropItem } from "react-aria-components/useDrop";
 import { ImagePlus } from "lucide-react";
 import {
   ToggleButton,
@@ -24,6 +28,7 @@ import "./ImageFillEditor.css";
 import { useResolvedAssetUrl } from "../../../../lib/assets/useResolvedAssetUrl";
 import { assetStorageEnabled } from "../../../config/assetStorage";
 import { useStylesHost, useStylesSelectedId } from "../stylesHost";
+import { Input } from "react-aria-components/Input";
 
 interface ImageFillEditorProps {
   fill: ImageFillItem;
@@ -46,8 +51,6 @@ export const ImageFillEditor = memo(function ImageFillEditor({
   const stylesHost = useStylesHost();
   const selectedElementId = useStylesSelectedId();
   const [urlInput, setUrlInput] = useState(fill.url);
-  const [isDragOver, setIsDragOver] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const focusedElementIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -143,54 +146,24 @@ export const ImageFillEditor = memo(function ImageFillEditor({
     [onUpdateEnd, readAsDataUrlFallback],
   );
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      setIsDragOver(false);
-      const file = e.dataTransfer.files[0];
-      if (file) handleFileSelect(file);
-    },
-    [handleFileSelect],
-  );
-
-  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragOver(true);
-  }, []);
-
-  const handleDragLeave = useCallback(() => {
-    setIsDragOver(false);
-  }, []);
-
-  const handleBrowseClick = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
-
-  const handleInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) handleFileSelect(file);
-      // 같은 파일 재선택 가능하도록 값 초기화
-      e.target.value = "";
-    },
-    [handleFileSelect],
-  );
-
   const hasImage = fill.url.length > 0;
   // ADR-235 — `asset:` 참조는 해석기로 (준비 전이면 빈 미리보기)
   const previewUrl = useResolvedAssetUrl(fill.url);
 
   return (
     <div className="image-fill-editor">
-      {/* 이미지 미리보기 / 드롭존 */}
-      <div
+      {/* 이미지 미리보기 / 드롭존 — RAC DropZone (끌어 놓기) + FileTrigger (비어 있으면 상자 전체가 파일
+          선택 버튼 — Enter · Space 로도 열린다. 옛 div onClick 은 키보드로 열 수 없었다) */}
+      <DropZone
         className="image-fill-editor__preview"
-        data-drag-over={isDragOver || undefined}
+        aria-label="Image fill"
         data-has-image={hasImage || undefined}
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onClick={!hasImage ? handleBrowseClick : undefined}
+        // 이미지인지는 handleFileSelect 가 본다 — 놓기는 파일이면 받는다
+        getDropOperation={() => "copy"}
+        onDrop={async (event) => {
+          const item = event.items.find(isFileDropItem);
+          if (item) handleFileSelect(await item.getFile());
+        }}
       >
         {hasImage ? (
           <img
@@ -207,25 +180,25 @@ export const ImageFillEditor = memo(function ImageFillEditor({
             }}
           />
         ) : (
-          <div className="image-fill-editor__placeholder">
-            <ImagePlus size={20} strokeWidth={1.5} />
-            <span>Drop image or click to browse</span>
-          </div>
+          <FileTrigger
+            acceptedFileTypes={["image/*"]}
+            onSelect={(files) => {
+              const file = files?.[0];
+              if (file) handleFileSelect(file);
+            }}
+          >
+            <Button className="image-fill-editor__browse">
+              <ImagePlus size={20} strokeWidth={1.5} />
+              <span>Drop image or click to browse</span>
+            </Button>
+          </FileTrigger>
         )}
-      </div>
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        className="image-fill-editor__file-input"
-        onChange={handleInputChange}
-      />
+      </DropZone>
 
       {/* URL 입력 */}
       <div className="image-fill-editor__url-row">
         <span className="image-fill-editor__label">URL</span>
-        <input
+        <Input
           type="text"
           className="image-fill-editor__url-input"
           value={urlInput}
