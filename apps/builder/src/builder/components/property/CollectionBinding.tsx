@@ -20,15 +20,9 @@ import { useParams } from "react-router";
 import { useI18n } from "@/i18n";
 import type { DataBindingValue } from "@composition/shared";
 import { resolveBoundCollection, resolveField } from "@composition/shared";
-import { ChevronDown, DatabasePlus, Link2, ListTree, X } from "lucide-react";
+import { DatabasePlus, Link2, ListTree, X } from "lucide-react";
 import React, { memo, useCallback } from "react";
-import { Button } from "react-aria-components/Button";
-import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
-import { Popover } from "react-aria-components/Popover";
-import {
-  Select as AriaSelect,
-  SelectValue,
-} from "react-aria-components/Select";
+import { SelectValue } from "react-aria-components/Select";
 import type { DataField } from "../../../types/builder/data.types";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useDataTableEditorStore } from "../../panels/datatable/stores/dataTableEditorStore";
@@ -44,8 +38,7 @@ import "./CollectionBinding.css";
 import { PropertyFieldset } from "./PropertyFieldset";
 import { PropertyInput } from "./PropertyInput";
 import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
-import { useSelectTriggerFocusRestore } from "./useSelectTriggerFocusRestore";
-import { BUILDER_POPUP_LIST_CLASS } from "../../styles/modules/builderPopupList";
+import { PanelSelect, PanelSelectItem } from "./PanelSelect";
 
 // ============================================
 // Types
@@ -123,63 +116,46 @@ function FieldMapSelect({
   disabled?: boolean;
 }) {
   const { t } = useI18n();
-  const { triggerRef, restoreFocusOnClose } = useSelectTriggerFocusRestore();
   const { controlRef, popoverStyle } = useControlPopoverMetrics();
   const RoleIcon = role === "value" ? null : ListTree;
   const label = t(`propertiesPanel.${FIELD_MAP_ROLE_LABEL[role]}`);
   return (
     <div className="binding-row binding-fieldmap-row">
-      <AriaSelect
-        className="react-aria-Select binding-fieldmap-select"
+      <PanelSelect
+        className="binding-fieldmap-select"
         data-role={role}
-        ref={controlRef}
+        selectRef={controlRef}
         selectedKey={selectedFieldId ?? FIELD_MAP_AUTO_KEY}
         onSelectionChange={(key) => onChange(role, key)}
-        onOpenChange={restoreFocusOnClose}
         aria-label={label}
         isDisabled={disabled}
+        popoverStyle={popoverStyle}
+        trigger={
+          <>
+            {RoleIcon && (
+              <span aria-hidden="true" className="binding-fieldmap-role">
+                <RoleIcon size={iconProps.size} />
+              </span>
+            )}
+            <SelectValue>
+              {({ selectedText }) => `${label}: ${selectedText ?? ""}`}
+            </SelectValue>
+          </>
+        }
       >
-        <Button className="react-aria-Button" ref={triggerRef}>
-          {RoleIcon && (
-            <span aria-hidden="true" className="binding-fieldmap-role">
-              <RoleIcon size={iconProps.size} />
-            </span>
-          )}
-          <SelectValue>
-            {({ selectedText }) => `${label}: ${selectedText ?? ""}`}
-          </SelectValue>
-          <span aria-hidden="true" className="select-chevron">
-            <ChevronDown size={iconProps.size} />
-          </span>
-        </Button>
-        <Popover
-          className={`react-aria-Popover property-select-popover ${BUILDER_POPUP_LIST_CLASS}`}
-          style={popoverStyle}
-        >
-          <ListBox className="react-aria-ListBox">
-            <ListBoxItem
-              id={FIELD_MAP_AUTO_KEY}
-              className="react-aria-ListBoxItem"
-              textValue={t("propertiesPanel.fieldMapAuto")}
-            >
-              {t("propertiesPanel.fieldMapAuto")}
-            </ListBoxItem>
-            {fields.map((field) => (
-              <ListBoxItem
-                key={field.id}
-                id={field.id as string}
-                className="react-aria-ListBoxItem"
-                textValue={field.key}
-              >
-                <div className="binding-option">
-                  <span className="binding-option-label">{field.key}</span>
-                  <span className="binding-option-desc">{field.type}</span>
-                </div>
-              </ListBoxItem>
-            ))}
-          </ListBox>
-        </Popover>
-      </AriaSelect>
+        <PanelSelectItem
+          id={FIELD_MAP_AUTO_KEY}
+          label={t("propertiesPanel.fieldMapAuto")}
+        />
+        {fields.map((field) => (
+          <PanelSelectItem
+            key={field.id}
+            id={field.id as string}
+            label={field.key}
+            detail={field.type}
+          />
+        ))}
+      </PanelSelect>
     </div>
   );
 }
@@ -294,11 +270,6 @@ export const CollectionBinding = memo(function CollectionBinding({
     ? `{{${value.source}.${value.name}${value.path ? "." + value.path : ""}}}`
     : "";
 
-  // popover 닫힘 전환 gap 의 focus ring 깜빡임 방지 (Select 하나당 1개) —
-  // 상세 주석은 useSelectTriggerFocusRestore.ts 참조
-  const { triggerRef: nameTriggerRef, restoreFocusOnClose: restoreNameFocus } =
-    useSelectTriggerFocusRestore();
-
   // 컬렉션 피커는 이 fieldset 의 field-level control 이므로, 팝오버를 패널 규약대로
   // control 외곽 박스(`.react-aria-Group`) 폭·좌측에 맞춘다 (PropertySelect /
   // PropertyUnitInput 과 동일 규약). anchor 는 PropertyFieldset 이 렌더하므로
@@ -322,16 +293,15 @@ export const CollectionBinding = memo(function CollectionBinding({
           title={bindingExpression || undefined}
         >
           {nameOptions.length > 0 ? (
-            <AriaSelect
-              className="react-aria-Select binding-name-select"
-              ref={nameControlRef}
+            <PanelSelect
+              className="binding-name-select"
+              selectRef={nameControlRef}
               selectedKey={selectedCollectionId}
               onSelectionChange={handleNameChange}
-              onOpenChange={restoreNameFocus}
               aria-label={t("propertiesPanel.bindingDataSource")}
               isDisabled={disabled}
-            >
-              <Button className="react-aria-Button" ref={nameTriggerRef}>
+              popoverStyle={namePopoverStyle}
+              trigger={
                 <SelectValue>
                   {({ isPlaceholder, selectedText }) =>
                     isPlaceholder
@@ -339,37 +309,17 @@ export const CollectionBinding = memo(function CollectionBinding({
                       : selectedText
                   }
                 </SelectValue>
-                <span aria-hidden="true" className="select-chevron">
-                  <ChevronDown size={iconProps.size} />
-                </span>
-              </Button>
-              <Popover
-                className={`react-aria-Popover property-select-popover ${BUILDER_POPUP_LIST_CLASS}`}
-                style={namePopoverStyle}
-              >
-                <ListBox className="react-aria-ListBox">
-                  {nameOptions.map((option) => (
-                    <ListBoxItem
-                      key={option.value}
-                      id={option.value}
-                      className="react-aria-ListBoxItem"
-                      textValue={option.label}
-                    >
-                      <div className="binding-option">
-                        <span className="binding-option-label">
-                          {option.label}
-                        </span>
-                        {option.description && (
-                          <span className="binding-option-desc">
-                            {option.description}
-                          </span>
-                        )}
-                      </div>
-                    </ListBoxItem>
-                  ))}
-                </ListBox>
-              </Popover>
-            </AriaSelect>
+              }
+            >
+              {nameOptions.map((option) => (
+                <PanelSelectItem
+                  key={option.value}
+                  id={option.value}
+                  label={option.label}
+                  detail={option.description || undefined}
+                />
+              ))}
+            </PanelSelect>
           ) : (
             <div className="binding-empty">
               {t("propertiesPanel.collectionEmpty")}

@@ -11,6 +11,10 @@
 
 import { memo, useState, useCallback, useRef, useEffect } from "react";
 import { ImagePlus } from "lucide-react";
+import {
+  ToggleButton,
+  ToggleButtonGroup,
+} from "react-aria-components/ToggleButtonGroup";
 import type {
   ImageFillItem,
   FillItem,
@@ -239,25 +243,27 @@ export const ImageFillEditor = memo(function ImageFillEditor({
       {/* 모드 선택 */}
       <div className="image-fill-editor__mode-row">
         <span className="image-fill-editor__label">Mode</span>
-        <div
+        <ToggleButtonGroup
           className="image-fill-editor__mode-group"
-          role="radiogroup"
           aria-label="Image sizing mode"
+          selectionMode="single"
+          disallowEmptySelection
+          selectedKeys={[fill.mode]}
+          onSelectionChange={(keys) => {
+            const next = [...keys][0];
+            if (next != null) handleModeChange(next as ImageMode);
+          }}
         >
           {IMAGE_MODES.map(({ value, label }) => (
-            <button
+            <ToggleButton
               key={value}
-              type="button"
+              id={value}
               className="image-fill-editor__mode-btn"
-              role="radio"
-              aria-checked={fill.mode === value}
-              data-active={fill.mode === value || undefined}
-              onClick={() => handleModeChange(value)}
             >
               {label}
-            </button>
+            </ToggleButton>
           ))}
-        </div>
+        </ToggleButtonGroup>
       </div>
     </div>
   );

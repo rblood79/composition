@@ -54,16 +54,17 @@ describe("builder-menu-row 적용처 — 메뉴 항목 28", () => {
 });
 
 describe("데이터 바인딩 옵션 — 한 줄 (이름 12 · 타입 10 mono caps)", () => {
-  const css = read("components/property/CollectionBinding.css");
+  // 2026-11-09 PanelSelectItem `detail` 로 옮김 (옛 `.binding-option*`)
+  const css = read("components/property/PropertySelectGrid.css");
 
   it("옵션 컨테이너는 row, 설명은 --text-2xs mono", () => {
-    expect(block(css, ".binding-option")).not.toContain(
+    expect(block(css, ".property-select__option-row")).not.toContain(
       "flex-direction: column",
     );
-    const desc = block(css, ".binding-option-desc");
+    const desc = block(css, ".property-select__option-detail");
     expect(desc).toContain("font-size: var(--text-2xs)");
     expect(desc).toContain("font-family: var(--font-mono)");
-    expect(block(css, ".binding-option-label")).toContain(
+    expect(block(css, ".property-select__option-label")).toContain(
       "font-size: var(--text-xs)",
     );
   });

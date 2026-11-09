@@ -1,6 +1,7 @@
 import React, {
   memo,
   useEffect,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
@@ -48,6 +49,24 @@ export const PropertyInputControl = memo(
     const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(
       null,
     );
+    // APG combobox (목록 팝업) — 입력이 DOM focus 를 갖고 활성 후보는 aria-activedescendant 로 알린다.
+    //   RAC ComboBox · Autocomplete 는 입력 전체 글자로 거르는데, 여기는 캐럿 자리의 `{{` 토큰만
+    //   바꿔 끼운다 (글 중간 삽입) — 그래서 손으로 두되 combobox 계약은 다 갖춘다 (2026-11-09).
+    const listId = useId();
+    const optionId = (i: number) => `${listId}-option-${i}`;
+    const comboboxProps =
+      stateNames && stateNames.length > 0
+        ? {
+            role: "combobox" as const,
+            "aria-autocomplete": "list" as const,
+            "aria-haspopup": "listbox" as const,
+            "aria-expanded": suggest !== null,
+            "aria-controls": suggest ? listId : undefined,
+            "aria-activedescendant": suggest
+              ? optionId(suggest.index)
+              : undefined,
+          }
+        : {};
 
     const updateSuggest = (text: string, caret: number | null) => {
       if (!stateNames || stateNames.length === 0 || caret === null) {
@@ -218,6 +237,7 @@ export const PropertyInputControl = memo(
 
     const suggestionList = suggest ? (
       <ul
+        id={listId}
         className="property-input-suggest"
         role="listbox"
         aria-label="{{ variables"
@@ -225,6 +245,7 @@ export const PropertyInputControl = memo(
         {suggest.items.map((name, i) => (
           <li
             key={name}
+            id={optionId(i)}
             role="option"
             aria-selected={i === suggest.index}
             className="property-input-suggest-item"
@@ -268,6 +289,7 @@ export const PropertyInputControl = memo(
               handleBlur();
             }}
             onKeyDown={handleKeyDown}
+            {...comboboxProps}
             placeholder={placeholder}
             rows={4} // Default rows for textarea
             disabled={disabled}
@@ -287,6 +309,7 @@ export const PropertyInputControl = memo(
               handleBlur();
             }}
             onKeyDown={handleKeyDown}
+            {...comboboxProps}
             placeholder={placeholder}
             min={min}
             max={max}

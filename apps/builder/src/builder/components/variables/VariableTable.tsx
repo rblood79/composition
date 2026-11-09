@@ -42,14 +42,10 @@ import {
   type RefObject,
 } from "react";
 import { Button } from "react-aria-components/Button";
-import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
+import { ListBox } from "react-aria-components/ListBox";
 import { Popover } from "react-aria-components/Popover";
-import {
-  Select as AriaSelect,
-  SelectValue,
-} from "react-aria-components/Select";
+import { SelectValue } from "react-aria-components/Select";
 import { Switch as AriaSwitch } from "react-aria-components/Switch";
-import { Text } from "react-aria-components/Text";
 import {
   Cell,
   Column,
@@ -71,6 +67,7 @@ import {
 } from "../../panels/datatable/utils/fieldTypes";
 import { PropertyFieldset } from "../property/PropertyFieldset";
 import { PropertyRowMenu } from "../property/PropertyRowMenu";
+import { PanelSelect, PanelSelectItem } from "../property/PanelSelect";
 import { PropertySelect } from "../property/PropertySelect";
 import { ActionIconButton } from "../ui/ActionIconButton";
 import { BUILDER_POPUP_LIST_CLASS } from "../../styles/modules/builderPopupList";
@@ -171,25 +168,11 @@ const storedTypeOf = (picked: string, current: string) =>
 /** A list item as the panel Select draws one — the name, and its hint under it. */
 function TypeChoiceItem({ choice }: { choice: TypeChoice }) {
   return (
-    <ListBoxItem
+    <PanelSelectItem
       id={choice.value}
-      textValue={choice.label}
-      className="react-aria-ListBoxItem"
-    >
-      {choice.description ? (
-        <span className="property-select__option-text">
-          <Text slot="label">{choice.label}</Text>
-          <Text
-            slot="description"
-            className="property-select__option-description"
-          >
-            {choice.description}
-          </Text>
-        </span>
-      ) : (
-        choice.label
-      )}
-    </ListBoxItem>
+      label={choice.label}
+      description={choice.description || undefined}
+    />
   );
 }
 
@@ -306,30 +289,23 @@ function TypeSelect({
   onChange: (value: string) => void;
 }) {
   return (
-    <AriaSelect
-      className="react-aria-Select variable-row__type"
+    <PanelSelect
+      className="variable-row__type"
       aria-label={label}
       selectedKey={value}
       onSelectionChange={(key) => key !== null && onChange(String(key))}
-    >
-      <Button className="react-aria-Button">
+      trigger={
         <SelectValue className="react-aria-SelectValue variable-table__sr">
           {({ selectedText }) => selectedText}
         </SelectValue>
-        <span aria-hidden="true" className="select-chevron">
-          <TypeGlyph type={value} />
-        </span>
-      </Button>
-      <Popover
-        className={`react-aria-Popover property-select-popover variable-row__type-popover ${BUILDER_POPUP_LIST_CLASS}`}
-      >
-        <ListBox className="react-aria-ListBox">
-          {options.map((choice) => (
-            <TypeChoiceItem key={choice.value} choice={choice} />
-          ))}
-        </ListBox>
-      </Popover>
-    </AriaSelect>
+      }
+      chevron={<TypeGlyph type={value} />}
+      popoverClassName="variable-row__type-popover"
+    >
+      {options.map((choice) => (
+        <TypeChoiceItem key={choice.value} choice={choice} />
+      ))}
+    </PanelSelect>
   );
 }
 
@@ -504,7 +480,7 @@ function CellListPopover({
       // The panel picker sheets (ListBox.css 「Popover Context」 · the item rows · ✓) key on the
       // trigger name — this list is the panel Select's, opened from the cell.
       trigger="Select"
-      className="react-aria-Popover property-select-popover variable-table__type-popover"
+      className={`react-aria-Popover property-select-popover variable-table__type-popover ${BUILDER_POPUP_LIST_CLASS}`}
     >
       <ListBox
         aria-label={label}

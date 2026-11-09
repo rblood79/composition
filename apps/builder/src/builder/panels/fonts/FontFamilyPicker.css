@@ -16,66 +16,14 @@
     white-space: nowrap;
   }
 
-  /* 팝오버 껍데기는 다른 패널 드롭다운과 같은 `.react-aria-Popover` 를 쓰고,
-     내용 배치(검색 / 목록 높이 / 관리 진입 줄)만 여기서 정한다. */
-  /* 233 = 색 · 아이콘 팝오버와 같은 폭 (종전 내용 폭 179) — 안쪽 pad 8 (panel-ui 20) */
-  /* 빌더 팝오버 표면 — 테두리 · 그림자는 Popover (Select 목록 · 행 메뉴와 같은 `--shadow-lg`,
-     2026-10-29 사용자 「다른 menu, popover, select 에도 동일하게」). */
+  /* 표면 · 검색 칸 · 목록 상자 · 관리 줄 구분선은 SearchablePicker.css, 행 · 구역 머리글 · ✓ 는 빌더 팝업
+     목록 정본 (styles/modules/builder-popup-list.css). 여기는 폭만 — 233 = 색 · 아이콘 팝오버와 같은 폭.
+     (2026-11-10 사용자 지적: 손으로 조립한 팝오버라 안쪽 여백 (8) · 검색 칸 · ↓ 이동이 다른 검색 팝오버와 달랐다.) */
   .react-aria-Popover.font-picker-popover {
     box-sizing: border-box;
     inline-size: 233px;
     min-width: 233px;
     max-width: none;
-    box-shadow: var(--shadow-lg);
-  }
-
-  .font-picker-dialog {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    outline: none;
-  }
-
-  .font-picker-search {
-    padding: var(--spacing-sm) var(--spacing-sm) 0;
-  }
-
-  .font-picker-search-input {
-    width: 100%;
-    height: var(--control-size);
-    padding: 0 var(--spacing-sm);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--bg-inset);
-    color: var(--fg);
-    font-size: var(--text-xs);
-    outline: none;
-
-    &:focus-visible {
-      border-color: var(--focus-ring);
-    }
-
-    &::placeholder {
-      color: var(--fg-muted);
-    }
-  }
-
-  /* 폰트가 쌓여도 팝오버가 패널 밖으로 자라지 않게 목록만 스크롤한다. */
-  .font-picker-list {
-    max-height: 240px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    border: none;
-    padding: var(--spacing-sm);
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
-  }
-
-  /* 구역 머리글 · 항목 (28) · hover · 선택 ✓ 는 빌더 팝업 목록 정본 (styles/modules/builder-popup-list.css). */
-
-  .font-picker-footer {
-    padding: var(--spacing-sm);
-    border-top: 1px solid var(--border);
   }
 
   .font-picker-manage {

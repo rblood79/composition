@@ -11,6 +11,80 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [글꼴 고르기 — 다른 검색 팝오버와 같은 SearchablePicker] - 2026-11-10
+
+### Fixed
+
+- **글꼴 고르기 목록의 안쪽 여백 · 검색 칸 · 키 동작이 다른 검색 팝오버와 같다** (사용자 지적): 전에는 첫 행이 테두리에서 9 였고 (다른 목록은 5), 검색 칸이 손으로 만든 입력이라 모양이 달랐으며 검색 칸에서 ↓ 로 목록에 들어가지 못했다.
+  - Why: 빌더 팝업 목록 정본 (`builder-popup-list.css`) 은 행 모양만 정하고 목록 안쪽 여백은 정하지 않았다. 글꼴 고르기는 팝오버 · 검색 · 목록을 따로 조립하면서 옛 「안쪽 pad 8」 (panel-ui 20) 을 적고 있었다.
+  - 이제 글꼴 고르기도 `SearchablePicker` 로 그린다. `SearchablePicker` 에 선택 ✓ (`selectedKey`) · 검색 칸 끄기 (`searchable` — 글꼴 7 개 미만) · 목록 아래 줄 (`footer` — 글꼴 관리) 자리를 더했다.
+  - 게이트 `builderPopupList.static.test.ts` (e) 를 추가했다. 팝업 목록 ListBox 의 class 에는 패널 CSS 가 padding 을 0 또는 `--spacing-xs` 로만 줄 수 있다. 원복하면 RED 다.
+  - Live (Playwright, 새 프로젝트 · 사용자 글꼴 2 개): Theme › Font 를 열면 첫 행이 테두리에서 5 · 행 28 · 폭 233, 검색 칸이 focus 를 받고, 「beta」 입력 → ↓ → Enter 로 Beta Serif 가 골라져 팝오버가 닫힌다. 구역 머리글 (Built-in · My fonts) 과 Manage fonts 줄이 있다. Variant · Font Weight · Font Size · 컴포넌트 교체 목록도 첫 행 5 다.
+  - 위치: `apps/builder/src/builder/panels/fonts/FontFamilyPicker.tsx` · `.css` · `components/property/SearchablePicker.tsx` · `.css`
+
+## [패널의 손 ARIA 위젯 → RAC] - 2026-11-10
+
+### Fixed
+
+- **글꼴 업로드 영역을 키보드로 열 수 있다**: 옛 `div role="button" tabIndex=0` 은 클릭만 받아 Enter · Space 가 동작하지 않았다.
+  - 이제 RAC `DropZone` + `FileTrigger` + `Button` 이다. 영역 전체가 파일 선택 버튼이고, 끌어 놓기 상태는 `data-drop-target` 이다.
+  - Live: Theme › Font › Add fonts 에서 Enter 로 파일 선택 창이 열린다 (여러 개 선택). 120 점선 상자 · focus 테두리는 그대로다.
+- **Interactions `{{` 변수 자동완성이 화면 낭독기에 활성 후보를 알린다**: 입력에 `role="combobox"` · `aria-expanded` · `aria-controls` · `aria-activedescendant` 가 없었다.
+  - RAC ComboBox · Autocomplete 는 입력 전체 글자로 거른다. 여기는 캐럿 자리의 토큰을 글 중간에 끼우는 동작이라 손 구현을 두고, APG combobox 계약만 다 갖췄다.
+  - 테스트 `PropertyInput.stateSuggest.test.tsx` 를 추가했다. 원복하면 RED 다.
+- **액션 바 툴팁이 RAC Tooltip 이다**: 옛 ShortcutTooltip 은 hover · focus 를 손으로 받아 `role=tooltip` 을 그렸고, 트리거와 `aria-describedby` 로 잇지 않았다. 이제 다른 아이콘 버튼과 같은 `ActionTooltipTrigger` 를 쓴다. 쓰는 곳이 없어진 `ShortcutTooltip.tsx` · `.css` 와 그 CSS 참조는 지웠다.
+  - Live: Detach instance 위에서 「Detach instance ⌘⌥X」 가 뜨고, 트리거의 `aria-describedby` 가 툴팁을 가리킨다. 높이는 28 이다.
+
+### Changed
+
+- **색 입력 모드 (HEX · RGBA · CSS) · 이미지 채움 Mode (Fill · Fit · Stretch) seg 를 RAC `ToggleButtonGroup` 으로 바꿨다**: radiogroup · radio · 방향키 이동을 RAC 가 맡는다. 옛 구현은 button 에 role · aria-checked 를 손으로 달아 방향키가 없었다.
+  - 모양은 그대로다. CSS 상태 선택자만 `data-selected` · `data-hovered` · `data-focus-visible` 로 옮겼다.
+  - Live: 색 모드 RGBA 클릭 → 방향키 → Space 로 CSS 선택 (선택 칠 · 버튼 20 그대로). 이미지 Mode 는 단위 테스트로 확인했다 — live 에서는 채움 종류를 Image 로 바꾸는 단계가 하니스에서 반영되지 않아 BLOCKED (바꾼 파일과 무관).
+- **AI 에이전트 설정의 provider · 키 저장 칸을 패널 컴포넌트로 바꿨다**: native `<select>` 대신 `PanelSelect`, native checkbox 대신 공용 `Checkbox`.
+- **유지**: Gradient 정지점 (`role="slider"`). RAC Slider 는 thumb 이 서로 지나가지 못하고 track 을 누르면 thumb 이 옮겨 간다. Gradient 는 정지점이 교차하고, 빈 곳 클릭은 정지점 추가, 아래로 끌면 삭제다. APG slider 키보드는 이미 갖췄다.
+- 위치: `panels/fonts/components/FontUploadZone.tsx` · `components/property/PropertyInput.components.tsx` · `components/overlay/actionBar/ContextualActionBar.tsx` · `panels/styles/components/ColorInputModeSelector.tsx` · `ImageFillEditor.tsx` · `panels/ai/components/AgentProfileSettings.tsx`
+
+## [검색 고르기 팝오버 한 벌 — SearchablePicker] - 2026-11-09
+
+### Changed
+
+- **검색되는 고르기 팝오버가 `SearchablePicker` 하나로 그려진다**: Interactions 대상 · 값 고르기, 컴포넌트 교체 (슬롯 삽입 · instance 속성 포함).
+  - 부품: 트리거 · 팝오버 · Dialog · 검색 칸 (`SearchField` control) · 구역 머리글 목록 (`SearchablePickerSection`). 항목이 많으면 보이는 행만 그린다 (`virtualized`).
+  - Why: 같은 조합을 세 파일이 따로 조립했다. 팝오버 그림자 · Dialog 여백 · 목록 최대 높이 CSS 도 두 벌 (`interactions-target-*` · `component-swap-*`) 이었다. 이제 `SearchablePicker.css` 한 곳이고, 호출부 CSS 에는 최소 폭과 Canvas 에서 가리킨 행 표시만 남았다.
+  - 아이콘 고르기는 견본 격자에 개수 표시가 있어 대상에서 뺐다.
+  - 게이트 `builderPopupList.static.test.ts` (d): RAC `Autocomplete` 는 SearchablePicker 와 허용 목록 (아이콘 격자 · 명령 팔레트 · 헤더 메뉴) 에서만 쓴다. 원복하면 RED 다.
+  - Live (Playwright, 새 프로젝트, 3 PASS):
+    - 컴포넌트 교체: 「link」 검색으로 81 → 2, ↓ 로 행 표시. Escape 두 번에 닫히고 focus 가 트리거로 돌아온다.
+    - Interactions 대상: 구역 머리글 두 개, Body 고르기
+    - 값 고르기: 변수 greeting → 칩 「Variables › greeting」
+    - 모두 정본 class · hover 칠이 있고, 그림자 · 여백 4 · 최소 폭 (240 · 260) · 목록 최대 높이 320 은 전과 같다.
+  - 위치: `apps/builder/src/builder/components/property/SearchablePicker.tsx` · `.css` · `panels/interactions/catalog/CatalogTargetPicker.tsx` · `panels/interactions/ValueField.tsx` · `panels/properties/catalog/CatalogSwapPicker.tsx`
+
+## [빌더 패널 Select 틀 한 벌 — PanelSelect] - 2026-11-09
+
+### Changed
+
+- **빌더 패널의 Select 가 모두 `PanelSelect` 하나로 그려진다**: PropertySelect · Data 바인딩 (컬렉션 · 필드 매핑) · 변수 유형 (State 절) · API Method · 가져오기 열 동작.
+  - Why: PropertySelect 의 마크업 (Select · 트리거 · 팝오버 · 목록) 을 CollectionBinding (2) · VariableTable · CompactSelect 가 복사해 썼다. 그래서 PropertySelect 를 고쳐도 넷은 따라오지 않았고, 팝오버가 닫힐 때 트리거 focus 복원은 Select 마다 있기도 하고 없기도 했다.
+  - 트리거 안 내용 (값 · 「라벨: 값」 · 유형 아이콘) 만 호출부가 정한다. 항목은 `PanelSelectItem` 으로, 이름만 · 아래 설명 · 오른쪽 짧은 정보 · 색 점 중에서 고른다.
+  - 게이트 `builderPopupList.static.test.ts`:
+    - (a) 검사 단위를 파일에서 Popover 로 바꿨다. 파일 단위일 때는 Data › Variables 표의 셀 유형 목록이 같은 파일의 다른 Popover 덕에 검사를 빠져나가 옛 hover 로 남아 있었다.
+    - (c) RAC `Select` 는 `PanelSelect.tsx` 에서만 쓴다.
+    - 둘 다 원복하면 RED 다.
+
+### Fixed
+
+- **Data › Variables 표의 셀 유형 목록도 hover 행이 뚜렷하다**: 빌더 팝업 목록 정본 class 가 빠져 있었다.
+- **Data 바인딩 필드 목록의 유형 표시가 잘리지 않는다**: 전에는 칸이 남아도 「STR…」 로 잘렸다. 행이 목록 폭을 채우지 않아 유형 칸의 최대 폭 (50%) 이 글자 폭 기준으로 계산됐다. 이제 유형이 오른쪽 끝에 붙는다.
+- Live (Playwright, 새 프로젝트, 6 PASS):
+  - Button Variant 고르기
+  - ListBox 데이터 소스 Users · 값 필드 num
+  - API Method GET → POST
+  - Variables 표 셀 유형 String → Number
+  - State 절 유형 String → Boolean
+  - 모두 팝오버에 정본 class 가 붙고 hover 행이 칠해졌다. 닫힌 뒤 focus 는 트리거로 돌아온다.
+- 위치: `apps/builder/src/builder/components/property/PanelSelect.tsx` · `PropertySelect.components.tsx` · `CollectionBinding.tsx` · `components/variables/VariableTable.tsx` · `panels/datatable/editors/CompactSelect.tsx` · `PropertySelectGrid.css`
+
 ## [Select · ComboBox 팝오버 목록 여백 통일 — S2 8px] - 2026-11-09
 
 ### Fixed

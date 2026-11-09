@@ -5,17 +5,8 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
-import { Autocomplete } from "react-aria-components/Autocomplete";
 import { Button as RACButton } from "react-aria-components/Button";
-import { Dialog, DialogTrigger } from "react-aria-components/Dialog";
-import { Header } from "react-aria-components/Header";
-import {
-  ListBox,
-  ListBoxItem,
-  ListBoxSection,
-} from "react-aria-components/ListBox";
-import { Popover } from "react-aria-components/Popover";
-import { useFilter } from "react-aria-components";
+import { ListBoxItem } from "react-aria-components/ListBox";
 import { ChevronDown } from "lucide-react";
 import { useI18n } from "@/i18n";
 import type {
@@ -29,9 +20,11 @@ import {
   type CatalogSwapCandidate,
 } from "../../../catalogRuntime/swapInstance";
 import { useCatalogWorkspace } from "../../../catalogRuntime/react";
-import { SearchField } from "../../../components/ui/SearchField";
+import {
+  SearchablePicker,
+  SearchablePickerSection,
+} from "../../../components/property/SearchablePicker";
 import { ACTION_ICONS } from "../../../config/actionIcons";
-import { BUILDER_POPUP_LIST_CLASS } from "../../../styles/modules/builderPopupList";
 import "./CatalogSwapPicker.css";
 
 const ComponentIcon = ACTION_ICONS.component;
@@ -83,66 +76,51 @@ export const CatalogComponentPicker = memo(function CatalogComponentPicker({
     setSnapshot({ open, candidates: open ? readCandidates() : [] });
   }
   const candidates = snapshot.candidates;
-  const { contains } = useFilter({ sensitivity: "base" });
   return (
-    <DialogTrigger isOpen={open} onOpenChange={onOpenChange}>
-      <RACButton
-        ref={triggerRef}
-        className={triggerClassName}
-        data-role={dataRole}
-        aria-label={label}
-      >
-        {children}
-      </RACButton>
-      <Popover
-        className={`react-aria-Popover property-select-popover component-swap-popover ${BUILDER_POPUP_LIST_CLASS}`}
-        placement="bottom start"
-        style={popoverStyle}
-      >
-        <Dialog className="component-swap-dialog" aria-label={label}>
-          <Autocomplete filter={contains}>
-            <SearchField
-              appearance="control"
-              autoFocus
-              placeholder={t("componentAction.swapSearch")}
-              aria-label={t("componentAction.swapSearch")}
-            />
-            <ListBox
-              className="react-aria-ListBox component-swap-list"
-              aria-label={label}
-              selectionMode="none"
-              onAction={(key) => {
-                onOpenChange(false);
-                onPick(String(key) as DefinitionId);
-              }}
-            >
-              {GROUPS.map((group) => {
-                const items = candidates.filter(
-                  (candidate) => candidate.group === group,
-                );
-                return items.length ? (
-                  <ListBoxSection key={group} id={group}>
-                    <Header>
-                      {t(GROUP_LABEL[group])}
-                    </Header>
-                    {items.map((candidate) => (
-                      <ListBoxItem
-                        key={candidate.definitionId}
-                        id={candidate.definitionId}
-                        textValue={candidate.label}
-                        className="react-aria-ListBoxItem"
-                      >
-                        {candidate.label}
-                      </ListBoxItem>
-                    ))}
-                  </ListBoxSection>
-                ) : null;
-              })}
-            </ListBox>
-          </Autocomplete>
-        </Dialog>
-      </Popover>
-    </DialogTrigger>
+    <SearchablePicker
+      label={label}
+      searchLabel={t("componentAction.swapSearch")}
+      open={open}
+      onOpenChange={onOpenChange}
+      popoverClassName="component-swap-popover"
+      listClassName="component-swap-list"
+      popoverStyle={popoverStyle}
+      onAction={(key) => {
+        onOpenChange(false);
+        onPick(String(key) as DefinitionId);
+      }}
+      trigger={
+        <RACButton
+          ref={triggerRef}
+          className={triggerClassName}
+          data-role={dataRole}
+          aria-label={label}
+        >
+          {children}
+        </RACButton>
+      }
+    >
+      {GROUPS.map((group) => (
+        <SearchablePickerSection
+          key={group}
+          id={group}
+          title={t(GROUP_LABEL[group])}
+        >
+          {candidates
+            .filter((candidate) => candidate.group === group)
+            .map((candidate) => (
+              <ListBoxItem
+                key={candidate.definitionId}
+                id={candidate.definitionId}
+                textValue={candidate.label}
+                className="react-aria-ListBoxItem"
+              >
+                {candidate.label}
+              </ListBoxItem>
+            ))}
+        </SearchablePickerSection>
+      ))}
+    </SearchablePicker>
   );
 });
 

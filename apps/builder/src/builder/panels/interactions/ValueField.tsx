@@ -6,17 +6,8 @@
  * so a row stays an object. A source whose shape does not fit the slot's type says so.
  */
 import { memo, useMemo, useState } from "react";
-import { Autocomplete } from "react-aria-components/Autocomplete";
 import { Button as RACButton } from "react-aria-components/Button";
-import { Dialog, DialogTrigger } from "react-aria-components/Dialog";
-import { Header } from "react-aria-components/Header";
-import {
-  ListBox,
-  ListBoxItem,
-  ListBoxSection,
-} from "react-aria-components/ListBox";
-import { Popover } from "react-aria-components/Popover";
-import { useFilter } from "react-aria-components";
+import { ListBoxItem } from "react-aria-components/ListBox";
 import { Braces, X } from "lucide-react";
 import { parseRuleValueRef } from "@composition/shared";
 
@@ -25,7 +16,10 @@ import { PropertyIconPicker } from "../../components/property/PropertyIconPicker
 import { PropertyInput } from "../../components/property/PropertyInput";
 import { NumberRangeField } from "../properties/generic/NumberRangeField";
 import { PropertySelect } from "../../components/property/PropertySelect";
-import { SearchField } from "../../components/ui/SearchField";
+import {
+  SearchablePicker,
+  SearchablePickerSection,
+} from "../../components/property/SearchablePicker";
 import { useI18n } from "@/i18n";
 import {
   catalogValueFits,
@@ -36,7 +30,6 @@ import {
   type CatalogValueSources,
   type CatalogValueType,
 } from "./valueOptions";
-import { BUILDER_POPUP_LIST_CLASS } from "../../styles/modules/builderPopupList";
 import "./ValueField.css";
 
 const GROUPS: readonly CatalogValueGroup[] = ["event", "item", "variable"];
@@ -84,82 +77,64 @@ function ValuePicker({
 }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
-  const { contains } = useFilter({ sensitivity: "base" });
   const options = useMemo(() => catalogValueOptions(sources), [sources]);
   return (
-    <DialogTrigger isOpen={open} onOpenChange={setOpen}>
-      <RACButton
-        className="react-aria-Button interactions-value-pick"
-        aria-label={`${label}: ${t("interactions.valuePick")}`}
-        isDisabled={!options.length}
-      >
-        <Braces aria-hidden="true" size={14} />
-      </RACButton>
-      <Popover
-        className={`react-aria-Popover property-select-popover interactions-target-popover ${BUILDER_POPUP_LIST_CLASS}`}
-        placement="bottom end"
-      >
-        <Dialog
-          className="interactions-target-dialog"
-          aria-label={t("interactions.valuePick")}
+    <SearchablePicker
+      label={t("interactions.valuePick")}
+      searchLabel={t("interactions.valueSearch")}
+      open={open}
+      onOpenChange={setOpen}
+      placement="bottom end"
+      popoverClassName="interactions-target-popover"
+      listClassName="interactions-target-list"
+      onAction={(key) => {
+        onPick(String(key));
+        setOpen(false);
+      }}
+      trigger={
+        <RACButton
+          className="react-aria-Button interactions-value-pick"
+          aria-label={`${label}: ${t("interactions.valuePick")}`}
+          isDisabled={!options.length}
         >
-          <Autocomplete filter={contains}>
-            <SearchField
-              appearance="control"
-              autoFocus
-              placeholder={t("interactions.valueSearch")}
-              aria-label={t("interactions.valueSearch")}
-            />
-            <ListBox
-              aria-label={t("interactions.valuePick")}
-              className="react-aria-ListBox interactions-target-list"
-              onAction={(key) => {
-                onPick(String(key));
-                setOpen(false);
-              }}
-            >
-              {GROUPS.map((group) => {
-                const items = options.filter(
-                  (option) => option.group === group,
-                );
-                return items.length ? (
-                  <ListBoxSection key={group}>
-                    <Header>
-                      {t(GROUP_LABEL[group])}
-                    </Header>
-                    {items.map((option) => {
-                      const name =
-                        option.name ||
-                        (option.group === "item"
-                          ? t("interactions.valueItemWhole")
-                          : "");
-                      return (
-                        <ListBoxItem
-                          key={option.value}
-                          id={option.value}
-                          textValue={`${t(GROUP_LABEL[group])} ${name}`}
-                          className="react-aria-ListBoxItem interactions-value-option"
-                          data-nested={option.nested || undefined}
-                        >
-                          <span className="interactions-value-option-name">
-                            {name}
-                          </span>
-                          {option.type && (
-                            <span className="interactions-value-option-type">
-                              {option.type}
-                            </span>
-                          )}
-                        </ListBoxItem>
-                      );
-                    })}
-                  </ListBoxSection>
-                ) : null;
-              })}
-            </ListBox>
-          </Autocomplete>
-        </Dialog>
-      </Popover>
-    </DialogTrigger>
+          <Braces aria-hidden="true" size={14} />
+        </RACButton>
+      }
+    >
+      {GROUPS.map((group) => (
+        <SearchablePickerSection
+          key={group}
+          id={group}
+          title={t(GROUP_LABEL[group])}
+        >
+          {options
+            .filter((option) => option.group === group)
+            .map((option) => {
+              const name =
+                option.name ||
+                (option.group === "item"
+                  ? t("interactions.valueItemWhole")
+                  : "");
+              return (
+                <ListBoxItem
+                  key={option.value}
+                  id={option.value}
+                  textValue={`${t(GROUP_LABEL[group])} ${name}`}
+                  className="react-aria-ListBoxItem interactions-value-option"
+                  data-nested={option.nested || undefined}
+                >
+                  <span className="interactions-value-option-name">{name}</span>
+                  {option.type && (
+                    <span className="interactions-value-option-type">
+                      {option.type}
+                    </span>
+                  )}
+                </ListBoxItem>
+              );
+            })}
+        </SearchablePickerSection>
+      ))}
+    </SearchablePicker>
   );
 }
 

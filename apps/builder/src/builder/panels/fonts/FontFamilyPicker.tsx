@@ -12,20 +12,16 @@ import {
   type ComponentType,
 } from "react";
 import { Button } from "react-aria-components/Button";
-import { Dialog, DialogTrigger } from "react-aria-components/Dialog";
-import { Header } from "react-aria-components/Header";
-import { Input } from "react-aria-components/Input";
-import {
-  ListBox,
-  ListBoxItem,
-  ListBoxSection,
-} from "react-aria-components/ListBox";
-import { Popover } from "react-aria-components/Popover";
+import { ListBoxItem } from "react-aria-components/ListBox";
 import type { Key } from "react-aria-components/Collection";
 import { ChevronDown, Settings2 } from "lucide-react";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useControlPopoverMetrics } from "../../components/property/useControlPopoverMetrics";
+import {
+  SearchablePicker,
+  SearchablePickerSection,
+} from "../../components/property/SearchablePicker";
 import {
   DEFAULT_BASE_TYPOGRAPHY,
   DEFAULT_FONT_FAMILY,
@@ -36,7 +32,6 @@ import { useFontRegistry } from "./useFontRegistry";
 import type { FontManagerDialogProps } from "./FontManagerDialog";
 import "./FontFamilyPicker.css";
 import { useI18n, useSemanticLabel } from "@/i18n";
-import { BUILDER_POPUP_LIST_CLASS } from "../../styles/modules/builderPopupList";
 
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
@@ -63,6 +58,20 @@ interface FontFamilyPickerProps {
    * (`installedBaseFontFamily`) 또는 rule 값. 트리거가 「테마」 칩 + 그 이름을 보인다.
    */
   inheritedFamily?: string;
+}
+
+/** 글꼴 한 줄 — 이름을 그 글꼴로 그린다 */
+function fontItem(option: { value: string; label: string }) {
+  return (
+    <ListBoxItem
+      key={option.value}
+      id={option.value}
+      className="react-aria-ListBoxItem font-picker-item"
+      textValue={option.label}
+    >
+      <span style={{ fontFamily: option.value }}>{option.label}</span>
+    </ListBoxItem>
+  );
 }
 
 export const FontFamilyPicker = memo(function FontFamilyPicker({
@@ -96,7 +105,6 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
   //   7.7 KB raw). 로드 실패는 대화상자를 닫는 것으로 끝나고 다음 클릭이 다시 시도한다.
   const [ManagerDialog, setManagerDialog] =
     useState<ComponentType<FontManagerDialogProps> | null>(null);
-  const [query, setQuery] = useState("");
   const { familyGroups, faceCount } = useFontRegistry();
   // 좌측 정렬은 패널 공통 규약 (PropertySelect 와 같은 소스). 폭은 CSS 233 (색 · 아이콘
   //   팝오버와 같은 폭) — "fit-content" 는 inline width 를 써서 CSS 폭을 이긴다.
@@ -131,37 +139,11 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
   }, [familyGroups, value, isDefault]);
   const showSearch =
     options.builtins.length + options.customs.length >= SEARCH_MIN_FAMILIES;
-  const filter = useCallback(
-    (items: { value: string; label: string }[]) => {
-      const needle = query.trim().toLowerCase();
-      return needle
-        ? items.filter((item) => item.label.toLowerCase().includes(needle))
-        : items;
-    },
-    [query],
-  );
-  const visibleBuiltins = useMemo(
-    () => filter(options.builtins),
-    [filter, options],
-  );
-  const visibleCustoms = useMemo(
-    () => filter(options.customs),
-    [filter, options],
-  );
-
-  const handleOpenChange = useCallback((open: boolean) => {
-    setPickerOpen(open);
-    if (!open) setQuery("");
-  }, []);
-
-  const handleSelectionChange = useCallback(
-    (keys: "all" | Set<Key>) => {
-      if (keys === "all") return;
-      const selected = Array.from(keys)[0];
-      if (selected == null) return;
+  // 검색어는 SearchablePicker (Autocomplete) 가 갖는다 — 팝오버가 닫히면 같이 사라진다.
+  const handleSelect = useCallback(
+    (selected: Key) => {
       onChange(selected === RESET_KEY ? defaultValue : String(selected));
       setPickerOpen(false);
-      setQuery("");
     },
     [onChange, defaultValue],
   );
@@ -187,127 +169,76 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
     <fieldset className="properties-aria font-family" aria-label="Font Family">
       {label && <legend className="fieldset-legend">{localize(label)}</legend>}
       <div className="react-aria-control react-aria-Group" ref={anchorRef}>
-        <DialogTrigger isOpen={isPickerOpen} onOpenChange={handleOpenChange}>
-          <Button
-            className="react-aria-Button font-picker-trigger"
-            ref={controlRef}
-            aria-label="Font Family"
-          >
-            {/* 이름을 그 폰트로 그린다 — 고르기 전에 생김새가 보이는 것이 피커의 값 */}
-            {isDefault && (
-              <span className="font-picker-theme-chip">{defaultLabel}</span>
-            )}
-            <span
-              className="font-picker-value"
-              title={isDefault ? defaultFamily : value}
-              style={
-                displayFamily
-                  ? { fontFamily: isDefault ? defaultFamily : value }
-                  : undefined
-              }
+        <SearchablePicker
+          label="Font Family"
+          searchLabel={t("fonts.searchPlaceholder")}
+          open={isPickerOpen}
+          onOpenChange={setPickerOpen}
+          selectedKey={selectedValue}
+          onAction={handleSelect}
+          searchable={showSearch}
+          popoverClassName="font-picker-popover"
+          popoverStyle={popoverStyle}
+          trigger={
+            <Button
+              className="react-aria-Button font-picker-trigger"
+              ref={controlRef}
+              aria-label="Font Family"
             >
-              {displayFamily || defaultLabel}
-            </span>
-            <span aria-hidden="true" className="select-chevron">
-              <ChevronDown size={iconProps.size} />
-            </span>
-          </Button>
-
-          <Popover
-            className={`react-aria-Popover font-picker-popover ${BUILDER_POPUP_LIST_CLASS}`}
-            style={popoverStyle}
-          >
-            <Dialog className="font-picker-dialog" aria-label="Font Family">
-              {showSearch && (
-                <div className="font-picker-search">
-                  <Input
-                    autoFocus
-                    className="font-picker-search-input"
-                    aria-label={t("fonts.searchLabel")}
-                    placeholder={t("fonts.searchPlaceholder")}
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                  />
-                </div>
+              {/* 이름을 그 폰트로 그린다 — 고르기 전에 생김새가 보이는 것이 피커의 값 */}
+              {isDefault && (
+                <span className="font-picker-theme-chip">{defaultLabel}</span>
               )}
-
-              <ListBox
-                className="react-aria-ListBox font-picker-list"
-                aria-label="Font Family"
-                selectionMode="single"
-                disallowEmptySelection
-                selectedKeys={[selectedValue]}
-                onSelectionChange={handleSelectionChange}
+              <span
+                className="font-picker-value"
+                title={isDefault ? defaultFamily : value}
+                style={
+                  displayFamily
+                    ? { fontFamily: isDefault ? defaultFamily : value }
+                    : undefined
+                }
               >
-                <ListBoxSection className="font-picker-section">
-                  <Header>
-                    {t("fonts.sectionDefault")}
-                  </Header>
-                  <ListBoxItem
-                    id={RESET_KEY}
-                    className="react-aria-ListBoxItem font-picker-item"
-                    textValue={defaultLabel}
-                  >
-                    <span className="font-picker-theme-chip">
-                      {defaultLabel}
-                    </span>
-                    {defaultFamily && (
-                      <span style={{ fontFamily: defaultFamily }}>
-                        {defaultFamilyLabel}
-                      </span>
-                    )}
-                  </ListBoxItem>
-                  {visibleBuiltins.map((option) => (
-                    <ListBoxItem
-                      key={option.value}
-                      id={option.value}
-                      className="react-aria-ListBoxItem font-picker-item"
-                      textValue={option.label}
-                    >
-                      <span style={{ fontFamily: option.value }}>
-                        {option.label}
-                      </span>
-                    </ListBoxItem>
-                  ))}
-                </ListBoxSection>
-
-                {visibleCustoms.length > 0 && (
-                  <ListBoxSection className="font-picker-section">
-                    <Header>
-                      {t("fonts.sectionMine")}
-                    </Header>
-                    {visibleCustoms.map((option) => (
-                      <ListBoxItem
-                        key={option.value}
-                        id={option.value}
-                        className="react-aria-ListBoxItem font-picker-item"
-                        textValue={option.label}
-                      >
-                        <span style={{ fontFamily: option.value }}>
-                          {option.label}
-                        </span>
-                      </ListBoxItem>
-                    ))}
-                  </ListBoxSection>
+                {displayFamily || defaultLabel}
+              </span>
+              <span aria-hidden="true" className="select-chevron">
+                <ChevronDown size={iconProps.size} />
+              </span>
+            </Button>
+          }
+          footer={
+            scope === "theme" ? (
+              <Button className="font-picker-manage" onPress={handleOpenManager}>
+                <ManageIcon size={iconProps.size} aria-hidden="true" />
+                {faceCount === 0 ? t("fonts.addFonts") : t("fonts.manageFonts")}
+              </Button>
+            ) : undefined
+          }
+        >
+          <SearchablePickerSection
+            id="default"
+            title={t("fonts.sectionDefault")}
+          >
+            {[
+              <ListBoxItem
+                key={RESET_KEY}
+                id={RESET_KEY}
+                className="react-aria-ListBoxItem font-picker-item"
+                textValue={defaultLabel}
+              >
+                <span className="font-picker-theme-chip">{defaultLabel}</span>
+                {defaultFamily && (
+                  <span style={{ fontFamily: defaultFamily }}>
+                    {defaultFamilyLabel}
+                  </span>
                 )}
-              </ListBox>
-
-              {scope === "theme" && (
-                <div className="font-picker-footer">
-                  <Button
-                    className="font-picker-manage"
-                    onPress={handleOpenManager}
-                  >
-                    <ManageIcon size={iconProps.size} aria-hidden="true" />
-                    {faceCount === 0
-                      ? t("fonts.addFonts")
-                      : t("fonts.manageFonts")}
-                  </Button>
-                </div>
-              )}
-            </Dialog>
-          </Popover>
-        </DialogTrigger>
+              </ListBoxItem>,
+              ...options.builtins.map(fontItem),
+            ]}
+          </SearchablePickerSection>
+          <SearchablePickerSection id="mine" title={t("fonts.sectionMine")}>
+            {options.customs.map(fontItem)}
+          </SearchablePickerSection>
+        </SearchablePicker>
       </div>
 
       {scope === "theme" && ManagerDialog && (

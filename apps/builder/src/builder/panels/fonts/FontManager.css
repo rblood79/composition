@@ -27,14 +27,8 @@
   /* 드롭 존 120 — Image fill · CSV 가져오기와 같은 어법 (1px dashed · inset 표면)
      (panel-ui 20, 2026-09-14) */
   .font-upload-zone {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--spacing-xs);
     box-sizing: border-box;
     block-size: 120px;
-    padding: var(--spacing-sm);
     border: 1px dashed var(--border);
     border-radius: var(--radius-md);
     background: var(--bg-inset);
@@ -42,23 +36,46 @@
     transition:
       border-color 150ms,
       color 150ms;
-    cursor: pointer;
 
-    &:hover,
-    &[data-drag-over="true"] {
+    /* 상태는 RAC DropZone · Button 의 data 속성 */
+    &:has(.font-upload-trigger[data-hovered]),
+    &[data-drop-target] {
       border-color: var(--accent);
       color: var(--fg);
     }
 
-    &:focus-visible {
+    &[data-focus-visible],
+    &:has(.font-upload-trigger[data-focus-visible]) {
       outline: 2px solid var(--focus-ring);
       outline-offset: -2px;
     }
+
+    &[data-disabled] {
+      opacity: 0.5;
+    }
   }
 
-  .font-upload-zone[data-disabled="true"] {
-    opacity: 0.5;
-    cursor: not-allowed;
+  /* 영역 전체가 파일 선택 버튼 */
+  .font-upload-trigger {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    box-sizing: border-box;
+    inline-size: 100%;
+    block-size: 100%;
+    padding: var(--spacing-sm);
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    outline: none;
+
+    &[data-disabled] {
+      cursor: not-allowed;
+    }
   }
 
   .font-upload-label {

@@ -379,8 +379,14 @@
   line-height: var(--text-2xs--line-height);
 }
 
-.ai-profile-field input,
-.ai-profile-field select {
+/* provider — 패널 Select (PanelSelect). trigger 글자는 상속이라 옆 입력과 같은 크기를 준다 */
+.ai-profile-field .react-aria-Select {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-2xs);
+}
+
+.ai-profile-field input {
   flex: 1;
   min-width: 0;
   padding: var(--spacing-2xs) var(--spacing-xs);
@@ -391,13 +397,11 @@
   font-size: var(--text-2xs);
 }
 
-.ai-profile-field input:hover,
-.ai-profile-field select:hover {
+.ai-profile-field input:hover {
   border-color: var(--border-hover);
 }
 
-.ai-profile-field input:focus-visible,
-.ai-profile-field select:focus-visible {
+.ai-profile-field input:focus-visible {
   outline: var(--focus-ring);
   outline-offset: 1px;
 }

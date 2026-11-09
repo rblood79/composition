@@ -11,6 +11,8 @@
  */
 import { useState } from "react";
 import { Button } from "@composition/shared/components";
+import { Checkbox } from "@composition/shared/components/list";
+import { SelectValue } from "react-aria-components/Select";
 import {
   AGENT_PROFILE_IDS,
   RESERVED_AGENT_PROFILE_IDS,
@@ -30,6 +32,10 @@ import {
   setPersistOptIn,
 } from "../../../../services/ai/providers/byokKeyStore";
 import { useI18n } from "@/i18n";
+import {
+  PanelSelect,
+  PanelSelectItem,
+} from "../../../components/property/PanelSelect";
 
 /** 프로파일 → 라벨 **키** (ADR-200 어법). */
 const PROFILE_LABEL_KEYS: Readonly<Record<AgentProfileId, string>> = {
@@ -105,22 +111,26 @@ export function AgentProfileSettings() {
               {t(PROFILE_LABEL_KEYS[id])}
             </legend>
 
-            <label className="ai-profile-field">
-              <span>provider</span>
-              <select
-                value={config.provider}
-                onChange={(e) =>
-                  update(id, {
-                    provider: e.target.value as AgentProfileConfig["provider"],
-                  })
-                }
+            <div className="ai-profile-field">
+              <span aria-hidden="true">provider</span>
+              <PanelSelect
+                aria-label="provider"
+                selectedKey={config.provider}
+                onSelectionChange={(key) => {
+                  if (key != null)
+                    update(id, {
+                      provider: String(key) as AgentProfileConfig["provider"],
+                    });
+                }}
+                trigger={<SelectValue />}
               >
-                <option value="openai-compatible">
-                  {t("ai.openAiCompatibleHint")}
-                </option>
-                <option value="anthropic">Anthropic</option>
-              </select>
-            </label>
+                <PanelSelectItem
+                  id="openai-compatible"
+                  label={t("ai.openAiCompatibleHint")}
+                />
+                <PanelSelectItem id="anthropic" label="Anthropic" />
+              </PanelSelect>
+            </div>
 
             <label className="ai-profile-field">
               <span>endpoint</span>
@@ -175,17 +185,16 @@ export function AgentProfileSettings() {
 
       <fieldset className="properties-aria ai-profile-secrets">
         <legend className="fieldset-legend">{t("ai.keyStorageLegend")}</legend>
-        <label className="ai-profile-check">
-          <input
-            type="checkbox"
-            checked={persist}
-            onChange={(e) => {
-              setPersistOptIn(e.target.checked);
-              setPersist(e.target.checked);
-            }}
-          />
-          <span>{t("ai.keyStorageToggle")}</span>
-        </label>
+        <Checkbox
+          className="ai-profile-check"
+          isSelected={persist}
+          onChange={(next) => {
+            setPersistOptIn(next);
+            setPersist(next);
+          }}
+        >
+          {t("ai.keyStorageToggle")}
+        </Checkbox>
         <p className="ai-profile-hint">{t("ai.keyStorageHint")}</p>
       </fieldset>
     </div>

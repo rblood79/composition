@@ -118,3 +118,38 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* 이름 + 오른쪽 짧은 정보 (`PanelSelectItem` detail — Data 바인딩의 컬렉션 · 필드 유형) = 한 줄 28 (panel-ui 21 — 05 단위 메뉴 · 글꼴 목록과 같은 ListBox 행): 이름 12 왼쪽,
+   설명/타입은 우측 10 mono caps. 종전 두 줄 (이름 14 + 설명 12) 은 항목이 46 이었다. */
+.property-select__option-row {
+  /* 행 폭을 채운다 — 내용 폭이면 정보 칸의 max-width 50% 가 자기 폭 기준이라 「STR…」 로 잘렸다 */
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+
+.property-select__option-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+  color: var(--fg);
+}
+
+.property-select__option-detail {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--fg-muted);
+}

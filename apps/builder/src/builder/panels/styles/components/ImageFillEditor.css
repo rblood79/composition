@@ -129,17 +129,18 @@
       background-color 0.1s,
       color 0.1s;
 
-    &:focus-visible {
+    /* 상태는 RAC ToggleButton 의 data 속성 */
+    &[data-focus-visible] {
       outline: 2px solid var(--accent);
       outline-offset: -2px;
     }
 
-    &[data-active] {
+    &[data-selected] {
       background: var(--accent);
       color: var(--fg-on-accent);
     }
 
-    &:hover:not([data-active]) {
+    &[data-hovered]:not([data-selected]) {
       background: var(--accent-subtle);
     }
   }

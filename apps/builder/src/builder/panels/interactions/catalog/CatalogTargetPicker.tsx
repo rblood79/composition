@@ -1,21 +1,13 @@
 import { memo, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Autocomplete } from "react-aria-components/Autocomplete";
 import { Button as RACButton } from "react-aria-components/Button";
-import { Dialog, DialogTrigger } from "react-aria-components/Dialog";
-import { Header } from "react-aria-components/Header";
-import {
-  ListBox,
-  ListBoxItem,
-  ListBoxSection,
-} from "react-aria-components/ListBox";
-import { Popover } from "react-aria-components/Popover";
-import { ListLayout, Virtualizer } from "react-aria-components/Virtualizer";
-import { useFilter } from "react-aria-components";
+import { ListBoxItem } from "react-aria-components/ListBox";
 import { ChevronDown, Crosshair } from "lucide-react";
 import { useI18n } from "@/i18n";
 import type { CatalogTargetOption } from "../../../catalogRuntime/interactions";
-import { SearchField } from "../../../components/ui/SearchField";
-import { BUILDER_POPUP_LIST_CLASS } from "../../../styles/modules/builderPopupList";
+import {
+  SearchablePicker,
+  SearchablePickerSection,
+} from "../../../components/property/SearchablePicker";
 import "./CatalogTargetPicker.css";
 
 /** ADR-283 G2 — past this many candidates the list draws only the rows in view (RAC Virtualizer). */
@@ -122,58 +114,12 @@ export const CatalogTargetPicker = memo(function CatalogTargetPicker({
     () => new Map(options.map((option) => [option.key, option])),
     [options],
   );
-  const { contains } = useFilter({ sensitivity: "base" });
   const virtualized = options.length > TARGET_PICKER_VIRTUALIZE_AT;
   const changeOpen = (next: boolean) => {
     if (next && !open) setOptions(readOptions());
     setOpen(next);
     if (!next) onHover(undefined);
   };
-  const list = (
-    <ListBox
-      className="react-aria-ListBox interactions-target-list"
-      data-virtualized={virtualized || undefined}
-      aria-label={label}
-      selectionMode="none"
-      onAction={(key) => {
-        const option = byKey.get(String(key));
-        changeOpen(false);
-        if (option) onPick(option);
-      }}
-    >
-      {GROUPS.map((group) => {
-        const items = options.filter((option) => option.group === group);
-        return items.length ? (
-          <ListBoxSection key={group} id={group}>
-            <Header>
-              {t(GROUP_LABEL[group])}
-            </Header>
-            {items.map((option) => (
-              <ListBoxItem
-                key={option.key}
-                id={option.key}
-                textValue={labels.get(option.key)}
-                className="react-aria-ListBoxItem"
-                data-canvas-hover={
-                  canvasHoverKey === option.key ? true : undefined
-                }
-                onHoverStart={() => onHover(option)}
-              >
-                {({ isFocused }) => (
-                  <FocusReport
-                    focused={isFocused}
-                    onFocus={() => onHover(option)}
-                  >
-                    {labels.get(option.key)}
-                  </FocusReport>
-                )}
-              </ListBoxItem>
-            ))}
-          </ListBoxSection>
-        ) : null;
-      })}
-    </ListBox>
-  );
   return (
     <fieldset
       className="properties-aria interactions-target-field"
@@ -181,45 +127,66 @@ export const CatalogTargetPicker = memo(function CatalogTargetPicker({
     >
       <legend className="fieldset-legend">{label}</legend>
       <div className="react-aria-control react-aria-Group interactions-target-control">
-        <DialogTrigger isOpen={open} onOpenChange={changeOpen}>
-          <RACButton
-            className="react-aria-Button interactions-target-trigger"
-            aria-label={`${label}: ${value ?? t("interactions.targetUnset")}`}
-          >
-            <span
-              className="interactions-target-value"
-              data-unset={value === undefined || undefined}
+        <SearchablePicker
+          label={label}
+          searchLabel={t("interactions.targetSearch")}
+          open={open}
+          onOpenChange={changeOpen}
+          popoverClassName="interactions-target-popover"
+          listClassName="interactions-target-list"
+          virtualized={virtualized}
+          onAction={(key) => {
+            const option = byKey.get(String(key));
+            changeOpen(false);
+            if (option) onPick(option);
+          }}
+          trigger={
+            <RACButton
+              className="react-aria-Button interactions-target-trigger"
+              aria-label={`${label}: ${value ?? t("interactions.targetUnset")}`}
             >
-              {value ?? t("interactions.targetUnset")}
-            </span>
-            <ChevronDown aria-hidden="true" size={12} />
-          </RACButton>
-          <Popover
-            className={`react-aria-Popover property-select-popover interactions-target-popover ${BUILDER_POPUP_LIST_CLASS}`}
-            placement="bottom start"
-          >
-            <Dialog className="interactions-target-dialog" aria-label={label}>
-              <Autocomplete filter={contains}>
-                <SearchField
-                  appearance="control"
-                  autoFocus
-                  placeholder={t("interactions.targetSearch")}
-                  aria-label={t("interactions.targetSearch")}
-                />
-                {virtualized ? (
-                  <Virtualizer
-                    layout={ListLayout}
-                    layoutOptions={{ rowHeight: 28, headingHeight: 24 }}
+              <span
+                className="interactions-target-value"
+                data-unset={value === undefined || undefined}
+              >
+                {value ?? t("interactions.targetUnset")}
+              </span>
+              <ChevronDown aria-hidden="true" size={12} />
+            </RACButton>
+          }
+        >
+          {GROUPS.map((group) => (
+            <SearchablePickerSection
+              key={group}
+              id={group}
+              title={t(GROUP_LABEL[group])}
+            >
+              {options
+                .filter((option) => option.group === group)
+                .map((option) => (
+                  <ListBoxItem
+                    key={option.key}
+                    id={option.key}
+                    textValue={labels.get(option.key)}
+                    className="react-aria-ListBoxItem"
+                    data-canvas-hover={
+                      canvasHoverKey === option.key ? true : undefined
+                    }
+                    onHoverStart={() => onHover(option)}
                   >
-                    {list}
-                  </Virtualizer>
-                ) : (
-                  list
-                )}
-              </Autocomplete>
-            </Dialog>
-          </Popover>
-        </DialogTrigger>
+                    {({ isFocused }) => (
+                      <FocusReport
+                        focused={isFocused}
+                        onFocus={() => onHover(option)}
+                      >
+                        {labels.get(option.key)}
+                      </FocusReport>
+                    )}
+                  </ListBoxItem>
+                ))}
+            </SearchablePickerSection>
+          ))}
+        </SearchablePicker>
         {onAim && (
           <RACButton
             className="react-aria-Button interactions-target-aim"

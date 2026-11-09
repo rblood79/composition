@@ -1,25 +1,12 @@
-import { Check, ChevronDown } from "lucide-react";
+import { Check } from "lucide-react";
 
 import React, { memo, useCallback, useMemo, useState } from "react";
 
-import { Button } from "react-aria-components/Button";
-
 import { Header } from "react-aria-components/Header";
 
-import {
-  ListBox,
-  ListBoxItem,
-  ListBoxSection,
-} from "react-aria-components/ListBox";
+import { ListBoxItem, ListBoxSection } from "react-aria-components/ListBox";
 
-import { Popover } from "react-aria-components/Popover";
-
-import { Text } from "react-aria-components/Text";
-
-import {
-  Select as AriaSelect,
-  SelectValue,
-} from "react-aria-components/Select";
+import { SelectValue } from "react-aria-components/Select";
 
 import {
   semanticLabelKeys,
@@ -38,8 +25,7 @@ import "./PropertySwatch.css";
 import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
 
 import { literalKey, PropertySelectProps } from "./PropertySelect.runtime";
-import { useSelectTriggerFocusRestore } from "./useSelectTriggerFocusRestore";
-import { BUILDER_POPUP_LIST_CLASS } from "../../styles/modules/builderPopupList";
+import { PanelSelect, PanelSelectItem } from "./PanelSelect";
 
 // 🚀 Phase 21: memo + 커스텀 비교 함수 적용
 export const PropertySelectControl = memo(
@@ -75,16 +61,7 @@ export const PropertySelectControl = memo(
     const { anchorRef, controlRef, popoverStyle } = useControlPopoverMetrics({
       widthMode: popoverWidthMode,
     });
-    // 🚀 Fix: popover 닫힘 전환 gap 의 focus ring 깜빡임 방지 —
-    // 상세 주석은 useSelectTriggerFocusRestore.ts 참조
-    const { triggerRef, restoreFocusOnClose } = useSelectTriggerFocusRestore();
-    const handleOpenChange = useCallback(
-      (open: boolean) => {
-        setIsOpen(open);
-        restoreFocusOnClose(open);
-      },
-      [restoreFocusOnClose],
-    );
+    // popover 닫힘 전환 gap 의 focus 복원은 PanelSelect 가 건다 (useSelectTriggerFocusRestore)
     const handleChange = useCallback(
       (key: React.Key | null) => {
         if (optionValueMode === "literal") {
@@ -171,40 +148,15 @@ export const PropertySelectControl = memo(
         );
       };
 
-      const listItem = (option: { value: string; label: string }) => {
-        const text = optionLabel(option);
-        return (
-          <ListBoxItem
-            key={itemKey(option)}
-            id={itemKey(option)}
-            className="react-aria-ListBoxItem"
-            textValue={text}
-          >
-            {swatches && swatches[option.value] != null && (
-              <span
-                aria-hidden="true"
-                className="property-swatch property-select__swatch"
-                // 모양은 클래스 (PropertySelectGrid.css, 팝오버 portal 에도 닿는 unlayered) ·
-                //   변하는 색만 인라인
-                style={{ background: swatches[option.value] }}
-              />
-            )}
-            {descriptions?.[option.value] ? (
-              <span className="property-select__option-text">
-                <Text slot="label">{text}</Text>
-                <Text
-                  slot="description"
-                  className="property-select__option-description"
-                >
-                  {descriptions[option.value]}
-                </Text>
-              </span>
-            ) : (
-              text
-            )}
-          </ListBoxItem>
-        );
-      };
+      const listItem = (option: { value: string; label: string }) => (
+        <PanelSelectItem
+          key={itemKey(option)}
+          id={itemKey(option)}
+          label={optionLabel(option)}
+          description={descriptions?.[option.value] || undefined}
+          swatch={swatches?.[option.value] ?? undefined}
+        />
+      );
       // 머리글 구획 — sections 순서대로, 어디에도 없는 값은 머리글 없이 맨 뒤
       const listGroups: ReadonlyArray<{
         label?: string;
@@ -229,12 +181,8 @@ export const PropertySelectControl = memo(
         if (rest.length > 0) groups.push({ options: rest });
         return groups.filter((g) => g.options.length > 0);
       })();
-      return grid ? (
-        <ListBox
-          className="react-aria-ListBox property-select-grid"
-          layout="grid"
-        >
-          {gridGroups.map((group, index) => (
+      return grid
+        ? gridGroups.map((group, index) => (
             <ListBoxSection
               key={index}
               className="react-aria-ListBoxSection property-select-grid__section"
@@ -242,11 +190,8 @@ export const PropertySelectControl = memo(
             >
               {group.map(gridItem)}
             </ListBoxSection>
-          ))}
-        </ListBox>
-      ) : (
-        <ListBox className="react-aria-ListBox">
-          {listGroups.map((group, index) =>
+          ))
+        : listGroups.map((group, index) =>
             group.label === undefined ? (
               group.options.map(listItem)
             ) : (
@@ -254,15 +199,11 @@ export const PropertySelectControl = memo(
                 key={`section-${index}`}
                 className="react-aria-ListBoxSection"
               >
-                <Header>
-                  {group.label}
-                </Header>
+                <Header>{group.label}</Header>
                 {group.options.map(listItem)}
               </ListBoxSection>
             ),
-          )}
-        </ListBox>
-      );
+          );
     }, [
       displayLabel,
       grid,
@@ -286,11 +227,10 @@ export const PropertySelectControl = memo(
           <legend className="fieldset-legend">{displayLabel}</legend>
         )}
         <div className="react-aria-control react-aria-Group" ref={anchorRef}>
-          <AriaSelect
-            className="react-aria-Select"
-            ref={controlRef}
+          <PanelSelect
+            selectRef={controlRef}
             isOpen={isOpen}
-            onOpenChange={handleOpenChange}
+            onOpenChange={setIsOpen}
             selectedKey={
               optionValueMode === "literal"
                 ? options.some((opt) => opt.value === value)
@@ -311,65 +251,57 @@ export const PropertySelectControl = memo(
                   )
                 : undefined
             }
+            grid={grid}
+            popoverStyle={popoverStyle}
+            trigger={
+              <>
+                {Icon && labelMode === "legend" && (
+                  <label className="control-label">
+                    <Icon
+                      color={iconProps.color}
+                      size={iconProps.size}
+                      strokeWidth={iconProps.strokeWidth}
+                    />
+                  </label>
+                )}
+                {/* 값 없음은 「—」 — RAC 기본 「Select an item」 이 반폭 55 에서 「Select an」 으로 잘린다;
+                    이름은 legend/aria-label 이 준다 (2026-09-15 live 전수 대조) */}
+                {/* 색 점은 항목 children 에 있고 SelectValue 가 선택 항목의 children 을 그대로 그린다 */}
+                {/* 격자 모드의 항목 children 은 스와치뿐이라 트리거는 직접 그린다 — 색 점 + 이름 */}
+                <SelectValue>
+                  {({ isPlaceholder, defaultChildren, selectedText }) =>
+                    isPlaceholder ? (
+                      "—"
+                    ) : grid ? (
+                      <>
+                        {swatches?.[value] != null && (
+                          <span
+                            aria-hidden="true"
+                            className="property-swatch property-select__swatch"
+                            style={{ background: swatches[value] }}
+                          />
+                        )}
+                        {selectedText}
+                      </>
+                    ) : descriptions ? (
+                      // An option with a hint renders label + description; the trigger shows the
+                      // label only (`selectedText` = textValue).
+                      selectedText
+                    ) : (
+                      defaultChildren
+                    )
+                  }
+                </SelectValue>
+                {labelMode === "suffix" && (
+                  <span className="property-field__suffix" aria-hidden="true">
+                    {suffixLabel ?? displayLabel}
+                  </span>
+                )}
+              </>
+            }
           >
-            <Button className="react-aria-Button" ref={triggerRef}>
-              {Icon && labelMode === "legend" && (
-                <label className="control-label">
-                  <Icon
-                    color={iconProps.color}
-                    size={iconProps.size}
-                    strokeWidth={iconProps.strokeWidth}
-                  />
-                </label>
-              )}
-              {/* 값 없음은 「—」 — RAC 기본 「Select an item」 이 반폭 55 에서 「Select an」 으로 잘린다;
-                  이름은 legend/aria-label 이 준다 (2026-09-15 live 전수 대조) */}
-              {/* 색 점은 항목 children 에 있고 SelectValue 가 선택 항목의 children 을 그대로 그린다 */}
-              {/* 격자 모드의 항목 children 은 스와치뿐이라 트리거는 직접 그린다 — 색 점 + 이름 */}
-              <SelectValue>
-                {({ isPlaceholder, defaultChildren, selectedText }) =>
-                  isPlaceholder ? (
-                    "—"
-                  ) : grid ? (
-                    <>
-                      {swatches?.[value] != null && (
-                        <span
-                          aria-hidden="true"
-                          className="property-swatch property-select__swatch"
-                          style={{ background: swatches[value] }}
-                        />
-                      )}
-                      {selectedText}
-                    </>
-                  ) : descriptions ? (
-                    // An option with a hint renders label + description; the trigger shows the
-                    // label only (`selectedText` = textValue).
-                    selectedText
-                  ) : (
-                    defaultChildren
-                  )
-                }
-              </SelectValue>
-              {labelMode === "suffix" && (
-                <span className="property-field__suffix" aria-hidden="true">
-                  {suffixLabel ?? displayLabel}
-                </span>
-              )}
-              <span aria-hidden="true" className="select-chevron">
-                <ChevronDown size={iconProps.size} />
-              </span>
-            </Button>
-            <Popover
-              className={
-                grid
-                  ? "react-aria-Popover property-select-popover property-select-popover--grid"
-                  : `react-aria-Popover property-select-popover ${BUILDER_POPUP_LIST_CLASS}`
-              }
-              style={popoverStyle}
-            >
-              {listBox}
-            </Popover>
-          </AriaSelect>
+            {listBox}
+          </PanelSelect>
         </div>
         {afterControl}
       </fieldset>

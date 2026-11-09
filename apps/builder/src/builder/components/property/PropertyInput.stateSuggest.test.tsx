@@ -73,4 +73,41 @@ describe("PropertyInput — `{{` 자동완성", () => {
     type(plainInput, "{{");
     expect(plain.container.querySelector(".property-input-suggest")).toBeNull();
   });
+
+  it("APG combobox — 입력이 목록을 aria-controls · 활성 후보를 aria-activedescendant 로 가리킨다 (2026-11-09)", () => {
+    const { container } = render(
+      <PropertyInput
+        label="Text"
+        value=""
+        onChange={vi.fn()}
+        stateNames={["userName", "count"]}
+      />,
+    );
+    const input = container.querySelector("input")!;
+    expect(input.getAttribute("role")).toBe("combobox");
+    expect(input.getAttribute("aria-expanded")).toBe("false");
+    expect(input.hasAttribute("aria-activedescendant")).toBe(false);
+    type(input, "{{");
+    const list = container.querySelector(".property-input-suggest")!;
+    expect(input.getAttribute("aria-expanded")).toBe("true");
+    expect(input.getAttribute("aria-controls")).toBe(list.id);
+    const activeId = () => input.getAttribute("aria-activedescendant");
+    expect(document.getElementById(activeId()!)?.textContent).toBe(
+      "{{ userName }}",
+    );
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    expect(document.getElementById(activeId()!)?.textContent).toBe(
+      "{{ count }}",
+    );
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(input.getAttribute("aria-expanded")).toBe("false");
+    expect(input.hasAttribute("aria-activedescendant")).toBe(false);
+
+    const plain = render(
+      <PropertyInput label="Plain" value="" onChange={vi.fn()} />,
+    );
+    expect(plain.container.querySelector("input")!.hasAttribute("role")).toBe(
+      false,
+    );
+  });
 });

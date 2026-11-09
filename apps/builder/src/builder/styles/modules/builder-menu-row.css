@@ -71,8 +71,7 @@
   .header-menu-item kbd,
   .context-menu-item kbd,
   .zoom-menu-item kbd,
-  .action-tooltip-kbd,
-  .shortcut-tooltip-kbd {
+  .action-tooltip-kbd {
     box-sizing: border-box;
     display: inline-flex;
     align-items: center;
@@ -90,9 +89,8 @@
     margin: var(--spacing-xs) 0;
   }
 
-  /* ── 툴팁 (28) — ActionTooltip(RAC) 과 ShortcutTooltip(액션 바) 한 규격 ── */
-  .action-tooltip,
-  .shortcut-tooltip {
+  /* ── 툴팁 (28) — ActionTooltip(RAC) 한 규격 (액션 바도 2026-11-10 부터 같은 툴팁) ── */
+  .action-tooltip {
     box-sizing: border-box;
     display: inline-flex;
     align-items: center;
@@ -105,8 +103,7 @@
     white-space: nowrap;
   }
 
-  .action-tooltip-kbd,
-  .shortcut-tooltip-kbd {
+  .action-tooltip-kbd {
     padding: 0 var(--spacing);
     border-radius: var(--radius-sm);
   }

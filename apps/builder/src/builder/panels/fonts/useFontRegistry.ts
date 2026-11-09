@@ -31,7 +31,7 @@ export interface FontRegistryController {
   faceCount: number;
   /** 상한 도달 여부 — 업로드 영역 비활성화 판정 */
   isFull: boolean;
-  upload: (files: FileList) => Promise<void>;
+  upload: (files: FileList | readonly File[]) => Promise<void>;
   remove: (faceId: string) => void;
 }
 
@@ -79,7 +79,7 @@ export function useFontRegistry(): FontRegistryController {
   }, [registry]);
 
   const upload = useCallback(
-    async (files: FileList) => {
+    async (files: FileList | readonly File[]) => {
       // 저장 직전 레지스트리를 다시 읽는다 — 다른 소비처(모달/패널)가 방금 추가한
       // face 를 stale state 로 덮어쓰지 않기 위해.
       let currentRegistry = loadFontRegistry();

@@ -6,7 +6,6 @@
  * @since Phase 7 구현 (2025-12-29)
  */
 
-export { ShortcutTooltip, type ShortcutTooltipProps } from "./ShortcutTooltip";
 export { CommandPalette, type CommandPaletteProps } from "./CommandPalette";
 export { EditingSemanticsImpactDialogHost } from "./EditingSemanticsImpactDialog";
 export { AgentCommandConfirmDialogHost } from "./AgentCommandConfirmDialog";

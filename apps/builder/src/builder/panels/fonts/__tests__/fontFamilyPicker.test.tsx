@@ -111,4 +111,27 @@ describe("공용 폰트 선택창의 Theme·Design 경계", () => {
     await user.click(uploaded);
     expect(onChange).toHaveBeenCalledExactlyOnceWith("Shared uploaded font");
   });
+
+  it("글꼴이 많으면 검색 칸에서 ↓ · Enter 로 고른다 (SearchablePicker — 다른 검색 팝오버와 같은 키)", async () => {
+    const face = (id: string, family: string) => ({
+      id,
+      family,
+      weight: "400",
+      style: "normal",
+      source: { type: "remote-url", url: `https://fonts.test/${id}.woff2` },
+      createdAt: "2026-11-10T00:00:00Z",
+      updatedAt: "2026-11-10T00:00:00Z",
+    });
+    saveRegistryAndNotify({
+      version: 2,
+      faces: [face("a", "Alpha Sans"), face("b", "Beta Serif")],
+    } as Parameters<typeof saveRegistryAndNotify>[0]);
+    const { user, onChange } = renderPicker("element");
+    await user.click(screen.getByRole("button", { name: "Font Family" }));
+    const search = screen.getByRole("searchbox");
+    expect(document.activeElement).toBe(search);
+    await user.type(search, "beta");
+    await user.keyboard("{ArrowDown}{Enter}");
+    expect(onChange).toHaveBeenCalledExactlyOnceWith("Beta Serif");
+  });
 });

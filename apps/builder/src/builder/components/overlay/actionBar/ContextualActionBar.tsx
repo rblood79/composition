@@ -32,7 +32,7 @@ import { ActionButton, ActionButtonGroup } from "../../ui/ActionButton";
 import { useI18n } from "@/i18n";
 import { focusCanvasContainer } from "../../../hooks/useActiveScope";
 import type { ContextMenuItem } from "../contextMenu/types";
-import { ShortcutTooltip } from "../ShortcutTooltip";
+import { ActionTooltipTrigger } from "../../ui/ActionTooltip";
 import type { ActionBarModel } from "./actionBarPolicy";
 import type { ActionBarPageRectOf } from "./useActionBarPlacement";
 import { ACTION_ICONS } from "../../../config/actionIcons";
@@ -102,9 +102,15 @@ const ActionBarItem = memo(function ActionBarItem({
   );
   if (!item.shortcutId) return button;
   return (
-    <ShortcutTooltip shortcutId={item.shortcutId} label={label} placement="top">
+    // RAC Tooltip (ActionTooltip) — 옛 ShortcutTooltip 은 hover · focus 를 손으로 받아 role=tooltip 을
+    // 그렸고 트리거와 aria-describedby 로 잇지 않았다
+    <ActionTooltipTrigger
+      shortcutId={item.shortcutId}
+      tooltip={label}
+      tooltipPlacement="top"
+    >
       {button}
-    </ShortcutTooltip>
+    </ActionTooltipTrigger>
   );
 });
 
