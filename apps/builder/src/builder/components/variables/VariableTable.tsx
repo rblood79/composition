@@ -73,6 +73,7 @@ import { PropertyFieldset } from "../property/PropertyFieldset";
 import { PropertyRowMenu } from "../property/PropertyRowMenu";
 import { PropertySelect } from "../property/PropertySelect";
 import { ActionIconButton } from "../ui/ActionIconButton";
+import { BUILDER_POPUP_LIST_CLASS } from "../../styles/modules/builderPopupList";
 import "./VariableTable.css";
 
 export type VariableTableOwner = "project" | "page" | "element";
@@ -319,7 +320,9 @@ function TypeSelect({
           <TypeGlyph type={value} />
         </span>
       </Button>
-      <Popover className="react-aria-Popover property-select-popover variable-row__type-popover">
+      <Popover
+        className={`react-aria-Popover property-select-popover variable-row__type-popover ${BUILDER_POPUP_LIST_CLASS}`}
+      >
         <ListBox className="react-aria-ListBox">
           {options.map((choice) => (
             <TypeChoiceItem key={choice.value} choice={choice} />

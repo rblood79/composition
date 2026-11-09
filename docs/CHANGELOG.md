@@ -23,6 +23,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Live: Publish 에서 Select · ComboBox 목록을 열어 봤다. 둘 다 Popover 0 · 목록 8px · 첫 항목 위 8px.
   - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (ListBox · Select) · 생성 `ListBox.css` · `Select.css`
 
+## [빌더 팝업 목록 한 어법 — hover 행이 뚜렷하게] - 2026-11-09
+
+### Fixed
+
+- **빌더의 팝업 목록 hover 행이 뚜렷해졌고 모든 목록이 같은 모양이다** (사용자 지적):
+  - 대상: Select · ComboBox · 글꼴 · Interactions 대상 · 값 · 컴포넌트 교체 · 표 참조 · 변수 형식 · 바인딩 목록
+  - hover 행 칠: light gray-200 · dark zinc-700. 선택은 ✓, 구역 머리글 (글꼴 Built-in · Mine 등) 은 한 모양
+  - Why: catalog Select · ComboBox 목록은 hover 행이 gray-200 이라 뚜렷하다. 빌더 목록은 표면 `--bg-raised` (gray-50) 위에 `--bg-overlay` (white) 를 칠해 hover 가 거의 보이지 않았다. 파일마다 hover 값을 따로 적어 (`--bg-overlay` · `--bg-muted` · 없음) 목록끼리도 달랐고, 구역 머리글은 다섯 벌이었다.
+  - 정본은 `styles/modules/builder-popup-list.css` 한 곳이고, 목록 Popover 에 `BUILDER_POPUP_LIST_CLASS` 를 붙인다. 색은 빌더 메뉴 (헤더 · 컨텍스트) 와 같은 `--bg-muted` 다.
+  - 게이트 `builderPopupList.static.test.ts` 는 두 가지를 본다: (a) Popover 안 ListBox 파일에 class 가 붙었는지, (b) 패널 CSS 가 행 hover 칠을 따로 선언하지 않는지. 둘 다 원복하면 RED 다.
+  - 위치: `apps/builder/src/builder/styles/modules/builder-popup-list.css` · 목록 Popover 10 파일
+
 ## [Data 표 선택 checkbox 가 check 표시만 그리던 것 — 빌더 위젯 사본 보충] - 2026-11-09
 
 ### Fixed

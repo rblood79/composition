@@ -31,6 +31,7 @@ import {
 import { useCatalogWorkspace } from "../../../catalogRuntime/react";
 import { SearchField } from "../../../components/ui/SearchField";
 import { ACTION_ICONS } from "../../../config/actionIcons";
+import { BUILDER_POPUP_LIST_CLASS } from "../../../styles/modules/builderPopupList";
 import "./CatalogSwapPicker.css";
 
 const ComponentIcon = ACTION_ICONS.component;
@@ -94,7 +95,7 @@ export const CatalogComponentPicker = memo(function CatalogComponentPicker({
         {children}
       </RACButton>
       <Popover
-        className="react-aria-Popover property-select-popover component-swap-popover"
+        className={`react-aria-Popover property-select-popover component-swap-popover ${BUILDER_POPUP_LIST_CLASS}`}
         placement="bottom start"
         style={popoverStyle}
       >
@@ -121,7 +122,7 @@ export const CatalogComponentPicker = memo(function CatalogComponentPicker({
                 );
                 return items.length ? (
                   <ListBoxSection key={group} id={group}>
-                    <Header className="component-swap-header">
+                    <Header>
                       {t(GROUP_LABEL[group])}
                     </Header>
                     {items.map((candidate) => (

@@ -1,0 +1,82 @@
+@layer builder-system {
+  /* ========================================
+   * 빌더 팝업 목록 정본 (2026-11-09)
+   *
+   * Select · ComboBox · 고르기 팝오버 (글꼴 · Interactions 대상 · 값 · 컴포넌트 교체 · 표 참조 ·
+   * 변수 형식 · 바인딩) 의 목록 항목 · 구역 머리글을 한 곳에서 정한다. 적용 = 목록 Popover 에
+   * `BUILDER_POPUP_LIST_CLASS` (`builder-popup-list`). 격자 목록 (아이콘 · 색 견본) 과 Menu 는 대상이 아니다.
+   *
+   * Why: catalog Select · ComboBox 목록은 hover 행을 gray-200 으로 칠해 (S2 Menu focus) 뚜렷한데,
+   * 빌더 목록은 표면 `--bg-raised` (gray-50) 위에 `--bg-overlay` (white) 를 칠해 hover 가 거의 보이지 않았다.
+   * 파일마다 hover 값을 따로 적어 (`--bg-overlay` · `--bg-muted` · 없음) 같은 패널의 목록이 서로 달랐고,
+   * 구역 머리글도 다섯 벌이었다. 색은 빌더 메뉴 (헤더 · 컨텍스트 · 줌) 와 같은 `--bg-muted`.
+   * 행 기하 (28 · 선택 ✓ 자리) 는 PropertySelect 목록 그대로다.
+   * ======================================== */
+
+  .builder-popup-list .react-aria-ListBoxItem {
+    position: relative;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--spacing-xs);
+    min-block-size: var(--control-size);
+    padding: var(--lb-item-padding);
+    padding-inline-start: var(--spacing-xl);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--fg);
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
+    outline: none;
+    cursor: pointer;
+  }
+
+  /* 선택은 칠이 아니라 ✓ — hover 칠과 겹쳐도 읽힌다 (아래 hover 규칙이 뒤에 와서 이긴다) */
+  .builder-popup-list .react-aria-ListBoxItem[data-selected] {
+    background: transparent;
+    color: var(--fg);
+  }
+
+  .builder-popup-list .react-aria-ListBoxItem[data-selected]::before {
+    content: "✓" / "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 18px;
+    color: var(--accent);
+  }
+
+  /* 포인터 hover 와 키보드 · 검색 입력의 가상 포커스가 같은 행 표시 */
+  .builder-popup-list
+    .react-aria-ListBoxItem:is([data-hovered], [data-focused]) {
+    background: var(--bg-muted);
+  }
+
+  .builder-popup-list .react-aria-ListBoxItem[data-pressed] {
+    background: var(--bg-emphasis);
+  }
+
+  .builder-popup-list .react-aria-ListBoxItem[data-disabled] {
+    background: transparent;
+    color: var(--fg-disabled);
+    cursor: default;
+  }
+
+  /* 구역 머리글 — 항목 글자 시작선 (✓ 자리 뒤) 에 맞춘다 */
+  .builder-popup-list section > header {
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    padding: var(--spacing-xs) var(--spacing-md) var(--spacing-2xs)
+      var(--spacing-xl);
+    font-size: var(--text-2xs);
+    line-height: var(--text-2xs--line-height);
+    font-weight: 500;
+    color: var(--fg-muted);
+  }
+}

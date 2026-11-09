@@ -36,6 +36,7 @@ import {
   type CatalogValueSources,
   type CatalogValueType,
 } from "./valueOptions";
+import { BUILDER_POPUP_LIST_CLASS } from "../../styles/modules/builderPopupList";
 import "./ValueField.css";
 
 const GROUPS: readonly CatalogValueGroup[] = ["event", "item", "variable"];
@@ -95,7 +96,7 @@ function ValuePicker({
         <Braces aria-hidden="true" size={14} />
       </RACButton>
       <Popover
-        className="react-aria-Popover property-select-popover interactions-target-popover"
+        className={`react-aria-Popover property-select-popover interactions-target-popover ${BUILDER_POPUP_LIST_CLASS}`}
         placement="bottom end"
       >
         <Dialog
@@ -123,7 +124,7 @@ function ValuePicker({
                 );
                 return items.length ? (
                   <ListBoxSection key={group}>
-                    <Header className="interactions-target-header">
+                    <Header>
                       {t(GROUP_LABEL[group])}
                     </Header>
                     {items.map((option) => {

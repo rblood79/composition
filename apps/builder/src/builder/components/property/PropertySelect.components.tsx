@@ -39,6 +39,7 @@ import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
 
 import { literalKey, PropertySelectProps } from "./PropertySelect.runtime";
 import { useSelectTriggerFocusRestore } from "./useSelectTriggerFocusRestore";
+import { BUILDER_POPUP_LIST_CLASS } from "../../styles/modules/builderPopupList";
 
 // 🚀 Phase 21: memo + 커스텀 비교 함수 적용
 export const PropertySelectControl = memo(
@@ -253,7 +254,7 @@ export const PropertySelectControl = memo(
                 key={`section-${index}`}
                 className="react-aria-ListBoxSection"
               >
-                <Header className="property-select__section-header">
+                <Header>
                   {group.label}
                 </Header>
                 {group.options.map(listItem)}
@@ -362,7 +363,7 @@ export const PropertySelectControl = memo(
               className={
                 grid
                   ? "react-aria-Popover property-select-popover property-select-popover--grid"
-                  : "react-aria-Popover property-select-popover"
+                  : `react-aria-Popover property-select-popover ${BUILDER_POPUP_LIST_CLASS}`
               }
               style={popoverStyle}
             >

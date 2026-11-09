@@ -15,6 +15,7 @@ import { ChevronDown, Crosshair } from "lucide-react";
 import { useI18n } from "@/i18n";
 import type { CatalogTargetOption } from "../../../catalogRuntime/interactions";
 import { SearchField } from "../../../components/ui/SearchField";
+import { BUILDER_POPUP_LIST_CLASS } from "../../../styles/modules/builderPopupList";
 import "./CatalogTargetPicker.css";
 
 /** ADR-283 G2 — past this many candidates the list draws only the rows in view (RAC Virtualizer). */
@@ -144,7 +145,7 @@ export const CatalogTargetPicker = memo(function CatalogTargetPicker({
         const items = options.filter((option) => option.group === group);
         return items.length ? (
           <ListBoxSection key={group} id={group}>
-            <Header className="interactions-target-header">
+            <Header>
               {t(GROUP_LABEL[group])}
             </Header>
             {items.map((option) => (
@@ -194,7 +195,7 @@ export const CatalogTargetPicker = memo(function CatalogTargetPicker({
             <ChevronDown aria-hidden="true" size={12} />
           </RACButton>
           <Popover
-            className="react-aria-Popover property-select-popover interactions-target-popover"
+            className={`react-aria-Popover property-select-popover interactions-target-popover ${BUILDER_POPUP_LIST_CLASS}`}
             placement="bottom start"
           >
             <Dialog className="interactions-target-dialog" aria-label={label}>

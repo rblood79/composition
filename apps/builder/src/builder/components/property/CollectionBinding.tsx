@@ -45,6 +45,7 @@ import { PropertyFieldset } from "./PropertyFieldset";
 import { PropertyInput } from "./PropertyInput";
 import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
 import { useSelectTriggerFocusRestore } from "./useSelectTriggerFocusRestore";
+import { BUILDER_POPUP_LIST_CLASS } from "../../styles/modules/builderPopupList";
 
 // ============================================
 // Types
@@ -152,7 +153,7 @@ function FieldMapSelect({
           </span>
         </Button>
         <Popover
-          className="react-aria-Popover property-select-popover"
+          className={`react-aria-Popover property-select-popover ${BUILDER_POPUP_LIST_CLASS}`}
           style={popoverStyle}
         >
           <ListBox className="react-aria-ListBox">
@@ -343,7 +344,7 @@ export const CollectionBinding = memo(function CollectionBinding({
                 </span>
               </Button>
               <Popover
-                className="react-aria-Popover property-select-popover"
+                className={`react-aria-Popover property-select-popover ${BUILDER_POPUP_LIST_CLASS}`}
                 style={namePopoverStyle}
               >
                 <ListBox className="react-aria-ListBox">

@@ -38,6 +38,7 @@ import { PropertySelect } from "../../../components/property/PropertySelect";
 import { useDataStore } from "../../../stores/data";
 import { FieldGlyph } from "../utils/FieldGlyph";
 import { resolveFieldGlyph } from "../utils/fieldTypes";
+import { BUILDER_POPUP_LIST_CLASS } from "../../../styles/modules/builderPopupList";
 
 export interface FieldValueInputProps {
   field: DataField;
@@ -420,7 +421,9 @@ function ReferenceComboBox({
           <ChevronDown size={iconProps.size} aria-hidden="true" />
         </Button>
       </div>
-      <Popover className="react-aria-Popover property-select-popover datatable-reference-popover">
+      <Popover
+        className={`react-aria-Popover property-select-popover datatable-reference-popover ${BUILDER_POPUP_LIST_CLASS}`}
+      >
         <ListBox className="react-aria-ListBox">
           {(item: ReferenceItem) => (
             <ListBoxItem

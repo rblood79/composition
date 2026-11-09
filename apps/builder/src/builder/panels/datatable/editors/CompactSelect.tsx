@@ -11,6 +11,7 @@ import { Popover } from "react-aria-components/Popover";
 import { Select, SelectValue } from "react-aria-components/Select";
 import { ChevronDown } from "lucide-react";
 import { iconProps } from "../../../../utils/ui/uiConstants";
+import { BUILDER_POPUP_LIST_CLASS } from "../../../styles/modules/builderPopupList";
 
 export interface CompactSelectProps {
   value: string;
@@ -40,7 +41,9 @@ export function CompactSelect({
           <ChevronDown size={iconProps.size} />
         </span>
       </Button>
-      <Popover className="react-aria-Popover property-select-popover">
+      <Popover
+        className={`react-aria-Popover property-select-popover ${BUILDER_POPUP_LIST_CLASS}`}
+      >
         <ListBox className="react-aria-ListBox">
           {options.map((option) => (
             <ListBoxItem

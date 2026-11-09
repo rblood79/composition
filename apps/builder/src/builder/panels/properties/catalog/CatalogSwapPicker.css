@@ -41,25 +41,5 @@
   overflow: auto;
   overscroll-behavior: contain;
 
-  /* The panel Select list's rows (ListBox.css 「Popover Context」) — that block keys on the
-     Popover's `data-trigger="Select"`, and this list opens from a DialogTrigger, so its rows
-     restate the same values: the item padding, no outline, the focused row's surface. */
-  .react-aria-ListBoxItem {
-    padding: var(--lb-item-padding);
-
-    &[data-focus-visible] {
-      outline: none;
-    }
-
-    &[data-focused],
-    &[data-pressed] {
-      background: var(--bg-overlay);
-    }
-  }
-}
-
-.component-swap-header {
-  padding: var(--spacing-xs) var(--spacing-md) 0;
-  font-size: var(--text-2xs);
-  color: var(--fg-muted);
+  /* 행 모양 · hover · 구역 머리글은 빌더 팝업 목록 정본 (styles/modules/builder-popup-list.css). */
 }

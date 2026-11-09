@@ -47,6 +47,7 @@ import {
 import type { PropertyUnitPreset } from "./propertyUnitPresets";
 import { propertyUnitStepFrom, propertyUnitSteps } from "./propertyUnitSteps";
 import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
+import { BUILDER_POPUP_LIST_CLASS } from "../../styles/modules/builderPopupList";
 
 /** ADR-298 D6 — scrub: px of pointer travel before a drag starts, and per ladder step. */
 const SCRUB_THRESHOLD_PX = 3;
@@ -687,7 +688,12 @@ export const PropertyUnitInputControl = memo(
             if (!scrubRef.current) return;
             scrubRef.current = null;
             setInputValue(
-              getInputDisplayValue(value, parsed, isPreservedEmptyValue, presets),
+              getInputDisplayValue(
+                value,
+                parsed,
+                isPreservedEmptyValue,
+                presets,
+              ),
             );
             if (onDragCancel) onDragCancel();
             else onDrag?.(value);
@@ -893,10 +899,10 @@ export const PropertyUnitInputControl = memo(
                     : autoChip && !isInputFocused
                       ? autoValue
                       : showKeywordAsPlaceholder && inputValue.trim() !== ""
-                      ? inputValue
-                      : emptyInherits
-                        ? "—"
-                        : placeholder
+                        ? inputValue
+                        : emptyInherits
+                          ? "—"
+                          : placeholder
                 }
               />
               {suffixIsTrigger || unitIsTrigger ? (
@@ -936,7 +942,7 @@ export const PropertyUnitInputControl = memo(
               )}
             </div>
             <Popover
-              className="react-aria-Popover property-unit-input-popover"
+              className={`react-aria-Popover property-unit-input-popover ${BUILDER_POPUP_LIST_CLASS}`}
               style={popoverStyle}
             >
               <ListBox className="react-aria-ListBox">
@@ -1015,7 +1021,7 @@ export const PropertyUnitInputControl = memo(
                             // ADR-298 D3: 묶음 (Font Size 본문 · 제목) 은 ListBox section 하나씩.
                             return group ? (
                               <ListBoxSection key={group} aria-label={group}>
-                                <Header className="property-unit-input__group">
+                                <Header>
                                   {group}
                                 </Header>
                                 {rows}
@@ -1032,7 +1038,7 @@ export const PropertyUnitInputControl = memo(
                                 key={UNIT_KEY}
                                 aria-label={unitLabel}
                               >
-                                <Header className="property-unit-input__group">
+                                <Header>
                                   {unitLabel}
                                 </Header>
                                 {units

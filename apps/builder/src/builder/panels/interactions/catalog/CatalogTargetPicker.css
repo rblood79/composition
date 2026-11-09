@@ -99,25 +99,11 @@
     height: 320px;
   }
 
-  .react-aria-ListBoxItem {
-    padding: var(--lb-item-padding);
-
-    &[data-focus-visible] {
-      outline: none;
-    }
-
-    &[data-focused],
-    &[data-pressed],
-    &[data-canvas-hover] {
-      background: var(--bg-overlay);
-    }
+  /* 행 모양 · hover 는 빌더 팝업 목록 정본 (styles/modules/builder-popup-list.css). 여기는 Canvas 에서
+     가리킨 요소의 행 (`data-canvas-hover`) 만 — hover 와 같은 칠. */
+  .react-aria-ListBoxItem[data-canvas-hover] {
+    background: var(--bg-muted);
   }
-}
-
-.interactions-target-header {
-  padding: var(--spacing-xs) var(--spacing-md) 0;
-  font-size: var(--text-2xs);
-  color: var(--fg-muted);
 }
 
 /* ADR-283 Decision 4 — the line under a rule: a capability the new target does not take, or a

@@ -71,28 +71,7 @@
     scrollbar-color: var(--border) transparent;
   }
 
-  /* 그룹 헤더 = legend 18 (12 · muted) — 종전 19 (10px/600). 항목 = 28 (05 정본) */
-  .font-picker-section-header {
-    display: flex;
-    align-items: center;
-    box-sizing: border-box;
-    block-size: 18px;
-    padding: 0 var(--spacing-xs);
-    font-size: var(--text-xs);
-    line-height: var(--text-xs--line-height);
-    font-weight: 500;
-    color: var(--fg-muted);
-  }
-
-  .font-picker-item {
-    display: flex;
-    align-items: center;
-    box-sizing: border-box;
-    block-size: var(--control-size);
-    padding: 0 var(--spacing-sm);
-    font-size: var(--text-xs);
-    line-height: var(--text-xs--line-height);
-  }
+  /* 구역 머리글 · 항목 (28) · hover · 선택 ✓ 는 빌더 팝업 목록 정본 (styles/modules/builder-popup-list.css). */
 
   .font-picker-footer {
     padding: var(--spacing-sm);
@@ -130,7 +109,4 @@
     margin-inline-start: var(--spacing);
   }
 
-  .font-picker-item {
-    gap: var(--spacing-xs);
-  }
 }

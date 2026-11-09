@@ -36,6 +36,7 @@ import { useFontRegistry } from "./useFontRegistry";
 import type { FontManagerDialogProps } from "./FontManagerDialog";
 import "./FontFamilyPicker.css";
 import { useI18n, useSemanticLabel } from "@/i18n";
+import { BUILDER_POPUP_LIST_CLASS } from "../../styles/modules/builderPopupList";
 
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
@@ -213,7 +214,7 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
           </Button>
 
           <Popover
-            className="react-aria-Popover font-picker-popover"
+            className={`react-aria-Popover font-picker-popover ${BUILDER_POPUP_LIST_CLASS}`}
             style={popoverStyle}
           >
             <Dialog className="font-picker-dialog" aria-label="Font Family">
@@ -239,7 +240,7 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
                 onSelectionChange={handleSelectionChange}
               >
                 <ListBoxSection className="font-picker-section">
-                  <Header className="font-picker-section-header">
+                  <Header>
                     {t("fonts.sectionDefault")}
                   </Header>
                   <ListBoxItem
@@ -272,7 +273,7 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
 
                 {visibleCustoms.length > 0 && (
                   <ListBoxSection className="font-picker-section">
-                    <Header className="font-picker-section-header">
+                    <Header>
                       {t("fonts.sectionMine")}
                     </Header>
                     {visibleCustoms.map((option) => (
