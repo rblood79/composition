@@ -297,6 +297,33 @@ describe("PropertyUnitInput numeric editing", () => {
     expect(onChange).toHaveBeenLastCalledWith("30px");
   });
 
+  it("a typed step name is the token (xs → var(--spacing-xs)); ↑ from a token steps its px (2026-11-10)", () => {
+    const onChange = vi.fn();
+    const onDrag = vi.fn();
+    useStore.setState({ selectedElementId: "element-1" });
+    render(
+      <PropertyUnitInput
+        label="Gap"
+        value="var(--spacing-md)"
+        units={["reset", "px"]}
+        presets={SPACING_PRESET_OPTIONS}
+        onChange={onChange}
+        onDrag={onDrag}
+      />,
+    );
+    const input = screen.getByRole("combobox", { name: "Gap" }) as HTMLInputElement;
+    expect(input.value).toBe("M");
+    input.focus();
+    // ↑ steps the token's resolved px (the literal escape), not from 0
+    fireEvent.keyDown(input, { key: "ArrowUp" });
+    expect(onDrag).toHaveBeenLastCalledWith(
+      `${Number(input.title.replace(/^M · |px$/g, "")) + 1}px`,
+    );
+    fireEvent.change(input, { target: { value: "xs" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onChange).toHaveBeenLastCalledWith("var(--spacing-xs)");
+  });
+
   it("commits the arrow-key value on the following blur", () => {
     const onChange = vi.fn();
     const onDrag = vi.fn();
@@ -557,8 +584,10 @@ describe("PropertyUnitInput numeric editing", () => {
     });
 
     const input = screen.getByRole("combobox", { name: "Padding" });
-    const trigger = screen.getByRole("button", { name: /^Padding Preset/ });
-    expect((input as HTMLInputElement).value).toBe("8");
+    const trigger = screen.getByRole("button", { name: "Padding Preset" });
+    // 토큰 값은 칸에 단계 이름 (2026-11-10 사용자 결정) — 지금 테마의 px 는 title
+    expect((input as HTMLInputElement).value).toBe("S");
+    expect((input as HTMLInputElement).title).toBe("S · 8px");
 
     fireEvent.click(trigger);
     expect(
@@ -572,13 +601,12 @@ describe("PropertyUnitInput numeric editing", () => {
     ).toBe("Reset,XS · 4,S · 8,M · 12,L · 16,XL · 24"); // 토큰 이름 + 풀린 px (접근 이름은 토큰 이름)
 
     fireEvent.click(screen.getByRole("option", { name: "XL" }));
-    expect((input as HTMLInputElement).value).toBe("24");
+    expect((input as HTMLInputElement).value).toBe("XL");
     // ADR-298 D4: the preset commits the token itself — the node keeps the reference.
     expect(onChange).toHaveBeenLastCalledWith("var(--spacing-xl)");
-    // 단계는 입력칸 안 칩이 아니라 메뉴 버튼 안 글자 (Width 의 PX · FR 자리, 2026-11-10) — 접근 이름에도
-    expect(trigger.textContent).toBe("XL");
-    expect(trigger.getAttribute("aria-label")).toBe("Padding Preset: XL");
+    // 칩 없음 · 버튼은 ▾ 그대로
     expect(document.querySelector(".property-unit-input__token")).toBeNull();
+    expect(trigger.querySelector("svg")).not.toBeNull();
 
     fireEvent.click(trigger);
     await waitFor(() => {

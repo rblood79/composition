@@ -260,8 +260,14 @@ export function findMatchingPreset(
     const presetValue = preset.value.trim();
     if (presetValue === trimmedInputValue) return true;
     // ADR-298 D9: a typed number is a literal (the number escape) — it names a token preset only
-    //   by the token itself, never by the token's current value.
-    if (isTokenValue(presetValue)) return false;
+    //   by the token itself or its step name (「xs」 · 「h m」, case-insensitive — what the field
+    //   shows), never by the token's current value.
+    if (isTokenValue(presetValue))
+      return (
+        trimmedInputValue !== "" &&
+        tokenChipLabel(presetValue, presets)?.toLowerCase() ===
+          trimmedInputValue.toLowerCase()
+      );
     return getPresetDisplayValue(preset.value) === trimmedInputValue;
   });
 }
@@ -305,6 +311,12 @@ export function getInputDisplayValue(
     return "";
   }
 
+  // A token value shows its step name (XS · M · thin · H M) — what the node stores is the step, its px
+  //   follows the theme (2026-11-10 사용자 결정: 칩 + 해석값 대신 칸에 단계 이름. px 는 메뉴 · title).
+  //   A token this field has no step name for still shows its value.
+  if (isTokenValue(trimmed))
+    return tokenChipLabel(trimmed, presets) ?? getPresetDisplayValue(trimmed);
+
   const matchingPreset = presets?.find(
     (preset) =>
       preset.value.trim() === trimmed ||
@@ -313,8 +325,6 @@ export function getInputDisplayValue(
   if (matchingPreset) {
     return getPresetDisplayValue(matchingPreset.value);
   }
-  // A token value with no preset in this field still shows its value (the chip names the step).
-  if (isTokenValue(trimmed)) return getPresetDisplayValue(trimmed);
 
   return parsed.numericValue !== null
     ? String(parsed.numericValue)

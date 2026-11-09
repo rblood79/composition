@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [토큰 칸은 단계 이름을 칸에 — 칩 · 버튼 글자 대신] - 2026-11-10
+
+### Changed
+
+- **Design 패널의 토큰 칸 (Padding · Gap · Position · Radius · Border Width · Font Size) 은 고른 단계 이름을 칸 글자로 보인다** (사용자 결정): Padding XS 를 고르면 칸에 「4」 대신 「XS」. 칩은 없고, 버튼은 ▾ 그대로다. 지금 테마의 px 는 칸에 마우스를 올리면 「XS · 4px」, 메뉴에는 「XS · 4」.
+  - 바로 앞 변경 (▾ 버튼 안에 단계 글자, `58a8997c4`) 을 대신한다. 그 자리는 Width 에서 단위 (PX · FR) 를 뜻해 「12 M」 이 단위처럼 읽혔다. Width 는 단위 트리거 그대로다.
+  - 단계 이름을 치면 (`xs` · `M`, 대소문자 무관) 그 토큰, 숫자를 치면 그 숫자 (스케일 밖이면 점) 다. ▲▼ 는 토큰의 px 에서 숫자로 움직이고, 라벨 끌기는 단계씩 (칸 글자가 S → M).
+  - Line Height 의 「auto」 칩도 같다 — 칸 글자 「auto」, 따르는 행간은 풍선 (「auto · 26」).
+  - ADR-298 D4 「칩 + 해석값」 표시를 정정했다 (본문 D4 행).
+  - 테스트: `PropertyUnitInput.test.tsx` (+ 단계 이름 입력 · ▲ 기준) · `adr298Phase2/3/4Panel.test.tsx`. 원복 (칸에 해석 px) 하면 9 RED.
+  - Live (Playwright 5174, 새 Frame): Gap M → 칸 「M」 · 풍선 「M · 12px」, 가로 Padding XS → 「XS」 · 「XS · 4px」, 세로 Padding 에 `l` Enter → 「L」 (토큰), Gap 에 `10` Enter → 「10」, Style › Radius M → 「M」 · 「M · 8px」, Text › Font Size Heading M → 「H M」 · 「H M · 22px」 · Line Height 「auto」 · 「auto · 26」. ▾ 유지 · 칩 0 · 콘솔 오류 0.
+  - 위치: `apps/builder/src/builder/components/property/PropertyUnitInput.runtime.ts` (`getInputDisplayValue` · `findMatchingPreset`) · `PropertyUnitInput.components.tsx`
+
 ## [토큰 단계는 메뉴 버튼 안 글자 — Width 의 단위 트리거와 같은 자리] - 2026-11-10
 
 ### Changed

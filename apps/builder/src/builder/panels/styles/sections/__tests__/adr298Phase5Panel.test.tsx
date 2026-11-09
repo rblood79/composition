@@ -64,9 +64,11 @@ describe("ADR-298 Phase 5 — mock rows", () => {
       },
     ]);
     const line = view.container.querySelector("fieldset.line-height") as HTMLElement;
-    expect(line.querySelector('[data-keyword="auto"]')?.textContent).toBe("auto");
-    // heading lg = 28 / 32 (ADR-295 S2 식)
-    expect(within(line).getByRole("combobox").getAttribute("placeholder")).toBe("32");
+    // 칸 글자 「auto」 · 따르는 행간은 풍선 — heading lg = 28 / 32 (ADR-295 S2 식)
+    const lineInput = within(line).getByRole("combobox") as HTMLInputElement;
+    expect(lineInput.value).toBe("auto");
+    expect(lineInput.title).toBe("auto · 32");
+    expect(line.querySelector(".property-unit-input__token")).toBeNull();
   });
 
   it("③ Font: no authored family = 「Theme」 chip + the family in use; an authored family has no chip", async () => {

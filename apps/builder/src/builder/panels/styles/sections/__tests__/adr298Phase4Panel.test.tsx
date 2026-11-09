@@ -131,9 +131,8 @@ describe("ADR-298 Phase 4 — label scrub", () => {
     fireEvent.pointerMove(legend, { clientX: 108, pointerId: 1 });
     fireEvent.pointerMove(legend, { clientX: 116, pointerId: 1 });
     expect(onChange).not.toHaveBeenCalled();
-    expect(view.container.querySelector("input")?.value).toBe(
-      String(px("{spacing.lg}")),
-    );
+    // 끄는 동안 칸은 닿은 단계 이름 (L) — 놓을 때 한 번 commit
+    expect(view.container.querySelector("input")?.value).toBe("L");
     fireEvent.pointerUp(legend, { clientX: 116, pointerId: 1 });
     expect(onChange.mock.calls).toEqual([[varOf("lg")]]);
   });
@@ -256,7 +255,7 @@ describe("ADR-298 Phase 4 — Position: steps + units in one menu", () => {
       kind: "set",
       value: { kind: "token", tokenId: "lib:token:spacing_md" },
     });
-    expect(left.querySelector(".property-unit-input__token-step")?.textContent).toBe(
+    expect((within(left).getByRole("combobox") as HTMLInputElement).value).toBe(
       "M",
     );
     await act(async () => {

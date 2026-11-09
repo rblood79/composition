@@ -75,11 +75,15 @@ describe("ADR-298 Phase 2 — Border", () => {
       tokenSet("lib:token:radius_md"),
     );
     const radius = field(view.container, "border-radius");
-    expect(radius.querySelector(".property-unit-input__token-step")?.textContent).toBe("M");
-    expect((within(radius).getByRole("combobox") as HTMLInputElement).value).toBe("8");
+    // 칸은 단계 이름 · px 는 title (2026-11-10 — 칩 + 해석값 대신)
+    const radiusInput = within(radius).getByRole("combobox") as HTMLInputElement;
+    expect(radiusInput.value).toBe("M");
+    expect(radiusInput.title).toBe("M · 8px");
+    expect(radius.querySelector(".property-unit-input__token")).toBeNull();
     const width = field(view.container, "border-width");
-    expect(width.querySelector(".property-unit-input__token-step")?.textContent).toBe("thin");
-    expect((within(width).getByRole("combobox") as HTMLInputElement).value).toBe("1");
+    const widthInput = within(width).getByRole("combobox") as HTMLInputElement;
+    expect(widthInput.value).toBe("thin");
+    expect(widthInput.title).toBe("thin · 1px");
   });
 
   it("focus + blur keeps the token; a typed number is a literal (D9)", async () => {
@@ -158,11 +162,12 @@ describe("ADR-298 Phase 2 — Text", () => {
     expect(visualOf(fixture, "t").fontSize).toEqual(
       tokenSet("lib:token:typography_text-heading-md"),
     );
-    expect(size.querySelector(".property-unit-input__token-step")?.textContent).toBe("H M");
-    // Phase 5 (시안 「AUTO 26」): an 「auto」 chip and the step's paired line height
+    expect((within(size).getByRole("combobox") as HTMLInputElement).value).toBe("H M");
+    // Phase 5: the field reads 「auto」 and the step's paired line height is its title
     const line = field(view.container, "line-height");
-    expect(line.querySelector('[data-keyword="auto"]')?.textContent).toBe("auto");
-    expect(within(line).getByRole("combobox").getAttribute("placeholder")).toBe("26");
+    const lineInput = within(line).getByRole("combobox") as HTMLInputElement;
+    expect(lineInput.value).toBe("auto");
+    expect(lineInput.title).toBe("auto · 26");
   });
 });
 
@@ -181,7 +186,7 @@ describe("ADR-298 Phase 2 — Layout Gap", () => {
     ).toEqual(tokenSet("lib:token:spacing_md"));
     expect(visualOf(fixture, "box").gap).toBeUndefined();
     const gap = view.container.querySelector("fieldset.displayGap")!;
-    expect(gap.querySelector(".property-unit-input__token-step")?.textContent).toBe("M");
+    expect((within(gap as HTMLElement).getByRole("combobox") as HTMLInputElement).value).toBe("M");
   });
 });
 

@@ -137,7 +137,8 @@ export const PropertyUnitInputControl = memo(
     // ADR-298 D4: a token value (`var(--spacing-md)`) — chip + the active value, not a keyword.
     const valueIsToken = isTokenValue(value);
     const tokenChip = tokenChipLabel(value, presets);
-    // ADR-298 Phase 5: `auto` with a resolved value — 「auto」 chip + that value (Line Height).
+    // ADR-298 Phase 5: `auto` with a resolved value (Line Height) — the field reads 「auto」, the value
+    //   it follows is the hover title (2026-11-10 — chip removed with the token chips).
     const autoChip =
       !tokenChip && autoValue !== undefined && value.trim() === "auto";
     const isKeyword = parsed.numericValue === null && !valueIsToken;
@@ -433,7 +434,12 @@ export const PropertyUnitInputControl = memo(
       const step = coarse ? 10 : 1;
       // The shown edit value: a host whose preview does not write the document (catalog) keeps
       // the `value` prop at the committed value, so successive arrows step from what is shown.
-      const typed = parseFloat(inputValue);
+      // A token shows its step name — ▲▼ step from its resolved px (the literal escape, D9).
+      const typed = parseFloat(
+        valueIsToken && inputValue.trim() === tokenDisplay()
+          ? getPresetDisplayValue(value.trim())
+          : inputValue,
+      );
       const base = Number.isFinite(typed)
         ? typed
         : sizeControl
@@ -578,17 +584,6 @@ export const PropertyUnitInputControl = memo(
                 "Auto (ratio)",
               )
             : undefined;
-    // 토큰 단계 (M · L · thin …) 는 메뉴 버튼 안에 — Width 의 단위 글자 (PX · FR) 와 같은 자리
-    //   (2026-11-10 사용자 요청: 입력칸 안 칩 대신). 단계가 아니면 버튼은 ▾ 그대로.
-    const tokenStep = tokenChip ? (
-      <span
-        className="property-unit-input__token-step"
-        data-token={value.trim()}
-        title={value.trim()}
-      >
-        {tokenChip}
-      </span>
-    ) : undefined;
     const unitSuffixText = valueIsToken
       ? "px"
       : unit === "" ||
@@ -853,22 +848,29 @@ export const PropertyUnitInputControl = memo(
                   title={offScaleText}
                 />
               )}
-              {autoChip && (
-                <span
-                  className="property-unit-input__token"
-                  data-keyword="auto"
-                >
-                  auto
-                </span>
-              )}
               <Input
                 ref={inputElementRef}
                 className="react-aria-Input"
                 type="text"
                 value={
-                  sizeReadOnly ? "" : showKeywordAsPlaceholder ? "" : inputValue
+                  sizeReadOnly
+                    ? ""
+                    : autoChip
+                      ? inputValue
+                      : showKeywordAsPlaceholder
+                        ? ""
+                        : inputValue
                 }
                 readOnly={!!sizeReadOnly}
+                // 칸은 단계 이름 (XS) — 지금 테마의 px 는 hover 풍선 (메뉴의 「XS · 4」 와 같은 짝)
+                //   (Line Height 「auto」 도 칸 글자 auto + 풍선에 따르는 행간)
+                title={
+                  tokenChip
+                    ? `${tokenChip} · ${getPresetDisplayValue(value.trim())}px`
+                    : autoChip
+                      ? `auto · ${autoValue}`
+                      : undefined
+                }
                 aria-description={
                   sizeControl?.description ??
                   (offScale ? offScaleText : undefined)
@@ -898,9 +900,7 @@ export const PropertyUnitInputControl = memo(
                     ? sizeControl.computed == null
                       ? "—"
                       : String(Math.round(sizeControl.computed))
-                    : autoChip && !isInputFocused
-                      ? autoValue
-                      : showKeywordAsPlaceholder && inputValue.trim() !== ""
+                    : showKeywordAsPlaceholder && inputValue.trim() !== ""
                         ? inputValue
                         : emptyInherits
                           ? "—"
@@ -910,7 +910,6 @@ export const PropertyUnitInputControl = memo(
               {suffixIsTrigger || unitIsTrigger ? (
                 <Button
                   className="react-aria-Button property-unit-input__suffix property-unit-input__suffix--trigger"
-                  data-token-step={unitIsTrigger && tokenChip ? "true" : undefined}
                   isDisabled={sizeControl?.kind === "ratio"}
                   onPress={handleComboBoxTriggerPress}
                   aria-label={
@@ -921,7 +920,7 @@ export const PropertyUnitInputControl = memo(
                 >
                   {sizeTrigger ??
                     (unitIsTrigger
-                      ? tokenStep ?? unitSuffixText
+                      ? unitSuffixText
                       : (suffixLabel ?? displayLabel))}
                 </Button>
               ) : (
@@ -936,18 +935,10 @@ export const PropertyUnitInputControl = memo(
                   )}
                   <Button
                     className="react-aria-Button"
-                    data-token-step={tokenChip ? "true" : undefined}
                     onPress={handleComboBoxTriggerPress}
-                    // 단계가 보이면 접근 이름에도 (aria-label 이 버튼 안 글자를 덮는다)
-                    aria-label={
-                      hasPresets && presetAriaLabel && tokenChip
-                        ? `${presetAriaLabel}: ${tokenChip}`
-                        : hasPresets
-                          ? presetAriaLabel
-                          : undefined
-                    }
+                    aria-label={hasPresets ? presetAriaLabel : undefined}
                   >
-                    {tokenStep ?? <ChevronDown size={iconProps.size} />}
+                    <ChevronDown size={iconProps.size} />
                   </Button>
                 </>
               )}
