@@ -806,7 +806,9 @@
         width: var(--text-xl);
         max-width: var(--text-xl);
         height: var(--text-xl);
-        padding: var(--spacing-xs);
+        /* 빌더 아이콘 버튼 규격: 아이콘 16 (`iconProps.size`) + 여백 2 = 20. 종전 `--spacing-xs` (4) 는
+           내용 폭을 12 로 줄여 svg 가 12×16 으로 눌렸다 (2026-11-09 사용자 보고, Layout 탭 Display 그룹). */
+        padding: var(--spacing-2xs);
         font-size: var(--text-xs);
         line-height: var(--text-xs--line-height);
         display: flex;

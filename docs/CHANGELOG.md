@@ -22,6 +22,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - live: Layout 열 `84px 84px 28px` · 본문 넘침 0, Text · Style 탭 그룹 버튼 20px · 넘침 0, Sides 15px.
   - 위치: `builder-catalog-pins.css` · `builderCatalogVars.static.test.ts` · `inspector-layout.css`
 
+## [Design 패널 토글 아이콘 16×16 — indicator 그룹 버튼 여백 2] - 2026-11-09
+
+### Fixed
+
+- **Design 패널 Layout 탭 (Display · Space · Wrap) 의 토글 버튼 아이콘이 12×16 으로 눌렸다** (사용자 보고): 빌더 아이콘 버튼 규격은 아이콘 16 (`iconProps.size`) + 여백 2 = 20 인데, 인스펙터 indicator 그룹 버튼의 여백이 `--spacing-xs` (4) 라 20px 버튼의 내용 폭이 12 가 되어 svg 가 가로로만 줄었다. `--spacing-2xs` (2) 로 — Text · Style 탭의 같은 그룹도 함께.
+  - Why: ADR-029 Phase 3 CSS 분할 때부터 4 였고, 아이콘 16 과 버튼 20 의 합이 맞지 않았다.
+  - live: Layout 탭 아이콘 버튼 9개 모두 20×20 · padding 2 · svg 16×16.
+  - 위치: `apps/builder/src/builder/components/styles/inspector-layout.css`
+
 ## [부품 host 를 원본 template 에서 파생 — Badge · TagGroup · Card · Tabs 도 자기 부품만] - 2026-11-09
 
 ### Fixed
