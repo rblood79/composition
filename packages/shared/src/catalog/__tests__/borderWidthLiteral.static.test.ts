@@ -59,16 +59,6 @@ const LITERAL_BORDER_WIDTHS: Readonly<
     reason:
       "ActionButton M 크기를 펼친 뒤 테두리만 끔 — S2 SegmentedControl 항목은 테두리 없음 (5745593c4)",
   },
-  "TokenInput.sizes.M": {
-    value: 1,
-    reason:
-      "S2 TokenField 입력 상자 1px (bbca53c78) — `{border.width.thin}` 참조화 후보",
-  },
-  "SelectBox.sizes.M": {
-    value: 2,
-    reason:
-      "S2 SelectBox 2px 테두리 (`rule/selectionComposites.ts`, 8ac17dc12) — `{border.width.thick}` 참조화 후보",
-  },
 };
 
 /**
@@ -157,15 +147,14 @@ describe("ADR-227 G3 — catalog border 폭 리터럴 0 ratchet", () => {
         (/\bborder:\s*"\d+px\s+solid/.test(line) &&
           ![...HANDLE_RINGS].some((ring) => line.includes(`"${ring}"`))),
     );
-    // (확정 예외 중 이 파일에 문자로 적힌 것 — `ACTION_BUTTON_SIZES` 1 · Popover 3 · SegmentedControlItem 1 ·
-    //   TokenInput 1. SelectBox 는 `rule/selectionComposites.ts` 라 여기 없다.)
+    // (확정 예외 중 이 파일에 문자로 적힌 것 — `ACTION_BUTTON_SIZES` 1 · Popover 3 · SegmentedControlItem 1.
+    //   TokenInput · SelectBox 는 2026-11-09 테마 폭 토큰 `{border.width.thin|thick}` 으로.)
     expect(hits.map((line) => line.trim()).sort()).toEqual([
       "borderWidth: 0,",
       "borderWidth: 0,",
       "borderWidth: 0,",
       "borderWidth: 0,",
       "borderWidth: 0,",
-      "borderWidth: 1,",
     ]);
   });
 

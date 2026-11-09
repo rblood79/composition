@@ -327,6 +327,11 @@ export function catalogToggleButtonGlyphOwner(
       "NumberField",
       "ColorField",
       "ComboBox",
+      // (2026-11-09: the date fields — their disabled Label, no longer a dimmed root.)
+      "DateField",
+      "TimeField",
+      "DatePicker",
+      "DateRangePicker",
     ].includes(typeOf(parent))
   )
     return parent;

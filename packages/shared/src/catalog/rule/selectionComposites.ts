@@ -128,7 +128,7 @@ export const SELECT_BOX_RULE: ComponentRule = {
     M: {
       gap: 8,
       borderRadius: "{radius.lg}",
-      borderWidth: 2,
+      borderWidth: "{border.width.thick}", // (theme axis — ADR-227)
       fontSize: "{typography.text-sm}",
       lineHeight: "{typography.text-sm--line-height}",
       fontWeight: 400,

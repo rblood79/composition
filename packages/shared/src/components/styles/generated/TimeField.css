@@ -23,6 +23,14 @@
   gap: var(--catalog-token-time-field-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
 }
 
+.react-aria-TimeField {
+  color: var(--fg-muted);
+}
+
+.react-aria-TimeField:where([data-disabled]) {
+  color: var(--fg-disabled);
+}
+
 .react-aria-TimeField[data-size="S"] {
   font-size: var(--catalog-token-text-xs);
   border-radius: var(--catalog-token-radius-none);
@@ -50,12 +58,6 @@
 .react-aria-TimeField.react-aria-TimeField:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-TimeField.react-aria-TimeField:where([data-disabled]) {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
 }
 
 /* ── Tier 2: Composite Delegation ── */

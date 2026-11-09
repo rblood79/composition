@@ -52,6 +52,7 @@ export interface ManualBoxRule {
 export const DATE_RANGE_GROUP_PAINT = {
   fill: "var(--bg)",
   borderColor: "var(--neutral-outline)",
+  disabledBorderColor: "var(--fg-disabled)",
 } as const;
 
 /** `TabsIndicator.css` `.react-aria-Tab .react-aria-SelectionIndicator` thickness (every size). */
@@ -652,27 +653,38 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   // border width); the paint is stated here with the same values (`adr256FieldControlGroup` checks
   // the bridges still say so).
   DateRangePicker: () => ({
-    parts: Object.keys(sizesOf("DateRangePicker")).map(
-      (name): CompiledPartRule => {
-        const value = String(
-          DATE_RANGE_GROUP_VARIABLES()?.[name]?.["--drp-group-radius"],
-        );
-        // (A size's radius token, or a px value — 2026-10-30 field box S 7 · M 8 · L 9 · XL 10.)
-        const literal = /^(\d+(?:\.\d+)?)px$/.exec(value)?.[1];
-        const radius =
-          literal !== undefined ? Number(literal) : px(cssVarToTokenRef(value));
-        return {
-          childType: "Group",
-          size: name,
-          layout: {},
-          visual: {
-            fill: DATE_RANGE_GROUP_PAINT.fill,
-            borderColor: DATE_RANGE_GROUP_PAINT.borderColor,
-            ...(radius !== undefined ? { radius } : {}),
-          },
-        };
+    parts: [
+      ...Object.keys(sizesOf("DateRangePicker")).map(
+        (name): CompiledPartRule => {
+          const value = String(
+            DATE_RANGE_GROUP_VARIABLES()?.[name]?.["--drp-group-radius"],
+          );
+          // (A size's radius token, or a px value — 2026-10-30 field box S 7 · M 8 · L 9 · XL 10.)
+          const literal = /^(\d+(?:\.\d+)?)px$/.exec(value)?.[1];
+          const radius =
+            literal !== undefined
+              ? Number(literal)
+              : px(cssVarToTokenRef(value));
+          return {
+            childType: "Group",
+            size: name,
+            layout: {},
+            visual: {
+              fill: DATE_RANGE_GROUP_PAINT.fill,
+              borderColor: DATE_RANGE_GROUP_PAINT.borderColor,
+              ...(radius !== undefined ? { radius } : {}),
+            },
+          };
+        },
+      ),
+      // (2026-11-09) A disabled range picker: the sheet's `[data-disabled]` border (S2 `FieldGroup`).
+      {
+        childType: "Group",
+        ownerProps: { isDisabled: true },
+        layout: {},
+        visual: { borderColor: DATE_RANGE_GROUP_PAINT.disabledBorderColor },
       },
-    ),
+    ],
   }),
   // The crumb's own sheet is not loaded (below): its text inherits the Breadcrumbs size font.
   // `Breadcrumbs.css` `[data-size]` also sets `--breadcrumb-gap` (the crumb row's and the list's gap —

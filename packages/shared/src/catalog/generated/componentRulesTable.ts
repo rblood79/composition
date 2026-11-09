@@ -4315,31 +4315,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             //   end room follow it (the builder pins the pre-295 squares, where they give the pre-295 lengths).
             childSelector: ".react-aria-Button",
             prefix: "combo-btn",
+            // (2026-11-09: S2 ComboBox `paddingEnd: height × 3/16 − border 2` — the button ends height × 3/16
+            //   from the box's outer edge. The old `+1` matched the Input's 1px border before 3ca03f661.)
             variables: {
               XS: {
                 "--combo-btn-size": "var(--catalog-token-size-field-button-XS)",
                 "--combo-btn-offset":
-                  "{length.size.field-button.XS*-1/1+size.height.XS*-3/16+1}",
+                  "{length.size.field-button.XS*-1/1+size.height.XS*-3/16}",
               },
               S: {
                 "--combo-btn-size": "var(--catalog-token-size-field-button-S)",
                 "--combo-btn-offset":
-                  "{length.size.field-button.S*-1/1+size.height.S*-3/16+1}",
+                  "{length.size.field-button.S*-1/1+size.height.S*-3/16}",
               },
               M: {
                 "--combo-btn-size": "var(--catalog-token-size-field-button-M)",
                 "--combo-btn-offset":
-                  "{length.size.field-button.M*-1/1+size.height.M*-3/16+1}",
+                  "{length.size.field-button.M*-1/1+size.height.M*-3/16}",
               },
               L: {
                 "--combo-btn-size": "var(--catalog-token-size-field-button-L)",
                 "--combo-btn-offset":
-                  "{length.size.field-button.L*-1/1+size.height.L*-3/16+1}",
+                  "{length.size.field-button.L*-1/1+size.height.L*-3/16}",
               },
               XL: {
                 "--combo-btn-size": "var(--catalog-token-size-field-button-XL)",
                 "--combo-btn-offset":
-                  "{length.size.field-button.XL*-1/1+size.height.XL*-3/16+1}",
+                  "{length.size.field-button.XL*-1/1+size.height.XL*-3/16}",
               },
             },
             bridges: {
@@ -4362,7 +4364,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   (composition flex-column → CSSGenerator size.gap emit), intrinsicHeight 는 layout-only
     //   (CSS 미emit, utils.ts calculateContentHeight datefield 분기가 resolveSkiaRule read-through).
     defaultSize: "M",
-    variants: {},
+    // (2026-11-09: the TextField root's color tree — a disabled field's Label takes the disabled color
+    //   (Canvas `catalogToggleButtonGlyphOwner` · DOM inherit), not a dim.)
+    defaultVariant: "default",
+    variants: { default: { paint: { color: TOGGLE_GROUP_LABEL } } },
     sizes: {
       S: {
         fontSize: "{typography.text-xs}",
@@ -4417,7 +4422,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       stateStyles: {
         ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
+        // (2026-11-09: no disabled dim — S2 fields paint disabled colors (the box part · Label), as TextField.)
       },
       composition: {
         layout: "flex-column",
@@ -4694,7 +4699,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   DatePicker: {
     defaultSize: "M",
-    variants: {},
+    // (2026-11-09: the TextField root's color tree — a disabled field's Label takes the disabled color
+    //   (Canvas `catalogToggleButtonGlyphOwner` · DOM inherit), not a dim.)
+    defaultVariant: "default",
+    variants: { default: { paint: { color: TOGGLE_GROUP_LABEL } } },
     // ADR-912 단계5 step4 (2026-06-17): gap 보강 — spec.sizes(DATE_PICKER_SIZES) 의 gap 을 rule 로 이관
     //   (DatePicker.spec 삭제 시 virtual STRUCTURE_META 가 rule.sizes 에서 gap emit). Calendar/Section 동일 패턴.
     // height 키 제거 (2026-06-23): DatePicker 는 컨테이너(Label 행 + gap + 입력 box[Group>DateInput]
@@ -4757,7 +4765,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       stateStyles: {
         ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
+        // (2026-11-09: no disabled dim — S2 fields paint disabled colors (the box part · Label), as TextField.)
       },
       composition: {
         layout: "flex-column",
@@ -4941,7 +4949,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   DateRangePicker: {
     defaultSize: "M",
-    variants: {},
+    // (2026-11-09: the TextField root's color tree — a disabled field's Label takes the disabled color
+    //   (Canvas `catalogToggleButtonGlyphOwner` · DOM inherit), not a dim.)
+    defaultVariant: "default",
+    variants: { default: { paint: { color: TOGGLE_GROUP_LABEL } } },
     // ADR-912 단계5 step4 (2026-06-17): gap 보강 — spec.sizes(DATE_PICKER_SIZES 공유) 의 gap 이관 (DatePicker 동일).
     // height 키 제거 (2026-06-23): DatePicker 동형 — 컨테이너 height 는 자식 합산 auto, 입력 box height 는
     //   control Group 안 부품의 높이. 상세는 DatePicker entry 주석 참조.
@@ -5003,7 +5014,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       stateStyles: {
         ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
+        // (2026-11-09: no disabled dim — S2 fields paint disabled colors (the box part · Label), as TextField.)
       },
       composition: {
         layout: "flex-column",
@@ -5209,10 +5220,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "[data-focus-within][data-invalid]": {
                 "border-color": "var(--selection-negative-hover)",
               },
+              // (S2 `FieldGroup` disabled: the border in the disabled color — no dim, no fill change.)
               "[data-disabled]": {
-                opacity: "0.38",
-                cursor: "not-allowed",
-                background: "var(--bg-muted)",
+                "border-color": "var(--fg-disabled)",
+                cursor: "default",
               },
             },
           },
@@ -14786,7 +14797,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: 8,
         paddingX: 12,
         paddingY: 8,
-        borderWidth: 1,
+        borderWidth: "{border.width.thin}", // (theme axis — ADR-227)
       },
     },
     structure: {
@@ -15031,7 +15042,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   TimeField: {
     defaultSize: "M",
-    variants: {},
+    // (2026-11-09: the TextField root's color tree — a disabled field's Label takes the disabled color
+    //   (Canvas `catalogToggleButtonGlyphOwner` · DOM inherit), not a dim.)
+    defaultVariant: "default",
+    variants: { default: { paint: { color: TOGGLE_GROUP_LABEL } } },
     // gap = S2 `--field-gap` (높이 − 행간) / 2 · fontSize = S2 field 글자 (S xs … XL lg — ADR-295 Phase 3c-3b
     //   ③ 까지 한 단 위였다, 3c-3c 에서 S2 로).
     sizes: {
@@ -15086,7 +15100,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       stateStyles: {
         ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
+        // (2026-11-09: no disabled dim — S2 fields paint disabled colors (the box part · Label), as TextField.)
       },
       composition: {
         layout: "flex-column",

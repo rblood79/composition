@@ -109,27 +109,27 @@
 
 .react-aria-ComboBox[data-size="XS"] {
   --combo-btn-size: var(--catalog-token-size-field-button-XS);
-  --combo-btn-offset: calc(var(--catalog-token-size-field-button-XS) * -1 / 1 + var(--catalog-token-size-height-XS) * -3 / 16 + 1px);
+  --combo-btn-offset: calc(var(--catalog-token-size-field-button-XS) * -1 / 1 + var(--catalog-token-size-height-XS) * -3 / 16);
 }
 
 .react-aria-ComboBox[data-size="S"] {
   --combo-btn-size: var(--catalog-token-size-field-button-S);
-  --combo-btn-offset: calc(var(--catalog-token-size-field-button-S) * -1 / 1 + var(--catalog-token-size-height-S) * -3 / 16 + 1px);
+  --combo-btn-offset: calc(var(--catalog-token-size-field-button-S) * -1 / 1 + var(--catalog-token-size-height-S) * -3 / 16);
 }
 
 .react-aria-ComboBox[data-size="M"] {
   --combo-btn-size: var(--catalog-token-size-field-button-M);
-  --combo-btn-offset: calc(var(--catalog-token-size-field-button-M) * -1 / 1 + var(--catalog-token-size-height-M) * -3 / 16 + 1px);
+  --combo-btn-offset: calc(var(--catalog-token-size-field-button-M) * -1 / 1 + var(--catalog-token-size-height-M) * -3 / 16);
 }
 
 .react-aria-ComboBox[data-size="L"] {
   --combo-btn-size: var(--catalog-token-size-field-button-L);
-  --combo-btn-offset: calc(var(--catalog-token-size-field-button-L) * -1 / 1 + var(--catalog-token-size-height-L) * -3 / 16 + 1px);
+  --combo-btn-offset: calc(var(--catalog-token-size-field-button-L) * -1 / 1 + var(--catalog-token-size-height-L) * -3 / 16);
 }
 
 .react-aria-ComboBox[data-size="XL"] {
   --combo-btn-size: var(--catalog-token-size-field-button-XL);
-  --combo-btn-offset: calc(var(--catalog-token-size-field-button-XL) * -1 / 1 + var(--catalog-token-size-height-XL) * -3 / 16 + 1px);
+  --combo-btn-offset: calc(var(--catalog-token-size-field-button-XL) * -1 / 1 + var(--catalog-token-size-height-XL) * -3 / 16);
 }
 
 .react-aria-ComboBox .react-aria-Button {

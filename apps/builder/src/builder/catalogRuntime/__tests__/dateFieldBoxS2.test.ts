@@ -169,4 +169,71 @@ describe("date field box = the TextField's S2 FieldGroup", () => {
       expect(css, name).toMatch(/border-color: var\(--neutral-content-hover\)/);
     }
   });
+
+  // (2026-11-09) A disabled S2 field paints disabled colors — the box border and the Label — with no
+  //   dim (S2 `field()` · `FieldGroup` carry no opacity). The date fields dimmed their root 0.38, which
+  //   also hid that their Label never took the disabled color; the range Group dimmed once more.
+  it("disabled: no dim — the box border and the Label in the disabled color, as a TextField", async () => {
+    const disabled = async (type: string, part: string) => {
+      const { workspace, root } = await openPalette(type, { isDisabled: true });
+      const canvas = bindCatalogCanvas(root, root.pageRootRecords());
+      const own = root.recordsOfSource(OWNER)[0]!;
+      const record = [...root.layoutInputs.values()].find(
+        (r) => root.typeOf(r) === part,
+      )!;
+      const label = [...root.canvasInputs.values()].find(
+        (r) => root.typeOf(r) === "Label",
+      )!;
+      const out = {
+        dim: (
+          getSkiaNode(own) as
+            { effects?: { type: string; value?: unknown }[] } | undefined
+        )?.effects?.find((effect) => effect.type === "opacity")?.value,
+        stroke: paintedBox(record.id)?.stroke,
+        label: label.derivedProps?.color ?? label.visual.color,
+      };
+      canvas.dispose();
+      workspace.dispose();
+      return out;
+    };
+    const textField = await disabled("TextField", "Input");
+    expect(textField.dim).toBeUndefined();
+    for (const [type, part] of [
+      ["DateField", "DateInput"],
+      ["TimeField", "DateInput"],
+      ["DatePicker", "DateInput"],
+      ["DateRangePicker", "Group"],
+    ] as const)
+      expect(await disabled(type, part), type).toEqual(textField);
+  });
+
+  it("disabled sheets: the root's disabled color, no dim; the range Group's disabled border", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { resolve } = await import("node:path");
+    const sheet = (name: string) =>
+      readFileSync(
+        resolve(
+          __dirname,
+          `../../../../../../packages/shared/src/components/styles/generated/${name}.css`,
+        ),
+        "utf8",
+      );
+    for (const name of [
+      "DateField",
+      "TimeField",
+      "DatePicker",
+      "DateRangePicker",
+    ]) {
+      const css = sheet(name);
+      expect(css, name).not.toMatch(/opacity: 0\.38/);
+      expect(css, name).toMatch(
+        new RegExp(
+          `\\.react-aria-${name}:where\\(\\[data-disabled\\]\\) \\{\\s*color: var\\(--fg-disabled\\)`,
+        ),
+      );
+    }
+    expect(sheet("DateRangePicker")).toMatch(
+      /\.react-aria-Group:where\(\[data-disabled\]\) \{\s*border-color: var\(--fg-disabled\)/,
+    );
+  });
 });

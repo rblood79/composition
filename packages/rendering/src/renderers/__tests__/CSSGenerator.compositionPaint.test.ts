@@ -13,7 +13,7 @@ it("composite layout explicitly retains variant paint without copying its condit
   const paint = variantPaintCssFor("SelectBox");
   const css = generateCSS(spec, paint)!;
   expect(css).toContain("background: var(--bg-inset)");
-  expect(css).toContain("border: 2px solid transparent");
+  expect(css).toContain("border: var(--border-width-thick) solid transparent");
   expect(css).toMatch(/data-selected[^}]*border-color: var\(--fg\)/);
   expect(css).toContain("height: 170px");
   const legacy = generateCSS(

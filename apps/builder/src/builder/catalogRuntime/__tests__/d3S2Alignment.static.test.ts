@@ -532,7 +532,8 @@ describe("ADR-295 G4 (c) — 컴포넌트 값 = S2 computed", () => {
       s2SizeTokens(S2_DEVICE[device].scale)[`height.${size}`]!;
     const square = (size: string, device: "desktop" | "touch") =>
       s2SizeTokens(S2_DEVICE[device].scale)[`field-button.${size}`]!;
-    const BORDER = 1;
+    // (The ComboBox box is the Input — the S2 `FieldGroup` 2px border since 3ca03f661.)
+    const BORDER = 2;
     const near = (actual: number, expected: number, at: string) =>
       expect(
         Math.abs(actual - expected),

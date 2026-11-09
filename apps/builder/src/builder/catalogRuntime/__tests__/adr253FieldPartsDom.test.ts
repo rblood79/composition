@@ -1467,9 +1467,10 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         ["lib:template:component-fieldbutton", "lib:template:component-button"],
       ]);
       const [input, button] = parts();
-      // Canvas: the Input is the whole control; the button is a square 4px inside its end (S2 field
-      //   button M 20 — ADR-295 Phase 3c-2; the end inset S2 height × 3/16 − 2 = 4 inside the border, the text
-      //   room inset + square + text-to-control 10 — 3c-3b).
+      // Canvas: the Input is the whole control; the button is a square 6px inside its outer end (S2 field
+      //   button M 20 — ADR-295 Phase 3c-2; the end inset S2 height × 3/16 = 6 from the outer edge (S2
+      //   ComboBox paddingEnd height × 3/16 − border 2 measured inside the 2px border), the text room inset +
+      //   square + text-to-control 10 — 3c-3b).
       const group = rect(wrapper().id);
       expect(rect(input.id)).toMatchObject({
         x: 0,
@@ -1483,7 +1484,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         paddingRight: 34,
       });
       expect(rect(button.id)).toMatchObject({
-        x: group.width - 25,
+        x: group.width - 26,
         y: 6,
         width: 20,
         height: 20,
@@ -1534,7 +1535,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       // (ADR-295 Phase 3c-3b: its overlap margin and the input's room are the S2 formula over the device
       //   variables — the touch set reaches them, as it reaches the generated sheet.)
       expect(style).toContain(
-        "margin-left:calc(var(--catalog-token-size-field-button-M) * -1 / 1 + var(--catalog-token-size-height-M) * -3 / 16 + 1px)",
+        "margin-left:calc(var(--catalog-token-size-field-button-M) * -1 / 1 + var(--catalog-token-size-height-M) * -3 / 16)",
       );
       expect(
         inputElement.closest("[data-catalog-id]")!.getAttribute("style") ?? "",

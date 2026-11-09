@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ComboBox 버튼 위치 · 날짜 필드 비활성 · 테두리 두께 토큰 — S2 FieldGroup 후속] - 2026-11-09
+
+### Fixed
+
+- **ComboBox 버튼이 S2 보다 1px 안쪽에 있었다**: 버튼 겹침 여백 식에 `+1px` 가 남아 버튼이 바깥 끝에서 5px 였다. S2 ComboBox 는 `paddingEnd = 높이 × 3/16 − 테두리 2` 를 테두리 안쪽에서 재므로 바깥 끝에서 높이 × 3/16 (M = 6px) 이다. 식에서 `+1` 을 지웠다 — live: Canvas · Publish 모두 끝 6px.
+- **비활성 날짜 필드 (DateField · TimeField · DatePicker · DateRangePicker) 가 통째로 흐려졌다**: S2 FieldGroup 은 비활성에 투명도를 쓰지 않고 TextField 처럼 테두리 · Label 을 비활성 색으로 바꾼다. 루트의 투명도를 지우자 날짜 필드 Label 이 비활성 색을 받지 못하던 누락이 드러나, Label 색 트리와 label owner 목록에 네 필드를 더했다. DateRangePicker 상자도 투명도 · 회색 바탕 대신 테두리만 비활성 색이다.
+  - Why: 날짜 필드만 `DISABLED_STATE` (opacity) 를 공유해 Input 계열과 다른 비활성 규칙을 썼다.
+  - live: 비활성 DateField 루트 투명도 1, Label · 테두리 rgb 198 — Canvas #c6c6c6 과 같다.
+  - 위치: `componentRulesTable.ts` · `manualBoxRules.ts` (DateRangePicker Group 비활성 part rule) · `runtime/presence.ts`
+- **TokenInput · SelectBox 테두리 두께가 리터럴이었다**: 테두리 두께는 테마가 정하는 축 (ADR-227) 이라 TokenInput M 은 `{border.width.thin}`, SelectBox 는 `{border.width.thick}` 토큰을 쓴다 — 기본 테마 화면 변화는 없고 테마의 두께 설정을 따른다.
+
 ## [Disclosure XL chevron · Avatar 크기 Do · 빈 font-size 선언] - 2026-11-09
 
 ### Fixed
