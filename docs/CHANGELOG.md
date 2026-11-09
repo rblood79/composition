@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - AI 추가의 부모 탐색이 frame 으로 probe 하던 것을 실제 정의로 바꿨다 — field 는 frame (래퍼) 을 받지만 두 번째 field 는 받지 않아 probe 가 거부될 자리를 골랐다.
   - ToggleButtonGroup ⊃ ToggleButton · frame ⊃ field · Form ⊃ field 는 그대로.
   - **옮겨진 항목은 선택한 요소 바로 다음에 선다** (사용자 보고 2차): 전에는 상위 컨테이너의 맨 끝으로 갔다. 붙여넣기 메뉴의 「자기 다음」 과 같은 규칙 — 팔레트가 선택의 조상으로 올라갈 때마다 그 조상의 어느 자식 안에 선택이 있는지 기억해 그 다음 index 에 넣는다 (`paletteInsert.ts`).
+  - AI 의 요소 추가도 같은 배치를 쓴다 (`catalogInsertPlacement` — 팔레트와 한 함수): 선택이 거부하면 선택 바로 다음에, probe 와 실제 insert 가 같은 명령. field 아래 감싸개는 부품 명령이 만드는 `FieldLabel · frame · Group` 만 (Slot 으로 우회 불가).
   - 위치: `nestingRules.ts` (`CATALOG_FIELD_PART_TYPES` · `catalogChildKind` `parts`) · `slots.ts` · `aiHost.ts` · `paletteInsert.ts`
 
 ## [날짜 필드 focus ring 은 상자에만 — S2 FieldGroup focusRing] - 2026-11-09

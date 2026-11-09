@@ -51,20 +51,12 @@ describe("catalogChildKind — 부품이 받는 자식의 종류", () => {
     });
     // field 는 자기 부품만 (2026-11-09 — S2 field 는 `children` 이 없다; ADR-256 Phase 2b · 6c ~ 6e 의
     // 「자유 내용」 은 RAC `<div>` 의 관찰이었고 TextField 안에 TextField 가 들어갔다).
-    expect(catalogChildKind("TextField")).toEqual({
-      kind: "parts",
-      parts: [
-        "Label",
-        "Input",
-        "Description",
-        "FieldError",
-        "FieldLabel",
-        "frame",
-        "group",
-        "Group",
-        "Slot",
-      ],
-    });
+    const textField = catalogChildKind("TextField");
+    expect(textField.kind).toBe("parts");
+    // (The parts list itself is the origin template's — `fieldPartsMatchOrigins.static.test.ts`.)
+    expect((textField as { parts: readonly string[] }).parts).toEqual(
+      expect.arrayContaining(["Label", "Input", "FieldLabel", "frame", "Group"]),
+    );
     for (const picker of [
       "Select",
       "ComboBox",

@@ -319,12 +319,15 @@ describe("ADR-256 Phase 7a — ProgressBar draws its node tree", () => {
     expect(Array.from(fill!)).not.toEqual(Array.from(track!));
   });
 
-  it("free content is refused at the bar; inside a layout frame it is drawn in its place", async () => {
+  it("free content inside a layout frame is drawn in its place", async () => {
     const { workspace, root, bar, draw } = await open({
       label: "Loading",
       value: 50,
     });
+    // (A ProgressBar holds only its parts — `CATALOG_FIELD_PART_TYPES`, asserted in the nesting
+    //  tests; free content stands inside a layout frame.)
     const text = "project:node:note" as NodeId;
+    const wrapper = "project:node:note-wrapper" as NodeId;
     const note = {
       kind: "node",
       id: text,
@@ -335,32 +338,17 @@ describe("ADR-256 Phase 7a — ProgressBar draws its node tree", () => {
       sizing: {},
       descendantOverrides: [],
     } as NodeEntry;
-    // 2026-11-09: a ProgressBar holds only its parts (S2 — no children prop).
-    expect(() =>
-      workspace.execute(
-        insertNodes({
-          parent: { kind: "node", id: BAR },
-          entries: [note],
-          rootIds: [text],
-          newId: workspace.newId,
-        }),
-      ),
-    ).toThrow(expect.objectContaining({ code: "NESTING_NOT_ALLOWED" }));
-    const wrapper = "project:node:note-wrapper" as NodeId;
     workspace.execute(
       insertNodes({
         parent: { kind: "node", id: BAR },
         entries: [
           {
-            kind: "node",
+            ...note,
             id: wrapper,
             definitionId: "lib:definition:type-frame",
             children: [text],
             props: {},
-            visual: {},
-            sizing: {},
-            descendantOverrides: [],
-          } as NodeEntry,
+          },
           note,
         ],
         rootIds: [wrapper],

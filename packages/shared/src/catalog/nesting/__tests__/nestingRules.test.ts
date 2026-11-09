@@ -289,6 +289,11 @@ describe("nestingRules — 소비처 헬퍼", () => {
 
 describe("nestingRules — 층 2 (d) field 는 자기 부품만 (2026-11-09)", () => {
   it("TextField 안 TextField · NumberField · Text 는 거부되고 위반은 허용 부품을 든다", () => {
+    // (The render tests — adr256FieldNodeTree · adr256ProgressNodeTree — rely on this rule and
+    //  assert only what a frame-wrapped child draws.)
+    expect(canNest("ProgressBar", "Text")).toBe(false);
+    expect(canNest("Slider", "Icon")).toBe(false);
+    expect(canNest("TextField", "Slot")).toBe(false);
     for (const child of ["TextField", "NumberField", "Text", "Icon", "Button"])
       expect(
         resolveNestingViolation({ parentType: "TextField", childType: child }),

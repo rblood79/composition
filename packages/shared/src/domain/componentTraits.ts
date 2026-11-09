@@ -23,7 +23,7 @@
  * - `structural`: 자식을 담는 레이아웃 그릇 (drop 대상 · padding 편집 대상).
  * - `collection`: item 만 읽는 진짜 컬렉션 — 레이아웃 래퍼도 못 들어간다 (RAC collection 은 직계
  *   자식을 item 으로 해석한다). 그 밖의 합성 컨테이너 (RadioGroup · Slider · Tabs …) 는 context
- *   기반이라 `frame` 같은 레이아웃 래퍼를 사이에 둬도 된다 — `NESTING_PASSTHROUGH_TYPES`.
+ *   기반이라 `frame` 같은 레이아웃 래퍼를 사이에 둬도 된다.
  */
 export type ComponentContainerKind = "structural" | "collection";
 

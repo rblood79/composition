@@ -41,6 +41,9 @@ import {
 import {
   catalogCreationProps,
   catalogPaletteDefinitionId,
+  catalogInsertPlacement,
+  type CatalogInsertCandidate,
+  type CatalogPaletteHost,
 } from "./paletteInsert";
 import { catalogFieldsAt } from "./responsiveFields";
 import type { CatalogSelectionItem } from "./session";
@@ -162,51 +165,65 @@ const parentOf = (target: EditTarget): NodeParent =>
     ? { kind: "node", id: target.id }
     : { kind: "descendant", ownerId: target.ownerId, address: target.address };
 
+/** The palette's insert host over the workspace — the AI's create goes where a palette click goes. */
+function paletteHostOf(workspace: CatalogWorkspace): CatalogPaletteHost {
+  return {
+    graph: workspace.runtime.graph,
+    get records() {
+      return workspace.root.domInputs;
+    },
+    selection: () => workspace.session.getSnapshot().selection,
+    itemOfRecord: (identity) => workspace.itemOfRecord(identity),
+    pageContent: () => {
+      const { pageId } = workspace.session.getSnapshot();
+      const page = pageId && workspace.runtime.graph.getEntry(pageId);
+      const body = page && page.kind === "page" ? page.children[0] : undefined;
+      return body
+        ? catalogPageContentTarget(workspace.runtime.graph, body as NodeId)
+        : undefined;
+    },
+    newId: workspace.newId,
+  };
+}
+
+/** The drawn record a candidate stands for (the page content has none of its own). */
+function candidateIdentity(
+  workspace: CatalogWorkspace,
+  candidate: CatalogInsertCandidate,
+): string | undefined {
+  if (candidate.identity) return candidate.identity;
+  const id =
+    candidate.target.kind === "node"
+      ? candidate.target.id
+      : candidate.target.kind === "descendant"
+        ? candidate.target.ownerId
+        : undefined;
+  return id ? workspace.root.recordsOfSource(id)[0] : undefined;
+}
+
 /**
  * Where a new element goes: the selection, the nearest ancestor that takes the new element's
- * definition, the body. The probe carries the real definition (2026-11-09): a field takes a frame
- * (a parts wrapper) but not a second field, so a frame probe would pick a place the insert refuses.
+ * definition (after the child the selection sits in), the body — the palette's placement
+ * (`catalogInsertPlacement`). The probe carries the real definition (2026-11-09): a field takes a
+ * frame (a parts wrapper) but not a second field, so a frame probe would pick a place the insert
+ * refuses.
  */
 function creationParent(
   workspace: CatalogWorkspace,
   definitionId: DefinitionId = PROBE.definitionId,
 ): CatalogSelectionItem | undefined {
-  const records = workspace.root.domInputs;
-  const candidates: CatalogSelectionItem[] = [];
-  const [first] = workspace.session.getSnapshot().selection;
-  if (first) {
-    candidates.push(first);
-    for (
-      let record = records.get(records.get(first.identity)?.parentId ?? "");
-      record;
-      record = records.get(record.parentId)
-    ) {
-      const item = workspace.itemOfRecord(record.id);
-      if (!item) break;
-      candidates.push(item);
-    }
-  }
-  const { pageId } = workspace.session.getSnapshot();
-  const page = pageId && workspace.runtime.graph.getEntry(pageId);
-  const body = page && page.kind === "page" ? page.children[0] : undefined;
-  const bodyRecord = body && workspace.root.recordsOfSource(body)[0];
-  const content =
-    body && catalogPageContentTarget(workspace.runtime.graph, body as NodeId);
-  if (content && bodyRecord)
-    candidates.push({ target: content, identity: bodyRecord });
-  return candidates.find((candidate) => {
-    try {
-      insertNodes({
-        parent: parentOf(candidate.target),
-        entries: [{ ...PROBE, definitionId }],
-        rootIds: [PROBE.id],
-        newId: workspace.newId,
-      })(workspace.runtime.graph);
-      return true;
-    } catch {
-      return false;
-    }
-  });
+  const placed = catalogInsertPlacement(paletteHostOf(workspace), (candidate) =>
+    insertNodes({
+      parent: parentOf(candidate.target),
+      index: candidate.index,
+      entries: [{ ...PROBE, definitionId }],
+      rootIds: [PROBE.id],
+      newId: workspace.newId,
+    }),
+  );
+  if (!placed.command) return undefined;
+  const identity = candidateIdentity(workspace, placed.candidate);
+  return identity ? { target: placed.candidate.target, identity } : undefined;
 }
 
 /**
@@ -545,16 +562,6 @@ export function createCatalogAiWriteHost(
           graph.library,
           input.type,
         );
-        const parent = input.parentId
-          ? workspace.itemOfRecord(input.parentId)
-          : creationParent(workspace, definitionId);
-        if (!parent)
-          return {
-            ok: false,
-            error: input.parentId
-              ? `PARENT_NOT_FOUND: ${input.parentId}`
-              : "NO_PARENT",
-          };
         const nodeId = workspace.newId("node") as NodeId;
         const entry: NodeEntry = {
           kind: "node",
@@ -582,9 +589,10 @@ export function createCatalogAiWriteHost(
           catalogStartingProps(graph.library, definitionId, input.type),
           given,
         );
-        const commands: CatalogCommand[] = [
+        const build = (parent: NodeParent, index?: number) =>
           insertNodes({
-            parent: parentOf(parent.target),
+            parent,
+            index,
             entries: [
               {
                 ...entry,
@@ -599,7 +607,28 @@ export function createCatalogAiWriteHost(
             rootIds: [nodeId],
             newId: workspace.newId,
             label: `AI: add ${input.type}`,
-          }),
+          });
+        // An aimed parent is used as given; otherwise the palette's placement (the selection, the
+        // nearest accepting ancestor after the selection, the body) — one dry run, same command.
+        let insert: CatalogCommand;
+        let parentIdentity: string | undefined;
+        if (input.parentId) {
+          const parent = workspace.itemOfRecord(input.parentId);
+          if (!parent)
+            return { ok: false, error: `PARENT_NOT_FOUND: ${input.parentId}` };
+          insert = build(parentOf(parent.target));
+          parentIdentity = parent.identity;
+        } else {
+          const placed = catalogInsertPlacement(
+            paletteHostOf(workspace),
+            (candidate) => build(parentOf(candidate.target), candidate.index),
+          );
+          if (!placed.command) return { ok: false, error: "NO_PARENT" };
+          insert = placed.command;
+          parentIdentity = candidateIdentity(workspace, placed.candidate);
+        }
+        const commands: CatalogCommand[] = [
+          insert,
           ...writeCommands(
             workspace,
             [target],
@@ -620,7 +649,7 @@ export function createCatalogAiWriteHost(
           elementNodeAfter(nodeId),
         )[0];
         if (!elementId) return { ok: false, error: `NOT_DRAWN: ${nodeId}` };
-        return { ok: true, elementId, parentId: parent.identity };
+        return { ok: true, elementId, parentId: parentIdentity ?? "" };
       } catch (error) {
         return failure(error);
       }

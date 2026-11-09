@@ -168,50 +168,85 @@ export function catalogPaletteInsertPlan(
     ...catalogCreationStyle(initialProps),
     descendantOverrides: [],
   };
-  // Each candidate past the selection is an ancestor; `after` is the ancestor's drawn child the
-  // selection sits in (or is), so a relocated insert lands right after it — not at the ancestor's
-  // end (user 2026-11-09: a TextField added beside the selected TextField goes right after it; the
-  // same rule as the paste menu's "after itself").
-  const candidates: { target: EditTarget; after?: string }[] = [];
-  const [first] = host.selection();
-  if (first) {
-    candidates.push({ target: first.target });
-    let below = host.records.get(first.identity);
-    for (
-      let record = host.records.get(below?.parentId ?? "");
-      record;
-      below = record, record = host.records.get(record.parentId)
-    ) {
-      const item = host.itemOfRecord(record.id);
-      if (!item) break;
-      candidates.push({ target: item.target, after: below?.id });
-    }
-  }
-  const content = host.pageContent();
-  if (content) candidates.push({ target: content });
-  let refusal: unknown;
-  for (const { target, after } of candidates) {
-    const siblings = after
-      ? host.records.get(host.records.get(after)?.parentId ?? "")?.children
-      : undefined;
-    const at = siblings ? siblings.indexOf(after!) : -1;
-    const command = insertNodes({
-      parent: parentOf(target),
-      ...(at >= 0 ? { index: at + 1 } : {}),
+  const placed = catalogInsertPlacement(host, (candidate) =>
+    insertNodes({
+      parent: parentOf(candidate.target),
+      index: candidate.index,
       entries: [entry],
       rootIds: [entry.id],
       newId: host.newId,
       label: "Add element",
-    });
+    }),
+  );
+  if (!placed.command) return placed;
+  return placed.relocated
+    ? { command: placed.command, relocated: placed.relocated }
+    : { command: placed.command };
+}
+
+/**
+ * A place an insert may go: the selection, then each ancestor (the insert lands right after the
+ * ancestor's child the selection sits in — user 2026-11-09, the paste menu's "after itself"; not
+ * at the ancestor's end), then the page content.
+ */
+export interface CatalogInsertCandidate {
+  readonly target: EditTarget;
+  /** The drawn record (selection item identity), when the candidate came from one. */
+  readonly identity?: string;
+  /** Position in the parent's children; absent = the end. */
+  readonly index?: number;
+}
+
+export function catalogInsertCandidates(
+  host: CatalogPaletteHost,
+): CatalogInsertCandidate[] {
+  const candidates: CatalogInsertCandidate[] = [];
+  const [first] = host.selection();
+  if (first) {
+    candidates.push({ target: first.target, identity: first.identity });
+    let child = host.records.get(first.identity);
+    let record = child && host.records.get(child.parentId);
+    while (child && record) {
+      const item = host.itemOfRecord(record.id);
+      if (!item) break;
+      candidates.push({
+        target: item.target,
+        identity: item.identity,
+        index: record.children.indexOf(child.id) + 1,
+      });
+      child = record;
+      record = host.records.get(record.parentId);
+    }
+  }
+  const content = host.pageContent();
+  if (content) candidates.push({ target: content });
+  return candidates;
+}
+
+/**
+ * The first candidate whose insert command the document accepts (the command's own checks —
+ * nesting, a composite's template — decide), with the refusal that pushed it past the selection.
+ */
+export function catalogInsertPlacement(
+  host: CatalogPaletteHost,
+  build: (candidate: CatalogInsertCandidate) => CatalogCommand,
+):
+  | {
+      command: CatalogCommand;
+      candidate: CatalogInsertCandidate;
+      relocated?: { refusal: unknown; target: EditTarget };
+    }
+  | { command?: undefined; refusal: unknown } {
+  let refusal: unknown;
+  for (const candidate of catalogInsertCandidates(host)) {
+    const command = build(candidate);
     try {
-      // The command's own checks (nesting, a composite's template) decide where it can go.
       command(host.graph);
       return refusal === undefined
-        ? { command }
-        : { command, relocated: { refusal, target } };
+        ? { command, candidate }
+        : { command, candidate, relocated: { refusal, target: candidate.target } };
     } catch (error) {
       refusal ??= error;
-      continue;
     }
   }
   return { refusal };

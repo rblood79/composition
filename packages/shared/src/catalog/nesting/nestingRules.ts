@@ -81,14 +81,6 @@ export const PEN_LEAF_TYPES: ReadonlySet<string> = new Set(["Text", "Icon"]);
 export const STRICT_COLLECTION_PARENT_TYPES: ReadonlySet<string> =
   containerTypeSet("collection");
 
-/** 미전환 family 의 `wrappers` 제한에서 레이아웃 용도로 허용되는 래퍼. */
-export const NESTING_PASSTHROUGH_TYPES: ReadonlySet<string> = new Set([
-  "frame",
-  "group",
-  "Group",
-  "Slot",
-]);
-
 /** 항목 목록 부품 → 받는 항목 type (표의 `children` 열). */
 export const RAC_COLLECTION_CHILD_TYPES: Readonly<
   Record<string, readonly string[]>
@@ -158,20 +150,29 @@ export const CATALOG_FIELD_PART_TYPES: Readonly<
 };
 
 /**
- * field 루트 바로 아래에 설 수 있는 감싸개 — 도움말의 라벨 행 `FieldLabel` (ADR-259,
- * `contextualHelpCommand.ts`) 과 레이아웃 래퍼 (`NESTING_PASSTHROUGH_TYPES` — 앞 글자의 control `Group`
- * (S2 `FieldGroup`, `fieldPrefixCommand.ts`) · 부품을 묶는 frame (ADR-256 Phase 2 리뷰 — RAC context 는
- * 래퍼를 건너 부품에 닿는다, `requiredParts.ts`)).
+ * field 루트 바로 아래에 설 수 있는 감싸개 — 부품 명령이 만드는 것만: 도움말의 라벨 행 `FieldLabel`
+ * (ADR-259, `contextualHelpCommand.ts`) · 앞 글자의 control `Group` (S2 `FieldGroup`, `fieldPrefixCommand.ts`) ·
+ * 부품을 묶는 `frame` (ADR-256 Phase 2 리뷰 — RAC context 는 래퍼를 건너 부품에 닿는다, `requiredParts.ts`).
+ * `Slot` 은 넣지 않는다 — Slot 자리의 넣기 목록은 자유 내용이라 「부품만」 이 한 단계로 우회된다.
  */
 export const FIELD_PART_WRAPPER_TYPES: readonly string[] = [
   "FieldLabel",
-  ...NESTING_PASSTHROUGH_TYPES,
+  "frame",
+  "Group",
 ];
 
-/** 부품 host 가 직계 자식으로 받는 type 전부 (원본 부품 + 감싸개). `undefined` = 부품 host 가 아니다. */
+/** host → 직계 자식으로 받는 type 전부 (원본 부품 + 감싸개) — 모듈 상수에서 한 번 합친다. */
+const CATALOG_FIELD_CHILD_TYPES: Readonly<Record<string, readonly string[]>> =
+  Object.fromEntries(
+    Object.entries(CATALOG_FIELD_PART_TYPES).map(([host, parts]) => [
+      host,
+      [...parts, ...FIELD_PART_WRAPPER_TYPES],
+    ]),
+  );
+
+/** 부품 host 가 직계 자식으로 받는 type 전부. `undefined` = 부품 host 가 아니다. */
 export function catalogFieldParts(type: string): readonly string[] | undefined {
-  const parts = CATALOG_FIELD_PART_TYPES[type];
-  return parts && [...parts, ...FIELD_PART_WRAPPER_TYPES];
+  return CATALOG_FIELD_CHILD_TYPES[type];
 }
 
 /**
