@@ -384,9 +384,14 @@ describe("ADR-256 Phase 5h-2 — a TreeItem's selection checkbox is a Checkbox[s
       ];
       expect(boxes).toHaveLength(style === "checkbox" ? 2 : 0);
       if (style === "checkbox") {
-        fireEvent.click(boxes[0]!);
+        // (Read the checkbox again before each click: this render has no running session, and its
+        //   row content mounts a new checkbox after a selection — a held element is detached. A
+        //   running Publish keeps the same element and its focus, live 2026-11-09.)
+        const firstBox = () =>
+          view.container.querySelector("[role=row] input[type=checkbox]")!;
+        fireEvent.click(firstBox());
         expect(rowsSelected(view.container)).toEqual([true, false]);
-        fireEvent.click(boxes[0]!);
+        fireEvent.click(firstBox());
         expect(rowsSelected(view.container)).toEqual([false, false]);
       }
       // A row press: a checkbox Tree toggles each row (RAC `toggle`), a highlight Tree replaces.

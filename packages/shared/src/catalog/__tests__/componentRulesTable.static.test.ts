@@ -175,12 +175,6 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     reason: UI_ICON_REASON,
   },
   {
-    component: "Disclosure",
-    key: "iconSize",
-    values: { S: 14, M: 18, L: 20, XL: 14 },
-    reason: `${UI_ICON_REASON} · M 18 은 사용자 결정 (2026-09-29) · XL 14 는 S2 ui-icon Chevron XL 값이지만 chevron 은 trigger 의 lucide Icon 18 이 그린다 (bff66d12e 사용자 결정 — 이 값을 chevron 이 읽지 않는다)`,
-  },
-  {
     component: "Tree",
     key: "iconSize",
     values: { S: 14, M: 16, L: 20 },

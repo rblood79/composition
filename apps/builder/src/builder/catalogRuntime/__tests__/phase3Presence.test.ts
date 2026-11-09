@@ -950,6 +950,40 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     expect(boxes(field.shapes).length).toBeGreaterThan(0);
   });
 
+  it("gives a field Label's necessity part its text alike on a fresh build and after an `isRequired` edit", async () => {
+    // (The value pass reads the field, not the Label's not-yet-derived `_necessityText` — a fresh
+    //   build gave "" and an `isRequired` edit kept "(optional)", 2026-11-09.)
+    for (const definition of ["datepicker", "textfield"]) {
+      const scene = await open(
+        `lib:definition:origin-component-${definition}` as DefinitionId,
+        `necessity-${definition}`,
+      );
+      const text = (records: Map<string, CatalogConsumerNode>) =>
+        [...records.values()]
+          .filter((node) => node.props.slot === "necessity-label")
+          .map((node) => [node.props.children, node.derivedProps?.children]);
+      const write = (key: string, value: string | boolean) =>
+        scene.root.dispatch(key, [
+          {
+            kind: "patchNodeProp",
+            id: scene.nodeId,
+            key,
+            write: { kind: "set", value },
+          },
+        ]);
+      write("necessityIndicator", "label");
+      expect(text(new Map(scene.root.canvasInputs))).toEqual([
+        ["(optional)", "(optional)"],
+      ]);
+      expect(text(scene.fresh())).toEqual([["(optional)", "(optional)"]]);
+      write("isRequired", true);
+      expect(text(new Map(scene.root.canvasInputs))).toEqual([
+        ["(required)", "(required)"],
+      ]);
+      expect(text(scene.fresh())).toEqual([["(required)", "(required)"]]);
+    }
+  });
+
   it("paints a DateInput's RAC segments where the layout measured them, empty segments in the owner's placeholder paint", async () => {
     const measure = (text: string) => ({ width: text.length * 10, height: 20 });
     const paintOf = async (

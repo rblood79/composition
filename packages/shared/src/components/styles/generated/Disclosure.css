@@ -23,33 +23,28 @@
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
   line-height: var(--catalog-token-text-sm--line-height);
-  --icon-size: 18px;
 }
 
 .react-aria-Disclosure[data-size="S"] {
   font-size: var(--catalog-token-text-xs);
   border-radius: var(--catalog-token-radius-none);
   line-height: var(--catalog-token-text-xs--line-height);
-  --icon-size: 14px;
 }
 
 .react-aria-Disclosure[data-size="M"] {
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
   line-height: var(--catalog-token-text-sm--line-height);
-  --icon-size: 18px;
 }
 
 .react-aria-Disclosure[data-size="L"] {
   font-size: var(--catalog-token-text-base);
   border-radius: var(--catalog-token-radius-none);
   line-height: var(--catalog-token-text-base--line-height);
-  --icon-size: 20px;
 }
 
 .react-aria-Disclosure[data-size="XL"] {
   border-radius: var(--catalog-token-radius-none);
-  --icon-size: 14px;
 }
 
 .react-aria-Disclosure.react-aria-Disclosure:where([data-focus-visible]) {

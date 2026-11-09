@@ -216,6 +216,12 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
         `generated/DateInput.css › @layer components › .react-aria-DateInput[data-focus-within] | ${prop}`,
         `generated/DateRangePicker.css › @layer components › .react-aria-DateRangePicker .react-aria-Group[data-focus-within] | ${prop}`,
       ]),
+      // (2026-11-09 — Disclosure's `sizes.iconSize` went: no Disclosure sheet reads its `--icon-size`
+      //  (the chevron is the trigger's lucide Icon), and the builder chrome renders no Disclosure.)
+      ...["", '[data-size="S"]', '[data-size="M"]', '[data-size="L"]'].map(
+        (size) =>
+          `generated/Disclosure.css › @layer components › .react-aria-Disclosure${size} | --icon-size`,
+      ),
     ]);
     const changed = Object.entries(before)
       .filter(([key]) => !movedPaintVariable(key))

@@ -2589,6 +2589,29 @@ function ownerStyledQuietBox(
   return owner.props.isQuiet === true ? owner : undefined;
 }
 
+/**
+ * A composed field Label's necessity text (S2 `FieldLabel` — "(required)" · "(optional)" in the
+ * field's locale), read from the field's inherited `isRequired`; `undefined` for any other node.
+ * The Label's `_necessityText` and its `{necessityLabel}` part's value both read it here — the
+ * value pass runs before the derived pass (`compositionRoot.ts`), so reading the Label's
+ * `derivedProps` gave "" on a fresh build and the last value incrementally (2026-11-09).
+ */
+export function catalogLabelNecessityText(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+  locale?: string,
+): string | undefined {
+  const field = catalogComposedFieldLabel(node, get, typeOf)
+    ? catalogPartParent(node, get, typeOf)
+    : undefined;
+  if (!field) return undefined;
+  return necessityLabel(
+    catalogInheritedFlag(field, "isRequired", get, typeOf),
+    typeof field.props.locale === "string" ? field.props.locale : locale,
+  );
+}
+
 function ownDerivedProps(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
@@ -2596,19 +2619,11 @@ function ownDerivedProps(
   locale?: string,
 ): Readonly<Record<string, string | number | boolean>> | undefined {
   const base = ownDerivedPropsBase(node, get, typeOf, locale);
-  const field = catalogComposedFieldLabel(node, get, typeOf)
-    ? catalogPartParent(node, get, typeOf)
-    : undefined;
-  const own = field
-    ? {
-        ...base,
-        _fieldComposed: true,
-        _necessityText: necessityLabel(
-          catalogInheritedFlag(field, "isRequired", get, typeOf),
-          typeof field.props.locale === "string" ? field.props.locale : locale,
-        ),
-      }
-    : base;
+  const necessityText = catalogLabelNecessityText(node, get, typeOf, locale);
+  const own =
+    necessityText === undefined
+      ? base
+      : { ...base, _fieldComposed: true, _necessityText: necessityText };
   // S2 Button `isPending`: the button's children (its icon · text nodes) stay laid out but are not
   // shown (`buttonPending.ts` — the DOM wraps them in `visibility: hidden`, the Canvas registers
   // them unpainted).

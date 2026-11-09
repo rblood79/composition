@@ -5725,27 +5725,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
-        iconSize: 14,
       },
       M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
-        // chevron 18 (사용자 결정 2026-09-29 — M 기준 18, DisclosureHeader.sizes.iconSize 와 같은 값).
-        iconSize: 18,
       },
       L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
-        iconSize: 20,
       },
       XL: {
         borderRadius: "{radius.none}",
         height: 0,
-        iconSize: 14,
       },
     },
     // ADR-912 후속 (2026-06-25): Disclosure generated CSS 는 spec 삭제(4a703828c) 후 virtual emit
