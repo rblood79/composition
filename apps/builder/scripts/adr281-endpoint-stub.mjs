@@ -1,4 +1,4 @@
-// ADR-281 — a local endpoint stub for the Form submit samples (`docs/how-to/samples/`).
+// ADR-281 — a local endpoint stub for Form submit checks (the sample project files were removed 2026-11-09).
 // Prints every request (method · path · content type · body); `/fail…` answers 500, the rest 204.
 // Usage: node apps/builder/scripts/adr281-endpoint-stub.mjs [port=5199] [log file]
 import { createServer } from "node:http";

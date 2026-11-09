@@ -1,4 +1,4 @@
-// A local in-memory Users REST stub for the CRUD sample (`docs/how-to/samples/collection-crud.composition.json`).
+// A local in-memory Users REST stub for CRUD checks (the sample project files were removed 2026-11-09).
 // GET /users → rows (`?q=` filters by name · email, `?sort=<field>&dir=descending`; with `?limit=` a
 //   page `{items, next}` — `?page=` from 1, `next` the next page or null: useAsyncList's cursor;
 //   `?selected=u2,u3` adds that page's `selected` keys: useAsyncList load selectedKeys) ·
