@@ -53,8 +53,6 @@ const CLASSIFICATION: Record<string, string> = {
   "Card.variants.quiet.paint.borderColor.isSelected.default": "accent-content",
   "ColorSwatch.variants.default.paint.borderColor.isSelected": "accent-content",
   "DateInput.variants.accent.paint.borderColor.default": "accent-content",
-  "DateInput.variants.accent.paint.borderColor.isHovered":
-    "accent-content-hover",
   "DropZone.variants.default.paint.color.isHovered": "accent-content",
   "DropZone.variants.default.paint.borderColor.isHovered": "accent-content",
   "Group.variants.accent.paint.color.default": "accent-content",

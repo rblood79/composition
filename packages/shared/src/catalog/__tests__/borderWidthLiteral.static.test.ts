@@ -183,7 +183,9 @@ describe("ADR-227 G3 — catalog border 폭 리터럴 0 ratchet", () => {
   //   Input 의 quiet 밑줄 색이 `var(--neutral-outline)` (자기 테두리 토큰) → border-bottom 3.
   //   Select quiet trigger 의 nested 밑줄 삭제 (71922bd0f — S2 Picker quiet 는 `borderWidth.isQuiet: 0`,
   //   Button rule 의 `isPicker.isQuiet` 분기) → border-bottom 2 (남은 것: DateInput · Disclosure).
-  it("확정 예외 목록은 고정 — outline 2 · border-bottom 2 (늘면 판정 필요)", () => {
+  //   DateInput · DateRangePicker Group 이 S2 `FieldGroup` (Input 과 같은 테두리 트리 · focus 는 테두리 색) 으로
+  //   (2026-11-09) → outline 0 · border-bottom 1 (남은 것: Disclosure).
+  it("확정 예외 목록은 고정 — outline 0 · border-bottom 1 (늘면 판정 필요)", () => {
     let outline = 0;
     let borderBottom = 0;
     walk(COMPONENT_RULES_TABLE, (key, v) => {
@@ -194,8 +196,8 @@ describe("ADR-227 G3 — catalog border 폭 리터럴 0 ratchet", () => {
         borderBottom += 1;
     });
     expect({ outline, borderBottom }).toEqual({
-      outline: 2,
-      borderBottom: 2,
+      outline: 0,
+      borderBottom: 1,
     });
   });
 });

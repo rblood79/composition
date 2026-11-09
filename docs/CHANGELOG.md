@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Disclosure XL 의 chevron 이 다른 크기보다 작았고 Canvas · Preview 가 달랐다**: XL 만 S2 ui-icon 표 값 14px 로 svg 를 덮어써, Preview 는 14 · Canvas 는 14 상자에 18 글리프였다. 사용자 결정 (「lucide 로 다른 사이즈와 동일하게」) 대로 덮어쓰기를 지워 XL 도 S · M · L 처럼 trigger 의 lucide Icon 18 을 쓴다 — Canvas · Publish 모두 18×18 (live).
 - **Interactions 에서 Avatar · AvatarGroup 의 「크기 정하기」 Do 가 사라졌다**: 크기 종류가 `avatar-size` · `avatar-group-size` 로 바뀐 뒤 Do 유도 표에 없었다. S2 크기 선택지 Do 로 다시 연결하고, 고른 값은 문서의 숫자 크기로 쓴다.
+- **날짜 필드 상자가 TextField 와 달랐다 (DateField · TimeField · DatePicker · DateRangePicker)**: S2 는 날짜 필드 상자를 TextField 와 같은 `FieldGroup` 으로 그리는데, S2 정렬 (3ca03f661) 이 Input 만 옮겨 날짜 상자는 테두리 1px · focus 때 accent 2px outline 으로 남았다. Input rule 의 칠 · 테두리 2px · 상태 (focus within = 진한 테두리) 를 같이 쓰고, DatePicker 버튼은 테두리 안 4px 를 지킨다.
+  - DateRangePicker 는 Canvas 용 칠 사본이 DOM inline 으로 새어 시트의 hover · focus 테두리를 덮고 있었다 (focus 해도 휴지 테두리 — accent outline 만 보였다). DOM 은 시트에 맡긴다.
+  - live (Publish): 세 날짜 상자 휴지 = TextField (2px · rgb 218 · 흰 바탕 · 높이 32), focus 진한 테두리 rgb 19, DatePicker · DateRangePicker 버튼 끝 6px — Canvas 도 같은 값.
+  - 위치: `componentRulesTable.ts` (DateInput · DatePicker · DateRangePicker) · `manualBoxRules.ts` · `domBinding.runtime.ts` `sheetPaintedBox`
 - **Properties 에서 SegmentedControl 의 선택 (`selectedKey` · `defaultSelectedKey`) 이 State 절에 있었다**: Tabs 등 다른 선택 컴포넌트는 Content 절이다 — 「같은 prop 은 모든 컴포넌트에서 한 절」 (사용자 결정 2026-10-13) 대로 Content 로 옮겼다.
 - 생성 CSS 의 빈 `font-size: ;` 선언 44줄 (Avatar · AvatarGroup · MeterFill · ProgressBarFill · SideNav 계열 · SelectBoxGroup · Accordion · Disclosure) 을 내지 않는다 — 브라우저가 버리던 선언이라 화면 변화는 없다.
 

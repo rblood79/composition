@@ -138,9 +138,9 @@
   padding-left: var(--drp-group-pad-start);
   padding-right: var(--drp-group-pad-end);
   min-height: var(--drp-group-min-height);
-  border: var(--border-width-thin) solid var(--border);
+  border: var(--border-width-thick) solid var(--neutral-outline);
   border-radius: var(--drp-group-radius);
-  background: var(--bg-inset);
+  background: var(--bg);
   color: var(--fg);
   white-space: nowrap;
   forced-color-adjust: none;
@@ -150,19 +150,19 @@
 }
 
 .react-aria-DateRangePicker .react-aria-Group:where([data-hovered]) {
-  border-color: var(--border-hover);
-  background: var(--bg-overlay);
-}
-
-.react-aria-DateRangePicker .react-aria-Group:where([data-focus-within]) {
-  outline: 2px solid var(--accent-content);
-  outline-offset: -1px;
-  border-color: var(--accent-content);
-  background: var(--bg-overlay);
+  border-color: var(--neutral-outline-hover);
 }
 
 .react-aria-DateRangePicker .react-aria-Group:where([data-invalid]) {
-  border-color: var(--negative);
+  border-color: var(--selection-negative);
+}
+
+.react-aria-DateRangePicker .react-aria-Group:where([data-focus-within]) {
+  border-color: var(--neutral-content-hover);
+}
+
+.react-aria-DateRangePicker .react-aria-Group:where([data-focus-within][data-invalid]) {
+  border-color: var(--selection-negative-hover);
 }
 
 .react-aria-DateRangePicker .react-aria-Group:where([data-disabled]) {

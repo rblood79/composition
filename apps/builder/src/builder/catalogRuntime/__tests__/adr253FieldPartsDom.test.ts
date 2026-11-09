@@ -1927,10 +1927,11 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           x: 0,
           width: scene.rect(scene.field.id).width,
         });
+        // (2026-11-09: S2 `FieldGroup` — the TextField box's 2px border, 1px less padding.)
         expect(input().visual).toMatchObject({
           paddingX: 12,
-          paddingY: 6,
-          borderWidth: 1,
+          paddingY: 5,
+          borderWidth: 2,
           radius: 8,
           minWidth: 150,
         });
@@ -2002,13 +2003,14 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         width: group.width,
       });
       // (ADR-295 Phase 3c-3b: S2 DatePicker end inset M 4 inside the border · text-to-control 10.)
+      // (2026-11-09: the S2 `FieldGroup` 2px border — the button keeps the 4px end inset inside it.)
       expect(pickerParts()[0]!.visual).toMatchObject({
         paddingX: 12,
         paddingRight: 34,
-        borderWidth: 1,
+        borderWidth: 2,
       });
       expect(picker.rect(pickerParts()[1]!.id)).toMatchObject({
-        x: group.width - 25,
+        x: group.width - 26,
         width: 20,
         height: 20,
       });
@@ -2033,7 +2035,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       // DateRangePicker: the Group is the box; the pair carries none.
       const range = await open("daterangepicker");
       expect(range.wrapper().visual).toMatchObject({
-        borderWidth: 1,
+        borderWidth: 2, // (2026-11-09 — S2 `FieldGroup`)
         // (ADR-295 Phase 3c-3b: S2 DateRangePicker `edge-to-text` 32 × 3/8 · end 4.)
         paddingLeft: 12,
         paddingRight: 4,
@@ -2069,7 +2071,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       const rangeBox = range.rect(range.wrapper().id);
       expect(rangeBox.height).toBe(32);
       expect(range.rect(button.id)).toMatchObject({
-        x: rangeBox.width - 1 - 4 - 20,
+        x: rangeBox.width - 2 - 4 - 20, // (border 2 — S2 `FieldGroup`, 2026-11-09)
         y: 6,
         width: 20,
         height: 20,
@@ -2575,6 +2577,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
               props: { isInvalid: set(true) },
             }),
           );
+          // (2026-11-09: the date fields' DateInput takes the Input's S2 `FieldGroup` tree too.)
           const inputBox = [
             "textfield",
             "textarea",
@@ -2582,6 +2585,9 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
             "numberfield",
             "colorfield",
             "combobox",
+            "datefield",
+            "timefield",
+            "datepicker",
           ].includes(type);
           expect(colors()).toEqual(
             boxes().map(() =>

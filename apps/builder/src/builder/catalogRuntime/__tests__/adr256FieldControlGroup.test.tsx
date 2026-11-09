@@ -89,9 +89,10 @@ describe("ADR-256 Phase 6b — a field's control box is a RAC Group node", () =>
       (id) => root.domInputs.get(id)!.bindingId === "button",
     )!;
     const styleIn = (container: ParentNode) =>
-      container.querySelector<HTMLElement>(
-        `[data-catalog-id="${CSS.escape(stepper)}"]`,
-      )
+      container
+        .querySelector<HTMLElement>(
+          `[data-catalog-id="${CSS.escape(stepper)}"]`,
+        )
         ?.style.cssText.split(";")
         .map((declaration) => declaration.trim())
         .filter(Boolean)
@@ -136,7 +137,8 @@ describe("ADR-256 Phase 6b — a field's control box is a RAC Group node", () =>
     expect(group.visual).toMatchObject({
       fill: DATE_RANGE_GROUP_PAINT.fill,
       borderColor: DATE_RANGE_GROUP_PAINT.borderColor,
-      borderWidth: 1,
+      // (2026-11-09: S2 `FieldGroup` — the TextField box's 2px border.)
+      borderWidth: 2,
       radius: 8,
     });
     const canvas = bindCatalogCanvas(root, root.pageRootRecords());
@@ -146,8 +148,42 @@ describe("ADR-256 Phase 6b — a field's control box is a RAC Group node", () =>
     const [r, g, b, alpha] = box!.fillColor;
     expect(alpha).toBeGreaterThan(0);
     expect(Math.min(r!, g!, b!)).toBeGreaterThan(0.9);
-    expect(box?.strokeWidth).toBe(1);
+    expect(box?.strokeWidth).toBe(2);
     expect(Math.max(...box!.strokeColor!.slice(0, 3))).toBeGreaterThan(0.5);
+  });
+
+  // (2026-11-09) The DOM range box takes its fill and border color from the picker's sheet — inline
+  //   they beat the sheet's `[data-focus-within]` · `[data-hovered]` · `[data-invalid]` borders (the
+  //   focused range box kept its rest border). A written fill still goes inline.
+  it("the DOM range Group leaves its fill and border color to the sheet (its state borders win)", async () => {
+    const workspace = await open("daterangepicker");
+    const root = workspace.root;
+    const field = root.recordsOfSource(FIELD)[0]!;
+    const group = [...root.domInputs.values()].find(
+      (record) => record.parentId === field && root.typeOf(record) === "Group",
+    )!;
+    const groupStyle = () => {
+      const element = document.createElement("div");
+      element.innerHTML = renderToStaticMarkup(renderCatalogDom(root, field));
+      return (
+        element.querySelector<HTMLElement>(
+          `[data-catalog-id="${CSS.escape(group.id)}"]`,
+        )?.style ?? null
+      );
+    };
+    expect(groupStyle()).not.toBeNull();
+    expect(groupStyle()!.borderColor).toBe("");
+    expect(groupStyle()!.backgroundColor).toBe("");
+    const target = workspace.positionOfRecord(group.id)!.target;
+    act(() => {
+      workspace.execute(
+        setFields({
+          targets: [target],
+          visual: { fill: { kind: "set", value: "#ff0000" } },
+        }),
+      );
+    });
+    expect(groupStyle()!.backgroundColor).toBe("rgb(255, 0, 0)");
   });
 
   it("the paint the Canvas states is the range picker rule's Group bridges (one source of the tokens)", () => {
@@ -167,7 +203,7 @@ describe("ADR-256 Phase 6b — a field's control box is a RAC Group node", () =>
     )!;
     expect(delegation.bridges).toMatchObject({
       background: DATE_RANGE_GROUP_PAINT.fill,
-      border: `var(--border-width-thin) solid ${DATE_RANGE_GROUP_PAINT.borderColor}`,
+      border: `var(--border-width-thick) solid ${DATE_RANGE_GROUP_PAINT.borderColor}`,
       "border-radius": "var(--drp-group-radius)",
     });
   });

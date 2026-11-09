@@ -3395,6 +3395,15 @@ function authoredStyle(
   const carriesText = CATALOG_TEXT_STYLE_CONTAINERS.has(
     catalogTypeName(root, node),
   );
+  // (2026-11-09) A DateRangePicker's range Group: the picker's sheet (`DateRangePicker` delegation
+  //   `.react-aria-Group`) paints the box and its hover · focus · invalid borders. The part rule's fill ·
+  //   border color are the Canvas copy (`manualBoxRules` `DATE_RANGE_GROUP_PAINT`) — inline they beat
+  //   those state borders (the focused range box kept its rest border). A written value still goes.
+  const parent = node.parentId ? root.domInputs.get(node.parentId) : undefined;
+  const sheetPaintedBox =
+    catalogTypeName(root, node) === "Group" &&
+    !!parent &&
+    catalogTypeName(root, parent) === "DateRangePicker";
   const localeLineHeight = Number(node.visual.lineHeight);
   if (
     rule?.localeTypography &&
@@ -3406,6 +3415,12 @@ function authoredStyle(
     noSheet ? node.visual : catalogAuthoredVisual(root, node),
   ).sort((a, b) => authoredRank(a) - authoredRank(b))) {
     if (key === "aspectRatio") continue; // written below from the resolved ratio
+    if (
+      sheetPaintedBox &&
+      (key === "fill" || key === "borderColor") &&
+      !catalogHasExplicitVisual(root, node, key)
+    )
+      continue;
     // (ADR-299 — a range-formatted text's own decoration is on its run spans; an authored `none`
     //  stays on the element — it turns off a rule's line (a Link's) that no span could remove.)
     if (

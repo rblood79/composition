@@ -45,11 +45,13 @@ export interface ManualBoxRule {
 
 /**
  * ADR-256 Phase 6b — the range picker's Group box paint, the `DateRangePicker` rule's own bridge
- * values (`.react-aria-Group` `background` · `border` color).
+ * values (`.react-aria-Group` `background` · `border` color). (2026-11-09: S2 `FieldGroup` — the
+ * Input's fill and border. The Canvas reads these; the DOM leaves them to the sheet, whose state
+ * borders an inline color would beat — `domBinding.runtime.ts` `sheetPaintedBox`.)
  */
 export const DATE_RANGE_GROUP_PAINT = {
-  fill: "var(--bg-inset)",
-  borderColor: "var(--border)",
+  fill: "var(--bg)",
+  borderColor: "var(--neutral-outline)",
 } as const;
 
 /** `TabsIndicator.css` `.react-aria-Tab .react-aria-SelectionIndicator` thickness (every size). */
@@ -644,7 +646,7 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   MeterValue: () => ({ omit: ["lineHeight"] }),
   SelectValue: () => ({ omit: ["height"] }),
   // ADR-256 Phase 6b — a range picker's control Group paints the box (`DateRangePicker` rule
-  // delegation `.react-aria-Group`: `background: var(--bg-inset)` · `border: … var(--border)` ·
+  // delegation `.react-aria-Group`: `background: var(--bg)` · `border: … var(--neutral-outline)` ·
   // `border-radius: var(--drp-group-radius)` = the size's radius, read from the same
   // delegation's `variables`). The part rule compiler carries only its box geometry (padding ·
   // border width); the paint is stated here with the same values (`adr256FieldControlGroup` checks

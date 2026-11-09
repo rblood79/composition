@@ -570,8 +570,12 @@ describe("ADR-295 G4 (c) — 컴포넌트 값 = S2 computed", () => {
         );
         // DatePicker: the fixed end table.
         const dp = delegation("DatePicker", "dp-btn")[size]!;
+        // (2026-11-09: a DatePicker's box is the DateInput — the S2 `FieldGroup` 2px border.)
+        const DATE_INPUT_BORDER = 2;
         const dpInset =
-          -px(dp["--dp-btn-offset"]!, device) - square(size, device) - BORDER;
+          -px(dp["--dp-btn-offset"]!, device) -
+          square(size, device) -
+          DATE_INPUT_BORDER;
         near(dpInset, DATE_PICKER_END[size], `DatePicker inset ${at}`);
         near(
           px(

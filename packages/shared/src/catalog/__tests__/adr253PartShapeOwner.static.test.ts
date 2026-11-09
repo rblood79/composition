@@ -391,7 +391,8 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
     // (ADR-297 Phase 3c: the quiet shape is the box rule's state tree — `structure.stateStyles`.)
     // (S2 1.8.2 정렬 `3ca03f661`: Input 의 quiet 밑줄 · 상태 색은 자기 테두리 트리 `FIELD_INPUT_BORDER`
     //   — 기본 `{color.neutral-outline}`, focus 는 S2 `field` 의 gray-900 (`{color.neutral-content-hover}`),
-    //   invalid 는 `{color.selection-negative}`. DateInput 은 아직 옛 CSS 변수 값이다.)
+    //   invalid 는 `{color.selection-negative}`. DateInput 도 같은 값이다 (2026-11-09 — S2 DateField 상자는
+    //   TextField 와 같은 `FieldGroup`).)
     for (const [type, focus, underline, focused, invalid] of [
       [
         "Input",
@@ -403,9 +404,9 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
       [
         "DateInput",
         "isFocusWithin",
-        "1px solid var(--border)",
-        "var(--accent-content)",
-        "var(--negative)",
+        "1px solid var(--neutral-outline)",
+        "{color.neutral-content-hover}",
+        "{color.selection-negative}",
       ],
     ] as const) {
       const trees = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[

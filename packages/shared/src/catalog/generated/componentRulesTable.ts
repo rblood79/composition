@@ -4522,52 +4522,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   DateInput: {
     defaultVariant: "default",
     defaultSize: "M",
+    // (2026-11-09) S2 DateField draws its box with the same `FieldGroup` as TextField
+    //   (`@react-spectrum/s2` src/DateField.tsx · Field.tsx `fieldGroupStyles`) — the Input rule's paint.
     variants: {
       default: {
         paint: {
-          backgroundColor: {
-            default: "{color.layer-2}",
-            isHovered: "{color.layer-2}",
-            isPressed: "{color.layer-2}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-          borderColor: {
-            default: "{color.border}",
-            isHovered: "{color.border-hover}",
-          },
+          backgroundColor: "{color.base}",
+          color: FIELD_INPUT_CONTENT,
+          borderColor: FIELD_INPUT_BORDER,
         },
       },
       accent: {
         paint: {
-          backgroundColor: {
-            default: "{color.layer-2}",
-            isHovered: "{color.layer-2}",
-            isPressed: "{color.layer-2}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
+          backgroundColor: "{color.base}",
+          color: FIELD_INPUT_CONTENT,
           borderColor: {
+            ...FIELD_INPUT_BORDER,
             default: "{color.accent-content}",
-            isHovered: "{color.accent-content-hover}",
           },
         },
       },
       negative: {
         paint: {
-          backgroundColor: {
-            default: "{color.layer-2}",
-            isHovered: "{color.layer-2}",
-            isPressed: "{color.layer-2}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
+          backgroundColor: "{color.base}",
+          color: FIELD_INPUT_CONTENT,
           borderColor: {
-            default: "{color.negative}",
-            isHovered: "{color.negative-hover}",
+            ...FIELD_INPUT_BORDER,
+            default: "{color.selection-negative}",
           },
         },
       },
@@ -4580,56 +4561,56 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-2xs}",
         lineHeight: "{typography.text-2xs--line-height}",
         borderRadius: "{radius.xs}",
-        borderWidth: "{border.width.thin}",
+        borderWidth: "{border.width.thick}",
         height: 0,
         minHeight: "{size.height.XS}",
         paddingX: ofHeight(3, 8),
-        paddingY: 2,
+        paddingY: 1,
       },
       S: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: 7,
-        borderWidth: "{border.width.thin}",
+        borderWidth: "{border.width.thick}",
         height: 0,
         minHeight: "{size.height.S}",
         paddingX: ofHeight(3, 8),
-        paddingY: 3,
+        paddingY: 2,
       },
       M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: 8,
-        borderWidth: "{border.width.thin}",
+        borderWidth: "{border.width.thick}",
         height: 0,
         minHeight: "{size.height.M}",
         paddingX: ofHeight(3, 8),
-        paddingY: 6,
+        paddingY: 5,
       },
       L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: 9,
-        borderWidth: "{border.width.thin}",
+        borderWidth: "{border.width.thick}",
         height: 0,
         minHeight: "{size.height.L}",
         paddingX: ofHeight(3, 8),
-        paddingY: 9,
+        paddingY: 8,
       },
       XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: 10,
-        borderWidth: "{border.width.thin}",
+        borderWidth: "{border.width.thick}",
         height: 0,
         minHeight: "{size.height.XL}",
         paddingX: ofHeight(3, 8),
-        paddingY: 12,
+        paddingY: 11,
       },
     },
     // 자기 stylesheet (ADR-253): 상자 · 크기 단계 · 상태 (hover · focus-within · invalid · disabled) 와 그 안의
     //   RAC 조각 (`DateSegment`) 을 이 rule 이 그린다. 부모 rule 은 배치만 한다. 상태 표시는 Input 과 같다
-    //   (hover 는 테두리색, focus 는 2px outline + 테두리색).
+    //   (hover 는 테두리색, focus-within 은 진한 테두리색 — S2 `FieldGroup`).
     structure: {
       archetype: "input-base",
       element: "div",
@@ -4645,39 +4626,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         // ADR-297 Phase 3c — the box's own states (was `rootSelectors` `&[data-*]`). Order = priority: hover,
         //   invalid, then focus (invalid wins inside it), quiet last. (3h — S2 `field`: invalid beats hover; the
         //   old sheet let hover win by specificity, 0-4-0 over 0-2-0. 사용자 결정 2 · breakdown §6.1 #6.)
+        // (2026-11-09: the Input rule's S2 `FieldGroup` states — focus within darkens the border; the
+        //   keyboard ring is `FOCUS_RING_STATE`. Was: an accent 2px outline over a 1px `--border` box.)
         background: { isQuiet: "transparent" },
-        borderColor: {
-          isHovered: "var(--border-hover)",
-          isInvalid: "var(--negative)",
-          isFocusWithin: {
-            default: "var(--accent-content)",
-            isInvalid: "var(--negative)",
-          },
-          isQuiet: "transparent",
-        },
+        borderColor: { ...FIELD_INPUT_BORDER_STATES, isQuiet: "transparent" },
         boxShadow: { isQuiet: "none" },
         borderRadius: { isQuiet: "0" },
-        borderBottom: { isQuiet: "1px solid var(--border)" },
-        borderBottomColor: {
-          isQuiet: {
-            isHovered: "var(--border-hover)",
-            isInvalid: "var(--negative)",
-            isFocusWithin: {
-              default: "var(--accent-content)",
-              isInvalid: "var(--negative)",
-            },
-          },
-        },
-        outline: {
-          isFocusWithin: "2px solid var(--accent-content)",
-          isQuiet: { isFocusWithin: "none" },
-        },
-        // (after `outline` — the invalid focus recolors it; a quiet box's `outline: none` resets it)
-        outlineColor: {
-          isFocusWithin: { isInvalid: "var(--negative)" },
-          isQuiet: { isFocusWithin: "currentcolor" },
-        },
-        outlineOffset: { isFocusWithin: "-1px" },
+        borderBottom: { isQuiet: "1px solid var(--neutral-outline)" },
+        borderBottomColor: { isQuiet: FIELD_INPUT_BORDER },
       },
       composition: {
         rootSelectors: {
@@ -4944,26 +4900,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           {
             childSelector: ".react-aria-Button",
             prefix: "dp-btn",
+            // (offset = −(button + end inset + the DateInput's border) — 2026-11-09 the border is the S2
+            //   `FieldGroup` 2px, so one more than before: the S2 end inset stays inside the border.)
             variables: {
               XS: {
                 "--dp-btn-size": "var(--catalog-token-size-field-button-XS)",
-                "--dp-btn-offset": "{length.size.field-button.XS*-1/1-3}",
+                "--dp-btn-offset": "{length.size.field-button.XS*-1/1-4}",
               },
               S: {
                 "--dp-btn-size": "var(--catalog-token-size-field-button-S)",
-                "--dp-btn-offset": "{length.size.field-button.S*-1/1-3}",
+                "--dp-btn-offset": "{length.size.field-button.S*-1/1-4}",
               },
               M: {
                 "--dp-btn-size": "var(--catalog-token-size-field-button-M)",
-                "--dp-btn-offset": "{length.size.field-button.M*-1/1-5}",
+                "--dp-btn-offset": "{length.size.field-button.M*-1/1-6}",
               },
               L: {
                 "--dp-btn-size": "var(--catalog-token-size-field-button-L)",
-                "--dp-btn-offset": "{length.size.field-button.L*-1/1-7}",
+                "--dp-btn-offset": "{length.size.field-button.L*-1/1-8}",
               },
               XL: {
                 "--dp-btn-size": "var(--catalog-token-size-field-button-XL)",
-                "--dp-btn-offset": "{length.size.field-button.XL*-1/1-7}",
+                "--dp-btn-offset": "{length.size.field-button.XL*-1/1-8}",
               },
             },
             bridges: {
@@ -5224,10 +5182,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               // ADR-295 Phase 3: the range box is the field's control — the S2 control height (the builder
               //   root turns it off for its own widgets: `--catalog-token-drp-group-min-height: auto`).
               "min-height": "var(--drp-group-min-height)",
-              border: "var(--border-width-thin) solid var(--border)",
+              // (2026-11-09: S2 DateRangePicker draws this box with the TextField's `FieldGroup` — the
+              //   Input rule's border · fill · states. Was: a 1px `--border` box on `--bg-inset`.)
+              border: "var(--border-width-thick) solid var(--neutral-outline)",
               // (모서리는 Input · DateInput 과 같은 크기 단계 — 같은 줄의 입력 상자와 모양이 같다.)
               "border-radius": "var(--drp-group-radius)",
-              background: "var(--bg-inset)",
+              background: "var(--bg)",
               color: "var(--fg)",
               "white-space": "nowrap",
               "forced-color-adjust": "none",
@@ -5238,17 +5198,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
             states: {
               "[data-hovered]": {
-                "border-color": "var(--border-hover)",
-                background: "var(--bg-overlay)",
-              },
-              "[data-focus-within]": {
-                outline: "2px solid var(--accent-content)",
-                "outline-offset": "-1px",
-                "border-color": "var(--accent-content)",
-                background: "var(--bg-overlay)",
+                "border-color": "var(--neutral-outline-hover)",
               },
               "[data-invalid]": {
-                "border-color": "var(--negative)",
+                "border-color": "var(--selection-negative)",
+              },
+              "[data-focus-within]": {
+                "border-color": "var(--neutral-content-hover)",
+              },
+              "[data-focus-within][data-invalid]": {
+                "border-color": "var(--selection-negative-hover)",
               },
               "[data-disabled]": {
                 opacity: "0.38",

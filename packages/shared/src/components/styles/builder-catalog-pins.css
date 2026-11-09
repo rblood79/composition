@@ -645,4 +645,29 @@
     --sf-btn-height: 24px;
     --sf-btn-offset: -40px;
   }
+  /* generated/DateInput.css — 2026-11-09 S2 FieldGroup (테두리 2) 로 위아래 여백이 1px 작다 (295 전: 1px 테두리 안 여백). */
+  .react-aria-DateInput:not(:where(.publish-app *)) {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+  .react-aria-DateInput[data-size="XS"]:not(:where(.publish-app *)) {
+    padding-top: 1px;
+    padding-bottom: 1px;
+  }
+  .react-aria-DateInput[data-size="S"]:not(:where(.publish-app *)) {
+    padding-top: 2px;
+    padding-bottom: 2px;
+  }
+  .react-aria-DateInput[data-size="M"]:not(:where(.publish-app *)) {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+  .react-aria-DateInput[data-size="L"]:not(:where(.publish-app *)) {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .react-aria-DateInput[data-size="XL"]:not(:where(.publish-app *)) {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
 }

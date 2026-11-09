@@ -201,6 +201,12 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
         (prop) =>
           `generated/Input.css › @layer components › :is(.react-aria-Input,.react-aria-TextArea,.react-aria-FieldBox):is([data-focused],[data-focus-within]) | ${prop}`,
       ),
+      // (2026-11-09 — the date fields' box took the same S2 FieldGroup states: their focus-within
+      //  outline was `var(--accent-content)` too, undefined under `builder-system`.)
+      ...["outline", "outline-offset"].flatMap((prop) => [
+        `generated/DateInput.css › @layer components › .react-aria-DateInput[data-focus-within] | ${prop}`,
+        `generated/DateRangePicker.css › @layer components › .react-aria-DateRangePicker .react-aria-Group[data-focus-within] | ${prop}`,
+      ]),
     ]);
     const changed = Object.entries(before)
       .filter(([key]) => !movedPaintVariable(key))
