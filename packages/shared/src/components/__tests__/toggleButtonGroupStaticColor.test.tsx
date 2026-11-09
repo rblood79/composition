@@ -13,7 +13,9 @@ import { ToggleButtonGroup } from "../ToggleButtonGroup";
  *   - 그룹이 자기 `data-static-color` 를 내보낸다 (indicator 모드 트랙 wash CSS 의 gate).
  *   - 자식 ToggleButton 이 그룹 값을 받아 `data-static-color` 로 emit → 수동 ToggleButton.css
  *     흑백 스킴 적용.
- *   - 자식이 명시값(auto 아님)을 가지면 자식 우선 (Skia buildSpecNodeData 주입과 같은 규칙).
+ *   - 그룹이 값을 주면 그룹 값이 이긴다 — S2 1.8.2 `ToggleButton.tsx` 는 그룹 context 가 있으면
+ *     `staticColor = props.staticColor` 를 context 구조 분해의 기본값으로만 쓴다 (`3ca03f661`
+ *     정렬, 옛 「자식 명시값 우선」 계약 폐기).
  *   - 그룹 auto → 자식은 자기 값 유지 (기존 standalone 동작 보존).
  */
 
@@ -52,7 +54,7 @@ describe("ToggleButtonGroup staticColor — 자식 상속 (§1-2 축③)", () =>
     expect(childStaticColors(html)).toEqual(["black", "black"]);
   });
 
-  it("자식 명시값이 그룹보다 우선 (auto 일 때만 상속)", () => {
+  it("그룹 값이 자식 명시값을 이긴다 (S2 1.8.2 ToggleButton — 그룹 context 우선)", () => {
     const html = renderToStaticMarkup(
       <ToggleButtonGroup staticColor="black">
         <ToggleButton id="a" staticColor="white">
@@ -61,7 +63,7 @@ describe("ToggleButtonGroup staticColor — 자식 상속 (§1-2 축③)", () =>
         <ToggleButton id="b">B</ToggleButton>
       </ToggleButtonGroup>,
     );
-    expect(childStaticColors(html)).toEqual(["white", "black"]);
+    expect(childStaticColors(html)).toEqual(["black", "black"]);
   });
 
   it("그룹 미지정(auto) → 자식은 기존 동작 유지", () => {

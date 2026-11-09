@@ -193,6 +193,12 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         "Row",
         "Cell",
         "Chart",
+        // 8586c64bd · 8ac17dc12: S2 ActionButton · ActionButtonGroup · LinkButton · LabeledValue · ActionBar.
+        "ActionButton",
+        "ActionButtonGroup",
+        "LinkButton",
+        "LabeledValue",
+        "ActionBar",
       ].sort(),
     );
     expect(fam1.every((e) => e.kind === "primitive")).toBe(true);

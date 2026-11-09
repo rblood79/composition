@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { meterBinding } from "../Meter.binding";
 import { getPrimitiveBinding } from "../index";
+import { RAC_SLOT_PROP } from "../accessibilityProps";
 import {
   getCatalogEntry,
   getCatalogCutoverTypes,
@@ -18,7 +19,14 @@ import { toRacProps } from "../../outputs/toRacProps";
  */
 describe("Meter binding — value-fill compound (ProgressBar 동형, internal wrapper 위임)", () => {
   it("PRIMITIVE_BINDINGS 에 등록 + internal source renderer='meter'", () => {
-    expect(getPrimitiveBinding("Meter")).toBe(meterBinding);
+    // (792815efc: a type with a RAC slot contract gets RAC's `slot` prop on a copy of its binding.)
+    expect(getPrimitiveBinding("Meter")).toEqual({
+      ...meterBinding,
+      props: {
+        ...meterBinding.props,
+        accepts: { ...meterBinding.props.accepts, slot: RAC_SLOT_PROP },
+      },
+    });
     expect(meterBinding.source.kind).toBe("internal");
     expect(
       meterBinding.source.kind === "internal"

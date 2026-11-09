@@ -88,9 +88,72 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     "Select",
     "TextArea",
     "TextField",
-    "ToggleButton",
     "Badge",
   ].map(controlRadius),
+  // (S2 1.8.2 정렬 `3ca03f661`: ActionButton · ToggleButton 은 XS 도 control 모서리 — XS 6 = round(8 × 1.125^-2).)
+  ...["ActionButton", "ToggleButton"].map(
+    (component): IntentionalLiteral => ({
+      component,
+      key: "borderRadius",
+      values: { XS: 6, ...CONTROL_RADIUS },
+      reason: `${CONTROL_RADIUS_REASON} · XS 6 = round(8 × 1.125^-2) (S2 ActionButton · ToggleButton XS)`,
+    }),
+  ),
+  sizes(
+    "SegmentedControlItem",
+    "borderRadius",
+    { M: 8 },
+    `${CONTROL_RADIUS_REASON} — ActionButton M 크기를 펼친 값 (5745593c4)`,
+  ),
+  ...["ActionButtonGroup", "ToggleButtonGroup"].map(
+    (component): IntentionalLiteral => ({
+      component,
+      key: "borderRadius",
+      values: { XS: 0, S: 0, M: 0, L: 0, XL: 0 },
+      reason:
+        "S2 ActionButtonGroup · ToggleButtonGroup 은 상자 모양이 없다 — 연결 모서리는 자식 rule 의 compact rootSelectors (`ACTION_GROUP_SIZES`, 3ca03f661)",
+    }),
+  ),
+  sizes(
+    "Sheet",
+    "borderRadius",
+    { M: 16 },
+    "S2 에 Sheet 가 없다 — 같은 계열 Modal `borderRadius: 'xl'` 16 (`Modal.tsx`, ADR-303) · Dialog 와 같은 이유로 `{radius.xl}` 대신 숫자",
+  ),
+  sizes(
+    "TokenField",
+    "borderRadius",
+    { M: 0 },
+    "S2 에 TokenField 가 없다 (RAC 전용 · d2Provenance composition) — 바깥 묶음은 상자 모양이 없고 TokenInput 이 상자다 (bbca53c78)",
+  ),
+  sizes(
+    "TokenInput",
+    "borderRadius",
+    { M: 8 },
+    `S2 에 TokenField 가 없다 (RAC 전용) — 입력 상자는 field control 모서리 M 8 (${"`controlBorderRadius`"}, bbca53c78)`,
+  ),
+  sizes(
+    "Token",
+    "borderRadius",
+    { M: 0 },
+    "S2 에 TokenField 가 없다 (RAC 전용) — 입력 안 token 글자 조각은 상자 모양이 없다 (bbca53c78)",
+  ),
+  sizes(
+    "TokenField",
+    "gap",
+    { M: 6 },
+    "S2 에 TokenField 가 없다 (RAC 전용 · d2Provenance composition) — 라벨 · 입력 · 설명 세로 간격 composition 값 (bbca53c78)",
+  ),
+  sizes(
+    "Label",
+    "lineHeight",
+    {
+      "localeTypography.ja": 1.5,
+      "localeTypography.ko": 1.5,
+      "localeTypography.zh": 1.5,
+    },
+    "S2 1.8.2 controlFont의 CJK 행간은 크기·서체와 무관한 단위 없는 1.5 비율이다 (px 아님 — `runtime/localeTypography.ts` `catalogLocaleLineHeight` 가 배율로 읽는다, SegmentedControlItem 이 같은 표를 공유)",
+  ),
   {
     component: "Dialog",
     key: "borderRadius",
@@ -114,8 +177,8 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
   {
     component: "Disclosure",
     key: "iconSize",
-    values: { S: 14, M: 18, L: 20 },
-    reason: `${UI_ICON_REASON} · M 18 은 사용자 결정 (2026-09-29)`,
+    values: { S: 14, M: 18, L: 20, XL: 14 },
+    reason: `${UI_ICON_REASON} · M 18 은 사용자 결정 (2026-09-29) · XL 14 는 S2 ui-icon Chevron XL 값이지만 chevron 은 trigger 의 lucide Icon 18 이 그린다 (bff66d12e 사용자 결정 — 이 값을 chevron 이 읽지 않는다)`,
   },
   {
     component: "Tree",
@@ -274,8 +337,20 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
   sizes(
     "Avatar",
     "height",
-    { XS: 24, S: 28, M: 32, L: 40, XL: 48 },
-    "S2 Avatar 는 `size` 가 숫자 px (기본 24) — composition XS~XL 은 그 숫자를 고른다",
+    {
+      ...Object.fromEntries(
+        [16, 20, 24, 28, 32, 36, 40, 44, 48, 56, 64, 80, 96, 112].map((px) => [
+          String(px),
+          px,
+        ]),
+      ),
+      XS: 24,
+      S: 28,
+      M: 32,
+      L: 40,
+      XL: 48,
+    },
+    "S2 Avatar 는 `size` 가 숫자 px (기본 24) — 숫자 프리셋 16 ~ 112 (`AVATAR_SIZE_PRESETS`, 792815efc) 은 높이 그대로 · XS~XL 은 옛 이름이 고르는 숫자",
   ),
   sizes(
     "Code",
@@ -567,6 +642,43 @@ describe("ADR-297 G3 (e) — & 자신의 상태 분기 = 상태 트리 (3c)", ()
     ).toEqual([]);
   });
 
+  /**
+   * 확정 예외 — 조건 어휘에 없는 문맥 · 위치 (그룹 안 · 맞춤 폭 · 방향 · density · 처음 · 끝 자식) 와 CSS 변수
+   * (`--action-corner`) 라 상태 트리 (`stateStyles`) 로 적을 수 없는 `&` 키. 목록 = ratchet (사라지면 RED).
+   */
+  const ACTION_GROUP_CHILD_SELF_KEYS = [
+    "&[data-in-group]",
+    "&[data-justified]",
+    '&[data-in-group][data-orientation="vertical"]',
+    '&[data-density="compact"]',
+    '&[data-density="compact"]:first-child',
+    '&[data-density="compact"]:last-child',
+    '&[data-density="compact"][data-orientation="horizontal"]:first-child',
+    '&[data-density="compact"][data-orientation="vertical"]:last-child',
+    '&[data-density="compact"][data-orientation="horizontal"]:last-child',
+    '&[data-density="compact"][data-orientation="vertical"]:first-child',
+    ...["XS", "S", "M", "L", "XL"].map((size) => `&[data-size="${size}"]`),
+  ];
+  const SELF_STYLES_EXCEPTIONS: Readonly<
+    Record<string, { keys: readonly string[]; reason: string }>
+  > = {
+    ...Object.fromEntries(
+      ["ActionButton", "ToggleButton"].map((type) => [
+        type,
+        {
+          keys: ACTION_GROUP_CHILD_SELF_KEYS,
+          reason:
+            "S2 1.8.2 ActionButton · ToggleButton 의 그룹 배치 · compact 연결 모서리 (`ACTION_GROUP_BUTTON_COMPOSITION`, 3ca03f661) — 그룹 context · 위치 · CSS 변수라 어휘 밖 (`&[data-size]` 는 `size` 값 조건이 있으나 값이 CSS 변수)",
+        },
+      ]),
+    ),
+    SegmentedControlItem: {
+      keys: ["&[data-selected]"],
+      reason:
+        "선택 항목의 쌓임 순서 `z-index: 0` (5745593c4) — `isSelected` 는 어휘에 있어 `stateStyles.zIndex` 로 옮길 후보 (production 후속)",
+    },
+  };
+
   it("& 대상 rootSelectors 키의 styles 0", () => {
     const offenders: string[] = [];
     for (const [type, rule] of Object.entries(COMPONENT_RULES_TABLE)) {
@@ -585,6 +697,14 @@ describe("ADR-297 G3 (e) — & 자신의 상태 분기 = 상태 트리 (3c)", ()
           offenders.push(`${type} ${key}`);
       }
     }
-    expect(offenders).toEqual([]);
+    const registered = Object.entries(SELF_STYLES_EXCEPTIONS).flatMap(
+      ([type, { keys, reason }]) => {
+        expect(reason.length).toBeGreaterThan(10);
+        return keys.map((key) => `${type} ${key}`);
+      },
+    );
+    expect(offenders.filter((o) => !registered.includes(o))).toEqual([]);
+    // (낡은 등재 0 — 옮기면 목록에서 뺀다.)
+    expect(registered.filter((r) => !offenders.includes(r))).toEqual([]);
   });
 });

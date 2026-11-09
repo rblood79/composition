@@ -168,10 +168,38 @@ describe("design-data 감사 §1-1 — 시맨틱 variant 미배선 회귀 가드
 
     // 주석을 걷어낸 뒤 셀렉터 줄만 본다 (주석 안의 클래스명은 설명 텍스트).
     const withoutComments = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    // 런타임 region 스코프 = `.react-aria-ToastRegion`, 또는 런타임 region (`ToastRegion.lazy.tsx`) 만 붙이는
+    //   `catalog-toast-*` 클래스 (2026-11-01 「앱의 토스트 모양」 — `.catalog-toast-shaped > .react-aria-Toast` 는
+    //   region 이 사용자 모양을 감싼 틀 안의 Toast 다). 그 클래스가 region 밖 (문서 Toast 렌더러) 에 쓰이면
+    //   아래 검사가 걸린다.
+    const regionSource = readFileSync(
+      fileURLToPath(
+        new URL("../../components/ToastRegion.lazy.tsx", import.meta.url),
+      ),
+      "utf8",
+    );
+    const toastSource = readFileSync(
+      fileURLToPath(new URL("../../components/Toast.tsx", import.meta.url)),
+      "utf8",
+    );
+    const runtimeScopes = [
+      ...new Set(regionSource.match(/\bcatalog-toast-shaped\b/g) ?? []),
+    ];
+    expect(runtimeScopes).toEqual(["catalog-toast-shaped"]);
+    for (const scope of runtimeScopes)
+      expect(toastSource.includes(scope), `문서 Toast 가 ${scope} 를 쓴다`).toBe(
+        false,
+      );
     const unscoped = withoutComments
       .split("\n")
       .filter((line) => line.includes(".react-aria-Toast"))
-      .filter((line) => !line.includes(".react-aria-ToastRegion"));
+      .filter((line) => !line.includes(".react-aria-ToastRegion"))
+      .filter(
+        (line) =>
+          !runtimeScopes.some((scope) =>
+            new RegExp(`\\.${scope}(?![\\w-])`).test(line),
+          ),
+      );
 
     expect(unscoped, "런타임 스코프를 벗어난 셀렉터").toEqual([]);
   });

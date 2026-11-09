@@ -11,8 +11,15 @@ import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
  *
  * 분류 (Phase 0 inventory, docs/adr/evidence/223-phase0-inventory.md):
  *   composition.containerStyles 만 3 (Disclosure · Pagination · Toolbar) + composition 없음 8.
+ *
+ * ActionButtonGroup (8586c64bd) · ToggleButtonGroup (3ca03f661 이 `layout: "flex-row"` 삭제): S2 1.8.2
+ *   ActionButtonGroup · ToggleButtonGroup 정렬 — 방향은 `containerVariants.orientation` 의 flex-direction,
+ *   flex 상자는 `structure.containerStyles` (display flex · align-items center) 가 두 consumer 에 같이 준다.
+ *   (`layout` 삭제 사유는 커밋에 없다.) 상자 기하가 명시돼 있어 중립 base 로 떨어지지 않는다 — 위 「containerStyles 만」 과
+ *   같은 부류.
  */
 const PINNED_DEFAULT_WITHOUT_LAYOUT = [
+  "ActionButtonGroup",
   "AvatarGroup",
   "body",
   "ButtonGroup",
@@ -22,6 +29,7 @@ const PINNED_DEFAULT_WITHOUT_LAYOUT = [
   "GridListItem",
   "Pagination",
   "Tab",
+  "ToggleButtonGroup",
   "Toolbar",
 ] as const;
 

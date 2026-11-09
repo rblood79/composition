@@ -24,6 +24,54 @@ const HANDLE_RINGS: ReadonlySet<string> = new Set([
 const TABLE_PATH = resolve(__dirname, "../generated/componentRulesTable.ts");
 
 /**
+ * 숫자 `borderWidth` 확정 예외 — `<type>.sizes.<size>` → 값 · 사유. 등재 밖 숫자는 그대로 걸리고, 사라진
+ * 항목도 걸린다 (목록 = ratchet). `0` 은 S2 가 테두리를 쓰지 않는 자리 (테마 폭 축 밖 — 「없음」 은 테마가
+ * 바꿀 값이 아니다), `1` · `2` 는 테마 축을 따라야 할 값이라 `{border.width.thin|thick}` 참조화 후보다
+ * (production 후속 — 이 목록에서 빼면 된다).
+ */
+const LITERAL_BORDER_WIDTHS: Readonly<
+  Record<string, { value: number; reason: string }>
+> = {
+  ...Object.fromEntries(
+    ["ActionButton", "ToggleButton"].flatMap((type) =>
+      ["XS", "S", "M", "L", "XL"].map((size) => [
+        `${type}.sizes.${size}`,
+        {
+          value: 0,
+          reason:
+            "S2 1.8.2 ActionButton · ToggleButton 은 border:none — 종전 1px 은 paddingY 에 흡수 (`ACTION_BUTTON_SIZES`, 3ca03f661)",
+        },
+      ]),
+    ),
+  ),
+  ...Object.fromEntries(
+    ["S", "M", "L"].map((size) => [
+      `Popover.sizes.${size}`,
+      {
+        value: 0,
+        reason:
+          "S2 Popover 는 테두리 대신 `outline: 1px solid var(--popover-outline)` (containerStyles, 71922bd0f)",
+      },
+    ]),
+  ),
+  "SegmentedControlItem.sizes.M": {
+    value: 0,
+    reason:
+      "ActionButton M 크기를 펼친 뒤 테두리만 끔 — S2 SegmentedControl 항목은 테두리 없음 (5745593c4)",
+  },
+  "TokenInput.sizes.M": {
+    value: 1,
+    reason:
+      "S2 TokenField 입력 상자 1px (bbca53c78) — `{border.width.thin}` 참조화 후보",
+  },
+  "SelectBox.sizes.M": {
+    value: 2,
+    reason:
+      "S2 SelectBox 2px 테두리 (`rule/selectionComposites.ts`, 8ac17dc12) — `{border.width.thick}` 참조화 후보",
+  },
+};
+
+/**
  * Every key · value of the table — a rule's state tree (`structure.stateStyles`, ADR-297 Phase 3c) is
  * visited as its property's leaves (`borderBottom` → each branch's value, under the CSS name), the way its
  * `rootSelectors` strings were before.
@@ -48,9 +96,17 @@ function leaves(tree: unknown): unknown[] {
 }
 
 describe("ADR-227 G3 — catalog border 폭 리터럴 0 ratchet", () => {
-  it("`borderWidth` 값은 전부 `{border.width.<k>}` 토큰이다 (숫자 · 'Npx' 0)", () => {
+  it("`borderWidth` 값은 전부 `{border.width.<k>}` 토큰이다 (숫자 · 'Npx' 0 — 확정 예외 목록 밖)", () => {
     const offenders: string[] = [];
     const tokens = new Set<string>();
+    const literals: Record<string, unknown> = {};
+    for (const [type, rule] of Object.entries(COMPONENT_RULES_TABLE))
+      for (const [size, block] of Object.entries(
+        (rule as { sizes?: Record<string, { borderWidth?: unknown }> })
+          .sizes ?? {},
+      ))
+        if (typeof block?.borderWidth === "number")
+          literals[`${type}.sizes.${size}`] = block.borderWidth;
     walk(COMPONENT_RULES_TABLE, (key, v) => {
       if (key !== "borderWidth") return;
       if (
@@ -62,7 +118,16 @@ describe("ADR-227 G3 — catalog border 폭 리터럴 0 ratchet", () => {
       }
       offenders.push(`${key}: ${JSON.stringify(v)}`);
     });
-    expect(offenders).toEqual([]);
+    // 숫자는 `sizes` 블록의 확정 예외뿐이다 — 그 밖의 숫자 · px 문자열은 offender 로 남는다.
+    expect(offenders).toHaveLength(Object.keys(literals).length);
+    expect(literals).toEqual(
+      Object.fromEntries(
+        Object.entries(LITERAL_BORDER_WIDTHS).map(([k, { value }]) => [
+          k,
+          value,
+        ]),
+      ),
+    );
     expect([...tokens].sort()).toEqual([
       "{border.width.hairline}",
       "{border.width.none}",
@@ -92,7 +157,16 @@ describe("ADR-227 G3 — catalog border 폭 리터럴 0 ratchet", () => {
         (/\bborder:\s*"\d+px\s+solid/.test(line) &&
           ![...HANDLE_RINGS].some((ring) => line.includes(`"${ring}"`))),
     );
-    expect(hits).toEqual([]);
+    // (확정 예외 중 이 파일에 문자로 적힌 것 — `ACTION_BUTTON_SIZES` 1 · Popover 3 · SegmentedControlItem 1 ·
+    //   TokenInput 1. SelectBox 는 `rule/selectionComposites.ts` 라 여기 없다.)
+    expect(hits.map((line) => line.trim()).sort()).toEqual([
+      "borderWidth: 0,",
+      "borderWidth: 0,",
+      "borderWidth: 0,",
+      "borderWidth: 0,",
+      "borderWidth: 0,",
+      "borderWidth: 1,",
+    ]);
   });
 
   // ADR-253 (2026-10-06): NumberField · ComboBox (4건씩) · SearchField (2건) 의 wrapper / 버튼 focus 표시
@@ -104,7 +178,12 @@ describe("ADR-227 G3 — catalog border 폭 리터럴 0 ratchet", () => {
   //   DateRangePicker 의 isQuiet 제거 (2026-10-07 — S2 에 없음) → border-bottom 3.
   //   S2 Disclosure (2026-10-10 사용자 결정): 위아래 1px 테두리 (`border-top` · `border-bottom` — Canvas 는
   //   `catalogDisclosureBorders` 가 같은 선언을 읽는다) → border-bottom 4.
-  it("확정 예외 목록은 고정 — outline 3 · border-bottom 4 (늘면 판정 필요)", () => {
+  //   S2 1.8.2 정렬 (3ca03f661): Input 의 focus 리터럴 outline 이 focus-ring 변수 (`CONTROL_FOCUS`, isFocusVisible) +
+  //   테두리 색 (S2 `field`) 으로 → outline 2,
+  //   Input 의 quiet 밑줄 색이 `var(--neutral-outline)` (자기 테두리 토큰) → border-bottom 3.
+  //   Select quiet trigger 의 nested 밑줄 삭제 (71922bd0f — S2 Picker quiet 는 `borderWidth.isQuiet: 0`,
+  //   Button rule 의 `isPicker.isQuiet` 분기) → border-bottom 2 (남은 것: DateInput · Disclosure).
+  it("확정 예외 목록은 고정 — outline 2 · border-bottom 2 (늘면 판정 필요)", () => {
     let outline = 0;
     let borderBottom = 0;
     walk(COMPONENT_RULES_TABLE, (key, v) => {
@@ -115,8 +194,8 @@ describe("ADR-227 G3 — catalog border 폭 리터럴 0 ratchet", () => {
         borderBottom += 1;
     });
     expect({ outline, borderBottom }).toEqual({
-      outline: 3,
-      borderBottom: 4,
+      outline: 2,
+      borderBottom: 2,
     });
   });
 });

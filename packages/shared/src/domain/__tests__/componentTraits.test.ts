@@ -90,6 +90,13 @@ describe("componentTraits — 파생 집합 == 옛 리터럴", () => {
         "TextInput",
         "SearchField",
         "TextArea",
+        // S2 components (8586c64bd · bbca53c78 · 8ac17dc12): ActionButton · LinkButton · LabeledValue
+        // · SegmentedControlItem are text hosts, TokenField an input value.
+        "ActionButton",
+        "LinkButton",
+        "LabeledValue",
+        "SegmentedControlItem",
+        "TokenField",
       ]),
     );
   });
@@ -110,6 +117,12 @@ describe("componentTraits — 파생 집합 == 옛 리터럴", () => {
         "popover",
         "section",
         "tooltip",
+        // RAC Sheet family · PreviewTrigger (bbca53c78) — free content, no named slot.
+        "previewtrigger",
+        "sheet",
+        "sheetcontent",
+        "sheetoverlay",
+        "sheettrigger",
       ]),
     );
   });
@@ -141,19 +154,36 @@ describe("componentTraits — 파생 집합 == 옛 리터럴", () => {
         "a",
         "label",
         "button",
+        "ActionButton",
+        "LinkButton",
+        "LabeledValue",
+        "SegmentedControlItem",
       ]),
     );
   });
 
   it("inputValue (useTextEdit INPUT_VALUE_EDIT_TAGS)", () => {
     expect(sorted(componentTypeSet("inputValue"))).toEqual(
-      literal(["Input", "TextField", "TextInput", "SearchField", "TextArea"]),
+      literal([
+        "Input",
+        "TextField",
+        "TextInput",
+        "SearchField",
+        "TextArea",
+        "TokenField",
+      ]),
     );
   });
 
   it("buttonChildHost (BUTTON_CHILD_HOST_TAGS · LABEL_EDIT_HOST_TAGS)", () => {
     expect(sorted(componentTypeSet("buttonChildHost"))).toEqual(
-      literal(["Button", "ToggleButton"]),
+      literal([
+        "Button",
+        "ToggleButton",
+        "ActionButton",
+        "LinkButton",
+        "SegmentedControlItem",
+      ]),
     );
   });
 
@@ -165,6 +195,10 @@ describe("componentTraits — 파생 집합 == 옛 리터럴", () => {
         "Link",
         "ActionButtonGroup",
         "ButtonGroup",
+        "ActionButton",
+        "LinkButton",
+        "SegmentedControlItem",
+        "ActionBar",
       ]),
     );
   });
@@ -192,7 +226,7 @@ describe("componentTraits — 파생 집합 == 옛 리터럴", () => {
 
   it("selectionItem (구 canonicalRefResolution SELECTION_FLAG_ITEM_TYPES)", () => {
     expect(sorted(componentTypeSet("selectionItem"))).toEqual(
-      literal(["ListBoxItem", "GridListItem"]),
+      literal(["ListBoxItem", "GridListItem", "SelectBox"]),
     );
   });
 
@@ -207,6 +241,7 @@ describe("componentTraits — 파생 집합 == 옛 리터럴", () => {
         "Breadcrumb",
         "MenuItem",
         "SegmentedControlItem",
+        "SelectBox",
       ]),
     );
   });
@@ -214,7 +249,7 @@ describe("componentTraits — 파생 집합 == 옛 리터럴", () => {
   it("itemSlotCollection (구 CanonicalNodeRenderer ITEM_SLOT_COLLECTIONS, 소문자)", () => {
     expect(
       sorted(componentTypeSet("itemSlotCollection", { lowercase: true })),
-    ).toEqual(literal(["listbox", "gridlist", "menu", "taggroup"]));
+    ).toEqual(literal(["listbox", "gridlist", "menu", "taggroup", "selectboxgroup"]));
   });
 
   it("disablingGroup (구 canonicalRefResolution DISABLING_GROUP_TYPES)", () => {
@@ -227,6 +262,8 @@ describe("componentTraits — 파생 집합 == 옛 리터럴", () => {
         "Tabs",
         "ListBox",
         "GridList",
+        "SegmentedControl",
+        "SelectBoxGroup",
       ]),
     );
   });
@@ -263,6 +300,13 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
         // them per weekday · date), a date input's its segment template (per segment — 9d).
         "CalendarGrid",
         "DateInput",
+        // S2 TokenField's token list (bbca53c78) · SelectBoxGroup's boxes (8ac17dc12), ADR-300 SideNav (RAC
+        // NavigationTree — c7c88e9c4).
+        "TokenInput",
+        "SelectBoxGroup",
+        "SideNav",
+        "SideNavSection",
+        "SideNavItem",
       ]),
     );
   });
@@ -290,6 +334,11 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       ColorSwatchPicker: ["ColorSwatchPickerItem"],
       CalendarGrid: ["CalendarHeaderCell", "CalendarCell"],
       DateInput: ["DateSegment"],
+      TokenInput: ["Token"],
+      SelectBoxGroup: ["SelectBox"],
+      SideNav: ["SideNavItem", "SideNavSection"],
+      SideNavSection: ["SideNavHeader", "SideNavItem"],
+      SideNavItem: ["SideNavItem", "SideNavItemContent"],
     });
     for (const type of Object.keys(componentContractMap("children")))
       expect(containerTypeSet("collection").has(type), type).toBe(true);
@@ -314,7 +363,7 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       ColorSwatchPickerItem: ["ColorSwatchPicker"],
       ColorThumb: ["ColorArea", "ColorSlider", "ColorWheel"],
       ColorWheelTrack: ["ColorWheel"],
-      SelectionIndicator: ["Tab"],
+      SelectionIndicator: ["Tab", "SegmentedControlItem"],
       OverlayArrow: ["Popover", "Tooltip"],
       DisclosurePanel: ["Disclosure"],
       Radio: ["RadioGroup"],
@@ -346,8 +395,8 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       SwitchButton: ["Switch"],
       SwitchIndicator: ["SwitchButton"],
       TreeItemContent: ["TreeItem"],
-      SliderOutput: ["Slider", "ColorSlider"],
-      SliderTrack: ["Slider", "ColorSlider"],
+      SliderOutput: ["Slider", "RangeSlider", "ColorSlider"],
+      SliderTrack: ["Slider", "RangeSlider", "ColorSlider"],
       SliderThumb: ["SliderTrack"],
       SliderFill: ["SliderTrack"],
       MeterTrack: ["Meter"],
@@ -404,6 +453,18 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
         "ComboBox",
         "Field",
       ],
+      SegmentedControlItem: ["SegmentedControl"],
+      SelectBox: ["SelectBoxGroup"],
+      Sheet: ["SheetOverlay"],
+      SheetBackdrop: ["SheetOverlay"],
+      SheetContent: ["Sheet"],
+      TokenInput: ["TokenField"],
+      Token: ["TokenInput"],
+      SideNavSection: ["SideNav"],
+      SideNavItem: ["SideNav", "SideNavSection", "SideNavItem"],
+      SideNavItemContent: ["SideNavItem"],
+      SideNavItemLink: ["SideNavItemContent"],
+      SideNavHeader: ["SideNavSection"],
     });
   });
 });

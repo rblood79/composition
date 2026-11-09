@@ -12,12 +12,14 @@ import {
  * 본 기대값을 갱신한다.
  */
 describe("usesButtonBaseUtility — catalog 파생 membership", () => {
-  it("Button · ToggleButton · ToggleButtonGroup (buttonBase) 3개가 전부다", () => {
+  it("Button · LinkButton · ToggleButton · ToggleButtonGroup (buttonBase) 4개가 전부다", () => {
     const members = Object.keys(getComponentRulesTable()).filter((type) =>
       usesButtonBaseUtility(type),
     );
+    // (8ac17dc12: LinkButton 은 Button rule 의 structure 를 그대로 펼쳐 RAC Link 로 그린다 — buttonBase 상속.)
     expect(members.sort()).toEqual([
       "Button",
+      "LinkButton",
       "ToggleButton",
       "ToggleButtonGroup",
     ]);

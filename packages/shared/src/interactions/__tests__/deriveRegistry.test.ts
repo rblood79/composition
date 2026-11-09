@@ -158,7 +158,9 @@ const OWNER_MOVED: readonly string[] = [
  * Exception 3 — a name RAC deprecated (RAC event audit 2026-10-26): RAC 1.22 Select's selection is
  * `value` · `onChange` (S2 Picker's); `onSelectionChange` is single-only and stays derived, hidden.
  */
-const DEPRECATED_HIDDEN: readonly string[] = ["Select.events.onSelectionChange"];
+const DEPRECATED_HIDDEN: readonly string[] = [
+  "Select.events.onSelectionChange",
+];
 
 /**
  * Exception 2 — `default*` → controlled transition (Decision 4 · R1): the capability writes the
@@ -283,10 +285,12 @@ describe("ADR-280 G1 — the derived registry covers the hand registry", () => {
     // (Table sort and a ColorSwatchPicker's value have no RAC condition — a Table restricts
     // sorting per Column, a swatch picker per item. ADR-281: a page root's · frame's inherited
     // props are not a RAC component's state — nothing restricts writing them.)
-    expect(
-      without.filter((name) => !/^(body|frame)\./.test(name)),
-    ).toEqual([
+    expect(without.filter((name) => !/^(body|frame)\./.test(name))).toEqual([
       "ColorSwatchPicker.setValue",
+      // (8ac17dc12: S2 ActionBarProps has no `isDisabled` — its selected count · clear take no
+      // condition, `concepts/actionBarSelection.ts` `conditions: []`.)
+      "ActionBar.setValue",
+      "ActionBar.clearSelection",
       "Table.sort",
       // (ADR-300: S2 SideNavPanel's collapse has no condition — the panel takes no `isDisabled`.)
       "SideNavPanel.collapse",
@@ -310,7 +314,9 @@ describe("ADR-280 G1 — the derived registry covers the hand registry", () => {
       "MenuItem",
     ]) {
       expect(CAPABILITY_REGISTRY[type]?.events, type).toEqual(["onAction"]);
-      expect(CAPABILITY_REGISTRY[type]?.hiddenEvents, type).toContain("onPress");
+      expect(CAPABILITY_REGISTRY[type]?.hiddenEvents, type).toContain(
+        "onPress",
+      );
     }
     for (const type of ["Tab", "Radio"])
       expect(CAPABILITY_REGISTRY[type]?.events, type).toEqual([]);

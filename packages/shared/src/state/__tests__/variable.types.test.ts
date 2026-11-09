@@ -43,7 +43,8 @@ describe("isVariableDef", () => {
     expect(isVariableDefList({})).toBe(false);
   });
 
-  it("VARIABLE_DEF_TYPES 는 기존 VariableType 6종과 같다 (date 2026-10-29)", () => {
+  it("VARIABLE_DEF_TYPES 는 기존 VariableType 8종과 같다 (date 2026-10-29 · selectionKeys · autoFocus 2026-11-07)", () => {
+    // (54730ef3e: RAC 선택 키 · autoFocus 변수 — `data.types.ts` VariableType 과 함께 추가.)
     expect([...VARIABLE_DEF_TYPES]).toEqual([
       "string",
       "number",
@@ -51,6 +52,8 @@ describe("isVariableDef", () => {
       "date",
       "object",
       "array",
+      "selectionKeys",
+      "autoFocus",
     ]);
   });
 });

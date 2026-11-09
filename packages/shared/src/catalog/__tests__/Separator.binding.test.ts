@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { getPrimitiveBinding, separatorBinding } from "../bindings";
+import { RAC_SLOT_PROP } from "../bindings/accessibilityProps";
 import { toRacProps } from "../outputs/toRacProps";
 
 describe("Separator binding → toRacProps", () => {
@@ -51,7 +52,14 @@ describe("Separator binding → toRacProps", () => {
 
 describe("getPrimitiveBinding — Separator", () => {
   it("returns the Separator binding for type 'Separator'", () => {
-    expect(getPrimitiveBinding("Separator")).toBe(separatorBinding);
+    // (792815efc: a type with a RAC slot contract gets RAC's `slot` prop on a copy of its binding.)
+    expect(getPrimitiveBinding("Separator")).toEqual({
+      ...separatorBinding,
+      props: {
+        ...separatorBinding.props,
+        accepts: { ...separatorBinding.props.accepts, slot: RAC_SLOT_PROP },
+      },
+    });
   });
 
   it("Separator is a rac source primitive (RAC Separator)", () => {

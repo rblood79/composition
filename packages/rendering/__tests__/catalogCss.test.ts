@@ -10,7 +10,7 @@ import { generateCSS } from "../src/renderers/CSSGenerator";
 import { COMPONENT_RULES_TABLE } from "../../shared/src/catalog/generated/componentRulesTable";
 
 // (2026-10-07 ADR-255: TooltipTrigger +1.)
-it("catalog 단독 생성 CSS가 배포 CSS 103개와 byte-identical이다", () => {
+it("catalog 단독 생성 CSS가 배포 CSS 125개와 byte-identical이다", () => {
   let count = 0;
   for (const input of buildVirtualSpecs()) {
     const css = generateCSS(
@@ -31,7 +31,7 @@ it("catalog 단독 생성 CSS가 배포 CSS 103개와 byte-identical이다", () 
       ),
     );
   }
-  expect(count).toBe(103); // ADR-297 Phase 3g: + Row (skipCSSGeneration — 상태 블록만) · ADR-277: − 옛 둘째 표 type 의 생성 sheet (표는 Table 하나) · ADR-259 Phase 3: + FieldLabel · ADR-258 Phase 2: + ColorArea · ColorSlider · ColorWheel · ColorThumb · ADR-256 G5: − DialogTrigger · MenuTrigger · TooltipTrigger (RAC triggers have no element — `display: contents`) · Phase 10: − CardHeader · CardContent · CardFooter + Content · Footer · 5g: + Keyboard · 7a: + ProgressBarFill · 7b: + MeterFill · 7c: + SliderFill · 8e: − DisclosureHeader · 후속 4: + MenuTrigger · 2026-10-09: + Illustration · − FormField · TailSwatch
+  expect(count).toBe(125); // 2026-11-09: + 새 컴포넌트 22 (ActionBar · ActionButton · ActionButtonGroup · LabeledValue · LinkButton · RangeSlider · SegmentedControl · SegmentedControlItem · SelectBox · SelectBoxGroup · Sheet · SheetBackdrop · SheetContent · SideNav · SideNavHeader · SideNavItem · SideNavItemLink · SideNavPanel · SideNavSection · Token · TokenField · TokenInput) · DisclosureGroup → Accordion 개명 · ADR-297 Phase 3g: + Row (skipCSSGeneration — 상태 블록만) · ADR-277: − 옛 둘째 표 type 의 생성 sheet (표는 Table 하나) · ADR-259 Phase 3: + FieldLabel · ADR-258 Phase 2: + ColorArea · ColorSlider · ColorWheel · ColorThumb · ADR-256 G5: − DialogTrigger · MenuTrigger · TooltipTrigger (RAC triggers have no element — `display: contents`) · Phase 10: − CardHeader · CardContent · CardFooter + Content · Footer · 5g: + Keyboard · 7a: + ProgressBarFill · 7b: + MeterFill · 7c: + SliderFill · 8e: − DisclosureHeader · 후속 4: + MenuTrigger · 2026-10-09: + Illustration · − FormField · TailSwatch
 });
 
 it("structure 없는 rule 의 상태 블록 sheet 5개가 배포 CSS 와 byte-identical이다 (ADR-297 Phase 3g)", () => {

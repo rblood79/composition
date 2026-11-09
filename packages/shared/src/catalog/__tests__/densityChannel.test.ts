@@ -122,55 +122,71 @@ describe("density 채널 — Table(Column/Cell)", () => {
 });
 
 /**
- * ToggleButtonGroup density (2026-08-21) — Spectrum ActionGroup 규정:
- * "compact density retains the same font and icon sizes, but has tighter spacing.
- * **The action buttons also become connected** for non-quiet action groups."
+ * ToggleButtonGroup density (2026-08-21 → S2 1.8.2 정렬 `3ca03f661`, 2026-11-06).
  *
- * 즉 연결(segmented)은 orientation 의 성질이 아니라 compact density 의 성질이다. 구 구조는
- * 연결 규칙을 `containerVariants.orientation` 에 매달아 **항상 연결**이었고(= Spectrum 기준
- * compact 고정), 그래서 default 인 regular(분리)를 표현할 수 없었다.
+ * Spectrum ActionGroup 규정: "compact density retains the same font and icon sizes, but has
+ * tighter spacing. **The action buttons also become connected**". 연결은 orientation 이 아니라
+ * compact 의 성질이다 — 그 원칙은 그대로다.
+ *
+ * S2 1.8.2 정렬로 모양이 바뀌었다: 그룹 rule 은 `densities` · `defaultDensity` 를 두지 않고
+ * regular 간격은 `sizes[*].gap` (S2 `ToggleButtonGroup` gap — XS · S 4 · M ~ XL 8), compact 는
+ * `containerVariants.density.compact` 의 `gap: 2px` 만 준다. 연결 모서리는 그룹의 nested 가
+ * 아니라 자식 (ToggleButton · ActionButton) rule 의 `rootSelectors` `&[data-density="compact"]`
+ * 가 소유한다 (S2 ActionButton `isInGroup` · density 분기와 같은 자리, componentRulesTable.ts
+ * `ACTION_GROUP_BUTTON_COMPOSITION`). builder 의 live 계약은 `actionButtonFamily.test.tsx`
+ * 「ToggleButtonGroup S2 layout」 (compact gap 2 · 모서리 [10,10,0,0] / [0,0,10,10]).
  */
 describe("density 채널 — ToggleButtonGroup(segmented ↔ 분리)", () => {
   const rule = () => COMPONENT_RULES_TABLE.ToggleButtonGroup;
+  type Variants = Record<
+    string,
+    Record<string, { styles?: Record<string, string>; nested?: unknown[] }>
+  >;
+  const cv = () =>
+    rule()?.structure?.composition?.containerVariants as Variants | undefined;
 
-  it("기본은 Spectrum default 인 regular — gap 8 로 버튼이 분리된다", () => {
-    expect(rule()?.defaultDensity).toBe("regular");
-    expect(
-      resolveCatalogDensityField("ToggleButtonGroup", undefined, "gap"),
-    ).toBe(8);
+  it("기본(regular) 간격은 size 축의 gap — XS · S 4, M ~ XL 8 로 버튼이 분리된다", () => {
+    expect(rule()?.densities).toBeUndefined();
+    expect(rule()?.defaultDensity).toBeUndefined();
+    const gaps = Object.fromEntries(
+      Object.entries(rule()?.sizes ?? {}).map(([size, s]) => [
+        size,
+        (s as { gap?: number }).gap,
+      ]),
+    );
+    expect(gaps).toEqual({ XS: 4, S: 4, M: 8, L: 8, XL: 8 });
+    // regular 은 생성 CSS 분기가 없다 — size gap 그대로.
+    expect(cv()?.density?.regular).toBeUndefined();
   });
 
-  it("compact 는 gap 0 — 연결 bar 의 간격 성분", () => {
-    expect(
-      resolveCatalogDensityField("ToggleButtonGroup", "compact", "gap"),
-    ).toBe(0);
+  it("compact 는 gap 2px — 연결 bar 의 간격 성분 (S2 1.8.2)", () => {
+    expect(cv()?.density?.compact?.styles).toEqual({ gap: "2px" });
   });
 
-  it("연결 규칙(nested)은 density.compact 에만 있고 orientation 에는 없다", () => {
-    const cv = rule()?.structure?.composition?.containerVariants as
-      Record<string, Record<string, { nested?: unknown[] }>> | undefined;
+  it("연결 규칙은 그룹의 nested 가 아니라 자식 rule 의 compact rootSelectors 에 있다", () => {
     // orientation 은 flex-direction 만 — 연결 규칙을 여기 두면 regular 에서도 붙는다.
-    expect(cv?.orientation?.horizontal?.nested).toBeUndefined();
-    expect(cv?.orientation?.vertical?.nested).toBeUndefined();
-    // compact 는 (middle / first / last) × (horizontal / vertical) × (marker 경유 / 직접 자식).
-    //   marker div 는 빌더 preview 구조이고 publish 는 ToggleButton 이 직접 자식이라 두 형태를
-    //   함께 emit 한다 — 한쪽만 두면 그 축에서 연결이 안 걸린다(2026-08-21 publish 실측).
-    expect(cv?.density?.compact?.nested).toHaveLength(12);
-    // regular 에는 코너 override 가 없어야 버튼이 자기 균등 radius 를 유지한다.
-    expect(cv?.density?.regular?.nested).toBeUndefined();
+    expect(cv()?.orientation?.horizontal?.nested).toBeUndefined();
+    expect(cv()?.orientation?.vertical?.nested).toBeUndefined();
+    expect(cv()?.density?.compact?.nested).toBeUndefined();
+    for (const child of ["ToggleButton", "ActionButton"] as const) {
+      const selectors = Object.keys(
+        COMPONENT_RULES_TABLE[child]?.structure?.composition?.rootSelectors ??
+          {},
+      ).filter((s) => s.startsWith('&[data-density="compact"]'));
+      // 가운데 0 + 처음 · 끝 공통 2 + (horizontal / vertical) × (처음 / 끝) 4.
+      expect(selectors, child).toHaveLength(7);
+    }
   });
 
-  it("compact nested 는 orientation 을 compound selector 로 결합한다", () => {
-    const cv = rule()?.structure?.composition?.containerVariants as
-      | Record<string, Record<string, { nested?: { selector: string }[] }>>
-      | undefined;
-    const selectors = (cv?.density?.compact?.nested ?? []).map(
-      (n) => n.selector,
-    );
-    // containerVariants 는 attr gate 를 하나만 붙이므로, 2축 조합은 `&` compound 가 유일 표현.
-    expect(selectors.every((s) => s.startsWith("&[data-orientation="))).toBe(
-      true,
-    );
+  it("compact 모서리 선택자는 orientation 을 compound selector 로 결합한다", () => {
+    const selectors = Object.keys(
+      COMPONENT_RULES_TABLE.ToggleButton?.structure?.composition
+        ?.rootSelectors ?? {},
+    ).filter((s) => s.startsWith('&[data-density="compact"][data-orientation='));
+    expect(selectors).toHaveLength(4);
+    expect(
+      selectors.every((s) => /:(first|last)-child$/.test(s)),
+    ).toBe(true);
   });
 });
 

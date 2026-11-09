@@ -32,11 +32,13 @@ export const segmentedControlBinding: PrimitiveBinding = {
         section: "content",
         editorHidden: true,
       },
-      selectedKey: { kind: "string", label: "Selected Key", section: "state" },
+      // (Selection sits in Content like Tabs — one prop, one section across components, 사용자 결정
+      //   2026-10-13; `propSectionConsistency.test.ts`.)
+      selectedKey: { kind: "string", label: "Selected Key", section: "content" },
       defaultSelectedKey: {
         kind: "string",
         label: "Default Selected Key",
-        section: "state",
+        section: "content",
       },
       // S2 fixes horizontal; Composition exposes RAC's keyboard/layout axis explicitly.
       orientation: {

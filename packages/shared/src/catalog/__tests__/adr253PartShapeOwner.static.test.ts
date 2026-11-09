@@ -172,9 +172,22 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
           continue;
         if (entry.states !== undefined)
           found.push(`${type} ${entry.childSelector} { states }`);
-        for (const key of Object.keys(entry.bridges ?? {}))
+        const bridges = entry.bridges ?? {};
+        for (const key of Object.keys(bridges)) {
+          // (S2 1.8.2 정렬 `3ca03f661`: SearchField 지우기 버튼 글리프 — `.react-aria-Icon svg` 의
+          //   `font-size` 가 같은 entry 의 width · height 와 같은 값이면 글리프 정사각형의 크기 다리다.
+          //   `Icon.tsx` 는 문자열 font-size 를 받으면 svg 를 `1em` 으로 그린다 — 자리의 크기지 모양이
+          //   아니다. 값이 다르면 (글자 크기를 따로 주면) 그대로 걸린다.)
+          if (
+            key === "font-size" &&
+            /\.react-aria-Icon svg$/.test(entry.childSelector ?? "") &&
+            bridges[key] === bridges.width &&
+            bridges[key] === bridges.height
+          )
+            continue;
           if (!WRAPPED_PLACEMENT.has(key))
             found.push(`${type} ${entry.childSelector} { ${key} }`);
+        }
       }
       // The disabled field fades once, at its root: no variant re-paints the wrapper.
       const variants = composition?.containerVariants as
@@ -376,9 +389,24 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
     expect(found).toEqual([]);
     // (ADR-259 Phase 2: the Input rule also draws a prefix box — focused within, not itself.)
     // (ADR-297 Phase 3c: the quiet shape is the box rule's state tree — `structure.stateStyles`.)
-    for (const [type, focus] of [
-      ["Input", "isFocused"],
-      ["DateInput", "isFocusWithin"],
+    // (S2 1.8.2 정렬 `3ca03f661`: Input 의 quiet 밑줄 · 상태 색은 자기 테두리 트리 `FIELD_INPUT_BORDER`
+    //   — 기본 `{color.neutral-outline}`, focus 는 S2 `field` 의 gray-900 (`{color.neutral-content-hover}`),
+    //   invalid 는 `{color.selection-negative}`. DateInput 은 아직 옛 CSS 변수 값이다.)
+    for (const [type, focus, underline, focused, invalid] of [
+      [
+        "Input",
+        "isFocused",
+        "1px solid var(--neutral-outline)",
+        "{color.neutral-content-hover}",
+        "{color.selection-negative}",
+      ],
+      [
+        "DateInput",
+        "isFocusWithin",
+        "1px solid var(--border)",
+        "var(--accent-content)",
+        "var(--negative)",
+      ],
     ] as const) {
       const trees = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
         type
@@ -387,13 +415,13 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
         evaluateConditionTree(trees?.[property], conditions);
       const quiet = { isQuiet: true };
       expect(at("background", quiet)).toBe("transparent");
-      expect(at("borderBottom", quiet)).toBe("1px solid var(--border)");
+      expect(at("borderBottom", quiet)).toBe(underline);
       expect(at("borderRadius", quiet)).toBe("0");
       expect(at("borderBottomColor", { ...quiet, [focus]: true })).toBe(
-        "var(--accent-content)",
+        focused,
       );
       expect(at("borderBottomColor", { ...quiet, isInvalid: true })).toBe(
-        "var(--negative)",
+        invalid,
       );
     }
   });

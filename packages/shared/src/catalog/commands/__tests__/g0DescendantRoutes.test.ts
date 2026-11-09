@@ -530,9 +530,14 @@ describe.skipIf(BASELINE_ABSENT)("ADR-248 G0 active descendant routes", () => {
           item.children.map(roleName),
         ),
       ).toEqual(
-        old.reader.listItems.map(
-          (item: { childNames: string[] }) => item.childNames,
-        ),
+        // Model difference: the ListBoxItem origin now starts with S2's selection parts — the
+        // selection Checkbox (slot `selection`) and the check Icon (73fc516d2 · 8560fece5, contract
+        // 59) — which the old app's item did not have. The old parts follow them unchanged.
+        old.reader.listItems.map((item: { childNames: string[] }) => [
+          "Selection",
+          "Icon",
+          ...item.childNames,
+        ]),
       );
     });
 

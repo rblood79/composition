@@ -209,7 +209,7 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
     const repeated = await buildCodeCatalogLibrary();
     expect(library.revision).toMatch(/^[a-f0-9]{64}$/);
     expect(repeated.revision).toBe(library.revision);
-    expect(library.contractVersion).toBe(54);
+    expect(library.contractVersion).toBe(63);
     for (const type of CODE_CATALOG_SUPPORTED_TYPES) {
       const registration = componentCatalog.find(
         (entry) => entry.type === type && entry.kind === "primitive",
@@ -306,7 +306,16 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
     expect(library.definitions.size).toBe(
       2 + typeDefinitions.length + REUSABLE_ORIGIN_DEFINITIONS.length,
     );
-    expect(library.templates.size).toBe(REUSABLE_ORIGIN_TEMPLATES.length);
+    // (46a4d7a8c — contract 60: the Menu item shares the ListBox item's selection · check parts, so
+    //  the library adds those two templates under the Menu item — `selectionItemTemplates.ts`.)
+    expect(library.templates.size).toBe(REUSABLE_ORIGIN_TEMPLATES.length + 2);
+    for (const suffix of ["__selection", "__check"])
+      expect(
+        library.templates.has(
+          `lib:template:component-menu-item-default${suffix}`,
+        ),
+        suffix,
+      ).toBe(true);
     expect((await buildCodeCatalogLibrary("dark")).revision).not.toBe(
       library.revision,
     );
@@ -447,13 +456,16 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
           "outline",
         ),
       ),
-      borderColor: sourceValue(
-        paintAt(
+      // (S2 1.8.2 정렬 `3ca03f661`: outline 테두리는 `currentColor` — record 는 그 글자 그대로 싣고,
+      //  최종 글자색으로 바꾸는 것은 칠 단계 `resolveCatalogPaint.ts` 의 `borderValue === "currentColor" ? color`.)
+      borderColor: (() => {
+        const border = paintAt(
           COMPONENT_RULES_TABLE.Button.variants.accent.paint.borderColor,
           "fillStyle",
           "outline",
-        ),
-      ),
+        );
+        return border === "currentColor" ? border : sourceValue(border);
+      })(),
       fontSize: sourceValue(COMPONENT_RULES_TABLE.Button.sizes.L.fontSize),
       paddingX: COMPONENT_RULES_TABLE.Button.sizes.L.paddingX,
     });

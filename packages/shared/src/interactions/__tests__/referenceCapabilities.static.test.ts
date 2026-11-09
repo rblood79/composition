@@ -139,6 +139,7 @@ const CHOICE_EXTENSIONS: Readonly<Record<string, string>> = {
   'TextField.size = "XS"': "rule sizes XS (composition size 단계)",
   'Breadcrumbs.size = "S"': "rule sizes S (S2 는 M · L)",
   'GridList.layout = "waterfall"': "composition layout (RAC GridList 는 stack · grid)",
+  'LinkButton.size = "XS"': "rule sizes XS (composition size 단계 — Button rule 과 같은 단계)",
 };
 
 function tablesByName(dir: string): Map<string, ReferenceRow[]> {
@@ -199,7 +200,12 @@ describe("ADR-287 G1 — derived Do vs the reference API tables", () => {
     expect([...deferred].filter((key) => !missing.includes(key))).toEqual([]);
     // (The count is the ratchet — a new table row without a Do is a RED above, not a new entry.)
     // (ADR-300 Phase 4: +11 — the SideNav family's RAC/S2 rows outside its accepts.)
-    expect(deferred.size).toBe(396);
+    // (2026-11-09: +16 — the S2 components added 8586c64bd · 8ac17dc12 · bbca53c78 (ActionBar · ActionButton ·
+    //   LinkButton · RangeSlider · SelectBoxGroup · TokenInput): DOM form · focus props, a ref, router options,
+    //   contextual help, an Intl format object and a key array — none a Do input; Button's same rows are here.
+    //   −5 — Link download · hrefLang · ping · referrerPolicy (8ac17dc12) and SliderThumb index (ba85388db)
+    //   joined their accepts and have a Do. HEAD held 395 rows under a stale 396.)
+    expect(deferred.size).toBe(406);
   });
 
   it("(b) a derived Do's prop is a row of its type's tables, or a d2Provenance extension", () => {

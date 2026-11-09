@@ -99,6 +99,9 @@ const CHILDREN_FIELD_NAME: Readonly<Record<string, string>> = {
     [
       "Button",
       "ToggleButton",
+      // S2 ActionButton · LinkButton (8586c64bd · 8ac17dc12) take Button's `children` contract.
+      "ActionButton",
+      "LinkButton",
       "Link",
       "Breadcrumb",
       "FileTrigger",

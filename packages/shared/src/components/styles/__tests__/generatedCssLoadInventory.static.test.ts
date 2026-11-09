@@ -27,7 +27,7 @@ const REPO_ROOT = resolve(STYLES_DIR, "../../../../..");
 /** 로드되지 않는 생성 CSS — 범주별 판정 (evidence §11). */
 export const UNLOADED_GENERATED_CSS: Readonly<Record<string, string>> = {
   // B. 수동 CSS 가 같은 `.react-aria-X` 를 담당 (base.css/forms.css 또는 컴포넌트 모듈 import)
-  FieldError: "B 수동 — base.css 등 61 규칙",
+  // (FieldError: 3ca03f661 이 index.css 로 로드 — 미로드 목록에서 뺐다.)
   Skeleton: "B 수동 — Skeleton.css (Skeleton.tsx import)",
   Breadcrumb: "B 수동 — Breadcrumbs.css (Breadcrumbs.tsx import)",
   // C. 컴포넌트가 resolveComponentRule 로 catalog 를 런타임 인라인 소비 (생성 CSS 는 설계상 dead)
@@ -179,17 +179,22 @@ describe("generated CSS 로드 인벤토리 (ADR-923 잔여 2)", () => {
   // 2026-10-30 — ADR-295: 생성기가 내지 않는 옛 파일 삭제 — Image (미로드 E) · Label (skipCSSGeneration, 주석뿐 · index 로드) −2 · index −1 · 미로드 −1.
   // 2026-11-01 — ADR-297 Phase 3g: 상태 블록만 담은 sheet 6 (TagGroup · Tree · Table · GridList · ColorSwatchPicker ·
   //   Row — 수동 sheet 의 selected · focus 를 rule 트리로) +6 · index +6.
-  it("인벤토리 집계 — 생성 109 · index 88 · 모듈 0 · 미로드 21 (ADR-297 상태 sheet 6 · IllustratedMessage 로드 · Illustration · Body CSS load 포함 · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates · ADR-256 Phase 10 Card 부품 3 → Content · Footer · Toast 로드 · ADR-258 Color 4 · ADR-259 FieldLabel 로드)", () => {
+  // 2026-11-09 — 새 컴포넌트 sheet 22 (index 로드 — ActionBar · ActionButton · ActionButtonGroup · LabeledValue ·
+  //   LinkButton · RangeSlider · SegmentedControl · SegmentedControlItem · SelectBox · SelectBoxGroup · Sheet ·
+  //   SheetBackdrop · SheetContent · SideNav · SideNavHeader · SideNavItem · SideNavItemLink · SideNavPanel ·
+  //   SideNavSection · Token · TokenField · TokenInput) +22 · index +22, DisclosureGroup → Accordion 개명
+  //   (`2f39ffc5d`) ±0, FieldError index 로드 (`3ca03f661`) index +1 · 미로드 −1.
+  it("인벤토리 집계 — 생성 131 · index 111 · 모듈 0 · 미로드 20 (새 컴포넌트 sheet 22 · FieldError 로드 · ADR-297 상태 sheet 6 · IllustratedMessage 로드 · Illustration · Body CSS load 포함 · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates · ADR-256 Phase 10 Card 부품 3 → Content · Footer · Toast 로드 · ADR-258 Color 4 · ADR-259 FieldLabel 로드)", () => {
     // (ADR-256 Phase 8e: − DisclosureHeader. 2026-10-12: Toast 로드 — 수동 Toast.css 는 런타임
     //  ToastRegion 안만 담당하고 문서의 Toast 노드는 생성 sheet 가 그린다.)
     // (ADR-259 Phase 3: + FieldLabel — a field's label row, loaded.)
-    expect(generated.length).toBe(109);
-    expect(indexImported.size).toBe(88);
+    expect(generated.length).toBe(131);
+    expect(indexImported.size).toBe(111);
     expect(
       Array.from(moduleImported)
         .filter((n) => !indexImported.has(n))
         .sort(),
     ).toEqual([]); // 2026-09-16: 모듈 채널 0 — DropZone·FileTrigger 도 index.css 로
-    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(21);
+    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(20);
   });
 });

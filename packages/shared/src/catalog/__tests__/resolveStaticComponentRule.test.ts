@@ -18,7 +18,8 @@ describe("ADR-916 P2-CAT ① — resolveStaticComponentRule (조항 4)", () => {
   it("등록된 type 의 theme rule base 를 반환한다", () => {
     const rule = resolveStaticComponentRule("Avatar");
     expect(rule).toBeDefined();
-    expect(rule?.defaultSize).toBe("M");
+    // (792815efc: S2 Avatar 의 기본 크기는 숫자 px 24 — size 이름이 S2 숫자 프리셋으로.)
+    expect(rule?.defaultSize).toBe("24");
   });
 
   it("build-time 테이블 값과 동일하다 (doc override 경로 부재)", () => {
