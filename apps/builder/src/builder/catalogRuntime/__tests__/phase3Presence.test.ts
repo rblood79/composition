@@ -1012,13 +1012,13 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       color: "var(--fg-muted)",
       opacity: 0.6,
     });
-    // (The DatePicker's DateInput is the box: its border 1 + padding 12 come first.)
+    // (The DatePicker's DateInput is the box: its border 2 (S2 `FieldGroup`) + padding 12 come first.)
     expect(picker.texts.map(({ text, x }) => [text, x])).toEqual([
-      ["mm", 13 + 2],
-      ["/", 13 + 24],
-      ["dd", 13 + 36],
-      ["/", 13 + 58],
-      ["yyyy", 13 + 70],
+      ["mm", 14 + 2],
+      ["/", 14 + 24],
+      ["dd", 14 + 36],
+      ["/", 14 + 58],
+      ["yyyy", 14 + 70],
     ]);
     expect(picker.texts.map(({ fill }) => fill === "#11223399")).toEqual([
       true,
@@ -1113,10 +1113,10 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     // (ADR-253: one DateSegment definition — the DateInput rule's — for every date field: no
     // italic, the field font.)
     expect(paint.placeholder.fontStyle).toBeUndefined();
-    // `mm` 20 + 2×2 padding, then `/` (the box's start: S2 `edge-to-text` 40 × 3/8 = 15 — ADR-295 Phase 3c-3).
+    // border 2 (S2 `FieldGroup`), then `mm` 20 + 2×2 padding, then `/` (the box's start: S2 `edge-to-text` 40 × 3/8 = 15 — ADR-295 Phase 3c-3).
     expect(paint.runs.slice(0, 2).map(({ text, x }) => [text, x])).toEqual([
-      ["mm", 15 + 1 + 2],
-      ["/", 15 + 1 + 24],
+      ["mm", 15 + 2 + 2],
+      ["/", 15 + 2 + 24],
     ]);
     const shapes = catalogRuleShapes({
       node: input.derivedProps
