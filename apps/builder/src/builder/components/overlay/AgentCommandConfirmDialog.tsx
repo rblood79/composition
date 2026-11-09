@@ -81,7 +81,7 @@ export function AgentCommandConfirmDialogHost() {
         className="agent-confirm-modal"
         data-kind={proposalOps ? "data-proposal" : "command"}
       >
-        {/* className 이 없으면 생성 Dialog.css (overlay archetype: fixed · pad 30) 가 RAC 기본
+        {/* className 이 없으면 위젯 사본 generated-Dialog.css (overlay archetype: fixed · pad 30) 가 RAC 기본
             `react-aria-Dialog` 에 걸린다 — ConfirmDialog 와 같은 결함 (2026-09-14) */}
         <Dialog
           className="agent-confirm-dialog"

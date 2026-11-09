@@ -53,7 +53,7 @@ export function ConfirmDialog({
       }}
     >
       <Modal className="confirm-dialog-modal">
-        {/* className 이 없으면 RAC 기본 `react-aria-Dialog` 에 생성 Dialog.css (overlay
+        {/* className 이 없으면 RAC 기본 `react-aria-Dialog` 에 위젯 사본 generated-Dialog.css (overlay
             archetype: position fixed · pad 30) 가 걸려 400 상자를 두고 밖에 떠 있었다 (2026-09-14) */}
         <Dialog
           className="confirm-dialog"

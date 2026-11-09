@@ -4,8 +4,8 @@
 @import "./form-controls.css";
 
 @layer builder-system {
-  /* 사용자 문서의 focus 위치는 catalog가 소유한다 (Publish 번들에 함께 로드돼도 격리). */
-  [data-focus-visible]:where(:not([data-catalog-id], [data-catalog-id] *)) {
+  /* 빌더 chrome 의 focus 위치. 사용자 문서 (Preview · Publish) 는 이 시트를 싣지 않는다 (ADR-305). */
+  [data-focus-visible] {
     outline-offset: -2px;
   }
 

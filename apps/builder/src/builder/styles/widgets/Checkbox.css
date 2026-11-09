@@ -4,8 +4,9 @@
 
 @layer components {
   label:not([data-selected], [data-indeterminate]):where(
-      :not([data-catalog-id] *)
-    ):where([data-document="builder"], [data-document="builder"] *)
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
     > .checkbox
     > svg {
     visibility: hidden;
@@ -104,63 +105,38 @@
     color: var(--fg-disabled);
   }
 
-  .react-aria-Checkbox:where(
-      :not([data-catalog-id], [data-catalog-id] *)
-    ):where([data-document="builder"], [data-document="builder"] *) {
-  }
-
-  .react-aria-Checkbox:where(
-      :not([data-catalog-id], [data-catalog-id] *)
-    )[data-pressed]:where(
+  .react-aria-Checkbox[data-pressed]:where(
       [data-document="builder"],
       [data-document="builder"] *
     )
     .checkbox,
   .react-aria-Checkbox:where(
-      :not([data-catalog-id], [data-catalog-id] *)
-    ):where([data-document="builder"], [data-document="builder"] *)
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
     .react-aria-CheckboxButton[data-pressed]
     .checkbox {
     border-color: var(--border-pressed);
   }
 
-  .react-aria-Checkbox:where(
-      :not([data-catalog-id], [data-catalog-id] *)
-    )[data-focus-visible]:where(
+  .react-aria-Checkbox[data-focus-visible]:where(
       [data-document="builder"],
       [data-document="builder"] *
     )
     .checkbox,
   .react-aria-Checkbox:where(
-      :not([data-catalog-id], [data-catalog-id] *)
-    ):where([data-document="builder"], [data-document="builder"] *)
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
     .react-aria-CheckboxButton[data-focus-visible]
     .checkbox {
     outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
   }
 
-  .react-aria-Checkbox:where(
-      :not([data-catalog-id], [data-catalog-id] *)
-    )[data-selected]:where(
-      [data-document="builder"],
-      [data-document="builder"] *
-    ),
-  .react-aria-Checkbox:where(
-      :not([data-catalog-id], [data-catalog-id] *)
-    )[data-indeterminate]:where(
-      [data-document="builder"],
-      [data-document="builder"] *
-    ) {
-  }
-
   :is(
-      .react-aria-Checkbox:where(
-          :not([data-catalog-id], [data-catalog-id] *)
-        )[data-selected],
-      .react-aria-Checkbox:where(
-          :not([data-catalog-id], [data-catalog-id] *)
-        )[data-indeterminate]
+      .react-aria-Checkbox[data-selected],
+      .react-aria-Checkbox[data-indeterminate]
     ):where([data-document="builder"], [data-document="builder"] *)
     .checkbox {
     border-color: var(--selected-color);
@@ -168,24 +144,16 @@
   }
 
   :is(
-      .react-aria-Checkbox:where(
-          :not([data-catalog-id], [data-catalog-id] *)
-        )[data-selected],
-      .react-aria-Checkbox:where(
-          :not([data-catalog-id], [data-catalog-id] *)
-        )[data-indeterminate]
+      .react-aria-Checkbox[data-selected],
+      .react-aria-Checkbox[data-indeterminate]
     )[data-pressed]:where(
       [data-document="builder"],
       [data-document="builder"] *
     )
     .checkbox,
   :is(
-      .react-aria-Checkbox:where(
-          :not([data-catalog-id], [data-catalog-id] *)
-        )[data-selected],
-      .react-aria-Checkbox:where(
-          :not([data-catalog-id], [data-catalog-id] *)
-        )[data-indeterminate]
+      .react-aria-Checkbox[data-selected],
+      .react-aria-Checkbox[data-indeterminate]
     ):where([data-document="builder"], [data-document="builder"] *)
     .react-aria-CheckboxButton[data-pressed]
     .checkbox {
@@ -194,28 +162,14 @@
   }
 
   :is(
-      .react-aria-Checkbox:where(
-          :not([data-catalog-id], [data-catalog-id] *)
-        )[data-selected],
-      .react-aria-Checkbox:where(
-          :not([data-catalog-id], [data-catalog-id] *)
-        )[data-indeterminate]
+      .react-aria-Checkbox[data-selected],
+      .react-aria-Checkbox[data-indeterminate]
     ):where([data-document="builder"], [data-document="builder"] *)
     svg {
     stroke-dashoffset: 44;
   }
 
-  .react-aria-Checkbox:where(
-      :not([data-catalog-id], [data-catalog-id] *)
-    )[data-invalid]:where(
-      [data-document="builder"],
-      [data-document="builder"] *
-    ) {
-  }
-
-  .react-aria-Checkbox:where(
-      :not([data-catalog-id], [data-catalog-id] *)
-    )[data-invalid]:where(
+  .react-aria-Checkbox[data-invalid]:where(
       [data-document="builder"],
       [data-document="builder"] *
     )
@@ -224,16 +178,12 @@
     border-color: var(--negative);
   }
 
-  .react-aria-Checkbox:where(
-      :not([data-catalog-id], [data-catalog-id] *)
-    )[data-invalid][data-pressed]:where(
+  .react-aria-Checkbox[data-invalid][data-pressed]:where(
       [data-document="builder"],
       [data-document="builder"] *
     )
     .checkbox,
-  .react-aria-Checkbox:where(
-      :not([data-catalog-id], [data-catalog-id] *)
-    )[data-invalid]:where(
+  .react-aria-Checkbox[data-invalid]:where(
       [data-document="builder"],
       [data-document="builder"] *
     )
@@ -242,60 +192,32 @@
     border-color: color-mix(in srgb, var(--negative) 75%, black);
   }
 
-  .react-aria-Checkbox:where(
-      :not([data-catalog-id], [data-catalog-id] *)
-    )[data-invalid][data-selected]:where(
-      [data-document="builder"],
-      [data-document="builder"] *
-    ),
-  .react-aria-Checkbox:where(
-      :not([data-catalog-id], [data-catalog-id] *)
-    )[data-invalid][data-indeterminate]:where(
-      [data-document="builder"],
-      [data-document="builder"] *
-    ) {
-  }
-
   :is(
-      .react-aria-Checkbox:where(
-          :not([data-catalog-id], [data-catalog-id] *)
-        )[data-invalid][data-selected],
-      .react-aria-Checkbox:where(
-          :not([data-catalog-id], [data-catalog-id] *)
-        )[data-invalid][data-indeterminate]
+      .react-aria-Checkbox[data-invalid][data-selected],
+      .react-aria-Checkbox[data-invalid][data-indeterminate]
     ):where([data-document="builder"], [data-document="builder"] *)
     .checkbox {
     background: var(--negative);
   }
 
   :is(
-      .react-aria-Checkbox:where(
-          :not([data-catalog-id], [data-catalog-id] *)
-        )[data-invalid][data-selected],
-      .react-aria-Checkbox:where(
-          :not([data-catalog-id], [data-catalog-id] *)
-        )[data-invalid][data-indeterminate]
+      .react-aria-Checkbox[data-invalid][data-selected],
+      .react-aria-Checkbox[data-invalid][data-indeterminate]
     )[data-pressed]:where(
       [data-document="builder"],
       [data-document="builder"] *
     )
     .checkbox,
   :is(
-      .react-aria-Checkbox:where(
-          :not([data-catalog-id], [data-catalog-id] *)
-        )[data-invalid][data-selected],
-      .react-aria-Checkbox:where(
-          :not([data-catalog-id], [data-catalog-id] *)
-        )[data-invalid][data-indeterminate]
+      .react-aria-Checkbox[data-invalid][data-selected],
+      .react-aria-Checkbox[data-invalid][data-indeterminate]
     ):where([data-document="builder"], [data-document="builder"] *)
     .react-aria-CheckboxButton[data-pressed]
     .checkbox {
     background: color-mix(in srgb, var(--negative) 75%, black);
   }
 
-  .react-aria-Checkbox:where(
-      :not([data-catalog-id], [data-catalog-id] *)
-    )[data-disabled]:where(
+  .react-aria-Checkbox[data-disabled]:where(
       [data-document="builder"],
       [data-document="builder"] *
     )

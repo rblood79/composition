@@ -18,18 +18,14 @@
     color: var(--accent-content, var(--accent));
   }
 
-  .react-aria-MenuItem:where(
-      :not([data-catalog-id], [data-catalog-id] *)
-    )[data-selection-mode="multiple"][data-selected]:where(
+  .react-aria-MenuItem[data-selection-mode="multiple"][data-selected]:where(
       [data-document="builder"],
       [data-document="builder"] *
     )::before {
     content: "✓" / "";
   }
 
-  .react-aria-MenuItem:where(
-      :not([data-catalog-id], [data-catalog-id] *)
-    )[data-selection-mode="single"][data-selected]:where(
+  .react-aria-MenuItem[data-selection-mode="single"][data-selected]:where(
       [data-document="builder"],
       [data-document="builder"] *
     )::before {

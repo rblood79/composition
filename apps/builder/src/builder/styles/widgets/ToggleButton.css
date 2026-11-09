@@ -3,18 +3,16 @@
  * 범위 = 첫 compound 의 :where([data-document="builder"], …) (특이도 0). 값 = 분리 직전 빌더 값 (catalog 토큰은 그 고정값으로 풀었다). */
 
 @layer components {
-  .react-aria-ToggleButton:where(:not([data-catalog-id])):where(
-      [data-document="builder"],
-      [data-document="builder"] *
-    ) {
+  .react-aria-ToggleButton:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
     --button-color: var(--bg-muted);
     --button-text: var(--fg);
     --button-border: transparent;
   }
 
-  .react-aria-ToggleButton:where(
-      :not([data-catalog-id])
-    )[data-variant="default"]:where(
+  .react-aria-ToggleButton[data-variant="default"]:where(
       [data-document="builder"],
       [data-document="builder"] *
     ) {
@@ -25,20 +23,12 @@
     --button-border: transparent;
   }
 
-  .react-aria-ToggleButton:where(
-      :not([data-catalog-id])
-    )[data-variant="default"][data-selected]:where(
+  .react-aria-ToggleButton[data-variant="default"][data-selected]:where(
       [data-document="builder"],
       [data-document="builder"] *
     ) {
     --button-color: var(--fg);
     --button-text: var(--bg);
     --button-border: var(--fg);
-  }
-
-  .react-aria-ToggleButton:where(
-    [data-document="builder"],
-    [data-document="builder"] *
-  ) {
   }
 }

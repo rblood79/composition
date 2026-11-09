@@ -122,38 +122,43 @@
     --indicator-hover: color-mix(in srgb, var(--indicator-selected) 85%, black);
   }
 
-  .indicator:where(:not([data-catalog-id], [data-catalog-id] *)):where(
-      [data-selected]
-    ):where([data-document="builder"], [data-document="builder"] *) {
+  .indicator:where([data-selected]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
     background: var(--indicator-selected);
     border-color: var(--indicator-selected);
     color: var(--fg-on-accent);
   }
 
-  .indicator:where(:not([data-catalog-id], [data-catalog-id] *)):where(
-      [data-selected][data-hovered]
-    ):where([data-document="builder"], [data-document="builder"] *) {
+  .indicator:where([data-selected][data-hovered]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
     background: var(--indicator-hover);
     border-color: var(--indicator-hover);
   }
 
-  .indicator:where(:not([data-catalog-id], [data-catalog-id] *)):where(
-      [data-selected][data-pressed]
-    ):where([data-document="builder"], [data-document="builder"] *) {
+  .indicator:where([data-selected][data-pressed]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
     background: color-mix(in srgb, var(--indicator-selected) 75%, black);
     border-color: color-mix(in srgb, var(--indicator-selected) 75%, black);
   }
 
-  .indicator:where(:not([data-catalog-id], [data-catalog-id] *)):where(
-      [data-focus-visible]
-    ):where([data-document="builder"], [data-document="builder"] *) {
+  .indicator:where([data-focus-visible]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
     outline: 2px solid var(--indicator-selected);
     outline-offset: 2px;
   }
 
-  .indicator:where(:not([data-catalog-id], [data-catalog-id] *)):where(
-      [data-disabled]
-    ):where([data-document="builder"], [data-document="builder"] *) {
+  .indicator:where([data-disabled]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
     opacity: 0.38;
     pointer-events: none;
   }

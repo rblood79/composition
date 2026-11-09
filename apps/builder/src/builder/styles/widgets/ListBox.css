@@ -3,12 +3,6 @@
  * 범위 = 첫 compound 의 :where([data-document="builder"], …) (특이도 0). 값 = 분리 직전 빌더 값 (catalog 토큰은 그 고정값으로 풀었다). */
 
 @layer components {
-  .react-aria-ListBox:where(
-    [data-document="builder"],
-    [data-document="builder"] *
-  ) {
-  }
-
   .react-aria-ListBox[data-empty]:not([data-catalog-id]):where(
       [data-document="builder"],
       [data-document="builder"] *
@@ -45,17 +39,15 @@
     forced-color-adjust: none;
   }
 
-  .react-aria-ListBoxItem:where(:not([data-catalog-id])):where(
-      [data-document="builder"],
-      [data-document="builder"] *
-    ) {
+  .react-aria-ListBoxItem:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
     cursor: pointer;
     color: var(--fg);
   }
 
-  .react-aria-ListBoxItem:where(
-      :not([data-catalog-id], [data-catalog-id] *)
-    )[data-focus-visible]:where(
+  .react-aria-ListBoxItem[data-focus-visible]:where(
       [data-document="builder"],
       [data-document="builder"] *
     ) {
@@ -67,18 +59,11 @@
       [data-document="builder"],
       [data-document="builder"] *
     ) {
-  }
-
-  .react-aria-ListBoxItem[data-selected]:where(
-      :not([data-catalog-id], [data-catalog-id] *)
-    ):where([data-document="builder"], [data-document="builder"] *) {
     background: var(--lb-accent-container);
     color: var(--lb-on-accent-container);
   }
 
-  .react-aria-ListBoxItem[data-selected]:where(
-      :not([data-catalog-id], [data-catalog-id] *)
-    )[data-focus-visible]:where(
+  .react-aria-ListBoxItem[data-selected][data-focus-visible]:where(
       [data-document="builder"],
       [data-document="builder"] *
     ) {
@@ -115,16 +100,6 @@
     ) {
     outline: 2px solid var(--accent);
     background: color-mix(in srgb, var(--accent) 12%, transparent);
-  }
-
-  .react-aria-Popover[data-trigger="ComboBox"]:not([data-catalog-id]):where(
-      [data-document="builder"],
-      [data-document="builder"] *
-    ),
-  .react-aria-Popover[data-trigger="Select"]:not([data-catalog-id]):where(
-      [data-document="builder"],
-      [data-document="builder"] *
-    ) {
   }
 
   :is(

@@ -20,10 +20,10 @@
     transform-origin: var(--popover-origin-x) var(--popover-origin-y);
   }
 
-  .react-aria-Popover:where(:not([data-catalog-id])):where(
-      [data-document="builder"],
-      [data-document="builder"] *
-    ) {
+  .react-aria-Popover:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
     outline: none;
     width: auto;
   }

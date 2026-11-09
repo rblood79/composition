@@ -19,13 +19,8 @@ describe("chrome island", () => {
   const read = (rel: string) =>
     readFile(resolve(__dirname, rel), "utf-8") as Promise<string>;
 
-  it("chrome의 focus offset이 사용자 문서로 전파되지 않는다", async () => {
-    const css = await read("../components/styles/index.css");
-    expect(css).not.toMatch(/\[data-focus-visible\]\s*\{/);
-    expect(css).toContain(
-      "[data-focus-visible]:where(:not([data-catalog-id], [data-catalog-id] *))",
-    );
-  });
+  // chrome focus offset 이 사용자 문서로 번지지 않는 것은 문서 경계가 막는다 (ADR-305 —
+  // `chromeWidgetSheets.static.test.ts`: 빌더 chrome 시트는 Preview · Publish 진입이 싣지 않는다).
 
   it("정본 토큰이 builder 스코프에 선언돼 있다", async () => {
     const tokens = await read(

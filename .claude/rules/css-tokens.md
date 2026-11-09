@@ -265,4 +265,4 @@ Skia dark mode 적용 상세: canvas-rendering.md 참조.
 - `specShapesToSkia()` 두 번째 인자 `theme` 에 현재 테마 전달 (하드코딩 `"light"` 금지)
 - 다크 모드 · 테마 전환은 문서의 활성 테마가 정본이다 — `workspace.applyTheme` 이 테마 key 변화를 보고 `install()` (토큰 맵 `installThemeMaps` + 패널 store `applyResolvedTheme` 의 `themeVersion` +1) 뒤 Canvas root 를 다시 만든다. store 를 직접 바꾸는 setter 는 없다 (옛 `setTint` · `setDarkMode` 계열은 2026-10-27 삭제)
 
-- **Why (2026-11-05, Select)**: `/publish`도 Builder 번들을 읽으므로 `builder-system`의 전역 Select 상태 선택자는 catalog를 제외해야 한다. 누출 당시 Compare는 32px/0px border였지만 Preview는 34px/1px였고, Disabled 색상도 덮였다. 의미 토큰의 light/dark 값과 상태 트리를 두 소비자에 함께 연결한다. (2026-11-09 ADR-305 뒤: `/publish` 는 별도 문서라 빌더 번들을 싣지 않는다 — 이 제외는 이제 방어 조건이다.)
+- **Why (2026-11-05, Select)**: `/publish`도 Builder 번들을 읽으므로 `builder-system`의 전역 Select 상태 선택자는 catalog를 제외해야 한다. 누출 당시 Compare는 32px/0px border였지만 Preview는 34px/1px였고, Disabled 색상도 덮였다. 의미 토큰의 light/dark 값과 상태 트리를 두 소비자에 함께 연결한다. (2026-11-10 ADR-305 뒤: `/publish` 는 별도 문서라 빌더 번들을 싣지 않고, 빌더 문서의 `[data-catalog-id]` 요소는 0 이다 — 빌더 chrome 시트 · 위젯 사본의 `:where(:not([data-catalog-id]…))` 제외는 지웠다. 특이도를 싣는 맨 `:not([data-catalog-id])` 28 곳은 cascade 순위가 바뀌므로 남겼다.)

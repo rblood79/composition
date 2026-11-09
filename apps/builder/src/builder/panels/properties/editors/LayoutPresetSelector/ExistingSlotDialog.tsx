@@ -75,7 +75,7 @@ export const ExistingSlotDialog = memo(function ExistingSlotDialog({
       data-context="builder"
     >
       <Modal className="confirm-dialog-modal existing-slot-dialog">
-        {/* className 을 줘야 RAC 기본 `react-aria-Dialog` 가 안 붙는다 — 생성 Dialog.css
+        {/* className 을 줘야 RAC 기본 `react-aria-Dialog` 가 안 붙는다 — 위젯 사본 generated-Dialog.css
             (overlay archetype, position fixed · pad 30) 가 전역이라 400 상자 밖으로 떠 버린다 */}
         <Dialog
           className="confirm-dialog"
