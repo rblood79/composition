@@ -236,4 +236,43 @@ describe("date field box = the TextField's S2 FieldGroup", () => {
       /\.react-aria-Group:where\(\[data-disabled\]\) \{\s*border-color: var\(--fg-disabled\)/,
     );
   });
+
+  // S2 draws the keyboard ring on the `FieldGroup` (the box) only — the field root (`field()`) has none.
+  //   RAC DatePicker · DateRangePicker set `data-focus-visible` on the root with `within: true`, so a root
+  //   ring outlined the whole field (Label included) around the box's own ring.
+  it("focus sheets: no ring on the field root; the box (DateInput · range Group) rings", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { resolve } = await import("node:path");
+    const sheet = (name: string) =>
+      readFileSync(
+        resolve(
+          __dirname,
+          `../../../../../../packages/shared/src/components/styles/generated/${name}.css`,
+        ),
+        "utf8",
+      );
+    for (const name of [
+      "DateField",
+      "TimeField",
+      "DatePicker",
+      "DateRangePicker",
+    ]) {
+      expect(sheet(name), name).not.toMatch(
+        new RegExp(`\\.react-aria-${name}:where\\(\\[data-focus-visible\\]\\)`),
+      );
+    }
+    expect(sheet("DateInput")).toMatch(
+      /:where\(\[data-focus-visible\]\) \{\s*outline: var\(--focus-ring-width\) solid var\(--focus-ring\)/,
+    );
+    // The range box rings (and darkens) when the keyboard is in a date input — not when its calendar
+    //   Button has focus (S2 `shouldTurnOffFocusRing`: the Button rings itself).
+    const range = sheet("DateRangePicker");
+    expect(range).toMatch(
+      /\.react-aria-Group:where\(\[data-focus-visible\]:not\(:has\(\.react-aria-Button\[data-focused\]\)\)\) \{\s*outline: var\(--focus-ring-width\) solid var\(--focus-ring\);\s*outline-offset: var\(--focus-ring-offset\)/,
+    );
+    expect(range).toMatch(
+      /\.react-aria-Group:where\(\[data-focus-within\]:not\(:has\(\.react-aria-Button\[data-focused\]\)\)\) \{\s*border-color: var\(--neutral-content-hover\)/,
+    );
+    expect(range).not.toMatch(/\.react-aria-Group:where\(\[data-focus-within\]\)/);
+  });
 });

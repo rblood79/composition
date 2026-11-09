@@ -201,6 +201,15 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
         (prop) =>
           `generated/Input.css › @layer components › :is(.react-aria-Input,.react-aria-TextArea,.react-aria-FieldBox):is([data-focused],[data-focus-within]) | ${prop}`,
       ),
+      // (2026-11-09 — the date field roots' ring went to the box, as S2: the builder chrome renders no
+      //  DateField · TimeField · DatePicker · DateRangePicker, so these rings were never painted there.)
+      ...["DateField", "TimeField", "DatePicker", "DateRangePicker"].flatMap(
+        (name) =>
+          ["outline", "outline-offset"].map(
+            (prop) =>
+              `generated/${name}.css › @layer components › .react-aria-${name}[data-focus-visible] | ${prop}`,
+          ),
+      ),
       // (2026-11-09 — the date fields' box took the same S2 FieldGroup states: their focus-within
       //  outline was `var(--accent-content)` too, undefined under `builder-system`.)
       ...["outline", "outline-offset"].flatMap((prop) => [
@@ -270,6 +279,8 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
       "generated/Disclosure.css › @layer components › .react-aria-Disclosure[data-size=\"XL\"] .react-aria-Button[slot='trigger']",
       'generated/Disclosure.css › @layer components › .react-aria-Disclosure[data-size="XL"] .react-aria-DisclosurePanel > div',
       "generated/Disclosure.css › @layer components › .react-aria-Disclosure[data-size=\"XL\"] .react-aria-Button[slot='trigger'] .react-aria-Icon svg",
+      // (2026-11-09: the range box's S2 keyboard ring — the builder renders no DateRangePicker.)
+      "generated/DateRangePicker.css › @layer components › .react-aria-DateRangePicker .react-aria-Group[data-focus-visible]:not(:has(.react-aria-Button[data-focused]))",
     ]);
     const addedBlock = (key: string) =>
       key.split(" | ")[0]!.replace(/ @\w+$/, "");

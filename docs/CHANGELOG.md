@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [날짜 필드 focus ring 은 상자에만 — S2 FieldGroup focusRing] - 2026-11-09
+
+### Fixed
+
+- **DatePicker · DateRangePicker 를 키보드로 focus 하면 Label 까지 감싼 바깥 outline 이 상자 ring 과 함께 그려졌다**: field 루트 rule 에 focus ring 이 있었고, RAC DatePicker · DateRangePicker 는 루트에 `data-focus-visible` 을 `within: true` 로 붙인다. S2 는 ring 을 상자 (`FieldGroup`) 에만 둔다 — 네 날짜 필드 루트에서 ring 을 지우고, DateRangePicker 는 상자 (Group) 가 ring 을 그린다.
+  - Why: 날짜 필드 루트만 `FOCUS_RING_STATE` 를 공유했다 (TextField 루트에는 없다).
+  - S2 `shouldTurnOffFocusRing` 대로 달력 버튼에 focus 가 있으면 DateRangePicker 상자의 ring · 진한 테두리를 끄고 버튼만 ring 을 그린다 (DatePicker 는 버튼이 상자 밖이라 이미 같다).
+  - live (Publish, Tab 이동): DatePicker · DateRangePicker 루트 outline 없음 · 상자 2px ring + 테두리 rgb 19, 달력 버튼 focus 때 상자 ring 없음 · 테두리 rgb 218.
+  - 위치: `componentRulesTable.ts` (DateField · TimeField · DatePicker · DateRangePicker)
+
 ## [ComboBox 버튼 위치 · 날짜 필드 비활성 · 테두리 두께 토큰 — S2 FieldGroup 후속] - 2026-11-09
 
 ### Fixed

@@ -68,10 +68,6 @@
   --icon-size: var(--catalog-token-date-picker-icon-size-XL, var(--catalog-token-text-lg));
 }
 
-.react-aria-DatePicker.react-aria-DatePicker:where([data-focus-visible]) {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
 
 /* ── Tier 2: Composite Delegation ── */
 

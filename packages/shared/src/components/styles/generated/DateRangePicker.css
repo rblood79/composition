@@ -68,10 +68,6 @@
   --icon-size: var(--catalog-token-date-range-picker-icon-size-XL, var(--catalog-token-text-lg));
 }
 
-.react-aria-DateRangePicker.react-aria-DateRangePicker:where([data-focus-visible]) {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
 
 /* ── Tier 2: Composite Delegation ── */
 
@@ -159,12 +155,17 @@
   border-color: var(--selection-negative);
 }
 
-.react-aria-DateRangePicker .react-aria-Group:where([data-focus-within]) {
+.react-aria-DateRangePicker .react-aria-Group:where([data-focus-within]:not(:has(.react-aria-Button[data-focused]))) {
   border-color: var(--neutral-content-hover);
 }
 
-.react-aria-DateRangePicker .react-aria-Group:where([data-focus-within][data-invalid]) {
+.react-aria-DateRangePicker .react-aria-Group:where([data-focus-within][data-invalid]:not(:has(.react-aria-Button[data-focused]))) {
   border-color: var(--selection-negative-hover);
+}
+
+.react-aria-DateRangePicker .react-aria-Group:where([data-focus-visible]:not(:has(.react-aria-Button[data-focused]))) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
 }
 
 .react-aria-DateRangePicker .react-aria-Group:where([data-disabled]) {

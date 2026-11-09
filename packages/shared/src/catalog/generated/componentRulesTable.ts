@@ -4421,8 +4421,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "flex",
       },
       stateStyles: {
-        ...FOCUS_RING_STATE,
-        // (2026-11-09: no disabled dim — S2 fields paint disabled colors (the box part · Label), as TextField.)
+        // (2026-11-09: no disabled dim — S2 fields paint disabled colors (the box part · Label), as TextField.
+        //   No root ring either — S2 rings the box (`FieldGroup`), and RAC DatePicker · DateRangePicker set the
+        //   root's `data-focus-visible` with `within: true`, so a root ring outlined the whole field.)
       },
       composition: {
         layout: "flex-column",
@@ -4764,8 +4765,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "flex",
       },
       stateStyles: {
-        ...FOCUS_RING_STATE,
-        // (2026-11-09: no disabled dim — S2 fields paint disabled colors (the box part · Label), as TextField.)
+        // (2026-11-09: no disabled dim — S2 fields paint disabled colors (the box part · Label), as TextField.
+        //   No root ring either — S2 rings the box (`FieldGroup`), and RAC DatePicker · DateRangePicker set the
+        //   root's `data-focus-visible` with `within: true`, so a root ring outlined the whole field.)
       },
       composition: {
         layout: "flex-column",
@@ -5013,8 +5015,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "flex",
       },
       stateStyles: {
-        ...FOCUS_RING_STATE,
-        // (2026-11-09: no disabled dim — S2 fields paint disabled colors (the box part · Label), as TextField.)
+        // (2026-11-09: no disabled dim — S2 fields paint disabled colors (the box part · Label), as TextField.
+        //   No root ring either — S2 rings the box (`FieldGroup`), and RAC DatePicker · DateRangePicker set the
+        //   root's `data-focus-visible` with `within: true`, so a root ring outlined the whole field.)
       },
       composition: {
         layout: "flex-column",
@@ -5214,11 +5217,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "[data-invalid]": {
                 "border-color": "var(--selection-negative)",
               },
-              "[data-focus-within]": {
+              // (S2 `FieldGroup` `shouldTurnOffFocusRing`: while the calendar Button has focus the box is
+              //   neither focus-within (dark border) nor focus-visible (ring) — the Button rings itself.)
+              "[data-focus-within]:not(:has(.react-aria-Button[data-focused]))": {
                 "border-color": "var(--neutral-content-hover)",
               },
-              "[data-focus-within][data-invalid]": {
+              "[data-focus-within][data-invalid]:not(:has(.react-aria-Button[data-focused]))": {
                 "border-color": "var(--selection-negative-hover)",
+              },
+              // (S2 `FieldGroup` `focusRing()`: the keyboard ring is the box's.)
+              "[data-focus-visible]:not(:has(.react-aria-Button[data-focused]))": {
+                outline: "var(--focus-ring-width) solid var(--focus-ring)",
+                "outline-offset": "var(--focus-ring-offset)",
               },
               // (S2 `FieldGroup` disabled: the border in the disabled color — no dim, no fill change.)
               "[data-disabled]": {
@@ -15099,8 +15109,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "flex",
       },
       stateStyles: {
-        ...FOCUS_RING_STATE,
-        // (2026-11-09: no disabled dim — S2 fields paint disabled colors (the box part · Label), as TextField.)
+        // (2026-11-09: no disabled dim — S2 fields paint disabled colors (the box part · Label), as TextField.
+        //   No root ring either — S2 rings the box (`FieldGroup`), and RAC DatePicker · DateRangePicker set the
+        //   root's `data-focus-visible` with `within: true`, so a root ring outlined the whole field.)
       },
       composition: {
         layout: "flex-column",
