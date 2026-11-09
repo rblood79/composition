@@ -1829,6 +1829,51 @@ describe("ADR-295 후속 — S2 와 다르게 남은 고정 치수 (S2 1.8.1 소
     expect(popover["min-height"]).toBe("var(--lb-control-h)");
   });
 
+  // 2026-11-09 사용자 「select · combobox 팝오버 목록 padding 이 각각 다르다」: Select 는 picker
+  //   externalStyles 의 목록 여백 (8), ComboBox 는 ListBox 의 inPopover 가지 (4) 를 읽었다.
+  it('picker 목록 여백 = S2 `padding: 8` (Popover `padding="none"`) — Select · ComboBox 가 ListBox 의 한 값', () => {
+    for (const file of ["Picker.tsx", "ComboBox.tsx"]) {
+      const s2 = readFileSync(
+        resolve(
+          __dirname,
+          "../../../../node_modules/@react-spectrum/s2/src",
+          file,
+        ),
+        "utf8",
+      );
+      expect(s2, file).toMatch(/padding="none"/);
+      expect(s2, file).toMatch(/layoutOptions=\{\{[^}]*padding: 8,/);
+    }
+    const inPopover = (
+      COMPONENT_RULES_TABLE.ListBox!.structure as unknown as {
+        stateStyles: Record<string, { inPopover: unknown }>;
+      }
+    ).stateStyles.padding!.inPopover;
+    expect(inPopover).toBe("var(--spacing-sm)");
+    expect(spacing.sm).toBe(8);
+    // picker 는 목록 여백을 다시 적지 않는다 (한 곳 — ListBox rule).
+    for (const picker of ["Select", "ComboBox"]) {
+      const blocks = (
+        rules[picker]!.structure!.composition as unknown as {
+          externalStyles: Array<{
+            nested?: Array<{
+              selector: string;
+              styles: Record<string, string>;
+            }>;
+          }>;
+        }
+      ).externalStyles;
+      for (const block of blocks)
+        for (const nested of block.nested ?? [])
+          expect(
+            Object.keys(nested.styles).filter((key) =>
+              key.startsWith("padding"),
+            ),
+            `${picker} ${nested.selector}`,
+          ).toEqual([]);
+    }
+  });
+
   it("ColorSwatch 기본 모서리 = S2 `rounding` 기본 default (sm) · picker 의 크기 = 견본 크기 · picker 견본 = none", () => {
     const read = (file: string) =>
       readFileSync(

@@ -152,7 +152,6 @@
 }
 
 .react-aria-Popover[data-trigger="Select"] .react-aria-ListBox {
-  padding: var(--spacing-sm);
   border: none;
   background: transparent;
   max-height: none;

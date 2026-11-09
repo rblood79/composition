@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Select · ComboBox 팝오버 목록 여백 통일 — S2 8px] - 2026-11-09
+
+### Fixed
+
+- **사용자 Select · ComboBox 팝오버 목록 여백이 둘 다 8px 이다** (사용자 지적): 전에는 Select 8px · ComboBox 4px 로 달랐다.
+  - 기준은 S2 1.8.2 설치본이다. Picker · ComboBox 둘 다 Popover `padding="none"` 이고 목록 `padding: 8` 이다.
+  - Why: Select 는 picker externalStyles 에 목록 여백 8 을 따로 적었고, ComboBox 는 ListBox 의 `inPopover` 가지 (4) 를 읽었다. 이제 ListBox rule 의 `inPopover` 한 값 (`var(--spacing-sm)`) 을 두 picker 가 같이 읽는다.
+  - 단독 ListBox · 단독 Menu 의 4px 은 그대로다. 2026-10-13 RAC 레퍼런스 테마 결정이고, S2 에는 스타일 있는 단독 ListBox 가 없다.
+  - 게이트: `d3S2Alignment.static.test.ts` 「picker 목록 여백」 — S2 소스 · 8px · picker 가 목록 여백을 다시 적지 않는지 확인. 수정 전 RED.
+  - Live: Publish 에서 Select · ComboBox 목록을 열어 봤다. 둘 다 Popover 0 · 목록 8px · 첫 항목 위 8px.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (ListBox · Select) · 생성 `ListBox.css` · `Select.css`
+
 ## [Data 표 선택 checkbox 가 check 표시만 그리던 것 — 빌더 위젯 사본 보충] - 2026-11-09
 
 ### Fixed

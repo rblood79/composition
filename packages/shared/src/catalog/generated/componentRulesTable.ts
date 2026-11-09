@@ -8309,12 +8309,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   `rootSelectors["&:is(.react-aria-Popover *)"]`): no box of its own; an empty one keeps a row.
         display: { inPopover: "block" },
         border: { inPopover: "none" },
-        padding: {
-          inPopover: {
-            default: "var(--spacing-xs)",
-            isEmpty: "var(--spacing-sm)",
-          },
-        },
+        // S2 Picker · ComboBox: Popover `padding="none"` + 목록 `padding: 8` — 두 picker 의 한 값.
+        padding: { inPopover: "var(--spacing-sm)" },
         background: { inPopover: "transparent" },
         borderRadius: { inPopover: "inherit" },
         minHeight: { inPopover: { isEmpty: "var(--spacing-2xl)" } },
@@ -11961,7 +11957,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               {
                 selector: ".react-aria-ListBox",
                 styles: {
-                  padding: "var(--spacing-sm)",
                   border: "none",
                   background: "transparent",
                   "max-height": "none",
