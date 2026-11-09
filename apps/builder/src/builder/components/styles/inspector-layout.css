@@ -719,8 +719,10 @@
         grid-area: font-family;
       }
 
+      /* 색 swatch 는 legend 가 없다 — 옆 Font Family 상자 줄 (legend 아래) 에 맞춘다 */
       .color {
         grid-area: color;
+        align-self: end;
       }
 
       .font-size {

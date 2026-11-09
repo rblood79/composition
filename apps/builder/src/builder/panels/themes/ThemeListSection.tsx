@@ -25,8 +25,14 @@ import { DisabledReason } from "../../components/ui/DisabledReason";
 function presetMeta(themes: ThemesCollection, id: string): string {
   const p = themes.items[id]?.preset;
   if (!p) return "";
-  const overrides = Object.keys(themes.items[id]?.tokens ?? {}).length;
-  return `${p.tint} · ${p.radiusScale}${overrides > 0 ? ` · +${overrides}` : ""}`;
+  const tokens = themes.items[id]?.tokens ?? {};
+  // 사용자 accent (`color.accent` hex) 는 tint 자리에 — 재정의 개수에서는 뺀다 (2026-11-10)
+  const custom = tokens["color.accent"]?.value;
+  const accent = typeof custom === "string" ? custom : p.tint;
+  const overrides = Object.keys(tokens).filter(
+    (key) => key !== "color.accent",
+  ).length;
+  return `${accent} · ${p.radiusScale}${overrides > 0 ? ` · +${overrides}` : ""}`;
 }
 
 interface ThemeRowProps {

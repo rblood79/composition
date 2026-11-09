@@ -38,6 +38,9 @@ import {
 import type { ThemesHost } from "../themesHostContext";
 
 /** The panel's preset patch (old `radiusScale`) as the catalog preset's (`radius`). */
+/** The custom accent color — a hex that replaces the tint preset (ADR-302 `resolveThemeSnapshot`). */
+const ACCENT_TOKEN_KEY = "color.accent";
+
 function presetPatch(patch: Partial<StoreThemePreset>): Partial<ThemePreset> {
   return {
     ...(patch.tint ? { tint: patch.tint as ThemePreset["tint"] } : {}),
@@ -251,6 +254,38 @@ export function createCatalogThemesHost(
       return run(
         updateTheme({ id: active.id as EntryId<"theme">, preset: next }),
       );
+    },
+    setActiveThemeAccent(accent) {
+      const themes = view();
+      const active = themes.items[themes.active];
+      if (!active) return false;
+      if ("hex" in accent)
+        return writeTokens(
+          themes.active,
+          [
+            [
+              ACCENT_TOKEN_KEY,
+              { type: "color", value: accent.hex, source: "user-defined" },
+            ],
+          ],
+          "Edit accent",
+        );
+      if (active.tokens[ACCENT_TOKEN_KEY] === undefined)
+        return host.setActiveThemePreset({ tint: accent.tint });
+      // a custom color → a preset: the tint and dropping the color are one step
+      const id = active.id as EntryId<"theme">;
+      const tint = presetPatch({ tint: accent.tint });
+      return runAll("Edit accent", [
+        ...(tint.tint !== presetPatch(active.preset).tint
+          ? [updateTheme({ id, preset: tint })]
+          : []),
+        setThemeToken({
+          themeId: id,
+          name: ACCENT_TOKEN_KEY,
+          value: null,
+          newId: workspace.newId,
+        }),
+      ]);
     },
     setThemeToken(id, key, entry) {
       return writeTokens(id, [[key, entry]], "Edit token");

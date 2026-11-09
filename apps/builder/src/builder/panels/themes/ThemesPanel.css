@@ -49,6 +49,32 @@
   box-shadow: 0 0 0 2px var(--bg-raised);
 }
 
+/* 사용자 accent 칸은 행 끝 액션 칸 — 여러 줄 견본 격자의 첫 줄 (legend 한 줄 아래) 에 맞춘다.
+   `1lh` = legend 와 같은 글자 크기 · 상속 행간의 한 줄 (토큰 계산식은 legend 의 실제 행간과 2px 달랐다) */
+.theme-accent-row > .fieldset-actions {
+  align-self: start;
+  font-size: var(--text-xs);
+  margin-block-start: 1lh;
+}
+
+/* 사용자 accent 「+」 — 견본 (20) 자리의 점선 상자 */
+.tint-swatch-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: var(--text-xl);
+  height: var(--text-xl);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--fg-muted);
+}
+
+.tint-swatch--custom:hover .tint-swatch-add {
+  color: var(--fg);
+  border-color: var(--border-hover);
+}
+
 .tint-swatch-check {
   position: absolute;
   top: 50%;

@@ -8,6 +8,8 @@
 import { memo, useCallback } from "react";
 import { SwatchBook, Check, Sun, Moon } from "lucide-react";
 import { Button } from "react-aria-components/Button";
+import { DialogTrigger } from "react-aria-components/Dialog";
+import { Popover } from "@composition/shared/components/Popover";
 import { ToggleButton as RAToggleButton } from "react-aria-components/ToggleButton";
 import { parseColor } from "react-aria-components/ColorPicker";
 import { ColorSwatch } from "@composition/shared/components/ColorSwatch";
@@ -30,6 +32,10 @@ import { ThemeTokensSection } from "./ThemeTokensSection";
 import { useI18n } from "../../../i18n";
 import { useThemesHost } from "./themesHost";
 import { FontFamilyPicker } from "../fonts/FontFamilyPicker";
+import { ColorPickerPanel } from "../styles/components/ColorPickerPanel";
+import { panelFillColorHex } from "../../catalogRuntime/panelTokens";
+import { ACTION_ICONS } from "../../config/actionIcons";
+import { useThemeConfigDarkMode } from "../../../stores/themeConfigStore";
 import "./ThemesPanel.css";
 
 // ============================================================================
@@ -107,6 +113,79 @@ const TintSwatch = memo(
     prev.selected === next.selected &&
     prev.onSelect === next.onSelect,
 );
+
+// ============================================================================
+// CustomAccentSwatch — 프리셋 밖 accent 색 (ADR-302 `color.accent` hex — tint 대체)
+// ============================================================================
+
+const AddIcon = ACTION_ICONS.add;
+
+/**
+ * 프리셋 10 뒤의 한 칸 — 사용자 색이 없으면 「+」, 있으면 그 색 견본 (선택 ✓). 누르면 색 고르기 (Fill 과
+ * 같은 `ColorPickerPanel`) 가 열리고 손을 놓을 때 한 번 저장한다. 프리셋을 고르면 사용자 색은 지워진다.
+ * (2026-11-10 사용자 요청 — 모델은 이미 hex 를 받았지만 패널에 넣는 자리가 없었다.)
+ */
+function CustomAccentSwatch({
+  hex,
+  fallbackHex,
+  onCommit,
+}: {
+  /** 지금 사용자 accent (`#RRGGBB`) — 없으면 「+」 */
+  hex: string | undefined;
+  /** 고르기를 처음 열 때의 색 (지금 tint 견본) */
+  fallbackHex: string;
+  onCommit: (hex: string) => void;
+}) {
+  const mode = useThemeConfigDarkMode() === "dark" ? "dark" : "light";
+  const commit = useCallback(
+    (color: string) => {
+      // 테마 색 토큰을 고르면 그 색의 지금 값 · alpha 는 accent 에 쓰지 않는다
+      const resolved = panelFillColorHex(color, mode);
+      if (/^#[0-9a-f]{6}/i.test(resolved))
+        onCommit(resolved.slice(0, 7).toUpperCase());
+    },
+    [mode, onCommit],
+  );
+  const label = hex ? `Custom accent ${hex}` : "Add custom accent color";
+  return (
+    <DialogTrigger>
+      <Button
+        className="react-aria-Group color-swatch-button tint-swatch tint-swatch--custom"
+        aria-label={label}
+        data-selected={hex ? true : undefined}
+      >
+        {hex ? (
+          <>
+            <ColorSwatch color={parseColor(hex)} />
+            <Check
+              size={14}
+              strokeWidth={3}
+              color="#fff"
+              className="tint-swatch-check"
+            />
+          </>
+        ) : (
+          <span className="tint-swatch-add" aria-hidden="true">
+            <AddIcon size={iconProps.size} strokeWidth={iconProps.strokeWidth} />
+          </span>
+        )}
+      </Button>
+      <Popover
+        placement="bottom start"
+        className="property-color-popover"
+        hideArrow
+      >
+        <ColorPickerPanel
+          key={hex ?? fallbackHex}
+          value={`${hex ?? fallbackHex}FF`}
+          resetKey={hex ?? fallbackHex}
+          onChange={() => {}}
+          onChangeEnd={commit}
+        />
+      </Popover>
+    </DialogTrigger>
+  );
+}
 
 // ============================================================================
 // NeutralGrid — 5색 Neutral 프리셋 스와치
@@ -221,7 +300,20 @@ function ThemesContent() {
 
   const handleTintSelect = useCallback(
     (tint: TintPreset) => {
-      host.setActiveThemePreset({ tint });
+      host.setActiveThemeAccent({ tint });
+    },
+    [host],
+  );
+  // ADR-302 — 활성 테마의 `color.accent` hex 가 있으면 tint 대신 그 색이 accent 다
+  const themes = host.useThemes();
+  const customAccentEntry = themes?.items[themes.active]?.tokens["color.accent"];
+  const customAccent =
+    typeof customAccentEntry?.value === "string"
+      ? customAccentEntry.value
+      : undefined;
+  const handleCustomAccent = useCallback(
+    (hex: string) => {
+      host.setActiveThemeAccent({ hex });
     },
     [host],
   );
@@ -289,19 +381,30 @@ function ThemesContent() {
         <ThemeListSection />
 
         <PropertySection title="Colors" id="theme-colors">
-          <fieldset className="properties-aria">
-            <legend className="fieldset-legend">Accent</legend>
-            <div className="tint-grid">
-              {TINT_ORDER.map((tint) => (
-                <TintSwatch
-                  key={tint}
-                  tint={tint}
-                  selected={currentTint === tint}
-                  onSelect={handleTintSelect}
-                />
-              ))}
+          {/* 프리셋 10 은 1·2열, 사용자 색은 행 끝 액션 칸 (28) — Font Family 옆 색 칸과 같은 자리
+              (2026-11-10 사용자 지적: 처음엔 격자 11번째 칸이었다) */}
+          <div className="fieldset-row theme-accent-row" data-wide="true">
+            <fieldset className="properties-aria">
+              <legend className="fieldset-legend">Accent</legend>
+              <div className="tint-grid">
+                {TINT_ORDER.map((tint) => (
+                  <TintSwatch
+                    key={tint}
+                    tint={tint}
+                    selected={!customAccent && currentTint === tint}
+                    onSelect={handleTintSelect}
+                  />
+                ))}
+              </div>
+            </fieldset>
+            <div className="fieldset-actions">
+              <CustomAccentSwatch
+                hex={customAccent}
+                fallbackHex={TINT_HEX_MAP[currentTint] ?? "#3B63E6"}
+                onCommit={handleCustomAccent}
+              />
             </div>
-          </fieldset>
+          </div>
 
           <fieldset className="properties-aria">
             <legend className="fieldset-legend">Tone</legend>

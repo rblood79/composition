@@ -11,6 +11,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [빌더 툴팁 · 색 팝오버의 화살표 제거] - 2026-11-10
+
+### Changed
+
+- **빌더 chrome 오버레이에 화살표 (RAC `OverlayArrow`) 를 그리지 않는다** (사용자 지시 「필수가 아니니 제거」): 아이콘 버튼 · 레일 툴팁 (`ActionTooltip`) 과 색 팝오버 (PropertyColor · Theme 사용자 accent — Fill · Shadow 는 이미 `hideArrow`). 툴팁 CSS 의 화살표 회전 규칙도 지웠다.
+  - 사용자 컴포넌트 (catalog Tooltip · Popover 의 화살표, ADR-256) 는 그대로다.
+  - 게이트 `chromeOverlayArrow.static.test.ts`: 빌더 JSX 의 `OverlayArrow` 0 · 공용 `Popover` 를 쓰는 빌더 자리마다 `hideArrow`. 원복하면 RED.
+  - Live (Playwright 5174): 레일 툴팁 「Navigator ⌥1」 · Theme 사용자 색 팝오버 — `.react-aria-OverlayArrow` 0, 콘솔 오류 0.
+  - 위치: `apps/builder/src/builder/components/ui/ActionTooltip.tsx` · `.css` · `components/property/PropertyColor.components.tsx` · `panels/themes/ThemesPanel.tsx`
+
+## [Theme › Colors › Accent 사용자 색 추가] - 2026-11-10
+
+### Added
+
+- **Theme 패널 Accent 에 사용자 색 칸 (「+」)** (사용자 요청): Accent 행 끝 액션 칸 (Font Family 옆 색 칸과 같은 자리 — 프리셋 10 은 1·2열, 첫 줄 견본과 같은 높이) 에 「+」 가 있고, 누르면 Fill 과 같은 색 고르기가 열린다. 고른 색은 활성 테마의 `color.accent` (hex) 로 저장돼 tint 를 대신한다 (ADR-302 — 사다리는 그 색의 c · h 로 생성). 저장된 뒤에는 그 칸이 색 견본 (선택 ✓) 이 되고, 다시 누르면 바꿀 수 있다. 프리셋을 고르면 사용자 색은 지워진다 (tint 변경과 함께 한 단계 — ⌘Z 로 함께 되돌림).
+  - host 쓰기 `setActiveThemeAccent({ tint } | { hex })` 하나. 테마 목록 줄 요약은 사용자 색이면 tint 대신 hex 를 보이고 재정의 개수에서 뺀다.
+  - 색 고르기의 HEX · 숫자 칸 (`ColorInputFields` · `ScrubInput`) 과 Document 팔레트가 Design 패널 밖에서도 열린다 (요소 선택 없음 = 요소 전환 가드 없음 · Document 팔레트 비어 있음). 전에는 Styles host 가 없으면 예외로 화면 전체가 내려갔다.
+  - 테스트 `phase4eTheme.test.tsx` (사용자 색 저장 · 같은 색 단계 0 · 프리셋 = 한 단계로 삭제 · 되돌리기) — 원복 RED.
+  - Live (Playwright 5174, 새 프로젝트): 「+」 → HEX `FF5A1F` Enter → 견본 「Custom accent #FF5A1F」 선택 · 테마 `color.accent` 저장 · Green → 사용자 색 삭제 · tint green · ⌘Z → `#FF5A1F` · blue 복원. 콘솔 오류 0.
+  - 위치: `apps/builder/src/builder/panels/themes/ThemesPanel.tsx` · `.css` · `ThemeListSection.tsx` · `catalog/catalogThemesHost.ts` · `themesHostContext.ts` · `panels/styles/stylesHost.ts` · `components/ColorInputFields.tsx` · `ScrubInput.tsx` · `hooks/useDocumentColors.ts`
+
+## [Text 탭 Font Family — 다른 Select 칸과 같은 legend · ▾ 상자] - 2026-11-10
+
+### Fixed
+
+- **Design › Text › Typography 의 Font Family 칸에 legend 가 생겼고 ▾ 가 다른 Select 와 같은 20 상자다** (사용자 지적): legend 가 없어 이 칸만 이름이 없었고, ▾ 는 맨 아이콘 16 이었다.
+  - Why: 글꼴 칸은 Select 가 아니라 팝오버 trigger (`FontFamilyPicker`) 라 ▾ 상자 규칙 (`.react-aria-Select` 안만) 이 닿지 않았다. legend 는 panel-ui 03 (2026-09-14) 의 「글꼴 이름이 곧 라벨」 로 뺐던 것이다.
+  - 같은 trigger 를 쓰는 아이콘 고르기 (suffix 모드) · 슬롯 넣기 칸의 ▾ 도 같은 상자다. Theme 패널 Font 칸도 20 상자.
+  - 옆 색 swatch (legend 없음) 는 Font Family 상자 줄에 맞췄다.
+  - 「Theme」 칩 (사용자 지시): 바탕은 accent · 글자 on-accent, 높이 20 (`line-height: var(--text-xl)`), 시작 여백은 기본값 (0 — 종전 `--spacing` 4). Live: 칩 20 × 39 · 버튼 시작에서 0.
+  - 테스트 `adr298Phase5Panel.test.tsx` ③ 에 legend 단언 — 원복하면 RED.
+  - Live (Playwright 5174): Text 탭 Font Family legend · ▾ 20 × 20 (흰 바탕 · 그림자 = Font Weight 와 같은 값) · 상자 28, Theme › Font ▾ 20 × 20.
+  - 위치: `panels/styles/sections/TypographySection.tsx` · `panels/fonts/FontFamilyPicker.tsx` · `components/styles/form-controls.css` · `components/styles/inspector-layout.css`
+
 ## [ADR-305 Implemented — 빌더 chrome 과 사용자 컴포넌트 CSS 분리] - 2026-11-10
 
 ### Changed

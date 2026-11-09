@@ -76,6 +76,10 @@ describe("ADR-298 Phase 5 — mock rows", () => {
       { id: "t", type: "Text", props: { children: "Hello" } },
     ]);
     const trigger = view.getAllByRole("button", { name: "Font Family" })[0]!;
+    // legend 는 다른 Select 칸과 같다 (2026-11-10 사용자 지적 — 이 칸만 legend 가 없었다)
+    expect(trigger.closest("fieldset")?.querySelector("legend")?.textContent).toBe(
+      "Font Family",
+    );
     expect(trigger.querySelector(".font-picker-theme-chip")?.textContent).toBe("Theme");
     expect(trigger.querySelector(".font-picker-value")?.textContent).not.toBe("");
     cleanup();

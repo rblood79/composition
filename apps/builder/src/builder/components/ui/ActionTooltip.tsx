@@ -12,7 +12,6 @@
  */
 
 import { Tooltip, TooltipTrigger } from "react-aria-components/Tooltip";
-import { OverlayArrow } from "react-aria-components/Popover";
 import type { ReactElement, ReactNode } from "react";
 import { type ShortcutId } from "../../config/keyboardShortcuts";
 import { useI18n } from "@/i18n";
@@ -74,11 +73,6 @@ export function ActionTooltipTrigger({
     <TooltipTrigger delay={delay}>
       {children}
       <Tooltip placement={tooltipPlacement} className="action-tooltip">
-        <OverlayArrow>
-          <svg width={8} height={8} viewBox="0 0 8 8">
-            <path d="M0 0 L4 4 L8 0" />
-          </svg>
-        </OverlayArrow>
         <ActionTooltipLabel tooltip={tooltip} shortcutId={shortcutId} />
         {shortcutDisplay && (
           <kbd className="action-tooltip-kbd">{shortcutDisplay}</kbd>

@@ -165,8 +165,12 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
   const ManageIcon = faceCount === 0 ? AddIcon : Settings2;
 
   return (
-    // 글꼴 이름이 곧 라벨 — legend·아이콘 없이 28 상자 (panel-ui 03, 2026-09-14). 접근 이름은 유지.
-    <fieldset className="properties-aria font-family" aria-label="Font Family">
+    // legend 는 다른 Select 칸과 같다 (Design Text 「Font Family」 · Theme 「Font」 — 2026-11-10 사용자 지적:
+    //   panel-ui 03 의 「이름이 곧 라벨」 로 legend 가 빠져 이 칸만 달랐다). legend 가 없으면 접근 이름만.
+    <fieldset
+      className="properties-aria font-family"
+      aria-label={label ? undefined : "Font Family"}
+    >
       {label && <legend className="fieldset-legend">{localize(label)}</legend>}
       <div className="react-aria-control react-aria-Group" ref={anchorRef}>
         <SearchablePicker

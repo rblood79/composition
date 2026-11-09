@@ -5,8 +5,8 @@
  * 만든다. 소스는 Styles host 의 문서 (ADR-248 4e-7 — catalog workspace). 색 키는 backgroundColor · color · borderColor
  * + color fill. 정규화는 hex8, 빈도 순, 상한 12 (6열 두 행).
  */
-import { useMemo, useSyncExternalStore } from "react";
-import { useStylesHost } from "../stylesHost";
+import { useContext, useMemo, useSyncExternalStore } from "react";
+import { StylesHostContext } from "../stylesHost";
 import { FillType, type FillItem } from "../../../../types/builder/fill.types";
 import { normalizeToHex8 } from "../utils/colorUtils";
 
@@ -60,9 +60,17 @@ export function collectDocumentColors(
     .map(([hex]) => hex);
 }
 
+/** No Styles host (Theme › custom accent, 2026-11-10) — no document palette. */
+const NO_DOCUMENT_COLORS = {
+  subscribe: () => () => {},
+  revision: () => 0,
+  read: () => [],
+};
+
 export function useDocumentColors(): string[] {
   // The host's own document gives the sources (the catalog Styles panel).
-  const source = useStylesHost().documentColors;
+  const source =
+    useContext(StylesHostContext)?.documentColors ?? NO_DOCUMENT_COLORS;
   const revision = useSyncExternalStore(source.subscribe, source.revision);
   // 편집마다 다시 모은다 — 피커가 열려 있을 때만 mount 되는 컴포넌트라 비용은 열림 동안뿐
   return useMemo(() => {

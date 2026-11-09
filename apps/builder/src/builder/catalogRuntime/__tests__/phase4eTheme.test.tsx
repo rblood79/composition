@@ -559,6 +559,37 @@ describe("ADR-248 Phase 4e-4d-4 Themes panel host", () => {
     expect(project(workspace).themeIds).toEqual([]);
   });
 
+  it("custom accent (2026-11-10): a hex is the theme's `color.accent`; a preset drops it in one step", async () => {
+    const { workspace } = await open();
+    const host = createCatalogThemesHost(workspace);
+    const graph = workspace.runtime.graph;
+    const active = () => {
+      const themes = catalogThemesView(graph);
+      return themes.items[themes.active]!;
+    };
+    const revision = graph.revision;
+    // the virtual default theme: the first edit makes a real active theme holding the color
+    expect(host.setActiveThemeAccent({ hex: "#FF5A1F" })).toBe(true);
+    expect(graph.revision).toBe(revision + 1);
+    expect(active().tokens["color.accent"]).toMatchObject({
+      type: "color",
+      value: "#FF5A1F",
+    });
+    // same color again: no step
+    expect(host.setActiveThemeAccent({ hex: "#FF5A1F" })).toBe(false);
+    // a preset: tint + the color dropped — one step
+    expect(host.setActiveThemeAccent({ tint: "green" })).toBe(true);
+    expect(graph.revision).toBe(revision + 2);
+    expect(active().tokens["color.accent"]).toBeUndefined();
+    expect(active().preset.tint).toBe("green");
+    workspace.undo();
+    expect(active().tokens["color.accent"]?.value).toBe("#FF5A1F");
+    expect(active().preset.tint).toBe("blue");
+    // the preset the theme already has: only the color goes
+    expect(host.setActiveThemeAccent({ tint: "blue" })).toBe(true);
+    expect(active().tokens["color.accent"]).toBeUndefined();
+  });
+
   it("list actions: duplicate (the virtual theme too, one step) · activate · rename · remove", async () => {
     const { workspace } = await open();
     const host = createCatalogThemesHost(workspace);

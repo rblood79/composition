@@ -228,8 +228,9 @@ const TypographySectionContent = memo(function TypographySectionContent() {
     // (ADR-299 — this section is in the text edit scope: `isInTextEditScope` reads its
     //  `data-section-id`; a wrapper here would break the section grid's direct-child rules.)
     <>
-      {/* 1행: 글꼴 (이름이 곧 라벨) | 색 swatch 28 */}
+      {/* 1행: 글꼴 (legend — 다른 Select 와 같은 칸, 2026-11-10 사용자 지적) | 색 swatch 28 (상자 줄에 맞춤) */}
       <FontFamilyPicker
+        label="Font Family"
         value={styleValues.fontFamilyAuthored}
         inheritedFamily={
           styleValues.fontFamilyAuthored ? undefined : styleValues.fontFamily

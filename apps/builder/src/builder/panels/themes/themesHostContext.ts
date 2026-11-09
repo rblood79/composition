@@ -24,6 +24,11 @@ export interface ThemesHost {
   renameTheme(id: string, name: string): boolean;
   setActiveTheme(id: string): boolean;
   setActiveThemePreset(patch: Partial<ThemePreset>): boolean;
+  /**
+   * The active theme's accent — a tint preset or a custom color (`color.accent` hex, which replaces
+   * the tint — ADR-302). Picking a preset drops the custom color; one history step either way.
+   */
+  setActiveThemeAccent(accent: { tint: string } | { hex: string }): boolean;
   /** A theme's token override; `null` drops it (the seed value shows again). */
   setThemeToken(
     id: string,

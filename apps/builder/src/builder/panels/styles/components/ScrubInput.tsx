@@ -14,7 +14,7 @@
 import { memo, useState, useCallback, useRef, useEffect } from "react";
 
 import "./ScrubInput.css";
-import { useStylesHost, useStylesSelectedId } from "../stylesHost";
+import { useStylesSelection } from "../stylesHost";
 import { Input } from "react-aria-components/Input";
 
 export interface ScrubInputProps {
@@ -48,8 +48,9 @@ export const ScrubInput = memo(function ScrubInput({
   label,
   className,
 }: ScrubInputProps) {
-  const stylesHost = useStylesHost();
-  const selectedElementId = useStylesSelectedId();
+  // (no Styles host outside the Design panel — Theme › custom accent: no element guard)
+  const stylesHost = useStylesSelection();
+  const selectedElementId = stylesHost.useSelectedId();
   const [editing, setEditing] = useState(false);
   const [displayValue, setDisplayValue] = useState(String(Math.round(value)));
   const [isDraggingState, setIsDraggingState] = useState(false);

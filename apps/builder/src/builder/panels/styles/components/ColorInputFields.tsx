@@ -29,7 +29,7 @@ import {
 import { ScrubInput } from "./ScrubInput";
 
 import "./ColorInputFields.css";
-import { useStylesHost, useStylesSelectedId } from "../stylesHost";
+import { useStylesSelection } from "../stylesHost";
 import { Input } from "react-aria-components/Input";
 
 interface ColorInputFieldsProps {
@@ -81,8 +81,10 @@ function TextField({
   suffix?: string;
   onChange: (v: string) => void;
 }) {
-  const stylesHost = useStylesHost();
-  const selectedElementId = useStylesSelectedId();
+  // Outside the Design panel (Theme › custom accent) there is no element selection — the field
+  //   commits on blur without the element-switch guard.
+  const stylesHost = useStylesSelection();
+  const selectedElementId = stylesHost.useSelectedId();
   const [localValue, setLocalValue] = useState(value);
   const [isFocused, setIsFocused] = useState(false);
   const focusedElementIdRef = useRef<string | null>(null);
