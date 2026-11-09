@@ -286,7 +286,6 @@
           grid-area: overflow;
         }
       }
-
     }
 
     /* Layout 절 Padding 줄 — Figma 구성 (ADR-275 사용자 결정 10): 「가로 · 세로 · 펼침」, 펼치면
@@ -588,8 +587,14 @@
       .border-sides {
         grid-area: border-sides;
 
-        /* 반폭 칸에 5 버튼 — 칸 폭에서 나눈다 (Position 모드 seg 와 같은 어법). 버튼당 ~17px 로
-           desktop 24px hit target 아래 — 시안 배치 (사용자 결정 2026-11-02) 와의 trade-off */
+        /* 반폭 칸에 5 버튼 — 칸 폭에서 나눈다 (Position 모드 seg 와 같은 어법). 버튼당 ~15px 로
+           desktop 24px hit target 아래 — 시안 배치 (사용자 결정 2026-11-02) 와의 trade-off.
+           버튼 사이 간격은 0 — 그룹 기본 (`data-density="regular"` gap 8) 이 남으면 84px 칸의 버튼이 9px 로
+           눌린다 (2026-11-09 live). */
+        .react-aria-ToggleButtonGroup {
+          gap: 0;
+        }
+
         .react-aria-ToggleButtonGroup .react-aria-ToggleButton {
           flex: 1 1 0;
           min-width: 0;

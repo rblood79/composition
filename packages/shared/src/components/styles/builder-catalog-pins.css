@@ -326,25 +326,33 @@
 
   /* Phase 4 G5 — S2 control 최소 높이 (`min-height: {size.height.<S>}`, Phase 3a) 는 빌더 위젯에서 초기값.
      빌더 chrome CSS 가 글자 · 여백을 줄인 위젯 (Design 패널 Input 18 · NumberField 16 · ToggleButton 20) 은
-     빌더 control 높이 (30 · 22) 보다 작아, 최소 높이가 상자를 키웠다 (295 전: 선언 없음). */
+     빌더 control 높이 (30 · 22) 보다 작아, 최소 높이가 상자를 키웠다 (295 전: 선언 없음).
+     ToggleButton 의 최소 폭 (`min-width: {size.height.<S>}`, 5cf91844f) 도 같다 — 20px 버튼이 30px 이 되어
+     Design 패널의 버튼 3개 그룹 (84px) 에서 세 번째가 밀려나고 Layout 줄의 1열이 넓어졌다 (2026-11-09). */
   /* generated/ToggleButton.css */
   .react-aria-ToggleButton:not(:where(.publish-app *)) {
     min-height: auto;
+    min-width: auto;
   }
   .react-aria-ToggleButton[data-size="XS"]:not(:where(.publish-app *)) {
     min-height: auto;
+    min-width: auto;
   }
   .react-aria-ToggleButton[data-size="S"]:not(:where(.publish-app *)) {
     min-height: auto;
+    min-width: auto;
   }
   .react-aria-ToggleButton[data-size="M"]:not(:where(.publish-app *)) {
     min-height: auto;
+    min-width: auto;
   }
   .react-aria-ToggleButton[data-size="L"]:not(:where(.publish-app *)) {
     min-height: auto;
+    min-width: auto;
   }
   .react-aria-ToggleButton[data-size="XL"]:not(:where(.publish-app *)) {
     min-height: auto;
+    min-width: auto;
   }
   /* generated/Input.css */
   :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):not(
@@ -498,24 +506,32 @@
     padding-top: 12px;
     padding-bottom: 12px;
   }
-  /* generated/ToggleButtonGroup.css — S2 ActionGroup 글자는 한 단 아래 (295 전: text-base · xs … xl) · compact 간격 2 (295 전: 0 + 겹친 테두리 −1). */
+  /* generated/ToggleButtonGroup.css — S2 ActionGroup 글자는 한 단 아래 (295 전: text-base · xs … xl) · compact 간격 2 (295 전: 0 + 겹친 테두리 −1).
+     기본 · 크기별 간격 (S2 ActionGroup gap, 3ca03f661) 은 295 전에 없던 선언 — 빌더 그룹은 간격 없이 버튼을
+     붙인다 (Border Sides 5 버튼이 16 → 9px 로 눌렸다, 2026-11-09). */
   .react-aria-ToggleButtonGroup:not(:where(.publish-app *)) {
     font-size: 16px;
+    gap: normal;
   }
   .react-aria-ToggleButtonGroup[data-size="XS"]:not(:where(.publish-app *)) {
     font-size: 12px;
+    gap: normal;
   }
   .react-aria-ToggleButtonGroup[data-size="S"]:not(:where(.publish-app *)) {
     font-size: 14px;
+    gap: normal;
   }
   .react-aria-ToggleButtonGroup[data-size="M"]:not(:where(.publish-app *)) {
     font-size: 16px;
+    gap: normal;
   }
   .react-aria-ToggleButtonGroup[data-size="L"]:not(:where(.publish-app *)) {
     font-size: 18px;
+    gap: normal;
   }
   .react-aria-ToggleButtonGroup[data-size="XL"]:not(:where(.publish-app *)) {
     font-size: 20px;
+    gap: normal;
   }
   .react-aria-ToggleButtonGroup[data-density="compact"]:not(
       :where(.publish-app *)

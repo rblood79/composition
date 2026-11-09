@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Design 패널 토글 그룹 — catalog 생성 CSS 의 최소 폭이 빌더 버튼에 닿던 것] - 2026-11-09
+
+### Fixed
+
+- **Design 패널의 토글 버튼이 20px 에서 30px 로 커져 세 번째 버튼이 칸 밖으로 밀렸다** (사용자 보고): Layout 탭의 Display · Space · Wrap 열이 Alignment · Gap 열보다 넓어졌고 (`114px 84px` — 본문 228px 를 넘어 Padding 줄도 늘어남), Text 탭 Align · Vertical · Style · Decoration · Case 와 Style 탭 Border Style 의 세 번째 버튼이 그룹 밖에 그려졌다. 사용자 ToggleButton rule 에 S2 최소 폭 (`min-width: {size.height}`, 5cf91844f) 이 들어가면서 같은 생성 시트를 읽는 빌더 버튼이 빌더 control 높이 30px 를 최소 폭으로 받았다.
+  - Why: 빌더는 catalog 생성 시트 44장을 싣고 새 선언을 `builder-catalog-pins.css` 로 295 전 값에 고정한다. 그 누락을 잡는 게이트 (`builderCatalogVars.static.test.ts` (c)) 가 ToggleButton · ToggleButtonGroup 블록을 통째로 「빌더에 효과 없음」 으로 예외 처리해 `min-width` 와 그룹 기본 `gap` (3ca03f661) 이 통과했다.
+  - 빌더 고정에 ToggleButton `min-width: auto` · ToggleButtonGroup 기본 · 크기별 `gap: normal` 을 더했고, 게이트 예외를 블록 단위에서 선언 단위 (빌더 위젯이 쓰지 않는 속성 · 선택자 12건, 각 사유) 로 좁혔다 — 고정을 빼면 원인 12건만 RED.
+  - **Border Sides 버튼이 9px 로 눌렸다**: 반폭 칸 (84px) 에 버튼 5개를 두면서 그룹 기본 간격 (`data-density="regular"` 8px) 이 남아 있었다 (ADR-298 Phase 5). 그 그룹만 간격 0 — 버튼 15px.
+  - live: Layout 열 `84px 84px 28px` · 본문 넘침 0, Text · Style 탭 그룹 버튼 20px · 넘침 0, Sides 15px.
+  - 위치: `builder-catalog-pins.css` · `builderCatalogVars.static.test.ts` · `inspector-layout.css`
+
 ## [field 는 자기 부품만 자식으로 받는다 — 팔레트 · 붙여넣기 · 넣기 목록] - 2026-11-09
 
 ### Fixed

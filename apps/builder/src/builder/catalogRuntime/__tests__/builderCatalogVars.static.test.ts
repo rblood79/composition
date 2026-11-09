@@ -245,30 +245,34 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
     //    an open Select list): no box moved;
     //  · blocks no builder widget can match — its SearchFields carry their own class (`builder-search-field`
     //    · `icon-picker-search`), its menus are RAC Popovers without `data-size`, it renders no Disclosure.
+    //  · single declarations in blocks the builder's widgets DO match — named one by one, never the whole block:
+    //    ToggleButton · ToggleButtonGroup were exempted as whole blocks and a new `min-width` (5cf91844f) and
+    //    group `gap` (3ca03f661) passed — 20px Design-panel buttons became 30px and the third button of every
+    //    84px group overflowed (2026-11-09 live — Layout · Style · Text tabs).
     //  A new declaration in any other block still fails.
     const ADDED_SINCE_SHEETS = new Set(
       COMPONENTS_ADDED_SINCE.map((name) => `generated/${name}.css`),
     );
+    const BUILDER_INERT_ADDED_DECLARATIONS = new Set([
+      // (`data-static-color` — the builder's ToggleButtons take no staticColor.)
+      'generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-focus-visible][data-static-color="black"] | outline',
+      'generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-focus-visible][data-static-color="white"] | outline',
+      // (S2 TextContext truncation — the builder's ToggleButtons hold icons, no `.react-aria-Text`.)
+      "generated/ToggleButton.css › @layer components › .react-aria-ToggleButton .react-aria-Text | min-width",
+      // (`data-in-group` · `data-justified` — set by the catalog DOM runtime only, `delegatedDom.runtime.ts`.)
+      "generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-in-group] | flex-shrink",
+      "generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-justified] | flex-grow",
+      "generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-justified] | flex-basis",
+      'generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-in-group][data-orientation="vertical"] | width',
+      // (`--action-corner` is read only under `[data-density="compact"]` — no builder ToggleButton has a density.)
+      ...["XS", "S", "M", "L", "XL"].map(
+        (size) =>
+          `generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-size="${size}"] | --action-corner`,
+      ),
+      // (the button's label span — the builder's spans are the fixed-size Layout alignment dots.)
+      "generated/ToggleButtonGroup.css › @layer components › .react-aria-ToggleButtonGroup .react-aria-ToggleButton > span | min-width",
+    ]);
     const BUILDER_INERT_ADDED_BLOCKS = new Set([
-      "generated/ToggleButton.css › @layer components › .react-aria-ToggleButton",
-      'generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-size="XS"]',
-      'generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-size="S"]',
-      'generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-size="M"]',
-      'generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-size="L"]',
-      'generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-size="XL"]',
-      'generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-focus-visible][data-static-color="black"]',
-      'generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-focus-visible][data-static-color="white"]',
-      "generated/ToggleButton.css › @layer components › .react-aria-ToggleButton .react-aria-Text",
-      "generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-in-group]",
-      "generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-justified]",
-      'generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-in-group][data-orientation="vertical"]',
-      "generated/ToggleButtonGroup.css › @layer components › .react-aria-ToggleButtonGroup",
-      'generated/ToggleButtonGroup.css › @layer components › .react-aria-ToggleButtonGroup[data-size="XS"]',
-      'generated/ToggleButtonGroup.css › @layer components › .react-aria-ToggleButtonGroup[data-size="S"]',
-      'generated/ToggleButtonGroup.css › @layer components › .react-aria-ToggleButtonGroup[data-size="M"]',
-      'generated/ToggleButtonGroup.css › @layer components › .react-aria-ToggleButtonGroup[data-size="L"]',
-      'generated/ToggleButtonGroup.css › @layer components › .react-aria-ToggleButtonGroup[data-size="XL"]',
-      "generated/ToggleButtonGroup.css › @layer components › .react-aria-ToggleButtonGroup .react-aria-ToggleButton > span",
       'generated/Select.css › @layer components › .react-aria-Popover[data-trigger="Select"]',
       'generated/Select.css › @layer components › .react-aria-Popover[data-trigger="Select"] .react-aria-ListBox',
       "generated/SearchField.css › @layer components › .react-aria-SearchField .react-aria-Button .react-aria-Icon svg",
@@ -318,6 +322,8 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
       // (S2 press, 2026-11-04 — `rule/pressScale.ts`: the builder's ToggleButtonGroup label keeps its old
       //   `scale: 0.9` press, so the new `transform` is pinned to its initial value.)
       transform: "none",
+      // (S2 ActionGroup gap, 3ca03f661 — the builder's groups keep their buttons together, 295-before.)
+      gap: "normal",
     };
     // (…and that label's old `scale` transition stays with it — a pin, but not a dimension.)
     // (…and the builder's Slider thumb keeps RAC's inline place while dragged — the value RAC writes.)
@@ -341,6 +347,7 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
         if (BUILDER_KEPT_NON_DIMENSION.has(key)) return false;
         if (ADDED_SINCE_SHEETS.has(key.split(" › ")[0]!)) return false;
         if (BUILDER_INERT_ADDED_BLOCKS.has(addedBlock(key))) return false;
+        if (BUILDER_INERT_ADDED_DECLARATIONS.has(key)) return false;
         if (BUILDER_RAC_INLINE[key] !== undefined)
           return after[key] !== BUILDER_RAC_INLINE[key];
         const prop = key.split(" | ")[1]!;
