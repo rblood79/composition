@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted — 2026-11-09 (근거: 리뷰 [round 2](reviews/305.md) pending 0 · HIGH 전부 fixed + 사용자 `/execute-adr 305` 호출)
+Implemented — 2026-11-10 (G5 사용자 confirm 「adr-305도 확인되었다」 — `### Live Exercise` 참조)
+
+Accepted — 2026-11-09 (근거: 리뷰 [round 2](../reviews/305.md) pending 0 · HIGH 전부 fixed + 사용자 `/execute-adr 305` 호출)
 
 > **Phase 2 ~ 5 닫힘 · Phase 6 사용자 확인 대기 (2026-11-09)** — 빌더 문서는 사용자 컴포넌트 시트를 싣지 않는다: 빌더 위젯은 `styles/widgets/` 사본 (규칙 282 · 원래 layer · 특이도 0 문서 범위), 빌더 4 변형 × 69 화면 Δ 0 (G2 — 46 화면에 Data 표 등 23 을 보탠 수리 포함, breakdown §5). 경계 게이트 33 · 원복 RED 4/4 · preflight · pre-push 배선. Preview 쪽 빌더 분기 124 규칙 · 빌더 패널 시트 7장 import 삭제 — Preview · Publish Δ 0 (G3). Builder initial CSS 98,774 → 55,161 B gz. 설계 대비 차이 3 (layer 유지 · 토큰 재작성 없음 · 사용자 선호 미디어 허용) 과 삭제한 원본 15 (사용자 승인) 은 breakdown §5.
 >
@@ -12,13 +14,13 @@ Accepted — 2026-11-09 (근거: 리뷰 [round 2](reviews/305.md) pending 0 · H
 - 방향을 정한 사용자 원문 — Design 패널 토글 그룹 회귀 (`d07e097be`) 의 원인 보고 뒤: 「빌더의 css는 catalog의 생성 css의 영향을 받지않아야 하지않나? 빌더와 제공되는 컴퍼넌트는 분리되어야 맞지않나」 → 「1번을 먼저 하고 2번을 ADR 로 이어가는 순서」.
 - **사용자 결정 2건 — 구현 전 확정 (2026-11-09)**: 「구현 전에 정한다. 사용자 결정 2건 - #1. 수동 시트도 이번에 나눠 완전한 분리를 해야한다, #2. 경로를 전체 페이지 이동으로 바꿔 (권고)」. 초안 (생성 시트 43장만) 의 범위를 이 결정으로 넓혔다 — 아래 Decision 이 확정본이다.
 - 이미 끝난 것: 즉시 복구는 ADR 밖에서 끝났다 (`d07e097be` — ToggleButton `min-width` · 그룹 `gap` 고정 · 게이트 예외를 선언 단위로). 이 ADR 은 그 고정 방식 자체를 없앤다.
-- 관계: [ADR-295](completed/295-d3-token-values-s2-style-macro-scale.md) Decision 8 (빌더 chrome 은 S2 값 적용 대상이 아니다) 은 유지한다. Decision 9 의 빌더 쪽 기구 (`builder-catalog-vars.css` · `builder-catalog-pins.css` · 게이트 (c)) 를 이 ADR 이 대체한다 — Implemented 때 295 본문에 대체 포인터 한 줄을 남긴다. [ADR-028](completed/028-builder-css-scope-isolation.md) (`[data-context="builder"]` 변수 스코프) 의 다음 단계다 — 변수만이 아니라 시트 단위로 나눈다.
+- 관계: [ADR-295](295-d3-token-values-s2-style-macro-scale.md) Decision 8 (빌더 chrome 은 S2 값 적용 대상이 아니다) 은 유지한다. Decision 9 의 빌더 쪽 기구 (`builder-catalog-vars.css` · `builder-catalog-pins.css` · 게이트 (c)) 를 이 ADR 이 대체한다 — Implemented 때 295 본문에 대체 포인터 한 줄을 남긴다. [ADR-028](028-builder-css-scope-isolation.md) (`[data-context="builder"]` 변수 스코프) 의 다음 단계다 — 변수만이 아니라 시트 단위로 나눈다.
 
 ## Context
 
 ### SSOT domain
 
-**D3 consumer 경계** 다. D3 (catalog `COMPONENT_RULES_TABLE` + theme/tokens) 의 consumer 는 Canvas (Skia) 와 Preview · Publish (DOM + CSS) 둘이다 ([ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) §1 D3). 빌더 chrome (패널 · 헤더 · 대시보드 · 로그인 · 오버레이 위젯) 은 D3 consumer 가 아니라 builder-system layer 다 ([css-tokens.md](../../.claude/rules/css-tokens.md) §빌더 chrome 기하 — 「이 2티어는 빌더 chrome 의 크기다 — 사용자 컴포넌트의 크기와 무관하다」 · [panel-structure.md](../../.claude/rules/panel-structure.md)). CSS 적용 경로는 그 경계를 따르지 않는다. D1 (RAC DOM) · D2 (prop) 는 바뀌지 않는다.
+**D3 consumer 경계** 다. D3 (catalog `COMPONENT_RULES_TABLE` + theme/tokens) 의 consumer 는 Canvas (Skia) 와 Preview · Publish (DOM + CSS) 둘이다 ([ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) §1 D3). 빌더 chrome (패널 · 헤더 · 대시보드 · 로그인 · 오버레이 위젯) 은 D3 consumer 가 아니라 builder-system layer 다 ([css-tokens.md](../../../.claude/rules/css-tokens.md) §빌더 chrome 기하 — 「이 2티어는 빌더 chrome 의 크기다 — 사용자 컴포넌트의 크기와 무관하다」 · [panel-structure.md](../../../.claude/rules/panel-structure.md)). CSS 적용 경로는 그 경계를 따르지 않는다. D1 (RAC DOM) · D2 (prop) 는 바뀌지 않는다.
 
 ### 문제
 
@@ -124,7 +126,7 @@ HIGH 없는 대안 (C) 이 있으므로 루프 종료.
 - **B**: 빌더를 지키려고 사용자 산출물 174장의 cascade 를 바꾸고, 빌더 → 사용자 방향 (`builder-system` · `/publish` 의 빌더 CSS) 은 그대로 남는다.
 - **D**: 사용자 → 빌더 한 방향만 막는 데 114 파일을 바꾼다.
 
-> 구현 상세: [305-builder-chrome-component-css-separation-breakdown.md](design/305-builder-chrome-component-css-separation-breakdown.md)
+> 구현 상세: [305-builder-chrome-component-css-separation-breakdown.md](../design/305-builder-chrome-component-css-separation-breakdown.md)
 
 ### 사용자 결정 — 확정 (2026-11-09)
 
@@ -161,7 +163,9 @@ Gate 순서는 실행 순서다 — `/publish` 진입 (G4) 이 chrome 시트 (G1
 
 ### Live Exercise
 
-2026-11-09 (사용자 confirm 전 — Implemented 는 그 뒤):
+**2026-11-10 사용자 confirm** — 「adr-305도 확인되었다」 (G5). 그 사이 빌더 패널 감사 (`9612a9371` · `2b66cc455` · 토큰 칸 표시 `1901c0507`) 를 이 분리 위에서 진행했다 — 빌더 위젯 모양은 `styles/widgets/` 사본에서만 고쳤고, 사용자 시트 · 생성 CSS 변경 0.
+
+2026-11-09 (사용자 confirm 전):
 
 - 하니스 (Playwright, Chrome, DPR 2): 빌더 46 화면 × 4 변형 (light · dark × Design 패널 228 · 387, 열린 portal overlay 포함) 분리 전후 computed style Δ 0 · Preview iframe / Publish 28 화면 Δ 0 (Publish 는 Phase 1 의 빌더 CSS 오염 제거 뒤 상태 대비). 대조군 = 같은 하니스 두 번 Δ 0.
 - Chrome MCP (dev 5174): 빌더 문서 사용자 시트 0 · Design Layout 토글 그룹 20×20 · 넘침 0 · Overflow 목록 portal 정상 · 헤더 Preview → `/publish/?project=blob:` 새 문서 · console 오류 0.

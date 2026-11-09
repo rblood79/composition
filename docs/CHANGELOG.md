@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-305 Implemented — 빌더 chrome 과 사용자 컴포넌트 CSS 분리] - 2026-11-10
+
+### Changed
+
+- **ADR-305 를 닫았다** (G5 사용자 confirm 「adr-305도 확인되었다」): 빌더 문서는 사용자 컴포넌트 시트 (생성 · 공유 수동 · `preview-system`) 를 싣지 않고 위젯 사본 `styles/widgets/` 를 읽는다. `/publish` 는 별도 HTML 진입이고, Preview · Publish 는 빌더 시트를 싣지 않는다. 그래서 catalog rule (생성 CSS) 을 바꿔도 빌더 패널 모양이 따라 바뀌지 않는다.
+  - 결과: 빌더 4 변형 × 69 화면 Δ 0 · Preview · Publish Δ 0 · Builder initial CSS 98,774 → 55,161 B gz · 경계 게이트 (`pnpm test:css-boundary` — preflight · pre-push).
+  - ADR-295 Decision 9 의 빌더 쪽 기구 (`builder-catalog-vars.css` · `builder-catalog-pins.css` · 게이트 (c)) 는 이 ADR 이 대체했다 (295 본문 포인터). ADR-028 (변수 스코프) 의 다음 단계다.
+  - 위치: `docs/adr/completed/305-builder-chrome-component-css-separation.md` · breakdown `docs/adr/design/305-…-breakdown.md` §5
+
 ## [토큰 칸은 단계 이름을 칸에 — 칩 · 버튼 글자 대신] - 2026-11-10
 
 ### Changed

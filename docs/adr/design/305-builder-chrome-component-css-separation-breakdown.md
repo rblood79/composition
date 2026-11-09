@@ -1,6 +1,6 @@
 # ADR-305 breakdown — 빌더 chrome 과 사용자 컴포넌트 CSS 완전 분리
 
-> 본문: [ADR-305](../305-builder-chrome-component-css-separation.md). 이 문서는 인벤토리 · Phase · 파일 · 검증 순서만 담는다. 결정 · 대안 · 위험은 본문이 정본.
+> 본문: [ADR-305](../completed/305-builder-chrome-component-css-separation.md). 이 문서는 인벤토리 · Phase · 파일 · 검증 순서만 담는다. 결정 · 대안 · 위험은 본문이 정본.
 
 ## 1. 전제 lock-in (fork checkpoint 4 질문)
 
@@ -169,11 +169,11 @@ Phase 0 1 · Phase 1 1 ~ 2 · Phase 2 4 ~ 5 · Phase 3 3 ~ 5 · Phase 4 1 ~ 3 ·
 - **G3**: Preview 14 화면 기준값 대비 Δ 0 · Publish 14 화면 Phase 1 상태 대비 Δ 0 · `pnpm validate:sync` 0. 시트 하나씩이 아니라 묶음 한 번에 쟀다 (사후 보고).
 - 테스트 정정: `adr297ManualStateRatchet` 남는 목록 (빌더 시트 4장 몫 · Table 3 → 1) · `rangeCalendarSelection` · `pickerSelectionMark` 는 지운 빌더 블록 대신 같은 모양의 생성 시트 (`partStateStyles` · ListBox `&:is(.react-aria-Popover *)`) 를 단언한다 · `s2MissingComponents` 는 사용자 번들만 · ADR-297 parity 기록 2개는 빌더 위젯 시트 (`widgets/index.css` + 문서 루트 표지).
 
-### Phase 6 (G5) — 2026-11-09 (사용자 확인 대기)
+### Phase 6 (G5) — 2026-11-10 닫힘 (사용자 confirm)
 
 - 주석 정정: `componentRulesTable.ts` 7곳 · `CSSGenerator.ts` 3곳 (`validate:sync` 0) · `css-tokens.md` §컨트롤 크기 · Select Why. `pnpm docs:stale-symbols` 0.
 - live (Chrome MCP, dev 5174 · 기존 프로젝트): 빌더 문서 `data-document="builder"` · 사용자 시트 0 · catalog 노드 0 · Design Layout 탭 토글 그룹 버튼 20×20 · 넘침 0 · Overflow 목록 (portal) 정상 · 헤더 Preview → `/publish/?project=blob:` 새 탭 렌더 · console 오류 0. dist (`/composition/`) G4 6/6 재통과.
 - 번들 (HEAD 대비, 배포 환경 변수): Builder initial JS +192 B · CSS 98,774 → 55,161 B · Preview JS +95 B · CSS 73,391 → 66,729 B · Publish initial JS 277,883 B (새 진입).
 - 원본 삭제 (2026-11-09 사용자 승인 「원본 15개 삭제 승인」): 고정 · 묶음 시트 11장 (`builder-components.css` · `foundation.css` · `builder-catalog-vars.css` · `builder-catalog-pins.css` · ActionList · EventHandlerManager · EventPalette · EventSection · ChatContainer · ChatInput · ChatMessage) · `builderCatalogVars.static.test.ts` 와 fixture · `adr295BuilderGeneratedSheets.mjs` (+ `.d.mts`) · `adr295-builder-generated-baseline.mjs`. 남은 파일의 현재형 주석 15곳 정정 · `theme-seed.generated.css` 머리말 재생성 (값 변화 0). 경계 게이트 33 · shared 2455 · builder unit 8421 · rendering 1280 · type-check · `docs:stale-symbols` 0.
 - **G0 화면 범위 결함 수리 (2026-11-09, 사용자 보고 「data패널-tables탭- 생성된 table에 젤앞선택 column checkbox가 레퍼런스 스타일이 아닌 check 표시밖에 나타나지않는다」)**: 원인은 스냅샷 46 화면에 행 있는 Data 표가 없었던 것이다. 그래서 공용 Checkbox 상자 규칙이 위젯 사본에서 빠졌다. 화면 23 을 추가했다 (Data 표 생성기 2 · 표 · 행 선택 · 표 메뉴 4 · 행 편집 · APIs · Variables · Interactions 버튼 · 이벤트 추가 · 명령 팔레트 · Workflow · 눈금자 · Site · 헤더 하위 메뉴 5 · tooltip). 분리 전 트리 (`b9feb7c52` worktree · dev 5175) 에서 4 변형 계수를 재고, 원 계수와 합쳐 이식을 다시 돌렸다. 원 계수만 쓰면 main 사본과 차이 0 이라 이식이 재현됨을 먼저 확인했다. 규칙 245 → 282 (Checkbox 24 · Menu 4 · Table 4 · 생성 Dialog 6 · 생성 Menu 7 · overlays 1). 분리 전 빌더 대비 69 화면 × 4 변형 Δ 0 이다. 처음 측정에서 3 화면이 각각 한 변형에서 달랐는데 (hover · glow 애니메이션 · focus), 다시 재니 Δ 0 이었다. 게이트 (e) 는 빌더가 import 하는 공용 컴포넌트마다 위젯 시트에 `.react-aria-<Name>` 규칙을 요구한다 (수정 전 Checkbox RED, 예외 Toolbar — 호출부 className 이 기본 클래스를 대체). 경계 게이트 52 · builder unit 8440 · ADR-297 parity 5 · type-check.
-- 남은 것: 사용자 confirm (G5) · Implemented 때 295 · 028 본문 포인터.
+- 2026-11-10 사용자 confirm (G5 — 「adr-305도 확인되었다」) → Implemented. 295 · 028 본문에 대체 포인터를 남겼다.

@@ -2,6 +2,8 @@
 
 ## Status
 
+> **2026-11-10 — Decision 9 의 빌더 쪽 기구는 [ADR-305](305-builder-chrome-component-css-separation.md) 가 대체했다**: 빌더 문서는 사용자 컴포넌트 시트를 싣지 않고 `styles/widgets/` 사본을 읽는다 — `builder-catalog-vars.css` · `builder-catalog-pins.css` · 게이트 (c) 는 삭제됐다. Decision 8 (빌더 chrome 은 S2 값 대상이 아니다) 은 그대로다.
+
 Implemented — 2026-10-31 (G5 사용자 「확인했다」 — 번들 허용치 재승인 · 테마 전환은 295 몫으로 판정, `### Live Exercise` 참조)
 
 Accepted — 2026-10-30 (사용자 `/execute-adr 295` + [reviews/295.md](../reviews/295.md) 최신 round pending 0 · HIGH 전부 fixed)

@@ -2,6 +2,8 @@
 
 ## Status
 
+> **2026-11-10 — 다음 단계: [ADR-305](305-builder-chrome-component-css-separation.md)** — 변수 스코프 (`[data-context="builder"]`) 에 더해 시트 단위로 나눴다: 빌더 문서와 Preview · Publish 문서가 자기 시트만 싣는다.
+
 Phase 0-1 Implemented (2026-03-07)
 
 ## Context
