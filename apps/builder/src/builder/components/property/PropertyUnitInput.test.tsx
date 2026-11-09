@@ -557,7 +557,7 @@ describe("PropertyUnitInput numeric editing", () => {
     });
 
     const input = screen.getByRole("combobox", { name: "Padding" });
-    const trigger = screen.getByRole("button", { name: "Padding Preset" });
+    const trigger = screen.getByRole("button", { name: /^Padding Preset/ });
     expect((input as HTMLInputElement).value).toBe("8");
 
     fireEvent.click(trigger);
@@ -575,9 +575,10 @@ describe("PropertyUnitInput numeric editing", () => {
     expect((input as HTMLInputElement).value).toBe("24");
     // ADR-298 D4: the preset commits the token itself — the node keeps the reference.
     expect(onChange).toHaveBeenLastCalledWith("var(--spacing-xl)");
-    expect(
-      document.querySelector(".property-unit-input__token")?.textContent,
-    ).toBe("XL");
+    // 단계는 입력칸 안 칩이 아니라 메뉴 버튼 안 글자 (Width 의 PX · FR 자리, 2026-11-10) — 접근 이름에도
+    expect(trigger.textContent).toBe("XL");
+    expect(trigger.getAttribute("aria-label")).toBe("Padding Preset: XL");
+    expect(document.querySelector(".property-unit-input__token")).toBeNull();
 
     fireEvent.click(trigger);
     await waitFor(() => {
@@ -625,7 +626,7 @@ describe("PropertyUnitInput numeric editing", () => {
 
     render(<ResetHarness />);
     const input = screen.getByRole("combobox", { name: "Padding" });
-    fireEvent.click(screen.getByRole("button", { name: "Padding Preset" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Padding Preset/ }));
     fireEvent.click(screen.getByRole("option", { name: "Reset" }));
 
     await waitFor(() => {

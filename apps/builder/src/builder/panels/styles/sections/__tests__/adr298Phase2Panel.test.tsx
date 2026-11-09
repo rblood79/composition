@@ -75,10 +75,10 @@ describe("ADR-298 Phase 2 — Border", () => {
       tokenSet("lib:token:radius_md"),
     );
     const radius = field(view.container, "border-radius");
-    expect(radius.querySelector(".property-unit-input__token")?.textContent).toBe("M");
+    expect(radius.querySelector(".property-unit-input__token-step")?.textContent).toBe("M");
     expect((within(radius).getByRole("combobox") as HTMLInputElement).value).toBe("8");
     const width = field(view.container, "border-width");
-    expect(width.querySelector(".property-unit-input__token")?.textContent).toBe("thin");
+    expect(width.querySelector(".property-unit-input__token-step")?.textContent).toBe("thin");
     expect((within(width).getByRole("combobox") as HTMLInputElement).value).toBe("1");
   });
 
@@ -158,7 +158,7 @@ describe("ADR-298 Phase 2 — Text", () => {
     expect(visualOf(fixture, "t").fontSize).toEqual(
       tokenSet("lib:token:typography_text-heading-md"),
     );
-    expect(size.querySelector(".property-unit-input__token")?.textContent).toBe("H M");
+    expect(size.querySelector(".property-unit-input__token-step")?.textContent).toBe("H M");
     // Phase 5 (시안 「AUTO 26」): an 「auto」 chip and the step's paired line height
     const line = field(view.container, "line-height");
     expect(line.querySelector('[data-keyword="auto"]')?.textContent).toBe("auto");
@@ -181,7 +181,7 @@ describe("ADR-298 Phase 2 — Layout Gap", () => {
     ).toEqual(tokenSet("lib:token:spacing_md"));
     expect(visualOf(fixture, "box").gap).toBeUndefined();
     const gap = view.container.querySelector("fieldset.displayGap")!;
-    expect(gap.querySelector(".property-unit-input__token")?.textContent).toBe("M");
+    expect(gap.querySelector(".property-unit-input__token-step")?.textContent).toBe("M");
   });
 });
 

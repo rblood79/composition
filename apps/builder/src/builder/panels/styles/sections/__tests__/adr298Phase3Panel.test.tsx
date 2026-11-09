@@ -120,7 +120,7 @@ describe("ADR-298 Phase 3 — layout tokens", () => {
     });
     expect(
       view.container.querySelector(
-        "fieldset.flex-wrap .property-unit-input__token",
+        "fieldset.flex-wrap .property-unit-input__token-step",
       )?.textContent,
     ).toBe("M");
   });
@@ -140,7 +140,7 @@ describe("ADR-298 Phase 3 — layout tokens", () => {
         fireEvent.click(header);
       });
     const left = view.getByRole("group", { name: "Left" });
-    expect(left.querySelector(".property-unit-input__token")?.textContent).toBe(
+    expect(left.querySelector(".property-unit-input__token-step")?.textContent).toBe(
       "L",
     );
     expect((within(left).getByRole("combobox") as HTMLInputElement).value).toBe(

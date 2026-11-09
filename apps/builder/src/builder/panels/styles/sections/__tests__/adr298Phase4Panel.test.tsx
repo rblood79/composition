@@ -256,7 +256,7 @@ describe("ADR-298 Phase 4 — Position: steps + units in one menu", () => {
       kind: "set",
       value: { kind: "token", tokenId: "lib:token:spacing_md" },
     });
-    expect(left.querySelector(".property-unit-input__token")?.textContent).toBe(
+    expect(left.querySelector(".property-unit-input__token-step")?.textContent).toBe(
       "M",
     );
     await act(async () => {

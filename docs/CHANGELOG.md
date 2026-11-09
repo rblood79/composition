@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [토큰 단계는 메뉴 버튼 안 글자 — Width 의 단위 트리거와 같은 자리] - 2026-11-10
+
+### Changed
+
+- **Design 패널의 토큰 칸 (Layout 의 Padding · Gap · Position, Style 의 Radius · Border Width, Text 의 Font Size) 에서 고른 단계 (M · L · thin …) 를 메뉴 버튼 안에 보인다** (사용자 요청): 전에는 입력칸 안에 칩으로 그렸다. 이제 Width 의 단위 트리거 (PX · FR) 처럼 ▾ 자리에 단계 글자 (mono 10) 가 들어가고, 단계가 아닌 값이면 ▾ 그대로다.
+  - 버튼은 글자 폭만큼 넓어진다 (최소 20 — 「thick」). 접근 이름에도 단계가 붙는다 (「Horizontal padding presets: L」).
+  - Line Height 의 「auto」 칩과 Box Shadows 머리글의 단계 칩은 그대로다.
+  - 테스트 `PropertyUnitInput.test.tsx` · `adr298Phase2/3/4Panel.test.tsx` 를 새 자리로 옮겼다. 원복 (버튼 안 ▾ 고정) 하면 4 RED 다.
+  - Live (Playwright 5174, 새 Frame): Gap M → 「12 [M]」, Horizontal padding L → 「16 [L]」, Vertical padding 0 → 「0 [▾]」, Style › Radius M → 「8 [M]」. 버튼 20 × 20 · 입력칸 칩 0 · 콘솔 오류 0.
+  - 위치: `apps/builder/src/builder/components/property/PropertyUnitInput.components.tsx` · `components/styles/form-controls.css`
+
 ## [패널의 native 버튼 · 입력 → RAC] - 2026-11-10
 
 ### Changed
