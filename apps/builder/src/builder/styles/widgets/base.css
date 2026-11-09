@@ -1,0 +1,24 @@
+/* ADR-305 — 빌더 chrome 시트. 출처: packages/shared/src/components/styles/base.css (분리 직전 빌더 화면에 맞던 규칙 2 / 원본 그대로의 layer · 순서).
+ * 이 파일은 빌더 문서만 싣는다. 사용자 컴포넌트 시트와 서로 따라가지 않는다 (Decision 5) — 빌더 위젯 모양은 여기서 고친다.
+ * 범위 = 첫 compound 의 :where([data-document="builder"], …) (특이도 0). 값 = 분리 직전 빌더 값 (catalog 토큰은 그 고정값으로 풀었다). */
+
+@layer components {
+  .react-aria-Label:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    cursor: default;
+    font-size: var(--label-font-size, var(--text-sm));
+    line-height: var(--label-line-height, var(--text-sm--line-height));
+    font-weight: var(--label-font-weight, 500);
+    color: var(--label-color, var(--fg));
+  }
+
+  [slot="description"]:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    font-size: var(--text-xs);
+    font-weight: 400;
+  }
+}

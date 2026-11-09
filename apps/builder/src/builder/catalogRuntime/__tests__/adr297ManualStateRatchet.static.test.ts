@@ -18,19 +18,16 @@ const STATE = /data-selected|data-focus-visible|data-focused|:focus/;
 
 /** 남는 규칙 — 파일 → 사유 (규칙 수). */
 const REMAINING: Readonly<Record<string, { count: number; reason: string }>> = {
-  "ActionList.css": { count: 2, reason: "Builder 전용 sheet (index.css 주석)" },
-  "ChatInput.css": { count: 2, reason: "Builder 전용 sheet" },
-  "EventHandlerManager.css": { count: 1, reason: "Builder 전용 sheet" },
-  "EventPalette.css": { count: 1, reason: "Builder 전용 sheet" },
+  // ADR-305 Phase 5: Builder 전용 sheet (ActionList · Chat · Event 계열) 는 Preview 번들에서 빠졌다.
   "ColorPicker.css": {
     count: 2,
     reason:
       "portal 된 팝오버 안 입력칸 (rule 루트 아래 선택자로 못 잡는다) · Builder 색 버튼 (`.color-swatch-button`)",
   },
   "Table.css": {
-    count: 3,
+    count: 1,
     reason:
-      "drag 손잡이 숨김 (`data-focus-visible-within-row` — 상태가 아니라 행 안 focus 의 구조 규칙) · resizer 의 hover · resizing 목록 2 (같은 목록의 focus 몫은 트리)",
+      "drag 손잡이 숨김 (`data-focus-visible-within-row` — 상태가 아니라 행 안 focus 의 구조 규칙). resizer 목록의 Builder focus 몫은 ADR-305 Phase 5 에서 빠졌다",
   },
   "Toast.css": {
     count: 5,

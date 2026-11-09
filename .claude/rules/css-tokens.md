@@ -146,9 +146,11 @@ Dark: `bg(zinc-900) → raised(zinc-850) → overlay(zinc-800) → muted(zinc-70
 - ❌ 자리 이름 토큰 부활 (`--inspector-control-size` / `--header-height`) — 이름이 자리를 가리키면 다른 자리의 컨트롤이 소비할 근거를 잃고, 그게 파생 크기가 생긴 경로다
 - 게이트: `apps/builder/src/builder/styles/controlSize.static.test.ts`
 
-**이 2티어는 빌더 chrome 의 크기다 — 사용자 컴포넌트의 크기와 무관하다 (ADR-295 Decision 8 · 9).** 사용자 컴포넌트의 control 높이는 catalog 토큰 `{size.height.*}` (S2 값 — desktop S 24 · M 32 · L 40 · XL 48, 터치 기기 × 1.25) 이고 생성 CSS 는 그것을 `--catalog-token-*` 변수로 읽는다. 빌더 root 는 그 변수를 chrome 고정값 (`builder-catalog-vars.css` — 295 전 값 · 미디어 쿼리 0) 으로 받고, 생성 시트에서 사라진 선언은 `builder-catalog-pins.css` 가 같은 선택자로 유지한다 — 빌더 위젯 (CompactSelect · PropertySelect · Data RowForm) 은 S2 값 · 터치 scale 을 받지 않는다. 게이트: `catalogRuntime/__tests__/builderCatalogVars.static.test.ts`.
+**이 2티어는 빌더 chrome 의 크기다 — 사용자 컴포넌트의 크기와 무관하다 (ADR-295 Decision 8 · ADR-305).** 사용자 컴포넌트의 control 높이는 catalog 토큰 `{size.height.*}` (S2 값 — desktop S 24 · M 32 · L 40 · XL 48, 터치 기기 × 1.25) 이고 생성 CSS 는 그것을 `--catalog-token-*` 변수로 읽는다. **빌더 문서는 사용자 컴포넌트 시트 (생성 · 공유 수동) 를 싣지 않는다** (ADR-305) — 빌더 위젯 (CompactSelect · PropertySelect · Data RowForm · 토글 그룹 …) 은 `apps/builder/src/builder/styles/widgets/` 의 사본 (분리 직전 빌더 화면에 맞던 규칙 · catalog 토큰은 고정값으로 풀림 · 범위 `:where([data-document="builder"], …)`) 을 읽는다. 빌더 위젯 모양은 그 사본에서 고친다 — 사용자 시트와 서로 따라가지 않는다. 게이트: `styles/__tests__/chromeWidgetSheets.static.test.ts` (`pnpm test:css-boundary` — preflight · pre-push).
 
-- ❌ chrome CSS 에서 `var(--catalog-token-*)` 읽기 · `builder-catalog-vars.css` 에 미디어 쿼리 추가
+- **Why (2026-11-09, Data 표 선택 checkbox)**: 위젯 사본은 스냅샷에 찍힌 빌더 화면에서 쓰인 규칙만 옮겼다. 행 있는 Data 표 화면이 빠져 있어서 공용 Checkbox 의 상자 규칙 24 가 통째로 빠졌고, 선택 열에는 check 아이콘만 그려졌다. 같은 이유로 행 편집 Dialog · 표 메뉴의 규칙 13 도 빠져 있었다. 빌더에 새 화면 · 위젯을 들이면 `adr305-builder-snapshot.mjs` 화면 목록에도 넣는다. 게이트 (e) 는 빌더가 import 하는 공용 컴포넌트마다 위젯 시트에 `.react-aria-<Name>` 규칙이 있는지 본다.
+
+- ❌ chrome CSS 에서 `var(--catalog-token-*)` 읽기 · 빌더 문서에 사용자 컴포넌트 시트 import (생성 시트 · `styles/index.css` 묶음) · `styles/widgets/` 에 기기 미디어 쿼리 (폭 · pointer — 사용자 선호 `forced-colors` · `prefers-reduced-motion` 만 허용)
 - ❌ 사용자 컴포넌트 rule 에서 chrome 토큰 (`var(--radius-*)` · `var(--text-*)` · `--control-size*`) 읽기
 
 **같은 선택자를 두 파일이 쓰지 않는다.** specificity 가 같으면 `@layer` 안에서는 import 순서가 판정하므로, 기하 선언은 정본 파일에만 두고 나머지 파일은 색·상태만 소유한다.
@@ -184,35 +186,35 @@ Spec TokenRef: {color.primary}, {color.secondary}, {color.tertiary},
 
 이름 (TokenRef · CSS 변수) 은 ADR-022 그대로이고, **값은 alias 표 `packages/rendering/src/primitives/colorAliases.ts` 한 곳**이 정한다 — 역할마다 (축, light 단, dark 단). 축은 `accent` (tint · 사용자 hex) · `tone` (Tone) · status / named hue (Spectrum 고정 사다리) · `constant`. 단의 값은 Spectrum 사다리 (design-data — 기본 preset 은 표, 다른 tint · Tone 은 같은 모양으로 생성). 아래 표는 이름과 역할만 적는다 — 단은 alias 표를 본다.
 
-| S2 TokenRef                                              | CSS 변수                                             | 역할                                                                                       |
-| -------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `{color.accent}` · `-hover` · `-pressed`                 | `--accent` · `--accent-hover` · `--accent-pressed`   | on-accent 를 얹는 accent 면. hover · pressed = 사다리 다음 단 (design-data 상태 alias)     |
-| `{color.accent-fill}` · `-hover`                         | `--accent-fill` · `--accent-fill-hover`              | S2 Button accent 면 (light 900 / dark 700 · hover 1000 / 600)                              |
-| `{color.on-accent}`                                      | `--fg-on-accent`                                     | accent 위 글자 — 두 모드 흰색                                                              |
-| `{color.accent-subtle}`                                  | `--accent-subtle`                                    | 연한 accent 배경                                                                           |
-| `{color.accent-content}` · `-hover`                      | `--accent-content` · `--accent-content-hover`        | **바탕 위** accent — 글자 · 선 · track 채움 (ADR-290)                                      |
-| `{color.selection-accent}` · `-hover`                    | `--selection-accent` · `--selection-accent-hover`    | Checkbox · Radio · Switch 선택 면 (S2 `accent-900`, dark 도 900)                           |
-| `{color.focus-ring}`                                     | `--focus-ring`                                       | focus 표시 (design-data `focus-indicator-color`)                                           |
-| `{color.neutral}`                                        | `--fg`                                               | 기본 글자 (gray-800)                                                                       |
-| `{color.neutral-subdued}`                                | `--fg-muted`                                         | 보조 글자                                                                                  |
-| `{color.gray-1000}` | `--gray-1000` | 색 면 (`<hue>-subtle`) 위 글자 — S2 Badge subtle · outline (hue 글자는 subtle 면 위 4.5 미달) |
-| `{color.neutral-subtle}` · `neutral-hover` · `-pressed`  | `--bg-muted` · `--neutral-hover` · `--neutral-pressed` | **밝은 바탕** 중립 면과 그 상태 (다음 단)                                                |
-| `{color.neutral-fill}` · `-hover` · `-pressed`           | `--neutral-fill` · `--neutral-fill-hover` · `-pressed` | **진한 바탕** 중립 면 (Button primary) — S2 한 단 (ADR-293 결정 4)                       |
-| `{color.on-neutral}`                                     | `--on-neutral`                                       | 진한 중립 면 위 글자                                                                       |
-| `{color.negative}` · `-hover` · `-pressed`               | `--negative` · `--negative-hover` · `-pressed`       | 오류 · 파괴적 행동 글자                                                                    |
-| `{color.negative-fill}` · `-hover`                       | `--negative-fill` · `--negative-fill-hover`          | S2 Button negative 면                                                                      |
-| `{color.on-negative}`                                    | `--fg-on-negative`                                   | negative 면 위 글자                                                                        |
-| `{color.<status>}` · `-subtle` · `-strong`               | `--<status>` · `--<status>-subtle` · `-strong`       | status 4 (negative · informative · positive · notice) 의 글자 · 연한 면 · 진한 글자        |
-| `{color.<status>-background}` · `{color.<status>-visual}` | `--<status>-background` · `--<status>-visual`       | 정적 면 (Badge · InlineAlert · Toast) · 점 · 막대 (StatusLight · Meter) — S2 소비 지점     |
-| `{color.base}`                                           | `--bg`                                               | 앱 배경                                                                                    |
-| `{color.pasteboard}`                                     | `--bg-pasteboard`                                    | 문서 바깥 (light gray-100 · dark gray-25)                                                  |
-| `{color.layer-1}`                                        | `--bg-overlay`                                       | 오버레이 · 모달                                                                            |
-| `{color.layer-2}`                                        | `--bg-inset`                                         | 입력 필드 · 카드 (옛 `{color.raised}` 자리 — ADR-302 사용자 결정 3)                        |
-| `{color.elevated}`                                       | `--bg-elevated`                                      | 떠 있는 요소                                                                               |
-| `{color.disabled}`                                       | `--bg-disabled`                                      | 비활성 배경                                                                                |
-| `{color.border}` · `-hover` · `-disabled`                | `--border` · `--border-hover` · `--border-disabled`  | 테두리                                                                                     |
-| `{color.transparent}`                                    | `transparent`                                        | 투명                                                                                       |
-| `{color.white}` · `{color.black}`                        | `--color-white` · `--color-black`                    | 팔레트 상수 (테마가 덮지 않는다)                                                           |
+| S2 TokenRef                                               | CSS 변수                                               | 역할                                                                                          |
+| --------------------------------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| `{color.accent}` · `-hover` · `-pressed`                  | `--accent` · `--accent-hover` · `--accent-pressed`     | on-accent 를 얹는 accent 면. hover · pressed = 사다리 다음 단 (design-data 상태 alias)        |
+| `{color.accent-fill}` · `-hover`                          | `--accent-fill` · `--accent-fill-hover`                | S2 Button accent 면 (light 900 / dark 700 · hover 1000 / 600)                                 |
+| `{color.on-accent}`                                       | `--fg-on-accent`                                       | accent 위 글자 — 두 모드 흰색                                                                 |
+| `{color.accent-subtle}`                                   | `--accent-subtle`                                      | 연한 accent 배경                                                                              |
+| `{color.accent-content}` · `-hover`                       | `--accent-content` · `--accent-content-hover`          | **바탕 위** accent — 글자 · 선 · track 채움 (ADR-290)                                         |
+| `{color.selection-accent}` · `-hover`                     | `--selection-accent` · `--selection-accent-hover`      | Checkbox · Radio · Switch 선택 면 (S2 `accent-900`, dark 도 900)                              |
+| `{color.focus-ring}`                                      | `--focus-ring`                                         | focus 표시 (design-data `focus-indicator-color`)                                              |
+| `{color.neutral}`                                         | `--fg`                                                 | 기본 글자 (gray-800)                                                                          |
+| `{color.neutral-subdued}`                                 | `--fg-muted`                                           | 보조 글자                                                                                     |
+| `{color.gray-1000}`                                       | `--gray-1000`                                          | 색 면 (`<hue>-subtle`) 위 글자 — S2 Badge subtle · outline (hue 글자는 subtle 면 위 4.5 미달) |
+| `{color.neutral-subtle}` · `neutral-hover` · `-pressed`   | `--bg-muted` · `--neutral-hover` · `--neutral-pressed` | **밝은 바탕** 중립 면과 그 상태 (다음 단)                                                     |
+| `{color.neutral-fill}` · `-hover` · `-pressed`            | `--neutral-fill` · `--neutral-fill-hover` · `-pressed` | **진한 바탕** 중립 면 (Button primary) — S2 한 단 (ADR-293 결정 4)                            |
+| `{color.on-neutral}`                                      | `--on-neutral`                                         | 진한 중립 면 위 글자                                                                          |
+| `{color.negative}` · `-hover` · `-pressed`                | `--negative` · `--negative-hover` · `-pressed`         | 오류 · 파괴적 행동 글자                                                                       |
+| `{color.negative-fill}` · `-hover`                        | `--negative-fill` · `--negative-fill-hover`            | S2 Button negative 면                                                                         |
+| `{color.on-negative}`                                     | `--fg-on-negative`                                     | negative 면 위 글자                                                                           |
+| `{color.<status>}` · `-subtle` · `-strong`                | `--<status>` · `--<status>-subtle` · `-strong`         | status 4 (negative · informative · positive · notice) 의 글자 · 연한 면 · 진한 글자           |
+| `{color.<status>-background}` · `{color.<status>-visual}` | `--<status>-background` · `--<status>-visual`          | 정적 면 (Badge · InlineAlert · Toast) · 점 · 막대 (StatusLight · Meter) — S2 소비 지점        |
+| `{color.base}`                                            | `--bg`                                                 | 앱 배경                                                                                       |
+| `{color.pasteboard}`                                      | `--bg-pasteboard`                                      | 문서 바깥 (light gray-100 · dark gray-25)                                                     |
+| `{color.layer-1}`                                         | `--bg-overlay`                                         | 오버레이 · 모달                                                                               |
+| `{color.layer-2}`                                         | `--bg-inset`                                           | 입력 필드 · 카드 (옛 `{color.raised}` 자리 — ADR-302 사용자 결정 3)                           |
+| `{color.elevated}`                                        | `--bg-elevated`                                        | 떠 있는 요소                                                                                  |
+| `{color.disabled}`                                        | `--bg-disabled`                                        | 비활성 배경                                                                                   |
+| `{color.border}` · `-hover` · `-disabled`                 | `--border` · `--border-hover` · `--border-disabled`    | 테두리                                                                                        |
+| `{color.transparent}`                                     | `transparent`                                          | 투명                                                                                          |
+| `{color.white}` · `{color.black}`                         | `--color-white` · `--color-black`                      | 팔레트 상수 (테마가 덮지 않는다)                                                              |
 
 ### Named Color (글로벌 시맨틱 없는 색상)
 
@@ -263,4 +265,4 @@ Skia dark mode 적용 상세: canvas-rendering.md 참조.
 - `specShapesToSkia()` 두 번째 인자 `theme` 에 현재 테마 전달 (하드코딩 `"light"` 금지)
 - 다크 모드 · 테마 전환은 문서의 활성 테마가 정본이다 — `workspace.applyTheme` 이 테마 key 변화를 보고 `install()` (토큰 맵 `installThemeMaps` + 패널 store `applyResolvedTheme` 의 `themeVersion` +1) 뒤 Canvas root 를 다시 만든다. store 를 직접 바꾸는 setter 는 없다 (옛 `setTint` · `setDarkMode` 계열은 2026-10-27 삭제)
 
-- **Why (2026-11-05, Select)**: `/publish`도 Builder 번들을 읽으므로 `builder-system`의 전역 Select 상태 선택자는 catalog를 제외해야 한다. 누출 당시 Compare는 32px/0px border였지만 Preview는 34px/1px였고, Disabled 색상도 덮였다. 의미 토큰의 light/dark 값과 상태 트리를 두 소비자에 함께 연결한다.
+- **Why (2026-11-05, Select)**: `/publish`도 Builder 번들을 읽으므로 `builder-system`의 전역 Select 상태 선택자는 catalog를 제외해야 한다. 누출 당시 Compare는 32px/0px border였지만 Preview는 34px/1px였고, Disabled 색상도 덮였다. 의미 토큰의 light/dark 값과 상태 트리를 두 소비자에 함께 연결한다. (2026-11-09 ADR-305 뒤: `/publish` 는 별도 문서라 빌더 번들을 싣지 않는다 — 이 제외는 이제 방어 조건이다.)

@@ -9,18 +9,9 @@
 
 @layer shared-tokens {
   :root {
-    /* DEFAULT_BASE_TYPOGRAPHY (customFonts.ts) 와 동일 체인 유지 필수 — drift 시 D3 symmetric 파괴.
-     * font-size 제외: Builder `html, :root` 는 browser default(16px) 상속. */
-    font-family:
-      Pretendard,
-      -apple-system,
-      BlinkMacSystemFont,
-      system-ui,
-      Roboto,
-      "Helvetica Neue",
-      "Segoe UI",
-      sans-serif;
-    line-height: 1.5;
+    /* ADR-305 — 이 시트는 빌더 · 사용자 문서가 같이 싣는 중립 시트 (`--*` 만) 다. 문서 기본 글꼴 ·
+     * 행간 (`font-family` · `line-height`) 은 각 문서의 테마 진입이 자기 시트로 싣는다:
+     * 사용자 쪽 `preview-root-typography.css` · 빌더 쪽 `apps/builder/src/builder/styles/builder-root-typography.css`. */
 
     /* Typography Scale - Tailwind v4 표준 (고정값, AI 생성 불필요) */
     --icon-size: calc(var(--spacing-xl) * 1.125);

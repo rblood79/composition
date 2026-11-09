@@ -12,23 +12,22 @@ import { fileURLToPath } from "node:url";
 const read = (rel: string) =>
   readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8");
 
-const listBoxCss = read("../styles/ListBox.css").replace(/\s+/g, " ");
-const popoverBlock = listBoxCss.slice(
-  listBoxCss.indexOf('.react-aria-Popover[data-trigger="ComboBox"]'),
-  listBoxCss.indexOf("/* ========== Color Variants"),
-);
+// ADR-305 Phase 5 — 사용자 picker (Popover 가 `data-catalog-id` 를 가진다) 의 항목은 ListBox rule 의 생성 시트
+// `&:is(.react-aria-Popover *)` 블록이 그린다. 수동 ListBox.css 의 같은 블록은 Builder 위젯 몫
+// (`:not([data-catalog-id])`) 이었고 Builder 문서가 사용자 시트를 싣지 않게 되며 빠졌다.
+const generated = read("../styles/generated/ListBox.css").replace(/\s+/g, " ");
 
 describe("picker 항목 선택 표시 — 작성자 노드가 글리프를 대신한다", () => {
   it("picker Popover 안에서만: 표시 노드가 있는 항목은 글리프가 비키고 아이콘이 gutter 에 놓인다", () => {
-    expect(popoverBlock).toMatch(
-      /&\[data-selection-mark\]::before \{ display: none; \}/,
+    const P =
+      ".react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem";
+    // 글리프는 표시 노드가 없는 선택 항목에만
+    expect(generated).toContain(
+      `${P}[data-selected]:not([data-selection-mark])::before {`,
     );
-    expect(popoverBlock).toMatch(
-      /&\[data-selection-mark\] > \.react-aria-Icon:not\(\[slot\]\) \{ position: absolute; top: 0; left: 0; width: 18px;/,
-    );
-    // (글리프 자리와 같은 폭 — `[data-selected]::before` 의 18px.)
-    expect(popoverBlock).toMatch(
-      /&::before \{ content: "✓" \/ ""; position: absolute; left: 0; color: var\(--accent\); width: 18px;/,
+    // 표시 노드의 아이콘은 글리프 자리 (왼쪽 gutter)
+    expect(generated).toMatch(
+      /\.react-aria-ListBoxItem\[data-selection-mark\] > \.react-aria-Icon:not\(\[slot\]\) \{ position: absolute; top: 50%; left: var\(--spacing-xs\);/,
     );
   });
 });

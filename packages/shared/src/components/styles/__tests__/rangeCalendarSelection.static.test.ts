@@ -30,11 +30,25 @@ describe("RangeCalendar selection = S2's", () => {
     ).toMatch(/background: var\(--accent\);\s*color: var\(--fg-on-accent\);/);
   });
 
+  // ADR-305 Phase 5 — 사용자 RangeCalendar 의 띠는 rule 트리 (`partStateStyles`) 의 생성 시트가 그린다. 수동 시트의
+  // 같은 모양 블록은 Builder 위젯 몫 (`:not([data-catalog-id])`) 이었고 Builder 문서가 사용자 시트를 싣지 않게 되며 빠졌다.
+  const generated = readFileSync(
+    join(
+      dirname(fileURLToPath(import.meta.url)),
+      "../generated/RangeCalendar.css",
+    ),
+    "utf8",
+  );
+  const BAND =
+    "td:has(> .react-aria-CalendarCell:where([data-selected])):not(:has(> [data-selection-start][data-selection-end]))";
+  const genBlock = (selectorTail: string) => {
+    const at = generated.indexOf(`${selectorTail} {`);
+    expect(at, selectorTail).toBeGreaterThanOrEqual(0);
+    return generated.slice(at, generated.indexOf("}", at));
+  };
+
   it("a band behind the range (td ::before) with a border, not under a one-day range", () => {
-    expect(range).toMatch(
-      /td:has\(> \.react-aria-CalendarCell\[data-selected\]\):not\(\s*:has\(> \[data-selection-start\]\[data-selection-end\]\)\s*\)/,
-    );
-    const band = block("&::before {");
+    const band = genBlock(`${BAND}::before`);
     expect(band).toContain("background: var(--accent-subtle);");
     expect(band).toContain("border: 1px solid var(--focus-ring);");
     expect(band).toContain("border-inline-width: 0;");
@@ -42,20 +56,19 @@ describe("RangeCalendar selection = S2's", () => {
 
   it("the band rounds at the range's, the week's and the month's ends", () => {
     for (const edge of [
-      "&:has(> [data-selection-start])::before",
-      "&:first-child::before",
-      "td:has(> [data-outside-month]) + &::before",
+      `${BAND}:has(> [data-selection-start])::before`,
+      `${BAND}:first-child::before`,
+      `td:has(> [data-outside-month]) + ${BAND}::before`,
     ])
-      expect(block(edge)).toMatch(
-        /border-start-start-radius: var\(--radius-full\)/,
+      expect(genBlock(edge)).toMatch(
+        /border-start-start-radius: var\(--catalog-token-radius-full\)/,
       );
     for (const edge of [
-      "&:has(> [data-selection-end])::before",
-      "&:last-child::before",
-      "&:has(+ td > [data-outside-month])::before",
+      `${BAND}:has(> [data-selection-end])::before`,
+      `${BAND}:last-child::before`,
     ])
-      expect(block(edge)).toMatch(
-        /border-start-end-radius: var\(--radius-full\)/,
+      expect(genBlock(edge)).toMatch(
+        /border-start-end-radius: var\(--catalog-token-radius-full\)/,
       );
   });
 });

@@ -1,0 +1,44 @@
+/* ADR-305 — 빌더 chrome 시트. 출처: packages/shared/src/components/styles/ToggleButton.css (분리 직전 빌더 화면에 맞던 규칙 4 / 원본 그대로의 layer · 순서).
+ * 이 파일은 빌더 문서만 싣는다. 사용자 컴포넌트 시트와 서로 따라가지 않는다 (Decision 5) — 빌더 위젯 모양은 여기서 고친다.
+ * 범위 = 첫 compound 의 :where([data-document="builder"], …) (특이도 0). 값 = 분리 직전 빌더 값 (catalog 토큰은 그 고정값으로 풀었다). */
+
+@layer components {
+  .react-aria-ToggleButton:where(:not([data-catalog-id])):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    --button-color: var(--bg-muted);
+    --button-text: var(--fg);
+    --button-border: transparent;
+  }
+
+  .react-aria-ToggleButton:where(
+      :not([data-catalog-id])
+    )[data-variant="default"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    --button-color: var(--bg-muted);
+    --button-text: var(--fg);
+    --button-color-hover: var(--neutral-hover);
+    --button-color-pressed: var(--neutral-pressed);
+    --button-border: transparent;
+  }
+
+  .react-aria-ToggleButton:where(
+      :not([data-catalog-id])
+    )[data-variant="default"][data-selected]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    --button-color: var(--fg);
+    --button-text: var(--bg);
+    --button-border: var(--fg);
+  }
+
+  .react-aria-ToggleButton:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+  }
+}

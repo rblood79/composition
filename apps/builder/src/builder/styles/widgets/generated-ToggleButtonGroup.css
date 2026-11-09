@@ -1,0 +1,196 @@
+/* ADR-305 — 빌더 chrome 시트. 출처: packages/shared/src/components/styles/generated/ToggleButtonGroup.css (분리 직전 빌더 화면에 맞던 규칙 18 / 원본 그대로의 layer · 순서).
+ * 이 파일은 빌더 문서만 싣는다. 사용자 컴포넌트 시트와 서로 따라가지 않는다 (Decision 5) — 빌더 위젯 모양은 여기서 고친다.
+ * 범위 = 첫 compound 의 :where([data-document="builder"], …) (특이도 0). 값 = 분리 직전 빌더 값 (catalog 토큰은 그 고정값으로 풀었다). */
+
+@layer components {
+  .react-aria-ToggleButtonGroup:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+    width: fit-content;
+    height: fit-content;
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    border-radius: 0;
+    gap: 8px;
+  }
+
+  .react-aria-ToggleButtonGroup:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    color: var(--fg);
+  }
+
+  .react-aria-ToggleButtonGroup[data-size="M"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    font-size: 14px;
+    border-radius: 0;
+    gap: 8px;
+  }
+
+  .react-aria-ToggleButtonGroup.react-aria-ToggleButtonGroup:where(
+      [data-focus-visible]
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .react-aria-ToggleButtonGroup.react-aria-ToggleButtonGroup:where(
+      [data-disabled]
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    opacity: 1;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  .react-aria-ToggleButtonGroup[data-size="M"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    --btn-border-radius: 8px;
+  }
+
+  .react-aria-ToggleButtonGroup[data-orientation="horizontal"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    flex-direction: row;
+  }
+
+  .react-aria-ToggleButtonGroup[data-orientation="vertical"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    flex-direction: column;
+    width: fit-content;
+  }
+
+  .react-aria-ToggleButtonGroup[data-indicator="true"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    --button-color: var(--bg-muted);
+  }
+
+  .react-aria-ToggleButtonGroup[data-indicator="true"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
+    .react-aria-ToggleButton
+    .react-aria-SelectionIndicator {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: var(--btn-border-radius);
+    box-shadow: var(--shadow-sm);
+    pointer-events: none;
+    opacity: 0;
+    transition:
+      opacity 200ms cubic-bezier(0.16, 1, 0.3, 1),
+      translate 200ms cubic-bezier(0.16, 1, 0.3, 1),
+      width 200ms cubic-bezier(0.16, 1, 0.3, 1),
+      height 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .react-aria-ToggleButtonGroup[data-indicator="true"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
+    .react-aria-ToggleButton[data-selected]
+    .react-aria-SelectionIndicator {
+    opacity: 1;
+  }
+
+  .react-aria-ToggleButtonGroup[data-indicator="true"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
+    .react-aria-ToggleButton {
+    position: relative;
+    z-index: 0;
+    background: transparent;
+    border-color: transparent;
+    border-width: 0;
+    color: var(--button-text);
+  }
+}
+
+@layer components {
+  @media (prefers-reduced-motion: reduce) {
+    .react-aria-ToggleButtonGroup[data-indicator="true"]:where(
+        [data-document="builder"],
+        [data-document="builder"] *
+      )
+      .react-aria-ToggleButton
+      .react-aria-SelectionIndicator {
+      transition: none;
+    }
+  }
+}
+
+@layer components {
+  @media (forced-colors: active) {
+    .react-aria-ToggleButtonGroup:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+      forced-color-adjust: auto;
+    }
+  }
+}
+
+@layer components {
+  .react-aria-ToggleButtonGroup[data-indicator="true"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
+    .react-aria-ToggleButton {
+    will-change: auto;
+  }
+
+  .react-aria-ToggleButtonGroup[data-indicator="true"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
+    .react-aria-ToggleButton[data-pressed] {
+    transform: none;
+  }
+
+  .react-aria-ToggleButtonGroup:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
+    .react-aria-ToggleButton
+    > span {
+    display: inherit;
+    min-width: 0px;
+    align-items: center;
+    justify-content: center;
+    gap: inherit;
+    transition: transform 150ms cubic-bezier(0.45, 0, 0.4, 1);
+    will-change: transform;
+  }
+
+  .react-aria-ToggleButtonGroup[data-indicator="true"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
+    .react-aria-ToggleButton[data-pressed]
+    > span {
+    transform: perspective(
+        max(
+          var(--catalog-press-height, 0px),
+          calc(var(--catalog-press-width, 0px) / 3),
+          24px
+        )
+      )
+      translate3d(0, 0, -2px);
+  }
+}

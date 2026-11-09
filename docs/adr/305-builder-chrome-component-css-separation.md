@@ -2,7 +2,11 @@
 
 ## Status
 
-Proposed — 2026-11-09
+Accepted — 2026-11-09 (근거: 리뷰 [round 2](reviews/305.md) pending 0 · HIGH 전부 fixed + 사용자 `/execute-adr 305` 호출)
+
+> **Phase 2 ~ 5 닫힘 · Phase 6 사용자 확인 대기 (2026-11-09)** — 빌더 문서는 사용자 컴포넌트 시트를 싣지 않는다: 빌더 위젯은 `styles/widgets/` 사본 (규칙 282 · 원래 layer · 특이도 0 문서 범위), 빌더 4 변형 × 69 화면 Δ 0 (G2 — 46 화면에 Data 표 등 23 을 보탠 수리 포함, breakdown §5). 경계 게이트 33 · 원복 RED 4/4 · preflight · pre-push 배선. Preview 쪽 빌더 분기 124 규칙 · 빌더 패널 시트 7장 import 삭제 — Preview · Publish Δ 0 (G3). Builder initial CSS 98,774 → 55,161 B gz. 설계 대비 차이 3 (layer 유지 · 토큰 재작성 없음 · 사용자 선호 미디어 허용) 과 삭제한 원본 15 (사용자 승인) 은 breakdown §5.
+>
+> **Phase 0 · 1 닫힘 (2026-11-09)** — G0: 스냅샷 하니스 2 (빌더 45 화면 × 4 · Preview/Publish 28) 대조군 Δ 0, 빌더에 맞는 생성 시트 = 11 가족 (정적 분류 13 과 다름), 공유 수동 규칙 빌더 전용 36 · 사용자 전용 138 · 양쪽 313. G4: `/publish` 별도 진입 · base 아래 dist 6/6 · 빌더 Δ 0 · Preview Δ 0 (`builder-system.css` 제거) · Publish 는 빌더 CSS 오염이 빠져 Preview 와의 차이 19,605 → 2,013 값 (보이는 요소의 색 · 글자 변화 0 — 「Δ 0」 예측과 다름, breakdown §5). 번들 Builder +193 · Preview +95 B.
 
 - 사용자 요청: `/create-adr` (2026-11-09).
 - 방향을 정한 사용자 원문 — Design 패널 토글 그룹 회귀 (`d07e097be`) 의 원인 보고 뒤: 「빌더의 css는 catalog의 생성 css의 영향을 받지않아야 하지않나? 빌더와 제공되는 컴퍼넌트는 분리되어야 맞지않나」 → 「1번을 먼저 하고 2번을 ADR 로 이어가는 순서」.
@@ -157,7 +161,11 @@ Gate 순서는 실행 순서다 — `/publish` 진입 (G4) 이 chrome 시트 (G1
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+2026-11-09 (사용자 confirm 전 — Implemented 는 그 뒤):
+
+- 하니스 (Playwright, Chrome, DPR 2): 빌더 46 화면 × 4 변형 (light · dark × Design 패널 228 · 387, 열린 portal overlay 포함) 분리 전후 computed style Δ 0 · Preview iframe / Publish 28 화면 Δ 0 (Publish 는 Phase 1 의 빌더 CSS 오염 제거 뒤 상태 대비). 대조군 = 같은 하니스 두 번 Δ 0.
+- Chrome MCP (dev 5174): 빌더 문서 사용자 시트 0 · Design Layout 토글 그룹 20×20 · 넘침 0 · Overflow 목록 portal 정상 · 헤더 Preview → `/publish/?project=blob:` 새 문서 · console 오류 0.
+- dist 정적 서버 (`/composition/` — rewrite 없음): `/composition/publish/?project=` 200 · 새로고침 · 빌더 → base 포함 URL · Publish 문서 빌더 시트 0 · 오류 0 (6/6).
 
 ## Consequences
 

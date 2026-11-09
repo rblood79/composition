@@ -15,13 +15,6 @@
      실린다) 가 준다. 이 시트의 size 블록은 빌더 chrome (생성 toggle 시트를 싣지 않는다) 의 295 전 px 이다. */
   /* ADR-256 G5: the indicator always holds its svg (the reference's div.indicator > svg);
      unselected it does not show. Both structures' RAC label carries the state. */
-  label:not([data-selected], [data-indeterminate]):where(
-      :not([data-catalog-id] *)
-    )
-    > .checkbox
-    > svg {
-    visibility: hidden;
-  }
 
   .react-aria-Checkbox {
     /* Default (non-emphasized): neutral color when selected */
@@ -128,67 +121,6 @@
 
     /* ADR-297 Phase 3g: the indicator's states are the Checkbox rule's tree (generated
        `partStateStyles`) on a catalog node — these are Builder widgets'. */
-    &:where(:not([data-catalog-id], [data-catalog-id] *)) {
-      &[data-pressed] .checkbox,
-      & .react-aria-CheckboxButton[data-pressed] .checkbox {
-        border-color: var(--border-pressed);
-      }
-
-      &[data-focus-visible] .checkbox,
-      & .react-aria-CheckboxButton[data-focus-visible] .checkbox {
-        outline: 2px solid var(--focus-ring);
-        outline-offset: 2px;
-      }
-
-      &[data-selected],
-      &[data-indeterminate] {
-        .checkbox {
-          border-color: var(--selected-color);
-          background: var(--selected-color);
-        }
-
-        &[data-pressed] .checkbox,
-        & .react-aria-CheckboxButton[data-pressed] .checkbox {
-          border-color: color-mix(in srgb, var(--selected-color) 75%, black);
-          background: color-mix(in srgb, var(--selected-color) 75%, black);
-        }
-
-        svg {
-          stroke-dashoffset: 44;
-        }
-      }
-
-      /* The indeterminate dash is a stroked lucide `Minus` (as the check): no fill-only override —
-         `stroke: none` erased it (2026-10-09). */
-
-      &[data-invalid] {
-        .checkbox {
-          --checkmark-color: var(--color-white);
-          border-color: var(--negative);
-        }
-
-        &[data-pressed] .checkbox,
-        & .react-aria-CheckboxButton[data-pressed] .checkbox {
-          border-color: color-mix(in srgb, var(--negative) 75%, black);
-        }
-
-        &[data-selected],
-        &[data-indeterminate] {
-          .checkbox {
-            background: var(--negative);
-          }
-
-          &[data-pressed] .checkbox,
-          & .react-aria-CheckboxButton[data-pressed] .checkbox {
-            background: color-mix(in srgb, var(--negative) 75%, black);
-          }
-        }
-      }
-
-      &[data-disabled] .checkbox {
-        border-color: var(--border-disabled);
-      }
-    }
   }
 
   /* ===== Size delegation from CheckboxGroup ===== */

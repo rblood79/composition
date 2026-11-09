@@ -1,7 +1,7 @@
 /**
  * ADR-235 실행 문맥 해석기 — IndexedDB `assets` 바이트 → `blob:` URL.
  *
- * builder 탭 (같은 탭의 `/publish/*` route 포함) · Preview iframe 이 각자 하나씩 설치한다.
+ * builder 탭 · Preview iframe 이 각자 하나씩 설치한다 (Publish 는 별도 문서 — 프로젝트 파일의 해석기, ADR-305).
  * 같은 origin 이라 IndexedDB 를 직접 읽는다 — 다른 탭의 `blob:` URL 은 그 탭 수명에
  * 묶여 쓰지 않는다 (G0 (c)).
  *

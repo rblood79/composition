@@ -14,7 +14,8 @@
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { commands } from "vitest/browser";
 import bundleCss from "@composition/shared/components/styles/index.css?inline";
-import builderCss from "@composition/shared/components/styles/builder-components.css?inline";
+// ADR-305 — 빌더 문서의 위젯 시트 (사용자 컴포넌트 시트를 싣지 않는다 · 범위 = <html data-document="builder">)
+import builderCss from "@/builder/styles/widgets/index.css?inline";
 import { injectPreviewBaseStyles } from "@/preview/baseStyles";
 import { getPrimitiveBinding } from "../../../../packages/shared/src/catalog/bindings";
 import { COMPONENT_RULES_TABLE } from "../../../../packages/shared/src/catalog/generated/componentRulesTable";
@@ -35,6 +36,7 @@ const host = document.createElement("div");
 const noTransition = document.createElement("style");
 beforeAll(() => {
   css.textContent = bundleCss;
+  delete document.documentElement.dataset.document;
   document.head.append(css);
   injectPreviewBaseStyles(document);
   // (one element is re-stated per input — a transition would report the previous state's colors)
@@ -117,8 +119,7 @@ function rowsFor(
   const binding = getPrimitiveBinding(type) as
     { props?: { accepts?: Accepts }; skiaPrimitive?: unknown } | undefined;
   // (a draw module paints these on Canvas — dot · bar · line · ring — not the root box)
-  if (mode === "catalog" && binding?.skiaPrimitive !== undefined)
-    return "skip";
+  if (mode === "catalog" && binding?.skiaPrimitive !== undefined) return "skip";
   const accepts = binding?.props?.accepts ?? {};
   const reach = rulePaintReach(type, rule);
   const fillStyles = [undefined, ...(reach.fillStyles ?? [])];
@@ -264,6 +265,7 @@ it("DOM computed paint == Canvas paint over the whole table (reach inputs)", asy
 it("records the Builder widgets' (no catalog id) computed paint — R7 before/after", async () => {
   // (the Builder's own bundle — a subset of the generated sheets + the manual sheets, pins last)
   css.textContent = builderCss;
+  document.documentElement.dataset.document = "builder";
   const chrome: Record<string, string> = {};
   for (const [type, rule] of Object.entries(
     COMPONENT_RULES_TABLE as Record<string, ComponentRule>,
@@ -272,6 +274,7 @@ it("records the Builder widgets' (no catalog id) computed paint — R7 before/af
     if (rows !== "skip") for (const row of rows) chrome[row.key] = row.dom;
   }
   css.textContent = bundleCss;
+  delete document.documentElement.dataset.document;
   expect(Object.keys(chrome).length).toBeGreaterThan(1_000);
   await commands.writeFile(
     "../../.agent/runs/adr297-chrome-paint.json",
@@ -326,8 +329,10 @@ function stateStyleRows(mode: "catalog" | "chrome"): Record<string, string> {
 it("records the root state styles (DOM catalog · chrome) and the Canvas disabled dim — 3b before/after", async () => {
   const catalog = stateStyleRows("catalog");
   css.textContent = builderCss;
+  document.documentElement.dataset.document = "builder";
   const chrome = stateStyleRows("chrome");
   css.textContent = bundleCss;
+  delete document.documentElement.dataset.document;
   const canvasDim: Record<string, string> = {};
   for (const [type, rule] of Object.entries(
     COMPONENT_RULES_TABLE as Record<string, ComponentRule>,
@@ -366,27 +371,77 @@ const SELF_STATE_TYPES = [
   "Tab",
   "Toast",
 ] as const;
-const SELF_STATE_ATTRS: Record<string, readonly (readonly [string, string])[]> = {
-  Button: [["data-field-button", "M"], ["data-field-button", "XS"], ["data-hovered", "true"]],
-  ColorArea: [["data-disabled", "true"]],
-  ColorThumb: [["data-focus-visible", "true"]],
-  DateInput: [["data-hovered", "true"], ["data-focus-within", "true"], ["data-invalid", "true"], ["data-quiet", "true"], ["data-disabled", "true"]],
-  Disclosure: [["data-quiet", "true"], ["data-in-group", "true"]],
-  DropZone: [["data-drop-target", "true"]],
-  Input: [["data-hovered", "true"], ["data-focused", "true"], ["data-focus-within", "true"], ["data-invalid", "true"], ["data-quiet", "true"], ["data-disabled", "true"]],
-  Link: [["data-hovered", "true"], ["data-quiet", "true"]],
-  ListBox: [["data-empty", "true"], ["data-size", "S"]],
-  MenuItem: [["href", "#"]],
-  Modal: [["data-dialog-trigger", "true"]],
-  Tab: [["href", "#"]],
-  Toast: [["data-variant", "neutral"], ["data-variant", "positive"]],
-};
+const SELF_STATE_ATTRS: Record<string, readonly (readonly [string, string])[]> =
+  {
+    Button: [
+      ["data-field-button", "M"],
+      ["data-field-button", "XS"],
+      ["data-hovered", "true"],
+    ],
+    ColorArea: [["data-disabled", "true"]],
+    ColorThumb: [["data-focus-visible", "true"]],
+    DateInput: [
+      ["data-hovered", "true"],
+      ["data-focus-within", "true"],
+      ["data-invalid", "true"],
+      ["data-quiet", "true"],
+      ["data-disabled", "true"],
+    ],
+    Disclosure: [
+      ["data-quiet", "true"],
+      ["data-in-group", "true"],
+    ],
+    DropZone: [["data-drop-target", "true"]],
+    Input: [
+      ["data-hovered", "true"],
+      ["data-focused", "true"],
+      ["data-focus-within", "true"],
+      ["data-invalid", "true"],
+      ["data-quiet", "true"],
+      ["data-disabled", "true"],
+    ],
+    Link: [
+      ["data-hovered", "true"],
+      ["data-quiet", "true"],
+    ],
+    ListBox: [
+      ["data-empty", "true"],
+      ["data-size", "S"],
+    ],
+    MenuItem: [["href", "#"]],
+    Modal: [["data-dialog-trigger", "true"]],
+    Tab: [["href", "#"]],
+    Toast: [
+      ["data-variant", "neutral"],
+      ["data-variant", "positive"],
+    ],
+  };
 const SELF_STATE_PROPS = [
-  "border-top-color", "border-bottom-color", "border-top-width", "border-bottom-width",
-  "border-top-left-radius", "outline-style", "outline-width", "outline-color", "outline-offset",
-  "background-color", "color", "box-shadow", "text-decoration-line", "text-decoration-thickness",
-  "padding-top", "padding-left", "padding-right", "position", "max-height", "min-height", "display",
-  "width", "height", "--lb-control-h", "caret-color",
+  "border-top-color",
+  "border-bottom-color",
+  "border-top-width",
+  "border-bottom-width",
+  "border-top-left-radius",
+  "outline-style",
+  "outline-width",
+  "outline-color",
+  "outline-offset",
+  "background-color",
+  "color",
+  "box-shadow",
+  "text-decoration-line",
+  "text-decoration-thickness",
+  "padding-top",
+  "padding-left",
+  "padding-right",
+  "position",
+  "max-height",
+  "min-height",
+  "display",
+  "width",
+  "height",
+  "--lb-control-h",
+  "caret-color",
 ] as const;
 function selfStateRows(mode: "catalog" | "chrome"): Record<string, string> {
   const out: Record<string, string> = {};
@@ -395,7 +450,9 @@ function selfStateRows(mode: "catalog" | "chrome"): Record<string, string> {
   host.append(popover);
   const tail = document.createElement("div");
   for (const type of SELF_STATE_TYPES) {
-    const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[type]!;
+    const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
+      type
+    ]!;
     const attrs = SELF_STATE_ATTRS[type]!;
     const variant = rule.defaultVariant ?? Object.keys(rule.variants ?? {})[0];
     for (const parent of type === "ListBox" ? [host, popover] : [host])
@@ -417,11 +474,12 @@ function selfStateRows(mode: "catalog" | "chrome"): Record<string, string> {
         parent.append(element);
         parent.append(tail); // (`:not(:last-child)`)
         const c = getComputedStyle(element);
-        out[`${type} ${parent === popover ? "popover" : "-"} ${on.join(",") || "rest"}`] =
-          SELF_STATE_PROPS.map((p) => {
-            const v = c.getPropertyValue(p);
-            return /color/.test(p) ? rgba(v) : v;
-          }).join(" · ");
+        out[
+          `${type} ${parent === popover ? "popover" : "-"} ${on.join(",") || "rest"}`
+        ] = SELF_STATE_PROPS.map((p) => {
+          const v = c.getPropertyValue(p);
+          return /color/.test(p) ? rgba(v) : v;
+        }).join(" · ");
         element.remove();
       }
   }
@@ -433,8 +491,10 @@ function selfStateRows(mode: "catalog" | "chrome"): Record<string, string> {
 it("records the self-state rootSelectors' computed styles (catalog · chrome) — 3c before/after", async () => {
   const catalog = selfStateRows("catalog");
   css.textContent = builderCss;
+  document.documentElement.dataset.document = "builder";
   const chrome = selfStateRows("chrome");
   css.textContent = bundleCss;
+  delete document.documentElement.dataset.document;
   expect(Object.keys(catalog).length).toBeGreaterThan(100);
   await commands.writeFile(
     "../../.agent/runs/adr297-self-state.json",

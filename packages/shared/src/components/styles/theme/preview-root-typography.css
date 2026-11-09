@@ -1,0 +1,17 @@
+/* 사용자 컴포넌트 문서 (Preview · Publish) 의 root 글꼴 · 행간 — ADR-305 (옛 shared-tokens.css 의 `:root` 2문장).
+ * DEFAULT_BASE_TYPOGRAPHY (customFonts.ts) 와 동일 체인 유지 필수 — drift 시 D3 symmetric 파괴.
+ * font-size 제외: `html, :root` 는 browser default(16px) 상속. 빌더 문서는 자기 사본을 싣는다 (서로 따라가지 않는다). */
+@layer shared-tokens {
+  :root {
+    font-family:
+      Pretendard,
+      -apple-system,
+      BlinkMacSystemFont,
+      system-ui,
+      Roboto,
+      "Helvetica Neue",
+      "Segoe UI",
+      sans-serif;
+    line-height: 1.5;
+  }
+}

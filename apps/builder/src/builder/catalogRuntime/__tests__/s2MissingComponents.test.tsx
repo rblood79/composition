@@ -47,12 +47,7 @@ it("SegmentedControl and Item expose the audited S2/RAC props and retain them in
       ],
       [
         item,
-        [
-          "autoFocus",
-          "aria-labelledby",
-          "aria-describedby",
-          "aria-details",
-        ],
+        ["autoFocus", "aria-labelledby", "aria-describedby", "aria-details"],
       ],
     ] as const) {
       const contract = catalogEditContract(h.graph(), h.workspace.readModel, {
@@ -92,8 +87,9 @@ it("SegmentedControl and Item expose the audited S2/RAC props and retain them in
   }
 });
 
-it("both production CSS bundles load the new component and item sheets", () => {
-  for (const bundle of ["index.css", "builder-components.css"]) {
+// ADR-305 — 빌더 문서는 사용자 컴포넌트 시트를 싣지 않는다 (빌더 위젯은 styles/widgets/ 사본). 사용자 번들만.
+it("the user component CSS bundle loads the new component and item sheets", () => {
+  for (const bundle of ["index.css"]) {
     const css = readFileSync(
       resolve(
         __dirname,

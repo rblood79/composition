@@ -1,0 +1,55 @@
+/* ADR-305 — 빌더 chrome 시트. 출처: packages/shared/src/components/styles/generated/ActionButtonGroup.css (분리 직전 빌더 화면에 맞던 규칙 5 / 원본 그대로의 layer · 순서).
+ * 이 파일은 빌더 문서만 싣는다. 사용자 컴포넌트 시트와 서로 따라가지 않는다 (Decision 5) — 빌더 위젯 모양은 여기서 고친다.
+ * 범위 = 첫 compound 의 :where([data-document="builder"], …) (특이도 0). 값 = 분리 직전 빌더 값 (catalog 토큰은 그 고정값으로 풀었다). */
+
+@layer components {
+  .react-aria-ActionButtonGroup:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+    width: fit-content;
+    height: fit-content;
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    border-radius: 0;
+    gap: 8px;
+  }
+
+  .react-aria-ActionButtonGroup:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    color: var(--fg);
+  }
+
+  .react-aria-ActionButtonGroup[data-size="M"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    font-size: 14px;
+    border-radius: 0;
+    gap: 8px;
+  }
+
+  .react-aria-ActionButtonGroup[data-orientation="horizontal"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    flex-direction: row;
+  }
+}
+
+@layer components {
+  @media (forced-colors: active) {
+    .react-aria-ActionButtonGroup:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+      forced-color-adjust: auto;
+    }
+  }
+}

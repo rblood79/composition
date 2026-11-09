@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
  * 생성기 (`packages/specs/scripts/generate-css.ts`) 는 `structure` 를 가진 catalog rule 마다 파일을
  * 낸다. 그 파일이 실제 DOM 에 도달하는 경로는 두 가지뿐 — `styles/index.css` 의 `@import`, 또는
  * 컴포넌트·binding 모듈의 `import "./styles/generated/X.css"` (2026-09-16 부터 모듈 채널은 0 —
- * 컴포넌트 CSS 는 앱별 번들 index.css / builder-components.css 가 싣는다). 어느 쪽에도 없는 파일은
+ * 컴포넌트 CSS 는 Preview · Publish 번들 index.css 가 싣는다 — 빌더 문서는 ADR-305 로 싣지 않는다). 어느 쪽에도 없는 파일은
  * **아무도 읽지 않는다**. 2026-09-03 전수 조사 (evidence §11) 결과 그런 파일이 27개 (index 66 + 모듈 2 = 68 로드, 미로드 25) 였고 실제 시각 공백은
  * 0 이었다 — 전부 (A) 모듈 import 로 활성 · (B) 수동 CSS 가 같은 class 담당 · (C) 컴포넌트가 catalog
  * rule 을 런타임 인라인으로 소비 · (D) DOM 이 그 class 를 방출하지 않음 · (E) container layout 채널이

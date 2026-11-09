@@ -1,0 +1,67 @@
+/* ADR-305 — 빌더 문서의 그림자 토큰 7종 (분리 직전 값 · 같은 layer 자리 · 같은 선택자).
+ *
+ * 빌더 앱 CSS 는 `var(--shadow-sm)` 등을 쓰고, 그 값은 사용자 테마 `preview-system.css` 의 `:root` 가 Tailwind
+ * 테마 (`@layer theme`) 를 이겨 정해 왔다. 빌더가 그 시트를 싣지 않게 되면서 (Decision 1) 같은 선언의 사본을 둔다 —
+ * 이후 사용자 테마와 서로 따라가지 않는다 (Decision 5). 출처: packages/shared/src/components/styles/theme/preview-system.css
+ */
+@layer preview-system {
+  :root {
+    --shadow-sm: var(
+      --box-shadow-sm,
+      0 2px 8px rgb(0 0 0 / 0.08),
+      0 1px 4px rgb(0 0 0 / 0.04),
+      0 0 1px rgb(0 0 0 / 0.08)
+    );
+    --shadow-md: var(
+      --box-shadow-md,
+      0 4px 12px rgb(0 0 0 / 0.08),
+      0 2px 6px rgb(0 0 0 / 0.04),
+      0 0 2px rgb(0 0 0 / 0.12)
+    );
+    --shadow-lg: var(
+      --box-shadow-lg,
+      0 12px 16px rgb(0 0 0 / 0.08),
+      0 6px 8px rgb(0 0 0 / 0.04),
+      0 0 6px rgb(0 0 0 / 0.16)
+    );
+    --drop-shadow-sm: var(
+      --filter-drop-shadow-sm,
+      drop-shadow(0 1px 1px rgb(0 0 0 / 0.05))
+    );
+    --drop-shadow-md: var(
+      --filter-drop-shadow-md,
+      drop-shadow(0 4px 3px rgb(0 0 0 / 0.07))
+        drop-shadow(0 2px 2px rgb(0 0 0 / 0.06))
+    );
+    --inset-shadow-xs: var(
+      --inset-box-shadow-xs,
+      inset 0 1px 1px 0 rgb(0 0 0 / 0.05)
+    );
+    --inset-shadow-sm: var(
+      --inset-box-shadow-sm,
+      inset 0 2px 4px 0 rgb(0 0 0 / 0.05)
+    );
+  }
+}
+@layer preview-system {
+  [data-theme="dark"] {
+    --shadow-sm: var(
+      --box-shadow-sm,
+      0 2px 8px rgb(0 0 0 / 0.24),
+      0 1px 4px rgb(0 0 0 / 0.12),
+      0 0 1px rgb(0 0 0 / 0.24)
+    );
+    --shadow-md: var(
+      --box-shadow-md,
+      0 4px 12px rgb(0 0 0 / 0.24),
+      0 2px 6px rgb(0 0 0 / 0.12),
+      0 0 2px rgb(0 0 0 / 0.36)
+    );
+    --shadow-lg: var(
+      --box-shadow-lg,
+      0 12px 16px rgb(0 0 0 / 0.24),
+      0 6px 8px rgb(0 0 0 / 0.12),
+      0 0 6px rgb(0 0 0 / 0.48)
+    );
+  }
+}

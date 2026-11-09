@@ -1,0 +1,160 @@
+/* ADR-305 — 빌더 chrome 시트. 출처: packages/shared/src/components/styles/utilities.css (분리 직전 빌더 화면에 맞던 규칙 17 / 원본 그대로의 layer · 순서).
+ * 이 파일은 빌더 문서만 싣는다. 사용자 컴포넌트 시트와 서로 따라가지 않는다 (Decision 5) — 빌더 위젯 모양은 여기서 고친다.
+ * 범위 = 첫 compound 의 :where([data-document="builder"], …) (특이도 0). 값 = 분리 직전 빌더 값 (catalog 토큰은 그 고정값으로 풀었다). */
+
+@layer utilities {
+  .button-base:not([data-catalog-id]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    background: var(--button-color);
+    color: var(--button-text, var(--color-white));
+    border-color: var(--button-border, var(--button-color));
+  }
+
+  .button-base:not([data-catalog-id]):where([data-hovered]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    background: var(
+      --button-color-hover,
+      color-mix(in srgb, var(--button-color) 85%, black)
+    );
+    border-color: color-mix(
+      in srgb,
+      var(--button-border, var(--button-color)) 85%,
+      black
+    );
+  }
+
+  .button-base:not([data-catalog-id]):where([data-pressed]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    background: var(
+      --button-color-pressed,
+      color-mix(in srgb, var(--button-color) 75%, black)
+    );
+    border-color: color-mix(
+      in srgb,
+      var(--button-border, var(--button-color)) 75%,
+      black
+    );
+  }
+
+  .button-base:not([data-catalog-id]):where([data-selected]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    background: var(--button-color);
+    color: var(--button-text, var(--color-white));
+    border-color: var(--button-border, var(--button-color));
+  }
+
+  .button-base:not([data-catalog-id]):where(
+      [data-selected][data-hovered]
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    background: var(
+      --button-color-hover,
+      color-mix(in srgb, var(--button-color) 85%, black)
+    );
+    border-color: color-mix(
+      in srgb,
+      var(--button-border, var(--button-color)) 85%,
+      black
+    );
+  }
+
+  .button-base:not([data-catalog-id]):where(
+      [data-selected][data-pressed]
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    background: var(
+      --button-color-pressed,
+      color-mix(in srgb, var(--button-color) 75%, black)
+    );
+    border-color: color-mix(
+      in srgb,
+      var(--button-border, var(--button-color)) 75%,
+      black
+    );
+  }
+
+  .button-base:not([data-catalog-id]):where([data-focus-visible]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .button-base:not([data-catalog-id]):where([data-disabled]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    background: color-mix(in srgb, var(--fg) 12%, transparent);
+    color: color-mix(in srgb, var(--fg) 38%, transparent);
+    border-color: transparent;
+    opacity: 0.38;
+    pointer-events: none;
+  }
+
+  .button-base:not([data-catalog-id]):where([data-fill-style="outline"]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    background: transparent;
+  }
+
+  .button-base:not([data-catalog-id]):where([data-fill-style="outline"]):where(
+      [data-hovered]
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    background: color-mix(in srgb, var(--button-text) 8%, transparent);
+  }
+
+  .button-base:not([data-catalog-id]):where([data-fill-style="outline"]):where(
+      [data-pressed]
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    background: color-mix(in srgb, var(--button-text) 12%, transparent);
+  }
+
+  .indicator:where([data-document="builder"], [data-document="builder"] *) {
+    --indicator-selected: var(--indicator-color, var(--accent));
+    --indicator-hover: color-mix(in srgb, var(--indicator-selected) 85%, black);
+  }
+
+  .indicator:where(:not([data-catalog-id], [data-catalog-id] *)):where(
+      [data-selected]
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    background: var(--indicator-selected);
+    border-color: var(--indicator-selected);
+    color: var(--fg-on-accent);
+  }
+
+  .indicator:where(:not([data-catalog-id], [data-catalog-id] *)):where(
+      [data-selected][data-hovered]
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    background: var(--indicator-hover);
+    border-color: var(--indicator-hover);
+  }
+
+  .indicator:where(:not([data-catalog-id], [data-catalog-id] *)):where(
+      [data-selected][data-pressed]
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    background: color-mix(in srgb, var(--indicator-selected) 75%, black);
+    border-color: color-mix(in srgb, var(--indicator-selected) 75%, black);
+  }
+
+  .indicator:where(:not([data-catalog-id], [data-catalog-id] *)):where(
+      [data-focus-visible]
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    outline: 2px solid var(--indicator-selected);
+    outline-offset: 2px;
+  }
+
+  .indicator:where(:not([data-catalog-id], [data-catalog-id] *)):where(
+      [data-disabled]
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    opacity: 0.38;
+    pointer-events: none;
+  }
+}

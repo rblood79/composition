@@ -1,0 +1,156 @@
+/* ADR-305 — 빌더 chrome 시트. 출처: packages/shared/src/components/styles/builder-catalog-pins.css (분리 직전 빌더 화면에 맞던 규칙 19 / 원본 그대로의 layer · 순서).
+ * 이 파일은 빌더 문서만 싣는다. 사용자 컴포넌트 시트와 서로 따라가지 않는다 (Decision 5) — 빌더 위젯 모양은 여기서 고친다.
+ * 범위 = 첫 compound 의 :where([data-document="builder"], …) (특이도 0). 값 = 분리 직전 빌더 값 (catalog 토큰은 그 고정값으로 풀었다). */
+
+@layer components {
+  .react-aria-TextField:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    min-width: 45px;
+  }
+
+  .react-aria-Select:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    --select-btn-pad-start: 0;
+  }
+
+  .react-aria-ToggleButton:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    min-height: auto;
+    min-width: auto;
+  }
+
+  .react-aria-ToggleButton[data-size="S"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    min-height: auto;
+    min-width: auto;
+  }
+
+  .react-aria-ToggleButton[data-size="M"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    min-height: auto;
+    min-width: auto;
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    min-height: auto;
+  }
+
+  .react-aria-ComboBox:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
+    .react-aria-Button {
+    min-height: auto;
+  }
+
+  .react-aria-ToggleButton.react-aria-ToggleButton:where([data-pressed]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    transform: scale(0.95);
+  }
+
+  .react-aria-ToggleButtonGroup:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
+    .react-aria-ToggleButton
+    > span {
+    transition: scale 200ms;
+  }
+
+  .react-aria-ToggleButtonGroup[data-indicator="true"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
+    .react-aria-ToggleButton[data-pressed]
+    > span {
+    transform: none;
+  }
+
+  .react-aria-ToggleButton:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  .react-aria-ToggleButton[data-size="S"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    padding-top: 2px;
+    padding-bottom: 2px;
+  }
+
+  .react-aria-ToggleButton[data-size="M"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  .react-aria-ToggleButtonGroup:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    font-size: 16px;
+    gap: normal;
+  }
+
+  .react-aria-ToggleButtonGroup[data-size="M"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    font-size: 16px;
+    gap: normal;
+  }
+
+  .react-aria-ToggleButtonGroup:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
+    .react-aria-ToggleButton
+    > span {
+    gap: 8px;
+  }
+
+  .react-aria-ToggleButtonGroup[data-density="regular"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    gap: 8px;
+  }
+
+  .react-aria-ToggleButtonGroup:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
+    .react-aria-ToggleButton[data-pressed]
+    > span {
+    scale: 0.9;
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+}

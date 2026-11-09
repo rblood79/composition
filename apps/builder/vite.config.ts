@@ -181,6 +181,11 @@ function devIdentityPlugin() {
  * 부팅하고 `BrowserRouter` 가 경로를 처리한다 (응답 상태는 404). 자산 경로는 base 절대 경로라
  * 깊이와 무관하다.
  */
+/** 빌더 문서 `index.html` 만 (ADR-305 — `publish/index.html` 은 빌더 셸 · 빌더 layer 순서를 받지 않는다). */
+function isBuilderIndexHtml(filename: string): boolean {
+  return resolve(filename) === resolve(import.meta.dirname, "index.html");
+}
+
 function spaFallbackPlugin() {
   return {
     name: "spa-fallback-404",
@@ -236,7 +241,7 @@ function staticShellPlugin() {
       ctx: IndexHtmlTransformContext,
     ): HtmlTagDescriptor[] {
       if (process.env.COMPOSITION_STATIC_SHELL === "off") return [];
-      if (!/(^|[\\/])index\.html$/.test(ctx.filename)) return [];
+      if (!isBuilderIndexHtml(ctx.filename)) return [];
       return [
         {
           tag: "div",
@@ -266,7 +271,7 @@ function cascadeLayerOrderPlugin() {
       _html: string,
       ctx: IndexHtmlTransformContext,
     ): HtmlTagDescriptor[] {
-      if (!/(^|[\\/])index\.html$/.test(ctx.filename)) return [];
+      if (!isBuilderIndexHtml(ctx.filename)) return [];
       return [
         cascadeLayerOrderTag(
           readFileSync(resolve(import.meta.dirname, "src/index.css"), "utf8"),
@@ -336,6 +341,8 @@ export default defineConfig(({ command }) => {
         input: {
           main: resolve(import.meta.dirname, "index.html"),
           preview: resolve(import.meta.dirname, "preview.html"),
+          // ADR-305 Decision 6 — Publish 별도 진입 (빌더 CSS 를 싣지 않는 자기 문서)
+          publish: resolve(import.meta.dirname, "publish/index.html"),
         },
       },
     },

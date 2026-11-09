@@ -85,12 +85,6 @@
 
     /* ===== Focus Visible (variant-aware) ===== */
     /* (the catalog ColorPicker has no such variant — Builder widgets only) */
-    &:where(:not([data-catalog-id], [data-catalog-id] *))[data-variant="primary"][data-focus-visible],
-    &:where(:not([data-catalog-id], [data-catalog-id] *))[data-variant="secondary"][data-focus-visible],
-    &:where(:not([data-catalog-id], [data-catalog-id] *))[data-variant="tertiary"][data-focus-visible] {
-      outline: 2px solid var(--field-accent);
-      outline-offset: 2px;
-    }
 
     /* ===== Popover Dialog Border (variant-aware) ===== */
     &[data-variant="primary"] .color-picker-popover .react-aria-Dialog,
@@ -196,10 +190,6 @@
   @media (forced-colors: active) {
     .react-aria-ColorPicker {
       forced-color-adjust: auto;
-    }
-
-    .react-aria-ColorPicker:where(:not([data-catalog-id], [data-catalog-id] *))[data-focus-visible] {
-      outline-color: Highlight;
     }
 
     .color-picker-popover .react-aria-Dialog {

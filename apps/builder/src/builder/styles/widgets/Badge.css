@@ -1,0 +1,40 @@
+/* ADR-305 — 빌더 chrome 시트. 출처: packages/shared/src/components/styles/Badge.css (분리 직전 빌더 화면에 맞던 규칙 4 / 원본 그대로의 layer · 순서).
+ * 이 파일은 빌더 문서만 싣는다. 사용자 컴포넌트 시트와 서로 따라가지 않는다 (Decision 5) — 빌더 위젯 모양은 여기서 고친다.
+ * 범위 = 첫 compound 의 :where([data-document="builder"], …) (특이도 0). 값 = 분리 직전 빌더 값 (catalog 토큰은 그 고정값으로 풀었다). */
+
+@layer components {
+  .react-aria-Badge[data-badge]:not([data-dot]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    transition: all 200ms;
+  }
+
+  .react-aria-Badge[data-badge]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
+    > .badge-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+  }
+
+  .react-aria-Badge[data-badge][data-overflow-mode="wrap"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    white-space: normal;
+  }
+}
+
+@layer components {
+  @media (forced-colors: active) {
+    .react-aria-Badge[data-badge]:where(
+        [data-document="builder"],
+        [data-document="builder"] *
+      ) {
+      border: 1px solid CanvasText;
+    }
+  }
+}

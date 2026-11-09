@@ -1,4 +1,4 @@
-/* ADR-258 (2026-10-12): builder chrome 전용 (builder-components.css — 패널의 색 고르기).
+/* ADR-258 (2026-10-12): builder chrome 전용 (apps/builder/src/builder/styles/widgets/index.css — 패널의 색 고르기).
    Preview · Publish 의 ColorSlider · ColorThumb 는 catalog rule 의 생성 CSS (generated/ColorSlider.css · ColorThumb.css) 가 정본이다. */
 @layer components {
   .react-aria-ColorSlider {

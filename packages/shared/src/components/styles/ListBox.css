@@ -25,12 +25,6 @@
   /* ========== ListBox :empty + Header (Generator 커버 불가 — 자식 selector) ========== */
   .react-aria-ListBox {
     /* (Builder 자체 목록만 — 카탈로그 목록의 빈 상태는 작성자의 IllustratedMessage 가 Canvas 와 같은 배치로 그린다, RAC renderEmptyState 2026-10-23.) */
-    &[data-empty]:not([data-catalog-id]) {
-      align-items: center;
-      justify-content: center;
-      font-style: italic;
-      color: var(--fg-muted);
-    }
 
     .react-aria-Header {
       font-size: var(--text-sm);
@@ -78,32 +72,12 @@
     /* ADR-297 Phase 3b: a catalog option's cursor is the ListBoxItem rule's state tree (generated).
        Phase 3g: so is its text colour (`--fg` at rest, `--fg-on-accent` selected) — this sheet loads
        after the generated one, so an unscoped `color` here would keep selected text dark on accent. */
-    &:where(:not([data-catalog-id])) {
-      cursor: pointer;
-      color: var(--fg);
-    }
 
     /* ADR-297 Phase 3g: a catalog option's focus ring and selected fill are the ListBoxItem rule's tree
        (generated — accent, as RAC's starter and Canvas; user decision 2026-11-01) — the scoped blocks are
        Builder widgets' (the light `--lb-accent-container` fill stays theirs). */
-    &:where(:not([data-catalog-id], [data-catalog-id] *))[data-focus-visible] {
-      /* Generator 기본(`var(--focus-ring)`) override — variant cascade 와 통일된 accent 포커스 */
-      outline: 2px solid var(--accent);
-      outline-offset: -2px;
-    }
 
     &[data-selected] {
-      &:where(:not([data-catalog-id], [data-catalog-id] *)) {
-        background: var(--lb-accent-container);
-        color: var(--lb-on-accent-container);
-      }
-
-      &:where(
-          :not([data-catalog-id], [data-catalog-id] *)
-        )[data-focus-visible] {
-        outline-color: var(--accent);
-        outline-offset: -4px;
-      }
     }
 
     &[data-disabled] {
@@ -203,40 +177,6 @@
         margin-bottom: var(--spacing-xs);
         border-radius: var(--radius-xs);
       }
-
-      &:where(:not([data-catalog-id], [data-catalog-id] *))[data-selected] {
-        background: none;
-        color: inherit;
-
-        &:after {
-          content: "✓";
-          content: "✓" / "";
-          alt: " ";
-          position: absolute;
-          top: 8px;
-          right: 8px;
-          background: var(--accent);
-          border: 2px solid var(--accent);
-          color: var(--fg-on-accent);
-          width: 22px;
-          height: 22px;
-          border-radius: 50%;
-          box-sizing: border-box;
-          font-size: 14px;
-          line-height: 1em;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: var(--shadow-md);
-        }
-      }
-
-      &:where(
-          :not([data-catalog-id], [data-catalog-id] *)
-        )[data-focus-visible] {
-        outline: 2px solid var(--accent);
-        outline-offset: -2px;
-      }
     }
   }
 
@@ -305,90 +245,10 @@
   }
 
   /* ========== Popover Context (ComboBox, Select) ==========
-   * The Builder's own pickers (panel Selects — `builder-components.css`). A catalog picker's list
+   * Formerly the Builder's own pickers — the builder document now loads its copy from
+   * `apps/builder/src/builder/styles/widgets/` (ADR-305). A catalog picker's list
    * (its Popover carries `data-catalog-id`) is the RAC reference `.dropdown-listbox` — the ListBox
    * rule's `&:is(.react-aria-Popover *)` block in the generated sheet (2026-10-13). */
-  .react-aria-Popover[data-trigger="ComboBox"]:not([data-catalog-id]),
-  .react-aria-Popover[data-trigger="Select"]:not([data-catalog-id]) {
-    .react-aria-ListBox {
-      display: block;
-      width: unset;
-      max-height: inherit;
-      min-height: unset;
-      border: none;
-      padding: var(--spacing-xs);
-      content-visibility: auto;
-
-      .react-aria-Header {
-        padding-left: var(--spacing-lg);
-      }
-    }
-
-    .react-aria-ListBoxItem {
-      padding: var(--lb-item-padding);
-      padding-left: var(--spacing-xl);
-
-      /* 팝오버 행의 icon slot (2026-08-21) — 좌측 `--spacing-xl` gutter 는 선택 ✓
-       * (`[data-selected]::before`, left:0 width:18px)가 쓰므로 icon 은 그 **다음**에 놓고
-       * 텍스트를 icon 폭만큼 더 민다. 평면 ListBox 규칙(`left: --spacing-md`,
-       * `padding-left: calc(--spacing-md + icon + 6px)`)을 그대로 쓰면 24px gutter 와
-       * 겹쳐 아이콘이 라벨 위로 올라온다(실측). Select/ComboBox itemSchema 의 icon 이
-       * 실제로 렌더되기 시작한 2026-08-21 이전에는 드러나지 않던 조합. */
-      [slot="icon"] {
-        left: var(--spacing-xl);
-      }
-
-      &:has([slot="icon"]) {
-        padding-left: calc(var(--spacing-xl) + var(--lb-icon-size, 16px) + 6px);
-      }
-
-      &[data-focus-visible] {
-        outline: none;
-      }
-
-      &[data-selected] {
-        background: unset;
-        color: var(--fg);
-
-        &::before {
-          content: "✓" / "";
-          position: absolute;
-          left: 0;
-          color: var(--accent);
-          width: 18px;
-          height: 100%;
-          aspect-ratio: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-      }
-
-      /* ADR-256 Phase 6f — 작성자의 선택 표시 노드 (레퍼런스 DropdownItem 의 `isSelected && <Check />`,
-       * `showWhen: isSelected`) 가 있는 항목은 그 노드가 표시다. 위 글리프는 비키고 (`data-selection-mark`
-       * — `domBinding.tsx` `hasSelectionMark`, Menu.css 와 같은 길), 아이콘 노드는 글리프 자리 (왼쪽
-       * gutter) 에 놓인다 — 레퍼런스 `.dropdown-item[data-selected] .lucide-check` 처럼. */
-      &[data-selection-mark]::before {
-        display: none;
-      }
-
-      &[data-selection-mark] > .react-aria-Icon:not([slot]) {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 18px;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      &[data-focused],
-      &[data-pressed] {
-        background: var(--bg-overlay);
-      }
-    }
-  }
 
   /* ========== Color Variants ========== */
   .react-aria-ListBox[data-variant="primary"] {
@@ -419,21 +279,7 @@
   .react-aria-ListBox[data-variant="secondary"],
   .react-aria-ListBox[data-variant="tertiary"],
   .react-aria-ListBox[data-variant="error"] {
-    &:where(:not([data-catalog-id], [data-catalog-id] *))[data-focus-visible] {
-      outline-color: var(--lb-accent);
-    }
-
     .react-aria-ListBoxItem {
-      &:where(
-          :not([data-catalog-id], [data-catalog-id] *)
-        )[data-focus-visible] {
-        outline-color: var(--lb-accent);
-      }
-
-      &:where(:not([data-catalog-id], [data-catalog-id] *))[data-selected] {
-        background: var(--lb-accent-container);
-        color: var(--lb-on-accent-container);
-      }
     }
   }
 
@@ -445,11 +291,6 @@
     .react-aria-ListBoxItem {
       &[data-hovered] {
         background: var(--bg-overlay);
-      }
-
-      &:where(:not([data-catalog-id], [data-catalog-id] *))[data-selected] {
-        background: var(--lb-accent-container);
-        color: var(--lb-on-accent-container);
       }
     }
   }
@@ -484,16 +325,6 @@
 
   .react-aria-ListBox.virtualized .virtualized-error {
     color: var(--negative);
-  }
-
-  .react-aria-ListBox.virtualized:where(
-      :not([data-catalog-id], [data-catalog-id] *)
-    ):focus,
-  .react-aria-ListBox.virtualized:where(
-      :not([data-catalog-id], [data-catalog-id] *)
-    ):focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: -1px;
   }
 
   /* ========== Forced Colors Mode (High Contrast) ========== */

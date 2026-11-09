@@ -30,18 +30,6 @@
 
     /* ADR-297 Phase 3b: a catalog Link's disabled dim and focus ring are the Link rule's state tree
        (generated `:where` blocks, which this sheet's state selectors would outrank) — Builder Link only. */
-    &:not([data-catalog-id]) {
-      &[data-disabled] {
-        cursor: not-allowed;
-        pointer-events: none;
-        opacity: 0.38;
-      }
-
-      &[data-focus-visible] {
-        outline: 2px solid var(--accent);
-        outline-offset: 2px;
-      }
-    }
 
     &[data-external="true"] {
       & .link-external-icon {
@@ -102,21 +90,6 @@
 
   /* 글자색 — Builder 자체 Link 만 (catalog 노드 `[data-catalog-id]` 는 Link rule 의 칠 트리가 정본, 생성
      `generated/Link.css` — ADR-297 Phase 3: 트리 블록이 `:where()` 라 이 시트의 상태 색이 이기면 Canvas 와 갈린다). */
-  .react-aria-Link:not([data-catalog-id]) {
-    color: var(--link-color);
-
-    &[data-hovered] {
-      color: color-mix(in srgb, var(--link-color) 85%, black);
-    }
-
-    &[data-pressed] {
-      color: color-mix(in srgb, var(--link-color) 75%, black);
-    }
-
-    &[data-disabled] {
-      color: color-mix(in srgb, var(--fg) 38%, transparent);
-    }
-  }
 
   /* High contrast mode support */
   @media (forced-colors: active) {
@@ -126,9 +99,6 @@
       }
 
       /* (a catalog Link's ring is the generated sheet's, loaded after this one — Builder links only) */
-      &:where(:not([data-catalog-id], [data-catalog-id] *))[data-focus-visible] {
-        outline: 2px solid Highlight;
-      }
 
       &[data-disabled] {
         color: GrayText;

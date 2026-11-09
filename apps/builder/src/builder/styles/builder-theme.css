@@ -1,0 +1,14 @@
+/* 빌더 문서의 테마 진입 — ADR-305 Decision 1.
+ *
+ * packages/shared/src/components/theme.css 에서 사용자 컴포넌트 테마 (`preview-system.css`) 를 뺀 목록이다.
+ * 공유하는 시트는 중립 시트 (선언이 전부 `--*` 인 규칙 · 그것을 감싼 `@layer`) 뿐 — 경계 게이트
+ * (`styles/__tests__/chromeWidgetSheets.static.test.ts`) 가 내용을 파싱해 확인한다.
+ * 레이어 순서는 apps/builder/src/index.css 첫머리의 @layer 문이 정한다.
+ */
+@import "./builder-shadow-tokens.css"; /* preview-system.css 자리 — 빌더가 쓰던 그림자 토큰 사본 */
+@import "../../../../../packages/shared/src/components/styles/theme/shared-tokens.css";
+@import "./builder-root-typography.css";
+@import "../../../../../packages/shared/src/components/styles/theme/generated/tailwind-palette.css";
+@import "../../../../../packages/shared/src/components/styles/theme/generated/semantic-palette.css";
+@import "../../../../../packages/shared/src/components/styles/theme/generated/chart-palette.css";
+@import "../../../../../packages/shared/src/components/styles/theme/builder-system.css";

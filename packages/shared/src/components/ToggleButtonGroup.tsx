@@ -18,7 +18,7 @@ import {
 } from "./ToggleButtonGroupContext";
 // CSS: styles/generated/ToggleButtonGroup.css + styles/ToggleButtonGroup.css (staticColor × indicator 조합
 // 전용 수동 — ToggleButton.css 동형). 기본(segmented) 모드는 자식 ToggleButton 의 수동 CSS 가 담당한다.
-// 앱별 번들이 싣는다 (styles/index.css · builder-components.css).
+// Preview · Publish 번들 (styles/index.css) 이 싣는다 — 빌더 문서는 싣지 않는다 (ADR-305).
 import { useComponentStrings } from "../i18n";
 
 export interface ToggleButtonGroupExtendedProps extends ToggleButtonGroupProps {

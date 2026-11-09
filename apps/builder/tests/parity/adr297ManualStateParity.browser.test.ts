@@ -3,15 +3,16 @@
  * 값. 팔레트 instance 를 문서에 넣고 product DOM binding (`renderCatalogDom`) 으로 그린 뒤, 상태를 받는 요소 (항목 ·
  * toggle · 셀 · 부품) 에 RAC 상태 속성을 조합으로 걸어 그 요소와 자손 · `::before` · `::after` 의 값을 기록한다
  * (`.agent/runs/adr297-manual-state.json`). 합성 fixture 가 아니라 실제 DOM 이라 조상 맥락 (`data-variant` · 변수 ·
- * Popover) 이 그대로 실린다. 둘째 기록은 같은 DOM 에서 `data-catalog-id` 를 지우고 Builder 묶음
- * (`builder-components.css`) 으로 잰다 — Builder 위젯 쪽 값 (R7).
+ * Popover) 이 그대로 실린다. 둘째 기록은 같은 DOM 에서 `data-catalog-id` 를 지우고 빌더 위젯 시트
+ * (`apps/builder/src/builder/styles/widgets/`, 빌더 문서 표지 포함) 로 잰다 — Builder 위젯 쪽 값 (R7).
  */
 import React from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { commands } from "vitest/browser";
 import bundleCss from "@composition/shared/components/styles/index.css?inline";
-import builderCss from "@composition/shared/components/styles/builder-components.css?inline";
+// ADR-305 — 빌더 문서의 위젯 시트 (사용자 컴포넌트 시트를 싣지 않는다 · 범위 = <html data-document="builder">)
+import builderCss from "@/builder/styles/widgets/index.css?inline";
 import { injectPreviewBaseStyles } from "@/preview/baseStyles";
 import { insertNodes } from "../../../../packages/shared/src/catalog/commands";
 import { CatalogGraph } from "../../../../packages/shared/src/catalog/document/graph";
@@ -140,10 +141,18 @@ const COMBOS: Record<string, readonly string[]> = {
   rangeEnd: ["data-selected", "data-selection-end", "data-hovered"],
   rangeSingle: ["data-selected", "data-selection-start", "data-selection-end"],
   rangeInvalid: ["data-selected", "data-invalid"],
-  rangeStartFocus: ["data-selected", "data-selection-start", "data-focus-visible"],
+  rangeStartFocus: [
+    "data-selected",
+    "data-selection-start",
+    "data-focus-visible",
+  ],
   dropTarget: ["data-drop-target"],
   selectedDropTarget: ["data-selected", "data-drop-target"],
-  selectedDisabledFocus: ["data-selected", "data-disabled", "data-focus-visible"],
+  selectedDisabledFocus: [
+    "data-selected",
+    "data-disabled",
+    "data-focus-visible",
+  ],
 };
 /**
  * RAC 가 같은 상태를 두 요소에 싣는 자리 (D1 — `*Field` `div` 와 그 안 `*Button` `label`): button 을 잴 때 field 에도
@@ -209,6 +218,7 @@ const noTransition = document.createElement("style");
 beforeAll(async () => {
   await initEngineWasm();
   css.textContent = bundleCss;
+  delete document.documentElement.dataset.document;
   document.head.append(css);
   injectPreviewBaseStyles(document);
   noTransition.textContent =
@@ -314,10 +324,15 @@ function record(): Record<string, string> {
           ? target
           : null;
       const stated = [
-        ...new Set([target, ...(field ? [field] : []), ...(button ? [button] : [])]),
+        ...new Set([
+          target,
+          ...(field ? [field] : []),
+          ...(button ? [button] : []),
+        ]),
       ];
       const saved = stated.map(
-        (el) => new Map([...el.attributes].map((a) => [a.name, a.value] as const)),
+        (el) =>
+          new Map([...el.attributes].map((a) => [a.name, a.value] as const)),
       );
       const STATE =
         /^data-(selected|indeterminate|hovered|pressed|focused|focus-visible|disabled|invalid|today|selection-start|selection-end|drop-target)$/;
@@ -467,7 +482,8 @@ it("records the manual selected · focus rules' computed styles on the real cata
     })),
   ];
   for (const { type, label, props } of plan) {
-    const id = `project:node:owner-${label.replace(/[^A-Za-z0-9]/g, "-")}` as NodeId;
+    const id =
+      `project:node:owner-${label.replace(/[^A-Za-z0-9]/g, "-")}` as NodeId;
     try {
       workspace.execute(
         insertNodes({
@@ -528,8 +544,10 @@ it("records the manual selected · focus rules' computed styles on the real cata
   for (const el of host.querySelectorAll("[data-catalog-id]"))
     el.removeAttribute("data-catalog-id");
   css.textContent = builderCss;
+  document.documentElement.dataset.document = "builder";
   const chrome = record();
   css.textContent = bundleCss;
+  delete document.documentElement.dataset.document;
   expect(owners.length).toBeGreaterThan(18);
   expect(Object.keys(catalog).length).toBeGreaterThan(500);
   await commands.writeFile(

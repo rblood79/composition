@@ -11,6 +11,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Data 표 선택 checkbox 가 check 표시만 그리던 것 — 빌더 위젯 사본 보충] - 2026-11-09
+
+### Fixed
+
+- **Data 패널 Tables 탭의 선택 열 checkbox 가 다시 상자로 그려진다** (사용자 보고): ADR-305 직후 선택하지 않은 행에도 check 아이콘만 보였다. 지금은 빈 상자 · 선택 (✓) · 일부 선택 (−) 이 분리 전과 같다.
+  - Why: 빌더 위젯 사본은 분리 직전에 찍은 빌더 화면 46 에서 쓰인 규칙만 옮겼다. 행이 있는 Data 표가 그 화면에 없어 공용 Checkbox 의 상자 규칙이 빠졌다. 행 편집 Dialog · 메뉴 규칙도 같은 이유로 빠져 있었다.
+  - 찍는 화면을 23 늘렸다 (표 생성기 · 표 · 행 선택 · 표 메뉴 4 · 행 편집 · APIs · Variables · Interactions 이벤트 편집 · 명령 팔레트 · Workflow · 눈금자 · Site 패널 · 헤더 하위 메뉴 5 · tooltip). 분리 전 빌더에서 잰 결과로 이식을 다시 돌려 규칙이 245 → 282 가 됐다 (Checkbox 24 · Menu 4 · Table 4 · 생성 Dialog 6 · 생성 Menu 7 · overlays 1).
+  - 분리 전 빌더 대비 69 화면 × 4 변형 Δ 0.
+  - 게이트 (e): 빌더가 import 하는 공용 컴포넌트마다 위젯 시트에 자기 규칙이 있어야 한다. 수정 전 상태에서 Checkbox 하나가 RED 였다.
+  - 위치: `apps/builder/src/builder/styles/widgets/` · `apps/builder/scripts/adr305-builder-snapshot.mjs` · `styles/__tests__/chromeWidgetSheets.static.test.ts`
+
+## [ADR-305 Phase 2 ~ 5 — 빌더와 사용자 컴포넌트 CSS 분리] - 2026-11-09
+
+### Changed
+
+- **빌더 화면이 사용자 컴포넌트 시트 (catalog 생성 · 공유 수동) 를 더는 싣지 않는다**: catalog rule 을 고쳐도 Design 패널 · 헤더 · 대시보드 위젯이 따라 바뀌지 않는다 (2026-11-09 토글 그룹 회귀 — S2 `min-width` 가 빌더 버튼을 30px 로 — 같은 일이 구조적으로 생기지 않는다). 빌더 위젯은 분리 직전 빌더 화면에 맞던 규칙 245 의 사본 (`apps/builder/src/builder/styles/widgets/`) 을 읽는다 — 빌더 4 변형 (light · dark × 패널 폭 228 · 387) × 46 화면 computed style Δ 0.
+  - Why: 빌더와 Preview 가 생성 시트 43 · 수동 시트 43 · 서로의 테마 시트를 같이 실어 한쪽을 고치면 다른 쪽이 바뀌었다. ADR-295 뒤 되돌리기 고정 · 게이트 커밋만 25건.
+  - Preview · Publish 시트에서 빌더 몫 (빌더 분기 124 규칙 · 빌더 패널 전용 시트 7장 import) 을 뺐다 — Preview · Publish Δ 0.
+  - Builder initial CSS 98,774 → 55,161 B gz · Preview CSS 73,391 → 66,729 B gz.
+  - 게이트: `pnpm test:css-boundary` (세 HTML 진입의 실제 import 그래프 교집합 = 변수 · `@font-face` 시트만) — `codex:preflight` · pre-push (CSS · 진입 경로 변경) 가 호출한다.
+  - 위치: `apps/builder/src/builder/styles/widgets/` · `builder-theme.css` · `main.tsx` · `packages/shared/src/components/styles/*.css` · `theme-preview.css`
+
+## [ADR-305 Phase 0 · 1 — Publish 를 별도 문서로 · 빌더 · 사용자 CSS 분리 하니스] - 2026-11-09
+
+### Changed
+
+- **Publish 가 빌더 문서의 route 가 아니라 자기 문서 (`publish/index.html`) 로 열린다**: 빌더에서 Publish 를 열면 배포 base 아래 `publish/?project=…` 로 간다 (dev `/publish/` · production `/composition/publish/`). 옛 주소 (origin 의 `/publish`) 는 production 에서 base 밖이라 정적 호스팅에서 열리지 않았다.
+  - Why: 옛 Publish 문서는 빌더 `index.html` 이라 Tailwind preflight · 빌더 시트를 같이 받아 Preview iframe 과 사용자 DOM 의 computed style 이 19,605 값 달랐다 (ADR-305 Phase 0 하니스). 새 Publish 는 사용자 컴포넌트 시트만 싣는다 — Preview 와의 차이는 뷰포트 폭 · Publish 자체 reset 의 2,013 값만 남고, 보이는 요소의 색 · 글자 크기 · 배경 변화는 0 (바뀐 것은 RAC 숨김 input · select · button 과 svg `vertical-align`).
+  - Preview · Publish 테마가 빌더 chrome 테마 (`builder-system.css`) 를 싣지 않는다 — Preview 스냅샷 Δ 0.
+  - 번들: Publish 앱은 `import()` 로 싣는다 (정적이면 Preview initial JS 가 151 → 528 KB 로 커지는 것을 실측). Builder +193 · Preview +95 B gz.
+  - 위치: `apps/builder/publish/index.html` · `src/publish/main.tsx` · `vite.config.ts` · `openCatalogPublish.ts` · `packages/shared/src/components/theme-preview.css`
+
+### Added
+
+- ADR-305 스냅샷 하니스 — 빌더 45 화면 × 4 변형 · Preview/Publish 28 화면의 computed style (RAC 상태 합성 포함) 과 시트 규칙별 선택자 계수: `apps/builder/scripts/adr305-*.mjs`.
+
 ## [Design 패널 토글 그룹 — catalog 생성 CSS 의 최소 폭이 빌더 버튼에 닿던 것] - 2026-11-09
 
 ### Fixed

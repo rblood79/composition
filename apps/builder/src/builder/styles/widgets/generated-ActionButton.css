@@ -1,0 +1,250 @@
+/* ADR-305 — 빌더 chrome 시트. 출처: packages/shared/src/components/styles/generated/ActionButton.css (분리 직전 빌더 화면에 맞던 규칙 27 / 원본 그대로의 layer · 순서).
+ * 이 파일은 빌더 문서만 싣는다. 사용자 컴포넌트 시트와 서로 따라가지 않는다 (Decision 5) — 빌더 위젯 모양은 여기서 고친다.
+ * 범위 = 첫 compound 의 :where([data-document="builder"], …) (특이도 0). 값 = 분리 직전 빌더 값 (catalog 토큰은 그 고정값으로 풀었다). */
+
+@layer components {
+  .react-aria-ActionButton:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    box-sizing: border-box;
+    cursor: pointer;
+    user-select: none;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease,
+      transform 0.15s ease;
+    font-family: var(--font-sans);
+    width: fit-content;
+    height: fit-content;
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    background: var(--neutral-surface);
+    color: var(--neutral-content);
+    border: 0px solid transparent;
+    padding: calc((30px - 14px * calc(1.25 / 0.875) - 2 * 0px) / 2)
+      calc(30px * 3 / 8);
+    font-size: 14px;
+    border-radius: 8px;
+    line-height: calc(1.25 / 0.875);
+    font-weight: 500;
+    border-width: 0px;
+    min-width: 30px;
+    min-height: 30px;
+    gap: calc(14px * (6 / 14 + (8 / 17 - 6 / 14) * 0));
+    --icon-size: calc(14px * calc(1.25 / 0.875));
+  }
+
+  .react-aria-ActionButton:where([data-variant="default"]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    background: var(--neutral-surface);
+    color: var(--neutral-content);
+    border-color: transparent;
+  }
+
+  .react-aria-ActionButton:where([data-variant="default"][data-hovered]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    background: var(--neutral-surface-hover);
+    color: var(--neutral-content-hover);
+  }
+
+  .react-aria-ActionButton:where(
+      [data-variant="default"][aria-expanded="true"]
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    background: var(--neutral-surface-hover);
+    color: var(--neutral-content-hover);
+  }
+
+  .react-aria-ActionButton:where([data-variant="default"][data-pressed]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    background: var(--neutral-surface-hover);
+    color: var(--neutral-content-hover);
+  }
+
+  .react-aria-ActionButton:where(
+      [data-variant="default"][data-focus-visible]
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    background: var(--neutral-surface-hover);
+    color: var(--neutral-content-hover);
+  }
+
+  .react-aria-ActionButton:where([data-variant="default"][data-quiet]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    background: transparent;
+  }
+
+  .react-aria-ActionButton:where(
+      [data-variant="default"][data-quiet][data-hovered]
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    background: var(--neutral-surface-hover);
+  }
+
+  .react-aria-ActionButton:where(
+      [data-variant="default"][data-quiet][aria-expanded="true"]
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    background: var(--neutral-surface-hover);
+  }
+
+  .react-aria-ActionButton:where(
+      [data-variant="default"][data-quiet][data-pressed]
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    background: var(--neutral-surface-hover);
+  }
+
+  .react-aria-ActionButton:where(
+      [data-variant="default"][data-quiet][data-focus-visible]
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    background: var(--neutral-surface-hover);
+  }
+
+  .react-aria-ActionButton:where([data-variant="default"][data-selected]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    background: var(--neutral-fill);
+    color: var(--on-neutral);
+  }
+
+  .react-aria-ActionButton:where(
+      [data-variant="default"][data-selected][data-hovered]
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    background: var(--neutral-fill-hover);
+  }
+
+  .react-aria-ActionButton:where(
+      [data-variant="default"][data-selected][aria-expanded="true"]
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    background: var(--neutral-fill-hover);
+  }
+
+  .react-aria-ActionButton:where(
+      [data-variant="default"][data-selected][data-pressed]
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    background: var(--neutral-fill-hover);
+  }
+
+  .react-aria-ActionButton:where(
+      [data-variant="default"][data-selected][data-focus-visible]
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    background: var(--neutral-fill-hover);
+  }
+
+  .react-aria-ActionButton:where([data-variant="default"][data-disabled]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    background: var(--neutral-surface);
+    color: var(--fg-disabled);
+  }
+
+  .react-aria-ActionButton:where(
+      [data-variant="default"][data-disabled][data-quiet]
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    background: transparent;
+  }
+
+  .react-aria-ActionButton[data-size="M"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    padding: calc((30px - 14px * calc(1.25 / 0.875) - 2 * 0px) / 2)
+      calc(30px * 3 / 8);
+    font-size: 14px;
+    border-radius: 8px;
+    line-height: calc(1.25 / 0.875);
+    font-weight: 500;
+    border-width: 0px;
+    min-width: 30px;
+    min-height: 30px;
+    gap: calc(14px * (6 / 14 + (8 / 17 - 6 / 14) * 0));
+    --icon-size: calc(14px * calc(1.25 / 0.875));
+  }
+
+  .react-aria-ActionButton.react-aria-ActionButton:where(
+      [data-focus-visible]
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .react-aria-ActionButton.react-aria-ActionButton:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    will-change: transform;
+  }
+
+  .react-aria-ActionButton.react-aria-ActionButton:where([data-pressed]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    transform: perspective(
+        max(
+          var(--catalog-press-height, 0px),
+          calc(var(--catalog-press-width, 0px) / 3),
+          24px
+        )
+      )
+      translate3d(0, 0, -2px);
+  }
+
+  .react-aria-ActionButton.react-aria-ActionButton:where([data-disabled]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    cursor: default;
+  }
+}
+
+@layer components {
+  @media (forced-colors: active) {
+    .react-aria-ActionButton:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+      forced-color-adjust: auto;
+    }
+  }
+}
+
+@layer components {
+  @media (prefers-reduced-motion: reduce) {
+    .react-aria-ActionButton:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+      transition-duration: 0s !important;
+    }
+  }
+}
+
+@layer components {
+  .react-aria-ActionButton[data-in-group]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    flex-shrink: 0;
+  }
+
+  .react-aria-ActionButton[data-size="M"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    --action-corner: 8px;
+  }
+}

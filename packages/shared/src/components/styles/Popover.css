@@ -28,10 +28,6 @@
        generated/Popover.css 가 emit (2026-07-25). 같은 값을 여기 중복 선언하면
        Style Panel 이 읽는 catalog 와 실제 CSS 가 갈라질 수 있어 제거. */
     /* Builder chrome의 내용 맞춤 폭은 사용자 문서의 S2 size 폭과 독립적이다. */
-    &:where(:not([data-catalog-id])) {
-      outline: none;
-      width: auto;
-    }
     display: flex;
     flex-direction: column;
     isolation: isolate;
@@ -189,27 +185,11 @@
   /* ========== 칠 (Builder 자체 popover 만) ==========
      catalog 노드의 바탕 · 글자 · 테두리는 Popover rule 의 칠 트리가 정본 (생성 `generated/Popover.css`).
      ADR-297 Phase 3 에서 트리 블록이 `:where()` 로 낮아져 이 시트가 catalog 노드를 칠하던 것을 막는다. */
-  .react-aria-Popover:not([data-catalog-id]) {
-    border: 1px solid var(--border);
-    background: var(--bg-raised);
-    color: var(--fg);
-  }
 
   /* ========== Corner (Builder 자체 popover 만) ==========
      catalog 노드 (`[data-catalog-id]` — Popover · Dialog · Menu · Tooltip 컴포넌트) 의 모서리는
      catalog Popover rule 이 정본이다 (생성 `generated/Popover.css`). 이 시트는 그 뒤에 로드되어
      같은 명시도로 이겼다 — 2026-10-30 live: catalog 16px 이 Preview 에서 8px. */
-  .react-aria-Popover:not([data-catalog-id]) {
-    border-radius: var(--radius-lg);
-  }
-
-  .react-aria-Popover:not([data-catalog-id])[data-size="S"] {
-    border-radius: var(--radius-md);
-  }
-
-  .react-aria-Popover:not([data-catalog-id])[data-size="L"] {
-    border-radius: var(--radius-xl);
-  }
 
   /* ========== Size Variants ========== */
   .react-aria-Popover[data-size="S"] {

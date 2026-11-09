@@ -1,0 +1,12 @@
+/* 사용자 컴포넌트 문서 (Preview iframe · Publish) 의 테마 진입 — ADR-305 Decision 1 · 4.
+ *
+ * theme.css 와 같은 하위 시트에서 빌더 chrome 테마 (`builder-system.css` — 빌더 패널 · 헤더 토큰) 만 뺀
+ * 목록이다. 빌더 문서는 theme.css 를 그대로 싣는다 (Phase 4 에서 빌더 전용 진입으로 바뀐다).
+ * 레이어 순서는 styles/index.css 첫머리의 @layer 문이 정한다.
+ */
+@import "./styles/theme/preview-system.css";
+@import "./styles/theme/shared-tokens.css";
+@import "./styles/theme/preview-root-typography.css";
+@import "./styles/theme/generated/tailwind-palette.css";
+@import "./styles/theme/generated/semantic-palette.css";
+@import "./styles/theme/generated/chart-palette.css";

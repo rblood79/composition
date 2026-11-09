@@ -1,5 +1,4 @@
 @layer components {
-  
   .react-aria-ColorSwatchPicker {
     display: flex;
     gap: 6px;
@@ -12,29 +11,15 @@
     border-radius: var(--radius-lg);
     width: fit-content;
     forced-color-adjust: none;
-  
+
     /* ADR-297 Phase 3g: a catalog item's focus · selected ring are the ColorSwatchPicker rule's tree
        (generated — state blocks only) — these are Builder widgets'. */
-    &:where(:not([data-catalog-id], [data-catalog-id] *))[data-focus-visible] {
-      outline: 2px solid var(--focus-ring);
-      outline-offset: 2px;
-    }
-  
-    &:where(:not([data-catalog-id], [data-catalog-id] *))[data-selected]::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border: 2px solid black;
-      outline: 2px solid white;
-      outline-offset: -4px;
-      border-radius: inherit;
-    }
-  
+
     &[data-disabled] {
       opacity: 0.2;
     }
   }
-  
+
   /* ADR-295 후속 (2026-10-31): S2 `ColorSwatchPicker` 항목의 모서리 = 견본 `rounding` (none 0 · default sm ·
      full 원) — 선택 링 (::after inherit) · focus 링이 견본 모양을 따른다. 사용자 컴포넌트만
      ([data-catalog-id] — 빌더 색 팔레트는 위 값 그대로). DOM 상호작용 표시라 Canvas 대응은 없다. */
@@ -51,7 +36,7 @@
   }
 
   .react-aria-ColorSwatchPicker {
-    &[data-layout=stack] {
+    &[data-layout="stack"] {
       flex-direction: column;
     }
   }

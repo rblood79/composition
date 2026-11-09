@@ -2308,7 +2308,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingRight: { isPicker: { isQuiet: "0" } },
       },
       // ADR-297 Phase 3: paint = the variant trees (generated `:where` blocks) — the class stays for
-      //   the Skia child-color gate and the Builder chrome ramp (`.button-base:not([data-catalog-id])`).
+      //   the Skia child-color gate (the Builder chrome ramp is the Builder's own copy — ADR-305 `styles/widgets/utilities.css`).
       buttonBase: true,
       defaultBorder: "color",
       composition: {
@@ -4236,8 +4236,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           {
             // The reference's picker popover has no padding of its own (RAC `.combobox-popover`
             //   `padding: 0` · S2 `<Popover padding="none">`): the list's padding is the inset. It
-            //   beats the Popover size's padding (`[data-size]`); `[data-catalog-id]` keeps it off the
-            //   Builder's own pickers, which load this sheet too (`builder-components.css`).
+            //   beats the Popover size's padding (`[data-size]`); (The Builder document no longer
+            //   loads this sheet — ADR-305; `[data-catalog-id]` scopes it to document nodes.)
             selector:
               '.react-aria-Popover[data-trigger="ComboBox"][data-catalog-id]',
             styles: { padding: "0" },
@@ -5219,17 +5219,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
               // (S2 `FieldGroup` `shouldTurnOffFocusRing`: while the calendar Button has focus the box is
               //   neither focus-within (dark border) nor focus-visible (ring) — the Button rings itself.)
-              "[data-focus-within]:not(:has(.react-aria-Button[data-focused]))": {
-                "border-color": "var(--neutral-content-hover)",
-              },
-              "[data-focus-within][data-invalid]:not(:has(.react-aria-Button[data-focused]))": {
-                "border-color": "var(--selection-negative-hover)",
-              },
+              "[data-focus-within]:not(:has(.react-aria-Button[data-focused]))":
+                {
+                  "border-color": "var(--neutral-content-hover)",
+                },
+              "[data-focus-within][data-invalid]:not(:has(.react-aria-Button[data-focused]))":
+                {
+                  "border-color": "var(--selection-negative-hover)",
+                },
               // (S2 `FieldGroup` `focusRing()`: the keyboard ring is the box's.)
-              "[data-focus-visible]:not(:has(.react-aria-Button[data-focused]))": {
-                outline: "var(--focus-ring-width) solid var(--focus-ring)",
-                "outline-offset": "var(--focus-ring-offset)",
-              },
+              "[data-focus-visible]:not(:has(.react-aria-Button[data-focused]))":
+                {
+                  outline: "var(--focus-ring-width) solid var(--focus-ring)",
+                  "outline-offset": "var(--focus-ring-offset)",
+                },
               // (S2 `FieldGroup` disabled: the border in the disabled color — no dim, no fill change.)
               "[data-disabled]": {
                 "border-color": "var(--fg-disabled)",
@@ -8315,7 +8318,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         background: { inPopover: "transparent" },
         borderRadius: { inPopover: "inherit" },
         minHeight: { inPopover: { isEmpty: "var(--spacing-2xl)" } },
-        // (a document node's option row height — the Builder's own pickers keep theirs, `ListBox.css`)
+        // (a document node's option row height — the Builder's own pickers have their own copy, ADR-305 `styles/widgets/ListBox.css`)
         "--lb-control-h": {
           inPopover: {
             isCatalogNode: {
@@ -8333,7 +8336,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // 2026-10-13 (사용자 「listbox 를 RAC 레퍼런스 테마 기준으로」) — the reference
       //   `ListBox.css` (stack · vertical) for a list standing on its own (a picker's list — in a
       //   Popover — is the reference's `.dropdown-listbox`, its own sheet). Over the manual
-      //   `ListBox.css`, which the Builder's own lists share (`builder-components.css` — not this
+      //   `ListBox.css` (the Builder's own lists read their ADR-305 copy, `styles/widgets/ListBox.css` — not this
       //   generated sheet), hence the more specific selectors:
       //   - no item margins — the list's padding (4) holds the items off its border (사용자
       //     2026-10-13); the items do not shrink (`catalogListItemFlexShrink`);
@@ -11397,7 +11400,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultVariant: "default",
     variants: { default: { paint: { color: TOGGLE_GROUP_LABEL } } },
     // minWidth 없음 (ADR-295 Phase 3c-2): S2 TextField · SearchField 에는 min-width 가 없다 (2026-08-21 의 1.5 × · 3 ×
-    //   높이는 Spectrum 1). 빌더 위젯은 builder-catalog-pins.css 가 295 전 하한을 유지한다.
+    //   높이는 Spectrum 1). 빌더 위젯은 이 시트를 싣지 않는다 — 295 전 하한은 빌더 사본 (ADR-305 `styles/widgets/`) 이 가진다.
     sizes: {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
       //   재생성용 (SearchField.spec.sizes 미러). paddingY 는 composition.layout=flex-column root 가
@@ -11939,8 +11942,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           {
             // The reference's picker popover has no padding of its own (RAC `.select-popover`
             //   `padding: 0` · S2 `<Popover padding="none">`): the list's padding is the inset. It
-            //   beats the Popover size's padding (`[data-size]`); `[data-catalog-id]` keeps it off the
-            //   Builder's own pickers, which load this sheet too (`builder-components.css`).
+            //   beats the Popover size's padding (`[data-size]`); (The Builder document no longer
+            //   loads this sheet — ADR-305; `[data-catalog-id]` scopes it to document nodes.)
             selector:
               '.react-aria-Popover[data-trigger="Select"][data-catalog-id]',
             styles: { padding: "0" },
@@ -14306,8 +14309,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         "--tag-border": { isSelected: "var(--fg)" },
         outline: { isFocusVisible: "2px solid var(--accent)" },
         outlineOffset: { isFocusVisible: "2px" },
-        // S2 `TagGroup.tsx:599` — the tag presses (the shared manual sheet's `scale: 0.96` stays the
-        //   Builder widgets'; a catalog tag turns it off).
+        // S2 `TagGroup.tsx:599` — the tag presses (the manual sheet's `scale: 0.96` was the Builder
+        //   widgets' — ADR-305 moved it to the Builder copy; a catalog tag turns it off).
         scale: { isPressed: "none" },
         ...PRESS_STATE,
       },
@@ -14857,7 +14860,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultVariant: "default",
     variants: { default: { paint: { color: TOGGLE_GROUP_LABEL } } },
     // minWidth 없음 (ADR-295 Phase 3c-2): S2 TextField · SearchField 에는 min-width 가 없다 (2026-08-21 의 1.5 × · 3 ×
-    //   높이는 Spectrum 1). 빌더 위젯은 builder-catalog-pins.css 가 295 전 하한을 유지한다.
+    //   높이는 Spectrum 1). 빌더 위젯은 이 시트를 싣지 않는다 — 295 전 하한은 빌더 사본 (ADR-305 `styles/widgets/`) 이 가진다.
     sizes: {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
       //   재생성용 (TextField.spec.sizes 미러). padding 은 composition.layout=flex-column root
@@ -14946,8 +14949,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           //   first text line (`alignItems: 'baseline'`) — the textarea's border + top padding (Input
           //   rule per size — ADR-295 Phase 3, the S2 centring padding: S 3 · M 6 · L 9 · XL 12, border 1).
           //   A one-line control's middle is the same line. The value is a per-size `--catalog-token-*`
-          //   with its desktop px as the fallback (ADR-295 Decision 9): the builder root pins the 295-before
-          //   offset for its own widgets (`builder-catalog-vars.css`), the Preview · Publish read the fallback.
+          //   with its desktop px as the fallback (ADR-295 Decision 9): the Builder document no longer loads
+          //   this sheet (ADR-305 — its widgets' copy holds the 295-before offset); the Preview · Publish read the fallback.
           size: {
             S: {
               styles: {
@@ -15489,7 +15492,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       composition: ACTION_GROUP_BUTTON_COMPOSITION,
       // ADR-297 Phase 3: paint = the variant trees (generated `:where` blocks) — the class stays for
-      //   the Skia child-color gate and the Builder chrome ramp (`.button-base:not([data-catalog-id])`).
+      //   the Skia child-color gate (the Builder chrome ramp is the Builder's own copy — ADR-305 `styles/widgets/utilities.css`).
       buttonBase: true,
     },
   },

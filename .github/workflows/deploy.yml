@@ -95,6 +95,8 @@ jobs:
         run: |
           node apps/builder/scripts/adr209-bundle-closure.mjs --repo . --dist apps/builder/dist --entry index.html --label builder --out /tmp/bundle-builder.json
           node apps/builder/scripts/adr209-bundle-closure.mjs --repo . --dist apps/builder/dist --entry preview.html --label preview --out /tmp/bundle-preview.json
+          # ADR-305 — Publish 별도 진입 (publish/index.html). ADR-201 상한 없음 — 기록만
+          node apps/builder/scripts/adr209-bundle-closure.mjs --repo . --dist apps/builder/dist --entry publish/index.html --label publish --out /tmp/bundle-publish.json
           node -e '
             const read = (f) => JSON.parse(require("fs").readFileSync(f, "utf8")).initial.js.gzipBytes;
             const rows = [

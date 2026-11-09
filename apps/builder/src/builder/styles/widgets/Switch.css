@@ -1,0 +1,162 @@
+/* ADR-305 — 빌더 chrome 시트. 출처: packages/shared/src/components/styles/Switch.css (분리 직전 빌더 화면에 맞던 규칙 12 / 원본 그대로의 layer · 순서).
+ * 이 파일은 빌더 문서만 싣는다. 사용자 컴포넌트 시트와 서로 따라가지 않는다 (Decision 5) — 빌더 위젯 모양은 여기서 고친다.
+ * 범위 = 첫 compound 의 :where([data-document="builder"], …) (특이도 0). 값 = 분리 직전 빌더 값 (catalog 토큰은 그 고정값으로 풀었다). */
+
+@layer components {
+  .react-aria-Switch:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    --switch-color: var(--fg);
+    --switch-thumb-color: var(--color-white);
+    display: inline-flex;
+    position: relative;
+    font-size: var(--text-sm);
+    line-height: var(--text-sm--line-height);
+    --label-font-size: var(--text-sm);
+    color: var(--fg);
+    forced-color-adjust: none;
+    padding: var(--spacing) 0;
+  }
+
+  .react-aria-Switch:is(label):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    align-items: center;
+    gap: var(--switch-gap, 10px);
+  }
+
+  .react-aria-Switch:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
+    .indicator {
+    display: flex;
+    align-items: center;
+    width: 36px;
+    height: 20px;
+    border-radius: 20px;
+    border: 2px solid var(--border-hover);
+    background: var(--accent-subtle);
+    transition: all 200ms;
+  }
+
+  .react-aria-Switch:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
+    .indicator:before {
+    content: "";
+    display: block;
+    width: calc(18px - 2px);
+    height: calc(18px - 2px);
+    border-radius: 18px;
+    margin: 0px;
+    background: var(--bg-muted);
+    transform-origin: left center;
+    transition: all 200ms;
+  }
+
+  .react-aria-Switch:where(:not([data-catalog-id], [data-catalog-id] *)):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+  }
+
+  .react-aria-Switch:where(
+      :not([data-catalog-id], [data-catalog-id] *)
+    )[data-pressed]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
+    .indicator,
+  .react-aria-Switch:where(:not([data-catalog-id], [data-catalog-id] *)):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
+    .react-aria-SwitchButton[data-pressed]
+    .indicator {
+    border-color: var(--border-hover);
+  }
+
+  :is(
+      .react-aria-Switch:where(
+          :not([data-catalog-id], [data-catalog-id] *)
+        )[data-pressed]
+        .indicator,
+      .react-aria-Switch:where(:not([data-catalog-id], [data-catalog-id] *))
+        .react-aria-SwitchButton[data-pressed]
+        .indicator
+    ):where([data-document="builder"], [data-document="builder"] *):before {
+    background: var(--bg-emphasis);
+    scale: 1.2 1;
+  }
+
+  .react-aria-Switch:where(
+      :not([data-catalog-id], [data-catalog-id] *)
+    )[data-selected]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+  }
+
+  .react-aria-Switch:where(
+      :not([data-catalog-id], [data-catalog-id] *)
+    )[data-selected]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
+    .indicator {
+    border-color: var(--switch-color);
+    background: var(--switch-color);
+  }
+
+  .react-aria-Switch:where(
+      :not([data-catalog-id], [data-catalog-id] *)
+    )[data-selected]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
+    .indicator:before {
+    background: var(--switch-thumb-color);
+    translate: 100% 0;
+    transform-origin: right center;
+  }
+
+  .react-aria-Switch:where(
+      :not([data-catalog-id], [data-catalog-id] *)
+    )[data-selected][data-pressed]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
+    .indicator,
+  .react-aria-Switch:where(
+      :not([data-catalog-id], [data-catalog-id] *)
+    )[data-selected]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
+    .react-aria-SwitchButton[data-pressed]
+    .indicator {
+    border-color: color-mix(in srgb, var(--switch-color) 75%, black);
+    background: color-mix(in srgb, var(--switch-color) 75%, black);
+  }
+
+  .react-aria-Switch:where(
+      :not([data-catalog-id], [data-catalog-id] *)
+    )[data-focus-visible]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
+    .indicator,
+  .react-aria-Switch:where(:not([data-catalog-id], [data-catalog-id] *)):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
+    .react-aria-SwitchButton[data-focus-visible]
+    .indicator {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+}

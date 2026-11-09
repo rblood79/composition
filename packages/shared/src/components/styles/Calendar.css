@@ -2,21 +2,4 @@
   /* ========== CalendarCell State Styles (Generated CSS에 미포함) ========== */
   /* ADR-297 Phase 3g: a catalog Calendar's cells take these from the Calendar rule's tree (generated
      `partStateStyles`) — these are Builder widgets'. */
-  .react-aria-Calendar:where(:not([data-catalog-id], [data-catalog-id] *)) {
-    .react-aria-CalendarCell {
-      &[data-selected] {
-        background: var(--accent);
-        color: var(--fg-on-accent);
-      }
-
-      &[data-selected][data-hovered] {
-        background: color-mix(in srgb, var(--accent) 85%, black);
-      }
-
-      &[data-focus-visible] {
-        outline: 2px solid var(--accent);
-        outline-offset: 2px;
-      }
-    }
-  }
 }

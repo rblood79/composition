@@ -1,0 +1,210 @@
+/* ADR-305 — 빌더 chrome 시트. 출처: packages/shared/src/components/styles/ListBox.css (분리 직전 빌더 화면에 맞던 규칙 21 / 원본 그대로의 layer · 순서).
+ * 이 파일은 빌더 문서만 싣는다. 사용자 컴포넌트 시트와 서로 따라가지 않는다 (Decision 5) — 빌더 위젯 모양은 여기서 고친다.
+ * 범위 = 첫 compound 의 :where([data-document="builder"], …) (특이도 0). 값 = 분리 직전 빌더 값 (catalog 토큰은 그 고정값으로 풀었다). */
+
+@layer components {
+  .react-aria-ListBox:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+  }
+
+  .react-aria-ListBox[data-empty]:not([data-catalog-id]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    align-items: center;
+    justify-content: center;
+    font-style: italic;
+    color: var(--fg-muted);
+  }
+
+  .react-aria-ListBox:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    --lb-accent: var(--border);
+    --lb-accent-container: var(--accent-subtle);
+    --lb-on-accent-container: var(--fg);
+    --lb-padding: var(--spacing-xs);
+    --lb-gap: var(--spacing-2xs);
+    --lb-header-size: var(--text-sm);
+    --lb-header-padding: 0 var(--spacing-md);
+    --lb-item-padding: var(--spacing) var(--spacing-md);
+    --lb-desc-size: var(--text-xs);
+    --lb-desc-line-height: var(--text-xs--line-height);
+  }
+
+  .react-aria-ListBoxItem:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    position: relative;
+    outline: none;
+    transition: all 150ms ease;
+    forced-color-adjust: none;
+  }
+
+  .react-aria-ListBoxItem:where(:not([data-catalog-id])):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    cursor: pointer;
+    color: var(--fg);
+  }
+
+  .react-aria-ListBoxItem:where(
+      :not([data-catalog-id], [data-catalog-id] *)
+    )[data-focus-visible]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  .react-aria-ListBoxItem[data-selected]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+  }
+
+  .react-aria-ListBoxItem[data-selected]:where(
+      :not([data-catalog-id], [data-catalog-id] *)
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    background: var(--lb-accent-container);
+    color: var(--lb-on-accent-container);
+  }
+
+  .react-aria-ListBoxItem[data-selected]:where(
+      :not([data-catalog-id], [data-catalog-id] *)
+    )[data-focus-visible]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    outline-color: var(--accent);
+    outline-offset: -4px;
+  }
+
+  .react-aria-ListBoxItem[data-disabled]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    color: color-mix(in srgb, var(--fg) 38%, transparent);
+  }
+
+  .react-aria-ListBoxItem[data-dragging]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    opacity: 0.6;
+  }
+
+  .react-aria-ListBox[data-drop-target]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+  }
+
+  .react-aria-ListBoxItem[data-drop-target]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    outline: 2px solid var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+
+  .react-aria-Popover[data-trigger="ComboBox"]:not([data-catalog-id]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ),
+  .react-aria-Popover[data-trigger="Select"]:not([data-catalog-id]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+  }
+
+  :is(
+      .react-aria-Popover[data-trigger="ComboBox"]:not([data-catalog-id]),
+      .react-aria-Popover[data-trigger="Select"]:not([data-catalog-id])
+    ):where([data-document="builder"], [data-document="builder"] *)
+    .react-aria-ListBox {
+    display: block;
+    width: unset;
+    max-height: inherit;
+    min-height: unset;
+    border: none;
+    padding: var(--spacing-xs);
+    content-visibility: auto;
+  }
+
+  :is(
+      .react-aria-Popover[data-trigger="ComboBox"]:not([data-catalog-id]),
+      .react-aria-Popover[data-trigger="Select"]:not([data-catalog-id])
+    ):where([data-document="builder"], [data-document="builder"] *)
+    .react-aria-ListBoxItem {
+    padding: var(--lb-item-padding);
+    padding-left: var(--spacing-xl);
+  }
+
+  :is(
+      .react-aria-Popover[data-trigger="ComboBox"]:not([data-catalog-id]),
+      .react-aria-Popover[data-trigger="Select"]:not([data-catalog-id])
+    ):where([data-document="builder"], [data-document="builder"] *)
+    .react-aria-ListBoxItem[data-focus-visible] {
+    outline: none;
+  }
+
+  :is(
+      .react-aria-Popover[data-trigger="ComboBox"]:not([data-catalog-id]),
+      .react-aria-Popover[data-trigger="Select"]:not([data-catalog-id])
+    ):where([data-document="builder"], [data-document="builder"] *)
+    .react-aria-ListBoxItem[data-selected] {
+    background: unset;
+    color: var(--fg);
+  }
+
+  :is(
+      .react-aria-Popover[data-trigger="ComboBox"]:not([data-catalog-id]),
+      .react-aria-Popover[data-trigger="Select"]:not([data-catalog-id])
+    ):where([data-document="builder"], [data-document="builder"] *)
+    .react-aria-ListBoxItem[data-selected]::before {
+    content: "✓" / "";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    width: 18px;
+    height: 100%;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  :is(
+      .react-aria-Popover[data-trigger="ComboBox"]:not([data-catalog-id]),
+      .react-aria-Popover[data-trigger="Select"]:not([data-catalog-id])
+    ):where([data-document="builder"], [data-document="builder"] *)
+    .react-aria-ListBoxItem[data-focused],
+  :is(
+      .react-aria-Popover[data-trigger="ComboBox"]:not([data-catalog-id]),
+      .react-aria-Popover[data-trigger="Select"]:not([data-catalog-id])
+    ):where([data-document="builder"], [data-document="builder"] *)
+    .react-aria-ListBoxItem[data-pressed] {
+    background: var(--bg-overlay);
+  }
+}
+
+@layer components {
+  @media (forced-colors: active) {
+    .react-aria-ListBox:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+      forced-color-adjust: auto;
+    }
+  }
+}

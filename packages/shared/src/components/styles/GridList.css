@@ -45,23 +45,8 @@
 
     /* ADR-297 Phase 3g: a catalog list's · row's focus and drop target are the GridList · GridListItem rules'
        trees (generated) — the scoped blocks are Builder widgets'. */
-    &:where(:not([data-catalog-id], [data-catalog-id] *))[data-focus-visible] {
-      outline: 2px solid var(--focus-ring);
-    }
 
     /* (Builder 자체 목록만 — 카탈로그 목록의 빈 상태는 작성자의 IllustratedMessage 가 Canvas 와 같은 배치로 그린다, RAC renderEmptyState 2026-10-23.) */
-    &[data-empty]:not([data-catalog-id]) {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-style: italic;
-    }
-
-    &:where(:not([data-catalog-id], [data-catalog-id] *))[data-drop-target] {
-      outline: 2px solid var(--accent);
-      outline-offset: -1px;
-      background: var(--accent-subtle);
-    }
 
     .react-aria-DropIndicator {
       display: none;
@@ -123,14 +108,6 @@
     -webkit-tap-highlight-color: transparent;
 
     /* ADR-297 Phase 3b: a catalog row's cursor is the GridListItem rule's state tree (generated). */
-    &:where(:not([data-catalog-id])) {
-      cursor: default;
-    }
-
-    &:where(:not([data-catalog-id], [data-catalog-id] *))[data-focus-visible] {
-      outline: 2px solid var(--focus-ring);
-      outline-offset: -2px;
-    }
 
     &[data-href] {
       cursor: pointer;
@@ -197,11 +174,6 @@
       align-items: center;
       justify-content: center;
       color: var(--fg);
-
-      &:where(:not([data-catalog-id], [data-catalog-id] *))[data-focus-visible] {
-        border-radius: 4px;
-        outline: 2px solid var(--focus-ring);
-      }
     }
   }
 

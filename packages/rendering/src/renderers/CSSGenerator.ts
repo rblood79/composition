@@ -485,10 +485,9 @@ export function generateCSS<Props>(
 
 /**
  * ADR-295 Decision 9 — 사용자 컴포넌트의 치수 토큰 변수는 빌더 chrome 변수 (`--radius-*` · `--text-*`,
- * `shared-tokens.css`) 와 다른 이름 공간 `--catalog-token-*` 를 쓴다. 생성 시트는 빌더도 싣기 때문에
- * (`builder-components.css` — Data RowForm 의 ComboBox · CompactSelect …) 같은 이름이면 빌더 위젯이
- * chrome 값과 사용자 값 중 하나에 묶인다. 빌더 root 는 `builder-catalog-vars.css` 의 고정값,
- * Preview · Publish root 는 resolver `cssVars` (desktop · 터치 두 벌) 가 같은 이름을 선언한다.
+ * `shared-tokens.css`) 와 다른 이름 공간 `--catalog-token-*` 를 쓴다. Preview · Publish root 는 resolver
+ * `cssVars` (desktop · 터치 두 벌) 가 이 이름을 선언한다. 빌더 문서는 생성 시트를 싣지 않는다 (ADR-305 —
+ * 빌더 위젯은 `apps/builder/src/builder/styles/widgets/` 사본, 값은 분리 직전 고정값으로 풀어 있다).
  *
  * 변환은 이름만 — `--radius-md` → `--catalog-token-radius-md`, `--text-sm--line-height` →
  * `--catalog-token-text-sm--line-height`. rule 의 문자열 선언 (`rootSelectors` …) 도 같이 바뀐다.
@@ -760,7 +759,8 @@ export function emitContainerStyles(c: ContainerStylesSchema): string[] {
  */
 /**
  * ADR-295 Phase 3b — a component's icon pin variable (`--catalog-token-date-range-picker-icon-size-M`):
- * `builder-catalog-vars.css` declares it for the builder chrome, nothing else does.
+ * nothing declares it now (ADR-305 — the Builder document no longer loads generated sheets; its widget
+ * copy has the resolved px), so the Preview · Publish read the step fallback.
  */
 export function iconPinVar(component: string, size: string): string {
   const name = component.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
@@ -918,8 +918,8 @@ function generateSizeStyles(
   // icon-size (CSS 변수로 출력)
   if (typeof size.iconSize === "string") {
     // ADR-295 Phase 3b: an S2 icon step (`{size.icon.<S>}` — the device variable), behind the
-    //   component's own pin: the builder root declares the pre-295 px there (Decision 8 · 9 — the
-    //   builder reads this sheet), the Preview · Publish root does not, so the step is the value.
+    //   component's own pin: nothing declares the pin (ADR-305 — the Builder document no longer reads
+    //   this sheet), so the step is the value.
     //   (Phase 3c: a line-height ref — S2 `1lh` — is the font × the ratio, `tokenToCSSLength`.)
     const step = tokenToCSSLength(size.iconSize as TokenRef);
     lines.push(

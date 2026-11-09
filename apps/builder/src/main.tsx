@@ -1,4 +1,4 @@
-import { JSX, lazy, Suspense, useLayoutEffect } from "react";
+import { JSX, useLayoutEffect } from "react";
 import ReactDOM from "react-dom/client";
 import {
   BrowserRouter,
@@ -22,7 +22,8 @@ initPerformanceDiagnostics();
 
 // 제거된 기능이 사용자 브라우저에 남긴 localStorage 키 정리 (idempotent).
 cleanupLegacyStorage();
-// ADR-235 — 이 실행 문맥 (builder + 같은 탭의 /publish route) 의 자산 해석기.
+// ADR-235 — 이 실행 문맥 (builder 문서) 의 자산 해석기. Publish 는 별도 문서 (`publish/index.html`,
+//   ADR-305) 라 자기 프로젝트 파일의 해석기를 쓴다.
 //   구현은 첫 `asset:` 참조를 만났을 때 불러온다 (initial 밖 — HC2).
 setAssetUrlResolverLoader(() =>
   import("./lib/assets/assetUrlResolver").then((m) =>
@@ -38,16 +39,14 @@ import "pretendard/dist/web/static/pretendard.css";
 // Single CSS entry point - all imports handled in index.css via @import
 import "./index.css";
 import App from "./App.tsx";
-// shared 컴포넌트 CSS 번들 — App.css 뒤 · dashboard/builder CSS 앞 (종전 배럴 foundation.css 자리).
-// 순서는 builder-components.css 머리말 참조. preview 는 styles/index.css 를 따로 싣는다.
-import "@composition/shared/components/styles/builder-components.css";
+// ADR-305 — 빌더 chrome 위젯 시트. 사용자 컴포넌트 시트 (생성 · 공유 수동) 는 싣지 않는다 — 빌더 위젯에
+// 맞던 규칙의 사본을 원래 시트 순서로 둔다 (App.css 뒤 · dashboard/builder CSS 앞 — 빌더가 사용자 컴포넌트 묶음을 싣던 자리).
+import "./builder/styles/widgets/index.css";
 import Dashboard from "./dashboard";
 import Builder from "./builder";
 import Signin from "./auth/Signin";
 import { I18nProvider, getStoredLocale, loadLocaleMessages } from "./i18n";
 
-// Lazy load PublishApp to prevent CSS conflicts (CSS loads only when route is accessed)
-const PublishApp = lazy(() => import("@composition/publish"));
 import { readValidAuth } from "./auth/license/localAuth";
 import {
   ParticleBackground,
@@ -103,21 +102,6 @@ function AppLayout() {
             <ProtectedRoute>
               <Builder />
             </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/publish/*"
-          element={
-            <Suspense
-              fallback={
-                <div style={{ padding: "2rem", textAlign: "center" }}>
-                  Loading...
-                </div>
-              }
-            >
-              <PublishApp />
-            </Suspense>
           }
         />
       </Routes>

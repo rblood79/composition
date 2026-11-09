@@ -165,8 +165,7 @@ function tintOf(
   if (accentHex) {
     const oklch = hexToOklch(accentHex);
     // 사용자 hex 는 (c, h) 만 — 명도는 사다리 모양을 따른다 (ADR-302 Decision 1)
-    if (oklch)
-      return { c: oklch.c, h: oklch.h, isDefault: false };
+    if (oklch) return { c: oklch.c, h: oklch.h, isDefault: false };
     warnings.push(
       `color.accent "${accentHex}" 는 hex 가 아니라 tint 프리셋으로 대체`,
     );
@@ -233,8 +232,7 @@ export function resolveThemeSnapshot(
   if (themeNeedsLadders(preset, accentHex) && !ladders)
     warnings.push(THEME_LADDERS_PENDING);
   const toneHues = ladders?.TONE_PRESET_HUES as
-    | Readonly<Record<string, { c: number; h: number }>>
-    | undefined;
+    Readonly<Record<string, { c: number; h: number }>> | undefined;
   const generated = ladders?.buildThemeColors({
     accent: isDefault ? undefined : { c, h },
     tone: toneHues?.[neutral],
@@ -407,7 +405,7 @@ export function resolveThemeSnapshot(
 
   // ── 기기 두 벌 (ADR-295 Decision 2 · 6 · 9) ──
   //   생성 CSS 는 사용자 컴포넌트 치수를 `--catalog-token-*` 로 읽는다 (빌더 chrome 의 `--radius-*` ·
-  //   `--text-*` 와 다른 이름 공간 — 빌더 root 는 `builder-catalog-vars.css` 의 고정값). 터치 벌은 S2 의
+  //   `--text-*` 와 다른 이름 공간 — 빌더 문서는 생성 시트를 싣지 않는다, ADR-305). 터치 벌은 S2 의
   //   기기 조건과 Preview 「터치」 보기에서만 이긴다. 수동 시트 (Checkbox · ListBox …) 가 읽는 `--text-*` 도
   //   터치 벌에 같이 싣는다 — Preview · Publish root 의 그 이름은 사용자 컴포넌트 값이다 (Decision 8).
   const device = {

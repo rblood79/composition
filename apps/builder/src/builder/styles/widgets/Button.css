@@ -1,0 +1,77 @@
+/* ADR-305 — 빌더 chrome 시트. 출처: packages/shared/src/components/styles/Button.css (분리 직전 빌더 화면에 맞던 규칙 6 / 원본 그대로의 layer · 순서).
+ * 이 파일은 빌더 문서만 싣는다. 사용자 컴포넌트 시트와 서로 따라가지 않는다 (Decision 5) — 빌더 위젯 모양은 여기서 고친다.
+ * 범위 = 첫 compound 의 :where([data-document="builder"], …) (특이도 0). 값 = 분리 직전 빌더 값 (catalog 토큰은 그 고정값으로 풀었다). */
+
+@layer components {
+  .react-aria-Button:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    appearance: none;
+    align-items: center;
+    text-align: center;
+    margin: 0;
+    outline: none;
+    text-decoration: none;
+    display: inline-flex;
+    justify-content: center;
+    gap: var(--btn-gap, var(--spacing-sm));
+    border: var(--btn-border, 1px solid);
+    border-radius: var(--btn-radius, var(--radius-md));
+    padding: var(--btn-padding, var(--spacing-xs) var(--spacing-md));
+    font-size: var(--btn-font-size, var(--text-sm));
+    line-height: var(--btn-line-height, normal);
+    cursor: var(--btn-cursor, default);
+    transition: var(--btn-transition, none);
+    --button-color: var(--fg);
+    --button-text: var(--bg);
+    --button-border: var(--fg);
+  }
+
+  .react-aria-Button[data-pressed]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    box-shadow: var(--inset-shadow-sm);
+  }
+
+  .react-aria-Button[data-variant="accent"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    --button-color: var(--accent);
+    --button-text: var(--fg-on-accent);
+    --button-border: var(--accent);
+  }
+
+  .react-aria-Button[data-variant="secondary"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    --button-color: var(--bg-overlay);
+    --button-text: var(--fg);
+    --button-border: var(--border);
+  }
+
+  .react-aria-Button[data-size="S"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    --btn-padding: var(--spacing-2xs) var(--spacing-sm);
+    --btn-font-size: var(--text-xs);
+    --btn-line-height: var(--text-xs--line-height);
+    --btn-radius: var(--radius-sm);
+    --btn-gap: 6px;
+  }
+
+  .react-aria-Button[data-size="M"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    --btn-padding: var(--spacing-xs) var(--spacing-md);
+    --btn-font-size: var(--text-sm);
+    --btn-line-height: var(--text-sm--line-height);
+    --btn-radius: var(--radius-md);
+    --btn-gap: var(--spacing-sm);
+  }
+}

@@ -1,0 +1,71 @@
+/* ADR-305 — 빌더 chrome 시트. 출처: packages/shared/src/components/styles/generated/NumberField.css (분리 직전 빌더 화면에 맞던 규칙 7 / 원본 그대로의 layer · 순서).
+ * 이 파일은 빌더 문서만 싣는다. 사용자 컴포넌트 시트와 서로 따라가지 않는다 (Decision 5) — 빌더 위젯 모양은 여기서 고친다.
+ * 범위 = 첫 compound 의 :where([data-document="builder"], …) (특이도 0). 값 = 분리 직전 빌더 값 (catalog 토큰은 그 고정값으로 풀었다). */
+
+@layer components {
+  .react-aria-NumberField:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    box-sizing: border-box;
+    width: 100%;
+    color: var(--fg);
+    display: flex;
+    font-size: 14px;
+    border-radius: 8px;
+    gap: 6px;
+    --icon-size: 18px;
+  }
+
+  .react-aria-NumberField:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    color: var(--fg-muted);
+  }
+
+  .react-aria-NumberField:where([data-disabled]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    color: var(--fg-disabled);
+  }
+
+  .react-aria-NumberField.react-aria-NumberField:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    color: var(--fg-muted);
+  }
+
+  .react-aria-NumberField.react-aria-NumberField:where([data-disabled]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    color: var(--fg-disabled);
+    cursor: default;
+  }
+
+  .react-aria-NumberField:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )
+    .react-aria-Input {
+    flex: 1 1 0%;
+    min-width: 0;
+  }
+}
+
+@layer components {
+  @media (forced-colors: active) {
+    .react-aria-NumberField:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+      forced-color-adjust: auto;
+    }
+  }
+}

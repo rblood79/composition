@@ -1,0 +1,33 @@
+/* ADR-305 — 빌더 chrome 시트. 출처: packages/shared/src/components/styles/overlays.css (분리 직전 빌더 화면에 맞던 규칙 3 / 원본 그대로의 layer · 순서).
+ * 이 파일은 빌더 문서만 싣는다. 사용자 컴포넌트 시트와 서로 따라가지 않는다 (Decision 5) — 빌더 위젯 모양은 여기서 고친다.
+ * 범위 = 첫 compound 의 :where([data-document="builder"], …) (특이도 0). 값 = 분리 직전 빌더 값 (catalog 토큰은 그 고정값으로 풀었다). */
+
+@layer components {
+  .react-aria-Dialog:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    outline: none;
+    box-sizing: border-box;
+    overflow: auto;
+    padding: var(--spacing-md);
+    max-height: inherit;
+  }
+
+  .react-aria-Popover:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    outline: none;
+    background: var(--bg-overlay);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+
+  .react-aria-Popover[data-entering]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    animation: modal-fade 200ms;
+  }
+}

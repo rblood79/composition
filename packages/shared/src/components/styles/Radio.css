@@ -46,41 +46,6 @@
 
     /* ADR-297 Phase 3g: the ring's states are the Radio rule's tree (generated `partStateStyles`) on a
        catalog node — these are Builder widgets'. */
-    &:where(:not([data-catalog-id], [data-catalog-id] *)) {
-      .react-aria-RadioButton[data-pressed] .indicator {
-        border-color: var(--border-hover);
-      }
-
-      &[data-selected] {
-        .indicator {
-          border-color: var(--radio-color);
-          border-width: 6px;
-        }
-
-        .react-aria-RadioButton[data-pressed] .indicator {
-          border-color: color-mix(in srgb, var(--radio-color) 75%, black);
-        }
-      }
-
-      .react-aria-RadioButton[data-focus-visible] .indicator {
-        outline: 2px solid var(--radio-color);
-        outline-offset: 2px;
-      }
-
-      &[data-invalid] {
-        .indicator {
-          border-color: var(--negative);
-        }
-
-        &[data-selected] .indicator {
-          border-color: var(--negative);
-        }
-      }
-
-      &[data-disabled] .indicator {
-        border-color: var(--border-disabled);
-      }
-    }
   }
 
   /* ===== Parent RadioGroup variant delegation ===== */
@@ -99,12 +64,6 @@
 
   .react-aria-RadioGroup[data-radio-variant="surface"] .react-aria-Radio {
     --radio-color: var(--accent-subtle);
-
-    &:where(:not([data-catalog-id], [data-catalog-id] *))
-      .react-aria-RadioButton[data-focus-visible]
-      .indicator {
-      outline-color: var(--fg);
-    }
   }
 
   /* ===== Size delegation from RadioGroup ===== */
@@ -137,10 +96,6 @@
       height: 16px;
       border-radius: 16px;
     }
-
-    &[data-selected]:where(:not([data-catalog-id], [data-catalog-id] *)) .indicator {
-      border-width: 5px;
-    }
   }
 
   .react-aria-RadioGroup[data-radio-size="M"] .react-aria-Radio {
@@ -154,10 +109,6 @@
       height: 20px;
       border-radius: 20px;
     }
-
-    &[data-selected]:where(:not([data-catalog-id], [data-catalog-id] *)) .indicator {
-      border-width: 6px;
-    }
   }
 
   .react-aria-RadioGroup[data-radio-size="L"] .react-aria-Radio {
@@ -170,10 +121,6 @@
       width: 24px;
       height: 24px;
       border-radius: 24px;
-    }
-
-    &[data-selected]:where(:not([data-catalog-id], [data-catalog-id] *)) .indicator {
-      border-width: 7px;
     }
   }
 
@@ -190,10 +137,6 @@
       width: 30px;
       height: 30px;
       border-radius: 30px;
-    }
-
-    &[data-selected]:where(:not([data-catalog-id], [data-catalog-id] *)) .indicator {
-      border-width: 8px;
     }
   }
 }

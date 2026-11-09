@@ -24,7 +24,7 @@
 /* composition Theme Variables (CSS custom properties only)
  * Component CSS is loaded via JS module imports (individual .tsx files)
  * to avoid Vite creating duplicate <style> tags */
-@import "../../../packages/shared/src/components/theme.css";
+@import "./builder/styles/builder-theme.css"; /* ADR-305: 빌더 테마 진입 — 사용자 테마 (preview-system) 없음 */
 
 /* composition Builder Styles */
 @import "./builder/styles/index.css";

@@ -130,4 +130,50 @@ Phase 0 1 · Phase 1 1 ~ 2 · Phase 2 4 ~ 5 · Phase 3 3 ~ 5 · Phase 4 1 ~ 3 ·
 
 ## 5. 실측 기록
 
-(Phase 0 결과를 여기에 요약 — 분류표 · 기준 JSON 은 로컬 run artifact)
+### Phase 0 (G0) — 2026-11-09 닫힘
+
+- **하니스**: `adr305-builder-snapshot.mjs` (빌더 45 화면 × 4 변형 = 테마 light · dark × Design 패널 228 · 387) · `adr305-preview-snapshot.mjs` (팔레트 89 컴포넌트를 놓은 프로젝트 — Preview iframe · Publish, light · dark, 열린 overlay 6) · `adr305Snapshot.mjs` (요소 전부의 computed style + RAC 상태 속성 18종 합성 + 선택자 계수) · `adr305-compare.mjs` · `adr305-classify.mjs`. 대조군 = 같은 하니스 두 번 Δ 0 (빌더 45 화면 · Preview/Publish 28 화면). Icon 노드의 기본 아이콘은 삽입마다 무작위라 svg 경로 · 도형 수를 비교에서 뺀다 (CSS 아님).
+- **조건 차이 (사후 보고)**: dev 서버 5173 의 recharts 사전 번들이 낡아 (`Outdated Optimize Dep` 504) Preview 문서가 비었다 — 이 작업 전용 5174 서버로 옮겼다. 빌더 기준값 (5173) 과 5174 재측정 Δ 0. Publish 는 dev 에서 쟀다 (production 은 base 결함으로 옛 경로가 열리지 않았다).
+- **분류 (CSSOM 계수 — 상태 조건을 걷어낸 상위집합)**:
+  - 빌더 화면에 맞는 생성 시트 = **11 가족** (ActionButton 27 · ActionButtonGroup 5 · RangeSlider 2 · Slider 6 · ToggleButton 24 · ToggleButtonGroup 18 · Input 26 · TextField 6 · NumberField 7 · Select 8 · ComboBox 11 규칙). 정적 분류의 13 과 다르다 — Menu · Dialog · SearchField 는 매치 0, RangeSlider 는 Slider 와 같은 부품 class 로 맞는다. 나머지 생성 시트 32장은 빌더 매치 0.
+  - 공유 수동 시트 44장 규칙: 빌더 전용 36 · 사용자 전용 138 · 양쪽 313 · 둘 다 매치 0 = 722. Chat 3 · EventHandlerManager · ActionList · Field · ProgressBar (수동) · CollectionErrorState 는 두 문서 모두 매치 0.
+  - 열린 overlay 화면 (PropertySelect · Size mode · Overflow · Gap 제안 · Fill · More actions · Zoom · 헤더 메뉴 · 대시보드 정렬) 은 `[data-context]` 조상이 없는 portal 요소 4 ~ 6 을 가진다 — 하니스가 그 요소를 직접 캡처한다.
+  - 중립 판정: `pretendard.css` · 팔레트 생성 3장 = 중립 (공유 유지). `shared-tokens.css` = 비중립 2문장 (`:root` 의 `font-family` · `line-height`) — Phase 4 에서 두 선언을 양쪽 테마 진입으로 옮겨 (같은 layer · 위치) 시트를 중립으로 만든다. `preview-system.css` · `builder-system.css` = 한쪽 것.
+- **import 그래프 사실**: 빌더 진입의 정적 + 동적 import 그래프가 Preview 시트 167장을 전부 포함했다 — `/publish` lazy route (`@composition/publish` → `styles/index.css`) 경유. Phase 1 이 끊는다.
+
+### Phase 1 (G4) — 2026-11-09 닫힘
+
+- `apps/builder/publish/index.html` + `src/publish/main.tsx` (앱을 `import()` 로) · `vite.config.ts` 진입 3 · 빌더 셸 · 빌더 layer 순서 plugin 은 루트 `index.html` 만 (옛 정규식은 `publish/index.html` 에도 맞았다) · `main.tsx` `/publish/*` route 삭제 · `publishEntryUrl` (unit 2) · 사용자 테마 진입 `theme-preview.css` (`styles/index.css` 가 싣는다) · `<html data-document="builder">` · `deploy.yml` 측정 3 진입.
+- **G4**: dist 를 `/composition/` 에 매핑한 정적 서버 (gh-pages 형태 — rewrite 없음, 없는 경로 404 + `404.html`) 6/6 — `/composition/publish/?project=` 200 · 새로고침 · 빌더 → `/composition/publish/?project=blob:` · Publish 문서에 빌더 시트 0 · 오류 0. dev `/publish/?project=` 는 Preview 하니스가 연다. 빌더 스냅샷 (light-228 · dark-387 × 45 화면) Δ 0. Preview 스냅샷 (`builder-system.css` 제거) 28 화면 Δ 0.
+- **실측 차이 — Publish 「Δ 0」 은 성립하지 않았다 (사후 보고)**: 옛 Publish (빌더 문서 route) 는 Tailwind preflight · 빌더 시트를 같이 받아 Preview iframe 과 사용자 DOM 에서 19,605 값이 달랐다. 새 Publish ↔ Preview 는 2,013 값 (뷰포트 폭과 Publish 자체 reset — 둘 다 전부터 있던 것). 옛 → 새 Publish 의 보이는 속성 차이는 RAC 숨김 요소 (hidden input · select/option · 숨김 button) 와 svg `vertical-align` · `border-style` (preflight) 뿐이고, 색 · 글자 크기 · 배경이 보이는 요소에서 바뀐 것은 0. Publish 가 Preview 와 같은 시트로 정정된 것이다.
+- **번들 (배포 환경 변수 · HEAD `b9feb7c52` 별도 worktree 대조)**: Builder initial JS 1,510,669 → 1,510,862 B (+193 — 상한 1,414,000 초과는 HEAD 기존) · Preview 151,257 → 151,352 B (+95) · Preview CSS 73,391 → 72,725 B · Publish initial 277,883 B (새 진입, 상한 없음 — 기록). 앱을 정적으로 싣던 첫 구현은 RAC 가 `aria-runtime` 공유 그룹 (`$initial`) 에 들어가 Preview initial 이 527,789 B 가 됐다 — `import()` 로 바꿔 닫았다.
+- 범위 밖 후속 (변경 없음): Preview iframe 주소의 base 누락 (`CatalogPreviewFrame.tsx:209`).
+
+### Phase 2 · 3 · 4 (G1 · G2) — 2026-11-09 닫힘
+
+- **계수 정정 (사후 보고)**: 시트가 CSS Nesting (`&[data-hovered]`) 을 써서 Phase 0 계수의 중첩 규칙 553 이 무효였다 — `flatSelector` (nesting 의미대로 펼침, 부모 여럿이면 `:is()`) 로 다시 셌다. 빌더에 맞는 생성 시트 = **10 가족** (RangeSlider 는 착오), 공유 수동 규칙 빌더 전용 50 · 사용자 전용 166 · 양쪽 40.
+- **이식** (`adr305-chrome-transplant.mjs`): 빌더 화면에 맞던 규칙 245 → `apps/builder/src/builder/styles/widgets/` 28장 + `index.css` (원래 시트 순서, 빌더 전용 수동 4장은 그 자리에서 원본 import) · `@keyframes` 10. `main.tsx` 는 `builder-components.css` 대신 `widgets/index.css` 를 같은 자리에서 싣는다. 빌더 테마 진입 `builder-theme.css` (theme.css − `preview-system.css`).
+- **설계 대비 차이 (사후 보고)**:
+  - Decision 3 의 「`builder-system` layer」 대신 **원래 layer (components · utilities · layer 밖) · 원래 순서 · 특이도 0 범위** `:where([data-document="builder"], [data-document="builder"] *)` (첫 compound 에 — `html` 자신 포함 · pseudo-element 앞). 빌더 앱 CSS 30 파일이 `components` layer 에 있어 layer 를 올리면 우선순위가 바뀐다. 범위 조건 (문서 루트 표지 · portal 포함) 은 그대로.
+  - Decision 2 의 「chrome 토큰으로」 대신 **원래 선언 그대로** — `var(--catalog-token-*)` 만 빌더 고정값으로 풀었고 다른 변수 (빌더 테마가 정의) 는 남겼다. 값의 출처 (분리 직전 빌더 화면) 는 같다.
+  - G1 「미디어 쿼리 0」 → **기기 미디어 0** · 사용자 선호 (`forced-colors` 13 · `prefers-reduced-motion` 4) 와 `@supports` 는 원래 조건으로 옮겼다 — 빌더 위젯의 접근성 경로 유지. 게이트 조항도 그렇게.
+  - 추가로 옮긴 것: 빌더 앱 CSS 가 쓰던 그림자 토큰 7종 (`preview-system.css` 의 값 — 빼자 3,847 값이 Tailwind 테마 값으로 바뀌었다) → `builder-shadow-tokens.css` (같은 layer 자리 · 같은 선택자). `shared-tokens.css` 의 `:root { font-family; line-height }` → 양쪽 테마 진입의 자기 시트 (`builder-root-typography.css` · `preview-root-typography.css`) — 시트가 중립이 됐다.
+  - Phase 2 · 3 은 이식기로 한 번에 · Phase 4 와 같은 측정으로 닫았다 (커밋 묶음은 사용자 요청 때).
+- **G1**: 옛 시트가 실린 채 빌더 light-228 46 화면 Δ 0. **G2**: 옛 시트 (생성 · 공유 수동 · 고정 2 · `preview-system.css`) 를 뺀 뒤 빌더 4 변형 × 46 화면 Δ 0 (그림자 토큰 · 글꼴 이동 뒤 2 변형 재측정 Δ 0). 비교에서 뺀 것: `<head>` 의 style 태그 수 · Canvas 배경 glow 의 포인터 좌표 · 시각 숨김 상자 (RAC live announcer) 안 문구 · Icon 기본 아이콘 svg.
+- **경계 게이트**: `chromeWidgetSheets.static.test.ts` 33 (위젯 시트 범위 · 토큰 0 · 기기 미디어 0 · Publish 예외 0 / 빌더 소스 `--catalog-token-` 0 / 세 진입 import 그래프 교집합 = 중립 — 실측 교집합 `pretendard.css` · `shared-tokens.css` · 팔레트 3 / 빌더는 사용자 묶음 0 · 사용자 문서는 빌더 시트 0). 배선 `pnpm test:css-boundary` · `codex:css-boundary` (preflight) · `.githooks/pre-push` 경로 블록. **원복 RED 4/4**: 빌더 진입에 생성 시트 import 1줄 · 공유 중립 시트에 `body { color: red }` → 전용 명령 · pre-push 둘 다 exit 1, 복원 뒤 0 · cmp 일치.
+- **사용자 확인 대기 (원본 삭제 — 지금은 아무도 싣지 않음)**: `packages/shared/src/components/styles/` 의 `builder-components.css` · `foundation.css` · `builder-catalog-vars.css` · `builder-catalog-pins.css` · `ActionList.css` · `EventHandlerManager.css` · `EventPalette.css` · `EventSection.css` · `ChatContainer.css` · `ChatInput.css` · `ChatMessage.css`, 그리고 `catalogRuntime/__tests__/builderCatalogVars.static.test.ts` · `fixtures/adr295-builder-consumed-generated-baseline.json` · `apps/builder/scripts/adr295BuilderGeneratedSheets.mjs` (+ `.d.mts`) · `adr295-builder-generated-baseline.mjs`.
+
+### Phase 5 (G3) — 2026-11-09 닫힘
+
+- `adr305-preview-prune.mjs`: 공유 수동 시트 19장의 빌더 분기 (`:not([data-catalog-id])` — Preview · Publish 매치 0) 규칙 124 삭제 · 선택자 목록 2 부분 삭제 (Table resizer). 부모 갈래가 섞인 중첩 규칙은 지우지 않는다 (실측 0). `styles/index.css` 에서 빌더 패널 전용 시트 7장 import 삭제. 공유 수동 시트 −1,102 줄.
+- **G3**: Preview 14 화면 기준값 대비 Δ 0 · Publish 14 화면 Phase 1 상태 대비 Δ 0 · `pnpm validate:sync` 0. 시트 하나씩이 아니라 묶음 한 번에 쟀다 (사후 보고).
+- 테스트 정정: `adr297ManualStateRatchet` 남는 목록 (빌더 시트 4장 몫 · Table 3 → 1) · `rangeCalendarSelection` · `pickerSelectionMark` 는 지운 빌더 블록 대신 같은 모양의 생성 시트 (`partStateStyles` · ListBox `&:is(.react-aria-Popover *)`) 를 단언한다 · `s2MissingComponents` 는 사용자 번들만 · ADR-297 parity 기록 2개는 빌더 위젯 시트 (`widgets/index.css` + 문서 루트 표지).
+
+### Phase 6 (G5) — 2026-11-09 (사용자 확인 대기)
+
+- 주석 정정: `componentRulesTable.ts` 7곳 · `CSSGenerator.ts` 3곳 (`validate:sync` 0) · `css-tokens.md` §컨트롤 크기 · Select Why. `pnpm docs:stale-symbols` 0.
+- live (Chrome MCP, dev 5174 · 기존 프로젝트): 빌더 문서 `data-document="builder"` · 사용자 시트 0 · catalog 노드 0 · Design Layout 탭 토글 그룹 버튼 20×20 · 넘침 0 · Overflow 목록 (portal) 정상 · 헤더 Preview → `/publish/?project=blob:` 새 탭 렌더 · console 오류 0. dist (`/composition/`) G4 6/6 재통과.
+- 번들 (HEAD 대비, 배포 환경 변수): Builder initial JS +192 B · CSS 98,774 → 55,161 B · Preview JS +95 B · CSS 73,391 → 66,729 B · Publish initial JS 277,883 B (새 진입).
+- 원본 삭제 (2026-11-09 사용자 승인 「원본 15개 삭제 승인」): 고정 · 묶음 시트 11장 (`builder-components.css` · `foundation.css` · `builder-catalog-vars.css` · `builder-catalog-pins.css` · ActionList · EventHandlerManager · EventPalette · EventSection · ChatContainer · ChatInput · ChatMessage) · `builderCatalogVars.static.test.ts` 와 fixture · `adr295BuilderGeneratedSheets.mjs` (+ `.d.mts`) · `adr295-builder-generated-baseline.mjs`. 남은 파일의 현재형 주석 15곳 정정 · `theme-seed.generated.css` 머리말 재생성 (값 변화 0). 경계 게이트 33 · shared 2455 · builder unit 8421 · rendering 1280 · type-check · `docs:stale-symbols` 0.
+- **G0 화면 범위 결함 수리 (2026-11-09, 사용자 보고 「data패널-tables탭- 생성된 table에 젤앞선택 column checkbox가 레퍼런스 스타일이 아닌 check 표시밖에 나타나지않는다」)**: 원인은 스냅샷 46 화면에 행 있는 Data 표가 없었던 것이다. 그래서 공용 Checkbox 상자 규칙이 위젯 사본에서 빠졌다. 화면 23 을 추가했다 (Data 표 생성기 2 · 표 · 행 선택 · 표 메뉴 4 · 행 편집 · APIs · Variables · Interactions 버튼 · 이벤트 추가 · 명령 팔레트 · Workflow · 눈금자 · Site · 헤더 하위 메뉴 5 · tooltip). 분리 전 트리 (`b9feb7c52` worktree · dev 5175) 에서 4 변형 계수를 재고, 원 계수와 합쳐 이식을 다시 돌렸다. 원 계수만 쓰면 main 사본과 차이 0 이라 이식이 재현됨을 먼저 확인했다. 규칙 245 → 282 (Checkbox 24 · Menu 4 · Table 4 · 생성 Dialog 6 · 생성 Menu 7 · overlays 1). 분리 전 빌더 대비 69 화면 × 4 변형 Δ 0 이다. 처음 측정에서 3 화면이 각각 한 변형에서 달랐는데 (hover · glow 애니메이션 · focus), 다시 재니 Δ 0 이었다. 게이트 (e) 는 빌더가 import 하는 공용 컴포넌트마다 위젯 시트에 `.react-aria-<Name>` 규칙을 요구한다 (수정 전 Checkbox RED, 예외 Toolbar — 호출부 className 이 기본 클래스를 대체). 경계 게이트 52 · builder unit 8440 · ADR-297 parity 5 · type-check.
+- 남은 것: 사용자 confirm (G5) · Implemented 때 295 · 028 본문 포인터.

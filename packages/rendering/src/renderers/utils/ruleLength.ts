@@ -250,8 +250,7 @@ export function ruleLengthCss(ref: string): string | undefined {
 
 /**
  * A component's pin of a relative padding · gap (`--catalog-token-button-padding-x-M`):
- * `builder-catalog-vars.css` declares it for the builder chrome (the pre-295 px — Decision 8 · 9), nothing
- * else does, so the Preview · Publish read the form's formula behind it (`var(<pin>, <formula>)`).
+ * no sheet declares it (the builder document no longer loads the generated sheets — ADR-305), so the Preview · Publish read the form's formula behind it (`var(<pin>, <formula>)`).
  */
 export function lengthPinVar(
   component: string,

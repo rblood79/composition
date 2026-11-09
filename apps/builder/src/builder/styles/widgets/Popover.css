@@ -1,0 +1,133 @@
+/* ADR-305 — 빌더 chrome 시트. 출처: packages/shared/src/components/styles/Popover.css (분리 직전 빌더 화면에 맞던 규칙 11 / 원본 그대로의 layer · 순서).
+ * 이 파일은 빌더 문서만 싣는다. 사용자 컴포넌트 시트와 서로 따라가지 않는다 (Decision 5) — 빌더 위젯 모양은 여기서 고친다.
+ * 범위 = 첫 compound 의 :where([data-document="builder"], …) (특이도 0). 값 = 분리 직전 빌더 값 (catalog 토큰은 그 고정값으로 풀었다). */
+
+@layer components {
+  .react-aria-Popover:where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    display: flex;
+    flex-direction: column;
+    isolation: isolate;
+    transition:
+      transform 150ms cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    --popover-origin-x: 50%;
+    --popover-origin-y: 0%;
+    transform-origin: var(--popover-origin-x) var(--popover-origin-y);
+  }
+
+  .react-aria-Popover:where(:not([data-catalog-id])):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    outline: none;
+    width: auto;
+  }
+
+  .react-aria-Popover[data-entering]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    will-change: transform, opacity;
+    animation: popover-enter 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .react-aria-Popover[data-exiting]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    will-change: transform, opacity;
+    animation: popover-exit 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .react-aria-Popover[data-open]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    opacity: 1;
+  }
+
+  .react-aria-Popover[data-placement="bottom"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    --origin: translateY(-8px);
+    --popover-offset-y: -8px;
+    --popover-origin-x: 50%;
+    --popover-origin-y: 0%;
+  }
+}
+
+@layer components {
+  @media (prefers-reduced-motion: reduce) {
+    .react-aria-Popover:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+}
+
+@layer components {
+  .react-aria-Popover:not([data-catalog-id]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    border: 1px solid var(--border);
+    background: var(--bg-raised);
+    color: var(--fg);
+  }
+
+  .react-aria-Popover:not([data-catalog-id]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    border-radius: var(--radius-lg);
+  }
+
+  .react-aria-Popover[data-size="M"]:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    font-size: var(--text-base);
+  }
+}
+
+@layer components {
+  @media (forced-colors: active) {
+    .react-aria-Popover:where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+      forced-color-adjust: auto;
+    }
+  }
+}
+
+@keyframes popover-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translate3d(0, var(--popover-offset-y, -8px), 0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+}
+
+@keyframes popover-exit {
+  from {
+    opacity: 1;
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95) translate3d(0, var(--popover-offset-y, -8px), 0);
+  }
+}

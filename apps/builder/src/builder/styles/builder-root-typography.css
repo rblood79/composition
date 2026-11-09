@@ -1,0 +1,16 @@
+/* 빌더 문서의 root 글꼴 · 행간 — ADR-305 (옛 shared-tokens.css 의 `:root` 2문장, 분리 직전 값 그대로).
+ * 사용자 문서는 packages/shared/…/theme/preview-root-typography.css 를 싣는다 — 서로 따라가지 않는다 (Decision 5). */
+@layer shared-tokens {
+  :root {
+    font-family:
+      Pretendard,
+      -apple-system,
+      BlinkMacSystemFont,
+      system-ui,
+      Roboto,
+      "Helvetica Neue",
+      "Segoe UI",
+      sans-serif;
+    line-height: 1.5;
+  }
+}

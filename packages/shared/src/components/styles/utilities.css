@@ -17,93 +17,8 @@
   /* ADR-297 Phase 3 — catalog 노드 (`[data-catalog-id]` — Preview · Publish 의 Button · ToggleButton) 는 rule 의
      칠 트리가 상태 색 · 순서의 정본 (생성 `generated/Button.css` — Canvas 와 같은 트리). 이 ramp 는 utilities
      layer 라 그 블록을 덮으므로 Builder 자체 버튼 (`--button-color` 를 직접 주는 chrome) 에만 건다. */
-  .button-base:not([data-catalog-id]) {
-    background: var(--button-color);
-    color: var(--button-text, var(--color-white));
-    border-color: var(--button-border, var(--button-color));
-
-    /* ADR-227 — `--button-color-hover/-pressed` 는 generated CSS 가 variant 의 hover/pressed 토큰
-       (`var(--accent-hover, color-mix(...))` 슬롯) 으로 채운다. 테마가 명시하면 그 값, 아니면 종전 mix. */
-    &:where([data-hovered]) {
-      background: var(
-        --button-color-hover,
-        color-mix(in srgb, var(--button-color) 85%, black)
-      );
-      border-color: color-mix(
-        in srgb,
-        var(--button-border, var(--button-color)) 85%,
-        black
-      );
-    }
-
-    &:where([data-pressed]) {
-      background: var(
-        --button-color-pressed,
-        color-mix(in srgb, var(--button-color) 75%, black)
-      );
-      border-color: color-mix(
-        in srgb,
-        var(--button-border, var(--button-color)) 75%,
-        black
-      );
-    }
-
-    &:where([data-selected]) {
-      background: var(--button-color);
-      color: var(--button-text, var(--color-white));
-      border-color: var(--button-border, var(--button-color));
-    }
-
-    &:where([data-selected][data-hovered]) {
-      background: var(
-        --button-color-hover,
-        color-mix(in srgb, var(--button-color) 85%, black)
-      );
-      border-color: color-mix(
-        in srgb,
-        var(--button-border, var(--button-color)) 85%,
-        black
-      );
-    }
-
-    &:where([data-selected][data-pressed]) {
-      background: var(
-        --button-color-pressed,
-        color-mix(in srgb, var(--button-color) 75%, black)
-      );
-      border-color: color-mix(
-        in srgb,
-        var(--button-border, var(--button-color)) 75%,
-        black
-      );
-    }
-
-    &:where([data-focus-visible]) {
-      outline: 2px solid var(--accent);
-      outline-offset: 2px;
-    }
-
-    &:where([data-disabled]) {
-      background: color-mix(in srgb, var(--fg) 12%, transparent);
-      color: color-mix(in srgb, var(--fg) 38%, transparent);
-      border-color: transparent;
-      opacity: 0.38;
-      pointer-events: none;
-    }
-  }
 
   /* S2 outline fill style — transparent bg, tinted hover */
-  .button-base:not([data-catalog-id]):where([data-fill-style="outline"]) {
-    background: transparent;
-
-    &:where([data-hovered]) {
-      background: color-mix(in srgb, var(--button-text) 8%, transparent);
-    }
-
-    &:where([data-pressed]) {
-      background: color-mix(in srgb, var(--button-text) 12%, transparent);
-    }
-  }
 
   /* RSP 정합: button-base(Button / ToggleButton)의 직계 자식 Icon/Text/Label 이
      부모 color(= --button-text, selected 시 var(--bg))를 상속한다.
@@ -143,32 +58,6 @@
   .indicator {
     --indicator-selected: var(--indicator-color, var(--accent));
     --indicator-hover: color-mix(in srgb, var(--indicator-selected) 85%, black);
-
-    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-selected]) {
-      background: var(--indicator-selected);
-      border-color: var(--indicator-selected);
-      color: var(--fg-on-accent);
-    }
-
-    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-selected][data-hovered]) {
-      background: var(--indicator-hover);
-      border-color: var(--indicator-hover);
-    }
-
-    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-selected][data-pressed]) {
-      background: color-mix(in srgb, var(--indicator-selected) 75%, black);
-      border-color: color-mix(in srgb, var(--indicator-selected) 75%, black);
-    }
-
-    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-focus-visible]) {
-      outline: 2px solid var(--indicator-selected);
-      outline-offset: 2px;
-    }
-
-    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-disabled]) {
-      opacity: 0.38;
-      pointer-events: none;
-    }
   }
 
   /* =========================================
@@ -186,45 +75,6 @@
       color: var(--fg-muted);
       opacity: 0.6;
     }
-
-    &:where(:not([data-catalog-id], [data-catalog-id] *)):where(
-      [data-hovered]:not([data-focused]):not([data-focus-within]):not(
-          [data-disabled]
-        )
-    ) {
-      border-color: var(--inset-hover-border, var(--border-hover));
-      background: var(--inset-hover-bg, var(--bg-overlay));
-    }
-
-    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-focused]),
-    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-focus-within]) {
-      outline: 2px solid var(--inset-focus-color, var(--accent));
-      outline-offset: -1px;
-      border-color: var(--inset-focus-color, var(--accent));
-      background: var(--inset-focus-bg, var(--bg-overlay));
-    }
-
-    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-invalid]) {
-      border-color: var(--negative);
-    }
-
-    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-invalid][data-focused]) {
-      outline-color: var(--negative);
-    }
-
-    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-disabled]) {
-      background: color-mix(in srgb, var(--fg) 4%, transparent);
-      border-color: color-mix(in srgb, var(--fg) 12%, transparent);
-      color: color-mix(in srgb, var(--fg) 38%, transparent);
-      cursor: not-allowed;
-      opacity: 0.38;
-    }
-
-    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-readonly]) {
-      background: var(--bg-inset);
-      border-color: var(--border);
-      cursor: default;
-    }
   }
 
   /* =========================================
@@ -240,28 +90,5 @@
     border-radius: 0;
     border-bottom: 1px solid var(--border);
     outline: none;
-
-    &:where(:not([data-catalog-id], [data-catalog-id] *)):where(
-      [data-hovered]:not([data-focused]):not([data-focus-within]):not(
-          [data-disabled]
-        )
-    ) {
-      background: transparent;
-      border-color: transparent;
-      border-bottom-color: var(--border-hover);
-    }
-
-    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-focused]),
-    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-focus-within]) {
-      outline: none;
-      background: transparent;
-      border-color: transparent;
-      border-bottom-color: var(--accent);
-    }
-
-    &:where(:not([data-catalog-id], [data-catalog-id] *)):where([data-invalid]) {
-      border-color: transparent;
-      border-bottom-color: var(--negative);
-    }
   }
 }

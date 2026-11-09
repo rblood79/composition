@@ -1,0 +1,317 @@
+/* ADR-305 — 빌더 chrome 시트. 출처: packages/shared/src/components/styles/generated/Input.css (분리 직전 빌더 화면에 맞던 규칙 26 / 원본 그대로의 layer · 순서).
+ * 이 파일은 빌더 문서만 싣는다. 사용자 컴포넌트 시트와 서로 따라가지 않는다 (Decision 5) — 빌더 위젯 모양은 여기서 고친다.
+ * 범위 = 첫 compound 의 :where([data-document="builder"], …) (특이도 0). 값 = 분리 직전 빌더 값 (catalog 토큰은 그 고정값으로 풀었다). */
+
+@layer components {
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+    width: 100%;
+    display: block;
+    background: var(--bg);
+    color: var(--neutral-content);
+    border: var(--border-width-thick) solid var(--neutral-outline);
+    height: auto;
+    padding: calc(
+        (30px - 14px * calc(1.25 / 0.875) - 2 * var(--border-width-thick)) / 2
+      )
+      12px;
+    font-size: 14px;
+    border-radius: 8px;
+    line-height: calc(1.25 / 0.875);
+    font-weight: 400;
+    border-width: var(--border-width-thick);
+    min-height: 30px;
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    ):where([data-focus-visible]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    ):where([data-focus-visible]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    cursor: text;
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    ):where([data-disabled]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    cursor: default;
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    ):where([data-document="builder"], [data-document="builder"] *) {
+    color: var(--neutral-content);
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    ):where([data-hovered]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    color: var(--neutral-content-hover);
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    ):where([data-pressed]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    color: var(--neutral-content-hover);
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    ):where([data-focus-visible]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    color: var(--neutral-content-hover);
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    ):where([data-disabled]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    color: var(--fg-disabled);
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    ):where([data-hovered]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    border-color: var(--neutral-outline-hover);
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    ):where([data-pressed]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    border-color: var(--neutral-outline-hover);
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    ):where([data-invalid]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    border-color: var(--selection-negative);
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    ):where([data-invalid][data-hovered]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    border-color: var(--selection-negative-hover);
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    ):where([data-invalid][data-pressed]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    border-color: var(--selection-negative-hover);
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    ):where(:is([data-focused], [data-focus-within])):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    border-color: var(--neutral-content-hover);
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    ):where(:is([data-focused], [data-focus-within])[data-invalid]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    border-color: var(--selection-negative-hover);
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    ):where([data-focus-within]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    border-color: var(--neutral-content-hover);
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    ):where([data-focus-within][data-invalid]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    border-color: var(--selection-negative-hover);
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    ):where([data-disabled]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+    border-color: var(--fg-disabled);
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    ):where(
+      :is(
+        :where(
+          [data-document="builder"],
+          [data-document="builder"] *
+        ):-webkit-autofill,
+        :-webkit-autofill:hover,
+        :-webkit-autofill:focus
+      )
+    ) {
+    -webkit-text-fill-color: var(--fg) !important;
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    ):where(
+      :is(
+        :where(
+          [data-document="builder"],
+          [data-document="builder"] *
+        ):-webkit-autofill,
+        :-webkit-autofill:hover,
+        :-webkit-autofill:focus
+      )
+    ) {
+    -webkit-box-shadow: 0 0 0 1000px var(--bg-inset) inset !important;
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):is(
+      .react-aria-Input,
+      .react-aria-TextArea,
+      .react-aria-FieldBox
+    ):where(
+      :is(
+        :where(
+          [data-document="builder"],
+          [data-document="builder"] *
+        ):-webkit-autofill,
+        :-webkit-autofill:hover,
+        :-webkit-autofill:focus
+      )
+    ) {
+    caret-color: var(--fg);
+  }
+}
+
+@layer components {
+  @media (forced-colors: active) {
+    :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
+      forced-color-adjust: auto;
+    }
+  }
+}
+
+@layer components {
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    )::placeholder {
+    color: var(--field-placeholder);
+    opacity: 1;
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea, .react-aria-FieldBox):where(
+    [data-document="builder"],
+    [data-document="builder"] *
+  ) {
+    margin: 0;
+    font-family: inherit;
+    transition:
+      border-color 200ms ease,
+      color 200ms ease;
+  }
+}

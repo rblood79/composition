@@ -197,12 +197,6 @@
   }
 
   /* (ADR-297 Phase 3g: a catalog calendar's is its rule's tree) */
-  .react-aria-Calendar:where(:not([data-catalog-id], [data-catalog-id] *))
-    .react-aria-CalendarCell[data-today][data-selected]::after,
-  .react-aria-RangeCalendar:where(:not([data-catalog-id], [data-catalog-id] *))
-    .react-aria-CalendarCell[data-today][data-selected]::after {
-    background: var(--fg-on-accent);
-  }
 
   /* Outside month cells hidden */
   .react-aria-Calendar .react-aria-CalendarCell[data-outside-month],
@@ -264,15 +258,6 @@
     .react-aria-Calendar,
     .react-aria-RangeCalendar {
       forced-color-adjust: auto;
-    }
-
-    .react-aria-CalendarCell:where(:not([data-catalog-id], [data-catalog-id] *))[data-selected] {
-      background: Highlight;
-      color: HighlightText;
-    }
-
-    .react-aria-CalendarCell:where(:not([data-catalog-id], [data-catalog-id] *))[data-focus-visible] {
-      outline-color: Highlight;
     }
   }
 }

@@ -16,3 +16,5 @@
  * 실으면 gridTrackContribution 6 이 줄 수 Δ1 로 갈린다 — TS 측정기 ↔ DOM 의 Pretendard 폭 차).
  */
 import "@composition/shared/components/styles/theme/shared-tokens.css";
+// ADR-305 — root 글꼴 체인은 사용자 문서 테마 진입의 자기 시트로 옮겼다 (shared-tokens 는 변수만)
+import "@composition/shared/components/styles/theme/preview-root-typography.css";

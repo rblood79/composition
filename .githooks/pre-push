@@ -82,4 +82,23 @@ if [ "$RUN_RATCHET" = "1" ] && [ -n "$PERF_MATCHED" ]; then
   fi
 fi
 
+# ── ADR-305 CSS 문서 경계 ─────────────────────────────────────────────────────
+# CSS · HTML 진입 · 진입 모듈 · vite 설정이 바뀐 push 는 빌더 ↔ 사용자 문서의 시트 공유를 검사한다
+# (PERF_RATCHET 과 무관 — 기본 켬). 실패 즉시 exit 1.
+CSS_BOUNDARY_PATHS='(\.css$|^apps/builder/(index|preview)\.html$|^apps/builder/publish/|^apps/builder/src/(main|preview/index|publish/main)\.tsx$|^apps/publish/src/App\.tsx$|^apps/builder/vite\.config\.ts$)'
+CSS_MATCHED=""
+if [ "$CHANGED" = "__ALL__" ]; then
+  CSS_MATCHED="__ALL__"
+else
+  CSS_MATCHED="$(printf '%s\n' "$CHANGED" | grep -E "$CSS_BOUNDARY_PATHS" || true)"
+fi
+if [ -n "$CSS_MATCHED" ]; then
+  echo "[ADR-305] CSS · 진입 경로 변경 감지 — 문서 경계 게이트 (pnpm test:css-boundary):"
+  [ "$CSS_MATCHED" != "__ALL__" ] && printf '%s\n' "$CSS_MATCHED" | head -5 | sed 's/^/    /'
+  if ! pnpm test:css-boundary; then
+    echo "[ADR-305] 문서 경계 위반 — push 를 막는다."
+    exit 1
+  fi
+fi
+
 exit 0
