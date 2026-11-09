@@ -217,6 +217,56 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
     //   control 높이 = 295 전 한 줄 높이」 라 효과가 없다고 봤지만, 빌더 chrome CSS 가 글자 · 여백을 줄인 위젯
     //   (Design 패널 Input 18 · NumberField 16 · ToggleButton 20) 은 그보다 작아 min-height 30 이 상자를 키웠다.
     const inert = (value: string) => value === "auto";
+    // (2026-11-09) New declarations the builder widgets do not feel — accepted, not pinned:
+    //  · the sheets of the components added since — no 295-before look to keep (the builder's own
+    //    ActionButton is `builder-action-button` chrome over today's values);
+    //  · blocks matching builder widgets, switched off one by one in the live builder (idle · Design panel ·
+    //    an open Select list): no box moved;
+    //  · blocks no builder widget can match — its SearchFields carry their own class (`builder-search-field`
+    //    · `icon-picker-search`), its menus are RAC Popovers without `data-size`, it renders no Disclosure.
+    //  A new declaration in any other block still fails.
+    const ADDED_SINCE_SHEETS = new Set(
+      COMPONENTS_ADDED_SINCE.map((name) => `generated/${name}.css`),
+    );
+    const BUILDER_INERT_ADDED_BLOCKS = new Set([
+      "generated/ToggleButton.css › @layer components › .react-aria-ToggleButton",
+      'generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-size="XS"]',
+      'generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-size="S"]',
+      'generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-size="M"]',
+      'generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-size="L"]',
+      'generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-size="XL"]',
+      'generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-focus-visible][data-static-color="black"]',
+      'generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-focus-visible][data-static-color="white"]',
+      "generated/ToggleButton.css › @layer components › .react-aria-ToggleButton .react-aria-Text",
+      "generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-in-group]",
+      "generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-justified]",
+      'generated/ToggleButton.css › @layer components › .react-aria-ToggleButton[data-in-group][data-orientation="vertical"]',
+      "generated/ToggleButtonGroup.css › @layer components › .react-aria-ToggleButtonGroup",
+      'generated/ToggleButtonGroup.css › @layer components › .react-aria-ToggleButtonGroup[data-size="XS"]',
+      'generated/ToggleButtonGroup.css › @layer components › .react-aria-ToggleButtonGroup[data-size="S"]',
+      'generated/ToggleButtonGroup.css › @layer components › .react-aria-ToggleButtonGroup[data-size="M"]',
+      'generated/ToggleButtonGroup.css › @layer components › .react-aria-ToggleButtonGroup[data-size="L"]',
+      'generated/ToggleButtonGroup.css › @layer components › .react-aria-ToggleButtonGroup[data-size="XL"]',
+      "generated/ToggleButtonGroup.css › @layer components › .react-aria-ToggleButtonGroup .react-aria-ToggleButton > span",
+      'generated/Select.css › @layer components › .react-aria-Popover[data-trigger="Select"]',
+      'generated/Select.css › @layer components › .react-aria-Popover[data-trigger="Select"] .react-aria-ListBox',
+      "generated/SearchField.css › @layer components › .react-aria-SearchField .react-aria-Button .react-aria-Icon svg",
+      'generated/SearchField.css › @layer components › .react-aria-SearchField[data-empty="true"] .react-aria-Input',
+      'generated/SearchField.css › @layer components › .react-aria-SearchField[data-readonly="true"] .react-aria-Input',
+      'generated/Menu.css › @layer components › .react-aria-Popover[data-trigger="MenuTrigger"][data-size]',
+      'generated/Menu.css › @layer components › .react-aria-Popover[data-trigger="MenuTrigger"][data-size] > .react-aria-Menu',
+      'generated/Menu.css › @layer components › .react-aria-Popover[data-trigger="SubmenuTrigger"][data-size]',
+      'generated/Menu.css › @layer components › .react-aria-Popover[data-trigger="SubmenuTrigger"][data-size] > .react-aria-Menu',
+      'generated/Disclosure.css › @layer components › .react-aria-Disclosure[data-size="XL"]',
+      "generated/Disclosure.css › @layer components › .react-aria-Disclosure[data-density=\"compact\"] .react-aria-Button[slot='trigger']",
+      "generated/Disclosure.css › @layer components › .react-aria-Disclosure[data-density=\"spacious\"] .react-aria-Button[slot='trigger']",
+      "generated/Disclosure.css › @layer components › .react-aria-Disclosure .react-aria-Button[slot='trigger']",
+      "generated/Disclosure.css › @layer components › .react-aria-Disclosure[data-size=\"XL\"] .react-aria-Button[slot='trigger']",
+      'generated/Disclosure.css › @layer components › .react-aria-Disclosure[data-size="XL"] .react-aria-DisclosurePanel > div',
+      "generated/Disclosure.css › @layer components › .react-aria-Disclosure[data-size=\"XL\"] .react-aria-Button[slot='trigger'] .react-aria-Icon svg",
+    ]);
+    const addedBlock = (key: string) =>
+      key.split(" | ")[0]!.replace(/ @\w+$/, "");
     const added = Object.keys(after).filter((key) => !(key in before));
     // (a sheet-local variable carrying the minimum — every declaration of it is inert)
     const inertLocal = new Set(
@@ -266,6 +316,8 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
     expect(
       added.filter((key) => {
         if (BUILDER_KEPT_NON_DIMENSION.has(key)) return false;
+        if (ADDED_SINCE_SHEETS.has(key.split(" › ")[0]!)) return false;
+        if (BUILDER_INERT_ADDED_BLOCKS.has(addedBlock(key))) return false;
         if (BUILDER_RAC_INLINE[key] !== undefined)
           return after[key] !== BUILDER_RAC_INLINE[key];
         const prop = key.split(" | ")[1]!;
