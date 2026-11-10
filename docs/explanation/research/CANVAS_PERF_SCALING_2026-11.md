@@ -228,3 +228,23 @@
 - 게이트 (≤ 1.2): pan · zoom · select · edit · page-switch · panel-toggle · drag 전부 통과.
 - 남은 차이 3.3 만 호출은 페이지 수에 비례하는 작은 몫이다 — 프레임마다 페이지별로 도는 header · guide · chrome 색인 (함수당 페이지 × 8) 과 화면에 걸리는 page 수만큼의 그리기 (canvaskit). record 수 비례 자리는 남지 않았다.
 - live (dev, `perf-s1-live`): Library page 의 slot 빗금 (slot record 53) · 새 layout 의 정의 보기에서 content slot 빗금 (노드가 직접 선언한 slot). 두 화면 모두 record 의 slot 과 노드의 slot 불일치 0. 만든 layout 은 삭제.
+
+## 10. 처음 열기 재측정 (2026-11-11, production)
+
+- 조건: production 빌드 두 벌 — 시작 전 `850e98a60` · 지금 `53dd1ff77`. 같은 문서 (`many-pages` 22 · 66 장, 같은 storage state), headless Chrome, `--cold-entries 3`. 두 빌드를 old → new → new → old 순서로 번갈아 조건마다 6회씩 쟀다. 값은 `ready` 중앙값.
+
+| 문서 · CPU |   시작 전 |     지금 |    변화 | 범위 (시작 전 / 지금)           |
+| ---------- | --------: | -------: | ------: | ------------------------------- |
+| 22 장 · 1x |  1,327 ms | 1,158 ms | −12.7 % | 1,295 ~ 1,470 / 1,130 ~ 1,166   |
+| 22 장 · 4x |  5,361 ms | 4,681 ms | −12.7 % | 5,105 ~ 5,723 / 4,547 ~ 4,840   |
+| 66 장 · 1x |  2,790 ms | 2,282 ms | −18.2 % | 2,684 ~ 2,983 / 2,237 ~ 2,338   |
+| 66 장 · 4x | 10,970 ms | 8,884 ms | −19.0 % | 10,645 ~ 11,689 / 8,666 ~ 9,157 |
+
+- 두 빌드의 범위가 겹치지 않는다. 줄어든 몫은 대부분 H1 (글꼴 로딩 중 줄 상자 임시 캐시) 이다 — 로드 프로필 (66 장 1x, 1회) 에서 `styleOf` 662 → 309 ms · `libraryVisual` 685 → 367 ms, `loadInitial` 1,669 → 1,325 ms.
+- 성능 기준 「초기 로드 < 3초」: 66 장 1x 는 통과한다. 그러나 열기는 여전히 문서 크기에 비례한다 — 1x 에서 페이지당 약 25 ms (22 → 66 장 배율 1.97), 이 비율이면 약 95 장에서 3초를 넘는다. 4x 는 22 장도 넘는다.
+- 남은 열기 비용 (66 장 1x, busy 2,534 ms 의 inclusive — 프로필 1회라 방향만):
+  - `loadInitial` 1,325 ms — `flatten` 502 · `buildLayout` 808 (글자 측정 `paragraphMetrics` 436 · `styleOf` 309 · `rewrap` 304, 서로 겹친다).
+  - Canvas 묶기 (`bindCatalogCanvas`) 303 ms.
+  - React commit 약 390 ms.
+- 결론: 3단계 (열기 시간 분할) 의 근거는 남는다. 대상은 `loadInitial` 이 모든 페이지를 한 번에 flatten · 배치하는 부분이다 (§2 B1).
+- 원자료: `.agent/runs/2026-11-11-canvas-perf-scaling/cold-ab/`.
