@@ -8,10 +8,6 @@
 
   /* Context Menu Popover */
   .context-menu-popover {
-    background: var(--chrome-surface);
-    border: var(--chrome-border);
-    border-radius: var(--chrome-radius-popover);
-    box-shadow: var(--chrome-shadow);
     z-index: 1000;
     overflow: hidden;
     min-width: 200px;
@@ -67,7 +63,6 @@
      styles/modules/builder-menu-row.css 가 소유한다. */
   .context-menu-item {
     color: var(--fg);
-    border-radius: var(--radius-md);
     cursor: pointer;
     outline: none;
     transition: background-color 0.1s;

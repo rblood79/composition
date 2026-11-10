@@ -82,7 +82,7 @@
     /* 팝오버는 chrome island 와 같은 「떠 있는 표면」 이다 (Spectrum Hub background layers 의 elevated —
        2026-11-10). 표면 · 테두리 · 그림자는 `builder-system.css` §Chrome island 한 곳이 정한다.
        `react-aria-Popover` class 를 대체한 팝오버 (헤더 · 줌 · 컨텍스트 메뉴 · action bar · 기록 · 아이콘)
-       는 이 규칙이 닿지 않아 자기 시트에서 같은 토큰을 읽는다. */
+       는 이 규칙이 닿지 않아 `modules/builder-floating-surface.css` 가 같은 토큰을 준다. */
     border: var(--chrome-border);
     background: var(--chrome-surface);
     color: var(--fg);

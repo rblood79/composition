@@ -158,10 +158,6 @@
   .history-menu-popover {
     min-width: 200px;
     overflow: hidden;
-    background: var(--chrome-surface);
-    border: var(--chrome-border);
-    border-radius: var(--chrome-radius-popover);
-    box-shadow: var(--chrome-shadow);
     outline: none;
     z-index: 1000;
   }
@@ -174,7 +170,6 @@
   /* 행 기하 (28 · 아이콘 16) 는 builder-menu-row.css — 여기는 색·hover 만 (panel-ui 21) */
   .history-menu-item {
     color: var(--negative);
-    border-radius: var(--radius-md);
     cursor: pointer;
     outline: none;
     transition: background-color 100ms;

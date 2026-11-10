@@ -19,9 +19,6 @@
     [data-document="builder"] *
   ) {
     outline: none;
-    background: var(--chrome-surface);
-    border: var(--chrome-border);
-    border-radius: var(--chrome-radius-popover);
   }
 
   .react-aria-Popover[data-entering]:where(

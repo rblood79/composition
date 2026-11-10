@@ -14,6 +14,7 @@
 @import "./modules/builder-menu-row.css";
 @import "./modules/builder-popup-list.css";
 @import "./modules/builder-control-group.css";
+@import "./modules/builder-floating-surface.css";
 @import "./modules/element-tree.css";
 @import "./modules/error-loading.css";
 @import "./modules/reduced-motion.css";

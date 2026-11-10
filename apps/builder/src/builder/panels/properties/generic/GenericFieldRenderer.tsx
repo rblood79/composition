@@ -60,6 +60,7 @@ import { ActionTooltipTrigger, SwatchIconButton } from "../../../components/ui";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
+  capitalize,
   packHalfRows,
   resolveFieldEditor,
   sizeSegOptions,
@@ -135,10 +136,6 @@ interface GenericFieldRendererProps extends GenericFieldRouting {
    * 만들지 않는다 (시리즈 설정이 적용되지 않는 차트 종류에서 빈 Series 섹션 방지).
    */
   sectionExtras?: Partial<Record<string, ReactNode>>;
-}
-
-function capitalize(s: string): string {
-  return s.length > 0 ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
 
 /**

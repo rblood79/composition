@@ -317,7 +317,7 @@ section- 는 건드리지 않는다 — 전부 datagrid- 고유 클래스.
 
 .datagrid-add-field-input:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus-ring) 25%, transparent);
+  box-shadow: 0 0 0 2px var(--focus-ring-halo);
 }
 
 /* Select cell = [checkbox][↗] — ↗ shows on row hover · focus (가시성 원칙, the column ⌄ rule).

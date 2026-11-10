@@ -4,10 +4,6 @@
   .icon-picker-popover {
     width: var(--trigger-width, 233px);
     min-width: 233px;
-    background: var(--chrome-surface);
-    border: var(--chrome-border);
-    border-radius: var(--chrome-radius-popover);
-    box-shadow: var(--chrome-shadow);
     overflow: hidden;
   }
 

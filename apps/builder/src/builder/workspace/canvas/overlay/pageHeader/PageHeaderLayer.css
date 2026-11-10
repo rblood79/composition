@@ -81,8 +81,8 @@
   background: var(--canvas-selection-tint);
 }
 
-/* 글리프는 같은 파랑의 강조 단계 — 면에 맞춘 --focus-ring 을 텍스트로 쓰면 대비가
-   부족하다 (light blue-500 / dark blue-300). 면(아래 배경)은 --focus-ring 그대로. */
+/* 글리프는 같은 파랑의 강조 단계 — 면에 맞춘 --canvas-selection 을 텍스트로 쓰면 대비가
+   부족하다 (light blue-500 / dark blue-300). 면(아래 배경)은 --canvas-selection 그대로. */
 .page-header[data-highlighted] .page-header__title,
 .page-header[data-highlighted] .page-header__action {
   color: var(--canvas-selection-strong);
@@ -120,7 +120,7 @@
 
   flex: none;
   /* 비활성 헤더에서도 상자가 보이게 — 띠와 같은 계열(--fg) 을 활성 버튼과 같은 18% 로.
-     띠 10% : 버튼 18% (활성은 focus-ring 12% : 18% 로 같은 관계). */
+     띠 10% : 버튼 18% (활성은 canvas-selection 18% 로 같은 관계). */
   background: color-mix(
     in srgb,
     var(--button-color, var(--fg)) 18%,

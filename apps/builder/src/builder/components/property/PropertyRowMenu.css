@@ -21,7 +21,6 @@
 
 /* 행 기하(28 · gap 8 · padding 0 8)는 styles/modules/builder-menu-row.css 가 소유한다. */
 .react-aria-Menu.property-row-menu .react-aria-MenuItem {
-  border-radius: var(--radius-md);
   font-weight: 600;
 }
 

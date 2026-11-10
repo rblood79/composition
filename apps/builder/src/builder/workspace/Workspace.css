@@ -41,7 +41,7 @@
   inset: 0;
   outline: none;
   /* ADR-902: Skia clearFrame 투명화 (P0) 후 void 영역 베이스 색.
-     테마 변경은 --bg 토큰 경로로 자동 반영 (ADR-021). */
+     테마 변경은 --bg-pasteboard 토큰 경로로 자동 반영 (ADR-021). */
   background: var(--bg-pasteboard);
   /* ADR-902: DotBackground / SkiaCanvas / 자손 absolute 오버레이의 z-index 를
      자체 stacking context 로 격리. TextEditOverlay / GPUDebugOverlay /

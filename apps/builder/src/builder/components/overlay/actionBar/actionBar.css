@@ -56,10 +56,6 @@
 
   /* 옵션 메뉴 (Pin / Reset / Hide) — 컨텍스트 메뉴와 같은 팝오버 어법 */
   .contextual-action-bar-options-popover {
-    background: var(--chrome-surface);
-    border: var(--chrome-border);
-    border-radius: var(--chrome-radius-popover);
-    box-shadow: var(--chrome-shadow);
     z-index: 1000;
     outline: none;
     overflow: hidden;
@@ -142,10 +138,6 @@
 
   /* 정렬 popover — 8 아이콘 4×2 그리드 */
   .contextual-action-bar-align-popover {
-    background: var(--chrome-surface);
-    border: var(--chrome-border);
-    border-radius: var(--chrome-radius-popover);
-    box-shadow: var(--chrome-shadow);
     padding: 4px;
     z-index: 1000;
     outline: none;

@@ -8,8 +8,9 @@
    * 행 메뉴는 `height: auto`, 툴팁은 `pad 4 8 / r4` 와 `pad 6 10 / r6`.
    * 빌더 컨트롤 티어는 28 / 32 둘뿐 (builder-control-size.css) 이라 34 · auto 는
    * 규격 밖이다. 여기서 행 = `--control-size` (28), 세로 padding 0, 아이콘 16,
-   * kbd = `--text-2xs` 18px 상자 하나로 고정한다. 색·hover·radius·애니메이션은
-   * 각 파일이 계속 소유한다 — 이 파일은 크기와 간격만 갖는다.
+   * kbd = `--text-2xs` 18px 상자 하나로 고정한다. 색·hover·애니메이션은
+   * 각 파일이 계속 소유한다 — 이 파일은 크기 · 간격 · 모서리만 갖는다. 모서리 (`--radius-md`) 는
+   * 팝오버 모서리 (`--chrome-radius-popover` = 항목 + 목록 여백) 와 맞물려 여기 한 곳에 둔다 (2026-11-10).
    *
    * 패턴: 행 높이를 **선언**한다 (padding 파생 금지). 티어 밖 값 도입 금지.
    * ======================================== */
@@ -30,6 +31,7 @@
        (Overrides 「+」 13개) flex-shrink 로 28 이 20 으로 눌렸다. 항목은 줄지 않고 메뉴가 스크롤한다. */
     flex: none;
     padding: 0 var(--spacing-sm);
+    border-radius: var(--radius-md);
     font-size: var(--text-xs);
     line-height: var(--text-xs--line-height);
   }

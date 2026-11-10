@@ -1,0 +1,17 @@
+@layer builder-system {
+  /* 떠 있는 표면 — RAC 기본 class (`react-aria-Popover`) 를 자기 class 로 바꾼 팝오버의 껍데기 (2026-11-10).
+     기본 class 를 남긴 팝오버는 widgets/Popover.css 가 같은 토큰으로 칠한다. 값은 builder-system.css
+     §Chrome island 가 정하고, 여기는 어느 표면이 그 값을 읽는지만 정한다. 새 팝오버는 이 목록에 더한다. */
+  .header-menu-popover,
+  .zoom-menu-popover,
+  .context-menu-popover,
+  .contextual-action-bar-options-popover,
+  .contextual-action-bar-align-popover,
+  .history-menu-popover,
+  .icon-picker-popover {
+    background: var(--chrome-surface);
+    border: var(--chrome-border);
+    border-radius: var(--chrome-radius-popover);
+    box-shadow: var(--chrome-shadow);
+  }
+}

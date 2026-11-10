@@ -238,13 +238,17 @@ function approxTextWidth(text: string): number {
   return w;
 }
 
+export function capitalize(s: string): string {
+  return s.length > 0 ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
 function chipLabel(key: string, label: string): string {
   const rest = label.replace(
     NEGATED.has(key) ? /^Hide\s+/ : /^(Show|Fill|Is|Should)\s+/,
     "",
   );
   // 라벨은 sentence case 다 (「Hide time zone」) — 접두를 떼면 남은 첫 글자를 다시 세운다 (「Time zone」).
-  return rest === label ? label : rest.charAt(0).toUpperCase() + rest.slice(1);
+  return rest === label ? label : capitalize(rest);
 }
 function chipGroup(key: string, label: string): ChipGroup {
   if (NEGATED.has(key)) return "Show";

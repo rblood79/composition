@@ -15,9 +15,31 @@ import { describe, expect, it } from "vitest";
  * (`builder-system.css` §Chrome island) 만 읽고, 원시 표면/그림자 토큰을 직접
  * 쓰지 않는다. 값 조정은 토큰 블록 한 곳에서 한다.
  */
+const FLOATING_POPOVER_SHEETS = [
+  ["./layout/header.css", "header-menu-popover"],
+  ["./layout/header.css", "zoom-menu-popover"],
+  ["../components/overlay/contextMenu/contextMenu.css", "context-menu-popover"],
+  [
+    "../components/overlay/actionBar/actionBar.css",
+    "contextual-action-bar-options-popover",
+  ],
+  [
+    "../components/overlay/actionBar/actionBar.css",
+    "contextual-action-bar-align-popover",
+  ],
+  ["../panels/history/HistoryPanel.css", "history-menu-popover"],
+  ["../panels/icons/IconPickerPopover.css", "icon-picker-popover"],
+] as const;
+const FLOATING_POPOVERS = FLOATING_POPOVER_SHEETS.map(([, s]) => s);
+
 describe("chrome island", () => {
-  const read = (rel: string) =>
-    readFile(resolve(__dirname, rel), "utf-8") as Promise<string>;
+  const cache = new Map<string, Promise<string>>();
+  const read = (rel: string) => {
+    let css = cache.get(rel);
+    if (!css)
+      cache.set(rel, (css = readFile(resolve(__dirname, rel), "utf-8")));
+    return css;
+  };
 
   // chrome focus offset 이 사용자 문서로 번지지 않는 것은 문서 경계가 막는다 (ADR-305 —
   // `chromeWidgetSheets.static.test.ts`: 빌더 chrome 시트는 Preview · Publish 진입이 싣지 않는다).
@@ -89,23 +111,26 @@ describe("chrome island", () => {
     expect(byRel["./widgets/Popover.css"]).toMatch(
       /border: var\(--chrome-border\);\s*background: var\(--chrome-surface\);[\s\S]*?box-shadow: var\(--chrome-shadow\);/,
     );
-    for (const [rel, selector] of [
-      ["./layout/header.css", "header-menu-popover"],
-      ["./layout/header.css", "zoom-menu-popover"],
-      [
-        "../components/overlay/contextMenu/contextMenu.css",
-        "context-menu-popover",
-      ],
-      ["../components/overlay/CommandPalette.css", "command-palette-modal"],
-      ["../panels/history/HistoryPanel.css", "history-menu-popover"],
-      ["../panels/icons/IconPickerPopover.css", "icon-picker-popover"],
-    ] as const) {
-      expect(byRel[rel], selector).toMatch(
+    // RAC 기본 class 를 바꾼 팝오버의 껍데기는 모듈 한 곳 (`builder-floating-surface.css`)
+    const floating = await read("./modules/builder-floating-surface.css");
+    expect(await read("./index.css")).toContain(
+      `@import "./modules/builder-floating-surface.css";`,
+    );
+    for (const selector of FLOATING_POPOVERS)
+      expect(floating, selector).toContain(`.${selector}`);
+    expect(floating).toMatch(
+      /\{\s*background: var\(--chrome-surface\);\s*border: var\(--chrome-border\);\s*border-radius: var\(--chrome-radius-popover\);\s*box-shadow: var\(--chrome-shadow\);\s*\}/,
+    );
+    // 각자 시트는 껍데기를 다시 적지 않는다 (값이 두 곳에서 갈리지 않게)
+    for (const [rel, selector] of FLOATING_POPOVER_SHEETS)
+      expect(await read(rel), selector).not.toMatch(
         new RegExp(
-          `\\.${selector}\\s*\\{[^}]*?background: var\\(--chrome-surface\\);[^}]*?box-shadow: var\\(--chrome-shadow\\);`,
+          `\\.${selector}\\s*\\{[^}]*?(background|box-shadow|border-radius):`,
         ),
       );
-    }
+    expect(byRel["../components/overlay/CommandPalette.css"]).toMatch(
+      /\.command-palette-modal\s*\{[^}]*?background: var\(--chrome-surface\);[^}]*?box-shadow: var\(--chrome-shadow\);/,
+    );
     // 뒤 가림막이 있는 Dialog 는 그림자를 더하지 않는다 (Hub drop shadow — overlay).
     for (const rel of [
       "../components/overlay/ConfirmDialog.css",
@@ -124,24 +149,7 @@ describe("chrome island", () => {
   it("팝오버는 팝오버 모서리 토큰을, 그 안의 행은 컨트롤 모서리를 읽는다", async () => {
     for (const [rel, selector] of [
       ["./widgets/Popover.css", "react-aria-Popover:where\\([^)]*\\)"],
-      ["./widgets/overlays.css", "react-aria-Popover:where\\([^)]*\\)"],
-      ["./layout/header.css", "header-menu-popover"],
-      ["./layout/header.css", "zoom-menu-popover"],
-      [
-        "../components/overlay/contextMenu/contextMenu.css",
-        "context-menu-popover",
-      ],
-      [
-        "../components/overlay/actionBar/actionBar.css",
-        "contextual-action-bar-options-popover",
-      ],
-      [
-        "../components/overlay/actionBar/actionBar.css",
-        "contextual-action-bar-align-popover",
-      ],
       ["../components/property/PropertyInput.css", "property-input-suggest"],
-      ["../panels/history/HistoryPanel.css", "history-menu-popover"],
-      ["../panels/icons/IconPickerPopover.css", "icon-picker-popover"],
     ] as const) {
       expect(await read(rel), `${rel} ${selector}`).toMatch(
         new RegExp(
@@ -149,16 +157,14 @@ describe("chrome island", () => {
         ),
       );
     }
+    // 메뉴 항목 6종의 모서리는 행 모듈 한 곳 · 목록 · 제안 · 액션바 항목도 같은 값
+    expect(await read("./modules/builder-menu-row.css")).toMatch(
+      /\.history-menu-item,[\s\S]*?\{[^}]*?border-radius: var\(--radius-md\);/,
+    );
     for (const [rel, selector] of [
       [
         "./modules/builder-popup-list.css",
         "builder-popup-list \\.react-aria-ListBoxItem",
-      ],
-      ["./layout/header.css", "header-menu-item"],
-      ["./layout/header.css", "zoom-menu-item"],
-      [
-        "../components/overlay/contextMenu/contextMenu.css",
-        "context-menu-item",
       ],
       [
         "../components/overlay/actionBar/actionBar.css",
@@ -168,15 +174,6 @@ describe("chrome island", () => {
         "../components/property/PropertyInput.css",
         "property-input-suggest-item",
       ],
-      [
-        "../components/property/PropertyRowMenu.css",
-        "property-row-menu \\.react-aria-MenuItem",
-      ],
-      [
-        "../components/property/PropertyFieldTemplateInput.css",
-        "field-picker-menu \\.react-aria-MenuItem",
-      ],
-      ["../panels/history/HistoryPanel.css", "history-menu-item"],
     ] as const) {
       expect(await read(rel), `${rel} ${selector}`).toMatch(
         new RegExp(

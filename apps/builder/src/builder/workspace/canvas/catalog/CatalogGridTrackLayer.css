@@ -4,7 +4,7 @@
  * pill 은 포인터 아래 · 선택한 열 · 행에만 보인다 (`data-visible` — 키보드 focus 도 보이게).
  * pill 의 두께 · 글자 · 모서리 · 선택색은 선택 상자 아래 size info (Skia `renderDimensionLabels`) 와 같다
  * (2026-10-16 사용자 지시): 두께 22 = 줄 16 + 위아래 3 (`selectionOverlayGeometry.ts`) · 글자 12px · 모서리
- * 4 · 좌우 6 · 가장자리와 간격 8 · 선택 = 선택 chrome 의 파랑 (`--focus-ring` = blue-400, Skia
+ * 4 · 좌우 6 · 가장자리와 간격 8 · 선택 = 캔버스 선택의 파랑 (`--canvas-selection` = blue-400, Skia
  * `OVERLAY_BLUE` 와 같은 값 — `overlayBlueUnification.static.test.ts`) 위 흰 글자.
  */
 
