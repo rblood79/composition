@@ -90,13 +90,18 @@ function nodeName(graph: CatalogReader, node: NodeEntry): string {
 
 /**
  * ADR-248 Phase 4e-4: the History panel's read of the project's single history — entry labels
- * and the applied count, re-read after each history change (a step, undo, redo, an outside data
- * change, a clear).
+ * and the applied count after each history change (a step, undo, redo, an outside data change, a
+ * clear).
  * Jumping to an entry undoes or redoes one step at a time through the workspace (each one a
  * published step, so every consumer follows).
+ *
+ * The snapshot is read when a reader asks (`getSnapshot` — the History panel while it is shown):
+ * a change only marks it stale and tells the listeners, so an edit does not read every entry of a
+ * long session (CANVAS_PERF_SCALING_2026-11 B7). A read that finds nothing changed returns the same
+ * snapshot object.
  */
 export class CatalogHistoryStore {
-  private snapshot: CatalogHistorySnapshot;
+  private snapshot: CatalogHistorySnapshot | undefined;
   private readonly listeners = new Set<() => void>();
   private readonly unsubscribe: () => void;
 
@@ -104,14 +109,24 @@ export class CatalogHistoryStore {
     private readonly runtime: CatalogRuntime,
     private readonly steps: { undo(): unknown; redo(): unknown },
   ) {
-    this.snapshot = this.read();
-    this.unsubscribe = runtime.subscribeHistory(() => this.refresh());
+    this.unsubscribe = runtime.subscribeHistory(() => this.changed());
   }
   dispose(): void {
     this.unsubscribe();
     this.listeners.clear();
   }
-  getSnapshot = (): CatalogHistorySnapshot => this.snapshot;
+  getSnapshot = (): CatalogHistorySnapshot => {
+    if (!this.stale && this.snapshot) return this.snapshot;
+    this.stale = false;
+    const next = this.read();
+    if (!this.snapshot || !sameSnapshot(next, this.snapshot))
+      this.snapshot = next;
+    return this.snapshot;
+  };
+  /** How many entries are applied (undo) and undone (redo) — no entry is read. */
+  size(): { undo: number; redo: number } {
+    return this.runtime.historySize;
+  }
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -119,16 +134,17 @@ export class CatalogHistoryStore {
 
   /** Undo or redo until `applied` entries are applied. */
   goTo(applied: number): void {
-    const target = Math.max(0, Math.min(applied, this.snapshot.labels.length));
-    while (this.snapshot.applied > target) this.steps.undo();
-    while (this.snapshot.applied < target) this.steps.redo();
+    const { undo, redo } = this.size();
+    const target = Math.max(0, Math.min(applied, undo + redo));
+    for (let at = undo; at > target; at--) this.steps.undo();
+    for (let at = undo; at < target; at++) this.steps.redo();
   }
   /** Drop every entry (the document stays as it is). */
   clear(): void {
     this.runtime.clearHistory();
-    this.refresh();
   }
 
+  private stale = true;
   /** Each entry's subject node (its operations do not change). */
   private readonly subjectIds = new WeakMap<
     readonly CatalogOperation[],
@@ -157,20 +173,24 @@ export class CatalogHistoryStore {
       subjects: entries.map((entry) => this.subjectOf(entry)),
     };
   }
-  private refresh(): void {
-    const next = this.read();
-    if (
-      next.applied === this.snapshot.applied &&
-      next.labels.length === this.snapshot.labels.length &&
-      next.labels.every(
-        (label, index) =>
-          label === this.snapshot.labels[index] &&
-          next.times[index] === this.snapshot.times[index] &&
-          next.subjects[index] === this.snapshot.subjects[index],
-      )
-    )
-      return;
-    this.snapshot = next;
+  private changed(): void {
+    this.stale = true;
     for (const listener of [...this.listeners]) listener();
   }
+}
+
+function sameSnapshot(
+  next: CatalogHistorySnapshot,
+  previous: CatalogHistorySnapshot,
+): boolean {
+  return (
+    next.applied === previous.applied &&
+    next.labels.length === previous.labels.length &&
+    next.labels.every(
+      (label, index) =>
+        label === previous.labels[index] &&
+        next.times[index] === previous.times[index] &&
+        next.subjects[index] === previous.subjects[index],
+    )
+  );
 }

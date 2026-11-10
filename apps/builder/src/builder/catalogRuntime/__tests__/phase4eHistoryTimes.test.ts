@@ -62,3 +62,47 @@ describe("ADR-248 Phase 4e History entry times", () => {
     });
   });
 });
+
+describe("History snapshot cost (CANVAS_PERF_SCALING_2026-11 B7)", () => {
+  it("reads entries only when a reader asks; an unread history costs nothing per step", async () => {
+    const workspace = new CatalogWorkspace(
+      new CatalogGraph(
+        newCatalogProjectDocument({
+          projectId: "project:project:lazy" as EntryId<"project">,
+          name: "Lazy",
+        }),
+        await buildCodeCatalogLibrary(),
+      ),
+      new CatalogStorage(indexedDB, `history-lazy-${Math.random()}`),
+      {
+        engine: await nodeLayoutEngine(),
+        viewport: { width: 1920, height: 1080 },
+        autosaveSchedule: () => {},
+      },
+    );
+    const entries = vi.spyOn(workspace.runtime, "historyEntries", "get");
+    let heard = 0;
+    workspace.history.subscribe(() => heard++);
+    for (let index = 1; index <= 5; index++)
+      workspace.execute(padding(index * 4, "Padding"));
+    // Listeners hear each change; nobody read the snapshot, so no entry was read.
+    expect(heard).toBe(5);
+    expect(entries).not.toHaveBeenCalled();
+    expect(workspace.history.size()).toEqual({ undo: 5, redo: 0 });
+    expect(workspace.history.getSnapshot()).toMatchObject({
+      applied: 5,
+      labels: ["Padding", "Padding", "Padding", "Padding", "Padding"],
+    });
+    expect(entries).toHaveBeenCalledTimes(1);
+    // An unchanged history keeps the same snapshot object (useSyncExternalStore).
+    const first = workspace.history.getSnapshot();
+    expect(workspace.history.getSnapshot()).toBe(first);
+    // A jump walks undo by the counts, not by re-reading the entries per step.
+    entries.mockClear();
+    workspace.history.goTo(1);
+    expect(entries).not.toHaveBeenCalled();
+    expect(workspace.history.getSnapshot()).toMatchObject({ applied: 1 });
+    workspace.history.goTo(4);
+    expect(workspace.history.getSnapshot()).toMatchObject({ applied: 4 });
+  });
+});

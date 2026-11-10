@@ -386,7 +386,8 @@ export function CatalogBuilderCore() {
     if (!workspace) return;
     const { history } = workspace;
     const clear = () => {
-      if (history.getSnapshot().labels.length > 0) snapshots.markRestored(null);
+      const { undo, redo } = history.size();
+      if (undo + redo > 0) snapshots.markRestored(null);
     };
     clear();
     return history.subscribe(clear);

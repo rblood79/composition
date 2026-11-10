@@ -226,6 +226,11 @@ export class CatalogRuntime {
       redo: [...session.redo].reverse().map((entry) => entry.label),
     };
   }
+  /** How many undo and redo entries the active project has (no entry is read). */
+  get historySize(): { undo: number; redo: number } {
+    const session = this.current();
+    return { undo: session.undo.length, redo: session.redo.length };
+  }
   /** History entries of the active project with their times: undo (oldest first), redo (next first). */
   get historyEntries(): {
     undo: readonly CatalogHistoryEntryView[];
