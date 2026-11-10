@@ -7,6 +7,7 @@
  * presentation cancel. 호출측이 boxShadow 문자열을 key 로 써 remount 한다.
  */
 
+import { CircleDashed, Expand } from "lucide-react";
 import { memo, useCallback, useRef, useState } from "react";
 import { PropertyColor } from "../../../components/property/PropertyColor";
 import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
@@ -37,11 +38,13 @@ const NUMERIC_FIELDS: ReadonlyArray<{
   readonly field: BoxShadowNumericField;
   readonly label: string;
   readonly min: number;
+  /** 칸 안 앞 표시 — Offset X · Y 는 없음, Blur · Spread 는 아이콘 (사용자 지정 2026-11-10) */
+  readonly icon: typeof CircleDashed | null;
 }> = [
-  { field: "offsetX", label: "Offset X", min: -9999 },
-  { field: "offsetY", label: "Offset Y", min: -9999 },
-  { field: "blur", label: "Blur", min: 0 },
-  { field: "spread", label: "Spread", min: -9999 },
+  { field: "offsetX", label: "Offset X", min: -9999, icon: null },
+  { field: "offsetY", label: "Offset Y", min: -9999, icon: null },
+  { field: "blur", label: "Blur", min: 0, icon: CircleDashed },
+  { field: "spread", label: "Spread", min: -9999, icon: Expand },
 ];
 
 function parsePixelValue(value: string): number | null {
@@ -123,11 +126,12 @@ export const BoxShadowEditor = memo(function BoxShadowEditor({
       onPointerCancelCapture={() => cancel("pointer-cancel")}
     >
       <div className="box-shadow-editor-fields">
-        {NUMERIC_FIELDS.map(({ field, label, min }) => (
+        {NUMERIC_FIELDS.map(({ field, label, min, icon }) => (
           <PropertyUnitInput
             key={field}
             className={`box-shadow-${field}`}
             label={label}
+            icon={icon}
             unitSuffix
             value={toPixelValue(activeLayer[field])}
             units={["px"]}

@@ -5,7 +5,6 @@
  */
 
 import { useMemo } from "react";
-import { Globe } from "lucide-react";
 import { PropertySelect } from "../builder/components/property/PropertySelect";
 import { useI18n } from "./useI18n";
 import { localeConfigs } from "./locales";
@@ -17,11 +16,6 @@ export interface LanguageSwitcherProps {
    * @default "Language"
    */
   label?: string;
-  /**
-   * Show globe icon
-   * @default true
-   */
-  showIcon?: boolean;
   /**
    * Additional className
    */
@@ -40,7 +34,6 @@ export interface LanguageSwitcherProps {
  */
 export function LanguageSwitcher({
   label,
-  showIcon = true,
   className,
 }: LanguageSwitcherProps) {
   const { locale, setLocale, t } = useI18n();
@@ -68,7 +61,6 @@ export function LanguageSwitcher({
       value={locale}
       onChange={handleSelectionChange}
       options={options}
-      icon={showIcon ? Globe : undefined}
       className={className}
     />
   );

@@ -313,3 +313,30 @@ it("같은 옵션으로 다시 그리면 항목 라벨을 다시 번역하지 �
   );
   expect(optionCalls()).toBe(options.length);
 });
+
+// 2026-11-10 사용자 지정 (Ratio): 목록 항목은 「16:9 Video」, 고른 뒤 칸에는 비율만 「16:9」.
+const ratioText = (value: string) =>
+  value === "16 / 9" ? "16:9" : undefined;
+
+it("formatValue 가 있으면 트리거는 항목 이름 대신 짧은 값을 보인다", () => {
+  const ui = render(
+    <PropertySelect
+      label="Ratio"
+      value="16 / 9"
+      onChange={() => {}}
+      translateOptions={false}
+      formatValue={ratioText}
+      options={[
+        { value: "reset", label: "Auto" },
+        { value: "16 / 9", label: "16:9 Video" },
+      ]}
+    />,
+  );
+  const trigger = within(ui.getByRole("group", { name: "Ratio" })).getByRole(
+    "button",
+  );
+  expect(trigger.textContent).toContain("16:9");
+  expect(trigger.textContent).not.toContain("Video");
+  open(ui, "Ratio");
+  expect(ui.getByRole("option", { name: "16:9 Video" })).toBeTruthy();
+});

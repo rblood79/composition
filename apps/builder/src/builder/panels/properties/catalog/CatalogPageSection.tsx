@@ -1,6 +1,6 @@
 import { lazy, memo, Suspense, useCallback, useState } from "react";
 import { Button as RACButton } from "react-aria-components/Button";
-import { CircleAlert, Layout, RefreshCw, WandSparkles, X } from "lucide-react";
+import { CircleAlert, RefreshCw, WandSparkles, X } from "lucide-react";
 import { translateKey, useI18n } from "@/i18n";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import type { EntryId } from "../../../../../../../packages/shared/src/catalog/document/types";
@@ -180,7 +180,6 @@ export const CatalogPageSection = memo(function CatalogPageSection({
           value={current}
           onChange={changeLayout}
           options={layoutOptions}
-          icon={Layout}
           description={
             currentLayout
               ? translateKey(

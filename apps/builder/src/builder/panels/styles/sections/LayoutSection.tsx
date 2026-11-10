@@ -23,11 +23,15 @@ import {
   AlignHorizontalSpaceAround,
   AlignHorizontalSpaceBetween,
   ArrowRightToLine,
+  Columns2,
   CornerDownLeft,
   GalleryHorizontal,
+  GapHorizontal,
+  GapVertical,
   LayoutArrowDown,
   LayoutArrowRight,
   LayoutGrid,
+  Rows2,
   TextWrap,
 } from "lucide-react";
 import { useStyleActions } from "../hooks/useStyleActions";
@@ -78,12 +82,15 @@ const GRID_TRACK_PRESETS = [1, 2, 3, 4, 5, 6].map((count) => ({
  */
 const GridTrackField = memo(function GridTrackField({
   label,
+  icon,
   value,
   auto,
   isDisabled = false,
   onCommit,
 }: {
   label: string;
+  /** 칸 안 앞 표시 — Columns `Columns2` · Rows `Rows2` (사용자 지정 2026-11-10). */
+  icon: typeof Columns2;
   value: string;
   /** The tracks are the component's own (a catalog part area) — shown, not edited. */
   isDisabled?: boolean;
@@ -111,6 +118,7 @@ const GridTrackField = memo(function GridTrackField({
     return (
       <PropertyInput
         label={label}
+        icon={icon}
         value={value}
         disabled={isDisabled}
         onChange={(next) => onCommit(gridTemplateOf(next))}
@@ -119,6 +127,7 @@ const GridTrackField = memo(function GridTrackField({
   return (
     <PropertyUnitInput
       label={label}
+      icon={icon}
       value={tracks.length ? String(tracks.length) : ""}
       units={[]}
       isDisabled={isDisabled}
@@ -362,6 +371,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
           <div className="flex-alignment grid-tracks">
             <GridTrackField
               label="Columns"
+              icon={Columns2}
               value={styleValues.gridTemplateColumns}
               isDisabled={isDirectionDriven}
               onCommit={(template, removed) =>
@@ -370,6 +380,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
             />
             <GridTrackField
               label="Rows"
+              icon={Rows2}
               value={styleValues.gridTemplateRows}
               isDisabled={isDirectionDriven}
               onCommit={(template, removed) =>
@@ -524,6 +535,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
           <>
             <PropertyUnitInput
               label="Gap X"
+              icon={GapHorizontal}
               className="flex-wrap"
               value={styleValues.columnGap}
               units={["px"]}
@@ -537,6 +549,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
             />
             <PropertyUnitInput
               label="Gap Y"
+              icon={GapVertical}
               className="displayGap"
               value={styleValues.rowGap}
               units={["px"]}
@@ -600,6 +613,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
                 숫자로 강제 (NUMERIC_COERCE_STYLE_PROPS) */}
             <PropertyUnitInput
               label="Gap"
+              icon={flexDirectionKeys[0] === "column" ? GapVertical : GapHorizontal}
               className={`displayGap${sessionGap !== null ? " property-unit-input--session-active" : ""}`}
               value={sessionGap !== null ? `${sessionGap}px` : styleValues.gap}
               units={["px"]}

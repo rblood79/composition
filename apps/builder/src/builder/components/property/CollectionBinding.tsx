@@ -20,7 +20,7 @@ import { useParams } from "react-router";
 import { useI18n } from "@/i18n";
 import type { DataBindingValue } from "@composition/shared";
 import { resolveBoundCollection, resolveField } from "@composition/shared";
-import { DatabasePlus, Link2, ListTree, X } from "lucide-react";
+import { DatabasePlus, ListTree, X } from "lucide-react";
 import React, { memo, useCallback } from "react";
 import { SelectValue } from "react-aria-components/Select";
 import type { DataField } from "../../../types/builder/data.types";
@@ -65,11 +65,6 @@ interface CollectionBindingProps {
   disabled?: boolean;
   /** The bound record — a Tree's binding offers the children role (`useTreeData.getChildren`). */
   elementId?: string;
-  icon?: React.ComponentType<{
-    color?: string;
-    size?: number;
-    strokeWidth?: number;
-  }>;
 }
 
 // ============================================
@@ -162,7 +157,6 @@ function FieldMapSelect({
 
 export const CollectionBinding = memo(function CollectionBinding({
   label,
-  icon: Icon,
   value,
   onChange,
   className,
@@ -278,7 +272,7 @@ export const CollectionBinding = memo(function CollectionBinding({
     useControlPopoverMetrics();
 
   return (
-    <PropertyFieldset legend={label} icon={Icon ?? Link2} className={className}>
+    <PropertyFieldset legend={label} className={className}>
       <div className="property-data-binding">
         {/* collection(테이블명) 선택 — 소스 선택 단계 제거, dataTable 단일 (ADR-159 P4b).
             선택된 값은 Select 자신이 표시한다 — 별도 바인딩

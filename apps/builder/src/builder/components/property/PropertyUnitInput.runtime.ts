@@ -22,11 +22,15 @@ export interface PropertyUnitInputProps {
   onDrag?: (value: string) => void;
   /** End a preview without a document edit (cancel or return to the starting value). */
   onDragCancel?: () => void;
+  /**
+   * 칸 안 앞 표시. 생략하면 legend 칸은 기본 `#`, `null` 이면 표시 없음 (Size Width · Height —
+   * 사용자 지정 2026-11-10).
+   */
   icon?: React.ComponentType<{
     color?: string;
     size?: number;
     strokeWidth?: number;
-  }>;
+  }> | null;
   className?: string;
   units?: string[];
   defaultUnit?: string;

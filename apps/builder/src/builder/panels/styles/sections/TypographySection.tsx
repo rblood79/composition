@@ -20,6 +20,7 @@ import {
 } from "@composition/shared/components";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
+  ALargeSmall,
   AlignCenter,
   AlignLeft,
   AlignRight,
@@ -27,11 +28,13 @@ import {
   AlignVerticalJustifyEnd,
   AlignVerticalJustifyStart,
   Baseline,
+  Bold,
   CaseLower,
   CaseSensitive,
   CaseUpper,
-  Bold,
   Italic,
+  LetterSpacing,
+  LineHeight,
   Strikethrough,
   Underline,
 } from "lucide-react";
@@ -257,6 +260,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
       />
       <PropertyUnitInput
         label="Font Size"
+        icon={ALargeSmall}
         className="font-size"
         unitSuffix
         value={sizeMixed ? "" : styleValues.fontSize}
@@ -273,6 +277,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
       />
       <PropertyUnitInput
         label="Line Height"
+        icon={LineHeight}
         className="line-height"
         unitSuffix
         value={styleValues.lineHeight}
@@ -287,6 +292,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
       />
       <PropertyUnitInput
         label="Letter Spacing"
+        icon={LetterSpacing}
         className="letter-spacing"
         unitSuffix
         value={styleValues.letterSpacing}

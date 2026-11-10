@@ -42,6 +42,7 @@ export const PropertySelectControl = memo(
     sections,
     disabledKeys,
     descriptions,
+    formatValue,
     icon: Icon,
     className,
     labelMode = "legend",
@@ -272,6 +273,8 @@ export const PropertySelectControl = memo(
                   {({ isPlaceholder, defaultChildren, selectedText }) =>
                     isPlaceholder ? (
                       "—"
+                    ) : formatValue?.(value) !== undefined ? (
+                      formatValue(value)
                     ) : grid ? (
                       <>
                         {swatches?.[value] != null && (
@@ -320,6 +323,7 @@ export const PropertySelectControl = memo(
       prevProps.disabledKeys === nextProps.disabledKeys &&
       prevProps.swatches === nextProps.swatches &&
       prevProps.descriptions === nextProps.descriptions &&
+      prevProps.formatValue === nextProps.formatValue &&
       prevProps.grid === nextProps.grid &&
       prevProps.gridSections === nextProps.gridSections &&
       prevProps.sections === nextProps.sections &&

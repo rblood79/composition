@@ -1,9 +1,13 @@
-import React from "react";
+import type React from "react";
 
 export interface PropertySwitchProps {
   label: string;
   isSelected: boolean;
   onChange: (isSelected: boolean) => void;
+  /**
+   * 칸 안 앞 표시 — 스위치가 켜고 끄는 대상 (Search & sharing 의 검색 · sitemap, 사용자 지정 2026-11-10).
+   * 대상이 아이콘으로 분명한 칸에만 준다.
+   */
   icon?: React.ComponentType<{
     color?: string;
     size?: number;

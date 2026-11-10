@@ -1,4 +1,3 @@
-import { Power } from "lucide-react";
 import { memo } from "react";
 import type { InteractionEntry } from "../../../../../../../packages/shared/src/catalog/document/types";
 import type { CatalogInteractionStatus } from "../../../../../../../packages/shared/src/catalog/resolution/effectiveInteractions";
@@ -56,7 +55,6 @@ export const CatalogInheritedRuleRow = memo(function CatalogInheritedRuleRow({
         <div className="interaction-rule-editor">
           <PropertySwitch
             label={t("interactions.inheritedEnabled")}
-            icon={Power}
             isSelected={status === "on"}
             onChange={onEnabledChange}
           />

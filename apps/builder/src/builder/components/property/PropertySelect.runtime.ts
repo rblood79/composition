@@ -58,6 +58,11 @@ export interface PropertySelectProps {
    * option value; options without one show the label only. List mode only.
    */
   descriptions?: Readonly<Record<string, string>>;
+  /**
+   * 트리거에 보일 짧은 값 — 목록 항목 이름 대신 (Ratio: 「16:9 Video」 항목을 고르면 칸은 「16:9」,
+   * 사용자 지정 2026-11-10). `undefined` 를 돌려주면 항목 이름 그대로. 함수는 모듈 상수로 둔다 (memo 비교).
+   */
+  formatValue?: (value: string) => string | undefined;
   icon?: React.ComponentType<{
     color?: string;
     size?: number;

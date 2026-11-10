@@ -1699,7 +1699,7 @@ const catalog: TranslationKeys = {
     pageLayoutDirection: "방향",
     pageGap: "페이지 간격",
     pageColumns: "열 수",
-    pageLayoutTierOverride: "이 breakpoint 만",
+    pageLayoutTierOverride: "Breakpoint",
     pageGapPreset: "페이지 간격 프리셋",
     pageLayoutAuto: "자동",
     pageLayoutHorizontal: "가로",
@@ -2875,7 +2875,6 @@ const semanticLabels: Record<string, string> = {
   "styles.transform.sizeMode.vw": "뷰포트",
   "styles.transform.sizeMode.vh": "뷰포트",
   "styles.transform.sizeMode.reset": "초기화",
-  "styles.transform.sizeMode.ratioTrigger": "자동(비율)",
   "styles.transform.sizeMode.groupBasic": "크기 방식",
   "styles.transform.sizeMode.groupRelative": "상대 크기",
   "styles.token.offScale":

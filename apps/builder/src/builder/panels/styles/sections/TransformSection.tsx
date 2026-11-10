@@ -6,7 +6,12 @@
  */
 
 import { getFillBehavior, getRatioDependentAxis } from "@composition/shared";
-import { Lock, Maximize, UnfoldVertical, Unlock } from "lucide-react";
+import {
+  Lock,
+  Maximize,
+  UnfoldVertical,
+  Unlock,
+} from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CatalogPositionChange } from "../../../catalogRuntime/position";
 import {
@@ -87,6 +92,12 @@ const ASPECT_RATIO_OPTIONS = [
   { value: "3 / 4", label: "3:4 Portrait" },
 ];
 
+/** 고른 비율은 칸에 비율만 — 「16 / 9」 → 「16:9」 (목록 항목은 이름까지, 사용자 지정 2026-11-10). */
+const ratioTriggerText = (value: string): string | undefined => {
+  const match = /^\s*(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)\s*$/.exec(value);
+  return match ? `${match[1]}:${match[2]}` : undefined;
+};
+
 /**
  * ADR-248 Phase 4e: the page body's X / Y from a host that owns the page canvas (the catalog
  * Styles panel) — the same row; Home stays where it is (inputs off).
@@ -112,6 +123,7 @@ const HostPagePositionRow = memo(function HostPagePositionRow({
     <div className="transform-row">
       <PropertyUnitInput
         label="X"
+        icon={null}
         unitSuffix
         className="left"
         value={`${position.x}px`}
@@ -123,6 +135,7 @@ const HostPagePositionRow = memo(function HostPagePositionRow({
       />
       <PropertyUnitInput
         label="Y"
+        icon={null}
         unitSuffix
         className="top"
         value={`${position.y}px`}
@@ -431,6 +444,8 @@ const TransformSectionContent = memo(function TransformSectionContent({
       <div className="transform-row">
         <PropertyUnitInput
           label="Width"
+          // 앞 표시 없음 — Size 절 Width · Height · Min · Max 전부 (사용자 지정 2026-11-10)
+          icon={null}
           unitSuffix
           className="width"
           key={`width:${selectedId}:${activeBreakpoint}:${parentDisplay}:${parentFlexDirection}`}
@@ -451,6 +466,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
         />
         <PropertyUnitInput
           label="Height"
+          icon={null}
           unitSuffix
           className="height"
           key={`height:${selectedId}:${activeBreakpoint}:${parentDisplay}:${parentFlexDirection}`}
@@ -495,6 +511,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
             <>
               <PropertyUnitInput
                 label="Min W"
+                icon={null}
                 unitSuffix
                 placeholder="auto"
                 className="min-width"
@@ -509,6 +526,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
               />
               <PropertyUnitInput
                 label="Min H"
+                icon={null}
                 unitSuffix
                 placeholder="auto"
                 className="min-height"
@@ -524,6 +542,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
               <div className="fieldset-actions actions-constraint-min" />
               <PropertyUnitInput
                 label="Max W"
+                icon={null}
                 unitSuffix
                 placeholder="auto"
                 className="max-width"
@@ -538,6 +557,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
               />
               <PropertyUnitInput
                 label="Max H"
+                icon={null}
                 unitSuffix
                 placeholder="auto"
                 className="max-height"
@@ -577,6 +597,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
             className="aspect-ratio-select"
             value={styleValues.aspectRatio || ""}
             options={ASPECT_RATIO_OPTIONS}
+            formatValue={ratioTriggerText}
             onChange={commitRatio}
             afterControl={
               sizingError ? (

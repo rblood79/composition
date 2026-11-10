@@ -238,6 +238,41 @@ describe("PropertyUnitInput numeric editing", () => {
     expect(onModeChange).not.toHaveBeenCalled();
   });
 
+  // 2026-11-10: 숫자 칸 기본 앞 표시는 `#`, `icon={null}` 이면 없음 (Size Width · Height 사용자 지정).
+  it("defaults the prefix glyph and drops it for icon={null}", () => {
+    useStore.setState({ selectedElementId: "element-1" });
+    const { container, rerender } = render(
+      <PropertyUnitInput label="Gap" value="8px" onChange={vi.fn()} />,
+    );
+    expect(container.querySelector(".control-label svg")).toBeTruthy();
+    rerender(
+      <PropertyUnitInput label="Gap" value="8px" icon={null} onChange={vi.fn()} />,
+    );
+    expect(container.querySelector(".control-label")).toBeNull();
+  });
+
+  // 2026-11-10 사용자 지정: Ratio 를 고르면 종속 축 (Height) 은 입력 불가, 칸은 「Auto」 가 아니라
+  //   계산된 px (자리 글자) 와 단위 px.
+  it("disables the ratio-driven axis and keeps its computed px instead of Auto", () => {
+    useStore.setState({ selectedElementId: "element-1" });
+    render(
+      <PropertyUnitInput
+        label="Height"
+        value="auto"
+        unitSuffix
+        units={["reset", "px", "%", "vh", "fill", "fit-content"]}
+        sizeControl={{ kind: "ratio", computed: 120, onModeChange: vi.fn() }}
+        onChange={vi.fn()}
+      />,
+    );
+    const input = screen.getByRole("combobox");
+    expect((input as HTMLInputElement).disabled).toBe(true);
+    expect(input.getAttribute("placeholder")).toBe("120");
+    const trigger = screen.getByRole("button", { name: /Size mode/ });
+    expect(trigger.textContent).toBe("px");
+    expect((trigger as HTMLButtonElement).disabled).toBe(true);
+  });
+
   it("Size 모드 suffix는 fr/%/vh/px/fit 토큰의 소문자를 보존한다", () => {
     expect(FORM_CONTROLS_CSS).toMatch(
       /\.property-unit-input\[data-size-control="true"\][\s\S]*?\.property-unit-input__suffix\s*\{[\s\S]*?text-transform:\s*none;/,

@@ -19,4 +19,14 @@ describe("PropertyNumberInput", () => {
     }).not.toThrow();
     expect(container?.querySelector("input")).toBeTruthy();
   });
+
+  // 2026-11-10 사용자 결정 (Figma 방식): 숫자 칸은 늘 칸 안 앞 표시를 둔다 — 지정이 없으면 `#`.
+  it("puts the default number glyph in front of the field when no icon is given", () => {
+    const { container } = render(
+      <PropertyNumberInput label="Row count" value={3} onChange={() => {}} />,
+    );
+    expect(
+      container.querySelector(".react-aria-Group > .control-label svg"),
+    ).toBeTruthy();
+  });
 });

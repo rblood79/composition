@@ -210,12 +210,6 @@
         }
       }
 
-      .height {
-        .react-aria-control .control-label svg {
-          transform: rotate(90deg);
-        }
-      }
-
       .actions-size {
         align-self: end;
       }

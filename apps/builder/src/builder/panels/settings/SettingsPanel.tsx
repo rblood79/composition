@@ -12,7 +12,7 @@
  * @updated 2026-03-05 - ADR-021 Phase D: 저장 테마 선택 UI 제거 (Tint System으로 대체)
  */
 
-import { Settings } from "lucide-react";
+import { Dock, Settings } from "lucide-react";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useBuilderUiStore } from "../../stores/builderUiStore";
@@ -86,18 +86,18 @@ function SettingsContent() {
                 가이드 표시는 이 토글과 독립, 조작만 ON 을 요구한다 (C10). */}
             <PropertySwitch
               label={t("settings.showRulers")}
+              icon={ACTION_ICONS.toggleRulers}
               isSelected={showRulers}
               onChange={setShowRulers}
-              icon={ACTION_ICONS.toggleRulers}
             />
 
             {/* ADR-192 — 선택 액션 바. Hide 는 바의 옵션 메뉴에서, 재표시는
                 여기서만 (Photoshop `Window > Contextual Task Bar` 대응). */}
             <PropertySwitch
               label={t("settings.showActionBar")}
+              icon={Dock}
               isSelected={!actionBarHidden}
               onChange={(selected: boolean) => setActionBarHidden(!selected)}
-              icon={ACTION_ICONS.toggleRulers}
             />
           </div>
 
@@ -106,9 +106,9 @@ function SettingsContent() {
                 흡착 후보로 참여한다 (`usePageDrag` 의 `guideLines`). */}
             <PropertySwitch
               label={t("settings.snapToObjects")}
+              icon={ACTION_ICONS.toggleSnap}
               isSelected={snapToObjects}
               onChange={setSnapToObjects}
-              icon={ACTION_ICONS.toggleSnap}
             />
           </div>
         </PropertySection>

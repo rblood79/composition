@@ -1,4 +1,3 @@
-import { CalendarCog } from "lucide-react";
 import { memo, useCallback, useMemo } from "react";
 import { readTargetProp } from "../../../../../../../packages/shared/src/catalog/resolution/fieldSource";
 import {
@@ -129,7 +128,6 @@ export const CatalogCalendarHeaderField = memo(
         <div className="fieldset-row" data-wide="true">
           <PropertySwitch
             label="Month and Year Pickers"
-            icon={CalendarCog}
             isSelected={view.mode === "pickers"}
             onChange={toggle}
           />

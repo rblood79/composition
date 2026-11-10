@@ -1,3 +1,4 @@
+import { Hash } from "lucide-react";
 import React, { useState, useRef, useEffect, memo } from "react";
 import { NumberField } from "react-aria-components/NumberField";
 import { Input } from "react-aria-components/Input";
@@ -76,7 +77,12 @@ export const PropertyNumberInput = memo(
     };
 
     return (
-      <PropertyFieldset legend={label} icon={icon} className={className}>
+      <PropertyFieldset
+        legend={label}
+        // 숫자 칸 공통 앞 표시 — 지정이 없으면 `#` (Figma · Pen 방식, 2026-11-10)
+        icon={icon ?? Hash}
+        className={className}
+      >
         <NumberField
           aria-label={
             displayLabel ||

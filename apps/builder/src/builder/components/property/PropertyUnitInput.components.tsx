@@ -1,4 +1,4 @@
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Hash } from "lucide-react";
 
 import React, { memo, useEffect, useMemo, useRef, useState } from "react";
 
@@ -78,14 +78,14 @@ export const PropertyUnitInputControl = memo(
     onChange,
     onDrag,
     onDragCancel,
-    icon: Icon,
+    icon: iconProp,
     className,
     units = DEFAULT_UNITS,
     defaultUnit = "",
     allowKeywords = true,
     preserveEmptyValueOnUnitChange = false,
     allowEmptyReset = false,
-    isDisabled = false,
+    isDisabled: isDisabledProp = false,
     placeholder = "reset",
     min = 0,
     max = 9999,
@@ -100,6 +100,16 @@ export const PropertyUnitInputControl = memo(
     presetUnits = false,
     autoValue,
   }: PropertyUnitInputProps) {
+    // 숫자 칸은 늘 칸 안 앞 표시를 둔다 — 축은 글자 (LetterX …), 그 밖은 값 아이콘, 지정이 없으면
+    //   `#` (Figma · Pen 방식, 사용자 결정 2026-11-10). 표시는 끌어서 값 바꾸는 손잡이도 겸한다.
+    //   legend 없이 아이콘이 이름인 칸 (labelMode icon) 은 호출부가 준 아이콘만.
+    const Icon =
+      iconProp === null
+        ? undefined
+        : (iconProp ?? (labelMode === "legend" ? Hash : undefined));
+    // 비율을 고른 요소의 종속 축 (Ratio 선택 시 Height) 은 입력 · 끌기 · 단위 메뉴 전부 막는다 —
+    //   값은 비율이 정한다 (사용자 지정 2026-11-10, 종전 readOnly 는 focus · 끌기가 됐다).
+    const isDisabled = isDisabledProp || sizeControl?.kind === "ratio";
     const i18n = useOptionalI18n();
     const displayLabel =
       label && i18n
@@ -578,11 +588,10 @@ export const PropertyUnitInputControl = memo(
         ? "fr"
         : sizeControl?.kind === "fit"
           ? "fit"
-          : sizeControl?.kind === "ratio"
-            ? sizeModeText(
-                "styles.transform.sizeMode.ratioTrigger",
-                "Auto (ratio)",
-              )
+          : // 비율이 정한 축은 값 대신 「Auto」 를 쓰지 않는다 — 칸은 비율로 계산된 px 를 보이고
+            //   단위도 px (사용자 지정 2026-11-10). 칸은 비활성이라 편집되지 않는다.
+            sizeControl?.kind === "ratio"
+            ? "px"
             : undefined;
     const unitSuffixText = valueIsToken
       ? "px"

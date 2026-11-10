@@ -11,6 +11,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [패널 입력 앞 표시 — Figma 방식 한 벌] - 2026-11-10
+
+사용자 지적 「패널 입력 · 선택 폼의 앞 아이콘이 있는 것 · 없는 것이 다양하다」 → Figma · Framer · Pen 비교 후 사용자 결정 「Figma 방식」 (legend 위 + 칸 안 앞 표시 — Figma UI3 의 Property labels 를 켠 모양). 2026-09-15 panel-ui 대조 B4 · B13 과 11-02 styles-token-model 의 「숫자 칸 아이콘 없음」 을 뒤집는다.
+
+### Changed
+
+- **숫자 칸은 늘 칸 안 앞 표시를 둔다** — 값 아이콘 (Gap 은 주축 방향, Font size · Line height · Letter spacing, Radius, Blur, Spread, Grid 트랙 Min · Max, Page gap · Column count). 지정이 없는 숫자 칸 (Properties · Data · Chart 의 일반 숫자) 은 `#`. 표시는 끌어서 값 바꾸는 손잡이도 겸한다.
+- **Ratio 를 고른 요소의 Height 칸** — 입력 · 끌기 · 단위 메뉴가 모두 비활성 (종전 readOnly 는 focus · 끌기가 됐다), 칸은 「Auto (ratio)」 · 「자동(비율)」 대신 비율로 계산된 px 와 단위 px 를 보인다 (사용자 지정 — 번역 키 `styles.transform.sizeMode.ratioTrigger` 삭제). 위치: `components/property/PropertyUnitInput.components.tsx` · `i18n/messages/{en-US,ko-KR}.ts`.
+- **축 · 치수 칸은 앞 표시 없음** — Size 절 Width · Height · Min · Max W · H, Position X · Y, Border Width, Shadow Offset X · Y (사용자 지정 — 처음 붙였던 X · Y · W · H 글자를 뺐다). `PropertyUnitInput` 의 `icon={null}` 이 기본 `#` 을 끈다.
+- **Settings Page layout 절 순서** — 「Direction | Page gap」 · 「Column count | This breakpoint」 두 줄 (종전 Page gap | Column count · tier 스위치 · Direction 세 줄, 사용자 지정). 둘째 줄은 Auto 방향에서만.
+- **Settings Page layout Direction 의 Auto** — 글자 「Auto」 대신 `LayoutGrid` 아이콘 (가로 · 세로와 같은 아이콘 세그먼트, 글자는 접근 이름 — 사용자 지정). 위치: `panels/settings/SettingsPageLayoutSection.tsx`.
+- **Border Radius 칸 앞 표시** — `SquareRoundCorner` (사용자 지정). 위치: `panels/styles/sections/BorderSection.tsx`.
+- **Size Ratio** — 비율을 고르면 칸에는 비율만 (「16:9 Video」 → 「16:9」), 목록 항목은 이름까지 (사용자 지정). `PropertySelect` 에 `formatValue` (트리거 짧은 값) 추가. 위치: `panels/styles/sections/TransformSection.tsx` · `components/property/PropertySelect.*`.
+- **Grid Columns · Rows 칸 앞 표시** — `Columns2` · `Rows2`, Settings Column count 도 `Columns2` (사용자 지정). 위치: `panels/styles/sections/LayoutSection.tsx` `GridTrackField` · `panels/settings/SettingsPageLayoutSection.tsx`.
+- **Padding 칸 아이콘** — 좌우 · 상하 `MoveHorizontal` · `MoveVertical` → `SquarePaddingHorizontal` · `SquarePaddingVertical`, 네 변 펼침 `PanelLeft` · `PanelTop` · `PanelRight` · `PanelBottom` → `SquarePaddingLeft` · `Top` · `Right` · `Bottom` (사용자 지정). 위치: `panels/styles/sections/PaddingFields.tsx`.
+- **셀렉트 앞 아이콘을 뺐다** — Apply layout · 데이터 바인딩 · Who can access · Language. 값 · 타입 자체를 보여 주는 아이콘 (Data 필드 타입 글리프) 만 남는다.
+- **스위치에서 아이콘을 뺐고 (15 곳) 크기를 36×20 → 26×16 (S2 Switch M) 으로 줄였다** — 칸 안 다른 요소 (체크박스 16 · 아이콘 14~16) 와 같은 높이. 종전 값은 RAC 예제 값을 옮긴 것이었다. Show action bar · tier override 가 눈금자 아이콘을 복사해 쓰던 것도 함께 사라졌다. 예외 — 켜고 끄는 대상이 아이콘으로 분명한 검색 · sitemap 스위치는 아이콘을 둔다 (사용자 지정): 페이지 설정 Hide from search `SearchX` · Hide from sitemap `MapPinOff`, Site Search index `Search` · Sitemap `Network`, Settings Show rulers `RulerDimensionLine` · Snap to objects `Magnet` (둘 다 `ACTION_ICONS`) · Show action bar `Dock` (종전 눈금자 복사를 바로잡음) · Page layout 의 tier 스위치 `PictureInPicture2` (라벨 「This breakpoint only」 · 「이 breakpoint 만」 → 「Breakpoint」 — 반폭 칸에서 잘리던 것).
+
+### Fixed
+
+- Size 절 Height 칸 앞 표시가 90° 돌아 「工」 으로 보이던 것. **Why:** 옛 아이콘 (Width 와 같은 그림을 돌려 쓰던 것) 용 회전 규칙 (`inspector-layout.css` `.height … svg`) 이 남아 새 `H` 글자를 돌렸다 — 규칙을 지웠다.
+
+### Tests
+
+- 게이트: `components/property/fieldPrefixIcon.static.test.ts` (셀렉트 아이콘 허용 목록 · 숫자 칸 기본 표시), `PropertyNumberInput.test.tsx` 기본 `#` 렌더. 위치: `components/property/PropertyUnitInput.components.tsx` · `PropertyNumberInput.tsx` · `PropertySwitch.*` · `styles/widgets/Switch.css` · Styles 섹션 6 · Settings · Site · Properties catalog 섹션.
+
 ## [Theme 패널 — 불필요한 Preview 섹션 제거] - 2026-11-10
 
 ### Removed

@@ -9,13 +9,13 @@
  */
 import { memo, useState } from "react";
 import {
-  MoveHorizontal,
-  MoveVertical,
-  PanelBottom,
-  PanelLeft,
-  PanelRight,
-  PanelTop,
   SquareDashed,
+  SquarePaddingBottom,
+  SquarePaddingHorizontal,
+  SquarePaddingLeft,
+  SquarePaddingRight,
+  SquarePaddingTop,
+  SquarePaddingVertical,
 } from "lucide-react";
 import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
 import { SPACING_PRESET_OPTIONS } from "../../../components/property/propertyUnitPresets";
@@ -40,12 +40,12 @@ export interface PaddingValues {
 const SIDE_FIELDS: ReadonlyArray<{
   side: Side;
   label: string;
-  icon: typeof PanelLeft;
+  icon: typeof SquarePaddingLeft;
 }> = [
-  { side: "Left", label: "Left padding", icon: PanelLeft },
-  { side: "Top", label: "Top padding", icon: PanelTop },
-  { side: "Right", label: "Right padding", icon: PanelRight },
-  { side: "Bottom", label: "Bottom padding", icon: PanelBottom },
+  { side: "Left", label: "Left padding", icon: SquarePaddingLeft },
+  { side: "Top", label: "Top padding", icon: SquarePaddingTop },
+  { side: "Right", label: "Right padding", icon: SquarePaddingRight },
+  { side: "Bottom", label: "Bottom padding", icon: SquarePaddingBottom },
 ];
 
 export const PaddingFields = memo(function PaddingFields({
@@ -86,7 +86,7 @@ export const PaddingFields = memo(function PaddingFields({
   const field = (
     key: string,
     label: string,
-    icon: typeof PanelLeft,
+    icon: typeof SquarePaddingLeft,
     targets: readonly Side[],
   ) => {
     const [first, ...rest] = targets.map((side) => sides[side]);
@@ -132,11 +132,14 @@ export const PaddingFields = memo(function PaddingFields({
           )
         ) : (
           <>
-            {field("x", "Horizontal padding", MoveHorizontal, [
+            {field("x", "Horizontal padding", SquarePaddingHorizontal, [
               "Left",
               "Right",
             ])}
-            {field("y", "Vertical padding", MoveVertical, ["Top", "Bottom"])}
+            {field("y", "Vertical padding", SquarePaddingVertical, [
+              "Top",
+              "Bottom",
+            ])}
           </>
         )}
         <div className="fieldset-actions actions-padding">

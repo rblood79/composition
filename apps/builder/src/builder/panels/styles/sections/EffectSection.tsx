@@ -22,7 +22,7 @@
  */
 
 import { memo, useState } from "react";
-import { Minus } from "lucide-react";
+import { CircleDashed, Minus } from "lucide-react";
 import { PropertyRowMenu } from "../../../components/property/PropertyRowMenu";
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertySlider } from "../../../components/property/PropertySlider";
@@ -254,6 +254,7 @@ const EffectSectionContent = memo(function EffectSectionContent() {
         <div className="fieldset-row style-blur" data-wide>
           <PropertyUnitInput
             label="Blur"
+            icon={CircleDashed}
             className="effect-blur"
             unitSuffix
             value={`${blurPx}px`}

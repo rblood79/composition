@@ -1,3 +1,4 @@
+import { Expand, Shrink } from "lucide-react";
 /**
  * GridTracksSection — 「격자」 보기의 「열」 · 「행」 절 (Figma grid 의 track list).
  *
@@ -218,6 +219,7 @@ const GridTrackRows = memo(function GridTrackRows({ axis }: { axis: Axis }) {
                   <PropertyUnitInput
                     key={limit}
                     label={localize(LIMIT_LABEL[limit])}
+                    icon={limit === "min" ? Shrink : Expand}
                     unitSuffix
                     placeholder="—"
                     className={`grid-track-${limit}`}

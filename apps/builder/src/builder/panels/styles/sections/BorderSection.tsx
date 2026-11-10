@@ -24,7 +24,7 @@
  */
 
 import { memo, useState, type ComponentType } from "react";
-import { Scan } from "lucide-react";
+import { Scan, SquareRoundCorner } from "lucide-react";
 import {
   Ellipsis,
   Minus,
@@ -209,6 +209,7 @@ const BorderSectionContent = memo(function BorderSectionContent() {
       <div className="style-border-width">
         <PropertyUnitInput
           label="Width"
+          icon={null}
           className="border-width"
           value={widthValue}
           units={["px"]}
@@ -330,6 +331,7 @@ const BorderSectionContent = memo(function BorderSectionContent() {
       <div className="style-border-radius">
         <PropertyUnitInput
           label="Radius"
+          icon={SquareRoundCorner}
           className="border-radius"
           value={radiusValue}
           units={["px"]}

@@ -17,7 +17,7 @@ import {
   useState,
   type ClipboardEvent,
 } from "react";
-import { CloudUpload, Play } from "lucide-react";
+import { Play } from "lucide-react";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 
 const AddIcon = ACTION_ICONS.add;
@@ -356,7 +356,6 @@ function UploadTransportRow({
     >
       <PropertySwitch
         label={dt("apiUploadLive")}
-        icon={CloudUpload}
         isSelected={live}
         onChange={(checked) => void save({ uploadDryRun: !checked })}
       />
