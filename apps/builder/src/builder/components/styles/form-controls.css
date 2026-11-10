@@ -313,6 +313,10 @@
           flex: 1;
           min-width: 0;
           text-align: left;
+          /* 값 글자는 입력칸 (`.react-aria-Input` · NumberField) 과 같은 자리에서 시작한다 — 상자 안 4 +
+             4 = 8. 종전 0 이라 셀렉트 (Overflow · Ratio …) 만 칸 왼쪽 4 에 붙었다 (사용자 지적
+             2026-11-11 — 앞 아이콘을 뺀 Width · Height 옆에서 드러났다). */
+          padding-inline-start: var(--spacing);
         }
       }
 

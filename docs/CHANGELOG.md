@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [빌더 중립 면 `--bg-muted` — 검정 5%] - 2026-11-11
+
+### Changed
+
+- **빌더 light 의 `--bg-muted` = `rgb(0 0 0 / 0.05)`** (종전 gray-200) — 폼 상자 · 탭 줄 띠 · hover · 선택 표시 등 중립 면이 한 단 연해진다 (사용자 결정: gray-200 은 진하고 gray-100 은 연했다). 반투명이라 흰 표면 위에서 #f2f2f2, 패널 구획 (gray-50) 위에서 약 #edeeee 로 놓인 면보다 같은 만큼 어둡다. dark (zinc-700) 와 `--border` (gray-200) 는 그대로.
+- 위치: `packages/shared/src/components/styles/theme/builder-system.css`.
+
+## [패널 셀렉트 값 글자 시작 위치 — 입력칸과 맞춤] - 2026-11-11
+
+### Fixed
+
+- **패널 셀렉트 (Overflow · Ratio · Weight · Wrap · Language …) 의 값 글자가 칸 왼쪽에 붙던 것** — 입력칸은 상자 여백 4 + 입력 여백 4 = 8 에서 글자가 시작하는데 셀렉트 값 (`.react-aria-SelectValue`) 은 여백 0 이라 4 에서 시작했다. 같은 줄 Width · Height 의 앞 아이콘을 빼면서 드러났다 (사용자 지적). **Why:** 셀렉트 값의 왼쪽 여백은 앞 아이콘 (`.control-label`) 이 대신 만들어 주던 것이라, 아이콘 없는 셀렉트에는 처음부터 없었다. 값에 `padding-inline-start: var(--spacing)` — live 실측 Width · Height · Overflow · Ratio 모두 8.
+- 위치: `apps/builder/src/builder/components/styles/form-controls.css`.
+
 ## [빌더 아이콘 선 굵기 — non-scaling stroke] - 2026-11-11
 
 ### Changed

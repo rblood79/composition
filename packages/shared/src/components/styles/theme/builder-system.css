@@ -81,7 +81,10 @@
     --bg-pasteboard: var(--color-neutral-200);
     --bg-raised: var(--color-gray-50);
     --bg-overlay: var(--color-white);
-    --bg-muted: var(--color-gray-200);
+    /* 폼 상자 · 선택 · hover 의 중립 면 — 검정 5% (사용자 결정 2026-11-11: gray-200 은 진하고 gray-100 은
+       연했다). 반투명이라 흰 표면 위 #f2f2f2, gray-50 면 위에서는 한 단 어둡게 같은 대비로 읽힌다.
+       dark 는 그대로 (zinc-700). */
+    --bg-muted: rgb(0 0 0 / 0.05);
     --bg-emphasis: var(--color-gray-300);
     --bg-inset: var(--color-gray-50);
 
