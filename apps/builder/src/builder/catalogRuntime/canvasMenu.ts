@@ -25,6 +25,7 @@ import type {
   ContextMenuIcon,
   ContextMenuItem,
 } from "../components/overlay/contextMenu/types";
+import { dropEmptySeparators } from "../components/overlay/contextMenu/buildContextMenuItems";
 import {
   ACTION_ICONS,
   ALIGNMENT_ICONS,
@@ -284,7 +285,9 @@ export function catalogCanvasMenuItems(
           run: view.toggleSnap,
         },
       );
-    return items;
+    // 「붙여넣기」 가 빠지면 (클립보드 비어 있음) 뒤 구분선이 맨 앞에 남는다 — Canvas 는 이 목록을
+    //   바로 그리므로 (`buildContextMenuItems` 를 거치지 않는다) 여기서 정리한다 (사용자 보고 2026-11-11).
+    return dropEmptySeparators(items);
   }
 
   const selection = host.selection();
@@ -696,5 +699,5 @@ export function catalogCanvasMenuItems(
   // The bar policy excludes deletion. Planning it here would repeatedly copy each selected
   // node's sibling list, only to discard the result. Overflow still builds the full menu.
   items.push(...deletion());
-  return items;
+  return dropEmptySeparators(items);
 }

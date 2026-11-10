@@ -366,6 +366,10 @@ describe("ADR-248 Phase 4e-3b Canvas context menu", () => {
       "show-rulers",
       "snap-to-objects",
     ]);
+    // 클립보드가 비어 「붙여넣기」 가 없으면 그 뒤 구분선이 맨 앞에 남으면 안 된다 — Canvas 는 이
+    //   목록을 바로 그린다 (사용자 보고 2026-11-11: 우클릭 메뉴 상단의 불필요한 구분선).
+    expect(items[0]?.kind).not.toBe("separator");
+    expect(items.at(-1)?.kind).not.toBe("separator");
     expect(items.find((item) => item.id === "show-rulers")).toMatchObject({
       labelKey: "contextMenu.showRulers",
       checked: false,

@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas 우클릭 메뉴 — 맨 앞 구분선 제거] - 2026-11-11
+
+### Fixed
+
+- **빈 캔버스 우클릭 메뉴가 구분선으로 시작하던 것** (사용자 보고). **Why:** Canvas · 액션 바는 `catalogCanvasMenuItems` 목록을 바로 그려 `buildContextMenuItems` 의 `dropEmptySeparators` (맨 앞 · 맨 뒤 · 연속 구분선 정리) 를 거치지 않았다 — 클립보드가 비어 「붙여넣기」 가 빠지면 그 뒤 `viewport-separator` 가 맨 앞에 남았다. 목록을 만드는 곳에서 정리한다 (두 반환 모두).
+- 위치: `apps/builder/src/builder/catalogRuntime/canvasMenu.ts` · 회귀 `phase4eCanvasMenu.test.ts` (수정을 되돌리면 실패 확인).
+
 ## [빌더 중립 면 `--bg-muted` — 검정 5%] - 2026-11-11
 
 ### Changed
