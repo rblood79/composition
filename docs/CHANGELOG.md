@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas 문서 크기 비례 비용 1단계 — page frame · History · 글꼴 · 부모 맵 · 줄 상자 캐시] - 2026-11-11
+
+### Performance
+
+- **pan · zoom 비용이 문서 크기와 거의 무관해짐** (연구 `docs/explanation/research/CANVAS_PERF_SCALING_2026-11.md` §7):
+  - **Why**: 그리기는 화면 넓이에 묶여 있었지만 page frame 조회 (페이지마다 wasm 왕복, 프레임당 ~3회) · History 스냅샷 (step 마다 entry 전부) · 글꼴 동기 (step 마다 record 전부) · fixed 상자 부모 맵 (페이지마다 문서 전체) 이 문서 크기에 비례했다.
+  - 3배 문서 (22 → 66 장) 의 같은 입력 호출 수 배율: pan 2.32 → 1.17 · zoom 1.59 → 1.13 · edit 1.67 → 1.25 · drag 1.80 → 1.55 (dev 측정). page-switch · panel-toggle 은 그대로 — Pages 트리 (2단계).
+  - 위치: `packages/shared/src/catalog/runtime/{persistentLayoutTree,compositionRoot,controller}.ts` · `apps/builder/src/builder/catalogRuntime/history.ts` · `apps/builder/src/builder/fonts/catalogFontUse.ts` · `apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts`
+- **프로젝트를 처음 열 때 글자 줄 상자 DOM 측정 6,222 → 24 회 (66 장)**:
+  - **Why**: 글꼴 로딩 중에는 측정값을 저장하지 않아 text record 마다 강제 레이아웃을 했다. 한 동기 실행 안에서는 글꼴 상태가 바뀌지 않으므로 그 값을 task 끝까지 재사용한다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/utils/cssLineBoxMetrics.ts`
+
 ## [Settings UI 배율 S · L — chrome 층만 zoom · 끌기 델타 배율 보정] - 2026-11-11
 
 ### Fixed
