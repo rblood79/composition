@@ -18,7 +18,7 @@
     padding: var(--chrome-padding);
     background: var(--chrome-surface);
     border: var(--chrome-border);
-    border-radius: var(--chrome-radius);
+    border-radius: var(--chrome-radius-toolbar);
     box-shadow: var(--chrome-shadow);
     pointer-events: auto;
     z-index: 20;
@@ -56,10 +56,10 @@
 
   /* 옵션 메뉴 (Pin / Reset / Hide) — 컨텍스트 메뉴와 같은 팝오버 어법 */
   .contextual-action-bar-options-popover {
-    background: var(--bg-raised);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
+    background: var(--chrome-surface);
+    border: var(--chrome-border);
+    border-radius: var(--chrome-radius-popover);
+    box-shadow: var(--chrome-shadow);
     z-index: 1000;
     outline: none;
     overflow: hidden;
@@ -142,10 +142,10 @@
 
   /* 정렬 popover — 8 아이콘 4×2 그리드 */
   .contextual-action-bar-align-popover {
-    background: var(--bg-raised);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
+    background: var(--chrome-surface);
+    border: var(--chrome-border);
+    border-radius: var(--chrome-radius-popover);
+    box-shadow: var(--chrome-shadow);
     padding: 4px;
     z-index: 1000;
     outline: none;

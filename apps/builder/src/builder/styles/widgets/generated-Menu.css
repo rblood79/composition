@@ -13,7 +13,7 @@
     background: var(--container-bg, var(--bg));
     color: var(--fg);
     border: var(--border-width-thin) solid var(--border);
-    border-radius: 6px;
+    border-radius: var(--chrome-radius-popover);
     padding: var(--spacing-xs);
     gap: var(--spacing-2xs);
     width: 100%;

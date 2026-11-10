@@ -89,7 +89,6 @@
     inset: 0;
     z-index: -1;
     border-radius: var(--btn-border-radius);
-    box-shadow: var(--shadow-sm);
     pointer-events: none;
     opacity: 0;
     transition:

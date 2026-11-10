@@ -242,13 +242,13 @@
 }
 
 .creator-method[data-hovered] {
-  border-color: var(--color-primary-300);
+  border-color: var(--border-hover);
   color: var(--fg);
 }
 
 .creator-method[data-selected] {
-  border-color: var(--color-primary-500);
-  background: var(--color-primary-50);
+  border-color: var(--accent);
+  background: var(--bg-muted);
   color: var(--fg);
 }
 

@@ -31,7 +31,7 @@
   /* Canvas */
   .app .canvas {
     padding: 0;
-    background: var(--bg);
+    background: var(--bg-pasteboard);
     /* 페이지 경계선은 outline — border 는 border-box 폭(디바이스 390px)을 잠식해
        iframe viewport 가 388px 로 수축, Skia(390) 와 전 컴포넌트 dw+2 발산 */
     outline: 1px solid var(--border);
@@ -69,7 +69,7 @@
   .command-palette-modal .panel-header {
     min-height: var(--control-size-lg);
     max-height: var(--control-size-lg);
-    background-color: var(--bg-raised);
+    background-color: var(--chrome-surface);
     border-bottom: 1px solid var(--border);
     display: flex;
     flex-direction: row;

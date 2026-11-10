@@ -34,7 +34,7 @@
 .canvas-container {
   --canvas-selection-tint: color-mix(
     in srgb,
-    var(--focus-ring) 12%,
+    var(--canvas-selection) 12%,
     transparent
   );
   position: absolute;
@@ -42,7 +42,7 @@
   outline: none;
   /* ADR-902: Skia clearFrame 투명화 (P0) 후 void 영역 베이스 색.
      테마 변경은 --bg 토큰 경로로 자동 반영 (ADR-021). */
-  background: var(--bg);
+  background: var(--bg-pasteboard);
   /* ADR-902: DotBackground / SkiaCanvas / 자손 absolute 오버레이의 z-index 를
      자체 stacking context 로 격리. TextEditOverlay / GPUDebugOverlay /
      wasmLayoutFailed 배너(z:9999) 는 .canvas-container 자손이므로 동일 컨텍스트. */
@@ -257,7 +257,7 @@
 .ruler-selection-range::after {
   content: "";
   position: absolute;
-  background: var(--focus-ring-strong);
+  background: var(--canvas-selection-strong);
 }
 
 .ruler-selection-strip[data-axis="x"] .ruler-selection-range::before,
@@ -291,7 +291,7 @@
 }
 
 .ruler-selection-value {
-  color: var(--focus-ring-strong);
+  color: var(--canvas-selection-strong);
   background: var(--bg-overlay);
   box-shadow: 0 0 0 2px var(--bg-overlay);
 }
@@ -453,7 +453,7 @@
   min-height: 0;
   isolation: isolate;
   overflow: clip;
-  background-color: var(--bg);
+  background-color: var(--bg-pasteboard);
 }
 
 .workspace-mode-content {
@@ -466,7 +466,7 @@
   inset: 0;
   display: flex;
   flex-direction: column;
-  background-color: var(--bg);
+  background-color: var(--bg-pasteboard);
   overflow: clip;
 }
 

@@ -78,7 +78,6 @@
     height: var(--text-xl);
     padding: 0;
     background: var(--bg-overlay);
-    box-shadow: var(--shadow-sm);
     border: none;
     border-radius: var(--radius-sm);
     color: var(--fg-muted);
@@ -118,7 +117,6 @@
     flex-shrink: 0;
     block-size: var(--text-xl);
     border: none;
-    box-shadow: var(--shadow-sm);
   }
 
   /* 레이어 편집 팝오버 — 233 (패널 최소 폭, 색 피커·Fill 팝오버와 같은 폭) */

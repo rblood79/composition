@@ -85,7 +85,6 @@
                 z-index: -1;
                 border-radius: var(--radius-sm);
                 background: var(--accent);
-                box-shadow: var(--shadow-sm);
                 pointer-events: none;
                 transition:
                   translate 200ms cubic-bezier(0.16, 1, 0.3, 1),
@@ -177,12 +176,12 @@
     &[data-section-id="grid-columns"] .grid-track-row[data-selected],
     &[data-section-id="grid-rows"] .grid-track-row[data-selected] {
       border-radius: var(--radius-sm);
-      background: color-mix(in srgb, var(--informative) 14%, transparent);
+      background: color-mix(in srgb, var(--canvas-selection) 14%, transparent);
       box-shadow: 0 0 0 var(--spacing-xs)
-        color-mix(in srgb, var(--informative) 14%, transparent);
+        color-mix(in srgb, var(--canvas-selection) 14%, transparent);
 
       .grid-track-index {
-        color: var(--informative);
+        color: var(--canvas-selection-strong);
       }
     }
 
@@ -822,7 +821,7 @@
           color: var(--fg);
         }
 
-        /* 선택 표시는 흰 pill(`--bg-overlay`) + 그림자다 — 버튼 자신은
+        /* 선택 표시는 흰 pill(`--bg-overlay`) 이다 — 버튼 자신은
            `background: transparent` 이고 채움은 `.react-aria-SelectionIndicator`
            가 그린다. 그래서 전경은 역상(흰 글자)이 아니라 `--fg` 다. 종전
            `--color-white` 는 흰 pill 위 흰 글자라 라벨(Size 토글의 S/M/L 등)이
@@ -831,7 +830,6 @@
            svg 규칙은 남긴다 — 이 그룹의 아이콘 일부가 `stroke="var(--color-gray-400)"`
            표시 속성을 갖고 있어 currentColor 상속만으로는 선택 상태가 흐려진다. */
         &[data-selected] {
-          box-shadow: var(--shadow-sm);
           background: transparent;
           color: var(--fg);
 

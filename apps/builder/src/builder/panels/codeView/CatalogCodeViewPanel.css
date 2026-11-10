@@ -135,7 +135,6 @@
   &[data-selected] {
     background: var(--bg-overlay);
     color: var(--fg);
-    box-shadow: var(--shadow-sm);
   }
 
   &[data-focus-visible] {

@@ -5,7 +5,7 @@
 
 @layer components {
   .grid-size-picker-popover.react-aria-Popover {
-    background: var(--bg-raised);
+    background: var(--chrome-surface);
     border-radius: var(--radius-md);
     padding: var(--spacing-sm);
   }

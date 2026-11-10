@@ -8,10 +8,10 @@
 
   /* Context Menu Popover */
   .context-menu-popover {
-    background: var(--bg-raised);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
+    background: var(--chrome-surface);
+    border: var(--chrome-border);
+    border-radius: var(--chrome-radius-popover);
+    box-shadow: var(--chrome-shadow);
     z-index: 1000;
     overflow: hidden;
     min-width: 200px;

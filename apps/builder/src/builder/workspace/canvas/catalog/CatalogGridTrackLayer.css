@@ -66,12 +66,12 @@
     }
 
     &[data-selected] {
-      background: var(--focus-ring);
+      background: var(--canvas-selection);
       color: var(--color-white);
     }
 
     &:focus-visible {
-      outline: 2px solid var(--focus-ring);
+      outline: 2px solid var(--canvas-selection);
       outline-offset: 1px;
     }
   }
@@ -188,7 +188,7 @@
 
     &:hover::after,
     &[data-active]::after {
-      background: var(--focus-ring);
+      background: var(--canvas-selection);
     }
   }
 
@@ -199,7 +199,7 @@
     top: calc(var(--by) * var(--zoom) * 1px + var(--pan-y));
     width: calc(var(--bw) * var(--zoom) * 1px);
     height: calc(var(--bh) * var(--zoom) * 1px);
-    background: color-mix(in srgb, var(--focus-ring) 14%, transparent);
+    background: color-mix(in srgb, var(--canvas-selection) 14%, transparent);
     pointer-events: none;
   }
 
@@ -207,14 +207,14 @@
   .grid-track-box {
     position: absolute;
     box-sizing: border-box;
-    border: 1px solid var(--focus-ring);
+    border: 1px solid var(--canvas-selection);
     pointer-events: none;
   }
 
 
   .grid-track-insertion {
     position: absolute;
-    background: var(--focus-ring);
+    background: var(--canvas-selection);
     pointer-events: none;
   }
 
@@ -239,7 +239,7 @@
     }
 
     &:focus-visible {
-      outline: 2px solid var(--focus-ring);
+      outline: 2px solid var(--canvas-selection);
       outline-offset: 1px;
     }
   }

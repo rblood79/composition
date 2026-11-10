@@ -120,7 +120,6 @@
     height: var(--text-xl);
     padding: 0;
     background: var(--bg-overlay);
-    box-shadow: var(--shadow-sm);
     border: none;
     border-radius: var(--radius-sm);
     color: var(--fg-muted);

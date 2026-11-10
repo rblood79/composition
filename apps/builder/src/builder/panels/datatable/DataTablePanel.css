@@ -215,8 +215,8 @@
 
 /* Item Card extension */
 .datatable-panel .list-item.editing {
-  background: var(--color-primary-100);
-  border-color: var(--color-primary-500);
+  background: var(--bg-muted);
+  border-color: var(--accent);
 }
 
 /* Add Button */

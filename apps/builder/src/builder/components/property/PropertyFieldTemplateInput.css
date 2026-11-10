@@ -79,6 +79,6 @@
 }
 
 .react-aria-Menu.field-picker-menu .react-aria-MenuItem {
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-md);
   font-weight: 600;
 }

@@ -15,15 +15,15 @@
   list-style: none;
   max-height: 160px;
   overflow-y: auto;
-  background: var(--bg-overlay);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  background: var(--chrome-surface);
+  border: var(--chrome-border);
+  border-radius: var(--chrome-radius-popover);
+  box-shadow: var(--chrome-shadow);
 }
 
 .property-input-suggest-item {
   padding: 4px 12px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-md);
   font-weight: 600;
   font-family: var(--font-mono);
   font-size: 11px;

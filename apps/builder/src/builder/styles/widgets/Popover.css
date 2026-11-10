@@ -79,20 +79,21 @@
     [data-document="builder"],
     [data-document="builder"] *
   ) {
-    border: 1px solid var(--border);
-    background: var(--bg-raised);
+    /* 팝오버는 chrome island 와 같은 「떠 있는 표면」 이다 (Spectrum Hub background layers 의 elevated —
+       2026-11-10). 표면 · 테두리 · 그림자는 `builder-system.css` §Chrome island 한 곳이 정한다.
+       `react-aria-Popover` class 를 대체한 팝오버 (헤더 · 줌 · 컨텍스트 메뉴 · action bar · 기록 · 아이콘)
+       는 이 규칙이 닿지 않아 자기 시트에서 같은 토큰을 읽는다. */
+    border: var(--chrome-border);
+    background: var(--chrome-surface);
     color: var(--fg);
-    /* 빌더 팝오버 그림자 한 곳 — Select · ComboBox · Menu · 고르기 · 편집 팝오버 모두 (2026-11-10
-       사용자 「모든 popover 에 동일 적용」). `react-aria-Popover` class 를 대체한 팝오버 (헤더 · 줌 ·
-       컨텍스트 메뉴 · action bar · 기록 · 아이콘) 는 이 규칙이 닿지 않아 자기 시트에서 같은 값을 준다. */
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--chrome-shadow);
   }
 
   .react-aria-Popover:where(
     [data-document="builder"],
     [data-document="builder"] *
   ) {
-    border-radius: var(--radius-lg);
+    border-radius: var(--chrome-radius-popover);
   }
 
   .react-aria-Popover[data-size="M"]:where(

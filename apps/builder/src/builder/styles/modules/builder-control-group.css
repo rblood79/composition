@@ -12,7 +12,7 @@
     gap: var(--chrome-gap);
     color: var(--fg-muted);
     border: var(--chrome-border);
-    border-radius: var(--chrome-radius);
+    border-radius: var(--chrome-radius-toolbar);
     box-shadow: var(--chrome-shadow);
   }
 
@@ -69,8 +69,10 @@
 
   .builder-control-group.react-aria-ToggleButtonGroup[data-indicator="true"]
     .react-aria-ToggleButton[data-selected] {
-    /* 선택 글리프는 헤더 강조 계열 (--focus-ring, 09-19) — indicator 배경 위 대비색이 아니다 */
-    color: var(--focus-ring);
+    /* 선택 글리프는 indicator (`--accent` 채움) 위의 대비색이다 — Hub states 의 selected (진한 채움 + 흰 내용).
+       종전 파랑 (--focus-ring, 09-19) 은 탐색 선택이 focus · 강조와 경쟁했고 (Hub attention hierarchy),
+       focus 색을 대비 3:1 로 올리면 진한 채움 위에서 읽히지 않는다. */
+    color: var(--fg-on-accent);
   }
 
   .builder-control-group.react-aria-ToggleButtonGroup[data-indicator="true"]

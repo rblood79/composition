@@ -158,10 +158,10 @@
   .history-menu-popover {
     min-width: 200px;
     overflow: hidden;
-    background: var(--bg-raised);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
+    background: var(--chrome-surface);
+    border: var(--chrome-border);
+    border-radius: var(--chrome-radius-popover);
+    box-shadow: var(--chrome-shadow);
     outline: none;
     z-index: 1000;
   }

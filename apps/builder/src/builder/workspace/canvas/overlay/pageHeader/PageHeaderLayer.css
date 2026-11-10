@@ -85,13 +85,13 @@
    부족하다 (light blue-500 / dark blue-300). 면(아래 배경)은 --focus-ring 그대로. */
 .page-header[data-highlighted] .page-header__title,
 .page-header[data-highlighted] .page-header__action {
-  color: var(--focus-ring-strong);
+  color: var(--canvas-selection-strong);
 }
 
 /* 활성 헤더의 액션 버튼 — 띠보다 한 단계 진한 같은 계열 배경으로 상자를 드러낸다
    (띠 12% : 버튼 18%). 비활성도 같은 18% 를 띠 계열(--fg) 로 쓴다 (아래 기본 규칙). */
 .page-header[data-highlighted] .page-header__action {
-  background: color-mix(in srgb, var(--focus-ring) 18%, transparent);
+  background: color-mix(in srgb, var(--canvas-selection) 18%, transparent);
 }
 
 /* ADR-226 폭 티어 — 화면 폭 < 96px (tablet · mobile 저줌) 이면 액션 버튼을 렌더하지
@@ -136,7 +136,7 @@
 }
 
 .page-header[data-highlighted] .page-header__action[data-selected] {
-  background: var(--focus-ring);
+  background: var(--canvas-selection);
   color: var(--bg-overlay);
 }
 
@@ -148,15 +148,15 @@
 }
 
 .page-header[data-highlighted] .page-header__action[data-hovered] {
-  background: var(--focus-ring);
+  background: var(--canvas-selection);
   color: var(--bg-overlay);
 }
 
 /* 이름 편집 — 헤더 띠 자체가 필드. 종전 Workspace.css 의 .page-title-edit-input (500) 을
    이 층으로 옮기고 헤더와 같은 700 으로 맞춘다 (reviews/221 round 1 l1). */
 .page-header[data-editing] {
-  background: var(--bg);
-  outline: 1px solid var(--focus-ring);
+  background: var(--bg-pasteboard);
+  outline: 1px solid var(--canvas-selection);
   outline-offset: -1px;
 }
 

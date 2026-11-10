@@ -79,7 +79,7 @@
     background: var(--chrome-surface);
     border: var(--chrome-border);
     border-radius: var(--chrome-radius);
-    box-shadow: var(--chrome-shadow-floating);
+    box-shadow: var(--chrome-shadow);
   }
 
   .auth-island-heading {

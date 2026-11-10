@@ -44,7 +44,9 @@
   }
 }
 @layer preview-system {
-  [data-theme="dark"] {
+  /* 빌더 문서는 `data-builder-theme` 만 세운다 — 옛 `[data-theme="dark"]` 는 빌더에서 맞는 요소가 없어
+     dark 에서도 light 값 (8% · 4%) 이 그려졌다 (2026-11-10 스냅샷 69 화면 실측). */
+  [data-builder-theme="dark"] {
     --shadow-sm: var(
       --box-shadow-sm,
       0 2px 8px rgb(0 0 0 / 0.24),

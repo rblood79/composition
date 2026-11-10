@@ -117,19 +117,36 @@ Dark: `bg(zinc-900) → raised(zinc-850) → overlay(zinc-800) → muted(zinc-70
 
 좌/우 panel toggle rail · header viewport controls · header action group · contextual action bar · workspace panel frame 은 **하나의 디자인 요소**다. 정본: `builder-system.css` §Chrome island.
 
-| 토큰                        | 용도                                          |
-| --------------------------- | --------------------------------------------- |
-| `--chrome-surface`          | 표면색 (지면 `--bg-overlay` 위의 raised)      |
-| `--chrome-border`           | `0` — **테두리 없음**. 분리는 그림자 단계로만 |
-| `--chrome-radius`           | 모서리                                        |
-| `--chrome-padding` / `-gap` | 안쪽 여백 · 항목 간격                         |
-| `--chrome-shadow`           | 고도 1 — 컨트롤 island                        |
-| `--chrome-shadow-floating`  | 고도 2 — 자유 배치되는 panel frame            |
+**Spectrum Hub background layers 적용 (2026-11-10 사용자 요청)**: 이 표면이 Hub 의 **elevated** 다 — editing context 에서 canvas 위에 뜨는 toolbar · panel · popover. 그래서 팝오버 · 메뉴 · tooltip · Toast · Dialog · command palette 도 같은 토큰을 읽는다. 캔버스 바깥은 Hub 의 **pasteboard** (`--bg-pasteboard`) 이고 위에는 떠 있는 표면과 문서만 놓인다.
 
-- ❌ chrome 표면에 `--bg-raised` / `--shadow-sm` **직접 사용** — 다시 갈린다
-- ❌ chrome 에 `border` / `outline` 링 추가 (구 `--border-pressed` + placed outline = 링 2겹)
+| 토큰                        | 용도                                                                                                                                                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--chrome-surface`          | 떠 있는 표면의 색 (Hub elevated) — light 흰색 · dark `--bg-raised`                                                                                                                                      |
+| `--chrome-border`           | `0` — **테두리 없음**. 분리는 그림자로만                                                                                                                                                                |
+| `--chrome-radius`           | 모서리 (`--radius-lg` 10 — 패널 · Toast) · 팝오버 · toolbar 는 `--chrome-radius-popover` · `--chrome-radius-toolbar` (안쪽 모서리 + 여백 = 12) · Dialog 는 `--chrome-radius-dialog` (`--radius-2xl` 16) |
+| `--chrome-padding` / `-gap` | 안쪽 여백 · 항목 간격                                                                                                                                                                                   |
+| `--chrome-shadow`           | 고도 하나 — Hub elevated 단 (`--shadow-md`). dark 는 1px 테두리 선을 그림자 고리로 더한다                                                                                                               |
+| `--bg-pasteboard`           | 캔버스 바깥 (Hub pasteboard — light neutral-200 · dark zinc-950, 떠 있는 표면보다 어두운 단)                                                                                                            |
+
+- ❌ chrome 표면 · 팝오버 · Dialog 에 `--bg-raised` / `--bg-overlay` / `--shadow-sm` / `--shadow-lg` / 직접 쓴 그림자 값 **사용** — 같은 층이 자리마다 다른 높이로 읽힌다 (종전: 패널 sm · 팝오버 lg · Dialog `0 18px 54px`)
+- ❌ `--shadow-lg` 를 놓여 있는 표면에 — Hub 에서 가장 진한 단은 끌고 있는 대상의 것이다
+- ❌ chrome 에 `border` / `outline` 링 추가 (구 `--border-pressed` + placed outline = 링 2겹). dark 의 테두리 선은 `--chrome-shadow` 안의 고리 하나다 — 크기가 바뀌지 않는다
+- ❌ 뒤 가림막이 있는 Dialog 에 그림자 (Hub drop shadow — overlay 가 있으면 더하지 않는다)
 - ❌ 표면색 3종 분기 (`--bg-muted` / `--bg-overlay` 혼용)
+- 그림자 토큰의 dark 값은 `[data-builder-theme="dark"]` 에 건다 — 빌더 문서는 `data-theme` 을 세우지 않는다. **Why (2026-11-10)**: `builder-shadow-tokens.css` 의 dark 값이 `[data-theme="dark"]` 에 걸려 빌더 dark 에서도 light 값 (8% · 4%) 이 그려졌고, 패널 · toolbar 가 캔버스에 묻혔다 (스냅샷 69 화면 실측 — Hub 는 dark 에서 3 배).
+- `--bg-raised` (gray-50) 는 떠 있는 표면이 아니라 그 안의 한 단 낮은 면이다 (section 머리글 · 표 머리글 · 읽기 전용 칸). **Why (2026-11-10)**: light 의 `--bg-raised` 를 흰색으로 올리면 Data 표의 읽기 전용 칸 · 머리글이 편집 칸과 같은 색이 된다 — 떠 있는 표면색은 `--chrome-surface` 로만 바꾼다. 패널 머리글 (제목 · 탭 행) 은 프레임과 같은 `--chrome-surface` 다.
 - 게이트: `apps/builder/src/builder/styles/chromeIsland.static.test.ts`
+
+### Spectrum Hub 개념의 빌더 적용 (2026-11-10 사용자 「전부 진행」)
+
+사용자 컴포넌트 (catalog) 는 빌더와 분리돼 있으므로 (ADR-305) 아래는 빌더 chrome 에만 닿는다. Hub 의 **역할** 을 따르고 값은 빌더 사다리 (Tailwind gray · zinc) 에서 고른다.
+
+- **모서리 단 = Hub rounding**: small 4 (`--radius-sm` — in-field 버튼 · 격자 칸) · medium 8 (`--radius-md` — 컨트롤 · 목록 행 · 메뉴 항목) · large 10 (`--radius-lg` — 패널 · Toast) · extra-large 16 (`--radius-2xl` — Dialog). 공유 토큰 (md 6 · lg 8) 을 `builder-system.css` 의 빌더 범위에서 다시 준다. ❌ 모서리 값 직접 쓰기 (`6px` · `8px`)
+- **팝오버 모서리 = 항목 모서리 + 목록 여백 (사용자 결정 2026-11-10)**: `--chrome-radius-popover: calc(var(--radius-md) + var(--chrome-padding))` = 12. 팝오버 안의 행 (Select · ComboBox · 고르기 목록 · 메뉴 · 제안 목록) 은 `--radius-md`, 목록 여백은 `--spacing-xs`. Hub 는 안쪽 + 여백으로 바깥을 정하지 않고 (S2 는 Popover 10 · 항목 8 · 여백 8) 12 는 Hub 단에 없는 값이라 숫자가 아니라 식으로 둔다. **Why**: 첫 · 끝 항목이 모서리에 바로 붙어 hover 때 채워지는데, 목록 항목은 4 · 메뉴 항목은 8 · 제안 목록과 행 메뉴는 2 로 갈려 있었고 팝오버는 패널과 같은 10 이라 모서리 간격이 변과 달랐다. toolbar (rail · 뷰포트 컨트롤 · action group · 액션바 — 여백 `--chrome-padding` 4 + 버튼 8) 도 같은 식의 `--chrome-radius-toolbar` 다. 패널은 10 그대로 — 모서리에 닿는 것이 머리글 · 탭 줄이고 16 은 Dialog 단이다. ❌ 팝오버 · toolbar 에 `--chrome-radius` · 팝오버 행에 `--radius-sm` · `--radius-xs` (게이트 `chromeIsland.static.test.ts`)
+- **컨트롤에는 그림자 없음** (Hub drop shadow — 그림자는 떠 있는 표면과 강조한 container 의 것). 선택 · 칩은 채움으로 가른다 (track `--bg-muted` 위 `--bg-overlay` pill · 선택 탭 `--bg-muted`). ❌ 패널 안 컨트롤에 `--shadow-sm`. 예외: 손잡이 · 색 견본 · 썸네일, 대시보드 카드 hover (Hub emphasized hover)
+- **파랑은 역할 둘** (Hub attention hierarchy): `--focus-ring` = focus 표시 (인접 면 대비 3:1 — light blue-600 · dark blue-400), `--canvas-selection` / `-strong` = 캔버스 선택과 그것을 비추는 패널 표시 (page header · grid track · spacing 배지 — Skia 선택 테두리와 같은 파랑). **패널의 선택 표시는 무채** — `--accent` 테두리 + `--bg-muted` 채움, 진한 채움 위 글리프는 `--fg-on-accent`. ❌ 선택 · hover 에 `--color-primary-*` (light 고정 팔레트라 dark 에서 밝은 면이 뜬다) · `--focus-ring`
+- **보조 글자 대비**: `--fg-muted` 는 놓이는 면 전부에서 4.5:1 (light gray-600 · dark zinc-300)
+- **문구는 sentence case** (Hub grammar and mechanics): 표시 문구의 정본은 `apps/builder/src/i18n/messages/en-US.ts` 다. **binding 의 `label` 과 패널의 `label=` 문자열은 번역 조회 키** (`i18n/labels.ts` `semanticLabelKeys`) 라 고치면 번역이 끊긴다 — 키가 없는 라벨 (원문이 그대로 보인다) 만 원문을 sentence case 로 쓴다. 접두를 떼어 칩 글자를 만드는 라벨 (`Show …` · `Hide …`) 은 남은 글자가 키인지 본다 (`Show Value Label` → `Value Label`)
 
 ### 컨트롤 크기 — 2티어뿐
 

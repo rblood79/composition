@@ -18,10 +18,10 @@
 }
 
 .confirm-dialog-modal {
-  background: var(--bg-overlay);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 18px 54px rgba(0, 0, 0, 0.28);
+  background: var(--chrome-surface);
+  border: var(--chrome-border);
+  border-radius: var(--chrome-radius-dialog);
+  box-shadow: none;
   color: var(--fg);
   max-width: 400px;
   width: min(100%, 400px);

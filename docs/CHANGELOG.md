@@ -11,6 +11,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Border Sides — 전체 선택 액션 분리] - 2026-11-10
+
+### Changed
+
+- Design 패널 Style 탭 Border의 Sides는 좌·우·상·하 4개 토글만 표시하고, 전체 선택·해제는 오른쪽 `fieldset-actions actions-icon` 버튼으로 옮겼다. Radius의 코너 펼침 버튼과 같은 패턴이다.
+- 전체 선택 상태에서 개별 변 하나를 해제하면 나머지 변 선택을 유지한다. 전체 액션의 선택 표시와 미지원 Border Style 비활성 상태도 개별 변과 동기화한다.
+- **Why:** 공통 너비 쓰기가 이전 변별 너비를 남겨 전체 선택이 일부 변에 적용되지 않았다. `catalogRuntime/styleFields.ts`에서 전체 너비와 변별 값 제거를 같은 transaction에 반영한다.
+- 위치: `apps/builder/src/builder/panels/styles/sections/BorderSection.tsx`, `apps/builder/src/builder/components/styles/inspector-layout.css`.
+
+## [빌더 chrome 에 Spectrum Hub 개념 적용 — 표면 · 그림자 · 모서리 · 파랑 · 문구] - 2026-11-10
+
+사용자 요청 「빌더에 spectrum hub 의 개념을 적용」 · 「전부 진행」. 사용자 컴포넌트 (catalog) 는 빌더와 분리돼 있어 (ADR-305) 빌더 chrome 만 바뀐다. Hub 의 역할을 따르고 값은 빌더 사다리에서 골랐다.
+
+### Changed
+
+- **떠 있는 표면이 한 층이다** (Hub background layers — elevated). 패널 · header toolbar · action bar · 팝오버 · 메뉴 · Toast · tooltip · command palette · 확인 Dialog 가 같은 표면색 (`--chrome-surface` — light 흰색 · dark zinc-850) 과 같은 그림자 (`--chrome-shadow` — Hub elevated 단) 를 읽는다. 종전: 패널 약한 그림자 · 팝오버 가장 진한 그림자 · Dialog 는 직접 쓴 값과 다른 표면색. dark 에서는 Hub 규칙대로 1px 테두리 선을 더한다 (크기가 바뀌지 않게 그림자 고리). 뒤 가림막이 있는 Dialog 4 종은 그림자가 없다.
+- **캔버스 바깥이 pasteboard 토큰 (`--bg-pasteboard`)** — dark 에서 한 단 어두워져 (zinc-950) 패널이 캔버스에 묻히지 않는다.
+- **모서리 단이 Hub rounding** — 컨트롤 8 · 패널 10 · Dialog 16 (종전 6 · 8 · 8).
+- **팝오버 · toolbar 모서리 12 = 안쪽 모서리 8 + 여백 4** — 첫 · 끝 항목 (toolbar 는 양끝 버튼) 과 바깥 모서리의 간격이 변과 같다. toolbar = 좌우 rail · 헤더 뷰포트 컨트롤 · action group · 액션바. Select · ComboBox · 고르기 목록 항목 (종전 4) · 제안 목록 · 행 메뉴 · 필드 고르기 메뉴 항목 (종전 2) 이 메뉴 항목 · navigator 선택 행 · 필드와 같은 8 이 됐다. Hub 단에 없는 값이라 식 토큰 (`--chrome-radius-popover` · `--chrome-radius-toolbar`) 으로 둔다.
+- **패널 안 컨트롤의 그림자를 없앴다** (선택 표시 · ▾ 상자 · 행 버튼 · 토큰 칩 15 곳). 선택은 채움으로 가른다 — 선택 탭은 `--bg-muted`.
+- **파랑의 역할을 나눴다** (Hub attention hierarchy). focus 표시는 `--focus-ring`, 캔버스 선택과 그것을 비추는 패널 표시는 `--canvas-selection`, 패널의 선택 표시 (목록 카드 · Data 표 선택 행 · 만들기 방법 · rail 의 선택 글리프 · slider 채움) 는 무채다.
+- **패널 문구가 sentence case** (Hub grammar and mechanics) — `Label Position` → `Label position`, `Toggle Design Panel` → `Toggle design panel`. en-US 표시 문구 335 개와 번역 키가 없는 라벨 108 종.
+- 한국어 문구 7 건 통일 — 같은 동작이 표면마다 다른 이름이었다 (컨텍스트 메뉴 「상단 정렬 · 수평 균등 분산」 ↔ 명령 「위쪽 정렬 · 가로 분배」, 「개체에 스냅」 ↔ 「객체 스냅」, 「페이지 배치」 ↔ 「페이지 레이아웃」, 「테두리 폭」 ↔ 「테두리 너비」). 영어 대소문자가 달라 일관성 게이트가 같은 문구로 보지 못했다.
+
+### Fixed
+
+- **빌더 dark 에서 그림자가 light 값으로 그려졌다.** 그림자 토큰의 dark 값이 `[data-theme="dark"]` 에 걸려 있었는데 빌더는 `data-builder-theme` 만 세운다 — 8% · 4% 그대로라 패널 · 하단 toolbar 가 캔버스에 묻혔다 (Hub 는 dark 에서 3 배).
+- **focus 표시 대비** — light 의 blue-400 은 패널 위 2.52 · 캔버스 바깥 위 2.09 (기준 3:1). blue-600 으로 올렸다 (5.2 · 4.0).
+- **보조 글자 대비** — `--fg-muted` 가 `--bg-muted` 위 3.91 (light) · 3.98 (dark). gray-600 · zinc-300 으로 올렸다 (기준 4.5:1).
+- **패널 선택 표시가 dark 에서 밝은 파란 면** — `--color-primary-*` 는 light 고정 팔레트다. 무채 선택 (`--accent` 테두리 + `--bg-muted`) 으로 바꿨다.
+- 정의 없는 `--shadow-xs` 를 읽던 선언 1 곳 삭제.
+
+### 검증
+
+- 빌더 스냅샷 light 69 화면 재캡처 — 떠 있는 표면 14 종의 표면색 · 그림자 · 모서리가 같은 값. 「바탕과 같은 색이 되어 사라진 면」 분석으로 light 표면색 변경의 이음매를 확인 (`--bg-raised` 는 그대로 두고 `--chrome-surface` 만 흰색).
+- light 5 장 · dark 3 장을 눈으로 확인 (Layout · Style · Fill 팝오버 · Data 표 · Components · command palette · 속성 패널 문구). 확인 Dialog 3 종 · 글꼴 관리 창은 캡처 목록에 없어 정적 게이트만 통과.
+- 게이트: `chromeIsland.static.test.ts` (떠 있는 표면 · dark 조건 · pasteboard · 모서리 단) — dark 조건을 되돌리면 RED. 빌더 단위 8,463 통과 (`adr298TokenPreview` 3 건은 이 변경 전부터 실패) · shared 2,455 통과 · `pnpm test:css-boundary` 52 통과 · type-check 통과.
+
+### 남긴 것
+
+- 간격 (Hub 고밀도 패널 12px ↔ 현재 8px) — 패널 7 칸 격자 (사용자 결정) 와 부딪혀 두었다. motion 값은 Hub 에 없다. RTL 논리 속성 전환 (166 곳) 은 RTL 화면 검증이 필요해 두었다.
+- 빌더 문서에 정의가 없는 위젯 사본 토큰 (`--neutral-surface*` · `--neutral-fill*` 등) 은 ADR-305 분리 직전 화면 그대로라 별도 정리 대상.
+
 ## [빌더 팝오버 그림자 한 곳 · ADR-305 뒤 제외 조건 정리] - 2026-11-10
 
 ### Changed

@@ -133,7 +133,7 @@ describe("BuilderHeader chrome control groups", () => {
       /\.react-aria-ToggleButton\s*\{[\s\S]*?padding: var\(--spacing-sm\);/,
     );
     expect(groupStyles).toMatch(
-      /\.react-aria-ToggleButton\[data-selected\]\s*\{[\s\S]*?color: var\(--focus-ring\);/,
+      /\.react-aria-ToggleButton\[data-selected\]\s*\{[\s\S]*?color: var\(--fg-on-accent\);/,
     );
     expect(groupStyles).toMatch(
       /\.react-aria-SelectionIndicator\s*\{[\s\S]*?--button-color: var\(--accent\);[\s\S]*?background: var\(--button-color\);/,
@@ -143,7 +143,7 @@ describe("BuilderHeader chrome control groups", () => {
       /\.builder-action-group,\s*\.builder-viewport-controls\s*\{[\s\S]*?background: var\(--chrome-surface\);/,
     );
     expect(groupStyles).toMatch(
-      /\.builder-viewport-controls\s*\{[\s\S]*?padding: var\(--chrome-padding\);[\s\S]*?border: var\(--chrome-border\);[\s\S]*?border-radius: var\(--chrome-radius\);[\s\S]*?box-shadow: var\(--chrome-shadow\);/,
+      /\.builder-viewport-controls\s*\{[\s\S]*?padding: var\(--chrome-padding\);[\s\S]*?border: var\(--chrome-border\);[\s\S]*?border-radius: var\(--chrome-radius-toolbar\);[\s\S]*?box-shadow: var\(--chrome-shadow\);/,
     );
     expect(groupStyles).toMatch(
       /\.builder-viewport-controls[\s\S]*?> \.builder-control-group\.react-aria-ToggleButtonGroup[\s\S]*?\.builder-action-group\s*> \.builder-control-group\.react-aria-ToggleButtonGroup\s*\{[\s\S]*?--button-color: transparent;[\s\S]*?padding: 0;[\s\S]*?box-shadow: none;/,
@@ -152,7 +152,7 @@ describe("BuilderHeader chrome control groups", () => {
       /\.zoom-trigger-button\s*\{[\s\S]*?background: var\(--bg-muted\);[\s\S]*?box-shadow: none;[\s\S]*?border-radius: var\(--radius-md\);/,
     );
     expect(headerStyles).toMatch(
-      /\.react-aria-Button\.header-menu-button\s*\{[\s\S]*?border: none;[\s\S]*?background: var\(--bg-muted\);[\s\S]*?padding: var\(--spacing-sm\);[\s\S]*?border-radius: 6px;/,
+      /\.react-aria-Button\.header-menu-button\s*\{[\s\S]*?border: none;[\s\S]*?background: var\(--bg-muted\);[\s\S]*?padding: var\(--spacing-sm\);[\s\S]*?border-radius: var\(--radius-md\);/,
     );
     expect(headerStyles).not.toContain('[aria-label="menu"]');
     expect(headerStyles).not.toContain(".header_contents .publish");

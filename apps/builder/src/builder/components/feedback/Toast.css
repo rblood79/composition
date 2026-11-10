@@ -6,7 +6,7 @@
  * 읽혀야 한다 (`builder-system.css` §Chrome island).
  *
  * 확정 어법 3가지를 그대로 소비한다:
- * - 표면은 `--chrome-surface`, **테두리 없음**, 분리는 그림자 단계로만 (자유 배치라 floating)
+ * - 표면은 `--chrome-surface`, **테두리 없음**, 분리는 그림자로만 (`--chrome-shadow`)
  * - 모서리는 `--chrome-radius`, 여백·간격은 `--chrome-padding` / `--chrome-gap`
  * - 크롬 텍스트는 12px (`--text-xs`), 아이콘 버튼은 `--control-size` 정사각 + hover 8% wash
  *
@@ -45,7 +45,7 @@
     background: var(--chrome-surface);
     border: var(--chrome-border);
     border-radius: var(--chrome-radius);
-    box-shadow: var(--chrome-shadow-floating);
+    box-shadow: var(--chrome-shadow);
     pointer-events: auto;
     animation: toast-slide-in 200ms ease-out;
   }

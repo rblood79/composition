@@ -10,7 +10,7 @@
 /* 행 기하(28 · padding 0 8 · gap 8 · r6 · kbd 18)는
    styles/modules/builder-menu-row.css 가 소유한다 (2026-09-13). */
 .action-tooltip {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--chrome-shadow);
   background: var(--accent);
   color: var(--fg-on-accent);
   forced-color-adjust: none;

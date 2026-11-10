@@ -154,10 +154,10 @@
     outline-offset: -1px;
   }
 
+  /* 선택 탭 = 채움 한 단 (Hub states — selected 는 색으로). 머리글이 흰 표면이라 흰 pill 은 묻힌다. */
   .panel-tab[data-selected] {
-    background: var(--bg-overlay);
+    background: var(--bg-muted);
     color: var(--fg);
-    box-shadow: var(--shadow-sm);
   }
 
   .panel-tab-label {
@@ -405,7 +405,6 @@
           padding: var(--spacing);
           height: var(--control-size);
           width: var(--control-size);
-          box-shadow: var(--shadow-xs);
         }
       }
     }
@@ -530,7 +529,6 @@
       height: var(--text-xl);
       padding: 0;
       background: var(--bg-overlay);
-      box-shadow: var(--shadow-sm);
       border: none;
       border-radius: var(--radius-sm);
       color: var(--fg-muted);
@@ -573,7 +571,6 @@
       border: none;
       border-radius: var(--radius-sm);
       background: var(--bg-overlay);
-      box-shadow: var(--shadow-sm);
       color: var(--fg);
       font-size: var(--text-xs);
 

@@ -204,10 +204,10 @@
     max-height: min(100%, 640px);
     display: flex;
     flex-direction: column;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    background: var(--bg-overlay);
-    box-shadow: var(--shadow-lg);
+    border: var(--chrome-border);
+    border-radius: var(--chrome-radius-dialog);
+    background: var(--chrome-surface);
+    box-shadow: none;
     color: var(--fg);
   }
 

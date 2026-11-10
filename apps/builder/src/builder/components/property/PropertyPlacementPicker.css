@@ -50,7 +50,6 @@
       z-index: -1;
       border-radius: var(--radius-sm);
       background: var(--accent);
-      box-shadow: var(--shadow-sm);
       pointer-events: none;
     }
 

@@ -48,8 +48,9 @@ describe("CommandPalette panel shell contract", () => {
       readCanvasStyles(),
     ]);
 
-    expect(styles).toContain("border-radius: var(--radius-lg)");
-    expect(styles).toContain("box-shadow: var(--shadow-lg)");
+    // modal 표면은 chrome island 토큰 (떠 있는 표면 한 벌 — chromeIsland.static.test.ts)
+    expect(styles).toContain("border-radius: var(--chrome-radius-dialog)");
+    expect(styles).toContain("box-shadow: var(--chrome-shadow)");
     expect(styles).not.toContain("border-radius: 12px");
     expect(styles).not.toContain("0 16px 48px rgba");
     expect(styles).toMatch(

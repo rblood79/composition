@@ -24,7 +24,7 @@
     min-block-size: var(--control-size);
     padding: var(--lb-item-padding);
     padding-inline-start: var(--spacing-xl);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     background: transparent;
     color: var(--fg);
     font-size: var(--text-xs);
