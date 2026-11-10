@@ -94,7 +94,9 @@ describe("Design panel fields across a selection of the same type (C1)", () => {
     act(() => input.blur());
     const label = (id: string) =>
       (
-        fixture.workspace.runtime.graph.getEntry(`project:node:${id}`) as {
+        fixture.workspace.runtime.graph.getEntry(
+          `project:node:${id}`,
+        ) as unknown as {
           props: { label: { value: unknown } };
         }
       ).props.label.value;
