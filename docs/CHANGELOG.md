@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Theme 패널 — 불필요한 Preview 섹션 제거] - 2026-11-10
+
+### Removed
+
+- Theme 패널의 Preview 섹션과 전용 `MiniThemePreview` 컴포넌트, `.mini-preview*` 스타일, `--mp-*` 인라인 변수 계산을 제거했다. 폐기된 미리보기 표본을 언급하던 패널 규칙도 정리했다.
+- 위치: `apps/builder/src/builder/panels/themes/ThemesPanel.tsx`, `ThemesPanel.css`, `MiniThemePreview.tsx`.
+
 ## [Border Sides — 전체 선택 액션 분리] - 2026-11-10
 
 ### Changed

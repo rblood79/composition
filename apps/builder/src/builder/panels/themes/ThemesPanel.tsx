@@ -2,7 +2,7 @@
  * ThemesPanel - 인라인 테마 설정 패널 (ADR-021 Phase A+B · ADR-227 Phase 4)
  *
  * 테마 목록 (문서 컬렉션) + Tint 프리셋 선택 + Dark Mode 토글 + Neutral Tone + Radius Scale + 토큰 재정의
- * + 미니 프리뷰. 기존 PropertySection/PanelHeader 패턴 준수. preset/서체 절은 활성 테마에 쓴다.
+ * 기존 PropertySection/PanelHeader 패턴 준수. preset/서체 절은 활성 테마에 쓴다.
  */
 
 import { memo, useCallback } from "react";
@@ -25,7 +25,6 @@ import { PanelHeader } from "../../components/panel/PanelHeader";
 import { Section as PropertySection } from "../../components/panel/Section";
 import { PropertySelect } from "../../components/property/PropertySelect";
 import { PanelContents } from "../../components/panel/PanelContents";
-import { MiniThemePreview } from "./MiniThemePreview";
 import { useToneLadders } from "./useToneLadders";
 import { ThemeListSection } from "./ThemeListSection";
 import { ThemeTokensSection } from "./ThemeTokensSection";
@@ -452,10 +451,6 @@ function ThemesContent() {
 
         {/* ADR-227 Phase 4 — 활성 테마 토큰 재정의 (color · typography · radius · border · shadow · focus) */}
         <ThemeTokensSection />
-
-        <PropertySection title="Preview" id="theme-preview">
-          <MiniThemePreview />
-        </PropertySection>
       </PanelContents>
     </div>
   );

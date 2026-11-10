@@ -81,30 +81,6 @@
   pointer-events: none;
 }
 
-/* MiniThemePreview — 인라인 CSS 변수(--mp-*)로 즉시 반영 */
-.mini-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  border-radius: var(--mp-radius, 8px);
-  background: var(--mp-bg);
-  border: 1px solid var(--mp-border);
-}
-
-/* Neutral 스와치 바 — tone 프리셋 간 차이 시각 확인 */
-.mini-preview__swatches {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 4px;
-}
-
-.mini-preview__swatch {
-  flex: 1;
-  height: 16px;
-  border-radius: 3px;
-}
-
 /* ADR-227 Phase 4 — 테마 목록 · 토큰 재정의 (공용 .list-row 위에 패널 고유 표지만) */
 .theme-list,
 .theme-token-list {
