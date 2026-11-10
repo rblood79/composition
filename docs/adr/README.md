@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-11-10 ADR-306 Proposed 추가** (사용자 「Recharts는 유지하고 size는 제거하는 방향으로 ztd-charts 36종을 제공할 수 있도록 chart 확장 ADR 작성해」). 같은 날 설계 재작성 (사용자 「review가 아닌 설계 자체를 검토후 전면 재설계 or 보완」). 36 항목 = 기존 type 9 항목 (donut · radialBar · bubble 은 프리셋) + 새 chartType 27 (family 5 — category 12 · kpi 3 · distribution 4 · matrix 4 · network 4). 채택 C — 새 종류는 family 의 순수 함수가 공유 scene 을 만들고 DOM 은 scatter 선례의 Recharts scene host, Canvas 는 같은 scene · family 는 chunk 단위 지연 로드 · 통계와 배치는 ztd MIT 소스 이식. size 는 삭제뿐 — 문서 변환 없음 (contract 정책 · 변환 코드 금지 지시). 사용자 결정 2 확정 (공통 상호작용 포함 = Phase 6 · Builder 첫 화면 번들 상한은 Phase 2 실측 초과분만큼 재승인). Phase 0–6 · G0–G5 모두 미실행. 열림 3 (306 · 304 · 245), 현재 본문 파일 338개 (루트 3 · 보관 335), 고유 번호 324개 (동일 번호 보조 문서 포함 여부를 구분한 재집계). breakdown: [design/306](design/306-chart-36-types-recharts-size-removal-breakdown.md).
+
 > **2026-11-10 ADR-305 Implemented** (G5 사용자 confirm 「adr-305도 확인되었다」) — 본문을 `completed/` 로 옮기고 295 (Decision 9 빌더 쪽 기구 대체) · 028 (다음 단계) 본문에 포인터. 그 사이 빌더 패널 감사 1 ~ 4 (`9612a9371` · `2b66cc455`) 와 토큰 칸 표시 (`1901c0507`) 를 이 분리 위에서 진행 — 사용자 시트 · 생성 CSS 변경 0. 열림 2 (304 · 245), 완료 324, 합계 326.
 > **2026-11-09 ADR-305 Phase 2 ~ 5 닫힘 · Phase 6 사용자 확인 대기**: 빌더 위젯 규칙 245 를 `styles/widgets/` 로 이식 (원래 layer · 순서, 특이도 0 문서 범위 — Decision 3 의 builder-system layer 대신, 빌더 앱 CSS 30 파일이 components layer 라서) · 빌더에서 생성 · 공유 수동 · 고정 · `preview-system` 시트 import 삭제 → 빌더 4 변형 × 46 화면 Δ 0 · 그림자 토큰 7 · root 글꼴을 각 문서 사본으로 · 경계 게이트 33 + 원복 RED 4/4 · Preview 쪽 빌더 분기 124 규칙 · 빌더 패널 시트 7장 import 삭제 (Preview · Publish Δ 0) · Builder initial CSS −43,613 B gz. 원본 파일 15 삭제 (사용자 승인). 같은 날 G0 화면 범위 결함 수리 — Data 표 선택 checkbox 가 check 표시만 그리던 것 (스냅샷에 행 있는 표가 없어 Checkbox 규칙이 빠짐) → 화면 23 추가 · 규칙 282 · 69 화면 × 4 변형 Δ 0 · 게이트 (e). 열림 3 (304 · 305 · 245), 완료 323, 합계 326.
 > **2026-11-09 ADR-305 Accepted · Phase 0 · 1 닫힘** (사용자 `/execute-adr 305` + 리뷰 round 2 pending 0): G0 — 빌더 45 화면 × 4 변형 · Preview/Publish 28 화면 스냅샷 하니스 (대조군 Δ 0) · 빌더에 맞는 생성 시트 11 가족 (정적 13 과 다름 — Menu · Dialog · SearchField 0, RangeSlider 추가) · `shared-tokens.css` 비중립 2문장. G4 — `publish/index.html` 별도 진입 (앱 `import()` — 정적이면 Preview initial 이 151 → 528 KB 로 커지는 것을 실측해 막음) · dist `/composition/publish/` 6/6 · 빌더 · Preview Δ 0 · Publish 는 빌더 CSS 를 더는 받지 않아 Preview 와 같아짐 (보이는 요소의 색 · 글자 변화 0). 번들 Builder +193 · Preview +95 B. 열림 3 (304 · 305 · 245), 완료 323, 합계 326.
@@ -652,6 +654,11 @@
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
 
+#### [306](306-chart-36-types-recharts-size-removal.md) — Recharts를 유지하는 Chart 36종 확장과 공개 size 제거
+
+- **상태**: Proposed 2026-11-10 (같은 날 설계 재작성). 사용자 방향 3건 확정 (Recharts 유지 · 공개 size 제거 · ztd 36종) · 사용자 결정 2 확정. 설계 판독 round 2 종결 (HIGH 0 · pending 0 — [reviews/306](reviews/306.md)). 구현 전.
+- **규모**: 새 chartType 27 (family 5) + 기존 9 항목 보강 · `ChartFamily` 계약과 등록 · Canvas/DOM 지연 로드 · Recharts scene host · paint 역할 · size 삭제 (문서 변환 없음). Phase 0–6, G0–G5. 사용자 결정 2 확정 (공통 상호작용 포함 · 번들 상한 재승인). breakdown: [design/306](design/306-chart-36-types-recharts-size-removal-breakdown.md)
+
 #### [304](304-app-frame-layout-presets.md) — Spectrum App frame 을 Navigator Layouts 로 — App frame preset 묶음 · 콘텐츠 영역 preset 의 중첩 적용 · 좁은 폭 접힘 · 랜드마크
 
 - **상태**: Proposed 2026-11-08 (사용자 `/create-adr` — 설계 캔버스 6 보드의 범위 · 사용자 결정 후보를 그대로). 리뷰 전.
@@ -678,7 +685,7 @@
 
 > **참고**: ADR-029에 동일 번호의 [Text Edit Overlay UX 개선](completed/029-text-edit-overlay-improvements.md) 문서가 존재하며, ADR-027의 후속 개선으로 Phase 1-2 모두 구현 완료 (Accepted).
 
-### 권장 착수 순서 — 2026-10-19 재산정
+### 권장 착수 순서 — 2026-11-10 갱신
 
 > **완료 이력** (execute-adr): 915(2026-07-16) → 151(07-17) → 148(07-17) → 149(07-19) → 150-A1(07-19, 이후 07-20 철회) → 154(07-19) → 153(07-27~~28, P4 는 G4 미달 미도입 종결) → 이후 155~~193 순차 종결 → 117(2026-08-28, Phase 0~~4 / G0~~G5 종결) → 195(2026-08-27) → 196(2026-08-28, Phase 0~~4 / G0~~G4 종결) → 206(09-07) → 194(09-08) → 209·210(09-10) → 211·215(09-11) → 212·213·216·217(09-12) → 218(09-13) → 214·219(09-14) → 202(09-16) → 013(09-17, Phase 0~~3 / G0~~G3 종결) → 221(09-17, Phase 0~~4) → 201(09-17, worktree 3 병렬 Phase 0~~4 / G0~~G5 종결 + 후속 2 같은 날) → 222(09-17, Phase 0~~3 / G0~~G5 종결 같은 날) → 223(09-18, Phase 0~~3 / G0~~G5 종결 같은 날) → 225(09-19, Phase 0~~4 / G0~~G6 종결 같은 날) → 224(09-19, G5 소유자 확인으로 종결) → 226(09-19, Phase 0~~3 / G0~~G4 종결 같은 날 + ADR-221 잔존 gesture session 결함 수리) → 228(09-21, Phase 0~~4 / G0~~G4 종결 같은 날 — live 가 잡은 결함 3 수리: chartType canonical diff · scene origin props · ref resolve O(n²); codex round 3 같은 날 — Button 안 Button · origin 재정렬 보존 · parity 56 pair Skia 픽셀 · scene.build 계측) → 229(09-21, Phase 0~~4 / G0~~G4 종결 같은 날 — live 가 잡은 결함 9 + 사용자 지적 3 수리).
 >
@@ -686,7 +693,8 @@
 
 | 순위 | ADR                                                                                            | 착수 준비도                                                                       | 차단 · 선행                                                                                                                                                                             |
 | :--: | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|  1   | [304](304-app-frame-layout-presets.md)                                                         | Proposed 2026-11-08 · 리뷰 전 · 문서 스키마 · 명령 신설 0                         | 리뷰 (`/review-adr 304`) pending 0 뒤 · 사용자 결정 6 (흡수 · 사이드 폭 · 랜드마크 · 콘텐츠 집합 · 번들 · tablet 판정) · 번들 여유 G0 재측정 (Builder ≈ 1.5 KB · Preview ≈ 1.9 KB 추정) |
+|  1   | [306](306-chart-36-types-recharts-size-removal.md)                                             | Proposed 2026-11-10 · 방향 확정 · 설계 판독 종결 (round 2)                        | `/execute-adr 306` · Phase 1 에서 contract 64 (63 문서 전부 거부) · G0 기준선                                                                                                           |
+|  2   | [304](304-app-frame-layout-presets.md)                                                         | Proposed 2026-11-08 · 리뷰 전 · 문서 스키마 · 명령 신설 0                         | 리뷰 (`/review-adr 304`) pending 0 뒤 · 사용자 결정 6 (흡수 · 사이드 폭 · 랜드마크 · 콘텐츠 집합 · 번들 · tablet 판정) · 번들 여유 G0 재측정 (Builder ≈ 1.5 KB · Preview ≈ 1.9 KB 추정) |
 |  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상) | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)                                                                                          |
 |  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                           | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                                                                                                                  |
 |  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                | 각 항목의 재개 조건 발생 시                                                                                                                                                             |
