@@ -979,45 +979,7 @@ interface HydratedPanelWorkspaceProps {
   togglePanel: (panelId: PanelId) => void;
   focusPanel: (panelId: PanelId) => void;
   surfaceRect: PanelWorkspaceRect;
-  surfaceRef: RefObject<HTMLDivElement | null>;
-}
-
-/**
- * 좌/우 zone 에 배치된 frame 들의 가로 extent. useWorkspaceCanvasSizing 이
- * `.panel-workspace[data-page-layout-*-panel-width]` 로 읽어 캔버스 page layout 에 반영한다.
- */
-function pageLayoutPanelMetricsFromSnapshot(
-  snapshot: PanelWorkspaceLayoutSnapshot,
-): { leftWidth: number; rightWidth: number } {
-  const leftFrames: PanelWorkspaceFrameSnapshot[] = [];
-  const rightFrames: PanelWorkspaceFrameSnapshot[] = [];
-
-  for (const frame of snapshot.frameGeometries.values()) {
-    const isLeftPlacement =
-      frame.placementZone === "left" || frame.placementZone.endsWith("-left");
-    const isRightPlacement =
-      frame.placementZone === "right" || frame.placementZone.endsWith("-right");
-
-    if (isLeftPlacement) {
-      leftFrames.push(frame);
-    } else if (isRightPlacement) {
-      rightFrames.push(frame);
-    }
-  }
-
-  const resolveFrameExtent = (
-    frames: readonly PanelWorkspaceFrameSnapshot[],
-  ): number => {
-    if (frames.length === 0) return 0;
-    const left = Math.min(...frames.map((frame) => frame.x));
-    const right = Math.max(...frames.map((frame) => frame.x + frame.width));
-    return Math.max(0, right - left);
-  };
-
-  return {
-    leftWidth: resolveFrameExtent(leftFrames),
-    rightWidth: resolveFrameExtent(rightFrames),
-  };
+  surfaceRef: RefObject<HTMLElement | null>;
 }
 
 interface PanelWorkspaceOverlayProps {
@@ -1028,7 +990,7 @@ interface PanelWorkspaceOverlayProps {
   setWorkspaceLayout: (layout: PanelWorkspaceLayoutV4) => boolean;
   togglePanel: (panelId: PanelId) => void;
   workspaceLayout: PanelWorkspaceLayoutV4;
-  surfaceRef: RefObject<HTMLDivElement | null>;
+  surfaceRef: RefObject<HTMLElement | null>;
 }
 
 interface PanelDockOrigin {
@@ -1308,7 +1270,7 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
   // overlay 루트는 snapshot 전체를 구독하지 않는다 — 구독하면 resize·move 의 매 flush 마다
   // overlay 아래 frame 12개 element 가 전부 다시 만들어진다 (2026-09-02 실측
   // fiber 103개/flush). 루트가 정말 필요한 값은 작업 영역 크기 두 개뿐이므로 원시값으로
-  // 읽고, 나머지 (frame · splitter · rail · snap guide · page-layout 폭 속성) 는 각 leaf 가
+  // 읽고, 나머지 (frame · splitter · rail · snap guide) 는 각 leaf 가
   // 스스로 구독한다.
   const coordinator = runtime.coordinator;
   const workspaceRectWidth = usePanelWorkspaceLayoutValue(
@@ -1319,7 +1281,6 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
     coordinator,
     () => coordinator.getSnapshot().workspaceRect.height,
   );
-  const workspaceRef = useRef<HTMLDivElement>(null);
   const [surfaceWidth, setSurfaceWidth] = useState(workspaceRectWidth);
   const [surfaceHeight, setSurfaceHeight] = useState(workspaceRectHeight);
   // frame · splitter · rail · snap guide 의 좌표 기준 — 표면 (`.panel-dock-surface`) 의
@@ -1328,34 +1289,6 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
     () => ({ x: 0, y: 0, workspaceWidth: surfaceWidth }),
     [surfaceWidth],
   );
-
-  // `data-page-layout-*-panel-width` 는 useWorkspaceCanvasSizing 이 `.panel-workspace` 에서
-  // 읽는 신호다. JSX 로 쓰면 frameGeometries 구독이 필요하므로 coordinator 를 직접 구독해
-  // DOM 에 쓴다 (루트의 data-layout-version 과 같은 방식).
-  useLayoutEffect(() => {
-    const applyPageLayoutPanelMetrics = (): void => {
-      const element = workspaceRef.current;
-      if (!element) return;
-      const metrics = pageLayoutPanelMetricsFromSnapshot(
-        coordinator.getSnapshot(),
-      );
-      const leftWidth = String(metrics.leftWidth);
-      const rightWidth = String(metrics.rightWidth);
-      if (
-        element.getAttribute("data-page-layout-left-panel-width") !== leftWidth
-      ) {
-        element.setAttribute("data-page-layout-left-panel-width", leftWidth);
-      }
-      if (
-        element.getAttribute("data-page-layout-right-panel-width") !==
-        rightWidth
-      ) {
-        element.setAttribute("data-page-layout-right-panel-width", rightWidth);
-      }
-    };
-    applyPageLayoutPanelMetrics();
-    return coordinator.subscribe(applyPageLayoutPanelMetrics);
-  }, [coordinator]);
 
   useLayoutEffect(() => {
     const surface = surfaceRef.current;
@@ -1411,12 +1344,7 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
   );
 
   return (
-    <div
-      ref={workspaceRef}
-      className="panel-workspace"
-      aria-label={t("workspace.workArea")}
-      data-page-layout-panel-gap={PANEL_WORKSPACE_GAP}
-    >
+    <div className="panel-workspace">
       {chrome}
       {(["left", "right"] as const).map((side) => {
         const panelIds = workspaceLayout.railOrder[side];
@@ -1432,7 +1360,11 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
         );
       })}
 
-      <div ref={surfaceRef} className="panel-dock-surface">
+      <aside
+        ref={surfaceRef}
+        className="panel-dock-surface"
+        aria-label={t("workspace.workArea")}
+      >
         <PanelWorkspaceZoneOverlay />
         <PanelSnapGuideSlot dockOrigin={origin} coordinator={coordinator} />
         <PanelDockClusterPresentation dockOrigin={origin} runtime={runtime} />
@@ -1453,7 +1385,7 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
           runtime={runtime}
           setWorkspaceLayout={setWorkspaceLayout}
         />
-      </div>
+      </aside>
     </div>
   );
 });
@@ -1473,23 +1405,6 @@ function HydratedPanelWorkspace({
   const [runtime] = useState(() =>
     createRuntime(workspaceLayout, registry, surfaceRect),
   );
-  // `data-layout-version` 은 useWorkspaceCanvasSizing 의 MutationObserver 가 읽는
-  // 신호다. 루트가 snapshot 을 구독해 이 속성을 JSX 로 쓰면 패널 resize·move 의
-  // 매 flush 마다 루트 전체 (frame 12개 element 생성 포함) 가 다시 렌더된다.
-  // 속성 두 개만 필요하므로 coordinator 를 직접 구독해 DOM 에 쓴다 (2026-09-02).
-  const hostRef = useRef<HTMLDivElement>(null);
-  const mainRef = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    const coordinator = runtime.coordinator;
-    const applyLayoutVersion = (): void => {
-      const version = String(coordinator.getSnapshot().version);
-      hostRef.current?.setAttribute("data-layout-version", version);
-      mainRef.current?.setAttribute("data-layout-version", version);
-    };
-    applyLayoutVersion();
-    return coordinator.subscribe(applyLayoutVersion);
-  }, [runtime]);
-
   useEffect(() => {
     if (runtime && workspaceLayout) {
       runtime.replaceCommittedLayout(workspaceLayout);
@@ -1527,10 +1442,8 @@ function HydratedPanelWorkspace({
   );
 
   return (
-    <div ref={hostRef} className="panel-workspace-host">
-      <div ref={mainRef} className="panel-workspace-main">
-        {children}
-      </div>
+    <>
+      {children}
 
       <PanelWorkspaceOverlay
         chrome={chrome}
@@ -1542,7 +1455,7 @@ function HydratedPanelWorkspace({
         workspaceLayout={workspaceLayout}
         surfaceRef={surfaceRef}
       />
-    </div>
+    </>
   );
 }
 
@@ -1564,7 +1477,7 @@ function PanelWorkspaceContent({
     focusPanel,
   } = usePanelLayout();
   const configs = useMemo(() => PanelRegistry.getAllPanels(), []);
-  const surfaceRef = useRef<HTMLDivElement>(null);
+  const surfaceRef = useRef<HTMLElement>(null);
   const [surfaceRect, setSurfaceRect] = useState<PanelWorkspaceRect | null>(
     null,
   );
@@ -1612,13 +1525,17 @@ function PanelWorkspaceContent({
 
   if (!workspaceLayout || !surfaceRect) {
     return (
-      <div className="panel-workspace-host">
-        <div className="panel-workspace-main">{children}</div>
-        <div className="panel-workspace" aria-label={t("workspace.workArea")}>
+      <>
+        {children}
+        <div className="panel-workspace">
           {chrome}
-          <div ref={surfaceRef} className="panel-dock-surface" />
+          <aside
+            ref={surfaceRef}
+            className="panel-dock-surface"
+            aria-label={t("workspace.workArea")}
+          />
         </div>
-      </div>
+      </>
     );
   }
 

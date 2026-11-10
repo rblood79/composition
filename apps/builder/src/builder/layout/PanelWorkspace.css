@@ -1,37 +1,27 @@
 @layer builder-system {
-  .app:has(.panel-workspace-host) {
-    grid-template-rows: minmax(0, 1fr);
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "main";
-  }
-
-  .panel-workspace-host {
-    /* resize 손잡이 선 토큰 — host 에 두어 패널 workspace 와 main workspace(compare 구분선) 가
-       같은 값을 상속한다. 가로형(위/아래 edge) 은 length×size, 세로형(좌/우 edge) 은 size×length.
-       패널 edge · cluster splitter · 섹션 분할(SectionSplitStack) · compare 구분선이 같은 값을 쓴다. */
+  /* 빌더 껍데기 — `#root > .app > main.workspace + .panel-workspace`.
+   * `.app` (BuilderViewport) 이 칸 하나짜리 grid 이고, 캔버스 (`main.workspace`) 와 chrome 층
+   * (`.panel-workspace` — header · nav 레일 · aside 패널 표면) 이 그 칸에 겹친다 (2026-11-11 옛
+   * `.panel-workspace-host` · `.panel-workspace-main` 래퍼를 걷어냄). 캔버스의 쌓임 · 자르기는
+   * `.workspace` 자신이 맡는다 (z-index 0 · overflow clip). 로딩 덮개는 fixed, 대화상자는
+   * body 로 portal 이라 이 칸에 들지 않는다.
+   *
+   * resize 손잡이 선 토큰도 여기 둔다 — 패널 chrome 과 캔버스 (compare 구분선) 의 공통
+   * 조상이다. 가로형(위/아래 edge) 은 length×size, 세로형(좌/우 edge) 은 size×length.
+   * 패널 edge · cluster splitter · 섹션 분할(SectionSplitStack) · compare 구분선이 같은 값을 쓴다. */
+  .app {
     --panel-interaction-line-color: var(--focus-ring);
     --panel-interaction-line-size: 2px;
     --panel-interaction-line-length: 32px;
     display: grid;
-    grid-area: main;
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr);
-    grid-template-areas: "workspace";
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
   }
 
-  .panel-workspace-main,
-  .panel-workspace {
-    grid-area: workspace;
+  .app > * {
+    grid-area: 1 / 1;
     min-width: 0;
     min-height: 0;
-  }
-
-  .panel-workspace-main {
-    z-index: 0;
-    overflow: hidden;
   }
 
   .panel-workspace {
@@ -44,9 +34,10 @@
      * 게이트: PanelWorkspace.static.test.ts */
     --panel-workspace-gap: 4px;
 
-    /* chrome 층은 이 요소 하나다 — 헤더 · 좌우 토글 레일 · 표면이 직속 자식으로 한 grid 에
-     * 놓인다 (2026-11-11 옛 dock · chrome · stage 래퍼 세 겹을 걷어냄).
-     * 바깥 여백은 padding 이다: host grid 에서 캔버스 (`.panel-workspace-main`) 와 같은 칸을
+    /* chrome 층은 이 요소 하나다 — `header.header` · `nav.panel-toggle-rail` 둘 ·
+     * `aside.panel-dock-surface` 가 직속 자식으로 한 grid 에 놓인다 (2026-11-11 옛 dock ·
+     * chrome · stage 래퍼 세 겹을 걷어냄).
+     * 바깥 여백은 padding 이다: `.app` grid 에서 캔버스 (`main.workspace`) 와 같은 칸을
      * 덮는 item 이라 margin 을 주면 칸 자체가 줄어든다. 헤더 ↔ 아래 줄 · 레일 ↔ 표면 간격은
      * gap 하나다 (레일이 없는 side 는 빈 auto track 이 남아 표면이 그쪽으로 4px 줄어든다). */
     display: grid;

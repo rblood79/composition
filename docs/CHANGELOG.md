@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [빌더 껍데기 구조 — 의미 태그 · 래퍼 2겹 · 읽는 곳 없는 코드 제거] - 2026-11-11
+
+### Changed
+
+- **빌더 DOM 이 `#root > div.app > main.workspace + div.panel-workspace > header · nav ×2 · aside` 다** (사용자 결정 「main · header · nav 등 tag 로 구조화」). `.panel-workspace-host` · `.panel-workspace-main` 래퍼를 걷어내고 `.app` 이 칸 하나짜리 grid 로 캔버스와 chrome 층을 겹친다 (`.app > * { grid-area: 1 / 1 }`). 좌우 토글 레일은 `nav` (이름 = 같은 side 라벨), 패널 표면은 `aside` (이름 = 「패널 작업 영역」 — 이름 없는 div 에 붙어 있던 것을 옮김). 화면 위치는 그대로다.
+- 레일의 nav 는 landmark 일 뿐이다 — 옛 `PanelNav` 의 목록 구조 (ul/li) 는 다시 두지 않는다 (`PanelToggleGroup.test.tsx`).
+- 위치: `apps/builder/src/builder/layout/PanelWorkspace.tsx` · `.css` · `PanelToggleGroup.tsx` · `styles/layout/header.css` · `canvas.css`.
+
+### Removed
+
+- **읽는 곳이 없던 코드** — 이를 읽던 `useWorkspaceCanvasSizing` 은 ADR-248 Phase 4e-9-1 에서 이미 삭제됐다: host · main 의 `data-layout-version`, `.panel-workspace` 의 `data-page-layout-*` 속성 (coordinator 를 구독해 flush 마다 DOM 에 쓰던 것), `viewportSync` 의 `pageLayoutPanelMetrics` · `setPageLayoutPanelMetrics` · `selectFrameAreaPanelMetrics` (+ 그 테스트 파일), `pageLayoutConstants` 의 `resolvePageLayoutBounds` · `resolveAutoPageColumnCount`.
+- **옛 `.app` 3×3 grid (`header / sidebar main inspector / bottom`) 와 `.app aside.sidebar` · `.inspector` · `.header-actions` · `.panel-content` 규칙** — 쓰는 요소가 없었다. `.app main { grid-area: main }` 은 래퍼를 걷자 캔버스를 다른 칸으로 밀어냈다 (live: main 0×0) — 지우고 게이트를 둔다 (`PanelWorkspace.static.test.ts`).
+
 ## [패널 작업 공간 — dock 래퍼 제거 · 레일 그림자 잘림] - 2026-11-11
 
 ### Changed

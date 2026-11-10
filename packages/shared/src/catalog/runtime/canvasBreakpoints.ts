@@ -1,8 +1,9 @@
 /**
  * 캔버스 프레임 뷰포트 — breakpoint 별 실제 렌더 크기 (SSOT).
  *
- * `useWorkspaceCanvasSizing` 이 `max_width`/`max_height` 를 캔버스 폭·높이로 그대로 쓴다
- * (`useWorkspaceCanvasSizing.ts:113`). 프리셋 썸네일(ADR-168 P-1)도 같은 값을 기준으로
+ * `max_width`/`max_height` 가 곧 페이지 프레임의 폭·높이다 — 아래 `CANVAS_VIEWPORT` 로 파생돼
+ * page 배치 트랙 (`pagePlacement.ts`) · runtime 프레임 크기 (`compositionRoot.ts`) ·
+ * Preview iframe (`CatalogPreviewFrame.tsx`) 이 읽는다. 프리셋 썸네일(ADR-168 P-1)도 같은 값을 기준으로
  * px 트랙을 % 로 환산해야 썸네일 비율과 실제 렌더 비율이 일치한다 (R4 / G3).
  *
  * `BREAKPOINTS[x].minWidth` (1280 / 768 / 0) 와 혼동하지 말 것 — 그건 미디어 쿼리 경계이고

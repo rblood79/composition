@@ -44,7 +44,7 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
       ".workspace-panel-content > * > .panel-header:first-child",
     );
     expect(canvasStyles).toContain(
-      ".app :where(aside, .panel-workspace) .panel-header",
+      ".app :where(.panel-workspace) .panel-header",
     );
     expect(styles).toContain(".panel-workspace > .panel-toggle-rail");
   });
@@ -125,26 +125,30 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(splitter).toContain("aria-valuemax={maxValue}");
   });
 
-  it("루트의 data-layout-version 은 snapshot 구독이 아니라 coordinator 직접 구독으로 쓴다", async () => {
-    const source = await readWorkspace();
+  it("캔버스 (children) 와 chrome 층을 래퍼 없이 `.app` 칸에 바로 겹치고, 읽는 곳 없는 속성을 쓰지 않는다", async () => {
+    const [source, canvasStyles] = await Promise.all([
+      readWorkspace(),
+      readCanvasStyles(),
+    ]);
 
-    // 루트가 snapshot 을 구독하면 패널 resize·move 의 매 flush 마다 루트 전체가 재렌더된다
+    // `.app main` 이 grid-area 를 주면 특이도 (0,1,1) 가 `.app > *` 를 이겨 캔버스가 다른 칸으로
+    // 밀려난다 (live 실측: main 0×0).
+    expect(canvasStyles).not.toMatch(/\.app main\s*\{[^}]*grid-area/);
+    // 2026-11-11 — `.panel-workspace-main` 래퍼와 data-layout-version · data-page-layout-*
+    // 속성은 이를 읽던 useWorkspaceCanvasSizing 이 삭제된 뒤 남은 것이라 지웠다.
+    expect(source).not.toContain("panel-workspace-main");
     expect(source).not.toContain("data-layout-version={snapshot.version}");
+    expect(source).not.toContain("applyLayoutVersion");
+    expect(source).not.toContain("data-page-layout");
+    expect(source).not.toContain("panel-workspace-host");
+    // 의미 태그 — 패널 표면은 aside (이름 = workspace.workArea), chrome 층 div 에는 이름이 없다.
     expect(source).toMatch(
-      /const applyLayoutVersion = \(\): void => \{\s*const version = String\(coordinator\.getSnapshot\(\)\.version\);\s*hostRef\.current\?\.setAttribute\("data-layout-version", version\);\s*mainRef\.current\?\.setAttribute\("data-layout-version", version\);/,
+      /<aside\s+ref=\{surfaceRef\}\s+className="panel-dock-surface"\s+aria-label=\{t\("workspace\.workArea"\)\}/,
     );
-    expect(source).toContain(
-      "return coordinator.subscribe(applyLayoutVersion);",
-    );
-    expect(source).toContain(
-      '<div ref={hostRef} className="panel-workspace-host">',
-    );
-    expect(source).toContain(
-      '<div ref={mainRef} className="panel-workspace-main">',
-    );
+    expect(source).not.toContain('<div className="panel-workspace" aria-label');
   });
 
-  it("overlay 루트는 snapshot 전체를 구독하지 않고 frame·splitter·snap guide·page-layout 폭이 각자 leaf 로 구독한다", async () => {
+  it("overlay 루트는 snapshot 전체를 구독하지 않고 frame·splitter·snap guide 가 각자 leaf 로 구독한다", async () => {
     const source = await readWorkspace();
     const overlayStart = source.indexOf(
       "const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay(",
@@ -164,14 +168,6 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     );
     expect(overlay).toContain(
       "() => coordinator.getSnapshot().workspaceRect.height,",
-    );
-    // page-layout 폭 속성은 JSX 가 아니라 coordinator 직접 구독 + setAttribute
-    expect(overlay).not.toContain("data-page-layout-left-panel-width={");
-    expect(overlay).toContain(
-      'element.setAttribute("data-page-layout-left-panel-width", leftWidth);',
-    );
-    expect(overlay).toContain(
-      "return coordinator.subscribe(applyPageLayoutPanelMetrics);",
     );
     // PanelDock 은 version prop 을 받지 않는다 (받으면 flush 마다 render-prop 전체가 재실행)
     expect(source).not.toContain("version={snapshot.version}");
@@ -298,8 +294,6 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     const [source, styles] = await Promise.all([readWorkspace(), readStyles()]);
 
     expect(source).toContain("usePanelWorkspaceLayoutSnapshot(");
-    expect(source).toContain('className="panel-workspace-host"');
-    expect(source).toContain('className="panel-workspace-main"');
     expect(source).toContain("chrome?: ReactNode");
     // chrome 층은 `.panel-workspace` 하나 — 헤더 · 레일 · 표면을 감싸는 dock 래퍼를 다시 두지 않는다.
     expect(source).not.toContain('className="panel-dock"');
@@ -311,11 +305,9 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(source).not.toContain("registerPanelElement");
     expect(source).not.toContain("panel-rail-measure");
     expect(styles).toMatch(
-      /\.panel-workspace-host\s*\{[\s\S]*?display: grid;[\s\S]*?grid-template-areas: "workspace";/,
+      /\.app\s*\{[\s\S]*?display: grid;[\s\S]*?grid-template-rows: minmax\(0, 1fr\);/,
     );
-    expect(styles).toMatch(
-      /\.panel-workspace-main,[\s\S]*?\.panel-workspace\s*\{[\s\S]*?grid-area: workspace;/,
-    );
+    expect(styles).toMatch(/\.app > \*\s*\{[\s\S]*?grid-area: 1 \/ 1;/);
     expect(styles).not.toMatch(/\.panel-dock-(chrome|stage)\b/);
     expect(styles).not.toMatch(
       /\.panel-dock-surface\s*\{[^}]*position: absolute;/,

@@ -141,8 +141,6 @@ describe("PanelWorkspace full-screen canvas shell", () => {
         <div data-testid="canvas-content" />
       </PanelWorkspace>,
     );
-    const host = container.querySelector<HTMLElement>(".panel-workspace-host");
-    const main = container.querySelector<HTMLElement>(".panel-workspace-main");
     const dockSurface = container.querySelector<HTMLElement>(
       ".panel-dock-surface",
     );
@@ -155,31 +153,29 @@ describe("PanelWorkspace full-screen canvas shell", () => {
       '.workspace-panel-frame[data-panel="properties"]',
     );
 
-    expect(host?.getAttribute("style")).toBeNull();
+    expect(container.querySelector(".panel-workspace-host")).toBeNull();
     // 헤더 · 레일 · 표면은 `.panel-workspace` 의 직속 자식 (dock 래퍼 없음).
     expect(
       panelWorkspace?.querySelector(
         ":scope > [data-testid='workspace-chrome']",
       ),
     ).not.toBeNull();
-    expect(main?.getAttribute("data-layout-version")).toBe(
-      host?.getAttribute("data-layout-version"),
-    );
+    // 캔버스 (children) 와 chrome 층은 래퍼 없이 형제다 (둘 다 `.app` 의 칸에 겹친다).
+    expect(
+      container.querySelector("[data-testid='canvas-content']")?.parentElement,
+    ).toBe(panelWorkspace?.parentElement);
+    // 의미 태그 — 패널 표면 aside · 토글 레일 nav.
+    expect(dockSurface?.tagName).toBe("ASIDE");
+    expect(
+      [
+        ...(panelWorkspace?.querySelectorAll(":scope > .panel-toggle-rail") ??
+          []),
+      ].map((rail) => rail.tagName),
+    ).toEqual(["NAV", "NAV"]);
     expect(container.querySelector(".panel-dock")).toBeNull();
     expect(container.querySelector(".panel-dock-chrome")).toBeNull();
     expect(container.querySelector(".panel-dock-stage")).toBeNull();
     expect(dockSurface?.style.cssText).toBe("");
-    expect(panelWorkspace?.getAttribute("data-page-layout-panel-gap")).toBe(
-      "4",
-    );
-    expect(
-      Number(panelWorkspace?.getAttribute("data-page-layout-left-panel-width")),
-    ).toBeGreaterThan(0);
-    expect(
-      Number(
-        panelWorkspace?.getAttribute("data-page-layout-right-panel-width"),
-      ),
-    ).toBeGreaterThan(0);
     expect(dockSurface?.parentElement).toBe(panelWorkspace);
     expect(
       panelWorkspace?.querySelectorAll(":scope > .panel-toggle-rail"),

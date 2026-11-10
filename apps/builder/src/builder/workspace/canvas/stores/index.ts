@@ -1,7 +1,6 @@
 export {
   useViewportSyncStore,
   selectCanvasViewportSnapshot,
-  selectFrameAreaPanelMetrics,
   isCanvasViewportSnapshotEqual,
   type ViewportSyncState,
 } from "./viewportSync";

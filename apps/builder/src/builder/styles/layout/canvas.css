@@ -4,9 +4,10 @@
    * Extracted from main/index.css
    * ======================================== */
 
-  /* Main Content Area */
+  /* Main Content Area — `main.workspace` 는 `.app` 의 직속 자식이고 grid 칸은 `.app > *` 가
+   * 정한다 (PanelWorkspace.css). 옛 3×3 grid 시절의 `grid-area: main` 은 두지 않는다
+   * (특이도 (0,1,1) 가 `.app > *` 를 이겨 캔버스를 다른 칸으로 밀어낸다 — 2026-11-11). */
   .app main {
-    grid-area: main;
     display: flex;
     flex-wrap: nowrap;
     flex-direction: column;
@@ -44,28 +45,8 @@
     will-change: transform;
   }
 
-  /* ========================================
-   * Sidebar
-   * ======================================== */
-
-  .app aside.sidebar {
-    grid-area: sidebar;
-    height: 100%;
-    display: flex;
-    position: relative;
-    overflow: auto;
-  }
-
-  .app aside.inspector {
-    grid-area: inspector;
-    height: 100%;
-    display: flex;
-    position: relative;
-    overflow: auto;
-  }
-
   /* Panel Header */
-  .app :where(aside, .panel-workspace) .panel-header,
+  .app :where(.panel-workspace) .panel-header,
   .command-palette-modal .panel-header {
     min-height: var(--control-size-lg);
     background-color: var(--chrome-surface);
@@ -146,19 +127,5 @@
     align-items: center;
     justify-content: center;
     color: var(--fg-muted);
-  }
-
-  /* Header Actions */
-  .app aside .header-actions {
-    display: flex;
-    flex-direction: row;
-  }
-
-  /* Panel Content */
-  .app aside .panel-content {
-    padding: 0;
-    display: flex;
-    flex-direction: row;
-    gap: 0px;
   }
 }

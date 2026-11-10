@@ -59,7 +59,11 @@ export const PanelToggleGroup = memo(function PanelToggleGroup({
     side === "left" ? "right" : side === "right" ? "left" : "top";
 
   return (
-    <div className="panel-toggle-rail" data-side={side}>
+    <nav
+      className="panel-toggle-rail"
+      data-side={side}
+      aria-label={t(PANEL_SIDE_LABEL_KEYS[side])}
+    >
       <ToggleButtonGroup
         className="builder-control-group"
         orientation="vertical"
@@ -97,6 +101,6 @@ export const PanelToggleGroup = memo(function PanelToggleGroup({
           );
         })}
       </ToggleButtonGroup>
-    </div>
+    </nav>
   );
 });

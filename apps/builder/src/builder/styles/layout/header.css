@@ -4,18 +4,10 @@
    * Extracted from main/index.css
    * ======================================== */
 
-  /* App Root - Main Grid Layout */
+  /* App Root — 칸 배치는 `layout/PanelWorkspace.css` 의 `.app` (한 칸 grid). */
   .app {
     height: 100vh;
     overflow: hidden;
-    display: grid;
-    /* Header(48px) + Main(flex) + Bottom(auto - 열리면 높이 표시) */
-    grid-template-rows: 48px 1fr auto;
-    grid-template-columns: auto 1fr auto;
-    grid-template-areas:
-      "header header header"
-      "sidebar main inspector"
-      "bottom bottom bottom";
     background-color: var(--bg-overlay);
   }
 

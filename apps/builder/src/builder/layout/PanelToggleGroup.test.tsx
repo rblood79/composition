@@ -67,14 +67,19 @@ describe("PanelToggleGroup", () => {
     vi.restoreAllMocks();
   });
 
-  it("nav/list 흔적 없이 vertical multiple ToggleButtonGroup을 렌더한다", () => {
+  it("nav landmark 안에 목록 (ul/li) 흔적 없이 vertical multiple ToggleButtonGroup을 렌더한다", () => {
     const { container, getByRole, queryByRole } = renderGroup(["navigator"]);
     const group = getByRole("toolbar", { name: "Left panel controls" });
 
     expect(group.getAttribute("data-orientation")).toBe("vertical");
     expect(group.getAttribute("data-indicator")).toBe("true");
     expect(group.classList.contains("builder-control-group")).toBe(true);
-    expect(container.querySelector("nav, ul, li")).toBeNull();
+    // 2026-11-11 사용자 결정 — 레일은 `nav` landmark (이름 = 같은 side 라벨). 옛 PanelNav 의
+    // 목록 구조 (ul/li) 는 다시 두지 않는다 — 항목은 RAC toolbar 의 ToggleButton 이다.
+    expect(
+      getByRole("navigation", { name: "Left panel controls" }).contains(group),
+    ).toBe(true);
+    expect(container.querySelector("ul, li")).toBeNull();
     expect(queryByRole("button", { name: "Settings" })).toBeNull();
   });
 

@@ -27,15 +27,12 @@ describe("ADR-922 G3 workspace occupancy cutover", () => {
     const panelStyles = read("PanelWorkspace.css");
     const workspaceStyles = read("../workspace/Workspace.css");
 
-    expect(panelStyles).toContain(".panel-workspace-host");
-    expect(panelStyles).toContain(".panel-workspace-main");
-    expect(panelStyles).toContain("grid-area: main");
+    // `.app` 이 칸 하나짜리 grid 이고 캔버스 · chrome 층이 그 칸에 겹친다 (host 래퍼 없음).
+    expect(panelStyles).not.toMatch(/\.panel-workspace-(host|main)\s*[{,>]/);
     expect(panelStyles).toMatch(
-      /\.panel-workspace-host\s*\{[\s\S]*?display: grid;[\s\S]*?grid-template-areas: "workspace";/,
+      /\.app\s*\{[\s\S]*?display: grid;[\s\S]*?grid-template-columns: minmax\(0, 1fr\);[\s\S]*?grid-template-rows: minmax\(0, 1fr\);/,
     );
-    expect(panelStyles).toMatch(
-      /\.panel-workspace-main,[\s\S]*?\.panel-workspace\s*\{[\s\S]*?grid-area: workspace;/,
-    );
+    expect(panelStyles).toMatch(/\.app > \*\s*\{[\s\S]*?grid-area: 1 \/ 1;/);
     expect(panelStyles).not.toMatch(
       /\.panel-workspace\s*\{[^}]*position: absolute;/,
     );
