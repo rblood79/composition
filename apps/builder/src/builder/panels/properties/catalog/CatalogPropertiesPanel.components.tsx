@@ -269,8 +269,13 @@ export function CatalogPropertiesBody({
           key={`cards:${first.identity}`}
           identity={first.identity}
         />
+        {/* Keyed by the type, not the element: selecting another element of the same type keeps
+            the fields mounted and gives them the new element's values (the fields follow the
+            selection — PropertyInput resets on a new selection and commits a blur only on the
+            selection it was focused on). Keyed by the element, every selection mounted the whole
+            body again (CANVAS_PERF_SCALING_2026-11 C1: ~420 of 645 fibers per Button → Button). */}
         <CatalogFields
-          key={targetKey(first.target)}
+          key={`fields:${first.target.kind}:${contract.type}`}
           elementId={first.identity}
           targets={targets}
           root={root}
@@ -608,11 +613,14 @@ function withFilterSections(
     out.collection = (
       <>
         {sectionExtras?.collection}
-        <CatalogListFilterSection listId={nodeId} />
+        {/* Its add · share forms belong to the list they were opened on. */}
+        <CatalogListFilterSection key={nodeId} listId={nodeId} />
       </>
     );
   if (type && catalogFilterKindOfType(type))
-    out.filter = <CatalogControlFilterSection controlId={nodeId} />;
+    out.filter = (
+      <CatalogControlFilterSection key={nodeId} controlId={nodeId} />
+    );
   return out;
 }
 

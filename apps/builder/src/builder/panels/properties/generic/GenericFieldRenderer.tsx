@@ -38,6 +38,7 @@ import {
 import { PropertyFieldTemplateInput } from "../../../components/property/PropertyFieldTemplateInput";
 import { PropertyIconPicker } from "../../../components/property/PropertyIconPicker";
 import { PropertyInput } from "../../../components/property/PropertyInput";
+import { usePropertySelection } from "../../../components/property/propertySelection";
 import {
   catalogCalendarDurationFits,
   catalogColumnSizeFits,
@@ -711,7 +712,12 @@ const RacColorField = memo(function RacColorField({
   onChange: (value: unknown) => void;
   invalidMessage: string;
 }) {
-  const [invalid, setInvalid] = useState(false);
+  // The refusal belongs to the element it was typed on: another selection clears it (the fields
+  // stay mounted across a selection of the same type).
+  const selectedId = usePropertySelection().useSelectedId();
+  const [invalidOn, setInvalidOn] = useState<string | null | false>(false);
+  const invalid = invalidOn !== false && invalidOn === selectedId;
+  const setInvalid = (next: boolean) => setInvalidOn(next ? selectedId : false);
   return (
     <PropertyInput
       label={field.label}
