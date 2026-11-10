@@ -11,6 +11,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas 문서 크기 비례 비용 2단계 — Pages 트리 가상화 · 같은 타입 선택 · drag splice] - 2026-11-11
+
+### Performance
+
+- **페이지 전환 · Navigator 열기 비용이 페이지 수와 무관해짐** (B6):
+  - **Why**: 활성 페이지가 바뀌면 Pages 트리가 모든 행을 다시 그리고, Navigator 를 열면 모든 행을 mount 했다.
+  - 수정: Layers 처럼 RAC Virtualizer 로 보이는 행만 그리고, 행 내용은 바뀐 행만 다시 그린다. 3배 문서 호출 수 배율 page-switch 2.16 → 1.01 · panel-toggle 2.30 → 1.06.
+  - 위치: `apps/builder/src/builder/panels/navigator/catalog/CatalogPagesSection.tsx` · `tree/PageTree/PageTreeItemContent.tsx` · `NavigatorPanel.css`
+- **같은 타입 요소 사이 선택에서 Property 필드를 다시 mount 하지 않음** (C1):
+  - **Why**: 필드 묶음이 요소 id 로 key 가 걸려 Button → Button 선택에도 본문 전체를 다시 만들었다 (645 fiber).
+  - 수정: key 를 타입으로 바꿔 값만 바꾼다 (223 fiber). 입력 중인 값은 입력하던 요소에만 쓰인다.
+  - 위치: `apps/builder/src/builder/panels/properties/catalog/CatalogPropertiesPanel.components.tsx`
+- **drag 시작 · 끝이 문서 전체를 다시 기록하지 않음** (B3):
+  - **Why**: 끌리는 요소를 맨 위 층으로 옮기려고 모든 페이지의 그리기 명령을 다시 만들었다 (66 장 drag 한 번 3.6M 호출).
+  - 수정: 끌리는 subtree 만 잘라 옮기고 끝에 제자리로 돌린다 (full build 와 같은 결과 — 못 놓는 경우는 전과 같이 full build). drag 배율 1.80 → 1.14.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/dragLayerSplice.ts` · `catalogRuntime/canvasBinding.ts`
+
+### Fixed
+
+- **drag 직후 첫 편집이 Canvas 장면 전체를 다시 묶던 것**:
+  - **Why**: drag 시작 · 끝이 올린 그리기 순번을 편집 patch 의 순번이 따라가지 않아 patch 가 「오래된 순번」 으로 거부됐다.
+  - 수정: drag 표시를 바꾼 뒤 patch 순번을 맞춘다.
+  - 위치: `apps/builder/src/builder/catalogRuntime/canvasBinding.ts` `refreshPresentation` · 회귀 `dragLayerSplice.test.ts`
+
 ## [Canvas 문서 크기 비례 비용 1단계 — page frame · History · 글꼴 · 부모 맵 · 줄 상자 캐시] - 2026-11-11
 
 ### Performance

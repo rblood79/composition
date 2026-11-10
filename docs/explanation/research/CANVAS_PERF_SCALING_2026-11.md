@@ -187,3 +187,28 @@
 - select 는 문서 무관 상수 (C1) 그대로.
 - 미측정: production cold 로드 시간 (H1 로 글자 측정 20 % 중 DOM 측정 몫이 빠졌을 것 — 다음 production 측정에서 확인), 실사용 문서.
 - live (dev, 새 프로젝트): 페이지 추가 2 → frame 3 · 라벨 정렬, History 패널 2/2 → undo 1/2 → `goTo` 0 · 2 에 frame 수 1 · 3 따라감, breakpoint 전환 뒤 frame 1920 폭 · 다시 열기 동일, 콘솔 오류 0.
+
+## 8. 2단계 결과 (2026-11-11, `5e67e6f53` · `584d948e5` · `99b5e5754`)
+
+| 항목 | 변경                                                                                                                                                                                                                                              | 회귀 근거                                                                  |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| B6   | Pages 트리 — RAC Virtualizer (보이는 행만) · 행 내용 memo · 행 콜백은 최신 핸들러를 읽는 고정 함수 (RAC 가 행 element 를 캐시해 그때의 콜백을 들고 있었다). 트리는 block (flex column 안에서는 Virtualizer 크기 div 가 줄어 스크롤 범위가 잘림)   | `PageTreeRows` (전환에 행 내용 렌더 29 → 2)                                |
+| C1   | Property 탭 필드 (CatalogFields) key 를 요소 → 선택 종류 · 타입. 요소에 묶인 UI 상태 (Filter 절 2 · 색 · Avatar 칸의 잘못된 값 표시) 는 요소 단위 유지. Component · Accessibility · State 절은 요소 key 그대로 (SwapPicker 가 mount 때 요청 읽음) | `DesignPanelSelectionMount` (같은 input 유지 · 입력값이 다음 요소로 안 감) |
+| B3   | `dragLayerSplice.ts` — 시작에 끌리는 subtree 를 잘라 top layer 꼬리로, 끝에 제자리로. full build 와 같은 stream, 못 놓는 경우 (fixed · overlay 자손 · page root · 사이 쓰기) 는 full build. drag 직후 편집의 patch 순번 결함도 수정               | `dragLayerSplice` 10 (동치 7 경우 + 거부 + drag 뒤 편집 두 경로)           |
+
+**같은 입력 V8 호출 수 (dev, 3배 문서 배율)**
+
+| 부류         | HEAD (850e98a60) | 1단계 뒤 | 2단계 뒤 | 66 장 호출 수 (HEAD → 지금) |
+| ------------ | ---------------: | -------: | -------: | --------------------------: |
+| page-switch  |             2.16 |     2.16 |     1.01 |       5,928,358 → 1,487,513 |
+| panel-toggle |             2.30 |     2.30 |     1.06 |       7,383,482 → 1,696,849 |
+| drag         |             1.80 |     1.55 |     1.14 |       3,595,993 → 1,598,481 |
+| edit         |             1.67 |     1.25 |     1.23 |         1,141,836 → 650,620 |
+| select       |             1.01 |     1.00 |     1.00 |       5,961,149 → 4,562,963 |
+
+- 게이트 (≤ 1.2): page-switch · panel-toggle · drag · pan · zoom 통과. edit 1.23 이 남았다 — 66 장에서 `graph.getEntry` 가 51k → 152k 로 3배 (호출자는 상위 20 밖, 미분석).
+- select 의 −23 % 는 C1 (같은 타입 선택 사이 필드 유지) 이다. 다른 타입 사이 선택은 그대로 (본문이 타입마다 달라 mount 는 정상).
+- C1 은 선택 비용의 「문서 크기 무관 상수」 를 줄였을 뿐 — Component · Accessibility · State 절 (같은 타입 선택에 남은 mount 223) 과 다른 타입 선택은 손대지 않았다.
+- B3 의 남은 비용: 꼬리 splice 가 command buffer segment 를 늘려 drag 프레임의 `commandCursorIndex` 선형 탐색이 늘었다 (66 장 drag 45k 호출 — full build 를 만날 때까지 segment 가 줄지 않는다, 기존 commit splice 와 같은 성질).
+- 의심 (미확인): Layers 트리도 Pages 와 같은 flex column 규칙 아래 Virtualizer 를 쓴다 — 행이 패널보다 많을 때 스크롤 범위가 잘리는지 실제로 확인하지 않았다.
+- live (dev, 새 프로젝트 `perf-s1-live`): Pages 32 장 스크롤 · 행 전환 · 열린 페이지 삭제 → 이웃 · 이름 변경 / Button 두 개 사이 선택 · 값 따라옴 · 입력 중 다른 요소 클릭 / Button 끌어 순서 바꾸기 · 직후 편집 patch.
