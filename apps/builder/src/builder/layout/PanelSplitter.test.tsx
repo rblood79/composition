@@ -175,4 +175,36 @@ describe("PanelSplitter accessibility and interaction contract", () => {
     fireEvent.keyDown(splitter, { key: "End" });
     expect(onResize).toHaveBeenLastCalledWith(0, -500);
   });
+  it("UI 배율 (chrome 층 zoom) 안에서는 viewport px 끌기를 레이아웃 px 로 나눠 커서와 가장자리가 같이 간다", () => {
+    vi.stubGlobal("PointerEvent", MouseEvent);
+    const onResize = vi.fn();
+
+    render(
+      <PanelSplitter
+        edge="right"
+        label="Settings 패널 오른쪽 크기 조절"
+        controls="panel-settings-content"
+        value={320}
+        minValue={200}
+        maxValue={800}
+        onResizeStart={vi.fn()}
+        onResize={onResize}
+        onResizeEnd={vi.fn()}
+      />,
+    );
+
+    const splitter = screen.getByRole("separator");
+    // UI 배율 L — `.panel-workspace { zoom: 1.2 }` 안의 손잡이 (jsdom 에는 currentCSSZoom 이 없다).
+    Object.defineProperty(splitter, "currentCSSZoom", { value: 1.2 });
+
+    dispatchPointer(splitter, "pointerdown", 100);
+    dispatchPointer(window, "pointermove", 160);
+    dispatchPointer(window, "pointerup", 160);
+    expect(onResize).toHaveBeenLastCalledWith(50, 0);
+
+    // 키보드 한 칸은 배율과 무관하게 레이아웃 1px 이다.
+    splitter.focus();
+    fireEvent.keyDown(splitter, { key: "ArrowRight" });
+    expect(onResize).toHaveBeenLastCalledWith(1, 0);
+  });
 });

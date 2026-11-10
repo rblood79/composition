@@ -50,8 +50,13 @@
     --builder-save-pending-pulse: pulse 2s infinite;
   }
 
-  /* UI Scale 적용 (브라우저 줌과 동일한 효과) */
-  .app {
+  /* UI Scale — chrome 층 (header · 레일 · 패널 표면) 만 키우고 줄인다.
+   * `.app` 에 걸면 두 가지가 깨진다 (2026-11-11 live): `.app` 의 `height: 100vh` 에 배율이
+   * 곱해져 S 는 아래 20% 가 비고 L 은 넘쳐 잘리며, 캔버스는 zoom 이 곱해진 측정 크기를 다시
+   * zoom 안에서 써서 0.8² · 1.2² 로 어긋난다. 캔버스 배율은 캔버스 zoom 컨트롤의 몫이다.
+   * `.panel-workspace` 는 `.app` 칸에 stretch 되는 grid item 이라 배율과 무관하게 칸을 채운다.
+   * 게이트: layout/PanelWorkspace.static.test.ts */
+  .app > .panel-workspace {
     zoom: calc(var(--ui-scale) / 100);
   }
 

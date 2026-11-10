@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Settings UI 배율 S · L — chrome 층만 zoom · 끌기 델타 배율 보정] - 2026-11-11
+
+### Fixed
+
+- **Settings 패널의 UI 배율 S · L 이 화면을 깨뜨리던 것** (사용자 보고):
+  - **Why**: zoom 이 `.app` 전체에 걸려 `height: 100vh` 에 배율이 곱해졌다 — S 는 아래 20% 가 비고 (live 988 → 790px) L 은 넘쳐 잘렸다. 캔버스는 zoom 이 곱해진 측정 크기를 다시 zoom 안에서 써서 0.8² 로 쪼그라들었다 (1800×988 칸에 1440×632).
+  - 수정: zoom 을 chrome 층 (`.app > .panel-workspace` — 헤더 · 레일 · 패널) 에만 건다. 캔버스는 배율과 무관하게 칸을 채우고, 캔버스 배율은 캔버스 zoom 컨트롤의 몫이다.
+  - 위치: `packages/shared/src/components/styles/theme/builder-system.css` · 게이트 `PanelWorkspace.static.test.ts`
+- **UI 배율 S · L 에서 패널 가장자리 · 분할선 · 이동 손잡이가 커서와 어긋나던 것**:
+  - **Why**: useMove 델타 · `clientX` 는 viewport px 인데 패널 레이아웃은 zoom 안쪽 px 다 — L 에서 100px 끌면 120px 움직였다.
+  - 수정: 포인터 델타를 손잡이의 `currentCSSZoom` 으로 나눈다 (키보드 한 칸은 그대로 1). PanelSplitter 를 쓰는 패널 · cluster · 섹션 분할 · Data 목록 분할이 같이 고쳐진다.
+  - 위치: `apps/builder/src/builder/layout/{chromeZoom.ts,PanelSplitter.tsx,PanelWorkspace.tsx}` · 회귀 `PanelSplitter.test.tsx`
+
 ## [빌더 껍데기 구조 — 의미 태그 · 래퍼 2겹 · 읽는 곳 없는 코드 제거] - 2026-11-11
 
 ### Changed

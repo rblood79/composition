@@ -2,6 +2,7 @@ import { mergeProps, useKeyboard, useMove } from "react-aria";
 import { useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import type { PanelResizeEdge } from "../panels/core/types";
+import { effectiveCssZoom } from "./chromeZoom";
 
 export interface PanelSplitterProps {
   edge: PanelResizeEdge;
@@ -53,6 +54,9 @@ export function PanelSplitter({
 }: PanelSplitterProps) {
   const adjustsWidth = edge === "left" || edge === "right";
   const pointerDeltaRef = useRef({ deltaX: 0, deltaY: 0 });
+  const handleRef = useRef<HTMLDivElement>(null);
+  // 포인터 델타 (viewport px) → 레이아웃 px. 키보드 한 칸은 이미 레이아웃 px 라 1.
+  const pointerScaleRef = useRef(1);
   // 포인터 드래그가 진행 중인 동안만 true. 손잡이 표시(::after)와 커서를 hover 가 아니라
   // 이 상태에 묶는다 — 드래그 중 포인터는 한 프레임 뒤에서 따라오는 10px 손잡이 영역을
   // 쉽게 벗어나고, hover 에 묶어 두면 그때마다 표시가 사라졌다 나타난다 (2026-09-02 지적).
@@ -61,13 +65,21 @@ export function PanelSplitter({
   const { moveProps } = useMove({
     onMoveStart: (event) => {
       pointerDeltaRef.current = { deltaX: 0, deltaY: 0 };
+      pointerScaleRef.current =
+        event.pointerType === "keyboard"
+          ? 1
+          : effectiveCssZoom(handleRef.current);
       if (event.pointerType !== "keyboard") setIsResizing(true);
       onResizeStart();
     },
     onMove: (event) => {
       pointerDeltaRef.current = {
-        deltaX: pointerDeltaRef.current.deltaX + event.deltaX,
-        deltaY: pointerDeltaRef.current.deltaY + event.deltaY,
+        deltaX:
+          pointerDeltaRef.current.deltaX +
+          event.deltaX / pointerScaleRef.current,
+        deltaY:
+          pointerDeltaRef.current.deltaY +
+          event.deltaY / pointerScaleRef.current,
       };
       onResize(pointerDeltaRef.current.deltaX, pointerDeltaRef.current.deltaY);
     },
@@ -106,6 +118,7 @@ export function PanelSplitter({
     <>
       <div
         {...mergeProps(moveProps, keyboardProps)}
+        ref={handleRef}
         className={`panel-resize-handle ${className ?? ""}`.trim()}
         data-edge={edge}
         data-layout-version={layoutVersion}

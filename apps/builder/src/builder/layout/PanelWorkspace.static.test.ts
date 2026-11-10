@@ -315,6 +315,23 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     );
   });
 
+  it("UI 배율 zoom 은 chrome 층 (`.panel-workspace`) 에만 걸고 `.app` (100vh) · 캔버스에는 걸지 않는다", async () => {
+    const builderSystem = await readFile(
+      resolve(
+        __dirname,
+        "../../../../../packages/shared/src/components/styles/theme/builder-system.css",
+      ),
+      "utf-8",
+    );
+
+    // `.app` 에 zoom 을 걸면 `height: 100vh` 가 배율만큼 줄거나 (S → 아래 20% 빈 칸) 넘치고,
+    // 캔버스는 측정한 (zoom 이 곱해진) 크기에 다시 zoom 이 곱해져 0.8² 로 쪼그라든다 (2026-11-11 live).
+    expect(builderSystem).toMatch(
+      /\.app > \.panel-workspace\s*\{\s*zoom: calc\(var\(--ui-scale\) \/ 100\);/,
+    );
+    expect(builderSystem).not.toMatch(/\.app\s*\{[^}]*zoom:/);
+  });
+
   it("공통 placement surface가 4px margin과 모든 frame의 단일 containing block을 소유한다", async () => {
     const [source, styles] = await Promise.all([readWorkspace(), readStyles()]);
 

@@ -26,6 +26,7 @@ import {
   updatePanelWorkspaceRegistry,
   updatePanelWorkspaceSurface,
 } from "../stores/panelLayout";
+import { effectiveCssZoom } from "./chromeZoom";
 import { PanelSnapInteractionProvider } from "./PanelSnapContext";
 import { PanelSplitter } from "./PanelSplitter";
 import { PanelToggleGroup } from "./PanelToggleGroup";
@@ -602,6 +603,9 @@ const PanelFrame = memo(function PanelFrame({
     [],
   );
   const pointerRef = useRef<{ x: number; y: number } | null>(null);
+  // 끌기 델타 (viewport px) → 레이아웃 px — UI 배율 zoom 안에서 frame 이 커서를 그대로 따라가게.
+  const moveHandleRef = useRef<HTMLButtonElement>(null);
+  const pointerScaleRef = useRef(1);
   const [isMoving, setIsMoving] = useState(false);
   const isActive = snapshotFrame !== null;
   const mode = frameMode(snapshotFrame);
@@ -688,13 +692,17 @@ const PanelFrame = memo(function PanelFrame({
   }, [endPanelDrag, flushDropCandidate, runtime]);
 
   const { moveProps } = useMove({
-    onMoveStart: () => {
+    onMoveStart: (event) => {
       if (!snapshotFrame) return;
       const started = runtime.beginDrag(config.id);
       if (!started.ok) return;
       interactionCancelledRef.current = false;
       isInteractingRef.current = true;
       setIsMoving(true);
+      pointerScaleRef.current =
+        event.pointerType === "keyboard"
+          ? 1
+          : effectiveCssZoom(moveHandleRef.current);
       visualGeometryRef.current = {
         x: snapshotFrame.x,
         y: snapshotFrame.y,
@@ -708,16 +716,18 @@ const PanelFrame = memo(function PanelFrame({
     onMove: (event) => {
       if (!snapshotFrame || !isInteractingRef.current) return;
       const current = visualGeometryRef.current;
+      const deltaX = event.deltaX / pointerScaleRef.current;
+      const deltaY = event.deltaY / pointerScaleRef.current;
       const next = {
         ...current,
-        x: current.x + event.deltaX,
-        y: current.y + event.deltaY,
+        x: current.x + deltaX,
+        y: current.y + deltaY,
       };
       visualGeometryRef.current = next;
       const pointer = pointerRef.current
         ? {
-            x: pointerRef.current.x + event.deltaX,
-            y: pointerRef.current.y + event.deltaY,
+            x: pointerRef.current.x + deltaX,
+            y: pointerRef.current.y + deltaY,
           }
         : { x: next.x + next.width / 2, y: next.y + next.height / 2 };
       pointerRef.current = pointer;
@@ -850,15 +860,17 @@ const PanelFrame = memo(function PanelFrame({
     >
       <button
         {...moveProps}
+        ref={moveHandleRef}
         type="button"
         className="panel-move-handle"
         aria-label={t("workspace.movePanel", { panel: panelName })}
         onPointerDownCapture={(event) => {
           if (!snapshotFrame) return;
           const handleRect = event.currentTarget.getBoundingClientRect();
+          const zoom = effectiveCssZoom(event.currentTarget);
           pointerRef.current = {
-            x: snapshotFrame.x + event.clientX - handleRect.left,
-            y: snapshotFrame.y + event.clientY - handleRect.top,
+            x: snapshotFrame.x + (event.clientX - handleRect.left) / zoom,
+            y: snapshotFrame.y + (event.clientY - handleRect.top) / zoom,
           };
         }}
         onKeyDownCapture={(event) => {
