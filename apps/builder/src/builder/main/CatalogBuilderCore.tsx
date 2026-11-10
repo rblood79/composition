@@ -71,8 +71,7 @@ import {
   loadSpectrumLocaleFontsToSkia,
   syncCustomFontsWithSkia,
 } from "../fonts/loadCustomFontsToSkia";
-import { catalogTextTypography } from "../catalogRuntime/boxModel";
-import { DEFAULT_BASE_TYPOGRAPHY } from "../fonts/customFonts";
+import { createCatalogFontUseReader } from "../fonts/catalogFontUse";
 import { spectrumLocaleFont } from "@composition/rendering";
 import { useBuilderChromeTheme } from "../hooks/useBuilderChromeTheme";
 import { PanelWorkspace } from "../layout/PanelWorkspace";
@@ -431,63 +430,18 @@ export function CatalogBuilderCore() {
   useEffect(() => {
     if (!workspace) return;
     let cancelled = false;
+    const readFontUse = createCatalogFontUseReader();
     const sync = () => {
-      const requests = [...workspace.root.canvasInputs.values()]
-        .filter((node) => !node.hidden)
-        .flatMap((node) => {
-          const text = catalogTextTypography(node);
-          const base = {
-            family: text.fontFamily ?? DEFAULT_BASE_TYPOGRAPHY.fontFamily,
-            weight: Number(
-              node.visual.fontWeight ?? node.inheritedText?.fontWeight ?? 400,
-            ),
-            style: text.fontStyle ?? "normal",
-          };
-          return [
-            base,
-            ...(node.textRuns ?? []).map((run) => ({
-              family: base.family,
-              weight: Number(run.marks?.fontWeight ?? base.weight),
-              style: String(run.marks?.fontStyle ?? base.style),
-            })),
-          ];
-        });
       const locale = workspace.root.environmentLocale ?? navigator.language;
-      const localeFamily = spectrumLocaleFont(locale)?.family;
-      const localeTexts = new Map<number, string>();
-      if (localeFamily)
-        for (const node of workspace.root.canvasInputs.values()) {
-          if (node.hidden) continue;
-          const text = catalogTextTypography(node);
-          if (!text.fontFamily?.includes(localeFamily)) continue;
-          const content =
-            node.textRuns?.map((run) => run.text).join("") ??
-            [
-              node.props.children,
-              node.props.value,
-              node.props.label,
-              node.props.placeholder,
-              // RAC writes a date input's segments: its text lives in no prop.
-              workspace.root
-                .dateSegmentPaint(node.id)
-                ?.runs.map((run) => run.text)
-                .join(""),
-            ]
-              .filter((value) => typeof value === "string")
-              .join("");
-          if (!content) continue;
-          const weight = Number(
-            node.visual.fontWeight ?? node.inheritedText?.fontWeight ?? 400,
-          );
-          localeTexts.set(weight, (localeTexts.get(weight) ?? "") + content);
-          for (const run of node.textRuns ?? []) {
-            const runWeight = Number(run.marks?.fontWeight ?? weight);
-            localeTexts.set(
-              runWeight,
-              (localeTexts.get(runWeight) ?? "") + run.text,
-            );
-          }
-        }
+      const { requests, localeTexts } = readFontUse(
+        workspace.root.canvasInputs.values(),
+        spectrumLocaleFont(locale)?.family,
+        (id) =>
+          workspace.root
+            .dateSegmentPaint(id)
+            ?.runs.map((run) => run.text)
+            .join(""),
+      );
       void Promise.all([
         loadSpectrumFontsToSkia(requests),
         loadSpectrumLocaleFontsToSkia(
