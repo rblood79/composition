@@ -2,6 +2,7 @@ import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import {
   insertNodes,
+  moveNodes,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -190,6 +191,47 @@ describe("ADR-275 Phase 7 — an authored fixed node", () => {
         scene.stream.boundsMap.get(bar)!.y -
           scene.stream.boundsMap.get(body)!.y,
       ).toBe(VIEWPORT.height - 80);
+    } finally {
+      scene.dispose();
+    }
+  });
+
+  it("a fixed node moved into another box between builds is placed from its new parent (B5 — the parent map is per build)", async () => {
+    const { workspace, root, recordOf } = await open();
+    const INNER = "project:node:inner" as NodeId;
+    const scene = new CatalogCanvasScene(root);
+    try {
+      scene.sync();
+      workspace.execute(
+        insertNodes({
+          parent: { kind: "node", id: SECTION },
+          entries: [
+            frame(INNER, {
+              layout: { marginTop: set("300px") },
+              visual: { paddingLeft: set(70) },
+              sizing: { height: set(400) },
+            }),
+          ],
+          rootIds: [INNER],
+          newId: workspace.newId,
+        }),
+      );
+      scene.sync();
+      workspace.execute(
+        moveNodes({
+          ids: [BAR],
+          parent: { kind: "node", id: INNER },
+          newId: workspace.newId,
+        }),
+      );
+      scene.sync();
+      const body = recordOf(BODY);
+      const bar = recordOf(BAR);
+      expect(scene.stream.childElementIds.get(body)).toContain(bar);
+      const at = scene.stream.boundsMap.get(bar)!;
+      const bodyBox = scene.stream.boundsMap.get(body)!;
+      expect(at.y - bodyBox.y).toBe(VIEWPORT.height - 50);
+      expect(at.x - bodyBox.x).toBe(0);
     } finally {
       scene.dispose();
     }

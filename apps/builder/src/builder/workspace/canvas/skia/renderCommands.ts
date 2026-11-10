@@ -980,7 +980,33 @@ interface FixedLayer {
   clip: ClipRect;
   readonly pending: Array<{ id: string; parentId: string }>;
   readonly overlays: Array<{ id: string; parentId: string }>;
-  parents?: Map<string, string>;
+}
+
+/**
+ * The parent of every drawn child, for `offsetInPage` — made once per stream build and shared by
+ * every page's layer (it was made per page: pages × records, CANVAS_PERF_SCALING_2026-11 B5).
+ * `buildRenderCommandStream` drops it at its start: the binding edits `childrenMap` in place
+ * between builds.
+ */
+let streamParents:
+  | {
+      readonly childrenMap: Map<string, CanvasSceneNode[]>;
+      parents?: Map<string, string>;
+    }
+  | undefined;
+
+function parentsOf(
+  childrenMap: Map<string, CanvasSceneNode[]>,
+): Map<string, string> {
+  if (streamParents?.childrenMap !== childrenMap)
+    streamParents = { childrenMap };
+  if (!streamParents.parents) {
+    const parents = new Map<string, string>();
+    for (const [parent, kids] of childrenMap)
+      for (const kid of kids) parents.set(kid.id, parent);
+    streamParents.parents = parents;
+  }
+  return streamParents.parents;
 }
 
 /** A record's border-box origin from its page's, by the layout (unscrolled). */
@@ -990,17 +1016,13 @@ function offsetInPage(
   childrenMap: Map<string, CanvasSceneNode[]>,
   layoutMap: ReadonlyMap<string, ComputedLayout>,
 ): { x: number; y: number } {
-  if (!layer.parents) {
-    layer.parents = new Map();
-    for (const [parent, kids] of childrenMap)
-      for (const kid of kids) layer.parents.set(kid.id, parent);
-  }
+  const parents = parentsOf(childrenMap);
   let x = 0;
   let y = 0;
   for (
     let cursor: string | undefined = id;
     cursor && cursor !== layer.pageId;
-    cursor = layer.parents.get(cursor)
+    cursor = parents.get(cursor)
   ) {
     const layout = layoutMap.get(cursor);
     x += layout?.x ?? 0;
@@ -1293,6 +1315,7 @@ export function buildRenderCommandStream(
     selfOnlyChildContexts?: Map<string, SubtreeBuildContext>;
   } = {},
 ): RenderCommandStream {
+  streamParents = undefined;
   const metricsBuildStart = adr189MetricsEnabled ? performance.now() : 0;
   const metricsVisitStart = commitLaneVisitCount;
   const commands: RenderCommand[] = [];
