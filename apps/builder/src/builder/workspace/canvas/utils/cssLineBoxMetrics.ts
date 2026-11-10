@@ -7,6 +7,15 @@ export interface CssLineBoxMetrics {
 
 let caches = new WeakMap<object, Map<string, CssLineBoxMetrics>>();
 const observed = new WeakSet<Document>();
+/**
+ * What was read while a face was still loading — kept only until the running task ends. The fonts'
+ * state cannot change inside one synchronous run (a load completes in a later task), so a repeat
+ * in the same run reads the same box. Without it a cold open measured the DOM once per text record
+ * (66 pages: 24 keys, 6,218 uncached reads — CANVAS_PERF_SCALING_2026-11 H1).
+ */
+let provisional:
+  | { readonly epoch: object; readonly cache: Map<string, CssLineBoxMetrics> }
+  | undefined;
 
 /** Read CSS font metrics offscreen; visible content continues to be painted by Skia. */
 export function measureCssLineBox(
@@ -37,7 +46,9 @@ export function measureCssLineBox(
     font.locale ?? document.documentElement.lang,
     globalThis.devicePixelRatio,
   ]);
-  const cached = cache.get(key);
+  const cached =
+    cache.get(key) ??
+    (provisional?.epoch === epoch ? provisional.cache.get(key) : undefined);
   if (cached) return cached;
   const host = document.createElement("div");
   host.style.cssText =
@@ -73,6 +84,15 @@ export function measureCssLineBox(
     if (faceReady && (!document.fonts || document.fonts.status === "loaded")) {
       if (cache.size >= 2048) cache.clear();
       cache.set(key, result);
+    } else {
+      if (provisional?.epoch !== epoch) {
+        const held = { epoch, cache: new Map<string, CssLineBoxMetrics>() };
+        provisional = held;
+        queueMicrotask(() => {
+          if (provisional === held) provisional = undefined;
+        });
+      }
+      provisional.cache.set(key, result);
     }
     return result;
   } finally {
