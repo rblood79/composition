@@ -326,9 +326,46 @@
       justify-content: space-between;
     }
 
+    /* heading 이 남는 폭을 갖고, 그 안의 trigger 버튼 (caret + 제목 + badge) 이 heading 을 채운다 —
+       caret 만이 아니라 제목까지 눌러 접는다 (RAC Disclosure 와 같은 누르는 영역, 2026-11-10).
+       Reset · + 같은 액션은 버튼 밖 형제 (.section-actions). */
+    .section-header .section-heading {
+      display: flex;
+      flex: 1;
+      min-width: 0;
+      align-self: stretch;
+      margin: 0;
+      font: inherit;
+    }
+
+    .section-header .section-trigger {
+      display: flex;
+      flex: 1;
+      min-width: 0;
+      align-items: center;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      text-align: start;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .section-header .section-trigger[data-focus-visible] {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: -2px;
+    }
+
     /* caret 32 (chrome 티어) 가 제목 왼쪽 — 제목 padding 은 caret 이 있으면 좌측 0 */
     .section-header .section-caret {
+      display: inline-flex;
       flex: none;
+      align-items: center;
+      justify-content: center;
+      inline-size: var(--control-size-lg);
+      block-size: var(--control-size-lg);
     }
 
     .section-header .section-caret + .section-title {

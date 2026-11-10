@@ -24,8 +24,9 @@ composition 아키텍처는 **3개의 독립 domain**으로 구성된다. 각 do
 - **선택 이유**: RAC가 unstyled이므로 스타일 자유도 확보 가능 (← 이것이 RAC 선택의 본질적 이유)
 - **금지 사항**:
   - RAC 컴포넌트의 DOM 구조 재작성
-  - aria 속성 수동 작성 (RAC가 제공하는 것 사용)
+  - aria 속성 수동 작성 (RAC가 제공하는 것 사용) — 사용자 컴포넌트 (catalog · Preview · Publish) 한정, 빌더 chrome 은 아래 예외
   - 접근성 동작 변경
+- **빌더 chrome 예외 — 수동 ARIA 허용 (사용자 결정 2026-11-10)**: 빌더 패널 · 메뉴 등 chrome 은 RAC 컴포넌트가 렌더 비용을 키우는 곳에서 ARIA 속성을 직접 적을 수 있다 (예: 패널 `Section` — RAC `Disclosure` 대신 자체 구현). 속성 이름 · 값은 설치본 RAC · react-aria hook 이 같은 패턴에 내는 계약 (`aria-expanded` · `aria-controls` · `role` · `aria-labelledby` …) 을 따른다. 사용자 컴포넌트는 예외 없음 — Preview · Publish 의 DOM 계약은 RAC 그대로다. **Why**: RAC `DisclosurePanel` 은 닫혀도 내용을 DOM 에 숨겨 두는데, 패널 `Section` 은 닫힌 구획의 내용을 렌더하지 않는다 — 구획이 많은 Design · Navigator 패널이 무거워져 처음부터 RAC 를 쓰지 않았다. 빌더 chrome 은 ADR-305 로 사용자 컴포넌트와 분리돼 있어 이 예외가 사용자 문서에 닿지 않는다.
 
 ### D2 (Props/API)
 
@@ -131,7 +132,7 @@ D3 SSOT(catalog)가 어디까지 관여하는지의 판정:
 - ❌ "CSS가 기준, Skia 따라가" 언어 사용 (대칭 위반)
 - ❌ Skia 전용 시각 효과를 도입 (대칭 결과 불가능)
 - ❌ 컴포넌트당 spec 파일 신규 생성 — 어떤 컴포넌트에도 (ADR-142 로 폐기, 마지막 3개와 `packages/specs` 는 ADR-248 에서 삭제. 예외 없음)
-- ❌ RAC 컴포넌트 DOM 재작성 또는 ARIA 수동 작성 (D1 침범)
+- ❌ RAC 컴포넌트 DOM 재작성 또는 ARIA 수동 작성 (D1 침범) — 사용자 컴포넌트. 빌더 chrome 의 수동 ARIA 는 §1 D1 예외
 
 ## 7. 허용 패턴
 

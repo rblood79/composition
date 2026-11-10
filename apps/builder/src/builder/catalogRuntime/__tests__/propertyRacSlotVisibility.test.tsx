@@ -65,7 +65,12 @@ it.each(["Text", "Button", "SegmentedControl", "SelectBoxGroup", "Sheet"])(
         </I18nProvider>,
       );
       expect(ui.queryByText("RAC slot")).toBeNull();
-      expect(ui.queryByRole("group", { name: /^Slot(?: of .*)?$/ })).toBeNull();
+      // 구획 내용 영역 (Section 의 group — 자식 Slot 구획) 은 RAC slot 선택창이 아니다
+      expect(
+        ui
+          .queryAllByRole("group", { name: /^Slot(?: of .*)?$/ })
+          .filter((el) => !el.classList.contains("section-content")),
+      ).toEqual([]);
       expect(h.node(id).props.slot).toEqual({ kind: "set", value: "provided" });
       if (type === "SegmentedControl" || type === "SelectBoxGroup") {
         expect(ui.getByRole("button", { name: "Fill slot" })).toBeTruthy();

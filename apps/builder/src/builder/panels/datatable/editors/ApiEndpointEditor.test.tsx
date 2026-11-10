@@ -4,7 +4,13 @@
  * applyDataChange define_endpoint (HC1), Auth 는 vault 참조 {{secret.NAME}} 만 문서에 (HC6),
  * "테이블로 저장" 은 create_collection+set_source+define_endpoint 한 DataChange.
  */
-import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  waitFor,
+  screen,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 // jsdom has no Web Animations (the response view segment's selection indicator asks for them).
@@ -67,6 +73,13 @@ afterEach(() => {
   apiRuns.clear();
   collections.clear();
 });
+
+// 패널 Section 의 내용 영역도 제목 이름의 group 이다 (Disclosure 계약, 2026-11-10) — 같은 이름의 필드 묶음은
+// 구획 안쪽 것을 고른다.
+const fieldGroup = (name: string) =>
+  screen
+    .getAllByRole("group", { name })
+    .find((el) => !el.classList.contains("section-content"))!;
 
 describe("ApiEndpointEditor (ADR-212 Phase 4)", () => {
   it("요청 바 — Method/URL/Send, Send 는 executeApiEndpoint 호출", async () => {
@@ -192,7 +205,7 @@ describe("ApiEndpointEditor (ADR-212 Phase 4)", () => {
     );
     fireEvent.click(getByRole("tab", { name: "Auth" }));
     // 프리셋 선택 (기본 none) → auth 그룹이 존재. Select 상호작용·vault 저장은 live 검증.
-    expect(getByRole("group", { name: "Auth" })).toBeTruthy();
+    expect(fieldGroup("Auth")).toBeTruthy();
   });
 
   it("Response 탭 — 405 + Tus-Resumable 은 오류가 아니라 업로드 endpoint 안내 (ADR-201 후속: 자동 Send 프로브 405 노이즈)", () => {

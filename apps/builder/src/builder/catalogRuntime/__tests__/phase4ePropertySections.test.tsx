@@ -256,8 +256,11 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     const add = within(container).getByRole("button", { name: "Add" });
     expect(add.closest(".section-header .section-actions")).not.toBeNull();
     await act(async () => {
+      // 머리글 trigger (caret + 제목) — 이름은 제목, 펼침은 aria-expanded (Disclosure 계약)
       fireEvent.click(
-        within(container).getByRole("button", { name: "Collapse section" }),
+        container.querySelector(
+          '.section-header .section-trigger[aria-expanded="true"]',
+        )!,
       );
     });
     expect(container.querySelector(".section-content")).toBeNull();

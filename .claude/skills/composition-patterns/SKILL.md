@@ -33,7 +33,7 @@ Codex에서는 Claude의 glob 규칙 자동 로드를 전제하지 않습니다.
 - **validation** — [error-boundary](rules/validation-error-boundary.md) C · [input-boundary](rules/validation-input-boundary.md) C
 - **style** — [css-reuse](rules/style-css-reuse.md) H · [no-inline-tailwind](rules/style-no-inline-tailwind.md) C · [overlay-s2-pattern](rules/style-overlay-s2-pattern.md) H · [react-aria-prefix](rules/style-react-aria-prefix.md) C
 - **spec** (catalog shape · 토큰 · 값 동기화) — [build-sync](rules/spec-build-sync.md) C · [container-dimension-injection](rules/spec-container-dimension-injection.md) C · [shape-rendering](rules/spec-shape-rendering.md) H · [single-source-truth](rules/spec-single-source-truth.md) H · [token-usage](rules/spec-token-usage.md) H · [value-sync](rules/spec-value-sync.md) C
-- **react-aria** — [hooks-required](rules/react-aria-hooks-required.md) H · [no-manual-aria](rules/react-aria-no-manual-aria.md) H · [stately-hooks](rules/react-aria-stately-hooks.md) H
+- **react-aria** — [hooks-required](rules/react-aria-hooks-required.md) H · [no-manual-aria](rules/react-aria-no-manual-aria.md) H (사용자 컴포넌트 — 빌더 chrome 예외) · [stately-hooks](rules/react-aria-stately-hooks.md) H
 - **zustand** (남은 UI · 데이터 store 만) — [factory-pattern](rules/zustand-factory-pattern.md) H · [modular-files](rules/zustand-modular-files.md) H
 - **postmessage** — [origin-verify](rules/postmessage-origin-verify.md) C · [buffer-ready](rules/postmessage-buffer-ready.md) H
 - **inspector** — [history-sync](rules/inspector-history-sync.md) H

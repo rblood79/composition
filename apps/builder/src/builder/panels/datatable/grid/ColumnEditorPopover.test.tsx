@@ -6,7 +6,14 @@
  * focuses the type search. Every write is applyDataChange (HC1); usage is the field-level back
  * reference. The popover shell (RAC Popover · Esc · outside) is exercised in DataGrid.test.
  */
-import { within, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import {
+  within,
+  cleanup,
+  fireEvent,
+  render,
+  waitFor,
+  screen,
+} from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 const { applyDataChange, toastWarn } = vi.hoisted(() => ({
@@ -85,6 +92,13 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+// 패널 Section 의 내용 영역도 제목 이름의 group 이다 (Disclosure 계약, 2026-11-10) — 같은 이름의 필드 묶음은
+// 구획 안쪽 것을 고른다.
+const fieldGroup = (name: string) =>
+  screen
+    .getAllByRole("group", { name })
+    .find((el) => !el.classList.contains("section-content"))!;
+
 describe("ColumnEditor (ADR-288 — the column head popover's body)", () => {
   it("shows the field (key = the column's key)", () => {
     const { container } = render(
@@ -127,10 +141,10 @@ describe("ColumnEditor (ADR-288 — the column head popover's body)", () => {
       wrap(<ColumnEditor table={table} field={age} onClose={() => {}} />),
     );
     // G6 수정 12 — the type is a Builder PropertySelect: open it, pick the option.
+    fireEvent.click(within(fieldGroup("Type")).getByRole("button"));
     fireEvent.click(
-      within(getByRole("group", { name: "Type" })).getByRole("button"),
+      await waitFor(() => getByRole("option", { name: "Number" })),
     );
-    fireEvent.click(await waitFor(() => getByRole("option", { name: "Number" })));
     const dialog = await waitFor(() => getByRole("alertdialog"));
     expect(dialog.textContent).toContain("1 of 3 rows"); // "x" 하나
     const clear = getByRole("button", { name: "Clear (empty those cells)" });
@@ -217,11 +231,11 @@ describe("ColumnEditor (ADR-288 — the column head popover's body)", () => {
       wrap(<ColumnEditor table={table} field={age} onClose={() => {}} />),
     );
     expect(
-      [...container.querySelectorAll(".section-title")].map((el) => el.textContent),
+      [...container.querySelectorAll(".section-title")].map(
+        (el) => el.textContent,
+      ),
     ).toEqual(["Name", "Type", "Rules", "Usage"]);
-    fireEvent.click(
-      within(getByRole("group", { name: "Type" })).getByRole("button"),
-    );
+    fireEvent.click(within(fieldGroup("Type")).getByRole("button"));
     const listbox = await waitFor(() => getByRole("listbox"));
     const options = within(listbox).getAllByRole("option");
     // The common types (사용자 2026-10-29): string · number · boolean · date · JSON · reference.
@@ -230,9 +244,9 @@ describe("ColumnEditor (ADR-288 — the column head popover's body)", () => {
       within(listbox).getByRole("option", { name: /JSON/ }).textContent,
     ).toContain("A list or a set of name · value pairs");
     const number = within(listbox).getByRole("option", { name: /Number/ });
-    expect(number.querySelector(".property-select__option-description")!.textContent).toBe(
-      "Number — for math and sorting",
-    );
+    expect(
+      number.querySelector(".property-select__option-description")!.textContent,
+    ).toBe("Number — for math and sorting");
     expect(
       within(listbox).getByRole("option", { name: /Reference/ }).textContent,
     ).toContain("Points at a row of another table");
@@ -249,7 +263,9 @@ describe("ColumnEditor (ADR-288 — the column head popover's body)", () => {
       wrap(<ColumnEditor table={table} field={active} onClose={() => {}} />),
     );
     // The legacy text default "true" shows as the typed value (On).
-    const trigger = within(getByRole("group", { name: "Default value" })).getByRole("button");
+    const trigger = within(
+      getByRole("group", { name: "Default value" }),
+    ).getByRole("button");
     expect(trigger.textContent).toContain("On");
     expect(queryByRole("alert")).toBeNull();
     fireEvent.click(trigger);
@@ -275,13 +291,15 @@ describe("ColumnEditor (ADR-288 — the column head popover's body)", () => {
     const { getByRole } = render(
       wrap(<ColumnEditor table={table} field={amount} onClose={() => {}} />),
     );
-    const input = within(getByRole("group", { name: "Default value" })).getByRole(
-      "textbox",
-    ) as HTMLInputElement;
+    const input = within(
+      getByRole("group", { name: "Default value" }),
+    ).getByRole("textbox") as HTMLInputElement;
     expect(input.value).toBe("3");
     fireEvent.change(input, { target: { value: "abc" } });
     fireEvent.keyDown(input, { key: "Enter" });
-    expect(getByRole("alert").textContent).toBe("The default is not a value of this type.");
+    expect(getByRole("alert").textContent).toBe(
+      "The default is not a value of this type.",
+    );
     expect(applyDataChange).not.toHaveBeenCalled();
     fireEvent.change(input, { target: { value: "7" } });
     fireEvent.keyDown(input, { key: "Enter" });
@@ -309,10 +327,14 @@ describe("ColumnEditor (ADR-288 — the column head popover's body)", () => {
       mockData: collection.mockData.map((row) => ({ ...row, flag: "yes" })),
     } as unknown as DataTable;
     const { getByRole, container } = render(
-      wrap(<ColumnEditor table={tableWithFlag} field={flag} onClose={() => {}} />),
+      wrap(
+        <ColumnEditor table={tableWithFlag} field={flag} onClose={() => {}} />,
+      ),
     );
-    fireEvent.click(within(getByRole("group", { name: "Type" })).getByRole("button"));
-    fireEvent.click(await waitFor(() => getByRole("option", { name: /Boolean/ })));
+    fireEvent.click(within(fieldGroup("Type")).getByRole("button"));
+    fireEvent.click(
+      await waitFor(() => getByRole("option", { name: /Boolean/ })),
+    );
     await waitFor(() => expect(applyDataChange).toHaveBeenCalledTimes(1));
     // "yes" is a boolean text → kept as `true` in the same op; rows ("yes") coerce too → no dialog.
     expect(lastOps()).toEqual([
@@ -331,12 +353,16 @@ describe("ColumnEditor (ADR-288 — the column head popover's body)", () => {
     const { getByRole, container } = render(
       wrap(<ColumnCreator table={table} onClose={onClose} />),
     );
-    expect(container.querySelector(".section-title")!.textContent).toBe("New column");
+    expect(container.querySelector(".section-title")!.textContent).toBe(
+      "New column",
+    );
     const key = keyInput(container);
     fireEvent.change(key, { target: { value: "active" } });
     fireEvent.keyDown(key, { key: "Enter" });
-    fireEvent.click(within(getByRole("group", { name: "Type" })).getByRole("button"));
-    fireEvent.click(await waitFor(() => getByRole("option", { name: /Boolean/ })));
+    fireEvent.click(within(fieldGroup("Type")).getByRole("button"));
+    fireEvent.click(
+      await waitFor(() => getByRole("option", { name: /Boolean/ })),
+    );
     const defaultTrigger = await waitFor(() =>
       within(getByRole("group", { name: "Default value" })).getByRole("button"),
     );
@@ -353,7 +379,12 @@ describe("ColumnEditor (ADR-288 — the column head popover's body)", () => {
       {
         op: "add_field",
         collectionId: "c1",
-        field: { key: "active", type: "boolean", required: true, defaultValue: true },
+        field: {
+          key: "active",
+          type: "boolean",
+          required: true,
+          defaultValue: true,
+        },
       },
     ]);
     // Create more → cleared, still open
@@ -412,12 +443,14 @@ describe("ColumnEditor — ADR-291 computed column", () => {
       return el;
     });
     // (The type select is the result type now — Number · String · Boolean · Date.)
-    fireEvent.click(
-      within(getByRole("group", { name: "Type" })).getByRole("button"),
-    );
+    fireEvent.click(within(fieldGroup("Type")).getByRole("button"));
     await waitFor(() => getByRole("option", { name: "Number" }));
-    expect(container.ownerDocument.querySelectorAll('[role="option"]')).toHaveLength(4);
-    fireEvent.keyDown(container.ownerDocument.activeElement!, { key: "Escape" });
+    expect(
+      container.ownerDocument.querySelectorAll('[role="option"]'),
+    ).toHaveLength(4);
+    fireEvent.keyDown(container.ownerDocument.activeElement!, {
+      key: "Escape",
+    });
     fireEvent.change(area, { target: { value: "price * qty" } });
     fireEvent.blur(area);
     await waitFor(() => expect(applyDataChange).toHaveBeenCalledTimes(1));

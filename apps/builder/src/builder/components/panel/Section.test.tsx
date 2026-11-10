@@ -29,3 +29,44 @@ describe("Section Reset", () => {
     expect(first).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * 머리글 = RAC Disclosure 와 같은 계약 (2026-11-10): caret 만이 아니라 제목까지 누르는 trigger 버튼 하나
+ * (이름 = 제목, 펼침 = aria-expanded · aria-controls), 내용 영역 = role group (이름 = 제목). 닫힌 구획의
+ * 내용은 렌더하지 않는다 (RAC DisclosurePanel 과 다른 점 — 패널 비용). 머리글 액션은 버튼 밖.
+ */
+describe("Section disclosure contract", () => {
+  it("toggles from the title, names the panel by the title, and renders nothing while closed", () => {
+    render(
+      <Section title="Fill" onReset={() => {}}>
+        <span>body</span>
+      </Section>,
+    );
+    const trigger = screen.getByRole("button", { name: "Fill" });
+    expect(trigger.closest("h3")).not.toBeNull();
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    const panel = screen.getByRole("group", { name: "Fill" });
+    expect(trigger.getAttribute("aria-controls")).toBe(panel.id);
+    expect(panel.textContent).toBe("body");
+    // 액션은 trigger 밖 (버튼 안에 버튼 금지)
+    const reset = screen.getByRole("button", { name: "Reset section" });
+    expect(trigger.contains(reset)).toBe(false);
+
+    fireEvent.click(screen.getByText("Fill"));
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    expect(trigger.hasAttribute("aria-controls")).toBe(false);
+    expect(screen.queryByRole("group")).toBeNull();
+    expect(screen.queryByText("body")).toBeNull();
+  });
+
+  it("a non-collapsible section has a heading but no trigger, and its panel is named by the title", () => {
+    render(
+      <Section title="Snapshots" collapsible={false}>
+        <span>body</span>
+      </Section>,
+    );
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.getByRole("heading", { name: "Snapshots" })).not.toBeNull();
+    expect(screen.getByRole("group", { name: "Snapshots" })).not.toBeNull();
+  });
+});
