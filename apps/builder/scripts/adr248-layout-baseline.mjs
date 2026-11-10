@@ -80,7 +80,7 @@ try {
   await createIsolatedProject(page, baseUrl);
   const servedIndexSha256 = sha256(await (await page.request.get(baseUrl)).body());
   await openPanels(page, ["navigator", "properties"]);
-  await page.locator(".navigator-panel-tab", { hasText: /^Layouts$/ }).click();
+  await page.getByRole("tab", { name: "Layouts", exact: true }).click();
   await page.locator('button[aria-label="Add layout"]').click();
   await page
     .locator(
@@ -175,7 +175,7 @@ try {
     animations: "disabled",
     clip: { x: 300, y: 120, width: 850, height: 540 },
   });
-  await page.locator(".navigator-panel-tab", { hasText: /^Pages$/ }).click();
+  await page.getByRole("tab", { name: "Pages", exact: true }).click();
   const pageInfo = await page.evaluate(() => {
     const state = window.__composition_STORE__.getState();
     const pageId = state.currentPageId;

@@ -117,16 +117,23 @@
     padding: 0;
   }
 
-  /* 탭 행 32 = padding 2 + 탭 28 + padding 2 — 탭은 컨트롤 티어(28) 를 선언한다.
-     종전 tablist 28 + padding 4 파생으로 탭이 24 (규격 밖) 였다 (2026-09-13). */
+  /* 탭 행 32 = padding 4 + 탭 24 + padding 4 (사용자 결정 2026-11-10) — 패널 머리글 · 구획 머리글과 같은
+     32 줄을 지키면서 선택 탭이 행 안에서 위아래 4 씩 떨어져 떠 보이게 한다. 24 는 컨트롤 단 (28 · 32) 이
+     아니라 「행 (`--control-size-lg`) 에서 여백을 뺀 값」 으로 선언한다 — 세 번째 단을 만들지 않고, 행 높이나
+     여백을 바꾸면 따라온다. 누르는 크기 32×24 = WCAG 2.5.8 최소 24. (2026-09-13 에는 padding 2 + 탭 28.) */
   .panel-tablist {
     display: flex;
     align-items: center;
     width: 100%;
-    gap: var(--spacing-2xs);
-    padding: var(--spacing-2xs);
-    border-radius: var(--radius-md);
-    background-color: transparent;
+    /* 탭 사이 간격 0 — 비선택 탭은 배경이 없어 간격이 보이지 않고, 여백 4 와 함께 228 폭에 Design 탭 5 개
+       (선택 Property 85 + 아이콘 32 × 4) 가 라벨을 자르지 않고 들어간다 (간격 2 면 1px 넘쳐 「Proper…」). */
+    gap: 0;
+    padding: var(--spacing-xs);
+    /* 탭 행 전체가 트랙 (사용자 결정 2026-11-10 — 시안 C): 행을 회색 띠로 칠하고 선택 탭만 표면색 pill.
+       흰 머리글 위 회색 pill (종전) 은 대비가 약했고, 탭을 둥근 트랙으로 묶으면 (Theme mode 세그먼트)
+       패널 안 값 고르기 컨트롤과 생김새가 같아진다 — 띠는 머리글과 층으로 갈리고 세그먼트와도 다르다. */
+    border-radius: 0;
+    background-color: var(--bg-muted);
   }
 
   .panel-tab {
@@ -135,9 +142,10 @@
     align-items: center;
     justify-content: start;
     min-width: 0;
-    height: var(--control-size);
+    height: calc(var(--control-size-lg) - 2 * var(--spacing-xs));
     gap: var(--spacing-sm);
     padding: 0 var(--spacing-sm);
+    /* 트랙 안의 선택 표시 = 모서리 small 4 (세그먼트 컨트롤 선택 표시와 같은 단 — 시안 C) */
     border-radius: var(--radius-sm);
     background: transparent;
     color: var(--fg-muted);
@@ -154,9 +162,10 @@
     outline-offset: -1px;
   }
 
-  /* 선택 탭 = 채움 한 단 (Hub states — selected 는 색으로). 머리글이 흰 표면이라 흰 pill 은 묻힌다. */
+  /* 선택 탭 = 띠 위의 밝은 면 (시안 C, 2026-11-10 — 종전 흰 머리글 위 회색 pill 은 대비가 약했다). */
   .panel-tab[data-selected] {
-    background: var(--bg-muted);
+    /* 띠 (--bg-muted) 위 한 단 밝은 면 — 세그먼트 컨트롤 선택 표시와 같은 토큰 (light 흰색 · dark zinc-800) */
+    background: var(--bg-overlay);
     color: var(--fg);
   }
 
@@ -168,6 +177,39 @@
     line-height: var(--text-xs--line-height);
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  /* 아이콘 탭 (`PanelIconTabList` — Navigator · Design, 2026-11-10) — 선택 탭만 라벨을 단다. 폭은 내용
+     (아이콘 + 라벨) 이 정한다 — 남는 폭으로 늘이면 탭 수가 적은 Navigator 만 넓어져 두 탭 줄이 달랐다.
+     좁은 패널에서는 줄어들며 라벨이 말줄임된다. 정렬 · 기본 여백은 위 .panel-tab 이 소유한다. */
+  .panel-icon-tab {
+    flex: 0 1 auto;
+  }
+
+  /* 아이콘 · 라벨을 담는 안쪽 줄 — `title` 을 걸 실제 박스가 필요해서 한 겹 있다 */
+  .panel-icon-tab-inner {
+    display: flex;
+    align-items: center;
+    justify-content: inherit;
+    gap: var(--spacing-sm);
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* 글자 크기 · 굵기는 세그먼트 버튼과 같은 12px / regular */
+  .panel-icon-tab .panel-tab-label {
+    font-weight: var(--font-weight-regular);
+  }
+
+  /* 지금 안 보이는 탭에 표시할 것이 있다 (Design — 수정된 스타일 그룹) */
+  .panel-icon-tab-dot {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 6px;
+    height: 6px;
+    border-radius: var(--radius-full);
+    background: var(--negative);
   }
 
   /* ========================================

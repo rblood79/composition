@@ -37,9 +37,9 @@ describe("NavigatorPanel shared panel style contract", () => {
       "sectionIds={[TAB_LIST_SECTION[tab], NAVIGATOR_SECTION_IDS.layers]}",
     );
     // 구조 클래스는 공용 단일 이름 (panelTabs.static.test.ts 가 twin 재도입을 막는다).
-    expect(panelSource).toContain('className="panel-tabs navigator-tabs"');
-    expect(panelSource).toContain('className="panel-tablist"');
-    expect(panelSource).toContain('className="panel-tab navigator-panel-tab"');
+    // 탭 줄은 Design 과 같은 공통 아이콘 탭 (선택 탭만 라벨 — 2026-11-10)
+    expect(panelSource).toContain('className="panel-tabs"');
+    expect(panelSource).toContain("<PanelIconTabList");
     expect(panelSource).toContain("selectedKey={tab}");
     expect(panelSource).toContain("onSelectionChange={handleTabChange}");
   });
@@ -78,14 +78,14 @@ describe("NavigatorPanel shared panel style contract", () => {
     expect(css).toMatch(/\.navigator-panel-content \{[^}]*overflow: hidden;/s);
   });
 
-  it("keeps only equal-width distribution as the local tab override", async () => {
+  it("has no local tab override — the icon tab row is the shared one (Design)", async () => {
     const css = await readFile(
       resolve(__dirname, "NavigatorPanel.css"),
       "utf-8",
     );
 
-    expect(css).toMatch(/\.navigator-panel-tab \{[^}]*flex: 1 1 0;/s);
-    expect(css).not.toMatch(/\.navigator-panel-tab \{[^}]*justify-content:/s);
+    // 종전: 모든 탭 같은 폭 + 폭 320 이상이면 모든 라벨 (container query) — Design 과 달랐다
+    expect(css).not.toMatch(/navigator-panel-tab|navigator-tabs/);
   });
 
   it("keeps shared section padding while preserving the tree guide and icons", async () => {

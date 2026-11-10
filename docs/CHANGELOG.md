@@ -34,6 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **떠 있는 표면이 한 층이다** (Hub background layers — elevated). 패널 · header toolbar · action bar · 팝오버 · 메뉴 · Toast · tooltip · command palette · 확인 Dialog 가 같은 표면색 (`--chrome-surface` — light 흰색 · dark zinc-850) 과 같은 그림자 (`--chrome-shadow` — Hub elevated 단) 를 읽는다. 종전: 패널 약한 그림자 · 팝오버 가장 진한 그림자 · Dialog 는 직접 쓴 값과 다른 표면색. dark 에서는 Hub 규칙대로 1px 테두리 선을 더한다 (크기가 바뀌지 않게 그림자 고리). 뒤 가림막이 있는 Dialog 4 종은 그림자가 없다.
+- **패널 탭 줄이 회색 띠, 선택 탭은 밝은 pill** (사용자 결정 — 시안 4 안 중 C). 탭 행 32 를 회색 띠 (`--bg-muted`) 로 칠하고 선택 탭만 한 단 밝은 면 (`--bg-overlay` · 높이 24 · 모서리 4). 종전 흰 머리글 위 회색 pill 은 대비가 약했다. 패널 머리글 아래 구분선은 안쪽 그림자 선으로 바꿔 머리글 · 탭 행 · 구획 머리글이 모두 32 다.
+- **Navigator 탭이 Design 탭과 같은 아이콘 탭이다** — 선택된 탭만 라벨을 달고, 탭 폭은 아이콘 + 라벨 내용이 정한다 (공통 `PanelIconTabList`). 종전 Navigator 는 폭 320 이상에서 세 탭 모두 라벨 · 같은 폭 · 굵은 라벨이라 Design 탭 줄과 달랐다. 비선택 탭 이름은 hover 설명과 접근 이름으로 남는다.
 - **패널 구획 머리글은 제목까지 눌러 접고 편다** (RAC Disclosure 와 같은 누르는 영역). 종전에는 caret 아이콘만 눌렸다. 머리글은 heading 안의 버튼 하나 (이름 = 제목, `aria-expanded` · `aria-controls`) 이고 내용 영역은 제목 이름의 group 이다. RAC 컴포넌트가 아니라 속성을 직접 적어 닫힌 구획의 내용을 계속 렌더하지 않는다 (Design · Navigator 패널 비용 — 빌더 chrome 수동 ARIA 예외, `ssot-hierarchy.md` §1 D1).
 - **캔버스 바깥이 pasteboard 토큰 (`--bg-pasteboard`)** — dark 에서 한 단 어두워져 (zinc-950) 패널이 캔버스에 묻히지 않는다.
 - **모서리 단이 Hub rounding** — 컨트롤 8 · 패널 10 · Dialog 16 (종전 6 · 8 · 8).

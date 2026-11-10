@@ -185,7 +185,7 @@ try {
     JSON.parse(localStorage.getItem("styles-panel-collapse")).state,
   );
   await setPanel(page, "navigator", true);
-  const layoutsTab = page.locator(".navigator-panel-tab", { hasText: /^Layouts$/ });
+  const layoutsTab = page.getByRole("tab", { name: "Layouts", exact: true });
   await layoutsTab.waitFor({ timeout: 10_000 });
   await layoutsTab.click();
   await page.waitForTimeout(600);
@@ -245,7 +245,7 @@ try {
   );
 
   // 4) Pages 탭으로 돌아가 (editMode page) 페이지 body 선택 → Properties Layout 절
-  await page.locator(".navigator-panel-tab", { hasText: /^Pages$/ }).click();
+  await page.getByRole("tab", { name: "Pages", exact: true }).click();
   await page.waitForTimeout(500);
   const pageInfo = await page.evaluate(() => {
     const st = window.__composition_STORE__.getState();
@@ -321,7 +321,7 @@ try {
 
   // 8) 내부 Layers 트리 — Layout 1 body 선택 → Properties Layout Preset 2-Row → Slot 2 → 선택/접기
   await setPanel(page, "navigator", true);
-  await page.locator(".navigator-panel-tab", { hasText: /^Layouts$/ }).click();
+  await page.getByRole("tab", { name: "Layouts", exact: true }).click();
   await page.waitForTimeout(500);
   await page.locator('.section[data-section-id="navigator-layouts"] .elementItemLabel', { hasText: /^Layout 1$/ }).click();
   await page.waitForTimeout(600);
@@ -377,7 +377,7 @@ try {
   );
 
   // 10) page 에 Layout 1 적용 → slot geometry Canvas vs Preview (page 에 Button 하나를 먼저 놓는다)
-  await page.locator(".navigator-panel-tab", { hasText: /^Pages$/ }).click();
+  await page.getByRole("tab", { name: "Pages", exact: true }).click();
   await page.waitForTimeout(400);
   await page.evaluate((bodyId) => window.__composition_STORE__.getState().setSelectedElement(bodyId), pageInfo.bodyId);
   await addFromPalette(page, "Button");
@@ -426,7 +426,7 @@ try {
 
   // 5) 삭제 → reload 후 0
   await setPanel(page, "navigator", true);
-  await page.locator(".navigator-panel-tab", { hasText: /^Layouts$/ }).click();
+  await page.getByRole("tab", { name: "Layouts", exact: true }).click();
   await page.waitForTimeout(500);
   const delBtn = page.locator('button[aria-label="Delete Layout 1"]');
   await delBtn.waitFor({ timeout: 5_000 });
@@ -447,7 +447,7 @@ try {
   await page.reload({ waitUntil: "networkidle" });
   await waitReady(page);
   await setPanel(page, "navigator", true);
-  const koTab = page.locator(".navigator-panel-tab", { hasText: /^레이아웃$/ });
+  const koTab = page.getByRole("tab", { name: "레이아웃", exact: true });
   await koTab.waitFor({ timeout: 10_000 });
   await koTab.click();
   await page.waitForTimeout(500);
@@ -455,7 +455,7 @@ try {
   const koAddCount = await koAdd.count();
   await koAdd.click();
   await page.waitForTimeout(900);
-  await page.locator(".navigator-panel-tab", { hasText: /^페이지$/ }).click();
+  await page.getByRole("tab", { name: "페이지", exact: true }).click();
   await page.waitForTimeout(500);
   await page.evaluate(() => {
     const st = window.__composition_STORE__.getState();

@@ -1,7 +1,7 @@
 import { useCallback, useState, useSyncExternalStore } from "react";
 import type { Key } from "react-stately";
 import { Box, FileText, LayoutTemplate, ListTree } from "lucide-react";
-import { Tab, TabList, TabPanel, Tabs } from "react-aria-components/Tabs";
+import { TabPanel, Tabs } from "react-aria-components/Tabs";
 import "../NavigatorPanel.css";
 import { useI18n } from "../../../../i18n";
 import { iconProps } from "../../../../utils/ui/uiConstants";
@@ -16,6 +16,10 @@ import {
 } from "../../../catalogRuntime/react";
 import { EmptyState } from "../../../components/feedback/EmptyState";
 import { PanelHeader } from "../../../components/panel/PanelHeader";
+import {
+  PanelIconTabList,
+  type PanelIconTab,
+} from "../../../components/panel/PanelIconTabList";
 import { Section } from "../../../components/panel/Section";
 import { SectionGroupToggleButton } from "../../../components/panel/SectionGroupToggleButton";
 import { SectionSplitStack } from "../../../components/panel/SectionSplitStack";
@@ -82,11 +86,7 @@ function NavigatorPanelContent() {
     },
     [definitionView, workspace],
   );
-  const tabs: {
-    id: CatalogNavigatorTab;
-    label: string;
-    Icon: typeof FileText;
-  }[] = [
+  const tabs: PanelIconTab<CatalogNavigatorTab>[] = [
     { id: "pages", label: t("navigator.pages"), Icon: FileText },
     {
       id: "components",
@@ -114,28 +114,13 @@ function NavigatorPanelContent() {
         }
       />
       <Tabs
-        className="panel-tabs navigator-tabs"
+        className="panel-tabs"
         selectedKey={tab}
         onSelectionChange={handleTabChange}
       >
         <div className="panel-header panel-tabrow">
-          <TabList
-            className="panel-tablist"
-            aria-label={t("navigator.panelTabs")}
-          >
-            {tabs.map(({ id, label, Icon }) => (
-              <Tab key={id} id={id} className="panel-tab navigator-panel-tab">
-                <Icon
-                  color="currentColor"
-                  strokeWidth={iconProps.strokeWidth}
-                  size={iconProps.size}
-                />
-                <span className="panel-tab-label navigator-panel-tab-label">
-                  {label}
-                </span>
-              </Tab>
-            ))}
-          </TabList>
+          {/* 선택된 탭만 라벨 — Design 탭과 같은 공통 줄 (2026-11-10) */}
+          <PanelIconTabList tabs={tabs} aria-label={t("navigator.panelTabs")} />
         </div>
         {tabs.map(({ id }) => (
           <TabPanel

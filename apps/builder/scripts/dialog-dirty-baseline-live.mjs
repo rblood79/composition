@@ -97,7 +97,7 @@ async function modifiedLabels(id) {
   await openPanels(page, ["Styles"]);
   await page.waitForTimeout(1200);
   return page
-    .locator(".styles-panel-tab")
+    .locator('.panel-wrapper[data-panel="properties"] .panel-icon-tab')
     .evaluateAll((tabs) => tabs.map((t) => t.getAttribute("aria-label")));
 }
 const noCount = (labels) =>
