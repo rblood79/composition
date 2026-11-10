@@ -682,6 +682,12 @@ interface ConsumePlan {
   >;
 }
 type Notice = { readonly id: string; readonly record?: CatalogConsumerNode };
+type PageFrameRect = {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+};
 
 /** Bindings whose label never wraps (button): min-content = max-content. */
 const noWrapTextBindings: ReadonlySet<string> = new Set([
@@ -5060,29 +5066,41 @@ export class CatalogCompositionRoot {
     this.previewListeners.add(listener);
     return () => this.previewListeners.delete(listener);
   }
-  /** Laid-out frame of every page (its root node's box on the page grid). */
-  pageFrameRects(): Map<
-    string,
-    { x: number; y: number; width: number; height: number }
-  > {
-    const rects = new Map<
-      string,
-      { x: number; y: number; width: number; height: number }
-    >();
-    for (const rootId of this.rootIds) {
-      const pageId = this.rootPage.get(rootId);
-      // The root's top record is one of its source's records (as `pageRootRecords` finds it) —
-      // not a search of every member of the page (ADR-265 C12: 5k members, per call).
-      const member = this.recordsOfSource(rootId).find(
-        (id) => this.records.get(id)?.parentId === "catalog:root",
-      );
-      const rect = member ? this.getGeometry([member]).get(member) : undefined;
-      // The definition view's one frame is keyed by the definition.
-      const frameId = pageId ?? this.definitionView;
-      if (frameId && rect) rects.set(frameId, rect);
+  /**
+   * Laid-out frame of every page (its root node's box on the page grid). The Canvas reads this
+   * several times a frame (camera bounds · page labels · guides): it is read from the engine in one
+   * batch and kept until the layout tree changes (`PersistentLayoutTree.generation` — every engine
+   * write and layout bumps it; page roots change only with a write to `catalog:root`'s children).
+   * Each call returns its own map (CANVAS_PERF_SCALING_2026-11 B2).
+   */
+  pageFrameRects(): Map<string, PageFrameRect> {
+    const generation = this.layout.generation;
+    if (this.pageFrameCache?.generation !== generation) {
+      const members = new Map<string, string>();
+      for (const rootId of this.rootIds) {
+        // The root's top record is one of its source's records (as `pageRootRecords` finds it) —
+        // not a search of every member of the page (ADR-265 C12: 5k members, per call).
+        const member = this.recordsOfSource(rootId).find(
+          (id) => this.records.get(id)?.parentId === "catalog:root",
+        );
+        // The definition view's one frame is keyed by the definition.
+        const frameId = this.rootPage.get(rootId) ?? this.definitionView;
+        if (member && frameId) members.set(member, frameId);
+      }
+      const geometry = this.getGeometry(members.keys());
+      const rects = new Map<string, PageFrameRect>();
+      for (const [member, frameId] of members) {
+        const rect = geometry.get(member);
+        if (rect) rects.set(frameId, rect);
+      }
+      this.pageFrameCache = { generation, rects };
     }
-    return rects;
+    return new Map(this.pageFrameCache.rects);
   }
+  private pageFrameCache?: {
+    generation: number;
+    rects: ReadonlyMap<string, PageFrameRect>;
+  };
 
   private addSourceInstance(sourceId: string, id: string): void {
     this.keep(this.sourceInstances, sourceId);

@@ -68,6 +68,8 @@ export class PersistentLayoutTree {
    */
   private engine: LayoutEngineAPI;
   private rootHandle: EngineNodeHandle | null = null;
+  /** Bumped by every call that can change a layout result (see `generation`). */
+  private _generation = 0;
 
   /**
    * elementId → 엔진 node handle 매핑.
@@ -121,6 +123,15 @@ export class PersistentLayoutTree {
   /**
    * buildFull()이 성공적으로 호출되어 rootHandle이 설정된 상태인지 확인.
    */
+  /**
+   * Changes whenever a layout result can change: every engine write (style · children · node add or
+   * remove · viewport · build · reset) and every `computeLayout`. A reader may keep results it read
+   * at one generation for as long as the generation is the same (CANVAS_PERF_SCALING_2026-11 B2).
+   */
+  get generation(): number {
+    return this._generation;
+  }
+
   get isInitialized(): boolean {
     return this.rootHandle !== null;
   }
@@ -206,6 +217,7 @@ export class PersistentLayoutTree {
     }
 
     // post-order에서 루트는 항상 배열의 마지막 항목
+    this._generation++;
     this.rootHandle = handles[handles.length - 1];
 
     if ((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV) {
@@ -258,6 +270,7 @@ export class PersistentLayoutTree {
 
     // `styleOf` 결과는 이미 "Npx" 형식으로 정규화되어 있으므로
     // normalizeStyle() 이중 변환을 방지하기 위해 updateStyleRaw() 사용
+    this._generation++;
     this.engine.updateStyleRaw(handle, json);
     this._lastJsonMap.set(elementId, json);
     this.trackSticky(elementId, styleRecord);
@@ -271,6 +284,7 @@ export class PersistentLayoutTree {
   markDirty(elementId: string): boolean {
     const handle = this.handleMap.get(elementId);
     if (handle === undefined) return false;
+    this._generation++;
     this.engine.markDirty(handle);
     return true;
   }
@@ -300,6 +314,7 @@ export class PersistentLayoutTree {
       .map((id) => this.handleMap.get(id))
       .filter((h): h is EngineNodeHandle => h !== undefined);
 
+    this._generation++;
     this.engine.setChildren(parentHandle, childHandles);
     this.childrenHashMap.set(parentId, hash);
     return true;
@@ -325,6 +340,7 @@ export class PersistentLayoutTree {
   ): EngineNodeHandle {
     const json = JSON.stringify(styleRecord);
     // normalizeStyle() 이중 변환 방지를 위해 createNodeRaw() 사용
+    this._generation++;
     const handle = this.engine.createNodeRaw(json);
     this.handleMap.set(elementId, handle);
     this.elementIdByHandle.set(handle, elementId);
@@ -345,6 +361,7 @@ export class PersistentLayoutTree {
   removeNode(elementId: string): void {
     const handle = this.handleMap.get(elementId);
     if (handle === undefined) return;
+    this._generation++;
 
     try {
       this.engine.removeNode(handle);
@@ -376,6 +393,7 @@ export class PersistentLayoutTree {
         "[PersistentLayoutTree] computeLayout: 트리가 초기화되지 않았습니다. buildFull()을 먼저 호출하세요.",
       );
     }
+    this._generation++;
     this.engine.computeLayout(this.rootHandle, availableWidth, availableHeight);
   }
 
@@ -384,6 +402,7 @@ export class PersistentLayoutTree {
    * 다음 computeLayout 의 증분 skip 을 무효화한다.
    */
   setViewport(width: number, height: number): void {
+    this._generation++;
     this.engine.setViewport(width, height);
   }
 
@@ -502,6 +521,7 @@ export class PersistentLayoutTree {
    * 이후 buildFull()을 다시 호출해야 한다.
    */
   reset(): void {
+    this._generation++;
     if (this.engine.isAvailable()) {
       this.engine.clear();
     }

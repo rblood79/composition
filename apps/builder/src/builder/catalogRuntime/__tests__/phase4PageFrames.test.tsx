@@ -15,6 +15,8 @@ import { bindCatalogCanvas } from "../canvasBinding";
 import { CatalogCompositionRoot } from "../compositionRoot";
 import { CatalogRuntime } from "../controller";
 import { CatalogStorage } from "../storage";
+import type { LayoutEngineAPI } from "../../workspace/canvas/wasm-bindings/layoutBridge";
+import { setFields } from "../../../../../../packages/shared/src/catalog/commands/fields";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 /**
@@ -49,6 +51,8 @@ async function scene(
   project: Partial<ProjectEntry>,
   breakpoint: "desktop" | "tablet" | "mobile" = "desktop",
   colorMode: "light" | "dark" = "light",
+  wrapEngine: (engine: LayoutEngineAPI) => LayoutEngineAPI = (engine) =>
+    engine,
 ) {
   const projectId = "project:project:pages" as const;
   const entries: Record<string, CatalogEntry> = {
@@ -86,7 +90,7 @@ async function scene(
   );
   return new CatalogCompositionRoot(
     runtime,
-    await nodeLayoutEngine(),
+    wrapEngine(await nodeLayoutEngine()),
     { width: 1440, height: 900 },
     undefined,
     undefined,
@@ -217,5 +221,53 @@ describe("ADR-248 Phase 4a-4 page frames", () => {
     expect(root.setScreenWidth(1920)).toBe(false);
     // 2000 still fits 2 columns: no layout.
     expect(root.setScreenWidth(2000)).toBe(false);
+  });
+
+  it("reads every page frame in one engine batch and reuses it until the layout changes (B2)", async () => {
+    // CANVAS_PERF_SCALING_2026-11 B2: the frames were read one wasm call per page, ~3 times a frame.
+    let batches = 0;
+    const root = await scene(
+      [page("home"), page("about"), page("contact")],
+      [body("homeBody"), body("aboutBody"), body("contactBody")],
+      { pageLayout: { direction: "vertical", gap: 100 } },
+      "desktop",
+      "light",
+      (engine) =>
+        new Proxy(engine, {
+          get(target, key, receiver) {
+            const value = Reflect.get(target, key, receiver);
+            if (key !== "getLayoutsBatch") return value;
+            return (...args: Parameters<LayoutEngineAPI["getLayoutsBatch"]>) => {
+              batches++;
+              return (value as LayoutEngineAPI["getLayoutsBatch"]).apply(
+                target,
+                args,
+              );
+            };
+          },
+        }),
+    );
+    batches = 0;
+    const first = root.pageFrameRects();
+    expect(first.size).toBe(3);
+    expect(batches).toBe(1);
+    const again = root.pageFrameRects();
+    expect(batches).toBe(1);
+    expect(again).toEqual(first);
+    // A caller's change to the map it got does not reach the next reader.
+    again.delete("project:page:home");
+    expect(root.pageFrameRects().has("project:page:home")).toBe(true);
+    // A layout (an edit that resizes a page) reads them again.
+    root.execute(
+      setFields({
+        targets: [{ kind: "node", id: "project:node:homeBody" as never }],
+        sizing: { height: set(2000) },
+      }),
+    );
+    batches = 0;
+    const after = root.pageFrameRects();
+    expect(batches).toBe(1);
+    expect(after.get("project:page:home")?.height).toBe(2000);
+    expect(after.get("project:page:about")?.y).toBe(2100);
   });
 });
