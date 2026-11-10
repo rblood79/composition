@@ -582,14 +582,11 @@
         }
       }
 
-      /* ADR-219 — 변 세그먼트 「전체 · 좌 · 우 · 상 · 하」 (Style 옆 — ADR-298 Phase 5 시안) */
+      /* 개별 변 세그먼트 「좌 · 우 · 상 · 하」 — 전체 토글은 행 끝 액션 칸 */
       .border-sides {
         grid-area: border-sides;
 
-        /* 반폭 칸에 5 버튼 — 칸 폭에서 나눈다 (Position 모드 seg 와 같은 어법). 버튼당 ~15px 로
-           desktop 24px hit target 아래 — 시안 배치 (사용자 결정 2026-11-02) 와의 trade-off.
-           버튼 사이 간격은 0 — 그룹 기본 (`data-density="regular"` gap 8) 이 남으면 84px 칸의 버튼이 9px 로
-           눌린다 (2026-11-09 live). */
+        /* 반폭 칸에 4 버튼 — 칸 폭에서 나누고 그룹 기본 gap 을 없앤다. */
         .react-aria-ToggleButtonGroup {
           gap: 0;
         }
@@ -645,7 +642,7 @@
         grid-template-columns: var(--inspector-row-columns);
         grid-template-rows: auto;
         gap: var(--spacing-sm);
-        grid-template-areas: "border-style border-sides .";
+        grid-template-areas: "border-style border-sides icon";
 
         > * {
           min-width: 0;

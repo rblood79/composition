@@ -32,8 +32,9 @@ describe("BorderSection border preset contract", () => {
     // 표시 원천은 helper (저장 형태 무관) — longhand 를 직접 읽지 않는다
     expect(source).toContain("styleValues.borderGeometry");
     expect(source).not.toMatch(/style\.borderTopLeftRadius/);
-    // 변 세그먼트 5 (전체 · 좌 · 우 · 상 · 하), 전체 = shorthand, 일부 = longhand 4 배치 한 번
-    expect(source).toContain('id: "all", label: "All sides"');
+    // 개별 변 4 + 행 끝 전체 액션, 전체 = shorthand, 일부 = longhand 4 배치 한 번
+    expect(source).not.toContain('id: "all"');
+    expect(source).toContain('aria-label={localize("All sides")}');
     expect(source).toContain('selectionMode="multiple"');
     expect(source).toContain("updateStylesImmediate({");
     expect(source).toContain("borderLeftWidth: mask(\"left\")");

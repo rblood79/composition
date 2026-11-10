@@ -2,7 +2,7 @@
  * BorderSection — Style 탭 Border 절
  *
  *   Width [thin 1 ▾]      Color [■ 000000]
- *   Style [— - - ···]     Sides [전체 · 좌 · 우 · 상 · 하]
+ *   Style [— - - ···]     Sides [좌 · 우 · 상 · 하] [전체 ☐]
  *   「Radius  8         ▾」   [코너 펼침 ⊡]  → 코너 2×2 (토글 on 또는 비균일)
  *
  * 배치는 토큰 모델 A 시안 (`docs/design/styles-token-model/Style.dc.html`, ADR-298 Phase 5 — 사용자
@@ -79,9 +79,8 @@ const SIDED_WIDTH_UNSUPPORTED_STYLES = new Set([
   "outset",
 ]);
 
-/** 세그먼트 순서 (시안 02 ④): 전체 · 좌 · 우 · 상 · 하 */
+/** 개별 변 세그먼트 — 전체 토글은 Radius 와 같은 행 끝 액션 */
 const SIDE_OPTIONS = [
-  { id: "all", label: "All sides", icon: Square },
   { id: "left", label: "Left side", icon: PanelLeft },
   { id: "right", label: "Right side", icon: PanelRight },
   { id: "top", label: "Top side", icon: PanelTop },
@@ -179,23 +178,11 @@ const BorderSectionContent = memo(function BorderSectionContent() {
     styleValues.borderStyle,
   );
   const showSkiaApproximation = sidesUnsupported && uniformWidth === null;
-  const selectedSideKeys = allSidesOn ? ["all", ...sidesOn] : sidesOn;
-
   /** 변 세그먼트 — 전체 = shorthand, 일부 = 변 longhand 4 (w 또는 0) 배치 한 번 */
   const handleSidesChange = (keys: Set<unknown> | "all"): void => {
-    const next = new Set(Array.from(keys as Set<string>));
+    const next =
+      keys === "all" ? new Set(SIDE_OPTIONS.map(({ id }) => id)) : keys;
     const w = widthPx > 0 ? widthPx : 1;
-    const wasAll = allSidesOn;
-    const nowAll = next.has("all");
-    if (nowAll && !wasAll) {
-      updateStyleImmediate("borderWidth", `${w}px`);
-      return;
-    }
-    if (!nowAll && wasAll) {
-      // "전체" 해제 = 변 전부 0 (shorthand 0 으로 접힌다)
-      updateStyleImmediate("borderWidth", "0px");
-      return;
-    }
     const mask = (side: "top" | "right" | "bottom" | "left") =>
       next.has(side) ? `${w}px` : "0px";
     if (
@@ -291,7 +278,7 @@ const BorderSectionContent = memo(function BorderSectionContent() {
             aria-label={localize("Sides")}
             indicator
             selectionMode="multiple"
-            selectedKeys={selectedSideKeys}
+            selectedKeys={sidesOn}
             isDisabled={sidesUnsupported}
             onSelectionChange={handleSidesChange}
           >
@@ -317,6 +304,25 @@ const BorderSectionContent = memo(function BorderSectionContent() {
             ))}
           </ToggleButtonGroup>
         </fieldset>
+        <div className="fieldset-actions actions-icon">
+          <SwatchIconToggleButton
+            aria-label={localize("All sides")}
+            isSelected={allSidesOn}
+            isDisabled={sidesUnsupported}
+            onChange={(isSelected) =>
+              updateStyleImmediate(
+                "borderWidth",
+                isSelected ? `${widthPx > 0 ? widthPx : 1}px` : "0px",
+              )
+            }
+          >
+            <Square
+              color={iconProps.color}
+              size={iconProps.size}
+              strokeWidth={iconProps.strokeWidth}
+            />
+          </SwatchIconToggleButton>
+        </div>
       </div>
 
       {/* Radius — Gap 과 같은 「값 + ▾ 토큰 preset」 필드 (종전 슬라이더 + ⋮ 메뉴), 28 열은 코너

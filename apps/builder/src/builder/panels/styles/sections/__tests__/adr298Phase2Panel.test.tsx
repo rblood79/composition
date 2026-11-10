@@ -20,6 +20,9 @@ import { LayoutSection } from "../LayoutSection";
 import { PositionSection } from "../TransformSection";
 import { TypographySection } from "../TypographySection";
 
+(Element.prototype as { getAnimations?: () => Animation[] }).getAnimations ??=
+  () => [];
+
 afterEach(cleanup);
 
 async function renderWith(
@@ -64,6 +67,46 @@ async function pick(fieldset: HTMLElement, option: string) {
 }
 
 describe("ADR-298 Phase 2 — Border", () => {
+  it("Sides 전체 액션은 개별 변 선택과 동기화하고 전체 선택·해제를 저장한다", async () => {
+    const { fixture, view } = await renderWith(BorderSection, [
+      { id: "box", style: { borderStyle: "solid", borderWidth: "3px" } },
+    ]);
+    const sides = field(view.container, "border-sides");
+    expect(within(sides).getAllByRole("button")).toHaveLength(4);
+    const all = view.getByRole("button", { name: "All" });
+    expect(all.closest(".fieldset-actions.actions-icon")).not.toBeNull();
+    expect(sides.contains(all)).toBe(false);
+    expect(all.getAttribute("aria-pressed")).toBe("true");
+
+    await act(async () => {
+      fireEvent.click(within(sides).getByRole("button", { name: "Left" }));
+    });
+    expect(all.getAttribute("aria-pressed")).toBe("false");
+    expect(fixture.styleOf("box")).toMatchObject({
+      borderLeftWidth: "0px",
+      borderRightWidth: "3px",
+      borderTopWidth: "3px",
+      borderBottomWidth: "3px",
+    });
+
+    await act(async () => {
+      fireEvent.click(all);
+    });
+    expect(fixture.styleOf("box").borderWidth).toBe("3px");
+    expect(all.getAttribute("aria-pressed")).toBe("true");
+    expect(fixture.styleOf("box").borderLeftWidth).toBeUndefined();
+    await act(async () => {
+      fireEvent.click(all);
+    });
+    expect(fixture.styleOf("box").borderWidth).toBe("0px");
+    expect(all.getAttribute("aria-pressed")).toBe("false");
+    await act(async () => {
+      fireEvent.click(all);
+    });
+    expect(fixture.styleOf("box").borderWidth).toBe("1px");
+    expect(all.getAttribute("aria-pressed")).toBe("true");
+  });
+
   it("Width is a token field (none · thin · thick) and Radius M stores the token with its chip", async () => {
     const { fixture, view } = await renderWith(BorderSection);
     await pick(field(view.container, "border-width"), "thin");

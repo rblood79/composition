@@ -241,16 +241,28 @@ export function catalogStyleWrites(
   }
   if (VISUAL_NUMBER.has(key) || key in RADIUS) {
     const field = (RADIUS[key] ?? key) as VisualField;
-    if (empty) return { visual: { [field]: REMOVE } };
+    // 전체 너비 편집은 이전 변별 너비를 같은 transaction 에서 지운다.
+    const clearedSides =
+      key === "borderWidth"
+        ? {
+            borderTopWidth: REMOVE,
+            borderRightWidth: REMOVE,
+            borderBottomWidth: REMOVE,
+            borderLeftWidth: REMOVE,
+          }
+        : {};
+    if (empty) return { visual: { ...clearedSides, [field]: REMOVE } };
     // ADR-298 D4: a theme token's variable (`var(--spacing-md)`) is the node's token reference.
     const token = panelTokenUse(raw);
-    if (token) return { visual: { [field]: set(token) } };
+    if (token) return { visual: { ...clearedSides, [field]: set(token) } };
     const weight =
       key === "fontWeight"
         ? ({ normal: 400, bold: 700 } as Record<string, number>)[cssText(raw)]
         : undefined;
     const value = weight ?? cssPx(raw);
-    return value === undefined ? fail() : { visual: { [field]: set(value) } };
+    return value === undefined
+      ? fail()
+      : { visual: { ...clearedSides, [field]: set(value) } };
   }
   if (key === "opacity") {
     if (empty) return { visual: { opacity: REMOVE } };
