@@ -45,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **페이지 헤더의 Play · Close 버튼이 헤더보다 컸다 (30 → 20)** — ActionButton 기반 아이콘 버튼은 위젯 사본의 `min-height: 30px` 를 받아 아이콘 크기 규칙의 높이 (20 · 28) 아래로 줄지 못했다 (ToggleButton 인 Code 는 정상). `builder-control-size.css` 공통 규칙이 높이 최솟값도 아이콘 크기로 되돌린다 — 30 보다 작은 자리의 ActionIconButton 이 모두 같이 바로잡힌다.
 - **빌더 dark 에서 그림자가 light 값으로 그려졌다.** 그림자 토큰의 dark 값이 `[data-theme="dark"]` 에 걸려 있었는데 빌더는 `data-builder-theme` 만 세운다 — 8% · 4% 그대로라 패널 · 하단 toolbar 가 캔버스에 묻혔다 (Hub 는 dark 에서 3 배).
 - **focus 표시 대비** — light 의 blue-400 은 패널 위 2.52 · 캔버스 바깥 위 2.09 (기준 3:1). blue-600 으로 올렸다 (5.2 · 4.0).
 - **보조 글자 대비** — `--fg-muted` 가 `--bg-muted` 위 3.91 (light) · 3.98 (dark). gray-600 · zinc-300 으로 올렸다 (기준 4.5:1).

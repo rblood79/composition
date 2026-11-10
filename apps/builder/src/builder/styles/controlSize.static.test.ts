@@ -54,7 +54,7 @@ describe("control size 2-tier", () => {
 
     // 기본 티어: 크기를 선언하고 padding 은 0 으로 고정한다.
     expect(css).toMatch(
-      /--icon-control-size: var\(--control-size\);[\s\S]*?inline-size: var\(--icon-control-size\);[\s\S]*?block-size: var\(--icon-control-size\);[\s\S]*?padding: 0;/,
+      /--icon-control-size: var\(--control-size\);[\s\S]*?inline-size: var\(--icon-control-size\);[\s\S]*?block-size: var\(--icon-control-size\);[\s\S]*?min-inline-size: var\(--icon-control-size\);[\s\S]*?min-block-size: var\(--icon-control-size\);[\s\S]*?padding: 0;/,
     );
     // lg 티어는 크기 토큰만 바꾼다 — width/height/padding 재선언 금지.
     const lg = css.slice(css.indexOf("--icon-control-size: var(--control-size-lg)"));

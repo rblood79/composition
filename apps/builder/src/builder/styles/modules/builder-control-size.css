@@ -42,6 +42,10 @@
     inline-size: var(--icon-control-size);
     block-size: var(--icon-control-size);
     min-inline-size: var(--icon-control-size);
+    /* 위젯 사본 generated-ActionButton.css 의 `.react-aria-ActionButton` 이 min-height 30 을 준다 —
+       폭만 되돌리면 ActionButton 기반 아이콘 버튼 (ActionIconButton) 은 높이가 30 아래로 줄지 못해
+       페이지 헤더 (20) 에서 Play · Close 만 30 이었다 (ToggleButton 인 Code 는 20, 2026-11-10). */
+    min-block-size: var(--icon-control-size);
     padding: 0;
   }
 
