@@ -100,7 +100,7 @@ describe("ADR-298 Phase 5 — mock rows", () => {
     );
     const rows = view.container.querySelectorAll(".style-shadow .effect-layer-row");
     expect(rows.length).toBe(1);
-    expect(rows[0]!.querySelector(".property-unit-input__token")?.textContent).toBe("S");
+    expect(rows[0]!.querySelector(".property-unit-input__token")?.textContent).toBe("Emphasized");
     expect(rows[0]!.querySelector(".effect-layer-row__value")?.textContent).toBe("0 2 8 · 8%");
     await act(async () => {
       fireEvent.click(within(rows[0] as HTMLElement).getByRole("button", { name: "Remove shadow" }));
@@ -112,5 +112,25 @@ describe("ADR-298 Phase 5 — mock rows", () => {
     ]);
     expect(literal.view.container.querySelectorAll(".style-shadow .effect-layer-row").length).toBe(2);
     expect(literal.view.container.querySelector(".style-shadow .property-unit-input__token")).toBeNull();
+  });
+
+  // 2026-11-10 사용자 보고: Library Popover 는 3행, 토큰을 적용한 Button 은 1행 — rule 의 `{shadow.md}`
+  //   가 light 리터럴로 풀려 패널이 토큰인 줄 몰랐다. rule 의 토큰도 한 행 + 용도 칩이다.
+  //   fixture 의 Popover 원본은 뿌리가 DialogTrigger 라 (Popover 는 그 안 부품) 뿌리가 같은 토큰을 가진 Toast 로 잰다.
+  it("⑤ a rule's shadow token (Toast `{shadow.md}`) is one row with the Spectrum purpose chip; − writes `none`", async () => {
+    const { fixture, view } = await renderWith(EffectSection, [{ id: "toast", type: "Toast" }]);
+    const rows = view.container.querySelectorAll(".style-shadow .effect-layer-row");
+    expect(rows.length).toBe(1);
+    expect(rows[0]!.querySelector(".property-unit-input__token")?.textContent).toBe("Elevated");
+    expect((fixture.nodeOf("toast").visual as Record<string, unknown>).boxShadow).toBeUndefined();
+    await act(async () => {
+      fireEvent.click(within(rows[0] as HTMLElement).getByRole("button", { name: "Remove shadow" }));
+    });
+    // the node had nothing to clear — removing the rule's shadow is an authored `none`
+    expect((fixture.nodeOf("toast").visual as Record<string, unknown>).boxShadow).toEqual({
+      kind: "set",
+      value: "none",
+    });
+    expect(view.container.querySelectorAll(".style-shadow .effect-layer-row").length).toBe(0);
   });
 });

@@ -38,7 +38,7 @@ interface BoxShadowLayerRowProps {
     "onCancel" | "onCommit" | "onPreview" | "livePreview"
   >;
   /**
-   * ADR-298 Phase 5 (시안 Style 탭) — 값이 `{shadow.*}` 토큰이면 그 단계 칩 (S · M · L). 행은 토큰
+   * ADR-298 Phase 5 (시안 Style 탭) — 값이 `{shadow.*}` 토큰이면 그 용도 칩 (Emphasized · Elevated · Dragged). 행은 토큰
    * 하나를 뜻하고 요약은 첫 레이어 「x y blur · 알파%」 — 편집하면 리터럴 레이어가 된다.
    */
   readonly token?: string;

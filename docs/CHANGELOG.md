@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Effect 절 그림자 — Spectrum 용도 이름 · rule 의 토큰도 한 행] - 2026-11-10
+
+### Changed
+
+- **그림자 preset 라벨이 S · M · L 에서 Emphasized · Elevated · Dragged 로 바뀌었다** (사용자 결정 — Spectrum Hub `drop-shadow` 의 용도 이름). 셋은 작다 → 크다 순서가 아니라 서로 다른 용도다 (강조 컨테이너 · 다른 내용 위에 뜨는 것 · 끄는 중). 「+」 메뉴 항목과 행의 칩이 같이 바뀐다. 토큰 이름 (`{shadow.sm|md|lg}`) · 값 · 저장 데이터는 그대로다.
+
+### Fixed
+
+- **rule 이 정한 그림자 토큰 (Popover · Toast 의 `{shadow.md}`) 도 칩 + 한 행으로 보인다** (사용자 보고 「Library Popover 는 3개, Button 에 적용하면 1개」). Why: 패널이 rule 의 토큰을 light 리터럴로 풀어 받아 토큰인 줄 모르고 3층을 3행으로 그렸다 — 노드에 저장된 토큰은 한 행이었다. 그려지는 그림자는 둘 다 3층 (key · transition · ambient) 으로 같았다. 이제 rule 값도 토큰의 CSS 변수로 넘긴다.
+  - rule 의 그림자 행에서 「−」 를 누르면 `none` 을 쓴다 — 노드에 지울 값이 없어 키를 비우면 그대로였다. Reset 으로 rule 값에 돌아온다.
+  - 테스트 `adr298Phase5Panel.test.tsx` ⑤ (Toast) · `specPresetResolver.test.ts` — 수정 전 RED 5.
+  - Live (Chrome MCP 5173, 새 프로젝트 `shadow-label-check`): Library Popover 「Elevated · 0 4 12 · 8%」 1행 · Button 에 Dragged 적용 → 1행 + Canvas 그림자 · Home 의 Popover 「−」 → 행 0 · 콘솔 오류 0.
+  - 위치: `apps/builder/src/builder/panels/styles/utils/specPresetResolver.ts` · `sections/EffectSection.tsx` · `hooks/useAppearanceValues.ts`
+
 ## [Theme 사용자 accent 피커 — Theme 견본 즉시 반영 · Document 팔레트] - 2026-11-10
 
 ### Fixed

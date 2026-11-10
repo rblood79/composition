@@ -8,7 +8,6 @@ import {
   resolveTypographySpecPreset,
   clearSpecPresetCache,
 } from "./specPresetResolver";
-import { lightShadows } from "@composition/rendering";
 
 describe("resolveSpecPreset", () => {
   beforeEach(() => clearSpecPresetCache());
@@ -204,13 +203,13 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
     //   Box Shadow 가 항상 "none" 이었다. catalog 로 이관했으므로 preset 이 실제
     //   CSS 값을 그대로 돌려줘야 한다 (generated CSS 와 같은 source).
     //
-    //   ADR-166 Phase 2: catalog 값이 `{shadow.md}` TokenRef 로 바뀌었다. preset 은 여전히
-    //   **CSS 값**을 돌려줘야 한다 — TokenRef 를 그대로 흘리면 Box Shadow Select 가
-    //   프리셋 키를 못 찾아 `{shadow.md}` 를 "custom" 항목으로 표시한다.
-    it("Popover.containerStyles → Appearance preset boxShadow (TokenRef 해석 후 CSS 값)", () => {
+    //   ADR-166 Phase 2: catalog 값이 `{shadow.md}` TokenRef 로 바뀌었다.
+    //   2026-11-10: preset 은 그 토큰의 **CSS 변수** 를 돌려준다 — 노드에 저장된 토큰 preset
+    //   (`var(--shadow-md)`) 과 같은 글자라 Effect 절이 둘 다 토큰 한 행으로 보인다. light 리터럴로
+    //   풀면 rule 의 그림자만 3층 리터럴 행으로 보였다 (사용자 보고 — Library Popover 3행 vs Button 1행).
+    it("Popover.containerStyles → Appearance preset boxShadow (토큰의 CSS 변수)", () => {
       const preset = resolveAppearanceSpecPreset("Popover", "M");
-      expect(preset.boxShadow).toBe(lightShadows.md);
-      expect(preset.boxShadow).not.toMatch(/^\{shadow\./);
+      expect(preset.boxShadow).toBe("var(--shadow-md)");
     });
 
     // ADR-303 (2026-11-08): S2 1.8.2 배정 — Tooltip · Modal 은 그림자가 없고 Popover 만 `elevated`.
@@ -219,7 +218,7 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
       const seq = (["Tooltip", "Popover", "Modal"] as const).map(
         (t) => resolveAppearanceSpecPreset(t, "md").boxShadow,
       );
-      expect(seq).toEqual([undefined, lightShadows.md, undefined]);
+      expect(seq).toEqual([undefined, "var(--shadow-md)", undefined]);
     });
 
     // Popover 는 containerStyles 가 boxShadow만 보유하므로 variant 색상 emit이 살아 있다.

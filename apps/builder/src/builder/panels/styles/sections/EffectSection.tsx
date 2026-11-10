@@ -64,12 +64,16 @@ const SHADOW_PRESET_KEYS = [
   "lg",
 ] as const satisfies readonly ShadowPresetKey[];
 
-/** 프리셋 표시 — 컴포넌트 size 토글과 같은 S · M · L */
+/**
+ * 프리셋 표시 — Spectrum 의 용도 이름 (Hub `drop-shadow`). 셋은 작다 → 크다 순서가 아니라 서로 다른
+ * 용도다: 강조 컨테이너 · 다른 내용 위에 뜨는 것 · 끄는 중. 토큰 이름 (`sm` · `md` · `lg`) 은 그대로.
+ * 2026-11-10 사용자 결정 — 종전 S · M · L 은 크기로 고르게 했다.
+ */
 const SHADOW_PRESET_LABEL: Record<(typeof SHADOW_PRESET_KEYS)[number], string> =
   {
-    sm: "S",
-    md: "M",
-    lg: "L",
+    sm: "Emphasized",
+    md: "Elevated",
+    lg: "Dragged",
   };
 
 /**
@@ -172,8 +176,10 @@ const EffectSectionContent = memo(function EffectSectionContent() {
     // ADR-298 Phase 5: 토큰 행은 토큰 하나 — 제거는 그림자 전체, inset 은 모든 레이어 (preset 의 inset 판과 같은 값).
     if (shadowToken) {
       const tokenValue = getShadowToken(shadowToken, "light") ?? "";
+      // 작성값이 없으면 토큰은 rule 의 것 — 키를 지워도 그대로라 `none` 을 쓴다.
+      const removed = styleValues.boxShadowAuthored ? "" : "none";
       commitBoxShadowTopology(
-        action === "remove" ? "" : applyShadowInset(tokenValue),
+        action === "remove" ? removed : applyShadowInset(tokenValue),
       );
       return;
     }
@@ -335,8 +341,8 @@ const EffectAddMenu = memo(function EffectAddMenu() {
   const hasOpacity = styleValues.opacity !== "";
   const hasBlur = parseFilterBlurPx(styleValues.filter) !== null;
 
-  // 순서 = 절의 묶음 순서 (Opacity · Blur · Box Shadows). 프리셋 표기는 컴포넌트 size 와
-  //   같은 S · M · L (저장 키는 Spectrum elevation sm · md · lg).
+  // 순서 = 절의 묶음 순서 (Opacity · Blur · Box Shadows). 프리셋 표기는 Spectrum 용도 이름
+  //   (저장 키는 sm · md · lg).
   const items = [
     {
       id: "opacity",
