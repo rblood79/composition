@@ -61,11 +61,11 @@ export function catalogSlotMarks(
   }[] = [];
   for (const record of records.values()) {
     // A declared slot: the node's own (a project component's), or the library template's (a
-    // built-in origin's collection host — the record carries it, an instance's record its
-    // template root's).
-    const node = graph.getEntry(record.sourceId);
-    const slot = (node?.kind === "node" ? node.slot : undefined) ?? record.slot;
-    if (!slot) continue;
+    // built-in origin's collection host; an instance's record carries its template root's). The
+    // record carries both (the resolver's `node.slot ?? inherited.slot`) — no document read per
+    // record: this pass runs on every scene change over every page's records
+    // (CANVAS_PERF_SCALING_2026-11 — an edit's `graph.getEntry` calls grew with the document).
+    if (!record.slot) continue;
     const empty = components
       ? record.children.every(undrawn)
       : record.children.length === 0;

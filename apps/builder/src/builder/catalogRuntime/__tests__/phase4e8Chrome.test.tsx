@@ -29,6 +29,8 @@ import { useToastStore } from "../../stores/toast";
 import { CatalogWorkspaceProvider } from "../react";
 import { catalogDefinitionList, catalogNewLayoutCommand } from "../layouts";
 import { catalogPageCommands, catalogPageContentTarget } from "../pageSettings";
+import { COMPONENTS_VIEW } from "../originView";
+import { catalogSlotCommands } from "../slots";
 import {
   catalogPaletteDefinitionId,
   catalogPaletteInsertCommand,
@@ -171,6 +173,116 @@ describe("ADR-248 4e-8 Canvas chrome", () => {
         viewScene.stream.hitBoundsMap,
       ),
     ).toEqual([expect.objectContaining({ empty: true, role: "origin" })]);
+  });
+});
+
+describe("slot marks read the record (CANVAS_PERF_SCALING_2026-11 edit)", () => {
+  /** Every drawn record whose document node declares a slot carries that slot. */
+  const ownSlots = (workspace: CatalogWorkspace) => {
+    const graph = workspace.runtime.graph;
+    let seen = 0;
+    for (const record of workspace.root.domInputs.values()) {
+      const own = graph.getEntry(record.sourceId);
+      if (own?.kind !== "node" || !own.slot) continue;
+      seen += 1;
+      expect(record.slot).toEqual(own.slot);
+    }
+    return seen;
+  };
+
+  it("a record's slot is its node's — declared after the build, removed, on an instance, in a layout, on the Components page", async () => {
+    const workspace = await open();
+    const SHELL = "project:node:shell" as NodeId;
+    const HOLE = "project:node:hole" as NodeId;
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          node(SHELL, "lib:definition:type-frame", [HOLE]),
+          node(HOLE, "lib:definition:type-frame"),
+        ],
+        rootIds: [SHELL],
+        newId: workspace.newId,
+      }),
+    );
+    workspace.execute(
+      catalogComponentCommands.create(SHELL, "Shell", workspace.newId),
+    );
+    const graph = workspace.runtime.graph;
+    expect(ownSlots(workspace)).toBe(0);
+    // Declared by a step (the record is patched, not built).
+    workspace.execute(
+      catalogSlotCommands.declare(HOLE, { name: "content", required: false }),
+    );
+    expect(ownSlots(workspace)).toBe(1);
+    const holeRecord = () =>
+      [...workspace.root.domInputs.values()].find(
+        (record) => record.sourceId === HOLE,
+      )!;
+    expect(holeRecord().slot?.name).toBe("content");
+    workspace.execute(catalogSlotCommands.declare(HOLE, undefined));
+    expect(holeRecord().slot).toBeUndefined();
+    workspace.undo();
+    expect(holeRecord().slot?.name).toBe("content");
+    // An instance of the component: its slot position's record carries the template node's slot.
+    const definitionId = graph.definitionOfTemplateRoot(SHELL)!;
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [node("project:node:placed", definitionId)],
+        rootIds: ["project:node:placed" as NodeId],
+        newId: workspace.newId,
+      }),
+    );
+    expect(ownSlots(workspace)).toBeGreaterThanOrEqual(2);
+    // A layout's slot on the page, then its definition view.
+    workspace.execute(catalogNewLayoutCommand("Frame", workspace.newId));
+    const [layout] = catalogDefinitionList(graph, "layout");
+    workspace.execute(
+      catalogPageCommands.layout(
+        workspace.session.getSnapshot().pageId!,
+        layout!.id,
+        workspace.newId,
+      ),
+    );
+    expect(ownSlots(workspace)).toBeGreaterThanOrEqual(1);
+    workspace.showDefinition(layout!.id as never);
+    expect(ownSlots(workspace)).toBeGreaterThanOrEqual(1);
+    // The Components page: every built-in origin's sample and the instances beside them.
+    workspace.showDefinition(COMPONENTS_VIEW);
+    ownSlots(workspace);
+    expect(
+      [...workspace.root.domInputs.values()].filter((record) => record.slot)
+        .length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("the marks read no document entry per record", async () => {
+    const workspace = await open();
+    workspace.execute(catalogNewLayoutCommand("Shell", workspace.newId));
+    const graph = workspace.runtime.graph;
+    const [layout] = catalogDefinitionList(graph, "layout");
+    workspace.execute(
+      catalogPageCommands.layout(
+        workspace.session.getSnapshot().pageId!,
+        layout!.id,
+        workspace.newId,
+      ),
+    );
+    const scene = new CatalogCanvasScene(workspace.root);
+    scene.sync();
+    const reads = vi.spyOn(graph, "getEntry");
+    const marks = catalogSlotMarks(
+      workspace,
+      scene.stream.boundsMap,
+      scene.stream.hitBoundsMap,
+    );
+    const count = reads.mock.calls.length;
+    reads.mockRestore();
+    expect(marks).toEqual([
+      expect.objectContaining({ empty: true, role: "instance" }),
+    ]);
+    expect(count).toBe(0);
   });
 });
 

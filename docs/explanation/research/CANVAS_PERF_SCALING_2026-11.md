@@ -212,3 +212,19 @@
 - B3 의 남은 비용: 꼬리 splice 가 command buffer segment 를 늘려 drag 프레임의 `commandCursorIndex` 선형 탐색이 늘었다 (66 장 drag 45k 호출 — full build 를 만날 때까지 segment 가 줄지 않는다, 기존 commit splice 와 같은 성질).
 - 의심 (미확인): Layers 트리도 Pages 와 같은 flex column 규칙 아래 Virtualizer 를 쓴다 — 행이 패널보다 많을 때 스크롤 범위가 잘리는지 실제로 확인하지 않았다.
 - live (dev, 새 프로젝트 `perf-s1-live`): Pages 32 장 스크롤 · 행 전환 · 열린 페이지 삭제 → 이웃 · 이름 변경 / Button 두 개 사이 선택 · 값 따라옴 · 입력 중 다른 요소 클릭 / Button 끌어 순서 바꾸기 · 직후 편집 patch.
+
+## 9. edit 배율 (2026-11-11, 2단계 뒤)
+
+- 원인: 편집 뒤 첫 프레임의 slot 표시 계산 (`catalogSlotMarks`) 이 모든 페이지의 record 마다 `graph.getEntry` 를 불렀다. 장면이 바뀔 때마다 한 번 도는 계산이라 pan 에는 안 잡히고 edit 에만 잡혔다.
+  - 찾은 방법: 66 장 프로젝트에서 편집 3회 동안 `getEntry` 를 호출 스택별로 셌다 — 56,974 호출 중 56,394 가 이 경로 (편집 1회 = record 18,798).
+- record 는 이미 같은 값을 갖는다 — resolver 가 `node.slot ?? inherited.slot` 으로 채우고, record 조립이 `top.slot ?? target.slot` 으로 잇는다. 합성 행 · 셀은 문서에 없는 source 라 양쪽 다 slot 이 없다.
+- 수정: `record.slot` 만 읽는다. 표시 결과는 같다.
+- 회귀 근거: `phase4e8Chrome` 2건 — record 의 slot 이 노드의 slot 과 같다 (step 으로 선언 · 제거 · undo · instance · layout · Components page) · 표시 계산 중 `getEntry` 0회 (수정 전 record 수만큼).
+
+| 부류 | 수정 전 22 장 | 수정 전 66 장 | 배율 | 수정 뒤 22 장 | 수정 뒤 66 장 |     배율 |
+| ---- | ------------: | ------------: | ---: | ------------: | ------------: | -------: |
+| edit |       519,972 |       652,443 | 1.25 |       469,519 |       502,378 | **1.07** |
+
+- 게이트 (≤ 1.2): pan · zoom · select · edit · page-switch · panel-toggle · drag 전부 통과.
+- 남은 차이 3.3 만 호출은 페이지 수에 비례하는 작은 몫이다 — 프레임마다 페이지별로 도는 header · guide · chrome 색인 (함수당 페이지 × 8) 과 화면에 걸리는 page 수만큼의 그리기 (canvaskit). record 수 비례 자리는 남지 않았다.
+- live (dev, `perf-s1-live`): Library page 의 slot 빗금 (slot record 53) · 새 layout 의 정의 보기에서 content slot 빗금 (노드가 직접 선언한 slot). 두 화면 모두 record 의 slot 과 노드의 slot 불일치 0. 만든 layout 은 삭제.

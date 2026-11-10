@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas 편집 비용이 문서 크기와 무관해짐 — slot 표시 계산] - 2026-11-11
+
+### Performance
+
+- **편집 1회의 비용이 문서의 요소 수를 따라 늘지 않음**:
+  - **Why**: 편집 뒤 첫 프레임의 slot 표시 계산이 모든 페이지의 record 마다 문서 노드를 다시 읽었다 (66 장 문서에서 편집 1회 = 조회 18,798).
+  - 수정: record 가 이미 갖고 있는 slot 을 읽는다. 표시 결과는 같다. 3배 문서 호출 수 배율 edit 1.25 → 1.07 (66 장 652,443 → 502,378) — 측정한 일곱 부류가 전부 1.2 이하.
+  - 위치: `apps/builder/src/builder/workspace/canvas/catalog/catalogChrome.ts`. 검증: `phase4e8Chrome` 2건 (수정 전 RED 1) · canvas catalog · catalogRuntime 3,451 통과 · live (Library page · layout 정의 보기의 slot 빗금).
+
 ## [Canvas 문서 크기 비례 비용 2단계 — Pages 트리 가상화 · 같은 타입 선택 · drag splice] - 2026-11-11
 
 ### Performance
