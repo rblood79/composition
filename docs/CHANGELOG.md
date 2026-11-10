@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [패널 작업 공간 — dock 래퍼 제거 · 레일 그림자 잘림] - 2026-11-11
+
+### Changed
+
+- **`.panel-workspace` 가 grid 하나로 헤더 · 좌우 토글 레일 · 표면을 직접 놓는다** — 옛 `.panel-dock > .panel-dock-chrome / .panel-dock-stage` 래퍼 세 겹을 걷어냈다 (사용자 제안). 영역은 `"header header header" / "rail-left surface rail-right"`, 간격은 `gap` 하나 · 바깥 여백은 `padding` (host 칸을 캔버스와 같이 쓰므로 margin 이면 칸이 줄어든다). 화면 위치는 그대로다 (헤더 y 4–44 · 표면 (48, 48)).
+- **패널 크기 기준 = 표면 하나** — 레이아웃 초기화 · registry · 패널 표시 경로가 레일까지 포함한 stage 대신 `.panel-dock-surface` 를 잰다. `maxWidth: "100%"` 패널 (3개) 은 이제 표면 폭이 상한이다.
+- 위치: `apps/builder/src/builder/layout/PanelWorkspace.tsx` · `.css` · `panelWorkspaceVisibility.ts` · `workspace/components/canvasViewportInset.ts` · `styles/modules/error-loading.css`.
+
+### Fixed
+
+- **좌우 토글 레일 섬의 그림자 좌우가 잘리던 것** (사용자 지적 — 헤더 섬은 온전). **Why:** 레일 `.panel-toggle-rail` 이 `overflow: hidden` 이고 폭이 섬 (`.builder-control-group`) 과 같은 40 이라 섬 바깥에 그려지는 `--chrome-shadow` 가 레일 경계에서 잘렸다. 헤더 섬의 부모는 `overflow: visible` 이다. 레일의 `overflow` 를 지웠다 — 세로로 넘치는 경우는 섬 자신의 `max-height` · `overflow-y` 가 맡는다. 게이트 `PanelWorkspace.static.test.ts`.
+
 ## [Canvas 우클릭 메뉴 — 맨 앞 구분선 제거] - 2026-11-11
 
 ### Fixed

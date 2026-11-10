@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
  * 없어 fallback 트리이고, 측정 뒤 hydrated 트리로 바뀌며 stage DOM 이 교체된다. effect 가
  * `[isHydrated]` 에만 반응해 떨어져 나간 fallback stage 를 계속 관찰했고, stageRect · registry
  * 의 `maxWidth: "100%"` 가 창 크기를 따라가지 않았다.
+ * (2026-11-11 dock 래퍼를 걷어내며 측정 대상은 `.panel-dock-surface` · 이름은 surfaceRect 로 바뀜.)
  */
 describe("PanelWorkspaceContent stage observer", () => {
   it("effect 가 마운트된 트리 (hydrated · fallback) 가 바뀔 때 다시 관찰한다", async () => {
@@ -16,11 +17,13 @@ describe("PanelWorkspaceContent stage observer", () => {
       resolve(__dirname, "PanelWorkspace.tsx"),
       "utf8",
     );
-    const start = source.indexOf("const observer = new ResizeObserver(updateRect);");
+    const start = source.indexOf(
+      "const observer = new ResizeObserver(updateRect);",
+    );
     const deps = source.slice(start, source.indexOf("]);", start) + 3);
     expect(deps).toContain("}, [hydratedTree]);");
     expect(source).toContain(
-      "const hydratedTree = workspaceLayout !== null && stageRect !== null;",
+      "const hydratedTree = workspaceLayout !== null && surfaceRect !== null;",
     );
   });
 });

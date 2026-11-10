@@ -143,8 +143,6 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     );
     const host = container.querySelector<HTMLElement>(".panel-workspace-host");
     const main = container.querySelector<HTMLElement>(".panel-workspace-main");
-    const dock = container.querySelector<HTMLElement>(".panel-dock");
-    const stage = container.querySelector<HTMLElement>(".panel-dock-stage");
     const dockSurface = container.querySelector<HTMLElement>(
       ".panel-dock-surface",
     );
@@ -158,17 +156,18 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     );
 
     expect(host?.getAttribute("style")).toBeNull();
+    // 헤더 · 레일 · 표면은 `.panel-workspace` 의 직속 자식 (dock 래퍼 없음).
     expect(
-      dock?.querySelector(
-        ".panel-dock-chrome [data-testid='workspace-chrome']",
+      panelWorkspace?.querySelector(
+        ":scope > [data-testid='workspace-chrome']",
       ),
     ).not.toBeNull();
     expect(main?.getAttribute("data-layout-version")).toBe(
       host?.getAttribute("data-layout-version"),
     );
-    expect(dock?.getAttribute("data-layout-type")).toBe("floating");
-    expect(dock?.getAttribute("data-column-limit")).toBe("2");
-    expect(stage?.parentElement).toBe(dock);
+    expect(container.querySelector(".panel-dock")).toBeNull();
+    expect(container.querySelector(".panel-dock-chrome")).toBeNull();
+    expect(container.querySelector(".panel-dock-stage")).toBeNull();
     expect(dockSurface?.style.cssText).toBe("");
     expect(panelWorkspace?.getAttribute("data-page-layout-panel-gap")).toBe(
       "4",
@@ -181,12 +180,12 @@ describe("PanelWorkspace full-screen canvas shell", () => {
         panelWorkspace?.getAttribute("data-page-layout-right-panel-width"),
       ),
     ).toBeGreaterThan(0);
-    expect(dockSurface?.parentElement).toBe(stage);
+    expect(dockSurface?.parentElement).toBe(panelWorkspace);
     expect(
-      dock?.querySelectorAll(":scope > .panel-dock-stage > .panel-toggle-rail"),
+      panelWorkspace?.querySelectorAll(":scope > .panel-toggle-rail"),
     ).toHaveLength(2);
     expect(
-      dock?.querySelectorAll(":scope > .panel-activity-rail"),
+      panelWorkspace?.querySelectorAll(":scope > .panel-activity-rail"),
     ).toHaveLength(0);
     expect(nodesFrame?.parentElement).toBe(dockSurface);
     expect(propertiesFrame?.parentElement).toBe(dockSurface);
@@ -198,9 +197,9 @@ describe("PanelWorkspace full-screen canvas shell", () => {
       0,
     );
     expect(dockSurface?.querySelector(".panel-zone-overlay")).toBeNull();
-    expect(dock?.querySelectorAll(".workspace-panel-frame")).toHaveLength(
-      TEST_CONFIGS.length + 1,
-    );
+    expect(
+      panelWorkspace?.querySelectorAll(".workspace-panel-frame"),
+    ).toHaveLength(TEST_CONFIGS.length + 1);
 
     expect(
       container.querySelector('.panel-toggle-rail[data-side="bottom"]'),
@@ -305,9 +304,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     ).toBeNull();
 
     act(() => {
-      expect(dispatchPanelWorkspaceActivation("codeView", true)).toBe(
-        true,
-      );
+      expect(dispatchPanelWorkspaceActivation("codeView", true)).toBe(true);
       flushScheduledFrames();
     });
     await waitFor(() => {
@@ -323,9 +320,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     });
 
     act(() => {
-      expect(dispatchPanelWorkspaceActivation("codeView", false)).toBe(
-        true,
-      );
+      expect(dispatchPanelWorkspaceActivation("codeView", false)).toBe(true);
       flushScheduledFrames();
     });
     await waitFor(() => {
@@ -340,9 +335,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     });
 
     act(() => {
-      expect(dispatchPanelWorkspaceActivation("codeView", true)).toBe(
-        true,
-      );
+      expect(dispatchPanelWorkspaceActivation("codeView", true)).toBe(true);
       flushScheduledFrames();
     });
     await waitFor(() => {

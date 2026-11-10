@@ -32,7 +32,7 @@
 // cold 진입한다.
 //   [--scales 100,80,120] [--layouts default,left,both] [--stale none,viewport,build,layout]
 //   skeleton      골격이 그려졌는가 · 상자 수
-//   skelDelta     골격 상자 ↔ presented 순간 실제 chrome 상자 (루트 `.header` · `.panel-dock-stage` 아래
+//   skelDelta     골격 상자 ↔ presented 순간 실제 chrome 상자 (루트 `.header` · `.panel-toggle-rail` · `.panel-dock-surface` 아래
 //                 가장 바깥의 칠해진 상자, 실제 DOM 을 다시 잰다) 사각형 최대 차 · 개수 차
 //   skelGap/Overlap  골격이 그려진 뒤 presented 전에 골격이 없는 rAF · presented 인데 골격이 남은 rAF
 //   stale         viewport = 사전 방문 폭 +100 · build = 스냅샷 빌드 id 변조 · layout = 배치 원문 변조
@@ -169,7 +169,7 @@ const RECORDER = () => {
       if (painted) return void out.push([r.x, r.y, r.width, r.height]);
       if (depth < 10) for (const child of el.children) visit(child, depth + 1);
     };
-    for (const sel of [".header", ".panel-dock-stage"]) for (const root of app.querySelectorAll(sel)) visit(root, 0);
+    for (const sel of [".header", ".panel-toggle-rail", ".panel-dock-surface"]) for (const root of app.querySelectorAll(sel)) visit(root, 0);
     return out;
   };
   const now = () => performance.now();
@@ -334,8 +334,8 @@ async function warmSnapshot({ engine, theme, viewport, scale, layout, stale }, a
     await page.waitForSelector("#root .app:not(.builder-booting)", { timeout: 180000 });
     await page.waitForTimeout(500);
     // 배치 변형 — 패널 dock 레일의 토글 (좌 첫 번째 · 좌우 첫 번째). 헤더의 토글 그룹 (breakpoint ·
-    // Compare Mode) 과 class 가 같으므로 반드시 `.panel-dock-stage` 아래로 좁힌다.
-    const rails = page.locator(".panel-dock-stage .builder-control-group");
+    // Compare Mode) 과 class 가 같으므로 반드시 `.panel-toggle-rail` 아래로 좁힌다.
+    const rails = page.locator(".panel-toggle-rail .builder-control-group");
     if (layout === "left" || layout === "both") await rails.nth(0).locator("button").first().click();
     if (layout === "both") await rails.nth(1).locator("button").first().click();
     await page.waitForTimeout(800);

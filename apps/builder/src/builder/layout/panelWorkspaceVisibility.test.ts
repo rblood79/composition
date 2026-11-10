@@ -54,9 +54,9 @@ describe("setPanelWorkspacePanelVisibility (ADR-212 UI-8)", () => {
     };
   });
 
-  it("측정한 panel-dock-stage rect 로 registry 를 만들고 dispatcher 에 (id, visible) 을 넘긴다", () => {
+  it("측정한 panel-dock-surface rect 로 registry 를 만들고 dispatcher 에 (id, visible) 을 넘긴다", () => {
     const stage = document.createElement("div");
-    stage.className = "panel-dock-stage";
+    stage.className = "panel-dock-surface";
     Object.defineProperties(stage, {
       clientWidth: { configurable: true, value: 1234 },
       clientHeight: { configurable: true, value: 567 },
@@ -70,10 +70,7 @@ describe("setPanelWorkspacePanelVisibility (ADR-212 UI-8)", () => {
       mocks.configs[0],
       { width: 1234, height: 567 },
     );
-    expect(mocks.dispatchActivation).toHaveBeenCalledWith(
-      "codeView",
-      true,
-    );
+    expect(mocks.dispatchActivation).toHaveBeenCalledWith("codeView", true);
     expect(mocks.activatePolicy).not.toHaveBeenCalled();
     expect(mocks.setLayout).not.toHaveBeenCalled();
   });

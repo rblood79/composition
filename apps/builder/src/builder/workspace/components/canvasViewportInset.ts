@@ -1,7 +1,7 @@
 /**
  * 캔버스 가시 영역 인셋 — ADR-181 Phase 1 (2026-10-01 떠 있는 chrome 기준으로 갱신)
  *
- * 캔버스는 창 전체를 full-bleed 로 덮고, 앱 헤더 (`.panel-dock-chrome > .header`) 와
+ * 캔버스는 창 전체를 full-bleed 로 덮고, 앱 헤더 (`.panel-workspace > .header`) 와
  * 좌측 패널 토글 레일 (`.panel-toggle-rail[data-side="left"]`) 이 그 **위에** 떠 있다.
  * 캔버스 로컬 좌상단은 두 chrome 밑이라, 눈금자 스트립 (20px) 을 캔버스 모서리에 그리면
  * 보이기는 해도 누르는 입력을 chrome 이 가져가 가이드를 끌어낼 수 없다 (2026-10-01 실측:
@@ -12,7 +12,7 @@
  * 은 떠 있는 패널 작업 공간으로 바뀌며 사라졌다.
  */
 
-const TOP_CHROME_SELECTOR = ".panel-dock-chrome > .header";
+const TOP_CHROME_SELECTOR = ".panel-workspace > .header";
 const LEFT_CHROME_SELECTOR = '.panel-toggle-rail[data-side="left"]';
 
 export interface CanvasViewportInset {

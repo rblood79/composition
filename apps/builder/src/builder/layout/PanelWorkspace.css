@@ -37,69 +37,54 @@
   .panel-workspace {
     /* panelWorkspaceLayoutV2.ts 의 `PANEL_WORKSPACE_GAP = 4` 와 같은 값이어야
      * 한다 — 그쪽은 surface 안쪽 패널 여백·패널 사이 간격을 px 로 계산하고,
-     * 여기는 chrome↔stage · rail↔surface 간격을 그린다. 같은 리듬으로 읽혀야
+     * 여기는 헤더↔레일·표면 · 레일↔표면 간격과 바깥 여백을 그린다. 같은 리듬으로 읽혀야
      * 하는 두 gutter 다. `var(--spacing-xs)` 는 0.25rem 이라 기본 16px 루트에서만
      * 4px 이고, 브라우저 기본 글꼴 크기를 키우면 CSS gutter 만 커져 어긋난다
      * (`.app` 의 zoom 은 px·rem 을 함께 늘려 이 축에 관여하지 않는다).
      * 게이트: PanelWorkspace.static.test.ts */
     --panel-workspace-gap: 4px;
 
+    /* chrome 층은 이 요소 하나다 — 헤더 · 좌우 토글 레일 · 표면이 직속 자식으로 한 grid 에
+     * 놓인다 (2026-11-11 옛 dock · chrome · stage 래퍼 세 겹을 걷어냄).
+     * 바깥 여백은 padding 이다: host grid 에서 캔버스 (`.panel-workspace-main`) 와 같은 칸을
+     * 덮는 item 이라 margin 을 주면 칸 자체가 줄어든다. 헤더 ↔ 아래 줄 · 레일 ↔ 표면 간격은
+     * gap 하나다 (레일이 없는 side 는 빈 auto track 이 남아 표면이 그쪽으로 4px 줄어든다). */
     display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      "header header header"
+      "rail-left surface rail-right";
+    gap: var(--panel-workspace-gap);
+    padding: var(--panel-workspace-gap);
     z-index: 40;
     overflow: hidden;
     pointer-events: none;
   }
 
-  .panel-dock {
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
-    min-width: 0;
-    min-height: 0;
-    margin: var(--panel-workspace-gap);
-    gap: var(--panel-workspace-gap);
-    overflow: hidden;
-    pointer-events: none;
-  }
-
-  .panel-dock-chrome {
-    z-index: 3000;
-    min-width: 0;
-    min-height: 0;
-    pointer-events: none;
-  }
-
-  .app .panel-dock-chrome > .header {
+  /* `grid-area: header` 는 header.css 의 `.app .header` 가 이미 준다. */
+  .app .panel-workspace > .header {
     position: relative;
     inset: auto;
     z-index: 3000;
+    min-width: 0;
     width: 100%;
     /* 투명한 헤더 여백은 뒤의 눈금자에 입력을 전달한다. */
     pointer-events: none;
   }
 
-  .panel-dock-chrome .header_contents {
+  .panel-workspace > .header .header_contents {
     pointer-events: none;
   }
 
-  .panel-dock-chrome .header_contents > *,
-  .panel-dock-chrome .builder-viewport-controls {
+  .panel-workspace > .header .header_contents > *,
+  .panel-workspace > .header .builder-viewport-controls {
     pointer-events: auto;
-  }
-
-  .panel-dock-stage {
-    display: flex;
-    justify-content: space-between;
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
-    pointer-events: none;
-    gap: var(--panel-workspace-gap);
   }
 
   .panel-dock-surface {
     position: relative;
-    flex: 1;
-    order: 1;
+    grid-area: surface;
     min-width: 0;
     min-height: 0;
     pointer-events: none;
@@ -145,7 +130,7 @@
     opacity: 0.8;
   }
 
-  .panel-dock-stage > .panel-toggle-rail {
+  .panel-workspace > .panel-toggle-rail {
     position: relative;
     top: 0;
     bottom: 0;
@@ -155,18 +140,20 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    overflow: hidden;
+    /* overflow 는 visible 로 둔다 — 레일 폭이 섬 (`.builder-control-group`) 폭과 같아서
+     * hidden 이면 섬의 `--chrome-shadow` 좌우가 잘린다 (헤더 섬은 부모가 visible 이라 온전).
+     * 세로로 넘치는 경우는 섬 자신의 max-height + overflow-y 가 맡는다. */
     border: 0;
     /* 레일 전체 높이가 눈금자의 드래그 시작을 가로채지 않게 한다. */
     pointer-events: none;
   }
 
-  .panel-dock-stage > .panel-toggle-rail[data-side="left"] {
-    order: 0;
+  .panel-workspace > .panel-toggle-rail[data-side="left"] {
+    grid-area: rail-left;
   }
 
-  .panel-dock-stage > .panel-toggle-rail[data-side="right"] {
-    order: 2;
+  .panel-workspace > .panel-toggle-rail[data-side="right"] {
+    grid-area: rail-right;
   }
 
   .panel-toggle-rail > .builder-control-group {

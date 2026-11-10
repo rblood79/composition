@@ -28,20 +28,20 @@ const CANVAS_BACKGROUND_PERSISTENT_PANEL_IDS = new Set<PanelId>([
   "site",
 ]);
 
-function currentPanelStageRect(): PanelWorkspaceRect | null {
-  const stage = document.querySelector<HTMLElement>(".panel-dock-stage");
-  if (!stage || stage.clientWidth <= 0 || stage.clientHeight <= 0) {
+function currentPanelSurfaceRect(): PanelWorkspaceRect | null {
+  const surface = document.querySelector<HTMLElement>(".panel-dock-surface");
+  if (!surface || surface.clientWidth <= 0 || surface.clientHeight <= 0) {
     return null;
   }
-  return { width: stage.clientWidth, height: stage.clientHeight };
+  return { width: surface.clientWidth, height: surface.clientHeight };
 }
 
 export function setPanelWorkspacePanelVisibility(
   panelId: PanelId,
   visible: boolean,
 ): void {
-  const stageRect = currentPanelStageRect();
-  const surfaceRect = stageRect ?? {
+  const measuredRect = currentPanelSurfaceRect();
+  const surfaceRect = measuredRect ?? {
     width: window.innerWidth,
     height: Math.max(1, window.innerHeight - 48),
   };
@@ -51,8 +51,8 @@ export function setPanelWorkspacePanelVisibility(
   if (registry.length === 0) return;
   let state = useBuilderUiStore.getState();
   if (!state.panelWorkspaceLayout) {
-    if (!stageRect) return;
-    state.initializePanelWorkspaceLayout(registry, stageRect);
+    if (!measuredRect) return;
+    state.initializePanelWorkspaceLayout(registry, measuredRect);
     state = useBuilderUiStore.getState();
   }
   const { panelWorkspaceLayout, setPanelWorkspaceLayout } = state;

@@ -9,14 +9,21 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-/** The floating header (`.panel-dock-chrome > .header`) at y 4–44, as the panel workspace draws it. */
+/** The floating header (`.panel-workspace > .header`) at y 4–44, as the panel workspace draws it. */
 function mountHeader(bottom: number) {
   const chrome = document.createElement("div");
-  chrome.className = "panel-dock-chrome";
+  chrome.className = "panel-workspace";
   const header = document.createElement("header");
   header.className = "header";
   header.getBoundingClientRect = () =>
-    ({ left: 4, top: 4, right: 1496, bottom, width: 1492, height: bottom - 4 }) as DOMRect;
+    ({
+      left: 4,
+      top: 4,
+      right: 1496,
+      bottom,
+      width: 1492,
+      height: bottom - 4,
+    }) as DOMRect;
   chrome.append(header);
   document.body.append(chrome);
 }

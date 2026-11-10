@@ -978,8 +978,8 @@ interface HydratedPanelWorkspaceProps {
   setWorkspaceLayout: (layout: PanelWorkspaceLayoutV4) => boolean;
   togglePanel: (panelId: PanelId) => void;
   focusPanel: (panelId: PanelId) => void;
-  stageRect: PanelWorkspaceRect;
-  stageRef: RefObject<HTMLDivElement | null>;
+  surfaceRect: PanelWorkspaceRect;
+  surfaceRef: RefObject<HTMLDivElement | null>;
 }
 
 /**
@@ -1028,7 +1028,7 @@ interface PanelWorkspaceOverlayProps {
   setWorkspaceLayout: (layout: PanelWorkspaceLayoutV4) => boolean;
   togglePanel: (panelId: PanelId) => void;
   workspaceLayout: PanelWorkspaceLayoutV4;
-  stageRef: RefObject<HTMLDivElement | null>;
+  surfaceRef: RefObject<HTMLDivElement | null>;
 }
 
 interface PanelDockOrigin {
@@ -1294,46 +1294,6 @@ function PanelSnapGuide({
   );
 }
 
-interface PanelDockRenderProps {
-  origin: PanelDockOrigin;
-}
-
-interface PanelDockProps {
-  children: (props: PanelDockRenderProps) => ReactNode;
-  chrome?: ReactNode;
-  stageRef: RefObject<HTMLDivElement | null>;
-  surfaceWidth: number;
-}
-
-function PanelDock({
-  children,
-  chrome,
-  stageRef,
-  surfaceWidth,
-}: PanelDockProps) {
-  const origin = useMemo<PanelDockOrigin>(() => {
-    const origin = {
-      x: 0,
-      y: 0,
-      workspaceWidth: surfaceWidth,
-    };
-    return origin;
-  }, [surfaceWidth]);
-
-  return (
-    <div
-      className="panel-dock"
-      data-column-limit="2"
-      data-layout-type="floating"
-    >
-      {chrome ? <div className="panel-dock-chrome">{chrome}</div> : null}
-      <div ref={stageRef} className="panel-dock-stage">
-        {children({ origin })}
-      </div>
-    </div>
-  );
-}
-
 const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
   chrome,
   configs,
@@ -1342,11 +1302,11 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
   setWorkspaceLayout,
   togglePanel,
   workspaceLayout,
-  stageRef,
+  surfaceRef,
 }: PanelWorkspaceOverlayProps) {
   const { t } = useI18n();
   // overlay 루트는 snapshot 전체를 구독하지 않는다 — 구독하면 resize·move 의 매 flush 마다
-  // PanelDock render-prop 아래 frame 12개 element 가 전부 다시 만들어진다 (2026-09-02 실측
+  // overlay 아래 frame 12개 element 가 전부 다시 만들어진다 (2026-09-02 실측
   // fiber 103개/flush). 루트가 정말 필요한 값은 작업 영역 크기 두 개뿐이므로 원시값으로
   // 읽고, 나머지 (frame · splitter · rail · snap guide · page-layout 폭 속성) 는 각 leaf 가
   // 스스로 구독한다.
@@ -1359,10 +1319,15 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
     coordinator,
     () => coordinator.getSnapshot().workspaceRect.height,
   );
-  const surfaceRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
   const [surfaceWidth, setSurfaceWidth] = useState(workspaceRectWidth);
   const [surfaceHeight, setSurfaceHeight] = useState(workspaceRectHeight);
+  // frame · splitter · rail · snap guide 의 좌표 기준 — 표면 (`.panel-dock-surface`) 의
+  // 좌상단이 (0, 0) 이고, 오른쪽에 붙는 frame 은 표면 폭에서 거꾸로 잰다.
+  const origin = useMemo<PanelDockOrigin>(
+    () => ({ x: 0, y: 0, workspaceWidth: surfaceWidth }),
+    [surfaceWidth],
+  );
 
   // `data-page-layout-*-panel-width` 는 useWorkspaceCanvasSizing 이 `.panel-workspace` 에서
   // 읽는 신호다. JSX 로 쓰면 frameGeometries 구독이 필요하므로 coordinator 를 직접 구독해
@@ -1452,58 +1417,43 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
       aria-label={t("workspace.workArea")}
       data-page-layout-panel-gap={PANEL_WORKSPACE_GAP}
     >
-      <PanelDock
-        chrome={chrome}
-        stageRef={stageRef}
-        surfaceWidth={surfaceWidth}
-      >
-        {({ origin }) => (
-          <>
-            {(["left", "right"] as const).map((side) => {
-              const panelIds = workspaceLayout.railOrder[side];
-              if (panelIds.length === 0) return null;
-              return (
-                <PanelToggleGroup
-                  key={side}
-                  side={side}
-                  panelIds={panelIds}
-                  activePanels={activePanelsBySide[side]}
-                  onPanelToggle={togglePanel}
-                />
-              );
-            })}
+      {chrome}
+      {(["left", "right"] as const).map((side) => {
+        const panelIds = workspaceLayout.railOrder[side];
+        if (panelIds.length === 0) return null;
+        return (
+          <PanelToggleGroup
+            key={side}
+            side={side}
+            panelIds={panelIds}
+            activePanels={activePanelsBySide[side]}
+            onPanelToggle={togglePanel}
+          />
+        );
+      })}
 
-            <div ref={surfaceRef} className="panel-dock-surface">
-              <PanelWorkspaceZoneOverlay />
-              <PanelSnapGuideSlot
-                dockOrigin={origin}
-                coordinator={coordinator}
-              />
-              <PanelDockClusterPresentation
-                dockOrigin={origin}
-                runtime={runtime}
-              />
-              {configs.map((config) => (
-                <SnapshotPanelFrame
-                  key={config.id}
-                  config={config}
-                  dockOrigin={origin}
-                  runtime={runtime}
-                  side={railSideForPanel(workspaceLayout, config)}
-                  onCommitLayout={setWorkspaceLayout}
-                  onFocusPanel={focusPanel}
-                />
-              ))}
-              <PanelWorkspaceSharedSplitters
-                configs={configs}
-                dockOrigin={origin}
-                runtime={runtime}
-                setWorkspaceLayout={setWorkspaceLayout}
-              />
-            </div>
-          </>
-        )}
-      </PanelDock>
+      <div ref={surfaceRef} className="panel-dock-surface">
+        <PanelWorkspaceZoneOverlay />
+        <PanelSnapGuideSlot dockOrigin={origin} coordinator={coordinator} />
+        <PanelDockClusterPresentation dockOrigin={origin} runtime={runtime} />
+        {configs.map((config) => (
+          <SnapshotPanelFrame
+            key={config.id}
+            config={config}
+            dockOrigin={origin}
+            runtime={runtime}
+            side={railSideForPanel(workspaceLayout, config)}
+            onCommitLayout={setWorkspaceLayout}
+            onFocusPanel={focusPanel}
+          />
+        ))}
+        <PanelWorkspaceSharedSplitters
+          configs={configs}
+          dockOrigin={origin}
+          runtime={runtime}
+          setWorkspaceLayout={setWorkspaceLayout}
+        />
+      </div>
     </div>
   );
 });
@@ -1517,11 +1467,11 @@ function HydratedPanelWorkspace({
   setWorkspaceLayout,
   togglePanel,
   focusPanel,
-  stageRect,
-  stageRef,
+  surfaceRect,
+  surfaceRef,
 }: HydratedPanelWorkspaceProps) {
   const [runtime] = useState(() =>
-    createRuntime(workspaceLayout, registry, stageRect),
+    createRuntime(workspaceLayout, registry, surfaceRect),
   );
   // `data-layout-version` 은 useWorkspaceCanvasSizing 의 MutationObserver 가 읽는
   // 신호다. 루트가 snapshot 을 구독해 이 속성을 JSX 로 쓰면 패널 resize·move 의
@@ -1590,7 +1540,7 @@ function HydratedPanelWorkspace({
         setWorkspaceLayout={setWorkspaceLayout}
         togglePanel={togglePanel}
         workspaceLayout={workspaceLayout}
-        stageRef={stageRef}
+        surfaceRef={surfaceRef}
       />
     </div>
   );
@@ -1614,32 +1564,35 @@ function PanelWorkspaceContent({
     focusPanel,
   } = usePanelLayout();
   const configs = useMemo(() => PanelRegistry.getAllPanels(), []);
-  const stageRef = useRef<HTMLDivElement>(null);
-  const [stageRect, setStageRect] = useState<PanelWorkspaceRect | null>(null);
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const [surfaceRect, setSurfaceRect] = useState<PanelWorkspaceRect | null>(
+    null,
+  );
   const registry = useMemo(
     () =>
-      stageRect
+      surfaceRect
         ? configs.map((config) =>
-            createPanelWorkspaceRegistryEntry(config, stageRect),
+            createPanelWorkspaceRegistryEntry(config, surfaceRect),
           )
         : [],
-    [configs, stageRect],
+    [configs, surfaceRect],
   );
-  // Which tree is mounted (fallback or hydrated): each has its own stage element, so the observer
-  // follows the switch — with only `workspaceLayout` it kept the detached fallback stage when the
-  // layout was already in the store (a second project entry, audit L8).
-  const hydratedTree = workspaceLayout !== null && stageRect !== null;
+  // Which tree is mounted (fallback or hydrated): each has its own surface element, so the observer
+  // follows the switch — with only `workspaceLayout` it kept the detached fallback surface when the
+  // layout was already in the store (a second project entry, audit L8). The registry and the
+  // runtime both measure this one surface (rails excluded) — `maxWidth: "100%"` is the surface.
+  const hydratedTree = workspaceLayout !== null && surfaceRect !== null;
 
   useLayoutEffect(() => {
-    const stage = stageRef.current;
-    if (!stage) return;
+    const surface = surfaceRef.current;
+    if (!surface) return;
     const updateRect = (): void => {
       const next = {
-        width: stage.clientWidth,
-        height: stage.clientHeight,
+        width: surface.clientWidth,
+        height: surface.clientHeight,
       };
       if (next.width <= 0 || next.height <= 0) return;
-      setStageRect((current) =>
+      setSurfaceRect((current) =>
         current?.width === next.width && current.height === next.height
           ? current
           : next,
@@ -1647,24 +1600,23 @@ function PanelWorkspaceContent({
     };
     updateRect();
     const observer = new ResizeObserver(updateRect);
-    observer.observe(stage);
+    observer.observe(surface);
     return () => observer.disconnect();
   }, [hydratedTree]);
 
   useLayoutEffect(() => {
-    if (!workspaceLayout && stageRect) {
-      initializeWorkspaceLayout(registry, stageRect);
+    if (!workspaceLayout && surfaceRect) {
+      initializeWorkspaceLayout(registry, surfaceRect);
     }
-  }, [initializeWorkspaceLayout, registry, stageRect, workspaceLayout]);
+  }, [initializeWorkspaceLayout, registry, surfaceRect, workspaceLayout]);
 
-  if (!workspaceLayout || !stageRect) {
+  if (!workspaceLayout || !surfaceRect) {
     return (
       <div className="panel-workspace-host">
         <div className="panel-workspace-main">{children}</div>
         <div className="panel-workspace" aria-label={t("workspace.workArea")}>
-          <PanelDock chrome={chrome} stageRef={stageRef} surfaceWidth={0}>
-            {() => null}
-          </PanelDock>
+          {chrome}
+          <div ref={surfaceRef} className="panel-dock-surface" />
         </div>
       </div>
     );
@@ -1680,8 +1632,8 @@ function PanelWorkspaceContent({
       setWorkspaceLayout={setWorkspaceLayout}
       togglePanel={togglePanel}
       focusPanel={focusPanel}
-      stageRect={stageRect}
-      stageRef={stageRef}
+      surfaceRect={surfaceRect}
+      surfaceRef={surfaceRef}
     />
   );
 }

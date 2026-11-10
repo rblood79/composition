@@ -19,8 +19,7 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
 
     expect(source).toContain("PanelRegistry.getAllPanels()");
     expect(source).toContain("configs.map((config) => (");
-    expect(source).toContain('className="panel-dock"');
-    expect(source).toContain('data-layout-type="floating"');
+    expect(source).toContain('className="panel-dock-surface"');
     expect(source).toMatch(/<SnapshotPanelFrame\s+[\s\S]*?key=\{config\.id\}/);
     expect(source).toContain("usePanelWorkspaceFrameSnapshot(");
     expect(source).toMatch(
@@ -47,7 +46,7 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(canvasStyles).toContain(
       ".app :where(aside, .panel-workspace) .panel-header",
     );
-    expect(styles).toContain(".panel-dock-stage > .panel-toggle-rail");
+    expect(styles).toContain(".panel-workspace > .panel-toggle-rail");
   });
 
   it("모든 활성 패널을 React Aria move로 직접 이동하고 panel-relative snap target을 제공한다", async () => {
@@ -302,8 +301,10 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(source).toContain('className="panel-workspace-host"');
     expect(source).toContain('className="panel-workspace-main"');
     expect(source).toContain("chrome?: ReactNode");
-    expect(source).toContain('className="panel-dock-chrome"');
-    expect(source).toContain('className="panel-dock-stage"');
+    // chrome 층은 `.panel-workspace` 하나 — 헤더 · 레일 · 표면을 감싸는 dock 래퍼를 다시 두지 않는다.
+    expect(source).not.toContain('className="panel-dock"');
+    expect(source).not.toContain('className="panel-dock-chrome"');
+    expect(source).not.toContain('className="panel-dock-stage"');
     expect(source).not.toContain('"--panel-workspace-inset-left"');
     expect(source).not.toContain('"--panel-workspace-inset-right"');
     expect(source).not.toContain('"--panel-workspace-inset-bottom"');
@@ -315,13 +316,9 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(styles).toMatch(
       /\.panel-workspace-main,[\s\S]*?\.panel-workspace\s*\{[\s\S]*?grid-area: workspace;/,
     );
-    expect(styles).toContain(".panel-dock-chrome");
-    expect(styles).toContain(".panel-dock-stage");
+    expect(styles).not.toMatch(/\.panel-dock-(chrome|stage)\b/);
     expect(styles).not.toMatch(
-      /\.panel-dock-chrome\s*\{[^}]*position: absolute;/,
-    );
-    expect(styles).not.toMatch(
-      /\.panel-dock-stage\s*\{[^}]*position: absolute;/,
+      /\.panel-dock-surface\s*\{[^}]*position: absolute;/,
     );
   });
 
@@ -332,24 +329,36 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
       'className="panel-workspace-placement-surface"',
     );
     expect(source).toMatch(
-      /const origin = \{[\s\S]*?x: 0,[\s\S]*?y: 0,[\s\S]*?workspaceWidth:/,
+      /const origin = useMemo<PanelDockOrigin>\([\s\S]*?x: 0,[\s\S]*?y: 0,[\s\S]*?workspaceWidth:/,
     );
     expect(styles).toContain("--panel-workspace-gap: 4px");
+    // `.panel-workspace` 가 grid 하나로 헤더 / 좌 레일 · 표면 · 우 레일을 놓는다. 바깥 여백은
+    // padding (host 칸을 캔버스와 나눠 쓰므로 margin 이면 칸이 줄어든다).
     expect(styles).toMatch(
-      /\.panel-dock\s*\{[\s\S]*?display: grid;[\s\S]*?grid-template-rows: auto minmax\(0, 1fr\);[\s\S]*?margin: var\(--panel-workspace-gap\);/,
+      /\.panel-workspace\s*\{[\s\S]*?display: grid;[\s\S]*?grid-template-columns: auto minmax\(0, 1fr\) auto;[\s\S]*?grid-template-rows: auto minmax\(0, 1fr\);[\s\S]*?"header header header"[\s\S]*?"rail-left surface rail-right";[\s\S]*?padding: var\(--panel-workspace-gap\);[\s\S]*?overflow: hidden;/,
     );
     expect(styles).toMatch(
-      /\.panel-dock-stage\s*\{[\s\S]*?display: flex;[\s\S]*?justify-content: space-between;/,
+      /\.panel-dock-surface\s*\{[\s\S]*?grid-area: surface;/,
     );
-    expect(styles).toMatch(/\.panel-dock\s*\{[\s\S]*?overflow: hidden;/);
-    // ef3871266: rail 폭은 내용(toggle group)이 정하고 --panel-toggle-rail-width 는 제거됨 — width 선언 자체가 없어야 한다
+    // 헤더 ↔ 아래 줄 · 레일 ↔ 표면 간격은 gap 하나 — 레일 margin 으로 따로 주지 않는다.
     expect(styles).toMatch(
-      /\.panel-dock-stage > \.panel-toggle-rail\s*\{[\s\S]*?z-index: 2100;[\s\S]*?height: 100%;/,
+      /\.panel-workspace\s*\{[\s\S]*?[\s;]gap: var\(--panel-workspace-gap\);/,
     );
     expect(styles).not.toMatch(
-      /\.panel-dock-stage > \.panel-toggle-rail\s*\{[^}]*?width:/,
+      /\.panel-toggle-rail\[data-side="(left|right)"\]\s*\{[^}]*margin/,
+    );
+    // ef3871266: rail 폭은 내용(toggle group)이 정하고 --panel-toggle-rail-width 는 제거됨 — width 선언 자체가 없어야 한다
+    expect(styles).toMatch(
+      /\.panel-workspace > \.panel-toggle-rail\s*\{[\s\S]*?z-index: 2100;[\s\S]*?height: 100%;/,
+    );
+    expect(styles).not.toMatch(
+      /\.panel-workspace > \.panel-toggle-rail\s*\{[^}]*?width:/,
     );
     expect(styles).not.toContain("--panel-toggle-rail-width");
+    // 레일 폭 = 섬 폭이라 레일이 overflow 를 자르면 섬 그림자 좌우가 잘린다 (2026-11-11).
+    expect(styles).not.toMatch(
+      /\.panel-workspace > \.panel-toggle-rail\s*\{[^}]*overflow:\s*hidden/,
+    );
     expect(styles).toMatch(
       /\.panel-dock-surface\s*\{[\s\S]*?position: relative;[\s\S]*?flex: 1;/,
     );
@@ -388,7 +397,7 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(dataTableEditor).toContain("setPanelWorkspacePanelVisibility(");
     expect(dataTableEditor).not.toContain("setPanelWorkspaceLayout(");
     expect(dataTableEditor).not.toContain("activeLeftPanels");
-    expect(visibility).toContain('".panel-dock-stage"');
+    expect(visibility).toContain('".panel-dock-surface"');
     expect(visibility).toContain("activatePanelWorkspacePanelV4(");
     expect(visibility).not.toContain("visibility: {");
     expect(visibility).not.toContain("panel-workspace-placement-surface");

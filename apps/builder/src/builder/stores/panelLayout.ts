@@ -296,7 +296,7 @@ export function updatePanelWorkspaceSurface(
   activeSurfaceRect = { ...surfaceRect };
 }
 
-/** The registry the runtime follows now (its `maxWidth: "100%"` resolves against the stage). */
+/** The registry the runtime follows now (its `maxWidth: "100%"` resolves against the panel surface). */
 export function updatePanelWorkspaceRegistry(
   registry: readonly PanelWorkspaceRegistryEntry[],
 ): void {

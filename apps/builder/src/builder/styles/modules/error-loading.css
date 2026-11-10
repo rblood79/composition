@@ -57,7 +57,8 @@
    * display:none/unmount 대신 presentation만 막아 기존 DotBackground를 노출하고,
    * matching first flush의 100% 완료 paint 뒤 같은 geometry로 canvas/chrome을 표시한다. */
   .app.builder-booting .header,
-  .app.builder-booting .panel-dock-stage,
+  .app.builder-booting .panel-toggle-rail,
+  .app.builder-booting .panel-dock-surface,
   .app.builder-booting .contextual-action-bar,
   .app.builder-booting .page-header-layer,
   .app.builder-booting [data-testid="skia-canvas-unified"],
