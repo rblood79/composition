@@ -438,6 +438,8 @@ export const renderDebug = {
   legacySurface: false,
   /** ADR-272 Phase 2 롤백: 미리 기록 후보를 공간 질의 대신 stream 전체 순회로 모은다. */
   warmupBoundedOff: false,
+  /** CANVAS_PERF_SCALING_2026-11 B3 롤백: drag 시작 · 끝이 끌리는 subtree splice 대신 stream 전체를 다시 기록한다. */
+  dragSpliceOff: false,
 };
 
 if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
@@ -467,6 +469,9 @@ if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
   };
   debug.setWarmupBoundedOff = (on: boolean) => {
     renderDebug.warmupBoundedOff = on;
+  };
+  debug.setDragSpliceOff = (on: boolean) => {
+    renderDebug.dragSpliceOff = on;
   };
   (
     window as unknown as {

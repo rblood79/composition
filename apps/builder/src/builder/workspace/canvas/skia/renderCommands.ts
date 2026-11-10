@@ -1098,6 +1098,35 @@ export function notifyBoundsPatch(
 }
 
 /**
+ * Counts in-place stream writes (every patcher publishes once per atomic write): a writer that keeps
+ * state between two writes of its own (the drag layer) sees whether anything else wrote between.
+ */
+let patchedStreamEpoch = 0;
+export function getPatchedStreamEpoch(): number {
+  return patchedStreamEpoch;
+}
+
+/** The context a drag root is recorded with on the stream's top layer (`deferredDragRoots`). */
+export function topLayerSubtreeContext(
+  id: string,
+  parentAbsX: number,
+  parentAbsY: number,
+  parentElementId: string | null,
+): SubtreeBuildContext {
+  return {
+    parentAbsX,
+    parentAbsY,
+    clipRect: null,
+    cmdOffsetX: 0,
+    cmdOffsetY: 0,
+    parentElementId,
+    zOrderKey: `top-layer:${id}`,
+    scrollContextKey: "top-layer-scroll-context",
+    topLayerSubtree: true,
+  };
+}
+
+/**
  * targeted patch가 cache hit frame에서도 bounds/hit snapshot SSOT를 갱신하도록 한다.
  * 다음 full command rebuild까지 기다리면 overlay와 pointer hit-test가 이전 위치를
  * 읽는 split-brain이 생기므로, patcher의 원자 교체 직후 호출한다.
@@ -1105,6 +1134,7 @@ export function notifyBoundsPatch(
 export function publishPatchedCommandStreamSnapshot(
   stream: Pick<RenderCommandStream, "boundsMap" | "hitBoundsMap">,
 ): void {
+  patchedStreamEpoch += 1;
   _lastBoundsMap = stream.boundsMap;
   _lastHitBoundsMap = stream.hitBoundsMap;
   _notifyBoundsListeners(stream.boundsMap);
@@ -1387,10 +1417,17 @@ export function buildRenderCommandStream(
   // top-layer 재방문은 조상의 clip save/restore 밖에서 그려진다 → clip 미적용.
   // ADR-178: 유예 목록은 드래그 대상 수 비례 (정규화 집합 — G3 상한 축).
   for (const deferred of deferredDragRoots) {
-    visitElement(
+    // (`topLayerSubtreeContext` — the drag layer splice records the same context.)
+    const top = topLayerSubtreeContext(
       deferred.elementId,
       deferred.parentAbsX,
       deferred.parentAbsY,
+      deferred.parentElementId,
+    );
+    visitElement(
+      deferred.elementId,
+      top.parentAbsX,
+      top.parentAbsY,
       commands,
       selfSpans,
       subtreeSpans,
@@ -1404,16 +1441,16 @@ export function buildRenderCommandStream(
       childElementIds,
       boundsMap,
       hitBoundsMap,
-      null,
+      top.clipRect,
       childrenMap,
       layoutMap,
-      0,
-      0,
-      deferred.parentElementId,
+      top.cmdOffsetX,
+      top.cmdOffsetY,
+      top.parentElementId,
       { renderAsTopLayer: true },
-      `top-layer:${deferred.elementId}`,
-      "top-layer-scroll-context",
-      true,
+      top.zOrderKey,
+      top.scrollContextKey,
+      top.topLayerSubtree,
     );
   }
 

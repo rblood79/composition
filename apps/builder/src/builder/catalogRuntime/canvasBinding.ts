@@ -23,6 +23,12 @@ import {
 } from "../workspace/canvas/skia/renderCommands";
 import { applyCommitSubtreeCommandPatch } from "../workspace/canvas/skia/subtreeCommandPatch";
 import {
+  enterDragLayer,
+  exitDragLayer,
+  type DragLayerState,
+} from "../workspace/canvas/skia/dragLayerSplice";
+import { getDragVisualOffset } from "../workspace/canvas/skia/nodeRendererTree";
+import {
   applyScrollDelta,
   applySubtreeTranslate,
   placeRegion,
@@ -1281,7 +1287,9 @@ function pickerNodeData(
     lineHeight === undefined
       ? data.children
       : data.children?.map((child) =>
-          child.text ? { ...child, text: { ...child.text, lineHeight } } : child,
+          child.text
+            ? { ...child, text: { ...child.text, lineHeight } }
+            : child,
         );
   return {
     ...data,
@@ -2351,6 +2359,8 @@ function bindInColorMode(
       presentationRevision: 0,
       baseCanonicalRevision: 0,
     });
+    /** The drag layer a splice entered (exit puts it back), until the drag ends. */
+    let dragLayer: DragLayerState | undefined;
     const bound = new Map<string, CatalogConsumerNode>();
     const boundLayoutInputs = new Map<string, string | undefined>();
     const boundParts = new Map<string, string | undefined>();
@@ -3262,13 +3272,43 @@ function bindInColorMode(
       get stream() {
         return stream;
       },
-      /** Drag top-layer changes only command order/clip context; retain nodes and subscriptions. */
+      /**
+       * Drag top-layer changes only command order/clip context; retain nodes and subscriptions.
+       * The dragged subtrees move to and from the top layer by a splice (`dragLayerSplice.ts` —
+       * the same stream a full build gives); what it refuses is built in full.
+       */
       refreshPresentation: () => {
+        const dragIds = getDragVisualOffset()?.elementIds;
+        const splice = !(
+          process.env.NODE_ENV === "development" && renderDebug.dragSpliceOff
+        );
+        const held = dragLayer;
+        dragLayer = undefined;
+        // The next patch's revision follows the presentation revision this raised (a patch at or
+        // under the stream's revision is refused as stale — the scene binds again).
+        const followRevision = () => {
+          revision = Math.max(revision, stream.presentationRevision);
+        };
+        if (splice && held && !dragIds?.size) {
+          if (exitDragLayer(stream, { childrenMap, layoutMap }, held).ok)
+            return followRevision();
+        } else if (splice && !held && dragIds?.size) {
+          const entered = enterDragLayer(
+            stream,
+            { childrenMap, layoutMap },
+            dragIds,
+          );
+          if (entered.ok) {
+            dragLayer = entered.value;
+            return followRevision();
+          }
+        }
         stream = buildStream({
           presentationRevision: stream.presentationRevision + 1,
           baseCanonicalRevision: stream.baseCanonicalRevision,
           presentationRevisionByRootKey: stream.presentationRevisionByRootKey,
         });
+        followRevision();
       },
       bindingIds: [...resolvedBindingIds],
       unpainted,
