@@ -284,15 +284,15 @@ function sharedSplitterStyle(
             left: "auto",
           }
         : {
-            left: geometry.x - dockOrigin.x,
+            left: geometry.x,
             right: "auto",
           }),
-      top: geometry.y - dockOrigin.y + geometry.height / 2 - hitSize / 2,
+      top: geometry.y + geometry.height / 2 - hitSize / 2,
       width: geometry.width,
       zIndex,
     };
   }
-  const left = geometry.x - dockOrigin.x + geometry.width / 2 - hitSize / 2;
+  const left = geometry.x + geometry.width / 2 - hitSize / 2;
   return {
     bottom: "auto",
     height: geometry.height,
@@ -306,7 +306,7 @@ function sharedSplitterStyle(
           left: "auto",
         }
       : { left, right: "auto" }),
-    top: geometry.y - dockOrigin.y,
+    top: geometry.y,
     width: hitSize,
     zIndex,
   };
@@ -817,8 +817,8 @@ const PanelFrame = memo(function PanelFrame({
             appliedGeometry.x -
             appliedGeometry.width,
         }
-      : { left: appliedGeometry.x - dockOrigin.x }),
-    top: appliedGeometry.y - dockOrigin.y,
+      : { left: appliedGeometry.x }),
+    top: appliedGeometry.y,
     width: appliedGeometry.width,
     height: appliedGeometry.height,
     zIndex: frameZIndex(focusRank, isActive, isMoving),
@@ -990,12 +990,13 @@ interface PanelWorkspaceOverlayProps {
   setWorkspaceLayout: (layout: PanelWorkspaceLayoutV4) => boolean;
   togglePanel: (panelId: PanelId) => void;
   workspaceLayout: PanelWorkspaceLayoutV4;
+  surfaceRect: PanelWorkspaceRect;
   surfaceRef: RefObject<HTMLElement | null>;
 }
 
+/** frame · splitter · rail · snap guide 의 좌표 기준 — 표면 (`aside.panel-dock-surface`) 의 좌상단이
+ * (0, 0) 이라 왼쪽 · 위는 geometry 그대로 쓰고, 오른쪽에 붙는 것만 표면 폭에서 거꾸로 잰다. */
 interface PanelDockOrigin {
-  x: number;
-  y: number;
   workspaceWidth: number;
 }
 
@@ -1133,8 +1134,8 @@ function PanelDockRail({ columnKey, dockOrigin, runtime }: PanelDockRailProps) {
   });
   if (!column) return null;
 
-  const left = column.x - dockOrigin.x;
-  const top = column.y - dockOrigin.y;
+  const left = column.x;
+  const top = column.y;
   return (
     <div
       aria-hidden="true"
@@ -1216,8 +1217,8 @@ function PanelSnapGuide({
 
   const halfGap = PANEL_WORKSPACE_GAP / 2;
   const horizontal = candidate.edge === "top" || candidate.edge === "bottom";
-  const targetLeft = target.x - dockOrigin.x;
-  const targetTop = target.y - dockOrigin.y;
+  const targetLeft = target.x;
+  const targetTop = target.y;
   const rawExtentStart = horizontal ? targetLeft : targetTop;
   const rawExtentEnd =
     rawExtentStart + (horizontal ? target.width : target.height);
@@ -1264,6 +1265,7 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
   setWorkspaceLayout,
   togglePanel,
   workspaceLayout,
+  surfaceRect,
   surfaceRef,
 }: PanelWorkspaceOverlayProps) {
   const { t } = useI18n();
@@ -1281,39 +1283,18 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
     coordinator,
     () => coordinator.getSnapshot().workspaceRect.height,
   );
-  const [surfaceWidth, setSurfaceWidth] = useState(workspaceRectWidth);
-  const [surfaceHeight, setSurfaceHeight] = useState(workspaceRectHeight);
-  // frame · splitter · rail · snap guide 의 좌표 기준 — 표면 (`.panel-dock-surface`) 의
-  // 좌상단이 (0, 0) 이고, 오른쪽에 붙는 frame 은 표면 폭에서 거꾸로 잰다.
+  // 표면 크기는 PanelWorkspaceContent 의 observer 하나가 잰 값을 받는다 (같은 요소를 두 번
+  // 재지 않는다).
+  const { width: surfaceWidth, height: surfaceHeight } = surfaceRect;
   const origin = useMemo<PanelDockOrigin>(
-    () => ({ x: 0, y: 0, workspaceWidth: surfaceWidth }),
+    () => ({ workspaceWidth: surfaceWidth }),
     [surfaceWidth],
   );
 
   useLayoutEffect(() => {
-    const surface = surfaceRef.current;
-    if (!surface) return;
-    const updateSurface = (): void => {
-      if (surface.clientWidth <= 0) return;
-      setSurfaceWidth((current) =>
-        current === surface.clientWidth ? current : surface.clientWidth,
-      );
-      setSurfaceHeight((current) =>
-        current === surface.clientHeight ? current : surface.clientHeight,
-      );
-    };
-    updateSurface();
-    const observer = new ResizeObserver(updateSurface);
-    observer.observe(surface);
-    return () => observer.disconnect();
-  }, []);
-
-  useLayoutEffect(() => {
     if (
-      surfaceWidth <= 0 ||
-      surfaceHeight <= 0 ||
-      (surfaceWidth === workspaceRectWidth &&
-        surfaceHeight === workspaceRectHeight)
+      surfaceWidth === workspaceRectWidth &&
+      surfaceHeight === workspaceRectHeight
     ) {
       return;
     }
@@ -1453,6 +1434,7 @@ function HydratedPanelWorkspace({
         setWorkspaceLayout={setWorkspaceLayout}
         togglePanel={togglePanel}
         workspaceLayout={workspaceLayout}
+        surfaceRect={surfaceRect}
         surfaceRef={surfaceRef}
       />
     </>

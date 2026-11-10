@@ -10,6 +10,9 @@
    * 조상이다. 가로형(위/아래 edge) 은 length×size, 세로형(좌/우 edge) 은 size×length.
    * 패널 edge · cluster splitter · 섹션 분할(SectionSplitStack) · compare 구분선이 같은 값을 쓴다. */
   .app {
+    height: 100vh;
+    overflow: hidden;
+    background-color: var(--bg-overlay);
     --panel-interaction-line-color: var(--focus-ring);
     --panel-interaction-line-size: 2px;
     --panel-interaction-line-length: 32px;
@@ -18,10 +21,9 @@
     grid-template-rows: minmax(0, 1fr);
   }
 
+  /* track 이 minmax(0, 1fr) 라 자식의 자동 최소 크기는 이미 0 이다. */
   .app > * {
     grid-area: 1 / 1;
-    min-width: 0;
-    min-height: 0;
   }
 
   .panel-workspace {
@@ -53,13 +55,11 @@
     pointer-events: none;
   }
 
-  /* `grid-area: header` 는 header.css 의 `.app .header` 가 이미 준다. */
-  .app .panel-workspace > .header {
-    position: relative;
-    inset: auto;
+  /* 헤더 안 배치 (flex · 글자색) 는 header.css 의 `.app .header` 가, 칸은 여기서 준다. */
+  .panel-workspace > .header {
+    grid-area: header;
     z-index: 3000;
     min-width: 0;
-    width: 100%;
     /* 투명한 헤더 여백은 뒤의 눈금자에 입력을 전달한다. */
     pointer-events: none;
   }
@@ -123,8 +123,6 @@
 
   .panel-workspace > .panel-toggle-rail {
     position: relative;
-    top: 0;
-    bottom: 0;
     z-index: 2100;
     display: flex;
     flex-direction: column;
@@ -134,7 +132,6 @@
     /* overflow 는 visible 로 둔다 — 레일 폭이 섬 (`.builder-control-group`) 폭과 같아서
      * hidden 이면 섬의 `--chrome-shadow` 좌우가 잘린다 (헤더 섬은 부모가 visible 이라 온전).
      * 세로로 넘치는 경우는 섬 자신의 max-height + overflow-y 가 맡는다. */
-    border: 0;
     /* 레일 전체 높이가 눈금자의 드래그 시작을 가로채지 않게 한다. */
     pointer-events: none;
   }

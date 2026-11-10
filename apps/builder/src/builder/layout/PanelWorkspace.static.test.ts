@@ -131,9 +131,10 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
       readCanvasStyles(),
     ]);
 
-    // `.app main` 이 grid-area 를 주면 특이도 (0,1,1) 가 `.app > *` 를 이겨 캔버스가 다른 칸으로
-    // 밀려난다 (live 실측: main 0×0).
-    expect(canvasStyles).not.toMatch(/\.app main\s*\{[^}]*grid-area/);
+    // `main.workspace` 의 상자는 Workspace.css `.workspace` 하나가 갖는다 — `.app main` 이 다시
+    // 생기면 grid-area 특이도 (0,1,1) 가 `.app > *` 를 이겨 캔버스가 다른 칸으로 밀려난다
+    // (live 실측: main 0×0).
+    expect(canvasStyles).not.toMatch(/\.app main\s*\{/);
     // 2026-11-11 — `.panel-workspace-main` 래퍼와 data-layout-version · data-page-layout-*
     // 속성은 이를 읽던 useWorkspaceCanvasSizing 이 삭제된 뒤 남은 것이라 지웠다.
     expect(source).not.toContain("panel-workspace-main");
@@ -320,12 +321,14 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(source).not.toContain(
       'className="panel-workspace-placement-surface"',
     );
+    // 표면 좌상단이 (0, 0) 이라 origin 은 오른쪽 기준용 폭 하나뿐 — x · y 를 다시 두지 않는다.
+    expect(source).not.toMatch(/dockOrigin\.(x|y)\b/);
     expect(source).toMatch(
-      /const origin = useMemo<PanelDockOrigin>\([\s\S]*?x: 0,[\s\S]*?y: 0,[\s\S]*?workspaceWidth:/,
+      /const origin = useMemo<PanelDockOrigin>\(\s*\(\) => \(\{ workspaceWidth: surfaceWidth \}\)/,
     );
     expect(styles).toContain("--panel-workspace-gap: 4px");
     // `.panel-workspace` 가 grid 하나로 헤더 / 좌 레일 · 표면 · 우 레일을 놓는다. 바깥 여백은
-    // padding (host 칸을 캔버스와 나눠 쓰므로 margin 이면 칸이 줄어든다).
+    // padding (`.app` 칸을 캔버스와 나눠 쓰므로 margin 이면 칸이 줄어든다).
     expect(styles).toMatch(
       /\.panel-workspace\s*\{[\s\S]*?display: grid;[\s\S]*?grid-template-columns: auto minmax\(0, 1fr\) auto;[\s\S]*?grid-template-rows: auto minmax\(0, 1fr\);[\s\S]*?"header header header"[\s\S]*?"rail-left surface rail-right";[\s\S]*?padding: var\(--panel-workspace-gap\);[\s\S]*?overflow: hidden;/,
     );

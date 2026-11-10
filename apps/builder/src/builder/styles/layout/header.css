@@ -4,19 +4,12 @@
    * Extracted from main/index.css
    * ======================================== */
 
-  /* App Root — 칸 배치는 `layout/PanelWorkspace.css` 의 `.app` (한 칸 grid). */
-  .app {
-    height: 100vh;
-    overflow: hidden;
-    background-color: var(--bg-overlay);
-  }
-
   /* ========================================
    * Header
    * ======================================== */
 
+  /* 칸 배치 (grid-area) 는 grid 를 만든 `.panel-workspace` 쪽이 준다 (PanelWorkspace.css). */
   .app .header {
-    grid-area: header;
     background: transparent;
     border-bottom: 0;
     color: var(--fg);

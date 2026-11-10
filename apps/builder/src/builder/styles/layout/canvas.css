@@ -4,21 +4,6 @@
    * Extracted from main/index.css
    * ======================================== */
 
-  /* Main Content Area — `main.workspace` 는 `.app` 의 직속 자식이고 grid 칸은 `.app > *` 가
-   * 정한다 (PanelWorkspace.css). 옛 3×3 grid 시절의 `grid-area: main` 은 두지 않는다
-   * (특이도 (0,1,1) 가 `.app > *` 를 이겨 캔버스를 다른 칸으로 밀어낸다 — 2026-11-11). */
-  .app main {
-    display: flex;
-    flex-wrap: nowrap;
-    flex-direction: column;
-    position: relative;
-    z-index: 1;
-
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-  }
-
   /* Background Container */
   .app .bg {
     display: flex;

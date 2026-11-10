@@ -13,7 +13,8 @@
  */
 
 const TOP_CHROME_SELECTOR = ".panel-workspace > .header";
-const LEFT_CHROME_SELECTOR = '.panel-toggle-rail[data-side="left"]';
+const LEFT_CHROME_SELECTOR =
+  '.panel-workspace > .panel-toggle-rail[data-side="left"]';
 
 export interface CanvasViewportInset {
   /** 가시 영역 좌단 (캔버스 로컬 screen px) */

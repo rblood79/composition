@@ -1,7 +1,14 @@
 /* `clip` — 스크롤 컨테이너가 아니어야 한다. `hidden` 은 사용자 스크롤만 막고 프로그램 스크롤
    (focus / caret scrollIntoView) 은 허용해서, 텍스트 편집 진입 시 캔버스 전체가 옆으로 밀리고
-   종료 후에도 scrollLeft 가 남았다 (ADR-027 D0, 2026-09-20 live: 200% 줌 1091.5 → 잔존 127.5). */
+   종료 후에도 scrollLeft 가 남았다 (ADR-027 D0, 2026-09-20 live: 200% 줌 1091.5 → 잔존 127.5).
+   `main.workspace` 의 상자 · 배치는 이 규칙 하나가 갖는다 — 칸 (grid-area) 은 `.app > *`
+   (PanelWorkspace.css). 2026-11-11 canvas.css 의 `.app main` (옛 3×3 grid 의 `grid-area: main` ·
+   여기서 이미 덮이던 position · z-index · height) 을 걷어내고 살아 있던 flex 배치만 옮겼다. */
 .workspace {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+  justify-content: center;
   position: relative;
   width: 100%;
   height: 100%;

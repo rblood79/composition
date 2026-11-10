@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
  * 의 `maxWidth: "100%"` 가 창 크기를 따라가지 않았다.
  * (2026-11-11 dock 래퍼를 걷어내며 측정 대상은 `.panel-dock-surface` · 이름은 surfaceRect 로 바뀜.)
  */
-describe("PanelWorkspaceContent stage observer", () => {
+describe("PanelWorkspaceContent surface observer", () => {
   it("effect 가 마운트된 트리 (hydrated · fallback) 가 바뀔 때 다시 관찰한다", async () => {
     const source = await readFile(
       resolve(__dirname, "PanelWorkspace.tsx"),
