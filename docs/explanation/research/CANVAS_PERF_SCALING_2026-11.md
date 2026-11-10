@@ -210,7 +210,7 @@
 - select 의 −23 % 는 C1 (같은 타입 선택 사이 필드 유지) 이다. 다른 타입 사이 선택은 그대로 (본문이 타입마다 달라 mount 는 정상).
 - C1 은 선택 비용의 「문서 크기 무관 상수」 를 줄였을 뿐 — Component · Accessibility · State 절 (같은 타입 선택에 남은 mount 223) 과 다른 타입 선택은 손대지 않았다.
 - B3 의 남은 비용: 꼬리 splice 가 command buffer segment 를 늘려 drag 프레임의 `commandCursorIndex` 선형 탐색이 늘었다 (66 장 drag 45k 호출 — full build 를 만날 때까지 segment 가 줄지 않는다, 기존 commit splice 와 같은 성질).
-- 의심 (미확인): Layers 트리도 Pages 와 같은 flex column 규칙 아래 Virtualizer 를 쓴다 — 행이 패널보다 많을 때 스크롤 범위가 잘리는지 실제로 확인하지 않았다.
+- Layers 트리도 Pages 와 같은 flex column 규칙 아래 Virtualizer 를 쓴다 — 행이 패널보다 많을 때의 스크롤은 사용자가 확인했다 (2026-11-11).
 - live (dev, 새 프로젝트 `perf-s1-live`): Pages 32 장 스크롤 · 행 전환 · 열린 페이지 삭제 → 이웃 · 이름 변경 / Button 두 개 사이 선택 · 값 따라옴 · 입력 중 다른 요소 클릭 / Button 끌어 순서 바꾸기 · 직후 편집 patch.
 
 ## 9. edit 배율 (2026-11-11, 2단계 뒤)
