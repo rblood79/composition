@@ -83,7 +83,7 @@ async function idbGetAll(page, store) {
 }
 async function openCompare(page) {
   const compareToggle = page
-    .locator('[aria-label="Compare Mode (Preview + Skia)"]')
+    .locator('[aria-label="Compare mode (Preview + Skia)"]')
     .first();
   if (
     (await compareToggle.count()) &&

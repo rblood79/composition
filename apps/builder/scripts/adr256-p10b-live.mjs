@@ -58,7 +58,7 @@ async function addFromPalette(label, match = new RegExp(`^${label}$`, "i")) {
 }
 async function compareOn() {
   const button = page
-    .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+    .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
     .first();
   if (await button.isVisible().catch(() => false)) await button.click();
   await page.waitForTimeout(3000);
@@ -214,7 +214,7 @@ const viewDom = () =>
 
 await newProject(`adr256-p10b-${Date.now()}`);
 await compareOn();
-await addFromPalette("Card View", /^Card ?View$/i);
+await addFromPalette("Card view", /^Card ?View$/i);
 await page.waitForTimeout(1500);
 
 // L-1: CardView = RAC GridList (role grid) of its Cards (role row), Canvas = Preview boxes.
@@ -286,7 +286,7 @@ record(
 errorsAt.push(["L-3", errors.length]);
 
 // L-4: a ButtonGroup takes a Text (free content — the limit row is gone): Canvas box and Preview child.
-await addFromPalette("Button Group", /^Button ?Group$/i);
+await addFromPalette("Button group", /^Button ?Group$/i);
 await page.waitForTimeout(1500);
 const groupId = await page.evaluate(() => {
   const ws = window.__COMPOSITION_CATALOG__.workspace;

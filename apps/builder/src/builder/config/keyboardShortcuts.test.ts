@@ -37,7 +37,7 @@ describe("keyboardShortcuts ADR-112 editing semantics", () => {
       "탐색기 패널 토글",
     );
     expect(localizedStrings["en-US"]["command.toggleNavigator"]).toBe(
-      "Toggle Navigator Panel",
+      "Toggle navigator panel",
     );
   });
 });

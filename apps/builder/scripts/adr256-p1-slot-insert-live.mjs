@@ -74,7 +74,7 @@ await page.waitForTimeout(1500);
 // ── (1) Toolbar root slot ────────────────────────────────────────────────
 await addFromPalette("toolbar");
 await page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first()
   .click();
 await page.waitForTimeout(2500);

@@ -35,7 +35,7 @@ const labelPosition: ResolvedField = {
 const labelAlign: ResolvedField = {
   key: "labelAlign",
   kind: "enum",
-  label: "Label Align",
+  label: "Label align",
   section: "layout",
   origin: "semantic",
   isOverridden: false,

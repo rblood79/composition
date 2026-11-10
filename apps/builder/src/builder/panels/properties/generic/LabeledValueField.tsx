@@ -34,11 +34,11 @@ const valueOptions = [
   { value: "text", label: "Text" },
   { value: "number", label: "Number" },
   { value: "list", label: "List" },
-  { value: "range", label: "Number Range" },
+  { value: "range", label: "Number range" },
   { value: "date", label: "Date" },
-  { value: "datetime", label: "Date and Time" },
+  { value: "datetime", label: "Date and time" },
   { value: "time", label: "Time" },
-  { value: "dateRange", label: "Date Range" },
+  { value: "dateRange", label: "Date range" },
 ];
 const formatOptions = [
   { value: "default", label: "Default" },
@@ -123,7 +123,7 @@ function LabeledFormatField({ value, onChange }: Props) {
       )}
       {text("type") && (
         <PropertySelect
-          label="List Type"
+          label="List type"
           value={text("type") ?? "conjunction"}
           options={["conjunction", "disjunction", "unit"].map((value) => ({
             value,
@@ -156,7 +156,7 @@ export function LabeledValueField(props: Props) {
   return (
     <>
       <PropertySelect
-        label="Value Type"
+        label="Value type"
         value={kind}
         options={valueOptions}
         onChange={(key) => write(seeds[String(key)])}

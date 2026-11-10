@@ -124,7 +124,7 @@ await page.waitForFunction(() => window.__COMPOSITION_CATALOG__?.workspace, null
 await page.waitForTimeout(1500);
 await addFromPalette("checkbox");
 await addFromPalette("switch");
-const compare = page.getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true }).first();
+const compare = page.getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true }).first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await page.waitForTimeout(3000);
 

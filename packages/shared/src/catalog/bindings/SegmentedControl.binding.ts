@@ -3,18 +3,18 @@ import type { PrimitiveBinding, PropContract } from "../types";
 const ariaLabelingProps = {
   "aria-label": {
     kind: "string",
-    label: "Accessible Label",
+    label: "Accessible label",
     section: "content",
     editorHidden: true,
   },
   "aria-labelledby": {
     kind: "string",
-    label: "Labelled By",
+    label: "Labelled by",
     section: "content",
   },
   "aria-describedby": {
     kind: "string",
-    label: "Described By",
+    label: "Described by",
     section: "content",
   },
   "aria-details": { kind: "string", label: "Details", section: "content" },
@@ -34,10 +34,10 @@ export const segmentedControlBinding: PrimitiveBinding = {
       },
       // (Selection sits in Content like Tabs — one prop, one section across components, 사용자 결정
       //   2026-10-13; `propSectionConsistency.test.ts`.)
-      selectedKey: { kind: "string", label: "Selected Key", section: "content" },
+      selectedKey: { kind: "string", label: "Selected key", section: "content" },
       defaultSelectedKey: {
         kind: "string",
-        label: "Default Selected Key",
+        label: "Default selected key",
         section: "content",
       },
       // S2 fixes horizontal; Composition exposes RAC's keyboard/layout axis explicitly.

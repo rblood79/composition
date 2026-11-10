@@ -211,7 +211,7 @@ try {
       await rail("Components");
       await page
         .getByRole("button", {
-          name: "Compare Mode (Preview + Skia)",
+          name: "Compare mode (Preview + Skia)",
           exact: true,
         })
         .click();
@@ -269,14 +269,14 @@ try {
         check(
           `${type}: body Design typography`,
           (await panel()
-            .getByRole("combobox", { name: "Font Size", exact: true })
+            .getByRole("combobox", { name: "Font size", exact: true })
             .inputValue()) === "14" &&
             (await panel()
-              .getByRole("combobox", { name: "Line Height", exact: true })
+              .getByRole("combobox", { name: "Line height", exact: true })
               .inputValue()) === "21",
         );
         const lineHeight = panel().getByRole("combobox", {
-          name: "Line Height",
+          name: "Line height",
           exact: true,
         });
         await lineHeight.fill("28");
@@ -394,7 +394,7 @@ try {
       await width.press("Enter");
       await panel().getByRole("tab", { name: "Property", exact: true }).click();
       await panel()
-        .getByRole("radiogroup", { name: "Necessity Indicator", exact: true })
+        .getByRole("radiogroup", { name: "Necessity indicator", exact: true })
         .getByRole("radio", { name: "Label", exact: true })
         .click();
       await pause();
@@ -551,7 +551,7 @@ try {
       if (!(await page.locator("#previewFrame").count()))
         await page
           .getByRole("button", {
-            name: "Compare Mode (Preview + Skia)",
+            name: "Compare mode (Preview + Skia)",
             exact: true,
           })
           .click();

@@ -55,7 +55,7 @@ export const tabsBinding: PrimitiveBinding = {
       //   Selected is a state.)
       defaultSelectedKey: {
         kind: "enum",
-        label: "Selected Tab",
+        label: "Selected tab",
         section: "content",
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },

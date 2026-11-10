@@ -121,7 +121,7 @@ async function select(id) {
 }
 /** Slot 채우기 절: Target slot 셀렉트 → 영역 label · Component 셀렉트 → 후보 label · Fill. */
 async function fillSlot(regionLabel, candidateLabel) {
-  const section = page.locator(".section", { hasText: "Slot Fill" }).first();
+  const section = page.locator(".section", { hasText: "Slot fill" }).first();
   const pick = async (fieldLabel, optionLabel) => {
     const trigger = section
       .locator("fieldset", { hasText: fieldLabel })
@@ -148,7 +148,7 @@ async function fillSlot(regionLabel, candidateLabel) {
   return { initialRegion: regions };
 }
 async function slotRegionOptions() {
-  const section = page.locator(".section", { hasText: "Slot Fill" }).first();
+  const section = page.locator(".section", { hasText: "Slot fill" }).first();
   if ((await section.count()) === 0) return null;
   await section
     .locator("fieldset", { hasText: "Target slot" })

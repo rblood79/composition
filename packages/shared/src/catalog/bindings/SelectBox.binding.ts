@@ -32,10 +32,10 @@ export const selectBoxBinding: PrimitiveBinding = {
         section: "content",
         editorHidden: true,
       },
-      textValue: { kind: "string", label: "Text Value", section: "content" },
+      textValue: { kind: "string", label: "Text value", section: "content" },
       "aria-label": {
         kind: "string",
-        label: "Accessible Label",
+        label: "Accessible label",
         section: "content",
         editorHidden: true,
       },

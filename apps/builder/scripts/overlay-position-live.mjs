@@ -216,7 +216,7 @@ await page.waitForFunction(
 );
 await page.waitForTimeout(1500);
 const compare = page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await page.waitForTimeout(1500);
@@ -239,13 +239,13 @@ for (const [kind, label, trigger, hasWidth] of OWNERS) {
   const { id, source } = await select(kind);
   await place(source, hasWidth);
   const offered = [];
-  for (const legend of ["Direction", "Align", "Menu Width"])
+  for (const legend of ["Direction", "Align", "Menu width"])
     if (await openDesign(legend)) offered.push(legend);
   record(
     `${kind}: the Design panel offers Direction · Align${hasWidth ? " · Menu Width" : ""}`,
     offered.includes("Direction") &&
       offered.includes("Align") &&
-      offered.includes("Menu Width") === hasWidth,
+      offered.includes("Menu width") === hasWidth,
     offered,
   );
 
@@ -285,7 +285,7 @@ for (const [kind, label, trigger, hasWidth] of OWNERS) {
     await openDesign("Direction");
     await pick("Direction", "Top");
     await pick("Align", "End");
-    await type("Menu Width", "320");
+    await type("Menu width", "320");
     const closedAfter = await triggerBox(id, trigger);
     await openMenu(kind, id);
     const after = await menuBox(id, trigger, closedAfter);

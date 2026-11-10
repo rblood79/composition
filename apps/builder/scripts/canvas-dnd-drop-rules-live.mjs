@@ -207,7 +207,7 @@ const placed = await placement(ids.A);
 check("3a Control drag — A 가 F 의 마지막 자식 · absolute placement", fKids.at(-1) === ids.A && placed?.kind === "absolute", { fKids, placed });
 
 // Preview (Compare Mode): A's DOM box sits at the same offset in F as on the Canvas.
-const compare = page.getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true }).first();
+const compare = page.getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true }).first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await wait(3000);
 const geometry = await exec(

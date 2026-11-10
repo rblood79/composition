@@ -76,7 +76,7 @@ await page.waitForTimeout(1500);
 await addFromPalette("select");
 await addFromPalette("date range picker");
 await page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first()
   .click();
 await page.waitForTimeout(2000);

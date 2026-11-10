@@ -124,14 +124,14 @@ try {
   await panel.locator(".panel-tab").nth(2).click();
   await page.waitForTimeout(400);
   await panel
-    .locator('button:has-text("Add Variable"), button:has-text("변수 추가")')
+    .locator('button:has-text("Add variable"), button:has-text("변수 추가")')
     .first()
     .click();
   const creator = page.locator(".datatable-creator");
   await creator.waitFor({ timeout: 10_000 });
   await creator.locator('input[aria-label="Name"], input[aria-label="이름"]').fill("userName");
   await creator
-    .locator('button:has-text("Create Variable"), button:has-text("변수 만들기")')
+    .locator('button:has-text("Create variable"), button:has-text("변수 만들기")')
     .last()
     .click();
   await page.waitForTimeout(800);
@@ -150,7 +150,7 @@ try {
   // 편집기 (variable-edit) 의 Default Value
   const editor = page.locator('[data-panel-id="datatableEditor"]');
   const defaultInput = editor
-    .locator("fieldset", { has: page.locator('legend:has-text("Default Value")') })
+    .locator("fieldset", { has: page.locator('legend:has-text("Default value")') })
     .locator("input")
     .first();
   await defaultInput.waitFor({ timeout: 10_000 });
@@ -270,13 +270,13 @@ try {
 
   // 미사용 변수 생성 + 기본값 편집 → sceneVersion 불변
   await panel
-    .locator('button:has-text("Add Variable"), button:has-text("변수 추가")')
+    .locator('button:has-text("Add variable"), button:has-text("변수 추가")')
     .first()
     .click();
   await creator.waitFor({ timeout: 10_000 });
   await creator.locator('input[aria-label="Name"], input[aria-label="이름"]').fill("unusedVar");
   await creator
-    .locator('button:has-text("Create Variable"), button:has-text("변수 만들기")')
+    .locator('button:has-text("Create variable"), button:has-text("변수 만들기")')
     .last()
     .click();
   await page.waitForTimeout(800);

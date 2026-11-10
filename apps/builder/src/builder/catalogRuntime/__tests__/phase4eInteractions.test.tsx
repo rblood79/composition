@@ -369,7 +369,7 @@ describe("ADR-248 Phase 4e-4e Interactions", () => {
     const start = graph.revision;
     // (The new rule opens: its editor ends with 「Add Do」.)
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Add Do" }));
+      fireEvent.click(screen.getByRole("button", { name: "Add do" }));
     });
     expect(graph.revision).toBe(start + 1);
     const [rule] = catalogInteractionsOf(graph, owner);

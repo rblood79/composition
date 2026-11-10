@@ -192,7 +192,7 @@ const skia = {
 // Compare Mode ON
 await ev(() => {
   const btn = document.querySelector(
-    'button[aria-label="Compare Mode (Preview + Skia)"]',
+    'button[aria-label="Compare mode (Preview + Skia)"]',
   );
   btn?.click();
 });

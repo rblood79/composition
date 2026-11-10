@@ -122,7 +122,7 @@ try {
     .getByRole("button", { name: "segmented control", exact: true })
     .click();
   await page
-    .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+    .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
     .click();
   await page.frameLocator("#previewFrame").getByRole("radio").first().waitFor();
   await settle();
@@ -242,7 +242,7 @@ try {
   );
   await selectGroup();
   const selected = panel()
-    .getByRole("group", { name: "Selected Key", exact: true })
+    .getByRole("group", { name: "Selected key", exact: true })
     .getByRole("textbox");
   await selected.fill("second");
   await selected.press("Tab");
@@ -277,7 +277,7 @@ try {
   if (!(await page.locator("#previewFrame").count()))
     await page
       .getByRole("button", {
-        name: "Compare Mode (Preview + Skia)",
+        name: "Compare mode (Preview + Skia)",
         exact: true,
       })
       .click();

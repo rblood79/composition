@@ -86,7 +86,7 @@ async function previewReady() {
   if (!(await page.locator("#previewFrame").count()))
     await page
       .getByRole("button", {
-        name: "Compare Mode (Preview + Skia)",
+        name: "Compare mode (Preview + Skia)",
         exact: true,
       })
       .click();
@@ -113,7 +113,7 @@ async function createProject() {
   await rail("Components");
   await rail("Design");
   await page
-    .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+    .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
     .click();
   await page.frameLocator("#previewFrame").locator("body").waitFor();
 }
@@ -235,7 +235,7 @@ try {
     value.find((n) => n.type === "TextArea"),
   );
   await panel().getByRole("button", { name: "Disabled", exact: true }).click();
-  await panel().getByRole("button", { name: "Read Only", exact: true }).click();
+  await panel().getByRole("button", { name: "Read only", exact: true }).click();
   await settle();
   value = await state();
   check(

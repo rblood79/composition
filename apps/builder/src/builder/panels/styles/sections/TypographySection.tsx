@@ -230,7 +230,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
     <>
       {/* 1행: 글꼴 (legend — 다른 Select 와 같은 칸, 2026-11-10 사용자 지적) | 색 swatch 28 (상자 줄에 맞춤) */}
       <FontFamilyPicker
-        label="Font Family"
+        label="Font family"
         value={styleValues.fontFamilyAuthored}
         inheritedFamily={
           styleValues.fontFamilyAuthored ? undefined : styleValues.fontFamily
@@ -511,11 +511,11 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         options={[
           { value: "auto", label: "Auto" },
           { value: "normal", label: "Normal" },
-          { value: "nowrap", label: "No Wrap" },
+          { value: "nowrap", label: "No wrap" },
           { value: "truncate", label: "Truncate (…)" },
-          { value: "break-words", label: "Break Words" },
-          { value: "break-all", label: "Break All" },
-          { value: "keep-all", label: "Keep All (CJK)" },
+          { value: "break-words", label: "Break words" },
+          { value: "break-all", label: "Break all" },
+          { value: "keep-all", label: "Keep all (CJK)" },
           { value: "custom", label: "Custom…" },
         ]}
         onChange={handleTextBehaviorChange}

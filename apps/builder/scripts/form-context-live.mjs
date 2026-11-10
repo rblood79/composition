@@ -152,7 +152,7 @@ await page.waitForFunction(
 );
 await page.waitForTimeout(1500);
 const compare = page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await page.waitForTimeout(1500);
@@ -162,12 +162,12 @@ await page.waitForTimeout(1500);
 await selectForm();
 await page.waitForTimeout(1000);
 for (let i = 0; i < 3; i++) {
-  if (await field("Label Position").isVisible().catch(() => false)) break;
+  if (await field("Label position").isVisible().catch(() => false)) break;
   await page.getByRole("button", { name: "Design", exact: true }).first().click();
   await page.waitForTimeout(1200);
 }
 const before = await read();
-await pick("Label Position", "Side");
+await pick("Label position", "Side");
 const side = await read();
 record(
   "Form Label Position Side: every field side · label column 176 on the Canvas and the Preview (top before)",
@@ -182,7 +182,7 @@ record(
     ),
   { before: before.fields, side: side.fields },
 );
-await pick("Label Align", "End");
+await pick("Label align", "End");
 const end = await read();
 record(
   "Form Label Align End: label text at the column end on both",

@@ -154,7 +154,7 @@ const canvasRows = (treeId) =>
 // ── Compare Mode ON ────────────────────────────────────────────────────────
 await ev(() =>
   document
-    .querySelector('button[aria-label="Compare Mode (Preview + Skia)"]')
+    .querySelector('button[aria-label="Compare mode (Preview + Skia)"]')
     ?.click(),
 );
 await page.waitForTimeout(6000);

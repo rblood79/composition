@@ -70,7 +70,7 @@ export const numberFieldBinding: PrimitiveBinding = {
       //   자신이 지정하면 자신이 우선 (nearest-wins).
       labelAlign: {
         kind: "enum",
-        label: "Label Align",
+        label: "Label align",
         section: "appearance",
         default: "start",
         options: [
@@ -86,7 +86,7 @@ export const numberFieldBinding: PrimitiveBinding = {
       //   "decrement" Buttons hide in both consumers (`presence.ts` catalogHiddenAtRest).
       hideStepper: {
         kind: "boolean",
-        label: "Hide Stepper",
+        label: "Hide stepper",
         section: "appearance",
       },
       // RAC NumberField props

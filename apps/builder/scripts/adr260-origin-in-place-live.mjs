@@ -144,7 +144,7 @@ await newProject(page, "ADR-260 live");
 const kept = {};
 for (const [label, type, part] of [
   ["Button", "Button", undefined],
-  ["Toggle Button Group", "ToggleButtonGroup", "ToggleButton"],
+  ["Toggle button group", "ToggleButtonGroup", "ToggleButton"],
   ["Card", "Card", undefined],
 ]) {
   const before = await nodesOf(type);

@@ -69,7 +69,7 @@ await page.waitForTimeout(1500);
 await page.getByRole("button", { name: "Design", exact: true }).first().click().catch(() => {});
 
 const out = {};
-for (const [label, type] of [["Button", "Button"], ["Toggle Button Group", "ToggleButton"]]) {
+for (const [label, type] of [["Button", "Button"], ["Toggle button group", "ToggleButton"]]) {
   const before = await recordsOf(type);
   await addFromPalette(label);
   const target = (await recordsOf(type)).filter((id) => !before.includes(id))[0];

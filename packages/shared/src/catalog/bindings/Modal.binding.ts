@@ -32,7 +32,7 @@ export const modalBinding: PrimitiveBinding = {
       isOpen: { kind: "boolean", label: "Open", section: "state" },
       defaultOpen: {
         kind: "boolean",
-        label: "Initially Open",
+        label: "Initially open",
         section: "state",
       },
       // ADR-256 Phase 8b: an outside press closes the overlay (RAC `ModalOverlayProps` — the
@@ -44,7 +44,7 @@ export const modalBinding: PrimitiveBinding = {
       },
       trapFocus: {
         kind: "boolean",
-        label: "Trap Focus",
+        label: "Trap focus",
         section: "state",
         editorHidden: true,
       },

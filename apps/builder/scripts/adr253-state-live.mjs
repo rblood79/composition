@@ -164,7 +164,7 @@ await step("place", async () => {
     );
   }
   await page
-    .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+    .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
     .first()
     .click();
   await page.waitForTimeout(1800);

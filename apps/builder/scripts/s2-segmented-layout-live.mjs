@@ -238,7 +238,7 @@ try {
   await components.getByRole("searchbox").fill(palette);
   await components.getByRole("button", { name: palette, exact: true }).click();
   await page
-    .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+    .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
     .click();
   await page
     .frameLocator("#previewFrame")
@@ -360,7 +360,7 @@ try {
   if (!(await page.locator("#previewFrame").count()))
     await page
       .getByRole("button", {
-        name: "Compare Mode (Preview + Skia)",
+        name: "Compare mode (Preview + Skia)",
         exact: true,
       })
       .click();

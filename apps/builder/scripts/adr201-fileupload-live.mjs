@@ -291,7 +291,7 @@ async function main() {
 
     // ── 3) Compare Mode Preview ───────────────────────────────────────────
     const compareToggle = page
-      .locator('[aria-label="Compare Mode (Preview + Skia)"]')
+      .locator('[aria-label="Compare mode (Preview + Skia)"]')
       .first();
     if (await compareToggle.count()) {
       await compareToggle.click();

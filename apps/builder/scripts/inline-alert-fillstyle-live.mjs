@@ -151,14 +151,14 @@ await page.waitForFunction(
 );
 await page.waitForTimeout(1500);
 const compare = page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await page.waitForTimeout(1500);
 
 await addFromPalette("inline alert");
 const alert = await select("InlineAlert");
-const hasFill = await openDesign("Fill Style");
+const hasFill = await openDesign("Fill style");
 record("Design offers Fill Style on an InlineAlert", hasFill, { alert });
 
 const outline = await read(alert.id);
@@ -172,7 +172,7 @@ record(
   outline,
 );
 
-await choose("Fill Style", "Subtle Fill");
+await choose("Fill style", "Subtle fill");
 const subtle = await read(alert.id);
 await page.screenshot({ path: `${OUT}/subtle.png` });
 record(
@@ -184,7 +184,7 @@ record(
   subtle,
 );
 
-await choose("Fill Style", "Bold Fill");
+await choose("Fill style", "Bold fill");
 const bold = await read(alert.id);
 await page.screenshot({ path: `${OUT}/bold.png` });
 record(

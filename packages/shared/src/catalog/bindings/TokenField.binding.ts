@@ -11,7 +11,7 @@ export const tokenFieldBinding: PrimitiveBinding = {
       placeholder: { kind: "string", label: "Placeholder", section: "content" },
       allowsNewlines: {
         kind: "boolean",
-        label: "Allows Newlines",
+        label: "Allows newlines",
         section: "state",
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },

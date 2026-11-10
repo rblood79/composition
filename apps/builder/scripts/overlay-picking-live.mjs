@@ -51,7 +51,7 @@ async function addFromPalette(label, match = new RegExp(`^${label}$`, "i")) {
 }
 async function compareOn() {
   const button = page
-    .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+    .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
     .first();
   if (
     !(await page.locator("#previewFrame").count()) &&
@@ -257,7 +257,7 @@ try {
       // 다음 fixture는 새 Preview 세션으로 연다. 외부 Canvas 클릭은 RAC popup을 닫을 수 있다.
       await page
         .getByRole("button", {
-          name: "Skia Only Mode",
+          name: "Skia only mode",
           exact: true,
         })
         .click();

@@ -73,7 +73,7 @@ const snapshot = () =>
 
 // Two components: a Button and a Radio Group, each with an instance on the page.
 const made = {};
-for (const [label, type] of [["Button", "Button"], ["Radio Group", "RadioGroup"]]) {
+for (const [label, type] of [["Button", "Button"], ["Radio group", "RadioGroup"]]) {
   const before = await nodesOf(type);
   await addFromPalette(label);
   const origin = (await nodesOf(type)).find((id) => !before.includes(id));

@@ -81,7 +81,7 @@ try {
   const servedIndexSha256 = sha256(await (await page.request.get(baseUrl)).body());
   await openPanels(page, ["navigator", "properties"]);
   await page.locator(".navigator-panel-tab", { hasText: /^Layouts$/ }).click();
-  await page.locator('button[aria-label="Add Layout"]').click();
+  await page.locator('button[aria-label="Add layout"]').click();
   await page
     .locator(
       '.section[data-section-id="navigator-layouts"] .elementItemLabel',
@@ -89,7 +89,7 @@ try {
     )
     .click();
   const preset = page.locator('[data-panel-id="properties"] .section', {
-    hasText: "Layout Preset",
+    hasText: "Layout preset",
   });
   await preset.first().waitFor();
   await preset
@@ -187,7 +187,7 @@ try {
     return { pageId, bodyId: body.id };
   });
   const applyLayout = page
-    .locator('[data-panel-id="properties"] button[aria-label="Apply Layout"]')
+    .locator('[data-panel-id="properties"] button[aria-label="Apply layout"]')
     .first();
   await applyLayout.waitFor();
   await applyLayout.click();

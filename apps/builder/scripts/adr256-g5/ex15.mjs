@@ -13,8 +13,8 @@ const month = (cell) => `h("div", null, h("div", null,
   h(R.CalendarGrid, null, (date) => ${cell})))`;
 const calendarRef = (props = "{}") => `(h, R, React, D) => h(R.Calendar, { "aria-label": "Calendar", ...${props} }, ${month(`h(R.CalendarCell, { date })`)})`;
 const rangeRef = (props = "{}") =>
-  `(h, R) => h(R.RangeCalendar, { "aria-label": "Range Calendar", ...${props} }, ${month(`h(R.CalendarCell, { date }, ({ defaultChildren }) => h("span", null, defaultChildren))`)})`;
-// (The origins name themselves — `aria-label` "Calendar" · "Range Calendar"; the example's are
+  `(h, R) => h(R.RangeCalendar, { "aria-label": "Range calendar", ...${props} }, ${month(`h(R.CalendarCell, { date }, ({ defaultChildren }) => h("span", null, defaultChildren))`)})`;
+// (The origins name themselves — `aria-label` "Calendar" · "Range calendar"; the example's are
 // unnamed — the reference takes the same name to compare the rest.)
 // (A mid-month date: the grid's third week, Wednesday · the fourth week, Friday.)
 const CELL_A = 'tbody tr:nth-child(3) td:nth-child(4) [role="button"]';

@@ -40,10 +40,10 @@ await page.waitForURL(/\/builder\//, { timeout: 30000 });
 await page.waitForSelector(".app:not(.builder-booting)", { timeout: 30000 });
 await ready();
 await page.waitForTimeout(1500);
-const compare = page.getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true }).first();
+const compare = page.getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true }).first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await page.waitForTimeout(2000);
-const hosts = ["Checkbox Group", "Radio Group", "Button Group", "Toolbar", "Card", "Form"];
+const hosts = ["Checkbox group", "Radio group", "Button group", "Toolbar", "Card", "Form"];
 for (const host of hosts) await addFromPalette(host).catch((e) => errors.push(`add ${host}: ${e.message.slice(0, 120)}`));
 await page.waitForTimeout(1500);
 const report = await page.evaluate(() => {

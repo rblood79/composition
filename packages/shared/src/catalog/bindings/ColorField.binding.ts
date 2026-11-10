@@ -66,7 +66,7 @@ export const colorFieldBinding: PrimitiveBinding = {
       },
       labelAlign: {
         kind: "enum",
-        label: "Label Align",
+        label: "Label align",
         section: "appearance",
         default: "start",
         options: [

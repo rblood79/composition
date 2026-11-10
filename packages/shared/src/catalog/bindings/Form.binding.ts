@@ -59,7 +59,7 @@ export const formBinding: PrimitiveBinding = {
       },
       labelAlign: {
         kind: "enum",
-        label: "Label Align",
+        label: "Label align",
         section: "appearance",
         default: "start",
         options: [
@@ -87,7 +87,7 @@ export const formBinding: PrimitiveBinding = {
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       validationBehavior: {
         kind: "enum",
-        label: "Validation Behavior",
+        label: "Validation behavior",
         section: "state",
         default: "native",
         options: [
@@ -112,15 +112,15 @@ export const formBinding: PrimitiveBinding = {
       },
       encType: {
         kind: "enum",
-        label: "Enc Type",
+        label: "Enc type",
         section: "state",
         options: [
           {
             value: "application/x-www-form-urlencoded",
-            label: "URL Encoded",
+            label: "URL encoded",
           },
           { value: "multipart/form-data", label: "Multipart" },
-          { value: "text/plain", label: "Plain Text" },
+          { value: "text/plain", label: "Plain text" },
         ],
       },
       target: {

@@ -203,12 +203,12 @@ describe("DataTableList (ADR-212 Phase 1)", () => {
     expect(dialog.querySelectorAll(".fieldset-row").length).toBe(4);
     expect(dialog.querySelector(".settings-editor, .settings-input")).toBeNull();
     const name = [...dialog.querySelectorAll("fieldset")].find(
-      (f) => f.querySelector("legend")?.textContent === "Table Name",
+      (f) => f.querySelector("legend")?.textContent === "Table name",
     );
     expect((name?.querySelector("input") as HTMLInputElement).value).toBe(
       "Users",
     );
-    expect(dialog.textContent).toContain("Use Table Data");
+    expect(dialog.textContent).toContain("Use table data");
     expect(dialog.textContent).toContain("API endpoint");
     expect(dialog.textContent).toContain("Execution policy");
   });

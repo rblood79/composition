@@ -388,7 +388,7 @@ async function main() {
     if (sliderId)
       await page.evaluate(({ id }) => window.__composition_STORE__.getState().updateElementProps(id, { minValue: 0, maxValue: 938, step: 1, defaultValue: 0, "aria-label": "window", label: "", showValueLabel: false }), { id: sliderId });
     await page.waitForTimeout(1200);
-    const compare = page.locator('[aria-label="Compare Mode (Preview + Skia)"]').first();
+    const compare = page.locator('[aria-label="Compare mode (Preview + Skia)"]').first();
     if (await compare.count()) {
       await compare.click();
       await page.waitForTimeout(4000);

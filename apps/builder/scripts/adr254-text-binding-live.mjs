@@ -195,7 +195,7 @@ const SELECTOR_OF = {
 await step("setup", async () => {
   for (const { palette } of CASES) await addFromPalette(palette);
   await page
-    .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+    .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
     .first()
     .click();
   await page.waitForTimeout(3000);

@@ -124,7 +124,7 @@ await page.waitForFunction(
 );
 await page.waitForTimeout(1500);
 const compare = page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await page.waitForTimeout(1500);
@@ -164,7 +164,7 @@ const zone = await select("DropZone");
 const hasFilled = await openDesign("Filled");
 record("Design offers Filled on a DropZone", hasFilled, { zone });
 await toggleBool("Filled");
-await type("Replace Message", "Drop to swap");
+await type("Replace message", "Drop to swap");
 const banner = (id) =>
   page.evaluate((id) => {
     const doc = document.querySelector("#previewFrame").contentDocument;

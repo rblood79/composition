@@ -85,18 +85,18 @@ export const UNIVERSAL_STYLE_CONTRACTS: Record<string, PropContract> = {
   // typography
   fontSize: { kind: "number", label: "Font Size", section: "typography" },
   lineHeight: { kind: "number", label: "Line Height", section: "typography" },
-  color: { kind: "string", label: "Text Color", section: "typography" },
+  color: { kind: "string", label: "Text color", section: "typography" },
   // appearance
   backgroundColor: {
     kind: "string",
     label: "Background",
     section: "appearance",
   },
-  borderColor: { kind: "string", label: "Border Color", section: "appearance" },
+  borderColor: { kind: "string", label: "Border color", section: "appearance" },
   borderWidth: { kind: "number", label: "Border Width", section: "appearance" },
   borderRadius: {
     kind: "number",
-    label: "Corner Radius",
+    label: "Corner radius",
     section: "appearance",
   },
   // transform

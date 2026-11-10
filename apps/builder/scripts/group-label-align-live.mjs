@@ -137,7 +137,7 @@ await page.waitForFunction(
 );
 await page.waitForTimeout(1500);
 const compare = page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await page.waitForTimeout(1500);
@@ -152,21 +152,21 @@ for (const [type, paletteLabel, expected] of [
   await selectType(type);
   await page.waitForTimeout(1000);
   for (let i = 0; i < 3; i++) {
-    if (await field("Label Position").isVisible().catch(() => false)) break;
+    if (await field("Label position").isVisible().catch(() => false)) break;
     await page
       .getByRole("button", { name: "Design", exact: true })
       .first()
       .click();
     await page.waitForTimeout(1200);
   }
-  const hiddenBefore = (await field("Label Align").count()) === 0;
-  await pick("Label Position", "Side");
+  const hiddenBefore = (await field("Label align").count()) === 0;
+  await pick("Label position", "Side");
   const options = (
-    await field("Label Align").locator("[role='radio']").allInnerTexts()
+    await field("Label align").locator("[role='radio']").allInnerTexts()
   )
     .map((t) => t.trim())
     .filter(Boolean);
-  const optionNames = await field("Label Align")
+  const optionNames = await field("Label align")
     .locator("[role='radio']")
     .evaluateAll((els) =>
       els.map((e) => e.getAttribute("aria-label") || e.textContent.trim()),
@@ -179,7 +179,7 @@ for (const [type, paletteLabel, expected] of [
     { hiddenBefore, options, optionNames },
   );
   const start = await read(type);
-  await pick("Label Align", "End");
+  await pick("Label align", "End");
   const end = await read(type);
   record(
     `${type}: End → Preview data-label-align end · label text at the column end · Canvas text-align end (start before)`,

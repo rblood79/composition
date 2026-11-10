@@ -129,7 +129,7 @@ async function selectOwner(id) {
 async function enterCompare() {
   const compare = page
     .getByRole("button", {
-      name: "Compare Mode (Preview + Skia)",
+      name: "Compare mode (Preview + Skia)",
       exact: true,
     })
     .first();

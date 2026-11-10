@@ -57,7 +57,7 @@ async function addFromPalette(label) {
 }
 async function compareOn() {
   const button = page
-    .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+    .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
     .first();
   if (await button.isVisible().catch(() => false)) await button.click();
   await page.waitForTimeout(3000);
@@ -693,7 +693,7 @@ const pressPreview = (id) =>
     el.dispatchEvent(new view.MouseEvent("mouseup", { ...at, buttons: 0, detail: 1 }));
     el.dispatchEvent(new view.MouseEvent("click", { ...at, buttons: 0, detail: 1 }));
   }, id);
-await chip(g4Columns[0], "Allow Sorting");
+await chip(g4Columns[0], "Allow sorting");
 const sortBefore = await builderState();
 const atRest = await previewSort();
 await pressPreview(g4Columns[0]);
@@ -747,7 +747,7 @@ const canvasWidths = () =>
   }, g4Columns);
 const unwrapped = await previewWidths();
 const canvasBefore = await canvasWidths();
-await chip(g4Columns[1], "Allow Resizing");
+await chip(g4Columns[1], "Allow resizing");
 const wrapped0 = await previewWidths();
 const near = (a, b, tolerance) =>
   a.length === b.length && a.every((v, i) => v !== null && Math.abs(v - b[i]) <= tolerance);
@@ -895,7 +895,7 @@ record(
   tvSelected[1] === "true" && tvSelected[0] !== "true",
   { tvSelected },
 );
-await chip(tvColumns[0], "Allow Sorting");
+await chip(tvColumns[0], "Allow sorting");
 const tvBefore = await tvHistory();
 const tvSort = () =>
   page.evaluate(

@@ -13,14 +13,14 @@ export const previewTriggerBinding: PrimitiveBinding = {
       isOpen: { kind: "boolean", label: "Open", section: "state" },
       defaultOpen: {
         kind: "boolean",
-        label: "Initially Open",
+        label: "Initially open",
         section: "state",
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       delay: { kind: "number", label: "Delay", section: "state", default: 600 },
       closeDelay: {
         kind: "number",
-        label: "Close Delay",
+        label: "Close delay",
         section: "state",
         default: 200,
       },

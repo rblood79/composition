@@ -359,7 +359,7 @@ const ComponentList = memo(
           {/* Recent 컴포넌트 - 검색 시 숨김 */}
           {!searchQuery && recentComponents.length > 0 && (
             <Section
-              title="Recently Used"
+              title="Recently used"
               badge={
                 <span className="category-count">
                   {recentComponents.length}
@@ -368,7 +368,7 @@ const ComponentList = memo(
               actions={
                 <Button
                   className="iconButton"
-                  aria-label="Clear Recent History"
+                  aria-label="Clear recent history"
                   onPress={clearRecentComponents}
                 >
                   <DeleteIcon

@@ -66,7 +66,7 @@ async function addFromPalette(label) {
 }
 async function compareOn() {
   const button = page
-    .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+    .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
     .first();
   if (await button.isVisible().catch(() => false)) await button.click();
   await page.waitForTimeout(3000);
@@ -351,7 +351,7 @@ await page.waitForTimeout(800);
 await page.getByRole("tab", { name: /^(Property|속성)$/ }).first().click().catch(() => {});
 await page.waitForTimeout(600);
 const durationInput = page
-  .locator('input[aria-label="Visible Duration"], input[aria-label="표시 기간"]')
+  .locator('input[aria-label="Visible duration"], input[aria-label="표시 기간"]')
   .first();
 let l4 = { found: await durationInput.isVisible().catch(() => false) };
 if (l4.found) {
@@ -544,7 +544,7 @@ const weekdayDom = await preview((doc) =>
 );
 await page.keyboard.press("Escape");
 await page.keyboard.press("Escape");
-await addFromPalette("Date Field");
+await addFromPalette("Date field");
 await page.waitForTimeout(1500);
 const segment12 = await page.evaluate(() => {
   const ws = window.__COMPOSITION_CATALOG__.workspace;

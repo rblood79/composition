@@ -152,7 +152,7 @@ const RadialControls = memo(function RadialControls({
       />
       <PropertyUnitInput
         icon={ArrowLeftRight}
-        label="Radius Width"
+        label="Radius width"
         className="gradient-radius-w"
         value={`${Math.round(fill.radius.width * 100)}%`}
         units={["%"]}
@@ -164,7 +164,7 @@ const RadialControls = memo(function RadialControls({
       />
       <PropertyUnitInput
         icon={ArrowUpDown}
-        label="Radius Height"
+        label="Radius height"
         className="gradient-radius-h"
         value={`${Math.round(fill.radius.height * 100)}%`}
         units={["%"]}

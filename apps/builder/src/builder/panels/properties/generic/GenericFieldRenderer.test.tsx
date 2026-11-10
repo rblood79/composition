@@ -293,16 +293,16 @@ describe("GenericFieldRenderer — ADR-208 결선 seam (resolveEditContract → 
 
     const bar = controls(renderFields(chartFields("bar")).container);
     expect(bar).toContain("Orientation");
-    expect(bar).toContain("Stack Type");
-    expect(bar).not.toContain("Grid Type");
-    expect(bar).not.toContain("Inner Radius (%)");
+    expect(bar).toContain("Stack type");
+    expect(bar).not.toContain("Grid type");
+    expect(bar).not.toContain("Inner radius (%)");
 
     const radar = controls(renderFields(chartFields("radar")).container);
-    expect(radar).toContain("Grid Type");
-    expect(radar).toContain("Inner Radius (%)");
+    expect(radar).toContain("Grid type");
+    expect(radar).toContain("Inner radius (%)");
     expect(radar).not.toContain("Orientation");
     // radar 는 stackType 을 무시한다 (ADR-207 R8) — 유일하게 빠지는 종류.
-    expect(radar).not.toContain("Stack Type");
+    expect(radar).not.toContain("Stack type");
   });
 });
 
@@ -375,7 +375,7 @@ describe("GenericFieldRenderer — boolean 칩 묶음 쓰기", () => {
     const update = vi.fn();
     const field: ResolvedField = {
       ...boolField("hideTimeZone", false),
-      label: "Hide Time Zone",
+      label: "Hide time zone",
       section: "locale",
     };
     const { container } = renderWithI18n(
@@ -387,7 +387,7 @@ describe("GenericFieldRenderer — boolean 칩 묶음 쓰기", () => {
       />,
     );
     expect(labels(container)).toContain("Show");
-    const c = chip(container, "Time Zone");
+    const c = chip(container, "Time zone");
     expect(c.getAttribute("aria-pressed")).toBe("true"); // hideTimeZone=false → 보임
     fireEvent.click(c);
     expect(update).toHaveBeenCalledWith("hideTimeZone", true);
@@ -398,7 +398,7 @@ describe("GenericFieldRenderer — boolean 칩 묶음 쓰기", () => {
     const update = vi.fn();
     const field: ResolvedField = {
       ...enumField("autoCorrect", "off"),
-      label: "Auto Correct",
+      label: "Auto correct",
       options: [
         { value: "on", label: "On" },
         { value: "off", label: "Off" },
@@ -412,7 +412,7 @@ describe("GenericFieldRenderer — boolean 칩 묶음 쓰기", () => {
         elementId="text-1"
       />,
     );
-    const c = chip(container, "Auto Correct");
+    const c = chip(container, "Auto correct");
     expect(c.getAttribute("aria-pressed")).toBe("false");
     fireEvent.click(c);
     expect(update).toHaveBeenCalledWith("autoCorrect", "on");

@@ -126,7 +126,7 @@ await page.waitForFunction(
 );
 await page.waitForTimeout(1500);
 const compare = page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await page.waitForTimeout(1500);
@@ -136,11 +136,11 @@ await page.waitForTimeout(1500);
 await selectType("TagGroup");
 await page.waitForTimeout(1000);
 for (let i = 0; i < 3; i++) {
-  if (await field("Error Message").isVisible().catch(() => false)) break;
+  if (await field("Error message").isVisible().catch(() => false)) break;
   await page.getByRole("button", { name: "Design", exact: true }).first().click();
   await page.waitForTimeout(1200);
 }
-const message = field("Error Message").locator("input, textarea").first();
+const message = field("Error message").locator("input, textarea").first();
 await message.fill("Too many");
 await message.press("Enter");
 await page.waitForTimeout(1200);

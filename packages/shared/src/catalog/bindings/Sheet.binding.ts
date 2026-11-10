@@ -2,7 +2,7 @@ import type { PrimitiveBinding, PropContract } from "../types";
 
 const openProps: Record<string, PropContract> = {
   isOpen: { kind: "boolean", label: "Open", section: "state" },
-  defaultOpen: { kind: "boolean", label: "Initially Open", section: "state" },
+  defaultOpen: { kind: "boolean", label: "Initially open", section: "state" },
 };
 
 function sheetPart(
@@ -34,7 +34,7 @@ export const sheetOverlayBinding = sheetPart("SheetOverlay", {
   },
   swipeDirection: {
     kind: "enum",
-    label: "Swipe Direction",
+    label: "Swipe direction",
     section: "appearance",
     options: [
       "bottom",
@@ -49,19 +49,19 @@ export const sheetOverlayBinding = sheetPart("SheetOverlay", {
   },
   snapPoints: {
     kind: "string-array",
-    label: "Snap Points",
+    label: "Snap points",
     section: "appearance",
   },
   preventDismissal: {
     kind: "boolean",
-    label: "Prevent Dismissal",
+    label: "Prevent dismissal",
     section: "state",
   },
 });
 export const sheetBinding = sheetPart("Sheet", {
   overscrollPadding: {
     kind: "boolean",
-    label: "Overscroll Padding",
+    label: "Overscroll padding",
     section: "appearance",
   },
 });

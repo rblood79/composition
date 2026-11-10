@@ -157,7 +157,7 @@ try {
     await page.waitForFunction(() => window.__COMPOSITION_CATALOG__?.workspace);
     await page
       .getByRole("button", {
-        name: "Compare Mode (Preview + Skia)",
+        name: "Compare mode (Preview + Skia)",
         exact: true,
       })
       .first()
@@ -252,7 +252,7 @@ try {
     await page.reload();
     await page.waitForSelector(".app:not(.builder-booting)");
     const compare = page.getByRole("button", {
-      name: "Compare Mode (Preview + Skia)",
+      name: "Compare mode (Preview + Skia)",
       exact: true,
     });
     if ((await compare.getAttribute("aria-pressed")) !== "true")

@@ -62,7 +62,7 @@ export const selectBinding: PrimitiveBinding = {
       //   (`delegatedDom.tsx` `inheritedForm`).
       labelAlign: {
         kind: "enum",
-        label: "Label Align",
+        label: "Label align",
         section: "appearance",
         default: "start",
         options: [
@@ -111,7 +111,7 @@ export const selectBinding: PrimitiveBinding = {
           { value: "end", label: "End" },
         ],
       },
-      menuWidth: { kind: "number", label: "Menu Width", section: "appearance" },
+      menuWidth: { kind: "number", label: "Menu width", section: "appearance" },
       name: { kind: "string", label: "Name", section: "content" },
       errorMessage: {
         kind: "string",

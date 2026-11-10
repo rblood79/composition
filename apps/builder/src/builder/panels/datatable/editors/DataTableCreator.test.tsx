@@ -109,7 +109,7 @@ describe("DataTableCreator (ADR-212 Phase 1)", () => {
       wrap(<DataTableCreator projectId="p" onClose={() => {}} />),
     );
     fireEvent.click(getByLabelText("Paste"));
-    fireEvent.change(getByLabelText("Table Name"), {
+    fireEvent.change(getByLabelText("Table name"), {
       target: { value: "Members" },
     });
     fireEvent.change(getByLabelText("Paste rows"), {
@@ -193,7 +193,7 @@ describe("DataTableCreator (ADR-212 Phase 1)", () => {
       wrap(<DataTableCreator projectId="p" onClose={onClose} />),
     );
     fireEvent.click(getByLabelText("Describe to AI"));
-    fireEvent.change(getByLabelText("Table Name"), {
+    fireEvent.change(getByLabelText("Table name"), {
       target: { value: "Posts" },
     });
     fireEvent.change(getByLabelText("Describe the table"), {
@@ -328,7 +328,7 @@ it("keeps the current locale for file errors without changing the table name", a
       </>,
     ),
   );
-  fireEvent.change(view.getByLabelText("Table Name"), {
+  fireEvent.change(view.getByLabelText("Table name"), {
     target: { value: "kept" },
   });
   fireEvent.click(view.getByText("한국어"));

@@ -160,7 +160,7 @@ async function readPublishDom(page, context) {
 async function readPreviewDom(page, chartId) {
   const toggle = page
     .locator(
-      'button[aria-label="Compare Mode (Preview + Skia)"], button[aria-label="비교 모드 (Preview + Skia)"]',
+      'button[aria-label="Compare mode (Preview + Skia)"], button[aria-label="비교 모드 (Preview + Skia)"]',
     )
     .first();
   if (

@@ -74,7 +74,7 @@ export const textAreaBinding: PrimitiveBinding = {
       //   (`delegatedDom.tsx` `inheritedForm`).
       labelAlign: {
         kind: "enum",
-        label: "Label Align",
+        label: "Label align",
         section: "appearance",
         default: "start",
         options: [

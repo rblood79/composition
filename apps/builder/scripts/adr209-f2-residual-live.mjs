@@ -367,7 +367,7 @@ async function main() {
     await page.waitForTimeout(1500);
     // 범례를 실제 스위치로 끈다 — 범례 색 견본은 Skia 픽셀 bbox 에 섞이고(하단 밴드) Recharts 범례는 별도 HTML 이라
     //   두 leg 의 잉크 집합을 원 하나로 맞춘다. plot 높이도 범례 폭(outer.w 의존)에 흔들리지 않는다.
-    const legendSwitch = fieldset(page, "Show Legend").locator(".react-aria-Switch").first();
+    const legendSwitch = fieldset(page, "Show legend").locator(".react-aria-Switch").first();
     if (await legendSwitch.count()) {
       await legendSwitch.click();
       await page.waitForTimeout(1200);
@@ -455,7 +455,7 @@ async function main() {
     );
 
     // Preview (Compare Mode) — DOM leg 는 Skia 뒤에 잰다 (Compare Mode 는 캔버스를 반폭으로 줄인다)
-    const compare = page.locator('[aria-label="Compare Mode (Preview + Skia)"]').first();
+    const compare = page.locator('[aria-label="Compare mode (Preview + Skia)"]').first();
     let domB = null, domA = null;
     if (await compare.count()) {
       await compare.click();

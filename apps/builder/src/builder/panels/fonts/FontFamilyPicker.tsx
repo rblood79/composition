@@ -175,7 +175,7 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
       {label && <legend className="fieldset-legend">{localize(label)}</legend>}
       <div className="react-aria-control react-aria-Group" ref={anchorRef}>
         <SearchablePicker
-          label="Font Family"
+          label="Font family"
           searchLabel={t("fonts.searchPlaceholder")}
           open={isPickerOpen}
           onOpenChange={setPickerOpen}
@@ -188,7 +188,7 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
             <Button
               className="react-aria-Button font-picker-trigger"
               ref={controlRef}
-              aria-label="Font Family"
+              aria-label="Font family"
             >
               {/* 이름을 그 폰트로 그린다 — 고르기 전에 생김새가 보이는 것이 피커의 값 */}
               {isDefault && (

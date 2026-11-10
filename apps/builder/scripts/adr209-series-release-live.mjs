@@ -347,7 +347,7 @@ async function main() {
         return { found: false };
       });
 
-    const compare = page.locator('[aria-label="Compare Mode (Preview + Skia)"]').first();
+    const compare = page.locator('[aria-label="Compare mode (Preview + Skia)"]').first();
     let releasedPreview = null;
     let groupedPreview = null;
     if (await compare.count()) {

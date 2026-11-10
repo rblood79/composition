@@ -19,7 +19,7 @@ export const labeledValueBinding: PrimitiveBinding = {
       },
       formatOptions: {
         kind: "labeled-format",
-        label: "Format Options",
+        label: "Format options",
         section: "content",
       },
       size: {
@@ -40,7 +40,7 @@ export const labeledValueBinding: PrimitiveBinding = {
       },
       labelAlign: {
         kind: "enum",
-        label: "Label Align",
+        label: "Label align",
         section: "appearance",
         default: "start",
         options: [

@@ -58,7 +58,7 @@ async function addFromPalette(label, match = new RegExp(`^${label}$`, "i")) {
 }
 async function compareOn() {
   const button = page
-    .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+    .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
     .first();
   if (await button.isVisible().catch(() => false)) await button.click();
   await page.waitForTimeout(3000);
@@ -459,7 +459,7 @@ record(
 errorsAt.push(["L-6", errors.length]);
 
 // L-7: an InlineAlert = Heading + Content > Description (S2), the description box Canvas = Preview.
-await addFromPalette("Inline Alert", /^Inline ?Alert$/i);
+await addFromPalette("Inline alert", /^Inline ?Alert$/i);
 await page.waitForTimeout(1500);
 const c7 = await page.evaluate(() => {
   const ws = window.__COMPOSITION_CATALOG__.workspace;

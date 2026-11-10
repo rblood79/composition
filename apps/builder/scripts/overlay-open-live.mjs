@@ -22,7 +22,7 @@ export async function exerciseOverlayOpen(
   if (!(await page.locator("body").innerText()).includes("Overlay Open parity"))
     throw new Error("전용 Overlay Open parity 검증 프로젝트가 필요합니다.");
   const compare = page.getByRole("button", {
-    name: "Compare Mode (Preview + Skia)",
+    name: "Compare mode (Preview + Skia)",
     exact: true,
   });
   if (

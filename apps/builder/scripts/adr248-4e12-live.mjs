@@ -62,7 +62,7 @@ for (const [id, type] of [["tf", "TextField"], ["pb", "ProgressBar"], ["sel", "S
   await page.evaluate(([id, type]) => window.__4E12__.insert(id, type), [id, type]);
   await page.waitForTimeout(500);
   const before = await page.evaluate((id) => window.__4E12__.boxes(id), id);
-  await pickProperty("Label Position", "Side");
+  await pickProperty("Label position", "Side");
   const after = await page.evaluate((id) => window.__4E12__.boxes(id), id);
   const prop = await page.evaluate((id) => window.__4E12__.entry(id).props.labelPosition ?? null, id);
   await shot(`side-${id}`);

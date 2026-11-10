@@ -63,7 +63,7 @@ await page.waitForFunction(
 );
 await wait(1500);
 const compare = page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await wait(2500);
@@ -135,7 +135,7 @@ const typeField = async (label, value) => {
 check(
   "0 instance 기본 Label/placeholder/description (Canvas = DOM)",
   JSON.stringify(await parts(ids.I)).includes(
-    '"Label":{"canvas":"Text Field","dom":"Text Field"}',
+    '"Label":{"canvas":"Text field","dom":"Text field"}',
   ),
   await parts(ids.I),
 );
@@ -196,7 +196,7 @@ await page.screenshot({ path: `${OUT}/5-checkbox.png` });
 const origin = await parts(ids.f);
 check(
   "6 원본 Field 의 Label 은 Text Field 그대로",
-  origin.Label?.canvas === "Text Field",
+  origin.Label?.canvas === "Text field",
   origin,
 );
 check("7 page/console errors 0", errors.length === 0, errors.slice(0, 5));

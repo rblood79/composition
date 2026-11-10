@@ -257,7 +257,7 @@ const RADIUS_OPTIONS = [
   { value: "sm", label: "Small" },
   { value: "md", label: "Medium" },
   { value: "lg", label: "Large" },
-  { value: "xl", label: "Extra Large" },
+  { value: "xl", label: "Extra large" },
 ];
 
 const BASE_FONT_SIZE_OPTIONS = [

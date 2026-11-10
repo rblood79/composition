@@ -376,7 +376,7 @@ if (MODE === "before") {
   await page.keyboard.press("Escape");
   await page.waitForTimeout(300);
   const pal = Object.fromEntries(palette);
-  record("G2 palette: inactive tab's copy unavailable", pal["Copy Styles"] && pal["Copy Styles"] !== "executable" && pal["Copy Properties"] === "executable", { palette });
+  record("G2 palette: inactive tab's copy unavailable", pal["Copy styles"] && pal["Copy styles"] !== "executable" && pal["Copy properties"] === "executable", { palette });
 
   // Page settings → Design on Property.
   await tabs("properties").nth(3).click();

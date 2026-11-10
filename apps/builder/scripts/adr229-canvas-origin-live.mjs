@@ -184,8 +184,8 @@ try {
   const textfieldOrigin = await elementById(page, "component-textfield");
   const formOrigin = await elementById(page, "component-form");
   record(
-    "C-b: Label 'Nome' → `component-form__field-1.props.label` 만 (ref 유지 · TextField origin 'Text Field' · Form origin props 무변경)",
-    edited && field1After?.type === "ref" && field1After?.ref === "component-textfield" && field1After?.props?.label === "Nome" && textfieldOrigin?.props?.label === "Text Field" && JSON.stringify(formOrigin?.props) === JSON.stringify({ labelPosition: "top", style: { width: "100%" } }),
+    "C-b: Label 'Nome' → `component-form__field-1.props.label` 만 (ref 유지 · TextField origin 'Text field' · Form origin props 무변경)",
+    edited && field1After?.type === "ref" && field1After?.ref === "component-textfield" && field1After?.props?.label === "Nome" && textfieldOrigin?.props?.label === "Text field" && JSON.stringify(formOrigin?.props) === JSON.stringify({ labelPosition: "top", style: { width: "100%" } }),
     JSON.stringify({ edited, field1After, textfieldLabel: textfieldOrigin?.props?.label, formProps: formOrigin?.props }),
   );
 

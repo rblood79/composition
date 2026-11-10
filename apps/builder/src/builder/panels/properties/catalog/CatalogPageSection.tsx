@@ -163,7 +163,7 @@ export const CatalogPageSection = memo(function CatalogPageSection({
   ];
   const parent = pages.find((entry) => entry.id === page.parentId);
   const parentOptions = [
-    { value: "", label: "No Parent (Root)" },
+    { value: "", label: "No parent (root)" },
     ...catalogParentPageOptions(pages, pageId).map(
       ({ page: option, depth }) => ({
         value: option.id,
@@ -260,7 +260,7 @@ export const CatalogPageSection = memo(function CatalogPageSection({
           />
           <div className="fieldset-actions actions-slug">
             <SwatchIconButton
-              aria-label="Generate from Title"
+              aria-label="Generate from title"
               onPress={() => changeRoute(catalogGeneratedRoute(pages, pageId))}
             >
               <WandSparkles aria-hidden="true" size={iconProps.size} />

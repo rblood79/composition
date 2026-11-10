@@ -112,7 +112,7 @@ describe("ADR-248 4e Navigator tabs", () => {
     expect(within(panel()).getByText("Local")).toBeTruthy();
     expect(within(panel()).queryByText("Title")).toBeNull();
     expect(within(panel()).queryByText("Shell")).toBeNull();
-    expect(within(panel()).queryByLabelText("Add Layout")).toBeNull();
+    expect(within(panel()).queryByLabelText("Add layout")).toBeNull();
     // Choosing a tab does not leave the page.
     expect(workspace.session.getSnapshot().definitionView).toBe(undefined);
 
@@ -120,7 +120,7 @@ describe("ADR-248 4e Navigator tabs", () => {
     fireEvent.click(tab("Layouts"));
     expect(within(panel()).getByText("Shell")).toBeTruthy();
     expect(within(panel()).queryByText("Title")).toBeNull();
-    expect(within(panel()).getByLabelText("Add Layout")).toBeTruthy();
+    expect(within(panel()).getByLabelText("Add layout")).toBeTruthy();
 
     // An edit view entered elsewhere (Properties "Go to origin") selects its tab.
     act(() => workspace.showDefinition(component.id));
@@ -157,7 +157,7 @@ describe("ADR-248 4e Navigator tabs", () => {
     const pages = () => within(screen.getByRole("treegrid", { name: "Pages" }));
 
     // A new page opens with its body selected.
-    fireEvent.click(screen.getByLabelText("Add Page"));
+    fireEvent.click(screen.getByLabelText("Add page"));
     const added = workspace.session.getSnapshot().pageId!;
     expect(added).not.toBe("project:page:home");
     expect(selected()).toEqual(
@@ -197,7 +197,7 @@ describe("ADR-248 4e Navigator tabs", () => {
     );
     expect(selected()).toHaveLength(1);
 
-    fireEvent.click(screen.getByLabelText("Add Layout"));
+    fireEvent.click(screen.getByLabelText("Add layout"));
     const added = workspace.session.getSnapshot().definitionView!;
     expect(added).not.toBe(layout.id);
     expect(selected()).toEqual(

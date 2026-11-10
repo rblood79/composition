@@ -140,7 +140,7 @@ await page.waitForFunction(
 );
 await page.waitForTimeout(1500);
 const compare = page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await page.waitForTimeout(1500);
@@ -158,7 +158,7 @@ record(
 await select("Calendar");
 await page.getByRole("button", { name: "Design", exact: true }).first().click();
 await page.waitForTimeout(1200);
-await pick("First Day of Week", "Wednesday");
+await pick("First day of week", "Wednesday");
 const wed = await readCalendar();
 record(
   "Wednesday from the panel: node wed · Preview header starts Wednesday · Canvas week start 3 · heights equal",
@@ -173,7 +173,7 @@ await page.screenshot({ path: `${OUT}/calendar-wednesday.png` });
 await addFromPalette("date picker");
 await page.waitForTimeout(1500);
 await select("DatePicker");
-await pick("First Day of Week", "Friday");
+await pick("First day of week", "Friday");
 const picker = await page.evaluate(() => {
   const ws = window.__COMPOSITION_CATALOG__.workspace;
   const root = ws.root;

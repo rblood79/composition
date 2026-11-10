@@ -236,7 +236,7 @@ async function main() {
 
     // ── Phase B — Compare Mode 로 Preview DOM 대조 ────────────────────────
     const previewTab = page
-      .locator('[aria-label="Compare Mode (Preview + Skia)"]')
+      .locator('[aria-label="Compare mode (Preview + Skia)"]')
       .first();
     await previewTab.click();
     await page.waitForTimeout(6000);

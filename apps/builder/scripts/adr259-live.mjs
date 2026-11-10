@@ -607,7 +607,7 @@ async function phase2() {
     await page.waitForTimeout(1000);
   }
   const textInput = page
-    .locator("xpath=//*[normalize-space(text())='Prefix Text']/following::input[1]")
+    .locator("xpath=//*[normalize-space(text())='Prefix text']/following::input[1]")
     .first();
   const textVisible = await textInput.isVisible().catch(() => false);
   await page.screenshot({ path: `${OUT}/L2-1-panel.png` });
@@ -966,7 +966,7 @@ async function phase3() {
   if (await design.isVisible().catch(() => false)) await design.click();
   await page.waitForTimeout(1000);
   const select = page
-    .locator("xpath=//*[normalize-space(text())='Contextual Help']/following::button[1]")
+    .locator("xpath=//*[normalize-space(text())='Contextual help']/following::button[1]")
     .first();
   const selectVisible = await select.isVisible().catch(() => false);
   if (selectVisible) {

@@ -57,7 +57,7 @@ const skiaKeys = (page, family, ownerId) =>
 
 /** Preview iframe (compare 모드) DOM 읽기 — ListBox 항목 key/아이콘 · Select option · Table Row. */
 async function readPreviewDom(page) {
-  const toggle = page.locator('button[aria-label="Compare Mode (Preview + Skia)"], button[aria-label="비교 모드 (Preview + Skia)"]').first();
+  const toggle = page.locator('button[aria-label="Compare mode (Preview + Skia)"], button[aria-label="비교 모드 (Preview + Skia)"]').first();
   if ((await toggle.count()) && (await toggle.getAttribute("aria-pressed")) !== "true") { await toggle.click(); await page.waitForTimeout(4000); }
   const read = async () => {
     for (const f of page.frames()) {

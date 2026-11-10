@@ -293,7 +293,7 @@ async function main() {
     await page.waitForTimeout(1500);
 
     // 5) Preview (Compare Mode) — 산점도 8 점 + 기준선 front/back
-    const compare = page.locator('[aria-label="Compare Mode (Preview + Skia)"]').first();
+    const compare = page.locator('[aria-label="Compare mode (Preview + Skia)"]').first();
     if (!(await compare.count())) throw new Error("Compare Mode 버튼 없음");
     await compare.click();
     await page.waitForTimeout(4000);

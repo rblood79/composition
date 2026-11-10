@@ -318,7 +318,7 @@ try {
   //   init script 가 iframe 의 window.postMessage 를 감싸 payload 를 기록한다 (같은 origin).
   const compareToggle = page
     .locator(
-      'button[aria-label="Compare Mode (Preview + Skia)"], button[aria-label="비교 모드 (Preview + Skia)"]',
+      'button[aria-label="Compare mode (Preview + Skia)"], button[aria-label="비교 모드 (Preview + Skia)"]',
     )
     .first();
   if ((await compareToggle.getAttribute("aria-pressed")) !== "true") {

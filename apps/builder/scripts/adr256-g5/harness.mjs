@@ -37,7 +37,7 @@ async function ready(page) {
 
 export async function compareOn(page) {
   const button = page
-    .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+    .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
     .first();
   if (await button.isVisible().catch(() => false)) await button.click();
   await page.waitForTimeout(3000);

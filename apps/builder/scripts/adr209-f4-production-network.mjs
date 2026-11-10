@@ -341,7 +341,7 @@ async function main() {
       chartIds[0],
     );
     await page.waitForTimeout(1200);
-    const grid = fieldsetSwitch(page, "Show Grid");
+    const grid = fieldsetSwitch(page, "Show grid");
     if (await grid.count()) {
       await grid.click();
       await page.waitForTimeout(1000);
@@ -372,7 +372,7 @@ async function main() {
     // ── 3) 차트 포함 Preview 최초 진입 ───────────────────────────────────
     net.setPhase("preview-chart");
     await page
-      .locator('[aria-label="Compare Mode (Preview + Skia)"]')
+      .locator('[aria-label="Compare mode (Preview + Skia)"]')
       .first()
       .click();
     await page.waitForTimeout(9000);
@@ -434,7 +434,7 @@ async function main() {
     await page.goto(plainUrl, { waitUntil: "domcontentloaded" });
     await waitReady(page, { settleMs: 3000 });
     await page
-      .locator('[aria-label="Compare Mode (Preview + Skia)"]')
+      .locator('[aria-label="Compare mode (Preview + Skia)"]')
       .first()
       .click();
     await page.waitForTimeout(7000);

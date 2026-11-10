@@ -155,7 +155,7 @@ await page.waitForFunction(
 );
 await page.waitForTimeout(1500);
 const compare = page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await page.waitForTimeout(1500);
@@ -175,7 +175,7 @@ for (const type of ["Meter", "ProgressBar"]) {
   await select(type);
   await page.waitForTimeout(1000);
   for (let i = 0; i < 3; i++) {
-    if (await field("Static Color").isVisible().catch(() => false)) break;
+    if (await field("Static color").isVisible().catch(() => false)) break;
     await page.getByRole("button", { name: "Design", exact: true }).first().click();
     await page.waitForTimeout(1200);
   }
@@ -184,7 +184,7 @@ for (const type of ["Meter", "ProgressBar"]) {
     ["White", "white", "255, 255, 255", "#ffffff"],
     ["Black", "black", "0, 0, 0", "#000000"],
   ]) {
-    await pick("Static Color", option);
+    await pick("Static color", option);
     const shown = await read(type);
     const want = s2(rgb);
     record(
@@ -203,7 +203,7 @@ for (const type of ["Meter", "ProgressBar"]) {
       option === "White" ? { before, shown } : shown,
     );
   }
-  await pick("Static Color", "Auto");
+  await pick("Static color", "Auto");
   const auto = await read(type);
   record(
     `${type} Auto: the theme colors again on both`,

@@ -115,7 +115,7 @@ const fieldId = await page.evaluate(
   { commands, actions },
 );
 await page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first()
   .click();
 await page.waitForTimeout(3000);
@@ -172,13 +172,13 @@ await page.waitForFunction(
 );
 await page.waitForTimeout(2500);
 const compareOn = await page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first()
   .isVisible()
   .catch(() => false);
 if (compareOn)
   await page
-    .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+    .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
     .first()
     .click();
 await page.waitForTimeout(3000);

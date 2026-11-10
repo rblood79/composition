@@ -145,7 +145,7 @@ try {
       await rail("Design");
       await page
         .getByRole("button", {
-          name: "Compare Mode (Preview + Skia)",
+          name: "Compare mode (Preview + Skia)",
           exact: true,
         })
         .click();

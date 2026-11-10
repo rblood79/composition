@@ -40,7 +40,7 @@ export const dropZoneBinding: PrimitiveBinding = {
       isFilled: { kind: "boolean", label: "Filled", section: "state" },
       replaceMessage: {
         kind: "string",
-        label: "Replace Message",
+        label: "Replace message",
         section: "content",
       },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC 공식 prop — `DropZone.tsx` 가 RAC DropZone 에 넘긴다.

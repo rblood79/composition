@@ -58,7 +58,7 @@ describe("EffectSection groups", () => {
       "Opacity",
       // Blur — 다른 px 길이 칸과 같은 단위 입력칸 행 (감사 C4 · ADR-298 결정 6, 종전 「Filters」 묶음)
       "Blur",
-      "Box Shadows",
+      "Box shadows",
     ]);
   });
 

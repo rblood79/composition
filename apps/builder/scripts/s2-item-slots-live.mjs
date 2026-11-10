@@ -48,7 +48,7 @@ async function ready() {
   if (!(await page.locator("#previewFrame").count()))
     await page
       .getByRole("button", {
-        name: "Compare Mode (Preview + Skia)",
+        name: "Compare mode (Preview + Skia)",
         exact: true,
       })
       .click();

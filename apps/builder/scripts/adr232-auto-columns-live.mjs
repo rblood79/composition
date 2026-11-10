@@ -124,7 +124,7 @@ async function main() {
     await page.keyboard.press("Meta+Comma");
     await settle(page, 1500);
     const columns = page
-      .locator('input[aria-label="Column Count"], input[aria-label="열 수"]')
+      .locator('input[aria-label="Column count"], input[aria-label="열 수"]')
       .first();
     check("Settings 에 열 수 입력이 있다", (await columns.count()) === 1, {});
 

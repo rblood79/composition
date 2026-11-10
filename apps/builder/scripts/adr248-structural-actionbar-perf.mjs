@@ -803,7 +803,7 @@ try {
   if (process.env.COMPARE === "1") {
     await page
       .getByRole("button", {
-        name: "Compare Mode (Preview + Skia)",
+        name: "Compare mode (Preview + Skia)",
         exact: true,
       })
       .click();

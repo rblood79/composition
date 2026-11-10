@@ -25,7 +25,7 @@ it("selection keys and autofocus editors preserve arrays/all and boolean/strateg
   let next: unknown;
   const view = render(
     createElement(SelectionKeysField, {
-      label: "Selected Keys",
+      label: "Selected keys",
       value: ["one"],
       onChange: (value) => {
         next = value;
@@ -36,7 +36,7 @@ it("selection keys and autofocus editors preserve arrays/all and boolean/strateg
   expect(next).toBe("all");
   view.rerender(
     createElement(SelectionKeysField, {
-      label: "Selected Keys",
+      label: "Selected keys",
       value: "all",
       onChange: (value) => {
         next = value;

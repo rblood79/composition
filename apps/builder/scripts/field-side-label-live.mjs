@@ -189,7 +189,7 @@ await page.waitForFunction(
 );
 await page.waitForTimeout(1500);
 const compare = page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await page.waitForTimeout(1500);
@@ -218,8 +218,8 @@ for (const [kind, paletteLabel] of FIELDS) {
   await page.waitForTimeout(1200);
   const id = await select(kind);
   await page.waitForTimeout(800);
-  await openDesign("Label Position");
-  await pick("Label Position", "Side");
+  await openDesign("Label position");
+  await pick("Label position", "Side");
   await type("Description", "Help text");
   const got = await read(id);
   const { canvas, preview } = got;
@@ -262,8 +262,8 @@ await addFromPalette("form");
 await page.waitForTimeout(1200);
 const formId = await select("Form");
 await page.waitForTimeout(800);
-await openDesign("Label Position");
-await pick("Label Position", "Side");
+await openDesign("Label position");
+await pick("Label position", "Side");
 const formFields = await page.evaluate((formId) => {
   const root = window.__COMPOSITION_CATALOG__.workspace.root;
   const form = root.canvasInputs.get(formId);

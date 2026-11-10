@@ -69,11 +69,11 @@ export const linkBinding: PrimitiveBinding = {
         ].map((value) => ({ value, label: value })),
       },
       download: { kind: "string", label: "Download", section: "content" },
-      hrefLang: { kind: "string", label: "Link Language", section: "content" },
+      hrefLang: { kind: "string", label: "Link language", section: "content" },
       ping: { kind: "string", label: "Ping", section: "content" },
       referrerPolicy: {
         kind: "enum",
-        label: "Referrer Policy",
+        label: "Referrer policy",
         section: "content",
         options: [
           "no-referrer",

@@ -62,7 +62,7 @@ export const sliderBinding: PrimitiveBinding = {
       //   it (`formContext.ts`).
       labelAlign: {
         kind: "enum",
-        label: "Label Align",
+        label: "Label align",
         section: "appearance",
         default: "start",
         options: [
@@ -121,7 +121,7 @@ export const sliderBinding: PrimitiveBinding = {
       //   Canvas 는 styleOf 높이 + SliderTrack rule containerVariants 의 radius, DOM 은 inline.
       trackStyle: {
         kind: "enum",
-        label: "Track Style",
+        label: "Track style",
         section: "appearance",
         default: "thin",
         options: [
@@ -133,7 +133,7 @@ export const sliderBinding: PrimitiveBinding = {
       //   썸 배치가 읽는다 (`presence.ts` catalogSliderThumbLayout).
       thumbStyle: {
         kind: "enum",
-        label: "Thumb Style",
+        label: "Thumb style",
         section: "appearance",
         default: "default",
         options: [
@@ -145,7 +145,7 @@ export const sliderBinding: PrimitiveBinding = {
       //   계산, Canvas 는 `catalogSliderFillLayout` 같은 식).
       fillOffset: {
         kind: "number",
-        label: "Fill Offset",
+        label: "Fill offset",
         section: "appearance",
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },

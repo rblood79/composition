@@ -511,7 +511,7 @@ await step("rest-md", async () => {
     await page.waitForTimeout(1500);
   }
   await page
-    .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+    .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
     .first()
     .click();
   await page.waitForTimeout(3000);
@@ -1186,7 +1186,7 @@ if (TYPES.includes("SearchField"))
     // An empty document value: the clear button is hidden on both sides from the start.
     // (The value is the input's initial value: the Preview mounts again to read it.)
     const remount = async () => {
-      for (const name of ["Skia Only Mode", "Compare Mode (Preview + Skia)"]) {
+      for (const name of ["Skia only mode", "Compare mode (Preview + Skia)"]) {
         await page.getByRole("button", { name, exact: true }).first().click();
         await page.waitForTimeout(name.startsWith("Skia") ? 500 : 3000);
       }

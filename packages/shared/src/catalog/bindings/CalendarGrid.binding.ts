@@ -26,13 +26,13 @@ export const calendarGridBinding: PrimitiveBinding = {
     accepts: {
       defaultToday: {
         kind: "boolean",
-        label: "Show Today",
+        label: "Show today",
         section: "content",
         editorHidden: true,
       },
-      dayOffset: { kind: "number", label: "Day Offset", section: "content", editorHidden: true },
-      totalDays: { kind: "number", label: "Total Days", section: "content", editorHidden: true },
-      todayDate: { kind: "number", label: "Today Date", section: "content", editorHidden: true },
+      dayOffset: { kind: "number", label: "Day offset", section: "content", editorHidden: true },
+      totalDays: { kind: "number", label: "Total days", section: "content", editorHidden: true },
+      todayDate: { kind: "number", label: "Today date", section: "content", editorHidden: true },
     },
     toRacProps: "default",
   },

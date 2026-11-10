@@ -114,7 +114,7 @@ describe("ADR-298 Phase 2 — Effect", () => {
       fireEvent.click(view.getByRole("button", { name: "Add effect" }));
     });
     await act(async () => {
-      fireEvent.click(await view.findByRole("menuitem", { name: "Box Shadows · Elevated" }));
+      fireEvent.click(await view.findByRole("menuitem", { name: "Box shadows · Elevated" }));
     });
     expect(visualOf(fixture, "box").boxShadow).toEqual(tokenSet("lib:token:shadow_md"));
     // Phase 5 (시안): the step chip sits in the token's one row (was the legend)

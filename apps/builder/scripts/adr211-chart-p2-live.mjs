@@ -323,7 +323,7 @@ async function main() {
       );
     }
     const compare = page
-      .locator('[aria-label="Compare Mode (Preview + Skia)"]')
+      .locator('[aria-label="Compare mode (Preview + Skia)"]')
       .first();
     if (await compare.count()) {
       await compare.click();

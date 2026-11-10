@@ -21,7 +21,7 @@ const idbPut = (page, row) => page.evaluate(async (row) => { const db = await ne
 async function pollUntil(read, ok, maxMs = 12_000, stepMs = 400) { const s = Date.now(); let last; do { last = await read(); if (ok(last)) return last; await new Promise((r) => setTimeout(r, stepMs)); } while (Date.now() - s < maxMs); return last; }
 const skiaKeys = (page, ownerId) => page.evaluate((ownerId) => { const map = window.__composition_LAYOUT_DEBUG__?.getSharedLayoutMap?.(); if (!map) return null; const prefix = `projection:listbox-row:${ownerId}:`; return [...map.keys()].filter((k) => k.startsWith(prefix)).map((k) => k.slice(prefix.length)).sort(); }, ownerId);
 async function previewListKeys(page) {
-  const toggle = page.locator('button[aria-label="Compare Mode (Preview + Skia)"], button[aria-label="비교 모드 (Preview + Skia)"]').first();
+  const toggle = page.locator('button[aria-label="Compare mode (Preview + Skia)"], button[aria-label="비교 모드 (Preview + Skia)"]').first();
   if ((await toggle.count()) && (await toggle.getAttribute("aria-pressed")) !== "true") { await toggle.click(); await page.waitForTimeout(4000); }
   return pollUntil(async () => { for (const f of page.frames()) { if (f === page.mainFrame()) continue; const r = await f.evaluate(() => [...document.querySelectorAll(".react-aria-ListBox .react-aria-ListBoxItem")].map((n) => n.getAttribute("data-key")).sort()).catch(() => null); if (r && r.length) return r; } return null; }, (r) => r && r.length === 3, 25_000);
 }

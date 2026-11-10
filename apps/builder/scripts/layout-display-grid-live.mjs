@@ -169,7 +169,7 @@ await wait(400);
 }
 
 // 3 — Preview DOM (Compare Mode): child offsets = Canvas.
-const compare = page.getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true }).first();
+const compare = page.getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true }).first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await wait(3000);
 const geo = await exec(`(cat, ids) => {

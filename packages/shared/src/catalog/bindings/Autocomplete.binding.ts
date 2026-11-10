@@ -23,17 +23,17 @@ export const autocompleteBinding: PrimitiveBinding = {
     accepts: {
       defaultInputValue: {
         kind: "string",
-        label: "Default Input Value",
+        label: "Default input value",
         section: "content",
       },
       disableAutoFocusFirst: {
         kind: "boolean",
-        label: "Disable Auto Focus First",
+        label: "Disable auto focus first",
         section: "state",
       },
       disableVirtualFocus: {
         kind: "boolean",
-        label: "Disable Virtual Focus",
+        label: "Disable virtual focus",
         section: "state",
       },
     },

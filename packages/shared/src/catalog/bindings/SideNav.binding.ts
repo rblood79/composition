@@ -29,7 +29,7 @@ export const sideNavPanelBinding: PrimitiveBinding = {
       isCollapsed: { kind: "boolean", label: "Collapsed", section: "state" },
       defaultCollapsed: {
         kind: "boolean",
-        label: "Default Collapsed",
+        label: "Default collapsed",
         section: "state",
         editorHidden: true,
       },
@@ -53,7 +53,7 @@ export const sideNavBinding: PrimitiveBinding = {
       //   page being drawn (ADR-300 user decision 1).
       selectedRoute: {
         kind: "string",
-        label: "Selected Route",
+        label: "Selected route",
         section: "state",
       },
       "aria-label": {
@@ -72,12 +72,12 @@ export const sideNavItemBinding: PrimitiveBinding = {
   source: { kind: "internal", renderer: "sidenavitem" },
   props: {
     accepts: {
-      textValue: { kind: "string", label: "Text Value", section: "content" },
+      textValue: { kind: "string", label: "Text value", section: "content" },
       // RAC item link — the item is the current route when its `href` is the `selectedRoute`.
       ...ITEM_LINK_PROP_CONTRACTS,
       hasChildItems: {
         kind: "boolean",
-        label: "Has Child Items",
+        label: "Has child items",
         section: "state",
         editorHidden: true,
       },

@@ -60,7 +60,7 @@ async function addFromPalette(label) {
 }
 async function compareOn() {
   const button = page
-    .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+    .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
     .first();
   if (await button.isVisible().catch(() => false)) await button.click();
   await page.waitForTimeout(3000);
@@ -204,8 +204,8 @@ await page
   .catch(() => {});
 await page.waitForTimeout(1000);
 const field = page
-  .locator('fieldset:has(> legend:text-is("Max Rows")) input')
-  .or(page.getByLabel("Max Rows"))
+  .locator('fieldset:has(> legend:text-is("Max rows")) input')
+  .or(page.getByLabel("Max rows"))
   .first();
 await field.fill("2");
 await field.press("Enter");

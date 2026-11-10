@@ -13,7 +13,7 @@ export const tooltipTriggerBinding: PrimitiveBinding = {
       isOpen: { kind: "boolean", label: "Open", section: "state" },
       defaultOpen: {
         kind: "boolean",
-        label: "Initially Open",
+        label: "Initially open",
         section: "state",
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
@@ -60,19 +60,19 @@ export const tooltipTriggerBinding: PrimitiveBinding = {
       crossOffset: {
         kind: "number",
         default: 0,
-        label: "Cross Offset",
+        label: "Cross offset",
         section: "appearance",
       },
       shouldFlip: {
         kind: "boolean",
-        label: "Should Flip",
+        label: "Should flip",
         section: "appearance",
         default: true,
       },
       containerPadding: {
         kind: "number",
         default: 12,
-        label: "Container Padding",
+        label: "Container padding",
         section: "appearance",
       },
     },

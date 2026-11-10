@@ -27,7 +27,7 @@ export const dialogBinding: PrimitiveBinding = {
         default: "dialog",
         options: [
           { value: "dialog", label: "Dialog" },
-          { value: "alertdialog", label: "Alert Dialog" },
+          { value: "alertdialog", label: "Alert dialog" },
         ],
       },
     },

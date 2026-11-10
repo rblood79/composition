@@ -31,7 +31,7 @@ const EXPECT = ["U-1", "U-2", "U-3"];
 const same = (a) => JSON.stringify(a) === JSON.stringify(EXPECT);
 
 async function previewFrame(page) {
-  const toggle = page.locator('button[aria-label="Compare Mode (Preview + Skia)"], button[aria-label="비교 모드 (Preview + Skia)"]').first();
+  const toggle = page.locator('button[aria-label="Compare mode (Preview + Skia)"], button[aria-label="비교 모드 (Preview + Skia)"]').first();
   if ((await toggle.count()) && (await toggle.getAttribute("aria-pressed")) !== "true") { await toggle.click(); await page.waitForTimeout(4000); }
   for (let i = 0; i < 30; i += 1) {
     for (const f of page.frames()) { if (f === page.mainFrame()) continue; const ok = await f.evaluate(() => document.querySelectorAll("[data-element-id]").length > 0).catch(() => false); if (ok) return f; }

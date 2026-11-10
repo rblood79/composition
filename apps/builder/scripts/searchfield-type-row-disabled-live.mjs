@@ -129,7 +129,7 @@ await page.waitForFunction(
 );
 await page.waitForTimeout(1500);
 const compare = page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await page.waitForTimeout(1500);
@@ -140,7 +140,7 @@ await selectType("SearchField");
 await page.waitForTimeout(1000);
 await page.getByRole("button", { name: "Design", exact: true }).first().click();
 await page.waitForTimeout(1200);
-await pick("Input Type", "Email");
+await pick("Input type", "Email");
 const email = await search();
 record(
   "Input Type Email from the panel: node email · Preview input type email",
@@ -159,7 +159,7 @@ record(
     typed.canvasText === "secret",
   typed,
 );
-await pick("Input Type", "Password");
+await pick("Input type", "Password");
 const password = await search();
 record(
   "Password + value: Preview input type password · Canvas Input text = 6 bullets",

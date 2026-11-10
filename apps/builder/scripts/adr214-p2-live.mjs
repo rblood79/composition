@@ -122,20 +122,20 @@ try {
   await panel.locator(".panel-tab").nth(2).click();
   await page.waitForTimeout(400);
   await panel
-    .locator('button:has-text("Add Variable"), button:has-text("변수 추가")')
+    .locator('button:has-text("Add variable"), button:has-text("변수 추가")')
     .first()
     .click();
   const creator = page.locator(".datatable-creator");
   await creator.waitFor({ timeout: 10_000 });
   await creator.locator('input[aria-label="Name"], input[aria-label="이름"]').fill("userName");
   await creator
-    .locator('button:has-text("Create Variable"), button:has-text("변수 만들기")')
+    .locator('button:has-text("Create variable"), button:has-text("변수 만들기")')
     .last()
     .click();
   await page.waitForTimeout(800);
   const editor = page.locator('[data-panel-id="datatableEditor"]');
   const defaultInput = editor
-    .locator("fieldset", { has: page.locator('legend:has-text("Default Value")') })
+    .locator("fieldset", { has: page.locator('legend:has-text("Default value")') })
     .locator("input")
     .first();
   await defaultInput.waitFor({ timeout: 10_000 });
@@ -188,7 +188,7 @@ try {
 
   // Preview iframe (compare 모드)
   const toggle = page
-    .locator('button[aria-label="Compare Mode (Preview + Skia)"], button[aria-label="비교 모드 (Preview + Skia)"]')
+    .locator('button[aria-label="Compare mode (Preview + Skia)"], button[aria-label="비교 모드 (Preview + Skia)"]')
     .first();
   if ((await toggle.getAttribute("aria-pressed")) !== "true") await toggle.click();
   const frameOf = () => page.frames().find((f) => f !== page.mainFrame() && f.url().includes("preview"));
@@ -256,7 +256,7 @@ try {
   // 새 페이지 추가 → 활성화 → 원 페이지 복귀 (Navigator 대신 store 액션 — 페이지 전환은 UPDATE_PAGE_INFO 로 iframe 에 간다)
   const pagesBefore = await page.evaluate(() => window.__composition_STORE__.getState().pages.map((p) => p.id));
   await setPanel(page, "navigator", true);
-  await page.locator('button[aria-label="Add Page"], button[aria-label="페이지 추가"]').first().click();
+  await page.locator('button[aria-label="Add page"], button[aria-label="페이지 추가"]').first().click();
   const otherPageId = await pollUntil(
     () => page.evaluate((before) => {
       const known = new Set(before);

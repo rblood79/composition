@@ -164,7 +164,7 @@ await page.waitForFunction(
 await page.waitForTimeout(1500);
 await addFromPalette("toggle button group");
 const compare = page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await page.waitForTimeout(3000);

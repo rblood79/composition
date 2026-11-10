@@ -122,7 +122,7 @@ try {
   await rail("Components");
   await rail("Design");
   await page
-    .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+    .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
     .click();
   const frame = page.frameLocator("#previewFrame");
   await frame.locator("body").waitFor();
@@ -184,7 +184,7 @@ try {
     value,
   );
   const disabled = panel()
-    .getByRole("group", { name: "Disabled Keys", exact: true })
+    .getByRole("group", { name: "Disabled keys", exact: true })
     .getByRole("textbox");
   await disabled.fill("one");
   await disabled.press("Tab");
@@ -200,7 +200,7 @@ try {
   await disabled.press("Tab");
   await settle();
   await panel()
-    .getByRole("toolbar", { name: "Selected Keys", exact: true })
+    .getByRole("toolbar", { name: "Selected keys", exact: true })
     .getByRole("button", { name: "All", exact: true })
     .click();
   await settle();
@@ -214,7 +214,7 @@ try {
     value,
   );
   await panel()
-    .getByRole("toolbar", { name: "Auto Focus", exact: true })
+    .getByRole("toolbar", { name: "Auto focus", exact: true })
     .getByRole("button", { name: "Last", exact: true })
     .click();
   await settle();
@@ -238,11 +238,11 @@ try {
     value,
   );
   await panel()
-    .getByRole("group", { name: "Described By", exact: true })
+    .getByRole("group", { name: "Described by", exact: true })
     .getByRole("textbox")
     .fill("audit-help");
   await panel()
-    .getByRole("group", { name: "Described By", exact: true })
+    .getByRole("group", { name: "Described by", exact: true })
     .getByRole("textbox")
     .press("Tab");
   await settle();

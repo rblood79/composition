@@ -107,7 +107,7 @@ await page.waitForURL(/\/builder\//, { timeout: 30000 });
 await page.waitForSelector(".app:not(.builder-booting)", { timeout: 30000 });
 await page.waitForFunction(() => window.__COMPOSITION_CATALOG__?.workspace, null, { timeout: 30000 });
 await page.waitForTimeout(1500);
-const compare = page.getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true }).first();
+const compare = page.getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true }).first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await page.waitForTimeout(2500);
 await page.waitForFunction(() => window.__COMPOSITION_CATALOG__?.workspace, null, { timeout: 30000 });
@@ -143,7 +143,7 @@ await page.waitForTimeout(1200);
   // The Design panel: Placement on the TooltipTrigger, not on the Tooltip; no Close Delay.
   await select(trigger);
   await openDesign();
-  const onTrigger = { placement: await fieldVisible("Placement"), closeDelay: await fieldVisible("Close Delay"), delay: await fieldVisible("Delay") };
+  const onTrigger = { placement: await fieldVisible("Placement"), closeDelay: await fieldVisible("Close delay"), delay: await fieldVisible("Delay") };
   await select(tooltipNode.id);
   await openDesign();
   // (The placed Tooltip's variant · size are the origin's (`{variant}` binding) — the panel shows the
@@ -166,7 +166,7 @@ const tableView = await last("TableView");
 {
   await select(tableView);
   await openDesign();
-  const allowSorting = await fieldVisible("Allow Sorting");
+  const allowSorting = await fieldVisible("Allow sorting");
   const density = await fieldVisible("Density");
   record("tableview-panel", !allowSorting && density, { allowSorting, density });
 }

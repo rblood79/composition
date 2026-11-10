@@ -103,7 +103,7 @@ const createVariable = async (name, defaultValue) => {
   await panel.locator(".panel-tab").nth(2).click();
   await page.waitForTimeout(300);
   await panel
-    .locator('button:has-text("Add Variable"), button:has-text("변수 추가")')
+    .locator('button:has-text("Add variable"), button:has-text("변수 추가")')
     .first()
     .click();
   const creator = page.locator(".datatable-creator");
@@ -121,7 +121,7 @@ const createVariable = async (name, defaultValue) => {
   }
   await creator
     .locator(
-      'button:has-text("Create Variable"), button:has-text("변수 만들기")',
+      'button:has-text("Create variable"), button:has-text("변수 만들기")',
     )
     .last()
     .click();
@@ -129,7 +129,7 @@ const createVariable = async (name, defaultValue) => {
   const editor = page.locator('[data-panel-id="datatableEditor"]');
   const defaultInput = editor
     .locator("fieldset", {
-      has: page.locator('legend:has-text("Default Value")'),
+      has: page.locator('legend:has-text("Default value")'),
     })
     .locator("input")
     .first();

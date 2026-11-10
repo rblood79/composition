@@ -64,7 +64,7 @@ await page.locator(".list-item", { hasText: /^checkbox$/i }).first().click();
 await page.waitForTimeout(800);
 await page.getByRole("button", { name: "Components", exact: true }).first().click();
 const compare = page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await page.waitForTimeout(3000);

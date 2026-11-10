@@ -297,7 +297,7 @@ async function main() {
     }
 
     // ── 4) Preview (Compare Mode) — 같은 문서의 Recharts, dark → light ───────
-    const compare = page.locator('[aria-label="Compare Mode (Preview + Skia)"]').first();
+    const compare = page.locator('[aria-label="Compare mode (Preview + Skia)"]').first();
     let dark = { found: false };
     let preview = { found: false };
     if (await compare.count()) {

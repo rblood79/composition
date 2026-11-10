@@ -85,7 +85,7 @@ export const CatalogLayoutBodySection = memo(function CatalogLayoutBodySection({
   if (layoutSlots === null) return null;
   return (
     <>
-      <PropertySection title="Layout Preset">
+      <PropertySection title="Layout preset">
         <LayoutPresetGrid
           breakpoint={breakpoint}
           existingSlots={existing}

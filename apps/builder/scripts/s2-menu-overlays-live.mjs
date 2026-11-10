@@ -163,7 +163,7 @@ try {
           () => window.__COMPOSITION_CATALOG__?.workspace,
         );
         const compare = page.getByRole("button", {
-          name: "Compare Mode (Preview + Skia)",
+          name: "Compare mode (Preview + Skia)",
           exact: true,
         });
         if ((await compare.getAttribute("aria-pressed")) !== "true")
@@ -197,7 +197,7 @@ try {
       await rail("Components");
       await page
         .getByRole("button", {
-          name: "Compare Mode (Preview + Skia)",
+          name: "Compare mode (Preview + Skia)",
           exact: true,
         })
         .click();
@@ -276,7 +276,7 @@ try {
         );
         await select(id);
         await panel()
-          .getByRole("button", { name: "Allow Multiple Expanded", exact: true })
+          .getByRole("button", { name: "Allow multiple expanded", exact: true })
           .click();
         await settle();
         await headers.nth(1).press("Enter");
@@ -422,7 +422,7 @@ try {
         () => window.__COMPOSITION_CATALOG__?.workspace,
       );
       const compare = page.getByRole("button", {
-        name: "Compare Mode (Preview + Skia)",
+        name: "Compare mode (Preview + Skia)",
         exact: true,
       });
       if ((await compare.getAttribute("aria-pressed")) !== "true")

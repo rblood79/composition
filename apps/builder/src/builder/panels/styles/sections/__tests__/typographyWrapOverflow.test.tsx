@@ -53,7 +53,7 @@ describe("Typography Wrap preset and overflow", () => {
       { select: "t" },
     );
     renderSection(fixture.wrapper);
-    await pickWrap("Break Words");
+    await pickWrap("Break words");
     const style = fixture.styleOf("t");
     expect(style.overflowWrap).toBe("break-word");
     expect(style.overflow).toBe("hidden");

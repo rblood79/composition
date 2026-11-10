@@ -63,7 +63,7 @@ export const dateFieldBinding: PrimitiveBinding = {
       //   상속하고 자신이 지정하면 자신이 우선 (nearest-wins).
       labelAlign: {
         kind: "enum",
-        label: "Label Align",
+        label: "Label align",
         section: "appearance",
         default: "start",
         options: [
@@ -76,7 +76,7 @@ export const dateFieldBinding: PrimitiveBinding = {
       isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
       hideTimeZone: {
         kind: "boolean",
-        label: "Hide Time Zone",
+        label: "Hide time zone",
         section: "locale",
         // 시간 granularity 에서만 의미 (2026-09-15)
         visibleWhen: {
@@ -86,7 +86,7 @@ export const dateFieldBinding: PrimitiveBinding = {
       },
       shouldForceLeadingZeros: {
         kind: "boolean",
-        label: "Force Leading Zeros",
+        label: "Force leading zeros",
         section: "locale",
       },
       granularity: {
@@ -117,7 +117,7 @@ export const dateFieldBinding: PrimitiveBinding = {
       //   RAC DateField 공식 prop. placeholderValue 는 ISO 문자열로 렌더러가 파싱.
       hourCycle: {
         kind: "enum",
-        label: "Hour Cycle",
+        label: "Hour cycle",
         section: "locale",
         options: [
           { value: "12", label: "12" },
@@ -155,7 +155,7 @@ export const dateFieldBinding: PrimitiveBinding = {
       },
       placeholderValue: {
         kind: "string",
-        label: "Placeholder Value",
+        label: "Placeholder value",
         section: "content",
       },
       // react-aria.adobe.com "International calendars": unset = the browser's locale.

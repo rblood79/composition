@@ -60,7 +60,7 @@ describe("fieldEditor — 사용자 판정 매핑", () => {
     expect(editorOf("DateField", "hideTimeZone")).toMatchObject({
       type: "chip",
       group: "Show",
-      label: "Time Zone",
+      label: "Time zone",
       negate: true,
     });
     expect(editorOf("TextField", "isDisabled")).toMatchObject({

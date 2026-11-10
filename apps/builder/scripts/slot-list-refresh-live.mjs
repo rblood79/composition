@@ -64,8 +64,8 @@ await page.waitForTimeout(1500);
 await page.getByRole("button", { name: "Design", exact: true }).first().click().catch(() => {});
 
 for (const [label, type, item] of [
-  ["Toggle Button Group", "ToggleButtonGroup", "ToggleButton"],
-  ["Radio Group", "RadioGroup", "Radio"],
+  ["Toggle button group", "ToggleButtonGroup", "ToggleButton"],
+  ["Radio group", "RadioGroup", "Radio"],
 ]) {
   await addFromPalette(label);
   const host = await last(type);
@@ -101,7 +101,7 @@ const componentOf = () =>
       id: !!idField?.querySelector("input")?.value,
     };
   });
-await addFromPalette("List Box");
+await addFromPalette("List box");
 const list = await last("ListBox");
 const itemsOf = () =>
   page.evaluate((list) => {

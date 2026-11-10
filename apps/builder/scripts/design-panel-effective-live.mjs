@@ -185,8 +185,8 @@ try {
   await page.screenshot({ path: `${OUT}/3-xl-label-text.png` });
   l3 = {
     size,
-    fontSize: await inputValue("Font Size"),
-    lineHeight: await inputValue("Line Height"),
+    fontSize: await inputValue("Font size"),
+    lineHeight: await inputValue("Line height"),
   };
   record(
     "L-3 Checkbox xl → Label Font Size 18 · Line Height 28",

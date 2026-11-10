@@ -38,7 +38,7 @@ export const contextualHelpBinding: PrimitiveBinding = {
       isOpen: { kind: "boolean", label: "Open", section: "state" },
       defaultOpen: {
         kind: "boolean",
-        label: "Initially Open",
+        label: "Initially open",
         section: "state",
       },
     },

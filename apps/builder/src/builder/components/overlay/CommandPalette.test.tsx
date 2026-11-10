@@ -215,7 +215,7 @@ describe("CommandPalette — registry 소비", () => {
     renderWithI18n(<CommandPalette isOpen onOpenChange={() => {}} />);
 
     expect(itemFor("Duplicate").dataset.executable).toBe("true");
-    const styles = itemFor("Copy Styles");
+    const styles = itemFor("Copy styles");
     expect(styles.dataset.executable).toBe("false");
     expect(styles.dataset.availability).toBe("scope-mismatch");
     expect(styles.textContent).toContain("Available in the Design panel");
@@ -246,7 +246,7 @@ describe("CommandPalette — registry 소비", () => {
     expect(itemFor("Duplicate").textContent).toContain(
       "Available on the canvas",
     );
-    expect(itemFor("Copy Styles").dataset.executable).toBe("true");
+    expect(itemFor("Copy styles").dataset.executable).toBe("true");
   });
 
   it("메뉴 focus가 scope를 바꿔도 열기 직전의 안정 scope를 고정한다", () => {
@@ -284,13 +284,13 @@ describe("CommandPalette — registry 소비", () => {
     rerender(fixture(true));
 
     expect(itemFor("Duplicate").dataset.executable).toBe("true");
-    expect(itemFor("Copy Styles").dataset.executable).toBe("false");
+    expect(itemFor("Copy styles").dataset.executable).toBe("false");
 
     mockScope.current = "panel:properties";
     rerender(fixture(true));
 
     expect(itemFor("Duplicate").dataset.executable).toBe("true");
-    expect(itemFor("Copy Styles").dataset.executable).toBe("false");
+    expect(itemFor("Copy styles").dataset.executable).toBe("false");
   });
 
   it("global 명령은 어느 scope 에서 열어도 executable", () => {
@@ -311,7 +311,7 @@ describe("CommandPalette — registry 소비", () => {
   it("등록이 없으면 미등록으로 흐려진다", () => {
     renderWithI18n(<CommandPalette isOpen onOpenChange={() => {}} />);
 
-    const item = itemFor("Toggle All Sections");
+    const item = itemFor("Toggle all sections");
     expect(item.dataset.executable).toBe("false");
     expect(item.dataset.availability).toBe("unregistered");
     expect(item.textContent).toContain("Not available right now");
@@ -354,7 +354,7 @@ describe("CommandPalette — registry 소비", () => {
 
     renderWithI18n(<CommandPalette isOpen onOpenChange={() => {}} />);
 
-    press(itemFor("Copy Styles"));
+    press(itemFor("Copy styles"));
     await flushFrame();
 
     expect(handler).not.toHaveBeenCalled();
@@ -382,7 +382,7 @@ describe("CommandPalette — registry 소비", () => {
 
     renderWithI18n(<CommandPalette isOpen onOpenChange={() => {}} />);
 
-    press(itemFor("Clear Selection / Close Modal"));
+    press(itemFor("Clear selection / close modal"));
     await flushFrame();
 
     expect(high).toHaveBeenCalledTimes(1);

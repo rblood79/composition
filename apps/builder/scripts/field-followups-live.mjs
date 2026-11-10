@@ -69,7 +69,7 @@ await page.waitForFunction(
 await page.waitForTimeout(1500);
 for (const field of FIELDS) await addFromPalette(field.trim());
 await page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first()
   .click();
 await page.waitForTimeout(2000);

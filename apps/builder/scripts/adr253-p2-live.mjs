@@ -138,7 +138,7 @@ let before, after;
 await step("setup", async () => {
   await addFromPalette("text field");
   await page
-    .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+    .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
     .first()
     .click();
   await page.waitForTimeout(2500);
@@ -150,8 +150,8 @@ await step("setup", async () => {
     "setup",
     !!c &&
       !!p &&
-      c.text === "Text Field" &&
-      p.text === "Text Field" &&
+      c.text === "Text field" &&
+      p.text === "Text field" &&
       c.collapsed?.[0] === "lib:template:component-label" &&
       p.marked === "lib:template:component-textfield__1" &&
       p.htmlFor === true &&
@@ -305,7 +305,7 @@ await step("second-edit-and-undo", async () => {
       undone.canvas.color === before.canvas.color &&
       undone.preview.color === before.preview.color &&
       undone.preview.weight === before.preview.weight &&
-      undone.preview.text === "Text Field",
+      undone.preview.text === "Text field",
     { blue: { c: blue.canvas.color, p: blue.preview.color }, undone },
   );
 });

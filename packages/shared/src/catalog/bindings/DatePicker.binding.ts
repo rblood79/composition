@@ -59,7 +59,7 @@ export const datePickerBinding: PrimitiveBinding = {
       //   상속하고 자신이 지정하면 자신이 우선 (nearest-wins).
       labelAlign: {
         kind: "enum",
-        label: "Label Align",
+        label: "Label align",
         section: "appearance",
         default: "start",
         options: [
@@ -95,7 +95,7 @@ export const datePickerBinding: PrimitiveBinding = {
       // S2 · RAC `hourCycle` (DateField · DateRangePicker 와 같은 계약 — 2026-10-09).
       hourCycle: {
         kind: "enum",
-        label: "Hour Cycle",
+        label: "Hour cycle",
         section: "locale",
         options: [
           { value: "12", label: "12" },
@@ -117,7 +117,7 @@ export const datePickerBinding: PrimitiveBinding = {
       //   DateField's — 2026-10-09).
       placeholderValue: {
         kind: "string",
-        label: "Placeholder Value",
+        label: "Placeholder value",
         section: "content",
       },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): delegatedDom `datePickerProps` 가 소비 —
@@ -142,7 +142,7 @@ export const datePickerBinding: PrimitiveBinding = {
       },
       hideTimeZone: {
         kind: "boolean",
-        label: "Hide Time Zone",
+        label: "Hide time zone",
         section: "locale",
         default: true,
         // 시간 granularity 에서만 의미 (2026-09-15)

@@ -69,7 +69,7 @@ export const tagGroupBinding: PrimitiveBinding = {
       //   it (`formContext.ts`).
       labelAlign: {
         kind: "enum",
-        label: "Label Align",
+        label: "Label align",
         section: "appearance",
         default: "start",
         options: [

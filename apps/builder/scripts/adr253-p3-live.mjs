@@ -217,7 +217,7 @@ await step("setup", async () => {
       placed.push(`${label}: ${String(error?.message ?? error).slice(0, 80)}`);
     }
   await page
-    .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+    .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
     .first()
     .click();
   await page.waitForTimeout(3000);

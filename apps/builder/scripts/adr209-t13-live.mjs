@@ -363,7 +363,7 @@ async function main() {
 
     // ── Compare Mode ────────────────────────────────────────────────────────
     await page
-      .locator('[aria-label="Compare Mode (Preview + Skia)"]')
+      .locator('[aria-label="Compare mode (Preview + Skia)"]')
       .first()
       .click();
     await page.waitForTimeout(8000);

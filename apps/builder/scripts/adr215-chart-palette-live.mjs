@@ -318,7 +318,7 @@ async function main() {
 
     // 3. Preview (Compare Mode) — data-palette + --chart-series-N 해소값 == Skia
     const compare = page
-      .locator('[aria-label="Compare Mode (Preview + Skia)"]')
+      .locator('[aria-label="Compare mode (Preview + Skia)"]')
       .first();
     let preview = { found: false };
     if (await compare.count()) {

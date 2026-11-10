@@ -9,14 +9,14 @@ import type { PropContract } from "../types";
  */
 export const LOADING_STATE_PROP: PropContract = {
   kind: "enum",
-  label: "Loading State",
+  label: "Loading state",
   section: "state",
   editorHidden: true,
   options: [
     { value: "idle", label: "Idle" },
     { value: "loading", label: "Loading" },
     { value: "sorting", label: "Sorting" },
-    { value: "loadingMore", label: "Loading More" },
+    { value: "loadingMore", label: "Loading more" },
     { value: "filtering", label: "Filtering" },
     { value: "error", label: "Error" },
   ],

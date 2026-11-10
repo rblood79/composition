@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // adr225-layouts-live.mjs — ADR-225 재사용 레이아웃 어휘 정렬 live (실제 빌더, headed Playwright).
 //   1) 구 collapse id (`navigator-frame-layers`) 를 저장한 상태로 부팅 → 새 id 로 승계 (G4)
-//   2) Navigator `Layouts` 탭 → `Add Layout` → canonical `type:"frame"` reusable 노드 + UI 이름 `Layout 1`
+//   2) Navigator `Layouts` 탭 → `Add layout` → canonical `type:"frame"` reusable 노드 + UI 이름 `Layout 1`
 //   3) 내부 트리 `.layout-tree` 존재 · `.frame-tree` 0
-//   4) 페이지 body 선택 → Properties `Layout` 절: `Apply Layout` / `No Layout` → `Layout 1` 적용 → binding
-//      → `Remove Layout` (title `Remove layout from this page`) → binding 해제
+//   4) 페이지 body 선택 → Properties `Layout` 절: `Apply layout` / `No layout` → `Layout 1` 적용 → binding
+//      → `Remove layout` (title `Remove layout from this page`) → binding 해제
 //   5) 삭제 → canonical reusable frame 0 → reload 후에도 0 (persist)
 //   6) Navigator·Properties DOM 텍스트·aria-label·title 에 재사용 레이아웃 의미의 `Frame` 0
 //   7) ko-KR 부팅 → 레이아웃 / 레이아웃 추가 / 레이아웃 적용 / 레이아웃 없음 / 레이아웃 제거, 영어 Frame 0
@@ -212,7 +212,7 @@ try {
   );
 
   // 2) Add Layout
-  const addBtn = page.locator('button[aria-label="Add Layout"]');
+  const addBtn = page.locator('button[aria-label="Add layout"]');
   await addBtn.waitFor({ timeout: 10_000 });
   await addBtn.click();
   await page.waitForTimeout(900);
@@ -258,7 +258,7 @@ try {
   });
   await setPanel(page, "properties", true);
   const props = page.locator('[data-panel-id="properties"]');
-  const layoutSection = props.locator(".section", { hasText: "Apply Layout" });
+  const layoutSection = props.locator(".section", { hasText: "Apply layout" });
   try {
     await layoutSection.first().waitFor({ timeout: 10_000 });
   } catch (e) {
@@ -270,7 +270,7 @@ try {
     }));
     throw e;
   }
-  const applyTrigger = props.locator('button[aria-label="Apply Layout"]').first();
+  const applyTrigger = props.locator('button[aria-label="Apply layout"]').first();
   await applyTrigger.waitFor({ timeout: 5_000 });
   const sectionTitle = (await layoutSection.first().locator(".section-title").innerText()).trim();
   // 빈 값(value "") 은 PropertySelect 가 트리거에 "—" 로 그린다 (기존 동작) — 옵션 목록에서 No Layout 을 본다
@@ -301,7 +301,7 @@ try {
   const removeText = (await removeBtn.innerText()).trim();
   record(
     "Remove Layout 버튼 — 텍스트/title 이 Layout",
-    removeText === "Remove Layout" && removeTitle === "Remove layout from this page",
+    removeText === "Remove layout" && removeTitle === "Remove layout from this page",
     `${removeText} / ${removeTitle}`,
   );
   await page.screenshot({ path: resolve(OUT_DIR, "2-properties-layout.png") });
@@ -326,7 +326,7 @@ try {
   await page.locator('.section[data-section-id="navigator-layouts"] .elementItemLabel', { hasText: /^Layout 1$/ }).click();
   await page.waitForTimeout(600);
   await setPanel(page, "properties", true);
-  const presetSection = props.locator(".section", { hasText: "Layout Preset" });
+  const presetSection = props.locator(".section", { hasText: "Layout preset" });
   await presetSection.first().waitFor({ timeout: 10_000 });
   await presetSection.locator(".preset-card", { has: page.locator(".list-item-name", { hasText: /^2-Row$/ }) }).first().click();
   await page.waitForTimeout(1200);
@@ -383,7 +383,7 @@ try {
   await addFromPalette(page, "Button");
   await page.evaluate((bodyId) => window.__composition_STORE__.getState().setSelectedElement(bodyId), pageInfo.bodyId);
   await setPanel(page, "properties", true);
-  await props.locator('button[aria-label="Apply Layout"]').first().click();
+  await props.locator('button[aria-label="Apply layout"]').first().click();
   await page.locator('[role="option"]', { hasText: /^Layout 1$/ }).click();
   await page.waitForTimeout(1500);
   const compare = page.locator(".header_right .builder-control-group button").first();

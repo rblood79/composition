@@ -82,7 +82,7 @@ const ids = await page.evaluate(() => {
   return { checkbox: of("Checkbox"), group: of("CheckboxGroup") };
 });
 await page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first()
   .click();
 await page.waitForTimeout(3000);

@@ -21,7 +21,7 @@ export const CATALOG_INHERITED_PROP_CONTRACTS: Readonly<
 
 export const CATALOG_COLOR_SCHEME_PROP: PropContract = {
   kind: "enum",
-  label: "Color Scheme",
+  label: "Color scheme",
   section: "state",
   options: [
     { value: "light", label: "Light" },

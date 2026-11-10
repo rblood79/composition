@@ -135,7 +135,7 @@ await page.waitForFunction(
 );
 await page.waitForTimeout(1500);
 const compare = page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await page.waitForTimeout(1500);
@@ -143,7 +143,7 @@ await page.waitForTimeout(1500);
 // ── NumberField hideStepper ──
 await addFromPalette("number field");
 const nf = await select("NumberField");
-const hasHide = await openDesign("Hide Stepper");
+const hasHide = await openDesign("Hide stepper");
 record("Design offers Hide Stepper on a NumberField", hasHide, { nf });
 const steppers = (id) =>
   page.evaluate((id) => {
@@ -166,7 +166,7 @@ record(
   before.dom === 2 && before.hidden.length === 2 && before.hidden.every((h) => !h),
   before,
 );
-await toggleBool("Hide Stepper");
+await toggleBool("Hide stepper");
 const after = await steppers(nf.id);
 await page.screenshot({ path: `${OUT}/numberfield-hidden.png` });
 record(

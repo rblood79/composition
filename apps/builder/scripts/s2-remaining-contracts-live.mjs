@@ -49,7 +49,7 @@ async function ready() {
   if (!(await page.locator("#previewFrame").count()))
     await page
       .getByRole("button", {
-        name: "Compare Mode (Preview + Skia)",
+        name: "Compare mode (Preview + Skia)",
         exact: true,
       })
       .click();
@@ -429,8 +429,8 @@ try {
     await link.press("Tab");
     await settle();
     for (const [label, value] of [
-      ["Parent Frame", "_parent"],
-      ["Top Frame", "_top"],
+      ["Parent frame", "_parent"],
+      ["Top frame", "_top"],
     ]) {
       await choose("Target", label);
       const card = (await snapshot()).find((n) => n.type === "Card");
@@ -453,18 +453,18 @@ try {
     for (const value of [
       "Start",
       "End",
-      "Top Left",
-      "Top Right",
-      "Bottom Left",
-      "Bottom Right",
-      "Left Top",
-      "Left Bottom",
-      "Start Top",
-      "Start Bottom",
-      "Right Top",
-      "Right Bottom",
-      "End Top",
-      "End Bottom",
+      "Top left",
+      "Top right",
+      "Bottom left",
+      "Bottom right",
+      "Left top",
+      "Left bottom",
+      "Start top",
+      "Start bottom",
+      "Right top",
+      "Right bottom",
+      "End top",
+      "End bottom",
     ]) {
       await choose("Placement Value", value);
       const popover = (await snapshot()).find((n) => n.type === "Popover");

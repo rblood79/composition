@@ -68,7 +68,7 @@ await page.waitForURL(/\/builder\//, { timeout: 30000 });
 await page.waitForSelector(".app:not(.builder-booting)", { timeout: 30000 });
 await page.waitForFunction(() => window.__COMPOSITION_CATALOG__?.workspace, null, { timeout: 30000 });
 await wait(1500);
-const compare = page.getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true }).first();
+const compare = page.getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true }).first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await wait(2500);
 await page.waitForFunction(() => window.__COMPOSITION_CATALOG__?.workspace, null, { timeout: 30000 });

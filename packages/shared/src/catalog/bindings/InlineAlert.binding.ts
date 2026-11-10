@@ -54,8 +54,8 @@ export const inlineAlertBinding: PrimitiveBinding = {
         default: "border",
         options: [
           { value: "border", label: "Border" },
-          { value: "subtleFill", label: "Subtle Fill" },
-          { value: "boldFill", label: "Bold Fill" },
+          { value: "subtleFill", label: "Subtle fill" },
+          { value: "boldFill", label: "Bold fill" },
         ],
       },
     },

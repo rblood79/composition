@@ -1001,7 +1001,7 @@ async function openColorArea(page, forceReopen = false) {
 }
 
 async function enableSplitPreview(page) {
-  const enableButton = page.getByLabel("Compare Mode (Preview + Skia)", {
+  const enableButton = page.getByLabel("Compare mode (Preview + Skia)", {
     exact: true,
   });
   if (await enableButton.isVisible().catch(() => false)) {

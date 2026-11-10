@@ -121,7 +121,7 @@ const clickInPreview = (id) =>
   }, id);
 const ensureCompare = async () => {
   const toggle = page
-    .locator('button[aria-label="Compare Mode (Preview + Skia)"], button[aria-label="비교 모드 (Preview + Skia)"]')
+    .locator('button[aria-label="Compare mode (Preview + Skia)"], button[aria-label="비교 모드 (Preview + Skia)"]')
     .first();
   if ((await toggle.getAttribute("aria-pressed")) !== "true") await toggle.click();
   await pollUntil(frameOf, (x) => !!x, 15_000, 300);
@@ -144,7 +144,7 @@ const createVariable = async (name, defaultValue, persist) => {
   const panel = page.locator(".datatable-panel");
   await panel.locator(".panel-tab").nth(2).click();
   await page.waitForTimeout(300);
-  await panel.locator('button:has-text("Add Variable"), button:has-text("변수 추가")').first().click();
+  await panel.locator('button:has-text("Add variable"), button:has-text("변수 추가")').first().click();
   const creator = page.locator(".datatable-creator");
   await creator.waitFor({ timeout: 10_000 });
   await creator.locator('input[aria-label="Name"], input[aria-label="이름"]').fill(name);
@@ -156,11 +156,11 @@ const createVariable = async (name, defaultValue, persist) => {
       await page.locator('[role="option"]', { hasText: /^Number$|^숫자$/ }).first().click();
     }
   }
-  await creator.locator('button:has-text("Create Variable"), button:has-text("변수 만들기")').last().click();
+  await creator.locator('button:has-text("Create variable"), button:has-text("변수 만들기")').last().click();
   await page.waitForTimeout(800);
   const editor = page.locator('[data-panel-id="datatableEditor"]');
   const defaultInput = editor
-    .locator("fieldset", { has: page.locator('legend:has-text("Default Value")') })
+    .locator("fieldset", { has: page.locator('legend:has-text("Default value")') })
     .locator("input")
     .first();
   await defaultInput.waitFor({ timeout: 10_000 });
@@ -268,7 +268,7 @@ try {
   const step3 = await pollUntil(() => domTextOf(text2Id), (t) => t === "step=3", 10_000, 300);
   const pagesBefore = await page.evaluate(() => window.__composition_STORE__.getState().pages.map((p) => p.id));
   await setPanel(page, "navigator", true);
-  await page.locator('button[aria-label="Add Page"], button[aria-label="페이지 추가"]').first().click();
+  await page.locator('button[aria-label="Add page"], button[aria-label="페이지 추가"]').first().click();
   const otherPageId = await pollUntil(
     () => page.evaluate((before) => { const known = new Set(before); return window.__composition_STORE__.getState().pages.find((p) => !known.has(p.id))?.id ?? null; }, pagesBefore),
     (id) => !!id, 15_000, 400,

@@ -89,7 +89,7 @@ async function panelControls(page) {
     const panel =
       anchor?.closest(".panel-contents") ??
       [...document.querySelectorAll(".panel-contents")].find((r) =>
-        r.querySelector('[aria-label="Chart Type"]'),
+        r.querySelector('[aria-label="Chart type"]'),
       );
     if (!panel) return [];
     // 컨트롤 종류마다 이름이 어디 있는지 다르다 — enum/number 는 `aria-label`,
@@ -162,13 +162,13 @@ async function main() {
     }
     record(
       "④ chartType 저장 여부와 무관하게 bar 전용 필드가 보인다 (R7)",
-      initial.includes("Orientation") && initial.includes("Stack Type"),
+      initial.includes("Orientation") && initial.includes("Stack type"),
       `stored chartType=${JSON.stringify(rawProps.chartType)} · controls=${initial.length}`,
     );
     record(
       "bar 에서 극좌표 전용 필드는 안 보인다",
-      !initial.includes("Grid Type") && !initial.includes("Inner Radius (%)"),
-      `Grid Type=${initial.includes("Grid Type")} · Inner Radius=${initial.includes("Inner Radius (%)")}`,
+      !initial.includes("Grid type") && !initial.includes("Inner radius (%)"),
+      `Grid Type=${initial.includes("Grid type")} · Inner Radius=${initial.includes("Inner radius (%)")}`,
     );
 
     // ── 종류 전환 — 필드 집합이 실제로 갈린다 ──
@@ -176,13 +176,13 @@ async function main() {
     const radar = await panelControls(page);
     record(
       "radar 로 바꾸면 Grid Type · Inner Radius 가 나온다",
-      radar.includes("Grid Type") && radar.includes("Inner Radius (%)"),
+      radar.includes("Grid type") && radar.includes("Inner radius (%)"),
       radar.filter((c) => /Grid Type|Inner Radius/.test(c)).join(", "),
     );
     record(
       "radar 에서 Orientation · Stack Type 은 사라진다 (ADR-207 R8)",
-      !radar.includes("Orientation") && !radar.includes("Stack Type"),
-      `Orientation=${radar.includes("Orientation")} · Stack Type=${radar.includes("Stack Type")}`,
+      !radar.includes("Orientation") && !radar.includes("Stack type"),
+      `Orientation=${radar.includes("Orientation")} · Stack Type=${radar.includes("Stack type")}`,
     );
 
     // ── ② 왕복 후 값 보존 ──
@@ -213,7 +213,7 @@ async function main() {
     const p2 = await panelControls(page);
     record(
       "P2 radar 격자·선 제어 4프롭이 패널에 온다",
-      ["Show Spokes", "Grid Rings (0=auto)", "Fill Grid", "Fill Area (radar)"]
+      ["Show spokes", "Grid rings (0=auto)", "Fill grid", "Fill area (radar)"]
         .every((c) => p2.includes(c)),
       p2.filter((c) => /Spokes|Grid Rings|Fill /.test(c)).join(", "),
     );
@@ -230,7 +230,7 @@ async function main() {
     const p3 = await panelControls(page);
     record(
       "P3 radial 에서 각도 범위 2프롭 + 중앙 합계가 온다",
-      ["Start Angle (deg)", "End Angle (deg)", "Show Total (donut · radial)"]
+      ["Start angle (deg)", "End angle (deg)", "Show Total (donut · radial)"]
         .every((c) => p3.includes(c)),
       p3.filter((c) => /Angle|Show Total/.test(c)).join(", "),
     );
@@ -252,8 +252,8 @@ async function main() {
     const p4on = await panelControls(page);
     record(
       "P4 Label Content 는 값 레이블을 켜야 나온다 (조건 축 = showValueLabels)",
-      !p4off.includes("Label Content") && p4on.includes("Label Content"),
-      `off=${p4off.includes("Label Content")} · on=${p4on.includes("Label Content")}`,
+      !p4off.includes("Label content") && p4on.includes("Label content"),
+      `off=${p4off.includes("Label content")} · on=${p4on.includes("Label content")}`,
     );
 
     record(

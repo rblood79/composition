@@ -351,7 +351,7 @@ const SectionRow = memo(function SectionRow({
                 </div>
                 <div className="fieldset-row" data-wide="true">
                   <PropertyInput
-                    label="Default Selected Keys"
+                    label="Default selected keys"
                     value={
                       Array.isArray(section.defaultSelectedKeys)
                         ? (section.defaultSelectedKeys as string[]).join(", ")

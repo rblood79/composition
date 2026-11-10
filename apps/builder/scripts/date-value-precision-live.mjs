@@ -337,7 +337,7 @@ try {
     ws.session.clearSelection();
   });
   await page
-    .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+    .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
     .click();
   const preview = page.frameLocator("#previewFrame");
   await preview

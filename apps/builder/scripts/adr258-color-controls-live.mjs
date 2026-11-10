@@ -307,7 +307,7 @@ const redo = async () => {
 // ── L-5 Design panel default value edit, no reload: Preview · Canvas follow; undo · redo ───────
 await selectSlider();
 const r5 = await revision();
-await typeInto("Default Value", "hsl(240, 100%, 50%)");
+await typeInto("Default value", "hsl(240, 100%, 50%)");
 const r5b = await revision();
 const d5 = await sliderDom();
 const c5 = await canvasThumb();
@@ -440,7 +440,7 @@ record(
 
 // ── L-8 drag → default value edit → RAC starts again; undo · redo start again too ──────────────
 await selectSlider();
-await typeInto("Default Value", "hsl(60, 100%, 50%)");
+await typeInto("Default value", "hsl(60, 100%, 50%)");
 const d8 = await sliderDom();
 await undo();
 const d8u = await sliderDom();
@@ -453,9 +453,9 @@ record(
 );
 
 // ── L-9 an achromatic hue edit (same rgb) starts RAC's state again; undo too ───────────────────
-await typeInto("Default Value", "hsl(0, 0%, 50%)");
+await typeInto("Default value", "hsl(0, 0%, 50%)");
 const d9a = await sliderDom();
-await typeInto("Default Value", "hsl(120, 0%, 50%)");
+await typeInto("Default value", "hsl(120, 0%, 50%)");
 const d9b = await sliderDom();
 const c9b = await canvasThumb();
 await undo();
@@ -502,7 +502,7 @@ await page.evaluate((id) => {
   ws.selectRecords([rid]);
 }, areaId);
 await wait(700);
-await pick("Color Space", "HSL");
+await pick("Color space", "HSL");
 const areaProps = () =>
   page.evaluate((id) => {
     const e =
@@ -513,7 +513,7 @@ const areaProps = () =>
   }, areaId);
 const a10 = await areaProps();
 const r10c = await revision();
-await pick("X Channel", "Red");
+await pick("X channel", "Red");
 const r10d = await revision();
 const a10b = await areaProps();
 await undo();
@@ -536,14 +536,14 @@ await wait(700);
 
 // ── L-11 a CSS name is refused: field error, no step ───────────────────────────────────────────
 const r11 = await revision();
-await typeInto("Default Value", "red");
+await typeInto("Default value", "red");
 const invalid = await page.locator("[data-rac-color-invalid]").count();
 record(
   "L-11 'red' → field error, revision unchanged",
   invalid > 0 && (await revision()) === r11,
   { invalid, r11, rev: await revision() },
 );
-await field("Default Value")
+await field("Default value")
   .locator("input")
   .first()
   .press("Escape")

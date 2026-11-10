@@ -239,8 +239,12 @@ function approxTextWidth(text: string): number {
 }
 
 function chipLabel(key: string, label: string): string {
-  if (NEGATED.has(key)) return label.replace(/^Hide\s+/, "");
-  return label.replace(/^(Show|Fill|Is|Should)\s+/, "");
+  const rest = label.replace(
+    NEGATED.has(key) ? /^Hide\s+/ : /^(Show|Fill|Is|Should)\s+/,
+    "",
+  );
+  // 라벨은 sentence case 다 (「Hide time zone」) — 접두를 떼면 남은 첫 글자를 다시 세운다 (「Time zone」).
+  return rest === label ? label : rest.charAt(0).toUpperCase() + rest.slice(1);
 }
 function chipGroup(key: string, label: string): ChipGroup {
   if (NEGATED.has(key)) return "Show";

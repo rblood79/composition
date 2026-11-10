@@ -97,7 +97,7 @@ export const DATE_CALENDAR_SYSTEM_PROP: PropContract = {
  */
 export const FIRST_DAY_OF_WEEK_PROP: PropContract = {
   kind: "enum",
-  label: "First Day of Week",
+  label: "First day of week",
   section: "locale",
   options: [
     { value: "", label: "Locale default" },

@@ -64,7 +64,7 @@ async function addFromPalette(label) {
 }
 async function compareOn() {
   const button = page
-    .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+    .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
     .first();
   if (await button.isVisible().catch(() => false)) await button.click();
   await page.waitForTimeout(3000);
@@ -159,7 +159,7 @@ for (const [palette, type, gone, drawn] of [
     marked: doc.querySelector(".react-aria-TabList")?.getAttribute("data-show-indicator"),
     bars: doc.querySelectorAll('.react-aria-Tab[data-selected] .react-aria-SelectionIndicator').length,
   })],
-  ["pagination", "Pagination", ["Total Pages", "Current Page"], (doc) => ({
+  ["pagination", "Pagination", ["Total pages", "Current page"], (doc) => ({
     buttons: doc.querySelectorAll(".react-aria-Pagination button, [class*=Pagination] button").length,
   })],
   ["date picker", "DatePicker", ["Placeholder", "Show Calendar Icon"], (doc) => ({
@@ -171,7 +171,7 @@ for (const [palette, type, gone, drawn] of [
   ["calendar", "CalendarHeader", ["Locale", "Calendar System", "Month/Year"], (doc) => ({
     title: doc.querySelector(".react-aria-Calendar .react-aria-Heading, .react-aria-Calendar h2")?.textContent ?? null,
   })],
-  ["file upload", "FileUpload", ["Accepted File Types", "Allow Multiple", "Accept Directory"], () => ({})],
+  ["file upload", "FileUpload", ["Accepted file types", "Allow multiple", "Accept directory"], () => ({})],
 ]) {
   await page.evaluate(() =>
     window.__COMPOSITION_CATALOG__.workspace.session.clearSelection(),

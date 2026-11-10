@@ -226,7 +226,7 @@ async function main() {
     // Preview DOM 은 **Compare Mode** 가 같은 페이지에 iframe 으로 띄운다
     //   (헤더의 "Preview" 아이콘 버튼은 별도 창을 연다 — 같은 문서에서 대조하려면 이쪽).
     const previewTab = page
-      .locator('[aria-label="Compare Mode (Preview + Skia)"]')
+      .locator('[aria-label="Compare mode (Preview + Skia)"]')
       .first();
     let previewFindings = null;
     if (await previewTab.count()) {

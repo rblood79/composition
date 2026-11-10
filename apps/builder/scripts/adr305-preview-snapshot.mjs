@@ -167,7 +167,7 @@ try {
   );
   await page.waitForTimeout(1500);
   await page
-    .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+    .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
     .click();
   await page.locator("#previewFrame").waitFor();
   const frame = page.frameLocator("#previewFrame");

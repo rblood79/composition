@@ -31,7 +31,7 @@ function renderPicker(scope: "element" | "theme", value = "Inter") {
 describe("공용 폰트 선택창의 Theme·Design 경계", () => {
   it("Design은 폰트 선택만 제공하고 등록·관리 진입점이 없다", async () => {
     const { user, onChange } = renderPicker("element");
-    await user.click(screen.getByRole("button", { name: "Font Family" }));
+    await user.click(screen.getByRole("button", { name: "Font family" }));
     expect(
       screen.queryByRole("button", { name: /Add fonts|Manage fonts/ }),
     ).toBeNull();
@@ -42,12 +42,12 @@ describe("공용 폰트 선택창의 Theme·Design 경계", () => {
   it("Theme에서만 추가 모달을 열고 등록 진입만으로 서체는 변경하지 않는다", async () => {
     const { user, onChange } = renderPicker("theme");
     expect(screen.getByText("Font").tagName).toBe("LEGEND");
-    await user.click(screen.getByRole("button", { name: "Font Family" }));
+    await user.click(screen.getByRole("button", { name: "Font family" }));
     await user.click(screen.getByRole("button", { name: "Add fonts" }));
     expect(
       await screen.findByRole("dialog", { name: "Manage fonts" }),
     ).toBeTruthy();
-    expect(screen.queryByRole("listbox", { name: "Font Family" })).toBeNull();
+    expect(screen.queryByRole("listbox", { name: "Font family" })).toBeNull();
     expect(onChange).not.toHaveBeenCalled();
   });
 
@@ -55,7 +55,7 @@ describe("공용 폰트 선택창의 Theme·Design 경계", () => {
     "%s 복원은 자기 범위의 기본값을 전달한다",
     async (scope) => {
       const { user, onChange } = renderPicker(scope);
-      await user.click(screen.getByRole("button", { name: "Font Family" }));
+      await user.click(screen.getByRole("button", { name: "Font family" }));
       const options = screen.getAllByRole("option");
       await user.click(
         options.find((option) => option.getAttribute("data-key") === "reset")!,
@@ -69,7 +69,7 @@ describe("공용 폰트 선택창의 Theme·Design 경계", () => {
   it("기존 fallback 체인을 선택 상태로 표시하고 열기만 하면 저장값을 유지한다", async () => {
     const chain = "'Inter', -apple-system, system-ui, sans-serif";
     const { user, onChange } = renderPicker("theme", chain);
-    const trigger = screen.getByRole("button", { name: "Font Family" });
+    const trigger = screen.getByRole("button", { name: "Font family" });
     expect(trigger.textContent).toBe("Inter");
     await user.click(trigger);
     const inter = screen.getByRole("option", { name: "Inter" });
@@ -80,7 +80,7 @@ describe("공용 폰트 선택창의 Theme·Design 경계", () => {
 
   it("외부에서 등록한 폰트를 열린 목록에 반영하며 기존 선택은 바꾸지 않는다", async () => {
     const { user, onChange } = renderPicker("element");
-    await user.click(screen.getByRole("button", { name: "Font Family" }));
+    await user.click(screen.getByRole("button", { name: "Font family" }));
     await act(async () => {
       saveRegistryAndNotify({
         version: 2,
@@ -100,7 +100,7 @@ describe("공용 폰트 선택창의 Theme·Design 경계", () => {
         ],
       });
     });
-    const list = screen.getByRole("listbox", { name: "Font Family" });
+    const list = screen.getByRole("listbox", { name: "Font family" });
     const uploaded = within(list).getByRole("option", {
       name: "Shared uploaded font",
     });
@@ -127,7 +127,7 @@ describe("공용 폰트 선택창의 Theme·Design 경계", () => {
       faces: [face("a", "Alpha Sans"), face("b", "Beta Serif")],
     } as Parameters<typeof saveRegistryAndNotify>[0]);
     const { user, onChange } = renderPicker("element");
-    await user.click(screen.getByRole("button", { name: "Font Family" }));
+    await user.click(screen.getByRole("button", { name: "Font family" }));
     const search = screen.getByRole("searchbox");
     expect(document.activeElement).toBe(search);
     await user.type(search, "beta");

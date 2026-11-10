@@ -109,7 +109,7 @@ try {
         await rail(name);
       await page
         .getByRole("button", {
-          name: "Compare Mode (Preview + Skia)",
+          name: "Compare mode (Preview + Skia)",
           exact: true,
         })
         .click();
@@ -372,7 +372,7 @@ try {
         await settle();
         const input = panel()
           .getByRole("group", {
-            name: "Selected Key",
+            name: "Selected key",
             exact: true,
           })
           .getByRole("textbox");
@@ -481,7 +481,7 @@ try {
         if (!(await page.locator("#previewFrame").count()))
           await page
             .getByRole("button", {
-              name: "Compare Mode (Preview + Skia)",
+              name: "Compare mode (Preview + Skia)",
               exact: true,
             })
             .click();

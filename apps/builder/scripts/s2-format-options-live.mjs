@@ -199,7 +199,7 @@ await page.waitForFunction(
 );
 await page.waitForTimeout(1500);
 const compare = page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await page.waitForTimeout(1500);
@@ -227,7 +227,7 @@ const alert = await formatEditor()
   .isVisible()
   .catch(() => false);
 record("an invalid code is not written (alert, value kept)", alert && m3.format?.currency === "EUR", { ...m3, alert });
-await typeInto("Max Fraction Digits", "0");
+await typeInto("Max fraction digits", "0");
 const m4 = await read(meter.id, "MeterValue", ".value");
 await page.screenshot({ path: `${OUT}/meter-currency.png` });
 record("Max Fraction Digits 0; both draw €75", m4.format?.maximumFractionDigits === 0 && same(m4, "€75"), m4);

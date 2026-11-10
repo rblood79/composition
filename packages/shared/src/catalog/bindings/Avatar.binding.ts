@@ -72,7 +72,7 @@ export const avatarBinding: PrimitiveBinding = {
       //   ring outside the circle. The AvatarGroup origin's avatars have it (S2 `AvatarContext`).
       isOverBackground: {
         kind: "boolean",
-        label: "Over Background",
+        label: "Over background",
         section: "appearance",
       },
     },

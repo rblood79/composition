@@ -123,7 +123,7 @@ await page.waitForFunction(
 );
 await page.waitForTimeout(1500);
 const compare = page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await page.waitForTimeout(1500);
@@ -142,7 +142,7 @@ await page.waitForTimeout(1000);
 await page.getByRole("button", { name: "Design", exact: true }).first().click();
 await page.waitForTimeout(1200);
 await pick("Granularity", "Minute");
-await pick("Hour Cycle", "24");
+await pick("Hour cycle", "24");
 const h24 = await segments();
 // (A day period: 오전/오후 · AM/PM.)
 const period = /오전|오후|AM|PM/;
@@ -153,7 +153,7 @@ record(
     !period.test(h24.canvas),
   h24,
 );
-await pick("Hour Cycle", "12");
+await pick("Hour cycle", "12");
 const h12 = await segments();
 record(
   "Hour Cycle 12: Canvas = Preview segments · day period on both",
@@ -164,7 +164,7 @@ record(
 );
 await page.screenshot({ path: `${OUT}/hour-cycle-12.png` });
 
-const input = field("Placeholder Value").locator("input").first();
+const input = field("Placeholder value").locator("input").first();
 await input.fill("2030-03-15");
 await input.press("Enter");
 await page.waitForTimeout(1500);

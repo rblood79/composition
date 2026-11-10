@@ -23,7 +23,7 @@ export const fieldBinding: PrimitiveBinding = {
     accepts: {
       key: {
         kind: "string",
-        label: "Data Key",
+        label: "Data key",
         section: "content",
       },
       label: {

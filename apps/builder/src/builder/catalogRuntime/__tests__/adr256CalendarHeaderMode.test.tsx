@@ -191,10 +191,10 @@ describe("ADR-256 Phase 9 — calendar header choice", () => {
       </I18nProvider>,
     );
     const view = within(field.container);
-    const toggle = view.getByRole("switch", { name: "Month and Year Pickers" });
+    const toggle = view.getByRole("switch", { name: "Month and year pickers" });
     expect((toggle as HTMLInputElement).checked).toBe(false);
     // No picker fields while the heading shows.
-    expect(view.queryByRole("button", { name: /Month Format/ })).toBe(null);
+    expect(view.queryByRole("button", { name: /Month format/ })).toBe(null);
     await act(async () => {
       fireEvent.click(toggle);
     });
@@ -208,15 +208,15 @@ describe("ADR-256 Phase 9 — calendar header choice", () => {
     expect(
       (
         view.getByRole("switch", {
-          name: "Month and Year Pickers",
+          name: "Month and year pickers",
         }) as HTMLInputElement
       ).checked,
     ).toBe(true);
     // RAC's defaults: short month names, 20 years.
-    const years = view.getByRole("textbox", { name: "Visible Years" });
+    const years = view.getByRole("textbox", { name: "Visible years" });
     expect((years as HTMLInputElement).value).toBe("20");
     await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: /Month Format/ }));
+      fireEvent.click(view.getByRole("button", { name: /Month format/ }));
     });
     await act(async () => {
       fireEvent.click(screen.getByRole("option", { name: "Long" }));
@@ -230,11 +230,11 @@ describe("ADR-256 Phase 9 — calendar header choice", () => {
     // Off: the heading is back, the picker fields go.
     await act(async () => {
       fireEvent.click(
-        view.getByRole("switch", { name: "Month and Year Pickers" }),
+        view.getByRole("switch", { name: "Month and year pickers" }),
       );
     });
     expect(header()).toEqual(["Button", "CalendarHeading", "Button"]);
-    expect(view.queryByRole("textbox", { name: "Visible Years" })).toBe(null);
+    expect(view.queryByRole("textbox", { name: "Visible years" })).toBe(null);
   });
 
   // Composition extension: RAC renders the pickers in source order; the builder shows them in the

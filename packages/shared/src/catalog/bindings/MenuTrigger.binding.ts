@@ -12,7 +12,7 @@ export const menuTriggerBinding: PrimitiveBinding = {
       isOpen: { kind: "boolean", label: "Open", section: "state" },
       defaultOpen: {
         kind: "boolean",
-        label: "Initially Open",
+        label: "Initially open",
         section: "state",
       },
       trigger: {
@@ -22,7 +22,7 @@ export const menuTriggerBinding: PrimitiveBinding = {
         default: "press",
         options: [
           { value: "press", label: "Press" },
-          { value: "longPress", label: "Long Press" },
+          { value: "longPress", label: "Long press" },
         ],
       },
       // S2 1.8.0 MenuTrigger — where the menu opens: `direction` + `align` are its Popover's

@@ -184,7 +184,7 @@ await page.waitForFunction(
 );
 await page.waitForTimeout(1500);
 const compare = page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await page.waitForTimeout(1500);
@@ -193,9 +193,9 @@ await addFromPalette("slider");
 const slider = await select("Slider");
 await setWidth(slider.source);
 const offered =
-  (await openDesign("Track Style")) &&
-  (await field("Thumb Style").isVisible().catch(() => false)) &&
-  (await field("Fill Offset").isVisible().catch(() => false));
+  (await openDesign("Track style")) &&
+  (await field("Thumb style").isVisible().catch(() => false)) &&
+  (await field("Fill offset").isVisible().catch(() => false));
 record("Design offers Track Style · Thumb Style · Fill Offset", offered, {
   slider,
 });
@@ -207,7 +207,7 @@ record(
   thin,
 );
 
-await choose("Track Style", "Thick");
+await choose("Track style", "Thick");
 const thick = await read(slider.id);
 await page.screenshot({ path: `${OUT}/track-thick.png` });
 record(
@@ -218,9 +218,9 @@ record(
     thick.canvas.trackRadius === 4,
   thick,
 );
-await choose("Track Style", "Thin");
+await choose("Track style", "Thin");
 
-await choose("Thumb Style", "Precise");
+await choose("Thumb style", "Precise");
 const precise = await read(slider.id);
 await page.screenshot({ path: `${OUT}/thumb-precise.png` });
 record(
@@ -231,7 +231,7 @@ record(
     near(precise.canvas.thumb?.height, 20),
   precise,
 );
-await choose("Thumb Style", "Default");
+await choose("Thumb style", "Default");
 
 // (The slider's value — the pre-existing Content field; set by command, the panel's Value
 // input is a text field whose commit timing is not this feature's surface.)
@@ -248,7 +248,7 @@ await page.evaluate(
   },
   { commands, source: slider.source },
 );
-await type("Fill Offset", "50");
+await type("Fill offset", "50");
 const offset = await read(slider.id);
 await page.screenshot({ path: `${OUT}/fill-offset.png` });
 const ratioDom = offset.dom.fill && offset.dom.track

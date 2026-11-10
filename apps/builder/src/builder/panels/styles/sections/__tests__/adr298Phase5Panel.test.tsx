@@ -75,10 +75,10 @@ describe("ADR-298 Phase 5 — mock rows", () => {
     const { view } = await renderWith(TypographySection, [
       { id: "t", type: "Text", props: { children: "Hello" } },
     ]);
-    const trigger = view.getAllByRole("button", { name: "Font Family" })[0]!;
+    const trigger = view.getAllByRole("button", { name: "Font family" })[0]!;
     // legend 는 다른 Select 칸과 같다 (2026-11-10 사용자 지적 — 이 칸만 legend 가 없었다)
     expect(trigger.closest("fieldset")?.querySelector("legend")?.textContent).toBe(
-      "Font Family",
+      "Font family",
     );
     expect(trigger.querySelector(".font-picker-theme-chip")?.textContent).toBe("Theme");
     expect(trigger.querySelector(".font-picker-value")?.textContent).not.toBe("");
@@ -86,7 +86,7 @@ describe("ADR-298 Phase 5 — mock rows", () => {
     const authored = await renderWith(TypographySection, [
       { id: "t2", type: "Text", props: { children: "Hi" }, style: { fontFamily: "Inter" } },
     ]);
-    const t2 = authored.view.getAllByRole("button", { name: "Font Family" })[0]!;
+    const t2 = authored.view.getAllByRole("button", { name: "Font family" })[0]!;
     expect(t2.querySelector(".font-picker-theme-chip")).toBeNull();
     expect(t2.querySelector(".font-picker-value")?.textContent).toBe("Inter");
   });

@@ -63,7 +63,7 @@ export const comboBoxBinding: PrimitiveBinding = {
       //   상속하고 자신이 지정하면 자신이 우선 (nearest-wins).
       labelAlign: {
         kind: "enum",
-        label: "Label Align",
+        label: "Label align",
         section: "appearance",
         default: "start",
         options: [
@@ -103,7 +103,7 @@ export const comboBoxBinding: PrimitiveBinding = {
           { value: "end", label: "End" },
         ],
       },
-      menuWidth: { kind: "number", label: "Menu Width", section: "appearance" },
+      menuWidth: { kind: "number", label: "Menu width", section: "appearance" },
       allowsCustomValue: {
         kind: "boolean",
         label: "Allow Custom Value",

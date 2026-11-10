@@ -523,7 +523,7 @@ for (const variant of variants) {
   await step("compare", async () => {
     await page
       .getByRole("button", {
-        name: "Compare Mode (Preview + Skia)",
+        name: "Compare mode (Preview + Skia)",
         exact: true,
       })
       .click();

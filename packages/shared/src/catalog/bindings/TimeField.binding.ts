@@ -61,7 +61,7 @@ export const timeFieldBinding: PrimitiveBinding = {
       //   (`delegatedDom.tsx` `inheritedForm`).
       labelAlign: {
         kind: "enum",
-        label: "Label Align",
+        label: "Label align",
         section: "appearance",
         default: "start",
         options: [
@@ -74,7 +74,7 @@ export const timeFieldBinding: PrimitiveBinding = {
       isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
       hourCycle: {
         kind: "enum",
-        label: "Hour Cycle",
+        label: "Hour cycle",
         section: "locale",
         default: "24",
         options: [
@@ -85,7 +85,7 @@ export const timeFieldBinding: PrimitiveBinding = {
       },
       shouldForceLeadingZeros: {
         kind: "boolean",
-        label: "Force Leading Zeros",
+        label: "Force leading zeros",
         section: "locale",
       },
       granularity: {
@@ -120,7 +120,7 @@ export const timeFieldBinding: PrimitiveBinding = {
       //   hideTimeZone 렌더러 기본값이 true (`!== false`) 라 default: true 명시.
       hideTimeZone: {
         kind: "boolean",
-        label: "Hide Time Zone",
+        label: "Hide time zone",
         section: "locale",
         default: true,
       },
@@ -150,7 +150,7 @@ export const timeFieldBinding: PrimitiveBinding = {
       },
       placeholderValue: {
         kind: "string",
-        label: "Placeholder Value",
+        label: "Placeholder value",
         section: "content",
       },
       // react-aria.adobe.com "International calendars": unset = the browser's locale.

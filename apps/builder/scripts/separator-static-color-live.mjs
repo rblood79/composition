@@ -119,7 +119,7 @@ await page.waitForFunction(
 );
 await page.waitForTimeout(1500);
 const compare = page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await page.waitForTimeout(1500);
@@ -129,12 +129,12 @@ await page.waitForTimeout(1500);
 await selectSeparator();
 await page.waitForTimeout(1000);
 for (let i = 0; i < 3; i++) {
-  if (await field("Static Color").isVisible().catch(() => false)) break;
+  if (await field("Static color").isVisible().catch(() => false)) break;
   await page.getByRole("button", { name: "Design", exact: true }).first().click();
   await page.waitForTimeout(1200);
 }
 const before = await read();
-await pick("Static Color", "Black");
+await pick("Static color", "Black");
 const black = await read();
 record(
   "Black from the panel: Preview line rgba(0, 0, 0, 0.14) · Canvas record black · height Canvas = Preview",
@@ -154,7 +154,7 @@ record(
     large.canvasHeight === 4,
   large,
 );
-await pick("Static Color", "White");
+await pick("Static color", "White");
 const white = await read();
 record(
   "White: Preview line rgba(255, 255, 255, 0.85) at L · Canvas record white",

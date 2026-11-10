@@ -153,7 +153,7 @@ await page.waitForFunction(
 );
 await page.waitForTimeout(1500);
 const compare = page
-  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
   .first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await page.waitForTimeout(1500);
@@ -163,7 +163,7 @@ await page.waitForTimeout(1500);
 await select();
 await page.waitForTimeout(1000);
 for (let i = 0; i < 3; i++) {
-  if (await field("Static Color").isVisible().catch(() => false)) break;
+  if (await field("Static color").isVisible().catch(() => false)) break;
   await page.getByRole("button", { name: "Design", exact: true }).first().click();
   await page.waitForTimeout(1200);
 }
@@ -176,7 +176,7 @@ const deselect = () =>
 const pickOn = async (option) => {
   await select();
   await page.waitForTimeout(600);
-  await pick("Static Color", option);
+  await pick("Static color", option);
   await deselect();
   await page.waitForTimeout(1200);
 };

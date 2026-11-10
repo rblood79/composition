@@ -201,7 +201,7 @@ async function main() {
 
     // 2단계 — Preview (Compare Mode)
     const compare = page
-      .locator('[aria-label="Compare Mode (Preview + Skia)"]')
+      .locator('[aria-label="Compare mode (Preview + Skia)"]')
       .first();
     if (!(await compare.count())) throw new Error("Compare Mode 버튼 없음");
     await compare.click();

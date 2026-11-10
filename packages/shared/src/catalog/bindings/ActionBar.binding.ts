@@ -9,7 +9,7 @@ export const actionBarBinding: PrimitiveBinding = {
       slot: RAC_SLOT_PROP,
       selectedItemCount: {
         kind: "selection-count",
-        label: "Selected Item Count",
+        label: "Selected item count",
         section: "content",
         default: 1,
         min: 0,

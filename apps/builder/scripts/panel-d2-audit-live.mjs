@@ -114,14 +114,14 @@ const PANEL_ANCHOR = {
   Link: "Target",
   Form: "Method",
   Breadcrumbs: "Size",
-  TableView: "Allow Sorting",
+  TableView: "Allow sorting",
   CardView: "Gap",
-  ListBox: "Selection Mode",
+  ListBox: "Selection mode",
   GridList: "Layout",
-  Tree: "Selection Style",
-  TagGroup: "Allows Removing",
+  Tree: "Selection style",
+  TagGroup: "Allows removing",
   ColorField: "Channel",
-  FileTrigger: "Allow Multiple",
+  FileTrigger: "Allow multiple",
 };
 
 async function setProps(page, id, props) {
@@ -149,7 +149,7 @@ const PALETTE_LABELS = {
 
 const REMOVED = {
   Link: ["External Link", "Show External Icon"],
-  Form: ["Auto Focus", "Restore Focus"],
+  Form: ["Auto focus", "Restore Focus"],
   Breadcrumbs: ["Show Root", "Multiline"],
   TableView: ["Allow Resizing Columns"],
   CardView: ["Columns"],
@@ -193,7 +193,7 @@ async function main() {
     const colorControls = await panelControls(page, PANEL_ANCHOR.ColorField);
     record(
       "ColorField 패널에 Description/Error Message 있음",
-      ["Description", "Error Message"].every((l) => colorControls.includes(l)),
+      ["Description", "Error message"].every((l) => colorControls.includes(l)),
       `controls=${colorControls.length}`,
     );
     await setProps(page, colorId, {
@@ -214,7 +214,7 @@ async function main() {
 
     // ── Preview DOM (Compare Mode iframe) ───────────────────────────────
     const compare = page
-      .locator('[aria-label="Compare Mode (Preview + Skia)"]')
+      .locator('[aria-label="Compare mode (Preview + Skia)"]')
       .first();
     if (!(await compare.count())) throw new Error("Compare Mode 버튼 없음");
     await compare.click();

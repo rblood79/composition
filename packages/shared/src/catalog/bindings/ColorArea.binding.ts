@@ -49,7 +49,7 @@ export const colorAreaBinding: PrimitiveBinding = {
       },
       xChannel: {
         kind: "enum",
-        label: "X Channel",
+        label: "X channel",
         section: "content",
         options: [
           { value: "hue", label: "Hue" },
@@ -63,7 +63,7 @@ export const colorAreaBinding: PrimitiveBinding = {
       },
       yChannel: {
         kind: "enum",
-        label: "Y Channel",
+        label: "Y channel",
         section: "content",
         options: [
           { value: "hue", label: "Hue" },
@@ -75,8 +75,8 @@ export const colorAreaBinding: PrimitiveBinding = {
           { value: "blue", label: "Blue" },
         ],
       },
-      xName: { kind: "string", label: "X Name", section: "content" },
-      yName: { kind: "string", label: "Y Name", section: "content" },
+      xName: { kind: "string", label: "X name", section: "content" },
+      yName: { kind: "string", label: "Y name", section: "content" },
     },
     toRacProps: "default",
   },

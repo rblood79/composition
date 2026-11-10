@@ -281,7 +281,7 @@ async function main() {
     }
     // Preview (Compare Mode) — DOM leg 의 막대 수 · 높이
     const compare = page
-      .locator('[aria-label="Compare Mode (Preview + Skia)"]')
+      .locator('[aria-label="Compare mode (Preview + Skia)"]')
       .first();
     if (await compare.count()) {
       await compare.click();

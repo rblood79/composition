@@ -63,7 +63,7 @@ async function addFromPalette(label) {
 }
 async function compareOn() {
   const button = page
-    .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+    .getByRole("button", { name: "Compare mode (Preview + Skia)", exact: true })
     .first();
   if (await button.isVisible().catch(() => false)) await button.click();
   await page.waitForTimeout(3000);
@@ -134,7 +134,7 @@ const panel = () =>
       insert: names.filter((n) => /^Insert /.test(n)),
       data: labels.includes("Data"),
       sampleRows: [...document.querySelectorAll("fieldset.items-manager")].some(
-        (f) => f.textContent?.includes("Sample Rows"),
+        (f) => f.textContent?.includes("Sample rows"),
       ),
       manager: [...document.querySelectorAll("fieldset.items-manager")].map(
         (f) => f.textContent?.slice(0, 60),
