@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { memo, useState } from "react";
 import { Button } from "react-aria-components/Button";
 import {
   ChevronRight,
@@ -29,8 +29,25 @@ interface PageTreeItemContentProps<P extends PageTreePage> {
  * PageTree 아이템 콘텐츠
  * - 일반 페이지: 드래그/삭제 가능
  * - Home 페이지: 드래그/삭제 불가
+ *
+ * 활성 페이지가 바뀌면 RAC 가 모든 TreeItem 을 다시 그린다 — 행 내용은 그 행의 node · 상태 ·
+ * 콜백이 같으면 다시 그리지 않는다 (CANVAS_PERF_SCALING_2026-11 B6: 페이지 전환마다 전 행).
  */
-export function PageTreeItemContent<P extends PageTreePage>({
+export const PageTreeItemContent = memo(
+  PageTreeItemContentRow,
+  (previous, next) =>
+    previous.node === next.node &&
+    previous.state.isSelected === next.state.isSelected &&
+    previous.state.isExpanded === next.state.isExpanded &&
+    previous.state.isDisabled === next.state.isDisabled &&
+    previous.state.isFocusVisible === next.state.isFocusVisible &&
+    previous.onDelete === next.onDelete &&
+    previous.onSettings === next.onSettings &&
+    previous.onReselect === next.onReselect &&
+    previous.onRename === next.onRename,
+) as typeof PageTreeItemContentRow;
+
+function PageTreeItemContentRow<P extends PageTreePage>({
   node,
   state,
   onDelete,

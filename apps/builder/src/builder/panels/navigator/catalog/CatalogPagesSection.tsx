@@ -1,6 +1,14 @@
-import { memo, useCallback, useMemo, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { Key } from "react-stately";
 import { Search } from "lucide-react";
+import { ListLayout, Virtualizer } from "react-aria-components/Virtualizer";
 import {
   removePage,
   updatePage,
@@ -34,6 +42,7 @@ import { buildPageTree } from "../tree/PageTree/buildPageTree";
 import { PageTreeItemContent } from "../tree/PageTree/PageTreeItemContent";
 import type { PageTreeNode } from "../tree/PageTree/types";
 import { isValidPageDrop } from "../tree/PageTree/validation";
+import { LAYER_TREE_ROW_SIZE_PX } from "../tree/LayerTree/virtualization";
 import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import { useStateSectionFocus } from "../../properties/state/stateSectionFocus";
 import { catalogRouteFollowEdit } from "../../../catalogRuntime/pageSettings";
@@ -46,6 +55,12 @@ const notifyRouteTaken = () =>
     messageKey: "properties.routeTaken",
   });
 type Node = PageTreeNode<CatalogTreePage>;
+// Rows are drawn only where they are seen (as Layers): every row re-rendered when the open page
+// changed and every row mounted when the Navigator opened (CANVAS_PERF_SCALING_2026-11 B6).
+const LAYOUT_OPTIONS = { rowSize: LAYER_TREE_ROW_SIZE_PX };
+// Stable item accessors: a new function each render made `TreeBase` re-index every row.
+const pageKey = (node: Node) => node.id;
+const pageText = (node: Node) => node.name;
 
 /**
  * ADR-248 Phase 4e-4: the Pages tree of the open project — the project's pages (read model),
@@ -201,18 +216,43 @@ export const CatalogPagesSection = memo(function CatalogPagesSection() {
     },
     [entries, run, workspace],
   );
+  // The row callbacks read the latest handlers: RAC keeps a row's element (and the render function
+  // it was made with) until the row's item changes, and a row whose callbacks did not change skips
+  // its render — opening another page re-rendered every row (CANVAS_PERF_SCALING_2026-11 B6).
+  const handlers = useRef({
+    handleDelete,
+    handleSettings,
+    selectPage,
+    handleRename,
+  });
+  useLayoutEffect(() => {
+    handlers.current = {
+      handleDelete,
+      handleSettings,
+      selectPage,
+      handleRename,
+    };
+  });
+  const rowCallbacks = useMemo(
+    () => ({
+      onDelete: (page: CatalogTreePage) => handlers.current.handleDelete(page),
+      onSettings: (page: CatalogTreePage) =>
+        handlers.current.handleSettings(page),
+      onReselect: (page: CatalogTreePage) => handlers.current.selectPage(page),
+      onRename: (page: CatalogTreePage, title: string) =>
+        handlers.current.handleRename(page, title),
+    }),
+    [],
+  );
   const renderContent = useCallback(
     (node: Node, state: TreeItemState) => (
       <PageTreeItemContent<CatalogTreePage>
         node={node}
         state={state}
-        onDelete={handleDelete}
-        onSettings={handleSettings}
-        onReselect={selectPage}
-        onRename={handleRename}
+        {...rowCallbacks}
       />
     ),
-    [handleDelete, handleRename, handleSettings, selectPage],
+    [rowCallbacks],
   );
 
   const canSearch = pages.length > 1;
@@ -275,25 +315,27 @@ export const CatalogPagesSection = memo(function CatalogPagesSection() {
           {t("navigator.noPagesMatch")}
         </div>
       ) : (
-        <TreeBase<Node>
-          aria-label={t("navigator.pages")}
-          items={treeNodes}
-          getKey={(node) => node.id}
-          getTextValue={(node) => node.name}
-          renderContent={renderContent}
-          selectedKeys={selectedKeys}
-          expandedKeys={treeExpandedKeys}
-          onSelectionChange={handleSelectionChange}
-          onExpandedChange={setExpandedKeys}
-          dnd={{
-            canDrag: (node) => node.isDraggable,
-            isValidDrop,
-            onMove: handleMove,
-            dragType: "application/x-page-tree-item",
-          }}
-          className="page-tree"
-          dropIndicatorClassName="layer-drop-indicator"
-        />
+        <Virtualizer layout={ListLayout} layoutOptions={LAYOUT_OPTIONS}>
+          <TreeBase<Node>
+            aria-label={t("navigator.pages")}
+            items={treeNodes}
+            getKey={pageKey}
+            getTextValue={pageText}
+            renderContent={renderContent}
+            selectedKeys={selectedKeys}
+            expandedKeys={treeExpandedKeys}
+            onSelectionChange={handleSelectionChange}
+            onExpandedChange={setExpandedKeys}
+            dnd={{
+              canDrag: (node) => node.isDraggable,
+              isValidDrop,
+              onMove: handleMove,
+              dragType: "application/x-page-tree-item",
+            }}
+            className="page-tree page-tree--rac-virtualized"
+            dropIndicatorClassName="layer-drop-indicator"
+          />
+        </Virtualizer>
       )}
     </Section>
   );

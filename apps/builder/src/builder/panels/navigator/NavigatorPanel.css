@@ -362,6 +362,24 @@
   overflow-y: auto;
 }
 
+/* Pages 트리도 RAC Virtualizer — 트리가 스크롤 상자다 (검색 칸은 위에 고정). 위 pane 은 내용 맞춤이라
+   height 100% 대신 flex 로 줄어든다. */
+.navigator-panel-content
+  .section[data-section-id="navigator-pages"]
+  > .section-content {
+  overflow: hidden;
+}
+
+/* block: 위 :is() 규칙의 flex column 안에서는 Virtualizer 의 크기 div (행 수 × 28) 가 flex item 으로
+   줄어 스크롤 범위가 보이는 높이만큼만 남는다 (행은 absolute 라 내용 최소 높이가 0). */
+.navigator-panel-content .page-tree--rac-virtualized {
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
 .navigator-panel-content .elementItem {
   width: 100%;
 }
