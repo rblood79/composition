@@ -18,7 +18,9 @@ describe("BorderSection border preset contract", () => {
     expect(source).toContain("presets={BORDER_RADIUS_PRESET_OPTIONS}");
     expect(source).not.toContain('localize("Border radius presets")');
     // 코너 4방향은 토글 on 또는 비균일일 때만
-    expect(source).toContain("const showCorners = cornersOpen || uniformRadius === null;");
+    expect(source).toContain(
+      "const showCorners = cornersOpen || uniformRadius === null;",
+    );
     expect(source).toContain("{showCorners && (");
     expect(source).not.toContain('units={["reset", "px"]}');
     expect(source).not.toContain('labelMode="inline"');
@@ -37,7 +39,7 @@ describe("BorderSection border preset contract", () => {
     expect(source).toContain('aria-label={localize("All sides")}');
     expect(source).toContain('selectionMode="multiple"');
     expect(source).toContain("updateStylesImmediate({");
-    expect(source).toContain("borderLeftWidth: mask(\"left\")");
+    expect(source).toContain('borderLeftWidth: mask("left")');
     // 미지원 style 5 — 세그먼트 비활성 + 배지
     for (const style of ["double", "groove", "ridge", "inset", "outset"]) {
       expect(source).toContain(`"${style}"`);
@@ -58,20 +60,20 @@ describe("BorderSection border preset contract", () => {
   });
 
   it("border preset 은 토큰 표에서 파생한다 (ADR-298 D3 — 숫자를 적지 않는다)", async () => {
-    const {
-      BORDER_RADIUS_PRESET_OPTIONS,
-      BORDER_WIDTH_PRESET_OPTIONS,
-    } = await import("../../../components/property/propertyUnitPresets");
-    expect(BORDER_RADIUS_PRESET_OPTIONS.map((p) => [p.label, p.value])).toEqual([
-      ["Reset", ""],
-      ["None", "var(--radius-none)"],
-      ["XS", "var(--radius-xs)"],
-      ["S", "var(--radius-sm)"],
-      ["M", "var(--radius-md)"],
-      ["L", "var(--radius-lg)"],
-      ["XL", "var(--radius-xl)"],
-      ["Full", "var(--radius-full)"],
-    ]);
+    const { BORDER_RADIUS_PRESET_OPTIONS, BORDER_WIDTH_PRESET_OPTIONS } =
+      await import("../../../components/property/propertyUnitPresets");
+    expect(BORDER_RADIUS_PRESET_OPTIONS.map((p) => [p.label, p.value])).toEqual(
+      [
+        ["Reset", ""],
+        ["None", "var(--radius-none)"],
+        ["XS", "var(--radius-xs)"],
+        ["S", "var(--radius-sm)"],
+        ["M", "var(--radius-md)"],
+        ["L", "var(--radius-lg)"],
+        ["XL", "var(--radius-xl)"],
+        ["Full", "var(--radius-full)"],
+      ],
+    );
     expect(BORDER_WIDTH_PRESET_OPTIONS.map((p) => [p.label, p.value])).toEqual([
       ["Reset", ""],
       ["none", "var(--border-width-none)"],

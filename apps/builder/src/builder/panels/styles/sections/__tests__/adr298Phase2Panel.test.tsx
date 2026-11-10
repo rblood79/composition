@@ -6,7 +6,13 @@
  * Position status text sits in its field (결정 6 — 감사 C4 · E2). Oracle = the document field.
  */
 import "fake-indexeddb/auto";
-import { act, cleanup, fireEvent, render, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { I18nProvider } from "@/i18n";
@@ -62,7 +68,9 @@ async function pick(fieldset: HTMLElement, option: string) {
     fireEvent.click(buttons[buttons.length - 1]!);
   });
   await act(async () => {
-    fireEvent.click(document.querySelector(`[role="option"][aria-label="${option}"]`)!);
+    fireEvent.click(
+      document.querySelector(`[role="option"][aria-label="${option}"]`)!,
+    );
   });
 }
 
@@ -119,7 +127,9 @@ describe("ADR-298 Phase 2 — Border", () => {
     );
     const radius = field(view.container, "border-radius");
     // 칸은 단계 이름 · px 는 title (2026-11-10 — 칩 + 해석값 대신)
-    const radiusInput = within(radius).getByRole("combobox") as HTMLInputElement;
+    const radiusInput = within(radius).getByRole(
+      "combobox",
+    ) as HTMLInputElement;
     expect(radiusInput.value).toBe("M");
     expect(radiusInput.title).toBe("M · 8px");
     expect(radius.querySelector(".property-unit-input__token")).toBeNull();
@@ -140,7 +150,9 @@ describe("ADR-298 Phase 2 — Border", () => {
       fireEvent.focus(input);
       fireEvent.blur(input);
     });
-    expect(visualOf(fixture, "box").radius).toEqual(tokenSet("lib:token:radius_md"));
+    expect(visualOf(fixture, "box").radius).toEqual(
+      tokenSet("lib:token:radius_md"),
+    );
     await act(async () => {
       fireEvent.focus(input);
       fireEvent.change(input, { target: { value: "12" } });
@@ -157,13 +169,21 @@ describe("ADR-298 Phase 2 — Effect", () => {
       fireEvent.click(view.getByRole("button", { name: "Add effect" }));
     });
     await act(async () => {
-      fireEvent.click(await view.findByRole("menuitem", { name: "Box shadows · Elevated" }));
+      fireEvent.click(
+        await view.findByRole("menuitem", { name: "Box shadows · Elevated" }),
+      );
     });
-    expect(visualOf(fixture, "box").boxShadow).toEqual(tokenSet("lib:token:shadow_md"));
+    expect(visualOf(fixture, "box").boxShadow).toEqual(
+      tokenSet("lib:token:shadow_md"),
+    );
     // Phase 5 (시안): the step chip sits in the token's one row (was the legend)
-    const rows = view.container.querySelectorAll(".style-shadow .effect-layer-row");
+    const rows = view.container.querySelectorAll(
+      ".style-shadow .effect-layer-row",
+    );
     expect(rows.length).toBe(1);
-    expect(rows[0]!.querySelector(".property-unit-input__token")?.textContent).toBe("Elevated");
+    expect(
+      rows[0]!.querySelector(".property-unit-input__token")?.textContent,
+    ).toBe("Elevated");
   });
 
   it("Blur is a unit input (감사 C4) — typing commits the filter", async () => {
@@ -200,12 +220,16 @@ describe("ADR-298 Phase 2 — Text", () => {
     );
     expect(groups).toEqual(["Body", "Heading"]);
     await act(async () => {
-      fireEvent.click(document.querySelector('[role="option"][aria-label="Heading M"]')!);
+      fireEvent.click(
+        document.querySelector('[role="option"][aria-label="Heading M"]')!,
+      );
     });
     expect(visualOf(fixture, "t").fontSize).toEqual(
       tokenSet("lib:token:typography_text-heading-md"),
     );
-    expect((within(size).getByRole("combobox") as HTMLInputElement).value).toBe("H M");
+    expect((within(size).getByRole("combobox") as HTMLInputElement).value).toBe(
+      "H M",
+    );
     // Phase 5: the field reads 「auto」 and the step's paired line height is its title
     const line = field(view.container, "line-height");
     const lineInput = within(line).getByRole("combobox") as HTMLInputElement;
@@ -222,14 +246,20 @@ describe("ADR-298 Phase 2 — Layout Gap", () => {
         style: { display: "flex", flexDirection: "row", columnGap: "6px" },
       },
     ]);
-    await pick(view.container.querySelector("fieldset.displayGap") as HTMLElement, "M");
+    await pick(
+      view.container.querySelector("fieldset.displayGap") as HTMLElement,
+      "M",
+    );
     expect(
       (fixture.nodeOf("box") as unknown as { layout?: Record<string, unknown> })
         .layout?.columnGap,
     ).toEqual(tokenSet("lib:token:spacing_md"));
     expect(visualOf(fixture, "box").gap).toBeUndefined();
     const gap = view.container.querySelector("fieldset.displayGap")!;
-    expect((within(gap as HTMLElement).getByRole("combobox") as HTMLInputElement).value).toBe("M");
+    expect(
+      (within(gap as HTMLElement).getByRole("combobox") as HTMLInputElement)
+        .value,
+    ).toBe("M");
   });
 });
 
@@ -237,9 +267,9 @@ describe("ADR-298 Phase 2 — Position status in its field (감사 E2)", () => {
   it("the summary is the Position field's description, not a paragraph under the section", async () => {
     const { view } = await renderWith(PositionSection);
     // The Position section starts folded (static element) — open it.
-    const header = view.getAllByRole("button").find((button) =>
-      button.getAttribute("aria-expanded") === "false",
-    );
+    const header = view
+      .getAllByRole("button")
+      .find((button) => button.getAttribute("aria-expanded") === "false");
     if (header)
       await act(async () => {
         fireEvent.click(header);

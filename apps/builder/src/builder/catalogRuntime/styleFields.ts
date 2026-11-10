@@ -302,8 +302,7 @@ export function catalogStyleWrites(
     !empty && (key in INSET || key === "rowGap" || key === "columnGap")
       ? panelLengthTokenUse(raw)
       : undefined;
-  if (layoutToken)
-    return { layout: { [INSET[key] ?? key]: set(layoutToken) } };
+  if (layoutToken) return { layout: { [INSET[key] ?? key]: set(layoutToken) } };
   if (key in INSET)
     return {
       layout: { [INSET[key]]: empty ? REMOVE : set(lengthText(raw)) },
@@ -388,11 +387,14 @@ export function catalogStylePreviewPatch(
           const font = writes.visual?.fontSize;
           const size =
             font?.kind === "set"
-              ? typeof font.value === "object" && font.value && "tokenId" in font.value
+              ? typeof font.value === "object" &&
+                font.value &&
+                "tokenId" in font.value
                 ? context?.tokenValue(font.value as TokenUse)
                 : font.value
               : context?.fontSize;
-          value = typeof size === "number" && size > 0 ? value / size : undefined;
+          value =
+            typeof size === "number" && size > 0 ? value / size : undefined;
         }
       }
       if (accept(value)) out[key] = value;

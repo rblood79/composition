@@ -4710,5 +4710,378 @@
     "reviewLog": "docs/adr/reviews/301.md round3",
     "evidenceDirectory": ".agent/runs/2026-11-08-review-adr301-implementation",
     "updatedAt": "2026-11-08T11:37:42.139827+00:00"
+  },
+  "engineInlineReview": {
+    "task": "code-review packages/engine 후보 1~5 판정·수리",
+    "phase": "remaining_fixed_pushed",
+    "findings": [
+      "1 CONFIRMED: atomic inline 크기가 content-box·margin 누락 (16→8, x 5→0) → 수리",
+      "2 CONFIRMED: 자식 available INFINITY/0 → 50% 폭 500 · label 1000 → 센티넬 유지로 수리",
+      "3 REJECTED: max-width 상자 5종 배치에서 100 줄바꿈 정상",
+      "4 REJECTED: TS inlineTextContent 가 normal 의 \\n 을 공백으로 접음 · pre-line 은 hard 가 정답",
+      "5 LOW deferred: text·clusters 가 같은 호출에서 생성 — production 재현 없음",
+      "6·8·9·10 반영 (34bcfc536, 동작 변경 0)",
+      "7 CONFIRMED 비용: aspect 버튼 10 행의 형제 편집 solve 63→93 — 수리는 보류 (layout-engine.md 2026-11-07 규칙의 재배치 계약)",
+      "글자 폭 수리 (2bd1e252e): Publish 서체 기능 누락 + Canvas opsz 누락 · wdth 서체별 분기 → CSS 규칙 하나",
+      "font-stretch 측정·그리기 차이: 비결함 — fontStretch 를 채우는 문서 필드·패널·rule·styleOf 경로 0, 그리기도 항상 wdth 100",
+      "fontStretch 죽은 경로 정리 (d1d70ec0e, 동작 변경 0) — packages/rendering/src/primitives/font.ts (FONT_STRETCH_KEYWORD_MAP, 이제 쓰는 곳 0) 삭제는 승인 대기",
+      "font.ts (FONT_STRETCH_KEYWORD_MAP) 삭제 — 사용자 승인, 4f2af8910",
+      "기존 실패 299 분류 (에이전트 3 + 직접 확인): production 결함 HIGH 3 수리 9d68000e6 — Text HTML id (d3aba8255) · picker 메뉴 방향 (792815efc) · field 밖 Description 크기 (3ca03f661)",
+      "후속 production 4건 290073d22 — {slot} 리터럴 · SelectBox onAction 제외 · 선택값 lineHeight · Pagination 카드",
+      "DatePicker necessity-label props.children 증분≠fresh: LOW deferred — textLeaf · DOM · Canvas 가 derivedProps.children 먼저 읽어 화면 무영향 (반증 GREEN)"
+    ],
+    "validation": "cargo test 557 PASS · 수정별 원복 RED 2 · s2InlineLabel parity 52 실패는 HEAD 와 동일 목록(기존, DOM↔S2)",
+    "next": [
+      "[x] HIGH 3건 (9d68000e6) · 후속 4건 (290073d22)",
+      "[ ] 낡은 테스트 62 파일 313건 갱신 — 4 묶음 진행 중 (Label · interaction/i18n · 색/스타일 · 구조/데이터)",
+      "[x] 7번 LOW deferred (사용자 결정 11-09)",
+      "[ ] LOW deferred: DatePicker necessity-label 증분/fresh props.children 차이 (phase3Presence 1건 실패 유지)"
+    ],
+    "updatedAt": "2026-11-09T19:00:00",
+    "commit": "e75d475c8 · 34bcfc536 · 2bd1e252e · d1d70ec0e · 4f2af8910 · 9d68000e6 · 290073d22",
+    "defects": [
+      "[x] A: disabled field 버튼 칠 (2b3b5749b)",
+      "[x] C: ButtonGroup isDisabled 글자·칠 (2b3b5749b)",
+      "[x] C: InlineAlert boldFill 설명 흰색 (2b3b5749b)",
+      "[x] C: CSSGenerator staticSelectors & (2b3b5749b)",
+      "[x] C: SearchField 터치 계수 39/119 (2b3b5749b)",
+      "[x] D: aria-label·id Content 중복 (2b3b5749b)",
+      "[x] B: ActionBar param labelKey · TextEditor aria-label i18n (2b3b5749b)",
+      "[x] samples: 사용자 결정 「삭제 · 마이그레이션 불요」 — 샘플 4 파일 + 의존 테스트 2 삭제",
+      "[x] #7 aspect double solve: 사용자 결정 LOW deferred (시간 측정에서 드러나면 수리)",
+      "[ ] LOW deferred: DatePicker necessity-label · Tree selection Checkbox 정적 렌더 remount",
+      "[x] builderCatalogVars (c) 변화 98: 치수 고정 (295 전 블록 retiredBlocks 허용) · focus 색 --focus-ring 인정 · 그려지지 않던 focus 16 + 안쪽 control 링 2 제외 — live: 고정 끄고 켜도 패널 위젯 기하 동일, Select 키보드 focus 링 Group 에 표시",
+      "[x] builderCatalogVars (c) 새 선언 429: 새 컴포넌트 시트 10종 제외 · 기존 시트 35 블록 인정 (live 끄기 3화면 기하 변화 0 · SearchField/Menu[data-size]/Disclosure 는 빌더 위젯이 매칭 안 됨) — 게이트 7/7, 다른 블록 새 선언 원복 RED 확인",
+      "[x] Disclosure XL chevron (svg 14 덮어쓰기 삭제 → lucide 18, 사용자 결정) · Avatar 크기 Do 복구 · 빈 font-size 생성기 — bff66d12e (live: Canvas/Publish XL 18×18)",
+      "[ ] Avatar Do live 미확인 (unit: Do 유도 + dispatcher 숫자 쓰기, 원복 RED 2)",
+      "[x] 낡은 테스트 shared 48 · rendering 1 갱신 + SegmentedControl 선택 Content 절 — 5ccfa0929 (shared 2448/2448 · rendering 1280/1280 · builder 실패 = LOW 2 + 부하 timeout 3(단독 19/19))",
+      "[x] 날짜 필드 상자 S2 FieldGroup 정렬 + DRP Group inline 칠 누수 + catalog-subparts quiet 절 — 5d529e010 (live Publish·Canvas)",
+      "[ ] 후보(미확인): ComboBox 버튼 offset 이 d3S2Alignment 에서 BORDER=1 기준 — Input 테두리 2 인데 1px 덜 당겨졌을 가능성 · DRP Group disabled (opacity 0.38 · bg-muted) 는 Input (색만) 과 다름 · TokenInput/SelectBox borderWidth 숫자 리터럴"
+    ]
+  },
+  "next": [
+    "[x] ADR-305 Phase 0 ~ 5",
+    "[x] ADR-305 Phase 6 — G5 사용자 confirm (2026-11-10) → Implemented (원본 15 삭제 완료 · 커밋 389a80b49)",
+    "[x] 패널 감사 2 — PanelSelect 한 벌 (PropertySelect · 바인딩 2 · 변수 유형 · CompactSelect) + 게이트 (a) Popover 단위 · (c) — live 6 PASS, 커밋 9612a9371",
+    "[x] 패널 감사 3 — SearchablePicker (Target · Value · Swap) + 게이트 (d) — live 3 PASS, 커밋 9612a9371 (Icon 격자는 대상 밖)",
+    "[x] 패널 감사 1 — radiogroup 2 · 업로드 · 액션 바 tooltip · AI select/checkbox → RAC, {{ 는 combobox ARIA 보강, Gradient 유지 — 커밋 9612a9371. ShortcutTooltip.tsx/.css 삭제 승인 대기",
+    "[x] 패널 감사 4 — native button 32 · input/textarea ~45 · file 3 · checkbox 1 → RAC, 게이트 nativeControls (허용 6) — live PASS, 커밋 2b66cc455"
+  ],
+  "updatedAt": "2026-11-10T02:00:00+09:00",
+  "textFieldNumberFieldInsertionCheck": {
+    "task": "TextField 선택 후 NumberField 추가 시 slot 없는 내부 삽입 조사",
+    "phase": "cross_component_contract_check_complete",
+    "status": "analysis_complete_no_product_edits",
+    "scope": "분석 및 임시 재현 테스트만; 제품 코드 수정 없음; 임시 테스트는 artifact 복사 후 제거",
+    "findings": [
+      "TextField template root에 slot 없음 확인",
+      "paletteInsert.ts:192 parentOf(target)가 선택된 TextField를 그대로 부모로 전달",
+      "insertNodes 및 childList/setChildList는 Library composite의 slot 없는 owned children 삽입을 허용",
+      "실제 CatalogWorkspace.execute 후 TextField.children=[NumberField], NumberField owner=TextField; 형제 배치를 기대한 테스트 RED 1/1",
+      "insertParent.ts:40-45 공용 helper 역시 project definition만 검사하여 Library composite 노드는 직접 부모로 허용; 이 helper로만 대체하면 원인 해결 안 됨"
+    ],
+    "validation": {
+      "repro": "실제 workspace 명령 RED 1/1; 기대한 정상 조건이 실패하여 결함 재현",
+      "live": "UNVERIFIED: 현재 Chrome profile의 localhost:5173은 license activation 필요; 확인용 탭 닫음",
+      "typecheck": "제품/테스트 코드 최종 변경 없음으로 미실행",
+      "preflight": "guard PASS; format 단계에서 기존 dirty .agent/task-state.json 및 동시 작업 zzNecessityScratch.test.ts 형식 실패로 종료; 이후 검사 미실행; 타 작업 파일 변경 없음"
+    },
+    "evidenceDirectory": ".agent/runs/2026-11-09-textfield-insertion-check",
+    "updatedAt": "2026-11-09T06:45:23.240278+00:00",
+    "followup": {
+      "task": "모든 컴포넌트 일괄 적용 가능성과 기존 자식 저장 금지 패턴 검토",
+      "conclusion": "공통 삽입 대상 정책 적용은 가능하나 slot 부재만으로 전역 자식 저장 금지는 불가. instance 편집 경계와 RAC children 종류를 구분해야 함",
+      "evidence": [
+        "ADR261 Decision1/사용자 결정2: instance 비-slot drop/paste 보호; adr261DropParent.test.ts 회귀 존재",
+        "insertParent.ts는 project composite root만 slot 검사, Library composite owned node는 허용",
+        "graph.ts:1482-1493 TARGET_NOT_SLOT는 slot 없는 leaf fill만 거부; items/free fill은 허용",
+        "nestingRules.ts:124-128 children kind leaf/items/free 공용 판정; TextField는 free",
+        "phase4ePropertySections.test.tsx:955-1057 CalendarHeader 비-slot explicit Add content 삽입 허용 (template/owned 둘 다)",
+        "structure.ts itemContentParent 및 materialize.ts holdsList는 collection 항목 채움 별도 처리",
+        "transaction.ts:438-461의 view child 저장 제외는 파생 Library/Local 표본 자식에 대한 별도 보호"
+      ],
+      "validation": {
+        "builderContractSubset": "2 files 4 passed, 21 skipped (비-slot 거부 2 + 비-slot CalendarHeader 정상 삽입 2)",
+        "builderFullFocused": "adr261DropParent + phase4ePalette: 2 files 14 passed",
+        "shared": "childKind + phase4bSchema: 2 files 13 passed",
+        "live": "재실행 없음; 이전 라이선스 인증 제한 유지",
+        "preflight": "제품 변경 없음; 이전 포맷 실패 이후 재실행하지 않음"
+      },
+      "clarification": "앞선 답변에서 slot 부재를 곧 구조 위반으로 단정한 부분은 과도했음. 현재 TextField RAC 계약은 free이며 이번 현상은 팔레트 자동 삽입 대상 정책 경계로 다뤄야 함"
+    }
+  },
+  "insertionPolicyPatternDesign": {
+    "task": "삽입 판정과 경로 공통화 함수 패턴 검토",
+    "phase": "design_proposed",
+    "status": "analysis_only_no_implementation",
+    "scope": "기존 palette/drop/paste/slot/item 경로 읽기와 함수 API 제안; 제품 코드 수정 없음",
+    "findings": [
+      "핵심은 React hook이 아닌 CatalogReader 기반 순수 placement resolver",
+      "판정 입력은 편집 scope, 대상, before/after/inside/auto 의도와 추가할 root 정의 전체",
+      "자동 instance 내부 진입과 명시 부품 조립 구분; items/free 및 collection 전용 명령 보존",
+      "공통 결과는 실제 NodeParent/index와 relocation/refusal; 실제 구조 변경 및 최종 검증은 기존 command/workspace.execute",
+      "기존 insertParent/slotTarget/parentOfNode를 공통 resolver 내부 helper로 재사용·정리할 수 있음"
+    ],
+    "validation": "정적 경로 대조만; 구현·새 테스트·브라우저 실행 없음",
+    "updatedAt": "2026-11-09T06:58:05.283338+00:00"
+  },
+  "fieldPartsOnlyNesting": {
+    "task": "field 선택 뒤 팔레트 추가가 그 안에 들어가는 결함 — field 는 자기 부품만 받는다",
+    "phase": "committed_pushed",
+    "status": "af07814b1 + 71367a981 (simplify) push",
+    "scope": "nestingRules 층 2 (d) parts host · slots 넣기 목록 · aiHost probe · 테스트 7 파일 · CHANGELOG",
+    "findings": [
+      "원인: 중첩 규칙이 field 가족을 free 로 두어 (ADR-256 2b·6c~e) TextField>TextField 통과 — Button 은 HTML 이 막아 형제로 갔을 뿐",
+      "수리: CATALOG_FIELD_PART_TYPES (19 host, 원본 template 루트 부품) + 감싸개 FieldLabel · frame · group · Group · Slot, catalogChildKind 'parts'",
+      "Codex 제안 (resolveCatalogInsertion 공통 함수) 은 채택 안 함 — 팔레트 · drop · paste 가 이미 명령의 assertNestable + 상위 탐색 하나를 공유, 빠진 것은 규칙 행",
+      "aiHost creationParent probe 를 frame → 실제 정의로 (frame 은 field 의 래퍼라 거부될 자리를 골랐다)",
+      "2차 보고: 옮겨진 항목이 조상 맨 끝으로 감 → paletteInsert 가 선택이 든 조상 자식의 다음 index 로 (붙여넣기 「자기 다음」 과 같은 규칙)"
+    ],
+    "validation": {
+      "shared": "221 files 2470 pass",
+      "builder": "997 files 8393 pass (--testTimeout=30000; 기본 5s 에서 adr282 · phase4eOriginView 가 부하로 timeout, 단독 PASS)",
+      "typecheck": "PASS",
+      "live": "Builder 새 프로젝트: TextField 선택 → TextField 추가 = Body 형제 + 안내 토스트 · ToggleButtonGroup 추가 = Body 로 이동 · ToggleButton 추가 = 그룹 안 3번째 · console error 0",
+      "live2": "첫 TextField 선택 → ToggleButton 추가 = Layers 에서 TextField 바로 다음 (TextField · ToggleButton · TextField · ToggleButtonGroup) + 안내 토스트",
+      "typecheck2": "PASS · panels/components + adr261DropParent PASS"
+    },
+    "updatedAt": "2026-11-09T17:01:31+09:00"
+  },
+  "partsHostsDerived": {
+    "task": "Badge 안 Button · TagGroup 안 TextField — 부품 host 표를 원본 template 에서 파생",
+    "phase": "committed_pushed",
+    "status": "23a8cfbdd push",
+    "scope": "nestingRules derivePartsHosts · componentTraits GROUP 표 이관 · slots · DOM_LEAF Badge/StatusLight/Link · 테스트 9 파일 · CHANGELOG",
+    "findings": [
+      "손 표 (field 19) → 원본 루트 (slot 아님 · 부품 있음) 파생; 컬렉션 항목은 slot 을 열지 않으면 제외 (Card 는 유지)",
+      "(d) 판정을 HTML interactive 뒤로 — Button>Button 은 HTML 이유 유지",
+      "fixture 4건 갱신 (Form→frame · Disclosure→Button owner · TagGroup 거부+frame · Card→Toolbar)"
+    ],
+    "validation": {
+      "shared": "221 files 2455 PASS (randomUndo 는 병렬 부하 timeout → 단독 1.4s PASS)",
+      "builder": "997 files 8393 PASS",
+      "typecheck": "PASS",
+      "live": "Builder 새 프로젝트 parts-check: Badge 선택 → Button 추가 = Body 형제 + 「Badge cannot contain other elements」 토스트 · TagGroup 선택 → TextField 추가 = Body 의 TagGroup 바로 다음 + 토스트 · console error 0"
+    },
+    "updatedAt": "2026-11-09T17:46:18+09:00"
+  },
+  "reviewAdr305": {
+    "task": "ADR-305 설계 리뷰",
+    "phase": "design_review_recorded",
+    "status": "high_1_medium_3_pending_4",
+    "head": "da04845c2",
+    "scope": "ADR·breakdown·현재 CSS/portal/배포/게이트 대조. 제품 코드·ADR Status 변경 및 commit/push 없음",
+    "findings": [
+      "h1 body portal이 builder context 밖: 제안 범위 적용 시 Menu flex→block·max-height 300px→none",
+      "m1 공통 Pretendard font-face 시트가 root 원시 변수 전용 교집합 조건 위반",
+      "m2 origin-root publish URL이 production /composition/ base 누락",
+      "m3 codex:preflight에 새 CSS 경계 unit 테스트 호출 없음"
+    ],
+    "validation": {
+      "browser": "실제 PropertyRowMenu 최소 headed fixture: portal context 없음 및 CSSOM 범위 변경 회귀 확인",
+      "staticHosting": "무 rewrite prefix fixture: /publish 404, /composition/publish/ query 보존 200",
+      "guard": "PASS",
+      "format": "PASS scoped reviews/305.md",
+      "schema": "PASS",
+      "unverified": "실제 Builder 전체 흐름·Preview/Publish·G0~G5·production build·bundle·실배포·사용자 confirm; 제품 TS 무변경으로 typecheck와 unit suite 미실행"
+    },
+    "reviewLog": "docs/adr/reviews/305.md round1",
+    "evidenceDirectory": ".agent/runs/2026-11-09-review-adr305",
+    "updatedAt": "2026-11-09T08:47:05.946867+00:00"
+  },
+  "reviewAdr305Round2": {
+    "task": "ADR-305 round 1 설계 수리 검증",
+    "phase": "repair_review_recorded",
+    "status": "high_0_medium_1_pending_1",
+    "head": "23a8cfbdd",
+    "scope": "기존 4건 설계 수리 확인 및 변경된 Phase 의존 순서 검증. 제품 코드·ADR 본문·Status 수정 및 commit/push 없음",
+    "findings": [
+      "h1/m1/m2/m3 fixed 확인 (제품 구현 완료가 아님)",
+      "m4: G4 Phase1 빌더 시트0·G2 Phase4 중립 교집합은 Phase5 builder-system.css 제거에 선행 의존"
+    ],
+    "validation": {
+      "browser": "실제 PropertyRowMenu 최소 headed fixture 새 root selector 매치; 기존 context 조상 없음; Menu/Popover 44규칙 범위 이관의 핵심 computed 값 Δ0",
+      "url": "제안 base URL 식 / 및 /composition/ 두 값의 path·project query 2/2 PASS",
+      "imports": "Publish → shared styles → theme.css → builder-system.css 실제 재귀 경로 확인",
+      "guard": "PASS",
+      "format": "본문·breakdown·review scoped PASS",
+      "schema": "PASS",
+      "unverified": "제품 구현·실제 Builder/Preview/Publish 전체 UI·새 HTML dev/dist·G0~G5·경계 gate/pre-push RED·bundle·실배포·사용자 confirm"
+    },
+    "reviewLog": "docs/adr/reviews/305.md round2",
+    "evidenceDirectory": ".agent/runs/2026-11-09-review-adr305-round2",
+    "updatedAt": "2026-11-09T09:00:31.344043+00:00"
+  },
+  "inspectorToggleIconPadding": {
+    "task": "Design 패널 Layout 탭 토글 아이콘 12×16 → 16×16",
+    "phase": "committed_pushed",
+    "status": "cee68dcb4 push",
+    "scope": "inspector-layout.css indicator 그룹 ToggleButton padding xs(4) → 2xs(2) · CHANGELOG",
+    "findings": [
+      "버튼 20 고정 + padding 4 → 내용 12, svg(16) 가 flex 로 가로만 축소",
+      "ADR-029 Phase 3 분할 때부터 4 — 아이콘 16 규격과 불일치"
+    ],
+    "validation": {
+      "live": "Layout 탭 아이콘 버튼 9개 20×20 · padding 2 · svg 16×16 (JS 측정 + zoom 스크린샷)",
+      "typecheck": "CSS 만 변경 — 해당 없음"
+    },
+    "updatedAt": "2026-11-09T18:10:28+09:00"
+  },
+  "adr305": {
+    "task": "ADR-305 실행 (/execute-adr 305)",
+    "phase": "phase6_user_confirm",
+    "status": "phase0_5_closed_g5_live_done_user_confirm_pending",
+    "head": "b9feb7c52",
+    "plan": "Phase 0 하니스 (빌더 · Preview/Publish computed style + CSSOM 계수) → Phase 1 publish 진입 → Phase 2·3 chrome 시트 → Phase 4 import 삭제·게이트 → Phase 5 Preview 쪽 빼기 → Phase 6 문서·live",
+    "evidence": ".agent/runs/2026-11-09-adr305/artifacts (builder-base · preview-base4 · classify.json · g4-dist)",
+    "devServer": "작업 전용 5174 (5173 은 recharts 사전 번들 낡음 — 사용자 서버라 건드리지 않음)",
+    "bundleBaseline": ".cache/adr305-bundle/wt-before (HEAD b9feb7c52 worktree)",
+    "pendingUser": [
+      "G5 사용자 confirm",
+      "커밋 · push (요청 시)"
+    ],
+    "deleted": "원본 15 파일 삭제 완료 (2026-11-09 사용자 승인) — breakdown §5 Phase 6",
+    "g0CoverageFix": "2026-11-09 Data 표 선택 checkbox 회귀 수리 — 스냅샷 화면 +23 · 규칙 245→282 · 69×4 Δ0 · 게이트 (e)"
+  },
+  "chartZtdFeasibility": {
+    "task": "Composition chart와 ztd-charts 36종 제공 동등성 심층 조사",
+    "phase": "analysis_complete",
+    "status": "completed",
+    "scope": "현재 소스와 설치 Recharts 3.10.1 및 ztd-charts 0.5.0 대조. 36종 구현 경로와 데이터·Canvas/Preview·편집·저장 계약 분석",
+    "result": "Recharts 유지 확장 가능. 현행 7타입/도넛 프리셋은 ztd 8종과 기본 형태 대응. 나머지 28종은 데이터 모델 및 공유 기하 확장 필요. 전체 기능 동등성은 구현 미완료",
+    "verification": {
+      "renderingChart": "28 files / 473 tests PASS",
+      "catalogProjection": "1 file / 5 tests PASS",
+      "browserChart": "18 files / 382 tests: 379 PASS, 3 FAIL",
+      "browserFailures": "size L 대 lg 기대값 불일치 2건. bar 동일 rows path 문자열 정밀도 불일치 1건, 단독 재실행에서도 재현. 시각적 애니메이션 재실행으로는 확정하지 않음",
+      "probe": "/tmp/ztd-charts.bdGsSx/composition-probe.ts: 합산으로 표본/OHLC 소실, gauge 자동 도메인, 미지원 타입, 설치 Recharts 확장 API 확인"
+    },
+    "unverified": "실제 Builder 프로젝트 삽입·저장·재로드, 신규 28종 동작, 36종 전체 옵션 및 픽셀 동등성, 양측 성능·번들 비교",
+    "updatedAt": "2026-11-09T11:42:35.307767+00:00"
+  },
+  "chartExtensionAdr": {
+    "task": "Recharts 유지·size 제거·ztd 36종 Chart 확장 ADR 작성",
+    "phase": "documentation_complete",
+    "status": "completed_proposed",
+    "scope": "ADR-306 본문·breakdown·README만 작성. 제품 구현·설계 리뷰·commit/push 없음",
+    "files": [
+      "docs/adr/306-chart-36-types-recharts-size-removal.md",
+      "docs/adr/design/306-chart-36-types-recharts-size-removal-breakdown.md",
+      "docs/adr/README.md"
+    ],
+    "confirmed": [
+      "Recharts 유지",
+      "공개 size 제거",
+      "ztd-charts 36종 제공"
+    ],
+    "decisions": "단일 Chart, 의미 모델·공유 기하, family 지연 로딩, 직전 contract 변환, Phase 0~7 / G0~G6",
+    "pendingUserDecision": "기존 S/L의 외관 전환만 1건. 실행 시 before/after를 준비한 뒤 확인",
+    "validation": {
+      "format": "3 docs PASS",
+      "guard": "PASS",
+      "links": "new ADR/breakdown local links PASS",
+      "coverage": "pinned ztd registry exact 36/36; phase counts 17+7+7+5",
+      "index": "Proposed, number 306, open entry, priority table, measured document counts consistent"
+    },
+    "unverified": "제품 코드 무변경. 구현·리뷰·현재 HEAD 제품 테스트·live·bundle/performance는 실행하지 않음",
+    "updatedAt": "2026-11-10T07:39:47.130842+09:00"
+  },
+  "adr306Redesign": {
+    "task": "ADR-306 설계 검토 · 전면 재작성 (사용자 2026-11-10)",
+    "phase": "design_closed_committed",
+    "scope": "docs/adr/306-*.md · design/306-*-breakdown.md · README 306 항목 — 제품 코드 변경 없음",
+    "findings": [
+      "첫 판의 문서 변환 (contract N→N+1) 은 types.ts:158 정책 · 변환 코드 금지 지시와 충돌 → 삭제",
+      "새 종류 = family 5 (순수 scene) + Recharts scene host (scatter 선례) + chunk 지연 로드",
+      "36 = 기존 type 9 항목 + 새 chartType 27",
+      "사용자 결정 확정 2026-11-10: 1 공통 상호작용 포함 (Phase 6) · 2 Builder 첫 화면 상한 재승인 (Phase 2 실측 초과분, 종류 목록·등록 기구 한정)",
+      "리뷰 round 1 (codex) HIGH 1 · MEDIUM 3 전부 fixed — size 삭제 = 원본 수정 + contract 64 (63 문서 전부 거부) · memo 분리 · test:chart-contract 를 preflight 에 · 상한 두 곳 동시 갱신"
+    ],
+    "next": [
+      "[x] 커밋 · push 33abf5433",
+      "[ ] /execute-adr 306 (사용자 실행)"
+    ],
+    "updatedAt": "2026-11-10T13:00:00+09:00",
+    "commit": "33abf5433"
+  },
+  "reviewAdr306": {
+    "task": "ADR-306 설계 리뷰",
+    "phase": "design_review_recorded",
+    "status": "high_1_medium_3_pending_4",
+    "scope": "재작성 ADR·breakdown·현행 library/graph·pinned Sankey·preflight/배포 상한 대조; 제품 코드·ADR 본문/Status·인덱스 변경 및 commit/push 없음",
+    "head": "c3dee4782",
+    "findings": [
+      "h1: size 삭제 목록의 typed 원본 누락 및 구 문서 무시 가정 오류 — library/graph PROP_NOT_ACCEPTED 실행 확인",
+      "m1: size 없는 모델 memo·Sankey relaxation 재계산 0 조건과 크기 의존 배치 충돌 — 320×240→640×360 반례 확인",
+      "m2: preflight에 Chart fixture/unit suite 호출 경로 없음",
+      "m3: 승인 상한의 실제 로컬 judge·배포 workflow 소비처 동시 갱신 누락 — old ceiling+1 거부 실행 확인"
+    ],
+    "validation": {
+      "probes": "probe.ts PASS (원본/문서 거부·Sankey 크기 의존); gates.mjs PASS (상한 거부·호출문 정적 대조)",
+      "guard": "PASS",
+      "format": "신규 review만 포맷 후 scoped check PASS",
+      "schema": "PASS",
+      "unverified": "제품 구현·Builder/Preview/Publish live·실제 번들/성능·36종·전체 unit/browser suite·typecheck 미실행. 공유 dirty worktree로 전체 preflight 대신 범위별 검증."
+    },
+    "reviewLog": "docs/adr/reviews/306.md round1",
+    "evidenceDirectory": ".agent/runs/2026-11-10-review-adr306",
+    "updatedAt": "2026-11-09T23:26:12.969917+00:00"
+  },
+  "reviewAdr306Round2": {
+    "task": "ADR-306 round 1기존 4건 설계 수리 검증",
+    "phase": "repair_review_recorded",
+    "status": "high_0_medium_0_pending_0",
+    "scope": "기존 h1/m1/m2/m3 설계 수리 확인; 제품 코드·ADR 본문/Status·README·메모리 변경 및 commit/push 없음",
+    "head": "c3dee4782",
+    "findings": [
+      "h1 fixed: typed 원본·공개 타입 삭제+contract 64+63 문서 전체 거부·G1 반영",
+      "m1 fixed: 크기 독립 모델/크기 의존 배치 memo·재계산 조건 분리",
+      "m2 fixed: Phase 0 test:chart-contract + preflight 연결 명시",
+      "m3 fixed: 로컬 judge·배포 workflow 상한 두 곳 같은 커밋 갱신 명시"
+    ],
+    "validation": {
+      "schema": "PASS; rounds 2, recorded outcomes 8 fixed, pending 0",
+      "format": "scoped review PASS",
+      "guard": "PASS",
+      "unverified": "제품 구현·실제64 문서로드·unit gate RED·메모·live·실제 번들/배포 미실행; 문서 수리이므로 이전 반례·suite·typecheck 미반복"
+    },
+    "outOfScope": "Preview 상한 deploy 325000/local 327000 차이 확인·수정 없음",
+    "reviewLog": "docs/adr/reviews/306.md round2",
+    "evidenceDirectory": ".agent/runs/2026-11-10-review-adr306",
+    "updatedAt": "2026-11-09T23:49:59.678621+00:00"
+  },
+  "borderSidesAction": {
+    "task": "Design Style Border Sides 전체 토글을 Radius와 같은 행 끝 액션으로 이동",
+    "phase": "committed_pushed",
+    "scope": "BorderSection.tsx · inspector-layout.css · 인접 테스트 · CHANGELOG",
+    "updatedAt": "2026-11-10T07:50:22.832287+00:00",
+    "validation": {
+      "tests": "6 files / 34 PASS",
+      "typecheck": "codex:typecheck PASS",
+      "format": "scoped format check PASS",
+      "guard": "PASS",
+      "live": "UNVERIFIED: browser access host unavailable, Chrome getApp timeout twice"
+    },
+    "commit": "51e49cfd4",
+    "remote": "origin/main SHA 확인",
+    "pushValidation": "CSS boundary 52 PASS"
+  },
+  "themePreviewRemoval": {
+    "task": "Theme 패널 Preview 섹션 및 미사용 전용 코드 제거",
+    "phase": "committed_pushed",
+    "scope": "ThemesPanel.tsx · ThemesPanel.css · MiniThemePreview.tsx 삭제 · panel-structure 규칙 · CHANGELOG",
+    "updatedAt": "2026-11-10T08:34:32.696931+00:00",
+    "validation": {
+      "tests": "4 files / 35 PASS",
+      "typecheck": "codex:typecheck PASS",
+      "format": "scoped format check PASS",
+      "guard": "PASS",
+      "cssBoundary": "codex:css-boundary PASS",
+      "referenceSearch": "apps/builder/src + panel rules: MiniThemePreview / mini-preview / --mp- / theme-preview references 0",
+      "live": "BLOCKED: browser access host unavailable; Chrome native app timeout"
+    },
+    "commit": "13e5851fa",
+    "remote": "origin/main SHA 확인",
+    "pushValidation": "CSS boundary 52 PASS"
   }
 }
