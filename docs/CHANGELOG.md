@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [빌더 아이콘 선 굵기 — non-scaling stroke] - 2026-11-11
+
+### Changed
+
+- **빌더 chrome 의 lucide 아이콘이 `strokeWidth` 를 화면 px 그대로 그린다** — 앱 root 의 `LucideProvider nonScalingStroke` 가 모든 아이콘 path 에 `vector-effect="non-scaling-stroke"` 를 붙인다 (사용자 결정). 종전에는 24 기준 그림을 줄이면서 선도 같이 줄어 16px 아이콘의 `strokeWidth: 2` 가 1.33px, 14px 는 1.17px 로 보였다 — 이제 크기와 상관없이 지정값 그대로이고, 굵기는 **1px** 하나다 (사용자 결정 — `iconProps` 계열 7 · Provider 기본 · 호출부 리터럴 10 (1.25 · 1.5 · 2 · 2.5 · 3) · SearchField 자체 SVG · EmptyState CSS 1.25 를 모두 1 로). Preview · Publish 는 다른 React root (`preview.html`) 라 사용자 컴포넌트 아이콘 (Canvas 와 대칭) 은 그대로다.
+- 위치: `apps/builder/src/main.tsx` · `utils/ui/uiConstants.ts` · `components/ui/SearchField.tsx` · `components/feedback/EmptyState.css` · 리터럴 호출부 (dashboard · Styles 색 · Gradient · Image fill · Components 목록 · Layout preset · Themes · PropertySelect ✓).
+
 ## [패널 입력 앞 표시 — Figma 방식 한 벌] - 2026-11-10
 
 사용자 지적 「패널 입력 · 선택 폼의 앞 아이콘이 있는 것 · 없는 것이 다양하다」 → Figma · Framer · Pen 비교 후 사용자 결정 「Figma 방식」 (legend 위 + 칸 안 앞 표시 — Figma UI3 의 Property labels 를 켠 모양). 2026-09-15 panel-ui 대조 B4 · B13 과 11-02 styles-token-model 의 「숫자 칸 아이콘 없음」 을 뒤집는다.

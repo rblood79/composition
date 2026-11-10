@@ -140,7 +140,7 @@ export const PropertySelectControl = memo(
                     aria-hidden="true"
                     className="property-select-grid__check"
                     size={iconProps.size}
-                    strokeWidth={2.5}
+                    strokeWidth={1}
                   />
                 )}
               </span>

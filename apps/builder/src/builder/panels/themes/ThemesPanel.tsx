@@ -85,7 +85,7 @@ function SwatchCheck() {
   return (
     <Check
       size={14}
-      strokeWidth={3}
+      strokeWidth={1}
       color="#fff"
       className="tint-swatch-check"
     />

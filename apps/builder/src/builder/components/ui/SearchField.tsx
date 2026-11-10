@@ -31,12 +31,13 @@ function LucideIcon({
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2}
+      strokeWidth={1}
       strokeLinecap="round"
       strokeLinejoin="round"
     >
+      {/* lucide 컴포넌트와 같은 선 — 화면 px 1 (`LucideProvider nonScalingStroke strokeWidth={1}`) */}
       {data.paths.map((d, i) => (
-        <path key={i} d={d} />
+        <path key={i} d={d} vectorEffect="non-scaling-stroke" />
       ))}
       {data.circles?.map((c, i) => (
         <circle key={`c${i}`} cx={c.cx} cy={c.cy} r={c.r} />

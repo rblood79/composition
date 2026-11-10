@@ -110,7 +110,7 @@ function PaletteHeader({
       aria-expanded={open}
       onPress={onToggle}
     >
-      <Caret size={14} strokeWidth={2} aria-hidden="true" />
+      <Caret size={14} strokeWidth={1} aria-hidden="true" />
       <span className="color-picker-palette__title">{title}</span>
       {count !== undefined && (
         <span className="color-picker-palette__count">{count}</span>

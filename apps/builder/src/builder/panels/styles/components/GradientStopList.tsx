@@ -60,7 +60,7 @@ export const GradientStopList = memo(function GradientStopList({
         className="gradient-stop-list__add-btn"
         onPress={onStopAdd}
       >
-        <AddIcon size={12} strokeWidth={2} />
+        <AddIcon size={12} strokeWidth={1} />
         Add Stop
       </Button>
     </div>

@@ -65,7 +65,7 @@ export const EyeDropperButton = memo(function EyeDropperButton({
         aria-label="Pick color from screen"
         data-picking={picking || undefined}
       >
-        <Pipette size={14} strokeWidth={2} />
+        <Pipette size={14} strokeWidth={1} />
       </Button>
     </ActionTooltipTrigger>
   );

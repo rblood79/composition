@@ -8,7 +8,7 @@
  */
 export const iconProps = {
     color: 'var(--color-gray-400)',
-    strokeWidth: 2,
+    strokeWidth: 1,
     size: 16
 };
 
@@ -18,7 +18,7 @@ export const iconProps = {
  */
 export const iconPropsOn = {
     color: 'var(--color-White)',
-    strokeWidth: 2,
+    strokeWidth: 1,
     size: 16
 };
 
@@ -28,7 +28,7 @@ export const iconPropsOn = {
  */
 export const iconEditProps = {
     color: 'var(--color-gray-300)',
-    strokeWidth: 2,
+    strokeWidth: 1,
     size: 14
 };
 
@@ -38,7 +38,7 @@ export const iconEditProps = {
  */
 export const iconInspector = {
     color: 'var(--color-gray-400)',
-    strokeWidth: 2,
+    strokeWidth: 1,
     size: 14
 };
 
@@ -48,7 +48,7 @@ export const iconInspector = {
  */
 export const iconComponent = {
     color: 'var(--color-red-500)',
-    strokeWidth: 2,
+    strokeWidth: 1,
     size: 16
 };
 
@@ -58,7 +58,7 @@ export const iconComponent = {
  */
 export const iconSmall = {
     color: 'var(--color-gray-500)',
-    strokeWidth: 2,
+    strokeWidth: 1,
     size: 12
 };
 
@@ -68,7 +68,7 @@ export const iconSmall = {
  */
 export const iconLarge = {
     color: 'var(--color-gray-400)',
-    strokeWidth: 2,
+    strokeWidth: 1,
     size: 24
 };
 

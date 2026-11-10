@@ -205,7 +205,7 @@ export const LayoutPresetGrid = memo(function LayoutPresetGrid({
                           aria-label={t("propertiesPanel.presetApplied")}
                           title={t("propertiesPanel.presetApplied")}
                         >
-                          <Check size={iconEditProps.size} strokeWidth={2.5} />
+                          <Check size={iconEditProps.size} strokeWidth={1} />
                         </span>
                       )}
                     </span>

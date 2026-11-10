@@ -97,7 +97,7 @@ const ComponentItem = ({
         onPress={handleClick}
       >
         <div className="list-item-icon">
-          <component.icon strokeWidth={1.5} width={16} height={16} />
+          <component.icon strokeWidth={1} width={16} height={16} />
         </div>
         {isRecent && count > 0 && <Badge>{count}</Badge>}
         <span className="list-item-name">{displayLabel}</span>

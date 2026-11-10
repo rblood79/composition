@@ -1,5 +1,6 @@
 import { JSX, useLayoutEffect } from "react";
 import ReactDOM from "react-dom/client";
+import { LucideProvider } from "lucide-react";
 import {
   BrowserRouter,
   Routes,
@@ -122,12 +123,18 @@ void loadLocaleMessages(getStoredLocale())
   .catch(() => undefined)
   .finally(() => {
     ReactDOM.createRoot(root!).render(
-      <I18nProvider>
-        <BrowserRouter basename={basename}>
-          <ParticleBackgroundProvider>
-            <AppLayout />
-          </ParticleBackgroundProvider>
-        </BrowserRouter>
-      </I18nProvider>,
+      // 빌더 chrome 의 lucide 아이콘은 선 굵기를 화면 px 그대로 그린다 (`vector-effect:
+      //   non-scaling-stroke`) — 24 기준 그림을 16 · 14 로 줄여도 `strokeWidth` 가 정확한 값이다
+      //   (사용자 결정 2026-11-11 — 굵기 1px, 종전 16px 아이콘의 2 는 1.33px 로 보였다). Preview · Publish 는
+      //   다른 React root (preview.html) 라 사용자 컴포넌트 아이콘은 영향이 없다.
+      <LucideProvider nonScalingStroke strokeWidth={1}>
+        <I18nProvider>
+          <BrowserRouter basename={basename}>
+            <ParticleBackgroundProvider>
+              <AppLayout />
+            </ParticleBackgroundProvider>
+          </BrowserRouter>
+        </I18nProvider>
+      </LucideProvider>,
     );
   });

@@ -99,7 +99,7 @@ const ThemeRow = memo(function ThemeRow({
             isSelected={isActive}
             data-selected={isActive || undefined}
           >
-            {isActive ? <Check size={12} strokeWidth={3} /> : null}
+            {isActive ? <Check size={12} strokeWidth={1} /> : null}
           </ToggleButton>
           <span className="list-row__label theme-row-name">{theme.name}</span>
           <span className="list-row__meta theme-row-meta">

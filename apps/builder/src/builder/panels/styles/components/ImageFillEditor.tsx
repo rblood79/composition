@@ -188,7 +188,7 @@ export const ImageFillEditor = memo(function ImageFillEditor({
             }}
           >
             <Button className="image-fill-editor__browse">
-              <ImagePlus size={20} strokeWidth={1.5} />
+              <ImagePlus size={20} strokeWidth={1} />
               <span>Drop image or click to browse</span>
             </Button>
           </FileTrigger>

@@ -114,7 +114,7 @@ function formatAbsoluteDate(date: Date | undefined | null): string {
  * 프로젝트마다 다른 내용이 있는 것처럼 읽혀서 목록을 잘못 훑게 된다.
  */
 function ProjectThumbPlaceholder({ size = 32 }: { size?: number }) {
-  return <LayoutTemplate size={size} strokeWidth={1.25} aria-hidden />;
+  return <LayoutTemplate size={size} strokeWidth={1} aria-hidden />;
 }
 
 /** 카드/행 공통 오버플로 메뉴 — 상시 노출되던 파괴적 버튼을 여기로 모았다. */

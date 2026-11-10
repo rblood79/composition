@@ -35,7 +35,7 @@
   .builder-empty-state-icon svg {
     inline-size: var(--control-size);
     block-size: var(--control-size);
-    stroke-width: 1.25;
+    stroke-width: 1;
   }
 
   .builder-empty-state-message,
