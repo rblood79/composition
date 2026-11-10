@@ -13,7 +13,6 @@
   max-width: 288px;
   max-height: min(70vh, 560px);
   overflow: auto;
-  box-shadow: var(--shadow-lg);
 }
 
 /* The shared `.react-aria-Dialog` (overlays.css) pads 16 — the Section owns its insets. */

@@ -174,6 +174,13 @@ const STEP_LABELS: Readonly<Record<string, string>> = {
  * The chip of a token value: the preset's label when the field offers that token, else the step's
  * panel label (XS · S · M · L · XL — memory `feedback-panel-scale-labels`), else the step name.
  */
+/** 토큰 preset 의 단계 이름 — 제목 묶음은 첫 글자로 본문의 같은 라벨과 가른다 (본문 「M」 · 제목 「H M」). */
+function presetStepLabel(preset: PropertyUnitPreset): string {
+  return preset.group === "Heading"
+    ? `${preset.group[0]} ${preset.label}`
+    : preset.label;
+}
+
 export function tokenChipLabel(
   value: string,
   presets?: readonly PropertyUnitPreset[],
@@ -183,11 +190,7 @@ export function tokenChipLabel(
   const preset = presets?.find(
     (candidate) => candidate.value.trim() === trimmed,
   );
-  // 제목 묶음은 첫 글자로 본문의 같은 라벨과 가른다 (본문 「M」 · 제목 「H M」).
-  if (preset)
-    return preset.group === "Heading"
-      ? `${preset.group[0]} ${preset.label}`
-      : preset.label;
+  if (preset) return presetStepLabel(preset);
   const step = /([a-z0-9]+)\)$/.exec(
     trimmed.replace(/--line-height\)$/, ")"),
   )?.[1];
@@ -255,6 +258,7 @@ export function findMatchingPreset(
   presets?: PropertyUnitInputProps["presets"],
 ) {
   const trimmedInputValue = inputValue.trim();
+  const typedStep = trimmedInputValue.toLowerCase();
 
   return presets?.find((preset) => {
     const presetValue = preset.value.trim();
@@ -264,9 +268,7 @@ export function findMatchingPreset(
     //   shows), never by the token's current value.
     if (isTokenValue(presetValue))
       return (
-        trimmedInputValue !== "" &&
-        tokenChipLabel(presetValue, presets)?.toLowerCase() ===
-          trimmedInputValue.toLowerCase()
+        typedStep !== "" && presetStepLabel(preset).toLowerCase() === typedStep
       );
     return getPresetDisplayValue(preset.value) === trimmedInputValue;
   });

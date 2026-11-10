@@ -9,7 +9,7 @@
 
 import { memo, useCallback } from "react";
 import { Button } from "react-aria-components/Button";
-import { ChevronDown, X } from "lucide-react";
+import { X } from "lucide-react";
 import { IconPreview } from "../../panels/icons/components/IconPreview";
 import { IconPickerPopover } from "../../panels/icons/IconPickerPopover";
 import { iconProps } from "../../../utils/ui/uiConstants";
@@ -20,6 +20,7 @@ import {
   useOptionalI18n,
 } from "../../../i18n";
 import "../../panels/icons/IconPickerPopover.css";
+import { SelectChevron } from "./PanelSelect";
 
 export interface PropertyIconPickerProps {
   label: string;
@@ -88,11 +89,7 @@ export const PropertyIconPicker = memo(function PropertyIconPicker({
                 <span className="property-field__suffix" aria-hidden="true">
                   {label}
                 </span>
-                {!hasIcon && (
-                  <span aria-hidden="true" className="select-chevron">
-                    <ChevronDown size={iconProps.size} />
-                  </span>
-                )}
+                {!hasIcon && <SelectChevron />}
               </>
             )}
           </Button>

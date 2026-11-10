@@ -172,7 +172,7 @@ function TypeChoiceItem({ choice }: { choice: TypeChoice }) {
     <PanelSelectItem
       id={choice.value}
       label={choice.label}
-      description={choice.description || undefined}
+      description={choice.description}
     />
   );
 }

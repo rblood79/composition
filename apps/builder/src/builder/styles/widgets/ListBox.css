@@ -3,7 +3,7 @@
  * 범위 = 첫 compound 의 :where([data-document="builder"], …) (특이도 0). 값 = 분리 직전 빌더 값 (catalog 토큰은 그 고정값으로 풀었다). */
 
 @layer components {
-  .react-aria-ListBox[data-empty]:not([data-catalog-id]):where(
+  .react-aria-ListBox[data-empty]:where(
       [data-document="builder"],
       [data-document="builder"] *
     ) {
@@ -103,8 +103,8 @@
   }
 
   :is(
-      .react-aria-Popover[data-trigger="ComboBox"]:not([data-catalog-id]),
-      .react-aria-Popover[data-trigger="Select"]:not([data-catalog-id])
+      .react-aria-Popover[data-trigger="ComboBox"],
+      .react-aria-Popover[data-trigger="Select"]
     ):where([data-document="builder"], [data-document="builder"] *)
     .react-aria-ListBox {
     display: block;
@@ -117,8 +117,8 @@
   }
 
   :is(
-      .react-aria-Popover[data-trigger="ComboBox"]:not([data-catalog-id]),
-      .react-aria-Popover[data-trigger="Select"]:not([data-catalog-id])
+      .react-aria-Popover[data-trigger="ComboBox"],
+      .react-aria-Popover[data-trigger="Select"]
     ):where([data-document="builder"], [data-document="builder"] *)
     .react-aria-ListBoxItem {
     padding: var(--lb-item-padding);
@@ -126,16 +126,16 @@
   }
 
   :is(
-      .react-aria-Popover[data-trigger="ComboBox"]:not([data-catalog-id]),
-      .react-aria-Popover[data-trigger="Select"]:not([data-catalog-id])
+      .react-aria-Popover[data-trigger="ComboBox"],
+      .react-aria-Popover[data-trigger="Select"]
     ):where([data-document="builder"], [data-document="builder"] *)
     .react-aria-ListBoxItem[data-focus-visible] {
     outline: none;
   }
 
   :is(
-      .react-aria-Popover[data-trigger="ComboBox"]:not([data-catalog-id]),
-      .react-aria-Popover[data-trigger="Select"]:not([data-catalog-id])
+      .react-aria-Popover[data-trigger="ComboBox"],
+      .react-aria-Popover[data-trigger="Select"]
     ):where([data-document="builder"], [data-document="builder"] *)
     .react-aria-ListBoxItem[data-selected] {
     background: unset;
@@ -143,8 +143,8 @@
   }
 
   :is(
-      .react-aria-Popover[data-trigger="ComboBox"]:not([data-catalog-id]),
-      .react-aria-Popover[data-trigger="Select"]:not([data-catalog-id])
+      .react-aria-Popover[data-trigger="ComboBox"],
+      .react-aria-Popover[data-trigger="Select"]
     ):where([data-document="builder"], [data-document="builder"] *)
     .react-aria-ListBoxItem[data-selected]::before {
     content: "✓" / "";
@@ -160,13 +160,13 @@
   }
 
   :is(
-      .react-aria-Popover[data-trigger="ComboBox"]:not([data-catalog-id]),
-      .react-aria-Popover[data-trigger="Select"]:not([data-catalog-id])
+      .react-aria-Popover[data-trigger="ComboBox"],
+      .react-aria-Popover[data-trigger="Select"]
     ):where([data-document="builder"], [data-document="builder"] *)
     .react-aria-ListBoxItem[data-focused],
   :is(
-      .react-aria-Popover[data-trigger="ComboBox"]:not([data-catalog-id]),
-      .react-aria-Popover[data-trigger="Select"]:not([data-catalog-id])
+      .react-aria-Popover[data-trigger="ComboBox"],
+      .react-aria-Popover[data-trigger="Select"]
     ):where([data-document="builder"], [data-document="builder"] *)
     .react-aria-ListBoxItem[data-pressed] {
     background: var(--bg-overlay);

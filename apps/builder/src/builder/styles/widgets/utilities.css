@@ -3,16 +3,13 @@
  * 범위 = 첫 compound 의 :where([data-document="builder"], …) (특이도 0). 값 = 분리 직전 빌더 값 (catalog 토큰은 그 고정값으로 풀었다). */
 
 @layer utilities {
-  .button-base:not([data-catalog-id]):where(
-      [data-document="builder"],
-      [data-document="builder"] *
-    ) {
+  .button-base:where([data-document="builder"], [data-document="builder"] *) {
     background: var(--button-color);
     color: var(--button-text, var(--color-white));
     border-color: var(--button-border, var(--button-color));
   }
 
-  .button-base:not([data-catalog-id]):where([data-hovered]):where(
+  .button-base:where([data-hovered]):where(
       [data-document="builder"],
       [data-document="builder"] *
     ) {
@@ -27,7 +24,7 @@
     );
   }
 
-  .button-base:not([data-catalog-id]):where([data-pressed]):where(
+  .button-base:where([data-pressed]):where(
       [data-document="builder"],
       [data-document="builder"] *
     ) {
@@ -42,7 +39,7 @@
     );
   }
 
-  .button-base:not([data-catalog-id]):where([data-selected]):where(
+  .button-base:where([data-selected]):where(
       [data-document="builder"],
       [data-document="builder"] *
     ) {
@@ -51,9 +48,10 @@
     border-color: var(--button-border, var(--button-color));
   }
 
-  .button-base:not([data-catalog-id]):where(
-      [data-selected][data-hovered]
-    ):where([data-document="builder"], [data-document="builder"] *) {
+  .button-base:where([data-selected][data-hovered]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
     background: var(
       --button-color-hover,
       color-mix(in srgb, var(--button-color) 85%, black)
@@ -65,9 +63,10 @@
     );
   }
 
-  .button-base:not([data-catalog-id]):where(
-      [data-selected][data-pressed]
-    ):where([data-document="builder"], [data-document="builder"] *) {
+  .button-base:where([data-selected][data-pressed]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
     background: var(
       --button-color-pressed,
       color-mix(in srgb, var(--button-color) 75%, black)
@@ -79,7 +78,7 @@
     );
   }
 
-  .button-base:not([data-catalog-id]):where([data-focus-visible]):where(
+  .button-base:where([data-focus-visible]):where(
       [data-document="builder"],
       [data-document="builder"] *
     ) {
@@ -87,7 +86,7 @@
     outline-offset: 2px;
   }
 
-  .button-base:not([data-catalog-id]):where([data-disabled]):where(
+  .button-base:where([data-disabled]):where(
       [data-document="builder"],
       [data-document="builder"] *
     ) {
@@ -98,22 +97,24 @@
     pointer-events: none;
   }
 
-  .button-base:not([data-catalog-id]):where([data-fill-style="outline"]):where(
+  .button-base:where([data-fill-style="outline"]):where(
       [data-document="builder"],
       [data-document="builder"] *
     ) {
     background: transparent;
   }
 
-  .button-base:not([data-catalog-id]):where([data-fill-style="outline"]):where(
-      [data-hovered]
-    ):where([data-document="builder"], [data-document="builder"] *) {
+  .button-base:where([data-fill-style="outline"]):where([data-hovered]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
     background: color-mix(in srgb, var(--button-text) 8%, transparent);
   }
 
-  .button-base:not([data-catalog-id]):where([data-fill-style="outline"]):where(
-      [data-pressed]
-    ):where([data-document="builder"], [data-document="builder"] *) {
+  .button-base:where([data-fill-style="outline"]):where([data-pressed]):where(
+      [data-document="builder"],
+      [data-document="builder"] *
+    ) {
     background: color-mix(in srgb, var(--button-text) 12%, transparent);
   }
 

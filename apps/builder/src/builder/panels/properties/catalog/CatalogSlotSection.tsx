@@ -1,6 +1,6 @@
 import { memo, useCallback, useState } from "react";
 import { Button as RACButton } from "react-aria-components/Button";
-import { Asterisk, ChevronDown, LayoutTemplate, Minus } from "lucide-react";
+import { Asterisk, LayoutTemplate, Minus } from "lucide-react";
 import { useI18n } from "@/i18n";
 import type {
   DefinitionId,
@@ -34,6 +34,7 @@ import { iconProps } from "../../../../utils/ui/uiConstants";
 import { CatalogItemInsertSection } from "./CatalogItemInsertSection";
 import { CatalogComponentPicker } from "./CatalogSwapPicker";
 import "./CatalogSlotSection.css";
+import { SelectChevron } from "../../../components/property/PanelSelect";
 
 const DEFAULT_SLOT_NAME = "content";
 /** A picker key for an item type the position's 「+」 builds (no Library option of that type). */
@@ -79,9 +80,7 @@ function SlotInsertField({
           onOpenChange={onOpenChange}
         >
           <span className="slot-fill-value">{t("common.select")}…</span>
-          <span aria-hidden="true" className="select-chevron">
-            <ChevronDown size={iconProps.size} />
-          </span>
+          <SelectChevron />
         </CatalogComponentPicker>
       </div>
     </fieldset>

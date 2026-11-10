@@ -316,7 +316,7 @@ export const CollectionBinding = memo(function CollectionBinding({
                   key={option.value}
                   id={option.value}
                   label={option.label}
-                  detail={option.description || undefined}
+                  detail={option.description}
                 />
               ))}
             </PanelSelect>

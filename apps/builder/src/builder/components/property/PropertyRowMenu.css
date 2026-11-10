@@ -5,13 +5,12 @@
 
    테두리는 Popover 한 곳 (2026-10-29 사용자 「popover 에도 border, menu 에도 border」): RAC
    레퍼런스 (vanilla starter) 는 테두리 · 모서리 · 그림자 · 배경을 Popover 에 두고 Menu 는
-   테두리 없이 `border-radius: inherit` 다. 빌더 Select 목록 (generated Select.css — Popover
-   테두리 + `--shadow-lg`, ListBox 는 테두리 없음 · 투명) 과 같은 모양. 위젯 사본 generated-Menu.css 의
+   테두리 없이 `border-radius: inherit` 다. 빌더 Select 목록 (Popover 테두리 · 그림자 — 위젯 사본
+   Popover.css, ListBox 는 테두리 없음 · 투명) 과 같은 모양. 위젯 사본 generated-Menu.css 의
    「Popover 가 테두리를 버리고 Menu 가 갖는」 위임은 `[data-size]` (캔버스 컴포넌트) 팝오버만이라
    빌더 팝오버에서는 두 겹이 됐다. */
 .property-row-menu-popover.property-select-popover {
   min-width: max-content;
-  box-shadow: var(--shadow-lg);
 }
 
 .react-aria-Menu.property-row-menu {

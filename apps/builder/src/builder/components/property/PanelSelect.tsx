@@ -98,9 +98,7 @@ export function PanelSelect({
     >
       <Button className="react-aria-Button" ref={triggerRef}>
         {trigger}
-        <span aria-hidden="true" className="select-chevron">
-          {chevron ?? <ChevronDown size={iconProps.size} />}
-        </span>
+        <SelectChevron>{chevron}</SelectChevron>
       </Button>
       <Popover
         className={`react-aria-Popover property-select-popover ${
@@ -108,18 +106,27 @@ export function PanelSelect({
         }${popoverClassName ? ` ${popoverClassName}` : ""}`}
         style={popoverStyle}
       >
-        {grid ? (
-          <ListBox
-            className="react-aria-ListBox property-select-grid"
-            layout="grid"
-          >
-            {children}
-          </ListBox>
-        ) : (
-          <ListBox className="react-aria-ListBox">{children}</ListBox>
-        )}
+        <ListBox
+          className={
+            grid
+              ? "react-aria-ListBox property-select-grid"
+              : "react-aria-ListBox"
+          }
+          layout={grid ? "grid" : undefined}
+        >
+          {children}
+        </ListBox>
       </Popover>
     </AriaSelect>
+  );
+}
+
+/** ▾ 자리 — Select 와 팝오버 trigger 가 같은 상자 (`.select-chevron`, form-controls.css). 기본 그림 ChevronDown */
+export function SelectChevron({ children }: { children?: ReactNode }) {
+  return (
+    <span aria-hidden="true" className="select-chevron">
+      {children ?? <ChevronDown size={iconProps.size} />}
+    </span>
   );
 }
 

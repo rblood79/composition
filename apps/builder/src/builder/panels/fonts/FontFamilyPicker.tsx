@@ -14,7 +14,7 @@ import {
 import { Button } from "react-aria-components/Button";
 import { ListBoxItem } from "react-aria-components/ListBox";
 import type { Key } from "react-aria-components/Collection";
-import { ChevronDown, Settings2 } from "lucide-react";
+import { Settings2 } from "lucide-react";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useControlPopoverMetrics } from "../../components/property/useControlPopoverMetrics";
@@ -32,6 +32,7 @@ import { useFontRegistry } from "./useFontRegistry";
 import type { FontManagerDialogProps } from "./FontManagerDialog";
 import "./FontFamilyPicker.css";
 import { useI18n, useSemanticLabel } from "@/i18n";
+import { SelectChevron } from "../../components/property/PanelSelect";
 
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
@@ -204,14 +205,15 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
               >
                 {displayFamily || defaultLabel}
               </span>
-              <span aria-hidden="true" className="select-chevron">
-                <ChevronDown size={iconProps.size} />
-              </span>
+              <SelectChevron />
             </Button>
           }
           footer={
             scope === "theme" ? (
-              <Button className="font-picker-manage" onPress={handleOpenManager}>
+              <Button
+                className="font-picker-manage"
+                onPress={handleOpenManager}
+              >
                 <ManageIcon size={iconProps.size} aria-hidden="true" />
                 {faceCount === 0 ? t("fonts.addFonts") : t("fonts.manageFonts")}
               </Button>

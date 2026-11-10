@@ -153,8 +153,8 @@ export const PropertySelectControl = memo(
           key={itemKey(option)}
           id={itemKey(option)}
           label={optionLabel(option)}
-          description={descriptions?.[option.value] || undefined}
-          swatch={swatches?.[option.value] ?? undefined}
+          description={descriptions?.[option.value]}
+          swatch={swatches?.[option.value]}
         />
       );
       // 머리글 구획 — sections 순서대로, 어디에도 없는 값은 머리글 없이 맨 뒤

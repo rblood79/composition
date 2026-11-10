@@ -9,7 +9,6 @@
   width: 320px;
   min-width: 280px;
   max-width: 420px;
-  box-shadow: var(--shadow-lg);
 }
 
 /* The generated Dialog sheet styles every `.react-aria-Dialog` (width · radius · bg) — inside

@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [빌더 팝오버 그림자 한 곳 · ADR-305 뒤 제외 조건 정리] - 2026-11-10
+
+### Changed
+
+- **빌더의 모든 팝오버가 같은 그림자 (`--shadow-lg`) 를 갖는다** (사용자 결정 「Select 목록, combobox 목록, menu 목록 등 모든 popover 에 동일 적용」). Select 목록 · 단위 입력 (ComboBox) 목록은 그림자가 없었다 — 그림자를 팝오버마다 따로 선언해 두 목록이 빠져 있었다. 정본은 위젯 사본 `styles/widgets/Popover.css` 의 `.react-aria-Popover` 규칙 하나이고, 팝오버별 선언 10 곳은 지웠다. RAC 기본 class 를 쓰지 않는 팝오버 (헤더 · 줌 · 컨텍스트 메뉴 · action bar · 기록 · 아이콘) 와 `{{` 변수 제안 목록 (md → lg) 은 자기 시트에서 같은 값을 준다.
+  - 빌더 스냅샷 A/B (69 화면 × 2 변형): 차이는 Select · 단위 입력 목록 팝오버의 `box-shadow` 뿐.
+
+### Removed
+
+- 빌더 chrome CSS 의 `[data-catalog-id]` 제외 조건 (`:where()` 밖 28 곳 — ADR-305 뒤 빌더 문서에 사용자 DOM 이 없다) · 쓰는 곳 없는 `.theme-selector` · `.zoom-combobox-*` 규칙. 빌더 스냅샷 69 화면 × 4 변형 Δ 0.
+
 ## [Effect 절 그림자 — Spectrum 용도 이름 · rule 의 토큰도 한 행] - 2026-11-10
 
 ### Changed
