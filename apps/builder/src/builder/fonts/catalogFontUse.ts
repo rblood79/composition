@@ -1,5 +1,9 @@
 import type { CatalogConsumerNode } from "../../../../../packages/shared/src/catalog/runtime/compositionRoot";
-import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
+import {
+  ownedChildren,
+  type CatalogGraph,
+} from "../../../../../packages/shared/src/catalog/document/graph";
+import { isRichText } from "../../../../../packages/shared/src/catalog/document/textRuns";
 import { installedBaseFontFamily } from "../../../../../packages/shared/src/catalog/runtime/themeMaps";
 import { catalogTextTypography } from "../catalogRuntime/boxModel";
 import { DEFAULT_BASE_TYPOGRAPHY } from "./customFonts";
@@ -150,7 +154,7 @@ export function catalogAuthoredFontRequests(
   if (project?.kind === "project")
     for (const pageId of project.pageIds) {
       const page = graph.getEntry(pageId);
-      if (page?.kind === "page") stack.push(...page.children);
+      if (page?.kind === "page") stack.push(...ownedChildren(page));
     }
   const seen = new Set<string>();
   while (stack.length) {
@@ -163,15 +167,10 @@ export function catalogAuthoredFontRequests(
     for (const layer of Object.values(node.responsive ?? {}))
       read(layer?.visual);
     const text = written(node.props.children);
-    if (text && typeof text === "object" && "runs" in text)
-      for (const run of (
-        text as { runs: readonly { marks?: Record<string, unknown> }[] }
-      ).runs)
-        read(run.marks);
-    stack.push(...node.children);
-    for (const override of node.descendantOverrides)
-      if (override.kind === "fillSlot") stack.push(...override.childIds);
-      else if (override.kind === "replace") stack.push(override.replacementId);
+    if (isRichText(text))
+      for (const run of text.runs)
+        read(run.marks as Readonly<Record<string, unknown>> | undefined);
+    stack.push(...ownedChildren(node));
   }
   if (!families.size && !styles.size) return [];
   if (!families.size) families.add(baseFamily);

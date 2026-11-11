@@ -346,7 +346,8 @@ export function catalogOverlayNode(
         );
       for (const page of inputs.loadingPages?.() ?? []) {
         const box = bounds.get(page.identity);
-        if (box)
+        // (A page off screen: no occluder query — the label is drawn only where the view shows.)
+        if (box && (!viewport || chromeIntersects(box, viewport)))
           withOccluders(ck, canvas, occludersOf(page.identity, box), () =>
             renderPageLoadingMarker(
               ck,

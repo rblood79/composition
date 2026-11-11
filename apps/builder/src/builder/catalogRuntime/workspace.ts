@@ -33,7 +33,6 @@ import { CatalogAutosave } from "./autosave";
 import { CatalogFillScheduler } from "./fillScheduler";
 import {
   CatalogCompositionRoot,
-  type CatalogFillReport,
   type CatalogRootOptions,
   type CatalogTextMeasure,
   catalogRowTemplateIdentity,
@@ -689,36 +688,9 @@ export class CatalogWorkspace {
     if (errors.length)
       throw new AggregateError(errors, "CATALOG_STATE_DELIVERY");
   }
-  /**
-   * ADR-307: one fill task of each page root of this page that still misses records (the root's
-   * `fill`), then the row listeners (the Canvas scene — the same outside-a-step delta). Returns
-   * the reports.
-   */
-  fillPage(
-    pageId: string,
-    options?: Parameters<CatalogCompositionRoot["fill"]>[1],
-  ): CatalogFillReport[] {
-    const root = this.currentRoot;
-    const reports = root
-      .pendingFillRoots({ failed: true })
-      .filter((rootId) => root.pageOfRoot(rootId) === pageId)
-      .map((rootId) => root.fill(rootId, options));
-    if (reports.some((report) => report.records))
-      for (const listener of [...this.rowListeners]) listener();
-    return reports;
-  }
   /** ADR-307: whether any page still misses records (the background fill goes on). */
   get fillPending(): boolean {
     return !!this.fillScheduler && this.currentRoot.hasPendingFill;
-  }
-  /**
-   * ADR-307: a page's content, now — up to the scheduler's cap (`whole` = all of it); the rest
-   * goes on in the background ahead of the other pages. True = the page is filled.
-   */
-  ensurePage(pageId: string, options?: { whole?: boolean }): boolean {
-    const filled = this.fillScheduler?.ensurePage(pageId, options) ?? true;
-    this.markFill();
-    return filled;
   }
   private fillWasPending = false;
   /**

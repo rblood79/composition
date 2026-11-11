@@ -77,6 +77,7 @@ import { CatalogGuideRulerLabel } from "./CatalogGuideRulerLabel";
 import { CatalogSelectionRuler } from "./CatalogSelectionRuler";
 import { catalogRulerOrigin } from "./catalogRulerOrigin";
 import {
+  boxesIntersect,
   calculateCombinedBounds,
   pointInBox,
   type BoundingBox,
@@ -1125,12 +1126,7 @@ export function CatalogCanvas({
       const centerY = area.y + area.height / 2;
       const inView: Array<readonly [string, number]> = [];
       for (const [id, rect] of workspace.root.pageFrameRects())
-        if (
-          rect.x < area.x + area.width &&
-          rect.x + rect.width > area.x &&
-          rect.y < area.y + area.height &&
-          rect.y + rect.height > area.y
-        )
+        if (boxesIntersect(rect, area))
           inView.push([
             id,
             Math.hypot(

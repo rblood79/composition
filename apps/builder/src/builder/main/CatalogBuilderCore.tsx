@@ -74,6 +74,7 @@ import {
 import {
   catalogAuthoredFontRequests,
   createCatalogFontUseReader,
+  type CatalogFontRequest,
 } from "../fonts/catalogFontUse";
 import { spectrumLocaleFont } from "@composition/rendering";
 import { useBuilderChromeTheme } from "../hooks/useBuilderChromeTheme";
@@ -469,6 +470,18 @@ export function CatalogBuilderCore() {
     if (!workspace) return;
     let cancelled = false;
     const readFontUse = createCatalogFontUseReader();
+    // (The document walk is the same until the document changes — a fill's re-syncs reuse it.)
+    let authoredAt:
+      { revision: number; requests: CatalogFontRequest[] } | undefined;
+    const authoredRequests = () => {
+      const graph = workspace.runtime.graph;
+      if (authoredAt?.revision !== graph.revision)
+        authoredAt = {
+          revision: graph.revision,
+          requests: catalogAuthoredFontRequests(graph),
+        };
+      return authoredAt.requests;
+    };
     const sync = () => {
       const locale = workspace.root.environmentLocale ?? navigator.language;
       const { requests, localeTexts } = readFontUse(
@@ -482,9 +495,7 @@ export function CatalogBuilderCore() {
       );
       // ADR-307: while pages are still shells their records are not here — the fonts their nodes
       // write are read from the document, so every face is asked for at once.
-      const authored = workspace.fillPending
-        ? catalogAuthoredFontRequests(workspace.runtime.graph)
-        : [];
+      const authored = workspace.fillPending ? authoredRequests() : [];
       void Promise.all([
         loadSpectrumFontsToSkia([...requests, ...authored]),
         loadSpectrumLocaleFontsToSkia(

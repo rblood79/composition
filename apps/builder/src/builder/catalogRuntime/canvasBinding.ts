@@ -3044,7 +3044,7 @@ function bindInColorMode(
           rootId: id,
           revision,
           canonicalRevision: stream.baseCanonicalRevision,
-          ...(pageLayer ? { pageLayer: true } : {}),
+          pageLayer,
         });
         if (!patch.applied) return patch;
         const span = replacement.subtreeSpans.get(id)!;

@@ -4,7 +4,7 @@ import {
   chromeIntersects,
   expandChromeBox,
 } from "../catalog/catalogChromeSpatial";
-import type { BoundingBox } from "../selection/types";
+import { intersectBoxes, type BoundingBox } from "../selection/types";
 import { SkiaDisposable } from "./disposable";
 import { HATCH_ALPHA, drawDiagonalHatch } from "./hatchPattern";
 import { acquireScopedPaint } from "./paints";
@@ -72,17 +72,12 @@ export function renderPageLoadingMarker(
   viewport?: BoundingBox,
 ): void {
   if (!fontMgr || !label || bounds.width <= 0 || bounds.height <= 0) return;
-  const left = Math.max(bounds.x, viewport?.x ?? bounds.x);
-  const top = Math.max(bounds.y, viewport?.y ?? bounds.y);
-  const right = Math.min(
-    bounds.x + bounds.width,
-    viewport ? viewport.x + viewport.width : Infinity,
-  );
-  const bottom = Math.min(
-    bounds.y + bounds.height,
-    viewport ? viewport.y + viewport.height : Infinity,
-  );
-  if (right <= left || bottom <= top) return;
+  const shown = viewport ? intersectBoxes(bounds, viewport) : bounds;
+  if (!shown) return;
+  const left = shown.x;
+  const top = shown.y;
+  const right = shown.x + shown.width;
+  const bottom = shown.y + shown.height;
   const font = acquireOverlayFont(
     ck,
     fontMgr,

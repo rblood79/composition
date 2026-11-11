@@ -3735,11 +3735,7 @@ export class CatalogCompositionRoot {
       this.fillStates.set(rootId, backup);
       this.fillFailed.set(rootId, revision);
       this.fillEpoch += 1;
-      try {
-        this.restore(cause);
-      } finally {
-        this.undoLog = undefined;
-      }
+      this.restore(cause);
       return { status: "failed", units: 0, records: 0, errors: [cause] };
     } finally {
       this.undoLog = undefined;
@@ -3764,13 +3760,12 @@ export class CatalogCompositionRoot {
       },
       notices,
     );
-    if (units || done)
-      for (const listener of [...this.fillListeners])
-        try {
-          listener();
-        } catch (error) {
-          errors.push(error);
-        }
+    for (const listener of [...this.fillListeners])
+      try {
+        listener();
+      } catch (error) {
+        errors.push(error);
+      }
     return {
       status: done ? "filled" : "partial",
       units,
@@ -3784,6 +3779,9 @@ export class CatalogCompositionRoot {
    * when the node's page root has nothing left, or the node is not a page's (a template node).
    */
   fillNode(nodeId: string): CatalogFillReport {
+    // (Nothing staged — the fill is over: no owner walk per by-id read.)
+    if (!this.fillStates.size)
+      return { status: "idle", units: 0, records: 0, errors: [] };
     const chain: string[] = [];
     let rootId: NodeId | undefined;
     for (
