@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Property 필드의 오류 표시 · 펼침이 다른 요소로 따라가지 않음 — 선택 소속 state] - 2026-11-12
+
+### Fixed
+
+- **같은 타입의 다른 요소를 선택하면 이전 요소의 「잘못된 값」 표시 · 펼친 항목이 그대로 남던 문제** (C1 후속):
+  - **Why**: C1 (2026-11-11) 로 같은 타입 선택 사이에 Property 필드를 다시 mount 하지 않게 되자, 필드가 들고 있던 UI 상태가 다음 요소로 넘어갔다. 숫자 서식 칸의 오류 문구와 항목 편집기의 펼친 행이 그 상태였다 (색 · Avatar 크기 칸은 C1 에서 따로 고쳤지만, 원래 요소로 돌아오면 지워진 입력 옆에 오류 문구만 다시 나타났다).
+  - 수정: 선택이 바뀌면 처음 값으로 돌아가는 state 하나 (`useSelectionState`) 를 네 곳 (숫자 서식 · Avatar 크기 · 색 칸 · 항목 편집기 행과 구역) 이 같이 쓴다 — 요소마다 필드를 새로 만들던 때와 같은 결과.
+  - 위치: `apps/builder/src/builder/components/property/propertySelection.ts` · `panels/properties/generic/{NumberFormatField,AvatarSizeField,GenericFieldRenderer,ItemsManager}.tsx`. 검증: `selectionOwnedState.test.tsx` 3건 (수정 전 RED 1) · properties · design 363 통과 · live (NumberField 2개 통화 서식 — 오류 문구가 둘째 요소 · 첫째로 돌아온 뒤 모두 없음).
+
 ## [Canvas 편집 비용이 문서 크기와 무관해짐 — slot 표시 계산] - 2026-11-11
 
 ### Performance

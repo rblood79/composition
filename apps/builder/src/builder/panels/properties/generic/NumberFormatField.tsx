@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo } from "react";
 import { PropertyInput } from "../../../components/property/PropertyInput";
 import { PropertyNumberInput } from "../../../components/property/PropertyNumberInput";
 import { PropertySelect } from "../../../components/property/PropertySelect";
@@ -13,6 +13,7 @@ import {
   catalogNumberFormatFits,
   type CatalogNumberFormat,
 } from "../../../../../../../packages/shared/src/catalog/document/numberFormatValue";
+import { useSelectionState } from "../../../components/property/propertySelection";
 
 type Format = Record<string, string | number | boolean>;
 
@@ -69,7 +70,9 @@ export const NumberFormatField = memo(function NumberFormatField({
     ? value
     : {};
   const style = format.style ?? "";
-  const [invalid, setInvalid] = useState<string | null>(null);
+  // The refusal belongs to the element it was typed on (the field stays mounted across a selection
+  // of the same type).
+  const [invalid, setInvalid] = useSelectionState<string | null>(null);
   const write = (next: Format) => {
     if (Object.keys(next).length === 0) return onChange(undefined);
     if (catalogNumberFormatFits(next)) onChange(next);

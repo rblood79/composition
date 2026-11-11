@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { PropertyInput } from "../../../components/property/PropertyInput";
 import { PropertySelect } from "../../../components/property/PropertySelect";
-import { usePropertySelection } from "../../../components/property/propertySelection";
+import { useSelectionState } from "../../../components/property/propertySelection";
 import { catalogAvatarSizeFits } from "../../../../../../../packages/shared/src/catalog/document/avatarSizeValue";
 
 export function AvatarSizeField({
@@ -19,9 +19,8 @@ export function AvatarSizeField({
 }) {
   // The refusal belongs to the value and element it was typed on (the field stays mounted across a
   // selection of the same type).
-  const selectedId = usePropertySelection().useSelectedId();
-  const [invalid, setInvalid] = useState(false);
-  useEffect(() => setInvalid(false), [value, selectedId]);
+  const [invalid, setInvalid] = useSelectionState(false);
+  useEffect(() => setInvalid(false), [value, setInvalid]);
   const current = String(value ?? 24);
   const choices = options.some((option) => option.value === current)
     ? options

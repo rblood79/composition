@@ -24,7 +24,7 @@ import { AutoFocusField } from "./AutoFocusField";
  * size/boolean/string/string-array/number/icon). 단계 2 는 Properties view(semantic) 우선이라
  * style-origin number(unit 입력)는 후속(`PropertyUnitInput` 통합) — 현재는 number control 공용.
  */
-import { memo, useCallback, useMemo, useState, type ReactNode } from "react";
+import { memo, useCallback, useMemo, type ReactNode } from "react";
 
 import type { ResolvedField } from "@composition/shared";
 import type { ItemsManagerField } from "@composition/rendering";
@@ -38,7 +38,7 @@ import {
 import { PropertyFieldTemplateInput } from "../../../components/property/PropertyFieldTemplateInput";
 import { PropertyIconPicker } from "../../../components/property/PropertyIconPicker";
 import { PropertyInput } from "../../../components/property/PropertyInput";
-import { usePropertySelection } from "../../../components/property/propertySelection";
+import { useSelectionState } from "../../../components/property/propertySelection";
 import {
   catalogCalendarDurationFits,
   catalogColumnSizeFits,
@@ -714,10 +714,7 @@ const RacColorField = memo(function RacColorField({
 }) {
   // The refusal belongs to the element it was typed on: another selection clears it (the fields
   // stay mounted across a selection of the same type).
-  const selectedId = usePropertySelection().useSelectedId();
-  const [invalidOn, setInvalidOn] = useState<string | null | false>(false);
-  const invalid = invalidOn !== false && invalidOn === selectedId;
-  const setInvalid = (next: boolean) => setInvalidOn(next ? selectedId : false);
+  const [invalid, setInvalid] = useSelectionState(false);
   return (
     <PropertyInput
       label={field.label}

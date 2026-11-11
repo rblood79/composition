@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState, type ReactNode } from "react";
+import { memo, useCallback, useMemo, type ReactNode } from "react";
 import { Button as AriaButton } from "react-aria-components/Button";
 import { ToggleButton as AriaToggleButton } from "react-aria-components/ToggleButton";
 import {
@@ -24,6 +24,7 @@ import { localizeSemanticLabel, useOptionalI18n } from "@/i18n";
 import "../editors/styles/propertyEditors.css";
 import "./ItemsManager.css";
 import { ACTION_ICONS } from "../../../config/actionIcons";
+import { useSelectionState } from "../../../components/property/propertySelection";
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
 
@@ -126,7 +127,9 @@ const ItemRow = memo(function ItemRow({
   onRemove,
 }: ItemRowProps) {
   const i18n = useOptionalI18n();
-  const [expanded, setExpanded] = useState(false);
+  // The row's open state is the element's: the editor stays mounted across a selection of the
+  // same type, and two elements' items can share a key (an id from a template, a position).
+  const [expanded, setExpanded] = useSelectionState(false);
   const label = String(item[labelKey] ?? "—");
 
   const handleFieldChange = useCallback(
@@ -283,7 +286,7 @@ const SectionRow = memo(function SectionRow({
   onUpdateItem,
   onRemoveItem,
 }: SectionRowProps) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useSelectionState(true);
   const header = String(section.header ?? "Section");
   const sectionItems = Array.isArray(section.items)
     ? (section.items as Record<string, unknown>[])
