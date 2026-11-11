@@ -156,7 +156,12 @@ describe("NavigatorPanel shared panel style contract", () => {
     expect(css).not.toMatch(
       /\.elementItemActions \.iconButton \{[^}]*(width|height): var\(--text-xl\);/s,
     );
-    expect(layerTreeSource).toContain("rowSize: LAYER_TREE_ROW_SIZE_PX");
+    expect(layerTreeSource).toContain(
+      "layoutOptions={LAYER_TREE_LAYOUT_OPTIONS}",
+    );
+    expect(layerVirtualizationSource).toContain(
+      "rowSize: LAYER_TREE_ROW_SIZE_PX",
+    );
     expect(layerVirtualizationSource).toContain("LAYER_TREE_ROW_SIZE_PX = 28");
   });
 

@@ -18,9 +18,8 @@ export interface CatalogFontUse {
 }
 
 interface RecordFontUse {
-  readonly base: string | undefined;
-  readonly localeFamily: string | undefined;
-  readonly requests: readonly CatalogFontRequest[];
+  /** Each request with its loader key (family · weight · style). */
+  readonly requests: readonly (readonly [string, CatalogFontRequest])[];
   readonly localeTexts: readonly (readonly [number, string])[];
 }
 
@@ -36,22 +35,28 @@ export function createCatalogFontUseReader(): (
   localeFamily: string | undefined,
   dateText: (id: string) => string | undefined,
 ) => CatalogFontUse {
-  const cache = new WeakMap<CatalogConsumerNode, RecordFontUse>();
+  let cache = new WeakMap<CatalogConsumerNode, RecordFontUse>();
+  let cacheKey: readonly [string | undefined, string | undefined] = [
+    undefined,
+    undefined,
+  ];
   return (records, localeFamily, dateText) => {
     const base = installedBaseFontFamily();
+    if (cacheKey[0] !== base || cacheKey[1] !== localeFamily) {
+      cache = new WeakMap();
+      cacheKey = [base, localeFamily];
+    }
     const requests = new Map<string, CatalogFontRequest>();
     const localeTexts = new Map<number, string>();
     for (const node of records) {
       if (node.hidden) continue;
       let use = cache.get(node);
-      if (!use || use.base !== base || use.localeFamily !== localeFamily) {
-        use = readRecordFontUse(node, base, localeFamily, dateText);
+      if (!use) {
+        use = readRecordFontUse(node, localeFamily, dateText);
         if (node.bindingId !== "dateinput") cache.set(node, use);
       }
-      for (const request of use.requests) {
-        const key = `${request.family}\u0000${request.weight}\u0000${request.style}`;
+      for (const [key, request] of use.requests)
         if (!requests.has(key)) requests.set(key, request);
-      }
       for (const [weight, text] of use.localeTexts)
         localeTexts.set(weight, (localeTexts.get(weight) ?? "") + text);
     }
@@ -61,7 +66,6 @@ export function createCatalogFontUseReader(): (
 
 function readRecordFontUse(
   node: CatalogConsumerNode,
-  base: string | undefined,
   localeFamily: string | undefined,
   dateText: (id: string) => string | undefined,
 ): RecordFontUse {
@@ -98,5 +102,14 @@ function readRecordFontUse(
         localeTexts.push([Number(run.marks?.fontWeight ?? weight), run.text]);
     }
   }
-  return { base, localeFamily, requests, localeTexts };
+  return {
+    requests: requests.map(
+      (request) =>
+        [
+          `${request.family}\u0000${request.weight}\u0000${request.style}`,
+          request,
+        ] as const,
+    ),
+    localeTexts,
+  };
 }

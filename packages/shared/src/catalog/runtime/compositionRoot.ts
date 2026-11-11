@@ -5071,9 +5071,9 @@ export class CatalogCompositionRoot {
    * several times a frame (camera bounds · page labels · guides): it is read from the engine in one
    * batch and kept until the layout tree changes (`PersistentLayoutTree.generation` — every engine
    * write and layout bumps it; page roots change only with a write to `catalog:root`'s children).
-   * Each call returns its own map (CANVAS_PERF_SCALING_2026-11 B2).
+   * The map is shared, read-only, until then (CANVAS_PERF_SCALING_2026-11 B2).
    */
-  pageFrameRects(): Map<string, PageFrameRect> {
+  pageFrameRects(): ReadonlyMap<string, PageFrameRect> {
     const generation = this.layout.generation;
     if (this.pageFrameCache?.generation !== generation) {
       const members = new Map<string, string>();
@@ -5095,7 +5095,7 @@ export class CatalogCompositionRoot {
       }
       this.pageFrameCache = { generation, rects };
     }
-    return new Map(this.pageFrameCache.rects);
+    return this.pageFrameCache.rects;
   }
   private pageFrameCache?: {
     generation: number;

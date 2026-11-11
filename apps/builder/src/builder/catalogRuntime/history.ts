@@ -125,7 +125,7 @@ export class CatalogHistoryStore {
   };
   /** How many entries are applied (undo) and undone (redo) — no entry is read. */
   size(): { undo: number; redo: number } {
-    return this.runtime.historySize;
+    return this.runtime.historyDepth;
   }
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);

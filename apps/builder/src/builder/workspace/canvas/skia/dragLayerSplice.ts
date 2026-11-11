@@ -26,7 +26,12 @@ import {
   type RenderCommandStream,
   type SubtreeBuildContext,
 } from "./renderCommands";
-import { getSubtreeElementIds } from "./subtreeCommandPatch";
+import {
+  adoptSubtreeEntries,
+  dropSubtreeEntries,
+  getSubtreeElementIds,
+  hasSameIds,
+} from "./subtreeCommandPatch";
 
 const CMD_ELEMENT_BEGIN = 0;
 const CMD_CHILDREN_END = 3;
@@ -51,7 +56,6 @@ interface DraggedRoot {
   readonly id: string;
   /** The context it is recorded with in its place. */
   readonly context: SubtreeBuildContext;
-  readonly parentId: string;
   readonly anchor: Anchor;
 }
 
@@ -73,6 +77,14 @@ interface Recording {
   readonly replacement: RenderCommandStream;
   readonly commands: RenderCommand[];
   readonly ids: ReadonlySet<string>;
+}
+
+/** A root's move, checked: the span it is cut from and its new recording (same element ids). */
+interface Planned {
+  readonly root: DraggedRoot;
+  readonly cut: { readonly start: number; readonly end: number };
+  readonly current: ReadonlySet<string>;
+  readonly recording: Recording;
 }
 
 interface Scene {
@@ -114,30 +126,30 @@ function record(
   return { id, replacement, commands, ids };
 }
 
-const sameIds = (a: ReadonlySet<string>, b: ReadonlySet<string>) =>
-  a.size === b.size && [...a].every((id) => b.has(id));
+/** `root` recorded with `context`, or undefined when the recording draws other elements. */
+function plan(
+  stream: RenderCommandStream,
+  scene: Scene,
+  root: DraggedRoot,
+  cut: { start: number; end: number },
+  context: SubtreeBuildContext,
+): Planned | undefined {
+  const current = getSubtreeElementIds(stream, cut);
+  const recording = record(stream, scene, root.id, context);
+  return hasSameIds(current, recording.ids)
+    ? { root, cut, current, recording }
+    : undefined;
+}
 
 /** Every map entry of `ids` leaves the stream (and its hit area the spatial index). */
 function dropEntries(
   stream: RenderCommandStream,
   ids: ReadonlySet<string>,
 ): void {
-  for (const id of ids) {
-    if (WASM_FLAGS.SPATIAL_INDEX && stream.hitBoundsMap.has(id))
-      spatialIndex.removeElement(id);
-    stream.selfSpans.delete(id);
-    stream.subtreeSpans.delete(id);
-    stream.childrenSpans.delete(id);
-    stream.damageUnsafeElementIds.delete(id);
-    stream.clipContextByElement.delete(id);
-    stream.zOrderKeyByElement.delete(id);
-    stream.scrollContextKeyByElement.delete(id);
-    stream.subtreeBuildContextByElement.delete(id);
-    stream.topLayerElementIds.delete(id);
-    stream.childElementIds.delete(id);
-    stream.boundsMap.delete(id);
-    stream.hitBoundsMap.delete(id);
-  }
+  if (WASM_FLAGS.SPATIAL_INDEX)
+    for (const id of ids)
+      if (stream.hitBoundsMap.has(id)) spatialIndex.removeElement(id);
+  dropSubtreeEntries(stream, ids);
 }
 
 /** The recording's entries, its commands now starting at `at` in the stream. */
@@ -147,41 +159,16 @@ function takeEntries(
   at: number,
 ): void {
   const { replacement, ids } = recording;
-  const offset = at - replacement.subtreeSpans.get(recording.id)!.start;
-  const shift = (span: { start: number; end: number } | undefined) =>
-    span && { start: span.start + offset, end: span.end + offset };
+  adoptSubtreeEntries(
+    stream,
+    replacement,
+    ids,
+    at - replacement.subtreeSpans.get(recording.id)!.start,
+  );
+  if (!WASM_FLAGS.SPATIAL_INDEX) return;
   for (const id of ids) {
-    const self = shift(replacement.selfSpans.get(id));
-    if (self) stream.selfSpans.set(id, self);
-    const subtree = shift(replacement.subtreeSpans.get(id));
-    if (subtree) stream.subtreeSpans.set(id, subtree);
-    const children = shift(replacement.childrenSpans.get(id));
-    if (children) stream.childrenSpans.set(id, children);
-    if (replacement.damageUnsafeElementIds.has(id))
-      stream.damageUnsafeElementIds.add(id);
-    if (replacement.clipContextByElement.has(id))
-      stream.clipContextByElement.set(
-        id,
-        replacement.clipContextByElement.get(id)!,
-      );
-    const z = replacement.zOrderKeyByElement.get(id);
-    if (z !== undefined) stream.zOrderKeyByElement.set(id, z);
-    const scroll = replacement.scrollContextKeyByElement.get(id);
-    if (scroll !== undefined) stream.scrollContextKeyByElement.set(id, scroll);
-    const context = replacement.subtreeBuildContextByElement.get(id);
-    if (context) stream.subtreeBuildContextByElement.set(id, context);
-    if (replacement.topLayerElementIds.has(id))
-      stream.topLayerElementIds.add(id);
-    const kids = replacement.childElementIds.get(id);
-    if (kids) stream.childElementIds.set(id, kids);
-    const bounds = replacement.boundsMap.get(id);
-    if (bounds) stream.boundsMap.set(id, { ...bounds });
     const hit = replacement.hitBoundsMap.get(id);
-    if (hit) {
-      stream.hitBoundsMap.set(id, { ...hit });
-      if (WASM_FLAGS.SPATIAL_INDEX)
-        spatialIndex.updateElement(id, hit.x, hit.y, hit.width, hit.height);
-    }
+    if (hit) spatialIndex.updateElement(id, hit.x, hit.y, hit.width, hit.height);
   }
 }
 
@@ -193,6 +180,16 @@ function setParentList(
   // (A full build records no entry for a parent that drew no child.)
   if (list.length) stream.childElementIds.set(parentId, list);
   else stream.childElementIds.delete(parentId);
+}
+
+/** Where a root anchored at `anchor` is inserted. */
+function anchorAt(
+  stream: RenderCommandStream,
+  anchor: Anchor,
+): number | undefined {
+  if (anchor.kind === "before") return stream.subtreeSpans.get(anchor.id)?.start;
+  const end = stream.childrenSpans.get(anchor.parentId)?.end;
+  return end === undefined ? undefined : end - 1;
 }
 
 function finish(stream: RenderCommandStream): void {
@@ -227,12 +224,7 @@ export function enterDragLayer(
   if (!roots.length) return refuse("no-roots");
 
   const at = createCommandReader(stream.commands);
-  const planned: Array<{
-    root: DraggedRoot;
-    cut: { start: number; end: number };
-    current: ReadonlySet<string>;
-    recording: Recording;
-  }> = [];
+  const planned: Planned[] = [];
   const parentLists = new Map<string, readonly string[]>();
   for (const { id, span } of roots) {
     const context = stream.subtreeBuildContextByElement.get(id);
@@ -253,11 +245,11 @@ export function enterDragLayer(
     )
       anchor = { kind: "children-end", parentId };
     else return refuse("anchor");
-    const current = getSubtreeElementIds(stream, span);
-    const recording = record(
+    const move = plan(
       stream,
       scene,
-      id,
+      { id, context, anchor },
+      span,
       topLayerSubtreeContext(
         id,
         context.parentAbsX,
@@ -265,13 +257,8 @@ export function enterDragLayer(
         parentId,
       ),
     );
-    if (!sameIds(current, recording.ids)) return refuse("displaced-subtree");
-    planned.push({
-      root: { id, context, parentId, anchor },
-      cut: span,
-      current,
-      recording,
-    });
+    if (!move) return refuse("displaced-subtree");
+    planned.push(move);
   }
 
   // Writes: cut (last first — earlier cursors stay), then append in stream order.
@@ -291,11 +278,12 @@ export function enterDragLayer(
     dropEntries(stream, current);
     takeEntries(stream, recording, starts[index]!);
   });
+  const dragged = new Set(planned.map(({ root }) => root.id));
   for (const [parentId, list] of parentLists)
     setParentList(
       stream,
       parentId,
-      list.filter((child) => !planned.some(({ root }) => root.id === child)),
+      list.filter((child) => !dragged.has(child)),
     );
   finish(stream);
   return {
@@ -317,20 +305,14 @@ export function exitDragLayer(
 ): DragLayerResult<void> {
   if (state.stream !== stream) return refuse("stale-stream");
   if (state.epoch !== getPatchedStreamEpoch()) return refuse("stream-written");
-  const tails: Array<{
-    root: DraggedRoot;
-    cut: { start: number; end: number };
-    current: ReadonlySet<string>;
-    recording: Recording;
-  }> = [];
+  const tails: Planned[] = [];
   for (const root of state.roots) {
     const span = stream.subtreeSpans.get(root.id);
     if (!span || !stream.topLayerElementIds.has(root.id))
       return refuse("stale-stream");
-    const current = getSubtreeElementIds(stream, span);
-    const recording = record(stream, scene, root.id, root.context);
-    if (!sameIds(current, recording.ids)) return refuse("displaced-subtree");
-    tails.push({ root, cut: span, current, recording });
+    const move = plan(stream, scene, root, span, root.context);
+    if (!move) return refuse("displaced-subtree");
+    tails.push(move);
   }
   const dragged = new Set(state.roots.map((root) => root.id));
   for (const [parentId, list] of state.parentLists) {
@@ -361,16 +343,9 @@ export function exitDragLayer(
     replaceCommandRange(stream.commands, cut.start, cut.end, []);
   for (const { current } of tails) dropEntries(stream, current);
   for (const { root, recording } of [...tails].reverse()) {
-    const anchor = root.anchor;
-    const position =
-      anchor.kind === "before"
-        ? stream.subtreeSpans.get(anchor.id)?.start
-        : (() => {
-            const children = stream.childrenSpans.get(anchor.parentId);
-            return children ? children.end - 1 : undefined;
-          })();
-    // (Checked before the writes would be better; the anchors are the parents' unchanged lists,
-    // so a missing one means the stream changed under the epoch — rebuild.)
+    const position = anchorAt(stream, root.anchor);
+    // The anchors were checked above against the parents' unchanged lists — a missing one now
+    // means the stream changed under the epoch.
     if (position === undefined) throw new Error("CATALOG_DRAG_LAYER_ANCHOR");
     replaceCommandRange(
       stream.commands,

@@ -32,7 +32,7 @@ import { Section } from "../../../components/panel/Section";
 import { NAVIGATOR_SECTION_IDS } from "../navigatorSectionIds";
 import { TreeBase } from "../tree/TreeBase";
 import type { TreeItemState } from "../tree/TreeBase/types";
-import { LAYER_TREE_ROW_SIZE_PX } from "../tree/LayerTree/virtualization";
+import { LAYER_TREE_LAYOUT_OPTIONS } from "../tree/LayerTree/virtualization";
 import { CatalogLayerItem } from "./CatalogLayerItem";
 import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import { catalogCanvasMenuItems } from "../../../catalogRuntime/canvasMenu";
@@ -46,7 +46,6 @@ import type {
 } from "../../../components/overlay/contextMenu/types";
 import { useToastStore } from "../../../stores/toast";
 
-const LAYOUT_OPTIONS = { rowSize: LAYER_TREE_ROW_SIZE_PX };
 // Stable item accessors (ADR-265): a new function each render made `TreeBase` re-index every row.
 const layerKey = (node: CatalogLayerNode) => node.id;
 const layerText = (node: CatalogLayerNode) => node.name;
@@ -412,7 +411,7 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
       }
     >
       <LayerRowSelection.Provider value={rowSelection}>
-        <Virtualizer layout={ListLayout} layoutOptions={LAYOUT_OPTIONS}>
+        <Virtualizer layout={ListLayout} layoutOptions={LAYER_TREE_LAYOUT_OPTIONS}>
           <TreeBase<CatalogLayerNode>
             aria-label="Layers"
             items={items as CatalogLayerNode[]}

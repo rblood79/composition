@@ -3284,31 +3284,24 @@ function bindInColorMode(
         );
         const held = dragLayer;
         dragLayer = undefined;
+        const scene = { childrenMap, layoutMap };
+        let spliced = false;
+        if (splice && held && !dragIds?.size) {
+          spliced = exitDragLayer(stream, scene, held).ok;
+        } else if (splice && !held && dragIds?.size) {
+          const entered = enterDragLayer(stream, scene, dragIds);
+          if (entered.ok) dragLayer = entered.value;
+          spliced = entered.ok;
+        }
+        if (!spliced)
+          stream = buildStream({
+            presentationRevision: stream.presentationRevision + 1,
+            baseCanonicalRevision: stream.baseCanonicalRevision,
+            presentationRevisionByRootKey: stream.presentationRevisionByRootKey,
+          });
         // The next patch's revision follows the presentation revision this raised (a patch at or
         // under the stream's revision is refused as stale — the scene binds again).
-        const followRevision = () => {
-          revision = Math.max(revision, stream.presentationRevision);
-        };
-        if (splice && held && !dragIds?.size) {
-          if (exitDragLayer(stream, { childrenMap, layoutMap }, held).ok)
-            return followRevision();
-        } else if (splice && !held && dragIds?.size) {
-          const entered = enterDragLayer(
-            stream,
-            { childrenMap, layoutMap },
-            dragIds,
-          );
-          if (entered.ok) {
-            dragLayer = entered.value;
-            return followRevision();
-          }
-        }
-        stream = buildStream({
-          presentationRevision: stream.presentationRevision + 1,
-          baseCanonicalRevision: stream.baseCanonicalRevision,
-          presentationRevisionByRootKey: stream.presentationRevisionByRootKey,
-        });
-        followRevision();
+        revision = Math.max(revision, stream.presentationRevision);
       },
       bindingIds: [...resolvedBindingIds],
       unpainted,

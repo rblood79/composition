@@ -991,20 +991,18 @@ interface FixedLayer {
 let streamParents:
   | {
       readonly childrenMap: Map<string, CanvasSceneNode[]>;
-      parents?: Map<string, string>;
+      readonly parents: Map<string, string>;
     }
   | undefined;
 
 function parentsOf(
   childrenMap: Map<string, CanvasSceneNode[]>,
 ): Map<string, string> {
-  if (streamParents?.childrenMap !== childrenMap)
-    streamParents = { childrenMap };
-  if (!streamParents.parents) {
+  if (streamParents?.childrenMap !== childrenMap) {
     const parents = new Map<string, string>();
     for (const [parent, kids] of childrenMap)
       for (const kid of kids) parents.set(kid.id, parent);
-    streamParents.parents = parents;
+    streamParents = { childrenMap, parents };
   }
   return streamParents.parents;
 }

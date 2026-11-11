@@ -199,7 +199,10 @@ export function getSubtreeElementIds(
   return ids;
 }
 
-function hasSameIds(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
+export function hasSameIds(
+  a: ReadonlySet<string>,
+  b: ReadonlySet<string>,
+): boolean {
   if (a.size !== b.size) return false;
   for (const id of a) {
     if (!b.has(id)) return false;
@@ -209,6 +212,69 @@ function hasSameIds(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
 
 function copySpanWithOffset(span: SelfSpan | SubtreeSpan, offset: number) {
   return { start: span.start + offset, end: span.end + offset };
+}
+
+/**
+ * Every per-element map entry of `ids` leaves `stream` — the one list of a stream's element maps a
+ * splice clears (a map added to the stream is added here and in `adoptSubtreeEntries`). The spatial
+ * index is the caller's.
+ */
+export function dropSubtreeEntries(
+  stream: RenderCommandStream,
+  ids: Iterable<string>,
+): void {
+  for (const id of ids) {
+    stream.selfSpans.delete(id);
+    stream.subtreeSpans.delete(id);
+    stream.childrenSpans.delete(id);
+    stream.damageUnsafeElementIds.delete(id);
+    stream.clipContextByElement.delete(id);
+    stream.zOrderKeyByElement.delete(id);
+    stream.scrollContextKeyByElement.delete(id);
+    stream.subtreeBuildContextByElement.delete(id);
+    stream.topLayerElementIds.delete(id);
+    stream.childElementIds.delete(id);
+    stream.boundsMap.delete(id);
+    stream.hitBoundsMap.delete(id);
+  }
+}
+
+/** `replacement`'s entries of `ids` move into `stream`, their command indices shifted by `offset`. */
+export function adoptSubtreeEntries(
+  stream: RenderCommandStream,
+  replacement: RenderCommandStream,
+  ids: Iterable<string>,
+  offset: number,
+): void {
+  for (const id of ids) {
+    const self = replacement.selfSpans.get(id);
+    if (self) stream.selfSpans.set(id, copySpanWithOffset(self, offset));
+    const subtree = replacement.subtreeSpans.get(id);
+    if (subtree)
+      stream.subtreeSpans.set(id, copySpanWithOffset(subtree, offset));
+    const children = replacement.childrenSpans.get(id);
+    if (children)
+      stream.childrenSpans.set(id, copySpanWithOffset(children, offset));
+    if (replacement.damageUnsafeElementIds.has(id))
+      stream.damageUnsafeElementIds.add(id);
+    const clip = replacement.clipContextByElement.get(id);
+    if (clip !== undefined) stream.clipContextByElement.set(id, clip);
+    const z = replacement.zOrderKeyByElement.get(id);
+    if (z !== undefined) stream.zOrderKeyByElement.set(id, z);
+    const scroll = replacement.scrollContextKeyByElement.get(id);
+    if (scroll !== undefined) stream.scrollContextKeyByElement.set(id, scroll);
+    const context = replacement.subtreeBuildContextByElement.get(id);
+    if (context !== undefined)
+      stream.subtreeBuildContextByElement.set(id, context);
+    if (replacement.topLayerElementIds.has(id))
+      stream.topLayerElementIds.add(id);
+    const kids = replacement.childElementIds.get(id);
+    if (kids) stream.childElementIds.set(id, kids);
+    const bounds = replacement.boundsMap.get(id);
+    if (bounds) stream.boundsMap.set(id, copyBounds(bounds));
+    const hit = replacement.hitBoundsMap.get(id);
+    if (hit) stream.hitBoundsMap.set(id, copyBounds(hit));
+  }
 }
 
 function copyBounds(bounds: BoundingBox): BoundingBox {
@@ -400,76 +466,13 @@ export function applySubtreeCommandPatch(
     fixedReplacement,
   );
 
-  for (const elementId of currentIds) {
-    current.selfSpans.delete(elementId);
-    current.subtreeSpans.delete(elementId);
-    current.childrenSpans.delete(elementId);
-    current.damageUnsafeElementIds.delete(elementId);
-    current.clipContextByElement.delete(elementId);
-    current.zOrderKeyByElement.delete(elementId);
-    current.scrollContextKeyByElement.delete(elementId);
-    current.subtreeBuildContextByElement.delete(elementId);
-    current.topLayerElementIds.delete(elementId);
-    current.childElementIds.delete(elementId);
-    current.boundsMap.delete(elementId);
-    current.hitBoundsMap.delete(elementId);
-  }
-
-  const commandOffset = currentSpan.start - replacementSpan.start;
-  for (const elementId of replacementIds) {
-    const nextSelfSpan = replacement.selfSpans.get(elementId);
-    if (nextSelfSpan) {
-      current.selfSpans.set(
-        elementId,
-        copySpanWithOffset(nextSelfSpan, commandOffset),
-      );
-    }
-    const nextSubtreeSpan = replacement.subtreeSpans.get(elementId);
-    if (nextSubtreeSpan) {
-      current.subtreeSpans.set(
-        elementId,
-        copySpanWithOffset(nextSubtreeSpan, commandOffset),
-      );
-    }
-    const nextChildrenSpan = replacement.childrenSpans.get(elementId);
-    if (nextChildrenSpan) {
-      current.childrenSpans.set(
-        elementId,
-        copySpanWithOffset(nextChildrenSpan, commandOffset),
-      );
-    }
-    if (replacement.damageUnsafeElementIds.has(elementId)) {
-      current.damageUnsafeElementIds.add(elementId);
-    }
-    const nextClip = replacement.clipContextByElement.get(elementId);
-    if (nextClip !== undefined) {
-      current.clipContextByElement.set(elementId, nextClip);
-    }
-    const nextZOrderKey = replacement.zOrderKeyByElement.get(elementId);
-    if (nextZOrderKey !== undefined) {
-      current.zOrderKeyByElement.set(elementId, nextZOrderKey);
-    }
-    const nextScrollContextKey =
-      replacement.scrollContextKeyByElement.get(elementId);
-    if (nextScrollContextKey !== undefined) {
-      current.scrollContextKeyByElement.set(elementId, nextScrollContextKey);
-    }
-    const nextBuildContext =
-      replacement.subtreeBuildContextByElement.get(elementId);
-    if (nextBuildContext !== undefined) {
-      current.subtreeBuildContextByElement.set(elementId, nextBuildContext);
-    }
-    if (replacement.topLayerElementIds.has(elementId)) {
-      current.topLayerElementIds.add(elementId);
-    }
-    const nextChildren = replacement.childElementIds.get(elementId);
-    if (nextChildren) current.childElementIds.set(elementId, nextChildren);
-    const nextBounds = replacement.boundsMap.get(elementId);
-    if (nextBounds) current.boundsMap.set(elementId, copyBounds(nextBounds));
-    const nextHitBounds = replacement.hitBoundsMap.get(elementId);
-    if (nextHitBounds)
-      current.hitBoundsMap.set(elementId, copyBounds(nextHitBounds));
-  }
+  dropSubtreeEntries(current, currentIds);
+  adoptSubtreeEntries(
+    current,
+    replacement,
+    replacementIds,
+    currentSpan.start - replacementSpan.start,
+  );
 
   if (WASM_FLAGS.SPATIAL_INDEX) {
     for (const elementId of oldHitIds) spatialIndex.removeElement(elementId);
@@ -627,76 +630,18 @@ export function applyCommitSubtreeCommandPatch(
     // ADR-263 Phase 5: a picture stays valid while its node data and size do (the cache key
     // `getCachedNodePicture` checks) — only a removed element's picture is released here.
     if (!replacementIds.has(elementId)) invalidateNodePicture(elementId);
-    current.selfSpans.delete(elementId);
-    current.subtreeSpans.delete(elementId);
-    current.childrenSpans.delete(elementId);
-    current.damageUnsafeElementIds.delete(elementId);
-    current.clipContextByElement.delete(elementId);
-    current.zOrderKeyByElement.delete(elementId);
-    current.scrollContextKeyByElement.delete(elementId);
-    current.subtreeBuildContextByElement.delete(elementId);
-    current.topLayerElementIds.delete(elementId);
-    current.childElementIds.delete(elementId);
-    current.boundsMap.delete(elementId);
-    current.hitBoundsMap.delete(elementId);
   }
+  dropSubtreeEntries(current, currentIds);
 
   const nextHitIds = new Set<string>();
-  const commandOffset = currentSpan.start - replacementSpan.start;
-  for (const elementId of replacementIds) {
-    const nextSelfSpan = replacement.selfSpans.get(elementId);
-    if (nextSelfSpan) {
-      current.selfSpans.set(elementId, {
-        start: nextSelfSpan.start + commandOffset,
-        end: nextSelfSpan.end + commandOffset,
-      });
-    }
-    const nextSubtreeSpan = replacement.subtreeSpans.get(elementId);
-    if (nextSubtreeSpan) {
-      current.subtreeSpans.set(elementId, {
-        start: nextSubtreeSpan.start + commandOffset,
-        end: nextSubtreeSpan.end + commandOffset,
-      });
-    }
-    const nextChildrenSpan = replacement.childrenSpans.get(elementId);
-    if (nextChildrenSpan) {
-      current.childrenSpans.set(elementId, {
-        start: nextChildrenSpan.start + commandOffset,
-        end: nextChildrenSpan.end + commandOffset,
-      });
-    }
-    if (replacement.damageUnsafeElementIds.has(elementId)) {
-      current.damageUnsafeElementIds.add(elementId);
-    }
-    const nextClip = replacement.clipContextByElement.get(elementId);
-    if (nextClip !== undefined)
-      current.clipContextByElement.set(elementId, nextClip);
-    const nextZOrderKey = replacement.zOrderKeyByElement.get(elementId);
-    if (nextZOrderKey !== undefined)
-      current.zOrderKeyByElement.set(elementId, nextZOrderKey);
-    const nextScrollContextKey =
-      replacement.scrollContextKeyByElement.get(elementId);
-    if (nextScrollContextKey !== undefined) {
-      current.scrollContextKeyByElement.set(elementId, nextScrollContextKey);
-    }
-    const nextBuildContext =
-      replacement.subtreeBuildContextByElement.get(elementId);
-    if (nextBuildContext !== undefined) {
-      current.subtreeBuildContextByElement.set(elementId, nextBuildContext);
-    }
-    if (replacement.topLayerElementIds.has(elementId)) {
-      current.topLayerElementIds.add(elementId);
-    }
-    const nextChildren = replacement.childElementIds.get(elementId);
-    if (nextChildren) current.childElementIds.set(elementId, nextChildren);
-    const nextBounds = replacement.boundsMap.get(elementId);
-    if (nextBounds) current.boundsMap.set(elementId, copyBounds(nextBounds));
-    const nextHitBounds = replacement.hitBoundsMap.get(elementId);
-    if (nextHitBounds) {
-      current.hitBoundsMap.set(elementId, copyBounds(nextHitBounds));
-      nextHitIds.add(elementId);
-    }
-  }
+  for (const elementId of replacementIds)
+    if (replacement.hitBoundsMap.has(elementId)) nextHitIds.add(elementId);
+  adoptSubtreeEntries(
+    current,
+    replacement,
+    replacementIds,
+    currentSpan.start - replacementSpan.start,
+  );
 
   if (WASM_FLAGS.SPATIAL_INDEX) {
     for (const elementId of oldHitIds) spatialIndex.removeElement(elementId);

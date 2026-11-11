@@ -254,9 +254,8 @@ describe("ADR-248 Phase 4a-4 page frames", () => {
     const again = root.pageFrameRects();
     expect(batches).toBe(1);
     expect(again).toEqual(first);
-    // A caller's change to the map it got does not reach the next reader.
-    again.delete("project:page:home");
-    expect(root.pageFrameRects().has("project:page:home")).toBe(true);
+    // The same generation hands out the same (read-only) map.
+    expect(again).toBe(first);
     // A layout (an edit that resizes a page) reads them again.
     root.execute(
       setFields({
