@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 변경: 표본 밖 행은 만들지 않는다. 표본 = 그 목록이 page 에서 보이는 행 + 1 — (page 높이 − 첫 행 위치) ÷ 배치에서 잰 줄 간격 + 1 (page 높이를 작성하면 그 높이, 없으면 breakpoint 화면 높이 — page 마다 다를 수 있고, page 아래쪽에서 시작하는 목록은 더 적게 만든다). 나머지 영역은 줄 간격 × 남은 줄 수만큼 비워 두어 목록 아래 요소의 위치는 Preview 와 같고, 그 자리에 「+N more」 를 표시한다. Preview · Publish 는 그대로 모든 행을 그린다.
   - 측정 (production, 교대 3쌍 중앙값): 1,000 행 ListBox page 의 가장 긴 채움 task 4x 249 → 167 ms · 1x 60 → 45 ms, record 7,384 → 6,295. 행 소스가 이미 100 행 창이라 종전에도 100 행만 만들어졌다.
 - **문서 열기에서 graph 를 한 번만 만든다**: 저장소에서 읽은 문서를 검사용과 열기용으로 두 번 graph 로 만들던 것을 한 번으로 (`storage.loadGraph`). 66 장 4x 열기 2,768 → 2,415 ms.
+- **문서 열기 검증에서 같은 정의의 계약 계산을 재사용한다**: 전체 검증 호출 안에서만 accepts·propChoices를 캐시하며 instance별 검사는 유지한다. 66 장·4x 참조·구조 검사 중앙값 132.4→129.5 ms로 절감 폭은 작고, 전체 열기의 유의한 개선은 미입증이다. 객체 저장 비교는 읽기·쓰기 모두 느려 현행 JSON 형식을 유지한다. [측정과 한계](explanation/research/CATALOG_DOCUMENT_READ_COST_2026-11.md).
 - **문서 열기의 entry 검사 · 복제를 줄인다**:
   - **Why**: 저장소에서 읽은 문서의 entry 마다 형식 검사를 세 번 (`createCatalogGraph` · graph 생성자 · `validateView`) 하고, 방금 읽어 graph 만 쥐는 entry 를 다시 `structuredClone` 했다 — page 수에 비례하는 열기 비용.
   - 변경: 형식 검사는 entry 마다 한 번, 저장소에서 읽은 entry 는 복제 없이 제자리에서 굳힌다 (`createCatalogGraph` 의 `adopt` — `storage.loadGraph` 만). import · Preview 처럼 넘긴 문서를 쥐는 길은 종전대로 복제한다.

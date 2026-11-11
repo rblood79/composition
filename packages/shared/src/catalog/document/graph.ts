@@ -1279,6 +1279,12 @@ export class CatalogGraph {
         ownerInView.set(child, entry.id);
     if (entries.length !== entryIds.size)
       throw new CatalogValidationError("DUPLICATE_ID", "entries");
+    // Contracts depend on this view, not the instance. Discard the cache after this validation
+    // so a later load or transaction always reads its own definitions and input variables.
+    const contracts = new Map<
+      DefinitionEntry | LibraryDefinition,
+      Pick<LibraryDefinition, "accepts" | "propChoices">
+    >();
     // (Each entry's shape was checked once — `validateCatalogDocument` before the graph is built.)
     for (const entry of entries) {
       if (entry.kind === "project" && entry.id !== this.projectId)
@@ -1313,8 +1319,12 @@ export class CatalogGraph {
         if (get(child)?.kind !== "node")
           throw new CatalogValidationError("DANGLING_CHILD", child);
       }
-      this.validateEntryReferences(entry, get, this.library, (id) =>
-        ownerInView.get(id),
+      this.validateEntryReferences(
+        entry,
+        get,
+        this.library,
+        (id) => ownerInView.get(id),
+        contracts,
       );
     }
     for (const entry of entries)
@@ -1343,6 +1353,10 @@ export class CatalogGraph {
     library: CatalogLibrary = this.library,
     /** Owner of a node as `get` reads the document (an unlocked origin's copy — ADR-282 R7). */
     ownerOf: (id: string) => string | undefined = (id) => this.ownerOf(id),
+    contracts?: Map<
+      DefinitionEntry | LibraryDefinition,
+      Pick<LibraryDefinition, "accepts" | "propChoices">
+    >,
   ): void {
     const lookupDefinition = (id: DefinitionId) =>
       id.startsWith("lib:")
@@ -1368,8 +1382,10 @@ export class CatalogGraph {
       return undefined;
     };
     // A composite instance is its template root: it takes the root's props plus its schema.
-    const contractOf = (definition: DefinitionEntry | LibraryDefinition) =>
-      instanceContract(
+    const contractOf = (definition: DefinitionEntry | LibraryDefinition) => {
+      const cached = contracts?.get(definition);
+      if (cached) return cached;
+      const contract = instanceContract(
         definition as LibraryDefinition,
         (id) => lookupDefinition(id as DefinitionId) as LibraryDefinition,
         (id) =>
@@ -1377,6 +1393,9 @@ export class CatalogGraph {
             ? library.templates.get(id as `lib:template:${string}`)
             : (get(id) as { definitionId: string } | undefined),
       );
+      contracts?.set(definition, contract);
+      return contract;
+    };
     /**
      * ADR-294 — an instance's `variable` property values: a reference (`"!var.<id>"`) to a variable
      * the node sees, of the same type; a date's ISO text; an object · array only by reference. The

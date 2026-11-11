@@ -1,5 +1,6 @@
 import "fake-indexeddb/auto";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import * as contracts from "../../../../../../packages/shared/src/catalog/document/library";
 import * as validation from "../../../../../../packages/shared/src/catalog/document/validation";
 import { createCatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -23,6 +24,14 @@ vi.mock(
       validateCatalogDocument: vi.fn(actual.validateCatalogDocument),
       validateCatalogEntry: vi.fn(actual.validateCatalogEntry),
     };
+  },
+);
+
+vi.mock(
+  "../../../../../../packages/shared/src/catalog/document/library",
+  async (importOriginal) => {
+    const actual = await importOriginal<typeof contracts>();
+    return { ...actual, instanceContract: vi.fn(actual.instanceContract) };
   },
 );
 
@@ -107,6 +116,39 @@ describe("ADR-307 후속 — 저장소에서 연 문서의 검사 · 복제 수"
       if (entry.kind === "node")
         expect(Object.isFrozen(entry.props)).toBe(true);
     }
+  });
+
+  it("같은 정의의 계약은 한 번 계산하며 뒤 instance의 잘못된 값도 거부한다", async () => {
+    const { name, runtime } = await storedProject();
+    vi.mocked(contracts.instanceContract).mockClear();
+    await new CatalogStorage(indexedDB, name).loadGraph(
+      runtime.graph.projectId,
+      library!,
+    );
+    const textContracts = vi
+      .mocked(contracts.instanceContract)
+      .mock.calls.filter(
+        ([definition]) =>
+          definition === library!.definitions.get("lib:definition:text"),
+      );
+    expect(textContracts).toHaveLength(1);
+
+    vi.mocked(contracts.instanceContract).mockClear();
+    await new CatalogStorage(indexedDB, name).loadGraph(
+      runtime.graph.projectId,
+      library!,
+    );
+    expect(
+      vi.mocked(contracts.instanceContract).mock.calls.length,
+    ).toBeGreaterThan(0);
+
+    const document = structuredClone(runtime.graph.exportDocument());
+    (document.entries["project:node:c"] as NodeEntry).props = {
+      children: { kind: "set", value: false },
+    };
+    expect(() => createCatalogGraph(document, library!)).toThrow(
+      expect.objectContaining({ code: "PROP_TYPE_MISMATCH" }),
+    );
   });
 
   it("다른 길 (import · preview) 은 넘긴 문서를 복제하고 굳히지 않으며 검사는 entry 마다 1 번", async () => {
