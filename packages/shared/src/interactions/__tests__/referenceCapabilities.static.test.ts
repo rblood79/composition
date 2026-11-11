@@ -138,8 +138,10 @@ const CHOICE_EXTENSIONS: Readonly<Record<string, string>> = {
   'Select.size = "XS"': "rule sizes XS (composition size 단계)",
   'TextField.size = "XS"': "rule sizes XS (composition size 단계)",
   'Breadcrumbs.size = "S"': "rule sizes S (S2 는 M · L)",
-  'GridList.layout = "waterfall"': "composition layout (RAC GridList 는 stack · grid)",
-  'LinkButton.size = "XS"': "rule sizes XS (composition size 단계 — Button rule 과 같은 단계)",
+  'GridList.layout = "waterfall"':
+    "composition layout (RAC GridList 는 stack · grid)",
+  'LinkButton.size = "XS"':
+    "rule sizes XS (composition size 단계 — Button rule 과 같은 단계)",
 };
 
 function tablesByName(dir: string): Map<string, ReferenceRow[]> {
@@ -205,7 +207,11 @@ describe("ADR-287 G1 — derived Do vs the reference API tables", () => {
     //   contextual help, an Intl format object and a key array — none a Do input; Button's same rows are here.
     //   −5 — Link download · hrefLang · ping · referrerPolicy (8ac17dc12) and SliderThumb index (ba85388db)
     //   joined their accepts and have a Do. HEAD held 395 rows under a stale 396.)
-    expect(deferred.size).toBe(406);
+    // (2026-11-11 속성 감사: +19 — developer HTML attributes hidden from the panel (사용자 결정 「숨김」) have no
+    //   Do: Link · LinkButton download · hrefLang · ping · referrerPolicy, Form action · method · encType ·
+    //   target, the text fields' autoComplete, Autocomplete's two focus switches, RangeSlider form,
+    //   SelectBoxGroup escapeKeyBehavior.)
+    expect(deferred.size).toBe(425);
   });
 
   it("(b) a derived Do's prop is a row of its type's tables, or a d2Provenance extension", () => {

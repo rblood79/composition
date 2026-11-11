@@ -24,7 +24,13 @@ export const rangeSliderBinding: PrimitiveBinding = {
       },
       startName: { kind: "string", label: "Start name", section: "content" },
       endName: { kind: "string", label: "End name", section: "content" },
-      form: { kind: "string", label: "Form", section: "content" },
+      // (2026-11-11 사용자 결정 「숨김」: developer HTML · ARIA attributes — accepted, not offered in the panel.)
+      form: {
+        kind: "string",
+        label: "Form",
+        section: "content",
+        editorHidden: true,
+      },
     },
   },
 };

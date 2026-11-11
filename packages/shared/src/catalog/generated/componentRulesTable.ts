@@ -1181,9 +1181,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "flex",
         alignItems: "center",
       },
-      stateStyles: {
-        opacity: { isDisabled: 0.38 },
-      },
     },
   },
   AvatarGroup: {
@@ -1241,9 +1238,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       archetype: "default",
       element: "div",
       containerStyles: undefined,
-      stateStyles: {
-        opacity: { isDisabled: 0.38 },
-      },
       // S2 AvatarGroup (`@react-spectrum/s2/src/AvatarGroup.tsx` `avatar`): each avatar overlaps the
       //   one before by a quarter of its size (`marginStart: calc(var(--size) / -4)`), the first
       //   none (`:first-child: 0`). Here every avatar takes the overlap and the group's start
@@ -2025,7 +2019,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       stateStyles: {
         ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
       },
     },
   },
@@ -13045,9 +13038,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "inline-flex",
         alignItems: "center",
-      },
-      stateStyles: {
-        opacity: { isDisabled: 0.38 },
       },
     },
   },

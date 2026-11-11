@@ -7,17 +7,25 @@ const ariaLabelingProps = {
     section: "content",
     editorHidden: true,
   },
+  // (2026-11-11 사용자 결정 「숨김」: developer HTML · ARIA attributes — accepted, not offered in the panel.)
   "aria-labelledby": {
+    editorHidden: true,
     kind: "string",
     label: "Labelled by",
     section: "content",
   },
   "aria-describedby": {
+    editorHidden: true,
     kind: "string",
     label: "Described by",
     section: "content",
   },
-  "aria-details": { kind: "string", label: "Details", section: "content" },
+  "aria-details": {
+    kind: "string",
+    label: "Details",
+    section: "content",
+    editorHidden: true,
+  },
 } satisfies Record<string, PropContract>;
 
 /** S2 single selection contract. The first enabled item is selected by default. */
@@ -34,7 +42,11 @@ export const segmentedControlBinding: PrimitiveBinding = {
       },
       // (Selection sits in Content like Tabs — one prop, one section across components, 사용자 결정
       //   2026-10-13; `propSectionConsistency.test.ts`.)
-      selectedKey: { kind: "string", label: "Selected key", section: "content" },
+      selectedKey: {
+        kind: "string",
+        label: "Selected key",
+        section: "content",
+      },
       defaultSelectedKey: {
         kind: "string",
         label: "Default selected key",
@@ -76,7 +88,12 @@ export const segmentedControlItemBinding: PrimitiveBinding = {
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
       // (RAC's item key — kept apart from the HTML id; not a second "ID" field next to the
       //  Accessibility section's, as no other item exposes its key.)
-      id: { kind: "string", label: "ID", section: "content", editorHidden: true },
+      id: {
+        kind: "string",
+        label: "ID",
+        section: "content",
+        editorHidden: true,
+      },
       label: {
         kind: "string",
         label: "Label",

@@ -60,14 +60,15 @@ export const CATALOG_D2_PROVENANCE: Readonly<
 > = {
   // ADR-281 Decision 3 — v3 Provider's cascade (S2's Provider dropped it; RAC Provider carries it).
   SelectBox: { isSelected: "composition" },
+  // (Carried values since 2026-11-11 — a rule's Do writes them, the panel does not offer them.)
   body: { isDisabled: "v3", isReadOnly: "v3", isRequired: "v3" },
-  Avatar: { initials: "composition", isDisabled: "v3" },
-  AvatarGroup: { isDisabled: "composition" },
+  // (2026-11-11: Avatar · AvatarGroup · Badge · StatusLight take no `isDisabled` — S2 has none and
+  // a display-only component has nothing to disable.)
+  Avatar: { initials: "composition" },
   // (S2 has a separate NotificationBadge for the dot — composition keeps it an axis of Badge.)
   Badge: {
     isDot: "composition",
     isPulsing: "composition",
-    isDisabled: "composition",
   },
   // ADR-256 Phase 9: RAC `visibleDuration` (days · weeks · months) is a superset of S2
   //   `visibleMonths` (months only) — kept for the reference's Display options; `weeksInMonth` is
@@ -110,7 +111,6 @@ export const CATALOG_D2_PROVENANCE: Readonly<
     slot: "rac",
     autoFocus: "rac",
   },
-  StatusLight: { isDisabled: "v3" },
   // (The RAC Table takes S2's table axes — `d2S2Alignment` reads it against S2's table type; the
   // height axes are composition's. ADR-277: the table is one type.)
   Table: { heightMode: "composition", height: "composition" },

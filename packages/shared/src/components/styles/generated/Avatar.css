@@ -159,9 +159,6 @@
   border-radius: var(--catalog-token-radius-full);
 }
 
-.react-aria-Avatar.react-aria-Avatar:where([data-disabled]) {
-  opacity: 0.38;
-}
 
 @media (forced-colors: active) {
   .react-aria-Avatar {

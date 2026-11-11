@@ -31,6 +31,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Design 패널 Overrides 의 일괄 버튼 문구를 줄였다 — 「Reset all changes」 → 「Reset」, 「Push changes to component」 → 「Push」 (한국어 「초기화」 · 「반영」). 접근 이름과 캔버스 메뉴 · History 문구는 그대로.
 
+## [속성 감사 — 맞지 않는 · 불필요한 속성 정리 (page · 컴포넌트)] - 2026-11-11
+
+사용자 지적 (「page 에 disabled · read only · required」 · 「Home 에 parent page 가 있을 수 없다」) 으로 binding 175 종의 속성을 S2 · RAC 출처와 대조했고, 사용자 결정 4 건을 적용했다.
+
+### Changed
+
+- **page 의 Behavior 구획이 없다**: Disabled · Read only · Required 는 page 자신의 상태가 아니라 안쪽 요소에 내려주는 값이라 Design 패널에서 뺐다 (운반 값 — `CATALOG_PAGE_INHERITED_PROP_CONTRACTS`). Interactions 의 「Disable all inside」 등 Do 9 종과 Preview 의 상속은 그대로다 (ADR-281 결정 3 의 패널 노출만 바뀜).
+- **frame 의 Behavior 는 Disabled · Read only 둘**: Required 는 field · Form 의 것이라 패널에서 뺐다 (Do 「Make all inside required」 는 그대로).
+- **열림 (Open · Initially open) 은 여는 쪽에서만**: trigger · picker 안의 Popover · Modal · Tooltip · SheetOverlay 는 그 두 칸을 내지 않고 「…edited on the DialogTrigger」 안내를 낸다 (`catalogOwnerDecidedProps`). **Why**: 본체가 자기 `isOpen` 을 가지면 RAC 에서 trigger 의 press 가 본체를 열지 못한다. 혼자 선 본체는 그대로 자기 값을 갖는다.
+- **개발자용 HTML · ARIA 속성을 패널에서 숨김** (`editorHidden` — 받기는 하므로 옛 문서 값 · Code 는 그대로): Link · LinkButton `download` · `hrefLang` · `ping` · `referrerPolicy` · `aria-current`, TextField · TextArea · SearchField `autoComplete` · `autoCorrect` · `inputMode` · `enterKeyHint` · `spellCheck`, Form `action` · `method` · `encType` · `target`, Autocomplete `disableAutoFocusFirst` · `disableVirtualFocus`, SelectBoxGroup `escapeKeyBehavior`, RangeSlider `form`, 그리고 7 종에만 보이던 `aria-labelledby` · `aria-describedby` · `aria-details`. 숨긴 속성의 유도 Do 도 Interactions 목록에서 빠진다.
+
+### Removed
+
+- **표시용 컴포넌트의 Disabled**: Badge · Avatar · AvatarGroup · StatusLight 의 `isDisabled` (S2 에 없음 — v3 · composition 확장) 를 binding · rule 의 disabled 흐림 · DOM 컴포넌트 · 생성 CSS 에서 지웠다. 옛 문서의 값은 로드 때 버린다 (`s2PropAlignment.ts` `UNUSED_PROPS`).
+
+### Fixed
+
+- **Home 페이지를 다른 페이지 아래로 넣거나 주소를 `/` 밖으로 바꿀 수 있던 결함**:
+  - **Why**: Nested routes 구획이 모든 페이지에 조건 없이 나왔고 (`CatalogPageSection`), 부모 후보 목록 · `updatePage` 명령 어디에도 Home 검사가 없었다. 「Generate from title」 은 Home 에 `/home` 을 썼다. Home 판정도 두 벌이었다 — Navigator 는 「부모 없는 route `/`, 없으면 첫 root 페이지」, Canvas 는 첫 페이지.
+  - 수정: Home = 프로젝트 첫 페이지 한 정의 (`catalogHomePageId` — Navigator 트리 · Canvas 페이지 격자 · 페이지 설정이 같이 읽는다). Home 에서는 Parent page 칸과 Generate 버튼이 없고 Route `/` 는 읽기 전용이다. 명령도 거절한다 (`HOME_PAGE_FIXED` · 패널 안내 `ROUTE_HOME`). Navigator 검색 중에 Home 이 걸러지면 첫 결과가 Home 아이콘을 받던 것도 같이 고쳐졌다.
+
+- 위치: `packages/shared/src/catalog/bindings/{inheritedProps,Body.binding,Link.binding,Form.binding,…}.ts` · `runtime/ownerDecidedProps.ts` · `commands/project.ts` · `apps/builder/src/builder/catalogRuntime/pageSettings.ts` · `panels/properties/catalog/CatalogPageSection.tsx` · `panels/navigator/tree/PageTree/buildPageTree.ts`. 테스트 `propertySurfaceAudit.test.ts` (신규) · `unusedPropRemoval` · `phase4ePageSettings` · `phase4ePropertySections` · `project.test.ts`, 원복 RED 8/8. 뒤로 미룬 것: 같은 개념의 칸 통일 (SegmentedControl · SelectBoxGroup 의 선택 값, Color 조작기의 `defaultValue`).
+
 ## [토큰 칸 끌기 시작값 수리 — PropertyUnitInput scrub] - 2026-11-11
 
 ### Fixed

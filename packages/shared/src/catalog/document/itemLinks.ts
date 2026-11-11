@@ -1,6 +1,6 @@
 import { RAC_SLOT_PROP } from "../bindings/accessibilityProps";
 import { linkBinding } from "../bindings/Link.binding";
-import { CATALOG_INHERITED_PROP_CONTRACTS } from "../bindings/inheritedProps";
+import { CATALOG_FRAME_INHERITED_PROP_CONTRACTS } from "../bindings/inheritedProps";
 import type { PropContract } from "../types";
 
 /**
@@ -93,7 +93,7 @@ export const RULE_TYPE_PROP_CONTRACTS: Readonly<
   // ADR-281 Decision 3 (user decision 1) — a frame passes these down like the page root; a keyed
   // binding (`useListData.getItem`) gives its descendants one item's fields (a detail view).
   frame: {
-    ...CATALOG_INHERITED_PROP_CONTRACTS,
+    ...CATALOG_FRAME_INHERITED_PROP_CONTRACTS,
     dataBinding: { kind: "binding", label: "Data", section: "content" },
   },
   // S2 `Image` `src` · `alt` (2026-10-24 — the picture it shows and its accessible text; the DOM

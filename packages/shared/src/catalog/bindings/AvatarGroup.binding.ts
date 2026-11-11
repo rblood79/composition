@@ -41,7 +41,6 @@ export const avatarGroupBinding: PrimitiveBinding = {
           label: String(value),
         })),
       },
-      isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",
   },

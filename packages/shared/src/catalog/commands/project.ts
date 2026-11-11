@@ -88,6 +88,17 @@ export const createPage =
     return { label: input.label ?? "Add page", ops: draft.ops() };
   };
 
+/**
+ * The project's Home page — its first page (the page flow's origin; `pagePlacement.ts`). One
+ * definition for the Pages tree, the Canvas page grid and the page settings: Home does not nest
+ * under another page and its route is `/` (user decision 2026-11-11).
+ */
+export function catalogHomePageId(
+  pageIds: readonly EntryId<"page">[],
+): EntryId<"page"> | undefined {
+  return pageIds[0];
+}
+
 type PageFields = Pick<
   PageEntry,
   "name" | "route" | "parentId" | "placement" | "guideEntries" | "meta"
@@ -102,6 +113,12 @@ export const updatePage =
   (reader) => {
     const draft = new CommandDraft(reader);
     const page = draft.page(input.id);
+    if (catalogHomePageId(draft.project().pageIds) === page.id) {
+      if (input.fields.parentId !== undefined)
+        fail("HOME_PAGE_FIXED", "parentId");
+      if (input.fields.route !== undefined && input.fields.route !== "/")
+        fail("HOME_PAGE_FIXED", "route");
+    }
     if (input.fields.route !== undefined)
       assertRouteFree(draft, input.fields.route, page.id);
     const next = { ...page } as Record<string, unknown>;

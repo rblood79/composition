@@ -14,6 +14,7 @@ import {
   insertNodes,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import {
+  catalogIsHomePage,
   catalogPageCommands,
   catalogPageLayoutId,
   catalogPageLayouts,
@@ -134,42 +135,65 @@ describe("ADR-248 Phase 4e-4 page section", () => {
     expect(
       catalogParentPageOptions(pages(), docs).map((item) => item.page.id),
     ).toEqual([HOME]);
+    addPage("blog", "/blog");
+    const blog = "project:page:blog" as EntryId<"page">;
     expect(
-      catalogParentPageOptions(pages(), HOME).map((item) => [
+      catalogParentPageOptions(pages(), blog).map((item) => [
         item.page.id,
         item.depth,
       ]),
     ).toEqual([
+      [HOME, 0],
       [docs, 0],
       ["project:page:guide", 1],
     ]);
 
-    workspace.execute(catalogPageCommands.parent(HOME, docs));
-    expect(graph.getEntry(HOME)).toMatchObject({ parentId: docs });
-    workspace.execute(catalogPageCommands.parent(HOME, undefined));
-    expect(graph.getEntry(HOME)).not.toHaveProperty("parentId");
+    workspace.execute(catalogPageCommands.parent(blog, docs));
+    expect(graph.getEntry(blog)).toMatchObject({ parentId: docs });
+    workspace.execute(catalogPageCommands.parent(blog, undefined));
+    expect(graph.getEntry(blog)).not.toHaveProperty("parentId");
 
-    expect(catalogPageRouteEdit(pages(), HOME, "/docs")).toEqual({
+    expect(catalogPageRouteEdit(pages(), blog, "/docs")).toEqual({
       refused: "ROUTE_TAKEN",
     });
-    expect(catalogPageRouteEdit(pages(), HOME, "a b")).toEqual({
+    expect(catalogPageRouteEdit(pages(), blog, "a b")).toEqual({
       refused: "ROUTE_CHARACTERS",
     });
-    expect(catalogPageRouteEdit(pages(), HOME, "/a//b")).toEqual({
+    expect(catalogPageRouteEdit(pages(), blog, "/a//b")).toEqual({
       refused: "ROUTE_SLASHES",
     });
     // A `:name` segment is a route param (`/detail/:id` — the router's `useParams`, `{{ params.id }}`).
-    expect(catalogPageRouteEdit(pages(), HOME, "/detail/:id")).toHaveProperty(
+    expect(catalogPageRouteEdit(pages(), blog, "/detail/:id")).toHaveProperty(
       "command",
     );
     for (const route of ["/detail/:", "/detail/:1d", "/detail/x:id", "/:id-x"])
-      expect(catalogPageRouteEdit(pages(), HOME, route)).toEqual({
+      expect(catalogPageRouteEdit(pages(), blog, route)).toEqual({
         refused: "ROUTE_CHARACTERS",
       });
-    const edit = catalogPageRouteEdit(pages(), HOME, "start");
+    const edit = catalogPageRouteEdit(pages(), blog, "start");
     if (!("command" in edit)) throw new Error("refused");
     workspace.execute(edit.command);
-    expect(graph.getEntry(HOME)).toMatchObject({ route: "/start" });
+    expect(graph.getEntry(blog)).toMatchObject({ route: "/start" });
+  });
+
+  // User decision 2026-11-11: Home (the project's first page) is the pages' root — it nests under
+  // no page and its route stays `/` (the settings offer neither, the command refuses both).
+  it("Home takes no parent and keeps the route /", async () => {
+    const { workspace, graph, pages, addPage } = await open();
+    addPage("docs", "/docs");
+    const docs = "project:page:docs" as EntryId<"page">;
+    expect(catalogIsHomePage(pages(), HOME)).toBe(true);
+    expect(catalogIsHomePage(pages(), docs)).toBe(false);
+    expect(catalogParentPageOptions(pages(), HOME)).toEqual([]);
+    expect(catalogPageRouteEdit(pages(), HOME, "/start")).toEqual({
+      refused: "ROUTE_HOME",
+    });
+    expect(catalogPageRouteEdit(pages(), HOME, "/")).toHaveProperty("command");
+    expect(() =>
+      workspace.execute(catalogPageCommands.parent(HOME, docs)),
+    ).toThrow();
+    expect(graph.getEntry(HOME)).not.toHaveProperty("parentId");
+    expect(graph.getEntry(HOME)).toMatchObject({ route: "/" });
   });
 
   // The old derived URL followed the parent; the stored route stays (stable URLs), and a parent
@@ -200,7 +224,10 @@ describe("ADR-248 Phase 4e-4 page section", () => {
     ]);
     expect(workspace.runtime.historyDepth.undo).toBe(steps + 1);
     workspace.undo();
-    expect([route("guide"), route("intro")]).toEqual(["/guide", "/guide/intro"]);
+    expect([route("guide"), route("intro")]).toEqual([
+      "/guide",
+      "/guide/intro",
+    ]);
 
     // Back to the root: the page keeps its own segment; a route another page has is refused.
     workspace.execute(catalogPageCommands.parent(page("intro"), undefined));

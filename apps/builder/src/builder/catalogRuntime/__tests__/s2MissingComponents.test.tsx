@@ -35,20 +35,8 @@ it("SegmentedControl and Item expose the audited S2/RAC props and retain them in
       group,
     );
     for (const [id, keys] of [
-      [
-        group,
-        [
-          "orientation",
-          "defaultSelectedKey",
-          "aria-labelledby",
-          "aria-describedby",
-          "aria-details",
-        ],
-      ],
-      [
-        item,
-        ["autoFocus", "aria-labelledby", "aria-describedby", "aria-details"],
-      ],
+      [group, ["orientation", "defaultSelectedKey"]],
+      [item, ["autoFocus"]],
     ] as const) {
       const contract = catalogEditContract(h.graph(), h.workspace.readModel, {
         kind: "node",
@@ -63,6 +51,13 @@ it("SegmentedControl and Item expose the audited S2/RAC props and retain them in
         contract.fields.find((field) => field.key === "aria-label")
           ?.editorHidden,
       ).toBe(true);
+      // (2026-11-11 속성 감사: the ARIA id references are developer attributes — accepted and kept in
+      //  Code, not offered in the panel.)
+      for (const key of ["aria-labelledby", "aria-describedby", "aria-details"])
+        expect(
+          contract.fields.find((field) => field.key === key)?.editorHidden,
+          key,
+        ).toBe(true);
       expect(
         contract.fields
           .filter((field) => !field.editorHidden)

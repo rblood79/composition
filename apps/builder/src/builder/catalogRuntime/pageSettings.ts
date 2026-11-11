@@ -2,6 +2,7 @@ import {
   applyLayout,
   layoutContentSlotPath,
   moveNodes,
+  catalogHomePageId,
   updatePage,
 } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
@@ -233,6 +234,8 @@ export function catalogParentPageOptions(
       if (cursor.id === pageId) return true;
     return false;
   };
+  // (Home is the pages' root — it nests under none.)
+  if (catalogIsHomePage(pages, pageId)) return [];
   return pages.flatMap((page) => {
     if (descendant(page)) return [];
     const depth = depthOf(byId, page);
@@ -241,12 +244,25 @@ export function catalogParentPageOptions(
 }
 
 export type CatalogRouteRefusal =
-  "ROUTE_EMPTY" | "ROUTE_CHARACTERS" | "ROUTE_SLASHES" | "ROUTE_TAKEN";
+  | "ROUTE_EMPTY"
+  | "ROUTE_CHARACTERS"
+  | "ROUTE_SLASHES"
+  | "ROUTE_TAKEN"
+  | "ROUTE_HOME";
+
+/** Whether `pageId` is the project's Home page (`catalogHomePageId` — `pages` in project order). */
+export function catalogIsHomePage(
+  pages: readonly PageEntry[],
+  pageId: EntryId<"page">,
+): boolean {
+  return catalogHomePageId(pages.map((page) => page.id)) === pageId;
+}
 
 /**
  * A route edit as one command, or why it is refused: a route starts with `/`, each segment is
  * letters, digits and hyphens or a `:name` param (`/detail/:id` — what the Preview router matches,
  * `{{ params.id }}`), single slashes, no slash at the end (except `/`) and no other page has it.
+ * Home's route is `/` (an old document's Home elsewhere can only come back to it).
  */
 export function catalogPageRouteEdit(
   pages: readonly PageEntry[],
@@ -271,6 +287,8 @@ export function catalogPageRouteEdit(
     return { refused: "ROUTE_SLASHES" };
   if (pages.some((page) => page.id !== pageId && page.route === route))
     return { refused: "ROUTE_TAKEN" };
+  if (route !== "/" && catalogIsHomePage(pages, pageId))
+    return { refused: "ROUTE_HOME" };
   return {
     command: updatePage({ id: pageId, fields: { route }, label: "Page route" }),
   };

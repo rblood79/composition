@@ -19,6 +19,36 @@ export const CATALOG_INHERITED_PROP_CONTRACTS: Readonly<
   locale: DATE_LOCALE_PROP,
 };
 
+/** Passed down and written by a rule's Do — not offered in the Design panel. */
+const carried = (key: string): PropContract => ({
+  ...CATALOG_INHERITED_PROP_CONTRACTS[key]!,
+  editorHidden: true,
+});
+
+/**
+ * The page root's flags (user decision 2026-11-11): a page is not itself disabled · read-only ·
+ * required, so the panel's Behavior section offered what read as the page's own state. The cascade
+ * and its Do (`disableAll` … — `concepts/inherited.ts`) stay; the value is a rule's, not authored.
+ */
+export const CATALOG_PAGE_INHERITED_PROP_CONTRACTS: Readonly<
+  Record<string, PropContract>
+> = {
+  isDisabled: carried("isDisabled"),
+  isReadOnly: carried("isReadOnly"),
+  isRequired: carried("isRequired"),
+};
+
+/**
+ * A frame's (user decision 2026-11-11): Disabled · Read Only lock a section and stay authored;
+ * Required is a field's · a Form's — the frame still passes it down for a rule's Do.
+ */
+export const CATALOG_FRAME_INHERITED_PROP_CONTRACTS: Readonly<
+  Record<string, PropContract>
+> = {
+  ...CATALOG_INHERITED_PROP_CONTRACTS,
+  isRequired: carried("isRequired"),
+};
+
 export const CATALOG_COLOR_SCHEME_PROP: PropContract = {
   kind: "enum",
   label: "Color scheme",

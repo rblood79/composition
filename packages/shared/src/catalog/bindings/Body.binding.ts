@@ -1,7 +1,7 @@
 import type { PrimitiveBinding } from "../types";
 import {
   CATALOG_COLOR_SCHEME_PROP,
-  CATALOG_INHERITED_PROP_CONTRACTS,
+  CATALOG_PAGE_INHERITED_PROP_CONTRACTS,
 } from "./inheritedProps";
 
 /**
@@ -19,7 +19,7 @@ import {
  * D1: composition `<body>` 페이지 루트 (internal source, generic `div` fallback).
  *     Preview/Publish의 nested body div와 실제 document.body 동기화가 같은 class resolver를 쓴다.
  * D2: children(페이지 콘텐츠) + 자손에 내려주는 prop (ADR-281 — `inheritedProps.ts`: v3 Provider 의
- *     `isDisabled` · `isReadOnly` · `isRequired` · S2 Provider 의 `colorScheme` — `locale` 은 사이트 언어 (ADR-286, compositionRoot 가 넣는다)).
+ *     `isDisabled` · `isReadOnly` · `isRequired` · S2 Provider 의 `colorScheme` — 넷 다 규칙의 Do 가 쓰는 운반 값 (`editorHidden`, 2026-11-11), `locale` 은 사이트 언어 (ADR-286, compositionRoot 가 넣는다)).
  * D3: 시각(배경 `{color.base}`)은 theme rule(COMPONENT_RULES_TABLE.body).
  */
 export const bodyBinding: PrimitiveBinding = {
@@ -31,9 +31,8 @@ export const bodyBinding: PrimitiveBinding = {
     accepts: {
       // ADR-286 (user 2026-10-28): no page `locale` — the site's language is the page root's
       // (the composition root sets it; a frame still overrides a part).
-      isDisabled: CATALOG_INHERITED_PROP_CONTRACTS.isDisabled!,
-      isReadOnly: CATALOG_INHERITED_PROP_CONTRACTS.isReadOnly!,
-      isRequired: CATALOG_INHERITED_PROP_CONTRACTS.isRequired!,
+      // (2026-11-11: carried, not authored — the panel shows no Behavior section on a page.)
+      ...CATALOG_PAGE_INHERITED_PROP_CONTRACTS,
       colorScheme: CATALOG_COLOR_SCHEME_PROP,
     },
     toRacProps: "default",

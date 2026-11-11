@@ -460,7 +460,18 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
   it("the page section refuses a malformed route with a message and writes a valid one", async () => {
     const { workspace } = await open();
     const graph = workspace.runtime.graph;
-    const page = "project:page:home" as EntryId<"page">;
+    const page = "project:page:docs" as EntryId<"page">;
+    workspace.execute(
+      createPage({
+        page: {
+          kind: "page",
+          id: page,
+          route: "/docs",
+          name: "Docs",
+          children: [],
+        },
+      }),
+    );
     const { container } = render(
       <I18nProvider initialLocale="en-US">
         <CatalogWorkspaceProvider workspace={workspace}>
@@ -471,7 +482,7 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     const route = container.querySelector(
       ".page-slug-input input",
     ) as HTMLInputElement;
-    expect(route.value).toBe("/");
+    expect(route.value).toBe("/docs");
     const revision = graph.revision;
     fireEvent.change(route, { target: { value: "a b" } });
     await act(async () => {
@@ -487,6 +498,60 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     });
     expect(graph.getEntry(page)).toMatchObject({ route: "/about" });
     expect(within(container).queryByRole("alert")).toBeNull();
+  });
+
+  // User decision 2026-11-11: Home is the pages' root — no Parent page to choose, the route `/`
+  // shown but not edited, no "Generate from title" (it would write `/home`).
+  it("the Home page section offers no parent and a fixed route; another page offers both", async () => {
+    const { workspace } = await open();
+    const docs = "project:page:docs" as EntryId<"page">;
+    workspace.execute(
+      createPage({
+        page: {
+          kind: "page",
+          id: docs,
+          route: "/docs",
+          name: "Docs",
+          children: [],
+        },
+      }),
+    );
+    const section = (pageId: EntryId<"page">) =>
+      render(
+        <I18nProvider initialLocale="en-US">
+          <CatalogWorkspaceProvider workspace={workspace}>
+            <CatalogPageSection pageId={pageId} />
+          </CatalogWorkspaceProvider>
+        </I18nProvider>,
+      );
+    const home = section("project:page:home" as EntryId<"page">);
+    const homeRoute = home.container.querySelector(
+      ".page-slug-input input",
+    ) as HTMLInputElement;
+    expect(homeRoute.value).toBe("/");
+    expect(homeRoute.disabled).toBe(true);
+    expect(home.container.textContent).not.toContain("Parent page");
+    expect(
+      within(home.container).queryByRole("button", {
+        name: "Generate from title",
+      }),
+    ).toBeNull();
+    home.unmount();
+
+    const other = section(docs);
+    expect(other.container.textContent).toContain("Parent page");
+    expect(
+      (
+        other.container.querySelector(
+          ".page-slug-input input",
+        ) as HTMLInputElement
+      ).disabled,
+    ).toBe(false);
+    expect(
+      within(other.container).getByRole("button", {
+        name: "Generate from title",
+      }),
+    ).toBeTruthy();
   });
 
   it("the page section shows the route a new parent gives and brings it along in one step", async () => {

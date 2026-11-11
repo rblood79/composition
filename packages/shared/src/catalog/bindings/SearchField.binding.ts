@@ -108,12 +108,15 @@ export const searchFieldBinding: PrimitiveBinding = {
       },
       // ADR-915 P1.5-b: 텍스트 HTML 입력 힌트 attr (RAC SearchField 공식 prop, `<input>` 전달).
       //   controlled-value(value/defaultValue)와 직교 — 순수 입력 힌트라 회귀 위험 0.
+      // (2026-11-11 사용자 결정 「숨김」: developer HTML · ARIA attributes — accepted, not offered in the panel.)
       autoComplete: {
+        editorHidden: true,
         kind: "string",
         label: "Auto Complete",
         section: "content",
       },
       autoCorrect: {
+        editorHidden: true,
         kind: "enum",
         label: "Auto Correct",
         section: "content",
@@ -123,6 +126,7 @@ export const searchFieldBinding: PrimitiveBinding = {
         ],
       },
       inputMode: {
+        editorHidden: true,
         kind: "enum",
         label: "Input Mode",
         section: "content",
@@ -138,6 +142,7 @@ export const searchFieldBinding: PrimitiveBinding = {
         ],
       },
       enterKeyHint: {
+        editorHidden: true,
         kind: "enum",
         label: "Enter Key Hint",
         section: "content",
@@ -152,6 +157,7 @@ export const searchFieldBinding: PrimitiveBinding = {
         ],
       },
       spellCheck: {
+        editorHidden: true,
         kind: "enum",
         label: "Spell Check",
         section: "content",

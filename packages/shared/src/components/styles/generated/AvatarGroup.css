@@ -73,9 +73,6 @@
   border-radius: var(--catalog-token-radius-full);
 }
 
-.react-aria-AvatarGroup.react-aria-AvatarGroup:where([data-disabled]) {
-  opacity: 0.38;
-}
 
 /* ── Tier 2: Composite Delegation ── */
 

@@ -80,6 +80,18 @@ describe("ADR-248 Phase 4b project commands", () => {
         updatePage({ id: "project:page:about", fields: { route: "/" } })(graph),
       ),
     ).toBe("ROUTE_TAKEN");
+    // Home (the first page) does not nest under another page and stays at `/` (user 2026-11-11).
+    expect(
+      code(() =>
+        updatePage({ id: PAGE, fields: { parentId: "project:page:about" } })(
+          graph,
+        ),
+      ),
+    ).toBe("HOME_PAGE_FIXED");
+    expect(
+      code(() => updatePage({ id: PAGE, fields: { route: "/start" } })(graph)),
+    ).toBe("HOME_PAGE_FIXED");
+    run(graph, updatePage({ id: PAGE, fields: { name: "Start", route: "/" } }));
     run(
       graph,
       updatePage({

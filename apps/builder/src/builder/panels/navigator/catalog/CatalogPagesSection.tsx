@@ -8,6 +8,7 @@ import type { Key } from "react-stately";
 import { Search } from "lucide-react";
 import { ListLayout, Virtualizer } from "react-aria-components/Virtualizer";
 import {
+  catalogHomePageId,
   removePage,
   updatePage,
 } from "../../../../../../../packages/shared/src/catalog/commands";
@@ -93,9 +94,10 @@ export const CatalogPagesSection = memo(function CatalogPagesSection() {
         : new Set<Key>([...expandedKeys, ...query.expandIds]),
     [expandedKeys, query.expandIds],
   );
+  const homePageId = catalogHomePageId(entries.map((entry) => entry.id));
   const { treeNodes, nodeMap } = useMemo(
-    () => buildPageTree(query.pages),
-    [query.pages],
+    () => buildPageTree(query.pages, homePageId ?? null),
+    [query.pages, homePageId],
   );
   const selectedKeys = useMemo(
     () => new Set<Key>(pageId ? [pageId] : []),

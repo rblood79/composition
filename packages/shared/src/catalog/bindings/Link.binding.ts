@@ -54,7 +54,9 @@ export const linkBinding: PrimitiveBinding = {
     accepts: {
       ...ARIA_LABELING_PROPS,
       slot: RAC_SLOT_PROP,
+      // (2026-11-11 사용자 결정 「숨김」: developer HTML · ARIA attributes — accepted, not offered in the panel.)
       "aria-current": {
+        editorHidden: true,
         kind: "enum",
         label: "Current",
         section: "state",
@@ -68,10 +70,26 @@ export const linkBinding: PrimitiveBinding = {
           "false",
         ].map((value) => ({ value, label: value })),
       },
-      download: { kind: "string", label: "Download", section: "content" },
-      hrefLang: { kind: "string", label: "Link language", section: "content" },
-      ping: { kind: "string", label: "Ping", section: "content" },
+      download: {
+        kind: "string",
+        label: "Download",
+        section: "content",
+        editorHidden: true,
+      },
+      hrefLang: {
+        kind: "string",
+        label: "Link language",
+        section: "content",
+        editorHidden: true,
+      },
+      ping: {
+        kind: "string",
+        label: "Ping",
+        section: "content",
+        editorHidden: true,
+      },
       referrerPolicy: {
+        editorHidden: true,
         kind: "enum",
         label: "Referrer policy",
         section: "content",

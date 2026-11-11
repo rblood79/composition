@@ -161,19 +161,19 @@ describe("Avatar — cutover DOM 경로 (toRacProps propPassthrough)", () => {
   });
 });
 
-/** design-data 감사 §2-F isDisabled 노출 (2026-08-21) — 기보유 인라인 dim 의 cutover 경로 고정. */
-describe("Avatar — isDisabled 인라인 dim (§2-F, 2026-08-21)", () => {
-  it("cutover 경로 isDisabled → opacity:0.38 + pointer-events:none", () => {
-    const node = {
-      id: "x",
-      type: "Avatar",
-      props: { size: "M", initials: "AB", isDisabled: true },
-    };
-    const rest = toRacProps(node as never, avatarBinding);
+/** 2026-11-11 사용자 결정 「삭제」: Avatar 는 `isDisabled` 를 받지 않는다 (S2 에 없음 — 표시용). */
+describe("Avatar — isDisabled 없음 (2026-11-11)", () => {
+  it("binding 이 받지 않고, 옛 값이 와도 흐려지지 않는다", () => {
+    expect("isDisabled" in avatarBinding.props.accepts).toBe(false);
     const html = renderToStaticMarkup(
-      <Avatar {...(rest as Record<string, never>)} />,
+      <Avatar
+        {...({ size: 24, initials: "AB", isDisabled: true } as Record<
+          string,
+          unknown
+        >)}
+      />,
     );
-    expect(html).toMatch(/opacity:0\.38/);
-    expect(html).toMatch(/pointer-events:none/);
+    expect(html).not.toMatch(/opacity:0\.38/);
+    expect(html).not.toMatch(/pointer-events:none/);
   });
 });

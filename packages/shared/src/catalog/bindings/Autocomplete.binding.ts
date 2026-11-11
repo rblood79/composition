@@ -26,12 +26,15 @@ export const autocompleteBinding: PrimitiveBinding = {
         label: "Default input value",
         section: "content",
       },
+      // (2026-11-11 사용자 결정 「숨김」: developer HTML · ARIA attributes — accepted, not offered in the panel.)
       disableAutoFocusFirst: {
+        editorHidden: true,
         kind: "boolean",
         label: "Disable auto focus first",
         section: "state",
       },
       disableVirtualFocus: {
+        editorHidden: true,
         kind: "boolean",
         label: "Disable virtual focus",
         section: "state",

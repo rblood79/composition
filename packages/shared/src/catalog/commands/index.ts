@@ -80,6 +80,7 @@ export {
   unlockOrigins,
 } from "./originFork";
 export {
+  catalogHomePageId,
   addRecord,
   applyLayout,
   createLayout,

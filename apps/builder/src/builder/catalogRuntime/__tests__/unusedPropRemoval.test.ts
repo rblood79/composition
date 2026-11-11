@@ -38,6 +38,12 @@ const REMOVED: ReadonlyArray<readonly [string, string, unknown]> = [
   // (2026-10-14 「한쪽만 반영되는 칸 고쳐」 · 「지금은 제거」: the DOM re-tinted the Card's subtree, the
   // Canvas could not.)
   ["Card", "accentColor", "red"],
+  // (2026-11-11 사용자 결정 「삭제」: a display-only component has nothing to disable — S2 has no
+  // such prop on any of the four.)
+  ["Avatar", "isDisabled", true],
+  ["AvatarGroup", "isDisabled", true],
+  ["Badge", "isDisabled", true],
+  ["StatusLight", "isDisabled", true],
 ];
 
 /** An item's text is its Text node's — the item's own is carried for an internal reader only. */

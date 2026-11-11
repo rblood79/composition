@@ -9,7 +9,9 @@
  *   D2 change (`d2S2Alignment` · the binding), outside ADR-287 — the derived layer reads accepts only.
  * - `VALUE_KIND` — accepted, but its value is an object or a unit value with no Do input (Intl format
  *   options · a column size · a calendar duration).
- * - `EDITOR_HIDDEN` — accepted but hidden from the editor (an internal value the panel does not show).
+ * - `EDITOR_HIDDEN` — accepted but hidden from the editor (an internal value the panel does not show —
+ *   since 2026-11-11 also the developer HTML attributes the panel no longer offers: a link's
+ *   `download` · `ping`, a Form's `action` · `method`, an input's `autoComplete` …).
  */
 const NOT_IN_ACCEPTS = "catalog accepts 밖 — D2 표면 확장은 ADR-287 밖";
 const VALUE_KIND = "값 종류에 Do 입력이 없음 (객체 · 단위 값)";
@@ -26,6 +28,8 @@ export const DEFERRED_REFERENCE_PROPS: Readonly<Record<string, string>> = {
   "ActionButton.formTarget": NOT_IN_ACCEPTS,
   "ActionButton.preventFocusOnPress": NOT_IN_ACCEPTS,
   "ActionButton.value": NOT_IN_ACCEPTS,
+  "Autocomplete.disableAutoFocusFirst": EDITOR_HIDDEN,
+  "Autocomplete.disableVirtualFocus": EDITOR_HIDDEN,
   "Autocomplete.filter": NOT_IN_ACCEPTS,
   "AvatarGroup.label": NOT_IN_ACCEPTS,
   "Breadcrumb.download": NOT_IN_ACCEPTS,
@@ -163,7 +167,11 @@ export const DEFERRED_REFERENCE_PROPS: Readonly<Record<string, string>> = {
   "DisclosurePanel.label": NOT_IN_ACCEPTS,
   "DisclosurePanel.labelElementType": NOT_IN_ACCEPTS,
   "DropZone.getDropOperation": NOT_IN_ACCEPTS,
+  "Form.action": EDITOR_HIDDEN,
   "Form.autoComplete": NOT_IN_ACCEPTS,
+  "Form.encType": EDITOR_HIDDEN,
+  "Form.method": EDITOR_HIDDEN,
+  "Form.target": EDITOR_HIDDEN,
   "Form.validationErrors": NOT_IN_ACCEPTS,
   "GridList.dependencies": NOT_IN_ACCEPTS,
   "GridList.disabledBehavior": NOT_IN_ACCEPTS,
@@ -191,7 +199,15 @@ export const DEFERRED_REFERENCE_PROPS: Readonly<Record<string, string>> = {
   "GridListSection.dependencies": NOT_IN_ACCEPTS,
   "GridListSection.items": NOT_IN_ACCEPTS,
   "GridListSection.value": NOT_IN_ACCEPTS,
+  "Link.download": EDITOR_HIDDEN,
+  "Link.hrefLang": EDITOR_HIDDEN,
+  "Link.ping": EDITOR_HIDDEN,
+  "Link.referrerPolicy": EDITOR_HIDDEN,
   "Link.routerOptions": NOT_IN_ACCEPTS,
+  "LinkButton.download": EDITOR_HIDDEN,
+  "LinkButton.hrefLang": EDITOR_HIDDEN,
+  "LinkButton.ping": EDITOR_HIDDEN,
+  "LinkButton.referrerPolicy": EDITOR_HIDDEN,
   "LinkButton.routerOptions": NOT_IN_ACCEPTS,
   "ListBox.dependencies": NOT_IN_ACCEPTS,
   "ListBox.disabledKeys": NOT_IN_ACCEPTS,
@@ -268,6 +284,7 @@ export const DEFERRED_REFERENCE_PROPS: Readonly<Record<string, string>> = {
   "RangeCalendar.selectionAlignment": NOT_IN_ACCEPTS,
   "RangeCalendar.visibleMonths": NOT_IN_ACCEPTS,
   "RangeSlider.contextualHelp": NOT_IN_ACCEPTS,
+  "RangeSlider.form": EDITOR_HIDDEN,
   "RangeSlider.formatOptions": VALUE_KIND,
   "Row.columns": NOT_IN_ACCEPTS,
   "Row.dependencies": NOT_IN_ACCEPTS,
@@ -280,6 +297,7 @@ export const DEFERRED_REFERENCE_PROPS: Readonly<Record<string, string>> = {
   "Row.routerOptions": NOT_IN_ACCEPTS,
   "Row.textValue": NOT_IN_ACCEPTS,
   "Row.value": NOT_IN_ACCEPTS,
+  "SearchField.autoComplete": EDITOR_HIDDEN,
   "SearchField.contextualHelp": NOT_IN_ACCEPTS,
   "SearchField.excludeFromTabOrder": NOT_IN_ACCEPTS,
   "SearchField.form": NOT_IN_ACCEPTS,
@@ -299,6 +317,7 @@ export const DEFERRED_REFERENCE_PROPS: Readonly<Record<string, string>> = {
   "Select.validate": NOT_IN_ACCEPTS,
   "Select.validationBehavior": NOT_IN_ACCEPTS,
   "SelectBoxGroup.disabledKeys": `${VALUE_KIND} — accepts 의 string-array (키 목록) 는 Do 입력 종류가 아니다`,
+  "SelectBoxGroup.escapeKeyBehavior": EDITOR_HIDDEN,
   "SelectBoxGroup.items": NOT_IN_ACCEPTS,
   "Separator.elementType": NOT_IN_ACCEPTS,
   "SideNav.dependencies": NOT_IN_ACCEPTS,
@@ -369,6 +388,7 @@ export const DEFERRED_REFERENCE_PROPS: Readonly<Record<string, string>> = {
   "TagList.dependencies": NOT_IN_ACCEPTS,
   "TagList.items": NOT_IN_ACCEPTS,
   "TagList.renderEmptyState": NOT_IN_ACCEPTS,
+  "TextArea.autoComplete": EDITOR_HIDDEN,
   "TextArea.cols": NOT_IN_ACCEPTS,
   "TextArea.dirName": NOT_IN_ACCEPTS,
   "TextArea.disabled": NOT_IN_ACCEPTS,
@@ -376,6 +396,7 @@ export const DEFERRED_REFERENCE_PROPS: Readonly<Record<string, string>> = {
   "TextArea.readOnly": NOT_IN_ACCEPTS,
   "TextArea.required": NOT_IN_ACCEPTS,
   "TextArea.wrap": NOT_IN_ACCEPTS,
+  "TextField.autoComplete": EDITOR_HIDDEN,
   "TextField.contextualHelp": NOT_IN_ACCEPTS,
   "TextField.excludeFromTabOrder": NOT_IN_ACCEPTS,
   "TextField.form": NOT_IN_ACCEPTS,

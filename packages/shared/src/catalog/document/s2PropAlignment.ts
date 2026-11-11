@@ -113,6 +113,8 @@ const visibleMonthsOf: PropValueMigration = (value) =>
  * - Card `accentColor` (composition 확장 — S2 Card 에 없음, 2026-10-14 「한쪽만 반영되는 칸 고쳐」 ·
  *   「지금은 제거」): the DOM re-tinted the Card's subtree (`data-accent` → `--tint`), the Canvas has
  *   no subtree tint (its color tokens are one theme table) — the accent is the theme's tint.
+ * - Avatar · AvatarGroup · Badge · StatusLight `isDisabled` (v3 · composition 확장 — S2 에 없음,
+ *   2026-11-11 사용자 결정 「삭제」): a display-only component has nothing to disable.
  */
 const UNUSED_PROPS = {
   CardView: { density: dropOf, selectionStyle: dropOf },
@@ -121,6 +123,10 @@ const UNUSED_PROPS = {
   GridListItem: { children: dropOf },
   Tag: { children: dropOf },
   Card: { accentColor: dropOf },
+  Avatar: { isDisabled: dropOf },
+  AvatarGroup: { isDisabled: dropOf },
+  Badge: { isDisabled: dropOf },
+  StatusLight: { isDisabled: dropOf },
 } as const satisfies Record<
   string,
   Readonly<Record<string, PropValueMigration>>

@@ -228,19 +228,19 @@ describe("D2 — binding accepts vs the installed S2 types", () => {
   it("d2Provenance names no key S2 declares (stale) and no key the binding lacks (dead)", () => {
     const stale: string[] = [];
     for (const [type, keys] of Object.entries(CATALOG_D2_PROVENANCE)) {
+      // (A binding whose props are all carried values — the page root's inherited flags — has no
+      // visible row; its provenance still names where the props come from.)
       const row = ROWS.find((candidate) => candidate.type === type);
+      const entry = componentCatalog.find(
+        (candidate) =>
+          candidate.kind === "primitive" && candidate.type === type,
+      );
       for (const key of Object.keys(keys)) {
-        if (!row) stale.push(`${type}.${key}: no such binding`);
-        else if (row.oracle?.keys.has(key))
+        if (entry?.kind !== "primitive")
+          stale.push(`${type}.${key}: no such binding`);
+        else if (row?.oracle?.keys.has(key))
           stale.push(`${type}.${key}: S2 declares it`);
-        else if (
-          !componentCatalog.some(
-            (entry) =>
-              entry.kind === "primitive" &&
-              entry.type === type &&
-              key in entry.binding.props.accepts,
-          )
-        )
+        else if (!(key in (entry.binding.props.accepts ?? {})))
           stale.push(`${type}.${key}: the binding has no such key`);
       }
     }

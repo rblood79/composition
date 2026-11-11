@@ -187,9 +187,10 @@ describe("design-data 감사 §1-1 — 시맨틱 variant 미배선 회귀 가드
     ];
     expect(runtimeScopes).toEqual(["catalog-toast-shaped"]);
     for (const scope of runtimeScopes)
-      expect(toastSource.includes(scope), `문서 Toast 가 ${scope} 를 쓴다`).toBe(
-        false,
-      );
+      expect(
+        toastSource.includes(scope),
+        `문서 Toast 가 ${scope} 를 쓴다`,
+      ).toBe(false);
     const unscoped = withoutComments
       .split("\n")
       .filter((line) => line.includes(".react-aria-Toast"))
@@ -205,12 +206,11 @@ describe("design-data 감사 §1-1 — 시맨틱 variant 미배선 회귀 가드
   });
 });
 
-describe("design-data 감사 §2-F — isDisabled 노출 결손 보수 (2026-08-21)", () => {
-  // D3 disabled 흐림 (opacity 0.38 — ADR-297 Phase 3b 부터 `structure.stateStyles` 트리)은 3종 모두 준비돼 있었으나 binding accepts 미노출로
-  // 패널 편집이 불가능하던 결손. Skia 는 buildSpecNodeData componentState generic 이 소비,
-  // DOM 은 Badge=data-disabled(generated CSS)/StatusLight·Avatar=인라인 dim (class 미부여 outlier).
-  it.each(["Badge", "StatusLight", "Avatar"] as const)(
-    "%s: rules disabled 흐림 (상태 트리) 존재 + accepts.isDisabled 선언",
+describe("표시용 컴포넌트는 isDisabled 를 받지 않는다 (2026-11-11 사용자 결정)", () => {
+  // design-data 감사 §2-F (2026-08-21) 는 v3 의 disabled 흐림을 Badge · StatusLight · Avatar 에 노출했다.
+  // S2 에는 그 prop 이 없고 조작이 없는 컴포넌트라 속성 감사에서 「삭제」 — binding · rule 흐림 · DOM 모두.
+  it.each(["Badge", "StatusLight", "Avatar", "AvatarGroup"] as const)(
+    "%s: accepts.isDisabled 없음 + rule 에 disabled 흐림 없음",
     (type) => {
       const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
         type
@@ -220,12 +220,9 @@ describe("design-data 감사 §2-F — isDisabled 노출 결손 보수 (2026-08-
           isDisabled: true,
         }),
         `${type} D3 stateStyles.opacity isDisabled`,
-      ).toBeDefined();
-
+      ).toBeUndefined();
       const accepts = getPrimitiveBinding(type)?.props?.accepts;
-      expect(accepts?.isDisabled, `${type} accepts.isDisabled`).toBeDefined();
-      expect(accepts?.isDisabled?.kind).toBe("boolean");
-      expect(accepts?.isDisabled?.section).toBe("state");
+      expect(accepts?.isDisabled, `${type} accepts.isDisabled`).toBeUndefined();
     },
   );
 });

@@ -1,4 +1,7 @@
-import { updatePage } from "../../../../../packages/shared/src/catalog/commands";
+import {
+  catalogHomePageId,
+  updatePage,
+} from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type {
   BreakpointName,
@@ -87,7 +90,7 @@ export function catalogPageDropCommand(
   }
   const context = {
     pages: project.pageIds.map((id) => ({ id })),
-    homePageId: project.pageIds[0] ?? null,
+    homePageId: catalogHomePageId(project.pageIds) ?? null,
     positions: Object.fromEntries(
       [...rects].map(([id, rect]) => [id, { x: rect.x, y: rect.y }]),
     ),

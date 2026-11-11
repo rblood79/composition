@@ -12,7 +12,9 @@ import {
   sizeSegOptions,
 } from "./fieldEditor";
 
-function allSemanticFields(): Array<{ type: string; field: ResolvedField }> {
+function allSemanticFields(
+  includeHidden = false,
+): Array<{ type: string; field: ResolvedField }> {
   const out: Array<{ type: string; field: ResolvedField }> = [];
   for (const entry of componentCatalog) {
     // ADR-228: 동명 reusable entry (Button · Badge …) 는 primitive 와 같은 accepts 를 같은 type
@@ -24,7 +26,7 @@ function allSemanticFields(): Array<{ type: string; field: ResolvedField }> {
       null,
     );
     for (const field of contract.fields) {
-      if (field.origin === "semantic" && !field.editorHidden)
+      if (field.origin === "semantic" && (includeHidden || !field.editorHidden))
         out.push({ type: entry.type, field });
     }
   }
@@ -32,9 +34,14 @@ function allSemanticFields(): Array<{ type: string; field: ResolvedField }> {
 }
 
 const fields = allSemanticFields();
+// (The mapping is the contract's, shown or not — 2026-11-11 hid the developer attributes
+// (`autoCorrect` · `inputMode` · `encType` …) whose contracts are still the On/Off · long-list cases.)
+const contractFields = allSemanticFields(true);
 const byKey = (key: string) => fields.filter((f) => f.field.key === key);
 const editorOf = (type: string, key: string) => {
-  const hit = fields.find((f) => f.type === type && f.field.key === key);
+  const hit = contractFields.find(
+    (f) => f.type === type && f.field.key === key,
+  );
   if (!hit) throw new Error(`${type}.${key} 없음`);
   return resolveFieldEditor(hit.field);
 };

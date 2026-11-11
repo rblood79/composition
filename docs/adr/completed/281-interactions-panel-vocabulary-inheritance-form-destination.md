@@ -6,6 +6,8 @@ Implemented — 2026-10-27 (사용자 Builder 확인 「adr도 모두 확인은 
 
 > **ADR-286 이 바꿈 (2026-10-28, 사용자 결정)**: 결정 3 의 page 루트 `locale` 은 작성 값이 아니다 — 사이트 언어 (`ProjectEntry.site.lang`) 가 page 루트 locale 이고 Canvas 의 환경 locale 이다. frame 의 `locale` (부분 덮어쓰기) 과 나머지 상속 prop 은 그대로.
 
+> **속성 감사가 바꿈 (2026-11-11, 사용자 결정)**: 결정 3 의 상속 축 · Do · Preview `Provider` 는 그대로이고 **Design 패널 노출만** 바뀌었다 — page 루트의 `isDisabled` · `isReadOnly` · `isRequired` 와 frame 의 `isRequired` 는 운반 값 (`editorHidden`) 이라 패널에 Behavior 칸이 없다 (page 는 구획 자체가 없다). 값은 규칙의 Do (`disableAll` …) 가 쓴다. frame 의 Disabled · Read only 는 작성 값으로 남는다 (`bindings/inheritedProps.ts`).
+
 > **2026-10-27 현재 코드 대조** (사용자 「adr 275 ~ 283 도 체크해」 — 아래 본문은 그때의 결정 기록이고, 뒤 커밋 · ADR 로 바뀐 사실은 여기가 정본):
 >
 > - 규칙 모양: ADR-284 가 `action` 을 Do 목록 `actions[]` 로 (opcode 12, contract 50). 「규칙 모양 · 5 opcode 무변경 · 다중 액션 없음 · contract 47」 은 284 전. ADR-262 반영 · Reset all 의 원본 규칙 교체도 `trigger` · `actions` 를 옮긴다 (`commands/instanceOverrides.ts`).

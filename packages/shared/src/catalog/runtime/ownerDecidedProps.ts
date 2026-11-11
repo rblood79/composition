@@ -9,6 +9,10 @@ import type {
   CatalogConsumerNode,
 } from "./compositionRoot";
 import {
+  CATALOG_OPEN_BODY_TYPES,
+  catalogOpenHostOf,
+} from "./runtimeStateProps";
+import {
   CATALOG_PICKER_CALENDAR_PROPS,
   CATALOG_PICKER_RANGE_CALENDAR_PROPS,
   catalogCalendarPicker,
@@ -32,6 +36,10 @@ import {
  * - a Select's · ComboBox's ListBox: RAC's picker owns the selection (its `ListStateContext`), so
  *   the list's selection mode and its items' Selected are the picker's.
  * - a DatePicker's · DateRangePicker's calendar (`CATALOG_PICKER_CALENDAR_PROPS` — ADR-256 Phase 9).
+ * - an overlay body in its trigger (2026-11-11 사용자 결정 「뜨는 창 쪽을 숨김」): a Modal · Popover ·
+ *   Tooltip · SheetOverlay inside a trigger · picker · submenu — open is the trigger's (RAC: the
+ *   body's own `isOpen` beats the trigger's context and the press stops opening it). A body
+ *   standing alone keeps its own.
  */
 export interface CatalogOwnerDecidedProps {
   /** The nearest owner's type — the notice names it. */
@@ -46,6 +54,7 @@ const GROUP_ITEM_PROPS: Readonly<Record<string, readonly string[]>> = {
 
 const PICKER_LIST_PROPS = ["selectionMode", "disallowEmptySelection"];
 const PICKER_ITEM_PROPS = ["isSelected"];
+const OVERLAY_BODY_OPEN_PROPS = ["isOpen", "defaultOpen"];
 
 /**
  * The types an owner can decide props of — the rest have none, so a caller skips the ancestor walk
@@ -58,6 +67,7 @@ export const CATALOG_OWNER_DECIDED_TYPES: ReadonlySet<string> = new Set([
   "ListBoxItem",
   "Calendar",
   "RangeCalendar",
+  ...CATALOG_OPEN_BODY_TYPES,
 ]);
 
 export function catalogOwnerDecidedProps(
@@ -116,6 +126,12 @@ export function catalogOwnerDecidedProps(
           ? CATALOG_PICKER_RANGE_CALENDAR_PROPS
           : CATALOG_PICKER_CALENDAR_PROPS,
       );
+  }
+  if (CATALOG_OPEN_BODY_TYPES.has(type)) {
+    const host = catalogOpenHostOf(root, node.id, (record) =>
+      catalogTypeName(root, record),
+    );
+    if (host) add(host, OVERLAY_BODY_OPEN_PROPS);
   }
   return owner ? { owner, keys } : undefined;
 }

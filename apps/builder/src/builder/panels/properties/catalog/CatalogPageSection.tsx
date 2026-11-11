@@ -6,6 +6,7 @@ import { ACTION_ICONS } from "../../../config/actionIcons";
 import type { EntryId } from "../../../../../../../packages/shared/src/catalog/document/types";
 import {
   catalogGeneratedRoute,
+  catalogIsHomePage,
   catalogPageCommands,
   catalogPageLayoutId,
   catalogPageLayoutSlots,
@@ -47,6 +48,7 @@ const ROUTE_MESSAGES: Record<CatalogRouteRefusal, string> = {
     "Route segments are letters, numbers and hyphens, or a :param",
   ROUTE_SLASHES: "Route cannot contain consecutive slashes or end with a slash",
   ROUTE_TAKEN: "Another page already uses this route",
+  ROUTE_HOME: "The Home page's route is /",
 };
 
 /**
@@ -56,6 +58,9 @@ const ROUTE_MESSAGES: Record<CatalogRouteRefusal, string> = {
  * message when malformed or taken). Each edit is one step. A route out of line with the parent
  * shows the route the parent gives (the old "Resolved URL") with one step that brings it — and
  * the routes under it — along; the stored route never changes on its own (stable URLs).
+ *
+ * Home (the project's first page) is the pages' root: no parent to choose, and its route `/` is
+ * shown, not edited (user decision 2026-11-11).
  */
 export const CatalogPageSection = memo(function CatalogPageSection({
   pageId,
@@ -151,6 +156,9 @@ export const CatalogPageSection = memo(function CatalogPageSection({
   }, [pageId, run, workspace]);
 
   if (!page) return null;
+  const isHome = catalogIsHomePage(pages, pageId);
+  // (An old document's Home that sits under a page or off `/` can still come back.)
+  const routeFixed = isHome && page.route === "/";
   const resolvedRoute = catalogResolvedRoute(pages, pageId);
   const routeOutOfLine =
     resolvedRoute !== undefined &&
@@ -235,36 +243,43 @@ export const CatalogPageSection = memo(function CatalogPageSection({
         )}
       </PropertySection>
       <PropertySection title="Nested Routes">
-        <div className="fieldset-row" data-wide="true">
-          <PropertySelect
-            label="Parent Page"
-            value={page.parentId ?? ""}
-            onChange={changeParent}
-            options={parentOptions}
-            description={
-              parent
-                ? `Child of "${parent.name}"`
-                : "This page is at root level"
-            }
-          />
-        </div>
+        {(!isHome || page.parentId !== undefined) && (
+          <div className="fieldset-row" data-wide="true">
+            <PropertySelect
+              label="Parent Page"
+              value={page.parentId ?? ""}
+              onChange={changeParent}
+              options={parentOptions}
+              description={
+                parent
+                  ? `Child of "${parent.name}"`
+                  : "This page is at root level"
+              }
+            />
+          </div>
+        )}
         {/* The 28 action column: "Generate from Title" (the old Slug row's action). */}
         <div className="fieldset-row page-slug-input" data-wide="true">
           <PropertyInput
             label="Route"
             value={page.route}
             onChange={changeRoute}
-            placeholder={catalogGeneratedRoute(pages, pageId)}
+            placeholder={isHome ? "/" : catalogGeneratedRoute(pages, pageId)}
             description="URL path of this page"
+            disabled={routeFixed}
           />
-          <div className="fieldset-actions actions-slug">
-            <SwatchIconButton
-              aria-label="Generate from title"
-              onPress={() => changeRoute(catalogGeneratedRoute(pages, pageId))}
-            >
-              <WandSparkles aria-hidden="true" size={iconProps.size} />
-            </SwatchIconButton>
-          </div>
+          {!isHome && (
+            <div className="fieldset-actions actions-slug">
+              <SwatchIconButton
+                aria-label="Generate from title"
+                onPress={() =>
+                  changeRoute(catalogGeneratedRoute(pages, pageId))
+                }
+              >
+                <WandSparkles aria-hidden="true" size={iconProps.size} />
+              </SwatchIconButton>
+            </div>
+          )}
         </div>
         {routeOutOfLine && (
           <>

@@ -23,7 +23,7 @@ import { useCatalogSlotProps } from "./catalogSlotContexts";
  *   (legacy renderAvatar 의 `size*0.4` 와 다름 — spec typography token 이 정본).
  *
  * D1: composition `<div>` (circle bg + img|initials span, internal source, INTERNAL_RENDERERS 어댑터).
- * D2: src(image URL) + alt + initials(fallback) + size(number/lh/legacy name) + isDisabled.
+ * D2: src(image URL) + alt + initials(fallback) + size(number/lh/legacy name).
  * D3: circle bg 색 = rule fill base / 이니셜 색 = rule text(theme rule SSOT). Skia escape ↔ DOM 대칭.
  */
 
@@ -44,8 +44,6 @@ export interface AvatarProps {
   initials?: string;
   /** 크기 */
   size?: AvatarSize;
-  /** 비활성 */
-  isDisabled?: boolean;
   /** S2 `isOverBackground` — 배경색 외곽선 (1px, 숫자 크기 64 이상 2px) */
   isOverBackground?: boolean;
   /** 인라인 style override (cutover 경로의 toReactStyle 결과) */
@@ -80,7 +78,7 @@ const FONT_SIZE: Record<string, number> = {
  * Avatar — circle bg + image | initials.
  *
  * cutover DOM 경로(renderCatalogDom)가 marker props/style 을 주입하므로,
- * 본 컴포넌트는 src/alt/initials/size/isDisabled/isOverBackground + style/className 만 소비한다.
+ * 본 컴포넌트는 src/alt/initials/size/isOverBackground + style/className 만 소비한다.
  * circle bg/이니셜 색은 theme rule(resolveComponentRule)의 variant fill base / text.
  */
 export function Avatar(ownProps: AvatarProps): React.ReactElement {
@@ -96,7 +94,6 @@ export function Avatar(ownProps: AvatarProps): React.ReactElement {
     alt,
     initials,
     size = 24,
-    isDisabled,
     isOverBackground,
     style,
     className,
@@ -148,7 +145,6 @@ export function Avatar(ownProps: AvatarProps): React.ReactElement {
         fontWeight: 500,
         flexShrink: 0,
         ...(outline ? { outline } : {}),
-        ...(isDisabled ? { opacity: 0.38, pointerEvents: "none" } : {}),
         ...style,
       }}
       className={className}

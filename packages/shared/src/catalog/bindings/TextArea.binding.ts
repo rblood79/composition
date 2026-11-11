@@ -122,12 +122,15 @@ export const textAreaBinding: PrimitiveBinding = {
       },
       // 텍스트 HTML 입력 힌트 attr — RAC TextField 공식 prop 이라 `<textarea>` 로 전달된다
       //   (RAC 가 TextAreaContext 로 inputProps 를 내려준다). controlled-value 와 직교.
+      // (2026-11-11 사용자 결정 「숨김」: developer HTML · ARIA attributes — accepted, not offered in the panel.)
       autoComplete: {
+        editorHidden: true,
         kind: "string",
         label: "Auto Complete",
         section: "content",
       },
       autoCorrect: {
+        editorHidden: true,
         kind: "enum",
         label: "Auto Correct",
         section: "content",
@@ -137,6 +140,7 @@ export const textAreaBinding: PrimitiveBinding = {
         ],
       },
       inputMode: {
+        editorHidden: true,
         kind: "enum",
         label: "Input Mode",
         section: "content",
@@ -152,6 +156,7 @@ export const textAreaBinding: PrimitiveBinding = {
         ],
       },
       enterKeyHint: {
+        editorHidden: true,
         kind: "enum",
         label: "Enter Key Hint",
         section: "content",
@@ -166,6 +171,7 @@ export const textAreaBinding: PrimitiveBinding = {
         ],
       },
       spellCheck: {
+        editorHidden: true,
         kind: "enum",
         label: "Spell Check",
         section: "content",

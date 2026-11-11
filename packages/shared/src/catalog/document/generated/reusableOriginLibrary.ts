@@ -3083,8 +3083,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "src": "",
       "alt": "Avatar",
       "initials": "A",
-      "size": 24,
-      "isDisabled": false
+      "size": 24
     },
     "visual": {}
   },

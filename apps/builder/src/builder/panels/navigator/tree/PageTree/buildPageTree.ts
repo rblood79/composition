@@ -1,30 +1,18 @@
 import { isComponentsPage } from "@composition/shared";
 import type { PageTreeNode, PageTreePage } from "./types";
 
-function normalizeSlug(slug: string | null | undefined): string {
-  if (!slug) return "";
-  return slug.startsWith("/") ? slug : `/${slug}`;
-}
-
-function findHomePageId(pages: readonly PageTreePage[]): string | null {
-  const explicitHome = pages.find(
-    (page) =>
-      (page.parent_id ?? null) === null && normalizeSlug(page.slug) === "/",
-  );
-  if (explicitHome) return explicitHome.id;
-
-  const rootPages = pages.filter((page) => (page.parent_id ?? null) === null);
-  return rootPages[0]?.id ?? null;
-}
-
+/**
+ * `homePageId` is the project's Home page (`catalogHomePageId` — the first page of the whole
+ * project, not of `pages`: a search shows a filtered list).
+ */
 export function buildPageTree<P extends PageTreePage>(
   pages: readonly P[],
+  homePageId: string | null,
 ): {
   treeNodes: PageTreeNode<P>[];
   nodeMap: Map<string, PageTreeNode<P>>;
 } {
   const childrenByParent = new Map<string | null, P[]>();
-  const homePageId = findHomePageId(pages);
 
   for (const page of pages) {
     const parentId = page.parent_id ?? null;

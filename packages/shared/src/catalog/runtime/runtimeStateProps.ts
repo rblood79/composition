@@ -153,6 +153,32 @@ const CATALOG_UNCONTROLLED_OPEN_TYPES: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * The trigger · picker · submenu ancestor an overlay body sits in, whatever the body itself
+ * declares — where its open state is edited (the Design panel does not offer the body's own
+ * `isOpen` · `defaultOpen` there: 2026-11-11 사용자 결정).
+ */
+export function catalogOpenHostOf(
+  root: CatalogCompositionRoot,
+  bodyId: string,
+  typeOf: (node: CatalogConsumerNode) => string,
+): CatalogConsumerNode | undefined {
+  for (
+    let cursor = root.domInputs.get(root.domInputs.get(bodyId)?.parentId ?? "");
+    cursor;
+    cursor = root.domInputs.get(cursor.parentId)
+  ) {
+    const type = typeOf(cursor);
+    if (
+      CATALOG_OPEN_TRIGGER_TYPES.has(type) ||
+      CATALOG_OPEN_PICKER_TYPES.has(type) ||
+      CATALOG_UNCONTROLLED_OPEN_TYPES.has(type)
+    )
+      return cursor;
+  }
+  return undefined;
+}
+
+/**
  * The record that owns an overlay body's open state: its nearest trigger · picker ancestor (a
  * Modal in a DialogTrigger, a Popover in a MenuTrigger · Select), `null` when RAC lets no one
  * control it (a submenu's), `undefined` when the body stands alone.

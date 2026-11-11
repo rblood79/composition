@@ -26,7 +26,9 @@ export const selectBoxGroupBinding: PrimitiveBinding = {
         section: "state",
       },
       autoFocus: { kind: "auto-focus", label: "Auto Focus", section: "state" },
+      // (2026-11-11 사용자 결정 「숨김」: developer HTML · ARIA attributes — accepted, not offered in the panel.)
       escapeKeyBehavior: {
+        editorHidden: true,
         kind: "enum",
         label: "Escape key behavior",
         section: "state",
@@ -37,16 +39,23 @@ export const selectBoxGroupBinding: PrimitiveBinding = {
         ],
       },
       "aria-labelledby": {
+        editorHidden: true,
         kind: "string",
         label: "Labelled by",
         section: "content",
       },
       "aria-describedby": {
+        editorHidden: true,
         kind: "string",
         label: "Described by",
         section: "content",
       },
-      "aria-details": { kind: "string", label: "Details", section: "content" },
+      "aria-details": {
+        kind: "string",
+        label: "Details",
+        section: "content",
+        editorHidden: true,
+      },
       "aria-label": {
         kind: "string",
         label: "Accessible label",

@@ -96,10 +96,17 @@ export const formBinding: PrimitiveBinding = {
         ],
       },
       // form HTML attributes — live consumer: delegatedDom `form`
-      action: { kind: "string", label: "Action", section: "state" },
+      // (2026-11-11 사용자 결정 「숨김」: developer HTML · ARIA attributes — accepted, not offered in the panel.)
+      action: {
+        kind: "string",
+        label: "Action",
+        section: "state",
+        editorHidden: true,
+      },
       // S2 1.8.0 (`@react-types/shared` DOMProps `method`): get · post · dialog — dialog 는 안
       //   `<dialog>` 를 닫는 HTML form method.
       method: {
+        editorHidden: true,
         kind: "enum",
         label: "Method",
         section: "state",
@@ -111,6 +118,7 @@ export const formBinding: PrimitiveBinding = {
         ],
       },
       encType: {
+        editorHidden: true,
         kind: "enum",
         label: "Enc type",
         section: "state",
@@ -124,6 +132,7 @@ export const formBinding: PrimitiveBinding = {
         ],
       },
       target: {
+        editorHidden: true,
         kind: "enum",
         label: "Target",
         section: "state",

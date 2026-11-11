@@ -49,11 +49,6 @@ export interface BadgeProps extends Omit<
    * @default false
    */
   isLoading?: boolean;
-  /**
-   * Disabled dim (generated CSS `[data-disabled]` — catalog states.disabled 0.38)
-   * @default false
-   */
-  isDisabled?: boolean;
 }
 
 /**
@@ -84,7 +79,6 @@ export function Badge(ownProps: BadgeProps): React.ReactElement {
     isPulsing = false,
     fillStyle,
     isLoading = false,
-    isDisabled = false,
     overflowMode = "wrap",
     className,
     children,
@@ -115,7 +109,6 @@ export function Badge(ownProps: BadgeProps): React.ReactElement {
       data-dot={isDot || undefined}
       data-pulsing={isPulsing || undefined}
       data-fill-style={fillStyle || undefined}
-      data-disabled={isDisabled || undefined}
       data-overflow-mode={isDot ? undefined : overflowMode}
     >
       {/* S2 wraps the text in its `Text` — the box that clips it with the ellipsis. */}
