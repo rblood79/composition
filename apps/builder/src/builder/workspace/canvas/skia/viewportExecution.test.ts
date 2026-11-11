@@ -665,3 +665,114 @@ describe("ADR-266 Phase 3 — damage 경로도 칠할 수 있는 unsafe 를 싣�
     expect(out.events).not.toContain("t300,0");
   });
 });
+
+describe("fixed 상자는 자기 page 의 원점에서 그린다 (viewport · damage sequence)", () => {
+  afterEach(() => {
+    clearSkiaRegistry();
+    index.bounds = null;
+    vi.unstubAllEnvs();
+  });
+
+  /** 칠한 순간의 canvas 원점 (save · restore · translate 를 따라간다). */
+  function drawOrigins(events: readonly string[]) {
+    const stack: { x: number; y: number }[] = [];
+    let at = { x: 0, y: 0 };
+    const out: { x: number; y: number }[] = [];
+    for (const event of events) {
+      if (event === "save") stack.push(at);
+      else if (event === "restore") at = stack.pop() ?? { x: 0, y: 0 };
+      else if (event.startsWith("t")) {
+        const [x, y] = event.slice(1).split(",").map(Number);
+        at = { x: at.x + x, y: at.y + y };
+      } else if (event.startsWith("draw")) out.push(at);
+    }
+    return out;
+  }
+
+  /**
+   * Home (0,0) · Page 2 (470,0) 두 page root. Page 2 > trigger > fixed overlay (Sheet viewport —
+   * 엔진이 page viewport 에 놓아 trigger 기준 -10,-10). Home 에는 화면 밖 leaf 를 많이 둬 viewport 경로가
+   * 절반 규칙으로 후퇴하지 않게 한다.
+   */
+  function twoPages() {
+    const fill = {
+      type: "box",
+      box: { fillColor: Float32Array.of(0, 0, 0, 0.5), borderRadius: 0 },
+    } as Partial<SkiaNodeData>;
+    register("home", { width: 390, height: 20000 });
+    register("page2", { width: 390, height: 844 });
+    register("trigger", { width: 100, height: 32 });
+    register("overlay", {
+      ...fill,
+      width: 390,
+      height: 844,
+      isFixed: true,
+      isOverlay: true,
+    });
+    const leaves = Array.from({ length: 40 }, (_, i) => {
+      register(`h${i}`, { width: 50, height: 50 });
+      return node(`h${i}`, "home");
+    });
+    const layout = new Map<string, ComputedLayout>([
+      ["home", { x: 0, y: 0, width: 390, height: 20000 } as ComputedLayout],
+      ["page2", { x: 470, y: 0, width: 390, height: 844 } as ComputedLayout],
+      ["trigger", { x: 10, y: 10, width: 100, height: 32 } as ComputedLayout],
+      ["overlay", { x: -10, y: -10, width: 390, height: 844 } as ComputedLayout],
+      ...leaves.map(
+        (leaf, i) =>
+          [
+            leaf.id,
+            { x: 0, y: 2000 + i * 300, width: 50, height: 50 } as ComputedLayout,
+          ] as const,
+      ),
+    ]);
+    return buildRenderCommandStream(
+      ["home", "page2"],
+      new Map([
+        ["home", leaves],
+        ["page2", [node("trigger", "page2")]],
+        ["trigger", [node("overlay", "trigger")]],
+      ]),
+      layout,
+      {},
+    );
+  }
+
+  it("Page 2 의 열린 overlay 는 viewport 경로에서도 Page 2 위에 그린다 (Home 원점 아님)", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    const stream = twoPages();
+    expect(stream.boundsMap.get("overlay")).toMatchObject({ x: 470, y: 0 });
+    const area = { x: 460, y: 0, width: 420, height: 900 } as DOMRect;
+    const ck = paintingCk();
+    const linearOut = paintingCanvas();
+    executeRenderCommands(ck, linearOut.canvas, stream.commands, area);
+    expect(drawOrigins(linearOut.events)).toEqual([{ x: 470, y: 0 }]);
+
+    index.bounds = new Map(stream.hitBoundsMap);
+    const viewportOut = paintingCanvas();
+    resetRenderCounters();
+    expect(
+      executeViewportRenderCommands(ck, viewportOut.canvas, stream, area, [
+        "home",
+        "page2",
+      ]),
+    ).toBe(true);
+    expect(snapshotRenderCounters().viewportFallbacks).toBe(0);
+    expect(drawOrigins(viewportOut.events)).toEqual([{ x: 470, y: 0 }]);
+  });
+
+  it("damage 부분 재기록도 같은 원점이다", () => {
+    const stream = twoPages();
+    index.bounds = new Map(stream.hitBoundsMap);
+    const out = paintingCanvas();
+    expect(
+      executeDamageRenderCommands(
+        paintingCk(),
+        out.canvas,
+        stream,
+        { x: 470, y: 0, width: 390, height: 844 } as DOMRect,
+      ),
+    ).not.toBeNull();
+    expect(drawOrigins(out.events)).toEqual([{ x: 470, y: 0 }]);
+  });
+});

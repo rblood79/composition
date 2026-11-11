@@ -2441,7 +2441,12 @@ export function buildDamageRenderCommandSequence(
       const context = stream.subtreeBuildContextByElement.get(elementId);
       if (!context) return null;
       const parentId = context.parentElementId;
+      // Only a drag top layer is recorded at the stream's top level in scene coordinates
+      // (`topLayerSubtreeContext`). A fixed box is in `topLayerElementIds` too (no splice) but is
+      // recorded inside its page's children, relative to the page — copied without the page, it
+      // draws at the scene origin (an open Sheet of Page 2 painted over Home).
       const isTopLayerRoot =
+        context.topLayerSubtree &&
         stream.topLayerElementIds.has(elementId) &&
         (parentId === null || !stream.topLayerElementIds.has(parentId));
       if (parentId === null || isTopLayerRoot) {

@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [열린 Sheet · fixed 상자가 다른 페이지에 그려지던 결함] - 2026-11-12
+
+### Fixed
+
+- **Home 이 아닌 페이지에서 Sheet 의 Open 을 켜면 Sheet 가 Home 페이지 위에 그려지던 결함** (선택 테두리는 제 페이지에 남음):
+  - **Why**: fixed 상자 (열린 Sheet · Popover portal · 저작 `position: fixed`) 는 부분 재기록을 막으려고 stream 의 top layer 목록에 들지만, 명령은 자기 페이지 자식 안에 페이지 기준 좌표로 기록된다. viewport · damage 실행의 명령 묶음 (`buildDamageRenderCommandSequence`) 이 이 상자를 조상 없는 root 로 잘라 페이지 이동이 빠졌고, 장면 원점 (= Home 자리) 에 그렸다. 페이지가 원점에 있는 Home 에서는 드러나지 않는다.
+  - 수정: 조상 없이 실행하는 root 는 stream 최상위에 장면 좌표로 기록되는 drag top layer (`topLayerSubtree`) 로만 한정 (`workspace/canvas/skia/renderCommands.ts`). 회귀 테스트 `viewportExecution.test.ts` 「fixed 상자는 자기 page 의 원점에서 그린다」 2 건 (viewport · damage).
+
 ## [Overrides 정리 — 원래 값으로 되돌리면 변경 이력이 남지 않음 · 버튼 문구] - 2026-11-11
 
 ### Fixed

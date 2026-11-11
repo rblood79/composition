@@ -40,6 +40,8 @@ paths:
 
 - RAC SelectValue가 목록 Text를 재사용하면 선택값 context에서 typography를 상속하고 목록 context의 inline 크기를 그대로 가져오지 않는다. **Why (2026-11-06):** single·multiple의 단일 선택값이 S/L/XL에서도 14px에 고정됐지만, Text를 재사용하지 않는 다중 요약은 정상적으로 12/16/18px을 따랐다. size 편집과 Undo는 미선택·단일 값·요약 각각 검증한다.
 
+- fixed 상자 (Portal · Sheet · 저작 fixed) 는 top layer 목록에 들어도 명령은 자기 페이지 자식 안에 페이지 기준 좌표로 기록된다 — 명령을 잘라 실행하는 경로 (viewport · damage sequence) 는 drag top layer (`topLayerSubtree`) 만 조상 없이 실행한다. **Why (2026-11-12):** sequence 가 fixed 상자를 root 로 잘라 페이지 이동이 빠져, Page 2 에서 연 Sheet 가 장면 원점의 Home 위에 그려졌다 (선택 테두리는 Page 2). 원점의 페이지에서는 드러나지 않아 두 번째 페이지로 시험한다 (`viewportExecution.test.ts`).
+
 - Portal·Sheet는 일반 fixed와 구분해 페이지 마지막에 그리며 hit-test도 같은 stream 순서를 쓴다. 모달 배경막의 pointer 영역과 본체 선택 테두리는 분리한다. **Why (2026-11-06):** 열린 overlay 뒤에 Button을 추가하면 10개 계열에서 Button이 먼저 선택됐다. Dialog 배경막도 viewport 전체를 그리면서 본체 310×176만 hit에 등록해 뒤 요소로 클릭이 통과했다.
 
 - 열린 overlay owner의 선택·hover·측정·눈금자는 본체의 최종 scene 경계를 읽고, 문서 선택 identity와 분리한다. resize는 표시 본체의 override에 쓰며 portal 표시를 끌어 흐름의 트리거를 이동시키지 않는다. **Why (2026-11-04)**: DialogTrigger 선택 테두리 310×176이 화면 상단에 남고 Modal 본체만 중앙에 그려졌다. Sheet·Popover·Menu·PreviewTrigger도 같은 경계 소비 누락이었다. 전체 페이지 순회 대신 선택 owner의 조립 경로만 해석한다.
