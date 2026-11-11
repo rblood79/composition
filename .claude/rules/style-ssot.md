@@ -91,6 +91,7 @@ const LAYOUT_PROPS = [
 정본: [state-management.md §7](state-management.md). 요지 — commit 판정은 `lastSavedValueRef` 기준 단독, value prop 동기화 `useEffect` 는 같은 요소에 focus 중이면 건너뛴다 (`components/property/PropertyUnitInput.components.tsx`). catalog 미리보기는 문서를 쓰지 않아 value prop 이 commit 값에 머물지만, 가드는 focus 중 외부 갱신으로부터 편집 세션을 지키는 방어로 유지한다.
 
 - **↑/↓ 는 닫힌 칸에서 숫자 stepper 하나다** — `handleKeyDown` (capture) 이 `stopPropagation` 해 RAC ComboBox 로 보내지 않고, 목록이 열려 있을 때 (`menuOpenRef`) 만 RAC 의 항목 이동에 맡긴다. **Why (2026-11-02 /fix)**: `preventDefault` 만으로는 RAC `useComboBox` 의 ↑/↓ 가 닫힌 preset 목록을 열고 (`state.open('last')`) 가상 포커스를 옮겨, 이어진 Tab 이 그 항목을 commit 했다 (`if (state.isOpen) state.commit()`) — Gap 0 에서 ↑×3 Tab = M 토큰, ↑×30 Tab = Reset 으로 값 삭제 (Enter 는 정상). 회귀 테스트 `PropertyUnitInput.test.tsx` 「↑ on a preset field steps the number only」.
+- **칸이 보이는 숫자는 한 곳에서 읽는다 (`shownNumber`)** — ▲▼ 와 label scrub 의 시작값이 같은 함수를 지난다. 토큰 칸의 글자는 단계 이름 (「M」) 이라 `parseFloat(inputValue)` 는 NaN 이고 토큰의 `numericValue` 는 null 이다. **Why (2026-11-11 /fix)**: `1901c0507` 이 칸 글자를 단계 이름으로 바꾸며 ▲▼ 만 해석 px 를 읽게 고쳐, label scrub 은 0 에서 시작했다 — ⌥ 자유값 M(12)+4 → 4, 단계 끌기 M 한 칸 → L 이 아닌 0 기준 단계. 회귀 테스트 `adr298TokenPreview.test.tsx` 「a step scrub on a token field walks from the token's step」 · token scrub 3 건.
 
 ## 6. 신규 Consumer · 키 추가 체크리스트
 

@@ -8,7 +8,13 @@ import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
-import { act, cleanup, fireEvent, render, renderHook } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  renderHook,
+} from "@testing-library/react";
 import { PropertyUnitInput } from "../../components/property/PropertyUnitInput";
 import { PropertySelectionContext } from "../../components/property/propertySelection";
 import { SPACING_PRESET_OPTIONS } from "../../components/property/propertyUnitPresets";
@@ -92,7 +98,9 @@ describe("ADR-298 token scrub preview", () => {
       );
       host.previewStyle(property, value);
       expect(graph.revision).toBe(revision);
-      expect(workspace.root.domInputs.get(record)![layer][field]).toBe(expected);
+      expect(workspace.root.domInputs.get(record)![layer][field]).toBe(
+        expected,
+      );
     },
   );
 
@@ -146,6 +154,30 @@ describe("ADR-298 token scrub preview", () => {
     },
   );
 
+  it("a step scrub on a token field walks from the token's step", async () => {
+    // (The field shows the step name 「M」 — the scrub starts from its resolved px, not from 0.)
+    const onDrag = vi.fn();
+    const view = render(
+      <PropertySelectionContext.Provider
+        value={{ useSelectedId: () => BOX, readSelectedId: () => BOX }}
+      >
+        <PropertyUnitInput
+          label="Padding"
+          value="var(--spacing-md)"
+          presets={SPACING_PRESET_OPTIONS}
+          onChange={() => {}}
+          onDrag={onDrag}
+        />
+      </PropertySelectionContext.Provider>,
+    );
+    const legend = view.container.querySelector("legend")!;
+    fireEvent.pointerDown(legend, { button: 0, clientX: 100, pointerId: 1 });
+    fireEvent.pointerMove(legend, { clientX: 108, pointerId: 1 });
+    expect(onDrag).toHaveBeenLastCalledWith("var(--spacing-lg)");
+    fireEvent.pointerMove(legend, { clientX: 92, pointerId: 1 });
+    expect(onDrag).toHaveBeenLastCalledWith("var(--spacing-sm)");
+  });
+
   it("commits one token edit and Undo restores the starting value", async () => {
     const { workspace, graph, record, host } = await open();
     host.updateStyle("paddingTop", "4px");
@@ -193,7 +225,10 @@ describe("ADR-298 token scrub preview", () => {
       });
       expect(workspace.root.domInputs.get(record)!.visual.paddingTop).toBe(16);
       act(() => {
-        hook.result.current.updateStylePreview("paddingTop", "var(--spacing-lg)");
+        hook.result.current.updateStylePreview(
+          "paddingTop",
+          "var(--spacing-lg)",
+        );
         hook.result.current.cancelStylePreview();
         flush();
       });
@@ -216,7 +251,9 @@ describe("ADR-298 token scrub preview", () => {
     expect(visual().lineHeight).toBe(preview.lineHeight);
     host.previewStyle("lineHeight", "var(--text-heading-lg--line-height)");
     const line = visual().lineHeight;
-    const linePx = Number(resolveToken("{typography.text-heading-lg--line-height}"));
+    const linePx = Number(
+      resolveToken("{typography.text-heading-lg--line-height}"),
+    );
     expect(line).toBe(linePx / 22);
     host.updateStyle("lineHeight", "var(--text-heading-lg--line-height)");
     expect(visual().lineHeight).toBe(line);

@@ -225,6 +225,19 @@ export const PropertyUnitInputControl = memo(
 
     const tokenDisplay = () =>
       getInputDisplayValue(value, parsed, isPreservedEmptyValue, presets);
+    /**
+     * The number the field shows, for ▲▼ and the label scrub: a token shows its step name (「M」),
+     * so it reads as the token's resolved px (D9 — the literal escape); otherwise the typed text.
+     * Why (2026-11-11): the scrub kept `parseFloat(inputValue)` after 1901c0507 put the step name
+     * in the field — 「M」 parsed to NaN and the token's `numericValue` is null, so a scrub on a
+     * token field started from 0 (⌥ free value 12 + 4 → 4, a step drag picked steps from 0).
+     */
+    const shownNumber = () =>
+      parseFloat(
+        valueIsToken && inputValue.trim() === tokenDisplay()
+          ? getPresetDisplayValue(value.trim())
+          : inputValue,
+      );
 
     const handleInputChange = (newValue: string) => {
       setInputValue(newValue);
@@ -444,12 +457,7 @@ export const PropertyUnitInputControl = memo(
       const step = coarse ? 10 : 1;
       // The shown edit value: a host whose preview does not write the document (catalog) keeps
       // the `value` prop at the committed value, so successive arrows step from what is shown.
-      // A token shows its step name — ▲▼ step from its resolved px (the literal escape, D9).
-      const typed = parseFloat(
-        valueIsToken && inputValue.trim() === tokenDisplay()
-          ? getPresetDisplayValue(value.trim())
-          : inputValue,
-      );
+      const typed = shownNumber();
       const base = Number.isFinite(typed)
         ? typed
         : sizeControl
@@ -644,7 +652,7 @@ export const PropertyUnitInputControl = memo(
       ? {
           onPointerDown: (event: React.PointerEvent<HTMLElement>) => {
             if (event.button !== 0) return;
-            const typed = parseFloat(inputValue);
+            const typed = shownNumber();
             const start = Number.isFinite(typed) ? typed : (numericValue ?? 0);
             scrubRef.current = {
               x: event.clientX,
@@ -910,10 +918,10 @@ export const PropertyUnitInputControl = memo(
                       ? "—"
                       : String(Math.round(sizeControl.computed))
                     : showKeywordAsPlaceholder && inputValue.trim() !== ""
-                        ? inputValue
-                        : emptyInherits
-                          ? "—"
-                          : placeholder
+                      ? inputValue
+                      : emptyInherits
+                        ? "—"
+                        : placeholder
                 }
               />
               {suffixIsTrigger || unitIsTrigger ? (
@@ -1032,9 +1040,7 @@ export const PropertyUnitInputControl = memo(
                             // ADR-298 D3: 묶음 (Font Size 본문 · 제목) 은 ListBox section 하나씩.
                             return group ? (
                               <ListBoxSection key={group} aria-label={group}>
-                                <Header>
-                                  {group}
-                                </Header>
+                                <Header>{group}</Header>
                                 {rows}
                               </ListBoxSection>
                             ) : (
@@ -1049,9 +1055,7 @@ export const PropertyUnitInputControl = memo(
                                 key={UNIT_KEY}
                                 aria-label={unitLabel}
                               >
-                                <Header>
-                                  {unitLabel}
-                                </Header>
+                                <Header>{unitLabel}</Header>
                                 {units
                                   .filter(
                                     (u) => u !== "" && !KEYWORDS.includes(u),
