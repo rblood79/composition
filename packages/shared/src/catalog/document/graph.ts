@@ -439,7 +439,7 @@ function deepFreeze(item: unknown): void {
  * Per definition, kept for one validation of a view: the definition with its instance contract
  * over it, and its `variable` properties (key → variable id) — every instance of it reads these.
  */
-type ContractCache = Map<
+type DefinitionChecks = Map<
   DefinitionEntry | LibraryDefinition,
   {
     readonly definition: (DefinitionEntry | LibraryDefinition) &
@@ -1293,9 +1293,9 @@ export class CatalogGraph {
         ownerInView.set(child, entry.id);
     if (entries.length !== entryIds.size)
       throw new CatalogValidationError("DUPLICATE_ID", "entries");
-    // Contracts depend on this view, not the instance. Discard the cache after this validation
+    // The checks depend on this view, not the instance. Discard them after this validation
     // so a later load or transaction always reads its own definitions and input variables.
-    const contracts: ContractCache = new Map();
+    const checks: DefinitionChecks = new Map();
     const ownerOfInView = (id: string) => ownerInView.get(id);
     for (const entry of entries) {
       if (entry.kind === "project" && entry.id !== this.projectId)
@@ -1335,7 +1335,7 @@ export class CatalogGraph {
         get,
         this.library,
         ownerOfInView,
-        contracts,
+        checks,
       );
     }
     for (const entry of entries)
@@ -1364,8 +1364,8 @@ export class CatalogGraph {
     library: CatalogLibrary = this.library,
     /** Owner of a node as `get` reads the document (an unlocked origin's copy — ADR-282 R7). */
     ownerOf: (id: string) => string | undefined = (id) => this.ownerOf(id),
-    /** Contracts already computed in this validation (one per definition). */
-    contracts: ContractCache = new Map(),
+    /** Definition checks already made in this validation (one per definition). */
+    checks: DefinitionChecks = new Map(),
   ): void {
     const lookupDefinition = (id: DefinitionId) =>
       id.startsWith("lib:")
@@ -1392,7 +1392,7 @@ export class CatalogGraph {
     };
     // A composite instance is its template root: it takes the root's props plus its schema.
     const checkOf = (definition: DefinitionEntry | LibraryDefinition) => {
-      const cached = contracts.get(definition);
+      const cached = checks.get(definition);
       if (cached) return cached;
       const contract = instanceContract(
         definition as LibraryDefinition,
@@ -1408,7 +1408,7 @@ export class CatalogGraph {
           .filter((property) => property.kind === "variable")
           .map((property) => [property.key, property.variableId!] as const),
       };
-      contracts.set(definition, check);
+      checks.set(definition, check);
       return check;
     };
     /**
