@@ -9,6 +9,8 @@
  * @updated 2026-02-11 - Page Layout 설정 추가 (자동/가로/세로 페이지 배치, BuilderHeader에서 이동)
  * @updated 2026-10-28 - toast 위치 (앱 값) 는 Site 패널로. 페이지 레이아웃은 Canvas 의 페이지
  *   배치라 Builder 설정에 남는다 (사용자 결정 — 잠시 Site 로 옮겼다가 되돌림)
+ * @updated 2026-11-12 - 빌더 알림 Toast 자리 (`uiStore.toastPlacement`) — 앱 토스트 자리 (Site 패널, 프로젝트
+ *   문서 값) 와 따로 둔다 (사용자 결정 — 빌더 알림은 작업하는 사람의 환경)
  * @updated 2026-03-05 - ADR-021 Phase D: 저장 테마 선택 UI 제거 (Tint System으로 대체)
  */
 
@@ -16,7 +18,8 @@ import { Dock, Settings } from "lucide-react";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useBuilderUiStore } from "../../stores/builderUiStore";
-import { useUiStore } from "../../../stores/uiStore";
+import { useUiStore, type ToastPlacement } from "../../../stores/uiStore";
+import { PropertySelect } from "../../components/property/PropertySelect";
 import { PropertySwitch } from "../../components/property/PropertySwitch";
 import { Section as PropertySection } from "../../components/panel/Section";
 import { PropertySizeToggle } from "../../components/property/PropertySizeToggle";
@@ -46,6 +49,19 @@ function SettingsContent() {
 
   const uiScale = useUiStore((state) => state.uiScale);
   const setUiScale = useUiStore((state) => state.setUiScale);
+
+  // 빌더 알림 Toast 자리 — S2 `ToastContainer` placement 네 값 (Site 패널의 앱 토스트 자리와 같은 목록)
+  const toastPlacement = useUiStore((state) => state.toastPlacement);
+  const setToastPlacement = useUiStore((state) => state.setToastPlacement);
+  const toastPlacementOptions: ReadonlyArray<{
+    value: ToastPlacement;
+    label: string;
+  }> = [
+    { value: "top", label: t("settings.toastPlacementTop") },
+    { value: "top end", label: t("settings.toastPlacementTopEnd") },
+    { value: "bottom", label: t("settings.toastPlacementBottom") },
+    { value: "bottom end", label: t("settings.toastPlacementBottomEnd") },
+  ];
 
   const themeModeOptions = [
     { id: "light", label: t("settings.themeModeLight") },
@@ -132,6 +148,16 @@ function SettingsContent() {
             onChange={handleUiScaleChange}
             options={uiScaleOptions}
             className="settings-ui-scale-toggle"
+          />
+
+          {/* 빌더 알림 자리 — 앱 토스트 자리 (Site 패널) 와 다른 값 */}
+          <PropertySelect
+            label={t("settings.toastPlacement")}
+            value={toastPlacement}
+            options={toastPlacementOptions}
+            translateOptions={false}
+            optionValueMode="literal"
+            onChange={(value) => setToastPlacement(value as ToastPlacement)}
           />
 
           {/* Language 는 별도 절이 아니라 Appearance 의 한 필드 (절 3 → 2) */}

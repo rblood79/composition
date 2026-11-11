@@ -7,6 +7,12 @@
  * new toast slides in from its edge, a removed one slides out, the stack and the list morph; reduced
  * motion cross-fades); the expanded list takes over the screen as S2's does — `useModalOverlay`
  * (scroll lock · the rest hidden from assistive tech) and `FocusScope contain`.
+ *
+ * Skin (user 2026-11-11 「builder 의 toast 도 S2 형태로」): the stack · expand · view transitions are one
+ * implementation; the class prefix, the inline sizes · colors and the action button's sheet are the
+ * caller's (`ToastRegionSkin`). Preview · Publish use `CATALOG_TOAST_SKIN` (`catalog-toast*`, theme tokens,
+ * the document Button sheet); the builder chrome passes its own prefix and sheet — ADR-305 keeps the
+ * catalog sheets out of the builder document.
  */
 import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
 import {
@@ -81,14 +87,14 @@ let reduceMotion = false;
  * S2 `startViewTransition`: the update in a view transition, its type as a class on the html element
  * (Safari has no `:active-view-transition-type()` — `Toast.css` reads the class). No API → the update.
  */
-function startViewTransition(fn: () => void, type: string) {
+function startViewTransition(fn: () => void, type: string, prefix: string) {
   if (typeof document === "undefined" || !("startViewTransition" in document)) {
     fn();
     return;
   }
   const root = document.documentElement;
-  const classes = [`catalog-toast-${type}`];
-  if (reduceMotion) classes.push("catalog-toast-reduce-motion");
+  const classes = [`${prefix}-${type}`];
+  if (reduceMotion) classes.push(`${prefix}-reduce-motion`);
   root.classList.add(...classes);
   const transition = (
     document as Document & {
@@ -102,12 +108,15 @@ function startViewTransition(fn: () => void, type: string) {
   void transition.finished.finally(() => root.classList.remove(...classes));
 }
 
-/** The queue the provider fills (S2 `getGlobalToastQueue` — every toast visible, the stack shows them). */
-export function createCatalogToastQueue() {
+/**
+ * The queue the provider fills (S2 `getGlobalToastQueue` — every toast visible, the stack shows them).
+ * `prefix` = the region skin's (its view transition classes on the html element).
+ */
+export function createToastQueue(prefix: string = CATALOG_TOAST_SKIN.prefix) {
   const queue = new RACToastQueue<ToastValue>({
     maxVisibleToasts: Infinity,
     // (S2: an add · remove · clear is a view transition — `toast-add` · `toast-remove` · `toast-clear`.)
-    wrapUpdate: (fn, action) => startViewTransition(fn, action),
+    wrapUpdate: (fn, action) => startViewTransition(fn, action, prefix),
   });
   return {
     queue,
@@ -141,16 +150,39 @@ export function createCatalogToastQueue() {
     clear: () => queue.clear(),
   };
 }
-export type CatalogToastQueue = ReturnType<typeof createCatalogToastQueue>;
+export type CatalogToastQueue = ReturnType<typeof createToastQueue>;
+/** The app's (Preview · Publish) queue — the catalog skin. */
+export const createCatalogToastQueue = () => createToastQueue();
 
 /** S2 `intlMessages` (`toast.showAll` · `toast.clearAll` · `toast.collapse`) — en-US · ko-KR. */
 const MESSAGES = {
   en: { showAll: "Show all", clearAll: "Clear all", collapse: "Collapse" },
   ko: { showAll: "모두 표시", clearAll: "모두 지우기", collapse: "접기" },
 } as const;
-function useMessages() {
+type ToastMessages = { showAll: string; clearAll: string; collapse: string };
+function useMessages(override?: ToastMessages): ToastMessages {
   const { locale } = useLocale();
+  if (override) return override;
   return locale.toLowerCase().startsWith("ko") ? MESSAGES.ko : MESSAGES.en;
+}
+
+/**
+ * What differs between the app's toasts and the builder's: class prefix (every class and view
+ * transition name — the sheet is the caller's), inline sizes · colors, the action button's sheet,
+ * the stack controls' text and the region's own inline style.
+ */
+export interface ToastRegionSkin {
+  prefix: string;
+  /** The toast box's inline style (absent = the sheet's `[data-variant]`). */
+  boxStyle?: (variant: ToastVariant) => CSSProperties;
+  iconStyle?: CSSProperties;
+  closeStyle?: CSSProperties;
+  expandStyle?: CSSProperties;
+  /** S2 `Button variant="secondary" fillStyle="outline" staticColor="white"` — whose sheet paints it. */
+  action: { className?: string; data?: Readonly<Record<string, string>> };
+  /** 「Show all」 · 「Clear all」 · 「Collapse」 (absent = en · ko by the RAC locale). */
+  messages?: ToastMessages;
+  regionStyle?: CSSProperties;
 }
 
 interface StackValue {
@@ -162,6 +194,7 @@ interface StackValue {
   reduceMotion: boolean;
   /** The app's own toast shape (absent = S2's look). */
   renderToast?: ToastRenderer;
+  skin: ToastRegionSkin;
 }
 const StackContext = createContext<StackValue>({
   expanded: false,
@@ -170,6 +203,7 @@ const StackContext = createContext<StackValue>({
   placement: "bottom",
   align: "center",
   reduceMotion: false,
+  skin: { prefix: "catalog-toast", action: {} },
 });
 
 /** S2 `ToastContainer`: the region at its placement, the stack, and the expanded list's controls. */
@@ -177,11 +211,14 @@ export function ToastRegion({
   queue,
   placement,
   renderToast,
+  skin = CATALOG_TOAST_SKIN,
 }: {
   queue: RACToastQueue<ToastValue>;
   placement: ToastPlacement;
   renderToast?: ToastRenderer;
+  skin?: ToastRegionSkin;
 }) {
+  const p = skin.prefix;
   const [side, align = "center"] = placement.split(" ") as [
     "top" | "bottom",
     "end" | undefined,
@@ -205,9 +242,9 @@ export function ToastRegion({
   // (S2 `toggleExpanded`: a single toast does not expand; the change is a view transition.)
   const toggle = useCallback(() => {
     if (!expanded && queue.visibleToasts.length <= 1) return;
-    startViewTransition(flip, expanded ? "collapse" : "expand");
-  }, [expanded, flip, queue]);
-  const messages = useMessages();
+    startViewTransition(flip, expanded ? "collapse" : "expand", p);
+  }, [expanded, flip, queue, p]);
+  const messages = useMessages(skin.messages);
   const region = useRef<HTMLDivElement>(null);
   // (S2: collapsing moves focus to the region first — the list's toasts are leaving the screen.)
   const collapse = useCallback(() => {
@@ -255,13 +292,24 @@ export function ToastRegion({
       align: align === "end" ? ("end" as const) : ("center" as const),
       reduceMotion: prefersReducedMotion,
       ...(renderToast ? { renderToast } : {}),
+      skin,
     }),
-    [expanded, toggle, count, side, align, prefersReducedMotion, renderToast],
+    [
+      expanded,
+      toggle,
+      count,
+      side,
+      align,
+      prefersReducedMotion,
+      renderToast,
+      skin,
+    ],
   );
   return (
     <RACToastRegion
       queue={queue}
-      className="catalog-toast-region"
+      className={`${p}-region`}
+      style={skin.regionStyle}
       data-placement={side}
       data-align={align}
       data-expanded={expanded || undefined}
@@ -271,14 +319,14 @@ export function ToastRegion({
         <StackContext.Provider value={stack}>
           {expanded && (
             <div
-              className="catalog-toast-backdrop"
+              className={`${p}-backdrop`}
               aria-hidden
               onClick={collapse}
             />
           )}
           <RACToastList<ToastValue>
             ref={list}
-            className={`catalog-toast-list ${expanded ? "catalog-toast-list-expanded" : "catalog-toast-list-collapsed"}`}
+            className={`${p}-list ${expanded ? `${p}-list-expanded` : `${p}-list-collapsed`}`}
             style={({ isHovered }) => {
               // (S2: the stack's slivers lean away from the top toast — a perspective origin past it.)
               const origin = isHovered ? 95 : 55;
@@ -293,16 +341,13 @@ export function ToastRegion({
           </RACToastList>
           {/* (S2: the controls stay in the DOM — the view transition shows them while it runs.) */}
           <div
-            className="catalog-toast-controls"
+            className={`${p}-controls`}
             data-expanded={expanded || undefined}
           >
-            <Button
-              className="catalog-toast-control"
-              onPress={() => queue.clear()}
-            >
+            <Button className={`${p}-control`} onPress={() => queue.clear()}>
               {messages.clearAll}
             </Button>
-            <Button className="catalog-toast-control" onPress={collapse}>
+            <Button className={`${p}-control`} onPress={collapse}>
               {messages.collapse}
             </Button>
           </div>
@@ -324,6 +369,31 @@ function toastBoxStyle(variant: ToastVariant): CSSProperties {
   };
 }
 
+/** Preview · Publish: the `catalog-toast*` sheet, theme tokens · device sizes inline, the document Button. */
+export const CATALOG_TOAST_SKIN: ToastRegionSkin = {
+  prefix: "catalog-toast",
+  boxStyle: toastBoxStyle,
+  iconStyle: {
+    width: catalogDeviceLength("{size.icon.M}"),
+    height: catalogDeviceLength("{size.icon.M}"),
+  },
+  closeStyle: {
+    width: catalogDeviceLength("{size.height.M}"),
+    height: catalogDeviceLength("{size.height.M}"),
+  },
+  expandStyle: { minHeight: catalogDeviceLength("{size.height.M}") },
+  // The document Button's generated sheet (`react-aria-Button` + its data attributes) and `.button-base`.
+  action: {
+    className: "react-aria-Button button-base",
+    data: {
+      "data-variant": "secondary",
+      "data-fill-style": "outline",
+      "data-static-color": "white",
+      "data-size": "M",
+    },
+  },
+};
+
 /**
  * S2 `SpectrumToast`. (Its `Text`s carry their own class — RAC's default `react-aria-Text` is the document's
  * Text node's sheet, which paints `--fg` over the toast's white.)
@@ -337,9 +407,11 @@ function ToastItem({ toast }: { toast: QueuedToast<ToastValue> }) {
     align,
     reduceMotion,
     renderToast,
+    skin,
   } = useContext(StackContext);
+  const p = skin.prefix;
   const toastRef = useRef<HTMLDivElement>(null);
-  const messages = useMessages();
+  const messages = useMessages(skin.messages);
   const variant = toast.content.variant;
   const index = useIndexOf(toast);
   const state = useContext(RACToastStateContext);
@@ -349,10 +421,10 @@ function ToastItem({ toast }: { toast: QueuedToast<ToastValue> }) {
     return (
       <div
         role="presentation"
-        className="catalog-toast catalog-toast-behind"
+        className={`${p} ${p}-behind`}
         data-variant={variant}
         style={{
-          ...toastBoxStyle(variant),
+          ...skin.boxStyle?.(variant),
           position: "absolute",
           [placement === "top" ? "bottom" : "top"]: 0,
           left: 0,
@@ -363,8 +435,8 @@ function ToastItem({ toast }: { toast: QueuedToast<ToastValue> }) {
           // (S2: a toast's transition name is its key — reduced motion adds its index, so a move
           //  cross-fades instead of sliding.)
           ...viewTransition(toast.key + (reduceMotion ? `-${index}` : ""), [
-            "catalog-toast",
-            "catalog-toast-bg",
+            p,
+            `${p}-bg`,
           ]),
         }}
       />
@@ -378,15 +450,15 @@ function ToastItem({ toast }: { toast: QueuedToast<ToastValue> }) {
       <RACToast
         ref={toastRef}
         toast={toast}
-        className="catalog-toast catalog-toast-shaped"
+        className={`${p} ${p}-shaped`}
         data-variant={variant}
         style={{
           zIndex: count - index - 1,
           ...viewTransition(toast.key, [
-            "catalog-toast",
-            isMain ? "" : "catalog-toast-bg",
-            `catalog-toast-${placement}`,
-            align === "end" ? "catalog-toast-end" : "",
+            p,
+            isMain ? "" : `${p}-bg`,
+            `${p}-${placement}`,
+            align === "end" ? `${p}-end` : "",
           ]),
         }}
       >
@@ -405,14 +477,14 @@ function ToastItem({ toast }: { toast: QueuedToast<ToastValue> }) {
         })}
         {!single && (
           <Button
-            className="catalog-toast-expand catalog-toast-shaped-expand"
-            style={{ minHeight: catalogDeviceLength("{size.height.M}") }}
+            className={`${p}-expand ${p}-shaped-expand`}
+            style={skin.expandStyle}
             onPress={() => {
               toastRef.current?.focus();
               toggle();
             }}
           >
-            <Text className="catalog-toast-title">{messages.showAll}</Text>
+            <Text className={`${p}-title`}>{messages.showAll}</Text>
             <ChevronDown
               aria-hidden
               style={placement === "bottom" ? { rotate: "180deg" } : undefined}
@@ -425,52 +497,47 @@ function ToastItem({ toast }: { toast: QueuedToast<ToastValue> }) {
     <RACToast
       ref={toastRef}
       toast={toast}
-      className="catalog-toast"
+      className={p}
       data-variant={variant}
       style={{
-        ...toastBoxStyle(variant),
+        ...skin.boxStyle?.(variant),
         zIndex: count - index - 1,
         ...viewTransition(toast.key, [
-          "catalog-toast",
-          isMain ? "" : "catalog-toast-bg",
-          `catalog-toast-${placement}`,
-          align === "end" ? "catalog-toast-end" : "",
+          p,
+          isMain ? "" : `${p}-bg`,
+          `${p}-${placement}`,
+          align === "end" ? `${p}-end` : "",
         ]),
       }}
     >
       <div
         role="presentation"
-        className="catalog-toast-body"
+        className={`${p}-body`}
         data-single={single || undefined}
       >
         <RACToastContent
-          className={`catalog-toast-content${isMain ? " catalog-toast-vt-content" : ""}`}
+          className={`${p}-content${isMain ? ` ${p}-vt-content` : ""}`}
         >
           {Icon && (
-            <span className="catalog-toast-icon" aria-hidden>
-              <Icon
-                style={{
-                  width: catalogDeviceLength("{size.icon.M}"),
-                  height: catalogDeviceLength("{size.icon.M}"),
-                }}
-              />
+            <span className={`${p}-icon`} aria-hidden>
+              <Icon style={skin.iconStyle} />
             </span>
           )}
-          <Text slot="title" className="catalog-toast-title">
+          <Text slot="title" className={`${p}-title`}>
             {toast.content.title}
           </Text>
         </RACToastContent>
         {!single && (
           <Button
-            className="catalog-toast-expand catalog-toast-vt-expand"
-            style={{ minHeight: catalogDeviceLength("{size.height.M}") }}
+            className={`${p}-expand ${p}-vt-expand`}
+            style={skin.expandStyle}
             onPress={() => {
               // (S2: this button goes away when pressed — focus moves to the toast.)
               toastRef.current?.focus();
               toggle();
             }}
           >
-            <Text className="catalog-toast-title">{messages.showAll}</Text>
+            <Text className={`${p}-title`}>{messages.showAll}</Text>
             <ChevronDown
               aria-hidden
               style={placement === "bottom" ? { rotate: "180deg" } : undefined}
@@ -478,15 +545,17 @@ function ToastItem({ toast }: { toast: QueuedToast<ToastValue> }) {
           </Button>
         )}
         {toast.content.actionLabel && (
-          // S2 `<Button variant="secondary" fillStyle="outline" staticColor="white">` — the document
-          // Button's generated sheet (`react-aria-Button` + its data attributes) and `.button-base`
-          // paint it, as a Button node with those props.
+          // S2 `<Button variant="secondary" fillStyle="outline" staticColor="white">` — the skin's sheet
+          // paints it (the app: the document Button's generated sheet, as a Button node with those props).
           <Button
-            className={`react-aria-Button button-base catalog-toast-action${isMain ? " catalog-toast-vt-action" : ""}`}
-            data-variant="secondary"
-            data-fill-style="outline"
-            data-static-color="white"
-            data-size="M"
+            className={[
+              skin.action.className,
+              `${p}-action`,
+              isMain ? `${p}-vt-action` : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            {...skin.action.data}
             onPress={() => {
               toast.content.onAction?.();
               if (toast.content.shouldCloseOnAction) state?.close(toast.key);
@@ -498,11 +567,8 @@ function ToastItem({ toast }: { toast: QueuedToast<ToastValue> }) {
       </div>
       <Button
         slot="close"
-        className={`catalog-toast-close${isMain ? " catalog-toast-vt-close" : ""}`}
-        style={{
-          width: catalogDeviceLength("{size.height.M}"),
-          height: catalogDeviceLength("{size.height.M}"),
-        }}
+        className={`${p}-close${isMain ? ` ${p}-vt-close` : ""}`}
+        style={skin.closeStyle}
       >
         <X aria-hidden />
       </Button>

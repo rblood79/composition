@@ -19,6 +19,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why**: fixed 상자 (열린 Sheet · Popover portal · 저작 `position: fixed`) 는 부분 재기록을 막으려고 stream 의 top layer 목록에 들지만, 명령은 자기 페이지 자식 안에 페이지 기준 좌표로 기록된다. viewport · damage 실행의 명령 묶음 (`buildDamageRenderCommandSequence`) 이 이 상자를 조상 없는 root 로 잘라 페이지 이동이 빠졌고, 장면 원점 (= Home 자리) 에 그렸다. 페이지가 원점에 있는 Home 에서는 드러나지 않는다.
   - 수정: 조상 없이 실행하는 root 는 stream 최상위에 장면 좌표로 기록되는 drag top layer (`topLayerSubtree`) 로만 한정 (`workspace/canvas/skia/renderCommands.ts`). 회귀 테스트 `viewportExecution.test.ts` 「fixed 상자는 자기 page 의 원점에서 그린다」 2 건 (viewport · damage).
 
+## [빌더 Toast = S2 모양 · Site 「Toast placement」 select 하나] - 2026-11-11
+
+### Changed
+
+- **빌더 알림 Toast = S2 `Toast`** (사용자 「builder 의 toast 를 S2 형태로」 · 「Compare mode CSS 의 S2 Toast 와 다르다」 → 「빌더 chrome 판 S2」):
+  - 구조 · 동작은 Preview 와 같은 `ToastRegion` — 여러 개가 한 장으로 겹쳐 쌓이고 (뒤는 색 조각 3 장까지) 「Show all」 로 펼치면 덮개 · 「Clear all」 · 「Collapse」, view transition 으로 들고 남. RAC toast 접근성 (region · `alertdialog` · F6) 도 그대로.
+  - **Why**: 첫 수정은 기존 목록 (전부 세로 나열 — RAC starter 모양) 에 색만 S2 로 칠해 Compare mode 의 S2 Toast 와 달랐다. ADR-305 로 빌더 문서는 `catalog-toast` 시트 · 테마 변수를 싣지 않으므로, `ToastRegion` 에 skin (class 접두 · inline 크기 · 색 · action 버튼 시트 · 문구) 을 받게 하고 빌더는 `builder-toast` 시트를 소유한다 (`packages/shared/src/components/ToastRegion.lazy.tsx` `ToastRegionSkin` · `CATALOG_TOAST_SKIN` — Preview · Publish 는 무변경).
+  - 모양: variant 색 면 (S2 semantic 값 — `builder-system.css` `--toast-*`) · 흰 글자 14 · 아이콘 (neutral 없음) · 흰 테두리 pill action (Undo 등) · 원형 닫기 · 최소 높이 56 · 최대 폭 336. S2 toast 에 warning 이 없어 빌더의 `warning` 은 neutral.
+  - store (`stores/toast.ts`) 는 그대로 정본 — `ToastContainer` 가 store ↔ RAC queue 를 잇는다 (추가 · 해제 · 닫기 버튼 · 「Clear all」), 자동 해제 시간은 store 의 것이고 region 의 hover · focus 정지가 store 타이머도 멈춘다. region 모듈은 첫 토스트와 함께 읽는다. 위치는 캔버스 우하단 (action bar 비켜 감) 그대로.
+  - **자리 = Settings 「Toast placement」 (빌더 설정)** — 빌더 알림 자리는 Settings 의 Appearance 절 (S2 placement 네 값, 기본 `bottom`, `uiStore.toastPlacement` — localStorage, 프로젝트와 무관) 이고, 앱 토스트 자리 (Site 「Toast placement」 — 프로젝트 문서 값) 와 따로다 (사용자 결정 2026-11-12 「setting (빌더측) 와 site 측 각각」). **Why**: 처음엔 `ToastContainer` 가 `bottom end` 고정이었고, 이를 Site 값에 묶으면 앱 토스트 자리를 바꿀 때 빌더 알림까지 움직이고 빌더 취향이 문서 · Undo · Publish 에 섞인다. 위 자리는 헤더 줄 아래 (52px — 16 이면 viewport controls 를 덮는다), 아래 자리는 action bar 한 줄 위.
+  - **기본 자리 = `bottom` (S2 `ToastContainer` 기본)** — 빌더 설정 · 앱 (Site — 문서에 값이 없을 때, `catalogToastPlacement`) 둘 다 (사용자 「둘 다 기본값 Bottom 으로」). 종전 앱 기본 `bottom end` → 값을 고르지 않은 프로젝트의 Preview · Publish 토스트가 아래 가운데로 옮겨진다.
+  - 위치: `apps/builder/src/builder/components/feedback/{Toast.tsx,ToastContainer.tsx,Toast.css}` · `stores/uiStore.ts` · `panels/settings/SettingsPanel.tsx` · 테스트 `ToastContainer.test.tsx` (stack · store ↔ region 양방향 · 설정 자리) · `SettingsPanel.test.tsx` · `toastSingleContainer.static.test.ts`.
+- **Site 패널 앱 절의 토스트 위치를 select 하나로**: 「Toast placement」 (위 · 아래) + 「Toast align」 (가운데 · 끝) 두 칸 → S2 `ToastContainer` `placement` 와 같은 네 값 (Top · Top end · Bottom · Bottom end) 의 select 한 칸 (`panels/site/SitePageSections.tsx`). 저장 값 (`toastPlacement`) 은 변화 없음.
+
 ## [Overrides 정리 — 원래 값으로 되돌리면 변경 이력이 남지 않음 · 버튼 문구] - 2026-11-11
 
 ### Fixed

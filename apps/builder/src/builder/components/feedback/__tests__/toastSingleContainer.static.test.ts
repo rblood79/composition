@@ -14,9 +14,9 @@ const read = (rel: string): string => readFileSync(join(SRC, rel), "utf8");
 
 describe("builder toast — 단일 컨테이너 · 단일 store", () => {
   it("ToastContainer 를 마운트하는 컴포넌트는 CatalogBuilderCore 하나다", () => {
-    expect(read("builder/main/CatalogBuilderCore.tsx")).toContain(
-      "<ToastContainer />",
-    );
+    const core = read("builder/main/CatalogBuilderCore.tsx");
+    expect(core.match(/<ToastContainer\b/g)).toHaveLength(1);
+    expect(core).toContain("<ToastContainer />");
   });
 
   it("로컬 훅 경로는 없다 — 발신은 useToastStore 뿐", () => {
@@ -26,9 +26,13 @@ describe("builder toast — 단일 컨테이너 · 단일 store", () => {
     );
   });
 
-  it("컨테이너는 props 없이 store 만 읽는다", () => {
+  it("컨테이너는 props 없이 store 만 읽는다 — 토스트는 toast store, 자리는 빌더 설정 (uiStore)", () => {
     const src = read("builder/components/feedback/ToastContainer.tsx");
     expect(src).toContain("export function ToastContainer()");
+    expect(src).toContain("useToastStore((state) => state.toasts)");
+    expect(src).toContain("useUiStore((state) => state.toastPlacement)");
+    // 앱 토스트 자리 (문서 값 — Site 패널) 는 읽지 않는다 (2026-11-12)
+    expect(src).not.toContain("useCatalogToastPlacement");
     expect(src).not.toContain("hookToasts");
   });
 });

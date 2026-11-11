@@ -84,9 +84,9 @@ async function open() {
 }
 
 describe("S2 toast placement — the project's toast region", () => {
-  it("a new project's toasts show at the bottom end (the region's place before)", async () => {
+  it("a new project's toasts show at the bottom — S2's default (user 2026-11-12)", async () => {
     const { region } = await open();
-    expect(region()).toBe("bottom end");
+    expect(region()).toBe("bottom center");
   });
 
   it.each([
@@ -111,7 +111,7 @@ describe("S2 toast placement — the project's toast region", () => {
     expect(region()).toBe("top center");
     workspace.undo();
     await flush();
-    expect(region()).toBe("bottom end");
+    expect(region()).toBe("bottom center");
   });
 
   it("a placement S2 does not name is refused", async () => {

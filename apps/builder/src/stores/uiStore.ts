@@ -4,6 +4,8 @@
  * 앱 전역 UI 설정 관리 (localStorage 기반 영구 저장)
  * - themeMode: 테마 모드 (light/dark/auto)
  * - uiScale: UI 스케일 (80/100/120)
+ * - toastPlacement: 빌더 알림 Toast 자리 (S2 `ToastContainer` placement — 앱 토스트 자리는 프로젝트의
+ *   Site 「Toast placement」 로 따로 둔다, 사용자 2026-11-12)
  *
  * Phase 1: settings.ts에서 분리하여 글로벌 UI 설정 격리
  *
@@ -12,6 +14,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { ToastPlacement } from "../../../../packages/shared/src/components/Toast";
 
 // ============================================
 // Types
@@ -19,6 +22,7 @@ import { persist } from "zustand/middleware";
 
 export type ThemeMode = "light" | "dark" | "auto";
 export type UiScale = 80 | 100 | 120;
+export type { ToastPlacement };
 
 export interface UiState {
   /** 테마 모드 (기본값: 'auto') */
@@ -27,11 +31,17 @@ export interface UiState {
   /** UI 스케일 (기본값: 100) */
   uiScale: UiScale;
 
+  /** 빌더 알림 Toast 자리 (기본값: 'bottom' — S2 `ToastContainer` 기본, 사용자 2026-11-12) */
+  toastPlacement: ToastPlacement;
+
   /** 테마 모드 설정 */
   setThemeMode: (mode: ThemeMode) => void;
 
   /** UI 스케일 설정 */
   setUiScale: (scale: UiScale) => void;
+
+  /** 빌더 알림 Toast 자리 설정 */
+  setToastPlacement: (placement: ToastPlacement) => void;
 
   /** 설정 초기화 */
   resetUiSettings: () => void;
@@ -44,6 +54,7 @@ export interface UiState {
 const DEFAULT_UI_STATE = {
   themeMode: "auto" as ThemeMode,
   uiScale: 100 as UiScale,
+  toastPlacement: "bottom" as ToastPlacement,
 };
 
 // ============================================
@@ -64,6 +75,10 @@ export const useUiStore = create<UiState>()(
       setUiScale: (scale: UiScale) => {
         document.documentElement.style.setProperty("--ui-scale", String(scale));
         set({ uiScale: scale });
+      },
+
+      setToastPlacement: (placement: ToastPlacement) => {
+        set({ toastPlacement: placement });
       },
 
       resetUiSettings: () => {

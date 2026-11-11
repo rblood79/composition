@@ -13,7 +13,7 @@ describe("SettingsPanel 공통 panel 구조", () => {
     expect(source).not.toContain('className="settings-panel"');
   });
 
-  it("Builder 환경 선택지 — 테마 모드 · 배율 · 페이지 레이아웃 (toast 위치는 Site 패널)", async () => {
+  it("Builder 환경 선택지 — 테마 모드 · 배율 · 페이지 레이아웃 · 빌더 알림 자리 (앱 toast 위치는 Site 패널)", async () => {
     const source = await readFile(
       resolve(__dirname, "SettingsPanel.tsx"),
       "utf-8",
@@ -26,7 +26,8 @@ describe("SettingsPanel 공통 panel 구조", () => {
     expect(source).toContain('{ id: "100", label: "M" }');
     expect(source).toContain('{ id: "120", label: "L" }');
     expect(source).not.toContain("getThemeModeIcon");
-    expect(source).not.toContain("PropertySelect");
+    // 빌더 알림 자리 (uiStore) 만 select — 앱 toast 자리 (문서 값) 는 Site 패널 (2026-10-28 · 11-12)
+    expect(source).toContain("useUiStore((state) => state.toastPlacement)");
     expect(source).toContain("<SettingsPageLayoutSection />");
     expect(source).not.toContain("useCatalogToastPlacement");
   });

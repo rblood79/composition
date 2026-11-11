@@ -1718,10 +1718,9 @@ const catalog: TranslationKeys = {
     app: "앱",
     toastPlacement: "토스트 위치",
     toastPlacementTop: "위쪽",
+    toastPlacementTopEnd: "위쪽 끝",
     toastPlacementBottom: "아래쪽",
-    toastAlign: "토스트 정렬",
-    toastAlignCenter: "가운데",
-    toastAlignEnd: "끝",
+    toastPlacementBottomEnd: "아래쪽 끝",
     toastShape: "토스트 모양",
     toastShapeDefault: "기본 (Library Toast)",
     sitePublishPending:

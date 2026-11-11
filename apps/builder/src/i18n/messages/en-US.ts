@@ -1723,10 +1723,9 @@ const catalog: TranslationKeys = {
     app: "App",
     toastPlacement: "Toast placement",
     toastPlacementTop: "Top",
+    toastPlacementTopEnd: "Top end",
     toastPlacementBottom: "Bottom",
-    toastAlign: "Toast align",
-    toastAlignCenter: "Center",
-    toastAlignEnd: "End",
+    toastPlacementBottomEnd: "Bottom end",
     toastShape: "Toast shape",
     toastShapeDefault: "Default (library toast)",
     sitePublishPending:

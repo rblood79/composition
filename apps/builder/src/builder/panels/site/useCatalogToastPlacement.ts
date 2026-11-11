@@ -8,7 +8,7 @@ const noop = () => () => {};
 
 /**
  * S2 1.8.0 `ToastContainer` `placement` — where the open project's app shows its toasts (the
- * project's `toastPlacement`; absent = `bottom end`), each edit one history step. `null` outside a
+ * project's `toastPlacement`; absent = `bottom` — S2's default), each edit one history step. `null` outside a
  * catalog project.
  */
 export function useCatalogToastPlacement(): {
@@ -43,5 +43,5 @@ export function useCatalogToastPlacement(): {
     [workspace],
   );
   if (!workspace) return null;
-  return { value: value ?? "bottom end", change };
+  return { value: value ?? "bottom", change };
 }

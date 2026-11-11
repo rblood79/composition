@@ -149,16 +149,23 @@ describe("Site 패널 — 앱", () => {
     cleanup();
   });
 
-  it("toast 위치 — 위 · 아래와 정렬 두 칸이 S2 placement 하나로 쓰인다", () => {
+  it("toast 위치 — S2 placement 네 값 (top · top end · bottom · bottom end) 을 select 하나로 고른다", () => {
     render(<SiteAppSection />);
-    fireEvent.change(screen.getByLabelText("settings.toastPlacement"), {
-      target: { value: "top" },
-    });
-    expect(changeToastMock).toHaveBeenLastCalledWith("top end");
-    fireEvent.change(screen.getByLabelText("settings.toastAlign"), {
-      target: { value: "center" },
-    });
+    const select = screen.getByLabelText(
+      "settings.toastPlacement",
+    ) as HTMLSelectElement;
+    expect([...select.options].map((option) => option.value)).toEqual([
+      "top",
+      "top end",
+      "bottom",
+      "bottom end",
+    ]);
+    expect(select.value).toBe("bottom end");
+    fireEvent.change(select, { target: { value: "top" } });
+    expect(changeToastMock).toHaveBeenLastCalledWith("top");
+    fireEvent.change(select, { target: { value: "bottom" } });
     expect(changeToastMock).toHaveBeenLastCalledWith("bottom");
+    expect(screen.queryByLabelText("settings.toastAlign")).toBeNull();
   });
 
   it("toast 모양 — 기본 (Library Toast) 과 root 가 Toast 인 사용자 컴포넌트 중 고른다", () => {

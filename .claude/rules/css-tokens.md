@@ -117,7 +117,7 @@ Dark: `bg(zinc-900) → raised(zinc-850) → overlay(zinc-800) → muted(zinc-70
 
 좌/우 panel toggle rail · header viewport controls · header action group · contextual action bar · workspace panel frame 은 **하나의 디자인 요소**다. 정본: `builder-system.css` §Chrome island.
 
-**Spectrum Hub background layers 적용 (2026-11-10 사용자 요청)**: 이 표면이 Hub 의 **elevated** 다 — editing context 에서 canvas 위에 뜨는 toolbar · panel · popover. 그래서 팝오버 · 메뉴 · tooltip · Toast · Dialog · command palette 도 같은 토큰을 읽는다. 캔버스 바깥은 Hub 의 **pasteboard** (`--bg-pasteboard`) 이고 위에는 떠 있는 표면과 문서만 놓인다.
+**Spectrum Hub background layers 적용 (2026-11-10 사용자 요청)**: 이 표면이 Hub 의 **elevated** 다 — editing context 에서 canvas 위에 뜨는 toolbar · panel · popover. 그래서 팝오버 · 메뉴 · tooltip · Toast · Dialog · command palette 도 같은 토큰을 읽는다. 단 Toast 는 S2 `Toast` 그대로다 (사용자 2026-11-11 「S2 형태의 Toast」 · 「빌더 chrome 판 S2」) — 구조 · 쌓기는 Preview 와 같은 `ToastRegion` 에 빌더 skin (`feedback/Toast.tsx` · `Toast.css`, 접두 `builder-toast`), 면은 variant 색 (`builder-system.css` `--toast-*` — S2 semantic 값) + 흰 글자, 모서리 · 그림자는 chrome 토큰. 캔버스 바깥은 Hub 의 **pasteboard** (`--bg-pasteboard`) 이고 위에는 떠 있는 표면과 문서만 놓인다.
 
 | 토큰                        | 용도                                                                                                                                                                                                    |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

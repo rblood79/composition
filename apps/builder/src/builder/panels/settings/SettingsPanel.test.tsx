@@ -5,10 +5,12 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsPanel } from "./SettingsPanel";
 
-const { setThemeModeMock, setUiScaleMock } = vi.hoisted(() => ({
-  setThemeModeMock: vi.fn(),
-  setUiScaleMock: vi.fn(),
-}));
+const { setThemeModeMock, setUiScaleMock, setToastPlacementMock } =
+  vi.hoisted(() => ({
+    setThemeModeMock: vi.fn(),
+    setUiScaleMock: vi.fn(),
+    setToastPlacementMock: vi.fn(),
+  }));
 // 배럴 전체를 교체하지 않는다 — 새 export 가 추가될 때마다 조용히 깨진다
 // (PanelContents 도입 때 실제로 깨졌다). 실물을 깔고 무거운 것만 덮는다.
 const componentMocks = vi.hoisted(() => ({
@@ -142,8 +144,10 @@ vi.mock("../../../stores/uiStore", () => {
   const state = {
     setThemeMode: setThemeModeMock,
     setUiScale: setUiScaleMock,
+    setToastPlacement: setToastPlacementMock,
     themeMode: "light",
     uiScale: 100,
+    toastPlacement: "bottom",
   };
 
   return {
@@ -155,15 +159,27 @@ describe("SettingsPanel — Builder 환경 설정", () => {
   beforeEach(() => {
     setThemeModeMock.mockReset();
     setUiScaleMock.mockReset();
+    setToastPlacementMock.mockReset();
   });
 
   afterEach(() => {
     cleanup();
   });
 
-  it("toast 위치 (앱 값) 는 Settings 에 없다 — Site 패널 (2026-10-28)", () => {
+  it("toast 위치 — 빌더 알림 자리 (uiStore) 를 S2 placement 네 값에서 고른다 · 앱 자리 (문서) 는 읽지 않는다", () => {
     render(<SettingsPanel />);
-    expect(screen.queryByLabelText("settings.toastPlacement")).toBeNull();
+    const select = screen.getByLabelText(
+      "settings.toastPlacement",
+    ) as HTMLSelectElement;
+    expect([...select.options].map((option) => option.value)).toEqual([
+      "top",
+      "top end",
+      "bottom",
+      "bottom end",
+    ]);
+    expect(select.value).toBe("bottom");
+    fireEvent.change(select, { target: { value: "top" } });
+    expect(setToastPlacementMock).toHaveBeenCalledWith("top");
   });
 
   it("페이지 레이아웃은 Settings 에 있다 (열린 프로젝트)", () => {

@@ -861,7 +861,7 @@ export interface ProjectEntry {
   pageLayout?: PageLayoutDeclaration;
   /**
    * Where the app's toasts show (S2 1.8.0 `ToastContainer` `placement` — one region per app). Absent
-   * = `bottom end`, the region's place before (S2's own default is `bottom`).
+   * = `bottom`, S2's own default (user 2026-11-12; was `bottom end`).
    */
   toastPlacement?: CatalogToastPlacement;
   /**

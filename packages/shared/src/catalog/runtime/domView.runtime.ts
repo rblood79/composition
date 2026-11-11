@@ -55,13 +55,13 @@ export const rootKey = (root: CatalogCompositionRoot) => {
 };
 
 /**
- * The project's toast region place (S2 1.8.1 `ToastContainer` `placement`). Absent = `bottom end` — the
- * region's place before the project chose one (S2's own default is `bottom`).
+ * The project's toast region place (S2 1.8.1 `ToastContainer` `placement`). Absent = `bottom` — S2's own
+ * default (user 2026-11-12; was `bottom end`).
  */
 export function catalogToastPlacement(
   placement: CatalogToastPlacement | undefined,
 ): CatalogToastPlacement {
-  return placement ?? "bottom end";
+  return placement ?? "bottom";
 }
 
 /** The session's rule runtime (rules · capability overrides · toasts · navigation by route). */

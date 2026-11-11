@@ -1,76 +1,33 @@
 /**
- * Toast Component
+ * 빌더 알림 Toast 의 skin — S2 `Toast` 그대로 (사용자 2026-11-11 「builder 의 toast 를 S2 형태로」 ·
+ * 「빌더 chrome 판 S2」).
  *
- * 알림 메시지 표시 컴포넌트
- * - Action 버튼 지원 (Undo 등)
+ * 쌓기 · 펼치기 (「모두 표시」 · 「모두 지우기」 · 「접기」) · view transition · 닫기는 Preview 와 같은 구현
+ * (`packages/shared/src/components/ToastRegion.lazy.tsx` `ToastRegion`) 이다. 다른 것은 skin 뿐 —
+ * class 접두 `builder-toast` 의 시트 (`Toast.css`) 를 빌더가 소유한다. ADR-305 로 빌더 문서는
+ * `catalog-toast` 시트 · 테마 변수 · 문서 Button 시트를 싣지 않으므로 크기 · 색은 inline 이 아니라
+ * 이 시트가 준다.
+ *
+ * store 의 `type` → S2 variant: success → positive · error → negative · info → info ·
+ * warning → neutral (S2 toast 에 warning variant 가 없다).
  */
-
-import { X, CircleAlert, AlertTriangle, CircleCheck, Info } from "lucide-react";
-import { Button } from "react-aria-components/Button";
-import { iconProps, iconEditProps } from "../../../utils/ui/uiConstants";
-import {
-  useToastStore,
-  type ToastAction,
-  type ToastType,
-} from "../../stores/toast";
+import type { ToastRegionSkin } from "../../../../../../packages/shared/src/components/ToastRegion.lazy";
+import type { ToastVariant } from "../../../../../../packages/shared/src/components/Toast";
+import type { ToastType } from "../../stores/toast";
 import "./Toast.css";
 
-const ICONS = {
-  success: CircleCheck,
-  warning: AlertTriangle,
-  error: CircleAlert,
-  info: Info,
-} as const;
+export const BUILDER_TOAST_PREFIX = "builder-toast";
 
-interface ToastProps {
-  id: string;
-  type: ToastType;
-  message: string;
-  onDismiss: (id: string) => void;
-  /** Optional action button (e.g., Undo) */
-  action?: ToastAction;
-}
+export const BUILDER_TOAST_SKIN: ToastRegionSkin = {
+  prefix: BUILDER_TOAST_PREFIX,
+  // 크기 · 색 · action 버튼 모양은 `Toast.css` 의 `.builder-toast*` 가 준다.
+  action: {},
+};
 
-export function Toast({ id, type, message, onDismiss, action }: ToastProps) {
-  const Icon = ICONS[type];
-  const pauseToast = useToastStore((state) => state.pauseToast);
-  const resumeToast = useToastStore((state) => state.resumeToast);
-
-  const handleAction = () => {
-    action?.onClick();
-    onDismiss(id); // 액션 실행 후 자동 닫기
-  };
-
-  return (
-    <div
-      className="toast"
-      data-type={type}
-      role="alert"
-      aria-live="polite"
-      // 읽는 중·조작하려는 중에는 자동 해제를 멈춘다 (되돌리기 도달성).
-      onPointerEnter={() => pauseToast(id)}
-      onPointerLeave={() => resumeToast(id)}
-      onFocusCapture={() => pauseToast(id)}
-      onBlurCapture={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-          resumeToast(id);
-        }
-      }}
-    >
-      <Icon size={iconProps.size} className="toast-icon" aria-hidden="true" />
-      <span className="toast-message">{message}</span>
-      {action && (
-        <Button className="toast-action" onPress={handleAction}>
-          {action.label}
-        </Button>
-      )}
-      <Button
-        className="toast-dismiss"
-        onPress={() => onDismiss(id)}
-        aria-label="Dismiss notification"
-      >
-        <X size={iconEditProps.size} aria-hidden="true" />
-      </Button>
-    </div>
-  );
-}
+/** S2 `ToastQueue` variant — 빌더 store 의 type 이름에서. */
+export const BUILDER_TOAST_VARIANT = {
+  success: "positive",
+  error: "negative",
+  info: "info",
+  warning: "neutral",
+} as const satisfies Record<ToastType, ToastVariant>;

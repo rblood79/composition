@@ -1501,10 +1501,9 @@ export interface TranslationKeys {
     app: string;
     toastPlacement: string;
     toastPlacementTop: string;
+    toastPlacementTopEnd: string;
     toastPlacementBottom: string;
-    toastAlign: string;
-    toastAlignCenter: string;
-    toastAlignEnd: string;
+    toastPlacementBottomEnd: string;
     /** 앱의 토스트 모양 (사용자 2026-11-01 — RAC MyToastRegion): 기본 또는 root 가 Toast 인 사용자 컴포넌트. */
     toastShape: string;
     toastShapeDefault: string;

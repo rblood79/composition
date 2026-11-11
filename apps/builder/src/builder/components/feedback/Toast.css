@@ -1,173 +1,482 @@
 /**
- * Toast Notification Styles
+ * 빌더 알림 Toast — S2 `Toast` (사용자 2026-11-11 「builder 의 toast 를 S2 형태로」 · 「빌더 chrome 판 S2」).
  *
- * 빌더 chrome 어법을 따른다 — 토스트는 캔버스 위에 자유 배치되는 floating island 라
- * rail · viewport controls · contextual action bar · panel frame 과 **같은 디자인 요소**로
- * 읽혀야 한다 (`builder-system.css` §Chrome island).
+ * 구조 · 동작은 Preview 와 같은 `ToastRegion` (`packages/shared/src/components/ToastRegion.lazy.tsx`) 이고
+ * 이 시트는 그 빌더 skin (`builder-toast` 접두) 이다. 값은 설치본 `@react-spectrum/s2` 1.8.2 `Toast.tsx`
+ * (`toastRegion` · `toastList` · `toastStyle` · `toastBody` · `toastContent` · `controls`) 와 Preview 의
+ * `catalog-toast` 시트 (`packages/shared/src/components/styles/Toast.css`) 와 같다. ADR-305 로 빌더 문서는
+ * 그 시트 · 테마 변수 · 문서 Button 시트를 싣지 않으므로 같은 값을 여기 둔다 — 색은 `builder-system.css`
+ * 의 `--toast-*` (S2 테마의 semantic 값 — Preview `semantic-palette.css` 와 같은 수), 크기는 S2 데스크톱 값.
  *
- * 확정 어법 3가지를 그대로 소비한다:
- * - 표면은 `--chrome-surface`, **테두리 없음**, 분리는 그림자로만 (`--chrome-shadow`)
- * - 모서리는 `--chrome-radius`, 여백·간격은 `--chrome-padding` / `--chrome-gap`
- * - 크롬 텍스트는 12px (`--text-xs`), 아이콘 버튼은 `--control-size` 정사각 + hover 8% wash
- *
- * 2026-09-08 이전 값 (bg-overlay 표면 · 1px 테두리 · radius-md · 14px 텍스트 · 타입별
- * 좌측 3px 스트라이프 · 채운 accent 액션 버튼) 은 위 다섯과 갈린 자기만의 어법이었다.
- * 타입 구분은 아이콘 색이 이미 하므로 스트라이프는 제거한다 (chrome 에 새 테두리 금지).
+ * 자리는 빌더 설정 Settings 「Toast placement」 (기본 `bottom` — S2 기본, 앱 토스트 자리 Site 와 따로). 위 · 아래 간격만
+ * 빌더 것이다: 위는 헤더 줄 아래, 아래는 contextual action bar 한 줄 위.
  */
 
 @layer builder-system {
-  /* Toast Container — 캔버스 우하단 floating */
-  .toast-container {
+  .builder-toast-region {
     position: fixed;
-    /* contextual action bar 는 캔버스 하단에 떠 있다 — 같은 띠에 두면 토스트가 그 위를
-       덮어 표시되는 동안 바 조작이 막힌다. 바 한 줄 높이 (컨트롤 + chrome 여백) 만큼
-       올려 둔다. 바를 자유 배치·pin 한 경우의 충돌까지는 보지 않는다. */
+    z-index: 9999;
+    inset-inline: 0;
+    width: fit-content;
+    max-height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    margin-inline: auto;
+    border-radius: var(--radius-lg);
+    outline: none;
+    font-family: inherit;
+  }
+
+  /* 위 자리 (Site 「Toast placement」 top · top end) — 헤더 줄 (작업 영역 바깥 여백 4 + chrome island
+     버튼 32 + island 여백 4 × 2) 아래에 둔다. 16 에 두면 가운데 viewport controls · 오른쪽 action group 을
+     덮는다 (live 실측: 헤더 4 ~ 44 · 토스트 16 ~ 72). */
+  .builder-toast-region[data-placement="top"] {
+    top: calc(
+      var(--spacing-xs) + var(--control-size-lg) + var(--chrome-padding) * 2 +
+        var(--spacing-sm)
+    );
+  }
+
+  /* contextual action bar 는 캔버스 하단에 떠 있다 — 같은 띠에 두면 토스트가 그 위를 덮어 표시되는
+     동안 바 조작이 막힌다. 바 한 줄 높이 (컨트롤 + chrome 여백) 만큼 올려 둔다. 바를 끌어 토스트
+     자리로 옮기면 `--toast-action-bar-clearance` 만큼 더 (`useActionBarClearance`). */
+  .builder-toast-region[data-placement="bottom"] {
     bottom: calc(
       var(--spacing-lg) + var(--control-size) + var(--chrome-padding) * 2 +
         var(--spacing-sm) + var(--toast-action-bar-clearance, 0px)
     );
-    right: var(--spacing-lg);
-    z-index: 9999;
+    flex-direction: column-reverse;
+  }
+
+  .builder-toast-region[data-align="end"] {
+    margin-inline: auto var(--spacing-lg);
+  }
+
+  .builder-toast-region[data-expanded][data-placement="top"] {
+    top: 0;
+  }
+
+  .builder-toast-region[data-expanded][data-placement="bottom"] {
+    bottom: 0;
+  }
+
+  .builder-toast-region[data-focus-visible] {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* S2 `toastList` — 간격 8 · 펼치면 focus 링 몫의 여백과 스크롤. */
+  .builder-toast-list {
+    position: relative;
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);
-    max-width: 380px;
-    pointer-events: none;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
   }
 
-  /* Individual Toast — chrome island (floating 고도) */
-  .toast {
+  .builder-toast-region[data-placement="bottom"] .builder-toast-list {
+    flex-direction: column-reverse;
+  }
+
+  .builder-toast-region[data-expanded] .builder-toast-list {
+    padding: var(--spacing-lg) var(--spacing-sm) var(--spacing-sm);
+    margin-inline: calc(var(--spacing-sm) * -1);
+    overflow: auto;
+  }
+
+  .builder-toast-region[data-expanded][data-placement="bottom"]
+    .builder-toast-list {
+    padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-lg);
+  }
+
+  /* S2 `toastStyle` — 여백 시작 16 · 끝 8 · 위아래 12, 간격 16, 최소 높이 56, 최대 폭 336, 모서리 lg,
+     흰 글자 · variant 색 면, 그림자 elevated (빌더의 떠 있는 표면 한 단). */
+  .builder-toast {
+    display: flex;
+    gap: var(--spacing-lg);
+    min-height: 56px;
+    max-width: min(336px, 90vw);
+    padding-block: var(--spacing-md);
+    padding-inline: var(--spacing-lg) var(--spacing-sm);
+    border-radius: var(--radius-lg);
+    box-sizing: border-box;
+    flex-shrink: 0;
+    background-color: var(--toast-info-background);
+    color: var(--toast-fg);
+    font-family: inherit;
+    font-weight: normal;
+    font-size: var(--text-sm);
+    line-height: var(--text-sm--line-height);
+    box-shadow: var(--chrome-shadow);
+    outline: none;
+  }
+
+  .builder-toast[data-variant="neutral"] {
+    background-color: var(--toast-neutral-background);
+  }
+
+  .builder-toast[data-variant="positive"] {
+    background-color: var(--toast-positive-background);
+  }
+
+  .builder-toast[data-variant="negative"] {
+    background-color: var(--toast-negative-background);
+  }
+
+  .builder-toast[data-focus-visible] {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  .builder-toast-region[data-expanded] .builder-toast {
+    box-shadow: none;
+  }
+
+  .builder-toast-region[data-expanded] .builder-toast[data-focus-visible] {
+    outline-color: var(--toast-fg);
+  }
+
+  /* S2 `toastBody` — 맨 위 toast 는 grid (내용 / 「모두 표시」 · action), 나머지는 flex 줄바꿈. */
+  .builder-toast-body {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      "content content content"
+      "expand . action";
+    flex-grow: 1;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: var(--spacing-xl);
+    row-gap: var(--spacing-sm);
+  }
+
+  .builder-toast-body[data-single] {
+    display: flex;
+  }
+
+  /* S2 `toastContent` — 아이콘 · 글자 간격 8, 기준선 정렬. */
+  .builder-toast-content {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: baseline;
+    grid-area: content;
+    cursor: default;
+    width: fit-content;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    min-width: 0;
+  }
+
+  .builder-toast-title {
+    color: inherit;
+    font: inherit;
+  }
+
+  /* S2 `CenterBaseline` — 글자 한 줄 높이의 가운데에 아이콘 (Icon M 18). */
+  .builder-toast-icon {
     display: flex;
     align-items: center;
-    gap: var(--chrome-gap);
-    padding: var(--chrome-padding);
-    padding-inline-start: var(--spacing-sm);
-    background: var(--chrome-surface);
-    border: var(--chrome-border);
-    border-radius: var(--chrome-radius);
-    box-shadow: var(--chrome-shadow);
-    pointer-events: auto;
-    animation: toast-slide-in 200ms ease-out;
-  }
-
-  @keyframes toast-slide-in {
-    from {
-      opacity: 0;
-      transform: translateX(100%);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .toast {
-      animation: none;
-    }
-  }
-
-  /* Toast Icon — 타입 구분은 아이콘 색 하나로 한다 */
-  .toast-icon {
     flex-shrink: 0;
-    color: var(--fg-muted);
   }
 
-  .toast[data-type="success"] .toast-icon {
-    color: var(--positive);
+  .builder-toast-icon::before {
+    content: "\00a0";
+    width: 0;
+    visibility: hidden;
   }
 
-  .toast[data-type="warning"] .toast-icon {
-    color: var(--notice);
+  .builder-toast-icon svg {
+    width: 18px;
+    height: 18px;
   }
 
-  .toast[data-type="error"] .toast-icon {
-    color: var(--negative);
-  }
-
-  .toast[data-type="info"] .toast-icon {
-    color: var(--informative);
-  }
-
-  /* Toast Message — 크롬 텍스트 기준 12px */
-  .toast-message {
-    flex: 1;
-    min-width: 0;
-    font-size: var(--text-xs);
-    line-height: var(--text-xs--line-height);
-    color: var(--fg);
-  }
-
-  /* Toast Action Button (Undo 등) — 빌더 primary 컨트롤 어법
-     (`.control-button[data-variant="primary"]` 와 같은 accent 채움 + --fg-on-accent).
-     Why: quiet 박스로 두면 글자색이 문구와 같아 (--fg) 눌러야 할 것이 안 보인다.
-     --accent 는 빌더에서 파랑이 아니라 중립 (light gray-700 / dark zinc-200) 이라
-     새 색상 축을 들이지 않으면서 회복 동작만 도드라진다. 닫기 X 는 ghost 로 남겨
-     "되돌리기 > 닫기" 위계를 만든다. */
-  .toast-action {
+  /* S2 action `Button variant="secondary" fillStyle="outline" staticColor="white"` (size M) —
+     `marginStart: auto` · `gridArea: action`, 2px 흰 테두리 pill, 굵은 글자. */
+  .builder-toast-action {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    height: var(--control-size);
-    padding: 0 var(--spacing-sm);
-    border: 1px solid transparent;
-    border-radius: var(--radius-md);
-    background: var(--accent);
-    color: var(--fg-on-accent);
-    font-size: var(--text-xs);
-    line-height: var(--text-xs--line-height);
-    cursor: pointer;
+    grid-area: action;
+    min-height: var(--control-size-lg);
+    margin-inline-start: auto;
+    padding: 0 var(--spacing-md);
+    border: 2px solid var(--toast-fg);
+    border-radius: var(--radius-full);
+    background: transparent;
+    color: var(--toast-fg);
+    font: inherit;
+    font-weight: var(--font-weight-bold);
+    cursor: default;
     flex-shrink: 0;
     white-space: nowrap;
-    transition:
-      background 150ms ease,
-      color 150ms ease;
+    outline: none;
+    transition: background-color 130ms ease-in-out;
   }
 
-  .toast-action[data-hovered] {
-    background: color-mix(in srgb, var(--accent) 85%, black);
-  }
-
-  .toast-action[data-pressed] {
-    background: color-mix(in srgb, var(--accent) 75%, black);
-  }
-
-  .toast-action[data-focus-visible] {
-    outline: 2px solid var(--focus-ring);
-    outline-offset: 2px;
-  }
-
-  /* Toast Dismiss Button — rail 아이콘 버튼 어법 (28px 정사각, muted 기본) */
-  .toast-dismiss {
+  /* S2 `ActionButton isQuiet staticColor="white"` (「모두 표시」) · `CloseButton staticColor="white"`. */
+  .builder-toast-expand,
+  .builder-toast-close {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: var(--control-size);
-    height: var(--control-size);
-    padding: 0;
     border: none;
     background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: default;
+    outline: none;
+    transition: background-color 130ms ease-in-out;
+  }
+
+  .builder-toast-expand {
+    grid-area: expand;
+    gap: var(--spacing-xs);
+    min-height: var(--control-size-lg);
+    padding-inline: var(--spacing-md);
+    margin-inline-start: calc(var(--spacing-md) * -1);
     border-radius: var(--radius-md);
-    color: var(--fg-muted);
-    cursor: pointer;
+  }
+
+  .builder-toast-expand svg {
+    width: 1em;
+    height: 1em;
+  }
+
+  .builder-toast-close {
     flex-shrink: 0;
-    transition:
-      background 150ms ease,
-      color 150ms ease;
+    width: var(--control-size-lg);
+    height: var(--control-size-lg);
+    padding: 0;
+    border-radius: var(--radius-full);
   }
 
-  .toast-dismiss[data-hovered] {
-    background: color-mix(in srgb, var(--fg) 8%, transparent);
-    color: var(--fg);
+  .builder-toast-close svg {
+    width: 12px;
+    height: 12px;
   }
 
-  .toast-dismiss[data-pressed] {
-    background: var(--accent);
-    color: var(--fg-on-accent);
+  .builder-toast-action[data-hovered],
+  .builder-toast-action[data-pressed],
+  .builder-toast-expand[data-hovered],
+  .builder-toast-expand[data-pressed],
+  .builder-toast-close[data-hovered],
+  .builder-toast-close[data-pressed] {
+    background-color: var(--toast-wash);
   }
 
-  .toast-dismiss[data-focus-visible] {
-    outline: 2px solid var(--focus-ring);
+  .builder-toast-action[data-focus-visible],
+  .builder-toast-expand[data-focus-visible],
+  .builder-toast-close[data-focus-visible] {
+    outline: 2px solid var(--toast-fg);
     outline-offset: 2px;
+  }
+
+  /* S2 펼친 목록 — 뒤 화면을 덮는 반투명 검정 · 「모두 지우기」 · 「접기」 (ActionButton size S, 밝은 면). */
+  .builder-toast-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: var(--toast-backdrop);
+  }
+
+  .builder-toast-controls {
+    position: relative;
+    display: none;
+    justify-content: end;
+    gap: var(--spacing-sm);
+    color-scheme: light;
+    opacity: 0;
+  }
+
+  .builder-toast-controls[data-expanded] {
+    display: flex;
+    opacity: 1;
+  }
+
+  .builder-toast-control {
+    min-height: 24px;
+    padding-inline: var(--spacing-sm);
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--toast-control-background);
+    color: var(--toast-control-fg);
+    font: inherit;
+    font-size: var(--text-xs);
+    outline: none;
+  }
+
+  .builder-toast-control[data-hovered] {
+    background: var(--toast-control-background-hover);
+  }
+
+  .builder-toast-control[data-focus-visible] {
+    outline: 2px solid var(--toast-fg);
+    outline-offset: 2px;
+  }
+
+  @media (forced-colors: active) {
+    .builder-toast {
+      border: 1px solid CanvasText;
+    }
+  }
+}
+
+/*
+ * S2 `Toast.module.css` 의 view transition (Preview `catalog-toast` 와 같은 규칙, 이름만 `builder-toast-*`).
+ * `ToastRegion` 이 queue 갱신 (add · remove · clear) · 펼침 · 접힘을 view transition 으로 돌리고 그 종류를
+ * html class 로 단다. 새 toast 는 가장자리에서 미끄러져 들어오고 닫힌 toast 는 나가며, 펼침 · 접힘은 맨 위
+ * toast 의 부품이 따로 움직인다. 동작 줄이기면 교차 fade. (layer 밖 — `::view-transition-*` 는 html 의 것.)
+ */
+html.builder-toast-add,
+html.builder-toast-remove,
+html.builder-toast-expand,
+html.builder-toast-collapse,
+html.builder-toast-clear {
+  view-transition-name: none;
+
+  .builder-toast-controls {
+    view-transition-name: builder-toast-controls;
+  }
+
+  .builder-toast-backdrop {
+    view-transition-name: builder-toast-backdrop;
+  }
+
+  &::view-transition-group(builder-toast-backdrop) {
+    z-index: 0;
+    will-change: transform;
+  }
+
+  &::view-transition-group(.builder-toast),
+  &::view-transition-group(builder-toast-list-expanded),
+  &::view-transition-group(builder-toast-list-collapsed) {
+    z-index: 1;
+    will-change: transform;
+  }
+
+  &::view-transition-group(builder-toast-controls) {
+    z-index: 2;
+    will-change: transform;
+  }
+
+  &::view-transition-group(builder-toast-vt-content),
+  &::view-transition-group(builder-toast-vt-expand),
+  &::view-transition-group(builder-toast-vt-action),
+  &::view-transition-group(builder-toast-vt-close) {
+    z-index: 3;
+    will-change: transform;
+  }
+
+  &::view-transition-group(*) {
+    animation-duration: 400ms;
+  }
+}
+
+html.builder-toast-add,
+html.builder-toast-remove {
+  &:not(.builder-toast-reduce-motion) {
+    &::view-transition-new(.builder-toast):only-child {
+      animation-name: builder-toast-slide-in;
+    }
+
+    &::view-transition-old(.builder-toast):only-child {
+      animation-name: builder-toast-slide-out;
+    }
+  }
+
+  &::view-transition-group(.builder-toast.builder-toast-bottom) {
+    --slideX: 0;
+    --slideY: calc(100% + 12px);
+  }
+
+  &::view-transition-group(.builder-toast.builder-toast-top) {
+    --slideX: 0;
+    --slideY: calc(-100% - 12px);
+  }
+
+  &::view-transition-group(.builder-toast.builder-toast-end) {
+    --slideX: calc(100% + 12px);
+    --slideY: 0;
+  }
+}
+
+html.builder-toast-expand {
+  &::view-transition-group(builder-toast-vt-expand) {
+    animation-duration: 300ms;
+  }
+}
+
+html.builder-toast-collapse {
+  &::view-transition-group(builder-toast-vt-expand) {
+    animation-duration: 600ms;
+  }
+}
+
+html.builder-toast-expand,
+html.builder-toast-collapse {
+  &:not(.builder-toast-reduce-motion) {
+    .builder-toast-vt-content {
+      view-transition-name: builder-toast-vt-content;
+    }
+
+    .builder-toast-vt-expand {
+      view-transition-name: builder-toast-vt-expand;
+    }
+
+    .builder-toast-vt-action {
+      view-transition-name: builder-toast-vt-action;
+    }
+
+    .builder-toast-vt-close {
+      view-transition-name: builder-toast-vt-close;
+    }
+
+    .builder-toast-controls {
+      display: flex;
+    }
+
+    &::view-transition-old(.builder-toast),
+    &::view-transition-new(.builder-toast) {
+      height: 100%;
+      width: 100%;
+    }
+
+    &::view-transition-old(.builder-toast-bg),
+    &::view-transition-new(.builder-toast-bg) {
+      object-fit: cover;
+      object-position: top center;
+      clip-path: inset(0px round 10px);
+    }
+  }
+
+  &.builder-toast-reduce-motion {
+    .builder-toast {
+      view-transition-name: none !important;
+    }
+
+    .builder-toast-list-expanded {
+      view-transition-name: builder-toast-list-expanded;
+    }
+
+    .builder-toast-list-collapsed {
+      view-transition-name: builder-toast-list-collapsed;
+    }
+  }
+}
+
+@keyframes builder-toast-slide-in {
+  from {
+    translate: var(--slideX) var(--slideY);
+    opacity: 0;
+  }
+}
+
+@keyframes builder-toast-slide-out {
+  to {
+    translate: var(--slideX) var(--slideY);
+    opacity: 0;
   }
 }
