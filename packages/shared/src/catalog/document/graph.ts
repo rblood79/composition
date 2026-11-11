@@ -26,11 +26,7 @@ import type {
   TokenType,
   AuthoredValue,
 } from "./types";
-import {
-  validateCatalogDocument,
-  validateCatalogEntry,
-  CatalogValidationError,
-} from "./validation";
+import { validateCatalogDocument, CatalogValidationError } from "./validation";
 import { validateInstanceAddress } from "../resolution/address";
 import {
   migrateCatalogEntriesS2,
@@ -440,6 +436,14 @@ function deepFreeze(item: unknown): void {
   Object.freeze(item);
 }
 /**
+ * An entry nothing else holds (`createCatalogGraph`'s `adopt` — a stored document's freshly parsed
+ * entries) is frozen where it is, not copied (ADR-307 후속: the copy was a per-entry cost of opening).
+ */
+function adoptedRecord<T>(value: T): T {
+  deepFreeze(value);
+  return value;
+}
+/**
  * A frozen copy the caller cannot change. A field the staged record shares with the committed
  * record it replaces (`previous` — frozen all the way down) is kept, not copied (ADR-265: a style
  * edit of a 5k-child body copied its child list on every commit).
@@ -574,7 +578,9 @@ export class CatalogGraph {
   private forkedLibrary: CatalogLibrary | undefined;
 
   constructor(document: CatalogDocument, library: CatalogLibrary) {
-    validateCatalogDocument(document);
+    // (`createCatalogGraph` checked it before its migrations — each entry is checked once.)
+    if (!checkedDocuments.delete(document)) validateCatalogDocument(document);
+    const adopted = adoptedDocuments.delete(document);
     library = catalogBaseLibrary(library);
     assertCatalogLibrary(library);
     if (document.libraryContractVersion !== library.contractVersion)
@@ -586,7 +592,10 @@ export class CatalogGraph {
     this.codeLibrary = library;
     this.currentRevision = document.revision;
     for (const entry of Object.values(document.entries))
-      this.table.set(entry.id, ownedRecord(entry));
+      this.table.set(
+        entry.id,
+        adopted ? adoptedRecord(entry) : ownedRecord(entry),
+      );
     this.validateView((id) => this.table.get(id), [...this.table.values()]);
     for (const entry of this.table.values()) {
       for (const edge of edgesOf(entry)) this.addEdge(edge);
@@ -1270,8 +1279,8 @@ export class CatalogGraph {
         ownerInView.set(child, entry.id);
     if (entries.length !== entryIds.size)
       throw new CatalogValidationError("DUPLICATE_ID", "entries");
+    // (Each entry's shape was checked once — `validateCatalogDocument` before the graph is built.)
     for (const entry of entries) {
-      validateCatalogEntry(entry);
       if (entry.kind === "project" && entry.id !== this.projectId)
         throw new CatalogValidationError("MULTIPLE_PROJECT_ROOTS", entry.id);
       if (entry.kind === "definitionOverride") {
@@ -2124,9 +2133,20 @@ export class CatalogGraph {
   }
 }
 
+/** Documents `createCatalogGraph` checked · handed over, read (and forgotten) by the constructor. */
+const checkedDocuments = new WeakSet<CatalogDocument>();
+const adoptedDocuments = new WeakSet<CatalogDocument>();
+
 export function createCatalogGraph(
   value: unknown,
   library: CatalogLibrary,
+  options: {
+    /**
+     * The caller hands the document's entries over: they are frozen in place, not copied. Only for
+     * a document nothing else holds or changes afterwards (storage's freshly parsed read).
+     */
+    adopt?: boolean;
+  } = {},
 ): CatalogGraph {
   const document = validateCatalogDocument(value);
   // 로드 시 1회 S2 prop 전환 (2026-10-10) — storage 로드 · import · publish · preview snapshot 이
@@ -2140,6 +2160,8 @@ export function createCatalogGraph(
     document.entries as Record<string, CatalogEntry>,
     library,
   );
+  checkedDocuments.add(document);
+  if (options.adopt) adoptedDocuments.add(document);
   return new CatalogGraph(document, library);
 }
 

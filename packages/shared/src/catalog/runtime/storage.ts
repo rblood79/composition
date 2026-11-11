@@ -370,7 +370,10 @@ export class CatalogStorage {
     projectId: CatalogDocument["projectId"],
     library: CatalogLibrary,
   ): Promise<CatalogGraph> {
-    return createCatalogGraph(await this.read(projectId), library);
+    // (The read's entries are fresh — only the graph holds them, so it freezes them in place.)
+    return createCatalogGraph(await this.read(projectId), library, {
+      adopt: true,
+    });
   }
 
   private async read(
