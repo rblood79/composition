@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-307 후속 — 큰 바운드 목록의 행 창 · 문서 graph 한 번만 만들기] - 2026-11-11
+
+### Performance
+
+- **큰 바운드 목록의 행 창 (ADR-157 결정 복원)**:
+  - **Why**: Canvas 가 내용 따라 늘어나는 바운드 ListBox · GridList · Table 의 행을 표본 (10 행) 밖까지 전부 record 로 만들고 숨기기만 했다 — 1,000 행 ListBox 가 든 page 의 채움 task 가 4x 251 ms.
+  - 변경: 표본 밖 행은 만들지 않는다. 표본 = 그 목록이 page 에서 보이는 행 + 1 — (page 높이 − 첫 행 위치) ÷ 배치에서 잰 줄 간격 + 1 (page 높이를 작성하면 그 높이, 없으면 breakpoint 화면 높이 — page 마다 다를 수 있고, page 아래쪽에서 시작하는 목록은 더 적게 만든다). 나머지 영역은 줄 간격 × 남은 줄 수만큼 비워 두어 목록 아래 요소의 위치는 Preview 와 같고, 그 자리에 「+N more」 를 표시한다. Preview · Publish 는 그대로 모든 행을 그린다.
+  - 측정 (production, 교대 3쌍 중앙값): 1,000 행 ListBox page 의 가장 긴 채움 task 4x 249 → 167 ms · 1x 60 → 45 ms, record 7,384 → 6,295. 행 소스가 이미 100 행 창이라 종전에도 100 행만 만들어졌다.
+- **문서 열기에서 graph 를 한 번만 만든다**: 저장소에서 읽은 문서를 검사용과 열기용으로 두 번 graph 로 만들던 것을 한 번으로 (`storage.loadGraph`). 66 장 4x 열기 2,768 → 2,415 ms.
+
 ## [ADR-307 Implemented — 문서 열기 단계별 빌드] - 2026-11-11
 
 ### Performance

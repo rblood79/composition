@@ -4,6 +4,8 @@
 
 Implemented — 2026-08-26 (Phase 0~5 완결. Accepted 2026-07-20 — 리뷰 승인 round 1, [reviews/157.md](../reviews/157.md) 이슈 전부 fixed)
 
+> **표본 기준 변경 (2026-11-11, ADR-307 후속 「행 창」)**: 표본 N 을 고정 10 에서 **그 목록이 page 에서 보이는 행 + 1** 로 바꿨다 — (page 높이 − 첫 행의 page 안 위치) ÷ 배치에서 잰 줄 간격 + 1. page 높이는 page 루트에 작성한 px 높이, 없으면 breakpoint 화면 높이 — 「N 의 사용자 설정화는 후속」 으로 열어 둔 자리. 처음 보는 목록은 가장 작은 행 (20, S2 control XS) 기준으로 만들고 잰 뒤 다시 만든다. 함께, ADR-248 catalog 전환 뒤 표본 밖 행을 record 로 만들고 숨기기만 하던 것을 이 ADR 의 결정대로 **만들지 않게** 되돌렸다 — 나머지 영역은 표본 행의 실제 줄 간격 × 남은 줄 수의 높이로 비워 두고 (owner 높이 = DOM), hatch · 「+N more」 를 그 영역에 그린다. 영역 높이는 DOM 이 그리는 행 수 (행 소스의 100 행 창) 기준, 라벨은 collection 전체 수. 근거는 사용자 원칙 (바운드 행은 디자인 표본 — 속도 우선, 표본 행만 정확히). 측정 · live: [ADR-307 breakdown §6 후속 점검](../design/307-staged-document-open-page-shells-breakdown.md).
+
 > **Phase 5 종결 (2026-08-26, live)**: TTR 프로젝트 Home 에 palette ListBox(ref 인스턴스)를 놓고 `Users` dataTable(12행)에 바인딩 — 샘플 10행(32px, gap 2) + `+2 more` hatch(66px) 가 rowsGroup 406 으로 owner 안에 clip 없이 배치됨(Skia projection id 직접 조회). items 기반 행 스타일 대칭: Skia rowsGroup 154(=3×50+2×2) ↔ Preview DOM ListBoxItem 340×50·stride 52·ListBox 164 일치. G3 노드 수(ListBox −89 / GridList −89 / Table −269)는 07-21 결정론 측정.
 >
 > **Residual — G1 의 "아래 형제 y 가 Preview 와 일치" 절은 미실행**: preview DOM 이 dataTable 바인딩을 소비하지 않아(ADR-152 격차 7 — `CollectionDataProvider` 미마운트, `props.items` 3행 fallback 렌더) 비교 자체가 성립하지 않는다. ADR-152 provider 배선 후 재확인. hatch 는 본 ADR 정의대로 대칭 비대상.

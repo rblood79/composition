@@ -361,3 +361,28 @@
 - 66 장 (사용자 확인 중 `perf-s1-live` 가 66 장 · record 2,116 으로 늘어남, 실제 Chrome dev 1x): 현재 page 채워짐 803 ms → 전부 채워짐 3,693 ms. 채움을 멈추고 (`fillBusy`) 축소한 화면에 틀 65 장의 「Loading page…」 표시가 그려지고, 풀면 2.8 초에 걸쳐 채워진다 (프레임 간격 최대 140 ms · 오류 0). 같은 revision (240) 에서 단계별 = 스위치 off (2,116 줄 차이 0). 처음 대조는 revision 이 236 → 239 로 달라 (다른 탭에서 편집 중) 14 줄이 달랐다 — 같은 revision 으로 다시 재서 0.
 - 확인 중 실수: 하니스 handle `canvas.setCamera` 에 `scale` 대신 `zoom` 키를 넘겨 카메라가 NaN 이 되고 그 탭의 화면이 죽었다 (React 「Too many re-renders」). 새로 고침으로 복구, 저장된 값 없음. 제품 경로가 아니라 dev handle 의 인자 실수다.
 - 사용자 확인 (2026-11-11): ① 「한번에 뜨지는 않는다」 ② 「zoom, in,out 시 달라지는건 없다」 ③ 「되는듯하다」. ① 의 뜻을 물어 「1번 맞다」 (현재 page 가 바로 뜨고 나머지가 차례로 채워진다) · ② 는 「zoom 은 채우는 순서만 바꾼다」 는 설명 뒤 이의 없음 → **G6 닫힘 · Implemented (2026-11-11).** 본문을 `completed/` 로 옮겼다.
+
+### 후속 점검 (2026-11-11, Implemented 뒤)
+
+종결 정리 (`99f065ef2`) 의 「할 만한 것」 과 Phase 4 의 「후속으로 남긴 것」 을 한 목록으로 둔다.
+
+- [x] **채움 끝 신호를 한 곳으로** (구조 개선 1 + 3) — `44c5161f4`. 스케줄러 host 의 끝 신호를 `filled(report)` 하나로, workspace 의 private `filled()` 가 row listener · 오류 보고 · `fillPending` 변화 통지 · mark 를 처리하고 Canvas 는 `subscribeFill` 하나로 warmup 멈춤 · 버퍼 합치기 · overlay 를 처리한다. 원복 RED 1 · live (66 장, 채움 신호 · 버퍼 57 → 1 조각 · 오류 0).
+- [x] **명령 버퍼 이어 붙이기를 splice 경로로** (구조 개선 4) — 수리 없이 닫음. 가설 반증: 같은 일곱 부류 순서에서 drag 직전 버퍼 조각 수가 22 장 · 66 장 모두 3 이다 (하니스 `bufferSegments` 기록, `44c5161f4`).
+- [x] **편집 · page 전환 뒤 drag 의 문서 크기 배율** (미달 축 ②) — 원인 분석 완료, 프레임 몫은 수리.
+  - page 수에 비례하던 프레임당 루프 (`catalogGuidesByPage` · `unsafeContributorsWithin`) — `2836633ed`. pan 배율 1.20 → 1.08, 나머지 부류 불변.
+  - 남은 몫은 프레임 밖이다: drag 중 새 기록이 미리 기록한 화면 밖 그림 411 개를 퇴거시키고, 놓은 뒤 idle warmup 이 404 개를 다시 기록한다. warmup 을 측정 창 밖에서 돌리는 dev 빌드의 drag 배율은 1.10. drag 중 warmup 멈춤은 효과가 없어 되돌렸다 (warmup 은 놓은 뒤에 돈다).
+  - 그 몫을 줄이는 길은 캐시 정책 (drag 중 기록이 미리 기록분을 밀어내지 않게 · warmup 이 상한 아래 여유를 남기게) 이고 메모리 예산 판단이 따른다 — 보류. 수치: `docs/explanation/research/CANVAS_PERF_SCALING_2026-11.md` §drag 배율 원인.
+- [x] **큰 바운드 목록의 행 창** (R6 · 1,000 행 ListBox 채움 단위 4x 251 ms) — ADR-157 의 「표본 밖 행은 투영하지 않는다」 를 지금 코드에 되살렸다 (사용자 원칙: 바운드 행은 디자인 표본, 실제 대량 데이터는 API 몫 — 속도 우선, 표본 행의 모양 · 상태 · 배치만 정확히).
+  - 표본 = 그 목록이 page 에서 보이는 행 + 1 — (page 높이 − 첫 행의 page 안 위치) ÷ 줄 간격 + 1 (grid 는 첫 줄의 행 수를 곱함). page 높이는 page 루트에 작성한 px 높이, 없으면 breakpoint 화면 높이 (사용자 「page마다 높이는 달라질수있다」). 줄 간격 · 첫 행 위치는 배치에서 잰 값을 목록마다 기억한다 (`measureRowSample`). 처음 보는 목록은 가장 작은 행 (20, S2 control XS) 기준 page 전체 높이만큼 만들고 — 보이는 행을 빠뜨리지 않는다 — 다음 task 에서 잰 값으로 다시 만든다 (`resampleRows`, 지우는 행은 page 밖이라 깜빡임 없음). page 높이를 바꾸면 그 page 의 표본 목록을 다시 해석한다.
+  - 사용자 확인으로 고친 것 2: ① 처음에는 page 높이 ÷ 20 + 1 로 고정해 행 간격 50 · 41 인 목록이 보이는 행의 2 ~ 2.5배 (44 행) 를 만들었다 (사용자 「화면내에 렌더링되는 표본이 설계보다 더되는듯」) → 잰 줄 간격으로. ② 400 px 아래에서 시작하는 Table 도 같은 수를 만들었다 (사용자 「table시작위치가 400px … 표본행이 더 적게」) → 첫 행 위치를 뺀다.
+  - 나머지 영역은 owner 아래 여백으로 비워 둔다 — 줄 간격 × 남은 줄 수. 엔진 입력에만 넣어 DOM 은 그대로다. 영역 높이는 **DOM 이 그리는 행 수 (행 소스의 100 행 창)** 기준이고 「+N more」 라벨만 collection 전체 수다.
+  - 측정 중 발견: Canvas · Preview 의 행 소스 (`catalogBoundRows`) 가 이미 100 행 창이라 종전에도 1,000 행이 아니라 100 행이 만들어졌다. 첫 구현은 영역을 전체 수 1,000 으로 잡아 Canvas owner 가 32,010 (DOM 3,210) 이 됐다 → 창 기준으로 수리 (테스트 「창 60 · 전체 200」). 처음 1 행만 만들고 같은 task 의 microtask 에서 다시 만드는 안은 1x 의 가장 긴 task 를 62 → 69 ms 로 늘려 버렸다 (위 방식으로 대체).
+  - production A/B (1,000 행 ListBox 22 장, 교대 3쌍 중앙값 — 최종 빌드): 가장 긴 채움 task 4x 249 → **167 ms** · 1x 60 → **45 ms**, 열기 4x 2,128 → 2,058 · 1x 565 → 573 ms, 전부 채움 4x 6,268 → 5,708 · 1x 1,362 → 1,361 ms, record 7,384 → 6,295, 채움 뒤 stream 차이 0 · 오류 0. fixture 의 1,000 행 목록은 page 아래에서 시작해 1 행만 만들고, owner 높이 3,210 = 종전.
+  - live (Chrome MCP · dev · `collect` 모바일 page 844, 사용자 프로젝트): Home Table (첫 행 33, 간격 41) 21 행 · 위에 400 px 상자가 있는 Page 2 Table (첫 행 433) 12 행, 두 표 높이 4,100 = 100 행 높이. `perf-s1-live` GridList 100 행: page 높이 1,500 → 다시 해석 · undo → 원래 수. console 오류 0. 「+N more」 영역은 page 밖이라 화면에서 직접 보지 못했다 (Layers 「+N more」 행으로 확인).
+  - 채울 단위 탐색 O(N²) (효율 6) 은 이번에 재지 않았다.
+- [ ] ratchet 기준 재설정 (HEAD 가 2026-11-02 기준을 등급 A 178 키에서 넘음).
+- [ ] 문서 읽기 · 검증의 page 당 비용 (`storage.load` · `createCatalogGraph`, 열기 배율 1.28 의 남은 기울기).
+  - 진행: 열기가 문서 graph 를 두 번 만들던 것 (`load` 의 검사용 + 열기용) 을 한 번으로 — `storage.loadGraph`. production A/B (교대 3쌍 중앙값, `ready`): 66 장 4x 2,768 → 2,415 ms (−13 %) · 22 장 4x 2,717 → 2,523 · 66 장 1x 791 → 722 · 22 장 1x 736 → 758 (노이즈). 이 측정에서 종전 66 / 22 배율이 이미 ~1.02 라 배율 개선은 주장하지 않는다 — 항목은 열어 둔다.
+- [ ] Preview · Publish 의 page 범위 (F10 · 사용자 결정 3 (a) — 「제외, 후속」). 지금은 보이는 route 가 하나여도 모든 page 를 펼친다.
+- [ ] id 로 읽는 쪽의 채움 누락을 막는 정적 검사 — `stagedLoadReaders.static.test.ts` 는 record 맵 전체 순회만 잡고 id 읽기 (`get` · `recordsOfSource`) 는 통과시킨다. 종결 정리가 「root 가 알아서 채우기」 (구조 개선 2) 대신 권장한 대안.
+- [ ] 종결 정리 (`99f065ef2`) 의 브라우저 확인 — 채움 · 「Loading page…」 표시는 `44c5161f4` live 에서 함께 확인됐다. 따로 보지 않은 것: 채움 뒤 노드 id 읽기의 즉시 반환 (`fillNode`) · 문서 서체 조회를 문서가 바뀔 때만 하는 변경.
