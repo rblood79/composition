@@ -1089,22 +1089,23 @@ export function CatalogCanvas({
       return true;
     };
     // Data rows re-resolved outside a step (the data store): the same per-node deltas.
-    let fillShown = workspace.fillPending;
-    setNodePictureWarmupHold(fillShown);
     const unsubscribeRows = workspace.subscribeRows(() => {
       sceneStale = true;
       // (Rows · a fill add records: a grid among them is not in the kept set.)
       gridRecords = undefined;
       // (ADR-307: a filled page drops its loading label — the overlay is drawn again.)
+      if (workspace.fillPending) overlayVersion += 1;
+      scheduler.invalidate();
+    });
+    // ADR-307: the fill began or ended (`workspace.subscribeFill` — a task, a step, a new root):
+    // the loading labels, the held picture warmup and, at its end, the command buffer the
+    // page-by-page patches left in pieces (joined after the next sync).
+    setNodePictureWarmupHold(workspace.fillPending);
+    const unsubscribeFill = workspace.subscribeFill(() => {
       const filling = workspace.fillPending;
-      if (fillShown || filling) {
-        // (The fill's last task: the page-by-page patches left the command buffer in pieces —
-        // joined after this task's patch is in.)
-        if (fillShown && !filling) compactAfterSync = true;
-        fillShown = filling;
-        overlayVersion += 1;
-        setNodePictureWarmupHold(filling);
-      }
+      setNodePictureWarmupHold(filling);
+      if (!filling) compactAfterSync = true;
+      overlayVersion += 1;
       scheduler.invalidate();
     });
     // ADR-307: the background fill of page shells waits while the user drives the Canvas (a drag,
@@ -1275,9 +1276,6 @@ export function CatalogCanvas({
       };
     }
     const unsubscribeRoot = workspace.subscribeRoot(() => {
-      // (ADR-307: a replaced root is filled again.)
-      fillShown = workspace.fillPending;
-      setNodePictureWarmupHold(fillShown);
       gridRecords = undefined; // another breakpoint's records (a grid only there)
       // …and their cells at this breakpoint's size. **Why (2026-10-16)**: the cache kept the last
       // breakpoint's cells until the next step (사용자 보고 — Mobile 에서 desktop 칸 크기).
@@ -1984,6 +1982,7 @@ export function CatalogCanvas({
       unsubscribeRows();
       unsubscribeFillView();
       unsubscribeFillFailure();
+      unsubscribeFill();
       setNodePictureWarmupHold(false);
       workspace.setFillBusy(undefined);
       unsubscribeFrames();

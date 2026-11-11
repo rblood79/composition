@@ -164,7 +164,22 @@ describe("ADR-307 staged workspace (Phase 2)", () => {
     workspace.dispose();
   });
 
-  it("a fill that ends without a delivery tells the row listeners (the last shell page removed)", async () => {
+  it("the fill listeners hear each change of `fillPending` once: its last task, a new root", async () => {
+    const idle = idleQueue();
+    const workspace = await buildStagedWorkspace({}, idle.schedule);
+    const heard: boolean[] = [];
+    workspace.subscribeFill(() => heard.push(workspace.fillPending));
+    idle.drain();
+    expect(heard).toEqual([false]);
+    // A new root has shells again; its fill ends once more.
+    workspace.setBreakpoint("tablet");
+    expect(heard).toEqual([false, true]);
+    idle.drain();
+    expect(heard).toEqual([false, true, false]);
+    workspace.dispose();
+  });
+
+  it("a fill that ends without a delivery tells the fill listeners (the last shell page removed)", async () => {
     const idle = idleQueue();
     const workspace = await buildStagedWorkspace({}, idle.schedule);
     const root = () => workspace.root;
@@ -174,20 +189,23 @@ describe("ADR-307 staged workspace (Phase 2)", () => {
     const [last] = root().pendingFillRoots();
     const records = root().domInputs.size;
     let told = 0;
-    workspace.subscribeRows(() => told++);
+    let rows = 0;
+    workspace.subscribeFill(() => told++);
+    workspace.subscribeRows(() => rows++);
     workspace.execute(
       removePage({ id: root().pageOfRoot(last)! as EntryId<"page"> }),
     );
     expect(workspace.fillPending).toBe(false);
-    // (No record was filled — the page went with its shell.)
+    // (No record was filled — the page went with its shell: the row listeners hear nothing.)
     expect(root().domInputs.size).toBeLessThan(records);
     expect(told).toBe(1);
+    expect(rows).toBe(0);
     workspace.dispose();
 
     // The same with no background task run before the step (a document of one shell page left).
     const fresh = await buildStagedWorkspace({}, idleQueue().schedule);
     let ended = 0;
-    fresh.subscribeRows(() => ended++);
+    fresh.subscribeFill(() => ended++);
     for (const rootId of [...fresh.root.pendingFillRoots()])
       fresh.execute(
         removePage({

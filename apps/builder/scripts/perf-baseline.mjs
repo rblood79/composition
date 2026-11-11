@@ -3382,6 +3382,12 @@ async function runFrameLane(page, cdp, seed, options) {
       await page.evaluate(() =>
         window.__composition_RENDER_PATH_DEBUG__?.flushWarmup?.(),
       );
+    // ADR-307 후속: the pieces the patched command buffer is in when the class starts (gauge —
+    // recorded, not ratcheted; read outside the count window).
+    const segmentsBefore = await page.evaluate(
+      () =>
+        window.__COMPOSITION_CATALOG__?.canvas?.bufferSegments?.() ?? null,
+    );
     const before = await cdp.send("Performance.getMetrics");
     if (options.callCounts) {
       await cdp.send("Profiler.enable");
@@ -3487,6 +3493,13 @@ async function runFrameLane(page, cdp, seed, options) {
         cleanup: await cleanupPointerClass(page, cls, pointer),
       };
     if (rec.profile) results[cls].profile = rec.profile;
+    if (segmentsBefore != null)
+      results[cls].bufferSegments = {
+        before: segmentsBefore,
+        after: await page.evaluate(() =>
+          window.__COMPOSITION_CATALOG__.canvas.bufferSegments(),
+        ),
+      };
     // ADR-273 Phase 3: 자원별 보유량 표 (게이지 — 기록만, ratchet 키 아님. dev 빌드 전용).
     results[cls].memory = await page.evaluate(
       () => window.__composition_MEMORY_BUDGET__?.holdings?.() ?? null,

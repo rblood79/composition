@@ -33,6 +33,7 @@ import { CatalogAutosave } from "./autosave";
 import { CatalogFillScheduler } from "./fillScheduler";
 import {
   CatalogCompositionRoot,
+  type CatalogFillReport,
   type CatalogRootOptions,
   type CatalogTextMeasure,
   catalogRowTemplateIdentity,
@@ -231,15 +232,9 @@ export class CatalogWorkspace {
         {
           root: () => this.currentRoot,
           currentPage: () => this.session.getSnapshot().pageId,
-          delivered: () => {
-            // (The listeners read the fill's state: no second call from `settleFill`.)
-            this.fillWasPending = this.fillPending;
-            for (const listener of [...this.rowListeners]) listener();
-            this.markFill();
-          },
+          filled: (report) => this.filled(report),
           report: (errors) => this.reportFill(errors),
           busy: () => !!this.fillBusy?.(),
-          settled: () => this.settleFill(),
         },
         {
           schedule: options.fillSchedule,
@@ -255,8 +250,7 @@ export class CatalogWorkspace {
         if (pageId) this.fillScheduler?.ensurePage(pageId);
       });
       this.fillScheduler.restart();
-      this.fillWasPending = this.fillPending;
-      this.markFill();
+      this.filled();
     }
     this.readModel = new CatalogReadModel(this.runtime);
     this.autosave = new CatalogAutosave(this.runtime, {
@@ -408,16 +402,14 @@ export class CatalogWorkspace {
     for (const listener of [...this.rootListeners]) listener();
     this.fillMarked.current = this.fillMarked.all = false;
     this.fillScheduler?.restart();
-    // (The root listeners above read the new root's fill themselves.)
-    this.fillWasPending = this.fillPending;
-    this.markFill();
+    this.filled();
   }
   /** After a step: a changed theme builds a new root in its color mode with its token values. */
   private afterStep(result: CatalogTransactionResult | undefined): void {
     // (ADR-307: a step can leave new shells — a page added — and lets a failed root try again.
     // It can end the fill too: the last shell page removed.)
     this.fillScheduler?.restart();
-    this.settleFill();
+    this.filled();
     // The viewed definition is gone (an undo of its creation, a dissolve): back to the pages.
     const viewed =
       this.definitionView && !isComponentsView(this.definitionView)
@@ -693,19 +685,32 @@ export class CatalogWorkspace {
     return !!this.fillScheduler && this.currentRoot.hasPendingFill;
   }
   private fillWasPending = false;
+  private readonly fillListeners = new Set<() => void>();
   /**
-   * ADR-307: the fill's end reaches the row listeners though its last change added no record — a
-   * step that removed the last shell page, a root that failed at this revision, a task that found
-   * nothing left. (What shows the fill — the Canvas's loading labels, its held warmup, the joined
-   * command buffer — ends on that signal.)
+   * ADR-307: `fillPending` changed — the fill ended (its last task, a step that removed the last
+   * shell page, a root that failed at this revision) or began again (a new root, a page added).
+   * What shows the fill (the Canvas's loading labels, its held warmup, the joined command buffer)
+   * follows this.
    */
-  private settleFill(): void {
+  subscribeFill(listener: () => void): () => void {
+    this.fillListeners.add(listener);
+    return () => this.fillListeners.delete(listener);
+  }
+  /**
+   * ADR-307: the one place a fill is told — after a fill task (background, a page's or a node's
+   * request), a step, a new root. Its records reach the row listeners, its delivery errors the
+   * failure listeners, a change of `fillPending` the fill listeners; then the open's marks.
+   */
+  private filled(report?: CatalogFillReport): void {
     if (!this.fillScheduler) return;
+    if (report?.records)
+      for (const listener of [...this.rowListeners]) listener();
+    if (report?.errors.length) this.reportFill(report.errors);
     const pending = this.fillPending;
-    const ended = this.fillWasPending && !pending;
-    this.fillWasPending = pending;
-    if (!ended) return;
-    for (const listener of [...this.rowListeners]) listener();
+    if (pending !== this.fillWasPending) {
+      this.fillWasPending = pending;
+      for (const listener of [...this.fillListeners]) listener();
+    }
     this.markFill();
   }
   private readonly fillMarked = { current: false, all: false };
@@ -750,13 +755,7 @@ export class CatalogWorkspace {
    */
   private fillNode(id: string): void {
     if (!this.fillScheduler) return;
-    const report = this.currentRoot.fillNode(id);
-    if (report.records) {
-      this.fillWasPending = this.fillPending;
-      for (const listener of [...this.rowListeners]) listener();
-    }
-    if (report.errors.length) this.reportFill(report.errors);
-    this.settleFill();
+    this.filled(this.currentRoot.fillNode(id));
   }
   private readonly fillFailureListeners = new Set<() => void>();
   /**
@@ -1198,6 +1197,7 @@ export class CatalogWorkspace {
   dispose(): void {
     this.fillScheduler?.stop();
     this.fillFailureListeners.clear();
+    this.fillListeners.clear();
     this.rootListeners.clear();
     this.rowListeners.clear();
     this.revealListeners.clear();

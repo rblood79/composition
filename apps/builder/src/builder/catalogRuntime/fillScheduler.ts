@@ -23,14 +23,16 @@ export interface CatalogFillSchedulerHost {
   root(): CatalogFillRoot;
   /** The session's page: filled before every other page. */
   currentPage(): string | undefined;
-  /** A task added records (the Canvas scene follows, as after a data-row refresh). */
-  delivered(): void;
-  /** Subscriber errors of a delivery, or a failed task's cause (background tasks only report). */
+  /**
+   * A task ended, with or without records: the host tells what it added (the Canvas scene
+   * follows, as after a data-row refresh), its delivery's subscriber errors, and whether the fill
+   * is over.
+   */
+  filled(report: CatalogFillReport): void;
+  /** A task's apply failed and the engine could not be restored (the scheduler stops). */
   report(errors: readonly unknown[]): void;
   /** True while the user drives the Canvas (a camera gesture, a drag): background tasks wait. */
   busy?(): boolean;
-  /** A task ended (with or without records): the host looks whether the fill is over. */
-  settled?(): void;
 }
 
 export interface CatalogFillSchedulerOptions {
@@ -181,9 +183,7 @@ export class CatalogFillScheduler {
       this.host.report([error]);
       throw error;
     }
-    if (report.records) this.host.delivered();
-    if (report.errors.length) this.host.report(report.errors);
-    this.host.settled?.();
+    this.host.filled(report);
     return report;
   }
 

@@ -67,7 +67,10 @@ function harness(
     {
       root: () => fake.root,
       currentPage: () => options.current,
-      delivered: () => delivered++,
+      filled: (report) => {
+        if (report.records) delivered++;
+        reported.push(...report.errors);
+      },
       report: (errors) => reported.push(...errors),
       busy: () => busy,
     },
