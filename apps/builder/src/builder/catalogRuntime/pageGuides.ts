@@ -33,8 +33,37 @@ export function catalogPageGuides(
   return (page?.kind === "page" && page.guideEntries?.[breakpoint]) || [];
 }
 
-/** Every page's guides at a breakpoint; pages without guides are left out (the usual case). */
+const guidesByPageMemo = new WeakMap<
+  CatalogGraph,
+  Map<
+    BreakpointName,
+    {
+      revision: number;
+      value: ReadonlyMap<string, readonly PageGuideDeclaration[]>;
+    }
+  >
+>();
+
+/**
+ * Every page's guides at a breakpoint; pages without guides are left out (the usual case). The
+ * Canvas reads this every frame (guide paint, ruler labels, a drag's snap lines) — kept per graph
+ * revision so a frame does not walk every page. A revision read outside a step always names the
+ * same document: a step that fails reverts its revision before anything else runs.
+ */
 export function catalogGuidesByPage(
+  graph: CatalogGraph,
+  breakpoint: BreakpointName,
+): ReadonlyMap<string, readonly PageGuideDeclaration[]> {
+  let memo = guidesByPageMemo.get(graph);
+  if (!memo) guidesByPageMemo.set(graph, (memo = new Map()));
+  const hit = memo.get(breakpoint);
+  if (hit?.revision === graph.revision) return hit.value;
+  const value = collectGuidesByPage(graph, breakpoint);
+  memo.set(breakpoint, { revision: graph.revision, value });
+  return value;
+}
+
+function collectGuidesByPage(
   graph: CatalogGraph,
   breakpoint: BreakpointName,
 ): ReadonlyMap<string, readonly PageGuideDeclaration[]> {

@@ -523,6 +523,29 @@ describe("ADR-248 4e manual guides", () => {
     workspace.dispose();
   });
 
+  it("every page's guides are read once per revision and breakpoint, and follow each step", async () => {
+    const { workspace, graph, pageId } = await open();
+    const empty = catalogGuidesByPage(graph, "desktop");
+    // The same answer between steps (a frame does not walk every page again).
+    expect(catalogGuidesByPage(graph, "desktop")).toBe(empty);
+    const getEntry = vi.spyOn(graph, "getEntry");
+    catalogGuidesByPage(graph, "desktop");
+    expect(getEntry).not.toHaveBeenCalled();
+    getEntry.mockRestore();
+    workspace.execute(
+      catalogGuideDragCommand(graph, create(pageId, 120), "desktop")!,
+    );
+    const one = catalogGuidesByPage(graph, "desktop");
+    expect(one.get(pageId)).toEqual([{ id: "g1", axis: "x", position: 120 }]);
+    expect(catalogGuidesByPage(graph, "mobile").size).toBe(0);
+    expect(catalogGuidesByPage(graph, "desktop")).toBe(one);
+    workspace.undo();
+    expect(catalogGuidesByPage(graph, "desktop").size).toBe(0);
+    workspace.redo();
+    expect(catalogGuidesByPage(graph, "desktop").get(pageId)).toHaveLength(1);
+    workspace.dispose();
+  });
+
   it("the drag state follows the pointer: page-local, off-page and over-ruler cases", () => {
     const frames = new Map([
       ["p1", { x: 100, y: 50, width: 400, height: 300 }],

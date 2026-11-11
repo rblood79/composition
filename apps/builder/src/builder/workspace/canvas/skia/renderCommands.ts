@@ -2645,11 +2645,12 @@ export function executeViewportRenderCommands(
     return fallback("viewportFallbackLinearOnly");
   if (!WASM_FLAGS.SPATIAL_INDEX || !spatialIndex.getSpatialIndex())
     return fallback("viewportFallbackNoIndex");
+  // drag first: it falls back whatever the unsafe set holds, and that set grows with the document.
+  if (getDragVisualOffset() !== null || hasDragSiblingOffsets())
+    return fallback("viewportFallbackDragOffset");
   const unsafe = unsafeContributorsWithin(stream, cullingBounds);
   if (unsafe.length * 2 > stream.subtreeSpans.size)
     return fallback("viewportFallbackUnsafePaint");
-  if (getDragVisualOffset() !== null || hasDragSiblingOffsets())
-    return fallback("viewportFallbackDragOffset");
   const candidateIds = spatialIndex.queryRect(
     cullingBounds.x,
     cullingBounds.y,

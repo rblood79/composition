@@ -563,6 +563,11 @@ describe("ADR-266 Phase 0 — viewport 후퇴 사유", () => {
     );
     expect(stream.damageUnsafeElementIds.size).toBe(3);
     expect(reasons(viaViewport(stream).counters)).toEqual(only("unsafePaint"));
+    // drag 중에는 unsafe 를 거르지 않고 바로 후퇴한다 — 그 목록은 문서 크기만큼 자란다.
+    setDragSiblingOffsets(new Map([["s0", { dx: 0, dy: -10 }]]));
+    const clipReads = vi.spyOn(stream.clipContextByElement, "get");
+    expect(reasons(viaViewport(stream).counters)).toEqual(only("dragOffset"));
+    expect(clipReads).not.toHaveBeenCalled();
   });
 });
 
