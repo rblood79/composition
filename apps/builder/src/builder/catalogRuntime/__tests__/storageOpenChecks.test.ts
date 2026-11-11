@@ -37,8 +37,7 @@ vi.mock(
 
 /**
  * ADR-307 후속 — 문서 읽기의 page 당 비용. 저장소에서 연 문서는 entry 마다 형식 검사를 한 번,
- * 복제는 0 번 한다 (읽은 entry 는 graph 만 쥐므로 제자리에서 굳힌다). 종전: 형식 검사 3 번
- * (`createCatalogGraph` · 생성자의 `validateCatalogDocument` + `validateView`) · `structuredClone` entry 수만큼.
+ * 복제는 0 번 한다 (읽은 entry 는 graph 만 쥐므로 제자리에서 굳힌다).
  */
 const HOME = "project:page:home" as EntryId<"page">;
 const text = (name: string) =>

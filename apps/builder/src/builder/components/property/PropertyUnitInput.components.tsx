@@ -226,11 +226,9 @@ export const PropertyUnitInputControl = memo(
     const tokenDisplay = () =>
       getInputDisplayValue(value, parsed, isPreservedEmptyValue, presets);
     /**
-     * The number the field shows, for ▲▼ and the label scrub: a token shows its step name (「M」),
-     * so it reads as the token's resolved px (D9 — the literal escape); otherwise the typed text.
-     * Why (2026-11-11): the scrub kept `parseFloat(inputValue)` after 1901c0507 put the step name
-     * in the field — 「M」 parsed to NaN and the token's `numericValue` is null, so a scrub on a
-     * token field started from 0 (⌥ free value 12 + 4 → 4, a step drag picked steps from 0).
+     * The number the field shows — every reader of it (▲▼ · label scrub · unit change) goes
+     * through here: a token shows its step name (「M」), so it reads as the token's resolved px
+     * (D9 — the literal escape); otherwise the typed text. (style-ssot.md §5)
      */
     const shownNumber = () =>
       parseFloat(
@@ -407,8 +405,8 @@ export const PropertyUnitInputControl = memo(
         return;
       }
 
-      // Use the current input value, not the state numericValue
-      const currentNum = parseFloat(inputValue);
+      // Use the shown number, not the state numericValue
+      const currentNum = shownNumber();
       let newValue: string;
       if (!isNaN(currentNum) && currentNum !== 0) {
         // 현재 값이 유효한 숫자이고 0이 아니면 유지

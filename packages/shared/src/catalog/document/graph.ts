@@ -436,13 +436,17 @@ function deepFreeze(item: unknown): void {
   Object.freeze(item);
 }
 /**
- * An entry nothing else holds (`createCatalogGraph`'s `adopt` — a stored document's freshly parsed
- * entries) is frozen where it is, not copied (ADR-307 후속: the copy was a per-entry cost of opening).
+ * Per definition, kept for one validation of a view: the definition with its instance contract
+ * over it, and its `variable` properties (key → variable id) — every instance of it reads these.
  */
-function adoptedRecord<T>(value: T): T {
-  deepFreeze(value);
-  return value;
-}
+type ContractCache = Map<
+  DefinitionEntry | LibraryDefinition,
+  {
+    readonly definition: (DefinitionEntry | LibraryDefinition) &
+      Pick<LibraryDefinition, "accepts" | "propChoices">;
+    readonly inputs: readonly (readonly [key: string, variableId: string])[];
+  }
+>;
 /**
  * A frozen copy the caller cannot change. A field the staged record shares with the committed
  * record it replaces (`previous` — frozen all the way down) is kept, not copied (ADR-265: a style
@@ -577,10 +581,17 @@ export class CatalogGraph {
   readonly codeLibrary: CatalogLibrary;
   private forkedLibrary: CatalogLibrary | undefined;
 
-  constructor(document: CatalogDocument, library: CatalogLibrary) {
-    // (`createCatalogGraph` checked it before its migrations — each entry is checked once.)
-    if (!checkedDocuments.delete(document)) validateCatalogDocument(document);
-    const adopted = adoptedDocuments.delete(document);
+  constructor(
+    document: CatalogDocument,
+    library: CatalogLibrary,
+    /**
+     * @internal `createCatalogGraph`'s: `checked` — it validated the document before its migrations
+     * (each entry is checked once); `adopt` — nothing else holds the entries (a stored document's
+     * fresh parse), so they are frozen in place, not copied.
+     */
+    opened: { checked?: boolean; adopt?: boolean } = {},
+  ) {
+    if (!opened.checked) validateCatalogDocument(document);
     library = catalogBaseLibrary(library);
     assertCatalogLibrary(library);
     if (document.libraryContractVersion !== library.contractVersion)
@@ -591,12 +602,14 @@ export class CatalogGraph {
     this.projectId = document.projectId;
     this.codeLibrary = library;
     this.currentRevision = document.revision;
-    for (const entry of Object.values(document.entries))
-      this.table.set(
-        entry.id,
-        adopted ? adoptedRecord(entry) : ownedRecord(entry),
-      );
-    this.validateView((id) => this.table.get(id), [...this.table.values()]);
+    const records: CatalogEntry[] = [];
+    for (const entry of Object.values(document.entries)) {
+      if (opened.adopt) deepFreeze(entry);
+      const record = opened.adopt ? entry : ownedRecord(entry);
+      this.table.set(entry.id, record);
+      records.push(record);
+    }
+    this.validateView((id) => this.table.get(id), records);
     for (const entry of this.table.values()) {
       for (const edge of edgesOf(entry)) this.addEdge(edge);
       if (entry.kind === "definitionOverride") {
@@ -1231,7 +1244,8 @@ export class CatalogGraph {
     }
   }
 
-  validateView(
+  /** The whole view's references · ownership · cycles — each entry's shape was checked before. */
+  private validateView(
     get: (id: string) => CatalogEntry | undefined,
     entries: readonly CatalogEntry[],
   ): void {
@@ -1281,11 +1295,8 @@ export class CatalogGraph {
       throw new CatalogValidationError("DUPLICATE_ID", "entries");
     // Contracts depend on this view, not the instance. Discard the cache after this validation
     // so a later load or transaction always reads its own definitions and input variables.
-    const contracts = new Map<
-      DefinitionEntry | LibraryDefinition,
-      Pick<LibraryDefinition, "accepts" | "propChoices">
-    >();
-    // (Each entry's shape was checked once — `validateCatalogDocument` before the graph is built.)
+    const contracts: ContractCache = new Map();
+    const ownerOfInView = (id: string) => ownerInView.get(id);
     for (const entry of entries) {
       if (entry.kind === "project" && entry.id !== this.projectId)
         throw new CatalogValidationError("MULTIPLE_PROJECT_ROOTS", entry.id);
@@ -1323,7 +1334,7 @@ export class CatalogGraph {
         entry,
         get,
         this.library,
-        (id) => ownerInView.get(id),
+        ownerOfInView,
         contracts,
       );
     }
@@ -1353,10 +1364,8 @@ export class CatalogGraph {
     library: CatalogLibrary = this.library,
     /** Owner of a node as `get` reads the document (an unlocked origin's copy — ADR-282 R7). */
     ownerOf: (id: string) => string | undefined = (id) => this.ownerOf(id),
-    contracts?: Map<
-      DefinitionEntry | LibraryDefinition,
-      Pick<LibraryDefinition, "accepts" | "propChoices">
-    >,
+    /** Contracts already computed in this validation (one per definition). */
+    contracts: ContractCache = new Map(),
   ): void {
     const lookupDefinition = (id: DefinitionId) =>
       id.startsWith("lib:")
@@ -1382,8 +1391,8 @@ export class CatalogGraph {
       return undefined;
     };
     // A composite instance is its template root: it takes the root's props plus its schema.
-    const contractOf = (definition: DefinitionEntry | LibraryDefinition) => {
-      const cached = contracts?.get(definition);
+    const checkOf = (definition: DefinitionEntry | LibraryDefinition) => {
+      const cached = contracts.get(definition);
       if (cached) return cached;
       const contract = instanceContract(
         definition as LibraryDefinition,
@@ -1393,8 +1402,14 @@ export class CatalogGraph {
             ? library.templates.get(id as `lib:template:${string}`)
             : (get(id) as { definitionId: string } | undefined),
       );
-      contracts?.set(definition, contract);
-      return contract;
+      const check = {
+        definition: { ...definition, ...contract },
+        inputs: (componentPropertiesOf(definition) ?? [])
+          .filter((property) => property.kind === "variable")
+          .map((property) => [property.key, property.variableId!] as const),
+      };
+      contracts.set(definition, check);
+      return check;
     };
     /**
      * ADR-294 — an instance's `variable` property values: a reference (`"!var.<id>"`) to a variable
@@ -1405,15 +1420,14 @@ export class CatalogGraph {
       P extends Readonly<Record<string, { kind: string; value?: unknown }>>,
     >(
       props: P,
-      definition: object,
+      definition: DefinitionEntry | LibraryDefinition,
       nodeId: string,
     ): P => {
+      const { inputs: declared } = checkOf(definition);
+      if (!declared.length) return props;
       const inputs = new Map(
-        (componentPropertiesOf(definition) ?? [])
-          .filter((property) => property.kind === "variable")
-          .map((property) => [property.key, get(property.variableId!)]),
+        declared.map(([key, variableId]) => [key, get(variableId)]),
       );
-      if (!inputs.size) return props;
       let rest: Record<string, unknown> | undefined;
       for (const [key, write] of Object.entries(props)) {
         const input = inputs.get(key);
@@ -1457,7 +1471,7 @@ export class CatalogGraph {
       for (const id of entry.slot?.suggested ?? [])
         if (!lookupDefinition(id))
           throw new CatalogValidationError("DANGLING_DEFINITION", id);
-      const definition = { ...found, ...contractOf(found) };
+      const { definition } = checkOf(found);
       // (ADR-284 Phase 6 — a RAC state prop of the node's type may read a variable (`PropVar` — a
       //  filter control's `selectedKeys={cycles}`) though the panel offers no fixed value for it.)
       let stateProps: ReadonlySet<string> | undefined;
@@ -1526,7 +1540,7 @@ export class CatalogGraph {
               "DANGLING_DEFINITION",
               target.definitionId,
             );
-          const targetDef = { ...foundTarget, ...contractOf(foundTarget) };
+          const targetDef = checkOf(foundTarget).definition;
           if (override.props)
             this.validatePropWrites(
               withoutInputValues(override.props, foundTarget, entry.id),
@@ -1637,7 +1651,7 @@ export class CatalogGraph {
         if (entry.properties?.length)
           validateComponentProperties(entry, get, (definitionId) => {
             const found = lookupDefinition(definitionId);
-            return found ? contractOf(found) : undefined;
+            return found ? checkOf(found).definition : undefined;
           });
       }
     }
@@ -2152,10 +2166,6 @@ export class CatalogGraph {
   }
 }
 
-/** Documents `createCatalogGraph` checked · handed over, read (and forgotten) by the constructor. */
-const checkedDocuments = new WeakSet<CatalogDocument>();
-const adoptedDocuments = new WeakSet<CatalogDocument>();
-
 export function createCatalogGraph(
   value: unknown,
   library: CatalogLibrary,
@@ -2179,9 +2189,10 @@ export function createCatalogGraph(
     document.entries as Record<string, CatalogEntry>,
     library,
   );
-  checkedDocuments.add(document);
-  if (options.adopt) adoptedDocuments.add(document);
-  return new CatalogGraph(document, library);
+  return new CatalogGraph(document, library, {
+    checked: true,
+    adopt: options.adopt,
+  });
 }
 
 /**

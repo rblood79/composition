@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **토큰 값 칸 (Padding · Gap · Radius · Border Width · Font Size) 을 label 로 끌면 0 부터 시작하던 결함**:
   - **Why**: 칸 글자가 단계 이름 (「M」) 으로 바뀐 뒤 (`1901c0507`) ▲▼ 만 토큰의 해석 px 를 읽게 고쳤고, label 끌기는 그대로 칸 글자를 숫자로 읽어 NaN → 0 에서 시작했다. ⌥ 자유값 끌기는 M(12) 에서 +4 가 4 로, 단계 끌기는 M 에서 한 칸이 L 이 아닌 0 기준 단계로 갔다.
   - 수정: ▲▼ 와 끌기가 보이는 숫자를 한 함수 (`shownNumber`) 로 읽는다 — 토큰은 해석 px.
+  - 같은 결함 하나 더: Position inset 칸에서 토큰 (M) 의 단위를 % 로 바꾸면 12% 가 아니라 기본값 100% 가 저장됐다. 단위 변경도 같은 함수를 읽는다.
   - 위치: `apps/builder/src/builder/components/property/PropertyUnitInput.components.tsx`. 회귀 테스트 `adr298TokenPreview.test.tsx` (끊겨 있던 token scrub 3 건 + 단계 끌기 1 건).
 
 ## [ADR-307 후속 — 큰 바운드 목록의 행 창 · 문서 graph 한 번만 만들기] - 2026-11-11

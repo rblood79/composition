@@ -178,6 +178,29 @@ describe("ADR-298 token scrub preview", () => {
     expect(onDrag).toHaveBeenLastCalledWith("var(--spacing-sm)");
   });
 
+  it("a unit change on a token field keeps the token's number", () => {
+    // (Position insets: the ▾ menu lists the Spacing steps then the units — 「M」 → % is 12%.)
+    const onChange = vi.fn();
+    const view = render(
+      <PropertySelectionContext.Provider
+        value={{ useSelectedId: () => BOX, readSelectedId: () => BOX }}
+      >
+        <PropertyUnitInput
+          label="Left"
+          labelMode="icon"
+          value="var(--spacing-md)"
+          units={["px", "%"]}
+          presets={SPACING_PRESET_OPTIONS}
+          presetUnits
+          onChange={onChange}
+        />
+      </PropertySelectionContext.Provider>,
+    );
+    fireEvent.click(view.getAllByRole("button")[0]!);
+    fireEvent.click(view.getByRole("option", { name: "%" }));
+    expect(onChange).toHaveBeenLastCalledWith("12%");
+  });
+
   it("commits one token edit and Undo restores the starting value", async () => {
     const { workspace, graph, record, host } = await open();
     host.updateStyle("paddingTop", "4px");
