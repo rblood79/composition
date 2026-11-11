@@ -398,7 +398,7 @@ export const unlockOrigins =
   };
 
 /** A JSON text with object keys sorted (two records equal whatever order their fields came in). */
-const stable = (value: unknown): string =>
+export const stable = (value: unknown): string =>
   JSON.stringify(value, (_key, item: unknown) =>
     item && typeof item === "object" && !Array.isArray(item)
       ? Object.fromEntries(

@@ -1271,9 +1271,9 @@ const ChipGroupField = memo(function ChipGroupField({
           ? on
             ? editor.onValue
             : editor.offValue
-          : !on && field.baseValue === undefined
-            ? undefined
-            : on;
+          : on || field.baseValue !== undefined
+            ? on
+            : undefined;
       if (field.origin === "style") onStyleUpdate(key, next);
       else onSemanticUpdate(key, next);
     },

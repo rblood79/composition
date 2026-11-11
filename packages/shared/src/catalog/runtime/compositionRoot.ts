@@ -87,7 +87,7 @@ import { tableBinding } from "../bindings/Table.binding";
 import { componentOriginOf } from "../document/componentOrigin";
 import { definitionTypeName } from "../commands/context";
 import type {
-  CatalogEntry,
+  CatalogReader,
   DefinitionId,
   EntryId,
   NodeId,
@@ -6661,26 +6661,44 @@ export class CatalogCompositionRoot {
   }
 
   /**
-   * What a record would resolve to over other entries (`read` — staged edits over the document,
-   * nothing committed): the same pruned resolution as an incremental step. `undefined` when the
-   * record is not drawn. A caller compares it with the record as written — e.g. whether an own
-   * write shows anything its removal would not (`catalogRestoredWrites`).
+   * What a record would resolve to over a reader with staged edits (nothing committed): the same
+   * pruned resolution as an incremental step. `undefined` when the record is not drawn. A caller
+   * compares it with the record as written — e.g. whether an own write shows anything its removal
+   * would not (`catalogDropRestoredWrites`).
    */
   resolveRecordOver(
-    read: (id: string) => CatalogEntry | undefined,
+    reader: CatalogReader,
     id: string,
     breakpoint: BreakpointName = this.breakpoint,
   ): ResolvedCatalogNode | undefined {
     if (!this.records.has(id) || !this.recordRoots.has(id)) return undefined;
-    const base = this.runtime.graph;
-    const graph = new Proxy(base, {
+    return this.resolvePruned(this.graphOver(reader), id, breakpoint).resolved;
+  }
+
+  /** The graph read through `reader`'s records (its staged entries, owners, library); the rest the graph's. */
+  private graphOver(reader: CatalogReader): CatalogRuntime["graph"] {
+    const graph = this.runtime.graph;
+    const bound = new Map<PropertyKey, unknown>();
+    return new Proxy(graph, {
       get(target, key) {
-        if (key === "getEntry") return read;
+        if (key === "library") return reader.library;
+        if (
+          key === "getEntry" ||
+          key === "ownerOf" ||
+          key === "definitionOfTemplateRoot"
+        )
+          return (id: string) =>
+            reader[key as "getEntry" | "ownerOf" | "definitionOfTemplateRoot"](
+              id,
+            );
+        if (bound.has(key)) return bound.get(key);
         const value = Reflect.get(target, key, target);
-        return typeof value === "function" ? value.bind(target) : value;
+        if (typeof value !== "function") return value;
+        const method = value.bind(target);
+        bound.set(key, method);
+        return method;
       },
     });
-    return this.resolvePruned(graph, id, breakpoint).resolved;
   }
 
   private planInstances(
@@ -6693,8 +6711,7 @@ export class CatalogCompositionRoot {
     updates: RecordPlan[];
     roots: Set<NodeId>;
   } {
-    let resolverVisits = 0;
-    let includeChecks = 0;
+    const counts = { resolverVisits: 0, includeChecks: 0 };
     const updates: RecordPlan[] = [];
     const roots = new Set<NodeId>();
     const queue: string[] = [];
@@ -6706,15 +6723,12 @@ export class CatalogCompositionRoot {
       const id = queue[index];
       const before = this.records.get(id)!;
       const rootId = this.recordRoots.get(id)!;
-      const counts = { resolverVisits: 0, includeChecks: 0 };
       const { top, resolved } = this.resolvePruned(
         this.runtime.graph,
         id,
         this.breakpoint,
         counts,
       );
-      resolverVisits += counts.resolverVisits;
-      includeChecks += counts.includeChecks;
       // The authored optional fields follow the new resolution (an undo can drop them).
       const {
         fills: _fills,
@@ -7206,7 +7220,7 @@ export class CatalogCompositionRoot {
         else updates.push(next);
         roots.add(rootId);
       }
-    return { resolverVisits, includeChecks, updates, roots };
+    return { ...counts, updates, roots };
   }
 
   /**

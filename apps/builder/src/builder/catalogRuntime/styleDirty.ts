@@ -7,7 +7,7 @@ import {
 } from "./styleFields";
 
 /** The authored layer a breakpoint edits: the base, or that tablet/mobile layer. */
-function layerOf(own: OwnFields, breakpoint: BreakpointName) {
+export function layerOf(own: OwnFields, breakpoint: BreakpointName) {
   if (breakpoint === "desktop")
     return { visual: own.visual, layout: own.layout, sizing: own.sizing };
   const layer = own.responsive?.[breakpoint];

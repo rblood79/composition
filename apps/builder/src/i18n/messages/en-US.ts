@@ -404,7 +404,6 @@ const catalog: TranslationKeys = {
     pushChanges: "Push changes to component",
     resetAllChanges: "Reset all changes",
     pushChangesShort: "Push",
-    resetAllChangesShort: "Reset",
     pushed: "Pushed to {name}",
     resetAllDone: "All changes reset",
   },

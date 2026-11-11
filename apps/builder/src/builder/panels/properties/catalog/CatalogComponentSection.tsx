@@ -633,7 +633,7 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
                 onPress={resetAll}
               >
                 <ACTION_ICONS.reset aria-hidden="true" size={iconProps.size} />
-                {t("componentAction.resetAllChangesShort")}
+                {t("common.reset")}
               </RACButton>
               <RACButton
                 aria-label={t("componentAction.pushChanges")}

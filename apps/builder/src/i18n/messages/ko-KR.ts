@@ -400,7 +400,6 @@ const catalog: TranslationKeys = {
     pushChanges: "원본에 반영",
     resetAllChanges: "전부 되돌리기",
     pushChangesShort: "반영",
-    resetAllChangesShort: "초기화",
     pushed: "{name} 원본에 반영됨",
     resetAllDone: "재정의를 전부 되돌렸습니다",
   },

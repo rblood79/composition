@@ -1359,11 +1359,11 @@ export class CatalogCanvasGestures {
       if (violation) this.host.notifyNesting?.({ kind: "rejected", violation });
       return false;
     }
+    const valueEdit = gesture.kind === "spacing" || gesture.kind === "resize";
     this.host.execute(
-      (gesture.kind === "spacing" || gesture.kind === "resize") &&
-        this.host.withoutRestoredWrites
-        ? this.host.withoutRestoredWrites(command, [gesture.item])
-        : command,
+      (valueEdit &&
+        this.host.withoutRestoredWrites?.(command, [gesture.item])) ||
+        command,
     );
     const relocated = gesture.kind === "move" ? gesture.drop : undefined;
     if (relocated?.relocated)
