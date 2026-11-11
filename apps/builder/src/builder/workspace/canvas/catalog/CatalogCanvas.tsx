@@ -48,7 +48,6 @@ import {
 import {
   catalogRowRemainderBox,
   catalogRowRemainders,
-  catalogRowSampleHiddenWithin,
 } from "../../../catalogRuntime/rowSample";
 import { catalogMenuHost } from "../../../catalogRuntime/shortcuts";
 import { setCatalogSpacingLive } from "../../../catalogRuntime/spacingLive";
@@ -821,7 +820,6 @@ export function CatalogCanvas({
         return scene.stream;
       },
       query: hitTestPoint,
-      pickable: (id) => !catalogRowSampleHiddenWithin(workspace.root, id),
       selectRecords: (ids, options) => workspace.selectRecords(ids, options),
       itemOf: (id) => workspace.itemOfRecord(id),
     });

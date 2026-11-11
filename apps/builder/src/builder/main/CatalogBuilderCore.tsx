@@ -1,4 +1,3 @@
-import { COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT } from "@composition/shared";
 import { setBorderSnapRatio } from "@composition/rendering";
 import { Button } from "@composition/shared/components";
 import {
@@ -277,8 +276,8 @@ export function CatalogBuilderCore() {
                       : undefined,
                 },
               }),
-          // The old Canvas's sample: a bound list that grows with its rows draws the first 10.
-          rowSample: COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT,
+          // ADR-157 sample: a bound list that grows with its rows builds the rows its page shows.
+          rowSample: true,
           // ADR-286: the document's collections, with the API rows the store caches.
           rows: (binding, kind) =>
             catalogBoundRows(binding, catalogCollectionTables(graph), kind),

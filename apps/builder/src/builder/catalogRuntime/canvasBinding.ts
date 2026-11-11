@@ -135,7 +135,6 @@ import {
   catalogGlyphSize,
   catalogTextMetrics,
 } from "./boxModel";
-import { catalogRowSampleHidden } from "./rowSample";
 import {
   catalogButtonPending,
   catalogButtonPendingIndicator,
@@ -1611,7 +1610,6 @@ function catalogCanvasHidden(
       cursor.hidden ||
       cursor.derivedProps?._pendingHidden === true ||
       cursor.derivedProps?._selectionMarkHidden === true ||
-      catalogRowSampleHidden(root, cursor) ||
       root.tagRowCollapsed(cursor.id)
     ) {
       hidden = true;

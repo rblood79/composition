@@ -63,7 +63,7 @@ async function open(type: string, rows: CatalogBoundRow[]) {
       engine: await nodeLayoutEngine(),
       viewport: { width: 1200, height: 800 },
       autosaveSchedule: () => {},
-      root: { rowSample: 10, rows: () => rows },
+      root: { rowSample: true, rows: () => rows },
     },
   );
   const node = (id: NodeId, definitionId: string): NodeEntry => ({
@@ -119,6 +119,8 @@ async function open(type: string, rows: CatalogBoundRow[]) {
       }),
     );
   }
+  // (The resample the root asks for after the step — a task of its own.)
+  await new Promise((resolve) => setTimeout(resolve, 0));
   return workspace;
 }
 
@@ -152,12 +154,24 @@ const sampleView = (count: number, more?: number) => [
   ...(more ? [[`+${more} more`, true]] : []),
 ];
 
+/** The data rows the sampled list built (records with a row index under a sampled owner). */
+const drawnRows = (workspace: CatalogWorkspace) =>
+  [...workspace.root.canvasInputs.values()].filter(
+    (record) =>
+      record.rowIndex !== undefined &&
+      workspace.root.canvasInputs.get(record.parentId)?.rowCount !== undefined,
+  ).length;
+
 describe("ADR-248 4e Layers row sample", () => {
-  it("a list growing with its rows lists the 10 drawn rows and one '+N more' row selecting the list", async () => {
-    const workspace = await open("ListBox", rowsOf(15));
+  it("a list growing with its rows lists the rows built and one '+N more' row selecting the list", async () => {
+    const workspace = await open("ListBox", rowsOf(100));
     const nodes = layers(workspace)();
-    expect(childrenOf(nodes, "ListBox")).toEqual(sampleView(10, 5));
-    const more = nodes.find((node) => node.name === "+5 more")!;
+    const built = drawnRows(workspace);
+    expect(built).toBeLessThan(100);
+    expect(childrenOf(nodes, "ListBox")).toEqual(
+      sampleView(built, 100 - built),
+    );
+    const more = nodes.find((node) => node.name === `+${100 - built} more`)!;
     const [list] = workspace.root.recordsOfSource(LIST);
     expect(more.selects).toBe(list);
     workspace.dispose();
@@ -176,9 +190,13 @@ describe("ADR-248 4e Layers row sample", () => {
   });
 
   it("an auto Table lists its data rows (named by the first cell) under the body, sampled", async () => {
-    const workspace = await open("Table", rowsOf(12));
+    const workspace = await open("Table", rowsOf(100));
     const nodes = layers(workspace)();
-    expect(childrenOf(nodes, "TableBody")).toEqual(sampleView(10, 2));
+    const built = drawnRows(workspace);
+    expect(built).toBeLessThan(100);
+    expect(childrenOf(nodes, "TableBody")).toEqual(
+      sampleView(built, 100 - built),
+    );
     // A data row has no document position (the Table draws it from the data): it selects the body.
     const body = nodes.find((node) => node.typeName === "TableBody")!;
     expect(body.children!.every((row) => row.selects === body.id)).toBe(true);

@@ -18,26 +18,24 @@ import {
   removeTargets,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
-import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
-import { bindCatalogCanvas } from "../canvasBinding";
 import { pickTopmostRecord } from "../canvasPick";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
 import { newCatalogProjectDocument } from "../project";
 import {
   catalogRowRemainderBox,
   catalogRowRemainders,
-  catalogRowSampleHidden,
-  catalogRowSampleHiddenWithin,
 } from "../rowSample";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 /**
- * ADR-248 4e sample policy (the old Canvas's ADR-157): a bound ListBox/GridList/Table that grows
- * with its rows draws its first 10 rows; the later rows keep their layout box (the owner is the
- * DOM's height) but are neither drawn nor picked, and the editor marks their area "+N more" with
- * the collection's count. A bounded owner (authored height, a fixed Table) shows every row it has.
+ * ADR-157 sample (2026-11-11 row window): a bound ListBox/GridList/Table that grows with its rows
+ * builds only the rows its page shows — the page's height (800 here) over the list's laid-out row
+ * pitch, + 1 — and keeps the area of the rest at that pitch (the owner is the DOM's height); the
+ * editor marks it "+N more" with the collection's count. A list seen for the first time builds one
+ * row, and is built again with its measured pitch right after the step. A bounded owner (authored
+ * height, a fixed Table) shows every row it has.
  */
 const BODY = "project:node:home-body" as NodeId;
 const LIST = "project:node:list" as NodeId;
@@ -61,12 +59,10 @@ const rowsOf = (count: number, total?: number): CatalogBoundRows =>
     total === undefined ? {} : { total },
   );
 
-/** `rowSample` null = the Preview root (no sample). */
-async function open(
-  type: string,
-  rows: CatalogBoundRows,
-  rowSample: number | null = 10,
-) {
+/** After the step: the resample the root asked for (a task of its own). */
+const resampled = () => new Promise((resolve) => setTimeout(resolve, 0));
+/** `sampled` false = the Preview root (no sample). */
+async function open(type: string, rows: CatalogBoundRows, sampled = true) {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
@@ -81,7 +77,10 @@ async function open(
       engine: await nodeLayoutEngine(),
       viewport: { width: 1200, height: 800 },
       autosaveSchedule: () => {},
-      root: { rowSample: rowSample ?? undefined, rows: () => rows },
+      root: {
+        ...(sampled ? { rowSample: true } : {}),
+        rows: () => rows,
+      },
     },
   );
   const node: NodeEntry = {
@@ -103,6 +102,7 @@ async function open(
       newId: workspace.newId,
     }),
   );
+  await resampled();
   return workspace;
 }
 
@@ -117,38 +117,122 @@ function rowRecords(workspace: CatalogWorkspace, type: string) {
   );
 }
 
-describe("ADR-248 4e row sample", () => {
-  it("a bound ListBox growing with its rows: 10 drawn, the rest laid out but not drawn, marked with the collection's count", async () => {
-    const workspace = await open("ListBox", rowsOf(15, 40));
-    const root = workspace.root;
-    const rows = rowRecords(workspace, "ListBoxItem");
-    expect(rows.map((row) => row.rowIndex)).toEqual(
-      Array.from({ length: 15 }, (_, index) => index),
-    );
-    const owner = root.canvasInputs.get(rows[0]!.parentId)!;
-    expect(owner.rowCount).toBe(40);
-    expect(rows.map((row) => catalogRowSampleHidden(root, row))).toEqual(
-      Array.from({ length: 15 }, (_, index) => index >= 10),
-    );
-    // The owner keeps every row's height (the DOM's box).
-    const geometry = root.getGeometry([owner.id, rows[14]!.id]);
-    expect(geometry.get(owner.id)!.height).toBeGreaterThan(
-      geometry.get(rows[14]!.id)!.y,
-    );
-    const [remainder] = catalogRowRemainders(root);
-    expect(remainder).toMatchObject({ ownerId: owner.id, hiddenRows: 30 });
-    expect(remainder!.hiddenIds).toEqual(rows.slice(10).map((row) => row.id));
+/** A record's top below its page root's top (the boxes are parent-relative). */
+function pageTop(workspace: CatalogWorkspace, id: string) {
+  const inputs = workspace.root.canvasInputs;
+  let top = 0;
+  for (
+    let cursor = inputs.get(id);
+    cursor && inputs.has(cursor.parentId);
+    cursor = inputs.get(cursor.parentId)
+  )
+    top += workspace.root.getGeometry([cursor.id]).get(cursor.id)!.y;
+  return top;
+}
+/** The rows a page `height` tall shows of a list whose first two built rows are `rows`. */
+function pageRows(
+  workspace: CatalogWorkspace,
+  rows: readonly { id: string }[],
+  height = 800,
+) {
+  const geometry = workspace.root.getGeometry(rows.slice(0, 2).map((r) => r.id));
+  const pitch =
+    geometry.get(rows[1]!.id)!.y - geometry.get(rows[0]!.id)!.y;
+  const start = pageTop(workspace, rows[0]!.id);
+  return {
+    pitch,
+    start,
+    count: Math.ceil(Math.max(0, height - start) / pitch) + 1,
+  };
+}
 
-    // The Canvas draws the sample and skips the rest (and their subtrees).
-    const pageRoots = root.pageRootRecords();
-    const canvas = bindCatalogCanvas(root, pageRoots);
-    expect(getSkiaNode(rows[9]!.id)!.visible).not.toBe(false);
-    expect(getSkiaNode(rows[10]!.id)!.visible).toBe(false);
-    // Picking skips the rows not drawn and what they hold: the owner is under the point.
-    const label = root.canvasInputs.get(rows[12]!.id)!.children[0]!;
-    expect(catalogRowSampleHiddenWithin(root, label)).toBe(true);
-    expect(catalogRowSampleHiddenWithin(root, rows[3]!.id)).toBe(false);
-    canvas.dispose();
+describe("ADR-248 4e row sample", () => {
+  it("a list seen for the first time builds the smallest rows' count, then the rows its page shows at its laid-out pitch", async () => {
+    const workspace = await open("ListBox", rowsOf(60, 200));
+    // A second list, seen for the first time: the rows of the smallest row height (800 ÷ 20 + 1)
+    // until the resample after the step.
+    const second = "project:node:list-2" as NodeId;
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          {
+            ...(workspace.runtime.graph.getEntry(LIST) as NodeEntry),
+            id: second,
+            children: [],
+            descendantOverrides: [],
+          },
+        ],
+        rootIds: [second],
+        newId: workspace.newId,
+      }),
+    );
+    const secondRows = () =>
+      rowRecords(workspace, "ListBoxItem").filter((row) =>
+        row.parentId.includes(second),
+      );
+    expect(secondRows()).toHaveLength(41);
+    await resampled();
+    // It starts below the first list — past the page: the page shows none of it (one row kept).
+    expect(pageTop(workspace, secondRows()[0]!.id)).toBeGreaterThan(800);
+    expect(secondRows()).toHaveLength(1);
+    const rows = rowRecords(workspace, "ListBoxItem").filter(
+      (row) => !row.parentId.includes(second),
+    );
+    const { pitch, count } = pageRows(workspace, rows);
+    expect(count).toBeLessThan(60);
+    expect(rows.map((row) => row.rowIndex)).toEqual(
+      Array.from({ length: count }, (_, index) => index),
+    );
+    const owner = workspace.root.canvasInputs.get(rows[0]!.parentId)!;
+    expect(owner.rowCount).toBe(200);
+    const [remainder] = catalogRowRemainders(workspace.root);
+    expect(remainder).toMatchObject({
+      ownerId: owner.id,
+      hiddenRows: 200 - count,
+    });
+    expect(remainder!.rowIds).toEqual(rows.map((row) => row.id));
+    // The area is the delivered rows' (the DOM lays out 60 — the window — not the 200).
+    expect(remainder!.height).toBeCloseTo((60 - count) * pitch, 3);
+    // A later step builds the list with the measured pitch at once (no second build).
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: second }],
+        visual: { width: { kind: "set", value: 300 } },
+      }),
+    );
+    expect(secondRows()).toHaveLength(1);
+    workspace.dispose();
+  });
+
+  it("the sampled owner is as tall as the Preview's with every row built", async () => {
+    const sampled = await open("ListBox", rowsOf(60));
+    const preview = await open("ListBox", rowsOf(60), false);
+    const ownerHeight = (workspace: CatalogWorkspace) => {
+      const id = rowRecords(workspace, "ListBoxItem")[0]!.parentId;
+      return workspace.root.getGeometry([id]).get(id)!.height;
+    };
+    expect(rowRecords(sampled, "ListBoxItem").length).toBeLessThan(60);
+    expect(rowRecords(preview, "ListBoxItem")).toHaveLength(60);
+    expect(ownerHeight(sampled)).toBeCloseTo(ownerHeight(preview), 1);
+    sampled.dispose();
+    preview.dispose();
+  });
+
+  it("a page's own height decides its sample", async () => {
+    const workspace = await open("ListBox", rowsOf(60));
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: BODY }],
+        sizing: { height: { kind: "set", value: 300 } },
+      }),
+    );
+    await resampled();
+    const rows = rowRecords(workspace, "ListBoxItem");
+    expect(rows).toHaveLength(pageRows(workspace, rows, 300).count);
+    expect(catalogRowRemainders(workspace.root)).toMatchObject([
+      { hiddenRows: 60 - rows.length },
+    ]);
     workspace.dispose();
   });
 
@@ -186,15 +270,20 @@ describe("ADR-248 4e row sample", () => {
     workspace.dispose();
   });
 
-  it("the marked area is the union of the rows not drawn, cut to the owner's shown box", () => {
+  it("the marked area is as wide as the sample rows, its height below the lowest, cut to the owner's shown box", () => {
     const boxes: Record<
       string,
       { x: number; y: number; width: number; height: number }
     > = {
-      a: { x: 10, y: 100, width: 200, height: 30 },
-      b: { x: 10, y: 130, width: 200, height: 30 },
+      a: { x: 10, y: 40, width: 200, height: 30 },
+      b: { x: 10, y: 70, width: 200, height: 30 },
     };
-    const remainder = { ownerId: "o", hiddenIds: ["a", "b"], hiddenRows: 7 };
+    const remainder = {
+      ownerId: "o",
+      rowIds: ["a", "b"],
+      hiddenRows: 2,
+      height: 60,
+    };
     expect(catalogRowRemainderBox(remainder, (id) => boxes[id])).toEqual({
       x: 10,
       y: 100,
@@ -251,18 +340,19 @@ describe("ADR-248 4e row sample", () => {
     ).toBeUndefined();
     expect(catalogRowRemainders(workspace.root)).toEqual([]);
     workspace.dispose();
-    const preview = await open("ListBox", rowsOf(15), null);
-    expect(
-      rowRecords(preview, "ListBoxItem").some((row) =>
-        catalogRowSampleHidden(preview.root, row),
-      ),
-    ).toBe(false);
+    const preview = await open("ListBox", rowsOf(15), false);
+    expect(rowRecords(preview, "ListBoxItem")).toHaveLength(15);
+    expect(catalogRowRemainders(preview.root)).toEqual([]);
     preview.dispose();
   });
 
   it("a GridList samples too; a 10-row list shows everything without a mark", async () => {
-    const grid = await open("GridList", rowsOf(12));
-    expect(catalogRowRemainders(grid.root)).toMatchObject([{ hiddenRows: 2 }]);
+    const grid = await open("GridList", rowsOf(100));
+    const built = rowRecords(grid, "GridListItem");
+    expect(built).toHaveLength(pageRows(grid, built).count);
+    expect(catalogRowRemainders(grid.root)).toMatchObject([
+      { hiddenRows: 100 - built.length },
+    ]);
     grid.dispose();
     const ten = await open("ListBox", rowsOf(10));
     expect(catalogRowRemainders(ten.root)).toEqual([]);
@@ -270,7 +360,7 @@ describe("ADR-248 4e row sample", () => {
   });
 
   it("a Table samples in auto height; a fixed Table shows the rows its height holds", async () => {
-    const workspace = await open("Table", rowsOf(30));
+    const workspace = await open("Table", rowsOf(100));
     // Fixed (the binding default): no sample.
     expect(catalogRowRemainders(workspace.root)).toEqual([]);
     workspace.execute(
@@ -279,12 +369,12 @@ describe("ADR-248 4e row sample", () => {
         props: { heightMode: { kind: "set", value: "auto" } },
       }),
     );
+    await resampled();
     const rows = rowRecords(workspace, "Row");
-    expect(rows).toHaveLength(30);
+    expect(rows).toHaveLength(pageRows(workspace, rows).count);
     expect(catalogRowRemainders(workspace.root)).toMatchObject([
-      { hiddenRows: 20 },
+      { hiddenRows: 100 - rows.length },
     ]);
-    expect(catalogRowSampleHidden(workspace.root, rows[20]!)).toBe(true);
     workspace.dispose();
   });
 });

@@ -50,7 +50,6 @@ import {
 } from "./previewChannel";
 import type { CatalogBoundLayerRows } from "./layerTree";
 import { CatalogReadModel } from "./readModel";
-import { catalogRowSampleHidden } from "./rowSample";
 import { catalogAbsentByOwnerValue } from "../../../../../packages/shared/src/catalog/runtime/presence";
 import { CatalogHistoryStore } from "./history";
 import type { EditTarget } from "../../../../../packages/shared/src/catalog/document/types";
@@ -299,6 +298,8 @@ export class CatalogWorkspace {
             }
           : {}),
         consumeStep: this.consumeStep,
+        // ADR-157 sample: a list built with the wrong row count is built again after the step.
+        onRowSampleStale: () => this.scheduleResample(),
         // A new root derives its own tier's columns from the same monitor width (ADR-274 F5 —
         //   one layout per breakpoint switch, no carried-over count to correct next frame).
         ...(this.screenWidth ? { screenWidth: this.screenWidth } : {}),
@@ -653,6 +654,25 @@ export class CatalogWorkspace {
   }
 
   private readonly rowListeners = new Set<() => void>();
+  private resampleScheduled = false;
+  private disposed = false;
+  /**
+   * ADR-157 sample: build again the lists whose rows are not the rows their page shows (the root
+   * measured their pitch in the step that just ran), then row listeners (the Canvas) follow — in a
+   * task of its own: the step's task stays as long as it was (the rows dropped are past the page).
+   */
+  private scheduleResample(): void {
+    if (this.resampleScheduled) return;
+    this.resampleScheduled = true;
+    setTimeout(() => {
+      this.resampleScheduled = false;
+      if (this.disposed) return;
+      const errors = this.currentRoot.resampleRows();
+      for (const listener of [...this.rowListeners]) listener();
+      if (errors.length)
+        reportError(new AggregateError(errors, "CATALOG_ROWS_DELIVERY"));
+    }, 0);
+  }
   /**
    * Data rows changed in the data store (its collection ids; absent = every collection): the
    * root re-resolves the bound page roots, then row listeners (the Canvas scene) follow.
@@ -870,8 +890,6 @@ export class CatalogWorkspace {
     for (const id of owner.children) {
       const record = records.get(id);
       if (record?.rowIndex === undefined) continue;
-      const drawn = root.canvasInputs.get(id);
-      if (drawn && catalogRowSampleHidden(root, drawn)) continue;
       const typeName = typeOf(record.definitionId);
       rows.push({
         id,
@@ -882,11 +900,8 @@ export class CatalogWorkspace {
       });
     }
     if (!rows.length) return undefined;
-    const count = root.canvasInputs.get(owner.id)?.rowCount;
-    const more =
-      root.rowSample !== undefined && count !== undefined
-        ? count - root.rowSample
-        : 0;
+    // (The rows past the sample are not built — ADR-157.)
+    const more = root.rowRemainders().get(owner.id)?.hiddenRows ?? 0;
     return more > 0 ? { rows, more } : { rows };
   }
 
@@ -1195,6 +1210,7 @@ export class CatalogWorkspace {
   }
 
   dispose(): void {
+    this.disposed = true;
     this.fillScheduler?.stop();
     this.fillFailureListeners.clear();
     this.fillListeners.clear();

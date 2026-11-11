@@ -147,6 +147,11 @@ export interface ResolvedCatalogNode {
    * rows and marks the rest ("+N more"); the DOM shows every row.
    */
   rowCount?: number;
+  /**
+   * With `rowCount`: the rows the DOM lays out (the delivered window — `CatalogBoundRows`), of
+   * which the Builder built the first (`resolveCatalogNode`'s `rowSample`).
+   */
+  rowsShown?: number;
   children: readonly ResolvedCatalogNode[];
 }
 /** A data row a bound collection shows (the rows stay in the data store — H1). */
@@ -390,6 +395,52 @@ function growsWithRows(
 }
 const rowCountOf = (rowSet: readonly CatalogBoundRow[]) =>
   (rowSet as CatalogBoundRows).total ?? rowSet.length;
+/** The rows a row set lays out in the DOM (a sample keeps the delivered count). */
+const rowsShownOf = (rowSet: readonly CatalogBoundRow[]) =>
+  (rowSet as { delivered?: number }).delivered ?? rowSet.length;
+/** A px length (`320` · `"320px"`); anything else (`%` · keywords) is not one. */
+export function catalogPxLength(value: unknown): number | undefined {
+  if (typeof value === "number") return value;
+  const match =
+    typeof value === "string" ? /^(\d+(?:\.\d+)?)px$/.exec(value) : null;
+  return match ? Number(match[1]) : undefined;
+}
+/**
+ * A sampled list's laid-out rows: the pitch line to line, the rows one line holds (a grid's), and
+ * where its first row starts below its page's top (a list lower on the page shows fewer rows).
+ */
+export interface CatalogRowPitch {
+  readonly pitch: number;
+  readonly perLine: number;
+  readonly start: number;
+}
+/** What the Builder's row sample counts with (`resolveCatalogNode`'s `rowSample`). */
+export interface CatalogRowSampleBasis {
+  /** The page height when the resolved root authors none (the breakpoint's screen). */
+  readonly screenHeight: number;
+  /** A sampled list's measured pitch, by its resolved identity (`instancePath::sourceId`). */
+  readonly pitchOf?: (owner: string) => CatalogRowPitch | undefined;
+}
+/**
+ * The smallest row a sampled list draws (S2 control height XS — ListBoxItem XS's minimum): before
+ * a list's pitch is measured its sample counts with it, so the page never shows a row not built.
+ */
+export const CATALOG_ROW_SAMPLE_MIN_ROW_HEIGHT = 20;
+/**
+ * The rows a sampled list builds on a page `pageHeight` tall: the lines the page shows from the
+ * list's first row down (`start`), plus one. Before its rows are measured, the rows of the smallest
+ * row height over the whole page (the composition root measures them and builds the list again,
+ * later).
+ */
+export function catalogRowSampleCount(
+  pageHeight: number,
+  pitch: CatalogRowPitch | undefined,
+): number {
+  if (!pitch || !(pitch.pitch > 0))
+    return Math.ceil(pageHeight / CATALOG_ROW_SAMPLE_MIN_ROW_HEIGHT) + 1;
+  const shown = Math.max(0, pageHeight - pitch.start);
+  return Math.max(1, pitch.perLine) * (Math.ceil(shown / pitch.pitch) + 1);
+}
 /**
  * Item types a bound collection repeats per data row (its first item position is the row
  * template; the positions may sit under a list part — TagGroup's TagList).
@@ -676,8 +727,38 @@ export function resolveCatalogNode(
   rows?: CatalogRowSource,
   /** ADR-257 Phase 4 — a bound Table's Preview sort (runtime state); absent = the data's order. */
   tableSort?: CatalogTableSortSource,
+  /**
+   * The Builder's sample (ADR-157): a bound list that grows with its rows builds the rows its page
+   * shows — the resolved root's height (its authored px height, else `screenHeight`) over the
+   * list's measured pitch (`catalogRowSampleCount`) — and keeps the collection's count
+   * (`rowCount`) for the rest. Absent = every row (the Preview · Publish).
+   */
+  rowSample?: CatalogRowSampleBasis,
 ): ResolvedCatalogNode {
   const library: CatalogLibrary = graph.library;
+  // (Set again from the root's own height when the root is resolved — before any row.)
+  let samplePageHeight = rowSample?.screenHeight ?? 0;
+  /** A sampled owner's rows (`owner` = its resolved identity): the first its page shows. */
+  const sampledRows = (
+    rowSet: readonly CatalogBoundRow[],
+    owner: string,
+  ): readonly CatalogBoundRow[] => {
+    if (!rowSample) return rowSet;
+    const sampleLimit = catalogRowSampleCount(
+      samplePageHeight,
+      rowSample.pitchOf?.(owner),
+    );
+    if (rowSet.length <= sampleLimit) return rowSet;
+    const meta = rowSet as CatalogBoundRows;
+    return Object.assign(rowSet.slice(0, sampleLimit), {
+      total: rowCountOf(rowSet),
+      delivered: rowSet.length,
+      ...(meta.loadingState !== undefined
+        ? { loadingState: meta.loadingState }
+        : {}),
+      ...(meta.view ? { view: meta.view } : {}),
+    });
+  };
   const lookupEntry = (entryId: string) => graph.getEntry(entryId);
   const responsiveLayers = (node: NodeEntry): NodeResponsiveLayer[] =>
     CASCADE[breakpoint]
@@ -1752,6 +1833,12 @@ export function resolveCatalogNode(
     applyWrites(sizing, node.sizing);
     for (const layer of layers)
       if (layer.sizing) applyWrites(sizing, layer.sizing);
+    if (rowSample && node.id === id) {
+      // The page's own height decides its sample (a page 500 tall shows fewer rows than 1,000).
+      const authored = sizing.height ?? catalogPxLength(visual.height);
+      if (typeof authored === "number" && authored > 0)
+        samplePageHeight = authored;
+    }
     const children: ResolvedCatalogNode[] = [];
     // A bound Chart reads the records as its data (the old Canvas's `_chartRows`, the DOM
     // Chart's bound rows); the other bound composites repeat their item template per row.
@@ -1949,10 +2036,13 @@ export function resolveCatalogNode(
       typeof projected.props.height === "number"
         ? projected.props.height
         : (tableBinding.props.accepts.height?.default as number | undefined);
-    const shown =
-      heightMode === "fixed" && typeof height === "number"
-        ? ordered.slice(0, Math.ceil(height / TABLE_MIN_ROW_HEIGHT) + 1)
-        : ordered;
+    const fixed = heightMode === "fixed" && typeof height === "number";
+    const shown = fixed
+      ? ordered.slice(0, Math.ceil(height / TABLE_MIN_ROW_HEIGHT) + 1)
+      : sampledRows(
+          ordered,
+          `${body.instancePath.join("/")}::${body.sourceId}`,
+        );
     const tableContext: ParentContext = {
       definitionId: projected.definitionId,
       props: projected.props as Props,
@@ -2061,7 +2151,9 @@ export function resolveCatalogNode(
               // The rows past a fixed height are cut (the DOM's virtualizer scrolls them).
               visual: extendedVisual(body.visual, { overflow: "hidden" }),
               // The other modes grow with every row (the Builder samples them).
-              ...(shown === ordered ? { rowCount: rowCountOf(rowSet) } : {}),
+              ...(fixed
+                ? {}
+                : { rowCount: rowCountOf(rowSet), rowsShown: ordered.length }),
               children: rowsOut,
             }
           : child,
@@ -2460,7 +2552,12 @@ export function resolveCatalogNode(
           ...(root.stateRules ?? []),
         ]
       : [];
-    const rowSet = rowing?.rowSet;
+    const rowSet =
+      rowing?.rowSet &&
+      SAMPLED_ROW_OWNERS.has(templateTypeName(templateId)) &&
+      growsWithRows(visual, sizing)
+        ? sampledRows(rowing.rowSet, `${instancePath.join("/")}::${templateId}`)
+        : rowing?.rowSet;
     const itemPositions = rowSet
       ? template.children.filter((childId) =>
           CATALOG_ROW_ITEM_TYPES.has(templateTypeName(childId)),
@@ -2876,7 +2973,7 @@ export function resolveCatalogNode(
       (itemPositions.length > 0 || ownedRowItems > 0) &&
       SAMPLED_ROW_OWNERS.has(templateTypeName(templateId)) &&
       growsWithRows(visual, sizing)
-        ? { rowCount: rowCountOf(rowSet) }
+        ? { rowCount: rowCountOf(rowSet), rowsShown: rowsShownOf(rowSet) }
         : {}),
       children,
     };

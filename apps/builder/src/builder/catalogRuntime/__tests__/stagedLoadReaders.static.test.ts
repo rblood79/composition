@@ -29,10 +29,6 @@ const KNOWN = new Map<string, readonly [number, string, string]>([
     [1, "B", "gridRecordSet — dropped on a step, a root change and a fill"],
   ],
   [
-    "apps/builder/src/builder/catalogRuntime/rowSample.ts",
-    [1, "A", "row remainders — the chrome cache is rebuilt with the scene"],
-  ],
-  [
     "apps/builder/src/builder/main/CatalogBuilderCore.tsx",
     [
       1,
