@@ -155,7 +155,8 @@ export function parseArgs(argv) {
     else if (value === "--dist-port") options.distPort = Number(next);
     else if (value === "--fixture-kind") options.fixtureKind = next;
     // ADR-265 불리 케이스: edit 부류의 대상 — seed (기본, seedIds[1] 폭) | body (page body 배경 —
-    //   서브트리 확장이 문서 전체인 편집)
+    //   서브트리 확장이 문서 전체인 편집) | spread (seedIds 를 차례로 폭 편집 — 서로 다른 자리
+    //   splice 로 piece-table segment 가 쌓이는 경우, 뒤 부류는 그 상태에서 잰다)
     else if (value === "--edit-target") options.editTarget = next;
     else if (value === "--pages") options.pages = Number(next);
     else if (value === "--grid-gap") options.gridGap = Number(next);
@@ -2493,7 +2494,7 @@ export const FRAME_CLASSES = {
   // 스타일 편집 5회/s (mutation 축: 동기 무효화 + persist)
   edit: (page, ctx, ms) =>
     page.evaluate(
-      async ({ seedId, ms, fixedInputs, editTarget }) => {
+      async ({ seedId, seedIds, ms, fixedInputs, editTarget }) => {
         const store = window.__composition_STORE__;
         const body = editTarget === "body";
         const pageId = store.getState().currentPageId;
@@ -2503,6 +2504,33 @@ export const FRAME_CLASSES = {
               .elements.find((e) => e.type === "body" && e.page_id === pageId)
               ?.id
           : seedId;
+        // spread: 현재 페이지의 서로 다른 요소를 차례로 고친다 — patch 가 매번 다른 자리를
+        // splice 해 piece-table segment 가 쌓이는 불리한 경우 (같은 요소 반복은 같은 자리를 바꿔 끼운다).
+        if (editTarget === "spread") {
+          const targets = seedIds
+            .map((seed) => store.getState().elements.find((e) => e.id === seed))
+            .filter(Boolean);
+          if (targets.length === 0) throw new Error("edit spread: 대상 요소 0");
+          const t0 = performance.now();
+          let i = 0;
+          while (
+            fixedInputs ? i < Math.ceil(ms / 50) : performance.now() - t0 < ms
+          ) {
+            const target = targets[i % targets.length];
+            const k = Math.floor(i / targets.length) % 2;
+            i += 1;
+            await store.getState().updateElementProps(target.id, {
+              ...target.props,
+              style: { ...(target.props?.style ?? {}), width: `${160 + k * 4}px` },
+            });
+            await new Promise((r) => setTimeout(r, 50));
+          }
+          for (const target of targets)
+            await store
+              .getState()
+              .updateElementProps(target.id, target.props ?? {});
+          return;
+        }
         const el = store.getState().elements.find((e) => e.id === id);
         const base = el?.props?.style ?? {};
         const t0 = performance.now();
@@ -2525,6 +2553,7 @@ export const FRAME_CLASSES = {
       },
       {
         seedId: ctx.seedIds[1],
+        seedIds: ctx.seedIds,
         ms,
         fixedInputs: ctx.fixedInputs,
         editTarget: ctx.editTarget,

@@ -31,6 +31,10 @@ export interface RenderCounters {
   bufferProxyReads: number;
   /** executeRenderCommands 호출 시점의 segment 수 합계 (평평한 배열이면 0). */
   bufferSegmentsAtExec: number;
+  /** splice 직후 piece-table 의 segment 수 최댓값 (reset 이후 — 누적 감시). */
+  bufferSegmentsPeak: number;
+  /** span map 의 cursor 해석 (`commandCursorAt` · `commandCursorIndex`) 이 지난 segment 수 합계. */
+  spanCursorSteps: number;
   /** scroll/auto 상자 extent 의 전체 descent 가 방문한 자손 수. */
   scrollRangeVisits: number;
   /** 전체 descent 횟수 (ADR-263 Phase 4 전에는 범위 계산마다 한 번). */
@@ -253,6 +257,8 @@ const counters: RenderCounters = {
   execCalls: 0,
   bufferProxyReads: 0,
   bufferSegmentsAtExec: 0,
+  bufferSegmentsPeak: 0,
+  spanCursorSteps: 0,
   scrollRangeVisits: 0,
   scrollRangeCalls: 0,
   scrollSubtreeVisits: 0,

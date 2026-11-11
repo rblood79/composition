@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [오래 편집한 뒤에도 pan · zoom 비용이 늘지 않음 — span cursor 이분 탐색] - 2026-11-12
+
+### Performance
+
+- **서로 다른 요소를 많이 고친 뒤 Canvas 의 span 조회가 느려지던 문제**:
+  - **Why**: 편집 patch 는 명령 버퍼를 조각 (segment) 으로 나눠 끼우고 다시 합치지 않아, 고친 자리마다 조각이 둘씩 늘었다. 요소의 명령 범위 (span) 를 찾을 때 조각을 처음부터 훑었으므로 pan · zoom · drag 의 조회 비용이 그 세션에 고친 자리 수에 비례했다 (22 장 문서, 같은 요소 반복 편집 뒤 zoom 해석 단계 197,814 · 서로 다른 25 자리 편집 뒤 1,641,641).
+  - 수정: 버퍼가 source 배열마다 자기 조각 목록을 들고, span 해석은 그 목록을 이분 탐색한다. 해석 결과는 선형 탐색과 같다 (같은 배열이 두 번 끼워져 조각이 겹치면 선형 탐색으로 간다). 같은 조건에서 zoom 1,641,641 → 165,296 · edit 262,051 → 39,190 · pan 57,236 → 6,168.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts`. 측정: dev 카운트 `bufferSegmentsPeak` · `spanCursorSteps` (`renderCounters.ts`) 와 하니스 `--edit-target spread` (seedIds 를 차례로 편집). 검증: `commandSpanMap.test.ts` 4건 (무작위 splice 500 건 대조 · 200 자리 편집 뒤 해석 단계 상한 — 선형 해석이면 160,400 > 7,200 으로 RED) · skia · catalogRuntime 3,802 통과 · 하니스 edit → pan · zoom · drag (콘솔 오류 0).
+
 ## [Property 필드의 오류 표시 · 펼침이 다른 요소로 따라가지 않음 — 선택 소속 state] - 2026-11-12
 
 ### Fixed

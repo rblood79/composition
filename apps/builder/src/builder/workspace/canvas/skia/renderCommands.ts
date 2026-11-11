@@ -355,6 +355,14 @@ interface CommandCursor {
 interface CommandBufferState {
   segments: CommandSegment[];
   starts: number[];
+  /**
+   * source 배열 → 그 source 를 든 segment 의 index (segment 순서). cursor 해석이 segment 전체를
+   * 훑지 않고 자기 source 의 조각만 이분 탐색한다 — 서로 다른 자리를 고칠 때마다 segment 가 둘씩
+   * 늘어 (splice 는 합치지 않는다) 선형 해석은 편집한 자리 수에 비례해 느려졌다.
+   */
+  pieces: Map<readonly RenderCommand[], number[]>;
+  /** 같은 source 의 조각이 segment 순서대로 겹치지 않고 offset 이 늘어나는가 (아니면 선형 해석). */
+  piecesOrdered: boolean;
   length: number;
   spliceWriteCount: number;
 }
@@ -373,11 +381,21 @@ function isArrayIndex(property: PropertyKey): boolean {
 
 function rebuildCommandBufferStarts(state: CommandBufferState): void {
   state.starts = [];
+  state.pieces = new Map();
+  state.piecesOrdered = true;
   let cursor = 0;
-  for (const segment of state.segments) {
+  state.segments.forEach((segment, index) => {
     state.starts.push(cursor);
     cursor += segment.end - segment.start;
-  }
+    const pieces = state.pieces.get(segment.source);
+    if (!pieces) {
+      state.pieces.set(segment.source, [index]);
+      return;
+    }
+    if (state.segments[pieces[pieces.length - 1]!]!.end > segment.start)
+      state.piecesOrdered = false;
+    pieces.push(index);
+  });
   state.length = cursor;
 }
 
@@ -421,59 +439,95 @@ function commandCursorAt(
     return { source: [], offset: 0, bias };
   }
   const clamped = Math.max(0, Math.min(index, state.length));
-  for (
-    let segmentIndex = 0;
-    segmentIndex < state.segments.length;
-    segmentIndex += 1
-  ) {
-    const logicalStart = state.starts[segmentIndex]!;
-    const segment = state.segments[segmentIndex]!;
-    const segmentLength = segment.end - segment.start;
-    const logicalEnd = logicalStart + segmentLength;
-    if (
-      (bias === "after" && clamped >= logicalStart && clamped < logicalEnd) ||
-      (bias === "before" && clamped > logicalStart && clamped <= logicalEnd) ||
-      (clamped === 0 && segmentIndex === 0) ||
-      (clamped === state.length && segmentIndex === state.segments.length - 1)
-    ) {
-      return {
-        source: segment.source,
-        offset: segment.start + clamped - logicalStart,
-        bias,
-      };
+  const last = state.segments.length - 1;
+  // "after" = the segment holding command `clamped` (the buffer end goes to the last segment);
+  // "before" = the segment whose end is `clamped` or holds command `clamped - 1` (0 goes to the
+  // first). Segments are never empty past the initial one, so the last start below `clamped`
+  // (≤ for "after") is that segment.
+  let segmentIndex: number;
+  if (bias === "after" ? clamped >= state.length : clamped === 0) {
+    segmentIndex = bias === "after" ? last : 0;
+  } else {
+    let low = 0;
+    let high = last;
+    while (low < high) {
+      if (process.env.NODE_ENV === "development")
+        renderCounters.spanCursorSteps += 1;
+      const middle = (low + high + 1) >> 1;
+      const start = state.starts[middle]!;
+      if (bias === "after" ? start <= clamped : start < clamped) low = middle;
+      else high = middle - 1;
     }
+    segmentIndex = low;
   }
-  const last = state.segments[state.segments.length - 1]!;
-  return { source: last.source, offset: last.end, bias };
+  const segment = state.segments[segmentIndex]!;
+  return {
+    source: segment.source,
+    offset: segment.start + clamped - state.starts[segmentIndex]!,
+    bias,
+  };
 }
 
 function commandCursorIndex(
   state: CommandBufferState,
   cursor: CommandCursor,
 ): number {
-  let logicalStart = 0;
-  for (const segment of state.segments) {
-    const segmentLength = segment.end - segment.start;
-    if (segment.source === cursor.source) {
-      if (
-        cursor.bias === "before" &&
-        cursor.offset >= segment.start &&
-        cursor.offset <= segment.end
-      ) {
-        return logicalStart + cursor.offset - segment.start;
-      }
-      if (
-        cursor.bias === "after" &&
-        cursor.offset >= segment.start &&
-        cursor.offset < segment.end
-      ) {
-        return logicalStart + cursor.offset - segment.start;
+  if (!state.piecesOrdered) return commandCursorIndexLinear(state, cursor);
+  const pieces = state.pieces.get(cursor.source);
+  if (pieces) {
+    // The pieces of one source are in segment order with growing, disjoint offsets. "before"
+    // takes the first piece ending at or after the offset, "after" the last piece starting at or
+    // before it — the same piece the linear scan meets first.
+    const before = cursor.bias === "before";
+    let low = 0;
+    let high = pieces.length - 1;
+    while (low < high) {
+      if (process.env.NODE_ENV === "development")
+        renderCounters.spanCursorSteps += 1;
+      if (before) {
+        const middle = (low + high) >> 1;
+        if (state.segments[pieces[middle]!]!.end >= cursor.offset)
+          high = middle;
+        else low = middle + 1;
+      } else {
+        const middle = (low + high + 1) >> 1;
+        if (state.segments[pieces[middle]!]!.start <= cursor.offset)
+          low = middle;
+        else high = middle - 1;
       }
     }
-    logicalStart += segmentLength;
+    const segmentIndex = pieces[low]!;
+    const segment = state.segments[segmentIndex]!;
+    if (
+      cursor.offset >= segment.start &&
+      (before ? cursor.offset <= segment.end : cursor.offset < segment.end)
+    )
+      return state.starts[segmentIndex]! + cursor.offset - segment.start;
   }
   // A cursor in a replaced segment is only queried for a stale map entry. Clamp
   // it to the nearest current boundary rather than returning an invalid offset.
+  return cursor.bias === "before" ? 0 : state.length;
+}
+
+/** The scan `commandCursorIndex` stands for — used when one source's pieces overlap. */
+function commandCursorIndexLinear(
+  state: CommandBufferState,
+  cursor: CommandCursor,
+): number {
+  let logicalStart = 0;
+  for (const segment of state.segments) {
+    if (process.env.NODE_ENV === "development")
+      renderCounters.spanCursorSteps += 1;
+    if (
+      segment.source === cursor.source &&
+      cursor.offset >= segment.start &&
+      (cursor.bias === "before"
+        ? cursor.offset <= segment.end
+        : cursor.offset < segment.end)
+    )
+      return logicalStart + cursor.offset - segment.start;
+    logicalStart += segment.end - segment.start;
+  }
   return cursor.bias === "before" ? 0 : state.length;
 }
 
@@ -571,10 +625,13 @@ export function createSegmentedCommandBuffer(
 ): RenderCommand[] {
   const state: CommandBufferState = {
     segments: [{ source: commands, start: 0, end: commands.length }],
-    starts: [0],
-    length: commands.length,
+    starts: [],
+    pieces: new Map(),
+    piecesOrdered: true,
+    length: 0,
     spliceWriteCount: 0,
   };
+  rebuildCommandBufferStarts(state);
   const buffer = new Proxy([] as RenderCommand[], {
     get(target, property, receiver) {
       if (property === "length") return state.length;
@@ -765,6 +822,11 @@ export function replaceCommandRange(
   state.segments = next;
   state.spliceWriteCount += replacement.length;
   rebuildCommandBufferStarts(state);
+  if (
+    process.env.NODE_ENV === "development" &&
+    next.length > renderCounters.bufferSegmentsPeak
+  )
+    renderCounters.bufferSegmentsPeak = next.length;
   return replacement.length;
 }
 
