@@ -11,7 +11,7 @@
 
 ---
 
-> **2026-11-11 ADR-307 후속 점검** — 채움 끝 신호 통합 (`44c5161f4`) 완료 · 버퍼 splice 가설은 반증으로 닫음 · drag 배율은 원인 분석 완료, 프레임당 page 루프 수리 (`2836633ed`, pan 1.20 → 1.08). drag 의 남은 몫은 놓은 뒤 idle warmup 의 재기록 (프레임 밖, dev drag 1.10) 이라 캐시 정책 판단으로 보류. 행 창 완료 (ADR-157 결정 복원 — 표본 = 그 목록이 page 에서 보이는 행 + 1, 나머지 영역은 높이만 · 1,000 행 ListBox page 의 가장 긴 채움 task 4x 249 → 167 ms) · 문서 읽기 graph 이중 빌드 제거 (66 장 4x 열기 −13 %). 남은 후속 5: ratchet 기준 재설정 · 문서 읽기 · 검증의 page 당 비용 · Preview · Publish 의 page 범위 · id 읽기의 채움 누락 정적 검사 · 종결 정리 커밋의 브라우저 확인. 목록: [breakdown §6 후속 점검](design/307-staged-document-open-page-shells-breakdown.md). 개수 변화 없음.
+> **2026-11-11 ADR-307 후속 점검** — 채움 끝 신호 통합 (`44c5161f4`) 완료 · 버퍼 splice 가설은 반증으로 닫음 · drag 배율은 원인 분석 완료, 프레임당 page 루프 수리 (`2836633ed`, pan 1.20 → 1.08). drag 의 남은 몫은 놓은 뒤 idle warmup 의 재기록 (프레임 밖, dev drag 1.10) 이라 캐시 정책 판단으로 보류. 행 창 완료 (ADR-157 결정 복원 — 표본 = 그 목록이 page 에서 보이는 행 + 1, 나머지 영역은 높이만 · 1,000 행 ListBox page 의 가장 긴 채움 task 4x 249 → 167 ms) · 문서 읽기 닫음 (graph 이중 빌드 제거 · entry 검사 3 → 1 · 저장소 entry 복제 제거 · 검증 안 계약 재사용 — 66 장 4x 열기 2,768 → 약 2,430 ms, 남은 읽기 비용 약 450 ms 는 수용, 현재 page 먼저 읽기는 규모 목표가 생기면 새 ADR). 남은 후속 4: ratchet 기준 재설정 · Preview · Publish 의 page 범위 · id 읽기의 채움 누락 정적 검사 · 종결 정리 커밋의 브라우저 확인. 목록: [breakdown §6 후속 점검](design/307-staged-document-open-page-shells-breakdown.md). 개수 변화 없음.
 
 > **2026-11-11 ADR-307 Implemented** (G6 사용자 확인 — 본인 Builder: 현재 page 가 바로 뜨고 나머지가 차례로 채워짐 · 채우는 중 page 전환 · 편집 · undo 동작. 실행자 live: 실제 Chrome dev 에서 66 장 열기 · 틀 page 의 「Loading page…」 표시 · 같은 revision 에서 단계별 = 일괄) — 본문을 `completed/` 로 옮기고 링크를 고쳤다. 후속으로 남긴 것: 큰 바운드 목록의 행 창 · drag 의 문서 크기 배율 1.36 (변경 전부터) · ratchet 기준 재설정 · 문서 읽기 · 검증의 page 당 비용. 열림 3 (Proposed 3 — 306 · 304 · 245 보류), 완료 325, 합계 328.
 
