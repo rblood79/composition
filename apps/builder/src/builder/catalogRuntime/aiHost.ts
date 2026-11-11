@@ -97,6 +97,8 @@ function projectElements(workspace: CatalogWorkspace): AiElementRow[] {
   const graph = workspace.runtime.graph;
   const project = graph.getEntry(graph.projectId);
   if (project?.kind !== "project") return [];
+  // ADR-307: the AI reads every page's records — the pages still to fill are filled first.
+  workspace.ensureAllPages();
   const records = workspace.root.domInputs;
   const { breakpoint } = workspace.session.getSnapshot();
   const out: AiElementRow[] = [];

@@ -844,6 +844,35 @@ const flowInnerDisplay = (display: string | undefined): boolean =>
   display === "inline-block" ||
   display === "list-item";
 /** Environment of one composition root (a breakpoint switch builds a new root). */
+/** One staged-load task (`CatalogCompositionRoot.fill`). */
+export interface CatalogFillReport {
+  /**
+   * `filled`: the root has every record · `partial`: units are left · `idle`: nothing to do ·
+   * `failed`: the task's records could not be applied — they were rolled back and the root is not
+   * retried until the document changes (or `retryFailed`).
+   */
+  readonly status: "filled" | "partial" | "idle" | "failed";
+  readonly units: number;
+  readonly records: number;
+  /** Subscriber errors of the delivery (the records stay), or the apply failure. */
+  readonly errors: readonly unknown[];
+}
+/** A partially filled record of a staged load (ADR-307). */
+interface FillShell {
+  /** The child positions the resolver asks for, in its order (record ids). */
+  candidates: readonly string[];
+  /** The positions already resolved (a record, or none — disabled, hidden). */
+  processed: Set<string>;
+}
+/** The staged-load state of one page root (ADR-307). */
+interface FillState {
+  /** The document revision the candidates were read at (`syncFill`). */
+  revision: number;
+  /** The shells by record id — a shell after its parent shell; the first is the page root's. */
+  shells: Map<string, FillShell>;
+}
+const DEFAULT_FILL_UNIT_LIMIT = 75;
+
 export interface CatalogRootOptions {
   /** Coordinate an environment change with this transaction, before consumers are published. */
   consumeStep?: (
@@ -853,6 +882,14 @@ export interface CatalogRootOptions {
   breakpoint?: BreakpointName;
   /** Product layout: pages as frames on the page container grid (ADR-232). */
   pageFrames?: boolean;
+  /**
+   * ADR-307 staged load: build `firstPage` (default: the project's first) in full and every other
+   * page root as a shell — its root record and frame, no children — until `fill` adds its children
+   * in units. A page root whose frame size depends on its content is built in full. `unitLimit`:
+   * the document nodes one unit may hold (a heavier plain container is added as a shell of its own
+   * and its children are the next units).
+   */
+  stagedLoad?: { readonly firstPage?: string; readonly unitLimit?: number };
   /**
    * `columns: "auto"`: the monitor width (CSS px, `screen.width`) the column count derives from
    * with the page grid's fit zoom (ADR-274 — the camera zoom is not an input).
@@ -2056,6 +2093,13 @@ export class CatalogCompositionRoot {
   /** Set while a plan is applied: undo steps for every map mutation, replayed if the apply fails. */
   private undoLog: (() => void)[] | undefined;
   private layoutTouched = false;
+  /** ADR-307 (`CatalogRootOptions.stagedLoad`). */
+  private readonly stagedLoad: CatalogRootOptions["stagedLoad"];
+  /** ADR-307: the page roots that still miss records (absent = filled). */
+  private readonly fillStates = new Map<NodeId, FillState>();
+  /** ADR-307: page roots whose last fill task failed, with the document revision it failed at. */
+  private readonly fillFailed = new Map<NodeId, number>();
+  private readonly fillListeners = new Set<() => void>();
 
   constructor(
     readonly runtime: CatalogRuntime,
@@ -2110,6 +2154,7 @@ export class CatalogCompositionRoot {
     this.rowSample = options.rowSample;
     this.stateSource = options.state;
     this.definitionView = options.definitionView;
+    this.stagedLoad = options.stagedLoad;
     // Definite-zero heights shrink their column children (CSS-FLEXBOX-1 §9.8). The engine keeps
     // this off by default so the current Builder's output is unchanged until the Phase 4 cutover.
     engine.setDefiniteZeroHeight?.(true);
@@ -3061,6 +3106,708 @@ export class CatalogCompositionRoot {
     };
   }
 
+  /** ADR-307: the page built in full by a staged load (undefined = every page, as before). */
+  private stagedFirstPage(): string | undefined {
+    if (!this.stagedLoad || this.definitionView || !this.pageFrames)
+      return undefined;
+    const graph = this.runtime.graph;
+    const project = graph.getEntry(graph.projectId);
+    const pages = project?.kind === "project" ? project.pageIds : [];
+    const first = this.stagedLoad.firstPage;
+    return first && (pages as readonly string[]).includes(first)
+      ? first
+      : pages[0];
+  }
+  /**
+   * The template roots a page root collapses into (a body that is a layout's instance is its
+   * template root, and that root's own definition's, …) — the positions a shell keeps. Undefined
+   * when the instance replaces its template root (the chain is not the definitions').
+   */
+  private collapseChain(rootId: NodeId): Set<string> | undefined {
+    const graph = this.runtime.graph;
+    const entry = graph.getEntry(rootId);
+    if (entry?.kind !== "node") return undefined;
+    if (
+      entry.descendantOverrides.some(
+        (override) =>
+          override.kind === "replace" &&
+          override.address.templatePath.length === 1,
+      )
+    )
+      return undefined;
+    const chain = new Set<string>();
+    let definitionId: string | undefined = entry.definitionId;
+    for (let depth = 0; definitionId && depth < 16; depth++) {
+      const definition = graph.getDefinition(definitionId as DefinitionId);
+      const templateRootId =
+        definition?.mode === "composite"
+          ? definition.templateRootId
+          : undefined;
+      if (!templateRootId || chain.has(templateRootId)) break;
+      chain.add(templateRootId);
+      definitionId = this.templateNode(templateRootId)?.definitionId;
+    }
+    return chain;
+  }
+  /** A template position's node: the library's, or a project definition's template node. */
+  private templateNode(
+    id: string,
+  ): { definitionId: string; binding?: unknown } | undefined {
+    if (id.startsWith("lib:"))
+      return this.runtime.graph.library.templates.get(
+        id as `lib:template:${string}`,
+      );
+    const entry = this.runtime.graph.getEntry(id);
+    return entry?.kind === "node" ? entry : undefined;
+  }
+  /**
+   * ADR-307: a page root as a shell — its root record (collapsed layers included) and no children.
+   * The resolver's child positions are refused and kept as the shell's fill candidates. Undefined
+   * when the root cannot be a shell: its frame's size depends on its content (the page grid would
+   * move when it fills), or it replaces its template root.
+   */
+  private flattenShell(
+    rootId: NodeId,
+  ): Map<string, CatalogConsumerNode> | undefined {
+    const chain = this.collapseChain(rootId);
+    if (!chain) return undefined;
+    const asked: string[] = [];
+    const shell = this.flatten(rootId, undefined, undefined, {
+      selection: {
+        include: (id, path) => {
+          if (chain.has(id)) return true;
+          asked.push(`${path.join("/")}::${id}`);
+          return false;
+        },
+      },
+    });
+    const top = [...shell.values()].find(
+      (record) => record.parentId === "catalog:root",
+    );
+    if (!top || shell.size !== 1 || !this.fixedPageFrame(top)) return undefined;
+    if (asked.length) this.fillEpoch += 1;
+    this.fillStates.set(rootId, {
+      revision: this.runtime.graph.revision,
+      shells: new Map([
+        [top.id, { candidates: [...new Set(asked)], processed: new Set() }],
+      ]),
+    });
+    return shell;
+  }
+  /** Whether a page root's frame size is set without its content (`pageFrameStyle`'s inputs). */
+  private fixedPageFrame(record: CatalogConsumerNode): boolean {
+    const width = record.sizing.width ?? record.visual.width;
+    const height = record.sizing.height ?? record.visual.height;
+    const fixed = (value: unknown) =>
+      value == null ||
+      typeof value === "number" ||
+      (typeof value === "string" && /^\s*-?\d+(\.\d+)?px\s*$/.test(value));
+    const tier = CANVAS_VIEWPORT[this.breakpoint];
+    // (A content keyword on a min · max axis sizes the frame by its content too.)
+    const axes = [record.sizing, record.visual, record.layout] as readonly (
+      Readonly<Record<string, unknown>> | undefined
+    )[];
+    const limits = ["minWidth", "minHeight", "maxWidth", "maxHeight"].every(
+      (key) => axes.every((axis) => fixed(axis?.[key])),
+    );
+    return (
+      (fixed(width) || viewportPercentWidth(width, tier.width) !== undefined) &&
+      fixed(height) &&
+      limits
+    );
+  }
+  /**
+   * ADR-307: the page roots that still miss records, in page order. A root whose fill failed at
+   * this document revision is left out (`failed` = with them — a request retries it).
+   */
+  pendingFillRoots(options: { failed?: boolean } = {}): NodeId[] {
+    const revision = this.runtime.graph.revision;
+    return [...this.rootIds].filter(
+      (rootId) =>
+        this.fillStates.has(rootId) &&
+        (options.failed || this.fillFailed.get(rootId) !== revision),
+    );
+  }
+  private fillEpoch = 0;
+  private fillPendingMemo: { key: string; value: boolean } | undefined;
+  /**
+   * ADR-307: whether any page root still misses records — asked every frame (the Canvas's fill
+   * gate · loading labels), so it is constant time: nothing staged, or the answer kept until the
+   * document or the fill state changes.
+   */
+  get hasPendingFill(): boolean {
+    if (!this.fillStates.size) return false;
+    const key = `${this.runtime.graph.revision}:${this.fillEpoch}`;
+    if (this.fillPendingMemo?.key !== key)
+      this.fillPendingMemo = {
+        key,
+        value: this.pendingFillRoots().length > 0,
+      };
+    return this.fillPendingMemo.value;
+  }
+  /** The page of a page root (`pendingFillRoots`). */
+  pageOfRoot(rootId: NodeId): string | undefined {
+    return this.rootPage.get(rootId);
+  }
+  /** Called after every fill task that added records, and when a root's last unit is in. */
+  subscribeFill(listener: () => void): () => void {
+    this.fillListeners.add(listener);
+    return () => this.fillListeners.delete(listener);
+  }
+  /** Document nodes of an owned subtree (itself and its slot contents included). */
+  private readonly fillWeights = new Map<string, number>();
+  private fillWeightsRevision = -1;
+  private fillWeight(id: string): number {
+    if (this.fillWeightsRevision !== this.runtime.graph.revision) {
+      this.fillWeights.clear();
+      this.fillWeightsRevision = this.runtime.graph.revision;
+    }
+    const known = this.fillWeights.get(id);
+    if (known !== undefined) return known;
+    const entry = this.runtime.graph.getEntry(id);
+    let weight = 1;
+    if (entry?.kind === "node") {
+      for (const child of entry.children) weight += this.fillWeight(child);
+      for (const override of entry.descendantOverrides)
+        if (override.kind === "fillSlot")
+          for (const child of override.childIds)
+            weight += this.fillWeight(child);
+    }
+    this.fillWeights.set(id, weight);
+    return weight;
+  }
+  /** A fill position's source and whether it is an owned node (else a template position). */
+  private fillPosition(key: string): { id: string; owned: boolean } {
+    const at = key.lastIndexOf("::");
+    const id = key.slice(at + 2);
+    return { id, owned: key.slice(0, at).split("/").at(-1) === id };
+  }
+  /**
+   * Whether a fill position is still the document's under the same identity: a template position
+   * whose template node exists, or an owned node still owned by the node its identity names.
+   */
+  private fillPositionStands(key: string): boolean {
+    const { id, owned } = this.fillPosition(key);
+    if (!owned) return this.templateNode(id) !== undefined;
+    const path = key.slice(0, key.lastIndexOf("::")).split("/");
+    return (
+      this.runtime.graph.getEntry(id)?.kind === "node" &&
+      this.runtime.graph.ownerOf(id) === path.at(-2)
+    );
+  }
+  /**
+   * Whether a fill position can stand as a shell (its children the next units): a plain container
+   * — no template of its own, no slot contents, no rows.
+   */
+  private shellEligible(key: string): boolean {
+    const { id, owned } = this.fillPosition(key);
+    const entry = owned ? this.runtime.graph.getEntry(id) : undefined;
+    const plain: { definitionId: string; binding?: unknown } | undefined = owned
+      ? entry?.kind === "node"
+        ? entry
+        : undefined
+      : this.templateNode(id);
+    if (
+      !plain ||
+      plain.binding ||
+      this.runtime.graph.getDefinition(plain.definitionId as DefinitionId)
+        ?.mode === "composite"
+    )
+      return false;
+    return (
+      !owned || (entry?.kind === "node" && !entry.descendantOverrides.length)
+    );
+  }
+  /**
+   * Whether a fill candidate is added as a shell of its own: an owned node only when it is heavier
+   * than `limit`; a template position (inside a layout body) always, since what fills its slots is
+   * the page's and not counted with it.
+   */
+  private fillsAsShell(key: string, limit: number): boolean {
+    if (limit === Infinity || !this.shellEligible(key)) return false;
+    const { id, owned } = this.fillPosition(key);
+    if (!owned) return true;
+    const entry = this.runtime.graph.getEntry(id);
+    return (
+      entry?.kind === "node" &&
+      entry.children.length > 0 &&
+      this.fillWeight(id) > limit
+    );
+  }
+  /**
+   * The shells that still stand as shells in this document: their record exists, they can be a
+   * shell (an edit can bind a container or make it an instance) and their parent shell stands.
+   * What a shell that no longer stands held back is resolved by whatever resolves it next.
+   */
+  private liveShells(rootId: NodeId, state: FillState): Set<string> {
+    const live = new Set<string>();
+    let top = true;
+    for (const id of state.shells.keys()) {
+      const first = top;
+      top = false;
+      const record = this.records.get(id);
+      // (The page root's shell stands without its record too: a removed page that comes back —
+      // an undo — is resolved as the shell it was.)
+      if (
+        first
+          ? this.collapseChain(rootId) !== undefined
+          : record && live.has(record.parentId) && this.shellEligible(id)
+      )
+        live.add(id);
+    }
+    return live;
+  }
+  /**
+   * The positions a root's shells hold back: an edit step's resolution of the root (a region, the
+   * whole root) refuses them, so a step never fills what the fill has not reached. Read from the
+   * candidates as last listed — a node added since is not among them and resolves like any other.
+   */
+  private heldBack(rootId: NodeId): Set<string> | undefined {
+    const state = this.fillStates.get(rootId);
+    if (!state) return undefined;
+    const out = new Set<string>();
+    for (const id of this.liveShells(rootId, state)) {
+      const shell = state.shells.get(id)!;
+      // (A position with a record is in: a shell that went and came back — a delete and its
+      // undo — was resolved whole by the step that brought it back.)
+      for (const key of shell.candidates)
+        if (!shell.processed.has(key) && !this.records.has(key)) out.add(key);
+    }
+    return out;
+  }
+  /**
+   * Bring a root's fill state to this document revision: each standing shell's child positions are
+   * listed again (parents first); a position is resolved when it was before or its record exists
+   * (an edit step added it). False = the root can no longer be filled in units (it replaced its
+   * template root): it is resolved whole.
+   */
+  private syncFill(rootId: NodeId, state: FillState): boolean {
+    const revision = this.runtime.graph.revision;
+    if (state.revision === revision) return true;
+    const live = this.liveShells(rootId, state);
+    const [topId] = state.shells.keys();
+    if (topId === undefined || !live.has(topId) || !this.records.has(topId))
+      return false;
+    const fresh = new Map<string, FillShell>();
+    for (const [id, old] of state.shells) {
+      if (!live.has(id)) continue;
+      const record = this.records.get(id)!;
+      const accept = new Set<string>();
+      const refuse = new Set<string>();
+      for (
+        let cursor: CatalogConsumerNode | undefined = record;
+        cursor;
+        cursor = this.records.get(cursor.parentId)
+      ) {
+        accept.add(cursor.id);
+        for (const layer of cursor.collapsedIds ?? []) accept.add(layer);
+        if (cursor !== record)
+          for (const item of fresh.get(cursor.id)?.candidates ?? [])
+            refuse.add(item);
+      }
+      const asked = new Set<string>();
+      this.flatten(rootId, undefined, undefined, {
+        selection: {
+          include: (nodeId, path) => {
+            const item = `${path.join("/")}::${nodeId}`;
+            if (accept.has(item)) return true;
+            if (!refuse.has(item)) asked.add(item);
+            return false;
+          },
+        },
+        top: record,
+      });
+      fresh.set(id, {
+        candidates: [...asked],
+        processed: new Set(
+          [...asked].filter(
+            (item) => old.processed.has(item) || this.records.has(item),
+          ),
+        ),
+      });
+    }
+    // A position held back before that no standing shell lists now, and that the document still
+    // holds: the template nested it under another container (a layout's template position and a
+    // page node in its slot keep their identity wherever the template puts them). No shell would
+    // ever resolve it — the root is resolved whole.
+    const listed = new Set<string>();
+    for (const shell of fresh.values())
+      for (const item of shell.candidates) listed.add(item);
+    for (const [id, old] of state.shells) {
+      if (!live.has(id)) continue;
+      for (const item of old.candidates)
+        if (
+          !old.processed.has(item) &&
+          !listed.has(item) &&
+          !this.records.has(item) &&
+          this.fillPositionStands(item)
+        )
+          return false;
+    }
+    state.shells = fresh;
+    state.revision = revision;
+    return true;
+  }
+  /** The next unit in document order: the innermost (last listed) shell's next position. */
+  private nextFillUnit(
+    state: FillState,
+  ): { held: string; key: string; whole?: boolean } | undefined {
+    const ids = [...state.shells.keys()];
+    for (let index = ids.length - 1; index >= 0; index--) {
+      const shell = state.shells.get(ids[index])!;
+      if (
+        shell.processed.size >= shell.candidates.length ||
+        !this.records.has(ids[index])
+      )
+        continue;
+      const key = shell.candidates.find((item) => !shell.processed.has(item));
+      if (key) return { held: ids[index], key };
+    }
+    return undefined;
+  }
+  /**
+   * The next unit toward a requested node (`chain` = the record ids of its owners from the page
+   * root down to it): the first of them without a record, out of document order; the node itself
+   * — and what is left under it when it stands as a shell — whole.
+   */
+  private targetFillUnit(
+    state: FillState,
+    chain: readonly string[],
+  ): { held: string; key: string; whole?: boolean } | undefined {
+    const missing = chain.find((key) => !this.records.has(key));
+    if (missing) {
+      for (const [id, shell] of state.shells)
+        if (
+          this.records.has(id) &&
+          !shell.processed.has(missing) &&
+          shell.candidates.includes(missing)
+        )
+          return { held: id, key: missing, whole: missing === chain.at(-1) };
+      // No shell lists it: it may sit under a template position that is not in yet (a layout's
+      // slot holds the page's nodes) — those are listed first.
+      for (const [id, shell] of state.shells) {
+        if (!this.records.has(id)) continue;
+        const position = shell.candidates.find(
+          (item) =>
+            !shell.processed.has(item) && !this.fillPosition(item).owned,
+        );
+        if (position) return { held: id, key: position };
+      }
+      // (No record by design — hidden, not present — or inside a position added whole.)
+      return undefined;
+    }
+    const target = chain.at(-1)!;
+    const under = (id: string) => {
+      for (
+        let cursor: string | undefined = id;
+        cursor;
+        cursor = this.records.get(cursor)?.parentId
+      )
+        if (cursor === target) return true;
+      return false;
+    };
+    for (const [id, shell] of state.shells) {
+      if (shell.processed.size >= shell.candidates.length || !under(id))
+        continue;
+      const key = shell.candidates.find((item) => !shell.processed.has(item));
+      if (key) return { held: id, key, whole: true };
+    }
+    return undefined;
+  }
+  /**
+   * One fill unit: a child position (`at.key`) of a shell record (`at.held`), resolved with every
+   * other position of the path refused (a shell: its own child positions refused too, and kept as
+   * its candidates). The records are applied (maps and engine inputs — the layout is settled once
+   * per task). Returns the applied plan.
+   */
+  private fillUnit(
+    rootId: NodeId,
+    state: FillState,
+    limit: number,
+    notices: Notice[],
+    at: { held: string; key: string },
+  ): ConsumePlan {
+    const held = this.records.get(at.held)!;
+    const key = at.key;
+    const owner = state.shells.get(held.id)!;
+    // The path's records keep only this position: every other position they hold is refused.
+    const accept = new Set<string>([key]);
+    const refuse = new Set<string>();
+    for (
+      let cursor: CatalogConsumerNode | undefined = held;
+      cursor;
+      cursor = this.records.get(cursor.parentId)
+    ) {
+      accept.add(cursor.id);
+      for (const id of cursor.collapsedIds ?? []) accept.add(id);
+      for (const item of state.shells.get(cursor.id)?.candidates ?? [])
+        refuse.add(item);
+    }
+    let asked = new Set<string>();
+    let resolverVisits = 0;
+    // The held record's children in candidate order. A child that is no candidate (a month block's
+    // copies, a replaced position's node) stays right after the child it came in with.
+    const order = new Map(owner.candidates.map((item, index) => [item, index]));
+    const rank = new Map<string, number>();
+    let last = -1;
+    let bump = 0;
+    for (const id of held.children) {
+      const known = order.get(id);
+      if (known !== undefined) {
+        last = known;
+        bump = 0;
+        rank.set(id, known);
+      } else rank.set(id, last + ++bump * 1e-6);
+    }
+    const here = order.get(key)!;
+    const resolve = (asShell: boolean) => {
+      asked = new Set();
+      return this.flatten(rootId, undefined, undefined, {
+        selection: {
+          include: (id, path) => {
+            const item = `${path.join("/")}::${id}`;
+            if (accept.has(item)) return true;
+            if (refuse.has(item)) return false;
+            if (!asShell) return true;
+            asked.add(item);
+            return false;
+          },
+          onVisit: () => resolverVisits++,
+        },
+        top: held,
+        rootChildren: (resolved) => {
+          let added = 0;
+          for (const id of resolved)
+            if (!rank.has(id))
+              rank.set(id, order.get(id) ?? here + ++added * 1e-6);
+          return [...new Set([...held.children, ...resolved])].sort(
+            (a, b) => rank.get(a)! - rank.get(b)!,
+          );
+        },
+      });
+    };
+    let shell = this.fillsAsShell(key, limit);
+    let next = resolve(shell);
+    // A shell is one record whose identity is the position's key — what its later units resolve
+    // under. A position that resolves to anything else (a month block's copy per shown month, a
+    // replaced position's node) is added whole.
+    if (
+      shell &&
+      [...next.keys()].some((id) => id !== key && !this.records.has(id))
+    ) {
+      shell = false;
+      for (const id of next.keys()) if (!this.records.has(id)) rank.delete(id);
+      next = resolve(false);
+    }
+    const lookup = (id: string) => next.get(id) ?? this.records.get(id);
+    const updates = [...next]
+      .filter(([id, record]) => {
+        const old = this.records.get(id);
+        return !old || !sameRecord(old, record);
+      })
+      .map(([id, record]) => this.planRecord(id, record, rootId, lookup));
+    const plan: ConsumePlan = {
+      roots: [{ rootId, removed: [], updates }],
+      computeLayout: false,
+      metrics: {
+        ...this.emptyMetrics(this.currentMetrics.revision),
+        affectedRootIds: [rootId],
+        layoutInputVisits: updates.length,
+        resolverVisits,
+        affectedInstanceCount: updates.length,
+      },
+    };
+    notices.push(...this.apply(plan));
+    owner.processed.add(key);
+    if (shell && next.has(key) && asked.size)
+      state.shells.set(key, { candidates: [...asked], processed: new Set() });
+    return plan;
+  }
+  /** A root that can no longer be filled in units (`syncFill`): resolved whole, like a step's. */
+  private fillWholeRoot(rootId: NodeId, notices: Notice[]): ConsumePlan {
+    this.fillStates.delete(rootId);
+    const next = this.flatten(rootId);
+    const previous = this.rootMembers.get(rootId) ?? new Set<string>();
+    const updates = [...next]
+      .filter(([id, record]) => {
+        const old = this.records.get(id);
+        return !old || !sameRecord(old, record);
+      })
+      .map(([id, record]) =>
+        this.planRecord(id, record, rootId, (key) => next.get(key)),
+      );
+    const plan: ConsumePlan = {
+      roots: [
+        {
+          rootId,
+          removed: [...previous].filter((id) => !next.has(id)),
+          updates,
+          members: new Set(next.keys()),
+        },
+      ],
+      computeLayout: false,
+      metrics: {
+        ...this.emptyMetrics(this.currentMetrics.revision),
+        affectedRootIds: [rootId],
+        layoutInputVisits: updates.length,
+        resolverVisits: next.size,
+        affectedInstanceCount: updates.length,
+      },
+    };
+    notices.push(...this.apply(plan));
+    return plan;
+  }
+  /**
+   * ADR-307: one fill task of a page root — units until `deadline()` (absent = until the root is
+   * filled), then one layout pass and one delivery. `target` = the units toward one node instead
+   * (`fillNode`), whatever the deadline. Like a data-row refresh it is journaled and moves no
+   * document revision: a failed apply restores the records, the engine and the fill state, and the
+   * root is not retried at this revision; a failed delivery keeps the records (the errors are
+   * returned). The fill state follows the document: after an edit step the shells' child positions
+   * are listed again before the next unit.
+   */
+  fill(
+    rootId: NodeId,
+    options: {
+      deadline?: () => boolean;
+      unitLimit?: number;
+      retryFailed?: boolean;
+      target?: readonly string[];
+    } = {},
+  ): CatalogFillReport {
+    const state = this.fillStates.get(rootId);
+    const idle = { status: "idle", units: 0, records: 0, errors: [] } as const;
+    if (!state || !this.rootIds.has(rootId)) return idle;
+    const revision = this.runtime.graph.revision;
+    if (this.fillFailed.get(rootId) === revision && !options.retryFailed)
+      return { ...idle, status: "failed" };
+    this.fillFailed.delete(rootId);
+    this.fillEpoch += 1;
+    const limit =
+      options.unitLimit ??
+      this.stagedLoad?.unitLimit ??
+      DEFAULT_FILL_UNIT_LIMIT;
+    const backup: FillState = {
+      revision: state.revision,
+      shells: new Map(
+        [...state.shells].map(([id, shell]) => [
+          id,
+          {
+            candidates: shell.candidates,
+            processed: new Set(shell.processed),
+          },
+        ]),
+      ),
+    };
+    const notices: Notice[] = [];
+    const updated: string[] = [];
+    let units = 0;
+    let resolverVisits = 0;
+    const applied = (plan: ConsumePlan) => {
+      units += 1;
+      resolverVisits += plan.metrics.resolverVisits;
+      for (const { id } of plan.roots[0].updates) updated.push(id);
+    };
+    this.undoLog = [];
+    this.layoutTouched = false;
+    try {
+      if (!this.syncFill(rootId, state))
+        applied(this.fillWholeRoot(rootId, notices));
+      else
+        for (;;) {
+          const at = options.target
+            ? this.targetFillUnit(state, options.target)
+            : this.nextFillUnit(state);
+          if (!at) break;
+          applied(
+            this.fillUnit(
+              rootId,
+              state,
+              at.whole ? Infinity : limit,
+              notices,
+              at,
+            ),
+          );
+          if (!options.target && options.deadline?.()) break;
+        }
+      if (updated.length) this.settleLayout(updated, notices);
+    } catch (cause) {
+      this.fillStates.set(rootId, backup);
+      this.fillFailed.set(rootId, revision);
+      this.fillEpoch += 1;
+      try {
+        this.restore(cause);
+      } finally {
+        this.undoLog = undefined;
+      }
+      return { status: "failed", units: 0, records: 0, errors: [cause] };
+    } finally {
+      this.undoLog = undefined;
+    }
+    const done = !this.fillStates.has(rootId) || !this.nextFillUnit(state);
+    if (done) this.fillStates.delete(rootId);
+    this.fillEpoch += 1;
+    // (Nothing applied and nothing ended — a node request whose records are in: no delivery.)
+    if (!units && !done)
+      return { status: "partial", units: 0, records: 0, errors: [] };
+    const errors = this.deliver(
+      {
+        roots: [],
+        computeLayout: true,
+        metrics: {
+          ...this.emptyMetrics(this.currentMetrics.revision),
+          affectedRootIds: [rootId],
+          layoutInputVisits: updated.length,
+          resolverVisits,
+          affectedInstanceCount: updated.length,
+        },
+      },
+      notices,
+    );
+    if (units || done)
+      for (const listener of [...this.fillListeners])
+        try {
+          listener();
+        } catch (error) {
+          errors.push(error);
+        }
+    return {
+      status: done ? "filled" : "partial",
+      units,
+      records: updated.length,
+      errors,
+    };
+  }
+  /**
+   * ADR-307: the records of one document node, now (a selection by node id, a command's target):
+   * its owners from the page root down are filled out of document order and the node whole. Idle
+   * when the node's page root has nothing left, or the node is not a page's (a template node).
+   */
+  fillNode(nodeId: string): CatalogFillReport {
+    const chain: string[] = [];
+    let rootId: NodeId | undefined;
+    for (
+      let cursor: string | undefined = nodeId, depth = 0;
+      cursor && depth < 512;
+      cursor = this.runtime.graph.ownerOf(cursor), depth++
+    ) {
+      chain.unshift(cursor);
+      if (this.rootIds.has(cursor as NodeId)) {
+        rootId = cursor as NodeId;
+        break;
+      }
+    }
+    if (!rootId || !this.fillStates.has(rootId))
+      return { status: "idle", units: 0, records: 0, errors: [] };
+    // (A root whose fill failed at this revision is not tried again per request — a page switch
+    // or the next step is.)
+    return this.fill(rootId, {
+      target: chain.map(
+        (id, index) => `${chain.slice(0, index + 1).join("/")}::${id}`,
+      ),
+    });
+  }
+
   private pageRoots(): NodeId[] {
     if (this.definitionView) {
       // The Components page: its body — the page the project stores (ADR-282 Phase 3), else the
@@ -3094,10 +3841,20 @@ export class CatalogCompositionRoot {
     rootId: NodeId,
     regionId?: string,
     onVisit?: () => void,
+    /** ADR-307: a fill's selection; `top` = the record to flatten, `rootChildren` = its child list. */
+    staged?: {
+      readonly selection: CatalogResolutionSelection;
+      /** The record whose subtree is flattened (default: the root's). */
+      readonly top?: CatalogConsumerNode;
+      readonly rootChildren?: (
+        resolved: readonly string[],
+        get: (id: string) => CatalogConsumerNode | undefined,
+      ) => string[];
+    },
   ): Map<string, CatalogConsumerNode> {
     const output = new Map<string, CatalogConsumerNode>();
     const region = regionId ? this.records.get(regionId) : undefined;
-    let selection: CatalogResolutionSelection | undefined;
+    let selection: CatalogResolutionSelection | undefined = staged?.selection;
     if (region) {
       const allowed = new Set<string>();
       const ownedNext = new Map<string, NodeId>();
@@ -3131,6 +3888,17 @@ export class CatalogCompositionRoot {
         onVisit,
       };
     }
+    // ADR-307: a step's resolution of a staged root leaves what its shells hold back to the fill.
+    const heldBack = staged ? undefined : this.heldBack(rootId);
+    if (heldBack?.size) {
+      const base = selection;
+      selection = {
+        ...base,
+        include: (id, path) =>
+          !heldBack.has(`${path.join("/")}::${id}`) &&
+          (base ? base.include(id, path) : true),
+      };
+    }
     const visit = (node: ResolvedCatalogNode, parentId: string): string => {
       const id = identity(node);
       const layers = this.collapseLayers(node);
@@ -3153,18 +3921,29 @@ export class CatalogCompositionRoot {
     const find = (
       node: ResolvedCatalogNode,
     ): ResolvedCatalogNode | undefined => {
-      if (identity(node) === regionId) return node;
+      if (identity(node) === (regionId ?? staged?.top?.id)) return node;
       for (const child of node.children) {
         const found = find(child);
         if (found) return found;
       }
       return undefined;
     };
-    const top = region ? find(resolved) : resolved;
+    const top = region || staged?.top ? find(resolved) : resolved;
     if (!top) throw new Error(`RESOLVED_REGION_MISSING:${regionId}`);
-    visit(top, region?.parentId ?? "catalog:root");
+    const topId = visit(
+      top,
+      (region ?? staged?.top)?.parentId ?? "catalog:root",
+    );
     const get = (key: string) =>
-      output.get(key) ?? (region ? this.records.get(key) : undefined);
+      output.get(key) ??
+      (region || staged?.rootChildren ? this.records.get(key) : undefined);
+    if (staged?.rootChildren) {
+      const record = output.get(topId)!;
+      output.set(topId, {
+        ...record,
+        children: staged.rootChildren(record.children, get),
+      });
+    }
     // ADR-286 (user 2026-10-28): the page root's locale is the site's language — a page sets none of
     // its own (a frame still can). It reaches RAC as the page root's `I18nProvider` (DOM) and the
     // descendants' inherited values like any host's (`inheritedProps.ts`).
@@ -3531,10 +4310,10 @@ export class CatalogCompositionRoot {
       return derived;
     const rule =
       inheritedColorOwner || ruleByType
-      ? COMPONENT_RULES_TABLE[this.typeOf(item)]
-      : pickerPartOwner
-        ? COMPONENT_RULES_TABLE.Button
-        : this.runtime.graph.library.rules.get(item.ruleId!);
+        ? COMPONENT_RULES_TABLE[this.typeOf(item)]
+        : pickerPartOwner
+          ? COMPONENT_RULES_TABLE.Button
+          : this.runtime.graph.library.rules.get(item.ruleId!);
     if (!rule) return derived;
     const ownItemDerived = catalogDerivedProps(
       item,
@@ -3558,10 +4337,10 @@ export class CatalogCompositionRoot {
       rule,
       type:
         inheritedColorOwner || ruleByType
-        ? this.typeOf(item)
-        : pickerPartOwner
-          ? "Button"
-          : item.ruleId!,
+          ? this.typeOf(item)
+          : pickerPartOwner
+            ? "Button"
+            : item.ruleId!,
       authoredVisual: catalogAuthoredVisual(this, item),
       state: catalogNodeState(item.displayState, this.state),
       // The item color in this root's color mode (its tokens differ in dark).
@@ -4752,9 +5531,13 @@ export class CatalogCompositionRoot {
     };
   }
   private loadInitial(): void {
+    const first = this.stagedFirstPage();
     for (const rootId of this.pageRoots()) {
       this.rootIds.add(rootId);
-      const flattened = this.flatten(rootId);
+      const flattened =
+        (first !== undefined && this.rootPage.get(rootId) !== first
+          ? this.flattenShell(rootId)
+          : undefined) ?? this.flatten(rootId);
       this.rootMembers.set(rootId, new Set(flattened.keys()));
       for (const [id, record] of flattened) {
         this.records.set(id, record);
@@ -6571,7 +7354,9 @@ export class CatalogCompositionRoot {
             this.runtime.graph,
             id,
             this.state,
-            undefined,
+            // (ADR-307: a root record's identity is its own — a staged root is not resolved in
+            // full to name it.)
+            this.stagedLoad ? { include: () => false } : undefined,
             this.breakpoint,
             this.colorMode,
             this.rows,
@@ -6636,25 +7421,28 @@ export class CatalogCompositionRoot {
       if (this.pageFrames)
         this.layout.updateNodeStyle("catalog:root", this.rootStyle());
     }
-    if (plan.computeLayout) {
-      const updated = plan.roots.flatMap(({ updates }) =>
-        updates.map((update) => update.id),
+    if (plan.computeLayout)
+      this.settleLayout(
+        plan.roots.flatMap(({ updates }) => updates.map((update) => update.id)),
+        notices,
       );
-      const parentRects = this.parentRectsOf(updated);
-      this.layoutTouched = true;
-      this.layout.computeLayout(this.viewport.width, this.viewport.height);
-      this.rewrap(this.rewrapScope(updated, parentRects));
-      for (const id of [...this.settleTagRows(), ...this.settleOverlays()]) {
-        const record = this.records.get(id);
-        if (record) notices.push({ id, record });
-      }
-    }
     this.currentMetrics = {
       ...plan.metrics,
       canvasInputUpdates: 0,
       domInputUpdates: 0,
     };
     return notices;
+  }
+  /** One layout pass over the applied records (`updated`), then the height-for-width remeasure. */
+  private settleLayout(updated: readonly string[], notices: Notice[]): void {
+    const parentRects = this.parentRectsOf(updated);
+    this.layoutTouched = true;
+    this.layout.computeLayout(this.viewport.width, this.viewport.height);
+    this.rewrap(this.rewrapScope(updated, parentRects));
+    for (const id of [...this.settleTagRows(), ...this.settleOverlays()]) {
+      const record = this.records.get(id);
+      if (record) notices.push({ id, record });
+    }
   }
   /** Notify after the step is published. Every subscriber is called; errors are returned. */
   private deliver(plan: ConsumePlan, notices: readonly Notice[]): unknown[] {

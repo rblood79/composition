@@ -1132,6 +1132,8 @@ export interface TranslationKeys {
     engineLoadFailed: string;
     reload: string;
     textEditorLoading: string;
+    /** ADR-307: over a page whose content is not in yet (Canvas overlay). */
+    pageLoading: string;
   };
   aiTool: {
     createElement: string;

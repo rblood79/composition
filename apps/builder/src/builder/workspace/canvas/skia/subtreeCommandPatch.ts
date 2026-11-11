@@ -71,6 +71,12 @@ export interface ApplyCommitSubtreeCommandPatchInput {
   readonly rootKey?: string;
   readonly revision: number;
   readonly canonicalRevision: number;
+  /**
+   * ADR-307: `rootId` is a page root recorded again with its own fixed layer (the page's fixed
+   * boxes and overlays are drawn inside its span — ADR-275 Phase 7), so top-layer elements in it
+   * are not refused. Never while a drag layer is up (its subtree is drawn outside the page).
+   */
+  readonly pageLayer?: boolean;
 }
 
 export interface CommitSubtreeCommandPatchResult {
@@ -577,11 +583,20 @@ export function applyCommitSubtreeCommandPatch(
   ) {
     return fail("invalid-span");
   }
-  for (const elementId of currentIds) {
-    if (current.topLayerElementIds.has(elementId)) return fail("top-layer");
-  }
-  for (const elementId of replacementIds) {
-    if (replacement.topLayerElementIds.has(elementId)) return fail("top-layer");
+  const wholePage =
+    input.pageLayer === true &&
+    current.subtreeBuildContextByElement.get(rootId)?.parentElementId ===
+      null &&
+    replacement.subtreeBuildContextByElement.get(rootId)?.parentElementId ===
+      null;
+  if (!wholePage) {
+    for (const elementId of currentIds) {
+      if (current.topLayerElementIds.has(elementId)) return fail("top-layer");
+    }
+    for (const elementId of replacementIds) {
+      if (replacement.topLayerElementIds.has(elementId))
+        return fail("top-layer");
+    }
   }
   for (const elementId of replacementIds) {
     if (!replacement.boundsMap.has(elementId)) return fail("bounds-missing");

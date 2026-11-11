@@ -1253,6 +1253,7 @@ const catalog: TranslationKeys = {
     engineLoadFailed: "The layout engine failed to load.",
     reload: "Reload",
     textEditorLoading: "Loading text editor",
+    pageLoading: "Loading page…",
   },
   aiTool: {
     createElement: "Create element",

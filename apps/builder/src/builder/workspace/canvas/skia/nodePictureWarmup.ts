@@ -78,6 +78,7 @@ let source: WarmupSource | null = null;
 let pass: WarmupPass | null = null;
 let handle: number | null = null;
 let manual = false;
+let held = false;
 let cameraZoom = 1;
 
 /**
@@ -93,9 +94,32 @@ export function requestNodePictureWarmup(
 ): void {
   const cameraKey = warmupCameraKey(viewport, cameraZoom);
   source = { ck, stream, viewport, fontMgr, rootIds, cameraKey };
-  if (manual || handle !== null || isPassDone(stream, cameraKey)) return;
+  if (manual || held || handle !== null || isPassDone(stream, cameraKey))
+    return;
   if (typeof requestIdleCallback !== "function") return;
   handle = requestIdleCallback(runIdle);
+}
+
+/**
+ * ADR-307: while the document's pages are still being filled the stream changes with every fill
+ * task — each change starts the pass again and the idle time goes to the fill. The warmup waits
+ * and runs once for the filled stream (66 pages: 15 % of the fill's main-thread time was this).
+ */
+export function setNodePictureWarmupHold(on: boolean): void {
+  if (held === on) return;
+  held = on;
+  if (on) {
+    cancelIdle();
+    return;
+  }
+  if (
+    source &&
+    !manual &&
+    handle === null &&
+    !isPassDone(source.stream, source.cameraKey) &&
+    typeof requestIdleCallback === "function"
+  )
+    handle = requestIdleCallback(runIdle);
 }
 
 /** renderer 가 content full 기록 직전에 그 배율을 준다 (후보 사각형 · 카메라 칸이 쓴다). */
@@ -175,12 +199,13 @@ export function resetNodePictureWarmup(): void {
   cancelIdle();
   source = null;
   pass = null;
+  held = false;
   cameraZoom = 1;
 }
 
 function runIdle(deadline: IdleDeadlineLike): void {
   handle = null;
-  if (manual) return;
+  if (manual || held) return;
   if (!warmNodePictures(() => deadline.timeRemaining() > 1))
     handle = requestIdleCallback(runIdle);
 }

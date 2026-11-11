@@ -71,7 +71,10 @@ import {
   loadSpectrumLocaleFontsToSkia,
   syncCustomFontsWithSkia,
 } from "../fonts/loadCustomFontsToSkia";
-import { createCatalogFontUseReader } from "../fonts/catalogFontUse";
+import {
+  catalogAuthoredFontRequests,
+  createCatalogFontUseReader,
+} from "../fonts/catalogFontUse";
 import { spectrumLocaleFont } from "@composition/rendering";
 import { useBuilderChromeTheme } from "../hooks/useBuilderChromeTheme";
 import { PanelWorkspace } from "../layout/PanelWorkspace";
@@ -235,6 +238,15 @@ export function CatalogBuilderCore() {
         textMeasure: catalogTextMeasure,
         locale: navigator.language,
         theme: catalogBuilderThemeState,
+        // (ADR-307 measurement: a harness build reads the fill task budget from storage.)
+        ...(import.meta.env.VITE_COMPOSITION_HARNESS === "1" &&
+        Number(localStorage.getItem("composition:fill-budget")) > 0
+          ? {
+              fillBudget: Number(
+                localStorage.getItem("composition:fill-budget"),
+              ),
+            }
+          : {}),
         // Bound collections show the data store's rows (H1 — rows never enter the document).
         root: {
           // The breakpoint the Builder last showed (a Builder-wide choice, like the old app).
@@ -245,6 +257,29 @@ export function CatalogBuilderCore() {
           // Border widths snap to the display's device pixels, as the Preview's (`ClampLineWidth`) —
           //   the engine lays them out at this ratio and the Canvas draws them at it.
           devicePixelRatio: snapRatio,
+          // ADR-307: the opened page is built in full; every other page is a shell the workspace
+          //   fills in the background (the page in view first). `composition:staged-load` = `off`
+          //   in storage builds every page at once, as before (a comparison · a way back).
+          ...(localStorage.getItem("composition:staged-load") === "off"
+            ? {}
+            : {
+                stagedLoad: {
+                  // (Measurement: a harness build reads the unit limit from storage.)
+                  ...(import.meta.env.VITE_COMPOSITION_HARNESS === "1" &&
+                  Number(localStorage.getItem("composition:fill-unit")) > 0
+                    ? {
+                        unitLimit: Number(
+                          localStorage.getItem("composition:fill-unit"),
+                        ),
+                      }
+                    : {}),
+                  firstPage:
+                    openPageRef.current &&
+                    graph.getEntry(openPageRef.current)?.kind === "page"
+                      ? openPageRef.current
+                      : undefined,
+                },
+              }),
           // The old Canvas's sample: a bound list that grows with its rows draws the first 10.
           rowSample: COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT,
           // ADR-286: the document's collections, with the API rows the store caches.
@@ -257,6 +292,10 @@ export function CatalogBuilderCore() {
         },
       });
       performance.mark("composition:builder.boot.workspace");
+      // ADR-307: the background fill waits for the Canvas's first frame (the Canvas takes this
+      // gate over when it mounts — a few seconds at most if it never does).
+      const fillHeldAt = performance.now();
+      opened.setFillBusy(() => performance.now() - fillHeldAt < 5_000);
       // Live harness handle (Playwright): dev, or a production build made for the G5 paired
       // measurement (`VITE_COMPOSITION_HARNESS=1`; a normal build drops this branch).
       if (
@@ -422,8 +461,7 @@ export function CatalogBuilderCore() {
   );
   // ADR-302 — a non-default theme drawn before its ladder chunk loaded is the seed: apply it again.
   useEffect(
-    () =>
-      workspace && onThemeLaddersLoaded(() => workspace.refreshTheme()),
+    () => workspace && onThemeLaddersLoaded(() => workspace.refreshTheme()),
     [workspace],
   );
   // S2의 추가 face는 실제 사용 시 받고, 도착한 뒤 측정 캐시와 Canvas를 함께 갱신한다.
@@ -442,8 +480,13 @@ export function CatalogBuilderCore() {
             ?.runs.map((run) => run.text)
             .join(""),
       );
+      // ADR-307: while pages are still shells their records are not here — the fonts their nodes
+      // write are read from the document, so every face is asked for at once.
+      const authored = workspace.fillPending
+        ? catalogAuthoredFontRequests(workspace.runtime.graph)
+        : [];
       void Promise.all([
-        loadSpectrumFontsToSkia(requests),
+        loadSpectrumFontsToSkia([...requests, ...authored]),
         loadSpectrumLocaleFontsToSkia(
           locale,
           [...localeTexts].map(([weight, text]) => ({ weight, text })),
@@ -461,7 +504,17 @@ export function CatalogBuilderCore() {
         );
     };
     sync();
+    // ADR-307: a fill adds records (a font a rule gives can first show on a late page) — read
+    // again a little after, not on every task.
+    let afterRows: ReturnType<typeof setTimeout> | undefined;
     const stops = [
+      () => clearTimeout(afterRows),
+      workspace.subscribeRows(() => {
+        afterRows ??= setTimeout(() => {
+          afterRows = undefined;
+          sync();
+        }, 500);
+      }),
       workspace.subscribeRoot(sync),
       workspace.runtime.subscribeSteps((step) => {
         if (

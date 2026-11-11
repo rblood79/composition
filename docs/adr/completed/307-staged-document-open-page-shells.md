@@ -2,12 +2,32 @@
 
 ## Status
 
-Proposed — 2026-11-11
+Implemented — 2026-11-11 (G6 사용자 확인 — `### Live Exercise` 참조. Accepted 같은 날)
 
-- 사용자 요청: `/create-adr` (2026-11-11) — Canvas 성능 조사 [CANVAS_PERF_SCALING_2026-11](../explanation/research/CANVAS_PERF_SCALING_2026-11.md) 의 3단계 (열기 시간 분할).
+- 승격 근거: 사용자 `/execute-adr 307` (2026-11-11) + 리뷰 [reviews/307.md](../reviews/307.md) round 2 (HIGH 0 · pending 0). 사용자 결정 4건은 닿는 Phase 에서 묻는다 (Phase 0 은 실측 · 인벤토리라 닿는 결정 없음).
+
+- 사용자 요청: `/create-adr` (2026-11-11) — Canvas 성능 조사 [CANVAS_PERF_SCALING_2026-11](../../explanation/research/CANVAS_PERF_SCALING_2026-11.md) 의 3단계 (열기 시간 분할).
 - 방향을 정한 사용자 원문: 「1단계를 바로 착수」 → 「커밋후 2단계시작해」 → 「edit 배율 원인 분석하고 고쳐」 → 「남은 후보 두개중 어느것부터 해야하나」 → 「재측정 진행해」 → `/create-adr`. 조사의 전제 (요지 — 원문 아님): 빌더는 디자인 도구이고 대상은 엔터프라이즈 CMS · SaaS 의 수십 page 폼 · 대시보드 문서.
 - 사용자가 이미 답한 것: 측정이 먼저다 (재측정 뒤 이 ADR). 1 · 2단계와 edit 수정은 main 에 있다 (`e94121ec2` ~ `91205e37f`).
-- 리뷰 [reviews/307.md](reviews/307.md) Round 1 (codex, 2026-11-11) — HIGH 1 · MEDIUM 1 → 같은 날 반영: 채움 단위 · 동기/비동기 경계 (h1 — Decision 2 · 3, HC4, R6, G0 ⑥, G4) · 실패 종류별 복구 (m1 — Decision 4, R9, G2). Round 2 (codex 수리 검증, 2026-11-11) — h1 · m1 fixed, **HIGH 0 · pending 0**. 비차단 메모 1 (breakdown Phase 2 의 건너뛰기 범위를 본문 R2 와 같게 — 미반영 region 만) 도 같은 날 반영.
+- 리뷰 [reviews/307.md](../reviews/307.md) Round 1 (codex, 2026-11-11) — HIGH 1 · MEDIUM 1 → 같은 날 반영: 채움 단위 · 동기/비동기 경계 (h1 — Decision 2 · 3, HC4, R6, G0 ⑥, G4) · 실패 종류별 복구 (m1 — Decision 4, R9, G2). Round 2 (codex 수리 검증, 2026-11-11) — h1 · m1 fixed, **HIGH 0 · pending 0**. 비차단 메모 1 (breakdown Phase 2 의 건너뛰기 범위를 본문 R2 와 같게 — 미반영 region 만) 도 같은 날 반영.
+
+> **Phase 0 닫힘 (2026-11-11) — G0: ② ③ ④ ⑥ 통과 · ⑤ 미확인 · ① 미달 → 사용자 판정으로 게이트 수정.** production 하니스 · `many-pages` 22 · 66 장 · 일괄 ↔ 틀 교대 6회 중앙값. 틀 열기: 66 장 1x 2,248 → 770 ms · 4x 8,858 → 2,741 ms. `loadInitial` 은 page 수와 무관해졌으나 (83 → 84 ms) 66 / 22 배율은 1.34 — 남은 기울기 (page 당 1x 4.5 · 4x 15 ms) 는 문서 읽기 · 검증 (`storage.load` · `createCatalogGraph`) 이다. page 한 장 채움 (root) 4x p50 66 · 최대 287 ms, 일괄의 0.9배 (엔진 일괄 추가 불필요). 틀 + 채움 뒤 record · geometry · Canvas 상자는 일괄 빌드와 차이 0 (22 장 6,317 record — page 통째 · 단위 상한 150 · 40). 단위 상한 75 (문서 노드) 는 4x 최대 81 ms 이나 합이 1.9배 (단위마다 `computeLayout`) → task 당 배치 1회로 묶는다. 새로 찾은 것: 채움 뒤 Canvas 전체 재묶음 (page 종류 6/21 — 4x 프레임 최대 935 ms, Phase 3 첫 항목) · `plan` 의 page 구조 변경이 모든 root 를 다시 펼침 (Phase 2) · 채움은 글꼴 동기를 깨우지 않음 (Phase 3). 미확인: 실문서 분포 (사용자 프로필에 실문서 없음) · 1,000 행 바운드 Table · layout instance body 의 틀. 상세: [breakdown §6](../design/307-staged-document-open-page-shells-breakdown.md).
+>
+> **사용자 결정 (2026-11-11, Phase 0 뒤)**: ① G0 ① 미달 — **범위 유지 · 게이트 수정** (상대 게이트 「66 장 ≤ 22 장 × 1.4」, 문서 읽기 · 검증 절감은 이 ADR 뒤 후속). ② 결정 2 = **(a) 66 장 · 4x 열기 ≤ 3.0 s 가 게이트**. ③ 동기 채움 상한 = **4x 에서 ≤ 150 ms** — 큰 page 는 「화면에 걸친 단위 · 요청 대상 먼저 + 나머지 비동기」 (Decision 3 수정). ④ 결정 3 = **(a) Preview · Publish 제외, 후속**.
+>
+> **Phase 1 닫힘 (2026-11-11) — G1 통과.** root 의 틀 · 채움을 `compositionRoot.ts` 에 넣었다 (resolver 무변경, 옵션 `stagedLoad` 기본 꺼짐 — 하니스 빌드의 storage 스위치로만 켜짐). 틀 = resolver 의 자식 물음을 거절하며 적어 둔 record, 단위 = 그 물음 하나 (무거운 plain 노드는 다시 틀), task = 단위 여러 개 + 배치 · 전달 1회. layout 정의의 instance 인 body 도 틀이 된다. 동치 9 건 (fixture 9 page × 순서 3 × 단위 2 — record · geometry · part · sticky · page frame 이 일괄과 같음) · 실패 경계 2 건 · 실제 Builder 에서 22 장 6,317 · 66 장 18,798 record 차이 0. task (상한 75 · 예산 8 ms) 4x p50 17 · 최대 88 ms. 판독 1회: HIGH 0 — 가설 1건 (월 반복 사본) 이 반증 RED 로 결함 확정 → 수리. 기록: breakdown §6.
+>
+> **Phase 2 닫힘 (2026-11-11) — G2 통과.** 스케줄러 (`fillScheduler.ts` — idle 마다 task 하나, 현재 page → 화면 안 page → page 순서) · 요청 채움 (page 전환 `ensurePage` · 노드 `fillNode`) · 채움 중 편집. 편집 step 은 미반영 자리를 채우지 않고 (`heldBack`), 채움 상태는 다음 task 가 문서에서 다시 읽는다 (`syncFill`). 교차 테스트 67 건 (편집 · undo · redo · page 구조 · template 편집 · 데이터 갱신 · 노드 요청 · 오류 주입 — 끝 상태 = 같은 편집을 한 일괄 빌드) · 변이 RED 8/10 · 실제 Builder 66 장 1x · 4x 에서 편집 섞은 채움 뒤 record 18,782 차이 0, page 전환 4x 95 ms. 판독 1회: HIGH 1 (template 중첩 변경으로 옮겨진 미반영 자리가 빠짐) · MEDIUM 1 (틀 삭제 → undo 뒤 step 중단) → 재현 테스트 12 건 (RED 8) 으로 확인 · 수리.
+>
+> **사용자 결정 (2026-11-11, Phase 3 중)**: 결정 1 = **(b) 틀 page 에 옅은 「불러오는 중」 표시** · 결정 4 = **(a) 화면 밖 page 내리기는 범위 밖**.
+>
+> **Phase 3 닫힘 (2026-11-11) — G3 통과.** 채움 뒤 Canvas 전체 재묶음의 원인 (fixed · overlay 를 담은 region 의 splice 거부) 을 page 단위 재기록으로 바꿨다 — 일반 편집에도 적용된다. 백그라운드 채움은 첫 프레임 전 · drag · 카메라 이동 중 쉬고 화면에 걸친 page 부터 채운다. 틀 page 에 옅은 「페이지 불러오는 중…」 표시 (결정 1 (b)). 글꼴은 문서의 작성 글꼴을 미리 읽어 한 번에 요청하고 채움 뒤 다시 동기한다. 66 장 채움 4x 49 s → 10.3 s · long task 최대 913 → 85 ms, 채움 뒤 stream = 새 묶음. 판독 1회: HIGH 1 (page 재기록이 낡은 fixed 좌표로 그림 — 일반 편집 경로) → 재현 RED 2 건 · 수리.
+>
+> **Phase 4 닫힘 (2026-11-11) — G4 · G5: 통과 항목 + 미달 축 3 의 사용자 판정.** 단계별 열기를 **기본으로 켰다** (`localStorage["composition:staged-load"] = "off"` 로 일괄 빌드). 전체 순회 소비자 정리 + 정적 게이트 · 채움 뒤 명령 버퍼 합치기 · 채움 중 warmup 쉼 · `hasPendingFill` O(1) · 하니스 `ready` 가 채움 끝을 기다림. **G5 (production, 일괄 ↔ 단계별 교대 3쌍 중앙값)**: 66 장 · 4x 열기 8,580 → **2,741 ms** (≤ 3.0 s) · 66 / 22 배율 1x 1.28 · 4x 1.29 (≤ 1.4) · 전부 채워진 시각은 일괄의 1.13 ~ 1.33배 (≤ 1.5) · 채움 뒤 stream 차이 0. 상호작용 일곱 부류의 호출 수는 켬 = 끔 (0.3 % 이내). **G4**: 채우는 중 pan p95 16.8 ms (채움 뒤 16.7) · 100 ms 넘는 long task 0 (최대 99 ms) · 채움 전 page 전환 4x 84 ms. 판독 1회: HIGH 0 · MEDIUM 2 (틀 자리 Layers 행 선택이 버려짐 · 전달 없이 끝난 채움의 끝 신호 누락) → 재현 RED 2 건 · 수리. **미달 축 (사용자 판정)**: ① 1,000 행 바운드 ListBox page 의 채움 단위 4x 251 ms (같은 목록의 데이터 갱신 144 ~ 162 ms 보다 큼 — 행 창 미도입) ② drag 의 3배 문서 배율 1.36 — 이 변경 전 빌드도 같은 값 (편집 · page 전환 뒤의 drag, 원인 미분석) ③ ratchet 기준 갱신 미실시 (게이트는 push 대상 commit 을 잰다 · HEAD 가 이미 기준 초과). Phase 5 live: 실제 Chrome (dev · 1x) 에서 32 장 프로젝트 열기 · 채우는 중 page 전환 · 편집 · undo · 노드 선택 · breakpoint 전환 → 채움 뒤 Canvas = 새 묶음 · 오류 0, 사용자 프로젝트 (7 장) 단계별 = 일괄. 기록: breakdown §6.
+>
+> **Phase 5 닫힘 (2026-11-11) — G6 사용자 확인 → Implemented.** 후속으로 남긴 것: 큰 바운드 목록의 행 창 · 편집 · page 전환 뒤 drag 의 문서 크기 비례 (1.36) · ratchet 기준 재설정 · 문서 읽기 · 검증의 page 당 비용.
+>
+> **사용자 결정 (2026-11-11, Phase 4 뒤)**: ① 1,000 행 ListBox 채움 단위 — **수용, 행 창은 후속** ② drag 1.36 — **기록만, 원인 분석 · 수리는 별도 작업** ③ ratchet 기준 갱신 — **이 ADR 게이트에서 제외** (기준 재설정은 별도 작업).
 
 ## Context
 
@@ -128,7 +148,7 @@ Proposed — 2026-11-11
 2. **채움 단위와 반영 경계**: 채움의 단위는 page 가 아니라 **region** 이다 — page root 의 직계 자식 subtree 하나, 문서 노드 수가 상한을 넘으면 그 자식들로 내려간다 (F5 의 `ownedChildren` 선택으로 「지금까지 반영한 자식 + 이번 단위」 를 해석). 단위 하나는 해석 · 엔진 반영 · 전달까지 **한 task 안에서 원자적으로** 끝나고, 단위 사이에는 이벤트 루프에 양보한다. 다음 단위는 「문서의 자식 − record 의 자식」 에서 매번 다시 구한다 — 이어 갈 준비물이 없으므로 문서 revision 이 바뀌어도 버릴 것이 없고, root 교체는 큐를 버리는 것으로 끝난다. 더 나눌 수 없는 단위 (바운드 collection owner 의 행 · 접힌 instance) 의 비용은 지금 그 owner 를 편집 · 데이터 갱신할 때의 재해석 비용과 같다 (새 지연이 아니다) — 그 최악값은 G0 ⑥ 이 잰다.
 3. **요청은 둘로 나눈다**:
    - **비동기 (우선순위만 올림)**: idle 채움과 **화면 진입**. 순서는 세션의 현재 page → 화면에 걸친 page → 나머지 (문서 순서). 프레임마다 시간 예산 안에서 단위를 처리하고, 예산을 넘는 단위는 그 프레임에 하나만 한다. 여러 page 가 한꺼번에 화면에 들어와도 (축소) 큐의 순서만 바뀐다.
-   - **동기 (그 page 의 남은 단위를 끝까지)**: 사용자가 그 page 의 내용을 요구한 동작 — page 전환 · 그 page 의 노드를 가리키는 선택 · 명령 대상. 비용은 그 page 를 한 번에 빌드하는 비용 이하이고 (이미 반영한 단위는 빠진다), 채움이 끝나기 전에만 발생한다. 허용 상한은 G4.
+   - **동기 (상한 안에서)**: 사용자가 그 page 의 내용을 요구한 동작 — page 전환 · 그 page 의 노드를 가리키는 선택 · 명령 대상. 요청 대상 (선택한 노드 · 명령 대상까지의 조상 사슬과 그 subtree) 과 화면에 걸친 단위를 먼저 동기로 채우고, 시간 상한 (**4x 에서 150 ms** — 사용자 결정 2026-11-11) 에 닿으면 그 page 의 나머지는 큐 맨 앞의 비동기로 넘긴다. 요청 대상 자체는 상한과 무관하게 끝까지 채운다 (선택 · 명령이 없는 record 를 가리키지 않게). 처음 안 (「남은 단위를 끝까지」) 은 Phase 0 실측 (4x 최대 287 ms) 으로 상한을 넘어 바꿨다.
 4. **채움은 문서 밖의 일**: revision · History · 저장 대기열 · Preview delta 를 움직이지 않는다 (F5 의 `refreshRows` 와 같은 지위). 실패는 둘로 나눈다:
    - **해석 · 엔진 반영 실패** (단위의 apply 가 던짐): journal 로 그 단위를 되돌린다 — record · 엔진 · 채움 상태가 단위 이전과 같다. 같은 문서 revision 에서는 그 단위를 다시 시도하지 않고 (반복 실패 방지) page 를 「채움 실패」 로 표시해 알린다. 문서가 바뀌거나 동기 요청이 오면 다시 시도한다.
    - **전달 실패** (apply 는 성공, 구독자 · Canvas 반영이 던짐): record 를 되돌리지 않는다 — 단위는 반영된 것으로 남는다 (`refreshRows` 의 지금 경계와 같다: record · 엔진이 정본, 구독자는 뒤따른다). 오류는 모아 호출자에게 던지거나 (동기 요청) 보고하고 (비동기), Canvas 는 다음 sync 에서 장면을 다시 묶어 맞춘다.
@@ -147,11 +167,11 @@ Proposed — 2026-11-11
 - **E**: 비례 관계가 남는다. 따로 계속할 수 있지만 이 ADR 의 목표를 대신하지 못한다.
 - **A′**: 첫 화면 시간이 그대로다.
 
-**범위 밖**: Preview · Publish root 의 page 범위 (F10 — 사용자 결정 3) · 화면 밖 page 내리기 (B) · 노드당 비용 절감 (E) · page 수와 무관한 몫 (≈ 0.6 s / 4x 2.6 s — 번들 · CanvasKit 초기화 · React mount).
+**범위 밖**: Preview · Publish root 의 page 범위 (F10 — 사용자 결정 3) · 화면 밖 page 내리기 (B) · 노드당 비용 절감 (E) · page 수와 무관한 몫 (≈ 0.6 s / 4x 2.6 s — 번들 · CanvasKit 초기화 · React mount) · **문서 읽기 · 검증** (`storage.load` · `createCatalogGraph` — page 당 1x 4.5 · 4x 15 ms, Phase 0 에서 드러난 둘째 비례 자리. 사용자 결정 2026-11-11: 후속).
 
-> 구현 상세: [307-staged-document-open-page-shells-breakdown.md](design/307-staged-document-open-page-shells-breakdown.md)
+> 구현 상세: [307-staged-document-open-page-shells-breakdown.md](../design/307-staged-document-open-page-shells-breakdown.md)
 
-### 사용자 결정 4건 (execute-adr 가 닿을 때 묻는다)
+### 사용자 결정 4건 (2026-11-11 답: 1 = (b) · 2 = (a) · 3 = (a) · 4 = (a))
 
 1. **틀 page 의 모습** — (a) 빈 page (배경만 — 권고: 채움이 수 초 안에 끝난다) · (b) 옅은 「불러오는 중」 표시.
 2. **절대 목표의 조건** — (a) 「66 장 · 4x 열기 ≤ 3.0 s」 를 게이트로 (권고 — 사용자 Chrome 이 4x) · (b) 1x 만 게이트, 4x 는 기록. page 수와 무관한 몫이 4x 에서 이미 ≈ 2.6 s 라 (a) 는 여유가 page 4 장분이다 — Phase 0 가 닿는지 먼저 잰다.
@@ -180,15 +200,23 @@ Proposed — 2026-11-11
 | G1   | Phase 1 끝     | 동치 — 문서 fixture (flex · grid · 중첩 instance · 바운드 collection · fixed · sticky · overlay · TagGroup · 내용 높이 page) 에서 채움 순서 3가지 (문서 순 · 역순 · 가운데부터) 의 최종 record · geometry · 그리기 명령이 일괄 빌드와 같다. 원복 RED (채움 한 단계를 빼면 실패)                                                                                                                                                                                                                                                                                                                                                                                   | 다른 축은 엔진 증분을 고친다. 못 고치는 구조면 그 page 종류를 첫 단계 채움으로 (R1)                                                                                      |
 | G2   | Phase 2 끝     | 채움 중 교차 — 틀 page 의 노드를 편집 · undo · redo · 삭제, 원본 편집의 instance 전파, 데이터 갱신, breakpoint 전환을 채움 사이에 끼워도 최종 상태가 「전부 채운 뒤 같은 조작」 과 같다. consumer 실패 시 문서 원복 유지 (HC2). 단위 사이 (일부만 반영된 page) 에 끼운 경우 포함. 오류 주입 2종 — 엔진 반영 오류: 단위 원복 · 채움 상태 불변 · 같은 revision 재시도 없음 / Canvas 구독자 오류: record 유지 · 다음 sync 뒤 장면이 일괄 빌드와 같음                                                                                                                                                                                                                 | 교차가 안 맞는 조작은 「채움을 먼저 끝내고 실행」 으로 (그 조작만 동기 채움)                                                                                             |
 | G3   | Phase 3 끝     | 열기 1회 · breakpoint 전환 1회의 root 교체 수가 지금 값 이하 (dev 카운터 `rootReplaced`). 글꼴이 늦게 도착한 page 의 글자 폭이 일괄 빌드와 같다                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | 문서에서 글꼴 요청을 미리 읽는 쪽으로 (채움 전 1회)                                                                                                                      |
-| G4   | Phase 4 끝     | **비동기 경로** — 채우는 동안 (66 장 · 4x) pan 의 표시 간격 p95 가 채움 없는 pan 의 +1 프레임 이내 · 100 ms 넘는 long task 0 (나눌 수 없는 최악 단위 fixture 는 따로: 그 단위의 task ≤ 같은 owner 를 지금 데이터 갱신하는 task). 불리한 경우 포함: 채움 중 편집 · 채움 중 축소 (모든 page 가 한꺼번에 화면에 들어옴) · 직계 자식 하나가 큰 page. **동기 경로** — 채움 전 page 전환 1회의 추가 지연 ≤ 그 page 한 장을 한 번에 빌드하는 시간 × 1.5, 절대 상한은 G0 ⑥ 실측 뒤 사용자 결정 2 와 함께 정한다                                                                                                                                                           | 단위 상한을 낮춘다 · 큰 owner 의 행 창 (R6). 동기 경로가 상한을 넘으면 그 동작을 「현재 화면 단위 먼저 + 나머지 비동기」 로 바꿀지 사용자 판정                           |
-| G5   | Phase 4 끝     | production · old/new 교대 3쌍 이상 · `ready` = 현재 page 채워짐 + 첫 프레임: **66 장 열기 ≤ 22 장 열기 × 1.1** (1x · 4x). 절대값은 사용자 결정 2. 전부 채워진 시각이 지금 열기 시간의 1.5배 이하. 상호작용 일곱 부류의 3배 문서 배율 ≤ 1.2 유지 · 결정적 카운트 ratchet 기준 갱신 (`pnpm gate:perf-ratchet` — 로컬, pre-push)                                                                                                                                                                                                                                                                                                                                     | 미달 축을 breakdown 에 남기고 사용자 판정                                                                                                                                |
+| G4   | Phase 4 끝     | **비동기 경로** — 채우는 동안 (66 장 · 4x) pan 의 표시 간격 p95 가 채움 없는 pan 의 +1 프레임 이내 · 100 ms 넘는 long task 0 (나눌 수 없는 최악 단위 fixture 는 따로: 그 단위의 task ≤ 같은 owner 를 지금 데이터 갱신하는 task). 불리한 경우 포함: 채움 중 편집 · 채움 중 축소 (모든 page 가 한꺼번에 화면에 들어옴) · 직계 자식 하나가 큰 page. **동기 경로** — 채움 전 page 전환 1회의 추가 지연 ≤ **150 ms (4x)** (사용자 결정 2026-11-11 — 화면에 걸친 단위 · 요청 대상 먼저, 나머지 비동기. 불리한 경우: record 1,000 개 넘는 page · 화면 밖 노드를 Layers 에서 선택)                                                                                        | 단위 상한을 낮춘다 · 큰 owner 의 행 창 (R6). 동기 경로가 상한을 넘으면 넘는 단위 (나눌 수 없는 owner) 를 breakdown 에 남기고 사용자 판정                                 |
+| G5   | Phase 4 끝     | production · old/new 교대 3쌍 이상 · `ready` = 현재 page 채워짐 + 첫 프레임: **66 장 열기 ≤ 22 장 열기 × 1.4** (1x · 4x — 처음 1.1 은 Phase 0 실측으로 고침: 틀 1.34, 남은 기울기는 범위 밖의 문서 읽기 · 검증) · **66 장 · 4x 열기 ≤ 3.0 s** (사용자 결정 2 (a) — Phase 0 틀 실측 2.74 s). 전부 채워진 시각이 지금 열기 시간의 1.5배 이하. 상호작용 일곱 부류의 3배 문서 배율 ≤ 1.2 유지 · 결정적 카운트 ratchet 기준 갱신 (`pnpm gate:perf-ratchet` — 로컬, pre-push)                                                                                                                                                                                           | 미달 축을 breakdown 에 남기고 사용자 판정                                                                                                                                |
 | G6   | Implemented 전 | live — 실제 builder 에서 큰 문서를 열어 현재 page 가 먼저 뜨고, 채우는 중 다른 page 로 전환 · 편집 · undo · 축소가 맞게 동작. 사용자 확인                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | 발견 결함 수리 뒤 재확인                                                                                                                                                 |
 
 - 측정 조건 (measurement-validity §1): Q1 fixture 는 합성 — 규모 전용, 실문서 1개로 대표성 확인 (G0 ⑤). Q2 불리한 경우 = 채움 중 편집 · 축소 · 내용 높이 page (G2 · G4). Q3 대조군 = 스위치 「전부 즉시 채움」 과 old 빌드. Q4 소비 경로 = 스위치가 실제 `loadInitial` 분기에 배선됐는지 원복 RED. Q5 oracle = 일괄 빌드 (G1) — 일괄 빌드 자체의 정합은 기존 parity 하니스가 맡는다.
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+**실행자 (2026-11-11, Chrome MCP — 사용자 Chrome · dev 서버 5173 · DPR 2 · CPU 1x)**
+
+- `perf-s1-live` (32 장 · record 410) 열기: 현재 page 채워짐 653 ms (record 32 · 틀 31) → 전부 채워짐 1,471 ms · 명령 버퍼 1 조각 · 오류 0.
+- 채우는 중 (breakpoint 전환으로 root 를 다시 단계별로 세운 직후): 틀인 마지막 page 로 전환 → 채워짐 / 틀 page 노드의 값 편집 → undo / 틀 page 의 깊은 노드를 id 로 선택 → 채움 끝 뒤 patch 된 Canvas 상자 410 = 새로 묶은 상자 410, 오류 0. 화면에 page 내용이 그려지고 「불러오는 중」 표시가 남지 않음.
+- 사용자 프로젝트 `aaa` (7 장 · record 27, 읽기만): 단계별로 연 결과 = 스위치 off (일괄) 로 연 결과 (record · 부모 · 자식 · geometry 차이 0).
+- 66 장 (`perf-s1-live` 가 사용자 확인 중 66 장 · record 2,116 으로 늘어남), 실제 Chrome dev 1x: 현재 page 채워짐 803 ms → 전부 채워짐 3,693 ms (page 가 차례로 채워짐). 채움을 잠시 멈추고 축소해 찍은 화면에 틀 65 장이 「Loading page…」 로 보이고, 풀면 2.8 초에 걸쳐 내용으로 바뀜 (프레임 간격 최대 140 ms · 버퍼 1 조각 · 오류 0). 같은 revision (240) 에서 단계별로 연 결과 = 스위치 off 로 연 결과 (record 2,116 줄 차이 0).
+- 4x 값은 production 하니스 (G4 · G5).
+
+**사용자 확인 (G6, 2026-11-11 — 본인 Builder)**: ① 현재 page 가 먼저 뜨는가 — 「한번에 뜨지는 않는다」 → 뜻 확인 「1번 맞다」 (현재 page 가 바로 뜨고 나머지가 차례로 채워진다) ② 축소 때 — 「zoom, in,out 시 달라지는건 없다」 (zoom 은 채우는 순서만 바꾼다 — 채움 뒤에는 변화 없음이 의도, 설명 뒤 이의 없음) ③ 채우는 중 page 전환 · 편집 · undo — 「되는듯하다」.
 
 ## Consequences
 
@@ -203,7 +231,7 @@ Proposed — 2026-11-11
 
 - root 에 「틀 / 채워짐」 상태 · region 단위 채움 · 스케줄러가 생긴다 — `compositionRoot.ts` · `workspace.ts` · `canvasScene.ts` · `CatalogCanvas.tsx` · `CatalogBuilderCore.tsx`.
 - 열고 수 초 동안 화면 밖 page 는 비어 있고, 채우는 중인 page 는 내용이 단위별로 나타난다 (사용자 결정 1).
-- 채움이 끝나기 전의 page 전환은 그 page 의 남은 단위를 동기로 채우는 만큼 늦다 (지금은 0 — G4 동기 경로).
+- 채움이 끝나기 전의 page 전환은 화면에 걸친 단위를 동기로 채우는 만큼 늦고 (지금은 0 — 4x 150 ms 상한, G4 동기 경로), 큰 page 는 전환 직후 나머지 내용이 단위별로 나타난다.
 - 전체를 순회하는 새 소비자는 「채워짐」 신호를 알아야 한다 (정적 게이트가 막는다).
 - 전부 채워지기까지의 총 CPU 는 줄지 않고, 늘 수 있다 (R5).
 - 하니스의 `ready` 정의가 바뀌어 이전 기준선과 직접 비교하려면 old 빌드를 같은 정의로 다시 잰다.

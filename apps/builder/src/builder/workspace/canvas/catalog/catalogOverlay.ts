@@ -29,6 +29,7 @@ import { chromeIntersects, expandChromeBox } from "./catalogChromeSpatial";
 import { catalogSlotBand } from "./catalogChrome";
 import {
   renderCollectionRemainderMarker,
+  renderPageLoadingMarker,
   renderSlotHatchPattern,
 } from "../skia/slotMarkerRenderer";
 import {
@@ -105,6 +106,11 @@ export interface CatalogOverlayInputs {
     ownerId?: string;
     onTop?: boolean;
   }[];
+  /**
+   * ADR-307: the page roots whose content is not in yet (`identity` = the root record), with the
+   * label drawn over them — content chrome, cut where a later-painted page covers the page.
+   */
+  loadingPages?: () => readonly { identity: string; label: string }[];
   /**
    * The page boxes painted over a record's page (`createCatalogPageChrome`): content chrome of the
    * record — slot hatch, row remainder, hover outlines — is cut there (canvas-interaction §8.5).
@@ -338,6 +344,21 @@ export function catalogOverlayNode(
               viewport,
             ),
         );
+      for (const page of inputs.loadingPages?.() ?? []) {
+        const box = bounds.get(page.identity);
+        if (box)
+          withOccluders(ck, canvas, occludersOf(page.identity, box), () =>
+            renderPageLoadingMarker(
+              ck,
+              canvas,
+              box,
+              page.label,
+              zoom,
+              inputs.fontMgr(),
+              viewport,
+            ),
+          );
+      }
       inputs.badgeHits?.clear();
       for (const badge of inputs.badges?.() ?? [])
         renderBindingBadge(

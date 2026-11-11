@@ -2884,6 +2884,18 @@ function bindInColorMode(
         if (typeof region !== "string") return region;
         patchRoots.add(region);
       }
+      // ADR-307: a box drawn in its page's layer (fixed · an open overlay) keeps the rect the
+      // engine records from its direct parent, so an ancestor that moved or resized changes it —
+      // the one case 「a moved box cannot move its children」 misses. Such a box is drawn outside
+      // its ancestors' spans, so no translate reaches it either: whenever a rect changed, the
+      // boxes of the page layers are compared and a changed one is recorded again (its page —
+      // the splice below). **Why (2026-11-11 review)**: a full bind read every rect again and hid
+      // this; a page recorded with the stale rect drew a fixed bar where its section had moved.
+      if (changedRects.size)
+        for (const id of compare(
+          [...stream.topLayerElementIds].filter((id) => input(id)),
+        ))
+          patchRoots.add(id);
       // ADR-263 Phase 4: the top-most changed subtrees under each scroll owner whose extent is
       // kept, and the changed boxes' old rects (every other rect in a subtree is unchanged).
       const extentChanges = new Map<string, string[]>();
@@ -3008,7 +3020,10 @@ function bindInColorMode(
           ? new Map<string, number>()
           : undefined;
       /** Record `id`'s subtree again under its stored context (the commit-lane splice). */
-      const patchSubtree = (id: string): SubtreePatchOutcome => {
+      const patchSubtree = (
+        id: string,
+        pageLayer = false,
+      ): SubtreePatchOutcome => {
         const context = stream.subtreeBuildContextByElement.get(id);
         if (!context) return { applied: false, reason: "subtree-context" };
         revision += 1;
@@ -3029,6 +3044,7 @@ function bindInColorMode(
           rootId: id,
           revision,
           canonicalRevision: stream.baseCanonicalRevision,
+          ...(pageLayer ? { pageLayer: true } : {}),
         });
         if (!patch.applied) return patch;
         const span = replacement.subtreeSpans.get(id)!;
@@ -3094,11 +3110,26 @@ function bindInColorMode(
             if (c === root) return true;
         return false;
       };
+      // ADR-307: a region that holds a fixed box or an overlay cannot be spliced on its own — the
+      // box is drawn in its page's layer. The page is recorded again instead of the whole scene
+      // (a page filled in units took a full bind per task otherwise).
+      const pageOf = (id: string) => {
+        let cursor = id;
+        for (
+          let parent = input(cursor)?.parentId;
+          parent && input(parent);
+          parent = input(cursor)?.parentId
+        )
+          cursor = parent;
+        return cursor;
+      };
+      const pagesRecorded = new Set<string>();
       for (const id of roots) {
+        if (pagesRecorded.size && pagesRecorded.has(pageOf(id))) continue;
         if (!stream.subtreeBuildContextByElement.get(id))
           return rebind(id, "subtree-context");
         const writesBefore = commandWrites;
-        const placed: SubtreePatchOutcome & Partial<PlaceRegionResult> =
+        let placed: SubtreePatchOutcome & Partial<PlaceRegionResult> =
           translateOn
             ? placeRegion({
                 stream,
@@ -3115,6 +3146,15 @@ function bindInColorMode(
                 patchSubtree,
               })
             : patchSubtree(id);
+        if (
+          !placed.applied &&
+          placed.reason === "top-layer" &&
+          !getDragVisualOffset()
+        ) {
+          const pageId = pageOf(id);
+          placed = patchSubtree(pageId, true);
+          if (placed.applied) pagesRecorded.add(pageId);
+        }
         if (!placed.applied)
           return rebind(id, `splice-rejected:${placed.reason ?? "unknown"}`);
         // No hit bounds before or after: the subtree is clipped away entirely — nothing to redraw.

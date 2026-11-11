@@ -1,4 +1,5 @@
 import type { CatalogConsumerNode } from "../../../../../packages/shared/src/catalog/runtime/compositionRoot";
+import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import { installedBaseFontFamily } from "../../../../../packages/shared/src/catalog/runtime/themeMaps";
 import { catalogTextTypography } from "../catalogRuntime/boxModel";
 import { DEFAULT_BASE_TYPOGRAPHY } from "./customFonts";
@@ -112,4 +113,73 @@ function readRecordFontUse(
     ),
     localeTexts,
   };
+}
+
+/**
+ * ADR-307: the fonts the pages' nodes write (family · style · weight in any breakpoint layer or
+ * text run), read from the document — a staged root's records hold only the pages filled so far,
+ * and a face that arrives later replaces the root once more. Every written family with every
+ * written style and weight: a face is a family · style (a weight too for some), so asking for a
+ * pair no node draws costs at most a fetch. A font a rule gives (no node writes it) is met when its
+ * page fills.
+ */
+export function catalogAuthoredFontRequests(
+  graph: Pick<CatalogGraph, "getEntry" | "projectId">,
+  baseFamily: string = DEFAULT_BASE_TYPOGRAPHY.fontFamily,
+): CatalogFontRequest[] {
+  const families = new Set<string>();
+  const styles = new Set<string>();
+  const weights = new Set<number>();
+  const written = (value: unknown): unknown =>
+    value && typeof value === "object" && "kind" in value
+      ? (value as { kind: string; value?: unknown }).kind === "set"
+        ? (value as { value?: unknown }).value
+        : undefined
+      : value;
+  const read = (visual: Readonly<Record<string, unknown>> | undefined) => {
+    if (!visual) return;
+    const family = written(visual.fontFamily);
+    if (typeof family === "string" && family) families.add(family);
+    const style = written(visual.fontStyle);
+    if (typeof style === "string" && style) styles.add(style);
+    const weight = Number(written(visual.fontWeight));
+    if (Number.isFinite(weight) && weight > 0) weights.add(weight);
+  };
+  const project = graph.getEntry(graph.projectId);
+  const stack: string[] = [];
+  if (project?.kind === "project")
+    for (const pageId of project.pageIds) {
+      const page = graph.getEntry(pageId);
+      if (page?.kind === "page") stack.push(...page.children);
+    }
+  const seen = new Set<string>();
+  while (stack.length) {
+    const id = stack.pop()!;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const node = graph.getEntry(id);
+    if (node?.kind !== "node") continue;
+    read(node.visual);
+    for (const layer of Object.values(node.responsive ?? {}))
+      read(layer?.visual);
+    const text = written(node.props.children);
+    if (text && typeof text === "object" && "runs" in text)
+      for (const run of (
+        text as { runs: readonly { marks?: Record<string, unknown> }[] }
+      ).runs)
+        read(run.marks);
+    stack.push(...node.children);
+    for (const override of node.descendantOverrides)
+      if (override.kind === "fillSlot") stack.push(...override.childIds);
+      else if (override.kind === "replace") stack.push(override.replacementId);
+  }
+  if (!families.size && !styles.size) return [];
+  if (!families.size) families.add(baseFamily);
+  styles.add("normal");
+  weights.add(400);
+  const requests: CatalogFontRequest[] = [];
+  for (const family of families)
+    for (const style of styles)
+      for (const weight of weights) requests.push({ family, weight, style });
+  return requests;
 }

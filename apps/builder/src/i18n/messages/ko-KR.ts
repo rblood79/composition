@@ -1253,6 +1253,7 @@ const catalog: TranslationKeys = {
     engineLoadFailed: "레이아웃 엔진 로드에 실패했습니다.",
     reload: "새로고침",
     textEditorLoading: "텍스트 편집기 준비 중",
+    pageLoading: "페이지 불러오는 중…",
   },
   aiTool: {
     createElement: "요소 생성",

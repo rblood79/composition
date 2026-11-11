@@ -2,6 +2,7 @@ import type { CanvasKit, FontMgr } from "canvaskit-wasm";
 import { orderPagesForPaint } from "../workspace/canvas/scene/pagePaintOrder";
 import { beginImageEpoch } from "../workspace/canvas/skia/imageCache";
 import {
+  compactCommandStream,
   executeDamageRenderCommands,
   executeRenderCommands,
   executeViewportRenderCommands,
@@ -205,6 +206,14 @@ export class CatalogCanvasScene {
     return sameIds(this.drawnRoots(), this.rootIds)
       ? { kind: "unchanged" }
       : this.rebind("page-roots");
+  }
+
+  /**
+   * ADR-307: join the patched stream's command buffer into one piece (after the last fill task —
+   * `compactCommandStream`). Nothing is recorded again; false = nothing to join.
+   */
+  compact(): boolean {
+    return compactCommandStream(this.binding.stream);
   }
 
   /** Live verification (ADR-264): bind again from the records — the oracle for a patched stream. */

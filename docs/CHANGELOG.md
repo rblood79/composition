@@ -11,6 +11,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-307 Implemented — 문서 열기 단계별 빌드] - 2026-11-11
+
+### Performance
+
+- **ADR-307 Implemented (G6 사용자 확인)**: 큰 문서가 현재 page 부터 열리고 나머지 page 는 차례로 채워진다 (아래 Phase 0 ~ 4 엔트리). 사용자 확인 — 현재 page 가 바로 뜨고 나머지가 차례로 채워짐 · 채우는 중 page 전환 · 편집 · undo 동작. 실제 Chrome (dev) 66 장 문서: 현재 page 0.8 초 · 전체 3.7 초 (1x), 단계별로 연 결과 = 일괄로 연 결과.
+  - 후속으로 남긴 것: 큰 바운드 목록 (1,000 행 ListBox) 의 행 창 · 편집 · page 전환 뒤 drag 의 문서 크기 배율 1.36 (이 변경 전부터) · ratchet 기준 재설정 · 문서 읽기 · 검증의 page 당 비용.
+
+## [ADR-307 Phase 4 — 문서 열기 단계별 빌드 기본 켬: 큰 문서가 현재 page 부터 열린다] - 2026-11-11
+
+### Performance
+
+- **ADR-307 Phase 4 닫힘 (G4 · G5)**:
+  - **Why**: 문서를 열 때 모든 page 를 한 번에 펼치고 배치해 열기 시간이 page 수에 비례했다 — 66 장 문서가 1x 2.3 초 · 4x (사용자 Chrome 설정) 8.6 초.
+  - 변경: 단계별 열기를 기본으로 켰다. page 틀을 먼저 세우고 현재 page 를 채운 뒤, 나머지는 한가할 때 화면에 걸친 page 부터 채운다 (틀 page 에는 옅은 「페이지 불러오는 중…」). 끝나면 종전과 같은 상태다. 채우는 동안 page 전환 · 편집 · undo · 선택은 그대로 된다 (필요한 자리를 먼저 채운다). 끄려면 `localStorage["composition:staged-load"] = "off"`.
+  - 측정 (production 하니스, 일괄 ↔ 단계별 교대 3쌍 중앙값): 열기 22 장 1x 1,163 → 603 ms · 66 장 1x 2,262 → 769 ms · 22 장 4x 4,278 → 2,133 ms · 66 장 4x 8,580 → 2,741 ms. 문서 3배의 열기 배율 1.95 → 1.28 (1x). 전부 채워지는 시각은 종전 열기의 1.13 ~ 1.33배, 그동안 pan 의 표시 간격은 평소와 같고 100 ms 넘는 long task 는 없다.
+  - 그 밖: 채움이 끝나면 Canvas 명령 버퍼를 한 조각으로 합친다 · AI 의 요소 목록 등 문서 전체를 읽는 곳은 먼저 채운다 · 정적 게이트 (record 맵 전체 순회 자리).
+  - 판독 수리 2: 아직 채워지지 않은 자리의 Layers 행 클릭이 버려지던 것 · 마지막 틀 page 를 지우면 채움의 끝 처리가 빠지던 것.
+  - 남은 것: 1,000 행 바운드 ListBox 가 든 page 는 채움 단위가 4x 에서 251 ms task (수용 — 행 창은 후속) · drag 의 문서 크기 배율 1.36 (이 변경 전부터 — 별도 작업) · ratchet 기준 재설정 (별도 작업) — 사용자 판정 2026-11-11.
+
+## [ADR-307 Phase 3 — fixed · overlay 를 담은 영역의 편집이 그 page 만 다시 그림 · 틀 page 표시] - 2026-11-11
+
+### Performance
+
+- **ADR-307 Phase 3 닫힘 (G3)**:
+  - **Why**: fixed 상자나 열린 overlay (Sheet · Dialog · Select 목록 …) 를 담은 영역이 바뀌면 Canvas 가 그 영역만 고쳐 쓰지 못하고 문서 전체 scene 을 다시 묶었다 (fixed 상자는 page 층에 따로 그려져 영역 교체가 거부됨). 단계별 채움에서는 그런 page 를 채울 때마다 전체 재묶음이 일어나 66 장 · 4x 에서 채움이 49 초, 프레임이 최대 0.9 초였다.
+  - 수정: 그런 영역은 그 page (자기 fixed 층 포함) 만 다시 기록한다 — 일반 편집 (fixed 를 담은 컨테이너의 편집 · overlay 열고 닫기) 에도 적용된다. fixed 상자의 좌표는 조상이 움직일 때 다시 읽는다.
+  - 단계별 채움 (아직 기본 꺼짐 — Phase 4 에서 켬): 첫 프레임 전 · drag · 카메라 이동 중에는 쉬고 화면에 걸친 page 부터 채운다. 틀 page 에는 옅은 「페이지 불러오는 중…」 표시. 글꼴은 문서에 작성된 글꼴을 미리 읽어 한 번에 요청한다.
+  - 측정 (production 하니스, 66 장): 채움 4x 49 s → 10.3 s · long task 87 개 (최대 913 ms) → 27 개 (최대 85 ms), 1x 7.9 s → 2.0 s · long task 0. 채움 뒤 Canvas stream 은 새로 묶은 것과 같다.
+
+## [ADR-307 Phase 2 — page 틀의 백그라운드 채움 · 요청 채움 · 채움 중 편집 (기본 꺼짐)] - 2026-11-11
+
+### Performance
+
+- **ADR-307 Phase 2 닫힘 (G2 — 일반 빌드의 동작 변경 0, `stagedLoad` 는 하니스 빌드 스위치)**:
+  - workspace 가 page 틀을 백그라운드로 채운다 (`fillScheduler.ts` — idle 마다 task 하나, 현재 page → 화면 안 page → page 순서). page 전환은 그 page 를 바로 채우고 (100 ms 상한, 나머지는 백그라운드 맨 앞), 노드 id 로 고르거나 명령이 새 노드를 고르면 그 노드까지 먼저 채운다.
+  - 채우는 중의 편집: 편집 step 은 아직 채우지 않은 자리를 해석하지 않고, 다음 채움 task 가 고친 문서에서 자식 자리를 다시 읽는다. undo · redo · page 추가 · 삭제 · 순서 변경 · layout template 편집 · 데이터 갱신을 섞어도 끝 상태는 같은 편집을 한 일괄 빌드와 같다 (교차 테스트 67 건, 실제 Builder 66 장 record 18,782 차이 0).
+  - 판독에서 나온 결함 2 (수리): layout template 의 중첩을 바꾸면 옮겨진 미반영 자리가 끝내 채워지지 않던 것 · 틀을 지웠다 되돌린 직후의 편집이 중단되던 것.
+
+## [ADR-307 Phase 1 — root 의 page 틀 · 단위 채움 (기본 꺼짐)] - 2026-11-11
+
+### Performance
+
+- **ADR-307 Phase 1 닫힘 (G1 — 일반 빌드의 동작 변경 0, 옵션 `stagedLoad` 는 하니스 빌드의 storage 스위치로만 켜짐)**:
+  - composition root 가 첫 page 만 일괄로 빌드하고 나머지 page 는 틀 (root record + frame) 로 세운 뒤 `fill(rootId, { deadline })` 로 단위씩 채운다. resolver 는 바꾸지 않았다 — 틀은 자식 물음을 거절하며 적어 둔 record 이고, 그 물음 하나가 채움 단위다. 한 task 는 단위 여러 개를 엔진에 반영한 뒤 배치 · 전달을 한 번 한다.
+  - 실패: 엔진 반영 실패는 task 이전으로 되돌리고 같은 revision 에서 다시 시도하지 않는다. 전달 (구독자) 실패는 record 를 두고 오류를 돌려준다.
+  - 검증: 틀 + 채움 뒤 record · geometry · composed part · sticky · page frame 이 일괄 빌드와 같다 (fixture 9 page × 채움 순서 3 × 단위 크기 2, 실제 Builder 22 장 6,317 · 66 장 18,798 record 차이 0). task (상한 75 노드 · 예산 8 ms) 는 4x 에서 p50 17 · 최대 88 ms.
+  - 판독에서 나온 결함 1: 달력의 월 반복 사본처럼 한 자리가 record 여러 개로 해석되면 둘째 사본이 비었다 — 그런 자리는 통째로 채운다.
+
+## [ADR-307 Phase 0 — 문서 열기 단계별 빌드 실측 (틀 열기 · 채움 단위 비용)] - 2026-11-11
+
+### Performance
+
+- **ADR-307 Accepted · Phase 0 닫힘 (측정 · 인벤토리 — 제품 동작 변경 0)**:
+  - 측정 (production 하니스, `many-pages` 22 · 66 장, 일괄 ↔ 틀 교대 6회 중앙값): 현재 page 만 채우고 나머지는 page 틀만 세우면 열기가 66 장 1x 2,248 → 770 ms · 4x 8,858 → 2,741 ms. `loadInitial` 은 page 수와 무관해지고 (83 → 84 ms), 남는 비례 자리는 문서 읽기 · 검증 (page 당 1x 4.5 · 4x 15 ms — 66 / 22 배율 1.34).
+  - 채움: page 한 장 4x 중앙값 66 ms · 최대 287 ms (일괄의 0.9배), 단위 상한 75 문서 노드에서 4x 최대 81 ms. 틀 + 채움 뒤 record · geometry · Canvas 상자는 일괄 빌드와 차이 0 (22 장 6,317 record).
+  - 사용자 결정: 상대 게이트 「66 장 ≤ 22 장 × 1.4」 · 절대 게이트 「66 장 · 4x ≤ 3.0 s」 · 채움 전 page 전환 지연 ≤ 150 ms (4x — 화면 단위 먼저, 나머지 비동기) · Preview · Publish 제외.
+  - 계측: root 옵션 `stagedProbe` · `probeFill` (하니스 빌드의 storage 스위치로만 켜짐 — Phase 1 구현이 대체). 기록: `docs/adr/design/307-staged-document-open-page-shells-breakdown.md` §6.
+
 ## [오래 편집한 뒤에도 pan · zoom 비용이 늘지 않음 — span cursor 이분 탐색] - 2026-11-12
 
 ### Performance

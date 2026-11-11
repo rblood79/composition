@@ -30,8 +30,10 @@ import {
 import type { CatalogTransactionResult } from "../../../../../packages/shared/src/catalog/transactions/transaction";
 import type { LayoutEngineAPI } from "../workspace/canvas/wasm-bindings/layoutBridge";
 import { CatalogAutosave } from "./autosave";
+import { CatalogFillScheduler } from "./fillScheduler";
 import {
   CatalogCompositionRoot,
+  type CatalogFillReport,
   type CatalogRootOptions,
   type CatalogTextMeasure,
   catalogRowTemplateIdentity,
@@ -105,6 +107,13 @@ export interface CatalogWorkspaceOptions {
    * (a new root in its color mode — the records re-resolve their token values).
    */
   theme?: (graph: CatalogGraph) => CatalogThemeState;
+  /**
+   * ADR-307: when a background fill task runs (`root.stagedLoad` roots only) — returns its cancel.
+   * Default: an idle callback.
+   */
+  fillSchedule?: (task: () => void) => () => void;
+  /** ADR-307: a background fill task's time budget in ms (default: the scheduler's). */
+  fillBudget?: number;
 }
 
 /** A step touched what the theme reads: the project (active theme), a theme or a token. */
@@ -180,6 +189,10 @@ export class CatalogWorkspace {
   readonly runtime: CatalogRuntime;
   private currentRoot: CatalogCompositionRoot;
   private readonly rootListeners = new Set<() => void>();
+  /** ADR-307: fills the page shells of a staged root (absent = roots are built in full). */
+  private readonly fillScheduler: CatalogFillScheduler | undefined;
+  private fillBusy: (() => boolean) | undefined;
+  private fillShownPage: string | undefined;
   readonly session: CatalogSession;
   readonly readModel: CatalogReadModel;
   readonly autosave: CatalogAutosave;
@@ -209,10 +222,43 @@ export class CatalogWorkspace {
     this.applyTheme();
     this.currentRoot = this.createRoot(options.root?.breakpoint ?? "desktop");
     this.session = new CatalogSession(this.runtime, {
-      identityExists: (identity) => this.root.domInputs.has(identity),
+      identityExists: (identity) =>
+        this.root.domInputs.has(identity) || this.fillIdentity(identity),
     });
     // The session shows the breakpoint the root opened on (a remembered one, not only desktop).
     this.session.setBreakpoint(this.currentRoot.breakpoint);
+    if (options.root?.stagedLoad) {
+      this.fillScheduler = new CatalogFillScheduler(
+        {
+          root: () => this.currentRoot,
+          currentPage: () => this.session.getSnapshot().pageId,
+          delivered: () => {
+            // (The listeners read the fill's state: no second call from `settleFill`.)
+            this.fillWasPending = this.fillPending;
+            for (const listener of [...this.rowListeners]) listener();
+            this.markFill();
+          },
+          report: (errors) => this.reportFill(errors),
+          busy: () => !!this.fillBusy?.(),
+          settled: () => this.settleFill(),
+        },
+        {
+          schedule: options.fillSchedule,
+          ...(options.fillBudget ? { taskBudget: options.fillBudget } : {}),
+        },
+      );
+      // A page switch needs the page's content now (up to the scheduler's cap).
+      this.fillShownPage = this.session.getSnapshot().pageId;
+      this.session.subscribe(() => {
+        const pageId = this.session.getSnapshot().pageId;
+        if (pageId === this.fillShownPage) return;
+        this.fillShownPage = pageId;
+        if (pageId) this.fillScheduler?.ensurePage(pageId);
+      });
+      this.fillScheduler.restart();
+      this.fillWasPending = this.fillPending;
+      this.markFill();
+    }
     this.readModel = new CatalogReadModel(this.runtime);
     this.autosave = new CatalogAutosave(this.runtime, {
       schedule: options.autosaveSchedule,
@@ -248,6 +294,17 @@ export class CatalogWorkspace {
       {
         pageFrames: true,
         ...options.root,
+        // (ADR-307: a replaced root builds the page the session shows first.)
+        ...(options.root?.stagedLoad
+          ? {
+              stagedLoad: {
+                ...options.root.stagedLoad,
+                firstPage:
+                  this.session?.getSnapshot().pageId ??
+                  options.root.stagedLoad.firstPage,
+              },
+            }
+          : {}),
         consumeStep: this.consumeStep,
         // A new root derives its own tier's columns from the same monitor width (ADR-274 F5 —
         //   one layout per breakpoint switch, no carried-over count to correct next frame).
@@ -350,9 +407,18 @@ export class CatalogWorkspace {
     this.session.setBreakpoint(breakpoint);
     this.session.reconcile();
     for (const listener of [...this.rootListeners]) listener();
+    this.fillMarked.current = this.fillMarked.all = false;
+    this.fillScheduler?.restart();
+    // (The root listeners above read the new root's fill themselves.)
+    this.fillWasPending = this.fillPending;
+    this.markFill();
   }
   /** After a step: a changed theme builds a new root in its color mode with its token values. */
   private afterStep(result: CatalogTransactionResult | undefined): void {
+    // (ADR-307: a step can leave new shells — a page added — and lets a failed root try again.
+    // It can end the fill too: the last shell page removed.)
+    this.fillScheduler?.restart();
+    this.settleFill();
     // The viewed definition is gone (an undo of its creation, a dissolve): back to the pages.
     const viewed =
       this.definitionView && !isComponentsView(this.definitionView)
@@ -457,8 +523,9 @@ export class CatalogWorkspace {
     const plan = catalogComponentPageStored(graph, view)
       ? (isProjectComponentsView(view)
           ? catalogLocalPageSync(graph, this.colorMode)
-          : catalogLibraryPageSync(graph, this.colorMode)
-        )?.(graph.commandReader)
+          : catalogLibraryPageSync(graph, this.colorMode))?.(
+          graph.commandReader,
+        )
       : catalogComponentPageCreation(
           graph,
           view,
@@ -621,6 +688,139 @@ export class CatalogWorkspace {
     for (const listener of [...this.rowListeners]) listener();
     if (errors.length)
       throw new AggregateError(errors, "CATALOG_STATE_DELIVERY");
+  }
+  /**
+   * ADR-307: one fill task of each page root of this page that still misses records (the root's
+   * `fill`), then the row listeners (the Canvas scene — the same outside-a-step delta). Returns
+   * the reports.
+   */
+  fillPage(
+    pageId: string,
+    options?: Parameters<CatalogCompositionRoot["fill"]>[1],
+  ): CatalogFillReport[] {
+    const root = this.currentRoot;
+    const reports = root
+      .pendingFillRoots({ failed: true })
+      .filter((rootId) => root.pageOfRoot(rootId) === pageId)
+      .map((rootId) => root.fill(rootId, options));
+    if (reports.some((report) => report.records))
+      for (const listener of [...this.rowListeners]) listener();
+    return reports;
+  }
+  /** ADR-307: whether any page still misses records (the background fill goes on). */
+  get fillPending(): boolean {
+    return !!this.fillScheduler && this.currentRoot.hasPendingFill;
+  }
+  /**
+   * ADR-307: a page's content, now — up to the scheduler's cap (`whole` = all of it); the rest
+   * goes on in the background ahead of the other pages. True = the page is filled.
+   */
+  ensurePage(pageId: string, options?: { whole?: boolean }): boolean {
+    const filled = this.fillScheduler?.ensurePage(pageId, options) ?? true;
+    this.markFill();
+    return filled;
+  }
+  private fillWasPending = false;
+  /**
+   * ADR-307: the fill's end reaches the row listeners though its last change added no record — a
+   * step that removed the last shell page, a root that failed at this revision, a task that found
+   * nothing left. (What shows the fill — the Canvas's loading labels, its held warmup, the joined
+   * command buffer — ends on that signal.)
+   */
+  private settleFill(): void {
+    if (!this.fillScheduler) return;
+    const pending = this.fillPending;
+    const ended = this.fillWasPending && !pending;
+    this.fillWasPending = pending;
+    if (!ended) return;
+    for (const listener of [...this.rowListeners]) listener();
+    this.markFill();
+  }
+  private readonly fillMarked = { current: false, all: false };
+  /**
+   * ADR-307: the open's two measured moments, once per root — the shown page has every record
+   * (`composition:staged.current-filled`) and every page has (`composition:staged.all-filled`).
+   * The harness reads them (`perf-baseline.mjs`); a root built in full marks nothing.
+   */
+  private markFill(): void {
+    if (!this.fillScheduler || typeof performance === "undefined") return;
+    if (this.fillMarked.all) return;
+    const root = this.currentRoot;
+    const pending = root.pendingFillRoots({ failed: true });
+    const shown = this.session.getSnapshot().pageId;
+    if (
+      !this.fillMarked.current &&
+      !pending.some((rootId) => root.pageOfRoot(rootId) === shown)
+    ) {
+      this.fillMarked.current = true;
+      performance.mark("composition:staged.current-filled");
+    }
+    if (!pending.length) {
+      this.fillMarked.all = true;
+      performance.mark("composition:staged.all-filled");
+    }
+  }
+  /** ADR-307: every page, now (a reader of the whole document's records). */
+  ensureAllPages(): void {
+    this.fillScheduler?.ensureAll();
+  }
+  /** ADR-307: the pages in view, nearest first — filled before the rest (the Canvas says). */
+  prioritizePages(pageIds: readonly string[]): void {
+    this.fillScheduler?.prioritize(pageIds);
+  }
+  /** ADR-307: background fill tasks wait while this is true (a camera gesture, a drag). */
+  setFillBusy(busy: (() => boolean) | undefined): void {
+    this.fillBusy = busy;
+  }
+  /**
+   * ADR-307: the records of a document node, now (a selection by node id, a command's
+   * `selectAfter`): its owners down from the page root, then the node whole.
+   */
+  private fillNode(id: string): void {
+    if (!this.fillScheduler) return;
+    const report = this.currentRoot.fillNode(id);
+    if (report.records) {
+      this.fillWasPending = this.fillPending;
+      for (const listener of [...this.rowListeners]) listener();
+    }
+    if (report.errors.length) this.reportFill(report.errors);
+    this.settleFill();
+  }
+  private readonly fillFailureListeners = new Set<() => void>();
+  /**
+   * ADR-307: a fill task's delivery failed (a subscriber threw — the records stay) or its apply
+   * did (rolled back): what follows the records by deltas may have missed some. The Canvas binds
+   * its scene again from the records.
+   */
+  subscribeFillFailure(listener: () => void): () => void {
+    this.fillFailureListeners.add(listener);
+    return () => this.fillFailureListeners.delete(listener);
+  }
+  private reportFill(errors: readonly unknown[]): void {
+    for (const error of errors)
+      console.error("[CatalogWorkspace] fill:", error);
+    for (const listener of [...this.fillFailureListeners])
+      try {
+        listener();
+      } catch (error) {
+        console.error("[CatalogWorkspace] fill failure listener:", error);
+      }
+  }
+  /**
+   * ADR-307: a record identity the root does not draw yet may sit in a page shell: the node that
+   * holds it (the last of its instance path — the source itself, with no path) is filled, then the
+   * identity is looked up again.
+   */
+  private fillIdentity(identity: string): boolean {
+    if (!this.fillScheduler) return false;
+    const at = identity.lastIndexOf("::");
+    const holder =
+      at < 0
+        ? identity
+        : identity.slice(0, at).split("/").at(-1) || identity.slice(at + 2);
+    if (!holder) return false;
+    this.fillNode(holder);
+    return this.currentRoot.domInputs.has(identity);
   }
   subscribeRows(listener: () => void): () => void {
     this.rowListeners.add(listener);
@@ -872,6 +1072,7 @@ export class CatalogWorkspace {
     return own.length ? own : this.itemsOfNode(id, 1);
   }
   itemsOfNode(id: NodeId, limit = Infinity): CatalogSelectionItem[] {
+    this.fillNode(id);
     return this.root
       .recordsOfSource(id)
       .slice(0, limit)
@@ -956,6 +1157,8 @@ export class CatalogWorkspace {
   ): void {
     const items: CatalogSelectionItem[] = [];
     for (const identity of recordIds) {
+      // (ADR-307: a Layers row is built from the document — its record may not be filled yet.)
+      if (!this.root.domInputs.has(identity)) this.fillIdentity(identity);
       const position = this.positionOfRecord(identity);
       if (position) items.push({ target: position.target, identity });
     }
@@ -1021,6 +1224,8 @@ export class CatalogWorkspace {
   }
 
   dispose(): void {
+    this.fillScheduler?.stop();
+    this.fillFailureListeners.clear();
     this.rootListeners.clear();
     this.rowListeners.clear();
     this.revealListeners.clear();

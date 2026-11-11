@@ -248,3 +248,22 @@
   - React commit 약 390 ms.
 - 결론: 3단계 (열기 시간 분할) 의 근거는 남는다. 대상은 `loadInitial` 이 모든 페이지를 한 번에 flatten · 배치하는 부분이다 (§2 B1).
 - 원자료: `.agent/runs/2026-11-11-canvas-perf-scaling/cold-ab/`.
+
+## 11. 3단계 결과 — 단계별 열기 (2026-11-11, ADR-307 Implemented)
+
+- 한 일: page 틀 (root record + frame) 을 먼저 세우고 현재 page 를 채운 뒤, 나머지는 idle 마다 조금씩 채운다 (화면에 걸친 page 먼저). 끝나면 일괄 빌드와 같은 상태다. 상세 · 게이트: [ADR-307](../../adr/completed/307-staged-document-open-page-shells.md) · [breakdown §6](../../adr/design/307-staged-document-open-page-shells-breakdown.md).
+- 조건: production 하니스 빌드, headless Chrome, `many-pages` 22 · 66 장, 일괄 (스위치 off) ↔ 단계별 교대 3쌍 중앙값. `ready` = 현재 page 채워짐 + 첫 프레임.
+
+| 문서 · CPU | 일괄 `ready` | 단계별 `ready` |    변화 | 전부 채워짐 |
+| ---------- | -----------: | -------------: | ------: | ----------: |
+| 22 장 · 1x |     1,163 ms |         603 ms | −48.2 % |    1,310 ms |
+| 66 장 · 1x |     2,262 ms |         769 ms | −66.0 % |    2,621 ms |
+| 22 장 · 4x |     4,278 ms |       2,133 ms | −50.1 % |    5,503 ms |
+| 66 장 · 4x |     8,580 ms |       2,741 ms | −68.1 % |   11,448 ms |
+
+- 열기의 3배 문서 배율: 1x 1.95 → **1.28** · 4x 2.01 → **1.29**. 남은 기울기는 문서 읽기 · 검증 (`storage.load` · `createCatalogGraph`) 이다 — page 당 1x 약 4 ms · 4x 약 14 ms.
+- 66 장 · 4x (사용자 Chrome 설정) 가 3초 안에 열린다. 전부 채워지는 시각은 일괄 열기의 1.13 ~ 1.33배 — 그동안 pan 의 표시 간격 p95 는 채움 없는 pan 과 같고 (16.8 / 16.7 ms) 100 ms 넘는 long task 는 없다.
+- 채움이 끝난 뒤의 상호작용 호출 수는 켬 = 끔이다 (일곱 부류, 같은 부류 순서, 차이 0.3 % 이내).
+- **§8 · §9 의 「drag 1.14 · 일곱 부류 전부 통과」 는 다시 확인이 필요하다**: production 번들에서 `pan,zoom,select,edit,page-switch,panel-toggle,drag` 순서로 재면 drag 가 22 장 1,253,008 · 66 장 1,702,908 (**1.36**) 이다 — 단계별 열기를 끈 빌드도, Canvas 변경 전 빌드도 같다. drag 만 따로 재면 66 장 1,271,379 로 22 장과 같다. 편집 · page 전환 뒤의 drag 가 66 장에서만 약 43 만 호출 늘어난다 (명령 reader · span 위치 해석 · 버퍼 Proxy 읽기 · 그리기 호출) — 원인 미분석.
+- 미달: 1,000 행 바운드 ListBox 가 든 page 의 채움 단위가 4x 에서 251 ms task (같은 owner 의 데이터 갱신 144 ~ 162 ms 보다 큼). 행 창은 넣지 않았다.
+- 원자료: `.agent/runs/20261111-104335-adr-307-adr-307-phase-0-g0/artifacts/` (`g5-*.json` · `g5-summary.txt` · `p4f-*.json`).

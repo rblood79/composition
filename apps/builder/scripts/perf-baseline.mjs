@@ -421,10 +421,23 @@ const READY_PREDICATE = (requireFrameCapture = false) =>
 /** ready 대기 상한 — 하니스별로 조정하지 않는다 (ready 정의가 하나이므로). */
 export const READY_TIMEOUT_MS = 90_000;
 
-/** builder ready 정의는 여기 하나뿐이다. 다른 하니스도 이 함수를 거친다. */
+/**
+ * builder ready 정의는 여기 하나뿐이다. 다른 하니스도 이 함수를 거친다.
+ *
+ * ADR-307 (단계별 열기): ready = 「보이는 page 가 채워지고 Canvas 가 마운트됨」 — 열린 page 는 root 를
+ * 세울 때 일괄로 빌드하므로 판정식은 그대로다 (열기 시간은 `settleMs: 0` 으로 잰다). 나머지 page 는
+ * 백그라운드로 채워진다: settle 을 요청한 호출 (상호작용 부류 측정) 은 그 채움이 끝난 뒤 (`workspace.
+ * fillPending` — 일괄 빌드 · 옛 빌드에는 없어 바로 지나간다) settle 한다. 채우는 동안을 재는 부류는
+ * `waitFill: false`. 「전부 채워진 시각」 은 performance mark `composition:staged.all-filled`.
+ */
 export async function waitReady(
   page,
-  { settleMs = 1_500, requireFrameCapture = false, ...rest } = {},
+  {
+    settleMs = 1_500,
+    requireFrameCapture = false,
+    waitFill = settleMs > 0,
+    ...rest
+  } = {},
 ) {
   // 무시되는 옵션(특히 timeout)은 조용히 버리지 않고 실패시킨다.
   const unknown = Object.keys(rest);
@@ -435,6 +448,12 @@ export async function waitReady(
   await page.waitForFunction(READY_PREDICATE, requireFrameCapture, {
     timeout: READY_TIMEOUT_MS,
   });
+  if (waitFill)
+    await page.waitForFunction(
+      () => !window.__COMPOSITION_CATALOG__?.workspace?.fillPending,
+      undefined,
+      { timeout: READY_TIMEOUT_MS },
+    );
   if (settleMs) await page.waitForTimeout(settleMs);
 }
 
@@ -466,6 +485,16 @@ export async function createInstrumentedContext(
     deviceScaleFactor,
     ...(screen ? { screen } : {}),
   });
+  // ADR-307: `PERF_STAGED_LOAD=off` opens every page at once (the Builder's storage switch) — the
+  // control arm of a staged-load comparison, and a way to tell its effect from baseline drift.
+  if (process.env.PERF_STAGED_LOAD === "off")
+    await context.addInitScript(() => {
+      try {
+        localStorage.setItem("composition:staged-load", "off");
+      } catch {
+        // (An opaque origin has no storage.)
+      }
+    });
   // ADR-248: the catalog Builder has no element store — the facade maps the harness's store calls
   // onto catalog commands (inert when the old app assigns its real store).
   await context.addInitScript({ content: CATALOG_STORE_FACADE_SCRIPT });
@@ -2521,7 +2550,10 @@ export const FRAME_CLASSES = {
             i += 1;
             await store.getState().updateElementProps(target.id, {
               ...target.props,
-              style: { ...(target.props?.style ?? {}), width: `${160 + k * 4}px` },
+              style: {
+                ...(target.props?.style ?? {}),
+                width: `${160 + k * 4}px`,
+              },
             });
             await new Promise((r) => setTimeout(r, 50));
           }
@@ -2593,16 +2625,19 @@ export const FRAME_CLASSES = {
           const rects = ws.root.pageFrameRects();
           const ids = [...rects.keys()];
           const home = rects.get(ids[0]);
-          const dist = (r) =>
-            Math.hypot(r.x - home.x, r.y - home.y);
+          const dist = (r) => Math.hypot(r.x - home.x, r.y - home.y);
           const target = toFar
-            ? ids.reduce((a, b) => (dist(rects.get(b)) > dist(rects.get(a)) ? b : a))
+            ? ids.reduce((a, b) =>
+                dist(rects.get(b)) > dist(rects.get(a)) ? b : a,
+              )
             : ids[0];
           const frame = rects.get(target);
           ws.session.setPage(target);
           if (fixedInputs) {
             const zoom = h.canvas.camera().zoom;
-            const el = document.querySelector('[data-testid="skia-canvas-unified"]');
+            const el = document.querySelector(
+              '[data-testid="skia-canvas-unified"]',
+            );
             const { width, height } = el.getBoundingClientRect();
             await h.canvas.setCamera({
               scale: zoom,
@@ -2611,7 +2646,9 @@ export const FRAME_CLASSES = {
             });
           } else ws.revealPage(target);
           await new Promise((r) => setTimeout(r, fixedInputs ? 0 : 400));
-          await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+          await new Promise((r) =>
+            requestAnimationFrame(() => requestAnimationFrame(r)),
+          );
         },
         { toFar, fixedInputs: ctx.fixedInputs },
       );
@@ -3518,6 +3555,7 @@ export function summarizeCoverage(payload) {
   let deps = 0;
   const perFn = [];
   const depFn = [];
+  const allFn = [];
   for (const script of payload.result ?? []) {
     const url = String(script.url ?? "");
     const short = url
@@ -3531,6 +3569,12 @@ export function summarizeCoverage(payload) {
       const n = fn.ranges?.[0]?.count ?? 0;
       if (!n) continue;
       total += n;
+      allFn.push({
+        fn: fn.functionName || "(anonymous)",
+        file: url.replace(/[?].*$/, "").replace(/^.*[/]/, ""),
+        n,
+        at: fn.ranges?.[0]?.startOffset ?? null,
+      });
       if (isApp) {
         app += n;
         // `at`: the function's offset in the served (transformed) module — names an anonymous one
@@ -3562,6 +3606,9 @@ export function summarizeCoverage(payload) {
     deps,
     topApp: perFn.slice(0, 20),
     topDeps: depFn.slice(0, 15),
+    // `topAll`: diagnosis only — a production bundle has no `src/` urls, so its functions are named
+    // by chunk file and offset (ADR-307 Phase 4: the same dist in two arms compares by `at`).
+    topAll: allFn.sort((x, y) => y.n - x.n).slice(0, 400),
   };
 }
 

@@ -750,6 +750,45 @@ export function createCommandReader(
   };
 }
 
+/**
+ * ADR-307: join a patched command buffer's pieces into one. Every splice leaves up to two more
+ * pieces and nothing joins them until a full bind — a document filled page by page ends in one
+ * piece per page (66 pages: 68), and a drag over it made a third more calls than over a bound
+ * stream. The commands and every span's logical position stay; only the cursors are made again.
+ * False = already one piece (or a flat array).
+ */
+export function compactCommandStream(
+  stream: Pick<
+    RenderCommandStream,
+    "commands" | "selfSpans" | "subtreeSpans" | "childrenSpans"
+  >,
+): boolean {
+  const state = commandBufferStates.get(stream.commands);
+  if (!state || state.segments.length <= 1) return false;
+  const maps = [
+    stream.selfSpans,
+    stream.subtreeSpans,
+    stream.childrenSpans,
+  ].filter(
+    (map): map is CommandSpanMap<SelfSpan | SubtreeSpan> =>
+      map instanceof CommandSpanMap,
+  );
+  // (The spans' logical positions, read before the pieces change.)
+  const kept = maps.map((map) => [...map.entries()]);
+  const flat = commandBufferToArray(state);
+  state.segments = [{ source: flat, start: 0, end: flat.length }];
+  rebuildCommandBufferStarts(state);
+  maps.forEach((map, index) => {
+    for (const [key, span] of kept[index]!) map.set(key, span);
+  });
+  return true;
+}
+
+/** How many pieces a command buffer is in (1 = flat; every splice adds up to two). */
+export function commandBufferSegmentCount(commands: RenderCommand[]): number {
+  return commandBufferStates.get(commands)?.segments.length ?? 1;
+}
+
 export function isSegmentedCommandBuffer(commands: RenderCommand[]): boolean {
   return commandBufferStates.has(commands);
 }

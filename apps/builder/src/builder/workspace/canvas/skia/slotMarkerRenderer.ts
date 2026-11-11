@@ -54,6 +54,71 @@ export function renderSlotHatchPattern(
   }
 }
 
+const LOADING_LABEL_FONT_SIZE = 12;
+const LOADING_LABEL_ALPHA = 0.55;
+
+/**
+ * ADR-307 (user decision 2026-11-11): a page whose content is not in yet — a faint label in the
+ * part of the page the viewport shows (a zoom-independent font). Editor chrome: the Preview draws
+ * the page itself. Skipped where the page is narrower than the label.
+ */
+export function renderPageLoadingMarker(
+  ck: CanvasKit,
+  canvas: Canvas,
+  bounds: BoundingBox,
+  label: string,
+  zoom: number,
+  fontMgr?: FontMgr,
+  viewport?: BoundingBox,
+): void {
+  if (!fontMgr || !label || bounds.width <= 0 || bounds.height <= 0) return;
+  const left = Math.max(bounds.x, viewport?.x ?? bounds.x);
+  const top = Math.max(bounds.y, viewport?.y ?? bounds.y);
+  const right = Math.min(
+    bounds.x + bounds.width,
+    viewport ? viewport.x + viewport.width : Infinity,
+  );
+  const bottom = Math.min(
+    bounds.y + bounds.height,
+    viewport ? viewport.y + viewport.height : Infinity,
+  );
+  if (right <= left || bottom <= top) return;
+  const font = acquireOverlayFont(
+    ck,
+    fontMgr,
+    ck.FontWeight.Normal,
+    LOADING_LABEL_FONT_SIZE,
+  );
+  if (!font) return;
+  const textWidth = measureGlyphRunWidth(font, label);
+  if (
+    textWidth / zoom > right - left ||
+    (LOADING_LABEL_FONT_SIZE * 2) / zoom > bottom - top
+  )
+    return;
+  const scope = new SkiaDisposable();
+  try {
+    const paint = acquireScopedPaint(scope, ck);
+    paint.setAntiAlias(true);
+    paint.setStyle(ck.PaintStyle.Fill);
+    paint.setColor(ck.Color4f(0.5, 0.5, 0.5, LOADING_LABEL_ALPHA));
+    const invZoom = 1 / zoom;
+    canvas.save();
+    canvas.translate((left + right) / 2, (top + bottom) / 2);
+    canvas.scale(invZoom, invZoom);
+    canvas.drawText(
+      label,
+      -textWidth / 2,
+      LOADING_LABEL_FONT_SIZE * 0.35,
+      paint,
+      font,
+    );
+    canvas.restore();
+  } finally {
+    scope.dispose();
+  }
+}
+
 const REMAINDER_LABEL_FONT_SIZE = 12;
 const REMAINDER_LABEL_ALPHA = 0.95;
 

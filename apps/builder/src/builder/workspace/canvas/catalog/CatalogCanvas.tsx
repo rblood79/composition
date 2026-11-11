@@ -136,6 +136,10 @@ import {
   expandChromeBox,
 } from "./catalogChromeSpatial";
 import { viewportState } from "../viewport/viewportState";
+import { subscribeViewportPresentation } from "../viewport/viewportPresentation";
+import { setNodePictureWarmupHold } from "../skia/nodePictureWarmup";
+import { commandBufferSegmentCount } from "../skia/renderCommands";
+import { translateKey, useOptionalI18n } from "../../../../i18n";
 import { hitTestPoint } from "../wasm-bindings/spatialIndex";
 import { CatalogActionBar } from "./CatalogActionBar";
 import { catalogBadgeAt, createCatalogBadges } from "./catalogBadges";
@@ -265,6 +269,16 @@ export function CatalogCanvas({
   >(undefined);
   /** The overlay's own redraw (the effect's `invalidateOverlay`, for state kept outside it). */
   const invalidateOverlayRef = useRef<(() => void) | undefined>(undefined);
+  // ADR-307: the label over a page whose content is not in yet (the overlay reads it per frame).
+  const i18n = useOptionalI18n();
+  const loadingLabel = i18n
+    ? translateKey(i18n.t, "canvas.pageLoading", "Loading page…")
+    : "Loading page…";
+  const loadingLabelRef = useRef(loadingLabel);
+  useEffect(() => {
+    loadingLabelRef.current = loadingLabel;
+    invalidateOverlayRef.current?.();
+  }, [loadingLabel]);
   const closeSpacingInput = useCallback(() => {
     spacingInputRef.current = null;
     setSpacingInput(null);
@@ -625,6 +639,17 @@ export function CatalogCanvas({
       childrenOf: (identity) =>
         sceneRoot.canvasInputs.get(identity)?.children ?? [],
       guides: (overlayCanvas) => guidesRef.current?.paint(ck, overlayCanvas),
+      // ADR-307: the pages still to fill (their root record), labeled until their last unit is in.
+      loadingPages: () => {
+        if (!workspace.fillPending) return [];
+        const label = loadingLabelRef.current;
+        return workspace.root
+          .pendingFillRoots({ failed: true })
+          .flatMap((rootId) => {
+            const [identity] = workspace.root.recordsOfSource(rootId);
+            return identity ? [{ identity, label }] : [];
+          });
+      },
       // (During a drag the scene-box chrome moves with its records — the renderer translates them.)
       slots: () => {
         const placementOf = dragPlacement();
@@ -904,6 +929,8 @@ export function CatalogCanvas({
     let presented = false;
     let contextLost = false;
     let sceneStale = false;
+    /** ADR-307: the fill ended — the patched command buffer is joined after the next sync. */
+    let compactAfterSync = false;
     // ADR-270 Phase 0 (dev): the loads one frame takes (`imageLoadedPerFrameMax`).
     let imagesLoadedInFrame = 0;
     /** Publish the page header frames; true = a frame moved or resized. */
@@ -948,6 +975,10 @@ export function CatalogCanvas({
           renderer.invalidateContent(catalogSyncDamage(synced));
           overlayVersion += 1;
           cellsVersion += 1;
+        }
+        if (compactAfterSync && !workspace.fillPending && !gestures.active) {
+          compactAfterSync = false;
+          scene.compact();
         }
         // A page grid edit (gap, columns, direction) moves page frames without a record delta,
         // and a rename changes no drawn record: the headers follow, a moved frame is placed
@@ -1057,10 +1088,78 @@ export function CatalogCanvas({
       return true;
     };
     // Data rows re-resolved outside a step (the data store): the same per-node deltas.
+    let fillShown = workspace.fillPending;
+    setNodePictureWarmupHold(fillShown);
     const unsubscribeRows = workspace.subscribeRows(() => {
       sceneStale = true;
+      // (Rows · a fill add records: a grid among them is not in the kept set.)
+      gridRecords = undefined;
+      // (ADR-307: a filled page drops its loading label — the overlay is drawn again.)
+      const filling = workspace.fillPending;
+      if (fillShown || filling) {
+        // (The fill's last task: the page-by-page patches left the command buffer in pieces —
+        // joined after this task's patch is in.)
+        if (fillShown && !filling) compactAfterSync = true;
+        fillShown = filling;
+        overlayVersion += 1;
+        setNodePictureWarmupHold(filling);
+      }
       scheduler.invalidate();
     });
+    // ADR-307: the background fill of page shells waits while the user drives the Canvas (a drag,
+    // a camera gesture) and fills the pages in view first, nearest the center first.
+    // (Not before the first frame either: the open's own work comes first. The camera's own
+    // changes are the gesture signal — a wheel pan · zoom, a space drag, a fit: the fill goes on a
+    // moment after the last one.)
+    let cameraMovedAt = -Infinity;
+    workspace.setFillBusy(
+      () =>
+        !presented ||
+        gestures.active ||
+        performance.now() - cameraMovedAt < CAMERA_SETTLE_MS,
+    );
+    const prioritizeFill = () => {
+      if (!workspace.fillPending) return;
+      const area = sceneViewport();
+      const centerX = area.x + area.width / 2;
+      const centerY = area.y + area.height / 2;
+      const inView: Array<readonly [string, number]> = [];
+      for (const [id, rect] of workspace.root.pageFrameRects())
+        if (
+          rect.x < area.x + area.width &&
+          rect.x + rect.width > area.x &&
+          rect.y < area.y + area.height &&
+          rect.y + rect.height > area.y
+        )
+          inView.push([
+            id,
+            Math.hypot(
+              rect.x + rect.width / 2 - centerX,
+              rect.y + rect.height / 2 - centerY,
+            ),
+          ]);
+      workspace.prioritizePages(
+        inView.sort((a, b) => a[1] - b[1]).map(([id]) => id),
+      );
+    };
+    // A fill whose delivery failed: the scene is bound again from the records (a delta may be lost).
+    const unsubscribeFillFailure = workspace.subscribeFillFailure(() => {
+      try {
+        scene.rebuild();
+        sceneStale = false;
+      } catch (error) {
+        callbacks.current.onError?.(error);
+        return;
+      }
+      renderer.invalidateContent();
+      invalidateOverlay();
+    });
+    const unsubscribeFillView = subscribeViewportPresentation(() => {
+      if (!workspace.fillPending) return;
+      cameraMovedAt = performance.now();
+      prioritizeFill();
+    });
+    prioritizeFill();
     const unsubscribeAi = useAIVisualFeedbackStore.subscribe(invalidateOverlay);
     const unsubscribeGridTracks =
       useGridTrackSelection.subscribe(invalidateOverlay);
@@ -1161,6 +1260,8 @@ export function CatalogCanvas({
           bounds: Object.fromEntries(scene.stream.boundsMap),
           hit: Object.fromEntries(scene.stream.hitBoundsMap),
         }),
+        // ADR-307 measurement: the pieces the patched command buffer is in.
+        bufferSegments: () => commandBufferSegmentCount(scene.stream.commands),
         // Ids the SpatialIndex hits at a scene point (picking's candidates).
         hitAt: (x: number, y: number) => hitTestPoint(x, y),
         // ADR-269: whether a record is a scroll/auto box with somewhere to scroll (the wheel target).
@@ -1178,6 +1279,9 @@ export function CatalogCanvas({
       };
     }
     const unsubscribeRoot = workspace.subscribeRoot(() => {
+      // (ADR-307: a replaced root is filled again.)
+      fillShown = workspace.fillPending;
+      setNodePictureWarmupHold(fillShown);
       gridRecords = undefined; // another breakpoint's records (a grid only there)
       // …and their cells at this breakpoint's size. **Why (2026-10-16)**: the cache kept the last
       // breakpoint's cells until the next step (사용자 보고 — Mobile 에서 desktop 칸 크기).
@@ -1882,6 +1986,10 @@ export function CatalogCanvas({
       unsubscribeSteps();
       unsubscribePreviews();
       unsubscribeRows();
+      unsubscribeFillView();
+      unsubscribeFillFailure();
+      setNodePictureWarmupHold(false);
+      workspace.setFillBusy(undefined);
       unsubscribeFrames();
       scheduler.dispose();
       overlay.dispose();
@@ -2070,6 +2178,9 @@ export function CatalogCanvas({
     </div>
   );
 }
+
+/** ADR-307: how long after the camera's last change the background fill goes on (ms). */
+const CAMERA_SETTLE_MS = 200;
 
 const isEditableTarget = (target: EventTarget | null) =>
   target instanceof HTMLElement &&
