@@ -1,3 +1,4 @@
+import { catalogDropRestoredWrites } from "../../../catalogRuntime/restoredWrites";
 import {
   lazy,
   Suspense,
@@ -285,8 +286,12 @@ function TextField({
             start.record?.visual.whiteSpace,
           ));
     if (!command) return;
+    // A text typed back to what showed leaves no override (사용자 결정 2026-11-11).
+    const written = start.bound
+      ? command
+      : catalogDropRestoredWrites(workspace.root, [item], command);
     committed.current = true;
-    workspace.execute(command);
+    workspace.execute(written);
   };
   const commit = () => {
     try {

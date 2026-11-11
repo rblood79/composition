@@ -1,3 +1,4 @@
+import { catalogDropRestoredWrites } from "../../../catalogRuntime/restoredWrites";
 import {
   clearTextRunMarks,
   isRichText,
@@ -618,10 +619,11 @@ export function createCatalogStylesHost(
             );
           }
       }
-      return ((reader) => ({
+      // A value set back to what showed leaves no override (사용자 결정 2026-11-11).
+      return catalogDropRestoredWrites(workspace.root, items, (reader) => ({
         label: "Edit style",
         ops: commands.flatMap((command) => command(reader).ops),
-      })) satisfies CatalogCommand;
+      }));
     }
   };
   const writeStyles = (styles: Record<string, string>) =>
@@ -1221,13 +1223,13 @@ export function createCatalogStylesHost(
             FILL_DERIVED_STYLE_PROPS.map((key) => [key, { kind: "remove" }]),
           ),
         });
-        return (reader) => ({
+        return catalogDropRestoredWrites(workspace.root, items, (reader) => ({
           label: "Fill",
           ops: [
             ...commands.flatMap((command) => command(reader).ops),
             ...derived(reader).ops,
           ],
-        });
+        }));
       });
     },
     previewFills(fills) {

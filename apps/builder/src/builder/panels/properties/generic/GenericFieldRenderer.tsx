@@ -1264,8 +1264,16 @@ const ChipGroupField = memo(function ChipGroupField({
       const field = fields[index];
       if (!editor || !field) return;
       const on = editor.negate ? !selected : selected;
+      // A boolean with no base (overlay `isOpen` has no default) shows off when absent — turning it
+      // off removes the own write, not `false` (≠ base → an instance override left behind).
       const next =
-        editor.onValue != null ? (on ? editor.onValue : editor.offValue) : on;
+        editor.onValue != null
+          ? on
+            ? editor.onValue
+            : editor.offValue
+          : !on && field.baseValue === undefined
+            ? undefined
+            : on;
       if (field.origin === "style") onStyleUpdate(key, next);
       else onSemanticUpdate(key, next);
     },

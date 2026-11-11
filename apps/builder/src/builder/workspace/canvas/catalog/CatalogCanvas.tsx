@@ -1,3 +1,4 @@
+import { catalogDropRestoredWrites } from "../../../catalogRuntime/restoredWrites";
 import {
   useCallback,
   useEffect,
@@ -839,6 +840,8 @@ export function CatalogCanvas({
       selectRecords: (ids, options) => workspace.selectRecords(ids, options),
       breakpoint: () => workspace.session.getSnapshot().breakpoint,
       execute: (command) => workspace.execute(command),
+      withoutRestoredWrites: (command, items) =>
+        catalogDropRestoredWrites(workspace.root, items, command),
       newId: workspace.newId,
       movablePageOf: (record) => {
         const graph = workspace.runtime.graph;

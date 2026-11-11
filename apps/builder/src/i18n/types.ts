@@ -236,6 +236,9 @@ export interface TranslationKeys {
     systemOriginLocked: string;
     pushChanges: string;
     resetAllChanges: string;
+    /** Design panel overrides strip — short visible labels (full text stays the accessible name). */
+    pushChangesShort: string;
+    resetAllChangesShort: string;
     pushed: string;
     resetAllDone: string;
   };

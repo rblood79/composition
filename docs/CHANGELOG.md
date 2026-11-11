@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Overrides 정리 — 원래 값으로 되돌리면 변경 이력이 남지 않음 · 버튼 문구] - 2026-11-11
+
+### Fixed
+
+- **Style · Fill · 캔버스 글자 편집 · 캔버스 Padding/Gap · 크기 손잡이로 바꿨다가 원래 보이던 값으로 되돌려도 Overrides 에 남던 결함** (사용자 결정 「보이던 값과 같으면 지움」):
+  - **Why**: 이 경로들은 원본 값과 비교하지 않고 늘 자기 값을 썼고, Overrides 목록은 자기 값이 있으면 무조건 한 줄로 보인다.
+  - 수정: 쓰기 명령을 stage 에 올린 뒤 바뀐 키마다 「그 키를 지운 문서」로 record 를 세 breakpoint 에서 다시 해석해, 값 · 토큰 출처 · fill 이 모두 같으면 같은 step 안에서 지운다 (`catalogRuntime/restoredWrites.ts` `catalogDropRestoredWrites` · composition root `resolveRecordOver`). Undo 한 번이면 바꾼 값으로 돌아간다. 회귀 테스트 `restoredWrites.test.ts` 4 건.
+- **직접 만든 컴포넌트의 instance 에서 px 폭 · 높이를 바꿔도 Canvas 에 반영되지 않던 결함**:
+  - **Why**: resolver 가 instance 의 `sizing` 을 먼저 놓고 template 노드의 `sizing` 으로 덮었다 — visual · layout 은 instance 가 이기는데 sizing 만 거꾸로였다 (패널은 작성값을 읽어 240 을 보였다).
+  - 수정: template 값 다음에 instance 값 (`resolver.ts`). 회귀 테스트 `instanceRootSizing.test.tsx`.
+- Size mode 칸이 작성값만 읽어, 규칙이 fit-content 인 요소 (Button) 의 Fit 이 「—」로 보이던 표시 — 작성값이 없으면 그려진 값으로 판정 (`TransformSection.tsx`).
+
+- **Overlay (Dialog · Popover · Sheet · Tooltip) · Menu 의 Behavior 「Open」 을 켰다 끄면 instance Overrides 에 `isOpen` 이 남던 결함**:
+  - **Why**: `isOpen` 은 trigger context · `defaultOpen` 을 가리지 않으려고 기본값이 없다 (`OVERLAY_OPEN_PROPS`) — 기준값 = 없음 (꺼짐으로 표시). 칩을 끄면 `false` 를 써서 기준 (없음) 과 달라 override 로 남았다.
+  - 수정: 기준값이 없는 boolean 칩을 끄면 `false` 대신 자기 값을 지운다 (`GenericFieldRenderer` `ChipGroupField`). 기준값이 `true` 면 끄기는 그대로 `false`. 회귀 테스트 `GenericFieldRenderer.test.tsx` 「기준값 … 인 isOpen 을 켠 뒤 끄면」 2 건. 이미 `false` 로 남은 override 는 Reset 또는 칩을 켰다 끄면 지워진다.
+
+### Changed
+
+- Design 패널 Overrides 의 일괄 버튼 문구를 줄였다 — 「Reset all changes」 → 「Reset」, 「Push changes to component」 → 「Push」 (한국어 「초기화」 · 「반영」). 접근 이름과 캔버스 메뉴 · History 문구는 그대로.
+
 ## [토큰 칸 끌기 시작값 수리 — PropertyUnitInput scrub] - 2026-11-11
 
 ### Fixed

@@ -161,6 +161,14 @@ export interface CatalogGestureHost {
   selectRecords(ids: readonly string[], options?: { additive?: boolean }): void;
   breakpoint(): BreakpointName;
   execute(command: CatalogCommand): void;
+  /**
+   * A value edit with the writes set back to what showed removed in the same step (a handle
+   * dragged back — 사용자 결정 2026-11-11). Absent = the command as it is.
+   */
+  withoutRestoredWrites?(
+    command: CatalogCommand,
+    items: readonly CatalogSelectionItem[],
+  ): CatalogCommand;
   newId: NewId;
   /** The page of a page body record, when that page can move (not the home page). */
   movablePageOf?(record: string): string | undefined;
@@ -1351,7 +1359,12 @@ export class CatalogCanvasGestures {
       if (violation) this.host.notifyNesting?.({ kind: "rejected", violation });
       return false;
     }
-    this.host.execute(command);
+    this.host.execute(
+      (gesture.kind === "spacing" || gesture.kind === "resize") &&
+        this.host.withoutRestoredWrites
+        ? this.host.withoutRestoredWrites(command, [gesture.item])
+        : command,
+    );
     const relocated = gesture.kind === "move" ? gesture.drop : undefined;
     if (relocated?.relocated)
       this.host.notifyNesting?.({

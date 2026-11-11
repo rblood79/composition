@@ -87,6 +87,7 @@ import { tableBinding } from "../bindings/Table.binding";
 import { componentOriginOf } from "../document/componentOrigin";
 import { definitionTypeName } from "../commands/context";
 import type {
+  CatalogEntry,
   DefinitionId,
   EntryId,
   NodeId,
@@ -6560,6 +6561,128 @@ export class CatalogCompositionRoot {
     return dependents;
   }
 
+  /**
+   * One record resolved again on its own path (the incremental step's pruned resolution) — over
+   * `graph` (the committed one, or a reader with staged entries) at `breakpoint`.
+   */
+  private resolvePruned(
+    graph: CatalogRuntime["graph"],
+    id: string,
+    breakpoint: BreakpointName,
+    counts: { resolverVisits: number; includeChecks: number } = {
+      resolverVisits: 0,
+      includeChecks: 0,
+    },
+  ): { top: ResolvedCatalogNode; resolved: ResolvedCatalogNode } {
+    const before = this.records.get(id)!;
+    const rootId = this.recordRoots.get(id)!;
+    const allowed = new Set<string>();
+    // Owned node on the path → its one owned child on the path. A parent absent from both
+    // maps has no owned child on the path (it is the target, or the path continues through
+    // its template root), so no owned child can pass `include`.
+    const ownedNext = new Map<string, NodeId>();
+    const scanAll = new Set<string>();
+    const chain: CatalogConsumerNode[] = [];
+    let cursor: CatalogConsumerNode | undefined = before;
+    // A bound row's record is its row template position repeated (`…::item#row:<key>`); the
+    // resolver asks `include` for the position (`…::item`) and repeats it per row itself.
+    const position = (recordId: string) =>
+      recordId.split(CATALOG_ROW_SEPARATOR)[0]!;
+    while (cursor) {
+      allowed.add(position(cursor.id));
+      // A collapsed record is reached through its composite layers' template roots.
+      for (const layerId of cursor.collapsedIds ?? [])
+        allowed.add(position(layerId));
+      chain.push(cursor);
+      const parent = this.records.get(cursor.parentId);
+      if (parent) {
+        const hop = this.ownedHop(parent, cursor);
+        if (hop === "scan") scanAll.add(parent.id);
+        else if (hop) ownedNext.set(parent.id, hop);
+      }
+      cursor = parent;
+    }
+    // A replacement on the path is reached through the template position it replaces: the
+    // resolver tests `include` with that template id, so its identity joins the path.
+    const chainSources = new Set(chain.flatMap(recordSources));
+    for (const record of chain) {
+      const entry = graph.getEntry(record.sourceId);
+      if (entry?.kind !== "node") continue;
+      for (const override of entry.descendantOverrides)
+        if (
+          override.kind === "replace" &&
+          chainSources.has(override.replacementId)
+        )
+          // The address starts at the owner; the resolution path also carries its ancestors.
+          allowed.add(
+            `${[...record.instancePath, ...override.address.instances.slice(1)].join("/")}::${override.address.templatePath.at(-1)}`,
+          );
+    }
+    const pruned = resolveCatalogNode(
+      graph,
+      rootId,
+      this.state,
+      {
+        include: (candidate, instancePath) => {
+          counts.includeChecks++;
+          return allowed.has(`${instancePath.join("/")}::${candidate}`);
+        },
+        ownedChildren: (sourceId, instancePath) => {
+          const key = `${instancePath.join("/")}::${sourceId}`;
+          if (scanAll.has(key)) return undefined;
+          const next = ownedNext.get(key);
+          return next ? [next] : [];
+        },
+        onVisit: () => counts.resolverVisits++,
+      },
+      breakpoint,
+      this.colorMode,
+      this.rows,
+      this.tableSort,
+      this.rowSampleBasis(),
+    );
+    const find = (
+      node: ResolvedCatalogNode,
+      target: string,
+    ): ResolvedCatalogNode | undefined => {
+      if (identity(node) === target) return node;
+      for (const child of node.children) {
+        const found = find(child, target);
+        if (found) return found;
+      }
+      return undefined;
+    };
+    const top = find(pruned, id);
+    if (!top) throw new Error(`RESOLVED_INSTANCE_MISSING:${id}`);
+    const valueId = before.collapsedIds?.at(-1);
+    const resolved = valueId ? find(top, valueId) : top;
+    if (!resolved) throw new Error(`RESOLVED_INSTANCE_MISSING:${valueId}`);
+    return { top, resolved };
+  }
+
+  /**
+   * What a record would resolve to over other entries (`read` — staged edits over the document,
+   * nothing committed): the same pruned resolution as an incremental step. `undefined` when the
+   * record is not drawn. A caller compares it with the record as written — e.g. whether an own
+   * write shows anything its removal would not (`catalogRestoredWrites`).
+   */
+  resolveRecordOver(
+    read: (id: string) => CatalogEntry | undefined,
+    id: string,
+    breakpoint: BreakpointName = this.breakpoint,
+  ): ResolvedCatalogNode | undefined {
+    if (!this.records.has(id) || !this.recordRoots.has(id)) return undefined;
+    const base = this.runtime.graph;
+    const graph = new Proxy(base, {
+      get(target, key) {
+        if (key === "getEntry") return read;
+        const value = Reflect.get(target, key, target);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    return this.resolvePruned(graph, id, breakpoint).resolved;
+  }
+
   private planInstances(
     sourceIds: ReadonlySet<string>,
     extraRecords: readonly string[] = [],
@@ -6583,87 +6706,15 @@ export class CatalogCompositionRoot {
       const id = queue[index];
       const before = this.records.get(id)!;
       const rootId = this.recordRoots.get(id)!;
-      const allowed = new Set<string>();
-      // Owned node on the path → its one owned child on the path. A parent absent from both
-      // maps has no owned child on the path (it is the target, or the path continues through
-      // its template root), so no owned child can pass `include`.
-      const ownedNext = new Map<string, NodeId>();
-      const scanAll = new Set<string>();
-      const chain: CatalogConsumerNode[] = [];
-      let cursor: CatalogConsumerNode | undefined = before;
-      // A bound row's record is its row template position repeated (`…::item#row:<key>`); the
-      // resolver asks `include` for the position (`…::item`) and repeats it per row itself.
-      const position = (recordId: string) =>
-        recordId.split(CATALOG_ROW_SEPARATOR)[0]!;
-      while (cursor) {
-        allowed.add(position(cursor.id));
-        // A collapsed record is reached through its composite layers' template roots.
-        for (const layerId of cursor.collapsedIds ?? [])
-          allowed.add(position(layerId));
-        chain.push(cursor);
-        const parent = this.records.get(cursor.parentId);
-        if (parent) {
-          const hop = this.ownedHop(parent, cursor);
-          if (hop === "scan") scanAll.add(parent.id);
-          else if (hop) ownedNext.set(parent.id, hop);
-        }
-        cursor = parent;
-      }
-      // A replacement on the path is reached through the template position it replaces: the
-      // resolver tests `include` with that template id, so its identity joins the path.
-      const chainSources = new Set(chain.flatMap(recordSources));
-      for (const record of chain) {
-        const entry = this.runtime.graph.getEntry(record.sourceId);
-        if (entry?.kind !== "node") continue;
-        for (const override of entry.descendantOverrides)
-          if (
-            override.kind === "replace" &&
-            chainSources.has(override.replacementId)
-          )
-            // The address starts at the owner; the resolution path also carries its ancestors.
-            allowed.add(
-              `${[...record.instancePath, ...override.address.instances.slice(1)].join("/")}::${override.address.templatePath.at(-1)}`,
-            );
-      }
-      const pruned = resolveCatalogNode(
+      const counts = { resolverVisits: 0, includeChecks: 0 };
+      const { top, resolved } = this.resolvePruned(
         this.runtime.graph,
-        rootId,
-        this.state,
-        {
-          include: (candidate, instancePath) => {
-            includeChecks++;
-            return allowed.has(`${instancePath.join("/")}::${candidate}`);
-          },
-          ownedChildren: (sourceId, instancePath) => {
-            const key = `${instancePath.join("/")}::${sourceId}`;
-            if (scanAll.has(key)) return undefined;
-            const next = ownedNext.get(key);
-            return next ? [next] : [];
-          },
-          onVisit: () => resolverVisits++,
-        },
+        id,
         this.breakpoint,
-        this.colorMode,
-        this.rows,
-        this.tableSort,
-        this.rowSampleBasis(),
+        counts,
       );
-      const find = (
-        node: ResolvedCatalogNode,
-        target: string,
-      ): ResolvedCatalogNode | undefined => {
-        if (identity(node) === target) return node;
-        for (const child of node.children) {
-          const found = find(child, target);
-          if (found) return found;
-        }
-        return undefined;
-      };
-      const top = find(pruned, id);
-      if (!top) throw new Error(`RESOLVED_INSTANCE_MISSING:${id}`);
-      const valueId = before.collapsedIds?.at(-1);
-      const resolved = valueId ? find(top, valueId) : top;
-      if (!resolved) throw new Error(`RESOLVED_INSTANCE_MISSING:${valueId}`);
+      resolverVisits += counts.resolverVisits;
+      includeChecks += counts.includeChecks;
       // The authored optional fields follow the new resolution (an undo can drop them).
       const {
         fills: _fills,

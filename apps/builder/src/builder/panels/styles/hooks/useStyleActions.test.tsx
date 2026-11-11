@@ -470,9 +470,10 @@ describe("useStyleActions", () => {
           result.current.handleFlexDirection("column");
         });
 
+        // (`display: flex` is the TextField's own display — written back to it, it left no write.)
         expect(updatePropertiesWithStyles).toHaveBeenCalledWith(
           { labelPosition: "top" },
-          { display: "", flexDirection: "" },
+          { flexDirection: "" },
         );
         expect(fixture.workspace.runtime.historyDepth.undo).toBe(depth + 1);
         const style = fixture.host.readSelectedTarget().style;

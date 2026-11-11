@@ -6,12 +6,7 @@
  */
 
 import { getFillBehavior, getRatioDependentAxis } from "@composition/shared";
-import {
-  Lock,
-  Maximize,
-  UnfoldVertical,
-  Unlock,
-} from "lucide-react";
+import { Lock, Maximize, UnfoldVertical, Unlock } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CatalogPositionChange } from "../../../catalogRuntime/position";
 import {
@@ -386,7 +381,10 @@ const TransformSectionContent = memo(function TransformSectionContent({
         ? ("ratio" as const)
         : mode === "fill"
           ? ("fill" as const)
-          : effectiveSizeStyle[axis] === "fit-content"
+          : // (Authored, else the drawn value — a Button's rule is fit-content, and a Fit set back to
+            // it leaves no write: 2026-11-11.)
+            (effectiveSizeStyle[axis] ?? sizeContext.effective?.[axis]) ===
+              "fit-content"
             ? ("fit" as const)
             : ("css" as const);
     return {

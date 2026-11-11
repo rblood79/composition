@@ -393,6 +393,42 @@ describe("GenericFieldRenderer — boolean 칩 묶음 쓰기", () => {
     expect(update).toHaveBeenCalledWith("hideTimeZone", true);
   });
 
+  /**
+   * 기본값 없는 boolean (overlay `isOpen` — `OVERLAY_OPEN_PROPS`) 은 기준값이 없다 (= 꺼짐 표시).
+   * 켰다 끄면 `false` 가 아니라 자기 값 제거 — `false` 는 기준 (없음) 과 달라 instance Overrides 에
+   * 남았다 (사용자 보고 2026-11-11). 기준이 `true` 면 끄기는 그대로 `false`.
+   */
+  it.each([
+    [undefined, undefined],
+    [true, false],
+  ])("기준값 %s 인 isOpen 을 켠 뒤 끄면 %s 저장", (baseValue, written) => {
+    ownerColumnsMock.mockReturnValue(null);
+    const update = vi.fn();
+    const field: ResolvedField = {
+      ...boolField("isOpen", true),
+      label: "Open",
+      baseValue,
+    };
+    const onSource: FieldValueSource = {
+      ...STUB_FIELD_VALUE_SOURCE,
+      useValuesSnapshot: () => JSON.stringify([true]),
+    };
+    const { container } = renderWithI18n(
+      <FieldValueSourceContext.Provider value={onSource}>
+        <GenericFieldRenderer
+          fields={[field]}
+          onSemanticUpdate={update}
+          onStyleUpdate={vi.fn()}
+          elementId="trigger-1"
+        />
+      </FieldValueSourceContext.Provider>,
+    );
+    const c = chip(container, "Open");
+    expect(c.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(c);
+    expect(update).toHaveBeenCalledWith("isOpen", written);
+  });
+
   it('On/Off enum autoCorrect 는 칩 — 켜면 "on", 끄면 "off"', () => {
     ownerColumnsMock.mockReturnValue(null);
     const update = vi.fn();

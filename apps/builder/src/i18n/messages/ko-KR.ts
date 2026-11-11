@@ -399,6 +399,8 @@ const catalog: TranslationKeys = {
     systemOriginLocked: "라이브러리 컴포넌트는 분리할 수 없습니다",
     pushChanges: "원본에 반영",
     resetAllChanges: "전부 되돌리기",
+    pushChangesShort: "반영",
+    resetAllChangesShort: "초기화",
     pushed: "{name} 원본에 반영됨",
     resetAllDone: "재정의를 전부 되돌렸습니다",
   },

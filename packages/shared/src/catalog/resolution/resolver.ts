@@ -415,9 +415,7 @@ export function catalogSamplePageHeight(
   screenHeight: number,
 ): number {
   const authored = sizing.height ?? pxLength(visual.height);
-  return typeof authored === "number" && authored > 0
-    ? authored
-    : screenHeight;
+  return typeof authored === "number" && authored > 0 ? authored : screenHeight;
 }
 /**
  * A sampled list's laid-out rows: the pitch line to line, the rows one line holds (a grid's), and
@@ -2378,12 +2376,15 @@ export function resolveCatalogNode(
       for (const [key, value] of Object.entries(root.props))
         if (key in definition.accepts || definition.mode === "composite")
           props[key] = value;
-    const sizing: Record<string, number | null> = { ...root?.sizing };
+    // The template node's px size, then the instance's (as visual · layout: the instance wins —
+    // 2026-11-11, the root's spread first let a user component's template width beat it).
+    const sizing: Record<string, number | null> = {};
     if ("kind" in template) {
       applyWrites(sizing, template.sizing);
       for (const layer of templateLayers)
         if (layer.sizing) applyWrites(sizing, layer.sizing);
     }
+    if (root) Object.assign(sizing, root.sizing);
     if (patch) {
       if (patch.props)
         applyWrites(

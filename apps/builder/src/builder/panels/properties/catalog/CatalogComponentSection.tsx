@@ -627,16 +627,24 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
               the origin (Figma 「Push changes to main component」). */}
           {cleanupTarget && (
             <div className="component-semantics-strip component-semantics-cleanup">
-              <RACButton className="control-button" onPress={resetAll}>
+              <RACButton
+                aria-label={t("componentAction.resetAllChanges")}
+                className="control-button"
+                onPress={resetAll}
+              >
                 <ACTION_ICONS.reset aria-hidden="true" size={iconProps.size} />
-                {t("componentAction.resetAllChanges")}
+                {t("componentAction.resetAllChangesShort")}
               </RACButton>
-              <RACButton className="control-button" onPress={pushChanges}>
+              <RACButton
+                aria-label={t("componentAction.pushChanges")}
+                className="control-button"
+                onPress={pushChanges}
+              >
                 <ACTION_ICONS.pushChanges
                   aria-hidden="true"
                   size={iconProps.size}
                 />
-                {t("componentAction.pushChanges")}
+                {t("componentAction.pushChangesShort")}
               </RACButton>
             </div>
           )}

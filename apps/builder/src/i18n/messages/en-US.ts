@@ -403,6 +403,8 @@ const catalog: TranslationKeys = {
     systemOriginLocked: "Library components can't be detached",
     pushChanges: "Push changes to component",
     resetAllChanges: "Reset all changes",
+    pushChangesShort: "Push",
+    resetAllChangesShort: "Reset",
     pushed: "Pushed to {name}",
     resetAllDone: "All changes reset",
   },
