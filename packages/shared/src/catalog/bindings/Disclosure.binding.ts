@@ -27,7 +27,7 @@ export const disclosureBinding: PrimitiveBinding = {
       isExpanded: {
         kind: "boolean",
         label: "Expanded",
-        section: "state",
+        section: "value",
         default: true,
       },
       // kind:"size" 는 options 미보유(types.ts:139-142) — theme rule 동적 제공.

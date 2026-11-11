@@ -33,8 +33,8 @@ export const colorAreaBinding: PrimitiveBinding = {
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       defaultValue: {
         kind: "rac-color",
-        label: "Default Value",
-        section: "content",
+        label: "Value",
+        section: "value",
         default: "#ffffff",
       },
       colorSpace: {

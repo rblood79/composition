@@ -99,7 +99,7 @@ export const searchFieldBinding: PrimitiveBinding = {
       },
       isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
       // form binding props
-      value: { kind: "string", label: "Value", section: "content" },
+      value: { kind: "string", label: "Value", section: "value" },
       name: { kind: "string", label: "Name", section: "content" },
       errorMessage: {
         kind: "string",

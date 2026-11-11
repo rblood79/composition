@@ -63,7 +63,7 @@ export const cardBinding: PrimitiveBinding = {
       isSelected: {
         kind: "boolean",
         label: "Selected",
-        section: "content",
+        section: "value",
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },

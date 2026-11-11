@@ -10,11 +10,12 @@ export const previewTriggerBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      isOpen: { kind: "boolean", label: "Open", section: "state" },
+      isOpen: { kind: "boolean", label: "Open", section: "value" },
       defaultOpen: {
+        editorHidden: true,
         kind: "boolean",
         label: "Initially open",
-        section: "state",
+        section: "value",
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       delay: { kind: "number", label: "Delay", section: "state", default: 600 },

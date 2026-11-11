@@ -11,14 +11,15 @@ export const selectBoxGroupBinding: PrimitiveBinding = {
         editorHidden: true,
       },
       selectedKeys: {
+        editorHidden: true,
         kind: "selection-keys",
         label: "Selected keys",
-        section: "state",
+        section: "value",
       },
       defaultSelectedKeys: {
         kind: "selection-keys",
-        label: "Default selected keys",
-        section: "state",
+        label: "Selected keys",
+        section: "value",
       },
       disabledKeys: {
         kind: "string-array",

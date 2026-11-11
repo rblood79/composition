@@ -18,8 +18,8 @@ export const colorSwatchPickerBinding: PrimitiveBinding = {
     accepts: {
       defaultValue: {
         kind: "string",
-        label: "Default Value",
-        section: "content",
+        label: "Value",
+        section: "value",
       },
       layout: {
         kind: "enum",

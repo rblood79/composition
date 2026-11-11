@@ -315,11 +315,13 @@ function computeFieldSpan(field: ResolvedField): "wide" | "half" {
 
 /**
  * 섹션 순서 — 계약의 등장 순서가 컴포넌트마다 달라 (Pagination 은 Appearance → Content, Disclosure 는
- * State 가 Appearance 앞) 한 순서로 세운다: 정체 (Content · Collection) → 모양 (Appearance · Layout) → 동작
- * (State · Interaction) → Locale. 표 밖 섹션은 그 뒤에 계약 순서대로.
+ * State 가 Appearance 앞) 한 순서로 세운다: 정체 (Content · Value · Collection) → 모양 (Appearance · Layout) →
+ * 동작 (State · Interaction) → Locale. 표 밖 섹션은 그 뒤에 계약 순서대로. Value 는 컴포넌트가 지금 담고 있는
+ * 것 (값 · 선택 · 열림 · 펼침 — 사용자 결정 2026-11-12 「재배치」) 이라 Content 바로 뒤.
  */
 const SECTION_ORDER: readonly string[] = [
   "content",
+  "value",
   "collection",
   "appearance",
   "layout",

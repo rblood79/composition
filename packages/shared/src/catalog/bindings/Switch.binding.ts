@@ -66,7 +66,7 @@ export const switchBinding: PrimitiveBinding = {
         section: "appearance",
         default: "M",
       },
-      isSelected: { kind: "boolean", label: "Selected", section: "content" },
+      isSelected: { kind: "boolean", label: "Selected", section: "value" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC Switch 공식 prop —
       //   `delegatedDom.tsx` `switch` 가 isReadOnly/name/value/autoFocus 를 RAC SwitchField 로 전달.

@@ -1,8 +1,13 @@
 import type { PrimitiveBinding, PropContract } from "../types";
 
 const openProps: Record<string, PropContract> = {
-  isOpen: { kind: "boolean", label: "Open", section: "state" },
-  defaultOpen: { kind: "boolean", label: "Initially open", section: "state" },
+  isOpen: { kind: "boolean", label: "Open", section: "value" },
+  defaultOpen: {
+    editorHidden: true,
+    kind: "boolean",
+    label: "Initially open",
+    section: "value",
+  },
 };
 
 function sheetPart(

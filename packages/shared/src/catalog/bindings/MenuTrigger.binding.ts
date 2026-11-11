@@ -9,11 +9,12 @@ export const menuTriggerBinding: PrimitiveBinding = {
   source: { kind: "internal", renderer: "menutrigger" },
   props: {
     accepts: {
-      isOpen: { kind: "boolean", label: "Open", section: "state" },
+      isOpen: { kind: "boolean", label: "Open", section: "value" },
       defaultOpen: {
+        editorHidden: true,
         kind: "boolean",
         label: "Initially open",
-        section: "state",
+        section: "value",
       },
       trigger: {
         kind: "enum",

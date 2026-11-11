@@ -35,7 +35,7 @@ export const colorFieldBinding: PrimitiveBinding = {
   props: {
     accepts: {
       label: { kind: "string", label: "Label", section: "content" },
-      value: { kind: "string", label: "Value", section: "content" },
+      value: { kind: "string", label: "Value", section: "value" },
       description: {
         kind: "string",
         label: "Description",

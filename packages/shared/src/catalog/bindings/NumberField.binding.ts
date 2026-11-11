@@ -95,7 +95,7 @@ export const numberFieldBinding: PrimitiveBinding = {
       step: { kind: "number", label: "Step", section: "content", min: 0 },
       formatOptions: FORMAT_OPTIONS_PROP,
       // form binding props — empty = no value (S2: an empty input, the placeholder shows; RAC NaN)
-      value: { kind: "string", label: "Value", section: "content" },
+      value: { kind: "string", label: "Value", section: "value" },
       name: { kind: "string", label: "Name", section: "content" },
       errorMessage: {
         kind: "string",

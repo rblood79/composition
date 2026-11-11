@@ -25,7 +25,7 @@ export const meterBinding: PrimitiveBinding = {
       value: {
         kind: "number",
         label: "Value",
-        section: "content",
+        section: "value",
         default: 75,
       },
       minValue: {

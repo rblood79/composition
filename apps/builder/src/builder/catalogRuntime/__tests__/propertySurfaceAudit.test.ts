@@ -220,11 +220,11 @@ describe("property audit 2026-11-11 — what the Design panel offers", () => {
       "Popover in Select": "true",
       "Popover in MenuTrigger": "true",
     });
-    // The trigger keeps both.
+    // The trigger keeps Open (Initially open is accepted, not offered — 2026-11-12 「중복 제거」).
     for (const type of ["DialogTrigger", "TooltipTrigger", "SheetTrigger"]) {
       const accepts = getPrimitiveBinding(type)!.props.accepts;
       expect(accepts.isOpen?.editorHidden, type).not.toBe(true);
-      expect(accepts.defaultOpen?.editorHidden, type).not.toBe(true);
+      expect(accepts.defaultOpen?.editorHidden, type).toBe(true);
     }
   });
 });

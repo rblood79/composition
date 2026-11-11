@@ -19,7 +19,7 @@ export const rangeSliderBinding: PrimitiveBinding = {
       value: {
         kind: "number-range",
         label: "Value",
-        section: "content",
+        section: "value",
         default: { start: 25, end: 75 },
       },
       startName: { kind: "string", label: "Start name", section: "content" },

@@ -8,12 +8,17 @@ import type { PropContract } from "../types";
  * error message가 behavior에 있고 다른컴퍼넌트는 error message가 content에 있다」): the Design panel
  * section of a prop is decided by what the prop means, the same for every component —
  *
- * - content: what it shows and the value it holds — its texts (label · description · error message ·
- *   placeholder …), its value and selection (value · Selected · Indeterminate · Selected Tab), the
+ * - content: what it shows — its texts (label · description · error message · placeholder …), the
  *   value's range and form (min · max · step · format · color space · channel), name, data, link.
+ * - value: what it holds now — the reference's own state (S2 · RAC controlled / default pairs): its
+ *   value, selection (Selected · Indeterminate · Selected tab · Selected key(s)), open, expanded
+ *   (사용자 결정 2026-11-12 「재배치」 — 2026-10-13 판정의 「value · selection = content」 ·
+ *   「open / expanded = Behavior」 를 대체). One concept, one field: the default twin of a pair the
+ *   builder treats alike (`defaultOpen` · SegmentedControl `selectedKey` · SelectBoxGroup
+ *   `selectedKeys`) is accepted, not offered (사용자 결정 2026-11-12 「중복 제거」).
  * - appearance: how it looks and is laid out.
  * - state (Behavior): how it reacts and what limits it — disabled · read only · required · invalid ·
- *   auto focus · selection mode · open / expanded · validation · triggers · submission.
+ *   auto focus · selection mode · validation · triggers · submission.
  * - locale: locale and calendar settings. interaction: a Chart's animation and tooltip.
  *
  * So one prop key sits in one section on every component. The keys below name two different props.
@@ -27,6 +32,9 @@ const SAME_NAME_DIFFERENT_PROP: Readonly<Record<string, string>> = {
   // A collection's `dataBinding` is the rows its items repeat (Collection — 2026-10-23 「Collection
   // 섹션 분리」); a container's · Form's · Skeleton's · Chart's is the data its content reads (Content).
   dataBinding: "collection items vs content data",
+  // A Checkbox · Radio · Switch `value` is what the form submits for it (Content); a field's · a
+  // group's · a slider's is what it holds (Value).
+  value: "toggle submit value vs held value",
 };
 
 function contracts(): Array<[string, string, PropContract]> {
@@ -62,26 +70,68 @@ describe("Design panel sections — one section per prop", () => {
     expect(split).toEqual([]);
   });
 
-  it("texts, values and selections are Content", () => {
+  it("texts are Content", () => {
     const content = [
       "label",
       "description",
       "errorMessage",
       "placeholder",
-      "value",
-      "isSelected",
-      "isIndeterminate",
       "minValue",
       "maxValue",
-      "defaultSelectedKey",
     ];
     const misplaced = contracts()
       .filter(
         ([, key, contract]) =>
-          content.includes(key) && (contract.section ?? "content") !== "content",
+          content.includes(key) &&
+          (contract.section ?? "content") !== "content",
       )
       .map(([type, key, contract]) => `${type}.${key}: ${contract.section}`);
     expect(misplaced).toEqual([]);
+  });
+
+  it("values, selections, open and expanded are Value", () => {
+    const value = [
+      "isSelected",
+      "isIndeterminate",
+      "defaultSelectedKey",
+      "defaultSelectedKeys",
+      "isOpen",
+      "isExpanded",
+      "defaultInputValue",
+    ];
+    const TOGGLES = new Set(["Checkbox", "Radio", "Switch"]);
+    const misplaced = contracts()
+      .filter(
+        ([type, key, contract]) =>
+          (value.includes(key) || (key === "value" && !TOGGLES.has(type))) &&
+          contract.section !== "value",
+      )
+      .map(([type, key, contract]) => `${type}.${key}: ${contract.section}`);
+    expect(misplaced).toEqual([]);
+  });
+
+  it("one field per concept — the builder treats a pair's twins alike", () => {
+    const twins: Array<[string, string]> = [
+      ["isOpen", "defaultOpen"],
+      ["selectedKey", "defaultSelectedKey"],
+      ["selectedKeys", "defaultSelectedKeys"],
+      ["value", "defaultValue"],
+      ["inputValue", "defaultInputValue"],
+    ];
+    const both: string[] = [];
+    for (const entry of componentCatalog) {
+      if (entry.kind !== "primitive") continue;
+      const accepts = entry.binding.props.accepts ?? {};
+      for (const [a, b] of twins)
+        if (
+          accepts[a] &&
+          !accepts[a].editorHidden &&
+          accepts[b] &&
+          !accepts[b].editorHidden
+        )
+          both.push(`${entry.type}: ${a} + ${b}`);
+    }
+    expect(both).toEqual([]);
   });
 });
 

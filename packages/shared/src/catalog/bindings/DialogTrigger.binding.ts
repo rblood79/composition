@@ -4,11 +4,12 @@ export const dialogTriggerBinding: PrimitiveBinding = {
   source: { kind: "internal", renderer: "dialogtrigger" },
   props: {
     accepts: {
-      isOpen: { kind: "boolean", label: "Open", section: "state" },
+      isOpen: { kind: "boolean", label: "Open", section: "value" },
       defaultOpen: {
+        editorHidden: true,
         kind: "boolean",
         label: "Initially open",
-        section: "state",
+        section: "value",
       },
     },
     toRacProps: "default",

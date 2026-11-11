@@ -29,7 +29,7 @@ export const progressBarBinding: PrimitiveBinding = {
       value: {
         kind: "number",
         label: "Value",
-        section: "content",
+        section: "value",
         default: 50,
       },
       minValue: {
@@ -73,7 +73,7 @@ export const progressBarBinding: PrimitiveBinding = {
       isIndeterminate: {
         kind: "boolean",
         label: "Indeterminate",
-        section: "content",
+        section: "value",
       },
       showValueLabel: {
         kind: "boolean",

@@ -33,8 +33,8 @@ export const colorSliderBinding: PrimitiveBinding = {
       label: { kind: "string", label: "Label", section: "content" },
       defaultValue: {
         kind: "rac-color",
-        label: "Default Value",
-        section: "content",
+        label: "Value",
+        section: "value",
         default: "hsl(0, 100%, 50%)",
       },
       channel: {

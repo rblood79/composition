@@ -10,11 +10,12 @@ export const tooltipTriggerBinding: PrimitiveBinding = {
   source: { kind: "internal", renderer: "tooltiptrigger" },
   props: {
     accepts: {
-      isOpen: { kind: "boolean", label: "Open", section: "state" },
+      isOpen: { kind: "boolean", label: "Open", section: "value" },
       defaultOpen: {
+        editorHidden: true,
         kind: "boolean",
         label: "Initially open",
-        section: "state",
+        section: "value",
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       // RAC/react-stately 기본과 같은 값 — 패널이 비어 보이지 않게 (racDefaultSync 관례).

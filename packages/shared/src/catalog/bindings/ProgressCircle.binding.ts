@@ -40,7 +40,7 @@ export const progressCircleBinding: PrimitiveBinding = {
       value: {
         kind: "number",
         label: "Value",
-        section: "content",
+        section: "value",
         default: 0,
       },
       // 형제 대칭 (design-data 감사 §1-3, 2026-08-21): ProgressBar 와 동일 min/max 표면.
@@ -69,7 +69,7 @@ export const progressCircleBinding: PrimitiveBinding = {
       isIndeterminate: {
         kind: "boolean",
         label: "Indeterminate",
-        section: "content",
+        section: "value",
       },
       // RSP S2 "over background" (design-data 감사 §2-F, 2026-08-21): 유색/이미지 배경 위
       //   고정 흑백 스킴 — Button 형(bg 반전)이 아니라 track=static 25% wash + indicator=solid.

@@ -14,7 +14,7 @@ export const labeledValueBinding: PrimitiveBinding = {
       value: {
         kind: "labeled-value",
         label: "Value",
-        section: "content",
+        section: "value",
         default: "Value",
       },
       formatOptions: {

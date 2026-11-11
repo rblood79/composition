@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Design 패널 「Value」 구획 — 상태 값 재배치 · 같은 개념 한 칸] - 2026-11-12
+
+사용자 결정 (「중복 제거와 재배치부터」): 컴포넌트가 지금 담고 있는 것 — 레퍼런스 (설치된 S2 · RAC) 의 고유 state — 을 한 구획에 모으고, 빌더에서 같은 일을 하는 두 칸은 하나만 낸다. 칸 모양 (고르기 · 목록) 은 뒤에 정한다.
+
+### Changed
+
+- **새 구획 Value (Content 바로 뒤)**: 값 (`value` — 입력 · 숫자 · Slider · RadioGroup · Color · ProgressBar · Meter 등), 선택 (`isSelected` · `isIndeterminate` · Tabs 「Selected tab」 · SegmentedControl · SelectBoxGroup 선택 키), 열림 (`isOpen` — trigger · picker 14 종), 펼침 (Disclosure `isExpanded`), Autocomplete 입력값이 Content · Behavior 에서 옮겨 왔다. Checkbox · Radio · Switch 의 `value` (폼 전송 값) 는 Content 에 남는다. 2026-10-13 판정 (값 · 선택 = Content, 열림 · 펼침 = Behavior) 을 대체한다.
+- **같은 개념은 한 칸**: 「Initially open」 (14 종), SegmentedControl 「Default selected key」 와 「Selected key」, SelectBoxGroup 「Default selected keys」 와 「Selected keys」 를 한 칸씩으로 — 빌더에서는 둘 다 「처음 상태」 로만 쓰여 같은 일을 했다. 숨긴 쪽은 받기는 하므로 옛 문서 값 · Code 출력 · Preview 동작은 그대로다. Color 조작기 4 종의 「Default Value」 라벨은 「Value」 (ColorField 와 같게).
+- 위치: `packages/shared/src/catalog/bindings/*.binding.ts` (36) · `overlayOpenProps.ts` · `document/itemLinks.ts` · `apps/builder/src/builder/panels/properties/generic/GenericFieldRenderer.tsx` (`SECTION_ORDER`). 게이트 `propSectionConsistency.test.ts` (Value 구획 · 한 개념 한 칸).
+
 ## [열린 Sheet · fixed 상자가 다른 페이지에 그려지던 결함] - 2026-11-12
 
 ### Fixed

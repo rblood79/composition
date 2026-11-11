@@ -62,11 +62,11 @@ export const checkboxBinding: PrimitiveBinding = {
         section: "appearance",
         default: "M",
       },
-      isSelected: { kind: "boolean", label: "Selected", section: "content" },
+      isSelected: { kind: "boolean", label: "Selected", section: "value" },
       isIndeterminate: {
         kind: "boolean",
         label: "Indeterminate",
-        section: "content",
+        section: "value",
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "state" },

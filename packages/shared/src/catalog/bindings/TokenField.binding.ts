@@ -7,7 +7,7 @@ export const tokenFieldBinding: PrimitiveBinding = {
       label: { kind: "string", label: "Label", section: "content" },
       description: { kind: "string", label: "Description", section: "content" },
       // 문서는 문자열, 실행 중에는 RAC TokenFieldValue. 구간은 공통 tokenizer에서 파생한다.
-      value: { kind: "string", label: "Value", section: "content" },
+      value: { kind: "string", label: "Value", section: "value" },
       placeholder: { kind: "string", label: "Placeholder", section: "content" },
       allowsNewlines: {
         kind: "boolean",

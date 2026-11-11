@@ -96,7 +96,7 @@ export const sliderBinding: PrimitiveBinding = {
       formatOptions: FORMAT_OPTIONS_PROP,
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): 초기값 — `delegatedDom.tsx` `slider` 가
       //   uncontrolled defaultValue 로 전달 (드래그 상호작용 보존).
-      value: { kind: "number", label: "Value", section: "content" },
+      value: { kind: "number", label: "Value", section: "value" },
       // ADR-915 P1.5-d (2026-07-16): 값 라벨(SliderOutput) 표시 여부 (RSP showValueLabel).
       //   false 면 SliderOutput 노드가 없다 — Canvas 와 DOM 이 같은 술어
       //   (`presence.ts` `catalogProgressValueHidden`) 를 읽는다.

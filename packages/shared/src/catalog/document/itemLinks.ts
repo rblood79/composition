@@ -43,7 +43,7 @@ export const ITEM_LINK_PROP_CONTRACTS: Readonly<Record<string, PropContract>> =
 export const ITEM_SELECTED_PROP_CONTRACT: PropContract = {
   kind: "boolean",
   label: "Selected",
-  section: "content",
+  section: "value",
 };
 
 /** S2 ListView · Menu `hideLinkOutIcon` — the owner's (its items take it — `CATALOG_LINK_OUT_OWNERS`). */

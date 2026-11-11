@@ -24,7 +24,7 @@ export const autocompleteBinding: PrimitiveBinding = {
       defaultInputValue: {
         kind: "string",
         label: "Default input value",
-        section: "content",
+        section: "value",
       },
       // (2026-11-11 사용자 결정 「숨김」: developer HTML · ARIA attributes — accepted, not offered in the panel.)
       disableAutoFocusFirst: {
