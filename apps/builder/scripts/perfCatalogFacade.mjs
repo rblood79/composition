@@ -12,7 +12,8 @@
 //   setSelectedElement(s) · selectedElementId → session selection
 //   pickElement                               → workspace.selectRecords (the Canvas click path)
 //   updateElementProps                        → setFields (style width/height/backgroundColor/
-//                                               fontSize, `children` text)
+//                                               fontSize, `children` text — a changed style key
+//                                               outside those four throws instead of writing nothing)
 //   addComplexElement (mixed Text/frame)      → insertNodes (absolute layout insets)
 //   appendPageShell                           → createPage (+ body)
 //   undo · redo                               → workspace undo / redo
@@ -50,6 +51,7 @@ export const CATALOG_STORE_FACADE_SCRIPT = `(() => {
       if (!ids.length) return ws().session.clearSelection();
       ws().session.select(ids.map((id) => ({ target: { kind: "node", id: NODE + id }, identity: ws().root.recordsOfSource(NODE + id)[0] })));
     };
+    const WRITABLE_STYLE = ["width", "height", "backgroundColor", "fontSize"];
     const writesOf = (props) => {
       const style = props?.style ?? {};
       const sizing = {}, visual = {}, out = {};
@@ -91,6 +93,12 @@ export const CATALOG_STORE_FACADE_SCRIPT = `(() => {
       pickElement(id) { ws().selectRecords([ws().root.recordsOfSource(NODE + id)[0]]); },
       activatePage(id) { ws().session.setPage(id); },
       async updateElementProps(id, props) {
+        // A style key writesOf does not map would be dropped and the edit would measure nothing
+        // (an opacity edit ran 0 patches, 2026-11-11). Keys left as they were (a spread base) pass.
+        const style = props?.style ?? {};
+        const before = byId.get(id)?.props?.style ?? {};
+        const dropped = Object.keys(style).filter((key) => !WRITABLE_STYLE.includes(key) && style[key] !== before[key]);
+        if (dropped.length) throw new Error("catalog facade: style " + dropped.join(", ") + " has no catalog write (" + WRITABLE_STYLE.join(", ") + ")");
         const w = writesOf(props);
         if (Object.keys(w).length) ws().execute(cmd().setFields({ targets: [{ kind: "node", id: NODE + id }], ...w }));
         const el = byId.get(id);
