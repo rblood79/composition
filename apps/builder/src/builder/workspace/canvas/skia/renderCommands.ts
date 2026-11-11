@@ -936,7 +936,10 @@ export interface RenderCommandStream {
   scrollContextKeyByElement: Map<string, string>;
   /** elementId → local subtree 재기록에 필요한 parent/render context */
   subtreeBuildContextByElement: Map<string, SubtreeBuildContext>;
-  /** drag/fixed 재배치 layer에 포함된 element 집합 */
+  /**
+   * drag top layer · fixed 상자와 그 자손 — 부분 재기록 · 이동을 거부하는 집합. stream 최상위에 장면
+   * 좌표로 기록됐다는 뜻이 아니다 (fixed 는 페이지 자식 안에 기록 — 그 판정은 context 의 `topLayerSubtree`).
+   */
   topLayerElementIds: Set<string>;
   /**
    * ADR-269: elementId → 그 자리에 기록된 자식 요소 id (그린 순서). 명령을 훑지 않고 서브트리 요소를
@@ -2447,8 +2450,8 @@ export function buildDamageRenderCommandSequence(
       // draws at the scene origin (an open Sheet of Page 2 painted over Home).
       const isTopLayerRoot =
         context.topLayerSubtree &&
-        stream.topLayerElementIds.has(elementId) &&
-        (parentId === null || !stream.topLayerElementIds.has(parentId));
+        (parentId === null ||
+          !stream.subtreeBuildContextByElement.get(parentId)?.topLayerSubtree);
       if (parentId === null || isTopLayerRoot) {
         roots.add(elementId);
         break;
@@ -2460,6 +2463,8 @@ export function buildDamageRenderCommandSequence(
         childrenByParent.set(parentId, children);
       }
       children.add(elementId);
+      // An earlier candidate already walked this parent's chain to its root.
+      if (relevant.has(parentId)) break;
       elementId = parentId;
     }
   }
