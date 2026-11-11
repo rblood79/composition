@@ -12,7 +12,6 @@ import {
 } from "react";
 import type { Key } from "react-aria-components/Collection";
 import { useParams } from "react-router";
-import { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import type {
   BreakpointName,
   EntryId,
@@ -213,10 +212,7 @@ export function CatalogBuilderCore() {
       const library = await loadCatalogProductLibrary();
       stage(65);
       const storage = new CatalogStorage();
-      const graph = new CatalogGraph(
-        await storage.load(projectId, library),
-        library,
-      );
+      const graph = await storage.loadGraph(projectId, library);
       stage(75);
       // A route change meanwhile: nothing for this run (the cleanup already ran — audit L2).
       if (cancelled) return;

@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
@@ -114,6 +114,15 @@ describe("ADR-248 Phase 4d storage connection", () => {
     const reopened = new CatalogStorage(indexedDB, name);
     const document = await reopened.load(runtime.graph.projectId, library!);
     expect(document.entries).toEqual(runtime.graph.exportDocument().entries);
+    // Opening a project builds its graph once — the check's graph is the one returned.
+    const built = vi.spyOn(
+      CatalogGraph.prototype as unknown as { validateView: () => void },
+      "validateView",
+    );
+    const opened = await reopened.loadGraph(runtime.graph.projectId, library!);
+    expect(built).toHaveBeenCalledTimes(1);
+    built.mockRestore();
+    expect(opened.exportDocument()).toEqual(runtime.graph.exportDocument());
     expect((await reopened.list())[0]).toMatchObject({
       revision: 2,
       name: "Alpha",

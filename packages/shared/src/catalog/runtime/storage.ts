@@ -4,7 +4,7 @@ import type {
   CatalogEntry,
   CatalogLibrary,
 } from "../document/types";
-import { createCatalogGraph } from "../document/graph";
+import { createCatalogGraph, type CatalogGraph } from "../document/graph";
 
 export const CATALOG_DB_NAME = "composition-catalog-projects-v1";
 
@@ -351,9 +351,30 @@ export class CatalogStorage {
     }
   }
 
+  /** A stored project's document, checked (its graph is built and dropped). */
   async load(
     projectId: CatalogDocument["projectId"],
     library: CatalogLibrary,
+  ): Promise<CatalogDocument> {
+    const document = await this.read(projectId);
+    createCatalogGraph(document, library);
+    return document;
+  }
+
+  /**
+   * A stored project's graph — the one the check builds. Opening a project with `load` and then
+   * `new CatalogGraph` checked the document and built its graph twice (66 pages, 1x: `ownedRecord`
+   * · `validateView` 70 ms each over the two).
+   */
+  async loadGraph(
+    projectId: CatalogDocument["projectId"],
+    library: CatalogLibrary,
+  ): Promise<CatalogGraph> {
+    return createCatalogGraph(await this.read(projectId), library);
+  }
+
+  private async read(
+    projectId: CatalogDocument["projectId"],
   ): Promise<CatalogDocument> {
     const db = await this.open();
     try {
@@ -384,7 +405,6 @@ export class CatalogStorage {
         revision: head.revision,
         entries,
       };
-      createCatalogGraph(document, library);
       return document;
     } finally {
       db.close();
