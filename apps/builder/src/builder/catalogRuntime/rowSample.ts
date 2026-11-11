@@ -1,4 +1,4 @@
-import type { CatalogConsumerNode } from "./compositionRoot";
+import { intersectBoxes } from "../workspace/canvas/selection/types";
 
 /**
  * ADR-157 sample over catalog records: a bound collection that grows with its rows builds only
@@ -7,10 +7,13 @@ import type { CatalogConsumerNode } from "./compositionRoot";
  * — not D3 paint).
  */
 export interface CatalogRowSampleRoot {
-  readonly canvasInputs: ReadonlyMap<string, CatalogConsumerNode>;
   rowRemainders(): ReadonlyMap<
     string,
-    { readonly hiddenRows: number; readonly height: number }
+    {
+      readonly hiddenRows: number;
+      readonly height: number;
+      readonly rowIds: readonly string[];
+    }
   >;
 }
 
@@ -29,20 +32,10 @@ export interface CatalogRowRemainder {
 export function catalogRowRemainders(
   root: CatalogRowSampleRoot,
 ): CatalogRowRemainder[] {
-  const out: CatalogRowRemainder[] = [];
-  for (const [ownerId, area] of root.rowRemainders()) {
-    const owner = root.canvasInputs.get(ownerId);
-    if (!owner) continue;
-    out.push({
-      ownerId,
-      rowIds: owner.children.filter(
-        (id) => root.canvasInputs.get(id)?.rowIndex !== undefined,
-      ),
-      hiddenRows: area.hiddenRows,
-      height: area.height,
-    });
-  }
-  return out;
+  return [...root.rowRemainders()].map(([ownerId, area]) => ({
+    ownerId,
+    ...area,
+  }));
 }
 
 interface Box {
@@ -70,13 +63,7 @@ export function catalogRowRemainderBox(
     right = Math.max(right, box.x + box.width);
     top = Math.max(top, box.y + box.height);
   }
-  let bottom = top + remainder.height;
-  if (clip) {
-    left = Math.max(left, clip.x);
-    top = Math.max(top, clip.y);
-    right = Math.min(right, clip.x + clip.width);
-    bottom = Math.min(bottom, clip.y + clip.height);
-  }
-  if (!(right > left && bottom > top)) return undefined;
-  return { x: left, y: top, width: right - left, height: bottom - top };
+  if (!(right > left) || !(remainder.height > 0)) return undefined;
+  const area = { x: left, y: top, width: right - left, height: remainder.height };
+  return (clip ? intersectBoxes(area, clip) : area) ?? undefined;
 }

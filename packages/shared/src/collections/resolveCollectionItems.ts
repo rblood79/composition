@@ -36,15 +36,6 @@ import { resolveBoundCollection, resolveField } from "./resolveBoundCollection";
 export const COLLECTION_ROW_PROJECTION_WINDOW_LIMIT = 100;
 
 /**
- * ADR-157: 빌더 표시 정책 — A2 가상화 window 미적용(auto-height/unbounded) data-bound 소유자의
- * 캔버스 샘플 투영 상한. 실데이터 앞부분 N행만 scene 에 투영하고 나머지는 계산된 높이의 hatch
- * placeholder + "+N more" 라벨로 표시한다 (Pencil 동형 표시 범위 — 정의 단계 hatch + 사용 단계
- * 샘플 행의 합성). A2 window 소유자(bounded height + scroll)는 종전대로 scrollOffset window 를 쓴다.
- * N=10 근거: Pencil heroui 샘플 7행 + A2 overscan 6 관행 범위 (사용자 설정화는 후속).
- */
-export const COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT = 10;
-
-/**
  * ADR-150 A2: 가상화 window 의 viewport 상/하 여유 행 수(overscan).
  * 스크롤 시 window 경계 바로 밖 행을 미리 투영해 빈 영역 노출을 방지한다.
  */

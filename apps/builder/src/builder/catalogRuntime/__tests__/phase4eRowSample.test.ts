@@ -14,11 +14,12 @@ import type {
   CatalogBoundRows,
 } from "../../../../../../packages/shared/src/catalog/resolution/resolver";
 import {
+  createPage,
   insertNodes,
   removeTargets,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
-import { pickTopmostRecord } from "../canvasPick";
+import { catalogPageLayoutCommand } from "../pageLayoutSettings";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
 import { newCatalogProjectDocument } from "../project";
 import {
@@ -219,6 +220,75 @@ describe("ADR-248 4e row sample", () => {
     preview.dispose();
   });
 
+  // A page below another on the page grid: its list counts from its own page's top, not from the
+  // grid's (the page frame's place is not part of the list's start).
+  it("a list on a page lower on the page grid builds the same rows as on the first page", async () => {
+    const workspace = await open("ListBox", rowsOf(60));
+    const project = workspace.runtime.graph.getEntry(
+      workspace.runtime.graph.projectId,
+    ) as { pageLayout?: Parameters<typeof catalogPageLayoutCommand>[0] };
+    workspace.execute(
+      catalogPageLayoutCommand(project.pageLayout, "desktop", {
+        kind: "columns",
+        columns: 1,
+      }),
+    );
+    const body = "project:node:lower-body" as NodeId;
+    const lower = "project:node:lower-list" as NodeId;
+    workspace.execute(
+      createPage({
+        page: {
+          kind: "page",
+          id: "project:page:lower" as EntryId<"page">,
+          route: "/lower",
+          name: "lower",
+          children: [body],
+        },
+        entries: [
+          {
+            kind: "node",
+            id: body,
+            definitionId: "lib:definition:type-body",
+            children: [],
+            props: {},
+            visual: {},
+            sizing: {},
+            descendantOverrides: [],
+          } as NodeEntry,
+        ],
+      }),
+    );
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: body },
+        entries: [
+          {
+            ...(workspace.runtime.graph.getEntry(LIST) as NodeEntry),
+            id: lower,
+            children: [],
+            descendantOverrides: [],
+          },
+        ],
+        rootIds: [lower],
+        newId: workspace.newId,
+      }),
+    );
+    await resampled();
+    const frames = [...workspace.root.pageFrameRects().values()];
+    expect(Math.max(...frames.map((frame) => frame.y))).toBeGreaterThan(800);
+    const rowsOn = (id: string) =>
+      rowRecords(workspace, "ListBoxItem").filter(
+        (row) =>
+          row.parentId.includes(id) && !row.parentId.includes(`${id}-`),
+      );
+    const first = rowRecords(workspace, "ListBoxItem").filter(
+      (row) => !row.parentId.includes(lower),
+    );
+    expect(rowsOn(lower)).toHaveLength(first.length);
+    expect(first.length).toBe(pageRows(workspace, first).count);
+    workspace.dispose();
+  });
+
   it("a page's own height decides its sample", async () => {
     const workspace = await open("ListBox", rowsOf(60));
     workspace.execute(
@@ -306,23 +376,6 @@ describe("ADR-248 4e row sample", () => {
         height: 90,
       }),
     ).toBeUndefined();
-  });
-
-  it("picking skips records the predicate rejects", () => {
-    const stream = {
-      hitBoundsMap: new Map([
-        ["owner", { x: 0, y: 0, width: 100, height: 100 }],
-        ["row", { x: 0, y: 50, width: 100, height: 20 }],
-      ]),
-      subtreeSpans: new Map([
-        ["owner", { start: 0, end: 10 }],
-        ["row", { start: 5, end: 6 }],
-      ]),
-    } as never;
-    expect(pickTopmostRecord(stream, 10, 60, ["owner", "row"])).toBe("row");
-    expect(
-      pickTopmostRecord(stream, 10, 60, ["owner", "row"], (id) => id !== "row"),
-    ).toBe("owner");
   });
 
   it("a bounded owner (authored height) and the Preview (no sample) show every row", async () => {

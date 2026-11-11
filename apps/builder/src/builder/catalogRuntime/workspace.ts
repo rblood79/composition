@@ -668,6 +668,8 @@ export class CatalogWorkspace {
       this.resampleScheduled = false;
       if (this.disposed) return;
       const errors = this.currentRoot.resampleRows();
+      // (Nothing built again: the Canvas has nothing to follow.)
+      if (!errors) return;
       for (const listener of [...this.rowListeners]) listener();
       if (errors.length)
         reportError(new AggregateError(errors, "CATALOG_ROWS_DELIVERY"));

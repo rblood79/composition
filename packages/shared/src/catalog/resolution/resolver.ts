@@ -143,8 +143,8 @@ export interface ResolvedCatalogNode {
   monthIndex?: number;
   /**
    * On a bound ListBox/GridList, or a bound Table's body, that grows with its rows (no bounded
-   * height — ADR-157 sample policy): the collection's row count. The Builder Canvas shows the first
-   * rows and marks the rest ("+N more"); the DOM shows every row.
+   * height — ADR-157 sample policy): the collection's row count. The Builder Canvas builds the rows
+   * its page shows (`rowSample`) and marks the rest ("+N more"); the DOM shows every row.
    */
   rowCount?: number;
   /**
@@ -399,11 +399,25 @@ const rowCountOf = (rowSet: readonly CatalogBoundRow[]) =>
 const rowsShownOf = (rowSet: readonly CatalogBoundRow[]) =>
   (rowSet as { delivered?: number }).delivered ?? rowSet.length;
 /** A px length (`320` · `"320px"`); anything else (`%` · keywords) is not one. */
-export function catalogPxLength(value: unknown): number | undefined {
+function pxLength(value: unknown): number | undefined {
   if (typeof value === "number") return value;
   const match =
     typeof value === "string" ? /^(\d+(?:\.\d+)?)px$/.exec(value) : null;
   return match ? Number(match[1]) : undefined;
+}
+/**
+ * The page height a row sample counts with: the page root's authored px height, else the
+ * breakpoint's screen (`screenHeight`). The resolver and the composition root read it the same.
+ */
+export function catalogSamplePageHeight(
+  sizing: Readonly<Record<string, number | null>>,
+  visual: Readonly<Record<string, unknown>>,
+  screenHeight: number,
+): number {
+  const authored = sizing.height ?? pxLength(visual.height);
+  return typeof authored === "number" && authored > 0
+    ? authored
+    : screenHeight;
 }
 /**
  * A sampled list's laid-out rows: the pitch line to line, the rows one line holds (a grid's), and
@@ -1833,12 +1847,13 @@ export function resolveCatalogNode(
     applyWrites(sizing, node.sizing);
     for (const layer of layers)
       if (layer.sizing) applyWrites(sizing, layer.sizing);
-    if (rowSample && node.id === id) {
-      // The page's own height decides its sample (a page 500 tall shows fewer rows than 1,000).
-      const authored = sizing.height ?? catalogPxLength(visual.height);
-      if (typeof authored === "number" && authored > 0)
-        samplePageHeight = authored;
-    }
+    // The page's own height decides its sample (a page 500 tall shows fewer rows than 1,000).
+    if (rowSample && node.id === id)
+      samplePageHeight = catalogSamplePageHeight(
+        sizing,
+        visual,
+        rowSample.screenHeight,
+      );
     const children: ResolvedCatalogNode[] = [];
     // A bound Chart reads the records as its data (the old Canvas's `_chartRows`, the DOM
     // Chart's bound rows); the other bound composites repeat their item template per row.

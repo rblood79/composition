@@ -113,8 +113,8 @@ import {
   catalogSameResolvedTokenRefs,
   catalogFillTokenRefs,
   copyResolvedTokenRefs,
-  catalogPxLength,
   catalogRowSampleCount,
+  catalogSamplePageHeight,
   resolveCatalogNode,
   CATALOG_PART_RULE_PASS_HOSTS,
 } from "../resolution/resolver";
@@ -885,6 +885,8 @@ export interface CatalogRowRemainderArea {
   readonly hiddenRows: number;
   /** Their area's height below the sample (the sample's line pitch × the lines left). */
   readonly height: number;
+  /** The rows the sample built (the area starts below them). */
+  readonly rowIds: readonly string[];
 }
 
 export interface CatalogRootOptions {
@@ -922,8 +924,8 @@ export interface CatalogRootOptions {
   tableSort?: CatalogTableSortSource;
   /**
    * The Builder's sample policy (ADR-157): a row owner that grows with its rows builds only the
-   * rows its page can show (the page root's height ÷ `minRowHeight` + 1 — `resolveCatalogNode`'s
-   * `rowSample`); the rest are not built, their area keeps its height (the sample's line pitch ×
+   * rows its page shows (`catalogRowSampleCount` — `resolveCatalogNode`'s `rowSample`); the rest
+   * are not built, their area keeps its height (the sample's line pitch ×
    * the lines left — `settleRowRemainders`) and the Canvas marks it "+N more". Absent = every row.
    */
   rowSample?: boolean;
@@ -2022,7 +2024,7 @@ export class CatalogCompositionRoot {
   private readonly rows?: CatalogRowSource;
   private readonly tableSort?: CatalogTableSortSource;
   /** `CatalogRootOptions.rowSample`. */
-  readonly rowSample?: boolean;
+  private readonly rowSample?: boolean;
   private readonly stateSource?: CatalogStateSource;
   /** The definition drawn instead of the pages (`CatalogRootOptions.definitionView`). */
   readonly definitionView?: CatalogDefinitionViewId;
@@ -2094,7 +2096,6 @@ export class CatalogCompositionRoot {
   /** Sampled lists to build again (`resampleRows`), and the count each was last built for. */
   private readonly staleSamples = new Set<string>();
   private readonly resampledTo = new Map<string, number>();
-  private resampleRequested = false;
   private readonly onRowSampleStale?: () => void;
   private readonly overlayIds = new Map<string, true>();
   private readonly overlayPlacements = new Map<string, OverlayPlacement>();
@@ -2590,17 +2591,24 @@ export class CatalogCompositionRoot {
     const sources = collectionIds
       ? this.collectionBindingSources([...collectionIds])
       : new Set(
-          [...this.sourceInstances.keys()].filter((id) => {
-            const entry = this.runtime.graph.getEntry(id);
-            return entry?.kind === "node" && !!entry.binding;
-          }),
+          [...this.sourceInstances.keys()].filter((id) =>
+            this.isBindingOwner(id),
+          ),
         );
-    return this.refreshSources(sources);
+    return this.refreshSources(sources) ?? [];
   }
-  /** Re-resolve the binding owners of `sources` (document node ids) outside a step. */
-  private refreshSources(sources: ReadonlySet<string>): unknown[] {
+  /** A document node holding a data binding. */
+  private isBindingOwner(id: string): boolean {
+    const entry = this.runtime.graph.getEntry(id);
+    return entry?.kind === "node" && !!entry.binding;
+  }
+  /**
+   * Re-resolve the binding owners of `sources` (document node ids) outside a step: the subscriber
+   * errors, or `undefined` when no owner was resolved again.
+   */
+  private refreshSources(sources: ReadonlySet<string>): unknown[] | undefined {
     const plan = this.planBindingOwners(sources);
-    if (!plan.roots.length) return [];
+    if (!plan.roots.length) return undefined;
     this.undoLog = [];
     this.layoutTouched = false;
     let notices: Notice[];
@@ -5360,18 +5368,16 @@ export class CatalogCompositionRoot {
           if (lineTops.length === 1) perLine++;
         }
         if (lineTops.length && perLine) {
-          const gap =
-            Number.parseFloat(
-              String(this.styleFor(owner).rowGap ?? "0").replace("px", ""),
-            ) || 0;
+          // (One line laid out: its height and the gap the engine got — `styleOf`'s rowGap.)
           const pitch =
             lineTops.length > 1
               ? (lineTops.at(-1)! - lineTops[0]!) / (lineTops.length - 1)
-              : rowHeight + gap;
+              : rowHeight +
+                (Number.parseFloat(String(this.styleFor(owner).rowGap)) || 0);
           // (The rows the DOM lays out — a window of the collection — not its whole count.)
           const shown = owner.rowsShown ?? owner.rowCount;
           const lines = Math.ceil(shown / perLine) - lineTops.length;
-          next = { hiddenRows, height: Math.max(0, lines) * pitch };
+          next = { hiddenRows, height: Math.max(0, lines) * pitch, rowIds };
           this.measureRowSample(owner, rowIds.length, shown, {
             pitch,
             perLine,
@@ -5393,10 +5399,8 @@ export class CatalogCompositionRoot {
     }
     if (changed.length)
       this.layout.computeLayout(this.viewport.width, this.viewport.height);
-    if (this.staleSamples.size && !this.resampleRequested) {
-      this.resampleRequested = true;
-      this.onRowSampleStale?.();
-    }
+    // (The host coalesces the requests into one later task.)
+    if (this.staleSamples.size) this.onRowSampleStale?.();
     return changed;
   }
   /**
@@ -5411,28 +5415,40 @@ export class CatalogCompositionRoot {
     shown: number,
     pitch: CatalogRowPitch,
   ): void {
-    // (The resolver names the list by its own resolved node — a collapsed instance's innermost.)
-    this.rowPitches.set(owner.collapsedIds?.at(-1) ?? owner.id, pitch);
-    const pageRoot = this.records.get(this.recordRoots.get(owner.id) ?? "");
-    const authored =
-      pageRoot?.sizing.height ?? catalogPxLength(pageRoot?.visual.height);
-    const pageHeight =
-      typeof authored === "number" && authored > 0
-        ? authored
-        : this.viewport.height;
+    // (The resolver names the list by its own resolved node — a collapsed instance's innermost —
+    // before a row key is stamped on it: the lists one row template repeats share their pitch.)
+    const resolved = owner.collapsedIds?.at(-1) ?? owner.id;
+    this.rowPitches.set(resolved.split(CATALOG_ROW_SEPARATOR)[0]!, pitch);
+    const pageRoot = this.pageRootRecordOf(owner.id);
+    const pageHeight = pageRoot
+      ? catalogSamplePageHeight(
+          pageRoot.sizing,
+          pageRoot.visual,
+          this.viewport.height,
+        )
+      : this.viewport.height;
     const wanted = Math.min(shown, catalogRowSampleCount(pageHeight, pitch));
     // (Once per count: a list whose rows still differ after its resample keeps what it built.)
     if (built === wanted || this.resampledTo.get(owner.id) === wanted) return;
     this.resampledTo.set(owner.id, wanted);
     this.staleSamples.add(owner.id);
   }
-  /** A laid-out record's top below its page root's top (the engine's boxes are parent-relative). */
+  /** The page root record a record is drawn in (the outermost record above it). */
+  private pageRootRecordOf(id: string): CatalogConsumerNode | undefined {
+    let cursor = this.records.get(id);
+    while (cursor && this.records.has(cursor.parentId))
+      cursor = this.records.get(cursor.parentId);
+    return cursor;
+  }
+  /**
+   * A laid-out record's top below its page root's top (the engine's boxes are parent-relative — the
+   * page root's own place on the page grid is not part of it).
+   */
   private pageOffsetTop(id: string): number {
-    const rootId = this.recordRoots.get(id);
     const chain: string[] = [];
     for (
       let cursor = this.records.get(id);
-      cursor && cursor.id !== rootId;
+      cursor && this.records.has(cursor.parentId);
       cursor = this.records.get(cursor.parentId)
     )
       chain.push(cursor.id);
@@ -5444,10 +5460,9 @@ export class CatalogCompositionRoot {
   /**
    * Build again the sampled lists whose rows are not the rows their page shows (`onRowSampleStale`
    * asks for this after the step that laid them out). Delivered like `refreshRows`; the document
-   * revision does not move. Returns the subscriber errors.
+   * revision does not move. Returns the subscriber errors, or `undefined` when nothing was built.
    */
-  resampleRows(): unknown[] {
-    this.resampleRequested = false;
+  resampleRows(): unknown[] | undefined {
     const sources = new Set<string>();
     for (const id of this.staleSamples)
       for (
@@ -5455,10 +5470,9 @@ export class CatalogCompositionRoot {
         record;
         record = this.records.get(record.parentId)
       ) {
-        const bound = recordSources(record).filter((source) => {
-          const entry = this.runtime.graph.getEntry(source);
-          return entry?.kind === "node" && !!entry.binding;
-        });
+        const bound = recordSources(record).filter((source) =>
+          this.isBindingOwner(source),
+        );
         if (!bound.length) continue;
         for (const source of bound) sources.add(source);
         break;
@@ -7176,10 +7190,6 @@ export class CatalogCompositionRoot {
       ) {
         const entry = graph.getEntry(op.id);
         if (entry?.kind === "node" && entry.binding) return true;
-        // A page's own height decides how many rows its sampled lists build (ADR-157).
-        if (op.key === "height" && this.rootPage.has(op.id as NodeId))
-          for (const owner of this.rowOwners.keys())
-            if (this.recordRoots.get(owner) === op.id) return true;
       }
     // ADR-256 Phase 9: a calendar's shown months decide how many month blocks it repeats (the
     // resolver's copies — a structure change of its subtree).

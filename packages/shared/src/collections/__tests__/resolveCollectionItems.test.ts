@@ -13,7 +13,6 @@ import {
   getFlatProjectionRows,
   readDataBindingRows,
   COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
-  COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT,
   DEFAULT_COLLECTION_OVERSCAN,
   toItemProjectionRow,
   parentRowsToTree,
@@ -335,15 +334,8 @@ describe("ADR-157 — 샘플 상수 + remainder 메타", () => {
     label: `Item ${i}`,
   }));
 
-  it("SAMPLE_LIMIT 상수는 10 (Pencil heroui 7행 + overscan 6 범위)", () => {
-    expect(COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT).toBe(10);
-  });
-
-  it("getFlatProjectionRows(input, SAMPLE_LIMIT) → 앞부분 10행, rowIndex 절대 보존", () => {
-    const rows = getFlatProjectionRows(
-      { props: { items } },
-      COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT,
-    );
+  it("getFlatProjectionRows(input, 10) → 앞부분 10행, rowIndex 절대 보존", () => {
+    const rows = getFlatProjectionRows({ props: { items } }, 10);
     expect(rows).toHaveLength(10);
     expect(rows[0].rowIndex).toBe(0);
     expect(rows[9].rowIndex).toBe(9);
