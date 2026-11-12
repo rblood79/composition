@@ -51,8 +51,7 @@ async function scene(
   project: Partial<ProjectEntry>,
   breakpoint: "desktop" | "tablet" | "mobile" = "desktop",
   colorMode: "light" | "dark" = "light",
-  wrapEngine: (engine: LayoutEngineAPI) => LayoutEngineAPI = (engine) =>
-    engine,
+  wrapEngine: (engine: LayoutEngineAPI) => LayoutEngineAPI = (engine) => engine,
 ) {
   const projectId = "project:project:pages" as const;
   const entries: Record<string, CatalogEntry> = {
@@ -237,7 +236,9 @@ describe("ADR-248 Phase 4a-4 page frames", () => {
           get(target, key, receiver) {
             const value = Reflect.get(target, key, receiver);
             if (key !== "getLayoutsBatch") return value;
-            return (...args: Parameters<LayoutEngineAPI["getLayoutsBatch"]>) => {
+            return (
+              ...args: Parameters<LayoutEngineAPI["getLayoutsBatch"]>
+            ) => {
               batches++;
               return (value as LayoutEngineAPI["getLayoutsBatch"]).apply(
                 target,
@@ -268,5 +269,113 @@ describe("ADR-248 Phase 4a-4 page frames", () => {
     expect(batches).toBe(1);
     expect(after.get("project:page:home")?.height).toBe(2000);
     expect(after.get("project:page:about")?.y).toBe(2100);
+  });
+});
+
+/**
+ * A page body is two boxes, as Chrome's page is (ledger §body 는 뷰포트가 아니다): the frame (the
+ * viewport — its size, its clip and scroll) and the body's content, `min-height` the frame, growing
+ * with its children. A vertical flex body taller than the frame no longer squeezes its children
+ * (user 2026-11-13: Accordion · ListBox · Icon shrank in a `flex column` + gap body).
+ */
+describe("page body = viewport frame + growing content", () => {
+  const tall = (id: string, patch: Partial<NodeEntry> = {}): NodeEntry => ({
+    ...body(id),
+    sizing: { height: set(400) },
+    // (Chrome: a scroll container's automatic minimum size is 0 — it is the one a definite
+    // column flex body squeezes to nothing.)
+    visual: { overflow: set("hidden") },
+    ...patch,
+  });
+  const flexBody = (patch: Partial<NodeEntry> = {}) =>
+    body("homeBody", {
+      children: ["project:node:a", "project:node:b", "project:node:c"],
+      layout: {
+        display: set("flex"),
+        flexDirection: set("column"),
+        rowGap: set("24px"),
+      },
+      ...patch,
+    });
+  const rectOf = (
+    root: Awaited<ReturnType<typeof scene>>,
+    sourceId: string,
+  ) => {
+    const record = [...root.canvasInputs.values()].find(
+      (item) => item.sourceId === sourceId,
+    )!;
+    return root.getGeometry([record.id]).get(record.id)!;
+  };
+
+  it("keeps a column flex body's children at their size past the frame; the frame stays the page", async () => {
+    const root = await scene(
+      [page("home"), page("about")],
+      [flexBody(), tall("a"), tall("b"), tall("c"), body("aboutBody")],
+      { pageLayout: { direction: "vertical", gap: 100 } },
+    );
+    // 3 × 400 + 2 × 24 = 1248 > 1080: Chrome's body grows, no child shrinks.
+    expect(rectOf(root, "project:node:a").height).toBe(400);
+    expect(rectOf(root, "project:node:b")).toMatchObject({
+      y: 424,
+      height: 400,
+    });
+    expect(rectOf(root, "project:node:c")).toMatchObject({
+      y: 848,
+      height: 400,
+    });
+    // The frame (clip · scroll range) is the page; the next page is placed below it, not below
+    // the grown content.
+    const frames = root.pageFrameRects();
+    expect(frames.get("project:page:home")).toMatchObject({
+      height: 1080,
+      width: 1920,
+    });
+    expect(frames.get("project:page:about")?.y).toBe(1180);
+  });
+
+  it("fills the frame with a short body (min-height): flex-grow and centering still see the page", async () => {
+    const root = await scene(
+      [page("home")],
+      [
+        flexBody({
+          children: ["project:node:a"],
+          layout: {
+            display: set("flex"),
+            flexDirection: set("column"),
+            justifyContent: set("center"),
+          },
+        }),
+        tall("a", { visual: {} }),
+      ],
+      {},
+    );
+    expect(rectOf(root, "project:node:a").y).toBe(340);
+  });
+
+  it("takes an authored min-height as the frame's height", async () => {
+    const root = await scene(
+      [page("home")],
+      [
+        flexBody({ sizing: { minHeight: set(1500) } }),
+        ...["a", "b", "c"].map((id) => tall(id)),
+      ],
+      {},
+    );
+    expect(root.pageFrameRects().get("project:page:home")?.height).toBe(1500);
+    expect(rectOf(root, "project:node:c").height).toBe(400);
+  });
+
+  it("keeps an authored height fixed (the author's choice): its frame, its column", async () => {
+    const root = await scene(
+      [page("home")],
+      [
+        flexBody({ sizing: { height: set(600) } }),
+        ...["a", "b", "c"].map((id) => tall(id)),
+      ],
+      {},
+    );
+    expect(root.pageFrameRects().get("project:page:home")?.height).toBe(600);
+    // (Chrome: a definite column squeezes its scroll-container items.)
+    expect(rectOf(root, "project:node:a").height).toBeLessThan(400);
   });
 });

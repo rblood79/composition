@@ -521,8 +521,20 @@ export function catalogOverlayNode(
         renderSelectionBox(ck, canvas, box, zoom);
       if (box) {
         // The Components page takes no resize (its nodes are derived): no handles to grab.
+        // A page body resizes its frame from the bottom-right (its top-left is the page's place).
+        const pageBody =
+          state.selection.length === 1 &&
+          !state.definitionView &&
+          !!inputs.pageBorders?.().roots.includes(state.selection[0].identity);
         if (!isComponentsView(state.definitionView))
-          renderTransformHandles(ck, canvas, box, zoom);
+          renderTransformHandles(
+            ck,
+            canvas,
+            box,
+            zoom,
+            null,
+            pageBody ? (position) => position === "bottom-right" : undefined,
+          );
         renderDimensionLabels(ck, canvas, box, zoom, inputs.fontMgr());
       }
       if (tree)

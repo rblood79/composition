@@ -24,7 +24,7 @@ import { DEFAULT_FONT_FEATURES } from "../layout/engines/cssResolver";
 import { CANVAS_FONT_FALLBACK_FAMILIES } from "../../../fonts/customFonts";
 import { acquireScopedPaint } from "./paints";
 import { strokeBoundsRect } from "./hoverRenderer";
-import type { BoundingBox } from "../selection/types";
+import type { BoundingBox, HandlePosition } from "../selection/types";
 import { HANDLE_SIZE, HANDLE_CONFIGS } from "../selection/types";
 import type { EditingSemanticsRole } from "../../../utils/editingSemanticsRole";
 import { TAILWIND_PALETTE } from "@composition/rendering";
@@ -273,6 +273,8 @@ export function renderTransformHandles(
   bounds: BoundingBox,
   zoom: number,
   semanticRole: EditingSemanticsRole | null = null,
+  /** The corners that resize (a page body: its bottom-right only). Default: all four. */
+  shown: (position: HandlePosition) => boolean = () => true,
 ): void {
   const scope = new SkiaDisposable();
   try {
@@ -294,7 +296,7 @@ export function renderTransformHandles(
     setSemanticStrokeColor(ck, strokePaint, semanticRole);
 
     for (const config of HANDLE_CONFIGS) {
-      if (!config.isCorner) continue;
+      if (!config.isCorner || !shown(config.position)) continue;
 
       const cx = bounds.x + bounds.width * config.relativeX;
       const cy = bounds.y + bounds.height * config.relativeY;

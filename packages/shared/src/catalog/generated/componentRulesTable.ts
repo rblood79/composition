@@ -2078,10 +2078,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   저작 height/minHeight 는 inline 이라 이 값을 덮는다. DOM 채널 전용 — Canvas 는 body
         //   root 를 아트보드 높이로 그린다.
         minHeight: "100%",
-        // Compare 모드의 Preview body 가 페이지 프레임 높이를 definite 로 받도록 height 100% (사용자
-        //   지시 2026-10-21 — 종전엔 sizes.M.height 0 → 생성 CSS `height: auto`). containerStyles 에
-        //   height 가 있으면 CSSGenerator 가 size 블록의 height 를 내지 않는다.
-        height: "100%",
+        // height 는 두지 않는다 (size 블록 height 0 → 생성 CSS `height: auto`): body 는 최소
+        //   페이지 높이에서 내용만큼 자란다 — Chrome 의 body 와 같다. 2026-10-21 의 `height: 100%`
+        //   (Compare 모드 definite 높이) 는 세로 flex body 가 넘치는 자식 (overflow 가 visible 이 아닌
+        //   Accordion · ListBox …) 을 0 까지 눌러 2026-11-13 사용자 결정으로 뺐다. Canvas 도 같은
+        //   모델 — 프레임 = 화면 상자, 내용 = 자라는 상자 (`compositionRoot` `pageBodyViewportStyle`).
       },
       composition: {
         rootSelectors: {},

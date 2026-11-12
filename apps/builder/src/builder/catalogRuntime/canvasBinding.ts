@@ -2680,8 +2680,13 @@ function bindInColorMode(
         const after = JSON.parse(
           root.getAppliedLayoutInput(id) ?? "{}",
         ) as Record<string, unknown>;
+        // (The box laying the child out: a wrapper part of the parent when one holds it — a page
+        // body's content, a ToggleButton's content span.)
+        const wrapper = root.composedPartInputs
+          .get(parent.id)
+          ?.find((part) => part.wraps?.includes(id));
         const parentStyle = JSON.parse(
-          root.getAppliedLayoutInput(parent.id) ?? "{}",
+          root.getAppliedLayoutInput(wrapper?.id ?? parent.id) ?? "{}",
         ) as Record<string, unknown>;
         // An absolutely placed box is out of flow: with the parent's rect unchanged (checked by
         // the caller) no sibling reads its size, in any parent display.

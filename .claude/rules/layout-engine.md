@@ -16,6 +16,9 @@ paths:
 
 # 레이아웃 엔진 규칙
 
+- page body 는 엔진 노드 둘이다 — 화면 상자 (body record: page 프레임 크기 · 배치 · overflow, `display: block`) 와 내용 상자 (`::part:page-content`: body 의 display · gap · padding · max-height, `min-height: 100%`, 자식은 여기 산다). 저작 Height 가 없을 때만이고, 프레임 높이 = 저작 Min H (px · vh) 또는 breakpoint 높이 (`catalogPageViewportHeight`). 내용 상자를 바꾸는 값 (gap · display …) 은 그 part 의 style 이라 미리보기 (`previewRecord`) · Canvas 의 형제 판정 (`blockFlowSiblingsFixed` — 자식을 감싼 part 의 입력) 도 part 를 읽는다. **Why (2026-11-13)**: catalog runtime 이 body 에 `height = 페이지 높이` 를 넣어 세로 flex body 가 넘치는 자식을 압축했다 (Accordion 101 → 55 · ListBox 191 → 0 근처, Chrome 도 definite 높이면 overflow ≠ visible 자식을 0 까지 누른다) — 옛 파이프라인이 07-28 에 고친 「body 는 뷰포트가 아니다」 (원장) 가 ADR-248 이관에서 빠졌다. 높이 하나 (`minHeight`) 로만 바꾸면 page 격자의 auto 행이 내용 높이로 자라 다음 page 가 밀린다 — 그래서 두 상자.
+- 측정 leaf (글리프 · 텍스트) 의 세로 flex 최소 높이는 min(내용, 명시 높이) 를 `contentMinHeight` 로 넘긴다 — 명시 높이가 글리프 크기에서 온 Icon 도. **Why (2026-11-13)**: 조건이 `box.height` 숫자일 때만이라 높이 고정 세로 flex 에서 Icon 이 18 → 11.9 (Chrome 18 — svg 내용이 최소값).
+
 - intrinsic 폭 컨테이너의 preferred aspect ratio는 최소 높이를 인라인 최소 기여로 전송한다. 확정 폭은 유지하고 max-width로 전송을 제한하며, 커진 used 폭에서 자식을 다시 배치한다. **Why (2026-11-07):** icon-only ActionButton의 1:1 비율·min-height32가 있어도 엔진은18×32를 반환해 ActionBar clear/count가 어긋났다. Chrome의 flex/block/grid21조건과 같은32×32, 명시 폭10·최대 폭20·높이48 및 padding/border 조건으로 고정한다.
 
 - `display: contents`의 보고용 경계에 `position: fixed` 자식의 중간 상자를 합치지 않는다. fixed 좌표의 기준 변경은 최종 viewport 배치가 담당한다. **Why (2026-11-04)**: padding 24×56 안의 100×32 트리거가 fixed overlay를 열면 0,0의 124×88 선택 경계로 변했다. 중첩 contents·fixed 위치 변경에서도 트리거 경계와 viewport 좌표가 각각 유지되어야 한다.

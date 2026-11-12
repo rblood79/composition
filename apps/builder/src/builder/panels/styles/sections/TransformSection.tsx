@@ -345,8 +345,11 @@ const TransformSectionContent = memo(function TransformSectionContent({
   // Min/Max 4 필드 펼침 — 토글 on 이거나 값이 하나라도 있으면 보인다 (Border 코너 토글과 같은 규칙,
   //   2026-09-15 사용자 판정). hook 순서를 위해 early return 앞.
   const [constraintsOpen, setConstraintsOpen] = useState(false);
+  // (A page body always shows them: its Min H is the page frame's height — 2026-11-13.)
   const showConstraints =
-    constraintsOpen || Boolean(styleValues?.hasInlineConstraint);
+    constraintsOpen ||
+    Boolean(styleValues?.hasInlineConstraint) ||
+    Boolean(styleValues?.isBody);
 
   if (!styleValues) return null;
 
@@ -366,11 +369,24 @@ const TransformSectionContent = memo(function TransformSectionContent({
     const factor = axis === "width" ? widthFillGrow : heightFillGrow;
     if (!styleValues.isBody && mode === "fill")
       return isFraction(axis) ? `${factor ?? 1}fill` : "fill";
-    const value = styleValues[axis];
-    return styleValues.isBody && value === "auto"
-      ? String(canvasSize[axis])
-      : value;
+    if (styleValues.isBody) {
+      // A page body: the breakpoint's page width unless authored (its frame — the page selection
+      // box resizes it); height `auto` — it grows from its minimum, the page height (Min H).
+      const authored = bundle?.[axis].inline;
+      if (authored !== undefined && authored !== null && authored !== "")
+        return String(authored);
+      return axis === "width" ? String(canvasSize.width) : "auto";
+    }
+    return styleValues[axis];
   };
+  /** A page body's Min H: the breakpoint's page height unless authored (2026-11-13). */
+  const minHeightValue =
+    styleValues.isBody &&
+    (bundle?.minHeight.inline === undefined ||
+      bundle.minHeight.inline === null ||
+      bundle.minHeight.inline === "")
+      ? String(canvasSize.height)
+      : styleValues.minHeight;
   const sizeControl = (axis: "width" | "height") => {
     if (styleValues.isBody) return undefined;
     const mode = axis === "width" ? widthMode : heightMode;
@@ -500,141 +516,143 @@ const TransformSectionContent = memo(function TransformSectionContent({
         </div>
       </div>
 
-      {!styleValues.isBody && (
-        <div
-          className="transform-constraints"
-          data-constraints={showConstraints ? "open" : "closed"}
-        >
-          {showConstraints && (
-            <>
-              <PropertyUnitInput
-                label="Min W"
-                icon={null}
-                unitSuffix
-                placeholder="auto"
-                className="min-width"
-                value={styleValues.minWidth}
-                units={["reset", "px", "%", "vw"]}
-                preserveEmptyValueOnUnitChange
-                onChange={(value) => commitConstraint("minWidth", value)}
-                onDragCancel={cancelStylePreview}
-                onDrag={(value) => previewConstraint("minWidth", value)}
-                min={0}
-                max={9999}
-              />
-              <PropertyUnitInput
-                label="Min H"
-                icon={null}
-                unitSuffix
-                placeholder="auto"
-                className="min-height"
-                value={styleValues.minHeight}
-                units={["reset", "px", "%", "vh"]}
-                preserveEmptyValueOnUnitChange
-                onChange={(value) => commitConstraint("minHeight", value)}
-                onDragCancel={cancelStylePreview}
-                onDrag={(value) => previewConstraint("minHeight", value)}
-                min={0}
-                max={9999}
-              />
-              <div className="fieldset-actions actions-constraint-min" />
-              <PropertyUnitInput
-                label="Max W"
-                icon={null}
-                unitSuffix
-                placeholder="auto"
-                className="max-width"
-                value={styleValues.maxWidth}
-                units={["reset", "px", "%", "vw"]}
-                preserveEmptyValueOnUnitChange
-                onChange={(value) => commitConstraint("maxWidth", value)}
-                onDragCancel={cancelStylePreview}
-                onDrag={(value) => previewConstraint("maxWidth", value)}
-                min={0}
-                max={9999}
-              />
-              <PropertyUnitInput
-                label="Max H"
-                icon={null}
-                unitSuffix
-                placeholder="auto"
-                className="max-height"
-                value={styleValues.maxHeight}
-                units={["reset", "px", "%", "vh"]}
-                preserveEmptyValueOnUnitChange
-                onChange={(value) => commitConstraint("maxHeight", value)}
-                onDragCancel={cancelStylePreview}
-                onDrag={(value) => previewConstraint("maxHeight", value)}
-                min={0}
-                max={9999}
-                afterControl={
-                  constraintError ? (
-                    <span
-                      slot="description"
-                      className="property-field__status"
-                      data-tone="error"
-                      role="alert"
-                    >
-                      {localize("Minimum size cannot exceed maximum size")}
-                    </span>
-                  ) : undefined
-                }
-              />
-              <div className="fieldset-actions actions-constraint-max" />
-            </>
-          )}
-          <PropertySelect
-            label="Overflow"
-            className="overflow"
-            value={styleValues.overflow}
-            options={OVERFLOW_OPTIONS}
-            onChange={(value) => updateStyleImmediate("overflow", value)}
-          />
-          <PropertySelect
-            label="Ratio"
-            className="aspect-ratio-select"
-            value={styleValues.aspectRatio || ""}
-            options={ASPECT_RATIO_OPTIONS}
-            formatValue={ratioTriggerText}
-            onChange={commitRatio}
-            afterControl={
-              sizingError ? (
-                <span
-                  slot="description"
-                  className="property-field__status"
-                  data-tone="error"
-                  role="alert"
-                >
-                  {localize(RATIO_ERROR_LABELS[sizingError])}
-                </span>
-              ) : undefined
-            }
-          />
-          <div className="fieldset-actions actions-ratio">
-            <SwatchIconButton
-              aria-label={localize("Lock aspect ratio")}
-              aria-description={localize(
-                "Applies to every screen size. Height follows Width",
-              )}
-              onPress={handleAspectRatioLock}
-            >
-              {styleValues.aspectRatio ? (
-                <Lock
-                  color={iconProps.color}
-                  size={iconProps.size}
-                  strokeWidth={iconProps.strokeWidth}
-                />
-              ) : (
-                <Unlock
-                  color={iconProps.color}
-                  size={iconProps.size}
-                  strokeWidth={iconProps.strokeWidth}
-                />
-              )}
-            </SwatchIconButton>
-          </div>
-        </div>
-      )}
+      <div
+        className="transform-constraints"
+        data-constraints={showConstraints ? "open" : "closed"}
+      >
+        {showConstraints && (
+          <>
+            <PropertyUnitInput
+              label="Min W"
+              icon={null}
+              unitSuffix
+              placeholder="auto"
+              className="min-width"
+              value={styleValues.minWidth}
+              units={["reset", "px", "%", "vw"]}
+              preserveEmptyValueOnUnitChange
+              onChange={(value) => commitConstraint("minWidth", value)}
+              onDragCancel={cancelStylePreview}
+              onDrag={(value) => previewConstraint("minWidth", value)}
+              min={0}
+              max={9999}
+            />
+            <PropertyUnitInput
+              label="Min H"
+              icon={null}
+              unitSuffix
+              placeholder="auto"
+              className="min-height"
+              value={minHeightValue}
+              units={["reset", "px", "%", "vh"]}
+              preserveEmptyValueOnUnitChange
+              onChange={(value) => commitConstraint("minHeight", value)}
+              onDragCancel={cancelStylePreview}
+              onDrag={(value) => previewConstraint("minHeight", value)}
+              min={0}
+              max={9999}
+            />
+            <div className="fieldset-actions actions-constraint-min" />
+            <PropertyUnitInput
+              label="Max W"
+              icon={null}
+              unitSuffix
+              placeholder="auto"
+              className="max-width"
+              value={styleValues.maxWidth}
+              units={["reset", "px", "%", "vw"]}
+              preserveEmptyValueOnUnitChange
+              onChange={(value) => commitConstraint("maxWidth", value)}
+              onDragCancel={cancelStylePreview}
+              onDrag={(value) => previewConstraint("maxWidth", value)}
+              min={0}
+              max={9999}
+            />
+            <PropertyUnitInput
+              label="Max H"
+              icon={null}
+              unitSuffix
+              placeholder="auto"
+              className="max-height"
+              value={styleValues.maxHeight}
+              units={["reset", "px", "%", "vh"]}
+              preserveEmptyValueOnUnitChange
+              onChange={(value) => commitConstraint("maxHeight", value)}
+              onDragCancel={cancelStylePreview}
+              onDrag={(value) => previewConstraint("maxHeight", value)}
+              min={0}
+              max={9999}
+              afterControl={
+                constraintError ? (
+                  <span
+                    slot="description"
+                    className="property-field__status"
+                    data-tone="error"
+                    role="alert"
+                  >
+                    {localize("Minimum size cannot exceed maximum size")}
+                  </span>
+                ) : undefined
+              }
+            />
+            <div className="fieldset-actions actions-constraint-max" />
+          </>
+        )}
+        <PropertySelect
+          label="Overflow"
+          className="overflow"
+          value={styleValues.overflow}
+          options={OVERFLOW_OPTIONS}
+          onChange={(value) => updateStyleImmediate("overflow", value)}
+        />
+        {!styleValues.isBody && (
+          <>
+            <PropertySelect
+              label="Ratio"
+              className="aspect-ratio-select"
+              value={styleValues.aspectRatio || ""}
+              options={ASPECT_RATIO_OPTIONS}
+              formatValue={ratioTriggerText}
+              onChange={commitRatio}
+              afterControl={
+                sizingError ? (
+                  <span
+                    slot="description"
+                    className="property-field__status"
+                    data-tone="error"
+                    role="alert"
+                  >
+                    {localize(RATIO_ERROR_LABELS[sizingError])}
+                  </span>
+                ) : undefined
+              }
+            />
+            <div className="fieldset-actions actions-ratio">
+              <SwatchIconButton
+                aria-label={localize("Lock aspect ratio")}
+                aria-description={localize(
+                  "Applies to every screen size. Height follows Width",
+                )}
+                onPress={handleAspectRatioLock}
+              >
+                {styleValues.aspectRatio ? (
+                  <Lock
+                    color={iconProps.color}
+                    size={iconProps.size}
+                    strokeWidth={iconProps.strokeWidth}
+                  />
+                ) : (
+                  <Unlock
+                    color={iconProps.color}
+                    size={iconProps.size}
+                    strokeWidth={iconProps.strokeWidth}
+                  />
+                )}
+              </SwatchIconButton>
+            </div>
+          </>
+        )}
+      </div>
     </>
   );
 });

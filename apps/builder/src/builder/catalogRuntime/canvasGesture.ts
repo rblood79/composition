@@ -384,6 +384,11 @@ type Gesture =
       absolute?: MovingAbsolute;
       /** A ratio with one dependent axis: the drag writes only the driving axis. */
       lock: ResizeRatioLockInput | null;
+      /**
+       * A page body (its frame — 2026-11-13): the drag writes its width and its Min H (the frame's
+       * height; the body grows past it with its content) at the active breakpoint.
+       */
+      pageBody?: true;
       active: boolean;
       request: { width?: number; height?: number; left?: number; top?: number };
       /** The grid cell line each moving edge snapped to (scene coordinate) — a span on release. */
@@ -467,25 +472,37 @@ export class CatalogCanvasGestures {
     return !!this.gesture;
   }
 
-  /** The single selected element's resize handle under the point (not a page body). */
+  /**
+   * The single selected element's resize handle under the point. A selected page body resizes its
+   * frame from the right · bottom edges only (its top-left is the page's place on the canvas —
+   * the page drag moves it).
+   */
   handleAt(x: number, y: number, zoom: number): HandleConfig | null {
-    const item = this.singleElement();
-    if (!item) return null;
-    return hitTestHandle(
+    const element = this.resizable();
+    if (!element) return null;
+    const handle = hitTestHandle(
       { x, y },
-      this.host.bounds(item.identity) ?? null,
+      this.host.bounds(element.item.identity) ?? null,
       zoom,
     );
+    if (
+      element.pageBody &&
+      handle &&
+      (handle.position.includes("left") || handle.position.includes("top"))
+    )
+      return null;
+    return handle;
   }
 
   beginResize(x: number, y: number, zoom: number): boolean {
     const handle = this.handleAt(x, y, zoom);
-    const item = this.singleElement();
-    if (!handle || !item) return false;
+    const element = this.resizable();
+    if (!handle || !element) return false;
+    const { item, pageBody } = element;
     const startBox = this.host.bounds(item.identity)!;
     const record = this.host.records.get(item.identity)!;
     const absolute =
-      item.target.kind === "node"
+      item.target.kind === "node" && !pageBody
         ? this.movingAbsolute(item.identity, item.target.id)
         : undefined;
     this.gesture = {
@@ -495,7 +512,8 @@ export class CatalogCanvasGestures {
       handle: handle.position,
       item,
       startBox,
-      lock: ratioLockOf(record),
+      lock: pageBody ? null : ratioLockOf(record),
+      ...(pageBody ? { pageBody: true as const } : {}),
       ...(absolute
         ? {
             absolute,
@@ -782,7 +800,7 @@ export class CatalogCanvasGestures {
       });
       gesture.cellLines = undefined;
       gesture.request =
-        gesture.lock || options.snap === false
+        gesture.lock || gesture.pageBody || options.snap === false
           ? request
           : this.snapResizeToCells(gesture, request, zoom);
       this.showReflow(gesture);
@@ -1404,6 +1422,15 @@ export class CatalogCanvasGestures {
       return;
     }
     const { width, height } = gesture.request;
+    if (gesture.pageBody) {
+      this.host.reflow(this.reflowed, {
+        sizing: {
+          ...(width !== undefined ? { width } : {}),
+          ...(height !== undefined ? { minHeight: height } : {}),
+        },
+      });
+      return;
+    }
     // A ColorWheel previews its diameter square (the release writes `size` — `commandOf`).
     const wheel = this.colorWheelSizeOf(gesture);
     const position = this.resizePositionWrites(gesture);
@@ -1471,6 +1498,12 @@ export class CatalogCanvasGestures {
   }
 
   private singleElement(): CatalogSelectionItem | undefined {
+    const element = this.resizable();
+    return element && !element.pageBody ? element.item : undefined;
+  }
+  /** The single selection's surface item, and whether it is a page body (`pageBody`). */
+  private resizable():
+    { item: CatalogSelectionItem; pageBody: boolean } | undefined {
     const selection = this.host.selection();
     if (selection.length !== 1) return undefined;
     const identity = this.surfaceOf(selection[0].identity);
@@ -1479,7 +1512,9 @@ export class CatalogCanvasGestures {
         ? selection[0]
         : this.host.itemOfRecord(identity);
     const record = this.host.records.get(identity);
-    return record && record.parentId !== PAGE_GRID ? item : undefined;
+    return record && item
+      ? { item, pageBody: record.parentId === PAGE_GRID }
+      : undefined;
   }
 
   private commandOf(
@@ -1528,6 +1563,21 @@ export class CatalogCanvasGestures {
     if (gesture.kind === "resize") {
       const { width, height, left, top } = gesture.request;
       if (width === undefined && height === undefined) return undefined;
+      // A page body: its frame's width and Min H (the body itself keeps `height: auto`).
+      if (gesture.pageBody)
+        return setFields({
+          targets: [gesture.item.target],
+          breakpoint,
+          sizing: {
+            ...(width !== undefined
+              ? { width: { kind: "set" as const, value: width } }
+              : {}),
+            ...(height !== undefined
+              ? { minHeight: { kind: "set" as const, value: height } }
+              : {}),
+          },
+          label: "Resize",
+        });
       // ADR-258 후속: a ColorWheel is its S2 `size` square (S2 sizes the wheel from it over any
       // style) — a handle drag edits the diameter, so the track and thumb follow the box.
       const wheel = this.colorWheelSizeOf(gesture);

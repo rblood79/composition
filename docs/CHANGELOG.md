@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [page body 높이 = 최소 page 높이 — 세로 flex body 가 자식을 누르지 않는다 · page 프레임 크기 손잡이] - 2026-11-13
+
+### Fixed
+
+- body 를 세로 flex (+ gap) 로 두고 내용이 page 높이를 넘으면 Canvas 에서 Accordion · ListBox 같은 자식이 줄어들어 겹치던 문제 (사용자 보고 — aaa 프로젝트, block 일 때는 정상). body 가 page 높이 (모바일 844) 로 고정된 상자라, overflow 가 visible 이 아닌 자식 (Accordion · ListBox · Card · Menu · Tree · SideNav · Meter · ProgressBar · FileTrigger …) 의 최소 높이가 0 이 되어 눌렸다 — Chrome 도 같은 조건이면 0 까지 누른다. 이제 body 는 실제 웹페이지처럼 최소 page 높이에서 내용만큼 자란다: Canvas 는 body 를 「화면 상자 (page 프레임 — 크기 · 스크롤)」 와 「내용 상자 (body 의 display · gap · padding, `min-height: 100%`)」 두 엔진 노드로 두고, 생성 Body CSS 는 `height: 100%` 를 뺐다 (2026-10-21 Compare 모드용 값 — 사용자 결정으로 되돌림). page 프레임은 그대로 page 높이이고 넘친 내용은 프레임 안에서 스크롤한다. 저작 Height 를 넣은 body 는 종전처럼 고정 높이다.
+  - **Why**: 옛 레이아웃 파이프라인이 2026-07-28 에 고친 「body 는 뷰포트가 아니다」 (높이 대신 최소 높이) 가 ADR-248 catalog runtime 이관에서 빠졌다. 높이 하나만 최소 높이로 바꾸면 page 격자의 행이 내용 높이로 자라 다음 page 가 밀려서 두 상자로 나눴다.
+  - 위치: `packages/shared/src/catalog/runtime/compositionRoot.ts` (`pageBodyViewportStyle` · `pageBodyContentStyle` · `catalogPageViewportHeight`) · `catalogRuntime/canvasBinding.ts` (`blockFlowSiblingsFixed` 가 자식을 감싼 part 를 읽음) · `componentRulesTable.ts` body · 생성 `Body.css`
+- 높이를 고정한 세로 flex 안에서 Icon 이 Canvas 에서만 줄어들던 문제 (18 → 12, Chrome 은 svg 내용 높이 18 을 지킨다) — 글리프 크기에서 온 높이도 최소 높이로 엔진에 넘긴다.
+  - **Why**: 최소 높이 (`contentMinHeight` = min(내용, 명시 높이)) 를 `box.height` 가 숫자일 때만 넘겨, 높이가 글리프에서 오는 Icon 은 빠졌다.
+  - 위치: `compositionRoot.ts` `styleOf`
+
+### Changed
+
+- Design 패널 Size 절: page body 는 Width (breakpoint 폭 — 390 PX) · Height (auto) · Min W/H (Min H = breakpoint 높이) · Max W/H · Overflow 를 보인다 (Ratio 는 page 에 없다). 저작하지 않은 값은 표시만 하고 저장하지 않아 breakpoint 를 바꾸면 따라간다.
+- 선택한 page 의 selection box 오른쪽 · 아래 · 오른쪽 아래 손잡이로 page 프레임 크기를 바꾼다 — 가로는 Width, 세로는 Min H (Height 가 아니다 — body 는 계속 내용만큼 자란다) 를 지금 breakpoint 에 쓴다. 왼쪽 · 위 손잡이는 없다 (page 위치는 page 끌기가 옮긴다).
+
 ## [수용했던 ratchet 2 건 — 패널 선택칸의 숨은 option · drag 뒤 명령 버퍼 조각] - 2026-11-13
 
 ### Changed
