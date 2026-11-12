@@ -519,10 +519,16 @@ describe("TransformSection sizing controls", () => {
       fireEvent.click(screen.getByRole("button", { name: "Size constraints" }));
 
       const group = screen.getByRole("group", { name: label });
-      within(group).getByRole("button", { name: /Unit$/ }).click();
+      // Min · Max take the Size modes, Reset first like every value menu (2026-11-13).
+      within(group).getByRole("button", { name: /Size mode$/ }).click();
 
       const listbox = await screen.findByRole("listbox");
       expect(within(listbox).queryByRole("option", { name: "rem" })).toBeNull();
+      expect(
+        within(listbox)
+          .getAllByRole("option")
+          .map((option) => option.textContent),
+      ).toEqual(["Reset", "Fixed", "Parent", "Viewport"]);
 
       cleanup();
     }

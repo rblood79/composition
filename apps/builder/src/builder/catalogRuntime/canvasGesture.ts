@@ -23,9 +23,13 @@ import {
 } from "../../../../../packages/shared/src/catalog/commands";
 import {
   composeCommands,
+  composeOver,
   stageOver,
   type CatalogCommand,
 } from "../../../../../packages/shared/src/catalog/commands/compose";
+import { catalogPageOwnFrameHeight } from "../../../../../packages/shared/src/catalog/runtime/compositionRoot";
+import { CANVAS_VIEWPORT } from "../../../../../packages/shared/src/catalog/runtime/canvasBreakpoints";
+import { catalogPageViewportCommand } from "./pageViewport";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import { catalogColorWheelSizeOfBox } from "../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
@@ -385,8 +389,9 @@ type Gesture =
       /** A ratio with one dependent axis: the drag writes only the driving axis. */
       lock: ResizeRatioLockInput | null;
       /**
-       * A page body (its frame — 2026-11-13): the drag writes its width and its Min H (the frame's
-       * height; the body grows past it with its content) at the active breakpoint.
+       * A page body (its frame — 2026-11-13): the drag writes its width and the page's Canvas
+       * viewport height (`PageEntry.viewportHeights` — a Builder view state, not the body's Min H;
+       * the body grows past it with its content) at the active breakpoint.
        */
       pageBody: boolean;
       active: boolean;
@@ -396,16 +401,33 @@ type Gesture =
     };
 
 /**
- * A page body's resize as its sizing: the frame's width and its Min H (not a height — the body grows
- * past its frame with its content).
+ * A page body's resize: the axes the drag changed (a corner dragged straight down keeps its width —
+ * the request carries both). The width is the body's, the height the page's Canvas viewport.
  */
-function pageBodySizing(gesture: {
+function pageBodyResize(gesture: {
+  startBox: BoundingBox;
   request: { width?: number; height?: number };
-}): { width?: number; minHeight?: number } {
+}): { width?: number; height?: number } {
   const { width, height } = gesture.request;
   return {
-    ...(width !== undefined ? { width } : {}),
-    ...(height !== undefined ? { minHeight: height } : {}),
+    ...(width !== undefined &&
+    Math.round(width) !== Math.round(gesture.startBox.width)
+      ? { width }
+      : {}),
+    ...(height !== undefined &&
+    Math.round(height) !== Math.round(gesture.startBox.height)
+      ? { height }
+      : {}),
+  };
+}
+/** A page body's resize as a preview (`pageBodyResizeCommand` commits the same axes). */
+function pageBodyPreview(
+  gesture: Parameters<typeof pageBodyResize>[0],
+): CatalogRecordPreview {
+  const { width, height } = pageBodyResize(gesture);
+  return {
+    ...(width !== undefined ? { sizing: { width } } : {}),
+    ...(height !== undefined ? { pageViewportHeight: height } : {}),
   };
 }
 
@@ -1443,7 +1465,7 @@ export class CatalogCanvasGestures {
     }
     const { width, height } = gesture.request;
     if (gesture.pageBody) {
-      this.host.reflow(this.reflowed, { sizing: pageBodySizing(gesture) });
+      this.host.reflow(this.reflowed, pageBodyPreview(gesture));
       return;
     }
     // A ColorWheel previews its diameter square (the release writes `size` — `commandOf`).
@@ -1578,19 +1600,8 @@ export class CatalogCanvasGestures {
     if (gesture.kind === "resize") {
       const { width, height, left, top } = gesture.request;
       if (width === undefined && height === undefined) return undefined;
-      // A page body: its frame's width and Min H (the body itself keeps `height: auto`).
       if (gesture.pageBody)
-        return setFields({
-          targets: [gesture.item.target],
-          breakpoint,
-          sizing: Object.fromEntries(
-            Object.entries(pageBodySizing(gesture)).map(([key, value]) => [
-              key,
-              { kind: "set" as const, value },
-            ]),
-          ),
-          label: "Resize",
-        });
+        return this.pageBodyResizeCommand(gesture, breakpoint);
       // ADR-258 후속: a ColorWheel is its S2 `size` square (S2 sizes the wheel from it over any
       // style) — a handle drag edits the diameter, so the track and thumb follow the box.
       const wheel = this.colorWheelSizeOf(gesture);
@@ -1670,6 +1681,48 @@ export class CatalogCanvasGestures {
     if (!lines.length) return commands[0];
     const graph = this.host.graph as CatalogGraph;
     return () => composeCommands(graph, "Move", [...commands, ...lines]);
+  }
+
+  /**
+   * A page body's resize: its width is the body's (a design value — Publish reads it), its height
+   * the page's Canvas viewport (`catalogPageViewportCommand` — a Builder view state; the body
+   * itself keeps `height: auto` and its Min H). One step.
+   */
+  private pageBodyResizeCommand(
+    gesture: Extract<Gesture, { kind: "resize" }>,
+    breakpoint: BreakpointName,
+  ): CatalogCommand | undefined {
+    const { width, height } = pageBodyResize(gesture);
+    const commands: CatalogCommand[] = [];
+    if (width !== undefined)
+      commands.push(
+        setFields({
+          targets: [gesture.item.target],
+          breakpoint,
+          sizing: { width: { kind: "set", value: width } },
+          label: "Resize",
+        }),
+      );
+    const record = this.host.records.get(gesture.item.identity);
+    const page = record ? this.host.graph.ownerOf(record.sourceId) : undefined;
+    // (The frame's own height — the body's Height, Min H, else the screen: a drag back there
+    // clears it.)
+    const viewport =
+      height !== undefined && record && page
+        ? catalogPageViewportCommand(
+            this.host.graph,
+            page,
+            breakpoint,
+            height,
+            catalogPageOwnFrameHeight(
+              record,
+              CANVAS_VIEWPORT[breakpoint].height,
+            ),
+          )
+        : undefined;
+    if (viewport) commands.push(viewport);
+    if (commands.length <= 1) return commands[0];
+    return (reader) => composeOver(reader, "Resize", commands);
   }
 
   /**

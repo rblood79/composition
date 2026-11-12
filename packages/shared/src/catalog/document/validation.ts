@@ -1691,6 +1691,19 @@ function guides(value: unknown, at: string): void {
   }
 }
 
+/** A page's Canvas frame heights: a positive px number or `fit-content` per breakpoint. */
+function viewportHeights(value: unknown, at: string): void {
+  for (const [tier, height] of Object.entries(object(value, at))) {
+    if (!breakpointNames.has(tier))
+      invalid("INVALID_BREAKPOINT", `${at}.${tier}`);
+    if (
+      height !== "fit-content" &&
+      (typeof height !== "number" || !Number.isFinite(height) || height <= 0)
+    )
+      invalid("INVALID_VIEWPORT_HEIGHT", `${at}.${tier}`);
+  }
+}
+
 export function validateCatalogEntry(value: unknown): CatalogEntry {
   const item = object(value, "entry");
   const kind = item.kind as EntryKind;
@@ -1773,6 +1786,7 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "children",
           "placement",
           "guideEntries",
+          "viewportHeights",
           "parentId",
           "meta",
           "originIds",
@@ -1791,6 +1805,8 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
         placement(item.placement, "entry.placement");
       if (item.guideEntries !== undefined)
         guides(item.guideEntries, "entry.guideEntries");
+      if (item.viewportHeights !== undefined)
+        viewportHeights(item.viewportHeights, "entry.viewportHeights");
       break;
     case "definition":
       exact(

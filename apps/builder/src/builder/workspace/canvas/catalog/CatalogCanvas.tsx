@@ -1,4 +1,5 @@
 import { catalogDropRestoredWrites } from "../../../catalogRuntime/restoredWrites";
+import { CANVAS_VIEWPORT } from "../../../../../../../packages/shared/src/catalog/runtime/canvasBreakpoints";
 import {
   useCallback,
   useEffect,
@@ -623,6 +624,9 @@ export function CatalogCanvas({
       pageBorders: () => ({
         roots: chrome.pages().rootsWithin(chromeArea()),
         color: pageBorderColor,
+        // (The page frames' screen — `catalogPageOwnFrameHeight`'s.)
+        fold: CANVAS_VIEWPORT[workspace.session.getSnapshot().breakpoint]
+          .height,
       }),
       recordsOf: (sourceId) => workspace.root.recordsOfSource(sourceId),
       zoom: zoomNow,

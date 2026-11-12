@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [page 의 Canvas 높이 (Adobe XD Viewport Height) · page Size 절 = 컴포넌트와 같은 크기 방식] - 2026-11-13
+
+### Added
+
+- page 의 **Canvas H** (Design 패널 Layout › Size, page 선택 시): Builder 에서 보이는 page 프레임 높이. 메뉴는 Reset (page 자신의 높이 — Height, Min H, 없으면 breakpoint 화면 높이) · Fixed (px) · Fit content (프레임이 page 내용 전체 높이에 맞고 내용이 바뀌면 따라간다 — 스크롤 없이 page 전체를 볼 때). Preview · Publish 와 body 의 Height · Min H 는 바뀌지 않는다 (사용자 결정 2026-11-13). page 마다 · breakpoint 마다 따로 저장되고 (`PageEntry.viewportHeights` — 안내선 `guideEntries` 와 같은 자리), 되돌리기 한 번으로 돌아간다. History 에는 「Canvas height」 와 page 이름이 남는다.
+- page 아래 · 오른쪽 아래 손잡이를 끌면 같은 Canvas H 를 px 로 쓴다 (직전 항목의 「세로 손잡이 = Min H」 를 대체). 원래 높이로 끌어 놓으면 값이 지워지고, 코너 손잡이를 세로로만 끌면 Width 를 쓰지 않는다.
+- 프레임이 breakpoint 화면 높이보다 길면 그 자리에 점선을 그린다 (XD 의 viewport 선 — 기기 화면이 끝나는 곳).
+  - **Why**: page 높이를 넘는 내용을 Builder 에서 한 화면에 보려고 Min H 를 늘리면 발행되는 body 의 min-height 까지 바뀌었다. XD 는 artboard 높이 (전체 내용) 와 Viewport Height (보이는 창) 를 나누고, 이 값은 그중 Builder 쪽 화면만 맡는다. body 는 Height 를 지정하지 않으면 이미 내용만큼 자란다 — 화면 높이에 묶여 있던 것은 프레임이라 Fit content 는 Canvas H 에 둔다.
+
+### Changed
+
+- page 의 Width · Height 칸이 컴포넌트와 같은 크기 방식 메뉴를 쓴다 — Reset · Fixed · Fill · Fit content · Parent · Viewport (page 는 채울 부모가 없어 Fill 은 비활성). Height 는 지정하지 않으면 Fit content (내용만큼, 최소 page 높이) 이고 그 높이를 보인다. Height 를 지정한 page 도 Canvas H 를 받는다 — 프레임은 Canvas H, 내용은 지정한 Height 그대로 (넘치면 프레임 안에서 스크롤).
+- Min W · Min H · Max W · Max H 도 같은 메뉴 (Reset · Fixed · Parent · Viewport) — 컴포넌트와 page 공통. Fixed 는 지금 크기 (px) 에서, Parent · Viewport 는 100 에서 시작한다. Fill · Fit content 는 상자의 크기라 제한 값에는 없다.
+- 빈 page 를 Fit content 로 두면 옆의 긴 page 높이를 따라가던 문제 — 빈 page 의 내용 상자가 엔진 트리에 들어가지 않아 프레임 크기가 0 이 되고, 엔진이 크기 0 인 격자 항목을 셀 (행 높이) 로 채웠다. 이제 page 의 내용 상자는 비어 있어도 놓인다 (`layoutChildrenOf`). 테스트 「an empty page beside a long one」 (수정 전 1880 / 기대 1080).
+- 크기 방식 메뉴의 Reset 이 맨 위로 (다른 값 메뉴와 같은 순서, 사용자 지정). 지금과 같은 방식을 다시 고르면 아무것도 쓰지 않는다 — Escape 로 메뉴를 닫을 때 RAC 가 선택된 항목을 다시 알려 빈 「Edit size」 단계가 남던 문제 (live 재현).
+  - 위치: `packages/shared/src/catalog/document/types.ts` (`viewportHeights`) · `validation.ts` · `commands/project.ts` (`updatePage`) · `runtime/compositionRoot.ts` (`pageViewportHeight` · `pageFrameStyle` · `pageBodySplit` · `catalogPageOwnFrameHeight` · `catalogPageContentPartId`) · `apps/builder/src/builder/catalogRuntime/pageViewport.ts` · `canvasGesture.ts` · `history.ts` (page 주제) · `workspace/canvas/catalog/catalogOverlay.ts` (점선) · `panels/styles/sections/TransformSection.tsx` (`PageCanvasHeightRow` · `constraintControl`) · `catalog/catalogStylesHost.ts` (`pageViewport`) · `hooks/useLayoutValue.ts` (page Height = 내용 상자) · `components/property/PropertyUnitInput.components.tsx` (메뉴 순서 · 같은 방식 무시). 테스트: `pageBodyResize.test.tsx` 8 · `PropertyUnitInput.test.tsx` · `TransformSection.test.tsx` (원복 RED 8).
+
 ## [page body 높이 = 최소 page 높이 — 세로 flex body 가 자식을 누르지 않는다 · page 프레임 크기 손잡이] - 2026-11-13
 
 ### Fixed

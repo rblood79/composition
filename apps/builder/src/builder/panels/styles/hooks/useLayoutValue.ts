@@ -9,6 +9,7 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import { useCatalogWorkspace } from "../../../catalogRuntime/react";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
+import { catalogPageContentPartId } from "../../../../../../../packages/shared/src/catalog/runtime/compositionRoot";
 
 type LayoutKey = "width" | "height" | "x" | "y";
 
@@ -39,7 +40,20 @@ export function useCatalogLayoutValue(
 ): number | undefined {
   const version = useCatalogLayoutVersion(workspace);
   return useMemo(
-    () => (id ? workspace.root.getGeometry([id]).get(id)?.[key] : undefined),
+    () => {
+      if (!id) return undefined;
+      // A page body's height is its content's (the box Preview · Publish draw) — its frame is the
+      // Canvas viewport (`PageEntry.viewportHeights`).
+      if (
+        key === "height" &&
+        workspace.root.domInputs?.get(id)?.parentId === "catalog:root"
+      ) {
+        const part = catalogPageContentPartId(id);
+        const height = workspace.root.getGeometry([part]).get(part)?.height;
+        if (height !== undefined) return height;
+      }
+      return workspace.root.getGeometry([id]).get(id)?.[key];
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read per layout version
     [workspace, id, key, version],
   );

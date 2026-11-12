@@ -23,17 +23,9 @@ import type {
   TokenType,
 } from "../document/types";
 import type { CatalogCommand } from "./compose";
-import {
-  CommandDraft,
-  definitionTypeName,
-  fail,
-  sameAddress,
-} from "./context";
+import { CommandDraft, definitionTypeName, fail, sameAddress } from "./context";
 import type { NewId } from "./materialize";
-import {
-  removeWithReferrers,
-  subtree,
-} from "./structure";
+import { removeWithReferrers, subtree } from "./structure";
 
 /**
  * ADR-248 Phase 4b project-level commands: pages, reusable page layouts, themes and their tokens,
@@ -101,7 +93,13 @@ export function catalogHomePageId(
 
 type PageFields = Pick<
   PageEntry,
-  "name" | "route" | "parentId" | "placement" | "guideEntries" | "meta"
+  | "name"
+  | "route"
+  | "parentId"
+  | "placement"
+  | "guideEntries"
+  | "viewportHeights"
+  | "meta"
 >;
 /** Page fields; an `undefined` value clears an optional field (parent, placement, guides). */
 export const updatePage =
@@ -252,7 +250,8 @@ export const duplicatePage =
     for (const [index, entry] of [...related.entries()].reverse())
       if (entry.kind === "stateVariable" && entry.source) {
         const nodeId = copies.get(entry.source.nodeId);
-        if (nodeId) related[index] = { ...entry, source: { ...entry.source, nodeId } };
+        if (nodeId)
+          related[index] = { ...entry, source: { ...entry.source, nodeId } };
         else related.splice(index, 1);
       }
     const { id: _id, ...fields } = page;
@@ -309,7 +308,9 @@ export const setPageLayoutSettings =
  */
 export const setSiteSettings =
   (input: {
-    patch: { [K in keyof CatalogSiteSettings]?: CatalogSiteSettings[K] | undefined };
+    patch: {
+      [K in keyof CatalogSiteSettings]?: CatalogSiteSettings[K] | undefined;
+    };
     label?: string;
   }): CatalogCommand =>
   (reader) => {

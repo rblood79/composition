@@ -207,6 +207,9 @@ export const PAGE_COVERAGE: CodeViewCoverage<PageEntry> = {
     notInCode: "where the page frame sits on the Canvas — a Builder view state",
   },
   guideEntries: { notInCode: "the Canvas's guides — a Builder view state" },
+  viewportHeights: {
+    notInCode: "the page frame's height on the Canvas — a Builder view state",
+  },
   parentId: at(
     "src/App.tsx",
     "{path, element, children: [ … ]}",

@@ -203,6 +203,9 @@ export const semanticLabelKeys: Record<string, string> = {
   "Minimum size cannot exceed maximum size":
     "styles.transform.constraint.error.order",
   "Size constraints": "styles.transform.sizeConstraints",
+  "Canvas H": "styles.transform.canvasHeight",
+  "Builder only. Preview and Publish keep the page's own height":
+    "styles.transform.canvasHeightHint",
   "Absolute position": "styles.transform.absolutePosition",
   Relative: "styles.position.relative",
   Absolute: "styles.position.absolute",

@@ -27,13 +27,13 @@ const isNode = (entry: CatalogEntry | undefined): entry is NodeEntry =>
 /**
  * The node an entry acted on (the old History label's subject): what it created (the root of the
  * new nodes), else what it removed, else the node a field edit wrote, else the node a move put
- * into another parent, else the first node it changed. The entry is the snapshot for a node that
- * no longer exists.
+ * into another parent, else the first node it changed, else the page it changed (`pageName` —
+ * its name when the step ran). The entry is the snapshot for a node that no longer exists.
  */
 function historySubject(
   forward: readonly CatalogOperation[],
   inverse: readonly CatalogOperation[],
-): { id: string; entry?: NodeEntry } | undefined {
+): { id: string; entry?: NodeEntry; pageName?: string } | undefined {
   const puts = (ops: readonly CatalogOperation[]) => {
     const map = new Map<string, NodeEntry>();
     for (const op of ops)
@@ -76,7 +76,12 @@ function historySubject(
     if (moved && before.has(id)) return { id: moved };
   }
   const first = after.keys().next();
-  return first.done ? undefined : { id: first.value };
+  if (!first.done) return { id: first.value };
+  // A step on a page only (its settings, its Canvas viewport height): the page.
+  for (const op of forward)
+    if (op.kind === "put" && op.entry.kind === "page")
+      return { id: op.entry.id, pageName: op.entry.name };
+  return undefined;
 }
 
 function nodeName(graph: CatalogReader, node: NodeEntry): string {
@@ -148,7 +153,7 @@ export class CatalogHistoryStore {
   /** Each entry's subject node (its operations do not change). */
   private readonly subjectIds = new WeakMap<
     readonly CatalogOperation[],
-    { id: string; entry?: NodeEntry } | null
+    ReturnType<typeof historySubject> | null
   >();
   private subjectOf(entry: CatalogHistoryEntryView): string | null {
     let subject = this.subjectIds.get(entry.forward);
@@ -160,6 +165,8 @@ export class CatalogHistoryStore {
     // The current name (a later rename shows), else the entry's own snapshot.
     const graph = this.runtime.graph;
     const current = graph.getEntry(subject.id);
+    if (subject.pageName !== undefined)
+      return current?.kind === "page" ? current.name : subject.pageName;
     const node = isNode(current) ? current : subject.entry;
     return node ? nodeName(graph, node) : null;
   }

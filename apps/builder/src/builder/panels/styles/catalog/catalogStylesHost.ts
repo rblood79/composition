@@ -52,6 +52,9 @@ import {
 import {} from "../../../catalogRuntime/authoredStyle";
 import { catalogBoxModel } from "../../../catalogRuntime/boxModel";
 import { catalogPageDropCommand } from "../../../catalogRuntime/canvasPage";
+import { catalogPageViewportCommand } from "../../../catalogRuntime/pageViewport";
+import { catalogPageOwnFrameHeight } from "../../../../../../../packages/shared/src/catalog/runtime/compositionRoot";
+import { CANVAS_VIEWPORT } from "../../../../../../../packages/shared/src/catalog/runtime/canvasBreakpoints";
 import type { CatalogRecordPreview } from "../../../catalogRuntime/compositionRoot";
 import { catalogDocumentColorSources } from "../../../catalogRuntime/documentColors";
 import {
@@ -1479,6 +1482,48 @@ export function createCatalogStylesHost(
         );
       },
     },
+    pageViewport: {
+      useHeight: (selectedId) => {
+        const key = useSyncExternalStore(
+          (notify) => {
+            const offSteps = workspace.runtime.subscribeSteps(() => notify());
+            const offSession = workspace.session.subscribe(notify);
+            return () => {
+              offSteps();
+              offSession();
+            };
+          },
+          () => catalogPageViewportKey(workspace, selectedId),
+        );
+        return useMemo(
+          () => (key ? (JSON.parse(key) as CatalogPageViewport) : null),
+          [key],
+        );
+      },
+      commit: (pageId, height) => {
+        const breakpoint = workspace.session.getSnapshot().breakpoint;
+        const bodyId = catalogPageBodyId(workspace, pageId);
+        const [recordId] = bodyId ? workspace.recordsOfNode(bodyId) : [];
+        const record = recordId
+          ? workspace.root.domInputs.get(recordId)
+          : undefined;
+        if (!record) return;
+        // (No height = the frame's own: the command clears it.)
+        const own = catalogPageOwnFrameHeight(
+          record,
+          CANVAS_VIEWPORT[breakpoint].height,
+        );
+        runBuiltCatalogCommand(workspace, () =>
+          catalogPageViewportCommand(
+            workspace.runtime.graph,
+            pageId,
+            breakpoint,
+            height ?? own,
+            own,
+          ),
+        );
+      },
+    },
     documentColors: {
       subscribe: (listener) =>
         workspace.runtime.subscribeSteps(() => listener()),
@@ -1500,6 +1545,50 @@ interface CatalogPagePosition {
  * The selected page body's frame position on the page canvas (rounded; `""` = not a page body).
  * Home is the flow origin and does not move (the old row's rule).
  */
+interface CatalogPageViewport {
+  pageId: string;
+  height: number | "fit-content" | null;
+  own: number;
+  frame: number | undefined;
+}
+
+/** A page's body node (its root), for the record the panel reads. */
+function catalogPageBodyId(
+  workspace: CatalogWorkspace,
+  pageId: string,
+): string | undefined {
+  const page = workspace.runtime.graph.getEntry(pageId);
+  return page?.kind === "page" ? page.children[0] : undefined;
+}
+
+/**
+ * The selected page body's Canvas height at the active breakpoint (`""` = not a page body): the
+ * page's `viewportHeights` value and the frame's own height without it.
+ */
+function catalogPageViewportKey(
+  workspace: CatalogWorkspace,
+  selectedId: string | null,
+): string {
+  if (!selectedId) return "";
+  const record = workspace.root.domInputs.get(selectedId);
+  if (record?.parentId !== "catalog:root") return "";
+  const pageId = workspace.pageOfRecord(selectedId);
+  const page = pageId ? workspace.runtime.graph.getEntry(pageId) : undefined;
+  if (!pageId || page?.kind !== "page") return "";
+  const breakpoint = workspace.session.getSnapshot().breakpoint;
+  const viewport: CatalogPageViewport = {
+    pageId,
+    height: page.viewportHeights?.[breakpoint] ?? null,
+    own: Math.round(
+      catalogPageOwnFrameHeight(record, CANVAS_VIEWPORT[breakpoint].height),
+    ),
+    frame: ((height) => (height === undefined ? undefined : Math.round(height)))(
+      workspace.root.pageFrameRects().get(pageId)?.height,
+    ),
+  };
+  return JSON.stringify(viewport);
+}
+
 function catalogPagePositionKey(
   workspace: CatalogWorkspace,
   selectedId: string | null,

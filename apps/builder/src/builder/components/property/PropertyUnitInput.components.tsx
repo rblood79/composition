@@ -792,6 +792,14 @@ export const PropertyUnitInputControl = memo(
                 // RAC는 option 선택 뒤 input Enter에서 같은 mode를 다시 방출할 수 있다. 한 번 연
                 // 메뉴 안의 중복만 막고, trigger를 다시 누른 명시적 재선택은 허용한다.
                 if (sizeModeSelectionRef.current === selectedMode) return;
+                // The mode it already has is no edit — RAC re-announces the selected key when
+                // Escape closes the menu (a page body's Height wrote an empty "Edit size" step,
+                // live 2026-11-13).
+                if (
+                  selectedMode ===
+                  (value === "" && units.includes("reset") ? "reset" : unit)
+                )
+                  return;
                 sizeModeSelectionRef.current = selectedMode;
                 syncAfterPresetRef.current = true;
                 sizeControl.onModeChange(selectedMode);
@@ -965,6 +973,19 @@ export const PropertyUnitInputControl = memo(
               <ListBox className="react-aria-ListBox">
                 {sizeControl
                   ? [
+                      // Reset first — as in every other value menu (사용자 지정 2026-11-13).
+                      ...(units.includes("reset")
+                        ? [
+                            <ListBoxItem
+                              key="reset"
+                              id="reset"
+                              textValue={modeLabel("reset")}
+                              className="react-aria-ListBoxItem"
+                            >
+                              {modeLabel("reset")}
+                            </ListBoxItem>,
+                          ]
+                        : []),
                       <ListBoxSection
                         key="basic"
                         aria-label={sizeModeText(
@@ -997,7 +1018,10 @@ export const PropertyUnitInputControl = memo(
                       >
                         {units
                           .filter(
-                            (u) => !["px", "fill", "fit-content"].includes(u),
+                            (u) =>
+                              !["reset", "px", "fill", "fit-content"].includes(
+                                u,
+                              ),
                           )
                           .map((u) => (
                             <ListBoxItem

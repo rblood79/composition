@@ -187,6 +187,20 @@ export interface StylesHost {
     commit(pageId: string, point: { x: number; y: number }): void;
   };
   /**
+   * A page body's Canvas height (`PageEntry.viewportHeights` — a Builder view state, Adobe XD's
+   * Viewport Height): `useHeight` is a hook (null = not a page body); `own` is the frame's height
+   * without it, `frame` the frame's drawn height. `commit(null)` clears it.
+   */
+  pageViewport?: {
+    useHeight(selectedId: string | null): {
+      pageId: string;
+      height: number | "fit-content" | null;
+      own: number;
+      frame: number | undefined;
+    } | null;
+    commit(pageId: string, height: number | "fit-content" | null): void;
+  };
+  /**
    * The color picker's Document palette sources from the host's own document: `revision` changes
    * when they may have changed.
    */

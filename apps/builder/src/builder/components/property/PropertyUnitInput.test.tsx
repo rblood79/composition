@@ -211,6 +211,32 @@ describe("PropertyUnitInput numeric editing", () => {
     expect(onChange).toHaveBeenLastCalledWith("300px");
   });
 
+  it("Size mode menu: Reset first, and choosing the mode it already has writes nothing", () => {
+    // live 2026-11-13: a page body's Height (Fit content) — Escape on the open menu re-announced
+    // the selected key and wrote an empty "Edit size" step.
+    const onModeChange = vi.fn();
+    useStore.setState({ selectedElementId: "element-1" });
+    render(
+      <PropertyUnitInput
+        label="Height"
+        value="fit-content"
+        unitSuffix
+        units={["reset", "px", "%", "vh", "fill", "fit-content"]}
+        sizeControl={{ kind: "fit", computed: 900, onModeChange }}
+        onChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Height Size mode" }));
+    expect(
+      screen.getAllByRole("option").map((option) => option.textContent),
+    ).toEqual(["Reset", "Fixed", "Fill", "Fit content", "Parent", "Viewport"]);
+    fireEvent.click(screen.getByRole("option", { name: "Fit content" }));
+    expect(onModeChange).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Height Size mode" }));
+    fireEvent.click(screen.getByRole("option", { name: "Fixed" }));
+    expect(onModeChange.mock.calls).toEqual([["px"]]);
+  });
+
   it("메뉴를 연 적 없는 첫 Enter 가 onModeChange 를 내지 않는다 (RAC 의 닫힌 메뉴 재방출 차단)", () => {
     // 사용자 live 2026-09-20: 요소를 바꾼 뒤 (key 로 remount) 첫 Enter 마다 RAC ComboBox 가 같은 key
     //   ("px") 로 onSelectionChange 를 내고 → onModeChange("px") 가 stale 측정값을 다시 commit 해 방금 친

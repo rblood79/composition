@@ -62,6 +62,12 @@ export interface CatalogOverlayInputs {
   pageBorders?: () => {
     roots: readonly string[];
     color: Float32Array;
+    /**
+     * The breakpoint's screen height from a page frame's top (scene px): a frame taller than it
+     * — its Canvas viewport height or its body's Height · Min H — shows a dashed line there (the
+     * fold, as Adobe XD's viewport line).
+     */
+    fold?: number;
   };
   /**
    * The drawn records' visible boxes (ancestor clips applied — `hitBoundsMap`): the hover chrome
@@ -311,6 +317,28 @@ export function catalogOverlayNode(
               );
             },
           );
+      }
+      // The fold: where the breakpoint's screen ends in a taller frame (selected or not).
+      if (pages?.fold !== undefined && pageBorderPaint) {
+        let dash: ReturnType<typeof ck.PathEffect.MakeDash> | null = null;
+        for (const id of pages.roots) {
+          const box = bounds.get(id);
+          if (!box || pages.fold >= box.height - 0.5) continue;
+          dash ??= ck.PathEffect.MakeDash([4 / zoom, 4 / zoom]);
+          pageBorderPaint.setPathEffect(dash);
+          const y = box.y + pages.fold;
+          withOccluders(
+            ck,
+            canvas,
+            occludersOf(id, expandChromeBox(box, 2 / zoom)),
+            () =>
+              canvas.drawLine(box.x, y, box.x + box.width, y, pageBorderPaint),
+          );
+        }
+        if (dash) {
+          pageBorderPaint.setPathEffect(null);
+          dash.delete();
+        }
       }
       for (const slot of inputs.slots?.() ?? []) {
         const bandBox = {

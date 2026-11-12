@@ -2890,6 +2890,9 @@ const semanticLabels: Record<string, string> = {
   "styles.token.offScale": "Not a theme step — pick one from the menu",
   "styles.transform.ratio.dependentAxis": "Unlock the ratio to edit this axis.",
   "styles.transform.computedSize": "Computed size",
+  "styles.transform.canvasHeight": "Canvas H",
+  "styles.transform.canvasHeightHint":
+    "Builder only. Preview and Publish keep the page's own height.",
   "styles.transform.notMeasured": "not measured",
   "styles.transform.fillWeightHint": "The number is the fill weight",
   "styles.transform.ratio.error.selection": "Selection changed. Try again.",

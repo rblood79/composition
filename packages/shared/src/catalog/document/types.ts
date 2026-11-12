@@ -1050,6 +1050,14 @@ export interface PageEntry {
   guideEntries?: Partial<
     Record<BreakpointName, readonly PageGuideDeclaration[]>
   >;
+  /**
+   * The page frame's height on the Canvas per breakpoint — a Builder view state like Adobe XD's
+   * Viewport Height: px, or `fit-content` (the frame takes the page's whole content and follows
+   * it). A taller frame shows more of a long page without scrolling it. Absent = the body's
+   * Height · Min H, else the breakpoint's screen height. Preview · Publish do not read it (user
+   * decision 2026-11-13).
+   */
+  viewportHeights?: Partial<Record<BreakpointName, number | "fit-content">>;
   /** Nested route: the parent page (route hierarchy only; pages stay separate frames). */
   parentId?: EntryId<"page">;
   /** ADR-286 Decision 6 — the page's own title · description · social image · search. */
