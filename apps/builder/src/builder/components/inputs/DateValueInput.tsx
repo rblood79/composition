@@ -1,39 +1,53 @@
 import {
+  useCallback,
   useLayoutEffect,
   useRef,
-  useState,
-  type InputHTMLAttributes,
+  type FocusEvent,
+  type KeyboardEvent,
+  type KeyboardEventHandler,
   type Ref,
 } from "react";
 import {
-  dateValueFromNativeInput,
-  nativeDateInputOf,
-} from "../../../../../../packages/shared/src/state/dateValueEditing";
-import { isDateValueText } from "../../../../../../packages/shared/src/state/dateValue";
-import { Input } from "react-aria-components/Input";
+  PanelDatePicker,
+  type PanelDateEmptyType,
+} from "../property/PanelDatePicker";
 import "./DateValueInput.css";
 
-interface DateValueInputProps extends Omit<
-  InputHTMLAttributes<HTMLInputElement>,
-  "type" | "step" | "value" | "onChange" | "onBlur"
-> {
+interface DateValueInputProps {
   value: string;
   onValueChange: (value: string) => void;
   onBlur?: () => void;
+  /** The cell editor's focus target — the field's first segment. */
   inputRef?: Ref<HTMLInputElement>;
-  /** A grid edit opens the picker under the activation that started the edit. */
+  /** A grid edit focuses the field's first segment as the edit starts. */
   autoOpen?: boolean;
   /**
-   * ADR-309 — the picker an empty value opens (a date field at a time granularity · a TimeField):
-   * an empty text has no shape of its own (default `date`).
+   * ADR-309 — the shape an empty value edits as (a date field at a time granularity · a
+   * TimeField): an empty text has no shape of its own (default `date`).
    */
-  emptyType?: "date" | "datetime-local" | "time";
+  emptyType?: PanelDateEmptyType;
+  className?: string;
+  "aria-label"?: string;
+  "aria-labelledby"?: string;
+  "aria-invalid"?: boolean | "true" | "false";
+  /** (Kept for callers — the segments show their own placeholders.) */
+  placeholder?: string;
+  /** Enter · Tab · Escape · ⌘/Ctrl keys — the editor's commit · cancel · revert contract. */
+  onKeyDown?: KeyboardEventHandler<HTMLInputElement>;
+  [data: `data-${string}`]: string | boolean | undefined;
 }
 
+/** Inside the field's calendar popover (portalled — still the editor's own focus). */
+const inPopover = (node: EventTarget | null) =>
+  node instanceof Element && !!node.closest(".property-date-picker__popover");
+
 /**
- * One date editor for variables, the data grid, row/default forms and the Design panel: the browser's
- * date picker. A native edit keeps the value's zone and precision (`dateValueFromNativeInput`); the
- * ISO text mode was removed (사용자 2026-11-12 — 「불필요한 기능」).
+ * One date editor for variables, the data grid and row/default forms: the panel's RAC date picker
+ * (`PanelDatePicker` — segment field + calendar popover, 사용자 2026-11-12 「같은 달력으로」). Its
+ * edits keep the value's zone and precision (`dateValueFromNativeInput`); every change is reported
+ * (the caller's draft — it writes on blur · Enter). The editor contract is the wrapper's: a blur
+ * that leaves the field and its popover is `onBlur`; Enter · Tab · Escape · ⌘/Ctrl keys reach
+ * `onKeyDown` before RAC's segment handler (which stops their propagation).
  */
 export function DateValueInput({
   value,
@@ -42,66 +56,85 @@ export function DateValueInput({
   inputRef,
   autoOpen,
   emptyType,
-  ...props
+  className,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
+  "aria-invalid": ariaInvalid,
+  placeholder: _placeholder,
+  onKeyDown,
+  ...data
 }: DateValueInputProps) {
-  const input = useRef<HTMLInputElement>(null);
-  // Native segment editing can temporarily produce an empty value. Keep the edit envelope
-  // through that draft so the input does not turn into a date-only field or lose its zone.
-  const [context, setContext] = useState(value);
-  if (value !== "" && value !== context) setContext(value);
-  const source = value || context;
-  const native =
-    source === "" && emptyType
-      ? { type: emptyType, value: "", step: undefined, zone: undefined }
-      : nativeDateInputOf(source);
+  const root = useRef<HTMLSpanElement | null>(null);
+  const setRef = useCallback(
+    (element: HTMLSpanElement | null) => {
+      root.current = element;
+      const target = (element?.querySelector<HTMLElement>(
+        "[role=spinbutton], input",
+      ) ?? null) as HTMLInputElement | null;
+      if (typeof inputRef === "function") inputRef(target);
+      else if (inputRef) inputRef.current = target;
+    },
+    [inputRef],
+  );
   useLayoutEffect(() => {
     if (!autoOpen) return;
-    input.current?.focus();
-    if (native.type !== "text") {
-      try {
-        input.current?.showPicker?.();
-      } catch {
-        /* no activation / unsupported */
-      }
-    } else input.current?.select();
-    // The input's kind follows its draft; focus/picker activation belongs to edit start only.
+    root.current
+      ?.querySelector<HTMLElement>("[role=spinbutton], input")
+      ?.focus();
+    // Focus belongs to edit start only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  const forwardKey = (event: KeyboardEvent<HTMLSpanElement>) => {
+    if (!onKeyDown || inPopover(event.target)) return;
+    const command = event.metaKey || event.ctrlKey;
+    if (
+      command ||
+      event.key === "Enter" ||
+      event.key === "Tab" ||
+      event.key === "Escape"
+    )
+      onKeyDown(event as unknown as KeyboardEvent<HTMLInputElement>);
+  };
   return (
     <span
-      className="date-value-input"
+      {...data}
+      ref={setRef}
+      className={
+        className ? `date-value-input ${className}` : "date-value-input"
+      }
       data-date-value-editor
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) onBlur?.();
+      onKeyDownCapture={forwardKey}
+      onBlur={(event: FocusEvent<HTMLSpanElement>) => {
+        const next = event.relatedTarget;
+        if (
+          event.currentTarget.contains(next as Node | null) ||
+          inPopover(next)
+        )
+          return;
+        onBlur?.();
       }}
     >
-      <Input
-        {...props}
-        // 클래스가 없으면 RAC 기본 class (react-aria-Input) 가 붙어 빌더 위젯 Input 모양이 걸린다
-        className={props.className ?? "date-value-input__field"}
-        ref={(element) => {
-          input.current = element;
-          if (typeof inputRef === "function") inputRef(element);
-          else if (inputRef) inputRef.current = element;
+      <PanelDatePicker
+        aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledBy}
+        isInvalid={ariaInvalid === true || ariaInvalid === "true"}
+        deferTyping={false}
+        // A closed calendar hands focus back to the editor — RAC's restore landed on the table
+        // cell around it (variable table · data grid), leaving the edit open but keyless.
+        onOpenChange={(open) => {
+          if (open) return;
+          requestAnimationFrame(() => {
+            const field = root.current;
+            if (!field || field.contains(document.activeElement)) return;
+            field
+              .querySelector<HTMLElement>(".property-date-picker__button")
+              ?.focus();
+          });
         }}
-        type={native.type}
-        step={native.step}
-        value={value === "" ? value : native.value}
-        aria-invalid={
-          props["aria-invalid"] ||
-          (value !== "" && !isDateValueText(value)) ||
-          undefined
-        }
-        title={native.zone ?? props.title}
-        onChange={(event) =>
-          onValueChange(dateValueFromNativeInput(source, event.target.value))
-        }
+        value={value}
+        emptyType={emptyType}
+        onValueChange={onValueChange}
       />
-      {native.zone && (
-        <span className="date-value-input__zone" title={native.zone}>
-          {native.zone}
-        </span>
-      )}
     </span>
   );
 }

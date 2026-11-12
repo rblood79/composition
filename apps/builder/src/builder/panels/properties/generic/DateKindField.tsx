@@ -10,7 +10,9 @@ import {
 
 /**
  * ADR-309 — a date field reads its owner's granularity (a time granularity opens a date-and-time
- * picker) and a Calendar's selection mode (`multiple` — a list of dates).
+ * picker), a Calendar's selection mode (`multiple` — a list of dates) and the owner's Hour cycle
+ * (사용자 2026-11-12 「Hour cycle 설정을 따라」 — the time segments show as the Canvas does; a
+ * TimeField's default is 24, the date fields' the locale's — `fieldHourCycle`).
  */
 const DateKindField = memo(function DateKindField({
   field,
@@ -35,13 +37,23 @@ const DateKindField = memo(function DateKindField({
     "selectionMode",
     undefined,
   );
+  const hourCycleValue = useFieldValue(
+    elementId,
+    field.origin,
+    "hourCycle",
+    undefined,
+  );
   const emptyType = dateFieldEmptyType(field.kind, granularity);
+  // (A `time` field is a TimeField's — the only kind-`time` owner.)
+  const ownerType = field.kind === "time" ? "TimeField" : undefined;
   if (field.kind === "date-range")
     return (
       <DateRangeField
         label={field.label}
         value={value}
         emptyType={emptyType}
+        hourCycle={hourCycleValue}
+        ownerType={ownerType}
         onChange={onChange}
       />
     );
@@ -59,6 +71,8 @@ const DateKindField = memo(function DateKindField({
       label={field.label}
       value={value}
       emptyType={emptyType}
+      hourCycle={hourCycleValue}
+      ownerType={ownerType}
       onChange={onChange}
     />
   );

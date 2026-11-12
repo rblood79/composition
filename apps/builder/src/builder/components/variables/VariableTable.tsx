@@ -224,14 +224,17 @@ function CommitInput({
     if (draft !== value) onCommit(draft);
   };
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    // (The focused element — the input, or a date field's segment: DateValueInput hands the key
+    //   over from its wrapper.)
+    const focused = event.target as HTMLElement;
     if (event.key === "Enter") {
       event.preventDefault();
-      event.currentTarget.blur();
+      focused.blur();
     } else if (event.key === "Escape") {
       event.preventDefault();
       cancel.current = true;
       setDraft(value);
-      event.currentTarget.blur();
+      focused.blur();
     }
   };
   if (date)

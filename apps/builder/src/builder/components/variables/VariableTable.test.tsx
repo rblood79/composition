@@ -15,6 +15,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
 import { I18nProvider } from "@/i18n";
 import { VariableTable, type VariableTableRow } from "./VariableTable";
 
@@ -59,6 +60,24 @@ beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn();
 });
 afterEach(() => cleanup());
+
+/** A date editor's segment of `type` inside `root` (the panel's RAC date picker). */
+const dateSegment = (root: ParentNode, type: string) =>
+  root.querySelector<HTMLElement>(
+    `.property-date-picker__segment[data-type="${type}"]`,
+  )!;
+const segmentTypes = (root: ParentNode) =>
+  [
+    ...root.querySelectorAll<HTMLElement>(
+      ".property-date-picker__segment[role=spinbutton]",
+    ),
+  ].map((segment) => segment.dataset.type);
+/** Types `keys` into the focused editor's `type` segment. */
+async function typeSegment(root: ParentNode, type: string, keys: string) {
+  const user = userEvent.setup();
+  await act(async () => dateSegment(root, type).focus());
+  await user.keyboard(keys);
+}
 
 describe("VariableTable", () => {
   it("project owner: name commits on Enter, Escape restores; boolean is cell text; JSON popover commits valid JSON only; persist column", async () => {
@@ -221,7 +240,7 @@ describe("VariableTable", () => {
     expect(queryByRole("listbox")).toBeNull();
   });
 
-  it("a date default: Enter · double-click open the browser's date picker on the cell, a typed key edits the ISO text; dense rows get the picker field", async () => {
+  it("a date default: Enter · double-click open the date picker on the cell, a typed key edits the ISO text; dense rows get the picker field", async () => {
     const h = handlers();
     const dateRows: VariableTableRow[] = [
       {
@@ -250,28 +269,28 @@ describe("VariableTable", () => {
     expect(cell.textContent).toBe("2026-10-29");
     act(() => cell.focus());
     fireEvent.keyDown(cell, { key: "Enter" });
-    let input = cell.querySelector<HTMLInputElement>("input")!;
-    expect(input.type).toBe("date");
-    expect(input.value).toBe("2026-10-29");
-    fireEvent.change(input, { target: { value: "2026-11-01" } });
-    fireEvent.keyDown(input, { key: "Enter" });
+    expect(segmentTypes(cell)).toEqual(["month", "day", "year"]);
+    expect(cell.querySelector(".property-date-picker__button")).not.toBeNull();
+    // The edit starts on the field (its first segment).
+    expect(document.activeElement).toBe(dateSegment(cell, "month"));
+    await typeSegment(cell, "day", "1");
+    await typeSegment(cell, "month", "11{Enter}");
     expect(h.onDefault).toHaveBeenCalledWith("d", "2026-11-01");
     // A typed key edits the ISO text (another precision can be typed).
     fireEvent.keyDown(cell, { key: "2" });
-    input = cell.querySelector<HTMLInputElement>("input")!;
+    const input = cell.querySelector<HTMLInputElement>("input")!;
     expect(input.type).toBe("text");
     expect(input.value).toBe("2");
     fireEvent.keyDown(input, { key: "Escape" });
-    // A time's picker is a time field.
+    // A time's picker is a time field (no calendar).
     const timeCell = container.querySelector<HTMLElement>(
       '[data-variable-id="t"] .variable-table__cell-default',
     )!;
     act(() => timeCell.focus());
     fireEvent.doubleClick(timeCell);
-    input = timeCell.querySelector<HTMLInputElement>("input")!;
-    expect(input.type).toBe("time");
-    expect(input.value).toBe("10:30");
-    fireEvent.keyDown(input, { key: "Escape" });
+    expect(segmentTypes(timeCell)).toEqual(["hour", "minute", "dayPeriod"]);
+    expect(timeCell.querySelector(".property-date-picker__button")).toBeNull();
+    await typeSegment(timeCell, "hour", "{Escape}");
 
     rerender(
       wrap(
@@ -285,14 +304,14 @@ describe("VariableTable", () => {
         />,
       ),
     );
-    const dense = container.querySelector<HTMLInputElement>(
-      '[data-variable-id="d"] .variable-row__default input',
+    const dense = container.querySelector<HTMLElement>(
+      '[data-variable-id="d"] .variable-row__default',
     )!;
-    expect(dense.type).toBe("date");
-    expect(dense.value).toBe("2026-10-29");
+    expect(segmentTypes(dense)).toEqual(["month", "day", "year"]);
+    expect(dateSegment(dense, "day").textContent).toBe("29");
   });
 
-  it("date grid and State edits keep the zone and fractional precision; Escape and untouched blur do not write", () => {
+  it("date grid and State edits keep the zone and fractional precision; Escape and untouched blur do not write", async () => {
     const h = handlers();
     const dateRows: VariableTableRow[] = [
       {
@@ -320,25 +339,24 @@ describe("VariableTable", () => {
     )!;
     act(() => cell.focus());
     fireEvent.keyDown(cell, { key: "Enter" });
-    let input = cell.querySelector("input")!;
-    fireEvent.change(input, { target: { value: "2026-10-30T10:30:15.5" } });
-    fireEvent.keyDown(input, { key: "Enter" });
+    await typeSegment(cell, "day", "30{Enter}");
     expect(h.onDefault).toHaveBeenLastCalledWith(
       "d",
       "2026-10-30T10:30:15.500Z",
     );
     h.onDefault.mockClear();
     fireEvent.keyDown(cell, { key: "Enter" });
-    input = cell.querySelector("input")!;
-    fireEvent.change(input, { target: { value: "2026-10-31T10:30:15.5" } });
-    fireEvent.keyDown(input, { key: "Escape" });
+    await typeSegment(cell, "day", "31{Escape}");
     expect(h.onDefault).not.toHaveBeenCalled();
     view.rerender(table(true));
-    input = view.container.querySelector("input[type=datetime-local]")!;
-    fireEvent.blur(input);
+    const dense = view.container.querySelector<HTMLElement>(
+      ".variable-row__default",
+    )!;
+    await act(async () => dateSegment(dense, "day").focus());
+    await act(async () => (document.activeElement as HTMLElement).blur());
     expect(h.onDefault).not.toHaveBeenCalled();
-    fireEvent.change(input, { target: { value: "2026-10-31T10:30:15.5" } });
-    fireEvent.blur(input);
+    await typeSegment(dense, "day", "31");
+    await act(async () => (document.activeElement as HTMLElement).blur());
     expect(h.onDefault).toHaveBeenLastCalledWith(
       "d",
       "2026-10-31T10:30:15.500Z",

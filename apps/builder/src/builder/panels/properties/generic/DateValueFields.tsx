@@ -24,6 +24,21 @@ const TIME_GRANULARITIES = new Set(["hour", "minute", "second"]);
 const DeleteIcon = ACTION_ICONS.delete;
 const AddIcon = ACTION_ICONS.add;
 
+/**
+ * The hour cycle the edited component shows (사용자 2026-11-12 「Hour cycle 설정을 따라」): its
+ * `hourCycle` (12 · 24), else a TimeField's 24, else the locale's. The same rule as the Canvas ·
+ * DOM's `racFieldHourCycle` (shared `dateSegments.ts`, `adr309DateValueFields` pins the two) —
+ * kept here so the lazy date chunk does not split that module out of the initial bundle.
+ */
+export function fieldHourCycle(
+  ownerType: string | undefined,
+  value: unknown,
+): 12 | 24 | undefined {
+  const cycle = value === undefined || value === "" ? NaN : Number(value);
+  if (cycle === 12 || cycle === 24) return cycle;
+  return ownerType === "TimeField" ? 24 : undefined;
+}
+
 /** The picker an empty field opens: a time, a date and time at a time granularity, else a date. */
 export function dateFieldEmptyType(
   kind: string,
@@ -42,11 +57,13 @@ export function dateFieldEmptyType(
 function DateDraftInput({
   value,
   emptyType,
+  hourCycle,
   label,
   onCommit,
 }: {
   value: string;
   emptyType: EmptyType;
+  hourCycle?: 12 | 24;
   label: string;
   onCommit: (value: string) => void;
 }) {
@@ -60,6 +77,7 @@ function DateDraftInput({
     <PanelDatePicker
       value={draft}
       emptyType={emptyType}
+      hourCycle={hourCycle}
       aria-label={label}
       onValueChange={(next) => {
         setDraft(next);
@@ -85,11 +103,16 @@ export function DateValueField({
   label,
   value,
   emptyType,
+  hourCycle,
+  ownerType,
   onChange,
 }: {
   label: string;
   value: unknown;
   emptyType: EmptyType;
+  /** The edited component's `hourCycle` prop as stored, and its type (`fieldHourCycle`). */
+  hourCycle?: unknown;
+  ownerType?: string;
   onChange: (value: unknown) => void;
 }) {
   const text = typeof value === "string" ? value : "";
@@ -101,6 +124,7 @@ export function DateValueField({
       <DateDraftInput
         value={text}
         emptyType={emptyType}
+        hourCycle={fieldHourCycle(ownerType, hourCycle)}
         label={label}
         onCommit={(next) => onChange(next === "" ? undefined : next)}
       />
@@ -113,11 +137,15 @@ export function DateRangeField({
   label,
   value,
   emptyType,
+  hourCycle,
+  ownerType,
   onChange,
 }: {
   label: string;
   value: unknown;
   emptyType: EmptyType;
+  hourCycle?: unknown;
+  ownerType?: string;
   onChange: (value: unknown) => void;
 }) {
   const range = catalogDateRangeFits(value) ? value : { start: "", end: "" };
@@ -134,6 +162,7 @@ export function DateRangeField({
         aria-label={label}
         value={range}
         emptyType={emptyType}
+        hourCycle={fieldHourCycle(ownerType, hourCycle)}
         onValueChange={(next) => {
           if (!next) return onChange(undefined);
           if (next.start === "" && next.end === "") return onChange(undefined);

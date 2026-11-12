@@ -8,7 +8,9 @@ import {
   DateRangeField,
   DateValueField,
   dateFieldEmptyType,
+  fieldHourCycle,
 } from "../DateValueFields";
+import { racFieldHourCycle } from "../../../../../../../../packages/shared/src/catalog/document/dateSegments";
 
 /**
  * ADR-309 G2 (c) — the date fields write and read the stored ISO text through the panel's RAC date
@@ -136,6 +138,48 @@ describe("ADR-309 G2 (c) — the date fields", () => {
       "dayPeriod",
     ]);
     minute.unmount();
+  });
+
+  it("the time segments follow the component's Hour cycle (사용자 2026-11-12)", () => {
+    const types = (
+      hourCycle: 12 | 24 | undefined,
+      emptyType: "time" | "datetime-local",
+    ) => {
+      const view = wrap(
+        <DateValueField
+          label="Value"
+          value={emptyType === "time" ? "21:07" : "2026-11-12T21:07"}
+          emptyType={emptyType}
+          hourCycle={hourCycle}
+          ownerType={emptyType === "time" ? "TimeField" : undefined}
+          onChange={() => {}}
+        />,
+      );
+      const out = [
+        ...view.container.querySelectorAll<HTMLElement>(
+          ".property-date-picker__segment[role=spinbutton]",
+        ),
+      ].map((segment) => `${segment.dataset.type}:${segment.textContent}`);
+      view.unmount();
+      return out;
+    };
+    // The panel's rule is the Canvas · DOM's (`racFieldHourCycle`).
+    for (const owner of ["TimeField", "DatePicker", undefined])
+      for (const value of [undefined, "", "12", "24", 12, 24, "7"])
+        expect(fieldHourCycle(owner, value), `${owner} ${value}`).toBe(
+          racFieldHourCycle(owner, value),
+        );
+    // A TimeField with no Hour cycle shows 24 hours.
+    expect(types(undefined, "time")).toEqual(["hour:21", "minute:07"]);
+    expect(types(24, "time")).toEqual(["hour:21", "minute:07"]);
+    expect(types(12, "time")).toEqual(["hour:9", "minute:07", "dayPeriod:PM"]);
+    expect(types(24, "datetime-local")).toEqual([
+      "month:11",
+      "day:12",
+      "year:2026",
+      "hour:21",
+      "minute:07",
+    ]);
   });
 
   it("an unreadable stored text stays as written and is marked (R5)", () => {

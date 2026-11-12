@@ -34,6 +34,7 @@ vi.mock("../../../stores/toast", () => ({
 }));
 
 import type { ReactNode } from "react";
+import userEvent from "@testing-library/user-event";
 import { I18nProvider } from "@/i18n";
 import type { DataTable } from "../../../../types/builder/data.types";
 import { useDataPanelStatusStore } from "../stores/dataPanelStatusStore";
@@ -121,12 +122,17 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
     const target = cell(view.container, 0, "at");
     act(() => target.focus());
     fireEvent.keyDown(target, { key: "Enter" });
-    const input = view.container.querySelector<HTMLInputElement>(
-      "input[data-grid-editor=inline]",
+    // The date cell edits in the panel's RAC date picker (사용자 2026-11-12), its day segment focused
+    // after the month (the edit starts on the first segment).
+    const editor = view.container.querySelector<HTMLElement>(
+      "[data-grid-editor=inline]",
     )!;
-    expect(input.type).toBe("datetime-local");
-    fireEvent.change(input, { target: { value: "2026-10-30T10:30:15.5" } });
-    fireEvent.keyDown(input, { key: "Enter" });
+    expect(editor.querySelector(".property-date-picker__button")).not.toBeNull();
+    const day = editor.querySelector<HTMLElement>(
+      '.property-date-picker__segment[data-type="day"]',
+    )!;
+    await act(async () => day.focus());
+    await userEvent.setup().keyboard("30{Enter}");
     await waitFor(() => expect(applyDataChange).toHaveBeenCalledTimes(1));
     expect(lastOps()).toEqual([
       {

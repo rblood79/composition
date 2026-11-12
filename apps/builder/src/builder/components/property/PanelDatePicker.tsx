@@ -100,7 +100,12 @@ function useEnvelope(value: string) {
  * a year is typed digit by digit (`2` → year 0002), which must not reach the document. A date picked
  * in the calendar (or a segment-less edit) is written at once.
  */
-function useTypingDraft<T>(value: T, key: string, commit: (next: T) => void) {
+function useTypingDraft<T>(
+  value: T,
+  key: string,
+  commit: (next: T) => void,
+  defer = true,
+) {
   const [pending, setPending] = useState<{ value: T } | null>(null);
   const [seen, setSeen] = useState(key);
   if (key !== seen) {
@@ -115,7 +120,10 @@ function useTypingDraft<T>(value: T, key: string, commit: (next: T) => void) {
   return {
     shown: pending ? pending.value : value,
     change(next: T) {
-      if (document.activeElement?.getAttribute("role") === "spinbutton")
+      if (
+        defer &&
+        document.activeElement?.getAttribute("role") === "spinbutton"
+      )
         setPending({ value: next });
       else {
         setPending(null);
@@ -203,16 +211,19 @@ function Grid() {
 function UnreadableText({
   value,
   label,
+  labelledBy,
   onValueChange,
 }: {
   value: string;
-  label: string;
+  label?: string;
+  labelledBy?: string;
   onValueChange: (text: string) => void;
 }) {
   return (
     <Input
       className="property-date-picker__text"
       aria-label={label}
+      aria-labelledby={labelledBy}
       aria-invalid
       value={value}
       onChange={(event) => onValueChange(event.target.value)}
@@ -221,7 +232,19 @@ function UnreadableText({
 }
 
 export interface PanelDatePickerProps {
-  "aria-label": string;
+  "aria-label"?: string;
+  "aria-labelledby"?: string;
+  /** 호출부가 정한 오류 표시 (날짜로 읽을 수 없는 글자는 따로 표시된다) */
+  isInvalid?: boolean;
+  /**
+   * 키보드로 친 segment 를 칸을 떠날 때 (또는 Enter) 쓴다 (기본). 호출부가 자기 draft 를 들고
+   * blur · Enter 에 저장하는 곳 (변수 표 · 데이터 격자 · 행 폼) 은 false — 바뀔 때마다 알린다.
+   */
+  deferTyping?: boolean;
+  /** 달력 팝오버가 열리고 닫힐 때 */
+  onOpenChange?: (open: boolean) => void;
+  /** 시각 칸의 12 · 24 시간제 — 고치는 컴포넌트의 Hour cycle (없으면 locale) */
+  hourCycle?: 12 | 24;
   /** 저장된 ISO 글자 (빈 글자 = 값 없음) */
   value: string;
   onValueChange: (text: string) => void;
@@ -232,11 +255,16 @@ export interface PanelDatePickerProps {
 /** A date · date and time (with a calendar popover) · time (no calendar) field. */
 export function PanelDatePicker({
   "aria-label": label,
+  "aria-labelledby": labelledBy,
+  isInvalid: callerInvalid,
+  deferTyping = true,
+  onOpenChange,
+  hourCycle,
   value,
   onValueChange,
   emptyType = "date",
 }: PanelDatePickerProps) {
-  const draft = useTypingDraft(value, value, onValueChange);
+  const draft = useTypingDraft(value, value, onValueChange, deferTyping);
   const text = draft.shown;
   const source = useEnvelope(text);
   const shown = project(text, emptyType);
@@ -248,17 +276,20 @@ export function PanelDatePicker({
       <UnreadableText
         value={value}
         label={label}
+        labelledBy={labelledBy}
         onValueChange={onValueChange}
       />
     );
-  const invalid = text !== "" && !isDateValueText(text);
+  const invalid = !!callerInvalid || (text !== "" && !isDateValueText(text));
   if (kind.type === "time")
     return (
       <TimeField
         className="property-date-picker"
         aria-label={label}
+        aria-labelledby={labelledBy}
         value={shown.rac as TimeValue | null}
         granularity={kind.granularity === "second" ? "second" : "minute"}
+        hourCycle={hourCycle}
         isInvalid={invalid}
         onChange={(next) =>
           draft.change(commitText(source, next, kind.granularity))
@@ -274,9 +305,12 @@ export function PanelDatePicker({
     <DatePicker
       className="property-date-picker"
       aria-label={label}
+      aria-labelledby={labelledBy}
       value={shown.rac as DateValue | null}
       granularity={kind.granularity}
+      hourCycle={hourCycle}
       isInvalid={invalid}
+      onOpenChange={onOpenChange}
       onChange={(next) =>
         draft.change(commitText(source, next, kind.granularity))
       }
@@ -307,6 +341,8 @@ export interface PanelDateRangePickerProps {
   /** 두 끝 모두 지우면 null */
   onValueChange: (range: PanelDateRange | null) => void;
   emptyType?: PanelDateEmptyType;
+  /** 시각 칸의 12 · 24 시간제 — 고치는 컴포넌트의 Hour cycle (없으면 locale) */
+  hourCycle?: 12 | 24;
 }
 
 /** A range's start · end in one field, with a range calendar popover (RAC `DateRangePicker`). */
@@ -315,6 +351,7 @@ export function PanelDateRangePicker({
   value,
   onValueChange,
   emptyType = "date",
+  hourCycle,
 }: PanelDateRangePickerProps) {
   const draft = useTypingDraft<PanelDateRange | null>(
     value,
@@ -357,6 +394,7 @@ export function PanelDateRangePicker({
       aria-label={label}
       value={both}
       granularity={kind.granularity === "day" ? "day" : kind.granularity}
+      hourCycle={hourCycle}
       onChange={(next) =>
         draft.change(
           next

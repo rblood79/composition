@@ -63,6 +63,9 @@ interface ValueFieldProps {
     | "date"
     | "date-range";
   emptyType?: "date" | "datetime-local" | "time";
+  /** ADR-309 — the target's `hourCycle` prop and type (its time segments show as the Canvas does). */
+  hourCycle?: unknown;
+  hourCycleOwner?: string;
   /** ADR-287 — a `choice` slot's values (the catalog's): the literal is one of them. */
   choices?: readonly { value: string; label: string }[];
   value: unknown;
@@ -167,6 +170,8 @@ export const ValueField = memo(function ValueField({
   sources,
   expectedType,
   emptyType = "date",
+  hourCycle,
+  hourCycleOwner,
 }: ValueFieldProps) {
   const { t } = useI18n();
   const text = useOptionText();
@@ -250,6 +255,8 @@ export const ValueField = memo(function ValueField({
             label={label}
             value={value}
             emptyType={emptyType}
+            hourCycle={hourCycle}
+            ownerType={hourCycleOwner}
             onChange={(next) => onChange(next ?? "")}
           />
         </Suspense>
@@ -264,6 +271,8 @@ export const ValueField = memo(function ValueField({
             label={label}
             value={value}
             emptyType={emptyType}
+            hourCycle={hourCycle}
+            ownerType={hourCycleOwner}
             onChange={onChange}
           />
         </Suspense>

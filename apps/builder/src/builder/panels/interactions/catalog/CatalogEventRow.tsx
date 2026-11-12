@@ -145,6 +145,8 @@ interface CatalogEventRowProps {
   describeTarget: (
     ref: CatalogCapabilityTarget,
   ) => CatalogTargetOption | undefined;
+  /** ADR-309 — the target's `hourCycle` prop (a date argument's time segments, as the Canvas shows). */
+  targetHourCycle?: (ref: CatalogCapabilityTarget) => unknown;
   /** ADR-283 Decision 2 — whether the target names a record from the selected place. */
   targetNotice: (
     ref: CatalogCapabilityTarget,
@@ -183,6 +185,7 @@ export const CatalogEventRow = memo(function CatalogEventRow({
   choices,
   describeTarget,
   targetNotice,
+  targetHourCycle,
   onTargetHover,
   canvasHoverKey,
   onAim,
@@ -636,6 +639,7 @@ export const CatalogEventRow = memo(function CatalogEventRow({
                         choices={choices}
                         describeTarget={describeTarget}
                         targetNotice={targetNotice}
+                        targetHourCycle={targetHourCycle}
                         onTargetHover={onTargetHover}
                         canvasHoverKey={canvasHoverKey}
                         exposure={exposure}
@@ -906,6 +910,12 @@ export const CatalogEventRow = memo(function CatalogEventRow({
                   }
                   // (ADR-309 — a TimeField's Do asks for a time.)
                   emptyType={targetType === "TimeField" ? "time" : "date"}
+                  hourCycle={
+                    action.opcode === "capability"
+                      ? targetHourCycle?.(action.target)
+                      : undefined
+                  }
+                  hourCycleOwner={targetType}
                   choices={
                     capabilityDef.param.kind === "choice"
                       ? capabilityChoices(targetType, capabilityDef)
