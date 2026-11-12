@@ -1,4 +1,4 @@
-import type { Canvas, CanvasKit, FontMgr } from "canvaskit-wasm";
+import type { Canvas, CanvasKit, FontMgr, PathEffect } from "canvaskit-wasm";
 import type { CatalogGesturePreview } from "../../../catalogRuntime/canvasGesture";
 import type { CatalogSessionState } from "../../../catalogRuntime/session";
 import {
@@ -64,8 +64,8 @@ export interface CatalogOverlayInputs {
     color: Float32Array;
     /**
      * The breakpoint's screen height from a page frame's top (scene px): a frame taller than it
-     * — its Canvas viewport height or its body's Height · Min H — shows a dashed line there (the
-     * fold, as Adobe XD's viewport line).
+     * — its body's content, Height or Min H — shows a dashed line there (the fold: where a
+     * device's screen ends).
      */
     fold?: number;
   };
@@ -255,8 +255,23 @@ export function catalogOverlayNode(
   const pageBorderPaint = inputs.pageBorders ? new ck.Paint() : undefined;
   pageBorderPaint?.setAntiAlias(true);
   pageBorderPaint?.setStyle(ck.PaintStyle.Stroke);
+  // The fold's dash, made again only when the zoom changes (its intervals are screen px).
+  let foldDash: { zoom: number; effect: PathEffect } | undefined;
+  const foldDashAt = (zoom: number): PathEffect => {
+    if (foldDash?.zoom !== zoom) {
+      foldDash?.effect.delete();
+      foldDash = {
+        zoom,
+        effect: ck.PathEffect.MakeDash([4 / zoom, 4 / zoom])!,
+      };
+    }
+    return foldDash.effect;
+  };
   return {
-    dispose: () => pageBorderPaint?.delete(),
+    dispose: () => {
+      pageBorderPaint?.delete();
+      foldDash?.effect.delete();
+    },
     renderSkia: (canvas) => {
       const state = inputs.session();
       const bounds = inputs.bounds();
@@ -320,24 +335,22 @@ export function catalogOverlayNode(
       }
       // The fold: where the breakpoint's screen ends in a taller frame (selected or not).
       if (pages?.fold !== undefined && pageBorderPaint) {
-        let dash: ReturnType<typeof ck.PathEffect.MakeDash> | null = null;
         for (const id of pages.roots) {
           const box = bounds.get(id);
           if (!box || pages.fold >= box.height - 0.5) continue;
-          dash ??= ck.PathEffect.MakeDash([4 / zoom, 4 / zoom]);
-          pageBorderPaint.setPathEffect(dash);
           const y = box.y + pages.fold;
-          withOccluders(
-            ck,
-            canvas,
-            occludersOf(id, expandChromeBox(box, 2 / zoom)),
-            () =>
-              canvas.drawLine(box.x, y, box.x + box.width, y, pageBorderPaint),
-          );
-        }
-        if (dash) {
-          pageBorderPaint.setPathEffect(null);
-          dash.delete();
+          pageBorderPaint.setPathEffect(foldDashAt(zoom));
+          try {
+            withOccluders(
+              ck,
+              canvas,
+              occludersOf(id, expandChromeBox(box, 2 / zoom)),
+              () =>
+                canvas.drawLine(box.x, y, box.x + box.width, y, pageBorderPaint),
+            );
+          } finally {
+            pageBorderPaint.setPathEffect(null);
+          }
         }
       }
       for (const slot of inputs.slots?.() ?? []) {

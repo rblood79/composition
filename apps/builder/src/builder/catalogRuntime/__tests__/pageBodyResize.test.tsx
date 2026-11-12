@@ -8,6 +8,7 @@ import {
   setFields,
   updatePage,
 } from "../../../../../../packages/shared/src/catalog/commands";
+import { CANVAS_VIEWPORT } from "../../../../../../packages/shared/src/catalog/runtime/canvasBreakpoints";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
@@ -25,10 +26,11 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 /**
  * A page body's selection box resizes its frame (user 2026-11-13 — 「컴퍼넌트처럼 page 의 selection
- * box 로도 사이즈 조절」): the right handle writes the body's width, the bottom handle the page's
- * Canvas viewport height (`PageEntry.viewportHeights` — Adobe XD's Viewport Height, a Builder view
- * state: Publish and the body's Min H keep theirs — user 2026-11-13) at the active breakpoint; the
- * left · top handles are not there (the frame's top-left is the page's place).
+ * box 로도 사이즈 조절」): the right handle writes the body's width, the bottom handle its Min H —
+ * or its Height when it authored one — at the active breakpoint; the left · top handles are not
+ * there (the frame's top-left is the page's place). The frame is the body as Publish draws it
+ * (user 2026-11-13 — no Builder-only frame height): Height auto grows with the content from the
+ * Min H, a Height (px · `%` · `vh` of the screen) is the frame and the content scrolls in it.
  */
 const BODY = "project:node:home-body" as NodeId;
 const cleanups: Array<() => void> = [];
@@ -137,10 +139,9 @@ async function open() {
   };
 }
 
-describe("page body selection box resize = its frame (width · Canvas viewport height)", () => {
-  it("drags the bottom-right handle: the body's width and the page's viewport height at the breakpoint in one step, the frame follows live and on release", async () => {
-    const { workspace, scene, gestures, bodyRecord, page, sizingAt } =
-      await open();
+describe("page body frame = the body (width · Height · Min H)", () => {
+  it("drags the bottom-right handle: the body's width and Min H at the breakpoint in one step, the frame follows live and on release", async () => {
+    const { workspace, scene, gestures, bodyRecord, sizingAt } = await open();
     workspace.selectRecords([bodyRecord()]);
     scene.sync();
     const start = scene.stream.boundsMap.get(bodyRecord())!;
@@ -156,69 +157,43 @@ describe("page body selection box resize = its frame (width · Canvas viewport h
     expect(workspace.runtime.graph.revision).toBe(revision);
     gestures.finish();
     expect(workspace.runtime.graph.revision).toBe(revision + 1);
-    const breakpoint = workspace.session.getSnapshot().breakpoint;
-    // The height is the page's Canvas viewport — not the body's Min H (Publish does not read it).
     expect(sizingAt()).toEqual({
       width: { kind: "set", value: start.width - 100 },
-    });
-    expect(page()?.viewportHeights).toEqual({
-      [breakpoint]: start.height + 200,
+      minHeight: { kind: "set", value: start.height + 200 },
     });
     expect(workspace.root.pageFrameRects().values().next().value).toMatchObject(
-      {
-        width: start.width - 100,
-        height: start.height + 200,
-      },
+      { width: start.width - 100, height: start.height + 200 },
     );
     // One step: undo puts both back.
     workspace.undo();
     scene.sync();
-    expect(page()?.viewportHeights).toBeUndefined();
+    expect(sizingAt()).toEqual({});
     expect(scene.stream.boundsMap.get(bodyRecord())).toMatchObject({
       width: start.width,
       height: start.height,
     });
   });
 
-  it("a corner dragged straight down writes the viewport height only (the width did not change)", async () => {
-    const { workspace, page, dragCorner, sizingAt } = await open();
+  it("a corner dragged straight down writes the Min H only (the width did not change)", async () => {
+    const { dragCorner, sizingAt } = await open();
     const start = dragCorner(0, 150);
-    expect(sizingAt()?.width).toBeUndefined();
-    expect(page()?.viewportHeights).toEqual({
-      [workspace.session.getSnapshot().breakpoint]: start.height + 150,
+    expect(sizingAt()).toEqual({
+      minHeight: { kind: "set", value: start.height + 150 },
     });
   });
 
-  it("dragged back to the frame's own height clears the viewport height", async () => {
-    const { page, dragCorner } = await open();
-    dragCorner(0, 300);
-    expect(page()?.viewportHeights).toBeDefined();
-    dragCorner(0, -300);
-    expect(page()?.viewportHeights).toBeUndefined();
-  });
-
-  it("keeps the body's Min H inside a shorter viewport (the content scrolls in the frame)", async () => {
-    const { workspace, scene, bodyRecord, page, dragCorner, sizingAt } =
-      await open();
+  it("over an authored Height the bottom handle writes the Height", async () => {
+    const { workspace, scene, dragCorner, sizingAt } = await open();
     workspace.execute(
       setFields({
         targets: [{ kind: "node", id: BODY }],
         breakpoint: workspace.session.getSnapshot().breakpoint,
-        sizing: { minHeight: { kind: "set", value: 1200 } },
+        sizing: { height: { kind: "set", value: 900 } },
       }),
     );
     scene.sync();
-    // Without a viewport height the frame is the Min H.
-    expect(scene.stream.boundsMap.get(bodyRecord())?.height).toBe(1200);
-    dragCorner(0, -400);
-    expect(Object.values(page()?.viewportHeights ?? {})).toEqual([800]);
-    // (The frame is the viewport height, not the Min H — the content keeps the Min H.)
-    expect(sizingAt()?.minHeight).toEqual({ kind: "set", value: 1200 });
-    const content = `${bodyRecord()}::part:page-content`;
-    expect(scene.stream.boundsMap.get(bodyRecord())?.height).toBe(800);
-    expect(
-      workspace.root.getGeometry([content]).get(content)?.height,
-    ).toBeGreaterThanOrEqual(1200);
+    dragCorner(0, 100);
+    expect(sizingAt()).toEqual({ height: { kind: "set", value: 1000 } });
   });
 
   it("has no left · top handles (the page drag moves the frame)", async () => {
@@ -235,18 +210,11 @@ describe("page body selection box resize = its frame (width · Canvas viewport h
     ).toBe("middle-right");
   });
 
-  it("Canvas height fit-content: the frame takes the page's whole content and follows it, never under the screen", async () => {
-    const { workspace, scene, bodyRecord, page } = await open();
+  it("Height auto: the frame takes the page's whole content and follows it, never under the screen (or the Min H)", async () => {
+    const { workspace, scene, bodyRecord } = await open();
     const breakpoint = workspace.session.getSnapshot().breakpoint;
     const frame = () => scene.stream.boundsMap.get(bodyRecord())!.height;
-    const screen = frame();
-    workspace.execute(
-      updatePage({
-        id: page()!.id,
-        fields: { viewportHeights: { [breakpoint]: "fit-content" } },
-      }),
-    );
-    scene.sync();
+    const screen = CANVAS_VIEWPORT[breakpoint].height;
     // Short content: the page's own height (the screen).
     expect(frame()).toBe(screen);
     const grow = (height: number) => {
@@ -263,47 +231,55 @@ describe("page body selection box resize = its frame (width · Canvas viewport h
     expect(frame()).toBe(screen + 500);
     grow(screen + 900);
     expect(frame()).toBe(screen + 900);
-    // The body itself is untouched (Publish reads it).
-    expect(workspace.runtime.graph.getEntry(BODY)).toMatchObject({
-      sizing: {},
-    });
-  });
-
-  it("over an authored Height the frame is the Canvas height and the content keeps the Height", async () => {
-    const { workspace, scene, bodyRecord, page } = await open();
-    const breakpoint = workspace.session.getSnapshot().breakpoint;
+    // A Min H past the content: the frame is the Min H.
     workspace.execute(
       setFields({
         targets: [{ kind: "node", id: BODY }],
         breakpoint,
-        sizing: { height: { kind: "set", value: 1500 } },
+        sizing: { minHeight: { kind: "set", value: screen + 1200 } },
       }),
     );
     scene.sync();
-    expect(scene.stream.boundsMap.get(bodyRecord())?.height).toBe(1500);
+    expect(frame()).toBe(screen + 1200);
+  });
+
+  it("Height 100% · 100vh: the frame is the screen and the longer content scrolls in it", async () => {
+    const { workspace, scene, bodyRecord } = await open();
+    const breakpoint = workspace.session.getSnapshot().breakpoint;
+    const screen = CANVAS_VIEWPORT[breakpoint].height;
     workspace.execute(
-      updatePage({
-        id: page()!.id,
-        fields: { viewportHeights: { [breakpoint]: 600 } },
+      setFields({
+        targets: [{ kind: "node", id: "project:node:box" as NodeId }],
+        breakpoint,
+        sizing: { height: { kind: "set", value: screen + 500 } },
       }),
     );
-    scene.sync();
-    const content = `${bodyRecord()}::part:page-content`;
-    expect(scene.stream.boundsMap.get(bodyRecord())?.height).toBe(600);
-    expect(workspace.root.getGeometry([content]).get(content)?.height).toBe(
-      1500,
+    for (const [height, expected] of [
+      ["100%", screen],
+      ["100vh", screen],
+      ["50%", screen / 2],
+    ] as const) {
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: BODY }],
+          breakpoint,
+          visual: { height: { kind: "set", value: height } },
+        }),
+      );
+      scene.sync();
+      expect(scene.stream.boundsMap.get(bodyRecord())?.height).toBe(expected);
+    }
+  });
+
+  it("a page step names the page as its History subject", async () => {
+    const { workspace, page } = await open();
+    workspace.execute(
+      updatePage({ id: page()!.id, fields: { name: "Renamed" } }),
     );
+    expect(workspace.history.getSnapshot().subjects.at(-1)).toBe("Renamed");
   });
 
-  it("names the page as the History subject of a Canvas height step", async () => {
-    const { workspace, page, dragCorner } = await open();
-    dragCorner(0, 120);
-    const history = workspace.history.getSnapshot();
-    expect(history.labels.at(-1)).toBe("Canvas height");
-    expect(history.subjects.at(-1)).toBe(page()!.name);
-  });
-
-  it("a fit-content page is as tall as its own content, not its page grid row (an empty page beside a long one)", async () => {
+  it("a page without a Height is as tall as its own content, not its page grid row (an empty page beside a long one)", async () => {
     const { workspace, page } = await open();
     const breakpoint = workspace.session.getSnapshot().breakpoint;
     const home = page()!;
@@ -335,13 +311,6 @@ describe("page body selection box resize = its frame (width · Canvas viewport h
         sizing: { height: { kind: "set", value: screen + 800 } },
       }),
     );
-    for (const id of [home.id, second])
-      workspace.execute(
-        updatePage({
-          id,
-          fields: { viewportHeights: { [breakpoint]: "fit-content" } },
-        }),
-      );
     // (Same grid row: the long page's row is taller than the empty page.)
     expect(frames().get(second)!.y).toBe(frames().get(home.id)!.y);
     expect(frames().get(home.id)!.height).toBeGreaterThanOrEqual(screen + 800);

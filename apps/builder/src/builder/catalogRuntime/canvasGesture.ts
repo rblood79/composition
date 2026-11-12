@@ -23,13 +23,9 @@ import {
 } from "../../../../../packages/shared/src/catalog/commands";
 import {
   composeCommands,
-  composeOver,
   stageOver,
   type CatalogCommand,
 } from "../../../../../packages/shared/src/catalog/commands/compose";
-import { catalogPageOwnFrameHeight } from "../../../../../packages/shared/src/catalog/runtime/compositionRoot";
-import { CANVAS_VIEWPORT } from "../../../../../packages/shared/src/catalog/runtime/canvasBreakpoints";
-import { catalogPageViewportCommand } from "./pageViewport";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import { catalogColorWheelSizeOfBox } from "../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
@@ -99,9 +95,10 @@ import {
   catalogSpacingBands,
   type CatalogSpacingPreview,
 } from "./canvasSpacing";
-import type {
-  CatalogConsumerNode,
-  CatalogRecordPreview,
+import {
+  catalogPageBodyHeightAuthored,
+  type CatalogConsumerNode,
+  type CatalogRecordPreview,
 } from "./compositionRoot";
 import type { CatalogSelectionItem } from "./session";
 
@@ -389,9 +386,8 @@ type Gesture =
       /** A ratio with one dependent axis: the drag writes only the driving axis. */
       lock: ResizeRatioLockInput | null;
       /**
-       * A page body (its frame — 2026-11-13): the drag writes its width and the page's Canvas
-       * viewport height (`PageEntry.viewportHeights` — a Builder view state, not the body's Min H;
-       * the body grows past it with its content) at the active breakpoint.
+       * A page body (its frame — 2026-11-13): the drag writes its width and its height axis
+       * (`pageBodySizing`) at the active breakpoint.
        */
       pageBody: boolean;
       active: boolean;
@@ -401,14 +397,21 @@ type Gesture =
     };
 
 /**
- * A page body's resize: the axes the drag changed (a corner dragged straight down keeps its width —
- * the request carries both). The width is the body's, the height the page's Canvas viewport.
+ * A page body's resize as its sizing — the axes the drag changed (a corner dragged straight down
+ * keeps its width; the request carries both): its width, and its Height when it authored one
+ * (`catalogPageBodyHeightAuthored` — the frame is that tall), else its Min H (the body grows with
+ * its content from it — the frame follows).
  */
-function pageBodyResize(gesture: {
-  startBox: BoundingBox;
-  request: { width?: number; height?: number };
-}): { width?: number; height?: number } {
+function pageBodySizing(
+  gesture: {
+    startBox: BoundingBox;
+    request: { width?: number; height?: number };
+  },
+  record: CatalogConsumerNode | undefined,
+): { width?: number; height?: number; minHeight?: number } {
   const { width, height } = gesture.request;
+  const heightKey =
+    record && catalogPageBodyHeightAuthored(record) ? "height" : "minHeight";
   return {
     ...(width !== undefined &&
     Math.round(width) !== Math.round(gesture.startBox.width)
@@ -416,18 +419,8 @@ function pageBodyResize(gesture: {
       : {}),
     ...(height !== undefined &&
     Math.round(height) !== Math.round(gesture.startBox.height)
-      ? { height }
+      ? { [heightKey]: height }
       : {}),
-  };
-}
-/** A page body's resize as a preview (`pageBodyResizeCommand` commits the same axes). */
-function pageBodyPreview(
-  gesture: Parameters<typeof pageBodyResize>[0],
-): CatalogRecordPreview {
-  const { width, height } = pageBodyResize(gesture);
-  return {
-    ...(width !== undefined ? { sizing: { width } } : {}),
-    ...(height !== undefined ? { pageViewportHeight: height } : {}),
   };
 }
 
@@ -1465,7 +1458,12 @@ export class CatalogCanvasGestures {
     }
     const { width, height } = gesture.request;
     if (gesture.pageBody) {
-      this.host.reflow(this.reflowed, pageBodyPreview(gesture));
+      this.host.reflow(this.reflowed, {
+        sizing: pageBodySizing(
+          gesture,
+          this.host.records.get(gesture.item.identity),
+        ),
+      });
       return;
     }
     // A ColorWheel previews its diameter square (the release writes `size` — `commandOf`).
@@ -1683,46 +1681,23 @@ export class CatalogCanvasGestures {
     return () => composeCommands(graph, "Move", [...commands, ...lines]);
   }
 
-  /**
-   * A page body's resize: its width is the body's (a design value — Publish reads it), its height
-   * the page's Canvas viewport (`catalogPageViewportCommand` — a Builder view state; the body
-   * itself keeps `height: auto` and its Min H). One step.
-   */
+  /** A page body's resize: its width and height axis (`pageBodySizing`), one step. */
   private pageBodyResizeCommand(
     gesture: Extract<Gesture, { kind: "resize" }>,
     breakpoint: BreakpointName,
   ): CatalogCommand | undefined {
-    const { width, height } = pageBodyResize(gesture);
-    const commands: CatalogCommand[] = [];
-    if (width !== undefined)
-      commands.push(
-        setFields({
-          targets: [gesture.item.target],
-          breakpoint,
-          sizing: { width: { kind: "set", value: width } },
-          label: "Resize",
-        }),
-      );
-    const record = this.host.records.get(gesture.item.identity);
-    const page = record ? this.host.graph.ownerOf(record.sourceId) : undefined;
-    // (The frame's own height — the body's Height, Min H, else the screen: a drag back there
-    // clears it.)
-    const viewport =
-      height !== undefined && record && page
-        ? catalogPageViewportCommand(
-            this.host.graph,
-            page,
-            breakpoint,
-            height,
-            catalogPageOwnFrameHeight(
-              record,
-              CANVAS_VIEWPORT[breakpoint].height,
-            ),
-          )
-        : undefined;
-    if (viewport) commands.push(viewport);
-    if (commands.length <= 1) return commands[0];
-    return (reader) => composeOver(reader, "Resize", commands);
+    const sizing = Object.entries(
+      pageBodySizing(gesture, this.host.records.get(gesture.item.identity)),
+    );
+    if (!sizing.length) return undefined;
+    return setFields({
+      targets: [gesture.item.target],
+      breakpoint,
+      sizing: Object.fromEntries(
+        sizing.map(([key, value]) => [key, { kind: "set" as const, value }]),
+      ),
+      label: "Resize",
+    });
   }
 
   /**

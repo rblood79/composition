@@ -624,7 +624,7 @@ export function CatalogCanvas({
       pageBorders: () => ({
         roots: chrome.pages().rootsWithin(chromeArea()),
         color: pageBorderColor,
-        // (The page frames' screen — `catalogPageOwnFrameHeight`'s.)
+        // (The page frames' screen — the breakpoint's.)
         fold: CANVAS_VIEWPORT[workspace.session.getSnapshot().breakpoint]
           .height,
       }),

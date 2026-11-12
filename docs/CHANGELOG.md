@@ -11,7 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [page 의 Canvas 높이 (Adobe XD Viewport Height) · page Size 절 = 컴포넌트와 같은 크기 방식] - 2026-11-13
+## [page 프레임 = body 그대로 — Canvas H 제거, Height 가 프레임을 정한다] - 2026-11-13
+
+### Removed
+
+- page 의 **Canvas H** (Design 패널 Layout › Size) 와 문서 필드 `PageEntry.viewportHeights` — 바로 아래 항목에서 넣은 Builder 전용 프레임 높이를 걷어냈다 (사용자 결정 2026-11-13 「height 를 사용해도 충분」).
+  - **Why**: body 는 Height 를 지정하지 않으면 Publish 에서도 내용만큼 자란다. Builder 프레임만 화면 높이에 묶여 있어 따로 값이 필요했던 것이라, 프레임이 body 를 그대로 따르면 Height 하나로 두 경우가 다 된다 — Fit content (내용 전체 보기) · Parent 100% / Viewport 100vh (화면 크기로 스크롤해 보기). 같은 뜻이 Publish 에도 그대로 적용된다.
+  - 그 사이 저장된 프로젝트에 남은 `viewportHeights` 는 열 때 `entry.viewportHeights` 오류가 난다 (개발 단계 — 변환 코드 없음). 이 기기의 두 프로젝트 (aaa 포함) Home page 에서 그 필드를 지웠다.
+
+### Changed
+
+- page 프레임 높이 = body 의 Height: 지정하지 않음 · `auto` · `fit-content` 면 내용만큼 (최소 Min H, 없으면 breakpoint 화면 높이 — 화면 끝에 점선), `100%` · `vh` 면 breakpoint 화면 기준 높이, px 면 그 값 — 넘치는 내용은 프레임 안에서 스크롤한다. Min H 의 `%` 도 화면 기준으로 읽는다.
+  - 세로 flex body 에 Height 100% 를 주면 높이가 정해진 flex 상자가 되어 줄어들 수 있는 자식 (overflow 가 있는 Accordion · ListBox …) 이 눌린다 — Chrome 과 같은 결과다 (Publish 실측: Accordion 0). Height 를 지정하지 않으면 눌리지 않는다.
+- page 아래 · 오른쪽 아래 손잡이: Height 를 지정한 body 는 Height 를, 아니면 Min H 를 px 로 쓴다 (바뀐 축만).
+- Publish: `#root` · `.publish-app` · `.publish-layout` 가 `height: 100%` 로 화면 높이 체인을 잇는다 — 전에는 `min-height` 뿐이라 body 의 `100%` 가 화면 높이로 풀리지 않았다. 화면보다 긴 page 는 `.publish-content` 가 스크롤한다.
+  - 위치: `packages/shared/src/catalog/runtime/compositionRoot.ts` (`catalogPageBodyHeightAuthored` · `catalogPageFrameHeight` · `catalogPageContentMinHeight` · `pageBodySplit` · `pageFrameStyle`) · `apps/builder/src/builder/catalogRuntime/canvasGesture.ts` (`pageBodySizing`) · `apps/publish/src/styles/index.css`. 테스트: `pageBodyResize.test.tsx` 8 · `phase4PageFrames.test.tsx` · `adr275FixedAuthored.test.ts` (원복 RED 8).
+
+## [page 의 Canvas 높이 (Adobe XD Viewport Height) · page Size 절 = 컴포넌트와 같은 크기 방식] - 2026-11-13 (Canvas H 는 같은 날 위 항목에서 제거)
 
 ### Added
 

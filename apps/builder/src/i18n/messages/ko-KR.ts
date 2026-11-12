@@ -2880,9 +2880,6 @@ const semanticLabels: Record<string, string> = {
   "styles.transform.ratio.dependentAxis":
     "Ratio 잠금을 해제하면 이 축을 직접 편집할 수 있습니다.",
   "styles.transform.computedSize": "계산된 크기",
-  "styles.transform.canvasHeight": "캔버스 높이",
-  "styles.transform.canvasHeightHint":
-    "Builder 에서만 보이는 page 높이입니다. Preview · Publish 는 page 자신의 높이를 씁니다.",
   "styles.transform.notMeasured": "미측정",
   "styles.transform.fillWeightHint": "숫자는 채우기 가중치입니다",
   "styles.transform.ratio.error.selection":

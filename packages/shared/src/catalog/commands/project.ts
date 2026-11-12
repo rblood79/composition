@@ -98,7 +98,6 @@ type PageFields = Pick<
   | "parentId"
   | "placement"
   | "guideEntries"
-  | "viewportHeights"
   | "meta"
 >;
 /** Page fields; an `undefined` value clears an optional field (parent, placement, guides). */

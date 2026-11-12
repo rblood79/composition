@@ -77,7 +77,7 @@ function historySubject(
   }
   const first = after.keys().next();
   if (!first.done) return { id: first.value };
-  // A step on a page only (its settings, its Canvas viewport height): the page.
+  // A step on a page only (its settings): the page.
   for (const op of forward)
     if (op.kind === "put" && op.entry.kind === "page")
       return { id: op.entry.id, pageName: op.entry.name };

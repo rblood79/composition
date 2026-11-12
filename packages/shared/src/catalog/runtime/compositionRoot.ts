@@ -298,8 +298,6 @@ export interface CatalogRecordPreview {
   readonly omitVisual?: readonly string[];
   /** Props shown over the record's (an inline text edit's typed text — measured and wrapped). */
   readonly props?: Readonly<Record<string, unknown>>;
-  /** A page body's frame height shown instead of the page's (`PageEntry.viewportHeights` drag). */
-  readonly pageViewportHeight?: number;
 }
 
 export interface CatalogConsumerNode {
@@ -612,16 +610,9 @@ function layoutChildrenOf(
     if (!wrapper) out.push(child);
     else if (!out.includes(wrapper.id)) out.push(wrapper.id);
   }
-  // A page body's content stands with nothing in it (an empty page keeps its min-height — without
-  // it the empty frame was 0 and the engine filled its page grid cell: an empty fit-content page
-  // took the long page's row, user 2026-11-13). Other wrappers stay out when empty.
+  // (A wrapper that stands with nothing in it — `standsEmpty`.)
   for (const part of parts)
-    if (
-      part.wraps?.length === 0 &&
-      part.id.endsWith(PAGE_BODY_CONTENT_PART) &&
-      !out.includes(part.id)
-    )
-      out.push(part.id);
+    if (part.standsEmpty && !part.wraps?.length) out.push(part.id);
   if (chromeId) out.push(chromeId);
   return out;
 }
@@ -641,17 +632,6 @@ function orderedChildren(
 
 /** The id suffix of a page body's content part (`pageBodySplit`). */
 const PAGE_BODY_CONTENT_PART = "::part:page-content";
-/**
- * A page body's content part (its box as Preview · Publish draw it — the frame around it is the
- * Canvas viewport): the record id of the body with the part suffix.
- */
-export const catalogPageContentPartId = (bodyRecordId: string): string =>
-  `${bodyRecordId}${PAGE_BODY_CONTENT_PART}`;
-/**
- * A page frame style's Canvas viewport height when the body authored its own Height
- * (`pageFrameStyle` — not an engine key): the frame takes it, the content keeps the Height.
- */
-const PAGE_FRAME_VIEWPORT_HEIGHT = "pageViewportHeight";
 /**
  * Engine keys a page body's content part takes from the body: how its children are laid out (and
  * the line box their inline content sits on) and the body's own block size limits — the box that
@@ -686,21 +666,21 @@ const PAGE_BODY_CONTENT_KEYS: ReadonlySet<string> = new Set([
 const INSET_KEYS = ["insetLeft", "insetTop", "insetRight", "insetBottom"];
 /** What a page body's split reads of the body (`CatalogCompositionRoot.pageBody`). */
 interface PageBodyShape {
-  /** An authored Height: the body is that tall (its content part fills it — Chrome squeezes). */
+  /**
+   * An authored Height (`catalogPageBodyHeightAuthored`): the body is that tall — its content part
+   * fills it (Chrome squeezes) and scrolls in it past it.
+   */
   readonly authoredHeight: boolean;
   /** An authored position: the body is its absolute children's containing block (Chrome's). */
   readonly positioned: boolean;
-  /**
-   * The content's minimum when the frame is the page's Canvas viewport (`viewportHeights`) and the
-   * body's Min H is taller: the body keeps its Min H inside the shorter frame (it scrolls).
-   */
-  readonly contentMinHeight?: string;
+  /** Without a Height: the content's minimum — the body's Min H, else the screen. */
+  readonly contentMinHeight: string;
 }
 /**
  * A page body's two engine boxes, as Chrome's page is (ledger §body 는 뷰포트가 아니다): the
  * viewport box (the frame — `pageFrameStyle` — overflow and the rest of the body's box; one block
- * child) and the content part (`PAGE_BODY_CONTENT_KEYS`, `min-height` the frame — or the authored
- * height). The viewport is positioned (unless placed) so the body's absolute children keep it as
+ * child) and the content part (`PAGE_BODY_CONTENT_KEYS`; the body's Min H — the frame fits it — or
+ * the authored Height's 100%). The viewport is positioned (unless placed) so the body's absolute children keep it as
  * their containing block (the initial containing block — the content part is `position: static`).
  */
 function pageBodySplit(
@@ -712,14 +692,9 @@ function pageBodySplit(
 } {
   const viewport: Record<string, unknown> = {};
   const content: Record<string, unknown> = {};
-  const frameHeight = style[PAGE_FRAME_VIEWPORT_HEIGHT];
   for (const [key, value] of Object.entries(style))
-    if (key === PAGE_FRAME_VIEWPORT_HEIGHT) continue;
-    // (A Canvas viewport over an authored Height: the frame is the viewport, the content that tall.)
-    else if (key === "height" && frameHeight !== undefined)
-      content[key] = value;
-    else if (PAGE_BODY_CONTENT_KEYS.has(key)) content[key] = value;
-    // (Without a height the authored minimum is the frame's height — `catalogPageViewportHeight`.)
+    if (PAGE_BODY_CONTENT_KEYS.has(key)) content[key] = value;
+    // (Without a Height the minimum is the content's, resolved — `contentMinHeight`.)
     else if (key === "minHeight") {
       if (body.authoredHeight) content[key] = value;
     } else viewport[key] = value;
@@ -730,45 +705,64 @@ function pageBodySplit(
     !INSET_KEYS.some((key) => viewport[key] !== undefined)
   )
     viewport.position = "relative";
-  if (frameHeight !== undefined) viewport.height = frameHeight;
-  else if (body.authoredHeight) content.height = "100%";
-  if (!body.authoredHeight)
-    content.minHeight = body.contentMinHeight ?? "100%";
+  if (body.authoredHeight) content.height = "100%";
+  else content.minHeight = body.contentMinHeight;
   if (!body.positioned && viewport.position !== undefined)
     content.position = "static";
   // (Grid track lists stay arrays — the engine reads them as they are.)
   return { viewport, content: content as Record<string, string | number> };
 }
 /**
- * The height of a page body's frame when the body authored none: its authored minimum (px · `vh`
- * of the page), else the breakpoint's page height.
+ * A page body's authored Height that sizes it — a length, `%` or `vh` (Parent · Viewport): its
+ * frame is that tall and the content scrolls in it. None, `auto` or `fit-content`: the body grows
+ * with its content (its frame follows — user 2026-11-13, in place of a Builder-only frame height).
  */
-function catalogPageViewportHeight(
+export function catalogPageBodyHeightAuthored(
   record: CatalogConsumerNode,
-  pageHeight: number,
-): string {
-  return `${catalogPageMinHeight(record, pageHeight) ?? pageHeight}px`;
-}
-/** A page body's authored minimum height in px (px · `vh` of the page), if any. */
-export function catalogPageMinHeight(
-  record: CatalogConsumerNode,
-  pageHeight: number,
-): number | undefined {
-  return pageLength(record, "minHeight", pageHeight);
+): boolean {
+  const height = record.sizing.height ?? record.visual.height;
+  return (
+    height != null &&
+    height !== "" &&
+    height !== "auto" &&
+    height !== "fit-content"
+  );
 }
 /**
- * A page frame's own height without a Canvas viewport height (`PageEntry.viewportHeights`): the
- * body's Height, else its Min H (px · `vh` of the page), else the breakpoint's screen height. A
- * Height the Canvas cannot read as px (`%` · a keyword) leaves the screen height.
+ * A page frame's height: as tall as its content without an authored Height (`fit-content` — the
+ * keyword, not `auto`: a page frame is a page grid item and an `auto` height stretches to its row,
+ * an empty page took the long page beside it — a size keyword wins over the stretch, §23). A `%`
+ * Height is of the breakpoint's screen (the page's parent is the viewport — Publish's html and
+ * body are 100%), as a `vh` one; `undefined` = the authored length as it is.
  */
-export function catalogPageOwnFrameHeight(
+function catalogPageFrameHeight(
   record: CatalogConsumerNode,
-  pageHeight: number,
-): number {
+  screen: number,
+): string | undefined {
+  if (!catalogPageBodyHeightAuthored(record)) return "fit-content";
   const height = record.sizing.height ?? record.visual.height;
-  if (height != null) return pageLength(record, "height", pageHeight) ?? pageHeight;
-  return catalogPageMinHeight(record, pageHeight) ?? pageHeight;
+  const relative =
+    typeof height === "string"
+      ? /^(\d+(?:\.\d+)?)(%|vh)$/.exec(height.trim())
+      : null;
+  return relative ? `${(Number(relative[1]) / 100) * screen}px` : undefined;
 }
+/**
+ * A page body's content minimum without a Height: its Min H (px · `%` · `vh` of the screen, any
+ * other length as authored), else the screen (Body's `min-height: 100%`).
+ */
+function catalogPageContentMinHeight(
+  record: CatalogConsumerNode,
+  screen: number,
+): string {
+  const authored = record.sizing.minHeight ?? record.visual.minHeight;
+  if (authored == null || authored === "" || authored === "auto")
+    return `${screen}px`;
+  const px = pageLength(record, "minHeight", screen);
+  if (px !== undefined) return `${px}px`;
+  return typeof authored === "number" ? `${authored}px` : String(authored);
+}
+/** A page body's authored length in px (px · `vh` · `%` of the page), if any. */
 function pageLength(
   record: CatalogConsumerNode,
   key: "height" | "minHeight",
@@ -778,10 +772,11 @@ function pageLength(
   if (typeof authored === "number" && authored > 0) return authored;
   const length =
     typeof authored === "string"
-      ? /^(\d+(?:\.\d+)?)(px|vh)$/.exec(authored.trim())
+      ? /^(\d+(?:\.\d+)?)(px|vh|%)$/.exec(authored.trim())
       : null;
   const value = length ? Number(length[1]) : 0;
-  if (value > 0) return length![2] === "vh" ? (value / 100) * pageHeight : value;
+  if (value > 0)
+    return length![2] === "px" ? value : (value / 100) * pageHeight;
   return undefined;
 }
 
@@ -2298,7 +2293,6 @@ export class CatalogCompositionRoot {
     {
       base: CatalogConsumerNode;
       shown: CatalogConsumerNode;
-      viewportHeight?: number;
     }
   >();
   private readonly canvasListeners = new Map<
@@ -4759,6 +4753,9 @@ export class CatalogCompositionRoot {
       parts.push({
         id: `${record.id}${PAGE_BODY_CONTENT_PART}`,
         wraps: orderedChildren(record.children, this.childOrder(record)),
+        // (An empty page keeps its content's min-height — without it the frame was 0 and the
+        // engine filled its page grid cell: an empty fit-content page took the long page's row.)
+        standsEmpty: true,
         style: pageBodySplit(whole ?? this.recordStyle(record, get), body)
           .content,
       });
@@ -6136,52 +6133,27 @@ export class CatalogCompositionRoot {
    */
   private pageBody(record: CatalogConsumerNode): PageBodyShape | undefined {
     if (
+      !this.pageFrames ||
       record.parentId !== "catalog:root" ||
       isComponentsView(this.definitionView) ||
-      !this.pageFrameStyle(record)
+      (this.definitionView && !this.layoutDefinitionView())
     )
       return undefined;
-    const authoredHeight =
-      record.sizing.height != null || record.visual.height != null;
-    const screen = CANVAS_VIEWPORT[this.breakpoint].height;
-    const viewport = authoredHeight
-      ? undefined
-      : this.pageViewportHeight(record);
-    // A frame that fits the content: the content keeps the page's own minimum (Min H, else the
-    // screen) — the frame follows it. A px frame shorter than the Min H: the content keeps it.
-    const minimum =
-      viewport === "fit-content"
-        ? (catalogPageMinHeight(record, screen) ?? screen)
-        : viewport === undefined
-          ? undefined
-          : catalogPageMinHeight(record, screen);
     return {
-      authoredHeight,
+      authoredHeight: catalogPageBodyHeightAuthored(record),
       positioned: (record.layout.position ?? "static") !== "static",
-      ...(minimum !== undefined &&
-      (viewport === "fit-content" || minimum > viewport!)
-        ? { contentMinHeight: `${minimum}px` }
-        : {}),
+      contentMinHeight: catalogPageContentMinHeight(
+        record,
+        CANVAS_VIEWPORT[this.breakpoint].height,
+      ),
     };
   }
-  /**
-   * A page root's Canvas frame height at this breakpoint (`PageEntry.viewportHeights` — a Builder
-   * view state), a drag's preview first; `undefined` = the body's own (Min H, else the screen).
-   */
-  private pageViewportHeight(
-    record: CatalogConsumerNode,
-  ): number | "fit-content" | undefined {
-    const held = this.previews.get(record.id);
-    if (
-      held?.viewportHeight !== undefined &&
-      this.records.get(record.id) === held.shown
-    )
-      return held.viewportHeight;
-    const pageId = this.rootPage.get(record.sourceId as NodeId);
-    const page = pageId ? this.runtime.graph.getEntry(pageId) : undefined;
-    return page?.kind === "page"
-      ? page.viewportHeights?.[this.breakpoint]
+  /** The definition view is a layout (drawn at the page size it frames). */
+  private layoutDefinitionView(): boolean {
+    const definition = this.definitionView
+      ? this.runtime.graph.getEntry(this.definitionView)
       : undefined;
+    return definition?.kind === "definition" && definition.usage === "layout";
   }
   /**
    * A page root's frame on the page grid: the breakpoint's page size unless the root authored its
@@ -6212,17 +6184,14 @@ export class CatalogCompositionRoot {
     }
     if (this.definitionView) {
       // A layout is drawn at the page size it frames; a component at its own size.
-      const definition = this.runtime.graph.getEntry(this.definitionView);
-      if (definition?.kind !== "definition" || definition.usage !== "layout")
-        return undefined;
+      if (!this.layoutDefinitionView()) return undefined;
       const tier = CANVAS_VIEWPORT[this.breakpoint];
+      const height = catalogPageFrameHeight(record, tier.height);
       return {
         ...(record.sizing.width == null && record.visual.width == null
           ? { width: `${tier.width}px` }
           : {}),
-        ...(record.sizing.height == null && record.visual.height == null
-          ? { height: catalogPageViewportHeight(record, tier.height) }
-          : {}),
+        ...(height !== undefined ? { height } : {}),
       };
     }
     const pageId = this.rootPage.get(record.sourceId as NodeId);
@@ -6240,23 +6209,9 @@ export class CatalogCompositionRoot {
       );
       if (percent !== undefined) out.width = percent;
     }
-    // The page's Canvas viewport (Builder view state) over the body's Min H · the screen; over an
-    // authored Height the frame takes it and the content keeps the Height (`pageBodySplit`).
-    // (`fit-content` = the frame as tall as its own content — the keyword, not `auto`: a page
-    // frame is a page grid item, and an `auto` height stretches to its row — an empty page took
-    // the long page beside it, user 2026-11-13. A size keyword wins over the stretch, §23.)
-    const viewport = this.pageViewportHeight(record);
-    const frameHeight =
-      viewport === undefined
-        ? undefined
-        : viewport === "fit-content"
-          ? "fit-content"
-          : `${viewport}px`;
-    if (record.sizing.height == null && record.visual.height == null)
-      out.height =
-        frameHeight ?? catalogPageViewportHeight(record, tier.height);
-    else if (frameHeight !== undefined)
-      out[PAGE_FRAME_VIEWPORT_HEIGHT] = frameHeight;
+    // The frame fits the body's content unless it authored a Height (`catalogPageFrameHeight`).
+    const height = catalogPageFrameHeight(record, tier.height);
+    if (height !== undefined) out.height = height;
     if (page?.kind !== "page" || !page.placement) return out;
     const placement = resolvePagePlacementStyle(
       catalogPagePlacement(page.placement),
@@ -6346,14 +6301,7 @@ export class CatalogCompositionRoot {
       const { textRuns: _runs, ...rest } = patched;
       shown = isRichText(patch.props.children) ? withTextRuns(rest) : rest;
     }
-    if (patch)
-      this.previews.set(id, {
-        base,
-        shown,
-        ...(patch.pageViewportHeight !== undefined
-          ? { viewportHeight: patch.pageViewportHeight }
-          : {}),
-      });
+    if (patch) this.previews.set(id, { base, shown });
     else this.previews.delete(id);
     this.records.set(id, shown);
     const whole = this.recordStyle(shown, (key) => this.records.get(key));

@@ -1461,6 +1461,8 @@ export interface CatalogComposedPart {
    * them; absent = a leaf before the record's children.
    */
   readonly wraps?: readonly string[];
+  /** A wrapper laid out even with nothing to wrap (a page body's content). */
+  readonly standsEmpty?: boolean;
 }
 
 /**

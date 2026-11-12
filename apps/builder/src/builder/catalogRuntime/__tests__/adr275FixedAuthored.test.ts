@@ -127,7 +127,15 @@ describe("ADR-275 Phase 7 — an authored fixed node", () => {
   });
 
   it("the Canvas draws it at the page's level with the page's scroll added back, and a page scroll leaves it", async () => {
-    const { root, recordOf } = await open();
+    const { workspace, root, recordOf } = await open();
+    // (A page scrolls in its frame when its body's Height is the screen — Height auto grows the
+    // frame with the content instead, user 2026-11-13.)
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: BODY }],
+        visual: { height: set("100%") },
+      }),
+    );
     const scene = new CatalogCanvasScene(root);
     try {
       scene.sync();

@@ -599,6 +599,13 @@ export const PropertyUnitInputControl = memo(
             sizeControl?.kind === "ratio"
             ? "px"
             : undefined;
+    /** The menu key of the value as it is (an empty value with Reset = Reset). */
+    const currentKey =
+      value === "" && units.includes("reset")
+        ? "reset"
+        : unit === ""
+          ? "—"
+          : unit;
     const unitSuffixText = valueIsToken
       ? "px"
       : unit === "" ||
@@ -795,11 +802,7 @@ export const PropertyUnitInputControl = memo(
                 // The mode it already has is no edit — RAC re-announces the selected key when
                 // Escape closes the menu (a page body's Height wrote an empty "Edit size" step,
                 // live 2026-11-13).
-                if (
-                  selectedMode ===
-                  (value === "" && units.includes("reset") ? "reset" : unit)
-                )
-                  return;
+                if (selectedMode === currentKey) return;
                 sizeModeSelectionRef.current = selectedMode;
                 syncAfterPresetRef.current = true;
                 sizeControl.onModeChange(selectedMode);
@@ -844,12 +847,7 @@ export const PropertyUnitInputControl = memo(
                   : `${UNIT_KEY}${unit}`
                 : hasPresets
                   ? (selectedPreset?.id ?? null)
-                  : (draftUnit ??
-                    (value === "" && units.includes("reset")
-                      ? "reset"
-                      : unit === ""
-                        ? "—"
-                        : unit))
+                  : (draftUnit ?? currentKey)
             }
             aria-label={
               hasPresets

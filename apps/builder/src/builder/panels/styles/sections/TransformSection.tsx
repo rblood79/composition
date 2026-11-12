@@ -145,73 +145,16 @@ const HostPagePositionRow = memo(function HostPagePositionRow({
   );
 });
 
-/**
- * A page body's Canvas height (Adobe XD's Viewport Height — `PageEntry.viewportHeights`, a Builder
- * view state; Preview · Publish keep the page's own height): Fixed (the page's bottom handle writes
- * it too), Fit content (the frame takes the page's whole content and follows it), Reset (the
- * frame's own height — the body's Height, Min H, else the screen).
- */
-const PageCanvasHeightRow = memo(function PageCanvasHeightRow({
-  pageViewport,
-  selectedId,
-}: {
-  pageViewport: NonNullable<StylesHost["pageViewport"]>;
-  selectedId: string | null;
-}) {
-  const localize = useSemanticLabel();
-  const viewport = pageViewport.useHeight(selectedId);
-  if (!viewport) return null;
-  const fit = viewport.height === "fit-content";
-  const shown =
-    typeof viewport.height === "number"
-      ? `${viewport.height}px`
-      : fit
-        ? "fit-content"
-        : "";
-  const commitPx = (value: string) => {
-    if (value.trim() === "") {
-      pageViewport.commit(viewport.pageId, null);
-      return;
-    }
-    const parsed = Number.parseFloat(value);
-    if (Number.isFinite(parsed) && parsed > 0)
-      pageViewport.commit(viewport.pageId, Math.round(parsed));
-  };
-  return (
-    <div className="transform-row transform-canvas-height">
-      <PropertyUnitInput
-        label="Canvas H"
-        icon={null}
-        unitSuffix
-        className="canvas-height"
-        value={shown}
-        placeholder={String(viewport.own)}
-        units={["reset", "px", "fit-content"]}
-        preserveEmptyValueOnUnitChange
-        sizeControl={{
-          kind: fit ? "fit" : "css",
-          computed: viewport.frame,
-          description: localize(
-            "Builder only. Preview and Publish keep the page's own height",
-          ),
-          onModeChange: (unit) =>
-            unit === "reset"
-              ? pageViewport.commit(viewport.pageId, null)
-              : unit === "fit-content"
-                ? pageViewport.commit(viewport.pageId, "fit-content")
-                : typeof viewport.height !== "number" &&
-                  pageViewport.commit(
-                    viewport.pageId,
-                    viewport.frame ?? viewport.own,
-                  ),
-        }}
-        onChange={commitPx}
-        min={1}
-        max={99999}
-      />
-    </div>
-  );
-});
+/** A size mode's start value: Fixed = the drawn px (`undefined` unmeasured), a relative mode 100. */
+function sizeModeStart(
+  unit: string,
+  effective: number | undefined,
+): string | undefined {
+  if (unit !== "px") return `100${unit}`;
+  return effective === undefined || !Number.isFinite(effective)
+    ? undefined
+    : `${Math.max(0, effective)}px`;
+}
 
 /**
  * Size / Position 두 절이 같은 값 묶음 (useTransformValues) 을 읽는다 — 절 하나당 마운트라
@@ -343,14 +286,11 @@ const TransformSectionContent = memo(function TransformSectionContent({
         commitAxisValue(axis, unit === "reset" ? "" : unit);
         return;
       }
-      const effective =
-        axis === "width" ? bundle?.width.effective : bundle?.height.effective;
-      if (unit === "px") {
-        if (effective === undefined || !Number.isFinite(effective)) return;
-        commitAxisValue(axis, `${Math.max(0, effective)}px`);
-      } else {
-        commitAxisValue(axis, `100${unit}`);
-      }
+      const value = sizeModeStart(
+        unit,
+        axis === "width" ? bundle?.width.effective : bundle?.height.effective,
+      );
+      if (value) commitAxisValue(axis, value);
     },
     [
       bundle?.isBody,
@@ -361,26 +301,21 @@ const TransformSectionContent = memo(function TransformSectionContent({
   );
 
   /**
-   * Min · Max take the Size modes too (Fixed · Parent · Viewport · Reset — Fill and Fit content
-   * size a box, not its limit): Fixed starts from the limit's px, else the box's drawn size; a
-   * relative mode at 100.
+   * Min · Max take the Size modes too (Reset · Fixed · Parent · Viewport — Fill and Fit content
+   * size a box, not its limit), from the same start values as Width · Height.
    */
   const selectConstraintUnit = useCallback(
-    (property: SizeConstraintProperty, current: string, unit: string) => {
-      if (unit === "reset") {
-        updateStyleImmediate(property, "");
-        return;
-      }
-      if (unit === "px") {
-        if (/^\d+(\.\d+)?px$/.test(current.trim())) return;
-        const effective = property.endsWith("Width")
-          ? bundle?.width.effective
-          : bundle?.height.effective;
-        if (effective === undefined || !Number.isFinite(effective)) return;
-        updateStyleImmediate(property, `${Math.round(Math.max(0, effective))}px`);
-        return;
-      }
-      updateStyleImmediate(property, `100${unit}`);
+    (property: SizeConstraintProperty, unit: string) => {
+      const value =
+        unit === "reset"
+          ? ""
+          : sizeModeStart(
+              unit,
+              property.endsWith("Width")
+                ? bundle?.width.effective
+                : bundle?.height.effective,
+            );
+      if (value !== undefined) updateStyleImmediate(property, value);
     },
     [bundle?.width.effective, bundle?.height.effective, updateStyleImmediate],
   );
@@ -518,8 +453,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
 
   const constraintControl = (property: SizeConstraintProperty) => ({
     kind: "css" as const,
-    onModeChange: (unit: string) =>
-      selectConstraintUnit(property, styleValues[property], unit),
+    onModeChange: (unit: string) => selectConstraintUnit(property, unit),
   });
 
   if (part === "position") {
@@ -619,13 +553,6 @@ const TransformSectionContent = memo(function TransformSectionContent({
           </SwatchIconToggleButton>
         </div>
       </div>
-
-      {styleValues.isBody && host.pageViewport && (
-        <PageCanvasHeightRow
-          pageViewport={host.pageViewport}
-          selectedId={selectedId}
-        />
-      )}
 
       <div
         className="transform-constraints"

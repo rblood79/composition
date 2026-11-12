@@ -307,7 +307,7 @@ describe("page body = viewport frame + growing content", () => {
     return root.getGeometry([record.id]).get(record.id)!;
   };
 
-  it("keeps a column flex body's children at their size past the frame; the frame stays the page", async () => {
+  it("keeps a column flex body's children at their size past the page; the frame grows with them", async () => {
     const root = await scene(
       [page("home"), page("about")],
       [flexBody(), tall("a"), tall("b"), tall("c"), body("aboutBody")],
@@ -323,14 +323,14 @@ describe("page body = viewport frame + growing content", () => {
       y: 848,
       height: 400,
     });
-    // The frame (clip · scroll range) is the page; the next page is placed below it, not below
-    // the grown content.
+    // The frame is the body as Publish draws it (Height auto — user 2026-11-13): it grows with
+    // the content, and the next page is placed below it.
     const frames = root.pageFrameRects();
     expect(frames.get("project:page:home")).toMatchObject({
-      height: 1080,
+      height: 1248,
       width: 1920,
     });
-    expect(frames.get("project:page:about")?.y).toBe(1180);
+    expect(frames.get("project:page:about")?.y).toBe(1348);
   });
 
   it("fills the frame with a short body (min-height): flex-grow and centering still see the page", async () => {

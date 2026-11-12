@@ -83,10 +83,19 @@ h6 {
 }
 
 /* Preview `baseStyles.ts` 와 같은 확정 높이 — `div.react-aria-Body` 의 generated `min-height: 100%`
-   (catalog body containerStyles) 가 조상 체인을 타고 뷰포트로 풀리려면 html/body 가 definite 여야 한다
-   (2026-09-18 사용자 지시). 아래 #root … .publish-page 는 아직 min-height 뿐이라 체인이 거기서 끊긴다. */
+   (catalog body containerStyles) 와 저작 Height `100%` (Parent) 가 조상 체인을 타고 화면 높이로
+   풀리려면 html/body 부터 page 를 담는 상자까지 definite 여야 한다 (2026-09-18 사용자 지시). #root ·
+   .publish-app · .publish-layout 의 `height: 100%` 가 체인을 잇고, 화면보다 긴 page 는 .publish-content
+   가 스크롤한다 — Builder Canvas 의 page 프레임과 같은 뜻 (2026-11-13 사용자 결정 — Height auto =
+   내용만큼, 100% = 화면 높이). */
 html,
 body {
+  height: 100%;
+}
+
+#root,
+.publish-app,
+.publish-layout {
   height: 100%;
 }
 
