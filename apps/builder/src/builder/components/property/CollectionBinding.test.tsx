@@ -59,6 +59,7 @@ import {
 } from "./CollectionBinding";
 import type { ReactElement, ReactNode } from "react";
 import { I18nProvider } from "@/i18n";
+import { pickPanelSelectOption } from "./__tests__/support/pickPanelSelectOption";
 import * as quickConnectHostModule from "../../panels/datatable/usage/quickConnectHost";
 import * as dataUsageSourceModule from "../../panels/datatable/usage/dataUsageSource";
 
@@ -102,13 +103,9 @@ const renderWithI18n = (ui: ReactElement) =>
     ),
   });
 
-/** 패널 Select 에서 항목을 고른다 — 열고, 그 key 의 항목을 누른다 (닫힌 Select 는 선택 항목만 든다). */
-function pick(select: Element, key: string): void {
-  fireEvent.click(select.querySelector("button")!);
-  fireEvent.click(
-    document.querySelector(`[role="option"][data-key="${key}"]`)!,
-  );
-}
+/** 패널 Select 에서 항목을 고른다 — 그 Select 의 trigger 로 연다. */
+const pick = (select: Element, key: string) =>
+  pickPanelSelectOption(select.querySelector("button")!, key);
 
 describe("CollectionBinding — 죽은 오소링 표면 제거 계약 (2026-07-24)", () => {
   it("갱신 모드 / 갱신 간격 / 데이터 경로 오소링 UI 를 렌더하지 않는다", () => {

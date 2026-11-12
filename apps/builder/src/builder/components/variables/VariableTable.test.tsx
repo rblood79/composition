@@ -17,6 +17,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import userEvent from "@testing-library/user-event";
 import { I18nProvider } from "@/i18n";
+import { pickPanelSelectOption } from "../property/__tests__/support/pickPanelSelectOption";
 import { VariableTable, type VariableTableRow } from "./VariableTable";
 
 const wrap = (node: ReactNode) => (
@@ -576,11 +577,9 @@ describe("VariableTable", () => {
         ?.textContent,
     ).toContain("false");
     // (A closed Select holds its selected item only — open it and pick.)
-    fireEvent.click(
+    pickPanelSelectOption(
       boolRow.querySelector(".variable-row__default .react-aria-Button")!,
-    );
-    fireEvent.click(
-      document.querySelector('[role="option"][data-key="true"]')!,
+      "true",
     );
     expect(h.onDefault).toHaveBeenCalledWith("b", "true");
     expect(

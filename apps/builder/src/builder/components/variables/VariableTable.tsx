@@ -264,6 +264,19 @@ function TypeGlyph({ type }: { type: string }) {
 }
 
 /**
+ * One type in a list — a plain call, not a component, so a closed `PanelSelect` reads its `id`
+ * (`closedItems` sees the item element itself).
+ */
+const typeChoiceItem = (choice: TypeChoice) => (
+  <PanelSelectItem
+    key={choice.value}
+    id={choice.value}
+    label={choice.label}
+    description={choice.description}
+  />
+);
+
+/**
  * A dense row's type picker — the State section's Select, its trigger the panel Select's ▾ box
  * holding the type's icon (사용자 2026-10-29 「select 다운버튼 스타일로 아이콘으로」); the value is
  * the button's hidden text, the list shows icon + name.
@@ -293,14 +306,7 @@ function TypeSelect({
       chevron={<TypeGlyph type={value} />}
       popoverClassName="variable-row__type-popover"
     >
-      {options.map((choice) => (
-        <PanelSelectItem
-          key={choice.value}
-          id={choice.value}
-          label={choice.label}
-          description={choice.description}
-        />
-      ))}
+      {options.map(typeChoiceItem)}
     </PanelSelect>
   );
 }
@@ -477,14 +483,7 @@ function CellListPopover({
           onClose(true);
         }}
       >
-        {options.map((choice) => (
-          <PanelSelectItem
-            key={choice.value}
-            id={choice.value}
-            label={choice.label}
-            description={choice.description}
-          />
-        ))}
+        {options.map(typeChoiceItem)}
       </ListBox>
     </Popover>
   );

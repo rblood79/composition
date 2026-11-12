@@ -994,15 +994,12 @@ export function CatalogCanvas({
           cellsVersion += 1;
         }
         if (!workspace.fillPending && !gestures.active) {
+          // (After a fill, one piece; drags leave pieces too — joined past the limit.)
+          dragEnded = false;
           if (compactAfterSync) {
             compactAfterSync = false;
             scene.compact();
-          }
-          // (Drags leave the buffer in pieces too — joined past the limit.)
-          else {
-            dragEnded = false;
-            scene.compactFragmented();
-          }
+          } else scene.compactFragmented();
         }
         // A page grid edit (gap, columns, direction) moves page frames without a record delta,
         // and a rename changes no drawn record: the headers follow, a moved frame is placed
