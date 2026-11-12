@@ -1,9 +1,3 @@
-import { AvatarSizeField } from "./AvatarSizeField";
-import { GlyphSizeAction, useGlyphSize } from "./glyphSizeAction";
-import { LabeledValueField } from "./LabeledValueField";
-import { SelectionCountField } from "./SelectionCountField";
-import { SelectionKeysField } from "./SelectionKeysField";
-import { AutoFocusField } from "./AutoFocusField";
 /**
  * ADR-912 단계 2 — generic field renderer (HC#1/#2).
  *
@@ -35,7 +29,10 @@ import {
 } from "react";
 
 import type { ResolvedField } from "@composition/shared";
-import type { ItemsManagerField } from "@composition/rendering";
+import type {
+  ItemsManagerField,
+  VisibilityCondition,
+} from "@composition/rendering";
 
 import { PropertyChipGroup } from "../../../components/property/PropertyChipGroup";
 import {
@@ -81,6 +78,13 @@ import {
 import { useI18n } from "../../../../i18n";
 import type { DataBindingValue } from "../../../components/property/CollectionBinding";
 import { evaluateVisibility } from "./evaluateVisibility";
+import { sameStringArray } from "../../../../utils/data/sameStringArray";
+import { AvatarSizeField } from "./AvatarSizeField";
+import { GlyphSizeAction, useGlyphSize } from "./glyphSizeAction";
+import { LabeledValueField } from "./LabeledValueField";
+import { SelectionCountField } from "./SelectionCountField";
+import { SelectionKeysField } from "./SelectionKeysField";
+import { AutoFocusField } from "./AutoFocusField";
 import { ItemsManager } from "./ItemsManager";
 import {
   TEMPLATE_TEXT_KEYS,
@@ -91,6 +95,7 @@ import {
   useFieldVariableName,
   useFieldVariableNames,
   useFieldValue,
+  useSiblingValue,
   useFieldValuesSnapshot,
 } from "./fieldValueSource";
 
@@ -99,7 +104,22 @@ import {
  * `ItemsManager` 가 specs 타입을 요구하므로 builder 레이어에서 변환한다(CatalogInspectorFields
  * 동일 패턴 — catalog types 는 specs 비의존 [[feedback-specs-shared-layer-not-absorption]]).
  */
+// 필드 객체당 1회 — 값 구독으로 `GenericField` 가 다시 그려져도 같은 객체를 넘겨 `ItemsManager` memo 가 산다.
+const itemsManagerFieldCache = new WeakMap<
+  ResolvedField,
+  ItemsManagerField | null
+>();
 function toItemsManagerField(field: ResolvedField): ItemsManagerField | null {
+  let cached = itemsManagerFieldCache.get(field);
+  if (cached === undefined) {
+    cached = buildItemsManagerField(field);
+    itemsManagerFieldCache.set(field, cached);
+  }
+  return cached;
+}
+function buildItemsManagerField(
+  field: ResolvedField,
+): ItemsManagerField | null {
   const im = field.itemsManager;
   if (!im) return null;
   return {
@@ -108,11 +128,10 @@ function toItemsManagerField(field: ResolvedField): ItemsManagerField | null {
     label: field.label,
     itemsKey: im.itemsKey,
     itemTypeName: im.itemTypeName,
+    itemLabel: im.itemLabel,
     defaultItem: im.defaultItem,
     itemSchema: im.itemSchema,
     labelKey: im.labelKey,
-    allowSections: im.allowSections,
-    allowSeparators: im.allowSeparators,
   };
 }
 
@@ -126,11 +145,29 @@ export interface GenericFieldRouting {
   elementId?: string;
 }
 
+/** 필드 한 개 쓰기 — origin 이 write 경로를 고르는 한 곳. */
+function writeField(
+  routing: Pick<GenericFieldRouting, "onSemanticUpdate" | "onStyleUpdate">,
+  field: Pick<ResolvedField, "origin" | "key">,
+  value: unknown,
+): void {
+  if (field.origin === "style") routing.onStyleUpdate(field.key, value);
+  else routing.onSemanticUpdate(field.key, value);
+}
+
+/**
+ * 패널이 받는 필드 — 계약 필드에 패널 쪽 표시를 더할 수 있다. `optionsFromData`: 옵션이 문서 데이터의
+ * 원본 키라 (Chart 의 컬럼 매핑) 번역하지 않고 값 그대로 쓰는 셀렉트 (`literal` 모드).
+ */
+export type PanelField = ResolvedField & { optionsFromData?: boolean };
+
+function isOptionsFromData(field: ResolvedField): boolean {
+  return "optionsFromData" in field && field.optionsFromData === true;
+}
+
 interface GenericFieldRendererProps extends GenericFieldRouting {
   /** caller 가 origin 으로 필터한 필드 (Properties view = semantic / Style view = style). */
-  fields: ResolvedField[];
-  /** enum 옵션이 UI 문구가 아닌 원본 데이터 키인 필드. */
-  literalOptionFields?: readonly string[];
+  fields: readonly PanelField[];
   /**
    * "content" 그룹 선두에 끼워 넣을 비-catalog 컨트롤 (Button 의 Icon/Text 자식 편집 등).
    * catalog 계약으로 표현 불가한 **자식 element 축**이라 별도 컴포넌트가 공급하지만, 사용자에겐
@@ -154,14 +191,6 @@ interface GenericFieldRendererProps extends GenericFieldRouting {
   sectionLeads?: Partial<Record<string, ReactNode>>;
 }
 
-/**
- * 계약 section → 섹션 제목. `state` (isDisabled · selectionMode · href …) 는 「Behavior」 — 같은
- * 패널의 ADR-214 상태 변수 절이 「State」 라 제목이 둘 겹쳤다 (2026-09-15). 나머지는 첫 글자만.
- */
-function sectionTitle(section: string): string {
-  return section === "state" ? "Behavior" : capitalize(section);
-}
-
 interface GenericFieldProps extends GenericFieldRouting {
   field: ResolvedField;
   translateOptions?: boolean;
@@ -170,6 +199,12 @@ interface GenericFieldProps extends GenericFieldRouting {
    * (`PropertySelect.optionValueMode` 주석 참조). 라벨 번역 정책과 독립이다.
    */
   optionValueMode?: "legacy" | "literal";
+  /**
+   * A glyph's Size seg sized off its step (box · font size) — no step is drawn, the row's action
+   * cell's number is (`glyphSizeAction.tsx`). The renderer reads the glyph context once and hands
+   * the flag to size fields only, so a glyph size change re-renders no other field.
+   */
+  glyphCustom?: boolean;
   /** ADR-159 P4a: 소유 collection 컬럼 (없으면 null — 일반 입력). */
   ownerColumns?: string[] | null;
   /** ADR-152 1b: 소유 collection 필드 (key + id) — `{#id}` 저장형 변환. memo 는 ownerColumns 키로 판정 (id 는 key 에 종속). */
@@ -194,15 +229,6 @@ function areOptionsEqual(
   );
 }
 
-function areStringArraysEqual(
-  previous: string[] | null | undefined,
-  next: string[] | null | undefined,
-): boolean {
-  if (previous === next) return true;
-  if (!previous || !next || previous.length !== next.length) return false;
-  return previous.every((value, index) => value === next[index]);
-}
-
 /** currentValue/isOverridden는 leaf hook이 소유하므로 field metadata만 비교한다. */
 function areGenericFieldPropsEqual(
   previous: GenericFieldProps,
@@ -217,7 +243,8 @@ function areGenericFieldPropsEqual(
     previous.onStyleUpdate === next.onStyleUpdate &&
     previous.translateOptions === next.translateOptions &&
     previous.optionValueMode === next.optionValueMode &&
-    areStringArraysEqual(previous.ownerColumns, next.ownerColumns) &&
+    previous.glyphCustom === next.glyphCustom &&
+    sameStringArray(previous.ownerColumns, next.ownerColumns) &&
     a.key === b.key &&
     a.kind === b.kind &&
     a.label === b.label &&
@@ -233,19 +260,18 @@ function areGenericFieldPropsEqual(
 }
 
 /**
- * 필드가 차지하는 폭 — `wide` 는 1·2열 합침 (값이 긴 텍스트 · 목록), `half` 는 한 열 (셀렉트 ·
- * 숫자 · 스위치) 로 두 개가 한 행에 선다 (panel-ui 07, Styles 패널의 「W | H」 행과 같은 격자).
- */
-/**
  * 글자 폭 (px) — 반폭 칸에 값이 들어가는지 판정. canvas measureText (패널 글꼴 12) 가 있으면
  * 그것, 없으면 (jsdom) 글자당 7. 값 자리는 셀렉트 55 (87 − pad 8 − chevron 20 − gap 4).
  */
 let measureCtx: CanvasRenderingContext2D | null | undefined;
+// 상한 — 옵션 라벨에는 사용자 항목 글자도 온다 (그룹 선택 필드). 넘치면 비우고 다시 잰다.
+const TEXT_WIDTH_CACHE_LIMIT = 512;
 const textWidthCache = new Map<string, number>();
 function textWidth(text: string): number {
   const cached = textWidthCache.get(text);
   if (cached !== undefined) return cached;
   const width = measureTextWidth(text);
+  if (textWidthCache.size >= TEXT_WIDTH_CACHE_LIMIT) textWidthCache.clear();
   textWidthCache.set(text, width);
   return width;
 }
@@ -289,7 +315,11 @@ function isSingleChoice(field: ResolvedField): boolean {
   );
 }
 
-/** 필드 객체당 1회 — 정렬 (fieldRank) · 행 패킹 · `data-wide` 가 같은 필드를 거듭 묻는다. */
+/**
+ * 필드가 차지하는 폭 — `wide` 는 1·2열 합침 (값이 긴 텍스트 · 목록), `half` 는 한 열 (셀렉트 ·
+ * 숫자 · 스위치) 로 두 개가 한 행에 선다 (panel-ui 07, Styles 패널의 「W | H」 행과 같은 격자).
+ * 필드 객체당 1회 — 정렬 (fieldRank) · 행 패킹 · `data-wide` 가 같은 필드를 거듭 묻는다.
+ */
 const spanCache = new WeakMap<ResolvedField, "wide" | "half">();
 function fieldSpan(field: ResolvedField): "wide" | "half" {
   const cached = spanCache.get(field);
@@ -329,50 +359,65 @@ function computeFieldSpan(field: ResolvedField): "wide" | "half" {
 }
 
 /**
- * 화면 섹션 — 계약의 `section` 은 필드의 뜻 (분류) 이고, 패널은 함께 편집하는 것을 한 섹션에 모은다
- * (사용자 결정 2026-11-12 「Property 탭 섹션 병합」): Content = 글자 + 모양 (Appearance), Behavior = 동작
- * (`state`) · 검증 · 폼 · 오버레이 · Interaction · 접근성. 행은 아래 표의 분류 순서로 묶음마다 서고 (묶음 안은
- * 한 key 순서 `KEY_ORDER`), 주입 컨트롤 (`sectionExtras`) 도 같은 분류 순서로 섹션 끝에 선다. Validation ·
- * Forms · Overlay 는 섹션이 아니라 분류다 — 필드 하나짜리 접기 헤더를 만들지 않는다.
+ * 화면 섹션 표 — 순서 · 제목 · 분류 묶음을 한 곳에 둔다.
+ *
+ * - **분류 묶음 (`members`)**: 계약의 `section` 은 필드의 뜻 (분류) 이고, 패널은 함께 편집하는 것을 한
+ *   섹션에 모은다 (사용자 결정 2026-11-12 「Property 탭 섹션 병합」): Content = 글자 + 모양 (Appearance),
+ *   Behavior = 동작 (`state`) · 검증 · 폼 · 오버레이 · Interaction · 접근성. 행은 이 분류 순서로 묶음마다
+ *   서고 (묶음 안은 한 key 순서 `KEY_ORDER`), 주입 컨트롤 (`sectionExtras`) 도 같은 분류 순서로 섹션 끝에
+ *   선다. Validation · Forms · Overlay 는 섹션이 아니라 분류다 — 필드 하나짜리 접기 헤더를 만들지 않는다.
+ * - **순서**: 계약의 등장 순서가 컴포넌트마다 달라 (Pagination 은 Appearance → Content, Disclosure 는
+ *   State 가 Appearance 앞) 한 순서로 세운다: Content (글자 · 모양) → Value → Collection → Series (차트) →
+ *   Layout → Behavior → Locale. 표 밖 섹션은 그 뒤에 계약 순서대로. Value 는 컴포넌트가 지금 담고 있는
+ *   것 (값 · 선택 · 열림 · 펼침 — 사용자 결정 2026-11-12 「재배치」) 이라 Content 바로 뒤.
+ * - **제목**: 없으면 key 의 첫 글자만 대문자. `state` (isDisabled · selectionMode · href …) 는 「Behavior」 —
+ *   같은 패널의 ADR-214 상태 변수 절이 「State」 라 제목이 둘 겹쳤다 (2026-09-15).
  */
-const SECTION_MEMBERS: Readonly<Record<string, readonly string[]>> = {
-  content: ["content", "appearance"],
-  state: [
-    "state",
-    "validation",
-    "forms",
-    "overlay",
-    "interaction",
-    "accessibility",
-  ],
-};
-const DISPLAY_SECTION: Readonly<Record<string, string>> = Object.fromEntries(
-  Object.entries(SECTION_MEMBERS).flatMap(([display, members]) =>
-    members.map((member) => [member, display]),
+const DISPLAY_SECTIONS: readonly {
+  key: string;
+  title?: string;
+  members: readonly string[];
+}[] = [
+  { key: "content", members: ["content", "appearance"] },
+  { key: "value", members: ["value"] },
+  { key: "collection", members: ["collection"] },
+  { key: "series", members: ["series"] },
+  { key: "layout", members: ["layout"] },
+  {
+    key: "state",
+    title: "Behavior",
+    members: [
+      "state",
+      "validation",
+      "forms",
+      "overlay",
+      "interaction",
+      "accessibility",
+    ],
+  },
+  { key: "locale", members: ["locale"] },
+];
+const DISPLAY_SECTION_BY_KEY = new Map(
+  DISPLAY_SECTIONS.map((entry, rank) => [entry.key, { ...entry, rank }]),
+);
+const DISPLAY_SECTION_OF_MEMBER: ReadonlyMap<string, string> = new Map(
+  DISPLAY_SECTIONS.flatMap(({ key, members }) =>
+    members.map((member) => [member, key] as const),
   ),
 );
+/** 분류 → 화면 섹션 (표 밖 분류는 그대로 자기 섹션). */
 function displaySection(section: string): string {
-  return DISPLAY_SECTION[section] ?? section;
+  return DISPLAY_SECTION_OF_MEMBER.get(section) ?? section;
 }
-
-/**
- * 섹션 순서 — 계약의 등장 순서가 컴포넌트마다 달라 (Pagination 은 Appearance → Content, Disclosure 는
- * State 가 Appearance 앞) 한 순서로 세운다: Content (글자 · 모양) → Value → Collection → Series (차트) →
- * Layout → Behavior → Locale. 표 밖 섹션은 그 뒤에 계약 순서대로. Value 는 컴포넌트가 지금 담고 있는
- * 것 (값 · 선택 · 열림 · 펼침 — 사용자 결정 2026-11-12 「재배치」) 이라 Content 바로 뒤.
- */
-const SECTION_ORDER: readonly string[] = [
-  "content",
-  "value",
-  "collection",
-  "series",
-  "layout",
-  "state",
-  "locale",
-];
+/** 화면 섹션의 분류 순서 — 표 밖 섹션은 없음 (계약 순서 그대로). */
+function sectionMembers(section: string): readonly string[] | undefined {
+  return DISPLAY_SECTION_BY_KEY.get(section)?.members;
+}
 function sectionRank(section: string): number {
-  const i = SECTION_ORDER.indexOf(section);
-  return i === -1 ? SECTION_ORDER.length : i;
+  return DISPLAY_SECTION_BY_KEY.get(section)?.rank ?? DISPLAY_SECTIONS.length;
+}
+function sectionTitle(section: string): string {
+  return DISPLAY_SECTION_BY_KEY.get(section)?.title ?? capitalize(section);
 }
 
 /**
@@ -528,7 +573,6 @@ function sortFields(fields: readonly ResolvedField[]): ResolvedField[] {
   return out;
 }
 
-/** 연속한 half 필드 둘을 한 행으로 묶는다. wide 는 행 하나를 혼자 쓴다. */
 /**
  * 행 끝 28 열의 「기본값으로」 액션 (2026-09-16 사용자 지시 — 옵션 편의성). 행의 필드 중
  * catalog 기본값 (`baseValue`) 이 있고 현재 값이 그와 다른 것이 하나라도 있으면 서고, 누르면
@@ -559,7 +603,8 @@ function differs(a: unknown, b: unknown): boolean {
 
 const ResetIcon = ACTION_ICONS.reset;
 
-function FieldRowResetAction({
+// memo — 행 배열은 `layoutSections` memo 안에서 같은 참조라 렌더러가 다시 그려도 건너뛴다.
+const FieldRowResetAction = memo(function FieldRowResetAction({
   row,
   elementId,
   onSemanticUpdate,
@@ -589,8 +634,7 @@ function FieldRowResetAction({
   const label = t("propertiesPanel.resetField", { labels });
   const reset = () => {
     for (const field of dirty) {
-      if (field.origin === "style") onStyleUpdate(field.key, field.baseValue);
-      else onSemanticUpdate(field.key, field.baseValue);
+      writeField({ onSemanticUpdate, onStyleUpdate }, field, field.baseValue);
     }
   };
   return (
@@ -606,9 +650,10 @@ function FieldRowResetAction({
       </ActionTooltipTrigger>
     </div>
   );
-}
+});
 
 const isHalfField = (field: ResolvedField) => fieldSpan(field) === "half";
+/** 연속한 half 필드 둘을 한 행으로 묶는다. wide 는 행 하나를 혼자 쓴다. */
 function packFieldRows(fields: readonly ResolvedField[]): ResolvedField[][] {
   return packHalfRows(fields, isHalfField);
 }
@@ -631,24 +676,9 @@ function BoundValueSlider({
   numeric: number | undefined;
   onChange: (value: unknown) => void;
 }) {
-  const boundMin = useFieldValue(
-    elementId,
-    field.origin,
-    editor.minKey,
-    undefined,
-  );
-  const boundMax = useFieldValue(
-    elementId,
-    field.origin,
-    editor.maxKey,
-    undefined,
-  );
-  const boundStep = useFieldValue(
-    elementId,
-    field.origin,
-    editor.stepKey,
-    undefined,
-  );
+  const boundMin = useSiblingValue(elementId, field, editor.minKey);
+  const boundMax = useSiblingValue(elementId, field, editor.maxKey);
+  const boundStep = useSiblingValue(elementId, field, editor.stepKey);
   const min = typeof boundMin === "number" ? boundMin : 0;
   const max = typeof boundMax === "number" ? boundMax : 100;
   const step = typeof boundStep === "number" && boundStep > 0 ? boundStep : 1;
@@ -667,10 +697,23 @@ function BoundValueSlider({
       />
     );
   }
+  return <FieldStepper field={field} value={numeric} onChange={onChange} />;
+}
+
+/** 숫자 필드의 스텝퍼 — 계약의 min · max · step. */
+function FieldStepper({
+  field,
+  value,
+  onChange,
+}: {
+  field: ResolvedField;
+  value: number | undefined;
+  onChange: (value: unknown) => void;
+}) {
   return (
     <PropertyNumberInput
       label={field.label}
-      value={numeric}
+      value={value}
       onChange={(val) => onChange(val)}
       min={field.min}
       max={field.max}
@@ -698,19 +741,9 @@ const ColumnSizeField = memo(function ColumnSizeField({
   onChange: (value: unknown) => void;
   notApplied: string;
 }) {
-  const width = useFieldValue(elementId, field.origin, "width", undefined);
-  const minWidth = useFieldValue(
-    elementId,
-    field.origin,
-    "minWidth",
-    undefined,
-  );
-  const maxWidth = useFieldValue(
-    elementId,
-    field.origin,
-    "maxWidth",
-    undefined,
-  );
+  const width = useSiblingValue(elementId, field, "width");
+  const minWidth = useSiblingValue(elementId, field, "minWidth");
+  const maxWidth = useSiblingValue(elementId, field, "maxWidth");
   const ignored =
     catalogColumnTrack({ props: { width, minWidth, maxWidth } }).ignored ?? [];
   return (
@@ -785,6 +818,10 @@ const RacColorField = memo(function RacColorField({
 
 const DURATION_UNITS = ["days", "weeks", "months"] as const;
 type DurationUnit = (typeof DURATION_UNITS)[number];
+const DURATION_OPTIONS = DURATION_UNITS.map((unit) => ({
+  value: unit,
+  label: capitalize(unit),
+}));
 
 /**
  * ADR-256 Phase 9 — a Calendar's `visibleDuration` (RAC, the reference's Display options): a count
@@ -831,11 +868,7 @@ const CalendarDurationField = memo(function CalendarDurationField({
           if ((DURATION_UNITS as readonly string[]).includes(next))
             write({ [next]: count });
         }}
-        options={[
-          { value: "days", label: "Days" },
-          { value: "weeks", label: "Weeks" },
-          { value: "months", label: "Months" },
-        ]}
+        options={DURATION_OPTIONS}
       />
     </>
   );
@@ -847,7 +880,6 @@ const CalendarDurationField = memo(function CalendarDurationField({
  */
 const DateKindField = lazy(() => import("./DateKindField"));
 
-/** 단일 필드 — canonical scalar 구독 + kind switch + origin 라우팅. */
 /** A prop value that reads a variable (ADR-284 Phase 6 — `{ kind: "var" }` · `{ kind: "when" }`). */
 const isVariableFollow = (value: unknown): boolean =>
   isPropVar(value) || isPropWhen(value);
@@ -881,6 +913,7 @@ function VariableFollowField({
   );
 }
 
+/** 단일 필드 — canonical scalar 구독 + kind switch + origin 라우팅. */
 const GenericField = memo(function GenericField({
   field,
   onSemanticUpdate,
@@ -890,6 +923,7 @@ const GenericField = memo(function GenericField({
   ownerFields,
   translateOptions,
   optionValueMode,
+  glyphCustom,
   stateNames,
 }: GenericFieldProps) {
   const value = useFieldValue(
@@ -899,13 +933,10 @@ const GenericField = memo(function GenericField({
     field.baseValue,
   );
   // origin 단일 진실로 write 분기 (semantic → props / style → props.style).
-  const update = (v: unknown) => {
-    if (field.origin === "style") onStyleUpdate(field.key, v);
-    else onSemanticUpdate(field.key, v);
-  };
+  const update = (v: unknown) =>
+    writeField({ onSemanticUpdate, onStyleUpdate }, field, v);
 
   const { t } = useI18n();
-  const glyphSize = useGlyphSize();
 
   if (isVariableFollow(value))
     return <VariableFollowField label={field.label} value={value} />;
@@ -969,8 +1000,6 @@ const GenericField = memo(function GenericField({
           field.kind === "size" ? sizeSegOptions(options) : options;
         const currentLabel =
           options.find((o) => o.value === current)?.label ?? current;
-        // A glyph sized off its step (box · font size): no step is drawn — the action cell's number is.
-        const glyphCustom = field.kind === "size" && glyphSize?.custom === true;
         return (
           <PropertySegment
             label={field.label}
@@ -1212,16 +1241,7 @@ const GenericField = memo(function GenericField({
           />
         );
       }
-      return (
-        <PropertyNumberInput
-          label={field.label}
-          value={numeric}
-          onChange={(val) => update(val)}
-          min={field.min}
-          max={field.max}
-          step={field.step}
-        />
-      );
+      return <FieldStepper field={field} value={numeric} onChange={update} />;
     }
 
     case "icon":
@@ -1234,32 +1254,27 @@ const GenericField = memo(function GenericField({
         />
       );
 
-    // "binding" — collection data binding.
-    //   field.key === "dataBinding": 외부 데이터 소스(dataTable/api/variable/route) 연결
-    //     UI(CollectionBinding)를 렌더 — ADR-912 catalog cutover 로 누락된 RSP Dynamic
-    //     collections 진입점 복원. CatalogInspectorFields 와 동일 처리.
-    //   그 외 binding(items 등): 의도적 Inspector no-op(toRacProps 통과 전용) → null.
+    // "binding" — collection data binding (`dataBinding` — catalog 의 binding 선언은 이것 하나):
+    //   외부 데이터 소스(dataTable/api/variable/route) 연결 UI(CollectionBinding) — ADR-912
+    //   catalog cutover 로 누락된 RSP Dynamic collections 진입점 복원.
     case "binding":
-      if (field.key === "dataBinding") {
-        // fieldset (1·2열) + 행 끝 28 열의 연결 해제 · 새 테이블 아이콘 — 같은 `.fieldset-row` 의
-        // 형제라 fragment 로 둘을 낸다 (Attributes ID 행의 복사 아이콘과 같은 자리).
-        return (
-          <>
-            <CollectionBinding
-              label={field.label}
-              value={(value as DataBindingValue | null | undefined) ?? null}
-              onChange={(v) => update(v)}
-              elementId={elementId}
-            />
-            <CollectionBindingActions
-              elementId={elementId}
-              onClear={value ? () => update(null) : undefined}
-              showCreate={field.section !== "collection"}
-            />
-          </>
-        );
-      }
-      return null;
+      // fieldset (1·2열) + 행 끝 28 열의 연결 해제 · 새 테이블 아이콘 — 같은 `.fieldset-row` 의
+      // 형제라 fragment 로 둘을 낸다 (Attributes ID 행의 복사 아이콘과 같은 자리).
+      return (
+        <>
+          <CollectionBinding
+            label={field.label}
+            value={(value as DataBindingValue | null | undefined) ?? null}
+            onChange={(v) => update(v)}
+            elementId={elementId}
+          />
+          <CollectionBindingActions
+            elementId={elementId}
+            onClear={value ? () => update(null) : undefined}
+            showCreate={!createsInHeader(displaySection(fieldCategory(field)))}
+          />
+        </>
+      );
 
     // "items-manager" — collection 정적 items 배열 추가/제거 UI(ItemsManager).
     //   ADR-912 catalog cutover 로 누락된 RSP Dynamic collections 정적 편집 진입점 복원.
@@ -1344,8 +1359,7 @@ const ChipGroupField = memo(function ChipGroupField({
           : on || field.baseValue !== undefined
             ? on
             : undefined;
-      if (field.origin === "style") onStyleUpdate(key, next);
-      else onSemanticUpdate(key, next);
+      writeField({ onSemanticUpdate, onStyleUpdate }, field, next);
     },
     [editors, fields, onSemanticUpdate, onStyleUpdate],
   );
@@ -1419,14 +1433,14 @@ function mergeSectionExtras(
   for (const [section, extras] of Object.entries(sectionExtras ?? {})) {
     if (extras == null) continue;
     const display = displaySection(section);
-    bySection.set(display, [
-      ...(bySection.get(display) ?? []),
-      [section, extras],
-    ]);
+    const entries = bySection.get(display);
+    if (entries) entries.push([section, extras]);
+    else bySection.set(display, [[section, extras]]);
   }
+  // 한 개여도 같은 모양 (keyed Fragment 목록) — 같은 섹션에 둘째 분류가 붙었다 떨어져도 첫 컨트롤이
+  //   remount 되지 않는다.
   return Array.from(bySection.entries()).map(([display, entries]) => {
-    if (entries.length === 1) return [display, entries[0]![1]];
-    const members = SECTION_MEMBERS[display] ?? [];
+    const members = sectionMembers(display) ?? [];
     const ordered = [...entries].sort(
       ([a], [b]) => members.indexOf(a) - members.indexOf(b),
     );
@@ -1439,8 +1453,34 @@ function mergeSectionExtras(
   });
 }
 
+/**
+ * 행 배치가 기본 (`.fieldset-row` · 전폭이면 `data-wide`) 과 다른 kind:
+ * - `bare` — 행 래퍼 없이 스스로 행을 그린다. 목록 (items) 은 전폭 217 에 행의 액션 그룹이 28 열을
+ *   쓰고 (Fill 행과 같음), 숫자 형식은 형식 · 그 형식의 키를 제 행들로 낸다.
+ * - `pair` — 한 필드가 두 칸을 제 반쪽 둘로 채운다 (기간 = 개수 · 단위) — 행은 전폭이되 `data-wide` 없음.
+ */
+const ROW_LAYOUT: Partial<Record<ResolvedField["kind"], "bare" | "pair">> = {
+  "items-manager": "bare",
+  "number-format": "bare",
+  "calendar-duration": "pair",
+};
+
+/**
+ * 「새 테이블」 을 섹션 머리에 두는 화면 섹션 — Collection 은 Data source 가 섹션 첫 행이라 머리에, 그 밖
+ * (Form 의 Content) 은 원천 행 끝 28 열에 둔다. 필드 (`showCreate`) 와 섹션 (`actions`) 이 이 한 판정을 읽는다.
+ */
+function createsInHeader(section: string): boolean {
+  return section === "collection";
+}
+
+/** 데이터 원천 (Data source) — catalog 의 binding 선언은 `dataBinding` 하나다. */
 function isDataSourceField(field: ResolvedField): boolean {
-  return field.kind === "binding" && field.key === "dataBinding";
+  return field.kind === "binding";
+}
+
+/** 필드의 분류 (계약 `section`) — 화면 섹션은 `displaySection` 이 이것을 모은다. */
+function fieldCategory(field: ResolvedField): string {
+  return field.section || "content";
 }
 
 interface SectionLayout {
@@ -1453,10 +1493,61 @@ interface SectionLayout {
   dependents: ResolvedField[][];
 }
 
+/** 섹션에 계약 필드가 그리는 본문이 있는가 (원천 · 행 · 칩 · 종속 행). */
+function hasContractRows(layout: SectionLayout): boolean {
+  return (
+    layout.sourceRows.length > 0 ||
+    layout.rows.length > 0 ||
+    layout.chipGroups.length > 0 ||
+    layout.dependents.length > 0
+  );
+}
+
+/** `visibleWhen` 이 읽는 키 (`a.b` 는 `a`) — 이 키의 값이 바뀌면 배치가 바뀐다. */
+function collectGateKeys(
+  condition: VisibilityCondition | undefined,
+  out: Set<string>,
+): void {
+  if (!condition) return;
+  if (condition.key) out.add(condition.key.split(".")[0]!);
+  for (const part of condition.all ?? []) collectGateKeys(part, out);
+}
+
 /**
- * 계약 필드 → 섹션별 행 배치. 순수 함수 — 렌더러가 `fields` · extras 섹션 키로 memo 한다
- * (계약이 재해석되지 않은 편집에서는 정렬·패킹·칩 분리를 다시 돌리지 않고, 칩 묶음 배열 참조가
- * 유지돼 `ChipGroupField` memo 가 산다).
+ * 배치가 읽는 것만 담은 필드 목록의 서명 — 메타데이터 (`areGenericFieldPropsEqual` 이 보는 축 +
+ * `visibleWhen` · `editorHidden`) 와 게이트 키의 현재 값. 계약은 편집마다 새 배열이라 참조로 memo 하면
+ * 매 commit 정렬 · 패킹 · 칩 분리를 다시 돌리고 칩 묶음 배열이 바뀌어 `ChipGroupField` memo 가 죽는다.
+ * 서명이 같으면 앞 배치 (앞 필드 객체) 를 그대로 쓴다 — 값 (`currentValue` · `isOverridden`) 은
+ * 필드 leaf 의 구독이 소유하므로 앞 객체로 충분하다.
+ */
+function layoutSignature(fields: readonly ResolvedField[]): string {
+  const gateKeys = new Set<string>();
+  for (const field of fields) collectGateKeys(field.visibleWhen, gateKeys);
+  return JSON.stringify(
+    fields.map((field) => [
+      field.key,
+      field.kind,
+      field.label,
+      field.section,
+      field.origin,
+      field.baseValue,
+      field.min,
+      field.max,
+      field.step,
+      field.options,
+      field.itemsManager,
+      field.visibleWhen,
+      field.editorHidden,
+      isOptionsFromData(field),
+      gateKeys.has(field.key) ? field.currentValue : null,
+    ]),
+  );
+}
+
+/**
+ * 계약 필드 → 섹션별 행 배치. 순수 함수 — 렌더러가 `layoutSignature` · extras 섹션 키로 memo 한다
+ * (배치 축이 같은 편집에서는 정렬·패킹·칩 분리를 다시 돌리지 않고, 칩 묶음 배열 참조가 유지돼
+ * `ChipGroupField` memo 가 산다).
  */
 function layoutSections(
   fields: readonly ResolvedField[],
@@ -1469,9 +1560,8 @@ function layoutSections(
    * 가 되어 `oneOf` 가 전부 거짓이 되고, 그 종류의 유효한 필드가 통째로 사라진다 (R7).
    * 계약이 이미 `override ?? default` 를 해소해 두었으므로 그것을 그대로 읽는다.
    *
-   * 같은 계약 안의 형제 필드만 본다 — 조건 키가 계약 밖이면 `undefined` 로 판정되고,
-   * `parentTag` 축은 이 경로에 입력이 없다(현재 선언 0건). 둘 다 생기면 조건을 추가하기
-   * 전에 입력부터 잇는다.
+   * 같은 계약 안의 형제 필드만 본다 — 조건 키가 계약 밖이면 `undefined` 로 판정된다. 계약 밖
+   * 입력 (부모 종류 등) 으로 가르는 조건이 필요해지면 조건 축을 더하기 전에 입력부터 잇는다.
    */
   const conditionValues: Record<string, unknown> = {};
   for (const field of fields) conditionValues[field.key] = field.currentValue;
@@ -1483,14 +1573,12 @@ function layoutSections(
   //   `editorHidden`) 도 catalog 가 정한 자리에 선다. 빈 그룹은 extras 가 없으면 렌더하지 않는다.
   const groups = new Map<string, ResolvedField[]>();
   for (const field of fields) {
-    const section = displaySection(field.section || "content");
+    const section = displaySection(fieldCategory(field));
     const bucket = groups.get(section) ?? [];
     if (!groups.has(section)) groups.set(section, bucket);
     if (
       field.editorHidden ||
       !evaluateVisibility(field.visibleWhen, conditionValues) ||
-      // binding(items 등) 은 Inspector no-op — 행을 만들면 빈 8px 간격만 남는다
-      (field.kind === "binding" && !isDataSourceField(field)) ||
       isSingleChoice(field)
     )
       continue;
@@ -1513,12 +1601,10 @@ function layoutSections(
       const { rows, chipGroups, dependents } = splitChipFields(sectionFields);
       // 병합 섹션의 행은 분류 묶음 순서 (Behavior: 동작 → 검증 → 폼 → 오버레이 → Interaction → 접근성) 로,
       //   묶음 안은 한 key 순서. 반폭 짝은 묶음을 넘지 않는다. 칩은 섹션당 한 묶음 그대로.
-      const members = SECTION_MEMBERS[section];
+      const members = sectionMembers(section);
       const packed = members
         ? members.flatMap((member) =>
-            pack(
-              rows.filter((field) => (field.section || "content") === member),
-            ),
+            pack(rows.filter((field) => fieldCategory(field) === member)),
           )
         : pack(rows);
       // 데이터 원천 (Data source) 이 섹션 첫 행 — 매핑 · 필터가 그 원천을 읽는다.
@@ -1549,7 +1635,6 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
   contentExtras,
   sectionExtras,
   sectionLeads,
-  literalOptionFields,
 }: GenericFieldRendererProps) {
   // ADR-159 P4a: 조상(또는 master 소비자) collection 소유자의 컬럼 — 필드 피커 소스.
   const ownerFields = useFieldOwnerFields(elementId);
@@ -1567,79 +1652,54 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
   // 앞머리 컨트롤도 꼬리와 같이 분류 key → 화면 섹션으로 모으고, 그것만으로 섹션을 연다.
   const leadSections = mergeSectionExtras(sectionLeads);
   const extraSectionsKey = [
-    ...new Set(
-      [...extraSections, ...leadSections].map(([section]) => section),
-    ),
+    ...new Set([...extraSections, ...leadSections].map(([section]) => section)),
   ].join("|");
+  const signature = layoutSignature(fields);
   const sections = useMemo(
     () =>
       layoutSections(
         fields,
         extraSectionsKey === "" ? [] : extraSectionsKey.split("|"),
       ),
-    [fields, extraSectionsKey],
+    // fields 는 계약마다 새 배열 — 실제 의존은 배치 서명이다 (`layoutSignature`).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [signature, extraSectionsKey],
   );
 
-  if (fields.length === 0) {
-    // 계약 필드가 0 이어도 주입 컨트롤이 있으면 그것만 섹션 순서대로 렌더한다 (frame — 고정 섹션의
-    //   Slot · Accessibility 가 Content · Behavior 에 선다).
-    if (contentExtras == null && extraSections.length === 0) return null;
-    const head = contentExtras != null ? contentExtras : null;
-    const ordered = [...extraSections].sort(
-      ([a], [b]) => sectionRank(a) - sectionRank(b),
-    );
-    return (
-      <>
-        {head != null &&
-          !ordered.some(([section]) => section === "content") && (
-            <PropertySection title="Content">{head}</PropertySection>
-          )}
-        {ordered.map(([section, extras]) => (
-          <PropertySection
-            key={section}
-            title={sectionTitle(section)}
-            className={
-              section === "content" && head != null
-                ? undefined
-                : EXTRAS_ONLY_SECTION
-            }
-          >
-            {section === "content" ? head : null}
-            {extras}
-          </PropertySection>
-        ))}
-      </>
-    );
-  }
-
+  // 계약 필드가 0 이어도 주입 컨트롤이 있으면 그것만 섹션 순서대로 렌더한다 (frame — 고정 섹션의
+  //   Slot · Accessibility 가 Content · Behavior 에 선다) — `layoutSections` 가 extras 키만으로
+  //   빈 섹션을 세우므로 같은 경로다.
   const extrasBySection = new Map(extraSections);
   const leadsBySection = new Map(leadSections);
   // 주입 컨트롤은 content 그룹 선두. content 그룹이 없으면 Content 섹션을 앞에 만든다.
   const contentLayout = sections.find((s) => s.section === "content");
   const hasContentGroup =
     contentLayout != null &&
-    (contentLayout.sourceRows.length > 0 ||
-      contentLayout.rows.length > 0 ||
-      contentLayout.chipGroups.length > 0 ||
-      contentLayout.dependents.length > 0 ||
-      extrasBySection.has("content"));
+    (hasContractRows(contentLayout) || extrasBySection.has("content"));
+
+  const renderField = (
+    field: ResolvedField,
+    literal = isOptionsFromData(field),
+  ) => (
+    <GenericField
+      key={`${field.origin}:${field.key}`}
+      field={field}
+      onSemanticUpdate={onSemanticUpdate}
+      onStyleUpdate={onStyleUpdate}
+      elementId={elementId}
+      ownerColumns={ownerColumns}
+      ownerFields={ownerFields}
+      stateNames={stateNames}
+      translateOptions={!literal}
+      optionValueMode={literal ? "literal" : "legacy"}
+      glyphCustom={field.kind === "size" && glyphSize?.custom === true}
+    />
+  );
 
   const renderRows = (packed: readonly ResolvedField[][]) =>
     packed.map((row) =>
-      // 목록 (items) 은 행 래퍼 없이 전폭 217 — 행의 액션 그룹이 28 열을 쓴다 (Fill 행과 같음)
-      // (A number format lays out its own rows — style, then that style's keys.)
-      row.length === 1 &&
-      (row[0]!.kind === "items-manager" || row[0]!.kind === "number-format") ? (
-        <GenericField
-          key={`${row[0]!.origin}:${row[0]!.key}`}
-          field={row[0]!}
-          onSemanticUpdate={onSemanticUpdate}
-          onStyleUpdate={onStyleUpdate}
-          elementId={elementId}
-          ownerColumns={ownerColumns}
-          ownerFields={ownerFields}
-          stateNames={stateNames}
-        />
+      row.length === 1 && ROW_LAYOUT[row[0]!.kind] === "bare" ? (
+        renderField(row[0]!)
       ) : (
         // 행 key 는 첫 필드 — 게이트가 종속 필드를 드러내 행 구성이 바뀌어도
         //   (Label Position → Label Align 이 옆 칸에 합류) 행과 게이트 seg 가 살아
@@ -1651,30 +1711,14 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
           key={`${row[0]!.origin}:${row[0]!.key}`}
           className="fieldset-row"
           data-wide={
-            // (A calendar duration fills its row with its own two halves — count · unit.)
             row.length === 1 &&
             fieldSpan(row[0]!) === "wide" &&
-            row[0]!.kind !== "calendar-duration"
+            ROW_LAYOUT[row[0]!.kind] !== "pair"
               ? "true"
               : undefined
           }
         >
-          {row.map((field) => (
-            <GenericField
-              key={`${field.origin}:${field.key}`}
-              field={field}
-              onSemanticUpdate={onSemanticUpdate}
-              onStyleUpdate={onStyleUpdate}
-              elementId={elementId}
-              ownerColumns={ownerColumns}
-              ownerFields={ownerFields}
-              stateNames={stateNames}
-              translateOptions={!literalOptionFields?.includes(field.key)}
-              optionValueMode={
-                literalOptionFields?.includes(field.key) ? "literal" : "legacy"
-              }
-            />
-          ))}
+          {row.map((field) => renderField(field))}
           {glyphSize && row.some((field) => field.kind === "size") ? (
             <GlyphSizeAction source={glyphSize} />
           ) : (
@@ -1694,19 +1738,15 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
       {contentExtras != null && !hasContentGroup && (
         <PropertySection title="Content">{contentExtras}</PropertySection>
       )}
-      {sections.map(({ section, sourceRows, rows, chipGroups, dependents }) => {
+      {sections.map((layout) => {
+        const { section, sourceRows, rows, chipGroups, dependents } = layout;
         const tail = extrasBySection.get(section);
         const lead = leadsBySection.get(section) ?? null;
         const head =
           section === "content" && hasContentGroup ? contentExtras : null;
         // 계약 행 · 앞머리 · 머리가 없으면 꼬리 (주입 컨트롤) 만 든 섹션이다.
         const extrasOnly =
-          sourceRows.length === 0 &&
-          rows.length === 0 &&
-          chipGroups.length === 0 &&
-          dependents.length === 0 &&
-          lead == null &&
-          head == null;
+          !hasContractRows(layout) && lead == null && head == null;
         if (extrasOnly && tail == null) return null;
         return (
           <PropertySection
@@ -1714,8 +1754,7 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
             title={sectionTitle(section)}
             className={extrasOnly ? EXTRAS_ONLY_SECTION : undefined}
             actions={
-              section === "collection" &&
-              sourceRows.length > 0 ? (
+              createsInHeader(section) && sourceRows.length > 0 ? (
                 <CollectionBindingCreateAction elementId={elementId} inHeader />
               ) : undefined
             }

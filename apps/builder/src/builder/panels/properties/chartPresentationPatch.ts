@@ -14,6 +14,7 @@ import type { ChartSeriesConfig } from "@composition/rendering";
 import { resolveBoundCollection } from "@composition/shared";
 
 import type { DataTable } from "../../../types/builder/data.types";
+import { sameStringArray } from "../../../utils/data/sameStringArray";
 
 export type ChartColumnType = "number" | "text" | "unknown";
 
@@ -73,11 +74,6 @@ export function chartColumnCandidates(
     return Object.keys(data[0]).map((key) => ({ key, type: "unknown" }));
   }
   return null;
-}
-
-export function sameStringArray(a: unknown, b: unknown): boolean {
-  if (!Array.isArray(a) || !Array.isArray(b)) return a === b;
-  return a.length === b.length && a.every((item, i) => item === b[i]);
 }
 
 function sameEntry(a: unknown, b: unknown): boolean {

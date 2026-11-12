@@ -196,7 +196,6 @@ const catalog: TranslationKeys = {
     expand: "펼치기",
     collapse: "접기",
     removeItem: "항목 삭제",
-    addSection: "섹션 추가",
   },
   common: {
     save: "저장",

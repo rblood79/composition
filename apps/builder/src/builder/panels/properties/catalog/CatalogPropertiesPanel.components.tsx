@@ -615,7 +615,6 @@ const CatalogFields = memo(function CatalogFields({
   const renderer = (
     <GenericFieldRenderer
       fields={extras.fields}
-      literalOptionFields={extras.literalOptionFields}
       onSemanticUpdate={handleSemanticUpdate}
       onStyleUpdate={handleStyleUpdate}
       elementId={elementId}

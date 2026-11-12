@@ -3,14 +3,11 @@ import type { VisibilityCondition } from "@composition/rendering";
 export function evaluateVisibility(
   condition: VisibilityCondition | undefined,
   currentProps: Record<string, unknown>,
-  parentTag?: string,
 ): boolean {
   if (!condition) return true;
   if (
     condition.all &&
-    !condition.all.every((part) =>
-      evaluateVisibility(part, currentProps, parentTag),
-    )
+    !condition.all.every((part) => evaluateVisibility(part, currentProps))
   )
     return false;
 
@@ -45,17 +42,6 @@ export function evaluateVisibility(
   }
 
   if (condition.truthy === false && Boolean(value)) {
-    return false;
-  }
-
-  if (condition.parentTag !== undefined && parentTag !== condition.parentTag) {
-    return false;
-  }
-
-  if (
-    condition.parentTagNot !== undefined &&
-    parentTag === condition.parentTagNot
-  ) {
     return false;
   }
 

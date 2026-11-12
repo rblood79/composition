@@ -1128,7 +1128,6 @@ export interface TranslationKeys {
   itemsManager: {
     total: string;
     addItem: string;
-    addSection: string;
     expand: string;
     collapse: string;
     removeItem: string;

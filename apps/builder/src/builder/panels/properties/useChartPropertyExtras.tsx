@@ -21,6 +21,7 @@ import { ChartAuthoringControls } from "./ChartAuthoringControls";
 import { ChartBudgetControls } from "./ChartBudgetControls";
 import { ChartDataMappingControls } from "./ChartDataMappingControls";
 import { buildChartSemanticFields } from "./chartFieldOptions";
+import type { PanelField } from "./generic/GenericFieldRenderer";
 import { ChartNumberFormatControls } from "./ChartNumberFormatControls";
 import {
   chartColumnCandidates,
@@ -69,16 +70,14 @@ const CHART_CONTROL_FIELD_KEYS: ReadonlySet<string> = new Set([
 ]);
 const EMPTY_FIELDS: ResolvedField[] = [];
 const EMPTY_ROWS: readonly ChartRow[] = [];
-const LITERAL_OPTION_FIELDS = ["dimension", "metric", "color"];
 
 export interface ChartPropertyExtras {
   /** The fields to render (a Chart's options filled from its data). */
-  fields: ResolvedField[];
+  fields: PanelField[];
   contentExtras: ReactNode;
   sectionExtras?: Record<string, ReactNode>;
   /** Controls at a section's start, after its Data source (a Chart's mode · value fields · time axis). */
   sectionLeads?: Record<string, ReactNode>;
-  literalOptionFields?: string[];
 }
 
 /**
@@ -210,7 +209,6 @@ export function useChartPropertyExtras({
   );
   return {
     fields: semanticFields,
-    literalOptionFields: LITERAL_OPTION_FIELDS,
     contentExtras: (
       <>
         {contentExtras}

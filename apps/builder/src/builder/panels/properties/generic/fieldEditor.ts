@@ -11,7 +11,7 @@
  * - 배타 2~4 짧은 값 enum · fillStyle · 이진 variant → 텍스트 seg (2~3 반폭 · 4 전폭)
  * - size → seg, 최대 5단 (초과 단계는 Styles 패널 font-size 로) · 2~3 반폭 · 4~5 전폭
  * - 의미색 variant ≤4 → seg + 색 점 · 5+ → 셀렉트 + 색 점 · staticColor → 스와치 seg
- * - 상한 있는 number → 슬라이더 (표의 범위) · 상한 없는 number → 스텝퍼 (NumberField)
+ * - 상한 있는 number → 슬라이더 (계약의 min · max · step · unit) · 상한 없는 number → 스텝퍼 (NumberField)
  * - 5+ · 긴 라벨 · 도메인 enum → 셀렉트 유지
  */
 import type { ResolvedField } from "@composition/shared";
@@ -77,10 +77,7 @@ export type FieldEditor =
       onValue?: string;
       offValue?: string;
     }
-  | { type: "input" }
-  | { type: "icon" }
-  | { type: "binding" }
-  | { type: "items-manager" };
+  | { type: "input" };
 
 /** size seg 상한 — 초과 단계 (Text 의 2XL · 3XL) 는 Styles 패널 font-size 로 편집한다. */
 export const SIZE_MAX_STEPS = 5;
@@ -151,27 +148,15 @@ export const VARIANT_SWATCH: Readonly<Record<string, string>> = {
 };
 
 /** Spectrum 색 이름 — `VARIANT_SWATCH` 의 `--hue-*` 항목 중 의미 별칭 (premium · genai) 을 뺀 것. */
-export const HUE_VARIANT_NAMES: ReadonlySet<string> = new Set([
-  "gray",
-  "red",
-  "orange",
-  "yellow",
-  "green",
-  "blue",
-  "purple",
-  "indigo",
-  "cyan",
-  "pink",
-  "turquoise",
-  "fuchsia",
-  "magenta",
-  "chartreuse",
-  "celery",
-  "seafoam",
-  "brown",
-  "cinnamon",
-  "silver",
-]);
+const HUE_ALIASES: ReadonlySet<string> = new Set(["premium", "genai"]);
+const HUE_VARIANT_NAMES: ReadonlySet<string> = new Set(
+  Object.entries(VARIANT_SWATCH)
+    .filter(
+      ([name, color]) =>
+        color.startsWith("var(--hue-") && !HUE_ALIASES.has(name),
+    )
+    .map(([name]) => name),
+);
 
 /**
  * 격자 셀렉트의 구획 — 의미색 (accent · informative …) 먼저, 구분선, 색 이름. 빈 구획은 뺀다.
@@ -188,22 +173,6 @@ export function variantGridSections(
     .map((o) => o.value);
   return [semantic, hue].filter((group) => group.length > 0);
 }
-
-/** 상한 있는 number — 슬라이더 범위. 계약의 min/max 가 있으면 그것이 우선. */
-const SLIDER_RANGE: Readonly<
-  Record<string, { min: number; max: number; step: number; unit?: string }>
-> = {
-  strokeWidth: { min: 0.5, max: 4, step: 0.5 },
-  columns: { min: 1, max: 12, step: 1 },
-  innerRadius: { min: 0, max: 100, step: 1, unit: "%" },
-  startAngle: { min: 0, max: 360, step: 1, unit: "°" },
-  endAngle: { min: 0, max: 360, step: 1, unit: "°" },
-  gridRings: { min: 0, max: 10, step: 1 },
-  animationBegin: { min: 0, max: 3000, step: 50, unit: "ms" },
-  animationDuration: { min: 0, max: 3000, step: 50, unit: "ms" },
-  timeout: { min: 0, max: 20000, step: 500, unit: "ms" },
-  gap: { min: 0, max: 64, step: 1, unit: "px" },
-};
 
 /** 부정형 boolean — 칩은 긍정형 (켜짐 = 보임). */
 const NEGATED: ReadonlySet<string> = new Set(["hideTimeZone", "hideArrow"]);
@@ -354,32 +323,19 @@ function computeFieldEditor(field: ResolvedField): FieldEditor {
           maxKey: "maxValue",
           stepKey: "step",
         };
-      const range = SLIDER_RANGE[field.key];
-      if (range) {
-        return {
-          type: "slider",
-          min: field.min ?? range.min,
-          max: field.max ?? range.max,
-          step: field.step ?? range.step,
-          unit: range.unit,
-        };
-      }
+      // 상한 있는 number — 슬라이더. 범위 · 단위는 catalog 계약 (`PropContract` min · max · step · unit).
       if (field.min != null && field.max != null) {
         return {
           type: "slider",
           min: field.min,
           max: field.max,
           step: field.step ?? 1,
+          unit: field.unit,
         };
       }
       return { type: "stepper" };
     }
-    case "icon":
-      return { type: "icon" };
-    case "binding":
-      return { type: "binding" };
-    case "items-manager":
-      return { type: "items-manager" };
+    // icon · binding · items-manager 는 `GenericField` 가 kind 로 고른다 — 폭은 전폭 (input 과 같음)
     default:
       return { type: "input" };
   }

@@ -47,6 +47,7 @@ export interface ResolvedField {
   min?: number;
   max?: number;
   step?: number;
+  unit?: string;
   /** enum/fillStyle 고정 옵션 (variant/size 는 theme 가 별도 제공 — 본 계약은 미해소). */
   options?: PropContract["options"];
   /** `kind:"items-manager"` 전용 — 정적 items 배열 편집 schema (PropContract 통과). */

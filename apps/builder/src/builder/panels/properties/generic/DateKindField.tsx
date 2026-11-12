@@ -1,6 +1,6 @@
 import { memo } from "react";
 import type { ResolvedField } from "@composition/shared";
-import { useFieldValue } from "./fieldValueSource";
+import { useSiblingValue } from "./fieldValueSource";
 import {
   DateListField,
   DateRangeField,
@@ -25,29 +25,13 @@ const DateKindField = memo(function DateKindField({
   elementId: string | undefined;
   onChange: (value: unknown) => void;
 }) {
-  const granularity = useFieldValue(
+  const granularity = useSiblingValue(elementId, field, "granularity");
+  const selectionMode = useSiblingValue(elementId, field, "selectionMode");
+  const hourCycleValue = useSiblingValue(elementId, field, "hourCycle");
+  const forceLeadingZeros = useSiblingValue(
     elementId,
-    field.origin,
-    "granularity",
-    undefined,
-  );
-  const selectionMode = useFieldValue(
-    elementId,
-    field.origin,
-    "selectionMode",
-    undefined,
-  );
-  const hourCycleValue = useFieldValue(
-    elementId,
-    field.origin,
-    "hourCycle",
-    undefined,
-  );
-  const forceLeadingZeros = useFieldValue(
-    elementId,
-    field.origin,
+    field,
     "shouldForceLeadingZeros",
-    undefined,
   );
   const emptyType = dateFieldEmptyType(field.kind, granularity);
   const format = {

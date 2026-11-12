@@ -110,7 +110,8 @@ export const ACTION_ICONS = {
    *    거기서 `CirclePlus` 만 원을 둘러 튄다 (패널 도형 어법 = 선화).
    *
    * **예외는 하나** — 같은 화면에서 두 종류를 더할 때의 구분 변종
-   * (`ItemsManager` 의 `FolderPlus` "Add Section" ↔ `Plus` "Add Item").
+   * (묶음 추가 `FolderPlus` ↔ 항목 추가 `Plus` — 2026-11-12 `ItemsManager` 의 묶음 추가를
+   * 걷어내 지금 쓰는 곳은 없다).
    * 구분할 상대가 없으면 변종을 쓰지 않는다. 등재 기준(2개 이상 surface)에도
    * 미달이라 registry 에 넣지 않고 그 파일의 직접 import 로 둔다.
    */

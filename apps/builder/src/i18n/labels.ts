@@ -11,6 +11,7 @@ export const semanticLabelKeys: Record<string, string> = {
   Series: "chart.series",
   "Chart Type": "chart.type",
   "Sample Rows": "chart.sampleRows",
+  "Sample Row": "chart.row",
   Orientation: "chart.orientation",
   Vertical: "chart.vertical",
   Horizontal: "chart.horizontal",

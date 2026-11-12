@@ -6,13 +6,8 @@ type ItemId = string | number;
 /** The items-manager edits of one element's items prop. */
 export interface ItemsActions {
   add(item: Item): void;
-  addSection(): void;
-  addSeparator(): void;
   remove(itemId: ItemId): void;
   update(itemId: ItemId, patch: Item): void;
-  addToSection(sectionId: string, item: Item): void;
-  updateInSection(sectionId: string, itemId: string, patch: Item): void;
-  removeFromSection(sectionId: string, itemId: string): void;
 }
 
 /**

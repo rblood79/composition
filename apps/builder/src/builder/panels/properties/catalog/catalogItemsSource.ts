@@ -67,39 +67,9 @@ export const CATALOG_ITEMS_SOURCE: ItemsSource = {
         patch as Extract<ItemsEdit, { kind: "update" }>["patch"];
       return {
         add: (item) => edit({ kind: "add", item: withId(item) as never }),
-        addSection: () =>
-          edit({
-            kind: "add",
-            item: {
-              id: crypto.randomUUID(),
-              type: "section",
-              header: "New Section",
-              items: [],
-            } as never,
-          }),
-        addSeparator: () =>
-          edit({
-            kind: "add",
-            item: { id: crypto.randomUUID(), type: "separator" } as never,
-          }),
         remove: (itemId) => edit({ kind: "remove", id: itemId }),
         update: (itemId, patch) =>
           edit({ kind: "update", id: itemId, patch: patchOf(patch) }),
-        addToSection: (sectionId, item) =>
-          edit({
-            kind: "add",
-            item: withId(item) as never,
-            section: sectionId,
-          }),
-        updateInSection: (sectionId, itemId, patch) =>
-          edit({
-            kind: "update",
-            id: itemId,
-            patch: patchOf(patch),
-            section: sectionId,
-          }),
-        removeFromSection: (sectionId, itemId) =>
-          edit({ kind: "remove", id: itemId, section: sectionId }),
       };
     }, [itemsKey, run, target]);
   },

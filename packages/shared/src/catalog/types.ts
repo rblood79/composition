@@ -193,16 +193,14 @@ export interface ItemsManagerSchema {
   itemsKey: string;
   /** 항목 타입 이름 — UI 라벨/디버깅용 (e.g. "MenuItem"). */
   itemTypeName: string;
+  /** 「Add …」 의 항목 이름 — 의미 라벨 (번역 조회 키, `semanticLabelKeys`). 없으면 `itemTypeName`. */
+  itemLabel?: string;
   /** 새 항목 추가 시 기본 값. */
   defaultItem: Record<string, unknown>;
   /** 항목 인라인 편집 스키마. */
   itemSchema: ItemsManagerItemSchema[];
   /** 목록에서 라벨로 표시할 키 (e.g. "label"). */
   labelKey?: string;
-  /** Section 그룹 추가 허용 (ListBox/Menu). */
-  allowSections?: boolean;
-  /** Separator 추가 허용 (Menu 전용). */
-  allowSeparators?: boolean;
 }
 
 /** 필드 가시성 조건 — 다른 prop 값에 따라 조건부 노출. */
@@ -229,10 +227,12 @@ export interface PropContract {
    * 선택 가능 값을 theme 규칙의 `data-*` 값 집합에서 읽는다.
    */
   options?: Array<{ value: string; label: string }>;
-  /** number 전용. */
+  /** number 전용 — min · max 가 둘 다 있으면 패널이 슬라이더로 편집한다. */
   min?: number;
   max?: number;
   step?: number;
+  /** number 전용 — 슬라이더 값 칸의 단위 표시 (「%」 · 「°」 · 「ms」). 값에는 붙지 않는다. */
+  unit?: string;
   /** `kind:"items-manager"` 전용 — 정적 items 배열 편집 schema. */
   itemsManager?: ItemsManagerSchema;
   visibleWhen?: VisibilityCondition;

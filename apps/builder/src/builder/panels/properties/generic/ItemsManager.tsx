@@ -1,20 +1,13 @@
-import { memo, useCallback, useMemo, type ReactNode } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { Button as AriaButton } from "react-aria-components/Button";
 import { ToggleButton as AriaToggleButton } from "react-aria-components/ToggleButton";
-import {
-  ChevronDown,
-  ChevronRight,
-  FolderPlus,
-  Minus,
-  SeparatorHorizontal,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, Minus } from "lucide-react";
 import type {
   ItemsManagerField,
   ItemsManagerFieldItemSchema,
 } from "@composition/rendering";
 import { PropertyInput } from "../../../components/property/PropertyInput";
 import { PropertySwitch } from "../../../components/property/PropertySwitch";
-import { PropertySelect } from "../../../components/property/PropertySelect";
 import { PropertyIconPicker } from "../../../components/property/PropertyIconPicker";
 import { useItemsSource } from "./itemsSource";
 import { packHalfRows } from "./fieldEditor";
@@ -37,37 +30,28 @@ function ListRow({
   expanded,
   onExpandedChange,
   expandLabel,
-  leading,
   label,
   onRemove,
   removeLabel,
-  className,
 }: {
-  expanded?: boolean;
-  onExpandedChange?: (expanded: boolean) => void;
-  expandLabel?: string;
-  /** 펼침 토글 대신 놓는 정적 표지 (Separator 의 ―) */
-  leading?: ReactNode;
+  expanded: boolean;
+  onExpandedChange: (expanded: boolean) => void;
+  expandLabel: string;
   label: string;
   onRemove: () => void;
   removeLabel: string;
-  className?: string;
 }) {
   return (
-    <div className={`list-row items-manager-row ${className ?? ""}`}>
+    <div className="list-row items-manager-row">
       <div className="list-row__body">
-        {onExpandedChange ? (
-          <AriaToggleButton
-            className="list-row__action items-manager-row__expand"
-            aria-label={expandLabel}
-            isSelected={Boolean(expanded)}
-            onChange={onExpandedChange}
-          >
-            {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-          </AriaToggleButton>
-        ) : (
-          <span className="list-row__action list-row__mark">{leading}</span>
-        )}
+        <AriaToggleButton
+          className="list-row__action items-manager-row__expand"
+          aria-label={expandLabel}
+          isSelected={expanded}
+          onChange={onExpandedChange}
+        >
+          {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        </AriaToggleButton>
         <span className="list-row__label">{label}</span>
       </div>
       <div className="list-row__actions">
@@ -91,14 +75,6 @@ function packSchemaRows(
 ): ItemsManagerFieldItemSchema[][] {
   return packHalfRows(schema, isHalfSchemaField);
 }
-
-const SELECTION_MODE_OPTIONS: ReadonlyArray<{ value: string; label: string }> =
-  [
-    { value: "", label: "— none —" },
-    { value: "none", label: "None" },
-    { value: "single", label: "Single" },
-    { value: "multiple", label: "Multiple" },
-  ];
 
 interface ItemsManagerProps {
   elementId: string;
@@ -227,189 +203,6 @@ const ItemRow = memo(function ItemRow({
   );
 });
 
-// ─── SeparatorRow ──────────────────────────────────────────────────────────────
-
-interface SeparatorRowProps {
-  separatorId: string;
-  onRemove: (separatorId: string) => void;
-}
-
-const SeparatorRow = memo(function SeparatorRow({
-  separatorId,
-  onRemove,
-}: SeparatorRowProps) {
-  const handleRemove = useCallback(
-    () => onRemove(separatorId),
-    [onRemove, separatorId],
-  );
-  return (
-    <ListRow
-      className="items-manager-separator-row"
-      leading={<Minus size={12} />}
-      label="Separator"
-      onRemove={handleRemove}
-      removeLabel="Remove separator"
-    />
-  );
-});
-
-// ─── SectionRow ───────────────────────────────────────────────────────────────
-
-interface SectionRowProps {
-  sectionId: string;
-  section: Record<string, unknown>;
-  schema: ItemsManagerFieldItemSchema[];
-  labelKey: string;
-  hasSelection: boolean;
-  itemTypeName: string;
-  onUpdateSection: (sectionId: string, patch: Record<string, unknown>) => void;
-  onRemoveSection: (sectionId: string) => void;
-  onAddItem: (sectionId: string) => void;
-  onUpdateItem: (
-    sectionId: string,
-    itemId: string,
-    patch: Record<string, unknown>,
-  ) => void;
-  onRemoveItem: (sectionId: string, itemId: string) => void;
-}
-
-const SectionRow = memo(function SectionRow({
-  sectionId,
-  section,
-  schema,
-  labelKey,
-  hasSelection,
-  itemTypeName,
-  onUpdateSection,
-  onRemoveSection,
-  onAddItem,
-  onUpdateItem,
-  onRemoveItem,
-}: SectionRowProps) {
-  const [expanded, setExpanded] = useSelectionState(true);
-  const header = String(section.header ?? "Section");
-  const sectionItems = Array.isArray(section.items)
-    ? (section.items as Record<string, unknown>[])
-    : [];
-  const updateSection = useCallback(
-    (patch: Record<string, unknown>) => onUpdateSection(sectionId, patch),
-    [onUpdateSection, sectionId],
-  );
-  const removeSection = useCallback(
-    () => onRemoveSection(sectionId),
-    [onRemoveSection, sectionId],
-  );
-  const addItem = useCallback(
-    () => onAddItem(sectionId),
-    [onAddItem, sectionId],
-  );
-  const updateItem = useCallback(
-    (itemId: string | number, patch: Record<string, unknown>) =>
-      onUpdateItem(sectionId, String(itemId), patch),
-    [onUpdateItem, sectionId],
-  );
-  const removeItem = useCallback(
-    (itemId: string | number) => onRemoveItem(sectionId, String(itemId)),
-    [onRemoveItem, sectionId],
-  );
-
-  return (
-    <div className="items-manager-section-row">
-      <ListRow
-        className="items-manager-section-header"
-        expanded={expanded}
-        onExpandedChange={setExpanded}
-        expandLabel={expanded ? "Collapse section" : "Expand section"}
-        label={header}
-        onRemove={removeSection}
-        removeLabel="Remove section"
-      />
-
-      {expanded && (
-        <div className="items-manager-section-body">
-          {/* Section header 편집 */}
-          <div className="list-row__fields items-manager-row-fields">
-            <div className="fieldset-row" data-wide="true">
-              <PropertyInput
-                label="Header"
-                value={header}
-                onChange={(value) =>
-                  updateSection({ header: value || "Section" })
-                }
-              />
-            </div>
-            {hasSelection && (
-              <>
-                <div className="fieldset-row">
-                  <PropertySelect
-                    label="Selection Mode"
-                    value={String(section.selectionMode ?? "")}
-                    onChange={(value) =>
-                      updateSection({
-                        selectionMode: value === "" ? undefined : value,
-                      })
-                    }
-                    options={SELECTION_MODE_OPTIONS}
-                  />
-                </div>
-                <div className="fieldset-row" data-wide="true">
-                  <PropertyInput
-                    label="Default selected keys"
-                    value={
-                      Array.isArray(section.defaultSelectedKeys)
-                        ? (section.defaultSelectedKeys as string[]).join(", ")
-                        : ""
-                    }
-                    onChange={(value) =>
-                      updateSection({
-                        defaultSelectedKeys:
-                          value === ""
-                            ? undefined
-                            : value.split(",").map((s) => s.trim()),
-                      })
-                    }
-                  />
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Section 내부 items */}
-          {sectionItems.length > 0 && (
-            <div className="items-manager-section-items">
-              {sectionItems.map((item) => {
-                const itemId = String(item.id ?? "");
-                return (
-                  <ItemRow
-                    key={itemId}
-                    itemId={itemId}
-                    item={item}
-                    schema={schema}
-                    labelKey={labelKey}
-                    onUpdate={updateItem}
-                    onRemove={removeItem}
-                  />
-                );
-              })}
-            </div>
-          )}
-
-          <div className="editor-actions items-manager-section-actions">
-            <AriaButton
-              className="control-button"
-              data-variant="add"
-              onPress={addItem}
-            >
-              <AddIcon size={14} />
-              Add {itemTypeName}
-            </AriaButton>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-});
-
 // ─── ItemsManager ─────────────────────────────────────────────────────────────
 
 export const ItemsManager = memo(function ItemsManager({
@@ -419,9 +212,7 @@ export const ItemsManager = memo(function ItemsManager({
   const i18n = useOptionalI18n();
   const itemsKey = field.itemsKey;
   const labelKey = field.labelKey ?? "label";
-  const allowSections = field.allowSections ?? false;
-  const allowSeparators = field.allowSeparators ?? false;
-  const sectionHasSelection = field.sectionHasSelection ?? false;
+  const itemLabel = field.itemLabel ?? field.itemTypeName;
 
   const source = useItemsSource();
   const rawItems = source.useItems(elementId, itemsKey) as Record<
@@ -441,11 +232,6 @@ export const ItemsManager = memo(function ItemsManager({
     () => actions.add(field.defaultItem as Record<string, unknown>),
     [actions, field.defaultItem],
   );
-  const handleAddSection = useCallback(() => actions.addSection(), [actions]);
-  const handleAddSeparator = useCallback(
-    () => actions.addSeparator(),
-    [actions],
-  );
   const handleRemove = useCallback(
     (itemId: string | number) => actions.remove(itemId),
     [actions],
@@ -455,33 +241,7 @@ export const ItemsManager = memo(function ItemsManager({
       actions.update(itemId, patch),
     [actions],
   );
-  const handleAddItemToSection = useCallback(
-    (sectionId: string) =>
-      actions.addToSection(
-        sectionId,
-        field.defaultItem as Record<string, unknown>,
-      ),
-    [actions, field.defaultItem],
-  );
-  const handleUpdateItemInSection = useCallback(
-    (sectionId: string, itemId: string, patch: Record<string, unknown>) =>
-      actions.updateInSection(sectionId, itemId, patch),
-    [actions],
-  );
-  const handleRemoveItemFromSection = useCallback(
-    (sectionId: string, itemId: string) =>
-      actions.removeFromSection(sectionId, itemId),
-    [actions],
-  );
-
-  // 총 항목 수 계산 (section 내 items 포함)
-  const totalCount = rawItems.reduce((acc, entry) => {
-    if (entry.type === "section" && Array.isArray(entry.items)) {
-      return acc + (entry.items as unknown[]).length;
-    }
-    if (entry.type === "separator") return acc;
-    return acc + 1;
-  }, 0);
+  const totalCount = rawItems.length;
 
   // legend = 필드 라벨 + 항목 수 (종전 「Total: N」 문단) — 다른 필드와 같은 fieldset/legend 어법
   const rawLabel = field.label ?? field.itemTypeName;
@@ -506,41 +266,7 @@ export const ItemsManager = memo(function ItemsManager({
       {rawItems.length > 0 && (
         <div className="items-manager__list">
           {rawItems.map((entry, index) => {
-            const entryId = String(entry.id ?? "");
             const identity = identities[index];
-
-            // Section 엔트리
-            if (entry.type === "section") {
-              return (
-                <SectionRow
-                  key={entryId}
-                  sectionId={entryId}
-                  section={entry}
-                  schema={field.itemSchema}
-                  labelKey={labelKey}
-                  hasSelection={sectionHasSelection}
-                  itemTypeName={field.itemTypeName}
-                  onUpdateSection={handleUpdate}
-                  onRemoveSection={handleRemove}
-                  onAddItem={handleAddItemToSection}
-                  onUpdateItem={handleUpdateItemInSection}
-                  onRemoveItem={handleRemoveItemFromSection}
-                />
-              );
-            }
-
-            // Separator 엔트리
-            if (entry.type === "separator") {
-              return (
-                <SeparatorRow
-                  key={entryId}
-                  separatorId={entryId}
-                  onRemove={handleRemove}
-                />
-              );
-            }
-
-            // 일반 item 엔트리 (type 미지정 포함)
             return (
               <ItemRow
                 key={identity.key}
@@ -564,32 +290,9 @@ export const ItemsManager = memo(function ItemsManager({
         >
           <AddIcon size={14} />
           {i18n?.t("itemsManager.addItem", {
-            type:
-              field.itemTypeName === "ChartRow"
-                ? i18n.t("chart.row")
-                : field.itemTypeName,
-          }) ?? `Add ${field.itemTypeName}`}
+            type: localizeSemanticLabel(i18n, itemLabel),
+          }) ?? `Add ${itemLabel}`}
         </AriaButton>
-        {allowSections && (
-          <AriaButton
-            className="control-button"
-            data-variant="add"
-            onPress={handleAddSection}
-          >
-            <FolderPlus size={14} />
-            {i18n?.t("itemsManager.addSection") ?? "Add Section"}
-          </AriaButton>
-        )}
-        {allowSeparators && (
-          <AriaButton
-            className="control-button"
-            data-variant="add"
-            onPress={handleAddSeparator}
-          >
-            <SeparatorHorizontal size={14} />
-            Add Separator
-          </AriaButton>
-        )}
       </div>
     </fieldset>
   );

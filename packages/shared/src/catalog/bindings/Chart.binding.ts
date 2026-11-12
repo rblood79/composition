@@ -282,6 +282,7 @@ export const chartBinding: PrimitiveBinding = {
         itemsManager: {
           itemsKey: "data",
           itemTypeName: "ChartRow",
+          itemLabel: "Sample Row",
           defaultItem: { category: "New", value: 0, series: "A" },
           itemSchema: [
             { key: "category", type: "string", label: "Category" },
@@ -418,6 +419,10 @@ export const chartBinding: PrimitiveBinding = {
         label: "Inner Radius (%)",
         section: "appearance",
         default: 0,
+        min: 0,
+        max: 100,
+        step: 1,
+        unit: "%",
         // computeChartScene.ts:152,358. radar 도 읽는다 — center.inner 가 결측 꼭짓점을
         //   접는 반지름이자 격자 안쪽 경계다.
         visibleWhen: { key: "chartType", oneOf: ["pie", "radial", "radar"] },
@@ -450,6 +455,10 @@ export const chartBinding: PrimitiveBinding = {
         label: "Start Angle (deg)",
         section: "appearance",
         default: 0,
+        min: 0,
+        max: 360,
+        step: 1,
+        unit: "°",
         visibleWhen: { key: "chartType", equals: "radial" },
       },
       endAngle: {
@@ -457,6 +466,10 @@ export const chartBinding: PrimitiveBinding = {
         label: "End Angle (deg)",
         section: "appearance",
         default: 360,
+        min: 0,
+        max: 360,
+        step: 1,
+        unit: "°",
         visibleWhen: { key: "chartType", equals: "radial" },
       },
       showTotal: {
@@ -488,6 +501,9 @@ export const chartBinding: PrimitiveBinding = {
         label: "Grid Rings (0=auto)",
         section: "appearance",
         default: 0,
+        min: 0,
+        max: 10,
+        step: 1,
         visibleWhen: {
           all: [
             { key: "chartType", equals: "radar" },
@@ -571,6 +587,9 @@ export const chartBinding: PrimitiveBinding = {
         section: "interaction",
         default: 0,
         min: 0,
+        max: 3000,
+        step: 50,
+        unit: "ms",
         visibleWhen: { key: "isAnimationActive", truthy: true },
       },
       animationDuration: {
@@ -579,6 +598,9 @@ export const chartBinding: PrimitiveBinding = {
         section: "interaction",
         default: 600,
         min: 0,
+        max: 3000,
+        step: 50,
+        unit: "ms",
         visibleWhen: { key: "isAnimationActive", truthy: true },
       },
       animationEasing: {

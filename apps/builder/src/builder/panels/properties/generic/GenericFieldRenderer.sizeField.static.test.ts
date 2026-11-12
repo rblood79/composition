@@ -44,7 +44,7 @@ describe("Properties 필드 규칙 — 매핑표 dispatch · 칩 묶음 · 섹�
     const s = await source();
     const span = s.slice(
       s.indexOf("function fieldSpan("),
-      s.indexOf("const SECTION_ORDER"),
+      s.indexOf("const DISPLAY_SECTIONS"),
     );
     expect(span).toContain("resolveFieldEditor(field)");
     expect(span).toContain('case "seg":\n      return editor.span;');
@@ -77,12 +77,25 @@ describe("Properties 필드 규칙 — 매핑표 dispatch · 칩 묶음 · 섹�
   // (Collection — a collection's data binding — follows Content: 2026-10-23 「Collection 섹션 분리」.)
   it("섹션 순서 content → value → collection → series → layout → state → locale (appearance · interaction 은 병합), 필드는 kind 묶음", async () => {
     const s = await source();
-    expect(s).toContain(
-      '"content",\n  "value",\n  "collection",\n  "series",\n  "layout",\n  "state",\n  "locale",\n];',
+    const table = s.slice(
+      s.indexOf("const DISPLAY_SECTIONS"),
+      s.indexOf("const DISPLAY_SECTION_BY_KEY"),
     );
-    expect(s).toContain('content: ["content", "appearance"],');
-    expect(s).toContain(
-      'state: [\n    "state",\n    "validation",\n    "forms",\n    "overlay",\n    "interaction",\n    "accessibility",\n  ],',
+    const order = [...table.matchAll(/key: "(\w+)"/g)].map((m) => m[1]);
+    expect(order).toEqual([
+      "content",
+      "value",
+      "collection",
+      "series",
+      "layout",
+      "state",
+      "locale",
+    ]);
+    expect(table).toContain(
+      '{ key: "content", members: ["content", "appearance"] },',
+    );
+    expect(table).toContain(
+      'title: "Behavior",\n    members: [\n      "state",\n      "validation",\n      "forms",\n      "overlay",\n      "interaction",\n      "accessibility",\n    ],',
     );
     expect(s).toContain("packFieldRows(sortFields(list))");
     expect(s).toContain("isSingleChoice(field)");

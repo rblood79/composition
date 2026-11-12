@@ -2,7 +2,7 @@
  * ItemsManager — 정적 items 목록 (ListBox · Menu · Select · Tabs · Chart 행 …).
  *
  * 목록 행은 공용 `.list-row` (panel-system.css — Styles 의 Fill · Shadow 레이어 행과 같은
- * 구조, 2026-09-15 사용자 판정). 여기는 목록 간격 · legend 의 항목 수 · Section 묶음만.
+ * 구조, 2026-09-15 사용자 판정). 여기는 목록 간격 · legend 의 항목 수만.
  */
 
 @layer components {
@@ -21,19 +21,10 @@
     color: var(--fg-muted);
   }
 
-  .items-manager__list,
-  .items-manager-section-items,
-  .items-manager-section-row,
-  .items-manager-section-body {
+  .items-manager__list {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xs);
     min-width: 0;
-  }
-
-  .items-manager-section-body {
-    gap: var(--spacing-sm);
-    padding-inline-start: var(--spacing-sm);
-    border-inline-start: 1px solid var(--border);
   }
 }

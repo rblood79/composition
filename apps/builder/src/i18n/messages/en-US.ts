@@ -200,7 +200,6 @@ const catalog: TranslationKeys = {
     expand: "Expand",
     collapse: "Collapse",
     removeItem: "Remove item",
-    addSection: "Add section",
   },
   common: {
     save: "Save",

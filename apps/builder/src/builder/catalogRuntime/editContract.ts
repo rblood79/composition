@@ -165,6 +165,7 @@ export function catalogEditContract(
       min: contract.min,
       max: contract.max,
       step: contract.step,
+      unit: contract.unit,
       options: deriveOptions(contract, rule, node, key),
       itemsManager: contract.itemsManager,
       visibleWhen: contract.visibleWhen,

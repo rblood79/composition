@@ -9,6 +9,7 @@
  * canonical 의 저장 위치(props / `x-composition`)를 이 모듈이 다시 판정하지 않는다.
  */
 import type { ResolvedField } from "@composition/shared";
+import type { PanelField } from "./generic/GenericFieldRenderer";
 
 import type { DataTable } from "../../../types/builder/data.types";
 import { fieldsFromOwner } from "./hooks/useOwnerCollectionColumns";
@@ -38,12 +39,15 @@ function optionLabel(value: string, labels: ChartFieldOptionLabels): string {
   return value === labels.none ? `${value} (${labels.columnQualifier})` : value;
 }
 
-/** 편집 계약의 semantic 필드 → Chart 저작용 필드(컬럼 Select 승격 + data 필드 정리). */
+/**
+ * 편집 계약의 semantic 필드 → Chart 저작용 필드(컬럼 Select 승격 + data 필드 정리). 매핑 필드는 컬럼이
+ * 없어도 `optionsFromData` — 옵션 (있으면) 이 데이터 키라 번역하지 않는다.
+ */
 export function buildChartSemanticFields(
   fields: ResolvedField[],
   collections: readonly DataTable[],
   labels: ChartFieldOptionLabels,
-): ResolvedField[] {
+): PanelField[] {
   const props = Object.fromEntries(
     fields.map((field) => [field.key, field.currentValue]),
   );
@@ -61,10 +65,9 @@ export function buildChartSemanticFields(
   const columns = ownerFields?.map(storedValue) ?? null;
   return fields
     .filter((field) => field.key !== "data" || !props.dataBinding)
-    .map((field) => {
-      if (!columns || !CHART_MAPPING_FIELD_KEYS.includes(field.key)) {
-        return field;
-      }
+    .map((field): PanelField => {
+      if (!CHART_MAPPING_FIELD_KEYS.includes(field.key)) return field;
+      if (!columns) return { ...field, optionsFromData: true };
       const rawCurrent = String(field.currentValue ?? "");
       const currentField = ownerFields?.find(
         (f) => f.key === rawCurrent && f.id,
@@ -78,6 +81,7 @@ export function buildChartSemanticFields(
           : [current, ...columns];
       return {
         ...field,
+        optionsFromData: true,
         // 구 형식 (key) 현재 값은 `#id` 항목이 선택 상태로 보이도록 접는다.
         ...(current !== rawCurrent ? { currentValue: current } : {}),
         kind: "enum" as const,

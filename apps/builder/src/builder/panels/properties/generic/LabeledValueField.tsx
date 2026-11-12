@@ -60,9 +60,9 @@ function kindOf(value: unknown): string {
   return "text";
 }
 function LabeledFormatField({ value, onChange }: Props) {
-  const opts = catalogLabeledFormatFits(value) ? { ...value } : {};
+  const opts = catalogLabeledFormatFits(value) ? value : {};
   const text = (key: string) => {
-    const entry = Object.entries(opts).find(([name]) => name === key)?.[1];
+    const entry = (opts as Readonly<Record<string, unknown>>)[key];
     return typeof entry === "string" ? entry : undefined;
   };
   const change = (key: string, next: string) => {

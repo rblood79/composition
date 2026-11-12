@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Property 탭 generic 렌더러 정리 — 섹션 표 하나 · 슬라이더 범위 catalog 이관 · 안 쓰는 목록 편집기 삭제] - 2026-11-12
+
+### Changed
+
+- 숫자 슬라이더의 범위 · 단위를 catalog 계약이 정한다 — 패널 쪽 키 표 (`SLIDER_RANGE`) 를 지우고 Chart prop (Inner radius · Start/End angle · Grid rings · Animation delay/duration) 에 min · max · step · `unit` 을 선언했다 (`PropContract.unit` 추가). 표에만 있던 `gap` · `columns` · `timeout` 은 catalog 에 그런 숫자 prop 이 없어 지웠다 — 사용자 컴포넌트 숫자 prop 이 그 이름이면 이제 스텝퍼다.
+- 섹션 순서 · 제목 · 분류 묶음을 `DISPLAY_SECTIONS` 표 하나가 정한다 (`SECTION_ORDER` · `SECTION_MEMBERS` · 제목 예외 세 곳을 합침). 행 배치 예외는 `ROW_LAYOUT`, 「New table」 자리는 `createsInHeader` 한 판정.
+- Chart 의 「Add row」 이름과 컬럼 매핑 셀렉트의 원본 키 모드를 catalog · 필드 표시로 옮겼다 (`itemsManager.itemLabel` · `optionsFromData`) — 컴포넌트 이름 하드코딩 · 곁 목록 (`literalOptionFields`) 삭제.
+- 섹션 배치 memo 가 배치에 쓰이는 값의 서명으로 산다 — 편집마다 계약이 새로 만들어져도 정렬 · 행 묶기 · 칩 묶음을 다시 돌리지 않는다. 조건부 표시를 가르는 값이 바뀌면 다시 배치한다.
+
+### Removed
+
+- 목록 편집기 (`ItemsManager`) 의 section · separator 편집 (Add section · Add separator · 묶음 행 · 묶음 선택 모드) — catalog 에서 켜는 곳이 0 이었다 (ListBox · Menu 는 ADR-234 로 자식 instance 편집). 기존 데이터의 `type: "section"` 항목은 일반 행으로 보인다. 공용 `editItems` 명령의 section 지원은 그대로 둔다.
+- 아무도 넘기지 않던 조건 축 `parentTag` · `parentTagNot`.
+
 ## [성능 회귀 2 건 수리 — 선택 시 원본 찾기 · page 전환 시 Layers 두 번 읽기] - 2026-11-12
 
 ### Fixed

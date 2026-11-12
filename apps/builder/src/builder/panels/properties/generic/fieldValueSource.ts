@@ -49,6 +49,15 @@ export function useFieldValue(
   return useFieldValueSource().useValue(elementId, origin, key, baseValue);
 }
 
+/** 같은 요소 · 같은 origin 의 형제 prop 값 (기본값 없음) — 필드 leaf 가 옆 prop 을 읽을 때. */
+export function useSiblingValue(
+  elementId: string | null | undefined,
+  field: { origin: FieldOrigin },
+  key: string,
+): unknown {
+  return useFieldValue(elementId, field.origin, key, undefined);
+}
+
 export function useFieldValuesSnapshot(
   elementId: string | null | undefined,
   origin: FieldOrigin,
