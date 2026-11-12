@@ -168,6 +168,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
   // 기존 styleValues 인터페이스 어댑터 (문자열 값)
   //   ADR-082 A2: inline 없으면 Spec specDefault (containerStyles/composition 의 "100%",
   //   "fit-content", "300px" 등) 로 fallback — Appearance/Layout section 과 동일 패턴
+  const canvasSize = useViewportSyncStore((state) => state.canvasSize);
   const styleValues = useMemo(() => {
     if (!bundle) return null;
     const toStr = (
@@ -184,8 +185,15 @@ const TransformSectionContent = memo(function TransformSectionContent({
       return fallback;
     };
     return {
-      width: toStr(bundle.width.inline, bundle.width.specDefault, "auto"),
-      height: toStr(bundle.height.inline, bundle.height.specDefault, "auto"),
+      // A page body: the breakpoint's page width unless authored (its frame — the page selection
+      // box resizes it); height `auto` — it grows from its minimum, the page height (Min H —
+      // 2026-11-13). The body rule's DOM-only `100%`s are not its values here.
+      width: bundle.isBody
+        ? toStr(bundle.width.inline, undefined, String(canvasSize.width))
+        : toStr(bundle.width.inline, bundle.width.specDefault, "auto"),
+      height: bundle.isBody
+        ? toStr(bundle.height.inline, undefined, "auto")
+        : toStr(bundle.height.inline, bundle.height.specDefault, "auto"),
       position: toStr(
         bundle.position.inline,
         bundle.position.specDefault,
@@ -195,7 +203,9 @@ const TransformSectionContent = memo(function TransformSectionContent({
       left: toStr(bundle.left.inline, bundle.left.specDefault),
       minWidth: toStr(bundle.minWidth.inline, bundle.minWidth.specDefault),
       maxWidth: toStr(bundle.maxWidth.inline, bundle.maxWidth.specDefault),
-      minHeight: toStr(bundle.minHeight.inline, bundle.minHeight.specDefault),
+      minHeight: bundle.isBody
+        ? toStr(bundle.minHeight.inline, undefined, String(canvasSize.height))
+        : toStr(bundle.minHeight.inline, bundle.minHeight.specDefault),
       maxHeight: toStr(bundle.maxHeight.inline, bundle.maxHeight.specDefault),
       aspectRatio: toStr(
         bundle.aspectRatio.inline,
@@ -222,9 +232,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
           String(tier.inline).trim() !== "",
       ),
     };
-  }, [bundle]);
-
-  const canvasSize = useViewportSyncStore((state) => state.canvasSize);
+  }, [bundle, canvasSize]);
 
   // ADR-177 적응형 통합 — body 선택 시 position row 는 CSS left/top 이 아니라 페이지 캔버스
   // 위치를 편집한다 (Pen/Figma 단일 Position 어법) — the host's page position (ADR-248 4e-7).
@@ -348,8 +356,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
   // (A page body always shows them: its Min H is the page frame's height — 2026-11-13.)
   const showConstraints =
     constraintsOpen ||
-    Boolean(styleValues?.hasInlineConstraint) ||
-    Boolean(styleValues?.isBody);
+    Boolean(styleValues?.hasInlineConstraint || styleValues?.isBody);
 
   if (!styleValues) return null;
 
@@ -369,24 +376,8 @@ const TransformSectionContent = memo(function TransformSectionContent({
     const factor = axis === "width" ? widthFillGrow : heightFillGrow;
     if (!styleValues.isBody && mode === "fill")
       return isFraction(axis) ? `${factor ?? 1}fill` : "fill";
-    if (styleValues.isBody) {
-      // A page body: the breakpoint's page width unless authored (its frame — the page selection
-      // box resizes it); height `auto` — it grows from its minimum, the page height (Min H).
-      const authored = bundle?.[axis].inline;
-      if (authored !== undefined && authored !== null && authored !== "")
-        return String(authored);
-      return axis === "width" ? String(canvasSize.width) : "auto";
-    }
     return styleValues[axis];
   };
-  /** A page body's Min H: the breakpoint's page height unless authored (2026-11-13). */
-  const minHeightValue =
-    styleValues.isBody &&
-    (bundle?.minHeight.inline === undefined ||
-      bundle.minHeight.inline === null ||
-      bundle.minHeight.inline === "")
-      ? String(canvasSize.height)
-      : styleValues.minHeight;
   const sizeControl = (axis: "width" | "height") => {
     if (styleValues.isBody) return undefined;
     const mode = axis === "width" ? widthMode : heightMode;
@@ -543,7 +534,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
               unitSuffix
               placeholder="auto"
               className="min-height"
-              value={minHeightValue}
+              value={styleValues.minHeight}
               units={["reset", "px", "%", "vh"]}
               preserveEmptyValueOnUnitChange
               onChange={(value) => commitConstraint("minHeight", value)}

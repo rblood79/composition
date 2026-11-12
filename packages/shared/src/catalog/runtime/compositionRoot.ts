@@ -605,14 +605,7 @@ function layoutChildrenOf(
   const out = parts
     .filter((part) => !part.wraps && !wrapped.has(part.id))
     .map((part) => part.id);
-  // CSS `order` places a flex / grid item by its order, then source order (a stable sort).
-  const ordered = orderOf
-    ? children
-        .map((child, index) => ({ child, index, order: orderOf(child) }))
-        .sort((a, b) => a.order - b.order || a.index - b.index)
-        .map((entry) => entry.child)
-    : children;
-  for (const child of ordered) {
+  for (const child of orderedChildren(children, orderOf)) {
     const wrapper = parts.find((part) => part.wraps?.includes(child));
     if (!wrapper) out.push(child);
     else if (!out.includes(wrapper.id)) out.push(wrapper.id);
@@ -621,12 +614,26 @@ function layoutChildrenOf(
   return out;
 }
 
-/** The id suffix of a page body's content part (`pageBodyContentStyle`). */
+/** CSS `order` places a flex / grid item by its order, then source order (a stable sort). */
+function orderedChildren(
+  children: readonly string[],
+  orderOf?: (id: string) => number,
+): readonly string[] {
+  return orderOf
+    ? children
+        .map((child, index) => ({ child, index, order: orderOf(child) }))
+        .sort((a, b) => a.order - b.order || a.index - b.index)
+        .map((entry) => entry.child)
+    : children;
+}
+
+/** The id suffix of a page body's content part (`pageBodySplit`). */
 const PAGE_BODY_CONTENT_PART = "::part:page-content";
 /**
- * Engine keys a page body's content part takes from the body: how its children are laid out and
- * the body's own block size limits — the box that grows. The rest (the frame's size and place,
- * overflow, border, margin, insets) stays on the body's viewport box.
+ * Engine keys a page body's content part takes from the body: how its children are laid out (and
+ * the line box their inline content sits on) and the body's own block size limits — the box that
+ * grows. The rest (the frame's size and place, overflow, border, margin, insets) stays on the
+ * body's viewport box.
  */
 const PAGE_BODY_CONTENT_KEYS: ReadonlySet<string> = new Set([
   "display",
@@ -649,67 +656,71 @@ const PAGE_BODY_CONTENT_KEYS: ReadonlySet<string> = new Set([
   "paddingBottom",
   "paddingLeft",
   "maxHeight",
+  "lineHeight",
+  "strutBaseline",
+  "strutXHeight",
 ]);
+const INSET_KEYS = ["insetLeft", "insetTop", "insetRight", "insetBottom"];
+/** What a page body's split reads of the body (`CatalogCompositionRoot.pageBody`). */
+interface PageBodyShape {
+  /** An authored Height: the body is that tall (its content part fills it — Chrome squeezes). */
+  readonly authoredHeight: boolean;
+  /** An authored position: the body is its absolute children's containing block (Chrome's). */
+  readonly positioned: boolean;
+}
 /**
- * A page body's viewport box: the frame (`pageFrameStyle` — size · placement), overflow and the
- * rest of the body's box; one block child (its content part). Positioned (unless placed) so the
- * body's absolute children keep the viewport as their containing block (Chrome's initial
- * containing block — the content part is `position: static`).
+ * A page body's two engine boxes, as Chrome's page is (ledger §body 는 뷰포트가 아니다): the
+ * viewport box (the frame — `pageFrameStyle` — overflow and the rest of the body's box; one block
+ * child) and the content part (`PAGE_BODY_CONTENT_KEYS`, `min-height` the frame — or the authored
+ * height). The viewport is positioned (unless placed) so the body's absolute children keep it as
+ * their containing block (the initial containing block — the content part is `position: static`).
  */
-function pageBodyViewportStyle(
+function pageBodySplit(
   style: Record<string, unknown>,
-): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
+  body: PageBodyShape,
+): {
+  viewport: Record<string, unknown>;
+  content: Record<string, string | number>;
+} {
+  const viewport: Record<string, unknown> = {};
+  const content: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(style))
-    if (!PAGE_BODY_CONTENT_KEYS.has(key) && key !== "minHeight")
-      out[key] = value;
-  out.display = "block";
+    if (PAGE_BODY_CONTENT_KEYS.has(key)) content[key] = value;
+    // (Without a height the authored minimum is the frame's height — `catalogPageViewportHeight`.)
+    else if (key === "minHeight") {
+      if (body.authoredHeight) content[key] = value;
+    } else viewport[key] = value;
+  viewport.display = "block";
   // (Insets without a position stay unused, as before — a relative box would move by them.)
   if (
-    out.position === undefined &&
-    !["insetLeft", "insetTop", "insetRight", "insetBottom"].some(
-      (key) => out[key] !== undefined,
-    )
+    viewport.position === undefined &&
+    !INSET_KEYS.some((key) => viewport[key] !== undefined)
   )
-    out.position = "relative";
-  return out;
-}
-/** A page body's content part: its layout, `min-height` the page (the viewport box's height). */
-function pageBodyContentStyle(
-  style: Record<string, unknown>,
-  positioned: boolean,
-): Record<string, string | number> {
-  const out: Record<string, string | number> = {};
-  for (const [key, value] of Object.entries(style))
-    if (
-      PAGE_BODY_CONTENT_KEYS.has(key) &&
-      (typeof value === "string" || typeof value === "number")
-    )
-      out[key] = value;
-  // (Grid track lists are arrays — the engine reads them as they are.)
-  for (const key of ["gridTemplateColumns", "gridTemplateRows"])
-    if (Array.isArray(style[key])) out[key] = style[key] as never;
-  out.minHeight = "100%";
-  if (!positioned) out.position = "static";
-  return out;
+    viewport.position = "relative";
+  if (body.authoredHeight) content.height = "100%";
+  else content.minHeight = "100%";
+  if (!body.positioned && viewport.position !== undefined)
+    content.position = "static";
+  // (Grid track lists stay arrays — the engine reads them as they are.)
+  return { viewport, content: content as Record<string, string | number> };
 }
 /**
  * The height of a page body's frame when the body authored none: its authored minimum (px · `vh`
  * of the page), else the breakpoint's page height.
  */
-export function catalogPageViewportHeight(
+function catalogPageViewportHeight(
   record: CatalogConsumerNode,
   pageHeight: number,
 ): string {
   const authored = record.sizing.minHeight ?? record.visual.minHeight;
   if (typeof authored === "number" && authored > 0) return `${authored}px`;
-  if (typeof authored === "string") {
-    const px = /^(\d+(?:\.\d+)?)px$/.exec(authored.trim());
-    if (px && Number(px[1]) > 0) return `${Number(px[1])}px`;
-    const vh = /^(\d+(?:\.\d+)?)vh$/.exec(authored.trim());
-    if (vh && Number(vh[1]) > 0)
-      return `${(Number(vh[1]) / 100) * pageHeight}px`;
-  }
+  const length =
+    typeof authored === "string"
+      ? /^(\d+(?:\.\d+)?)(px|vh)$/.exec(authored.trim())
+      : null;
+  const value = length ? Number(length[1]) : 0;
+  if (value > 0)
+    return `${length![2] === "vh" ? (value / 100) * pageHeight : value}px`;
   return `${pageHeight}px`;
 }
 
@@ -1836,27 +1847,19 @@ function styleOf(
   // Inline-size containment replaces the content contribution, never the used width.
   Object.assign(out, catalogInlineSizeContainment(node.layout));
   // CSS `min-height: auto` of a flex item is min(content, specified height): a measured leaf with
-  // a declared px height keeps that height in a column that overflows (the engine's column floor
-  // takes the content-box value and adds padding/border). A glyph leaf's height is its icon
-  // square when none is declared — the DOM svg's (2026-11-13: an Icon in an overflowing column
-  // shrank 18 → 12, Chrome keeps 18).
-  const specifiedHeight =
-    typeof box.height === "number"
-      ? box.height
-      : box.height === undefined
-        ? glyph
-        : undefined;
-  if (
-    typeof out.contentHeight === "number" &&
-    typeof specifiedHeight === "number"
-  ) {
+  // a px height keeps that height in a column that overflows (the engine's column floor takes the
+  // content-box value and adds padding/border). The height is the serialized one — declared, or a
+  // glyph's · ColorWheel's own square (2026-11-13: an Icon in an overflowing column shrank 18 →
+  // 12, Chrome keeps 18).
+  const specifiedHeight = /^(\d+(?:\.\d+)?)px$/.exec(String(out.height ?? ""));
+  if (typeof out.contentHeight === "number" && specifiedHeight) {
     const edges =
       Number(box.padding?.top ?? 0) +
       Number(box.padding?.bottom ?? 0) +
       2 * Number(box.borderWidth ?? 0);
     out.contentMinHeight = Math.max(
       0,
-      Math.min(out.contentHeight, specifiedHeight - edges),
+      Math.min(out.contentHeight, Number(specifiedHeight[1]) - edges),
     );
   }
   return out;
@@ -2190,19 +2193,12 @@ export class CatalogCompositionRoot {
           this.childOrder(record),
         ),
       ]);
-      // (A page body's content part holds its children: they are ordered in it.)
-      const content = this.composedParts
-        .get(id)
-        ?.find((part) => part.id === `${id}${PAGE_BODY_CONTENT_PART}`);
-      if (content)
-        this.layout.updateChildren(content.id, [
-          ...layoutChildrenOf(
-            record.children,
-            [],
-            undefined,
-            this.childOrder(record),
-          ),
-        ]);
+      // (A part that wraps the children — a page body's content — orders them in it.)
+      for (const part of this.composedParts.get(id) ?? [])
+        if (part.wraps)
+          this.layout.updateChildren(part.id, [
+            ...orderedChildren(part.wraps, this.childOrder(record)),
+          ]);
     }
     this.orderDirty.clear();
   }
@@ -2550,17 +2546,22 @@ export class CatalogCompositionRoot {
     return this.overlayPlacements.get(id);
   }
 
+  /** The composed part laying a record out in its parent's place (a wrapper — `wraps`), if any. */
+  wrapperPartOf(id: string): CatalogComposedPart | undefined {
+    const parentId = this.records.get(id)?.parentId;
+    return parentId
+      ? this.composedParts
+          .get(parentId)
+          ?.find((part) => part.wraps?.includes(id))
+      : undefined;
+  }
+
   getGeometry(ids: Iterable<string>): ReadonlyMap<string, LayoutResult> {
     const list = [...ids];
     const rects = this.layout.getLayoutsForIds(list);
     let wrappers: Map<string, string> | undefined;
     for (const id of list) {
-      const parentId = this.records.get(id)?.parentId;
-      const part = parentId
-        ? this.composedParts
-            .get(parentId)
-            ?.find((item) => item.wraps?.includes(id))
-        : undefined;
+      const part = this.wrapperPartOf(id);
       if (part) (wrappers ??= new Map()).set(id, part.id);
     }
     if (!wrappers) return rects;
@@ -4683,28 +4684,19 @@ export class CatalogCompositionRoot {
     record: CatalogConsumerNode,
     get: (id: string) => CatalogConsumerNode | undefined = (id) =>
       this.records.get(id),
+    /** The record's whole style when the caller holds it (`recordStyle` — a page body's split). */
+    whole?: Record<string, unknown>,
   ): readonly CatalogComposedPart[] {
     const parts = [...catalogComposedParts(record, get, this.typeOf)];
-    // A page body's content — the box that grows with its children (`pageBodyViewportStyle`).
-    if (this.pageViewportHeight(record) !== undefined) {
-      const whole = this.recordStyle(record, get);
+    // A page body's content — the box that grows with its children (`pageBodySplit`).
+    const body = this.pageBody(record);
+    if (body)
       parts.push({
         id: `${record.id}${PAGE_BODY_CONTENT_PART}`,
-        wraps: layoutChildrenOf(
-          record.children,
-          [],
-          undefined,
-          this.childOrder(record),
-        ),
-        style: pageBodyContentStyle(
-          whole,
-          // (A positioned body is its children's containing block — Chrome's; else the viewport
-          // box is, when it is positioned.)
-          (record.layout.position ?? "static") !== "static" ||
-            pageBodyViewportStyle(whole).position === undefined,
-        ),
+        wraps: orderedChildren(record.children, this.childOrder(record)),
+        style: pageBodySplit(whole ?? this.recordStyle(record, get), body)
+          .content,
       });
-    }
     // ADR-295 후속: a draggable Table's header row · Row — S2's drag column cell first (its track is
     // the row's first, `withTableDrag`): an empty box on the Canvas (S2 shows the handle only while
     // the row has keyboard focus), the RAC Column · Cell in the DOM.
@@ -4782,12 +4774,17 @@ export class CatalogCompositionRoot {
     get: (id: string) => CatalogConsumerNode | undefined = (id) =>
       this.records.get(id),
   ): Record<string, unknown> {
-    const style = this.recordStyle(record, get);
-    return this.pageViewportHeight(record) === undefined
-      ? style
-      : pageBodyViewportStyle(style);
+    return this.viewportStyle(record, this.recordStyle(record, get));
   }
-  /** The record's whole engine style (a page body's: before `pageBodyViewportStyle` splits it). */
+  /** A record's engine style from its whole style: a page body's viewport box (`pageBodySplit`). */
+  private viewportStyle(
+    record: CatalogConsumerNode,
+    whole: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const body = this.pageBody(record);
+    return body ? pageBodySplit(whole, body).viewport : whole;
+  }
+  /** The record's whole engine style (a page body's: before `pageBodySplit` splits it). */
   private recordStyle(
     record: CatalogConsumerNode,
     get: (id: string) => CatalogConsumerNode | undefined,
@@ -6068,16 +6065,22 @@ export class CatalogCompositionRoot {
     );
   }
   /**
-   * A page body's viewport height — its frame's (`pageFrameStyle`) when the body did not author a
-   * height: the body is then two engine boxes, as Chrome's page is (ledger §body 는 뷰포트가
-   * 아니다): the frame (its size, clip and scroll) and the body's content (a part, `min-height`
-   * the frame) that grows with its children — a vertical flex body taller than its page no longer
-   * squeezes them (user 2026-11-13).
+   * A page body (a page root with a frame on the page grid, a layout definition's frame — not the
+   * Components page): two engine boxes, the frame and its content (`pageBodySplit`) — a vertical
+   * flex body taller than its page does not squeeze its children (user 2026-11-13).
    */
-  private pageViewportHeight(record: CatalogConsumerNode): string | undefined {
-    if (record.parentId !== "catalog:root") return undefined;
-    const frame = this.pageFrameStyle(record);
-    return typeof frame?.height === "string" ? frame.height : undefined;
+  private pageBody(record: CatalogConsumerNode): PageBodyShape | undefined {
+    if (
+      record.parentId !== "catalog:root" ||
+      isComponentsView(this.definitionView) ||
+      !this.pageFrameStyle(record)
+    )
+      return undefined;
+    return {
+      authoredHeight:
+        record.sizing.height != null || record.visual.height != null,
+      positioned: (record.layout.position ?? "static") !== "static",
+    };
   }
   /**
    * A page root's frame on the page grid: the breakpoint's page size unless the root authored its
@@ -6230,26 +6233,28 @@ export class CatalogCompositionRoot {
     if (patch) this.previews.set(id, { base, shown });
     else this.previews.delete(id);
     this.records.set(id, shown);
-    this.layout.updateNodeStyle(id, this.styleFor(shown));
+    const whole = this.recordStyle(shown, (key) => this.records.get(key));
+    this.layout.updateNodeStyle(id, this.viewportStyle(shown, whole));
     // (A part laid out from the record — a page body's content: its gap · padding · display — is
     // previewed with it, and kept as the applied parts so the Canvas sees the change. A preview
-    // does not change the parts' structure: same ids, same wraps. Unchanged JSON is no write.)
+    // does not change the parts' structure: same ids, same wraps.)
     const parts = this.composedParts.get(id) ?? [];
-    const previewed = parts.length ? this.partsFor(shown) : [];
+    const previewed = parts.length
+      ? this.partsFor(shown, undefined, whole)
+      : [];
     if (
       previewed.length === parts.length &&
       previewed.every(
         (part, index) =>
           part.id === parts[index].id &&
           sameList(part.wraps ?? [], parts[index].wraps ?? []),
-      ) &&
-      previewed.some(
-        (part, index) => !sameFields(part.style, parts[index].style),
       )
     ) {
-      this.composedParts.set(id, previewed);
-      for (const part of previewed)
-        this.layout.updateNodeStyle(part.id, { ...part.style });
+      previewed.forEach((part, index) => {
+        if (!sameFields(part.style, parts[index].style))
+          this.layout.updateNodeStyle(part.id, { ...part.style });
+      });
+      if (previewed.length) this.composedParts.set(id, previewed);
     }
     this.layout.computeLayout(this.viewport.width, this.viewport.height);
     this.rewrap(this.rewrapScope([id]));
@@ -6356,7 +6361,9 @@ export class CatalogCompositionRoot {
     get?: (id: string) => CatalogConsumerNode | undefined,
   ): RecordPlan {
     const old = this.records.get(id);
-    const style = this.styleFor(record, get);
+    const lookup = get ?? ((key: string) => this.records.get(key));
+    const whole = this.recordStyle(record, lookup);
+    const style = this.viewportStyle(record, whole);
     const frame = this.pageFrameStyle(record);
     const frameChanged =
       !!frame && !sameFields(this.appliedFrames.get(id) ?? {}, frame);
@@ -6369,7 +6376,7 @@ export class CatalogCompositionRoot {
       styleChanged:
         !old || frameChanged || !sameFields(this.styleFor(old), style),
       chrome: deriveSlotChromeInput(record, this.slotChromeContext),
-      parts: this.partsFor(record, get ?? ((key) => this.records.get(key))),
+      parts: this.partsFor(record, lookup, whole),
     };
   }
 

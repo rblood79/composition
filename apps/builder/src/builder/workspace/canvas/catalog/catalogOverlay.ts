@@ -1,7 +1,11 @@
 import type { Canvas, CanvasKit, FontMgr } from "canvaskit-wasm";
 import type { CatalogGesturePreview } from "../../../catalogRuntime/canvasGesture";
 import type { CatalogSessionState } from "../../../catalogRuntime/session";
-import { calculateCombinedBounds, type BoundingBox } from "../selection/types";
+import {
+  calculateCombinedBounds,
+  type BoundingBox,
+  type HandlePosition,
+} from "../selection/types";
 import { resolveMeasureGuides } from "../interaction/measureGuides";
 import {
   renderEditingContextBorder,
@@ -77,6 +81,8 @@ export interface CatalogOverlayInputs {
   fontMgr: () => FontMgr | undefined;
   /** The drag in progress (move ghost, drop line and container, or the resized box). */
   gesture?: () => CatalogGesturePreview | undefined;
+  /** The resize handles the single selection accepts (`CatalogCanvasGestures.handleAccepted`). */
+  handleAccepted?: (position: HandlePosition) => boolean;
   /** A grid container's cells (none for other records): outlined while it is selected or hovered. */
   gridCells?: (identity: string) => readonly BoundingBox[];
   /** A record's parent record: a selected grid item shows its grid's cells too (Figma). */
@@ -521,11 +527,7 @@ export function catalogOverlayNode(
         renderSelectionBox(ck, canvas, box, zoom);
       if (box) {
         // The Components page takes no resize (its nodes are derived): no handles to grab.
-        // A page body resizes its frame from the bottom-right (its top-left is the page's place).
-        const pageBody =
-          state.selection.length === 1 &&
-          !state.definitionView &&
-          !!inputs.pageBorders?.().roots.includes(state.selection[0].identity);
+        // (Only the corners the resize takes — a page body's bottom-right.)
         if (!isComponentsView(state.definitionView))
           renderTransformHandles(
             ck,
@@ -533,7 +535,7 @@ export function catalogOverlayNode(
             box,
             zoom,
             null,
-            pageBody ? (position) => position === "bottom-right" : undefined,
+            inputs.handleAccepted,
           );
         renderDimensionLabels(ck, canvas, box, zoom, inputs.fontMgr());
       }

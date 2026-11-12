@@ -628,6 +628,7 @@ export function CatalogCanvas({
       zoom: zoomNow,
       fontMgr,
       gesture: () => gestures.preview(),
+      handleAccepted: (position) => gestures.handleAccepted(position),
       gridCells: overlayGridCells,
       // Only a grid parent (none on a page without grids: no record read per frame — ADR-246).
       parentOf: (identity) => {

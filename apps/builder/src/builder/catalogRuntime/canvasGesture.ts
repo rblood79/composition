@@ -388,12 +388,26 @@ type Gesture =
        * A page body (its frame — 2026-11-13): the drag writes its width and its Min H (the frame's
        * height; the body grows past it with its content) at the active breakpoint.
        */
-      pageBody?: true;
+      pageBody: boolean;
       active: boolean;
       request: { width?: number; height?: number; left?: number; top?: number };
       /** The grid cell line each moving edge snapped to (scene coordinate) — a span on release. */
       cellLines?: { x?: number; y?: number };
     };
+
+/**
+ * A page body's resize as its sizing: the frame's width and its Min H (not a height — the body grows
+ * past its frame with its content).
+ */
+function pageBodySizing(gesture: {
+  request: { width?: number; height?: number };
+}): { width?: number; minHeight?: number } {
+  const { width, height } = gesture.request;
+  return {
+    ...(width !== undefined ? { width } : {}),
+    ...(height !== undefined ? { minHeight: height } : {}),
+  };
+}
 
 /**
  * The resize ratio lock of a record (the old Canvas's `resolveResizeRatioLock`): a ratio with one
@@ -485,13 +499,19 @@ export class CatalogCanvasGestures {
       this.host.bounds(element.item.identity) ?? null,
       zoom,
     );
-    if (
-      element.pageBody &&
-      handle &&
-      (handle.position.includes("left") || handle.position.includes("top"))
-    )
-      return null;
-    return handle;
+    return handle && this.handleAccepted(handle.position) ? handle : null;
+  }
+  /**
+   * Whether the single selection resizes from this handle — the overlay draws the corners this
+   * accepts: a page body only its right · bottom (its top-left is the page's place on the canvas).
+   */
+  handleAccepted(position: HandlePosition): boolean {
+    const element = this.resizable();
+    return (
+      !!element &&
+      (!element.pageBody ||
+        (!position.includes("left") && !position.includes("top")))
+    );
   }
 
   beginResize(x: number, y: number, zoom: number): boolean {
@@ -513,7 +533,7 @@ export class CatalogCanvasGestures {
       item,
       startBox,
       lock: pageBody ? null : ratioLockOf(record),
-      ...(pageBody ? { pageBody: true as const } : {}),
+      pageBody,
       ...(absolute
         ? {
             absolute,
@@ -1423,12 +1443,7 @@ export class CatalogCanvasGestures {
     }
     const { width, height } = gesture.request;
     if (gesture.pageBody) {
-      this.host.reflow(this.reflowed, {
-        sizing: {
-          ...(width !== undefined ? { width } : {}),
-          ...(height !== undefined ? { minHeight: height } : {}),
-        },
-      });
+      this.host.reflow(this.reflowed, { sizing: pageBodySizing(gesture) });
       return;
     }
     // A ColorWheel previews its diameter square (the release writes `size` — `commandOf`).
@@ -1568,14 +1583,12 @@ export class CatalogCanvasGestures {
         return setFields({
           targets: [gesture.item.target],
           breakpoint,
-          sizing: {
-            ...(width !== undefined
-              ? { width: { kind: "set" as const, value: width } }
-              : {}),
-            ...(height !== undefined
-              ? { minHeight: { kind: "set" as const, value: height } }
-              : {}),
-          },
+          sizing: Object.fromEntries(
+            Object.entries(pageBodySizing(gesture)).map(([key, value]) => [
+              key,
+              { kind: "set" as const, value },
+            ]),
+          ),
           label: "Resize",
         });
       // ADR-258 후속: a ColorWheel is its S2 `size` square (S2 sizes the wheel from it over any
