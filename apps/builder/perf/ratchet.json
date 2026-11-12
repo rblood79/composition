@@ -2,7 +2,7 @@
   "version": 1,
   "recorderSha256": "ea9cf64582c7c1fcba32bd7c3157973850bfd358081d7f4cdb4a98f122f57c60",
   "generatedAt": "2026-11-12",
-  "head": "805dc62bd94048e773cec4785a29e1b189810f21",
+  "head": "f8098fcf3e5202d8a571bf3907ea0238ece1cee7",
   "band": 1.05,
   "minSlack": 2,
   "runs": {
@@ -307,7 +307,6 @@
           "perfLabels.render.skia.flush.main": 31,
           "perfLabels.render.skia.overlay": 31,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 0,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 0,
@@ -454,13 +453,13 @@
           "warmAfter.warmPassRebuilt": 0
         },
         "B": {
-          "cdp.LayoutCount": 109,
-          "cdp.RecalcStyleCount": 160,
-          "domMutations.childList": 922,
-          "reactRenderMeasures": 6499,
-          "v8.app": 143748,
-          "v8.fn.src/builder/components/property/PropertySelect.components.tsx#(anonymous)": 1739,
-          "v8.fn.src/i18n/I18nProvider.tsx#(anonymous)": 2051
+          "cdp.LayoutCount": 107,
+          "cdp.RecalcStyleCount": 157,
+          "domMutations.childList": 382,
+          "reactRenderMeasures": 6558,
+          "v8.app": 144660,
+          "v8.fn.src/builder/components/property/PropertySelect.components.tsx#(anonymous)": 1702,
+          "v8.fn.src/i18n/I18nProvider.tsx#(anonymous)": 2050
         }
       },
       "edit": {
@@ -522,7 +521,6 @@
           "perfLabels.render.skia.flush.main": 16,
           "perfLabels.render.skia.overlay": 16,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 3,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 15,
@@ -671,11 +669,11 @@
           "warmAfter.warmPassRebuilt": 1
         },
         "B": {
-          "cdp.LayoutCount": 24,
-          "cdp.RecalcStyleCount": 24,
+          "cdp.LayoutCount": 23,
+          "cdp.RecalcStyleCount": 23,
           "domMutations.childList": 32,
-          "reactRenderMeasures": 603,
-          "v8.app": 58188
+          "reactRenderMeasures": 599,
+          "v8.app": 58353
         }
       },
       "page-switch": {
@@ -735,7 +733,6 @@
           "perfLabels.render.skia.flush.main": 10,
           "perfLabels.render.skia.overlay": 10,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 0,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 0,
@@ -883,10 +880,10 @@
         },
         "B": {
           "cdp.LayoutCount": 51,
-          "cdp.RecalcStyleCount": 150,
+          "cdp.RecalcStyleCount": 149,
           "domMutations.childList": 50,
-          "reactRenderMeasures": 1523,
-          "v8.app": 16956
+          "reactRenderMeasures": 1528,
+          "v8.app": 16963
         }
       },
       "panel-toggle": {
@@ -944,7 +941,6 @@
           "engine.intrinsicMeasureMiss": 0,
           "engine.solveVisits": 0,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 0,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 0,
@@ -1069,6 +1065,7 @@
           "render.warmCandidatesScanned": 0,
           "render.warmCandidatesSorted": 0,
           "render.warmPassRebuilt": 0,
+          "v8.app": 36905,
           "v8.fn.src/builder/hooks/useActiveScope.ts#(anonymous)": 558,
           "v8.fn.src/builder/hooks/useKeyboardShortcutsRegistry.ts#(anonymous)": 1150,
           "v8.fn.src/builder/layout/PanelWorkspace.tsx#(anonymous)": 470,
@@ -1090,8 +1087,7 @@
           "cdp.LayoutCount": 35,
           "cdp.RecalcStyleCount": 216,
           "domMutations.childList": 80,
-          "reactRenderMeasures": 2689,
-          "v8.app": 36905
+          "reactRenderMeasures": 2696
         }
       },
       "drag": {
@@ -1158,7 +1154,6 @@
           "perfLabels.render.text.paragraph.build": 1,
           "perfLabels.render.text.paragraph.layout": 1,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 900,
           "render.bufferSegmentsPeak": 5,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 0,
@@ -1283,7 +1278,7 @@
           "render.warmCandidatesScanned": 0,
           "render.warmCandidatesSorted": 0,
           "render.warmPassRebuilt": 0,
-          "v8.fn.src/builder/catalogRuntime/canvasBinding.ts#get stream": 27793,
+          "v8.fn.src/builder/catalogRuntime/canvasBinding.ts#get stream": 27794,
           "v8.fn.src/builder/catalogRuntime/canvasGesture.ts#(anonymous)": 26100,
           "v8.fn.src/builder/catalogRuntime/canvasScene.ts#get stream": 27613,
           "v8.fn.src/builder/workspace/canvas/catalog/CatalogCanvas.tsx#bounds": 26654,
@@ -1305,8 +1300,8 @@
           "cdp.LayoutCount": 3,
           "cdp.RecalcStyleCount": 221,
           "domMutations.childList": 2,
-          "reactRenderMeasures": 303,
-          "v8.app": 1030822
+          "reactRenderMeasures": 301,
+          "v8.app": 1030792
         }
       },
       "select-spread": {
@@ -1366,7 +1361,6 @@
           "perfLabels.render.skia.flush.main": 31,
           "perfLabels.render.skia.overlay": 31,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 0,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 0,
@@ -1515,10 +1509,10 @@
         },
         "B": {
           "cdp.LayoutCount": 72,
-          "cdp.RecalcStyleCount": 138,
-          "domMutations.childList": 423,
-          "reactRenderMeasures": 6621,
-          "v8.app": 140457
+          "cdp.RecalcStyleCount": 136,
+          "domMutations.childList": 243,
+          "reactRenderMeasures": 6618,
+          "v8.app": 137756
         }
       }
     },
@@ -1581,7 +1575,6 @@
           "perfLabels.render.skia.flush.main": 31,
           "perfLabels.render.skia.overlay": 31,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 0,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 0,
@@ -1712,10 +1705,10 @@
           "warmAfter.warmPassRebuilt": 0
         },
         "B": {
-          "cdp.LayoutCount": 107,
-          "cdp.RecalcStyleCount": 158,
-          "domMutations.childList": 922,
-          "reactRenderMeasures": 6298
+          "cdp.LayoutCount": 108,
+          "cdp.RecalcStyleCount": 159,
+          "domMutations.childList": 382,
+          "reactRenderMeasures": 6353
         }
       },
       "edit": {
@@ -1777,7 +1770,6 @@
           "perfLabels.render.skia.flush.main": 16,
           "perfLabels.render.skia.overlay": 16,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 3,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 15,
@@ -1908,8 +1900,8 @@
           "warmAfter.warmPassRebuilt": 1
         },
         "B": {
-          "cdp.LayoutCount": 24,
-          "cdp.RecalcStyleCount": 24,
+          "cdp.LayoutCount": 23,
+          "cdp.RecalcStyleCount": 23,
           "domMutations.childList": 32,
           "reactRenderMeasures": 600
         }
@@ -1976,7 +1968,6 @@
           "perfLabels.render.skia.overlay": 153,
           "perfLabels.render.skia.record.content": 49,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 0,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 0,
@@ -2170,7 +2161,6 @@
           "perfLabels.render.skia.flush.main": 31,
           "perfLabels.render.skia.overlay": 31,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 0,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 0,
@@ -2302,9 +2292,9 @@
         },
         "B": {
           "cdp.LayoutCount": 98,
-          "cdp.RecalcStyleCount": 158,
-          "domMutations.childList": 454,
-          "reactRenderMeasures": 6389
+          "cdp.RecalcStyleCount": 156,
+          "domMutations.childList": 274,
+          "reactRenderMeasures": 6404
         }
       }
     },
@@ -2371,7 +2361,6 @@
           "perfLabels.render.skia.overlay": 153,
           "perfLabels.render.skia.record.content": 49,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 0,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 0,
@@ -2502,8 +2491,8 @@
           "warmAfter.warmPassRebuilt": 0
         },
         "B": {
-          "cdp.LayoutCount": 434,
-          "cdp.RecalcStyleCount": 565,
+          "cdp.LayoutCount": 435,
+          "cdp.RecalcStyleCount": 566,
           "domMutations.childList": 0,
           "reactRenderMeasures": 0
         }
@@ -2567,7 +2556,6 @@
           "perfLabels.render.skia.flush.main": 15,
           "perfLabels.render.skia.overlay": 15,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 3,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 15,
@@ -2701,7 +2689,7 @@
           "cdp.LayoutCount": 28,
           "cdp.RecalcStyleCount": 28,
           "domMutations.childList": 34,
-          "reactRenderMeasures": 561
+          "reactRenderMeasures": 566
         }
       },
       "pan": {
@@ -2765,7 +2753,6 @@
           "perfLabels.render.skia.overlay": 179,
           "perfLabels.render.skia.record.content": 4,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 0,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 0,
@@ -2959,7 +2946,6 @@
           "perfLabels.render.skia.flush.main": 10,
           "perfLabels.render.skia.overlay": 10,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 0,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 0,
@@ -3091,9 +3077,9 @@
         },
         "B": {
           "cdp.LayoutCount": 40,
-          "cdp.RecalcStyleCount": 149,
+          "cdp.RecalcStyleCount": 148,
           "domMutations.childList": 50,
-          "reactRenderMeasures": 1660
+          "reactRenderMeasures": 1658
         }
       }
     },
@@ -3159,7 +3145,6 @@
           "perfLabels.render.skia.overlay": 179,
           "perfLabels.render.skia.record.content": 9,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 0,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 0,
@@ -3358,7 +3343,6 @@
           "perfLabels.render.skia.overlay": 153,
           "perfLabels.render.skia.record.content": 71,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 0,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 0,
@@ -3562,7 +3546,6 @@
           "perfLabels.render.text.paragraph.build": 44,
           "perfLabels.render.text.paragraph.layout": 44,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 136,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 42,
@@ -3715,8 +3698,8 @@
           "cdp.LayoutCount": 48,
           "cdp.RecalcStyleCount": 48,
           "domMutations.childList": 50,
-          "reactRenderMeasures": 824,
-          "v8.app": 559449
+          "reactRenderMeasures": 823,
+          "v8.app": 560443
         }
       },
       "load-same-frame": {
@@ -3784,7 +3767,6 @@
           "perfLabels.render.text.paragraph.build": 44,
           "perfLabels.render.text.paragraph.layout": 44,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 136,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 20,
@@ -3934,11 +3916,11 @@
           "warmAfter.warmPassRebuilt": 1
         },
         "B": {
-          "cdp.LayoutCount": 25,
-          "cdp.RecalcStyleCount": 25,
+          "cdp.LayoutCount": 23,
+          "cdp.RecalcStyleCount": 23,
           "domMutations.childList": 44,
           "reactRenderMeasures": 820,
-          "v8.app": 564543
+          "v8.app": 564948
         }
       },
       "load-zoom": {
@@ -3996,7 +3978,6 @@
           "engine.solveVisits": 0,
           "perfLabels.input.viewport.wheel-zoom": 176,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 136,
           "render.contentDamageFallbacks": 20,
           "render.contentDamageRenders": 0,
@@ -4119,7 +4100,7 @@
           "caches.nodePicture.hits": 10580,
           "caches.paintPool.hits": 256,
           "cdp.LayoutCount": 344,
-          "cdp.RecalcStyleCount": 426,
+          "cdp.RecalcStyleCount": 427,
           "domMutations.childList": 0,
           "perfLabels.render.skia.flush.content": 64,
           "perfLabels.render.skia.flush.main": 153,
@@ -4140,7 +4121,7 @@
           "render.spatialQueries": 64,
           "render.spatialResults": 13475,
           "render.viewportSequences": 64,
-          "v8.app": 687658,
+          "v8.app": 689428,
           "v8.fn.src/builder/workspace/canvas/skia/cacheMetrics.ts#getCacheMetrics": 11305,
           "v8.fn.src/builder/workspace/canvas/skia/cacheMetrics.ts#recordHit": 10925,
           "v8.fn.src/builder/workspace/canvas/skia/drawStats.ts#incrementDrawCall": 10616,
@@ -4224,7 +4205,6 @@
           "perfLabels.render.skia.overlay": 152,
           "perfLabels.render.skia.record.content": 48,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 0,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 0,
@@ -4352,7 +4332,6 @@
           "v8.fn.src/builder/workspace/canvas/skia/cacheMetrics.ts#getCacheMetrics": 7024,
           "v8.fn.src/builder/workspace/canvas/skia/cacheMetrics.ts#recordHit": 6880,
           "v8.fn.src/builder/workspace/canvas/skia/effects.ts#endRenderEffects": 8386,
-          "v8.fn.src/builder/workspace/canvas/skia/nodeRendererTree.ts#_get": 9347,
           "v8.fn.src/builder/workspace/canvas/skia/nodeRendererTree.ts#getDragVisualOffset": 9347,
           "v8.fn.src/builder/workspace/canvas/skia/nodeRendererTree.ts#getSiblingOffset": 9299,
           "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#(anonymous)": 36394,
@@ -4374,10 +4353,11 @@
         },
         "B": {
           "cdp.LayoutCount": 429,
-          "cdp.RecalcStyleCount": 563,
+          "cdp.RecalcStyleCount": 564,
           "domMutations.childList": 0,
           "reactRenderMeasures": 0,
-          "v8.app": 415754
+          "v8.app": 417429,
+          "v8.fn.src/builder/workspace/canvas/skia/nodeRendererTree.ts#_get": 9348
         }
       },
       "edit": {
@@ -4439,7 +4419,6 @@
           "perfLabels.render.skia.flush.main": 15,
           "perfLabels.render.skia.overlay": 15,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 136,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 15,
@@ -4589,11 +4568,11 @@
           "warmAfter.warmPassRebuilt": 1
         },
         "B": {
-          "cdp.LayoutCount": 25,
-          "cdp.RecalcStyleCount": 25,
+          "cdp.LayoutCount": 24,
+          "cdp.RecalcStyleCount": 24,
           "domMutations.childList": 30,
-          "reactRenderMeasures": 564,
-          "v8.app": 289641
+          "reactRenderMeasures": 565,
+          "v8.app": 289968
         }
       }
     },
@@ -4663,7 +4642,6 @@
           "perfLabels.render.text.paragraph.build": 44,
           "perfLabels.render.text.paragraph.layout": 44,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 136,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 62,
@@ -4813,11 +4791,11 @@
           "warmAfter.warmPassRebuilt": 1
         },
         "B": {
-          "cdp.LayoutCount": 91,
-          "cdp.RecalcStyleCount": 91,
+          "cdp.LayoutCount": 92,
+          "cdp.RecalcStyleCount": 92,
           "domMutations.childList": 94,
-          "reactRenderMeasures": 1640,
-          "v8.app": 839393
+          "reactRenderMeasures": 1643,
+          "v8.app": 840664
         }
       }
     },
@@ -4884,7 +4862,6 @@
           "perfLabels.render.skia.overlay": 158,
           "perfLabels.render.skia.record.content": 51,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 0,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 0,
@@ -5015,8 +4992,8 @@
           "warmAfter.warmPassRebuilt": 0
         },
         "B": {
-          "cdp.LayoutCount": 445,
-          "cdp.RecalcStyleCount": 633,
+          "cdp.LayoutCount": 444,
+          "cdp.RecalcStyleCount": 632,
           "domMutations.childList": 0,
           "reactRenderMeasures": 0
         }
@@ -5082,7 +5059,6 @@
           "perfLabels.render.skia.overlay": 35,
           "perfLabels.render.skia.record.content": 23,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 0,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 0,
@@ -5214,7 +5190,7 @@
         },
         "B": {
           "cdp.LayoutCount": 87,
-          "cdp.RecalcStyleCount": 122,
+          "cdp.RecalcStyleCount": 121,
           "domMutations.childList": 0,
           "reactRenderMeasures": 0
         }
@@ -5283,7 +5259,6 @@
           "perfLabels.render.skia.overlay": 156,
           "perfLabels.render.skia.record.content": 50,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 0,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 0,
@@ -5414,8 +5389,8 @@
           "warmAfter.warmPassRebuilt": 0
         },
         "B": {
-          "cdp.LayoutCount": 443,
-          "cdp.RecalcStyleCount": 596,
+          "cdp.LayoutCount": 444,
+          "cdp.RecalcStyleCount": 597,
           "domMutations.childList": 0,
           "reactRenderMeasures": 0
         }
@@ -5483,7 +5458,6 @@
           "perfLabels.render.skia.overlay": 158,
           "perfLabels.render.skia.record.content": 51,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 0,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 0,
@@ -5682,7 +5656,6 @@
           "perfLabels.render.skia.overlay": 179,
           "perfLabels.render.skia.record.content": 4,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 0,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 0,
@@ -5814,7 +5787,7 @@
         },
         "B": {
           "cdp.LayoutCount": 0,
-          "cdp.RecalcStyleCount": 361,
+          "cdp.RecalcStyleCount": 360,
           "domMutations.childList": 0,
           "reactRenderMeasures": 0
         }
@@ -5884,7 +5857,6 @@
           "perfLabels.render.text.paragraph.build": 18,
           "perfLabels.render.text.paragraph.layout": 18,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 0,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 0,
@@ -6016,9 +5988,9 @@
         },
         "B": {
           "cdp.LayoutCount": 9,
-          "cdp.RecalcStyleCount": 483,
+          "cdp.RecalcStyleCount": 484,
           "domMutations.childList": 10,
-          "reactRenderMeasures": 410
+          "reactRenderMeasures": 405
         }
       },
       "edit": {
@@ -6080,7 +6052,6 @@
           "perfLabels.render.skia.flush.main": 15,
           "perfLabels.render.skia.overlay": 15,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 3,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 15,
@@ -6211,8 +6182,8 @@
           "warmAfter.warmPassRebuilt": 1
         },
         "B": {
-          "cdp.LayoutCount": 29,
-          "cdp.RecalcStyleCount": 29,
+          "cdp.LayoutCount": 28,
+          "cdp.RecalcStyleCount": 28,
           "domMutations.childList": 34,
           "reactRenderMeasures": 561
         }
@@ -6281,7 +6252,6 @@
           "perfLabels.render.text.paragraph.build": 105,
           "perfLabels.render.text.paragraph.layout": 105,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 3,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 15,
@@ -6412,10 +6382,10 @@
           "warmAfter.warmPassRebuilt": 1
         },
         "B": {
-          "cdp.LayoutCount": 27,
-          "cdp.RecalcStyleCount": 27,
+          "cdp.LayoutCount": 25,
+          "cdp.RecalcStyleCount": 25,
           "domMutations.childList": 32,
-          "reactRenderMeasures": 563
+          "reactRenderMeasures": 562
         }
       },
       "select": {
@@ -6476,7 +6446,6 @@
           "perfLabels.render.skia.flush.main": 31,
           "perfLabels.render.skia.overlay": 31,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 0,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 0,
@@ -6607,10 +6576,10 @@
           "warmAfter.warmPassRebuilt": 0
         },
         "B": {
-          "cdp.LayoutCount": 113,
-          "cdp.RecalcStyleCount": 237,
-          "domMutations.childList": 787,
-          "reactRenderMeasures": 10523
+          "cdp.LayoutCount": 112,
+          "cdp.RecalcStyleCount": 238,
+          "domMutations.childList": 432,
+          "reactRenderMeasures": 10548
         }
       }
     },
@@ -6677,7 +6646,6 @@
           "perfLabels.render.text.paragraph.build": 60,
           "perfLabels.render.text.paragraph.layout": 60,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 3,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 15,
@@ -6808,8 +6776,8 @@
           "warmAfter.warmPassRebuilt": 1
         },
         "B": {
-          "cdp.LayoutCount": 25,
-          "cdp.RecalcStyleCount": 25,
+          "cdp.LayoutCount": 26,
+          "cdp.RecalcStyleCount": 26,
           "domMutations.childList": 32,
           "reactRenderMeasures": 564
         }
@@ -6876,7 +6844,6 @@
           "perfLabels.render.skia.flush.main": 191,
           "perfLabels.render.skia.overlay": 191,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 0,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 188,
@@ -7008,9 +6975,9 @@
         },
         "B": {
           "cdp.LayoutCount": 12,
-          "cdp.RecalcStyleCount": 65,
-          "domMutations.childList": 370,
-          "reactRenderMeasures": 882
+          "cdp.RecalcStyleCount": 64,
+          "domMutations.childList": 33,
+          "reactRenderMeasures": 891
         }
       }
     },
@@ -7077,7 +7044,6 @@
           "perfLabels.render.text.paragraph.build": 432,
           "perfLabels.render.text.paragraph.layout": 432,
           "render.bufferProxyReads": 0,
-          "render.bufferSegmentsAtExec": 0,
           "render.bufferSegmentsPeak": 0,
           "render.contentDamageFallbacks": 0,
           "render.contentDamageRenders": 0,
@@ -7213,12 +7179,12 @@
           "warmAfter.warmPassRebuilt": 1
         },
         "B": {
-          "cdp.LayoutCount": 20,
-          "cdp.RecalcStyleCount": 20,
-          "domMutations.attributes": 64,
-          "domMutations.characterData": 32,
-          "domMutations.childList": 20,
-          "reactRenderMeasures": 422
+          "cdp.LayoutCount": 19,
+          "cdp.RecalcStyleCount": 19,
+          "domMutations.attributes": 62,
+          "domMutations.characterData": 31,
+          "domMutations.childList": 18,
+          "reactRenderMeasures": 419
         }
       }
     }

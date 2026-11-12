@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Infrastructure
 
 - ratchet 판정에서 `render.bufferSegmentsAtExec` (그리기 호출 수 × 조각 수) 를 뺐다 — 일의 양이 아니라 상태를 곱한 값이다 (drag splice 로 호출은 3.60M → 1.60M 으로 줄었는데 이 값은 182 → 900). 조각 수는 `render.bufferSegmentsPeak` (A) 가 판정한다 (사용자 승인 2026-11-13). 위치: `perf-ratchet-gate.mjs` `EXCLUDED`.
+- 성능 ratchet 기준을 두 수정 뒤 코드 (`cddbad466`) 로 다시 잡았다 — dev 5173 에서 13 run 을 세 번 재어 `--init` (run `60` 은 drag 끝 확인 변경 뒤 다시 세 번), 새 기준으로 세 측정 모두 A 초과 0. 내려간 것: select DOM 자식 변경 922 → 382 · select-spread 423 → 243 · sticky-lists select 787 → 432 · scroll-boxes scroll 370 → 33. 오른 A 1 키: drag `canvasBinding.ts#get stream` 27,793 → 27,794 — drag 가 끝난 뒤 조각 수를 한 번 확인하는 읽기 (사용자 승인 2026-11-13). 위치: `apps/builder/perf/ratchet.json`.
 
 ## [Property 탭 generic 렌더러 정리 — 섹션 표 하나 · 슬라이더 범위 catalog 이관 · 안 쓰는 목록 편집기 삭제] - 2026-11-12
 
