@@ -244,9 +244,7 @@ describe("TransformSection sizing controls", () => {
     // The side is where the field sits around the pin box — no legend row.
     for (const side of ["Top", "Right", "Bottom", "Left"])
       expect(
-        screen
-          .getByRole("group", { name: side })
-          .querySelector("legend"),
+        screen.getByRole("group", { name: side }).querySelector("legend"),
       ).toBeNull();
     within(leftGroup).getByRole("button", { name: /Unit$/ }).click();
 
@@ -477,6 +475,21 @@ describe("TransformSection sizing controls", () => {
       (screen.getByRole("combobox", { name: "Min H" }) as HTMLInputElement)
         .value,
     ).toBe("32");
+  });
+
+  it("gives a page body the same Min/Max toggle, closed at first (2026-11-13)", async () => {
+    const { workspace } = fixture;
+    workspace.selectRecords([
+      workspace.root.recordsOfSource("project:node:home-body")[0],
+    ]);
+    renderSection();
+    expect(screen.queryByRole("combobox", { name: "Min H" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Size constraints" }));
+    // The page body's Min H shows its frame height — the breakpoint's page height.
+    expect(
+      (screen.getByRole("combobox", { name: "Min H" }) as HTMLInputElement)
+        .value,
+    ).not.toBe("");
   });
 
   it("omits rem from every Min/Max constraint unit menu", async () => {

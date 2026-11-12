@@ -353,10 +353,9 @@ const TransformSectionContent = memo(function TransformSectionContent({
   // Min/Max 4 필드 펼침 — 토글 on 이거나 값이 하나라도 있으면 보인다 (Border 코너 토글과 같은 규칙,
   //   2026-09-15 사용자 판정). hook 순서를 위해 early return 앞.
   const [constraintsOpen, setConstraintsOpen] = useState(false);
-  // (A page body always shows them: its Min H is the page frame's height — 2026-11-13.)
+  // (A page body too — closed at first like a component's, 2026-11-13 사용자 지정.)
   const showConstraints =
-    constraintsOpen ||
-    Boolean(styleValues?.hasInlineConstraint || styleValues?.isBody);
+    constraintsOpen || Boolean(styleValues?.hasInlineConstraint);
 
   if (!styleValues) return null;
 
@@ -491,19 +490,17 @@ const TransformSectionContent = memo(function TransformSectionContent({
           max={heightMode === "fill" && isFraction("height") ? 1000 : 9999}
         />
         <div className="fieldset-actions actions-size">
-          {!styleValues.isBody && (
-            <SwatchIconToggleButton
-              aria-label={localize("Size constraints")}
-              isSelected={showConstraints}
-              onChange={setConstraintsOpen}
-            >
-              <UnfoldVertical
-                color={iconProps.color}
-                size={iconProps.size}
-                strokeWidth={iconProps.strokeWidth}
-              />
-            </SwatchIconToggleButton>
-          )}
+          <SwatchIconToggleButton
+            aria-label={localize("Size constraints")}
+            isSelected={showConstraints}
+            onChange={setConstraintsOpen}
+          >
+            <UnfoldVertical
+              color={iconProps.color}
+              size={iconProps.size}
+              strokeWidth={iconProps.strokeWidth}
+            />
+          </SwatchIconToggleButton>
         </div>
       </div>
 

@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Design 패널 Size 절: page body 는 Width (breakpoint 폭 — 390 PX) · Height (auto) · Min W/H (Min H = breakpoint 높이) · Max W/H · Overflow 를 보인다 (Ratio 는 page 에 없다). 저작하지 않은 값은 표시만 하고 저장하지 않아 breakpoint 를 바꾸면 따라간다.
+- Design 패널 Size 절: page body 는 Width (breakpoint 폭 — 390 PX) · Height (auto) · Min W/H (Min H = breakpoint 높이) · Max W/H · Overflow 를 보인다 (Ratio 는 page 에 없다). Min/Max 는 컴포넌트와 같은 펼침 토글 뒤에 있고 처음엔 접혀 있다. 저작하지 않은 값은 표시만 하고 저장하지 않아 breakpoint 를 바꾸면 따라간다.
 - 선택한 page 의 selection box 오른쪽 · 아래 · 오른쪽 아래 손잡이로 page 프레임 크기를 바꾼다 — 가로는 Width, 세로는 Min H (Height 가 아니다 — body 는 계속 내용만큼 자란다) 를 지금 breakpoint 에 쓴다. 왼쪽 · 위 손잡이는 없다 (page 위치는 page 끌기가 옮긴다).
 
 ## [수용했던 ratchet 2 건 — 패널 선택칸의 숨은 option · drag 뒤 명령 버퍼 조각] - 2026-11-13
