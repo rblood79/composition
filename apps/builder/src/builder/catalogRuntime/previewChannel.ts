@@ -162,6 +162,9 @@ export class CatalogPreviewChannel {
       projectId: graph.projectId,
       revision: graph.revision,
       document: withoutComponentPages(graph.exportDocument()),
+      ...(this.pageId
+        ? { view: { pageId: this.pageId, breakpoint: this.breakpoint } }
+        : {}),
     });
     this.componentMembers = componentPageMembers(
       (id) => graph.storedEntry(id),

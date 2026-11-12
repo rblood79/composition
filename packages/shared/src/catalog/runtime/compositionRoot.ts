@@ -3163,10 +3163,12 @@ export class CatalogCompositionRoot {
     };
   }
 
-  /** ADR-307: the page built in full by a staged load (undefined = every page, as before). */
+  /**
+   * ADR-307: the page built in full by a staged load (undefined = every page, as before). The
+   * Builder's page grid (`pageFrames`) and the Preview · Publish (one route shown) both stage.
+   */
   private stagedFirstPage(): string | undefined {
-    if (!this.stagedLoad || this.definitionView || !this.pageFrames)
-      return undefined;
+    if (!this.stagedLoad || this.definitionView) return undefined;
     const graph = this.runtime.graph;
     const project = graph.getEntry(graph.projectId);
     const pages = project?.kind === "project" ? project.pageIds : [];

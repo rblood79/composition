@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Preview · Publish 는 보이는 page 만 만든다 (ADR-307 후속 2)] - 2026-11-12
+
+### Changed
+
+- Preview · Publish 가 열 때 보이는 page 만 다 만들고 나머지 page 는 틀 (page 루트 record 만) 로 둔다 — page 로 옮겨 가면 그때 채운다 (링크 · navigate 규칙 · 편집기의 page 전환 · 보이던 page 삭제 뒤 첫 page · breakpoint 전환의 새 root). 한 번 채운 page 는 그대로 둔다. 6 page 프로젝트 Publish: 열 때 record 186 (2 page) → 모든 page 를 지나면 723 (변경 전 열 때 723).
+  - **Why**: 보이는 route 는 하나인데 Preview · Publish 세션이 모든 page 의 record 를 만들었다 (F10 — ADR-307 의 사용자 결정 3 (a) 로 미뤄 둔 범위).
+  - Builder 의 Preview snapshot 이 편집기의 page · breakpoint 를 함께 싣는다 (`view`) — 첫 root 를 그 page 로 만들어, 첫 page 를 다 만든 뒤 편집기 page 로 다시 옮기던 일이 없다.
+  - 다른 page 에만 있는 데이터 보기는 그 page 를 보일 때 요청에 실린다 (전에는 보이지 않는 page 의 보기도 요청에 들어갔다).
+  - 위치: `catalogPreviewSession.ts` (`openingPage` · `fillShown`) · `compositionRoot.ts` `stagedFirstPage` (page 격자 없는 root 도 단계별 열기) · `preview/protocol.ts` snapshot `view` · `previewChannel.ts`. 테스트: `catalogPreviewStagedPages.test.ts`.
+
 ## [단계별 열기 후속 — id 읽기 채움 · 성능 기준 재설정 (ADR-307 후속 1 · 3 · 4)] - 2026-11-12
 
 ### Fixed

@@ -11,6 +11,7 @@ import type {
 } from "../document/types";
 import { definitionTypeName } from "../commands/context";
 import {
+  catalogPreviewSnapshotView,
   parseCatalogPreviewData,
   parseCatalogPreviewView,
   type CatalogPreviewSnapshotRequest,
@@ -443,6 +444,8 @@ export class CatalogPreviewSession {
   /** The editor's breakpoint (`CATALOG_VIEW`): the root resolves the responsive layers at it. */
   private breakpoint: BreakpointName = "desktop";
   private shownPage: EntryId<"page"> | undefined;
+  /** The editor's page a snapshot carried (ADR-307 후속 — the first root is built at it). */
+  private snapshotPage: EntryId<"page"> | undefined;
   /**
    * ADR-286 — the API rows the Builder sends (`CATALOG_DATA`, by collection id): the document's
    * collections (`catalogRuntimeData`) show them. Never the document.
@@ -569,6 +572,8 @@ export class CatalogPreviewSession {
       } else {
         this.syncDefinitions();
         if (this.applyTheme(false)) this.currentRoot = this.createRoot();
+        // (The shown page removed: the page shown now — the project's first — may be a shell.)
+        else this.fillShown();
       }
       // (ADR-284: a view bound · changed in the document is another request for its endpoint.)
       this.loadRouted();
@@ -648,6 +653,12 @@ export class CatalogPreviewSession {
       this.changed();
       return { kind: "ignored" };
     }
+    // (ADR-307 후속: the first root is built at the editor's page and breakpoint.)
+    const opening = catalogPreviewSnapshotView(value);
+    if (opening) {
+      this.snapshotPage = opening.pageId;
+      this.breakpoint = opening.breakpoint ?? "desktop";
+    }
     return this.receiver.receive(value);
   }
   /** Ask for a snapshot (the Preview document just loaded). */
@@ -682,8 +693,9 @@ export class CatalogPreviewSession {
     this.currentPath = nextPath;
     this.notFoundPath = undefined;
     if (!samePage) this.state?.enterPage(pageId);
+    this.fillShown();
     // Another path (`/detail/u1` → `/detail/u2`, or into the page): the `{{ params.… }}` readers
-    // resolve again (the root resolves every page's records ahead).
+    // resolve again.
     if (this.currentRoot) {
       const errors = this.currentRoot.refreshState(
         new Set([CATALOG_PARAMS_ROOT]),
@@ -692,6 +704,32 @@ export class CatalogPreviewSession {
     }
     this.loadRouted();
     this.changed();
+  }
+  /**
+   * The page a new root builds in full: the one shown, else the editor's page the snapshot carried
+   * (the `CATALOG_VIEW` that moves the Preview there comes after it), else the project's first.
+   */
+  private openingPage(): string | undefined {
+    const graph = this.graph;
+    const valid = (pageId: EntryId<"page"> | undefined) =>
+      pageId && graph?.getEntry(pageId)?.kind === "page" ? pageId : undefined;
+    return valid(this.shownPage) ?? valid(this.snapshotPage) ?? this.pageId;
+  }
+  /**
+   * ADR-307 후속 (F10): the shown page's roots in full — a page built as a shell (not the page
+   * shown when the root was built) fills when it is shown, and stays filled. A fill that fails is
+   * tried again each time (the page shows its shell meanwhile).
+   */
+  private fillShown(): void {
+    const root = this.currentRoot;
+    const pageId = this.pageId;
+    if (!root || !pageId || !root.hasPendingFill) return;
+    for (const rootId of root.pendingFillRoots({ failed: true })) {
+      if (root.pageOfRoot(rootId) !== pageId) continue;
+      const report = root.fill(rootId, { retryFailed: true });
+      if (report.errors.length)
+        console.error("[CatalogPreview] page fill:", ...report.errors);
+    }
   }
   /** The shown path's route params (`:id` segments of the page's route — `{{ params.id }}`). */
   get params(): Readonly<Record<string, string>> {
@@ -2026,6 +2064,11 @@ export class CatalogPreviewSession {
       {
         ...this.options.root,
         breakpoint: this.breakpoint,
+        // ADR-307 후속 (F10): one route is shown — the other pages are shells until shown
+        // (`fillShown`).
+        ...(this.openingPage()
+          ? { stagedLoad: { firstPage: this.openingPage() } }
+          : {}),
         rows: (binding, kind) => this.boundRows(binding, kind),
         tableSort: (tableId) =>
           this.serverSortedTables.has(tableId)

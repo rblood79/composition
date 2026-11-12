@@ -23,6 +23,12 @@ export interface CatalogPreviewSnapshotMessage {
   /** The editor revision this document is at. */
   readonly revision: number;
   readonly document: CatalogDocument;
+  /**
+   * ADR-307 후속 (F10): the editor's page and breakpoint at the send — the replica's first root is
+   * built at them (the other pages as shells). The `CATALOG_VIEW` after the snapshot still moves
+   * the Preview; absent = the project's first page, desktop.
+   */
+  readonly view?: Pick<CatalogPreviewViewMessage, "pageId" | "breakpoint">;
 }
 export interface CatalogPreviewDeltaMessage {
   readonly type: "CATALOG_DELTA";
@@ -121,6 +127,21 @@ export function parseCatalogPreviewView(
       value.breakpoint === "mobile")
     ? (value as unknown as CatalogPreviewViewMessage)
     : null;
+}
+
+/** A snapshot's `view` when it is a valid page and breakpoint (else undefined — not applied). */
+export function catalogPreviewSnapshotView(
+  value: unknown,
+): Pick<CatalogPreviewViewMessage, "pageId" | "breakpoint"> | undefined {
+  if (!isRecord(value) || value.type !== "CATALOG_SNAPSHOT") return undefined;
+  if (!isRecord(value.view)) return undefined;
+  return (
+    parseCatalogPreviewView({
+      ...value.view,
+      type: "CATALOG_VIEW",
+      version: CATALOG_PREVIEW_PAYLOAD_VERSION,
+    }) ?? undefined
+  );
 }
 
 /**

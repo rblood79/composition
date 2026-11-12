@@ -10,7 +10,9 @@ import { join, relative, resolve } from "node:path";
  * - `A` — a record that appears later is read when it appears (the walk runs again with the scene).
  * - `B` — the walk is told of a fill (the workspace's row listeners) and reads again.
  * - `C` — the reader fills first (`workspace.ensureAllPages` · `ensurePage`).
- * - `P` — a Preview · Publish root (not opened in stages).
+ * - `P` — a Preview · Publish root: other pages are shells, the shown page is filled before the
+ *   session tells its readers (`fillShown` — a navigation, a new root at the shown page), and they
+ *   read again on that change.
  *
  * A new walk fails this test: classify it and add it — or read by id (`get` · `recordsOfSource`).
  * (What the test cannot see: a walk over the map handed on as an argument or kept in a local.)
@@ -55,7 +57,9 @@ const KNOWN = new Map<string, readonly [number, string, string]>([
  * - `A` — read per frame (badges · overlay) — the next frame after the fill reads it again.
  * - `F` — the filling read itself (`recordsOfNode`).
  * - `S` — under a record already drawn (a rule owner's record — its page is filled).
- * - `P` — a Preview · Publish root (not opened in stages).
+ * - `P` — a Preview · Publish root: other pages are shells, the shown page is filled before the
+ *   session tells its readers (`fillShown` — a navigation, a new root at the shown page), and they
+ *   read again on that change.
  * - `O` — the root's own reads.
  *
  * (A record identity read — `domInputs.get(identity)` — takes an identity the scene drew; not
