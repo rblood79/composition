@@ -1059,10 +1059,18 @@ export class CatalogWorkspace {
       : [];
     return own.length ? own : this.itemsOfNode(id, 1);
   }
-  itemsOfNode(id: NodeId, limit = Infinity): CatalogSelectionItem[] {
+  /**
+   * ADR-307: a document node's records, its page's shell filled first — a by-id read of a node
+   * that may sit on a page still in shells (a Preview click, an AI tool, 「go to owner」). Idle
+   * once the fill is over. (A read per frame keeps `root.recordsOfSource` — it reads again after
+   * the fill.)
+   */
+  recordsOfNode(id: string): readonly string[] {
     this.fillNode(id);
-    return this.root
-      .recordsOfSource(id)
+    return this.root.recordsOfSource(id);
+  }
+  itemsOfNode(id: NodeId, limit = Infinity): CatalogSelectionItem[] {
+    return this.recordsOfNode(id)
       .slice(0, limit)
       .map((identity) => ({ target: { kind: "node", id }, identity }));
   }

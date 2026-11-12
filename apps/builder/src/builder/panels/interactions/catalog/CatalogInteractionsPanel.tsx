@@ -285,7 +285,7 @@ function CatalogRules({
       const recordId =
         "recordId" in resolved
           ? resolved.recordId
-          : workspace.root.recordsOfSource(
+          : workspace.recordsOfNode(
               option.edit.kind === "node"
                 ? option.edit.id
                 : option.edit.address.templatePath.at(-1)!,

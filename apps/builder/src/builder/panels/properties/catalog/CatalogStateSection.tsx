@@ -390,7 +390,7 @@ export const CatalogStateSection = memo(function CatalogStateSection({
           }),
         );
       setError(errorId, null);
-      const recordId = workspace.root.recordsOfSource(nodeId)[0];
+      const recordId = workspace.recordsOfNode(nodeId)[0];
       const record = recordId
         ? workspace.root.domInputs.get(recordId)
         : undefined;
@@ -485,7 +485,7 @@ export const CatalogStateSection = memo(function CatalogStateSection({
       const target =
         ownerEntry?.kind === "page" ? ownerEntry.children[0] : variable.ownerId;
       if (target) {
-        const [record] = workspace.root.recordsOfSource(target as NodeId);
+        const [record] = workspace.recordsOfNode(target);
         if (record) workspace.selectRecords([record]);
       }
       focusVariableOwner(variable.ownerId, variableId);

@@ -200,7 +200,7 @@ function candidateIdentity(
       : candidate.target.kind === "descendant"
         ? candidate.target.ownerId
         : undefined;
-  return id ? workspace.root.recordsOfSource(id)[0] : undefined;
+  return id ? workspace.recordsOfNode(id)[0] : undefined;
 }
 
 /**
@@ -301,7 +301,7 @@ export function createCatalogAiReadHost(
           {
             id,
             elementId:
-              workspace.root.recordsOfSource(rule.ownerId)[0] ?? rule.ownerId,
+              workspace.recordsOfNode(rule.ownerId)[0] ?? rule.ownerId,
             trigger: rule.trigger,
             actionKind: rule.actions.map((action) => action.opcode).join(","),
           },
@@ -343,7 +343,7 @@ export function createCatalogAiReadHost(
                   : {
                       kind: "element" as const,
                       elementId:
-                        workspace.root.recordsOfSource(variable.ownerId)[0] ??
+                        workspace.recordsOfNode(variable.ownerId)[0] ??
                         variable.ownerId,
                       elementType:
                         owner?.kind === "node"
@@ -647,7 +647,7 @@ export function createCatalogAiWriteHost(
         );
         commands.push(...canonical.commands);
         runSteps(workspace, `AI: add ${input.type}`, commands);
-        const elementId = workspace.root.recordsOfSource(
+        const elementId = workspace.recordsOfNode(
           elementNodeAfter(nodeId),
         )[0];
         if (!elementId) return { ok: false, error: `NOT_DRAWN: ${nodeId}` };
@@ -692,7 +692,7 @@ export function createCatalogAiWriteHost(
           ok: true,
           elementId:
             after && after !== nodeId
-              ? (workspace.root.recordsOfSource(after)[0] ?? id)
+              ? (workspace.recordsOfNode(after)[0] ?? id)
               : id,
         };
       } catch (error) {

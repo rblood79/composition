@@ -97,6 +97,8 @@ describe("ADR-307 staged workspace (Phase 2)", () => {
     expect(workspace.itemsOfNode(footer).length).toBe(1);
     // The page is not filled by it.
     expect(workspace.root.recordsOfSource(kids(column)[0])).toEqual([]);
+    // A by-id read (a Preview click, an AI tool, 「go to owner」) fills the node too.
+    expect(workspace.recordsOfNode(kids(column)[0]!)).toHaveLength(1);
 
     // A command into a page that is still a shell selects its new node.
     const { entries, rootIds } = stagedEntries([

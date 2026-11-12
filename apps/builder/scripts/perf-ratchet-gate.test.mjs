@@ -231,6 +231,8 @@ test("flattenCounts — v8 상위 함수는 file#fn 키, 합계·게이지는 �
       total: 1e6,
       app: 500,
       deps: 10,
+      // ADR-307 Phase 4 diagnosis (every function under its bundle name) — not a ratchet key.
+      topAll: [{ fn: "f", file: "assets/index-abc.js", n: 40 }],
       topApp: [
         { fn: "f", file: "src/a.ts", n: 40 },
         // The profiler's per-frame rAF tick counts frames, not work — left out.

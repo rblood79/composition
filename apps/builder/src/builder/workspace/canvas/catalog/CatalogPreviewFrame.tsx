@@ -170,7 +170,7 @@ export function CatalogPreviewFrame({
           workspace.root.domInputs.has(data.identity)
             ? data.identity
             : typeof data.sourceId === "string"
-              ? workspace.root.recordsOfSource(data.sourceId)[0]
+              ? workspace.recordsOfNode(data.sourceId)[0]
               : undefined;
         if (identity)
           workspace.selectRecords([identity], {

@@ -139,7 +139,7 @@ export function createCatalogDataVariablesHost(
       if (!pageId) return;
       workspace.session.setPage(pageId as EntryId<"page">);
       workspace.revealPage(pageId as EntryId<"page">);
-      const [record] = workspace.root.recordsOfSource(nodeId as NodeId);
+      const [record] = workspace.recordsOfNode(nodeId);
       if (record) workspace.selectRecords([record]);
       focusVariableOwner(
         owner.kind === "page" ? owner.pageId : owner.elementId,

@@ -77,7 +77,7 @@ export const CatalogLayoutBodySection = memo(function CatalogLayoutBodySection({
   );
   const select = useCallback(
     (slotNodeId: string) => {
-      const record = workspace.root.recordsOfSource(slotNodeId)[0];
+      const record = workspace.recordsOfNode(slotNodeId)[0];
       if (record) workspace.selectRecords([record]);
     },
     [workspace],

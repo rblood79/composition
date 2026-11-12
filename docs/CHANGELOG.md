@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [단계별 열기 후속 — id 읽기 채움 · 성능 기준 재설정 (ADR-307 후속 1 · 3 · 4)] - 2026-11-12
+
+### Fixed
+
+- 아직 채우지 않은 page 의 노드를 id 로 찾는 동작 12 곳이 빈 결과를 받던 것 (ADR-307 후속 3) — Preview 에서 누른 요소를 Canvas 에서 고르기 · AI 도구 5 · 편집 맥락 · Interactions 대상 · State 칸 · 변수 소유자로 이동 · 데이터 변수 이동 · Layout slot 선택이 `workspace.recordsOfNode` (그 page 를 먼저 채우고 읽음, 채움이 끝나면 바로 반환) 를 쓴다.
+  - **Why**: 단계별 열기 뒤 다른 page 는 틀만 있어 노드의 record 가 없다 — 전체 순회만 정적 검사가 잡고 id 읽기는 지나갔다.
+  - 위치: `catalogRuntime/workspace.ts` `recordsOfNode`. 게이트: `stagedLoadReaders.static.test.ts` (남은 직접 읽기를 파일별 개수 · 분류로 — 새 직접 읽기는 실패).
+
+### Infrastructure
+
+- 성능 ratchet 기준을 지금 코드로 다시 잡았다 (ADR-307 후속 1, 사용자 결정 A). 11-02 기준을 확정 항목 179 ~ 206 키가 넘어 판정이 「측정 불가」 였다. 크게 늘어난 4 건 (선택의 앱 함수 호출 98,176 → 158,739 · 선택의 DOM 자식 변경 280 → 922 · page 전환의 Layers 재구성 10 → 20 · drag 의 명령 버퍼 조각 182 → 900) 은 별도 조사 항목. 위치: `apps/builder/perf/ratchet.json`.
+- ratchet 판정에서 진단용 함수 호출 목록 (`v8.topAll` — ADR-307 하니스가 더한 번들 이름별 목록) 을 뺐다 — 기준에 9,600 키가 섞여 들어갔다. 위치: `perf-ratchet-gate.mjs` `EXCLUDED`.
+
 ## [Property 탭 섹션 병합 — 5단계 (Chart 데이터 매핑 → Collection)] - 2026-11-12
 
 ### Changed

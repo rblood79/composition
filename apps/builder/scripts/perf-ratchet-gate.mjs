@@ -51,6 +51,9 @@ const EXCLUDED = [
   /^render\.grCacheUsageMax$/,
   /^v8\.topApp/,
   /^v8\.topDeps/,
+  // ADR-307 Phase 4: every function's call count under its bundle name — diagnosis only (a
+  // production bundle's names change per build; the top 400 cut moves with any count).
+  /^v8\.topAll/,
   /^v8\.total$/,
   /^v8\.deps$/,
   // The GPU profiler's rAF `tick` runs once per frame: its call count is the frames the run

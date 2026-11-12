@@ -46,6 +46,67 @@ const KNOWN = new Map<string, readonly [number, string, string]>([
   ],
 ]);
 
+/**
+ * ADR-307 후속 — a read by document id (`recordsOfSource(nodeId)`) finds nothing while the node's
+ * page is a shell. A read that may name a node on such a page goes through
+ * `workspace.recordsOfNode` (fills the page first); the direct reads left are listed here:
+ *
+ * - `R` — a page root (its record is in the shell too) or the one root of a view.
+ * - `A` — read per frame (badges · overlay) — the next frame after the fill reads it again.
+ * - `F` — the filling read itself (`recordsOfNode`).
+ * - `S` — under a record already drawn (a rule owner's record — its page is filled).
+ * - `P` — a Preview · Publish root (not opened in stages).
+ * - `O` — the root's own reads.
+ *
+ * (A record identity read — `domInputs.get(identity)` — takes an identity the scene drew; not
+ * counted.)
+ */
+const BY_ID = /\.recordsOfSource\(/g;
+const KNOWN_BY_ID = new Map<string, readonly [number, string, string]>([
+  [
+    "apps/builder/src/builder/workspace/canvas/catalog/CatalogCanvas.tsx",
+    [6, "R A", "page bodies (compare · active · reveal) · loading roots · badges · overlay"],
+  ],
+  [
+    "apps/builder/src/builder/catalogRuntime/workspace.ts",
+    [1, "F", "recordsOfNode"],
+  ],
+  [
+    "apps/builder/src/builder/catalogRuntime/componentsPage.ts",
+    [1, "R", "the Components view's cards — its one root, filled first"],
+  ],
+  [
+    "apps/builder/src/builder/catalogRuntime/shortcuts.ts",
+    [1, "R", "the open page's body (paste without a selection)"],
+  ],
+  [
+    "packages/shared/src/catalog/runtime/capabilityTarget.ts",
+    [1, "S", "a rule target under the record that ran it"],
+  ],
+  [
+    "packages/shared/src/catalog/runtime/catalogPreviewInteractions.ts",
+    [2, "P", "Preview interaction records"],
+  ],
+  [
+    "packages/shared/src/catalog/runtime/catalogPreviewSession.ts",
+    [3, "P", "Preview session"],
+  ],
+  [
+    "packages/shared/src/catalog/runtime/compositionRoot.ts",
+    [4, "O", "the root's own"],
+  ],
+]);
+
+function count(pattern: RegExp): Record<string, number> {
+  const found: Record<string, number> = {};
+  for (const source of SOURCES)
+    for (const path of walk(source)) {
+      const n = readFileSync(path, "utf8").match(pattern)?.length ?? 0;
+      if (n) found[relative(REPO, path)] = n;
+    }
+  return found;
+}
+
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
     const path = join(dir, name);
@@ -58,16 +119,16 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-describe("ADR-307 whole-record walks are classified", () => {
+describe("ADR-307 whole-record walks and by-id reads are classified", () => {
   it("every walk over a root's record map is listed with how it follows a staged fill", () => {
-    const found = new Map<string, number>();
-    for (const source of SOURCES)
-      for (const path of walk(source)) {
-        const count = readFileSync(path, "utf8").match(WALK)?.length ?? 0;
-        if (count) found.set(relative(REPO, path), count);
-      }
-    expect(Object.fromEntries(found)).toEqual(
-      Object.fromEntries([...KNOWN].map(([file, [count]]) => [file, count])),
+    expect(count(WALK)).toEqual(
+      Object.fromEntries([...KNOWN].map(([file, [n]]) => [file, n])),
+    );
+  });
+
+  it("every direct read by document id is listed — the rest go through workspace.recordsOfNode", () => {
+    expect(count(BY_ID)).toEqual(
+      Object.fromEntries([...KNOWN_BY_ID].map(([file, [n]]) => [file, n])),
     );
   });
 });
