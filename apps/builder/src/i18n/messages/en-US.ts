@@ -2661,10 +2661,6 @@ const catalog: TranslationKeys = {
     appliedText: "Filters: {applied}",
     sortFollower: "List that follows",
     sortTable: "Table to follow",
-    controlSection: "Filter a list",
-    controlAction: "Filter a list with this control",
-    target: "Target list",
-    noTargets: "No list on this page is connected to data.",
     op_equals: "Equals",
     op_notEquals: "Does not equal",
     op_contains: "Contains (any case)",
@@ -3588,6 +3584,8 @@ const formattedMessages: Record<
   "dataView.summary": (args) =>
     `${String(args?.field ?? "")} ${String(args?.op ?? "")} · ${String(args?.control ?? "")}`,
   "dataView.actions": (args) => `${String(args?.name ?? "")} actions`,
+  "dataView.existingControl": (args) =>
+    `Existing · ${String(args?.control ?? "")}`,
   "dataView.follow_remove": (args) =>
     `Stop setting ${String(args?.prop ?? "")} by a variable`,
   "dataView.follow_field": (args) =>

@@ -1396,6 +1396,14 @@ function splitChipFields(fields: readonly ResolvedField[]): {
   return { rows, chipGroups, dependents };
 }
 
+/**
+ * 주입 컨트롤만으로 열린 섹션 — 그 컨트롤이 이 요소에서 아무것도 그리지 않으면 (항목 역할 없음 ·
+ * 넣을 부품 없음) 섹션째 숨는다 (`PropertiesPanel.css` `:has(> .section-content:empty)`). 고정 섹션
+ * (Slot · Item roles · Accessibility …) 이 Content · Collection · Behavior 안으로 들어와 (사용자 결정
+ * 2026-11-12) 빈 제목만 남는 자리를 막는다.
+ */
+const EXTRAS_ONLY_SECTION = "section-when-filled";
+
 /** `sectionExtras` (분류 key) → 화면 섹션별 주입 컨트롤. 한 섹션에 여럿이면 분류 순서로 잇는다. */
 function mergeSectionExtras(
   sectionExtras: Partial<Record<string, ReactNode>> | undefined,
@@ -1546,15 +1554,30 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
   );
 
   if (fields.length === 0) {
-    // 계약 필드가 0 이어도 주입 컨트롤이 있으면 그것만 Content 로 렌더한다.
+    // 계약 필드가 0 이어도 주입 컨트롤이 있으면 그것만 섹션 순서대로 렌더한다 (frame — 고정 섹션의
+    //   Slot · Accessibility 가 Content · Behavior 에 선다).
     if (contentExtras == null && extraSections.length === 0) return null;
+    const head = contentExtras != null ? contentExtras : null;
+    const ordered = [...extraSections].sort(
+      ([a], [b]) => sectionRank(a) - sectionRank(b),
+    );
     return (
       <>
-        {contentExtras != null && (
-          <PropertySection title="Content">{contentExtras}</PropertySection>
-        )}
-        {extraSections.map(([section, extras]) => (
-          <PropertySection key={section} title={sectionTitle(section)}>
+        {head != null &&
+          !ordered.some(([section]) => section === "content") && (
+            <PropertySection title="Content">{head}</PropertySection>
+          )}
+        {ordered.map(([section, extras]) => (
+          <PropertySection
+            key={section}
+            title={sectionTitle(section)}
+            className={
+              section === "content" && head != null
+                ? undefined
+                : EXTRAS_ONLY_SECTION
+            }
+          >
+            {section === "content" ? head : null}
             {extras}
           </PropertySection>
         ))}
@@ -1654,10 +1677,16 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
           head == null
         )
           return null;
+        const extrasOnly =
+          rows.length === 0 &&
+          chipGroups.length === 0 &&
+          dependents.length === 0 &&
+          head == null;
         return (
           <PropertySection
             key={section}
             title={sectionTitle(section)}
+            className={extrasOnly ? EXTRAS_ONLY_SECTION : undefined}
             actions={
               section === "collection" &&
               rows.some((row) =>

@@ -251,6 +251,51 @@ describe("Design panel — merged sections", () => {
     ]);
   });
 
+  // 3단계: the fixed sections' controls come in as extras and may render nothing for this
+  // element — a section opened by extras alone hides while its body is empty (`section-when-filled`),
+  // and with no fields at all the extras' sections still stand in the one order.
+  it("a section opened by extras alone hides while empty; with no fields the extras keep the section order", () => {
+    const view = render(
+      <GenericFieldRenderer
+        fields={[]}
+        onSemanticUpdate={vi.fn()}
+        onStyleUpdate={vi.fn()}
+        elementId="field-1"
+        sectionExtras={{
+          accessibility: <p data-extra>a11y</p>,
+          collection: <p data-extra>roles</p>,
+          appearance: <p data-extra>slot</p>,
+        }}
+      />,
+      {
+        wrapper: ({ children }: { children: ReactNode }) =>
+          (
+            <I18nProvider>
+              {fixture.wrapper({
+                children: (
+                  <FieldValueSourceContext.Provider value={SOURCE}>
+                    {children}
+                  </FieldValueSourceContext.Provider>
+                ),
+              })}
+            </I18nProvider>
+          ) as ReactElement,
+      },
+    );
+    const sections = [...view.container.querySelectorAll(".section")];
+    expect(
+      sections.map((section) => [
+        section.querySelector(".section-title")?.textContent,
+        section.classList.contains("section-when-filled"),
+      ]),
+    ).toEqual([
+      ["Content", true],
+      ["Collection", true],
+      ["Behavior", true],
+    ]);
+    view.unmount();
+  });
+
   it("a merged section's extras follow its fields, in the contract's order", () => {
     const sections = sectionsOf(
       [field("label", "string"), field("pattern", "string", "state")],

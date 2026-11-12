@@ -21,7 +21,6 @@ import {
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
 import { PropertyInput } from "../../../components/property/PropertyInput";
-import { Section as PropertySection } from "../../../components/panel/Section";
 import { ActionTooltipTrigger, SwatchIconButton } from "../../../components/ui";
 import { globalToast } from "../../../stores/toast";
 import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
@@ -139,7 +138,7 @@ export const CatalogAccessibilitySection = memo(
       }),
     });
     return (
-      <PropertySection title={t("propertiesPanel.accessibility")}>
+      <>
         {nodeId && (
           <div className="fieldset-row" data-wide="true">
             <PropertyInput
@@ -184,7 +183,7 @@ export const CatalogAccessibilitySection = memo(
             />
           </div>
         )}
-      </PropertySection>
+      </>
     );
   },
 );

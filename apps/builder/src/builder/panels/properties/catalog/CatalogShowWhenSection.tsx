@@ -11,7 +11,7 @@ import {
   catalogStateConditions,
   catalogStateOwner,
 } from "../../../../../../../packages/shared/src/catalog/runtime/presence";
-import { Section as PropertySection } from "../../../components/panel/Section";
+import { CatalogPropertyGroup } from "./CatalogPropertyGroup";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
@@ -113,7 +113,7 @@ export const CatalogShowWhenSection = memo(function CatalogShowWhenSection({
       }),
     );
   return (
-    <PropertySection title="Show when">
+    <CatalogPropertyGroup group="show-when" title="Show when">
       {view.conditions.map((condition, index) => {
         const owners = view.ancestors.filter(
           (ancestor) =>
@@ -216,6 +216,6 @@ export const CatalogShowWhenSection = memo(function CatalogShowWhenSection({
           <span>Add condition</span>
         </Button>
       )}
-    </PropertySection>
+    </CatalogPropertyGroup>
   );
 });

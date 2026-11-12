@@ -13,7 +13,7 @@ import {
   type CatalogCardField,
 } from "../../../catalogRuntime/rowTemplate";
 import { PropertyFieldTemplateInput } from "../../../components/property/PropertyFieldTemplateInput";
-import { Section as PropertySection } from "../../../components/panel/Section";
+import { CatalogPropertyGroup } from "./CatalogPropertyGroup";
 import { useCollections } from "../../../stores/data";
 import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import { fieldsFromOwner } from "../hooks/useOwnerCollectionColumns";
@@ -37,11 +37,9 @@ export const CatalogItemOriginNotice = memo(function CatalogItemOriginNotice({
   );
   if (!owner) return null;
   return (
-    <PropertySection title={t("propertiesPanel.itemOriginSection")}>
-      <p className="item-origin-notice" data-item-origin-notice={owner}>
-        {t("propertiesPanel.itemOriginNotice")}
-      </p>
-    </PropertySection>
+    <p className="item-origin-notice" data-item-origin-notice={owner}>
+      {t("propertiesPanel.itemOriginNotice")}
+    </p>
   );
 });
 
@@ -83,7 +81,10 @@ export const CatalogCardFieldsSection = memo(function CatalogCardFieldsSection({
   if (!read || !fields?.length || !read.fields.length) return null;
   const columns = fields.map((field) => field.key);
   return (
-    <PropertySection title={t("propertiesPanel.cardFieldsSection")}>
+    <CatalogPropertyGroup
+      group="item-fields"
+      title={t("propertiesPanel.cardFieldsSection")}
+    >
       {read.fields.map((field: CatalogCardField) => (
         <PropertyFieldTemplateInput
           key={`${JSON.stringify(field.target)}:${field.key}`}
@@ -96,6 +97,6 @@ export const CatalogCardFieldsSection = memo(function CatalogCardFieldsSection({
           }}
         />
       ))}
-    </PropertySection>
+    </CatalogPropertyGroup>
   );
 });

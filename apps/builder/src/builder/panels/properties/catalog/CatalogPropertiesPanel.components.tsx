@@ -1,8 +1,4 @@
-import {
-  CatalogControlFilterSection,
-  CatalogListFilterSection,
-} from "./CatalogFilterSection";
-import { catalogFilterKindOfType } from "../../../catalogRuntime/viewAuthoring";
+import { CatalogListFilterSection } from "./CatalogFilterSection";
 import { Settings2 } from "lucide-react";
 
 import {
@@ -111,7 +107,10 @@ import {
 
 import { CatalogShowWhenSection } from "./CatalogShowWhenSection";
 
-import { CatalogSlotSection } from "./CatalogSlotSection";
+import {
+  CatalogSlotItemInsert,
+  CatalogSlotSection,
+} from "./CatalogSlotSection";
 
 import { CatalogStateSection } from "./CatalogStateSection";
 import { CatalogPropFollowSection } from "./CatalogPropFollowSection";
@@ -179,30 +178,25 @@ export function CatalogPropertiesBody({
   return (
     <FieldValueSourceContext.Provider value={CATALOG_FIELD_VALUE_SOURCE}>
       <ItemsSourceContext.Provider value={CATALOG_ITEMS_SOURCE}>
+        {/* 사용자 결정 2026-11-12 「Property 탭 섹션 병합」: Component → (page · body layout) →
+            Content → Value → Collection → Series → Behavior → Locale (`CatalogFields`) → State. The
+            old fixed sections stand inside those as groups. */}
         <CatalogComponentSection
           key={`component:${targetKey(first.target)}`}
           target={first.target}
-        />
-        {/* ADR-261 Decision 4: a user component's properties, on a node of its origin (only a
-            project that has components mounts it — no graph walk per selection otherwise). */}
-        {first.target.kind === "node" &&
-          !originSample &&
-          catalogHasProjectComponents(graph) && (
-            <CatalogComponentPropertiesSection
-              key={`properties:${first.target.id}`}
-              nodeId={first.target.id}
-              identity={first.identity}
-            />
-          )}
-        {/* The Components page: only a sample's root props and styles are its origin's project
-            defaults (user decision: root only) — no node attributes, state or slot. */}
-        {!originSample && (
-          <CatalogAccessibilitySection
-            key={`accessibility:${targetKey(first.target)}`}
-            target={first.target}
-            identity={first.identity}
-          />
-        )}
+        >
+          {/* ADR-261 Decision 4: a user component's properties, on a node of its origin (only a
+              project that has components mounts it — no graph walk per selection otherwise). */}
+          {first.target.kind === "node" &&
+            !originSample &&
+            catalogHasProjectComponents(graph) && (
+              <CatalogComponentPropertiesSection
+                key={`properties:${first.target.id}`}
+                nodeId={first.target.id}
+                identity={first.identity}
+              />
+            )}
+        </CatalogComponentSection>
         {settingsPage && (
           <CatalogPageSection
             key={`page:${settingsPage}`}
@@ -215,60 +209,6 @@ export function CatalogPropertiesBody({
             nodeId={first.target.id}
           />
         )}
-        {first.target.kind === "node" && !originSample && (
-          <CatalogStateSection
-            key={`state:${first.target.id}`}
-            nodeId={first.target.id}
-            type={contract.type}
-          />
-        )}
-        {first.target.kind === "node" && !originSample && (
-          <CatalogPropFollowSection
-            key={`follow:${first.target.id}`}
-            nodeId={first.target.id}
-            workspace={workspace}
-          />
-        )}
-        {/* One Slot section: the slot's picker (its item types built as the item 「+」 builds them),
-            or the item 「+」 where the position is no slot (and on an origin sample). */}
-        {originSample ? (
-          <CatalogItemInsertSection
-            key={`items:${first.identity}`}
-            identity={first.identity}
-          />
-        ) : (
-          <CatalogSlotSection
-            key={`slot:${targetKey(first.target)}`}
-            target={first.target}
-            type={contract.type}
-            identity={first.identity}
-          />
-        )}
-        <CatalogItemRolesSection
-          key={`roles:${first.identity}`}
-          identity={first.identity}
-        />
-        {/* ADR-256 Decision 7: only a node under a part that gives state keys (or with a
-            condition) mounts it (no hook cost per selection). */}
-        {first.target.kind === "node" &&
-          !originSample &&
-          root &&
-          catalogShowWhenApplies(root, first.identity) && (
-            <CatalogShowWhenSection
-              key={`show-when:${first.identity}`}
-              identity={first.identity}
-              workspace={workspace}
-              root={root}
-            />
-          )}
-        <CatalogItemOriginNotice
-          key={`origin:${targetKey(first.target)}`}
-          target={first.target}
-        />
-        <CatalogCardFieldsSection
-          key={`cards:${first.identity}`}
-          identity={first.identity}
-        />
         {/* Keyed by the type, not the element: selecting another element of the same type keeps
             the fields mounted and gives them the new element's values (the fields follow the
             selection — PropertyInput resets on a new selection and commits a blur only on the
@@ -280,6 +220,19 @@ export function CatalogPropertiesBody({
           targets={targets}
           root={root}
         />
+        {first.target.kind === "node" && !originSample && (
+          <CatalogStateSection
+            key={`state:${first.target.id}`}
+            nodeId={first.target.id}
+            type={contract.type}
+          >
+            <CatalogPropFollowSection
+              key={`follow:${first.target.id}`}
+              nodeId={first.target.id}
+              workspace={workspace}
+            />
+          </CatalogStateSection>
+        )}
       </ItemsSourceContext.Provider>
     </FieldValueSourceContext.Provider>
   );
@@ -356,7 +309,8 @@ const CatalogFields = memo(function CatalogFields({
         return {
           ...field,
           // (One key or several — the group's mode decides the label too.)
-          ...(field.label === "Selected items" || field.label === "Selected item"
+          ...(field.label === "Selected items" ||
+          field.label === "Selected item"
             ? { label: group.many ? "Selected items" : "Selected item" }
             : {}),
           kind: group.many ? ("selection-keys" as const) : ("enum" as const),
@@ -480,7 +434,15 @@ const CatalogFields = memo(function CatalogFields({
           : all[0]!,
       );
     },
-    [bindingKeys, contract.type, elementId, groupFields, run, targets, workspace],
+    [
+      bindingKeys,
+      contract.type,
+      elementId,
+      groupFields,
+      run,
+      targets,
+      workspace,
+    ],
   );
   const handleSemanticUpdate = useCallback(
     (key: string, value: unknown) => handlePatch({ [key]: value }),
@@ -579,7 +541,77 @@ const CatalogFields = memo(function CatalogFields({
     onPatch: handlePatch,
     isRefInstance,
   });
-  if (!extras.fields.length) return null;
+  const target = targets[0];
+  // The Components page: only a sample's root props and styles are its origin's project defaults
+  // (user decision: root only) — no node attributes, state or slot.
+  const originSample =
+    target?.kind === "node" && target.id.startsWith(ORIGIN_VIEW_NODE);
+  // 사용자 결정 2026-11-12: the old fixed sections' controls, by the section they stand in.
+  const fixedSections: Partial<Record<string, ReactNode>> = target
+    ? {
+        // Content's end — the slot's picker (its item types built as the item 「+」 builds them).
+        appearance: originSample ? null : (
+          <CatalogSlotSection
+            key={`slot:${targetKey(target)}`}
+            target={target}
+            type={contract.type}
+            identity={elementId}
+          />
+        ),
+        // Collection — after Data source and its mapping, before Search · filter.
+        collection: (
+          <>
+            <CatalogItemOriginNotice
+              key={`origin:${targetKey(target)}`}
+              target={target}
+            />
+            <CatalogCardFieldsSection
+              key={`cards:${elementId}`}
+              identity={elementId}
+            />
+            <CatalogItemRolesSection
+              key={`roles:${elementId}`}
+              identity={elementId}
+            />
+            {originSample ? (
+              <CatalogItemInsertSection
+                key={`items:${elementId}`}
+                identity={elementId}
+              />
+            ) : (
+              <CatalogSlotItemInsert
+                key={`items:${targetKey(target)}`}
+                target={target}
+                type={contract.type}
+                identity={elementId}
+              />
+            )}
+          </>
+        ),
+        // Behavior's end (the accessibility group's place).
+        accessibility: originSample ? null : (
+          <>
+            {/* ADR-256 Decision 7: only a node under a part that gives state keys (or with a
+                condition) mounts it (no hook cost per selection). */}
+            {target.kind === "node" &&
+              root &&
+              catalogShowWhenApplies(root, elementId) && (
+                <CatalogShowWhenSection
+                  key={`show-when:${elementId}`}
+                  identity={elementId}
+                  workspace={workspace}
+                  root={root}
+                />
+              )}
+            <CatalogAccessibilitySection
+              key={`accessibility:${targetKey(target)}`}
+              target={target}
+              identity={elementId}
+            />
+          </>
+        ),
+      }
+    : {};
   const renderer = (
     <GenericFieldRenderer
       fields={extras.fields}
@@ -589,9 +621,8 @@ const CatalogFields = memo(function CatalogFields({
       elementId={elementId}
       contentExtras={extras.contentExtras}
       sectionExtras={withFilterSections(
-        extras.sectionExtras,
+        withFixedSections(extras.sectionExtras, fixedSections),
         filterNode,
-        contract.type,
         isBound,
       )}
     />
@@ -606,29 +637,47 @@ const CatalogFields = memo(function CatalogFields({
 });
 
 /**
- * ADR-284 Phase 3: the filter entries — a bound list's 「검색 · 필터」 at the end of its Collection
- * section, a filter control's own 「Filter」 section (both one node selected).
+ * ADR-284 Phase 3: a bound list's 「검색 · 필터」 at the end of its Collection section (one node
+ * selected). 사용자 결정 2026-11-12: the list's is the filter's only entry — a filter control has
+ * no 「Filter a list」 section (it is picked from the list's 「Add search」 as 「Existing」).
  */
 function withFilterSections(
   sectionExtras: Partial<Record<string, ReactNode>> | undefined,
   nodeId: NodeId | undefined,
-  type: string | undefined,
   isBound: boolean,
 ): Partial<Record<string, ReactNode>> | undefined {
-  if (!nodeId) return sectionExtras;
-  const out = { ...sectionExtras };
-  if (isBound)
-    out.collection = (
+  if (!nodeId || !isBound) return sectionExtras;
+  return {
+    ...sectionExtras,
+    collection: (
       <>
         {sectionExtras?.collection}
         {/* Its add · share forms belong to the list they were opened on. */}
         <CatalogListFilterSection key={nodeId} listId={nodeId} />
       </>
-    );
-  if (type && catalogFilterKindOfType(type))
-    out.filter = (
-      <CatalogControlFilterSection key={nodeId} controlId={nodeId} />
-    );
+    ),
+  };
+}
+
+/** A section's own extra controls, then the fixed section's controls that stand in it. */
+function withFixedSections(
+  sectionExtras: Partial<Record<string, ReactNode>> | undefined,
+  fixed: Partial<Record<string, ReactNode>>,
+): Partial<Record<string, ReactNode>> {
+  const out = { ...sectionExtras };
+  for (const [section, node] of Object.entries(fixed)) {
+    if (node == null) continue;
+    const own = out[section];
+    out[section] =
+      own == null ? (
+        node
+      ) : (
+        <>
+          {own}
+          {node}
+        </>
+      );
+  }
   return out;
 }
 

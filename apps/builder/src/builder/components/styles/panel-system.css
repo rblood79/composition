@@ -344,6 +344,13 @@
       min-height: 200px;
     }
 
+    /* Design 패널 Property 탭 — 주입 컨트롤로만 열린 섹션 (Item roles · Slot 이 든 Collection · Content)
+       은 그 컨트롤이 이 요소에서 아무것도 그리지 않으면 제목째 숨는다 (사용자 결정 2026-11-12 섹션 병합,
+       `GenericFieldRenderer` `EXTRAS_ONLY_SECTION`). 닫힌 섹션은 내용이 없어 그대로 둔다. */
+    &.section-when-filled:has(> .section-content:empty) {
+      display: none;
+    }
+
     .section-overview-help {
       font-size: var(--text-xs);
       color: var(--fg-muted);

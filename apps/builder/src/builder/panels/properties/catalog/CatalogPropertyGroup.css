@@ -1,0 +1,12 @@
+/**
+ * A fixed section's controls as a group inside a merged Property section (2026-11-12) — the same
+ * fieldset + legend as the State section's groups (`state-group`).
+ */
+.property-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-width: 0;
+  /* A group holds whole panel rows (field · field · action), not one bare field. */
+  max-inline-size: none;
+}

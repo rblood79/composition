@@ -10,7 +10,7 @@ import {
   useCatalogStepReading,
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
-import { Section as PropertySection } from "../../../components/panel/Section";
+import { CatalogPropertyGroup } from "./CatalogPropertyGroup";
 import { PropertySwitch } from "../../../components/property/PropertySwitch";
 import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 
@@ -51,7 +51,10 @@ export const CatalogItemRolesSection = memo(function CatalogItemRolesSection({
     return key ? t(key as never) : role;
   };
   return (
-    <PropertySection title={t("propertiesPanel.itemRolesSection" as never)}>
+    <CatalogPropertyGroup
+      group="item-roles"
+      title={t("propertiesPanel.itemRolesSection" as never)}
+    >
       {roles.rows.map((row) =>
         row.required ? (
           <div
@@ -76,6 +79,6 @@ export const CatalogItemRolesSection = memo(function CatalogItemRolesSection({
           />
         ),
       )}
-    </PropertySection>
+    </CatalogPropertyGroup>
   );
 });

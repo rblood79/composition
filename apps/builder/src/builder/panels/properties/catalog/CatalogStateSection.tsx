@@ -1,6 +1,7 @@
 import {
   lazy,
   memo,
+  type ReactNode,
   Suspense,
   useCallback,
   useEffect,
@@ -210,7 +211,10 @@ interface StateView {
 export const CatalogStateSection = memo(function CatalogStateSection({
   nodeId,
   type,
+  children,
 }: {
+  /** The section's last rows — the props set by a variable (2026-11-12 섹션 병합). */
+  children?: ReactNode;
   nodeId: NodeId;
   /** The node's component type (its edit contract's): which RAC states it can name. */
   type?: string;
@@ -603,6 +607,7 @@ export const CatalogStateSection = memo(function CatalogStateSection({
             </Suspense>
           </fieldset>
         )}
+        {children}
       </PropertySection>
       <ConfirmDialog
         isOpen={pendingDelete !== null}

@@ -2649,10 +2649,6 @@ const catalog: TranslationKeys = {
     appliedText: "조건 {applied}개",
     sortFollower: "따라갈 목록",
     sortTable: "정렬을 따를 Table",
-    controlSection: "목록 거르기",
-    controlAction: "이 컨트롤로 목록 거르기",
-    target: "대상 목록",
-    noTargets: "이 페이지에 데이터를 연결한 목록이 없습니다.",
     op_equals: "같음",
     op_notEquals: "같지 않음",
     op_contains: "포함 (대소문자 무시)",
@@ -3578,6 +3574,7 @@ const formattedMessages: Record<
   "dataView.summary": (args) =>
     `${String(args?.field ?? "")} ${String(args?.op ?? "")} · ${String(args?.control ?? "")}`,
   "dataView.actions": (args) => `${String(args?.name ?? "")} 동작`,
+  "dataView.existingControl": (args) => `기존 · ${String(args?.control ?? "")}`,
   "dataView.follow_remove": (args) =>
     `${String(args?.prop ?? "")} 의 변수 연결 해제`,
   "dataView.follow_field": (args) => `변수 ${String(args?.name ?? "")} 를 따름`,

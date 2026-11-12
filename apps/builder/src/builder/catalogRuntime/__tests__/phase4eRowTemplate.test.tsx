@@ -231,7 +231,8 @@ describe("ADR-248 Phase 4e-4e row template", () => {
         </CatalogWorkspaceProvider>
       </I18nProvider>,
     );
-    expect(screen.getAllByText("Item origin")).toHaveLength(1);
+    // (The notice stands in the Collection section — no 「Item origin」 section of its own since the
+    // 2026-11-12 section merge.)
     expect(
       view.container.querySelectorAll("[data-item-origin-notice]"),
     ).toHaveLength(1);

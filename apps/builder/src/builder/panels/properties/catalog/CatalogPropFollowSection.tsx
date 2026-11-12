@@ -20,7 +20,7 @@ import {
   type CatalogPropFollowType,
 } from "../../../catalogRuntime/propFollow";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
-import { Section as PropertySection } from "../../../components/panel/Section";
+import { CatalogPropertyGroup } from "./CatalogPropertyGroup";
 import { PropertyInput } from "../../../components/property/PropertyInput";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { ACTION_ICONS } from "../../../config/actionIcons";
@@ -116,19 +116,9 @@ export const CatalogPropFollowSection = memo(function CatalogPropFollowSection({
     label: entry.name,
   }));
   return (
-    <PropertySection
+    <CatalogPropertyGroup
+      group="prop-follow"
       title={t("dataView.follow_title")}
-      actions={
-        free.length ? (
-          <Button
-            className="iconButton"
-            aria-label={t("dataView.follow_add")}
-            onPress={add}
-          >
-            <AddIcon size={16} />
-          </Button>
-        ) : undefined
-      }
     >
       {view.follows.map((follow) => {
         const variable = variableOf(follow.variableId);
@@ -268,6 +258,19 @@ export const CatalogPropFollowSection = memo(function CatalogPropFollowSection({
           </div>
         );
       })}
-    </PropertySection>
+      {/* (The add was the section header's 「+」 — a group has no header, so it is the last row,
+          as Show when's 「Add condition」.) */}
+      {free.length ? (
+        <Button
+          className="control-button"
+          data-variant="add"
+          aria-label={t("dataView.follow_add")}
+          onPress={add}
+        >
+          <AddIcon size={14} />
+          <span>{t("dataView.follow_add")}</span>
+        </Button>
+      ) : null}
+    </CatalogPropertyGroup>
   );
 });

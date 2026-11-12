@@ -3,7 +3,7 @@ import { useI18n } from "@/i18n";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { catalogItemInsertChoices } from "../../../catalogRuntime/itemInsert";
 import { useCatalogWorkspace } from "../../../catalogRuntime/react";
-import { Section as PropertySection } from "../../../components/panel/Section";
+import { CatalogPropertyGroup } from "./CatalogPropertyGroup";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import { Button } from "react-aria-components/Button";
@@ -56,29 +56,30 @@ export const CatalogItemInsertSection = memo(function CatalogItemInsertSection({
   if (!choices.length) return null;
   if (choices.length > 1)
     return (
-      <PropertySection title={t("propertiesPanel.slotSection")}>
-        <div className="fieldset-row" data-wide="true">
-          <PropertySelect
-            label={t("propertiesPanel.slotAddContent")}
-            value=""
-            options={[
-              { value: "", label: `${t("propertiesPanel.slotAddContent")}…` },
-              ...choices.map((choice) => ({
-                value: choice.type,
-                label: choice.type,
-              })),
-            ]}
-            translateOptions={false}
-            onChange={(value) => {
-              const choice = choices.find((item) => item.type === value);
-              if (choice) run(choice.build());
-            }}
-          />
-        </div>
-      </PropertySection>
+      <div className="fieldset-row" data-wide="true" data-item-insert>
+        <PropertySelect
+          label={t("propertiesPanel.slotAddContent")}
+          value=""
+          options={[
+            { value: "", label: `${t("propertiesPanel.slotAddContent")}…` },
+            ...choices.map((choice) => ({
+              value: choice.type,
+              label: choice.type,
+            })),
+          ]}
+          translateOptions={false}
+          onChange={(value) => {
+            const choice = choices.find((item) => item.type === value);
+            if (choice) run(choice.build());
+          }}
+        />
+      </div>
     );
   return (
-    <PropertySection title={t("propertiesPanel.slotSection")}>
+    <CatalogPropertyGroup
+      group="item-insert"
+      title={t("propertiesPanel.slotAddContent")}
+    >
       <div aria-label="Items" className="frame-slot-list">
         {choices.map((choice) => (
           <div className="list-row frame-slot-item" key={choice.type}>
@@ -99,6 +100,6 @@ export const CatalogItemInsertSection = memo(function CatalogItemInsertSection({
           </div>
         ))}
       </div>
-    </PropertySection>
+    </CatalogPropertyGroup>
   );
 });

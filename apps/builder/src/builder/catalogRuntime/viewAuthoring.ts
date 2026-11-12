@@ -1081,7 +1081,32 @@ function rulesOnPage(reader: CatalogReader, nodeId: NodeId): string[] {
   );
 }
 
-/** The bound lists on a page (the control entry point's targets), in document order. */
+/**
+ * The filter controls placed on a list's page, in document order — 「Search · filter」's 「Existing」
+ * choices (사용자 결정 2026-11-12: the filter's one entry is the list's; a placed control feeds it
+ * from there). A ComboBox is two (the chosen key · the typed text).
+ */
+export function catalogFilterControlsOnPage(
+  reader: CatalogReader,
+  listId: NodeId,
+): { nodeId: NodeId; kind: CatalogFilterControlKind }[] {
+  return nodesOnPage(reader, listId).flatMap((nodeId) => {
+    const node = reader.getEntry(nodeId);
+    if (node?.kind !== "node" || nodeId === listId) return [];
+    let type: string;
+    try {
+      type = definitionTypeName(reader, node.definitionId);
+    } catch {
+      return [];
+    }
+    return catalogFilterControlsOfType(type).map((control) => ({
+      nodeId,
+      kind: control.id,
+    }));
+  });
+}
+
+/** The bound lists on a page, in document order. */
 export function catalogFilterTargets(
   reader: CatalogReader,
   pageId: EntryId<"page">,

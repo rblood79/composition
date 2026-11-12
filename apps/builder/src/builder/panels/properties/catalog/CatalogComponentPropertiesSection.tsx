@@ -21,7 +21,7 @@ import {
 import { catalogSlotSuggestionChoices } from "../../../catalogRuntime/slots";
 import { catalogNextVariableName } from "../../../catalogRuntime/stateVariables";
 import { catalogComponentLabel } from "../../../catalogRuntime/componentProperties";
-import { Section as PropertySection } from "../../../components/panel/Section";
+import { CatalogPropertyGroup } from "./CatalogPropertyGroup";
 import { PropertyInput } from "../../../components/property/PropertyInput";
 import { PropertyRowMenu } from "../../../components/property/PropertyRowMenu";
 import { PropertySelect } from "../../../components/property/PropertySelect";
@@ -130,7 +130,10 @@ export const CatalogComponentPropertiesSection = memo(
     };
 
     return (
-      <PropertySection title={t("propertiesPanel.componentProperties")}>
+      <CatalogPropertyGroup
+        group="component-properties"
+        title={t("propertiesPanel.componentProperties")}
+      >
         {rows.map((row) => (
           <div key={row.key} className="fieldset-row component-property-row">
             <PropertyInput
@@ -233,14 +236,20 @@ export const CatalogComponentPropertiesSection = memo(
                     className="control-button"
                     onPress={() => createOutput("event")}
                   >
-                    <ACTION_ICONS.add aria-hidden="true" size={iconProps.size} />
+                    <ACTION_ICONS.add
+                      aria-hidden="true"
+                      size={iconProps.size}
+                    />
                     {t("propertiesPanel.componentPropertyEvent")}
                   </RACButton>
                   <RACButton
                     className="control-button"
                     onPress={() => createOutput("variable")}
                   >
-                    <ACTION_ICONS.add aria-hidden="true" size={iconProps.size} />
+                    <ACTION_ICONS.add
+                      aria-hidden="true"
+                      size={iconProps.size}
+                    />
                     {t("propertiesPanel.componentPropertyVariable")}
                   </RACButton>
                 </>
@@ -265,7 +274,7 @@ export const CatalogComponentPropertiesSection = memo(
             />
           </div>
         )}
-      </PropertySection>
+      </CatalogPropertyGroup>
     );
   },
 );

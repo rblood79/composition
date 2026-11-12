@@ -1,13 +1,13 @@
 import { ActionButton } from "../../../components/ui/ActionButton";
 /**
- * ADR-284 Phase 3 — the filter entries of the Design panel's Property tab (Decision 7 — 기능 이름
- * 하나 = 동작 하나, 진입점 양쪽):
+ * ADR-284 Phase 3 — the filter entry of the Design panel's Property tab (Decision 7 — 기능 이름
+ * 하나 = 동작 하나): a bound list's 「검색 · 필터」 at the end of its Collection section — its
+ * connections (field · comparison · the control and variable that feed it) and 「검색 추가」 (field
+ * → control → the control, variable, rule and condition in one step). The control is a new one or
+ * one placed on the page (「기존 · RadioGroup」 — the planner's `control: { nodeId }`).
  *
- * - a bound list: 「검색 · 필터」 at the end of its Collection section — its connections (field ·
- *   comparison · the control and variable that feed it) and 「검색 추가」 (field → control kind →
- *   the control, variable, rule and condition in one step);
- * - a filter control (SearchField · Select · …): 「목록 거르기」 — the lists it narrows and 「이
- *   컨트롤로 목록 거르기」 (target list → field), the same planner (`catalogFilterCommand`).
+ * 사용자 결정 2026-11-12 (Decision 7 「진입점 양쪽」 → 목록 한쪽): the filter is the bound list's —
+ * a filter control (SearchField · Select · …) has no 「목록 거르기」 section of its own.
  *
  * A connection opens on its detail — comparison · the value that skips it · the variable — the
  * confirmation the action shows right after it ran (role `status`), and 「고치기」 · 「또는 조건
@@ -34,7 +34,7 @@ import {
   CATALOG_FILTER_CONTROLS,
   catalogFilterControl,
   catalogFilterControlsOfType,
-  catalogControlFilterConnections,
+  catalogFilterControlsOnPage,
   catalogEditFilterCondition,
   catalogFieldPath,
   catalogStaticConditionCommand,
@@ -80,7 +80,22 @@ import "./CatalogFilterSection.css";
 
 /** ADR-284 Phase 6 — 「고정 값으로」: a condition with no control (a literal value). */
 const STATIC = "static";
-type AddKind = CatalogFilterControlKind | typeof STATIC;
+/** A control placed on the page (`existing:<kind>@<nodeId>`) — it feeds the list as it is. */
+type ExistingKind = `existing:${string}`;
+type AddKind = CatalogFilterControlKind | typeof STATIC | ExistingKind;
+const existingKind = (kind: CatalogFilterControlKind, nodeId: NodeId) =>
+  `existing:${kind}@${nodeId}` as ExistingKind;
+function parseExisting(
+  kind: AddKind,
+): { kind: CatalogFilterControlKind; nodeId: NodeId } | undefined {
+  if (!kind.startsWith("existing:")) return undefined;
+  const rest = kind.slice("existing:".length);
+  const at = rest.indexOf("@");
+  return {
+    kind: rest.slice(0, at) as CatalogFilterControlKind,
+    nodeId: rest.slice(at + 1) as NodeId,
+  };
+}
 /** 「검색 추가」 's controls — every one it can place (from the interaction registry), then 「고정 값」. */
 const KINDS: readonly AddKind[] = [
   ...CATALOG_FILTER_CONTROLS.filter((control) => control.insertable).map(
@@ -306,24 +321,19 @@ function ConnectionRow({
   );
 }
 
-/** The add form: field → control kind (list entry) or target → field (control entry). */
+/** The add form: field → control (a new one, a fixed value or one placed on the page). */
 function AddForm({
   fields,
-  kindChoice,
-  kinds,
-  targets,
-  target,
-  onTarget,
+  kindChoice = true,
+  existing = [],
   onCreate,
   onCancel,
 }: {
   fields: readonly { id: string; key: string; type?: string }[];
-  kindChoice: boolean;
-  /** The controls to choose from (default: every control 「검색 추가」 places). */
-  kinds?: readonly AddKind[];
-  targets?: readonly { id: NodeId; label: string }[];
-  target?: NodeId;
-  onTarget?: (id: NodeId) => void;
+  /** false: the field only (the control is already chosen — 「Connect」 an unread variable). */
+  kindChoice?: boolean;
+  /** The page's placed filter controls (「기존 · RadioGroup」). */
+  existing?: readonly { value: ExistingKind; label: string }[];
   onCreate: (fieldId: string, kind: AddKind) => void;
   onCancel: () => void;
 }) {
@@ -331,26 +341,12 @@ function AddForm({
   const [fieldId, setFieldId] = useState(fields[0]?.id ?? "");
   // (The control follows the field's type until one is chosen — a boolean is a Checkbox.)
   const [chosen, setChosen] = useState<AddKind | null>(null);
-  const choices = kinds ?? KINDS;
   const fallback = catalogDefaultFilterKind(
     fields.find((field) => field.id === fieldId)?.type,
   );
-  const kind = chosen ?? (choices.includes(fallback) ? fallback : choices[0]!);
-  const setKind = setChosen;
+  const kind = chosen ?? (KINDS.includes(fallback) ? fallback : KINDS[0]!);
   return (
     <div className="data-view-add-form">
-      {targets ? (
-        <PropertySelect
-          label={t("dataView.target")}
-          value={target ?? ""}
-          options={targets.map((item) => ({
-            value: item.id,
-            label: item.label,
-          }))}
-          translateOptions={false}
-          onChange={(value) => onTarget?.(value as NodeId)}
-        />
-      ) : null}
       {fields.length ? (
         <PropertySelect
           label={t("dataView.field")}
@@ -369,12 +365,15 @@ function AddForm({
         <PropertySelect
           label={t("dataView.control")}
           value={kind}
-          options={choices.map((value) => ({
-            value,
-            label: kindLabel(t, value),
-          }))}
+          options={[
+            ...KINDS.map((value) => ({
+              value: value as string,
+              label: kindLabel(t, value),
+            })),
+            ...existing,
+          ]}
           translateOptions={false}
-          onChange={(value) => setKind(value as AddKind)}
+          onChange={(value) => setChosen(value as AddKind)}
         />
       ) : null}
       <div className="data-view-add-actions">
@@ -409,9 +408,31 @@ export function CatalogListFilterSection({ listId }: { listId: NodeId }) {
     return catalogFilterConnections(workspace.runtime.graph, listId);
   }, [listId, revision, workspace]);
   const fields = useViewFields(table);
+  // 「기존 · …」 — the page's placed filter controls (a ComboBox's two by their value's shape).
+  const existing = useMemo(() => {
+    void revision;
+    const graph = workspace.runtime.graph;
+    const placed = catalogFilterControlsOnPage(graph, listId);
+    return placed.map(({ nodeId, kind }) => {
+      const several =
+        placed.filter((item) => item.nodeId === nodeId).length > 1;
+      const shape = catalogFilterControl(kind)?.shape;
+      const name = nodeLabel(graph, nodeId);
+      return {
+        value: existingKind(kind, nodeId),
+        label: t("dataView.existingControl", {
+          control:
+            several && shape
+              ? `${name} · ${t(`dataView.shape_${shape}`)}`
+              : name,
+        }),
+      };
+    });
+  }, [listId, revision, t, workspace]);
   const create = (fieldId: string, kind: AddKind) => {
     const field = fields.find((item) => item.id === fieldId);
     if (!field) return;
+    const placed = parseExisting(kind);
     if (kind === STATIC) {
       const { command, created } = catalogStaticConditionCommand(
         workspace.runtime.graph,
@@ -429,8 +450,8 @@ export function CatalogListFilterSection({ listId }: { listId: NodeId }) {
       {
         listId,
         field,
-        kind,
-        control: { insert: true },
+        kind: placed?.kind ?? (kind as CatalogFilterControlKind),
+        control: placed ? { nodeId: placed.nodeId } : { insert: true },
         values: catalogFieldValues(rowsOf(table), field),
         allLabel: t("dataView.allOption"),
         label: t("dataView.add"),
@@ -464,7 +485,7 @@ export function CatalogListFilterSection({ listId }: { listId: NodeId }) {
       {adding ? (
         <AddForm
           fields={fields}
-          kindChoice
+          existing={existing}
           onCreate={create}
           onCancel={() => setAdding(false)}
         />
@@ -851,137 +872,6 @@ function DerivedViews({
         </Button>
       ) : null}
     </>
-  );
-}
-
-/** A filter control's 「목록 거르기」 — the lists it narrows, and 「이 컨트롤로 목록 거르기」. */
-export function CatalogControlFilterSection({
-  controlId,
-}: {
-  controlId: NodeId;
-}) {
-  const { t } = useI18n();
-  const workspace = useCatalogWorkspace();
-  const run = useCatalogCommandRunner();
-  const revision = useGraphRevision();
-  const graph = workspace.runtime.graph;
-  const [adding, setAdding] = useState(false);
-  const [openId, setOpenId] = useState<string | null>(null);
-  const [madeId, setMadeId] = useState<string | null>(null);
-  // (A ComboBox is two controls — the chosen key · the typed text: the author picks which.)
-  const kinds = useMemo(() => {
-    const node = graph.getEntry(controlId);
-    if (node?.kind !== "node") return [];
-    try {
-      return catalogFilterControlsOfType(
-        definitionTypeName(graph, node.definitionId),
-      ).map((control) => control.id);
-    } catch {
-      return [];
-    }
-  }, [controlId, graph]);
-  const kind = kinds[0];
-  const targets = useMemo(() => {
-    void revision;
-    const pageId = catalogNodePage(graph as never, controlId);
-    return pageId
-      ? catalogFilterTargets(graph, pageId as EntryId<"page">).map((id) => {
-          const node = graph.getEntry(id);
-          let label: string = id;
-          if (node?.kind === "node")
-            try {
-              label = node.name ?? definitionTypeName(graph, node.definitionId);
-            } catch {
-              label = id;
-            }
-          return { id, label };
-        })
-      : [];
-  }, [controlId, graph, revision]);
-  const [target, setTarget] = useState<NodeId | undefined>(targets[0]?.id);
-  const table = useBoundTable(target ?? targets[0]?.id);
-  const connections = useMemo(() => {
-    void revision;
-    return catalogControlFilterConnections(graph, controlId);
-  }, [controlId, graph, revision]);
-  const collections = useCollections();
-  const fields = useViewFields(table);
-  if (!kind) return null;
-  const create = (fieldId: string, chosen: AddKind = kind) => {
-    const listId = target ?? targets[0]?.id;
-    if (chosen === STATIC) return;
-    const field = fields.find((item) => item.id === fieldId);
-    if (!listId || !field) return;
-    const { command, created } = catalogFilterCommand(
-      graph,
-      {
-        listId,
-        field,
-        kind: chosen,
-        control: { nodeId: controlId },
-        values: catalogFieldValues(rowsOf(table), field),
-        allLabel: t("dataView.allOption"),
-        label: t("dataView.controlAction"),
-      },
-      workspace.newId,
-    );
-    if (!run(command)) return;
-    setAdding(false);
-    setOpenId(created.conditionId);
-    setMadeId(created.conditionId);
-  };
-  return (
-    <fieldset className="properties-aria data-view-section">
-      <legend className="fieldset-legend">
-        {t("dataView.controlSection")}
-      </legend>
-      {connections.map((connection) => {
-        const list = graph.getEntry(connection.listId);
-        const binding = list?.kind === "node" ? list.binding : undefined;
-        const listTable = collections.find(
-          (item) =>
-            item.id === binding?.collectionId.replace(/^data:collection:/, ""),
-        );
-        return (
-          <ConnectionRow
-            key={`${connection.listId}:${connection.condition.id}`}
-            connection={connection}
-            table={listTable}
-            showList
-            open={openId === connection.condition.id}
-            justMade={madeId === connection.condition.id}
-            onToggle={() => {
-              setMadeId(null);
-              setOpenId((id) =>
-                id === connection.condition.id ? null : connection.condition.id,
-              );
-            }}
-          />
-        );
-      })}
-      {!targets.length ? (
-        <p className="data-view-detail-line">{t("dataView.noTargets")}</p>
-      ) : adding ? (
-        <AddForm
-          fields={fields}
-          kindChoice={kinds.length > 1}
-          kinds={kinds}
-          targets={targets}
-          target={target ?? targets[0]?.id}
-          onTarget={setTarget}
-          onCreate={(fieldId, chosen) => create(fieldId, chosen)}
-          onCancel={() => setAdding(false)}
-        />
-      ) : (
-        <Button
-          className="control-button"
-          data-variant="add"
-          onPress={() => setAdding(true)}
-        >
-          {t("dataView.controlAction")}
-        </Button>
-      )}
-    </fieldset>
   );
 }
 

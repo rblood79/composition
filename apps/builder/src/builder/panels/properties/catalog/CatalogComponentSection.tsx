@@ -1,4 +1,4 @@
-import { memo, useCallback } from "react";
+import { memo, type ReactNode, useCallback } from "react";
 import { Button as RACButton } from "react-aria-components/Button";
 import { Diamond } from "lucide-react";
 import { useI18n } from "@/i18n";
@@ -200,7 +200,10 @@ function templateLabel(graph: CatalogReader, id: string | undefined): string {
  */
 export const CatalogComponentSection = memo(function CatalogComponentSection({
   target,
+  children,
 }: {
+  /** The section's last rows — a user component's properties (2026-11-12 섹션 병합). */
+  children?: ReactNode;
   /**
    * An owned node, or a position of an instance's template — an instance of its row's definition
    * (a ToggleButtonGroup's "Toggle 1" is a ToggleButton instance, user 2026-10-14): identity, go
@@ -670,6 +673,7 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
           </div>
         </fieldset>
       )}
+      {children}
     </PropertySection>
   );
 });

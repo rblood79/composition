@@ -45,10 +45,10 @@ vi.mock("../../../../layout/panelWorkspaceVisibility", () => ({
 }));
 
 /**
- * ADR-284 G3 — the panel entries: a bound list's 「Search · filter」 (「Add search」 → field ·
- * control → Create) and a filter control's 「Filter a list with this control」 make the filter in
- * one step and open its detail as a status (comparison · skip · variable). Measured through the
- * Design panel's Property tab, as an author clicks.
+ * ADR-284 G3 — the panel entry: a bound list's 「Search · filter」 (「Add search」 → field ·
+ * control — a new one or one placed on the page — → Create) makes the filter in one step and opens
+ * its detail as a status (comparison · skip · variable). Measured through the Design panel's
+ * Property tab, as an author clicks. (2026-11-12: the filter control's own entry is gone.)
  */
 let fixture: StylesFixture;
 const i18nEn = Object.fromEntries(
@@ -175,22 +175,41 @@ describe("ADR-284 G3 — 「Search · filter」 in the Design panel", () => {
     ).toBe("name Contains (any case) · SearchField");
   });
 
-  it("a RadioGroup: Filter a list with this control → Create feeds the list from the placed control (no second control)", () => {
+  // 2026-11-12 사용자 결정 (ADR-284 Decision 7 변경): the filter belongs to the bound list — its one
+  // entry is the list's 「Search · filter」, whose Control choice offers the page's placed controls
+  // (「Existing」) beside the new ones. A filter control has no 「Filter a list」 section of its own.
+  it("a bound list: Add search → an existing RadioGroup → Create feeds the list from the placed control (no second control)", async () => {
     act(() => fixture.select("radio"));
+    const radioView = renderDesign();
+    expect(
+      [...document.querySelectorAll("legend")].map((item) => item.textContent),
+    ).not.toContain("Filter a list");
+    radioView.unmount();
+    act(() => fixture.select("list"));
     renderDesign();
-    const group = screen.getByRole("group", { name: "Filter a list" });
-    fireEvent.click(
-      within(group).getByRole("button", {
-        name: "Filter a list with this control",
-      }),
-    );
-    const nodes = () =>
-      [...fixture.workspace.runtime.graph.referrersOf(nodeIdOf("radio"))]
-        .length;
-    void nodes;
+    const group = groupByLegend("Search · filter");
+    fireEvent.click(buttonByText(group, "Add search"));
+    await act(async () => {
+      fireEvent.click(within(groupByLegend("Control")).getByRole("button"));
+    });
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("option", { name: "Existing · RadioGroup" }),
+      );
+    });
+    const before = [
+      ...(
+        fixture.workspace.runtime.graph.getEntry(nodeIdOf("radio")) as NodeEntry
+      ).children,
+    ];
     act(() => {
       fireEvent.click(buttonByText(group, "Create"));
     });
+    // (No new control: the RadioGroup placed on the page feeds the list.)
+    expect(
+      (fixture.workspace.runtime.graph.getEntry(nodeIdOf("radio")) as NodeEntry)
+        .children,
+    ).toEqual(before);
     const graph = fixture.workspace.runtime.graph;
     const [connection] = catalogFilterConnections(graph, nodeIdOf("list"));
     expect(connection!.controls.map((control) => control.nodeId)).toEqual([

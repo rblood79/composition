@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Property 탭 섹션 병합 — 3 · 4단계 (고정 섹션을 병합 섹션 안으로 · 필터 진입점은 목록 한쪽)] - 2026-11-12
+
+### Removed
+
+- 필터 컨트롤 (SearchField · Select · RadioGroup · TextField · Slider …) 의 「Filter a list」 섹션과 「Filter a list with this control」 — 필터는 데이터가 연동된 목록의 것이라 진입점을 목록의 Collection 「Search · filter」 하나로 줄였다 (사용자 결정 2026-11-12, ADR-284 Decision 7 「진입점 양쪽」 → 목록 한쪽).
+
+### Added
+
+- 「Add search」 의 Control 선택지에 그 페이지에 놓인 필터 컨트롤이 「Existing · TextField」 처럼 선다 — 고르면 새 컨트롤을 넣지 않고 그 컨트롤이 목록을 거른다 (변수 · 규칙 · 조건 한 step, 옛 「Filter a list with this control」 과 같은 planner). ComboBox 처럼 두 가지로 거르는 컨트롤은 값의 모양을 붙여 둘로 선다. 위치: `viewAuthoring.ts` `catalogFilterControlsOnPage` · `CatalogFilterSection.tsx`.
+
+### Changed
+
+- Property 탭에 따로 서던 고정 섹션 9 개가 병합 섹션 안의 묶음이 됐다 (사용자 결정 2026-11-12):
+  - Component properties → Component 끝.
+  - Slot (부품 교체 · 넣기 · slot 선언) → Content 끝.
+  - Item origin 안내 · Item fields · Item roles · 항목 「+」 (Add content) → Collection (Data source 다음, Search · filter 앞).
+  - Show when · Accessibility (ID · Aria label) → Behavior 끝.
+  - Set by variable → State 안 (추가는 머리글 「+」 대신 묶음 끝 버튼).
+- 섹션 순서: Component → (페이지 Layout · Nested routes · Layout preset) → Content → Value → Collection → Series → Behavior → Locale → State. State 가 늘 마지막이다.
+- 옮긴 컨트롤만 든 섹션은 그 요소에서 아무것도 그리지 않으면 제목째 숨는다 (페이지 body 의 빈 Content · Collection). 위치: `GenericFieldRenderer` `EXTRAS_ONLY_SECTION` · `panel-system.css` `.section-when-filled`.
+
 ## [Property 탭 섹션 병합 — 1 · 2단계 (Content · Behavior · 속성 재분류)] - 2026-11-12
 
 ### Changed

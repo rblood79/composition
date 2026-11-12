@@ -23,7 +23,6 @@ import {
 } from "../../../catalogRuntime/slots";
 import { PropertyInput } from "../../../components/property/PropertyInput";
 import { useControlPopoverMetrics } from "../../../components/property/useControlPopoverMetrics";
-import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { PropertySwitch } from "../../../components/property/PropertySwitch";
 import { ActionTooltipTrigger, SwatchIconButton } from "../../../components/ui";
@@ -343,92 +342,82 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
     if (slotTarget)
       run(catalogSlotCommands.restore(slotTarget, workspace.newId));
   }, [graph, run, target, workspace]);
-  // (A template node's slot declaration keeps the item 「+」 beside it.)
-  const itemSection = identity ? (
-    <CatalogItemInsertSection identity={identity} />
-  ) : null;
-
   if (declaration) {
     const slot = declaration.slot;
     return (
       <>
-        <PropertySection title={t("propertiesPanel.slotSection")}>
-          <div className="fieldset-row" data-wide="true">
-            <PropertySwitch
-              label={t("propertiesPanel.slotSection")}
-              isSelected={Boolean(slot)}
-              onChange={toggleSlot}
-            />
-          </div>
-          {slot && (
-            <>
-              <div className="fieldset-row" data-wide="true">
-                <PropertyInput
-                  label="Slot name"
-                  value={slot.name}
-                  onChange={renameSlot}
-                />
-              </div>
-              <div className="fieldset-row" data-wide="true">
-                <PropertySwitch
-                  label="Required"
-                  isSelected={slot.required}
-                  onChange={setRequired}
-                />
-              </div>
-              {/* ADR-261 Decision 3 — pen.dev 「suggested slot components」: offered first in an
+        <div className="fieldset-row" data-wide="true">
+          <PropertySwitch
+            label={t("propertiesPanel.slotSection")}
+            isSelected={Boolean(slot)}
+            onChange={toggleSlot}
+          />
+        </div>
+        {slot && (
+          <>
+            <div className="fieldset-row" data-wide="true">
+              <PropertyInput
+                label="Slot name"
+                value={slot.name}
+                onChange={renameSlot}
+              />
+            </div>
+            <div className="fieldset-row" data-wide="true">
+              <PropertySwitch
+                label="Required"
+                isSelected={slot.required}
+                onChange={setRequired}
+              />
+            </div>
+            {/* ADR-261 Decision 3 — pen.dev 「suggested slot components」: offered first in an
                 instance's slot, never a restriction. */}
-              <fieldset className="properties-aria slot-suggestions">
-                <legend className="fieldset-legend">
-                  {t("propertiesPanel.slotSuggested")}
-                </legend>
-                {suggestions?.map((item) => (
-                  <div key={item.id} className="list-row">
-                    <div className="list-row__body">
-                      <span className="list-row__label">{item.label}</span>
-                    </div>
-                    <div className="list-row__actions">
-                      <RACButton
-                        className="list-row__action"
-                        aria-label={`Remove ${item.label}`}
-                        onPress={() =>
-                          setSuggested(
-                            (slot.suggested ?? []).filter(
-                              (id) => id !== item.id,
-                            ),
-                          )
-                        }
-                      >
-                        <Minus size={12} />
-                      </RACButton>
-                    </div>
+            <fieldset className="properties-aria slot-suggestions">
+              <legend className="fieldset-legend">
+                {t("propertiesPanel.slotSuggested")}
+              </legend>
+              {suggestions?.map((item) => (
+                <div key={item.id} className="list-row">
+                  <div className="list-row__body">
+                    <span className="list-row__label">{item.label}</span>
                   </div>
-                ))}
-              </fieldset>
-              <div className="fieldset-row" data-wide="true">
-                <PropertySelect
-                  label={t("propertiesPanel.slotSuggestAdd")}
-                  value=""
-                  options={[
-                    {
-                      value: "",
-                      label: `${t("propertiesPanel.slotSuggestAdd")}…`,
-                    },
-                    ...choices.map((choice) => ({
-                      value: choice.definitionId,
-                      label: choice.label,
-                    })),
-                  ]}
-                  translateOptions={false}
-                  onChange={(value) =>
-                    value && setSuggested([...(slot.suggested ?? []), value])
-                  }
-                />
-              </div>
-            </>
-          )}
-        </PropertySection>
-        {itemSection}
+                  <div className="list-row__actions">
+                    <RACButton
+                      className="list-row__action"
+                      aria-label={`Remove ${item.label}`}
+                      onPress={() =>
+                        setSuggested(
+                          (slot.suggested ?? []).filter((id) => id !== item.id),
+                        )
+                      }
+                    >
+                      <Minus size={12} />
+                    </RACButton>
+                  </div>
+                </div>
+              ))}
+            </fieldset>
+            <div className="fieldset-row" data-wide="true">
+              <PropertySelect
+                label={t("propertiesPanel.slotSuggestAdd")}
+                value=""
+                options={[
+                  {
+                    value: "",
+                    label: `${t("propertiesPanel.slotSuggestAdd")}…`,
+                  },
+                  ...choices.map((choice) => ({
+                    value: choice.definitionId,
+                    label: choice.label,
+                  })),
+                ]}
+                translateOptions={false}
+                onChange={(value) =>
+                  value && setSuggested([...(slot.suggested ?? []), value])
+                }
+              />
+            </div>
+          </>
+        )}
       </>
     );
   }
@@ -436,24 +425,23 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
   // the template's with the parts put in). A position with nothing to insert from the slot list
   // (a list frame, a group, a Table's header or body) keeps the item 「+」 section.
   if (!position) {
-    if (!options.length) return itemSection;
+    // (Nothing to insert from the slot list — the item 「+」 in Collection takes the position.)
+    if (!options.length) return null;
     return (
-      <PropertySection title={t("propertiesPanel.slotSection")}>
-        <div className="fieldset-row" data-wide="true">
-          <SlotInsertField
-            label={t("propertiesPanel.slotAddContent")}
-            candidates={candidates}
-            onPick={pickWith(add)}
-            open={pickerOpen}
-            onOpenChange={setPickerOpen}
-          />
-        </div>
-      </PropertySection>
+      <div className="fieldset-row" data-wide="true">
+        <SlotInsertField
+          label={t("propertiesPanel.slotAddContent")}
+          candidates={candidates}
+          onPick={pickWith(add)}
+          open={pickerOpen}
+          onOpenChange={setPickerOpen}
+        />
+      </div>
     );
   }
 
   return (
-    <PropertySection title={t("propertiesPanel.slotSection")}>
+    <>
       {/* The restore is the field row's icon action (an instance swap property's reset) — there
           only once the slot's content is the instance's own. */}
       <div className="fieldset-row slot-fill-row">
@@ -494,6 +482,36 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
             ))}
         </div>
       )}
-    </PropertySection>
+    </>
   );
+});
+
+/**
+ * The item 「+」 (Collection section) where the Slot controls leave it: beside a template node's slot
+ * declaration, and at a position that is no slot with nothing in the slot list (a list frame, a
+ * group, a Table's header or body). An instance's slot position has none — its Fill slot picker
+ * builds the item types (2026-10-22 user 「slot section 두개가 중복」).
+ */
+export const CatalogSlotItemInsert = memo(function CatalogSlotItemInsert({
+  target,
+  type,
+  identity,
+}: {
+  target: EditTarget;
+  type?: string;
+  identity: string;
+}) {
+  const workspace = useCatalogWorkspace();
+  const graph = workspace.runtime.graph;
+  const keeps = useCatalogStepReading(workspace, () => {
+    if (target.kind === "node" && catalogSlotDeclaration(graph, target.id))
+      return true;
+    if (catalogSlotPosition(graph, target)) return false;
+    return !(
+      type !== undefined &&
+      CATALOG_PART_INSERT_HOSTS.has(type) &&
+      catalogSlotInsertOptions(graph, target).length
+    );
+  });
+  return keeps ? <CatalogItemInsertSection identity={identity} /> : null;
 });
