@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Tree 도 세로 flex 에서 눌리지 않는다 — 기본 overflow 제거] - 2026-11-13
+
+### Fixed
+
+- **Tree**: catalog rule 과 수동 `Tree.css` (`[data-composition-tree]`) 에서 `overflow: auto` 를 뺐다 (사용자 결정 2026-11-13 「tree 제안대로 수정」 — ListBox 와 같은 방식). Height 100% 세로 flex body 에서 Canvas 90 → 38 · Publish 10 으로 눌리던 것이 내용 높이에 머문다 (Canvas · Publish 90). 높이를 저작한 Tree 의 스크롤은 Overflow 저작으로.
+  - Table · Chart 는 보류 — 제안했던 `flex-shrink: 0` 은 가로 flex 에서도 걸려, 폭 100% 인 두 Table · Chart 를 나란히 두면 나눠 갖지 않고 넘친다. SideNavPanel · SideNav 는 S2 의도 (화면 높이 안 스크롤) 라 그대로 둔다 (사용자 결정).
+  - 테스트: `bodyColumnFlexSqueeze.test.tsx` (Tree) · `resolveContainerStylesFallback.test.ts` · `designDataSurfaceGaps.test.ts`.
+
 ## [ListBox 도 세로 flex 에서 눌리지 않는다 — 기본 overflow 제거, picker 팝오버 안 목록만 스크롤] - 2026-11-13
 
 ### Fixed
@@ -20,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **동작 변화**: 높이를 저작한 ListBox 가 더는 저절로 스크롤 상자가 되지 않는다 — 스크롤 (과 Section 머리의 sticky) 은 Overflow 를 Auto 로 저작할 때. 2026-07-29 의 「`overflow:auto` 는 남긴다」 를 이 결정이 대체한다.
   - 테스트: `bodyColumnFlexSqueeze.test.tsx` (원복 RED 105 → 42) · `adr267StickyTransport.test.ts` · `phase4eCanvasOverflowBinding.test.ts` (스크롤 목록은 Overflow 저작) · `resolveContainerStylesFallback.test.ts` · `tokenConsumerDrift` 스냅샷 · `designDataSurfaceGaps.test.ts`.
 - **확인만 (고치지 않음)** — 같은 조건 (mobile 390×844 · Height Parent) 에서 아직 눌리는 것과 원인. 모두 브라우저 (Publish) 도 같다:
-  - Tree — rule `overflow: auto` (Canvas 90 → 38 · Publish 10).
+  - Tree — rule `overflow: auto` (Canvas 90 → 38 · Publish 10). → 같은 날 위 항목에서 수정.
   - Table — 수동 `Table.css` 와 rule 의 `min-height: 40px` (명시 최소 높이라 overflow 와 무관하게 40 까지) + node table `overflow: auto` (Canvas 402 → 129 · Publish 40).
   - Chart — overflow 없음, 그림 상자가 높이를 부모 100% 로 받아 고유 최소 높이가 없다 (Canvas 240 → 96 · Publish 26).
   - SideNavPanel · SideNav — S2 그대로 `minHeight: 0` + `overflow: hidden` / `auto` (Canvas 182 → 62 · 146 → 50).

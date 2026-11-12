@@ -29,7 +29,7 @@ const BODY = "project:node:home-body" as NodeId;
 const PLACED = "project:node:placed" as NodeId;
 
 async function squeeze(
-  type: "card" | "progresscircle" | "listbox",
+  type: "card" | "progresscircle" | "listbox" | "tree",
 ) {
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
@@ -113,8 +113,8 @@ describe("a fixed-Height column flex body does not squeeze its items to nothing"
     expect(squeezed).toBe(32);
   });
 
-  it("ListBox keeps its content height (no scroll box of its own outside a picker)", async () => {
-    const { natural, squeezed } = await squeeze("listbox");
+  it.each(["listbox", "tree"] as const)("%s keeps its content height (no scroll box of its own outside a picker)", async (type) => {
+    const { natural, squeezed } = await squeeze(type);
     expect(natural).toBeGreaterThan(0);
     expect(squeezed).toBe(natural);
   });

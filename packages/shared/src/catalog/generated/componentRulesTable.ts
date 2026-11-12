@@ -15978,9 +15978,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   같은 값을 뺀 것의 누락 적용분이다 ("컨테이너 높이는 내용이 정하고, 잘라야 하면
       //   요소별로 저작한다 — catalog 가 전 인스턴스에 300 을 강제할 근거가 없다").
       //   Tree 는 발산까지 있었다: 수동 `Tree.css` 는 `max-height: 100%`(부모 기준)인데
-      //   catalog 만 300 고정이라 DOM↔Skia 가 서로 다른 상한을 썼다. `overflow:auto` 는
-      //   남긴다 — 높이를 저작하면 그때 스크롤이 산다 (ListBox 선례 동형).
-      overflow: "auto",
+      //   catalog 만 300 고정이라 DOM↔Skia 가 서로 다른 상한을 썼다.
+      // overflow 도 두지 않는다 (사용자 결정 2026-11-13, ListBox 와 같이): `auto` 면 flex item 의 자동
+      //   최소 크기가 0 이라 높이가 정해진 세로 flex 부모에서 Tree 를 눌렀다. 스크롤은 저작한 overflow 로.
       outline: "none",
       // ADR-151 B5 (2026-07-16): 수동 Tree.css `border: 1px solid` 를 layout 이 미반영해
       //   세로 2px 발산 (Skia 72 vs CSS 74) — Calendar/RangeCalendar 동형 layout 채널 보정.

@@ -303,7 +303,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         // maxHeight 는 2026-08-21 제거 — ListBox 가 2026-07-29 사용자 결정으로 뺀 값의 누락
         //   적용분이고, 수동 Tree.css 는 `max-height:100%` 라 catalog 만 300 고정이던 발산도
         //   함께 해소됐다 (9 → 8 필드).
-        overflow: "auto",
+        // overflow 는 2026-11-13 사용자 결정으로 뺐다 (ListBox 와 같이 — 세로 flex 눌림).
         outline: "none",
         borderWidth: 1, // ADR-227 P3 토큰 해석 · ADR-151 B5 (2026-07-16) — Tree.css border 1px layout 반영
       });
@@ -458,7 +458,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         padding: 4,
         width: "100%",
         // maxHeight 제거 (2026-08-21) — 위 tree describe 참조. listbox 와 같은 8필드가 됐다.
-        overflow: "auto",
+        // overflow 는 2026-11-13 사용자 결정으로 뺐다 (ListBox 와 같이 — 세로 flex 눌림).
         outline: "none",
         borderWidth: 1, // ADR-227 P3 토큰 해석 · ADR-151 B5 (2026-07-16)
       });
@@ -623,7 +623,9 @@ describe("resolveEffectiveOverflow — catalog containerStyles overflow 포괄",
     // top-level containerStyles.overflow
     // (ListBox 의 `auto` 는 2026-11-13 사용자 결정으로 뺐다 — picker 팝오버 안 목록만 스크롤.)
     expect(resolveEffectiveOverflow("listbox", {})).toBeUndefined();
-    expect(resolveEffectiveOverflow("tree", {})).toBe("auto");
+    // (Tree 도 같은 결정으로 뺐다.) Menu 는 남아 있다.
+    expect(resolveEffectiveOverflow("tree", {})).toBeUndefined();
+    expect(resolveEffectiveOverflow("menu", {})).toBe("auto");
     // structure.containerStyles 의 Card root clip 은 2026-11-13 사용자 결정으로 뺐다 (세로 flex 눌림).
     expect(resolveEffectiveOverflow("card", {})).toBeUndefined();
     // structure.composition.containerStyles 에는 overflow 를 둔 rule 이 없다 — Accordion 의
@@ -643,7 +645,7 @@ describe("resolveEffectiveOverflow — catalog containerStyles overflow 포괄",
   });
 
   it("ref instance resolved type(PascalCase componentName)도 lowercasing 으로 해석", () => {
-    expect(resolveEffectiveOverflow("Tree", {})).toBe("auto");
+    expect(resolveEffectiveOverflow("Menu", {})).toBe("auto");
   });
 });
 
