@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - page 를 바꿀 때 Layers 가 같은 행을 두 번 읽던 것 — 렌더에서 읽은 뒤 연결할 때 그 사이 문서 · 데이터 행 · root 가 바뀌지 않았으면 다시 읽지 않고 구독만 붙인다 (`33d58176b` 부터). live (프로젝트 「23」, page 3 → 4 → 5): Layers 다시 만들기 6 → 4 회 · 만든 행 52 → 27. 위치: `layerTree.ts` `connect` · `workspace.ts` `layerInputsVersion`. 테스트: `layerTreeConnectRead.test.ts`.
   - **Why**: ratchet 증가 4 건 조사 (ADR-307 후속 1 의 별도 조사) — 나머지 2 건 (선택 시 Locale 선택칸의 DOM 변경 · drag 명령 버퍼 조각) 은 기능 · 구조 변경의 비용이라 수용.
 
+### Infrastructure
+
+- 성능 ratchet 기준을 두 수리 뒤 코드 (`805dc62bd`) 로 다시 잡았다 — dev 5173 에서 13 run 을 세 번 재어 `--init`, 세 번 모두 같은 값만 A. 내려간 것: select 함수 호출 158,619 → 143,748 · page 전환 Layers 다시 만들기 20 → 10 · 만든 행 20 → 10 · editContract 원본 탐색 14,850 → 0 (목록에서 빠짐). 오른 A 2 키 (page 전환 `controller.ts#current` · `get graph` 177 → 187 · 156 → 166) 는 Layers 수리가 연결할 때 문서 revision 을 한 번 읽는 값. 세 측정에서 값이 갈린 select `PropertySelect` · `I18nProvider` 함수 2 키는 B 로 옮겼다 (오전 재설정 때 남긴 관찰이 다시 나옴). 새 기준으로 세 측정을 판정하면 A 초과 0. 위치: `apps/builder/perf/ratchet.json`.
+
 ## [Preview · Publish 는 보이는 page 만 만든다 (ADR-307 후속 2)] - 2026-11-12
 
 ### Changed

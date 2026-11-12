@@ -2,7 +2,7 @@
   "version": 1,
   "recorderSha256": "ea9cf64582c7c1fcba32bd7c3157973850bfd358081d7f4cdb4a98f122f57c60",
   "generatedAt": "2026-11-12",
-  "head": "2ffd71ff527103ba60657e728c5bf29ec1b10fef",
+  "head": "805dc62bd94048e773cec4785a29e1b189810f21",
   "band": 1.05,
   "minSlack": 2,
   "runs": {
@@ -432,15 +432,14 @@
           "render.warmCandidatesScanned": 0,
           "render.warmCandidatesSorted": 0,
           "render.warmPassRebuilt": 0,
-          "v8.fn.src/builder/catalogRuntime/editContract.ts#(anonymous)": 14850,
           "v8.fn.src/builder/catalogRuntime/react.tsx#(anonymous)": 1755,
           "v8.fn.src/builder/catalogRuntime/react.tsx#useCatalogWorkspace": 1931,
           "v8.fn.src/builder/catalogRuntime/readModel.ts#read": 2835,
           "v8.fn.src/builder/catalogRuntime/readModel.ts#rowsCompute": 1560,
+          "v8.fn.src/builder/catalogRuntime/readModel.ts#rowsKey": 1560,
           "v8.fn.src/builder/catalogRuntime/session.ts#getSnapshot": 1794,
           "v8.fn.src/builder/catalogRuntime/workspace.ts#get root": 2379,
           "v8.fn.src/builder/catalogRuntime/workspace.ts#isElementRecord": 2040,
-          "v8.fn.src/builder/components/property/PropertySelect.components.tsx#(anonymous)": 1665,
           "v8.fn.src/catalog/commands/structure.ts#(anonymous)": 1800,
           "v8.fn.src/catalog/document/graph.ts#get library": 1605,
           "v8.fn.src/catalog/document/graph.ts#getEntry": 5400,
@@ -449,18 +448,19 @@
           "v8.fn.src/catalog/runtime/compositionRoot.ts#get domInputs": 2075,
           "v8.fn.src/catalog/runtime/controller.ts#current": 3731,
           "v8.fn.src/catalog/runtime/controller.ts#get graph": 2843,
-          "v8.fn.src/i18n/I18nProvider.tsx#(anonymous)": 2049,
           "warmAfter.pictureWarmRecorded": 0,
           "warmAfter.warmCandidatesScanned": 0,
           "warmAfter.warmCandidatesSorted": 0,
           "warmAfter.warmPassRebuilt": 0
         },
         "B": {
-          "cdp.LayoutCount": 107,
-          "cdp.RecalcStyleCount": 158,
+          "cdp.LayoutCount": 109,
+          "cdp.RecalcStyleCount": 160,
           "domMutations.childList": 922,
-          "reactRenderMeasures": 6484,
-          "v8.app": 158619
+          "reactRenderMeasures": 6499,
+          "v8.app": 143748,
+          "v8.fn.src/builder/components/property/PropertySelect.components.tsx#(anonymous)": 1739,
+          "v8.fn.src/i18n/I18nProvider.tsx#(anonymous)": 2051
         }
       },
       "edit": {
@@ -671,11 +671,11 @@
           "warmAfter.warmPassRebuilt": 1
         },
         "B": {
-          "cdp.LayoutCount": 22,
-          "cdp.RecalcStyleCount": 22,
+          "cdp.LayoutCount": 24,
+          "cdp.RecalcStyleCount": 24,
           "domMutations.childList": 32,
-          "reactRenderMeasures": 598,
-          "v8.app": 58184
+          "reactRenderMeasures": 603,
+          "v8.app": 58188
         }
       },
       "page-switch": {
@@ -703,9 +703,9 @@
           "doc.editContractIncludes": 0,
           "doc.htmlIdProbes": 0,
           "doc.layersGatedChecked": 0,
-          "doc.layersRebuilds": 20,
+          "doc.layersRebuilds": 10,
           "doc.layersRenameChecked": 0,
-          "doc.layersRowsBuilt": 20,
+          "doc.layersRowsBuilt": 10,
           "doc.menuDryRuns": 0,
           "doc.menuRefusals": 0,
           "doc.opsCloneBytes": 0,
@@ -860,7 +860,7 @@
           "render.warmCandidatesScanned": 0,
           "render.warmCandidatesSorted": 0,
           "render.warmPassRebuilt": 0,
-          "v8.fn.src/builder/catalogRuntime/layerTree.ts#(anonymous)": 600,
+          "v8.fn.src/builder/catalogRuntime/layerTree.ts#(anonymous)": 300,
           "v8.fn.src/builder/catalogRuntime/react.tsx#(anonymous)": 263,
           "v8.fn.src/builder/catalogRuntime/react.tsx#useCatalogWorkspace": 184,
           "v8.fn.src/builder/catalogRuntime/session.ts#getSnapshot": 693,
@@ -872,8 +872,8 @@
           "v8.fn.src/builder/hooks/useKeyboardShortcutsRegistry.ts#formatShortcut": 187,
           "v8.fn.src/builder/hooks/useKeyboardShortcutsRegistry.ts#formatShortcutKey": 187,
           "v8.fn.src/builder/layout/panelWorkspaceLayoutCoordinator.ts#get": 198,
-          "v8.fn.src/catalog/runtime/controller.ts#current": 177,
-          "v8.fn.src/catalog/runtime/controller.ts#get graph": 156,
+          "v8.fn.src/catalog/runtime/controller.ts#current": 187,
+          "v8.fn.src/catalog/runtime/controller.ts#get graph": 166,
           "v8.fn.src/i18n/I18nProvider.tsx#(anonymous)": 513,
           "v8.fn.src/i18n/useI18n.ts#useI18n": 140,
           "warmAfter.pictureWarmRecorded": 0,
@@ -883,10 +883,10 @@
         },
         "B": {
           "cdp.LayoutCount": 51,
-          "cdp.RecalcStyleCount": 148,
+          "cdp.RecalcStyleCount": 150,
           "domMutations.childList": 50,
-          "reactRenderMeasures": 1531,
-          "v8.app": 17582
+          "reactRenderMeasures": 1523,
+          "v8.app": 16956
         }
       },
       "panel-toggle": {
@@ -914,9 +914,9 @@
           "doc.editContractIncludes": 0,
           "doc.htmlIdProbes": 0,
           "doc.layersGatedChecked": 0,
-          "doc.layersRebuilds": 5,
+          "doc.layersRebuilds": 0,
           "doc.layersRenameChecked": 0,
-          "doc.layersRowsBuilt": 5,
+          "doc.layersRowsBuilt": 0,
           "doc.menuDryRuns": 0,
           "doc.menuRefusals": 0,
           "doc.opsCloneBytes": 0,
@@ -1088,10 +1088,10 @@
         },
         "B": {
           "cdp.LayoutCount": 35,
-          "cdp.RecalcStyleCount": 215,
+          "cdp.RecalcStyleCount": 216,
           "domMutations.childList": 80,
-          "reactRenderMeasures": 2698,
-          "v8.app": 37390
+          "reactRenderMeasures": 2689,
+          "v8.app": 36905
         }
       },
       "drag": {
@@ -1303,10 +1303,10 @@
         },
         "B": {
           "cdp.LayoutCount": 3,
-          "cdp.RecalcStyleCount": 222,
+          "cdp.RecalcStyleCount": 221,
           "domMutations.childList": 2,
-          "reactRenderMeasures": 310,
-          "v8.app": 1031271
+          "reactRenderMeasures": 303,
+          "v8.app": 1030822
         }
       },
       "select-spread": {
@@ -1491,7 +1491,6 @@
           "render.warmCandidatesScanned": 0,
           "render.warmCandidatesSorted": 0,
           "render.warmPassRebuilt": 0,
-          "v8.fn.src/builder/catalogRuntime/editContract.ts#(anonymous)": 14850,
           "v8.fn.src/builder/catalogRuntime/react.tsx#(anonymous)": 1755,
           "v8.fn.src/builder/catalogRuntime/react.tsx#useCatalogWorkspace": 1913,
           "v8.fn.src/builder/catalogRuntime/readModel.ts#read": 2925,
@@ -1501,6 +1500,7 @@
           "v8.fn.src/builder/catalogRuntime/workspace.ts#get root": 2560,
           "v8.fn.src/builder/catalogRuntime/workspace.ts#isElementRecord": 2220,
           "v8.fn.src/catalog/commands/structure.ts#(anonymous)": 1800,
+          "v8.fn.src/catalog/document/graph.ts#get library": 1561,
           "v8.fn.src/catalog/document/graph.ts#getEntry": 5385,
           "v8.fn.src/catalog/document/graph.ts#ownerOf": 2580,
           "v8.fn.src/catalog/document/library.ts#get": 1635,
@@ -1515,10 +1515,10 @@
         },
         "B": {
           "cdp.LayoutCount": 72,
-          "cdp.RecalcStyleCount": 135,
+          "cdp.RecalcStyleCount": 138,
           "domMutations.childList": 423,
-          "reactRenderMeasures": 6606,
-          "v8.app": 155305
+          "reactRenderMeasures": 6621,
+          "v8.app": 140457
         }
       }
     },
@@ -1712,10 +1712,10 @@
           "warmAfter.warmPassRebuilt": 0
         },
         "B": {
-          "cdp.LayoutCount": 109,
-          "cdp.RecalcStyleCount": 160,
+          "cdp.LayoutCount": 107,
+          "cdp.RecalcStyleCount": 158,
           "domMutations.childList": 922,
-          "reactRenderMeasures": 6287
+          "reactRenderMeasures": 6298
         }
       },
       "edit": {
@@ -1908,10 +1908,10 @@
           "warmAfter.warmPassRebuilt": 1
         },
         "B": {
-          "cdp.LayoutCount": 23,
-          "cdp.RecalcStyleCount": 23,
+          "cdp.LayoutCount": 24,
+          "cdp.RecalcStyleCount": 24,
           "domMutations.childList": 32,
-          "reactRenderMeasures": 599
+          "reactRenderMeasures": 600
         }
       },
       "zoom": {
@@ -2107,7 +2107,7 @@
           "warmAfter.warmPassRebuilt": 0
         },
         "B": {
-          "cdp.LayoutCount": 460,
+          "cdp.LayoutCount": 459,
           "cdp.RecalcStyleCount": 537,
           "domMutations.childList": 0,
           "reactRenderMeasures": 0
@@ -2304,7 +2304,7 @@
           "cdp.LayoutCount": 98,
           "cdp.RecalcStyleCount": 158,
           "domMutations.childList": 454,
-          "reactRenderMeasures": 6361
+          "reactRenderMeasures": 6389
         }
       }
     },
@@ -2698,10 +2698,10 @@
           "warmAfter.warmPassRebuilt": 1
         },
         "B": {
-          "cdp.LayoutCount": 27,
-          "cdp.RecalcStyleCount": 27,
+          "cdp.LayoutCount": 28,
+          "cdp.RecalcStyleCount": 28,
           "domMutations.childList": 34,
-          "reactRenderMeasures": 564
+          "reactRenderMeasures": 561
         }
       },
       "pan": {
@@ -2927,9 +2927,9 @@
           "doc.editContractIncludes": 0,
           "doc.htmlIdProbes": 0,
           "doc.layersGatedChecked": 0,
-          "doc.layersRebuilds": 20,
+          "doc.layersRebuilds": 10,
           "doc.layersRenameChecked": 0,
-          "doc.layersRowsBuilt": 20,
+          "doc.layersRowsBuilt": 10,
           "doc.menuDryRuns": 0,
           "doc.menuRefusals": 0,
           "doc.opsCloneBytes": 0,
@@ -3091,9 +3091,9 @@
         },
         "B": {
           "cdp.LayoutCount": 40,
-          "cdp.RecalcStyleCount": 148,
+          "cdp.RecalcStyleCount": 149,
           "domMutations.childList": 50,
-          "reactRenderMeasures": 1659
+          "reactRenderMeasures": 1660
         }
       }
     },
@@ -3715,8 +3715,8 @@
           "cdp.LayoutCount": 48,
           "cdp.RecalcStyleCount": 48,
           "domMutations.childList": 50,
-          "reactRenderMeasures": 825,
-          "v8.app": 559496
+          "reactRenderMeasures": 824,
+          "v8.app": 559449
         }
       },
       "load-same-frame": {
@@ -3934,11 +3934,11 @@
           "warmAfter.warmPassRebuilt": 1
         },
         "B": {
-          "cdp.LayoutCount": 24,
-          "cdp.RecalcStyleCount": 24,
+          "cdp.LayoutCount": 25,
+          "cdp.RecalcStyleCount": 25,
           "domMutations.childList": 44,
-          "reactRenderMeasures": 821,
-          "v8.app": 564512
+          "reactRenderMeasures": 820,
+          "v8.app": 564543
         }
       },
       "load-zoom": {
@@ -4113,13 +4113,13 @@
           "warmAfter.warmPassRebuilt": 1
         },
         "B": {
-          "caches.contentSurface.hits": 90,
+          "caches.contentSurface.hits": 89,
           "caches.contentSurface.missReasons.coverage-refresh": 28,
           "caches.contentSurface.misses": 64,
-          "caches.nodePicture.hits": 10570,
+          "caches.nodePicture.hits": 10580,
           "caches.paintPool.hits": 256,
-          "cdp.LayoutCount": 342,
-          "cdp.RecalcStyleCount": 423,
+          "cdp.LayoutCount": 344,
+          "cdp.RecalcStyleCount": 426,
           "domMutations.childList": 0,
           "perfLabels.render.skia.flush.content": 64,
           "perfLabels.render.skia.flush.main": 153,
@@ -4128,37 +4128,37 @@
           "reactRenderMeasures": 0,
           "render.contentFullRenders": 64,
           "render.contentRedrawsOutOfPad": 28,
-          "render.contentTouchedElements": 10588,
+          "render.contentTouchedElements": 10598,
           "render.execCalls": 64,
-          "render.execPictureJumped": 14005,
+          "render.execPictureJumped": 14015,
           "render.execSkipped": 4701,
-          "render.execVisited": 43284,
+          "render.execVisited": 43320,
           "render.propertyNodeReads": 238,
-          "render.spanCursorSteps": 660036,
-          "render.spatialCellsVisited": 103614,
-          "render.spatialItemsVisited": 55636,
+          "render.spanCursorSteps": 660547,
+          "render.spatialCellsVisited": 103678,
+          "render.spatialItemsVisited": 55725,
           "render.spatialQueries": 64,
-          "render.spatialResults": 13462,
+          "render.spatialResults": 13475,
           "render.viewportSequences": 64,
-          "v8.app": 687059,
-          "v8.fn.src/builder/workspace/canvas/skia/cacheMetrics.ts#getCacheMetrics": 11294,
-          "v8.fn.src/builder/workspace/canvas/skia/cacheMetrics.ts#recordHit": 10914,
-          "v8.fn.src/builder/workspace/canvas/skia/drawStats.ts#incrementDrawCall": 10606,
-          "v8.fn.src/builder/workspace/canvas/skia/effects.ts#endRenderEffects": 13462,
-          "v8.fn.src/builder/workspace/canvas/skia/nodeRendererTree.ts#_get": 14785,
-          "v8.fn.src/builder/workspace/canvas/skia/nodeRendererTree.ts#getDragVisualOffset": 14785,
-          "v8.fn.src/builder/workspace/canvas/skia/nodeRendererTree.ts#getSiblingOffset": 14632,
-          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#(anonymous)": 58343,
-          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#appendCommandRange": 21048,
-          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#appendElement": 14639,
-          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#commandCursorIndex": 112362,
-          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#createCommandReader": 21550,
-          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#drawSelfSpanViaPicture": 10588,
-          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#get": 67352,
-          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#has": 14773,
-          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#segments.segments": 43302,
-          "v8.fn.src/builder/workspace/canvas/skia/useSkiaNode.ts#getSkiaNode": 10655,
-          "v8.fn.src/builder/workspace/canvas/wasm-bindings/idMapper.ts#getStringId": 13462
+          "v8.app": 687658,
+          "v8.fn.src/builder/workspace/canvas/skia/cacheMetrics.ts#getCacheMetrics": 11305,
+          "v8.fn.src/builder/workspace/canvas/skia/cacheMetrics.ts#recordHit": 10925,
+          "v8.fn.src/builder/workspace/canvas/skia/drawStats.ts#incrementDrawCall": 10616,
+          "v8.fn.src/builder/workspace/canvas/skia/effects.ts#endRenderEffects": 13475,
+          "v8.fn.src/builder/workspace/canvas/skia/nodeRendererTree.ts#_get": 14798,
+          "v8.fn.src/builder/workspace/canvas/skia/nodeRendererTree.ts#getDragVisualOffset": 14798,
+          "v8.fn.src/builder/workspace/canvas/skia/nodeRendererTree.ts#getSiblingOffset": 14645,
+          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#(anonymous)": 58389,
+          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#appendCommandRange": 21066,
+          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#appendElement": 14652,
+          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#commandCursorIndex": 112454,
+          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#createCommandReader": 21568,
+          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#drawSelfSpanViaPicture": 10598,
+          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#get": 67409,
+          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#has": 14786,
+          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#segments.segments": 43338,
+          "v8.fn.src/builder/workspace/canvas/skia/useSkiaNode.ts#getSkiaNode": 10665,
+          "v8.fn.src/builder/workspace/canvas/wasm-bindings/idMapper.ts#getStringId": 13475
         }
       },
       "zoom": {
@@ -4374,10 +4374,10 @@
         },
         "B": {
           "cdp.LayoutCount": 429,
-          "cdp.RecalcStyleCount": 564,
+          "cdp.RecalcStyleCount": 563,
           "domMutations.childList": 0,
           "reactRenderMeasures": 0,
-          "v8.app": 415774
+          "v8.app": 415754
         }
       },
       "edit": {
@@ -4589,11 +4589,11 @@
           "warmAfter.warmPassRebuilt": 1
         },
         "B": {
-          "cdp.LayoutCount": 23,
-          "cdp.RecalcStyleCount": 23,
+          "cdp.LayoutCount": 25,
+          "cdp.RecalcStyleCount": 25,
           "domMutations.childList": 30,
-          "reactRenderMeasures": 562,
-          "v8.app": 289639
+          "reactRenderMeasures": 564,
+          "v8.app": 289641
         }
       }
     },
@@ -4813,11 +4813,11 @@
           "warmAfter.warmPassRebuilt": 1
         },
         "B": {
-          "cdp.LayoutCount": 92,
-          "cdp.RecalcStyleCount": 92,
+          "cdp.LayoutCount": 91,
+          "cdp.RecalcStyleCount": 91,
           "domMutations.childList": 94,
-          "reactRenderMeasures": 1647,
-          "v8.app": 839435
+          "reactRenderMeasures": 1640,
+          "v8.app": 839393
         }
       }
     },
@@ -5015,8 +5015,8 @@
           "warmAfter.warmPassRebuilt": 0
         },
         "B": {
-          "cdp.LayoutCount": 444,
-          "cdp.RecalcStyleCount": 632,
+          "cdp.LayoutCount": 445,
+          "cdp.RecalcStyleCount": 633,
           "domMutations.childList": 0,
           "reactRenderMeasures": 0
         }
@@ -5414,8 +5414,8 @@
           "warmAfter.warmPassRebuilt": 0
         },
         "B": {
-          "cdp.LayoutCount": 444,
-          "cdp.RecalcStyleCount": 597,
+          "cdp.LayoutCount": 443,
+          "cdp.RecalcStyleCount": 596,
           "domMutations.childList": 0,
           "reactRenderMeasures": 0
         }
@@ -5616,7 +5616,7 @@
         "B": {
           "cdp.LayoutCount": 384,
           "cdp.RecalcStyleCount": 633,
-          "domMutations.attributes": 2619,
+          "domMutations.attributes": 2615,
           "domMutations.childList": 0,
           "reactRenderMeasures": 0
         }
@@ -5814,7 +5814,7 @@
         },
         "B": {
           "cdp.LayoutCount": 0,
-          "cdp.RecalcStyleCount": 360,
+          "cdp.RecalcStyleCount": 361,
           "domMutations.childList": 0,
           "reactRenderMeasures": 0
         }
@@ -5846,9 +5846,9 @@
           "doc.editContractIncludes": 0,
           "doc.htmlIdProbes": 0,
           "doc.layersGatedChecked": 0,
-          "doc.layersRebuilds": 4,
+          "doc.layersRebuilds": 2,
           "doc.layersRenameChecked": 0,
-          "doc.layersRowsBuilt": 4,
+          "doc.layersRowsBuilt": 2,
           "doc.menuDryRuns": 0,
           "doc.menuRefusals": 0,
           "doc.opsCloneBytes": 0,
@@ -6016,9 +6016,9 @@
         },
         "B": {
           "cdp.LayoutCount": 9,
-          "cdp.RecalcStyleCount": 482,
+          "cdp.RecalcStyleCount": 483,
           "domMutations.childList": 10,
-          "reactRenderMeasures": 407
+          "reactRenderMeasures": 410
         }
       },
       "edit": {
@@ -6211,10 +6211,10 @@
           "warmAfter.warmPassRebuilt": 1
         },
         "B": {
-          "cdp.LayoutCount": 27,
-          "cdp.RecalcStyleCount": 27,
+          "cdp.LayoutCount": 29,
+          "cdp.RecalcStyleCount": 29,
           "domMutations.childList": 34,
-          "reactRenderMeasures": 563
+          "reactRenderMeasures": 561
         }
       }
     },
@@ -6412,10 +6412,10 @@
           "warmAfter.warmPassRebuilt": 1
         },
         "B": {
-          "cdp.LayoutCount": 26,
-          "cdp.RecalcStyleCount": 26,
+          "cdp.LayoutCount": 27,
+          "cdp.RecalcStyleCount": 27,
           "domMutations.childList": 32,
-          "reactRenderMeasures": 561
+          "reactRenderMeasures": 563
         }
       },
       "select": {
@@ -6607,10 +6607,10 @@
           "warmAfter.warmPassRebuilt": 0
         },
         "B": {
-          "cdp.LayoutCount": 117,
-          "cdp.RecalcStyleCount": 241,
+          "cdp.LayoutCount": 113,
+          "cdp.RecalcStyleCount": 237,
           "domMutations.childList": 787,
-          "reactRenderMeasures": 10473
+          "reactRenderMeasures": 10523
         }
       }
     },
@@ -6808,10 +6808,10 @@
           "warmAfter.warmPassRebuilt": 1
         },
         "B": {
-          "cdp.LayoutCount": 24,
-          "cdp.RecalcStyleCount": 24,
+          "cdp.LayoutCount": 25,
+          "cdp.RecalcStyleCount": 25,
           "domMutations.childList": 32,
-          "reactRenderMeasures": 562
+          "reactRenderMeasures": 564
         }
       }
     },
@@ -7008,9 +7008,9 @@
         },
         "B": {
           "cdp.LayoutCount": 12,
-          "cdp.RecalcStyleCount": 66,
+          "cdp.RecalcStyleCount": 65,
           "domMutations.childList": 370,
-          "reactRenderMeasures": 888
+          "reactRenderMeasures": 882
         }
       }
     },
@@ -7218,7 +7218,7 @@
           "domMutations.attributes": 64,
           "domMutations.characterData": 32,
           "domMutations.childList": 20,
-          "reactRenderMeasures": 418
+          "reactRenderMeasures": 422
         }
       }
     }
