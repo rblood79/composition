@@ -3487,7 +3487,11 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-accordion__1",
       "lib:template:component-accordion__2"
     ],
-    "props": {},
+    "props": {
+      "expandedKeys": [
+        "section-1"
+      ]
+    },
     "visual": {}
   },
   {
@@ -3495,6 +3499,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-disclosure",
     "children": [],
     "props": {
+      "id": "section-1",
       "title": "Section 1"
     },
     "visual": {},
@@ -3516,6 +3521,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-disclosure",
     "children": [],
     "props": {
+      "id": "section-2",
       "title": "Section 2"
     },
     "visual": {},
@@ -3640,7 +3646,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-cardview__1",
     "definitionId": "lib:definition:origin-component-card",
     "children": [],
-    "props": {},
+    "props": {
+      "id": "card-1"
+    },
     "visual": {
       "width": "100%"
     }
@@ -3649,7 +3657,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-cardview__2",
     "definitionId": "lib:definition:origin-component-card",
     "children": [],
-    "props": {},
+    "props": {
+      "id": "card-2"
+    },
     "visual": {
       "width": "100%"
     }
@@ -3658,7 +3668,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-cardview__3",
     "definitionId": "lib:definition:origin-component-card",
     "children": [],
-    "props": {},
+    "props": {
+      "id": "card-3"
+    },
     "visual": {
       "width": "100%"
     }
@@ -3839,6 +3851,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-togglebutton",
     "children": [],
     "props": {
+      "id": "toggle-1",
       "label": "Toggle 1"
     },
     "visual": {}
@@ -3848,6 +3861,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-togglebutton",
     "children": [],
     "props": {
+      "id": "toggle-2",
       "label": "Toggle 2"
     },
     "visual": {}
@@ -3972,7 +3986,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-menu__item-1",
     "definitionId": "lib:definition:origin-component-menu-item-default",
     "children": [],
-    "props": {},
+    "props": {
+      "id": "item-1"
+    },
     "visual": {},
     "descendantPatches": [
       {
@@ -4011,7 +4027,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-menu__item-2",
     "definitionId": "lib:definition:origin-component-menu-item-default",
     "children": [],
-    "props": {},
+    "props": {
+      "id": "item-2"
+    },
     "visual": {},
     "descendantPatches": [
       {
@@ -4050,7 +4068,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-menu__item-3",
     "definitionId": "lib:definition:origin-component-menu-item-default",
     "children": [],
-    "props": {},
+    "props": {
+      "id": "item-3"
+    },
     "visual": {},
     "descendantPatches": [
       {
@@ -4664,6 +4684,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-checkbox",
     "children": [],
     "props": {
+      "value": "option1",
       "children": "Option 1"
     },
     "visual": {},
@@ -4689,6 +4710,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-checkbox",
     "children": [],
     "props": {
+      "value": "option2",
       "children": "Option 2"
     },
     "visual": {},
@@ -4973,7 +4995,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-select__item-1",
     "definitionId": "lib:definition:origin-component-listbox-item-default",
     "children": [],
-    "props": {},
+    "props": {
+      "id": "aardvark"
+    },
     "visual": {
       "paddingLeft": 4,
       "gap": 4
@@ -5041,7 +5065,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-select__item-2",
     "definitionId": "lib:definition:origin-component-listbox-item-default",
     "children": [],
-    "props": {},
+    "props": {
+      "id": "cat"
+    },
     "visual": {
       "paddingLeft": 4,
       "gap": 4
@@ -5109,7 +5135,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-select__item-3",
     "definitionId": "lib:definition:origin-component-listbox-item-default",
     "children": [],
-    "props": {},
+    "props": {
+      "id": "dog"
+    },
     "visual": {
       "paddingLeft": 4,
       "gap": 4
@@ -5177,7 +5205,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-select__item-4",
     "definitionId": "lib:definition:origin-component-listbox-item-default",
     "children": [],
-    "props": {},
+    "props": {
+      "id": "kangaroo"
+    },
     "visual": {
       "paddingLeft": 4,
       "gap": 4
@@ -5369,7 +5399,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-combobox__item-1",
     "definitionId": "lib:definition:origin-component-listbox-item-default",
     "children": [],
-    "props": {},
+    "props": {
+      "id": "aardvark"
+    },
     "visual": {},
     "descendantPatches": [
       {
@@ -5401,7 +5433,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-combobox__item-2",
     "definitionId": "lib:definition:origin-component-listbox-item-default",
     "children": [],
-    "props": {},
+    "props": {
+      "id": "cat"
+    },
     "visual": {},
     "descendantPatches": [
       {
@@ -5433,7 +5467,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-combobox__item-3",
     "definitionId": "lib:definition:origin-component-listbox-item-default",
     "children": [],
-    "props": {},
+    "props": {
+      "id": "dog"
+    },
     "visual": {},
     "descendantPatches": [
       {
@@ -5465,7 +5501,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-combobox__item-4",
     "definitionId": "lib:definition:origin-component-listbox-item-default",
     "children": [],
-    "props": {},
+    "props": {
+      "id": "kangaroo"
+    },
     "visual": {},
     "descendantPatches": [
       {
@@ -5929,7 +5967,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-table__2_1_2",
       "lib:template:component-table__2_1_3"
     ],
-    "props": {},
+    "props": {
+      "id": "row-1"
+    },
     "visual": {}
   },
   {
@@ -7448,7 +7488,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "children": "Radio",
       "value": "radio",
-      "isSelected": false,
+      
       "isDisabled": false
     },
     "visual": {},
@@ -7873,7 +7913,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-tabs__1__tab-1",
     "definitionId": "lib:definition:origin-component-tab-item-default",
     "children": [],
-    "props": {},
+    "props": {
+      "id": "tab-1"
+    },
     "visual": {},
     "descendantPatches": [
       {
@@ -7891,7 +7933,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-tabs__1__tab-2",
     "definitionId": "lib:definition:origin-component-tab-item-default",
     "children": [],
-    "props": {},
+    "props": {
+      "id": "tab-2"
+    },
     "visual": {},
     "descendantPatches": [
       {
@@ -7923,14 +7967,18 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-tabs__2_1",
     "definitionId": "lib:definition:type-TabPanel",
     "children": [],
-    "props": {},
+    "props": {
+      "itemId": "tab-1"
+    },
     "visual": {}
   },
   {
     "id": "lib:template:component-tabs__2_2",
     "definitionId": "lib:definition:type-TabPanel",
     "children": [],
-    "props": {},
+    "props": {
+      "itemId": "tab-2"
+    },
     "visual": {}
   },
   {
@@ -8141,7 +8189,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-taggroup__2__tag-1",
     "definitionId": "lib:definition:origin-component-tag-item-default",
     "children": [],
-    "props": {},
+    "props": {
+      "id": "chocolate"
+    },
     "visual": {},
     "descendantPatches": [
       {
@@ -8173,7 +8223,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-taggroup__2__tag-2",
     "definitionId": "lib:definition:origin-component-tag-item-default",
     "children": [],
-    "props": {},
+    "props": {
+      "id": "mint"
+    },
     "visual": {},
     "descendantPatches": [
       {
@@ -8205,7 +8257,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-taggroup__2__tag-3",
     "definitionId": "lib:definition:origin-component-tag-item-default",
     "children": [],
-    "props": {},
+    "props": {
+      "id": "strawberry"
+    },
     "visual": {},
     "descendantPatches": [
       {
@@ -8237,7 +8291,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-taggroup__2__tag-4",
     "definitionId": "lib:definition:origin-component-tag-item-default",
     "children": [],
-    "props": {},
+    "props": {
+      "id": "vanilla"
+    },
     "visual": {},
     "descendantPatches": [
       {
@@ -8485,7 +8541,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-menu-section__item-1",
     "definitionId": "lib:definition:origin-component-menu-item-default",
     "children": [],
-    "props": {},
+    "props": {
+      "id": "section-item-1"
+    },
     "visual": {},
     "descendantPatches": [
       {
@@ -8524,7 +8582,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-menu-section__item-2",
     "definitionId": "lib:definition:origin-component-menu-item-default",
     "children": [],
-    "props": {},
+    "props": {
+      "id": "section-item-2"
+    },
     "visual": {},
     "descendantPatches": [
       {

@@ -1,3 +1,4 @@
+import { resolveStaticItemKey } from "../slotRoles";
 import type { CatalogConsumerNode } from "./compositionRoot";
 
 type Lookup = (id: string) => CatalogConsumerNode | undefined;
@@ -19,8 +20,9 @@ export function catalogSegmentItems(
   return items;
 }
 
+/** An item's key — its `id` (ADR-308 — the key `catalogItemKey` gives every selection item). */
 export function catalogSegmentKey(item: CatalogConsumerNode): string {
-  return String(item.props.id ?? item.sourceId ?? item.id);
+  return resolveStaticItemKey(item.props as Record<string, unknown>, item.id);
 }
 
 export function catalogSegmentSelected(

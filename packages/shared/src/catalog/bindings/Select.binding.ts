@@ -17,6 +17,20 @@ export const selectBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // ADR-308 Phase 1: the group's selection (S2 Picker `value`) — accepted; the panel offers it in Phase 2.
+      // ADR-308 Phase 2: the group's selection — a dropdown, a check list while it selects
+      //   several (사용자 결정 3).
+      value: {
+        kind: "selection-value",
+        label: "Value",
+        section: "value",
+      },
+      defaultValue: {
+        editorHidden: true,
+        kind: "selection-value",
+        label: "Value",
+        section: "value",
+      },
       ...OVERLAY_OPEN_PROPS,
       dataBinding: {
         kind: "binding",

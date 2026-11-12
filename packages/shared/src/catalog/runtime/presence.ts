@@ -1,14 +1,13 @@
 import { catalogSelectBoxDescriptionHidden } from "./selectBoxPresence";
 import {
-  selectBoxKeySelected,
-  selectBoxDisabledKeys,
-} from "./selectBoxSelection";
-import {
-  catalogSegmentOwner,
-  catalogSegmentSelected,
-  catalogSegmentKey,
-  catalogSegmentItems,
-} from "./segmentedSelection";
+  catalogGroupExpansion,
+  catalogGroupSelection,
+  catalogItemKey,
+  catalogItemSelected,
+  catalogKeysHold,
+} from "./groupSelection";
+import { selectBoxDisabledKeys } from "./selectBoxSelection";
+import { catalogSegmentOwner, catalogSegmentItems } from "./segmentedSelection";
 import { formatLabeledValue } from "../document/labeledValue";
 import { catalogRangeValue } from "./rangeSliderValue";
 import { necessityLabel } from "./necessityLabels";
@@ -51,10 +50,9 @@ import {
   catalogTableSelectionParts,
   catalogTableTrackDependents,
 } from "./tableTracks";
-import { isDisclosureExpandedInContext } from "../../utils/accordionExpansion";
+import { isDisclosureExpandedByIntent } from "../../utils/accordionExpansion";
 import { resolveStaticItemKey } from "../slotRoles";
 import {
-  catalogItemStartsSelected,
   COLLECTION_ITEM_OWNERS,
   isCollectionItemOf,
   isCollectionWrapperOf,
@@ -251,18 +249,15 @@ export function catalogDisclosureExpanded(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): boolean {
-  const node = (record: CatalogConsumerNode) => ({
-    id: record.id,
-    type: typeOf(record),
-    props: record.props as Record<string, unknown>,
-  });
+  // ADR-308: inside an Accordion the group's expanded keys decide (`catalogGroupExpansion` — one
+  // key while it expands one); a standalone Disclosure keeps its own `isExpanded`.
   const group = catalogAccordionOf(disclosure, get, typeOf);
-  return isDisclosureExpandedInContext(
-    node(disclosure),
-    group ? node(group) : null,
-    group
-      ? catalogGroupDisclosures(group, get, typeOf).disclosures.map(node)
-      : undefined,
+  if (!group)
+    return isDisclosureExpandedByIntent(
+      disclosure.props as Record<string, unknown>,
+    );
+  return catalogGroupExpansion(group, typeOf).includes(
+    catalogItemKey(disclosure, typeOf),
   );
 }
 
@@ -464,10 +459,7 @@ export function catalogTabsSelection(
   // A keyed panel pairs with its Tab; the panels without a key pair in order with the Tabs no keyed
   // panel names (G5 example 8 — "+" keys only the pair it adds, the template's pairs stay by order).
   const keyed = tabs.map((tab) => {
-    const key = resolveStaticItemKey(
-      tab.props as Record<string, unknown>,
-      tab.id,
-    );
+    const key = catalogItemKey(tab, typeOf);
     return {
       key,
       tab,
@@ -479,15 +471,10 @@ export function catalogTabsSelection(
   const pairs = keyed.map((pair) =>
     pair.panel ? pair : { ...pair, panel: unkeyed[next++] },
   );
-  // The Tabs' key (an interaction's `selectTab`), else the first enabled Tab set Selected (the
-  // Tab's edit surface — 2026-10-13), else RAC's default: the first enabled Tab.
-  const explicit = tabsNode.props.defaultSelectedKey;
-  const enabled = pairs.filter((pair) => pair.tab.props.isDisabled !== true);
-  const chosen =
-    enabled.find((pair) => pair.tab.props.isSelected === true) ??
-    enabled[0] ??
-    pairs[0];
-  const selectedKey = explicit ? String(explicit) : chosen?.key;
+  // ADR-308: the Tabs' key (`selectedKey`, else `defaultSelectedKey`), else RAC's default — the
+  // first enabled Tab (`catalogGroupSelection`).
+  const keys = catalogGroupSelection(tabsNode, get, typeOf);
+  const selectedKey = keys === "all" ? undefined : (keys[0] ?? pairs[0]?.key);
   return { tabList, panelsNode, tabs, panels, pairs, selectedKey };
 }
 
@@ -534,18 +521,9 @@ function catalogCollectionItemSelected(
       (pair) => pair.tab.id === node.id && pair.key === selectedKey,
     );
   }
-  const owner = catalogCollectionOfItem(node, get, typeOf);
-  if (!owner) return undefined;
-  if (typeOf(node) === "SelectBox")
-    return selectBoxKeySelected(
-      owner.props,
-      resolveStaticItemKey(node.props as Record<string, unknown>, node.id),
-      node.props.isSelected === true,
-    );
-  // An item's Selected (`isSelected`) starts RAC's selection while its collection selects — a
-  // TagGroup's Tag, a CardView's Card (ADR-256 Phase 10) and every list's · tree's · table's · menu's
-  // item (2026-10-13 — the DOM's `defaultSelectedKeys`, `catalogItemStartsSelected`).
-  return catalogItemStartsSelected(typeOf(owner), owner.props, node.props);
+  // ADR-308: every other item is selected by its group's keys (a collection's, a picker's, a toggle
+  // group's, a SegmentedControl's — `catalogItemSelected`).
+  return catalogItemSelected(node, get, typeOf);
 }
 
 /**
@@ -667,10 +645,11 @@ function catalogTableSelectedRows(
   const table = catalogTableOfColumn(column, get, typeOf);
   if (!table) return undefined;
   const rows = catalogTableRows(table, get, typeOf);
+  const keys = catalogGroupSelection(table, get, typeOf);
   return {
     total: rows.length,
     selected: rows.filter((row) =>
-      catalogItemStartsSelected(typeOf(table), table.props, row.props),
+      catalogKeysHold(keys, catalogItemKey(row, typeOf)),
     ).length,
   };
 }
@@ -1071,13 +1050,10 @@ export function catalogTreeItemExpanded(
   while (cursor && typeOf(cursor) === "TreeItem") cursor = get(cursor.parentId);
   if (!cursor || typeOf(cursor) !== "Tree")
     return item.props.isExpanded !== false;
-  const keys = cursor.props.expandedKeys;
-  if (!Array.isArray(keys)) return false;
-  const key = resolveStaticItemKey(
-    item.props as Record<string, unknown>,
-    item.id,
+  // (ADR-308: `expandedKeys`, else `defaultExpandedKeys` — `catalogGroupExpansion`.)
+  return catalogGroupExpansion(cursor, typeOf).includes(
+    catalogItemKey(item, typeOf),
   );
-  return keys.some((entry) => String(entry) === key);
 }
 
 /**
@@ -2121,10 +2097,7 @@ export function catalogDerivedProps(
           _fieldDisabled: invalidField.props.isDisabled === true,
         }
       : control;
-  const selected =
-    typeOf(node) === "Radio" && catalogItemGroup(node, get, typeOf)
-      ? catalogStateValue(node, "isSelected", get, typeOf)
-      : catalogCollectionItemSelected(node, get, typeOf);
+  const selected = catalogCollectionItemSelected(node, get, typeOf);
   // (S2 TagGroup `isEmphasized`: its selected Tags paint the accent pair — `rulePaint.ts`.)
   const emphasized =
     selected !== undefined && catalogTagOfEmphasizedGroup(node, get, typeOf);
@@ -3123,7 +3096,8 @@ export function catalogDerivedPropsDependents(
         )
       : []),
     ...derivedDependents(owner, get, typeOf),
-    ...(typeOf(owner) === "Select"
+    // (ADR-308: a picker's options take its selection — their `_isSelected` · check marks.)
+    ...(typeOf(owner) === "Select" || typeOf(owner) === "ComboBox"
       ? catalogPickerOptions(owner, get, typeOf)
       : []),
     ...fieldSubparts(owner, get, typeOf),
@@ -3906,18 +3880,6 @@ function catalogItemGroup(
     cursor = catalogPartParent(cursor, get, typeOf);
   return cursor && typeOf(cursor) === groupType ? cursor : undefined;
 }
-/** A RadioGroup's value: its first selected Radio's (as the DOM's `radiogroup`), else its own. */
-function catalogRadioGroupValue(
-  group: CatalogConsumerNode,
-  get: CatalogRecordLookup,
-  typeOf: CatalogTypeOf,
-): string {
-  const radios = catalogToggleGroupItems(group, "Radio", get, typeOf).items;
-  const selected = radios.find((radio) => radio.props.isSelected === true);
-  return selected?.props.value !== undefined
-    ? String(selected.props.value)
-    : String(group.props.value ?? "");
-}
 
 /**
  * A state owner's resting value of a key on the Canvas (no interaction): the record's props, its
@@ -3952,25 +3914,14 @@ export function catalogStateValue(
     return true;
   switch (key) {
     case "isSelected": {
-      if (owner.bindingId === "segmentedcontrolitem") {
-        const segmented = catalogSegmentOwner(owner, get);
-        return (
-          !!segmented &&
-          catalogSegmentSelected(segmented, get) === catalogSegmentKey(owner)
-        );
-      }
       // (Computed here, not read from the derived values — a condition is judged before they are.)
-      // A collection's item is selected by its collection (Tabs' key — the paint's `_isSelected`),
-      // over a display state its origin carried (a detached Tab keeps the Selected origin's).
+      // ADR-308: an item in a selection group is selected by the group's keys (the paint's
+      // `_isSelected`), over a display state its origin carried (a detached Tab keeps the Selected
+      // origin's). A standalone toggle · Card keeps its own (RAC's own state).
       const item = catalogCollectionItemSelected(owner, get, typeOf);
       if (item !== undefined) return item;
       if (state === "selected") return true;
       if (state === "unselected") return false;
-      if (group && typeOf(owner) === "Radio")
-        return (
-          catalogRadioGroupValue(group, get, typeOf) ===
-          String(props.value ?? "")
-        );
       return (props.isSelected ?? props.defaultSelected) === true;
     }
     case "isIndeterminate": {

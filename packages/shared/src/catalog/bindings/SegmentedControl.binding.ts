@@ -1,3 +1,4 @@
+import { ITEM_KEY_PROP_CONTRACT } from "../document/itemLinks";
 import type { PrimitiveBinding, PropContract } from "../types";
 
 const ariaLabelingProps = {
@@ -45,12 +46,13 @@ export const segmentedControlBinding: PrimitiveBinding = {
       selectedKey: {
         editorHidden: true,
         kind: "string",
-        label: "Selected key",
+        label: "Selected item",
         section: "value",
       },
+      // ADR-308 Phase 2: its items as a dropdown (사용자 결정 3).
       defaultSelectedKey: {
-        kind: "string",
-        label: "Selected key",
+        kind: "enum",
+        label: "Selected item",
         section: "value",
       },
       // S2 fixes horizontal; Composition exposes RAC's keyboard/layout axis explicitly.
@@ -87,14 +89,8 @@ export const segmentedControlItemBinding: PrimitiveBinding = {
         editorHidden: true,
       },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
-      // (RAC's item key — kept apart from the HTML id; not a second "ID" field next to the
-      //  Accessibility section's, as no other item exposes its key.)
-      id: {
-        kind: "string",
-        label: "ID",
-        section: "content",
-        editorHidden: true,
-      },
+      // ADR-308 사용자 결정 2: its RAC key — the name its group's selection uses.
+      id: ITEM_KEY_PROP_CONTRACT,
       label: {
         kind: "string",
         label: "Label",

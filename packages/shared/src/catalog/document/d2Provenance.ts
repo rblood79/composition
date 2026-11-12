@@ -20,8 +20,6 @@ export type CatalogD2Source = "v3" | "rac" | "composition";
  * - `dataBinding`: the collection binding (ADR-132 · 152) — composition's data layer.
  * - `size`: the catalog size axis carried to parts and texts whose S2 counterpart has no size (D3).
  * - `children`: a text type's own text (RAC `children`).
- * - `isSelected`: a collection item's initial selection → the collection's `defaultSelectedKeys`
- *   (사용자 결정 2026-10-13 — `ITEM_SELECTED_PROP_CONTRACT`).
  * - `locale` · `calendarSystem`: the date types' locale (`dateLocaleProps.ts`).
  * - `iconName`: a glyph picked from the icon set (the Icon node's · a field's leading icon).
  */
@@ -31,7 +29,6 @@ export const CATALOG_D2_COMMON_PROVENANCE: Readonly<
   dataBinding: "composition",
   size: "composition",
   children: "rac",
-  isSelected: "composition",
   locale: "composition",
   calendarSystem: "composition",
   iconName: "composition",
@@ -59,12 +56,13 @@ export const CATALOG_D2_PROVENANCE: Readonly<
   Record<string, Readonly<Record<string, CatalogD2Source>>>
 > = {
   // ADR-281 Decision 3 — v3 Provider's cascade (S2's Provider dropped it; RAC Provider carries it).
-  SelectBox: { isSelected: "composition" },
   // (Carried values since 2026-11-11 — a rule's Do writes them, the panel does not offer them.)
   body: { isDisabled: "v3", isReadOnly: "v3", isRequired: "v3" },
   // (2026-11-11: Avatar · AvatarGroup · Badge · StatusLight take no `isDisabled` — S2 has none and
   // a display-only component has nothing to disable.)
   Avatar: { initials: "composition" },
+  // (ADR-308: a standalone Card's own selection — S2 Card has none; in a CardView it is the view's.)
+  Card: { isSelected: "composition" },
   // (S2 has a separate NotificationBadge for the dot — composition keeps it an axis of Badge.)
   Badge: {
     isDot: "composition",

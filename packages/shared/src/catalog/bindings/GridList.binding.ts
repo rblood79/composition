@@ -17,6 +17,19 @@ export const gridListBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // ADR-308 Phase 1: the group's selection (S2 · RAC) — accepted; the panel offers it in Phase 2.
+      selectedKeys: {
+        editorHidden: true,
+        kind: "selection-keys",
+        label: "Selected items",
+        section: "value",
+      },
+      // ADR-308 Phase 2: the group's selection — its items as a check list (사용자 결정 3).
+      defaultSelectedKeys: {
+        kind: "selection-keys",
+        label: "Selected items",
+        section: "value",
+      },
       // S2 ListView `loadingState` — the bound collection's load (derived; the end loads more).
       loadingState: LOADING_STATE_PROP,
       dataBinding: {

@@ -136,6 +136,56 @@ describe("Design panel sections — one section per prop", () => {
 });
 
 /**
+ * ADR-308 G3 (a) — a selection is its group's: only a standalone state keeps an `isSelected` (RAC's
+ * own — ToggleButton · Checkbox · Switch · Card), and every selection · expansion group offers its
+ * stored keys in Value (Decision 5). A collection item, a Tab, a Radio has none.
+ */
+describe("ADR-308 — the selection is the group's", () => {
+  const accepts = (type: string) => {
+    const entry = componentCatalog.find(
+      (item) => item.kind === "primitive" && item.type === type,
+    );
+    return entry?.kind === "primitive" ? (entry.binding.props.accepts ?? {}) : {};
+  };
+  it("isSelected stays on the standalone states only", () => {
+    const owners = [
+      ...componentCatalog.flatMap((entry) =>
+        entry.kind === "primitive" && entry.binding.props.accepts?.isSelected
+          ? [entry.type]
+          : [],
+      ),
+      ...Object.entries(RULE_TYPE_PROP_CONTRACTS).flatMap(([type, contracts]) =>
+        contracts.isSelected ? [type] : [],
+      ),
+    ].sort();
+    expect(owners).toEqual(["Card", "Checkbox", "Switch", "ToggleButton"]);
+  });
+  it.each([
+    ["Tabs", "defaultSelectedKey"],
+    ["SegmentedControl", "defaultSelectedKey"],
+    ["ComboBox", "defaultSelectedKey"],
+    ["Select", "value"],
+    ["RadioGroup", "value"],
+    ["CheckboxGroup", "value"],
+    ["ListBox", "defaultSelectedKeys"],
+    ["GridList", "defaultSelectedKeys"],
+    ["Table", "defaultSelectedKeys"],
+    ["Tree", "defaultSelectedKeys"],
+    ["TagGroup", "defaultSelectedKeys"],
+    ["Menu", "defaultSelectedKeys"],
+    ["CardView", "defaultSelectedKeys"],
+    ["ToggleButtonGroup", "defaultSelectedKeys"],
+    ["SelectBoxGroup", "defaultSelectedKeys"],
+    ["Tree", "expandedKeys"],
+    ["Accordion", "expandedKeys"],
+  ])("%s offers %s in Value", (type, key) => {
+    const contract = accepts(type)[key];
+    expect(contract?.section).toBe("value");
+    expect(contract?.editorHidden).not.toBe(true);
+  });
+});
+
+/**
  * 2026-10-14 (사용자 「children 필드 이름이 …」 → 「RAC,RSC 레퍼런스에 dom 구조를 확인한다면」 →
  * 「진행해」): the name of a component's own text field (`children`) follows D2 — S2 1.8.0 calls it
  * "content", so Spectrum design-data answers: the text of a control, item or status is its **label**

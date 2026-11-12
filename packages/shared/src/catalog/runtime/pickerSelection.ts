@@ -67,20 +67,21 @@ export function catalogPickerOptions(
   return items;
 }
 
-/** The initial ComboBox selection is shared by RAC and its Canvas input text. */
+/**
+ * The initial ComboBox selection is shared by RAC and its Canvas input text: the option its
+ * `selectedKey` (else `defaultSelectedKey`) names (ADR-308 — the group's key, not an option's).
+ */
 export function catalogComboBoxSelectedOption(
   owner: CatalogConsumerNode,
   get: Lookup,
   typeOf: TypeOf,
 ) {
-  const key = owner.props.selectedKey;
-  return catalogPickerOptions(owner, get, typeOf).find((item) =>
-    key === undefined
-      ? item.props.isSelected === true
-      : key != null &&
-        String(
-          resolveStaticItemKey(item.props as Record<string, unknown>, item.id),
-        ) === String(key),
+  const raw = owner.props.selectedKey ?? owner.props.defaultSelectedKey;
+  if (raw === undefined || raw === null || raw === "") return undefined;
+  return catalogPickerOptions(owner, get, typeOf).find(
+    (item) =>
+      resolveStaticItemKey(item.props as Record<string, unknown>, item.id) ===
+      String(raw),
   );
 }
 

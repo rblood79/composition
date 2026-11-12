@@ -1,3 +1,4 @@
+import { ITEM_KEY_PROP_CONTRACT } from "../document/itemLinks";
 import type { PrimitiveBinding } from "../types";
 
 /**
@@ -23,6 +24,8 @@ export const disclosureBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // ADR-308 사용자 결정 2: its RAC key — the name its group's selection uses.
+      id: ITEM_KEY_PROP_CONTRACT,
       title: { kind: "string", label: "Title", section: "content" },
       isExpanded: {
         kind: "boolean",

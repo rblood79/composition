@@ -3308,7 +3308,16 @@ class Generator {
     // gave (`<type>_N`, ADR-248 4e-8 — every element has one) is the app's, not the author's.
     const metadata = node.metadata;
     const jsx = (text: string) => literal(text).replace(/^'(.*)'$/, '"$1"');
-    if (metadata?.htmlId && !/^[a-z][a-z0-9-]*_\d+$/.test(metadata.htmlId))
+    // (ADR-308 R6: a node whose `id` prop is written — a selection item's RAC key — shows that
+    //  one `id`: its HTML id is not a second `id=`, as the DOM gives RAC the key.)
+    if (
+      metadata?.htmlId &&
+      !/^[a-z][a-z0-9-]*_\d+$/.test(metadata.htmlId) &&
+      !attributes.some(
+        (item) =>
+          item.target.kind === "attribute" && item.target.name === "id",
+      )
+    )
       attribute("id", jsx(metadata.htmlId), "metadata");
     // ADR-296 Phase 4 — a styled node's class first (its CSS rule's selector), then the author's.
     const className = [

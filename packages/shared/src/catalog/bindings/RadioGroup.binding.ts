@@ -27,6 +27,13 @@ export const radioGroupBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // ADR-308 Phase 1: the uncontrolled twin of `value` (S2 · RAC) — accepted; the panel offers it in Phase 2.
+      defaultValue: {
+        editorHidden: true,
+        kind: "string",
+        label: "Value",
+        section: "value",
+      },
       label: { kind: "string", label: "Label", section: "content" },
       description: {
         kind: "string",

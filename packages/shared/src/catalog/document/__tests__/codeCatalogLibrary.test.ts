@@ -209,7 +209,7 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
     const repeated = await buildCodeCatalogLibrary();
     expect(library.revision).toMatch(/^[a-f0-9]{64}$/);
     expect(repeated.revision).toBe(library.revision);
-    expect(library.contractVersion).toBe(63);
+    expect(library.contractVersion).toBe(64);
     for (const type of CODE_CATALOG_SUPPORTED_TYPES) {
       const registration = componentCatalog.find(
         (entry) => entry.type === type && entry.kind === "primitive",
@@ -507,47 +507,17 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
         entries: {
           [project.id]: project,
           [page.id]: { ...page, children: [radioId, groupId] },
-          // The Radio origin template shows the `selected` state.
-          [radioId]: node(radioId, "lib:definition:origin-component-radio", {
+          // (ADR-308: a standalone Checkbox keeps its own `isSelected` — a Radio has none, its
+          //  selection is its RadioGroup's value; a group item's selection is covered by the
+          //  group tests.) The Checkbox origin template shows the `selected` state.
+          [radioId]: node(radioId, "lib:definition:origin-component-checkbox", {
             isSelected: { kind: "set", value: false },
           }),
-          [groupId]: node(
-            groupId,
-            "lib:definition:origin-component-radiogroup",
-            {},
-            [
-              {
-                kind: "patch",
-                address: {
-                  instances: [groupId],
-                  // ADR-251 contract 2: the first Radio sits in the RadioItems node.
-                  templatePath: [
-                    "lib:template:component-radiogroup",
-                    "lib:template:component-radiogroup__2",
-                    "lib:template:component-radiogroup__2__radio-1",
-                  ],
-                },
-                props: { isSelected: { kind: "set", value: true } },
-              },
-            ],
-          ),
+          [groupId]: node(groupId, "lib:definition:origin-component-radiogroup", {}),
         },
       },
       await buildCodeCatalogLibrary(),
     );
     expect(resolveCatalogNode(graph, radioId).props.isSelected).toBe(false);
-    type Resolved = ReturnType<typeof resolveCatalogNode>;
-    const radios: Resolved[] = [];
-    const walk = (at: Resolved) => {
-      if (at.sourceId === "lib:template:component-radio") radios.push(at);
-      at.children.forEach(walk);
-    };
-    walk(resolveCatalogNode(graph, groupId));
-    // Inside its RadioGroup the display state is not forced (the group's value — ADR-256 후속 7):
-    // the authored Radio is selected, the other is not.
-    expect(radios.map((radio) => radio.props.isSelected)).toEqual([
-      true,
-      false,
-    ]);
   });
 });

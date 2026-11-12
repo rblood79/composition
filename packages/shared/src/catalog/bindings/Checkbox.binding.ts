@@ -80,7 +80,7 @@ export const checkboxBinding: PrimitiveBinding = {
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       isRequired: { kind: "boolean", label: "Required", section: "state" },
       name: { kind: "string", label: "Name", section: "content" },
-      value: { kind: "string", label: "Value", section: "content" },
+      value: { kind: "string", label: "Submit value", section: "content" },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
     },
     toRacProps: "default",

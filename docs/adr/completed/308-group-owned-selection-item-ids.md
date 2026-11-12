@@ -2,7 +2,19 @@
 
 ## Status
 
-Proposed — 2026-11-12
+Implemented — 2026-11-12 (G3 통과 · `### Live Exercise` 참조. Accepted 같은 날 — 사용자 `/execute-adr 308` + [reviews/308](../reviews/308.md) round 2 pending 0 · HIGH 전부 fixed)
+
+> **Phase 3 닫힘 (2026-11-12)**: 항목 `isSelected` 계약 (`ITEM_SELECTED_PROP_CONTRACT`) 과 Radio `isSelected` 삭제 — `isSelected` 는 단독 state 4 type (Card · Checkbox · Switch · ToggleButton) 에만. 계약 64 (사용자 결정 1 (a)). Code 보기 — 항목은 `id=` 를 한 번만 (R6), 그룹 값 · 항목 `id` 왕복. 결함 3 수리: Value 칸 선택지가 `{label}` (항목의 template 바인딩) 으로 나옴 · Code 보기가 쓴 배열 (`defaultSelectedKeys={['a']}`) 을 되읽지 못함 · 표시 상태 표본 시험의 기대값. G3 — (a) `propSectionConsistency` (b) `adr308CodeView` 4 (원복 RED 3) (c) Builder +1,655 · Preview −1 B (d) type-check · shared · builder 스위트 (e) live. 상세: breakdown §6.
+
+> **사용자 결정 1 (2026-11-12, Phase 3 착수 전 AskUserQuestion)**: (a) 계약 번호를 올린다 (권고안) — LIBRARY_CONTRACT_VERSION 63 → 64, 계약 63 프로젝트는 열리지 않는다. ADR-306 은 다음 번호 (65) 를 쓴다.
+
+> **Phase 0 닫힘 (2026-11-12)**: G0 — 설치 S2 · RAC 타입 표 = breakdown §2 (Table 펼침 행만 삭제 — 빌더에 중첩 Row 없음). 문서 정의는 이미 Tabs · ListBox · GridList · TagGroup · Menu · Table · Tree 의 선택 키를 받고 (`ruleDefinition.ts` `COLLECTION_KEY_ACCEPTS`), Row · Card · ToggleButton · Disclosure 는 `id` 를 받지 않는다 (Phase 1 대상). 바운드 컬렉션은 정적 항목과 섞이지 않는다 (행 항목 `id` = 행 key). key 출처 표에서 판정 함수와 다른 출처 넷 (SegmentedControl 대체값 · Row HTML id · 그룹 ToggleButton · Accordion Disclosure record id). 번들 기준선 Builder 1,522,678 · Preview 151,352 B — HEAD 가 이미 ADR-201 상한 초과 (이 ADR 이전). 상세: breakdown §6.
+
+> **Phase 2 닫힘 (2026-11-12)**: 선택 · 펼침을 그룹이 저장하고 Canvas · DOM · dispatcher 가 판정 함수 하나 (`runtime/groupSelection.ts`) 를 읽는다. 패널 = 그룹 Value 구획의 칸 하나 (단일 드롭다운 · 다중 · 펼침 체크 목록, 데이터 연결은 표본 행 key) + 항목 Content 「Item ID」 (key 변경 → 그룹 값 · TabPanel 짝 같은 명령), 항목 Selected 숨김. G2 — (a) 11 그룹 × 값 4 종 Canvas = RAC oracle · HTML id 를 단 Row · ToggleButton (b) 10 사례 편집 · Undo · Redo = 새 bind (c) 남은 항목 읽기 19 자리 목록화 · 옛 집계 함수 0 (d) live ToggleButtonGroup · CardView · Accordion (e) Do 행렬 3 (f) Tab key 변경 · 삭제 정리. 결함 2 수리 (단일 ToggleButtonGroup 에 key 문자열 · ComboBox 옵션 의존). 원복 RED r1 13 · r2′ 2 · r3 3 · r4 1 · r5 1. 상세: breakdown §6.
+
+> **사용자 결정 2 · 3 · 4 (2026-11-12, Phase 2 착수 전 AskUserQuestion)**: 2 = (a) 항목 Content 구획에 「ID」 칸 · 3 = 단일 선택은 항목 드롭다운, 다중 선택 · 펼침은 항목 체크 목록 · 4 = (a) 데이터 연결 그룹의 선택지는 표본 행 key. 셋 다 권고안.
+
+> **Phase 1 닫힘 (2026-11-12)**: G1 — 16 그룹의 Library 원본 항목이 모두 작성 key 를 갖고 그룹 안에서 겹치지 않는다 · 그룹 binding 14 가 S2 선택 · 펼침 속성을 받는다 (숨김 — Select `value` 는 새 값 형 `selectionValue`) · (b) 16 그룹에서 같은 그룹 안 복제 · 붙여넣기 뒤 key 중복 0 (`adr308SelectionItemKeys.test.tsx` 53, 원복 RED 14 · 2 · 5). 결함 2 수리 — 자식 있는 TreeItem 복제의 자식 key 중복 (이 ADR 이전부터) · CheckboxGroup 이 `value` 를 받게 되자 「검색 추가」 변수의 시작값 `null` 로 Preview 가 멈춤 (`null` = 빈 선택). live: ToggleButton · Card 복제 → Code 보기 · Preview RAC key 고유, 콘솔 0. 선택 동작 변화 0.
 
 - 사용자 요청: `/create-adr` (2026-11-12, 「커밋후 /create-adr」 — Design 패널 「Value」 구획 커밋 `ea02e5f33` 뒤).
 - 방향을 정한 사용자 원문 (같은 날 대화 순서대로):
@@ -13,7 +25,7 @@ Proposed — 2026-11-12
   - 「진행해」 — 방향 (항목 `id` 구현 → 그룹이 선택 저장 → 항목 `isSelected` 삭제) 승인.
 - 확정 전제 3 (구현 중 다시 묻지 않는다): ① 선택의 저장 자리는 그룹이다 ② 항목의 key 는 레퍼런스의 `id` (Radio · Checkbox 는 `value`) 다 ③ 옛 문서의 값을 새 자리로 옮기는 코드는 넣지 않는다 (개발 단계 규칙).
 - 조사로 바뀐 점 (사용자에게 보고함): 「`id` 를 비우면 노드 id 를 key 로」 는 기각 — 대안 C 참조. 작성한 `id` 만 key 로 쓴다.
-- 2026-11-12 Codex 판독 round 1 (사용자 「Codex에 ADR-308 리뷰 요청해」 → 「지적내용 수장반영해」): HIGH 5 · MEDIUM 1 — 6건 모두 코드로 확인하고 본문 · breakdown 에 반영 (F19 ~ F23 · Decision 1 · 3 · 7 · R4 · R5 · R9 · R10 · G1 · G2). 기록: [reviews/308](reviews/308.md).
+- 2026-11-12 Codex 판독 round 1 (사용자 「Codex에 ADR-308 리뷰 요청해」 → 「지적내용 수장반영해」): HIGH 5 · MEDIUM 1 — 6건 모두 코드로 확인하고 본문 · breakdown 에 반영 (F19 ~ F23 · Decision 1 · 3 · 7 · R4 · R5 · R9 · R10 · G1 · G2). 기록: [reviews/308](../reviews/308.md).
 - 분리 (fork) 아님: 선행 ADR 의 잔여 작업을 떼어낸 것이 아니라 새 결정이다. 선행 결정과의 관계는 Context §선행 결정.
 
 ## Context
@@ -138,7 +150,7 @@ B 의 잔존 위험은 「많은 자리를 한 번에 바꾼다」 는 실행 �
 3. **칸 모양** (Phase 2): 단일 선택 = 드롭다운, 다중 선택 · 펼침 = 항목 체크 목록 (2026-11-12 시안 A · B 의 조합). 사용자가 「디자인 부분은 뒤에 결정」 이라 했으므로 Phase 2 착수 때 확정받는다.
 4. **데이터에 연결된 그룹의 칸** (Phase 2): 행 key 는 데이터에서 온다. (a) 칸의 선택지를 표본 행의 key 로 낸다 / (b) key 를 직접 적는 글자 칸 / (c) 이번 범위에서 빼고 「데이터 연결 목록의 선택은 규칙 (Do) 으로」 안내만. 권고 (a).
 
-> 구현 상세: [308-group-owned-selection-item-ids-breakdown.md](design/308-group-owned-selection-item-ids-breakdown.md)
+> 구현 상세: [308-group-owned-selection-item-ids-breakdown.md](../design/308-group-owned-selection-item-ids-breakdown.md)
 
 ## Risks
 
@@ -167,6 +179,22 @@ B 의 잔존 위험은 「많은 자리를 한 번에 바꾼다」 는 실행 �
 측정 조건 (`measurement-validity.md` §1): G2 (a) 의 기준값은 설치 RAC 가 그 그룹 값으로 내는 `data-selected` 다 (외부 oracle — Canvas 판정과 독립). 불리한 경우를 행렬에 넣는다 — 그룹 값에 없는 key · 빈 값 · instance 안의 그룹 (override 로 다른 값) · 정적 항목과 데이터 행의 혼합 · 중첩 그룹 (Tabs 안 ListBox) · HTML id 를 단 Row · 그룹 안 ToggleButton · Accordion 단일 펼침 (뒤 항목만 펼친 값). G2 (b) 의 대조군은 같은 문서의 새 bind 다.
 
 HIGH 위험 R1 → G2 (a), R2 → G2 (b), R3 → G2 (c), R4 → G1 (b), R5 → G2 (e), R9 → G2 (a). 집행은 로컬 테스트 스위트 + `pnpm type-check` (Stop hook) + live 이다.
+
+### Live Exercise
+
+**실행자 (2026-11-12, Chrome MCP — 사용자 Chrome · dev 서버 5173)**
+
+| Phase | 프로젝트                               | 시나리오                                                                                                                                        | 결과                                                                                                                                            |
+| ----- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | `adr308-p1-live` (새 프로젝트)         | ToggleButtonGroup · CardView 의 항목 ⌘D → Code 보기 · Preview RAC `data-key`                                                                    | PASS — key 고유 (`toggle-1` · 새 key · `toggle-2` / `card-1` · 새 key · `card-2` · `card-3`)                                                    |
+| 2     | `adr308-p1-live`                       | ToggleButtonGroup 「Selected items」 Toggle 2 · CardView 체크 목록 두 줄 · Accordion 「Expanded items」 Section 2 → Canvas · Preview · 새로고침 | PASS — Canvas 칠 = Preview `aria-pressed` · `aria-selected` · 펼침, 새로고침 뒤 유지                                                            |
+| 3     | `adr308-p3-live` (계약 64 새 프로젝트) | Tabs 「Selected tab」 Tab 2 → Code 보기 · Preview                                                                                               | PASS — `<Tabs defaultSelectedKey="tab-2">` · `<Tab id="tab-1">` · `<TabPanel itemId="tab-1">`, Preview Tab 2 선택                               |
+| 3     | `adr308-p3-live`                       | CheckboxGroup Value 체크 목록 Option 2 → Canvas · Publish                                                                                       | PASS — Canvas Option 2 체크 · Publish `checked` [false, true]                                                                                   |
+| 3     | `adr308-p3-live`                       | Select Value 드롭다운 → Cat → Publish · 새로고침                                                                                                | 첫 관찰 FAIL (선택지가 `{label}`) → 수리 뒤 PASS — 선택지 Aardvark · Cat · Dog · Kangaroo, Publish `SelectValue` 「Cat」, 새로고침 뒤 칸 값 Cat |
+
+| 3 | `adr308-p3-live` | ListBox 놓기 → 「Selected item」 (단일 — 선택지 칩) Starred → Selection mode Multiple → 「Selected items」 체크 목록에 Starred 유지 · Archive 체크 → Canvas · Publish | PASS — Canvas Starred · Archive 칠, Publish `aria-selected` inbox false · starred true · archive true |
+
+콘솔 오류 0 (세 Phase 모두). 남은 비대칭 (이 ADR 이전부터): Canvas 의 Select trigger 는 선택한 항목 글자가 아니라 늘 placeholder 를 그린다 — SelectValue template 이 `{placeholder}` 에 묶여 있고 선택 글자를 넣는 Canvas 경로가 없다 (HEAD 동일). ToggleButtonGroup 은 Phase 2 live, 나머지 가족은 G2 (a) 단위 시험 (설치 RAC oracle) 으로.
 
 ## Consequences
 

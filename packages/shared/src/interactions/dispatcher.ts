@@ -25,10 +25,7 @@ import {
   CAPABILITY_REGISTRY,
   type CapabilityDef,
 } from "./capabilityRegistry";
-import {
-  applyCapabilityOp,
-  checkCapabilityConstraints,
-} from "./constraints";
+import { applyCapabilityOp, checkCapabilityConstraints } from "./constraints";
 import type {
   CatalogToastOptions,
   InteractionAction,
@@ -85,6 +82,25 @@ export interface DispatchDeps {
    * its trigger's (`string`), `null` when RAC lets no one control it, `undefined` = the target.
    */
   stateOwnerOf?: (id: string, prop: string) => string | null | undefined;
+  /**
+   * ADR-308 Decision 3 — an item whose selection · expansion is its group's: the group, the group's
+   * state prop (`selectedKey` · `selectedKeys` · `value` · `expandedKeys`), the item's key in it,
+   * whether the group holds one key, the shape of the written value, and every item key (to spell
+   * out an `"all"` selection). `undefined` = the item's own state.
+   */
+  groupStateOf?: (
+    id: string,
+    prop: string,
+  ) =>
+    | {
+        groupId: string;
+        prop: string;
+        key: string;
+        single: boolean;
+        shape: "key" | "keys";
+        itemKeys: readonly string[];
+      }
+    | undefined;
   /**
    * ADR-280 Decision 9 — a DOM-ref capability (Form `submit` · `reset`). Absent = it fails
    * (never a silent no-op).
@@ -217,8 +233,13 @@ function resolveEventValue(
   });
 }
 
-const isRecordValue = (value: unknown): value is Readonly<Record<string, unknown>> =>
-  !!value && typeof value === "object" && !Array.isArray(value) && !(value instanceof Set);
+const isRecordValue = (
+  value: unknown,
+): value is Readonly<Record<string, unknown>> =>
+  !!value &&
+  typeof value === "object" &&
+  !Array.isArray(value) &&
+  !(value instanceof Set);
 
 /** A key value (`!event.key` · a literal) as the string the bound items are keyed by. */
 const keyOf = (value: unknown): string | undefined =>
@@ -231,10 +252,7 @@ const keyOf = (value: unknown): string | undefined =>
  * collection (the session holds the result).
  */
 function dispatchListData(
-  action: Extract<
-    InteractionAction,
-    { kind: "append" | "update" | "remove" }
-  >,
+  action: Extract<InteractionAction, { kind: "append" | "update" | "remove" }>,
   deps: DispatchDeps,
   context: DispatchContext | undefined,
 ): DispatchOutcome {
@@ -266,8 +284,7 @@ function dispatchListData(
       const parent = optionalKey(action.parentKey, context);
       if (!parent.ok) return parent;
       result = deps.append!(action.collectionId, value.value, parent.key);
-    }
-    else {
+    } else {
       const key = resolveEventValue(action.key, context, deps);
       if (!key.ok) return key;
       if (key.value !== undefined && keyOf(key.value) === undefined)
@@ -310,23 +327,31 @@ function dispatchFieldUpdate(
       { [action.field!]: value },
       action.field,
     );
-    if (!result.ok) return { ok: false, reason: result.reason ?? "update 실패" };
+    if (!result.ok)
+      return { ok: false, reason: result.reason ?? "update 실패" };
   }
   return { ok: true, kind: "update" };
 }
 
 /** Where `useListData` puts an item: an index, next to a key, or first (`prepend`). */
 export type CatalogListPosition =
-  | { index: number }
-  | { before: string }
-  | { after: string }
-  | "start";
+  { index: number } | { before: string } | { after: string } | "start";
 
 /** `useListData`'s positions (insert · move by index or key) and `removeSelectedItems`. */
 function dispatchListPosition(
   action: Extract<
     InteractionAction,
-    { kind: "insert" | "insertBefore" | "insertAfter" | "prepend" | "move" | "moveBefore" | "moveAfter" | "removeSelectedItems" }
+    {
+      kind:
+        | "insert"
+        | "insertBefore"
+        | "insertAfter"
+        | "prepend"
+        | "move"
+        | "moveBefore"
+        | "moveAfter"
+        | "removeSelectedItems";
+    }
   >,
   deps: DispatchDeps,
   context: DispatchContext | undefined,
@@ -361,8 +386,13 @@ function dispatchListPosition(
     if (removed.ok) deps.clearSelectionOf?.(action.collectionId);
     return removed;
   }
-  if (action.kind === "move" || action.kind === "moveBefore" || action.kind === "moveAfter") {
-    if (!deps.move) return { ok: false, reason: "move 실행 경로 없음 (move 미주입)" };
+  if (
+    action.kind === "move" ||
+    action.kind === "moveBefore" ||
+    action.kind === "moveAfter"
+  ) {
+    if (!deps.move)
+      return { ok: false, reason: "move 실행 경로 없음 (move 미주입)" };
     if (action.kind === "move") {
       const key = scalarKey(action.key, "옮길 항목의 key");
       if (!key.ok) return key;
@@ -371,7 +401,12 @@ function dispatchListPosition(
       const parent = optionalKey(action.toParentKey, context);
       if (!parent.ok) return parent;
       return done(
-        deps.move(action.collectionId, [key.key], { index: to.index }, parent.key),
+        deps.move(
+          action.collectionId,
+          [key.key],
+          { index: to.index },
+          parent.key,
+        ),
       );
     }
     const target = scalarKey(action.key, "기준 항목의 key");
@@ -386,7 +421,10 @@ function dispatchListPosition(
       const side = resolveEventValue(action.dropPosition, context, deps);
       if (!side.ok) return side;
       if (side.value !== "before" && side.value !== "after")
-        return { ok: false, reason: `놓은 쪽이 before · after 가 아니다: ${String(side.value)}` };
+        return {
+          ok: false,
+          reason: `놓은 쪽이 before · after 가 아니다: ${String(side.value)}`,
+        };
       before = side.value === "before";
     }
     return done(
@@ -397,7 +435,8 @@ function dispatchListPosition(
       ),
     );
   }
-  if (!deps.insert) return { ok: false, reason: "insert 실행 경로 없음 (insert 미주입)" };
+  if (!deps.insert)
+    return { ok: false, reason: "insert 실행 경로 없음 (insert 미주입)" };
   const value = resolveEventValue(action.value, context, deps);
   if (!value.ok) return value;
   if (!isRecordValue(value.value))
@@ -410,11 +449,14 @@ function dispatchListPosition(
   } else if (action.kind !== "prepend") {
     const key = scalarKey(action.key, "기준 항목의 key");
     if (!key.ok) return key;
-    position = action.kind === "insertBefore" ? { before: key.key } : { after: key.key };
+    position =
+      action.kind === "insertBefore" ? { before: key.key } : { after: key.key };
   }
   const parent = optionalKey(action.parentKey, context);
   if (!parent.ok) return parent;
-  return done(deps.insert(action.collectionId, position, value.value, parent.key));
+  return done(
+    deps.insert(action.collectionId, position, value.value, parent.key),
+  );
 }
 
 /** `useTreeData`'s optional parent key (`!event.<arg>` · a literal): none / empty = the top level. */
@@ -488,7 +530,9 @@ function resolveValue(
   currentValue: unknown,
   paramValue: unknown,
   /** A rule value's reference (`!event` · `!item` · `!var`) as the run reads it. */
-  resolveRef: (value: unknown) => { ok: true; value: unknown } | { ok: false; reason: string },
+  resolveRef: (
+    value: unknown,
+  ) => { ok: true; value: unknown } | { ok: false; reason: string },
 ): { ok: true; value: unknown } | { ok: false; reason: string } {
   if (def.value === "!param") {
     if (paramValue === undefined) {
@@ -592,7 +636,6 @@ function executeInteractionAction(
   deps: DispatchDeps,
   context?: DispatchContext,
 ): DispatchOutcome {
-
   if (action.kind === "setState") {
     if (!action.variableId)
       return { ok: false, reason: "setState 에 variableId 가 없다" };
@@ -777,6 +820,59 @@ function executeInteractionAction(
         };
   }
 
+  // ADR-308 Decision 3 — 그룹 안 항목의 선택 · 펼침은 그룹의 것: 항목 대상 boolean Do (check ·
+  // uncheck · toggle · 펼치기 · 접기) 는 그룹 값에서 그 항목 key 를 읽고, 넣고 빼서 그룹에 쓴다.
+  // 수신자만 바꾸면 그룹에 boolean 이 기록된다 (F20).
+  const grouped = def.prop
+    ? deps.groupStateOf?.(action.targetId, def.prop)
+    : undefined;
+  if (grouped) {
+    const raw = deps.getRuntimeState?.(grouped.groupId, grouped.prop);
+    const keys =
+      raw === "all"
+        ? [...grouped.itemKeys]
+        : Array.isArray(raw)
+          ? raw.map(String)
+          : typeof raw === "string" && raw !== ""
+            ? [raw]
+            : typeof raw === "number"
+              ? [String(raw)]
+              : [];
+    const current = keys.includes(grouped.key);
+    const resolved = resolveValue(def, current, action.params?.value, (value) =>
+      resolveEventValue(value, context, deps),
+    );
+    if (!resolved.ok) return resolved;
+    const constraintContext = {
+      props: target.props,
+      current,
+      ...deps.getConstraintContext?.(action.targetId),
+    };
+    const next = applyCapabilityOp(def, resolved.value, constraintContext);
+    const refused = checkCapabilityConstraints(
+      def,
+      resolved.value,
+      next,
+      constraintContext,
+    );
+    if (refused)
+      return {
+        ok: false,
+        reason: `RAC 제약 (${refused}) — ${target.type}.${action.capability} 을 쓰지 않는다`,
+      };
+    const others = keys.filter((key) => key !== grouped.key);
+    const written =
+      next === true
+        ? grouped.single
+          ? [grouped.key]
+          : [...others, grouped.key]
+        : others;
+    deps.updateElementProps(grouped.groupId, {
+      [grouped.prop]: grouped.shape === "key" ? (written[0] ?? null) : written,
+    });
+    return { ok: true, kind: "capability" };
+  }
+
   // ADR-280 Decision 3 — 상태의 수신자 (overlay 본체의 open 은 trigger 의 것).
   const owner = deps.stateOwnerOf?.(action.targetId, def.prop);
   if (owner === null)
@@ -794,11 +890,8 @@ function executeInteractionAction(
     def.prop && !def.prop.startsWith("style.") && deps.getRuntimeState
       ? deps.getRuntimeState(receiverId, def.prop)
       : readCurrent(def.prop, receiver.props);
-  const resolved = resolveValue(
-    def,
-    current,
-    action.params?.value,
-    (value) => resolveEventValue(value, context, deps),
+  const resolved = resolveValue(def, current, action.params?.value, (value) =>
+    resolveEventValue(value, context, deps),
   );
   if (!resolved.ok) return resolved;
   // (A numeric choice — Avatar size — is picked as the option's string; the prop takes the number.)

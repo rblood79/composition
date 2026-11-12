@@ -67,7 +67,7 @@ const NAMES = [
 ] as const;
 const library = () =>
   buildCatalogLibrary({
-    contractVersion: 63,
+    contractVersion: 64,
     revision: "phase4b-collections",
     bindingIds: [...NAMES.map(([name]) => name.toLowerCase()), "box"],
     actionOpCodes: [],
@@ -151,7 +151,7 @@ function graphOf(nodes: NodeEntry[], roots: string[]) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 63,
+    libraryContractVersion: 64,
     revision: 0,
     projectId: "project:project:p",
     rootId: "project:project:p",
@@ -243,7 +243,8 @@ describe("ADR-248 Phase 4b component-aware item insertion", () => {
       "a",
       "b",
     ]);
-    expect(props(graph, "project:node:tabs").selectedKey).toBe("b");
+    // (ADR-308: the Tabs store their key in `defaultSelectedKey`.)
+    expect(props(graph, "project:node:tabs").defaultSelectedKey).toBe("b");
     expect(
       code(() =>
         insertCollectionItem({
@@ -289,7 +290,7 @@ describe("ADR-248 Phase 4b component-aware item insertion", () => {
       "a",
       "b",
     ]);
-    expect(tabs.props.selectedKey).toBe("b");
+    expect(tabs.props.defaultSelectedKey).toBe("b");
   });
 
   it("adds the key to a ListBox's multiple selection, and expands the Tree host item", () => {
@@ -343,7 +344,7 @@ describe("ADR-248 Phase 4b component-aware item insertion", () => {
     ).toBe("TREE_ITEM_OUTSIDE_TREE");
   });
 
-  it("adds a selected Radio: unique value, siblings cleared, group value moves (owned and instance)", () => {
+  it("adds a selected Radio: unique value, the group value moves (owned and instance — ADR-308)", () => {
     const graph = graphOf(
       [
         node("group", "RadioGroup", ["items"], { value: "option1" }),
@@ -373,14 +374,15 @@ describe("ADR-248 Phase 4b component-aware item insertion", () => {
       "option2",
       "option3",
     ]);
+    // (ADR-308: the group's value moves to the new Radio — no Radio's `isSelected` is written.)
     expect(childProps(graph, "project:node:items", "isSelected")).toEqual([
-      false,
-      undefined,
       true,
+      undefined,
+      undefined,
     ]);
     expect(props(graph, "project:node:group").value).toBe("option3");
     // Instance host: the new Radio goes into the template wrapper (its items become the
-    // instance's own nodes) and the inherited selected Radio is cleared.
+    // instance's own nodes) and the instance's value is its.
     run(
       graph,
       insertGroupItem({
@@ -395,11 +397,7 @@ describe("ADR-248 Phase 4b component-aware item insertion", () => {
     const wrapper = choice.children[0].children;
     expect(wrapper.length).toBe(1);
     const radios = wrapper[0].children;
-    expect(radios.map((radio) => radio.props.isSelected)).toEqual([
-      false,
-      undefined,
-      true,
-    ]);
+    expect(choice.children[0].props.value).toBe("option3");
     expect(radios.map((radio) => radio.props.value)).toEqual([
       "option1",
       "option2",

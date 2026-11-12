@@ -194,7 +194,9 @@ describe("ADR-256 Phase 5e — a Tab's selection bar is its SelectionIndicator n
       of("SelectionIndicator").map((indicator) => indicator.hidden !== true);
     expect(shown()).toEqual([true, false]);
     const second = of("Tab")[1]!;
-    edit({ defaultSelectedKey: second.id });
+    // (ADR-308 Phase 1: the origin's Tabs carry authored keys — the selection names `tab-2`.)
+    expect(second.props.id).toBe("tab-2");
+    edit({ defaultSelectedKey: String(second.props.id) });
     expect(shown()).toEqual([false, true]);
   });
 

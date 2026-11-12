@@ -6,6 +6,7 @@
  * `data-emphasized` (`TagGroup.css`); Canvas: the Tag rule's `selected` · `selectedEmphasized`
  * paint (the Tag's `_emphasized`, derived from its TagGroup).
  */
+import { selectItem } from "./support/selectItem";
 import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -105,12 +106,8 @@ async function open(groupProps: Record<string, unknown>) {
   const root = workspace.root;
   const tags = () =>
     [...root.canvasInputs.values()].filter((r) => root.typeOf(r) === "Tag");
-  workspace.execute(
-    setFields({
-      targets: [workspace.positionOfRecord(tags()[0]!.id)!.target],
-      props: { isSelected: set(true) },
-    }),
-  );
+  // (ADR-308: the first Tag selected — its TagGroup's keys.)
+  selectItem(workspace, tags()[0]!.id);
   const group = [...root.domInputs.values()].find((r) => r.sourceId === GROUP)!;
   const html = renderToStaticMarkup(renderCatalogDom(root, group.id));
   const canvas = bindCatalogCanvas(root, root.pageRootRecords());

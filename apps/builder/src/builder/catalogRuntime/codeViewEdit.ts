@@ -2761,6 +2761,12 @@ class Planner {
       if (object && typeof object === "object" && !Array.isArray(object))
         return object;
     }
+    // ADR-308 — a list the generator writes as an array (a group's `defaultSelectedKeys={['a']}` ·
+    // `expandedKeys` · a CheckboxGroup `value`) — the graph checks its items.
+    if (text.startsWith("[")) {
+      const list = structuredLiteralOf(text)?.value;
+      if (Array.isArray(list)) return list;
+    }
     if (/^`[\s\S]*`$/.test(text)) {
       const template = this.textValue(`{${text}}`, value.from);
       return template;

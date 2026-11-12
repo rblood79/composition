@@ -155,9 +155,11 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 61 — 필드 Label의 편집 가능한 본문 Text·필수 Icon/Text 자식.
  * 62 — S2 누락 컴포넌트 원본과 범위·선택 수·표시 값의 구조화된 값 계약.
  * 63 — SegmentedControlItem의 press 콘텐츠 Frame과 선택 키·focus native union 계약.
+ * 64 — ADR-308: 선택 · 펼침은 그룹이 저장한다 (그룹 `selectedKey(s)` · `value` · `expandedKeys`,
+ *      항목 `id`) — 컬렉션 · 그룹 항목의 `isSelected` 계약 삭제 (사용자 결정 1).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 63 as const;
+export const LIBRARY_CONTRACT_VERSION = 64 as const;
 
 export type EntryKind =
   | "project"
@@ -324,6 +326,8 @@ export type ValueType =
   | "racColor"
   | "selectionCount"
   | "selectionKeys"
+  // ADR-308 — S2 Picker `value`: a key, or a list of keys (`catalogSelectionValueFits`).
+  | "selectionValue"
   | "autoFocus"
   | "numberRange"
   // S2 · RAC `formatOptions` — `catalogNumberFormatFits` (사용자 결정 2026-10-12).

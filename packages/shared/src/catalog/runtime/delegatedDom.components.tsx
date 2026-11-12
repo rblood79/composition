@@ -106,18 +106,19 @@ export function SelfToggleButton({
 
 /**
  * A ToggleButton in a group: its selection is the group's RAC state (`ToggleGroupStateContext` —
- * its key is the node id), passed down as its state frame so the `showWhen` nodes inside follow a
- * Preview press (ADR-256 후속 18 — the shared ToggleButton draws children, not RAC's function).
+ * its key is the item's `id`, `itemKey` — ADR-308 R9), passed down as its state frame (identified
+ * by the record) so the `showWhen` nodes inside follow a Preview press (ADR-256 후속 18 — the
+ * shared ToggleButton draws children, not RAC's function).
  */
 export function GroupToggleFrame({
   ownerId,
-  isSelected,
+  itemKey,
   isDisabled,
   children,
   ...handlers
 }: {
   ownerId: string;
-  isSelected: boolean;
+  itemKey: string;
   isDisabled: boolean;
   children: ReactElement;
 } & Record<string, unknown>): ReactElement {
@@ -126,7 +127,7 @@ export function GroupToggleFrame({
     ownerId,
     ownerId,
     {
-      isSelected: group ? group.selectedKeys.has(ownerId) : isSelected,
+      isSelected: !!group?.selectedKeys.has(itemKey),
       isDisabled: isDisabled || !!group?.isDisabled,
     },
     catalogForwardHandlers(children, handlers),

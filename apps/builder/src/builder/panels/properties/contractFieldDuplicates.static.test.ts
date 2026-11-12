@@ -33,6 +33,9 @@ describe("Properties 계약 필드 — Attributes 축 · key · 라벨 중복 0"
         (field) => field.origin === "semantic" && !field.editorHidden,
       );
       for (const field of fields) {
+        // (ADR-308 사용자 결정 2: a selection item's `id` is its RAC key — 「Item ID」 — not the
+        //  HTML id the Accessibility section edits (`metadata.htmlId`, F18).)
+        if (field.key === "id" && field.label === "Item ID") continue;
         if (ATTRIBUTE_AXIS_KEYS.has(field.key)) {
           problems.push(`${entry.type}.${field.key} — Accessibility · Class 절과 중복`);
         }

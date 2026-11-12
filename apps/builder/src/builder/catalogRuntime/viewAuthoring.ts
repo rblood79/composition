@@ -19,6 +19,7 @@
  * or `enabled` reads a variable, and the controls whose rules set that variable. Re-entering edits
  * that condition; it never makes a second variable or rule.
  */
+import { catalogGroupSelectionStoreProp } from "../../../../../packages/shared/src/catalog/runtime/groupSelection";
 import { catalogActionsDeep } from "../../../../../packages/shared/src/catalog/document/interactionActions";
 import { registerCodeViewActions } from "./codeViewActions";
 import {
@@ -601,8 +602,8 @@ function replaceItems(
       });
       if (!old.length) continue;
       const shape = (stage.getEntry(old[0]!) as NodeEntry).definitionId;
-      // (「전체」 is the chosen one — the variable's default; a picker's selection is its item's
-      // `isSelected`, as the Design panel's Value writes it.)
+      // (「전체」 is the chosen one — the variable's default; ADR-308: the picker's own selection
+      // names it, as the Design panel's Value writes it — below.)
       const entries: { key: string; label: string; selected?: true }[] = [
         ...(items.all
           ? [
@@ -644,7 +645,6 @@ function replaceItems(
             props: props({
               value: key,
               ["label" in accepts ? "label" : "children"]: label,
-              ...(selected ? { isSelected: true } : {}),
             }),
             visual: {},
             sizing: {},
@@ -669,7 +669,6 @@ function replaceItems(
           props: props({
             id: key,
             ...fill.props,
-            ...(selected ? { isSelected: true } : {}),
           }),
           visual: {},
           sizing: {},
@@ -694,6 +693,22 @@ function replaceItems(
           targets: old.map((id) => ({ kind: "node" as const, id })),
         }),
       );
+      // ADR-308 — the chosen item (「전체」) is the picker's stored selection.
+      const chosen = entries.find((entry) => entry.selected);
+      const type = typeOf(stage, control.definitionId);
+      const store = catalogGroupSelectionStoreProp(type);
+      if (chosen && store)
+        run(
+          setFields({
+            targets: [{ kind: "node", id: controlId }],
+            props: {
+              [store]: {
+                kind: "set",
+                value: store.endsWith("Keys") ? [chosen.key] : chosen.key,
+              },
+            },
+          }),
+        );
     }
     return { label: "Items", ops };
   };

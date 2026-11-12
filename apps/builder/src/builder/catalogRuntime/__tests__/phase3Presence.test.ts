@@ -112,7 +112,7 @@ async function open(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 63,
+    libraryContractVersion: 64,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -281,10 +281,7 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       )!;
     const colors = () =>
       ["one-label", "two-label"].map((name) => input(name).derivedProps?.color);
-    expect(colors()).toEqual([
-      LIGHT_NEUTRAL,
-      LIGHT_NEUTRAL_SUBDUED,
-    ]);
+    expect(colors()).toEqual([LIGHT_NEUTRAL, LIGHT_NEUTRAL_SUBDUED]);
     // In dark mode the label reads the item color in that mode (not the light value — a
     // near-black selected tab on a dark surface).
     const dark = new CatalogCompositionRoot(
@@ -319,10 +316,7 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
         write: { kind: "set", value: true },
       },
     ]);
-    expect(colors()).toEqual([
-      LIGHT_NEUTRAL_SUBDUED,
-      LIGHT_NEUTRAL,
-    ]);
+    expect(colors()).toEqual([LIGHT_NEUTRAL_SUBDUED, LIGHT_NEUTRAL]);
     expect(notified).toContain(input("two-label").id);
     expect(new Map(scene.root.canvasInputs)).toEqual(scene.fresh());
   });
@@ -353,14 +347,15 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     const accentRect = filledRect("{color.accent}");
     // (A selected Tag is neutral — accent only in an emphasized TagGroup: S2, 2026-10-10.)
     const selectedTagRect = filledRect("{color.neutral}");
-    // Tag: no `variant` (RAC · S2 Tag has none — 2026-10-09); the selected state origin is its
-    // selection (`isSelected`), painted as DOM `[data-selected]`.
+    // Tag: no `variant` (RAC · S2 Tag has none — 2026-10-09); the selected state origin paints
+    // its selected state (ADR-308: a Tag has no `isSelected` of its own — its TagGroup's keys are
+    // the selection, so the display state reaches the paint state only).
     const tag = await open(
       "lib:definition:origin-component-tag-item-default" as DefinitionId,
       "tag-selected",
     );
     expect(tag.byType("Tag")[0].props.variant).toBeUndefined();
-    expect(tag.byType("Tag")[0].props.isSelected).toBe(true);
+    expect(tag.byType("Tag")[0].props.isSelected).toBeUndefined();
     expect(selectedTagRect(shapesOf(tag, "Tag")).length).toBeGreaterThan(0);
     const tagUnselected = await open(
       "lib:definition:origin-component-tag-item-default--unselected" as DefinitionId,

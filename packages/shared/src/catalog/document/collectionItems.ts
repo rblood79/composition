@@ -80,23 +80,6 @@ export function catalogCollectionSelectionMode(
 }
 
 /**
- * Whether an item's Selected (`isSelected` — the item's edit surface, as a Tag's) starts its
- * collection's selection: RAC's `defaultSelectedKeys` are the keys of the items set Selected, and
- * RAC selects nothing while the collection's `selectionMode` is none (2026-10-13 — a static item
- * picks its state in the Design panel; a bound list's rows take it from the template or a field).
- */
-export function catalogItemStartsSelected(
-  collectionType: string,
-  collectionProps: Readonly<Record<string, unknown>>,
-  itemProps: Readonly<Record<string, unknown>>,
-): boolean {
-  return (
-    itemProps.isSelected === true &&
-    catalogCollectionSelectionMode(collectionType, collectionProps) !== "none"
-  );
-}
-
-/**
  * RAC group item types → their group (ADR-256 후속 7). RAC's group context reaches an item through
  * any element (`CheckboxGroupStateContext` · `RadioGroupStateContext` · `ToggleGroupStateContext`),
  * and inside the group the item's selection is the group's value — as a collection item's is its

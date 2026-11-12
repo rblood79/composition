@@ -76,7 +76,7 @@ export const switchBinding: PrimitiveBinding = {
       isRequired: { kind: "boolean", label: "Required", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
       name: { kind: "string", label: "Name", section: "content" },
-      value: { kind: "string", label: "Value", section: "content" },
+      value: { kind: "string", label: "Submit value", section: "content" },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
     },
     toRacProps: "default",

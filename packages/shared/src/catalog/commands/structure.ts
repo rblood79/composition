@@ -9,6 +9,10 @@ import {
   shiftAbsoluteLayout,
 } from "../document/absoluteLayout";
 import { cloneNodeSubgraph } from "../document/clone";
+import {
+  CATALOG_EXPANSION_GROUP_TYPES,
+  catalogGroupSelectionProps,
+} from "../runtime/groupSelection";
 import { ownedChildren, referencedIds, tokenRefs } from "../document/graph";
 import {
   catalogShowWhenRefs,
@@ -1354,6 +1358,7 @@ export const removeTargets =
       if (templateId && target.address.templatePath.length > 1)
         assertTemplatePartsKept(draft, target, templateId);
     }
+    dropRemovedItemKeys(reader, draft, nodeIds, removed);
     removeWithReferrers(draft, removed);
     assertRequiredPartsKept(draft, nodeIds);
     assertTablesAligned(draft, [
@@ -1364,6 +1369,70 @@ export const removeTargets =
     ]);
     return { label: input.label ?? "Delete", ops: draft.ops() };
   };
+
+/**
+ * ADR-308 Decision 7 — a deleted selection · expansion item leaves its group's stored keys: its key
+ * (`id`, a Radio's · Checkbox's `value`) goes out of the nearest group's selection twins and
+ * `expandedKeys` · `defaultExpandedKeys` in the same step (an owned group — an instance's own
+ * prop override is the same field).
+ */
+function dropRemovedItemKeys(
+  reader: CatalogReader,
+  draft: CommandDraft,
+  roots: readonly NodeId[],
+  removed: readonly NodeId[],
+): void {
+  const gone = new Set<string>(removed);
+  for (const id of roots) {
+    const node = reader.getEntry(id);
+    if (node?.kind !== "node") continue;
+    const type = definitionTypeName(reader, node.definitionId);
+    const keyProp = type === "Radio" || type === "Checkbox" ? "value" : "id";
+    const written = node.props[keyProp];
+    const key =
+      written?.kind === "set" &&
+      (typeof written.value === "string" || typeof written.value === "number")
+        ? String(written.value)
+        : undefined;
+    if (key === undefined || key === "") continue;
+    for (
+      let ownerId = reader.ownerOf(id);
+      ownerId;
+      ownerId = reader.ownerOf(ownerId)
+    ) {
+      const owner = draft.read(ownerId);
+      if (owner?.kind !== "node") break;
+      const ownerType = definitionTypeName(reader, owner.definitionId);
+      const names = [
+        ...(catalogGroupSelectionProps(ownerType) ?? []),
+        ...(CATALOG_EXPANSION_GROUP_TYPES.has(ownerType)
+          ? ["expandedKeys", "defaultExpandedKeys"]
+          : []),
+      ];
+      if (!names.length) continue;
+      if (gone.has(ownerId)) break;
+      const props = { ...owner.props };
+      let changed = false;
+      for (const name of names) {
+        const value = props[name];
+        if (value?.kind !== "set") continue;
+        const raw = value.value;
+        if (Array.isArray(raw) && raw.some((entry) => String(entry) === key)) {
+          props[name] = {
+            kind: "set",
+            value: raw.filter((entry) => String(entry) !== key),
+          };
+          changed = true;
+        } else if (!Array.isArray(raw) && String(raw) === key) {
+          delete props[name];
+          changed = true;
+        }
+      }
+      if (changed) draft.write({ ...owner, props });
+      break;
+    }
+  }
+}
 
 /** Allocate the related ID kinds the clone asks for. */
 export const relatedId =

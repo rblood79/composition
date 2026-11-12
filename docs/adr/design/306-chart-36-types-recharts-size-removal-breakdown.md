@@ -181,12 +181,12 @@ export function chartFamilyEpoch(): number; // 로드될 때마다 +1
 | `componentRulesTable.ts` `Chart`                                          | `sizes.S` · `sizes.L` 삭제 (M 은 rule 타입이 요구하는 기본 한 벌로 남는다) · `chart.metrics` → `{ padding: 12, fontSize: 11 }` |
 | `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` | typed Chart 원본의 `"size": "M"` (6135) — 파일 머리말이 적은 생성 경로 (`phase3ReusableOriginTemplates.test.ts`) 로 고친다     |
 | `packages/shared/src/components/Chart.runtime.ts`                         | 공개 타입 `size?: "S" \| "M" \| "L"` (85)                                                                                      |
-| `packages/shared/src/catalog/document/types.ts`                           | `LIBRARY_CONTRACT_VERSION` 64 + 주석                                                                                           |
+| `packages/shared/src/catalog/document/types.ts`                           | `LIBRARY_CONTRACT_VERSION` 65 + 주석                                                                                           |
 | 생성 CSS                                                                  | `pnpm build:specs` 로 재생성 — Chart S/L 선택자 0                                                                              |
 
 - 다른 컴포넌트의 `size` · 내부 `ChartSize {width,height}` 는 대상이 아니다. 검색 치환하지 않는다.
 - `accepts` 에 없는 prop 은 무시되지 않는다 — 원본은 `library.ts:351`, 문서는 `graph.ts:1811` 이 `PROP_NOT_ACCEPTED` 로 거부한다. 그래서 위 표의 원본 수정이 빠지면 라이브러리 구성 자체가 실패한다. Phase 1 은 한 커밋이다.
-- contract: 원본이 바뀌므로 `LIBRARY_CONTRACT_VERSION` 63 → 64 (`types.ts:160` + 머리말 주석 한 줄). 63 문서는 Chart 유무와 무관하게 전부 `UNSUPPORTED_LIBRARY_CONTRACT` 로 거부된다 (`graph.ts:580`) — 변환 · 원본 보존 · 사본 저장 절차는 없다. Phase 2 이후의 새 prop 은 `accepts` 가산이라 기존 64 문서가 그대로 유효하다 — 원본 template 이 다시 바뀔 때만 올린다.
+- contract: 원본이 바뀌므로 `LIBRARY_CONTRACT_VERSION` 64 → 65 (`types.ts` + 머리말 주석 한 줄 — 64 는 ADR-308). 64 문서는 Chart 유무와 무관하게 전부 `UNSUPPORTED_LIBRARY_CONTRACT` 로 거부된다 (`graph.ts:580`) — 변환 · 원본 보존 · 사본 저장 절차는 없다. Phase 2 이후의 새 prop 은 `accepts` 가산이라 기존 65 문서가 그대로 유효하다 — 원본 template 이 다시 바뀔 때만 올린다.
 - 기존 실패 테스트 2건 (`size="L"` → `data-size`) 은 size 없는 계약으로 고치고 그 뒤의 assertion 은 남긴다.
 
 ## 7. 검증

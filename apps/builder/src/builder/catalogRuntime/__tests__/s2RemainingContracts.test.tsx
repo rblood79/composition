@@ -247,7 +247,11 @@ it("Accordion defaults to single expansion while explicit multiple remains suppo
     expect(
       h.element(h.ids[0])!.querySelectorAll("[data-expanded]").length,
     ).toBe(1);
-    h.declare(h.ids[0], { allowsMultipleExpanded: true });
+    // (ADR-308: with multiple allowed, the group's expanded keys open both.)
+    h.declare(h.ids[0], {
+      allowsMultipleExpanded: true,
+      expandedKeys: ["section-1", "section-2"],
+    });
     expect(
       h.element(h.ids[0])!.querySelectorAll("[data-expanded]").length,
     ).toBeGreaterThan(1);

@@ -27,6 +27,19 @@ export const checkboxGroupBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // ADR-308 Phase 1: the group's value (S2 · RAC) — accepted; the panel offers it in Phase 2.
+      // ADR-308 Phase 2: the group's value — its Checkboxes as a check list (사용자 결정 3).
+      value: {
+        kind: "string-array",
+        label: "Value",
+        section: "value",
+      },
+      defaultValue: {
+        editorHidden: true,
+        kind: "string-array",
+        label: "Value",
+        section: "value",
+      },
       label: { kind: "string", label: "Label", section: "content" },
       description: {
         kind: "string",

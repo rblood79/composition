@@ -1,0 +1,13 @@
+/* ADR-308 사용자 결정 3 — a group's items as a check list: one row per item, in the panel's width
+   (as the chart field picker's list — `ChartAuthoringControls.css`). */
+.selection-keys-list {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+/* 패널 CheckboxGroup 밀도 규약 (form-controls.css) 과 같은 상자 크기. */
+.selection-keys-list .react-aria-Checkbox .checkbox {
+  width: var(--spacing-lg);
+  height: var(--spacing-lg);
+}

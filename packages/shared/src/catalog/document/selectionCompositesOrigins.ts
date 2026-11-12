@@ -58,14 +58,12 @@ export const SELECTION_COMPOSITE_DEFINITIONS: readonly LibraryDefinition[] = [
       description: "string",
       icon: "string",
       id: "string",
-      isSelected: "boolean",
       isDisabled: "boolean",
     },
     defaults: {
       label: "Option",
       description: "Description",
       icon: "image",
-      isSelected: false,
       isDisabled: false,
     },
     visual: {},
@@ -217,6 +215,8 @@ export const SELECTION_COMPOSITE_TEMPLATES: readonly LibraryTemplateNode[] = [
     props: {
       orientation: "vertical",
       selectionMode: "single",
+      // (ADR-308: the group holds its selection — Option one.)
+      defaultSelectedKeys: ["one"],
       "aria-label": "Options",
     },
     visual: {},
@@ -228,7 +228,6 @@ export const SELECTION_COMPOSITE_TEMPLATES: readonly LibraryTemplateNode[] = [
     props: {
       label: "Option one",
       id: "one",
-      isSelected: true,
     },
     visual: {},
   },

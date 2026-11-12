@@ -203,6 +203,7 @@ import {
   catalogHasExplicitVisual,
 } from "./libraryVisual";
 import { catalogFieldLabelPartsHidden } from "./presence";
+import { catalogSelectionGroupOf } from "./groupSelection";
 import { catalogPickerMenuWidth } from "./pickerMenuWidth";
 import { catalogLayoutTokenCss, catalogNodeTokenCss } from "./nodeTokenCss";
 import { catalogContainerCss } from "./containerLayer";
@@ -223,6 +224,7 @@ import {
   CATALOG_SLIDER_THICK_TRACK,
   catalogSliderThickTrackMargins,
   catalogAbsentByValue,
+  catalogAccordionOf,
   catalogCalendarNavButton,
   catalogCalendarNavButtonGlyph,
   catalogColumnSortNameGroup,
@@ -4571,11 +4573,27 @@ function withHtmlId(
     type === "Card" &&
     parent !== undefined &&
     catalogTypeName(root, parent) === "CardView";
+  // (ADR-308 R9: a selection · expansion item's `id` is its RAC key — a Table's Row, a group's
+  //  ToggleButton, an Accordion's Disclosure — as a CardView's Card above.)
+  const selectionItem =
+    (type === "Row" || type === "ToggleButton" || type === "Disclosure") &&
+    (type === "Disclosure"
+      ? !!catalogAccordionOf(
+          node,
+          (id) => root.domInputs.get(id),
+          (record) => catalogTypeName(root, record),
+        )
+      : !!catalogSelectionGroupOf(
+          node,
+          (id) => root.domInputs.get(id),
+          (record) => catalogTypeName(root, record),
+        ));
   if (
     node.htmlId &&
     !selectTrigger &&
     !sliderLabel &&
     !cardViewItem &&
+    !selectionItem &&
     !STATIC_ITEM_TYPES.has(type) &&
     type !== "TabPanel"
   ) {

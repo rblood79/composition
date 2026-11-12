@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { selectItem } from "./support/selectItem";
 import "fake-indexeddb/auto";
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -587,7 +588,8 @@ describe("ADR-256 Phase 10b — CardView · ButtonGroup · AvatarGroup", () => {
           ) as never,
         }),
       );
-    set(workspace.itemOfRecord(first().id)!.target, { isSelected: true });
+    // (ADR-308: the Card's key in the CardView's selection.)
+    set({ kind: "node", id: PLACED }, { defaultSelectedKeys: [String(first().props.id)] });
     // selectionMode none: neither side selects.
     expect(first().derivedProps?._isSelected).toBe(false);
     let host = await mount(renderCatalogDom(workspace.root, placed().id));

@@ -1,4 +1,5 @@
 import { catalogRuntimeStateOf } from "../../../../../../packages/shared/src/catalog/runtime/runtimeStateProps";
+import { selectItem } from "./support/selectItem";
 import { catalogPickerSelectionHidden } from "../../../../../../packages/shared/src/catalog/runtime/pickerSelection";
 import { REUSABLE_ORIGIN_TEMPLATES } from "../../../../../../packages/shared/src/catalog/document/generated/reusableOriginLibrary";
 import { selectionItemTemplates } from "../../../../../../packages/shared/src/catalog/document/selectionItemTemplates";
@@ -445,12 +446,11 @@ it("옵션의 선택과 disabled가 실제 Checkbox 슬롯으로 전달된다", 
     workspace.execute(
       setFields({
         targets: [workspace.itemOfRecord(item.id)!.target],
-        props: {
-          isDisabled: { kind: "set", value: true },
-          isSelected: { kind: "set", value: true },
-        },
+        props: { isDisabled: { kind: "set", value: true } },
       }),
     );
+    // (ADR-308: the option's selection is its Select's value.)
+    selectItem(workspace, item.id);
     const checkbox = [...root.canvasInputs.values()].find(
       (n) => n.parentId === item.id && n.ruleId === "Checkbox",
     )!;
@@ -664,12 +664,7 @@ it.each(["Select", "ComboBox", "Menu"])(
         .find((n) => n.props.slot === "description")!;
       const positions = [];
       for (const selected of [false, true, false]) {
-        workspace.execute(
-          setFields({
-            targets: [workspace.itemOfRecord(item.id)!.target],
-            props: { isSelected: { kind: "set", value: selected } },
-          }),
-        );
+        selectItem(workspace, item.id, selected);
         const boxes = root.getGeometry([check.id, label.id, description.id]);
         const mark = boxes.get(check.id)!;
         const text = boxes.get(label.id)!;
@@ -779,12 +774,7 @@ it("Menu none/single/multiple과 undo는 선택 부품 표시를 갱신한다", 
     }
     const checkbox = parts.find((n) => root.typeOf(n) === "Checkbox")!;
     for (const selected of [true, false]) {
-      workspace.execute(
-        setFields({
-          targets: [workspace.itemOfRecord(item.id)!.target],
-          props: { isSelected: { kind: "set", value: selected } },
-        }),
-      );
+      selectItem(workspace, item.id, selected);
       expect(
         root.canvasInputs.get(checkbox.id)?.derivedProps?._isSelected,
       ).toBe(selected);
@@ -818,12 +808,7 @@ it("ComboBox는 저장한 항목의 Selected로 초기 선택을 복원하고 ru
     const item = [...root.canvasInputs.values()].find(
       (n) => root.typeOf(n) === "ListBoxItem",
     )!;
-    workspace.execute(
-      setFields({
-        targets: [workspace.itemOfRecord(item.id)!.target],
-        props: { isSelected: { kind: "set", value: true } },
-      }),
-    );
+    selectItem(workspace, item.id, true);
     const owner = [...root.domInputs.values()].find(
       (n) => root.typeOf(n) === "ComboBox",
     )!;

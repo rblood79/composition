@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { selectItem } from "./support/selectItem";
 import "fake-indexeddb/auto";
 import { act, fireEvent, render } from "@testing-library/react";
 import { createElement } from "react";
@@ -448,15 +449,9 @@ describe("ADR-256 Phase 5i-2 — the Table's selection column is Checkbox[select
 
   it("rows set Selected (2026-10-13): their checkboxes are checked, select-all is indeterminate · checked as RAC's — Canvas = Preview", async () => {
     const { workspace, root, record, draw } = await openSelection();
+    // (ADR-308: a row's selection is its Table's keys.)
     const selectRow = (r: number) =>
-      workspace.execute(
-        setFields({
-          targets: [
-            workspace.positionOfRecord(record(`project:node:r${r}`).id)!.target,
-          ],
-          props: { isSelected: set(true) },
-        }),
-      );
+      selectItem(workspace, record(`project:node:r${r}`).id);
     const canvasBoxes = () =>
       ["select", "r0s", "r1s", "r2s"].map((cell) => {
         const box = record(`project:node:${cell}-box`);

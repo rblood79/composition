@@ -121,7 +121,9 @@ function variableType(
         type === "columnSize" ||
           type === "columnStaticSize" ||
           // (ADR-258: nor a RAC color — a state variable of its own is a string.)
-          type === "racColor"
+          type === "racColor" ||
+          // (ADR-308: nor a Picker value — a single Select's is its key, a string.)
+          type === "selectionValue"
         ? "string"
         : // (ADR-256 Phase 9: nor a calendar duration · number format — objects of their own.)
           type === "calendarDuration" || type === "numberFormat"

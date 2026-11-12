@@ -228,14 +228,14 @@ describe("Disclosure chevron (the trigger's Icon node)", () => {
           root.canvasInputs.get(triggerOf(root, ofBinding, index).chevron.id)!
             .derivedProps?.iconName === "chevron-down",
       );
-    // (`792815efc`: S2 Accordion `allowsMultipleExpanded` defaults to false — one panel open, the first
-    //   Disclosure whose intent is expanded. Collapsing it hands the group's key to the next one.)
+    // (ADR-308: the Accordion's `expandedKeys` — the origin opens `section-1`; the group's key moved
+    //   to the second turns the chevrons with it.)
     expect(turned()).toEqual([true, false]);
-    const disclosures = ofBinding("disclosure");
+    const [group] = ofBinding("accordion");
     workspace.execute(
       setFields({
-        targets: [workspace.positionOfRecord(disclosures[0].id)!.target],
-        props: { isExpanded: { kind: "set", value: false } },
+        targets: [workspace.positionOfRecord(group!.id)!.target],
+        props: { expandedKeys: { kind: "set", value: ["section-2"] } },
       }),
     );
     expect(turned()).toEqual([false, true]);

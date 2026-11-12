@@ -1,5 +1,8 @@
 import type { PrimitiveBinding } from "../types";
-import { ITEM_LINK_PROP_CONTRACTS } from "../document/itemLinks";
+import {
+  ITEM_LINK_PROP_CONTRACTS,
+  ITEM_KEY_PROP_CONTRACT,
+} from "../document/itemLinks";
 
 /**
  * Tag — TagList 안의 chip (RAC `Tag`).
@@ -17,8 +20,8 @@ import { ITEM_LINK_PROP_CONTRACTS } from "../document/itemLinks";
  *   TagList (`delegatedDom.tsx` `taglist`) 안에서 그린다.
  *
  * D1: RAC `<TagGroup>`/`<Tag>` — ARIA(role=row/gridcell, aria-selected) 는 RAC 권위.
- * D2: size + isSelected (그룹 선택 — RAC TagGroup
- *     `defaultSelectedKeys`, Tag 자체 variant 없음 2026-10-09) 편집 surface.
+ * D2: size + id (그룹 선택의 key — 선택은 TagGroup 의 `selectedKeys` · `defaultSelectedKeys`,
+ *     ADR-308. Tag 자체 variant 없음 2026-10-09) 편집 surface.
  * D3: 시각(box+text 색/크기/형태)은 theme rule(COMPONENT_RULES_TABLE.Tag) —
  *     variants{default/selected}.fill + sizes{fontSize/lineHeight/borderRadius/height/paddingX}.
  */
@@ -29,16 +32,15 @@ export const tagBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // ADR-308 사용자 결정 2: its RAC key — the name its group's selection uses.
+      id: ITEM_KEY_PROP_CONTRACT,
       size: {
         kind: "size",
         label: "Size",
         section: "appearance",
         default: "M",
       },
-      // A selected Tag is its TagGroup's selection (RAC · S2 Tag has no `variant` — 2026-10-09):
-      //   the TagGroup hands RAC the keys of its selected Tags (`defaultSelectedKeys`), the rule's
-      //   `selected` variant paints it (Canvas `_isSelected` · DOM `[data-selected]`).
-      isSelected: { kind: "boolean", label: "Selected", section: "value" },
+      // (ADR-308: its selection is its group's keys — no `isSelected` of its own.)
       // ADR-259 Phase 1: S2 · RAC item link (`href` · `target` · `rel` — RAC draws the link).
       ...ITEM_LINK_PROP_CONTRACTS,
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },

@@ -92,7 +92,8 @@ describe("props an owner decides are not the node's to edit", () => {
   it("a Checkbox in a CheckboxGroup — its group's; alone, its own", async () => {
     const { decided } = await open(["checkboxgroup", "checkbox"]);
     expect(new Set(decided(0, "Checkbox"))).toEqual(
-      new Set(["CheckboxGroup: errorMessage,isEmphasized,size"]),
+      // (ADR-308: its Selected is the group's value too.)
+      new Set(["CheckboxGroup: errorMessage,isEmphasized,isSelected,size"]),
     );
     expect(decided(1, "Checkbox")).toEqual([""]);
   });

@@ -87,6 +87,7 @@ export const PROP_KIND_VALUE_TYPE: Readonly<
   "labeled-format": "labeledFormat",
   "selection-count": "selectionCount",
   "selection-keys": "selectionKeys",
+  "selection-value": "selectionValue",
   "auto-focus": "autoFocus",
   "number-range": "numberRange",
 };
@@ -392,6 +393,12 @@ const ITEM_KEY_TYPES: ReadonlySet<string> = new Set([
   ...componentTypeSet("staticCollectionItem"),
   "TreeItem",
   "SideNavItem",
+  // ADR-308 Phase 1: the other selection · expansion items' RAC key (S2 `id`) — a Table's Row, a
+  // CardView's Card, a ToggleButtonGroup's ToggleButton, an Accordion's Disclosure.
+  "Row",
+  "Card",
+  "ToggleButton",
+  "Disclosure",
 ]);
 const SELECTION_KEYS: Readonly<Record<string, ValueType>> = {
   selectedKeys: "string[]",

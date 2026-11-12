@@ -1,5 +1,7 @@
 import type { PrimitiveBinding } from "../types";
-import { ITEM_SELECTED_PROP_CONTRACT } from "../document/itemLinks";
+import {
+  ITEM_KEY_PROP_CONTRACT,
+} from "../document/itemLinks";
 
 export const selectBoxBinding: PrimitiveBinding = {
   source: { kind: "internal", renderer: "selectbox" },
@@ -25,13 +27,8 @@ export const selectBoxBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      // (RAC's item key — not a second "ID" next to the Accessibility section's HTML id.)
-      id: {
-        kind: "string",
-        label: "Item ID",
-        section: "content",
-        editorHidden: true,
-      },
+      // ADR-308 사용자 결정 2: its RAC key — the name its group's selection uses.
+      id: ITEM_KEY_PROP_CONTRACT,
       textValue: { kind: "string", label: "Text value", section: "content" },
       "aria-label": {
         kind: "string",
@@ -39,7 +36,7 @@ export const selectBoxBinding: PrimitiveBinding = {
         section: "content",
         editorHidden: true,
       },
-      isSelected: ITEM_SELECTED_PROP_CONTRACT,
+      // (ADR-308: its selection is its group's keys — no `isSelected` of its own.)
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",

@@ -15,6 +15,13 @@ export const tabsBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // ADR-308 Phase 1: the controlled twin of `defaultSelectedKey` (S2 · RAC) — accepted; the panel offers it in Phase 2.
+      selectedKey: {
+        editorHidden: true,
+        kind: "string",
+        label: "Selected tab",
+        section: "value",
+      },
       dataBinding: {
         kind: "binding",
         label: "Data source",

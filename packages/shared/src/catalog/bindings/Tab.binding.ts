@@ -1,7 +1,7 @@
 import type { PrimitiveBinding } from "../types";
 import {
   ITEM_LINK_PROP_CONTRACTS,
-  ITEM_SELECTED_PROP_CONTRACT,
+  ITEM_KEY_PROP_CONTRACT,
 } from "../document/itemLinks";
 
 /**
@@ -32,6 +32,8 @@ export const tabBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // ADR-308 사용자 결정 2: its RAC key — the name its group's selection uses.
+      id: ITEM_KEY_PROP_CONTRACT,
       size: {
         kind: "size",
         label: "Size",
@@ -55,8 +57,7 @@ export const tabBinding: PrimitiveBinding = {
       //   DOM 에만 닿지 않았다 (두 leg 발산) — Tag 와 같은 선언.
       // ADR-259 Phase 1: S2 · RAC item link (`href` · `target` · `rel` — RAC draws the link).
       ...ITEM_LINK_PROP_CONTRACTS,
-      // Its collection's selection starts from it (2026-10-13 — `ITEM_SELECTED_PROP_CONTRACT`).
-      isSelected: ITEM_SELECTED_PROP_CONTRACT,
+      // (ADR-308: its selection is its group's keys — no `isSelected` of its own.)
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",

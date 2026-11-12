@@ -199,9 +199,11 @@ describe("ADR-256 Phase 8 판독 H1 — a Disclosure below another element in a 
     all("Disclosure").find((record) => record.props.title === title)!.sourceId!;
 
   it("Canvas and DOM agree: the framed Disclosure is expanded, and the Preview trigger collapses it", async () => {
-    // (S2 Accordion defaults to single expansion since 792815efc — the group declares multiple.)
+    // (S2 Accordion defaults to single expansion since 792815efc — the group declares multiple;
+    //  ADR-308: and its expanded keys.)
     const { all, frame, mount, panels } = await open("accordion", {
       allowsMultipleExpanded: true,
+      expandedKeys: ["section-1", "section-2"],
     });
     frame(section(all, "Section 2"));
     expect(panels()).toEqual({ "Section 1": true, "Section 2": true });
@@ -310,9 +312,11 @@ describe("ADR-256 Phase 8 판독 후속 — Round 18 범위 밖 · Round 19 LOW"
   });
 
   it("a Disclosure put into an empty frame of the group after the DOM mounted joins the group", async () => {
-    // (S2 Accordion defaults to single expansion since 792815efc — the group declares multiple.)
+    // (S2 Accordion defaults to single expansion since 792815efc — the group declares multiple;
+    //  ADR-308: and its expanded keys, the section added below included.)
     const { workspace, all, placed, mount } = await open("accordion", {
       allowsMultipleExpanded: true,
+      expandedKeys: ["section-1", "section-2", "section-3"],
     });
     const box = workspace.newId("node") as string;
     workspace.execute(
@@ -333,7 +337,7 @@ describe("ADR-256 Phase 8 판독 후속 — Round 18 범위 밖 · Round 19 LOW"
           parent: workspace.positionOfRecord(frameRecord.id)!.target,
           entries: [
             node(added, "lib:definition:origin-component-disclosure", {
-              props: { title: set("Section 3") } as never,
+              props: { title: set("Section 3"), id: set("section-3") } as never,
             }),
           ],
           rootIds: [added as NodeId],

@@ -1149,18 +1149,12 @@ describe("RAC event audit — the added Do capabilities reach RAC", () => {
   });
 
   it("Accordion collapseItem closes that Disclosure only", async () => {
-    // (An Accordion's expansion keys are its Disclosures' records — the runtime's own key.)
-    // (S2 Accordion defaults to single expansion since 792815efc — both sections start open only
-    // when the group allows multiple, which is what 「that Disclosure only」 needs.)
-    const h = await doRule(
-      "Accordion",
-      "collapseItem",
-      (harness) =>
-        qa(harness, "[data-catalog-id]")
-          .find((el) => el.querySelector(":scope > h3 button[slot=trigger]"))!
-          .getAttribute("data-catalog-id")!,
-      { allowsMultipleExpanded: true },
-    );
+    // (ADR-308: an Accordion's expansion keys are its Disclosures' `id`s — the origin's
+    // `section-1` · `section-2` — and the group holds them: both start open with multiple allowed.)
+    const h = await doRule("Accordion", "collapseItem", () => "section-1", {
+      allowsMultipleExpanded: true,
+      expandedKeys: ["section-1", "section-2"],
+    });
     expect(
       qa(h, "button[slot=trigger]").map((button) => button.getAttribute("aria-expanded")),
     ).toEqual(["true", "true"]);

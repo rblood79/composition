@@ -17,6 +17,19 @@ export const comboBoxBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // ADR-308 Phase 1: the group's selection (S2 ComboBox) — accepted; the panel offers it in Phase 2.
+      selectedKey: {
+        editorHidden: true,
+        kind: "string",
+        label: "Selected item",
+        section: "value",
+      },
+      // ADR-308 Phase 2: the group's selection — its options as a dropdown (사용자 결정 3).
+      defaultSelectedKey: {
+        kind: "enum",
+        label: "Selected item",
+        section: "value",
+      },
       ...OVERLAY_OPEN_PROPS,
       dataBinding: {
         kind: "binding",

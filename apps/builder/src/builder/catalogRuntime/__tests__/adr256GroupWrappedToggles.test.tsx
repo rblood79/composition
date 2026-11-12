@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { selectItem } from "./support/selectItem";
 import "fake-indexeddb/auto";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -89,12 +90,8 @@ describe("Codex Round 20 H2 — a RAC Group around a group's toggle", () => {
       const { workspace, root, of, target } = await open(origin);
       const first = of(part)[0]!;
       const source = first.sourceId;
-      workspace.execute(
-        setFields({
-          targets: [target(first.id)],
-          props: { isSelected: set(true) },
-        }),
-      );
+      // (ADR-308: selected in its group's value.)
+      selectItem(workspace, first.id);
       const wrapper = workspace.newId("node");
       workspace.execute(
         groupNodes({
@@ -218,13 +215,9 @@ describe("Codex Round 20 H2 — a RAC Group around a group's toggle", () => {
       };
       const before = selected();
       await act(async () => {
-        workspace.execute(
-          setFields({
-            targets: [
-              target(of(part).find((record) => record.sourceId === source)!.id),
-            ],
-            props: { isSelected: set(true) },
-          }),
+        selectItem(
+          workspace,
+          of(part).find((record) => record.sourceId === source)!.id,
         );
       });
       expect([before, selected()]).toEqual(["false", "true"]);

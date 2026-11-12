@@ -19,6 +19,32 @@ export const treeBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // ADR-308 Phase 1: the group's selection (S2 · RAC) — accepted; the panel offers it in Phase 2.
+      selectedKeys: {
+        editorHidden: true,
+        kind: "selection-keys",
+        label: "Selected items",
+        section: "value",
+      },
+      // ADR-308 Phase 2: the group's selection — its items as a check list (사용자 결정 3).
+      defaultSelectedKeys: {
+        kind: "selection-keys",
+        label: "Selected items",
+        section: "value",
+      },
+      // ADR-308 Phase 1: the group's expansion (S2 · RAC) — accepted; the panel offers it in Phase 2.
+      // ADR-308 Phase 2: the group's expansion — its items as a check list (사용자 결정 3).
+      expandedKeys: {
+        kind: "string-array",
+        label: "Expanded items",
+        section: "value",
+      },
+      defaultExpandedKeys: {
+        editorHidden: true,
+        kind: "string-array",
+        label: "Expanded items",
+        section: "value",
+      },
       // S2 TreeView `loadingState` — the bound collection's load (derived; the end loads more).
       loadingState: LOADING_STATE_PROP,
       dataBinding: {

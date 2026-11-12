@@ -1043,6 +1043,11 @@ const GenericField = memo(function GenericField({
         <SelectionKeysField
           label={field.label}
           value={value}
+          // (ADR-308 — a group's items: a check list.)
+          options={field.options?.map((option) => ({
+            value: String(option.value),
+            label: String(option.label),
+          }))}
           onChange={update}
         />
       );

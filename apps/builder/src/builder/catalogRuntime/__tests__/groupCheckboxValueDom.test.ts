@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { selectItem } from "./support/selectItem";
 import "fake-indexeddb/auto";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -83,16 +84,18 @@ async function open() {
     renderToStaticMarkup(renderCatalogDom(root, group().id)).match(
       /<input[^>]*type="checkbox"[^>]*>/g,
     ) ?? [];
-  return { boxes, write, inputs };
+  return { workspace, boxes, write, inputs };
 }
 
 describe("a grouped Checkbox's value and name", () => {
   it("reach RAC: its value is the form value and the group's key; its name wins over the group's", async () => {
-    const { boxes, write, inputs } = await open();
+    const { workspace, boxes, write, inputs } = await open();
     expect(boxes().length).toBeGreaterThan(1);
 
-    write(0, { value: "apple", isSelected: true });
+    write(0, { value: "apple" });
     write(1, { value: "pear", name: "other" });
+    // (ADR-308: selected in the group's value.)
+    selectItem(workspace, boxes()[0]!.id);
     const [first, second] = inputs();
     expect(first).toMatch(/value="apple"/);
     expect(first).toMatch(/name="fruits"/);

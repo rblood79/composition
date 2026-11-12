@@ -1,5 +1,8 @@
 import { catalogSelectionCountFits } from "../../../../../../packages/shared/src/catalog/document/selectionCountValue";
-import { catalogSelectionKeysFits } from "../../../../../../packages/shared/src/catalog/document/selectionKeysValue";
+import {
+  catalogSelectionKeysFits,
+  catalogSelectionValueFits,
+} from "../../../../../../packages/shared/src/catalog/document/selectionKeysValue";
 import { catalogAutoFocusFits } from "../../../../../../packages/shared/src/catalog/document/autoFocusValue";
 /** ADR-202: 실제 catalog/command descriptor를 받는 host 중립 manifest와 semantic 검증. */
 import { validateCommandArgs } from "./commandArgs";
@@ -113,6 +116,8 @@ function validateFields(
       return `invalid-selection-count:${name}`;
     if (field.kind === "selection-keys" && !catalogSelectionKeysFits(value))
       return `invalid-selection-keys:${name}`;
+    if (field.kind === "selection-value" && !catalogSelectionValueFits(value))
+      return `invalid-selection-value:${name}`;
     if (field.kind === "auto-focus" && !catalogAutoFocusFits(value))
       return `invalid-auto-focus:${name}`;
     if (field.kind === "number-range" && !catalogNumberRangeFits(value))
@@ -128,6 +133,7 @@ function validateFields(
         "number-range",
         "selection-count",
         "selection-keys",
+        "selection-value",
         "auto-focus",
         "css",
         "boolean",

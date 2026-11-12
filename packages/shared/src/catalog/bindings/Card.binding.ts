@@ -1,3 +1,4 @@
+import { ITEM_KEY_PROP_CONTRACT } from "../document/itemLinks";
 import { linkBinding } from "./Link.binding";
 import type { PrimitiveBinding } from "../types";
 
@@ -44,6 +45,8 @@ export const cardBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // ADR-308 사용자 결정 2: its RAC key — the name its group's selection uses.
+      id: ITEM_KEY_PROP_CONTRACT,
       // appearance — S2 variant 모델(구 cardType/isQuiet 흡수).
       variant: {
         kind: "variant",

@@ -267,9 +267,12 @@ describe("ADR-256 Phase 3 review m3 — a frame around a group item", () => {
     async (group, items, owner) => {
       const { html, wrap } = await open(
         [
-          node("group", group, ["group-items"]),
+          // (ADR-308: the group's value holds the selected item's value.)
+          node("group", group, ["group-items"], {
+            value: group === "CheckboxGroup" ? ["one"] : "one",
+          }),
           node("group-items", items, ["one", "two"]),
-          ...item("one", owner, { isSelected: true, value: "one" }),
+          ...item("one", owner, { value: "one" }),
           ...item("two", owner, { value: "two" }),
         ],
         "group",

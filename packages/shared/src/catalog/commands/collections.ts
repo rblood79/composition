@@ -94,6 +94,10 @@ import {
   GROUP_ITEM_TYPES,
   GROUP_ITEMS_WRAPPER,
 } from "../../domain/componentTraits";
+import {
+  catalogGroupSelectionStoreProp,
+  catalogGroupSelectsMany,
+} from "../runtime/groupSelection";
 
 export { GROUP_ITEM_TYPES, GROUP_ITEMS_WRAPPER };
 
@@ -207,16 +211,46 @@ const setProps = (
 
 // ── Collection keys of copies ─────────────────────────────────────────────
 
-/** Item and section types: a node's `id` is its RAC collection key. */
-const KEYED_TYPES: ReadonlySet<string> = new Set(
-  COLLECTION_FAMILIES.flatMap((row) =>
+/**
+ * ADR-308 Decision 7 — the selection · expansion groups outside the item-command families whose
+ * items carry a RAC key too: the node that holds the items, the item type, and its key prop (a
+ * Radio's · a group Checkbox's is its `value`, as the reference's).
+ */
+const SELECTION_KEY_FAMILIES: readonly {
+  host: string;
+  item: string;
+  prop: "id" | "value";
+}[] = [
+  { host: "CardView", item: "Card", prop: "id" },
+  { host: "TableBody", item: "Row", prop: "id" },
+  { host: "ToggleButtonGroup", item: "ToggleButton", prop: "id" },
+  { host: "Accordion", item: "Disclosure", prop: "id" },
+  { host: "SegmentedControl", item: "SegmentedControlItem", prop: "id" },
+  { host: "RadioItems", item: "Radio", prop: "value" },
+  { host: "CheckboxItems", item: "Checkbox", prop: "value" },
+];
+/** Item and section types: a node's `id` (a Radio's · a group Checkbox's `value`) is its RAC key. */
+const KEYED_TYPES: ReadonlySet<string> = new Set([
+  ...COLLECTION_FAMILIES.flatMap((row) =>
     row.section ? [row.item, row.section] : [row.item],
   ),
-);
+  ...SELECTION_KEY_FAMILIES.map((row) => row.item),
+]);
 /** The nodes that hold a collection's items (the owner, or its list frame). */
-const KEY_HOST_TYPES: ReadonlySet<string> = new Set(
-  COLLECTION_FAMILIES.map((row) => row.list ?? row.owner),
-);
+const KEY_HOST_TYPES: ReadonlySet<string> = new Set([
+  ...COLLECTION_FAMILIES.map((row) => row.list ?? row.owner),
+  ...SELECTION_KEY_FAMILIES.map((row) => row.host),
+]);
+/** A new group item's key stem (the Library origins' own keys: `option1`, `toggle-1`, `section-1`). */
+const SELECTION_ITEM_KEY_STEMS: Readonly<Record<string, string>> = {
+  Radio: "option",
+  Checkbox: "option",
+  ToggleButton: "toggle-",
+  Disclosure: "section-",
+};
+/** The prop that holds a keyed type's key. */
+const keyPropOf = (type: string): "id" | "value" =>
+  SELECTION_KEY_FAMILIES.find((row) => row.item === type)?.prop ?? "id";
 
 function typeNameOr(
   reader: CatalogReader,
@@ -245,7 +279,7 @@ function collectionKeys(draft: CommandDraft, host: NodeParent): Set<string> {
       const type = typeNameOr(reader, row.definitionId);
       if (KEY_HOST_TYPES.has(type)) continue;
       if (KEYED_TYPES.has(type)) {
-        const key = keyOf(readTargetProp(reader, row.target, "id"));
+        const key = keyOf(readTargetProp(reader, row.target, keyPropOf(type)));
         if (key !== undefined) keys.add(key);
       }
       visit(positionRows(reader, row));
@@ -253,11 +287,22 @@ function collectionKeys(draft: CommandDraft, host: NodeParent): Set<string> {
   };
   if (host.kind === "node")
     visit(positionRows(reader, nodePosition(reader, host.id)));
-  else
-    for (const child of childPositions(draft, host)) {
-      const key = keyOf(readProp(reader, child, "id"));
-      if (key !== undefined) keys.add(key);
-    }
+  else {
+    // (A slot position's items, at any depth — a TreeItem's child items too: ADR-308 G1 (b), a
+    //  duplicated parent TreeItem's children kept their keys beside the originals'.)
+    const walk = (parent: NodeParent) => {
+      for (const child of childPositions(draft, parent)) {
+        const type = positionType(draft, child);
+        if (KEY_HOST_TYPES.has(type)) continue;
+        if (KEYED_TYPES.has(type)) {
+          const key = keyOf(readProp(reader, child, keyPropOf(type)));
+          if (key !== undefined) keys.add(key);
+        }
+        walk(child);
+      }
+    };
+    walk(host);
+  }
   return keys;
 }
 
@@ -282,20 +327,18 @@ export function catalogCopiesWithFreshKeys(
   if (!host) return [...entries];
   const taken = collectionKeys(draft, host);
   return entries.map((entry) => {
+    const type = typeNameOr(draft.reader, entry.definitionId);
+    const prop = keyPropOf(type);
     // (A record's prop is its authored write — `{ kind: "set", value }`.)
-    const written = entry.props.id;
+    const written = entry.props[prop];
     const key = written?.kind === "set" ? keyOf(written.value) : undefined;
-    if (
-      key === undefined ||
-      !taken.has(key) ||
-      !KEYED_TYPES.has(typeNameOr(draft.reader, entry.definitionId))
-    )
+    if (key === undefined || !taken.has(key) || !KEYED_TYPES.has(type))
       return entry;
     const fresh = String(newId("node")).split(":").pop()!;
     taken.add(fresh);
     return {
       ...entry,
-      props: { ...entry.props, id: { kind: "set", value: fresh } },
+      props: { ...entry.props, [prop]: { kind: "set", value: fresh } },
     };
   });
 }
@@ -331,16 +374,14 @@ function selectionPatch(
   key: string,
 ): Record<string, AuthoredValue> | null {
   const read = (name: string) => readProp(reader, owner, name);
+  // (ADR-308 Decision 2: the group's stored key is the default prop — the controlled twin only
+  //  where the group already holds it, since it is read first.)
   if (ownerType === "Tabs")
-    return read("selectedKey") === undefined &&
-      read("defaultSelectedKey") !== undefined
-      ? { defaultSelectedKey: key }
-      : { selectedKey: key };
+    return read("selectedKey") !== undefined
+      ? { selectedKey: key }
+      : { defaultSelectedKey: key };
   const prop =
-    read("selectedKeys") === undefined &&
-    read("defaultSelectedKeys") !== undefined
-      ? "defaultSelectedKeys"
-      : "selectedKeys";
+    read("selectedKeys") !== undefined ? "selectedKeys" : "defaultSelectedKeys";
   const current = read(prop);
   if (current === "all") return null;
   if (read("selectionMode") === "single") return { [prop]: [key] };
@@ -533,20 +574,10 @@ function unusedSwatchColor(taken: ReadonlySet<string>): string {
   return "#000000";
 }
 
-/** Whether a group item shows as selected (the resolver's precedence, `readPropSource`). */
-function shownSelected(draft: CommandDraft, item: NodeParent): boolean {
-  const target = targetOf(item);
-  return (
-    !!target &&
-    readPropSource(draft.reader, target, "isSelected").value === true
-  );
-}
-
 /**
  * Add an item to a group container (owned group or group instance; an instance's new item is
- * its own child, after the template's items). A Radio gets a unique `value`, a ColorSwatch an
- * unused color (and the last swatch's box); a selected Radio (or a single-selection ToggleButton)
- * clears its siblings' selection, and a RadioGroup takes the new value.
+ * its own child, after the template's items). A selection item gets a key its group does not have
+ * (ADR-308), a ColorSwatch an unused color (and the last swatch's box).
  */
 /** A position's edit target as a command parent. */
 function parentOfTarget(position: CatalogPosition): NodeParent {
@@ -693,14 +724,26 @@ export const insertGroupItem =
         props: { ...item.props, [key]: { kind: "set", value } },
       };
     };
-    if (itemType === "Radio" && own("value") === undefined) {
-      const radios = typed("Radio");
+    // ADR-308 Decision 1: a selection group's new item takes a key its group does not have yet — a
+    // Radio's · group Checkbox's `value`, a ToggleButton's · Disclosure's · SegmentedControlItem's
+    // `id`. A copy of a sibling brings that sibling's key, so a taken one is renamed too.
+    const keyFamily = SELECTION_KEY_FAMILIES.find(
+      (row) => row.item === itemType,
+    );
+    if (keyFamily) {
+      const peers = typed(itemType);
       const taken = new Set(
-        radios.map((radio) => String(readProp(reader, radio, "value") ?? "")),
+        peers.map((peer) =>
+          String(readProp(reader, peer, keyFamily.prop) ?? ""),
+        ),
       );
-      let n = radios.length + 1;
-      while (taken.has(`option${n}`)) n += 1;
-      setOwn("value", `option${n}`);
+      const current = keyOf(own(keyFamily.prop));
+      if (current === undefined || taken.has(current)) {
+        const stem = SELECTION_ITEM_KEY_STEMS[itemType] ?? "item-";
+        let n = peers.length + 1;
+        while (taken.has(`${stem}${n}`)) n += 1;
+        setOwn(keyFamily.prop, `${stem}${n}`);
+      }
     }
     // ADR-256 Phase 5b: a picker item takes an unused color; one made empty gets the reference's
     // ColorSwatch inside (the last item's swatch box — the origin's 28 × 28 by default).
@@ -751,77 +794,48 @@ export const insertGroupItem =
       ...input.entries.map((entry) => (entry.id === item.id ? item : entry)),
       ...added,
     ];
-    const single =
-      own("isSelected") === true &&
-      (groupType === "RadioGroup" ||
-        (groupType === "ToggleButtonGroup" &&
-          readTargetProp(
-            reader,
-            { kind: "node", id: host.id },
-            "selectionMode",
-          ) === "single"));
-    // The shown selection is read before the insert: a template wrapper materializes its items
-    // into the instance's own nodes (same order) when the item is placed.
-    const cleared = single
-      ? containerChildren.map(
-          (sibling) =>
-            positionType(draft, sibling) === itemType &&
-            shownSelected(draft, sibling),
-        )
-      : [];
-    place(draft, container, entries, input.rootId, input.newId);
-    const placed =
-      container.kind === "page" ? [] : (childList(draft, container) ?? []);
+    // ADR-308: a new item's selection is its group's keys — an item that comes Selected (a copy of
+    // a selected sibling's props) gives the group its key instead (one key while it selects one) and
+    // keeps no `isSelected` of its own.
+    const comesSelected = own("isSelected") === true;
+    const placed = comesSelected
+      ? entries.map((entry) => {
+          if (entry.id !== item.id) return entry;
+          const { isSelected: _selected, ...props } = entry.props;
+          return { ...entry, props };
+        })
+      : entries;
+    place(draft, container, placed, input.rootId, input.newId);
     const extra: CatalogOperation[] = [];
-    const ownWrite = (id: NodeId, props: Record<string, AuthoredValue>) => {
-      const node = draft.node(id);
+    const store = catalogGroupSelectionStoreProp(groupType);
+    const keyProp = keyPropOf(itemType);
+    const newKey = keyOf(
+      (item.props[keyProp] as { value?: unknown } | undefined)?.value,
+    );
+    if (comesSelected && store && newKey !== undefined) {
+      const hostProps = Object.fromEntries(
+        ["selectionMode", store].map((name) => [
+          name,
+          readTargetProp(reader, { kind: "node", id: host.id }, name),
+        ]),
+      );
+      const many = catalogGroupSelectsMany(groupType, hostProps);
+      const current = hostProps[store];
+      const keys = Array.isArray(current) ? current.map(String) : [];
       draft.write({
-        ...node,
+        ...draft.node(host.id),
         props: {
-          ...node.props,
-          ...Object.fromEntries(
-            Object.entries(props).map(([key, value]) => [
-              key,
-              { kind: "set", value } as WriteValue<AuthoredValue>,
-            ]),
-          ),
+          ...draft.node(host.id).props,
+          [store]: {
+            kind: "set",
+            value: many
+              ? [...keys.filter((key) => key !== newKey), newKey]
+              : store.endsWith("Keys")
+                ? [newKey]
+                : newKey,
+          },
         },
       });
-    };
-    if (single) {
-      cleared.forEach((selected, index) => {
-        if (!selected) return;
-        const sibling = containerChildren[index];
-        // A materialized template item is the wrapper's own node at its template child index.
-        const id =
-          sibling.kind === "descendant" && container.kind === "descendant"
-            ? placed[
-                readTemplate(
-                  draft,
-                  container.address.templatePath[
-                    container.address.templatePath.length - 1
-                  ],
-                ).children.findIndex(
-                  (child) =>
-                    child ===
-                    sibling.address.templatePath[
-                      sibling.address.templatePath.length - 1
-                    ],
-                )
-              ]
-            : sibling.kind === "node"
-              ? sibling.id
-              : undefined;
-        if (id) ownWrite(id, { isSelected: false });
-        else
-          extra.push(
-            ...setProps(reader, targetOf(sibling)!, { isSelected: false }),
-          );
-      });
-      if (groupType === "RadioGroup")
-        ownWrite(host.id, {
-          value: (item.props.value as { value: Scalar }).value,
-        });
     }
     return {
       label: input.label ?? "Add item",

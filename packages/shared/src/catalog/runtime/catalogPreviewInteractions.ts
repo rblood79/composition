@@ -38,7 +38,18 @@ import {
   catalogSelectValue,
   CATALOG_OPEN_BODY_TYPES,
 } from "./runtimeStateProps";
-import { catalogActionButtonGroupOf, catalogToggleGroupOf } from "./presence";
+import {
+  catalogAccordionOf,
+  catalogActionButtonGroupOf,
+  catalogToggleGroupOf,
+} from "./presence";
+import {
+  catalogGroupItems,
+  catalogGroupSelectionProps,
+  catalogGroupSelectsMany,
+  catalogItemKey,
+  catalogSelectionGroupOf,
+} from "./groupSelection";
 import { catalogInteractionAppliesTo } from "../resolution/effectiveInteractions";
 import { catalogAncestorInherited } from "./inheritedProps";
 import {
@@ -613,6 +624,59 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
               (recordId) => this.overrideOf(recordId),
             )
           : undefined;
+      },
+      // ADR-308 Decision 3 — an item's selection · expansion is its group's (`groupSelection.ts`).
+      groupStateOf: (id, prop) => {
+        const root = options.root();
+        const record = root?.domInputs.get(id);
+        if (!root || !record) return undefined;
+        const get = (recordId: string) => root.domInputs.get(recordId);
+        const typeOf = (node: typeof record) => catalogTypeName(root, node);
+        if (prop === "isSelected") {
+          const group = catalogSelectionGroupOf(record, get, typeOf);
+          if (!group) return undefined;
+          const type = typeOf(group);
+          const [controlledProp] = catalogGroupSelectionProps(type)!;
+          const props = { ...group.props, ...this.overrideOf(group.id) };
+          const many = catalogGroupSelectsMany(type, props);
+          return {
+            groupId: group.id,
+            prop: controlledProp,
+            key: catalogItemKey(record, typeOf),
+            single: !many,
+            // (A key list prop — `selectedKeys`, a CheckboxGroup's · multiple Select's `value` —
+            //  holds a list even while it selects one.)
+            shape:
+              many || controlledProp === "selectedKeys" ? "keys" : "key",
+            itemKeys: catalogGroupItems(group, get, typeOf).map((item) =>
+              catalogItemKey(item, typeOf),
+            ),
+          };
+        }
+        if (prop === "isExpanded") {
+          const type = typeOf(record);
+          const group =
+            type === "Disclosure"
+              ? catalogAccordionOf(record, get, typeOf)
+              : type === "TreeItem"
+                ? catalogSelectionGroupOf(record, get, typeOf)
+                : undefined;
+          if (!group) return undefined;
+          const props = { ...group.props, ...this.overrideOf(group.id) };
+          return {
+            groupId: group.id,
+            prop: "expandedKeys",
+            key: catalogItemKey(record, typeOf),
+            single:
+              typeOf(group) === "Accordion" &&
+              props.allowsMultipleExpanded !== true,
+            shape: "keys",
+            itemKeys: catalogGroupItems(group, get, typeOf).map((item) =>
+              catalogItemKey(item, typeOf),
+            ),
+          };
+        }
+        return undefined;
       },
       stateOwnerOf: (id, prop) => {
         const root = options.root();

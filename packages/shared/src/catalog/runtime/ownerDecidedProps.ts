@@ -19,6 +19,7 @@ import {
   catalogListPicker,
   catalogTypeName,
 } from "./delegatedDom.runtime";
+import { catalogSelectionGroupOf } from "./groupSelection";
 
 /**
  * 2026-10-14 (사용자 「모든컴퍼넌트와 컴퍼넌트 자식들 전수조사후 불필요하게 등록된 프러퍼티 제거」): a
@@ -65,6 +66,10 @@ export const CATALOG_OWNER_DECIDED_TYPES: ReadonlySet<string> = new Set([
   ...Object.values(CATALOG_SIZE_PROPAGATION).flat(),
   "ListBox",
   "ListBoxItem",
+  // (ADR-308: a standalone-capable item in a selection group — its Selected is the group's.)
+  "Card",
+  "ToggleButton",
+  "Checkbox",
   "Calendar",
   "RangeCalendar",
   ...CATALOG_OPEN_BODY_TYPES,
@@ -126,6 +131,16 @@ export function catalogOwnerDecidedProps(
           ? CATALOG_PICKER_RANGE_CALENDAR_PROPS
           : CATALOG_PICKER_CALENDAR_PROPS,
       );
+  }
+  // ADR-308 Decision 4 · 5 — a Card · ToggleButton · Checkbox in its selection group: its Selected
+  // is the group's (the group's Value field) — alone it stays its own (RAC's own state).
+  if (type === "Card" || type === "ToggleButton" || type === "Checkbox") {
+    const selectionGroup = catalogSelectionGroupOf(
+      node,
+      (id) => root.domInputs.get(id),
+      (record) => catalogTypeName(root, record),
+    );
+    if (selectionGroup) add(selectionGroup, ["isSelected"]);
   }
   if (CATALOG_OPEN_BODY_TYPES.has(type)) {
     const host = catalogOpenHostOf(root, node.id, (record) =>

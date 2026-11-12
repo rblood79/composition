@@ -605,6 +605,16 @@ export const semanticLabelKeys: Record<string, string> = {
   "Allows Removing": "properties.allowsRemoving",
   "Stroke Width": "properties.strokeWidth",
   "Allow Multiple Expanded": "properties.allowMultipleExpanded",
+  // ADR-308 — a group's selection · expansion field.
+  "Selected item": "properties.selectedItem",
+  "Selected items": "properties.selectedItems",
+  "Selected tab": "properties.selectedTab",
+  "Expanded items": "properties.expandedItems",
+  "Item ID": "properties.itemId",
+  // 2026-11-12 — a toggle's `value` is what its form submits (in a group, its key); the field's
+  // name is not the Value section's.
+  "Submit value": "properties.submitValue",
+  "Input value": "properties.inputValue",
   Expanded: "properties.expanded",
   "Image URL": "properties.imageUrl",
   "Alt Text": "properties.altText",

@@ -221,12 +221,10 @@ describe.skipIf(BASELINE_ABSENT)("ADR-248 G0 active descendant routes", () => {
     );
     const radios = ofType(graph, group, "Radio");
     expect(radios).toHaveLength(3);
-    for (const inherited of radios.slice(0, -1))
-      expect(inherited.props.isSelected).toBe(old.reader.inheritedSelected);
-    expect(radios.at(-1)?.props).toMatchObject({
-      isSelected: old.reader.addedSelected,
-      value: old.reader.addedValue,
-    });
+    // (ADR-308: the group's value holds the selection — the new Radio keeps no `isSelected` and no
+    //  sibling's is written.)
+    expect(radios.at(-1)?.props.isSelected).not.toBe(true);
+    expect(radios.at(-1)?.props.value).toBe(old.reader.addedValue);
   });
 
   it("table-column-insert: the first column of a Table instance's header", () => {

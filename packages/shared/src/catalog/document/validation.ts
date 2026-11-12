@@ -295,6 +295,7 @@ const valueTypes = new Set<ValueType>([
   "numberFormat",
   "selectionCount",
   "selectionKeys",
+  "selectionValue",
   "autoFocus",
   "numberRange",
   "labeledValue",

@@ -1,3 +1,4 @@
+import { ITEM_KEY_PROP_CONTRACT } from "../document/itemLinks";
 /**
  * ADR-142 family ①(primitives/actions) — ToggleButton leaf RAC primitive 의 `PrimitiveBinding`.
  *
@@ -50,6 +51,8 @@ export const toggleButtonBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // ADR-308 사용자 결정 2: its RAC key — the name its group's selection uses.
+      id: ITEM_KEY_PROP_CONTRACT,
       children: { kind: "string", label: "Label", section: "content" },
       size: {
         kind: "size",

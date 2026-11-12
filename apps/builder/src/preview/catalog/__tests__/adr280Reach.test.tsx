@@ -114,11 +114,9 @@ describe("ADR-280 G2 — toggles", () => {
   });
 
   it("ToggleButtonGroup selectItem presses the button", async () => {
+    // (ADR-308: an item's key is its `id` — the origin's last ToggleButton is `toggle-2`.)
     const h = await pressRule("ToggleButtonGroup", "selectItem", {
-      pickValue: (harness) =>
-        qa(harness, "button[aria-pressed], [role=radio]")
-          .at(-1)!
-          .getAttribute("data-catalog-id")!,
+      pickValue: () => "toggle-2",
     });
     h.press();
     const last = qa(h, "button[aria-pressed], [role=radio]").at(-1)!;

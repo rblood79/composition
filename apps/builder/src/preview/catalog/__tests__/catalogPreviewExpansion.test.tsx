@@ -261,21 +261,28 @@ describe("ADR-250 Preview expansion is runtime state", () => {
     expect(builderProps(ids[0]!).isExpanded).toBe(true);
     view.unmount();
   });
-  it("a Disclosure in an Accordion: the click stays in the Preview, the group follows each Builder declaration", async () => {
+  it("a Disclosure in an Accordion: the click stays in the Preview, the group follows each Builder declaration (ADR-308 — its expandedKeys)", async () => {
     const { view, workspace, flush } = await open(["Accordion"]);
     const expanded = () =>
       [...view.container.querySelectorAll(".react-aria-Disclosure")].map(
         (disclosure) => disclosure.hasAttribute("data-expanded"),
       );
-    const first = workspace.root
-      .recordsOfSource("project:node:accordion" as NodeId)
-      .flatMap((group) => workspace.root.domInputs.get(group)!.children)[0]!;
-    const target = workspace.itemOfRecord(first)!.target;
+    // (ADR-308: the expansion is the Accordion's `expandedKeys` — the Builder declares the first
+    // section's in the group's keys.)
+    const [group] = workspace.root.recordsOfSource(
+      "project:node:accordion" as NodeId,
+    );
+    const target = workspace.itemOfRecord(group!)!.target;
     const declare = (isExpanded: boolean) => {
       workspace.execute(
         setFields({
           targets: [target],
-          props: { isExpanded: { kind: "set", value: isExpanded } },
+          props: {
+            expandedKeys: {
+              kind: "set",
+              value: isExpanded ? ["section-1", "section-2"] : ["section-2"],
+            },
+          },
           label: "Edit properties",
         }),
       );
@@ -283,13 +290,13 @@ describe("ADR-250 Preview expansion is runtime state", () => {
     };
     // (S2 Accordion defaults to single expansion since 792815efc — this row is about the group
     // following each declaration, so the group declares multiple expansion first.)
-    const [group] = workspace.root.recordsOfSource(
-      "project:node:accordion" as NodeId,
-    );
     workspace.execute(
       setFields({
-        targets: [workspace.itemOfRecord(group!)!.target],
-        props: { allowsMultipleExpanded: { kind: "set", value: true } },
+        targets: [target],
+        props: {
+          allowsMultipleExpanded: { kind: "set", value: true },
+          expandedKeys: { kind: "set", value: ["section-1", "section-2"] },
+        },
         label: "Edit properties",
       }),
     );

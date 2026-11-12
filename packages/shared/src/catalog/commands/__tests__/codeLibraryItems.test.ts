@@ -64,7 +64,8 @@ describe("ADR-248 Phase 4b item commands on code library origins", () => {
     expect(accepts("TabPanel").itemId).toBe("string");
     expect(accepts("Column").key).toBe("string");
     expect(accepts("Tabs").selectedKey).toBe("string");
-    expect(accepts("ListBox").selectedKeys).toBe("string[]");
+    // (ADR-308 Phase 1: a group's selection is its binding's `selection-keys` contract.)
+    expect(accepts("ListBox").selectedKeys).toBe("selectionKeys");
     expect(accepts("Tree").expandedKeys).toBe("string[]");
   });
 
@@ -97,12 +98,14 @@ describe("ADR-248 Phase 4b item commands on code library origins", () => {
       }),
     );
     expect(ofType(graph, tabs, "Tab").map((tab) => tab.props.id)).toEqual([
-      undefined,
-      undefined,
+      // (ADR-308 Phase 1: the origin's Tabs carry authored keys.)
+      "tab-1",
+      "tab-2",
       "k3",
     ]);
     expect(ofType(graph, tabs, "TabPanel").at(-1)?.props.itemId).toBe("k3");
-    expect(ofType(graph, tabs, "Tabs")[0].props.selectedKey).toBe("k3");
+    // (ADR-308: the Tabs store their key in `defaultSelectedKey`.)
+    expect(ofType(graph, tabs, "Tabs")[0].props.defaultSelectedKey).toBe("k3");
   });
 
   it("adds a column to a Table origin instance's header position", () => {
@@ -146,14 +149,13 @@ describe("ADR-248 Phase 4b item commands on code library origins", () => {
     ]);
   });
 
-  it("a new selected Radio clears the radios a `selected` state origin shows", () => {
+  it("a new selected Radio gives its group its value (ADR-308)", () => {
     const group = id("group");
     const graph = graphWith([node("group", ORIGIN("radiogroup"))]);
-    // The Radio origin template displays `selected`, but inside its RadioGroup a Radio's selection
-    // is the group's value (ADR-256 후속 7): none shows selected.
+    // (ADR-308: a Radio has no `isSelected` — its RadioGroup's value is the selection.)
     expect(
       ofType(graph, group, "Radio").map((radio) => radio.props.isSelected),
-    ).toEqual([false, false]);
+    ).toEqual([undefined, undefined]);
     run(
       graph,
       insertGroupItem({
@@ -167,16 +169,17 @@ describe("ADR-248 Phase 4b item commands on code library origins", () => {
         newId: allocator(),
       }),
     );
+    // (ADR-308: the new Radio's selection is its group's value — it keeps no `isSelected`.)
     expect(
       ofType(graph, group, "Radio").map((radio) => [
         radio.props.value,
         radio.props.isSelected,
       ]),
     ).toEqual([
-      ["option1", false],
-      ["option2", false],
-      ["option3", true],
-    ]);
-    expect(ofType(graph, group, "RadioGroup")[0].props.value).toBe("option3");
+      // (ADR-308 Phase 3: a Radio has no `isSelected` — its group's value is the selection.)
+      ["option1", undefined],
+      ["option2", undefined],
+      ["option3", undefined],
+    ]);    expect(ofType(graph, group, "RadioGroup")[0].props.value).toBe("option3");
   });
 });

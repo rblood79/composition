@@ -717,13 +717,15 @@ describe("ADR-256 Phase 4 review (round 10)", () => {
     for (const framed of [false, true]) {
       const { root } = await open(
         [
+          // (ADR-308: the group holds the selection — its buttons' keys.)
           node("g", "ToggleButtonGroup", framed ? ["f"] : ["tb", "tb2"], {
             selectionMode: "single",
+            defaultSelectedKeys: ["b"],
           }),
           ...(framed ? [node("f", "frame", ["tb", "tb2"])] : []),
-          node("tb", "ToggleButton", ["on"], { isSelected: false, children: "A" }),
+          node("tb", "ToggleButton", ["on"], { id: "a", children: "A" }),
           node("on", "text", [], { children: "On" }, { all: ["isSelected"] }),
-          node("tb2", "ToggleButton", [], { isSelected: true, children: "B" }),
+          node("tb2", "ToggleButton", [], { id: "b", children: "B" }),
         ],
         "g",
       );

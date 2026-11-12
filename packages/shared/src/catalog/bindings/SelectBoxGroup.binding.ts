@@ -13,12 +13,13 @@ export const selectBoxGroupBinding: PrimitiveBinding = {
       selectedKeys: {
         editorHidden: true,
         kind: "selection-keys",
-        label: "Selected keys",
+        label: "Selected items",
         section: "value",
       },
+      // ADR-308 Phase 2: its SelectBoxes as a check list (사용자 결정 3).
       defaultSelectedKeys: {
         kind: "selection-keys",
-        label: "Selected keys",
+        label: "Selected items",
         section: "value",
       },
       disabledKeys: {

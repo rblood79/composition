@@ -142,6 +142,8 @@ export type InspectorFieldKind =
   | "number"
   | "selection-count"
   | "selection-keys"
+  // ADR-308 — S2 Picker `value`: a key (single) or keys (multiple).
+  | "selection-value"
   | "auto-focus"
   | "number-range"
   | "icon"

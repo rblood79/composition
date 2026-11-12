@@ -16,6 +16,7 @@ import {
 import { catalogRowTemplateOwner } from "../../../catalogRuntime/rowTemplate";
 import { targetKey } from "../../../catalogRuntime/session";
 import { catalogPickerSelectionOwner } from "../../../catalogRuntime/singleSelection";
+import { catalogItemSelected } from "../../../../../../../packages/shared/src/catalog/runtime/groupSelection";
 import { catalogVisibleVariableEntries } from "../../../catalogRuntime/stateVariables";
 import { useCollections } from "../../../stores/data";
 import type { FieldValueSource } from "../generic/fieldValueSource";
@@ -26,6 +27,30 @@ import {
 } from "../hooks/useVisibleVariableNames";
 
 const noSubscription = () => () => {};
+
+/**
+ * ADR-308 — a picker option's selection Checkbox shows its option's selection, which is the
+ * picker's keys (`catalogItemSelected`), not a prop of the option. Undefined for another record.
+ */
+function usePickerOptionSelected(
+  identity: string | null | undefined,
+): boolean | undefined {
+  const workspace = useCatalogWorkspace();
+  const reading = useCatalogStepReading(workspace, () => {
+    if (!identity) return null;
+    const owner = catalogPickerSelectionOwner(workspace, identity);
+    if (!owner) return null;
+    const root = workspace.root;
+    return (
+      catalogItemSelected(
+        owner,
+        (id) => root.canvasInputs.get(id),
+        (record) => root.typeOf(record),
+      ) ?? null
+    );
+  });
+  return reading ?? undefined;
+}
 
 /** The edit target of a drawn record (the panel's `elementId` is the record identity). */
 function useRecordTarget(identity: string | null | undefined, key?: string) {
@@ -78,6 +103,7 @@ function useSourcedValues(
 ): string {
   const { readModel } = useCatalogWorkspace();
   const target = useRecordTarget(identity);
+  const pickerSelected = usePickerOptionSelected(identity);
   // (Selected is the option's for a picker's selection Checkbox — `useRecordTarget`)
   const selected = useRecordTarget(identity, "isSelected");
   const targetOf = (key: string, own: EditTarget) =>
@@ -99,10 +125,12 @@ function useSourcedValues(
   return useSyncExternalStore(subscribe, () =>
     JSON.stringify(
       keys.map((key, index) =>
-        target
-          ? (readValue(readModel, targetOf(key, target), key) ??
-            baseValues[index])
-          : baseValues[index],
+        key === "isSelected" && pickerSelected !== undefined
+          ? pickerSelected
+          : target
+            ? (readValue(readModel, targetOf(key, target), key) ??
+              baseValues[index])
+            : baseValues[index],
       ),
     ),
   );
@@ -117,6 +145,9 @@ export const CATALOG_FIELD_VALUE_SOURCE: FieldValueSource = {
   useValue(elementId, _origin: FieldOrigin, key, baseValue) {
     const { readModel } = useCatalogWorkspace();
     const target = useRecordTarget(elementId, key);
+    const pickerSelected = usePickerOptionSelected(
+      key === "isSelected" ? elementId : null,
+    );
     const id = target ? targetKey(target) : "";
     const subscribe = useCallback(
       (notify: () => void) =>
@@ -127,9 +158,10 @@ export const CATALOG_FIELD_VALUE_SOURCE: FieldValueSource = {
       [readModel, id, key],
     );
     // The cached reading keeps its value object until the value changes.
-    return useSyncExternalStore(subscribe, () =>
+    const value = useSyncExternalStore(subscribe, () =>
       target ? (readValue(readModel, target, key) ?? baseValue) : baseValue,
     );
+    return pickerSelected !== undefined ? pickerSelected : value;
   },
   useValuesSnapshot(elementId, _origin, keys, baseValues) {
     return useSourcedValues(elementId, keys, baseValues);

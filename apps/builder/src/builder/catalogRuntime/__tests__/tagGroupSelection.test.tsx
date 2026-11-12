@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { selectItem } from "./support/selectItem";
 import "fake-indexeddb/auto";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -74,13 +75,9 @@ async function open(groupProps: Record<string, string> = {}) {
   const of = (type: string) =>
     [...root.canvasInputs.values()].filter((r) => root.typeOf(r) === type);
   const target = (id: string) => workspace.positionOfRecord(id)!.target;
+  // (ADR-308: a Tag's selection is its TagGroup's keys.)
   const select = (index: number, value: boolean) =>
-    workspace.execute(
-      setFields({
-        targets: [target(of("Tag")[index]!.id)],
-        props: { isSelected: set(value) },
-      }),
-    );
+    selectItem(workspace, of("Tag")[index]!.id, value);
   const canvasSelected = () =>
     of("Tag").map((tag) =>
       catalogStateValue(

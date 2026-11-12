@@ -77,7 +77,7 @@ paths:
 
 - Picker Popover의 collision 여백은 트리거 폭을 보존할 수 있는 범위로 제한하고 위치·폭 상한에 함께 사용한다. **Why (2026-11-05):** 부모 padding 0에서 전체 폭 Select와 고정 여백 12px이 충돌해 메뉴가 넘쳤고, 최소 폭만 제한하면 트리거보다 24px 좁아졌다. DOM과 Canvas 모두 실효 여백으로 배치하고 트리거·viewport 크기 변경을 반영해야 한다.
 
-- Picker single의 check도 실제 Icon 부품으로 두고, 모드별 부품 제외를 Canvas·Preview·Layers에 같이 적용한다. selection Checkbox의 Selected 편집은 옵션의 선택 상태를 쓴다. **Why (2026-11-05):** 렌더러가 그린 single check는 Layers에 없고 숨긴 Checkbox만 남았다. Checkbox 자체에 Selected를 써도 ListBoxItem의 상태가 덮어 체크가 바뀌지 않았으며 Preview 초기값도 옵션을 읽지 않았다. single check의 Grid 행 중앙은 min-height로 늘어난 옵션 전체 중앙과 다르므로, 저작 Layout에서 옵션 전체 높이를 기준으로 배치한다. DOM의 기존 `translate: 0 -50%`에 `margin-top: -8px`를 더하면 위로 이중 보정되므로 음수 margin을 추가하지 않는다. 선택 열 24px 안의 16px Icon은 항목 padding 4px에 열 내부 여백 4px를 더한 left 8px로 맞춘다. multiple의 selection Checkbox도 슬롯 폭 24px와 내부 `alignItems: center`를 저작 Layout에 명시해 control이 왼쪽에 붙지 않게 한다.
+- Picker single의 check도 실제 Icon 부품으로 두고, 모드별 부품 제외를 Canvas·Preview·Layers에 같이 적용한다. selection Checkbox의 Selected 편집은 옵션의 key 를 picker 의 선택 값에 넣고 뺀다 (ADR-308 — 옵션 자신의 `isSelected` 는 없다). **Why (2026-11-05):** 렌더러가 그린 single check는 Layers에 없고 숨긴 Checkbox만 남았다. Checkbox 자체에 Selected를 써도 ListBoxItem의 상태가 덮어 체크가 바뀌지 않았으며 Preview 초기값도 옵션을 읽지 않았다. single check의 Grid 행 중앙은 min-height로 늘어난 옵션 전체 중앙과 다르므로, 저작 Layout에서 옵션 전체 높이를 기준으로 배치한다. DOM의 기존 `translate: 0 -50%`에 `margin-top: -8px`를 더하면 위로 이중 보정되므로 음수 margin을 추가하지 않는다. 선택 열 24px 안의 16px Icon은 항목 padding 4px에 열 내부 여백 4px를 더한 left 8px로 맞춘다. multiple의 selection Checkbox도 슬롯 폭 24px와 내부 `alignItems: center`를 저작 Layout에 명시해 control이 왼쪽에 붙지 않게 한다.
 
 ## 1. Skia 단일 렌더러 (ADR-900)
 

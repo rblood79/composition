@@ -714,6 +714,26 @@ const ownedGroupItems = (markup: string) =>
     // (A TagGroup's Tags too: RAC's key is the item's record.)
     .replace(/data-key=project:node:[^ >]+/g, "data-key=<item>");
 
+/**
+ * ADR-308 Phase 1: the Library origin's group items carry authored keys — a Checkbox's `value`, a
+ * Tag's `id` (RAC's key) — where the fixture shows the items' records (`<item>`), in order.
+ */
+const ORIGIN_ITEM_KEYS: Readonly<
+  Record<string, readonly [string, readonly string[]]>
+> = {
+  checkboxgroup: ["value", ["option1", "option2"]],
+  taggroup: ["data-key", ["chocolate", "mint", "strawberry", "vanilla"]],
+};
+const withOriginItemKeys = (type: string, markup: string) => {
+  const spec = ORIGIN_ITEM_KEYS[type];
+  if (!spec) return markup;
+  const [attr, keys] = spec;
+  let index = 0;
+  return markup.replace(new RegExp(`${attr}=<item>`, "g"), (match) =>
+    index < keys.length ? `${attr}=${keys[index++]}` : match,
+  );
+};
+
 describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its props before", () => {
   const write = process.env.ADR253_WRITE_DOM === "1";
   const fixture: Record<string, string> =
@@ -832,7 +852,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
               "class=react-aria-FieldError data-rac= data-variant=default id slot=errorMessage",
             );
           expect(owned(glyphless(withoutNecessityGlyph(structure)))).toBe(
-            owned(glyphless(hints)),
+            withOriginItemKeys(type, owned(glyphless(hints))),
           );
           return;
         }

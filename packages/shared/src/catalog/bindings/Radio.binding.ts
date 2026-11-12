@@ -35,7 +35,7 @@ export const radioBinding: PrimitiveBinding = {
         section: "content",
       },
       // RAC Radio 는 group 안에서 value 로 식별
-      value: { kind: "string", label: "Value", section: "content" },
+      value: { kind: "string", label: "Submit value", section: "content" },
       // S2 1.8.0: Radio 의 강조는 그룹의 context 전용 값 (RadioGroup `isEmphasized` — resolver
       //   `applyOwnerEmphasis` 가 싣는다, 패널 미노출). 내부 `variant` 는 그 운반 값
       //   (`CATALOG_BOOLEAN_VARIANTS`) — 옛 per-Radio variant (accent · neutral · negative) 는
@@ -59,7 +59,7 @@ export const radioBinding: PrimitiveBinding = {
         section: "appearance",
         default: "M",
       },
-      isSelected: { kind: "boolean", label: "Selected", section: "value" },
+      // (ADR-308: a Radio's selection is its RadioGroup's `value` — RAC Radio has no `isSelected`.)
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC Radio 공식 prop —
       //   generic toRacProps 경로로 RAC Radio 에 직접 전달.

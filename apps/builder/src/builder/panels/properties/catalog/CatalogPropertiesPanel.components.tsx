@@ -37,10 +37,10 @@ import { ORIGIN_VIEW_NODE } from "../../../catalogRuntime/originView";
 import { catalogSettingsPage } from "../../../catalogRuntime/pageSettings";
 
 import {
-  catalogRadioGroupValueOptions,
+  catalogGroupKeysFields,
+  catalogGroupKeysWriteCommand,
+  catalogItemKeyRenameCommands,
   catalogPickerSelectionCommands,
-  catalogSingleSelectionCommand,
-  catalogTabsSelectedTab,
 } from "../../../catalogRuntime/singleSelection";
 
 import { composeCommands } from "../../../../../../../packages/shared/src/catalog/commands";
@@ -331,52 +331,47 @@ const CatalogFields = memo(function CatalogFields({
     const [owner, keys] = ownerDecidedKey.split(":");
     return { owner: owner!, keys: new Set(keys!.split(",")) };
   }, [ownerDecidedKey]);
-  // A RadioGroup's Value is one of its Radios' values (any depth — the record tree).
-  const radioOptionsKey = useSyncExternalStore(subscribeSteps, () =>
-    contract.type === "RadioGroup"
-      ? JSON.stringify(catalogRadioGroupValueOptions(workspace.root, elementId))
-      : "",
+  // ADR-308 Decision 5 — a group's selection · expansion field: its items (key · text) as the
+  // choices (a bound list's sample rows — 사용자 결정 4), a dropdown for one key and a check list for
+  // several (사용자 결정 3), showing the keys it holds (its RAC default while it stores none).
+  const groupFieldsKey = useSyncExternalStore(subscribeSteps, () =>
+    targets.length === 1
+      ? JSON.stringify(catalogGroupKeysFields(workspace.root, elementId))
+      : "[]",
   );
-  // A Tabs' Selected Tab: its Tabs, showing the selected one.
-  const selectedTabKey = useSyncExternalStore(subscribeSteps, () =>
-    contract.type === "Tabs"
-      ? JSON.stringify(
-          catalogTabsSelectedTab(workspace.root, elementId) ?? null,
-        )
-      : "",
+  const groupFields = useMemo(
+    () =>
+      JSON.parse(groupFieldsKey) as ReturnType<typeof catalogGroupKeysFields>,
+    [groupFieldsKey],
   );
   const semanticFields = useMemo(() => {
-    const radioOptions = radioOptionsKey
-      ? (JSON.parse(radioOptionsKey) as { value: string; label: string }[])
-      : undefined;
-    const selectedTab = selectedTabKey
-      ? (JSON.parse(selectedTabKey) as ReturnType<
-          typeof catalogTabsSelectedTab
-        >)
-      : undefined;
     const fields = contract.fields
       .filter(
         (field) =>
           field.origin === "semantic" && !ownerDecided?.keys.has(field.key),
       )
-      .map((field) =>
-        radioOptions && field.key === "value"
-          ? { ...field, options: radioOptions }
-          : selectedTab && field.key === "defaultSelectedKey"
-            ? {
-                ...field,
-                options: selectedTab.options,
-                // (Shown when the Tabs keep no key — the renderer reads own ?? base.)
-                baseValue: selectedTab.value,
-                currentValue: selectedTab.value,
-                isOverridden: false,
-              }
-            : field,
-      );
+      .map((field) => {
+        const group = groupFields.find((item) => item.key === field.key);
+        if (!group) return field;
+        return {
+          ...field,
+          // (One key or several — the group's mode decides the label too.)
+          ...(field.label === "Selected items" || field.label === "Selected item"
+            ? { label: group.many ? "Selected items" : "Selected item" }
+            : {}),
+          kind: group.many ? ("selection-keys" as const) : ("enum" as const),
+          options: [...group.options],
+          // (Shown while the group stores none — the renderer reads own ?? base.)
+          baseValue: group.value,
+          ...(field.currentValue === undefined
+            ? { currentValue: group.value }
+            : {}),
+        };
+      });
     // (ADR-276: a Button · ToggleButton origin's words · glyph are its `label` · `icon` props —
     // its reusable schema, no child fields of its own.)
     return fields;
-  }, [contract, ownerDecided, radioOptionsKey, selectedTabKey]);
+  }, [contract, ownerDecided, groupFields]);
   // (A picker's calendar keeps its own notice — it names what the picker edits.)
   const decidedLabels = ownerDecided
     ? contract.fields
@@ -432,9 +427,22 @@ const CatalogFields = memo(function CatalogFields({
           return;
         }
       }
-      // (A Tabs' Selected Tab writes its Tab's Selected, not a key on the Tabs — below.)
-      const { defaultSelectedKey: _tab, ...own } = patch;
-      const written = contract.type === "Tabs" ? own : patch;
+      // ADR-308 — a group field writes the group's prop (its controlled twin dropped).
+      const groupKey =
+        targets.length === 1 && Object.keys(patch).length === 1
+          ? groupFields.find((field) => field.key in patch)?.key
+          : undefined;
+      if (groupKey) {
+        const command = catalogGroupKeysWriteCommand(
+          workspace,
+          elementId,
+          groupKey,
+          patch[groupKey],
+        );
+        if (command) run(command);
+        return;
+      }
+      const written = patch;
       const command = Object.keys(written).length
         ? catalogPropertiesPatchCommand(
             workspace.runtime.graph,
@@ -447,11 +455,11 @@ const CatalogFields = memo(function CatalogFields({
               workspace.readModel.propSource(target, changed).value,
           )
         : undefined;
-      // One value stays one (a Selected item takes it from the others; a RadioGroup's Value and
-      // its Radios' Selected follow each other) — in the same step.
+      // ADR-308 Decision 7 — an item's key edit moves the keys that name it (its group's selection ·
+      // expansion, a Tab's TabPanel) in the same step.
       const keep =
-        targets.length === 1
-          ? catalogSingleSelectionCommand(workspace, elementId, patch)
+        targets.length === 1 && "id" in patch
+          ? catalogItemKeyRenameCommands(workspace, elementId, patch.id)
           : [];
       // A glyph's Size step is drawn only without an authored font size or box (`glyphSize.ts`).
       const glyphStep =
@@ -472,7 +480,7 @@ const CatalogFields = memo(function CatalogFields({
           : all[0]!,
       );
     },
-    [bindingKeys, contract.type, elementId, run, targets, workspace],
+    [bindingKeys, contract.type, elementId, groupFields, run, targets, workspace],
   );
   const handleSemanticUpdate = useCallback(
     (key: string, value: unknown) => handlePatch({ [key]: value }),

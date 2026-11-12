@@ -1,9 +1,6 @@
 import { CATALOG_COMPONENT_SLOT_CONTEXTS } from "../../components/catalogSlotContexts";
 import { catalogSelectBoxText } from "./selectBoxText";
-import {
-  selectBoxDeclaredSelection,
-  selectBoxDisabledKeys,
-} from "./selectBoxSelection";
+import { selectBoxDisabledKeys } from "./selectBoxSelection";
 import { ActionBar } from "../../components/ActionBar";
 import {
   catalogSelectionCountFits,
@@ -15,16 +12,10 @@ import {
   SegmentedControl as AriaSegmentGroup,
 } from "../../components/SegmentedControl";
 import { RangeSlider as CatalogRangeSlider } from "../../components/RangeSlider";
-import {
-  catalogSegmentItems,
-  catalogSegmentKey,
-  catalogSegmentSelected,
-} from "./segmentedSelection";
+import { catalogSegmentItems } from "./segmentedSelection";
 import { catalogRangeValue } from "./rangeSliderValue";
 import {
   catalogPickerSelectionItem,
-  catalogPickerOptions,
-  catalogComboBoxSelectedOption,
   LISTBOX_PICKER_TYPES,
 } from "./pickerSelection";
 import { CatalogPickerSelectionSlot } from "./pickerSelection.components";
@@ -206,10 +197,7 @@ import { FileTriggerIntake } from "../../upload/intakeAdapters";
 
 import { safeParseDateString } from "../../utils/core/dateUtils";
 
-import {
-  allowsMultipleExpanded,
-  resolveGroupExpandedDisclosureIds,
-} from "../../utils/accordionExpansion";
+import { allowsMultipleExpanded } from "../../utils/accordionExpansion";
 
 import type { DefinitionId } from "../document/types";
 
@@ -217,11 +205,16 @@ import { catalogCalendarDurationFits } from "../document/valueType";
 import { catalogNumberFormatOptions } from "../document/numberFormatValue";
 
 import {
-  catalogItemStartsSelected,
   isCollectionItemOf,
   isCollectionWrapperOf,
 } from "../document/collectionItems";
 import { resolveStaticItemKey } from "../slotRoles";
+import {
+  CATALOG_SELECTION_GROUP_TYPES,
+  catalogGroupExpansion,
+  catalogGroupSelection,
+  catalogItemKey,
+} from "./groupSelection";
 
 import type {
   CatalogCompositionRoot,
@@ -539,46 +532,33 @@ export const childrenOf = (
 export const children = (input: DelegatedDomInput): CatalogConsumerNode[] =>
   childrenOf(input.root, input.node);
 
+/** A DOM record's type, as `groupSelection.ts` reads it. */
+const groupTypeOf =
+  (root: CatalogCompositionRoot) => (record: CatalogConsumerNode) =>
+    catalogTypeName(root, record);
+
 /**
- * A collection's RAC `defaultSelectedKeys` (2026-10-13): the keys of its items set Selected
- * (`isSelected` — through its sections · TableBody · parent TreeItems) while it selects — the
- * Canvas `catalogCollectionItemSelected` reads the same (`catalogItemStartsSelected`).
+ * A collection's selected keys (ADR-308 — its own `selectedKeys` · `defaultSelectedKeys`, the
+ * Canvas reads the same): `"all"` spelled out as its item keys.
  */
 export function catalogCollectionSelectedKeys(
   root: CatalogCompositionRoot,
   collection: CatalogConsumerNode,
 ): string[] {
-  const type = catalogTypeName(root, collection);
-  const keys: string[] = [];
-  const visit = (node: CatalogConsumerNode) => {
-    for (const child of node.children) {
-      const record = root.domInputs.get(child);
-      if (!record) continue;
-      const childType = catalogTypeName(root, record);
-      if (
-        isCollectionItemOf(childType, type) &&
-        catalogItemStartsSelected(type, collection.props, record.props)
-      )
-        keys.push(
-          // (A Row is not a static collection item: its HTML id, when it has one, is RAC's `id` —
-          // `withHtmlId` — so its key.)
-          childType === "Row" && record.htmlId
-            ? record.htmlId
-            : resolveStaticItemKey(
-                record.props as Record<string, unknown>,
-                record.id,
-              ),
-        );
-      if (isCollectionWrapperOf(childType, type)) visit(record);
-    }
-  };
-  visit(collection);
-  return keys;
+  const keys = catalogGroupSelection(
+    collection,
+    domGet(root),
+    groupTypeOf(root),
+  );
+  return keys === "all"
+    ? catalogCollectionItemKeys(root, collection).itemKeys
+    : [...keys];
 }
 
 /**
- * ADR-280 Decision 8 — a collection's item keys (the same walk as its Selected keys): every key
- * (to spell out a `"all"` selection) and the disabled ones (RAC refuses to select those).
+ * ADR-280 Decision 8 — a collection's item keys: every key (to spell out a `"all"` selection) and
+ * the disabled ones (RAC refuses to select those). The key is `catalogItemKey` — the item's `id`,
+ * not its HTML id (ADR-308 R9).
  */
 export function catalogCollectionItemKeys(
   root: CatalogCompositionRoot,
@@ -593,13 +573,7 @@ export function catalogCollectionItemKeys(
       if (!record) continue;
       const childType = catalogTypeName(root, record);
       if (isCollectionItemOf(childType, type)) {
-        const key =
-          childType === "Row" && record.htmlId
-            ? record.htmlId
-            : resolveStaticItemKey(
-                record.props as Record<string, unknown>,
-                record.id,
-              );
+        const key = catalogItemKey(record, groupTypeOf(root));
         itemKeys.push(key);
         if (record.props.isDisabled === true) disabledKeys.push(key);
       }
@@ -1847,7 +1821,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   // author's order (a deleted Label is not drawn again from the `label` prop). Its selection is
   // RAC's (Preview run state — M1); removed tags leave the list (`TagGroupRun`).
   taggroup: {
-    // (Its selection is its Tags' Selected — a Tag's change reaches the group's keys.)
+    // (Its Tags — a Tag's change reaches the group's rows; its selection is its own, ADR-308.)
     watchesChildren: (node, root) =>
       tagGroupTags(root, node).flatMap((tag) => [tag.id, tag.parentId]),
     render: (input) => createElement(TagGroupRun, { input }),
@@ -3101,11 +3075,15 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   // selected items' values (each item is a `CheckboxField` with its `value`, else its record id —
   // `checkbox`).
   checkboxgroup: {
-    // (Its value is its items' `isSelected` — through any element between: Codex Round 20 H2.)
+    // (Its items — through any element between: Codex Round 20 H2 — give its RAC children; its value
+    //  is its own, ADR-308.)
     watchesChildren: (node, root) => groupWatched(node, root, "Checkbox"),
     render: (input) => {
       const props = input.node.props;
-      const selected = runtimeState(input, "value") as string[];
+      // (A `value` that reads a variable (「검색 추가」 — ADR-284 Phase 6) is that variable's value:
+      //  `null` until something writes it, RAC's empty group.)
+      const value = runtimeState(input, "value");
+      const selected = Array.isArray(value) ? value.map(String) : [];
       const size = str(props.size) || "M";
       return createElement(
         AriaCheckboxGroup as ElementType,
@@ -3225,15 +3203,18 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               ...renderAll(input),
             ),
         });
+      // (ADR-308 R9 — its RAC key is its `id` (`catalogItemKey`), the key the group's selection
+      // names; the state frame keeps the record as its identifier.)
+      const itemKey = catalogItemKey(input.node, groupTypeOf(input.root));
       return createElement(GroupToggleFrame, {
         ownerId: input.node.id,
-        isSelected: bool(props.isSelected),
+        itemKey,
         isDisabled: bool(props.isDisabled),
         children: createElement(
           ToggleButton as ElementType,
           {
             ...marker(input),
-            id: input.node.id,
+            id: itemKey,
             style: input.style,
             isDisabled: bool(props.isDisabled),
             autoFocus: bool(props.autoFocus),
@@ -3295,7 +3276,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         render: (resolution) =>
           createElement(AriaSegmentButton as ElementType, {
             ...marker(input),
-            id: catalogSegmentKey(input.node),
+            id: catalogItemKey(input.node, groupTypeOf(input.root)),
             style: input.style,
             className: "react-aria-SegmentedControlItem",
             ...racSlotProps(resolution),
@@ -3315,8 +3296,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       }),
   },
   togglebuttongroup: {
-    // Its selection is its ToggleButtons' `isSelected` — through the frames the author put
-    // between (they stay in the group's RAC context — ADR-256 후속 18).
+    // Its ToggleButtons — through the frames the author put between (they stay in the group's RAC
+    // context — ADR-256 후속 18); its selection is its own `selectedKeys` (ADR-308).
     watchesChildren: (node, root) => {
       const { buttons, frames } = groupToggleButtons(node, root);
       return [...frames, ...buttons].map((record) => record.id);
@@ -3694,7 +3675,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               inGroup || runtime
                 ? input.node.id
                 : `${input.node.id}:${expanded}`,
-            id: input.node.id,
+            // (ADR-308 R9 — in an Accordion its RAC key is the group's expansion key.)
+            id: inGroup
+              ? catalogItemKey(input.node, groupTypeOf(input.root))
+              : input.node.id,
             style: input.style,
             "data-size": str(props.size || "M"),
             // S2 density · quiet · `isInGroup` (the sheet's trigger height, borders — 2026-10-10).
@@ -3718,8 +3702,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     },
   },
   accordion: {
-    // Its expansion is its Disclosures' `isExpanded` (declared, or the Preview's runtime value) —
-    // every Disclosure its RAC context reaches, at any depth (Phase 8 판독 H1).
+    // Its Disclosures — every one its RAC context reaches, at any depth (Phase 8 판독 H1); its
+    // expansion is its own `expandedKeys` (ADR-308).
     watchesChildren: (node, root) => {
       const { disclosures, containers } = groupDisclosures(node, root);
       return [node, ...containers, ...disclosures].map((record) => record.id);
@@ -3727,27 +3711,12 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     render: (input) => {
       const props = input.node.props;
       const list = children(input);
-      const { disclosures } = groupDisclosures(input.node, input.root);
-      const expanded = resolveGroupExpandedDisclosureIds(
-        props as Record<string, unknown>,
-        disclosures.map((child) => ({
-          id: child.id,
-          type: catalogTypeName(input.root, child),
-          props: {
-            ...(child.props as Record<string, unknown>),
-            ...input.runtimeProps?.(child.id),
-          },
-        })),
-      );
-      // ADR-280 — a rule's `expand` · `collapse` is the group's runtime `expandedKeys`; until
-      // there is one, its Disclosures' (declared or runtime) `isExpanded` — one function with the
-      // dispatcher (`catalogRuntimeStateOf`).
-      const groupKeys = input.runtimeProps?.(input.node.id)?.expandedKeys;
+      // ADR-308 — the expansion is the Accordion's (`expandedKeys` · `defaultExpandedKeys`, or the
+      // Preview's runtime `expandedKeys` — a rule's `expand` · `collapse` and the user's clicks
+      // write it). No Disclosure's `isExpanded` is read or written for it.
       const keys = (runtimeState(input, "expandedKeys") as string[]).map(
         String,
       );
-      // In the Preview the user's expansion is each Disclosure's runtime `isExpanded` (ADR-250); a
-      // static render shows the declared state.
       const setRuntime = input.setRuntimeProps;
       const multiple = allowsMultipleExpanded(props as Record<string, unknown>);
       // S2 Accordion과 동일하게 RAC DisclosureGroup이 자식의 펼침 상태를 관리한다.
@@ -3755,7 +3724,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         RacDisclosureGroup as ElementType,
         {
           ...marker(input),
-          key: `${input.node.id}:${multiple}`,
+          key: setRuntime
+            ? `${input.node.id}:${multiple}`
+            : `${input.node.id}:${multiple}:${keys.join(",")}`,
           className: "react-aria-Accordion",
           style: input.style,
           "data-variant": str(props.variant || "default"),
@@ -3765,17 +3736,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           ...(setRuntime
             ? {
                 expandedKeys: keys,
-                onExpandedChange: (next: Set<unknown>) => {
-                  // (A rule's group keys follow the user's change; without them each Disclosure's
-                  // own runtime value is the state — a declaration drops it, ADR-250 R2.)
-                  if (Array.isArray(groupKeys))
-                    setRuntime(input.node.id, {
-                      expandedKeys: [...next].map(String),
-                    });
-                  for (const child of disclosures)
-                    if (next.has(child.id) !== expanded.has(child.id))
-                      setRuntime(child.id, { isExpanded: next.has(child.id) });
-                },
+                onExpandedChange: (next: Set<unknown>) =>
+                  setRuntime(input.node.id, {
+                    expandedKeys: [...next].map(String),
+                  }),
               }
             : { defaultExpandedKeys: keys }),
         },
@@ -4144,78 +4108,19 @@ export function catalogStateSourceValue(
   switch (prop) {
     case "isOpen":
       return props.isOpen ?? props.defaultOpen ?? node.displayState === "open";
-    case "selectedKey":
-      if (type === "SegmentedControl")
-        return catalogSegmentSelected(node, domGet(root));
-      if (type === "ComboBox" && props.selectedKey === undefined) {
-        const selected = catalogComboBoxSelectedOption(
-          node,
-          domGet(root),
-          root.typeOf,
-        );
-        return selected
-          ? resolveStaticItemKey(
-              selected.props as Record<string, unknown>,
-              selected.id,
-            )
-          : null;
-      }
-      return type === "Tabs"
-        ? str(tabsModel(root, node).selectedKey)
-        : (props.selectedKey ?? null);
+    // ADR-308 Decision 3 — a group's selection · expansion is its own props (`groupSelection.ts`,
+    // the Canvas reads the same): no item's `isSelected` · `isExpanded` is read for it.
+    case "selectedKey": {
+      if (!CATALOG_SELECTION_GROUP_TYPES.has(type))
+        return props.selectedKey ?? null;
+      const keys = catalogGroupSelection(node, domGet(root), groupTypeOf(root));
+      return keys === "all" ? null : (keys[0] ?? null);
+    }
     case "selectedKeys":
-      if (type === "SelectBoxGroup")
-        return selectBoxDeclaredSelection(
-          props,
-          catalogCollectionSelectedKeys(root, node),
-        );
-      if (type === "ToggleButtonGroup")
-        return groupToggleButtons(node, root)
-          .buttons.filter((button) => button.props.isSelected === true)
-          .map((button) => button.id);
-      if (type === "TagGroup")
-        return tagGroupTags(root, node)
-          .filter((tag) => tag.props.isSelected === true)
-          .map(tagKey);
-      if (type === "CardView")
-        return str(props.selectionMode || "none") === "none"
-          ? []
-          : childrenOf(root, node)
-              .filter(
-                (card) =>
-                  catalogTypeName(root, card) === "Card" &&
-                  card.props.isSelected === true,
-              )
-              .map((card) =>
-                resolveStaticItemKey(
-                  card.props as Record<string, unknown>,
-                  card.id,
-                ),
-              );
-      return catalogCollectionSelectedKeys(root, node);
+      if (!CATALOG_SELECTION_GROUP_TYPES.has(type)) return props.selectedKeys;
+      return catalogGroupSelection(node, domGet(root), groupTypeOf(root));
     case "expandedKeys":
-      if (type === "Accordion") {
-        const { disclosures } = groupDisclosures(node, root);
-        const expanded = resolveGroupExpandedDisclosureIds(
-          props as Record<string, unknown>,
-          disclosures.map((child) => ({
-            id: child.id,
-            type: catalogTypeName(root, child),
-            props: {
-              ...(child.props as Record<string, unknown>),
-              ...runtimeOf?.(child.id),
-            },
-          })),
-        );
-        return disclosures
-          .filter((child) => expanded.has(child.id))
-          .map((child) => child.id);
-      }
-      if (Array.isArray(props.expandedKeys))
-        return props.expandedKeys.map(String);
-      return Array.isArray(props.defaultExpandedKeys)
-        ? props.defaultExpandedKeys.map(String)
-        : [];
+      return catalogGroupExpansion(node, groupTypeOf(root));
     case "isExpanded":
       return Boolean(props.isExpanded ?? true);
     // ADR-300 — S2 `SideNavPanel` starts from `isCollapsed`, `defaultCollapsed` while unset.
@@ -4226,16 +4131,23 @@ export function catalogStateSourceValue(
     case "isSelected":
       return Boolean(props.isSelected);
     case "value": {
-      if (type === "Select" && props.value === undefined) {
-        const keys = catalogPickerOptions(node, domGet(root), root.typeOf)
-          .filter((item) => item.props.isSelected === true)
-          .map((item) =>
-            resolveStaticItemKey(
-              item.props as Record<string, unknown>,
-              item.id,
-            ),
-          );
-        return props.selectionMode === "multiple" ? keys : (keys[0] ?? null);
+      if (
+        type === "Select" ||
+        type === "CheckboxGroup" ||
+        type === "RadioGroup"
+      ) {
+        const keys = catalogGroupSelection(
+          node,
+          domGet(root),
+          groupTypeOf(root),
+        );
+        const list = keys === "all" ? [] : [...keys];
+        return type === "RadioGroup"
+          ? (list[0] ?? "")
+          : type === "CheckboxGroup" ||
+              (type === "Select" && props.selectionMode === "multiple")
+            ? list
+            : (list[0] ?? null);
       }
       if (type === "Slider") return catalogSliderRange(node).value;
       if (type === "RangeSlider") {
@@ -4247,25 +4159,7 @@ export function catalogStateSourceValue(
           Number(props.step ?? 1),
         );
       }
-      if (type === "CheckboxGroup")
-        return catalogToggleGroupItems(
-          node,
-          "Checkbox",
-          domGet(root),
-          (record) => catalogTypeName(root, record),
-        )
-          .items.filter((box) => box.props.isSelected === true)
-          .map(groupItemValue);
-      if (type !== "RadioGroup") return props.value;
-      const selected = catalogToggleGroupItems(
-        node,
-        "Radio",
-        domGet(root),
-        (record) => catalogTypeName(root, record),
-      ).items.find((radio) => radio.props.isSelected === true);
-      return selected?.props.value !== undefined
-        ? String(selected.props.value)
-        : str(props.value);
+      return props.value;
     }
     default:
       return props[prop];

@@ -11,6 +11,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [선택 · 펼침은 그룹이 저장한다 — ADR-308 Implemented (Phase 0 ~ 3)] - 2026-11-12
+
+목록 · 탭 · 라디오 · 토글 그룹 · Accordion 의 「무엇이 선택 · 펼쳐졌나」 를 항목이 아니라 그룹이 갖는다 (레퍼런스 S2 · RAC 와 같은 자리 — 그룹의 `selectedKey(s)` · `value` · `expandedKeys`, 항목은 `id`).
+
+### Breaking Changes
+
+- **문서 계약 63 → 64 — 계약 63 프로젝트는 열리지 않는다** (ADR-308 Phase 3 · 사용자 결정 1 (a)): 원본 항목의 선택 기본값이 바뀌고 항목 `isSelected` 계약이 빠져, 저장소 정책대로 이전 계약 문서는 `UNSUPPORTED_LIBRARY_CONTRACT` 로 거부된다 (변환 코드 없음 — 개발 단계). ADR-306 의 계약 올림은 65 로 옮겼다.
+- **항목 `isSelected` 삭제**: Tab · Tag · ListBoxItem · GridListItem · TreeItem · Row · SelectBox · Radio 는 `isSelected` 를 받지 않는다 — 선택은 그룹의 값이다. `isSelected` 는 혼자 놓는 Card · Checkbox · Switch · ToggleButton 에만 남는다 (그룹 안이면 그룹이 정한다).
+
+### Changed
+
+- **Design 패널: 그룹의 Value 구획에 선택 칸 하나** (ADR-308 Phase 2 · 사용자 결정 3 · 4):
+  - 단일 선택 (Tabs · SegmentedControl · ComboBox · Select · RadioGroup · 단일 펼침 Accordion) 은 항목 드롭다운, 다중 선택 · 펼침 (ListBox · GridList · Table · Tree · TagGroup · Menu · CardView · ToggleButtonGroup · SelectBoxGroup · CheckboxGroup · Tree · 다중 Accordion) 은 항목 체크 목록. 데이터에 연결된 목록은 그려진 표본 행의 key 가 선택지다.
+  - 항목의 Selected 스위치는 없어졌다 (그룹 안 Card · ToggleButton · Checkbox 는 「그룹에서 편집」 안내, 혼자 놓인 것은 그대로).
+  - 항목 Content 에 **「Item ID」** (사용자 결정 2) — 그룹 선택이 가리키는 이름 (`home` 처럼). 고치면 그룹의 선택 · 펼침 값과 짝 TabPanel 이 같은 단계에서 따라간다. 항목을 지우면 그룹 값에서 그 key 가 빠진다.
+  - **Why**: 선택이 항목의 `isSelected` 에 저장돼 그룹 칸은 Tabs · RadioGroup 둘뿐이었고 (나머지는 칸 없음), instance 마다 다른 선택 · 컴포넌트 속성 · 데이터 행 선택이 구조상 불가능했다.
+- **Canvas · Preview · 규칙 (Do) 이 같은 판정을 읽는다**: `runtime/groupSelection.ts` 하나 — Preview 의 RAC 에 넘기는 항목 key 도 같은 함수라 HTML id 를 단 Row · 그룹 안 ToggleButton · Accordion 안 Disclosure 가 더 이상 다른 key 로 그려지지 않는다. 그룹 안 항목을 대상으로 한 check · uncheck · 펼치기 · 접기 Do 는 그룹 값에 그 항목 key 를 넣고 뺀다.
+- **옛 문서**: 항목에 저장된 Selected · 펼침은 읽지 않는다 (개발 단계 — 변환 코드 없음, ADR-308 Decision 6). 계약 번호는 64 로 올렸다 (위 Breaking).
+- **칸 이름 정리** (사용자 요청 2026-11-12): Checkbox · Radio · Switch 의 Content 「Value」 → **「Submit value」** (폼이 보내는 값 · 그룹 안에서는 항목 key — Value 구획 이름과 겹쳐 헷갈렸다), Autocomplete 「Default input value」 → **「Input value」** (Value 구획의 다른 칸처럼 Default 를 뺐다). 빠져 있던 「Item ID」 번역 (「항목 ID」) 도 넣었다.
+- **Code 보기 = 레퍼런스 코드 모양** (Phase 3): `<Tabs defaultSelectedKey="tab-2">` · `<Tab id="tab-1">` · `<ListBox defaultSelectedKeys={['starred']}>` — 그룹 값 · 항목 `id` 가 한 번씩 나오고, 항목에 HTML id 가 있어도 `id=` 를 두 번 쓰지 않는다 (R6).
+
+- **Library 원본의 선택 · 펼침 항목이 모두 key 를 갖는다**: Tabs (Tab `tab-1` · `tab-2` + 짝 TabPanel `itemId`) · TagGroup · Menu · Select · ComboBox · ToggleButtonGroup · CardView · Table Row · Accordion 의 항목에 작성 `id`, CheckboxGroup 의 Checkbox 에 `value` (`option1` · `option2`). 새로 놓은 그룹의 Code 보기에 `<Tab id="tab-1">` 처럼 나온다. Row · Card · ToggleButton · Disclosure 가 문서에서 `id` 를 받는다.
+- **그룹이 선택 · 펼침 속성을 받는다** (Phase 1): ListBox · GridList · Table · Tree · TagGroup · Menu · CardView · ToggleButtonGroup `selectedKeys` · `defaultSelectedKeys`, ComboBox `selectedKey` · `defaultSelectedKey`, Select `value` · `defaultValue` (S2 Picker — 단일 = key, 다중 = key 목록: 새 값 형 `selectionValue`), CheckboxGroup `value` · `defaultValue`, RadioGroup `defaultValue`, Tabs `selectedKey`, Tree · Accordion `expandedKeys` · `defaultExpandedKeys`.
+- **그룹 「+」 가 새 항목에 겹치지 않는 key 를 준다**: ToggleButton `toggle-N` · Disclosure `section-N` · SegmentedControlItem `item-N` · Checkbox · Radio `optionN` — 형제를 복사해 넣어 key 가 겹칠 때도 (전에는 Radio 만, 값이 없을 때만).
+
+### Fixed
+
+- **같은 그룹 안 복제 · 붙여넣기의 key 중복**: 개명이 Tabs · TagGroup · ListBox 등 8 가족에서만 돌았다 — CardView · Table · ToggleButtonGroup · Accordion · SegmentedControl 과 그룹 안 Radio · Checkbox `value` 까지 넓혔다. 항목에 key 가 생긴 뒤 같은 그룹 안 복제가 RAC 「Duplicate key」 로 Preview 전체를 멈추지 않게 (Decision 7 · R4).
+- **자식이 있는 TreeItem 을 복제 · 붙여넣으면 자식 항목 key 가 원본과 겹치던 결함** — 놓는 자리가 instance 의 slot 이면 key 수집이 직계 자식만 봤다 (`collectionKeys`).
+- **「검색 추가」 로 넣은 CheckboxGroup 이 필터 변수를 보여 준다** (ADR-284 Phase 6 의 「컨트롤이 변수를 읽는다」 가 CheckboxGroup 에서만 빠져 있었다):
+  - **Why**: CheckboxGroup 이 `value` 를 받지 않아 변수 연결이 버려졌다. Phase 1 로 받게 되자 변수의 시작값 `null` 이 렌더에 그대로 들어가 Preview 가 멈췄다 → `null` = 빈 선택으로 읽는다 (`delegatedDom.runtime.ts` `checkboxgroup`).
+- **단일 선택 ToggleButtonGroup 을 규칙으로 고르면 아무것도 눌리지 않던 결함** (Phase 2 시험이 찾음): 그룹 key 목록을 문자열로 썼다 — 값 모양은 속성 형을 따른다.
+- **ComboBox 의 기본 선택을 바꾸면 Canvas 의 옵션 체크가 따라오지 않던 결함**: 옵션 갱신 의존이 Select 에만 있었다.
+- **Select · ComboBox · ListBox 의 Value 칸 선택지가 「{label}」 로 나오던 결함** (Phase 3 live 가 찾음):
+  - **Why**: 선택지 글자를 항목의 `children` 에서 읽었는데, 원본 항목의 `children` 은 글자가 아니라 template 바인딩 (`{label}`) 이다 → 바인딩 꼴은 건너뛰고 label 부품의 글자 (Aardvark · Cat …) 를 읽는다 (`singleSelection.ts`).
+- **Code 보기에서 그룹의 선택 목록을 고치면 적용이 거절되던 결함** (`defaultSelectedKeys={['archive']}` · `expandedKeys` · CheckboxGroup `value`):
+  - **Why**: 생성기는 목록을 배열로 쓰는데 되읽기는 `new Set([...])` 만 받았다 — 이 ADR 이 그룹에 목록 속성을 열며 드러났다 → 배열 리터럴을 읽는다 (항목 형은 문서 검증이 본다, `codeViewEdit.ts`).
+- 위치: `packages/shared/src/catalog/runtime/groupSelection.ts` (새 판정 함수) · `runtime/{presence,delegatedDom.runtime,domBinding.runtime,catalogPreviewInteractions}.ts` · `interactions/dispatcher.ts` (`groupStateOf`) · `commands/{collections,structure}.ts` · `apps/builder/src/builder/catalogRuntime/singleSelection.ts` (그룹 칸 · Item ID · 항목 선택 쓰기) · `panels/properties/{catalog/CatalogPropertiesPanel.components.tsx,generic/SelectionKeysField.tsx}` · `document/{ruleDefinition,itemLinks,generated/reusableOriginLibrary}.ts` · `bindings/*.binding.ts`.
+- 테스트: `adr308SelectionItemKeys.test.tsx` (16 가족 원본 key · 복제 · 붙여넣기 + 「+」) · `adr308GroupSelection.test.tsx` (Canvas = RAC 11 그룹 · 증분 = 새 bind 10 · Item ID · 삭제 · 칸 선택지 글자) · `adr308GroupItemDo.test.tsx` (Do 행렬) · `adr308GroupSelection.static.test.ts` (항목 Selected 읽기 · 쓰기 목록화) · `adr308CodeView.test.tsx` (Code 보기 왕복 4) · `propSectionConsistency.test.ts` (`isSelected` 는 단독 4 type 만 · 17 그룹이 Value 구획에 선택 칸).
+
+### Performance
+
+- 번들 (`vite build` → `adr209-bundle-closure.mjs`, ADR-308 착수 HEAD 대비): Builder initial JS gzip +1,655 B · Preview −1 B (ADR-201 Δ 상한 +4,096 · +3,584 안). 절대 상한 1,414,000 초과는 착수 전 HEAD 부터 (1,522,678 — 원인 미조사).
+
 ## [Design 패널 「Value」 구획 — 상태 값 재배치 · 같은 개념 한 칸] - 2026-11-12
 
 사용자 결정 (「중복 제거와 재배치부터」): 컴포넌트가 지금 담고 있는 것 — 레퍼런스 (설치된 S2 · RAC) 의 고유 state — 을 한 구획에 모으고, 빌더에서 같은 일을 하는 두 칸은 하나만 낸다. 칸 모양 (고르기 · 목록) 은 뒤에 정한다.

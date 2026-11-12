@@ -44,9 +44,11 @@ async function listBoxRule(
   vi.spyOn(console, "warn").mockImplementation(() => {});
   const h = await openAdr280Preview(["ListBox", "Button"]);
   const [listBox, button] = h.ids as [NodeId, NodeId];
-  h.declare(listBox, declare as Record<string, never>);
-  if (selectFirst)
-    h.declare(ownedNodes(h, "listboxitem")[0]!, { isSelected: true });
+  // (ADR-308: the declared selection is the ListBox's own keys — its first item `inbox`.)
+  h.declare(listBox, {
+    ...declare,
+    ...(selectFirst ? { defaultSelectedKeys: ["inbox"] } : {}),
+  } as Record<string, never>);
   h.rule(button, "onPress", {
     opcode: "capability",
     target: { nodeId: listBox },

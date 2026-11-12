@@ -12,7 +12,7 @@ import type {
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { catalogItemInsertChoices } from "../itemInsert";
 import { newCatalogProjectDocument } from "../project";
-import { catalogRadioGroupValueOptions } from "../singleSelection";
+import { catalogGroupKeysFields } from "../singleSelection";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
@@ -99,9 +99,9 @@ describe("a group's + adds the next option", () => {
       "option3",
       "option4",
     ]);
-    // (The group's Value lists each — the Design panel's choices.)
+    // (The group's Value lists each — the Design panel's choices, ADR-308 `catalogGroupKeysFields`.)
     expect(
-      catalogRadioGroupValueOptions(root, of("RadioGroup")[0]!.id).map(
+      catalogGroupKeysFields(root, of("RadioGroup")[0]!.id)[0]!.options.map(
         (option) => option.label,
       ),
     ).toEqual(["Option 1", "Option 2", "Option 3", "Option 4"]);

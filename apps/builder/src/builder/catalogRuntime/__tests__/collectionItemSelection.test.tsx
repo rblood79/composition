@@ -23,6 +23,8 @@ import { bindCatalogCanvas } from "../canvasBinding";
 import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
 import { renderCatalogDom } from "../domBinding";
 import { newCatalogProjectDocument } from "../project";
+import { catalogItemSelectionCommands } from "../singleSelection";
+import { composeCommands } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
@@ -87,12 +89,14 @@ async function open(
     [...root.canvasInputs.values()].filter((r) => root.typeOf(r) === type);
   const items = () => of(item);
   const target = (id: string) => workspace.positionOfRecord(id)!.target;
+  // (ADR-308: an item's selection is its collection's keys — the item's key put in or taken out.)
   const select = (index: number, value = true) =>
-    workspace.execute(
-      setFields({
-        targets: [target(items()[index]!.id)],
-        props: { isSelected: set(value) },
-      }),
+    workspace.execute(() =>
+      composeCommands(
+        workspace.runtime.graph,
+        "Select",
+        catalogItemSelectionCommands(workspace, items()[index]!.id, value),
+      ),
     );
   const canvasSelected = () =>
     items().map((record) =>
