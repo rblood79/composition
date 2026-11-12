@@ -64,6 +64,7 @@ paths:
 2개 렌더링 타겟 (CSS/Skia)의 catalog 정의·origin template → CSS·DOM·Skia consumer → editor 경로를 함께 확인하고 `/cross-check`로 검증한다. 구조·상태 조립은 [RAC 조립 계약](../skills/composition-patterns/rules/domain-rac-composition.md)을 따른다. 동일 패턴은 관련 소비자를 검색하되 요청 범위만 수정한다.
 
 - 같은 루트 상자는 CSS `structure.containerStyles`와 Canvas `containerStyles` 정의를 공유하고 typed box 변환을 거친다. **Why:** Button·ToggleButton의 Canvas 복사본에서 `width: fit-content`가 빠져 flex column에서 342px로 늘어났으며, CSS는 각각 약 68px·115px를 유지했다. trigger와 popover처럼 서로 다른 상자는 합치지 않는다.
+- rule `containerStyles` 의 키는 Canvas 상자 키 (`CATALOG_CANVAS_BOX_KEYS` · `BOX_LAYOUT_KEYS`) 와 CSS 생성기 (`emitContainerStyles`) 양쪽에 있어야 닿는다 — 한쪽에 없으면 rule 에 적어도 조용히 버려진다. DOM 어댑터에 직접 쓴 상자 값 (inline style) 은 rule 로 옮긴다. **Why (2026-11-13):** ProgressCircle 의 `flex-shrink: 0` 이 DOM 어댑터 inline 에만 있어 Height 100% 세로 flex body 에서 Canvas 만 원을 32 → 11 로 눌렀고, SegmentedControlItem 이 rule 에 적은 S2 `flexShrink: 0` 은 두 consumer 모두 버리고 있었다 (`bodyColumnFlexSqueeze.test.tsx`).
 - 콘텐츠 높이를 유지하는 버튼 루트는 `height: fit-content`를 선언하고 CSS size 축의 `auto`로 덮거나 typed box에서 숫자만 남기지 않는다. **Why:** row Frame 400px에서 기본 버튼이 양쪽 renderer 모두 400px로 stretch됐고, ButtonGroup은 별도 DOM 경로에서 catalog 높이 전달도 누락됐다.
 - 배경 이미지는 box의 fill 층에서 border·inset shadow·content보다 먼저 그리며, 각 fill 층의 alpha를 독립 적용한다. **Why (2026-11-02):** genai·premium Button의 gradient를 내부 자식으로 그리면 authored 4px 테두리를 덮었고, 같은 Paint의 반투명 단색 alpha를 다음 shader에 남기면 gradient alpha가 중복 곱해졌다 (CanvasKit 픽셀 회귀).
 

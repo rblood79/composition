@@ -2737,14 +2737,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   containerStyles 신설. archetype "default" base CSS 는 display:inline-flex 였는데 factory/
       //   Taffy 는 flex/column → generated CSS(Preview)↔Skia 비대칭(D3 위반)이었음. containerStyles
       //   명시로 generate-css 가 flex/column/width:100% 재생성 → CSS=Skia=factory 3자 정합.
-      // overflow:hidden — S2 Card 정본(root overflow:clip + radius.lg 가 자식을 단일 radius 로 clip).
-      //   CardPreview 상단 모서리를 root clip 이 처리 → CardPreview 자체 borderRadius 불필요(2026-06-24).
-      //   sizes.M.borderRadius={radius.lg}=12px 과 결합해 CSS Preview 가 둥근 상단 이미지 clip.
+      // overflow 는 두지 않는다 (사용자 결정 2026-11-13): `hidden` 이면 flex item 의 자동 최소 크기가
+      //   0 이라, 높이가 정해진 세로 flex 부모 (Height 100% page body) 가 넘칠 때 Card 를 내용보다
+      //   작게 눌렀다 (Chrome 과 Canvas 엔진 같은 규칙). 그래서 CardPreview 상단 모서리는 Card 의
+      //   radius 로 잘리지 않는다 (2026-06-24 부터 root clip 이 하던 일).
       containerStyles: {
         display: "flex",
         flexDirection: "column",
         width: "100%",
-        overflow: "hidden",
         // ADR-171 Phase 3 (2026-07-29): archetype base 가 생성 CSS 에만 emit 하던 값이라
         //   catalog 를 읽는 Skia 에는 안 갔다 (G2 잔존). 실효 DOM 값 그대로 이관 — 값 불변.
         alignItems: "center",
@@ -11011,6 +11011,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       element: "div",
       containerStyles: {
         display: "grid",
+        // 지름은 줄어들지 않는다 — DOM 어댑터 (`ProgressCircle.tsx`) 가 늘 `flex-shrink: 0` 이었고
+        //   Canvas 는 그 값을 몰라 높이가 정해진 세로 flex 부모에서 원을 눌렀다 (사용자 보고 2026-11-13
+        //   「ProgressCircle 높이 0」). 두 consumer 가 이 값을 같이 읽는다.
+        flexShrink: "0",
       },
     },
   },

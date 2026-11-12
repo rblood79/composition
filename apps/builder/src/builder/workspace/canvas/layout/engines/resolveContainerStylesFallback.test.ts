@@ -627,8 +627,8 @@ describe("resolveEffectiveOverflow — catalog containerStyles overflow 포괄",
     // top-level containerStyles.overflow
     expect(resolveEffectiveOverflow("listbox", {})).toBe("auto");
     expect(resolveEffectiveOverflow("tree", {})).toBe("auto");
-    // structure.containerStyles.overflow (Card root clip)
-    expect(resolveEffectiveOverflow("card", {})).toBe("hidden");
+    // structure.containerStyles 의 Card root clip 은 2026-11-13 사용자 결정으로 뺐다 (세로 flex 눌림).
+    expect(resolveEffectiveOverflow("card", {})).toBeUndefined();
     // structure.composition.containerStyles 에는 overflow 를 둔 rule 이 없다 — Accordion 의
     //   `hidden` 은 2026-11-13 사용자 결정으로 뺐다 (세로 flex 에서 0 까지 눌림, S2 도 자르지 않음).
     expect(resolveEffectiveOverflow("accordion", {})).toBeUndefined();

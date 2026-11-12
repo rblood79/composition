@@ -32,6 +32,8 @@ import { resolveComponentRule } from "./resolveComponentRule";
 export const CATALOG_CANVAS_BOX_KEYS = [
   "display",
   "flex",
+  // A root that does not shrink in a flex parent (ProgressCircle — its DOM adapter's `flex-shrink: 0`).
+  "flexShrink",
   "flexDirection",
   "flexWrap",
   "alignItems",

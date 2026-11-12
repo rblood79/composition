@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Card · ProgressCircle 도 세로 flex 에서 눌리지 않는다 — Card overflow 제거 · ProgressCircle flex-shrink 0 을 catalog 로] - 2026-11-13
+
+### Fixed
+
+- **Card**: catalog rule 에서 `overflow: hidden` 을 뺐다 (사용자 결정 2026-11-13 「card 컴퍼넌트도 catalog rule 에서 overflow 삭제」). Height 100% 세로 flex body 에서 296 → 118 로 눌리던 것이 내용 높이에 머문다. 그래서 CardPreview 상단 모서리는 Card 의 radius 로 잘리지 않는다 (S2 는 `overflow: clip` 으로 자른다 — clip 은 스크롤 상자가 아니라 flex 자동 최소 크기가 0 이 되지 않는다).
+- **ProgressCircle**: Canvas 에서만 눌렸다 (32 → 11, 사용자 보고 「높이 0」). DOM 어댑터 (`ProgressCircle.tsx`) 는 늘 inline `flex-shrink: 0` 이었고 Canvas 는 그 값을 몰랐다 — overflow 가 아니라 두 consumer 의 축 차이. rule `structure.containerStyles.flexShrink: "0"` 로 옮겨 두 consumer 가 같이 읽는다.
+  - Canvas 상자 키 (`CATALOG_CANVAS_BOX_KEYS` · `BOX_LAYOUT_KEYS`) 와 CSS 생성기 (`emitContainerStyles` · `ContainerStylesSchema`) 에 `flexShrink` 가 없었다. 그래서 **SegmentedControlItem** 이 rule 에 적어 둔 S2 `flexShrink: 0` (`segmentedControl.ts`) 도 두 consumer 모두 버리고 있었다 — 이번에 함께 적용된다 (생성 `SegmentedControlItem.css` 에 `flex-shrink: 0`).
+  - Live (aaa · mobile 390×844 · body 세로 flex · Height Parent, 두 요소를 넣고 확인 뒤 삭제): Canvas ProgressCircle 32×32 · Card 내용 전부, Publish ProgressCircle 32 (`flex-shrink: 0`) · Card 343.5 (`overflow: visible`) · Accordion 101. 콘솔 오류 0. ListBox 둘은 아직 9 로 눌린다 (overflow auto — 이번 범위 밖).
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (Card · ProgressCircle) · `resolvers/resolveCatalogRuleCanvasBox.ts` · `document/ruleDefinition.ts` · `packages/rendering/src/renderers/CSSGenerator.ts` · `types/spec.types.ts`. 테스트: `bodyColumnFlexSqueeze.test.tsx` (원복 RED — Card 296 → 118 · ProgressCircle 32 → 11, Canvas 상자 키만 되돌려도 ProgressCircle RED).
+
 ## [Accordion 이 내용을 자르지 않는다 — 높이가 정해진 세로 flex 에서 0 까지 눌리지 않음] - 2026-11-13
 
 ### Fixed

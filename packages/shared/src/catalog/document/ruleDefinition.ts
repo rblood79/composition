@@ -185,6 +185,7 @@ const BOX_LAYOUT_KEYS: ReadonlySet<string> = new Set<LayoutField>([
   "contain",
   "containIntrinsicWidth",
   "display",
+  "flexShrink",
   "flexDirection",
   "alignItems",
   "justifyContent",

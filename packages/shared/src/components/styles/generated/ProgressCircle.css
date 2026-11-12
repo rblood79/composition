@@ -19,6 +19,7 @@
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   display: grid;
+  flex-shrink: 0;
 
   /* Default variant */
   background: var(--bg-muted);
