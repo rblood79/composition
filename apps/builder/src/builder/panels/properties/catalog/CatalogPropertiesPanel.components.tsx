@@ -620,6 +620,7 @@ const CatalogFields = memo(function CatalogFields({
       onStyleUpdate={handleStyleUpdate}
       elementId={elementId}
       contentExtras={extras.contentExtras}
+      sectionLeads={extras.sectionLeads}
       sectionExtras={withFilterSections(
         withFixedSections(extras.sectionExtras, fixedSections),
         filterNode,

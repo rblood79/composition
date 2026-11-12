@@ -37,9 +37,13 @@ const SAME_NAME_DIFFERENT_PROP: Readonly<Record<string, string>> = {
   type: "Button submit/reset vs input type",
   // A Form's `target` is where it submits (with Action · Method — Behavior); an item's is its link's.
   target: "Form submission vs link",
-  // A collection's `dataBinding` is the rows its items repeat (Collection — 2026-10-23 「Collection
-  // 섹션 분리」); a container's · Form's · Skeleton's · Chart's is the data its content reads (Content).
+  // A collection's · Chart's `dataBinding` is the rows its items · marks repeat (Collection — 2026-10-23
+  // 「Collection 섹션 분리」, Chart 2026-11-12 「Property 탭 섹션 병합」 5단계); a container's · Form's ·
+  // Skeleton's is the data its content reads (Content).
   dataBinding: "collection items vs content data",
+  // A Chart's `color` is the data field its series come from (Collection); a swatch's is its color
+  // value (Content).
+  color: "chart series field vs color value",
   // A Checkbox · Switch `value` is what the form submits for it (forms), a Radio's is its key in the
   // group (Content); a field's · a group's · a slider's is what it holds (Value).
   value: "toggle submit value vs held value",

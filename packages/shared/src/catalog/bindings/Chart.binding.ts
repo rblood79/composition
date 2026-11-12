@@ -37,7 +37,8 @@ export const chartBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      // ── content — 어느 필드를 어느 축에 쓸지 ──
+      // ── content — 차트 종류. 데이터 (원천 · 축에 쓸 필드 · 모드 · 표본 행) 는 collection — 목록과 같은
+      //   Collection 섹션 (사용자 결정 2026-11-12 「Property 탭 섹션 병합」 5단계: Data 섹션 없음) ──
       chartType: {
         kind: "enum",
         label: "Chart Type",
@@ -57,13 +58,13 @@ export const chartBinding: PrimitiveBinding = {
       dimension: {
         kind: "string",
         label: "Category",
-        section: "content",
+        section: "collection",
         default: "category",
       },
       metric: {
         kind: "string",
         label: "Value",
-        section: "content",
+        section: "collection",
         default: "value",
         // ADR-210 — columns 모드는 값 필드 목록(`valueFields`)이 값 축이다. legacy metric
         //   은 휴면 보존되지만 편집 화면에서는 숨긴다 (breakdown §4.1).
@@ -72,7 +73,7 @@ export const chartBinding: PrimitiveBinding = {
       color: {
         kind: "string",
         label: "Series",
-        section: "content",
+        section: "collection",
         visibleWhen: { key: "dataMode", equals: "group" },
       },
       /**
@@ -88,7 +89,7 @@ export const chartBinding: PrimitiveBinding = {
       dataMode: {
         kind: "enum",
         label: "Data Mode",
-        section: "content",
+        section: "collection",
         default: "group",
         editorHidden: true,
         options: [
@@ -99,7 +100,7 @@ export const chartBinding: PrimitiveBinding = {
       valueFields: {
         kind: "string-array",
         label: "Value Fields",
-        section: "content",
+        section: "collection",
         editorHidden: true,
       },
       seriesConfig: {
@@ -222,7 +223,7 @@ export const chartBinding: PrimitiveBinding = {
       dimensionScale: {
         kind: "enum",
         label: "Category Spacing",
-        section: "content",
+        section: "collection",
         default: "category",
         editorHidden: true,
         options: [
@@ -233,13 +234,13 @@ export const chartBinding: PrimitiveBinding = {
       dimensionFormat: {
         kind: "string",
         label: "Date Input Format",
-        section: "content",
+        section: "collection",
         editorHidden: true,
       },
       dimensionLabelFormat: {
         kind: "string",
         label: "Axis Label Format",
-        section: "content",
+        section: "collection",
         editorHidden: true,
       },
       // ADR-217 — 값 축 기준선 (RSC ReferenceLine: value · label · lineType · layer). bar/line/area, ≤ 4.
@@ -263,7 +264,11 @@ export const chartBinding: PrimitiveBinding = {
         },
       },
       // collection items 데이터 — canonical 이 아니라 collections root 소유 (ListBox 동형).
-      dataBinding: { kind: "binding", label: "Data", section: "content" },
+      dataBinding: {
+        kind: "binding",
+        label: "Data source",
+        section: "collection",
+      },
       /**
        * 샘플/정적 rows. **accepts 에 선언하는 것이 통과 조건이다** — `toRacProps` 는
        * accepts 에 있는 키만 투영하므로, 선언을 빠뜨리면 DOM 경로에서 `data` 가 조용히
@@ -273,7 +278,7 @@ export const chartBinding: PrimitiveBinding = {
       data: {
         kind: "items-manager",
         label: "Sample Rows",
-        section: "content",
+        section: "collection",
         itemsManager: {
           itemsKey: "data",
           itemTypeName: "ChartRow",

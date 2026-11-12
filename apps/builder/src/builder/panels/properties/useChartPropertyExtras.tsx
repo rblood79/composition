@@ -76,6 +76,8 @@ export interface ChartPropertyExtras {
   fields: ResolvedField[];
   contentExtras: ReactNode;
   sectionExtras?: Record<string, ReactNode>;
+  /** Controls at a section's start, after its Data source (a Chart's mode · value fields · time axis). */
+  sectionLeads?: Record<string, ReactNode>;
   literalOptionFields?: string[];
 }
 
@@ -198,7 +200,8 @@ export function useChartPropertyExtras({
       resolveComponentRule("Chart")?.chart,
       typeof chartValues.palette === "string" ? chartValues.palette : undefined,
     ).length || CHART_DEFAULT_SERIES_COUNT;
-  // 섹션 자리 (ADR-210/211): Content = 정체 + 데이터 / Series = 시리즈별 레코드 (적용되지 않는
+  // 섹션 자리 (ADR-210/211 · 사용자 결정 2026-11-12 「Property 탭 섹션 병합」 5단계): Content = 정체 (종류 ·
+  //   기준선) / Collection = Data source → 모드 · 값 필드 · 시간축 → 축 필드 (목록과 같은 섹션) / Series = 시리즈별 레코드 (적용되지 않는
   //   종류에서는 열지 않는다) / Appearance 말미 = 숫자 형식 / Interaction 말미 = 표시 예산.
   const seriesApplies = chartSeriesConfigApplies(
     chartControlFields,
@@ -212,24 +215,30 @@ export function useChartPropertyExtras({
       <>
         {contentExtras}
         <ChartAuthoringControls fields={semanticFields} onPatch={onPatch} />
-        {/* 로컬 상태 (선택 화면 · pending 통화) 는 요소마다 새로 시작한다 (`useOwnedState`). */}
-        <ChartDataMappingControls
-          elementId={elementId}
-          fields={chartControlFields}
-          columns={chartColumns}
-          onPatch={handleChartPatch}
-        />
-        <ChartTimeAxisControls
-          fields={chartControlFields}
-          rows={chartRows}
-          onPatch={handleChartPatch}
-        />
         <ChartReferenceLineControls
           fields={chartControlFields}
           onPatch={handleChartPatch}
         />
       </>
     ),
+    sectionLeads: {
+      collection: (
+        <>
+          {/* 로컬 상태 (선택 화면 · pending 통화) 는 요소마다 새로 시작한다 (`useOwnedState`). */}
+          <ChartDataMappingControls
+            elementId={elementId}
+            fields={chartControlFields}
+            columns={chartColumns}
+            onPatch={handleChartPatch}
+          />
+          <ChartTimeAxisControls
+            fields={chartControlFields}
+            rows={chartRows}
+            onPatch={handleChartPatch}
+          />
+        </>
+      ),
+    },
     sectionExtras: {
       series: seriesApplies ? (
         <ChartSeriesControls

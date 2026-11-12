@@ -145,6 +145,13 @@ interface GenericFieldRendererProps extends GenericFieldRouting {
    * 만들지 않는다 (시리즈 설정이 적용되지 않는 차트 종류에서 빈 Series 섹션 방지).
    */
   sectionExtras?: Partial<Record<string, ReactNode>>;
+  /**
+   * section 별 **앞머리**에 끼워 넣을 비-catalog 컨트롤 — 섹션의 데이터 원천 행 (`dataBinding` —
+   * Collection 의 Data source) 바로 뒤, 계약 행 앞. Chart 의 모드 · 값 필드 목록 · 시간축은 축 필드
+   * (Category · Value · Series) 를 고르기 전에 정하는 것이라 꼬리 (`sectionExtras`) 가 아니라 여기 선다
+   * (사용자 결정 2026-11-12 「Property 탭 섹션 병합」 5단계 — Collection = Data source → 매핑 → 필터).
+   */
+  sectionLeads?: Partial<Record<string, ReactNode>>;
 }
 
 /**
@@ -1432,6 +1439,10 @@ function mergeSectionExtras(
   });
 }
 
+function isDataSourceField(field: ResolvedField): boolean {
+  return field.kind === "binding" && field.key === "dataBinding";
+}
+
 interface SectionLayout {
   section: string;
   rows: ResolvedField[][];
@@ -1500,13 +1511,18 @@ function layoutSections(
       // 병합 섹션의 행은 분류 묶음 순서 (Behavior: 동작 → 검증 → 폼 → 오버레이 → Interaction → 접근성) 로,
       //   묶음 안은 한 key 순서. 반폭 짝은 묶음을 넘지 않는다. 칩은 섹션당 한 묶음 그대로.
       const members = SECTION_MEMBERS[section];
-      const rowsOf = members
+      const packed = members
         ? members.flatMap((member) =>
             pack(
               rows.filter((field) => (field.section || "content") === member),
             ),
           )
         : pack(rows);
+      // 데이터 원천 (Data source) 이 섹션 첫 행 — 매핑 · 필터가 그 원천을 읽는다.
+      const rowsOf = [
+        ...packed.filter((row) => row.some(isDataSourceField)),
+        ...packed.filter((row) => !row.some(isDataSourceField)),
+      ];
       return {
         section,
         rows: rowsOf,
@@ -1528,6 +1544,7 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
   elementId,
   contentExtras,
   sectionExtras,
+  sectionLeads,
   literalOptionFields,
 }: GenericFieldRendererProps) {
   // ADR-159 P4a: 조상(또는 master 소비자) collection 소유자의 컬럼 — 필드 피커 소스.
@@ -1667,6 +1684,7 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
       )}
       {sections.map(({ section, rows, chipGroups, dependents }) => {
         const tail = extrasBySection.get(section);
+        const lead = sectionLeads?.[section] ?? null;
         const head =
           section === "content" && hasContentGroup ? contentExtras : null;
         if (
@@ -1674,6 +1692,7 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
           chipGroups.length === 0 &&
           dependents.length === 0 &&
           tail == null &&
+          lead == null &&
           head == null
         )
           return null;
@@ -1681,7 +1700,13 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
           rows.length === 0 &&
           chipGroups.length === 0 &&
           dependents.length === 0 &&
+          lead == null &&
           head == null;
+        const sourceRows = rows.filter((row) => row.some(isDataSourceField));
+        const restRows =
+          sourceRows.length > 0
+            ? rows.filter((row) => !sourceRows.includes(row))
+            : rows;
         return (
           <PropertySection
             key={section}
@@ -1689,18 +1714,15 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
             className={extrasOnly ? EXTRAS_ONLY_SECTION : undefined}
             actions={
               section === "collection" &&
-              rows.some((row) =>
-                row.some(
-                  (field) =>
-                    field.kind === "binding" && field.key === "dataBinding",
-                ),
-              ) ? (
+              sourceRows.length > 0 ? (
                 <CollectionBindingCreateAction elementId={elementId} inHeader />
               ) : undefined
             }
           >
             {head}
-            {renderRows(rows)}
+            {renderRows(sourceRows)}
+            {lead}
+            {renderRows(restRows)}
             {/* boolean 은 섹션당 칩 묶음 (Options → Show → Fill) — 전폭 217, 행 래퍼 없음.
                 칩이 게이트인 종속 필드 (Value Label · Legend Position) 는 묶음 바로 아래 */}
             {chipGroups.map(({ group, fields: chipFields }) => (

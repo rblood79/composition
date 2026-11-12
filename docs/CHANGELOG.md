@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Property 탭 섹션 병합 — 5단계 (Chart 데이터 매핑 → Collection)] - 2026-11-12
+
+### Changed
+
+- Chart 의 데이터가 목록과 같은 Collection 섹션에 선다 (사용자 결정 2026-11-12 — 「Data」 섹션 없음): Data source → Series source (모드) · 값 필드 · 시간축 → Category · Value · Series (축 필드) → Sample Rows, 연동하면 그 아래 Search · filter. Content 에는 차트 종류 · 기준선 · 모양만 남는다. Chart 의 데이터 칸 이름도 목록과 같은 「Data source」, Collection 머리글의 「표 만들기」 도 같이 선다.
+- Collection 은 Data source 행이 늘 첫 행이다. 위치: `Chart.binding.ts` (데이터 키 `section: "collection"`) · `useChartPropertyExtras.tsx` (`sectionLeads`) · `GenericFieldRenderer` `sectionLeads` (섹션 앞머리 — Data source 바로 뒤).
+
 ## [Property 탭 섹션 병합 — 3 · 4단계 (고정 섹션을 병합 섹션 안으로 · 필터 진입점은 목록 한쪽)] - 2026-11-12
 
 ### Removed

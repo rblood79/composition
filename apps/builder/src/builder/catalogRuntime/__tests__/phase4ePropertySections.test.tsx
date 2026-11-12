@@ -783,7 +783,9 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
       </I18nProvider>,
     );
     // (One slot picker — in the Content section since the 2026-11-12 section merge.)
-    expect(screen.getAllByRole("button", { name: "Fill slot" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Fill slot" })).toHaveLength(
+      1,
+    );
     expect(
       document.querySelectorAll(".frame-slot-fill .list-row"),
     ).toHaveLength(0);
@@ -812,6 +814,72 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
   // 2026-11-12 사용자 결정 「Property 탭 섹션 병합」 3단계: the fixed sections (Slot · Accessibility ·
   // Show when · Item roles …) are no sections of their own — their controls stand in Content ·
   // Collection · Behavior · State, in the order Component → Content → … → Behavior → State.
+  // 사용자 결정 2026-11-12 「Property 탭 섹션 병합」 5단계: a Chart's data — its source, the mode and
+  // the fields it maps to its axes — is a Collection like a list's (no Data section); Series follows.
+  it("a Chart's data mapping stands in Collection: Data source → Series source → its fields; Series after", async () => {
+    const { workspace } = await open();
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [node("chart", "lib:definition:origin-component-chart")],
+        rootIds: [id("chart")],
+        newId: (kind) => `project:${kind}:chart1` as never,
+      }),
+    );
+    render(
+      <I18nProvider initialLocale="en-US">
+        <CatalogWorkspaceProvider workspace={workspace}>
+          <DataUsageSourceContext.Provider
+            value={createCatalogDataUsageSource(workspace)}
+          >
+            <QuickConnectHostContext.Provider
+              value={createCatalogQuickConnectHost(
+                workspace,
+                {
+                  apply: async () => ({ applied: [], inverse: [] }),
+                  collection: () => undefined,
+                },
+                (name) => name,
+              )}
+            >
+              <DesignPanel />
+            </QuickConnectHostContext.Provider>
+          </DataUsageSourceContext.Provider>
+        </CatalogWorkspaceProvider>
+      </I18nProvider>,
+    );
+    const titleOf = (section: Element | null) =>
+      section?.querySelector(".section-title")?.firstChild?.textContent ?? "";
+    const titles = [...document.querySelectorAll(".section")].map(titleOf);
+    expect(titles).not.toContain("Data");
+    expect(titles.indexOf("Content")).toBeLessThan(
+      titles.indexOf("Collection"),
+    );
+    expect(titles.indexOf("Collection")).toBeLessThan(titles.indexOf("Series"));
+    const collection = [...document.querySelectorAll(".section")].find(
+      (section) => titleOf(section) === "Collection",
+    )!;
+    const legends = [
+      ...collection.querySelectorAll(".section-content legend"),
+    ].map((legend) => legend.textContent);
+    // Source first, then the mode (「Series source」) and time axis, then the fields it maps.
+    expect(legends.slice(0, 2)).toEqual(["Data source", "Series source"]);
+    expect(legends.indexOf("Category")).toBeGreaterThan(1);
+    // What it is and how it looks stay in Content.
+    expect(
+      titleOf(
+        screen.getByRole("group", { name: /^Chart type$/ }).closest(".section"),
+      ),
+    ).toBe("Content");
+    expect(
+      titleOf(
+        screen
+          .getByRole("button", { name: /reference line/i })
+          .closest(".section"),
+      ),
+    ).toBe("Content");
+  });
+
   it("the fixed sections stand inside the merged sections (Component → Content → … → Behavior → State)", async () => {
     const { workspace } = await open();
     workspace.execute(
