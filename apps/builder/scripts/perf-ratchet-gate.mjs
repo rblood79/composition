@@ -59,6 +59,11 @@ const EXCLUDED = [
   // The GPU profiler's rAF `tick` runs once per frame: its call count is the frames the run
   // lasted (995 ~ 1442 on one commit, 2026-10-03) — time, not work.
   /^v8\.fn\.src\/builder\/workspace\/canvas\/utils\/gpuProfilerCore\.ts#\(anonymous\)$/,
+  // The command buffer's piece count summed over the draw calls (calls × pieces): a state read
+  // per frame, not work — a drag's splice took the drag class 182 → 900 while its calls fell
+  // 3.60M → 1.60M (2026-11-12). The pieces themselves are judged by `render.bufferSegmentsPeak`
+  // (A — bounded by `CANVAS_BUFFER_PIECE_LIMIT`).
+  /^render\.bufferSegmentsAtExec$/,
 ];
 
 const V8_SOURCE_IDENTITIES = new Map([
@@ -251,9 +256,7 @@ export function parseRatchetPath(ratchet, path) {
     .filter((s) => path.startsWith(`seeds.${s}.`))
     .sort((a, b) => b.length - a.length)[0];
   if (seed === undefined) return null;
-  const [cls, grade, ...rest] = path
-    .slice(`seeds.${seed}.`.length)
-    .split(".");
+  const [cls, grade, ...rest] = path.slice(`seeds.${seed}.`.length).split(".");
   return { seed, cls, grade, key: rest.join(".") };
 }
 
@@ -424,7 +427,9 @@ export function applyAddKeys(
   if (!keys.length) throw new Error("--keys 가 비었다");
   // 접두 패턴은 `접두.*` 뿐 — 정확한 이름은 보고에 없어도 0 으로 등록되므로 `gpuContexts*` 같은 글자가
   // 그대로 키가 된다 (ADR-273 후속 2026-10-18).
-  const badPattern = keys.find((k) => k.includes("*") && !/^[^*]+\.\*$/.test(k));
+  const badPattern = keys.find(
+    (k) => k.includes("*") && !/^[^*]+\.\*$/.test(k),
+  );
   if (badPattern)
     throw new Error(`--keys 패턴은 「접두.*」 만 된다: ${badPattern}`);
   if (keys.some((k) => k.startsWith("v8.fn.")))

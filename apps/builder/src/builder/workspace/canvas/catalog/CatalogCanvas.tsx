@@ -967,7 +967,12 @@ export function CatalogCanvas({
           callbacks.current.onError?.(error);
         }
       }
-      if (!sceneStale) return;
+      if (!sceneStale) {
+        // (A drag that changed nothing leaves its pieces with no sync to follow.)
+        if (!workspace.fillPending && !gestures.active && !dragRecords)
+          scene.compactFragmented();
+        return;
+      }
       sceneStale = false;
       try {
         // A drag's top layer rejects a splice: loaded images wait until its end restores normal ordering.
@@ -978,9 +983,13 @@ export function CatalogCanvas({
           overlayVersion += 1;
           cellsVersion += 1;
         }
-        if (compactAfterSync && !workspace.fillPending && !gestures.active) {
-          compactAfterSync = false;
-          scene.compact();
+        if (!workspace.fillPending && !gestures.active) {
+          if (compactAfterSync) {
+            compactAfterSync = false;
+            scene.compact();
+          }
+          // (Drags leave the buffer in pieces too — joined past the limit.)
+          else scene.compactFragmented();
         }
         // A page grid edit (gap, columns, direction) moves page frames without a record delta,
         // and a rename changes no drawn record: the headers follow, a moved frame is placed

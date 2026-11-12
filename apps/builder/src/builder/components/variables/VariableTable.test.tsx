@@ -575,9 +575,13 @@ describe("VariableTable", () => {
       boolRow.querySelector(".variable-row__default .react-aria-Button")
         ?.textContent,
     ).toContain("false");
-    fireEvent.change(boolRow.querySelector(".variable-row__default select")!, {
-      target: { value: "true" },
-    });
+    // (A closed Select holds its selected item only — open it and pick.)
+    fireEvent.click(
+      boolRow.querySelector(".variable-row__default .react-aria-Button")!,
+    );
+    fireEvent.click(
+      document.querySelector('[role="option"][data-key="true"]')!,
+    );
     expect(h.onDefault).toHaveBeenCalledWith("b", "true");
     expect(
       container.querySelector('[data-variable-id="c"] .variable-row__default')

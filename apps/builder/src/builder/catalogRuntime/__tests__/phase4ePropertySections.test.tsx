@@ -317,9 +317,14 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     expect(own()).toMatchObject([{ name: "open", defaultValue: "hello" }]);
     // Changing the type keeps the edited name; "hello" does not fit Number → the type's empty
     // (ADR-288 결정 1).
-    const typeSelect = explicit().querySelector(".variable-row__type select")!;
+    // (A closed panel Select holds its selected item only — open it and pick.)
     await act(async () => {
-      fireEvent.change(typeSelect, { target: { value: "number" } });
+      fireEvent.click(explicit().querySelector(".variable-row__type button")!);
+    });
+    await act(async () => {
+      fireEvent.click(
+        document.querySelector('[role="option"][data-key="number"]')!,
+      );
     });
     expect(own()).toMatchObject([
       { name: "open", valueType: "number", defaultValue: 0 },

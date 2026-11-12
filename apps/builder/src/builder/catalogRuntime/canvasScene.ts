@@ -2,6 +2,7 @@ import type { CanvasKit, FontMgr } from "canvaskit-wasm";
 import { orderPagesForPaint } from "../workspace/canvas/scene/pagePaintOrder";
 import { beginImageEpoch } from "../workspace/canvas/skia/imageCache";
 import {
+  commandBufferSegmentCount,
   compactCommandStream,
   executeDamageRenderCommands,
   executeRenderCommands,
@@ -61,6 +62,15 @@ export function catalogSyncDamage(
 const sameIds = (left: readonly string[], right: readonly string[]) =>
   left.length === right.length &&
   left.every((id, index) => id === right[index]);
+
+/**
+ * The pieces a patched command buffer may stay in before the scene joins it (`compactFragmented`).
+ * Every index read is a search over the pieces and a span cursor walks them; a join copies the
+ * commands once. A drag's splice adds two pieces per dragged subtree (measured 2026-11-12); a drop
+ * that moves binds the scene again (one piece), so the pieces that stay are those of drags that
+ * changed nothing — 16 = one join per eight of them.
+ */
+export const CANVAS_BUFFER_PIECE_LIMIT = 16;
 
 /**
  * ADR-248 Phase 4e-2: the Builder Canvas scene of one open project — every page root bound through
@@ -214,6 +224,17 @@ export class CatalogCanvasScene {
    */
   compact(): boolean {
     return compactCommandStream(this.binding.stream);
+  }
+
+  /**
+   * Join the command buffer when it is in more than `CANVAS_BUFFER_PIECE_LIMIT` pieces (a drag's
+   * splice adds two and nothing else joins them until a bind). False = within the limit.
+   */
+  compactFragmented(): boolean {
+    return (
+      commandBufferSegmentCount(this.binding.stream.commands) >
+        CANVAS_BUFFER_PIECE_LIMIT && this.compact()
+    );
   }
 
   /** Live verification (ADR-264): bind again from the records — the oracle for a patched stream. */

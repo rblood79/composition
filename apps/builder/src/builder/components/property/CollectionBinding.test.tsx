@@ -102,6 +102,14 @@ const renderWithI18n = (ui: ReactElement) =>
     ),
   });
 
+/** 패널 Select 에서 항목을 고른다 — 열고, 그 key 의 항목을 누른다 (닫힌 Select 는 선택 항목만 든다). */
+function pick(select: Element, key: string): void {
+  fireEvent.click(select.querySelector("button")!);
+  fireEvent.click(
+    document.querySelector(`[role="option"][data-key="${key}"]`)!,
+  );
+}
+
 describe("CollectionBinding — 죽은 오소링 표면 제거 계약 (2026-07-24)", () => {
   it("갱신 모드 / 갱신 간격 / 데이터 경로 오소링 UI 를 렌더하지 않는다", () => {
     const { container } = renderWithI18n(
@@ -169,16 +177,8 @@ describe("CollectionBinding — 죽은 오소링 표면 제거 계약 (2026-07-2
       />,
     );
 
-    // RAC Select 의 hidden native select 로 선택 변경을 재현
-    const nativeSelect = container.querySelector(
-      ".binding-name-select select",
-    ) as HTMLSelectElement | null;
-    expect(nativeSelect).not.toBeNull();
-
     // 옵션 키는 collection id (ADR-152 v2) — 저장은 collectionId + name 둘 다.
-    fireEvent.change(nativeSelect as HTMLSelectElement, {
-      target: { value: "c-roles" },
-    });
+    pick(container.querySelector(".binding-name-select")!, "c-roles");
 
     // 오소링 표면은 사라졌지만 값 자체는 read 호환으로 살아남아야 한다.
     //   path 는 createCacheKey 가, refreshMode/refreshInterval 은 api 바인딩 잔존
@@ -257,12 +257,19 @@ describe("CollectionBinding — fieldMap value (ADR-152 Phase 2)", () => {
     ) as HTMLSelectElement | null;
     expect(valueSelect).not.toBeNull();
     expect(iconSelect).toBeNull();
-    // 옵션 = 자동 + 필드 3 (키는 fieldId)
-    expect([...valueSelect!.options].map((o) => o.value)).toEqual(
-      expect.arrayContaining(["f-id", "f-name", "f-avatar"]),
+    // 옵션 = 자동 + 필드 3 (키는 fieldId) — 목록은 열려야 다 있다 (닫힌 Select 는 선택 항목만)
+    const valueControl = container.querySelector(
+      ".binding-fieldmap-select[data-role='value']",
+    )!;
+    fireEvent.click(valueControl.querySelector("button")!);
+    expect(
+      [...document.querySelectorAll('[role="option"]')].map((o) =>
+        o.getAttribute("data-key"),
+      ),
+    ).toEqual(expect.arrayContaining(["f-id", "f-name", "f-avatar"]));
+    fireEvent.click(
+      document.querySelector('[role="option"][data-key="f-id"]')!,
     );
-
-    fireEvent.change(valueSelect!, { target: { value: "f-id" } });
     expect(onChange).toHaveBeenLastCalledWith(
       expect.objectContaining({
         collectionId: "c-users",
@@ -293,7 +300,7 @@ describe("CollectionBinding — fieldMap value (ADR-152 Phase 2)", () => {
     ) as HTMLSelectElement;
     expect(valueSelect.value).toBe("f-name");
 
-    fireEvent.change(valueSelect, { target: { value: "__auto__" } });
+    pick(valueSelect.closest(".binding-fieldmap-select")!, "__auto__");
     expect(onChange).toHaveBeenLastCalledWith(
       expect.objectContaining({ fieldMap: undefined }),
     );

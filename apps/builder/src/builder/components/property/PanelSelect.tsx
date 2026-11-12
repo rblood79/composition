@@ -12,11 +12,17 @@
  * Why: `PropertySelect` 의 마크업을 CollectionBinding (2) · VariableTable · CompactSelect 가 따로
  * 복사해 써서, PropertySelect 를 고쳐도 넷은 따라오지 않았다 (팝업 목록 class · focus 복원이
  * 곳마다 달랐다). `builderPopupList.static.test.ts` (c) 가 RAC `Select` 를 이 파일에서만 쓰게 한다.
+ *
+ * 닫혀 있는 동안 RAC 에는 선택된 항목 하나만 준다 (`closedItems` — 선택이 없으면 첫 항목) — 목록 전체는 열릴 때. RAC
+ * `Select` 는 collection 항목마다 숨은 native `<option>` 을 만드는데 (폼 제출 · 브라우저 자동 완성용,
+ * 300 항목 이하에서 끄는 prop 없음) 패널은 둘 다 쓰지 않는다. 닫힌 채 글자 · ←/→ 로 값을 바꾸는
+ * 동작은 없다 (열어서 고른다). Why (2026-11-12): Locale 선택칸 (36 항목) 이 선택마다 `<option>`
+ * 37 개를 만들어 select 부류 DOM 자식 변경이 280 → 922.
  */
 import { ChevronDown } from "lucide-react";
 import type { CSSProperties, ReactNode, Ref } from "react";
 import type { Key } from "react-aria-components/Collection";
-import { useCallback } from "react";
+import { Children, isValidElement, useCallback, useState } from "react";
 import { Button } from "react-aria-components/Button";
 import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
 import { Popover } from "react-aria-components/Popover";
@@ -74,13 +80,16 @@ export function PanelSelect({
   children,
 }: PanelSelectProps) {
   const { triggerRef, restoreFocusOnClose } = useSelectTriggerFocusRestore();
+  const [opened, setOpened] = useState(false);
   const handleOpenChange = useCallback(
     (open: boolean) => {
+      setOpened(open);
       onOpenChange?.(open);
       restoreFocusOnClose(open);
     },
     [onOpenChange, restoreFocusOnClose],
   );
+  const open = isOpen ?? opened;
   return (
     <AriaSelect
       className={
@@ -114,11 +123,39 @@ export function PanelSelect({
           }
           layout={grid ? "grid" : undefined}
         >
-          {children}
+          {open ? children : closedItems(children, selectedKey)}
         </ListBox>
       </Popover>
     </AriaSelect>
   );
+}
+
+/**
+ * What a closed select gives RAC: the selected item alone (found by its `id` — directly or inside a
+ * section). With nothing selected it is the first item — RAC does not open a select whose
+ * collection is empty. Items it cannot read (a wrapping component without `id`) are given in full.
+ */
+function closedItems(children: ReactNode, selectedKey: Key | null): ReactNode {
+  let readable = true;
+  let first: ReactNode = null;
+  const find = (nodes: ReactNode): ReactNode => {
+    for (const node of Children.toArray(nodes)) {
+      if (!isValidElement<{ id?: Key; children?: ReactNode }>(node)) continue;
+      const { id, children: inner } = node.props;
+      if (id !== undefined) {
+        if (id === selectedKey) return node;
+        first ??= node;
+      } else if (inner === undefined || typeof inner === "function") {
+        readable = false;
+      } else {
+        const found = find(inner);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+  const selected = find(children);
+  return selected ?? (readable ? first : children);
 }
 
 /** ▾ 자리 — Select 와 팝오버 trigger 가 같은 상자 (`.select-chevron`, form-controls.css). 기본 그림 ChevronDown */

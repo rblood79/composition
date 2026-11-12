@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [수용했던 ratchet 2 건 — 패널 선택칸의 숨은 option · drag 뒤 명령 버퍼 조각] - 2026-11-13
+
+### Changed
+
+- 패널 선택칸 (`PanelSelect` — Property · 바인딩 · 변수 유형 · 데이터 격자 · AI 설정) 이 닫혀 있는 동안 RAC 에 선택된 항목 하나만 준다 (선택이 없으면 첫 항목 — RAC 는 빈 목록을 열지 않는다). 목록 전체는 열릴 때 준다. RAC `Select` 는 항목마다 숨은 native `<option>` 을 만드는데 (폼 제출 · 브라우저 자동 완성용, 300 항목 이하에서 끄는 prop 없음) 패널은 둘 다 쓰지 않는다. Locale 선택칸 (36 항목) 의 숨은 option 37 → 2. 위치: `components/property/PanelSelect.tsx` `closedItems`. 테스트: `PanelSelect.test.tsx`.
+  - 달라지는 동작: 닫힌 선택칸에 focus 를 두고 글자 · ← / → 로 값을 바꾸던 것이 없어진다 (열어서 고른다 — ↓ · Enter · 클릭은 그대로).
+  - 외부 사례: Radix Select 는 폼 안일 때만 숨은 select 를 만들고, Ark UI 는 항목이 많으면 `HiddenSelect` 를 쓰지 말라고 안내한다.
+  - 숨은 `<select>` 를 직접 조작하던 테스트 5 건은 열어서 항목을 누르는 방식으로 바꿨다.
+- Canvas 명령 버퍼가 16 조각을 넘으면 합친다 — drag 의 splice 가 끌린 subtree 마다 2 조각을 남기는데 합치는 동작이 문서 열기 끝 한 번뿐이었다 (측정: 아무것도 바꾸지 않고 끝난 drag 20 회 뒤 32 조각. 옮기는 drop 은 장면을 다시 묶어 1 조각으로 돌아간다). gesture · 채움 밖의 프레임에서 확인한다. 위치: `canvasScene.ts` `CANVAS_BUFFER_PIECE_LIMIT` · `compactFragmented`, `CatalogCanvas.tsx`. 테스트: `commandBufferPieceLimit.test.ts`.
+  - 외부 사례: VS Code 텍스트 버퍼 (piece tree) 가 편집이 쌓일 때의 정리 단계를 검토 과제로 적었고, qem 은 조각 수 상한에서 강제로 합친다.
+
+### Infrastructure
+
+- ratchet 판정에서 `render.bufferSegmentsAtExec` (그리기 호출 수 × 조각 수) 를 뺐다 — 일의 양이 아니라 상태를 곱한 값이다 (drag splice 로 호출은 3.60M → 1.60M 으로 줄었는데 이 값은 182 → 900). 조각 수는 `render.bufferSegmentsPeak` (A) 가 판정한다 (사용자 승인 2026-11-13). 위치: `perf-ratchet-gate.mjs` `EXCLUDED`.
+
 ## [Property 탭 generic 렌더러 정리 — 섹션 표 하나 · 슬라이더 범위 catalog 이관 · 안 쓰는 목록 편집기 삭제] - 2026-11-12
 
 ### Changed

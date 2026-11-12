@@ -165,17 +165,6 @@ function typeChoicesOf(
 const storedTypeOf = (picked: string, current: string) =>
   picked === JSON_TYPE ? (structured(current) ? current : "object") : picked;
 
-/** A list item as the panel Select draws one — the name, and its hint under it. */
-function TypeChoiceItem({ choice }: { choice: TypeChoice }) {
-  return (
-    <PanelSelectItem
-      id={choice.value}
-      label={choice.label}
-      description={choice.description}
-    />
-  );
-}
-
 function formatDefault(value: unknown, type: string): string {
   if (value === undefined || value === null || value === "") return "";
   if (structured(type)) {
@@ -305,7 +294,12 @@ function TypeSelect({
       popoverClassName="variable-row__type-popover"
     >
       {options.map((choice) => (
-        <TypeChoiceItem key={choice.value} choice={choice} />
+        <PanelSelectItem
+          key={choice.value}
+          id={choice.value}
+          label={choice.label}
+          description={choice.description}
+        />
       ))}
     </PanelSelect>
   );
@@ -484,7 +478,12 @@ function CellListPopover({
         }}
       >
         {options.map((choice) => (
-          <TypeChoiceItem key={choice.value} choice={choice} />
+          <PanelSelectItem
+            key={choice.value}
+            id={choice.value}
+            label={choice.label}
+            description={choice.description}
+          />
         ))}
       </ListBox>
     </Popover>
