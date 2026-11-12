@@ -218,10 +218,6 @@ export const CatalogEventRow = memo(function CatalogEventRow({
   const target =
     action.opcode === "capability" ? describeTarget(action.target) : undefined;
   const targetType = target?.type ?? "";
-  const dateFormat =
-    action.opcode === "capability"
-      ? targetDateFormat?.(action.target)
-      : undefined;
   const notice =
     action.opcode === "capability" ? targetNotice(action.target) : undefined;
   // ADR-283 Decision 4 — a new target that does not take the capability: the line says what
@@ -919,9 +915,12 @@ export const CatalogEventRow = memo(function CatalogEventRow({
                   }
                   // (ADR-309 — a TimeField's Do asks for a time.)
                   emptyType={targetType === "TimeField" ? "time" : "date"}
-                  hourCycle={dateFormat?.hourCycle}
-                  forceLeadingZeros={dateFormat?.shouldForceLeadingZeros}
-                  hourCycleOwner={targetType}
+                  dateFormat={
+                    capabilityDef.param.kind === "date" ||
+                    capabilityDef.param.kind === "date-range"
+                      ? targetDateFormat?.(action.target)
+                      : undefined
+                  }
                   choices={
                     capabilityDef.param.kind === "choice"
                       ? capabilityChoices(targetType, capabilityDef)

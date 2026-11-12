@@ -1,10 +1,12 @@
 import {
   useCallback,
+  useEffect,
   useLayoutEffect,
   useRef,
   type FocusEvent,
   type KeyboardEvent,
   type KeyboardEventHandler,
+  type MutableRefObject,
   type Ref,
 } from "react";
 import {
@@ -19,8 +21,8 @@ interface DateValueInputProps {
   onBlur?: () => void;
   /** The cell editor's focus target — the field's first segment. */
   inputRef?: Ref<HTMLInputElement>;
-  /** A grid edit focuses the field's first segment as the edit starts. */
-  autoOpen?: boolean;
+  /** Focus the field's first segment as it mounts (a grid edit's start · a form's first field). */
+  autoFocus?: boolean;
   /**
    * ADR-309 — the shape an empty value edits as (a date field at a time granularity · a
    * TimeField): an empty text has no shape of its own (default `date`).
@@ -29,13 +31,25 @@ interface DateValueInputProps {
   className?: string;
   "aria-label"?: string;
   "aria-labelledby"?: string;
-  "aria-invalid"?: boolean | "true" | "false";
-  /** (Kept for callers — the segments show their own placeholders.) */
-  placeholder?: string;
+  "aria-describedby"?: string;
+  "aria-invalid"?: boolean;
   /** Enter · Tab · Escape · ⌘/Ctrl keys — the editor's commit · cancel · revert contract. */
   onKeyDown?: KeyboardEventHandler<HTMLInputElement>;
   [data: `data-${string}`]: string | boolean | undefined;
 }
+
+/** The field's first segment (or its unreadable-text input) — the editor's focus target. */
+const firstSegment = (root: HTMLElement | null) =>
+  root?.querySelector<HTMLElement>("[role=spinbutton], input") ?? null;
+
+/** A caller's ref (callback or object) set to `value`. */
+function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
+  if (typeof ref === "function") ref(value);
+  else if (ref) (ref as MutableRefObject<T | null>).current = value;
+}
+
+/** RAC FocusScope's restore event (`react-aria` `FocusScope` — `RESTORE_FOCUS_EVENT`). */
+const FOCUS_RESTORE_EVENT = "react-aria-focus-scope-restore";
 
 /** Inside the field's calendar popover (portalled — still the editor's own focus). */
 const inPopover = (node: EventTarget | null) =>
@@ -54,13 +68,13 @@ export function DateValueInput({
   onValueChange,
   onBlur,
   inputRef,
-  autoOpen,
+  autoFocus,
   emptyType,
   className,
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledBy,
+  "aria-describedby": ariaDescribedBy,
   "aria-invalid": ariaInvalid,
-  placeholder: _placeholder,
   onKeyDown,
   ...data
 }: DateValueInputProps) {
@@ -68,19 +82,24 @@ export function DateValueInput({
   const setRef = useCallback(
     (element: HTMLSpanElement | null) => {
       root.current = element;
-      const target = (element?.querySelector<HTMLElement>(
-        "[role=spinbutton], input",
-      ) ?? null) as HTMLInputElement | null;
-      if (typeof inputRef === "function") inputRef(target);
-      else if (inputRef) inputRef.current = target;
+      assignRef(inputRef, firstSegment(element) as HTMLInputElement | null);
     },
     [inputRef],
   );
+  // A closed calendar restores focus to its button by dispatching this event on it; a RAC table
+  // around the editor cancels it and focuses its cell instead (`useSelectableCollection` —
+  // virtualized rows reuse DOM nodes), leaving the edit open but keyless. The restore is the
+  // editor's own: it stops here and RAC focuses the button.
+  useEffect(() => {
+    const field = root.current;
+    if (!field) return;
+    const own = (event: Event) => event.stopPropagation();
+    field.addEventListener(FOCUS_RESTORE_EVENT, own);
+    return () => field.removeEventListener(FOCUS_RESTORE_EVENT, own);
+  }, []);
   useLayoutEffect(() => {
-    if (!autoOpen) return;
-    root.current
-      ?.querySelector<HTMLElement>("[role=spinbutton], input")
-      ?.focus();
+    if (!autoFocus) return;
+    firstSegment(root.current)?.focus();
     // Focus belongs to edit start only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -102,7 +121,6 @@ export function DateValueInput({
       className={
         className ? `date-value-input ${className}` : "date-value-input"
       }
-      data-date-value-editor
       onKeyDownCapture={forwardKey}
       onBlur={(event: FocusEvent<HTMLSpanElement>) => {
         const next = event.relatedTarget;
@@ -117,20 +135,9 @@ export function DateValueInput({
       <PanelDatePicker
         aria-label={ariaLabel}
         aria-labelledby={ariaLabelledBy}
-        isInvalid={ariaInvalid === true || ariaInvalid === "true"}
+        aria-describedby={ariaDescribedBy}
+        isInvalid={ariaInvalid}
         deferTyping={false}
-        // A closed calendar hands focus back to the editor — RAC's restore landed on the table
-        // cell around it (variable table · data grid), leaving the edit open but keyless.
-        onOpenChange={(open) => {
-          if (open) return;
-          requestAnimationFrame(() => {
-            const field = root.current;
-            if (!field || field.contains(document.activeElement)) return;
-            field
-              .querySelector<HTMLElement>(".property-date-picker__button")
-              ?.focus();
-          });
-        }}
         value={value}
         emptyType={emptyType}
         onValueChange={onValueChange}

@@ -151,9 +151,7 @@ describe("ADR-309 G2 (c) — the date fields", () => {
           label="Value"
           value={emptyType === "time" ? "21:07" : "2026-11-12T21:07"}
           emptyType={emptyType}
-          hourCycle={hourCycle}
-          ownerType={emptyType === "time" ? "TimeField" : undefined}
-          forceLeadingZeros={forceLeadingZeros}
+          format={{ hourCycle, shouldForceLeadingZeros: forceLeadingZeros }}
           onChange={() => {}}
         />,
       );

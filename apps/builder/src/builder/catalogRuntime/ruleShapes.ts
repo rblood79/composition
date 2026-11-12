@@ -19,6 +19,11 @@ import {
 } from "@composition/rendering";
 import { getPrimitiveBinding } from "@composition/shared";
 import {
+  evaluateConditionTree,
+  type ConditionSet,
+  type ConditionalValue,
+} from "../../../../../packages/shared/src/catalog/rule/conditionTree";
+import {
   catalogInvalidBorderColor,
   catalogQuietStyles,
 } from "../../../../../packages/shared/src/catalog/runtime/quietStyles";
@@ -740,38 +745,38 @@ export function catalogCalendarGridPaintProps(
     ((COMPONENT_RULES_TABLE as Record<string, { partStateStyles?: unknown }>)[
       type
     ]?.partStateStyles ?? {}) as Record<string, Record<string, unknown>>;
+  // (The rule's state tree at those conditions — the generated sheet's cascade, `rulePaint`'s read.)
+  const at = (tree: unknown, conditions: ConditionSet) =>
+    evaluateConditionTree(tree as ConditionalValue<unknown>, conditions);
   const hex = (value: unknown) => {
-    const leaf =
-      value && typeof value === "object"
-        ? (value as Record<string, unknown>).default
-        : value;
-    if (typeof leaf !== "string") return undefined;
-    const token = cssVarToTokenRef(leaf);
-    const resolved = token ? resolveToken(token, root.colorMode) : undefined;
-    return typeof resolved === "string" ? resolved : undefined;
+    if (typeof value !== "string" || !value.startsWith("var("))
+      return undefined;
+    try {
+      const resolved = cssVarColor(value, root.colorMode);
+      return typeof resolved === "string" ? resolved : undefined;
+    } catch {
+      return undefined;
+    }
   };
+  const selected = { isSelected: true };
   const cell = states("Calendar")["& .react-aria-CalendarCell%"] ?? {};
   const after = states("Calendar")["& .react-aria-CalendarCell%::after"] ?? {};
-  const isSelected = (decl: unknown) =>
-    (decl as Record<string, unknown> | undefined)?.isSelected;
-  const isTodaySelected = (decl: unknown) =>
-    isSelected((decl as Record<string, unknown> | undefined)?.isToday);
   const band = Object.entries(states("RangeCalendar")).find(
     ([selector, decl]) =>
       selector.endsWith("::before") &&
-      isSelected((decl as Record<string, unknown>).background) !== undefined &&
-      isSelected((decl as Record<string, unknown>).border) !== undefined,
+      at(decl.background, selected) !== undefined &&
+      at(decl.border, selected) !== undefined,
   )?.[1];
   const out = {
-    _selectedFill: hex(isSelected(cell.background)),
-    _selectedText: hex(isSelected(cell.color)),
-    _disabledText: hex(
-      (cell.color as Record<string, unknown> | undefined)?.isDisabled,
+    _selectedFill: hex(at(cell.background, selected)),
+    _selectedText: hex(at(cell.color, selected)),
+    _disabledText: hex(at(cell.color, { isDisabled: true })),
+    _selectedTodayDot: hex(
+      at(after.background, { isToday: true, isSelected: true }),
     ),
-    _selectedTodayDot: hex(isTodaySelected(after.background)),
-    _bandFill: hex(isSelected(band?.background)),
+    _bandFill: hex(at(band?.background, selected)),
     _bandBorder: hex(
-      String(isSelected(band?.border) ?? "").replace(/^\S+\s+\S+\s+/, ""),
+      String(at(band?.border, selected) ?? "").replace(/^\S+\s+\S+\s+/, ""),
     ),
   };
   void node;

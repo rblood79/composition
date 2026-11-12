@@ -311,6 +311,57 @@ describe("VariableTable", () => {
     expect(dateSegment(dense, "day").textContent).toBe("29");
   });
 
+  it("a date picked in the calendar keeps the edit on the field — the table never takes focus back (Enter commits it)", async () => {
+    const h = handlers();
+    const { container } = render(
+      wrap(
+        <VariableTable
+          owner="project"
+          rows={[
+            {
+              id: "d",
+              name: "due",
+              type: "date",
+              defaultValue: "2026-10-29",
+              usage: 0,
+            },
+          ]}
+          label="Variables"
+          typeOptions={TYPES}
+          {...h}
+        />,
+      ),
+    );
+    const cell = container.querySelector<HTMLElement>(
+      '[data-variable-id="d"] .variable-table__cell-default',
+    )!;
+    act(() => cell.focus());
+    fireEvent.keyDown(cell, { key: "Enter" });
+    const user = userEvent.setup();
+    const button = cell.querySelector<HTMLElement>(
+      ".property-date-picker__button",
+    )!;
+    await user.click(button);
+    const day = [
+      ...document.querySelectorAll<HTMLElement>(".property-calendar__cell"),
+    ].find(
+      (node) =>
+        node.textContent === "27" && !node.hasAttribute("data-outside-month"),
+    )!;
+    await user.click(day);
+    // (The calendar is closed and RAC's focus restore settles.)
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(document.querySelector(".property-calendar")).toBeNull();
+    expect(cell.querySelector(".property-date-picker")).not.toBeNull();
+    expect(cell.contains(document.activeElement)).toBe(true);
+    // (RAC's restore lands on the calendar button, not the table's cell.)
+    expect(document.activeElement).toBe(button);
+    await user.keyboard("{Enter}");
+    expect(h.onDefault).toHaveBeenCalledWith("d", "2026-10-27");
+  });
+
   it("date grid and State edits keep the zone and fractional precision; Escape and untouched blur do not write", async () => {
     const h = handlers();
     const dateRows: VariableTableRow[] = [

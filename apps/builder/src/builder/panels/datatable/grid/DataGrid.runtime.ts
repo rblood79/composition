@@ -21,10 +21,6 @@
  *   파싱 실패 셀은 null + `data-invalid` (0 으로 바꾸지 않음).
  */
 
-import { useContext, useEffect } from "react";
-
-import { TableStateContext } from "react-aria-components/Table";
-
 import type {
   DataField,
   DataTable,
@@ -188,15 +184,6 @@ export interface DataGridCellProps {
     key: string,
     params?: Record<string, string | number | boolean>,
   ) => string;
-}
-
-/** 편집 중 RAC 셀 이동을 끈다 — 편집기가 언마운트되면 되살린다 (RAC 권고 편집 어법). */
-export function useDisableGridNavigation() {
-  const state = useContext(TableStateContext);
-  useEffect(() => {
-    state?.setKeyboardNavigationDisabled(true);
-    return () => state?.setKeyboardNavigationDisabled(false);
-  }, [state]);
 }
 
 export interface CellEditorProps {

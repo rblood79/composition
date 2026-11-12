@@ -41,6 +41,8 @@ import {
   type CatalogValueSources,
   type CatalogValueType,
 } from "./valueOptions";
+import type { PanelDateEmptyType } from "../../components/property/PanelDatePicker";
+import type { StoredDateFormat } from "../properties/generic/DateValueFields";
 import "./ValueField.css";
 
 const GROUPS: readonly CatalogValueGroup[] = ["event", "item", "variable"];
@@ -62,12 +64,9 @@ interface ValueFieldProps {
     // ADR-309 Decision 7 — a date · time (`emptyType` — the picker an empty value opens) · a range.
     | "date"
     | "date-range";
-  emptyType?: "date" | "datetime-local" | "time";
-  /** ADR-309 — the target's `hourCycle` prop and type (its time segments show as the Canvas does). */
-  hourCycle?: unknown;
-  hourCycleOwner?: string;
-  /** ADR-309 — the target's `shouldForceLeadingZeros` prop (unset = on). */
-  forceLeadingZeros?: unknown;
+  emptyType?: PanelDateEmptyType;
+  /** ADR-309 — the target's props as stored (`hourCycle` · `shouldForceLeadingZeros` — `pickerFormat`). */
+  dateFormat?: StoredDateFormat;
   /** ADR-287 — a `choice` slot's values (the catalog's): the literal is one of them. */
   choices?: readonly { value: string; label: string }[];
   value: unknown;
@@ -172,9 +171,7 @@ export const ValueField = memo(function ValueField({
   sources,
   expectedType,
   emptyType = "date",
-  hourCycle,
-  hourCycleOwner,
-  forceLeadingZeros,
+  dateFormat,
 }: ValueFieldProps) {
   const { t } = useI18n();
   const text = useOptionText();
@@ -258,9 +255,7 @@ export const ValueField = memo(function ValueField({
             label={label}
             value={value}
             emptyType={emptyType}
-            hourCycle={hourCycle}
-            ownerType={hourCycleOwner}
-            forceLeadingZeros={forceLeadingZeros}
+            format={dateFormat}
             onChange={(next) => onChange(next ?? "")}
           />
         </Suspense>
@@ -275,9 +270,7 @@ export const ValueField = memo(function ValueField({
             label={label}
             value={value}
             emptyType={emptyType}
-            hourCycle={hourCycle}
-            ownerType={hourCycleOwner}
-            forceLeadingZeros={forceLeadingZeros}
+            format={dateFormat}
             onChange={onChange}
           />
         </Suspense>

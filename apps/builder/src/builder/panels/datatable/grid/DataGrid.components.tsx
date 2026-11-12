@@ -20,6 +20,7 @@
  * - 붙여넣기 (⌘V, 셀 포커스): `planGridPaste` → 넘치는 열은 `ConfirmDialog` "새 필드로 추가?".
  *   파싱 실패 셀은 null + `data-invalid` (0 으로 바꾸지 않음).
  */
+import { useTableNavigationLock } from "../../../hooks/useTableNavigationLock";
 import { resolveField, type DataOp } from "@composition/shared";
 
 import {
@@ -174,7 +175,6 @@ import {
   coordOf,
   isReadonlyField,
   resolveScroller,
-  useDisableGridNavigation,
 } from "./DataGrid.runtime";
 import {
   gridPasteToOps,
@@ -1696,7 +1696,7 @@ function ColumnRenameInput({
   const inputRef = useRef<HTMLInputElement>(null);
   // blur 커밋과 Enter/Esc 커밋이 겹치지 않도록 (Enter 뒤 언마운트 blur)
   const settledRef = useRef(false);
-  useDisableGridNavigation();
+  useTableNavigationLock();
   useLayoutEffect(() => {
     const manager = state?.selectionManager;
     manager?.setFocused(true);
@@ -1868,7 +1868,7 @@ function InlineCellEditor({
   onCommit,
   onCancel,
 }: CellEditorProps & { initial: string }) {
-  useDisableGridNavigation();
+  useTableNavigationLock();
   const [draft, setDraft] = useState(initial);
   const [isInvalid, setIsInvalid] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -1931,8 +1931,7 @@ function InlineCellEditor({
   if (field.type === "date" && initial === original)
     return (
       <DateValueInput
-        inputRef={inputRef}
-        autoOpen
+        autoFocus
         data-grid-editor="inline"
         data-shortcut-local="undo redo"
         className="datagrid-cell-input"
@@ -1994,7 +1993,7 @@ function PopoverCellEditor({
   triggerRef: RefObject<HTMLElement | null>;
   hint: DataGridCellProps["hint"];
 }) {
-  useDisableGridNavigation();
+  useTableNavigationLock();
   const isJson = field.type === "array" || field.type === "object";
   const hintKey = isJson ? "gridJsonHint" : null;
   return (

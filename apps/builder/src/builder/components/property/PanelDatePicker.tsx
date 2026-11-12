@@ -1,5 +1,5 @@
 /**
- * PanelDatePicker · PanelDateRangePicker · PanelTimeField — 빌더 패널의 날짜 칸 (2026-11-12 사용자 결정
+ * PanelDatePicker · PanelDateRangePicker — 빌더 패널의 날짜 · 시각 칸 (2026-11-12 사용자 결정
  * 「RAC DatePicker (달력 팝업이 있는 날짜 칸) 를 따로 만들어 쓴다 — select · combobox 처럼 패널용으로」).
  *
  * RAC `DatePicker` (segment 칸 + 달력 버튼 + `Popover` 안 `Calendar`) · `DateRangePicker` (+ `RangeCalendar`)
@@ -16,6 +16,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import {
+  useMemo,
   useState,
   type FocusEvent,
   type KeyboardEvent,
@@ -50,6 +51,14 @@ import { iconProps } from "../../../utils/ui/uiConstants";
 import "./PanelDatePicker.css";
 
 export type PanelDateEmptyType = "date" | "datetime-local" | "time";
+
+/** The time segments' format — the edited component's own. */
+export interface PanelDateFormat {
+  /** 시각 칸의 12 · 24 시간제 — 고치는 컴포넌트의 Hour cycle (없으면 locale) */
+  hourCycle?: 12 | 24;
+  /** 한 자리 숫자 앞에 0 (`09`) — 고치는 컴포넌트의 Force leading zeros */
+  shouldForceLeadingZeros?: boolean;
+}
 
 interface Projection extends NativeDateInput {
   /** RAC 값 (벽시계) — 비었거나 읽을 수 없으면 null */
@@ -143,9 +152,9 @@ function useTypingDraft<T>(
   };
 }
 
-function Segments() {
+function Segments({ slot }: { slot?: "start" | "end" }) {
   return (
-    <DateInput className="property-date-picker__input">
+    <DateInput slot={slot} className="property-date-picker__input">
       {(segment) => (
         <DateSegment
           segment={segment}
@@ -212,11 +221,13 @@ function UnreadableText({
   value,
   label,
   labelledBy,
+  describedBy,
   onValueChange,
 }: {
   value: string;
   label?: string;
   labelledBy?: string;
+  describedBy?: string;
   onValueChange: (text: string) => void;
 }) {
   return (
@@ -224,6 +235,7 @@ function UnreadableText({
       className="property-date-picker__text"
       aria-label={label}
       aria-labelledby={labelledBy}
+      aria-describedby={describedBy}
       aria-invalid
       value={value}
       onChange={(event) => onValueChange(event.target.value)}
@@ -231,9 +243,11 @@ function UnreadableText({
   );
 }
 
-export interface PanelDatePickerProps {
+export interface PanelDatePickerProps extends PanelDateFormat {
   "aria-label"?: string;
   "aria-labelledby"?: string;
+  /** 오류 문구 등 칸을 설명하는 요소 */
+  "aria-describedby"?: string;
   /** 호출부가 정한 오류 표시 (날짜로 읽을 수 없는 글자는 따로 표시된다) */
   isInvalid?: boolean;
   /**
@@ -241,12 +255,6 @@ export interface PanelDatePickerProps {
    * blur · Enter 에 저장하는 곳 (변수 표 · 데이터 격자 · 행 폼) 은 false — 바뀔 때마다 알린다.
    */
   deferTyping?: boolean;
-  /** 달력 팝오버가 열리고 닫힐 때 */
-  onOpenChange?: (open: boolean) => void;
-  /** 시각 칸의 12 · 24 시간제 — 고치는 컴포넌트의 Hour cycle (없으면 locale) */
-  hourCycle?: 12 | 24;
-  /** 한 자리 숫자 앞에 0 (`09`) — 고치는 컴포넌트의 Force leading zeros */
-  shouldForceLeadingZeros?: boolean;
   /** 저장된 ISO 글자 (빈 글자 = 값 없음) */
   value: string;
   onValueChange: (text: string) => void;
@@ -258,9 +266,9 @@ export interface PanelDatePickerProps {
 export function PanelDatePicker({
   "aria-label": label,
   "aria-labelledby": labelledBy,
+  "aria-describedby": describedBy,
   isInvalid: callerInvalid,
   deferTyping = true,
-  onOpenChange,
   hourCycle,
   shouldForceLeadingZeros,
   value,
@@ -270,59 +278,60 @@ export function PanelDatePicker({
   const draft = useTypingDraft(value, value, onValueChange, deferTyping);
   const text = draft.shown;
   const source = useEnvelope(text);
-  const shown = project(text, emptyType);
+  // (Memoized — a new RAC value object makes RAC rebuild its segments.)
+  const shown = useMemo(() => project(text, emptyType), [text, emptyType]);
   // (An emptied field keeps the kind of the value it held.)
-  const kind =
-    text === "" && source !== "" ? project(source, emptyType) : shown;
+  const kind = useMemo(
+    () => (text === "" && source !== "" ? project(source, emptyType) : shown),
+    [text, source, emptyType, shown],
+  );
   if (kind.type === "text")
     return (
       <UnreadableText
         value={value}
         label={label}
         labelledBy={labelledBy}
+        describedBy={describedBy}
         onValueChange={onValueChange}
       />
     );
-  const invalid = !!callerInvalid || (text !== "" && !isDateValueText(text));
+  const common = {
+    className: "property-date-picker",
+    "aria-label": label,
+    "aria-labelledby": labelledBy,
+    "aria-describedby": describedBy,
+    hourCycle,
+    shouldForceLeadingZeros,
+    isInvalid: !!callerInvalid || !isDateValueText(text),
+    onChange: (next: DateValue | TimeValue | null) =>
+      draft.change(commitText(source, next, kind.granularity)),
+  };
+  const segments = (
+    <>
+      <Segments />
+      <Zone zone={kind.zone} />
+    </>
+  );
   if (kind.type === "time")
     return (
       <TimeField
-        className="property-date-picker"
-        aria-label={label}
-        aria-labelledby={labelledBy}
+        {...common}
         value={shown.rac as TimeValue | null}
         granularity={kind.granularity === "second" ? "second" : "minute"}
-        hourCycle={hourCycle}
-        shouldForceLeadingZeros={shouldForceLeadingZeros}
-        isInvalid={invalid}
-        onChange={(next) =>
-          draft.change(commitText(source, next, kind.granularity))
-        }
       >
         <Group className="property-date-picker__group" {...draft.groupProps}>
-          <Segments />
-          <Zone zone={kind.zone} />
+          {segments}
         </Group>
       </TimeField>
     );
   return (
     <DatePicker
-      className="property-date-picker"
-      aria-label={label}
-      aria-labelledby={labelledBy}
+      {...common}
       value={shown.rac as DateValue | null}
       granularity={kind.granularity}
-      hourCycle={hourCycle}
-      shouldForceLeadingZeros={shouldForceLeadingZeros}
-      isInvalid={invalid}
-      onOpenChange={onOpenChange}
-      onChange={(next) =>
-        draft.change(commitText(source, next, kind.granularity))
-      }
     >
       <Group className="property-date-picker__group" {...draft.groupProps}>
-        <Segments />
-        <Zone zone={kind.zone} />
+        {segments}
         <CalendarButton />
       </Group>
       <CalendarPopover>
@@ -340,16 +349,12 @@ export interface PanelDateRange {
   end: string;
 }
 
-export interface PanelDateRangePickerProps {
+export interface PanelDateRangePickerProps extends PanelDateFormat {
   "aria-label": string;
   value: PanelDateRange;
   /** 두 끝 모두 지우면 null */
   onValueChange: (range: PanelDateRange | null) => void;
   emptyType?: PanelDateEmptyType;
-  /** 시각 칸의 12 · 24 시간제 — 고치는 컴포넌트의 Hour cycle (없으면 locale) */
-  hourCycle?: 12 | 24;
-  /** 한 자리 숫자 앞에 0 (`09`) — 고치는 컴포넌트의 Force leading zeros */
-  shouldForceLeadingZeros?: boolean;
 }
 
 /** A range's start · end in one field, with a range calendar popover (RAC `DateRangePicker`). */
@@ -369,13 +374,26 @@ export function PanelDateRangePicker({
   const range = draft.shown ?? { start: "", end: "" };
   const start = useEnvelope(range.start);
   const end = useEnvelope(range.end);
-  const shownStart = project(range.start, emptyType);
-  const shownEnd = project(range.end, emptyType);
-  const kind = project(start || end, emptyType);
-  const both =
-    shownStart.rac && shownEnd.rac && kind.type !== "time"
-      ? { start: shownStart.rac as DateValue, end: shownEnd.rac as DateValue }
-      : null;
+  const shownStart = useMemo(
+    () => project(range.start, emptyType),
+    [range.start, emptyType],
+  );
+  const shownEnd = useMemo(
+    () => project(range.end, emptyType),
+    [range.end, emptyType],
+  );
+  const kind = useMemo(
+    () => project(start || end, emptyType),
+    [start, end, emptyType],
+  );
+  const both = useMemo(
+    () =>
+      // (A time range never reaches the picker — the early return below.)
+      shownStart.rac && shownEnd.rac
+        ? { start: shownStart.rac as DateValue, end: shownEnd.rac as DateValue }
+        : null,
+    [shownStart, shownEnd],
+  );
   if (
     kind.type === "text" ||
     kind.type === "time" ||
@@ -401,7 +419,7 @@ export function PanelDateRangePicker({
       className="property-date-picker"
       aria-label={label}
       value={both}
-      granularity={kind.granularity === "day" ? "day" : kind.granularity}
+      granularity={kind.granularity}
       hourCycle={hourCycle}
       shouldForceLeadingZeros={shouldForceLeadingZeros}
       onChange={(next) =>
@@ -416,25 +434,11 @@ export function PanelDateRangePicker({
       }
     >
       <Group className="property-date-picker__group" {...draft.groupProps}>
-        <DateInput slot="start" className="property-date-picker__input">
-          {(segment) => (
-            <DateSegment
-              segment={segment}
-              className="property-date-picker__segment"
-            />
-          )}
-        </DateInput>
+        <Segments slot="start" />
         <span aria-hidden="true" className="property-date-picker__dash">
           –
         </span>
-        <DateInput slot="end" className="property-date-picker__input">
-          {(segment) => (
-            <DateSegment
-              segment={segment}
-              className="property-date-picker__segment"
-            />
-          )}
-        </DateInput>
+        <Segments slot="end" />
         <CalendarButton />
       </Group>
       <CalendarPopover>

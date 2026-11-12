@@ -50,17 +50,17 @@ const DateKindField = memo(function DateKindField({
     undefined,
   );
   const emptyType = dateFieldEmptyType(field.kind, granularity);
-  // (A `time` field is a TimeField's — the only kind-`time` owner.)
-  const ownerType = field.kind === "time" ? "TimeField" : undefined;
+  const format = {
+    hourCycle: hourCycleValue,
+    shouldForceLeadingZeros: forceLeadingZeros,
+  };
   if (field.kind === "date-range")
     return (
       <DateRangeField
         label={field.label}
         value={value}
         emptyType={emptyType}
-        hourCycle={hourCycleValue}
-        ownerType={ownerType}
-        forceLeadingZeros={forceLeadingZeros}
+        format={format}
         onChange={onChange}
       />
     );
@@ -78,9 +78,7 @@ const DateKindField = memo(function DateKindField({
       label={field.label}
       value={value}
       emptyType={emptyType}
-      hourCycle={hourCycleValue}
-      ownerType={ownerType}
-      forceLeadingZeros={forceLeadingZeros}
+      format={format}
       onChange={onChange}
     />
   );

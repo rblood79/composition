@@ -232,21 +232,26 @@ function CatalogRules({
   );
   // ADR-283 Decision 2 — the panel reads a target as the selected record sees it (the Preview's
   // `resolveCapabilityTarget`): another row's · instance's place names nothing from here.
-  const targetNotice = useCallback(
-    (ref: CatalogCapabilityTarget): CatalogTargetNotice | undefined => {
-      if ("unset" in ref) return "unset";
-      const resolved = resolveCapabilityTarget(
+  const resolveHere = useCallback(
+    (ref: Exclude<CatalogCapabilityTarget, { unset: true }>) =>
+      resolveCapabilityTarget(
         workspace.root,
         identity,
         ref,
         catalogOriginRootOf(graph, owner.ownerId),
-      );
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read at each graph revision
+    [graph, identity, owner, revision, workspace],
+  );
+  const targetNotice = useCallback(
+    (ref: CatalogCapabilityTarget): CatalogTargetNotice | undefined => {
+      if ("unset" in ref) return "unset";
+      const resolved = resolveHere(ref);
       return "error" in resolved && resolved.error === "TARGET_OUT_OF_CONTEXT"
         ? "outOfContext"
         : undefined;
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read at each graph revision
-    [graph, identity, owner, revision, workspace],
+    [resolveHere],
   );
 
   // ADR-309 — a date argument shows its target's format: the props (`hourCycle` ·
@@ -254,17 +259,11 @@ function CatalogRules({
   const targetDateFormat = useCallback(
     (ref: CatalogCapabilityTarget) => {
       if ("unset" in ref) return undefined;
-      const resolved = resolveCapabilityTarget(
-        workspace.root,
-        identity,
-        ref,
-        catalogOriginRootOf(graph, owner.ownerId),
-      );
+      const resolved = resolveHere(ref);
       if (!("recordId" in resolved)) return undefined;
       return workspace.root.domInputs.get(resolved.recordId)?.props;
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read at each graph revision
-    [graph, identity, owner, revision, workspace],
+    [resolveHere, workspace],
   );
 
   const targetExposure = useCallback(

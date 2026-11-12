@@ -50,9 +50,8 @@ describe("ADR-309 G3 (b) — a rule's date argument", () => {
       });
     const user = userEvent.setup();
     const type = async (field: HTMLElement, keys: string, at = 0) => {
-      const segment = field.querySelectorAll<HTMLElement>("[role=spinbutton]")[
-        at
-      ]!;
+      const segment =
+        field.querySelectorAll<HTMLElement>("[role=spinbutton]")[at]!;
       await act(async () => segment.focus());
       await user.keyboard(keys);
       await act(async () => (document.activeElement as HTMLElement).blur());
@@ -112,6 +111,7 @@ describe("ADR-309 G3 (b) — a rule's date argument", () => {
       [...clock.querySelectorAll<HTMLElement>("[role=spinbutton]")].map(
         (segment) => segment.dataset.type,
       ),
-    ).toEqual(["hour", "minute", "dayPeriod"]);
+      // (A time argument is a TimeField's — no Hour cycle shows 24 hours, as the Canvas · DOM.)
+    ).toEqual(["hour", "minute"]);
   });
 });

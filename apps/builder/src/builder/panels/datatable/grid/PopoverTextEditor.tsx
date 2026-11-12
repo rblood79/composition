@@ -4,7 +4,7 @@
  * (+ a hint), a textarea, the key hints and Cancel · Save. Supabase 어법: ⏎ saves, ⇧⏎ keeps the
  * newline, Esc cancels; an outside press cancels too. The owner says what a draft means
  * (`onCommit` → false keeps the editor open, marked invalid) and locks its own grid's focus
- * (`useDisableGridNavigation` · the variable table's lock) before rendering this.
+ * (`useTableNavigationLock`) before rendering this.
  */
 import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { Button } from "react-aria-components/Button";

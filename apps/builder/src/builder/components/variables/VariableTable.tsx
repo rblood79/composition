@@ -29,10 +29,10 @@
  * `variable-table__*` classes — the Builder's global `.react-aria-Row { display: flex }` (the
  * catalog Table's row grid, ADR-257) would otherwise break the table layout (live 2026-10-28).
  */
+import { useTableNavigationLock } from "../../hooks/useTableNavigationLock";
 import {
   memo,
   useCallback,
-  useContext,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -53,7 +53,6 @@ import {
   Table,
   TableBody,
   TableHeader,
-  TableStateContext,
 } from "react-aria-components/Table";
 import { ArrowUpRight } from "lucide-react";
 import { useI18n } from "@/i18n";
@@ -247,7 +246,6 @@ function CommitInput({
         onValueChange={setDraft}
         onBlur={commit}
         onKeyDown={handleKeyDown}
-        placeholder={placeholder}
       />
     );
   return (
@@ -321,18 +319,6 @@ interface CellEdit {
   column: EditableColumn;
   /** The draft to start from — a typed key replaces the value; Enter · F2 keep it. */
   initial?: string;
-}
-
-/**
- * The table's focus management keeps the focused cell focused — while an editor is open it would
- * pull focus back out of it (the grid's `useDisableGridNavigation`).
- */
-function useTableNavigationLock() {
-  const tableState = useContext(TableStateContext);
-  useEffect(() => {
-    tableState?.setKeyboardNavigationDisabled(true);
-    return () => tableState?.setKeyboardNavigationDisabled(false);
-  }, [tableState]);
 }
 
 /**
@@ -411,13 +397,11 @@ function CellEditor({
   if (date && initial === undefined)
     return (
       <DateValueInput
-        inputRef={inputRef}
-        autoOpen
+        autoFocus
         className="variable-table__cell-input"
         data-cell-editor
         aria-label={label}
         aria-invalid={invalid || undefined}
-        placeholder={placeholder}
         value={draft}
         onValueChange={setDraft}
         onBlur={() => commit(false)}

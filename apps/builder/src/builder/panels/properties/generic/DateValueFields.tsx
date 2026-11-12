@@ -3,6 +3,8 @@ import { Button } from "react-aria-components/Button";
 import {
   PanelDatePicker,
   PanelDateRangePicker,
+  type PanelDateEmptyType,
+  type PanelDateFormat,
 } from "../../../components/property/PanelDatePicker";
 import { PropertyFieldset } from "../../../components/property/PropertyFieldset";
 import { ACTION_ICONS } from "../../../config/actionIcons";
@@ -19,7 +21,8 @@ import "./DateValueFields.css";
  * until a new value is picked (R5).
  */
 
-type EmptyType = "date" | "datetime-local" | "time";
+/** The edited component's props as stored — `hourCycle` · `shouldForceLeadingZeros` are read. */
+export type StoredDateFormat = Readonly<Record<string, unknown>>;
 const TIME_GRANULARITIES = new Set(["hour", "minute", "second"]);
 const DeleteIcon = ACTION_ICONS.delete;
 const AddIcon = ACTION_ICONS.add;
@@ -39,11 +42,29 @@ export function fieldHourCycle(
   return ownerType === "TimeField" ? 24 : undefined;
 }
 
+/**
+ * The time segments' format from the edited component's stored props: its Hour cycle
+ * (`fieldHourCycle` — a time field is a TimeField's, the only kind-`time` owner) and Force leading
+ * zeros (unset = on, as the Canvas · DOM read it).
+ */
+function pickerFormat(
+  emptyType: PanelDateEmptyType,
+  format: StoredDateFormat | undefined,
+): PanelDateFormat {
+  return {
+    hourCycle: fieldHourCycle(
+      emptyType === "time" ? "TimeField" : undefined,
+      format?.hourCycle,
+    ),
+    shouldForceLeadingZeros: format?.shouldForceLeadingZeros !== false,
+  };
+}
+
 /** The picker an empty field opens: a time, a date and time at a time granularity, else a date. */
 export function dateFieldEmptyType(
   kind: string,
   granularity: unknown,
-): EmptyType {
+): PanelDateEmptyType {
   if (kind === "time") return "time";
   return TIME_GRANULARITIES.has(String(granularity))
     ? "datetime-local"
@@ -57,15 +78,13 @@ export function dateFieldEmptyType(
 function DateDraftInput({
   value,
   emptyType,
-  hourCycle,
-  forceLeadingZeros,
+  format,
   label,
   onCommit,
 }: {
   value: string;
-  emptyType: EmptyType;
-  hourCycle?: 12 | 24;
-  forceLeadingZeros?: boolean;
+  emptyType: PanelDateEmptyType;
+  format?: PanelDateFormat;
   label: string;
   onCommit: (value: string) => void;
 }) {
@@ -79,12 +98,11 @@ function DateDraftInput({
     <PanelDatePicker
       value={draft}
       emptyType={emptyType}
-      hourCycle={hourCycle}
-      shouldForceLeadingZeros={forceLeadingZeros}
+      {...format}
       aria-label={label}
       onValueChange={(next) => {
         setDraft(next);
-        if (next === "" || isDateValueText(next)) onCommit(next);
+        if (isDateValueText(next)) onCommit(next);
       }}
     />
   );
@@ -99,26 +117,21 @@ function Unreadable({ text }: { text: string }) {
   );
 }
 
-const unreadable = (text: string) => text !== "" && !isDateValueText(text);
+const unreadable = (text: string) => !isDateValueText(text);
 
 /** A date · date and time · time (`date` · `time` kinds — Value, Min, Max, Placeholder). */
 export function DateValueField({
   label,
   value,
   emptyType,
-  hourCycle,
-  ownerType,
-  forceLeadingZeros,
+  format,
   onChange,
 }: {
   label: string;
   value: unknown;
-  emptyType: EmptyType;
-  /** The edited component's `hourCycle` prop as stored, and its type (`fieldHourCycle`). */
-  hourCycle?: unknown;
-  ownerType?: string;
-  /** The edited component's `shouldForceLeadingZeros` as stored (unset = on, as the DOM reads it). */
-  forceLeadingZeros?: unknown;
+  emptyType: PanelDateEmptyType;
+  /** The edited component's props as stored (`pickerFormat`). */
+  format?: StoredDateFormat;
   onChange: (value: unknown) => void;
 }) {
   const text = typeof value === "string" ? value : "";
@@ -130,8 +143,7 @@ export function DateValueField({
       <DateDraftInput
         value={text}
         emptyType={emptyType}
-        hourCycle={fieldHourCycle(ownerType, hourCycle)}
-        forceLeadingZeros={forceLeadingZeros !== false}
+        format={pickerFormat(emptyType, format)}
         label={label}
         onCommit={(next) => onChange(next === "" ? undefined : next)}
       />
@@ -144,18 +156,14 @@ export function DateRangeField({
   label,
   value,
   emptyType,
-  hourCycle,
-  ownerType,
-  forceLeadingZeros,
+  format,
   onChange,
 }: {
   label: string;
   value: unknown;
-  emptyType: EmptyType;
-  hourCycle?: unknown;
-  ownerType?: string;
-  /** The edited component's `shouldForceLeadingZeros` as stored (unset = on, as the DOM reads it). */
-  forceLeadingZeros?: unknown;
+  emptyType: PanelDateEmptyType;
+  /** The edited component's props as stored (`pickerFormat`). */
+  format?: StoredDateFormat;
   onChange: (value: unknown) => void;
 }) {
   const range = catalogDateRangeFits(value) ? value : { start: "", end: "" };
@@ -172,15 +180,11 @@ export function DateRangeField({
         aria-label={label}
         value={range}
         emptyType={emptyType}
-        hourCycle={fieldHourCycle(ownerType, hourCycle)}
-        shouldForceLeadingZeros={forceLeadingZeros !== false}
+        {...pickerFormat(emptyType, format)}
         onValueChange={(next) => {
           if (!next) return onChange(undefined);
           if (next.start === "" && next.end === "") return onChange(undefined);
-          if (
-            (next.start === "" || isDateValueText(next.start)) &&
-            (next.end === "" || isDateValueText(next.end))
-          )
+          if (isDateValueText(next.start) && isDateValueText(next.end))
             onChange(next);
         }}
       />

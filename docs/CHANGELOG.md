@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TimeField 가 날짜+시각 값 (`2026-11-12T10:30`) 을 23:30 으로 보이던 결함 — 그 시각 (10:30) 을 보인다.
 - Calendar 다중 선택의 날짜 목록이 Preview 를 멈추고 (RAC 예외), 선택 뒤 쉼표로 이은 글자 하나로 저장되던 결함 — 날짜 목록으로 읽고 쓴다.
 - Calendar · RangeCalendar (와 DatePicker · DateRangePicker 의 달력) 에 Min · Max 를 넣어도 Canvas 가 범위 밖 날짜를 흐리게 그리지 않던 결함 — RAC 가 막는 날짜 (`data-disabled`) 를 Canvas 달력도 S2 `disabled` 글자색으로 그린다. **Why**: 흐림 색이 수동 `CalendarCommon.css` 에만 있어 Canvas 가 읽을 곳이 없었다 — catalog rule 날짜 칸 상태 (`color.isDisabled`) 로 옮겨 두 consumer 가 같이 읽는다.
+- 변수 표 · 데이터 격자의 날짜 칸에서 달력으로 날짜를 고르면 포커스가 둘레 표 칸으로 가, 편집이 열린 채 Enter 가 먹지 않던 결함 — 달력이 닫힐 때 RAC 의 포커스 복원 이벤트를 날짜 편집기가 자기 안에서 멈춰 포커스가 달력 버튼으로 돌아온다 (둘레 RAC 표가 그 이벤트를 취소하고 자기 칸에 포커스를 주었다).
+- 행 폼 · 필드 기본값의 날짜 칸이 오류 문구와 이어지지 않던 결함 (`aria-describedby` 가 날짜 칸에서 버려졌다) — 다른 칸처럼 오류 문구가 날짜 칸을 설명한다.
 
 ## [선택 · 펼침은 그룹이 저장한다 — ADR-308 Implemented (Phase 0 ~ 3)] - 2026-11-12
 

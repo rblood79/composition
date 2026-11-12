@@ -111,6 +111,52 @@ describe("DateValueInput (the panel's RAC date picker — 사용자 2026-11-12)"
     expect(keys).toEqual(["Enter", "Escape"]);
   });
 
+  it("a form date field's error describes the field (aria-describedby reaches the picker)", () => {
+    const view = render(
+      <I18nProvider initialLocale="en-US">
+        <FieldValueInput
+          field={{ id: "due", key: "due", type: "date" }}
+          label="Due"
+          text="2026-10-29"
+          error="Not a date"
+          onChange={() => {}}
+        />
+      </I18nProvider>,
+    );
+    const error = view.getByRole("alert");
+    // (The form's `common` props: invalid · local shortcuts reach the date field too.)
+    expect(
+      view.container
+        .querySelector(".date-value-input")!
+        .getAttribute("data-shortcut-local"),
+    ).toBe("undo redo");
+    expect(
+      view.container
+        .querySelector(".property-date-picker")!
+        .hasAttribute("data-invalid"),
+    ).toBe(true);
+    expect(error.id).not.toBe("");
+    const picker = view.container.querySelector(".property-date-picker")!;
+    expect(
+      picker.querySelector(`[aria-describedby~="${error.id}"]`),
+    ).not.toBeNull();
+  });
+
+  it("a form date field with autoFocus focuses its first segment", () => {
+    const view = render(
+      <I18nProvider initialLocale="en-US">
+        <FieldValueInput
+          field={{ id: "due", key: "due", type: "date" }}
+          label="Due"
+          text="2026-10-29"
+          autoFocus
+          onChange={() => {}}
+        />
+      </I18nProvider>,
+    );
+    expect(document.activeElement).toBe(segment(view.container, "month"));
+  });
+
   it("the RowForm/default editor uses the same lossless ISO commit", async () => {
     const change = vi.fn();
     const view = render(
